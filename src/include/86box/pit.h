@@ -60,6 +60,11 @@ typedef struct ctr_t {
     uint32_t lback;
     uint32_t lback2;
 
+    /* The counter's own clock is the timer's divided by this: the ESC's
+       fail-safe counter runs at OSC/48 beside counters at OSC/12. */
+    int clock_div;
+    int clock_phase;
+
     void (*load_func)(uint8_t new_m, int new_count);
     void (*out_func)(int new_out, int old_out, void *priv);
 } ctr_t;
@@ -105,6 +110,9 @@ typedef struct pit_intf_t {
     void (*set_load_func)(void *data, int counter_id, void (*func)(uint8_t new_m, int new_count));
     void (*ctr_clock)(void *data, int counter_id);
     void (*set_pit_const)(void *data, uint64_t pit_const);
+    /* Divides one counter's clock input by a whole number, for a timer
+       whose counters are not all clocked alike. */
+    void (*set_clock_div)(void *data, int counter_id, int div);
     void *data;
 } pit_intf_t;
 

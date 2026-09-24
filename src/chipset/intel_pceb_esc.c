@@ -1476,6 +1476,10 @@ esc_init(UNUSED(const device_t *info))
        it. */
     pit_devs[1].set_gate(pit_devs[1].data, 0, 1);
     pit_devs[1].set_out_func(pit_devs[1].data, 0, esc_fail_safe_timer);
+    /* And it counts a quarter as fast as the system timer: "Clock In
+       ... 0.298 MHz (OSC/48)" against 1.193 MHz (OSC/12) for Timer 1
+       (82374EB, Table 20, Interval Timer Functions). */
+    pit_devs[1].set_clock_div(pit_devs[1].data, 0, 4);
 
     /* The 82374SB's two power management ports, APMC at 0B2h and APMS at
        0B3h. The data book puts them in normal I/O space rather than in

@@ -294,8 +294,19 @@ pit_timer_over(void *priv)
 
     dev->clock ^= 1;
 
-    for (uint8_t i = 0; i < NUM_COUNTERS; i++)
-        pit_ctr_set_clock_common(&dev->counters[i], dev->clock, dev);
+    for (uint8_t i = 0; i < NUM_COUNTERS; i++) {
+        ctr_t *ctr = &dev->counters[i];
+
+        /* A divided counter sees one edge in every clock_div of the
+           timer's, and so a clock clock_div times slower. */
+        if (ctr->clock_div > 1) {
+            if (++ctr->clock_phase < ctr->clock_div)
+                continue;
+            ctr->clock_phase = 0;
+            pit_ctr_set_clock_common(ctr, !ctr->clock, dev);
+        } else
+            pit_ctr_set_clock_common(ctr, dev->clock, dev);
+    }
 
     timer_advance_u64(&dev->callback_timer, dev->pit_const >> 1ULL);
 }
@@ -1205,8 +1216,19 @@ pit_timer_over(void *priv)
 
     dev->clock ^= 1;
 
-    for (uint8_t i = 0; i < NUM_COUNTERS; i++)
-        pit_ctr_set_clock_common(&dev->counters[i], dev->clock, dev);
+    for (uint8_t i = 0; i < NUM_COUNTERS; i++) {
+        ctr_t *ctr = &dev->counters[i];
+
+        /* A divided counter sees one edge in every clock_div of the
+           timer's, and so a clock clock_div times slower. */
+        if (ctr->clock_div > 1) {
+            if (++ctr->clock_phase < ctr->clock_div)
+                continue;
+            ctr->clock_phase = 0;
+            pit_ctr_set_clock_common(ctr, !ctr->clock, dev);
+        } else
+            pit_ctr_set_clock_common(ctr, dev->clock, dev);
+    }
 
     timer_advance_u64(&dev->callback_timer, dev->pit_const >> 1ULL);
 }
@@ -1951,6 +1973,16 @@ pit_set_clock(uint32_t clock)
     device_speed_changed();
 }
 
+static void
+pit_ctr_set_clock_div(void *data, int counter_id, int div)
+{
+    pit_t *pit = (pit_t *) data;
+    ctr_t *ctr = &pit->counters[counter_id];
+
+    ctr->clock_div   = (div > 1) ? div : 1;
+    ctr->clock_phase = 0;
+}
+
 const pit_intf_t pit_classic_intf = {
     .read            = &pit_read,
     .write           = &pit_write,
@@ -1962,5 +1994,6 @@ const pit_intf_t pit_classic_intf = {
     .set_load_func   = &pit_ctr_set_load_func,
     .ctr_clock       = &ctr_clock,
     .set_pit_const   = &pit_set_pit_const,
+    .set_clock_div   = &pit_ctr_set_clock_div,
     .data            = NULL,
 };
