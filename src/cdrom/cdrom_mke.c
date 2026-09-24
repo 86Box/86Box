@@ -573,10 +573,15 @@ mke0_status(mke_t *mke)
         status |= CDROM_STATUS_SPIN_UP;
     if (mke->is_error)
         status |= CDROM_STATUS_ERROR;
-    else if (mke->read_count || timer_is_enabled(&mke->timer) || (mke->cdrom_dev->cd_status == CD_STATUS_PLAYING))
+    else if (mke->read_count || timer_is_enabled(&mke->timer))
         status |= 0x04; /* busy */
     else
         status |= 0x08; /* command successful */
+    /* Audio remains active while paused. Clearing busy here makes SBPCD
+       discard its saved pause state before it can send RESUME AUDIO. */
+    if ((mke->cdrom_dev->cd_status == CD_STATUS_PLAYING) ||
+        (mke->cdrom_dev->cd_status == CD_STATUS_PAUSED))
+        status |= 0x04;
     return status;
 }
 
@@ -826,6 +831,13 @@ mke0_execute(mke_t *mke)
         case CMD0_READSUBQ:
             if (mke0_ready(mke)) {
                 mke_get_subq(mke, out);
+                /* Family 0 reports 11h playing / 12h paused / 13h completed,
+                   not the family 1 validity flag. SBPCD 1.10 uses this byte
+                   to retain its paused position and permit RESUME AUDIO. */
+                out[0] = cdrom_get_current_status(mke->cdrom_dev);
+                /* Family 0 expects ADR in the high nibble, as returned by
+                   the cooked Sony helper before mke_get_subq swaps it. */
+                out[1] = mke->temp_buf[0];
                 memmove(&out[9], &out[7], 3);
                 memmove(&out[5], &out[4], 3);
                 out[4] = out[8] = out[12] = 0;

@@ -25,6 +25,7 @@ int              read_result, eject_calls;
 uint32_t         seek_lba, audio_start, audio_end;
 int              audio_mode;
 double           read_delay;
+uint8_t          subq_attr;
 
 class MkeTest : public ::testing::Test {
 protected:
@@ -34,6 +35,7 @@ protected:
         read_lbas.clear();
         read_result             = 1;
         eject_calls             = 0;
+        subq_attr               = 0x14;
         cdrom[0].bus_type       = CDROM_BUS_MKE;
         cdrom[0].type           = type("cr521b");
         cdrom[0].cd_status      = CD_STATUS_DATA_ONLY;
@@ -224,6 +226,7 @@ TEST_F(MkeTest, AudioControlsAndSpinDownDoNotEjectCaddy)
     EXPECT_NE(status() & 4, 0);
     command({ 0x8d, 0, 0, 0, 0, 0, 0 });
     EXPECT_EQ(cdrom[0].cd_status, CD_STATUS_PAUSED);
+    EXPECT_EQ(status() & 0x0c, 0x0c);
     command({ 0x8d, 0x80, 0, 0, 0, 0, 0 });
     EXPECT_EQ(cdrom[0].cd_status, CD_STATUS_PLAYING);
     command({ 6, 0, 0, 0, 0, 0, 0 });
@@ -271,10 +274,26 @@ TEST_F(MkeTest, RawReadAndSubchannelResponseLengths)
     EXPECT_EQ(data(2340).size(), 2340u);
     EXPECT_EQ(read_port(0x231, interface) & 2, 2);
     command({ 0x89, 2, 0, 0, 0, 0, 0 });
-    EXPECT_EQ(response(), (std::vector<uint8_t> { 0x80, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0 }));
+    EXPECT_EQ(response(), (std::vector<uint8_t> { 0x15, 0x14, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0 }));
     command({ 2, 0, 0, 0, 0, 0, 0 });
     EXPECT_FALSE(read_timer->flags & TIMER_ENABLED);
     EXPECT_EQ(status(), 0xe9);
+}
+
+TEST_F(MkeTest, SubchannelReportsAudioStateWithoutChangingPlayback)
+{
+    for (const auto &[state, code] : std::array<std::pair<uint8_t, uint8_t>, 4> {
+             { { CD_STATUS_PLAYING, 0x11 }, { CD_STATUS_PAUSED, 0x12 }, { CD_STATUS_PLAYING_COMPLETED, 0x13 }, { CD_STATUS_DATA_ONLY, 0x15 } }
+    }) {
+        cdrom[0].cd_status = state;
+        subq_attr = (state == CD_STATUS_DATA_ONLY) ? 0x14 : 0x10;
+        command({ 0x89, 2, 0, 0, 0, 0, 0 });
+        const auto reply = response();
+        ASSERT_EQ(reply.size(), 13u);
+        EXPECT_EQ(reply[0], code);
+        EXPECT_EQ(reply[1], subq_attr);
+        EXPECT_EQ(cdrom[0].cd_status, state);
+    }
 }
 
 TEST_F(MkeTest, ExistingFamilyOneCommandsRetainTheirFraming)
@@ -398,10 +417,25 @@ cdrom_read_disc_information(const cdrom_t *, uint8_t *out)
 {
     std::memset(out, 0, 34);
 }
+uint8_t
+cdrom_get_current_status(const cdrom_t *dev)
+{
+    switch (dev->cd_status) {
+        case CD_STATUS_PLAYING:
+            return 0x11;
+        case CD_STATUS_PAUSED:
+            return 0x12;
+        case CD_STATUS_PLAYING_COMPLETED:
+            return 0x13;
+        default:
+            return 0x15;
+    }
+}
 void
 cdrom_get_current_subchannel_sony(cdrom_t *, uint8_t *out, int)
 {
     std::memset(out, 0, 9);
+    out[0] = subq_attr;
     out[7] = 2;
 }
 uint8_t
