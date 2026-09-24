@@ -19290,7 +19290,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM, /* Machine has internal audio: ESS ES1888F */
         .ram       = {
             .min  = 16384,
-            .max  = 49152,
+            .max  = 65536,
             .step = 4096
         },
         .nvrmask                  = 511,
@@ -19339,7 +19339,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM, /* Machine has internal audio: ESS ES1887F */
         .ram       = {
             .min  = 16384,
-            .max  = 49152,
+            .max  = 65536,
             .step = 4096
         },
         .nvrmask                  = 511,
