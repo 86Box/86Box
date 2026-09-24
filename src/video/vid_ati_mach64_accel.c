@@ -373,6 +373,9 @@ start_blit_op:
                 mach64->host_cntl |= HOST_BYTE_ALIGN;
             else
                 mach64->host_cntl &= ~HOST_BYTE_ALIGN;
+            /* HOST_BIG_ENDIAN_EN, bit 29, on the CT and later (RRG 4-105). */
+            if (mach64->type >= MACH64_CT)
+                mach64->host_cntl = (mach64->host_cntl & ~2) | ((val & 0x20) ? 2 : 0);
             break;
 
         default:

@@ -728,6 +728,75 @@ mach64_vblank_start(svga_t *svga)
     mach64->overlay_base    = svga->overlay.addr;
 }
 
+/* The VT's register block 1 (VT/RAGE RRG chapter 5): each register reads
+   back only its fields. Widths from the book and from ATI's M64DIAG
+   register tables (VT-A3 at image 641BCh, VT-A4 at 64330h): the A4, our
+   VT2, adds the overlay lock bit (31) to OVERLAY_Y_X_START and _END. */
+static uint32_t
+mach64_vt_blk1_mask(const mach64_t *mach64, int reg)
+{
+    switch (reg) {
+        case 0x00: /* OVERLAY_Y_X_START */
+        case 0x01: /* OVERLAY_Y_X_END */
+            return (mach64->type == MACH64_VT2) ? 0x87ff07ff : 0x07ff07ff;
+        case 0x02: /* OVERLAY_VIDEO_KEY_CLR */
+        case 0x03: /* OVERLAY_VIDEO_KEY_MSK */
+        case 0x04: /* OVERLAY_GRAPHICS_KEY_CLR */
+        case 0x05: /* OVERLAY_GRAPHICS_KEY_MSK */
+            return 0x00ffffff;
+        case 0x06: /* OVERLAY_KEY_CNTL */
+            return 0x80000f77;
+        case 0x08: /* OVERLAY_SCALE_INC */
+            return 0xffffffff;
+        case 0x09: /* OVERLAY_SCALE_CNTL: SCALE_BANDWIDTH (26) reads status */
+            return 0xe000007f;
+        case 0x0a: /* SCALER_HEIGHT_WIDTH */
+            return 0x03ff03ff;
+        case 0x0b: /* OVERLAY_TEST */
+            return 0x000000f2;
+        case 0x0c: /* SCALER_THRESHOLD: SCALER_SOURCE_LINE (9:0) is read-only */
+            return 0x03ff0000;
+        case 0x10: /* CAPTURE_Y_X */
+        case 0x11: /* CAPTURE_HEIGHT_WIDTH */
+            return 0x03ff03ff;
+        case 0x12: /* VIDEO_FORMAT */
+            return 0xf00f000f;
+        case 0x13: /* VIDEO_CONFIG */
+            return 0x0000ff5f;
+        case 0x14: /* CAPTURE_CONFIG */
+            return 0x000f00bf;
+        case 0x15: /* TRIG_CNTL */
+            return 0x80000000;
+        case 0x16: /* VIDEO_SYNC_TEST */
+            return 0x00010f03;
+        case 0x18: /* VMC_CONFIG */
+            return 0x033600ff;
+        case 0x1a: /* VMC_CMD */
+            return 0x0c0003ff;
+        case 0x1b: /* VMC_ARG0 */
+        case 0x1c: /* VMC_ARG1 */
+        case 0x1d: /* VMC_SNOOP_ARG0 */
+        case 0x1e: /* VMC_SNOOP_ARG1 */
+            return 0xffffffff;
+        case 0x20: /* BUF0_OFFSET */
+        case 0x26: /* BUF1_OFFSET */
+        case 0x2b: /* BUF0_CAP_ODD_OFFSET */
+        case 0x2c: /* BUF1_CAP_ODD_OFFSET */
+            return 0x003ffff8;
+        case 0x23: /* BUF0_PITCH */
+        case 0x29: /* BUF1_PITCH */
+            return 0x00000ffe;
+        default:
+            return 0; /* VMC_STATUS and the unassigned offsets */
+    }
+}
+
+static int
+mach64_is_vt(const mach64_t *mach64)
+{
+    return (mach64->type == MACH64_VT) || (mach64->type == MACH64_VT2);
+}
+
 uint8_t
 mach64_ext_readb(uint32_t addr, void *priv)
 {
@@ -739,7 +808,9 @@ mach64_ext_readb(uint32_t addr, void *priv)
     if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         ret = svga->mapping.read_b(addr, svga->mapping.priv);
     else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
-        if (!(addr & 0x400)) {
+        if (!(addr & 0x400) && mach64_is_vt(mach64)) {
+            ret = mach64->vt_blk1[(addr & 0xff) >> 2] >> ((addr & 3) * 8);
+        } else if (!(addr & 0x400)) {
             mach64_log("mach64_ext_readb: addr=%04x\n", addr);
             switch (addr & 0x3ff) {
                 case 0x00 ... 0x03:
@@ -868,7 +939,15 @@ mach64_ext_readb(uint32_t addr, void *priv)
                 case 0x70 ... 0x73:
                     READ8(addr, mach64->cur_horz_vert_off);
                     break;
-                case 0x79:
+                case 0x78 ... 0x7b:
+                    if (mach64_is_vt(mach64)) {
+                        READ8(addr, mach64->gp_io); /* GP_IO (VT/RAGE RRG 4-4) */
+                        break;
+                    }
+                    if ((addr & 3) == 0)
+                        goto gp_io_78;
+                    if ((addr & 3) >= 2)
+                        goto gp_io_7a;
                     ret = 0x30;
                     if (mach64->type == MACH64_VT3)
                     {
@@ -878,16 +957,20 @@ mach64_ext_readb(uint32_t addr, void *priv)
                         break;
                     }
                     break;
-                case 0x78:
+                gp_io_78:
                     if (mach64->type == MACH64_VT3)
                     {
                         ret = ((i2c_gpio_get_sda(mach64->i2c_tv) << 4) & (~(mach64->gp_io >> 16) & 0xFF)) | ((mach64->gp_io & 0xFF) & ((mach64->gp_io >> 16) & 0xFF));
                         break;
                     }
-                case 0x7A ... 0x7B:
+                gp_io_7a:
                     if (mach64->type == MACH64_VT3)
                         READ8(addr, mach64->gp_io);
                     //                pclog("GPIO READ 0x%X, 0x00\n", addr & 0x3ff);
+                    break;
+                case 0x7c ... 0x7f:
+                    if (mach64_is_vt(mach64))
+                        READ8(addr, mach64->gp_io_cntl);
                     break;
                 case 0x80 ... 0x83:
                     READ8(addr, mach64->scratch_reg0);
@@ -1172,6 +1255,12 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr, mach64->context_mask);
                     break;
+                case 0x32c ... 0x32f:
+                    /* CONTEXT_LOAD_CNTL is read/write (RRG 3-15, VT/RAGE
+                       RRG 4-103). */
+                    mach64_wait_fifo_idle(mach64);
+                    READ8(addr, mach64->context_load_cntl);
+                    break;
                 case 0x330 ... 0x331:
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr, mach64->dst_cntl);
@@ -1181,8 +1270,13 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     READ8(addr - 2, mach64->src_cntl);
                     break;
                 case 0x333:
+                    /* GUI_TRAJ_CNTL 31:24: PAT_CNTL (26:24), HOST_BYTE_ALIGN
+                       (28) and, from the CT, HOST_BIG_ENDIAN_EN (29) --
+                       HOST_CNTL's two bits (VT/RAGE RRG 4-104). */
                     mach64_wait_fifo_idle(mach64);
-                    READ8(addr - 3, mach64->pat_cntl);
+                    ret = (mach64->pat_cntl & 7) | ((mach64->host_cntl & HOST_BYTE_ALIGN) ? 0x10 : 0);
+                    if ((mach64->type >= MACH64_CT) && (mach64->host_cntl & 2))
+                        ret |= 0x20;
                     break;
                 case 0x338:
                     /* GUI_ACTIVE: the FIFO, or an operation still running --
@@ -1300,6 +1394,16 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
     else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
         mach64_log("mach64_ext_writeb : addr %08X val %02X\n", addr, val);
 
+        if (!(addr & 0x400) && mach64_is_vt(mach64)) {
+            const int      reg   = (addr & 0xff) >> 2;
+            const int      shift = (addr & 3) * 8;
+            const uint32_t m     = mach64_vt_blk1_mask(mach64, reg);
+
+            if (addr & 0x300)
+                return; /* nothing is assigned above 0FFh on the VT */
+            val = (val & (m >> shift)) & 0xff;
+            mach64->vt_blk1[reg] = (mach64->vt_blk1[reg] & ~(0xffu << shift)) | ((uint32_t) val << shift);
+        }
         if (!(addr & 0x400)) {
             switch (addr & 0x3ff) {
                 case 0x00 ... 0x03:
@@ -1481,7 +1585,17 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                         svga->hwcursor.yoff = (mach64->cur_horz_vert_off >> 16) & 0x3f;
                     }
                     break;
+                case 0x7c ... 0x7f:
+                    /* GP_IO_CNTL: GP_IO_EN (31), GP_IO_MODE (3:0) (VT/RAGE
+                       RRG 4-3). */
+                    if (mach64_is_vt(mach64)) {
+                        WRITE8(addr, mach64->gp_io_cntl, val);
+                        mach64->gp_io_cntl &= 0x8000000f;
+                    }
+                    break;
                 case 0x78 ... 0x7b:
+                    if (mach64_is_vt(mach64))
+                        WRITE8(addr, mach64->gp_io, val); /* GP_IO (VT/RAGE RRG 4-4) */
                     if (mach64->type == MACH64_VT3) {
                         WRITE8(addr, mach64->gp_io, val);
                         {
@@ -1514,19 +1628,19 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     break;
                     // optimise
                 case 0xb4:
-                    mach64->bank_w[0] = val << 15; // *32768
+                    mach64->bank_w[0] = (val & 0xff) << 15; /* 8-bit page: 32K pages over 8M (RRG 3-70) */
                     mach64_log("mach64 : write bank A0000-A7FFF set to %08X\n", mach64->bank_w[0]);
                     break;
                 case 0xb6:
-                    mach64->bank_w[1] = val << 15; // *32768
+                    mach64->bank_w[1] = (val & 0xff) << 15;
                     mach64_log("mach64 : write bank A8000-AFFFF set to %08X\n", mach64->bank_w[1]);
                     break;
                 case 0xb8:
-                    mach64->bank_r[0] = val << 15; // *32768
+                    mach64->bank_r[0] = (val & 0xff) << 15;
                     mach64_log("mach64 :  read bank A0000-A7FFF set to %08X\n", mach64->bank_r[0]);
                     break;
                 case 0xba:
-                    mach64->bank_r[1] = val << 15; // *32768
+                    mach64->bank_r[1] = (val & 0xff) << 15;
                     mach64_log("mach64 :  read bank A8000-AFFFF set to %08X\n", mach64->bank_r[1]);
                     break;
                 case 0xc0 ... 0xc3:
@@ -1621,11 +1735,11 @@ mach64_ext_writew(uint32_t addr, uint16_t val, void *priv)
             switch (addr & 0x3fe) {
                 case 0xb4:
                 case 0xb6:
-                    mach64->bank_w[(addr & 2) >> 1] = val << 15;
+                    mach64->bank_w[(addr & 2) >> 1] = (val & 0xff) << 15;
                     break;
                 case 0xb8:
                 case 0xba:
-                    mach64->bank_r[(addr & 2) >> 1] = val << 15;
+                    mach64->bank_r[(addr & 2) >> 1] = (val & 0xff) << 15;
                     break;
                 default:
                     mach64_ext_writeb(addr, val, priv);
@@ -1656,12 +1770,12 @@ mach64_ext_writel(uint32_t addr, uint32_t val, void *priv)
         } else {
             switch (addr & 0x3fc) {
                 case 0xb4:
-                    mach64->bank_w[0] = val << 15;
-                    mach64->bank_w[1] = ((val >> 16) << 15);
+                    mach64->bank_w[0] = (val & 0xff) << 15;
+                    mach64->bank_w[1] = ((val >> 16) & 0xff) << 15;
                     break;
                 case 0xb8:
-                    mach64->bank_r[0] = val << 15;
-                    mach64->bank_r[1] = ((val >> 16) << 15);
+                    mach64->bank_r[0] = (val & 0xff) << 15;
+                    mach64->bank_r[1] = ((val >> 16) & 0xff) << 15;
                     break;
                 default:
                     mach64_ext_writew(addr, val, priv);
