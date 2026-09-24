@@ -367,6 +367,7 @@ static const struct cdrom_drive_types_s {
     { "TOSHIBA",  "CD-ROM XM-5701TA", "3136", "",          "toshiba_5701a",  BUS_TYPE_SCSI, 2, 12, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray; SCSI version of XM-5702B. */
     { "TOSHIBA",  "CD-ROM XM-6401TA", "1404", "",          "toshiba_6401a",  BUS_TYPE_SCSI, 2, 32, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray; SCSI version of XM-6402B. */
     { "TOSHIBA",  "DVD-ROM SD-M1401", "1008", "",          "toshiba_m1401",  BUS_TYPE_SCSI, 2, 40, 96, 0, 1, { -1, -1, -1, -1 } }, /* Tray. */
+    { "MATSHITA", "CR-521B",          "2.11", "",          "cr521b",         BUS_TYPE_MKE , 0,  1,  0, 1, 0, { -1, -1, -1, -1 } },
     { "MATSHITA", "CR-562",           "0.75", "",          "cr562",          BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
     { "MATSHITA", "CR-562",           "0.76", "",          "cr562_076",      BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
     { "MATSHITA", "CR-562",           "0.80", "",          "cr562_080",      BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
