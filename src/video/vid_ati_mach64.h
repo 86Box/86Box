@@ -36,6 +36,7 @@
 #include "cpu.h"
 #include <86box/timer.h>
 #include <86box/pci.h>
+#include <86box/pic.h>
 #include <86box/rom.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
@@ -52,12 +53,15 @@
 #    undef CLAMP
 #endif
 
-#define BIOS_ROM_PATH     "roms/video/mach64/bios.bin"
-#define BIOS_ISA_ROM_PATH "roms/video/mach64/M64-1994.VBI"
-#define BIOS_VLB_ROM_PATH "roms/video/mach64/mach64_vlb_vram.bin"
-#define BIOS_ROMCT_PATH   "roms/video/mach64/mach64-68b110b8cddfd546595673.bin"
-#define BIOS_ROMVT_PATH   "roms/video/mach64/mach64vt-660c60c135839345779942.bin"
-#define BIOS_ROMVT2_PATH  "roms/video/mach64/atimach64vt2pci.bin"
+#define BIOS_ROM_PATH                 "roms/video/mach64/bios.bin"
+#define BIOS_ISA_ROM_PATH             "roms/video/mach64/M64-1994.VBI"
+#define BIOS_VLB_ROM_PATH             "roms/video/mach64/mach64_vlb_vram.bin"
+#define BIOS_XPRESSION_VLB_27802_PATH "roms/video/mach64/xpression_vlb_113-27802-101.bin"
+#define BIOS_XPRESSION_VLB_27804_PATH "roms/video/mach64/xpression_vlb_113-27804-101.bin"
+#define BIOS_XPRESSION_VLB_27803_PATH "roms/video/mach64/xpression_vlb_113-27803-102.bin"
+#define BIOS_ROMCT_PATH               "roms/video/mach64/mach64-68b110b8cddfd546595673.bin"
+#define BIOS_ROMVT_PATH               "roms/video/mach64/mach64vt-660c60c135839345779942.bin"
+#define BIOS_ROMVT2_PATH              "roms/video/mach64/atimach64vt2pci.bin"
 
 #define FIFO_SIZE         65536
 #define FIFO_MASK         (FIFO_SIZE - 1)
@@ -99,6 +103,7 @@ enum {
 };
 
 #define MACH64_FLAG_ONBOARD (1 << 19)
+#define MACH64_FLAG_DRAM    (1 << 17) /* the board's memory is DRAM (256Kx16), not VRAM */
 #define MACH64_PCI_IOCONFIG 0x40        // "User Defined Configuration"
 
 typedef struct mach64_t {
@@ -122,6 +127,8 @@ typedef struct mach64_t {
 
     uint8_t pci_slot;
     uint8_t irq_state;
+    int     isa_irq;        /* ISA/VLB interrupt jumper; 0 = not fitted */
+    int     isa_irq_raised;
 
     uint8_t on_board;
 
@@ -140,7 +147,7 @@ typedef struct mach64_t {
     uint32_t context_mask;
 
     uint32_t crtc_gen_cntl;
-    uint8_t  crtc_int_cntl;
+    uint32_t crtc_int_cntl;
     uint32_t crtc_h_sync_strt_wid;
     uint32_t crtc_h_total_disp;
     uint32_t crtc_v_sync_strt_wid;
@@ -185,6 +192,8 @@ typedef struct mach64_t {
     uint32_t host_cntl;
 
     uint32_t mem_cntl;
+    uint32_t bus_cntl;   /* BUS_CNTL */
+    uint32_t crtc_vline; /* CRTC_VLINE, 10:0 */
 
     uint32_t ovr_clr;
     uint32_t ovr_wid_left_right;
@@ -276,6 +285,13 @@ typedef struct mach64_t {
         int      clr_cmp_src;
 
         int err;
+        int inc;           /* Bresenham terms, sign-extended from 18 bits */
+        int dec;
+        uint32_t poly_offset; /* polygon boundary source, in bits */
+        int rot0;          /* packed 24 bpp component at the start of a row */
+        int rot;
+        int skip_byte;
+        int row_ended;     /* for HOST_BYTE_ALIGN */
         int poly_draw;
     } accel;
 
@@ -396,6 +412,7 @@ enum {
     SRC_PATT_ROT_EN = 2,
     SRC_LINEAR_EN   = 4,
     SRC_BYTE_ALIGN  = 8,
+    SRC_LINE_X_DIR  = 16,
     SRC_8x8x8_BRUSH = 32,
 
     SRC_8x8x8_BRUSH_LOADED = 1 << 12
@@ -406,6 +423,7 @@ enum {
 };
 
 #define WIDTH_1BIT 3
+#define WIDTH_4BIT 4
 
 extern int mach64_width[8];
 
@@ -418,7 +436,9 @@ enum {
     DST_Y_TILE     = 0x10,
     DST_LAST_PEL   = 0x20,
     DST_POLYGON_EN = 0x40,
-    DST_24_ROT_EN  = 0x80
+    DST_24_ROT_EN  = 0x80,
+    DST_BRES_SIGN  = 0x800,
+    DST_POLYGON_RTEDGE_DIS = 0x1000 /* CT */
 };
 
 enum {
@@ -466,6 +486,15 @@ extern mach64_t* reset_state[2];
 
 
 
+
+/* MEM_BNDRY (MEM_CNTL 17:16): 0, 256K, 512K or 1M (RRG 3-67). */
+static inline uint32_t
+mach64_mem_bndry(const mach64_t *mach64)
+{
+    const uint32_t n = (mach64->mem_cntl >> 16) & 3;
+
+    return n ? (0x20000u << n) : 0;
+}
 
 #define READ8(addr, var)                \
     switch ((addr) &3) {                \

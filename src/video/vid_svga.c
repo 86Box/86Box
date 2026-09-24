@@ -1004,7 +1004,14 @@ svga_recalctimings(svga_t *svga)
     if (svga->vblankend <= svga->vblankstart)
         svga->vblankend += 0x00000080;
 
-    if (svga->hoverride || svga->override) {
+    if (svga->border_override) {
+        svga->y_add         = svga->border_top;
+        svga->left_overscan = svga->x_add = svga->border_left;
+
+        svga->hblank_sub = 0;
+
+        svga->htotal &= 0x7fff;
+    } else if (svga->hoverride || svga->override) {
         if (svga->hdisp >= 2048)
             svga->monitor->mon_overscan_x = 0;
 
@@ -1602,6 +1609,9 @@ svga_poll(void *priv)
 
         svga->vc++;
         svga->vc &= 0x7ff;
+
+        if (svga->line_callback)
+            svga->line_callback(svga);
 
         if (svga->vc == svga->split) {
             ret = 1;

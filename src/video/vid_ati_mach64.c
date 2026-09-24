@@ -27,7 +27,8 @@ video_timings_t timing_mach64_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w 
 
 mach64_t *reset_state[2] = { NULL, NULL };
 
-int mach64_width[8] = { WIDTH_1BIT, 0, 0, 1, 1, 2, 2, 0 };
+/* DP_*_PIX_WIDTH: 0 mono, 1 4 bpp, 2 8 bpp, 3 15 bpp, 4 16 bpp, 6 32 bpp (RRG 3-39). */
+int mach64_width[8] = { WIDTH_1BIT, WIDTH_4BIT, 0, 1, 1, 2, 2, 0 };
 
 #ifdef ENABLE_MACH64_LOG
 int mach64_do_log = ENABLE_MACH64_LOG;
@@ -46,6 +47,32 @@ mach64_log(const char *fmt, ...);
 #endif
 
 // x86 I/O port output function
+/* In accelerator mode (CRTC_EXT_DISP_EN) the DAC answers at the VGA
+   addresses 3C6-3C9 only while DAC_VGA_ADR_EN (DAC_CNTL bit 13) is set;
+   DAC_REGS reaches it always (RRG 3-32). */
+static int
+mach64_vga_dac_decoded(const mach64_t *mach64)
+{
+    return !(mach64->crtc_gen_cntl & (1 << 24)) || (mach64->dac_cntl & (1 << 13));
+}
+
+/* The VGA's CPU paging (VGA Register Guide 5-17, 5-26, 5-27): ATI32 bits
+   4:1 page writes, and reads as well unless ATI3E bit 3 splits them, when
+   bit 0 over bits 7:5 pages reads. The pages are 64K, or 128K while
+   ATI3D bit 2 opens A0000-BFFFF. */
+static void
+mach64_update_vga_banks(mach64_t *mach64)
+{
+    svga_t        *svga  = &mach64->svga;
+    const uint8_t  ati32 = mach64->regs[0x32];
+    const uint32_t size  = (mach64->regs[0x3d] & 0x04) ? 0x20000 : 0x10000;
+    const uint32_t wpage = (ati32 >> 1) & 0x0f;
+    const uint32_t rpage = (mach64->regs[0x3e] & 0x08) ? (((ati32 & 0x01) << 3) | (ati32 >> 5)) : wpage;
+
+    svga->write_bank = wpage * size;
+    svga->read_bank  = rpage * size;
+}
+
 void
 mach64_out(uint16_t addr, uint8_t val, void *priv)
 {
@@ -62,10 +89,28 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
             break;
         case 0x1cf:
             mach64->regs[mach64->index & 0x3f] = val;
-            if ((mach64->index & 0x3f) == 0x36)
-                svga_recalctimings(svga);
+            switch (mach64->index & 0x3f) {
+                case 0x32: /* ATI32: CPU paging */
+                case 0x3d: /* ATI3D bit 2: 128K pages */
+                case 0x3e: /* ATI3E bit 3: separate read and write pages */
+                    mach64_update_vga_banks(mach64);
+                    if ((mach64->index & 0x3f) == 0x3d)
+                        mach64_updatemapping(mach64);
+                    if ((mach64->index & 0x3f) == 0x3e)
+                        svga_recalctimings(svga); /* ATI3E bit 1: interlace */
+                    break;
+                case 0x23: /* ATI23 bit 4: start address bit 17 */
+                case 0x30: /* ATI30 bit 6: start address bit 16; bit 5: 256 colours */
+                case 0x36:
+                    svga_recalctimings(svga);
+                    break;
+                default:
+                    break;
+            }
             break;
         case 0x3C6 ... 0x3C9:
+            if (!mach64_vga_dac_decoded(mach64))
+                return;
             if (mach64->type == MACH64_GX)
                 ati68860_ramdac_out((addr & 3) | ((mach64->dac_cntl & 3) << 2), val, 0, svga->ramdac, svga);
             else
@@ -125,8 +170,14 @@ mach64_in(uint16_t addr, void *priv)
         case 0x1ce:
             return mach64->index;
         case 0x1cf:
+            /* ATI28: bits 9:8 of the vertical line counter, read only
+               (VGA Register Guide 5-12). */
+            if ((mach64->index & 0x3f) == 0x28)
+                return (svga->vc >> 8) & 3;
             return mach64->regs[mach64->index & 0x3f];
         case 0x3C6 ... 0x3C9:
+            if (!mach64_vga_dac_decoded(mach64))
+                return 0xff;
             if (mach64->type == MACH64_GX)
                 return ati68860_ramdac_in((addr & 3) | ((mach64->dac_cntl & 3) << 2), 0, svga->ramdac, svga);
             return svga_in(addr, svga);
@@ -143,25 +194,103 @@ mach64_in(uint16_t addr, void *priv)
     return svga_in(addr, svga);
 }
 
+/* CRTC_PIX_WIDTH 4 bpp (CRTC_GEN_CNTL bits 10:8): two pixels in each byte,
+   the high nibble first, or the low one first when CRTC_BYTE_PIX_ORDER
+   (bit 11) is set (RRG 3-20). The accelerator CRTC reads memory linearly;
+   the VGA planar shifter takes no part. */
+static void
+mach64_render_4bpp(svga_t *svga)
+{
+    const mach64_t *mach64   = (mach64_t *) svga->priv;
+    const int       lo_first = !!(mach64->crtc_gen_cntl & (1 << 11));
+    uint32_t       *p;
+
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
+        return;
+
+    if (!svga->changedvram[svga->memaddr >> 12] && !svga->changedvram[(svga->memaddr >> 12) + 1] && !svga->fullchange)
+        return;
+
+    p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+
+    if (svga->firstline_draw == 2000)
+        svga->firstline_draw = svga->displine;
+    svga->lastline_draw = svga->displine;
+
+    for (int x = 0; x < svga->hdisp; x += 2) {
+        uint8_t dat = svga->vram[svga->memaddr & svga->vram_display_mask];
+
+        p[x]     = svga->map8[(lo_first ? (dat & 0x0f) : (dat >> 4)) & svga->dac_mask];
+        p[x + 1] = svga->map8[(lo_first ? (dat >> 4) : (dat & 0x0f)) & svga->dac_mask];
+        svga->memaddr++;
+    }
+    svga->memaddr &= svga->vram_display_mask;
+}
+
+/* The accelerator CRTC's border (RRG 3-72 to 3-74): OVR_WID_LEFT (3:0)
+   and OVR_WID_RIGHT (19:16) characters, OVR_WID_TOP (7:0) and
+   OVR_WID_BOTTOM (23:16) lines, in OVR_CLR -- the palette entry
+   OVR_CLR_8 (7:0) at 4 and 8 bpp, OVR_CLR_B/G/R (15:8, 23:16, 31:24)
+   above that. Outside it the display is blank. */
+static void
+mach64_update_overscan(mach64_t *mach64)
+{
+    svga_t *svga = &mach64->svga;
+
+    if (((mach64->crtc_gen_cntl >> 24) & 3) != 3) {
+        svga->border_override = 0;
+        svga->overscan_color  = svga->pallook[svga->attrregs[0x11]];
+        return;
+    }
+
+    if (svga->bpp <= 8)
+        svga->overscan_color = svga->pallook[mach64->ovr_clr & 0xff];
+    else
+        svga->overscan_color = makecol32((mach64->ovr_clr >> 24) & 0xff, (mach64->ovr_clr >> 16) & 0xff, (mach64->ovr_clr >> 8) & 0xff);
+}
+
 void
 mach64_recalctimings(svga_t *svga)
 {
-    const mach64_t *mach64 = (mach64_t *) svga->priv;
+    mach64_t *mach64 = (mach64_t *) svga->priv;
 
     if (((mach64->crtc_gen_cntl >> 24) & 3) == 3) {
-        svga->char_width = 8;
-        svga->vtotal     = (mach64->crtc_v_total_disp & 2047) + 1;
-        svga->dispend    = ((mach64->crtc_v_total_disp >> 16) & 2047) + 1;
+        /* CRTC_INTERLACE_EN (CRTC_GEN_CNTL bit 1): the vertical registers
+           count the lines of the whole frame, and each field scans half of
+           them -- ATI's 800x600 89 Hz interlaced mode programs V_DISP 257h
+           and V_TOTAL 2BCh (Programmer's Guide C-3). */
+        const int ilace = !!(mach64->crtc_gen_cntl & 2);
+
+        /* CRTC_PIX_BY_2_EN (bit 5): the CRTC advances two pixels on each
+           pixel clock, so a character of 8 pixels takes 4 clocks. */
+        svga->char_width = (mach64->crtc_gen_cntl & 0x20) ? 4 : 8;
+        svga->interlace  = ilace;
+        svga->vtotal     = ((mach64->crtc_v_total_disp & 2047) + 1) >> ilace;
+        svga->dispend    = (((mach64->crtc_v_total_disp >> 16) & 2047) + 1) >> ilace;
         svga->htotal     = (mach64->crtc_h_total_disp & 255) + 1;
         svga->hdisp_time = svga->hdisp = ((mach64->crtc_h_total_disp >> 16) & 255) + 1;
-        svga->hblankstart              = (mach64->crtc_h_sync_strt_wid & 255) +
-                                         ((mach64->crtc_h_sync_strt_wid >> 8) & 7);
+        /* CRTC_H_SYNC_STRT (7:0) is in characters; CRTC_H_SYNC_DLY (10:8)
+           delays the sync by pixels within that character (RRG 3-22), finer
+           than the character counter this blanking runs on. */
+        svga->hblankstart              = mach64->crtc_h_sync_strt_wid & 255;
         svga->hblank_end_val           = (svga->hblankstart +
                                          ((mach64->crtc_h_sync_strt_wid >> 16) & 31) - 1) & 63;
-        svga->vsyncstart               = (mach64->crtc_v_sync_strt_wid & 2047) + 1;
+        svga->vsyncstart               = ((mach64->crtc_v_sync_strt_wid & 2047) + 1) >> ilace;
         svga->rowoffset                = (mach64->crtc_off_pitch >> 22);
-        svga->clock                    = (cpuclock * (double) (1ULL << 32)) / ics2595_getclock(svga->clock_gen);
-        svga->memaddr_latch            = (mach64->crtc_off_pitch & 0x1fffff) * 2;
+        {
+            double freq = ics2595_getclock(svga->clock_gen);
+
+            /* CLOCK_DIV (bits 5:4): divide by 1, 2 or 4 (RRG 3-4). A clock
+               entry nothing has programmed is 0 Hz: keep the last timing. */
+            if ((mach64->type == MACH64_GX) && (((mach64->clock_cntl >> 4) & 3) < 3))
+                freq /= (double) (1 << ((mach64->clock_cntl >> 4) & 3));
+            if (freq > 0.0)
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / freq;
+        }
+        /* CRTC_OFFSET is 19:0, in qwords (RRG 3-23). */
+        svga->memaddr_latch            = (mach64->crtc_off_pitch & 0xfffff) * 2;
         svga->linedbl = svga->rowcount = 0;
         svga->split                    = 0xffffff;
         svga->vblankstart              = svga->dispend;
@@ -177,8 +306,7 @@ mach64_recalctimings(svga_t *svga)
 
         switch ((mach64->crtc_gen_cntl >> 8) & 7) {
             case BPP_4:
-                if (mach64->type != MACH64_GX)
-                    svga->render = svga_render_4bpp_highres;
+                svga->render = mach64_render_4bpp;
                 svga->hdisp <<= 3;
                 svga->bpp = 4;
                 break;
@@ -221,11 +349,115 @@ mach64_recalctimings(svga_t *svga)
         }
 
         svga->vram_display_mask = mach64->vram_mask;
+
+        svga->border_override         = 1;
+        svga->border_left             = (mach64->ovr_wid_left_right & 0x0f) * 8;
+        svga->border_top              = mach64->ovr_wid_top_bottom & 0xff;
+        svga->monitor->mon_overscan_x = svga->border_left + ((mach64->ovr_wid_left_right >> 16) & 0x0f) * 8;
+        svga->monitor->mon_overscan_y = svga->border_top + ((mach64->ovr_wid_top_bottom >> 16) & 0xff);
     } else {
         svga->vram_display_mask = (mach64->regs[0x36] & 0x01) ? mach64->vram_mask : 0x3ffff;
         svga->lut_map           = 0;
         svga->bpp               = 8;
+
+        /* ATI extended modes: start address bits 16 (ATI30 bit 6) and 17
+           (ATI23 bit 4), the 256-colour mode (ATI30 bit 5) and interlace
+           (ATI3E bit 1) (VGA Register Guide 5-8, 5-15, 5-27). */
+        if (mach64->regs[0x30] & 0x40)
+            svga->memaddr_latch |= 0x10000;
+        if (mach64->regs[0x23] & 0x10)
+            svga->memaddr_latch |= 0x20000;
+        if ((mach64->regs[0x30] & 0x20) && ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) &&
+            (svga->render != svga_render_blank) && !(svga->gdcreg[5] & 0x40)) {
+            svga->map8   = svga->pallook;
+            svga->render = svga->lowres ? svga_render_8bpp_lowres : svga_render_8bpp_highres;
+        }
+        svga->interlace = !!(mach64->regs[0x3e] & 0x02);
+        if (svga->interlace)
+            svga->dispend >>= 1;
     }
+
+    mach64_update_overscan(mach64);
+
+    /* CRTC_DISPLAY_DIS (CRTC_GEN_CNTL bit 6) holds the blanking signal
+       active, whichever CRTC mode is running (RRG 3-20). */
+    if (mach64->crtc_gen_cntl & 0x40)
+        svga->render = svga_render_blank;
+}
+
+/* The VLB card's EEPROM as ATI's INSTALL utility (mach64 driver CD, release
+   435) leaves it when it first sets the card up, taken word for word from
+   the nvr file it wrote: the ATI88800CX EEPROM data structure (BIOS Kit
+   BIO-888GX0-02, appendix B) with a write count of 0, checksum 0BEh in
+   word 1 (the bytes of all the words sum to 0), table revision 2 in word
+   3, word 9 = 0040h, and no aperture location, monitor, refresh rates or
+   CRT tables chosen. Written when the card has no file, instead of an
+   erased part: an erased one reads aperture location 4095 MB. */
+static const uint16_t mach64_vlb_eeprom_default[256] = {
+    [1] = 0x00be,
+    [3] = 0x0002,
+    [9] = 0x0040,
+};
+
+/* Places a piece of the linear aperture, `off` bytes into it.
+   CFG_MEM_AP_LOC gives the aperture's location in 4 MB steps, and "with
+   8M apertures, bit 4 is ignored" (Register Reference Guide, CONFIG_CNTL):
+   an 8 MB aperture sits on 8 MB, whatever that bit says. The card decodes
+   32 address lines, so a piece at or past 4 GB -- the second of the 2 x 8 MB
+   pair at the top -- is on no address and is not mapped. Taking the field
+   as it stood put an 8 MB aperture at FFC00000h through 1003FC000h: the
+   memory tables were indexed past 4 GB, and the register window at its
+   end, added in 32 bits, wrapped round to 003FC000h over guest RAM. */
+static void
+mach64_map_aperture(mach64_t *mach64, mem_mapping_t *map, int ap_8m, uint32_t off, uint32_t size)
+{
+    uint32_t base  = mach64->linear_base & (ap_8m ? ~((8u << 20) - 1) : ~((4u << 20) - 1));
+    uint64_t start = (uint64_t) base + off;
+
+    if ((start + size) > 0x100000000ULL) {
+        mem_mapping_disable(map);
+        return;
+    }
+    mem_mapping_set_addr(map, (uint32_t) start, size);
+}
+
+/* The video BIOS ROM: at the PCI ROM BAR while it is enabled on PCI, at
+   C0000 otherwise, and on no address at all while BUS_ROM_DIS (BUS_CNTL
+   bit 12, "ROM disabled", RRG 3-2) is set -- how a second card's BIOS gets
+   out of the first one's way. BUS_ROM_PAGE (11:8) selects a page of a ROM
+   larger than the window; the ROMs here are the window's 32K, so it is
+   stored and nothing more. */
+static void
+mach64_update_rom(mach64_t *mach64)
+{
+    if (mach64->on_board)
+        return;
+    if (mach64->bus_cntl & (1u << 12)) {
+        mem_mapping_disable(&mach64->bios_rom.mapping);
+        return;
+    }
+    if (mach64->pci) {
+        if (mach64->pci_regs[PCI_REG_ROM_BAR_BYTE0] & 0x01) {
+            uint32_t biosaddr = ((mach64->pci_regs[0x31] & 0x80) << 8) | (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
+
+            mach64_log("Mach64 bios_rom enabled at %08x\n", biosaddr);
+            mem_mapping_set_addr(&mach64->bios_rom.mapping, biosaddr, 0x8000);
+        } else {
+            mach64_log("Mach64 bios_rom disabled\n");
+            mem_mapping_disable(&mach64->bios_rom.mapping);
+        }
+    } else
+        mem_mapping_set_addr(&mach64->bios_rom.mapping, 0xc0000, 0x8000);
+}
+
+/* CFG_MEM_AP_LOC (CONFIG_CNTL 13:4) reads back where the aperture is: in
+   4M units, or 16M on the VT and VT2. The I/O and MMIO reads agree. */
+static void
+mach64_sync_ap_loc(mach64_t *mach64)
+{
+    const int shift = ((mach64->type == MACH64_VT) || (mach64->type == MACH64_VT2)) ? 24 : 22;
+
+    mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | (((mach64->linear_base >> shift) << 4) & 0x3ff0);
 }
 
 void
@@ -248,7 +480,8 @@ mach64_updatemapping(mach64_t *mach64)
     switch (svga->gdcreg[6] & 0xc) {
         case 0x0: /*128k at A0000*/
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
-            svga->banked_mask = 0xffff;
+            /* ATI3D bit 2 pages all 128K at once (VGA Register Guide 5-26). */
+            svga->banked_mask = (mach64->regs[0x3d] & 0x04) ? 0x1ffff : 0xffff;
             break;
         case 0x4: /*64k at A0000*/
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
@@ -270,8 +503,10 @@ mach64_updatemapping(mach64_t *mach64)
     }
 
     /*
-       The small aperture is only available in accelerated modes and only if
-       bit 2 of the Config_Cntl (6AECh) register is set.
+       The small apertures, with the registers in the 1K at B000:FC00, are
+       enabled by CFG_MEM_VGA_AP_EN (CONFIG_CNTL bit 2), in any display mode:
+       the BIOS clears video memory through them on a mode set before the
+       CRTC is in accelerator mode (VLB BIOS 113-26900-103, 0BDFh).
      */
     if (mach64->config_cntl & 4) {
         mem_mapping_set_handler(&svga->mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
@@ -285,22 +520,34 @@ mach64_updatemapping(mach64_t *mach64)
 
     if (mach64->linear_base) {
         if (mach64->type == MACH64_GX) {
-            if ((mach64->config_cntl & 3) == 2) {
-                /*8 MB aperture*/
-                mach64_log("Mach64 linear aperture=%08x, cfgcntl=%x, mapping=%x, VGAAP=%x.\n", mach64->linear_base + ((8 << 20) - 0x4000), mach64->config_cntl & 3, svga->gdcreg[6] & 0xc, mach64->config_cntl & 4);
-                mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - 0x4000);
-                mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 0x4000), 0x4000);
+            /* CFG_MEM_AP_SIZE: 0 = disabled, 1 = 4M, 2 = 8M, 3 reserved (RRG
+               3-9). On PCI the BAR places the aperture and 8M it stays unless
+               4M is asked for, as before. */
+            int ap = mach64->config_cntl & 3;
+
+            if (mach64->pci)
+                ap = (ap == 1) ? 1 : 2;
+            if ((ap != 1) && (ap != 2)) {
+                mem_mapping_disable(&mach64->linear_mapping);
+                mem_mapping_disable(&mach64->mmio_linear_mapping);
             } else {
-                /*4 MB aperture*/
-                mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (4 << 20) - 0x4000);
-                mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((4 << 20) - 0x4000), 0x4000);
+                uint32_t size = (ap == 2) ? (8 << 20) : (4 << 20);
+
+                /* Video memory is at the offset into the aperture, wherever
+                   the aperture sits; the registers are its top 1K, "at
+                   +0x3FFC00 for a 4M aperture or 0x7FFC00 for an 8M" (RRG
+                   1-3). */
+                svga->decode_mask = size - 1;
+                mach64_log("Mach64 linear aperture=%08x size %i MB, VGAAP=%x.\n", mach64->linear_base, size >> 20, mach64->config_cntl & 4);
+                mach64_map_aperture(mach64, &mach64->linear_mapping, ap == 2, 0, size - 0x400);
+                mach64_map_aperture(mach64, &mach64->mmio_linear_mapping, ap == 2, size - 0x400, 0x400);
             }
         } else {
             /*2*8 MB aperture*/
-            mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - 4096);
-            mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 4096), 4096);
-            mem_mapping_set_addr(&mach64->linear_mapping_big_endian, mach64->linear_base + (8 << 20), (8 << 20) - 0x1000);
-            mem_mapping_set_addr(&mach64->mmio_linear_mapping_2, mach64->linear_base + ((16 << 20) - 0x1000), 0x1000);
+            mach64_map_aperture(mach64, &mach64->linear_mapping, 1, 0, (8 << 20) - 4096);
+            mach64_map_aperture(mach64, &mach64->mmio_linear_mapping, 1, (8 << 20) - 4096, 4096);
+            mach64_map_aperture(mach64, &mach64->linear_mapping_big_endian, 1, 8 << 20, (8 << 20) - 0x1000);
+            mach64_map_aperture(mach64, &mach64->mmio_linear_mapping_2, 1, (16 << 20) - 0x1000, 0x1000);
         }
     } else {
         mem_mapping_disable(&mach64->linear_mapping);
@@ -310,16 +557,80 @@ mach64_updatemapping(mach64_t *mach64)
     }
 }
 
+/* CRTC_INT_CNTL (RRG 3-21): each interrupt's status bit sits one above its
+   enable bit, and writing 1 to a status bit acknowledges it. The GX has the
+   vertical blank (enable 1, status 2) and the vertical line (3, 4); the CT
+   and later add the snapshot, I2C, capture, overlay and one-shot ones. */
+static uint32_t
+mach64_crtc_int_en(const mach64_t *mach64)
+{
+    return (mach64->type == MACH64_GX) ? 0x0000000a : 0x0055028a;
+}
+
+/* The line of the frame the CRTC is on: in an interlaced mode each field
+   scans every other one (CRTC_CRNT_VLINE, RRG 3-25). */
+static uint32_t
+mach64_crnt_vline(const mach64_t *mach64)
+{
+    const svga_t *svga = &mach64->svga;
+
+    if (svga->interlace)
+        return ((svga->vc << 1) | (svga->oddeven & 1)) & 0x7ff;
+    return svga->vc & 0x7ff;
+}
+
+static uint32_t
+mach64_crtc_int_cntl_read(const mach64_t *mach64)
+{
+    uint32_t ret = mach64->crtc_int_cntl & ~0x61;
+
+    if (!mach64->svga.dispon)
+        ret |= 0x01; /* CRTC_VBLANK */
+    if (mach64_crnt_vline(mach64) & 1)
+        ret |= 0x20; /* CRTC_VLINE_SYNC: odd scan line */
+    if (mach64->svga.interlace && (mach64->svga.oddeven & 1))
+        ret |= 0x40; /* CRTC_FRAME: odd frame */
+    return ret;
+}
+
 static void
 mach64_update_irqs(mach64_t *mach64)
 {
-    if (!mach64->pci)
-        return;
+    const uint32_t crtc_en = mach64->crtc_int_cntl & mach64_crtc_int_en(mach64);
+    /* BUS_CNTL: FIFO error 20/21, host data error 22/23 (RRG 3-2). */
+    const uint32_t bus_en  = mach64->bus_cntl & 0x00500000;
+    const int      pending = !!((mach64->crtc_int_cntl & (crtc_en << 1)) || (mach64->bus_cntl & (bus_en << 1)));
 
-    if ((mach64->crtc_int_cntl & 0xaa0024) & ((mach64->crtc_int_cntl << 1) & 0xaa0024))
-        pci_set_irq(mach64->pci_slot, PCI_INTA, &mach64->irq_state);
+    if (mach64->pci) {
+        if (pending)
+            pci_set_irq(mach64->pci_slot, PCI_INTA, &mach64->irq_state);
+        else
+            pci_clear_irq(mach64->pci_slot, PCI_INTA, &mach64->irq_state);
+        return;
+    }
+
+    /* ISA and VLB boards take their interrupt from a jumper: 2, 3, 5 or 10
+       on ISA, 2, 3 or 5 on the VLB (mach64 User's Guide, Reference). */
+    if (!mach64->isa_irq || (pending == mach64->isa_irq_raised))
+        return;
+    if (pending)
+        picint(1 << mach64->isa_irq);
     else
-        pci_clear_irq(mach64->pci_slot, PCI_INTA, &mach64->irq_state);
+        picintc(1 << mach64->isa_irq);
+    mach64->isa_irq_raised = pending;
+}
+
+/* CRTC_VLINE_INT (CRTC_INT_CNTL bit 4) sets when the CRTC reaches the line
+   in CRTC_VLINE (RRG 3-25). */
+static void
+mach64_line_callback(svga_t *svga)
+{
+    mach64_t *mach64 = (mach64_t *) svga->priv;
+
+    if (mach64_crnt_vline(mach64) != (mach64->crtc_vline & 0x7ff))
+        return;
+    mach64->crtc_int_cntl |= 0x10;
+    mach64_update_irqs(mach64);
 }
 
 
@@ -359,6 +670,17 @@ pll_write(mach64_t *mach64, uint32_t addr, uint8_t val)
 
 
 
+/* CRTC_VBLANK_INT (CRTC_INT_CNTL bit 2) sets as the display ends. */
+static void
+mach64gx_vblank_start(svga_t *svga)
+{
+    mach64_t *mach64 = (mach64_t *) svga->priv;
+
+    mach64->crtc_int_cntl |= 4;
+    mach64_update_irqs(mach64);
+    mach64_update_overscan(mach64);
+}
+
 #define OVERLAY_EN (1 << 30)
 static void
 mach64_vblank_start(svga_t *svga)
@@ -368,6 +690,7 @@ mach64_vblank_start(svga_t *svga)
 
     mach64->crtc_int_cntl |= 4;
     mach64_update_irqs(mach64);
+    mach64_update_overscan(mach64);
 
     svga->overlay.x = (mach64->overlay_y_x_start >> 16) & 0x7ff;
     svga->overlay.y = mach64->overlay_y_x_start & 0x7ff;
@@ -475,17 +798,24 @@ mach64_ext_readb(uint32_t addr, void *priv)
                 case 0x0c ... 0x0f:
                     READ8(addr, mach64->crtc_v_sync_strt_wid);
                     break;
-                case 0x12 ... 0x13:
-                    READ8(addr - 2, mach64->svga.vc);
+                case 0x10 ... 0x11:
+                    READ8(addr, mach64->crtc_vline); /* CRTC_VLINE, 10:0 RW (RRG 3-25) */
                     break;
+                case 0x12 ... 0x13: {
+                    uint32_t vline = mach64_crnt_vline(mach64);
+
+                    READ8(addr - 2, vline);
+                    break;
+                }
                 case 0x14 ... 0x17:
                     READ8(addr, mach64->crtc_off_pitch);
                     break;
-                case 0x18:
-                    ret = mach64->crtc_int_cntl & ~1;
-                    if (mach64->svga.cgastat & 8)
-                        ret |= 1;
+                case 0x18 ... 0x1b: {
+                    uint32_t cntl = mach64_crtc_int_cntl_read(mach64);
+
+                    READ8(addr, cntl);
                     break;
+                }
                 case 0x1c ... 0x1f:
                     READ8(addr, mach64->crtc_gen_cntl);
                     break;
@@ -568,7 +898,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     ret = (mach64->bank_r[0] >> 15);
                     break;
                 case 0xba:
-                    ret = (mach64->bank_r[0] >> 15);
+                    ret = (mach64->bank_r[1] >> 15); /* MEM_VGA_RP_SEL's RPS1 */
                     break;
                 case 0xc0 ... 0xc3:
                     if (mach64->type == MACH64_GX)
@@ -591,15 +921,22 @@ mach64_ext_readb(uint32_t addr, void *priv)
                             ret |= 0x02;
                     }
                     break;
+                case 0xa0 ... 0xa3:
+                    READ8(addr, mach64->bus_cntl);
+                    break;
                 case 0xd0 ... 0xd3:
                     READ8(addr, mach64->gen_test_cntl);
                     break;
+                case 0xe8 ... 0xeb:
+                    /* CONFIG_STAT1: nothing set on this board (CFG_PCI_DAC_CFG 0). */
+                    ret = 0x00;
+                    break;
                 case 0xdc ... 0xdf:
-                    if (mach64->type != MACH64_VT2 && mach64->type != MACH64_VT)
-                        mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | ((mach64->linear_base >> 22) << 4);
-                    else
-                        mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | ((mach64->linear_base >> 24) << 4);
-
+                    /* "All except CONFIG_CNTL have memory mapped register
+                       aliases" on the GX (RRG 1-3): reached through I/O only. */
+                    if (mach64->type == MACH64_GX)
+                        break;
+                    mach64_sync_ap_loc(mach64);
                     READ8(addr, mach64->config_cntl);
                     break;
                 case 0xe0 ... 0xe3:
@@ -612,14 +949,15 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr, mach64->dst_off_pitch);
                     break;
-                case 0x104 ... 0x105:
+                /* DST_Y_X: Y in 14:0, X in 28:16 (RRG 3-55). */
+                case 0x104 ... 0x105: /* DST_X */
+                case 0x11c ... 0x11d: /* DST_X_WIDTH's X */
+                    mach64_wait_fifo_idle(mach64);
+                    READ8(addr + 2, mach64->dst_y_x);
+                    break;
+                case 0x108 ... 0x109: /* DST_Y */
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr, mach64->dst_y_x);
-                    break;
-                case 0x108 ... 0x109:
-                case 0x11c ... 0x11d:
-                    mach64_wait_fifo_idle(mach64);
-                    READ8(addr + 2, mach64->dst_y_x); // optimise
                     break;
                 case 0x10c ... 0x10f:
                     mach64_wait_fifo_idle(mach64);
@@ -668,13 +1006,13 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr, mach64->src_off_pitch);
                     break;
-                case 0x184 ... 0x185:
-                    mach64_wait_fifo_idle(mach64);
-                    READ8(addr, mach64->src_y_x);
-                    break;
-                case 0x188 ... 0x189:
+                case 0x184 ... 0x185: /* SRC_X: SRC_Y_X 28:16 (RRG 3-99) */
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr + 2, mach64->src_y_x);
+                    break;
+                case 0x188 ... 0x189: /* SRC_Y: 14:0 */
+                    mach64_wait_fifo_idle(mach64);
+                    READ8(addr, mach64->src_y_x);
                     break;
                 case 0x18c ... 0x18f:
                     mach64_wait_fifo_idle(mach64);
@@ -692,13 +1030,13 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr, mach64->src_height1_width1);
                     break;
-                case 0x19c ... 0x19d:
-                    mach64_wait_fifo_idle(mach64);
-                    READ8(addr, mach64->src_y_x_start);
-                    break;
-                case 0x1a0 ... 0x1a1:
+                case 0x19c ... 0x19d: /* SRC_X_START: SRC_Y_X_START 28:16 (RRG 3-100) */
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr + 2, mach64->src_y_x_start);
+                    break;
+                case 0x1a0 ... 0x1a1: /* SRC_Y_START: SRC_Y_X_START 14:0 */
+                    mach64_wait_fifo_idle(mach64);
+                    READ8(addr, mach64->src_y_x_start);
                     break;
                 case 0x1a4 ... 0x1a7:
                     mach64_wait_fifo_idle(mach64);
@@ -801,12 +1139,16 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     READ8(addr, mach64->clr_cmp_cntl);
                     break;
                 case 0x310 ... 0x311:
+                    /* FIFO_STAT: a '1' for each filled entry of the 16-deep
+                       command FIFO (RRG 3-56). */
                     if (!mach64->blitter_busy)
                         mach64_wake_fifo_thread(mach64);
+                    {
+                        int      n    = FIFO_ENTRIES;
+                        uint32_t bits = (n >= 16) ? 0xffff : ((1u << n) - 1);
 
-                    ret = 0;
-                    if (FIFO_FULL)
-                        ret = 0xff;
+                        ret = (addr & 1) ? (bits >> 8) : (bits & 0xff);
+                    }
                     break;
                 case 0x320 ... 0x323:
                     mach64_wait_fifo_idle(mach64);
@@ -825,12 +1167,28 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     READ8(addr - 3, mach64->pat_cntl);
                     break;
                 case 0x338:
+                    /* GUI_ACTIVE: the FIFO, or an operation still running --
+                       one waiting on host data included (RRG 3-61). */
                     if (!mach64->blitter_busy)
                         mach64_wake_fifo_thread(mach64);
-                    ret = FIFO_EMPTY ? 0 : 1;
+                    ret = (!FIFO_EMPTY || mach64->blitter_busy || mach64->accel.busy) ? 1 : 0;
                     break;
+                case 0x339: {
+                    /* DSTX/DSTY against the scissors, bits 8-11. */
+                    int x  = ((int) (mach64->dst_y_x << 3)) >> 19;
+                    int y  = ((int) (mach64->dst_y_x << 17)) >> 17;
+                    int sl = ((int) (mach64->sc_left_right << 19)) >> 19;
+                    int sr = ((int) (mach64->sc_left_right << 3)) >> 19;
+                    int st = ((int) (mach64->sc_top_bottom << 17)) >> 17;
+                    int sb = ((int) (mach64->sc_top_bottom << 1)) >> 17;
+
+                    mach64_wait_fifo_idle(mach64);
+                    ret = ((x < sl) ? 1 : 0) | ((x > sr) ? 2 : 0) | ((y < st) ? 4 : 0) | ((y > sb) ? 8 : 0);
+                    break;
+                }
                 case 0x33a:
-                    ret = FIFO_EMPTY ? 32 : 31;
+                    /* The CT's FIFO count; nothing there on the GX (RRG 3-61). */
+                    ret = (mach64->type >= MACH64_CT) ? (FIFO_EMPTY ? 32 : 31) : 0;
                     break;
                 default:
                     ret = 0;
@@ -893,9 +1251,7 @@ mach64_ext_readl(uint32_t addr, void *priv)
         } else
             switch (addr & 0x3fc) {
             case 0x18:
-                    ret = mach64->crtc_int_cntl & ~1;
-                    if (mach64->svga.cgastat & 8)
-                        ret |= 1;
+                    ret = mach64_crtc_int_cntl_read(mach64);
                     break;
             case 0xb4:
                     ret = (mach64->bank_w[0] >> 15) | ((mach64->bank_w[1] >> 15) << 16);
@@ -919,6 +1275,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
     svga_t   *svga   = &mach64->svga;
+
 
     if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         svga->mapping.write_b(addr, val, svga->mapping.priv);
@@ -1020,17 +1377,25 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     svga_recalctimings(&mach64->svga);
                     svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
+                case 0x10 ... 0x11:
+                    WRITE8(addr, mach64->crtc_vline, val); /* CRTC_VLINE */
+                    mach64->crtc_vline &= 0x7ff;
+                    break;
                 case 0x14 ... 0x17:
                     WRITE8(addr, mach64->crtc_off_pitch, val);
                     svga_recalctimings(&mach64->svga);
                     svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
-                case 0x18:
-                    mach64->crtc_int_cntl = (mach64->crtc_int_cntl & 0x75) | (val & ~0x75);
-                    if (val & 4)
-                        mach64->crtc_int_cntl &= ~4;
+                case 0x18 ... 0x1b: {
+                    const uint32_t en   = mach64_crtc_int_en(mach64);
+                    const uint32_t lane = 0xffu << ((addr & 3) * 8);
+                    const uint32_t v    = (uint32_t) val << ((addr & 3) * 8);
+
+                    mach64->crtc_int_cntl = (mach64->crtc_int_cntl & ~(en & lane)) | (v & en);
+                    mach64->crtc_int_cntl &= ~(v & (en << 1)); /* the acknowledges */
                     mach64_update_irqs(mach64);
                     break;
+                }
                 case 0x1c ... 0x1f:
                     WRITE8(addr, mach64->crtc_gen_cntl, val);
                     if (((mach64->crtc_gen_cntl >> 24) & 3) == 3)
@@ -1055,12 +1420,15 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     break;
                 case 0x40 ... 0x43:
                     WRITE8(addr, mach64->ovr_clr, val);
+                    mach64_update_overscan(mach64);
                     break;
                 case 0x44 ... 0x47:
                     WRITE8(addr, mach64->ovr_wid_left_right, val);
+                    svga_recalctimings(svga);
                     break;
                 case 0x48 ... 0x4b:
                     WRITE8(addr, mach64->ovr_wid_top_bottom, val);
+                    svga_recalctimings(svga);
                     break;
                 case 0x60 ... 0x63:
                     WRITE8(addr, mach64->cur_clr0, val);
@@ -1112,9 +1480,12 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     break;
                 case 0x90 ... 0x93:
                     WRITE8(addr, mach64->clock_cntl, val);
-                    if (mach64->type == MACH64_GX)
-                        ics2595_write(svga->clock_gen, val & 0x40, val & 0xf);
-                    else {
+                    /* CLOCK_SEL, CLOCK_DIV and CLOCK_STROBE are all byte 0
+                       (RRG 3-4): the other lanes would select clock 0. */
+                    if (mach64->type == MACH64_GX) {
+                        if ((addr & 3) == 0)
+                            ics2595_write(svga->clock_gen, val & 0x40, val & 0xf);
+                    } else {
                         pll_write(mach64, addr, val);
                         ics2595_setclock(svga->clock_gen, mach64->pll_freq[mach64->clock_cntl & 3]);
                     }
@@ -1159,9 +1530,36 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     if (mach64->type != MACH64_VT3)
                         i2c_gpio_set(mach64->i2c, !(mach64->dac_cntl & 0x20000000) || (mach64->dac_cntl & 0x04000000), !(mach64->dac_cntl & 0x10000000) || (mach64->dac_cntl & 0x02000000));
                     break;
+                case 0xa0 ... 0xa3:
+                    /* BUS_CNTL (RRG 3-2): bits 21 and 23 read as the FIFO and
+                       host data error interrupts, which nothing raises here,
+                       and a write to them acknowledges. */
+                    WRITE8(addr, mach64->bus_cntl, val);
+                    mach64->bus_cntl &= ~((1u << 21) | (1u << 23));
+                    mach64_update_irqs(mach64);
+                    if ((addr & 3) == 1)
+                        mach64_update_rom(mach64); /* BUS_ROM_DIS */
+                    break;
+                case 0xe8 ... 0xeb:
+                    break; /* CONFIG_STAT1 is read-only */
                 case 0xd0 ... 0xd3:
+                    /* GEN_GUI_EN (bit 8): "0 = Resets draw engine" (RRG 3-57). */
+                    if (((addr & 3) == 1) && (mach64->gen_test_cntl & 0x100) && !(val & 0x01)) {
+                        mach64_wait_fifo_idle(mach64);
+                        mach64->accel.busy = 0;
+                    }
                     WRITE8(addr, mach64->gen_test_cntl, val);
-                    ati_eeprom_write(&mach64->eeprom, mach64->gen_test_cntl & 0x10, mach64->gen_test_cntl & 2, mach64->gen_test_cntl & 1);
+                    /* GEN_EE_CHIP_SEL (bit 2) is the EEPROM's chip select and
+                       GEN_EE_CLOCK (bit 1) its clock; the part sees either only
+                       while GEN_EE_EN (bit 4) enables the interface, its pins
+                       being shared with the display (Register Reference Guide,
+                       GEN_TEST_CNTL). Bit 4 was taken for the chip select. */
+                    {
+                        int ee_en = !!(mach64->gen_test_cntl & 0x10);
+
+                        ati_eeprom_write(&mach64->eeprom, ee_en && (mach64->gen_test_cntl & 0x04),
+                                         ee_en && (mach64->gen_test_cntl & 0x02), mach64->gen_test_cntl & 0x01);
+                    }
                     mach64->gen_test_cntl  = (mach64->gen_test_cntl & ~8) | (ati_eeprom_read(&mach64->eeprom) ? 8 : 0);
                     if (mach64->type == MACH64_GX)
                         svga->dac_hwcursor.ena = !!(mach64->gen_test_cntl & 0x80);
@@ -1169,6 +1567,8 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                         svga->hwcursor.ena = !!(mach64->gen_test_cntl & 0x80);
                     break;
                 case 0xdc ... 0xdf:
+                    if (mach64->type == MACH64_GX)
+                        break; /* no memory mapped alias on the GX (RRG 1-3) */
                     WRITE8(addr, mach64->config_cntl, val);
                     mach64_updatemapping(mach64);
                     break;
@@ -1262,10 +1662,11 @@ mach64_ext_inb(uint16_t port, void *priv)
     uint8_t   ret    = 0x00; // default value based on invaid port
 
     // Code is written with the assumption that IO_BASE = 2cc. so we can rewrite it liek this
-    if (mach64->io_base == MACH64_IO_BASE_1CC)
-        port -= 0x120;
-    else if (mach64->io_base == MACH64_IO_BASE_1C8)
-        port -= 0x124;
+    /* io_base is the PCI 40h select, 0-2; the decode below is for 2ECh. */
+    if (mach64->io_base == 1)
+        port += MACH64_IO_BASE_2EC - MACH64_IO_BASE_1CC;
+    else if (mach64->io_base == 2)
+        port += MACH64_IO_BASE_2EC - MACH64_IO_BASE_1C8;
 
     uint8_t port_high = (port >> 8) & 0xFE; // we only care about the upper 5 bits
     uint8_t port_low = port & 0xFF;
@@ -1292,7 +1693,7 @@ mach64_ext_inb(uint16_t port, void *priv)
                 if (port_low == 0xEC)
                     ret = mach64_ext_readb(0x400 | addr_or_value, priv);
                 else if (port_low == 0xEE)
-                    ret = mach64_ext_readb(0x400 | addr_or_value, priv);
+                    ret = mach64_ext_readb(0x400 | addr_or_value | 2, priv); /* WPS1 / RPS1 */
                 break;
             case 0x5e: // 5eec-5eef
                 if (mach64->type == MACH64_GX)
@@ -1303,7 +1704,7 @@ mach64_ext_inb(uint16_t port, void *priv)
                 }
                 break;
             case 0x6a: // 6eec-6eef
-                mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | ((mach64->linear_base >> 22) << 4);
+                mach64_sync_ap_loc(mach64);
                 READ8(port, mach64->config_cntl);
                 break;
             default:  // general case
@@ -1328,6 +1729,15 @@ mach64_ext_inb(uint16_t port, void *priv)
                     addr_or_value = port_high + 0x72;
                 else if (port_high == 0x7e)
                     addr_or_value = 0x00; // must be 0
+                /* BUS_CNTL is I/O select 13h (4EECh) and CONFIG_STAT1 1Dh
+                   (76ECh); select 1Eh (7AECh) is no register (RRG 2-6). All
+                   three fell through to CRTC_H_TOTAL_DISP. */
+                else if (port_high == 0x4E)
+                    addr_or_value = 0xa0;
+                else if (port_high == 0x76)
+                    addr_or_value = 0xe8;
+                else if (port_high == 0x7A)
+                    break;
 
                 ret = mach64_ext_readb(0x400 | addr_or_value | (lane), priv);
                 break;
@@ -1368,10 +1778,11 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
     svga_t *svga = &mach64->svga;
 
     // Code is written with the assumption that IO_BASE = 2cc. so we can rewrite it for other I/O bases like this
-    if (mach64->io_base == MACH64_IO_BASE_1CC)
-        port -= 0x120;
-    else if (mach64->io_base == MACH64_IO_BASE_1C8)
-        port -= 0x124;
+    /* io_base is the PCI 40h select, 0-2; the decode below is for 2ECh. */
+    if (mach64->io_base == 1)
+        port += MACH64_IO_BASE_2EC - MACH64_IO_BASE_1CC;
+    else if (mach64->io_base == 2)
+        port += MACH64_IO_BASE_2EC - MACH64_IO_BASE_1C8;
 
     uint8_t port_high = (port >> 8) & 0xFE; // we only care about the upper 5 bits
     uint8_t port_low = port & 0xFF;
@@ -1409,7 +1820,7 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
                 break;
             case 0x6a: // 6eec-6eef
                 WRITE8(port, mach64->config_cntl, val);
-                if (mach64->vlb)
+                if (!mach64->pci)
                     mach64->linear_base = (mach64->config_cntl & 0x3ff0) << 18;
 
                 mach64_updatemapping(mach64);
@@ -1437,6 +1848,14 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
                     addr_or_value = port_high + 0x72;
                 else if (port_high == 0x7e)
                     addr_or_value = 0x00; // must be 0
+                /* BUS_CNTL (13h, 4EECh), CONFIG_STAT1 (1Dh, 76ECh), and 1Eh
+                   (7AECh), which is no register (RRG 2-6). */
+                else if (port_high == 0x4E)
+                    addr_or_value = 0xa0;
+                else if (port_high == 0x76)
+                    addr_or_value = 0xe8;
+                else if (port_high == 0x7A)
+                    break;
 
                 mach64_ext_writeb(0x400 | addr_or_value | (port & 3), val, priv);
 
@@ -1550,6 +1969,21 @@ mach64_decode_addr(mach64_t *mach64, uint32_t addr, int write)
     else
         addr = (addr & 0x7fff) + mach64->bank_r[(addr >> 15) & 1];
 
+    return addr;
+}
+
+/* MEM_BNDRY_EN (MEM_CNTL bit 18): the VGA apertures, the standard one and
+   the two small ones, reach only the memory below MEM_BNDRY; the linear
+   aperture is not affected (Programmer's Guide 2-18, 2-65). An address
+   past the end of video memory is one svga drops. */
+static uint32_t
+mach64_vga_translate(uint32_t addr, void *priv)
+{
+    const svga_t   *svga   = (svga_t *) priv;
+    const mach64_t *mach64 = (mach64_t *) svga->priv;
+
+    if ((mach64->mem_cntl & (1 << 18)) && (addr >= mach64_mem_bndry(mach64)))
+        return 0xffffffff;
     return addr;
 }
 
@@ -1973,7 +2407,8 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
         case PCI_REG_ROM_BAR_BYTE0:
             return (mach64->on_board) ? 0 : (mach64->pci_regs[0x30] & 0x01); /*BIOS ROM address*/
         case PCI_REG_ROM_BAR_BYTE1:
-            return 0x00;
+            /* The ROM is 32K: address bits 31:15 (PCI 2.1, 6.2.5.2). */
+            return (mach64->on_board) ? 0 : (mach64->pci_regs[0x31] & 0x80);
         case PCI_REG_ROM_BAR_BYTE2:
             return (mach64->on_board) ? 0 : mach64->pci_regs[0x32];
         case PCI_REG_ROM_BAR_BYTE3:
@@ -2000,7 +2435,7 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
     bool dont_remap_io = (addr == PCI_REG_COMMAND // controls the mapping so we don't use the default behaviour
     || addr == PCI_REG_BAR0_BYTE2
     || addr == PCI_REG_BAR0_BYTE3
-    || (addr >= PCI_REG_ROM_BAR_BYTE0 || addr <= PCI_REG_ROM_BAR_BYTE3));
+    || (addr >= PCI_REG_ROM_BAR_BYTE0 && addr <= PCI_REG_ROM_BAR_BYTE3));
 
     if (!dont_remap_io
     && (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO))
@@ -2029,29 +2464,21 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
             break;
         case PCI_REG_BAR1_BYTE1:
             if (mach64->type >= MACH64_CT)
-                mach64->block_decoded_io = (mach64->block_decoded_io & 0xffff0000) | ((val & 0xff) << 8);
+                mach64->block_decoded_io = (mach64->block_decoded_io & 0xffff00ff) | (val << 8);
             break;
         case PCI_REG_BAR1_BYTE2:
             if (mach64->type >= MACH64_CT)
-                mach64->block_decoded_io = (mach64->block_decoded_io & 0xff00fc00) | (val << 16);
+                mach64->block_decoded_io = (mach64->block_decoded_io & 0xff00ffff) | (val << 16);
             break;
         case PCI_REG_BAR1_BYTE3:
             if (mach64->type >= MACH64_CT)
-                mach64->block_decoded_io = (mach64->block_decoded_io & 0x00fffc00) | (val << 24);
+                mach64->block_decoded_io = (mach64->block_decoded_io & 0x00ffffff) | (val << 24);
             break;
-        case PCI_REG_ROM_BAR_BYTE0:
-        case PCI_REG_ROM_BAR_BYTE2 ... PCI_REG_ROM_BAR_BYTE3:
+        case PCI_REG_ROM_BAR_BYTE0 ... PCI_REG_ROM_BAR_BYTE3:
             if (mach64->on_board)
                 return;
             mach64->pci_regs[addr] = val;
-            if (mach64->pci_regs[PCI_REG_ROM_BAR_BYTE0] & 0x01) {
-                uint32_t biosaddr = (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
-                mach64_log("Mach64 bios_rom enabled at %08x\n", biosaddr);
-                mem_mapping_set_addr(&mach64->bios_rom.mapping, biosaddr, 0x8000);
-            } else {
-                mach64_log("Mach64 bios_rom disabled\n");
-                mem_mapping_disable(&mach64->bios_rom.mapping);
-            }
+            mach64_update_rom(mach64);
             return;
         case PCI_REG_INT_LINE:
             mach64->int_line = val;
@@ -2135,7 +2562,7 @@ mach64_common_init(const device_t *info)
     mach64->type = info->local & 0xff;
     mach64->vram_size = (mach64->type == MACH64_CT || mach64->type == MACH64_VT || mach64->type == MACH64_VT3) ? 2 : ((info->local & (1 << 20)) ? 4 : device_get_config_int("memory"));
     mach64->vram_mask = (mach64->vram_size << 20) - 1;
-    mach64->io_base = MACH64_IO_BASE_2EC;
+    mach64->io_base = 0; /* PCI 40h select: 0 = 2ECh */
 
     if (mach64->type > MACH64_GX)
         svga_init(info, svga, mach64, mach64->vram_size << 20,
@@ -2154,7 +2581,12 @@ mach64_common_init(const device_t *info)
     mem_mapping_add(&mach64->linear_mapping_big_endian, 0, 0, mach64_readb_be, mach64_readw_be, mach64_readl_be, mach64_writeb_be, mach64_writew_be, mach64_writel_be, NULL, MEM_MAPPING_EXTERNAL, svga);
     mem_mapping_add(&mach64->mmio_linear_mapping, 0, 0, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     mem_mapping_add(&mach64->mmio_linear_mapping_2, 0, 0, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
-    mem_mapping_add(&mach64->mmio_mapping, 0xbf000, 0x1000, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
+    /* The GX has only its 1K of registers there; the video memory below
+       them stays in the aperture. The CT adds a second block at BF800. */
+    if (mach64->type == MACH64_GX)
+        mem_mapping_add(&mach64->mmio_mapping, 0xbfc00, 0x400, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
+    else
+        mem_mapping_add(&mach64->mmio_mapping, 0xbf800, 0x800, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     mem_mapping_disable(&mach64->mmio_mapping);
 
     mach64_io_map(mach64);
@@ -2167,7 +2599,9 @@ mach64_common_init(const device_t *info)
     mach64->pci_regs[PCI_REG_ROM_BAR_BYTE2] = 0x0c;
     mach64->pci_regs[PCI_REG_ROM_BAR_BYTE3] = 0x00;
 
-    svga->clock_gen = device_add(&ics2595_device);
+    svga->clock_gen         = device_add(&ics2595_device);
+    svga->line_callback     = mach64_line_callback;
+    svga->translate_address = mach64_vga_translate;
 
     if (mach64->type >= MACH64_VT)
         svga->conv_16to32 = mach64_conv_16to32;
@@ -2202,6 +2636,10 @@ mach64gx_init(const device_t *info)
 
     svga->dac_hwcursor.cur_ysize = 64;
     svga->dac_hwcursor.cur_xsize = 64;
+    svga->vblank_start           = mach64gx_vblank_start;
+
+    if (!(info->flags & DEVICE_PCI))
+        mach64->isa_irq = device_get_config_int("irq");
 
     if (info->flags & DEVICE_ISA16)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_isa);
@@ -2215,18 +2653,37 @@ mach64gx_init(const device_t *info)
     mach64->pci_id         = 'X' | ('G' << 8);
     mach64->config_chip_id = 0x000000d7;
     mach64->dac_cntl       = 5 << 16;             /*ATI 68860 RAMDAC*/
-    mach64->config_stat0   = (5 << 9) | (3 << 3); /*ATI 68860, 256Kx16 DRAM*/
+    /* CFG_MEM_TYPE (CONFIG_STAT0 bits 5:3, RRG 3-10) is the board's memory:
+       1 VRAM (256Kx4, x8, x16) on the Graphics Pro Turbo, 3 DRAM (256Kx16)
+       on the Graphics Xpression (mach64 User's Guide). The BIOS takes each
+       mode's memory requirement from the VRAM or the DRAM column of its
+       table by it. */
+    mach64->config_stat0   = (5 << 9) | (((info->local & MACH64_FLAG_DRAM) ? 3 : 1) << 3); /*ATI 68860*/
+    /* The board's straps (RRG 3-11): VGA and the chip enabled, the ROM at
+       C0000. VLB: local bus DAC writes enabled. ISA: no 4 GB aperture. */
+    mach64->config_stat0  |= (1u << 23) | (1u << 25) | (1u << 27);
+    if (info->flags & DEVICE_VLB)
+        mach64->config_stat0 |= (1u << 29);
+    else if (!(info->flags & DEVICE_PCI))
+        mach64->config_stat0 |= (1u << 31);
+    mach64->bus_cntl = 0x000000ff; /* BUS_WS and BUS_ROM_WS default Fh (RRG 3-2) */
+    mach64->mem_cntl = 0x00000400; /* MEM_CYC_LNTH default 2, MEM_SIZE 512K (RRG 3-67) */
     if (info->flags & DEVICE_PCI) {
-        mach64->config_stat0 |= 7; /*PCI, 256Kx16 DRAM*/
+        mach64->config_stat0 |= 7; /*PCI*/
         ati_eeprom_load(&mach64->eeprom, "mach64_pci.nvr", 1);
         rom_init(&mach64->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         mem_mapping_disable(&mach64->bios_rom.mapping);
     } else if (info->flags & DEVICE_VLB) {
-        mach64->config_stat0 |= 6; /*VLB, 256Kx16 DRAM*/
-        ati_eeprom_load(&mach64->eeprom, "mach64_vlb.nvr", 1);
-        rom_init(&mach64->bios_rom, BIOS_VLB_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        mach64->config_stat0 |= 6; /*VLB*/
+        ati_eeprom_load_default(&mach64->eeprom, (info->local & MACH64_FLAG_DRAM) ? "mach64_xpression_vlb.nvr" : "mach64_vlb.nvr", 1,
+                                mach64_vlb_eeprom_default, sizeof(mach64_vlb_eeprom_default) / sizeof(mach64_vlb_eeprom_default[0]));
+        if (info->local & MACH64_FLAG_DRAM)
+            rom_init(&mach64->bios_rom, (char *) device_get_bios_file(info, device_get_config_bios("bios_ver"), 0),
+                     0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL); /* Graphics Xpression */
+        else
+            rom_init(&mach64->bios_rom, BIOS_VLB_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     } else if (info->flags & DEVICE_ISA16) {
-        mach64->config_stat0 |= 0; /*ISA 16-bit, 256k16 DRAM*/
+        mach64->config_stat0 |= 0; /*ISA 16-bit*/
         ati_eeprom_load(&mach64->eeprom, "mach64.nvr", 1);
         rom_init(&mach64->bios_rom, BIOS_ISA_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     }
@@ -2252,7 +2709,7 @@ mach64ct_init(const device_t *info)
     mach64->pci_id               = 'T' | ('C' << 8);
     mach64->config_chip_id       = mach64->pci_id;
     mach64->dac_cntl             = 1 << 16; /*Internal 24-bit DAC*/
-    mach64->config_stat0         = 4;
+    mach64->config_stat0         = 1; /* CFG_MEM_TYPE 1 = DRAM; 4 is reserved on the CT (RRG 3-12) */
     mach64->use_block_decoded_io = 4;
 
     ati_eeprom_load(&mach64->eeprom, "mach64ct.nvr", 1);
@@ -2372,6 +2829,12 @@ mach64gx_isa_available(void)
     return rom_present(BIOS_ISA_ROM_PATH);
 }
 int
+mach64gx_xpression_vlb_available(void)
+{
+    return rom_present(BIOS_XPRESSION_VLB_27803_PATH);
+}
+
+int
 mach64gx_vlb_available(void)
 {
     return rom_present(BIOS_VLB_ROM_PATH);
@@ -2436,6 +2899,161 @@ mach64_force_redraw(void *priv)
 }
 
 // clang-format off
+/* The Graphics Pro Turbo (ISA and VLB BIOSes): 2 or 4 MB VRAM, and the
+   interrupt jumper: 2, 3 or 5 on the VLB, and 10 as well on ISA, where
+   IRQ 2 is IRQ 9 on an AT (mach64 User's Guide). Left unfitted, as ATI
+   reserved it for future use. */
+static const device_config_t mach64gx_vram_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = 0  },
+            { .description = "IRQ 2",    .value = 9  },
+            { .description = "IRQ 3",    .value = 3  },
+            { .description = "IRQ 5",    .value = 5  },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t mach64gx_vram_isa_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = 0  },
+            { .description = "IRQ 2",    .value = 9  },
+            { .description = "IRQ 3",    .value = 3  },
+            { .description = "IRQ 5",    .value = 5  },
+            { .description = "IRQ 10",   .value = 10 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+/* The Graphics Xpression VLB: 1 or 2 MB DRAM, and its BIOS revisions. */
+static const device_config_t mach64gx_xpression_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "113_27803_102",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "113-27803-102 (1995/03/16)",
+                .internal_name = "113_27803_102",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { BIOS_XPRESSION_VLB_27803_PATH, "" }
+            },
+            {
+                .name          = "113-27804-101 (1995/01/20)",
+                .internal_name = "113_27804_101",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { BIOS_XPRESSION_VLB_27804_PATH, "" }
+            },
+            {
+                .name          = "113-27802-101 (1994/08/24)",
+                .internal_name = "113_27802_101",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { BIOS_XPRESSION_VLB_27802_PATH, "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = 0  },
+            { .description = "IRQ 2",    .value = 9  },
+            { .description = "IRQ 3",    .value = 3  },
+            { .description = "IRQ 5",    .value = 5  },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+/* PCI: a BIOS for more than one board; DRAM, as before. */
 static const device_config_t mach64gx_config[] = {
     {
         .name           = "memory",
@@ -2477,7 +3095,7 @@ static const device_config_t mach64vt2_config[] = {
 // clang-format on
 
 const device_t mach64gx_isa_device = {
-    .name          = "ATI Mach64GX ISA",
+    .name          = "ATI Graphics Pro Turbo (Mach64GX) ISA",
     .internal_name = "mach64gx_isa",
     .flags         = DEVICE_ISA16,
     .local         = MACH64_GX,
@@ -2487,11 +3105,11 @@ const device_t mach64gx_isa_device = {
     .available     = mach64gx_isa_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
-    .config        = mach64gx_config
+    .config        = mach64gx_vram_isa_config
 };
 
 const device_t mach64gx_vlb_device = {
-    .name          = "ATI Mach64GX VLB",
+    .name          = "ATI Graphics Pro Turbo (Mach64GX) VLB",
     .internal_name = "mach64gx_vlb",
     .flags         = DEVICE_VLB,
     .local         = MACH64_GX,
@@ -2501,14 +3119,28 @@ const device_t mach64gx_vlb_device = {
     .available     = mach64gx_vlb_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
-    .config        = mach64gx_config
+    .config        = mach64gx_vram_config
+};
+
+const device_t mach64gx_xpression_vlb_device = {
+    .name          = "ATI Graphics Xpression (Mach64GX) VLB",
+    .internal_name = "mach64gx_xpression_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = MACH64_GX | MACH64_FLAG_DRAM,
+    .init          = mach64gx_init,
+    .close         = mach64_close,
+    .reset         = NULL,
+    .available     = mach64gx_xpression_vlb_available,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64gx_xpression_config
 };
 
 const device_t mach64gx_pci_device = {
     .name          = "ATI Mach64GX PCI",
     .internal_name = "mach64gx_pci",
     .flags         = DEVICE_PCI,
-    .local         = MACH64_GX,
+    .local         = MACH64_GX | MACH64_FLAG_DRAM,
     .init          = mach64gx_init,
     .close         = mach64_close,
     .reset         = NULL,
