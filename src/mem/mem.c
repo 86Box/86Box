@@ -2321,6 +2321,28 @@ mem_mapping_apply_granule(mem_mapping_t *map, uint64_t c, int n)
         read_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
 }
 
+/* The tables cover the 32-bit address space and end at 4 GB. */
+#define MEM_ADDR_SPACE_END 0x100000000ULL
+
+/* A mapping placed past 4 GB: what is known about it, then stop. */
+static void
+mem_mapping_past_4g(uint64_t base, uint64_t size, uint32_t aliases)
+{
+    const mem_mapping_t *map;
+
+    pclog("MEM: a mapping at %08llX-%09llX (%llu KB), %s%08X, runs past 4 GB; guest at %04X:%08X, CR0 %08X\n",
+          (unsigned long long) base, (unsigned long long) (base + size - 1), (unsigned long long) (size >> 10),
+          aliases ? "aliased every " : "no aliases ", aliases ? ((~aliases) + 1) : 0, CS, cpu_state.pc, cr0);
+    for (map = base_mapping; map != NULL; map = map->next) {
+        if (((uint64_t) map->base == base) && ((uint64_t) map->size == size))
+            pclog("MEM: mapping %p: priv %p, flags %08X, read_b %p, write_b %p\n",
+                  (const void *) map, map->priv, map->flags, (void *) map->read_b, (void *) map->write_b);
+    }
+    fatal("A device mapped memory at %08llX-%09llX, past 4 GB, where no address lines reach.\n"
+          "This is a bug in the device model; the log names the mapping.\n",
+          (unsigned long long) base, (unsigned long long) (base + size - 1));
+}
+
 void
 mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
 {
@@ -2334,6 +2356,13 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
 
     if (!size || (base_mapping == NULL))
         return;
+
+    /* No address lines reach past 4 GB, and the tables end there: a mapping
+       that runs past it, or an alias of one, is a device model's bug. It is
+       stopped here, before the walk below indexes off the end of the tables
+       and overwrites whatever follows them. */
+    if ((base + size + (base_ignore & mask)) > MEM_ADDR_SPACE_END)
+        mem_mapping_past_4g(base, size, base_ignore & (uint32_t) mask);
 
     map = base_mapping;
 
