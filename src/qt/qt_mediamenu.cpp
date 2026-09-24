@@ -938,6 +938,9 @@ MediaMenu::cdromUpdateMenu(int i)
         case CDROM_BUS_MKE:
             busName = "Panasonic/MKE";
             break;
+        case CDROM_BUS_LPT:
+            busName = "LPT";
+            break;
     }
 
     menu->setTitle(tr("&CD-ROM %1 (%2): %3").arg(QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name2));
@@ -1111,6 +1114,9 @@ MediaMenu::rdiskUpdateMenu(int i)
             break;
         case RDISK_BUS_SCSI:
             busName = "SCSI";
+            break;
+        case RDISK_BUS_LPT:
+            busName = "LPT";
             break;
     }
 
