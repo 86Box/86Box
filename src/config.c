@@ -4386,7 +4386,8 @@ save_floppy_and_cdrom_drives(void)
             ini_section_delete_var(cat, temp);
         else {
             /* In case one wants an ATAPI drive on SCSI and vice-versa. */
-            if ((cdrom_drive_types[cdrom_get_type(c)].bus_type != BUS_TYPE_BOTH) &&
+            if ((cdrom[c].bus_type != CDROM_BUS_LPT) &&
+                (cdrom_drive_types[cdrom_get_type(c)].bus_type != BUS_TYPE_BOTH) &&
                 (cdrom_drive_types[cdrom_get_type(c)].bus_type != cdrom[c].bus_type))
                 cdrom[c].bus_type = cdrom_drive_types[cdrom_get_type(c)].bus_type;
 

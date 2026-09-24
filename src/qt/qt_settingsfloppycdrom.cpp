@@ -258,7 +258,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
         if (((bus_type == CDROM_BUS_MKE) || (bus_type == CDROM_BUS_ATAPI) || (bus_type == CDROM_BUS_SCSI) ||
              (bus_type == CDROM_BUS_LPT)) &&
             ((cdrom_drive_types[j].bus_type == bus_type) ||
-             ((cdrom_drive_types[j].bus_type == BUS_TYPE_SCSI) && (bus_type == CDROM_BUS_LPT)) ||
+             ((cdrom_drive_types[j].bus_type == BUS_TYPE_IDE) && (bus_type == CDROM_BUS_LPT)) ||
              ((cdrom_drive_types[j].bus_type == BUS_TYPE_BOTH) && (bus_type != BUS_TYPE_MKE)))) {
             QString name = CDROMName(j);
             Models::AddEntry(modelType, name, j);
@@ -487,7 +487,7 @@ SettingsFloppyCDROM::onCDROMRowChanged(const QModelIndex &current)
         if (((bus == CDROM_BUS_MKE) || (bus == CDROM_BUS_ATAPI) || (bus == CDROM_BUS_SCSI) ||
              (bus == CDROM_BUS_LPT)) &&
             ((cdrom_drive_types[j].bus_type == bus) ||
-             ((cdrom_drive_types[j].bus_type == BUS_TYPE_SCSI) && (bus == CDROM_BUS_LPT)) ||
+             ((cdrom_drive_types[j].bus_type == BUS_TYPE_IDE) && (bus == CDROM_BUS_LPT)) ||
              ((cdrom_drive_types[j].bus_type == BUS_TYPE_BOTH) && (bus != BUS_TYPE_MKE)))) {
             QString name = CDROMName(j);
             Models::AddEntry(modelType, name, j);
@@ -624,7 +624,7 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
         if (((bus_type == CDROM_BUS_MKE) || (bus_type == CDROM_BUS_ATAPI) || (bus_type == CDROM_BUS_SCSI) ||
              (bus_type == CDROM_BUS_LPT)) &&
             ((cdrom_drive_types[j].bus_type == bus_type) ||
-             ((cdrom_drive_types[j].bus_type == BUS_TYPE_SCSI) && (bus_type == CDROM_BUS_LPT)) ||
+             ((cdrom_drive_types[j].bus_type == BUS_TYPE_IDE) && (bus_type == CDROM_BUS_LPT)) ||
              ((cdrom_drive_types[j].bus_type == BUS_TYPE_BOTH) && (bus_type != BUS_TYPE_MKE)))) {
             QString name = CDROMName(j);
             Models::AddEntry(modelType, name, j);
