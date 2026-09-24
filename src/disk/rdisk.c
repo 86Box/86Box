@@ -1996,6 +1996,8 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                     ide_padstr8(dev->buffer + 8, 8, "iomega  ");    /* Vendor */
                 } else if (dev->drv->type == RDISK_TYPE_SYJET_1_5GB || dev->drv->type == RDISK_TYPE_SPARQ_1GB) {
                     ide_padstr8(dev->buffer + 8, 8, "SyQuest ");    /* Vendor */
+                } else if (dev->drv->type == RDISK_TYPE_SUPERDISK_120) {
+                    ide_padstr8(dev->buffer + 8, 8, "MATSHITA");    /* Vendor */
                 } else {
                     ide_padstr8(dev->buffer + 8, 8, "IOMEGA  ");    /* Vendor */
                 }
@@ -2031,6 +2033,10 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                     ide_padstr8(dev->buffer + 16, 16, "SparQ           ");
                     /* Revision - not confirmed real, see rdisk.h comment. */
                     ide_padstr8(dev->buffer + 32, 4, "1.03");
+                } else if (dev->drv->type == RDISK_TYPE_SUPERDISK_120) {
+                    /* As a real Matsushita LS-120 COSM 04 answers. */
+                    ide_padstr8(dev->buffer + 16, 16, "LS-120 COSM   04");
+                    ide_padstr8(dev->buffer + 32, 4, "0270");
                 } else {
                     ide_padstr8(dev->buffer + 8, 8,
                                 EMU_NAME);          /* Vendor */
