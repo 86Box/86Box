@@ -432,9 +432,6 @@ typedef struct aic_chip_t {
     uint8_t seqctl_reset;       /* what SEQCTL comes up holding */
     uint8_t sblkctl_reset;      /* and SBLKCTL, before the board's straps */
     uint8_t own_reset_seen;     /* the part reports the bus reset it drives */
-    uint8_t faildis_honoured;   /* FAILDIS suppresses the hard-error
-                                   interrupt, and the interrupt takes
-                                   PAUSEDIS away with it */
     uint8_t bad_addr_err;       /* what an address that decodes to nothing
                                    records in ERROR */
     uint8_t host_pause_checked; /* the host reaching a register that
@@ -477,10 +474,8 @@ static const aic_chip_t aic_chip_7770 = {
        finishes it. The card's own BIOS settles it -- it enables
        ENSCSIRST, asserts SCSIRSTO, starts the sequencer and waits. */
     .own_reset_seen = 0,
-    /* "If set, disables the Illegal Opcode or Address interrupt feature."
-       And an address that decodes to no register is ILLSADDR, not a bad
+    /* An address that decodes to no register is ILLSADDR, not a bad
        opcode. */
-    .faildis_honoured   = 1,
     .host_pause_checked = 1,
     .bad_addr_err       = ILLSADDR,
 };
@@ -508,7 +503,6 @@ static const aic_chip_t aic_chip_788x = {
        itself, and everything waiting on that data stops. */
     .sblkctl_reset    = DIAGLEDEN | DIAGLEDON,
     .own_reset_seen   = 1,
-    .faildis_honoured = 0,
     .bad_addr_err     = ILLOPCODE,
     /* Off, for the same reason bad_addr_err differs: ILLHADDR's rule is
        the AIC-7770 book's, and this part's is not to hand. */
@@ -539,7 +533,6 @@ static const aic_chip_t aic_chip_7870 = {
     .seqctl_reset  = PERRORDIS | FASTMODE,
     .sblkctl_reset = DIAGLEDEN | DIAGLEDON,
     .own_reset_seen = 1,
-    .faildis_honoured = 0,
     .bad_addr_err  = ILLOPCODE,
     .host_pause_checked = 0,
 };
@@ -1047,9 +1040,32 @@ aic_raise(aic7xxx_t *dev, uint8_t bits)
 
 /* The faults the book gathers behind BRKADRINT: "This register reports
    errors that are catastrophic in nature. These errors will cause
-   BRKADRINT to be set and the sequencer to be paused." Whether FAILDIS
-   may suppress the interrupt is the AIC-7770's rule and comes from the
-   chip descriptor, the later parts not being documented to share it. */
+   BRKADRINT to be set and the sequencer to be paused."
+
+   ERROR records what was detected whatever FAILDIS says; FAILDIS turns off
+   only the interrupt. The AIC-7770 book: "If set, disables the Illegal
+   Opcode or Address interrupt feature", and its interrupt summary makes
+   FAILDIS=0 the enable condition of every one of those rows. The AIC-7870
+   book says the same of its own list: BRKADRINT is set "When ILLOPCODE
+   becomes active (FAILDIS=0)", and "This feature may be disabled by
+   setting FAILDIS". So the later parts honour it too.
+
+   PAUSEDIS goes with the interrupt, not with the detection: "SCSI
+   interrupts, an Illegal Opcode interrupt, a Sequencer RAM Parity Error
+   interrupt, and an Illegal Address interrupt, reset this bit" (the 7870:
+   "an illegal opcode interrupt ... resets this bit"). Taking it away for a
+   fault FAILDIS had silenced let a host PAUSE land inside the sequencer's
+   critical section. */
+static void
+aic_fail(aic7xxx_t *dev, uint8_t bits)
+{
+    dev->error |= bits;
+    if (dev->seqctl & FAILDIS)
+        return;
+    dev->seqctl &= ~PAUSEDIS;
+    aic_raise(dev, BRKADRINT);
+}
+
 /* Which registers the host may reach while the sequencer is running.
    The register summary states the rule once for the whole map -- "When
    the host must access these registers the Sequencer must be paused,
@@ -1119,13 +1135,7 @@ aic_hard_error(aic7xxx_t *dev, uint8_t bits, uint8_t addr, int write)
                 (dev->err_logs >= 256) ? " [1 in 100000]" : "");
     }
     dev->err_logs++;
-    dev->error |= bits;
-    if (dev->chip->faildis_honoured) {
-        dev->seqctl &= ~PAUSEDIS;
-        if (dev->seqctl & FAILDIS)
-            return;
-    }
-    aic_raise(dev, BRKADRINT);
+    aic_fail(dev, bits);
 }
 
 /* SCSIINT is the one interrupt the sequencer does not raise itself: the
@@ -4178,16 +4188,8 @@ aic_seq_step(aic7xxx_t *dev)
 
     if (dev->pc >= SEQ_INSNS) {
         /* An address that decodes to nothing. What the part records for
-           it, whether the interrupt takes PAUSEDIS with it and whether
-           FAILDIS can turn it off are all the AIC-7770 data book's, and
-           are not evidence about the later parts. */
-        dev->error |= dev->chip->bad_addr_err;
-        if (dev->chip->faildis_honoured) {
-            dev->seqctl &= ~PAUSEDIS;
-            if (dev->seqctl & FAILDIS)
-                return;
-        }
-        aic_raise(dev, BRKADRINT);
+           it is the descriptor's; the rest is every part's. */
+        aic_fail(dev, dev->chip->bad_addr_err);
         return;
     }
 
@@ -4412,11 +4414,7 @@ aic_seq_step(aic7xxx_t *dev)
                register, an Illegal Opcode is detected, ...". It is the
                AIC-7770's book, so take it from the descriptor -- the part
                whose bad address is ILLSADDR is the part it describes. */
-            dev->error |= ILLOPCODE | (dev->chip->bad_addr_err & ILLSADDR);
-            dev->seqctl &= ~PAUSEDIS;
-            if (dev->chip->faildis_honoured && (dev->seqctl & FAILDIS))
-                return;
-            aic_raise(dev, BRKADRINT);
+            aic_fail(dev, ILLOPCODE | (dev->chip->bad_addr_err & ILLSADDR));
             return;
     }
 
