@@ -1321,11 +1321,15 @@ extern const device_t  ms5169_device;
 extern int             machine_at_ms5169_init(const machine_t *);
 
 /* SiS 530/5595 */
-extern int             machine_at_in530_init(const machine_t *);
-extern int             machine_in530_boot_logo(void);
 #ifdef EMU_DEVICE_H
 extern const device_t  in530_device;
 #endif
+extern int             machine_at_in530_init(const machine_t *);
+extern int             machine_in530_boot_logo(void);
+#ifdef EMU_DEVICE_H
+extern const device_t  ga5smm_device;
+#endif
+extern int             machine_at_ga5smm_init(const machine_t *);
 extern int             machine_at_aptiva2187_init(const machine_t *);
 
 /* VIA MVP3 */
