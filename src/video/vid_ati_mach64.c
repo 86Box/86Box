@@ -1762,10 +1762,17 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                 }
                 case 0x1c ... 0x1f:
                     WRITE8(addr, mach64->crtc_gen_cntl, val);
-                    if (((mach64->crtc_gen_cntl >> 24) & 3) == 3)
-                        svga->fb_only = 1;
-                    else
-                        svga->fb_only = 0;
+                    /* The CPU reaches memory linearly, without the VGA's planes,
+                       under the accelerator CRTC (CRTC_EXT_DISP_EN and CRTC_EN,
+                       bits 24 and 25) and, from the CT, under VGA_ATI_LINEAR (bit
+                       27, "linear addressing through VGA aperture"; the GX's
+                       register ends at bit 25, RRG 3-17, VT/RAGE RRG 4-28). The
+                       SVGA core's fast write path depends on it too. */
+                    svga->fb_only = (((mach64->crtc_gen_cntl >> 24) & 3) == 3) ||
+                                    ((mach64->type != MACH64_GX) && (mach64->crtc_gen_cntl & (1u << 27)));
+                    svga->fast    = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) &&
+                                    ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) &&
+                                    !(svga->adv_flags & FLAG_ADDR_BY8);
                     svga->dpms = !!(mach64->crtc_gen_cntl & 0x0c);
                     svga_recalctimings(&mach64->svga);
                     svga->fullchange = svga->monitor->mon_changeframecount;
@@ -2330,6 +2337,7 @@ mach64_decode_addr(mach64_t *mach64, uint32_t addr, int write)
 {
     const svga_t * svga            = &mach64->svga;
     const int      memory_map_mode = (svga->gdcreg[6] >> 2) & 3;
+    uint32_t       page;
 
     addr &= 0x1ffff;
 
@@ -2353,12 +2361,20 @@ mach64_decode_addr(mach64_t *mach64, uint32_t addr, int write)
             break;
     }
 
-    if (write)
-        addr = (addr & 0x7fff) + mach64->bank_w[(addr >> 15) & 1];
-    else
-        addr = (addr & 0x7fff) + mach64->bank_r[(addr >> 15) & 1];
+    /* MEM_VGA_WP_SEL and MEM_VGA_RP_SEL point into video memory in 32K pages
+       (RRG 3-70, VT/RAGE RRG 4-12), while the offset in the window is a CPU
+       address that the SVGA core spreads over the four planes in the planar
+       and odd/even modes. There a page is a quarter of the CPU address: the
+       VT BIOS's VESA window call pages 64K of those modes as bank * 8 and
+       bank * 8 + 4 (113-34004-104, C000:467C). With the CPU reaching memory
+       linearly (fb_only: the accelerator CRTC or VGA_ATI_LINEAR) it pages
+       them as bank * 2 and bank * 2 + 1, the choice it makes on
+       VGA_ATI_LINEAR (C000:463B). */
+    page = write ? mach64->bank_w[(addr >> 15) & 1] : mach64->bank_r[(addr >> 15) & 1];
+    if (!svga->chain4 && !svga->fb_only)
+        page >>= 2;
 
-    return addr;
+    return (addr & 0x7fff) + page;
 }
 
 /* MEM_BNDRY_EN (MEM_CNTL bit 18): the VGA apertures, the standard one and
