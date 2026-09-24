@@ -2561,11 +2561,24 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
 
     /* "Illegal Host Address. This bit is set when the Host accesses a
        register, which is unavailable to the Host, while the Sequencer is
-       not paused." Setting it pauses the sequencer, which makes the next
-       access legal -- so this reports the first one and then stops, which
-       is what wanted to be reported anyway. */
-    if (!seq && dev->chip->host_pause_checked && !aic_paused(dev) && !aic_host_no_pause(addr, 0))
+       not paused." Unavailable is the word: the register file is the
+       sequencer's while it runs -- "All registers are available to the
+       Host computer and to the Sequencer ... but not at the same time" --
+       and the host gets nothing back, as it does from any location that
+       decodes to no register. The error is recorded, and with FAILDIS
+       clear it pauses the sequencer, so the next access is legal.
+
+       Software depends on the nothing. ASPI7DOS and Windows 98's AIC-7770
+       driver both probe a running chip by reading SCSISEQ, SXFRCTL0 and
+       SXFRCTL1 unpaused: three zeros mean the BIOS's firmware has the
+       part, and only then do they look at SCB 0 for the BIOS's mark and
+       leave that SCB to it. Answered with the live values, ASPI7DOS took
+       the BIOS's every completion as its own, and the BIOS's INT 13h
+       waited fifteen seconds for each one. */
+    if (!seq && dev->chip->host_pause_checked && !aic_paused(dev) && !aic_host_no_pause(addr, 0)) {
         aic_hard_error(dev, ILLHADDR, addr, 0);
+        return 0x00;
+    }
 
     if ((addr >= SRAM_BASE) && (addr < 0x60))
         return dev->sram[addr - SRAM_BASE];
@@ -3054,8 +3067,11 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
         aic_host_catch_up(dev);
     }
 
-    if (!seq && dev->chip->host_pause_checked && !aic_paused(dev) && !aic_host_no_pause(addr, 1))
+    /* And a write to an unavailable register goes nowhere; see aic_read. */
+    if (!seq && dev->chip->host_pause_checked && !aic_paused(dev) && !aic_host_no_pause(addr, 1)) {
         aic_hard_error(dev, ILLHADDR, addr, 1);
+        return;
+    }
 
     if ((addr >= SRAM_BASE) && (addr < 0x60)) {
         dev->sram[addr - SRAM_BASE] = val;
