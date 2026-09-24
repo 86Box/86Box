@@ -518,7 +518,13 @@ mach64_recalctimings(svga_t *svga)
         svga->monitor->mon_overscan_x = svga->border_left + ((mach64->ovr_wid_left_right >> 16) & 0x0f) * 8;
         svga->monitor->mon_overscan_y = svga->border_top + ((mach64->ovr_wid_top_bottom >> 16) & 0xff);
     } else {
-        svga->vram_display_mask = ((mach64->type == MACH64_GX) && (mach64->regs[0x36] & 0x01)) ? mach64->vram_mask : 0x3ffff;
+        /* The VGA display address counter covers 256K of memory, 64K a plane,
+           unless ATI36 bit 0 on the GX (VGA Register Guide 5-21) or, from the
+           CT, VGA_XCRT_CNT_EN (CRTC_GEN_CNTL bit 30, RRG 3-18, VT/RAGE RRG
+           4-28) extends it: the VESA 16-colour modes past 800x600 need it. */
+        svga->vram_display_mask = (((mach64->type == MACH64_GX) && (mach64->regs[0x36] & 0x01)) ||
+                                   ((mach64->type != MACH64_GX) && (mach64->crtc_gen_cntl & (1u << 30)))) ?
+                                      mach64->vram_mask : 0x3ffff;
         svga->lut_map           = 0;
         svga->bpp               = 8;
 
