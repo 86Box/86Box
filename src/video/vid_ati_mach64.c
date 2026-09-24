@@ -435,6 +435,31 @@ static const uint16_t mach64_gx_eeprom_default[256] = {
     [9] = 0x0040,
 };
 
+/* Each mem_mapping call below rebuilds the memory map and flushes the
+   processor's caches, even when the window is already where it is asked
+   to be; register writes reach here often (on ISA, once per byte), so a
+   window already in place is left alone. */
+static void
+mach64_mapping_set(mem_mapping_t *map, uint32_t base, uint32_t size)
+{
+    if (!map->enable || (map->base != base) || (map->size != size))
+        mem_mapping_set_addr(map, base, size);
+}
+
+static void
+mach64_mapping_on(mem_mapping_t *map)
+{
+    if (!map->enable)
+        mem_mapping_enable(map);
+}
+
+static void
+mach64_mapping_off(mem_mapping_t *map)
+{
+    if (map->enable)
+        mem_mapping_disable(map);
+}
+
 /* Places a piece of the linear aperture, `off` bytes into it.
    CFG_MEM_AP_LOC gives the aperture's location in 4 MB steps, and "with
    8M apertures, bit 4 is ignored" (Register Reference Guide, CONFIG_CNTL):
@@ -451,10 +476,10 @@ mach64_map_aperture(mach64_t *mach64, mem_mapping_t *map, int ap_8m, uint32_t of
     uint64_t start = (uint64_t) base + off;
 
     if ((start + size) > 0x100000000ULL) {
-        mem_mapping_disable(map);
+        mach64_mapping_off(map);
         return;
     }
-    mem_mapping_set_addr(map, (uint32_t) start, size);
+    mach64_mapping_set(map, (uint32_t) start, size);
 }
 
 /* The video BIOS ROM: at the PCI ROM BAR while it is enabled on PCI, at
@@ -469,7 +494,7 @@ mach64_update_rom(mach64_t *mach64)
     if (mach64->on_board)
         return;
     if (mach64->bus_cntl & (1u << 12)) {
-        mem_mapping_disable(&mach64->bios_rom.mapping);
+        mach64_mapping_off(&mach64->bios_rom.mapping);
         return;
     }
     if (mach64->pci) {
@@ -477,13 +502,13 @@ mach64_update_rom(mach64_t *mach64)
             uint32_t biosaddr = ((mach64->pci_regs[0x31] & 0x80) << 8) | (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
 
             mach64_log("Mach64 bios_rom enabled at %08x\n", biosaddr);
-            mem_mapping_set_addr(&mach64->bios_rom.mapping, biosaddr, 0x8000);
+            mach64_mapping_set(&mach64->bios_rom.mapping, biosaddr, 0x8000);
         } else {
             mach64_log("Mach64 bios_rom disabled\n");
-            mem_mapping_disable(&mach64->bios_rom.mapping);
+            mach64_mapping_off(&mach64->bios_rom.mapping);
         }
     } else
-        mem_mapping_set_addr(&mach64->bios_rom.mapping, 0xc0000, 0x8000);
+        mach64_mapping_set(&mach64->bios_rom.mapping, 0xc0000, 0x8000);
 }
 
 /* CFG_MEM_AP_LOC (CONFIG_CNTL 13:4) reads back where the aperture is, in
@@ -511,33 +536,33 @@ mach64_updatemapping(mach64_t *mach64)
 
     if (mach64->pci && !(mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM)) {
         mach64_log("Update mapping - PCI disabled\n");
-        mem_mapping_disable(&svga->mapping);
-        mem_mapping_disable(&mach64->linear_mapping);
-        mem_mapping_disable(&mach64->linear_mapping_big_endian);
-        mem_mapping_disable(&mach64->mmio_mapping);
-        mem_mapping_disable(&mach64->mmio_linear_mapping);
-        mem_mapping_disable(&mach64->mmio_linear_mapping_2);
+        mach64_mapping_off(&svga->mapping);
+        mach64_mapping_off(&mach64->linear_mapping);
+        mach64_mapping_off(&mach64->linear_mapping_big_endian);
+        mach64_mapping_off(&mach64->mmio_mapping);
+        mach64_mapping_off(&mach64->mmio_linear_mapping);
+        mach64_mapping_off(&mach64->mmio_linear_mapping_2);
         return;
     }
 
     switch (svga->gdcreg[6] & 0xc) {
         case 0x0: /*128k at A0000*/
-            mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
+            mach64_mapping_set(&svga->mapping, 0xa0000, 0x20000);
             /* ATI3D bit 2 pages all 128K at once (VGA Register Guide 5-26). */
             svga->banked_mask = ((mach64->type == MACH64_GX) && (mach64->regs[0x3d] & 0x04)) ? 0x1ffff : 0xffff;
             break;
         case 0x4: /*64k at A0000*/
-            mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
+            mach64_mapping_set(&svga->mapping, 0xa0000, 0x10000);
             svga->banked_mask = 0xffff;
             if (xga_active && (svga->xga != NULL))
                 xga->on = 0;
             break;
         case 0x8: /*32k at B0000*/
-            mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
+            mach64_mapping_set(&svga->mapping, 0xb0000, 0x08000);
             svga->banked_mask = 0x7fff;
             break;
         case 0xC: /*32k at B8000*/
-            mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
+            mach64_mapping_set(&svga->mapping, 0xb8000, 0x08000);
             svga->banked_mask = 0x7fff;
             break;
 
@@ -552,13 +577,17 @@ mach64_updatemapping(mach64_t *mach64)
        CRTC is in accelerator mode (VLB BIOS 113-26900-103, 0BDFh).
      */
     if (mach64->config_cntl & 4) {
-        mem_mapping_set_handler(&svga->mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
-        mem_mapping_set_p(&svga->mapping, mach64);
-        mem_mapping_enable(&mach64->mmio_mapping);
+        if ((svga->mapping.read_b != mach64_read) || (svga->mapping.priv != mach64)) {
+            mem_mapping_set_handler(&svga->mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
+            mem_mapping_set_p(&svga->mapping, mach64);
+        }
+        mach64_mapping_on(&mach64->mmio_mapping);
     } else {
-        mem_mapping_set_handler(&svga->mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
-        mem_mapping_set_p(&svga->mapping, svga);
-        mem_mapping_disable(&mach64->mmio_mapping);
+        if ((svga->mapping.read_b != svga_read) || (svga->mapping.priv != svga)) {
+            mem_mapping_set_handler(&svga->mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
+            mem_mapping_set_p(&svga->mapping, svga);
+        }
+        mach64_mapping_off(&mach64->mmio_mapping);
     }
 
     if (mach64->linear_base) {
@@ -571,8 +600,8 @@ mach64_updatemapping(mach64_t *mach64)
             if (mach64->pci)
                 ap = (ap == 1) ? 1 : 2;
             if ((ap != 1) && (ap != 2)) {
-                mem_mapping_disable(&mach64->linear_mapping);
-                mem_mapping_disable(&mach64->mmio_linear_mapping);
+                mach64_mapping_off(&mach64->linear_mapping);
+                mach64_mapping_off(&mach64->mmio_linear_mapping);
             } else {
                 uint32_t size = (ap == 2) ? (8 << 20) : (4 << 20);
 
@@ -593,10 +622,10 @@ mach64_updatemapping(mach64_t *mach64)
             mach64_map_aperture(mach64, &mach64->mmio_linear_mapping_2, 1, (16 << 20) - 0x1000, 0x1000);
         }
     } else {
-        mem_mapping_disable(&mach64->linear_mapping);
-        mem_mapping_disable(&mach64->mmio_linear_mapping);
-        mem_mapping_disable(&mach64->mmio_linear_mapping_2);
-        mem_mapping_disable(&mach64->linear_mapping_big_endian);
+        mach64_mapping_off(&mach64->linear_mapping);
+        mach64_mapping_off(&mach64->mmio_linear_mapping);
+        mach64_mapping_off(&mach64->mmio_linear_mapping_2);
+        mach64_mapping_off(&mach64->linear_mapping_big_endian);
     }
 }
 
