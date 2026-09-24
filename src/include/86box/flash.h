@@ -19,6 +19,14 @@
 
 #define AMD_FLAG_LEGACY           0x01
 
+/* The BIOS chip select. A chipset that decodes the flash's chip select can
+   refuse to assert it for writes -- the ESC's BIOSCSB bit 3, BIOS Write
+   Enable -- and then the part never sees the cycle. NULL, as on every
+   machine that does not set it, is a chip select always asserted. */
+extern int  (*flash_bios_write_gate)(uint32_t addr, void *priv);
+extern void  *flash_bios_write_gate_priv;
+extern int    flash_bios_write_selected(uint32_t addr);
+
 extern const device_t intel_flash_e28f0xx_device;
 extern const device_t intel_flash_e28f0xx_cobalt3k_device;
 
