@@ -763,7 +763,9 @@ mach64_updatemapping(mach64_t *mach64)
         mach64_mapping_off(&mach64->mmio_mapping);
     }
 
-    if (mach64->linear_base) {
+    /* No LA17-LA23 in an 8-bit slot: nothing above 1 MB reaches the card,
+       whatever CONFIG_CNTL says. */
+    if (mach64->linear_base && !mach64->isa_8bit) {
         if (mach64->type == MACH64_GX) {
             /* CFG_MEM_AP_SIZE: 0 = disabled, 1 = 4M, 2 = 8M, 3 reserved (RRG
                3-9). On PCI the BAR places the aperture and 8M it stays unless
@@ -3003,8 +3005,15 @@ mach64_common_init(const device_t *info)
         mem_mapping_add(&mach64->mmio_mapping, 0xbfc00, 0x400, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     else
         mem_mapping_add(&mach64->mmio_mapping, 0xbf800, 0x800, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
-    if (mach64->isa_8bit)
+    if (mach64->isa_8bit) {
+        /* An 8-bit slot wires SA0-SA19 and SD0-SD7 only. The card decodes
+           the address lines it has, so its window and register block answer
+           at every 1 MB alias; LA17-LA23 are missing, so the linear aperture
+           cannot exist (below). The word and dword handlers go with SD8-15. */
         mem_mapping_set_handler(&mach64->mmio_mapping, mach64_ext_readb, NULL, NULL, mach64_ext_writeb, NULL, NULL);
+        mem_mapping_set_base_ignore(&mach64->mmio_mapping, 0xfff00000);
+        mem_mapping_set_base_ignore(&svga->mapping, 0xfff00000);
+    }
     mem_mapping_disable(&mach64->mmio_mapping);
 
     mach64_io_map(mach64);
@@ -3108,8 +3117,10 @@ mach64gx_init(const device_t *info)
         mach64->config_stat0 |= 0; /*ISA 16-bit*/
         ati_eeprom_load(&mach64->eeprom, "mach64.nvr", 1);
         rom_init(&mach64->bios_rom, BIOS_ISA_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        if (mach64->isa_8bit)
+        if (mach64->isa_8bit) {
             mem_mapping_set_handler(&mach64->bios_rom.mapping, rom_read, NULL, NULL, NULL, NULL, NULL);
+            mem_mapping_set_base_ignore(&mach64->bios_rom.mapping, 0xfff00000);
+        }
     }
 
     *reset_state[monitor_index_global] = *mach64;
