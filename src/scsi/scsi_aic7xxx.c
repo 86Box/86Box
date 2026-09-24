@@ -785,9 +785,11 @@ typedef struct aic7xxx_t {
     uint8_t  qin[QUEUE_SIZE];
     uint8_t  qin_rd;
     uint16_t qin_cnt;
+    uint8_t  qin_last; /* what QINFIFO last gave: an empty read gives it again */
     uint8_t  qout[QUEUE_SIZE];
     uint8_t  qout_rd;
     uint16_t qout_cnt;
+    uint8_t  qout_last; /* what QOUTFIFO last gave, likewise */
 
     uint8_t sram[0x40];
     uint8_t scb[SCB_COUNT][SCB_SIZE];
@@ -2963,29 +2965,40 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
         case SCBCNT:
             return dev->scbcnt;
         case QINFIFO:
-            /* The sequencer takes the next queued SCB. An empty one does
-               not shift -- "reads when QINCNT=0 are ignored" -- and what
-               comes back instead the book does not say, so neither queue
-               is wrong here. They differ on purpose: an SCB number is
-               what these carry, and FFh is the one a driver reads as no
-               SCB at all, which is the useful answer on the queue a
-               driver reads and a meaningless one on the queue only the
-               sequencer reads. */
+            /* The sequencer takes the next queued SCB. "Reads when
+               QINCNT=0 are ignored": an ignored read does not shift the
+               queue, and what it shows is what its output already holds --
+               the SCB it gave last, or 00h, the reset value, before it has
+               given any. */
             if (dev->qin_cnt == 0)
-                return 0;
-            ret         = dev->qin[dev->qin_rd];
-            dev->qin_rd = (dev->qin_rd + 1) % dev->chip->q_depth;
+                return dev->qin_last;
+            ret           = dev->qin[dev->qin_rd];
+            dev->qin_rd   = (dev->qin_rd + 1) % dev->chip->q_depth;
             dev->qin_cnt--;
+            dev->qin_last = ret;
             return ret;
         case QINCNT:
             return (uint8_t) dev->qin_cnt;
         case QOUTFIFO:
-            /* The host takes the next completion. */
+            /* The host takes the next completion. "Reads when QOUTCNT=0
+               are ignored", the same as the inbound queue: the read shows
+               the SCB it gave last and does not shift. It used to answer
+               FFh -- bits the AIC-7770 has as reserved, and no value the
+               part holds -- and the AHA-2740 BIOS depends on the real
+               answer. With ASPI7DOS loaded both field IRQ 11, and
+               ASPI7DOS's handler runs first: it pops every completion,
+               and for the BIOS's own SCB 0 it chains on to the BIOS. The
+               BIOS's handler then reads QOUTFIFO, now empty, expecting
+               its own 0; given anything else it writes the value back for
+               its owner and leaves the command pending. Every INT 13h to
+               the disk sat out the BIOS's fifteen second timeout and
+               failed, and Windows 98 Setup found no hard disk. */
             if (dev->qout_cnt == 0)
-                return 0xff;
-            ret          = dev->qout[dev->qout_rd];
-            dev->qout_rd = (dev->qout_rd + 1) % dev->chip->q_depth;
+                return dev->qout_last;
+            ret            = dev->qout[dev->qout_rd];
+            dev->qout_rd   = (dev->qout_rd + 1) % dev->chip->q_depth;
             dev->qout_cnt--;
+            dev->qout_last = ret;
             return ret;
         case QOUTCNT:
             return (uint8_t) dev->qout_cnt;
@@ -4705,6 +4718,7 @@ aic_chip_reset(aic7xxx_t *dev)
     aic_fifo_reset(dev);
     dev->qin_rd = dev->qout_rd = 0;
     dev->qin_cnt = dev->qout_cnt = 0;
+    dev->qin_last = dev->qout_last = 0;
 
     memset(dev->sram, 0, sizeof(dev->sram));
 
