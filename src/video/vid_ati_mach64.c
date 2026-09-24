@@ -58,8 +58,10 @@ mach64_vga_dac_decoded(const mach64_t *mach64)
 
 /* The VGA's CPU paging (VGA Register Guide 5-17, 5-26, 5-27): ATI32 bits
    4:1 page writes, and reads as well unless ATI3E bit 3 splits them, when
-   bit 0 over bits 7:5 pages reads. The pages are 64K, or 128K while
-   ATI3D bit 2 opens A0000-BFFFF. */
+   bits 7:5 page reads. Bit 0 "must be set to logical zero" and pages
+   nothing; the BIOS's VESA window call keeps whatever is there, so it
+   cannot be read as a page bit. The pages are 64K, or 128K while ATI3D
+   bit 2 opens A0000-BFFFF. */
 static void
 mach64_update_vga_banks(mach64_t *mach64)
 {
@@ -67,7 +69,7 @@ mach64_update_vga_banks(mach64_t *mach64)
     const uint8_t  ati32 = mach64->regs[0x32];
     const uint32_t size  = (mach64->regs[0x3d] & 0x04) ? 0x20000 : 0x10000;
     const uint32_t wpage = (ati32 >> 1) & 0x0f;
-    const uint32_t rpage = (mach64->regs[0x3e] & 0x08) ? (((ati32 & 0x01) << 3) | (ati32 >> 5)) : wpage;
+    const uint32_t rpage = (mach64->regs[0x3e] & 0x08) ? (ati32 >> 5) : wpage;
 
     svga->write_bank = wpage * size;
     svga->read_bank  = rpage * size;
