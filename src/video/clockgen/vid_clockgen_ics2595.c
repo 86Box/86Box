@@ -113,6 +113,15 @@ ics2595_close(void *priv)
         free(ics2595);
 }
 
+/* Entry n of the table: a VGA mode's clock select lines pick one directly. */
+double
+ics2595_getclock_entry(void *priv, int n)
+{
+    const ics2595_t *ics2595 = (ics2595_t *) priv;
+
+    return ics2595->clocks[n & 15];
+}
+
 double
 ics2595_getclock(void *priv)
 {

@@ -78,6 +78,74 @@ mach64_update_vga_banks(mach64_t *mach64)
     svga->read_bank  = rpage * size;
 }
 
+static void mach64_update_rom(mach64_t *mach64);
+static void mach64_update_irqs(mach64_t *mach64);
+
+/* The CRTC write protects a GX adds to CRT11 bit 7 (VGA Register Guide
+   5-14, 5-19, 5-23). Returns 0 to drop the write; otherwise *val keeps the
+   old value in the bits that are protected. */
+static int
+mach64_crtc_write_filter(const mach64_t *mach64, int reg, uint8_t old, uint8_t *val)
+{
+    const uint8_t ati34  = mach64->regs[0x34];
+    /* ATI34 bit 5 replaces CRT11 bit 7 as the CRT00-CRT07 protect; bit 7
+       has CRT11 bit 7 ignored (5-19). */
+    const int     prot07 = (ati34 & 0x20) ? 1 : ((mach64->svga.crtc[0x11] & 0x80) && !(ati34 & 0x80));
+    uint8_t       keep   = 0;
+
+    if ((reg < 7) && prot07)
+        return 0;
+    if ((reg == 7) && prot07)
+        keep |= ~0x10; /* bit 4 stays writable */
+    switch (reg) {
+        case 0x06:
+        case 0x10:
+        case 0x12:
+        case 0x15:
+        case 0x16:
+            if (ati34 & 0x08) /* bit 3: the vertical timing registers */
+                return 0;
+            break;
+        case 0x07:
+            if (ati34 & 0x08)
+                keep |= ~0x10;
+            break;
+        case 0x08:
+            if (ati34 & 0x40) /* bit 6: CRT08 bits 6:0, CRT14 bits 4:0 */
+                keep |= 0x7f;
+            break;
+        case 0x09:
+            if (ati34 & 0x04) /* bit 2: CRT09 bits 4:0 and 7 */
+                keep |= 0x9f;
+            if (ati34 & 0x08)
+                keep |= 0x20;
+            if (mach64->regs[0x2b] & 0x08) /* the double scan lock */
+                keep |= 0x80;
+            break;
+        case 0x0a:
+        case 0x0b:
+            if (ati34 & 0x10) /* bit 4: the cursor registers */
+                return 0;
+            break;
+        case 0x11:
+            if (ati34 & 0x08)
+                keep |= 0x0f;
+            break;
+        case 0x14:
+            if (ati34 & 0x40)
+                keep |= 0x1f;
+            break;
+        case 0x18:
+            if (mach64->regs[0x39] & 0x80)
+                return 0;
+            break;
+        default:
+            break;
+    }
+    *val = (old & keep) | (*val & ~keep);
+    return 1;
+}
+
 /* ATIX bits 7:6 carry the index offset, which must match the one GDC 51h
    set (VGA Register Guide 5-4); anything else addresses no register. */
 static int
@@ -95,6 +163,23 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
 
     if (((addr & 0xFFF0) == 0x3D0 || (addr & 0xFFF0) == 0x3B0) && !(svga->miscout & 1))
         addr ^= 0x60;
+
+    if (mach64->type == MACH64_GX) {
+        const uint8_t ati38 = mach64->regs[0x38];
+
+        /* ATI38 bit 2 write-protects the VGA registers but CRT0A-CRT0D, bit
+           3 the register at 3C2h (VGA Register Guide 5-22). The attribute
+           controller's flip-flop still turns. */
+        if ((ati38 & 0x04) && ((((addr == 0x3c0) || (addr == 0x3c1)) && svga->attrff) || (addr == 0x3c2) ||
+                               (addr == 0x3c5) || (addr == 0x3cf) ||
+                               ((addr == 0x3d5) && ((svga->crtcreg < 0x0a) || (svga->crtcreg > 0x0d))))) {
+            if ((addr == 0x3c0) || (addr == 0x3c1))
+                svga->attrff = 0;
+            return;
+        }
+        if ((ati38 & 0x08) && (addr == 0x3c2))
+            return;
+    }
 
     switch (addr) {
         case 0x1ce:
@@ -118,19 +203,52 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
                     break;
                 case 0x23: /* ATI23 bit 4: start address bit 17 */
                 case 0x30: /* ATI30 bit 6: start address bit 16; bit 5: 256 colours */
-                case 0x36:
+                case 0x31: /* ATI31: scan function, vertical timings halved */
+                case 0x33: /* ATI33 bit 7: double scan */
+                case 0x38: /* ATI38 bit 6: video clock halved */
                     svga_recalctimings(svga);
                     break;
+                case 0x36: /* ATI36 bit 0: display counter past 64K; bit 5: vertical interrupt */
+                    svga_recalctimings(svga);
+                    mach64_update_irqs(mach64);
+                    break;
+                case 0x39: /* ATI39 bit 1: clock select bit 2; bits 3:2: ROM size */
+                    svga_recalctimings(svga);
+                    mach64_update_rom(mach64);
+                    break;
+                case 0x05: /* ATI05 bit 7: the cursor blinks at half rate */
+                case 0x35: /* ATI35 bit 5: the cursor does not blink */
+                    svga->cursor_blink_half = !!(mach64->regs[0x05] & 0x80);
+                    svga->cursor_noblink    = !!(mach64->regs[0x35] & 0x20);
+                    break;
+                /* ATI24 and ATI25 (ROM pages 0-3) are kept: the ROMs here are
+                   the 32K the window shows, there is nothing to page in. */
                 default:
                     break;
+            }
+            break;
+        case 0x3c0:
+        case 0x3c1:
+            /* ATI38 bits 0 and 1 write-protect the palette registers ATTR00-0F
+               and the overscan register ATTR11 (5-22). */
+            if ((mach64->type == MACH64_GX) && svga->attrff &&
+                (((svga->attraddr < 0x10) && (mach64->regs[0x38] & 0x01)) ||
+                 ((svga->attraddr == 0x11) && (mach64->regs[0x38] & 0x02)))) {
+                svga->attrff = 0;
+                return;
             }
             break;
         case 0x3C6 ... 0x3C9:
             if (!mach64_vga_dac_decoded(mach64))
                 return;
-            if (mach64->type == MACH64_GX)
-                ati68860_ramdac_out((addr & 3) | ((mach64->dac_cntl & 3) << 2), val, 0, svga->ramdac, svga);
-            else
+            if (mach64->type == MACH64_GX) {
+                if (mach64->regs[0x2b] & 0x10)
+                    return; /* ATI2B bit 4 locks the DAC's write select (5-14) */
+                /* Through the VGA ports the 68860's RS3:2 come from ATI20 bits
+                   6:5 (5-7): the ISA BIOS sets them 40h and 60h around its DAC
+                   set-up (C000:5B00). DAC_REGS uses DAC_EXT_SEL instead. */
+                ati68860_ramdac_out((addr & 3) | (((mach64->regs[0x20] >> 5) & 3) << 2), val, 0, svga->ramdac, svga);
+            } else
                 svga_out(addr, val, svga);
             return;
         case 0x3cf:
@@ -158,11 +276,16 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3D5:
             if (svga->crtcreg > 0x20)
                 return;
-            if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
-                return;
-            if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
-                val = (svga->crtc[7] & ~0x10) | (val & 0x10);
-            old                       = svga->crtc[svga->crtcreg];
+            old = svga->crtc[svga->crtcreg];
+            if (mach64->type == MACH64_GX) {
+                if (!mach64_crtc_write_filter(mach64, svga->crtcreg, old, &val))
+                    return;
+            } else {
+                if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
+                    return;
+                if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
+                    val = (old & ~0x10) | (val & 0x10);
+            }
             svga->crtc[svga->crtcreg] = val;
 
             if (old != val) {
@@ -210,8 +333,13 @@ mach64_in(uint16_t addr, void *priv)
             if (!mach64_vga_dac_decoded(mach64))
                 return 0xff;
             if (mach64->type == MACH64_GX)
-                return ati68860_ramdac_in((addr & 3) | ((mach64->dac_cntl & 3) << 2), 0, svga->ramdac, svga);
+                return ati68860_ramdac_in((addr & 3) | (((mach64->regs[0x20] >> 5) & 3) << 2), 0, svga->ramdac, svga);
             return svga_in(addr, svga);
+        case 0x3cc:
+            /* ATI26 bit 7 forces GENMO bits 7:1 to read as 0 (5-11). */
+            if ((mach64->type == MACH64_GX) && (mach64->regs[0x26] & 0x80))
+                return svga->miscout & 0x01;
+            break;
         case 0x3cf:
             if ((mach64->type == MACH64_GX) && ((svga->gdcaddr == 0x50) || (svga->gdcaddr == 0x51)))
                 return 0xff; /* write only */
@@ -413,6 +541,35 @@ mach64_recalctimings(svga_t *svga)
             svga->interlace = !!(mach64->regs[0x3e] & 0x02);
         if (svga->interlace)
             svga->dispend >>= 1;
+
+        if (mach64->type == MACH64_GX) {
+            /* The dot clock is one of the clock chip's 16 entries: GENMO bits
+               3:2 are select bits 1:0, ATI39 bit 1 select bit 2 and ATI3E bit 4
+               select bit 3 (VGA Register Guide 4-2, 5-23, 5-27); ATI38 bit 6
+               halves it (5-22). The BIOS kit's PCLK table 2 (D-3) has the VGA
+               clocks at entries 0 and 1. */
+            const int idx  = ((svga->miscout >> 2) & 3) | ((mach64->regs[0x39] & 0x02) ? 4 : 0) |
+                             ((mach64->regs[0x3e] & 0x10) ? 8 : 0);
+            double    freq = ics2595_getclock_entry(svga->clock_gen, idx);
+
+            if (mach64->regs[0x38] & 0x40)
+                freq /= 2.0;
+            if (freq > 0.0)
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / freq;
+
+            /* ATI31 bits 5:3 = 001 or 101 double-scan in place of CRT09 bit 7,
+               as does ATI33 bit 7 (5-16, 5-18). 010 and 110, three of four
+               scanning, are not modelled. ATI31 bit 6 halves the vertical
+               timings. */
+            if ((((mach64->regs[0x31] >> 3) & 0x03) == 0x01) || (mach64->regs[0x33] & 0x80))
+                svga->linedbl = 1;
+            if (mach64->regs[0x31] & 0x40) {
+                svga->vtotal >>= 1;
+                svga->dispend >>= 1;
+                svga->vsyncstart >>= 1;
+                svga->vblankstart >>= 1;
+            }
+        }
     }
 
     mach64_update_overscan(mach64);
@@ -510,8 +667,14 @@ mach64_update_rom(mach64_t *mach64)
             mach64_log("Mach64 bios_rom disabled\n");
             mach64_mapping_off(&mach64->bios_rom.mapping);
         }
-    } else
-        mach64_mapping_set(&mach64->bios_rom.mapping, 0xc0000, 0x8000);
+    } else {
+        /* ATI39 bits 3:2 shorten the decode from 32K to 28K or 24K at C0000
+           (VGA Register Guide 5-23). */
+        static const uint32_t sizes[4] = { 0x8000, 0x7000, 0x6000, 0x6000 };
+
+        mach64_mapping_set(&mach64->bios_rom.mapping, 0xc0000,
+                           (mach64->type == MACH64_GX) ? sizes[(mach64->regs[0x39] >> 2) & 3] : 0x8000);
+    }
 }
 
 /* CFG_MEM_AP_LOC (CONFIG_CNTL 13:4) reads back where the aperture is, in
@@ -678,10 +841,16 @@ mach64_crtc_int_cntl_read(const mach64_t *mach64)
 static void
 mach64_update_irqs(mach64_t *mach64)
 {
-    const uint32_t crtc_en = mach64->crtc_int_cntl & mach64_crtc_int_en(mach64);
+    uint32_t       crtc_en = mach64->crtc_int_cntl & mach64_crtc_int_en(mach64);
     /* BUS_CNTL: FIFO error 20/21, host data error 22/23 (RRG 3-2). */
     const uint32_t bus_en  = mach64->bus_cntl & 0x00500000;
-    const int      pending = !!((mach64->crtc_int_cntl & (crtc_en << 1)) || (mach64->bus_cntl & (bus_en << 1)));
+    int            pending;
+
+    /* ATI36 bit 5 enables the vertical interrupt from the VGA side (VGA
+       Register Guide 5-21). */
+    if ((mach64->type == MACH64_GX) && (mach64->regs[0x36] & 0x20))
+        crtc_en |= 0x02;
+    pending = !!((mach64->crtc_int_cntl & (crtc_en << 1)) || (mach64->bus_cntl & (bus_en << 1)));
 
     if (mach64->pci) {
         if (pending)
