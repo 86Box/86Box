@@ -1086,7 +1086,7 @@ bpck_init(UNUSED(const device_t *info))
         return NULL;
 
     dev->unit  = (uint8_t) device_get_config_int("unit");
-    dev->port  = (uint8_t) device_get_config_int("port");
+    dev->port  = (uint8_t) (device_get_instance() - 1);
 
     memcpy(dev->ee_data, bpck_ee_default, sizeof(dev->ee_data));
     dev->proto = BPCK_PROTO_SPP;
@@ -1130,23 +1130,6 @@ static const device_config_t bpck_config[] = {
             { .description = "Unit 2", .value = 2 },
             { .description = "Unit 3", .value = 3 },
             { .description = "Unit 7", .value = 7 },
-            { .description = "" }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "port",
-        .description    = "LPT port the drive is assigned to",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "LPT1", .value = 0 },
-            { .description = "LPT2", .value = 1 },
-            { .description = "LPT3", .value = 2 },
-            { .description = "LPT4", .value = 3 },
             { .description = "" }
         },
         .bios           = { { 0 } }
