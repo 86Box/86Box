@@ -235,6 +235,9 @@ typedef struct svga_t {
     /*Called at the start of vertical sync*/
     void (*vsync_callback)(struct svga_t *svga);
 
+    /* Called on each new CRTC line, after vc advances. */
+    void (*line_callback)(struct svga_t *svga);
+
     uint32_t (*translate_address)(uint32_t addr, void *priv);
     /*If set then another device is driving the monitor output and the SVGA
       card should not attempt to display anything */
@@ -320,6 +323,12 @@ typedef struct svga_t {
 
     /* Override the horizontal blanking stuff. */
     int hoverride;
+    /* Set by a card whose CRTC programs its borders in its own registers:
+       left_overscan/y_add come from border_left/border_top, and the card
+       sets mon_overscan_x/y to the whole border. */
+    int border_override;
+    int border_left;
+    int border_top;
 
     /* Return a 32 bpp color from a 15/16 bpp color. */
     uint32_t (*conv_16to32)(struct svga_t *svga, uint16_t color, uint8_t bpp);
