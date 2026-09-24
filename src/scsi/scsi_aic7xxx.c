@@ -427,6 +427,10 @@ typedef struct aic_chip_t {
     uint8_t     aux_regs;       /* 1Ah to 1Eh: SCAM, PIO capability, the
                                    board GAL and the serial EEPROM */
     uint8_t fifo_addr_hi;       /* a second byte of data FIFO address */
+    uint8_t fifo_word;          /* bytes in one FIFO location: DWORDEMP
+                                   on the 7770 is the two dword pointers
+                                   equal, FIFOQWDEMP on the later parts
+                                   the two quadword pointers */
     uint8_t selid_writable;     /* SELID is read only on the older part */
     uint8_t twin_capable;       /* a second SCSI channel to strap */
     uint8_t seqctl_reset;       /* what SEQCTL comes up holding */
@@ -458,6 +462,7 @@ static const aic_chip_t aic_chip_7770 = {
     .clrint_mask    = CLRBRKADRINT | CLRCMDINT | CLRSEQINT,
     .aux_regs       = 0,
     .fifo_addr_hi   = 0,
+    .fifo_word      = 4,
     .selid_writable = 0,
     .twin_capable   = 1,
     /* PERRORDIS is the one bit here whose reset value the data book gives
@@ -495,6 +500,7 @@ static const aic_chip_t aic_chip_788x = {
     .clrint_mask    = CLRPARERR | CLRBRKADRINT | CLRSCSIINT | CLRCMDINT | CLRSEQINT,
     .aux_regs       = 1,
     .fifo_addr_hi   = 1,
+    .fifo_word      = 8,
     .selid_writable = 1,
     .twin_capable   = 0,
     .seqctl_reset   = PERRORDIS | FASTMODE,
@@ -528,6 +534,7 @@ static const aic_chip_t aic_chip_7870 = {
     .clrint_mask   = CLRPARERR | CLRBRKADRINT | CLRSCSIINT | CLRCMDINT | CLRSEQINT,
     .aux_regs      = 1,
     .fifo_addr_hi  = 1,
+    .fifo_word     = 8,
     .selid_writable = 1,
     .twin_capable  = 0,
     .seqctl_reset  = PERRORDIS | FASTMODE,
@@ -2249,7 +2256,9 @@ aic_fifo_pop(aic7xxx_t *dev)
 static uint32_t
 aic_fifo_threshold(const aic7xxx_t *dev)
 {
-    static const uint16_t level[4] = { 24, FIFO_SIZE / 2, (FIFO_SIZE * 3) / 4, FIFO_SIZE };
+    /* Sixteen bytes at the lowest setting: "4 double words" in the
+       AIC-7770 book, "16 Bytes" in the AIC-7870's table. */
+    static const uint16_t level[4] = { 16, FIFO_SIZE / 2, (FIFO_SIZE * 3) / 4, FIFO_SIZE };
 
     /* Register 86h, whichever part this is. On the AIC-7770 it is BUSSPD,
        and the data book is explicit that "in EISA mode, STBON(3:0) and
@@ -2862,13 +2871,16 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
                hardware's way of turning a target ID into a bit mask. */
             return (uint8_t) (1 << ((dev->function1 >> 4) & 0x07));
         case STACK:
-            /* Two reads per entry, low byte first. */
+            /* Two reads per entry, low byte first, "starting from the
+               last location pushed on the stack": that is the slot below
+               the pointer, which names the next free one. Eight reads
+               bring the pointer back round to where it was. */
             if (dev->stack_rd == 0) {
                 dev->stack_rd = 1;
-                return dev->stack[dev->sp & 3] & 0xff;
+                return dev->stack[(dev->sp - 1) & 3] & 0xff;
             }
             dev->stack_rd = 0;
-            ret           = (dev->stack[dev->sp & 3] >> 8) & 0xff;
+            ret           = (dev->stack[(dev->sp - 1) & 3] >> 8) & 0xff;
             dev->sp       = (dev->sp - 1) & 3;
             return ret;
 
@@ -2941,8 +2953,9 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
             ret = 0;
             if (dev->fifo_cnt == 0)
                 ret |= FIFOEMP;
-            /* Not one whole quadword: one to seven bytes do not count. */
-            if (dev->fifo_cnt < 8)
+            /* Not one whole word: the read and write pointers are on
+               the same location, whatever bytes are in it. */
+            if (dev->fifo_cnt < dev->chip->fifo_word)
                 ret |= FIFOQWDEMP;
             if (dev->fifo_cnt >= FIFO_SIZE)
                 ret |= FIFOFULL;
@@ -3576,7 +3589,14 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                 aic_log(dev->tag, "host: CLRINT %02x (intstat %02x) at pc %03x\n", val,
                         dev->intstat, dev->pc);
             }
-            if (val & CLRBRKADRINT)
+            /* A breakpoint's BRKADRINT clears here; a hard error's does
+               not. "If this condition occurs BRKADRINT may only be
+               cleared by setting CHIPRST" (the AIC-7770 book, Hardware
+               Failure Detect), and the AIC-7870's CLRBRKADRINT points at
+               "causes of BRKADRINT being active which may have to be
+               cleared prior to clearing the BRKADRINT bit". So it stays
+               for as long as ERROR holds a cause. */
+            if ((val & CLRBRKADRINT) && (dev->error == 0))
                 dev->intstat &= ~BRKADRINT;
             /* There is no CLRSCSIINT on an AIC-7770: the data book has
                bit 2 of CLRINT not used, and the SCSI interrupt goes away
@@ -4369,6 +4389,10 @@ aic_seq_step(aic7xxx_t *dev)
                those together correctly is inference, not evidence. */
             a = aic_seq_rd(dev, src);
             aic_seq_wr(dev, SINDEX, (uint8_t) (a | imm));
+            /* "Flags affected: Z" for every one of the four, from the OR
+               that loads SINDEX; JC and JNC "do not alter the carry
+               flag", and neither do the others. */
+            aic_seq_flags_logic(dev, (uint8_t) (a | imm));
             taken = 1;
             if (opcode == OP_JC)
                 taken = !!(dev->flags & CARRY);
@@ -4715,6 +4739,9 @@ aic_chip_reset(aic7xxx_t *dev)
     dev->dscommand0  = 0;
     dev->dscommand1  = 0;
     dev->dspcistatus = 0;
+    /* "This signal is cleared by RESDRV or CHIPRESET": the board comes
+       out of a chip reset disabled, and the driver enables it again. */
+    dev->bctl        = 0;
     /* HCNTRL comes up with PAUSE and CHIPRESETACK both set -- the data
        book gives (1) as the reset value of each -- and the acknowledgement
        "will remain set until explicitly cleared by a write to this
