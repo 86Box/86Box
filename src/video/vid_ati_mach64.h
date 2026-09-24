@@ -317,7 +317,7 @@ typedef struct mach64_t {
 
     thread_t *fifo_thread;
     event_t  *wake_fifo_thread;
-    event_t  *fifo_not_full_event;
+    mutex_t  *fifo_mutex; /* held while a FIFO entry runs, by either thread */
 
     uint64_t blitter_time;
     uint64_t status_time;

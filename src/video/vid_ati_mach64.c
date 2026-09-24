@@ -1698,11 +1698,15 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     /* BUS_CNTL (RRG 3-2): bits 21 and 23 read as the FIFO and
                        host data error interrupts, which nothing raises here,
                        and a write to them acknowledges. */
-                    WRITE8(addr, mach64->bus_cntl, val);
-                    mach64->bus_cntl &= ~((1u << 21) | (1u << 23));
-                    mach64_update_irqs(mach64);
-                    if ((addr & 3) == 1)
-                        mach64_update_rom(mach64); /* BUS_ROM_DIS */
+                    {
+                        uint32_t old = mach64->bus_cntl;
+
+                        WRITE8(addr, mach64->bus_cntl, val);
+                        mach64->bus_cntl &= ~((1u << 21) | (1u << 23));
+                        mach64_update_irqs(mach64);
+                        if ((mach64->bus_cntl ^ old) & (1u << 12))
+                            mach64_update_rom(mach64); /* BUS_ROM_DIS */
+                    }
                     break;
                 case 0xe8 ... 0xeb:
                     break; /* CONFIG_STAT1 is read-only */
@@ -1733,8 +1737,13 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                 case 0xdc ... 0xdf:
                     if (mach64->type == MACH64_GX)
                         break; /* no memory mapped alias on the GX (RRG 1-3) */
-                    WRITE8(addr, mach64->config_cntl, val);
-                    mach64_updatemapping(mach64);
+                    {
+                        uint32_t old = mach64->config_cntl;
+
+                        WRITE8(addr, mach64->config_cntl, val);
+                        if (mach64->config_cntl != old)
+                            mach64_updatemapping(mach64);
+                    }
                     break;
                 case 0xe4 ... 0xe7:
                     if (mach64->type != MACH64_GX)
@@ -1982,13 +1991,19 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
                     svga_out(port_list[port & 3], val, svga);
                 }
                 break;
-            case 0x6a: // 6eec-6eef
+            case 0x6a: { // 6eec-6eef
+                /* Rebuilding the memory map flushes the processor's caches:
+                   only when the apertures actually move. */
+                uint32_t old = mach64->config_cntl;
+
                 WRITE8(port, mach64->config_cntl, val);
                 if (!mach64->pci)
                     mach64->linear_base = (mach64->config_cntl & 0x3ff0) << 18;
 
-                mach64_updatemapping(mach64);
+                if (mach64->config_cntl != old)
+                    mach64_updatemapping(mach64);
                 break;
+            }
             default:
 
                  // there must be a more rational rule here
@@ -2710,6 +2725,11 @@ mach64_reset(void *priv)
     mach64_t *dev = (mach64_t *) priv;
 
     if (reset_state[dev->svga.monitor_index] != NULL) {
+        mutex_t *fifo_mutex = dev->fifo_mutex;
+
+        /* The FIFO thread runs entries under this; the struct is rewritten
+           whole below, so not while one is running. */
+        thread_wait_mutex(fifo_mutex);
         mach64_disable_handlers(dev);
         dev->blitter_busy                              = 0;
         dev->fifo_write_idx                            = 0;
@@ -2725,6 +2745,7 @@ mach64_reset(void *priv)
         svga_recalctimings(&dev->svga);
         dev->svga.dpms = 0;
         mach64_updatemapping(dev);
+        thread_release_mutex(fifo_mutex);
     }
 }
 
@@ -2790,7 +2811,7 @@ mach64_common_init(const device_t *info)
 
     mach64->thread_run = 1;
     mach64->wake_fifo_thread = thread_create_event();
-    mach64->fifo_not_full_event = thread_create_event();
+    mach64->fifo_mutex = thread_create_mutex();
     mach64->fifo_thread = thread_create(mach64_fifo_thread, mach64);
     mach64->on_board = !!(info->local & MACH64_FLAG_ONBOARD);
 
@@ -3047,8 +3068,8 @@ mach64_close(void *priv)
     mach64->thread_run = 0;
     thread_set_event(mach64->wake_fifo_thread);
     thread_wait(mach64->fifo_thread);
-    thread_destroy_event(mach64->fifo_not_full_event);
     thread_destroy_event(mach64->wake_fifo_thread);
+    thread_close_mutex(mach64->fifo_mutex);
 #ifdef DMA_BM
     thread_close_mutex(mach64->dma.lock);
 #endif
