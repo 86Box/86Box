@@ -394,6 +394,12 @@ aic_log(const char *tag, const char *fmt, ...)
    which none of these has, gets 255 of eight. */
 #define QUEUE_SIZE 16
 
+/* A polling loop's pass (aic_loop_edge): the most distinct places it may
+   read or write, and the longest it may be. */
+#define AIC_LOOP_NONE  0xffff
+#define AIC_LOOP_MAX   24
+#define AIC_LOOP_INSNS 1024
+
 /* What one of these parts is, as against what a board makes of it. The
    AIC-7870 and AIC-7880 are the AIC-7770 grown up: same sequencer and the
    same instruction set, the same register addresses, the same SCB and
@@ -723,6 +729,23 @@ typedef struct aic7xxx_t {
     uint8_t  asleep;    /* it is spinning on something only an event changes */
     uint16_t last_park; /* where it was last reported spinning */
 
+    /* A polling loop being proved to change nothing, or parked on
+       (aic_loop_edge): where it starts, the state it started in, and what
+       one pass read and wrote. */
+    uint16_t loop_head;   /* AIC_LOOP_NONE: no pass being watched */
+    uint16_t loop_failed; /* the last head that did not hold: another is tried first */
+    uint8_t  loop_skips;  /* how many edges back to it have been passed over since */
+    uint8_t  loop_parked;
+    uint16_t loop_insns;
+    uint8_t  loop_accum, loop_sindex, loop_dindex, loop_flags, loop_function1, loop_scbptr, loop_sp, loop_intstat;
+    uint16_t loop_stack[4];
+    uint8_t  loop_nrd, loop_nwr;
+    struct {
+        uint8_t addr;
+        uint8_t scbptr;
+        uint8_t val;
+    } loop_rd[AIC_LOOP_MAX], loop_wr[AIC_LOOP_MAX];
+
     /* host side */
     uint8_t  dscommand0;
     uint8_t  dscommand1;
@@ -822,6 +845,7 @@ static void    aic_update_irq(aic7xxx_t *dev);
 static void    aic_scsi_int(aic7xxx_t *dev);
 static uint8_t aic_tgt_byte(const aic7xxx_t *dev);
 static void    aic_seq_kick(aic7xxx_t *dev);
+static void    aic_loop_wake(aic7xxx_t *dev);
 static void    aic_seq_run(aic7xxx_t *dev);
 static void    aic_pump(aic7xxx_t *dev);
 static void    aic_bus_free(aic7xxx_t *dev);
@@ -2509,8 +2533,10 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
 {
     uint8_t ret = 0;
 
-    if (!seq)
+    if (!seq) {
+        aic_loop_wake(dev);
         aic_host_catch_up(dev);
+    }
 
     /* "Illegal Host Address. This bit is set when the Host accesses a
        register, which is unavailable to the Host, while the Sequencer is
@@ -2972,13 +2998,25 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
     return 0;
 }
 
+/* What a write to SBLKCTL leaves there: the part's bits, and SELBUSB
+   cleared whenever SELWIDE is set (see aic_write). */
+static uint8_t
+aic_sblkctl_value(const aic7xxx_t *dev, uint8_t val)
+{
+    uint8_t forced = (val & SELWIDE) ? SELBUSB : 0;
+
+    return val & dev->chip->sblkctl_mask & ~forced;
+}
+
 static void
 aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
 {
     uint8_t was;
 
-    if (!seq)
+    if (!seq) {
+        aic_loop_wake(dev);
         aic_host_catch_up(dev);
+    }
 
     if (!seq && dev->chip->host_pause_checked && !aic_paused(dev) && !aic_host_no_pause(addr, 1))
         aic_hard_error(dev, ILLHADDR, addr, 1);
@@ -3254,9 +3292,7 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                took the 2742W for a twin channel card, and the driver
                failed to start. */
             {
-                uint8_t forced = (val & SELWIDE) ? SELBUSB : 0;
-
-                dev->sblkctl = val & dev->chip->sblkctl_mask & ~forced;
+                dev->sblkctl = aic_sblkctl_value(dev, val);
                 aic_cell_swap(dev, (dev->sblkctl & SELBUSB) ? 1 : 0);
                 if (!seq && (dev->sig_logs < 64)) {
                     dev->sig_logs++;
@@ -3789,6 +3825,328 @@ aic_rotate(uint8_t src, uint8_t ctl)
     return ret & mask;
 }
 
+/* ---- polling loops ------------------------------------------------------ */
+
+/* Firmware waits for work in loops that look at a few status bits and
+   scratch bytes and change nothing. Windows 2000's reads SSTAT0 twice,
+   SCSISEQ, sixteen scratch bytes through SINDIR and two queue positions:
+   forty-one instructions a pass, some ten million instructions a second
+   of nothing for as long as the bus is quiet.
+
+   One pass that leaves every register it wrote as it found it, and reads
+   nothing that a read changes, proves that the next pass will be the same
+   for as long as what it read stays the same. So the sequencer parks at
+   the top of such a loop and, at each of its timer's ticks, looks at what
+   the pass read instead of running it again; the first difference, any
+   host access, or anything that kicks it, and it runs again, owed the
+   instructions of the time it was parked for. The one thing parking shows
+   is where in the loop it stopped, which the host could only see with the
+   sequencer paused, and there it is somewhere in the loop either way. */
+
+/* A read with no side effect, of something the part holds. */
+static int
+aic_loop_plain_read(uint8_t addr)
+{
+    if ((addr >= SRAM_BASE) && (addr < 0x60))
+        return 1;
+    if ((addr >= SCB_BASE) && (addr < (SCB_BASE + SCB_SIZE)))
+        return 1;
+    switch (addr) {
+        case SCSISEQ:
+        case SXFRCTL0:
+        case SXFRCTL1:
+        case SCSISIG:
+        case SCSIID:
+        case SSTAT0:
+        case SSTAT1:
+        case SSTAT2:
+        case SSTAT3:
+        case SIMODE0:
+        case SIMODE1:
+        case SBLKCTL:
+        case SEQCTL:
+        case ACCUM:
+        case SINDEX:
+        case DINDEX:
+        case ALLONES:
+        case ALLZEROS:
+        case FLAGS:
+        case FUNCTION1:
+        case SCBPTR:
+        case INTSTAT:
+        case ERROR:
+        case DFCNTRL:
+        case DFSTATUS:
+        case QINCNT:
+        case QOUTCNT:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+/* A write that only stores. */
+static int
+aic_loop_plain_write(uint8_t addr)
+{
+    if ((addr >= SRAM_BASE) && (addr < 0x60))
+        return 1;
+    if ((addr >= SCB_BASE) && (addr < (SCB_BASE + SCB_SIZE)))
+        return 1;
+    switch (addr) {
+        case ACCUM:
+        case SINDEX:
+        case DINDEX:
+        case ALLZEROS:
+        case FUNCTION1:
+        case SCBPTR:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+/* The sequencer's own registers: a pass is compared on them whole. */
+static int
+aic_loop_own(uint8_t addr)
+{
+    switch (addr) {
+        case ACCUM:
+        case SINDEX:
+        case DINDEX:
+        case ALLONES:
+        case ALLZEROS:
+        case FLAGS:
+        case FUNCTION1:
+        case SCBPTR:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+/* The same place: an SCB byte is one per SCB page. */
+static int
+aic_loop_same_place(uint8_t addr, uint8_t scbptr, uint8_t e_addr, uint8_t e_scbptr)
+{
+    if (addr != e_addr)
+        return 0;
+    return (addr < SCB_BASE) || (addr >= (SCB_BASE + SCB_SIZE)) || (scbptr == e_scbptr);
+}
+
+static uint8_t
+aic_loop_peek(aic7xxx_t *dev, uint8_t addr, uint8_t scbptr)
+{
+    uint8_t save = dev->scbptr;
+    uint8_t v;
+
+    dev->scbptr = scbptr;
+    v           = aic_read(dev, addr, 1);
+    dev->scbptr = save;
+    return v;
+}
+
+static void
+aic_loop_forget(aic7xxx_t *dev)
+{
+    dev->loop_head = AIC_LOOP_NONE;
+}
+
+/* A read by the pass: through SINDIR it is of what SINDEX pointed at.
+   The first access to each place is what the pass depends on; a place it
+   wrote before reading is its own. */
+static void
+aic_loop_read(aic7xxx_t *dev, uint8_t addr, uint8_t sindex, uint8_t v)
+{
+    uint8_t eff;
+
+    if (dev->loop_head == AIC_LOOP_NONE)
+        return;
+    eff = (addr == SINDIR) ? sindex : addr;
+    if (!aic_loop_plain_read(eff)) {
+        aic_loop_forget(dev);
+        return;
+    }
+    if (aic_loop_own(eff))
+        return;
+    for (uint8_t i = 0; i < dev->loop_nwr; i++) {
+        if (aic_loop_same_place(eff, dev->scbptr, dev->loop_wr[i].addr, dev->loop_wr[i].scbptr))
+            return;
+    }
+    for (uint8_t i = 0; i < dev->loop_nrd; i++) {
+        if (aic_loop_same_place(eff, dev->scbptr, dev->loop_rd[i].addr, dev->loop_rd[i].scbptr))
+            return;
+    }
+    if (dev->loop_nrd == AIC_LOOP_MAX) {
+        aic_loop_forget(dev);
+        return;
+    }
+    dev->loop_rd[dev->loop_nrd].addr   = eff;
+    dev->loop_rd[dev->loop_nrd].scbptr = dev->scbptr;
+    dev->loop_rd[dev->loop_nrd].val    = v;
+    dev->loop_nrd++;
+}
+
+/* A write by the pass, before it lands: what was there, to compare with
+   when the pass comes round. Through DINDIR it is to what DINDEX points at. */
+static void
+aic_loop_write(aic7xxx_t *dev, uint8_t addr, uint8_t val)
+{
+    uint8_t eff;
+
+    if (dev->loop_head == AIC_LOOP_NONE)
+        return;
+    eff = (addr == DINDIR) ? dev->dindex : addr;
+    /* SBLKCTL puts the other channel's registers in front, which the pass
+       could not be compared across; a write that leaves it as it is does
+       nothing at all. The AIC-7770's idle loop sets SELBUSB every pass,
+       and on a wide board SELWIDE clears it again: without this that loop,
+       eight million instructions a second, never parks. */
+    if ((eff == SBLKCTL) && (aic_sblkctl_value(dev, val) == dev->sblkctl))
+        return;
+    if (!aic_loop_plain_write(eff)) {
+        aic_loop_forget(dev);
+        return;
+    }
+    if (aic_loop_own(eff))
+        return;
+    for (uint8_t i = 0; i < dev->loop_nwr; i++) {
+        if (aic_loop_same_place(eff, dev->scbptr, dev->loop_wr[i].addr, dev->loop_wr[i].scbptr))
+            return;
+    }
+    if (dev->loop_nwr == AIC_LOOP_MAX) {
+        aic_loop_forget(dev);
+        return;
+    }
+    dev->loop_wr[dev->loop_nwr].addr   = eff;
+    dev->loop_wr[dev->loop_nwr].scbptr = dev->scbptr;
+    dev->loop_wr[dev->loop_nwr].val    = aic_loop_peek(dev, eff, dev->scbptr);
+    dev->loop_nwr++;
+}
+
+/* Everything the pass read still reads the same. */
+static int
+aic_loop_reads_hold(aic7xxx_t *dev)
+{
+    for (uint8_t i = 0; i < dev->loop_nrd; i++) {
+        if (aic_loop_peek(dev, dev->loop_rd[i].addr, dev->loop_rd[i].scbptr) != dev->loop_rd[i].val)
+            return 0;
+    }
+    return 1;
+}
+
+/* Nothing the sequencer counts or waits on by instruction is running. */
+static int
+aic_loop_quiet(aic7xxx_t *dev)
+{
+    return !dev->req_wait && !dev->host_wait && !dev->must_step && !(dev->sleepctl & (SLP1 | SLP0)) && !(dev->seqctl & STEP);
+}
+
+/* The pass came back to where it started: the state it began in, every
+   place it wrote as it was, and everything it read unchanged. */
+static int
+aic_loop_same(aic7xxx_t *dev)
+{
+    if ((dev->accum != dev->loop_accum) || (dev->sindex != dev->loop_sindex) || (dev->dindex != dev->loop_dindex) ||
+        (dev->flags != dev->loop_flags) || (dev->function1 != dev->loop_function1) || (dev->scbptr != dev->loop_scbptr) ||
+        (dev->sp != dev->loop_sp) || (dev->intstat != dev->loop_intstat) ||
+        memcmp(dev->stack, dev->loop_stack, sizeof(dev->stack)))
+        return 0;
+    for (uint8_t i = 0; i < dev->loop_nwr; i++) {
+        if (aic_loop_peek(dev, dev->loop_wr[i].addr, dev->loop_wr[i].scbptr) != dev->loop_wr[i].val)
+            return 0;
+    }
+    return aic_loop_reads_hold(dev) && aic_loop_quiet(dev);
+}
+
+/* A branch went backwards, to dev->pc: the top of a loop, perhaps. The
+   pass being watched ends there if it began there -- parked, if it proved
+   to change nothing -- and one begins there if none is being watched. A
+   loop inside the pass is part of the pass. Answers whether it parked. */
+static int
+aic_loop_edge(aic7xxx_t *dev)
+{
+    if (dev->loop_head == dev->pc) {
+        if (aic_loop_same(dev)) {
+            dev->loop_parked = 1;
+            dev->loop_failed = AIC_LOOP_NONE;
+            return 1;
+        }
+        dev->loop_failed = dev->pc;
+        dev->loop_skips  = 0;
+        aic_loop_forget(dev);
+        return 0;
+    }
+    if (dev->loop_head != AIC_LOOP_NONE)
+        return 0;
+    /* A loop inside a bigger one fails every time (it counts); the one
+       round it gets its turn once the edge back to the other has been
+       seen, and the one that failed gets another in time. */
+    if ((dev->pc == dev->loop_failed) && (++dev->loop_skips < 64))
+        return 0;
+
+    dev->loop_failed    = AIC_LOOP_NONE;
+    dev->loop_head      = dev->pc;
+    dev->loop_insns     = 0;
+    dev->loop_nrd       = 0;
+    dev->loop_nwr       = 0;
+    dev->loop_accum     = dev->accum;
+    dev->loop_sindex    = dev->sindex;
+    dev->loop_dindex    = dev->dindex;
+    dev->loop_flags     = dev->flags;
+    dev->loop_function1 = dev->function1;
+    dev->loop_scbptr    = dev->scbptr;
+    dev->loop_sp        = dev->sp;
+    dev->loop_intstat   = dev->intstat;
+    memcpy(dev->loop_stack, dev->stack, sizeof(dev->stack));
+    return 0;
+}
+
+/* Something changed that the parked loop might see: it runs again. A
+   pass being watched proves nothing either, once the host has reached in. */
+static void
+aic_loop_wake(aic7xxx_t *dev)
+{
+    aic_loop_forget(dev);
+    if (!dev->loop_parked)
+        return;
+    dev->loop_parked = 0;
+    /* The time it was parked went on passes of the loop: what it is owed
+       starts now, as a spinning sequencer would come to the change within
+       a pass of it. */
+    dev->seq_idle   = 0;
+    dev->seq_credit = 0.0;
+    dev->seq_last   = aic_now_us();
+    /* From inside its own tick (a REQ edge seen there kicks it), the tick
+       runs it and sets the next one: stopping the timer here would clear
+       timer_process()'s in_callback and cost both that reschedule and this
+       one their place on the old period. From anywhere else: soon, not a
+       period from now, stopped first so the start is a start. */
+    if (dev->seq_timer.in_callback)
+        return;
+    timer_stop(&dev->seq_timer);
+    timer_on_auto(&dev->seq_timer, 1.0);
+}
+
+/* The sequencer's own register accesses, watched for a polling loop's
+   pass. */
+static uint8_t
+aic_seq_rd(aic7xxx_t *dev, uint8_t addr)
+{
+    uint8_t sindex = dev->sindex;
+    uint8_t v      = aic_read(dev, addr, 1);
+
+    aic_loop_read(dev, addr, sindex, v);
+    return v;
+}
+
+static void
+aic_seq_wr(aic7xxx_t *dev, uint8_t addr, uint8_t val)
+{
+    aic_loop_write(dev, addr, val);
+    aic_write(dev, addr, val, 1);
+}
+
 static void
 aic_seq_step(aic7xxx_t *dev)
 {
@@ -3862,7 +4220,7 @@ aic_seq_step(aic7xxx_t *dev)
         case OP_XOR:
         case OP_ADD:
         case OP_ADC:
-            a = aic_read(dev, src, 1);
+            a = aic_seq_rd(dev, src);
             b = (imm == 0) ? dev->accum : imm;
             switch (opcode) {
                 case OP_OR:
@@ -3920,11 +4278,11 @@ aic_seq_step(aic7xxx_t *dev)
                 aic_seq_flags(dev, res, carry);
             else
                 aic_seq_flags_logic(dev, res);
-            aic_write(dev, dest, res, 1);
+            aic_seq_wr(dev, dest, res);
             break;
 
         case OP_ROL:
-            a   = aic_read(dev, src, 1);
+            a   = aic_seq_rd(dev, src);
             res = aic_rotate(a, imm);
             /* The rotate is the one non-arithmetic operation that touches
                the carry: "For both rotates and shifts, the carry flag is
@@ -3949,7 +4307,7 @@ aic_seq_step(aic7xxx_t *dev)
                 }
             }
             aic_seq_flags(dev, res, carry);
-            aic_write(dev, dest, res, 1);
+            aic_seq_wr(dev, dest, res);
             break;
 
         case OP_BMOV:
@@ -3959,8 +4317,8 @@ aic_seq_step(aic7xxx_t *dev)
                    for a plain mov. */
                 uint8_t n = imm ? imm : 1;
                 for (uint8_t i = 0; i < n; i++) {
-                    res = aic_read(dev, (uint8_t) (src + i), 1);
-                    aic_write(dev, (uint8_t) (dest + i), res, 1);
+                    res = aic_seq_rd(dev, (uint8_t) (src + i));
+                    aic_seq_wr(dev, (uint8_t) (dest + i), res);
                 }
                 break;
             }
@@ -3994,8 +4352,8 @@ aic_seq_step(aic7xxx_t *dev)
                chains, and the branching around it is verified, by every
                other jump in the 2740's program. That the two of them put
                those together correctly is inference, not evidence. */
-            a = aic_read(dev, src, 1);
-            aic_write(dev, SINDEX, (uint8_t) (a | imm), 1);
+            a = aic_seq_rd(dev, src);
+            aic_seq_wr(dev, SINDEX, (uint8_t) (a | imm));
             taken = 1;
             if (opcode == OP_JC)
                 taken = !!(dev->flags & CARRY);
@@ -4011,7 +4369,7 @@ aic_seq_step(aic7xxx_t *dev)
 
         case OP_JE:
         case OP_JNE:
-            a   = aic_read(dev, src, 1);
+            a   = aic_seq_rd(dev, src);
             b   = (imm == 0) ? dev->accum : imm;
             res = a ^ b; /* a compare is an exclusive-or, not a subtract */
             aic_seq_flags(dev, res, 0);
@@ -4024,7 +4382,7 @@ aic_seq_step(aic7xxx_t *dev)
 
         case OP_JZ:
         case OP_JNZ:
-            a   = aic_read(dev, src, 1);
+            a   = aic_seq_rd(dev, src);
             b   = (imm == 0) ? dev->accum : imm;
             res = a & b;
             aic_seq_flags(dev, res, 0);
@@ -4088,6 +4446,21 @@ aic_seq_run(aic7xxx_t *dev)
     if (dev->in_seq)
         return;
     dev->in_seq = 1;
+
+    /* Parked on a loop that changes nothing: it goes on doing nothing for
+       as long as what it read reads the same (aic_loop_edge). */
+    if (dev->loop_parked) {
+        if (aic_loop_quiet(dev) && aic_loop_reads_hold(dev)) {
+            dev->seq_last   = aic_now_us();
+            dev->seq_credit = 0.0;
+            dev->seq_idle   = 1;
+            dev->in_seq     = 0;
+            return;
+        }
+        dev->loop_parked = 0;
+        aic_loop_forget(dev);
+        dev->seq_idle = 0; /* owed the time since its last tick, as if it had run */
+    }
 
     /* The sequencer's clock is the 40 MHz input divided by four, or by
        five without FASTMODE, and an instruction takes one cycle: ten or
@@ -4157,6 +4530,22 @@ aic_seq_run(aic7xxx_t *dev)
 
         aic_seq_step(dev);
 
+        /* A pass being watched ends at a pause, an interrupt, or at its
+           length; a backward branch may end it, or start one. */
+        if (dev->loop_head != AIC_LOOP_NONE) {
+            /* The breakpoint too: raised again on a bit already set, with
+               PAUSEDIS, it changes nothing a pass could see, but a parked
+               loop would never reach it. */
+            if ((++dev->loop_insns > AIC_LOOP_INSNS) || aic_paused(dev) || (dev->intstat != dev->loop_intstat) ||
+                (!(dev->brkaddr & 0x8000) && (dev->pc == (dev->brkaddr & 0x1ff))))
+                aic_loop_forget(dev);
+        }
+        if ((dev->pc <= last_pc) && aic_loop_edge(dev)) {
+            stopped = 1;
+            n++;
+            break;
+        }
+
         if (dev->seqctl & STEP) {
             /* Single step: one instruction, and PAUSE sets itself again. */
             dev->hcntrl |= PAUSE;
@@ -4195,8 +4584,11 @@ aic_seq_timer(void *priv)
         aic_seq_run(dev);
 
     /* Keep the clock running while there is anything the sequencer could
-       still be woken by. */
-    if (!aic_paused(dev) || (dev->bus_state == BUS_BUSY) || dev->selecting || dev->qin_cnt || (dev->dfcntrl & (SCSIEN | HDMAEN)) || aic_any_disconnected(dev))
+       still be woken by. Parked on a loop with none of that under way,
+       only the host can change what it reads, and every host access wakes
+       it (aic_loop_wake). */
+    if ((!aic_paused(dev) && !dev->loop_parked) || (dev->bus_state == BUS_BUSY) || dev->selecting || dev->qin_cnt ||
+        (dev->dfcntrl & (SCSIEN | HDMAEN)) || aic_any_disconnected(dev))
         timer_on_auto(&dev->seq_timer, dev->asleep ? 50.0 : 10.0);
     else {
         /* Not re-arming is not the same as stopping. timer_on_auto() picks
@@ -4214,6 +4606,10 @@ static void
 aic_seq_kick(aic7xxx_t *dev)
 {
     dev->asleep = 0;
+    if (dev->loop_parked) {
+        aic_loop_wake(dev);
+        return;
+    }
     /* timer_is_on() asks whether a long period has been split, not whether
        the timer is running; a ten microsecond one never is. */
     if (!timer_is_enabled(&dev->seq_timer))
@@ -4275,6 +4671,9 @@ aic_chip_reset(aic7xxx_t *dev)
     dev->must_step            = 0;
     dev->seq_idle             = 1;
     dev->seq_credit           = 0.0;
+    dev->loop_head            = AIC_LOOP_NONE;
+    dev->loop_failed          = AIC_LOOP_NONE;
+    dev->loop_parked          = 0;
 
     dev->seqctl   = dev->chip->seqctl_reset;
     dev->pc       = 0;
