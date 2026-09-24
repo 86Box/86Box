@@ -53,6 +53,7 @@
 #include <86box/dma.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
+#include <86box/pit_fast.h>
 #include <86box/flash.h>
 #include <86box/apm.h>
 #include <86box/nmi.h>
@@ -1499,13 +1500,28 @@ esc_init(UNUSED(const device_t *info))
     pic_elcr_io_handler(1);
 
     /* A second timer: counter 0 is the fail-safe timer that can raise
-       NMI, counter 2 drives CPU speed control. */
-    device_add(&i8254_sec_device);
+       NMI, counter 2 drives CPU speed control. Adding the device does not
+       fill in the interface table the way the first timer's init does, so
+       that is done here, or nothing could attach to its output; it is the
+       same kind of timer as the first, which the machine chose. */
+    if (pit_devs[0].set_out_func == pit_fast_intf.set_out_func) {
+        pit_devs[1]      = pit_fast_intf;
+        pit_devs[1].data = device_add(&i8254_sec_fast_device);
+    } else {
+        pit_devs[1]      = pit_classic_intf;
+        pit_devs[1].data = device_add(&i8254_sec_device);
+    }
 
     /* Timer 2's first counter is the fail-safe timer, and its output is
-       an NMI source rather than an interrupt. */
-    if (pit_devs[1].data != NULL)
-        pit_devs[1].set_out_func(pit_devs[1].data, 0, esc_fail_safe_timer);
+       an NMI source rather than an interrupt. Its gate is tied high; a
+       fresh timer has every gate low, and mode 0 does not count without
+       it. */
+    pit_devs[1].set_gate(pit_devs[1].data, 0, 1);
+    pit_devs[1].set_out_func(pit_devs[1].data, 0, esc_fail_safe_timer);
+    /* And it counts a quarter as fast as the system timer: "Clock In
+       ... 0.298 MHz (OSC/48)" against 1.193 MHz (OSC/12) for Timer 1
+       (82374EB, Table 20, Interval Timer Functions). */
+    pit_devs[1].set_clock_div(pit_devs[1].data, 0, 4);
 
     /* The 82374SB's two power management ports, APMC at 0B2h and APMS at
        0B3h. The data book puts them in normal I/O space rather than in
