@@ -455,13 +455,19 @@ mach64_update_rom(mach64_t *mach64)
 }
 
 /* CFG_MEM_AP_LOC (CONFIG_CNTL 13:4) reads back where the aperture is: in
-   4M units, or 16M on the VT and VT2. The I/O and MMIO reads agree. */
+   4M units, or 16M on the VT and VT2. The I/O and MMIO reads agree. On
+   the CT and later CFG_MEM_AP_SIZE (1:0) is fixed at 2, "2 x 8M
+   apertures", the other values being reserved (RRG 3-9, CT column); "in
+   PCI systems the aperture size is always set to 2x8 MB ... read-only"
+   (VT/RAGE RRG 4-16). */
 static void
 mach64_sync_ap_loc(mach64_t *mach64)
 {
     const int shift = ((mach64->type == MACH64_VT) || (mach64->type == MACH64_VT2)) ? 24 : 22;
 
     mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | (((mach64->linear_base >> shift) << 4) & 0x3ff0);
+    if (mach64->type != MACH64_GX)
+        mach64->config_cntl = (mach64->config_cntl & ~3) | 2;
 }
 
 void
