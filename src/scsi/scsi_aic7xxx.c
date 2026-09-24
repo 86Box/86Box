@@ -4631,6 +4631,23 @@ aic_seq_kick(aic7xxx_t *dev)
 
 /* ---- reset -------------------------------------------------------------- */
 
+/* Scratch, the SCB array and the registers kept with them are RAM, and a
+   chip reset does not touch RAM: CHIPRST "put[s] the device in a reset
+   state for a maximum of 3 input clocks", and the scratch area is where
+   the firmware keeps "configuration data which describes the system
+   setup". What an option ROM leaves there is still there when a driver
+   resets the part and reads it -- ASPI7DOS learns from it which disks the
+   AHA-2740 BIOS already owns, and with it cleared took the BIOS's SCB for
+   its own and swallowed every one of the BIOS's completions. Power-on and
+   the machine's reset are what start RAM from nothing here. */
+static void
+aic_ram_clear(aic7xxx_t *dev)
+{
+    memset(dev->sram, 0, sizeof(dev->sram));
+    memset(dev->scb, 0, sizeof(dev->scb));
+    memset(dev->misc, 0, sizeof(dev->misc));
+}
+
 static void
 aic_chip_reset(aic7xxx_t *dev)
 {
@@ -4720,18 +4737,14 @@ aic_chip_reset(aic7xxx_t *dev)
     dev->qin_cnt = dev->qout_cnt = 0;
     dev->qin_last = dev->qout_last = 0;
 
-    memset(dev->sram, 0, sizeof(dev->sram));
-
     /* The configuration chip is mapped over the top of scratch on an EISA
-       board, so what it holds outlives a chip reset. */
+       board, so what it holds is there after a chip reset whatever scratch
+       held. */
     if (dev->eisa) {
         memcpy(&dev->sram[SCSICONF - SRAM_BASE], dev->eisa_conf,
                sizeof(dev->eisa_conf));
         dev->sram[HA_274_BIOSGLOBAL - SRAM_BASE] = dev->eisa_global;
     }
-
-    memset(dev->scb, 0, sizeof(dev->scb));
-    memset(dev->misc, 0, sizeof(dev->misc));
 
     dev->bus_state = BUS_FREE;
     dev->atn = dev->selecting = 0;
@@ -5374,6 +5387,7 @@ aic_reset(void *priv)
 {
     aic7xxx_t *dev = (aic7xxx_t *) priv;
 
+    aic_ram_clear(dev);
     aic_chip_reset(dev);
 }
 
@@ -5641,6 +5655,7 @@ aic_init(const device_t *info)
     timer_add(&dev->tgt_timer, aic_tgt_timer, dev, 0);
     timer_add(&dev->req_timer, aic_tgt_req_timer, dev, 0);
 
+    aic_ram_clear(dev);
     aic_chip_reset(dev);
 
     /* The on-board part takes the slot the machine reserves for it: on
