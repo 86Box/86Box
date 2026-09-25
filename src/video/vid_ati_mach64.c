@@ -821,11 +821,18 @@ mach64_updatemapping(mach64_t *mach64)
 /* CRTC_INT_CNTL (RRG 3-21): each interrupt's status bit sits one above its
    enable bit, and writing 1 to a status bit acknowledges it. The GX has the
    vertical blank (enable 1, status 2) and the vertical line (3, 4); the CT
-   and later add the snapshot, I2C, capture, overlay and one-shot ones. */
+   and later add the snapshot, I2C, capture, overlay and one-shot ones. The
+   VT's are the vertical blank and line, video-in even and odd field
+   (16, 18), overlay end of frame (20) and VMC exception (22), with 15:7
+   reserved (VT RRG 4-26). */
 static uint32_t
 mach64_crtc_int_en(const mach64_t *mach64)
 {
-    return (mach64->type == MACH64_GX) ? 0x0000000a : 0x0055028a;
+    if (mach64->type == MACH64_GX)
+        return 0x0000000a;
+    if ((mach64->type == MACH64_VT) || (mach64->type == MACH64_VT2))
+        return 0x0055000a;
+    return 0x0055028a;
 }
 
 /* The line of the frame the CRTC is on: in an interlaced mode each field
