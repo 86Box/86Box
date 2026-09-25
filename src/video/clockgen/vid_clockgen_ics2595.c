@@ -31,6 +31,7 @@ typedef struct ics2595_t {
     int state;
 
     double clocks[16];
+    double mclocks[4];
     double output_clock;
 } ics2595_t;
 
@@ -49,6 +50,7 @@ ics2595_write(void *priv, int strobe, int dat)
     int        d;
     int        n;
     int        l;
+    double     freq;
 
     if (strobe) {
         if ((dat & 8) && !ics2595->oldfs3) { /*Data clock*/
@@ -70,13 +72,40 @@ ics2595_write(void *priv, int strobe, int dat)
                         ics2595->dat |= (1 << 19);
                     ics2595->pos++;
                     if (ics2595->pos == 20) {
-                        l = (ics2595->dat >> 2) & 0xf;
+                        /* START, R/W, L0-L4, N0-N7, EXTFREQ, D0-D1, two STOP bits
+                           (data sheet, table 1). A read (R/W = 1) leaves the table
+                           alone and shifts the location out on FS0 over the next
+                           11 clocks (table 2). */
+                        l = (ics2595->dat >> 2) & 0x1f;
                         n = ((ics2595->dat >> 7) & 255) + 257;
                         d = ics2595_div[(ics2595->dat >> 16) & 3];
 
-                        ics2595->clocks[l] = (14318181.8 * ((double) n / 46.0)) / (double) d;
-                        ics2595->state     = ICS2595_IDLE;
+                        if (ics2595->dat & 2) {
+                            ics2595->state = ICS2595_READ;
+                            ics2595->pos   = 0;
+                            break;
+                        }
+
+                        /* EXTFREQ routes the EXTFREQ pin to the output in place of
+                           the PLL; what the mach64 boards drive it with is not
+                           known, so such a location gives no clock. */
+                        if (ics2595->dat & (1 << 15))
+                            freq = 0.0;
+                        else
+                            freq = (14318181.8 * ((double) n / 46.0)) / (double) d;
+
+                        /* L4 = 1 addresses the MCLK table, of which 10000-10011
+                           are listed (table 3). */
+                        if (l < 16)
+                            ics2595->clocks[l] = freq;
+                        else if (l < 20)
+                            ics2595->mclocks[l - 16] = freq;
+                        ics2595->state = ICS2595_IDLE;
                     }
+                    break;
+                case ICS2595_READ:
+                    if (++ics2595->pos == 11)
+                        ics2595->state = ICS2595_IDLE;
                     break;
 
                 default:
