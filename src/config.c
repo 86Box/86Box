@@ -431,14 +431,14 @@ load_monitor(int monitor_index)
    loads something else in its place (the first machine, or nothing for a
    card), and saving the configuration then loses what it named. */
 #define CONFIG_UNSUPPORTED_SHOWN 5
-static char config_unsupported_list[CONFIG_UNSUPPORTED_SHOWN][160];
+static char config_unsupported_list[CONFIG_UNSUPPORTED_SHOWN + 1][160];
 static int  config_unsupported_count   = 0;
 static int  config_unsupported_machine = 0;
 
 static void
 config_unsupported(const char *kind, const char *name)
 {
-    if (config_unsupported_count < CONFIG_UNSUPPORTED_SHOWN)
+    if (config_unsupported_count <= CONFIG_UNSUPPORTED_SHOWN)
         snprintf(config_unsupported_list[config_unsupported_count], sizeof(config_unsupported_list[0]),
                  "%s \"%s\"", kind, name);
     config_unsupported_count++;
@@ -467,11 +467,14 @@ config_ask_unsupported(void)
         return 1;
 
     len = snprintf(msg, sizeof(msg), "Hardware in this machine profile is not supported by this current build of 86Box.\n\n");
-    for (int i = 0; (i < config_unsupported_count) && (i < CONFIG_UNSUPPORTED_SHOWN); i++)
+    /* Five are listed, or six rather than "and 1 other": past that, how
+       many more there are. */
+    const int listed = (config_unsupported_count <= (CONFIG_UNSUPPORTED_SHOWN + 1)) ?
+                           config_unsupported_count : CONFIG_UNSUPPORTED_SHOWN;
+    for (int i = 0; i < listed; i++)
         len += snprintf(msg + len, sizeof(msg) - len, "%s\n", config_unsupported_list[i]);
-    if (config_unsupported_count > CONFIG_UNSUPPORTED_SHOWN)
-        len += snprintf(msg + len, sizeof(msg) - len, "(and %i others)\n",
-                        config_unsupported_count - CONFIG_UNSUPPORTED_SHOWN);
+    if (config_unsupported_count > listed)
+        len += snprintf(msg + len, sizeof(msg) - len, "(and %i others)\n", config_unsupported_count - listed);
     snprintf(msg + len, sizeof(msg) - len,
              "\nLoading the configuration anyway will %s and overwrite the existing configuration.\n\n"
              "Do you want to continue?",
