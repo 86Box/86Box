@@ -293,6 +293,7 @@ typedef struct el3_t {
     uint8_t  rx_testen; /* Ethernet Controller Status bit 0 */
     uint16_t media_status;
     uint8_t  coax_running;
+    uint8_t  powered_down; /* Power Down Full */
 
     uint16_t tx_start_thresh;
     uint16_t tx_avail_thresh;
@@ -790,7 +791,7 @@ el3_rx_frame(el3_t *dev, const uint8_t *buf, int io_len, int mac)
     uint16_t        len = (uint16_t) io_len;
     uint32_t        crc;
 
-    if (!dev->rx_enabled || (io_len < (mac ? 14 : 1)))
+    if (!dev->rx_enabled || dev->powered_down || (io_len < (mac ? 14 : 1)))
         return 1;
     if (mac && !el3_rx_accept(dev, buf))
         return 1;
@@ -1133,6 +1134,7 @@ el3_global_reset(el3_t *dev, uint8_t mask)
         dev->int_mask       = 0;
         dev->read_zero_mask = 0;
         dev->latch          = 0;
+        dev->powered_down   = 0; /* power-up is "the default state at power-on/reset" */
         dev->window         = 0;
         dev->cmd_low        = 0;
         dev->rom_control    = 0;
@@ -1254,6 +1256,11 @@ el3_command(el3_t *dev, uint16_t val)
     uint8_t  cmd   = (uint8_t) (val >> 11);
     uint16_t param = val & 0x07ff;
 
+    /* In Power Down Full "the only legal access to the chip is the Power
+       Up command" (6-11). */
+    if (dev->powered_down && (cmd != CMD_POWER_UP))
+        return;
+
     /* Commands act in every window. The book lists only Select Register
        Window as valid in Window 0, but ELNK3.VXD issues TX Reset, RX Reset
        and Acknowledge Interrupt there and depends on them. */
@@ -1338,10 +1345,17 @@ el3_command(el3_t *dev, uint16_t val)
         case CMD_STOP_COAX:
             dev->coax_running = 0;
             break;
-        case CMD_SET_TX_RECLAIM: /* Micro Channel only */
         case CMD_POWER_UP:
+            dev->powered_down = 0;
+            break;
         case CMD_POWER_DOWN_FULL:
-        case CMD_POWER_AUTO:
+            /* It stops the DC-DC converter as Stop Coaxial Transceiver
+               would; the rest of the chip keeps its state (6-11). */
+            dev->powered_down = 1;
+            dev->coax_running = 0;
+            break;
+        case CMD_SET_TX_RECLAIM: /* Micro Channel only */
+        case CMD_POWER_AUTO:     /* wakes by itself for a packet, so no different here */
             break;
         default:
             el3_log("3C509B: reserved command %02x\n", cmd);
