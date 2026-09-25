@@ -16,6 +16,7 @@
  */
 #include <cstdint>
 #include <cstdio>
+#include <vector>
 
 extern "C" {
 #include <86box/86box.h>
@@ -129,28 +130,21 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
             cb->clear();
     }
 
-    int c           = 0;
     int selectedRow = 0;
 
     // ISA RTC Cards
     auto *model = ui->comboBoxRTC->model();
-    while (true) {
-        const QString name = DeviceConfig::DeviceName(isartc_get_device(c), isartc_get_internal_name(c), 0);
-        if (name.isEmpty())
-            break;
-
-        if (!device_is_valid(isartc_get_device(c), machineId)) {
-            ++c;
+    Models::Batch rtcRows(model);
+    for (const auto &rtc : Models::Devices(isartc_get_device, isartc_get_internal_name, nullptr, 0)) {
+        if (!device_is_valid(rtc.dev, machineId))
             continue;
-        }
 
-        int row = Models::AddEntry(model, name, c);
-        scRTC->addDevice(isartc_get_device(c), name);
-        if (c == isartc_type)
+        int row = rtcRows.add(rtc.name, rtc.id);
+        scRTC->addDevice(rtc.dev, rtc.name);
+        if (rtc.id == isartc_type)
             selectedRow = row;
-
-        ++c;
     }
+    rtcRows.commit();
     ui->comboBoxRTC->setCurrentIndex(selectedRow);
     ui->pushButtonConfigureRTC->setEnabled((isartc_type != 0) && isartc_has_config(isartc_type) && machineHasIsaOrSidecar);
 
@@ -171,39 +165,29 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         mem_removeRows_[i] = mem_models[i]->rowCount();
     }
 
-    c = 0;
-    while (true) {
-        const device_t *dev   = NULL;
-        const char     *iname = NULL;
+    static const QVector<Models::Device> none;
+    const auto &mem_cards = mca_bus ? Models::Devices(mcamem_get_device, mcamem_get_internal_name,
+                                                      [](int c) -> int { return device_available(mcamem_get_device(c)); }, 0)
+                          : isa_bus ? Models::Devices(isamem_get_device, isamem_get_internal_name,
+                                                      [](int c) -> int { return device_available(isamem_get_device(c)); }, 0)
+                                    : none;
 
-        if (mca_bus) {
-            dev   = mcamem_get_device(c);
-            iname = mcamem_get_internal_name(c);
-        } else if (isa_bus) {
-            dev   = isamem_get_device(c);
-            iname = isamem_get_internal_name(c);
-        } else
-            break;
-
-        const QString name = DeviceConfig::DeviceName(dev, iname, 0);
-        if (name.isEmpty())
-            break;
-
-        if (device_available(dev) && device_is_valid(dev, machineId)) {
+    std::vector<Models::Batch> mem_rows(mem_models, mem_models + ISAMEM_MAX);
+    for (const auto &card : mem_cards) {
+        if (card.available && device_is_valid(card.dev, machineId)) {
             for (uint8_t i = 0; i < ISAMEM_MAX; ++i) {
                 int cur = mca_bus ? mcamem_type[i] : isamem_type[i];
-                int row = Models::AddEntry(mem_models[i], name, c);
-                scMemExpCard[i]->addDevice(dev, name);
+                int row = mem_rows[i].add(card.name, card.id);
+                scMemExpCard[i]->addDevice(card.dev, card.name);
 
-                if (c == cur)
+                if (card.id == cur)
                     mem_selectedRows[i] = row - mem_removeRows_[i];
             }
         }
-
-        c++;
     }
 
     for (uint8_t i = 0; i < ISAMEM_MAX; ++i) {
+        mem_rows[i].commit();
         const device_t *seldev = mca_bus ? mcamem_get_device(mcamem_type[i]) : isamem_get_device(isamem_type[i]);
         bool            hascfg = mca_bus ? (mcamem_has_config(mcamem_type[i]) != 0) : (isamem_has_config(isamem_type[i]) != 0);
 
@@ -226,28 +210,21 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         isarom_removeRows_[i] = isarom_models[i]->rowCount();
     }
 
-    c = 0;
-    while (true) {
-        const QString name = DeviceConfig::DeviceName(isarom_get_device(c),
-                                                      isarom_get_internal_name(c), 0);
-
-        if (name.isEmpty())
-            break;
-
-        if (device_is_valid(isarom_get_device(c), machineId)) {
+    std::vector<Models::Batch> isarom_rows(isarom_models, isarom_models + ISAROM_MAX);
+    for (const auto &card : Models::Devices(isarom_get_device, isarom_get_internal_name, nullptr, 0)) {
+        if (device_is_valid(card.dev, machineId)) {
             for (uint8_t i = 0; i < ISAROM_MAX; ++i) {
-                int row = Models::AddEntry(isarom_models[i], name, c);
-                scIsaRomCard[i]->addDevice(isarom_get_device(c), name);
+                int row = isarom_rows[i].add(card.name, card.id);
+                scIsaRomCard[i]->addDevice(card.dev, card.name);
 
-                if (c == isarom_type[i])
+                if (card.id == isarom_type[i])
                     isarom_selectedRows[i] = row - isarom_removeRows_[i];
             }
         }
-
-        c++;
     }
 
     for (uint8_t i = 0; i < ISAROM_MAX; ++i) {
+        isarom_rows[i].commit();
         isarom_models[i]->removeRows(0, isarom_removeRows_[i]);
         isarom_cbox[i]->setEnabled(isarom_models[i]->rowCount() > 1);
         isarom_cbox[i]->setCurrentIndex(-1);

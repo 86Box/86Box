@@ -227,9 +227,12 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     Harddrives::populateRemovableBuses(ui->comboBoxMOBus->model());
     ui->comboBoxMOBus->model()->removeRows(3, ui->comboBoxMOBus->model()->rowCount() - 3);
     auto *model = ui->comboBoxMOType->model();
-    for (uint32_t i = 0; i < KNOWN_MO_DRIVE_TYPES; i++) {
-        Models::AddEntry(model, moDriveTypeName(i), i);
-        scMOType->addDevice(nullptr, moDriveTypeName(i));
+    {
+        Models::Batch typeRows(model);
+        for (uint32_t i = 0; i < KNOWN_MO_DRIVE_TYPES; i++) {
+            typeRows.add(moDriveTypeName(i), i);
+            scMOType->addDevice(nullptr, moDriveTypeName(i));
+        }
     }
 
     model = new QStandardItemModel(0, 2, this);
@@ -260,9 +263,12 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     if ((ui->comboBoxRDiskBus->model()->rowCount() - 4) > 0)
         ui->comboBoxRDiskBus->model()->removeRows(4, ui->comboBoxRDiskBus->model()->rowCount() - 3);
     model = ui->comboBoxRDiskType->model();
-    for (uint32_t i = 0; i < KNOWN_RDISK_DRIVE_TYPES; i++) {
-        Models::AddEntry(model, rdiskDriveTypeName(i), i);
-        scRDiskType->addDevice(nullptr, rdiskDriveTypeName(i));
+    {
+        Models::Batch typeRows(model);
+        for (uint32_t i = 0; i < KNOWN_RDISK_DRIVE_TYPES; i++) {
+            typeRows.add(rdiskDriveTypeName(i), i);
+            scRDiskType->addDevice(nullptr, rdiskDriveTypeName(i));
+        }
     }
 
     model = new QStandardItemModel(0, 2, this);
@@ -296,9 +302,12 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
         busModel->setData(busModel->index(row, 0), TAPE_BUS_FDC, Qt::UserRole);
     }
     model = ui->comboBoxTapeType->model();
-    for (uint32_t i = 0; i < KNOWN_TAPE_DRIVE_TYPES; i++) {
-        Models::AddEntry(model, tapeDriveTypeName(i), i);
-        scTapeType->addDevice(nullptr, tapeDriveTypeName(i));
+    {
+        Models::Batch typeRows(model);
+        for (uint32_t i = 0; i < KNOWN_TAPE_DRIVE_TYPES; i++) {
+            typeRows.add(tapeDriveTypeName(i), i);
+            scTapeType->addDevice(nullptr, tapeDriveTypeName(i));
+        }
     }
 
     model = new QStandardItemModel(0, 2, this);

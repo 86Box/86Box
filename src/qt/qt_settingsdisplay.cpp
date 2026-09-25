@@ -185,38 +185,34 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
     this->machineId   = machineId;
     auto curVideoCard = videoCard[0];
 
+    fillingVideo = true;
+
     sc->removeRows();
 
     auto *model      = ui->comboBoxVideo->model();
     auto  removeRows = model->rowCount();
 
-    int c           = 0;
-    int selectedRow = 0;
-    while (true) {
+    int           selectedRow = 0;
+    Models::Batch rows(model);
+    for (const auto &card : Models::Devices(video_card_getdevice, video_get_internal_name, video_card_available, 1)) {
+        const int c = card.id;
+
         /* Skip "internal" if machine doesn't have it. */
-        if ((c == 1) && (machine_has_flags(machineId, MACHINE_VIDEO) == 0)) {
-            c++;
+        if ((c == 1) && (machine_has_flags(machineId, MACHINE_VIDEO) == 0))
             continue;
-        }
 
-        const device_t *video_dev = video_card_getdevice(c);
-        QString         name      = DeviceConfig::DeviceName(video_dev, video_get_internal_name(c), 1);
-        if (name.isEmpty()) {
-            break;
-        }
-
-        if (video_card_available(c) && device_is_valid(video_dev, machineId)) {
+        if (card.available && device_is_valid(card.dev, machineId)) {
+            QString name = card.name;
             if (c == 1 && machine_get_vid_device(machineId)) {
                 name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_vid_device(machineId), machine_get_vid_device(machineId)->internal_name, 0));
             }
-            int row = Models::AddEntry(model, name, c);
-            sc->addDevice(video_dev, name);
+            int row = rows.add(name, c);
+            sc->addDevice(card.dev, name);
             if (c == curVideoCard)
                 selectedRow = row - removeRows;
         }
-
-        c++;
     }
+    rows.commit();
     model->removeRows(0, removeRows);
 
     // TODO
@@ -231,6 +227,8 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
         ui->pushButtonConfigureVideoSecondary->setEnabled(true);
     }
     ui->comboBoxVideo->setCurrentIndex(selectedRow);
+    fillingVideo = false;
+    on_comboBoxVideo_currentIndexChanged(ui->comboBoxVideo->currentIndex());
     // TODO
     for (uint8_t i = 1; i < GFXCARD_MAX; i++)
         if (gfxcard[i] == 0)
@@ -287,7 +285,7 @@ SettingsDisplay::on_pushButtonConfigureDa2_clicked()
 void
 SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 {
-    if (index < 0)
+    if ((index < 0) || fillingVideo)
         return;
 
     static QRegularExpression voodooRegex("3dfx|voodoo|banshee|raven", QRegularExpression::CaseInsensitiveOption);
@@ -324,26 +322,27 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     ui->pushButtonConfigureXga->setEnabled(ui->checkBoxXga->isEnabled() && ui->checkBoxXga->isChecked());
     ui->pushButtonConfigureDa2->setEnabled(ui->checkBoxDa2->isEnabled() && ui->checkBoxDa2->isChecked());
 
-    int c = 2;
-
     scSecondary->removeRows();
 
     ui->comboBoxVideoSecondary->clear();
-    ui->comboBoxVideoSecondary->addItem(QObject::tr("None"), 0);
-    sc->addDevice(NULL, "None");
+    Models::Batch secondaryRows(ui->comboBoxVideoSecondary->model());
+    secondaryRows.add(QObject::tr("None"), 0);
+    scSecondary->addDevice(NULL, "None");
 
-    ui->comboBoxVideoSecondary->setCurrentIndex(0);
     // TODO: Implement support for selecting non-MDA secondary cards properly when MDA cards are the primary ones.
     if (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_MDA) {
+        secondaryRows.commit();
         ui->comboBoxVideoSecondary->setCurrentIndex(0);
         return;
     }
-    while (true) {
-        const device_t *video_dev = video_card_getdevice(c);
-        QString         name      = DeviceConfig::DeviceName(video_dev, video_get_internal_name(c), 1);
-        if (name.isEmpty()) {
-            break;
-        }
+    int selectedSecondaryRow = 0;
+    for (const auto &card : Models::Devices(video_card_getdevice, video_get_internal_name, video_card_available, 1)) {
+        const int c = card.id;
+        if (c < 2)
+            continue;
+
+        const device_t *video_dev = card.dev;
+        const QString  &name      = card.name;
 
         int primaryFlags   = video_card_get_flags(videoCard[0]);
         int secondaryFlags = video_card_get_flags(c);
@@ -352,20 +351,20 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         const bool primary_is_agp   = primary_dev && (primary_dev->flags & DEVICE_AGP);
         const bool secondary_is_agp = video_dev   && (video_dev->flags   & DEVICE_AGP);
 
-        if (video_card_available(c)
+        if (card.available
             && device_is_valid(video_dev, machineId)
             && !(primary_is_agp && secondary_is_agp)
             && !((secondaryFlags == primaryFlags) && (secondaryFlags != VIDEO_FLAG_TYPE_SECONDARY))
             && !(((primaryFlags == VIDEO_FLAG_TYPE_8514) || (primaryFlags == VIDEO_FLAG_TYPE_XGA)) && (secondaryFlags != VIDEO_FLAG_TYPE_MDA) && (secondaryFlags != VIDEO_FLAG_TYPE_SECONDARY))
             && !((primaryFlags != VIDEO_FLAG_TYPE_MDA) && (primaryFlags != VIDEO_FLAG_TYPE_SECONDARY) && ((secondaryFlags == VIDEO_FLAG_TYPE_8514) || (secondaryFlags == VIDEO_FLAG_TYPE_XGA)))) {
-            ui->comboBoxVideoSecondary->addItem(name, c);
+            int row = secondaryRows.add(name, c);
             scSecondary->addDevice(video_dev, name);
             if (c == curVideoCard_2)
-                ui->comboBoxVideoSecondary->setCurrentIndex(ui->comboBoxVideoSecondary->count() - 1);
+                selectedSecondaryRow = row;
         }
-
-        c++;
     }
+    secondaryRows.commit();
+    ui->comboBoxVideoSecondary->setCurrentIndex(selectedSecondaryRow);
 
     if ((videoCard[1] == 0) || (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0)) {
         ui->comboBoxVideoSecondary->setCurrentIndex(0);

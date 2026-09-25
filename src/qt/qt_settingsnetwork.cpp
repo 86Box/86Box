@@ -26,6 +26,8 @@ extern "C" {
 }
 
 #include "qt_models_common.hpp"
+
+#include <vector>
 #include "qt_deviceconfig.hpp"
 
 #include "qt_defs.hpp"
@@ -358,35 +360,29 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         removeRows_[i] = models[i]->rowCount();
     }
 
-    c = 0;
-    while (true) {
-        QString name = DeviceConfig::DeviceName(network_card_getdevice(c),
-                                                network_card_get_internal_name(c), 1);
+    std::vector<Models::Batch> rows(models, models + NET_CARD_MAX);
+    for (const auto &card : Models::Devices(network_card_getdevice, network_card_get_internal_name, network_card_available, 1)) {
+        c = card.id;
+        if (card.available && device_is_valid(card.dev, machineId)) {
+            QString name = card.name;
 
-        if (name.isEmpty())
-            break;
-
-        if (network_card_available(c)) {
-            if (device_is_valid(network_card_getdevice(c), machineId)) {
-                for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
-                    if ((c != 1) || (m_has_net & (1 << i))) {
-                        if (i == 0 && c == 1 && m_has_net && machine_get_net_device(machineId)) {
-                            name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_net_device(machineId), machine_get_net_device(machineId)->internal_name, 0));
-                        }
-                        int row = Models::AddEntry(models[i], name, c);
-                        sc[i]->addDevice(network_card_getdevice(c), name);
-
-                        if (c == net_cards_conf[i].device_num)
-                            selectedRows[i] = row - removeRows_[i];
+            for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
+                if ((c != 1) || (m_has_net & (1 << i))) {
+                    if (i == 0 && c == 1 && m_has_net && machine_get_net_device(machineId)) {
+                        name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_net_device(machineId), machine_get_net_device(machineId)->internal_name, 0));
                     }
+                    int row = rows[i].add(name, c);
+                    sc[i]->addDevice(card.dev, name);
+
+                    if (c == net_cards_conf[i].device_num)
+                        selectedRows[i] = row - removeRows_[i];
                 }
             }
         }
-
-        c++;
     }
 
     for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
+        rows[i].commit();
         models[i]->removeRows(0, removeRows_[i]);
         cbox_[i]->setEnabled(models[i]->rowCount() > 1);
         cbox_[i]->setCurrentIndex(-1);
@@ -395,25 +391,27 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         auto cbox       = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
         auto model      = cbox->model();
         auto removeRows = model->rowCount();
-        Models::AddEntry(model, tr("Null Driver"), NET_TYPE_NONE);
-        Models::AddEntry(model, "SLiRP", NET_TYPE_SLIRP);
+        Models::Batch typeRows(model);
+        typeRows.add(tr("Null Driver"), NET_TYPE_NONE);
+        typeRows.add("SLiRP", NET_TYPE_SLIRP);
 
         if (network_ndev > 1)
-            Models::AddEntry(model, "PCap", NET_TYPE_PCAP);
+            typeRows.add("PCap", NET_TYPE_PCAP);
 
 #ifdef HAS_VDE
         if (network_devmap.has_vde)
-            Models::AddEntry(model, "VDE", NET_TYPE_VDE);
+            typeRows.add("VDE", NET_TYPE_VDE);
 #endif
 
 #if defined(__unix__) || defined(__APPLE__)
-        Models::AddEntry(model, "TAP", NET_TYPE_TAP);
+        typeRows.add("TAP", NET_TYPE_TAP);
 #endif
 
-        Models::AddEntry(model, tr("Local Switch"), NET_TYPE_NLSWITCH);
+        typeRows.add(tr("Local Switch"), NET_TYPE_NLSWITCH);
 #ifdef ENABLE_NET_NRSWITCH
-        Models::AddEntry(model, tr("Remote Switch"), NET_TYPE_NRSWITCH);
+        typeRows.add(tr("Remote Switch"), NET_TYPE_NRSWITCH);
 #endif /* ENABLE_NET_NRSWITCH */
+        typeRows.commit();
 
         model->removeRows(0, removeRows);
         cbox->setCurrentIndex(cbox->findData(net_cards_conf[i].net_type));
@@ -425,13 +423,15 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             cbox                      = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
             model                     = cbox->model();
             removeRows                = model->rowCount();
+            Models::Batch intfRows(model);
             for (int c = 0; c < network_ndev; c++) {
-                Models::AddEntry(model, tr(network_devs[c].description), c);
+                intfRows.add(tr(network_devs[c].description), c);
                 scDevice[i]->addDevice(nullptr, tr(network_devs[c].description));
                 if (QString(network_devs[c].device) == currentPcapDevice) {
                     selectedRow = c;
                 }
             }
+            intfRows.commit();
             model->removeRows(0, removeRows);
             cbox->setCurrentIndex(selectedRow);
         }

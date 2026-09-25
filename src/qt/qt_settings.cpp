@@ -62,6 +62,7 @@ extern "C" {
 #include "qt_preferences.hpp"
 
 #include "qt_harddrive_common.hpp"
+#include "qt_models_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
 
 #include <QDebug>
@@ -359,6 +360,9 @@ Settings::ensureAllPages()
 Settings::~Settings()
 {
     delete ui;
+    /* The device lists are read again the next time: ROMs may come or go
+       in between. */
+    Models::ClearDevices();
     delete Harddrives::busTrackClass;
     Harddrives::busTrackClass = nullptr;
     Settings::settings        = nullptr;
