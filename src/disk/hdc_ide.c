@@ -496,6 +496,9 @@ ide_get_xfer_time(ide_t *ide, int size)
                 case 0x20:
                     period = 100.0;
                     break;
+                case 0x40:
+                    period = 133.0;
+                    break;
 
                 default:
                     break;
@@ -622,7 +625,23 @@ static int
 ide_get_max(const ide_t *ide, const int type)
 {
     const int       ata_4     = ide_is_ata4(ide_boards[ide->board]);
-    const int       max[2][4] = { { 3, -1, -1, -1 }, { 4, -1, 2, 5 } };
+    const int       max[2][4] =
+    // clang-format off
+    {
+        {
+            [TYPE_PIO]  = 3,
+            [TYPE_SDMA] = -1,
+            [TYPE_MDMA] = -1,
+            [TYPE_UDMA] = -1
+        },
+        {
+            [TYPE_PIO]  = 4,
+            [TYPE_SDMA] = -1,
+            [TYPE_MDMA] = 2,
+            [TYPE_UDMA] = 6
+        }
+    };
+    // clang-format on
     int             ret;
 
     if (ide->type == IDE_ATAPI)
