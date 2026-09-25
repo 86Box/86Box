@@ -38,7 +38,6 @@
 #include <86box/plat_unused.h>
 #include <86box/log.h>
 
-#define ENABLE_EPAT_LOG 1
 #ifdef ENABLE_EPAT_LOG
 int epat_do_log = ENABLE_EPAT_LOG;
 
@@ -1233,7 +1232,7 @@ epat_init(UNUSED(const device_t *info))
     /* Before any device reset, a host may identify the chip - see above. */
     dev->regs[EPAT_REG_VERSION] = EPAT_CHIP_VERSION;
     dev->log    = log_open("EPAT");
-    dev->port   = (uint8_t) device_get_config_int("port");
+    dev->port   = (uint8_t) (device_get_instance() - 1);
     dev->busy_us = device_get_config_int("busy_ms") * 1000;
     dev->reset_us = device_get_config_int("reset_ms") * 1000;
 
@@ -1242,7 +1241,7 @@ epat_init(UNUSED(const device_t *info))
 
     /* The drive does not exist yet - see epat_attach_drive(). */
 
-    dev->lpt = lpt_attach_ex(device_get_config_int("port"),
+    dev->lpt = lpt_attach_ex(dev->port,
                              epat_write_data, epat_write_ctrl, NULL,
                              epat_read_status, epat_read_ctrl,
                              NULL, NULL, dev);
@@ -1273,23 +1272,6 @@ epat_close(void *priv)
 }
 
 static const device_config_t epat_config[] = {
-    {
-        .name           = "port",
-        .description    = "Parallel Port",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "LPT1", .value = 0 },
-            { .description = "LPT2", .value = 1 },
-            { .description = "LPT3", .value = 2 },
-            { .description = "LPT4", .value = 3 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
     {
         /*
          * How long the drive holds BSY after a command. 0 is the original
