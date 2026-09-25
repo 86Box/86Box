@@ -1060,6 +1060,8 @@ mach64_vt_blk1_mask(const mach64_t *mach64, int reg)
         case 0x23: /* BUF0_PITCH */
         case 0x29: /* BUF1_PITCH */
             return 0x00000ffe;
+        case 0x50: /* HW_DEBUG (VT RRG 4-19) */
+            return 0x0000ffff;
         default:
             return 0; /* VMC_STATUS and the unassigned offsets */
     }
@@ -1083,7 +1085,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
         ret = svga->mapping.read_b(addr, svga->mapping.priv);
     else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
         if (!(addr & 0x400) && mach64_is_vt(mach64)) {
-            ret = mach64->vt_blk1[(addr & 0xff) >> 2] >> ((addr & 3) * 8);
+            ret = mach64->vt_blk1[(addr & 0x3ff) >> 2] >> ((addr & 3) * 8);
         } else if (!(addr & 0x400)) {
             mach64_log("mach64_ext_readb: addr=%04x\n", addr);
             switch (addr & 0x3ff) {
@@ -1669,12 +1671,10 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
         mach64_log("mach64_ext_writeb : addr %08X val %02X\n", addr, val);
 
         if (!(addr & 0x400) && mach64_is_vt(mach64)) {
-            const int      reg   = (addr & 0xff) >> 2;
+            const int      reg   = (addr & 0x3ff) >> 2;
             const int      shift = (addr & 3) * 8;
             const uint32_t m     = mach64_vt_blk1_mask(mach64, reg);
 
-            if (addr & 0x300)
-                return; /* nothing is assigned above 0FFh on the VT */
             val = (val & (m >> shift)) & 0xff;
             mach64->vt_blk1[reg] = (mach64->vt_blk1[reg] & ~(0xffu << shift)) | ((uint32_t) val << shift);
         }

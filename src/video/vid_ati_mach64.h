@@ -167,7 +167,7 @@ typedef struct mach64_t {
 
     uint32_t gp_io;
     uint32_t gp_io_cntl; /* GP_IO_CNTL (VT) */
-    uint32_t vt_blk1[64]; /* the VT's register block 1, as its fields read back */
+    uint32_t vt_blk1[256]; /* the VT's register block 1, as its fields read back */
 
     uint32_t dac_cntl;
 
