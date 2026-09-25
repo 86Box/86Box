@@ -627,7 +627,8 @@ device_reset_all(uint32_t match_flags)
 {
     for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
-            if ((devices[c]->reset != NULL) && (devices[c]->flags & match_flags))
+            if ((devices[c]->reset != NULL) &&
+                ((match_flags == DEVICE_ALL) || (devices[c]->flags & match_flags)))
                 devices[c]->reset(device_priv[c]);
         }
     }
