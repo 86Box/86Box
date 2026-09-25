@@ -228,6 +228,10 @@ enum {
 #define RX_QUEUE     32
 #define TX_STATUS_MAX 31
 #define RAM_SIZE     8192
+/* Frames held while the transmitter is off, each a six byte header and its
+   data. The worst case is one byte frames, each taking a dword of the TX
+   FIFO and seven bytes here, in the largest TX FIFO: half of 32 KB. */
+#define TX_PEND_MAX  (((32768 / 2) / 4) * 7 + TX_FRAME_MAX + 8)
 
 /* The ID sequence state machine. */
 enum {
@@ -330,7 +334,7 @@ typedef struct el3_t {
     uint8_t  tx_frame[TX_FRAME_MAX + 4];
     uint16_t tx_got;
     uint16_t tx_count;
-    uint8_t  tx_pend[(RAM_SIZE * 2) + TX_FRAME_MAX + 8];
+    uint8_t  tx_pend[TX_PEND_MAX];
     uint32_t tx_pend_len;
     uint32_t tx_pend_fifo;
     uint8_t  tx_out[TX_FRAME_MAX + 64];
@@ -915,15 +919,17 @@ el3_tx_status_pop(el3_t *dev)
     }
 }
 
-/* The space the FIFO has left: each frame costs its preamble and its data
-   padded to a dword. */
+/* The space the FIFO has left: each frame costs its data padded to a
+   dword. "The transmit preamble for the current packet is read as soon as
+   it is written by the host. Therefore it will not cause a decrease in the
+   TX Free value" (10-7). */
 static uint16_t
 el3_tx_free(const el3_t *dev)
 {
     uint32_t used = dev->tx_pend_fifo;
 
     if (dev->tx_pre_got != 0)
-        used += 4 + ((dev->tx_count + 3U) & ~3U);
+        used += (dev->tx_count + 3U) & ~3U;
     return (uint16_t) ((used > dev->tx_size) ? 0 : (dev->tx_size - used));
 }
 
@@ -987,7 +993,7 @@ el3_tx_drain(el3_t *dev)
         uint16_t       flags   = (uint16_t) (r[4] | (r[5] << 8));
 
         el3_tx_emit(dev, r + 6, kept, flags);
-        dev->tx_pend_fifo -= 4 + ((written + 3U) & ~3U);
+        dev->tx_pend_fifo -= (written + 3U) & ~3U;
         pos += 6 + kept;
     }
     if (pos > 0) {
@@ -1013,7 +1019,7 @@ el3_tx_send(el3_t *dev)
         r[5] = (uint8_t) (dev->tx_flags >> 8);
         memcpy(r + 6, dev->tx_frame, dev->tx_got);
         dev->tx_pend_len += 6 + dev->tx_got;
-        dev->tx_pend_fifo += 4 + ((dev->tx_count + 3U) & ~3U);
+        dev->tx_pend_fifo += (dev->tx_count + 3U) & ~3U;
     }
 
     el3_tx_frame_reset(dev);
@@ -1040,7 +1046,7 @@ el3_tx_data_write(el3_t *dev, uint8_t val)
         }
         return;
     }
-    if (dev->tx_pend_fifo + 4 + dev->tx_count >= dev->tx_size) {
+    if (dev->tx_pend_fifo + dev->tx_count >= dev->tx_size) {
         el3_adapter_failure(dev, FIFO_TX_OVERRUN);
         dev->tx_enabled     = 0;
         dev->tx_status_full = 0;
