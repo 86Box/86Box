@@ -720,7 +720,6 @@ mach64_updatemapping(mach64_t *mach64)
         mach64_mapping_off(&mach64->linear_mapping_big_endian);
         mach64_mapping_off(&mach64->mmio_mapping);
         mach64_mapping_off(&mach64->mmio_linear_mapping);
-        mach64_mapping_off(&mach64->mmio_linear_mapping_2);
         return;
     }
 
@@ -808,13 +807,13 @@ mach64_updatemapping(mach64_t *mach64)
 
             mach64_map_aperture(mach64, &mach64->linear_mapping, 1, 0, (8 << 20) - win);
             mach64_map_aperture(mach64, &mach64->mmio_linear_mapping, 1, (8 << 20) - win, win);
-            mach64_map_aperture(mach64, &mach64->linear_mapping_big_endian, 1, 8 << 20, (8 << 20) - 0x1000);
-            mach64_map_aperture(mach64, &mach64->mmio_linear_mapping_2, 1, (16 << 20) - 0x1000, 0x1000);
+            /* The big-endian aperture, the second 8M, is memory only (VT RRG
+               figure 2.1). */
+            mach64_map_aperture(mach64, &mach64->linear_mapping_big_endian, 1, 8 << 20, 8 << 20);
         }
     } else {
         mach64_mapping_off(&mach64->linear_mapping);
         mach64_mapping_off(&mach64->mmio_linear_mapping);
-        mach64_mapping_off(&mach64->mmio_linear_mapping_2);
         mach64_mapping_off(&mach64->linear_mapping_big_endian);
     }
 }
@@ -2961,7 +2960,6 @@ mach64_disable_handlers(mach64_t *dev)
     mem_mapping_disable(&dev->linear_mapping_big_endian);
     mem_mapping_disable(&dev->mmio_mapping);
     mem_mapping_disable(&dev->mmio_linear_mapping);
-    mem_mapping_disable(&dev->mmio_linear_mapping_2);
     mem_mapping_disable(&dev->svga.mapping);
     if (dev->pci && !dev->on_board)
         mem_mapping_disable(&dev->bios_rom.mapping);
@@ -2971,7 +2969,6 @@ mach64_disable_handlers(mach64_t *dev)
     reset_state[dev->svga.monitor_index]->linear_mapping_big_endian = dev->linear_mapping_big_endian;
     reset_state[dev->svga.monitor_index]->mmio_mapping              = dev->mmio_mapping;
     reset_state[dev->svga.monitor_index]->mmio_linear_mapping       = dev->mmio_linear_mapping;
-    reset_state[dev->svga.monitor_index]->mmio_linear_mapping_2     = dev->mmio_linear_mapping_2;
     reset_state[dev->svga.monitor_index]->svga.mapping              = dev->svga.mapping;
     reset_state[dev->svga.monitor_index]->bios_rom.mapping          = dev->bios_rom.mapping;
 
@@ -3047,7 +3044,6 @@ mach64_common_init(const device_t *info)
     mem_mapping_add(&mach64->linear_mapping, 0, 0, mach64_read_linear, mach64_readw_linear, mach64_readl_linear, mach64_write_linear, mach64_writew_linear, mach64_writel_linear, NULL, MEM_MAPPING_EXTERNAL, svga);
     mem_mapping_add(&mach64->linear_mapping_big_endian, 0, 0, mach64_readb_be, mach64_readw_be, mach64_readl_be, mach64_writeb_be, mach64_writew_be, mach64_writel_be, NULL, MEM_MAPPING_EXTERNAL, svga);
     mem_mapping_add(&mach64->mmio_linear_mapping, 0, 0, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
-    mem_mapping_add(&mach64->mmio_linear_mapping_2, 0, 0, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     /* The registers in the VGA window, 1K at BFC00 and on the VT family 2K
        at BF800 while block 1 is on (mach64_reg_window); the video memory
        below them stays in the window. */

@@ -111,7 +111,6 @@ typedef struct mach64_t {
     mem_mapping_t mmio_mapping;
     mem_mapping_t linear_mapping_big_endian;
     mem_mapping_t mmio_linear_mapping;
-    mem_mapping_t mmio_linear_mapping_2;
 
     ati_eeprom_t eeprom;
     svga_t       svga;
