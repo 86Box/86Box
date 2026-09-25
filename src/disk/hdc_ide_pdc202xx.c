@@ -937,10 +937,10 @@ pdc_init(const device_t *info)
 {
     /* The primary and secondary where they are free, as the machine's IDE,
        and otherwise the tertiary and quaternary, as any add-in PCI IDE
-       controller has them; a channel whose board there another device has
-       (a sound card's IDE, say) takes a board from the fifth up instead. A
-       board with its own IDE (PIIX, VIA, ALi...) or another controller has
-       claimed the first ones by now, and with them their bus masters. */
+       controller has them, or the next pair up where another device (a
+       sound card's IDE, say) has one of those. A board with its own IDE
+       (PIIX, VIA, ALi...) or another controller has claimed the first ones
+       by now, and with them their bus masters. */
     uint32_t taken = 0;
     int      ch[2];
 

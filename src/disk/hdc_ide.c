@@ -3122,37 +3122,26 @@ ide_board_claimed(int board)
 
 /* The boards for the two channels of a PCI IDE card, given the mask of the
    boards already taken: the primary and secondary where neither is taken,
-   as the machine's IDE, and otherwise the tertiary and quaternary, as such
-   cards always had. A channel whose board there is taken (a sound card's
-   IDE on the quaternary, say) goes to the first free board from the fifth
-   instead of sharing it, so every channel keeps the number it has always
-   had. Returns 0 when there is no board for a channel. */
+   as the machine's IDE, and otherwise the first pair from the tertiary and
+   quaternary up with both boards free, so the card's channels stay
+   together and share no board with another device. Where nothing else has
+   the tertiary or quaternary this is those two, as such cards always had;
+   where a sound card's IDE has the quaternary, the card takes the pair
+   above it and the tertiary stays free. Returns 0 when no pair is free. */
 int
 ide_pci_card_boards(uint32_t taken, int boards[2])
 {
-    if (!(taken & ((1 << 0) | (1 << 1)))) {
-        boards[0] = 0;
-        boards[1] = 1;
-        return 1;
-    }
+    const int first = (taken & ((1 << 0) | (1 << 1))) ? 2 : 0;
 
-    for (int ch = 0; ch < 2; ch++) {
-        boards[ch] = -1;
-        if (!(taken & (1 << (2 + ch))))
-            boards[ch] = 2 + ch;
-        else for (int board = IDE_BUS_SHOWN_MIN; board < IDE_BUS_MAX; board++) {
-            if (!(taken & (1 << board))) {
-                boards[ch] = board;
-                break;
-            }
+    for (int board = first; board < IDE_BUS_MAX; board += 2) {
+        if (!(taken & (3 << board))) {
+            boards[0] = board;
+            boards[1] = board + 1;
+            return 1;
         }
-
-        if (boards[ch] < 0)
-            return 0;
-        taken |= 1 << boards[ch];
     }
 
-    return 1;
+    return 0;
 }
 
 /*
