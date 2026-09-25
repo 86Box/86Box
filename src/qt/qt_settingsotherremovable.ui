@@ -97,6 +97,9 @@
           </item>
           <item row="0" column="3">
            <widget class="QComboBox" name="comboBoxMOChannel">
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::AdjustToContents</enum>
+            </property>
             <property name="maxVisibleItems">
              <number>30</number>
             </property>
@@ -198,6 +201,9 @@
           </item>
           <item row="0" column="3">
            <widget class="QComboBox" name="comboBoxRDiskChannel">
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::AdjustToContents</enum>
+            </property>
             <property name="maxVisibleItems">
              <number>30</number>
             </property>
@@ -299,6 +305,9 @@
           </item>
           <item row="0" column="3">
            <widget class="QComboBox" name="comboBoxTapeChannel">
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::AdjustToContents</enum>
+            </property>
             <property name="maxVisibleItems">
              <number>30</number>
             </property>
