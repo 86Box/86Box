@@ -1,4 +1,16 @@
 if(BUILD_TESTING)
+    add_executable(hitachi_cdrom_tests
+        cdrom_hitachi_test.cpp
+        ../../src/cdrom/cdrom_hitachi.c
+    )
+    target_include_directories(hitachi_cdrom_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    target_link_libraries(hitachi_cdrom_tests PRIVATE GTest::gtest_main)
+    include(GoogleTest)
+    gtest_discover_tests(hitachi_cdrom_tests)
+
     add_executable(mke_cdrom_tests
         cdrom_mke_test.cpp
         ../../src/cdrom/cdrom_mke.c
