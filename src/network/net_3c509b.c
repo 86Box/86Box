@@ -294,6 +294,7 @@ typedef struct el3_t {
     uint8_t  rom_control;
 
     uint16_t fifo_diag;
+    uint8_t  bist_ctl; /* FIFO Diagnostic's write-only BIST and BFC bits as last written */
     uint16_t network_diagnostic;
     uint8_t  rx_testen; /* Ethernet Controller Status bit 0 */
     uint16_t media_status;
@@ -1098,7 +1099,8 @@ el3_rx_reset(el3_t *dev, uint8_t mask)
         el3_rx_flush(dev);
         dev->rx_filter       = 0;
         dev->rx_early_thresh = THRESH_OFF;
-        dev->fifo_diag &= (uint16_t) ~FIFO_RX_UNDERRUN;
+        dev->fifo_diag &= (uint16_t) ~(FIFO_RX_UNDERRUN | 0x0030); /* and RX BIST's result */
+        dev->bist_ctl &= (uint8_t) ~0xc0;
     }
     el3_adapter_failure_check(dev);
 }
@@ -1117,7 +1119,8 @@ el3_tx_reset(el3_t *dev, uint8_t mask)
         el3_tx_flush(dev);
         dev->tx_start_thresh = THRESH_OFF;
         dev->tx_avail_thresh = THRESH_OFF;
-        dev->fifo_diag &= (uint16_t) ~FIFO_TX_OVERRUN;
+        dev->fifo_diag &= (uint16_t) ~(FIFO_TX_OVERRUN | 0x0003); /* and TX BIST's result */
+        dev->bist_ctl &= (uint8_t) ~0x0c;
     }
     el3_adapter_failure_check(dev);
 }
@@ -1671,6 +1674,30 @@ el3_reg_write(el3_t *dev, uint8_t off, uint8_t val)
 
         case 4:
             switch (off) {
+                case W4_FIFO_DIAGNOSTIC:
+                    /* The FIFO built-in self-test, bits 7:0. The book defines it
+                       for the 3C509 and calls the bits "reserved, undefined" on
+                       the 3C509B (6-31). Microsoft's WfW 3.11 ELNK3.386 runs it on
+                       every card with product ID 9x50h, the B included, and waits
+                       without a timeout for BIST Complete (at 1009A9h, 100A70h), so
+                       the B must answer as the 3C509 does. Setting BIST (7, 3)
+                       runs the test, which passes: BIST Failed (5, 1) clear and
+                       BIST Complete (4, 0) set. Setting BFC (6, 2) sets BIST
+                       Failed, which then stays set until the next test. */
+                    {
+                        const uint8_t rise = (uint8_t) (val & ~dev->bist_ctl);
+
+                        if (rise & 0x08)
+                            dev->fifo_diag = (uint16_t) ((dev->fifo_diag & ~0x0003) | 0x0001);
+                        if (rise & 0x80)
+                            dev->fifo_diag = (uint16_t) ((dev->fifo_diag & ~0x0030) | 0x0010);
+                        if (val & 0x04)
+                            dev->fifo_diag |= 0x0002;
+                        if (val & 0x40)
+                            dev->fifo_diag |= 0x0020;
+                        dev->bist_ctl = val & 0xcc;
+                    }
+                    break;
                 case W4_NETWORK_DIAGNOSTIC:
                     /* Testing the low-voltage detector resets the ASIC. */
                     if (val & 0x01)
