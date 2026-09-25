@@ -162,8 +162,8 @@ sis_5513_apc_recalc(sis_5513_pci_to_isa_t *dev, uint8_t apc_on)
                      sis_5513_apc_read, NULL, NULL, sis_5513_apc_write, NULL, NULL, dev);
 
     if (apc_on)
-        io_removehandler(0x0071, 0x0001,
-                         sis_5513_apc_read, NULL, NULL, sis_5513_apc_write, NULL, NULL, dev);
+        io_sethandler(0x0071, 0x0001,
+                      sis_5513_apc_read, NULL, NULL, sis_5513_apc_write, NULL, NULL, dev);
 }
 
 static void
@@ -870,7 +870,7 @@ sis_5513_pci_to_isa_write(int addr, uint8_t val, void *priv)
                         break;
                 }
                 nvr_bank_set(0, !!(val & 0x08), dev->nvr);
-                if (dev->rev == 0xb0)
+                if ((dev->rev == 0x81) || (dev->rev == 0xb0))
                     sis_5513_apc_recalc(dev, val & 0x02);
             }
             break;

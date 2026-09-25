@@ -34,6 +34,7 @@ public:
     QList<int> busChannelsInUse(int bus);
 
     /* These return 0xff is none is free. */
+    uint8_t next_free_hitachi_channel();
     uint8_t next_free_mke_channel();
     uint8_t next_free_mfm_channel();
     uint8_t next_free_esdi_channel();
@@ -56,7 +57,8 @@ public:
     void device_track(int set, uint8_t dev_type, int bus, int channel);
 
 private:
-    /* 1 channel, 2 devices per channel, 8 bits per device = 16 bits. */
+    /* Proprietary CD interfaces: 4 devices, 8 tracking bits per device. */
+    uint64_t hitachi_tracking { 0 };
     uint64_t mke_tracking { 0 };
     /* 1 channel, 2 devices per channel, 8 bits per device = 16 bits. */
     uint64_t mfm_tracking { 0 };

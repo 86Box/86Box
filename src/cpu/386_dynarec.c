@@ -493,6 +493,15 @@ exec386_dynarec_dyn(void)
 #    endif
     int valid_block = 0;
 
+    /* Code in device memory (a BIOS copying a routine into video memory) is
+       fetched through the device's read handlers, and nothing tracks writes
+       there, so it is interpreted every time rather than kept in a block. */
+    if (!cpu_state.abrt && (_mem_exec[phys_addr >> MEM_GRANULARITY_BITS] == NULL)) {
+        exec386_dynarec_int();
+        return;
+    }
+    cpu_fetch_device = 0;
+
     /* Refresh before the lookup AND before a fresh compile: the old
        dynarec skips the lookup on an empty hash slot, and the new block
        still takes its key from cpu_cur_status. */
@@ -769,6 +778,13 @@ exec386_dynarec_dyn(void)
                     CPU_BLOCK_END();
             }
 
+            /* An instruction ran on into device memory: interpreted, never kept. */
+            if (cpu_fetch_device) {
+                if (!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED))
+                    codegen_block_remove();
+                CPU_BLOCK_END();
+            }
+
             if (cpu_state.abrt) {
                 if (!(cpu_state.abrt & ABRT_EXPECTED))
                     codegen_block_remove();
@@ -778,7 +794,7 @@ exec386_dynarec_dyn(void)
 
         cpu_end_block_after_ins = 0;
 
-        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset)
+        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset && !cpu_fetch_device)
             codegen_block_end_recompile(block);
 
         if (x86_was_reset)
@@ -875,6 +891,13 @@ exec386_dynarec_dyn(void)
                     CPU_BLOCK_END();
             }
 
+            /* An instruction ran on into device memory: interpreted, never kept. */
+            if (cpu_fetch_device) {
+                if (!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED))
+                    codegen_block_remove();
+                CPU_BLOCK_END();
+            }
+
             if (cpu_state.abrt) {
                 if (!(cpu_state.abrt & ABRT_EXPECTED))
                     codegen_block_remove();
@@ -884,7 +907,7 @@ exec386_dynarec_dyn(void)
 
         cpu_end_block_after_ins = 0;
 
-        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset)
+        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset && !cpu_fetch_device)
             codegen_block_end();
 
         if (x86_was_reset)

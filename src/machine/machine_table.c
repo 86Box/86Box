@@ -5970,7 +5970,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &ps1_2121_device,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
@@ -15331,7 +15331,7 @@ const machine_t machines[] = {
         .ram       = {
             .min  = 8192,
             .max  = 262144,
-            .step = 8192
+            .step = 2048 /* assumed as the chipset supports */
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_3,
@@ -17729,57 +17729,6 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* The AIR 54TDP: a 430HX board with four EISA slots, four PCI slots,
-       no ISA at all, and an AIC-7880 on board. It has no PIIX -- the
-       82374SB ESC is the south bridge -- so the EISA bridge pair is not
-       an addition to this machine, it is what runs it. */
-    {
-        .name              = "[i430HX] AIR 54TDP",
-        .internal_name     = "54tdp",
-        .type              = MACHINE_TYPE_SOCKET7_3V,
-        .chipset           = MACHINE_CHIPSET_INTEL_430HX,
-        .init              = machine_at_54tdp_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET5_7,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 50000000,
-            .max_bus     = 66666667,
-            .min_voltage = 3380,
-            .max_voltage = 3520,
-            .min_multi   = 1.5,
-            .max_multi   = 3.0
-        },
-        .bus_flags = MACHINE_PCIE | MACHINE_BUS_PS2,
-        .flags     = MACHINE_SCSI | MACHINE_APM,
-        .ram       = {
-            .min  = 4096,
-            .max  = 786432,
-            .step = 4096
-        },
-        .nvrmask                  = 127,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI | 0x00004800,
-        .nvr_device               = &nvr_at_device,
-        .nvr_params               = NVR_AT,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x00000cf0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = &at_54tdp_device,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL,
-        .aliases                  = { "Advanced Integration Research 54TDP", "" }
-    },
     /* Has AMIKey-2 or VIA VT82C42N KBC (depending on the revision) with AMIKEY 'F' KBC firmware. */
     {
         .name              = "[i430HX] AOpen AP53",
@@ -18621,6 +18570,69 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "Acer M3A", "" }
+    },
+    /* The AIR 54TDP: a 430HX board with four EISA slots, four PCI slots,
+       no ISA at all, and an AIC-7880 on board. It has no PIIX -- the
+       82374SB ESC is the south bridge -- so the EISA bridge pair is not
+       an addition to this machine, it is what runs it. */
+    /* THESE VALUES ARE FROM THE REAL BOARD, IN HAND, and its manual. They
+       are not guesses: please do not change them without the board.
+       - Dual-voltage Socket 7: the board takes the Pentium MMX (P55C, 2.8 V
+         core) through its "Support P55 CPU" jumpers JP10, JP11 and JS14
+         (54TDP System Board User's Manual, page 19). The board in hand runs
+         two Pentium MMX 233s.
+       - Multipliers 1.5 to 3.5: JS13 sets 1.5x to 3x (page 17); on a P55C
+         the 1.5x setting is 3.5x, 233 MHz at 66 MHz, as the board in hand
+         runs.
+       - Memory 2 MB to 768 MB: three banks of two 72-pin SIMMs, 256Kx36 to
+         32Mx36 (page 32).
+       Manual: https://theretroweb.com/motherboard/manual/tdpman-5f04d9492eea4539273477.pdf */
+    {
+        .name              = "[i430HX] AIR 54TDP",
+        .internal_name     = "54tdp",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_INTEL_430HX,
+        .init              = machine_at_54tdp_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 3.5
+        },
+        .bus_flags = MACHINE_PCIE | MACHINE_BUS_PS2,
+        .flags     = MACHINE_SCSI | MACHINE_APM,
+        .ram       = {
+            .min  = 2048,
+            .max  = 786432,
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &at_54tdp_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Advanced Integration Research 54TDP", "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
     {
