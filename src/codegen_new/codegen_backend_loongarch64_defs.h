@@ -147,6 +147,7 @@
 
 #define REG_TEMP   REG_T0
 #define REG_TEMP2  REG_T1
+#define REG_TEMP3  REG_T2
 
 #define REG_V_TEMP REG_F0
 
