@@ -861,7 +861,11 @@ host_loong64_branch_set_offset(uint32_t *opcode, void *dest)
                 if (can_branch_sk16(cond_src, dest)) {
                     int offset16 = (int) ((intptr_t) dest - (intptr_t) cond_opcode);
 
-                    *cond_opcode = (cond_insn ^ 0x04000000u) | BR16(offset16);
+                    /*Clear the template's stale SK16 field (BR16(8)) before
+                      OR-ing in the real offset - OR-ing over it leaves the
+                      old bits set and makes the collapsed branch overshoot
+                      its target by up to 8 bytes.*/
+                    *cond_opcode = ((cond_insn ^ 0x04000000u) & 0xfc0003ffu) | BR16(offset16);
                     *opcode      = OPCODE_NOP;
                     return;
                 }
