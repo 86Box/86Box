@@ -318,6 +318,10 @@ SettingsBusTracking::busChannelsInUse(const int bus)
                     channelsInUse.append(i);
             }
             break;
+        case CDROM_BUS_PHILIPS:
+            if (philips_tracking)
+                channelsInUse.append(0);
+            break;
         case CDROM_BUS_MITSUMI:
             if (mitsumi_tracking)
                 channelsInUse.append(0);
@@ -410,6 +414,9 @@ SettingsBusTracking::device_track(int set, uint8_t dev_type, int bus, int channe
                 mke_tracking |= mask;
             else
                 mke_tracking &= ~mask;
+            break;
+        case CDROM_BUS_PHILIPS:
+            philips_tracking = set;
             break;
         case CDROM_BUS_MITSUMI:
             mitsumi_tracking = set;

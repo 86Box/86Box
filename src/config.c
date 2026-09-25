@@ -1948,7 +1948,8 @@ load_floppy_and_cdrom_drives(void)
         cdrom[c].no_check = ini_section_get_int(cat, temp, 0);
 
         sprintf(temp, "cdrom_%02i_type", c + 1);
-        p = ini_section_get_string(cat, temp, cdrom[c].bus_type == CDROM_BUS_HITACHI ? "hitachi_1503s" :
+        p = ini_section_get_string(cat, temp, cdrom[c].bus_type == CDROM_BUS_PHILIPS ? "philips_cm205" :
+                                       cdrom[c].bus_type == CDROM_BUS_HITACHI ? "hitachi_1503s" :
                                        cdrom[c].bus_type == CDROM_BUS_MKE ? "cr563" : "86cd");
         /* TODO: Configuration migration, remove when no longer needed. */
         int cdrom_type = cdrom_get_from_internal_name(!strcmp(p, "goldstar") ? "goldstar_r560b" : p);
@@ -1968,7 +1969,10 @@ load_floppy_and_cdrom_drives(void)
         /* Default values, needed for proper operation of the Settings dialog. */
         cdrom[c].mke_channel = cdrom[c].ide_channel = cdrom[c].scsi_device_id = c & 3;
 
-        if (cdrom[c].bus_type == CDROM_BUS_HITACHI) {
+        if (cdrom[c].bus_type == CDROM_BUS_PHILIPS) {
+            cdrom_set_type(c, cdrom_get_from_internal_name("philips_cm205"));
+            cdrom[c].speed = 1;
+        } else if (cdrom[c].bus_type == CDROM_BUS_HITACHI) {
             cdrom_set_type(c, cdrom_get_from_internal_name("hitachi_1503s"));
             sprintf(temp, "cdrom_%02i_hitachi_channel", c + 1);
             cdrom[c].hitachi_channel = ini_section_get_int(cat, temp, c & 3) & 3;
