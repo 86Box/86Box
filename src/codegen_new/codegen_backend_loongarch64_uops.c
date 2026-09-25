@@ -77,7 +77,8 @@ codegen_ADD(codeblock_t *block, uop_t *uop)
         host_loong64_ADD_W_REG(block, REG_TEMP, src_reg_b, REG_TEMP);
         host_loong64_BFI_W(block, dest_reg, REG_TEMP, 8, 8);
     } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size_a) && REG_IS_BH(src_size_b)) {
-        host_loong64_ANDI(block, REG_TEMP, src_reg_a, 0xff00);
+        host_loong64_UBFX_D(block, REG_TEMP, src_reg_a, 8, 8);
+        host_loong64_SHL_D_IMM(block, REG_TEMP, REG_TEMP, 8);
         host_loong64_ADD_W_REG(block, REG_TEMP, REG_TEMP, src_reg_b);
         host_loong64_SHR_W_IMM(block, REG_TEMP, REG_TEMP, 8);
         host_loong64_BFI_W(block, dest_reg, REG_TEMP, 8, 8);
@@ -127,7 +128,11 @@ codegen_ADD_LSHIFT(codeblock_t *block, uop_t *uop)
     int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
 
     if (uop->imm_data)
-        host_loong64_ALSL_D(block, dest_reg, src_reg_a, src_reg_b, (int) uop->imm_data);
+        /*alsl.d shifts its FIRST source operand (rj): rd = (rj << sa) + rk,
+          while the uop semantics (and arm64's ADD_REG LSL) are
+          dst = src_a + (src_b << imm) - so the shifted operand must go
+          into rj and the plain one into rk.*/
+        host_loong64_ALSL_D(block, dest_reg, src_reg_b, src_reg_a, (int) uop->imm_data);
     else
         host_loong64_ADDX_REG(block, dest_reg, src_reg_a, src_reg_b);
     return 0;
@@ -309,8 +314,8 @@ cmp_zext_pair(codeblock_t *block, int size_a, int size_b, int src_a, int src_b, 
         host_loong64_UBFX_D(block, REG_TEMP, src_a, 0, 32);
         host_loong64_UBFX_D(block, REG_TEMP2, src_b, 0, 32);
     } else if (REG_IS_W(size_a)) {
-        host_loong64_ANDI(block, REG_TEMP, src_a, 0xffff);
-        host_loong64_ANDI(block, REG_TEMP2, src_b, 0xffff);
+        host_loong64_UBFX_D(block, REG_TEMP, src_a, 0, 16);
+        host_loong64_UBFX_D(block, REG_TEMP2, src_b, 0, 16);
     } else if (REG_IS_B(size_a)) {
         host_loong64_ANDI(block, REG_TEMP, src_a, 0xff);
         host_loong64_ANDI(block, REG_TEMP2, src_b, 0xff);
@@ -367,7 +372,7 @@ codegen_CMP_IMM_JNZ_DEST(codeblock_t *block, uop_t *uop)
         host_loong64_mov_imm_w(block, REG_TEMP2, (uint32_t) uop->imm_data);
         host_loong64_XOR_REG(block, REG_TEMP, REG_TEMP, REG_TEMP2);
     } else if (REG_IS_W(src_size)) {
-        host_loong64_ANDI(block, REG_TEMP, src_reg, 0xffff);
+        host_loong64_UBFX_D(block, REG_TEMP, src_reg, 0, 16);
         host_loong64_mov_imm_w(block, REG_TEMP2, (uint32_t) uop->imm_data);
         host_loong64_XOR_REG(block, REG_TEMP, REG_TEMP, REG_TEMP2);
     } else
@@ -388,7 +393,7 @@ codegen_CMP_IMM_JZ_DEST(codeblock_t *block, uop_t *uop)
         host_loong64_mov_imm_w(block, REG_TEMP2, (uint32_t) uop->imm_data);
         host_loong64_XOR_REG(block, REG_TEMP, REG_TEMP, REG_TEMP2);
     } else if (REG_IS_W(src_size)) {
-        host_loong64_ANDI(block, REG_TEMP, src_reg, 0xffff);
+        host_loong64_UBFX_D(block, REG_TEMP, src_reg, 0, 16);
         host_loong64_mov_imm_w(block, REG_TEMP2, (uint32_t) uop->imm_data);
         host_loong64_XOR_REG(block, REG_TEMP, REG_TEMP, REG_TEMP2);
     } else
@@ -641,7 +646,7 @@ codegen_LOAD_FUNC_ARG0(codeblock_t *block, uop_t *uop)
     int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_W(src_size)) {
-        host_loong64_ANDI(block, REG_ARG0, src_reg, 0xffff);
+        host_loong64_UBFX_D(block, REG_ARG0, src_reg, 0, 16);
     } else
         fatal("codegen_LOAD_FUNC_ARG0 %02x\n", uop->src_reg_a_real);
 
@@ -705,7 +710,7 @@ codegen_LOAD_SEG(codeblock_t *block, uop_t *uop)
         fatal("LOAD_SEG %02x %p\n", uop->src_reg_a_real, uop->p);
 
     host_loong64_MOVX_IMM(block, REG_ARG1, (uint64_t) (uintptr_t) uop->p);
-    host_loong64_ANDI(block, REG_ARG0, src_reg, 0xffff);
+    host_loong64_UBFX_D(block, REG_ARG0, src_reg, 0, 16);
     host_loong64_call(block, (void *) loadseg);
     host_loong64_branch_reg_ne(block, REG_A0, REG_ZERO, codegen_exit_rout);
 
@@ -756,7 +761,7 @@ codegen_MEM_LOAD_REG(codeblock_t *block, uop_t *uop)
     if (uop->imm_data)
         host_loong64_ADD_W_IMM(block, REG_A0, REG_A0, (uint32_t) uop->imm_data);
     if (uop->is_a16)
-        host_loong64_ANDI(block, REG_A0, REG_A0, 0xffff);
+        host_loong64_UBFX_D(block, REG_A0, REG_A0, 0, 16);
     else
         host_loong64_UBFX_D(block, REG_A0, REG_A0, 0, 32);
     if (REG_IS_B(dest_size) || REG_IS_BH(dest_size)) {
@@ -801,7 +806,7 @@ codegen_MEM_STORE_ABS(codeblock_t *block, uop_t *uop)
         host_loong64_UBFX_D(block, REG_A1, src_reg, 8, 8);
         host_loong64_call(block, codegen_mem_store_byte);
     } else if (REG_IS_W(src_size)) {
-        host_loong64_ANDI(block, REG_A1, src_reg, 0xffff);
+        host_loong64_UBFX_D(block, REG_A1, src_reg, 0, 16);
         host_loong64_call(block, codegen_mem_store_word);
     } else if (REG_IS_L(src_size)) {
         host_loong64_MOV_REG(block, REG_A1, src_reg);
@@ -824,7 +829,7 @@ codegen_MEM_STORE_REG(codeblock_t *block, uop_t *uop)
     if (uop->imm_data)
         host_loong64_ADD_W_IMM(block, REG_A0, REG_A0, (uint32_t) uop->imm_data);
     if (uop->is_a16)
-        host_loong64_ANDI(block, REG_A0, REG_A0, 0xffff);
+        host_loong64_UBFX_D(block, REG_A0, REG_A0, 0, 16);
     else
         host_loong64_UBFX_D(block, REG_A0, REG_A0, 0, 32);
     if (REG_IS_B(src_size)) {
@@ -834,7 +839,7 @@ codegen_MEM_STORE_REG(codeblock_t *block, uop_t *uop)
         host_loong64_UBFX_D(block, REG_A1, src_reg, 8, 8);
         host_loong64_call(block, codegen_mem_store_byte);
     } else if (REG_IS_W(src_size)) {
-        host_loong64_ANDI(block, REG_A1, src_reg, 0xffff);
+        host_loong64_UBFX_D(block, REG_A1, src_reg, 0, 16);
         host_loong64_call(block, codegen_mem_store_word);
     } else if (REG_IS_L(src_size)) {
         host_loong64_MOV_REG(block, REG_A1, src_reg);
@@ -1000,7 +1005,7 @@ codegen_MOVZX(codeblock_t *block, uop_t *uop)
     } else if (REG_IS_L(dest_size) && REG_IS_BH(src_size)) {
         host_loong64_UBFX_D(block, dest_reg, src_reg, 8, 8);
     } else if (REG_IS_L(dest_size) && REG_IS_W(src_size)) {
-        host_loong64_ANDI(block, dest_reg, src_reg, 0xffff);
+        host_loong64_UBFX_D(block, dest_reg, src_reg, 0, 16);
     } else if (REG_IS_W(dest_size) && REG_IS_B(src_size)) {
         host_loong64_ANDI(block, REG_TEMP, src_reg, 0xff);
         host_loong64_BFI_W(block, dest_reg, REG_TEMP, 0, 16);
@@ -1285,7 +1290,7 @@ codegen_SHR(codeblock_t *block, uop_t *uop)
     } else if (REG_IS_W(dest_size) && REG_IS_W(src_size)) {
         /*Mask first: garbage above the value's width must not leak down
           into the shifted low bits.*/
-        host_loong64_ANDI(block, REG_TEMP, src_reg, 0xffff);
+        host_loong64_UBFX_D(block, REG_TEMP, src_reg, 0, 16);
         host_loong64_SHR_W_REG(block, REG_TEMP, REG_TEMP, shift_reg);
         host_loong64_BFI_W(block, dest_reg, REG_TEMP, 0, 16);
     } else if (REG_IS_B(dest_size) && REG_IS_B(src_size)) {
@@ -1312,7 +1317,7 @@ codegen_SHR_IMM(codeblock_t *block, uop_t *uop)
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
         host_loong64_SHR_W_IMM(block, dest_reg, src_reg, (int) uop->imm_data);
     } else if (REG_IS_W(dest_size) && REG_IS_W(src_size)) {
-        host_loong64_ANDI(block, REG_TEMP, src_reg, 0xffff);
+        host_loong64_UBFX_D(block, REG_TEMP, src_reg, 0, 16);
         host_loong64_SHR_W_IMM(block, REG_TEMP, REG_TEMP, (int) uop->imm_data);
         host_loong64_BFI_W(block, dest_reg, REG_TEMP, 0, 16);
     } else if (REG_IS_B(dest_size) && REG_IS_B(src_size)) {
@@ -1597,7 +1602,7 @@ codegen_XOR(codeblock_t *block, uop_t *uop)
     if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
         host_loong64_XOR_REG(block, dest_reg, src_reg_a, src_reg_b);
     } else if (REG_IS_W(dest_size) && REG_IS_W(src_size_a) && REG_IS_W(src_size_b) && dest_reg == src_reg_a) {
-        host_loong64_ANDI(block, REG_TEMP, src_reg_b, 0xffff);
+        host_loong64_UBFX_D(block, REG_TEMP, src_reg_b, 0, 16);
         host_loong64_XOR_REG(block, dest_reg, src_reg_a, REG_TEMP);
     } else if (REG_IS_B(dest_size) && REG_IS_B(src_size_a) && REG_IS_B(src_size_b) && dest_reg == src_reg_a) {
         host_loong64_ANDI(block, REG_TEMP, src_reg_b, 0xff);
