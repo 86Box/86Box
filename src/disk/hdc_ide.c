@@ -3566,17 +3566,17 @@ typedef struct ide_unit_t {
     uint32_t boards; /* mask */
 } ide_unit_t;
 
-/* A generic unit whose boards are given in bits 16-23 of local. */
+/* A generic unit whose boards are given in bits 16-27 of local. */
 #define IDE_UNIT_BOARD_MASK 0x100
 
 /* The boards of a generic unit: local 0-5 the primary (and secondary),
    8-0x0d the tertiary (and quaternary), bit 0 being the second board; or
-   the mask in bits 16-23, for a PCI card's boards (ide_pci_boards_init()). */
+   the mask in bits 16-27, for a PCI card's boards (ide_pci_boards_init()). */
 static uint32_t
 ide_unit_boards(const device_t *info)
 {
     if (info->local & IDE_UNIT_BOARD_MASK)
-        return (info->local >> 16) & 0xff;
+        return (info->local >> 16) & 0xfff;
 
     const int first = (int) (((info->local & 0xff) >> 3) << 1);
 
@@ -3631,7 +3631,7 @@ void
 ide_pci_boards_init(uint32_t boards)
 {
     if (boards != 0)
-        device_add_params(&ide_pci_boards_device, (void *) (uintptr_t) ((boards & 0xfc) << 16));
+        device_add_params(&ide_pci_boards_device, (void *) (uintptr_t) ((boards & 0xffc) << 16));
 }
 
 static void

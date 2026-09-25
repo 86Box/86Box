@@ -1788,10 +1788,11 @@ load_hard_disks(void)
         /* IDE */
         sprintf(temp, "hdd_%02i_ide_channel", c + 1);
         if ((hdd[c].bus_type == HDD_BUS_IDE) || (hdd[c].bus_type == HDD_BUS_ATAPI)) {
-            sprintf(tmp2, "%01u:%01u", c >> 1, c & 1);
+            sprintf(tmp2, "%u:%u", c >> 1, c & 1);
             p = ini_section_get_string(cat, temp, tmp2);
-            sscanf(p, "%01u:%01u", &board, &dev);
-            board &= (IDE_BUS_MAX - 1);
+            sscanf(p, "%u:%u", &board, &dev);
+            if (board >= IDE_BUS_MAX)
+                board = IDE_BUS_MAX - 1;
             dev &= 1;
             hdd[c].ide_channel = (board << 1) + dev;
 
@@ -2059,10 +2060,11 @@ load_floppy_and_cdrom_drives(void)
 
         } else if (cdrom[c].bus_type == CDROM_BUS_ATAPI) {
             sprintf(temp, "cdrom_%02i_ide_channel", c + 1);
-            sprintf(tmp2, "%01u:%01u", (c & 3) >> 1, (c & 3) & 1);
+            sprintf(tmp2, "%u:%u", (c & 3) >> 1, (c & 3) & 1);
             p = ini_section_get_string(cat, temp, tmp2);
-            sscanf(p, "%01u:%01u", &board, &dev);
-            board &= (IDE_BUS_MAX - 1);
+            sscanf(p, "%u:%u", &board, &dev);
+            if (board >= IDE_BUS_MAX)
+                board = IDE_BUS_MAX - 1;
             dev &= 1;
             cdrom[c].ide_channel = (board << 1) + dev;
 
@@ -2205,10 +2207,11 @@ load_other_removable_devices(void)
 
         if (rdisk_drives[c].bus_type == RDISK_BUS_ATAPI) {
             sprintf(temp, "zip_%02i_ide_channel", c + 1);
-            sprintf(tmp2, "%01u:%01u", (c + 2) >> 1, (c + 2) & 1);
+            sprintf(tmp2, "%u:%u", (c + 2) >> 1, (c + 2) & 1);
             p = ini_section_get_string(cat, temp, tmp2);
-            sscanf(p, "%01u:%01u", &board, &dev);
-            board &= (IDE_BUS_MAX - 1);
+            sscanf(p, "%u:%u", &board, &dev);
+            if (board >= IDE_BUS_MAX)
+                board = IDE_BUS_MAX - 1;
             dev &= 1;
             rdisk_drives[c].ide_channel = (board << 1) + dev;
 
@@ -2309,10 +2312,11 @@ load_other_removable_devices(void)
 
         if (rdisk_drives[c].bus_type == RDISK_BUS_ATAPI) {
             sprintf(temp, "rdisk_%02i_ide_channel", c + 1);
-            sprintf(tmp2, "%01u:%01u", (c + 2) >> 1, (c + 2) & 1);
+            sprintf(tmp2, "%u:%u", (c + 2) >> 1, (c + 2) & 1);
             p = ini_section_get_string(cat, temp, tmp2);
-            sscanf(p, "%01u:%01u", &board, &dev);
-            board &= (IDE_BUS_MAX - 1);
+            sscanf(p, "%u:%u", &board, &dev);
+            if (board >= IDE_BUS_MAX)
+                board = IDE_BUS_MAX - 1;
             dev &= 1;
             rdisk_drives[c].ide_channel = (board << 1) + dev;
 
@@ -2424,10 +2428,11 @@ go_to_mo:
 
         if (mo_drives[c].bus_type == MO_BUS_ATAPI) {
             sprintf(temp, "mo_%02i_ide_channel", c + 1);
-            sprintf(tmp2, "%01u:%01u", (c + 2) >> 1, (c + 2) & 1);
+            sprintf(tmp2, "%u:%u", (c + 2) >> 1, (c + 2) & 1);
             p = ini_section_get_string(cat, temp, tmp2);
-            sscanf(p, "%01u:%01u", &board, &dev);
-            board &= (IDE_BUS_MAX - 1);
+            sscanf(p, "%u:%u", &board, &dev);
+            if (board >= IDE_BUS_MAX)
+                board = IDE_BUS_MAX - 1;
             dev &= 1;
             mo_drives[c].ide_channel = (board << 1) + dev;
 
@@ -2549,10 +2554,11 @@ go_to_mo:
 
         if (tape_drives[c].bus_type == TAPE_BUS_ATAPI) {
             sprintf(temp, "tape_%02i_ide_channel", c + 1);
-            sprintf(tmp2, "%01u:%01u", (c + 2) >> 1, (c + 2) & 1);
+            sprintf(tmp2, "%u:%u", (c + 2) >> 1, (c + 2) & 1);
             p = ini_section_get_string(cat, temp, tmp2);
-            sscanf(p, "%01u:%01u", &board, &dev);
-            board &= (IDE_BUS_MAX - 1);
+            sscanf(p, "%u:%u", &board, &dev);
+            if (board >= IDE_BUS_MAX)
+                board = IDE_BUS_MAX - 1;
             dev &= 1;
             tape_drives[c].ide_channel = (board << 1) + dev;
 
@@ -4295,7 +4301,7 @@ save_hard_disks(void)
             (hdd[c].bus_type != HDD_BUS_ATAPI)))
             ini_section_delete_var(cat, temp);
         else {
-            sprintf(tmp2, "%01u:%01u", hdd[c].ide_channel >> 1, hdd[c].ide_channel & 1);
+            sprintf(tmp2, "%u:%u", hdd[c].ide_channel >> 1, hdd[c].ide_channel & 1);
             ini_section_set_string(cat, temp, tmp2);
         }
 
@@ -4512,7 +4518,7 @@ save_floppy_and_cdrom_drives(void)
         if (cdrom[c].bus_type != CDROM_BUS_ATAPI)
             ini_section_delete_var(cat, temp);
         else {
-            sprintf(tmp2, "%01u:%01u", cdrom[c].ide_channel >> 1,
+            sprintf(tmp2, "%u:%u", cdrom[c].ide_channel >> 1,
                     cdrom[c].ide_channel & 1);
             ini_section_set_string(cat, temp, tmp2);
         }
@@ -4576,7 +4582,7 @@ save_other_removable_devices(void)
         if (rdisk_drives[c].bus_type != RDISK_BUS_ATAPI)
             ini_section_delete_var(cat, temp);
         else {
-            sprintf(tmp2, "%01u:%01u", rdisk_drives[c].ide_channel >> 1,
+            sprintf(tmp2, "%u:%u", rdisk_drives[c].ide_channel >> 1,
                     rdisk_drives[c].ide_channel & 1);
             ini_section_set_string(cat, temp, tmp2);
         }
@@ -4631,7 +4637,7 @@ save_other_removable_devices(void)
         if (mo_drives[c].bus_type != MO_BUS_ATAPI)
             ini_section_delete_var(cat, temp);
         else {
-            sprintf(tmp2, "%01u:%01u", mo_drives[c].ide_channel >> 1,
+            sprintf(tmp2, "%u:%u", mo_drives[c].ide_channel >> 1,
                     mo_drives[c].ide_channel & 1);
             ini_section_set_string(cat, temp, tmp2);
         }
@@ -4680,7 +4686,7 @@ save_other_removable_devices(void)
         if (tape_drives[c].bus_type != TAPE_BUS_ATAPI)
             ini_section_delete_var(cat, temp);
         else {
-            sprintf(tmp2, "%01u:%01u", tape_drives[c].ide_channel >> 1,
+            sprintf(tmp2, "%u:%u", tape_drives[c].ide_channel >> 1,
                     tape_drives[c].ide_channel & 1);
             ini_section_set_string(cat, temp, tmp2);
         }

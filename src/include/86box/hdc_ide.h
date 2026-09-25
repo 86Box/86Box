@@ -17,7 +17,8 @@
 #ifndef EMU_IDE_H
 #define EMU_IDE_H
 
-#define IDE_BUS_MAX         8     /* The four legacy boards, and four more for PCI cards */
+#define IDE_BUS_MAX         12    /* The four legacy boards, and two for each of the
+                                     four disk controller slots: never more */
 #define IDE_CHAN_MAX        2
 #define IDE_DRIVES_MAX      (IDE_BUS_MAX * IDE_CHAN_MAX)
 
