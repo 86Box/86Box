@@ -1,4 +1,10 @@
 if(BUILD_TESTING)
+    add_executable(philips_cdrom_tests cdrom_philips_test.cpp ../../src/cdrom/cdrom_philips.c)
+    target_include_directories(philips_cdrom_tests PRIVATE ${PROJECT_SOURCE_DIR}/src/include ${PROJECT_BINARY_DIR}/src/include)
+    target_link_libraries(philips_cdrom_tests PRIVATE GTest::gtest_main)
+    include(GoogleTest)
+    gtest_discover_tests(philips_cdrom_tests)
+
     add_executable(hitachi_cdrom_tests
         cdrom_hitachi_test.cpp
         ../../src/cdrom/cdrom_hitachi.c
