@@ -1061,7 +1061,16 @@ epat_write_data(uint8_t val, void *priv)
      * first real WRITE(10) this bridge has ever carried:
      *   "unlock frame broken at byte 1: got 00, expected AA" mid-block.
      */
-    if ((dev->block == EPAT_BLOCK_NONE) && epat_unlock_feed(dev, val)) {
+    /*
+     * Nor a register's value, or its repeated copies: the direction code
+     * SD120PPD.SYS writes to 0x18 for an OUT transfer is 0x22, which is
+     * unlock byte 0. A frame always follows a control write, so it cannot
+     * arrive while a value is pending or being repeated.
+     */
+    const int reg_value = (dev->reg_write && (dev->reg_addr < sizeof(dev->regs))) ||
+                          (dev->data_held && (val == dev->data_last));
+
+    if ((dev->block == EPAT_BLOCK_NONE) && !reg_value && epat_unlock_feed(dev, val)) {
         if ((dev->ucmd & 0xf8) == EPAT_CPP_UNIT_ID)
             epat_cpp_unit_id(dev);
         else if ((dev->ucmd & 0xf8) == EPAT_CPP_UNIT_BYTE) {
