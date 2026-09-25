@@ -130,10 +130,11 @@ static const struct {
 } controllers[] = {
     // clang-format off
     { &cdrom_interface_none_device  },
-    { &mitsumi_cdrom_device         },
+    { &hitachi_cdrom_isa_device     },
+    { &hitachi_cdrom_mca_device     },
     { &mke_cdrom_noncreative_device },
     { &mke_cdrom_device             },
-    { &hitachi_cdrom_device         },
+    { &mitsumi_cdrom_device         },
     { NULL                          }
     // clang-format on
 };
