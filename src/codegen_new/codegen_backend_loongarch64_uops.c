@@ -352,12 +352,19 @@ static int
 cmp_overflow_reg(codeblock_t *block, int size_a, int size_b, int src_a, int src_b)
 {
     int ra, rb;
+    int width = REG_IS_L(size_a) ? 32 : (REG_IS_W(size_a) ? 16 : 8);
 
     cmp_sext_pair(block, size_a, size_b, src_a, src_b, &ra, &rb);
     host_loong64_SUBX_REG(block, REG_TEMP3, ra, rb);
     host_loong64_XOR_REG(block, rb, ra, rb);
     host_loong64_XOR_REG(block, ra, ra, REG_TEMP3);
+    /*The algebra leaves the overflow sign at bit (width - 1) - the
+      sign-extended inputs make the 64-bit difference exact, so its
+      bit (width - 1) is the overflow of the width's arithmetic, but
+      the branch templates test bit 63. Move the flag up first.*/
     host_loong64_AND_REG(block, REG_TEMP, ra, rb);
+    if (width != 64)
+        host_loong64_SHL_D_IMM(block, REG_TEMP, REG_TEMP, 64 - width);
     return REG_TEMP;
 }
 
