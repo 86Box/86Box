@@ -88,6 +88,7 @@ uint32_t biosaddr;
 
 uint32_t pccache;
 uint8_t *pccache2;
+int      cpu_fetch_device;
 
 int        readlnext[2];
 int        readlookup[512];
@@ -141,7 +142,6 @@ static mem_mapping_t *read_mapping_bus[MEM_MAPPINGS_NO];
 static mem_mapping_t *write_mapping_bus[MEM_MAPPINGS_NO];
 static uint8_t       _mem_wp[MEM_MAPPINGS_NO];
 static uint8_t       _mem_wp_bus[MEM_MAPPINGS_NO];
-static uint8_t        ff_pccache[4] = { 0xff, 0xff, 0xff, 0xff };
 static mem_state_t    _mem_state[MEM_MAPPINGS_NO];
 static uint32_t       remap_start_addr;
 static uint32_t       remap_start_addr2;
@@ -700,9 +700,13 @@ getpccache(uint32_t a)
         return (uint8_t *) (((uintptr_t) p & 0x00000000ffffffffULL) | ((uintptr_t) &_mem_exec[a64 >> MEM_GRANULARITY_BITS][0] & 0xffffffff00000000ULL));
     }
 
-    mem_log("Bad getpccache %08X%08X\n", (uint32_t) (a64 >> 32), (uint32_t) (a64 & 0xffffffffULL));
+    /* No RAM or ROM behind the page (video memory, a device's buffer): the
+       fetch is an ordinary bus read, which the caller does through the read
+       handlers. The recompiler must not keep a block built from it, since
+       nothing tracks writes to device memory. */
+    cpu_fetch_device = 1;
 
-    return (uint8_t *) &ff_pccache;
+    return NULL;
 }
 
 uint8_t

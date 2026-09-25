@@ -32,6 +32,7 @@
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_interface.h>
 #include <86box/cdrom_mitsumi.h>
+#include <86box/cdrom_hitachi.h>
 #include <86box/cdrom_mke.h>
 #include <86box/crc.h>
 #include <86box/log.h>
@@ -132,6 +133,7 @@ static const struct {
     { &mitsumi_cdrom_device         },
     { &mke_cdrom_noncreative_device },
     { &mke_cdrom_device             },
+    { &hitachi_cdrom_device         },
     { NULL                          }
     // clang-format on
 };
@@ -3505,6 +3507,9 @@ cdrom_hard_reset(void)
             switch (dev->bus_type) {
                 case CDROM_BUS_ATAPI:
                 case CDROM_BUS_SCSI:
+                    scsi_cdrom_drive_reset(i);
+                    break;
+
                 case CDROM_BUS_LPT:
                     scsi_cdrom_drive_reset(i);
                     /*

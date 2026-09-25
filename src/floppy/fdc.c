@@ -680,6 +680,15 @@ fdc_get_densel(fdc_t *fdc, int drive)
     return 0;
 }
 
+/* The PS/1 2121 and 8525 gate arrays report a drive's type code in 3F3h keyed
+   on the drive the DOR has selected, unlike the other PS/2 machines which use
+   a single 2-bit type field. */
+static int
+fdc_ps2_tdr_per_slot(void)
+{
+    return (machines[machine].init == machine_ps1_m2121_init);
+}
+
 static void
 fdc_rate(fdc_t *fdc, int drive)
 {
@@ -1710,26 +1719,31 @@ fdc_read(uint16_t addr, void *priv)
                 drive = real_drive(fdc, fdc->dor & 3);
                 /* TODO: FDC_FLAG_PS2_TDR? */
                 if ((fdc->flags & FDC_FLAG_PS2) || (fdc->flags & FDC_FLAG_PS2_MCA)) {
-                    /* PS/1 Model 2121 seems return drive type in port
-                     * 0x3f3, despite the 82077AA fdc_t not implementing
-                     * this. This is presumably implemented outside the
-                     * fdc_t on one of the motherboard's support chips.
-                     *
-                     * Confirmed: 00=1.44M 3.5
-                     *        10=2.88M 3.5
-                     *        20=1.2M 5.25
-                     *        30=1.2M 5.25
-                     *
-                     * as reported by Configur.exe.
-                     */
-                    if (fdd_is_525(drive))
+                    /* 2121/25sx: the gate array reports one type code per
+                       selectable drive. Both ROMs decode bits 7-6 and 5-4
+                       as the drive type, where only 0x80 (type 4, 1.44MB)
+                       and 0x50 (type 6, 2.88MB) are valid and anything else 
+                       reads as "no drive"; the same ROMs probe presence with
+                       the DOR motor bits cleared. */
+                    if (fdc_ps2_tdr_per_slot()) {
+                        if (!fdd_get_type(drive))
+                            ret = 0x00;
+                        else if (!(fdc->dor & 0x30))
+                            ret = 0xf0;
+                        else if (fdd_is_ed(drive))
+                            ret = 0x50;
+                        else
+                            ret = 0x80;
+                    }
+                    else if (fdd_is_525(drive))
                         ret = 0x20;
                     else if (fdd_is_ed(drive))
                         ret = 0x10;
                     else
                         ret = 0x00;
-                    /* PS/55 POST throws an error and halt if ret = 1 or 2, somehow. */
-                } else if (!fdc->enh_mode)
+                }
+                /* PS/55 POST throws an error and halt if ret = 1 or 2, somehow. */
+                else if (!fdc->enh_mode)
                     ret = 0x20;
                 else if (fdc->flags & FDC_FLAG_SMC661)
                     ret = (fdc->densel_force << 3) | ((!!fdc->swap) << 5) | (fdc->media_id << 6);

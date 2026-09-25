@@ -182,7 +182,10 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
             WRITE8(addr, mach64->dst_y_x, val);
             break;
         case 0x2e8 ... 0x2eb:
-            WRITE8(addr ^ 2, mach64->dst_y_x, val);
+            /* DST_X_Y (0_BA) and DST_WIDTH_HEIGHT (0_BB) are VT-B registers,
+               in neither the GX nor the VT book. */
+            if (mach64->type >= MACH64_VT3)
+                WRITE8(addr ^ 2, mach64->dst_y_x, val);
             break;
         case 0x110 ... 0x111:
             WRITE8(addr + 2, mach64->dst_height_width, val);
@@ -208,6 +211,8 @@ start_blit_op:
             break;
 
         case 0x2ec ... 0x2ef:
+            if (mach64->type < MACH64_VT3)
+                break;
             WRITE8(addr ^ 2, mach64->dst_height_width, val);
             mach64->dst_bres_lnth = (mach64->dst_bres_lnth & ~0x7fff) | ((mach64->dst_height_width >> 16) & 0x1fff);
             if ((addr & 0x3ff) == 0x2ef) {
@@ -373,6 +378,9 @@ start_blit_op:
                 mach64->host_cntl |= HOST_BYTE_ALIGN;
             else
                 mach64->host_cntl &= ~HOST_BYTE_ALIGN;
+            /* HOST_BIG_ENDIAN_EN, bit 29, on the CT and later (RRG 4-105). */
+            if (mach64->type >= MACH64_CT)
+                mach64->host_cntl = (mach64->host_cntl & ~2) | ((val & 0x20) ? 2 : 0);
             break;
 
         default:
@@ -458,13 +466,67 @@ mach64_wake_fifo_thread(mach64_t *mach64)
     thread_set_event(mach64->wake_fifo_thread); /*Wake up FIFO thread if moving from idle*/
 }
 
+/* Runs the oldest FIFO entry. The caller holds fifo_mutex, so the entries
+   run one at a time and in order, whichever thread runs them; the read
+   index moves only after the entry is done, so an empty FIFO means every
+   write has reached the engine. */
+static void
+mach64_fifo_run_one(mach64_t *mach64)
+{
+    uint64_t      start_time = plat_timer_read();
+    fifo_entry_t *fifo       = &mach64->fifo[mach64->fifo_read_idx & FIFO_MASK];
+    uint32_t      val        = fifo->val;
+
+    switch (fifo->addr_type & FIFO_TYPE) {
+        case FIFO_WRITE_BYTE:
+            mach64_accel_write_fifo(mach64, fifo->addr_type & FIFO_ADDR, val);
+            break;
+        case FIFO_WRITE_WORD:
+            mach64_accel_write_fifo_w(mach64, fifo->addr_type & FIFO_ADDR, val);
+            break;
+        case FIFO_WRITE_DWORD:
+            mach64_accel_write_fifo_l(mach64, fifo->addr_type & FIFO_ADDR, val);
+            break;
+        default:
+            break;
+    }
+
+    fifo->addr_type = FIFO_INVALID;
+    mach64->fifo_read_idx++;
+
+    mach64->blitter_time += plat_timer_read() - start_time;
+}
+
+/* The emulated CPU needs the engine to have taken every queued write (a
+   register read, a reset, a full queue): it runs them itself rather than
+   waking the FIFO thread and sleeping until it has. A sleep is a whole
+   host timer tick on Windows, and on ISA every byte of an engine register
+   read came here, so M64DIAG's register tests ran at a few percent. */
 void
 mach64_wait_fifo_idle(mach64_t *mach64)
 {
+    if (FIFO_EMPTY)
+        return;
+
+    thread_wait_mutex(mach64->fifo_mutex);
+    while (!FIFO_EMPTY)
+        mach64_fifo_run_one(mach64);
+    thread_release_mutex(mach64->fifo_mutex);
+}
+
+/* GEN_GUI_EN going to 0 resets the draw engine, which is how software
+   recovers from a locked FIFO (RRG 3-55, 3-59); the queued writes are
+   lost with it rather than run. */
+void
+mach64_fifo_discard(mach64_t *mach64)
+{
+    thread_wait_mutex(mach64->fifo_mutex);
     while (!FIFO_EMPTY) {
-        mach64_wake_fifo_thread(mach64);
-        thread_wait_event(mach64->fifo_not_full_event, 1);
+        mach64->fifo[mach64->fifo_read_idx & FIFO_MASK].addr_type = FIFO_INVALID;
+        mach64->fifo_read_idx++;
     }
+    mach64->accel.busy = 0;
+    thread_release_mutex(mach64->fifo_mutex);
 }
 
 void
@@ -473,38 +535,14 @@ mach64_fifo_thread(void *param)
     mach64_t *mach64 = (mach64_t *) param;
 
     while (mach64->thread_run) {
-        thread_set_event(mach64->fifo_not_full_event);
         thread_wait_event(mach64->wake_fifo_thread, -1);
         thread_reset_event(mach64->wake_fifo_thread);
         mach64->blitter_busy = 1;
         while (!FIFO_EMPTY) {
-            uint64_t      start_time = plat_timer_read();
-            uint64_t      end_time;
-            fifo_entry_t *fifo = &mach64->fifo[mach64->fifo_read_idx & FIFO_MASK];
-            uint32_t      val  = fifo->val;
-
-            switch (fifo->addr_type & FIFO_TYPE) {
-                case FIFO_WRITE_BYTE:
-                    mach64_accel_write_fifo(mach64, fifo->addr_type & FIFO_ADDR, val);
-                    break;
-                case FIFO_WRITE_WORD:
-                    mach64_accel_write_fifo_w(mach64, fifo->addr_type & FIFO_ADDR, val);
-                    break;
-                case FIFO_WRITE_DWORD:
-                    mach64_accel_write_fifo_l(mach64, fifo->addr_type & FIFO_ADDR, val);
-                    break;
-                default:
-                    break;
-            }
-
-            mach64->fifo_read_idx++;
-            fifo->addr_type = FIFO_INVALID;
-
-            if (FIFO_ENTRIES > 0xe000)
-                thread_set_event(mach64->fifo_not_full_event);
-
-            end_time = plat_timer_read();
-            mach64->blitter_time += end_time - start_time;
+            thread_wait_mutex(mach64->fifo_mutex);
+            if (!FIFO_EMPTY)
+                mach64_fifo_run_one(mach64);
+            thread_release_mutex(mach64->fifo_mutex);
         }
 #ifdef DMA_BM
         run_dma(mach64);
@@ -554,21 +592,10 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
             break;
     }
 
-    if (limit) {
-        if (FIFO_ENTRIES >= 16) {
-            thread_reset_event(mach64->fifo_not_full_event);
-            if (FIFO_ENTRIES >= 16)
-                thread_wait_event(mach64->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
-
-        }
-    } else {
-        if (FIFO_FULL) {
-            thread_reset_event(mach64->fifo_not_full_event);
-            if (FIFO_FULL)
-                thread_wait_event(mach64->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
-
-        }
-    }
+    /* Room in the ring, and the 16 entries above: the caller runs what is
+       queued itself, as mach64_wait_fifo_idle does. */
+    if ((limit && (FIFO_ENTRIES >= 16)) || FIFO_FULL)
+        mach64_wait_fifo_idle(mach64);
 
     fifo->val       = val;
     fifo->addr_type = (addr & FIFO_ADDR) | type;
@@ -667,7 +694,7 @@ mach64_below_bndry(const mach64_t *mach64, uint32_t addr, int width)
 {
     uint32_t byte;
 
-    if (!(mach64->mem_cntl & (1 << 18)))
+    if (!mach64_mem_bndry_en(mach64))
         return 0;
     switch (width) {
         case 0:

@@ -103,15 +103,16 @@ enum {
     CDROM_BUS_DISABLED =  0,
     CDROM_BUS_PHILIPS  =  1,
     CDROM_BUS_SONY     =  2,
-    CDROM_BUS_HITACHI  =  3,
     CDROM_BUS_MKE      =  4,
     CDROM_BUS_MITSUMI  =  5,
     CDROM_BUS_LPT      =  6,
     CDROM_BUS_ATAPI    =  8,
     CDROM_BUS_SCSI     =  9,
-    CDROM_BUS_USB      = 10
+    CDROM_BUS_USB      = 10,
+    CDROM_BUS_HITACHI  = 12 /* Shared settings bus IDs: 3 is ESDI, 11 is FDC. */
 };
 
+#define BUS_TYPE_HITACHI            CDROM_BUS_HITACHI
 #define BUS_TYPE_MKE                CDROM_BUS_MKE
 #define BUS_TYPE_IDE                CDROM_BUS_ATAPI
 #define BUS_TYPE_SCSI               CDROM_BUS_SCSI
@@ -139,9 +140,9 @@ static const struct cdrom_drive_types_s {
     const char   *inquiry_vendor;
     const char   *inquiry_model;
 } cdrom_drive_types[] = {
-    { EMU_NAME,   "86B_CD",           CDV,    "",          "86cd",           BUS_TYPE_BOTH, 2, -1, 36, 0, 0, {  4,  2,  2,  5 } },
+    { EMU_NAME,   "86B_CD",           CDV,    "",          "86cd",           BUS_TYPE_BOTH, 2, -1, 36, 0, 0, {  4,  2,  2,  6 } },
     { EMU_NAME,   "86B_CD",           "1.00", "",          "86cd100",        BUS_TYPE_BOTH, 1, -1, 36, 1, 0, {  0, -1, -1, -1 } }, /* SCSI-1 / early ATAPI generic - second on purpose so the later variant is the default. */
-    { EMU_NAME,   "86B_DVD",          "5.00", "",          "86dvd",          BUS_TYPE_BOTH, 2, -1, 36, 0, 1, {  4,  2,  2,  5 } },
+    { EMU_NAME,   "86B_DVD",          "5.00", "",          "86dvd",          BUS_TYPE_BOTH, 2, -1, 36, 0, 1, {  4,  2,  2,  6 } },
     { "ACER",     "656A",             "8.4D", "656A 043",  "acer_656a",      BUS_TYPE_IDE,  0,  8, 36, 0, 0, {  3,  2,  2, -1 } },
     { "ACER",     "8432IA",           "5.AX", "",          "acer_8432ia",    BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  4,  2,  2,  2 } }, /* TODO: to find the real dump of this CD-ROM model. */
     { "AOpen",    "CD-924E",          "A205", "",          "aopen_924e",     BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  0 } },
@@ -367,6 +368,7 @@ static const struct cdrom_drive_types_s {
     { "TOSHIBA",  "CD-ROM XM-5701TA", "3136", "",          "toshiba_5701a",  BUS_TYPE_SCSI, 2, 12, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray; SCSI version of XM-5702B. */
     { "TOSHIBA",  "CD-ROM XM-6401TA", "1404", "",          "toshiba_6401a",  BUS_TYPE_SCSI, 2, 32, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray; SCSI version of XM-6402B. */
     { "TOSHIBA",  "DVD-ROM SD-M1401", "1008", "",          "toshiba_m1401",  BUS_TYPE_SCSI, 2, 40, 96, 0, 1, { -1, -1, -1, -1 } }, /* Tray. */
+    { "HITACHI",  "CDR-1503S",        "",     "",          "hitachi_1503s",  BUS_TYPE_HITACHI, 0, 1, 0, 0, 0, { -1, -1, -1, -1 } },
     { "MATSHITA", "CR-521B",          "2.11", "",          "cr521b",         BUS_TYPE_MKE , 0,  1,  0, 1, 0, { -1, -1, -1, -1 } },
     { "MATSHITA", "CR-562",           "0.75", "",          "cr562",          BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
     { "MATSHITA", "CR-562",           "0.76", "",          "cr562_076",      BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
@@ -443,6 +445,7 @@ typedef struct cdrom {
     union {
         uint8_t           res;
         uint8_t           res0;      /* Reserved for other ID's. */
+        uint8_t           hitachi_channel;
         uint8_t           mke_channel;
         uint8_t           ide_channel;
         uint8_t           scsi_device_id;

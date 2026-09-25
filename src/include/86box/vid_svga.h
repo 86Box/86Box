@@ -110,6 +110,8 @@ typedef struct svga_t {
     int cursorvisible;
     int cursoron;
     int blink;
+    int cursor_noblink;    /* the cursor stays on (ATI35 bit 5) */
+    int cursor_blink_half; /* blinks at half the rate (ATI05 bit 7) */
     int scrollcache;
     int char_width;
     int firstline;
@@ -489,6 +491,7 @@ extern float ics90c64a_mclk_getclock(int clock, void *priv);
 
 extern void   ics2595_write(void *priv, int strobe, int dat);
 extern double ics2595_getclock(void *priv);
+extern double ics2595_getclock_entry(void *priv, int n);
 extern void   ics2595_setclock(void *priv, double clock);
 
 extern void    sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
