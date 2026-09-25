@@ -36,6 +36,10 @@ extern "C" {
 #include "qt_settings.hpp"
 
 #include <QAbstractItemModel>
+#include <QAbstractItemView>
+#include <QComboBox>
+#include <QScrollBar>
+#include <QTimer>
 #include <QStandardItemModel>
 
 void
@@ -403,4 +407,26 @@ Harddrives::refreshBusNames(QAbstractItemModel *model)
 
         model->setData(idx, BusChannelName(idx.data(Qt::UserRole).toUInt(), idx.data(Qt::UserRole + 1).toUInt()));
     }
+}
+
+/* A channel box keeps its width on the page, and its list opens as wide as
+   its longest entry: the owners' names are not cut short. */
+void
+Harddrives::widenPopup(QComboBox *cbox)
+{
+    auto *view  = cbox->view();
+    auto *timer = new QTimer(cbox);
+
+    view->setTextElideMode(Qt::ElideNone);
+    timer->setSingleShot(true);
+    timer->setInterval(0);
+    QObject::connect(timer, &QTimer::timeout, cbox, [view]() {
+        view->setMinimumWidth(view->sizeHintForColumn(0) + view->verticalScrollBar()->sizeHint().width() + (2 * view->frameWidth()));
+    });
+
+    /* Once the list has changed, however many rows went in. */
+    const auto *model = cbox->model();
+    QObject::connect(model, &QAbstractItemModel::rowsInserted, timer, qOverload<>(&QTimer::start));
+    QObject::connect(model, &QAbstractItemModel::dataChanged, timer, qOverload<>(&QTimer::start));
+    QObject::connect(model, &QAbstractItemModel::modelReset, timer, qOverload<>(&QTimer::start));
 }

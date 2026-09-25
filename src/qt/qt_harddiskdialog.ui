@@ -178,7 +178,10 @@
    <item row="3" column="5">
     <widget class="QComboBox" name="comboBoxChannel">
      <property name="sizeAdjustPolicy">
-      <enum>QComboBox::AdjustToContents</enum>
+      <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+     </property>
+     <property name="minimumContentsLength">
+      <number>20</number>
      </property>
      <property name="maxVisibleItems">
       <number>30</number>

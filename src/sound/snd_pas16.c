@@ -3423,6 +3423,7 @@ const device_t pas_device = {
     .speed_changed = pas16_speed_changed,
     .force_redraw  = NULL,
     .config        = pas_config,
+    .short_name    = "PAS",
     .scsi_buses    = pas16_scsi_buses
 };
 
@@ -3438,6 +3439,7 @@ const device_t pasplus_device = {
     .speed_changed = pas16_speed_changed,
     .force_redraw  = NULL,
     .config        = pas16_config,
+    .short_name    = "PAS Plus",
     .scsi_buses    = pas16_scsi_buses
 };
 
@@ -3453,6 +3455,7 @@ const device_t pas16_device = {
     .speed_changed = pas16_speed_changed,
     .force_redraw  = NULL,
     .config        = pas16_config,
+    .short_name    = "PAS16",
     .scsi_buses    = pas16_scsi_buses
 };
 
@@ -3468,5 +3471,6 @@ const device_t pas16d_device = {
     .speed_changed = pas16_speed_changed,
     .force_redraw  = NULL,
     .config        = pas16_config,
+    .short_name    = "PAS16D",
     .scsi_buses    = pas16_scsi_buses
 };

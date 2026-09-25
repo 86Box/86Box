@@ -6117,7 +6117,7 @@ const device_t aic7880_pci_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL,
-    .short_name    = "Adaptec AIC-7880",
+    .short_name    = "AIC-7880",
     .scsi_buses    = aic_scsi_buses
 };
 
@@ -6201,6 +6201,7 @@ const device_t aha274x_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aic7770_config,
+    .short_name    = "AHA-274x",
     .scsi_buses    = aic_scsi_buses
 };
 
@@ -6217,6 +6218,7 @@ const device_t aha2940_pci_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aha2940_config,
+    .short_name    = "AHA-2940",
     .scsi_buses    = aic_scsi_buses
 };
 
@@ -6233,6 +6235,7 @@ const device_t aha2940u_pci_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aha2940u_config,
+    .short_name    = "AHA-2940U",
     .scsi_buses    = aic_scsi_buses
 };
 
@@ -6248,5 +6251,6 @@ const device_t aha2944uw_pci_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aha2944uw_config,
+    .short_name    = "AHA-2944UW",
     .scsi_buses    = aic_scsi_buses
 };

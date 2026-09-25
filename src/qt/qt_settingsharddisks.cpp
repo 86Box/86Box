@@ -144,6 +144,7 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
     , ui(new Ui::SettingsHarddisks)
 {
     ui->setupUi(this);
+    Harddrives::widenPopup(ui->comboBoxChannel);
 
     scSpeed = new SettingsCompleter(ui->comboBoxSpeed, nullptr);
 

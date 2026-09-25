@@ -2691,7 +2691,8 @@ const device_t ncr53c810_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "NCR 53c810"
 };
 
 const device_t ncr53c810_onboard_pci_device = {
@@ -2720,7 +2721,8 @@ const device_t ncr53c815_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ncr53c8xx_pci_config
+    .config        = ncr53c8xx_pci_config,
+    .short_name    = "NCR 53c815"
 };
 
 const device_t ncr53c820_pci_device = {
@@ -2734,7 +2736,8 @@ const device_t ncr53c820_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "NCR 53c820"
 };
 
 const device_t ncr53c825a_pci_device = {
@@ -2748,7 +2751,8 @@ const device_t ncr53c825a_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ncr53c8xx_pci_config
+    .config        = ncr53c8xx_pci_config,
+    .short_name    = "NCR 53c825A"
 };
 
 const device_t ncr53c860_pci_device = {
@@ -2762,7 +2766,8 @@ const device_t ncr53c860_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ncr53c8xx_pci_config
+    .config        = ncr53c8xx_pci_config,
+    .short_name    = "NCR 53c860"
 };
 
 const device_t ncr53c875_pci_device = {
@@ -2776,7 +2781,8 @@ const device_t ncr53c875_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ncr53c8xx_pci_config
+    .config        = ncr53c8xx_pci_config,
+    .short_name    = "NCR 53c875"
 };
 
 const device_t ncr53c875_onboard_pci_device = {

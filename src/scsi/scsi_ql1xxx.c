@@ -5063,6 +5063,7 @@ const device_t isp1020a_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = isp1020_config,
+    .short_name    = "ISP1020A",
     .scsi_buses    = ql_scsi_buses
 };
 
@@ -5078,6 +5079,7 @@ const device_t qla1040b_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = qla1040b_config,
+    .short_name    = "ISP1040B",
     .scsi_buses    = ql_scsi_buses
 };
 
@@ -5093,6 +5095,7 @@ const device_t qla1080_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = qla1080_config,
+    .short_name    = "ISP1080",
     .scsi_buses    = ql_scsi_buses
 };
 
@@ -5108,6 +5111,7 @@ const device_t qla1240_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = qla1240_config,
+    .short_name    = "ISP1240",
     .scsi_buses    = ql_scsi_buses
 };
 
@@ -5123,6 +5127,7 @@ const device_t qla1280_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = qla1280_config,
+    .short_name    = "ISP1280",
     .scsi_buses    = ql_scsi_buses
 };
 
@@ -5138,5 +5143,6 @@ const device_t qla12160a_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = qla12160a_config,
+    .short_name    = "ISP12160A",
     .scsi_buses    = ql_scsi_buses
 };

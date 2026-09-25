@@ -215,6 +215,9 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     , ui(new Ui::SettingsOtherRemovable)
 {
     ui->setupUi(this);
+    Harddrives::widenPopup(ui->comboBoxMOChannel);
+    Harddrives::widenPopup(ui->comboBoxRDiskChannel);
+    Harddrives::widenPopup(ui->comboBoxTapeChannel);
 
     scMOType                        = new SettingsCompleter(ui->comboBoxMOType, nullptr);
     scRDiskType                     = new SettingsCompleter(ui->comboBoxRDiskType, nullptr);

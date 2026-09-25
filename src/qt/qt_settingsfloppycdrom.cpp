@@ -129,6 +129,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     , ui(new Ui::SettingsFloppyCDROM)
 {
     ui->setupUi(this);
+    Harddrives::widenPopup(ui->comboBoxChannel);
 
     scFloppyType                    = new SettingsCompleter(ui->comboBoxFloppyType, nullptr);
     scCDROMType                     = new SettingsCompleter(ui->comboBoxCDROMType, nullptr);

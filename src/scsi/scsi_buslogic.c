@@ -1919,7 +1919,8 @@ const device_t buslogic_542b_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = BT_ISA_Config
+    .config        = BT_ISA_Config,
+    .short_name    = "BT-542B"
 };
 
 const device_t buslogic_545s_device = {
@@ -1933,7 +1934,8 @@ const device_t buslogic_545s_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = BT_ISA_Config
+    .config        = BT_ISA_Config,
+    .short_name    = "BT-545S"
 };
 
 const device_t buslogic_542bh_device = {
@@ -1947,7 +1949,8 @@ const device_t buslogic_542bh_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = BT_ISA_Config
+    .config        = BT_ISA_Config,
+    .short_name    = "BT-542BH"
 };
 
 const device_t buslogic_545c_device = {
@@ -1961,7 +1964,8 @@ const device_t buslogic_545c_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = BT_ISA_Config
+    .config        = BT_ISA_Config,
+    .short_name    = "BT-545C"
 };
 
 const device_t buslogic_640a_device = {
@@ -1975,7 +1979,8 @@ const device_t buslogic_640a_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "BT-640A"
 };
 
 const device_t buslogic_445s_device = {
@@ -1989,7 +1994,8 @@ const device_t buslogic_445s_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = BT_ISA_Config
+    .config        = BT_ISA_Config,
+    .short_name    = "BT-445S"
 };
 
 const device_t buslogic_445c_device = {
@@ -2003,7 +2009,8 @@ const device_t buslogic_445c_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = BT_ISA_Config
+    .config        = BT_ISA_Config,
+    .short_name    = "BT-445C"
 };
 
 const device_t buslogic_958d_pci_device = {
@@ -2017,5 +2024,6 @@ const device_t buslogic_958d_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = BT958D_Config
+    .config        = BT958D_Config,
+    .short_name    = "BT-958D"
 };

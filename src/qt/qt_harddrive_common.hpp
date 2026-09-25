@@ -5,6 +5,7 @@
 
 class QString;
 class QAbstractItemModel;
+class QComboBox;
 class SettingsBusTracking;
 class SettingsCompleter;
 struct bus_owner_t;
@@ -20,5 +21,6 @@ int                         idePlan(bus_owner_t *owners);
 int                         scsiPlan(bus_owner_t *owners);
 QString                     ownerName(int bus, const bus_owner_t *owners, int count);
 void                        refreshBusNames(QAbstractItemModel *model);
+void                        widenPopup(QComboBox *cbox);
 inline SettingsBusTracking *busTrackClass = nullptr;
 };
