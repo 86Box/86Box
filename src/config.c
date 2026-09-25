@@ -482,7 +482,7 @@ config_ask_unsupported(void)
              (config_unsupported_count > 1) ? "replace the machine, remove the other components" :
                                               "replace the machine");
 
-    return ui_msgbox_header(MBX_WARNING | MBX_QUESTION_YN, "Unsupported hardware", msg) == 1;
+    return ui_msgbox_header(MBX_WARNING | MBX_QUESTION_YN, "Unsupported Hardware", msg) == 1;
 }
 
 static void
