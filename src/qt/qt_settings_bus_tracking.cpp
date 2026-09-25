@@ -145,7 +145,7 @@ SettingsBusTracking::next_free_xta_channel()
 uint8_t
 SettingsBusTracking::next_free_ide_channel()
 {
-    ide_owner_t owners[IDE_BUS_MAX];
+    bus_owner_t owners[IDE_BUS_MAX];
     const int   channels = Harddrives::idePlan(owners) * 2;
 
     for (int pass = 0; pass < 2; pass++) {
@@ -162,24 +162,25 @@ SettingsBusTracking::next_free_ide_channel()
     return CHANNEL_NONE;
 }
 
+/* The first free ID on a bus something has, or failing that the first
+   free one on the first bus. */
 uint8_t
 SettingsBusTracking::next_free_scsi_id()
 {
-    int      element;
-    uint64_t mask;
-    uint8_t  ret = CHANNEL_NONE;
+    bus_owner_t owners[SCSI_BUS_MAX];
+    const int   buses = Harddrives::scsiPlan(owners);
 
-    for (uint8_t i = 0; i < (SCSI_BUS_MAX * SCSI_ID_MAX); i++) {
-        element = ((i << 3) >> 6);
-        mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+    for (int pass = 0; pass < 2; pass++) {
+        for (int i = 0; i < (((pass == 0) ? buses : 1) * SCSI_ID_MAX); i++) {
+            const int      element = ((i << 3) >> 6);
+            const uint64_t mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
-        if (!(scsi_tracking[element] & mask)) {
-            ret = (uint8_t) i;
-            break;
+            if (!(scsi_tracking[element] & mask))
+                return (uint8_t) i;
         }
     }
 
-    return ret;
+    return CHANNEL_NONE;
 }
 
 uint8_t

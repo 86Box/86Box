@@ -237,7 +237,7 @@ machine_at_pci400ca_init(const machine_t *model)
     device_add(&intel_flash_bxt_ami_device);
 
     device_add(&i420tx_device);
-    device_add(&ncr53c810_onboard_pci_device);
+    device_add(machine_get_scsi_device(machine));
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);

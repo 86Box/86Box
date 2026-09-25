@@ -31,6 +31,8 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/hdc.h>
+#include <86box/scsi_ncr53c8xx.h>
+#include <86box/scsi_aic7xxx.h>
 #include <86box/keyboard.h>
 #include <86box/nvr.h>
 #include <86box/sio.h>
@@ -10363,6 +10365,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .scsi_device              = &ncr53c810_onboard_pci_device,
         .aliases                  = { "" }
     },
     /* This has a standalone AMI Megakey 1993, which is type 'P'. */
@@ -12561,6 +12564,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .scsi_device              = &ncr53c810_onboard_pci_device,
         .aliases                  = { "" }
     },
     /* This has the Phoenix MultiKey KBC firmware. */
@@ -12658,6 +12662,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .scsi_device              = &ncr53c810_onboard_pci_device,
         .aliases                  = { "" }
     },
     /* This has an AMI MEGAKey 'P' or 'R' keyboard controller. */
@@ -18668,6 +18673,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .scsi_device              = &aic7880_pci_device,
         .aliases                  = { "Advanced Integration Research 54TDP", "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
@@ -19163,6 +19169,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .scsi_device              = &ncr53c810_onboard_pci_device,
         .aliases                  = { "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2) on a BestKey KBC. */
@@ -21336,6 +21343,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = &i82559er_onboard_device, /* stand-in for DP83815 (also accepted by BIOS and software) */
+        .scsi_device              = &ncr53c875_onboard_pci_device,
         .aliases                  = { "Cobalt 4xxxWG", "Cobalt Carmel", "" }
     },
     /* ALi M1543C southbridge with unused KBC. */
@@ -21384,6 +21392,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = &i82559er_onboard_device,
+        .scsi_device              = &ncr53c875_onboard_pci_device,
         .aliases                  = { "Cobalt 3xxxR", "Cobalt Pacifica", "" }
     },
     /* M1534c kbc */
@@ -26479,6 +26488,12 @@ const device_t *
 machine_get_ide_device(int m)
 {
     return (machines[m].ide_device);
+}
+
+const device_t *
+machine_get_scsi_device(int m)
+{
+    return (machines[m].scsi_device);
 }
 
 const char *

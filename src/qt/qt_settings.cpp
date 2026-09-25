@@ -38,6 +38,7 @@ extern "C" {
 #include <86box/hdd.h>
 #include <86box/hdc.h>
 #include <86box/sound.h>
+#include <86box/scsi.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/midi.h>
@@ -273,6 +274,12 @@ int
 Settings::currentSoundCard(int i) const
 {
     return (sound != nullptr) ? sound->soundCard(i) : sound_card_current[i];
+}
+
+int
+Settings::currentScsiCard(int i) const
+{
+    return (storageControllers != nullptr) ? storageControllers->scsiCard(i) : scsi_card_current[i];
 }
 
 void

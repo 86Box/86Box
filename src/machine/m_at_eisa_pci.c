@@ -148,7 +148,7 @@ machine_at_54tdp_init(const machine_t *model)
 
     /* The Adaptec is not optional on this board: it is soldered to it,
        and the system BIOS carries its option ROM. */
-    device_add(&aic7880_pci_device);
+    device_add(machine_get_scsi_device(machine));
 
     /* This board takes two processors and its firmware says so, but the
        APIC in the ESC has nowhere to deliver a message: there is no local

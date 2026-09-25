@@ -246,13 +246,7 @@ extern uint8_t ide_read_ali_76(void);
 extern void    ide_hard_reset(void);
 
 #ifdef EMU_DEVICE_H
-/* Who has each IDE board: the device and its instance, and whether it is on
-   the board (the chipset's own IDE when device is NULL). */
-typedef struct ide_owner_t {
-    const device_t *device;
-    int             instance;
-    int             onboard;
-} ide_owner_t;
+typedef bus_owner_t ide_owner_t;
 
 /* The owner of each board for a machine and its disk controllers and sound
    cards, worked out the way they claim them when the machine starts; the

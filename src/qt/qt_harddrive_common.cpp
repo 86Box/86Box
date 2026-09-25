@@ -21,11 +21,11 @@ extern "C" {
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/hdd.h>
+#include <86box/device.h>
 #include <86box/scsi.h>
 #include <86box/cdrom.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_tape.h>
-#include <86box/device.h>
 #include <86box/lpt.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -144,8 +144,10 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
     int        subChannelWidth = 1;
     QList<int> busesToCheck;
     QList<int> channelsInUse;
-    ide_owner_t owners[IDE_BUS_MAX];
-    const bool is_ide = (bus == HDD_BUS_IDE) || (bus == HDD_BUS_ATAPI);
+    bus_owner_t owners[(IDE_BUS_MAX > SCSI_BUS_MAX) ? IDE_BUS_MAX : SCSI_BUS_MAX];
+    int         owned  = 0;
+    const bool  is_ide  = (bus == HDD_BUS_IDE) || (bus == HDD_BUS_ATAPI);
+    const bool  is_scsi = (bus == HDD_BUS_SCSI);
     switch (bus) {
         case HDD_BUS_MFM:
             busRows = 2;
@@ -160,19 +162,23 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
             busesToCheck.append(HDD_BUS_ESDI);
             break;
         case HDD_BUS_IDE:
-            busRows = idePlan(owners) * 2;
+            owned   = idePlan(owners);
+            busRows = owned * 2;
             busesToCheck.append(HDD_BUS_ATAPI);
             busesToCheck.append(HDD_BUS_IDE);
             break;
         case HDD_BUS_ATAPI:
-            busRows = idePlan(owners) * 2;
+            owned   = idePlan(owners);
+            busRows = owned * 2;
             busesToCheck.append(HDD_BUS_IDE);
             busesToCheck.append(HDD_BUS_ATAPI);
             break;
         case HDD_BUS_SCSI:
             shifter         = 4;
             orer            = 15;
-            busRows         = /*64*/ SCSI_BUS_MAX * SCSI_ID_MAX;
+            /* The buses something has, at least the first. */
+            owned           = scsiPlan(owners);
+            busRows         = ((owned > 0) ? owned : 1) * SCSI_ID_MAX;
             subChannelWidth = 2;
             busesToCheck.append(HDD_BUS_SCSI);
             break;
@@ -214,6 +220,11 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
             if ((channel < IDE_DRIVES_MAX) && (channel >= busRows))
                 busRows = (channel | 1) + 1;
         }
+    } else if (is_scsi) {
+        for (const int channel : channelsInUse) {
+            if ((channel < (SCSI_BUS_MAX * SCSI_ID_MAX)) && (channel >= busRows))
+                busRows = (channel | 15) + 1;
+        }
     }
 
     model->insertRows(0, busRows);
@@ -222,7 +233,9 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
         if (bus == TAPE_BUS_LPT)
             model->setData(idx, QString("LPT%1").arg(i + 1));
         else if (is_ide)
-            model->setData(idx, QString("%1:%2 %3").arg(i >> 1).arg(i & 1).arg(ideOwnerName(i >> 1, owners)));
+            model->setData(idx, QString("%1:%2 %3").arg(i >> 1).arg(i & 1).arg(ownerName(i >> 1, owners, owned)));
+        else if (is_scsi)
+            model->setData(idx, QString("%1:%2 %3").arg(i >> 4).arg(i & 15, 2, 10, QChar('0')).arg(ownerName(i >> 4, owners, owned)));
         else
             model->setData(idx, QString("%1:%2").arg(i >> shifter).arg(i & orer, subChannelWidth, 10, QChar('0')));
         model->setData(idx, ((i >> shifter) << shifter) | (i & orer), Qt::UserRole);
@@ -233,6 +246,8 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
             if ((bus == TAPE_BUS_LPT) && (i < PARALLEL_MAX) && !lpt_ports[i].enabled)
                 enabled = false;
             if (is_ide && !owners[i >> 1].onboard && (owners[i >> 1].device == nullptr))
+                enabled = false;
+            if (is_scsi && (((i >> 4) >= owned) || (!owners[i >> 4].onboard && (owners[i >> 4].device == nullptr))))
                 enabled = false;
             channelItem->setEnabled(enabled);
         }
@@ -258,17 +273,22 @@ Harddrives::BusChannelName(uint8_t bus, uint8_t channel)
             break;
         case HDD_BUS_IDE:
         case HDD_BUS_ATAPI: {
-            ide_owner_t owners[IDE_BUS_MAX];
+            bus_owner_t owners[IDE_BUS_MAX];
+            const int   owned = idePlan(owners);
 
-            idePlan(owners);
             busName = QString("%1 %2:%3 %4").arg((bus == HDD_BUS_IDE) ? "IDE" : "ATAPI")
                           .arg(channel >> 1).arg(channel & 1)
-                          .arg(((channel >> 1) < IDE_BUS_MAX) ? ideOwnerName(channel >> 1, owners) : QObject::tr("(none)"));
+                          .arg(ownerName(channel >> 1, owners, owned));
             break;
         }
-        case HDD_BUS_SCSI:
-            busName = QString("SCSI (%1:%2)").arg(channel >> 4).arg(channel & 15, 2, 10, QChar('0'));
+        case HDD_BUS_SCSI: {
+            bus_owner_t owners[SCSI_BUS_MAX];
+            const int   owned = scsiPlan(owners);
+
+            busName = QString("SCSI %1:%2 %3").arg(channel >> 4).arg(channel & 15, 2, 10, QChar('0'))
+                          .arg(ownerName(channel >> 4, owners, owned));
             break;
+        }
         case CDROM_BUS_PHILIPS:
             busName = QString("Philips/LMS");
             break;
@@ -296,7 +316,7 @@ Harddrives::BusChannelName(uint8_t bus, uint8_t channel)
    disk controllers and sound cards selected, or those saved for a page not
    opened yet. Returns the number of boards to show. */
 int
-Harddrives::idePlan(ide_owner_t *owners)
+Harddrives::idePlan(bus_owner_t *owners)
 {
     int mach = machine;
     int hdc[HDC_MAX];
@@ -318,13 +338,42 @@ Harddrives::idePlan(ide_owner_t *owners)
     return ide_plan(owners, mach, hdc, snd);
 }
 
-/* The label for an IDE board: "Onboard" for the chipset's own IDE, with the
-   chip's short name for one on the board, a card's short name otherwise,
-   numbered where two of the same card have boards. */
-QString
-Harddrives::ideOwnerName(int board, const ide_owner_t *owners)
+/* The owner of each SCSI bus for what the settings hold now, as for IDE.
+   Returns the number of buses taken. */
+int
+Harddrives::scsiPlan(bus_owner_t *owners)
 {
-    const ide_owner_t &owner = owners[board];
+    int mach = machine;
+    int snd[SOUND_CARD_MAX];
+    int scsi[SCSI_CARD_MAX];
+
+    for (int i = 0; i < SOUND_CARD_MAX; i++)
+        snd[i] = sound_card_current[i];
+    for (int i = 0; i < SCSI_CARD_MAX; i++)
+        scsi[i] = scsi_card_current[i];
+
+    if (Settings::settings != nullptr) {
+        mach = Settings::settings->currentMachine();
+        for (int i = 0; i < SOUND_CARD_MAX; i++)
+            snd[i] = Settings::settings->currentSoundCard(i);
+        for (int i = 0; i < SCSI_CARD_MAX; i++)
+            scsi[i] = Settings::settings->currentScsiCard(i);
+    }
+
+    return scsi_plan(owners, mach, snd, scsi);
+}
+
+/* The label for an IDE board or SCSI bus, of the count given: the chip on
+   the machine's board with "(Onboard)", or just "Onboard" for the
+   chipset's own IDE; a card's short name otherwise, numbered where two of
+   the same card have buses. */
+QString
+Harddrives::ownerName(int bus, const bus_owner_t *owners, int count)
+{
+    if ((bus < 0) || (bus >= count))
+        return QObject::tr("(none)");
+
+    const bus_owner_t &owner = owners[bus];
 
     if (!owner.onboard && (owner.device == nullptr))
         return QObject::tr("(none)");
@@ -334,9 +383,9 @@ Harddrives::ideOwnerName(int board, const ide_owner_t *owners)
         name = QString::fromUtf8((owner.device->short_name != nullptr) ? owner.device->short_name : owner.device->name);
 
     if (owner.onboard)
-        return name.isEmpty() ? QObject::tr("Onboard") : QObject::tr("Onboard %1").arg(name);
+        return name.isEmpty() ? QObject::tr("Onboard") : QObject::tr("%1 (Onboard)").arg(name);
 
-    for (int i = 0; i < IDE_BUS_MAX; i++) {
+    for (int i = 0; i < count; i++) {
         if ((owners[i].device == owner.device) && (owners[i].instance != owner.instance))
             return QString("%1 #%2").arg(name).arg(owner.instance);
     }

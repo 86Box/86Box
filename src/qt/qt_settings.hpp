@@ -31,6 +31,7 @@ public:
     int currentMachine() const;
     int currentHdc(int i) const;
     int currentSoundCard(int i) const;
+    int currentScsiCard(int i) const;
 
     static Settings *settings;
 protected slots:
