@@ -111,7 +111,6 @@ typedef struct mach64_t {
     mem_mapping_t mmio_mapping;
     mem_mapping_t linear_mapping_big_endian;
     mem_mapping_t mmio_linear_mapping;
-    mem_mapping_t mmio_linear_mapping_2;
 
     ati_eeprom_t eeprom;
     svga_t       svga;
@@ -120,6 +119,7 @@ typedef struct mach64_t {
 
     uint8_t regs[256];
     int     index;
+    uint8_t ati_io[2]; /* GDC 50h and 51h: extended register address and offset */
 
     int type;
     int pci;
@@ -128,6 +128,7 @@ typedef struct mach64_t {
     uint8_t pci_slot;
     uint8_t irq_state;
     int     isa_irq;        /* ISA/VLB interrupt jumper; 0 = not fitted */
+    int     isa_8bit;       /* ISA card in an 8-bit slot: byte cycles only */
     int     isa_irq_raised;
 
     uint8_t on_board;
@@ -165,6 +166,8 @@ typedef struct mach64_t {
     uint32_t cur_offset;
 
     uint32_t gp_io;
+    uint32_t gp_io_cntl; /* GP_IO_CNTL (VT) */
+    uint32_t vt_blk1[256]; /* the VT's register block 1, as its fields read back */
 
     uint32_t dac_cntl;
 
@@ -314,7 +317,7 @@ typedef struct mach64_t {
 
     thread_t *fifo_thread;
     event_t  *wake_fifo_thread;
-    event_t  *fifo_not_full_event;
+    mutex_t  *fifo_mutex; /* held while a FIFO entry runs, by either thread */
 
     uint64_t blitter_time;
     uint64_t status_time;
@@ -325,7 +328,7 @@ typedef struct mach64_t {
     int      use_block_decoded_io;
 
     int     pll_addr;
-    uint8_t pll_regs[16];
+    uint8_t pll_regs[64];
     double  pll_freq[4];
 
     uint32_t config_stat0;
@@ -469,6 +472,7 @@ void     mach64_ext_writel(uint32_t addr, uint32_t val, void *priv);
 void     mach64_fifo_thread(void *param);
 void     mach64_wake_fifo_thread(mach64_t *mach64);
 void     mach64_wait_fifo_idle(mach64_t *mach64);
+void     mach64_fifo_discard(mach64_t *mach64);
 
 uint8_t  mach64_readb_be(uint32_t addr, void *priv);
 void     mach64_writeb_be(uint32_t addr, uint8_t val, void *priv);
@@ -487,7 +491,16 @@ extern mach64_t* reset_state[2];
 
 
 
-/* MEM_BNDRY (MEM_CNTL 17:16): 0, 256K, 512K or 1M (RRG 3-67). */
+/* MEM_BNDRY (MEM_CNTL 17:16): 0, 256K, 512K or 1M, enabled by
+   MEM_BNDRY_EN (bit 18), on the GX and CT (RRG 3-67). The VT's MEM_CNTL
+   has no boundary: those bits are its refresh rate and DLL reset
+   (VT/RAGE RRG 4-10). */
+static inline int
+mach64_mem_bndry_en(const mach64_t *mach64)
+{
+    return (mach64->type <= MACH64_CT) && (mach64->mem_cntl & (1 << 18));
+}
+
 static inline uint32_t
 mach64_mem_bndry(const mach64_t *mach64)
 {

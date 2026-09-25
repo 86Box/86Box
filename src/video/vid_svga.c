@@ -1648,10 +1648,12 @@ svga_poll(void *priv)
             blink_delay  = (svga->crtc[11] & 0x60) >> 5;
             if (svga->crtc[10] & 0x20)
                 svga->cursoron = 0;
+            else if (svga->cursor_noblink)
+                svga->cursoron = 1;
             else if (blink_delay == 2)
-                svga->cursoron = ((svga->blink % 96) >= 48);
+                svga->cursoron = (((svga->blink >> svga->cursor_blink_half) % 96) >= 48);
             else
-                svga->cursoron = svga->blink & (16 + (16 * blink_delay));
+                svga->cursoron = (svga->blink >> svga->cursor_blink_half) & (16 + (16 * blink_delay));
 
             if (!(svga->blink & 15))
                 svga->fullchange = 2;
