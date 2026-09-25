@@ -146,6 +146,8 @@ typedef struct epat_s {
     int     intrq;       /* the drive's INTRQ, as the bridge latches it */
     int     irq_armed;   /* CPP(0x48): forward INTRQ to the port's interrupt */
     int     irq_out;     /* the level presented to lpt_irq() */
+    int     irq_ready;   /* the arm-to-interrupt latency has elapsed */
+    pc_timer_t irq_timer;
     int     unit_pending; /* a CPP(0x08|unit) answer waits for the next status read */
     uint8_t unit_byte;
     uint8_t data_last;
@@ -335,9 +337,15 @@ typedef struct epat_s {
  * Its handler requires nACK high (status bit 6) and asks CPP(0x08|unit), taking
  * the one status byte that follows as bit 7 = this chip interrupted, bits 6-4 =
  * the unit, bit 3 clear. CPP(0x40) and a connect stop the forwarding.
+ *
+ * The unit byte must not depend on the forwarding: the driver's unit scan
+ * sends CPP(0x40) before every CPP(0x08|unit), then CPP(0x50|unit) to
+ * acknowledge it, and CPP(0x48) once the scan is over.
  */
 #define EPAT_CPP_IRQ_ARM   0x48
 #define EPAT_CPP_IRQ_OFF   0x40
+#define EPAT_CPP_UNIT_ACK  0x50  /* 0x50 | unit, no reply */
+#define EPAT_IRQ_LATENCY_US 1000
 #define EPAT_CPP_UNIT_ID   0x10  /* 0x10 | unit -> two bytes */
 #define EPAT_CPP_ID_PRESENT 0xFFAA  /* what a populated unit answers */
 #define EPAT_CPP_INIT_WRITES 7
@@ -539,6 +547,15 @@ epat_cdb_touches_media(uint8_t op)
 }
 
 static void epat_update_irq(epat_t *dev);
+
+static void
+epat_irq_ready(void *priv)
+{
+    epat_t *dev = (epat_t *) priv;
+
+    dev->irq_ready = 1;
+    epat_update_irq(dev);
+}
 
 /* ATA: INTRQ is asserted when the drive wants the host, unless nIEN is set. */
 static void
@@ -1012,7 +1029,7 @@ epat_update_irq(epat_t *dev)
 {
     const int want = (dev->regs[EPAT_REG_IRQCTL] & EPAT_IRQ_TEST) &&
                      (dev->data == EPAT_IRQ_TEST_DATA);
-    const int out  = want || (dev->irq_armed && dev->intrq);
+    const int out  = want || (dev->irq_armed && dev->irq_ready && dev->intrq);
 
     dev->irq_test = want;
     if (out != dev->irq_out) {
@@ -1050,7 +1067,7 @@ epat_write_data(uint8_t val, void *priv)
         else if ((dev->ucmd & 0xf8) == EPAT_CPP_UNIT_BYTE) {
             /* Read once, straight after the frame, with no strobe. Only unit 0 exists. */
             const int unit    = dev->ucmd & 0x07;
-            dev->unit_byte    = (dev->irq_armed && dev->intrq && (unit == 0)) ?
+            dev->unit_byte    = (dev->intrq && (unit == 0)) ?
                                     (uint8_t) (0x80 | (unit << 4)) : 0x00;
             dev->unit_pending = 1;
             dev->ucmd_pending = 0;
@@ -1218,6 +1235,8 @@ epat_write_ctrl(uint8_t val, void *priv)
             dev->connected    = 1;
             dev->status       = EPAT_STAT_IDLE;
             dev->irq_armed    = 0;
+            dev->irq_ready    = 0;
+            timer_disable(&dev->irq_timer);
             dev->unit_pending = 0;
             epat_update_irq(dev);
             dev->ecp_cmd   = 0x00;  /* a fresh connect is not mid-block */
@@ -1235,12 +1254,25 @@ epat_write_ctrl(uint8_t val, void *priv)
             dev->cpp_init = EPAT_CPP_INIT_WRITES;
             epat_log(dev->log, "CPP init\n");
         } else if (dev->ucmd == EPAT_CPP_IRQ_ARM) {
+            /*
+             * SD120PPD.SYS arms, then sets the port's interrupt enable, and the
+             * port drops a raise while that bit is clear. A drive that has
+             * already finished must therefore not interrupt until after it is
+             * set - as on hardware, where the drive completes after the
+             * disconnect, not during it.
+             */
             dev->irq_armed = 1;
+            dev->irq_ready = 0;
+            timer_set_delay_u64(&dev->irq_timer, EPAT_IRQ_LATENCY_US * TIMER_USEC);
             epat_update_irq(dev);
             epat_log(dev->log, "interrupt armed\n");
         } else if (dev->ucmd == EPAT_CPP_IRQ_OFF) {
             dev->irq_armed = 0;
+            dev->irq_ready = 0;
+            timer_disable(&dev->irq_timer);
             epat_update_irq(dev);
+        } else if ((dev->ucmd & 0xf0) == EPAT_CPP_UNIT_ACK) {
+            /* The scan runs its unit counter to 8, so 0x58 arrives as well. */
         } else
             epat_log(dev->log, "unlock frame committed with unknown command %02X\n",
                      dev->ucmd);
@@ -1505,6 +1537,7 @@ epat_init(UNUSED(const device_t *info))
 
     timer_add(&dev->busy_timer, epat_busy_done, dev, 0);
     timer_add(&dev->reset_timer, epat_reset_done, dev, 0);
+    timer_add(&dev->irq_timer, epat_irq_ready, dev, 0);
 
     /* The drive does not exist yet - see epat_attach_drive(). */
 
