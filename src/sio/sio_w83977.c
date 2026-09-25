@@ -994,8 +994,11 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
                             break;
                         case 0xe4:
+                            /* Bit 2 is documented as reserved, but the ASUS CUBX SMM
+                               handler writes 04h and spins until it reads back as 04h
+                               before it will enter S1, so it must be read/write. */
                             if (dev->type == W83977EF)
-                                dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0xf0;
+                                dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0xf4;
                             else
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
                             break;
