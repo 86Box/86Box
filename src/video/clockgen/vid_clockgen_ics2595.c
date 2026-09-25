@@ -54,8 +54,15 @@ ics2595_write(void *priv, int strobe, int dat)
         if ((dat & 8) && !ics2595->oldfs3) { /*Data clock*/
             switch (ics2595->state) {
                 case ICS2595_IDLE:
-                    ics2595->state = (dat & 4) ? ICS2595_WRITE : ICS2595_IDLE;
-                    ics2595->pos   = 0;
+                    /* A word opens with its START bit, a 0 (ICS2595 data sheet,
+                       table 1), which is bit 0 of the word. ATI's BIOS clocks a 1
+                       ahead of it (mach64 ISA BIOS, C000:5733) and X.org does not;
+                       real ATI18818s take both. */
+                    if (!(dat & 4)) {
+                        ics2595->dat   = ics2595->dat >> 1; /* the start bit, bit 0 */
+                        ics2595->pos   = 1;
+                        ics2595->state = ICS2595_WRITE;
+                    }
                     break;
                 case ICS2595_WRITE:
                     ics2595->dat = (ics2595->dat >> 1);
