@@ -577,7 +577,7 @@ SettingsFloppyCDROM::on_comboBoxBus_currentIndexChanged(int index)
         bool enabled = (bus != CDROM_BUS_DISABLED);
         ui->comboBoxChannel->setEnabled(((bus == CDROM_BUS_MITSUMI) || (bus == CDROM_BUS_PHILIPS)) ? 0 : enabled);
         ui->comboBoxSpeed->setEnabled(((bus == CDROM_BUS_MITSUMI) || (bus == CDROM_BUS_PHILIPS)) ? 0 : enabled);
-        ui->comboBoxCDROMType->setEnabled(((bus == CDROM_BUS_MITSUMI) || (bus == CDROM_BUS_PHILIPS)) ? 0 : enabled);
+        ui->comboBoxCDROMType->setEnabled((bus == CDROM_BUS_MITSUMI) ? 0 : enabled);
         ui->checkBoxErrorCheck->setEnabled(((bus == CDROM_BUS_MITSUMI) || (bus == CDROM_BUS_PHILIPS)) ? 0 : enabled);
 
         Harddrives::populateBusChannels(ui->comboBoxChannel->model(), bus, Harddrives::busTrackClass);

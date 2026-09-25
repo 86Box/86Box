@@ -1,125 +1,129 @@
-# Philips/LMS CM250 + original CM205 (experimental)
+# Philips/LMS CM250 with CM205 or CM205MS (experimental)
 
-This implements the host interface of the 8-bit ISA CM250 adapter and the
-original, non-multisession CM205 at 1x. It is an initial data-reading
-implementation. CM205MS, CM206 and CM260 use a different command family and
-are not represented by this device. No firmware ROM is required or executed.
+The 8-bit ISA CM250 adapter supports two separate emulated 1x drive models:
+**original CM205** and **CM205MS**. Both implement CD-DA playback and raw
+Mode 1 / Mode 2 XA sector reads. Multisession behavior belongs to CM205MS;
+the original CM205 exposes only the first session. No firmware ROM is required.
+CM206 and the 16-bit CM260 adapter are not implemented by this device.
 
 ## Configuration
 
-In **Storage controllers**, select **Philips/LMS CM250** as the CD-ROM
-controller. Configure **340h / IRQ 5**. In **Floppy & CD-ROM drives**, select
-the **Philips/LMS** bus and **PHILIPS CM205**, then mount a Mode 1 image.
-Use one Philips drive; there is no selectable drive channel or speed.
+In **Storage controllers**, select **Philips/LMS CM250**, normally **340h /
+IRQ 5**. In **Floppy & CD-ROM drives**, select **Philips/LMS** and either
+**PHILIPS CM205** or **PHILIPS CM205MS**. Enable CD audio and mount a BIN/CUE
+containing audio tracks to play CD-DA. Use one drive; speed is fixed at 1x.
 
-Use the original **CM250.MSC version 1.00, October 3, 1991**, from PHILIPS.ZIP:
+Match the DOS driver to the selected drive model:
+
+| Drive | Tested driver | CONFIG.SYS device line |
+| --- | --- | --- |
+| CM205 | CM250.MSC 1.00, October 3, 1991 | `DEVICE=C:\CDROM\CM250.MSC /D:MSCD001 /P:340 /I:5` |
+| CM205MS | DD250MS.SYS 3.30, August 9, 1993 | `DEVICE=C:\CDROM\DD250MS.SYS /D:MSCD001 /P:340 /I:5` |
+
+Also set `LASTDRIVE=Z` in CONFIG.SYS and run this in AUTOEXEC.BAT:
 
 ```dos
-REM CONFIG.SYS
-LASTDRIVE=Z
-DEVICE=A:\CM250.MSC /D:MSCD001 /P:340 /I:5
+C:\DOS\MSCDEX /D:MSCD001 /M:4 /L:D
 ```
 
-```dos
-REM AUTOEXEC.BAT
-MSCDEX /D:MSCD001 /M:4 /L:D
-```
+The original and MS drivers use different command families and are not
+interchangeable. Use an AT/286 or newer with these drivers; the executables
+contain 80186-family instructions. The validated guest is DOS 5.00 with
+MSCDEX 2.22. Windows multimedia applications and Linux drivers have not been
+validated. CM205MS is a later model, unsuitable for a strictly early-1992 setup.
 
-Match `/P:` and `/I:` to the controller settings. The adapter occupies eight
-I/O addresses. Available bases are 300h, 310h, 330h and 340h; IRQs are 3, 4, 5
-and 6. Avoid a resource already used by the sound card, serial port or floppy
-controller. Testing also passed at 330h / IRQ 3. These settings do not select
-a Sound Blaster CD-ROM interface.
-
-Use an AT-class guest for this driver. Its executable contains 80186-family
-instructions, including PUSH immediate, LEAVE and REP INSB; the card being
-8-bit ISA does not establish compatibility with an 8088 and this DOS driver.
-The validated combination is DOS 5.00 and MSCDEX 2.22. Older DOS/MSCDEX
-versions and Windows multimedia applications have not been validated.
+The adapter occupies eight I/O addresses. Selectable bases are 300h, 310h,
+330h and 340h, with IRQ 3, 4, 5 or 6. Keep those resources free of other devices.
+The earlier Mode 1 tests also passed at 330h / IRQ 3. This adapter is separate
+from a Sound Blaster's proprietary CD-ROM interface.
 
 ## Implemented behavior
 
-- Byte-I/O command echo and response retrieval, receive/transmit readiness,
-  interrupt acknowledgement, adapter reset and drive-reset error handshake.
-- Identification (`2Dh`), disc/position status (`3Ah`), error clear (`4Eh`),
-  seek/stop probe (`59h`), Mode 1 reads (`A6h`) and read continuation (`A7h`).
-- TOC (`E5h`) through the adapter FIFO and track-ready interrupt. Command
-  addresses use BCD frame/second/minute; FIFO TOC positions use binary values.
-- Raw 2352-byte sector transfer to the driver, paced at 75 sectors/second,
-  retaining an unread sector until the guest consumes it.
-- Media-change notification cancels pending transfers and partial commands;
-  errors, reset and failed/short backend reads do not expose stale sectors.
-- Original-CM205 session restriction: track range, TOC requests, reported
-  capacity and read limits use the first session known to the image backend.
-- Qt settings, configuration persistence and media-menu integration.
+- Byte-I/O command echo, response retrieval, readiness, IRQ acknowledgement,
+  adapter reset, drive-reset handshake and selected-channel status.
+- Original CM205 identification, status, seek, reads and continuation, FIFO TOC,
+  CD-DA play (`B1h`), pause (`EAh`), routing (`C5h`) and current audio position.
+  Its DOS driver resumes by issuing another play command from the saved position.
+- CM205MS binary-address command family: seek/read, play/pause, audio routing,
+  current Q and streamed lead-in Q, disc/audio/drive status and reset completion.
+  Responses use `F8h`; commands can produce a separate completion byte.
+- Raw 2352-byte Mode 1 and Mode 2 Form 1/Form 2 transfers at 75 sectors/second.
+  A pending sector remains available until the guest consumes it. Audio tracks
+  are excluded from the data-read path. XA ADPCM decoding is outside this change.
+- Original CM205 first-session TOC/capacity/read limits. CM205MS reports the
+  last session and preserves the links between sessions. For CUE images that
+  omit the final B0 link, an end-of-disc link terminates the session chain.
+- Media changes cancel partial packets, pending completions, reads and audio.
+  Failed/short reads do not expose old data. Audio uses the shared CD backend
+  and mixer callbacks.
+- Separate model selection and configuration persistence in Qt.
 
-The Philips bus receives storage-settings ID 13. Its previous unused ID 1
-collided with the shared MFM hard-disk bus ID. Configuration files persist
-the name `philips`, rather than this numeric ID.
-
-## Limits
-
-CD audio playback, pause/resume, audio routing, XA/Mode 2, subchannel/UPC
-queries, guest eject/load/lock commands and diagnostic fidelity are not
-implemented. **This build is not yet a complete MPC multimedia CD drive.**
-Recognizing audio tracks in a mixed-mode TOC does not establish audio playback.
-
-Timing, error details and identity bytes are partly inferred from published
-driver code and the original DOS driver. There is one retained sector rather
-than a cycle-accurate model of the real adapter's FIFO/read-ahead behavior.
-Test registers are minimally handled. Physical-hardware comparison, Linux
-driver validation and a complete interrupt-mask model remain future work.
-The first-session restriction has a synthetic two-session backend unit test;
-no physical multisession disc dump has been validated in a guest.
+The Philips storage-settings bus ID is 13; its previously unused ID 1 collided
+with MFM. Configuration files store the name `philips`.
 
 ## Validation
 
-An isolated IBM AT, 286 at 6 MHz, 512 KB, ran the unmodified CM250.MSC and
-MSCDEX. Guest writes went to separate temporary DOS boot floppies. Existing
-VMs and their disks were not modified.
+Tests use separate temporary boot floppies in an isolated IBM AT, 286 at
+6 MHz, 512 KB. Existing VM configurations and disks were not modified.
 
-| Image / adapter setting | Verified guest result |
+| Test | Result |
 | --- | --- |
-| ISO9660, 340h / IRQ 5 | Directory listing and exact 100,003-byte PATTERN.BIN copy |
-| Mixed-mode MODE1/2352 BIN/CUE, 330h / IRQ 3 | Directory listing and exact 83,774-byte HMIDET.386 copy |
+| CM205 and CM205MS, ISO9660 | Directory and exact 100,003-byte file copy |
+| CM205, mixed-mode MODE1/2352 | Directory and exact 83,774-byte file copy (earlier test) |
+| Both models, MSCDEX CD-DA requests | Play, advancing Q position, pause with stable position, resume |
+| Both models, captured CD audio buffer | Nonzero 17,640-byte PCM block exactly matches the mounted BIN |
+| Both models, direct DOS adapter-I/O probe | Exact 2352-byte XA Form 1 and Form 2 sectors |
+| CM205MS, MSCDEX cooked XA read | Exact 2048-byte primary volume descriptor |
+| Original CM205, two-session Mode 1 fixture | Only first-session directory visible |
+| CM205MS, two-session raw XA fixture | Second-session directory and exact added-file copy |
 
-SHA-256 of the copies matched the host files:
+The mixed-mode fixture is the local Tomb Raider BIN/CUE, used for protocol
+validation rather than as a period-correct software recommendation. XA tests
+use a small copy of the local Theme Hospital image, with one generated Form 2
+sector. No original media files were edited. Audio capture checks the emulator's
+PCM buffer, not physical speaker output or analog volume accuracy.
 
-```text
-PATTERN.BIN  8616347c14b23deba6f62767f748baf7a8eae2407b4069bdc823b5b91b2c9daa
-HMIDET.386   6a5f9b019586607995609040857eeafc143ce90e83a2d0b3d1ec23bad81ee932
-```
-
-The BIN/CUE is the local Tomb Raider image, used as a protocol fixture, not
-as a historically appropriate title for the 1991 drive. A DOS device-IOCTL
-probe checks volume size, track range, lead-out and data/audio track positions.
-The expected disc has 165,951 logical sectors, tracks 1–10, lead-out 36:54:51,
-track 1 at 00:02:00 (data) and track 2 at 19:26:55 (audio).
-
-`philips_cdrom_tests` exercises the public device/I/O callbacks. Tests cover
-the original driver's reset/identification sequence, pacing and retained data,
-read continuation, TOC framing and binary positions, first-session bounds,
-media changes, invalid addresses, short/failed reads, reset and teardown.
-AddressSanitizer/UndefinedBehaviorSanitizer are also used; leak detection is
-disabled because the execution environment interferes with LeakSanitizer.
+`philips_cdrom_tests` contains 21 tests covering both protocols, reset,
+media removal, invalid packets/ranges, sector pacing and continuation, TOC,
+session links, XA transfer selection, CD-DA status and mixer routing. All
+45 Philips/Hitachi/MKE tests pass. Philips AddressSanitizer and
+UndefinedBehaviorSanitizer runs also pass; LeakSanitizer is disabled because
+of interference from the execution environment.
 
 ```sh
-cmake --build build --target 86Box philips_cdrom_tests
-ctest --test-dir build -R '^PhilipsTest\.' --output-on-failure
+cmake --build build --target 86Box philips_cdrom_tests hitachi_cdrom_tests mke_cdrom_tests
+ctest --test-dir build -R '^(PhilipsTest|HitachiTest|MkeTest)\.' --output-on-failure
 ```
 
-Hitachi and MKE controller regression tests pass. Six existing Mitsumi tests
-fail identically on the unchanged parent revision and on this branch; the
-Mitsumi controller was not modified by this patch.
+Six pre-existing Mitsumi test failures reproduce on the unchanged parent.
+Mitsumi code is not modified.
+
+## Limits
+
+This is a behavioral implementation, not firmware or cycle-accurate emulation.
+The real adapter's full read-ahead RAM, interrupt-mask details, test registers,
+error fidelity and mechanical timings remain incomplete. Guest eject/load and
+UPC are unsupported; CM205MS lock/unlock currently maintains reported state.
+Volume scaling and routing lack comparison with physical Philips hardware.
+XA sector support does not imply that every original DOS driver exposes cooked
+XA reads, or that XA ADPCM audio is decoded.
+
+Multisession image formats must preserve session boundaries; a flat ISO cannot
+do so. Testing uses generated two-session media, not a physical Photo CD dump.
+DD250MS probes later-session volume descriptors at the XA data offset; with
+Mode 1 sessions it can scan the TOC but still mount the first-session directory.
 
 ## References
 
-- [Philips DOS driver archive](https://files.mpoli.fi/hardware/CDROM/PHILIPS/PHILIPS.ZIP):
-  CM250.MSC 1.00 and CM250.CNF. DOS register traces and device IOCTL results
-  provide independent checks on the protocol implementation.
-- [Original CM205 Linux drivers](https://ibiblio.org/pub/Linux/kernel/patches/cdrom/):
-  `lmscd0.4.tar.gz` and `cm205cd.0.5a.tar.gz`, Kai Petzke / Martin Seine,
-  GPL-2.0-or-later. The original Linux driver does not implement CD audio.
-- [Philips archive listing](https://files.mpoli.fi/unpacked/hardware/cdrom/philips/):
-  OS/2 driver documentation gives CM250 resources; LZ250MS documents the
-  later CM205 multisession generation. Those later drivers are not the test driver.
+- [Philips DOS archive](https://files.mpoli.fi/hardware/CDROM/PHILIPS/PHILIPS.ZIP):
+  original CM250.MSC 1.00 and configuration documentation.
+- [LZ250MS README](https://files.mpoli.fi/unpacked/hardware/cdrom/philips/lz250ms.zip/_lz250ms.exe/read.me):
+  later CM205 generation and the multisession driver.
+- [Linux CD-ROM driver archive](https://ibiblio.org/pub/Linux/kernel/patches/cdrom/):
+  `lmscd0.4.tar.gz`, `cm205cd.0.5a.tar.gz` (Kai Petzke / Martin Seine), and
+  `linux-2.0.30-cm205ms-0.10.tgz` (Sudarshan Bhat's CM250 support in David
+  van Leeuwen's CM206 driver), GPL-2.0-or-later.
+
+Unmodified DOS driver register traces and MSCDEX probes independently validate
+the implemented command formats. Precise hardware timing and untested commands
+are not established by these sources.
