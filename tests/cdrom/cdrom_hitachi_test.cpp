@@ -53,12 +53,12 @@ protected:
             cdrom[i].cd_status       = CD_STATUS_DATA_ONLY;
             cdrom[i].cdrom_capacity  = 10149; // Inclusive cache includes the pregap.
         }
-        dev = hitachi_cdrom_device.init(&hitachi_cdrom_device);
+        dev = hitachi_cdrom_isa_device.init(&hitachi_cdrom_isa_device);
     }
     void TearDown() override
     {
         if (dev)
-            hitachi_cdrom_device.close(dev);
+            hitachi_cdrom_isa_device.close(dev);
     }
     void    out(int reg, uint8_t v) { write_port(0x300 + reg, v, dev); }
     uint8_t in(int reg) { return read_port(0x300 + reg, dev); }
@@ -222,7 +222,7 @@ TEST_F(HitachiTest, ResetDropsPartialCommandAndReadState)
 {
     command({ 0xff, 0x22, 0, 2, 0 });
     command({ 0xff, 0x30 });
-    hitachi_cdrom_device.reset(dev);
+    hitachi_cdrom_isa_device.reset(dev);
     EXPECT_FALSE(timers[0]->flags & TIMER_ENABLED);
     command({ 0x60 });
     EXPECT_EQ(reply(), 4);
@@ -260,7 +260,7 @@ TEST_F(HitachiTest, LeadInScanRestartsOnMediaChange)
 TEST_F(HitachiTest, CloseRemovesIoAndCallbacks)
 {
     command({ 0xff, 0x22, 0, 2, 0 });
-    hitachi_cdrom_device.close(dev);
+    hitachi_cdrom_isa_device.close(dev);
     dev = nullptr;
     EXPECT_EQ(removed, 1);
     EXPECT_EQ(cdrom[0].insert, nullptr);
@@ -274,6 +274,10 @@ extern "C" {
 cdrom_t  cdrom[CDROM_NUM];
 uint64_t TIMER_USEC = 1ULL << 32;
 uint64_t tsc, timer_target;
+uint16_t io_base, io_size;
+uint8_t (*pos_read)(uint16_t, void *);
+void (*pos_write)(uint16_t, uint8_t, void *);
+uint8_t (*pos_feedb)(void *);
 void
 timer_enable(pc_timer_t *t)
 {
@@ -314,8 +318,8 @@ io_sethandler(uint16_t base, uint16_t size, uint8_t (*rb)(uint16_t, void *),
               void (*)(uint16_t, uint16_t, void *),
               void (*)(uint16_t, uint32_t, void *), void *)
 {
-    EXPECT_EQ(base, 0x300);
-    EXPECT_EQ(size, 16);
+    io_base    = base;
+    io_size    = size;
     read_port  = rb;
     write_port = wb;
 }
@@ -327,6 +331,15 @@ io_removehandler(uint16_t, uint16_t, uint8_t (*)(uint16_t, void *),
                  void (*)(uint16_t, uint32_t, void *), void *)
 {
     ++removed;
+}
+uint8_t
+mca_add(uint8_t (*read)(uint16_t, void *), void (*write)(uint16_t, uint8_t, void *),
+        uint8_t (*feedb)(void *), void (*)(void *), void *)
+{
+    pos_read  = read;
+    pos_write = write;
+    pos_feedb = feedb;
+    return 0;
 }
 int
 cdrom_get_q(cdrom_t *, uint8_t *out, int cursor, uint8_t mode)
@@ -355,3 +368,153 @@ cdrom_readsector_raw(cdrom_t *, uint8_t *out, int lba, int is_msf, int type, int
     return read_result;
 }
 }
+
+namespace {
+class HitachiMcaTest : public ::testing::Test {
+protected:
+    void   *dev { };
+    uint8_t pos_in(uint16_t port) { return pos_read(port, dev); }
+    void    pos_out(uint16_t port, uint8_t val) { pos_write(port, val, dev); }
+    void    SetUp() override
+    {
+        std::memset(cdrom, 0, sizeof(cdrom));
+        timers.clear();
+        read_lbas.clear();
+        read_result = 1;
+        read_length = 2340;
+        removed     = 0;
+        delay       = 0;
+        ops         = { };
+        sector_counts.fill(10000);
+        ops.get_track_info = [](const void *local, uint32_t track, int, track_info_t *ti) {
+            EXPECT_EQ(track, 0xa2u);
+            auto frames = *static_cast<const uint32_t *>(local) + 150;
+            ti->number  = 0xa2;
+            ti->m       = frames / 4500;
+            ti->s       = (frames / 75) % 60;
+            ti->f       = frames % 75;
+            return 1;
+        };
+        cdrom[0].bus_type        = CDROM_BUS_HITACHI;
+        cdrom[0].hitachi_channel = 0;
+        cdrom[0].ops             = &ops;
+        cdrom[0].local           = &sector_counts[0];
+        cdrom[0].cd_status       = CD_STATUS_DATA_ONLY;
+        dev                      = hitachi_cdrom_mca_device.init(&hitachi_cdrom_mca_device);
+    }
+    void TearDown() override
+    {
+        if (dev)
+            hitachi_cdrom_mca_device.close(dev);
+    }
+    /* The card's control port: bit 0 strobes, bit 2 says which way the data
+       lines point, so a command byte goes in with the host driving them and
+       a reply byte comes out with the card driving them. */
+    void    out(int reg, uint8_t v) { write_port(0x300 + reg, v, dev); }
+    uint8_t in(int reg) { return read_port(0x300 + reg, dev); }
+    void    command(std::initializer_list<uint8_t> bytes)
+    {
+        for (auto b : bytes) {
+            out(1, 0x24);
+            out(2, b);
+            out(1, 0x25);
+            EXPECT_EQ(in(1) & 2, 2);
+            out(1, 0x24);
+            EXPECT_EQ(in(1) & 2, 0);
+        }
+        out(1, 0x20);
+    }
+    uint8_t reply()
+    {
+        out(1, 0x21);
+        EXPECT_EQ(in(1) & 2, 2);
+        auto v = in(2);
+        out(1, 0x20);
+        EXPECT_EQ(in(1) & 2, 0);
+        return v;
+    }
+    uint8_t status()
+    {
+        command({ 0x70 });
+        return reply();
+    }
+    void tick()
+    {
+        auto *t = timers.at(0);
+        ASSERT_TRUE(t->flags & TIMER_ENABLED);
+        timer_disable(t);
+        t->callback(t->priv);
+    }
+    void read(unsigned n, uint8_t expected)
+    {
+        for (unsigned i = 0; i < n; ++i)
+            ASSERT_EQ(in(0), expected) << i;
+    }
+};
+
+TEST_F(HitachiMcaTest, PosAdapterIdAndDefaultWindow)
+{
+    EXPECT_EQ(pos_in(0x100), 0xee);
+    EXPECT_EQ(pos_in(0x101), 0x5e);
+    EXPECT_EQ(pos_in(0x102), 0x09);
+    EXPECT_EQ(io_base, 0x300);
+    EXPECT_EQ(io_size, 8);
+}
+
+TEST_F(HitachiMcaTest, PosAddressDecodeAndEnable)
+{
+    pos_out(0x102, 0x19); /* 308h, enabled */
+    EXPECT_EQ(io_base, 0x308);
+    EXPECT_EQ(pos_in(0x102), 0x19);
+    EXPECT_EQ(pos_feedb(dev), 1);
+
+    pos_out(0x102, 0x18); /* 308h, disabled */
+    EXPECT_EQ(removed, 2); /* once for the init-time window, once here */
+    EXPECT_EQ(pos_feedb(dev), 0);
+
+    pos_out(0x102, 0x1b); /* 328h, enabled */
+    EXPECT_EQ(io_base, 0x328);
+    EXPECT_EQ(pos_in(0x102), 0x1b);
+    EXPECT_EQ(pos_feedb(dev), 1);
+}
+
+/* The sector stream answers on the data port, four-byte header first, which
+   is where HITACHIB.SYS reads it from. */
+TEST_F(HitachiMcaTest, DataPortServesTheLoadedSector)
+{
+    command({ 0xff, 0x22, 0x00, 0x02, 0x16 }); /* read from MSF 00:02:16 */
+    EXPECT_NEAR(delay, 1000000.0 / 75, 0.001);
+    tick();
+    EXPECT_EQ(read_lbas, (std::vector<int> { 16 }));
+    read(2340, 16); /* Header and cooked data, then the end of the sector. */
+    EXPECT_EQ(in(0), 0xff);
+}
+
+/* A command byte only goes in while the host drives the data lines: the same
+   strobe with the card driving them reads a reply out instead, and must not
+   run the last command a second time. */
+TEST_F(HitachiMcaTest, ControlStrobeOnlyTakesACommandWhileHostDrives)
+{
+    cdrom[0].insert(cdrom[0].priv); /* latches the 0x60 change bit */
+    command({ 0x60 });
+    EXPECT_EQ(reply(), 0x24); /* A second run of 0x60 would drop the bit. */
+    EXPECT_EQ(reply(), 0xff);
+    EXPECT_EQ(status(), 1);
+}
+
+/* Bit 1 of the control port acknowledges the sector the host has taken. */
+TEST_F(HitachiMcaTest, ControlAcknowledgeAdvancesToTheNextSector)
+{
+    command({ 0xff, 0x22, 0x00, 0x02, 0x16 });
+    tick();
+    read(2340, 16);
+
+    out(1, 0x22); /* The card moves on to lba 17. */
+    EXPECT_NEAR(delay, 1000000.0 / 75, 0.001);
+    EXPECT_EQ(read_lbas, (std::vector<int> { 16 }));
+    tick();
+    EXPECT_EQ(read_lbas, (std::vector<int> { 16, 17 }));
+    read(2340, 17);
+    out(1, 0x20);
+}
+} // namespace
