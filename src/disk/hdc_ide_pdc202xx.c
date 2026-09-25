@@ -1091,7 +1091,7 @@ const device_t pdc20269_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pdc20269_config,
-    .short_name    = "Ultra133",
+    .short_name    = "Promise Ultra133",
     .ide_boards    = ide_boards_first_free_pair
 };
 

@@ -770,7 +770,7 @@ const device_t xtide_acculogic_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL,
-    .short_name    = "sIDE-1/16",
+    .short_name    = "Acculogic sIDE-1/16",
     .ide_boards    = ide_boards_primary
 };
 

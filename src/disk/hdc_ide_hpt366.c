@@ -418,6 +418,6 @@ const device_t ide_hpt366_ter_qua_onboard_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL,
-    .short_name    = "HPT366",
+    .short_name    = "HighPoint HPT366",
     .ide_boards    = ide_boards_ter_qua
 };

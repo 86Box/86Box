@@ -265,6 +265,6 @@ const device_t ide_pc87410_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL,
-    .short_name    = "PC87410",
+    .short_name    = "National PC87410",
     .ide_boards    = ide_boards_pri_sec
 };

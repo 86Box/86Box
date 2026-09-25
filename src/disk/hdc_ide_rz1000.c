@@ -288,7 +288,7 @@ const device_t ide_rz1000_pci_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL,
-    .short_name    = "RZ1000",
+    .short_name    = "PC Tech RZ1000",
     .ide_boards    = ide_boards_pri_sec
 };
 
@@ -304,7 +304,7 @@ const device_t ide_rz1000_pci_single_channel_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL,
-    .short_name    = "RZ1000",
+    .short_name    = "PC Tech RZ1000",
     .ide_boards    = ide_boards_primary
 };
 
@@ -320,6 +320,6 @@ const device_t ide_rz1001_pci_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL,
-    .short_name    = "RZ1001",
+    .short_name    = "PC Tech RZ1001",
     .ide_boards    = ide_boards_pri_sec
 };

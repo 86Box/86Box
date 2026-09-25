@@ -1354,6 +1354,6 @@ const device_t opti_82c931_device = {
     .speed_changed = optimc_speed_changed,
     .force_redraw  = NULL,
     .config        = optimc_config,
-    .short_name    = "82C931",
+    .short_name    = "OPTi 82C931",
     .ide_boards    = ide_boards_quaternary
 };
