@@ -3552,8 +3552,7 @@ ide_set_bus_master(int board,
 /* The boards one generic IDE unit brought up, so that it resets and closes
    those and no others: another controller may have claimed one first. */
 typedef struct ide_unit_t {
-    int first;
-    int count;
+    uint32_t boards; /* mask */
 } ide_unit_t;
 
 /* The first board of a generic unit: local 0-5 the primary (and secondary),
@@ -3574,7 +3573,6 @@ ide_init(const device_t *info)
 
     ide_log("Initializing IDE...\n");
 
-    unit->first = first;
     for (int board = first; (board < (first + count)) && (board < IDE_BUS_MAX); board++) {
         if (ide_board_claimed(board))
             continue;
@@ -3586,7 +3584,7 @@ ide_init(const device_t *info)
         else
             ide_board_init(board, -1, 0, 0, info->local, info->flags);
 
-        unit->count = board - first + 1;
+        unit->boards |= 1 << board;
     }
 
     return unit;
@@ -3681,8 +3679,8 @@ ide_reset(void *priv)
 
     ide_log("Resetting IDE...\n");
 
-    for (int i = unit->first; i < (unit->first + unit->count); i++) {
-        if (ide_boards[i] != NULL)
+    for (int i = 0; i < IDE_BUS_MAX; i++) {
+        if ((unit->boards & (1 << i)) && (ide_boards[i] != NULL))
             ide_board_reset(i);
     }
 }
@@ -3695,8 +3693,8 @@ ide_close(void *priv)
 
     ide_log("Closing IDE...\n");
 
-    for (int i = unit->first; i < (unit->first + unit->count); i++) {
-        if (ide_boards[i] != NULL) {
+    for (int i = 0; i < IDE_BUS_MAX; i++) {
+        if ((unit->boards & (1 << i)) && (ide_boards[i] != NULL)) {
             ide_board_close(i);
             ide_boards[i] = NULL;
         }

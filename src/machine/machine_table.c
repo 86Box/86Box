@@ -6971,7 +6971,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_FLAGS_NONE,
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 512,
             .max  = 16384,
@@ -10435,7 +10435,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_FLAGS_NONE, /* Machine has IDE with controller: Appian ADI/2 */
+        .flags     = MACHINE_IDE, /* Machine has IDE with controller: Appian ADI/2 */
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -11852,7 +11852,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PCIV,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_APM,
         .ram       = {
             .min  = 1024,
             .max  = 131072,
