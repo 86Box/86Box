@@ -299,6 +299,8 @@ typedef struct el3_t {
     uint16_t rx_filter;
 
     uint8_t  stats_enabled;
+    uint16_t stat_pend_rx; /* a latched update: its byte count + 1, or 0 */
+    uint16_t stat_pend_tx;
     uint8_t  carrier_lost;
     uint8_t  sqe_errors;
     uint8_t  multiple_coll;
@@ -619,14 +621,36 @@ el3_stats_indicate(el3_t *dev)
         el3_lower(dev, INT_UPDATE_STATS);
 }
 
+/* "The adapter latches statistics update requests while the statistics
+   are disabled" (6-23), so one frame's update in each direction waits for
+   Statistics Enable rather than being lost. */
 static void
-el3_stat_count(el3_t *dev, uint8_t *frames, uint16_t *bytes, uint16_t n)
+el3_stat_count(el3_t *dev, uint8_t *frames, uint16_t *bytes, uint16_t n, uint16_t *pend)
 {
-    if (!dev->stats_enabled)
+    if (!dev->stats_enabled) {
+        if (*pend == 0)
+            *pend = (uint16_t) (n + 1);
         return;
+    }
     (*frames)++;
     *bytes = (uint16_t) (*bytes + n);
     el3_stats_indicate(dev);
+}
+
+static void
+el3_stats_enable(el3_t *dev)
+{
+    uint16_t rx = dev->stat_pend_rx;
+    uint16_t tx = dev->stat_pend_tx;
+
+    dev->stats_enabled = 1;
+    dev->network_diagnostic |= DIAG_STATS_ENABLED;
+    dev->stat_pend_rx = 0;
+    dev->stat_pend_tx = 0;
+    if (rx)
+        el3_stat_count(dev, &dev->frames_rcvd_ok, &dev->bytes_rcvd_ok, (uint16_t) (rx - 1), &dev->stat_pend_rx);
+    if (tx)
+        el3_stat_count(dev, &dev->frames_xmitted_ok, &dev->bytes_xmitted_ok, (uint16_t) (tx - 1), &dev->stat_pend_tx);
 }
 
 static uint8_t
@@ -655,13 +679,27 @@ el3_stat16_read(el3_t *dev, uint16_t *counter, uint8_t high)
     return ret;
 }
 
-/* Writes add, and the narrow counters saturate. */
+/* A write adds to the counter, and only while statistics are disabled
+   (6-23, 6-24). Whether a narrow counter wraps or sticks at its top is not
+   in the book, and no driver writes the statistics; they stick, as the
+   model first had them, unverified. */
 static void
 el3_stat_add(el3_t *dev, uint8_t *counter, uint8_t n, uint8_t max)
 {
     unsigned v = *counter + n;
 
+    if (dev->stats_enabled)
+        return;
     *counter = (uint8_t) ((v > max) ? max : v);
+    el3_stats_indicate(dev);
+}
+
+static void
+el3_stat16_add(el3_t *dev, uint16_t *counter, uint16_t n)
+{
+    if (dev->stats_enabled)
+        return;
+    *counter = (uint16_t) (*counter + n);
     el3_stats_indicate(dev);
 }
 
@@ -787,7 +825,7 @@ el3_rx_frame(el3_t *dev, const uint8_t *buf, int io_len, int mac)
     dev->rx_count++;
 
     if (mac && !f->error)
-        el3_stat_count(dev, &dev->frames_rcvd_ok, &dev->bytes_rcvd_ok, f->len);
+        el3_stat_count(dev, &dev->frames_rcvd_ok, &dev->bytes_rcvd_ok, f->len, &dev->stat_pend_rx);
 
     el3_log("3C509B: received %u bytes, %u queued\n", f->len, dev->rx_count);
     el3_rx_indicate(dev);
@@ -909,7 +947,7 @@ el3_tx_emit(el3_t *dev, const uint8_t *data, uint16_t len, uint16_t flags)
             el3_rx_frame(dev, frame, len, 1);
         else
             network_tx(dev->card, frame, len);
-        el3_stat_count(dev, &dev->frames_xmitted_ok, &dev->bytes_xmitted_ok, len);
+        el3_stat_count(dev, &dev->frames_xmitted_ok, &dev->bytes_xmitted_ok, len, &dev->stat_pend_tx);
     }
 
     if (flags & TXP_INTERRUPT)
@@ -1064,6 +1102,8 @@ el3_global_reset(el3_t *dev, uint8_t mask)
         dev->media_status       = 0;
         dev->network_diagnostic = DIAG_ASIC_REV_B;
         dev->stats_enabled      = 0;
+        dev->stat_pend_rx       = 0;
+        dev->stat_pend_tx       = 0;
         dev->coax_running       = 0;
         memset(dev->station_addr, 0, sizeof(dev->station_addr));
     }
@@ -1255,8 +1295,7 @@ el3_command(el3_t *dev, uint16_t val)
             dev->tx_start_thresh = param & THRESH_MASK;
             break;
         case CMD_STATISTICS_ENABLE:
-            dev->stats_enabled = 1;
-            dev->network_diagnostic |= DIAG_STATS_ENABLED;
+            el3_stats_enable(dev);
             break;
         case CMD_STATISTICS_DISABLE:
             dev->stats_enabled = 0;
@@ -1608,13 +1647,11 @@ el3_reg_write(el3_t *dev, uint8_t off, uint8_t val)
                     break;
                 case W6_BYTES_RCVD_OK:
                 case W6_BYTES_RCVD_OK + 1:
-                    dev->bytes_rcvd_ok += (uint16_t) (val << ((off & 1) * 8));
-                    el3_stats_indicate(dev);
+                    el3_stat16_add(dev, &dev->bytes_rcvd_ok, (uint16_t) (val << ((off & 1) * 8)));
                     break;
                 case W6_BYTES_XMITTED_OK:
                 case W6_BYTES_XMITTED_OK + 1:
-                    dev->bytes_xmitted_ok += (uint16_t) (val << ((off & 1) * 8));
-                    el3_stats_indicate(dev);
+                    el3_stat16_add(dev, &dev->bytes_xmitted_ok, (uint16_t) (val << ((off & 1) * 8)));
                     break;
                 default:
                     break;
