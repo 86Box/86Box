@@ -473,6 +473,7 @@ void     mach64_ext_writel(uint32_t addr, uint32_t val, void *priv);
 void     mach64_fifo_thread(void *param);
 void     mach64_wake_fifo_thread(mach64_t *mach64);
 void     mach64_wait_fifo_idle(mach64_t *mach64);
+void     mach64_fifo_discard(mach64_t *mach64);
 
 uint8_t  mach64_readb_be(uint32_t addr, void *priv);
 void     mach64_writeb_be(uint32_t addr, uint8_t val, void *priv);

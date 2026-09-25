@@ -1957,10 +1957,8 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     break; /* CONFIG_STAT1 is read-only */
                 case 0xd0 ... 0xd3:
                     /* GEN_GUI_EN (bit 8): "0 = Resets draw engine" (RRG 3-57). */
-                    if (((addr & 3) == 1) && (mach64->gen_test_cntl & 0x100) && !(val & 0x01)) {
-                        mach64_wait_fifo_idle(mach64);
-                        mach64->accel.busy = 0;
-                    }
+                    if (((addr & 3) == 1) && (mach64->gen_test_cntl & 0x100) && !(val & 0x01))
+                        mach64_fifo_discard(mach64);
                     WRITE8(addr, mach64->gen_test_cntl, val);
                     /* GEN_EE_CHIP_SEL (bit 2) is the EEPROM's chip select and
                        GEN_EE_CLOCK (bit 1) its clock; the part sees either only

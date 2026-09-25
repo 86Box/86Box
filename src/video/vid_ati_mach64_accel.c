@@ -509,6 +509,21 @@ mach64_wait_fifo_idle(mach64_t *mach64)
     thread_release_mutex(mach64->fifo_mutex);
 }
 
+/* GEN_GUI_EN going to 0 resets the draw engine, which is how software
+   recovers from a locked FIFO (RRG 3-55, 3-59); the queued writes are
+   lost with it rather than run. */
+void
+mach64_fifo_discard(mach64_t *mach64)
+{
+    thread_wait_mutex(mach64->fifo_mutex);
+    while (!FIFO_EMPTY) {
+        mach64->fifo[mach64->fifo_read_idx & FIFO_MASK].addr_type = FIFO_INVALID;
+        mach64->fifo_read_idx++;
+    }
+    mach64->accel.busy = 0;
+    thread_release_mutex(mach64->fifo_mutex);
+}
+
 void
 mach64_fifo_thread(void *param)
 {
