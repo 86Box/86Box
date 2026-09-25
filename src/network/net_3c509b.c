@@ -6,7 +6,8 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          The 3Com EtherLink III ISA, revision B (3C509B).
+ *          The 3Com EtherLink III adapters: the ISA revision B (3C509B),
+ *          and the Micro Channel 3C529 and 3C529-TP.
  *
  *          The parallel tasking EtherLink III: eight sixteen byte register
  *          windows behind one command register, programmed I/O only, with
@@ -19,11 +20,20 @@
  *          base the EEPROM or the host names. A Global Reset returns it to
  *          that state, which is how drivers find it again on reload.
  *
+ *          The MCA adapters have neither ID sequence nor Plug and Play: the
+ *          system configuration program writes their I/O base, transceiver,
+ *          boot PROM window and IRQ into the POS registers (10-1). They
+ *          carry an Adapter ID, 627Ch for the coax board and 627Dh for the
+ *          twisted-pair board, where the ISA cards carry a Product ID, and
+ *          Window 0's Address Configuration register is a read-only copy
+ *          of the POS bits.
+ *
  *          Written against the "EtherLink III Parallel Tasking ISA, EISA,
  *          Micro Channel, and PCMCIA Adapter Drivers Technical Reference",
  *          3Com part 09-0398-002B. Register and command names below are
  *          that book's. Plug and Play isolation is not modelled; the ISA
- *          contention mechanism is.
+ *          contention mechanism is. Neither is the boot PROM, so the ROM
+ *          Size and Base register is decoded but no memory is mapped for it.
  *
  *          The transmit and receive FIFO handling follows the Fast
  *          EtherLink EISA model in net_3c59x_eisa.c, which shares the
@@ -44,6 +54,7 @@
 #include "cpu.h"
 #include <86box/device.h>
 #include <86box/io.h>
+#include <86box/mca.h>
 #include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/random.h>
@@ -71,12 +82,48 @@ el3_log(const char *fmt, ...)
 #    define el3_log(fmt, ...)
 #endif
 
-/* The connectors, by EEPROM product ID. */
+/* The ISA cards, by EEPROM Product ID. */
 enum {
     BOARD_TPO   = 0, /* 3C509B-TPO: 10BASE-T */
     BOARD_TP    = 1, /* 3C509B-TP: 10BASE-T and AUI */
     BOARD_COMBO = 2, /* 3C509B-COMBO: 10BASE-T, 10BASE2 and AUI */
     BOARD_BNC   = 3  /* 3C509B: 10BASE2 and AUI */
+};
+
+/* The MCA adapters carry an Adapter ID in EEPROM word 3 where the ISA and
+   EISA cards carry a Product ID. It is what POS registers 0 and 1, and
+   Window 0 offset 2, read back (7-10, 7-14, 10-1). */
+#define MCA_ADAPTER_ID_COAX 0x627c /* 3C529 */
+#define MCA_ADAPTER_ID_TP   0x627d /* 3C529-TP */
+
+/* The MCA cards, by EEPROM Adapter ID. */
+enum {
+    BOARD_3C529    = 0, /* 3C529: 10BASE2 and AUI */
+    BOARD_3C529_TP = 1  /* 3C529-TP: 10BASE-T and AUI */
+};
+
+/* Everything that differs from one card in the family to the next: the
+   identity in EEPROM word 3, the EEPROM's default transceiver, and the
+   connector the board has fitted (AUI 0x20, coax 0x10, TP 0x02), which
+   Configuration Control reports (7-12, 7-15). An MCA card takes its
+   transceiver from POS instead, so its EEPROM field is only what an
+   unconfigured card would carry. */
+typedef struct el3_variant_t {
+    uint16_t identity;
+    uint16_t transceiver;
+    uint8_t  connectors;
+} el3_variant_t;
+
+static const el3_variant_t el3_isa_variants[4] = {
+    { 0x9550, 0x0000, 0x02 },
+    { 0x9050, 0x0000, 0x22 },
+    { 0x9450, 0x0000, 0x32 },
+    { 0x9150, 0xc000, 0x30 }
+};
+
+static const el3_variant_t el3_mca_variants[2] = {
+    { MCA_ADAPTER_ID_COAX, 0xc000, 0x30 },
+    { MCA_ADAPTER_ID_TP,   0x0000, 0x22 }
 };
 
 /* ---- the register map ---------------------------------------------------- */
@@ -254,6 +301,10 @@ typedef struct el3_t {
     netcard_t *card;
     uint8_t    mac[6];
 
+    /* MCA adapters only. */
+    uint8_t mca;
+    uint8_t pos_regs[8];
+
     /* The EEPROM file, and the configuration it was built from. */
     char    nvr_name[64];
     uint8_t nvr_stamp[9];
@@ -361,7 +412,16 @@ typedef struct el3_t {
 } el3_t;
 
 static void el3_update_irq(el3_t *dev);
+static void el3_mca_pos_apply(el3_t *dev);
 static uint16_t el3_status(const el3_t *dev);
+
+/* The card this instance is, from the bus it sits on and the board it was
+   made as. */
+static const el3_variant_t *
+el3_variant(const el3_t *dev)
+{
+    return dev->mca ? &el3_mca_variants[dev->board] : &el3_isa_variants[dev->board];
+}
 
 /* ---- the serial EEPROM ---------------------------------------------------- */
 
@@ -447,20 +507,19 @@ el3_pnp_checksums(uint16_t *e)
 static void
 el3_eeprom_build(el3_t *dev, uint16_t base, uint8_t irq)
 {
-    static const uint16_t product[4] = { 0x9550, 0x9050, 0x9450, 0x9150 };
-    static const uint16_t xcvr[4]    = { 0x0000, 0x0000, 0x0000, 0xc000 };
-    uint16_t             *e          = dev->eeprom;
-    uint8_t               hi;
-    uint8_t               lo;
+    const el3_variant_t *var = el3_variant(dev);
+    uint16_t            *e   = dev->eeprom;
+    uint8_t              hi;
+    uint8_t              lo;
 
     memcpy(e, el3_eeprom_image, sizeof(dev->eeprom));
 
     e[0x00] = (uint16_t) ((dev->mac[0] << 8) | dev->mac[1]);
     e[0x01] = (uint16_t) ((dev->mac[2] << 8) | dev->mac[3]);
     e[0x02] = (uint16_t) ((dev->mac[4] << 8) | dev->mac[5]);
-    e[0x03] = product[dev->board];
+    e[0x03] = var->identity;
     /* No boot ROM is modelled, so the card must not advertise one. */
-    e[0x08] = (uint16_t) ((e[0x08] & ~(AC_XCVR | AC_ROM | AC_IO_BASE)) | xcvr[dev->board] | (((base - 0x200) >> 4) & AC_IO_BASE));
+    e[0x08] = (uint16_t) ((e[0x08] & ~(AC_XCVR | AC_ROM | AC_IO_BASE)) | var->transceiver | (((base - 0x200) >> 4) & AC_IO_BASE));
     e[0x09] = (uint16_t) ((e[0x09] & 0x0fff) | (irq << 12));
     e[0x0a] = e[0x00];
     e[0x0b] = e[0x01];
@@ -475,11 +534,11 @@ el3_eeprom_build(el3_t *dev, uint16_t base, uint8_t irq)
        the logical device ID carry the board's product, TCM5090, 5091, 5094
        or 5095, and the serial number is the node address's last four bytes,
        as on the real card. */
-    e[0x19] = product[dev->board];
+    e[0x19] = var->identity;
     e[0x1a] = (uint16_t) ((dev->mac[4] << 8) | dev->mac[5]);
     e[0x1b] = (uint16_t) ((dev->mac[2] << 8) | dev->mac[3]);
-    e[0x2d] = (uint16_t) ((e[0x2d] & 0x00ff) | ((product[dev->board] & 0xff) << 8));
-    e[0x2e] = (uint16_t) ((e[0x2e] & 0xff00) | (product[dev->board] >> 8));
+    e[0x2d] = (uint16_t) ((e[0x2d] & 0x00ff) | ((var->identity & 0xff) << 8));
+    e[0x2e] = (uint16_t) ((e[0x2e] & 0xff00) | (var->identity >> 8));
     el3_pnp_checksums(e);
 
     /* High byte over words 0-0Eh less 8, 9 and 0Dh; low byte over those
@@ -1236,9 +1295,13 @@ el3_global_reset(el3_t *dev, uint8_t mask)
         dev->eeprom_command       = 0;
         dev->eeprom_data          = 0;
         dev->eeprom_write_enabled = 0;
-        dev->config_control       = 0;
+        dev->config_control       = (dev->mca ? CC_ENABLE : 0);
         el3_eeprom_load(dev);
         el3_deactivate(dev);
+        /* The 3C529 takes its I/O base, transceiver, boot PROM window and
+           IRQ from the POS registers instead of the EEPROM (10-1). */
+        if (dev->mca)
+            el3_mca_pos_apply(dev);
         /* "Plug and Play configuration is also placed in a reset state"
            (6-3). */
         if (dev->pnp_card != NULL) {
@@ -1487,9 +1550,13 @@ el3_media_status(const el3_t *dev)
 static uint8_t
 el3_config_control_hi(const el3_t *dev)
 {
-    static const uint8_t connectors[4] = { 0x02, 0x22, 0x32, 0x30 }; /* AUI 0x20, coax 0x10, TP 0x02 */
+    uint8_t ret = (uint8_t) (0x0c | 0x01 | el3_variant(dev)->connectors);
 
-    return (uint8_t) (0x80 | 0x40 | 0x0c | 0x01 | connectors[dev->board]);
+    /* Bit 14 reads as "ISA bus interface" and bit 15 is set with it on the
+       ISA and EISA cards; both are clear on the MCA adapter (7-16). */
+    if (!dev->mca)
+        ret |= 0x80 | 0x40;
+    return ret;
 }
 
 static uint8_t
@@ -1511,7 +1578,9 @@ el3_reg_read(el3_t *dev, uint8_t off)
                 case W0_PRODUCT_ID + 1:
                     return (uint8_t) (dev->product_id >> ((off & 1) * 8));
                 case W0_CONFIG_CONTROL:
-                    return (uint8_t) (dev->config_control & CC_ENABLE);
+                    /* On the MCA adapter the Enable Adapter bit is always
+                       a one and writing to it has no effect (10-1). */
+                    return (uint8_t) (dev->mca ? CC_ENABLE : (dev->config_control & CC_ENABLE));
                 case W0_CONFIG_CONTROL + 1:
                     return el3_config_control_hi(dev);
                 case W0_ADDRESS_CONFIG:
@@ -1691,19 +1760,30 @@ el3_reg_write(el3_t *dev, uint8_t off, uint8_t val)
                         el3_global_reset(dev, 0);
                         break;
                     }
-                    dev->config_control = val & CC_ENABLE;
+                    dev->config_control = (dev->mca ? CC_ENABLE : (val & CC_ENABLE));
                     el3_update_irq(dev);
                     break;
                 case W0_ADDRESS_CONFIG:
+                    /* Read-only on the MCA adapter: it is a copy of the POS
+                       bits (7-19). */
+                    if (dev->mca)
+                        break;
                     dev->address_config = (uint16_t) ((dev->address_config & 0xff00) | (val & 0xbf));
                     break;
                 case W0_ADDRESS_CONFIG + 1:
+                    if (dev->mca)
+                        break;
                     dev->address_config = (uint16_t) ((dev->address_config & 0x00ff) | (val << 8));
                     break;
                 case W0_RESOURCE_CONFIG:
                     dev->resource_config = (uint16_t) ((dev->resource_config & 0xff00) | val);
                     break;
                 case W0_RESOURCE_CONFIG + 1:
+                    /* The IRQ nibble is a POS bit on the MCA adapter; the
+                       rest of the register, Synchronous Ready included, is
+                       written normally (7-22, 10-1). */
+                    if (dev->mca)
+                        val = (uint8_t) ((val & 0x0f) | ((dev->resource_config >> 8) & 0xf0));
                     dev->resource_config = (uint16_t) ((dev->resource_config & 0x00ff) | (val << 8));
                     el3_set_irq(dev, el3_irq_of(dev->resource_config));
                     break;
@@ -1929,6 +2009,63 @@ el3_activate(el3_t *dev, uint16_t base)
     el3_update_irq(dev);
 }
 
+/* ---- the MCA POS registers --------------------------------------------------- */
+
+/* The POS bits are the adapter's configuration on this bus: Card Enable bit 0
+   turns the card on, and the I/O base, the transceiver, the boot PROM window
+   and the IRQ come from the POS registers rather than the EEPROM (7-10 to
+   7-12, 10-1). Window 0's Address Configuration register is a read-only
+   copy of them (7-19): transceiver in bits 15:14, ROM size in 13:12,
+   ROM base in 11:8, and the six bit I/O base in 5:0. */
+static void
+el3_mca_pos_apply(el3_t *dev)
+{
+    uint16_t xcvr   = (uint16_t) (dev->pos_regs[4] & 0x03);
+    uint16_t rom    = (uint16_t) ((dev->pos_regs[3] & 0xfc) << 6);
+    uint16_t iobase = (uint16_t) ((dev->pos_regs[4] >> 2) & 0x3f);
+    uint16_t base   = (uint16_t) (0x200 + (iobase * 0x400));
+    uint8_t  irq    = (uint8_t) (dev->pos_regs[5] & 0x0f);
+
+    dev->address_config  = (uint16_t) ((xcvr << 14) | rom | iobase);
+    dev->resource_config = (uint16_t) ((dev->resource_config & 0x0fff) | (irq << 12));
+
+    if (dev->pos_regs[2] & 0x01) {
+        el3_activate(dev, base);
+        el3_set_irq(dev, el3_irq_of(dev->resource_config));
+    } else {
+        el3_deactivate(dev);
+        el3_set_irq(dev, 0);
+    }
+}
+
+static uint8_t
+el3_mca_read(uint16_t port, void *priv)
+{
+    const el3_t *dev = (el3_t *) priv;
+
+    return dev->pos_regs[port & 7];
+}
+
+static void
+el3_mca_write(uint16_t port, uint8_t val, void *priv)
+{
+    el3_t *dev = (el3_t *) priv;
+
+    if (port < 0x0102)
+        return;
+
+    dev->pos_regs[port & 7] = val;
+    el3_mca_pos_apply(dev);
+}
+
+static uint8_t
+el3_mca_feedb(void *priv)
+{
+    const el3_t *dev = (el3_t *) priv;
+
+    return (dev->pos_regs[2] & 0x01);
+}
+
 /* ---- the ID port ------------------------------------------------------------ */
 
 static void
@@ -2126,10 +2263,25 @@ el3_init(const device_t *info)
     uint8_t  irq;
     int      mac;
 
-    dev->board = (uint8_t) device_get_config_int("board");
-    dev->pnp   = (uint8_t) device_get_config_int("pnp");
-    base       = (uint16_t) device_get_config_hex16("base");
-    irq        = (uint8_t) device_get_config_int("irq");
+    if (info->flags & DEVICE_MCA) {
+        /* The MCA adapter has no jumpers and Plug and Play: the system
+           configuration program gives it its resources through the POS
+           registers, so nothing here comes from the device's own options. */
+        uint16_t id = (uint16_t) ((info->local == BOARD_3C529_TP) ? MCA_ADAPTER_ID_TP : MCA_ADAPTER_ID_COAX);
+
+        dev->board       = (uint8_t) info->local;
+        dev->mca         = 1;
+        dev->pnp         = 0;
+        irq              = 0;
+        base             = 0x200;
+        dev->pos_regs[0] = (uint8_t) id;
+        dev->pos_regs[1] = (uint8_t) (id >> 8);
+    } else {
+        dev->board = (uint8_t) device_get_config_int("board");
+        dev->pnp   = (uint8_t) device_get_config_int("pnp");
+        irq        = (uint8_t) device_get_config_int("irq");
+        base       = (uint16_t) device_get_config_hex16("base");
+    }
 
     dev->mac[0] = 0x00;
     dev->mac[1] = 0x20;
@@ -2162,14 +2314,18 @@ el3_init(const device_t *info)
     }
     el3_global_reset(dev, 0);
 
-    el3_pnp_load_rom(dev);
-    dev->pnp_card = isapnp_add_card(dev->pnp_rom, sizeof(dev->pnp_rom), el3_pnp_config_changed, NULL, NULL, NULL, dev);
-    el3_pnp_update(dev);
-    io_sethandler(0x279, 1, NULL, NULL, NULL, el3_pnp_addr_write, NULL, NULL, dev);
+    if (dev->mca) {
+        mca_add(el3_mca_read, el3_mca_write, el3_mca_feedb, NULL, dev);
+    } else {
+        el3_pnp_load_rom(dev);
+        dev->pnp_card = isapnp_add_card(dev->pnp_rom, sizeof(dev->pnp_rom), el3_pnp_config_changed, NULL, NULL, NULL, dev);
+        el3_pnp_update(dev);
+        io_sethandler(0x279, 1, NULL, NULL, NULL, el3_pnp_addr_write, NULL, NULL, dev);
 
-    /* The ID port can be any 01x0h port the host picks. */
-    for (uint16_t p = 0x100; p < 0x200; p += 0x10)
-        io_sethandler(p, 1, el3_id_read, NULL, NULL, el3_id_write, NULL, NULL, dev);
+        /* The ID port can be any 01x0h port the host picks. */
+        for (uint16_t p = 0x100; p < 0x200; p += 0x10)
+            io_sethandler(p, 1, el3_id_read, NULL, NULL, el3_id_write, NULL, NULL, dev);
+    }
 
     dev->link_up = 1;
     dev->card    = network_attach(dev, dev->mac, el3_rx, el3_set_link_state);
@@ -2190,16 +2346,18 @@ el3_close(void *priv)
     if (dev == NULL)
         return;
     el3_deactivate(dev);
-    for (uint16_t p = 0x100; p < 0x200; p += 0x10)
-        io_removehandler(p, 1, el3_id_read, NULL, NULL, el3_id_write, NULL, NULL, dev);
-    io_removehandler(0x279, 1, NULL, NULL, NULL, el3_pnp_addr_write, NULL, NULL, dev);
+    if (!dev->mca) {
+        for (uint16_t p = 0x100; p < 0x200; p += 0x10)
+            io_removehandler(p, 1, el3_id_read, NULL, NULL, el3_id_write, NULL, NULL, dev);
+        io_removehandler(0x279, 1, NULL, NULL, NULL, el3_pnp_addr_write, NULL, NULL, dev);
+    }
     if (dev->irq_line)
         picintc(1 << dev->irq);
     netcard_close(dev->card);
     free(dev);
 }
 
-static const device_config_t el3_config[] = {
+static const device_config_t el3_isa_config[] = {
     // clang-format off
     {
         .name           = "board",
@@ -2295,6 +2453,21 @@ static const device_config_t el3_config[] = {
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t el3_mca_config[] = {
+    {
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
 
@@ -2309,5 +2482,33 @@ const device_t threec509b_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = el3_config
+    .config        = el3_isa_config
+};
+
+const device_t threec529_mc_device = {
+    .name          = "3Com EtherLink III MCA (3C529)",
+    .internal_name = "3c529",
+    .flags         = DEVICE_MCA,
+    .local         = BOARD_3C529,
+    .init          = el3_init,
+    .close         = el3_close,
+    .reset         = el3_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = el3_mca_config
+};
+
+const device_t threec529_tp_device = {
+    .name          = "3Com EtherLink III MCA (3C529-TP)",
+    .internal_name = "3c529tp",
+    .flags         = DEVICE_MCA,
+    .local         = BOARD_3C529_TP,
+    .init          = el3_init,
+    .close         = el3_close,
+    .reset         = el3_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = el3_mca_config
 };
