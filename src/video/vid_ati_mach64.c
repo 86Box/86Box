@@ -908,10 +908,76 @@ mach64_line_callback(svga_t *svga)
 }
 
 
-#define PLL_REF_DIV   0x2
-#define VCLK_POST_DIV 0x6
-#define VCLK0_FB_DIV  0x7
-#define PLL_XCLK_CNTL 0xb
+#define PLL_REF_DIV    0x2
+#define PLL_VCLK_CNTL  0x5
+#define VCLK_POST_DIV  0x6
+#define VCLK0_FB_DIV   0x7
+#define PLL_XCLK_CNTL  0xb
+#define PLL_TEST_CNTL  0xe
+#define PLL_TEST_COUNT 0xf
+
+/* The four pixel clocks the PLL registers give. On the VT family
+   VCLK_SRC_SEL (PLL_VCLK_CNTL 1:0) picks the bus clock (CPUCLK), DCLK,
+   XTALIN or the PLL through its post divider, and PLL_PRESET (bit 2) holds
+   the PLL in reset (VT RRG B-2). DCLK is the feature connector's clock,
+   which nothing drives here. A clock of 0 keeps the last timing. */
+static void
+mach64_pll_recalc(mach64_t *mach64)
+{
+    for (uint8_t c = 0; c < 4; c++) {
+        /* From the VT-B (the VT3 here), PLL register 0Bh bits 7:4 are
+           VCLK0-3_XDIV: each picks the post dividers 3, 6 and 12 over
+           1, 2, 4 and 8, index 5 being unused. The VT RRG (B-3) has the
+           VT-A's 0Bh, which has no such bits; every driver for the
+           later chips programs them the same way (xf86-video-mach64
+           aticlock.c, atidsp.c; XFree86 3.3.6 mach64init.c; Haiku). */
+        static const uint8_t vtb_post_div[8] = { 1, 2, 4, 8, 3, 0, 6, 12 };
+        int                  idx = (mach64->pll_regs[VCLK_POST_DIV] >> (c * 2)) & 3;
+        double               m   = (double) mach64->pll_regs[PLL_REF_DIV];
+        double               n   = (double) mach64->pll_regs[VCLK0_FB_DIV + c];
+        double               r   = 14318184.0;
+        double               p;
+
+        if (mach64->type >= MACH64_VT) {
+            switch (mach64->pll_regs[PLL_VCLK_CNTL] & 3) {
+                case 0:
+                    mach64->pll_freq[c] = (double) cpu_pci_speed;
+                    continue;
+                case 1:
+                    mach64->pll_freq[c] = 0.0;
+                    continue;
+                case 2:
+                    mach64->pll_freq[c] = r;
+                    continue;
+                default:
+                    if (mach64->pll_regs[PLL_VCLK_CNTL] & 4) {
+                        mach64->pll_freq[c] = 0.0;
+                        continue;
+                    }
+                    break;
+            }
+        }
+
+        if (mach64->type >= MACH64_VT3)
+            idx |= ((mach64->pll_regs[PLL_XCLK_CNTL] >> (4 + c)) & 1) << 2;
+        p = (double) vtb_post_div[idx];
+        if ((p == 0.0) || (m == 0.0)) {
+            mach64->pll_freq[c] = 0.0;
+            continue;
+        }
+
+        mach64_log("PLLfreq %i = %g  %g m=%02x n=%02x p=%02x\n", c, (2.0 * r * n) / (m * p), p, mach64->pll_regs[PLL_REF_DIV], mach64->pll_regs[VCLK0_FB_DIV + c], mach64->pll_regs[VCLK_POST_DIV]);
+        mach64->pll_freq[c] = (2.0 * r * n) / (m * p);
+    }
+}
+
+/* PLL_TEST_CNTL is forced to 00h outside the PLL test mode, GEN_TEST_MODE
+   (GEN_TEST_CNTL 19:16) = 1011b (VT RRG B-4, 4-14). */
+static int
+mach64_pll_test_mode(const mach64_t *mach64)
+{
+    return ((mach64->gen_test_cntl >> 16) & 0xf) == 0xb;
+}
 
 static void
 pll_write(mach64_t *mach64, uint32_t addr, uint8_t val)
@@ -925,40 +991,36 @@ pll_write(mach64_t *mach64, uint32_t addr, uint8_t val)
         case 2: /*PLL_DATA: written only with PLL_WR_EN, "read-only" otherwise (RRG-G02700 4-38)*/
             if (!(mach64->clock_cntl & 0x200))
                 break;
-            mach64->pll_regs[mach64->pll_addr] = val;
             mach64_log("pll_write %02x,%02x\n", mach64->pll_addr, val);
-
-            for (uint8_t c = 0; c < 4; c++) {
-                /* From the VT-B (the VT3 here), PLL register 0Bh bits 7:4 are
-                   VCLK0-3_XDIV: each picks the post dividers 3, 6 and 12 over
-                   1, 2, 4 and 8, index 5 being unused. The VT RRG (B-3) has the
-                   VT-A's 0Bh, which has no such bits; every driver for the
-                   later chips programs them the same way (xf86-video-mach64
-                   aticlock.c, atidsp.c; XFree86 3.3.6 mach64init.c; Haiku). */
-                static const uint8_t vtb_post_div[8] = { 1, 2, 4, 8, 3, 0, 6, 12 };
-                int                  idx = (mach64->pll_regs[VCLK_POST_DIV] >> (c * 2)) & 3;
-                double               m   = (double) mach64->pll_regs[PLL_REF_DIV];
-                double               n   = (double) mach64->pll_regs[VCLK0_FB_DIV + c];
-                double               r   = 14318184.0;
-                double               p;
-
-                if (mach64->type >= MACH64_VT3)
-                    idx |= ((mach64->pll_regs[PLL_XCLK_CNTL] >> (4 + c)) & 1) << 2;
-                p = (double) vtb_post_div[idx];
-                if ((p == 0.0) || (m == 0.0)) {
-                    mach64->pll_freq[c] = 0.0; /* no clock: the last timing stays */
-                    continue;
-                }
-
-                mach64_log("PLLfreq %i = %g  %g m=%02x n=%02x p=%02x\n", c, (2.0 * r * n) / (m * p), p, mach64->pll_regs[PLL_REF_DIV], mach64->pll_regs[VCLK0_FB_DIV + c], mach64->pll_regs[VCLK_POST_DIV]);
-                mach64->pll_freq[c] = (2.0 * r * n) / (m * p);
-                mach64_log(" %g\n", mach64->pll_freq[c]);
-            }
+            /* PLL_TEST_COUNT is a read-only counter that any write resets
+               (VT RRG B-4). What it counts is picked by TST_SRC_SEL, whose
+               codes the book does not give, so it stays at 0. */
+            if ((mach64->type >= MACH64_VT) && (mach64->pll_addr == PLL_TEST_COUNT))
+                val = 0;
+            if ((mach64->type >= MACH64_VT) && (mach64->pll_addr == PLL_TEST_CNTL) && !mach64_pll_test_mode(mach64))
+                val = 0;
+            mach64->pll_regs[mach64->pll_addr] = val;
+            mach64_pll_recalc(mach64);
             break;
 
         default:
             break;
     }
+}
+
+/* The VT's PLL registers at reset (VT RRG B-2, B-3): VCLK_SRC_SEL 00, the
+   bus clock, "When RESETb goes active, all clocks switch to using CPUCLK
+   as their source" (B-1). */
+static void
+mach64_vt_pll_reset(mach64_t *mach64)
+{
+    static const uint8_t defaults[16] = {
+        0x00, 0xd4, 0x36, 0x4f, 0x97, 0x04, 0x6a, 0xbe,
+        0xd6, 0xee, 0x88, 0x00, 0x41, 0x00, 0x00, 0x00
+    };
+
+    memcpy(mach64->pll_regs, defaults, sizeof(defaults));
+    mach64_pll_recalc(mach64);
 }
 
 
@@ -1998,6 +2060,8 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     if (((addr & 3) == 1) && (mach64->gen_test_cntl & 0x100) && !(val & 0x01))
                         mach64_fifo_discard(mach64);
                     WRITE8(addr, mach64->gen_test_cntl, val);
+                    if ((mach64->type >= MACH64_VT) && !mach64_pll_test_mode(mach64))
+                        mach64->pll_regs[PLL_TEST_CNTL] = 0;
                     /* GEN_EE_CHIP_SEL (bit 2) is the EEPROM's chip select and
                        GEN_EE_CLOCK (bit 1) its clock; the part sees either only
                        while GEN_EE_EN (bit 4) enables the interface, its pins
@@ -3256,6 +3320,8 @@ mach64vt_init(const device_t *info)
     mach64->config_stat0         = 4 | (1 << 4); /* CFG_MEM_TYPE, and the CFG_VGA_EN strap: VGA on (VT/RAGE RRG 4-18) */
     mach64->use_block_decoded_io = 4;
 
+    mach64_vt_pll_reset(mach64);
+
     ati_eeprom_load(&mach64->eeprom, "mach64vt1.nvr", 1);
     rom_init(&mach64->bios_rom, BIOS_ROMVT_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     mem_mapping_disable(&mach64->bios_rom.mapping);
@@ -3286,6 +3352,8 @@ mach64vt2_init(const device_t *info)
     mach64->dac_cntl             = 1 << 16; /*Internal 24-bit DAC*/
     mach64->config_stat0         = 4 | (1 << 4); /* CFG_MEM_TYPE, and the CFG_VGA_EN strap: VGA on (VT/RAGE RRG 4-18) */
     mach64->use_block_decoded_io = 4;
+
+    mach64_vt_pll_reset(mach64);
 
     ati_eeprom_load(&mach64->eeprom, "mach64vt.nvr", 1);
     rom_init(&mach64->bios_rom, BIOS_ROMVT2_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
