@@ -1353,10 +1353,18 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     READ8(addr, mach64->dst_y_x);
                     break;
                 case 0x2e8 ... 0x2eb:
+                    /* DST_X_Y and DST_WIDTH_HEIGHT (0_BA, 0_BB) are VT-B
+                       registers: neither the GX nor the VT book has them. */
+                    ret = 0;
+                    if (mach64->type < MACH64_VT3)
+                        break;
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr ^ 2, mach64->dst_y_x);
                     break;
                 case 0x2ec ... 0x2ef:
+                    ret = 0;
+                    if (mach64->type < MACH64_VT3)
+                        break;
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr ^ 2, mach64->dst_height_width);
                     break;

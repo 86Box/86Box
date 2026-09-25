@@ -182,7 +182,10 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
             WRITE8(addr, mach64->dst_y_x, val);
             break;
         case 0x2e8 ... 0x2eb:
-            WRITE8(addr ^ 2, mach64->dst_y_x, val);
+            /* DST_X_Y (0_BA) and DST_WIDTH_HEIGHT (0_BB) are VT-B registers,
+               in neither the GX nor the VT book. */
+            if (mach64->type >= MACH64_VT3)
+                WRITE8(addr ^ 2, mach64->dst_y_x, val);
             break;
         case 0x110 ... 0x111:
             WRITE8(addr + 2, mach64->dst_height_width, val);
@@ -208,6 +211,8 @@ start_blit_op:
             break;
 
         case 0x2ec ... 0x2ef:
+            if (mach64->type < MACH64_VT3)
+                break;
             WRITE8(addr ^ 2, mach64->dst_height_width, val);
             mach64->dst_bres_lnth = (mach64->dst_bres_lnth & ~0x7fff) | ((mach64->dst_height_width >> 16) & 0x1fff);
             if ((addr & 0x3ff) == 0x2ef) {
