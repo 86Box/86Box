@@ -50,6 +50,7 @@
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/nvr.h>
+#include <86box/isapnp.h>
 #include <86box/plat_unused.h>
 
 #ifdef ENABLE_3C509B_LOG
@@ -255,7 +256,12 @@ typedef struct el3_t {
 
     /* The EEPROM file, and the configuration it was built from. */
     char    nvr_name[64];
-    uint8_t nvr_stamp[8];
+    uint8_t nvr_stamp[9];
+
+    /* Plug and Play: the card's resource data is EEPROM words 18h-3Fh. */
+    uint8_t pnp;
+    void   *pnp_card;
+    uint8_t pnp_rom[80];
 
     /* The ISA activation mechanism. */
     uint8_t  ids_state;
@@ -383,6 +389,57 @@ static const uint16_t el3_eeprom_image[64] = {
     0x4300, 0x0c80, 0x0de0, 0x2000, 0x0020, 0xb179, 0x0000, 0x0000
 };
 
+/* The Plug and Play checksums in words 18h-3Fh: the serial identifier's
+   LFSR checksum (the ISA Plug and Play specification's, byte 8) and the
+   resource data checksum after the end tag (the sum of the resource data
+   comes to zero). Then word 17h, the secondary checksum, as 3C5X9CFG
+   computes it (its routines at 156E:05D4 and 156E:0660): the high byte
+   XORs every byte of words 10h-12h and 18h-3Fh, the low byte those of words
+   13h-16h. Both give the real card's values from its own image. */
+static void
+el3_pnp_checksums(uint16_t *e)
+{
+    uint8_t b[80];
+    uint8_t lfsr = 0x6a;
+    uint8_t sum  = 0;
+    int     i;
+
+    for (i = 0; i < 40; i++) {
+        b[i * 2]     = (uint8_t) e[0x18 + i];
+        b[i * 2 + 1] = (uint8_t) (e[0x18 + i] >> 8);
+    }
+    for (i = 0; i < 64; i++) {
+        const uint8_t bit = (b[i >> 3] >> (i & 7)) & 1;
+        const uint8_t in  = (uint8_t) (((lfsr ^ (lfsr >> 1)) & 1) ^ bit);
+
+        lfsr = (uint8_t) ((lfsr >> 1) | (in << 7));
+    }
+    b[8] = lfsr;
+    for (i = 9; i < 79; i++) {
+        if (b[i] == 0x79) { /* the end tag, which the checksum covers too */
+            b[i + 1] = (uint8_t) -(uint8_t) (sum + b[i]);
+            break;
+        }
+        sum += b[i];
+        if (b[i] & 0x80) { /* a large item: its tag, length and data */
+            const int len = b[i + 1] | (b[i + 2] << 8);
+
+            for (int j = 1; j <= len + 2; j++)
+                sum += b[i + j];
+            i += len + 2;
+        } else {
+            for (int j = 1; j <= (b[i] & 7); j++)
+                sum += b[i + j];
+            i += b[i] & 7;
+        }
+    }
+    for (i = 0; i < 40; i++)
+        e[0x18 + i] = (uint16_t) (b[i * 2] | (b[i * 2 + 1] << 8));
+
+    e[0x17] = (uint16_t) ((el3_xor_bytes(e, 0x10, 0x12) ^ el3_xor_bytes(e, 0x18, 0x3f)) << 8 |
+                          el3_xor_bytes(e, 0x13, 0x16));
+}
+
 /* That image with the configuration the user picked written into it, as
    3C5X9CFG would: node address, product, transceiver, I/O base and IRQ,
    and the checksum over them. The node address is packed a byte pair to a
@@ -408,6 +465,22 @@ el3_eeprom_build(el3_t *dev, uint16_t base, uint8_t irq)
     e[0x0a] = e[0x00];
     e[0x0b] = e[0x01];
     e[0x0c] = e[0x02];
+
+    /* Word 13h bits 3:2 load ISA ACTIVATION SELECT (7-23): 00b, both
+       mechanisms, with Plug and Play on; 01b, ISA contention only, as the
+       card this image was read from was set and as 3C5X9CFG /PNP:N sets it. */
+    e[0x13] = dev->pnp ? 0x0000 : 0x0004;
+
+    /* The Plug and Play serial identifier (bytes 0-8 of words 18h-1Ch) and
+       the logical device ID carry the board's product, TCM5090, 5091, 5094
+       or 5095, and the serial number is the node address's last four bytes,
+       as on the real card. */
+    e[0x19] = product[dev->board];
+    e[0x1a] = (uint16_t) ((dev->mac[4] << 8) | dev->mac[5]);
+    e[0x1b] = (uint16_t) ((dev->mac[2] << 8) | dev->mac[3]);
+    e[0x2d] = (uint16_t) ((e[0x2d] & 0x00ff) | ((product[dev->board] & 0xff) << 8));
+    e[0x2e] = (uint16_t) ((e[0x2e] & 0xff00) | (product[dev->board] >> 8));
+    el3_pnp_checksums(e);
 
     /* High byte over words 0-0Eh less 8, 9 and 0Dh; low byte over those
        three. The real card's own checksum agrees with this. */
@@ -1126,6 +1199,8 @@ el3_tx_reset(el3_t *dev, uint8_t mask)
 }
 
 static void el3_deactivate(el3_t *dev);
+static void el3_pnp_update(el3_t *dev);
+static void el3_pnp_load_rom(el3_t *dev);
 
 /* Global Reset. Bit 4 is the auto-initialize state machine: resetting it
    rereads the EEPROM and returns the card to ID_WAIT, inactive, so a driver
@@ -1164,6 +1239,13 @@ el3_global_reset(el3_t *dev, uint8_t mask)
         dev->config_control       = 0;
         el3_eeprom_load(dev);
         el3_deactivate(dev);
+        /* "Plug and Play configuration is also placed in a reset state"
+           (6-3). */
+        if (dev->pnp_card != NULL) {
+            el3_pnp_load_rom(dev);
+            isapnp_reset_card(dev->pnp_card);
+            el3_pnp_update(dev);
+        }
         dev->ids_state = IDS_WAIT;
         dev->id_next   = 0xff;
         dev->id_count  = 0;
@@ -1663,6 +1745,7 @@ el3_reg_write(el3_t *dev, uint8_t off, uint8_t val)
                     /* ISA ACTIVATION SELECT (19:18) and RAM PARTITION (17:16). */
                     dev->internal_config = (dev->internal_config & 0xfff0ffff) | ((uint32_t) (val & 0x0f) << 16);
                     el3_partition(dev);
+                    el3_pnp_update(dev);
                     break;
                 case W3_ROM_CONTROL:
                     dev->rom_control = val & 0x03;
@@ -1887,6 +1970,15 @@ el3_id_write(uint16_t port, uint8_t val, void *priv)
        one, not EISA's 1Fh (7-2, 7-23). */
     if ((((dev->internal_config >> 18) & 3) == 2) || ((dev->address_config & AC_IO_BASE) == AC_EISA))
         return;
+    /* "if Plug and Play initiation is in progress (either the Initiation
+       Key is being received, or the adapter is no longer in the Wait4Key
+       state), an ID sequence from the host will be ignored" (7-5). */
+    if ((dev->pnp_card != NULL) && !isapnp_card_waiting_for_key(dev->pnp_card)) {
+        dev->ids_state = IDS_WAIT;
+        dev->id_next   = 0xff;
+        dev->id_count  = 0;
+        return;
+    }
 
     if (val == 0) {
         dev->id_port   = port;
@@ -1938,6 +2030,77 @@ el3_id_read(uint16_t port, void *priv)
     return (uint8_t) (0xfe | bit);
 }
 
+/* ---- Plug and Play ---------------------------------------------------------- */
+
+/* "an in-progress ID sequence will be aborted by the adapter if any write
+   is detected to the Plug and Play Address port" (7-5). */
+static void
+el3_pnp_addr_write(UNUSED(uint16_t port), UNUSED(uint8_t val), void *priv)
+{
+    el3_t *dev = (el3_t *) priv;
+
+    if (dev->ids_state == IDS_WAIT) {
+        dev->id_next  = 0xff;
+        dev->id_count = 0;
+    }
+}
+
+/* The Plug and Play registers for the I/O base, the IRQ and the ROM base
+   "are also transferred into their respective Address Configuration and
+   Resource Configuration fields", and Activate turns the card's I/O on
+   and off (7-5). */
+static void
+el3_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    el3_t   *dev  = (el3_t *) priv;
+    uint16_t base = config->io[0].base;
+    uint32_t rom  = config->mem[0].base;
+
+    if (ld != 0)
+        return;
+
+    if ((base >= 0x200) && (base <= 0x3e0))
+        dev->address_config = (uint16_t) ((dev->address_config & ~AC_IO_BASE) | ((base - 0x200) >> 4));
+    /* An 8 KB ROM window (the resource data's) at C2000h-DE000h: ROM SIZE
+       00b and ROM BASE its 8 KB step (7-17); anything else disables it. */
+    dev->address_config &= (uint16_t) ~AC_ROM;
+    if ((rom >= 0xc2000) && (rom <= 0xde000) && !(rom & 0x1fff))
+        dev->address_config |= (uint16_t) (((rom - 0xc0000) >> 13) << 8);
+    dev->resource_config = (uint16_t) ((dev->resource_config & 0x0fff) | ((config->irq[0].irq & 0x0f) << 12));
+    el3_set_irq(dev, el3_irq_of(dev->resource_config));
+
+    if (config->activate && (base >= 0x200) && (base <= 0x3e0))
+        el3_activate(dev, base);
+    else
+        el3_deactivate(dev);
+}
+
+/* The serial identifier and resource data are the EEPROM's words 18h-3Fh,
+   low byte first (Table 7-2), as loaded at reset. */
+static void
+el3_pnp_load_rom(el3_t *dev)
+{
+    for (uint8_t i = 0; i < 40; i++) {
+        dev->pnp_rom[i * 2]     = (uint8_t) dev->eeprom[0x18 + i];
+        dev->pnp_rom[i * 2 + 1] = (uint8_t) (dev->eeprom[0x18 + i] >> 8);
+    }
+    if (dev->pnp_card != NULL)
+        isapnp_update_card_rom(dev->pnp_card, dev->pnp_rom, sizeof(dev->pnp_rom));
+}
+
+/* Plug and Play answers while ISA ACTIVATION SELECT allows it (not 01b,
+   ISA contention only) and the I/O base is not EISA's (7-5, 7-6, 7-23). */
+static void
+el3_pnp_update(el3_t *dev)
+{
+    if (dev->pnp_card == NULL)
+        return;
+    isapnp_enable_card(dev->pnp_card, ((((dev->internal_config >> 18) & 3) != 1) &&
+                                       ((dev->address_config & AC_IO_BASE) != AC_EISA)) ?
+                                          ISAPNP_CARD_ENABLE :
+                                          ISAPNP_CARD_DISABLE);
+}
+
 /* ---- the device ------------------------------------------------------------- */
 
 static int
@@ -1964,6 +2127,7 @@ el3_init(const device_t *info)
     int      mac;
 
     dev->board = (uint8_t) device_get_config_int("board");
+    dev->pnp   = (uint8_t) device_get_config_int("pnp");
     base       = (uint16_t) device_get_config_hex16("base");
     irq        = (uint8_t) device_get_config_int("irq");
 
@@ -1988,7 +2152,8 @@ el3_init(const device_t *info)
     dev->nvr_stamp[2] = irq;
     dev->nvr_stamp[3] = dev->board;
     memcpy(&dev->nvr_stamp[4], &dev->mac[3], 3);
-    dev->nvr_stamp[7] = 1; /* file format */
+    dev->nvr_stamp[7] = dev->pnp;
+    dev->nvr_stamp[8] = 2; /* file format */
     snprintf(dev->nvr_name, sizeof(dev->nvr_name), "eeprom_%s_%d.nvr", info->internal_name, device_get_instance());
 
     if (!el3_eeprom_restore(dev)) {
@@ -1996,6 +2161,11 @@ el3_init(const device_t *info)
         el3_eeprom_save(dev);
     }
     el3_global_reset(dev, 0);
+
+    el3_pnp_load_rom(dev);
+    dev->pnp_card = isapnp_add_card(dev->pnp_rom, sizeof(dev->pnp_rom), el3_pnp_config_changed, NULL, NULL, NULL, dev);
+    el3_pnp_update(dev);
+    io_sethandler(0x279, 1, NULL, NULL, NULL, el3_pnp_addr_write, NULL, NULL, dev);
 
     /* The ID port can be any 01x0h port the host picks. */
     for (uint16_t p = 0x100; p < 0x200; p += 0x10)
@@ -2022,6 +2192,7 @@ el3_close(void *priv)
     el3_deactivate(dev);
     for (uint16_t p = 0x100; p < 0x200; p += 0x10)
         io_removehandler(p, 1, el3_id_read, NULL, NULL, el3_id_write, NULL, NULL, dev);
+    io_removehandler(0x279, 1, NULL, NULL, NULL, el3_pnp_addr_write, NULL, NULL, dev);
     if (dev->irq_line)
         picintc(1 << dev->irq);
     netcard_close(dev->card);
@@ -2045,6 +2216,17 @@ static const device_config_t el3_config[] = {
             { .description = "3C509B (BNC, AUI)",                   .value = BOARD_BNC   },
             { .description = ""                                                          }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "pnp",
+        .description    = "Plug and Play",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
