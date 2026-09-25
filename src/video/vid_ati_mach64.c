@@ -3222,7 +3222,7 @@ mach64vt_init(const device_t *info)
     mach64->pci_id               = 0x5654;
     mach64->config_chip_id       = 0x08005654;
     mach64->dac_cntl             = 1 << 16; /*Internal 24-bit DAC*/
-    mach64->config_stat0         = 4;
+    mach64->config_stat0         = 4 | (1 << 4); /* CFG_MEM_TYPE, and the CFG_VGA_EN strap: VGA on (VT/RAGE RRG 4-18) */
     mach64->use_block_decoded_io = 4;
 
     ati_eeprom_load(&mach64->eeprom, "mach64vt1.nvr", 1);
@@ -3253,7 +3253,7 @@ mach64vt2_init(const device_t *info)
     mach64->pci_id               = 0x5654;
     mach64->config_chip_id       = 0x40005654;
     mach64->dac_cntl             = 1 << 16; /*Internal 24-bit DAC*/
-    mach64->config_stat0         = 4;
+    mach64->config_stat0         = 4 | (1 << 4); /* CFG_MEM_TYPE, and the CFG_VGA_EN strap: VGA on (VT/RAGE RRG 4-18) */
     mach64->use_block_decoded_io = 4;
 
     ati_eeprom_load(&mach64->eeprom, "mach64vt.nvr", 1);
@@ -3285,7 +3285,7 @@ mach64vt3_onboard_init(const device_t *info)
     mach64->pci_id               = 0x5655;
     mach64->config_chip_id       = 0x9A005655;
     mach64->dac_cntl             = 1 << 16; /*Internal 24-bit DAC*/
-    mach64->config_stat0         = 4;
+    mach64->config_stat0         = 4 | (1 << 4); /* CFG_MEM_TYPE, and the CFG_VGA_EN strap: VGA on (VT/RAGE RRG 4-18) */
     mach64->use_block_decoded_io = 4;
 
     mem_mapping_disable(&mach64->bios_rom.mapping);
