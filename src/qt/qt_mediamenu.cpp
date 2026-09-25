@@ -935,8 +935,14 @@ MediaMenu::cdromUpdateMenu(int i)
         case CDROM_BUS_MITSUMI:
             busName = "Mitsumi";
             break;
+        case CDROM_BUS_HITACHI:
+            busName = "Hitachi";
+            break;
         case CDROM_BUS_MKE:
             busName = "Panasonic/MKE";
+            break;
+        case CDROM_BUS_LPT:
+            busName = "LPT";
             break;
     }
 
@@ -1111,6 +1117,9 @@ MediaMenu::rdiskUpdateMenu(int i)
             break;
         case RDISK_BUS_SCSI:
             busName = "SCSI";
+            break;
+        case RDISK_BUS_LPT:
+            busName = "LPT";
             break;
     }
 

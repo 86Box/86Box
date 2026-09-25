@@ -457,7 +457,9 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                         regs[0x50] = (val & 0xef);
                         break;
                     case INTEL_430HX:
-                        regs[0x50] = (val & 0xf7);
+                        /* PCON: bit 3 (peer concurrency) is read/write, and
+                           bit 1 is the reserved one. */
+                        regs[0x50] = (val & 0xfd);
                         break;
                     case INTEL_430VX:
                     case INTEL_430TX:

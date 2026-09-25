@@ -41,11 +41,11 @@ add_compile_options(
     "$<$<CONFIG:Optimized>:-mtune=native>"
     "$<$<CONFIG:Optimized>:-O3>"
     "$<$<CONFIG:Optimized>:-ffp-contract=fast>"
-    "$<$<CONFIG:Optimized>:-flto>"
+    "$<$<CONFIG:Optimized>:-flto=auto>"
 )
 
 add_link_options(
-    "$<$<CONFIG:Optimized>:-flto>"
+    "$<$<CONFIG:Optimized>:-flto=auto>"
 )
 
 add_compile_definitions(CMAKE)

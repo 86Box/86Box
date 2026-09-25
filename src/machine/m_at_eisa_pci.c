@@ -62,7 +62,7 @@ static const device_config_t at_54tdp_config[] = {
        kept: this decides the starting point and nothing else. */
     {
         .name           = "auto_eisa_config",
-        .description    = "Initialise EISA configuration store",
+        .description    = "Initialize EISA configuration store",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 1,
@@ -155,13 +155,132 @@ machine_at_54tdp_init(const machine_t *model)
        APIC here. An operating system that believes the table and routes
        its interrupts through the APIC therefore loses them -- the mouse
        first, because nothing else needs IRQ 12. Blanking the table is what
-       the other dual-capable Socket 7 boards do. */
-    device_add(&ioapic_device);
+       the other dual-capable Socket 7 boards do. The firmware is AMI, whose
+       last POST code before booting is 00, not Award's FF. */
+    device_add(&ioapic_ami_device);
 
     /* The firmware lives in a Winbond W29C011A, and some of what setup
        stores goes back into it rather than into CMOS. Without a flash part
        here those writes land on read-only memory and are lost. */
     device_add(&winbond_flash_w29c011a_device);
+
+    return ret;
+}
+
+static const device_config_t d823_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "d823_112",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "PhoenixBIOS 4.0 - Revision 1.12.823",
+                .internal_name = "d823_112",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/d823/d823_112.bin", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t d823_device = {
+    .name          = "Siemens-Nixdorf D823",
+    .internal_name = "d823_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = d823_config
+};
+
+/* The Siemens-Nixdorf D823: a 430NX board with the PCEB and ESC, two
+   Socket 5s, four EISA slots, three PCI and one ISA, and a PC Technology
+   RZ1000 for its IDE. Everything below is what the technical manual
+   (A26361-D823-Z120-1-7619) and the v1.12 firmware say:
+
+   - The firmware reaches PCI configuration space by mechanism #2 (ports
+     C000h up) and names three on-board functions there: the PCMC at 0,
+     the PCEB at 1 and the IDE chip at 2, whose table (F000:24F9) sets its
+     BARs to the compatibility addresses, 1F0h, 3F4h, 170h and 374h, and its
+     timing registers at 40h-4Fh -- the RZ1000's layout.
+   - It runs empty initialisation tables against devices 0Dh, 0Eh and 0Fh,
+     the three slots, with INTA, INTB and INTC the primary pin of slots 1,
+     2 and 3 (manual, PCI Device Configuration).
+   - It writes the ESC's EISA identifier itself (table at F000:2445,
+     50h-53h = 4D C9 EE 11, "SNI" EE1 revision 1), and points general
+     purpose chip select 0 at 0C90h, where the board's switch block S500
+     answers: bit 0 of 0C91h is switch 1, recovery mode, and an open
+     switch reads as one. */
+int
+machine_at_d823_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_2);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_IDE,         0, 0, 0, 0); /* Onboard RZ1000 */
+    /* The BIOS's routing table (F000:346E) and the SNI configuration file's
+       slot list put PCI slot 1 at device 0Fh and slot 3 at device 0Dh. */
+    pci_register_slot(0x0f, PCI_CARD_NORMAL,      1, 2, 3, 4); /* Slot 1 */
+    pci_register_slot(0x0e, PCI_CARD_NORMAL,      2, 3, 4, 1); /* Slot 2 */
+    pci_register_slot(0x0d, PCI_CARD_NORMAL,      3, 4, 1, 2); /* Slot 3 */
+
+    /* Four EISA slots, and the one ISA slot beside them. */
+    eisa_init(4);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    device_add(&i430nx_device);
+    device_add(&pceb_device);
+    device_add(&esc_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
+    device_add(&ide_rz1000_pci_device);
+
+    /* What the firmware writes into the ESC's identifier registers anyway,
+       so that anything reading the slots before it has run sees the board. */
+    esc_set_board_id("SNI", 0xee11, 0);
+
+    /* 128 KB of flash with a boot block at the top: switch 1 of S500 runs
+       a "second, non-erasable rudimentary BIOS" from it. The part is the
+       28F001BX-T, the first of the devices Siemens's FLASHBIO knows. It is
+       also where the EISA configuration lives: the firmware keeps it in the
+       second 4 KB parameter block, at FFFFD000h, erasing and programming it
+       itself with the BIOS write enable in ESC register 43h bit 3. It never
+       touches the ESC's configuration RAM (no access to 0C00h), so this
+       board has no EISA configuration store option; the CMOS is the plain
+       128-byte AT one, with the EISA status in byte 33h. */
+    device_add(&intel_flash_bxt_device);
 
     return ret;
 }

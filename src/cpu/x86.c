@@ -266,6 +266,15 @@ reset_common(int hard)
         }
     }
 
+    /* A reset leaves no NMI in progress and none pending: the processor
+       comes out of RESET accepting NMIs, and an NMI that was latched or
+       being serviced is gone with the state it was taken in. Only the
+       blocking and the pending request are the processor's; the chipset's
+       NMI mask (port 70h) is not, and stays where it is. */
+    nmi_enable     = 1;
+    nmi            = 0;
+    nmi_auto_clear = 0;
+
     use32          = 0;
     cpu_cur_status = 0;
     stack32        = 0;

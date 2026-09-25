@@ -47,6 +47,24 @@ SettingsBusTracking::SettingsBusTracking()
 }
 
 uint8_t
+SettingsBusTracking::next_free_hitachi_channel()
+{
+    uint64_t mask;
+    uint8_t  ret = CHANNEL_NONE;
+
+    for (uint8_t i = 0; i < 4; i++) {
+        mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+
+        if (!(hitachi_tracking & mask)) {
+            ret = (uint8_t) i;
+            break;
+        }
+    }
+
+    return ret;
+}
+
+uint8_t
 SettingsBusTracking::next_free_mke_channel()
 {
     uint64_t mask;
@@ -286,6 +304,13 @@ SettingsBusTracking::busChannelsInUse(const int bus)
     int        element;
     uint64_t   mask;
     switch (bus) {
+        case CDROM_BUS_HITACHI:
+            for (uint8_t i = 0; i < 4; i++) {
+                mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+                if (hitachi_tracking & mask)
+                    channelsInUse.append(i);
+            }
+            break;
         case CDROM_BUS_MKE:
             for (uint8_t i = 0; i < 4; i++) {
                 mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
@@ -370,6 +395,14 @@ SettingsBusTracking::device_track(int set, uint8_t dev_type, int bus, int channe
     uint64_t mask;
 
     switch (bus) {
+        case CDROM_BUS_HITACHI:
+            mask = ((uint64_t) dev_type) << ((uint64_t) ((channel << 3) & 0x3f));
+
+            if (set)
+                hitachi_tracking |= mask;
+            else
+                hitachi_tracking &= ~mask;
+            break;
         case CDROM_BUS_MKE:
             mask = ((uint64_t) dev_type) << ((uint64_t) ((channel << 3) & 0x3f));
 

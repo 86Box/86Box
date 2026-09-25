@@ -77,6 +77,7 @@ SettingsFloppyCDROM::setCDROMBus(QAbstractItemModel *model, const QModelIndex &i
         case CDROM_BUS_ATAPI:
         case CDROM_BUS_SCSI:
         case CDROM_BUS_MITSUMI:
+        case CDROM_BUS_HITACHI:
         case CDROM_BUS_MKE:
         case CDROM_BUS_LPT:
             icon = cdrom_is_dvd(type) ? dvdrom_icon : cdrom_icon;
@@ -225,7 +226,9 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
             setCDROMSpeed(model, idx.siblingAtColumn(1), cdrom[i].speed);
         else
             setCDROMSpeed(model, idx.siblingAtColumn(1), speed);
-        if (cdrom[i].bus_type == CDROM_BUS_MKE)
+        if (cdrom[i].bus_type == CDROM_BUS_HITACHI)
+            Harddrives::busTrackClass->device_track(1, DEV_CDROM, cdrom[i].bus_type, cdrom[i].hitachi_channel);
+        else if (cdrom[i].bus_type == CDROM_BUS_MKE)
             Harddrives::busTrackClass->device_track(1, DEV_CDROM, cdrom[i].bus_type, cdrom[i].mke_channel);
         else if (cdrom[i].bus_type == CDROM_BUS_ATAPI)
             Harddrives::busTrackClass->device_track(1, DEV_CDROM, cdrom[i].bus_type, cdrom[i].ide_channel);
@@ -255,11 +258,11 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     int      eligibleRows    = 0;
     scCDROMType->removeRows();
     while (cdrom_drive_types[j].bus_type != BUS_TYPE_NONE) {
-        if (((bus_type == CDROM_BUS_MKE) || (bus_type == CDROM_BUS_ATAPI) || (bus_type == CDROM_BUS_SCSI) ||
+        if (((bus_type == CDROM_BUS_HITACHI) || (bus_type == CDROM_BUS_MKE) || (bus_type == CDROM_BUS_ATAPI) || (bus_type == CDROM_BUS_SCSI) ||
              (bus_type == CDROM_BUS_LPT)) &&
             ((cdrom_drive_types[j].bus_type == bus_type) ||
-             ((cdrom_drive_types[j].bus_type == BUS_TYPE_SCSI) && (bus_type == CDROM_BUS_LPT)) ||
-             ((cdrom_drive_types[j].bus_type == BUS_TYPE_BOTH) && (bus_type != BUS_TYPE_MKE)))) {
+             ((cdrom_drive_types[j].bus_type == BUS_TYPE_IDE) && (bus_type == CDROM_BUS_LPT)) ||
+             ((cdrom_drive_types[j].bus_type == BUS_TYPE_BOTH) && (bus_type != BUS_TYPE_MKE) && (bus_type != BUS_TYPE_HITACHI)))) {
             QString name = CDROMName(j);
             Models::AddEntry(modelType, name, j);
             scCDROMType->addDevice(nullptr, name);
@@ -484,11 +487,11 @@ SettingsFloppyCDROM::onCDROMRowChanged(const QModelIndex &current)
     int      eligibleRows    = 0;
     scCDROMType->removeRows();
     while (cdrom_drive_types[j].bus_type != BUS_TYPE_NONE) {
-        if (((bus == CDROM_BUS_MKE) || (bus == CDROM_BUS_ATAPI) || (bus == CDROM_BUS_SCSI) ||
+        if (((bus == CDROM_BUS_HITACHI) || (bus == CDROM_BUS_MKE) || (bus == CDROM_BUS_ATAPI) || (bus == CDROM_BUS_SCSI) ||
              (bus == CDROM_BUS_LPT)) &&
             ((cdrom_drive_types[j].bus_type == bus) ||
-             ((cdrom_drive_types[j].bus_type == BUS_TYPE_SCSI) && (bus == CDROM_BUS_LPT)) ||
-             ((cdrom_drive_types[j].bus_type == BUS_TYPE_BOTH) && (bus != BUS_TYPE_MKE)))) {
+             ((cdrom_drive_types[j].bus_type == BUS_TYPE_IDE) && (bus == CDROM_BUS_LPT)) ||
+             ((cdrom_drive_types[j].bus_type == BUS_TYPE_BOTH) && (bus != BUS_TYPE_MKE) && (bus != BUS_TYPE_HITACHI)))) {
             QString name = CDROMName(j);
             Models::AddEntry(modelType, name, j);
             scCDROMType->addDevice(nullptr, name);
@@ -596,7 +599,9 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
     int     cdromIdx = ui->treeViewCDROM->selectionModel()->currentIndex().data().toInt();
 
     Harddrives::busTrackClass->device_track(0, DEV_CDROM, ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->treeViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
-    if (bus_type == CDROM_BUS_MKE)
+    if (bus_type == CDROM_BUS_HITACHI)
+        ui->comboBoxChannel->setCurrentIndex(Harddrives::busTrackClass->next_free_hitachi_channel());
+    else if (bus_type == CDROM_BUS_MKE)
         ui->comboBoxChannel->setCurrentIndex(Harddrives::busTrackClass->next_free_mke_channel());
     else if (bus_type == CDROM_BUS_ATAPI)
         ui->comboBoxChannel->setCurrentIndex(Harddrives::busTrackClass->next_free_ide_channel());
@@ -621,11 +626,11 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
     int      eligibleRows    = 0;
     scCDROMType->removeRows();
     while (cdrom_drive_types[j].bus_type != BUS_TYPE_NONE) {
-        if (((bus_type == CDROM_BUS_MKE) || (bus_type == CDROM_BUS_ATAPI) || (bus_type == CDROM_BUS_SCSI) ||
+        if (((bus_type == CDROM_BUS_HITACHI) || (bus_type == CDROM_BUS_MKE) || (bus_type == CDROM_BUS_ATAPI) || (bus_type == CDROM_BUS_SCSI) ||
              (bus_type == CDROM_BUS_LPT)) &&
             ((cdrom_drive_types[j].bus_type == bus_type) ||
-             ((cdrom_drive_types[j].bus_type == BUS_TYPE_SCSI) && (bus_type == CDROM_BUS_LPT)) ||
-             ((cdrom_drive_types[j].bus_type == BUS_TYPE_BOTH) && (bus_type != BUS_TYPE_MKE)))) {
+             ((cdrom_drive_types[j].bus_type == BUS_TYPE_IDE) && (bus_type == CDROM_BUS_LPT)) ||
+             ((cdrom_drive_types[j].bus_type == BUS_TYPE_BOTH) && (bus_type != BUS_TYPE_MKE) && (bus_type != BUS_TYPE_HITACHI)))) {
             QString name = CDROMName(j);
             Models::AddEntry(modelType, name, j);
             scCDROMType->addDevice(nullptr, name);

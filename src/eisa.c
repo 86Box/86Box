@@ -36,6 +36,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/io.h>
 #include <86box/eisa.h>
 #include <86box/plat_unused.h>
@@ -85,99 +86,165 @@ eisa_make_id(uint8_t *id, const char *mfg, uint16_t product, uint8_t revision)
         id[3] = (uint8_t) ((product & 0xf0) | (revision & 0x0f));
 }
 
+/* THE BUS TAKES TIME. A cycle a card answers is an EISA standard cycle: two
+   BCLKs, the same clock the ISA side runs on, with nothing added -- a card
+   that stretches its cycles with EXRDY can charge the rest itself. A card
+   narrower than the access gets it as the bus controller gives it, one cycle
+   per piece, which the fallbacks below do by construction. A slot with no
+   card answering is an unclaimed port and costs what one does anywhere else.
+   Drivers measure this: 3Com's time a frame into the transmit FIFO and
+   divide by the result. */
+#define EISA_CYCLE() (cycles -= ISA_CYCLES(2))
+
+static int
+eisa_card(uint16_t port, uint8_t *slot)
+{
+    *slot = EISA_SLOT_OF(port);
+
+    return (*slot <= eisa_nr_slots) && EISA_SLOT_SPECIFIC(port) && eisa_slots[*slot].present;
+}
+
+static int
+eisa_is_id(uint16_t port)
+{
+    return ((port & 0x0fff) >= EISA_ID_OFFSET) && ((port & 0x0fff) <= (EISA_ID_OFFSET + 3));
+}
+
+/* One byte cycle to a card that is there. The identifier answers whether or
+   not the card cares to, because on real hardware it is not the card's
+   decoding answering: it is four bytes the slot is required to present. */
+static uint8_t
+eisa_card_readb(uint8_t slot, uint16_t port)
+{
+    EISA_CYCLE();
+    if (eisa_is_id(port))
+        return eisa_slots[slot].id[(port & 3)];
+    if (eisa_slots[slot].read == NULL)
+        return 0xff;
+    return eisa_slots[slot].read(port, eisa_slots[slot].priv);
+}
+
+static void
+eisa_card_writeb(uint8_t slot, uint16_t port, uint8_t val)
+{
+    EISA_CYCLE();
+    if (eisa_slots[slot].write != NULL)
+        eisa_slots[slot].write(port, val, eisa_slots[slot].priv);
+}
+
+/* Word and dword cycles. A card that decodes them itself gets them whole;
+   otherwise they are the bytes in order, which is also what the four
+   identifier bytes are. */
+static uint16_t
+eisa_card_readw(uint8_t slot, uint16_t port)
+{
+    if ((eisa_slots[slot].readw != NULL) && !eisa_is_id(port)) {
+        EISA_CYCLE();
+        return eisa_slots[slot].readw(port, eisa_slots[slot].priv);
+    }
+    return (uint16_t) (eisa_card_readb(slot, port) | (eisa_card_readb(slot, (uint16_t) (port + 1)) << 8));
+}
+
+static void
+eisa_card_writew(uint8_t slot, uint16_t port, uint16_t val)
+{
+    if (eisa_slots[slot].writew != NULL) {
+        EISA_CYCLE();
+        eisa_slots[slot].writew(port, val, eisa_slots[slot].priv);
+        return;
+    }
+    eisa_card_writeb(slot, port, (uint8_t) val);
+    eisa_card_writeb(slot, (uint16_t) (port + 1), (uint8_t) (val >> 8));
+}
+
 /* Every slot is decoded here and handed on, so that a slot nothing lives
    in still answers -- with 0xff, which is what an empty one does and what
    firmware takes as "no card". */
 static uint8_t
 eisa_read(uint16_t port, UNUSED(void *priv))
 {
-    uint8_t slot = EISA_SLOT_OF(port);
+    uint8_t slot;
 
-    if ((slot > eisa_nr_slots) || !EISA_SLOT_SPECIFIC(port))
+    if (!eisa_card(port, &slot)) {
+        cycles -= io_delay;
         return 0xff;
-
-    /* The identifier answers whether or not the card cares to, because on
-       real hardware it is not the card answering: it is four bytes the
-       slot is required to present. */
-    if (((port & 0x0fff) >= EISA_ID_OFFSET) && ((port & 0x0fff) <= (EISA_ID_OFFSET + 3))) {
-        if (!eisa_slots[slot].present)
-            return 0xff;
-        return eisa_slots[slot].id[(port & 3)];
     }
-
-    if (!eisa_slots[slot].present || (eisa_slots[slot].read == NULL))
-        return 0xff;
-
-    return eisa_slots[slot].read(port, eisa_slots[slot].priv);
+    return eisa_card_readb(slot, port);
 }
 
 static void
 eisa_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 {
-    uint8_t slot = EISA_SLOT_OF(port);
+    uint8_t slot;
 
-    if ((slot > eisa_nr_slots) || !EISA_SLOT_SPECIFIC(port))
+    if (!eisa_card(port, &slot)) {
+        cycles -= io_delay;
         return;
-    if (!eisa_slots[slot].present || (eisa_slots[slot].write == NULL))
-        return;
+    }
+    eisa_card_writeb(slot, port, val);
+}
 
-    eisa_slots[slot].write(port, val, eisa_slots[slot].priv);
+static uint16_t
+eisa_readw(uint16_t port, UNUSED(void *priv))
+{
+    uint8_t slot;
+
+    if (!eisa_card(port, &slot)) {
+        cycles -= io_delay;
+        return 0xffff;
+    }
+    return eisa_card_readw(slot, port);
+}
+
+static void
+eisa_writew(uint16_t port, uint16_t val, UNUSED(void *priv))
+{
+    uint8_t slot;
+
+    if (!eisa_card(port, &slot)) {
+        cycles -= io_delay;
+        return;
+    }
+    eisa_card_writew(slot, port, val);
+}
+
+static uint32_t
+eisa_readl(uint16_t port, UNUSED(void *priv))
+{
+    uint8_t slot;
+
+    if (!eisa_card(port, &slot)) {
+        cycles -= io_delay;
+        return 0xffffffff;
+    }
+    if ((eisa_slots[slot].readl != NULL) && !eisa_is_id(port)) {
+        EISA_CYCLE();
+        return eisa_slots[slot].readl(port, eisa_slots[slot].priv);
+    }
+    return (uint32_t) eisa_card_readw(slot, port) | ((uint32_t) eisa_card_readw(slot, (uint16_t) (port + 2)) << 16);
+}
+
+static void
+eisa_writel(uint16_t port, uint32_t val, UNUSED(void *priv))
+{
+    uint8_t slot;
+
+    if (!eisa_card(port, &slot)) {
+        cycles -= io_delay;
+        return;
+    }
+    if (eisa_slots[slot].writel != NULL) {
+        EISA_CYCLE();
+        eisa_slots[slot].writel(port, val, eisa_slots[slot].priv);
+        return;
+    }
+    eisa_card_writew(slot, port, (uint16_t) val);
+    eisa_card_writew(slot, (uint16_t) (port + 2), (uint16_t) (val >> 16));
 }
 
 /* The four windows a slot owns, claimed for every slot the board has so
    that an empty one reads 0xff rather than the bus's floating 0xff, which
    looks the same but is not guaranteed. */
-/* Word and dword cycles. A card that decodes them itself gets them whole;
-   otherwise they are the bytes in order, which is also what the four
-   identifier bytes are. */
-static uint16_t
-eisa_readw(uint16_t port, void *priv)
-{
-    uint8_t slot = EISA_SLOT_OF(port);
-
-    if ((slot <= eisa_nr_slots) && EISA_SLOT_SPECIFIC(port) && eisa_slots[slot].present && (eisa_slots[slot].readw != NULL) && (((port & 0x0fff) < EISA_ID_OFFSET) || ((port & 0x0fff) > (EISA_ID_OFFSET + 3))))
-        return eisa_slots[slot].readw(port, eisa_slots[slot].priv);
-
-    return (uint16_t) (eisa_read(port, priv) | (eisa_read((uint16_t) (port + 1), priv) << 8));
-}
-
-static uint32_t
-eisa_readl(uint16_t port, void *priv)
-{
-    uint8_t slot = EISA_SLOT_OF(port);
-
-    if ((slot <= eisa_nr_slots) && EISA_SLOT_SPECIFIC(port) && eisa_slots[slot].present && (eisa_slots[slot].readl != NULL) && (((port & 0x0fff) < EISA_ID_OFFSET) || ((port & 0x0fff) > (EISA_ID_OFFSET + 3))))
-        return eisa_slots[slot].readl(port, eisa_slots[slot].priv);
-
-    return (uint32_t) eisa_readw(port, priv) | ((uint32_t) eisa_readw((uint16_t) (port + 2), priv) << 16);
-}
-
-static void
-eisa_writew(uint16_t port, uint16_t val, void *priv)
-{
-    uint8_t slot = EISA_SLOT_OF(port);
-
-    if ((slot <= eisa_nr_slots) && EISA_SLOT_SPECIFIC(port) && eisa_slots[slot].present && (eisa_slots[slot].writew != NULL)) {
-        eisa_slots[slot].writew(port, val, eisa_slots[slot].priv);
-        return;
-    }
-    eisa_write(port, (uint8_t) val, priv);
-    eisa_write((uint16_t) (port + 1), (uint8_t) (val >> 8), priv);
-}
-
-static void
-eisa_writel(uint16_t port, uint32_t val, void *priv)
-{
-    uint8_t slot = EISA_SLOT_OF(port);
-
-    if ((slot <= eisa_nr_slots) && EISA_SLOT_SPECIFIC(port) && eisa_slots[slot].present && (eisa_slots[slot].writel != NULL)) {
-        eisa_slots[slot].writel(port, val, eisa_slots[slot].priv);
-        return;
-    }
-    eisa_writew(port, (uint16_t) val, priv);
-    eisa_writew((uint16_t) (port + 2), (uint16_t) (val >> 16), priv);
-}
-
 static void
 eisa_claim(uint8_t slot, int set)
 {

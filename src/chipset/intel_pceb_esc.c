@@ -53,6 +53,8 @@
 #include <86box/dma.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
+#include <86box/pit_fast.h>
+#include <86box/flash.h>
 #include <86box/apm.h>
 #include <86box/nmi.h>
 #include <86box/port_92.h>
@@ -966,23 +968,14 @@ esc_conf_write(esc_t *dev, uint8_t index, uint8_t val)
                bit is set in the configuration register BIOSCSB, the
                LBIOSCS# is also asserted for memory write cycles."
 
-               This board's firmware uses that write enable properly --
-               F000:E8C7 sets BIOSCSB bit 3 and F000:E8E7 clears it again,
-               around whatever it means to store -- so honouring it would
-               keep stray writes off the flash that backs 54tdp.bin.
-
-               It cannot be held here. LBIOSCS# is the bus side of a pair:
-               the north bridge's PAM decides whether the processor's
-               access leaves for the bus at all, and only then does this
-               part select the BIOS. 86Box does model those two sides
-               separately, but the 430HX sets them together -- every PAM
-               write goes through mem_set_mem_state_both(), which is
-               ACCESS_ALL and takes the bus side with it. A gate set from
-               here survives until the next PAM write and no longer, so
-               the two would fight rather than compose. The register reads
-               and writes as the book describes; the protection is the
-               north bridge's, as it is for every other machine of this
-               generation. */
+               The write half is enforced at the flash, which is where
+               the chip select is: esc_bios_write_gate is the flash's
+               gate for as long as this part exists, and reads these two
+               registers live. It composes with the north bridge rather
+               than fighting it -- the PAM decides whether a cycle leaves
+               the processor for the bus, and only then does this part
+               select the BIOS. Reads are not gated: both boards' images
+               are 128 KB and sit in High BIOS, on from reset. */
             dev->regs[index] = val;
             esc_log("ESC: BIOSCS%c %02X, BIOS writes %s\n",
                     (index == 0x42) ? 'A' : 'B', val,
@@ -1423,6 +1416,47 @@ esc_reset(void *priv)
     esc_reset_hard((esc_t *) priv);
 }
 
+/* LBIOSCS# for a write: the flash sees a write cycle only when BIOSCSB bit 3,
+   BIOS Write Enable, is set and the address is in a BIOS range BIOSCSA or
+   BIOSCSB enables (82374EB 3.1.4, 3.1.5). The north bridge has already
+   decided whether the cycle left the processor for the bus at all; this is
+   the chip select downstream of it, so the two compose. */
+static int
+esc_bios_write_gate(uint32_t addr, void *priv)
+{
+    const esc_t  *dev = (const esc_t *) priv;
+    const uint8_t a   = dev->regs[0x42];
+    const uint8_t b   = dev->regs[0x43];
+    uint32_t      low;
+
+    if (!(b & 0x08))
+        return 0;
+
+    /* High BIOS: 0F0000h-0FFFFFh, FF0000h-FFFFFFh, FFFF0000h-FFFFFFFFh. */
+    if ((a & 0x10) && (((addr >= 0x000f0000) && (addr <= 0x000fffff)) || ((addr >= 0x00ff0000) && (addr <= 0x00ffffff)) || (addr >= 0xffff0000)))
+        return 1;
+    /* Enlarged BIOS: FFF80000h-FFFDFFFFh. */
+    if ((a & 0x20) && (addr >= 0xfff80000) && (addr <= 0xfffdffff))
+        return 1;
+    /* Low BIOS 1-4: 16 KB each from 0E0000h, and the same at FFEE0000h and
+       FFFE0000h. */
+    if (((addr >= 0x000e0000) && (addr <= 0x000effff)) || ((addr >= 0xffee0000) && (addr <= 0xffeeffff)) || ((addr >= 0xfffe0000) && (addr <= 0xfffeffff))) {
+        low = (addr >> 14) & 0x03;
+        if (a & (1 << low))
+            return 1;
+    }
+    /* 16 Meg BIOS: FF0000h-FFFFFFh. */
+    if ((b & 0x04) && (addr >= 0x00ff0000) && (addr <= 0x00ffffff))
+        return 1;
+    /* Low and High VGA BIOS: 0C0000h-0C3FFFh and 0C4000h-0C7FFFh. */
+    if ((b & 0x01) && (addr >= 0x000c0000) && (addr <= 0x000c3fff))
+        return 1;
+    if ((b & 0x02) && (addr >= 0x000c4000) && (addr <= 0x000c7fff))
+        return 1;
+
+    return 0;
+}
+
 static void
 esc_close(void *priv)
 {
@@ -1430,6 +1464,10 @@ esc_close(void *priv)
 
     esc_cram_save(dev);
 
+    if (flash_bios_write_gate_priv == dev) {
+        flash_bios_write_gate      = NULL;
+        flash_bios_write_gate_priv = NULL;
+    }
     if (esc_inst == dev)
         esc_inst = NULL;
     free(dev);
@@ -1441,6 +1479,11 @@ esc_init(UNUSED(const device_t *info))
     esc_t *dev = (esc_t *) calloc(1, sizeof(esc_t));
 
     esc_inst = dev;
+
+    /* The BIOS flash's chip select is ours for writes; see
+       esc_bios_write_gate. */
+    flash_bios_write_gate      = esc_bios_write_gate;
+    flash_bios_write_gate_priv = dev;
 
     /* The compatible half of the part. 86Box already models the pieces;
        what the ESC adds is that they are all in one place and that the
@@ -1457,13 +1500,28 @@ esc_init(UNUSED(const device_t *info))
     pic_elcr_io_handler(1);
 
     /* A second timer: counter 0 is the fail-safe timer that can raise
-       NMI, counter 2 drives CPU speed control. */
-    device_add(&i8254_sec_device);
+       NMI, counter 2 drives CPU speed control. Adding the device does not
+       fill in the interface table the way the first timer's init does, so
+       that is done here, or nothing could attach to its output; it is the
+       same kind of timer as the first, which the machine chose. */
+    if (pit_devs[0].set_out_func == pit_fast_intf.set_out_func) {
+        pit_devs[1]      = pit_fast_intf;
+        pit_devs[1].data = device_add(&i8254_sec_fast_device);
+    } else {
+        pit_devs[1]      = pit_classic_intf;
+        pit_devs[1].data = device_add(&i8254_sec_device);
+    }
 
     /* Timer 2's first counter is the fail-safe timer, and its output is
-       an NMI source rather than an interrupt. */
-    if (pit_devs[1].data != NULL)
-        pit_devs[1].set_out_func(pit_devs[1].data, 0, esc_fail_safe_timer);
+       an NMI source rather than an interrupt. Its gate is tied high; a
+       fresh timer has every gate low, and mode 0 does not count without
+       it. */
+    pit_devs[1].set_gate(pit_devs[1].data, 0, 1);
+    pit_devs[1].set_out_func(pit_devs[1].data, 0, esc_fail_safe_timer);
+    /* And it counts a quarter as fast as the system timer: "Clock In
+       ... 0.298 MHz (OSC/48)" against 1.193 MHz (OSC/12) for Timer 1
+       (82374EB, Table 20, Interval Timer Functions). */
+    pit_devs[1].set_clock_div(pit_devs[1].data, 0, 4);
 
     /* The 82374SB's two power management ports, APMC at 0B2h and APMS at
        0B3h. The data book puts them in normal I/O space rather than in

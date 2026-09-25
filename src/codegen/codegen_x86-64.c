@@ -296,10 +296,32 @@ codegen_block_start_recompile(codeblock_t *block)
     addlong((uint32_t) rip_rel);
 #    endif
     block_pos = BLOCK_EXIT_OFFSET; /*Exit code*/
+#if _WIN64
+    /* XMM6 holds guest FPU/MMX values and XMM15 is scratch, and the
+       Windows x64 ABI makes both the caller's: put back what it had. */
+    addbyte(0xf3); /*MOVDQU XMM6, [RSP+0x28]*/
+    addbyte(0x0f);
+    addbyte(0x6f);
+    addbyte(0x74);
+    addbyte(0x24);
+    addbyte(0x28);
+    addbyte(0xf3); /*MOVDQU XMM15, [RSP+0x38]*/
+    addbyte(0x44);
+    addbyte(0x0f);
+    addbyte(0x6f);
+    addbyte(0x7c);
+    addbyte(0x24);
+    addbyte(0x38);
+    addbyte(0x48); /*ADDL $72,%rsp*/
+    addbyte(0x83);
+    addbyte(0xC4);
+    addbyte(0x48);
+#else
     addbyte(0x48);                 /*ADDL $40,%rsp*/
     addbyte(0x83);
     addbyte(0xC4);
     addbyte(0x28);
+#endif
     addbyte(0x41); /*POP R15*/
     addbyte(0x5f);
     addbyte(0x41); /*POP R14*/
@@ -327,10 +349,30 @@ codegen_block_start_recompile(codeblock_t *block)
     addbyte(0x56);
     addbyte(0x41); /*PUSH R15*/
     addbyte(0x57);
+#if _WIN64
+    addbyte(0x48); /*SUBL $72,%rsp*/
+    addbyte(0x83);
+    addbyte(0xEC);
+    addbyte(0x48);
+    addbyte(0xf3); /*MOVDQU [RSP+0x28], XMM6*/
+    addbyte(0x0f);
+    addbyte(0x7f);
+    addbyte(0x74);
+    addbyte(0x24);
+    addbyte(0x28);
+    addbyte(0xf3); /*MOVDQU [RSP+0x38], XMM15*/
+    addbyte(0x44);
+    addbyte(0x0f);
+    addbyte(0x7f);
+    addbyte(0x7c);
+    addbyte(0x24);
+    addbyte(0x38);
+#else
     addbyte(0x48); /*SUBL $40,%rsp*/
     addbyte(0x83);
     addbyte(0xEC);
     addbyte(0x28);
+#endif
     addbyte(0x48); /*MOVL RBP, &cpu_state*/
     addbyte(0xBD);
     addquad(((uintptr_t) &cpu_state) + 128);
@@ -446,10 +488,32 @@ codegen_block_end_recompile(codeblock_t *block)
 
     codegen_accumulate_flush();
 
+#if _WIN64
+    /* XMM6 holds guest FPU/MMX values and XMM15 is scratch, and the
+       Windows x64 ABI makes both the caller's: put back what it had. */
+    addbyte(0xf3); /*MOVDQU XMM6, [RSP+0x28]*/
+    addbyte(0x0f);
+    addbyte(0x6f);
+    addbyte(0x74);
+    addbyte(0x24);
+    addbyte(0x28);
+    addbyte(0xf3); /*MOVDQU XMM15, [RSP+0x38]*/
+    addbyte(0x44);
+    addbyte(0x0f);
+    addbyte(0x6f);
+    addbyte(0x7c);
+    addbyte(0x24);
+    addbyte(0x38);
+    addbyte(0x48); /*ADDL $72,%rsp*/
+    addbyte(0x83);
+    addbyte(0xC4);
+    addbyte(0x48);
+#else
     addbyte(0x48); /*ADDL $40,%rsp*/
     addbyte(0x83);
     addbyte(0xC4);
     addbyte(0x28);
+#endif
     addbyte(0x41); /*POP R15*/
     addbyte(0x5f);
     addbyte(0x41); /*POP R14*/

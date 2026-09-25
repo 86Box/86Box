@@ -275,7 +275,8 @@ scsi_cdrom_log(void *priv, const char *format, ...)
 static void
 scsi_cdrom_set_callback(const scsi_cdrom_t *dev)
 {
-    if (dev && dev->drv && (dev->drv->bus_type != CDROM_BUS_SCSI))
+    if (dev && dev->drv && (dev->drv->bus_type != CDROM_BUS_SCSI) &&
+        (dev->drv->bus_type != CDROM_BUS_LPT))
         ide_set_callback(ide_drives[dev->drv->ide_channel], dev->callback);
 }
 
@@ -4552,6 +4553,8 @@ scsi_cdrom_drive_reset(const int c)
         sd->phase_data_out       = scsi_cdrom_phase_data_out;
         sd->command_stop         = scsi_cdrom_command_stop;
         sd->type                 = SCSI_REMOVABLE_CDROM;
+
+        valid                    = 1;
     } else if (drv->bus_type == CDROM_BUS_SCSI) {
         char *vendor               = cdrom_get_vendor(dev->drv->type);
 

@@ -64,14 +64,16 @@ add_library(vid OBJECT
     vid_cga_toshiba_t3100e.c
     vid_cga_v6355.c
 
+    # IBM PC Convertible LCD display
+    vid_ibm5140.c
+
     # PCjr/PC JX/Tandy
     vid_pcjr.c
     vid_pcjx.c
-    vid_ibm5140.c
     vid_tandy.c
-    vid_mda.c
 
     # Hercules
+    vid_mda.c
     vid_hercules.c
     vid_hercules_plus.c
     vid_hercules_incolor.c
@@ -98,6 +100,9 @@ add_library(vid OBJECT
     # Super VGA core
     vid_svga.c
     vid_svga_render.c
+
+    # IBM PS/2 plasma display
+    vid_ibm_plasma.c
 
     # 8514/A, XGA and derivatives
     vid_8514a.c
