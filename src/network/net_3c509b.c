@@ -1635,9 +1635,14 @@ el3_reg_write(el3_t *dev, uint8_t off, uint8_t val)
 
         case 3:
             switch (off) {
+                case W3_INTERNAL_CONFIG:
+                    /* RAM SPEED (5:4) and RAM SIZE (2:0) are read/write; RAM
+                       WIDTH (3) is hard-wired and reads 0 (7-23, 7-24). */
+                    dev->internal_config = (dev->internal_config & 0xffffffc0) | (val & 0x37);
+                    el3_partition(dev);
+                    break;
                 case W3_INTERNAL_CONFIG + 2:
-                    /* The partition and the activation select; RAM size,
-                       width and speed are the board's. */
+                    /* ISA ACTIVATION SELECT (19:18) and RAM PARTITION (17:16). */
                     dev->internal_config = (dev->internal_config & 0xfff0ffff) | ((uint32_t) (val & 0x0f) << 16);
                     el3_partition(dev);
                     break;
