@@ -202,6 +202,7 @@ enum {
 #define DIAG_RX_ENABLED    0x0400
 #define DIAG_TX_ENABLED    0x0800
 #define DIAG_LOOPBACK      0xf000 /* external, encoder/decoder, controller, FIFO */
+#define DIAG_EXT_LOOPBACK  0x8000
 #define DIAG_FIFO_LOOPBACK 0x1000
 
 #define CC_ENABLE 0x0001
@@ -228,6 +229,10 @@ enum {
 #define RX_QUEUE     32
 #define TX_STATUS_MAX 31
 #define RAM_SIZE     8192
+/* Frames held while the transmitter is off, each a six byte header and its
+   data. The worst case is one byte frames, each taking a dword of the TX
+   FIFO and seven bytes here, in the largest TX FIFO: half of 32 KB. */
+#define TX_PEND_MAX  (((32768 / 2) / 4) * 7 + TX_FRAME_MAX + 8)
 
 /* The ID sequence state machine. */
 enum {
@@ -258,7 +263,6 @@ typedef struct el3_t {
     uint8_t  id_next;    /* the next byte the sequence expects */
     uint8_t  id_count;
     uint8_t  tag;
-    uint16_t contention; /* the EEPROM word being shifted out onto bit 0 */
     uint8_t  active;
     uint16_t io_base;
 
@@ -266,7 +270,6 @@ typedef struct el3_t {
     uint8_t  irq;
     uint8_t  irq_line; /* what the card is driving now */
     uint8_t  latch;
-    uint8_t  timer_running;
     uint64_t timer_start;
     uint16_t int_status;
     uint16_t int_mask;
@@ -282,6 +285,7 @@ typedef struct el3_t {
     uint16_t eeprom_data;
     uint16_t eeprom[64];
     uint8_t  eeprom_write_enabled;
+    uint64_t eeprom_busy_until; /* tsc when EEPROM Busy goes off */
     uint8_t  cmd_low;
 
     uint8_t station_addr[6];
@@ -290,9 +294,12 @@ typedef struct el3_t {
     uint8_t  rom_control;
 
     uint16_t fifo_diag;
+    uint8_t  bist_ctl; /* FIFO Diagnostic's write-only BIST and BFC bits as last written */
     uint16_t network_diagnostic;
+    uint8_t  rx_testen; /* Ethernet Controller Status bit 0 */
     uint16_t media_status;
     uint8_t  coax_running;
+    uint8_t  powered_down; /* Power Down Full */
 
     uint16_t tx_start_thresh;
     uint16_t tx_avail_thresh;
@@ -300,6 +307,8 @@ typedef struct el3_t {
     uint16_t rx_filter;
 
     uint8_t  stats_enabled;
+    uint16_t stat_pend_rx; /* a latched update: its byte count + 1, or 0 */
+    uint16_t stat_pend_tx;
     uint8_t  carrier_lost;
     uint8_t  sqe_errors;
     uint8_t  multiple_coll;
@@ -327,13 +336,14 @@ typedef struct el3_t {
     uint8_t  tx_frame[TX_FRAME_MAX + 4];
     uint16_t tx_got;
     uint16_t tx_count;
-    uint8_t  tx_pend[(RAM_SIZE * 2) + TX_FRAME_MAX + 8];
+    uint8_t  tx_pend[TX_PEND_MAX];
     uint32_t tx_pend_len;
     uint32_t tx_pend_fifo;
     uint8_t  tx_out[TX_FRAME_MAX + 64];
     uint8_t  tx_pad_left;
     uint8_t  tx_status[TX_STATUS_MAX];
     uint8_t  tx_status_count;
+    uint8_t  tx_status_full; /* the transmitter stopped for a full stack */
 
     /* Receive. */
     uint8_t        rx_enabled;
@@ -510,17 +520,18 @@ el3_now(void)
     return tsc;
 }
 
-/* Timer: free running at 3.2 us a count from the rising edge of the
-   interrupt, stopping at FFh. Drivers start it with Request Interrupt to
-   time their own start-up. */
+/* Timer: "a free-running 8-bit counter" at 3.2 us a count, "reset to zero
+   whenever the interrupt output transitions from inactive to active", which
+   stops at 255 (6-22). It runs from power-on, so a card that has not
+   interrupted since reads FFh. */
 static uint8_t
 el3_timer_read(const el3_t *dev)
 {
     double per_tick = ((double) TIMER_USEC / 4294967296.0) * 3.2;
     double ticks;
 
-    if (!dev->timer_running || (per_tick <= 0.0))
-        return 0;
+    if (per_tick <= 0.0)
+        return 0xff;
 
     ticks = (double) (el3_now() - dev->timer_start) / per_tick;
     return (ticks >= 255.0) ? 0xff : (uint8_t) ticks;
@@ -536,9 +547,8 @@ el3_update_irq(el3_t *dev)
     uint8_t  line;
 
     if (live && !dev->latch) {
-        dev->latch         = 1;
-        dev->timer_start   = el3_now();
-        dev->timer_running = 1;
+        dev->latch       = 1;
+        dev->timer_start = el3_now();
     }
 
     line = dev->latch && dev->irq && dev->active && (dev->config_control & CC_ENABLE) && (dev->window != 0);
@@ -620,14 +630,36 @@ el3_stats_indicate(el3_t *dev)
         el3_lower(dev, INT_UPDATE_STATS);
 }
 
+/* "The adapter latches statistics update requests while the statistics
+   are disabled" (6-23), so one frame's update in each direction waits for
+   Statistics Enable rather than being lost. */
 static void
-el3_stat_count(el3_t *dev, uint8_t *frames, uint16_t *bytes, uint16_t n)
+el3_stat_count(el3_t *dev, uint8_t *frames, uint16_t *bytes, uint16_t n, uint16_t *pend)
 {
-    if (!dev->stats_enabled)
+    if (!dev->stats_enabled) {
+        if (*pend == 0)
+            *pend = (uint16_t) (n + 1);
         return;
+    }
     (*frames)++;
     *bytes = (uint16_t) (*bytes + n);
     el3_stats_indicate(dev);
+}
+
+static void
+el3_stats_enable(el3_t *dev)
+{
+    uint16_t rx = dev->stat_pend_rx;
+    uint16_t tx = dev->stat_pend_tx;
+
+    dev->stats_enabled = 1;
+    dev->network_diagnostic |= DIAG_STATS_ENABLED;
+    dev->stat_pend_rx = 0;
+    dev->stat_pend_tx = 0;
+    if (rx)
+        el3_stat_count(dev, &dev->frames_rcvd_ok, &dev->bytes_rcvd_ok, (uint16_t) (rx - 1), &dev->stat_pend_rx);
+    if (tx)
+        el3_stat_count(dev, &dev->frames_xmitted_ok, &dev->bytes_xmitted_ok, (uint16_t) (tx - 1), &dev->stat_pend_tx);
 }
 
 static uint8_t
@@ -656,13 +688,27 @@ el3_stat16_read(el3_t *dev, uint16_t *counter, uint8_t high)
     return ret;
 }
 
-/* Writes add, and the narrow counters saturate. */
+/* A write adds to the counter, and only while statistics are disabled
+   (6-23, 6-24). Whether a narrow counter wraps or sticks at its top is not
+   in the book, and no driver writes the statistics; they stick, as the
+   model first had them, unverified. */
 static void
 el3_stat_add(el3_t *dev, uint8_t *counter, uint8_t n, uint8_t max)
 {
     unsigned v = *counter + n;
 
+    if (dev->stats_enabled)
+        return;
     *counter = (uint8_t) ((v > max) ? max : v);
+    el3_stats_indicate(dev);
+}
+
+static void
+el3_stat16_add(el3_t *dev, uint16_t *counter, uint16_t n)
+{
+    if (dev->stats_enabled)
+        return;
+    *counter = (uint16_t) (*counter + n);
     el3_stats_indicate(dev);
 }
 
@@ -751,7 +797,7 @@ el3_rx_frame(el3_t *dev, const uint8_t *buf, int io_len, int mac)
     uint16_t        len = (uint16_t) io_len;
     uint32_t        crc;
 
-    if (!dev->rx_enabled || (io_len < (mac ? 14 : 1)))
+    if (!dev->rx_enabled || dev->powered_down || (io_len < (mac ? 14 : 1)))
         return 1;
     if (mac && !el3_rx_accept(dev, buf))
         return 1;
@@ -762,7 +808,9 @@ el3_rx_frame(el3_t *dev, const uint8_t *buf, int io_len, int mac)
     if (mac && (len < 60))
         len = 60;
 
-    if ((dev->rx_count >= RX_QUEUE) || (dev->rx_used + ((len + 4 + 3U) & ~3U) > dev->rx_size)) {
+    /* Room for the frame as stored: its CRC too while CRC stripping is off. */
+    if ((dev->rx_count >= RX_QUEUE) ||
+        (dev->rx_used + ((len + ((mac && (dev->media_status & MEDIA_CRC_STRIP_DIS)) ? 4U : 0U) + 3U) & ~3U) > dev->rx_size)) {
         dev->fifo_diag |= FIFO_RX_OVERRUN;
         return 0;
     }
@@ -788,7 +836,7 @@ el3_rx_frame(el3_t *dev, const uint8_t *buf, int io_len, int mac)
     dev->rx_count++;
 
     if (mac && !f->error)
-        el3_stat_count(dev, &dev->frames_rcvd_ok, &dev->bytes_rcvd_ok, f->len);
+        el3_stat_count(dev, &dev->frames_rcvd_ok, &dev->bytes_rcvd_ok, f->len, &dev->stat_pend_rx);
 
     el3_log("3C509B: received %u bytes, %u queued\n", f->len, dev->rx_count);
     el3_rx_indicate(dev);
@@ -836,18 +884,28 @@ el3_rx_status(const el3_t *dev)
 
 /* ---- transmit -------------------------------------------------------------- */
 
+/* The stack "can hold exactly 31 entries". The status that fills it is
+   flagged TX Status Overflow and the transmitter is disabled, so "No
+   packets are dropped or confirmations lost" (6-19). */
 static void
 el3_tx_status_push(el3_t *dev, uint8_t status)
 {
-    if (dev->tx_status_count >= TX_STATUS_MAX) {
+    if (dev->tx_status_count >= TX_STATUS_MAX)
+        return;
+    dev->tx_status[dev->tx_status_count++] = status;
+    if (dev->tx_status_count == TX_STATUS_MAX) {
         dev->tx_status[TX_STATUS_MAX - 1] |= TXS_OVERFLOW;
+        dev->tx_status_full = dev->tx_enabled;
         dev->tx_enabled = 0;
         dev->network_diagnostic &= (uint16_t) ~DIAG_TX_ENABLED;
-    } else
-        dev->tx_status[dev->tx_status_count++] = status;
+    }
     el3_raise(dev, INT_TX_COMPLETE);
 }
 
+static void el3_tx_drain(el3_t *dev);
+
+/* Writing TX Status pops it. Popping a full stack "clears this condition;
+   no other action is required" (6-19): the transmitter carries on. */
 static void
 el3_tx_status_pop(el3_t *dev)
 {
@@ -857,17 +915,25 @@ el3_tx_status_pop(el3_t *dev)
     dev->tx_status_count--;
     if (dev->tx_status_count == 0)
         el3_lower(dev, INT_TX_COMPLETE);
+    if (dev->tx_status_full) {
+        dev->tx_status_full = 0;
+        dev->tx_enabled     = 1;
+        dev->network_diagnostic |= DIAG_TX_ENABLED;
+        el3_tx_drain(dev);
+    }
 }
 
-/* The space the FIFO has left: each frame costs its preamble and its data
-   padded to a dword. */
+/* The space the FIFO has left: each frame costs its data padded to a
+   dword. "The transmit preamble for the current packet is read as soon as
+   it is written by the host. Therefore it will not cause a decrease in the
+   TX Free value" (10-7). */
 static uint16_t
 el3_tx_free(const el3_t *dev)
 {
     uint32_t used = dev->tx_pend_fifo;
 
     if (dev->tx_pre_got != 0)
-        used += 4 + ((dev->tx_count + 3U) & ~3U);
+        used += (dev->tx_count + 3U) & ~3U;
     return (uint16_t) ((used > dev->tx_size) ? 0 : (dev->tx_size - used));
 }
 
@@ -906,11 +972,17 @@ el3_tx_emit(el3_t *dev, const uint8_t *data, uint16_t len, uint16_t flags)
             len -= 4;
         while (len < 60)
             frame[len++] = 0;
-        if (dev->network_diagnostic & DIAG_LOOPBACK)
+        /* External loopback goes out of the connector and back in,
+           "allowing simultaneous transmit and receive"; ENDEC and
+           controller loopback turn it round inside the chip (6-28). */
+        if (dev->network_diagnostic & DIAG_EXT_LOOPBACK) {
+            network_tx(dev->card, frame, len);
+            el3_rx_frame(dev, frame, len, 1);
+        } else if (dev->network_diagnostic & DIAG_LOOPBACK)
             el3_rx_frame(dev, frame, len, 1);
         else
             network_tx(dev->card, frame, len);
-        el3_stat_count(dev, &dev->frames_xmitted_ok, &dev->bytes_xmitted_ok, len);
+        el3_stat_count(dev, &dev->frames_xmitted_ok, &dev->bytes_xmitted_ok, len, &dev->stat_pend_tx);
     }
 
     if (flags & TXP_INTERRUPT)
@@ -931,7 +1003,7 @@ el3_tx_drain(el3_t *dev)
         uint16_t       flags   = (uint16_t) (r[4] | (r[5] << 8));
 
         el3_tx_emit(dev, r + 6, kept, flags);
-        dev->tx_pend_fifo -= 4 + ((written + 3U) & ~3U);
+        dev->tx_pend_fifo -= (written + 3U) & ~3U;
         pos += 6 + kept;
     }
     if (pos > 0) {
@@ -957,7 +1029,7 @@ el3_tx_send(el3_t *dev)
         r[5] = (uint8_t) (dev->tx_flags >> 8);
         memcpy(r + 6, dev->tx_frame, dev->tx_got);
         dev->tx_pend_len += 6 + dev->tx_got;
-        dev->tx_pend_fifo += 4 + ((dev->tx_count + 3U) & ~3U);
+        dev->tx_pend_fifo += (dev->tx_count + 3U) & ~3U;
     }
 
     el3_tx_frame_reset(dev);
@@ -984,9 +1056,10 @@ el3_tx_data_write(el3_t *dev, uint8_t val)
         }
         return;
     }
-    if (dev->tx_pend_fifo + 4 + dev->tx_count >= dev->tx_size) {
+    if (dev->tx_pend_fifo + dev->tx_count >= dev->tx_size) {
         el3_adapter_failure(dev, FIFO_TX_OVERRUN);
-        dev->tx_enabled = 0;
+        dev->tx_enabled     = 0;
+        dev->tx_status_full = 0;
         dev->network_diagnostic &= (uint16_t) ~DIAG_TX_ENABLED;
         return;
     }
@@ -1026,7 +1099,8 @@ el3_rx_reset(el3_t *dev, uint8_t mask)
         el3_rx_flush(dev);
         dev->rx_filter       = 0;
         dev->rx_early_thresh = THRESH_OFF;
-        dev->fifo_diag &= (uint16_t) ~FIFO_RX_UNDERRUN;
+        dev->fifo_diag &= (uint16_t) ~(FIFO_RX_UNDERRUN | 0x0030); /* and RX BIST's result */
+        dev->bist_ctl &= (uint8_t) ~0xc0;
     }
     el3_adapter_failure_check(dev);
 }
@@ -1038,13 +1112,15 @@ el3_tx_reset(el3_t *dev, uint8_t mask)
         dev->tx_enabled = 0;
         dev->network_diagnostic &= (uint16_t) ~(DIAG_TX_ENABLED | DIAG_TX_RESET_REQD);
         dev->tx_status_count = 0;
+        dev->tx_status_full  = 0;
         el3_lower(dev, INT_TX_COMPLETE);
     }
     if (!(mask & 0x08)) {
         el3_tx_flush(dev);
         dev->tx_start_thresh = THRESH_OFF;
         dev->tx_avail_thresh = THRESH_OFF;
-        dev->fifo_diag &= (uint16_t) ~FIFO_TX_OVERRUN;
+        dev->fifo_diag &= (uint16_t) ~(FIFO_TX_OVERRUN | 0x0003); /* and TX BIST's result */
+        dev->bist_ctl &= (uint8_t) ~0x0c;
     }
     el3_adapter_failure_check(dev);
 }
@@ -1064,7 +1140,10 @@ el3_global_reset(el3_t *dev, uint8_t mask)
     if (!(mask & 0x04)) {
         dev->media_status       = 0;
         dev->network_diagnostic = DIAG_ASIC_REV_B;
+        dev->rx_testen          = 0;
         dev->stats_enabled      = 0;
+        dev->stat_pend_rx       = 0;
+        dev->stat_pend_tx       = 0;
         dev->coax_running       = 0;
         memset(dev->station_addr, 0, sizeof(dev->station_addr));
     }
@@ -1073,7 +1152,7 @@ el3_global_reset(el3_t *dev, uint8_t mask)
         dev->int_mask       = 0;
         dev->read_zero_mask = 0;
         dev->latch          = 0;
-        dev->timer_running  = 0;
+        dev->powered_down   = 0; /* power-up is "the default state at power-on/reset" */
         dev->window         = 0;
         dev->cmd_low        = 0;
         dev->rom_control    = 0;
@@ -1091,19 +1170,44 @@ el3_global_reset(el3_t *dev, uint8_t mask)
         dev->tag       = 0;
     }
     el3_partition(dev);
+    /* "A Host Reset ... clears the interrupt bits but does not clear the
+       interrupt source" (6-13): what the rest of the card still holds sets
+       them again, to reappear once the masks let it. */
+    if (!(mask & 0x20)) {
+        if (dev->rx_count > 0)
+            dev->int_status |= INT_RX_COMPLETE;
+        if (dev->tx_status_count > 0)
+            dev->int_status |= INT_TX_COMPLETE;
+        if (dev->fifo_diag & (FIFO_TX_OVERRUN | FIFO_RX_UNDERRUN))
+            dev->int_status |= INT_ADAPTER_FAILURE;
+        el3_stats_indicate(dev);
+    }
     el3_set_irq(dev, el3_irq_of(dev->resource_config));
     el3_update_irq(dev);
 }
 
 /* ---- the EEPROM commands -------------------------------------------------- */
 
-/* Writes can only clear bits, erases set them. The part's 162 us to 11 ms
-   are not modelled; EEPROM Busy never reads set. */
+static int
+el3_eeprom_busy(const el3_t *dev)
+{
+    return el3_now() < dev->eeprom_busy_until;
+}
+
+/* Writes can only clear bits, erases set them. Each command keeps EEPROM
+   Busy set for its execution time (7-22): 162 us to read, 60 us to enable
+   or disable writes, 11 ms to write or erase; while it is set, writes to
+   the command register are disabled (7-21). The hardware "automatically
+   executes the Erase/Write Disable command" after every erase and write. */
 static void
 el3_eeprom_command(el3_t *dev, uint8_t val)
 {
-    uint8_t address = val & 0x3f;
-    uint8_t changed = 0;
+    uint8_t  address = val & 0x3f;
+    uint8_t  changed = 0;
+    uint32_t us;
+
+    if (el3_eeprom_busy(dev))
+        return;
 
     dev->eeprom_command = val;
     switch (val >> 6) {
@@ -1111,6 +1215,7 @@ el3_eeprom_command(el3_t *dev, uint8_t val)
             switch ((address >> 4) & 3) {
                 case 0: /* Erase/Write Disable */
                     dev->eeprom_write_enabled = 0;
+                    us                        = 60;
                     break;
                 case 1: /* Write All */
                     if (dev->eeprom_write_enabled) {
@@ -1118,15 +1223,20 @@ el3_eeprom_command(el3_t *dev, uint8_t val)
                             dev->eeprom[i] &= dev->eeprom_data;
                         changed = 1;
                     }
+                    dev->eeprom_write_enabled = 0;
+                    us                        = 11000;
                     break;
                 case 2: /* Erase All */
                     if (dev->eeprom_write_enabled) {
                         memset(dev->eeprom, 0xff, sizeof(dev->eeprom));
                         changed = 1;
                     }
+                    dev->eeprom_write_enabled = 0;
+                    us                        = 11000;
                     break;
                 default: /* Erase/Write Enable */
                     dev->eeprom_write_enabled = 1;
+                    us                        = 60;
                     break;
             }
             break;
@@ -1135,17 +1245,23 @@ el3_eeprom_command(el3_t *dev, uint8_t val)
                 dev->eeprom[address] &= dev->eeprom_data;
                 changed = 1;
             }
+            dev->eeprom_write_enabled = 0;
+            us                        = 11000;
             break;
         case 2: /* Read */
             dev->eeprom_data = dev->eeprom[address];
+            us               = 162;
             break;
         default: /* Erase */
             if (dev->eeprom_write_enabled) {
                 dev->eeprom[address] = 0xffff;
                 changed = 1;
             }
+            dev->eeprom_write_enabled = 0;
+            us                        = 11000;
             break;
     }
+    dev->eeprom_busy_until = el3_now() + (((uint64_t) us * TIMER_USEC) >> 32);
     if (changed)
         el3_eeprom_save(dev);
 }
@@ -1157,6 +1273,11 @@ el3_command(el3_t *dev, uint16_t val)
 {
     uint8_t  cmd   = (uint8_t) (val >> 11);
     uint16_t param = val & 0x07ff;
+
+    /* In Power Down Full "the only legal access to the chip is the Power
+       Up command" (6-11). */
+    if (dev->powered_down && (cmd != CMD_POWER_UP))
+        return;
 
     /* Commands act in every window. The book lists only Select Register
        Window as valid in Window 0, but ELNK3.VXD issues TX Reset, RX Reset
@@ -1192,7 +1313,8 @@ el3_command(el3_t *dev, uint16_t val)
             el3_tx_drain(dev);
             break;
         case CMD_TX_DISABLE:
-            dev->tx_enabled = 0;
+            dev->tx_enabled     = 0;
+            dev->tx_status_full = 0;
             dev->network_diagnostic &= (uint16_t) ~DIAG_TX_ENABLED;
             break;
         case CMD_TX_RESET:
@@ -1232,8 +1354,7 @@ el3_command(el3_t *dev, uint16_t val)
             dev->tx_start_thresh = param & THRESH_MASK;
             break;
         case CMD_STATISTICS_ENABLE:
-            dev->stats_enabled = 1;
-            dev->network_diagnostic |= DIAG_STATS_ENABLED;
+            el3_stats_enable(dev);
             break;
         case CMD_STATISTICS_DISABLE:
             dev->stats_enabled = 0;
@@ -1242,10 +1363,17 @@ el3_command(el3_t *dev, uint16_t val)
         case CMD_STOP_COAX:
             dev->coax_running = 0;
             break;
-        case CMD_SET_TX_RECLAIM: /* Micro Channel only */
         case CMD_POWER_UP:
+            dev->powered_down = 0;
+            break;
         case CMD_POWER_DOWN_FULL:
-        case CMD_POWER_AUTO:
+            /* It stops the DC-DC converter as Stop Coaxial Transceiver
+               would; the rest of the chip keeps its state (6-11). */
+            dev->powered_down = 1;
+            dev->coax_running = 0;
+            break;
+        case CMD_SET_TX_RECLAIM: /* Micro Channel only */
+        case CMD_POWER_AUTO:     /* wakes by itself for a packet, so no different here */
             break;
         default:
             el3_log("3C509B: reserved command %02x\n", cmd);
@@ -1313,10 +1441,9 @@ el3_reg_read(el3_t *dev, uint8_t off)
                 case W0_EEPROM_COMMAND:
                     return (uint8_t) dev->eeprom_command;
                 case W0_EEPROM_COMMAND + 1:
-                    /* EEPROM Busy and Test Mode are never set. The book does
-                       not give TAG's bit position here; the low bits are
-                       assumed. */
-                    return dev->tag;
+                    /* EEPROM Busy (15), Test Mode (14, never set here) and
+                       TAG (10:8) (7-21). */
+                    return (uint8_t) ((el3_eeprom_busy(dev) ? 0x80 : 0x00) | dev->tag);
                 case W0_EEPROM_DATA:
                 case W0_EEPROM_DATA + 1:
                     return (uint8_t) (dev->eeprom_data >> ((off & 1) * 8));
@@ -1383,6 +1510,9 @@ el3_reg_read(el3_t *dev, uint8_t off)
                 case W4_NETWORK_DIAGNOSTIC + 1:
                     return (uint8_t) (dev->network_diagnostic >> ((off & 1) * 8));
                 case W4_CONTROLLER_STATUS:
+                    /* The controller's own status bits read idle; RX TESTEN
+                       (bit 0) is the one writable bit (6-32). */
+                    return dev->rx_testen;
                 case W4_CONTROLLER_STATUS + 1:
                     return 0;
                 case W4_MEDIA_STATUS:
@@ -1523,9 +1653,14 @@ el3_reg_write(el3_t *dev, uint8_t off, uint8_t val)
 
         case 3:
             switch (off) {
+                case W3_INTERNAL_CONFIG:
+                    /* RAM SPEED (5:4) and RAM SIZE (2:0) are read/write; RAM
+                       WIDTH (3) is hard-wired and reads 0 (7-23, 7-24). */
+                    dev->internal_config = (dev->internal_config & 0xffffffc0) | (val & 0x37);
+                    el3_partition(dev);
+                    break;
                 case W3_INTERNAL_CONFIG + 2:
-                    /* The partition and the activation select; RAM size,
-                       width and speed are the board's. */
+                    /* ISA ACTIVATION SELECT (19:18) and RAM PARTITION (17:16). */
                     dev->internal_config = (dev->internal_config & 0xfff0ffff) | ((uint32_t) (val & 0x0f) << 16);
                     el3_partition(dev);
                     break;
@@ -1539,6 +1674,30 @@ el3_reg_write(el3_t *dev, uint8_t off, uint8_t val)
 
         case 4:
             switch (off) {
+                case W4_FIFO_DIAGNOSTIC:
+                    /* The FIFO built-in self-test, bits 7:0. The book defines it
+                       for the 3C509 and calls the bits "reserved, undefined" on
+                       the 3C509B (6-31). Microsoft's WfW 3.11 ELNK3.386 runs it on
+                       every card with product ID 9x50h, the B included, and waits
+                       without a timeout for BIST Complete (at 1009A9h, 100A70h), so
+                       the B must answer as the 3C509 does. Setting BIST (7, 3)
+                       runs the test, which passes: BIST Failed (5, 1) clear and
+                       BIST Complete (4, 0) set. Setting BFC (6, 2) sets BIST
+                       Failed, which then stays set until the next test. */
+                    {
+                        const uint8_t rise = (uint8_t) (val & ~dev->bist_ctl);
+
+                        if (rise & 0x08)
+                            dev->fifo_diag = (uint16_t) ((dev->fifo_diag & ~0x0003) | 0x0001);
+                        if (rise & 0x80)
+                            dev->fifo_diag = (uint16_t) ((dev->fifo_diag & ~0x0030) | 0x0010);
+                        if (val & 0x04)
+                            dev->fifo_diag |= 0x0002;
+                        if (val & 0x40)
+                            dev->fifo_diag |= 0x0020;
+                        dev->bist_ctl = val & 0xcc;
+                    }
+                    break;
                 case W4_NETWORK_DIAGNOSTIC:
                     /* Testing the low-voltage detector resets the ASIC. */
                     if (val & 0x01)
@@ -1546,6 +1705,9 @@ el3_reg_write(el3_t *dev, uint8_t off, uint8_t val)
                     break;
                 case W4_NETWORK_DIAGNOSTIC + 1:
                     dev->network_diagnostic = (uint16_t) ((dev->network_diagnostic & 0x0fff) | ((val & 0xf0) << 8));
+                    break;
+                case W4_CONTROLLER_STATUS:
+                    dev->rx_testen = val & 0x01;
                     break;
                 case W4_MEDIA_STATUS:
                     dev->media_status = (uint16_t) ((dev->media_status & ~MEDIA_WRITABLE) | (val & MEDIA_WRITABLE));
@@ -1586,13 +1748,11 @@ el3_reg_write(el3_t *dev, uint8_t off, uint8_t val)
                     break;
                 case W6_BYTES_RCVD_OK:
                 case W6_BYTES_RCVD_OK + 1:
-                    dev->bytes_rcvd_ok += (uint16_t) (val << ((off & 1) * 8));
-                    el3_stats_indicate(dev);
+                    el3_stat16_add(dev, &dev->bytes_rcvd_ok, (uint16_t) (val << ((off & 1) * 8)));
                     break;
                 case W6_BYTES_XMITTED_OK:
                 case W6_BYTES_XMITTED_OK + 1:
-                    dev->bytes_xmitted_ok += (uint16_t) (val << ((off & 1) * 8));
-                    el3_stats_indicate(dev);
+                    el3_stat16_add(dev, &dev->bytes_xmitted_ok, (uint16_t) (val << ((off & 1) * 8)));
                     break;
                 default:
                     break;
@@ -1695,7 +1855,6 @@ el3_id_command(el3_t *dev, uint8_t val)
         dev->ids_state = IDS_WAIT;
     } else if (val < 0xc0) {
         dev->eeprom_data = dev->eeprom[val & 0x3f];
-        dev->contention  = dev->eeprom_data;
     } else if (val < 0xd0) {
         el3_global_reset(dev, 0);
     } else if (val < 0xd8) {
@@ -1722,6 +1881,12 @@ static void
 el3_id_write(uint16_t port, uint8_t val, void *priv)
 {
     el3_t *dev = (el3_t *) priv;
+
+    /* The ID sequence works only while ISA ACTIVATION SELECT allows
+       contention (not 10b, Plug and Play only) and the I/O base is an ISA
+       one, not EISA's 1Fh (7-2, 7-23). */
+    if ((((dev->internal_config >> 18) & 3) == 2) || ((dev->address_config & AC_IO_BASE) == AC_EISA))
+        return;
 
     if (val == 0) {
         dev->id_port   = port;
@@ -1756,9 +1921,10 @@ el3_id_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
-/* Contention: bit 15 of the EEPROM word goes out on data bit 0, open drain,
-   and the word shifts left. Contention between two of these cards is not
-   modelled; each behaves as if it won. A tagged card stays off the bus. */
+/* Contention: bit 15 of the EEPROM Data register goes out on data bit 0,
+   open drain, and the register shifts left (7-3). Contention between two
+   of these cards is not modelled; each behaves as if it won. A tagged card
+   stays off the bus. */
 static uint8_t
 el3_id_read(uint16_t port, void *priv)
 {
@@ -1767,8 +1933,8 @@ el3_id_read(uint16_t port, void *priv)
 
     if ((port != dev->id_port) || (dev->ids_state != IDS_CMD) || (dev->tag != 0))
         return 0xff;
-    bit             = (uint8_t) (dev->contention >> 15);
-    dev->contention = (uint16_t) (dev->contention << 1);
+    bit              = (uint8_t) (dev->eeprom_data >> 15);
+    dev->eeprom_data = (uint16_t) (dev->eeprom_data << 1);
     return (uint8_t) (0xfe | bit);
 }
 
