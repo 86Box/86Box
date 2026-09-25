@@ -436,18 +436,18 @@ static int  config_unsupported_count   = 0;
 static int  config_unsupported_machine = 0;
 
 static void
-config_unsupported(const char *kind, const char *name)
+config_unsupported(int kind, const char *name)
 {
     if (config_unsupported_count <= CONFIG_UNSUPPORTED_SHOWN)
         snprintf(config_unsupported_list[config_unsupported_count], sizeof(config_unsupported_list[0]),
-                 "%s \"%s\"", kind, name);
+                 plat_get_string(kind), name);
     config_unsupported_count++;
 }
 
 /* A component read by name: 0 is its "none", and what a lookup gives for a
    name it does not know. */
 static int
-config_known(int id, const char *kind, const char *name)
+config_known(int id, int kind, const char *name)
 {
     if ((id == 0) && (name != NULL) && (name[0] != '\0') && strcmp(name, "none"))
         config_unsupported(kind, name);
@@ -466,23 +466,24 @@ config_ask_unsupported(void)
     if (config_unsupported_count == 0)
         return 1;
 
-    len = snprintf(msg, sizeof(msg), "Hardware in this machine profile is not supported by this current build of 86Box.\n\n");
+    len = snprintf(msg, sizeof(msg), "%s\n\n", plat_get_string(STRING_UNSUPPORTED_TEXT));
     /* Five are listed, or six rather than "and 1 other": past that, how
        many more there are. */
     const int listed = (config_unsupported_count <= (CONFIG_UNSUPPORTED_SHOWN + 1)) ?
                            config_unsupported_count : CONFIG_UNSUPPORTED_SHOWN;
     for (int i = 0; i < listed; i++)
         len += snprintf(msg + len, sizeof(msg) - len, "%s\n", config_unsupported_list[i]);
-    if (config_unsupported_count > listed)
-        len += snprintf(msg + len, sizeof(msg) - len, "(and %i others)\n", config_unsupported_count - listed);
-    snprintf(msg + len, sizeof(msg) - len,
-             "\nLoading the configuration anyway will %s and overwrite the existing configuration.\n\n"
-             "Do you want to continue?",
-             !config_unsupported_machine ? "remove these components" :
-             (config_unsupported_count > 1) ? "replace the machine, remove the other components" :
-                                              "replace the machine");
+    if (config_unsupported_count > listed) {
+        len += snprintf(msg + len, sizeof(msg) - len, plat_get_string(STRING_UNSUPPORTED_OTHERS), config_unsupported_count - listed);
+        len += snprintf(msg + len, sizeof(msg) - len, "\n");
+    }
+    snprintf(msg + len, sizeof(msg) - len, "\n%s\n\n%s",
+             plat_get_string(!config_unsupported_machine ? STRING_UNSUPPORTED_REMOVE :
+                             (config_unsupported_count > 1) ? STRING_UNSUPPORTED_REPLACE_REMOVE :
+                                                              STRING_UNSUPPORTED_REPLACE),
+             plat_get_string(STRING_UNSUPPORTED_CONTINUE));
 
-    return ui_msgbox_header(MBX_WARNING | MBX_QUESTION_YN, "Unsupported Hardware", msg) == 1;
+    return ui_msgbox_header(MBX_WARNING | MBX_QUESTION_YN, plat_get_string(STRING_UNSUPPORTED_TITLE), msg) == 1;
 }
 
 static void
@@ -546,7 +547,7 @@ load_machine(void)
             if (machine == -1) {
                 /* A machine this build does not have: the first machine
                    takes its place. */
-                config_unsupported("Machine type", p);
+                config_unsupported(STRING_UNSUPPORTED_MACHINE, p);
                 config_unsupported_machine = 1;
                 machine = 0;
             }
@@ -759,7 +760,7 @@ load_video(void)
                     ini_delete_section_if_empty(config, old);
                 }
             } else {
-                gfxcard[0] = config_known(video_get_video_from_internal_name(p), "Video card", p);
+                gfxcard[0] = config_known(video_get_video_from_internal_name(p), STRING_UNSUPPORTED_VIDEO, p);
                 if (!strcmp(p, "et4000ax")) {
                     ini_section_t new  = ini_find_section(config, "Tseng Labs ET4000AX (ISA)");
                     char *        bios = ini_section_get_string(new, "bios_ver", "v8_01");
@@ -804,7 +805,7 @@ load_video(void)
             p = "none";
         const device_t *gfx_dev = video_get_video_from_old_internal_name(p);
         if (gfx_dev == NULL)
-            gfxcard[i] = config_known(video_get_video_from_internal_name(p), "Video card", p);
+            gfxcard[i] = config_known(video_get_video_from_internal_name(p), STRING_UNSUPPORTED_VIDEO, p);
         else {
             device_video_config_migrate(gfx_dev, p, 0);
             gfxcard[i] = video_get_video_from_internal_name((char *) gfx_dev->internal_name);
@@ -828,7 +829,7 @@ load_input_devices(void)
 
     p = ini_section_get_string(cat, "keyboard_type", NULL);
     if (p != NULL)
-        keyboard_type = config_known(keyboard_get_from_internal_name(p), "Keyboard", p);
+        keyboard_type = config_known(keyboard_get_from_internal_name(p), STRING_UNSUPPORTED_KEYBOARD, p);
     else if (machines[machine].init == machine_xt_pc5086_init)
         keyboard_type = KEYBOARD_TYPE_PC_XT;
     else if (machine_has_bus(machine, MACHINE_BUS_PS2_PORTS)) {
@@ -853,13 +854,13 @@ load_input_devices(void)
         if (tablet_get_from_internal_name(p) && mouse_type == 0)
             ini_section_set_string(cat, "tablet_type", p);
         else
-            config_known(mouse_type, "Mouse", p);
+            config_known(mouse_type, STRING_UNSUPPORTED_MOUSE, p);
     } else
         mouse_type = 0;
 
     p = ini_section_get_string(cat, "tablet_type", NULL);
     if (p != NULL)
-        tablet_type = config_known(tablet_get_from_internal_name(p), "Tablet", p);
+        tablet_type = config_known(tablet_get_from_internal_name(p), STRING_UNSUPPORTED_TABLET, p);
     else if (machine_get_tablet_device(machine) != NULL)
         tablet_type = TABLET_TYPE_INTERNAL;   /* machine supplies one */
     else
@@ -911,7 +912,7 @@ load_input_devices(void)
         joystick_type[joy_insn] = JS_TYPE_NONE;
     /* An old configuration's joystick is a number, and "none" when unknown. */
     if ((p != NULL) && (strspn(p, "0123456789") != strlen(p)))
-        config_known(joystick_type[joy_insn], "Joystick", p);
+        config_known(joystick_type[joy_insn], STRING_UNSUPPORTED_JOYSTICK, p);
 
     uint8_t gp = 0;
 
@@ -958,37 +959,37 @@ load_sound(void)
 
     p = ini_section_get_string(cat, "sndcard", NULL);
     if (p != NULL)
-        sound_card_current[0] = config_known(sound_card_get_from_internal_name(p), "Sound card", p);
+        sound_card_current[0] = config_known(sound_card_get_from_internal_name(p), STRING_UNSUPPORTED_SOUND, p);
     else
         sound_card_current[0] = 0;
 
     p = ini_section_get_string(cat, "sndcard2", NULL);
     if (p != NULL)
-        sound_card_current[1] = config_known(sound_card_get_from_internal_name(p), "Sound card", p);
+        sound_card_current[1] = config_known(sound_card_get_from_internal_name(p), STRING_UNSUPPORTED_SOUND, p);
     else
         sound_card_current[1] = 0;
 
     p = ini_section_get_string(cat, "sndcard3", NULL);
     if (p != NULL)
-        sound_card_current[2] = config_known(sound_card_get_from_internal_name(p), "Sound card", p);
+        sound_card_current[2] = config_known(sound_card_get_from_internal_name(p), STRING_UNSUPPORTED_SOUND, p);
     else
         sound_card_current[2] = 0;
 
     p = ini_section_get_string(cat, "sndcard4", NULL);
     if (p != NULL)
-        sound_card_current[3] = config_known(sound_card_get_from_internal_name(p), "Sound card", p);
+        sound_card_current[3] = config_known(sound_card_get_from_internal_name(p), STRING_UNSUPPORTED_SOUND, p);
     else
         sound_card_current[3] = 0;
 
     p = ini_section_get_string(cat, "midi_device", NULL);
     if (p != NULL)
-        midi_output_device_current = config_known(midi_out_device_get_from_internal_name(p), "MIDI output device", p);
+        midi_output_device_current = config_known(midi_out_device_get_from_internal_name(p), STRING_UNSUPPORTED_MIDI_OUT, p);
     else
         midi_output_device_current = 0;
 
     p = ini_section_get_string(cat, "midi_in_device", NULL);
     if (p != NULL)
-        midi_input_device_current = config_known(midi_in_device_get_from_internal_name(p), "MIDI input device", p);
+        midi_input_device_current = config_known(midi_in_device_get_from_internal_name(p), STRING_UNSUPPORTED_MIDI_IN, p);
     else
         midi_input_device_current = 0;
 
@@ -1087,7 +1088,7 @@ load_network(void)
     if (p != NULL) {
         const device_t *nc_dev = network_card_get_from_old_internal_name(p);
         if (nc_dev == NULL)
-            nc->device_num = config_known(network_card_get_from_internal_name(p), "Network card", p);
+            nc->device_num = config_known(network_card_get_from_internal_name(p), STRING_UNSUPPORTED_NETWORK, p);
         else {
             device_video_config_migrate(nc_dev, p, 0);
             nc->device_num = network_card_get_from_internal_name((char *) nc_dev->internal_name);
@@ -1140,7 +1141,7 @@ load_network(void)
         sprintf(temp, "net_%02i_card", c + 1);
         p = ini_section_get_string(cat, temp, NULL);
         if (p != NULL)
-            nc->device_num = config_known(network_card_get_from_internal_name(p), "Network card", p);
+            nc->device_num = config_known(network_card_get_from_internal_name(p), STRING_UNSUPPORTED_NETWORK, p);
         else
             nc->device_num = 0;
 
@@ -1297,7 +1298,7 @@ load_ports(void)
             ini_section_set_string(cat, temp, p);
         else
             p = ini_section_get_string(cat, temp, "none");
-        com_ports[c].device = config_known(char_get_from_internal_name(p, DEVICE_COM), "Serial port device", p);
+        com_ports[c].device = config_known(char_get_from_internal_name(p, DEVICE_COM), STRING_UNSUPPORTED_SERIAL, p);
     }
 
     for (int c = 0; c < PARALLEL_MAX; c++) {
@@ -1319,7 +1320,7 @@ load_ports(void)
             lpt_ports[c].device = 0;
         } else {
             lpt_ports[c].device = config_known(char_get_from_internal_name(!strcmp(p, "lpt_loopback") ? "loopback" : p, DEVICE_LPT),
-                                               "Parallel port device", p);
+                                               STRING_UNSUPPORTED_PARALLEL, p);
         }
     }
 
@@ -1331,14 +1332,14 @@ load_ports(void)
 
         sprintf(temp, "gameport%d_device", c + 1);
         p                   = ini_section_get_string(cat, temp, "none");
-        game_ports[c].device = config_known(gameport_get_from_internal_name(p), "Game port", p);
+        game_ports[c].device = config_known(gameport_get_from_internal_name(p), STRING_UNSUPPORTED_GAMEPORT, p);
     }
 
     for (uint8_t c = 0; c < GAMEPORT_MAX; c++) {
         sprintf(temp, "gameport%d_type", c);
 
         p              = ini_section_get_string(cat, temp, "none");
-        gameport_type[c] = config_known(gameport_get_from_internal_name(p), "Game port", p);
+        gameport_type[c] = config_known(gameport_get_from_internal_name(p), STRING_UNSUPPORTED_GAMEPORT, p);
 
         if (!strcmp(p, "none"))
             ini_section_delete_var(cat, temp);
@@ -1472,7 +1473,7 @@ load_storage_controllers(void)
                 ini_section_set_string(cat, temp, aic);
                 p = ini_section_get_string(cat, temp, NULL);
             }
-            scsi_card_current[c] = config_known(scsi_card_get_from_internal_name(p), "SCSI card", p);
+            scsi_card_current[c] = config_known(scsi_card_get_from_internal_name(p), STRING_UNSUPPORTED_SCSI, p);
         } else
             scsi_card_current[c] = 0;
     }
@@ -1480,7 +1481,7 @@ load_storage_controllers(void)
     p = ini_section_get_string(cat, "fdc", NULL);
 #if 1
     if (p != NULL)
-        fdc_current[0] = config_known(fdc_card_get_from_internal_name(p), "Floppy controller", p);
+        fdc_current[0] = config_known(fdc_card_get_from_internal_name(p), STRING_UNSUPPORTED_FDC, p);
     else
         fdc_current[0] = FDC_INTERNAL;
 #else
@@ -1511,7 +1512,7 @@ load_storage_controllers(void)
 
         p = ini_section_get_string(cat, temp, NULL);
         if (p != NULL)
-            hdc_current[c] = config_known(hdc_get_from_internal_name(p), "Disk controller", p);
+            hdc_current[c] = config_known(hdc_get_from_internal_name(p), STRING_UNSUPPORTED_HDC, p);
         else
             hdc_current[c] = -1;
     }
@@ -1541,7 +1542,7 @@ load_storage_controllers(void)
                             migration_cat = ini_find_or_create_section(config, temp);
                             ini_section_set_string(migration_cat, "bios", "at_386");
                         } else {
-                            hdc_current[j] = config_known(hdc_get_from_internal_name(p), "Disk controller", p);
+                            hdc_current[j] = config_known(hdc_get_from_internal_name(p), STRING_UNSUPPORTED_HDC, p);
                         }
                     } else {
                         hdc_current[j] = hdc_get_from_internal_name(legacy_cards[i]);
@@ -1564,7 +1565,7 @@ load_storage_controllers(void)
 
     p = ini_section_get_string(cat, "cdrom_interface", NULL);
     if (p != NULL)
-        cdrom_interface_current = config_known(cdrom_interface_get_from_internal_name(p), "CD-ROM interface", p);
+        cdrom_interface_current = config_known(cdrom_interface_get_from_internal_name(p), STRING_UNSUPPORTED_CDROM_INTERFACE, p);
 
     /* The floppy tape is configured from the Tape drives tab now; the old
        keys are stale and get cleaned up. */
@@ -2681,7 +2682,7 @@ load_other_peripherals(void)
         sprintf(temp, "mcamem%d_type", c);
 
         p              = ini_section_get_string(cat, temp, "none");
-        mcamem_type[c] = config_known(mcamem_get_from_internal_name(p), "Memory expansion card", p);
+        mcamem_type[c] = config_known(mcamem_get_from_internal_name(p), STRING_UNSUPPORTED_MEMORY, p);
 
         if (!strcmp(p, "none"))
             ini_section_delete_var(cat, temp);
@@ -2692,7 +2693,7 @@ load_other_peripherals(void)
         sprintf(temp, "isamem%d_type", c);
 
         p              = ini_section_get_string(cat, temp, "none");
-        isamem_type[c] = config_known(isamem_get_from_internal_name(p), "Memory expansion card", p);
+        isamem_type[c] = config_known(isamem_get_from_internal_name(p), STRING_UNSUPPORTED_MEMORY, p);
 
         if (!strcmp(p, "none"))
             ini_section_delete_var(cat, temp);
@@ -2703,7 +2704,7 @@ load_other_peripherals(void)
         sprintf(temp, "isarom%d_type", c);
 
         p              = ini_section_get_string(cat, temp, "none");
-        isarom_type[c] = config_known(isarom_get_from_internal_name(p), "ROM expansion card", p);
+        isarom_type[c] = config_known(isarom_get_from_internal_name(p), STRING_UNSUPPORTED_ROM, p);
 
         if (!strcmp(p, "none"))
             ini_section_delete_var(cat, temp);
@@ -2721,7 +2722,7 @@ load_other_peripherals(void)
     }
 
     p           = ini_section_get_string(cat, "isartc_type", "none");
-    isartc_type = config_known(isartc_get_from_internal_name(p), "RTC card", p);
+    isartc_type = config_known(isartc_get_from_internal_name(p), STRING_UNSUPPORTED_RTC, p);
 
     if (!strcmp(p, "none"))
         ini_section_delete_var(cat, temp);
