@@ -131,6 +131,17 @@ void host_loong64_SAR_W_REG(codeblock_t *block, int dst_reg, int src_reg, int sh
 void host_loong64_SHL_D_REG(codeblock_t *block, int dst_reg, int src_reg, int shift_reg);
 void host_loong64_SHR_D_REG(codeblock_t *block, int dst_reg, int src_reg, int shift_reg);
 void host_loong64_SAR_D_REG(codeblock_t *block, int dst_reg, int src_reg, int shift_reg);
+void host_loong64_ROTR_W_REG(codeblock_t *block, int dst_reg, int src_reg, int shift_reg);
+void host_loong64_ROTR_D_REG(codeblock_t *block, int dst_reg, int src_reg, int shift_reg);
+void host_loong64_ROTR_W_IMM(codeblock_t *block, int dst_reg, int src_reg, int shift);
+void host_loong64_ROTR_D_IMM(codeblock_t *block, int dst_reg, int src_reg, int shift);
+
+/*slt/sltu/slti/sltui (no flags reg - compare results are materialised in a
+  register for the conditional-jump uops).*/
+void host_loong64_SLT(codeblock_t *block, int dst_reg, int src_a_reg, int src_b_reg);
+void host_loong64_SLTU(codeblock_t *block, int dst_reg, int src_a_reg, int src_b_reg);
+void host_loong64_SLTI(codeblock_t *block, int dst_reg, int src_reg, int32_t imm_data);
+void host_loong64_SLTUI(codeblock_t *block, int dst_reg, int src_reg, int32_t imm_data);
 
 /*Loads / stores. GPR destinations. Offsets are byte displacements from the
   base register; si12, ldptr and mov_imm+ldx fallbacks are selected

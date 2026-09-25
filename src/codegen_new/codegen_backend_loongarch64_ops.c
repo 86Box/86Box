@@ -75,6 +75,8 @@
 #    define OPCODE_SLL_D             0x00188000
 #    define OPCODE_SRL_D             0x00190000
 #    define OPCODE_SRA_D             0x00198000
+#    define OPCODE_ROTR_W            0x001b0000
+#    define OPCODE_ROTR_D            0x001b8000
 #    define OPCODE_ALSL_D            0x002c0000
 
 /*Register formats with only two operands (plan section 7.2).*/
@@ -103,6 +105,8 @@
 #    define OPCODE_SRLI_D            0x00450000
 #    define OPCODE_SRAI_W            0x00488000
 #    define OPCODE_SRAI_D            0x00490000
+#    define OPCODE_ROTRI_W           0x004c8000
+#    define OPCODE_ROTRI_D           0x004d0000
 
 /*Loads / stores (plan section 7.4).*/
 #    define OPCODE_LD_B              0x28000000
@@ -338,6 +342,28 @@ host_loong64_XOR_REG(codeblock_t *block, int dst_reg, int src_a_reg, int src_b_r
 {
     codegen_addlong(block, OPCODE_XOR | Rd(dst_reg) | Rj(src_a_reg) | Rk(src_b_reg));
 }
+/*slt/sltu operate on the full 64-bit registers - callers must canonicalise
+  32-bit operands first (sext.w / bstrpick.d).*/
+void
+host_loong64_SLT(codeblock_t *block, int dst_reg, int src_a_reg, int src_b_reg)
+{
+    codegen_addlong(block, OPCODE_SLT | Rd(dst_reg) | Rj(src_a_reg) | Rk(src_b_reg));
+}
+void
+host_loong64_SLTU(codeblock_t *block, int dst_reg, int src_a_reg, int src_b_reg)
+{
+    codegen_addlong(block, OPCODE_SLTU | Rd(dst_reg) | Rj(src_a_reg) | Rk(src_b_reg));
+}
+void
+host_loong64_SLTI(codeblock_t *block, int dst_reg, int src_reg, int32_t imm_data)
+{
+    codegen_addlong(block, OPCODE_SLTI | Rd(dst_reg) | Rj(src_reg) | IMM12(imm_data));
+}
+void
+host_loong64_SLTUI(codeblock_t *block, int dst_reg, int src_reg, int32_t imm_data)
+{
+    codegen_addlong(block, OPCODE_SLTUI | Rd(dst_reg) | Rj(src_reg) | IMM12(imm_data));
+}
 
 void
 host_loong64_ADD_W_IMM(codeblock_t *block, int dst_reg, int src_reg, uint32_t imm_data)
@@ -498,6 +524,33 @@ void
 host_loong64_SAR_D_REG(codeblock_t *block, int dst_reg, int src_reg, int shift_reg)
 {
     codegen_addlong(block, OPCODE_SRA_D | Rd(dst_reg) | Rj(src_reg) | Rk(shift_reg));
+}
+
+/*Register rotates (rotr.w/d take rk[4:0] - matching x86's 5-bit count mask
+  for the 32-bit forms; the shift uops are only emitted with counts 1..31).*/
+void
+host_loong64_ROTR_W_REG(codeblock_t *block, int dst_reg, int src_reg, int shift_reg)
+{
+    codegen_addlong(block, OPCODE_ROTR_W | Rd(dst_reg) | Rj(src_reg) | Rk(shift_reg));
+}
+void
+host_loong64_ROTR_D_REG(codeblock_t *block, int dst_reg, int src_reg, int shift_reg)
+{
+    codegen_addlong(block, OPCODE_ROTR_D | Rd(dst_reg) | Rj(src_reg) | Rk(shift_reg));
+}
+void
+host_loong64_ROTR_W_IMM(codeblock_t *block, int dst_reg, int src_reg, int shift)
+{
+    if (shift < 1 || shift > 31)
+        fatal("host_loong64_ROTR_W_IMM - shift %i out of range\n", shift);
+    codegen_addlong(block, OPCODE_ROTRI_W | Rd(dst_reg) | Rj(src_reg) | UIMM10_5(shift));
+}
+void
+host_loong64_ROTR_D_IMM(codeblock_t *block, int dst_reg, int src_reg, int shift)
+{
+    if (shift < 1 || shift > 63)
+        fatal("host_loong64_ROTR_D_IMM - shift %i out of range\n", shift);
+    codegen_addlong(block, OPCODE_ROTRI_D | Rd(dst_reg) | Rj(src_reg) | UIMM10_6(shift));
 }
 
 /*Loads / stores.*/
