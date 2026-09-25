@@ -77,6 +77,7 @@ private:
     /* 4 LPT ports, 8 bits per port. */
     uint64_t lpt_tracking { 0 };
 
+    bool philips_tracking { false };
     bool mitsumi_tracking;
 };
 

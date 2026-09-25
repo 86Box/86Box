@@ -31,6 +31,7 @@ add_library(cdrom OBJECT
     cdrom_mitsumi.c
     cdrom_mke.c
     cdrom_hitachi.c
+    cdrom_philips.c
     cdrom_chd.c
 )
 target_link_libraries(cdrom chdr-static)
