@@ -1487,7 +1487,7 @@ machine_at_be6ii_init(const machine_t *model)
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
-    device_add(&ide_hpt366_ter_qua_onboard_device);
+    device_add(machine_get_ide_device(machine));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
     device_add(&w83782d_device); /* fans: Chassis, Power, CPU; temperatures: System, CPU, unused */

@@ -17,11 +17,19 @@
 #ifndef EMU_IDE_H
 #define EMU_IDE_H
 
-#define IDE_NUM             10    /* 8 drives per AT IDE + 2 for XT IDE */
-#define ATAPI_NUM           10    /* 8 drives per AT IDE + 2 for XT IDE */
-
-#define IDE_BUS_MAX         4
+#define IDE_BUS_MAX         8     /* The four legacy boards, and four more for PCI cards */
 #define IDE_CHAN_MAX        2
+#define IDE_DRIVES_MAX      (IDE_BUS_MAX * IDE_CHAN_MAX)
+
+#define IDE_NUM             (IDE_DRIVES_MAX + 2) /* The AT IDE drives + 2 for XT IDE */
+#define ATAPI_NUM           (IDE_DRIVES_MAX + 2) /* The AT IDE drives + 2 for XT IDE */
+
+/* The boards shown in the settings even with no controller on them. */
+#define IDE_BUS_SHOWN_MIN   4
+
+/* What a device's ide_boards() returns: a mask of the boards it claims, or
+   this, for a PCI card taking the first pair of boards nothing has. */
+#define IDE_BOARDS_FIRST_FREE_PAIR 0x80000000
 
 #define HDC_PRIMARY_BASE    0x01f0
 #define HDC_PRIMARY_SIDE    0x03f6
@@ -213,6 +221,8 @@ extern void ide_set_irq(int board, int irq);
 extern void ide_handlers(uint8_t board, int set);
 
 extern int  ide_board_claimed(int board);
+extern int  ide_first_free_pair(void);
+extern void ide_pci_pair_init(int board);
 extern void ide_board_set_force_ata3(int board, int force_ata3);
 #ifdef EMU_ISAPNP_H
 extern void ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
@@ -233,6 +243,29 @@ extern uint8_t ide_read_ali_75(void);
 extern uint8_t ide_read_ali_76(void);
 
 extern void    ide_hard_reset(void);
+
+#ifdef EMU_DEVICE_H
+/* Who has each IDE board: the device and its instance, and whether it is on
+   the board (the chipset's own IDE when device is NULL). */
+typedef struct ide_owner_t {
+    const device_t *device;
+    int             instance;
+    int             onboard;
+} ide_owner_t;
+
+/* The owner of each board for a machine and its disk controllers and sound
+   cards, worked out the way they claim them when the machine starts; the
+   return is the number of boards to show. */
+extern int  ide_plan(ide_owner_t owners[IDE_BUS_MAX], int mach, const int hdc[], const int snd[]);
+extern void ide_plan_check(void);
+
+extern uint32_t ide_boards_generic(const device_t *dev);
+extern uint32_t ide_boards_primary(const device_t *dev);
+extern uint32_t ide_boards_pri_sec(const device_t *dev);
+extern uint32_t ide_boards_ter_qua(const device_t *dev);
+extern uint32_t ide_boards_quaternary(const device_t *dev);
+extern uint32_t ide_boards_first_free_pair(const device_t *dev);
+#endif
 extern void    ide_wait_for_async_reads(void);
 
 /* Legacy #define's. */

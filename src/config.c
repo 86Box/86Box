@@ -1721,12 +1721,12 @@ load_hard_disks(void)
             sprintf(tmp2, "%01u:%01u", c >> 1, c & 1);
             p = ini_section_get_string(cat, temp, tmp2);
             sscanf(p, "%01u:%01u", &board, &dev);
-            board &= 3;
+            board &= (IDE_BUS_MAX - 1);
             dev &= 1;
             hdd[c].ide_channel = (board << 1) + dev;
 
-            if (hdd[c].ide_channel > 7)
-                hdd[c].ide_channel = 7;
+            if (hdd[c].ide_channel >= IDE_DRIVES_MAX)
+                hdd[c].ide_channel = IDE_DRIVES_MAX - 1;
         } else
             ini_section_delete_var(cat, temp);
 
@@ -1992,12 +1992,12 @@ load_floppy_and_cdrom_drives(void)
             sprintf(tmp2, "%01u:%01u", (c & 3) >> 1, (c & 3) & 1);
             p = ini_section_get_string(cat, temp, tmp2);
             sscanf(p, "%01u:%01u", &board, &dev);
-            board &= 3;
+            board &= (IDE_BUS_MAX - 1);
             dev &= 1;
             cdrom[c].ide_channel = (board << 1) + dev;
 
-            if (cdrom[c].ide_channel > 7)
-                cdrom[c].ide_channel = 7;
+            if (cdrom[c].ide_channel >= IDE_DRIVES_MAX)
+                cdrom[c].ide_channel = IDE_DRIVES_MAX - 1;
         } else if (cdrom[c].bus_type == CDROM_BUS_LPT) {
             sprintf(temp, "cdrom_%02i_lpt_port", c + 1);
             cdrom[c].res = ini_section_get_int(cat, temp, 0);
@@ -2138,12 +2138,12 @@ load_other_removable_devices(void)
             sprintf(tmp2, "%01u:%01u", (c + 2) >> 1, (c + 2) & 1);
             p = ini_section_get_string(cat, temp, tmp2);
             sscanf(p, "%01u:%01u", &board, &dev);
-            board &= 3;
+            board &= (IDE_BUS_MAX - 1);
             dev &= 1;
             rdisk_drives[c].ide_channel = (board << 1) + dev;
 
-            if (rdisk_drives[c].ide_channel > 7)
-                rdisk_drives[c].ide_channel = 7;
+            if (rdisk_drives[c].ide_channel >= IDE_DRIVES_MAX)
+                rdisk_drives[c].ide_channel = IDE_DRIVES_MAX - 1;
         } else if (rdisk_drives[c].bus_type == RDISK_BUS_SCSI) {
             sprintf(temp, "zip_%02i_scsi_location", c + 1);
             sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c + 2);
@@ -2242,12 +2242,12 @@ load_other_removable_devices(void)
             sprintf(tmp2, "%01u:%01u", (c + 2) >> 1, (c + 2) & 1);
             p = ini_section_get_string(cat, temp, tmp2);
             sscanf(p, "%01u:%01u", &board, &dev);
-            board &= 3;
+            board &= (IDE_BUS_MAX - 1);
             dev &= 1;
             rdisk_drives[c].ide_channel = (board << 1) + dev;
 
-            if (rdisk_drives[c].ide_channel > 7)
-                rdisk_drives[c].ide_channel = 7;
+            if (rdisk_drives[c].ide_channel >= IDE_DRIVES_MAX)
+                rdisk_drives[c].ide_channel = IDE_DRIVES_MAX - 1;
         } else if (rdisk_drives[c].bus_type == RDISK_BUS_LPT) {
             sprintf(temp, "rdisk_%02i_lpt_port", c + 1);
             rdisk_drives[c].res = ini_section_get_int(cat, temp, 0);
@@ -2357,12 +2357,12 @@ go_to_mo:
             sprintf(tmp2, "%01u:%01u", (c + 2) >> 1, (c + 2) & 1);
             p = ini_section_get_string(cat, temp, tmp2);
             sscanf(p, "%01u:%01u", &board, &dev);
-            board &= 3;
+            board &= (IDE_BUS_MAX - 1);
             dev &= 1;
             mo_drives[c].ide_channel = (board << 1) + dev;
 
-            if (mo_drives[c].ide_channel > 7)
-                mo_drives[c].ide_channel = 7;
+            if (mo_drives[c].ide_channel >= IDE_DRIVES_MAX)
+                mo_drives[c].ide_channel = IDE_DRIVES_MAX - 1;
         } else if (mo_drives[c].bus_type == MO_BUS_SCSI) {
             sprintf(temp, "mo_%02i_scsi_location", c + 1);
             sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c + 2);
@@ -2482,12 +2482,12 @@ go_to_mo:
             sprintf(tmp2, "%01u:%01u", (c + 2) >> 1, (c + 2) & 1);
             p = ini_section_get_string(cat, temp, tmp2);
             sscanf(p, "%01u:%01u", &board, &dev);
-            board &= 3;
+            board &= (IDE_BUS_MAX - 1);
             dev &= 1;
             tape_drives[c].ide_channel = (board << 1) + dev;
 
-            if (tape_drives[c].ide_channel > 7)
-                tape_drives[c].ide_channel = 7;
+            if (tape_drives[c].ide_channel >= IDE_DRIVES_MAX)
+                tape_drives[c].ide_channel = IDE_DRIVES_MAX - 1;
         } else if (tape_drives[c].bus_type == TAPE_BUS_SCSI) {
             sprintf(temp, "tape_%02i_scsi_location", c + 1);
             sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c + 4);

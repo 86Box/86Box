@@ -3355,6 +3355,13 @@ gus_init(UNUSED(const device_t *info))
     return gus;
 }
 
+/* The secondary IDE port is there only when enabled. */
+static uint32_t
+gus_extreme_ide_boards(UNUSED(const device_t *dev))
+{
+    return device_get_config_int("enable_ide") ? (1 << 1) : 0;
+}
+
 void *
 gus_extreme_init(UNUSED(const device_t *info))
 {
@@ -4192,7 +4199,9 @@ const device_t gus_extreme_device = {
     .available     = NULL,
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
-    .config        = gus_extreme_config
+    .config        = gus_extreme_config,
+    .short_name    = "GUS Extreme",
+    .ide_boards    = gus_extreme_ide_boards
 };
 
 const device_t gus_vipermax_device = {
@@ -4207,7 +4216,9 @@ const device_t gus_vipermax_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .alias         = "Synergy UltraSound VIP/Extreme",
-    .config        = gus_vipermax_config
+    .config        = gus_vipermax_config,
+    .short_name    = "ViperMAX",
+    .ide_boards    = gus_extreme_ide_boards
 };
 
 const device_t gus_pnp_device = {
@@ -4221,7 +4232,9 @@ const device_t gus_pnp_device = {
     .available     = gus_pnp_available,
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
-    .config        = gus_pnp_config
+    .config        = gus_pnp_config,
+    .short_name    = "GUS PnP",
+    .ide_boards    = ide_boards_quaternary
 };
 
 const device_t gus_pnp_new_device = {
@@ -4235,7 +4248,9 @@ const device_t gus_pnp_new_device = {
     .available     = gus_pnp_new_available,
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
-    .config        = gus_pnp_config
+    .config        = gus_pnp_config,
+    .short_name    = "GUS PnP",
+    .ide_boards    = ide_boards_quaternary
 };
 
 const device_t gus_pnp_nocd_device = {

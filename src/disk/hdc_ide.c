@@ -45,6 +45,7 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdd.h>
+#include <86box/sound.h>
 #include <86box/rdisk.h>
 #include <86box/thread.h>
 #include <86box/version.h>
@@ -408,7 +409,7 @@ getstat(ide_t *ide)
 ide_t *
 ide_get_drive(int ch)
 {
-    if (ch >= 8)
+    if (ch >= IDE_DRIVES_MAX)
         return NULL;
 
     return ide_drives[ch];
@@ -3119,6 +3120,19 @@ ide_board_claimed(int board)
     return (board >= 0) && (board < IDE_BUS_MAX) && (ide_boards[board] != NULL) && ide_boards[board]->inited;
 }
 
+/* The first pair of boards nothing has claimed, for a PCI card that takes
+   whichever pair is free; -1 when none is. */
+int
+ide_first_free_pair(void)
+{
+    for (int board = 0; board < IDE_BUS_MAX; board += 2) {
+        if (!ide_board_claimed(board) && !ide_board_claimed(board + 1))
+            return board;
+    }
+
+    return -1;
+}
+
 /*
    This so drives can be forced to ATA-3 (no DMA) for machines that hide the
    on-board PCI IDE controller (eg. Packard Bell PB640 and ASUS P/I-P54TP4XE),
@@ -3132,6 +3146,8 @@ ide_board_set_force_ata3(int board, int force_ata3)
     if ((ide_boards[board] != NULL) && ide_boards[board]->inited)
         ide_boards[board]->force_ata3 = force_ata3;
 }
+
+static void ide_board_reset(int board);
 
 static void
 ide_board_close(int board)
@@ -3396,6 +3412,14 @@ ide_sec_init(const device_t *info)
     return (ide_boards[1]);
 }
 
+/* Reset a standalone IDE unit. */
+static void
+ide_sec_reset(UNUSED(void *priv))
+{
+    if (ide_boards[1] != NULL)
+        ide_board_reset(1);
+}
+
 /* Close a standalone IDE unit. */
 static void
 ide_sec_close(UNUSED(void *priv))
@@ -3427,6 +3451,14 @@ ide_ter_init(const device_t *info)
     return (ide_boards[2]);
 }
 
+/* Reset a standalone IDE unit. */
+static void
+ide_ter_reset(UNUSED(void *priv))
+{
+    if (ide_boards[2] != NULL)
+        ide_board_reset(2);
+}
+
 /* Close a standalone IDE unit. */
 static void
 ide_ter_close(UNUSED(void *priv))
@@ -3456,6 +3488,14 @@ ide_qua_init(const device_t *info)
         ide_board_init(3, irq, HDC_QUATERNARY_BASE, HDC_QUATERNARY_SIDE, 0, 0);
 
     return (ide_boards[3]);
+}
+
+/* Reset a standalone IDE unit. */
+static void
+ide_qua_reset(UNUSED(void *priv))
+{
+    if (ide_boards[3] != NULL)
+        ide_board_reset(3);
 }
 
 /* Close a standalone IDE unit. */
@@ -3509,31 +3549,61 @@ ide_set_bus_master(int board,
     bm->priv    = priv;
 }
 
+/* The boards one generic IDE unit brought up, so that it resets and closes
+   those and no others: another controller may have claimed one first. */
+typedef struct ide_unit_t {
+    int first;
+    int count;
+} ide_unit_t;
+
+/* The first board of a generic unit: local 0-5 the primary (and secondary),
+   8-0x0d the tertiary (and quaternary), then 0x10-0x15 and 0x18-0x1d the
+   pairs above those, which only PCI cards take. Bit 0 is the second board. */
+static int
+ide_unit_first(const device_t *info)
+{
+    return (int) ((info->local >> 3) << 1);
+}
+
 static void *
 ide_init(const device_t *info)
 {
+    ide_unit_t *unit  = (ide_unit_t *) calloc(1, sizeof(ide_unit_t));
+    const int   first = ide_unit_first(info);
+    const int   count = (info->local & 1) ? 2 : 1;
+
     ide_log("Initializing IDE...\n");
 
-    switch (info->local) {
-        case 0 ... 5:
+    unit->first = first;
+    for (int board = first; (board < (first + count)) && (board < IDE_BUS_MAX); board++) {
+        if (ide_board_claimed(board))
+            continue;
+
+        if (board == 0)
             ide_board_init(0, HDC_PRIMARY_IRQ, HDC_PRIMARY_BASE, HDC_PRIMARY_SIDE, info->local, info->flags);
+        else if (board == 1)
+            ide_board_init(1, HDC_SECONDARY_IRQ, HDC_SECONDARY_BASE, HDC_SECONDARY_SIDE, info->local, info->flags);
+        else
+            ide_board_init(board, -1, 0, 0, info->local, info->flags);
 
-            if (info->local & 1)
-                ide_board_init(1, HDC_SECONDARY_IRQ, HDC_SECONDARY_BASE, HDC_SECONDARY_SIDE, info->local, info->flags);
-            break;
-
-        case 8 ... 0x0d:
-            ide_board_init(2, -1, 0, 0, info->local, info->flags);
-
-            if (info->local & 1)
-                ide_board_init(3, -1, 0, 0, info->local, info->flags);
-            break;
-
-        default:
-            break;
+        unit->count = board - first + 1;
     }
 
-    return (void *) (intptr_t) -1;
+    return unit;
+}
+
+/* A pair of boards with no legacy resources, for a PCI card: board is the
+   first of the pair. */
+void
+ide_pci_pair_init(int board)
+{
+    static const device_t *const pairs[IDE_BUS_MAX / 2] = {
+        &ide_pci_2ch_device, &ide_pci_ter_qua_2ch_device,
+        &ide_pci_5th_6th_2ch_device, &ide_pci_7th_8th_2ch_device
+    };
+
+    if ((board >= 0) && (board < IDE_BUS_MAX) && !(board & 1))
+        device_add(pairs[board >> 1]);
 }
 
 static void
@@ -3605,11 +3675,13 @@ ide_drives_set_shadow(void)
 
 /* Reset a standalone IDE unit. */
 static void
-ide_reset(UNUSED(void *priv))
+ide_reset(void *priv)
 {
+    const ide_unit_t *unit = (ide_unit_t *) priv;
+
     ide_log("Resetting IDE...\n");
 
-    for (uint8_t i = 0; i < 2; i++) {
+    for (int i = unit->first; i < (unit->first + unit->count); i++) {
         if (ide_boards[i] != NULL)
             ide_board_reset(i);
     }
@@ -3617,14 +3689,179 @@ ide_reset(UNUSED(void *priv))
 
 /* Close a standalone IDE unit. */
 static void
-ide_close(UNUSED(void *priv))
+ide_close(void *priv)
 {
+    ide_unit_t *unit = (ide_unit_t *) priv;
+
     ide_log("Closing IDE...\n");
 
-    for (uint8_t i = 0; i < 2; i++) {
+    for (int i = unit->first; i < (unit->first + unit->count); i++) {
         if (ide_boards[i] != NULL) {
             ide_board_close(i);
             ide_boards[i] = NULL;
+        }
+    }
+
+    free(unit);
+}
+
+/* The boards a generic IDE unit claims. */
+uint32_t
+ide_boards_generic(const device_t *dev)
+{
+    if (dev->init == ide_sec_init)
+        return 1 << 1;
+    else if (dev->init == ide_ter_init)
+        return 1 << 2;
+    else if (dev->init == ide_qua_init)
+        return 1 << 3;
+    else if (dev->init == ide_init) {
+        const int first = ide_unit_first(dev);
+
+        return (1 << first) | ((dev->local & 1) ? (1 << (first + 1)) : 0);
+    }
+
+    return 0;
+}
+
+uint32_t
+ide_boards_primary(UNUSED(const device_t *dev))
+{
+    return 1 << 0;
+}
+
+uint32_t
+ide_boards_pri_sec(UNUSED(const device_t *dev))
+{
+    return (1 << 0) | (1 << 1);
+}
+
+uint32_t
+ide_boards_ter_qua(UNUSED(const device_t *dev))
+{
+    return (1 << 2) | (1 << 3);
+}
+
+uint32_t
+ide_boards_quaternary(UNUSED(const device_t *dev))
+{
+    return 1 << 3;
+}
+
+uint32_t
+ide_boards_first_free_pair(UNUSED(const device_t *dev))
+{
+    return IDE_BOARDS_FIRST_FREE_PAIR;
+}
+
+/* The boards a device claims, read with its instance's configuration. */
+static uint32_t
+ide_plan_boards(const device_t *dev, int inst)
+{
+    uint32_t boards = 0;
+
+    if ((dev != NULL) && (dev->ide_boards != NULL)) {
+        device_context_inst(dev, inst);
+        boards = dev->ide_boards(dev);
+        device_context_restore();
+    }
+
+    return boards;
+}
+
+/* The first to claim a board has it, as when the machine starts: a later
+   claim on it gets nothing. */
+static void
+ide_plan_claim(ide_owner_t owners[IDE_BUS_MAX], bool taken[IDE_BUS_MAX], uint32_t boards,
+               const device_t *dev, int inst, int onboard)
+{
+    if (boards & IDE_BOARDS_FIRST_FREE_PAIR) {
+        boards = 0;
+        for (int board = 0; board < IDE_BUS_MAX; board += 2) {
+            if (!taken[board] && !taken[board + 1]) {
+                boards = 3 << board;
+                break;
+            }
+        }
+    }
+
+    for (int board = 0; board < IDE_BUS_MAX; board++) {
+        if ((boards & (1 << board)) && !taken[board]) {
+            taken[board]           = true;
+            owners[board].device   = dev;
+            owners[board].instance = inst;
+            owners[board].onboard  = onboard;
+        }
+    }
+}
+
+int
+ide_plan(ide_owner_t owners[IDE_BUS_MAX], int mach, const int hdc[], const int snd[])
+{
+    const machine_t *m                    = &machines[mach];
+    bool             taken[IDE_BUS_MAX]   = { 0 };
+    int              shown                = IDE_BUS_SHOWN_MIN;
+
+    memset(owners, 0, IDE_BUS_MAX * sizeof(ide_owner_t));
+
+    /* The machine starts first: a chip of its own, then the chipset's IDE on
+       the boards the machine has. Some old machines bring theirs up only
+       with the Internal controller selected. */
+    if ((m->flags & MACHINE_IDE_QUAD) &&
+        (!(m->flags & MACHINE_IDE_INTERNAL) || (hdc[0] == HDC_INTERNAL))) {
+        ide_plan_claim(owners, taken, ide_plan_boards(m->ide_device, 1), m->ide_device, 1, 1);
+        for (int board = 0; board < 4; board++) {
+            if (m->flags & (MACHINE_IDE_PRI << board))
+                ide_plan_claim(owners, taken, 1 << board, NULL, 0, 1);
+        }
+    }
+    if ((snd[0] == SOUND_INTERNAL) && (m->snd_device != NULL))
+        ide_plan_claim(owners, taken, ide_plan_boards(m->snd_device, 1), m->snd_device, 1, 1);
+
+    /* Then the sound cards, and after them the disk controllers. */
+    for (int i = 0; i < SOUND_CARD_MAX; i++) {
+        if (snd[i] > SOUND_INTERNAL) {
+            const device_t *dev = sound_card_getdevice(snd[i]);
+
+            ide_plan_claim(owners, taken, ide_plan_boards(dev, i + 1), dev, i + 1, 0);
+        }
+    }
+    for (int i = 0; i < HDC_MAX; i++) {
+        if (hdc[i] > HDC_INTERNAL) {
+            const device_t *dev = hdc_get_device(hdc[i]);
+
+            ide_plan_claim(owners, taken, ide_plan_boards(dev, i + 1), dev, i + 1, 0);
+        }
+    }
+
+    for (int board = 0; board < IDE_BUS_MAX; board++) {
+        if (taken[board] && (board >= shown))
+            shown = (board | 1) + 1;
+    }
+
+    return shown;
+}
+
+/* Whether the boards the machine brought up are the ones the plan gives,
+   which the settings show: a device that claims a board without saying
+   so in its ide_boards() turns up here. */
+void
+ide_plan_check(void)
+{
+    ide_owner_t owners[IDE_BUS_MAX];
+
+    ide_plan(owners, machine, hdc_current, sound_card_current);
+
+    for (int board = 0; board < IDE_BUS_MAX; board++) {
+        const int planned = owners[board].onboard || (owners[board].device != NULL);
+        const int claimed = ide_board_claimed(board);
+
+        if (planned != claimed) {
+            const char *owner = (owners[board].device != NULL) ? owners[board].device->name : "the machine";
+
+            warning("IDE: board %i is %s, but the settings show it %s%s\n", board,
+                    claimed ? "in use" : "free", planned ? "taken by " : "free",
+                    planned ? owner : "");
         }
     }
 }
@@ -3803,7 +4040,9 @@ const device_t ide_isa_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "ISA IDE",
+    .ide_boards    = ide_boards_generic
 };
 
 const device_t ide_isa_sec_device = {
@@ -3813,11 +4052,13 @@ const device_t ide_isa_sec_device = {
     .local         = 0,
     .init          = ide_sec_init,
     .close         = ide_sec_close,
-    .reset         = ide_reset,
+    .reset         = ide_sec_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "ISA IDE",
+    .ide_boards    = ide_boards_generic
 };
 
 const device_t ide_isa_2ch_device = {
@@ -3831,7 +4072,9 @@ const device_t ide_isa_2ch_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "ISA IDE",
+    .ide_boards    = ide_boards_generic
 };
 
 const device_t ide_vlb_device = {
@@ -3845,7 +4088,9 @@ const device_t ide_vlb_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "VLB IDE",
+    .ide_boards    = ide_boards_generic
 };
 
 const device_t ide_vlb_sec_device = {
@@ -3855,11 +4100,13 @@ const device_t ide_vlb_sec_device = {
     .local         = 2,
     .init          = ide_sec_init,
     .close         = ide_sec_close,
-    .reset         = ide_reset,
+    .reset         = ide_sec_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "VLB IDE",
+    .ide_boards    = ide_boards_generic
 };
 
 const device_t ide_vlb_2ch_device = {
@@ -3873,7 +4120,9 @@ const device_t ide_vlb_2ch_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "VLB IDE",
+    .ide_boards    = ide_boards_generic
 };
 
 const device_t ide_pci_device = {
@@ -3887,7 +4136,9 @@ const device_t ide_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "PCI IDE",
+    .ide_boards    = ide_boards_generic
 };
 
 const device_t ide_pci_sec_device = {
@@ -3897,11 +4148,13 @@ const device_t ide_pci_sec_device = {
     .local         = 4,
     .init          = ide_sec_init,
     .close         = ide_sec_close,
-    .reset         = ide_reset,
+    .reset         = ide_sec_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "PCI IDE",
+    .ide_boards    = ide_boards_generic
 };
 
 const device_t ide_pci_2ch_device = {
@@ -3915,7 +4168,9 @@ const device_t ide_pci_2ch_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "PCI IDE",
+    .ide_boards    = ide_boards_generic
 };
 
 const device_t mcide_device = {
@@ -3929,7 +4184,9 @@ const device_t mcide_device = {
     .available     = mcide_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "MCA IDE",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 // clang-format off
@@ -3995,11 +4252,13 @@ const device_t ide_ter_device = {
     .local         = 0,
     .init          = ide_ter_init,
     .close         = ide_ter_close,
-    .reset         = NULL,
+    .reset         = ide_ter_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ide_ter_config
+    .config        = ide_ter_config,
+    .short_name    = "ISA IDE",
+    .ide_boards    = ide_boards_generic
 };
 
 const device_t ide_ter_pnp_device = {
@@ -4009,11 +4268,13 @@ const device_t ide_ter_pnp_device = {
     .local         = 1,
     .init          = ide_ter_init,
     .close         = ide_ter_close,
-    .reset         = NULL,
+    .reset         = ide_ter_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "ISA IDE",
+    .ide_boards    = ide_boards_generic
 };
 
 const device_t ide_qua_device = {
@@ -4023,11 +4284,13 @@ const device_t ide_qua_device = {
     .local         = 0,
     .init          = ide_qua_init,
     .close         = ide_qua_close,
-    .reset         = NULL,
+    .reset         = ide_qua_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ide_qua_config
+    .config        = ide_qua_config,
+    .short_name    = "ISA IDE",
+    .ide_boards    = ide_boards_generic
 };
 
 const device_t ide_qua_pnp_device = {
@@ -4037,11 +4300,13 @@ const device_t ide_qua_pnp_device = {
     .local         = 1,
     .init          = ide_qua_init,
     .close         = ide_qua_close,
-    .reset         = NULL,
+    .reset         = ide_qua_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "ISA IDE",
+    .ide_boards    = ide_boards_generic
 };
 
 const device_t ide_pci_ter_qua_2ch_device = {
@@ -4055,5 +4320,39 @@ const device_t ide_pci_ter_qua_2ch_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "PCI IDE",
+    .ide_boards    = ide_boards_generic
+};
+
+const device_t ide_pci_5th_6th_2ch_device = {
+    .name          = "PCI IDE Controller (Dual-Channel Fifth/Sixth)",
+    .internal_name = "ide_pci_5th_6th_2ch",
+    .flags         = DEVICE_PCI,
+    .local         = 0x15,
+    .init          = ide_init,
+    .close         = ide_close,
+    .reset         = ide_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL,
+    .short_name    = "PCI IDE",
+    .ide_boards    = ide_boards_generic
+};
+
+const device_t ide_pci_7th_8th_2ch_device = {
+    .name          = "PCI IDE Controller (Dual-Channel Seventh/Eighth)",
+    .internal_name = "ide_pci_7th_8th_2ch",
+    .flags         = DEVICE_PCI,
+    .local         = 0x1d,
+    .init          = ide_init,
+    .close         = ide_close,
+    .reset         = ide_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL,
+    .short_name    = "PCI IDE",
+    .ide_boards    = ide_boards_generic
 };

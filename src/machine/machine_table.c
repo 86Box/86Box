@@ -30,6 +30,7 @@
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/hdc.h>
 #include <86box/keyboard.h>
 #include <86box/nvr.h>
 #include <86box/sio.h>
@@ -3919,7 +3920,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_KEYBOARD,
+        .flags     = MACHINE_IDE | MACHINE_IDE_INTERNAL | MACHINE_VIDEO | MACHINE_KEYBOARD,
         .ram       = {
             .min  = 256,
             .max  = 6784,
@@ -7666,7 +7667,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_KEYBOARD,
+        .flags     = MACHINE_IDE | MACHINE_IDE_INTERNAL | MACHINE_VIDEO | MACHINE_KEYBOARD,
         .ram       = {
             .min  = 1024,
             .max  = 14336,
@@ -10265,6 +10266,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5428_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_ali5213_device,
         .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
@@ -11238,6 +11240,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5428_vlb_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_opti611_vlb_device,
         .aliases                  = { "" }
     },
     /* Version 1.0 has an AMIKEY-2, version 2.0 has a VIA VT82C42N KBC. */
@@ -11578,6 +11581,7 @@ const machine_t machines[] = {
         .vid_device               = &s3_trio32_onboard_vlb_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_vlb_pri_device,
         .aliases                  = { "" }
     },
     /* Has JetKey v5.0G KBC Firmware which is a clone of AMIKey type F. */
@@ -12313,6 +12317,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_single_channel_device,
         .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
@@ -12702,6 +12707,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5436_onboard_pci_ics_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_rz1000_pci_single_channel_device,
         .aliases                  = { "" }
     },
     /* This most likely has a standalone AMI Megakey 1993, which is type 'P', like the below Tekram board. */
@@ -12801,6 +12807,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5430_onboard_vlb_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_opti611_vlb_device,
         .aliases                  = { "Aptiva 510", "Aptiva 710", "Aptiva Vision", "" }
     },
     /* has a Phoenix PLCC Multikey copyrighted 1993, version unknown. */
@@ -12850,6 +12857,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5428_vlb_onboard_pb450_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_opti611_vlb_device,
         .aliases                  = { "Packard Bell Firehawk", "" }
     },
     /* Has Acer KBC firmware. */
@@ -12898,6 +12906,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5434_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_legacy_only_device,
         .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
@@ -13431,6 +13440,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_legacy_only_device,
         .aliases                  = { "" }
     },
     /* Has AMIKey Z(!) KBC firmware. */
@@ -13528,6 +13538,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5430_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_device,
         .aliases                  = { "Epson ActionTower 7300", "Epson ActionTower 7500", "Epson ActionTower 8400", "" }
     },
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
@@ -14223,6 +14234,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_legacy_only_device,
         .aliases                  = { "AMI S701", "" }
     },
     /* Has AMIKey F KBC firmware (AMIKey). */
@@ -14511,6 +14523,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_rz1000_pci_single_channel_device,
         .aliases                  = { "Intel Batman's Revenge", "Intel Premiere/PCI Expandable Desktop", "" }
     },
     /* The M5Pi appears to have a Phoenix MultiKey KBC firmware according to photos. */
@@ -14559,6 +14572,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_w83769f_pci_single_channel_device,
         .aliases                  = { "" }
     },
     /* This has the Phoenix MultiKey KBC firmware. */
@@ -14607,6 +14621,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5434_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_single_channel_legacy_only_device,
         .aliases                  = { "Packard Bell Robin LC", "Intel Robin LC", "" }
     },
 
@@ -14710,6 +14725,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_opti611_vlb_device,
         .aliases                  = { "AMI S75", "" }
     },
     /* Has a VIA VT82C42N KBC with AMI 'F' firmware */
@@ -14904,6 +14920,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_legacy_only_device,
         .aliases                  = { "AMI S722", "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
@@ -14952,6 +14969,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_device,
         .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
@@ -15000,6 +15018,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_device,
         .aliases                  = { "" }
     },
 
@@ -15102,6 +15121,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_device,
         .aliases                  = { "" }
     },
 
@@ -15255,6 +15275,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_rz1000_pci_single_channel_device,
         .aliases                  = { "Intel Plato", "Dell Dimension XPS P___", "Ambra DP90 PCI", "" }
     },
     /* Has unknown KBC firmware. */
@@ -15351,6 +15372,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_rz1000_pci_device,
         .aliases                  = { "Siemens-Nixdorf PCD-5T", "Siemens-Nixdorf Primergy 350", "" }
     },
     /* Has AMI MegaKey KBC firmware. */
@@ -15991,6 +16013,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_opti611_vlb_device,
         .aliases                  = { "Northgate Computer Systems Elegance Pentium 90", "" }
     },
 
@@ -16191,6 +16214,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd646_device,
         .aliases                  = { "" }
     },
     /* This uses a VIA VT82C42N KBC, which is a clone of type 'F' with additional commands.
@@ -16240,6 +16264,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_pc87410_device,
         .aliases                  = { "" }
     },
     /* Has TriGem AMI KBC firmware */
@@ -16288,6 +16313,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_device,
         .aliases                  = { "TriGem GEM4530", "" }
     },
 
@@ -16338,6 +16364,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_device,
         .aliases                  = { "President Technology P54SP4", "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
@@ -16386,6 +16413,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_single_channel_device,
         .aliases                  = { "" }
     },
     /* This machine has a Winbond W83C842 KBC */
@@ -16482,6 +16510,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_w83769f_pci_device,
         .aliases                  = { "" }
     },
     /* Has AMIKey Z(!) KBC firmware. */
@@ -16530,6 +16559,7 @@ const machine_t machines[] = {
         .vid_device               = &tgui9660_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_um8673f_device,
         .aliases                  = { "TriGem Torino", "Olivetti BA2199", "Olivetti BA2259", "Olivetti M4-xxx", "" }
     },
 
@@ -16681,6 +16711,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5434_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_single_channel_device,
         .aliases                  = { "AST Bravo MS-T", "AST Bravo MS-L", "AST Rattler", "" }
     },
     /* KBC firmware is unknown. No commands outside of the base PS/2 */
@@ -16731,6 +16762,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_single_channel_device,
         .aliases                  = { "Micron Diablo", "Micron MBD001013-xx", "" }
     },
     /* This has Phoenix KBC firmware. */
@@ -16780,6 +16812,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5430_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_device,
         .aliases                  = { "Packard Bell Agoura", "Packard Bell Wildcat", "" }
     },
 
@@ -16831,6 +16864,7 @@ const machine_t machines[] = {
         .vid_device               = &s3_trio64_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_single_channel_legacy_only_device,
         .aliases                  = { "AT&T Globalyst 630", "NCR 3248", "NCR 3348", "" }
     },
     /* Has a VIA KBC chip */
@@ -16883,6 +16917,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd646_device,
         .aliases                  = { "" }
     },
 
@@ -18371,6 +18406,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_rz1001_pci_device,
         .aliases                  = { "Zeos Pantera", "Zeos Wildcat", "" }
     },
 
@@ -22133,6 +22169,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd646_device,
         .aliases                  = { "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
@@ -22233,6 +22270,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd646_device,
         .aliases                  = { "" }
     },
     /* This has a PC87306 with unknown keyboard controller firmware (Phoenix?). */
@@ -22281,6 +22319,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd646_device,
         .aliases                  = { "" }
     },
 
@@ -23765,6 +23804,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_hpt366_ter_qua_onboard_device,
         .aliases                  = { "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -25507,6 +25547,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd648_ter_qua_onboard_device,
         .aliases                  = { "" }
     },
     /* Has a National Semiconductor PC87309 Super I/O with on-chip KBC, which has one of these
@@ -26432,6 +26473,12 @@ machine_get_net_device(int m)
         return (machines[m].net_device);
 
     return (NULL);
+}
+
+const device_t *
+machine_get_ide_device(int m)
+{
+    return (machines[m].ide_device);
 }
 
 const char *

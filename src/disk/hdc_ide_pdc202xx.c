@@ -113,7 +113,7 @@
 
 typedef struct pdc_t {
     uint8_t     card;      /* which of the two */
-    int         ch_base;   /* IDE channels 0-1, or 2-3 where those are taken */
+    int         ch_base;   /* First of the pair of IDE boards: the first pair free */
     uint8_t     pci_slot;
     uint8_t     irq_state;
     uint8_t     cable80;   /* what the cable sense answers */
@@ -935,11 +935,24 @@ pdc_close(void *priv)
 static void *
 pdc_init(const device_t *info)
 {
+    /* The first pair of boards nothing has claimed: the primary and
+       secondary where they are free, as the machine's IDE, and otherwise the
+       next pair up, as any add-in PCI IDE controller does. A board with its
+       own IDE (PIIX, VIA, ALi...) or another controller has claimed the
+       first ones by now, and with them their bus master instances. */
+    const int ch_base = ide_first_free_pair();
+
+    if (ch_base < 0) {
+        warning("PDC202xx: no pair of IDE channels is free\n");
+        return NULL;
+    }
+
     pdc_t *dev = (pdc_t *) calloc(1, sizeof(pdc_t));
 
     const char *rom_file;
     uint32_t    rom_size;
 
+    dev->ch_base = ch_base;
     dev->card    = info->local & 0xff;
     dev->cable80 = !!device_get_config_int("cable80");
 
@@ -952,18 +965,11 @@ pdc_init(const device_t *info)
              rom_size - 1, 0, MEM_MAPPING_EXTERNAL);
     mem_mapping_disable(&dev->bios_rom.mapping);
 
-    /* THE PRIMARY AND SECONDARY WHERE THEY ARE FREE, the tertiary and
-       quaternary where they are not. A board with its own IDE (PIIX, VIA,
-       ALi...) or another controller has already claimed the first two by
-       now, and with them bus master instances 1 and 2; the card then takes
-       the next two, as any add-in PCI IDE controller does. Where nothing
-       has, the card is the machine's IDE, as it always was. */
-    dev->ch_base = (ide_board_claimed(0) || ide_board_claimed(1)) ? 2 : 0;
     /* An IDE controller whose name is not "ide...": the status bar's disk
        and ATAPI icons look for this, as for a sound card's IDE port. */
     other_ide_present++;
     if (dev->ch_base)
-        device_add(&ide_pci_ter_qua_2ch_device);
+        ide_pci_pair_init(dev->ch_base);
     dev->bm[0] = device_add_inst(&sff8038i_device, dev->ch_base + 1);
     dev->bm[1] = device_add_inst(&sff8038i_device, dev->ch_base + 2);
     /* The SFF core adds the primary and secondary itself, but only for
@@ -1084,6 +1090,8 @@ const device_t pdc20269_device = {
     .available     = pdc20269_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = pdc20269_config
+    .config        = pdc20269_config,
+    .short_name    = "Ultra133",
+    .ide_boards    = ide_boards_first_free_pair
 };
 

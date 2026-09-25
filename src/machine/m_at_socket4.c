@@ -149,7 +149,7 @@ machine_at_excaliburpci_init(const machine_t *model)
 
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-    device_add(&ide_cmd640_pci_legacy_only_device);
+    device_add(machine_get_ide_device(machine));
 
     device_add(&i430lx_device);
     device_add(&sio_zb_device);
@@ -476,7 +476,7 @@ machine_at_premiere_common_init(const machine_t *model, int pci_switch)
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&sio_zb_device);
-    device_add(&ide_rz1000_pci_single_channel_device);
+    device_add(machine_get_ide_device(machine));
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     device_add(&intel_flash_bxt_ami_device);
 }
@@ -523,7 +523,7 @@ machine_at_m5pi_init(const machine_t *model)
     device_add(&i430lx_device);
     device_add(&sio_zb_device);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-    device_add(&ide_w83769f_pci_single_channel_device);
+    device_add(machine_get_ide_device(machine));
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     device_add(&intel_flash_bxt_ami_device);
 
@@ -553,7 +553,7 @@ machine_at_pb520r_init(const machine_t *model)
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
 
     device_add(&i430lx_device);
-    device_add(&ide_cmd640_pci_single_channel_legacy_only_device);
+    device_add(machine_get_ide_device(machine));
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5434_onboard_pci_device);
@@ -668,7 +668,7 @@ machine_at_excalibur_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&opti5x7_device);
-    device_add(&ide_opti611_vlb_device);
+    device_add(machine_get_ide_device(machine));
     device_add_params(&fdc37c6xx_device, (void *) FDC37C661);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
@@ -785,7 +785,7 @@ machine_at_excaliburpci2_init(const machine_t *model)
 
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-    device_add(&ide_cmd640_pci_legacy_only_device);
+    device_add(machine_get_ide_device(machine));
 
     device_add(&sis_85c50x_device);
     device_add(&intel_flash_bxt_ami_device);
@@ -811,7 +811,7 @@ machine_at_sp4_common_init(const machine_t *model)
     pci_register_slot(0x09, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&sis_85c50x_device);
-    device_add(&ide_cmd640_pci_device);
+    device_add(machine_get_ide_device(machine));
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&intel_flash_bxt_device);
@@ -856,7 +856,7 @@ machine_at_ecs50x_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&sis_85c50x_device);
-    device_add_params(&ide_cmd640_pci_device, (void *) 0x100000);
+    device_add_params(machine_get_ide_device(machine), (void *) 0x100000);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&intel_flash_bxt_device);

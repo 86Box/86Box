@@ -186,6 +186,10 @@ typedef struct _device_ {
     const device_config_t *config;
 
     void (*power_button)(void *priv); /* Optional emulated power-button press. */
+
+    const char *short_name;                           /* Short label, as on an IDE channel; name if NULL. */
+    uint32_t  (*ide_boards)(const struct _device_ *); /* The IDE boards the device claims, with its
+                                                         configuration as the current context. */
 } device_t;
 
 typedef struct device_context_t {

@@ -187,7 +187,7 @@ machine_at_acera1g_init(const machine_t *model)
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add_params(&pc87310_device, (void *) (PC87310_ALI));
-    device_add(&ide_ali5213_device);
+    device_add(machine_get_ide_device(machine));
 
     return ret;
 }
