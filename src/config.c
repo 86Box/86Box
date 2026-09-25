@@ -75,6 +75,7 @@
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/scsi.h>
+#include <86box/scsi_aic7xxx.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_interface.h>
@@ -1394,9 +1395,16 @@ load_storage_controllers(void)
         sprintf(temp, "scsicard_%d", c + 1);
 
         p = ini_section_get_string(cat, temp, NULL);
-        if (p != NULL)
+        if (p != NULL) {
+            /* The Adaptec AIC-7xxx cards that became models of one entry. */
+            const char *aic = aic_config_migrate(p, c + 1);
+
+            if (aic != NULL) {
+                ini_section_set_string(cat, temp, aic);
+                p = ini_section_get_string(cat, temp, NULL);
+            }
             scsi_card_current[c] = scsi_card_get_from_internal_name(p);
-        else
+        } else
             scsi_card_current[c] = 0;
     }
 
