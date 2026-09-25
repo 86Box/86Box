@@ -12,6 +12,7 @@
  *
  *          Copyright 2021 Joakim L. Gilje
  */
+#include <algorithm>
 #include <cstdint>
 
 #include "qt_settings_completer.hpp"
@@ -389,9 +390,16 @@ Harddrives::ownerName(int bus, const bus_owner_t *owners, int count)
     if (owner.onboard)
         return name.isEmpty() ? QObject::tr("Onboard") : QObject::tr("%1 (Onboard)").arg(name);
 
+    /* Where there are two or more of the card, each is numbered by its
+       place among them, #1 first, whatever slots they are in. */
+    QList<int> instances;
     for (int i = 0; i < count; i++) {
-        if ((owners[i].device == owner.device) && (owners[i].instance != owner.instance))
-            return QString("%1 #%2").arg(name).arg(owner.instance);
+        if ((owners[i].device == owner.device) && !instances.contains(owners[i].instance))
+            instances.append(owners[i].instance);
+    }
+    if (instances.size() > 1) {
+        std::sort(instances.begin(), instances.end());
+        return QString("%1 #%2").arg(name).arg(instances.indexOf(owner.instance) + 1);
     }
 
     return name;
