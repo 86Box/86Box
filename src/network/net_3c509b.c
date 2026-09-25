@@ -2196,6 +2196,15 @@ el3_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
     if (ld != 0)
         return;
 
+    /* A reset or deactivation turns the card off but must not replace the
+       I/O base and IRQ it took from the EEPROM: a card activated by the ID
+       sequence still uses those. Plug and Play resources apply only when
+       Plug and Play activates the card. */
+    if (!config->activate) {
+        el3_deactivate(dev);
+        return;
+    }
+
     if ((base >= 0x200) && (base <= 0x3e0))
         dev->address_config = (uint16_t) ((dev->address_config & ~AC_IO_BASE) | ((base - 0x200) >> 4));
     /* An 8 KB ROM window (the resource data's) at C2000h-DE000h: ROM SIZE
