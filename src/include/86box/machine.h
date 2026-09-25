@@ -1613,6 +1613,7 @@ extern int             machine_is_pcjx(int m);
 /* m_ps1.c */
 #ifdef EMU_DEVICE_H
 extern const device_t  ps1_2011_device;
+extern const device_t  ps1_2121_device;
 #endif
 extern int             machine_ps1_m2011_init(const machine_t *);
 extern int             machine_ps1_m2121_init(const machine_t *);
