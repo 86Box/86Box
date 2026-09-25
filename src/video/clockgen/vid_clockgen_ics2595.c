@@ -20,6 +20,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <86box/86box.h>
+#include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/plat_unused.h>
 
@@ -29,6 +30,8 @@ typedef struct ics2595_t {
     int dat;
     int pos;
     int state;
+
+    uint64_t last_write;
 
     double clocks[16];
     double mclocks[4];
@@ -43,6 +46,10 @@ enum {
 
 static int ics2595_div[4] = { 8, 4, 2, 1 };
 
+/* Tmax is 4096 reference-divider periods (data sheet, "Programming Mode
+   Selection"): 13.16 ms with the divider of 46 and 14.318 MHz. */
+#define ICS2595_TMAX_US 13159
+
 void
 ics2595_write(void *priv, int strobe, int dat)
 {
@@ -53,6 +60,13 @@ ics2595_write(void *priv, int strobe, int dat)
     double     freq;
 
     if (strobe) {
+        /* 2 * Tmax with no write clears the shift register and ends any
+           sequence, so a stray clock from a plain clock select does not
+           start a word that swallows the next one. */
+        if ((tsc - ics2595->last_write) > ((2 * ICS2595_TMAX_US * TIMER_USEC) >> 32))
+            ics2595->state = ICS2595_IDLE;
+        ics2595->last_write = tsc;
+
         if ((dat & 8) && !ics2595->oldfs3) { /*Data clock*/
             switch (ics2595->state) {
                 case ICS2595_IDLE:
