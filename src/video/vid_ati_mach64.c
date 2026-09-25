@@ -432,12 +432,16 @@ mach64_recalctimings(svga_t *svga)
         svga->interlace  = ilace;
         svga->vtotal     = ((mach64->crtc_v_total_disp & 2047) + 1) >> ilace;
         svga->dispend    = (((mach64->crtc_v_total_disp >> 16) & 2047) + 1) >> ilace;
-        svga->htotal     = (mach64->crtc_h_total_disp & 255) + 1;
+        /* CRTC_H_TOTAL is 8 bits on the GX, CX and CT (RRG 3-20) and 9 from
+           the VT, where CRTC_H_SYNC_STRT gains CRTC_H_SYNC_STRT_HI in bit 12;
+           CRTC_H_DISP stays 8 (VT/RAGE RRG 4-20, 4-21). */
+        svga->htotal     = (mach64->crtc_h_total_disp & ((mach64->type >= MACH64_VT) ? 0x1ff : 0xff)) + 1;
         svga->hdisp_time = svga->hdisp = ((mach64->crtc_h_total_disp >> 16) & 255) + 1;
         /* CRTC_H_SYNC_STRT (7:0) is in characters; CRTC_H_SYNC_DLY (10:8)
            delays the sync by pixels within that character (RRG 3-22), finer
            than the character counter this blanking runs on. */
-        svga->hblankstart              = mach64->crtc_h_sync_strt_wid & 255;
+        svga->hblankstart              = (mach64->crtc_h_sync_strt_wid & 255) |
+                                         ((mach64->type >= MACH64_VT) ? ((mach64->crtc_h_sync_strt_wid >> 4) & 0x100) : 0);
         svga->hblank_end_val           = (svga->hblankstart +
                                          ((mach64->crtc_h_sync_strt_wid >> 16) & 31) - 1) & 63;
         svga->vsyncstart               = ((mach64->crtc_v_sync_strt_wid & 2047) + 1) >> ilace;
