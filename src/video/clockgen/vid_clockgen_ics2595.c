@@ -137,10 +137,17 @@ ics2595_write(void *priv, int strobe, int dat)
 /* The ATI18818 frequency table for the ATI68860 DAC, PCLK_TABLE 2, in MHz
    (mach64 BIOS Kit BIO-888GX0-02, D-3): the entries a mach64 BIOS loads,
    so an entry is a usable dot clock before anything reprograms it. */
+/* The power-up table of the ICS2595-02, the pattern with the reference
+   divider of 46 that the mach64 BIOSes give for their ATI18818 (data sheet,
+   frequency table). Location 6 is the EXTFREQ pin, whose source on the
+   boards is not known; the MCLK table has only two entries. The BIOS
+   reprograms all 16 VCLKs at POST. */
 static const double ics2595_ati_table[16] = {
-    25.18, 28.32, 31.50, 36.00, 40.00, 44.90, 49.50, 50.00,
-    100.00, 110.00, 126.00, 135.00, 78.25, 80.00, 75.00, 65.00
+    100.27, 125.90, 93.06, 36.27, 50.76, 57.03, 0.00, 45.28,
+    135.99, 32.20, 110.51, 80.21, 40.11, 45.28, 75.51, 65.49
 };
+
+static const double ics2595_ati_mclk_table[2] = { 40.42, 45.59 };
 
 static void *
 ics2595_init(UNUSED(const device_t *info))
@@ -149,6 +156,8 @@ ics2595_init(UNUSED(const device_t *info))
 
     for (int c = 0; c < 16; c++)
         ics2595->clocks[c] = ics2595_ati_table[c] * 1000000.0;
+    for (int c = 0; c < 2; c++)
+        ics2595->mclocks[c] = ics2595_ati_mclk_table[c] * 1000000.0;
     ics2595->output_clock = ics2595->clocks[0];
 
     return ics2595;
