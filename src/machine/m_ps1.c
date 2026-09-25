@@ -443,17 +443,6 @@ static const device_config_t ps1_2011_config[] = {
                                    "" }
             },
             {
-                .name          = "French",
-                .internal_name = "french",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 2,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/ibmps1es/F80000_FR.BIN",
-                                   "roms/machines/ibmps1es/FC0000_FR.BIN",
-                                   "" }
-            },
-            {
                 .name          = "Dutch",
                 .internal_name = "dutch",
                 .bios_type     = BIOS_NORMAL,
@@ -462,6 +451,17 @@ static const device_config_t ps1_2011_config[] = {
                 .size          = 262144,
                 .files         = { "roms/machines/ibmps1es/F80000_NL.BIN",
                                    "roms/machines/ibmps1es/FC0000_NL.BIN",
+                                   "" }
+            },
+            {
+                .name          = "French",
+                .internal_name = "french",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1es/F80000_FR.BIN",
+                                   "roms/machines/ibmps1es/FC0000_FR.BIN",
                                    "" }
             },
             {
