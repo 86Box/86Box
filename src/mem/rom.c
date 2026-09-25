@@ -32,6 +32,8 @@
 #include "cpu.h"
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/device.h>
+#include <86box/flash.h>
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/machine.h>
@@ -1186,6 +1188,19 @@ rom_init_interleaved(rom_t *rom, const char *fnl, const char *fnh, uint32_t addr
                     rom_read, rom_readw, rom_readl,
                     NULL, NULL, NULL,
                     rom->rom, flags | MEM_MAPPING_ROM_WS, rom);
+
+    return 0;
+}
+
+int  (*flash_bios_write_gate)(uint32_t addr, void *priv) = NULL;
+void  *flash_bios_write_gate_priv                        = NULL;
+
+/* Whether a write at addr reaches the BIOS flash. */
+int
+flash_bios_write_selected(uint32_t addr)
+{
+    if ((flash_bios_write_gate == NULL) || flash_bios_write_gate(addr, flash_bios_write_gate_priv))
+        return 1;
 
     return 0;
 }

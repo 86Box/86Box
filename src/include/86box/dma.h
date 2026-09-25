@@ -50,28 +50,23 @@ typedef struct dma_t {
     uint8_t  command;
     uint8_t  ps2_mode;
     uint8_t  arb_level;
-    uint8_t  sg_command;
     uint8_t  sg_status;
-    uint8_t  ptr0;
     uint8_t  enabled;
     uint8_t  ext_mode;
     uint8_t  page_l;
     uint8_t  page_h;
-    uint8_t  pad;
+    uint8_t  ext_addr; /* EISA: extended address mode (high page written last), else compatibility */
     uint32_t cb; /* 16 bits, or 24 with the EISA high count */
     uint16_t io_addr;
     uint16_t base;
     uint16_t transfer_mode;
     uint32_t ptr;
-    uint32_t ptr_cur;
-    uint32_t addr;
     uint32_t ab;
     uint32_t ac;
     int      cc;
     int      wp;
     int      size;
-    int      count;
-    int      eot;
+    int      xfer_n; /* EISA: bytes the last transfer moved, for a deferred advance */
 } dma_t;
 
 extern dma_t   dma[8];
@@ -101,6 +96,10 @@ extern int dma_channel_read_only(int channel);
 extern int dma_channel_advance(int channel);
 extern int dma_channel_read(int channel);
 extern int dma_channel_write(int channel, uint16_t val);
+/* A 32-bit DMA slave on an EISA channel programmed for 32-bit I/O (extended
+   mode 10): the data through val, the answer as dma_channel_read's. */
+extern int dma_channel_read32(int channel, uint32_t *val);
+extern int dma_channel_write32(int channel, uint32_t val);
 
 extern void dma_alias_set(void);
 extern void dma_alias_set_piix(void);

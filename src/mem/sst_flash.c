@@ -28,6 +28,7 @@
 #include <86box/nvr.h>
 #include <86box/plat.h>
 #include <86box/m_xt_xi8088.h>
+#include <86box/flash.h>
 
 typedef struct sst_t {
     uint8_t manufacturer;
@@ -354,6 +355,9 @@ sst_write(uint32_t addr, uint8_t val, void *priv)
     uint32_t mask = 0x7fff;
     uint32_t addr0 = 0x5555;
     uint32_t addr1 = 0x2aaa;
+
+    if (!flash_bios_write_selected(addr))
+        return;
 
     if (dev->manufacturer == AMD) {
         mask >>= 4;
