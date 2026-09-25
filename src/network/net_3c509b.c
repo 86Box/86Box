@@ -266,7 +266,6 @@ typedef struct el3_t {
     uint8_t  irq;
     uint8_t  irq_line; /* what the card is driving now */
     uint8_t  latch;
-    uint8_t  timer_running;
     uint64_t timer_start;
     uint16_t int_status;
     uint16_t int_mask;
@@ -510,17 +509,18 @@ el3_now(void)
     return tsc;
 }
 
-/* Timer: free running at 3.2 us a count from the rising edge of the
-   interrupt, stopping at FFh. Drivers start it with Request Interrupt to
-   time their own start-up. */
+/* Timer: "a free-running 8-bit counter" at 3.2 us a count, "reset to zero
+   whenever the interrupt output transitions from inactive to active", which
+   stops at 255 (6-22). It runs from power-on, so a card that has not
+   interrupted since reads FFh. */
 static uint8_t
 el3_timer_read(const el3_t *dev)
 {
     double per_tick = ((double) TIMER_USEC / 4294967296.0) * 3.2;
     double ticks;
 
-    if (!dev->timer_running || (per_tick <= 0.0))
-        return 0;
+    if (per_tick <= 0.0)
+        return 0xff;
 
     ticks = (double) (el3_now() - dev->timer_start) / per_tick;
     return (ticks >= 255.0) ? 0xff : (uint8_t) ticks;
@@ -536,9 +536,8 @@ el3_update_irq(el3_t *dev)
     uint8_t  line;
 
     if (live && !dev->latch) {
-        dev->latch         = 1;
-        dev->timer_start   = el3_now();
-        dev->timer_running = 1;
+        dev->latch       = 1;
+        dev->timer_start = el3_now();
     }
 
     line = dev->latch && dev->irq && dev->active && (dev->config_control & CC_ENABLE) && (dev->window != 0);
@@ -1073,7 +1072,6 @@ el3_global_reset(el3_t *dev, uint8_t mask)
         dev->int_mask       = 0;
         dev->read_zero_mask = 0;
         dev->latch          = 0;
-        dev->timer_running  = 0;
         dev->window         = 0;
         dev->cmd_low        = 0;
         dev->rom_control    = 0;
