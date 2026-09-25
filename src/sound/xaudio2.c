@@ -32,7 +32,6 @@
 #include <86box/86box.h>
 #include <86box/midi.h>
 #include <86box/plat_dynld.h>
-#include <86box/plat.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
 
@@ -46,14 +45,6 @@ static dllimp_t xaudio2_imports[] = {
 #    define XAudio2Create pXAudio2Create
 #endif
 
-typedef struct {
-    uint32_t last_time;
-    float    filtered_speed;
-    float    current_ratio;
-    int      starved;
-} drc_state_t;
-
-static drc_state_t             drc[I_MAX];
 static int                     initialized     = 0;
 static int                     atexit_reg      = 0;
 static IXAudio2               *xaudio2         = NULL;
@@ -347,11 +338,6 @@ inital(void)
 
         (void) IXAudio2SourceVoice_SetVolume(srcvoice[i], 1, XAUDIO2_COMMIT_NOW);
         (void) IXAudio2SourceVoice_Start(srcvoice[i], 0, XAUDIO2_COMMIT_NOW);
-
-        drc[i].last_time      = 0;
-        drc[i].filtered_speed = 1.0f;
-        drc[i].current_ratio  = 1.0f;
-        drc[i].starved        = 1;
     }
 
     initialized = 1;
@@ -425,78 +411,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
     buffer.PlayBegin = buffer.PlayLength = 0;
     buffer.PlayLength                    = (uint32_t) (size >> 1);
     buffer.pContext                      = (void *) buffer.pAudioData;
-
-    XAUDIO2_VOICE_STATE vstate;
-    IXAudio2SourceVoice_GetState(srcvoice[src], &vstate, 0);
-    int queued = (int) vstate.BuffersQueued;
-
-    if (queued == 0) {
-        drc[src].starved = 1;
-    }
-
-    if (drc[src].starved) {
-        /* Smooth out step discontinuity when recovering from starvation */
-        int frames = size >> 1;
-        int ramp_len = frames < 64 ? frames : 64;
-        if (sound_is_float) {
-            float *f = (float *) buffer.pAudioData;
-            for (int i = 0; i < ramp_len; i++) {
-                float ramp = (float) i / (float) ramp_len;
-                f[i * 2]     *= ramp;
-                f[i * 2 + 1] *= ramp;
-            }
-        } else {
-            int16_t *s = (int16_t *) buffer.pAudioData;
-            for (int i = 0; i < ramp_len; i++) {
-                float ramp = (float) i / (float) ramp_len;
-                s[i * 2]     = (int16_t) ((float) s[i * 2] * ramp);
-                s[i * 2 + 1] = (int16_t) ((float) s[i * 2 + 1] * ramp);
-            }
-        }
-        drc[src].starved = 0;
-    }
-
     (void) IXAudio2SourceVoice_SubmitSourceBuffer(srcvoice[src], &buffer, NULL);
-
-    /* Dynamic Rate Control for emulated audio sources (excludes physical drive audio) */
-    if (src != I_FDD && src != I_HDD && src_freqs[src] > 0) {
-        uint32_t now = plat_get_ticks();
-        int frames = size >> 1;
-        float buf_duration_ms = (float) frames * 1000.0f / (float) src_freqs[src];
-
-        if (drc[src].last_time != 0) {
-            uint32_t delta = now - drc[src].last_time;
-            if (delta >= 5 && delta <= 500) {
-                float instant_speed = buf_duration_ms / (float) delta;
-                if (instant_speed > 1.25f)
-                    instant_speed = 1.25f;
-                else if (instant_speed < 0.25f)
-                    instant_speed = 0.25f;
-
-                drc[src].filtered_speed = 0.05f * instant_speed + 0.95f * drc[src].filtered_speed;
-
-                /* Proportional feedback on queue depth (target ~3 buffers / 60ms) */
-                const int target_buffers = 3;
-                float error = (float) (queued - target_buffers);
-                float target_ratio = drc[src].filtered_speed + 0.04f * error;
-
-                if (target_ratio < 0.25f)
-                    target_ratio = 0.25f;
-                else if (target_ratio > 1.25f)
-                    target_ratio = 1.25f;
-
-                drc[src].current_ratio = 0.10f * target_ratio + 0.90f * drc[src].current_ratio;
-                (void) IXAudio2SourceVoice_SetFrequencyRatio(srcvoice[src], drc[src].current_ratio, XAUDIO2_COMMIT_NOW);
-            } else if (delta > 500) {
-                /* Stall / pause: reset tracking to nominal */
-                drc[src].filtered_speed = 1.0f;
-                drc[src].current_ratio  = 1.0f;
-                drc[src].starved        = 1;
-                (void) IXAudio2SourceVoice_SetFrequencyRatio(srcvoice[src], 1.0f, XAUDIO2_COMMIT_NOW);
-            }
-        }
-        drc[src].last_time = now;
-    }
 }
 
 void
