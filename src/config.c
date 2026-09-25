@@ -497,7 +497,7 @@ load_machine(void)
 
                 snprintf(header, sizeof(header), "Unsupported machine: %s", p);
                 if (ui_msgbox_header(MBX_WARNING | MBX_QUESTION_YN, header,
-                                     "This machine is not supported by this build of 86Box. "
+                                     "This machine is not supported by this current build of 86Box. "
                                      "Loading the configuration anyway will replace the machine "
                                      "and overwrite the existing configuration.\n\n"
                                      "Do you want to continue?") != 1)
