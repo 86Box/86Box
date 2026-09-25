@@ -206,6 +206,12 @@ SettingsMachine::restore()
 {
 }
 
+int
+SettingsMachine::currentMachineId() const
+{
+    return ui->comboBoxMachine->currentData().toInt();
+}
+
 void
 SettingsMachine::save(int soft)
 {
