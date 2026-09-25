@@ -3120,17 +3120,39 @@ ide_board_claimed(int board)
     return (board >= 0) && (board < IDE_BUS_MAX) && (ide_boards[board] != NULL) && ide_boards[board]->inited;
 }
 
-/* The first pair of boards nothing has claimed, for a PCI card that takes
-   whichever pair is free; -1 when none is. */
+/* The boards for the two channels of a PCI IDE card, given the mask of the
+   boards already taken: the primary and secondary where neither is taken,
+   as the machine's IDE, and otherwise the tertiary and quaternary, as such
+   cards always had. A channel whose board there is taken (a sound card's
+   IDE on the quaternary, say) goes to the first free board from the fifth
+   instead of sharing it, so every channel keeps the number it has always
+   had. Returns 0 when there is no board for a channel. */
 int
-ide_first_free_pair(void)
+ide_pci_card_boards(uint32_t taken, int boards[2])
 {
-    for (int board = 0; board < IDE_BUS_MAX; board += 2) {
-        if (!ide_board_claimed(board) && !ide_board_claimed(board + 1))
-            return board;
+    if (!(taken & ((1 << 0) | (1 << 1)))) {
+        boards[0] = 0;
+        boards[1] = 1;
+        return 1;
     }
 
-    return -1;
+    for (int ch = 0; ch < 2; ch++) {
+        boards[ch] = -1;
+        if (!(taken & (1 << (2 + ch))))
+            boards[ch] = 2 + ch;
+        else for (int board = IDE_BUS_SHOWN_MIN; board < IDE_BUS_MAX; board++) {
+            if (!(taken & (1 << board))) {
+                boards[ch] = board;
+                break;
+            }
+        }
+
+        if (boards[ch] < 0)
+            return 0;
+        taken |= 1 << boards[ch];
+    }
+
+    return 1;
 }
 
 /*
@@ -3555,26 +3577,33 @@ typedef struct ide_unit_t {
     uint32_t boards; /* mask */
 } ide_unit_t;
 
-/* The first board of a generic unit: local 0-5 the primary (and secondary),
-   8-0x0d the tertiary (and quaternary), then 0x10-0x15 and 0x18-0x1d the
-   pairs above those, which only PCI cards take. Bit 0 is the second board. */
-static int
-ide_unit_first(const device_t *info)
+/* A generic unit whose boards are given in bits 16-23 of local. */
+#define IDE_UNIT_BOARD_MASK 0x100
+
+/* The boards of a generic unit: local 0-5 the primary (and secondary),
+   8-0x0d the tertiary (and quaternary), bit 0 being the second board; or
+   the mask in bits 16-23, for a PCI card's boards (ide_pci_boards_init()). */
+static uint32_t
+ide_unit_boards(const device_t *info)
 {
-    return (int) ((info->local >> 3) << 1);
+    if (info->local & IDE_UNIT_BOARD_MASK)
+        return (info->local >> 16) & 0xff;
+
+    const int first = (int) (((info->local & 0xff) >> 3) << 1);
+
+    return (1 << first) | ((info->local & 1) ? (1 << (first + 1)) : 0);
 }
 
 static void *
 ide_init(const device_t *info)
 {
-    ide_unit_t *unit  = (ide_unit_t *) calloc(1, sizeof(ide_unit_t));
-    const int   first = ide_unit_first(info);
-    const int   count = (info->local & 1) ? 2 : 1;
+    ide_unit_t    *unit   = (ide_unit_t *) calloc(1, sizeof(ide_unit_t));
+    const uint32_t boards = ide_unit_boards(info);
 
     ide_log("Initializing IDE...\n");
 
-    for (int board = first; (board < (first + count)) && (board < IDE_BUS_MAX); board++) {
-        if (ide_board_claimed(board))
+    for (int board = 0; board < IDE_BUS_MAX; board++) {
+        if (!(boards & (1 << board)) || ide_board_claimed(board))
             continue;
 
         if (board == 0)
@@ -3590,18 +3619,30 @@ ide_init(const device_t *info)
     return unit;
 }
 
-/* A pair of boards with no legacy resources, for a PCI card: board is the
-   first of the pair. */
-void
-ide_pci_pair_init(int board)
-{
-    static const device_t *const pairs[IDE_BUS_MAX / 2] = {
-        &ide_pci_2ch_device, &ide_pci_ter_qua_2ch_device,
-        &ide_pci_5th_6th_2ch_device, &ide_pci_7th_8th_2ch_device
-    };
+static void ide_reset(void *priv);
+static void ide_close(void *priv);
 
-    if ((board >= 0) && (board < IDE_BUS_MAX) && !(board & 1))
-        device_add(pairs[board >> 1]);
+static const device_t ide_pci_boards_device = {
+    .name          = "PCI IDE Controller (Card Channels)",
+    .internal_name = "ide_pci_boards",
+    .flags         = DEVICE_PCI,
+    .local         = IDE_UNIT_BOARD_MASK | 0x05,
+    .init          = ide_init,
+    .close         = ide_close,
+    .reset         = ide_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+/* Boards with no legacy resources, for a PCI card's channels: boards is a
+   mask of those above the secondary. */
+void
+ide_pci_boards_init(uint32_t boards)
+{
+    if (boards != 0)
+        device_add_params(&ide_pci_boards_device, (void *) (uintptr_t) ((boards & 0xfc) << 16));
 }
 
 static void
@@ -3713,11 +3754,8 @@ ide_boards_generic(const device_t *dev)
         return 1 << 2;
     else if (dev->init == ide_qua_init)
         return 1 << 3;
-    else if (dev->init == ide_init) {
-        const int first = ide_unit_first(dev);
-
-        return (1 << first) | ((dev->local & 1) ? (1 << (first + 1)) : 0);
-    }
+    else if (dev->init == ide_init)
+        return ide_unit_boards(dev);
 
     return 0;
 }
@@ -3747,9 +3785,9 @@ ide_boards_quaternary(UNUSED(const device_t *dev))
 }
 
 uint32_t
-ide_boards_first_free_pair(UNUSED(const device_t *dev))
+ide_boards_pci_card(UNUSED(const device_t *dev))
 {
-    return IDE_BOARDS_FIRST_FREE_PAIR;
+    return IDE_BOARDS_PCI_CARD;
 }
 
 /* The boards a device claims, read with its instance's configuration. */
@@ -3773,14 +3811,13 @@ static void
 ide_plan_claim(ide_owner_t owners[IDE_BUS_MAX], bool taken[IDE_BUS_MAX], uint32_t boards,
                const device_t *dev, int inst, int onboard)
 {
-    if (boards & IDE_BOARDS_FIRST_FREE_PAIR) {
-        boards = 0;
-        for (int board = 0; board < IDE_BUS_MAX; board += 2) {
-            if (!taken[board] && !taken[board + 1]) {
-                boards = 3 << board;
-                break;
-            }
-        }
+    if (boards & IDE_BOARDS_PCI_CARD) {
+        uint32_t mask = 0;
+        int      card[2];
+
+        for (int board = 0; board < IDE_BUS_MAX; board++)
+            mask |= taken[board] ? (1 << board) : 0;
+        boards = ide_pci_card_boards(mask, card) ? ((1 << card[0]) | (1 << card[1])) : 0;
     }
 
     for (int board = 0; board < IDE_BUS_MAX; board++) {
@@ -3834,7 +3871,7 @@ ide_plan(ide_owner_t owners[IDE_BUS_MAX], int mach, const int hdc[], const int s
 
     for (int board = 0; board < IDE_BUS_MAX; board++) {
         if (taken[board] && (board >= shown))
-            shown = (board | 1) + 1;
+            shown = board + 1;
     }
 
     return shown;
@@ -4312,38 +4349,6 @@ const device_t ide_pci_ter_qua_2ch_device = {
     .internal_name = "ide_pci_ter_qua_2ch",
     .flags         = DEVICE_PCI,
     .local         = 0x0d,
-    .init          = ide_init,
-    .close         = ide_close,
-    .reset         = ide_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL,
-    .short_name    = "PCI IDE",
-    .ide_boards    = ide_boards_generic
-};
-
-const device_t ide_pci_5th_6th_2ch_device = {
-    .name          = "PCI IDE Controller (Dual-Channel Fifth/Sixth)",
-    .internal_name = "ide_pci_5th_6th_2ch",
-    .flags         = DEVICE_PCI,
-    .local         = 0x15,
-    .init          = ide_init,
-    .close         = ide_close,
-    .reset         = ide_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL,
-    .short_name    = "PCI IDE",
-    .ide_boards    = ide_boards_generic
-};
-
-const device_t ide_pci_7th_8th_2ch_device = {
-    .name          = "PCI IDE Controller (Dual-Channel Seventh/Eighth)",
-    .internal_name = "ide_pci_7th_8th_2ch",
-    .flags         = DEVICE_PCI,
-    .local         = 0x1d,
     .init          = ide_init,
     .close         = ide_close,
     .reset         = ide_reset,

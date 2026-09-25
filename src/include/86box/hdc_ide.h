@@ -28,8 +28,9 @@
 #define IDE_BUS_SHOWN_MIN   4
 
 /* What a device's ide_boards() returns: a mask of the boards it claims, or
-   this, for a PCI card taking the first pair of boards nothing has. */
-#define IDE_BOARDS_FIRST_FREE_PAIR 0x80000000
+   this, for a PCI card whose two channels take boards as
+   ide_pci_card_boards() gives them. */
+#define IDE_BOARDS_PCI_CARD 0x80000000
 
 #define HDC_PRIMARY_BASE    0x01f0
 #define HDC_PRIMARY_SIDE    0x03f6
@@ -221,8 +222,8 @@ extern void ide_set_irq(int board, int irq);
 extern void ide_handlers(uint8_t board, int set);
 
 extern int  ide_board_claimed(int board);
-extern int  ide_first_free_pair(void);
-extern void ide_pci_pair_init(int board);
+extern int  ide_pci_card_boards(uint32_t taken, int boards[2]);
+extern void ide_pci_boards_init(uint32_t boards);
 extern void ide_board_set_force_ata3(int board, int force_ata3);
 #ifdef EMU_ISAPNP_H
 extern void ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
@@ -264,7 +265,7 @@ extern uint32_t ide_boards_primary(const device_t *dev);
 extern uint32_t ide_boards_pri_sec(const device_t *dev);
 extern uint32_t ide_boards_ter_qua(const device_t *dev);
 extern uint32_t ide_boards_quaternary(const device_t *dev);
-extern uint32_t ide_boards_first_free_pair(const device_t *dev);
+extern uint32_t ide_boards_pci_card(const device_t *dev);
 #endif
 extern void    ide_wait_for_async_reads(void);
 

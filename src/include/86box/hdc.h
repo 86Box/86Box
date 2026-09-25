@@ -61,8 +61,6 @@ extern const device_t ide_pci_sec_device;     /* pci_ide sec */
 extern const device_t ide_pci_2ch_device;     /* pci_ide_2ch */
 
 extern const device_t ide_pci_ter_qua_2ch_device;     /* pci_ide_ter_qua_2ch */
-extern const device_t ide_pci_5th_6th_2ch_device;     /* pci_ide_5th_6th_2ch */
-extern const device_t ide_pci_7th_8th_2ch_device;     /* pci_ide_7th_8th_2ch */
 
 extern const device_t ide_ali1489_device;                       /* ALi M1489 */
 extern const device_t ide_ali5213_device;                       /* ALi M5213 */
