@@ -62,7 +62,6 @@
 #define REG_ZERO REG_R0
 #define REG_RA   REG_R1
 #define REG_TP   REG_R2
-#define REG_SP   REG_R3
 
 #define REG_A0   REG_R4
 #define REG_A1   REG_R5
@@ -84,6 +83,12 @@
 #define REG_T8   REG_R20
 
 /* psABI: $r21 is "Reserved (Non-allocatable)" - do not use. */
+/* NOTE: no REG_SP alias is defined for r3 ($sp): codegen_ops.h defines
+   REG_SP as the guest x86 register index (4) and codegen_ops_*.c compare
+   against it. Likewise no REG_FP alias for r22 ($fp): the generic
+   register allocator (codegen_reg.c) uses REG_FP as a register-class
+   enum constant. Address these registers as REG_R3 / REG_R22
+   (REG_CPUSTATE) instead. */
 #define REG_RESERVED REG_R21
 
 /* NOTE: no REG_FP alias is defined for r22 ($fp) because the generic
