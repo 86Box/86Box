@@ -290,6 +290,7 @@ typedef struct el3_t {
 
     uint16_t fifo_diag;
     uint16_t network_diagnostic;
+    uint8_t  rx_testen; /* Ethernet Controller Status bit 0 */
     uint16_t media_status;
     uint8_t  coax_running;
 
@@ -1120,6 +1121,7 @@ el3_global_reset(el3_t *dev, uint8_t mask)
     if (!(mask & 0x04)) {
         dev->media_status       = 0;
         dev->network_diagnostic = DIAG_ASIC_REV_B;
+        dev->rx_testen          = 0;
         dev->stats_enabled      = 0;
         dev->stat_pend_rx       = 0;
         dev->stat_pend_tx       = 0;
@@ -1476,6 +1478,9 @@ el3_reg_read(el3_t *dev, uint8_t off)
                 case W4_NETWORK_DIAGNOSTIC + 1:
                     return (uint8_t) (dev->network_diagnostic >> ((off & 1) * 8));
                 case W4_CONTROLLER_STATUS:
+                    /* The controller's own status bits read idle; RX TESTEN
+                       (bit 0) is the one writable bit (6-32). */
+                    return dev->rx_testen;
                 case W4_CONTROLLER_STATUS + 1:
                     return 0;
                 case W4_MEDIA_STATUS:
@@ -1639,6 +1644,9 @@ el3_reg_write(el3_t *dev, uint8_t off, uint8_t val)
                     break;
                 case W4_NETWORK_DIAGNOSTIC + 1:
                     dev->network_diagnostic = (uint16_t) ((dev->network_diagnostic & 0x0fff) | ((val & 0xf0) << 8));
+                    break;
+                case W4_CONTROLLER_STATUS:
+                    dev->rx_testen = val & 0x01;
                     break;
                 case W4_MEDIA_STATUS:
                     dev->media_status = (uint16_t) ((dev->media_status & ~MEDIA_WRITABLE) | (val & MEDIA_WRITABLE));
