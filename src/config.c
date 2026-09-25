@@ -427,6 +427,10 @@ load_monitor(int monitor_index)
 }
 
 /* Load "Machine" section. */
+/* The user chose not to load a configuration naming a machine this build
+   does not have. */
+static int config_load_declined = 0;
+
 static void
 load_machine(void)
 {
@@ -485,8 +489,21 @@ load_machine(void)
         }
         if (!migrate_from) {
             machine = machine_get_machine_from_internal_name(p);
-            if (machine == -1)
+            if (machine == -1) {
+                /* A machine this build does not have: going on puts the
+                   first machine in its place, and saving the configuration
+                   then loses the one it named. */
+                char header[512];
+
+                snprintf(header, sizeof(header), "Unsupported machine: %s", p);
+                if (ui_msgbox_header(MBX_WARNING | MBX_QUESTION_YN, header,
+                                     "This machine is not supported by this build of 86Box. "
+                                     "Loading the configuration anyway will replace the machine "
+                                     "and overwrite the existing configuration.\n\n"
+                                     "Do you want to continue?") != 1)
+                    config_load_declined = 1;
                 machine = 0;
+            }
         }
     } else {
         machine = 0;
@@ -2796,11 +2813,14 @@ config_load_global(void)
 }
 
 /* Load the specified or a default configuration file. */
-void
+/* Returns 0 when the user chose not to load the configuration. */
+int
 config_load(void)
 {
     int           i;
     ini_section_t c;
+
+    config_load_declined = 0;
 
     config_log("Loading VM config file '%s'...\n", cfg_path);
 
@@ -2943,6 +2963,8 @@ config_load(void)
     config_changed = 1;
 
     video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
+
+    return !config_load_declined;
 }
 
 static void

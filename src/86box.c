@@ -1368,8 +1368,10 @@ usage:
         mo_global_init();
         tape_global_init();
 
-        /* Load the configuration file. */
-        config_load();
+        /* Load the configuration file; the user may choose not to, for a
+           machine this build does not have, and then nothing is saved. */
+        if (!config_load())
+            return 0;
         /* To save the global key binds. */
         config_save_global();
 
