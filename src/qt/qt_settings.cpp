@@ -36,6 +36,8 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/hdd.h>
+#include <86box/hdc.h>
+#include <86box/sound.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/midi.h>
@@ -65,6 +67,7 @@ extern "C" {
 #include "qt_settings_bus_tracking.hpp"
 
 #include <QDebug>
+#include <QComboBox>
 #include <QMessageBox>
 #include <QCheckBox>
 #include <QStyle>
@@ -252,6 +255,24 @@ Settings::~Settings()
     delete Harddrives::busTrackClass;
     Harddrives::busTrackClass = nullptr;
     Settings::settings        = nullptr;
+}
+
+int
+Settings::currentMachine() const
+{
+    return machine->findChild<QComboBox *>("comboBoxMachine")->currentData().toInt();
+}
+
+int
+Settings::currentHdc(int i) const
+{
+    return (storageControllers != nullptr) ? storageControllers->hdcCard(i) : hdc_current[i];
+}
+
+int
+Settings::currentSoundCard(int i) const
+{
+    return (sound != nullptr) ? sound->soundCard(i) : sound_card_current[i];
 }
 
 void

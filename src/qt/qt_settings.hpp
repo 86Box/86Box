@@ -27,6 +27,11 @@ public:
     ~Settings();
     void save(int soft);
 
+    /* What the dialog holds now, or what is saved for a page not built. */
+    int currentMachine() const;
+    int currentHdc(int i) const;
+    int currentSoundCard(int i) const;
+
     static Settings *settings;
 protected slots:
     void accept() override;

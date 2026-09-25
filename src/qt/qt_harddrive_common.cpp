@@ -27,7 +27,13 @@ extern "C" {
 #include <86box/scsi_tape.h>
 #include <86box/device.h>
 #include <86box/lpt.h>
+#include <86box/hdc.h>
+#include <86box/hdc_ide.h>
+#include <86box/sound.h>
+#include <86box/machine.h>
 }
+
+#include "qt_settings.hpp"
 
 #include <QAbstractItemModel>
 #include <QStandardItemModel>
@@ -138,6 +144,8 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
     int        subChannelWidth = 1;
     QList<int> busesToCheck;
     QList<int> channelsInUse;
+    ide_owner_t owners[IDE_BUS_MAX];
+    const bool is_ide = (bus == HDD_BUS_IDE) || (bus == HDD_BUS_ATAPI);
     switch (bus) {
         case HDD_BUS_MFM:
             busRows = 2;
@@ -152,12 +160,12 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
             busesToCheck.append(HDD_BUS_ESDI);
             break;
         case HDD_BUS_IDE:
-            busRows = 8;
+            busRows = idePlan(owners) * 2;
             busesToCheck.append(HDD_BUS_ATAPI);
             busesToCheck.append(HDD_BUS_IDE);
             break;
         case HDD_BUS_ATAPI:
-            busRows = 8;
+            busRows = idePlan(owners) * 2;
             busesToCheck.append(HDD_BUS_IDE);
             busesToCheck.append(HDD_BUS_ATAPI);
             break;
@@ -199,11 +207,22 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
         }
     }
 
+    /* A drive left on a board with no controller any more still has its
+       channel listed, so that it shows where it is. */
+    if (is_ide) {
+        for (const int channel : channelsInUse) {
+            if ((channel < IDE_DRIVES_MAX) && (channel >= busRows))
+                busRows = (channel | 1) + 1;
+        }
+    }
+
     model->insertRows(0, busRows);
     for (int i = 0; i < busRows; ++i) {
         auto idx = model->index(i, 0);
         if (bus == TAPE_BUS_LPT)
             model->setData(idx, QString("LPT%1").arg(i + 1));
+        else if (is_ide)
+            model->setData(idx, QString("%1:%2 %3").arg(i >> 1).arg(i & 1).arg(ideOwnerName(i >> 1, owners)));
         else
             model->setData(idx, QString("%1:%2").arg(i >> shifter).arg(i & orer, subChannelWidth, 10, QChar('0')));
         model->setData(idx, ((i >> shifter) << shifter) | (i & orer), Qt::UserRole);
@@ -212,6 +231,8 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
         if (channelItem) {
             bool enabled = !channelsInUse.contains(i);
             if ((bus == TAPE_BUS_LPT) && (i < PARALLEL_MAX) && !lpt_ports[i].enabled)
+                enabled = false;
+            if (is_ide && !owners[i >> 1].onboard && (owners[i >> 1].device == nullptr))
                 enabled = false;
             channelItem->setEnabled(enabled);
         }
@@ -236,11 +257,15 @@ Harddrives::BusChannelName(uint8_t bus, uint8_t channel)
             busName = QString("ESDI (%1:%2)").arg(channel >> 1).arg(channel & 1);
             break;
         case HDD_BUS_IDE:
-            busName = QString("IDE (%1:%2)").arg(channel >> 1).arg(channel & 1);
+        case HDD_BUS_ATAPI: {
+            ide_owner_t owners[IDE_BUS_MAX];
+
+            idePlan(owners);
+            busName = QString("%1 %2:%3 %4").arg((bus == HDD_BUS_IDE) ? "IDE" : "ATAPI")
+                          .arg(channel >> 1).arg(channel & 1)
+                          .arg(((channel >> 1) < IDE_BUS_MAX) ? ideOwnerName(channel >> 1, owners) : QObject::tr("(none)"));
             break;
-        case HDD_BUS_ATAPI:
-            busName = QString("ATAPI (%1:%2)").arg(channel >> 1).arg(channel & 1);
-            break;
+        }
         case HDD_BUS_SCSI:
             busName = QString("SCSI (%1:%2)").arg(channel >> 4).arg(channel & 15, 2, 10, QChar('0'));
             break;
@@ -265,4 +290,68 @@ Harddrives::BusChannelName(uint8_t bus, uint8_t channel)
     }
 
     return busName;
+}
+
+/* The owner of each IDE board for what the settings hold now: the machine,
+   disk controllers and sound cards selected, or those saved for a page not
+   opened yet. Returns the number of boards to show. */
+int
+Harddrives::idePlan(ide_owner_t *owners)
+{
+    int mach = machine;
+    int hdc[HDC_MAX];
+    int snd[SOUND_CARD_MAX];
+
+    for (int i = 0; i < HDC_MAX; i++)
+        hdc[i] = hdc_current[i];
+    for (int i = 0; i < SOUND_CARD_MAX; i++)
+        snd[i] = sound_card_current[i];
+
+    if (Settings::settings != nullptr) {
+        mach = Settings::settings->currentMachine();
+        for (int i = 0; i < HDC_MAX; i++)
+            hdc[i] = Settings::settings->currentHdc(i);
+        for (int i = 0; i < SOUND_CARD_MAX; i++)
+            snd[i] = Settings::settings->currentSoundCard(i);
+    }
+
+    return ide_plan(owners, mach, hdc, snd);
+}
+
+/* The label for an IDE board: "Onboard" for the chipset's own IDE, with the
+   chip's short name for one on the board, a card's short name otherwise,
+   numbered where two of the same card have boards. */
+QString
+Harddrives::ideOwnerName(int board, const ide_owner_t *owners)
+{
+    const ide_owner_t &owner = owners[board];
+
+    if (!owner.onboard && (owner.device == nullptr))
+        return QObject::tr("(none)");
+
+    QString name;
+    if (owner.device != nullptr)
+        name = QString::fromUtf8((owner.device->short_name != nullptr) ? owner.device->short_name : owner.device->name);
+
+    if (owner.onboard)
+        return name.isEmpty() ? QObject::tr("Onboard") : QObject::tr("Onboard %1").arg(name);
+
+    for (int i = 0; i < IDE_BUS_MAX; i++) {
+        if ((owners[i].device == owner.device) && (owners[i].instance != owner.instance))
+            return QString("%1 #%2").arg(name).arg(owner.instance);
+    }
+
+    return name;
+}
+
+/* Name each drive's bus and channel again, from the bus and channel kept
+   with it in column 0: who has an IDE channel may have changed. */
+void
+Harddrives::refreshBusNames(QAbstractItemModel *model)
+{
+    for (int row = 0; row < model->rowCount(); row++) {
+        const auto idx = model->index(row, 0);
+
+        model->setData(idx, BusChannelName(idx.data(Qt::UserRole).toUInt(), idx.data(Qt::UserRole + 1).toUInt()));
+    }
 }

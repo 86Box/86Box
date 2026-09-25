@@ -560,6 +560,16 @@ SettingsFloppyCDROM::on_comboBoxFloppyAudio_activated(int)
 #endif
 }
 
+/* The machine, disk controllers and sound cards chosen on other pages
+   decide who has each IDE channel: bring the names up to date. */
+void
+SettingsFloppyCDROM::showEvent(QShowEvent *event)
+{
+    Harddrives::refreshBusNames(ui->treeViewCDROM->model());
+    reloadBusChannels();
+    QWidget::showEvent(event);
+}
+
 void
 SettingsFloppyCDROM::reloadBusChannels()
 {

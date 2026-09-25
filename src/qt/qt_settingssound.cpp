@@ -166,6 +166,14 @@ SettingsSound::restore()
 {
 }
 
+int
+SettingsSound::soundCard(int i) const
+{
+    const QComboBox *cbox = findChild<QComboBox *>(QString("comboBoxSoundCard%1").arg(i + 1));
+
+    return cbox ? cbox->currentData().toInt() : 0;
+}
+
 void
 SettingsSound::save(int soft)
 {

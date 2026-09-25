@@ -440,6 +440,20 @@ SettingsOtherRemovable::onRDiskRowChanged(const QModelIndex &current)
     enableCurrentlySelectedChannel_RDisk();
 }
 
+/* The machine, disk controllers and sound cards chosen on other pages
+   decide who has each IDE channel: bring the names up to date. */
+void
+SettingsOtherRemovable::showEvent(QShowEvent *event)
+{
+    Harddrives::refreshBusNames(ui->treeViewMO->model());
+    Harddrives::refreshBusNames(ui->treeViewRDisk->model());
+    Harddrives::refreshBusNames(ui->treeViewTape->model());
+    reloadBusChannels_MO();
+    reloadBusChannels_RDisk();
+    reloadBusChannels_Tape();
+    QWidget::showEvent(event);
+}
+
 void
 SettingsOtherRemovable::reloadBusChannels_MO()
 {
