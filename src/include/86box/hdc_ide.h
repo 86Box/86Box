@@ -249,10 +249,22 @@ extern void    ide_hard_reset(void);
 #ifdef EMU_DEVICE_H
 typedef bus_owner_t ide_owner_t;
 
+/* A device whose claim on IDE boards another device had first: the boards
+   it lost, or none for a PCI card that found no free pair. */
+#define IDE_CONFLICTS_MAX 16
+typedef struct ide_conflict_t {
+    const device_t *device;
+    int             instance;
+    int             onboard;
+    uint32_t        lost;
+} ide_conflict_t;
+
 /* The owner of each board for a machine and its disk controllers and sound
    cards, worked out the way they claim them when the machine starts; the
    return is the number of boards to show. */
-extern int  ide_plan(ide_owner_t owners[IDE_BUS_MAX], int mach, const int hdc[], const int snd[]);
+extern int  ide_plan(ide_owner_t owners[IDE_BUS_MAX], int mach, const int hdc[], const int snd[],
+                     ide_conflict_t conflicts[IDE_CONFLICTS_MAX], int *conflict_count);
+extern int  ide_plan_card_boards(const device_t *dev, int inst, int boards[2]);
 extern void ide_plan_check(void);
 
 extern uint32_t ide_boards_generic(const device_t *dev);

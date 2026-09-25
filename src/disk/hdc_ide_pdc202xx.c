@@ -935,18 +935,15 @@ pdc_close(void *priv)
 static void *
 pdc_init(const device_t *info)
 {
-    /* The primary and secondary where they are free, as the machine's IDE,
-       and otherwise the tertiary and quaternary, as any add-in PCI IDE
-       controller has them, or the next pair up where another device (a
-       sound card's IDE, say) has one of those. A board with its own IDE
-       (PIIX, VIA, ALi...) or another controller has claimed the first ones
-       by now, and with them their bus masters. */
-    uint32_t taken = 0;
-    int      ch[2];
+    /* The boards the plan gives it (ide_pci_card_boards()): the primary and
+       secondary where nothing needs them, as the machine's IDE, and
+       otherwise the tertiary and quaternary, as any add-in PCI IDE
+       controller has them, or the next pair up where another device has
+       one of those. Only the plan knows what a card in a later slot that
+       can use no other ports than the legacy ones needs. */
+    int ch[2];
 
-    for (int board = 0; board < IDE_BUS_MAX; board++)
-        taken |= ide_board_claimed(board) ? (1 << board) : 0;
-    if (!ide_pci_card_boards(taken, ch)) {
+    if (!ide_plan_card_boards(info, device_get_instance(), ch)) {
         warning("PDC202xx: no IDE board is free for its channels\n");
         return NULL;
     }

@@ -3794,72 +3794,107 @@ ide_plan_boards(const device_t *dev, int inst)
     return boards;
 }
 
-/* The first to claim a board has it, as when the machine starts: a later
-   claim on it gets nothing. */
+typedef struct ide_plan_t {
+    ide_owner_t    *owners;
+    bool            taken[IDE_BUS_MAX];
+    ide_conflict_t *conflicts;
+    int            *conflict_count;
+} ide_plan_t;
+
+/* The first to claim a board has it: a later claim on it gets nothing, and
+   is noted as a conflict. The chipset's own IDE (dev NULL) losing a board
+   to a chip on the same board is no conflict: they are one onboard IDE. */
 static void
-ide_plan_claim(ide_owner_t owners[IDE_BUS_MAX], bool taken[IDE_BUS_MAX], uint32_t boards,
-               const device_t *dev, int inst, int onboard)
+ide_plan_claim(ide_plan_t *plan, uint32_t boards, const device_t *dev, int inst, int onboard)
 {
+    uint32_t lost = 0;
+    int      none = 0;
+
     if (boards & IDE_BOARDS_PCI_CARD) {
         uint32_t mask = 0;
         int      card[2];
 
         for (int board = 0; board < IDE_BUS_MAX; board++)
-            mask |= taken[board] ? (1 << board) : 0;
+            mask |= plan->taken[board] ? (1 << board) : 0;
         boards = ide_pci_card_boards(mask, card) ? ((1 << card[0]) | (1 << card[1])) : 0;
+        none   = (boards == 0);
     }
 
     for (int board = 0; board < IDE_BUS_MAX; board++) {
-        if ((boards & (1 << board)) && !taken[board]) {
-            taken[board]           = true;
-            owners[board].device   = dev;
-            owners[board].instance = inst;
-            owners[board].onboard  = onboard;
+        if (!(boards & (1 << board)))
+            continue;
+
+        if (plan->taken[board])
+            lost |= 1 << board;
+        else {
+            plan->taken[board]           = true;
+            plan->owners[board].device   = dev;
+            plan->owners[board].instance = inst;
+            plan->owners[board].onboard  = onboard;
         }
+    }
+
+    if ((lost || none) && (dev != NULL) && (plan->conflicts != NULL) && (*plan->conflict_count < IDE_CONFLICTS_MAX)) {
+        ide_conflict_t *c = &plan->conflicts[(*plan->conflict_count)++];
+
+        c->device   = dev;
+        c->instance = inst;
+        c->onboard  = onboard;
+        c->lost     = lost;
     }
 }
 
 int
-ide_plan(ide_owner_t owners[IDE_BUS_MAX], int mach, const int hdc[], const int snd[])
+ide_plan(ide_owner_t owners[IDE_BUS_MAX], int mach, const int hdc[], const int snd[],
+         ide_conflict_t conflicts[IDE_CONFLICTS_MAX], int *conflict_count)
 {
-    const machine_t *m                    = &machines[mach];
-    bool             taken[IDE_BUS_MAX]   = { 0 };
-    int              shown                = IDE_BUS_SHOWN_MIN;
+    const machine_t *m     = &machines[mach];
+    int              shown = IDE_BUS_SHOWN_MIN;
+    int              none  = 0;
+    ide_plan_t       plan  = { .owners = owners, .conflicts = conflicts,
+                               .conflict_count = (conflict_count != NULL) ? conflict_count : &none };
 
     memset(owners, 0, IDE_BUS_MAX * sizeof(ide_owner_t));
+    *plan.conflict_count = 0;
 
     /* The machine starts first: a chip of its own, then the chipset's IDE on
        the boards the machine has. Some old machines bring theirs up only
        with the Internal controller selected. */
     if ((m->flags & MACHINE_IDE_QUAD) &&
         (!(m->flags & MACHINE_IDE_INTERNAL) || (hdc[0] == HDC_INTERNAL))) {
-        ide_plan_claim(owners, taken, ide_plan_boards(m->ide_device, 1), m->ide_device, 1, 1);
+        ide_plan_claim(&plan, ide_plan_boards(m->ide_device, 1), m->ide_device, 1, 1);
         for (int board = 0; board < 4; board++) {
             if (m->flags & (MACHINE_IDE_PRI << board))
-                ide_plan_claim(owners, taken, 1 << board, NULL, 0, 1);
+                ide_plan_claim(&plan, 1 << board, NULL, 0, 1);
         }
     }
     if ((snd[0] == SOUND_INTERNAL) && (m->snd_device != NULL))
-        ide_plan_claim(owners, taken, ide_plan_boards(m->snd_device, 1), m->snd_device, 1, 1);
+        ide_plan_claim(&plan, ide_plan_boards(m->snd_device, 1), m->snd_device, 1, 1);
 
-    /* Then the sound cards, and after them the disk controllers. */
+    /* Then the sound cards, and the disk controllers with boards of their
+       own; a PCI card that can take any pair (IDE_BOARDS_PCI_CARD) comes
+       last, so a card that can only use the legacy ports has them. */
     for (int i = 0; i < SOUND_CARD_MAX; i++) {
         if (snd[i] > SOUND_INTERNAL) {
             const device_t *dev = sound_card_getdevice(snd[i]);
 
-            ide_plan_claim(owners, taken, ide_plan_boards(dev, i + 1), dev, i + 1, 0);
+            ide_plan_claim(&plan, ide_plan_boards(dev, i + 1), dev, i + 1, 0);
         }
     }
-    for (int i = 0; i < HDC_MAX; i++) {
-        if (hdc[i] > HDC_INTERNAL) {
-            const device_t *dev = hdc_get_device(hdc[i]);
+    for (int pass = 0; pass < 2; pass++) {
+        for (int i = 0; i < HDC_MAX; i++) {
+            if (hdc[i] > HDC_INTERNAL) {
+                const device_t *dev    = hdc_get_device(hdc[i]);
+                const uint32_t  boards = ide_plan_boards(dev, i + 1);
 
-            ide_plan_claim(owners, taken, ide_plan_boards(dev, i + 1), dev, i + 1, 0);
+                if (!!(boards & IDE_BOARDS_PCI_CARD) == pass)
+                    ide_plan_claim(&plan, boards, dev, i + 1, 0);
+            }
         }
     }
 
     for (int board = 0; board < IDE_BUS_MAX; board++) {
-        if (taken[board] && (board >= shown))
+        if (plan.taken[board] && (board >= shown))
             shown = board + 1;
     }
 
@@ -3874,7 +3909,7 @@ ide_plan_check(void)
 {
     ide_owner_t owners[IDE_BUS_MAX];
 
-    ide_plan(owners, machine, hdc_current, sound_card_current);
+    ide_plan(owners, machine, hdc_current, sound_card_current, NULL, NULL);
 
     for (int board = 0; board < IDE_BUS_MAX; board++) {
         const int planned = owners[board].onboard || (owners[board].device != NULL);
@@ -3888,6 +3923,24 @@ ide_plan_check(void)
                     planned ? owner : "");
         }
     }
+}
+
+/* The boards the plan gives a PCI card's two channels, for the card to take
+   as it starts: it can know what the cards after it need only from the
+   plan. Returns 0 when it has none. */
+int
+ide_plan_card_boards(const device_t *dev, int inst, int boards[2])
+{
+    ide_owner_t owners[IDE_BUS_MAX];
+    int         found = 0;
+
+    ide_plan(owners, machine, hdc_current, sound_card_current, NULL, NULL);
+    for (int board = 0; (board < IDE_BUS_MAX) && (found < 2); board++) {
+        if ((owners[board].device == dev) && (owners[board].instance == inst))
+            boards[found++] = board;
+    }
+
+    return found == 2;
 }
 
 void

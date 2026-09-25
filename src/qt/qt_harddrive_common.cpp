@@ -149,8 +149,10 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
     int        subChannelWidth = 1;
     QList<int> busesToCheck;
     QList<int> channelsInUse;
-    bus_owner_t owners[(IDE_BUS_MAX > SCSI_BUS_MAX) ? IDE_BUS_MAX : SCSI_BUS_MAX];
-    int         owned  = 0;
+    bus_owner_t    owners[(IDE_BUS_MAX > SCSI_BUS_MAX) ? IDE_BUS_MAX : SCSI_BUS_MAX];
+    ide_conflict_t conflicts[IDE_CONFLICTS_MAX];
+    int            conflictCount = 0;
+    int            owned         = 0;
     const bool  is_ide  = (bus == HDD_BUS_IDE) || (bus == HDD_BUS_ATAPI);
     const bool  is_scsi = (bus == HDD_BUS_SCSI);
     switch (bus) {
@@ -167,13 +169,13 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
             busesToCheck.append(HDD_BUS_ESDI);
             break;
         case HDD_BUS_IDE:
-            owned   = idePlan(owners);
+            owned   = idePlan(owners, conflicts, &conflictCount);
             busRows = owned * 2;
             busesToCheck.append(HDD_BUS_ATAPI);
             busesToCheck.append(HDD_BUS_IDE);
             break;
         case HDD_BUS_ATAPI:
-            owned   = idePlan(owners);
+            owned   = idePlan(owners, conflicts, &conflictCount);
             busRows = owned * 2;
             busesToCheck.append(HDD_BUS_IDE);
             busesToCheck.append(HDD_BUS_ATAPI);
@@ -238,7 +240,7 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
         if (bus == TAPE_BUS_LPT)
             model->setData(idx, QString("LPT%1").arg(i + 1));
         else if (is_ide)
-            model->setData(idx, QString("%1:%2 %3").arg(i >> 1).arg(i & 1).arg(ownerName(i >> 1, owners, owned)));
+            model->setData(idx, QString("%1:%2 %3").arg(i >> 1).arg(i & 1).arg(ownerName(i >> 1, owners, owned, conflicts, conflictCount)));
         else if (is_scsi)
             model->setData(idx, QString("%1:%2 %3").arg(i >> 4).arg(i & 15, 2, 10, QChar('0')).arg(ownerName(i >> 4, owners, owned)));
         else
@@ -255,6 +257,19 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
             if (is_scsi && (((i >> 4) >= owned) || (!owners[i >> 4].onboard && (owners[i >> 4].device == nullptr))))
                 enabled = false;
             channelItem->setEnabled(enabled);
+        }
+    }
+
+    /* Then, not to be picked, each controller left without its channels. */
+    if (is_ide) {
+        auto *standard = qobject_cast<QStandardItemModel *>(model);
+
+        for (int i = 0; (standard != nullptr) && (i < conflictCount); i++) {
+            auto *item = new QStandardItem(conflictText(i, owners, owned, conflicts, conflictCount));
+
+            item->setData(CHANNEL_NONE, Qt::UserRole);
+            item->setEnabled(false);
+            standard->appendRow(item);
         }
     }
 }
@@ -321,7 +336,7 @@ Harddrives::BusChannelName(uint8_t bus, uint8_t channel)
    disk controllers and sound cards selected, or those saved for a page not
    opened yet. Returns the number of boards to show. */
 int
-Harddrives::idePlan(bus_owner_t *owners)
+Harddrives::idePlan(bus_owner_t *owners, ide_conflict_t *conflicts, int *conflictCount)
 {
     int mach = machine;
     int hdc[HDC_MAX];
@@ -340,7 +355,7 @@ Harddrives::idePlan(bus_owner_t *owners)
             snd[i] = Settings::settings->currentSoundCard(i);
     }
 
-    return ide_plan(owners, mach, hdc, snd);
+    return ide_plan(owners, mach, hdc, snd, conflicts, conflictCount);
 }
 
 /* The owner of each SCSI bus for what the settings hold now, as for IDE.
@@ -368,41 +383,70 @@ Harddrives::scsiPlan(bus_owner_t *owners)
     return scsi_plan(owners, mach, snd, scsi);
 }
 
-/* The label for an IDE board or SCSI bus, of the count given: the chip on
-   the machine's board with "(Onboard)", or just "Onboard" for the
-   chipset's own IDE; a card's short name otherwise, numbered where two of
-   the same card have buses. */
+/* A device's label: its short name, with "(Onboard)" for a chip on the
+   machine's board; where there are two or more of a card, among the
+   owners and those left without boards, each is numbered by its slot
+   order, #1 first. */
+static QString
+deviceLabel(const device_t *dev, int instance, int onboard, const bus_owner_t *owners, int count,
+            const ide_conflict_t *conflicts, int conflictCount)
+{
+    const QString name = QString::fromUtf8((dev->short_name != nullptr) ? dev->short_name : dev->name);
+
+    if (onboard)
+        return QObject::tr("%1 (Onboard)").arg(name);
+
+    QList<int> instances;
+    for (int i = 0; i < count; i++) {
+        if ((owners[i].device == dev) && !instances.contains(owners[i].instance))
+            instances.append(owners[i].instance);
+    }
+    for (int i = 0; i < conflictCount; i++) {
+        if ((conflicts[i].device == dev) && !instances.contains(conflicts[i].instance))
+            instances.append(conflicts[i].instance);
+    }
+    if (instances.size() > 1) {
+        std::sort(instances.begin(), instances.end());
+        return QString("%1 #%2").arg(name).arg(instances.indexOf(instance) + 1);
+    }
+
+    return name;
+}
+
+/* The label for an IDE board or SCSI bus, of the count given: the owner's
+   label, or "Onboard" for the chipset's own IDE. */
 QString
-Harddrives::ownerName(int bus, const bus_owner_t *owners, int count)
+Harddrives::ownerName(int bus, const bus_owner_t *owners, int count, const ide_conflict_t *conflicts, int conflictCount)
 {
     if ((bus < 0) || (bus >= count))
         return QObject::tr("(none)");
 
     const bus_owner_t &owner = owners[bus];
 
-    if (!owner.onboard && (owner.device == nullptr))
-        return QObject::tr("(none)");
+    if (owner.device == nullptr)
+        return owner.onboard ? QObject::tr("Onboard") : QObject::tr("(none)");
 
-    QString name;
-    if (owner.device != nullptr)
-        name = QString::fromUtf8((owner.device->short_name != nullptr) ? owner.device->short_name : owner.device->name);
+    return deviceLabel(owner.device, owner.instance, owner.onboard, owners, count, conflicts, conflictCount);
+}
 
-    if (owner.onboard)
-        return name.isEmpty() ? QObject::tr("Onboard") : QObject::tr("%1 (Onboard)").arg(name);
+/* What a controller left without its IDE channels says: the boards
+   another device has, or that no pair was free. */
+QString
+Harddrives::conflictText(int index, const bus_owner_t *owners, int count, const ide_conflict_t *conflicts, int conflictCount)
+{
+    const ide_conflict_t &c     = conflicts[index];
+    const QString         label = deviceLabel(c.device, c.instance, c.onboard, owners, count, conflicts, conflictCount);
 
-    /* Where there are two or more of the card, each is numbered by its
-       place among them, #1 first, whatever slots they are in. */
-    QList<int> instances;
-    for (int i = 0; i < count; i++) {
-        if ((owners[i].device == owner.device) && !instances.contains(owners[i].instance))
-            instances.append(owners[i].instance);
+    if (c.lost == 0)
+        return QObject::tr("%1: no free channels").arg(label);
+
+    QStringList boards;
+    for (int board = 0; board < IDE_BUS_MAX; board++) {
+        if (c.lost & (1 << board))
+            boards.append(QString::number(board));
     }
-    if (instances.size() > 1) {
-        std::sort(instances.begin(), instances.end());
-        return QString("%1 #%2").arg(name).arg(instances.indexOf(owner.instance) + 1);
-    }
 
-    return name;
+    return QObject::tr("%1: channels %2 in use").arg(label, boards.join(", "));
 }
 
 /* Name each drive's bus and channel again, from the bus and channel kept
