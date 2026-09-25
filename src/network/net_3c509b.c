@@ -335,6 +335,7 @@ typedef struct el3_t {
     uint8_t  tx_pad_left;
     uint8_t  tx_status[TX_STATUS_MAX];
     uint8_t  tx_status_count;
+    uint8_t  tx_status_full; /* the transmitter stopped for a full stack */
 
     /* Receive. */
     uint8_t        rx_enabled;
@@ -873,18 +874,28 @@ el3_rx_status(const el3_t *dev)
 
 /* ---- transmit -------------------------------------------------------------- */
 
+/* The stack "can hold exactly 31 entries". The status that fills it is
+   flagged TX Status Overflow and the transmitter is disabled, so "No
+   packets are dropped or confirmations lost" (6-19). */
 static void
 el3_tx_status_push(el3_t *dev, uint8_t status)
 {
-    if (dev->tx_status_count >= TX_STATUS_MAX) {
+    if (dev->tx_status_count >= TX_STATUS_MAX)
+        return;
+    dev->tx_status[dev->tx_status_count++] = status;
+    if (dev->tx_status_count == TX_STATUS_MAX) {
         dev->tx_status[TX_STATUS_MAX - 1] |= TXS_OVERFLOW;
+        dev->tx_status_full = dev->tx_enabled;
         dev->tx_enabled = 0;
         dev->network_diagnostic &= (uint16_t) ~DIAG_TX_ENABLED;
-    } else
-        dev->tx_status[dev->tx_status_count++] = status;
+    }
     el3_raise(dev, INT_TX_COMPLETE);
 }
 
+static void el3_tx_drain(el3_t *dev);
+
+/* Writing TX Status pops it. Popping a full stack "clears this condition;
+   no other action is required" (6-19): the transmitter carries on. */
 static void
 el3_tx_status_pop(el3_t *dev)
 {
@@ -894,6 +905,12 @@ el3_tx_status_pop(el3_t *dev)
     dev->tx_status_count--;
     if (dev->tx_status_count == 0)
         el3_lower(dev, INT_TX_COMPLETE);
+    if (dev->tx_status_full) {
+        dev->tx_status_full = 0;
+        dev->tx_enabled     = 1;
+        dev->network_diagnostic |= DIAG_TX_ENABLED;
+        el3_tx_drain(dev);
+    }
 }
 
 /* The space the FIFO has left: each frame costs its preamble and its data
@@ -1023,7 +1040,8 @@ el3_tx_data_write(el3_t *dev, uint8_t val)
     }
     if (dev->tx_pend_fifo + 4 + dev->tx_count >= dev->tx_size) {
         el3_adapter_failure(dev, FIFO_TX_OVERRUN);
-        dev->tx_enabled = 0;
+        dev->tx_enabled     = 0;
+        dev->tx_status_full = 0;
         dev->network_diagnostic &= (uint16_t) ~DIAG_TX_ENABLED;
         return;
     }
@@ -1075,6 +1093,7 @@ el3_tx_reset(el3_t *dev, uint8_t mask)
         dev->tx_enabled = 0;
         dev->network_diagnostic &= (uint16_t) ~(DIAG_TX_ENABLED | DIAG_TX_RESET_REQD);
         dev->tx_status_count = 0;
+        dev->tx_status_full  = 0;
         el3_lower(dev, INT_TX_COMPLETE);
     }
     if (!(mask & 0x08)) {
@@ -1267,7 +1286,8 @@ el3_command(el3_t *dev, uint16_t val)
             el3_tx_drain(dev);
             break;
         case CMD_TX_DISABLE:
-            dev->tx_enabled = 0;
+            dev->tx_enabled     = 0;
+            dev->tx_status_full = 0;
             dev->network_diagnostic &= (uint16_t) ~DIAG_TX_ENABLED;
             break;
         case CMD_TX_RESET:
