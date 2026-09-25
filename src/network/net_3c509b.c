@@ -258,7 +258,6 @@ typedef struct el3_t {
     uint8_t  id_next;    /* the next byte the sequence expects */
     uint8_t  id_count;
     uint8_t  tag;
-    uint16_t contention; /* the EEPROM word being shifted out onto bit 0 */
     uint8_t  active;
     uint16_t io_base;
 
@@ -1693,7 +1692,6 @@ el3_id_command(el3_t *dev, uint8_t val)
         dev->ids_state = IDS_WAIT;
     } else if (val < 0xc0) {
         dev->eeprom_data = dev->eeprom[val & 0x3f];
-        dev->contention  = dev->eeprom_data;
     } else if (val < 0xd0) {
         el3_global_reset(dev, 0);
     } else if (val < 0xd8) {
@@ -1754,9 +1752,10 @@ el3_id_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
-/* Contention: bit 15 of the EEPROM word goes out on data bit 0, open drain,
-   and the word shifts left. Contention between two of these cards is not
-   modelled; each behaves as if it won. A tagged card stays off the bus. */
+/* Contention: bit 15 of the EEPROM Data register goes out on data bit 0,
+   open drain, and the register shifts left (7-3). Contention between two
+   of these cards is not modelled; each behaves as if it won. A tagged card
+   stays off the bus. */
 static uint8_t
 el3_id_read(uint16_t port, void *priv)
 {
@@ -1765,8 +1764,8 @@ el3_id_read(uint16_t port, void *priv)
 
     if ((port != dev->id_port) || (dev->ids_state != IDS_CMD) || (dev->tag != 0))
         return 0xff;
-    bit             = (uint8_t) (dev->contention >> 15);
-    dev->contention = (uint16_t) (dev->contention << 1);
+    bit              = (uint8_t) (dev->eeprom_data >> 15);
+    dev->eeprom_data = (uint16_t) (dev->eeprom_data << 1);
     return (uint8_t) (0xfe | bit);
 }
 
