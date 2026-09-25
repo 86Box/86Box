@@ -1287,6 +1287,11 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     break;
                 case 0xc4 ... 0xc6: // optimise
                     READ8(addr, mach64->dac_cntl);
+                    /* DAC_CMP_OUTPUT (7): 1 when all three comparators are below
+                       0.28 V (VT RRG 4-40), the same comparators the VGA's
+                       switch sense (3C2h bit 4) reads. */
+                    if (((addr & 3) == 0) && mach64_is_vt(mach64) && (svga_in(0x3c2, svga) & 0x10))
+                        ret |= 0x80;
                     break;
                 case 0xc7:
                     READ8(addr, mach64->dac_cntl);
@@ -1933,7 +1938,19 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     }
                     break;
                 case 0xc4 ... 0xc7:
-                    WRITE8(addr, mach64->dac_cntl, val);
+                    {
+                        const uint32_t type = mach64->dac_cntl & (7u << 16);
+
+                        WRITE8(addr, mach64->dac_cntl, val);
+                        /* DAC_TYPE (18:16) can be overwritten only on the GX and
+                           CX (VT RRG 4-41). On the VT the read/write fields are
+                           31, 29:24, 15:13, 8, 3 and 2, DAC_CMP_OUTPUT (7) is
+                           read-only and the rest reserved (4-40). */
+                        if (mach64_is_vt(mach64))
+                            mach64->dac_cntl &= 0xbf00e10c;
+                        if (mach64->type != MACH64_GX)
+                            mach64->dac_cntl = (mach64->dac_cntl & ~(7u << 16)) | type;
+                    }
                     mach64_log("Ext RAMDAC TYPE write=%x, bit set=%03x.\n", addr & 0x3ff, mach64->dac_cntl & 0x100);
                     if ((addr & 3) >= 1) {
                         svga_set_ramdac_type(svga, !!(mach64->dac_cntl & 0x100));
