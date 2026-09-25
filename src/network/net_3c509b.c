@@ -806,7 +806,9 @@ el3_rx_frame(el3_t *dev, const uint8_t *buf, int io_len, int mac)
     if (mac && (len < 60))
         len = 60;
 
-    if ((dev->rx_count >= RX_QUEUE) || (dev->rx_used + ((len + 4 + 3U) & ~3U) > dev->rx_size)) {
+    /* Room for the frame as stored: its CRC too while CRC stripping is off. */
+    if ((dev->rx_count >= RX_QUEUE) ||
+        (dev->rx_used + ((len + ((mac && (dev->media_status & MEDIA_CRC_STRIP_DIS)) ? 4U : 0U) + 3U) & ~3U) > dev->rx_size)) {
         dev->fifo_diag |= FIFO_RX_OVERRUN;
         return 0;
     }
