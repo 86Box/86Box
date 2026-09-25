@@ -617,17 +617,20 @@ mach64_mapping_set(mem_mapping_t *map, uint32_t base, uint32_t size)
 }
 
 static void
-mach64_mapping_on(mem_mapping_t *map)
-{
-    if (!map->enable)
-        mem_mapping_enable(map);
-}
-
-static void
 mach64_mapping_off(mem_mapping_t *map)
 {
     if (map->enable)
         mem_mapping_disable(map);
+}
+
+/* The registers at the top of an aperture: block 0 is the top 1K on every
+   chip, and the VT family has block 1 in the 1K below it while
+   BUS_EXT_REG_EN (BUS_CNTL bit 27) is set; cleared, that 1K is memory
+   (VT RRG 2-1, 2-2, 4-9). The CT has block 0 only (2-1). */
+static uint32_t
+mach64_reg_window(const mach64_t *mach64)
+{
+    return ((mach64->type >= MACH64_VT) && (mach64->bus_cntl & (1u << 27))) ? 0x800 : 0x400;
 }
 
 /* Places a piece of the linear aperture, `off` bytes into it.
@@ -763,7 +766,7 @@ mach64_updatemapping(mach64_t *mach64)
                                     mach64_write, mach64->isa_8bit ? NULL : mach64_writew, mach64->isa_8bit ? NULL : mach64_writel);
             mem_mapping_set_p(&svga->mapping, mach64);
         }
-        mach64_mapping_on(&mach64->mmio_mapping);
+        mach64_mapping_set(&mach64->mmio_mapping, 0xc0000 - mach64_reg_window(mach64), mach64_reg_window(mach64));
     } else {
         if ((svga->mapping.read_b != svga_read) || (svga->mapping.priv != svga)) {
             mem_mapping_set_handler(&svga->mapping, svga_read, mach64->isa_8bit ? NULL : svga_readw, mach64->isa_8bit ? NULL : svga_readl,
@@ -801,8 +804,10 @@ mach64_updatemapping(mach64_t *mach64)
             }
         } else {
             /*2*8 MB aperture*/
-            mach64_map_aperture(mach64, &mach64->linear_mapping, 1, 0, (8 << 20) - 4096);
-            mach64_map_aperture(mach64, &mach64->mmio_linear_mapping, 1, (8 << 20) - 4096, 4096);
+            const uint32_t win = mach64_reg_window(mach64);
+
+            mach64_map_aperture(mach64, &mach64->linear_mapping, 1, 0, (8 << 20) - win);
+            mach64_map_aperture(mach64, &mach64->mmio_linear_mapping, 1, (8 << 20) - win, win);
             mach64_map_aperture(mach64, &mach64->linear_mapping_big_endian, 1, 8 << 20, (8 << 20) - 0x1000);
             mach64_map_aperture(mach64, &mach64->mmio_linear_mapping_2, 1, (16 << 20) - 0x1000, 0x1000);
         }
@@ -1951,6 +1956,8 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                         mach64_update_irqs(mach64);
                         if ((mach64->bus_cntl ^ old) & (1u << 12))
                             mach64_update_rom(mach64); /* BUS_ROM_DIS */
+                        if ((mach64->type >= MACH64_VT) && ((mach64->bus_cntl ^ old) & (1u << 27)))
+                            mach64_updatemapping(mach64); /* BUS_EXT_REG_EN */
                     }
                     break;
                 case 0xe8 ... 0xeb:
@@ -3041,12 +3048,10 @@ mach64_common_init(const device_t *info)
     mem_mapping_add(&mach64->linear_mapping_big_endian, 0, 0, mach64_readb_be, mach64_readw_be, mach64_readl_be, mach64_writeb_be, mach64_writew_be, mach64_writel_be, NULL, MEM_MAPPING_EXTERNAL, svga);
     mem_mapping_add(&mach64->mmio_linear_mapping, 0, 0, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     mem_mapping_add(&mach64->mmio_linear_mapping_2, 0, 0, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
-    /* The GX has only its 1K of registers there; the video memory below
-       them stays in the aperture. The CT adds a second block at BF800. */
-    if (mach64->type == MACH64_GX)
-        mem_mapping_add(&mach64->mmio_mapping, 0xbfc00, 0x400, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
-    else
-        mem_mapping_add(&mach64->mmio_mapping, 0xbf800, 0x800, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
+    /* The registers in the VGA window, 1K at BFC00 and on the VT family 2K
+       at BF800 while block 1 is on (mach64_reg_window); the video memory
+       below them stays in the window. */
+    mem_mapping_add(&mach64->mmio_mapping, 0xbfc00, 0x400, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     if (mach64->isa_8bit) {
         /* An 8-bit slot wires SA0-SA19 and SD0-SD7 only. The card decodes
            the address lines it has, so its window and register block answer
