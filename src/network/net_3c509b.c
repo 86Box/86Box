@@ -202,6 +202,7 @@ enum {
 #define DIAG_RX_ENABLED    0x0400
 #define DIAG_TX_ENABLED    0x0800
 #define DIAG_LOOPBACK      0xf000 /* external, encoder/decoder, controller, FIFO */
+#define DIAG_EXT_LOOPBACK  0x8000
 #define DIAG_FIFO_LOOPBACK 0x1000
 
 #define CC_ENABLE 0x0001
@@ -970,7 +971,13 @@ el3_tx_emit(el3_t *dev, const uint8_t *data, uint16_t len, uint16_t flags)
             len -= 4;
         while (len < 60)
             frame[len++] = 0;
-        if (dev->network_diagnostic & DIAG_LOOPBACK)
+        /* External loopback goes out of the connector and back in,
+           "allowing simultaneous transmit and receive"; ENDEC and
+           controller loopback turn it round inside the chip (6-28). */
+        if (dev->network_diagnostic & DIAG_EXT_LOOPBACK) {
+            network_tx(dev->card, frame, len);
+            el3_rx_frame(dev, frame, len, 1);
+        } else if (dev->network_diagnostic & DIAG_LOOPBACK)
             el3_rx_frame(dev, frame, len, 1);
         else
             network_tx(dev->card, frame, len);
