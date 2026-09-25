@@ -1840,6 +1840,12 @@ el3_id_write(uint16_t port, uint8_t val, void *priv)
 {
     el3_t *dev = (el3_t *) priv;
 
+    /* The ID sequence works only while ISA ACTIVATION SELECT allows
+       contention (not 10b, Plug and Play only) and the I/O base is an ISA
+       one, not EISA's 1Fh (7-2, 7-23). */
+    if ((((dev->internal_config >> 18) & 3) == 2) || ((dev->address_config & AC_IO_BASE) == AC_EISA))
+        return;
+
     if (val == 0) {
         dev->id_port   = port;
         dev->ids_state = IDS_WAIT;
