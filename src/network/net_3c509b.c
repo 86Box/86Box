@@ -280,6 +280,7 @@ typedef struct el3_t {
     uint16_t eeprom_data;
     uint16_t eeprom[64];
     uint8_t  eeprom_write_enabled;
+    uint64_t eeprom_busy_until; /* tsc when EEPROM Busy goes off */
     uint8_t  cmd_low;
 
     uint8_t station_addr[6];
@@ -1094,13 +1095,26 @@ el3_global_reset(el3_t *dev, uint8_t mask)
 
 /* ---- the EEPROM commands -------------------------------------------------- */
 
-/* Writes can only clear bits, erases set them. The part's 162 us to 11 ms
-   are not modelled; EEPROM Busy never reads set. */
+static int
+el3_eeprom_busy(const el3_t *dev)
+{
+    return el3_now() < dev->eeprom_busy_until;
+}
+
+/* Writes can only clear bits, erases set them. Each command keeps EEPROM
+   Busy set for its execution time (7-22): 162 us to read, 60 us to enable
+   or disable writes, 11 ms to write or erase; while it is set, writes to
+   the command register are disabled (7-21). The hardware "automatically
+   executes the Erase/Write Disable command" after every erase and write. */
 static void
 el3_eeprom_command(el3_t *dev, uint8_t val)
 {
-    uint8_t address = val & 0x3f;
-    uint8_t changed = 0;
+    uint8_t  address = val & 0x3f;
+    uint8_t  changed = 0;
+    uint32_t us;
+
+    if (el3_eeprom_busy(dev))
+        return;
 
     dev->eeprom_command = val;
     switch (val >> 6) {
@@ -1108,6 +1122,7 @@ el3_eeprom_command(el3_t *dev, uint8_t val)
             switch ((address >> 4) & 3) {
                 case 0: /* Erase/Write Disable */
                     dev->eeprom_write_enabled = 0;
+                    us                        = 60;
                     break;
                 case 1: /* Write All */
                     if (dev->eeprom_write_enabled) {
@@ -1115,15 +1130,20 @@ el3_eeprom_command(el3_t *dev, uint8_t val)
                             dev->eeprom[i] &= dev->eeprom_data;
                         changed = 1;
                     }
+                    dev->eeprom_write_enabled = 0;
+                    us                        = 11000;
                     break;
                 case 2: /* Erase All */
                     if (dev->eeprom_write_enabled) {
                         memset(dev->eeprom, 0xff, sizeof(dev->eeprom));
                         changed = 1;
                     }
+                    dev->eeprom_write_enabled = 0;
+                    us                        = 11000;
                     break;
                 default: /* Erase/Write Enable */
                     dev->eeprom_write_enabled = 1;
+                    us                        = 60;
                     break;
             }
             break;
@@ -1132,17 +1152,23 @@ el3_eeprom_command(el3_t *dev, uint8_t val)
                 dev->eeprom[address] &= dev->eeprom_data;
                 changed = 1;
             }
+            dev->eeprom_write_enabled = 0;
+            us                        = 11000;
             break;
         case 2: /* Read */
             dev->eeprom_data = dev->eeprom[address];
+            us               = 162;
             break;
         default: /* Erase */
             if (dev->eeprom_write_enabled) {
                 dev->eeprom[address] = 0xffff;
                 changed = 1;
             }
+            dev->eeprom_write_enabled = 0;
+            us                        = 11000;
             break;
     }
+    dev->eeprom_busy_until = el3_now() + (((uint64_t) us * TIMER_USEC) >> 32);
     if (changed)
         el3_eeprom_save(dev);
 }
@@ -1310,10 +1336,9 @@ el3_reg_read(el3_t *dev, uint8_t off)
                 case W0_EEPROM_COMMAND:
                     return (uint8_t) dev->eeprom_command;
                 case W0_EEPROM_COMMAND + 1:
-                    /* EEPROM Busy and Test Mode are never set. The book does
-                       not give TAG's bit position here; the low bits are
-                       assumed. */
-                    return dev->tag;
+                    /* EEPROM Busy (15), Test Mode (14, never set here) and
+                       TAG (10:8) (7-21). */
+                    return (uint8_t) ((el3_eeprom_busy(dev) ? 0x80 : 0x00) | dev->tag);
                 case W0_EEPROM_DATA:
                 case W0_EEPROM_DATA + 1:
                     return (uint8_t) (dev->eeprom_data >> ((off & 1) * 8));
