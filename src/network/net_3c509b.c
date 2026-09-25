@@ -1129,6 +1129,18 @@ el3_global_reset(el3_t *dev, uint8_t mask)
         dev->tag       = 0;
     }
     el3_partition(dev);
+    /* "A Host Reset ... clears the interrupt bits but does not clear the
+       interrupt source" (6-13): what the rest of the card still holds sets
+       them again, to reappear once the masks let it. */
+    if (!(mask & 0x20)) {
+        if (dev->rx_count > 0)
+            dev->int_status |= INT_RX_COMPLETE;
+        if (dev->tx_status_count > 0)
+            dev->int_status |= INT_TX_COMPLETE;
+        if (dev->fifo_diag & (FIFO_TX_OVERRUN | FIFO_RX_UNDERRUN))
+            dev->int_status |= INT_ADAPTER_FAILURE;
+        el3_stats_indicate(dev);
+    }
     el3_set_irq(dev, el3_irq_of(dev->resource_config));
     el3_update_irq(dev);
 }
