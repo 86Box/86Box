@@ -300,7 +300,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     {
         auto *busModel = ui->comboBoxTapeBus->model();
         int   row      = busModel->rowCount();
-        busModel->insertRows(row, 2);
+        busModel->insertRows(row, 1);
         busModel->setData(busModel->index(row, 0), "FDC");
         busModel->setData(busModel->index(row, 0), TAPE_BUS_FDC, Qt::UserRole);
     }
