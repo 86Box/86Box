@@ -138,6 +138,10 @@ build_load_routine(codeblock_t *block, int size, int is_float)
     } else
         fatal("build_load_routine - unknown size %i\n", size);
     host_loong64_MOV_W(block, REG_A1, REG_ZERO);
+    /*Fast-path exit: return here. Falling through re-runs the C mem op and
+      overwrites A1 with cpu_state.abrt, so the block's abort check would
+      test garbage instead of the stub's success flag. */
+    host_loong64_RET(block);
 
     host_loong64_branch_set_offset(branch_offset, &block_write_data[block_pos]);
     if (size != 1)
@@ -199,6 +203,10 @@ build_store_routine(codeblock_t *block, int size, int is_float)
     } else
         fatal("build_store_routine - unknown size %i\n", size);
     host_loong64_MOV_W(block, REG_A1, REG_ZERO);
+    /*Fast-path exit: return here. Falling through re-runs the C mem op and
+      overwrites A1 with cpu_state.abrt, so the block's abort check would
+      test garbage instead of the stub's success flag. */
+    host_loong64_RET(block);
 
     host_loong64_branch_set_offset(branch_offset, &block_write_data[block_pos]);
     if (size != 1)
