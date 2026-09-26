@@ -102,7 +102,7 @@ sff_bus_master_next_addr(sff8038i_t *dev)
     dev->count &= 0xfffe;
     if (!dev->count)
         dev->count = 65536;
-    dev->addr &= 0xfffffffe;
+    dev->addr &= dev->addr_mask;
     dev->ptr_cur += 8;
 }
 
@@ -573,6 +573,14 @@ sff_set_mirq(sff8038i_t *dev, uint8_t mirq)
     dev->mirq = mirq;
 }
 
+/* For a controller whose engine starts at the exact byte a PRD entry names,
+   where SFF-8038i would drop bit 0. */
+void
+sff_set_byte_addresses(sff8038i_t *dev, int byte_addresses)
+{
+    dev->addr_mask = byte_addresses ? 0xffffffff : 0xfffffffe;
+}
+
 void
 sff_set_ven_handlers(sff8038i_t *dev, uint8_t (*ven_write)(uint16_t port, uint8_t val, void *priv),
                      uint8_t (*ven_read)(uint16_t port, uint8_t val, void *priv), void *priv)
@@ -618,6 +626,9 @@ sff_init(UNUSED(const device_t *info))
     dev->irq_level    = 0;
     dev->irq_state    = 0;
     dev->mirq         = 2;
+    /* SFF-8038i reserves bit 0 of a PRD entry's address: transfers are word
+       aligned. */
+    dev->addr_mask    = 0xfffffffe;
 
     dev->channel      = next_id;
     next_id++;

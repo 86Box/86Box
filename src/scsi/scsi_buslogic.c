@@ -1430,10 +1430,10 @@ buslogic_mca_write(const uint16_t port, const uint8_t val, void *priv)
      */
     /* Parity. */
     HALR->structured.autoSCSIData.uSCSIConfiguration &= ~2;
-    HALR->structured.autoSCSIData.uSCSIConfiguration |= (dev->pos_regs[4] & 2);
+    HALR->structured.autoSCSIData.uSCSIConfiguration |= (dev->pos_regs[4] & 0x10) ? 2 : 0;
 
     /* Sync. */
-    HALR->structured.autoSCSIData.u16SynchronousPermittedMask = (dev->pos_regs[4] & 0x10) ? 0xffff : 0x0000;
+    HALR->structured.autoSCSIData.u16SynchronousPermittedMask = (dev->pos_regs[4] & 0x02) ? 0xffff : 0x0000;
 
     /* DOS Disk Space > 1GBytes */
     HALR->structured.autoSCSIData.uBIOSConfiguration &= ~4;
@@ -1485,7 +1485,7 @@ buslogic_mca_write(const uint16_t port, const uint8_t val, void *priv)
      *
      * So, remove current address, if any.
      */
-    mem_mapping_disable(&dev->bios.mapping);
+    mem_mapping_disable(&bl->bios.mapping);
 
     /* Initialize the device if fully configured. */
     if (dev->pos_regs[2] & 0x01) {

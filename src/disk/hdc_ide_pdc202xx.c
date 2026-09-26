@@ -974,6 +974,15 @@ pdc_init(const device_t *info)
         ide_pci_boards_init((1 << dev->ch[0]) | (1 << dev->ch[1]));
     dev->bm[0] = device_add_inst(&sff8038i_device, dev->ch[0] + 1);
     dev->bm[1] = device_add_inst(&sff8038i_device, dev->ch[1] + 1);
+    /* A PRD ADDRESS IS TAKEN TO THE BYTE. The Ultra133 TX2 ROM builds its
+       PRD entry from the caller's ES:BX as is, ES * 16 + BX with no check for
+       an odd result (U133B15.BIN 0x5DB-0x5F2, and the same for the regions
+       VDS hands back at 0x622-0x661), and starts the engine on it; DOS and
+       Windows pass odd buffers. Dropping bit 0, as SFF-8038i does, moved
+       every such transfer one byte early: a write put a stray byte at the
+       head of each sector and lost the last one. */
+    sff_set_byte_addresses(dev->bm[0], 1);
+    sff_set_byte_addresses(dev->bm[1], 1);
     /* The SFF core adds the primary and secondary itself, but only for
        the first bus master in the machine. */
     if ((dev->ch[0] == 0) && !ide_board_claimed(0))
