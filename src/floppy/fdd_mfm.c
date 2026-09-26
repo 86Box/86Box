@@ -396,7 +396,7 @@ mfm_load(void *priv, char *fn)
 {
     fdd_drive_t *drv  = (fdd_drive_t *) priv;
 
-    drv->writeprot = drv->fwriteprot = 1;
+    drv->writeprot = 1;
 
     /* Allocate a drive block. */
     mfm_t *      dev  = (mfm_t *) calloc(1, sizeof(mfm_t));
@@ -516,4 +516,6 @@ mfm_close(void *priv)
     /* Release the memory. */
     free(dev);
     mfm[drv->id] = NULL;
+
+    drv->local = NULL;
 }

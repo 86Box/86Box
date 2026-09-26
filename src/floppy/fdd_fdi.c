@@ -47,8 +47,6 @@ typedef struct fdi_t {
     uint8_t track_timing[2][4][256 * 1024];
 } fdi_t;
 
-static fdi_t *fdi[FDD_NUM];
-
 #ifdef ENABLE_FDI_LOG
 int fdi_do_log = ENABLE_FDI_LOG;
 
@@ -71,7 +69,7 @@ static uint16_t
 disk_flags(void *priv)
 {
     fdd_drive_t *drv             = (fdd_drive_t *) priv;
-    fdi_t *      dev             = fdi[drv->id];
+    fdi_t *      dev             = (fdi_t *) drv->local;
     /* We ALWAYS claim to have extra bit cells, even if the actual amount is 0. */
     uint16_t     temp_disk_flags = 0x80;
 
@@ -109,7 +107,7 @@ static uint16_t
 side_flags(void *priv)
 {
     fdd_drive_t *drv             = (fdd_drive_t *) priv;
-    fdi_t *      dev             = fdi[drv->id];
+    fdi_t *      dev             = (fdi_t *) drv->local;
     uint16_t     temp_side_flags = 0;
 
     switch (fdi2raw_get_bit_rate(dev->h)) {
@@ -174,7 +172,7 @@ static int32_t
 extra_bit_cells(void *priv, const int side)
 {
     fdd_drive_t *drv        = (fdd_drive_t *) priv;
-    const fdi_t *dev        = fdi[drv->id];
+    const fdi_t *dev        = (fdi_t *) drv->local;
     int          density    = 0;
     int          raw_size   = 0;
     int          is_300_rpm = 0;
@@ -212,7 +210,7 @@ static void
 read_revolution(void *priv)
 {
     fdd_drive_t *drv   = (fdd_drive_t *) priv;
-    fdi_t *      dev   = fdi[drv->id];
+    fdi_t *      dev   = (fdi_t *) drv->local;
     const int    track = dev->track;
     int          den;
 
@@ -249,7 +247,7 @@ static uint32_t
 index_hole_pos(void *priv, const int side)
 {
     fdd_drive_t *drv     = (fdd_drive_t *) priv;
-    const fdi_t *dev     = fdi[drv->id];
+    const fdi_t *dev     = (fdi_t *) drv->local;
 
     const int    density = fdi_density(drv);
 
@@ -260,7 +258,7 @@ static uint32_t
 get_raw_size(void *priv, const int side)
 {
     fdd_drive_t *drv     = (fdd_drive_t *) priv;
-    const fdi_t *dev     = fdi[drv->id];
+    const fdi_t *dev     = (fdi_t *) drv->local;
 
     const int    density = fdi_density(drv);
 
@@ -271,7 +269,7 @@ static uint16_t *
 encoded_data(void *priv, const int side)
 {
     fdd_drive_t *drv     = (fdd_drive_t *) priv;
-    fdi_t *      dev     = fdi[drv->id];
+    fdi_t *      dev     = (fdi_t *) drv->local;
 
     const int    density = fdi_density(drv);
 
@@ -282,7 +280,7 @@ void
 fdi_seek(void *priv, int track)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdi_t *      dev = fdi[drv->id];
+    fdi_t *      dev = (fdi_t *) drv->local;
 
     if (fdd_doublestep_40(drv)) {
         if (fdi2raw_get_tpi(dev->h) < 2)
@@ -316,7 +314,7 @@ fdi_load(void *priv, char *fn)
         return;
     }
 
-    drv->writeprot = drv->fwriteprot = 1;
+    drv->writeprot = 1;
 
     d86f_unregister(drv);
 
@@ -336,7 +334,7 @@ fdi_load(void *priv, char *fn)
     }
 
     /* Set up the drive unit. */
-    fdi[drv->id] = dev;
+    drv->local     = dev;
 
     dev->h         = fdi2raw_header(dev->fp);
     dev->lasttrack = fdi2raw_get_last_track(dev->h);
@@ -368,7 +366,7 @@ void
 fdi_close(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdi_t *dev       = fdi[drv->id];
+    fdi_t *dev       = drv->local;
 
     if (dev == NULL)
         return;
@@ -385,5 +383,6 @@ fdi_close(void *priv)
 
     /* Release the memory. */
     free(dev);
-    fdi[drv->id] = NULL;
+
+    drv->local = NULL;
 }

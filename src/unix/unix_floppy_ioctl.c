@@ -265,10 +265,8 @@ floppy_ioctl_open(void *priv, int *out_tracks, int *out_sides, int *out_sectors,
         state->sector_valid = NULL;
     }
 
-    if (state->readonly) {
+    if (state->readonly)
         drv->writeprot = 1;
-        drv->fwriteprot = 1;
-    }
 
     *out_tracks = state->tracks;
     *out_sides = state->sides;

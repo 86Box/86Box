@@ -3478,7 +3478,7 @@ d86f_writesector(void *priv, const int sector, const int track, const int side,
     d86f_t *     dev = (d86f_t *) drv->d86f_priv;
     int          ret = 0;
 
-    if (drv->writeprot) {
+    if (drv->writeprot || fdc_get_swwp(drv->fdc)) {
         fdc_writeprotect(drv->fdc);
         dev->state       = STATE_IDLE;
         dev->index_count = 0;
@@ -3584,7 +3584,7 @@ d86f_common_format(void *priv, const int side, UNUSED(int rate), const uint8_t f
     fdd_drive_t *drv = (fdd_drive_t *) priv;
     d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    if (drv->writeprot) {
+    if (drv->writeprot || fdc_get_swwp(drv->fdc)) {
         fdc_writeprotect(drv->fdc);
         dev->state       = STATE_IDLE;
         dev->index_count = 0;
@@ -3775,8 +3775,6 @@ d86f_load(void *priv, char *fn)
     if (drv->read_only)
         drv->writeprot = 1;
 
-    drv->fwriteprot = drv->writeprot;
-
     fseek(dev->fp, 0, SEEK_END);
     len = ftell(dev->fp);
     fseek(dev->fp, 0, SEEK_SET);
@@ -3871,10 +3869,8 @@ d86f_load(void *priv, char *fn)
         return;
     }
 
-    if (!drv->writeprot) {
+    if (!drv->writeprot)
         drv->writeprot  = (dev->disk_flags & 0x10) ? 1 : 0;
-        drv->fwriteprot = drv->writeprot;
-    }
 
     if (drv->writeprot) {
         fclose(dev->fp);
@@ -3988,6 +3984,7 @@ d86f_init(void)
     for (uint8_t i = 0; i < FDD_NUM; i++) {
         fdd_drive_t *drv = &drives[i];
         drv->d86f_priv = NULL;
+        drv->local     = NULL;
     }
 }
 

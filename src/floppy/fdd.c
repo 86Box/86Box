@@ -1253,11 +1253,7 @@ fdd_init(void)
         drives[i].id         = i;
     }
 
-    img_init();
     d86f_init();
-    td0_init();
-    imd_init();
-    pcjs_init();
     fdd_tape_init();
 
     for (i = 0; i < FDD_NUM; i++) {

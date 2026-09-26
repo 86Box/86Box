@@ -155,8 +155,12 @@ typedef struct fdd_drive_t {
     int                seek_in_progress;
     int                driveloader;
     int                audio_profile;
+    /*
+       The image is write-protected (is either an advanced sector-based image, has
+       failed to open as writable, or has a write-protect marker inside.
+     */
     int                writeprot;
-    int                fwriteprot;
+    /* The image was deliberately mounted as write-protected. */
     int                read_only;
     int                changed;
     int                empty;
@@ -179,6 +183,8 @@ typedef struct fdd_drive_t {
     d86f_handler_t     d86f_handler;
 
     void *             d86f_priv;
+    void *             local;
+
     void *             fdc;
 
     void (*seek)(void *priv, int track);

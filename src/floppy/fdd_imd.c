@@ -63,8 +63,6 @@ typedef struct imd_t {
     uint8_t     track_buffer[2][25000];
 } imd_t;
 
-static imd_t *imd[FDD_NUM];
-
 #ifdef ENABLE_IMD_LOG
 int imd_do_log = ENABLE_IMD_LOG;
 
@@ -135,7 +133,7 @@ static int
 track_is_xdf(void *priv, const int side, const int track)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    imd_t *      dev = imd[drv->id];
+    imd_t *      dev = (imd_t *) drv->local;
 
     for (uint16_t i = 0; i < 256; i++)
         dev->xdf_ordered_pos[i][side] = 0;
@@ -222,7 +220,7 @@ static int
 track_is_interleave(void *priv, int const side, const int track)
 {
     fdd_drive_t *drv               = (fdd_drive_t *) priv;
-    imd_t       *dev               = imd[drv->id];
+    imd_t       *dev               = (imd_t *) drv->local;
     int          effective_sectors = 0;
     const char  *r_map             = dev->buffer + dev->tracks[track][side].r_map_offs;
     const int    track_spt         = dev->tracks[track][side].params[3];
@@ -257,7 +255,7 @@ sector_to_buffer(void *priv, const int track, const int side, uint8_t *buffer,
                  const int sector, const int len)
 {
     fdd_drive_t *drv       = (fdd_drive_t *) priv;
-    const imd_t *dev       = imd[drv->id];
+    const imd_t *dev       = (imd_t *) drv->local;
     const int    type      = (int) dev->buffer[dev->tracks[track][side].sector_data_offs[sector]];
 
     if (type == 0)
@@ -279,7 +277,7 @@ imd_seek(void *priv, int track)
     uint32_t    track_buf_pos[2] = { 0, 0 };
     uint8_t     id[4]            = { 0, 0, 0, 0 };
     uint8_t     type;
-    imd_t      *dev              = imd[drv->id];
+    imd_t      *dev              = (imd_t *) drv->local;
     int         c                = 0;
     int         track_rate       = 0;
     int         xdf_type         = 0;
@@ -443,7 +441,7 @@ static uint16_t
 disk_flags(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    const imd_t *dev = imd[drv->id];
+    const imd_t *dev = (imd_t *) drv->local;
 
     return (dev->disk_flags);
 }
@@ -452,7 +450,7 @@ static uint16_t
 side_flags(void *priv)
 {
     fdd_drive_t *drv    = (fdd_drive_t *) priv;
-    const imd_t *dev    = imd[drv->id];
+    const imd_t *dev    = (imd_t *) drv->local;
     int          side   = 0;
     uint16_t     sflags = 0;
 
@@ -467,7 +465,7 @@ set_sector(void *priv, const int side, const uint8_t c, const uint8_t h, const u
            const uint8_t n)
 {
     fdd_drive_t *drv   = (fdd_drive_t *) priv;
-    imd_t       *dev   = imd[drv->id];
+    imd_t       *dev   = (imd_t *) drv->local;
     const int    track = dev->track;
     const int    sc    = dev->tracks[track][side].params[1];
     const int    sh    = dev->tracks[track][side].params[2];
@@ -505,7 +503,7 @@ static void
 imd_writeback(void *priv)
 {
     fdd_drive_t *drv   = (fdd_drive_t *) priv;
-    imd_t *      dev   = imd[drv->id];
+    imd_t *      dev   = (imd_t *) drv->local;
     const int    track = dev->track;
     const char * n_map = 0;
 
@@ -547,7 +545,7 @@ static uint8_t
 poll_read_data(void *priv, const int side, const uint16_t pos)
 {
     fdd_drive_t *drv  = (fdd_drive_t *) priv;
-    const imd_t *dev  = imd[drv->id];
+    const imd_t *dev  = (imd_t *) drv->local;
     const int    type = (int) dev->current_data[side][0];
 
     if ((type == 0) || (type > 8))
@@ -563,7 +561,7 @@ static void
 poll_write_data(void *priv, const int side, const uint16_t pos, const uint8_t data)
 {
     fdd_drive_t *drv  = (fdd_drive_t *) priv;
-    const imd_t *dev  = imd[drv->id];
+    const imd_t *dev  = (imd_t *) drv->local;
     const int    type = (int) dev->current_data[side][0];
 
     if (drv->writeprot)
@@ -579,19 +577,13 @@ static int
 format_conditions(void *priv)
 {
     fdd_drive_t *drv   = (fdd_drive_t *) priv;
-    const imd_t *dev   = imd[drv->id];
+    const imd_t *dev   = (imd_t *) drv->local;
     const int    track = dev->track;
     const int    side  = fdd_get_head(drv);
     const int    temp  = (fdc_get_format_sectors(drv->fdc) == dev->tracks[track][side].params[3]) &&
                          (fdc_get_format_n(drv->fdc) == dev->tracks[track][side].params[4]);
 
     return temp;
-}
-
-void
-imd_init(void)
-{
-    memset(imd, 0x00, sizeof(imd));
 }
 
 void
@@ -634,7 +626,6 @@ imd_load(void *priv, char *fn)
 
     if (drv->read_only)
         drv->writeprot = 1;
-    drv->fwriteprot = drv->writeprot;
 
     if (fseek(dev->fp, 0, SEEK_SET) == -1)
         fatal("imd_load(): Error seeking to the beginning of the file\n");
@@ -695,7 +686,7 @@ imd_load(void *priv, char *fn)
     dev->sides       = 1;
 
     /* Set up the drive unit. */
-    imd[drv->id] = dev;
+    drv->local       = dev;
 
     while (1) {
         imd_log("In : %02X %02X %02X %02X %02X\n",
@@ -781,7 +772,7 @@ imd_load(void *priv, char *fn)
                     imd_log("IMD: Invalid sector data type %02X\n", dev->buffer[dev->tracks[track][side].sector_data_offs[i]]);
                     fclose(dev->fp);
                     free(dev);
-                    imd[drv->id] = NULL;
+                    drv->local = NULL;
                     memset(drv->image_path, 0, sizeof(drv->image_path));
                     return;
                 }
@@ -789,7 +780,7 @@ imd_load(void *priv, char *fn)
                     dev->tracks[track][side].sector_data_size[i] += (buffer[dev->tracks[track][side].sector_data_offs[i]] & 1) ? data_size : 1;
                 last_offset += dev->tracks[track][side].sector_data_size[i];
                 if (!(buffer[dev->tracks[track][side].sector_data_offs[i]] & 1))
-                    drv->fwriteprot = drv->writeprot = 1;
+                    drv->writeprot = 1;
                 type = dev->buffer[dev->tracks[track][side].sector_data_offs[i]];
                 if (type != 0x00) {
                     if (data_size > (128 << dev->tracks[track][side].max_sector_size))
@@ -815,7 +806,7 @@ imd_load(void *priv, char *fn)
                     imd_log("IMD: Invalid sector data type %02X\n", dev->buffer[dev->tracks[track][side].sector_data_offs[i]]);
                     fclose(dev->fp);
                     free(dev);
-                    imd[drv->id] = NULL;
+                    drv->local = NULL;
                     memset(drv->image_path, 0, sizeof(drv->image_path));
                     return;
                 }
@@ -825,7 +816,7 @@ imd_load(void *priv, char *fn)
                             data_size : 1;
                 last_offset += dev->tracks[track][side].sector_data_size[i];
                 if (!(buffer[dev->tracks[track][side].sector_data_offs[i]] & 1))
-                    drv->fwriteprot = drv->writeprot = 1;
+                    drv->writeprot = 1;
                 type = dev->buffer[dev->tracks[track][side].sector_data_offs[i]];
                 if (type != 0x00) {
                     if (data_size > (128 << dev->tracks[track][side].max_sector_size))
@@ -874,7 +865,7 @@ imd_load(void *priv, char *fn)
                     imd_log("IMD: Unable to fit the %i sectors in a track\n", track_spt);
                     fclose(dev->fp);
                     free(dev);
-                    imd[drv->id] = NULL;
+                    drv->local = NULL;
                     memset(drv->image_path, 0, sizeof(drv->image_path));
                     return;
                 }
@@ -957,7 +948,7 @@ void
 imd_close(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    imd_t *      dev = imd[drv->id];
+    imd_t *      dev = drv->local;
 
     if (dev == NULL)
         return;
@@ -972,5 +963,6 @@ imd_close(void *priv)
 
     /* Release the memory. */
     free(dev);
-    imd[drv->id] = NULL;
+
+    drv->local = NULL;
 }

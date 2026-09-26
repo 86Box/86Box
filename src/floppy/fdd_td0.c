@@ -203,8 +203,6 @@ static const uint8_t d_len[256] = {
     0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
 };
 
-static td0_t *td0[FDD_NUM];
-
 #ifdef ENABLE_TD0_LOG
 int td0_do_log = ENABLE_TD0_LOG;
 
@@ -227,7 +225,7 @@ static void
 fdd_image_read(void *priv, const char *buffer)
 {
     fdd_drive_t * drv = (fdd_drive_t *) priv;
-    td0_t *       dev = td0[drv->id];
+    td0_t *       dev = (td0_t *) drv->local;
 
     if (fseek(dev->fp, 0, SEEK_SET) == -1)
         fatal("fdd_image_read(): Error seeking to the beginning of the file\n");
@@ -587,7 +585,7 @@ static int
 td0_initialize(void *priv)
 {
     fdd_drive_t *  drv          = (fdd_drive_t *) priv;
-    td0_t         *dev          = td0[drv->id];
+    td0_t         *dev          = (td0_t *) drv->local;
     uint8_t       *dbuf         = dev->processed_buf;
     uint32_t       total_size   = 0;
     uint32_t       id_field     = 0;
@@ -914,7 +912,7 @@ static uint16_t
 disk_flags(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    const td0_t *dev = td0[drv->id];
+    const td0_t *dev = (td0_t *) drv->local;
 
     return (dev->disk_flags);
 }
@@ -923,7 +921,7 @@ static uint16_t
 side_flags(void *priv)
 {
     fdd_drive_t *  drv    = (fdd_drive_t *) priv;
-    const td0_t   *dev    = td0[drv->id];
+    const td0_t   *dev    = (td0_t *) drv->local;
     int            side   = 0;
     uint16_t       sflags = 0;
 
@@ -938,7 +936,7 @@ set_sector(void *priv, const int side, const uint8_t c, const uint8_t h,
            const uint8_t r, const uint8_t n)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    td0_t *      dev = td0[drv->id];
+    td0_t *      dev = (td0_t *) drv->local;
 
     dev->current_sector_index[side] = 0;
     if (c != dev->track)
@@ -955,7 +953,7 @@ static uint8_t
 poll_read_data(void *priv, const int side, const uint16_t pos)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    const td0_t *dev = td0[drv->id];
+    const td0_t *dev = (td0_t *) drv->local;
 
     return (dev->sects[dev->track][side][dev->current_sector_index[side]].data[pos]);
 }
@@ -964,7 +962,7 @@ static int
 track_is_xdf(void *priv, const int side, const int track)
 {
     fdd_drive_t *drv                 = (fdd_drive_t *) priv;
-    td0_t *      dev                 = td0[drv->id];
+    td0_t *      dev                 = (td0_t *) drv->local;
     uint8_t      id[4]               = { 0, 0, 0, 0 };
     int          i;
 
@@ -1048,7 +1046,7 @@ static int
 track_is_interleave(void *priv, const int side, const int track)
 {
     fdd_drive_t *drv               = (fdd_drive_t *) priv;
-    td0_t *      dev               = td0[drv->id];
+    td0_t *      dev               = (td0_t *) drv->local;
     int          effective_sectors = 0;
     int          track_spt         = dev->track_spt[track][side];
     int          i;
@@ -1076,7 +1074,7 @@ static void
 td0_seek(void *priv, int track)
 {
     fdd_drive_t *drv             = (fdd_drive_t *) priv;
-    td0_t *      dev             = td0[drv->id];
+    td0_t *      dev             = (td0_t *) drv->local;
     uint8_t      id[4]           = { 0, 0, 0, 0 };
     int          track_rate      = 0;
     int          xdf_type        = 0;
@@ -1195,16 +1193,10 @@ td0_seek(void *priv, int track)
 }
 
 void
-td0_init(void)
-{
-    memset(td0, 0x00, sizeof(td0));
-}
-
-void
 td0_abort(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    td0_t *      dev = td0[drv->id];
+    td0_t *      dev = (td0_t *) drv->local;
 
     if (dev->imagebuf)
         free(dev->imagebuf);
@@ -1214,7 +1206,7 @@ td0_abort(void *priv)
         fclose(dev->fp);
     memset(drv->image_path, 0, sizeof(drv->image_path));
     free(dev);
-    td0[drv->id] = NULL;
+    drv->local = NULL;
 }
 
 void
@@ -1227,15 +1219,13 @@ td0_load(void *priv, char *fn)
     drv->writeprot = 1;
 
     td0_t *      dev = (td0_t *) calloc(1, sizeof(td0_t));
-    td0[drv->id] = dev;
+    drv->local = dev;
 
     dev->fp = plat_fopen(fn, "rb");
     if (dev->fp == NULL) {
         memset(drv->image_path, 0, sizeof(drv->image_path));
         return;
     }
-
-    drv->fwriteprot = drv->writeprot;
 
     if (!dsk_identify(drv)) {
         td0_log("TD0: Not a valid Teledisk image\n");
@@ -1284,7 +1274,7 @@ void
 td0_close(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    td0_t *dev       = td0[drv->id];
+    td0_t *dev       = (td0_t *) drv->local;
 
     if (dev == NULL)
         return;
@@ -1318,5 +1308,6 @@ td0_close(void *priv)
 
     /* Release resources. */
     free(dev);
-    td0[drv->id] = NULL;
+
+    drv->local = NULL;
 }
