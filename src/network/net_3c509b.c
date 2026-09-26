@@ -90,7 +90,7 @@ el3_log(const char *fmt, ...)
 /* The ISA cards, by EEPROM Product ID. */
 enum {
     BOARD_TPO   = 0, /* 3C509B-TPO: 10BASE-T */
-    BOARD_TP    = 1, /* 3C509B-TP: 10BASE-T and AUI */
+    BOARD_TPAUI = 1, /* 3C509B-TP: 10BASE-T and AUI */
     BOARD_COMBO = 2, /* 3C509B-COMBO: 10BASE-T, 10BASE2 and AUI */
     BOARD_BNC   = 3  /* 3C509B: 10BASE2 and AUI */
 };
@@ -366,7 +366,8 @@ typedef struct el3_t {
     rom_t    boot_rom;
     rom_t    boot_rom_hi; /* a 32 KB part's high 16 KB page */
     uint32_t prom_base;   /* window the registers named, 0 when none */
-    uint32_t prom_size;
+    uint32_t prom_size;   /* size the registers named, 0 when none */
+    uint32_t prom_image_size; /* what the part really holds, capped at what is loaded */
 
     uint16_t fifo_diag;
     uint8_t  bist_ctl; /* FIFO Diagnostic's write-only BIST and BFC bits as last written */
@@ -2445,6 +2446,19 @@ el3_boot_rom_load(el3_t *dev)
         dev->boot_rom_hi.rom = NULL;
     }
 
+    /* The part's real size, so a window naming less than it holds stands out. */
+    {
+        FILE *f = rom_fopen(ROM_PATH_3C509B, "rb");
+
+        if (f != NULL) {
+            long len;
+
+            if ((fseek(f, 0L, SEEK_END) == 0) && ((len = ftell(f)) > 0))
+                dev->prom_image_size = (len > ROM_3C509B_SIZE) ? ROM_3C509B_SIZE : (uint32_t) len;
+            (void) fclose(f);
+        }
+    }
+
     /* Kept off the bus until a register names a window for it. */
     mem_mapping_disable(&dev->boot_rom.mapping);
     if (dev->boot_rom_hi.rom != NULL)
@@ -2505,10 +2519,18 @@ static void
 el3_boot_rom_place(el3_t *dev, uint32_t base, uint32_t size)
 {
     dev->prom_base = base;
-    dev->prom_size = size;
+    if ((size != 0) && !el3_boot_rom_load(dev)) /* this also measures the part */
+        size = 0;
 
-    if ((size != 0) && !el3_boot_rom_load(dev))
-        dev->prom_size = 0;
+    /* An MCA adapter's window comes from the POS registers, and a BootWare
+       denied a full part wedges the machine waiting for F1 with no keyboard. */
+    if (dev->mca && (size != 0) && (size < dev->prom_image_size)) {
+        el3_log("3C509B: boot PROM is %u KB but the adapter names %u KB - left off the bus\n",
+                dev->prom_image_size >> 10, size >> 10);
+        size = 0;
+    }
+
+    dev->prom_size = size;
 
     el3_boot_rom_select(dev);
 }
@@ -2620,7 +2642,7 @@ static const device_config_t el3_isa_config[] = {
         .spinner        = { 0 },
         .selection      = {
             { .description = "3C509B-TPO (10BASE-T)",               .value = BOARD_TPO   },
-            { .description = "3C509B-TP (10BASE-T, AUI)",           .value = BOARD_TP    },
+            { .description = "3C509B-TP (10BASE-T, AUI)",           .value = BOARD_TPAUI },
             { .description = "3C509B-COMBO (10BASE-T, BNC, AUI)",   .value = BOARD_COMBO },
             { .description = "3C509B (BNC, AUI)",                   .value = BOARD_BNC   },
             { .description = ""                                                          }
