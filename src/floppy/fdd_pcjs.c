@@ -28,7 +28,6 @@
 #include <86box/fdd_pcjs.h>
 #include <cJSON.h>
 
-static pcjs_t *images[FDD_NUM];
 static pcjs_error_t pcjs_error = E_SUCCESS;
 
 struct pcjs_error_description {
@@ -60,12 +59,6 @@ pcjs_log(const char *fmt, ...)
 #else
 #    define pcjs_log(fmt, ...)
 #endif
-
-void
-pcjs_init(void)
-{
-    memset(images, 0x00, sizeof(images));
-}
 
 const char* pcjs_errmsg(void)
 {
@@ -449,7 +442,7 @@ static uint16_t
 disk_flags(void *priv)
 {
     fdd_drive_t * drv = (fdd_drive_t *) priv;
-    const pcjs_t *dev = images[drv->id];
+    const pcjs_t *dev = (pcjs_t *) drv->local;
 
     return dev->disk_flags;
 }
@@ -458,7 +451,7 @@ static uint16_t
 track_flags(void *priv)
 {
     fdd_drive_t *drv  = (fdd_drive_t *) priv;
-    const pcjs_t *dev = images[drv->id];
+    const pcjs_t *dev = (pcjs_t *) drv->local;
 
     return dev->track_flags;
 }
@@ -468,7 +461,7 @@ set_sector(void *priv, const int side, const uint8_t c, UNUSED(uint8_t h), const
            UNUSED(uint8_t n))
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    pcjs_t *     dev = images[drv->id];
+    pcjs_t *     dev = (pcjs_t *) drv->local;
 
     dev->current_sector[side] = 0;
 
@@ -499,7 +492,7 @@ static uint8_t
 poll_read_data(void *priv, const int side, const uint16_t pos)
 {
     fdd_drive_t * drv = (fdd_drive_t *) priv;
-    const pcjs_t *dev = images[drv->id];
+    const pcjs_t *dev = (pcjs_t *) drv->local;
     const uint8_t sec = dev->current_sector[side];
     return (dev->sectors[dev->current_track][side][sec].data[pos]);
 }
@@ -508,7 +501,7 @@ static void
 pcjs_seek(void *priv, int track)
 {
     fdd_drive_t *drv   = (fdd_drive_t *) priv;
-    pcjs_t *     dev   = images[drv->id];
+    pcjs_t *     dev   = (pcjs_t *) drv->local;
     uint8_t      id[4] = { 0, 0, 0, 0 };
 
     if (dev->fp == NULL) {
@@ -622,14 +615,14 @@ pcjs_load(void *priv, char *fn)
     drv->writeprot = 1;
 
     /* Place in the correct slot */
-    images[drv->id] = dev;
+    drv->local = dev;
 
     /* Parse and load the information from the json file */
     if (pcjs_load_image(dev)) {
         pcjs_log("Failed to initialize: %s\n", pcjs_errmsg());
         (void) fclose(dev->fp);
         free(dev);
-        images[drv->id] = NULL;
+        drv->local = NULL;
         memset(fn, 0x00, sizeof(char));
         return;
     }
@@ -689,7 +682,7 @@ pcjs_load(void *priv, char *fn)
         (void) fclose(dev->fp);
         dev->fp = NULL;
         free(dev);
-        images[drv->id] = NULL;
+        drv->local = NULL;
         memset(fn, 0x00, sizeof(char));
         return;
     }
@@ -712,7 +705,7 @@ pcjs_load(void *priv, char *fn)
         (void) fclose(dev->fp);
         dev->fp = NULL;
         free(dev);
-        images[drv->id] = NULL;
+        drv->local = NULL;
         memset(fn, 0x00, sizeof(char));
         return;
     }
@@ -754,7 +747,7 @@ void
 pcjs_close(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    pcjs_t *     dev = images[drv->id];
+    pcjs_t *     dev = (pcjs_t *) drv->local;
 
     if (dev == NULL)
         return;
@@ -784,5 +777,6 @@ pcjs_close(void *priv)
 
     /* Release the memory. */
     free(dev);
-    images[drv->id] = NULL;
+
+    drv->local = NULL;
 }

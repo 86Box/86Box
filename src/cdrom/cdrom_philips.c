@@ -20,6 +20,7 @@
 #include <86box/cdrom.h>
 #include <86box/cdrom_philips.h>
 #include <86box/timer.h>
+#include <86box/ui.h>
 
 #ifdef ENABLE_PHILIPS_CDROM_LOG
 #    define cm_log pclog
@@ -194,6 +195,7 @@ cm_stop(cm250_t *d)
     d->data_len = d->data_pos = 0;
     d->data_status            = 0;
     d->line |= 0x40;
+    ui_sb_update_icon(SB_CDROM | d->cd->id, 0);
 }
 
 static void
@@ -204,6 +206,7 @@ cm_command_done(void *priv)
     d->line |= d->toc_reply ? 0x81 : 3;
     d->toc_reply = 0;
     picint(1 << d->irq);
+    ui_sb_update_icon(SB_CDROM | d->cd->id, 0);
 }
 
 static void
@@ -214,6 +217,7 @@ cm_sector(void *priv)
     if (!d->reading || d->data_len)
         return;
     int result = 0;
+    ui_sb_update_icon(SB_CDROM | d->cd->id, 1);
     if (cm_ready(d) && d->lba < cm_capacity(d) && (!d->cd->ops->get_track_type || !(d->cd->ops->get_track_type(d->cd->local, d->lba) & CD_TRACK_AUDIO)))
         /* Type 8 in the common backend excludes Form 2. Type 0 includes all
            data forms; the explicit track check above excludes CD-DA here. */
@@ -294,7 +298,7 @@ cm_ms_execute(cm250_t *d)
             d->response[1]  = d->drive_error ? d->drive_error : d->adapter_error;
             d->response_len = 2;
             d->drive_error = d->adapter_error = d->changed = 0;
-            d->line &= ~0x10;
+            d->line &= ~0x12;
             break;
         case 0x51:
             {
@@ -461,6 +465,7 @@ cm_ms_execute(cm250_t *d)
             else if (!cm_ms_decode(p + 1, &lba) || lba >= capacity)
                 d->adapter_error = 9;
             else {
+                ui_sb_update_icon(SB_CDROM | d->cd->id, 1);
                 d->lba = lba;
                 cdrom_seek(d->cd, lba, 0);
                 if (p[0] == 0x20) {
@@ -688,6 +693,7 @@ cm_execute(cm250_t *d)
                 d->remaining = d->remaining * 100 + (p[i] >> 4) * 10 + (p[i] & 15);
             }
             if (!d->adapter_error && d->remaining) {
+                ui_sb_update_icon(SB_CDROM | d->cd->id, 1);
                 d->lba          = lba;
                 d->reading      = 1;
                 d->stream_valid = 1;
@@ -714,6 +720,7 @@ cm_execute(cm250_t *d)
                 if (count > UINT32_MAX - d->remaining)
                     d->adapter_error = 4;
                 if (!d->adapter_error && count) {
+                    ui_sb_update_icon(SB_CDROM | d->cd->id, 1);
                     d->remaining += count;
                     d->reading = 1;
                     d->line &= ~0x40;
@@ -873,13 +880,13 @@ cm_insert(void *priv)
     cm_stop(d);
     cm_audio_stop(d);
     timer_disable(&d->command_timer);
-    picintc(1 << d->irq);
     d->packet_pos = d->response_pos = d->response_len = 0;
     d->toc_reply                                      = 0;
     d->async_pending                                  = 0;
-    d->line                                           = 0x41;
+    d->line                                           = 0x53;
     d->drive_error = d->adapter_error = 0;
     d->changed                        = 1;
+    picint(1 << d->irq);
 }
 
 static void
@@ -943,7 +950,7 @@ cm_close(void *priv)
 
 static const device_config_t cm250_config[] = {
     { .name = "base", .description = "Address", .type = CONFIG_HEX16, .default_int = 0x340, .selection = { { "300H", 0x300 }, { "310H", 0x310 }, { "330H", 0x330 }, { "340H", 0x340 }, { 0 } } },
-    { .name = "irq", .description = "IRQ", .type = CONFIG_SELECTION, .default_int = 5, .selection = { { "3", 3 }, { "4", 4 }, { "5", 5 }, { "6", 6 }, { 0 } } },
+    { .name = "irq", .description = "IRQ", .type = CONFIG_SELECTION, .default_int = 5, .selection = { { "3", 3 }, { "4", 4 }, { "5", 5 }, { "6", 6 }, { "11", 11 }, { 0 } } },
     { .name = "", .type = CONFIG_END }
 };
 

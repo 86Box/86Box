@@ -35,7 +35,6 @@
 #ifndef EMU_FLOPPY_IMD_H
 #define EMU_FLOPPY_IMD_H
 
-extern void imd_init(void);
 extern void imd_load(void *priv, char *fn);
 extern void imd_close(void *priv);
 

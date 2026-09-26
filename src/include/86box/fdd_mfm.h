@@ -16,6 +16,7 @@
 #define EMU_FLOPPY_MFM_H
 
 extern void mfm_seek(void *priv, int track);
+
 extern void mfm_load(void *priv, char *fn);
 extern void mfm_close(void *priv);
 
