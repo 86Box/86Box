@@ -44,6 +44,7 @@ typedef struct sff8038i_t {
     uint32_t ptr;
     uint32_t ptr_cur;
     uint32_t addr;
+    uint32_t addr_mask;
     int      count;
     int      eot;
     int      slot;
@@ -77,6 +78,7 @@ extern void sff_set_irq_mode(sff8038i_t *dev, int irq_mode);
 extern void sff_set_irq_pin(sff8038i_t *dev, int irq_pin);
 extern void sff_set_irq_level(sff8038i_t *dev, int irq_level);
 extern void sff_set_mirq(sff8038i_t *dev, uint8_t mirq);
+extern void sff_set_byte_addresses(sff8038i_t *dev, int byte_addresses);
 
 extern void sff_set_ven_handlers(sff8038i_t *dev, uint8_t (*ven_write)(uint16_t port, uint8_t val, void *priv),
                                  uint8_t (*ven_read)(uint16_t port, uint8_t val, void *priv), void *priv);

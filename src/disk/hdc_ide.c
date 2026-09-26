@@ -741,7 +741,15 @@ ide_hd_identify(const ide_t *ide)
     ide->buffer[50] = 0x4000;
     ide->buffer[59] = ide->blocksize ? (ide->blocksize | 0x100) : 0;
 
-    if (ide->is_jride || (ide->tracks >= 1024) || (ide->hpc > 16) || (ide->spt > 63)) {
+    /* A drive that claims ATA-4 or later (word 80 below, on a bus mastering
+       controller) must support LBA and report its size in words 60-61,
+       whatever its geometry: the standard makes LBA mandatory from there on,
+       and later firmware sizes drives from those words alone. The Promise
+       Ultra133 TX2 BIOS showed a 256-cylinder disc as 0MB and would not boot
+       from it. */
+    int ata4 = !ide_boards[ide->board]->force_ata3 && (bm != NULL);
+
+    if (ata4 || ide->is_jride || (ide->tracks >= 1024) || (ide->hpc > 16) || (ide->spt > 63)) {
         /* JR-IDE requires IDENTIFY word 49 bit 9 even for small CHS-only geometries. */
         ide->buffer[49] = (1 << 9);
         ide_log("LBA supported\n");
@@ -782,7 +790,7 @@ ide_hd_identify(const ide_t *ide)
 
     /* Max sectors on multiple transfer command */
     ide->buffer[47] = hdd[ide->hdd_num].max_multiple_block | 0x8000;
-    if (!ide_boards[ide->board]->force_ata3 && (bm != NULL)) {
+    if (ata4) {
         ide->buffer[80] = 0x7e; /*ATA-1 to ATA-6 supported*/
         ide->buffer[81] = 0x19; /*ATA-6 revision 3a supported*/
     } else
