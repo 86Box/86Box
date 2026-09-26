@@ -2686,7 +2686,8 @@ const device_t dc390_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = bios_enable_config
+    .config        = bios_enable_config,
+    .short_name    = "DC-390"
 };
 
 const device_t am53c974_pci_device = {
@@ -2700,7 +2701,8 @@ const device_t am53c974_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = am53c974_bios_enable_config
+    .config        = am53c974_bios_enable_config,
+    .short_name    = "AM53C974"
 };
 
 const device_t am53c974a_pci_device = {
@@ -2714,7 +2716,8 @@ const device_t am53c974a_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = am53c974a_bios_enable_config
+    .config        = am53c974a_bios_enable_config,
+    .short_name    = "AM53C974A"
 };
 
 const device_t ncr53c90a_mca_device = {
@@ -2728,5 +2731,6 @@ const device_t ncr53c90a_mca_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "NCR 53c90A"
 };

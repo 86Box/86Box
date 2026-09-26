@@ -160,6 +160,13 @@ ui_msgbox_header(int flags, char *header, char *message)
     const auto hdr = QString::fromUtf8(header);
     const auto msg = QString::fromUtf8(message);
 
+    if (flags & MBX_QUESTION_YN) {
+        QMessageBox box((flags & MBX_WARNING) ? QMessageBox::Icon::Warning : QMessageBox::Icon::Question,
+                        hdr.isEmpty() ? QString(EMU_NAME) : hdr, msg, QMessageBox::Yes | QMessageBox::No, main_window);
+        box.setDefaultButton(QMessageBox::No);
+        return (box.exec() == QMessageBox::Yes) ? 1 : 0;
+    }
+
     // any error in early init
     if (main_window == nullptr) {
         auto defaultheader = QString();

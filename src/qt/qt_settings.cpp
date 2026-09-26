@@ -36,6 +36,11 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/hdd.h>
+#include <86box/hdc.h>
+#include <86box/sound.h>
+#include <86box/scsi.h>
+#include <86box/scsi_device.h>
+#include <86box/hdc_ide.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/midi.h>
@@ -66,6 +71,7 @@ extern "C" {
 #include "qt_settings_bus_tracking.hpp"
 
 #include <QDebug>
+#include <QComboBox>
 #include <QMessageBox>
 #include <QCheckBox>
 #include <QStyle>
@@ -368,6 +374,30 @@ Settings::~Settings()
     Settings::settings        = nullptr;
 }
 
+int
+Settings::currentMachine() const
+{
+    return machine->findChild<QComboBox *>("comboBoxMachine")->currentData().toInt();
+}
+
+int
+Settings::currentHdc(int i) const
+{
+    return (storageControllers != nullptr) ? storageControllers->hdcCard(i) : hdc_current[i];
+}
+
+int
+Settings::currentSoundCard(int i) const
+{
+    return (sound != nullptr) ? sound->soundCard(i) : sound_card_current[i];
+}
+
+int
+Settings::currentScsiCard(int i) const
+{
+    return (storageControllers != nullptr) ? storageControllers->scsiCard(i) : scsi_card_current[i];
+}
+
 void
 Settings::save(int soft)
 {
@@ -392,6 +422,27 @@ Settings::accept()
     int changed = 0;
 
     ensureAllPages();
+    /* A controller that cannot have the IDE channels it needs (two cards
+       that can only use the legacy ports, say) will not work: ask. */
+    ide_owner_t    owners[IDE_BUS_MAX];
+    ide_conflict_t conflicts[IDE_CONFLICTS_MAX];
+    int            conflictCount = 0;
+    const int      owned         = Harddrives::idePlan(owners, conflicts, &conflictCount);
+
+    if (conflictCount > 0) {
+        QStringList lines;
+        for (int i = 0; i < conflictCount; i++)
+            lines.append(Harddrives::conflictText(i, owners, owned, conflicts, conflictCount));
+
+        QMessageBox box(QMessageBox::Icon::Warning, tr("IDE Conflict"),
+                        tr("These IDE controllers need channels that another device already has, and will not work:") +
+                            QString("\n\n%1\n\n").arg(lines.join("\n")) +
+                            tr("Do you want to save the configuration anyway?"),
+                        QMessageBox::Yes | QMessageBox::No, this);
+        box.setDefaultButton(QMessageBox::No);
+        if (box.exec() != QMessageBox::Yes)
+            return;
+    }
 
     changed |= machine->changed();
     changed |= display->changed();

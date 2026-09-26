@@ -5941,6 +5941,13 @@ ess_x488_init(UNUSED(const device_t *info))
     return ess;
 }
 
+/* The IDE port is there only with an address given for it. */
+static uint32_t
+ess_x688_ide_boards(UNUSED(const device_t *dev))
+{
+    return ((device_get_config_int("ide_ctrl") & 0x0fff) > 0x0000) ? (1 << 3) : 0;
+}
+
 static void *
 ess_x688_init(UNUSED(const device_t *info))
 {
@@ -6036,9 +6043,9 @@ ess_x688_init(UNUSED(const device_t *info))
 
     if (ide_base > 0x0000) {
         device_add(&ide_qua_pnp_device);
-        ide_set_base(4, ide_base);
-        ide_set_side(4, ide_side);
-        ide_set_irq(4, ide_irq);
+        ide_set_base(3, ide_base);
+        ide_set_side(3, ide_side);
+        ide_set_irq(3, ide_irq);
         other_ide_present++;
 
         ess->has_ide = 1;
@@ -9257,7 +9264,9 @@ const device_t sb_16_pnp_ide_device = {
     .available     = sb_16_pnp_ide_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = sb_16_pnp_config
+    .config        = sb_16_pnp_config,
+    .short_name    = "Creative SB16",
+    .ide_boards    = ide_boards_quaternary
 };
 
 const device_t sb_16_compat_device = {
@@ -9313,7 +9322,9 @@ const device_t sb_32_pnp_device = {
     .available     = sb_32_pnp_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = sb_32_pnp_config
+    .config        = sb_32_pnp_config,
+    .short_name    = "Creative SB32",
+    .ide_boards    = ide_boards_quaternary
 };
 
 const device_t sb_awe32_device = {
@@ -9341,7 +9352,9 @@ const device_t sb_awe32_pnp_device = {
     .available     = sb_awe32_pnp_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = sb_awe32_pnp_config
+    .config        = sb_awe32_pnp_config,
+    .short_name    = "Creative AWE32",
+    .ide_boards    = ide_boards_quaternary
 };
 
 const device_t sb_awe32_ide_pnp_device = {
@@ -9356,7 +9369,9 @@ const device_t sb_awe32_ide_pnp_device = {
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_awe32_pnp_config,
-    .alias         = "Sound Blaster AWE32 IDE PnP Internet Enhanced"
+    .alias         = "Sound Blaster AWE32 IDE PnP Internet Enhanced",
+    .short_name    = "Creative AWE32",
+    .ide_boards    = ide_boards_quaternary
 };
 
 const device_t sb_awe64_value_device = {
@@ -9398,7 +9413,9 @@ const device_t sb_awe64_ide_device = {
     .available     = sb_awe64_ide_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = sb_awe64_config
+    .config        = sb_awe64_config,
+    .short_name    = "Creative AWE64",
+    .ide_boards    = ide_boards_quaternary
 };
 
 const device_t sb_awe64_gold_device = {
@@ -9454,7 +9471,9 @@ const device_t ess_688_device = {
     .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = ess_688_config
+    .config        = ess_688_config,
+    .short_name    = "ESS ES688",
+    .ide_boards    = ess_x688_ide_boards
 };
 
 const device_t ess_ess0100_pnp_device = {
@@ -9468,7 +9487,9 @@ const device_t ess_ess0100_pnp_device = {
     .available     = ess_688_pnp_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = ess_688_pnp_config
+    .config        = ess_688_pnp_config,
+    .short_name    = "ESS ES688",
+    .ide_boards    = ide_boards_quaternary
 };
 
 const device_t ess_1688_device = {
@@ -9482,7 +9503,9 @@ const device_t ess_1688_device = {
     .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = ess_1688_config
+    .config        = ess_1688_config,
+    .short_name    = "ESS ES1688",
+    .ide_boards    = ess_x688_ide_boards
 };
 
 const device_t ess_1688_compaq_device = {
@@ -9510,7 +9533,9 @@ const device_t ess_ess0102_pnp_device = {
     .available     = ess_1688_pnp_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = ess_1688_pnp_config
+    .config        = ess_1688_pnp_config,
+    .short_name    = "ESS ES1688",
+    .ide_boards    = ide_boards_quaternary
 };
 
 const device_t ess_ess0968_pnp_688_device = {
@@ -9524,7 +9549,9 @@ const device_t ess_ess0968_pnp_688_device = {
     .available     = ess_1688_968_pnp_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = ess_688_pnp_es0968_config
+    .config        = ess_688_pnp_es0968_config,
+    .short_name    = "ESS ES688",
+    .ide_boards    = ide_boards_quaternary
 };
 
 const device_t ess_ess0968_pnp_device = {
@@ -9538,7 +9565,9 @@ const device_t ess_ess0968_pnp_device = {
     .available     = ess_1688_968_pnp_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = ess_1688_pnp_config
+    .config        = ess_1688_pnp_config,
+    .short_name    = "ESS ES1688",
+    .ide_boards    = ide_boards_quaternary
 };
 
 const device_t ess_soundpiper_16_mca_device = {
@@ -9650,7 +9679,9 @@ const device_t ess_1868_device = {
     .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = ess_1688_pnp_config
+    .config        = ess_1688_pnp_config,
+    .short_name    = "ESS ES1868",
+    .ide_boards    = ide_boards_quaternary
 };
 
 const device_t ess_1869_device = {
@@ -9664,5 +9695,7 @@ const device_t ess_1869_device = {
     .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = ess_1688_pnp_config
+    .config        = ess_1688_pnp_config,
+    .short_name    = "ESS ES1869",
+    .ide_boards    = ide_boards_quaternary
 };

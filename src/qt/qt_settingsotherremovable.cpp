@@ -215,6 +215,9 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     , ui(new Ui::SettingsOtherRemovable)
 {
     ui->setupUi(this);
+    Harddrives::widenPopup(ui->comboBoxMOChannel);
+    Harddrives::widenPopup(ui->comboBoxRDiskChannel);
+    Harddrives::widenPopup(ui->comboBoxTapeChannel);
 
     scMOType                        = new SettingsCompleter(ui->comboBoxMOType, nullptr);
     scRDiskType                     = new SettingsCompleter(ui->comboBoxRDiskType, nullptr);
@@ -447,6 +450,20 @@ SettingsOtherRemovable::onRDiskRowChanged(const QModelIndex &current)
         ui->comboBoxRDiskChannel->setCurrentIndex(match.first().row());
     ui->comboBoxRDiskType->setCurrentIndex(type);
     enableCurrentlySelectedChannel_RDisk();
+}
+
+/* The machine, disk controllers and sound cards chosen on other pages
+   decide who has each IDE channel: bring the names up to date. */
+void
+SettingsOtherRemovable::showEvent(QShowEvent *event)
+{
+    Harddrives::refreshBusNames(ui->treeViewMO->model());
+    Harddrives::refreshBusNames(ui->treeViewRDisk->model());
+    Harddrives::refreshBusNames(ui->treeViewTape->model());
+    reloadBusChannels_MO();
+    reloadBusChannels_RDisk();
+    reloadBusChannels_Tape();
+    QWidget::showEvent(event);
 }
 
 void

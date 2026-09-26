@@ -1152,7 +1152,8 @@ const device_t scsi_lcs6821n_device = {
     .available     = lcs6821n_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ncr53c400_mmio_config
+    .config        = ncr53c400_mmio_config,
+    .short_name    = "LCS-6821N"
 };
 
 const device_t scsi_rt1000b_device = {
@@ -1166,7 +1167,8 @@ const device_t scsi_rt1000b_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = rt1000b_config
+    .config        = rt1000b_config,
+    .short_name    = "RT1000B"
 };
 
 const device_t scsi_rt1000mc_device = {
@@ -1180,7 +1182,8 @@ const device_t scsi_rt1000mc_device = {
     .available     = rt1000b_mc_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = rt1000b_mc_config
+    .config        = rt1000b_mc_config,
+    .short_name    = "RT1000B-MC"
 };
 
 const device_t scsi_t130_device = {
@@ -1194,7 +1197,8 @@ const device_t scsi_t130_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = t130_config
+    .config        = t130_config,
+    .short_name    = "T130"
 };
 
 const device_t scsi_t130b_device = {
@@ -1208,7 +1212,8 @@ const device_t scsi_t130b_device = {
     .available     = t130b_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = t130b_config
+    .config        = t130b_config,
+    .short_name    = "T130B"
 };
 
 const device_t scsi_ls2000_device = {
@@ -1222,5 +1227,6 @@ const device_t scsi_ls2000_device = {
     .available     = corel_ls2000_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ncr53c400_mmio_config
+    .config        = ncr53c400_mmio_config,
+    .short_name    = "LS2000"
 };

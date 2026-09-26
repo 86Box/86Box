@@ -3125,6 +3125,19 @@ pas16_speed_changed(void *priv)
     pas16_change_pit_clock_speed(priv);
 }
 
+/* Which models carry the SCSI port: all but the 16D. */
+static int
+pas16_has_scsi(uint8_t type)
+{
+    return (!type) || (type == 0x0f);
+}
+
+static uint32_t
+pas16_scsi_buses(const device_t *dev)
+{
+    return pas16_has_scsi(dev->local & 0xff) ? 1 : 0;
+}
+
 static void *
 pas_init(UNUSED(const device_t *info))
 {
@@ -3132,7 +3145,7 @@ pas_init(UNUSED(const device_t *info))
 
     pas16->type = 0;
     pas16->is_old_pas = 1;
-    pas16->has_scsi = (!pas16->type) || (pas16->type == 0x0f);
+    pas16->has_scsi = pas16_has_scsi(pas16->type);
     fm_driver_get(FM_YM3812, &pas16->opl);
     fm_driver_get(FM_YM3812, &pas16->opl2);
     pas16->irq = device_get_config_int("irq");
@@ -3213,7 +3226,7 @@ pas16_init(const device_t *info)
     }
 
     pas16->type = info->local & 0xff;
-    pas16->has_scsi = (!pas16->type) || (pas16->type == 0x0f);
+    pas16->has_scsi = pas16_has_scsi(pas16->type);
     fm_driver_get_cs(FM_YMF262, &pas16->opl);
     sb_dsp_set_real_opl(&pas16->dsp, 1);
     sb_dsp_init(&pas16->dsp, SB_DSP_200, SB_SUBTYPE_MVD201, pas16);
@@ -3409,7 +3422,9 @@ const device_t pas_device = {
     .available     = NULL,
     .speed_changed = pas16_speed_changed,
     .force_redraw  = NULL,
-    .config        = pas_config
+    .config        = pas_config,
+    .short_name    = "PAS",
+    .scsi_buses    = pas16_scsi_buses
 };
 
 const device_t pasplus_device = {
@@ -3423,7 +3438,9 @@ const device_t pasplus_device = {
     .available     = NULL,
     .speed_changed = pas16_speed_changed,
     .force_redraw  = NULL,
-    .config        = pas16_config
+    .config        = pas16_config,
+    .short_name    = "PAS Plus",
+    .scsi_buses    = pas16_scsi_buses
 };
 
 const device_t pas16_device = {
@@ -3437,7 +3454,9 @@ const device_t pas16_device = {
     .available     = NULL,
     .speed_changed = pas16_speed_changed,
     .force_redraw  = NULL,
-    .config        = pas16_config
+    .config        = pas16_config,
+    .short_name    = "PAS16",
+    .scsi_buses    = pas16_scsi_buses
 };
 
 const device_t pas16d_device = {
@@ -3451,5 +3470,7 @@ const device_t pas16d_device = {
     .available     = NULL,
     .speed_changed = pas16_speed_changed,
     .force_redraw  = NULL,
-    .config        = pas16_config
+    .config        = pas16_config,
+    .short_name    = "PAS16D",
+    .scsi_buses    = pas16_scsi_buses
 };

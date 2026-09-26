@@ -17,11 +17,21 @@
 #ifndef EMU_IDE_H
 #define EMU_IDE_H
 
-#define IDE_NUM             10    /* 8 drives per AT IDE + 2 for XT IDE */
-#define ATAPI_NUM           10    /* 8 drives per AT IDE + 2 for XT IDE */
-
-#define IDE_BUS_MAX         4
+#define IDE_BUS_MAX         12    /* The four legacy boards, and two for each of the
+                                     four disk controller slots: never more */
 #define IDE_CHAN_MAX        2
+#define IDE_DRIVES_MAX      (IDE_BUS_MAX * IDE_CHAN_MAX)
+
+#define IDE_NUM             (IDE_DRIVES_MAX + 2) /* The AT IDE drives + 2 for XT IDE */
+#define ATAPI_NUM           (IDE_DRIVES_MAX + 2) /* The AT IDE drives + 2 for XT IDE */
+
+/* The boards shown in the settings even with no controller on them. */
+#define IDE_BUS_SHOWN_MIN   4
+
+/* What a device's ide_boards() returns: a mask of the boards it claims, or
+   this, for a PCI card whose two channels take boards as
+   ide_pci_card_boards() gives them. */
+#define IDE_BOARDS_PCI_CARD 0x80000000
 
 #define HDC_PRIMARY_BASE    0x01f0
 #define HDC_PRIMARY_SIDE    0x03f6
@@ -213,6 +223,8 @@ extern void ide_set_irq(int board, int irq);
 extern void ide_handlers(uint8_t board, int set);
 
 extern int  ide_board_claimed(int board);
+extern int  ide_pci_card_boards(uint32_t taken, int boards[2]);
+extern void ide_pci_boards_init(uint32_t boards);
 extern void ide_board_set_force_ata3(int board, int force_ata3);
 #ifdef EMU_ISAPNP_H
 extern void ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
@@ -233,6 +245,35 @@ extern uint8_t ide_read_ali_75(void);
 extern uint8_t ide_read_ali_76(void);
 
 extern void    ide_hard_reset(void);
+
+#ifdef EMU_DEVICE_H
+typedef bus_owner_t ide_owner_t;
+
+/* A device whose claim on IDE boards another device had first: the boards
+   it lost, or none for a PCI card that found no free pair. */
+#define IDE_CONFLICTS_MAX 16
+typedef struct ide_conflict_t {
+    const device_t *device;
+    int             instance;
+    int             onboard;
+    uint32_t        lost;
+} ide_conflict_t;
+
+/* The owner of each board for a machine and its disk controllers and sound
+   cards, worked out the way they claim them when the machine starts; the
+   return is the number of boards to show. */
+extern int  ide_plan(ide_owner_t owners[IDE_BUS_MAX], int mach, const int hdc[], const int snd[],
+                     ide_conflict_t conflicts[IDE_CONFLICTS_MAX], int *conflict_count);
+extern int  ide_plan_card_boards(const device_t *dev, int inst, int boards[2]);
+extern void ide_plan_check(void);
+
+extern uint32_t ide_boards_generic(const device_t *dev);
+extern uint32_t ide_boards_primary(const device_t *dev);
+extern uint32_t ide_boards_pri_sec(const device_t *dev);
+extern uint32_t ide_boards_ter_qua(const device_t *dev);
+extern uint32_t ide_boards_quaternary(const device_t *dev);
+extern uint32_t ide_boards_pci_card(const device_t *dev);
+#endif
 extern void    ide_wait_for_async_reads(void);
 
 /* Legacy #define's. */

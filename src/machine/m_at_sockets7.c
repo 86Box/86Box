@@ -198,7 +198,7 @@ machine_at_cobalt3k_init(const machine_t *model)
     device_add(&ali1541_device);
     device_add(&ali1543c_device); /* +0 */
     device_add(&intel_flash_e28f0xx_cobalt3k_device);
-    device_add(&ncr53c875_onboard_pci_device);
+    device_add(machine_get_scsi_device(machine));
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
     device_add(&lm77_0_48_device);
     device_add_params(&hd44780_cobalt3k_device, (void *) (uintptr_t) model->device->local);

@@ -882,7 +882,8 @@ const device_t aha1740_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha1740_config
+    .config        = aha1740_config,
+    .short_name    = "AHA-1740"
 };
 
 const device_t aha1740a_device = {
@@ -896,7 +897,8 @@ const device_t aha1740a_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha1740_config
+    .config        = aha1740_config,
+    .short_name    = "AHA-1740A"
 };
 
 const device_t aha1742a_device = {
@@ -910,7 +912,8 @@ const device_t aha1742a_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha1740_config
+    .config        = aha1740_config,
+    .short_name    = "AHA-1742A"
 };
 
 const device_t aha1744_device = {
@@ -924,5 +927,6 @@ const device_t aha1744_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha1740_config
+    .config        = aha1740_config,
+    .short_name    = "AHA-1744"
 };

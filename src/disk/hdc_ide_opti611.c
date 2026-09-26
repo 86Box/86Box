@@ -343,7 +343,9 @@ const device_t ide_opti611_vlb_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "OPTi 611",
+    .ide_boards    = ide_boards_primary
 };
 
 const device_t ide_opti611_vlb_sec_device = {
@@ -357,5 +359,7 @@ const device_t ide_opti611_vlb_sec_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "OPTi 611",
+    .ide_boards    = ide_boards_primary
 };

@@ -25,7 +25,7 @@ extern "C" {
 #define MBX_INFO        1
 #define MBX_ERROR       2
 #define MBX_QUESTION    3
-#define MBX_QUESTION_YN 4
+#define MBX_QUESTION_YN 4 /* Yes and No: ui_msgbox*() returns 1 for Yes */
 #define MBX_QUESTION_OK 8
 #define MBX_QMARK       0x10
 #define MBX_WARNING     0x20

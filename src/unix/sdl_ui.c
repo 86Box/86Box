@@ -42,6 +42,24 @@ ui_msgbox_header(int flags, char *header, char *message)
     memset(&msgdata, 0, sizeof(SDL_MessageBoxData));
     msgdata.numbuttons = 1;
     msgdata.buttons    = &msgbtn;
+
+    /* Yes returns 1, No 0, as the default. */
+    SDL_MessageBoxButtonData yesno[2];
+    if (flags & MBX_QUESTION_YN) {
+        memset(yesno, 0, sizeof(yesno));
+#ifdef USE_SDL2_LIB
+        yesno[0].buttonid = 0;
+        yesno[1].buttonid = 1;
+#else
+        yesno[0].buttonID = 0;
+        yesno[1].buttonID = 1;
+#endif
+        yesno[0].text      = "No";
+        yesno[0].flags     = SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT | SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+        yesno[1].text      = "Yes";
+        msgdata.numbuttons = 2;
+        msgdata.buttons    = yesno;
+    }
     int msgflags       = 0;
     if ((flags & MBX_ERROR) || (flags & MBX_FATAL))
         msgflags |= SDL_MESSAGEBOX_ERROR;
