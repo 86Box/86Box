@@ -969,17 +969,20 @@ esc_conf_write(esc_t *dev, uint8_t index, uint8_t val)
                LBIOSCS# is also asserted for memory write cycles."
 
                The write half is enforced at the flash, which is where
-               the chip select is: esc_bios_write_gate is the flash's
-               gate for as long as this part exists, and reads these two
-               registers live. It composes with the north bridge rather
-               than fighting it -- the PAM decides whether a cycle leaves
-               the processor for the bus, and only then does this part
-               select the BIOS. Reads are not gated: both boards' images
-               are 128 KB and sit in High BIOS, on from reset. */
+               the chip select is: esc_bios_read_gate and its write
+               counterpart are the flash's gates for as long as this part
+               exists, and read these two registers live. They compose
+               with the north bridge rather than fighting it -- the PAM
+               decides whether a cycle leaves the processor for the bus,
+               and only then does this part select the BIOS. */
             dev->regs[index] = val;
             esc_log("ESC: BIOSCS%c %02X, BIOS writes %s\n",
                     (index == 0x42) ? 'A' : 'B', val,
                     (dev->regs[0x43] & 0x08) ? "enabled" : "disabled");
+            /* What the flash may be fetched from changed, and so may what
+               a cached read of it would find. */
+            flash_bios_decode_changed();
+            flushmmucache_nopc();
             break;
 
         case 0x4d: /* CLKDIV */
@@ -1348,8 +1351,10 @@ esc_reset_hard(esc_t *dev)
        address ... The default for this bit is 1." Bit 6, which is what
        makes the pins PIRQs rather than MREQs, is not. */
     dev->regs[0x40] = 0x20;
-    /* BIOSCSA, BIOS chip select A. */
+    /* BIOSCSA, BIOS chip select A: High BIOS alone. */
     dev->regs[0x42] = 0x10;
+    dev->regs[0x43] = 0x00;
+    flash_bios_decode_changed();
     /* CLKDIV, the EISA clock divisor: xx001000b. */
     dev->regs[0x4d] = 0x08;
     /* PCSA, peripheral chip select A: x0000111b. */
@@ -1416,21 +1421,22 @@ esc_reset(void *priv)
     esc_reset_hard((esc_t *) priv);
 }
 
-/* LBIOSCS# for a write: the flash sees a write cycle only when BIOSCSB bit 3,
-   BIOS Write Enable, is set and the address is in a BIOS range BIOSCSA or
-   BIOSCSB enables (82374EB 3.1.4, 3.1.5). The north bridge has already
-   decided whether the cycle left the processor for the bus at all; this is
-   the chip select downstream of it, so the two compose. */
+/* LBIOSCS#: the flash is selected when the address is in a BIOS range
+   BIOSCSA or BIOSCSB enables (82374EB 3.1.4, 3.1.5), for reads and, with
+   BIOSCSB bit 3, BIOS Write Enable, for writes as well. The north bridge
+   has already decided whether the cycle left the processor for the bus at
+   all; this is the chip select downstream of it, so the two compose. A
+   range not enabled is not decoded, and the bus reads as open there:
+   PhoenixBIOS on the D823 relies on that, dropping Low BIOS 1 and 2 (the
+   Symbios SCSI module at E0000h) before its adapter ROM scan so the scan
+   does not find and run it. */
 static int
-esc_bios_write_gate(uint32_t addr, void *priv)
+esc_bios_read_gate(uint32_t addr, void *priv)
 {
     const esc_t  *dev = (const esc_t *) priv;
     const uint8_t a   = dev->regs[0x42];
     const uint8_t b   = dev->regs[0x43];
     uint32_t      low;
-
-    if (!(b & 0x08))
-        return 0;
 
     /* High BIOS: 0F0000h-0FFFFFh, FF0000h-FFFFFFh, FFFF0000h-FFFFFFFFh. */
     if ((a & 0x10) && (((addr >= 0x000f0000) && (addr <= 0x000fffff)) || ((addr >= 0x00ff0000) && (addr <= 0x00ffffff)) || (addr >= 0xffff0000)))
@@ -1457,6 +1463,17 @@ esc_bios_write_gate(uint32_t addr, void *priv)
     return 0;
 }
 
+static int
+esc_bios_write_gate(uint32_t addr, void *priv)
+{
+    const esc_t *dev = (const esc_t *) priv;
+
+    if (!(dev->regs[0x43] & 0x08))
+        return 0;
+
+    return esc_bios_read_gate(addr, priv);
+}
+
 static void
 esc_close(void *priv)
 {
@@ -1467,6 +1484,10 @@ esc_close(void *priv)
     if (flash_bios_write_gate_priv == dev) {
         flash_bios_write_gate      = NULL;
         flash_bios_write_gate_priv = NULL;
+    }
+    if (flash_bios_read_gate_priv == dev) {
+        flash_bios_read_gate      = NULL;
+        flash_bios_read_gate_priv = NULL;
     }
     if (esc_inst == dev)
         esc_inst = NULL;
@@ -1480,10 +1501,12 @@ esc_init(UNUSED(const device_t *info))
 
     esc_inst = dev;
 
-    /* The BIOS flash's chip select is ours for writes; see
-       esc_bios_write_gate. */
+    /* The BIOS flash's chip select is ours, reads and writes; see
+       esc_bios_read_gate. */
     flash_bios_write_gate      = esc_bios_write_gate;
     flash_bios_write_gate_priv = dev;
+    flash_bios_read_gate       = esc_bios_read_gate;
+    flash_bios_read_gate_priv  = dev;
 
     /* The compatible half of the part. 86Box already models the pieces;
        what the ESC adds is that they are all in one place and that the
