@@ -1340,8 +1340,8 @@ machine_at_pl4600c_init(const machine_t *model)
         machine_snd = device_add(machine_get_snd_device(machine));
 
     if (fdc_current[0] == FDC_INTERNAL) {
-        fdd_set_turbo(0, 1);
-        fdd_set_turbo(1, 1);
+        fdd_set_turbo(&drives[0], 1);
+        fdd_set_turbo(&drives[1], 1);
     }
 
     return ret;

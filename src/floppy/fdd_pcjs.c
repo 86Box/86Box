@@ -18,7 +18,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include <unistd.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
@@ -164,7 +163,7 @@ int parse_image_info(pcjs_t *dev, const cJSON *parsed_json)
      * which is 32-bit signed and we need unsigned. Use the double value (valuedouble) instead. */
     const cJSON *checksum_json = cJSON_GetObjectItemCaseSensitive(imageInfo, "checksum");
     if (cJSON_IsNumber(checksum_json)) {
-        dev->image_info.checksum = checksum_json->valuedouble;
+        dev->image_info.checksum = (uint32_t) checksum_json->valuedouble;
     } else {
         pcjs_log("Required number value for \"%s\" missing from imageInfo\n", "checksum");
         pcjs_error = E_MISSING_KEY;
@@ -447,25 +446,29 @@ fail:
 /* Handlers */
 
 static uint16_t
-disk_flags(int drive)
+disk_flags(void *priv)
 {
-    const pcjs_t *dev = images[drive];
+    fdd_drive_t * drv = (fdd_drive_t *) priv;
+    const pcjs_t *dev = images[drv->id];
 
     return dev->disk_flags;
 }
 
 static uint16_t
-track_flags(int drive)
+track_flags(void *priv)
 {
-    const pcjs_t *dev = images[drive];
+    fdd_drive_t *drv  = (fdd_drive_t *) priv;
+    const pcjs_t *dev = images[drv->id];
 
     return dev->track_flags;
 }
 
 static void
-set_sector(int drive, int side, uint8_t c, UNUSED(uint8_t h), uint8_t r, UNUSED(uint8_t n))
+set_sector(void *priv, const int side, const uint8_t c, UNUSED(uint8_t h), const uint8_t r,
+           UNUSED(uint8_t n))
 {
-    pcjs_t *dev = images[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    pcjs_t *     dev = images[drv->id];
 
     dev->current_sector[side] = 0;
 
@@ -493,25 +496,20 @@ set_sector(int drive, int side, uint8_t c, UNUSED(uint8_t h), uint8_t r, UNUSED(
 }
 
 static uint8_t
-poll_read_data(int drive, int side, uint16_t pos)
+poll_read_data(void *priv, const int side, const uint16_t pos)
 {
-    const pcjs_t *dev = images[drive];
+    fdd_drive_t * drv = (fdd_drive_t *) priv;
+    const pcjs_t *dev = images[drv->id];
     const uint8_t sec = dev->current_sector[side];
     return (dev->sectors[dev->current_track][side][sec].data[pos]);
 }
 
 static void
-pcjs_seek(int drive, int track)
+pcjs_seek(void *priv, int track)
 {
-    uint8_t id[4] = { 0, 0, 0, 0 };
-    pcjs_t *dev   = images[drive];
-    int     rate;
-    int     gap2;
-    int     gap3;
-    int     pos;
-    int     ssize;
-    int     rsec;
-    int     asec;
+    fdd_drive_t *drv   = (fdd_drive_t *) priv;
+    pcjs_t *     dev   = images[drv->id];
+    uint8_t      id[4] = { 0, 0, 0, 0 };
 
     if (dev->fp == NULL) {
         pcjs_log("pcjs_seek: no file loaded\n");
@@ -519,21 +517,21 @@ pcjs_seek(int drive, int track)
     }
 
     /* Allow for doublestepping tracks. */
-    if (!dev->track_width && fdd_doublestep_40(drive))
+    if (!dev->track_width && fdd_doublestep_40(drv))
         track /= 2;
 
     /* Set the new track. */
     dev->current_track = track;
-    d86f_set_cur_track(drive, track);
+    d86f_set_cur_track(drv, track);
 
     /* Reset the 86F state machine. */
-    d86f_reset_index_hole_pos(drive, 0);
-    d86f_destroy_linked_lists(drive, 0);
-    d86f_reset_index_hole_pos(drive, 1);
-    d86f_destroy_linked_lists(drive, 1);
+    d86f_reset_index_hole_pos(drv, 0);
+    d86f_destroy_linked_lists(drv, 0);
+    d86f_reset_index_hole_pos(drv, 1);
+    d86f_destroy_linked_lists(drv, 1);
 
     if (track > dev->total_tracks) {
-        d86f_zero_track(drive);
+        d86f_zero_track(drv);
         return;
     }
 
@@ -541,24 +539,23 @@ pcjs_seek(int drive, int track)
 
     for (uint8_t side = 0; side < dev->total_sides; side++) {
         /* Get transfer rate for this side. */
-        rate = dev->track_flags & 0x07;
+        int rate = dev->track_flags & 0x07;
         if (!rate && (dev->track_flags & 0x20))
             rate = 4;
 
         /* Get correct GAP3 value for this side. */
-        gap3 = fdd_get_gap3_size(rate,
-                                 // dev->sectors[track][side][0].size,
-                                 dev->sectors[track][side][0].encoded_size,
-                                 dev->spt[track][side]);
+        const int gap3 = fdd_get_gap3_size(rate,
+                                           dev->sectors[track][side][0].encoded_size,
+                                           dev->spt[track][side]);
 
         /* Get correct GAP2 value for this side. */
-        gap2 = ((dev->track_flags & 0x07) >= 3) ? 41 : 22;
+        const int gap2 = ((dev->track_flags & 0x07) >= 3) ? 41 : 22;
 
-        pos = d86f_prepare_pretrack(drive, side, 0);
+        int pos = d86f_prepare_pretrack(drv, side, 0);
 
         for (uint8_t sector = 0; sector < dev->spt[track][side]; sector++) {
-            rsec = dev->sectors[track][side][sector].sector;
-            asec = sector;
+            const int rsec = dev->sectors[track][side][sector].sector;
+            const int asec = sector;
 
             id[0] = track;
             id[1] = side;
@@ -566,17 +563,17 @@ pcjs_seek(int drive, int track)
             if (dev->sectors[track][side][asec].encoded_size > 255)
                 perror("PCJS: pcjs_seek: sector size too big.");
             id[3] = dev->sectors[track][side][asec].encoded_size & 0xff;
-            ssize = fdd_sector_code_size(dev->sectors[track][side][asec].encoded_size & 0xff);
+            const int ssize = fdd_sector_code_size(dev->sectors[track][side][asec].encoded_size & 0xff);
 
             pos = d86f_prepare_sector(
-                drive, side, pos, id,
+                drv, side, pos, id,
                 dev->sectors[track][side][asec].data,
                 ssize, gap2, gap3,
                 0
             );
 
             if (sector == 0)
-                d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
+                d86f_initialize_last_sector_id(drv, id[0], id[1], id[2], id[3]);
         }
     }
 }
@@ -601,17 +598,15 @@ pcjs_load_image(pcjs_t *dev)
 }
 
 void
-pcjs_load(int drive, char *fn)
+pcjs_load(void *priv, char *fn)
 {
-    double          bit_rate = 0;
-    int             temp_rate;
-    const pcjs_sector_t *sector;
-    pcjs_t         *dev;
+    fdd_drive_t *        drv       = (fdd_drive_t *) priv;
+    double               bit_rate  = 0;
 
-    d86f_unregister(drive);
+    d86f_unregister(drv);
 
     /* Allocate a drive block */
-    dev = (pcjs_t *) calloc(1, sizeof(pcjs_t));
+    pcjs_t *             dev       = (pcjs_t *) calloc(1, sizeof(pcjs_t));
 
     /* Open the image file, read-only */
     dev->fp = plat_fopen(fn, "rb");
@@ -624,23 +619,24 @@ pcjs_load(int drive, char *fn)
     pcjs_log("Opening filename: %s\n", fn);
 
     /* Always set the drive to write-protected mode */
-    writeprot[drive] = 1;
+    drv->writeprot = 1;
 
     /* Place in the correct slot */
-    images[drive] = dev;
+    images[drv->id] = dev;
 
     /* Parse and load the information from the json file */
     if (pcjs_load_image(dev)) {
         pcjs_log("Failed to initialize: %s\n", pcjs_errmsg());
         (void) fclose(dev->fp);
         free(dev);
-        images[drive] = NULL;
+        images[drv->id] = NULL;
         memset(fn, 0x00, sizeof(char));
         return;
     }
 
     pcjs_log("Drive %d: %s (%i tracks, %i sides, %i sectors, sector size %i)\n",
-             drive, fn, dev->image_info.cylinders, dev->image_info.heads, dev->image_info.trackDefault, dev->image_info.sectorDefault);
+             drive, fn, dev->image_info.cylinders, dev->image_info.heads,
+             dev->image_info.trackDefault, dev->image_info.sectorDefault);
 
 
     /*
@@ -659,8 +655,8 @@ pcjs_load(int drive, char *fn)
 
     dev->interleave = 0;
 
-    temp_rate = 0xff;
-    sector       = &dev->sectors[0][0][0];
+    int                  temp_rate = 0xff;
+    const pcjs_sector_t *sector    = &dev->sectors[0][0][0];
     for (uint8_t i = 0; i < 6; i++) {
         if (dev->spt[0][0] > fdd_max_sectors[sector->encoded_size][i])
             continue;
@@ -693,7 +689,7 @@ pcjs_load(int drive, char *fn)
         (void) fclose(dev->fp);
         dev->fp = NULL;
         free(dev);
-        images[drive] = NULL;
+        images[drv->id] = NULL;
         memset(fn, 0x00, sizeof(char));
         return;
     }
@@ -707,7 +703,8 @@ pcjs_load(int drive, char *fn)
     if (dev->dmf)
         dev->gap3_len = 8;
     else
-        dev->gap3_len = fdd_get_gap3_size(temp_rate, sector->encoded_size, dev->spt[0][0]);
+        dev->gap3_len = fdd_get_gap3_size(temp_rate, sector->encoded_size,
+                                          dev->spt[0][0]);
 
     if (!dev->gap3_len) {
         pcjs_log("Image of unknown format was inserted into drive %c:\n",
@@ -715,7 +712,7 @@ pcjs_load(int drive, char *fn)
         (void) fclose(dev->fp);
         dev->fp = NULL;
         free(dev);
-        images[drive] = NULL;
+        images[drv->id] = NULL;
         memset(fn, 0x00, sizeof(char));
         return;
     }
@@ -732,37 +729,38 @@ pcjs_load(int drive, char *fn)
 
     /* Set up 86F handlers */
 
-    d86f_handler[drive].disk_flags        = disk_flags;
-    d86f_handler[drive].side_flags        = track_flags;
-    d86f_handler[drive].writeback         = null_writeback;
-    d86f_handler[drive].set_sector        = set_sector;
-    d86f_handler[drive].read_data         = poll_read_data;
-    d86f_handler[drive].write_data        = null_write_data;
-    d86f_handler[drive].format_conditions = null_format_conditions;
-    d86f_handler[drive].extra_bit_cells   = null_extra_bit_cells;
-    d86f_handler[drive].encoded_data      = common_encoded_data;
-    d86f_handler[drive].read_revolution   = common_read_revolution;
-    d86f_handler[drive].index_hole_pos    = null_index_hole_pos;
-    d86f_handler[drive].get_raw_size      = common_get_raw_size;
-    d86f_handler[drive].check_crc         = 1;
-    d86f_set_version(drive, 0x0063);
+    drv->d86f_handler.disk_flags        = disk_flags;
+    drv->d86f_handler.side_flags        = track_flags;
+    drv->d86f_handler.writeback         = null_writeback;
+    drv->d86f_handler.set_sector        = set_sector;
+    drv->d86f_handler.read_data         = poll_read_data;
+    drv->d86f_handler.write_data        = null_write_data;
+    drv->d86f_handler.format_conditions = null_format_conditions;
+    drv->d86f_handler.extra_bit_cells   = null_extra_bit_cells;
+    drv->d86f_handler.encoded_data      = common_encoded_data;
+    drv->d86f_handler.read_revolution   = common_read_revolution;
+    drv->d86f_handler.index_hole_pos    = null_index_hole_pos;
+    drv->d86f_handler.get_raw_size      = common_get_raw_size;
+    drv->d86f_handler.check_crc         = 1;
+    d86f_set_version(drv, 0x0063);
 
-    d86f_common_handlers(drive);
+    d86f_common_handlers(drv);
 
-    drives[drive].seek = pcjs_seek;
+    drv->seek = pcjs_seek;
 
 }
 
 void
-pcjs_close(int drive)
+pcjs_close(void *priv)
 {
-    pcjs_t *dev = images[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    pcjs_t *     dev = images[drv->id];
 
     if (dev == NULL)
         return;
 
     /* Unlink image from the system. */
-    d86f_unregister(drive);
+    d86f_unregister(drv);
 
     /* Release all the sector buffers. */
     for (int c = 0; c < PCJS_MAX_TRACKS; c++) {
@@ -786,5 +784,5 @@ pcjs_close(int drive)
 
     /* Release the memory. */
     free(dev);
-    images[drive] = NULL;
+    images[drv->id] = NULL;
 }

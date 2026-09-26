@@ -34,6 +34,7 @@
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/fdd.h>
+
 #include <86box/fdd_86f.h>
 #include <86box/fdd_fdi.h>
 #include <86box/fdd_imd.h>
@@ -91,52 +92,18 @@ enum {
     FDD_OP_FORMAT
 };
 
-typedef struct fdd_pending_op_t {
-    int     pending;
-    int     op;
-    int     sector;
-    int     track;
-    int     side;
-    int     density;
-    int     sector_size;
-    uint8_t fill;
-} fdd_pending_op_t;
-
-static fdd_pending_op_t fdd_pending[FDD_NUM];
-
 /* BIOS boot status tracking */
 static bios_boot_status_t bios_boot_status = BIOS_BOOT_POST;
 
-char  floppyfns[FDD_NUM][MAX_IMAGE_PATH_LEN];
-char *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
-
-pc_timer_t fdd_poll_time[FDD_NUM];
-pc_timer_t fdd_seek_timer[FDD_NUM];
-int        fdd_seek_in_progress[FDD_NUM] = { 0, 0, 0, 0 };
-
 static int fdd_notfound = 0;
-static int driveloaders[FDD_NUM];
-static int fdd_audio_profile[FDD_NUM] = { 0 };
 
-int writeprot[FDD_NUM];
-int fwriteprot[FDD_NUM];
-int fdd_changed[FDD_NUM];
-int ui_writeprot[FDD_NUM] = { 0, 0, 0, 0 };
-int drive_empty[FDD_NUM]  = { 1, 1, 1, 1 };
-
-DRIVE drives[FDD_NUM];
-
-uint64_t motoron[FDD_NUM];
-
-fdc_t *fdd_fdc;
-
-d86f_handler_t d86f_handler[FDD_NUM];
+fdd_drive_t drives[FDD_NUM];
 
 static const struct
 {
     const char *ext;
-    void (*load)(int drive, char *fn);
-    void (*close)(int drive);
+    void (*load)(void *priv, char *fn);
+    void (*close)(void *priv);
     int size;
 } loaders[] = {
     { "001",  img_load,  img_close,  -1 },
@@ -283,31 +250,37 @@ fdd_is_post_complete(void)
 }
 
 void
-fdd_set_audio_profile(int drive, int profile)
+fdd_set_audio_profile(void *priv, int profile)
 {
-    if (drive < 0 || drive >= FDD_NUM)
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if (drv == NULL)
         return;
-    if (profile < 0 || profile >= FDD_AUDIO_PROFILE_MAX)
+    if ((profile < 0) || (profile >= FDD_AUDIO_PROFILE_MAX))
         profile = 0;
-    fdd_audio_profile[drive] = profile;
+    drv->audio_profile = profile;
 }
 
 int
-fdd_get_audio_profile(int drive)
+fdd_get_audio_profile(void *priv)
 {
-    if (drive < 0 || drive >= FDD_NUM)
-        return 0;
-    return fdd_audio_profile[drive];
+    const fdd_drive_t *drv = (fdd_drive_t *) priv;
+    int                ret = 0;
+
+    if (drv != NULL)
+        ret = drv->audio_profile;
+
+    return ret;
 }
 
 char *
-fdd_getname(int type)
+fdd_getname(const int type)
 {
     return (char *) drive_types[type].name;
 }
 
 char *
-fdd_get_internal_name(int type)
+fdd_get_internal_name(const int type)
 {
     return (char *) drive_types[type].internal_name;
 }
@@ -315,94 +288,107 @@ fdd_get_internal_name(int type)
 int
 fdd_get_from_internal_name(char *s)
 {
-    int c = 0;
+    int c   = 0;
+    int ret = 0;
 
     while (strlen(drive_types[c].internal_name)) {
-        if (!strcmp((char *) drive_types[c].internal_name, s))
-            return c;
+        if (!strcmp((char *) drive_types[c].internal_name, s)) {
+            ret = c;
+            break;
+        }
         c++;
     }
 
-    return 0;
+    return ret;
 }
 
 /* This is needed for the dump as 86F feature. */
 void
-fdd_do_seek(int drive, int track)
+fdd_do_seek(void *priv, const int track)
 {
-    if (drives[drive].seek)
-        drives[drive].seek(drive, track);
+    const fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if ((drv != NULL) && (drv->seek != NULL))
+        drv->seek(priv, track);
 }
 
 static void
-fdd_do_seek_ex(const int drive, const int track)
+fdd_do_seek_ex(const void *priv, const int track)
 {
-    if (fdd_tape_present(drive))
-        fdd_do_seek(drive, track);
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if (drv == NULL)
+        return;
+
+    if (fdd_tape_present(drv))
+        fdd_do_seek(drv, track);
     else {
-        const int      head = fdd_get_head(drive);
-        uint32_t       pos  = d86f_get_track_pos(drive);
-        const uint32_t old  = d86f_get_raw_size(drive, head);
+        const int      head = fdd_get_head(drv);
+        uint32_t       pos  = d86f_get_track_pos(drv);
+        const uint32_t old  = d86f_get_raw_size(drv, head);
 
-        fdd_do_seek(drive, track);
+        fdd_do_seek(drv, track);
 
-        const uint32_t new  = d86f_get_raw_size(drive, head);
+        const uint32_t new  = d86f_get_raw_size(drv, head);
         pos                 = (uint32_t) round((((double) pos) / ((double) old)) * ((double) new));
-        d86f_set_track_pos(drive, pos);
+        d86f_set_track_pos(drv, pos);
     }
 }
 
 void
-fdd_forced_seek(int drive, int track_diff)
+fdd_forced_seek(void *priv, const int track_diff)
 {
-    fdd[drive].track += track_diff;
+    const fdd_drive_t *drv     = (fdd_drive_t *) priv;
+    fdd_t *            fdd_drv = &(fdd[drv->id]);
 
-    if (fdd[drive].track < 0)
-        fdd[drive].track = 0;
+    fdd_drv->track += track_diff;
 
-    if (fdd[drive].track > drive_types[fdd[drive].type].max_track)
-        fdd[drive].track = drive_types[fdd[drive].type].max_track;
+    if (fdd_drv->track < 0)
+        fdd_drv->track = 0;
 
-    fdd_do_seek_ex(drive, fdd[drive].track);
+    if (fdd_drv->track > drive_types[fdd_drv->type].max_track)
+        fdd_drv->track = drive_types[fdd_drv->type].max_track;
+
+    fdd_do_seek_ex(drv, fdd_drv->track);
 }
 
 static void
 fdd_seek_complete_callback(void *priv)
 {
-    DRIVE *drive = (DRIVE *) priv;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
 
-    fdd_seek_in_progress[drive->id] = 0;
+    drv->seek_in_progress = 0;
 
     fdd_log("fdd_seek_complete_callback(drive=%d) - TIMER FIRED! seek_in_progress=1\n", drive->id);
     fdd_log("Notifying FDC of seek completion\n");
-    fdd_do_seek_ex(drive->id, fdd[drive->id].track);
+    fdd_do_seek_ex(drv, fdd[drv->id].track);
 
-    int had_pending = fdd_pending[drive->id].pending;
+    int had_pending = drv->pending.pending;
     if (had_pending) {
-        fdd_pending_op_t *po = &fdd_pending[drive->id];
+        fdd_pending_op_t *po = &drv->pending;
         fdd_log("Starting deferred op %d after seek on drive %d (trk=%d, side=%d, sec=%d)\n",
                 po->op, drive->id, po->track, po->side, po->sector);
 
         switch (po->op) {
             case FDD_OP_READ:
-                if (drives[drive->id].readsector)
-                    drives[drive->id].readsector(drive->id, po->sector, po->track, po->side, po->density, po->sector_size);
+                if (drv->readsector)
+                    drv->readsector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
                 break;
             case FDD_OP_WRITE:
-                if (drives[drive->id].writesector)
-                    drives[drive->id].writesector(drive->id, po->sector, po->track, po->side, po->density, po->sector_size);
+                if (drv->writesector)
+                    drv->writesector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
                 break;
             case FDD_OP_COMPARE:
-                if (drives[drive->id].comparesector)
-                    drives[drive->id].comparesector(drive->id, po->sector, po->track, po->side, po->density, po->sector_size);
+                if (drv->comparesector)
+                    drv->comparesector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
                 break;
             case FDD_OP_READADDR:
-                if (drives[drive->id].readaddress)
-                    drives[drive->id].readaddress(drive->id, po->side, po->density);
+                if (drv->readaddress)
+                    drv->readaddress(drv, po->side, po->density);
                 break;
             case FDD_OP_FORMAT:
-                if (drives[drive->id].format)
-                    drives[drive->id].format(drive->id, po->side, po->density, po->fill);
+                if (drv->format)
+                    drv->format(drv, po->side, po->density, po->fill);
                 break;
             default:
                 break;
@@ -412,8 +398,8 @@ fdd_seek_complete_callback(void *priv)
         po->op      = FDD_OP_NONE;
     }
 
-    if (!had_pending || fdd_tape_present(drive->id))
-        fdc_seek_complete_interrupt(fdd_fdc, drive->id);
+    if (!had_pending || fdd_tape_present(drv))
+        fdc_seek_complete_interrupt(drv->fdc, drv->id & 3);
 }
 
 /*
@@ -421,24 +407,28 @@ fdd_seek_complete_callback(void *priv)
    Applies only if this is not a tape drive.
  */
 static int
-fdd_defer_op(int drive)
+fdd_defer_op(void *priv)
 {
-    return fdd_seek_in_progress[drive] && !fdd_tape_present(drive);
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return drv->seek_in_progress && !fdd_tape_present(drv);
 }
 
 void
-fdd_seek(int drive, int track_diff)
+fdd_seek(void *priv, const int track_diff)
 {
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
     fdd_log("fdd_seek(drive=%d, track_diff=%d)\n", drive, track_diff);
     if (track_diff == 0)
         return;
 
-    if (fdd_seek_in_progress[drive]) {
+    if (drv->seek_in_progress) {
         fdd_log("Seek already in progress for drive %d, ignoring new seek request\n", drive);
         return;
     }
 
-    if (fdd_tape_present(drive)) {
+    if (fdd_tape_present(drv)) {
         /*
            A floppy tape drive has no cylinders and no head to position: it
            counts the step pulses in each burst and reads them as a QIC-117
@@ -451,83 +441,96 @@ fdd_seek(int drive, int track_diff)
            The seek must also complete promptly: the host sends one command
            per seek and waits for the interrupt each time.
          */
-        const int step_time_us = fdd_tape_step(drive, abs(track_diff));
+        const int step_time_us = fdd_tape_step(drv, abs(track_diff));
 
-        fdd_seek_in_progress[drive] = 1;
+        drv->seek_in_progress = 1;
 
-        if (!fdd_seek_timer[drive].callback)
-            timer_add(&(fdd_seek_timer[drive]), fdd_seek_complete_callback, &drives[drive], 0);
+        if (!drv->seek_timer.callback)
+            timer_add(&drv->seek_timer, fdd_seek_complete_callback, drv, 0);
 
-        timer_set_delay_u64(&fdd_seek_timer[drive], (uint64_t) step_time_us * TIMER_USEC);
+        timer_set_delay_u64(&drv->seek_timer, (uint64_t) step_time_us * TIMER_USEC);
         return;
     }
 
-    int old_track = fdd[drive].track;
-    const int ibm5140 = fdd_fdc && (fdd_fdc->flags & FDC_FLAG_IBM5140);
-    const int degated = ibm5140 && fdd_fdc->drive_interface_gated;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+    fdc_t *fdc     = (fdc_t *) drv->fdc;
+
+    int old_track = fdd_drv->track;
+    const int ibm5140 = (fdc != NULL) && (fdc->flags & FDC_FLAG_IBM5140);
+    const int degated = ibm5140 && fdc->drive_interface_gated;
 
     if (!degated)
-        fdd[drive].track += track_diff;
+        fdd_drv->track += track_diff;
 
-    if (fdd[drive].track < 0)
-        fdd[drive].track = 0;
+    if (fdd_drv->track < 0)
+        fdd_drv->track = 0;
 
-    if (fdd[drive].track > drive_types[fdd[drive].type].max_track)
-        fdd[drive].track = drive_types[fdd[drive].type].max_track;
+    if (fdd_drv->track > drive_types[fdd_drv->type].max_track)
+        fdd_drv->track = drive_types[fdd_drv->type].max_track;
 
-    if (!degated && (!ibm5140 || !drive_empty[drive]))
-        fdd_changed[drive] = 0;
+    if (!degated && (!ibm5140 || !drv->empty))
+        drv->changed = 0;
 
-    if (fdd[drive].turbo) {
-        fdd_do_seek_ex(drive, fdd[drive].track);
+    if (fdd_drv->turbo) {
+        fdd_do_seek_ex(drv, fdd_drv->track);
     } else {
         /* Trigger appropriate audio for track movements */
-        int actual_track_diff = abs(old_track - fdd[drive].track);
+        int actual_track_diff = abs(old_track - fdd_drv->track);
         if (actual_track_diff > 0) {
             /* Multi-track seek */
-            fdd_audio_play_multi_track_seek(drive, old_track, fdd[drive].track);
+            fdd_audio_play_multi_track_seek(drv, old_track,
+                                            fdd_drv->track);
         }
 
-        fdd_seek_in_progress[drive] = 1;
+        drv->seek_in_progress = 1;
 
-        if (!fdd_seek_timer[drive].callback) {
-            timer_add(&(fdd_seek_timer[drive]), fdd_seek_complete_callback, &drives[drive], 0);
+        if (!drv->seek_timer.callback) {
+            timer_add(&drv->seek_timer, fdd_seek_complete_callback,
+                      drv, 0);
         }
 
         /* Determine seek direction - seeking down means moving toward track 0 */
-        int is_seek_down = (fdd[drive].track < old_track);
+        const int is_seek_down = (fdd_drv->track < old_track);
 
         /* Get seek timings from audio profile configuration with direction awareness */
         const int step_count = ibm5140 && !degated &&
-                               ((fdd_fdc->command & 0x1f) == 0x07) ?
+                               ((fdc->command & 0x1f) == 0x07) ?
                                actual_track_diff : abs(track_diff);
         double seek_time_us = ibm5140 ? 6000.0 * step_count :
-                              fdd_audio_get_seek_time(drive, actual_track_diff, is_seek_down);
+                              fdd_audio_get_seek_time(drv, actual_track_diff,
+                                                      is_seek_down);
         if (seek_time_us < 1) {
             seek_time_us = DEFAULT_SEEK_TIME_MS * 1000;
         }
 
         fdd_log("Seek timing for drive %d: %.2f µs (%s)\n",
                 drive, seek_time_us, is_seek_down ? "DOWN" : "UP");
-        uint64_t seek_delay_us = seek_time_us * TIMER_USEC;
-        timer_set_delay_u64(&fdd_seek_timer[drive], seek_delay_us);
+        const uint64_t seek_delay_us = (uint64_t) (seek_time_us * (double) TIMER_USEC);
+        timer_set_delay_u64(&drv->seek_timer, seek_delay_us);
     }
 }
 
 int
-fdd_track0(int drive)
+fdd_track0(void *priv)
 {
-    fdd_log("fdd_track0(drive=%d)\n", drive);
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
 
-    /* On a floppy tape drive, TRK0 is the drive's result line. */
-    if (fdd_tape_present(drive))
-        return fdd_tape_track0(drive);
-
-    /* If drive is disabled, TRK0 never gets set. */
-    if (!drive_types[fdd[drive].type].max_track)
+    if (drv == NULL)
         return 0;
 
-    return !fdd[drive].track;
+    fdd_log("fdd_track0(drive=%d)\n", drv-id);
+
+    /* On a floppy tape drive, TRK0 is the drive's result line. */
+    if (fdd_tape_present(drv))
+        return fdd_tape_track0(drv);
+
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+
+    /* If drive is disabled, TRK0 never gets set. */
+    if (!drive_types[fdd_drv->type].max_track)
+        return 0;
+
+    return !fdd_drv->track;
 }
 
 int
@@ -540,9 +543,12 @@ fdd_get_type_max_track(int type)
 }
 
 int
-fdd_current_track(int drive)
+fdd_current_track(void *priv)
 {
-    return fdd[drive].track;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+
+    return fdd_drv->track;
 }
 
 static int
@@ -564,18 +570,23 @@ fdd_type_invert_densel(int type)
 }
 
 static int
-fdd_invert_densel(int drive)
+fdd_invert_densel(void *priv)
 {
-    int ret = fdd_type_invert_densel(fdd[drive].type);
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+
+    int ret = fdd_type_invert_densel(fdd_drv->type);
 
     return ret;
 }
 
 void
-fdd_set_densel(int densel)
+fdd_set_densel(const int bus, const int densel)
 {
-    for (uint8_t i = 0; i < FDD_NUM; i++) {
-        if (fdd_invert_densel(i))
+    for (uint8_t i = 0; i < 4; i++) {
+        fdd_drive_t *drv = &(drives[bus + i]);
+
+        if (fdd_invert_densel(drv))
             fdd[i].densel = densel ^ 1;
         else
             fdd[i].densel = densel;
@@ -583,23 +594,27 @@ fdd_set_densel(int densel)
 }
 
 int
-fdd_getrpm(int drive)
+fdd_getrpm(void *priv)
 {
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
     int densel = 0;
     int hole;
 
-    hole   = fdd_hole(drive);
-    densel = fdd[drive].densel;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
 
-    if (fdd_invert_densel(drive))
+    hole   = fdd_hole(drv);
+    densel = fdd_drv->densel;
+
+    if (fdd_invert_densel(drv))
         densel ^= 1;
 
-    if (!(drive_types[fdd[drive].type].flags & FLAG_RPM_360))
+    if (!(drive_types[fdd_drv->type].flags & FLAG_RPM_360))
         return 300;
-    if (!(drive_types[fdd[drive].type].flags & FLAG_RPM_300))
+    if (!(drive_types[fdd_drv->type].flags & FLAG_RPM_300))
         return 360;
 
-    if (drive_types[fdd[drive].type].flags & FLAG_525)
+    if (drive_types[fdd_drv->type].flags & FLAG_525)
         return densel ? 360 : 300;
     else {
         /* fdd_hole(drive) returns 0 for double density media, 1 for high density, and 2 for extended density. */
@@ -611,161 +626,209 @@ fdd_getrpm(int drive)
 }
 
 int
-fdd_can_read_medium(int drive)
+fdd_can_read_medium(void *priv)
 {
-    int hole = fdd_hole(drive);
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    int hole = fdd_hole(drv);
 
     hole = 1 << (hole + 4);
 
-    return !!(fdd_get_flags(drive) & hole);
+    return !!(fdd_get_flags(drv) & hole);
 }
 
 int
-fdd_doublestep_40(int drive)
+fdd_doublestep_40(void *priv)
 {
-    return !!(drive_types[fdd[drive].type].flags & FLAG_DOUBLE_STEP);
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+
+    return !!(drive_types[fdd_drv->type].flags & FLAG_DOUBLE_STEP);
 }
 
 int
-fdd_is_pcjx_360(int drive)
+fdd_is_pcjx_360(void *priv)
 {
-    if ((drive < 0) || (drive >= FDD_NUM) || !machine_is_pcjx(machine))
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if ((drv == NULL) || !machine_is_pcjx(machine))
         return 0;
 
-    const int flags = fdd_get_flags(drive);
-    return (drive_types[fdd[drive].type].max_track >= 80) &&
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+    const int flags = fdd_get_flags(drv);
+    return (drive_types[fdd_drv->type].max_track >= 80) &&
            !(flags & FLAG_525) && ((flags & (FLAG_DS | FLAG_HOLE0)) == (FLAG_DS | FLAG_HOLE0));
 }
 
 void
-fdd_set_type(int drive, int type)
+fdd_set_type(void *priv, int type)
 {
-    if (fdd_type_invert_densel(fdd[drive].type) != fdd_type_invert_densel(type))
-        fdd[drive].densel ^= 1;
-    fdd[drive].type = type;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+
+    if (fdd_type_invert_densel(fdd_drv->type) != fdd_type_invert_densel(type))
+        fdd_drv->densel ^= 1;
+    fdd_drv->type = type;
 }
 
 int
-fdd_get_type(int drive)
+fdd_get_type(void *priv)
 {
-    return fdd[drive].type;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+
+    return fdd_drv->type;
 }
 
 int
-fdd_get_flags(int drive)
+fdd_get_flags(void *priv)
 {
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+
     /* A floppy tape drive answers on this drive select line instead of
        whatever floppy drive may be configured on it. */
-    if (fdd_tape_present(drive))
-        return fdd_tape_get_flags(drive);
+    if (fdd_tape_present(drv))
+        return fdd_tape_get_flags(drv);
 
-    return drive_types[fdd[drive].type].flags;
+    return drive_types[fdd_drv->type].flags;
 }
 
 int
-fdd_is_525(int drive)
+fdd_is_525(void *priv)
 {
-    return fdd_get_flags(drive) & FLAG_525;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return fdd_get_flags(drv) & FLAG_525;
 }
 
 int
-fdd_supports_360_rpm(int drive)
+fdd_supports_360_rpm(void *priv)
 {
-    return fdd_get_flags(drive) & FLAG_RPM_360;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return fdd_get_flags(drv) & FLAG_RPM_360;
 }
 
 int
-fdd_is_dd(int drive)
+fdd_is_dd(void *priv)
 {
-    return (fdd_get_flags(drive) & 0x70) == 0x10;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return (fdd_get_flags(drv) & 0x70) == 0x10;
 }
 
 int
-fdd_is_hd(int drive)
+fdd_is_hd(void *priv)
 {
-    return fdd_get_flags(drive) & FLAG_HOLE1;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return fdd_get_flags(drv) & FLAG_HOLE1;
 }
 
 int
-fdd_is_ed(int drive)
+fdd_is_ed(void *priv)
 {
-    return fdd_get_flags(drive) & FLAG_HOLE2;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return fdd_get_flags(drv) & FLAG_HOLE2;
 }
 
 int
-fdd_is_double_sided(int drive)
+fdd_is_double_sided(void *priv)
 {
-    return fdd_get_flags(drive) & FLAG_DS;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return fdd_get_flags(drv) & FLAG_DS;
 }
 
 void
-fdd_set_head(int drive, int head)
+fdd_set_head(void *priv, int head)
 {
-    fdd_log("fdd_set_head(%d, %d)\n", drive, head);
-    if (head && !fdd_is_double_sided(drive))
-        fdd[drive].head = 0;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+
+    fdd_log("fdd_set_head(%d, %d)\n", drv->id, head);
+    if (head && !fdd_is_double_sided(drv))
+        fdd_drv->head = 0;
     else
-        fdd[drive].head = head;
+        fdd_drv->head = head;
 }
 
 int
-fdd_get_head(int drive)
+fdd_get_head(void *priv)
 {
-    if (!fdd_is_double_sided(drive))
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+
+    if (!fdd_is_double_sided(drv))
         return 0;
-    return fdd[drive].head;
+    return fdd_drv->head;
 }
 
 void
-fdd_set_turbo(int drive, int turbo)
+fdd_set_turbo(void *priv, const int turbo)
 {
-    fdd[drive].turbo = turbo;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+
+    fdd_drv->turbo = turbo;
 }
 
 int
-fdd_get_turbo(int drive)
+fdd_get_turbo(void *priv)
 {
-    return fdd[drive].turbo;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+
+    return fdd_drv->turbo;
 }
 
 void
-fdd_set_check_bpb(int drive, int check_bpb)
+fdd_set_check_bpb(void *priv, int check_bpb)
 {
-    fdd[drive].check_bpb = check_bpb;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+
+    fdd_drv->check_bpb = check_bpb;
 }
 
 int
-fdd_get_check_bpb(int drive)
+fdd_get_check_bpb(void *priv)
 {
-    return fdd[drive].check_bpb;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+
+    return fdd_drv->check_bpb;
 }
 
 int
-fdd_get_densel(int drive)
+fdd_get_densel(void *priv)
 {
-    return fdd[drive].densel;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_t *fdd_drv = &(fdd[drv->id]);
+
+    return fdd_drv->densel;
 }
 
 void
-fdd_load(int drive, char *fn)
+fdd_load(void *priv, char *fn)
 {
-    fdd_log("fdd_load(%d, %s)\n", drive, fn);
-    int         c = 0;
-    int         size;
-    const char *p;
-    FILE       *fp;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    fdd_log("fdd_load(%d, %s)\n", drv->id, fn);
     int         offs = 0;
 
     if (!fn)
         return;
 
     /* This drive select line belongs to the tape drive, not to a floppy. */
-    if (fdd_tape_present(drive))
+    if (fdd_tape_present(drv))
         return;
 
     if (strstr(fn, "wp://") == fn) {
-        offs                = 5;
-        ui_writeprot[drive] = 1;
+        offs           = 5;
+        drv->read_only = 1;
     }
     fn += offs;
 
@@ -773,179 +836,186 @@ fdd_load(int drive, char *fn)
     if (strstr(fn, "ioctl://") == fn) {
         const char *device_path = fn + 8;
 
-        if (floppyfns[drive] != (fn - offs)) {
-            strncpy(floppyfns[drive], fn - offs, sizeof(floppyfns[drive]) - 1);
-            floppyfns[drive][sizeof(floppyfns[drive]) - 1] = '\0';
+        if (drv->image_path != (fn - offs)) {
+            strncpy(drv->image_path, fn - offs, sizeof(drv->image_path) - 1);
+            drv->image_path[sizeof(drv->image_path) - 1] = '\0';
         }
 
-        d86f_setup(drive);
+        d86f_setup(drv);
 
-        img_load_raw_device(drive, device_path);
+        img_load_raw_device(drv, device_path);
 
-        if (floppyfns[drive][0] == '\0') {
-            drive_empty[drive] = 1;
-            fdd_set_head(drive, 0);
-            ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
+        if (drv->image_path[0] == '\0') {
+            drv->empty = 1;
+            fdd_set_head(drv, 0);
+            ui_sb_update_icon_state(SB_FLOPPY | drv->id, 1);
             return;
         }
 
-        drive_empty[drive] = 0;
+        drv->empty = 0;
 
-        fdd_forced_seek(drive, 0);
-        fdd_changed[drive] = 1;
-        ui_sb_update_icon_wp(SB_FLOPPY | drive, ui_writeprot[drive]);
+        fdd_forced_seek(drv, 0);
+        drv->changed = 1;
+        ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->read_only);
         return;
     }
 
-    p = path_get_extension(fn);
-    if (!p)
+    const char *p = path_get_extension(fn);
+    if (p == NULL)
         return;
-    fp = plat_fopen(fn, "rb");
+    FILE *fp = plat_fopen(fn, "rb");
     if (fp) {
         if (fseek(fp, -1, SEEK_END) == -1)
             fatal("fdd_load(): Error seeking to the end of the file\n");
-        size = ftell(fp) + 1;
+        const int size = ftell(fp) + 1;
         fclose(fp);
+        int c = 0;
         while (loaders[c].ext) {
             if (!strcasecmp(p, (char *) loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1)) {
-                driveloaders[drive] = c;
-                if (floppyfns[drive] != (fn - offs)) {
-                    strncpy(floppyfns[drive], fn - offs, sizeof(floppyfns[drive]) - 1);
-                    floppyfns[drive][sizeof(floppyfns[drive]) - 1] = '\0';
+                drv->driveloader = c;
+                if (drv->image_path != (fn - offs)) {
+                    strncpy(drv->image_path, fn - offs,
+                           sizeof(drv->image_path) - 1);
+                    drv->image_path[sizeof(drv->image_path) - 1] = '\0';
                 }
-                d86f_setup(drive);
-                loaders[c].load(drive, floppyfns[drive] + offs);
-                drive_empty[drive] = 0;
-                fdd_forced_seek(drive, 0);
-                fdd_changed[drive] = 1;
-                ui_sb_update_icon_wp(SB_FLOPPY | drive, ui_writeprot[drive]);
+                d86f_setup(drv);
+                loaders[c].load(drv, drv->image_path + offs);
+                drv->empty = 0;
+                fdd_forced_seek(drv, 0);
+                drv->changed = 1;
+                ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->read_only);
                 return;
             }
             c++;
         }
     }
-    drive_empty[drive] = 1;
-    fdd_set_head(drive, 0);
-    memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
-    ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
+    drv->empty = 1;
+    fdd_set_head(drv, 0);
+    memset(drv->image_path, 0, sizeof(drv->image_path));
+    ui_sb_update_icon_state(SB_FLOPPY | drv->id, 1);
 }
 
 void
-fdd_close(int drive)
+fdd_close(void *priv)
 {
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
     /* Closing a tape drive ejects the cartridge; the drive stays on the cable. */
-    if (fdd_tape_present(drive)) {
+    if (fdd_tape_present(drv)) {
         fdd_tape_eject();
         return;
     }
 
-    d86f_stop(drive); /* Call this first of all to make sure the 86F poll is back to idle state. */
+    d86f_stop(drv); /* Call this first of all to make sure the 86F poll is back to idle state. */
 
-    drives[drive].hole          = NULL;
-    drives[drive].poll          = NULL;
-    drives[drive].seek          = NULL;
-    drives[drive].readsector    = NULL;
-    drives[drive].writesector   = NULL;
-    drives[drive].comparesector = NULL;
-    drives[drive].readaddress   = NULL;
-    drives[drive].format        = NULL;
-    drives[drive].byteperiod    = NULL;
-    drives[drive].stop          = NULL;
-    fdd_seek_in_progress[drive] = 0;
+    drv->hole          = NULL;
+    drv->poll          = NULL;
+    drv->seek          = NULL;
+    drv->readsector    = NULL;
+    drv->writesector   = NULL;
+    drv->comparesector = NULL;
+    drv->readaddress   = NULL;
+    drv->format        = NULL;
+    drv->byteperiod    = NULL;
+    drv->stop          = NULL;
+    drv->seek_in_progress = 0;
 
-    if (strstr(floppyfns[drive], "ioctl://") != NULL) {
-        floppy_ioctl_close(drive);
-        img_close(drive);
-    } else if (loaders[driveloaders[drive]].close)
-        loaders[driveloaders[drive]].close(drive);
+    if (strstr(drv->image_path, "ioctl://") != NULL) {
+        floppy_ioctl_close(drv);
+        img_close(drv);
+    } else if (loaders[drv->driveloader].close)
+        loaders[drv->driveloader].close(drv);
 
-    drive_empty[drive] = 1;
-    fdd_set_head(drive, 0);
-    floppyfns[drive][0] = 0;
-    d86f_destroy(drive);
-    ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
+    drv->empty = 1;
+    fdd_set_head(drv, 0);
+    drv->image_path[0] = 0;
+    d86f_destroy(drv);
+    ui_sb_update_icon_state(SB_FLOPPY | drv->id, 1);
 }
 
 int
-fdd_hole(int drive)
+fdd_hole(void *priv)
 {
-    if (drives[drive].hole)
-        return drives[drive].hole(drive);
-    else
-        return 0;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    int          ret = 0;
+
+    if ((drv != NULL) && (drv->hole != NULL))
+        ret = drv->hole(drv);
+
+    return ret;
 }
 
 int
-fdd_index(int drive)
+fdd_index(void *priv)
 {
-    uint32_t index_pos;
-    uint32_t pulse_pos;
-    uint32_t raw_size;
-    int      side;
+    fdd_drive_t *drv   = (fdd_drive_t *) priv;
 
-    if ((drive < 0) || (drive >= FDD_NUM) || !motoron[drive] || drive_empty[drive] ||
-        !d86f_handler[drive].index_hole_pos || !d86f_handler[drive].get_raw_size)
+    if ((drv == NULL) || !drv->motoron ||
+        drv->empty || (drv->d86f_handler.index_hole_pos == NULL) ||
+        (drv->d86f_handler.get_raw_size == NULL))
         return 0;
 
-    side     = fdd_get_head(drive);
-    raw_size = d86f_get_raw_size(drive, side);
-    if (!raw_size)
+    const int      side      = fdd_get_head(drv);
+    const uint32_t raw_size  = d86f_get_raw_size(drv, side);
+    if (raw_size == 0)
         return 0;
-    index_pos = d86f_handler[drive].index_hole_pos(drive, side);
-    pulse_pos = (d86f_get_track_pos(drive) + raw_size - index_pos) % raw_size;
+    const uint32_t index_pos = drv->d86f_handler.index_hole_pos(drv, side);
+    const uint32_t pulse_pos = (d86f_get_track_pos(drv) + raw_size - index_pos) % raw_size;
 
     /* A typical index pulse is active for about 4 ms of a 200 ms revolution. */
     return pulse_pos < (raw_size / 50);
 }
 
 static __inline uint64_t
-fdd_byteperiod(int drive)
+fdd_byteperiod(void *priv)
 {
-    if (drives[drive].byteperiod)
-        return drives[drive].byteperiod(drive);
-    else
-        return 32ULL * TIMER_USEC;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    uint64_t     ret = 32ULL * TIMER_USEC;
+
+    if ((drv != NULL) && (drv->byteperiod != NULL))
+        ret = drv->byteperiod(drv);
+
+    return ret;
 }
 
 void
-fdd_set_motor_enable(int drive, int motor_enable)
+fdd_set_motor_enable(void *priv, int motor_enable)
 {
-    fdd_log("fdd_set_motor_enable(%d, %d)\n", drive, motor_enable);
-    fdd_audio_set_motor_enable(drive, motor_enable);
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
 
-    if (motor_enable && !motoron[drive]) {
-        timer_set_delay_u64(&fdd_poll_time[drive], fdd_byteperiod(drive));
-    } else if (!motor_enable && motoron[drive]) {
-        timer_disable(&fdd_poll_time[drive]);
-    }
-    motoron[drive] = motor_enable;
+    fdd_log("fdd_set_motor_enable(%d, %d)\n", drive, motor_enable);
+    fdd_audio_set_motor_enable(drv, motor_enable);
+
+    if (motor_enable && !drv->motoron)
+        timer_set_delay_u64(&drv->poll_time, fdd_byteperiod(drv));
+    else if (!motor_enable && drv->motoron)
+        timer_disable(&drv->poll_time);
+
+    drv->motoron = motor_enable;
 }
 
 static void
 fdd_poll(void *priv)
 {
-    int          drive;
-    const DRIVE *drv = (DRIVE *) priv;
+    fdd_drive_t *drv   = (fdd_drive_t *) priv;
+    fdc_t       *fdc   = (fdc_t *) drv->fdc;
 
-    drive = drv->id;
+    if (drv == NULL)
+        return;
 
-    if (drive >= FDD_NUM)
-        fatal("Attempting to poll floppy drive %i that is not supposed to be there\n", drive);
-
-    timer_advance_u64(&fdd_poll_time[drive], fdd_byteperiod(drive));
+    timer_advance_u64(&drv->poll_time, fdd_byteperiod((void *) drv));
 
     if (drv->poll)
-        drv->poll(drive);
+        drv->poll((void *) drv);
 
     if (fdd_notfound) {
         fdd_notfound--;
         if (!fdd_notfound)
-            fdc_noidam(fdd_fdc);
+            fdc_noidam(fdc);
     }
 
-    if (fdd_changed[drive]) {
-        fdc_diskchange_interrupt(fdd_fdc, drive);
-    }
+    if (drv->changed)
+        fdc_diskchange_interrupt(fdc, drv->id);
 }
 
 int
@@ -981,11 +1051,13 @@ fdd_reset(void)
     fdd_boot_status_reset();
 
     for (uint8_t i = 0; i < FDD_NUM; i++) {
+        fdd_drive_t *drv = &drives[i];
+
         drives[i].id = i;
-        timer_add(&(fdd_poll_time[i]), fdd_poll, &drives[i], 0);
+        timer_add(&drv->poll_time, fdd_poll, &drives[i], 0);
 
         /* Clear any pending seek state */
-        fdd_seek_in_progress[i] = 0;
+        drv->seek_in_progress = 0;
     }
 
     /* The tape drive keeps its own timer, which the reset has just torn down. */
@@ -993,19 +1065,25 @@ fdd_reset(void)
 }
 
 void
-fdd_readsector(int drive, int sector, int track, int side, int density, int sector_size)
+fdd_readsector(void *priv, const int sector, const int track, const int side,
+               const int density, const int sector_size)
 {
-    fdd_log("fdd_readsector(%d, %d, %d, %d, %d, %d)\n", drive, sector, track, side, density, sector_size);
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if (drv == NULL)
+        return;
+
+    fdd_log("fdd_readsector(%d, %d, %d, %d, %d, %d)\n", drv->id, sector, track, side,
+                                                        density, sector_size);
 
     /* First floppy read operation marks POST as complete */
-    if (bios_boot_status == BIOS_BOOT_POST) {
+    if (bios_boot_status == BIOS_BOOT_POST)
         fdd_set_boot_status(BIOS_BOOT_NORMAL);
-    }
 
-    if (fdd_defer_op(drive)) {
+    if (fdd_defer_op(drv)) {
         fdd_log("Seek in progress on drive %d, deferring READ (trk=%d->%d, side=%d, sec=%d)\n",
-                drive, fdd[drive].track, track, side, sector);
-        fdd_pending[drive] = (fdd_pending_op_t) {
+                drv->id, fdd[drive].track, track, side, sector);
+        drv->pending = (fdd_pending_op_t) {
             .pending     = 1,
             .op          = FDD_OP_READ,
             .sector      = sector,
@@ -1017,21 +1095,27 @@ fdd_readsector(int drive, int sector, int track, int side, int density, int sect
         return;
     }
 
-    if (drives[drive].readsector)
-        drives[drive].readsector(drive, sector, track, side, density, sector_size);
+    if (drv->readsector != NULL)
+        drv->readsector(drv, sector, track, side, density, sector_size);
     else
         fdd_notfound = 1000;
 }
 
 void
-fdd_writesector(int drive, int sector, int track, int side, int density, int sector_size)
+fdd_writesector(void *priv, const int sector, const int track, const int side,
+                const int density, const int sector_size)
 {
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if (drv == NULL)
+        return;
+
     fdd_log("fdd_writesector(%d, %d, %d, %d, %d, %d)\n", drive, sector, track, side, density, sector_size);
 
-    if (fdd_defer_op(drive)) {
+    if (fdd_defer_op(drv)) {
         fdd_log("Seek in progress on drive %d, deferring WRITE (trk=%d->%d, side=%d, sec=%d)\n",
-                drive, fdd[drive].track, track, side, sector);
-        fdd_pending[drive] = (fdd_pending_op_t) {
+                drv->id, fdd[drv->id].track, track, side, sector);
+        drv->pending = (fdd_pending_op_t) {
             .pending     = 1,
             .op          = FDD_OP_WRITE,
             .sector      = sector,
@@ -1043,19 +1127,25 @@ fdd_writesector(int drive, int sector, int track, int side, int density, int sec
         return;
     }
 
-    if (drives[drive].writesector)
-        drives[drive].writesector(drive, sector, track, side, density, sector_size);
+    if (drv->writesector != NULL)
+        drv->writesector(drv, sector, track, side, density, sector_size);
     else
         fdd_notfound = 1000;
 }
 
 void
-fdd_comparesector(int drive, int sector, int track, int side, int density, int sector_size)
+fdd_comparesector(void *priv, const int sector, const int track,const  int side,
+                  const int density, const int sector_size)
 {
-    if (fdd_defer_op(drive)) {
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if (drv == NULL)
+        return;
+
+    if (fdd_defer_op(drv)) {
         fdd_log("Seek in progress on drive %d, deferring COMPARE (trk=%d->%d, side=%d, sec=%d)\n",
-                drive, fdd[drive].track, track, side, sector);
-        fdd_pending[drive] = (fdd_pending_op_t) {
+                drive, fdd[drv->id].track, track, side, sector);
+        drv->pending = (fdd_pending_op_t) {
             .pending     = 1,
             .op          = FDD_OP_COMPARE,
             .sector      = sector,
@@ -1067,42 +1157,52 @@ fdd_comparesector(int drive, int sector, int track, int side, int density, int s
         return;
     }
 
-    if (drives[drive].comparesector)
-        drives[drive].comparesector(drive, sector, track, side, density, sector_size);
+    if (drv->comparesector != NULL)
+        drv->comparesector(drv, sector, track, side, density, sector_size);
     else
         fdd_notfound = 1000;
 }
 
 void
-fdd_readaddress(int drive, int side, int density)
+fdd_readaddress(void *priv, const int side, const int density)
 {
-    if (fdd_defer_op(drive)) {
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if (drv == NULL)
+        return;
+
+    if (fdd_defer_op(drv)) {
         fdd_log("Seek in progress on drive %d, deferring READADDRESS (trk=%d, side=%d)\n",
-                drive, fdd[drive].track, side);
-        fdd_pending[drive] = (fdd_pending_op_t) {
+                drv->id, fdd[drv->id].track, side);
+        drv->pending = (fdd_pending_op_t) {
             .pending = 1,
             .op      = FDD_OP_READADDR,
-            .track   = fdd[drive].track,
+            .track   = fdd[drv->id].track,
             .side    = side,
             .density = density
         };
         return;
     }
 
-    if (drives[drive].readaddress)
-        drives[drive].readaddress(drive, side, density);
+    if (drv->readaddress != NULL)
+        drv->readaddress(drv, side, density);
 }
 
 void
-fdd_format(int drive, int side, int density, uint8_t fill)
+fdd_format(void *priv, int side, int density, uint8_t fill)
 {
-    if (fdd_defer_op(drive)) {
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if (drv == NULL)
+        return;
+
+    if (fdd_defer_op(drv)) {
         fdd_log("Seek in progress on drive %d, deferring FORMAT (trk=%d, side=%d)\n",
-                drive, fdd[drive].track, side);
-        fdd_pending[drive] = (fdd_pending_op_t) {
+                drv->id, fdd[drv->id].track, side);
+        drv->pending = (fdd_pending_op_t) {
             .pending = 1,
             .op      = FDD_OP_FORMAT,
-            .track   = fdd[drive].track,
+            .track   = fdd[drv->id].track,
             .side    = side,
             .density = density,
             .fill    = fill
@@ -1110,34 +1210,35 @@ fdd_format(int drive, int side, int density, uint8_t fill)
         return;
     }
 
-    if (drives[drive].format)
-        drives[drive].format(drive, side, density, fill);
-    else
+    if (drv->format == NULL)
         fdd_notfound = 1000;
+    else
+        drv->format(drv, side, density, fill);
 }
 
 void
-fdd_stop(int drive)
+fdd_stop(void *priv)
 {
-    if (fdd_fdc && (fdd_fdc->flags & FDC_FLAG_PCJX)) {
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdc_t *      fdc = (fdc_t *) drv->fdc;
+
+    if (drv == NULL)
+        return;
+
+    if ((fdc != NULL) && (fdc->flags & FDC_FLAG_PCJX)) {
         /* Abort the pending operation, not the physical head position. */
-        const int was_seeking = fdd_seek_in_progress[drive];
-        timer_disable(&fdd_seek_timer[drive]);
-        fdd_seek_in_progress[drive] = 0;
-        fdd_pending[drive].pending = 0;
-        fdd_pending[drive].op = FDD_OP_NONE;
+        const int was_seeking = drv->seek_in_progress;
+        timer_disable(&drv->seek_timer);
+        drv->seek_in_progress = 0;
+        drv->pending.pending = 0;
+        drv->pending.op = FDD_OP_NONE;
         fdd_notfound = 0;
         if (was_seeking)
-            fdd_do_seek(drive, fdd[drive].track);
+            fdd_do_seek(drv, fdd[drv->id].track);
     }
-    if (drives[drive].stop)
-        drives[drive].stop(drive);
-}
 
-void
-fdd_set_fdc(void *fdc)
-{
-    fdd_fdc = (fdc_t *) fdc;
+    if (drv->stop != NULL)
+        drv->stop(drv);
 }
 
 void
@@ -1149,6 +1250,7 @@ fdd_init(void)
         drives[i].poll       = 0;
         drives[i].seek       = 0;
         drives[i].readsector = 0;
+        drives[i].id         = i;
     }
 
     img_init();
@@ -1159,25 +1261,31 @@ fdd_init(void)
     fdd_tape_init();
 
     for (i = 0; i < FDD_NUM; i++) {
-        if (fdd_tape_present(i))
+        fdd_drive_t *drv = &drives[i];
+
+        if (fdd_tape_present(drv))
             continue;
 
-        fdd_load(i, floppyfns[i]);
+        fdd_load(drv, drv->image_path);
     }
 
-    if (fdd_sounds_enabled) {
+    if (fdd_sounds_enabled)
         fdd_audio_init();
-    }
 }
 
 void
-fdd_do_writeback(int drive)
+fdd_do_writeback(void *priv)
 {
-    /* A floppy tape drive commits each sector to its image as the transfer
-       runs, and has no d86f handler behind it to flush. */
-    if (fdd_tape_present(drive))
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if (drv == NULL)
         return;
 
-    if (d86f_handler[drive].writeback != NULL)
-        d86f_handler[drive].writeback(drive);
+    /* A floppy tape drive commits each sector to its image as the transfer
+       runs, and has no d86f handler behind it to flush. */
+    if (fdd_tape_present(drv))
+        return;
+
+    if (drv->d86f_handler.writeback != NULL)
+        drv->d86f_handler.writeback(drv);
 }

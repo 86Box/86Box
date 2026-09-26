@@ -36,7 +36,7 @@
 #define EMU_FLOPPY_IMD_H
 
 extern void imd_init(void);
-extern void imd_load(int drive, char *fn);
-extern void imd_close(int drive);
+extern void imd_load(void *priv, char *fn);
+extern void imd_close(void *priv);
 
 #endif /*EMU_FLOPPY_IMD_H*/

@@ -43,39 +43,39 @@
 #include <86box/plat_floppy_ioctl.h>
 
 typedef struct img_t {
-    FILE    *fp;
-    uint8_t  track_data[2][688128];
-    int      sectors, tracks, sides;
-    uint8_t  sector_size;
-    int      xdf_type; /* 0 = not XDF, 1-5 = one of the five XDF types */
-    int      dmf;
-    int      track;
-    int      physical_track;
-    int      track_width;
-    uint32_t base;
-    uint8_t  gap2_size;
-    uint8_t  gap3_size;
-    uint16_t disk_flags;
-    uint16_t track_flags;
-    uint8_t  sector_pos_side[256][256];
-    uint16_t sector_pos[256][256];
-    uint16_t formatted_sector_count[256][2];
+    FILE    *        fp;
+    uint8_t          track_data[2][688128];
+    int              sectors, tracks, sides;
+    uint8_t          sector_size;
+    /* 0 = not XDF, 1-5 = one of the five XDF types */
+    int              xdf_type;
+    int              dmf;
+    int              track;
+    int              physical_track;
+    int              track_width;
+    uint32_t         base;
+    uint8_t          gap2_size;
+    uint8_t          gap3_size;
+    uint16_t         disk_flags;
+    uint16_t         track_flags;
+    uint8_t          sector_pos_side[256][256];
+    uint16_t         sector_pos[256][256];
+    uint16_t         formatted_sector_count[256][2];
     d86f_format_id_t formatted_sector_ids[256][2][256];
-    uint8_t  current_sector_pos_side;
-    uint16_t current_sector_pos;
-    uint8_t  first_sector_id[2][4];
-    uint8_t *disk_data;
-    uint8_t  is_cqm;
-    uint8_t  disk_at_once;
-    uint8_t  interleave;
-    uint8_t  skew;
-    uint8_t  is_ioctl;
-    int      ioctl_drive;
+    uint8_t          current_sector_pos_side;
+    uint16_t         current_sector_pos;
+    uint8_t          first_sector_id[2][4];
+    uint8_t *        disk_data;
+    uint8_t          is_cqm;
+    uint8_t          disk_at_once;
+    uint8_t          interleave;
+    uint8_t          skew;
+    uint8_t          is_ioctl;
+    fdd_drive_t *    ioctl_drive;
 } img_t;
 
 
 static img_t    *img[FDD_NUM];
-static fdc_t    *img_fdc;
 
 static double    bit_rate_300;
 static char     *ext;
@@ -90,7 +90,7 @@ static uint8_t   fdf_suppress_final_byte = 0; /* This is hard-coded to 0 -
                                                * and recompile.
                                                */
 
-static void img_seek(int drive, int track);
+static void img_seek(void *priv, int track);
 
 
 const uint8_t dmf_r[21] = { 12, 2, 13, 3, 14, 4, 15, 5, 16, 6, 17, 7, 18, 8, 19, 9, 20, 10, 21, 11, 1 };
@@ -344,7 +344,7 @@ img_log(const char *fmt, ...)
 
 /* Generic */
 static int
-sector_size_code(int sector_size)
+sector_size_code(const int sector_size)
 {
     switch (sector_size) {
         case 128:
@@ -375,7 +375,7 @@ sector_size_code(int sector_size)
 }
 
 static int
-bps_is_valid(uint16_t bps)
+bps_is_valid(const uint16_t bps)
 {
     for (uint8_t i = 0; i <= 8; i++) {
         if (bps == (128 << i))
@@ -386,12 +386,12 @@ bps_is_valid(uint16_t bps)
 }
 
 static int
-first_byte_is_valid(uint8_t first_byte)
+first_byte_is_valid(const uint8_t byte1)
 {
-    switch (first_byte) {
+    switch (byte1) {
         case 0x60:
-        case 0xE9:
-        case 0xEB:
+        case 0xe9:
+        case 0xeb:
             return 1;
 
         default:
@@ -407,35 +407,35 @@ first_byte_is_valid(uint8_t first_byte)
 static int
 interleave(int sector, int skew, int track_spt)
 {
-    uint32_t skewed_i;
-    uint32_t adjusted_r;
-    uint32_t add    = (track_spt & 1);
-    uint32_t adjust = (track_spt >> 1);
+    const uint32_t add        = (track_spt & 1);
+    const uint32_t adjust     = (track_spt >> 1);
+    const uint32_t skewed_i   = (sector + skew) % track_spt;
+    uint32_t       adjusted_r = (skewed_i >> 1) + 1;
 
-    skewed_i   = (sector + skew) % track_spt;
-    adjusted_r = (skewed_i >> 1) + 1;
     if (skewed_i & 1)
         adjusted_r += (adjust + add);
 
-    return adjusted_r;
+    return (int) adjusted_r;
 }
 
 /* Only the JX's 40-cylinder raw DD media leaves every other physical track blank. */
 static int
-img_is_pcjx_360(int drive, const img_t *dev)
+img_is_pcjx_360(void *priv, const img_t *dev)
 {
-    return fdd_is_pcjx_360(drive) && !dev->is_ioctl && !dev->is_cqm &&
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return fdd_is_pcjx_360(drv) && !dev->is_ioctl && !dev->is_cqm &&
            !dev->disk_at_once && !dev->base && (dev->tracks == 40) &&
            (dev->sides == 2) && ((dev->sectors == 8) || (dev->sectors == 9)) &&
            (dev->sector_size == 2);
 }
 
 static void
-write_back(int drive)
+write_back(void *priv)
 {
-    img_t *dev   = img[drive];
-    int    ssize = 128 << ((int) dev->sector_size);
-    int    size;
+    fdd_drive_t *drv   = (fdd_drive_t *) priv;
+    img_t *      dev   = img[drv->id];
+    const int    ssize = 128 << ((int) dev->sector_size);
 
     if ((dev->track < 0) || (dev->track >= dev->tracks))
         return;
@@ -456,10 +456,12 @@ write_back(int drive)
     if (dev->disk_at_once)
         return;
 
-    if (fseek(dev->fp, dev->base + (dev->track * dev->sectors * ssize * dev->sides), SEEK_SET) == -1)
+    if (fseek(dev->fp, (off_t) dev->base +
+                       (dev->track * dev->sectors * ssize * dev->sides),
+              SEEK_SET) == -1)
         pclog("IMG write_back(): Error seeking to the beginning of the file\n");
     for (int side = 0; side < dev->sides; side++) {
-        size = dev->sectors * ssize;
+        const int size = dev->sectors * ssize;
         if (fwrite(dev->track_data[side], 1, size, dev->fp) != size)
             fatal("IMG write_back(): Error writing data\n");
     }
@@ -468,34 +470,39 @@ write_back(int drive)
 }
 
 static uint16_t
-disk_flags(int drive)
+disk_flags(void *priv)
 {
-    const img_t *dev = img[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    const img_t *dev = img[drv->id];
 
     return (dev->disk_flags);
 }
 
 static uint16_t
-side_flags(int drive)
+side_flags(void *priv)
 {
-    const img_t *dev = img[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    const img_t *dev = img[drv->id];
 
     return (dev->track_flags);
 }
 
 static void
-set_sector(int drive, UNUSED(int side), UNUSED(uint8_t c), uint8_t h, uint8_t r, UNUSED(uint8_t n))
+set_sector(void *priv, UNUSED(int side), UNUSED(uint8_t c), const uint8_t h,
+           const uint8_t r, UNUSED(uint8_t n))
 {
-    img_t *dev = img[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    img_t *      dev = img[drv->id];
 
     dev->current_sector_pos_side = dev->sector_pos_side[h][r];
     dev->current_sector_pos      = dev->sector_pos[h][r];
 }
 
 static uint8_t
-poll_read_data(int drive, UNUSED(int side), uint16_t pos)
+poll_read_data(void *priv, UNUSED(int side), const uint16_t pos)
 {
-    const img_t *dev = img[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    const img_t *dev = img[drv->id];
 
     if ((dev->current_sector_pos_side >= dev->sides) ||
         ((uint32_t) dev->current_sector_pos + pos >= sizeof(dev->track_data[0])))
@@ -505,9 +512,10 @@ poll_read_data(int drive, UNUSED(int side), uint16_t pos)
 }
 
 static void
-poll_write_data(int drive, UNUSED(int side), uint16_t pos, uint8_t data)
+poll_write_data(void *priv, UNUSED(int side), const uint16_t pos, const uint8_t data)
 {
-    img_t *dev = img[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    img_t *      dev = img[drv->id];
 
     if ((dev->current_sector_pos_side >= dev->sides) ||
         ((uint32_t) dev->current_sector_pos + pos >= sizeof(dev->track_data[0])))
@@ -517,15 +525,17 @@ poll_write_data(int drive, UNUSED(int side), uint16_t pos, uint8_t data)
 }
 
 static int
-format_conditions(int drive)
+format_conditions(void *priv)
 {
-    const img_t *dev  = img[drive];
-    /* Allow bigger sector sizes because of HD_COPY. */
-    int          temp = (fdc_get_format_sectors(img_fdc) == 3) ||
-                        (fdc_get_format_sectors(img_fdc) == dev->sectors) ||
-                        (fdc_get_format_sectors(img_fdc) == (dev->sectors + 1));
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    const img_t *dev = img[drv->id];
 
-    temp = temp && (fdc_get_format_n(img_fdc) == dev->sector_size);
+    /* Allow bigger sector sizes because of HD_COPY. */
+    int          temp = (fdc_get_format_sectors(drv->fdc) == 3) ||
+                        (fdc_get_format_sectors(drv->fdc) == dev->sectors) ||
+                        (fdc_get_format_sectors(drv->fdc) == (dev->sectors + 1));
+
+    temp = temp && (fdc_get_format_n(drv->fdc) == dev->sector_size);
     temp = temp && (dev->xdf_type == 0);
     temp = temp && (dev->track >= 0) && (dev->track < dev->tracks);
 
@@ -533,12 +543,12 @@ format_conditions(int drive)
 }
 
 static int
-format_track(int drive, int side, const d86f_format_id_t *ids,
-             uint16_t count, uint8_t fill)
+format_track(void *priv, const int side, const d86f_format_id_t *ids,
+             uint16_t count, const uint8_t fill)
 {
-    img_t   *dev = img[drive];
-    int      ssize;
-    uint8_t  seen[256][256] = { 0 };
+    fdd_drive_t *    drv = (fdd_drive_t *) priv;
+    img_t *          dev = img[drv->id];
+    uint8_t          seen[256][256] = { 0 };
     d86f_format_id_t temp_ids[64] = { 0 };
 
     if ((dev == NULL) || (side < 0) || (side >= dev->sides) ||
@@ -579,7 +589,7 @@ format_track(int drive, int side, const d86f_format_id_t *ids,
 
     count = MIN(count, dev->sectors);
 
-    ssize = 128 << dev->sector_size;
+    const int ssize = 128 << dev->sector_size;
     memcpy(dev->formatted_sector_ids[dev->track][side], temp_ids,
            count * sizeof(d86f_format_id_t));
     dev->formatted_sector_count[dev->track][side] = count;
@@ -587,57 +597,48 @@ format_track(int drive, int side, const d86f_format_id_t *ids,
     for (uint16_t sector = 0; sector < count; sector++)
         memset(&dev->track_data[side][sector * ssize], fill, ssize);
 
-    write_back(drive);
-    img_seek(drive, dev->physical_track);
+    write_back(drv);
+    img_seek(drv, dev->physical_track);
     return 1;
 }
 
 static void
-img_seek(int drive, int track)
+img_seek(void *priv, int track)
 {
-    img_t   *dev = img[drive];
+    fdd_drive_t *drv   = (fdd_drive_t *) priv;
+    img_t       *dev   = img[drv->id];
+    uint8_t      id[4] = { 0, 0, 0, 0 };
     int      side;
-    int      current_xdft;
-    int      read_bytes   = 0;
-    uint8_t  id[4]        = { 0, 0, 0, 0 };
-    int      is_t0;
     int      sector;
     int      current_pos;
-    int      img_pos;
-    int      sr;
-    int      sside;
-    int      total;
-    int      array_sector;
-    int      buf_side;
     int      buf_pos;
-    int      ssize;
-    uint32_t cur_pos = 0;
 
     if (dev == NULL)
         return;
 
-    current_xdft = dev->xdf_type - 1;
-    ssize = 128 << ((int) dev->sector_size);
+    const int current_xdft = dev->xdf_type - 1;
+    int       ssize        = 128 << ((int) dev->sector_size);
 
     if (dev->fp == NULL && !dev->is_ioctl)
         return;
 
+    const int pcjx_360     = img_is_pcjx_360(drv, dev);
+
     dev->physical_track = track;
-    const int pcjx_360 = img_is_pcjx_360(drive, dev);
     if (pcjx_360)
         track = ((track >= 0) && (track <= 78) && !(track & 1)) ? track / 2 : -1;
-    else if ((track >= 0) && !dev->track_width && fdd_is_525(drive) && fdd_doublestep_40(drive))
+    else if ((track >= 0) && !dev->track_width && fdd_is_525(drv) && fdd_doublestep_40(drv))
         track /= 2;
 
     dev->track = track;
-    d86f_set_cur_track(drive, pcjx_360 ? dev->physical_track : track);
+    d86f_set_cur_track(drv, pcjx_360 ? dev->physical_track : track);
 
     /* Retire both the flux and turbo views before any early return or I/O. */
-    d86f_reset_index_hole_pos(drive, 0);
-    d86f_reset_index_hole_pos(drive, 1);
-    d86f_destroy_linked_lists(drive, 0);
-    d86f_destroy_linked_lists(drive, 1);
-    d86f_zero_track(drive);
+    d86f_reset_index_hole_pos(drv, 0);
+    d86f_reset_index_hole_pos(drv, 1);
+    d86f_destroy_linked_lists(drv, 0);
+    d86f_destroy_linked_lists(drv, 1);
+    d86f_zero_track(drv);
     memset(dev->sector_pos_side, 0xff, sizeof(dev->sector_pos_side));
     memset(dev->sector_pos, 0, sizeof(dev->sector_pos));
     memset(dev->first_sector_id, 0, sizeof(dev->first_sector_id));
@@ -647,32 +648,36 @@ img_seek(int drive, int track)
     if ((track < 0) || (track >= dev->tracks))
         return;
 
-    is_t0 = (track == 0) ? 1 : 0;
+    const int is_t0        = (track == 0) ? 1 : 0;
 
     if (dev->is_ioctl) {
         for (side = 0; side < dev->sides; side++) {
             for (sector = 0; sector < dev->sectors; sector++) {
                 if (!floppy_ioctl_read_sector(dev->ioctl_drive, track, side, sector + 1,
-                                              &dev->track_data[side][sector * ssize])) {
+                                              &dev->track_data[side][sector * ssize]))
                     /* initialize with 0xf6 as per INT 0x1e Disk Parameter Table */
                     memset(&dev->track_data[side][sector * ssize], 0xf6, ssize);
-                }
             }
         }
     } else if (!dev->disk_at_once) {
-        if (fseek(dev->fp, dev->base + (track * dev->sectors * ssize * dev->sides), SEEK_SET) == -1)
-            fatal("img_seek(): Error seeking\n");
+        if (fseek(dev->fp, (off_t) dev->base +
+                           (track * dev->sectors * ssize * dev->sides), SEEK_SET) == -1)
+            fatal("img_seek): Error seeking\n");
 
         for (side = 0; side < dev->sides; side++) {
-            read_bytes = fread(dev->track_data[side], 1, (size_t) dev->sectors * ssize, dev->fp);
+            const int read_bytes = (int) fread(dev->track_data[side], 1,
+                                               (size_t) dev->sectors * ssize, dev->fp);
             if (read_bytes < (dev->sectors * ssize))
                 /* initialize with 0xf6 as per INT 0x1e Disk Parameter Table */
-                memset(dev->track_data[side] + read_bytes, 0xf6, (dev->sectors * ssize) - read_bytes);
+                memset(dev->track_data[side] + read_bytes, 0xf6,
+                       (dev->sectors * ssize) - read_bytes);
         }
     } else {
         for (side = 0; side < dev->sides; side++) {
-            cur_pos = (track * dev->sectors * ssize * dev->sides) + (side * dev->sectors * ssize);
-            memcpy(dev->track_data[side], dev->disk_data + cur_pos, (size_t) dev->sectors * ssize);
+            const uint32_t cur_pos = (track * dev->sectors * ssize * dev->sides) +
+                                     (side * dev->sectors * ssize);
+            memcpy(dev->track_data[side], dev->disk_data + cur_pos,
+                   (size_t) dev->sectors * ssize);
         }
     }
 
@@ -683,9 +688,11 @@ img_seek(int drive, int track)
                     ? dev->formatted_sector_count[track][side]
                     : 0;
 
-            current_pos = d86f_prepare_pretrack(drive, side, 0);
+            current_pos = d86f_prepare_pretrack(drv, side, 0);
 
             for (sector = 0; sector < dev->sectors; sector++) {
+                int sr;
+
                 if (formatted_count == dev->sectors) {
                     memcpy(id, dev->formatted_sector_ids[track][side][sector],
                            sizeof(d86f_format_id_t));
@@ -716,20 +723,20 @@ img_seek(int drive, int track)
                 dev->sector_pos_side[id[1]][id[2]] = side;
                 dev->sector_pos[id[1]][id[2]]      = buf_pos;
                 current_pos = d86f_prepare_sector(
-                    drive, side, current_pos, id,
+                    drv, side, current_pos, id,
                     &dev->track_data[side][buf_pos], ssize,
                     dev->gap2_size, dev->gap3_size, 0);
 
                 if (sector == 0) {
                     memcpy(dev->first_sector_id[side], id, sizeof(id));
-                    d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
+                    d86f_initialize_last_sector_id(drv, id[0], id[1], id[2], id[3]);
                 }
             }
         }
     } else {
-        total   = dev->sectors;
-        img_pos = 0;
-        sside   = 0;
+        int       img_pos = 0;
+        int       sside   = 0;
+        const int total   = dev->sectors;
 
         /* Pass 1, get sector positions in the image. */
         for (sector = 0; sector < xdf_logical_sectors[current_xdft][!is_t0]; sector++) {
@@ -753,12 +760,13 @@ img_seek(int drive, int track)
 
         /* Pass 2, prepare the actual track. */
         for (side = 0; side < dev->sides; side++) {
-            current_pos = d86f_prepare_pretrack(drive, side, 0);
+            current_pos = d86f_prepare_pretrack(drv, side, 0);
 
             for (sector = 0; sector < xdf_physical_sectors[current_xdft][!is_t0]; sector++) {
-                array_sector = (side * xdf_physical_sectors[current_xdft][!is_t0]) + sector;
-                buf_side     = dev->sector_pos_side[xdf_disk_sector.id.h][xdf_disk_sector.id.r];
-                buf_pos      = dev->sector_pos[xdf_disk_sector.id.h][xdf_disk_sector.id.r];
+                const int array_sector = (side * xdf_physical_sectors[current_xdft][!is_t0]) +
+                                         sector;
+                const int buf_side     = dev->sector_pos_side[xdf_disk_sector.id.h][xdf_disk_sector.id.r];
+                buf_pos                = dev->sector_pos[xdf_disk_sector.id.h][xdf_disk_sector.id.r];
 
                 id[0] = track;
                 id[1] = xdf_disk_sector.id.h;
@@ -766,39 +774,50 @@ img_seek(int drive, int track)
 
                 if (is_t0) {
                     id[3]       = 2;
-                    current_pos = d86f_prepare_sector(drive, side, current_pos, id, &dev->track_data[buf_side][buf_pos], ssize, dev->gap2_size, xdf_gap3_sizes[current_xdft][!is_t0], 0);
+                    current_pos = d86f_prepare_sector(drv, side, current_pos, id,
+                                                      &dev->track_data[buf_side][buf_pos],
+                                                      ssize, dev->gap2_size,
+                                                      xdf_gap3_sizes[current_xdft][0],
+                                                      0);
                 } else {
                     id[3]       = id[2] & 7;
                     ssize       = (128 << id[3]);
-                    current_pos = d86f_prepare_sector(drive, side, xdf_trackx_spos[current_xdft][array_sector], id, &dev->track_data[buf_side][buf_pos], ssize, dev->gap2_size, xdf_gap3_sizes[current_xdft][!is_t0], 0);
+                    current_pos = d86f_prepare_sector(drv, side,
+                                                      xdf_trackx_spos[current_xdft][array_sector],
+                                                      id,
+                                                      &dev->track_data[buf_side][buf_pos],
+                                                      ssize, dev->gap2_size,
+                                                      xdf_gap3_sizes[current_xdft][1],
+                                                      0);
                 }
 
                 if (sector == 0)
-                    d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
+                    d86f_initialize_last_sector_id(drv, id[0], id[1], id[2], id[3]);
             }
         }
     }
 }
 
 static void
-img_readaddress(int drive, int side, int density)
+img_readaddress(void *priv, const int side, const int density)
 {
-    const img_t *dev = img[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    const img_t *dev = img[drv->id];
 
     /*
      * The common turbo engine returns its saved ID rather than scanning flux.
      * Supply the selected side's real ID, and never reuse it on a blank track.
      */
-    if (fdd_get_turbo(drive) && fdd_is_pcjx_360(drive) && !dev->xdf_type) {
+    if (fdd_get_turbo(drv) && fdd_is_pcjx_360(drv) && !dev->xdf_type) {
         if ((dev->track < 0) || (dev->track >= dev->tracks) ||
             (side < 0) || (side >= dev->sides)) {
-            fdc_noidam(img_fdc);
+            fdc_noidam(drv->fdc);
             return;
         }
         const uint8_t *id = dev->first_sector_id[side];
-        d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
+        d86f_initialize_last_sector_id(drv, id[0], id[1], id[2], id[3]);
     }
-    d86f_readaddress(drive, side, density);
+    d86f_readaddress(drv, side, density);
 }
 
 void
@@ -808,45 +827,47 @@ img_init(void)
 }
 
 int
-is_divisible(uint16_t total, uint8_t what)
+is_divisible(const uint16_t total, const uint8_t what)
 {
+    int ret = 0;
+
     if ((total != 0) && (what != 0))
-        return ((total % what) == 0);
-    else
-        return 0;
+        ret = ((total % what) == 0);
+
+    return ret;
 }
 
 void
-img_load(int drive, char *fn)
+img_load(void *priv, char *fn)
 {
-    uint16_t bpb_bps;
-    uint16_t bpb_total;
-    uint8_t  bpb_mid; /* Media type ID. */
-    uint8_t  bpb_sectors;
-    uint8_t  bpb_sides;
-    uint8_t  cqm;
-    uint8_t  ddi;
-    uint8_t  fdf;
-    uint8_t  fdi;
-    uint16_t comment_len = 0;
-    int16_t  block_len   = 0;
-    uint32_t cur_pos     = 0;
-    uint8_t  rep_byte    = 0;
-    uint8_t  run         = 0;
-    uint8_t  real_run    = 0;
-    uint8_t *bpos;
-    uint16_t track_bytes = 0;
-    uint8_t *literal;
-    img_t   *dev;
-    int      temp_rate = 0;
-    int      guess     = 0;
-    int      size;
+    fdd_drive_t *drv         = (fdd_drive_t *) priv;
+    uint8_t      rep_byte    = 0;
+    uint8_t      run         = 0;
+    uint8_t      real_run    = 0;
+    uint16_t     comment_len = 0;
+    uint16_t     track_bytes = 0;
+    int16_t      block_len   = 0;
+    uint32_t     cur_pos     = 0;
+    int          temp_rate   = 0;
+    int          guess       = 0;
+    uint16_t     bpb_bps;
+    uint16_t     bpb_total;
+    uint8_t      bpb_sectors;
+    uint8_t      bpb_sides;
+    uint8_t      cqm;
+    uint8_t      ddi;
+    uint8_t      fdf;
+    uint8_t      fdi;
+    uint8_t *    bpos;
+    uint8_t *    literal;
+    img_t   *    dev;
+    int          size;
 
     ext = path_get_extension(fn);
 
-    d86f_unregister(drive);
+    d86f_unregister(drv);
 
-    writeprot[drive] = 0;
+    drv->writeprot = 0;
 
     /* Allocate a drive block. */
     dev = (img_t *) calloc(1, sizeof(img_t));
@@ -856,17 +877,15 @@ img_load(int drive, char *fn)
         dev->fp = plat_fopen(fn, "rb");
         if (dev->fp == NULL) {
             free(dev);
-            memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+            memset(drv->image_path, 0, sizeof(drv->image_path));
             return;
         }
-        writeprot[drive] = 1;
+        drv->writeprot = 1;
     }
 
-    if (ui_writeprot[drive])
-        writeprot[drive] = 1;
-    fwriteprot[drive] = writeprot[drive];
-
-    cqm = ddi = fdf = fdi = 0;
+    if (drv->read_only)
+        drv->writeprot = 1;
+    drv->fwriteprot = drv->writeprot;
 
     dev->interleave = dev->skew = 0;
 
@@ -881,20 +900,17 @@ img_load(int drive, char *fn)
         img_log("img_load(): File is a Japanese FDI image...\n");
         fseek(dev->fp, 0x10, SEEK_SET);
         (void) !fread(&bpb_bps, 1, 2, dev->fp);
-        fseek(dev->fp, 0x0C, SEEK_SET);
+        fseek(dev->fp, 0x0c, SEEK_SET);
         (void) !fread(&size, 1, 4, dev->fp);
         bpb_total = size / bpb_bps;
         fseek(dev->fp, 0x08, SEEK_SET);
         (void) !fread(&(dev->base), 1, 4, dev->fp);
-        fseek(dev->fp, dev->base + 0x15, SEEK_SET);
-        bpb_mid = fgetc(dev->fp);
-        if (bpb_mid < 0xF0)
-            bpb_mid = 0xF0;
+        fseek(dev->fp, (off_t) dev->base + 0x15, SEEK_SET);
         fseek(dev->fp, 0x14, SEEK_SET);
         bpb_sectors = fgetc(dev->fp);
         fseek(dev->fp, 0x18, SEEK_SET);
         bpb_sides = fgetc(dev->fp);
-        fseek(dev->fp, dev->base, SEEK_SET);
+        fseek(dev->fp, (off_t) dev->base, SEEK_SET);
         first_byte = fgetc(dev->fp);
 
         fdi               = 1;
@@ -913,9 +929,9 @@ img_load(int drive, char *fn)
         fourth_byte = fgetc(dev->fp);
 
         if ((first_byte == 0x1A) && (second_byte == 'F') && (third_byte == 'D') && (fourth_byte == 'F')) {
-            /* This is a FDF image. */
+            /* This is an FDF image. */
             img_log("img_load(): File is a FDF image...\n");
-            fwriteprot[drive] = writeprot[drive] = 1;
+            drv->fwriteprot = drv->writeprot = 1;
             fclose(dev->fp);
             dev->fp = plat_fopen(fn, "rb");
 
@@ -930,7 +946,6 @@ img_load(int drive, char *fn)
             fseek(dev->fp, 0x80, SEEK_SET);
             size        = 0;
             track_bytes = 0;
-            bpos        = dev->disk_data;
             while (!feof(dev->fp)) {
                 if (!track_bytes) {
                     /* Skip first 3 bytes - their meaning is unknown to us but could be a checksum. */
@@ -951,13 +966,16 @@ img_load(int drive, char *fn)
                 if (first_byte) {
                     run = fgetc(dev->fp);
 
-                    /* I *HAVE* to read something because fseek tries to be smart and never hits EOF, causing an infinite loop. */
+                    /*
+                       I *HAVE* to read something because fseek tries to be smart and never
+                       hits EOF, causing an infinite loop.
+                     */
                     track_bytes--;
 
                     if (run & 0x80) {
                         /* Repeat. */
                         track_bytes--;
-                        rep_byte = fgetc(dev->fp);
+                        (void) !fgetc(dev->fp);
                     } else {
                         /* Literal. */
                         track_bytes -= (run & 0x7f);
@@ -990,7 +1008,10 @@ img_load(int drive, char *fn)
             bpos        = dev->disk_data;
             while (!feof(dev->fp)) {
                 if (!track_bytes) {
-                    /* Skip first 3 bytes - their meaning is unknown to us but could be a checksum. */
+                    /*
+                       Skip first 3 bytes - their meaning is unknown to us but could be
+                       a checksum.
+                     */
                     first_byte = fgetc(dev->fp);
                     (void) !fread(&track_bytes, 1, 2, dev->fp);
                     img_log("Block header: %02X %04X ", first_byte, track_bytes);
@@ -1050,7 +1071,6 @@ img_load(int drive, char *fn)
 
             bpb_bps     = *(uint16_t *) (dev->disk_data + 0x0B);
             bpb_total   = *(uint16_t *) (dev->disk_data + 0x13);
-            bpb_mid     = *(dev->disk_data + 0x15);
             bpb_sectors = *(dev->disk_data + 0x18);
             bpb_sides   = *(dev->disk_data + 0x1A);
 
@@ -1060,16 +1080,12 @@ img_load(int drive, char *fn)
 
         if (((first_byte == 'C') && (second_byte == 'Q')) || ((first_byte == 'c') && (second_byte == 'q'))) {
             img_log("img_load(): File is a CopyQM image...\n");
-            fwriteprot[drive] = writeprot[drive] = 1;
+            drv->fwriteprot = drv->writeprot = 1;
             fclose(dev->fp);
             dev->fp = plat_fopen(fn, "rb");
 
             fseek(dev->fp, 0x03, SEEK_SET);
             (void) !fread(&bpb_bps, 1, 2, dev->fp);
-#if 0
-            fseek(dev->fp, 0x0B, SEEK_SET);
-            (void) !fread(&bpb_total, 1, 2, dev->fp);
-#endif
             fseek(dev->fp, 0x10, SEEK_SET);
             bpb_sectors = fgetc(dev->fp);
             fseek(dev->fp, 0x12, SEEK_SET);
@@ -1103,9 +1119,10 @@ img_load(int drive, char *fn)
                 if (!feof(dev->fp)) {
                     if (block_len < 0) {
                         rep_byte  = fgetc(dev->fp);
-                        block_len = -block_len;
+                        block_len = (int16_t) -block_len;
                         if ((cur_pos + block_len) > ((uint32_t) bpb_total) * ((uint32_t) bpb_bps)) {
-                            block_len = ((uint32_t) bpb_total) * ((uint32_t) bpb_bps) - cur_pos;
+                            block_len = (int16_t) (((uint32_t) bpb_total) *
+                                                   ((uint32_t) bpb_bps) - cur_pos);
                             memset(dev->disk_data + cur_pos, rep_byte, block_len);
                             break;
                         } else {
@@ -1113,8 +1130,10 @@ img_load(int drive, char *fn)
                             cur_pos += block_len;
                         }
                     } else if (block_len > 0) {
-                        if ((cur_pos + block_len) > ((uint32_t) bpb_total) * ((uint32_t) bpb_bps)) {
-                            block_len = ((uint32_t) bpb_total) * ((uint32_t) bpb_bps) - cur_pos;
+                        if ((cur_pos + block_len) > ((uint32_t) bpb_total) *
+                                                    ((uint32_t) bpb_bps)) {
+                            block_len = (int16_t) (((uint32_t) bpb_total) *
+                                                   ((uint32_t) bpb_bps) - cur_pos);
                             (void) !fread(dev->disk_data + cur_pos, 1, block_len, dev->fp);
                             break;
                         } else {
@@ -1135,18 +1154,16 @@ img_load(int drive, char *fn)
             /* Read the BPB */
             if (ddi) {
                 img_log("img_load(): File is a DDI image...\n");
-                fwriteprot[drive] = writeprot[drive] = 1;
+                drv->fwriteprot = drv->writeprot = 1;
             } else
                 img_log("img_load(): File is a raw image...\n");
-            fseek(dev->fp, dev->base + 0x0B, SEEK_SET);
+            fseek(dev->fp, (off_t) dev->base + 0x0B, SEEK_SET);
             (void) !fread(&bpb_bps, 1, 2, dev->fp);
-            fseek(dev->fp, dev->base + 0x13, SEEK_SET);
+            fseek(dev->fp, (off_t) dev->base + 0x13, SEEK_SET);
             (void) !fread(&bpb_total, 1, 2, dev->fp);
-            fseek(dev->fp, dev->base + 0x15, SEEK_SET);
-            bpb_mid = fgetc(dev->fp);
-            fseek(dev->fp, dev->base + 0x18, SEEK_SET);
+            fseek(dev->fp, (off_t) dev->base + 0x18, SEEK_SET);
             bpb_sectors = fgetc(dev->fp);
-            fseek(dev->fp, dev->base + 0x1A, SEEK_SET);
+            fseek(dev->fp, (off_t) dev->base + 0x1A, SEEK_SET);
             bpb_sides = fgetc(dev->fp);
 
             cqm = 0;
@@ -1176,7 +1193,7 @@ jump_if_fdf:
     guess = guess || !first_byte_is_valid(first_byte);      /* Invalid first bytes;                              */
     guess = guess || !is_divisible(bpb_total, bpb_sectors); /* Total sectors not divisible by sectors per track; */
     guess = guess || !is_divisible(bpb_total, bpb_sides);   /* Total sectors not divisible by sides.             */
-    guess = guess || !fdd_get_check_bpb(drive);
+    guess = guess || !fdd_get_check_bpb(drv);
     guess = guess && !fdi;
     guess = guess && !cqm;
     if (guess) {
@@ -1387,24 +1404,29 @@ jump_if_fdf:
             img_log("Image is bigger than can fit on an ED floppy, ejecting...\n");
             fclose(dev->fp);
             free(dev);
-            memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+            memset(drv->image_path, 0, sizeof(drv->image_path));
             return;
         }
 
-        bpb_sides   = dev->sides;
-        bpb_sectors = dev->sectors;
-        bpb_total   = size >> (dev->sector_size + 7);
+        bpb_total = size >> (dev->sector_size + 7);
     } else {
         /* The BPB readings appear to be valid, so let's set the values. */
         if (fdi) {
-            /* The image is a Japanese FDI, therefore we read the number of tracks from the header. */
+            /*
+               The image is a Japanese FDI, therefore we read the number of tracks from
+               the header.
+             */
             if (fseek(dev->fp, 0x1C, SEEK_SET) == -1)
                 fatal("Japanese FDI: Failed when seeking to 0x1C\n");
             (void) !fread(&(dev->tracks), 1, 4, dev->fp);
         } else {
             if (!cqm && !fdf) {
-                /* Number of tracks = number of total sectors divided by sides times sectors per track. */
-                dev->tracks = ((uint32_t) bpb_total) / (((uint32_t) bpb_sides) * ((uint32_t) bpb_sectors));
+                /*
+                   Number of tracks = number of total sectors divided by sides times
+                   sectors per track.
+                 */
+                dev->tracks = (int) (((uint32_t) bpb_total) /
+                                     (((uint32_t) bpb_sides) * ((uint32_t) bpb_sectors)));
             }
         }
 
@@ -1421,13 +1443,13 @@ jump_if_fdf:
     for (uint8_t i = 0; i < 6; i++) {
         if ((dev->sectors >= 15) && (dev->sectors <= 17) &&
             (maximum_sectors[dev->sector_size][i] == 17) &&
-            !fdd_is_525(drive) && !fdd_supports_360_rpm(drive))
+            !fdd_is_525(drv) && !fdd_supports_360_rpm(drv))
             continue;
         if (((dev->sectors >= 15) && (dev->sectors <= 17) &&
              (maximum_sectors[dev->sector_size][i] == 22) &&
-             !fdd_is_525(drive) && !fdd_supports_360_rpm(drive)) ||
+             !fdd_is_525(drv) && !fdd_supports_360_rpm(drv)) ||
             ((dev->sectors == 18) && (maximum_sectors[dev->sector_size][i] == 17) &&
-             fdd_is_525(drive)) ||
+             fdd_is_525(drv)) ||
             (dev->sectors <= maximum_sectors[dev->sector_size][i]) || (dev->sectors == xdf_sectors[dev->sector_size][i])) {
             bit_rate_300    = bit_rates_300[i];
             temp_rate       = rates[i];
@@ -1454,7 +1476,7 @@ jump_if_fdf:
         img_log("Image is bigger than can fit on an ED floppy, ejecting...\n");
         fclose(dev->fp);
         free(dev);
-        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+        memset(drv->image_path, 0, sizeof(drv->image_path));
         return;
     }
 
@@ -1471,7 +1493,7 @@ jump_if_fdf:
         img_log("ERROR: Floppy image of unknown format was inserted into drive %c:!\n", drive + 0x41);
         fclose(dev->fp);
         free(dev);
-        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+        memset(drv->image_path, 0, sizeof(drv->image_path));
         return;
     }
 
@@ -1496,40 +1518,41 @@ jump_if_fdf:
             dev->disk_flags, dev->track_flags);
 
     /* Set up the drive unit. */
-    img[drive] = dev;
+    img[drv->id] = dev;
 
     /* Attach this format to the D86F engine. */
-    d86f_handler[drive].disk_flags        = disk_flags;
-    d86f_handler[drive].side_flags        = side_flags;
-    d86f_handler[drive].writeback         = write_back;
-    d86f_handler[drive].set_sector        = set_sector;
-    d86f_handler[drive].format_track      = format_track;
-    d86f_handler[drive].read_data         = poll_read_data;
-    d86f_handler[drive].write_data        = poll_write_data;
-    d86f_handler[drive].format_conditions = format_conditions;
-    d86f_handler[drive].extra_bit_cells   = null_extra_bit_cells;
-    d86f_handler[drive].encoded_data      = common_encoded_data;
-    d86f_handler[drive].read_revolution   = common_read_revolution;
-    d86f_handler[drive].index_hole_pos    = null_index_hole_pos;
-    d86f_handler[drive].get_raw_size      = common_get_raw_size;
-    d86f_handler[drive].check_crc         = 1;
-    d86f_set_version(drive, 0x0063);
+    drv->d86f_handler.disk_flags        = disk_flags;
+    drv->d86f_handler.side_flags        = side_flags;
+    drv->d86f_handler.writeback         = write_back;
+    drv->d86f_handler.set_sector        = set_sector;
+    drv->d86f_handler.format_track      = format_track;
+    drv->d86f_handler.read_data         = poll_read_data;
+    drv->d86f_handler.write_data        = poll_write_data;
+    drv->d86f_handler.format_conditions = format_conditions;
+    drv->d86f_handler.extra_bit_cells   = null_extra_bit_cells;
+    drv->d86f_handler.encoded_data      = common_encoded_data;
+    drv->d86f_handler.read_revolution   = common_read_revolution;
+    drv->d86f_handler.index_hole_pos    = null_index_hole_pos;
+    drv->d86f_handler.get_raw_size      = common_get_raw_size;
+    drv->d86f_handler.check_crc         = 1;
+    d86f_set_version(drv, 0x0063);
 
-    drives[drive].seek = img_seek;
+    drv->seek = img_seek;
 
-    d86f_common_handlers(drive);
-    drives[drive].readaddress = img_readaddress;
+    d86f_common_handlers(drv);
+    drv->readaddress = img_readaddress;
 }
 
 void
-img_close(int drive)
+img_close(void *priv)
 {
-    img_t *dev = img[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    img_t *      dev = img[drv->id];
 
     if (dev == NULL)
         return;
 
-    d86f_unregister(drive);
+    d86f_unregister(drv);
 
     if (dev->is_ioctl) {
         floppy_ioctl_close(dev->ioctl_drive);
@@ -1543,52 +1566,48 @@ img_close(int drive)
 
     /* Release the memory. */
     free(dev);
-    img[drive] = NULL;
-}
-
-void
-img_set_fdc(void *fdc)
-{
-    img_fdc = (fdc_t *) fdc;
+    img[drv->id] = NULL;
 }
 
 /* Load a raw floppy device (support for ioctl:// path) */
 void
-img_load_raw_device(int drive, const char *device_path)
+img_load_raw_device(void *priv, const char *device_path)
 {
-    img_t *dev;
-    int temp_rate = 0;
-    int tracks, sides, sectors;
+    fdd_drive_t *drv       = (fdd_drive_t *) priv;
+    int          temp_rate = 0;
+    int          tracks;
+    int          sides;
+    int          sectors;
 
-    d86f_unregister(drive);
-    writeprot[drive] = 0;
+    d86f_unregister(drv);
+    drv->writeprot = 0;
 
-    fdd_set_host_device(drive, device_path);
-    if (!floppy_ioctl_open(drive, &tracks, &sides, &sectors, &temp_rate)) {
-        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+    fdd_set_host_device(drv, device_path);
+    if (!floppy_ioctl_open(drv, &tracks, &sides, &sectors, &temp_rate)) {
+        memset(drv->image_path, 0, sizeof(drv->image_path));
         return;
     }
 
-    dev = (img_t *) calloc(1, sizeof(img_t));
+    img_t *      dev       = (img_t *) calloc(1, sizeof(img_t));
     if (dev == NULL) {
-        floppy_ioctl_close(drive);
-        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+        floppy_ioctl_close(drv);
+        memset(drv->image_path, 0, sizeof(drv->image_path));
         return;
     }
 
-    *dev = (img_t){
+    *dev = (img_t) {
         .fp          = NULL,
         .is_ioctl    = 1,
-        .ioctl_drive = drive,
+        .ioctl_drive = drv,
         .sector_size = 2,  /* 512 bytes */
         .tracks      = tracks,
         .sides       = sides,
         .sectors     = sectors
     };
 
-    if (ui_writeprot[drive])
-        writeprot[drive] = 1;
-    fwriteprot[drive] = writeprot[drive];
+    if (drv->read_only)
+        drv->writeprot = 1;
+    drv->fwriteprot = drv->writeprot;
 
     /* Find the correct disk flags */
     dev->disk_flags = 0;
@@ -1618,9 +1637,9 @@ img_load_raw_device(int drive, const char *device_path)
         dev->track_flags |= 0x20;      /* RPM */
 
     /* Set up the drive unit */
-    img[drive] = dev;
+    img[drv->id] = dev;
 
-    d86f_handler[drive] = (d86f_handler_t){
+    drv->d86f_handler = (d86f_handler_t) {
         .disk_flags        = disk_flags,
         .side_flags        = side_flags,
         .writeback         = write_back,
@@ -1636,10 +1655,10 @@ img_load_raw_device(int drive, const char *device_path)
         .get_raw_size      = common_get_raw_size,
         .check_crc         = 1
     };
-    d86f_set_version(drive, 0x0063);
+    d86f_set_version(drv, 0x0063);
 
-    drives[drive].seek = img_seek;
+    drv->seek = img_seek;
 
-    d86f_common_handlers(drive);
-    drives[drive].readaddress = img_readaddress;
+    d86f_common_handlers(drv);
+    drv->readaddress = img_readaddress;
 }

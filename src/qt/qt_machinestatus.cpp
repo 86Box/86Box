@@ -448,7 +448,7 @@ MachineStatus::iterateFDD(const std::function<void(int)> &cb)
         return;
 
     for (int i = 0; i < FDD_NUM; ++i) {
-        if (fdd_get_type(i) != 0) {
+        if (fdd_get_type(&drives[i]) != 0) {
             cb(i);
         }
     }
@@ -807,7 +807,8 @@ MachineStatus::refresh(QStatusBar *sbar)
     }
 
     iterateFDD([this, sbar](int i) {
-        int t = fdd_get_type(i);
+        fdd_drive_t *drv = &drives[i];
+        int t = fdd_get_type(drv);
         if (t == 0)
             d->fdd[i].pixmaps = &d->pixmaps.floppy_disabled;
         else if ((t >= 1) && (t <= 6))
@@ -815,13 +816,13 @@ MachineStatus::refresh(QStatusBar *sbar)
         else
             d->fdd[i].pixmaps = &d->pixmaps.floppy_35;
         d->fdd[i].label = std::make_unique<ClickableLabel>();
-        d->fdd[i].setEmpty(QString(floppyfns[i]).isEmpty());
-        if (QString(floppyfns[i]).isEmpty())
+        d->fdd[i].setEmpty(QString(drv->image_path).isEmpty());
+        if (QString(drv->image_path).isEmpty())
             d->fdd[i].setWriteProtected(false);
-        else if (QString(floppyfns[i]).left(5) == "wp://")
+        else if (QString(drv->image_path).left(5) == "wp://")
             d->fdd[i].setWriteProtected(true);
         else
-            d->fdd[i].setWriteProtected(ui_writeprot[i]);
+            d->fdd[i].setWriteProtected(drv->read_only);
         d->fdd[i].setActive(false);
         d->fdd[i].setWriteActive(false);
         d->fdd[i].refresh();

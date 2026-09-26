@@ -204,7 +204,9 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
             busesToCheck.append(CDROM_BUS_MKE);
             break;
         case TAPE_BUS_FDC:
-            busRows = 4;
+            shifter = 2;
+            orer    = 3;
+            busRows = 8;
             busesToCheck.append(TAPE_BUS_FDC);
             break;
         case TAPE_BUS_LPT:
@@ -327,7 +329,7 @@ Harddrives::BusChannelName(uint8_t bus, uint8_t channel)
             busName = QString("Panasonic/MKE (%1:%2)").arg(channel >> 2).arg(channel & 3);
             break;
         case TAPE_BUS_FDC:
-            busName = QString("FDC (%1:%2)").arg(channel >> 1).arg(channel & 1);
+            busName = QString("FDC (%1:%2)").arg(channel >> 2).arg(channel & 3);
             break;
         case TAPE_BUS_LPT:
             busName = QString("LPT%1").arg(channel + 1);

@@ -375,7 +375,7 @@ machine_ps1_p1_handler(void)
     const uint8_t current_drive = fdc_get_current_drive();
 
     /* (B0 or F0) | (fdd_is_525(current_drive) on bit 6) */
-    return 0xb0 | (fdd_is_525(current_drive) ? 0x40 : 0x00);
+    return 0xb0 | (fdd_is_525(&drives[current_drive]) ? 0x40 : 0x00);
 }
 
 static void

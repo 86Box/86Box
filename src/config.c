@@ -1887,6 +1887,7 @@ load_floppy_and_cdrom_drives(void)
 
     memset(temp, 0x00, sizeof(temp));
     for (c = 0; c < FDD_NUM; c++) {
+        fdd_drive_t *drv = &drives[c];
         sprintf(temp, "fdd_%02i_type", c + 1);
 
         p = ini_section_get_string(cat, temp, (c < 2) ? "525_2dd" : "none");
@@ -1896,13 +1897,13 @@ load_floppy_and_cdrom_drives(void)
             d = fdd_get_from_internal_name("35_2hd");
         else
             d = fdd_get_from_internal_name(p);
-        fdd_set_type(c, d);
-        if (fdd_get_type(c) > 13)
-            fdd_set_type(c, 13);
+        fdd_set_type(&drives[c], d);
+        if (fdd_get_type(&drives[c]) > 13)
+            fdd_set_type(&drives[c], 13);
 
         sprintf(temp, "fdd_%02i_writeprot", c + 1);
-        ui_writeprot[c] = !!ini_section_get_int(cat, temp, 0);
-        if (ui_writeprot[c] == 0)
+        drv->read_only = !!ini_section_get_int(cat, temp, 0);
+        if (drv->read_only == 0)
             ini_section_delete_var(cat, temp);
 
         sprintf(temp, "fdd_%02i_fn", c + 1);
@@ -1912,35 +1913,35 @@ load_floppy_and_cdrom_drives(void)
             p[0] = 0x00;
 
         if (p[0] != 0x00) {
-            if (load_image_file(floppyfns[c], p, (uint8_t *) &(ui_writeprot[c])))
+            if (load_image_file(drv->image_path, p, (uint8_t *) &drv->read_only))
                 fatal("Configuration: Length of fdd_%02i_fn is more than 511\n", c + 1);
         }
 
 #if defined(ENABLE_CONFIG_LOG) && (ENABLE_CONFIG_LOG == 2)
         if (*p != '\0')
-            config_log("Floppy%d: %s\n", c, floppyfns[c]);
+            config_log("Floppy%d: %s\n", c, drv->image_path);
 #endif
 
         sprintf(temp, "fdd_%02i_turbo", c + 1);
-        fdd_set_turbo(c, !!ini_section_get_int(cat, temp, 0));
+        fdd_set_turbo(&drives[c], !!ini_section_get_int(cat, temp, 0));
         sprintf(temp, "fdd_%02i_check_bpb", c + 1);
-        fdd_set_check_bpb(c, !!ini_section_get_int(cat, temp, 1));
+        fdd_set_check_bpb(&drives[c], !!ini_section_get_int(cat, temp, 1));
 
         /* Check whether each value is default, if yes, delete it so that only
            non-default values will later be saved. */
-        if (fdd_get_type(c) == ((c < 2) ? 2 : 0)) {
+        if (fdd_get_type(&drives[c]) == ((c < 2) ? 2 : 0)) {
             sprintf(temp, "fdd_%02i_type", c + 1);
             ini_section_delete_var(cat, temp);
         }
-        if (strlen(floppyfns[c]) == 0) {
+        if (strlen(drv->image_path) == 0) {
             sprintf(temp, "fdd_%02i_fn", c + 1);
             ini_section_delete_var(cat, temp);
         }
-        if (fdd_get_turbo(c) == 0) {
+        if (fdd_get_turbo(&drives[c]) == 0) {
             sprintf(temp, "fdd_%02i_turbo", c + 1);
             ini_section_delete_var(cat, temp);
         }
-        if (fdd_get_check_bpb(c) == 1) {
+        if (fdd_get_check_bpb(&drives[c]) == 1) {
             sprintf(temp, "fdd_%02i_check_bpb", c + 1);
             ini_section_delete_var(cat, temp);
         }
@@ -1951,21 +1952,21 @@ load_floppy_and_cdrom_drives(void)
             d = fdd_audio_get_profile_by_internal_name("panasonic_ju4755_40t");
         else
             d = fdd_audio_get_profile_by_internal_name(p);
-        fdd_set_audio_profile(c, d);
+        fdd_set_audio_profile(&drives[c], d);
 #else
-        fdd_set_audio_profile(c, 0);
+        fdd_set_audio_profile(&drives[c], 0);
 #endif
 
         sprintf(temp, "fdd_%02i_host_device", c + 1);
         p = ini_section_get_string(cat, temp, "");
-        fdd_set_host_device(c, p);
+        fdd_set_host_device(&drives[c], p);
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
-            fdd_image_history[c][i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
+            drv->image_history[i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
             sprintf(temp, "fdd_%02i_image_history_%02i", c + 1, i + 1);
             p = ini_section_get_string(cat, temp, NULL);
             if (p) {
-                if (load_image_file(fdd_image_history[c][i], p, NULL))
+                if (load_image_file(drv->image_history[i], p, NULL))
                     fatal("Configuration: Length of fdd_%02i_image_history_%02i is more "
                           "than %i\n", c + 1, i + 1, MAX_IMAGE_PATH_LEN - 1);
             }
@@ -2922,12 +2923,12 @@ config_load(void)
 
         for (i = 0; i < FDD_NUM; i++) {
             if (i < 2)
-                fdd_set_type(i, 2);
+                fdd_set_type(&drives[i], 2);
             else
-                fdd_set_type(i, 0);
+                fdd_set_type(&drives[i], 0);
 
-            fdd_set_turbo(i, 0);
-            fdd_set_check_bpb(i, 1);
+            fdd_set_turbo(&drives[i], 0);
+            fdd_set_check_bpb(&drives[i], 1);
         }
 
         /* Unmute the CD audio on the first CD-ROM drive. */
@@ -4379,51 +4380,52 @@ save_floppy_and_cdrom_drives(void)
     int           c;
 
     for (c = 0; c < FDD_NUM; c++) {
+        fdd_drive_t *drv = &drives[c];
         sprintf(temp, "fdd_%02i_type", c + 1);
-        if (fdd_get_type(c) == ((c < 2) ? 2 : 0))
+        if (fdd_get_type(&drives[c]) == ((c < 2) ? 2 : 0))
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp,
-                                   fdd_get_internal_name(fdd_get_type(c)));
+                                   fdd_get_internal_name(fdd_get_type(&drives[c])));
 
         sprintf(temp, "fdd_%02i_fn", c + 1);
         /* Don't save ioctl:// paths */
-        if (strlen(floppyfns[c]) == 0 || strstr(floppyfns[c], "ioctl://") != NULL) {
+        if (strlen(drv->image_path) == 0 || strstr(drv->image_path, "ioctl://") != NULL) {
             ini_section_delete_var(cat, temp);
 
-            ui_writeprot[c] = 0;
+            drv->read_only = 0;
 
             sprintf(temp, "fdd_%02i_writeprot", c + 1);
             ini_section_delete_var(cat, temp);
         } else
-            save_image_file(cat, temp, floppyfns[c]);
+            save_image_file(cat, temp, drv->image_path);
 
         sprintf(temp, "fdd_%02i_writeprot", c + 1);
         ini_section_delete_var(cat, temp);
 
         sprintf(temp, "fdd_%02i_turbo", c + 1);
-        if (fdd_get_turbo(c) == 0)
+        if (fdd_get_turbo(&drives[c]) == 0)
             ini_section_delete_var(cat, temp);
         else
-            ini_section_set_int(cat, temp, fdd_get_turbo(c));
+            ini_section_set_int(cat, temp, fdd_get_turbo(&drives[c]));
 
         sprintf(temp, "fdd_%02i_check_bpb", c + 1);
-        if (fdd_get_check_bpb(c) == 1)
+        if (fdd_get_check_bpb(&drives[c]) == 1)
             ini_section_delete_var(cat, temp);
         else
-            ini_section_set_int(cat, temp, fdd_get_check_bpb(c));
+            ini_section_set_int(cat, temp, fdd_get_check_bpb(&drives[c]));
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             sprintf(temp, "fdd_%02i_image_history_%02i", c + 1, i + 1);
-            if ((fdd_image_history[c][i] == 0) || strlen(fdd_image_history[c][i]) == 0)
+            if ((drv->image_history[i] == 0) || strlen(drv->image_history[i]) == 0)
                 ini_section_delete_var(cat, temp);
             else
-                save_image_file(cat, temp, fdd_image_history[c][i]);
+                save_image_file(cat, temp, drv->image_history[i]);
         }
 
         sprintf(temp, "fdd_%02i_audio", c + 1);
 #ifndef DISABLE_FDD_AUDIO
-        int         prof          = fdd_get_audio_profile(c);
+        int         prof          = fdd_get_audio_profile(&drives[c]);
         const char *internal_name = fdd_audio_get_profile_internal_name(prof);
         if (internal_name && strcmp(internal_name, "none") != 0) {
             ini_section_set_string(cat, temp, internal_name);
@@ -4435,7 +4437,7 @@ save_floppy_and_cdrom_drives(void)
 #endif
 
         sprintf(temp, "fdd_%02i_host_device", c + 1);
-        const char *host_dev = fdd_get_host_device(c);
+        const char *host_dev = fdd_get_host_device(&drives[c]);
         if (host_dev && host_dev[0] != '\0')
             ini_section_set_string(cat, temp, host_dev);
         else

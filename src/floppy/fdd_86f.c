@@ -31,13 +31,9 @@
 #include <86box/nvr.h>
 #include <86box/random.h>
 #include <86box/plat.h>
-#include <86box/ui.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdd_86f.h>
-#ifdef D86F_COMPRESS
-#    include <lzf.h>
-#endif
 
 /*
  * Let's give this some more logic:
@@ -124,12 +120,6 @@ enum {
     FMT_POSTTRK_GAP4
 };
 
-typedef struct sliding_buffer_t {
-    uint8_t  buffer[10];
-    uint32_t pos;
-    uint32_t len;
-} sliding_buffer_t;
-
 typedef struct find_t {
     uint32_t bits_obtained;
     uint16_t bytes_obtained;
@@ -160,71 +150,64 @@ typedef struct sector_t {
 } sector_t;
 
 /* Disk flags:
- *  Bit 0   Has surface data (1 = yes, 0 = no)
- *  Bits 2, 1   Hole (3 = ED + 2000 kbps, 2 = ED, 1 = HD, 0 = DD)
- *  Bit 3   Sides (1 = 2 sides, 0 = 1 side)
- *  Bit 4   Write protect (1 = yes, 0 = no)
- *  Bits 6, 5   RPM slowdown (3 = 2%, 2 = 1.5%, 1 = 1%, 0 = 0%)
- *  Bit 7   Bitcell mode (1 = Extra bitcells count specified after
- *      disk flags, 0 = No extra bitcells)
- *      The maximum number of extra bitcells is 1024 (which
- *      after decoding translates to 64 bytes)
- *  Bit 8   Disk type (1 = Zoned, 0 = Fixed RPM)
- *  Bits 10, 9  Zone type (3 = Commodore 64 zoned, 2 = Apple zoned,
- *      1 = Pre-Apple zoned #2, 0 = Pre-Apple zoned #1)
- *  Bit 11  Data and surface bits are stored in reverse byte endianness
- *  Bit 12  If bits 6, 5 are not 0, they specify % of speedup instead
- *      of slowdown;
- *      If bits 6, 5 are 0, and bit 7 is 1, the extra bitcell count
- *      specifies the entire bitcell count
+    Bit 0       Has surface data (1 = yes, 0 = no)
+    Bits 2, 1   Hole (3 = ED + 2000 kbps, 2 = ED, 1 = HD, 0 = DD)
+    Bit 3       Sides (1 = 2 sides, 0 = 1 side)
+    Bit 4       Write protect (1 = yes, 0 = no)
+    Bits 6, 5   RPM slowdown (3 = 2%, 2 = 1.5%, 1 = 1%, 0 = 0%)
+    Bit 7       Bitcell mode (1 = Extra bitcells count specified after
+                              disk flags, 0 = No extra bitcells)
+                The maximum number of extra bitcells is 1024 (which
+                after decoding translates to 64 bytes)
+    Bit 8       Disk type (1 = Zoned, 0 = Fixed RPM)
+    Bits 10, 9  Zone type (3 = Commodore 64 zoned, 2 = Apple zoned,
+                           1 = Pre-Apple zoned #2, 0 = Pre-Apple zoned #1)
+    Bit 11      Data and surface bits are stored in reverse byte endianness
+    Bit 12      If bits 6, 5 are not 0, they specify % of speedup instead
+                of slowdown;
+                If bits 6, 5 are 0, and bit 7 is 1, the extra bitcell count
+                specifies the entire bitcell count.
  */
 typedef struct d86f_t {
-    FILE     *fp;
-    uint8_t   state;
-    uint8_t   fill;
-    uint8_t   sector_count;
-    uint8_t   format_state;
-    uint8_t   error_condition;
-    uint8_t   id_found;
-    uint16_t  version;
-    uint16_t  disk_flags;
-    uint16_t  satisfying_bytes;
-    uint16_t  turbo_pos;
-    uint16_t  cur_track;
-    uint16_t  format_id_count;
+    FILE *           fp;
+    uint8_t          state;
+    uint8_t          fill;
+    uint8_t          sector_count;
+    uint8_t          format_state;
+    uint8_t          error_condition;
+    uint8_t          id_found;
+    uint16_t         version;
+    uint16_t         disk_flags;
+    uint16_t         satisfying_bytes;
+    uint16_t         turbo_pos;
+    uint16_t         cur_track;
+    uint16_t         format_id_count;
     d86f_format_id_t format_ids[256];
-    uint16_t  track_encoded_data[2][53048];
-    uint16_t *track_surface_data[2];
-    uint16_t  thin_track_encoded_data[2][2][53048];
-    uint16_t *thin_track_surface_data[2][2];
-    uint16_t  side_flags[2];
-    uint16_t  preceding_bit[2];
-    uint16_t  current_byte[2];
-    uint16_t  current_bit[2];
-    uint16_t  last_word[2];
-#ifdef D86F_COMPRESS
-    int is_compressed;
-#endif
-    int32_t     extra_bit_cells[2];
-    uint32_t    file_size;
-    uint32_t    index_count;
-    uint32_t    track_pos;
-    uint32_t    datac;
-    uint32_t    id_pos;
-    uint32_t    dma_over;
-    uint32_t    index_hole_pos[2];
-    uint32_t    track_offset[512];
-    sector_id_t last_sector;
-    sector_id_t req_sector;
-    find_t      id_find;
-    find_t      data_find;
-    crc_t       calc_crc;
-    crc_t       track_crc;
-    char        original_file_name[2048];
-    uint8_t    *filebuf;
-    uint8_t    *outbuf;
-    sector_t   *last_side_sector[2];
-    uint16_t    crc_table[256];
+    uint16_t         track_encoded_data[2][53048];
+    uint16_t *       track_surface_data[2];
+    uint16_t         thin_track_encoded_data[2][2][53048];
+    uint16_t *       thin_track_surface_data[2][2];
+    uint16_t         side_flags[2];
+    uint16_t         preceding_bit[2];
+    uint16_t         current_byte[2];
+    uint16_t         current_bit[2];
+    uint16_t         last_word[2];
+    int32_t          extra_bit_cells[2];
+    uint32_t         file_size;
+    uint32_t         index_count;
+    uint32_t         track_pos;
+    uint32_t         datac;
+    uint32_t         dma_over;
+    uint32_t         index_hole_pos[2];
+    uint32_t         track_offset[512];
+    sector_id_t      last_sector;
+    sector_id_t      req_sector;
+    find_t           id_find;
+    find_t           data_find;
+    crc_t            calc_crc;
+    crc_t            track_crc;
+    sector_t *       last_side_sector[2];
+    uint16_t         crc_table[256];
 } d86f_t;
 
 static const uint8_t encoded_fm[64] = {
@@ -248,16 +231,13 @@ static const uint8_t encoded_mfm[64] = {
     0x4a, 0x49, 0x44, 0x45, 0x52, 0x51, 0x54, 0x55
 };
 
-static d86f_t  *d86f[FDD_NUM];
-static fdc_t   *d86f_fdc;
 uint64_t        poly = 0x42F0E1EBA9EA3693LL; /* ECMA normal */
 
-uint16_t d86f_side_flags(int drive);
-int      d86f_is_mfm(int drive);
-void     d86f_writeback(int drive);
-uint8_t  d86f_poll_read_data(int drive, int side, uint16_t pos);
-void     d86f_poll_write_data(int drive, int side, uint16_t pos, uint8_t data);
-int      d86f_format_conditions(int drive);
+int      d86f_is_mfm(void *priv);
+void     d86f_writeback(void *priv);
+uint8_t  d86f_poll_read_data(void *priv, int side, uint16_t pos);
+void     d86f_poll_write_data(void *priv, int side, uint16_t pos, uint8_t data);
+int      d86f_format_conditions(void *priv);
 
 #ifdef ENABLE_D86F_LOG
 int d86f_do_log = ENABLE_D86F_LOG;
@@ -278,19 +258,22 @@ d86f_log(const char *fmt, ...)
 #endif
 
 void
-d86f_destroy_linked_lists(int drive, int side)
+d86f_destroy_linked_lists(void *priv, int side)
 {
-    d86f_t   *dev = d86f[drive];
-    sector_t *s;
-    sector_t *t;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if (drv == NULL)
+        return;
+
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     if (dev == NULL)
         return;
 
     if (dev->last_side_sector[side]) {
-        s = dev->last_side_sector[side];
+        sector_t *s = dev->last_side_sector[side];
         while (s) {
-            t = s->prev;
+            sector_t *t = s->prev;
             free(s);
             s = NULL;
             if (!t)
@@ -302,83 +285,93 @@ d86f_destroy_linked_lists(int drive, int side)
 }
 
 static int
-d86f_has_surface_desc(int drive)
+d86f_has_surface_desc(void *priv)
 {
-    return (d86f_handler[drive].disk_flags(drive) & 1);
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return (drv->d86f_handler.disk_flags(drv) & 1);
 }
 
 int
-d86f_get_sides(int drive)
+d86f_get_sides(void *priv)
 {
-    return ((d86f_handler[drive].disk_flags(drive) >> 3) & 1) + 1;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return ((drv->d86f_handler.disk_flags(drv) >> 3) & 1) + 1;
 }
 
 int
-d86f_get_rpm_mode(int drive)
+d86f_get_rpm_mode(void *priv)
 {
-    return (d86f_handler[drive].disk_flags(drive) & 0x60) >> 5;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return (drv->d86f_handler.disk_flags(drv) & 0x60) >> 5;
 }
 
 int
-d86f_get_speed_shift_dir(int drive)
+d86f_get_speed_shift_dir(void *priv)
 {
-    return (d86f_handler[drive].disk_flags(drive) & 0x1000) >> 12;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return (drv->d86f_handler.disk_flags(drv) & 0x1000) >> 12;
 }
 
 int
-d86f_reverse_bytes(int drive)
+d86f_reverse_bytes(void *priv)
 {
-    return (d86f_handler[drive].disk_flags(drive) & 0x800) >> 11;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return (drv->d86f_handler.disk_flags(drv) & 0x800) >> 11;
 }
 
 uint16_t
-d86f_disk_flags(int drive)
+d86f_disk_flags(void *priv)
 {
-    const d86f_t *dev = d86f[drive];
+    fdd_drive_t * drv = (fdd_drive_t *) priv;
+    const d86f_t *dev = (d86f_t *) drv->d86f_priv;
 
     return dev->disk_flags;
 }
 
 uint32_t
-d86f_index_hole_pos(int drive, int side)
+d86f_index_hole_pos(void *priv, int side)
 {
-    const d86f_t *dev = d86f[drive];
+    fdd_drive_t * drv = (fdd_drive_t *) priv;
+    const d86f_t *dev = (d86f_t *) drv->d86f_priv;
 
     return dev->index_hole_pos[side];
 }
 
 uint32_t
-null_index_hole_pos(UNUSED(int drive), UNUSED(int side))
+null_index_hole_pos(UNUSED(void *priv), UNUSED(int side))
 {
     return 0;
 }
 
 uint16_t
-null_disk_flags(UNUSED(int drive))
+null_disk_flags(UNUSED(void *priv))
 {
     return 0x09;
 }
 
 uint16_t
-null_side_flags(UNUSED(int drive))
+null_side_flags(UNUSED(void *priv))
 {
     return 0x0A;
 }
 
 void
-null_writeback(UNUSED(int drive))
+null_writeback(UNUSED(void *priv))
 {
-    return;
 }
 
 void
-null_set_sector(UNUSED(int drive), UNUSED(int side), UNUSED(uint8_t c), UNUSED(uint8_t h), UNUSED(uint8_t r), UNUSED(uint8_t n))
+null_set_sector(UNUSED(void *priv), UNUSED(int side), UNUSED(uint8_t c), UNUSED(uint8_t h), UNUSED(uint8_t r), UNUSED(uint8_t n))
 {
-    return;
 }
 
 int
-null_format_track(UNUSED(int drive), UNUSED(int side),
+null_format_track(UNUSED(void *priv), UNUSED(int side),
                   UNUSED(const d86f_format_id_t *ids), UNUSED(uint16_t count),
                   UNUSED(uint8_t fill))
 {
@@ -386,87 +379,79 @@ null_format_track(UNUSED(int drive), UNUSED(int side),
 }
 
 void
-null_write_data(UNUSED(int drive), UNUSED(int side), UNUSED(uint16_t pos), UNUSED(uint8_t data))
+null_write_data(UNUSED(void *priv), UNUSED(int side), UNUSED(uint16_t pos), UNUSED(uint8_t data))
 {
-    return;
 }
 
 int
-null_format_conditions(UNUSED(int drive))
+null_format_conditions(UNUSED(void *priv))
 {
     return 0;
 }
 
 int32_t
-d86f_extra_bit_cells(int drive, int side)
+d86f_extra_bit_cells(void *priv, const int side)
 {
-    const d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv  = (fdd_drive_t *) priv;
+    const d86f_t *dev = (d86f_t *) drv->d86f_priv;
 
     return dev->extra_bit_cells[side];
 }
 
 int32_t
-null_extra_bit_cells(UNUSED(int drive), UNUSED(int side))
+null_extra_bit_cells(UNUSED(void *priv), UNUSED(int side))
 {
     return 0;
 }
 
 uint16_t *
-common_encoded_data(int drive, int side)
+common_encoded_data(void *priv, int side)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     return dev->track_encoded_data[side];
 }
 
 void
-common_read_revolution(UNUSED(int drive))
+common_read_revolution(UNUSED(void *priv))
 {
-    return;
 }
 
 uint16_t
-d86f_side_flags(int drive)
+d86f_side_flags(void *priv)
 {
-    const d86f_t *dev = d86f[drive];
-    int           side;
+    fdd_drive_t * drv  = (fdd_drive_t *) priv;
+    const d86f_t *dev  = (d86f_t *) drv->d86f_priv;
 
-    side = fdd_get_head(drive);
+    int           side = fdd_get_head(drv);
 
     return dev->side_flags[side];
 }
 
 uint16_t
-d86f_track_flags(int drive)
+d86f_track_flags(void *priv)
 {
-    uint16_t dr;
-    uint16_t rr;
-    uint16_t tf;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
 
-    tf = d86f_handler[drive].side_flags(drive);
-    rr = tf & 0x67;
-    dr = fdd_get_flags(drive) & 7;
+    uint16_t       tf = drv->d86f_handler.side_flags(drv);
+    const uint16_t rr = tf & 0x67;
+    const uint16_t dr = fdd_get_flags(drv) & 7;
     tf &= ~0x67;
 
     switch (rr) {
+        default:
+            tf |= rr;
+            break;
         case 0x02:
         case 0x21:
             /* 1 MB unformatted medium, treat these two as equivalent. */
-            switch (dr) {
-                case 0x06:
-                    /* 5.25" Single-RPM HD drive, treat as 300 kbps, 360 rpm. */
-                    tf |= 0x21;
-                    break;
-
-                default:
-                    /* Any other drive, treat as 250 kbps, 300 rpm. */
-                    tf |= 0x02;
-                    break;
-            }
-            break;
-
-        default:
-            tf |= rr;
+            if (dr == 0x06)
+                /* 5.25" Single-RPM HD drive, treat as 300 kbps, 360 rpm. */
+                tf |= 0x21;
+            else
+                /* Any other drive, treat as 250 kbps, 300 rpm. */
+                tf |= 0x02;
             break;
     }
 
@@ -474,26 +459,22 @@ d86f_track_flags(int drive)
 }
 
 uint32_t
-common_get_raw_size(int drive, int side)
+common_get_raw_size(void *priv, int const side)
 {
-    double   rate = 0.0;
-    double   rpm;
-    double   rpm_diff;
-    double   size = 100000.0;
-    int      mfm;
-    int      rm;
-    int      ssd;
-    uint32_t extra_bc = 0;
+    fdd_drive_t *  drv      = (fdd_drive_t *) priv;
+    double         rate     = 0.0;
+    double         size     = 100000.0;
+    uint32_t       extra_bc = 0;
 
-    mfm      = d86f_is_mfm(drive);
-    rpm      = ((d86f_track_flags(drive) & 0xE0) == 0x20) ? 360.0 : 300.0;
-    rpm_diff = 1.0;
-    rm       = d86f_get_rpm_mode(drive);
-    ssd      = d86f_get_speed_shift_dir(drive);
+    const int      mfm      = d86f_is_mfm(drv);
+    const double   rpm      = ((d86f_track_flags(drv) & 0xE0) == 0x20) ? 360.0 : 300.0;
+    double         rpm_diff = 1.0;
+    const int      rm       = d86f_get_rpm_mode(drv);
+    const int      ssd      = d86f_get_speed_shift_dir(drv);
 
     /* 0% speed shift and shift direction 1: special case where extra bit cells are the entire track size. */
     if (!rm && ssd)
-        extra_bc = d86f_handler[drive].extra_bit_cells(drive, side);
+        extra_bc = drv->d86f_handler.extra_bit_cells(drv, side);
 
     if (extra_bc)
         return extra_bc;
@@ -519,7 +500,7 @@ common_get_raw_size(int drive, int side)
     if (ssd)
         rpm_diff = 1.0 / rpm_diff;
 
-    switch (d86f_track_flags(drive) & 7) {
+    switch (d86f_track_flags(drv) & 7) {
         case 0:
             rate = 500.0;
             break;
@@ -556,75 +537,78 @@ common_get_raw_size(int drive, int side)
      * Round down to a multiple of 16 and add the extra bit cells,
      * then return.
      */
-    return ((((uint32_t) size) >> 4) << 4) + d86f_handler[drive].extra_bit_cells(drive, side);
+    return ((((uint32_t) size) >> 4) << 4) +
+              drv->d86f_handler.extra_bit_cells(drv, side);
 }
 
 void
-d86f_set_version(int drive, uint16_t version)
+d86f_set_version(void *priv, uint16_t version)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     dev->version = version;
 }
 
 void
-d86f_unregister(int drive)
+d86f_unregister(void *priv)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *dev      = (d86f_t *) drv->d86f_priv;
 
     if (dev == NULL)
         return;
 
-    d86f_handler[drive].disk_flags        = null_disk_flags;
-    d86f_handler[drive].side_flags        = null_side_flags;
-    d86f_handler[drive].writeback         = null_writeback;
-    d86f_handler[drive].set_sector        = null_set_sector;
-    d86f_handler[drive].format_track      = null_format_track;
-    d86f_handler[drive].write_data        = null_write_data;
-    d86f_handler[drive].format_conditions = null_format_conditions;
-    d86f_handler[drive].extra_bit_cells   = null_extra_bit_cells;
-    d86f_handler[drive].encoded_data      = common_encoded_data;
-    d86f_handler[drive].read_revolution   = common_read_revolution;
-    d86f_handler[drive].index_hole_pos    = null_index_hole_pos;
-    d86f_handler[drive].get_raw_size      = common_get_raw_size;
-    d86f_handler[drive].check_crc         = 0;
+    drv->d86f_handler.disk_flags        = null_disk_flags;
+    drv->d86f_handler.side_flags        = null_side_flags;
+    drv->d86f_handler.writeback         = null_writeback;
+    drv->d86f_handler.set_sector        = null_set_sector;
+    drv->d86f_handler.format_track      = null_format_track;
+    drv->d86f_handler.write_data        = null_write_data;
+    drv->d86f_handler.format_conditions = null_format_conditions;
+    drv->d86f_handler.extra_bit_cells   = null_extra_bit_cells;
+    drv->d86f_handler.encoded_data      = common_encoded_data;
+    drv->d86f_handler.read_revolution   = common_read_revolution;
+    drv->d86f_handler.index_hole_pos    = null_index_hole_pos;
+    drv->d86f_handler.get_raw_size      = common_get_raw_size;
+    drv->d86f_handler.check_crc         = 0;
 
     dev->version = 0x0063; /* Proxied formats report as version 0.99. */
 }
 
 void
-d86f_register_86f(int drive)
+d86f_register_86f(void *priv)
 {
-    d86f_handler[drive].disk_flags        = d86f_disk_flags;
-    d86f_handler[drive].side_flags        = d86f_side_flags;
-    d86f_handler[drive].writeback         = d86f_writeback;
-    d86f_handler[drive].set_sector        = null_set_sector;
-    d86f_handler[drive].format_track      = null_format_track;
-    d86f_handler[drive].write_data        = null_write_data;
-    d86f_handler[drive].format_conditions = d86f_format_conditions;
-    d86f_handler[drive].extra_bit_cells   = d86f_extra_bit_cells;
-    d86f_handler[drive].encoded_data      = common_encoded_data;
-    d86f_handler[drive].read_revolution   = common_read_revolution;
-    d86f_handler[drive].index_hole_pos    = d86f_index_hole_pos;
-    d86f_handler[drive].get_raw_size      = common_get_raw_size;
-    d86f_handler[drive].check_crc         = 1;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    drv->d86f_handler.disk_flags        = d86f_disk_flags;
+    drv->d86f_handler.side_flags        = d86f_side_flags;
+    drv->d86f_handler.writeback         = d86f_writeback;
+    drv->d86f_handler.set_sector        = null_set_sector;
+    drv->d86f_handler.format_track      = null_format_track;
+    drv->d86f_handler.write_data        = null_write_data;
+    drv->d86f_handler.format_conditions = d86f_format_conditions;
+    drv->d86f_handler.extra_bit_cells   = d86f_extra_bit_cells;
+    drv->d86f_handler.encoded_data      = common_encoded_data;
+    drv->d86f_handler.read_revolution   = common_read_revolution;
+    drv->d86f_handler.index_hole_pos    = d86f_index_hole_pos;
+    drv->d86f_handler.get_raw_size      = common_get_raw_size;
+    drv->d86f_handler.check_crc         = 1;
 }
 
 int
-d86f_get_array_size(int drive, int side, int words)
+d86f_get_array_size(void *priv, const int side, const int words)
 {
-    int array_size;
-    int hole;
-    int rm;
-    int ssd;
-    int mpc;
+    fdd_drive_t *drv  = (fdd_drive_t *) priv;
+    int          array_size;
 
-    rm   = d86f_get_rpm_mode(drive);
-    ssd  = d86f_get_speed_shift_dir(drive);
-    hole = (d86f_handler[drive].disk_flags(drive) >> 1) & 3;
-    mpc  = (d86f_handler[drive].disk_flags(drive) >> 13) & 1;
+    const int    rm   = d86f_get_rpm_mode(drv);
+    const int    ssd  = d86f_get_speed_shift_dir(drv);
+    const int    hole = (drv->d86f_handler.disk_flags(drv) >> 1) & 3;
+    const int    mpc  = (drv->d86f_handler.disk_flags(drv) >> 13) & 1;
 
-    if (!rm && ssd) /* Special case - extra bit cells size specifies entire array size. */
+    if (!rm && ssd)
+        /* Special case - extra bit cells size specifies entire array size. */
         array_size = 0;
     else
         switch (hole) {
@@ -692,7 +676,7 @@ d86f_get_array_size(int drive, int side, int words)
         }
 
     array_size <<= 4;
-    array_size += d86f_handler[drive].extra_bit_cells(drive, side);
+    array_size += drv->d86f_handler.extra_bit_cells(drv, side);
 
     if (mpc && !words) {
         if (array_size & 7)
@@ -713,16 +697,16 @@ d86f_get_array_size(int drive, int side, int words)
 }
 
 int
-d86f_valid_bit_rate(int drive)
+d86f_valid_bit_rate(void *priv)
 {
-    int hole;
-    int rate;
+    fdd_drive_t *drv  = (fdd_drive_t *) priv;
 
-    rate = fdc_get_bit_rate(d86f_fdc);
-    hole = (d86f_handler[drive].disk_flags(drive) & 6) >> 1;
+    const int    rate = fdc_get_bit_rate(drv->fdc);
+    const int    hole = (drv->d86f_handler.disk_flags(drv) & 6) >> 1;
+
     switch (hole) {
         case 0: /* DD */
-            if (!rate && (fdd_get_flags(drive) & 0x10))
+            if (!rate && (fdd_get_flags(drv) & 0x10))
                 return 1;
             if ((rate < 1) || (rate > 2))
                 return 0;
@@ -751,62 +735,76 @@ d86f_valid_bit_rate(int drive)
 }
 
 int
-d86f_hole(int drive)
+d86f_hole(void *priv)
 {
-    if (((d86f_handler[drive].disk_flags(drive) >> 1) & 3) == 3)
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if (((drv->d86f_handler.disk_flags(drv) >> 1) & 3) == 3)
         return 2;
 
-    return (d86f_handler[drive].disk_flags(drive) >> 1) & 3;
+    return (drv->d86f_handler.disk_flags(drv) >> 1) & 3;
 }
 
 void
-d86f_set_track_pos(const int drive, const uint32_t track_pos)
+d86f_set_track_pos(void *priv, const uint32_t track_pos)
 {
-    d86f_t    *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     if (dev != NULL)
         dev->track_pos = track_pos;
 }
 
 uint32_t
-d86f_get_track_pos(const int drive)
+d86f_get_track_pos(void *priv)
 {
-    const d86f_t *dev = d86f[drive];
+    fdd_drive_t * drv = (fdd_drive_t *) priv;
+    const d86f_t *dev = (d86f_t *) drv->d86f_priv;
 
-    if (dev == NULL)
-        return 0;
+    uint32_t      ret = 0;
 
-    return dev->track_pos;
+    if (dev != NULL)
+        ret = dev->track_pos;
+
+    return ret;
 }
 
 uint32_t
-d86f_get_raw_size(const int drive, const int side)
+d86f_get_raw_size(void *priv, const int side)
 {
-    const d86f_t *dev = d86f[drive];
+    fdd_drive_t * drv = (fdd_drive_t *) priv;
+    const d86f_t *dev = (d86f_t *) drv->d86f_priv;
 
-    if (dev == NULL)
-        return 12500;
+    uint32_t      ret = 12500;
 
-    return d86f_handler[drive].get_raw_size(drive, side);
+    if (dev != NULL)
+        ret = drv->d86f_handler.get_raw_size(drv, side);
+
+    return ret;
 }
 
 uint8_t
-d86f_get_encoding(int drive)
+d86f_get_encoding(void *priv)
 {
-    return (d86f_track_flags(drive) & 0x18) >> 3;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return (d86f_track_flags(drv) & 0x18) >> 3;
 }
 
 uint64_t
-d86f_byteperiod(int drive)
+d86f_byteperiod(void *priv)
 {
-    d86f_t   *dev = d86f[drive];
-    uint64_t  ret = 32ULL * TIMER_USEC;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    if (!fdd_get_turbo(drive) || (dev->version != 0x0063) || (dev->state == STATE_SECTOR_NOT_FOUND)) {
-        double dusec = (double) TIMER_USEC;
-        double p     = 2.0;
+    uint64_t     ret = 32ULL * TIMER_USEC;
 
-        switch (d86f_track_flags(drive) & 0x0f) {
+    if (!fdd_get_turbo(drv) || (dev->version != 0x0063) ||
+        (dev->state == STATE_SECTOR_NOT_FOUND)) {
+        const double dusec = (double) TIMER_USEC;
+        double       p     = 2.0;
+
+        switch (d86f_track_flags(drv) & 0x0f) {
             case 0x02: /* 125 kbps, FM */
                 p = 4.0;
                 break;
@@ -839,43 +837,47 @@ d86f_byteperiod(int drive)
 }
 
 int
-d86f_is_mfm(int drive)
+d86f_is_mfm(void *priv)
 {
-    return ((d86f_track_flags(drive) & 0x18) == 0x08) ? 1 : 0;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return ((d86f_track_flags(drv) & 0x18) == 0x08) ? 1 : 0;
 }
 
 uint32_t
-d86f_get_data_len(int drive)
+d86f_get_data_len(void *priv)
 {
-    const d86f_t  *dev = d86f[drive];
-    uint32_t       i;
-    uint32_t       ret = 128;
+    fdd_drive_t * drv = (fdd_drive_t *) priv;
+    const d86f_t *dev = (d86f_t *) drv->d86f_priv;
+    uint32_t      i;
+    uint32_t      ret = 128;
 
     if (dev->req_sector.id.n)
         ret = (uint32_t) 128 << dev->req_sector.id.n;
-    else if ((i = fdc_get_dtl(d86f_fdc)) < 128)
+    else if ((i = fdc_get_dtl(drv->fdc)) < 128)
         ret = i;
 
     return ret;
 }
 
 uint32_t
-d86f_has_extra_bit_cells(int drive)
+d86f_has_extra_bit_cells(void *priv)
 {
-    return (d86f_handler[drive].disk_flags(drive) >> 7) & 1;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return (drv->d86f_handler.disk_flags(drv) >> 7) & 1;
 }
 
 uint32_t
-d86f_header_size(UNUSED(int drive))
+d86f_header_size(UNUSED(void *priv))
 {
     return 8;
 }
 
 static uint16_t
-d86f_encode_get_data(uint8_t dat)
+d86f_encode_get_data(const uint8_t dat)
 {
-    uint16_t temp;
-    temp = 0;
+    uint16_t temp = 0;
 
     if (dat & 0x01)
         temp |= 1;
@@ -898,10 +900,9 @@ d86f_encode_get_data(uint8_t dat)
 }
 
 static uint16_t
-d86f_encode_get_clock(uint8_t dat)
+d86f_encode_get_clock(const uint8_t dat)
 {
-    uint16_t temp;
-    temp = 0;
+    uint16_t temp = 0;
 
     if (dat & 0x01)
         temp |= 2;
@@ -924,75 +925,70 @@ d86f_encode_get_clock(uint8_t dat)
 }
 
 int
-d86f_format_conditions(int drive)
+d86f_format_conditions(void *priv)
 {
-    return d86f_valid_bit_rate(drive);
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    return d86f_valid_bit_rate(drv);
 }
 
 int
-d86f_wrong_densel(int drive)
+d86f_wrong_densel(void *priv)
 {
-    int is_3mode = 0;
+    fdd_drive_t *drv      = (fdd_drive_t *) priv;
+    int          is_3mode = 0;
 
-    if ((fdd_get_flags(drive) & 7) == 3)
+    int          ret      = 0;
+
+    if ((fdd_get_flags(drv) & 7) == 3)
         is_3mode = 1;
 
-    switch (d86f_hole(drive)) {
+    switch (d86f_hole(drv)) {
         default:
         case 0:
-            if (fdd_is_dd(drive))
-                return 0;
-            if (fdd_get_densel(drive))
-                return 1;
-            else
-                return 0;
+            if (!fdd_is_dd(drv) && fdd_get_densel(drv))
+                ret = 1;
+            break;
 
         case 1:
-            if (fdd_is_dd(drive))
-                return 1;
-            if (fdd_get_densel(drive))
-                return 0;
-            else {
-                if (is_3mode)
-                    return 0;
-                else
-                    return 1;
-            }
+            if (fdd_is_dd(drv) || (!fdd_get_densel(drv) && !is_3mode))
+                ret = 1;
+            break;
 
         case 2:
-            if (fdd_is_dd(drive) || !fdd_is_ed(drive))
-                return 1;
-            if (fdd_get_densel(drive))
-                return 0;
-            else
-                return 1;
+            if (fdd_is_dd(drv) || !fdd_is_ed(drv) || !fdd_get_densel(drv))
+                ret = 1;
+            break;
     }
+
+    return ret;
 }
 
 int
-d86f_can_format(int drive)
+d86f_can_format(void *priv)
 {
-    int temp;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    int          ret = !drv->writeprot;
 
-    temp = !writeprot[drive];
-    temp = temp && !fdc_get_swwp(d86f_fdc);
-    temp = temp && fdd_can_read_medium(real_drive(d86f_fdc, drive));
-    temp = temp && d86f_handler[drive].format_conditions(drive); /* Allows proxied formats to add their own extra conditions to formatting. */
-    temp = temp && !d86f_wrong_densel(drive);
+    ret = ret && !fdc_get_swwp(drv->fdc);
+    ret = ret && fdd_can_read_medium(&drives[real_drive(drv->fdc, drv->id)]);
+    /* Allows proxied formats to add their own extra conditions to formatting. */
+    ret = ret && drv->d86f_handler.format_conditions(drv);
+    ret = ret && !d86f_wrong_densel(drv);
 
-    return temp;
+    return ret;
 }
 
 uint16_t
-d86f_encode_byte(int drive, int sync, decoded_t b, decoded_t prev_b)
+d86f_encode_byte(void *priv, const int sync, const decoded_t b, const decoded_t prev_b)
 {
-    uint8_t  encoding = d86f_get_encoding(drive);
-    uint8_t  bits89AB = prev_b.nibbles.nibble0;
-    uint8_t  bits7654 = b.nibbles.nibble1;
-    uint8_t  bits3210 = b.nibbles.nibble0;
-    uint16_t encoded_7654;
-    uint16_t encoded_3210;
-    uint16_t result;
+    fdd_drive_t *  drv      = (fdd_drive_t *) priv;
+
+    const uint8_t  encoding = d86f_get_encoding(drv);
+    const uint8_t  bits89AB = prev_b.nibbles.nibble0;
+    uint8_t        bits7654 = b.nibbles.nibble1;
+    uint8_t        bits3210 = b.nibbles.nibble0;
+    uint16_t       result;
 
     if (encoding > 1)
         return 0xffff;
@@ -1036,25 +1032,28 @@ d86f_encode_byte(int drive, int sync, decoded_t b, decoded_t prev_b)
         }
     }
 
-    bits3210 += ((bits7654 & 3) << 4);
-    bits7654 += ((bits89AB & 3) << 4);
-    encoded_3210 = (encoding == 1) ? encoded_mfm[bits3210] : encoded_fm[bits3210];
-    encoded_7654 = (encoding == 1) ? encoded_mfm[bits7654] : encoded_fm[bits7654];
-    result       = (encoded_7654 << 8) | encoded_3210;
+    bits3210                    += ((bits7654 & 3) << 4);
+    bits7654                    += ((bits89AB & 3) << 4);
+    const uint16_t encoded_3210  = (encoding == 1) ? encoded_mfm[bits3210] :
+                                                     encoded_fm[bits3210];
+    const uint16_t encoded_7654  = (encoding == 1) ? encoded_mfm[bits7654] :
+                                                     encoded_fm[bits7654];
+    result                       = (encoded_7654 << 8) | encoded_3210;
 
     return result;
 }
 
 static int
-d86f_get_bitcell_period(int drive)
+d86f_get_bitcell_period(void *priv)
 {
-    double rate   = 0.0;
-    int    mfm    = 0;
-    int    tflags = 0;
-    double rpm    = 0;
-    double size   = 8000.0;
+    fdd_drive_t *drv      = (fdd_drive_t *) priv;
+    double       rate     = 0.0;
+    int          mfm      = 0;
+    int          tflags   = 0;
+    double       rpm      = 0;
+    double       size     = 8000.0;
 
-    tflags = d86f_track_flags(drive);
+    tflags = d86f_track_flags(drv);
 
     mfm = (tflags & 8) ? 1 : 0;
     rpm = ((tflags & 0xE0) == 0x20) ? 360.0 : 300.0;
@@ -1088,65 +1087,65 @@ d86f_get_bitcell_period(int drive)
         rate /= 2.0;
     size = (size * 250.0) / rate;
     size = (size * 300.0) / rpm;
-    size = (size * fdd_getrpm(real_drive(d86f_fdc, drive))) / 300.0;
+    size = (size * fdd_getrpm(&drives[real_drive(drv->fdc, drv->id)])) / 300.0;
 
     return (int) size;
 }
 
 int
-d86f_can_read_address(int drive)
+d86f_can_read_address(void *priv)
 {
-    int temp;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    int          ret = (fdc_get_bitcell_period(drv->fdc) == d86f_get_bitcell_period(drv));
 
-    temp = (fdc_get_bitcell_period(d86f_fdc) == d86f_get_bitcell_period(drive));
-    temp = temp && fdd_can_read_medium(real_drive(d86f_fdc, drive));
-    temp = temp && (fdc_is_mfm(d86f_fdc) == d86f_is_mfm(drive));
-    temp = temp && (d86f_get_encoding(drive) <= 1);
+    ret = ret && fdd_can_read_medium(&drives[real_drive(drv->fdc, drv->id)]);
+    ret = ret && (fdc_is_mfm(drv->fdc) == d86f_is_mfm(drv));
+    ret = ret && (d86f_get_encoding(drv) <= 1);
 
-    return temp;
+    return ret;
 }
 
 void
-d86f_get_bit(int drive, int side)
+d86f_get_bit(void *priv, const int side)
 {
-    d86f_t  *dev = d86f[drive];
-    uint32_t track_word;
-    uint32_t track_bit;
-    uint16_t encoded_data;
-    uint16_t surface_data = 0;
-    uint16_t current_bit;
-    uint16_t surface_bit;
-
-    track_word = dev->track_pos >> 4;
-
+    fdd_drive_t *  drv          = (fdd_drive_t *) priv;
+    d86f_t *       dev          = (d86f_t *) drv->d86f_priv;
+    uint32_t       track_word   = dev->track_pos >> 4;
     /* We need to make sure we read the bits from MSB to LSB. */
-    track_bit = 15 - (dev->track_pos & 15);
+    const uint32_t track_bit    = 15 - (dev->track_pos & 15);
+    uint16_t       encoded_data;
+    uint16_t       surface_data = 0;
 
-    if (d86f_reverse_bytes(drive)) {
+    if (d86f_reverse_bytes(drv)) {
         /* Image is in reverse endianness, read the data as is. */
-        encoded_data = d86f_handler[drive].encoded_data(drive, side)[track_word];
+        encoded_data = drv->d86f_handler.encoded_data(drv, side)[track_word];
     } else {
-        /* We store the words as big endian, so we need to convert them to little endian when reading. */
-        encoded_data = (d86f_handler[drive].encoded_data(drive, side)[track_word] & 0xFF) << 8;
-        encoded_data |= (d86f_handler[drive].encoded_data(drive, side)[track_word] >> 8);
+        /*
+           We store the words as big endian, so we need to convert them to little endian
+           when reading.
+         */
+        encoded_data = (drv->d86f_handler.encoded_data(drv, side)[track_word] & 0xff) << 8;
+        encoded_data |= (drv->d86f_handler.encoded_data(drv, side)[track_word] >> 8);
     }
 
-    /* In some cases, misindentification occurs so we need to make sure the surface data array is not
-       not NULL. */
-    if (d86f_has_surface_desc(drive) && dev->track_surface_data[side]) {
-        if (d86f_reverse_bytes(drive))
-            surface_data = dev->track_surface_data[side][track_word] & 0xFF;
+    /*
+       In some cases, misindentification occurs so we need to make sure the surface data
+       array is not NULL.
+     */
+    if (d86f_has_surface_desc(drv) && dev->track_surface_data[side]) {
+        if (d86f_reverse_bytes(drv))
+            surface_data = dev->track_surface_data[side][track_word] & 0xff;
         else {
-            surface_data = (dev->track_surface_data[side][track_word] & 0xFF) << 8;
+            surface_data = (dev->track_surface_data[side][track_word] & 0xff) << 8;
             surface_data |= (dev->track_surface_data[side][track_word] >> 8);
         }
     }
 
-    current_bit = (encoded_data >> track_bit) & 1;
+    const uint16_t current_bit = (encoded_data >> track_bit) & 1;
     dev->last_word[side] <<= 1;
 
-    if (d86f_has_surface_desc(drive) && dev->track_surface_data[side]) {
-        surface_bit = (surface_data >> track_bit) & 1;
+    if (d86f_has_surface_desc(drv) && dev->track_surface_data[side]) {
+        const uint16_t surface_bit = (surface_data >> track_bit) & 1;
         if (!surface_bit)
             dev->last_word[side] |= current_bit;
         else {
@@ -1158,47 +1157,44 @@ d86f_get_bit(int drive, int side)
 }
 
 void
-d86f_put_bit(int drive, int side, int bit)
+d86f_put_bit(void *priv, const int side, const int bit)
 {
-    d86f_t  *dev = d86f[drive];
-    uint32_t track_word;
-    uint32_t track_bit;
-    uint16_t encoded_data;
-    uint16_t surface_data = 0;
-    uint16_t current_bit;
-    uint16_t surface_bit;
+    fdd_drive_t *  drv          = (fdd_drive_t *) priv;
+    d86f_t *       dev          = (d86f_t *) drv->d86f_priv;
+    uint16_t       surface_data = 0;
+    uint16_t       encoded_data;
 
-    if (fdc_get_diswr(d86f_fdc))
+    if (fdc_get_diswr(drv->fdc))
         return;
 
-    track_word = dev->track_pos >> 4;
+    uint32_t       track_word   = dev->track_pos >> 4;
 
     /* We need to make sure we read the bits from MSB to LSB. */
-    track_bit = 15 - (dev->track_pos & 15);
+    const uint32_t track_bit = 15 - (dev->track_pos & 15);
 
-    if (d86f_reverse_bytes(drive)) {
+    if (d86f_reverse_bytes(drv)) {
         /* Image is in reverse endianness, read the data as is. */
-        encoded_data = d86f_handler[drive].encoded_data(drive, side)[track_word];
+        encoded_data = drv->d86f_handler.encoded_data(drv, side)[track_word];
     } else {
         /* We store the words as big endian, so we need to convert them to little endian when reading. */
-        encoded_data = (d86f_handler[drive].encoded_data(drive, side)[track_word] & 0xFF) << 8;
-        encoded_data |= (d86f_handler[drive].encoded_data(drive, side)[track_word] >> 8);
+        encoded_data = (drv->d86f_handler.encoded_data(drv, side)[track_word] & 0xff) << 8;
+        encoded_data |= (drv->d86f_handler.encoded_data(drv, side)[track_word] >> 8);
     }
 
-    if (d86f_has_surface_desc(drive)) {
-        if (d86f_reverse_bytes(drive))
-            surface_data = dev->track_surface_data[side][track_word] & 0xFF;
+    if (d86f_has_surface_desc(drv)) {
+        if (d86f_reverse_bytes(drv))
+            surface_data = dev->track_surface_data[side][track_word] & 0xff;
         else {
-            surface_data = (dev->track_surface_data[side][track_word] & 0xFF) << 8;
+            surface_data = (dev->track_surface_data[side][track_word] & 0xff) << 8;
             surface_data |= (dev->track_surface_data[side][track_word] >> 8);
         }
     }
 
-    current_bit = (encoded_data >> track_bit) & 1;
+    uint16_t current_bit = (encoded_data >> track_bit) & 1;
     dev->last_word[side] <<= 1;
 
-    if (d86f_has_surface_desc(drive)) {
-        surface_bit = (surface_data >> track_bit) & 1;
+    if (d86f_has_surface_desc(drv)) {
+        uint16_t surface_bit = (surface_data >> track_bit) & 1;
         if (!surface_bit) {
             dev->last_word[side] |= bit;
             current_bit = bit;
@@ -1213,7 +1209,7 @@ d86f_put_bit(int drive, int side, int bit)
 
         surface_data &= ~(1 << track_bit);
         surface_data |= (surface_bit << track_bit);
-        if (d86f_reverse_bytes(drive))
+        if (d86f_reverse_bytes(drv))
             dev->track_surface_data[side][track_word] = surface_data;
         else {
             dev->track_surface_data[side][track_word] = (surface_data & 0xFF) << 8;
@@ -1227,16 +1223,16 @@ d86f_put_bit(int drive, int side, int bit)
     encoded_data &= ~(1 << track_bit);
     encoded_data |= (current_bit << track_bit);
 
-    if (d86f_reverse_bytes(drive))
-        d86f_handler[drive].encoded_data(drive, side)[track_word] = encoded_data;
+    if (d86f_reverse_bytes(drv))
+        drv->d86f_handler.encoded_data(drv, side)[track_word] = encoded_data;
     else {
-        d86f_handler[drive].encoded_data(drive, side)[track_word] = (encoded_data & 0xFF) << 8;
-        d86f_handler[drive].encoded_data(drive, side)[track_word] |= (encoded_data >> 8);
+        drv->d86f_handler.encoded_data(drv, side)[track_word] = (encoded_data & 0xFF) << 8;
+        drv->d86f_handler.encoded_data(drv, side)[track_word] |= (encoded_data >> 8);
     }
 }
 
 static uint8_t
-decodefm(UNUSED(int drive), uint16_t dat)
+decodefm(UNUSED(void *priv), const uint16_t dat)
 {
     uint8_t temp = 0;
 
@@ -1265,27 +1261,27 @@ decodefm(UNUSED(int drive), uint16_t dat)
 }
 
 static void
-d86f_calccrc(d86f_t *dev, uint8_t byte)
+d86f_calccrc(d86f_t *dev, const uint8_t byte)
 {
     crc16_calc(dev->crc_table, byte, &(dev->calc_crc));
 }
 
 int
-d86f_word_is_aligned(int drive, int side, uint32_t base_pos)
+d86f_word_is_aligned(void *priv, const int side, uint32_t base_pos)
 {
-    const d86f_t  *dev                = d86f[drive];
-    uint32_t       adjusted_track_pos = dev->track_pos;
+    fdd_drive_t * drv                = (fdd_drive_t *) priv;
+    const d86f_t *dev                = (d86f_t *) drv->d86f_priv;
+    uint32_t      adjusted_track_pos = dev->track_pos;
 
-    if (base_pos == 0xFFFFFFFF)
+    if (base_pos == 0xffffffff)
         return 0;
 
     /*
-     * This is very important, it makes sure alignment is detected
-     * correctly even across the index hole of a track whose length
-     * is not divisible by 16.
+       This is very important, it makes sure alignment is detected correctly even across
+       the index hole of a track whose length is not divisible by 16.
      */
     if (adjusted_track_pos < base_pos)
-        adjusted_track_pos += d86f_handler[drive].get_raw_size(drive, side);
+        adjusted_track_pos += drv->d86f_handler.get_raw_size(drv, side);
 
     if ((adjusted_track_pos & 15) == (base_pos & 15))
         return 1;
@@ -1295,17 +1291,18 @@ d86f_word_is_aligned(int drive, int side, uint32_t base_pos)
 
 /* State 1: Find sector ID */
 void
-d86f_find_address_mark_fm(int drive, int side, find_t *find, uint16_t req_am,
-                          uint16_t other_am, uint16_t wrong_am,
-                          uint16_t ignore_other_am)
+d86f_find_address_mark_fm(void *priv, const int side, find_t *find,
+                          const uint16_t req_am, const uint16_t other_am,
+                          const uint16_t wrong_am, const uint16_t ignore_other_am)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    d86f_get_bit(drive, side);
+    d86f_get_bit(drv, side);
 
     if (dev->last_word[side] == req_am) {
-        dev->calc_crc.word = 0xFFFF;
-        crc16_calc(dev->crc_table, decodefm(drive, dev->last_word[side]),
+        dev->calc_crc.word = 0xffff;
+        crc16_calc(dev->crc_table, decodefm(drv, dev->last_word[side]),
                    &(dev->calc_crc));
         find->sync_marks = find->bits_obtained =
         find->bytes_obtained                   = 0;
@@ -1320,49 +1317,55 @@ d86f_find_address_mark_fm(int drive, int side, find_t *find, uint16_t req_am,
         dev->data_find.bytes_obtained                            = 0;
         dev->error_condition                                     = 0;
         dev->state                                               = STATE_IDLE;
-        fdc_nodataam(d86f_fdc);
+        fdc_nodataam(drv->fdc);
         return;
     }
 
     if ((ignore_other_am & 2) && (dev->last_word[side] == other_am)) {
-        dev->calc_crc.word = 0xFFFF;
-        crc16_calc(dev->crc_table, decodefm(drive, dev->last_word[side]),
+        dev->calc_crc.word = 0xffff;
+        crc16_calc(dev->crc_table, decodefm(drv, dev->last_word[side]),
                    &(dev->calc_crc));
         find->sync_marks = find->bits_obtained = find->bytes_obtained = 0;
-        find->sync_pos                                                = 0xFFFFFFFF;
+        find->sync_pos                                                = 0xffffffff;
         if (ignore_other_am & 1) {
             /* Skip mode, let's go back to finding ID. */
-            fdc_set_wrong_am(d86f_fdc);
-            dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
-            dev->error_condition                                                                     = 0;
-            dev->state                                                                               = STATE_IDLE;
+            fdc_set_wrong_am(drv->fdc);
+            dev->data_find.sync_marks = dev->data_find.bits_obtained  =
+                                        dev->data_find.bytes_obtained = 0;
+            dev->error_condition                                      = 0;
+            dev->state                                                = STATE_IDLE;
             if (dev->state == STATE_02_READ_DATA)
-                fdc_track_finishread(d86f_fdc, dev->error_condition);
+                fdc_track_finishread(drv->fdc, dev->error_condition);
             else if (dev->state == STATE_11_SCAN_DATA)
-                fdc_sector_finishcompare(d86f_fdc, (dev->satisfying_bytes == ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
+                fdc_sector_finishcompare(drv->fdc, (dev->satisfying_bytes ==
+                                         ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
             else
-                fdc_sector_finishread(d86f_fdc);
+                fdc_sector_finishread(drv->fdc);
         } else {
             /* Not skip mode, process the sector anyway. */
-            fdc_set_wrong_am(d86f_fdc);
+            fdc_set_wrong_am(drv->fdc);
             dev->preceding_bit[side] = dev->last_word[side] & 1;
             dev->state++;
         }
     }
 }
 
-/* When writing in FM mode, we find the beginning of the address mark by looking for 352 (22 * 16) set bits (gap fill = 0xFF, 0xFFFF FM-encoded). */
+/*
+   When writing in FM mode, we find the beginning of the address mark by looking for
+   352 (22 * 16) set bits (gap fill = 0xFF, 0xFFFF FM-encoded).
+ */
 void
-d86f_write_find_address_mark_fm(int drive, int side, find_t *find)
+d86f_write_find_address_mark_fm(void *priv, const int side, find_t *find)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    d86f_get_bit(drive, side);
+    d86f_get_bit(drv, side);
 
     if (dev->last_word[side] & 1) {
         find->sync_marks++;
         if (find->sync_marks == 352) {
-            dev->calc_crc.word       = 0xFFFF;
+            dev->calc_crc.word       = 0xffff;
             dev->preceding_bit[side] = 1;
             find->sync_marks         = 0;
             dev->state++;
@@ -1374,16 +1377,19 @@ d86f_write_find_address_mark_fm(int drive, int side, find_t *find)
     if (!(dev->last_word[side] & 1)) {
         find->sync_marks = find->bits_obtained =
         find->bytes_obtained                   = 0;
-        find->sync_pos                         = 0xFFFFFFFF;
+        find->sync_pos                         = 0xffffffff;
     }
 }
 
 void
-d86f_find_address_mark_mfm(int drive, int side, find_t *find, uint16_t req_am, uint16_t other_am, uint16_t wrong_am, uint16_t ignore_other_am)
+d86f_find_address_mark_mfm(void *priv, const int side, find_t *find,
+                           const uint16_t req_am, const uint16_t other_am,
+                           const uint16_t wrong_am, const uint16_t ignore_other_am)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    d86f_get_bit(drive, side);
+    d86f_get_bit(drv, side);
 
     if (dev->last_word[side] == 0x4489) {
         find->sync_marks++;
@@ -1396,45 +1402,49 @@ d86f_find_address_mark_mfm(int drive, int side, find_t *find, uint16_t req_am, u
         dev->data_find.bytes_obtained                            = 0;
         dev->error_condition                                     = 0;
         dev->state                                               = STATE_IDLE;
-        fdc_nodataam(d86f_fdc);
+        fdc_nodataam(drv->fdc);
         return;
     }
 
     if ((dev->last_word[side] == req_am) && (find->sync_marks >= 3)) {
-        if (d86f_word_is_aligned(drive, side, find->sync_pos)) {
-            dev->calc_crc.word = 0xCDB4;
-            crc16_calc(dev->crc_table, decodefm(drive, dev->last_word[side]),
+        if (d86f_word_is_aligned(drv, side, find->sync_pos)) {
+            dev->calc_crc.word = 0xcdb4;
+            crc16_calc(dev->crc_table, decodefm(drv, dev->last_word[side]),
                        &(dev->calc_crc));
-            find->sync_marks = find->bits_obtained = find->bytes_obtained = 0;
-            find->sync_pos                                                = 0xFFFFFFFF;
-            dev->preceding_bit[side]                                      = dev->last_word[side] & 1;
+            find->sync_marks = find->bits_obtained  =
+                               find->bytes_obtained = 0;
+            find->sync_pos                          = 0xffffffff;
+            dev->preceding_bit[side]                = dev->last_word[side] & 1;
             dev->state++;
             return;
         }
     }
 
-    if ((ignore_other_am & 2) && (dev->last_word[side] == other_am) && (find->sync_marks >= 3)) {
-        if (d86f_word_is_aligned(drive, side, find->sync_pos)) {
+    if ((ignore_other_am & 2) && (dev->last_word[side] == other_am) &&
+        (find->sync_marks >= 3)) {
+        if (d86f_word_is_aligned(drv, side, find->sync_pos)) {
             dev->calc_crc.word = 0xCDB4;
-            crc16_calc(dev->crc_table, decodefm(drive, dev->last_word[side]),
+            crc16_calc(dev->crc_table, decodefm(drv, dev->last_word[side]),
                        &(dev->calc_crc));
             find->sync_marks = find->bits_obtained = find->bytes_obtained = 0;
-            find->sync_pos                                                = 0xFFFFFFFF;
+            find->sync_pos                                                = 0xffffffff;
             if (ignore_other_am & 1) {
                 /* Skip mode, let's go back to finding ID. */
-                fdc_set_wrong_am(d86f_fdc);
-                dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
+                fdc_set_wrong_am(drv->fdc);
+                dev->data_find.sync_marks = dev->data_find.bits_obtained  =
+                                            dev->data_find.bytes_obtained = 0;
                 dev->error_condition                                                                     = 0;
                 dev->state                                                                               = STATE_IDLE;
                 if (dev->state == STATE_02_READ_DATA)
-                    fdc_track_finishread(d86f_fdc, dev->error_condition);
+                    fdc_track_finishread(drv->fdc, dev->error_condition);
                 else if (dev->state == STATE_11_SCAN_DATA)
-                    fdc_sector_finishcompare(d86f_fdc, (dev->satisfying_bytes == ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
+                    fdc_sector_finishcompare(drv->fdc, (dev->satisfying_bytes ==
+                                             ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
                 else
-                    fdc_sector_finishread(d86f_fdc);
+                    fdc_sector_finishread(drv->fdc);
             } else {
                 /* Not skip mode, process the sector anyway. */
-                fdc_set_wrong_am(d86f_fdc);
+                fdc_set_wrong_am(drv->fdc);
                 dev->preceding_bit[side] = dev->last_word[side] & 1;
                 dev->state++;
             }
@@ -1443,26 +1453,27 @@ d86f_find_address_mark_mfm(int drive, int side, find_t *find, uint16_t req_am, u
     }
 
     if (dev->last_word[side] != 0x4489) {
-        if (d86f_word_is_aligned(drive, side, find->sync_pos)) {
+        if (d86f_word_is_aligned(drv, side, find->sync_pos)) {
             find->sync_marks = find->bits_obtained = find->bytes_obtained = 0;
-            find->sync_pos                                                = 0xFFFFFFFF;
+            find->sync_pos                                                = 0xffffffff;
         }
     }
 }
 
 /* When writing in MFM mode, we find the beginning of the address mark by looking for 3 0xA1 sync bytes. */
 void
-d86f_write_find_address_mark_mfm(int drive, int side, find_t *find)
+d86f_write_find_address_mark_mfm(void *priv, const int side, find_t *find)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    d86f_get_bit(drive, side);
+    d86f_get_bit(drv, side);
 
     if (dev->last_word[side] == 0x4489) {
         find->sync_marks++;
         find->sync_pos = dev->track_pos;
         if (find->sync_marks == 3) {
-            dev->calc_crc.word       = 0xCDB4;
+            dev->calc_crc.word       = 0xcdb4;
             dev->preceding_bit[side] = 1;
             find->sync_marks         = 0;
             dev->state++;
@@ -1472,32 +1483,33 @@ d86f_write_find_address_mark_mfm(int drive, int side, find_t *find)
 
     /* If we hadn't found enough address mark sync marks, null the counter. */
     if (dev->last_word[side] != 0x4489) {
-        if (d86f_word_is_aligned(drive, side, find->sync_pos)) {
+        if (d86f_word_is_aligned(drv, side, find->sync_pos)) {
             find->sync_marks = find->bits_obtained = find->bytes_obtained = 0;
-            find->sync_pos                                                = 0xFFFFFFFF;
+            find->sync_pos                                                = 0xffffffff;
         }
     }
 }
 
 /* State 2: Read sector ID and CRC*/
 void
-d86f_read_sector_id(int drive, int side, int match)
+d86f_read_sector_id(void *priv, const int side, const int match)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     if (dev->id_find.bits_obtained) {
         if (!(dev->id_find.bits_obtained & 15)) {
             /* We've got a byte. */
             if (dev->id_find.bytes_obtained < 4) {
                 dev->last_sector.byte_array[dev->id_find.bytes_obtained] =
-                decodefm(drive, dev->last_word[side]);
+                decodefm(drv, dev->last_word[side]);
                 crc16_calc(dev->crc_table,
                            dev->last_sector.byte_array[dev->id_find.bytes_obtained],
                            &(dev->calc_crc));
             } else if ((dev->id_find.bytes_obtained >= 4) &&
                        (dev->id_find.bytes_obtained < 6)) {
                 dev->track_crc.bytes[(dev->id_find.bytes_obtained & 1) ^ 1] =
-                decodefm(drive, dev->last_word[side]);
+                decodefm(drv, dev->last_word[side]);
             }
             dev->id_find.bytes_obtained++;
 
@@ -1507,23 +1519,25 @@ d86f_read_sector_id(int drive, int side, int match)
                     (dev->last_sector.dword == dev->req_sector.dword)) {
                     dev->id_find.sync_marks = dev->id_find.bits_obtained =
                     dev->id_find.bytes_obtained = 0;
-                    d86f_log("86F: ID CRC error: %04X != %04X (%08X)\n", dev->track_crc.word,
-                             dev->calc_crc.word, dev->last_sector.dword);
+                    d86f_log("86F: ID CRC error: %04X != %04X (%08X)\n",
+                             dev->track_crc.word, dev->calc_crc.word,
+                             dev->last_sector.dword);
                     if ((dev->state != STATE_02_READ_ID) && (dev->state != STATE_0A_READ_ID)) {
                         dev->error_condition = 0;
                         dev->state           = STATE_IDLE;
-                        fdc_headercrcerror(d86f_fdc);
+                        fdc_headercrcerror(drv->fdc);
                     } else if (dev->state == STATE_0A_READ_ID)
                         dev->state--;
                     else {
                         dev->error_condition |= 1; /* Mark that there was an ID CRC error. */
                         dev->state++;
                     }
-                } else if ((dev->calc_crc.word == dev->track_crc.word) && (dev->state == STATE_0A_READ_ID)) {
+                } else if ((dev->calc_crc.word == dev->track_crc.word) &&
+                           (dev->state == STATE_0A_READ_ID)) {
                     /* CRC is valid and this is a read sector ID command. */
                     dev->id_find.sync_marks = dev->id_find.bits_obtained =
                     dev->id_find.bytes_obtained = dev->error_condition = 0;
-                    fdc_sectorid(d86f_fdc,
+                    fdc_sectorid(drv->fdc,
                                  dev->last_sector.id.c, dev->last_sector.id.h,
                                  dev->last_sector.id.r, dev->last_sector.id.n, 0, 0);
                     dev->state = STATE_IDLE;
@@ -1533,25 +1547,31 @@ d86f_read_sector_id(int drive, int side, int match)
                     dev->id_find.bytes_obtained = 0;
                     dev->id_found |= 1;
                     if ((dev->last_sector.dword == dev->req_sector.dword) || !match) {
-                        d86f_handler[drive].set_sector(drive, side,
-                                                       dev->last_sector.id.c, dev->last_sector.id.h,
-                                                      dev->last_sector.id.r, dev->last_sector.id.n);
+                        drv->d86f_handler.set_sector(drv, side,
+                                                     dev->last_sector.id.c,
+                                                     dev->last_sector.id.h,
+                                                     dev->last_sector.id.r,
+                                                     dev->last_sector.id.n);
                         if (dev->state == STATE_02_READ_ID) {
-                            /* READ TRACK command, we need some special handling here. */
-                            /* Code corrected: Only the C, H, and N portions of the
+                            /* READ TRACK command, we need some special handling here.
+
+                               Code corrected: Only the C, H, and N portions of the
                                                sector ID are compared, the R portion
-                                               (the sector number) is ignored. */
-                            if ((dev->last_sector.id.c != fdc_get_read_track_sector(d86f_fdc).id.c) ||
-                                (dev->last_sector.id.h != fdc_get_read_track_sector(d86f_fdc).id.h) ||
-                                (dev->last_sector.id.n != fdc_get_read_track_sector(d86f_fdc).id.n)) {
+                                               (the sector number) is ignored.
+                             */
+                            if ((dev->last_sector.id.c != fdc_get_read_track_sector(drv->fdc).id.c) ||
+                                (dev->last_sector.id.h != fdc_get_read_track_sector(drv->fdc).id.h) ||
+                                (dev->last_sector.id.n != fdc_get_read_track_sector(drv->fdc).id.n)) {
                                 /* Mark that the sector ID is not the one expected by the FDC. */
                                 dev->error_condition |= 4;
                                 /* Make sure we use the sector size from the FDC. */
-                                dev->last_sector.id.n = fdc_get_read_track_sector(d86f_fdc).id.n;
+                                dev->last_sector.id.n = fdc_get_read_track_sector(drv->fdc).id.n;
                             }
 
-                            /* If the two ID's are identical, then we do not need to do
-                               anything regarding the sector size. */
+                            /*
+                               If the two ID's are identical, then we do not need to do
+                               anything regarding the sector size.
+                             */
                         }
                         dev->state++;
                     } else {
@@ -1570,25 +1590,26 @@ d86f_read_sector_id(int drive, int side, int match)
         }
     }
 
-    d86f_get_bit(drive, side);
+    d86f_get_bit(drv, side);
 
     dev->id_find.bits_obtained++;
 }
 
 uint8_t
-d86f_get_data(int drive, int base)
+d86f_get_data(void *priv, const int base)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *    dev  = (d86f_t *) drv->d86f_priv;
     int     data;
     int     byte_count;
 
-    if (fdd_get_turbo(drive) && (dev->version == 0x0063))
+    if (fdd_get_turbo(drv) && (dev->version == 0x0063))
         byte_count = dev->turbo_pos;
     else
         byte_count = dev->data_find.bytes_obtained;
 
-    if (byte_count < (d86f_get_data_len(drive) + base)) {
-        data = fdc_getdata(d86f_fdc, byte_count == (d86f_get_data_len(drive) + base - 1));
+    if (byte_count < (d86f_get_data_len(drv) + base)) {
+        data = fdc_getdata(drv->fdc, byte_count == (d86f_get_data_len(drv) + base - 1));
         if ((data & DMA_OVER) || (data == -1)) {
             dev->dma_over++;
             if (data == -1)
@@ -1604,23 +1625,24 @@ d86f_get_data(int drive, int base)
 }
 
 void
-d86f_compare_byte(int drive, uint8_t received_byte, uint8_t disk_byte)
+d86f_compare_byte(void *priv, const uint8_t received_byte, const uint8_t disk_byte)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    switch (fdc_get_compare_condition(d86f_fdc)) {
+    switch (fdc_get_compare_condition(drv->fdc)) {
         case 0: /* SCAN EQUAL */
-            if ((received_byte == disk_byte) || (received_byte == 0xFF))
+            if ((received_byte == disk_byte) || (received_byte == 0xff))
                 dev->satisfying_bytes++;
             break;
 
         case 1: /* SCAN LOW OR EQUAL */
-            if ((received_byte <= disk_byte) || (received_byte == 0xFF))
+            if ((received_byte <= disk_byte) || (received_byte == 0xff))
                 dev->satisfying_bytes++;
             break;
 
         case 2: /* SCAN HIGH OR EQUAL */
-            if ((received_byte >= disk_byte) || (received_byte == 0xFF))
+            if ((received_byte >= disk_byte) || (received_byte == 0xff))
                 dev->satisfying_bytes++;
             break;
 
@@ -1631,24 +1653,25 @@ d86f_compare_byte(int drive, uint8_t received_byte, uint8_t disk_byte)
 
 /* State 4: Read sector data and CRC*/
 void
-d86f_read_sector_data(int drive, int side)
+d86f_read_sector_data(void *priv, const int side)
 {
-    d86f_t  *dev         = d86f[drive];
-    int      data        = 0;
-    int      recv_data   = 0;
-    int      read_status = 0;
-    uint32_t sector_len  = dev->last_sector.id.n;
-    uint32_t crc_pos     = 0;
-    sector_len           = 1 << (7 + sector_len);
-    crc_pos              = sector_len + 2;
+    fdd_drive_t *drv        = (fdd_drive_t *) priv;
+    d86f_t *     dev        = (d86f_t *) drv->d86f_priv;
+    uint32_t     sector_len = dev->last_sector.id.n;
+    uint32_t     crc_pos    = 0;
+
+    sector_len              = 1 << (7 + sector_len);
+    crc_pos                 = sector_len + 2;
 
     if (dev->data_find.bits_obtained) {
         if (!(dev->data_find.bits_obtained & 15)) {
             /* We've got a byte. */
             d86f_log("86F: We've got a byte.\n");
             if (dev->data_find.bytes_obtained < sector_len) {
-                if (d86f_handler[drive].read_data != NULL)
-                    data = d86f_handler[drive].read_data(drive, side, dev->data_find.bytes_obtained);
+                int data = 0;
+                if (drv->d86f_handler.read_data != NULL)
+                    data = drv->d86f_handler.read_data(drv, side,
+                                                       dev->data_find.bytes_obtained);
                 else {
 #ifdef HACK_FOR_DBASE_III
                     if ((dev->last_sector.id.c == 39) && (dev->last_sector.id.h == 0) &&
@@ -1656,18 +1679,18 @@ d86f_read_sector_data(int drive, int side)
                         data = (random_generate() & 0xff);
                     else
 #endif
-                        data = decodefm(drive, dev->last_word[side]);
+                        data = decodefm(drv, dev->last_word[side]);
                 }
                 if (dev->state == STATE_11_SCAN_DATA) {
                     /* Scan/compare command. */
-                    recv_data = d86f_get_data(drive, 0);
-                    d86f_compare_byte(drive, recv_data, data);
+                    const int recv_data = d86f_get_data(drv, 0);
+                    d86f_compare_byte(drv, recv_data, data);
                 } else {
-                    if (dev->data_find.bytes_obtained < d86f_get_data_len(drive)) {
+                    if (dev->data_find.bytes_obtained < d86f_get_data_len(drv)) {
                         if (dev->state != STATE_16_VERIFY_DATA) {
-                            read_status = fdc_data(d86f_fdc, data,
-                                                   dev->data_find.bytes_obtained ==
-                                                   (d86f_get_data_len(drive) - 1));
+                            const int read_status = fdc_data(drv->fdc, data,
+                                                    dev->data_find.bytes_obtained ==
+                                                    (d86f_get_data_len(drv) - 1));
                             if (read_status == -1)
                                 dev->dma_over++;
                         }
@@ -1676,56 +1699,64 @@ d86f_read_sector_data(int drive, int side)
                 crc16_calc(dev->crc_table, data, &(dev->calc_crc));
             } else if (dev->data_find.bytes_obtained < crc_pos)
                 dev->track_crc.bytes[(dev->data_find.bytes_obtained - sector_len) ^ 1] =
-                decodefm(drive, dev->last_word[side]);
+                decodefm(drv, dev->last_word[side]);
             dev->data_find.bytes_obtained++;
 
-            if (dev->data_find.bytes_obtained == (crc_pos + fdc_get_gap(d86f_fdc))) {
+            if (dev->data_find.bytes_obtained == (crc_pos + fdc_get_gap(drv->fdc))) {
                 /* We've got the data. */
-                if ((dev->calc_crc.word != dev->track_crc.word) && (dev->state != STATE_02_READ_DATA)) {
+                if ((dev->calc_crc.word != dev->track_crc.word) &&
+                    (dev->state != STATE_02_READ_DATA)) {
                     d86f_log("86F: Data CRC error: %04X != %04X (%08X)\n", dev->track_crc.word,
                              dev->calc_crc.word, dev->last_sector.dword);
-                    dev->data_find.sync_marks = dev->data_find.bits_obtained =
-                    dev->data_find.bytes_obtained = 0;
+                    dev->data_find.sync_marks = dev->data_find.bits_obtained  =
+                                                dev->data_find.bytes_obtained = 0;
                     dev->error_condition          = 0;
                     dev->state                    = STATE_IDLE;
-                    fdc_datacrcerror(d86f_fdc);
-                } else if ((dev->calc_crc.word != dev->track_crc.word) && (dev->state == STATE_02_READ_DATA)) {
-                    dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
+                    fdc_datacrcerror(drv->fdc);
+                } else if ((dev->calc_crc.word != dev->track_crc.word) &&
+                           (dev->state == STATE_02_READ_DATA)) {
+                    dev->data_find.sync_marks = dev->data_find.bits_obtained  =
+                                                dev->data_find.bytes_obtained = 0;
                     dev->error_condition |= 2; /* Mark that there was a data error. */
                     dev->state = STATE_IDLE;
-                    fdc_track_finishread(d86f_fdc, dev->error_condition);
+                    fdc_track_finishread(drv->fdc, dev->error_condition);
                 } else {
                     /* CRC is valid. */
-                    d86f_log("86F: Data CRC OK: %04X == %04X (%08X)\n", dev->track_crc.word, dev->calc_crc.word, dev->last_sector.dword);
-                    dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
+                    d86f_log("86F: Data CRC OK: %04X == %04X (%08X)\n",
+                             dev->track_crc.word, dev->calc_crc.word,
+                             dev->last_sector.dword);
+                    dev->data_find.sync_marks = dev->data_find.bits_obtained  =
+                                                dev->data_find.bytes_obtained = 0;
                     dev->error_condition                                                                     = 0;
                     dev->state                                                                               = STATE_IDLE;
                     if (dev->state == STATE_02_READ_DATA)
-                        fdc_track_finishread(d86f_fdc, dev->error_condition);
+                        fdc_track_finishread(drv->fdc, dev->error_condition);
                     else if (dev->state == STATE_11_SCAN_DATA)
-                        fdc_sector_finishcompare(d86f_fdc, (dev->satisfying_bytes == ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
+                        fdc_sector_finishcompare(drv->fdc, (dev->satisfying_bytes ==
+                                                 ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
                     else
-                        fdc_sector_finishread(d86f_fdc);
+                        fdc_sector_finishread(drv->fdc);
                 }
             }
         }
     }
 
-    d86f_get_bit(drive, side);
+    d86f_get_bit(drv, side);
 
     dev->data_find.bits_obtained++;
 }
 
 void
-d86f_write_sector_data(int drive, int side, int mfm, uint16_t am)
+d86f_write_sector_data(void *priv, const int side, const int mfm, const uint16_t am)
 {
-    d86f_t  *dev = d86f[drive];
-    uint16_t bit_pos;
+    fdd_drive_t *drv        = (fdd_drive_t *) priv;
+    d86f_t  *    dev        = (d86f_t *) drv->d86f_priv;
+    uint32_t     sector_len = dev->last_sector.id.n;
+    uint32_t     crc_pos    = 0;
     uint16_t temp;
-    uint32_t sector_len = dev->last_sector.id.n;
-    uint32_t crc_pos    = 0;
-    sector_len          = (1 << (7 + sector_len)) + 1;
-    crc_pos             = sector_len + 2;
+
+    sector_len              = (1 << (7 + sector_len)) + 1;
+    crc_pos                 = sector_len + 2;
 
     if (!(dev->data_find.bits_obtained & 15)) {
         if (dev->data_find.bytes_obtained < crc_pos) {
@@ -1734,9 +1765,11 @@ d86f_write_sector_data(int drive, int side, int mfm, uint16_t am)
                 dev->current_byte[side] = am;
             } else if (dev->data_find.bytes_obtained < sector_len) {
                 /* We're in the data field of the sector, read byte from FDC and request new byte. */
-                dev->current_byte[side] = d86f_get_data(drive, 1);
-                if (!fdc_get_diswr(d86f_fdc))
-                    d86f_handler[drive].write_data(drive, side, dev->data_find.bytes_obtained - 1, dev->current_byte[side]);
+                dev->current_byte[side] = d86f_get_data(drv, 1);
+                if (!fdc_get_diswr(drv->fdc))
+                    drv->d86f_handler.write_data(drv, side,
+                                                 dev->data_find.bytes_obtained - 1,
+                                                 dev->current_byte[side]);
             } else {
                 /* We're in the data field of the sector, use a CRC byte. */
                 dev->current_byte[side] = dev->calc_crc.bytes[dev->data_find.bytes_obtained & 1];
@@ -1753,15 +1786,15 @@ d86f_write_sector_data(int drive, int side, int mfm, uint16_t am)
             /* This is an even bit, so write the clock. */
             if (!dev->data_find.bytes_obtained) {
                 /* Address mark, write bit directly. */
-                d86f_put_bit(drive, side, am >> 15);
+                d86f_put_bit(drv, side, am >> 15);
             } else {
-                d86f_put_bit(drive, side, temp >> 1);
+                d86f_put_bit(drv, side, temp >> 1);
             }
 
             if (dev->data_find.bytes_obtained < sector_len) {
                 /* This is a data byte, so CRC it. */
                 if (!dev->data_find.bytes_obtained)
-                    crc16_calc(dev->crc_table, decodefm(drive, am),
+                    crc16_calc(dev->crc_table, decodefm(drv, am),
                                &(dev->calc_crc));
                 else
                     crc16_calc(dev->crc_table, dev->current_byte[side],
@@ -1771,7 +1804,7 @@ d86f_write_sector_data(int drive, int side, int mfm, uint16_t am)
     } else {
         if (dev->data_find.bytes_obtained < crc_pos) {
             /* Encode the bit. */
-            bit_pos                = 15 - (dev->data_find.bits_obtained & 15);
+            const uint16_t bit_pos = 15 - (dev->data_find.bits_obtained & 15);
             dev->current_bit[side] = bit_pos >> 1;
 
             temp = (dev->current_byte[side] >> dev->current_bit[side]) & 1;
@@ -1781,17 +1814,16 @@ d86f_write_sector_data(int drive, int side, int mfm, uint16_t am)
 
             if (!dev->data_find.bytes_obtained) {
                 /* Address mark, write directly. */
-                d86f_put_bit(drive, side, am >> bit_pos);
-                if (!(bit_pos & 1)) {
+                d86f_put_bit(drv, side, am >> bit_pos);
+                if (!(bit_pos & 1))
                     dev->preceding_bit[side] = am >> bit_pos;
-                }
             } else {
-                if (bit_pos & 1) {
+                if (bit_pos & 1)
                     /* Clock bit */
-                    d86f_put_bit(drive, side, temp >> 1);
-                } else {
+                    d86f_put_bit(drv, side, temp >> 1);
+                else {
                     /* Data bit */
-                    d86f_put_bit(drive, side, temp & 1);
+                    d86f_put_bit(drv, side, temp & 1);
                     dev->preceding_bit[side] = temp & 1;
                 }
             }
@@ -1800,12 +1832,12 @@ d86f_write_sector_data(int drive, int side, int mfm, uint16_t am)
         if ((dev->data_find.bits_obtained & 15) == 15) {
             dev->data_find.bytes_obtained++;
 
-            if (dev->data_find.bytes_obtained == (crc_pos + fdc_get_gap(d86f_fdc))) {
+            if (dev->data_find.bytes_obtained == (crc_pos + fdc_get_gap(drv->fdc))) {
                 /* We've written the data. */
                 dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
                 dev->error_condition                                                                     = 0;
                 dev->state                                                                               = STATE_IDLE;
-                fdc_sector_finishread(d86f_fdc);
+                fdc_sector_finishread(drv->fdc);
                 return;
             }
         }
@@ -1815,15 +1847,16 @@ d86f_write_sector_data(int drive, int side, int mfm, uint16_t am)
 }
 
 void
-d86f_advance_bit(int drive, int side)
+d86f_advance_bit(void *priv, const int side)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     dev->track_pos++;
-    dev->track_pos %= d86f_handler[drive].get_raw_size(drive, side);
+    dev->track_pos %= drv->d86f_handler.get_raw_size(drv, side);
 
-    if (dev->track_pos == d86f_handler[drive].index_hole_pos(drive, side)) {
-        d86f_handler[drive].read_revolution(drive);
+    if (dev->track_pos == drv->d86f_handler.index_hole_pos(drv, side)) {
+        drv->d86f_handler.read_revolution(drv);
 
         if (dev->state != STATE_IDLE)
             dev->index_count++;
@@ -1831,28 +1864,31 @@ d86f_advance_bit(int drive, int side)
 }
 
 void
-d86f_advance_word(int drive, int side)
+d86f_advance_word(void *priv, const int side)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     dev->track_pos += 16;
-    dev->track_pos %= d86f_handler[drive].get_raw_size(drive, side);
+    dev->track_pos %= drv->d86f_handler.get_raw_size(drv, side);
 
-    if ((dev->track_pos == d86f_handler[drive].index_hole_pos(drive, side)) && (dev->state != STATE_IDLE))
+    if ((dev->track_pos == drv->d86f_handler.index_hole_pos(drv, side)) &&
+                           (dev->state != STATE_IDLE))
         dev->index_count++;
 }
 
 void
-d86f_spin_to_index(int drive, int side)
+d86f_spin_to_index(void *priv, const int side)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    d86f_get_bit(drive, side);
-    d86f_get_bit(drive, side ^ 1);
+    d86f_get_bit(drv, side);
+    d86f_get_bit(drv, side ^ 1);
 
-    d86f_advance_bit(drive, side);
+    d86f_advance_bit(drv, side);
 
-    if (dev->track_pos == d86f_handler[drive].index_hole_pos(drive, side)) {
+    if (dev->track_pos == drv->d86f_handler.index_hole_pos(drv, side)) {
         if (dev->state == STATE_0D_SPIN_TO_INDEX) {
             /* When starting format, reset format state to the beginning. */
             dev->preceding_bit[side] = 1;
@@ -1866,17 +1902,17 @@ d86f_spin_to_index(int drive, int side)
 }
 
 void
-d86f_write_direct_common(int drive, int side, uint16_t byte, uint8_t type, uint32_t pos)
+d86f_write_direct_common(void *priv, const int side, const uint16_t byte, const uint8_t type,
+                         const uint32_t pos)
 {
-    d86f_t   *dev          = d86f[drive];
-    uint16_t  encoded_byte = 0;
-    uint16_t  mask_data;
-    uint16_t  mask_surface;
-    uint16_t  mask_hole;
-    decoded_t dbyte;
-    decoded_t dpbyte;
+    fdd_drive_t *drv          = (fdd_drive_t *) priv;
+    d86f_t *     dev          = (d86f_t *) drv->d86f_priv;
+    uint16_t     encoded_byte = 0;
+    uint16_t     mask_data;
+    decoded_t    dbyte;
+    decoded_t    dpbyte;
 
-    if (fdc_get_diswr(d86f_fdc))
+    if (fdc_get_diswr(drv->fdc))
         return;
 
     dbyte.byte  = byte & 0xff;
@@ -1884,9 +1920,9 @@ d86f_write_direct_common(int drive, int side, uint16_t byte, uint8_t type, uint3
 
     if (type == 0) {
         /* Byte write. */
-        encoded_byte = d86f_encode_byte(drive, 0, dbyte, dpbyte);
+        encoded_byte = d86f_encode_byte(drv, 0, dbyte, dpbyte);
         dev->preceding_bit[side] = encoded_byte & 1;
-        if (!d86f_reverse_bytes(drive)) {
+        if (!d86f_reverse_bytes(drv)) {
             mask_data = encoded_byte >> 8;
             encoded_byte &= 0xFF;
             encoded_byte <<= 8;
@@ -1896,7 +1932,7 @@ d86f_write_direct_common(int drive, int side, uint16_t byte, uint8_t type, uint3
         /* Word write. */
         encoded_byte = byte;
         dev->preceding_bit[side] = (encoded_byte >> 8) & 1;
-        if (d86f_reverse_bytes(drive)) {
+        if (d86f_reverse_bytes(drv)) {
             mask_data = encoded_byte >> 8;
             encoded_byte &= 0xFF;
             encoded_byte <<= 8;
@@ -1904,14 +1940,14 @@ d86f_write_direct_common(int drive, int side, uint16_t byte, uint8_t type, uint3
         }
     }
 
-    if (d86f_has_surface_desc(drive)) {
+    if (d86f_has_surface_desc(drv)) {
         /* Inverted track data, clear bits are now set. */
-        mask_data    = ~dev->track_encoded_data[side][pos];
+        mask_data                          = ~dev->track_encoded_data[side][pos];
         /* Surface data. */
-        mask_surface = dev->track_surface_data[side][pos];
+        const uint16_t mask_surface        = dev->track_surface_data[side][pos];
 
         /* Hole = surface & ~data, so holes are one. */
-        mask_hole    = mask_surface & mask_data;
+        const uint16_t mask_hole           = mask_surface & mask_data;
         /* Hole bits are ones again, set the surface data to that. */
         dev->track_surface_data[side][pos] = mask_hole;
 
@@ -1924,19 +1960,19 @@ d86f_write_direct_common(int drive, int side, uint16_t byte, uint8_t type, uint3
 }
 
 void
-d86f_write_direct(int drive, int side, uint16_t byte, uint8_t type)
+d86f_write_direct(void *priv, const int side, const uint16_t byte, const uint8_t type)
 {
-    const d86f_t *dev = d86f[drive];
+    fdd_drive_t * drv = (fdd_drive_t *) priv;
+    const d86f_t *dev = (d86f_t *) drv->d86f_priv;
 
-    d86f_write_direct_common(drive, side, byte, type, dev->track_pos >> 4);
+    d86f_write_direct_common(drv, side, byte, type, dev->track_pos >> 4);
 }
 
 uint16_t
-endian_swap(uint16_t word)
+endian_swap(const uint16_t word)
 {
-    uint16_t temp;
+    uint16_t temp = word & 0xff;
 
-    temp = word & 0xff;
     temp <<= 8;
     temp |= (word >> 8);
 
@@ -1944,113 +1980,109 @@ endian_swap(uint16_t word)
 }
 
 void
-d86f_format_finish(int drive, int side, int mfm, UNUSED(uint16_t sc), uint16_t gap_fill, int do_write)
+d86f_format_finish(void *priv, const int side, const int mfm, UNUSED(uint16_t sc),
+                   const uint16_t gap_fill, const int do_write)
 {
-    d86f_t *dev = d86f[drive];
-    int     format_ok;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     if (mfm && do_write) {
-        if (do_write && (dev->track_pos == d86f_handler[drive].index_hole_pos(drive, side))) {
-            d86f_write_direct_common(drive, side, gap_fill, 0, 0);
-        }
+        if (do_write && (dev->track_pos == drv->d86f_handler.index_hole_pos(drv, side)))
+            d86f_write_direct_common(drv, side, gap_fill, 0, 0);
     }
 
     dev->state = STATE_IDLE;
 
-    format_ok = d86f_handler[drive].format_track(
-        drive, side, dev->format_ids, dev->format_id_count, dev->fill);
+    int format_ok = drv->d86f_handler.format_track(drv, side,
+                                                   dev->format_ids, dev->format_id_count,
+                                                   dev->fill);
 
     if (format_ok && do_write)
-        d86f_handler[drive].writeback(drive);
+        drv->d86f_handler.writeback(drv);
 
     dev->error_condition = 0;
     dev->datac           = 0;
     dev->format_id_count = 0;
     if (format_ok)
-        fdc_sector_finishread(d86f_fdc);
+        fdc_sector_finishread(drv->fdc);
     else
-        fdc_cannotformat(d86f_fdc);
+        fdc_cannotformat(drv->fdc);
 }
 
 void
-d86f_format_turbo_finish(int drive, int side, int do_write)
+d86f_format_turbo_finish(void *priv, const int side, const int do_write)
 {
-    d86f_t *dev = d86f[drive];
-    int     format_ok;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     dev->state = STATE_IDLE;
 
-    format_ok = d86f_handler[drive].format_track(
-        drive, side, dev->format_ids, dev->format_id_count, dev->fill);
+    int format_ok = drv->d86f_handler.format_track(drv, side,
+                                                   dev->format_ids, dev->format_id_count,
+                                                   dev->fill);
 
     if (format_ok && do_write)
-        d86f_handler[drive].writeback(drive);
+        drv->d86f_handler.writeback(drv);
 
     dev->error_condition = 0;
     dev->datac           = 0;
     dev->format_id_count = 0;
     if (format_ok)
-        fdc_sector_finishread(d86f_fdc);
+        fdc_sector_finishread(drv->fdc);
     else
-        fdc_cannotformat(d86f_fdc);
+        fdc_cannotformat(drv->fdc);
 }
 
 void
-d86f_format_track(int drive, int side, int do_write)
+d86f_format_track(void *priv, const int side, int do_write)
 {
-    d86f_t  *dev = d86f[drive];
-    int      data;
-    uint16_t max_len;
+    fdd_drive_t *drv          = (fdd_drive_t *) priv;
+    d86f_t *     dev          = (d86f_t *) drv->d86f_priv;
+    uint16_t     sc           = 0;
+    uint16_t     dtl          = 0;
+    uint16_t     gap_fill     = 0x4e;
+    int          gap_sizes[4] = { 0, 0, 0, 0 };
+    int          am_len       = 0;
+    int          sync_len     = 0;
+    static int   id_count     = 4;
+    const int    mfm          = d86f_is_mfm(drv);
+    uint16_t     max_len;
 
-    int      mfm;
-    uint16_t sc            = 0;
-    uint16_t dtl           = 0;
-    int      gap_sizes[4]  = { 0, 0, 0, 0 };
-    int      am_len        = 0;
-    int      sync_len      = 0;
-    uint16_t iam_mfm[4]    = { 0x2452, 0x2452, 0x2452, 0x5255 };
-    uint16_t idam_mfm[4]   = { 0x8944, 0x8944, 0x8944, 0x5455 };
-    uint16_t dataam_mfm[4] = { 0x8944, 0x8944, 0x8944, 0x4555 };
-    uint16_t iam_fm        = 0xFAF7;
-    uint16_t idam_fm       = 0x7EF5;
-    uint16_t dataam_fm     = 0x6FF5;
-    uint16_t gap_fill      = 0x4E;
-
-    static int id_count    = 4;
-
-    mfm          = d86f_is_mfm(drive);
-    am_len       = mfm ? 4 : 1;
-    gap_sizes[0] = mfm ? 80 : 40;
-    gap_sizes[1] = mfm ? 50 : 26;
-    gap_sizes[2] = fdc_get_gap2(d86f_fdc, real_drive(d86f_fdc, drive));
-    gap_sizes[3] = fdc_get_gap(d86f_fdc);
-    sync_len     = mfm ? 12 : 6;
-    sc           = fdc_get_format_sectors(d86f_fdc);
-    dtl          = 128 << fdc_get_format_n(d86f_fdc);
-    gap_fill     = mfm ? 0x4E : 0xFF;
+    am_len                    = mfm ? 4 : 1;
+    gap_sizes[0]              = mfm ? 80 : 40;
+    gap_sizes[1]              = mfm ? 50 : 26;
+    gap_sizes[2]              = fdc_get_gap2(drv->fdc, real_drive(drv->fdc, drv->id));
+    gap_sizes[3]              = fdc_get_gap(drv->fdc);
+    sync_len                  = mfm ? 12 : 6;
+    sc                        = fdc_get_format_sectors(drv->fdc);
+    dtl                       = 128 << fdc_get_format_n(drv->fdc);
+    gap_fill                  = mfm ? 0x4e : 0xff;
 
     /* HD-COPY's "Is the data rate correct?" format. */
-    if ((dev->version == 0x0063) && (fdc_get_format_n(d86f_fdc) == 3) && (sc == 2))
+    if ((dev->version == 0x0063) && (fdc_get_format_n(drv->fdc) == 3) && (sc == 2))
         do_write = 0;
 
     switch (dev->format_state) {
+        default:
+            break;
         case FMT_PRETRK_GAP0:
             id_count = 4;
             break;
     }
 
     if (id_count < 4) {
-        if (fdc_data_available(d86f_fdc)) {
-            data = fdc_getdata(d86f_fdc, 0);
+        fdc_t *fdc = (fdc_t *) drv->fdc;
+        if (fdc_data_available(fdc)) {
+            int data = fdc_getdata(fdc, 0);
             if (data != -1)
                 data &= 0xff;
             if ((data == -1) && (id_count < 3))
                 data = 0;
-            d86f_fdc->format_sector_id.byte_array[id_count] = data & 0xff;
+            fdc->format_sector_id.byte_array[id_count] = data & 0xff;
             if (id_count == 3)
-                fdc_stop_id_request(d86f_fdc);
+                fdc_stop_id_request(fdc);
             else
-                fdc_request_next_sector_id(d86f_fdc);
+                fdc_request_next_sector_id(fdc);
             id_count++;
         }
     }
@@ -2059,13 +2091,13 @@ d86f_format_track(int drive, int side, int do_write)
         case FMT_POSTTRK_GAP4:
             max_len = 60000;
             if (do_write)
-                d86f_write_direct(drive, side, gap_fill, 0);
+                d86f_write_direct(drv, side, gap_fill, 0);
             break;
 
         case FMT_PRETRK_GAP0:
             max_len = gap_sizes[0];
             if (do_write)
-                d86f_write_direct(drive, side, gap_fill, 0);
+                d86f_write_direct(drv, side, gap_fill, 0);
             break;
 
         case FMT_SECTOR_ID_SYNC:
@@ -2073,87 +2105,106 @@ d86f_format_track(int drive, int side, int do_write)
         case FMT_SECTOR_DATA_SYNC:
             max_len = sync_len;
             if (do_write)
-                d86f_write_direct(drive, side, 0x00, 0);
+                d86f_write_direct(drv, side, 0x00, 0);
             break;
 
         case FMT_PRETRK_IAM:
             max_len = am_len;
-            if (do_write) {
-                if (mfm)
-                    d86f_write_direct(drive, side, iam_mfm[dev->datac], 1);
-                else
-                    d86f_write_direct(drive, side, iam_fm, 1);
+            if (mfm) {
+                if (do_write) {
+                    const uint16_t iam_mfm[4] = { 0x2452, 0x2452, 0x2452, 0x5255 };
+                    d86f_write_direct(drv, side, iam_mfm[dev->datac], 1);
+                }
+            } else {
+                if (do_write) {
+                    const uint16_t iam_fm = 0xfaf7;
+                    d86f_write_direct(drv, side, iam_fm, 1);
+                }
             }
             break;
 
         case FMT_PRETRK_GAP1:
             max_len = gap_sizes[1];
             if (do_write)
-                d86f_write_direct(drive, side, gap_fill, 0);
+                d86f_write_direct(drv, side, gap_fill, 0);
             break;
 
         case FMT_SECTOR_IDAM:
             max_len = am_len;
             if (mfm) {
-                if (do_write)
-                    d86f_write_direct(drive, side, idam_mfm[dev->datac], 1);
-                d86f_calccrc(dev, (dev->datac < 3) ? 0xA1 : 0xFE);
+                if (do_write) {
+                    const uint16_t idam_mfm[4] = { 0x8944, 0x8944, 0x8944, 0x5455 };
+                    d86f_write_direct(drv, side, idam_mfm[dev->datac], 1);
+                }
+                d86f_calccrc(dev, (dev->datac < 3) ? 0xa1 : 0xfe);
             } else {
-                if (do_write)
-                    d86f_write_direct(drive, side, idam_fm, 1);
-                d86f_calccrc(dev, 0xFE);
+                if (do_write) {
+                    const uint16_t idam_fm = 0x7ef5;
+                    d86f_write_direct(drv, side, idam_fm, 1);
+                }
+                d86f_calccrc(dev, 0xfe);
             }
             break;
 
-        case FMT_SECTOR_ID:
+        case FMT_SECTOR_ID: {
+            fdc_t *fdc = (fdc_t *) drv->fdc;
             max_len = 4;
             if ((dev->datac == 3) && (dev->format_id_count < 256)) {
                 memcpy(dev->format_ids[dev->format_id_count],
-                       d86f_fdc->format_sector_id.byte_array,
+                       fdc->format_sector_id.byte_array,
                        sizeof(d86f_format_id_t));
                 dev->format_id_count++;
             }
             if (do_write) {
-                d86f_write_direct(drive, side, d86f_fdc->format_sector_id.byte_array[dev->datac], 0);
-                d86f_calccrc(dev, d86f_fdc->format_sector_id.byte_array[dev->datac]);
+                d86f_write_direct(drv, side,
+                                  fdc->format_sector_id.byte_array[dev->datac], 0);
+                d86f_calccrc(dev, fdc->format_sector_id.byte_array[dev->datac]);
             } else {
                 if (dev->datac == 3) {
-                    d86f_handler[drive].set_sector(drive, side, d86f_fdc->format_sector_id.id.c, d86f_fdc->format_sector_id.id.h, d86f_fdc->format_sector_id.id.r, d86f_fdc->format_sector_id.id.n);
+                    drv->d86f_handler.set_sector(drv, side,
+                                                 fdc->format_sector_id.id.c,
+                                                 fdc->format_sector_id.id.h,
+                                                 fdc->format_sector_id.id.r,
+                                                 fdc->format_sector_id.id.n);
                 }
             }
             break;
-
+        }
         case FMT_SECTOR_ID_CRC:
         case FMT_SECTOR_DATA_CRC:
             max_len = 2;
             if (do_write)
-                d86f_write_direct(drive, side, dev->calc_crc.bytes[dev->datac ^ 1], 0);
+                d86f_write_direct(drv, side, dev->calc_crc.bytes[dev->datac ^ 1], 0);
             break;
 
         case FMT_SECTOR_GAP2:
             max_len = gap_sizes[2];
             if (do_write)
-                d86f_write_direct(drive, side, gap_fill, 0);
+                d86f_write_direct(drv, side, gap_fill, 0);
             break;
 
         case FMT_SECTOR_DATAAM:
             max_len = am_len;
             if (mfm) {
-                if (do_write)
-                    d86f_write_direct(drive, side, dataam_mfm[dev->datac], 1);
+                if (do_write) {
+                    const uint16_t dataam_mfm[4] = { 0x8944, 0x8944, 0x8944, 0x4555 };
+                    d86f_write_direct(drv, side, dataam_mfm[dev->datac], 1);
+                }
                 d86f_calccrc(dev, (dev->datac < 3) ? 0xA1 : 0xFB);
             } else {
-                if (do_write)
-                    d86f_write_direct(drive, side, dataam_fm, 1);
-                d86f_calccrc(dev, 0xFB);
+                if (do_write) {
+                    const uint16_t dataam_fm = 0x6ff5;
+                    d86f_write_direct(drv, side, dataam_fm, 1);
+                }
+                d86f_calccrc(dev, 0xfb);
             }
             break;
 
         case FMT_SECTOR_DATA:
             max_len = dtl;
             if (do_write) {
-                d86f_write_direct(drive, side, dev->fill, 0);
-                d86f_handler[drive].write_data(drive, side, dev->datac, dev->fill);
+                d86f_write_direct(drv, side, dev->fill, 0);
+                drv->d86f_handler.write_data(drv, side, dev->datac, dev->fill);
             }
             d86f_calccrc(dev, dev->fill);
             break;
@@ -2161,7 +2212,7 @@ d86f_format_track(int drive, int side, int do_write)
         case FMT_SECTOR_GAP3:
             max_len = gap_sizes[3];
             if (do_write)
-                d86f_write_direct(drive, side, gap_fill, 0);
+                d86f_write_direct(drv, side, gap_fill, 0);
             break;
 
         default:
@@ -2171,10 +2222,11 @@ d86f_format_track(int drive, int side, int do_write)
 
     dev->datac++;
 
-    d86f_advance_word(drive, side);
+    d86f_advance_word(drv, side);
 
-    if ((dev->index_count) && ((dev->format_state < FMT_SECTOR_ID_SYNC) || (dev->format_state > FMT_SECTOR_GAP3))) {
-        d86f_format_finish(drive, side, mfm, sc, gap_fill, do_write);
+    if ((dev->index_count) && ((dev->format_state < FMT_SECTOR_ID_SYNC) ||
+                               (dev->format_state > FMT_SECTOR_GAP3))) {
+        d86f_format_finish(drv, side, mfm, sc, gap_fill, do_write);
         return;
     }
 
@@ -2190,7 +2242,7 @@ d86f_format_track(int drive, int side, int do_write)
 
             case FMT_POSTTRK_CHECK:
                 if (dev->index_count) {
-                    d86f_format_finish(drive, side, mfm, sc, gap_fill, do_write);
+                    d86f_format_finish(drv, side, mfm, sc, gap_fill, do_write);
                     return;
                 }
                 dev->sector_count++;
@@ -2210,7 +2262,7 @@ d86f_format_track(int drive, int side, int do_write)
             case FMT_PRETRK_GAP1:
                 if (id_count == 4) {
                     id_count = 0;
-                    fdc_request_next_sector_id(d86f_fdc);
+                    fdc_request_next_sector_id(drv->fdc);
                 }
                 break;
 
@@ -2221,9 +2273,11 @@ d86f_format_track(int drive, int side, int do_write)
 }
 
 void
-d86f_initialize_last_sector_id(int drive, int c, int h, int r, int n)
+d86f_initialize_last_sector_id(void *priv, const int c, const int h,
+                               const int r, const int n)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     dev->last_sector.id.c = c;
     dev->last_sector.id.h = h;
@@ -2232,20 +2286,20 @@ d86f_initialize_last_sector_id(int drive, int c, int h, int r, int n)
 }
 
 static uint8_t
-d86f_sector_flags(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
+d86f_sector_flags(void *priv, const int side, const uint8_t c,
+                  const uint8_t h, const uint8_t r, const uint8_t n)
 {
-    const d86f_t   *dev = d86f[drive];
-    sector_t       *s;
-    sector_t       *t;
+    fdd_drive_t * drv = (fdd_drive_t *) priv;
+    const d86f_t *dev = (d86f_t *) drv->d86f_priv;
 
     if (dev->last_side_sector[side]) {
-        s = dev->last_side_sector[side];
+        sector_t *s = dev->last_side_sector[side];
         while (s) {
             if ((s->c == c) && (s->h == h) && (s->r == r) && (s->n == n))
                 return s->flags;
             if (!s->prev)
                 break;
-            t = s->prev;
+            sector_t *t = s->prev;
             s = t;
         }
     }
@@ -2254,28 +2308,29 @@ d86f_sector_flags(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t 
 }
 
 void
-d86f_turbo_read(int drive, int side)
+d86f_turbo_read(void *priv, const int side)
 {
-    d86f_t *dev         = d86f[drive];
-    uint8_t dat         = 0;
-    int     recv_data   = 0;
-    int     read_status = 0;
-    uint8_t flags       = d86f_sector_flags(drive, side, dev->req_sector.id.c, dev->req_sector.id.h, dev->req_sector.id.r, dev->req_sector.id.n);
+    fdd_drive_t * drv   = (fdd_drive_t *) priv;
+    d86f_t *      dev   = (d86f_t *) drv->d86f_priv;
+    uint8_t       dat   = 0;
+    const uint8_t flags = d86f_sector_flags(drv, side,
+                                            dev->req_sector.id.c, dev->req_sector.id.h,
+                                            dev->req_sector.id.r, dev->req_sector.id.n);
 
-    if (d86f_handler[drive].read_data != NULL)
-        dat = d86f_handler[drive].read_data(drive, side, dev->turbo_pos);
+    if (drv->d86f_handler.read_data != NULL)
+        dat = drv->d86f_handler.read_data(drv, side, dev->turbo_pos);
     else
         dat = (random_generate() & 0xff);
 
     if (dev->state == STATE_11_SCAN_DATA) {
         /* Scan/compare command. */
-        recv_data = d86f_get_data(drive, 0);
-        d86f_compare_byte(drive, recv_data, dat);
+        const int recv_data = d86f_get_data(drv, 0);
+        d86f_compare_byte(drv, recv_data, dat);
     } else {
         if (dev->turbo_pos < (128UL << dev->req_sector.id.n)) {
             if (dev->state != STATE_16_VERIFY_DATA) {
-                read_status = fdc_data(d86f_fdc, dat,
-                                       dev->turbo_pos == ((128UL << dev->req_sector.id.n) - 1));
+                const int read_status = fdc_data(drv->fdc, dat,
+                                                 dev->turbo_pos == ((128UL << dev->req_sector.id.n) - 1));
                 if (read_status == -1)
                     dev->dma_over++;
             }
@@ -2285,21 +2340,22 @@ d86f_turbo_read(int drive, int side)
     dev->turbo_pos++;
 
     if (dev->turbo_pos >= (128UL << dev->req_sector.id.n)) {
-        dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
+        dev->data_find.sync_marks = dev->data_find.bits_obtained  =
+                                    dev->data_find.bytes_obtained = 0;
         if ((flags & SECTOR_CRC_ERROR) && (dev->state != STATE_02_READ_DATA)) {
 #ifdef ENABLE_D86F_LOG
             d86f_log("86F: Data CRC error in turbo mode (%02X)\n", dev->state);
 #endif
             dev->error_condition = 0;
             dev->state           = STATE_IDLE;
-            fdc_datacrcerror(d86f_fdc);
+            fdc_datacrcerror(drv->fdc);
         } else if ((flags & SECTOR_CRC_ERROR) && (dev->state == STATE_02_READ_DATA)) {
 #ifdef ENABLE_D86F_LOG
             d86f_log("86F: Data CRC error in turbo mode at READ TRACK command\n");
 #endif
             dev->error_condition |= 2; /* Mark that there was a data error. */
             dev->state = STATE_IDLE;
-            fdc_track_finishread(d86f_fdc, dev->error_condition);
+            fdc_track_finishread(drv->fdc, dev->error_condition);
         } else {
             /* CRC is valid. */
 #ifdef ENABLE_D86F_LOG
@@ -2308,70 +2364,74 @@ d86f_turbo_read(int drive, int side)
             dev->error_condition = 0;
             dev->state           = STATE_IDLE;
             if (dev->state == STATE_11_SCAN_DATA)
-                fdc_sector_finishcompare(d86f_fdc, (dev->satisfying_bytes == ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
+                fdc_sector_finishcompare(drv->fdc,
+                                         (dev->satisfying_bytes ==
+                                          ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
             else
-                fdc_sector_finishread(d86f_fdc);
+                fdc_sector_finishread(drv->fdc);
         }
     }
 }
 
 void
-d86f_turbo_write(int drive, int side)
+d86f_turbo_write(void *priv, const int side)
 {
-    d86f_t *dev = d86f[drive];
-    uint8_t dat = 0;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
+    uint8_t      dat = 0;
 
-    dat = d86f_get_data(drive, 1);
-    d86f_handler[drive].write_data(drive, side, dev->turbo_pos, dat);
+    dat = d86f_get_data(drv, 1);
+    drv->d86f_handler.write_data(drv, side, dev->turbo_pos, dat);
 
     dev->turbo_pos++;
 
     if (dev->turbo_pos >= (128 << dev->last_sector.id.n)) {
         /* We've written the data. */
-        dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
+        dev->data_find.sync_marks = dev->data_find.bits_obtained  =
+                                    dev->data_find.bytes_obtained = 0;
         dev->error_condition                                                                     = 0;
         dev->state                                                                               = STATE_IDLE;
-        d86f_handler[drive].writeback(drive);
-        fdc_sector_finishread(d86f_fdc);
+        drv->d86f_handler.writeback(drv);
+        fdc_sector_finishread(drv->fdc);
     }
 }
 
 void
-d86f_turbo_format(int drive, int side, int nop)
+d86f_turbo_format(void *priv, const int side, int nop)
 {
-    d86f_t  *dev = d86f[drive];
-    int      dat;
-    uint16_t sc;
-    uint16_t dtl;
-
-    sc  = fdc_get_format_sectors(d86f_fdc);
-    dtl = 128 << fdc_get_format_n(d86f_fdc);
+    fdd_drive_t *  drv = (fdd_drive_t *) priv;
+    d86f_t *       dev = (d86f_t *) drv->d86f_priv;
+    const uint16_t sc  = fdc_get_format_sectors(drv->fdc);
+    const uint16_t dtl = 128 << fdc_get_format_n(drv->fdc);
 
     /* HD-COPY's "Is the data rate correct?" format. */
-    if ((dev->version == 0x0063) && (fdc_get_format_n(d86f_fdc) == 3) && (sc == 2))
+    if ((dev->version == 0x0063) && (fdc_get_format_n(drv->fdc) == 3) && (sc == 2))
         nop = 1;
 
     if (dev->datac <= 3) {
-        dat = fdc_getdata(d86f_fdc, 0);
+        fdc_t *fdc = (fdc_t *) drv->fdc;
+        int dat = fdc_getdata(fdc, 0);
         if (dat != -1)
             dat &= 0xff;
         if ((dat == -1) && (dev->datac < 3))
             dat = 0;
-        d86f_fdc->format_sector_id.byte_array[dev->datac] = dat & 0xff;
+        fdc->format_sector_id.byte_array[dev->datac] = dat & 0xff;
         if (dev->datac == 3) {
-            fdc_stop_id_request(d86f_fdc);
+            fdc_stop_id_request(fdc);
             if (dev->format_id_count < 256) {
                 memcpy(dev->format_ids[dev->format_id_count],
-                       d86f_fdc->format_sector_id.byte_array,
+                       fdc->format_sector_id.byte_array,
                        sizeof(d86f_format_id_t));
                 dev->format_id_count++;
             }
-            d86f_handler[drive].set_sector(drive, side, d86f_fdc->format_sector_id.id.c, d86f_fdc->format_sector_id.id.h, d86f_fdc->format_sector_id.id.r, d86f_fdc->format_sector_id.id.n);
+            drv->d86f_handler.set_sector(drv, side,
+                                         fdc->format_sector_id.id.c, fdc->format_sector_id.id.h,
+                                         fdc->format_sector_id.id.r, fdc->format_sector_id.id.n);
         }
     } else if (dev->datac == 4) {
         if (!nop) {
             for (uint16_t i = 0; i < dtl; i++)
-                d86f_handler[drive].write_data(drive, side, i, dev->fill);
+                drv->d86f_handler.write_data(drv, side, i, dev->fill);
         }
 
         dev->sector_count++;
@@ -2384,29 +2444,29 @@ d86f_turbo_format(int drive, int side, int nop)
 
         if (dev->sector_count < sc) {
             /* Sector within allotted amount. */
-            fdc_request_next_sector_id(d86f_fdc);
+            fdc_request_next_sector_id(drv->fdc);
         } else {
             dev->state = STATE_IDLE;
-            d86f_format_turbo_finish(drive, side, !nop);
+            d86f_format_turbo_finish(drv, side, !nop);
         }
     }
 }
 
 int
-d86f_sector_is_present(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
+d86f_sector_is_present(void *priv, const int side, const uint8_t c, const uint8_t h,
+                       const uint8_t r, const uint8_t n)
 {
-    const d86f_t   *dev = d86f[drive];
-    sector_t       *s;
-    sector_t       *t;
+    fdd_drive_t * drv = (fdd_drive_t *) priv;
+    const d86f_t *dev = (d86f_t *) drv->d86f_priv;
 
     if (dev->last_side_sector[side]) {
-        s = dev->last_side_sector[side];
+        sector_t *s = dev->last_side_sector[side];
         while (s) {
             if ((s->c == c) && (s->h == h) && (s->r == r) && (s->n == n))
                 return 1;
             if (!s->prev)
                 break;
-            t = s->prev;
+            sector_t *t = s->prev;
             s = t;
         }
     }
@@ -2415,14 +2475,18 @@ d86f_sector_is_present(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uin
 }
 
 void
-d86f_turbo_poll(int drive, int side)
+d86f_turbo_poll(void *priv, const int side)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    if ((dev->state != STATE_IDLE) && (dev->state != STATE_SECTOR_NOT_FOUND) && ((dev->state & 0xF8) != 0xE8)) {
-        if (!d86f_can_read_address(drive)) {
-            dev->id_find.sync_marks = dev->id_find.bits_obtained = dev->id_find.bytes_obtained = dev->error_condition = 0;
-            fdc_noidam(d86f_fdc);
+    if ((dev->state != STATE_IDLE) && (dev->state != STATE_SECTOR_NOT_FOUND) &&
+        ((dev->state & 0xF8) != 0xE8)) {
+        if (!d86f_can_read_address(drv)) {
+            dev->id_find.sync_marks = dev->id_find.bits_obtained  =
+                                      dev->id_find.bytes_obtained =
+                                      dev->error_condition        = 0;
+            fdc_noidam(drv->fdc);
             dev->state = STATE_IDLE;
             return;
         }
@@ -2439,18 +2503,25 @@ d86f_turbo_poll(int drive, int side)
             return;
 
         case STATE_02_FIND_ID:
-            if (!d86f_sector_is_present(drive, side, fdc_get_read_track_sector(d86f_fdc).id.c, fdc_get_read_track_sector(d86f_fdc).id.h,
-                                        fdc_get_read_track_sector(d86f_fdc).id.r, fdc_get_read_track_sector(d86f_fdc).id.n)) {
+            if (!d86f_sector_is_present(drv, side,
+                                        fdc_get_read_track_sector(drv->fdc).id.c,
+                                        fdc_get_read_track_sector(drv->fdc).id.h,
+                                        fdc_get_read_track_sector(drv->fdc).id.r,
+                                        fdc_get_read_track_sector(drv->fdc).id.n)) {
                 dev->id_find.sync_marks = dev->id_find.bits_obtained = dev->id_find.bytes_obtained = dev->error_condition = 0;
-                fdc_nosector(d86f_fdc);
+                fdc_nosector(drv->fdc);
                 dev->state = STATE_IDLE;
                 return;
             }
-            dev->last_sector.id.c = fdc_get_read_track_sector(d86f_fdc).id.c;
-            dev->last_sector.id.h = fdc_get_read_track_sector(d86f_fdc).id.h;
-            dev->last_sector.id.r = fdc_get_read_track_sector(d86f_fdc).id.r;
-            dev->last_sector.id.n = fdc_get_read_track_sector(d86f_fdc).id.n;
-            d86f_handler[drive].set_sector(drive, side, dev->last_sector.id.c, dev->last_sector.id.h, dev->last_sector.id.r, dev->last_sector.id.n);
+            dev->last_sector.id.c = fdc_get_read_track_sector(drv->fdc).id.c;
+            dev->last_sector.id.h = fdc_get_read_track_sector(drv->fdc).id.h;
+            dev->last_sector.id.r = fdc_get_read_track_sector(drv->fdc).id.r;
+            dev->last_sector.id.n = fdc_get_read_track_sector(drv->fdc).id.n;
+            drv->d86f_handler.set_sector(drv, side,
+                                         dev->last_sector.id.c,
+                                         dev->last_sector.id.h,
+                                         dev->last_sector.id.r,
+                                         dev->last_sector.id.n);
             dev->turbo_pos = 0;
             dev->state++;
             return;
@@ -2460,56 +2531,71 @@ d86f_turbo_poll(int drive, int side)
         case STATE_06_FIND_ID:
         case STATE_0C_FIND_ID:
         case STATE_11_FIND_ID:
-        case STATE_16_FIND_ID:
-            if (!d86f_sector_is_present(drive, side, dev->req_sector.id.c, dev->req_sector.id.h, dev->req_sector.id.r, dev->req_sector.id.n)) {
-                dev->id_find.sync_marks = dev->id_find.bits_obtained = dev->id_find.bytes_obtained = dev->error_condition = 0;
-                if (d86f_sector_is_present(drive, side, d86f_fdc->pcn[dev->req_sector.id.h], dev->req_sector.id.h, dev->req_sector.id.r, dev->req_sector.id.n))
-                    fdc_wrongcylinder(d86f_fdc);
+        case STATE_16_FIND_ID: {
+            fdc_t *fdc = (fdc_t *) drv->fdc;
+            if (!d86f_sector_is_present(drv, side,
+                                        dev->req_sector.id.c,
+                                        dev->req_sector.id.h,
+                                        dev->req_sector.id.r,
+                                        dev->req_sector.id.n)) {
+                dev->id_find.sync_marks = dev->id_find.bits_obtained  =
+                                          dev->id_find.bytes_obtained =
+                                          dev->error_condition        = 0;
+                if (d86f_sector_is_present(drv, side,
+                                           fdc->pcn[dev->req_sector.id.h],
+                                           dev->req_sector.id.h,
+                                           dev->req_sector.id.r,
+                                           dev->req_sector.id.n))
+                    fdc_wrongcylinder(fdc);
                 else
-                    fdc_nosector(d86f_fdc);
+                    fdc_nosector(fdc);
                 dev->state = STATE_IDLE;
                 return;
-            } else if (d86f_sector_flags(drive, side, dev->req_sector.id.c, dev->req_sector.id.h, dev->req_sector.id.r, dev->req_sector.id.n) & SECTOR_NO_ID) {
-                dev->id_find.sync_marks = dev->id_find.bits_obtained = dev->id_find.bytes_obtained = dev->error_condition = 0;
-                fdc_noidam(d86f_fdc);
-                dev->state = STATE_IDLE;
-                return;
-            }
+                                        } else if (d86f_sector_flags(drv, side,
+                                                                     dev->req_sector.id.c,
+                                                                     dev->req_sector.id.h,
+                                                                     dev->req_sector.id.r,
+                                                                     dev->req_sector.id.n) & SECTOR_NO_ID) {
+                                            dev->id_find.sync_marks = dev->id_find.bits_obtained  =
+                                                                      dev->id_find.bytes_obtained =
+                                                                      dev->error_condition        = 0;
+                                            fdc_noidam(fdc);
+                                            dev->state = STATE_IDLE;
+                                            return;
+                                                                     }
             dev->last_sector.id.c = dev->req_sector.id.c;
             dev->last_sector.id.h = dev->req_sector.id.h;
             dev->last_sector.id.r = dev->req_sector.id.r;
             dev->last_sector.id.n = dev->req_sector.id.n;
-            d86f_handler[drive].set_sector(drive, side, dev->last_sector.id.c, dev->last_sector.id.h, dev->last_sector.id.r, dev->last_sector.id.n);
+            drv->d86f_handler.set_sector(drv, side,
+                                         dev->last_sector.id.c,
+                                         dev->last_sector.id.h,
+                                         dev->last_sector.id.r,
+                                         dev->last_sector.id.n);
             fallthrough;
-
+        }
         case STATE_0A_FIND_ID:
             dev->turbo_pos = 0;
             dev->state++;
             return;
 
         case STATE_0A_READ_ID:
-            dev->id_find.sync_marks = dev->id_find.bits_obtained = dev->id_find.bytes_obtained = dev->error_condition = 0;
-            fdc_sectorid(d86f_fdc, dev->last_sector.id.c, dev->last_sector.id.h, dev->last_sector.id.r, dev->last_sector.id.n, 0, 0);
+            dev->id_find.sync_marks = dev->id_find.bits_obtained  =
+                                      dev->id_find.bytes_obtained =
+                                      dev->error_condition        = 0;
+            fdc_sectorid(drv->fdc, dev->last_sector.id.c, dev->last_sector.id.h,
+                                   dev->last_sector.id.r, dev->last_sector.id.n,
+                                   0, 0);
             dev->state = STATE_IDLE;
             break;
 
-        case STATE_02_READ_ID:
-        case STATE_05_READ_ID:
-        case STATE_09_READ_ID:
-        case STATE_06_READ_ID:
-        case STATE_0C_READ_ID:
-        case STATE_11_READ_ID:
-        case STATE_16_READ_ID:
-            dev->state++;
-            break;
-
-        case STATE_02_FIND_DATA:
-        case STATE_06_FIND_DATA:
-        case STATE_11_FIND_DATA:
-        case STATE_16_FIND_DATA:
-        case STATE_05_FIND_DATA:
-        case STATE_09_FIND_DATA:
-        case STATE_0C_FIND_DATA:
+        case STATE_02_READ_ID: case STATE_02_FIND_DATA:
+        case STATE_05_READ_ID: case STATE_05_FIND_DATA:
+        case STATE_06_READ_ID: case STATE_06_FIND_DATA:
+        case STATE_09_READ_ID: case STATE_09_FIND_DATA:
+        case STATE_0C_READ_ID: case STATE_0C_FIND_DATA:
+        case STATE_11_READ_ID: case STATE_11_FIND_DATA:
+        case STATE_16_READ_ID: case STATE_16_FIND_DATA:
             dev->state++;
             break;
 
@@ -2518,28 +2604,28 @@ d86f_turbo_poll(int drive, int side)
         case STATE_0C_READ_DATA:
         case STATE_11_SCAN_DATA:
         case STATE_16_VERIFY_DATA:
-            if (fdc_is_dma(d86f_fdc))
+            if (fdc_is_dma(drv->fdc))
                 for (int i = 0; i < (128 << dev->last_sector.id.n); i++)
-                    d86f_turbo_read(drive, side);
+                    d86f_turbo_read(drv, side);
             else
-                d86f_turbo_read(drive, side);
+                d86f_turbo_read(drv, side);
             break;
 
         case STATE_05_WRITE_DATA:
         case STATE_09_WRITE_DATA:
-            if (fdc_is_dma(d86f_fdc))
+            if (fdc_is_dma(drv->fdc))
                 for (int i = 0; i < (128 << dev->last_sector.id.n); i++)
-                    d86f_turbo_write(drive, side);
+                    d86f_turbo_write(drv, side);
             else
-                d86f_turbo_write(drive, side);
+                d86f_turbo_write(drv, side);
             break;
 
         case STATE_0D_FORMAT_TRACK:
-            if (fdc_is_dma(d86f_fdc))
+            if (fdc_is_dma(drv->fdc))
                 while (dev->state == STATE_0D_FORMAT_TRACK)
-                    d86f_turbo_format(drive, side, (side && (d86f_get_sides(drive) != 2)));
+                    d86f_turbo_format(drv, side, (side && (d86f_get_sides(drv) != 2)));
             else
-                d86f_turbo_format(drive, side, (side && (d86f_get_sides(drive) != 2)));
+                d86f_turbo_format(drv, side, (side && (d86f_get_sides(drv) != 2)));
             return;
 
         case STATE_IDLE:
@@ -2550,41 +2636,43 @@ d86f_turbo_poll(int drive, int side)
 }
 
 void
-d86f_poll(int drive)
+d86f_poll(void *priv)
 {
-    d86f_t *dev = d86f[drive];
-    int     mfm;
-    int     side;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    side = fdd_get_head(drive);
-    if (!fdd_is_double_sided(drive))
+    int side = fdd_get_head(drv);
+    if (!fdd_is_double_sided(drv))
         side = 0;
 
-    mfm = fdc_is_mfm(d86f_fdc);
+    const int mfm = fdc_is_mfm(drv->fdc);
 
     if ((dev->state & 0xF8) == 0xE8) {
-        if (!d86f_can_format(drive))
+        if (!d86f_can_format(drv))
             dev->state = STATE_SECTOR_NOT_FOUND;
     }
 
-    if ((dev->state != STATE_IDLE) && (dev->state != STATE_SECTOR_NOT_FOUND) && ((dev->state & 0xF8) != 0xE8)) {
-        if (!d86f_can_read_address(drive))
-            dev->state = STATE_SECTOR_NOT_FOUND;
-    }
+    if ((dev->state != STATE_IDLE) && (dev->state != STATE_SECTOR_NOT_FOUND) &&
+        ((dev->state & 0xF8) != 0xE8) && !d86f_can_read_address(drv))
+        dev->state = STATE_SECTOR_NOT_FOUND;
 
-    /* Do normal poll if DENSEL is wrong, because Windows 95 is very strict about timings there. */
-    if (fdd_get_turbo(drive) && (dev->version == 0x0063) && (dev->state != STATE_SECTOR_NOT_FOUND)) {
-        d86f_turbo_poll(drive, side);
+    /*
+       Do normal poll if DENSEL is wrong, because Windows 95 is very strict about
+       timings there.
+     */
+    if (fdd_get_turbo(drv) && (dev->version == 0x0063) &&
+        (dev->state != STATE_SECTOR_NOT_FOUND)) {
+        d86f_turbo_poll(drv, side);
         return;
     }
 
     if ((dev->state != STATE_02_SPIN_TO_INDEX) && (dev->state != STATE_0D_SPIN_TO_INDEX))
-        d86f_get_bit(drive, side ^ 1);
+        d86f_get_bit(drv, side ^ 1);
 
     switch (dev->state) {
         case STATE_02_SPIN_TO_INDEX:
         case STATE_0D_SPIN_TO_INDEX:
-            d86f_spin_to_index(drive, side);
+            d86f_spin_to_index(drv, side);
             return;
 
         case STATE_02_FIND_ID:
@@ -2596,14 +2684,16 @@ d86f_poll(int drive)
         case STATE_11_FIND_ID:
         case STATE_16_FIND_ID:
             if (mfm)
-                d86f_find_address_mark_mfm(drive, side, &(dev->id_find), 0x5554, 0, 0, 0);
+                d86f_find_address_mark_mfm(drv, side, &(dev->id_find),0x5554, 0,
+                                           0, 0);
             else
-                d86f_find_address_mark_fm(drive, side, &(dev->id_find), 0xF57E, 0, 0, 0);
+                d86f_find_address_mark_fm(drv, side, &(dev->id_find), 0xf57e, 0,
+                                          0, 0);
             break;
 
         case STATE_0A_READ_ID:
         case STATE_02_READ_ID:
-            d86f_read_sector_id(drive, side, 0);
+            d86f_read_sector_id(drv, side, 0);
             break;
 
         case STATE_05_READ_ID:
@@ -2612,38 +2702,48 @@ d86f_poll(int drive)
         case STATE_0C_READ_ID:
         case STATE_11_READ_ID:
         case STATE_16_READ_ID:
-            d86f_read_sector_id(drive, side, 1);
+            d86f_read_sector_id(drv, side, 1);
             break;
 
         case STATE_02_FIND_DATA:
             if (mfm)
-                d86f_find_address_mark_mfm(drive, side, &(dev->data_find), 0x5545, 0x554A, 0x5554, 2);
+                d86f_find_address_mark_mfm(drv, side, &(dev->data_find), 0x5545,
+                                           0x554a, 0x5554, 2);
             else
-                d86f_find_address_mark_fm(drive, side, &(dev->data_find), 0xF56F, 0xF56A, 0xF57E, 2);
+                d86f_find_address_mark_fm(drv, side, &(dev->data_find), 0xf56f,
+                                          0xf56a, 0xf57e, 2);
             break;
 
         case STATE_06_FIND_DATA:
         case STATE_11_FIND_DATA:
         case STATE_16_FIND_DATA:
             if (mfm)
-                d86f_find_address_mark_mfm(drive, side, &(dev->data_find), 0x5545, 0x554A, 0x5554, fdc_is_sk(d86f_fdc) | 2);
+                d86f_find_address_mark_mfm(drv, side, &(dev->data_find), 0x5545,
+                                           0x554a, 0x5554,
+                                           fdc_is_sk(drv->fdc) | 2);
             else
-                d86f_find_address_mark_fm(drive, side, &(dev->data_find), 0xF56F, 0xF56A, 0xF57E, fdc_is_sk(d86f_fdc) | 2);
+                d86f_find_address_mark_fm(drv, side, &(dev->data_find), 0xf56f,
+                                          0xf56a,0xf57e,
+                                          fdc_is_sk(drv->fdc) | 2);
             break;
 
         case STATE_05_FIND_DATA:
         case STATE_09_FIND_DATA:
             if (mfm)
-                d86f_write_find_address_mark_mfm(drive, side, &(dev->data_find));
+                d86f_write_find_address_mark_mfm(drv, side, &(dev->data_find));
             else
-                d86f_write_find_address_mark_fm(drive, side, &(dev->data_find));
+                d86f_write_find_address_mark_fm(drv, side, &(dev->data_find));
             break;
 
         case STATE_0C_FIND_DATA:
             if (mfm)
-                d86f_find_address_mark_mfm(drive, side, &(dev->data_find), 0x554A, 0x5545, 0x5554, fdc_is_sk(d86f_fdc) | 2);
+                d86f_find_address_mark_mfm(drv, side, &(dev->data_find), 0x554a,
+                                           0x5545, 0x5554,
+                                           fdc_is_sk(drv->fdc) | 2);
             else
-                d86f_find_address_mark_fm(drive, side, &(dev->data_find), 0xF56A, 0xF56F, 0xF57E, fdc_is_sk(d86f_fdc) | 2);
+                d86f_find_address_mark_fm(drv, side, &(dev->data_find), 0xf56a,
+                                          0xf56f, 0xf57e,
+                                          fdc_is_sk(drv->fdc) | 2);
             break;
 
         case STATE_02_READ_DATA:
@@ -2651,43 +2751,44 @@ d86f_poll(int drive)
         case STATE_0C_READ_DATA:
         case STATE_11_SCAN_DATA:
         case STATE_16_VERIFY_DATA:
-            d86f_read_sector_data(drive, side);
+            d86f_read_sector_data(drv, side);
             break;
 
         case STATE_05_WRITE_DATA:
             if (mfm)
-                d86f_write_sector_data(drive, side, mfm, 0x5545);
+                d86f_write_sector_data(drv, side, mfm, 0x5545);
             else
-                d86f_write_sector_data(drive, side, mfm, 0xF56F);
+                d86f_write_sector_data(drv, side, mfm, 0xF56F);
             break;
 
         case STATE_09_WRITE_DATA:
             if (mfm)
-                d86f_write_sector_data(drive, side, mfm, 0x554A);
+                d86f_write_sector_data(drv, side, mfm, 0x554A);
             else
-                d86f_write_sector_data(drive, side, mfm, 0xF56A);
+                d86f_write_sector_data(drv, side, mfm, 0xF56A);
             break;
 
         case STATE_0D_FORMAT_TRACK:
             if (!(dev->track_pos & 15))
-                d86f_format_track(drive, side, (!side || (d86f_get_sides(drive) == 2)) && (dev->version == D86FVER));
+                d86f_format_track(drv, side, (!side || (d86f_get_sides(drv) == 2)) &&
+                                             (dev->version == D86FVER));
             return;
 
         case STATE_IDLE:
         case STATE_SECTOR_NOT_FOUND:
         default:
-            d86f_get_bit(drive, side);
+            d86f_get_bit(drv, side);
             break;
     }
 
-    d86f_advance_bit(drive, side);
+    d86f_advance_bit(drv, side);
 
     if ((dev->index_count == 2) && (dev->state != STATE_IDLE)) {
         switch (dev->state) {
             case STATE_0A_FIND_ID:
             case STATE_SECTOR_NOT_FOUND:
                 dev->state = STATE_IDLE;
-                fdc_noidam(d86f_fdc);
+                fdc_noidam(drv->fdc);
                 break;
 
             case STATE_02_FIND_DATA:
@@ -2698,7 +2799,7 @@ d86f_poll(int drive)
             case STATE_09_FIND_DATA:
             case STATE_0C_FIND_DATA:
                 dev->state = STATE_IDLE;
-                fdc_nodataam(d86f_fdc);
+                fdc_nodataam(drv->fdc);
                 break;
 
             case STATE_02_SPIN_TO_INDEX:
@@ -2711,7 +2812,10 @@ d86f_poll(int drive)
             case STATE_0D_FORMAT_TRACK:
             case STATE_11_SCAN_DATA:
             case STATE_16_VERIFY_DATA:
-                /* In these states, we should *NEVER* care about how many index pulses there have been. */
+                /*
+                   In these states, we should *NEVER* care about how many index pulses
+                   there have been.
+                 */
                 break;
 
             default:
@@ -2719,48 +2823,42 @@ d86f_poll(int drive)
                 if (dev->id_found) {
                     if (dev->error_condition & 0x18) {
                         if ((dev->error_condition & 0x18) == 0x08)
-                            fdc_badcylinder(d86f_fdc);
+                            fdc_badcylinder(drv->fdc);
                         if ((dev->error_condition & 0x10) == 0x10)
-                            fdc_wrongcylinder(d86f_fdc);
+                            fdc_wrongcylinder(drv->fdc);
                         else
-                            fdc_nosector(d86f_fdc);
+                            fdc_nosector(drv->fdc);
                     } else
-                        fdc_nosector(d86f_fdc);
+                        fdc_nosector(drv->fdc);
                 } else
-                    fdc_noidam(d86f_fdc);
+                    fdc_noidam(drv->fdc);
                 break;
         }
     }
 }
 
 void
-d86f_reset_index_hole_pos(int drive, int side)
+d86f_reset_index_hole_pos(void *priv, const int side)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     dev->index_hole_pos[side] = 0;
 }
 
 uint16_t
-d86f_prepare_pretrack(int drive, int side, int iso)
+d86f_prepare_pretrack(void *priv, const int side, const int iso)
 {
-    d86f_t  *dev = d86f[drive];
-    uint16_t pos;
-    int      mfm;
-    int      real_gap0_len;
-    int      sync_len;
-    int      real_gap1_len;
-    uint16_t gap_fill;
-    uint32_t raw_size;
-    uint16_t iam_fm  = 0xFAF7;
-    uint16_t iam_mfm = 0x5255;
+    fdd_drive_t *  drv           = (fdd_drive_t *) priv;
+    d86f_t  *      dev           = (d86f_t *) drv->d86f_priv;
 
-    mfm           = d86f_is_mfm(drive);
-    real_gap0_len = mfm ? 80 : 40;
-    sync_len      = mfm ? 12 : 6;
-    real_gap1_len = mfm ? 50 : 26;
-    gap_fill      = mfm ? 0x4E : 0xFF;
-    raw_size      = d86f_handler[drive].get_raw_size(drive, side);
+    const int      mfm           = d86f_is_mfm(drv);
+    const int      real_gap0_len = mfm ? 80 : 40;
+    const int      sync_len      = mfm ? 12 : 6;
+    const int      real_gap1_len = mfm ? 50 : 26;
+    const uint16_t gap_fill      = mfm ? 0x4e : 0xff;
+    uint32_t       raw_size      = drv->d86f_handler.get_raw_size(drv, side);
+
     if (raw_size & 15)
         raw_size = (raw_size >> 4) + 1;
     else
@@ -2768,35 +2866,38 @@ d86f_prepare_pretrack(int drive, int side, int iso)
 
     dev->index_hole_pos[side] = 0;
 
-    d86f_destroy_linked_lists(drive, side);
+    d86f_destroy_linked_lists(drv, side);
 
     for (uint32_t i = 0; i < raw_size; i++)
-        d86f_write_direct_common(drive, side, gap_fill, 0, i);
+        d86f_write_direct_common(drv, side, gap_fill, 0, i);
 
-    pos = 0;
+    uint16_t pos = 0;
 
     if (!iso) {
         for (int i = 0; i < real_gap0_len; i++) {
-            d86f_write_direct_common(drive, side, gap_fill, 0, pos);
+            d86f_write_direct_common(drv, side, gap_fill, 0, pos);
             pos = (pos + 1) % raw_size;
         }
         for (int i = 0; i < sync_len; i++) {
-            d86f_write_direct_common(drive, side, 0, 0, pos);
+            d86f_write_direct_common(drv, side, 0, 0, pos);
             pos = (pos + 1) % raw_size;
         }
         if (mfm) {
             for (uint8_t i = 0; i < 3; i++) {
-                d86f_write_direct_common(drive, side, 0x2452, 1, pos);
+                d86f_write_direct_common(drv, side, 0x2452, 1, pos);
                 pos = (pos + 1) % raw_size;
             }
         }
 
-        d86f_write_direct_common(drive, side, mfm ? iam_mfm : iam_fm, 1, pos);
+        const uint16_t iam_fm  = 0xfaf7;
+        const uint16_t iam_mfm = 0x5255;
+
+        d86f_write_direct_common(drv, side, mfm ? iam_mfm : iam_fm, 1, pos);
         pos = (pos + 1) % raw_size;
     }
 
     for (int i = 0; i < real_gap1_len; i++) {
-        d86f_write_direct_common(drive, side, gap_fill, 0, pos);
+        d86f_write_direct_common(drv, side, gap_fill, 0, pos);
         pos = (pos + 1) % raw_size;
     }
 
@@ -2804,28 +2905,16 @@ d86f_prepare_pretrack(int drive, int side, int iso)
 }
 
 uint16_t
-d86f_prepare_sector(int drive, int side, int prev_pos, uint8_t *id_buf, uint8_t *data_buf, int data_len, int gap2, int gap3, int flags)
+d86f_prepare_sector(void *priv, const int side, const int prev_pos, uint8_t *id_buf,
+                    uint8_t *data_buf, const int data_len, const int gap2, const int gap3,
+                    const int flags)
 {
-    d86f_t   *dev = d86f[drive];
-    uint16_t  pos;
-    int       i;
-    sector_t *s;
+    fdd_drive_t *  drv = (fdd_drive_t *) priv;
+    d86f_t *       dev = (d86f_t *) drv->d86f_priv;
+    int            i;
 
-    int      real_gap2_len = gap2;
-    int      real_gap3_len = gap3;
-    int      mfm;
-    int      sync_len;
-    uint16_t gap_fill;
-    uint32_t raw_size;
-    uint16_t idam_fm     = 0x7EF5;
-    uint16_t dataam_fm   = 0x6FF5;
-    uint16_t datadam_fm  = 0x6AF5;
-    uint16_t idam_mfm    = 0x5455;
-    uint16_t dataam_mfm  = 0x4555;
-    uint16_t datadam_mfm = 0x4A55;
-
-    if (fdd_get_turbo(drive) && (dev->version == 0x0063)) {
-        s = (sector_t *) calloc(1, sizeof(sector_t));
+    if (fdd_get_turbo(drv) && (dev->version == 0x0063)) {
+        sector_t *s = (sector_t *) calloc(1, sizeof(sector_t));
         s->c     = id_buf[0];
         s->h     = id_buf[1];
         s->r     = id_buf[2];
@@ -2836,81 +2925,90 @@ d86f_prepare_sector(int drive, int side, int prev_pos, uint8_t *id_buf, uint8_t 
         dev->last_side_sector[side] = s;
     }
 
-    mfm = d86f_is_mfm(drive);
+    const int      mfm      = d86f_is_mfm(drv);
+    const int      sync_len = mfm ? 12 : 6;
+    const uint16_t gap_fill = mfm ? 0x4e : 0xff;
+    uint32_t       raw_size = drv->d86f_handler.get_raw_size(drv, side);
+    uint16_t       pos      = prev_pos;
 
-    gap_fill = mfm ? 0x4E : 0xFF;
-    raw_size = d86f_handler[drive].get_raw_size(drive, side);
     if (raw_size & 15)
         raw_size = (raw_size >> 4) + 1;
     else
         raw_size = (raw_size >> 4);
 
-    pos = prev_pos;
-
-    sync_len = mfm ? 12 : 6;
-
     if (!(flags & SECTOR_NO_ID)) {
         for (i = 0; i < sync_len; i++) {
-            d86f_write_direct_common(drive, side, 0, 0, pos);
+            d86f_write_direct_common(drv, side, 0, 0, pos);
             pos = (pos + 1) % raw_size;
         }
 
         dev->calc_crc.word = 0xffff;
         if (mfm) {
             for (i = 0; i < 3; i++) {
-                d86f_write_direct_common(drive, side, 0x8944, 1, pos);
+                d86f_write_direct_common(drv, side, 0x8944, 1, pos);
                 pos = (pos + 1) % raw_size;
-                d86f_calccrc(dev, 0xA1);
+                d86f_calccrc(dev, 0xa1);
             }
         }
-        d86f_write_direct_common(drive, side, mfm ? idam_mfm : idam_fm, 1, pos);
+        const uint16_t idam_fm  = 0x7ef5;
+        const uint16_t idam_mfm = 0x5455;
+        d86f_write_direct_common(drv, side, mfm ? idam_mfm : idam_fm, 1, pos);
         pos = (pos + 1) % raw_size;
-        d86f_calccrc(dev, 0xFE);
+        d86f_calccrc(dev, 0xfe);
         for (i = 0; i < 4; i++) {
-            d86f_write_direct_common(drive, side, id_buf[i], 0, pos);
+            d86f_write_direct_common(drv, side, id_buf[i], 0, pos);
             pos = (pos + 1) % raw_size;
             d86f_calccrc(dev, id_buf[i]);
         }
         for (i = 1; i >= 0; i--) {
-            d86f_write_direct_common(drive, side, dev->calc_crc.bytes[i], 0, pos);
+            d86f_write_direct_common(drv, side, dev->calc_crc.bytes[i], 0, pos);
             pos = (pos + 1) % raw_size;
         }
-        for (i = 0; i < real_gap2_len; i++) {
-            d86f_write_direct_common(drive, side, gap_fill, 0, pos);
+        for (i = 0; i < gap2; i++) {
+            d86f_write_direct_common(drv, side, gap_fill, 0, pos);
             pos = (pos + 1) % raw_size;
         }
     }
 
     if (!(flags & SECTOR_NO_DATA)) {
         for (i = 0; i < sync_len; i++) {
-            d86f_write_direct_common(drive, side, 0, 0, pos);
+            d86f_write_direct_common(drv, side, 0, 0, pos);
             pos = (pos + 1) % raw_size;
         }
         dev->calc_crc.word = 0xffff;
         if (mfm) {
             for (i = 0; i < 3; i++) {
-                d86f_write_direct_common(drive, side, 0x8944, 1, pos);
+                d86f_write_direct_common(drv, side, 0x8944, 1, pos);
                 pos = (pos + 1) % raw_size;
                 d86f_calccrc(dev, 0xA1);
             }
         }
-        d86f_write_direct_common(drive, side, mfm ? ((flags & SECTOR_DELETED_DATA) ? datadam_mfm : dataam_mfm) : ((flags & SECTOR_DELETED_DATA) ? datadam_fm : dataam_fm), 1, pos);
+        const uint16_t dataam_fm   = 0x6ff5;
+        const uint16_t datadam_fm  = 0x6af5;
+        const uint16_t dataam_mfm  = 0x4555;
+        const uint16_t datadam_mfm = 0x4a55;
+        d86f_write_direct_common(drv, side,
+                                 mfm ? ((flags & SECTOR_DELETED_DATA) ?
+                                     datadam_mfm : dataam_mfm) :
+                                     ((flags & SECTOR_DELETED_DATA) ? datadam_fm :
+                                         dataam_fm),
+                                 1, pos);
         pos = (pos + 1) % raw_size;
         d86f_calccrc(dev, (flags & SECTOR_DELETED_DATA) ? 0xF8 : 0xFB);
         if (data_len > 0) {
             for (i = 0; i < data_len; i++) {
-                d86f_write_direct_common(drive, side, data_buf[i], 0, pos);
+                d86f_write_direct_common(drv, side, data_buf[i], 0, pos);
                 pos = (pos + 1) % raw_size;
                 d86f_calccrc(dev, data_buf[i]);
             }
             if (!(flags & SECTOR_CRC_ERROR)) {
                 for (i = 1; i >= 0; i--) {
-                    d86f_write_direct_common(drive, side, dev->calc_crc.bytes[i], 0, pos);
+                    d86f_write_direct_common(drv, side, dev->calc_crc.bytes[i], 0, pos);
                     pos = (pos + 1) % raw_size;
                 }
             }
-            for (i = 0; i < real_gap3_len; i++) {
-                d86f_write_direct_common(drive, side, gap_fill, 0, pos);
+            for (i = 0; i < gap3; i++) {
+                d86f_write_direct_common(drv, side, gap_fill, 0, pos);
                 pos = (pos + 1) % raw_size;
             }
         }
@@ -2920,66 +3018,64 @@ d86f_prepare_sector(int drive, int side, int prev_pos, uint8_t *id_buf, uint8_t 
 }
 
 /*
- * Note on handling of tracks on thick track drives:
- *
- * - On seek, encoded data is constructed from both (track << 1) and
- *   ((track << 1) + 1);
- *
- * - Any bits that differ are treated as thus:
- * - Both are regular but contents differ -> Output is fuzzy;
- * - One is regular and one is fuzzy -> Output is fuzzy;
- * - Both are fuzzy -> Output is fuzzy;
- * - Both are physical holes -> Output is a physical hole;
- * - One is regular and one is a physical hole -> Output is fuzzy,
- *   the hole half is handled appropriately on writeback;
- * - One is fuzzy and one is a physical hole -> Output is fuzzy,
- *   the hole half is handled appropriately on writeback;
- * - On write back, apart from the above notes, the final two tracks
- *   are written;
- * - Destination ALWAYS has surface data even if the image does not.
- *
- * In case of a thin track drive, tracks are handled normally.
+   Note on handling of tracks on thick track drives:
+
+   - On seek, encoded data is constructed from both (track << 1) and
+     ((track << 1) + 1);
+
+   - Any bits that differ are treated as thus:
+   - Both are regular but contents differ -> Output is fuzzy;
+   - One is regular and one is fuzzy -> Output is fuzzy;
+   - Both are fuzzy -> Output is fuzzy;
+   - Both are physical holes -> Output is a physical hole;
+   - One is regular and one is a physical hole -> Output is fuzzy,
+     the hole half is handled appropriately on writeback;
+   - One is fuzzy and one is a physical hole -> Output is fuzzy,
+     the hole half is handled appropriately on writeback;
+   - On write back, apart from the above notes, the final two tracks
+     are written;
+   - Destination ALWAYS has surface data even if the image does not.
+
+   In case of a thin track drive, tracks are handled normally.
  */
 void
-d86f_construct_encoded_buffer(int drive, int side)
+d86f_construct_encoded_buffer(void *priv, const int side)
 {
-    d86f_t  *dev = d86f[drive];
+    fdd_drive_t *   drv    = (fdd_drive_t *) priv;
+    d86f_t *        dev    = (d86f_t *) drv->d86f_priv;
 
-    /* *_fuzm are fuzzy bit masks, *_holm are hole masks, dst_neim are masks is mask for bits that are neither fuzzy nor holes in both,
-       and src1_d and src2_d are filtered source data. */
-    uint16_t        src1_fuzm;
-    uint16_t        src2_fuzm;
-    uint16_t        dst_fuzm;
-    uint16_t        src1_holm;
-    uint16_t        src2_holm;
-    uint16_t        dst_holm;
-    uint16_t        dst_neim;
-    uint16_t        src1_d;
-    uint16_t        src2_d;
-    uint32_t        len;
+    /*
+       *_fuzm are fuzzy bit masks, *_holm are hole masks, dst_neim are masks is mask for
+       bits that are neither fuzzy nor holes in both, and src1_d and src2_d are filtered
+       source data.
+     */
     uint16_t       *dst    = dev->track_encoded_data[side];
     uint16_t       *dst_s  = dev->track_surface_data[side];
     const uint16_t *src1   = dev->thin_track_encoded_data[0][side];
     const uint16_t *src1_s = dev->thin_track_surface_data[0][side];
     const uint16_t *src2   = dev->thin_track_encoded_data[1][side];
     const uint16_t *src2_s = dev->thin_track_surface_data[1][side];
-    len              = d86f_get_array_size(drive, side, 1);
+    const uint32_t  len    = d86f_get_array_size(drv, side, 1);
 
     for (uint32_t i = 0; i < len; i++) {
         /* The two bits differ. */
-        if (d86f_has_surface_desc(drive)) {
+        if (d86f_has_surface_desc(drv)) {
             /* Source image has surface description data, so we have some more handling to do. */
-            src1_fuzm = src1[i] & src1_s[i];
-            src2_fuzm = src2[i] & src2_s[i];
-            dst_fuzm  = src1_fuzm | src2_fuzm;     /* The bits that remain set are fuzzy in either one or
-                                                      the other or both. */
-            src1_holm = ~src1[i] & src1_s[i];
-            src2_holm = ~src2[i] & src2_s[i];
-            dst_holm  = src1_holm & src2_holm;     /* The bits that remain set are holes in both. */
-            dst_neim  = ~(dst_fuzm | dst_holm);    /* The bits that remain set are those that are neither
-                                                      fuzzy nor are holes in both. */
-            src1_d = src1[i] & dst_neim;
-            src2_d = src2[i] & dst_neim;
+            const uint16_t src1_fuzm = src1[i] & src1_s[i];
+            const uint16_t src2_fuzm = src2[i] & src2_s[i];
+            /* The bits that remain set are fuzzy in either one or the other or both. */
+            const uint16_t dst_fuzm  = src1_fuzm | src2_fuzm;
+            const uint16_t src1_holm = ~src1[i] & src1_s[i];
+            const uint16_t src2_holm = ~src2[i] & src2_s[i];
+            /* The bits that remain set are holes in both. */
+            const uint16_t dst_holm  = src1_holm & src2_holm;
+            /*
+               The bits that remain set are those that are neither fuzzy nor are holes
+               in both.
+             */
+            const uint16_t dst_neim  = ~(dst_fuzm | dst_holm);
+            const uint16_t src1_d    = src1[i] & dst_neim;
+            const uint16_t src2_d    = src2[i] & dst_neim;
 
             dst_s[i] = ~dst_neim;                  /* The set bits are those that are either fuzzy or are
                                                       holes in both. */
@@ -2997,28 +3093,25 @@ d86f_construct_encoded_buffer(int drive, int side)
 
 /* Decomposition is easier since we at most have to care about the holes. */
 void
-d86f_decompose_encoded_buffer(int drive, int side)
+d86f_decompose_encoded_buffer(void *priv, const int side)
 {
-    d86f_t         *dev = d86f[drive];
-    uint16_t        temp;
-    uint16_t        temp2;
-    uint32_t        len;
-    const uint16_t *dst    = dev->track_encoded_data[side];
+    fdd_drive_t *   drv    = (fdd_drive_t *) priv;
+    d86f_t *        dev    = (d86f_t *) drv->d86f_priv;
+    const uint32_t  len    = d86f_get_array_size(drv, side, 1);
+    const uint16_t *dst    = drv->d86f_handler.encoded_data(drv, side);
     const uint16_t *dst_s  = dev->track_surface_data[side];
     uint16_t       *src1   = dev->thin_track_encoded_data[0][side];
     uint16_t       *src1_s = dev->thin_track_surface_data[0][side];
     uint16_t       *src2   = dev->thin_track_encoded_data[1][side];
     uint16_t       *src2_s = dev->thin_track_surface_data[1][side];
-    dst                    = d86f_handler[drive].encoded_data(drive, side);
-    len                    = d86f_get_array_size(drive, side, 1);
 
     for (uint32_t i = 0; i < len; i++) {
-        if (d86f_has_surface_desc(drive)) {
+        if (d86f_has_surface_desc(drv)) {
             /* Source image has surface description data, so we have some more handling to do.
                We need hole masks for both buffers. Holes have data bit clear and surface bit set. */
             src1_s[i] = src2_s[i] = dst_s[i]; /* Write the new holes and weak bits. */
-            temp      = ~src1[i] & src1_s[i]; /* Bits that are clear in data and set in surface are holes. */
-            temp2     = ~src2[i] & src2_s[i]; /* Bits that are clear in data and set in surface are holes. */
+            const uint16_t temp      = ~src1[i] & src1_s[i]; /* Bits that are clear in data and set in surface are holes. */
+            const uint16_t temp2     = ~src2[i] & src2_s[i]; /* Bits that are clear in data and set in surface are holes. */
             src1[i]   = dst[i] & ~temp;       /* Make sure the holes' bits are cleared in the decomposed buffer. */
             src1_s[i] |= temp;                /* Make sure the holes' bits are set in the decomposed surface. */
             src2[i]   = dst[i] & ~temp2;      /* Make sure the holes' bits are cleared in the decomposed buffer. */
@@ -3029,40 +3122,45 @@ d86f_decompose_encoded_buffer(int drive, int side)
 }
 
 int
-d86f_track_header_size(int drive)
+d86f_track_header_size(void *priv)
 {
-    int temp = 6;
+    fdd_drive_t *drv  = (fdd_drive_t *) priv;
+    int          temp = 6;
 
-    if (d86f_has_extra_bit_cells(drive))
+    if (d86f_has_extra_bit_cells(drv))
         temp += 4;
 
     return temp;
 }
 
 void
-d86f_read_track(int drive, int track, int thin_track, int side, uint16_t *da, uint16_t *sa)
+d86f_read_track(void *priv, const int track, const int thin_track, const int side,
+                uint16_t *da, uint16_t *sa)
 {
-    d86f_t *dev           = d86f[drive];
-    int     logical_track = 0;
-    int     array_size    = 0;
+    fdd_drive_t *drv           = (fdd_drive_t *) priv;
+    d86f_t *     dev           = (d86f_t *) drv->d86f_priv;
+    int          logical_track = 0;
 
-    if (d86f_get_sides(drive) == 2)
+    if (d86f_get_sides(drv) == 2)
         logical_track = ((track + thin_track) << 1) + side;
     else
         logical_track = track + thin_track;
 
     if (dev->track_offset[logical_track]) {
         if (!thin_track) {
-            if (fseek(dev->fp, dev->track_offset[logical_track], SEEK_SET) == -1)
-                fatal("d86f_read_track(): Error seeking to offset dev->track_offset[logical_track]\n");
+            if (fseek(dev->fp, (off_t) dev->track_offset[logical_track], SEEK_SET) == -1)
+                fatal("d86f_read_track(): Error seeking to offset "
+                          "dev->track_offset[logical_track]\n");
             if (fread(&(dev->side_flags[side]), 1, 2, dev->fp) != 2)
                 fatal("d86f_read_track(): Error reading side flags\n");
-            if (d86f_has_extra_bit_cells(drive)) {
+            if (d86f_has_extra_bit_cells(drv)) {
                 if (fread(&(dev->extra_bit_cells[side]), 1, 4, dev->fp) != 4)
                     fatal("d86f_read_track(): Error reading number of extra bit cells\n");
-                /* If RPM shift is 0% and direction is 1, do not adjust extra bit cells,
-                   as that is the whole track length. */
-                if (d86f_get_rpm_mode(drive) || !d86f_get_speed_shift_dir(drive)) {
+                /*
+                   If RPM shift is 0% and direction is 1, do not adjust extra bit cells,
+                   as that is the whole track length.
+                 */
+                if (d86f_get_rpm_mode(drv) || !d86f_get_speed_shift_dir(drv)) {
                     if (dev->extra_bit_cells[side] < -32768)
                         dev->extra_bit_cells[side] = -32768;
                     if (dev->extra_bit_cells[side] > 32768)
@@ -3072,10 +3170,11 @@ d86f_read_track(int drive, int track, int thin_track, int side, uint16_t *da, ui
                 dev->extra_bit_cells[side] = 0;
             (void) !fread(&(dev->index_hole_pos[side]), 4, 1, dev->fp);
         } else
-            fseek(dev->fp, dev->track_offset[logical_track] + d86f_track_header_size(drive), SEEK_SET);
-        array_size = d86f_get_array_size(drive, side, 0);
+            fseek(dev->fp, (off_t) dev->track_offset[logical_track] +
+                                         d86f_track_header_size(drv), SEEK_SET);
+        const int array_size = d86f_get_array_size(drv, side, 0);
         (void) !fread(da, 1, array_size, dev->fp);
-        if (d86f_has_surface_desc(drive))
+        if (d86f_has_surface_desc(drv))
             (void) !fread(sa, 1, array_size, dev->fp);
     } else {
         if (!thin_track) {
@@ -3100,124 +3199,128 @@ d86f_read_track(int drive, int track, int thin_track, int side, uint16_t *da, ui
 }
 
 void
-d86f_zero_track(int drive)
+d86f_zero_track(void *priv)
 {
-    d86f_t *dev = d86f[drive];
-    int     sides;
-    sides = d86f_get_sides(drive);
+    fdd_drive_t *drv   = (fdd_drive_t *) priv;
+    d86f_t *     dev   = (d86f_t *) drv->d86f_priv;
+    const int    sides = d86f_get_sides(drv);
 
     for (int side = 0; side < sides; side++) {
-        if (d86f_has_surface_desc(drive))
+        if (d86f_has_surface_desc(drv))
             memset(dev->track_surface_data[side], 0, 106096);
         memset(dev->track_encoded_data[side], 0, 106096);
     }
 }
 
 void
-d86f_seek(int drive, int track)
+d86f_seek(void *priv, int track)
 {
-    d86f_t *dev = d86f[drive];
-    int     sides;
-    int     side;
-    int     thin_track;
-    sides = d86f_get_sides(drive);
+    fdd_drive_t *drv   = (fdd_drive_t *) priv;
+    d86f_t *     dev   = (d86f_t *) drv->d86f_priv;
+    const int    sides = d86f_get_sides(drv);;
+    int          side;
+    int          thin_track;
 
     /* If the drive has thick tracks, shift the track number by 1. */
-    if (!fdd_doublestep_40(drive)) {
+    if (!fdd_doublestep_40(drv)) {
         track <<= 1;
 
         for (thin_track = 0; thin_track < sides; thin_track++) {
             for (side = 0; side < sides; side++) {
-                if (d86f_has_surface_desc(drive))
+                if (d86f_has_surface_desc(drv))
                     memset(dev->thin_track_surface_data[thin_track][side], 0, 106096);
                 memset(dev->thin_track_encoded_data[thin_track][side], 0, 106096);
             }
         }
     }
 
-    d86f_zero_track(drive);
+    d86f_zero_track(drv);
 
     dev->cur_track = track;
 
-    if (!fdd_doublestep_40(drive)) {
+    if (!fdd_doublestep_40(drv)) {
         for (side = 0; side < sides; side++) {
             for (thin_track = 0; thin_track < 2; thin_track++)
-                d86f_read_track(drive, track, thin_track, side, dev->thin_track_encoded_data[thin_track][side], dev->thin_track_surface_data[thin_track][side]);
+                d86f_read_track(drv, track, thin_track, side,
+                dev->thin_track_encoded_data[thin_track][side],
+                dev->thin_track_surface_data[thin_track][side]);
 
-            d86f_construct_encoded_buffer(drive, side);
+            d86f_construct_encoded_buffer(drv, side);
         }
     } else {
         for (side = 0; side < sides; side++)
-            d86f_read_track(drive, track, 0, side, dev->track_encoded_data[side], dev->track_surface_data[side]);
+            d86f_read_track(drv, track, 0, side, dev->track_encoded_data[side],
+                            dev->track_surface_data[side]);
     }
 
     dev->state = STATE_IDLE;
 }
 
 void
-d86f_write_track(int drive, FILE **fp, int side, uint16_t *da0, uint16_t *sa0)
+d86f_write_track(void *priv, FILE **fp, const int side, uint16_t *da0, uint16_t *sa0)
 {
-    uint32_t array_size      = d86f_get_array_size(drive, side, 0);
-    uint16_t side_flags      = d86f_handler[drive].side_flags(drive);
-    uint32_t extra_bit_cells = d86f_handler[drive].extra_bit_cells(drive, side);
-    uint32_t index_hole_pos  = d86f_handler[drive].index_hole_pos(drive, side);
+    fdd_drive_t *  drv             = (fdd_drive_t *) priv;
+    const uint32_t array_size      = d86f_get_array_size(drv, side, 0);
+    const uint16_t side_flags      = drv->d86f_handler.side_flags(drv);
+    const uint32_t extra_bit_cells = drv->d86f_handler.extra_bit_cells(drv, side);
+    const uint32_t index_hole_pos  = drv->d86f_handler.index_hole_pos(drv, side);
 
     fwrite(&side_flags, 1, 2, *fp);
 
-    if (d86f_has_extra_bit_cells(drive))
+    if (d86f_has_extra_bit_cells(drv))
         fwrite(&extra_bit_cells, 1, 4, *fp);
 
     fwrite(&index_hole_pos, 1, 4, *fp);
 
     fwrite(da0, 1, array_size, *fp);
 
-    if (d86f_has_surface_desc(drive))
+    if (d86f_has_surface_desc(drv))
         fwrite(sa0, 1, array_size, *fp);
 }
 
 int
-d86f_get_track_table_size(int drive)
+d86f_get_track_table_size(void *priv)
 {
-    int temp = 2048;
+    fdd_drive_t *drv  = (fdd_drive_t *) priv;
+    int          temp = 2048;
 
-    if (d86f_get_sides(drive) == 1)
+    if (d86f_get_sides(drv) == 1)
         temp >>= 1;
 
     return temp;
 }
 
 void
-d86f_set_cur_track(int drive, int track)
+d86f_set_cur_track(void *priv, const int track)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     dev->cur_track = track;
 }
 
 void
-d86f_write_tracks(int drive, FILE **fp, uint32_t *track_table)
+d86f_write_tracks(void *priv, FILE **fp, uint32_t *track_table)
 {
-    d86f_t   *dev = d86f[drive];
-    int       sides;
-    int       fdd_side;
-    int       side;
-    int       logical_track = 0;
-    uint32_t *tbl;
-    tbl      = dev->track_offset;
-    fdd_side = fdd_get_head(drive);
-    sides    = d86f_get_sides(drive);
+    fdd_drive_t *  drv           = (fdd_drive_t *) priv;
+    d86f_t *       dev           = (d86f_t *) drv->d86f_priv;
+    const int      sides         = d86f_get_sides(drv);
+    const int      fdd_side      = fdd_get_head(drv);
+    uint32_t *     tbl           = dev->track_offset;
+    int            logical_track = 0;
+    int            side;
 
     if (track_table != NULL)
         tbl = track_table;
 
-    if (!fdd_doublestep_40(drive)) {
-        d86f_decompose_encoded_buffer(drive, 0);
+    if (!fdd_doublestep_40(drv)) {
+        d86f_decompose_encoded_buffer(drv, 0);
         if (sides == 2)
-            d86f_decompose_encoded_buffer(drive, 1);
+            d86f_decompose_encoded_buffer(drv, 1);
 
         for (uint8_t thin_track = 0; thin_track < 2; thin_track++) {
             for (side = 0; side < sides; side++) {
-                fdd_set_head(drive, side);
+                fdd_set_head(drv, side);
 
                 if (sides == 2)
                     logical_track = ((dev->cur_track + thin_track) << 1) + side;
@@ -3230,14 +3333,16 @@ d86f_write_tracks(int drive, FILE **fp, uint32_t *track_table)
                 }
 
                 if (tbl[logical_track]) {
-                    fseek(*fp, tbl[logical_track], SEEK_SET);
-                    d86f_write_track(drive, fp, side, dev->thin_track_encoded_data[thin_track][side], dev->thin_track_surface_data[thin_track][side]);
+                    fseek(*fp, (off_t) tbl[logical_track], SEEK_SET);
+                    d86f_write_track(drv, fp,
+                                     side, dev->thin_track_encoded_data[thin_track][side],
+                                     dev->thin_track_surface_data[thin_track][side]);
                 }
             }
         }
     } else {
         for (side = 0; side < sides; side++) {
-            fdd_set_head(drive, side);
+            fdd_set_head(drv, side);
             if (sides == 2)
                 logical_track = (dev->cur_track << 1) + side;
             else
@@ -3249,29 +3354,26 @@ d86f_write_tracks(int drive, FILE **fp, uint32_t *track_table)
             }
 
             if (tbl[logical_track]) {
-                if (fseek(*fp, tbl[logical_track], SEEK_SET) == -1)
+                if (fseek(*fp, (off_t) tbl[logical_track], SEEK_SET) == -1)
                     fatal("d86f_write_tracks(): Error seeking to offset tbl[logical_track]\n");
-                d86f_write_track(drive, fp, side, d86f_handler[drive].encoded_data(drive, side), dev->track_surface_data[side]);
+                d86f_write_track(drv, fp,
+                                 side, drv->d86f_handler.encoded_data(drv, side),
+                                 dev->track_surface_data[side]);
             }
         }
     }
 
-    fdd_set_head(drive, fdd_side);
+    fdd_set_head(drv, fdd_side);
 }
 
 void
-d86f_writeback(int drive)
+d86f_writeback(void *priv)
 {
-    d86f_t *dev = d86f[drive];
-    uint8_t header[32];
-    int     header_size;
-    int     size;
-#ifdef D86F_COMPRESS
-    uint32_t len;
-    int      ret = 0;
-    FILE    *cf;
-#endif
-    header_size = d86f_header_size(drive);
+    fdd_drive_t *drv         = (fdd_drive_t *) priv;
+    d86f_t *     dev         = (d86f_t *) drv->d86f_priv;
+    int          header_size = (int) d86f_header_size(drv);
+    uint8_t      header[32];
+    int          size;
 
     if (!dev->fp)
         return;
@@ -3284,61 +3386,36 @@ d86f_writeback(int drive)
 
     if (fseek(dev->fp, 8, SEEK_SET) == -1)
         fatal("86F write_back(): Error seeking\n");
-    size = d86f_get_track_table_size(drive);
+    size = d86f_get_track_table_size(drv);
     if (fwrite(dev->track_offset, 1, size, dev->fp) != size)
         fatal("86F write_back(): Error writing data\n");
 
-    d86f_write_tracks(drive, &dev->fp, NULL);
-
-#ifdef D86F_COMPRESS
-    if (dev->is_compressed) {
-        /* The image is compressed. */
-
-        /* Open the original, compressed file. */
-        cf = plat_fopen(dev->original_file_name, "wb");
-
-        /* Write the header to the original file. */
-        fwrite(header, 1, header_size, cf);
-
-        fseek(dev->fp, 0, SEEK_END);
-        len = ftell(dev->fp);
-        len -= header_size;
-
-        fseek(dev->fp, header_size, SEEK_SET);
-
-        /* Compress data from the temporary uncompressed file to the original, compressed file. */
-        dev->filebuf = (uint8_t *) calloc(1, len);
-        dev->outbuf  = (uint8_t *) calloc(1, len - 1);
-        fread(dev->filebuf, 1, len, dev->fp);
-        ret = lzf_compress(dev->filebuf, len, dev->outbuf, len - 1);
-
-        if (!ret)
-            d86f_log("86F: Error compressing file\n");
-
-        fwrite(dev->outbuf, 1, ret, cf);
-        free(dev->outbuf);
-        free(dev->filebuf);
-    }
-#endif
+    d86f_write_tracks(drv, &dev->fp, NULL);
 
     fflush(dev->fp);
 }
 
 void
-d86f_stop(int drive)
+d86f_stop(void *priv)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     if (dev)
         dev->state = STATE_IDLE;
 }
 
 int
-d86f_common_command(int drive, int sector, int track, int side, UNUSED(int rate), int sector_size)
+d86f_common_command(void *priv, const int sector, const int track, const int side,
+                    UNUSED(int rate), const int sector_size)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    d86f_log("d86f_common_command (drive %i): fdc_period=%i img_period=%i rate=%i sector=%i track=%i side=%i\n", drive, fdc_get_bitcell_period(d86f_fdc), d86f_get_bitcell_period(drive), rate, sector, track, side);
+    d86f_log("d86f_common_command (drive %i): fdc_period=%i img_period=%i rate=%i sector=%i "
+             "track=%i side=%i\n", drive,
+             fdc_get_bitcell_period(drv->fdc), d86f_get_bitcell_period(drive), rate, sector,
+             track, side);
 
     dev->req_sector.id.c = track;
     dev->req_sector.id.h = side;
@@ -3350,8 +3427,8 @@ d86f_common_command(int drive, int sector, int track, int side, UNUSED(int rate)
         dev->req_sector.id.r = sector;
     dev->req_sector.id.n = sector_size;
 
-    if (fdd_get_head(drive) && (d86f_get_sides(drive) == 1)) {
-        fdc_noidam(d86f_fdc);
+    if (fdd_get_head(drv) && (d86f_get_sides(drv) == 1)) {
+        fdc_noidam(drv->fdc);
         dev->state       = STATE_IDLE;
         dev->index_count = 0;
         return 0;
@@ -3367,110 +3444,120 @@ d86f_common_command(int drive, int sector, int track, int side, UNUSED(int rate)
 }
 
 void
-d86f_readsector(int drive, int sector, int track, int side, int rate, int sector_size)
+d86f_readsector(void *priv, const int sector, const int track, const int side,
+                const int rate, const int sector_size)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
     int     ret = 0;
 
-    ret = d86f_common_command(drive, sector, track, side, rate, sector_size);
+    ret = d86f_common_command(drv, sector, track, side, rate, sector_size);
     if (!ret)
         return;
 
-    if (d86f_wrong_densel(drive)) {
+    if (d86f_wrong_densel(drv)) {
         dev->state = STATE_SECTOR_NOT_FOUND;
 
-        if (fdd_get_turbo(drive))
+        if (fdd_get_turbo(drv))
             dev->track_pos = 0;
     } else if (sector == SECTOR_FIRST)
         dev->state = STATE_02_SPIN_TO_INDEX;
     else if (sector == SECTOR_NEXT)
         dev->state = STATE_02_FIND_ID;
     else
-        dev->state = fdc_is_deleted(d86f_fdc) ? STATE_0C_FIND_ID : (fdc_is_verify(d86f_fdc) ? STATE_16_FIND_ID : STATE_06_FIND_ID);
+        dev->state = fdc_is_deleted(drv->fdc) ?
+                         STATE_0C_FIND_ID : (fdc_is_verify(drv->fdc) ?
+                             STATE_16_FIND_ID : STATE_06_FIND_ID);
 }
 
 void
-d86f_writesector(int drive, int sector, int track, int side, int rate, int sector_size)
+d86f_writesector(void *priv, const int sector, const int track, const int side,
+                 const int rate, const int sector_size)
 {
-    d86f_t *dev = d86f[drive];
-    int     ret = 0;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
+    int          ret = 0;
 
-    if (writeprot[drive]) {
-        fdc_writeprotect(d86f_fdc);
+    if (drv->writeprot) {
+        fdc_writeprotect(drv->fdc);
         dev->state       = STATE_IDLE;
         dev->index_count = 0;
         return;
     }
 
-    ret = d86f_common_command(drive, sector, track, side, rate, sector_size);
+    ret = d86f_common_command(drv, sector, track, side, rate, sector_size);
     if (!ret)
         return;
 
-    if (d86f_wrong_densel(drive)) {
+    if (d86f_wrong_densel(drv)) {
         dev->state = STATE_SECTOR_NOT_FOUND;
 
-        if (fdd_get_turbo(drive))
+        if (fdd_get_turbo(drv))
             dev->track_pos = 0;
     } else
-        dev->state = fdc_is_deleted(d86f_fdc) ? STATE_09_FIND_ID : STATE_05_FIND_ID;
+        dev->state = fdc_is_deleted(drv->fdc) ? STATE_09_FIND_ID : STATE_05_FIND_ID;
 }
 
 void
-d86f_comparesector(int drive, int sector, int track, int side, int rate, int sector_size)
+d86f_comparesector(void *priv, const int sector, const int track, const int side,
+                   const int rate, const int sector_size)
 {
-    d86f_t *dev = d86f[drive];
-    int     ret = 0;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
+    int          ret = 0;
 
-    ret = d86f_common_command(drive, sector, track, side, rate, sector_size);
+    ret = d86f_common_command(drv, sector, track, side, rate, sector_size);
     if (!ret)
         return;
 
-    if (d86f_wrong_densel(drive)) {
+    if (d86f_wrong_densel(drv)) {
         dev->state = STATE_SECTOR_NOT_FOUND;
 
-        if (fdd_get_turbo(drive))
+        if (fdd_get_turbo(drv))
             dev->track_pos = 0;
     } else
         dev->state = STATE_11_FIND_ID;
 }
 
 void
-d86f_readaddress(int drive, UNUSED(int side), UNUSED(int rate))
+d86f_readaddress(void *priv, UNUSED(int side), UNUSED(int rate))
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    if (fdd_get_head(drive) && (d86f_get_sides(drive) == 1)) {
-        fdc_noidam(d86f_fdc);
+    if (fdd_get_head(drv) && (d86f_get_sides(drv) == 1)) {
+        fdc_noidam(drv->fdc);
         dev->state       = STATE_IDLE;
         dev->index_count = 0;
         return;
     }
 
-    dev->id_find.sync_marks = dev->id_find.bits_obtained = dev->id_find.bytes_obtained = 0;
-    dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
+    dev->id_find.sync_marks = dev->id_find.bits_obtained  =
+                              dev->id_find.bytes_obtained = 0;
+    dev->data_find.sync_marks = dev->data_find.bits_obtained  =
+                                dev->data_find.bytes_obtained = 0;
     dev->index_count = dev->error_condition = dev->satisfying_bytes = 0;
     dev->id_found                                                   = 0;
     dev->dma_over                                                   = 0;
 
-    if (d86f_wrong_densel(drive)) {
+    if (d86f_wrong_densel(drv)) {
         dev->state = STATE_SECTOR_NOT_FOUND;
 
-        if (fdd_get_turbo(drive))
+        if (fdd_get_turbo(drv))
             dev->track_pos = 0;
     } else
         dev->state = STATE_0A_FIND_ID;
 }
 
 void
-d86f_add_track(int drive, int track, int side)
+d86f_add_track(void *priv, const int track, const int side)
 {
-    d86f_t  *dev = d86f[drive];
-    uint32_t array_size;
-    int      logical_track;
+    fdd_drive_t *drv           = (fdd_drive_t *) priv;
+    d86f_t *     dev           = (d86f_t *) drv->d86f_priv;
+    uint32_t     array_size    = d86f_get_array_size(drv, side, 0);
+    int          logical_track;
 
-    array_size = d86f_get_array_size(drive, side, 0);
-
-    if (d86f_get_sides(drive) == 2) {
+    if (d86f_get_sides(drv) == 2) {
         logical_track = (track << 1) + side;
     } else {
         if (side)
@@ -3483,53 +3570,52 @@ d86f_add_track(int drive, int track, int side)
         dev->track_offset[logical_track] = dev->file_size;
 
         dev->file_size += (array_size + 6);
-        if (d86f_has_extra_bit_cells(drive))
+        if (d86f_has_extra_bit_cells(drv))
             dev->file_size += 4;
-        if (d86f_has_surface_desc(drive))
+        if (d86f_has_surface_desc(drv))
             dev->file_size += array_size;
     }
 }
 
 void
-d86f_common_format(int drive, int side, UNUSED(int rate), uint8_t fill, int proxy)
+d86f_common_format(void *priv, const int side, UNUSED(int rate), const uint8_t fill,
+                   const int proxy)
 {
-    d86f_t  *dev = d86f[drive];
-    uint16_t temp;
-    uint16_t temp2;
-    uint32_t array_size;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    if (writeprot[drive]) {
-        fdc_writeprotect(d86f_fdc);
+    if (drv->writeprot) {
+        fdc_writeprotect(drv->fdc);
         dev->state       = STATE_IDLE;
         dev->index_count = 0;
         return;
     }
 
-    if (!d86f_can_format(drive)) {
-        fdc_cannotformat(d86f_fdc);
+    if (!d86f_can_format(drv)) {
+        fdc_cannotformat(drv->fdc);
         dev->state       = STATE_IDLE;
         dev->index_count = 0;
         return;
     }
 
-    if (!side || (d86f_get_sides(drive) == 2)) {
+    if (!side || (d86f_get_sides(drv) == 2)) {
         if (!proxy) {
-            d86f_reset_index_hole_pos(drive, side);
+            d86f_reset_index_hole_pos(drv, side);
 
             if (dev->cur_track > 256) {
-                fdc_writeprotect(d86f_fdc);
+                fdc_writeprotect(drv->fdc);
                 dev->state       = STATE_IDLE;
                 dev->index_count = 0;
                 return;
             }
 
-            array_size = d86f_get_array_size(drive, side, 0);
+            const uint32_t array_size = d86f_get_array_size(drv, side, 0);
 
-            if (d86f_has_surface_desc(drive)) {
+            if (d86f_has_surface_desc(drv)) {
                 /* Preserve the physical holes but get rid of the fuzzy bytes. */
                 for (uint32_t i = 0; i < array_size; i++) {
-                    temp  = dev->track_encoded_data[side][i] ^ 0xffff;
-                    temp2 = dev->track_surface_data[side][i];
+                    uint16_t       temp  = dev->track_encoded_data[side][i] ^ 0xffff;
+                    const uint16_t temp2 = dev->track_surface_data[side][i];
                     temp &= temp2;
                     dev->track_surface_data[side][i] = temp;
                 }
@@ -3538,9 +3624,9 @@ d86f_common_format(int drive, int side, UNUSED(int rate), uint8_t fill, int prox
             /* Zero the data buffer. */
             memset(dev->track_encoded_data[side], 0, array_size);
 
-            d86f_add_track(drive, dev->cur_track, side);
-            if (!fdd_doublestep_40(drive))
-                d86f_add_track(drive, dev->cur_track + 1, side);
+            d86f_add_track(drv, dev->cur_track, side);
+            if (!fdd_doublestep_40(drv))
+                d86f_add_track(drv, dev->cur_track + 1, side);
         }
     }
 
@@ -3548,9 +3634,9 @@ d86f_common_format(int drive, int side, UNUSED(int rate), uint8_t fill, int prox
 
     if (!proxy) {
         dev->side_flags[side] = 0;
-        dev->side_flags[side] |= (fdd_getrpm(real_drive(d86f_fdc, drive)) == 360) ? 0x20 : 0;
-        dev->side_flags[side] |= fdc_get_bit_rate(d86f_fdc);
-        dev->side_flags[side] |= fdc_is_mfm(d86f_fdc) ? 8 : 0;
+        dev->side_flags[side] |= (fdd_getrpm(&(drives[real_drive(drv->fdc, drv->id)])) == 360) ? 0x20 : 0;
+        dev->side_flags[side] |= fdc_get_bit_rate(drv->fdc);
+        dev->side_flags[side] |= fdc_is_mfm(drv->fdc) ? 8 : 0;
 
         dev->index_hole_pos[side] = 0;
     }
@@ -3561,53 +3647,59 @@ d86f_common_format(int drive, int side, UNUSED(int rate), uint8_t fill, int prox
     dev->dma_over        = 0;
     dev->format_id_count = 0;
 
-    if (d86f_wrong_densel(drive) && !proxy) {
+    if (d86f_wrong_densel(drv) && !proxy) {
         dev->state = STATE_SECTOR_NOT_FOUND;
 
-        if (fdd_get_turbo(drive))
+        if (fdd_get_turbo(drv))
             dev->track_pos = 0;
     } else
         dev->state = STATE_0D_SPIN_TO_INDEX;
 }
 
 void
-d86f_proxy_format(int drive, int side, int rate, uint8_t fill)
+d86f_proxy_format(void *priv, const int side, const int rate, const uint8_t fill)
 {
-    d86f_common_format(drive, side, rate, fill, 1);
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    d86f_common_format(drv, side, rate, fill, 1);
 }
 
 void
-d86f_format(int drive, int side, int rate, uint8_t fill)
+d86f_format(void *priv, const int side, const int rate, const uint8_t fill)
 {
-    d86f_common_format(drive, side, rate, fill, 0);
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    d86f_common_format(drv, side, rate, fill, 0);
 }
 
 void
-d86f_common_handlers(int drive)
+d86f_common_handlers(void *priv)
 {
-    drives[drive].readsector    = d86f_readsector;
-    drives[drive].writesector   = d86f_writesector;
-    drives[drive].comparesector = d86f_comparesector;
-    drives[drive].readaddress   = d86f_readaddress;
-    drives[drive].byteperiod    = d86f_byteperiod;
-    drives[drive].poll          = d86f_poll;
-    drives[drive].format        = d86f_proxy_format;
-    drives[drive].stop          = d86f_stop;
-    drives[drive].hole          = d86f_hole;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    drv->readsector    = d86f_readsector;
+    drv->writesector   = d86f_writesector;
+    drv->comparesector = d86f_comparesector;
+    drv->readaddress   = d86f_readaddress;
+    drv->byteperiod    = d86f_byteperiod;
+    drv->poll          = d86f_poll;
+    drv->format        = d86f_proxy_format;
+    drv->stop          = d86f_stop;
+    drv->hole          = d86f_hole;
 }
 
 int
-d86f_export(int drive, char *fn)
+d86f_export(void *priv, char *fn)
 {
-    uint32_t tt[512];
-    d86f_t  *dev = d86f[drive];
-    d86f_t  *temp86;
-    FILE    *fp;
-    int      tracks = 86;
-    int      inc        = 1;
-    uint32_t magic      = 0x46423638;
-    uint16_t version    = 0x020C;
-    uint16_t disk_flags = d86f_handler[drive].disk_flags(drive);
+    fdd_drive_t *  drv        = (fdd_drive_t *) priv;
+    d86f_t *       dev        = (d86f_t *) drv->d86f_priv;
+    const int      tracks     = 86;
+    const uint32_t magic      = 0x46423638;
+    const uint16_t version    = 0x020C;
+    const uint16_t disk_flags = drv->d86f_handler.disk_flags(drv);
+    int            inc        = 1;
+    uint32_t       tt[512];
+    FILE *         fp;
 
     memset(tt, 0, 512 * sizeof(uint32_t));
 
@@ -3616,27 +3708,27 @@ d86f_export(int drive, char *fn)
         return 0;
 
     /* Allocate a temporary drive for conversion. */
-    temp86 = (d86f_t *) calloc(1, sizeof(d86f_t));
+    d86f_t *temp86 = (d86f_t *) calloc(1, sizeof(d86f_t));
     memcpy(temp86, dev, sizeof(d86f_t));
 
     fwrite(&magic, 4, 1, fp);
     fwrite(&version, 2, 1, fp);
     fwrite(&disk_flags, 2, 1, fp);
 
-    fwrite(tt, 1, ((d86f_get_sides(drive) == 2) ? 2048 : 1024), fp);
+    fwrite(tt, 1, ((d86f_get_sides(drv) == 2) ? 2048 : 1024), fp);
 
     /* In the case of a thick track drive, always increment track
        by two, since two tracks are going to get output at once. */
-    if (!fdd_doublestep_40(drive))
+    if (!fdd_doublestep_40(drv))
         inc = 2;
 
     for (int i = 0; i < tracks; i += inc) {
         if (inc == 2)
-            fdd_do_seek(drive, i >> 1);
+            fdd_do_seek(drv, i >> 1);
         else
-            fdd_do_seek(drive, i);
+            fdd_do_seek(drv, i);
         dev->cur_track = i;
-        d86f_write_tracks(drive, &fp, tt);
+        d86f_write_tracks(drv, &fp, tt);
     }
 
     fclose(fp);
@@ -3644,11 +3736,11 @@ d86f_export(int drive, char *fn)
     fp = plat_fopen(fn, "rb+");
 
     fseek(fp, 8, SEEK_SET);
-    fwrite(tt, 1, ((d86f_get_sides(drive) == 2) ? 2048 : 1024), fp);
+    fwrite(tt, 1, ((d86f_get_sides(drv) == 2) ? 2048 : 1024), fp);
 
     fclose(fp);
 
-    fdd_do_seek(drive, fdd_current_track(drive));
+    fdd_do_seek(drv, fdd_current_track(drv));
 
     /* Restore the drive from temp. */
     memcpy(dev, temp86, sizeof(d86f_t));
@@ -3658,36 +3750,32 @@ d86f_export(int drive, char *fn)
 }
 
 void
-d86f_load(int drive, char *fn)
+d86f_load(void *priv, char *fn)
 {
-    d86f_t  *dev   = d86f[drive];
-    uint32_t magic = 0;
-    uint32_t len   = 0;
-#ifdef D86F_COMPRESS
-    char     temp_file_name[2048];
-    uint16_t temp = 0;
-    FILE    *tf;
-#endif
+    fdd_drive_t *drv   = (fdd_drive_t *) priv;
+    d86f_t *     dev   = (d86f_t *) drv->d86f_priv;
+    uint32_t     magic = 0;
+    uint32_t     len   = 0;
 
-    d86f_unregister(drive);
+    d86f_unregister(drv);
 
-    writeprot[drive] = 0;
+    drv->writeprot = 0;
 
     dev->fp = plat_fopen(fn, "rb+");
     if (!dev->fp) {
         dev->fp = plat_fopen(fn, "rb");
         if (!dev->fp) {
-            memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+            memset(drv->image_path, 0, sizeof(drv->image_path));
             free(dev);
             return;
         }
-        writeprot[drive] = 1;
+        drv->writeprot = 1;
     }
 
-    if (ui_writeprot[drive])
-        writeprot[drive] = 1;
+    if (drv->read_only)
+        drv->writeprot = 1;
 
-    fwriteprot[drive] = writeprot[drive];
+    drv->fwriteprot = drv->writeprot;
 
     fseek(dev->fp, 0, SEEK_END);
     len = ftell(dev->fp);
@@ -3699,7 +3787,7 @@ d86f_load(int drive, char *fn)
         /* File is WAY too small, abort. */
         fclose(dev->fp);
         dev->fp = NULL;
-        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+        memset(drv->image_path, 0, sizeof(drv->image_path));
         free(dev);
         return;
     }
@@ -3708,7 +3796,7 @@ d86f_load(int drive, char *fn)
         /* File is not of the valid format, abort. */
         d86f_log("86F: Unrecognized magic bytes: %08X\n", magic);
         fclose(dev->fp);
-        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+        memset(drv->image_path, 0, sizeof(drv->image_path));
         free(dev);
         return;
     }
@@ -3718,131 +3806,57 @@ d86f_load(int drive, char *fn)
 
     if (dev->version != D86FVER) {
         /* File is not of a recognized format version, abort. */
+#ifdef ENABLE_D86F_LOG
         if (dev->version == 0x0063) {
-            d86f_log("86F: File has emulator-internal version 0.99, this version is not valid in a file\n");
+            d86f_log("86F: File has emulator-internal version 0.99, "
+                     "this version is not valid in a file\n");
         } else if ((dev->version >= 0x0100) && (dev->version < D86FVER)) {
-            d86f_log("86F: No longer supported development file version: %i.%02i\n", dev->version >> 8, dev->version & 0xff);
+            d86f_log("86F: No longer supported development file version: %i.%02i\n",
+                     dev->version >> 8, dev->version & 0xff);
         } else {
-            d86f_log("86F: Unrecognized file version: %i.%02i\n", dev->version >> 8, dev->version & 0xff);
+            d86f_log("86F: Unrecognized file version: %i.%02i\n",
+                     dev->version >> 8, dev->version & 0xff);
         }
+#endif
         fclose(dev->fp);
         dev->fp = NULL;
-        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+        memset(drv->image_path, 0, sizeof(drv->image_path));
         free(dev);
         return;
     } else {
-        d86f_log("86F: Recognized file version: %i.%02i\n", dev->version >> 8, dev->version & 0xff);
+        d86f_log("86F: Recognized file version: %i.%02i\n",
+                 dev->version >> 8, dev->version & 0xff);
     }
 
     (void) !fread(&(dev->disk_flags), 2, 1, dev->fp);
 
-    if (d86f_has_surface_desc(drive)) {
+    if (d86f_has_surface_desc(drv)) {
         for (uint8_t i = 0; i < 2; i++)
-            dev->track_surface_data[i] = (uint16_t *) calloc(53048, sizeof(uint16_t));
+            dev->track_surface_data[i] = (uint16_t *) calloc(53048,
+                                                             sizeof(uint16_t));
 
         for (uint8_t i = 0; i < 2; i++) {
             for (uint8_t j = 0; j < 2; j++)
-                dev->thin_track_surface_data[i][j] = (uint16_t *) calloc(53048, sizeof(uint16_t));
+                dev->thin_track_surface_data[i][j] = (uint16_t *) calloc(53048,
+                                                                         sizeof(uint16_t));
         }
     }
 
-#ifdef D86F_COMPRESS
-    dev->is_compressed = (magic == 0x66623638) ? 1 : 0;
-    if ((len < 51052) && !dev->is_compressed) {
-#else
     if (len < 51052) {
-#endif
         /* File too small, abort. */
         fclose(dev->fp);
         dev->fp = NULL;
-        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+        memset(drv->image_path, 0, sizeof(drv->image_path));
         free(dev);
         return;
     }
-
-#ifdef DO_CRC64
-    fseek(dev->fp, 8, SEEK_SET);
-    fread(&read_crc64, 1, 8, dev->fp);
-
-    fseek(dev->fp, 0, SEEK_SET);
-
-    crc64 = 0xffffffffffffffff;
-
-    dev->filebuf = calloc(1, len);
-    fread(dev->filebuf, 1, len, dev->fp);
-    *(uint64_t *) &(dev->filebuf[8]) = 0xffffffffffffffff;
-    crc64                            = (uint64_t) crc64speed(0, dev->filebuf, len);
-    free(dev->filebuf);
-
-    if (crc64 != read_crc64) {
-        d86f_log("86F: CRC64 error\n");
-        fclose(dev->fp);
-        dev->fp = NULL;
-        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
-        free(dev);
-        return;
-    }
-#endif
-
-#ifdef D86F_COMPRESS
-    if (dev->is_compressed) {
-        memcpy(temp_file_name, drive ? nvr_path("TEMP$$$1.$$$") : nvr_path("TEMP$$$0.$$$"), 256);
-        memcpy(dev->original_file_name, fn, strlen(fn) + 1);
-
-        fclose(dev->fp);
-        dev->fp = NULL;
-
-        dev->fp = plat_fopen(temp_file_name, "wb");
-        if (!dev->fp) {
-            d86f_log("86F: Unable to create temporary decompressed file\n");
-            memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
-            free(dev);
-            return;
-        }
-
-        tf = plat_fopen(fn, "rb");
-
-        for (uint8_t i = 0; i < 8; i++) {
-            fread(&temp, 1, 2, tf);
-            fwrite(&temp, 1, 2, dev->fp);
-        }
-
-        dev->filebuf = (uint8_t *) calloc(1, len);
-        dev->outbuf  = (uint8_t *) calloc(1, 67108864);
-        fread(dev->filebuf, 1, len, tf);
-        temp = lzf_decompress(dev->filebuf, len, dev->outbuf, 67108864);
-        if (temp) {
-            fwrite(dev->outbuf, 1, temp, dev->fp);
-        }
-        free(dev->outbuf);
-        free(dev->filebuf);
-
-        fclose(tf);
-        fclose(dev->fp);
-        dev->fp = NULL;
-
-        if (!temp) {
-            d86f_log("86F: Error decompressing file\n");
-            plat_remove(temp_file_name);
-            memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
-            free(dev);
-            return;
-        }
-
-        dev->fp = plat_fopen(temp_file_name, "rb+");
-    }
-#endif
 
     if (dev->disk_flags & 0x100) {
         /* Zoned disk. */
         d86f_log("86F: Disk is zoned (Apple or Sony)\n");
         fclose(dev->fp);
         dev->fp = NULL;
-#ifdef D86F_COMPRESS
-        if (dev->is_compressed)
-            plat_remove(temp_file_name);
-#endif
-        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+        memset(drv->image_path, 0, sizeof(drv->image_path));
         free(dev);
         return;
     }
@@ -3852,63 +3866,54 @@ d86f_load(int drive, char *fn)
         d86f_log("86F: Disk is fixed-RPM but zone type is not 0\n");
         fclose(dev->fp);
         dev->fp = NULL;
-#ifdef D86F_COMPRESS
-        if (dev->is_compressed)
-            plat_remove(temp_file_name);
-#endif
-        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+        memset(drv->image_path, 0, sizeof(drv->image_path));
         free(dev);
         return;
     }
 
-    if (!writeprot[drive]) {
-        writeprot[drive]  = (dev->disk_flags & 0x10) ? 1 : 0;
-        fwriteprot[drive] = writeprot[drive];
+    if (!drv->writeprot) {
+        drv->writeprot  = (dev->disk_flags & 0x10) ? 1 : 0;
+        drv->fwriteprot = drv->writeprot;
     }
 
-    if (writeprot[drive]) {
+    if (drv->writeprot) {
         fclose(dev->fp);
         dev->fp = NULL;
 
-#ifdef D86F_COMPRESS
-        if (dev->is_compressed)
-            dev->fp = plat_fopen(temp_file_name, "rb");
-        else
-#endif
-            dev->fp = plat_fopen(fn, "rb");
+        dev->fp = plat_fopen(fn, "rb");
     }
 
     /* OK, set the drive data, other code needs it. */
-    d86f[drive] = dev;
+    drv->d86f_priv = dev;
 
     fseek(dev->fp, 8, SEEK_SET);
 
-    (void) !fread(dev->track_offset, 1, d86f_get_track_table_size(drive), dev->fp);
+    (void) !fread(dev->track_offset, 1, d86f_get_track_table_size(drv), dev->fp);
 
     if (!(dev->track_offset[0])) {
         /* File has no track 0 side 0, abort. */
         d86f_log("86F: No Track 0 side 0\n");
         fclose(dev->fp);
         dev->fp = NULL;
-        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+        memset(drv->image_path, 0, sizeof(drv->image_path));
         free(dev);
-        d86f[drive] = NULL;
+        drv->d86f_priv = NULL;
         return;
     }
 
-    if ((d86f_get_sides(drive) == 2) && !(dev->track_offset[1])) {
+    if ((d86f_get_sides(drv) == 2) && !(dev->track_offset[1])) {
         /* File is 2-sided but has no track 0 side 1, abort. */
         d86f_log("86F: No Track 0 side 1\n");
         fclose(dev->fp);
         dev->fp = NULL;
-        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+        memset(drv->image_path, 0, sizeof(drv->image_path));
         free(dev);
-        d86f[drive] = NULL;
+        drv->d86f_priv = NULL;
         return;
     }
 
     /* Load track 0 flags as default. */
-    if (fseek(dev->fp, dev->track_offset[0], SEEK_SET) == -1)
+    if (fseek(dev->fp, (off_t) dev->track_offset[0], SEEK_SET) == -1)
         fatal("d86f_load(): Track 0: Error seeking to the beginning of the file\n");
     if (fread(&(dev->side_flags[0]), 1, 2, dev->fp) != 2)
         fatal("d86f_load(): Track 0: Error reading side flags\n");
@@ -3925,8 +3930,8 @@ d86f_load(int drive, char *fn)
         dev->extra_bit_cells[0] = 0;
     }
 
-    if (d86f_get_sides(drive) == 2) {
-        if (fseek(dev->fp, dev->track_offset[1], SEEK_SET) == -1)
+    if (d86f_get_sides(drv) == 2) {
+        if (fseek(dev->fp, (off_t) dev->track_offset[1], SEEK_SET) == -1)
             fatal("d86f_load(): Track 1: Error seeking to the beginning of the file\n");
         if (fread(&(dev->side_flags[1]), 1, 2, dev->fp) != 2)
             fatal("d86f_load(): Track 1: Error reading side flags\n");
@@ -3967,48 +3972,41 @@ d86f_load(int drive, char *fn)
 
     fseek(dev->fp, 0, SEEK_SET);
 
-    d86f_register_86f(drive);
+    d86f_register_86f(drv);
 
-    drives[drive].seek = d86f_seek;
-    d86f_common_handlers(drive);
-    drives[drive].format = d86f_format;
+    drv->seek = d86f_seek;
+    d86f_common_handlers(drv);
+    drv->format = d86f_format;
 
-#ifdef D86F_COMPRESS
-    d86f_log("86F: Disk is %scompressed and does%s have surface description data\n",
-             dev->is_compressed ? "" : "not ",
-             d86f_has_surface_desc(drive) ? "" : " not");
-#else
     d86f_log("86F: Disk does%s have surface description data\n",
              d86f_has_surface_desc(drive) ? "" : " not");
-#endif
 }
 
 void
 d86f_init(void)
 {
-    for (uint8_t i = 0; i < FDD_NUM; i++)
-        d86f[i] = NULL;
+    for (uint8_t i = 0; i < FDD_NUM; i++) {
+        fdd_drive_t *drv = &drives[i];
+        drv->d86f_priv = NULL;
+    }
 }
 
 void
-d86f_set_fdc(void *fdc)
+d86f_close(void *priv)
 {
-    d86f_fdc = (fdc_t *) fdc;
-}
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-void
-d86f_close(int drive)
-{
-    char    temp_file_name[2048];
-    d86f_t *dev = d86f[drive];
+    char         temp_file_name[2048];
 
     /* Make sure the drive is alive. */
     if (dev == NULL)
         return;
 
-    memcpy(temp_file_name, drive ? nvr_path("TEMP$$$1.$$$") : nvr_path("TEMP$$$0.$$$"), 26);
+    memcpy(temp_file_name, drv->id ? nvr_path("TEMP$$$1.$$$") :
+                                     nvr_path("TEMP$$$0.$$$"), 26);
 
-    if (d86f_has_surface_desc(drive)) {
+    if (d86f_has_surface_desc(drv)) {
         for (uint8_t i = 0; i < 2; i++) {
             if (dev->track_surface_data[i]) {
                 free(dev->track_surface_data[i]);
@@ -4030,20 +4028,16 @@ d86f_close(int drive)
         fclose(dev->fp);
         dev->fp = NULL;
     }
-#ifdef D86F_COMPRESS
-    if (dev->is_compressed)
-        plat_remove(temp_file_name);
-#endif
 }
 
 /* When an FDD is mounted, set up the D86F data structures. */
 void
-d86f_setup(int drive)
+d86f_setup(void *priv)
 {
-    d86f_t *dev;
-
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
     /* Allocate a drive structure. */
-    dev = (d86f_t *) calloc(1, sizeof(d86f_t));
+    d86f_t *     dev = (d86f_t *) calloc(1, sizeof(d86f_t));
+
     dev->state = STATE_IDLE;
 
     dev->last_side_sector[0] = NULL;
@@ -4052,19 +4046,20 @@ d86f_setup(int drive)
     crc16_setup(dev->crc_table, 0x1021);
 
     /* Set the drive as active. */
-    d86f[drive] = dev;
+    drv->d86f_priv = dev;
 }
 
 /* If an FDD is unmounted, unlink the D86F data structures. */
 void
-d86f_destroy(int drive)
+d86f_destroy(void *priv)
 {
-    d86f_t *dev = d86f[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     if (dev == NULL)
         return;
 
-    if (d86f_has_surface_desc(drive)) {
+    if (d86f_has_surface_desc(drv)) {
         for (uint8_t i = 0; i < 2; i++) {
             if (dev->track_surface_data[i]) {
                 free(dev->track_surface_data[i]);
@@ -4082,11 +4077,11 @@ d86f_destroy(int drive)
         }
     }
 
-    d86f_destroy_linked_lists(drive, 0);
-    d86f_destroy_linked_lists(drive, 1);
+    d86f_destroy_linked_lists(drv, 0);
+    d86f_destroy_linked_lists(drv, 1);
 
-    free(d86f[drive]);
-    d86f[drive] = NULL;
+    free(drv->d86f_priv);
+    drv->d86f_priv = NULL;
 
-    d86f_handler[drive].read_data = NULL;
+    drv->d86f_handler.read_data = NULL;
 }

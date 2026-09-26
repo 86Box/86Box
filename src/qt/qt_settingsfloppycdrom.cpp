@@ -164,17 +164,17 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     /* Floppy drives category */
     for (int i = 0; i < FDD_NUM; i++) {
         auto idx  = model->index(i, 0);
-        int  type = fdd_get_type(i);
+        int  type = fdd_get_type(&drives[i]);
         setFloppyType(model, idx, type);
-        model->setData(idx.siblingAtColumn(1), fdd_get_turbo(i) > 0 ? tr("On") : tr("Off"));
-        model->setData(idx.siblingAtColumn(2), fdd_get_check_bpb(i) > 0 ? tr("On") : tr("Off"));
+        model->setData(idx.siblingAtColumn(1), fdd_get_turbo(&drives[i]) > 0 ? tr("On") : tr("Off"));
+        model->setData(idx.siblingAtColumn(2), fdd_get_check_bpb(&drives[i]) > 0 ? tr("On") : tr("Off"));
 
 #ifndef DISABLE_FDD_AUDIO
-        ifa[i] = fdd_get_audio_profile(i);
+        ifa[i] = fdd_get_audio_profile(&drives[i]);
 #else
         ifa[i] = 0;
 #endif
-        Harddrives::busTrackClass->device_track(fdd_get_type(i) ? 1 : 0, DEV_FDD, TAPE_BUS_FDC, i);
+        Harddrives::busTrackClass->device_track(fdd_get_type(&drives[i]) ? 1 : 0, DEV_FDD, TAPE_BUS_FDC, i);
     }
 
     for (int i = 0; i < model->columnCount(); i++)
@@ -326,11 +326,11 @@ SettingsFloppyCDROM::changed()
 
     auto *model = ui->treeViewFloppy->model();
     for (int i = 0; i < FDD_NUM; i++) {
-        has_changed  |= (fdd_get_type(i)          != model->index(i, 0).data(Qt::UserRole).toInt());
-        has_changed  |= (fdd_get_turbo(i)         != (model->index(i, 1).data() == tr("On") ? 1 : 0));
-        has_changed  |= (fdd_get_check_bpb(i)     != (model->index(i, 2).data() == tr("On") ? 1 : 0));
+        has_changed  |= (fdd_get_type(&drives[i])          != model->index(i, 0).data(Qt::UserRole).toInt());
+        has_changed  |= (fdd_get_turbo(&drives[i])         != (model->index(i, 1).data() == tr("On") ? 1 : 0));
+        has_changed  |= (fdd_get_check_bpb(&drives[i])     != (model->index(i, 2).data() == tr("On") ? 1 : 0));
 #ifndef DISABLE_FDD_AUDIO
-        has_changed  |= (fdd_get_audio_profile(i) != (int) (uint32_t) ifa[i]);
+        has_changed  |= (fdd_get_audio_profile(&drives[i]) != (int) (uint32_t) ifa[i]);
 #endif
     }
 
@@ -364,11 +364,11 @@ SettingsFloppyCDROM::save(int soft)
 
     auto *model = ui->treeViewFloppy->model();
     for (int i = 0; i < FDD_NUM; i++) {
-        fdd_set_type(i, model->index(i, 0).data(Qt::UserRole).toInt());
-        fdd_set_turbo(i, model->index(i, 1).data() == tr("On") ? 1 : 0);
-        fdd_set_check_bpb(i, model->index(i, 2).data() == tr("On") ? 1 : 0);
+        fdd_set_type(&drives[i], model->index(i, 0).data(Qt::UserRole).toInt());
+        fdd_set_turbo(&drives[i], model->index(i, 1).data() == tr("On") ? 1 : 0);
+        fdd_set_check_bpb(&drives[i], model->index(i, 2).data() == tr("On") ? 1 : 0);
 #ifndef DISABLE_FDD_AUDIO
-        fdd_set_audio_profile(i, ifa[i]);
+        fdd_set_audio_profile(&drives[i], ifa[i]);
 #endif
     }
 

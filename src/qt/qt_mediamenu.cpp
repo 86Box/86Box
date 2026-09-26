@@ -138,7 +138,7 @@ MediaMenu::refresh(QMenu *parentMenu)
     floppyMenus.clear();
     MachineStatus::iterateFDD([this, parentMenu](int i) {
         auto *menu     = parentMenu->addMenu("");
-        QIcon img_icon = fdd_is_525(i) ? QIcon(":/settings/qt/icons/floppy_525_image.ico") : QIcon(":/settings/qt/icons/floppy_35_image.ico");
+        QIcon img_icon = fdd_is_525(&drives[i]) ? QIcon(":/settings/qt/icons/floppy_525_image.ico") : QIcon(":/settings/qt/icons/floppy_35_image.ico");
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image…"), [this, i]() { floppyNewImage(i); });
         menu->addSeparator();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, i]() { floppySelectImage(i, false); });
@@ -149,7 +149,7 @@ MediaMenu::refresh(QMenu *parentMenu)
             menu->addAction(img_icon, tr("Image %1").arg(slot), [this, i, slot]() { floppyMenuSelect(i, slot); })->setCheckable(false);
         }
         menu->addSeparator();
-        const char *hostDevice = fdd_get_host_device(i);
+        const char *hostDevice = fdd_get_host_device(&drives[i]);
         if (hostDevice && hostDevice[0] != '\0') {
             menu->addAction(img_icon, tr("&Use Host Floppy Drive"), [this, i, hostDevice] {
                 floppyMount(i, QString("ioctl://%1").arg(QString::fromUtf8(hostDevice)), false);
@@ -515,23 +515,25 @@ MediaMenu::floppySelectImage(int i, bool wp)
 void
 MediaMenu::floppyMount(int i, const QString &filename, bool wp)
 {
-    auto previous_image = QFileInfo(floppyfns[i]);
-    fdd_close(i);
-    ui_writeprot[i] = wp ? 1 : 0;
+    fdd_drive_t *drv = &drives[i];
+
+    auto previous_image = QFileInfo(drv->image_path);
+    fdd_close(&drives[i]);
+    drv->read_only = wp ? 1 : 0;
     if (!filename.isEmpty()) {
         QByteArray filenameBytes = filename.toUtf8();
 
         if (filename.left(5) == "wp://")
-            ui_writeprot[i] = 1;
-        else if (ui_writeprot[i])
+            drv->read_only = 1;
+        else if (drv->read_only)
             filenameBytes = QString::asprintf(R"(wp://%s)", filename.toUtf8().data()).toUtf8();
 
-        fdd_load(i, filenameBytes.data());
+        fdd_load(&drives[i], filenameBytes.data());
         mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), QString(filenameBytes));
     } else
         mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), filename);
-    ui_sb_update_icon_state(SB_FLOPPY | i, drive_empty[i]);
-    ui_sb_update_icon_wp(SB_FLOPPY | i, ui_writeprot[i]);
+    ui_sb_update_icon_state(SB_FLOPPY | i, drv->empty);
+    ui_sb_update_icon_wp(SB_FLOPPY | i, drv->read_only);
     floppyUpdateMenu(i);
     ui_sb_update_tip(SB_FLOPPY | i);
     config_save();
@@ -540,8 +542,10 @@ MediaMenu::floppyMount(int i, const QString &filename, bool wp)
 void
 MediaMenu::floppyEject(int i)
 {
-    mhm.addImageToHistory(i, ui::MediaType::Floppy, floppyfns[i], QString());
-    fdd_close(i);
+    fdd_drive_t *drv = &drives[i];
+
+    mhm.addImageToHistory(i, ui::MediaType::Floppy, drv->image_path, QString());
+    fdd_close(&drives[i]);
     ui_sb_update_icon_state(SB_FLOPPY | i, 1);
     floppyUpdateMenu(i);
     ui_sb_update_tip(SB_FLOPPY | i);
@@ -555,7 +559,7 @@ MediaMenu::floppyExportTo86f(int i)
     if (!filename.isEmpty()) {
         QByteArray filenameBytes = filename.toUtf8();
         plat_pause(1);
-        if (d86f_export(i, filenameBytes.data()) == 0) {
+        if (d86f_export(&drives[i], filenameBytes.data()) == 0) {
             QMessageBox::critical(parentWidget, tr("Unable to write file"), tr("Make sure the file is being saved to a writable directory"));
         }
         plat_pause(0);
@@ -565,8 +569,10 @@ MediaMenu::floppyExportTo86f(int i)
 void
 MediaMenu::floppyUpdateMenu(int i)
 {
-    QString   name = floppyfns[i];
-    QFileInfo fi(floppyfns[i]);
+    fdd_drive_t *drv = &drives[i];
+
+    QString   name = drv->image_path;
+    QFileInfo fi(drv->image_path);
 
     if (!floppyMenus.contains(i))
         return;
@@ -584,7 +590,7 @@ MediaMenu::floppyUpdateMenu(int i)
         updateImageHistory(i, slot, ui::MediaType::Floppy);
     }
 
-    int type = fdd_get_type(i);
+    int type = fdd_get_type(&drives[i]);
     floppyMenus[i]->setTitle(tr("&Floppy %1 (%2): %3").arg(QString::number(i + 1), fdd_getname(type), name.isEmpty() ? tr("(empty)") : name));
     floppyMenus[i]->setToolTip(tr("Floppy %1 (%2): %3").arg(QString::number(i + 1), fdd_getname(type), name.isEmpty() ? tr("(empty)") : name));
 }
@@ -757,7 +763,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             menu                  = floppyMenus[index];
             children              = menu->children();
             imageHistoryUpdatePos = dynamic_cast<QAction *>(children[floppyImageHistoryPos[slot]]);
-            menu_icon             = fdd_is_525(index) ? QIcon(":/settings/qt/icons/floppy_525_image.ico") : QIcon(":/settings/qt/icons/floppy_35_image.ico");
+            menu_icon             = fdd_is_525(&drives[index]) ? QIcon(":/settings/qt/icons/floppy_525_image.ico") : QIcon(":/settings/qt/icons/floppy_35_image.ico");
             if (fn.left(5) == "wp://")
                 fi.setFile(fn.right(fn.length() - 5));
             else

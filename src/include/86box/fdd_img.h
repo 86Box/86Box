@@ -21,8 +21,8 @@
 #define EMU_FLOPPY_IMG_H
 
 extern void img_init(void);
-extern void img_load(int drive, char *fn);
-extern void img_load_raw_device(int drive, const char *device_path);
-extern void img_close(int drive);
+extern void img_load(void *priv, char *fn);
+extern void img_load_raw_device(void *priv, const char *device_path);
+extern void img_close(void *priv);
 
 #endif /*EMU_FLOPPY_IMG_H*/

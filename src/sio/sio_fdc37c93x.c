@@ -771,20 +771,16 @@ fdc37c93x_fdc_handler(fdc37c93x_t *dev)
 {
     const uint8_t  global_enable = !!(dev->regs[0x22] & (1 << 0));
     const uint8_t  local_enable  = !!dev->ld_regs[0][0x30];
-    const uint16_t old_base      = dev->fdc_base;
 
     dev->fdc_base = 0x0000;
 
     if (local_enable)
         dev->fdc_base = make_port(dev, 0) & 0xfff8;
 
-    if (dev->fdc_base != old_base) {
-        if ((old_base >= 0x0100) && (old_base <= 0x0ff8))
-            fdc_remove(dev->fdc);
+    fdc_remove(dev->fdc);
 
-        if ((dev->fdc_base >= 0x0100) && (dev->fdc_base <= 0x0ff8))
-            fdc_set_base(dev->fdc, dev->fdc_base);
-    }
+    if ((dev->fdc_base >= 0x0100) && (dev->fdc_base <= 0x0ff8))
+        fdc_set_base(dev->fdc, dev->fdc_base);
 
     fdc_set_power_down(dev->fdc, !global_enable);
 }

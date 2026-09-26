@@ -685,7 +685,6 @@ aha_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
             break;
 
-#ifdef AHA1542CP_FDC
         case 1:
             if (dev->fdc_address) {
                 fdc_remove(dev->fdc);
@@ -697,15 +696,16 @@ aha_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
             if (config->activate) {
                 dev->fdc_address = config->io[0].base;
-                if (dev->fdc_address != ISAPNP_IO_DISABLED)
+                if (dev->fdc_address != ISAPNP_IO_DISABLED) {
                     fdc_set_base(dev->fdc, dev->fdc_address);
+                    pclog("FDC address: %04X\n", dev->fdc_address);
+                }
 
                 fdc_set_irq(dev->fdc, config->irq[0].irq);
                 fdc_set_dma_ch(dev->fdc, config->dma[0].dma);
             }
 
             break;
-#endif
         default:
             break;
     }
@@ -1069,8 +1069,10 @@ aha_init(const device_t *info)
             dev->ven_get_irq     = aha_get_irq;     /* function to return IRQ from EEPROM */
             dev->ven_get_dma     = aha_get_dma;     /* function to return DMA channel from EEPROM */
             dev->ha_bps          = 10000000.0;      /* fast SCSI */
-            if (dev->fdc_address > 0)
-                dev->fdc = device_add(&fdc_at_device);
+            if (dev->fdc_address > 0) {
+                dev->fdc = device_add_inst_params(&fdc_at_nsc_device, 1, (void *) (FDC_FLAG_SEC | FDC_FLAG_PNP));
+                fdc_set_base(dev->fdc, (int) dev->fdc_address);
+            }
             break;
 
         case AHA_154xCP:
@@ -1103,9 +1105,7 @@ aha_init(const device_t *info)
             aha_setmcode(dev);
             if (aha1542cp_pnp_rom)
                 isapnp_add_card(aha1542cp_pnp_rom, dev->pnp_len + 7, aha_pnp_config_changed, NULL, NULL, NULL, dev);
-#ifdef AHA1542CP_FDC
-            dev->fdc = device_add(&fdc_at_device);
-#endif
+            dev->fdc = device_add_inst_params(&fdc_at_nsc_device, 1, (void *) (FDC_FLAG_SEC | FDC_FLAG_PNP));
             break;
 
         case AHA_1640:

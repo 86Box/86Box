@@ -320,9 +320,11 @@ last_known_path(OsdView view, char *mounted, char *(&history)[entries])
 static const char *
 browser_initial_path(OsdView view)
 {
+    fdd_drive_t *drv = &drives[0];
+
     switch (view) {
         case VIEW_FILE_FLOPPY:
-            return last_known_path(view, floppyfns[0], fdd_image_history[0]);
+            return last_known_path(view, drv->image_path, drives[0].image_history);
         case VIEW_FILE_CD:
         case VIEW_CD_FOLDER:
             return last_known_path(view, cdrom[0].image_path, cdrom[0].image_history);
@@ -486,14 +488,14 @@ isFirstMoAvailable(void)
 }
 
 static const MenuItem menu_items[] = {
-    { "Load Floppy Image...",      ACT_NONE,         VIEW_FILE_FLOPPY, [] () -> bool { return fdd_get_type(0); }                 },
+    { "Load Floppy Image...",      ACT_NONE,         VIEW_FILE_FLOPPY, [] () -> bool { return fdd_get_type(&drives[0]); }        },
     { "Load CD-ROM Image...",      ACT_NONE,         VIEW_FILE_CD,     isFirstCdromAvailable                                     },
     { "Mount CD Folder (VISO)...", ACT_NONE,         VIEW_CD_FOLDER,   isFirstCdromAvailable                                     },
     { "Load Removable Disk...",    ACT_NONE,         VIEW_FILE_RDISK,  isFirstRdiskAvailable                                     },
     { "Load Cartridge...",         ACT_NONE,         VIEW_FILE_CART,   [] () -> bool { return machine_has_cartridge(machine); }  },
     { "Load MO Image...",          ACT_NONE,         VIEW_FILE_MO,     isFirstMoAvailable                                        },
     { nullptr, ACT_NONE, VIEW_MENU }, /* separator */
-    { "Eject Floppy",              ACT_EJECT_FLOPPY, VIEW_MENU, [] () -> bool { return fdd_get_type(0) && floppyfns[0][0] != 0; }                        },
+    { "Eject Floppy",              ACT_EJECT_FLOPPY, VIEW_MENU, [] () -> bool { return fdd_get_type(&drives[0]) && drives[0].image_path[0] != 0; }               },
     { "Eject CD-ROM",              ACT_EJECT_CD,     VIEW_MENU, [] () -> bool { return isFirstCdromAvailable() && cdrom[0].image_path[0] != 0; }         },
     { "Eject Removable Disk",      ACT_EJECT_RDISK,  VIEW_MENU, [] () -> bool { return isFirstRdiskAvailable() && rdisk_drives[0].image_path[0] != 0; }  },
     { "Eject Cartridge",           ACT_EJECT_CART,   VIEW_MENU, [] () -> bool { return machine_has_cartridge(machine) && cart_fns[0][0] != 0; }          },

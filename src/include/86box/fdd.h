@@ -21,7 +21,7 @@
 #ifndef EMU_FDD_H
 #define EMU_FDD_H
 
-#define FDD_NUM              4
+#define FDD_NUM              8
 #define FLOPPY_IMAGE_HISTORY 10
 #define SEEK_RECALIBRATE     (-999)
 #define DEFAULT_SEEK_TIME_MS 10.0
@@ -38,93 +38,187 @@ extern "C" {
 
 extern int fdd_swap;
 
-extern void fdd_set_motor_enable(int drive, int motor_enable);
-extern void fdd_do_seek(int drive, int track);
-extern void fdd_forced_seek(int drive, int track_diff);
-extern void fdd_seek(int drive, int track_diff);
-extern int  fdd_track0(int drive);
-extern int  fdd_index(int drive);
+extern void fdd_set_motor_enable(void *priv, int motor_enable);
+extern void fdd_do_seek(void *priv, int track);
+extern void fdd_forced_seek(void *priv, int track_diff);
+extern void fdd_seek(void *priv, int track_diff);
+extern int  fdd_track0(void *priv);
+extern int  fdd_index(void *priv);
 extern int  fdd_get_type_max_track(int type);
-extern int  fdd_getrpm(int drive);
-extern void fdd_set_densel(int densel);
-extern int  fdd_can_read_medium(int drive);
-extern int  fdd_doublestep_40(int drive);
-extern int  fdd_is_pcjx_360(int drive);
-extern int  fdd_is_525(int drive);
-extern int  fdd_supports_360_rpm(int drive);
-extern int  fdd_is_dd(int drive);
-extern int  fdd_is_hd(int drive);
-extern int  fdd_is_ed(int drive);
-extern int  fdd_is_double_sided(int drive);
-extern void fdd_set_head(int drive, int head);
-extern int  fdd_get_head(int drive);
-extern void fdd_set_turbo(int drive, int turbo);
-extern int  fdd_get_turbo(int drive);
-extern void fdd_set_check_bpb(int drive, int check_bpb);
-extern int  fdd_get_check_bpb(int drive);
+extern int  fdd_getrpm(void *priv);
+extern void fdd_set_densel(int bus, int densel);
+extern int  fdd_can_read_medium(void *priv);
+extern int  fdd_doublestep_40(void *priv);
+extern int  fdd_is_pcjx_360(void *priv);
+extern int  fdd_is_525(void *priv);
+extern int  fdd_supports_360_rpm(void *priv);
+extern int  fdd_is_dd(void *priv);
+extern int  fdd_is_hd(void *priv);
+extern int  fdd_is_ed(void *priv);
+extern int  fdd_is_double_sided(void *priv);
+extern void fdd_set_head(void *priv, int head);
+extern int  fdd_get_head(void *priv);
+extern void fdd_set_turbo(void *priv, int turbo);
+extern int  fdd_get_turbo(void *priv);
+extern void fdd_set_check_bpb(void *priv, int check_bpb);
+extern int  fdd_get_check_bpb(void *priv);
 
-extern void fdd_set_type(int drive, int type);
-extern int  fdd_get_type(int drive);
+extern void fdd_set_type(void *priv, int type);
+extern int  fdd_get_type(void *priv);
 
 /* New audio profile accessors */
-extern void fdd_set_audio_profile(int drive, int profile);
-extern int  fdd_get_audio_profile(int drive);
+extern void fdd_set_audio_profile(void *priv, int profile);
+extern int  fdd_get_audio_profile(void *priv);
 
-extern int fdd_get_flags(int drive);
-extern int fdd_get_densel(int drive);
+extern int fdd_get_flags(void *priv);
+extern int fdd_get_densel(void *priv);
 
 extern char *fdd_getname(int type);
 
 extern char *fdd_get_internal_name(int type);
 extern int   fdd_get_from_internal_name(char *s);
 
-extern int fdd_current_track(int drive);
+extern int fdd_current_track(void *priv);
 
-typedef struct DRIVE {
-    int id;
+typedef uint8_t d86f_format_id_t[4];
 
-    void (*seek)(int drive, int track);
-    void (*readsector)(int drive, int sector, int track, int side,
+typedef struct d86f_handler_t {
+    uint16_t (*disk_flags)(void *priv);
+    uint16_t (*side_flags)(void *priv);
+    void (*writeback)(void *priv);
+    void (*set_sector)(void *priv, int side, uint8_t c, uint8_t h,
+                       uint8_t r, uint8_t n);
+    int (*format_track)(void *priv, int side,
+                        const d86f_format_id_t *ids, uint16_t count,
+                        uint8_t fill);
+    uint8_t (*read_data)(void *priv, int side, uint16_t pos);
+    void (*write_data)(void *priv, int side, uint16_t pos,
+                       uint8_t data);
+    int (*format_conditions)(void *priv);
+    int32_t (*extra_bit_cells)(void *priv, int side);
+    uint16_t *(*encoded_data)(void *priv, int side);
+    void (*read_revolution)(void *priv);
+    uint32_t (*index_hole_pos)(void *priv, int side);
+    uint32_t (*get_raw_size)(void *priv, int side);
+
+    uint8_t check_crc;
+} d86f_handler_t;
+
+typedef struct fdd_pending_op_t {
+    int     pending;
+    int     op;
+    int     sector;
+    int     track;
+    int     side;
+    int     density;
+    int     sector_size;
+    uint8_t fill;
+} fdd_pending_op_t;
+
+#ifndef DISABLE_FDD_AUDIO
+/* Motor sound states */
+typedef enum {
+    MOTOR_STATE_STOPPED = 0,
+    MOTOR_STATE_STARTING,
+    MOTOR_STATE_RUNNING,
+    MOTOR_STATE_STOPPING
+} motor_state_t;
+
+/* Maximum number of simultaneous seek sounds per drive */
+#define MAX_CONCURRENT_SEEKS 8
+
+/* Multi-track seek audio state */
+typedef struct {
+    int position;
+    int active;
+    int duration_samples;
+    int from_track;
+    int to_track;
+    int track_diff;
+#ifdef EMU_FDD_AUDIO_H
+    audio_sample_t *sample_to_play;
+#else
+    void *sample_to_play;
+#endif
+} multi_seek_state_t;
+#endif
+
+typedef struct fdd_drive_t {
+    uint8_t            id;
+
+    char               image_path[MAX_IMAGE_PATH_LEN];
+    char *             image_history[FLOPPY_IMAGE_HISTORY];
+
+    pc_timer_t         poll_time;
+    pc_timer_t         seek_timer;
+
+    int                seek_in_progress;
+    int                driveloader;
+    int                audio_profile;
+    int                writeprot;
+    int                fwriteprot;
+    int                read_only;
+    int                changed;
+    int                empty;
+
+#ifndef DISABLE_FDD_AUDIO
+    int                spindlemotor_pos;
+    int                spindlemotor_fade_samples_remaining;
+
+    float              spindlemotor_fade_volume;
+
+    motor_state_t      spindlemotor_state;
+
+    multi_seek_state_t seek_state[MAX_CONCURRENT_SEEKS];
+#endif
+
+    uint64_t           motoron;
+
+    fdd_pending_op_t   pending;
+
+    d86f_handler_t     d86f_handler;
+
+    void *             d86f_priv;
+    void *             fdc;
+
+    void (*seek)(void *priv, int track);
+    void (*readsector)(void *priv, int sector, int track, int side,
                        int density, int sector_size);
-    void (*writesector)(int drive, int sector, int track, int side,
+    void (*writesector)(void *priv, int sector, int track, int side,
                         int density, int sector_size);
-    void (*comparesector)(int drive, int sector, int track, int side,
+    void (*comparesector)(void *priv, int sector, int track, int side,
                           int density, int sector_size);
-    void (*readaddress)(int drive, int side, int density);
-    void (*format)(int drive, int side, int density, uint8_t fill);
-    int (*hole)(int drive);
-    uint64_t (*byteperiod)(int drive);
-    void (*stop)(int drive);
-    void (*poll)(int drive);
-} DRIVE;
+    void (*readaddress)(void *priv, int side, int density);
+    void (*format)(void *priv, int side, int density, uint8_t fill);
+    int (*hole)(void *priv);
+    uint64_t (*byteperiod)(void *priv);
+    void (*stop)(void *priv);
+    void (*poll)(void *priv);
+} fdd_drive_t;
 
-extern DRIVE      drives[FDD_NUM];
-extern char       floppyfns[FDD_NUM][MAX_IMAGE_PATH_LEN];
-extern char      *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
-extern pc_timer_t fdd_poll_time[FDD_NUM];
-extern int        ui_writeprot[FDD_NUM];
+extern fdd_drive_t drives[FDD_NUM];
 
 extern int curdrive;
 
 extern int     fdd_time;
 extern int64_t floppytime;
 
-extern void fdd_load(int drive, char *fn);
-extern void fdd_new(int drive, char *fn);
-extern void fdd_close(int drive);
+extern void fdd_load(void *priv, char *fn);
+extern void fdd_new(void *priv, char *fn);
+extern void fdd_close(void *priv);
 extern void fdd_init(void);
 extern void fdd_reset(void);
-extern void fdd_readsector(int drive, int sector, int track,
+extern void fdd_readsector(void *priv, int sector, int track,
                            int side, int density, int sector_size);
-extern void fdd_writesector(int drive, int sector, int track,
+extern void fdd_writesector(void *priv, int sector, int track,
                             int side, int density, int sector_size);
-extern void fdd_comparesector(int drive, int sector, int track,
+extern void fdd_comparesector(void *priv, int sector, int track,
                               int side, int density, int sector_size);
-extern void fdd_readaddress(int drive, int side, int density);
-extern void fdd_format(int drive, int side, int density, uint8_t fill);
-extern int  fdd_hole(int drive);
-extern void fdd_stop(int drive);
-extern void fdd_do_writeback(int drive);
+extern void fdd_readaddress(void *priv, int side, int density);
+extern void fdd_format(void *priv, int side, int density, uint8_t fill);
+extern int  fdd_hole(void *priv);
+extern void fdd_stop(void *priv);
+extern void fdd_do_writeback(void *priv);
 
 /* BIOS boot status functions */
 extern bios_boot_status_t fdd_get_boot_status(void);
@@ -133,45 +227,15 @@ extern void fdd_boot_status_reset(void);
 extern int fdd_is_post_complete(void);
 
 extern int      motorspin;
-extern uint64_t motoron[FDD_NUM];
 
 extern int swwp;
 extern int disable_write;
 
 extern int defaultwriteprot;
 
-extern int writeprot[FDD_NUM];
-extern int fwriteprot[FDD_NUM];
-extern int fdd_changed[FDD_NUM];
-extern int drive_empty[FDD_NUM];
-
 /*Used in the Read A Track command. Only valid for fdd_readsector(). */
 #define SECTOR_FIRST (-2)
 #define SECTOR_NEXT  (-1)
-
-typedef uint8_t d86f_format_id_t[4];
-
-typedef struct d86f_handler_t {
-    uint16_t (*disk_flags)(int drive);
-    uint16_t (*side_flags)(int drive);
-    void (*writeback)(int drive);
-    void (*set_sector)(int drive, int side, uint8_t c, uint8_t h,
-                       uint8_t r, uint8_t n);
-    int (*format_track)(int drive, int side,
-                        const d86f_format_id_t *ids, uint16_t count,
-                        uint8_t fill);
-    uint8_t (*read_data)(int drive, int side, uint16_t pos);
-    void (*write_data)(int drive, int side, uint16_t pos,
-                       uint8_t data);
-    int (*format_conditions)(int drive);
-    int32_t (*extra_bit_cells)(int drive, int side);
-    uint16_t *(*encoded_data)(int drive, int side);
-    void (*read_revolution)(int drive);
-    uint32_t (*index_hole_pos)(int drive, int side);
-    uint32_t (*get_raw_size)(int drive, int side);
-
-    uint8_t check_crc;
-} d86f_handler_t;
 
 extern const int gap3_sizes[5][8][48];
 
@@ -192,13 +256,6 @@ typedef union {
 
 extern const xdf_sector_t xdf_img_layout[2][2][46];
 extern const xdf_sector_t xdf_disk_layout[2][2][38];
-
-void d86f_set_fdc(void *fdc);
-void fdi_set_fdc(void *fdc);
-void fdd_set_fdc(void *fdc);
-void imd_set_fdc(void *fdc);
-void img_set_fdc(void *fdc);
-void mfm_set_fdc(void *fdc);
 
 #ifdef __cplusplus
 }

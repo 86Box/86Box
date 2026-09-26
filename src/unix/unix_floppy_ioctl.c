@@ -85,30 +85,37 @@ static floppy_ioctl_state_t floppy_state[FDD_NUM];
 static int floppy_buffering_enabled = 1;
 
 void
-fdd_set_host_device(int drive, const char *path)
+fdd_set_host_device(void *priv, const char *path)
 {
-    if (drive < 0 || drive >= FDD_NUM)
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if (drv == NULL)
         return;
+
     if (path) {
-        strncpy(floppy_state[drive].host_device, path, sizeof(floppy_state[drive].host_device) - 1);
-        floppy_state[drive].host_device[sizeof(floppy_state[drive].host_device) - 1] = '\0';
+        strncpy(floppy_state[drv->id].host_device, path,
+                sizeof(floppy_state[drv->id].host_device) - 1);
+        floppy_state[drv->id].host_device[sizeof(floppy_state[drv->id].host_device) - 1] = '\0';
         floppy_ioctl_log("fdd_set_host_device(%d, \"%s\")\n", drive, path);
     } else {
-        floppy_state[drive].host_device[0] = '\0';
+        floppy_state[drv->id].host_device[0] = '\0';
         floppy_ioctl_log("fdd_set_host_device(%d, NULL)\n", drive);
     }
 }
 
 const char *
-fdd_get_host_device(int drive)
+fdd_get_host_device(void *priv)
 {
-    if (drive < 0 || drive >= FDD_NUM)
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if (drv == NULL)
         return "";
-    return floppy_state[drive].host_device;
+
+    return floppy_state[drv->id].host_device;
 }
 
 void
-floppy_ioctl_set_buffering(int enabled)
+floppy_ioctl_set_buffering(const int enabled)
 {
     floppy_buffering_enabled = enabled ? 1 : 0;
     floppy_ioctl_log("floppy_ioctl_set_buffering(%d)\n", floppy_buffering_enabled);
@@ -152,7 +159,7 @@ get_device_size(int fd)
 }
 
 static int
-detect_geometry(int64_t size, int *tracks, int *sides, int *sectors, int *rate)
+detect_geometry(const int64_t size, int *tracks, int *sides, int *sectors, int *rate)
 {
     static const struct {
         int64_t size;
@@ -189,24 +196,21 @@ detect_geometry(int64_t size, int *tracks, int *sides, int *sectors, int *rate)
 }
 
 int
-floppy_ioctl_open(int drive, int *out_tracks, int *out_sides, int *out_sectors, int *out_rate)
+floppy_ioctl_open(void *priv, int *out_tracks, int *out_sides, int *out_sectors, int *out_rate)
 {
-    floppy_ioctl_state_t *state;
-    const char *path;
-    int fd;
-    int64_t size;
+    fdd_drive_t *         drv   = (fdd_drive_t *) priv;
 
     floppy_ioctl_log("floppy_ioctl_open(%d)\n", drive);
 
-    if (drive < 0 || drive >= FDD_NUM) {
+    if (drv == NULL) {
         floppy_ioctl_log("  invalid drive number\n");
         return 0;
     }
 
-    state = &floppy_state[drive];
-    path = floppy_state[drive].host_device;
+    floppy_ioctl_state_t *state = &floppy_state[drv->id];
+    const char *          path  = floppy_state[drv->id].host_device;
 
-    floppy_ioctl_close(drive);
+    floppy_ioctl_close(drv);
 
     if (path[0] == '\0') {
         floppy_ioctl_log("  no host device configured\n");
@@ -216,7 +220,7 @@ floppy_ioctl_open(int drive, int *out_tracks, int *out_sides, int *out_sectors, 
     floppy_ioctl_log("  opening device: %s\n", path);
 
     /* Try read-write */
-    fd = open(path, O_RDWR | O_NONBLOCK | O_EXLOCK);
+    int                   fd = open(path, O_RDWR | O_NONBLOCK | O_EXLOCK);
     if (fd < 0) {
         floppy_ioctl_log("  open(O_RDWR) failed: %s, trying O_RDONLY\n", strerror(errno));
         /* Try read-only */
@@ -233,7 +237,7 @@ floppy_ioctl_open(int drive, int *out_tracks, int *out_sides, int *out_sectors, 
 
     floppy_ioctl_log("  opened successfully, fd=%d, readonly=%d\n", fd, state->readonly);
 
-    size = get_device_size(fd);
+    int64_t               size = get_device_size(fd);
     if (size <= 0 || size > FLOPPY_SIZE_2880KB ||
         !detect_geometry(size, &state->tracks, &state->sides, &state->sectors, &state->rate)) {
         floppy_ioctl_log("  not a floppy\n");
@@ -244,7 +248,7 @@ floppy_ioctl_open(int drive, int *out_tracks, int *out_sides, int *out_sectors, 
     state->fd = fd;
 
     if (floppy_buffering_enabled) {
-        int total_sectors = state->tracks * state->sides * state->sectors;
+        const int total_sectors = state->tracks * state->sides * state->sectors;
         state->buffer = (uint8_t *)calloc(1, size);
         state->sector_valid = (uint8_t *)calloc(1, total_sectors);
         if (state->buffer && state->sector_valid) {
@@ -262,8 +266,8 @@ floppy_ioctl_open(int drive, int *out_tracks, int *out_sides, int *out_sectors, 
     }
 
     if (state->readonly) {
-        writeprot[drive] = 1;
-        fwriteprot[drive] = 1;
+        drv->writeprot = 1;
+        drv->fwriteprot = 1;
     }
 
     *out_tracks = state->tracks;
@@ -279,16 +283,16 @@ floppy_ioctl_open(int drive, int *out_tracks, int *out_sides, int *out_sectors, 
 }
 
 void
-floppy_ioctl_close(int drive)
+floppy_ioctl_close(void *priv)
 {
-    floppy_ioctl_state_t *state;
+    fdd_drive_t *         drv   = (fdd_drive_t *) priv;
 
-    floppy_ioctl_log("floppy_ioctl_close(%d)\n", drive);
-
-    if (drive < 0 || drive >= FDD_NUM)
+    if (drv == NULL)
         return;
 
-    state = &floppy_state[drive];
+    floppy_ioctl_log("floppy_ioctl_close(%d)\n", drv->id);
+
+    floppy_ioctl_state_t *state = &floppy_state[drv->id];
 
     if (state->fd >= 0) {
         floppy_ioctl_log("  closing fd=%d\n", state->fd);
@@ -311,22 +315,16 @@ floppy_ioctl_close(int drive)
 }
 
 int
-floppy_ioctl_read_sector(int drive, int track, int side, int sector, uint8_t *buffer)
+floppy_ioctl_read_sector(void *priv, int track, int side, int sector, uint8_t *buffer)
 {
-    floppy_ioctl_state_t *state;
-    off_t offset;
-    ssize_t ret;
-    size_t bytes_read;
-    int sector_index;
-    int total_sectors;
-    int sectors_to_read;
-    int read_start;
-    int i;
+    fdd_drive_t *         drv             = (fdd_drive_t *) priv;
+    ssize_t               ret;
+    size_t                bytes_read;
 
-    if (drive < 0 || drive >= FDD_NUM)
+    if (drv == NULL)
         return 0;
 
-    state = &floppy_state[drive];
+    floppy_ioctl_state_t *state           = &floppy_state[drv->id];
 
     if (state->fd < 0) {
         floppy_ioctl_log("floppy_ioctl_read_sector(%d, %d, %d, %d): fd=%d FAIL\n",
@@ -343,8 +341,9 @@ floppy_ioctl_read_sector(int drive, int track, int side, int sector, uint8_t *bu
         return 0;
     }
 
-    sector_index = (track * state->sides + side) * state->sectors + (sector - 1);
-    offset = (off_t)sector_index * SECTOR_SIZE;
+    int                   sector_index    = (track * state->sides + side) * state->sectors +
+                                            (sector - 1);
+    off_t                 offset          = (off_t)sector_index * SECTOR_SIZE;
 
     floppy_ioctl_log("floppy_ioctl_read_sector(%d, T%d/H%d/S%d): offset=%lld\n",
                      drive, track, side, sector, (long long)offset);
@@ -355,9 +354,9 @@ floppy_ioctl_read_sector(int drive, int track, int side, int sector, uint8_t *bu
         return 1;
     }
 
-    total_sectors = state->tracks * state->sides * state->sectors;
-    read_start = (track * state->sides + side) * state->sectors;
-    sectors_to_read = state->sectors;
+    int                   total_sectors   = state->tracks * state->sides * state->sectors;
+    int                   read_start      = (track * state->sides + side) * state->sectors;
+    int                   sectors_to_read = state->sectors;
 
     if (read_start + sectors_to_read > total_sectors)
         sectors_to_read = total_sectors - read_start;
@@ -385,7 +384,7 @@ floppy_ioctl_read_sector(int drive, int track, int side, int sector, uint8_t *bu
             }
             bytes_read += ret;
 
-            for (i = 0; i < (int)(bytes_read / SECTOR_SIZE); i++)
+            for (int i = 0; i < (int)(bytes_read / SECTOR_SIZE); i++)
                 state->sector_valid[read_start + i] = 1;
 
             if (state->sector_valid[sector_index])
@@ -430,17 +429,15 @@ floppy_ioctl_read_sector(int drive, int track, int side, int sector, uint8_t *bu
 }
 
 int
-floppy_ioctl_write_sector(int drive, int track, int side, int sector, const uint8_t *buffer)
+floppy_ioctl_write_sector(void *priv, const int track, const int side, const int sector,
+                          const uint8_t *buffer)
 {
-    floppy_ioctl_state_t *state;
-    off_t offset;
-    ssize_t ret;
-    int sector_index;
+    fdd_drive_t *         drv             = (fdd_drive_t *) priv;
 
-    if (drive < 0 || drive >= FDD_NUM)
+    if (drv == NULL)
         return 0;
 
-    state = &floppy_state[drive];
+    floppy_ioctl_state_t *state           = &floppy_state[drv->id];
 
     if (state->fd < 0 || state->readonly) {
         floppy_ioctl_log("floppy_ioctl_write_sector(%d, %d, %d, %d): "
@@ -457,8 +454,9 @@ floppy_ioctl_write_sector(int drive, int track, int side, int sector, const uint
         return 0;
     }
 
-    sector_index = (track * state->sides + side) * state->sectors + (sector - 1);
-    offset = (off_t)sector_index * SECTOR_SIZE;
+    int                   sector_index    = (track * state->sides + side) * state->sectors +
+                                            (sector - 1);
+    off_t                 offset          = (off_t)sector_index * SECTOR_SIZE;
 
     floppy_ioctl_log("floppy_ioctl_write_sector(%d, T%d/H%d/S%d): offset=%lld\n",
                      drive, track, side, sector, (long long)offset);
@@ -468,9 +466,10 @@ floppy_ioctl_write_sector(int drive, int track, int side, int sector, const uint
         return 0;
     }
 
-    ret = write(state->fd, buffer, SECTOR_SIZE);
+    ssize_t               ret             = write(state->fd, buffer, SECTOR_SIZE);
     if (ret != SECTOR_SIZE) {
-        floppy_ioctl_log("  write returned %zd: %s\n", ret, ret < 0 ? strerror(errno) : "short write");
+        floppy_ioctl_log("  write returned %zd: %s\n", ret, ret < 0 ? strerror(errno) :
+                                                                      "short write");
         return 0;
     }
 

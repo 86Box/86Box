@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
@@ -49,7 +48,6 @@ typedef struct fdi_t {
 } fdi_t;
 
 static fdi_t *fdi[FDD_NUM];
-static fdc_t *fdi_fdc;
 
 #ifdef ENABLE_FDI_LOG
 int fdi_do_log = ENABLE_FDI_LOG;
@@ -70,10 +68,12 @@ fdi_log(const char *fmt, ...)
 #endif
 
 static uint16_t
-disk_flags(int drive)
+disk_flags(void *priv)
 {
-    fdi_t   *dev             = fdi[drive];
-    uint16_t temp_disk_flags = 0x80; /* We ALWAYS claim to have extra bit cells, even if the actual amount is 0. */
+    fdd_drive_t *drv             = (fdd_drive_t *) priv;
+    fdi_t *      dev             = fdi[drv->id];
+    /* We ALWAYS claim to have extra bit cells, even if the actual amount is 0. */
+    uint16_t     temp_disk_flags = 0x80;
 
     switch (fdi2raw_get_bit_rate(dev->h)) {
         case 500:
@@ -106,10 +106,11 @@ disk_flags(int drive)
 }
 
 static uint16_t
-side_flags(int drive)
+side_flags(void *priv)
 {
-    fdi_t   *dev             = fdi[drive];
-    uint16_t temp_side_flags = 0;
+    fdd_drive_t *drv             = (fdd_drive_t *) priv;
+    fdi_t *      dev             = fdi[drv->id];
+    uint16_t     temp_side_flags = 0;
 
     switch (fdi2raw_get_bit_rate(dev->h)) {
         case 500:
@@ -145,23 +146,21 @@ side_flags(int drive)
 }
 
 static int
-fdi_density(void)
+fdi_density(void *priv)
 {
-    if (!fdc_is_mfm(fdi_fdc))
+    fdd_drive_t *drv        = (fdd_drive_t *) priv;
+
+    if (!fdc_is_mfm(drv->fdc))
         return 0;
 
-    switch (fdc_get_bit_rate(fdi_fdc)) {
+    switch (fdc_get_bit_rate(drv->fdc)) {
         case 0:
             return 2;
 
-        case 1:
+        case 1: case 2:
             return 1;
 
-        case 2:
-            return 1;
-
-        case 3:
-        case 5:
+        case 3: case 5:
             return 3;
 
         default:
@@ -172,18 +171,19 @@ fdi_density(void)
 }
 
 static int32_t
-extra_bit_cells(int drive, int side)
+extra_bit_cells(void *priv, const int side)
 {
-    const fdi_t *dev        = fdi[drive];
+    fdd_drive_t *drv        = (fdd_drive_t *) priv;
+    const fdi_t *dev        = fdi[drv->id];
     int          density    = 0;
     int          raw_size   = 0;
     int          is_300_rpm = 0;
 
-    density = fdi_density();
+    density = fdi_density(drv);
 
-    is_300_rpm = (fdd_getrpm(drive) == 300);
+    is_300_rpm = (fdd_getrpm(drv) == 300);
 
-    switch (fdc_get_bit_rate(fdi_fdc)) {
+    switch (fdc_get_bit_rate(drv->fdc)) {
         case 0:
             raw_size = is_300_rpm ? 200000 : 166666;
             break;
@@ -209,12 +209,12 @@ extra_bit_cells(int drive, int side)
 }
 
 static void
-read_revolution(int drive)
+read_revolution(void *priv)
 {
-    fdi_t *dev = fdi[drive];
-    int    c;
-    int    den;
-    int    track = dev->track;
+    fdd_drive_t *drv   = (fdd_drive_t *) priv;
+    fdi_t *      dev   = fdi[drv->id];
+    const int    track = dev->track;
+    int          den;
 
     if (track > dev->lasttrack) {
         for (den = 0; den < 4; den++) {
@@ -227,12 +227,13 @@ read_revolution(int drive)
 
     for (den = 0; den < 4; den++) {
         for (int side = 0; side < dev->sides; side++) {
-            c = fdi2raw_loadtrack(dev->h,
-                                  (uint16_t *) dev->track_data[side][den],
-                                  (uint16_t *) dev->track_timing[side][den],
-                                  (track * dev->sides) + side,
-                                  &dev->tracklen[side][den],
-                                  &dev->trackindex[side][den], NULL, den);
+            const int c = fdi2raw_loadtrack(dev->h,
+                                            (uint16_t *) dev->track_data[side][den],
+                                            (uint16_t *) dev->track_timing[side][den],
+                                            (track * dev->sides) + side,
+                                            &dev->tracklen[side][den],
+                                            &dev->trackindex[side][den], NULL,
+                                            den);
             if (!c)
                 memset(dev->track_data[side][den], 0, dev->tracklen[side][den]);
         }
@@ -245,49 +246,50 @@ read_revolution(int drive)
 }
 
 static uint32_t
-index_hole_pos(int drive, int side)
+index_hole_pos(void *priv, const int side)
 {
-    const fdi_t *dev = fdi[drive];
-    int          density;
+    fdd_drive_t *drv     = (fdd_drive_t *) priv;
+    const fdi_t *dev     = fdi[drv->id];
 
-    density = fdi_density();
+    const int    density = fdi_density(drv);
 
     return (dev->trackindex[side][density]);
 }
 
 static uint32_t
-get_raw_size(int drive, int side)
+get_raw_size(void *priv, const int side)
 {
-    const fdi_t *dev = fdi[drive];
-    int          density;
+    fdd_drive_t *drv     = (fdd_drive_t *) priv;
+    const fdi_t *dev     = fdi[drv->id];
 
-    density = fdi_density();
+    const int    density = fdi_density(drv);
 
     return (dev->tracklen[side][density]);
 }
 
 static uint16_t *
-encoded_data(int drive, int side)
+encoded_data(void *priv, const int side)
 {
-    fdi_t *dev     = fdi[drive];
-    int    density = 0;
+    fdd_drive_t *drv     = (fdd_drive_t *) priv;
+    fdi_t *      dev     = fdi[drv->id];
 
-    density = fdi_density();
+    const int    density = fdi_density(drv);
 
     return ((uint16_t *) dev->track_data[side][density]);
 }
 
 void
-fdi_seek(int drive, int track)
+fdi_seek(void *priv, int track)
 {
-    fdi_t *dev = fdi[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdi_t *      dev = fdi[drv->id];
 
-    if (fdd_doublestep_40(drive)) {
+    if (fdd_doublestep_40(drv)) {
         if (fdi2raw_get_tpi(dev->h) < 2)
             track /= 2;
     }
 
-    d86f_set_cur_track(drive, track);
+    d86f_set_cur_track(drv, track);
 
     if (dev->fp == NULL)
         return;
@@ -295,33 +297,28 @@ fdi_seek(int drive, int track)
     if (track < 0)
         track = 0;
 
-#if 0
-    if (track > dev->lasttrack)
-        track = dev->lasttrack - 1;
-#endif
-
     dev->track = track;
 
-    read_revolution(drive);
+    read_revolution(drv);
 }
 
 void
-fdi_load(int drive, char *fn)
+fdi_load(void *priv, char *fn)
 {
-    char   header[26];
-    fdi_t *dev;
-
-    writeprot[drive] = fwriteprot[drive] = 1;
+    fdd_drive_t *drv        = (fdd_drive_t *) priv;
+    char         header[26];
 
     /* Allocate a drive block. */
-    dev = (fdi_t *) calloc(1, sizeof(fdi_t));
+    fdi_t *      dev        = (fdi_t *) calloc(1, sizeof(fdi_t));
 
     if (dev == NULL) {
-        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+        memset(drv->image_path, 0, sizeof(drv->image_path));
         return;
     }
 
-    d86f_unregister(drive);
+    drv->writeprot = drv->fwriteprot = 1;
+
+    d86f_unregister(drv);
 
     dev->fp = plat_fopen(fn, "rb");
     if (fread(header, 1, 25, dev->fp) != 25)
@@ -334,50 +331,51 @@ fdi_load(int drive, char *fn)
         fdi_log("fdi_load(): Japanese FDI file detected, redirecting to IMG loader\n");
         fclose(dev->fp);
         free(dev);
-        img_load(drive, fn);
+        img_load(drv, fn);
         return;
     }
 
     /* Set up the drive unit. */
-    fdi[drive] = dev;
+    fdi[drv->id] = dev;
 
     dev->h         = fdi2raw_header(dev->fp);
     dev->lasttrack = fdi2raw_get_last_track(dev->h);
     dev->sides     = fdi2raw_get_last_head(dev->h) + 1;
 
     /* Attach this format to the D86F engine. */
-    d86f_handler[drive].disk_flags        = disk_flags;
-    d86f_handler[drive].side_flags        = side_flags;
-    d86f_handler[drive].writeback         = null_writeback;
-    d86f_handler[drive].set_sector        = null_set_sector;
-    d86f_handler[drive].write_data        = null_write_data;
-    d86f_handler[drive].format_conditions = null_format_conditions;
-    d86f_handler[drive].extra_bit_cells   = extra_bit_cells;
-    d86f_handler[drive].encoded_data      = encoded_data;
-    d86f_handler[drive].read_revolution   = read_revolution;
-    d86f_handler[drive].index_hole_pos    = index_hole_pos;
-    d86f_handler[drive].get_raw_size      = get_raw_size;
-    d86f_handler[drive].check_crc         = 1;
-    d86f_set_version(drive, D86FVER);
+    drv->d86f_handler.disk_flags        = disk_flags;
+    drv->d86f_handler.side_flags        = side_flags;
+    drv->d86f_handler.writeback         = null_writeback;
+    drv->d86f_handler.set_sector        = null_set_sector;
+    drv->d86f_handler.write_data        = null_write_data;
+    drv->d86f_handler.format_conditions = null_format_conditions;
+    drv->d86f_handler.extra_bit_cells   = extra_bit_cells;
+    drv->d86f_handler.encoded_data      = encoded_data;
+    drv->d86f_handler.read_revolution   = read_revolution;
+    drv->d86f_handler.index_hole_pos    = index_hole_pos;
+    drv->d86f_handler.get_raw_size      = get_raw_size;
+    drv->d86f_handler.check_crc         = 1;
+    d86f_set_version(drv, D86FVER);
 
-    d86f_common_handlers(drive);
+    d86f_common_handlers(drv);
 
-    drives[drive].seek = fdi_seek;
+    drv->seek = fdi_seek;
 
     fdi_log("Loaded as FDI\n");
 }
 
 void
-fdi_close(int drive)
+fdi_close(void *priv)
 {
-    fdi_t *dev = fdi[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdi_t *dev       = fdi[drv->id];
 
     if (dev == NULL)
         return;
 
-    d86f_unregister(drive);
+    d86f_unregister(drv);
 
-    drives[drive].seek = NULL;
+    drv->seek = NULL;
 
     if (dev->h)
         fdi2raw_header_free(dev->h);
@@ -387,11 +385,5 @@ fdi_close(int drive)
 
     /* Release the memory. */
     free(dev);
-    fdi[drive] = NULL;
-}
-
-void
-fdi_set_fdc(void *fdc)
-{
-    fdi_fdc = (fdc_t *) fdc;
+    fdi[drv->id] = NULL;
 }
