@@ -305,9 +305,8 @@ typedef struct el3_t {
     uint8_t mca;
     uint8_t pos_regs[8];
 
-    /* The EEPROM file, and the configuration it was built from. */
+    /* The EEPROM file. */
     char    nvr_name[64];
-    uint8_t nvr_stamp[9];
 
     /* Plug and Play: the card's resource data is EEPROM words 18h-3Fh. */
     uint8_t pnp;
@@ -451,11 +450,11 @@ static const uint16_t el3_eeprom_image[64] = {
 
 /* The Plug and Play checksums in words 18h-3Fh: the serial identifier's
    LFSR checksum (the ISA Plug and Play specification's, byte 8) and the
-   resource data checksum after the end tag (the sum of the resource data
+   resource data checksum after the end tag (the sum of resource data
    comes to zero). Then word 17h, the secondary checksum, as 3C5X9CFG
    computes it (its routines at 156E:05D4 and 156E:0660): the high byte
-   XORs every byte of words 10h-12h and 18h-3Fh, the low byte those of words
-   13h-16h. Both give the real card's values from its own image. */
+   XORs every byte of words 10h-12h and 18h-3Fh, the low byte those of
+   words 13h-16h. Both give the real card's values from its own image. */
 static void
 el3_pnp_checksums(uint16_t *e)
 {
@@ -500,70 +499,106 @@ el3_pnp_checksums(uint16_t *e)
                           el3_xor_bytes(e, 0x13, 0x16));
 }
 
-/* That image with the configuration the user picked written into it, as
-   3C5X9CFG would: node address, product, transceiver, I/O base and IRQ,
-   and the checksum over them. The node address is packed a byte pair to a
-   word, first byte high. */
+/* Writes an EEPROM word, saying whether it differed. */
+static int
+el3_eeprom_put(uint16_t *e, uint8_t word, uint16_t value)
+{
+    if (e[word] == value)
+        return 0;
+    e[word] = value;
+    return 1;
+}
+
+/* The fields the emulator owns, written over whatever is in the EEPROM:
+   the node address with its OEM copy (words 00h-02h, 0Ah-0Ch), the product,
+   and the Plug and Play serial identifier that carries the node address's last
+   four bytes (words 19h-1Bh), as on the real card. Whether an EPROM is fitted
+   and where it sits, the I/O base, the IRQ and how the card is activated are
+   the configuration software's to set (3C5X9CFG), so they are not touched
+   here. Says whether anything had to change. */
+static int
+el3_eeprom_host_fields(el3_t *dev)
+{
+    const el3_variant_t *var = el3_variant(dev);
+    uint16_t            *e   = dev->eeprom;
+    int                  changed = 0;
+
+    changed |= el3_eeprom_put(e, 0x00, (uint16_t) ((dev->mac[0] << 8) | dev->mac[1]));
+    changed |= el3_eeprom_put(e, 0x01, (uint16_t) ((dev->mac[2] << 8) | dev->mac[3]));
+    changed |= el3_eeprom_put(e, 0x02, (uint16_t) ((dev->mac[4] << 8) | dev->mac[5]));
+    changed |= el3_eeprom_put(e, 0x0a, e[0x00]);
+    changed |= el3_eeprom_put(e, 0x0b, e[0x01]);
+    changed |= el3_eeprom_put(e, 0x0c, e[0x02]);
+    changed |= el3_eeprom_put(e, 0x03, var->identity);
+    changed |= el3_eeprom_put(e, 0x19, var->identity);
+    changed |= el3_eeprom_put(e, 0x1a, (uint16_t) ((dev->mac[4] << 8) | dev->mac[5]));
+    changed |= el3_eeprom_put(e, 0x1b, (uint16_t) ((dev->mac[2] << 8) | dev->mac[3]));
+
+    /* The logical device ID carries the board's product: TCM5090, 5091, 5094 or 5095. */
+    changed |= el3_eeprom_put(e, 0x2d, (uint16_t) ((e[0x2d] & 0x00ff) | ((var->identity & 0xff) << 8)));
+    changed |= el3_eeprom_put(e, 0x2e, (uint16_t) ((e[0x2e] & 0xff00) | (var->identity >> 8)));
+
+    return changed;
+}
+
+/* The checksums the card checks over its EEPROM (7-28): the Plug and Play
+   data's own, and the one over words 00h-0Eh. High byte over words 0-0Eh
+   less 8, 9 and 0Dh; low byte over those three. The real card's own
+   checksum agrees with this, and so does 3C5X9CFG's. */
+static void
+el3_eeprom_checksums(el3_t *dev)
+{
+    uint16_t *e = dev->eeprom;
+    uint8_t   hi;
+    uint8_t   lo;
+
+    el3_pnp_checksums(e);
+
+    hi      = el3_xor_bytes(e, 0x00, 0x07) ^ el3_xor_bytes(e, 0x0a, 0x0c) ^ el3_xor_bytes(e, 0x0e, 0x0e);
+    lo      = el3_xor_bytes(e, 0x08, 0x09) ^ el3_xor_bytes(e, 0x0d, 0x0d);
+    e[0x0f] = (uint16_t) ((hi << 8) | lo);
+}
+
+/* The EEPROM a card ships with: the image read from a real card, with the
+   settings the configuration software owns set to their factory defaults -
+   I/O base, IRQ, transceiver and no boot PROM (7-16) - and the emulator's
+   own fields on top. */
 static void
 el3_eeprom_build(el3_t *dev, uint16_t base, uint8_t irq)
 {
     const el3_variant_t *var = el3_variant(dev);
     uint16_t            *e   = dev->eeprom;
-    uint8_t              hi;
-    uint8_t              lo;
 
     memcpy(e, el3_eeprom_image, sizeof(dev->eeprom));
 
-    e[0x00] = (uint16_t) ((dev->mac[0] << 8) | dev->mac[1]);
-    e[0x01] = (uint16_t) ((dev->mac[2] << 8) | dev->mac[3]);
-    e[0x02] = (uint16_t) ((dev->mac[4] << 8) | dev->mac[5]);
-    e[0x03] = var->identity;
     /* No boot ROM is modelled, so the card must not advertise one. */
     e[0x08] = (uint16_t) ((e[0x08] & ~(AC_XCVR | AC_ROM | AC_IO_BASE)) | var->transceiver | (((base - 0x200) >> 4) & AC_IO_BASE));
     e[0x09] = (uint16_t) ((e[0x09] & 0x0fff) | (irq << 12));
-    e[0x0a] = e[0x00];
-    e[0x0b] = e[0x01];
-    e[0x0c] = e[0x02];
 
     /* Word 13h bits 3:2 load ISA ACTIVATION SELECT (7-23): 00b, both
        mechanisms, with Plug and Play on; 01b, ISA contention only, as the
        card this image was read from was set and as 3C5X9CFG /PNP:N sets it. */
     e[0x13] = dev->pnp ? 0x0000 : 0x0004;
 
-    /* The Plug and Play serial identifier (bytes 0-8 of words 18h-1Ch) and
-       the logical device ID carry the board's product, TCM5090, 5091, 5094
-       or 5095, and the serial number is the node address's last four bytes,
-       as on the real card. */
-    e[0x19] = var->identity;
-    e[0x1a] = (uint16_t) ((dev->mac[4] << 8) | dev->mac[5]);
-    e[0x1b] = (uint16_t) ((dev->mac[2] << 8) | dev->mac[3]);
-    e[0x2d] = (uint16_t) ((e[0x2d] & 0x00ff) | ((var->identity & 0xff) << 8));
-    e[0x2e] = (uint16_t) ((e[0x2e] & 0xff00) | (var->identity >> 8));
-    el3_pnp_checksums(e);
-
-    /* High byte over words 0-0Eh less 8, 9 and 0Dh; low byte over those
-       three. The real card's own checksum agrees with this. */
-    hi      = el3_xor_bytes(e, 0x00, 0x07) ^ el3_xor_bytes(e, 0x0a, 0x0c) ^ el3_xor_bytes(e, 0x0e, 0x0e);
-    lo      = el3_xor_bytes(e, 0x08, 0x09) ^ el3_xor_bytes(e, 0x0d, 0x0d);
-    e[0x0f] = (uint16_t) ((hi << 8) | lo);
+    el3_eeprom_host_fields(dev);
+    el3_eeprom_checksums(dev);
 }
 
 /* The EEPROM is kept in the VM's folder, so what a configuration utility
-   writes survives power-off as it does on the card. The file carries the
-   settings it was built from: if those have since been changed in the
-   device's configuration, the EEPROM is rebuilt from them instead. */
+   writes survives power-off as it does on the card. The file is the EEPROM
+   itself, its 64 words little-endian, nothing of the emulator's in it but
+   the fields it owns. */
 static void
 el3_eeprom_save(const el3_t *dev)
 {
     FILE   *fp = nvr_fopen((char *) dev->nvr_name, "wb");
-    uint8_t buf[sizeof(dev->nvr_stamp) + 128];
+    uint8_t buf[128];
 
     if (fp == NULL)
         return;
-    memcpy(buf, dev->nvr_stamp, sizeof(dev->nvr_stamp));
     for (uint8_t i = 0; i < 64; i++) {
-        buf[sizeof(dev->nvr_stamp) + (i * 2)]     = (uint8_t) dev->eeprom[i];
-        buf[sizeof(dev->nvr_stamp) + (i * 2) + 1] = (uint8_t) (dev->eeprom[i] >> 8);
+        buf[i * 2]     = (uint8_t) dev->eeprom[i];
+        buf[i * 2 + 1] = (uint8_t) (dev->eeprom[i] >> 8);
     }
     fwrite(buf, 1, sizeof(buf), fp);
     fclose(fp);
@@ -573,17 +608,37 @@ static int
 el3_eeprom_restore(el3_t *dev)
 {
     FILE   *fp = nvr_fopen((char *) dev->nvr_name, "rb");
-    uint8_t buf[sizeof(dev->nvr_stamp) + 128];
-    size_t  got;
+    uint8_t buf[128];
+    long    size;
+    int     changed;
 
     if (fp == NULL)
         return 0;
-    got = fread(buf, 1, sizeof(buf), fp);
-    fclose(fp);
-    if ((got != sizeof(buf)) || memcmp(buf, dev->nvr_stamp, sizeof(dev->nvr_stamp)))
+
+    /* The EEPROM is the last 128 bytes of the file. Files written before it
+       was kept on its own have the settings it was built from in front of
+       them; how long that is does not have to be known. */
+    if ((fseek(fp, 0, SEEK_END) != 0) || ((size = ftell(fp)) < (long) sizeof(buf)) ||
+        (fseek(fp, size - (long) sizeof(buf), SEEK_SET) != 0) ||
+        (fread(buf, 1, sizeof(buf), fp) != sizeof(buf))) {
+        fclose(fp);
         return 0;
+    }
+    fclose(fp);
+
     for (uint8_t i = 0; i < 64; i++)
-        dev->eeprom[i] = (uint16_t) (buf[sizeof(dev->nvr_stamp) + (i * 2)] | (buf[sizeof(dev->nvr_stamp) + (i * 2) + 1] << 8));
+        dev->eeprom[i] = (uint16_t) (buf[i * 2] | (buf[i * 2 + 1] << 8));
+
+    /* A board or node address the configuration has since changed takes the
+       fields that name it with it, and the checksums over them. */
+    changed = el3_eeprom_host_fields(dev);
+    if (changed)
+        el3_eeprom_checksums(dev);
+
+    /* Write the file back the way it is kept now: the EEPROM alone, in one
+       piece. */
+    if (changed || (size != (long) sizeof(buf)))
+        el3_eeprom_save(dev);
     return 1;
 }
 
@@ -2268,8 +2323,6 @@ static void *
 el3_init(const device_t *info)
 {
     el3_t   *dev = (el3_t *) calloc(1, sizeof(el3_t));
-    uint16_t base;
-    uint8_t  irq;
     int      mac;
 
     if (info->flags & DEVICE_MCA) {
@@ -2281,15 +2334,13 @@ el3_init(const device_t *info)
         dev->board       = (uint8_t) info->local;
         dev->mca         = 1;
         dev->pnp         = 0;
-        irq              = 0;
-        base             = 0x200;
         dev->pos_regs[0] = (uint8_t) id;
         dev->pos_regs[1] = (uint8_t) (id >> 8);
     } else {
         dev->board = (uint8_t) device_get_config_int("board");
-        dev->pnp   = (uint8_t) device_get_config_int("pnp");
-        irq        = (uint8_t) device_get_config_int("irq");
-        base       = (uint16_t) device_get_config_hex16("base");
+        /* Plug and Play is on as the card ships; 3C5X9CFG can turn it off in
+           the EEPROM, so the stamp says nothing about it (7-23). */
+        dev->pnp   = 1;
     }
 
     dev->mac[0] = 0x00;
@@ -2308,17 +2359,13 @@ el3_init(const device_t *info)
         dev->mac[5] = mac & 0xff;
     }
 
-    dev->nvr_stamp[0] = (uint8_t) base;
-    dev->nvr_stamp[1] = (uint8_t) (base >> 8);
-    dev->nvr_stamp[2] = irq;
-    dev->nvr_stamp[3] = dev->board;
-    memcpy(&dev->nvr_stamp[4], &dev->mac[3], 3);
-    dev->nvr_stamp[7] = dev->pnp;
-    dev->nvr_stamp[8] = 2; /* file format */
     snprintf(dev->nvr_name, sizeof(dev->nvr_name), "eeprom_%s_%d.nvr", info->internal_name, device_get_instance());
 
     if (!el3_eeprom_restore(dev)) {
-        el3_eeprom_build(dev, base, irq);
+        /* What a card ships with, as 3Com documents it for the 3C509B-TP: I/O
+           base 300h, IRQ 10, Plug and Play enabled and no boot PROM - the last
+           is why word 08h's ROM field is left alone. */
+        el3_eeprom_build(dev, 0x300, 10);
         el3_eeprom_save(dev);
     }
     el3_global_reset(dev, 0);
@@ -2341,7 +2388,8 @@ el3_init(const device_t *info)
     if (dev->card->link_state & NET_LINK_DOWN)
         dev->link_up = 0;
 
-    el3_log("3C509B: %s, EEPROM base %03x IRQ %i, %02x:%02x:%02x:%02x:%02x:%02x\n", info->name, base, irq,
+    el3_log("3C509B: %s, EEPROM base %03x IRQ %i, %02x:%02x:%02x:%02x:%02x:%02x\n", info->name,
+            (0x200 + ((dev->eeprom[0x08] & AC_IO_BASE) << 4)), (dev->eeprom[0x09] >> 12),
             dev->mac[0], dev->mac[1], dev->mac[2], dev->mac[3], dev->mac[4], dev->mac[5]);
 
     return dev;
@@ -2382,71 +2430,6 @@ static const device_config_t el3_isa_config[] = {
             { .description = "3C509B-COMBO (10BASE-T, BNC, AUI)",   .value = BOARD_COMBO },
             { .description = "3C509B (BNC, AUI)",                   .value = BOARD_BNC   },
             { .description = ""                                                          }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "pnp",
-        .description    = "Plug and Play",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "base",
-        .description    = "Address",
-        .type           = CONFIG_HEX16,
-        .default_string = NULL,
-        .default_int    = 0x300,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "0x200", .value = 0x200 },
-            { .description = "0x210", .value = 0x210 },
-            { .description = "0x220", .value = 0x220 },
-            { .description = "0x240", .value = 0x240 },
-            { .description = "0x250", .value = 0x250 },
-            { .description = "0x280", .value = 0x280 },
-            { .description = "0x2a0", .value = 0x2a0 },
-            { .description = "0x2c0", .value = 0x2c0 },
-            { .description = "0x2e0", .value = 0x2e0 },
-            { .description = "0x300", .value = 0x300 },
-            { .description = "0x310", .value = 0x310 },
-            { .description = "0x320", .value = 0x320 },
-            { .description = "0x330", .value = 0x330 },
-            { .description = "0x340", .value = 0x340 },
-            { .description = "0x350", .value = 0x350 },
-            { .description = "0x360", .value = 0x360 },
-            { .description = "0x380", .value = 0x380 },
-            { .description = "0x3a0", .value = 0x3a0 },
-            { .description = "0x3c0", .value = 0x3c0 },
-            { .description = "0x3e0", .value = 0x3e0 },
-            { .description = ""                      }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "irq",
-        .description    = "IRQ",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 3,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "IRQ 3",  .value =  3 },
-            { .description = "IRQ 5",  .value =  5 },
-            { .description = "IRQ 7",  .value =  7 },
-            { .description = "IRQ 9",  .value =  9 },
-            { .description = "IRQ 10", .value = 10 },
-            { .description = "IRQ 11", .value = 11 },
-            { .description = "IRQ 12", .value = 12 },
-            { .description = "IRQ 15", .value = 15 },
-            { .description = ""                    }
         },
         .bios           = { { 0 } }
     },
