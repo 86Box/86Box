@@ -4,8 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* The five signals are logical levels; RS-422 polarity/pins belong to the
-   external wiring, not to command decoding. */
+/* The five signals are logical levels. */
 typedef enum cm100_signal {
     CM100_RESPONSE,
     CM100_COMMAND,

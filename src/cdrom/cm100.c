@@ -2,7 +2,7 @@
 #include <string.h>
 #include "cm100_internal.h"
 
-/* EP 0 241 081 gives ordering and timeout limits, not measured motion times.
+/* EP 0 241 081 gives ordering and timeout limits.
    These provisional durations are isolated until a real mechanism is traced. */
 #define CM100_SPIN_UP_NS    UINT64_C(2000000000)
 #define CM100_SPIN_DOWN_NS  UINT64_C(1000000000)
