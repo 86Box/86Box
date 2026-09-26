@@ -526,6 +526,35 @@ static const aic_chip_t aic_chip_788x = {
    takes the two for one family and goes by the device ID for the rest:
    Linux's feature table makes the AIC-7880 the AIC-7870 plus AHC_ULTRA
    and nothing else. */
+static const aic_chip_t aic_chip_7870;
+
+/* The part a board is built on. */
+static const aic_chip_t *
+aic_board_chip(int board)
+{
+    if (AIC_BOARD_EISA(board))
+        return &aic_chip_7770;
+    else if ((board == BOARD_2940) || (board == BOARD_2940W))
+        return &aic_chip_7870;
+
+    return &aic_chip_788x;
+}
+
+/* A part with SELBUSB has channel B, a bus of its own whether or not the
+   board brings it out (see aic_init()). */
+static uint32_t
+aic_scsi_buses(const device_t *dev)
+{
+    int board = dev->local & 0xff;
+
+    /* An entry covering several models has the model in its options, the
+       current configuration context here. */
+    if (board == BOARD_FROM_CONFIG)
+        board = device_get_config_int("model");
+
+    return (aic_board_chip(board)->sblkctl_mask & SELBUSB) ? 2 : 1;
+}
+
 static const aic_chip_t aic_chip_7870 = {
     .name          = "AIC-7870",
     .scb_pages     = SCB_COUNT,
@@ -5509,12 +5538,7 @@ aic_init(const device_t *info)
 
     dev->eisa = AIC_BOARD_EISA(dev->board);
     /* Which part this board is built on, before anything asks. */
-    if (dev->eisa)
-        dev->chip = &aic_chip_7770;
-    else if ((dev->board == BOARD_2940) || (dev->board == BOARD_2940W))
-        dev->chip = &aic_chip_7870;
-    else
-        dev->chip = &aic_chip_788x;
+    dev->chip = aic_board_chip(dev->board);
     dev->bus  = scsi_get_bus();
     /* What every line of this board's log will say it is. Set before
        anything else can log, and before the slot is known, so it names
@@ -6092,7 +6116,9 @@ const device_t aic7880_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "AIC-7880",
+    .scsi_buses    = aic_scsi_buses
 };
 
 /* Until the models became options each board had an entry of its own. A
@@ -6174,7 +6200,9 @@ const device_t aha274x_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aic7770_config
+    .config        = aic7770_config,
+    .short_name    = "AHA-274x",
+    .scsi_buses    = aic_scsi_buses
 };
 
 /* The AIC-7870 card, strapped narrow (AHA-2940) or wide (AHA-2940W). */
@@ -6189,7 +6217,9 @@ const device_t aha2940_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha2940_config
+    .config        = aha2940_config,
+    .short_name    = "AHA-2940",
+    .scsi_buses    = aic_scsi_buses
 };
 
 /* The AIC-7880 card, narrow (AHA-2940U) or wide (AHA-2940UW). */
@@ -6204,7 +6234,9 @@ const device_t aha2940u_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha2940u_config
+    .config        = aha2940u_config,
+    .short_name    = "AHA-2940U",
+    .scsi_buses    = aic_scsi_buses
 };
 
 const device_t aha2944uw_pci_device = {
@@ -6218,5 +6250,7 @@ const device_t aha2944uw_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha2944uw_config
+    .config        = aha2944uw_config,
+    .short_name    = "AHA-2944UW",
+    .scsi_buses    = aic_scsi_buses
 };

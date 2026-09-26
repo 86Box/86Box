@@ -20,6 +20,7 @@
 #include <QCompleter>
 #include <QLineEdit>
 #include <QStandardItemModel>
+#include <QTimer>
 #include <utility>
 #include "qt_settings_completer.hpp"
 #ifdef Q_OS_WINDOWS
@@ -40,7 +41,9 @@ bool
 SettingsCompleter::eventFilter(QObject *watched, QEvent *event)
 {
     if (watched == comboBoxMain) {
-        if (event->type() == QEvent::FocusOut) {
+        if (event->type() == QEvent::FocusIn)
+            flush();
+        else if (event->type() == QEvent::FocusOut) {
             int     i    = comboBoxMain->currentIndex();
             QString name = comboBoxMain->model()->data(comboBoxMain->model()->index(i, 0), Qt::DisplayRole).toString();
             comboBoxMain->lineEdit()->setText(name);
@@ -95,6 +98,11 @@ SettingsCompleter::SettingsCompleter(QComboBox *cb, QComboBox *cbSort)
     rows = 0;
 }
 
+SettingsCompleter::~SettingsCompleter()
+{
+    qDeleteAll(pending);
+}
+
 void
 SettingsCompleter::addRow(QString name, QString alias, int special, int id)
 {
@@ -109,9 +117,25 @@ SettingsCompleter::addRow(QString name, QString alias, int special, int id)
     QStandardItem *item = new QStandardItem(stored_alias);
     item->setData(id);
     item->setData(name, Qt::UserRole + 2);
-    model->appendRow(item);
+
+    /* A page adds a whole list at a time: the rows are appended together
+       once it is done, rather than the completer reworking its matches
+       for each one. */
+    if (pending.isEmpty())
+        QTimer::singleShot(0, this, [this]() { flush(); });
+    pending.append(item);
 
     rows++;
+}
+
+void
+SettingsCompleter::flush()
+{
+    if (pending.isEmpty())
+        return;
+
+    model->invisibleRootItem()->appendRows(pending);
+    pending.clear();
 }
 
 void
@@ -160,6 +184,9 @@ void
 SettingsCompleter::removeRows()
 {
     if (rows > 0) {
+        qDeleteAll(pending);
+        pending.clear();
+
         auto removeRows = model->rowCount();
 
         model->removeRows(0, removeRows);

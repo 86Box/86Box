@@ -32,6 +32,11 @@ add_library(cdrom OBJECT
     cdrom_mke.c
     cdrom_hitachi.c
     cdrom_philips.c
+    cdrom_cm153.c
+    cm100.c
+    cm100_protocol.c
+    cm100_datapath.c
+    cm153_uart.c
     cdrom_chd.c
 )
 target_link_libraries(cdrom chdr-static)

@@ -1854,7 +1854,7 @@ machine_at_zeoswildcat_init(const machine_t *model)
     device_add(&intel_flash_bxt_device);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add(&ide_rz1001_pci_device);
+    device_add(machine_get_ide_device(machine));
 
     return ret;
 }

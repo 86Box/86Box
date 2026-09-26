@@ -161,6 +161,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
 
     scKeyboard->removeRows();
     scMouse->removeRows();
+    scTablet->removeRows();
 
     scJoystick0->removeRows();
 
@@ -173,6 +174,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     int has_int_kbd = !!machine_has_flags(machineId, MACHINE_KEYBOARD);
     int has_cga_pen = Settings::settings && Settings::settings->display && !!Settings::settings->display->isLightPenUsable();
 
+    Models::Batch keyboardRows(keyboardModel);
     for (int i = 0; i < keyboard_get_ndev(); ++i) {
         const auto *dev  = keyboard_get_device(i);
         int         ikbd = (i == KEYBOARD_TYPE_INTERNAL);
@@ -183,12 +185,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
             continue;
 
         QString name = DeviceConfig::DeviceName(dev, keyboard_get_internal_name(i), 0);
-        int     row  = keyboardModel->rowCount();
-        keyboardModel->insertRow(row);
-        auto idx = keyboardModel->index(row, 0);
-
-        keyboardModel->setData(idx, name, Qt::DisplayRole);
-        keyboardModel->setData(idx, i, Qt::UserRole);
+        int     row  = keyboardRows.add(name, i);
 
         scKeyboard->addDevice(nullptr, name);
 
@@ -197,6 +194,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
 
         c++;
     }
+    keyboardRows.commit();
     keyboardModel->removeRows(0, removeRows);
     ui->comboBoxKeyboard->setCurrentIndex(-1);
     ui->comboBoxKeyboard->setCurrentIndex(selectedRow);
@@ -211,6 +209,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     removeRows       = mouseModel->rowCount();
 
     selectedRow = 0;
+    Models::Batch mouseRows(mouseModel);
     for (int i = 0; i < mouse_get_ndev(); ++i) {
         const auto *dev = mouse_get_device(i);
         if ((i == MOUSE_TYPE_INTERNAL) && (machine_has_flags(machineId, MACHINE_MOUSE) == 0))
@@ -220,18 +219,14 @@ SettingsInput::onCurrentMachineChanged(int machineId)
             continue;
 
         QString name = DeviceConfig::DeviceName(dev, mouse_get_internal_name(i), 0);
-        int     row  = mouseModel->rowCount();
-        mouseModel->insertRow(row);
-        auto idx = mouseModel->index(row, 0);
-
-        mouseModel->setData(idx, name, Qt::DisplayRole);
-        mouseModel->setData(idx, i, Qt::UserRole);
+        int     row  = mouseRows.add(name, i);
 
         scMouse->addDevice(nullptr, name);
 
         if (i == curMouseType)
             selectedRow = row - removeRows;
     }
+    mouseRows.commit();
     mouseModel->removeRows(0, removeRows);
     ui->comboBoxMouse->setCurrentIndex(-1);
     ui->comboBoxMouse->setCurrentIndex(selectedRow);
@@ -241,6 +236,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     removeRows        = tabletModel->rowCount();
 
     selectedRow = 0;
+    Models::Batch tabletRows(tabletModel);
     for (int i = 0; i < tablet_get_ndev(); ++i) {
         const auto *dev = tablet_get_device(i);
         if (device_is_valid(dev, machineId) == 0)
@@ -260,18 +256,14 @@ SettingsInput::onCurrentMachineChanged(int machineId)
                 name = QString::fromUtf8(dev->name);
         } else
             name = DeviceConfig::DeviceName(dev, tablet_get_internal_name(i), 0);
-        int     row  = tabletModel->rowCount();
-        tabletModel->insertRow(row);
-        auto idx = tabletModel->index(row, 0);
-
-        tabletModel->setData(idx, name, Qt::DisplayRole);
-        tabletModel->setData(idx, i, Qt::UserRole);
+        int     row  = tabletRows.add(name, i);
 
         scTablet->addDevice(nullptr, name);
 
         if (i == curTabletType)
             selectedRow = row - removeRows;
     }
+    tabletRows.commit();
     tabletModel->removeRows(0, removeRows);
     ui->comboBoxTablet->setCurrentIndex(-1);
     ui->comboBoxTablet->setCurrentIndex(selectedRow);
@@ -282,8 +274,9 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     auto       *joystickModel = ui->comboBoxJoystick0->model();
     removeRows                = joystickModel->rowCount();
     selectedRow               = 0;
+    Models::Batch joystickRows(joystickModel);
     while (joyName) {
-        int row = Models::AddEntry(joystickModel, tr(joyName).toUtf8().data(), i);
+        int row = joystickRows.add(tr(joyName).toUtf8().data(), i);
         scJoystick0->addDevice(nullptr, tr(joyName));
         if (i == curJoystickType)
             selectedRow = row - removeRows;
@@ -291,6 +284,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
         ++i;
         joyName = joystick_get_name(i);
     }
+    joystickRows.commit();
     joystickModel->removeRows(0, removeRows);
     ui->comboBoxJoystick0->setCurrentIndex(selectedRow);
 }

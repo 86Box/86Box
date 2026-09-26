@@ -1,4 +1,26 @@
 if(BUILD_TESTING)
+    add_executable(cm100_core_tests
+        cm100_core_test.c
+        ../../src/cdrom/cm100.c
+        ../../src/cdrom/cm100_protocol.c
+        ../../src/cdrom/cm100_datapath.c
+    )
+    target_include_directories(cm100_core_tests PRIVATE ${PROJECT_SOURCE_DIR}/src/include)
+    add_test(NAME CM100.Core COMMAND cm100_core_tests)
+
+    add_executable(cm153_uart_tests
+        cm153_uart_test.c
+        ../../src/cdrom/cm153_uart.c
+        ../../src/cdrom/cm100.c
+        ../../src/cdrom/cm100_protocol.c
+        ../../src/cdrom/cm100_datapath.c
+    )
+    target_include_directories(cm153_uart_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cdrom
+    )
+    add_test(NAME CM153.UART COMMAND cm153_uart_tests)
+
     add_executable(philips_cdrom_tests cdrom_philips_test.cpp ../../src/cdrom/cdrom_philips.c)
     target_include_directories(philips_cdrom_tests PRIVATE ${PROJECT_SOURCE_DIR}/src/include ${PROJECT_BINARY_DIR}/src/include)
     target_link_libraries(philips_cdrom_tests PRIVATE GTest::gtest_main)

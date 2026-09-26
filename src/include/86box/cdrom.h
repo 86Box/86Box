@@ -109,7 +109,8 @@ enum {
     CDROM_BUS_ATAPI    =  8,
     CDROM_BUS_SCSI     =  9,
     CDROM_BUS_USB      = 10,
-    CDROM_BUS_HITACHI  = 12 /* Shared settings bus IDs: 3 is ESDI, 11 is FDC. */
+    CDROM_BUS_HITACHI  = 12, /* Shared settings bus IDs: 3 is ESDI, 11 is FDC. */
+    CDROM_BUS_CM100    = 14
 };
 
 #define BUS_TYPE_HITACHI            CDROM_BUS_HITACHI
@@ -369,6 +370,7 @@ static const struct cdrom_drive_types_s {
     { "TOSHIBA",  "CD-ROM XM-6401TA", "1404", "",          "toshiba_6401a",  BUS_TYPE_SCSI, 2, 32, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray; SCSI version of XM-6402B. */
     { "TOSHIBA",  "DVD-ROM SD-M1401", "1008", "",          "toshiba_m1401",  BUS_TYPE_SCSI, 2, 40, 96, 0, 1, { -1, -1, -1, -1 } }, /* Tray. */
     { "PHILIPS",  "CM205",            "",     "",          "philips_cm205",  CDROM_BUS_PHILIPS, 0, 1, 0, 0, 0, { -1, -1, -1, -1 } },
+    { "PHILIPS",  "CM100",            "",     "",          "philips_cm100",  CDROM_BUS_CM100, 0, 1, 0, 0, 0, { -1, -1, -1, -1 } },
     { "PHILIPS",  "CM205MS",          "",     "",          "philips_cm205ms", CDROM_BUS_PHILIPS, 0, 1, 0, 0, 0, { -1, -1, -1, -1 } },
     { "HITACHI",  "CDR-1503S",        "",     "",          "hitachi_1503s",  BUS_TYPE_HITACHI, 0, 1, 0, 0, 0, { -1, -1, -1, -1 } },
     { "MATSHITA", "CR-521B",          "2.11", "",          "cr521b",         BUS_TYPE_MKE , 0,  1,  0, 1, 0, { -1, -1, -1, -1 } },

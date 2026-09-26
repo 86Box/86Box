@@ -1683,7 +1683,8 @@ const device_t aha154xa_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha_154xa_config
+    .config        = aha_154xa_config,
+    .short_name    = "AHA-154xA"
 };
 
 const device_t aha154xb_device = {
@@ -1697,7 +1698,8 @@ const device_t aha154xb_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha_154xb_config
+    .config        = aha_154xb_config,
+    .short_name    = "AHA-154xB"
 };
 
 const device_t aha154xc_device = {
@@ -1711,7 +1713,8 @@ const device_t aha154xc_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha_154xc_config
+    .config        = aha_154xc_config,
+    .short_name    = "AHA-154xC"
 };
 
 const device_t aha154xcf_device = {
@@ -1725,7 +1728,8 @@ const device_t aha154xcf_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha_154xcf_config
+    .config        = aha_154xcf_config,
+    .short_name    = "AHA-154xCF"
 };
 
 const device_t aha154xcp_device = {
@@ -1739,7 +1743,8 @@ const device_t aha154xcp_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha_154xcp_config
+    .config        = aha_154xcp_config,
+    .short_name    = "AHA-154xCP"
 };
 
 const device_t aha1640_device = {
@@ -1753,5 +1758,6 @@ const device_t aha1640_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "AHA-1640"
 };

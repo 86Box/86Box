@@ -16,8 +16,10 @@
  *             512K and next 128K of RAM, in bits 0 of registers 0 and 1
  *             respectively.
  *
- *             Port 0x105 has bit 7 forced high. Without this 128K of
- *             memory will be missed by the BIOS on cold boots.
+ *             Port 0x105 bit 7 selects the ROM for reads of E0000-FFFFF
+ *             and bit 6 sends writes to the shadow RAM, which the ROM's
+ *             own power-on code uses to copy itself into the RAM behind
+ *             it. The BIOS would otherwise miss that 128K on cold boots.
  *
  *             The reserved 384K is remapped to the top of extended memory.
  *             If this is not done then you get an error on startup.
@@ -84,102 +86,6 @@ typedef struct {
     lpt_t    *lpt;
 } ps1_t;
 
-static void
-recalc_memory(ps1_t *ps)
-{
-    /* Enable first 512K */
-    mem_set_mem_state(0x00000, 0x80000,
-                      (ps->ps1_e0_regs[0] & 0x01) ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
-
-    /* Enable 512-640K */
-    mem_set_mem_state(0x80000, 0x20000,
-                      (ps->ps1_e0_regs[1] & 0x01) ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
-}
-
-static void
-ps1_write(uint16_t port, uint8_t val, void *priv)
-{
-    ps1_t *ps = (ps1_t *) priv;
-
-    switch (port) {
-        case 0x0092:
-            if (ps->model != 2011) {
-                if (val & 1) {
-                    softresetx86();
-                    cpu_set_edx();
-                }
-                ps->ps1_92 = val & ~1;
-            } else {
-                ps->ps1_92 = val;
-            }
-            mem_a20_alt = val & 2;
-            mem_a20_recalc();
-            break;
-
-        case 0x0094:
-            ps->ps1_94 = val;
-            break;
-
-        case 0x00e0:
-            if (ps->model != 2011) {
-                ps->ps1_e0_addr = val;
-            }
-            break;
-
-        case 0x00e1:
-            if (ps->model != 2011) {
-                ps->ps1_e0_regs[ps->ps1_e0_addr] = val;
-                recalc_memory(ps);
-            }
-            break;
-
-        case 0x0102:
-            if (!(ps->ps1_94 & 0x80)) {
-                lpt_port_remove(ps->lpt);
-                serial_remove(ps->uart);
-                if (val & 0x04) {
-                    if (val & 0x08)
-                        serial_setup(ps->uart, COM1_ADDR, COM1_IRQ);
-                    else
-                        serial_setup(ps->uart, COM2_ADDR, COM2_IRQ);
-                }
-                if (val & 0x10) {
-                    switch ((val >> 5) & 3) {
-                        case 0:
-                            lpt_port_setup(ps->lpt, LPT_MDA_ADDR);
-                            break;
-                        case 1:
-                            lpt_port_setup(ps->lpt, LPT1_ADDR);
-                            break;
-                        case 2:
-                            lpt_port_setup(ps->lpt, LPT2_ADDR);
-                            break;
-
-                        default:
-                            break;
-                    }
-                }
-                ps->ps1_102 = val;
-            }
-            break;
-
-        case 0x0103:
-            ps->ps1_103 = val;
-            break;
-
-        case 0x0104:
-            ps->ps1_104 = val;
-            break;
-
-        case 0x0105:
-            ps->ps1_105 = val;
-            break;
-
-        default:
-            break;
-    }
-}
-
 static uint8_t
 ps1_read(uint16_t port, void *priv)
 {
@@ -230,10 +136,7 @@ ps1_read(uint16_t port, void *priv)
             break;
 
         case 0x0105:
-            if (ps->model == 2011)
-                ret = ps->ps1_105;
-            else
-                ret = ps->ps1_105 | 0x80;
+            ret = ps->ps1_105;
             break;
 
         default:
@@ -241,6 +144,118 @@ ps1_read(uint16_t port, void *priv)
     }
 
     return ret;
+}
+
+static void
+ps1_m2121_recalc_memory(ps1_t *ps)
+{
+    /* Enable first 512K */
+    mem_set_mem_state(0x00000, 0x80000,
+                      (ps->ps1_e0_regs[0] & 0x01) ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
+
+    /* Enable 512-640K */
+    mem_set_mem_state(0x80000, 0x20000,
+                      (ps->ps1_e0_regs[1] & 0x01) ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
+}
+
+/* 105h bit 7 selects the ROM for reads of E0000-FFFFF, bit 6 sends its
+   writes to the shadow RAM. */
+static void
+ps1_m2121_shadow_update(ps1_t *ps)
+{
+    uint32_t read, write;
+
+    read  = (ps->ps1_105 & 0x80) ? MEM_READ_EXTANY : MEM_READ_INTERNAL;
+    write = (ps->ps1_105 & 0x40) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+
+    mem_set_mem_state_both(0x000e0000, 0x00020000, read | write);
+    flushmmucache();
+}
+
+static void
+ps1_write(uint16_t port, uint8_t val, void *priv)
+{
+    ps1_t *ps = (ps1_t *) priv;
+
+    switch (port) {
+        case 0x0092:
+            if (ps->model != 2011) {
+                if (val & 1) {
+                    softresetx86();
+                    cpu_set_edx();
+                }
+                ps->ps1_92 = val & ~1;
+            } else {
+                ps->ps1_92 = val;
+            }
+            mem_a20_alt = val & 2;
+            mem_a20_recalc();
+            break;
+
+        case 0x0094:
+            ps->ps1_94 = val;
+            break;
+
+        case 0x00e0:
+            if (ps->model != 2011) {
+                ps->ps1_e0_addr = val;
+            }
+            break;
+
+        case 0x00e1:
+            if (ps->model != 2011) {
+                ps->ps1_e0_regs[ps->ps1_e0_addr] = val;
+                ps1_m2121_recalc_memory(ps);
+            }
+            break;
+
+        case 0x0102:
+            if (!(ps->ps1_94 & 0x80)) {
+                lpt_port_remove(ps->lpt);
+                serial_remove(ps->uart);
+                if (val & 0x04) {
+                    if (val & 0x08)
+                        serial_setup(ps->uart, COM1_ADDR, COM1_IRQ);
+                    else
+                        serial_setup(ps->uart, COM2_ADDR, COM2_IRQ);
+                }
+                if (val & 0x10) {
+                    switch ((val >> 5) & 3) {
+                        case 0:
+                            lpt_port_setup(ps->lpt, LPT_MDA_ADDR);
+                            break;
+                        case 1:
+                            lpt_port_setup(ps->lpt, LPT1_ADDR);
+                            break;
+                        case 2:
+                            lpt_port_setup(ps->lpt, LPT2_ADDR);
+                            break;
+
+                        default:
+                            break;
+                    }
+                }
+                ps->ps1_102 = val;
+            }
+            break;
+
+        case 0x0103:
+            ps->ps1_103 = val;
+            break;
+
+        case 0x0104:
+            ps->ps1_104 = val;
+            break;
+
+        case 0x0105:
+            ps->ps1_105 = val;
+            if (ps->model != 2011)
+                ps1_m2121_shadow_update(ps);
+            break;
+
+        default:
+            break;
+    }
 }
 
 extern const device_t ps1midi_device;
@@ -321,6 +336,11 @@ ps1_setup(int model)
         /* Read-only planar ID: the ROM compares it against 0FEh/0E8h. */
         ps->ps1_100 = 0xfe;
         ps->ps1_101 = 0xe8;
+
+        /* Start with the ROM visible and the shadow RAM writable, which
+           is the state the ROM's own power-on sequence expect to find. */
+        ps->ps1_105 = 0xc0;
+        ps1_m2121_shadow_update(ps);
 
         io_sethandler(0x00e0, 2,
                       ps1_read, NULL, NULL,

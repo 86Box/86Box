@@ -27,7 +27,7 @@ extern "C" {
 #endif
 
 extern void config_load_global(void);
-extern void config_load(void);
+extern int  config_load(void);
 extern void config_save_global(void);
 extern void config_save(void);
 

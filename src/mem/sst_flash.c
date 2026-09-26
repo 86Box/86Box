@@ -56,6 +56,8 @@ typedef struct sst_t {
 
     mem_mapping_t mapping[8];
     mem_mapping_t mapping_h[8];
+    uint8_t      *exec[8];
+    uint8_t      *exec_h[8];
 
     pc_timer_t page_write_timer;
 } sst_t;
@@ -441,6 +443,9 @@ sst_read(uint32_t addr, void *priv)
     const sst_t  *dev = (sst_t *) priv;
     uint8_t       ret = 0xff;
 
+    if (!flash_bios_read_selected(addr))
+        return 0xff;
+
     addr &= 0x000fffff;
 
     if (dev->id_mode)
@@ -459,6 +464,9 @@ sst_readw(uint32_t addr, void *priv)
     sst_t   *dev = (sst_t *) priv;
     uint16_t ret = 0xffff;
 
+    if (!flash_bios_read_selected(addr))
+        return 0xffff;
+
     addr &= 0x000fffff;
 
     if (dev->id_mode)
@@ -476,6 +484,9 @@ sst_readl(uint32_t addr, void *priv)
 {
     sst_t   *dev = (sst_t *) priv;
     uint32_t ret = 0xffffffff;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xffffffff;
 
     addr &= 0x000fffff;
 
@@ -507,22 +518,40 @@ sst_add_mappings(sst_t *dev)
         memcpy(&dev->array[fbase], &rom[base & biosmask], 0x10000);
 
         if (base >= 0xe0000) {
+            dev->exec[i] = dev->array + fbase;
             mem_mapping_add(&(dev->mapping[i]), base, 0x10000,
                             sst_read, sst_readw, sst_readl,
                             sst_write, NULL, NULL,
                             dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
         }
         if (is6117) {
+            dev->exec_h[i] = dev->array + fbase;
             mem_mapping_add(&(dev->mapping_h[i]), (base | 0xf00000), 0x10000,
                             sst_read, sst_readw, sst_readl,
                             sst_write, NULL, NULL,
                             dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
         } else {
+            dev->exec_h[i] = dev->array + fbase;
             mem_mapping_add(&(dev->mapping_h[i]), (base | (cpu_16bitbus ? 0xf00000 : 0xfff00000)), 0x10000,
                             sst_read, sst_readw, sst_readl,
                             sst_write, NULL, NULL,
                             dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
         }
+    }
+}
+
+/* The chip select changed: keep an exec pointer only on a mapping the
+   chipset decodes whole (flash_bios_mapping_update). */
+static void
+sst_decode_hook(void *priv)
+{
+    sst_t *dev = (sst_t *) priv;
+
+    for (uint8_t i = 0; i < 8; i++) {
+        if (dev->mapping[i].size)
+            flash_bios_mapping_update(&dev->mapping[i], dev->exec[i]);
+        if (dev->mapping_h[i].size)
+            flash_bios_mapping_update(&dev->mapping_h[i], dev->exec_h[i]);
     }
 }
 
@@ -583,6 +612,9 @@ sst_init(const device_t *info)
     if (!dev->is_39)
         timer_add(&dev->page_write_timer, sst_page_write, dev, 0);
 
+    flash_bios_set_decode_hook(sst_decode_hook, dev);
+    sst_decode_hook(dev);
+
     return dev;
 }
 
@@ -590,6 +622,8 @@ static void
 sst_close(void *priv)
 {
     sst_t *dev = (sst_t *) priv;
+
+    flash_bios_set_decode_hook(NULL, NULL);
 
     if (dev->dirty) {
         if (strlen(flash_path) > 0) {

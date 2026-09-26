@@ -24,6 +24,7 @@ extern "C" {
 }
 
 #include <QStandardItemModel>
+#include <QSignalBlocker>
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QLineEdit>
@@ -143,6 +144,7 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
     , ui(new Ui::SettingsHarddisks)
 {
     ui->setupUi(this);
+    Harddrives::widenPopup(ui->comboBoxChannel);
 
     scSpeed = new SettingsCompleter(ui->comboBoxSpeed, nullptr);
 
@@ -257,10 +259,24 @@ SettingsHarddisks::save(int soft)
     }
 }
 
+/* The machine, disk controllers and sound cards chosen on other pages
+   decide who has each IDE channel: bring the names up to date. */
+void
+SettingsHarddisks::showEvent(QShowEvent *event)
+{
+    Harddrives::refreshBusNames(ui->treeView->model());
+    reloadBusChannels();
+    QWidget::showEvent(event);
+}
+
 void
 SettingsHarddisks::reloadBusChannels()
 {
-    const auto selected = ui->comboBoxChannel->currentIndex();
+    /* The drive keeps its channel: refilling the list passes the selection
+       through the first row, which would move the drive there and back and
+       clear that channel's use by another drive. */
+    const QSignalBlocker blocker(ui->comboBoxChannel);
+    const auto           selected = ui->comboBoxChannel->currentIndex();
     Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass);
     ui->comboBoxChannel->setCurrentIndex(selected);
     enableCurrentlySelectedChannel();

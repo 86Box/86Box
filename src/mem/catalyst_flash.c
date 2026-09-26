@@ -74,6 +74,9 @@ flash_read(uint32_t addr, void *priv)
     const flash_t *dev = (flash_t *) priv;
     uint8_t        ret = 0xff;
 
+    if (!flash_bios_read_selected(addr))
+        return 0xff;
+
     addr &= biosmask;
 
     switch (dev->command) {
@@ -115,6 +118,9 @@ flash_readw(uint32_t addr, void *priv)
     flash_t        *dev = (flash_t *) priv;
     const uint16_t *q;
 
+    if (!flash_bios_read_selected(addr))
+        return 0xffff;
+
     addr &= biosmask;
 
     q = (uint16_t *) &(dev->array[addr]);
@@ -127,6 +133,9 @@ flash_readl(uint32_t addr, void *priv)
 {
     flash_t        *dev = (flash_t *) priv;
     const uint32_t *q;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xffffffff;
 
     addr &= biosmask;
 

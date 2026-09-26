@@ -4497,7 +4497,7 @@ scsi_cdrom_drive_reset(const int c)
     }
 
     /* Make sure to ignore any ATAPI CD-ROM drive that has an out of range IDE channel. */
-    if ((drv->bus_type == CDROM_BUS_ATAPI) && (drv->ide_channel > 7))
+    if ((drv->bus_type == CDROM_BUS_ATAPI) && (drv->ide_channel >= IDE_DRIVES_MAX))
         return;
 
     if (drv->priv == NULL) {
