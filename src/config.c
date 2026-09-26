@@ -447,7 +447,7 @@ config_unsupported(int kind, const char *name)
 static int
 config_known(int id, int kind, const char *name)
 {
-    if ((id == 0) && (name != NULL) && (name[0] != '\0') && strcmp(name, "none"))
+    if ((id == 0) && (name != NULL) && (name[0] != '\0') && strcmp(name, "none") && strcmp(name, "internal"))
         config_unsupported(kind, name);
 
     return id;
