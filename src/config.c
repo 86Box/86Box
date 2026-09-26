@@ -37,9 +37,7 @@
 #    include <sys/socket.h>
 #endif
 #include <inttypes.h>
-#ifdef ENABLE_CONFIG_LOG
 #include <stdarg.h>
-#endif
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -455,33 +453,53 @@ config_known(int id, int kind, const char *name)
     return id;
 }
 
+/* Append to a message, stopping at the end of the buffer: snprintf returns
+   what it would have written, so its return added up can pass the end. */
+static void
+config_msg_append(char *msg, size_t size, size_t *len, const char *fmt, ...)
+{
+    va_list ap;
+    int     n;
+
+    if (*len >= (size - 1))
+        return;
+
+    va_start(ap, fmt);
+    n = vsnprintf(msg + *len, size - *len, fmt, ap);
+    va_end(ap);
+
+    if (n > 0)
+        *len = ((*len + n) < size) ? (*len + n) : (size - 1);
+}
+
 /* Ask whether to go on loading a configuration naming hardware this build
    does not have; returns 0 when the user chose not to. */
 static int
 config_ask_unsupported(void)
 {
-    char msg[2048];
-    int  len;
+    char   msg[2048];
+    size_t len = 0;
 
     if (config_unsupported_count == 0)
         return 1;
 
-    len = snprintf(msg, sizeof(msg), "%s\n\n", plat_get_string(STRING_UNSUPPORTED_TEXT));
+    msg[0] = '\0';
+    config_msg_append(msg, sizeof(msg), &len, "%s\n\n", plat_get_string(STRING_UNSUPPORTED_TEXT));
     /* Five are listed, or six rather than "and 1 other": past that, how
        many more there are. */
     const int listed = (config_unsupported_count <= (CONFIG_UNSUPPORTED_SHOWN + 1)) ?
                            config_unsupported_count : CONFIG_UNSUPPORTED_SHOWN;
     for (int i = 0; i < listed; i++)
-        len += snprintf(msg + len, sizeof(msg) - len, "%s\n", config_unsupported_list[i]);
+        config_msg_append(msg, sizeof(msg), &len, "%s\n", config_unsupported_list[i]);
     if (config_unsupported_count > listed) {
-        len += snprintf(msg + len, sizeof(msg) - len, plat_get_string(STRING_UNSUPPORTED_OTHERS), config_unsupported_count - listed);
-        len += snprintf(msg + len, sizeof(msg) - len, "\n");
+        config_msg_append(msg, sizeof(msg), &len, plat_get_string(STRING_UNSUPPORTED_OTHERS), config_unsupported_count - listed);
+        config_msg_append(msg, sizeof(msg), &len, "\n");
     }
-    snprintf(msg + len, sizeof(msg) - len, "\n%s\n\n%s",
-             plat_get_string(!config_unsupported_machine ? STRING_UNSUPPORTED_REMOVE :
-                             (config_unsupported_count > 1) ? STRING_UNSUPPORTED_REPLACE_REMOVE :
-                                                              STRING_UNSUPPORTED_REPLACE),
-             plat_get_string(STRING_UNSUPPORTED_CONTINUE));
+    config_msg_append(msg, sizeof(msg), &len, "\n%s\n\n%s",
+                      plat_get_string(!config_unsupported_machine ? STRING_UNSUPPORTED_REMOVE :
+                                      (config_unsupported_count > 1) ? STRING_UNSUPPORTED_REPLACE_REMOVE :
+                                                                       STRING_UNSUPPORTED_REPLACE),
+                      plat_get_string(STRING_UNSUPPORTED_CONTINUE));
 
     return ui_msgbox_header(MBX_WARNING | MBX_QUESTION_YN, plat_get_string(STRING_UNSUPPORTED_TITLE), msg) == 1;
 }

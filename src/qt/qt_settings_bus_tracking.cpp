@@ -149,13 +149,13 @@ SettingsBusTracking::next_free_ide_channel()
     const int   channels = Harddrives::idePlan(owners) * 2;
 
     for (int pass = 0; pass < 2; pass++) {
-        for (uint8_t i = 0; i < channels; i++) {
+        for (int i = 0; i < channels; i++) {
             const int      element = ((i << 3) >> 6);
             const uint64_t mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
             const bool     owned   = owners[i >> 1].onboard || (owners[i >> 1].device != nullptr);
 
             if (((pass == 1) || owned) && !(ide_tracking[element] & mask))
-                return i;
+                return (uint8_t) i;
         }
     }
 
