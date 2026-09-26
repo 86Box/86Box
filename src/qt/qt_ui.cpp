@@ -195,6 +195,30 @@ ui_msgbox_header(int flags, char *header, char *message)
     return 0;
 }
 
+int
+ui_confirm_unsupported_hardware(const ui_unsupported_hardware_t *items, int count, int machine_missing)
+{
+    if (count <= 0)
+        return 1;
+
+    QString message = QString::fromUtf8(plat_get_string(STRING_UNSUPPORTED_TEXT)) + QStringLiteral("\n\n");
+    /* Show six names in full; for larger lists show five and the remainder. */
+    const int listed = count <= 6 ? count : 5;
+    for (int i = 0; i < listed; i++)
+        message += QString::asprintf(plat_get_string(items[i].kind), items[i].name) + QLatin1Char('\n');
+    if (count > listed)
+        message += QString::asprintf(plat_get_string(STRING_UNSUPPORTED_OTHERS), count - listed) + QLatin1Char('\n');
+
+    const int explanation = !machine_missing ? STRING_UNSUPPORTED_REMOVE :
+                            count > 1 ? STRING_UNSUPPORTED_REPLACE_REMOVE : STRING_UNSUPPORTED_REPLACE;
+    message += QLatin1Char('\n') + QString::fromUtf8(plat_get_string(explanation)) +
+               QStringLiteral("\n\n") + QString::fromUtf8(plat_get_string(STRING_UNSUPPORTED_CONTINUE));
+
+    QByteArray title = QByteArray(plat_get_string(STRING_UNSUPPORTED_TITLE));
+    QByteArray body  = message.toUtf8();
+    return ui_msgbox_header(MBX_WARNING | MBX_QUESTION_YN, title.data(), body.data()) == 1;
+}
+
 void
 ui_init_monitor(int monitor_index)
 {
