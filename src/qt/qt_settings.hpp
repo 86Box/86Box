@@ -39,6 +39,26 @@ protected slots:
     void reject() override;
 
 private:
+    /* The pages in the order of the list beside them. */
+    enum {
+        PAGE_MACHINE = 0,
+        PAGE_DISPLAY,
+        PAGE_INPUT,
+        PAGE_SOUND,
+        PAGE_NETWORK,
+        PAGE_PORTS,
+        PAGE_STORAGE,
+        PAGE_HARDDISKS,
+        PAGE_FLOPPYCDROM,
+        PAGE_REMOVABLE,
+        PAGE_OTHER,
+        PAGE_COUNT
+    };
+
+    void placePage(int index, QWidget *page);
+    void ensurePage(int index);
+    void ensureAllPages();
+
     Ui::Settings               *ui;
     SettingsMachine            *machine;
     SettingsDisplay            *display;

@@ -63,6 +63,9 @@ private:
 
     int                  machineId                = 0;
     int                  videoCard[VIDEOCARD_MAX] = { 0, 0 };
+    /* The primary card's list is being filled: its selection passes through
+       rows on the way, and the secondary list is built once, at the end. */
+    bool                 fillingVideo             = false;
 
     QString previousEDIDPath;
 
