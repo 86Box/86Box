@@ -74,6 +74,7 @@ typedef struct ncr53c400_t {
     uint8_t block_count;
     uint8_t status_ctrl;
     uint8_t irq_config;
+    uint8_t zero_wait;
 
     int block_count_loaded;
 
@@ -146,12 +147,15 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
     int                  ncr400_offs = 0;
     uint8_t              old_ctrl   = 0;
     double               period     = scsi_bus->period;
+    double               min_period = 10.0;
 
     if (ncr400->type == ROM_T130B) {
         if (dev->buffer_length > 2048)
             period /= 300.0;
         else
             period /= 20.0;
+        if (ncr400->zero_wait)
+            min_period = 1.0;
     } else {
         if (dev->buffer_length > 2048)
             period /= 265.0;
@@ -188,10 +192,10 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                     if (ncr400->buffer_host_pos == MIN(128, dev->buffer_length)) {
                         ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
                         ncr400->busy = 1;
-                        if (period >= 10.0)
+                        if (period >= min_period)
                             timer_on_auto(&ncr400->timer, period);
                         else
-                            timer_on_auto(&ncr400->timer, 10.0);
+                            timer_on_auto(&ncr400->timer, min_period);
                     }
                 } else {
                     ncr53c400_log("No Write.\n");
@@ -290,12 +294,15 @@ ncr53c400_read(uint32_t addr, void *priv)
     uint8_t              ret        = 0xff;
     int                  ncr400_offs = 0;
     double               period     = scsi_bus->period;
+    double               min_period = 10.0;
 
     if (ncr400->type == ROM_T130B) {
         if (dev->buffer_length > 2048)
             period /= 300.0;
         else
             period /= 20.0;
+        if (ncr400->zero_wait)
+            min_period = 1.0;
     } else {
         if (dev->buffer_length > 2048)
             period /= 265.0;
@@ -348,10 +355,10 @@ ncr53c400_read(uint32_t addr, void *priv)
                             }
                             timer_stop(&ncr400->timer);
                         } else {
-                            if (period >= 10.0)
+                            if (period >= min_period)
                                 timer_on_auto(&ncr400->timer, period);
                             else
-                                timer_on_auto(&ncr400->timer, 10.0);
+                                timer_on_auto(&ncr400->timer, min_period);
                         }
                     }
                 }
@@ -379,7 +386,11 @@ ncr53c400_read(uint32_t addr, void *priv)
                         break;
 
                     case 0x3982: /* switch register read */
-                        ret = ((ncr400->irq_config >> 5) & 7) | 0xf8;
+                        if (ncr400->type == ROM_T130B) /*Different on T130B than the rest of the 53c400 family.*/
+                            ret = 0xff;
+                        else
+                            ret = ((ncr400->irq_config >> 5) & 7) | 0xf8;
+
                         ncr53c400_log("Switches read=%02x.\n", ret);
                         break;
 
@@ -398,7 +409,6 @@ ncr53c400_read(uint32_t addr, void *priv)
 
     return ret;
 }
-
 
 /* Memory-mapped I/O WRITE handler for the Trantor T130B. */
 static void
@@ -535,12 +545,15 @@ ncr53c400_callback(void *priv)
     uint8_t        temp;
     uint8_t        status;
     double         period      = scsi_bus->period;
+    double         min_period  = 10.0;
 
     if (ncr400->type == ROM_T130B) {
         if (dev->buffer_length > 2048)
             period /= 300.0;
         else
             period /= 20.0;
+        if (ncr400->zero_wait)
+            min_period = 1.0;
     } else {
         if (dev->buffer_length > 2048)
             period /= 265.0;
@@ -549,10 +562,10 @@ ncr53c400_callback(void *priv)
     }
 
     if (scsi_bus->tx_mode != PIO_TX_BUS) {
-        if (period >= 10.0)
+        if (period >= min_period)
             timer_on_auto(&ncr400->timer, period);
         else
-            timer_on_auto(&ncr400->timer, 10.0);
+            timer_on_auto(&ncr400->timer, min_period);
     }
 
     if (scsi_bus->data_wait & 1) {
@@ -831,7 +844,9 @@ ncr53c400_init(const device_t *info)
             ncr400->rom_addr = device_get_config_hex20("bios_addr");
             ncr400->base     = device_get_config_hex16("base");
             ncr400->irq_config = device_get_config_hex16("irq");
-            ncr->irq = (ncr400->irq_config >> 5) & 7;
+            ncr400->zero_wait  = device_get_config_int("zero_wait");
+            /* JP3 open on real hardware = polling mode, no IRQ line driven. */
+            ncr->irq = (ncr400->irq_config != 0xf0) ? ((ncr400->irq_config >> 5) & 7) : -1;
 
             if (ncr400->rom_addr > 0x00000) {
                 rom_init(&ncr400->bios_rom, T130B_ROM,
@@ -1129,12 +1144,24 @@ static const device_config_t t130b_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
+            { .description = "None",  .value =  0xf0 },
             { .description = "IRQ 3", .value =  0x60 },
             { .description = "IRQ 4", .value =  0x80 },
             { .description = "IRQ 5", .value =  0xa0 },
             { .description = "IRQ 7", .value =  0xe0 },
             { .description = ""                   }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "zero_wait",
+        .description    = "Zero wait state",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }

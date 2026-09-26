@@ -2516,7 +2516,7 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
             break;
         case 3:
             if (dev->is_nec) { /* Undocumented on NEC CD-ROM's, from information based on sr_vendor.c from the Linux kernel */
-                if (track == 0xb0) { /*TOC type session */
+                if ((track == 0xa0) || (track == 0xb0)) { /*TOC type session */
                     b[14] = 0x00;
 
                     if (num > 0)
