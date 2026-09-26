@@ -943,7 +943,7 @@ cm_close(void *priv)
 
 static const device_config_t cm250_config[] = {
     { .name = "base", .description = "Address", .type = CONFIG_HEX16, .default_int = 0x340, .selection = { { "300H", 0x300 }, { "310H", 0x310 }, { "330H", 0x330 }, { "340H", 0x340 }, { 0 } } },
-    { .name = "irq", .description = "IRQ", .type = CONFIG_SELECTION, .default_int = 5, .selection = { { "3", 3 }, { "4", 4 }, { "5", 5 }, { "6", 6 }, { 0 } } },
+    { .name = "irq", .description = "IRQ", .type = CONFIG_SELECTION, .default_int = 5, .selection = { { "3", 3 }, { "4", 4 }, { "5", 5 }, { "6", 6 }, { "11", 11 }, { 0 } } },
     { .name = "", .type = CONFIG_END }
 };
 
