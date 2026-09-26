@@ -4200,7 +4200,7 @@ const device_t gus_extreme_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .config        = gus_extreme_config,
-    .short_name    = "Gravis UltraSound Extreme",
+    .short_name    = "GUS Extreme",
     .ide_boards    = gus_extreme_ide_boards
 };
 
@@ -4217,7 +4217,7 @@ const device_t gus_vipermax_device = {
     .force_redraw  = NULL,
     .alias         = "Synergy UltraSound VIP/Extreme",
     .config        = gus_vipermax_config,
-    .short_name    = "Synergy ViperMAX",
+    .short_name    = "ViperMAX",
     .ide_boards    = gus_extreme_ide_boards
 };
 
@@ -4233,7 +4233,7 @@ const device_t gus_pnp_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .config        = gus_pnp_config,
-    .short_name    = "Gravis UltraSound PnP",
+    .short_name    = "GUS PnP",
     .ide_boards    = ide_boards_quaternary
 };
 
@@ -4249,7 +4249,7 @@ const device_t gus_pnp_new_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .config        = gus_pnp_config,
-    .short_name    = "Gravis UltraSound PnP",
+    .short_name    = "GUS PnP",
     .ide_boards    = ide_boards_quaternary
 };
 
