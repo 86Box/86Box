@@ -93,6 +93,8 @@ typedef struct serial_s {
     uint16_t out_new;
     uint16_t thr_empty;
 
+    uint32_t pending_rx_error;
+
     uint8_t *reg_91;
 
     void *rcvr_fifo;
