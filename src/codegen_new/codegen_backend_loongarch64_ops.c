@@ -179,6 +179,7 @@ can_branch_sk16(const uint8_t *src_insn_addr, const void *dst)
 }
 
 static void codegen_allocate_new_block(codeblock_t *block);
+static inline uint32_t br26_packed(intptr_t offset);
 
 static inline void
 codegen_addlong(codeblock_t *block, uint32_t val)
@@ -200,8 +201,12 @@ codegen_allocate_new_block(codeblock_t *block)
 
     if (!codegen_allocator_can_branch_imm26(jump_src, new_ptr))
         fatal("codegen_allocate_new_block - offset out of range %" PRIxPTR "\n", (uintptr_t) offset);
-    /*Add a jump instruction to the new block*/
-    *(uint32_t *) &block_write_data[block_pos] = OPCODE_B | BR16(offset);
+    /*Add a jump instruction to the new block. B takes the 26-bit layout
+      (imm[15:0] at bits[25:10], imm[25:16] at bits[9:0]); BR16 packs a
+      16-bit conditional-branch field, so any bridge offset >= 256KB
+      (recycled continuation slots can sit megabytes away) is truncated
+      and the jump lands in never-allocated JIT memory -> SIGILL. */
+    *(uint32_t *) &block_write_data[block_pos] = OPCODE_B | br26_packed(offset);
 
     /*Set write address to start of new block*/
     block_pos        = 0;
