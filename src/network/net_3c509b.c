@@ -609,24 +609,36 @@ el3_eeprom_restore(el3_t *dev)
 {
     FILE   *fp = nvr_fopen((char *) dev->nvr_name, "rb");
     uint8_t buf[128];
-    size_t  got;
+    long    size;
+    int     changed;
 
     if (fp == NULL)
         return 0;
-    got = fread(buf, 1, sizeof(buf), fp);
-    fclose(fp);
-    if (got != sizeof(buf))
+
+    /* The EEPROM is the last 128 bytes of the file. Files written before it
+       was kept on its own have the settings it was built from in front of
+       them; how long that is does not have to be known. */
+    if ((fseek(fp, 0, SEEK_END) != 0) || ((size = ftell(fp)) < (long) sizeof(buf)) ||
+        (fseek(fp, size - (long) sizeof(buf), SEEK_SET) != 0) ||
+        (fread(buf, 1, sizeof(buf), fp) != sizeof(buf))) {
+        fclose(fp);
         return 0;
+    }
+    fclose(fp);
 
     for (uint8_t i = 0; i < 64; i++)
         dev->eeprom[i] = (uint16_t) (buf[i * 2] | (buf[i * 2 + 1] << 8));
 
     /* A board or node address the configuration has since changed takes the
        fields that name it with it, and the checksums over them. */
-    if (el3_eeprom_host_fields(dev)) {
+    changed = el3_eeprom_host_fields(dev);
+    if (changed)
         el3_eeprom_checksums(dev);
+
+    /* Write the file back the way it is kept now: the EEPROM alone, in one
+       piece. */
+    if (changed || (size != (long) sizeof(buf)))
         el3_eeprom_save(dev);
-    }
     return 1;
 }
 
