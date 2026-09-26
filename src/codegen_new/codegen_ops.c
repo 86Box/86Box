@@ -24,6 +24,7 @@
 #include "codegen_ops_mmx_pack.h"
 #include "codegen_ops_mmx_shift.h"
 #include "codegen_ops_mov.h"
+#include "codegen_ops_setcc.h"
 #include "codegen_ops_shift.h"
 #include "codegen_ops_stack.h"
 
@@ -33,6 +34,22 @@
 #else
 #    define ARM64_ROP_PREFETCH NULL
 #    define ARM64_ROP_FEMMS    NULL
+#endif
+
+#if defined __amd64__ || defined _M_X64
+#    define X86_ADDPS ropADDPS
+#    define X86_MULPS ropMULPS
+#    define X86_SUBPS ropSUBPS
+#    define X86_DIVPS ropDIVPS
+#    define X86_UNPCKLPS ropUNPCKLPS
+#    define X86_UNPCKHPS ropUNPCKHPS
+#else
+#    define X86_ADDPS NULL
+#    define X86_MULPS NULL
+#    define X86_SUBPS NULL
+#    define X86_DIVPS NULL
+#    define X86_UNPCKLPS NULL
+#    define X86_UNPCKHPS NULL
 #endif
 
 RecompOpFn recomp_opcodes[512] = {
@@ -46,12 +63,12 @@ RecompOpFn recomp_opcodes[512] = {
 
 /*40*/  ropINC_r16,     ropINC_r16,     ropINC_r16,     ropINC_r16,     ropINC_r16,     ropINC_r16,     ropINC_r16,     ropINC_r16,     ropDEC_r16,     ropDEC_r16,     ropDEC_r16,     ropDEC_r16,     ropDEC_r16,     ropDEC_r16,     ropDEC_r16,     ropDEC_r16,
 /*50*/  ropPUSH_r16,    ropPUSH_r16,    ropPUSH_r16,    ropPUSH_r16,    ropPUSH_r16,    ropPUSH_r16,    ropPUSH_r16,    ropPUSH_r16,    ropPOP_r16,     ropPOP_r16,     ropPOP_r16,     ropPOP_r16,     ropPOP_r16,     ropPOP_r16,     ropPOP_r16,     ropPOP_r16,
-/*60*/  ropPUSHA_16,    ropPOPA_16,     NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropPUSH_imm_16, NULL,           ropPUSH_imm_16_8,NULL,           NULL,           NULL,           NULL,           NULL,
+/*60*/  ropPUSHA_16,    ropPOPA_16,     NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropPUSH_imm_16, ropIMUL_w_rm_imm16, ropPUSH_imm_16_8,ropIMUL_w_rm_imm8, NULL,           NULL,           NULL,           NULL,
 /*70*/  ropJO_8,        ropJNO_8,       ropJB_8,        ropJNB_8,       ropJE_8,        ropJNE_8,       ropJBE_8,       ropJNBE_8,      ropJS_8,        ropJNS_8,       ropJP_8,        ropJNP_8,       ropJL_8,        ropJNL_8,       ropJLE_8,       ropJNLE_8,
 
 /*80*/  rop80,          rop81_w,        rop80,          rop83_w,        ropTEST_b_rm,   ropTEST_w_rm,   ropXCHG_8,      ropXCHG_16,     ropMOV_b_r,     ropMOV_w_r,     ropMOV_r_b,     ropMOV_r_w,     ropMOV_w_seg,   ropLEA_16,      ropMOV_seg_w,   ropPOP_W,
 /*90*/  ropNOP,         ropXCHG_AX,     ropXCHG_AX,     ropXCHG_AX,     ropXCHG_AX,     ropXCHG_AX,     ropXCHG_AX,     ropXCHG_AX,     ropCBW,         ropCWD,         NULL,           NULL,           ropPUSHF,       NULL,           NULL,           NULL,
-/*a0*/  ropMOV_AL_abs,  ropMOV_AX_abs,  ropMOV_abs_AL,  ropMOV_abs_AX,  NULL,           NULL,           NULL,           NULL,           ropTEST_AL_imm, ropTEST_AX_imm, NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*a0*/  ropMOV_AL_abs,  ropMOV_AX_abs,  ropMOV_abs_AL,  ropMOV_abs_AX,  ropMOVS_b,      ropMOVS_w,      NULL,           NULL,           ropTEST_AL_imm, ropTEST_AX_imm, ropSTOS_b,      ropSTOS_w,      ropLODS_b,      ropLODS_w,      NULL,           NULL,
 /*b0*/  ropMOV_rb_imm,  ropMOV_rb_imm,  ropMOV_rb_imm,  ropMOV_rb_imm,  ropMOV_rb_imm,  ropMOV_rb_imm,  ropMOV_rb_imm,  ropMOV_rb_imm,  ropMOV_rw_imm,  ropMOV_rw_imm,  ropMOV_rw_imm,  ropMOV_rw_imm,  ropMOV_rw_imm,  ropMOV_rw_imm,  ropMOV_rw_imm,  ropMOV_rw_imm,
 
 /*c0*/  ropC0,          ropC1_w,        ropRET_imm_16,  ropRET_16,      ropLES_16,      ropLDS_16,      ropMOV_b_imm,   ropMOV_w_imm,   NULL,           ropLEAVE_16,    ropRETF_imm_16, ropRETF_16,     NULL,           NULL,           NULL,           NULL,
@@ -68,12 +85,12 @@ RecompOpFn recomp_opcodes[512] = {
 
 /*40*/  ropINC_r32,     ropINC_r32,     ropINC_r32,     ropINC_r32,     ropINC_r32,     ropINC_r32,     ropINC_r32,     ropINC_r32,     ropDEC_r32,     ropDEC_r32,     ropDEC_r32,     ropDEC_r32,     ropDEC_r32,     ropDEC_r32,     ropDEC_r32,     ropDEC_r32,
 /*50*/  ropPUSH_r32,    ropPUSH_r32,    ropPUSH_r32,    ropPUSH_r32,    ropPUSH_r32,    ropPUSH_r32,    ropPUSH_r32,    ropPUSH_r32,    ropPOP_r32,     ropPOP_r32,     ropPOP_r32,     ropPOP_r32,     ropPOP_r32,     ropPOP_r32,     ropPOP_r32,     ropPOP_r32,
-/*60*/  ropPUSHA_32,    ropPOPA_32,     NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropPUSH_imm_32, NULL,           ropPUSH_imm_32_8,NULL,           NULL,           NULL,           NULL,           NULL,
+/*60*/  ropPUSHA_32,    ropPOPA_32,     NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropPUSH_imm_32, ropIMUL_l_rm_imm32, ropPUSH_imm_32_8,ropIMUL_l_rm_imm8, NULL,           NULL,           NULL,           NULL,
 /*70*/  ropJO_8,        ropJNO_8,       ropJB_8,        ropJNB_8,       ropJE_8,        ropJNE_8,       ropJBE_8,       ropJNBE_8,      ropJS_8,        ropJNS_8,       ropJP_8,        ropJNP_8,       ropJL_8,        ropJNL_8,       ropJLE_8,       ropJNLE_8,
 
 /*80*/  rop80,          rop81_l,        rop80,          rop83_l,        ropTEST_b_rm,   ropTEST_l_rm,   ropXCHG_8,      ropXCHG_32,     ropMOV_b_r,     ropMOV_l_r,     ropMOV_r_b,     ropMOV_r_l,     ropMOV_l_seg,   ropLEA_32,      ropMOV_seg_w,   ropPOP_L,
 /*90*/  ropNOP,         ropXCHG_EAX,    ropXCHG_EAX,    ropXCHG_EAX,    ropXCHG_EAX,    ropXCHG_EAX,    ropXCHG_EAX,    ropXCHG_EAX,    ropCWDE,        ropCDQ,         NULL,           NULL,           ropPUSHFD,      NULL,           NULL,           NULL,
-/*a0*/  ropMOV_AL_abs,  ropMOV_EAX_abs, ropMOV_abs_AL,  ropMOV_abs_EAX, NULL,           NULL,           NULL,           NULL,           ropTEST_AL_imm, ropTEST_EAX_imm,NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*a0*/  ropMOV_AL_abs,  ropMOV_EAX_abs, ropMOV_abs_AL,  ropMOV_abs_EAX, ropMOVS_b,      ropMOVS_l,      NULL,           NULL,           ropTEST_AL_imm, ropTEST_EAX_imm,ropSTOS_b,      ropSTOS_l,      ropLODS_b,      ropLODS_l,      NULL,           NULL,
 /*b0*/  ropMOV_rb_imm,  ropMOV_rb_imm,  ropMOV_rb_imm,  ropMOV_rb_imm,  ropMOV_rb_imm,  ropMOV_rb_imm,  ropMOV_rb_imm,  ropMOV_rb_imm,  ropMOV_rl_imm,  ropMOV_rl_imm,  ropMOV_rl_imm,  ropMOV_rl_imm,  ropMOV_rl_imm,  ropMOV_rl_imm,  ropMOV_rl_imm,  ropMOV_rl_imm,
 
 /*c0*/  ropC0,          ropC1_l,        ropRET_imm_32,  ropRET_32,      ropLES_32,      ropLDS_32,      ropMOV_b_imm,   ropMOV_l_imm,   NULL,           ropLEAVE_32,    ropRETF_imm_32, ropRETF_32,     NULL,           NULL,           NULL,           NULL,
@@ -92,17 +109,17 @@ RecompOpFn recomp_opcodes_0f[512] = {
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*30*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
-/*40*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*40*/  ropCMOVO_w,     ropCMOVNO_w,    ropCMOVB_w,     ropCMOVNB_w,    ropCMOVE_w,     ropCMOVNE_w,    ropCMOVBE_w,    ropCMOVNBE_w,   ropCMOVS_w,     ropCMOVNS_w,    ropCMOVP_w,     ropCMOVNP_w,    ropCMOVL_w,     ropCMOVNL_w,    ropCMOVLE_w,    ropCMOVNLE_w,
 /*50*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*60*/  ropPUNPCKLBW,   ropPUNPCKLWD,   ropPUNPCKLDQ,   ropPACKSSWB,    ropPCMPGTB,     ropPCMPGTW,     ropPCMPGTD,     ropPACKUSWB,    ropPUNPCKHBW,   ropPUNPCKHWD,   ropPUNPCKHDQ,   ropPACKSSDW,    NULL,           NULL,           ropMOVD_r_d,    ropMOVQ_r_q,
 /*70*/  NULL,           ropPSxxW_imm,   ropPSxxD_imm,   ropPSxxQ_imm,   ropPCMPEQB,     ropPCMPEQW,     ropPCMPEQD,     NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropMOVD_d_r,    ropMOVQ_q_r,
 
 /*80*/  ropJO_16,       ropJNO_16,      ropJB_16,       ropJNB_16,      ropJE_16,       ropJNE_16,      ropJBE_16,      ropJNBE_16,     ropJS_16,       ropJNS_16,      ropJP_16,       ropJNP_16,      ropJL_16,       ropJNL_16,      ropJLE_16,      ropJNLE_16,
-/*90*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*a0*/  ropPUSH_FS_16,  ropPOP_FS_16,   NULL,           NULL,           ropSHLD_16_imm, NULL,           NULL,           NULL,           ropPUSH_GS_16,  ropPOP_GS_16,   NULL,           NULL,           ropSHRD_16_imm, NULL,           NULL,           NULL,
+/*90*/  ropSETO,        ropSETNO,       ropSETB,        ropSETNB,       ropSETE,        ropSETNE,       ropSETBE,       ropSETNBE,      ropSETS,        ropSETNS,       ropSETP,        ropSETNP,       ropSETL,        ropSETNL,       ropSETLE,       ropSETNLE,
+/*a0*/  ropPUSH_FS_16,  ropPOP_FS_16,   NULL,           NULL,           ropSHLD_16_imm, ropSHLD_16_CL,  NULL,           NULL,           ropPUSH_GS_16,  ropPOP_GS_16,   NULL,           NULL,           ropSHRD_16_imm, ropSHRD_16_CL,  NULL,           ropIMUL_w_rm,
 /*b0*/  NULL,           NULL,           ropLSS_16,      NULL,           ropLFS_16,      ropLGS_16,      ropMOVZX_16_8,  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropMOVSX_16_8,  NULL,
 
-/*c0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*c0*/  ropXADD_b,      ropXADD_w,      NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           ropPMULLW,      NULL,           NULL,           ropPSUBUSB,     ropPSUBUSW,     NULL,           ropPAND,        ropPADDUSB,     ropPADDUSW,     NULL,           ropPANDN,
 /*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           ropPMULHW,      NULL,           NULL,           ropPSUBSB,      ropPSUBSW,      NULL,           ropPOR,         ropPADDSB,      ropPADDSW,      NULL,           ropPXOR,
 #if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
@@ -118,17 +135,17 @@ RecompOpFn recomp_opcodes_0f[512] = {
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*30*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
-/*40*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*40*/  ropCMOVO_l,     ropCMOVNO_l,    ropCMOVB_l,     ropCMOVNB_l,    ropCMOVE_l,     ropCMOVNE_l,    ropCMOVBE_l,    ropCMOVNBE_l,   ropCMOVS_l,     ropCMOVNS_l,    ropCMOVP_l,     ropCMOVNP_l,    ropCMOVL_l,     ropCMOVNL_l,    ropCMOVLE_l,    ropCMOVNLE_l,
 /*50*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*60*/  ropPUNPCKLBW,   ropPUNPCKLWD,   ropPUNPCKLDQ,   ropPACKSSWB,    ropPCMPGTB,     ropPCMPGTW,     ropPCMPGTD,     ropPACKUSWB,    ropPUNPCKHBW,   ropPUNPCKHWD,   ropPUNPCKHDQ,   ropPACKSSDW,    NULL,           NULL,           ropMOVD_r_d,    ropMOVQ_r_q,
 /*70*/  NULL,           ropPSxxW_imm,   ropPSxxD_imm,   ropPSxxQ_imm,   ropPCMPEQB,     ropPCMPEQW,     ropPCMPEQD,     NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropMOVD_d_r,    ropMOVQ_q_r,
 
 /*80*/  ropJO_32,       ropJNO_32,      ropJB_32,       ropJNB_32,      ropJE_32,       ropJNE_32,      ropJBE_32,      ropJNBE_32,     ropJS_32,       ropJNS_32,      ropJP_32,       ropJNP_32,      ropJL_32,       ropJNL_32,      ropJLE_32,      ropJNLE_32,
-/*90*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*a0*/  ropPUSH_FS_32,  ropPOP_FS_32,   NULL,           NULL,           ropSHLD_32_imm, NULL,           NULL,           NULL,           ropPUSH_GS_32,  ropPOP_GS_32,   NULL,           NULL,           ropSHRD_32_imm, NULL,           NULL,           NULL,
+/*90*/  ropSETO,        ropSETNO,       ropSETB,        ropSETNB,       ropSETE,        ropSETNE,       ropSETBE,       ropSETNBE,      ropSETS,        ropSETNS,       ropSETP,        ropSETNP,       ropSETL,        ropSETNL,       ropSETLE,       ropSETNLE,
+/*a0*/  ropPUSH_FS_32,  ropPOP_FS_32,   NULL,           NULL,           ropSHLD_32_imm, ropSHLD_32_CL,  NULL,           NULL,           ropPUSH_GS_32,  ropPOP_GS_32,   NULL,           NULL,           ropSHRD_32_imm, ropSHRD_32_CL,  NULL,           ropIMUL_l_rm,
 /*b0*/  NULL,           NULL,           ropLSS_32,      NULL,           ropLFS_32,      ropLGS_32,      ropMOVZX_32_8,  ropMOVZX_32_16, NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropMOVSX_32_8,  ropMOVSX_32_16,
 
-/*c0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*c0*/  ropXADD_b,      ropXADD_l,      NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           ropPMULLW,      NULL,           NULL,           ropPSUBUSB,     ropPSUBUSW,     NULL,           ropPAND,        ropPADDUSB,     ropPADDUSW,     NULL,           ropPANDN,
 /*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           ropPMULHW,      NULL,           NULL,           ropPSUBSB,      ropPSUBSW,      NULL,           ropPOR,         ropPADDSB,      ropPADDSW,      NULL,           ropPXOR,
 #if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
@@ -148,17 +165,17 @@ RecompOpFn recomp_opcodes_0f_no_mmx[512] = {
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*30*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
-/*40*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*40*/  ropCMOVO_w,     ropCMOVNO_w,    ropCMOVB_w,     ropCMOVNB_w,    ropCMOVE_w,     ropCMOVNE_w,    ropCMOVBE_w,    ropCMOVNBE_w,   ropCMOVS_w,     ropCMOVNS_w,    ropCMOVP_w,     ropCMOVNP_w,    ropCMOVL_w,     ropCMOVNL_w,    ropCMOVLE_w,    ropCMOVNLE_w,
 /*50*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*60*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*70*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
 /*80*/  ropJO_16,       ropJNO_16,      ropJB_16,       ropJNB_16,      ropJE_16,       ropJNE_16,      ropJBE_16,      ropJNBE_16,     ropJS_16,       ropJNS_16,      ropJP_16,       ropJNP_16,      ropJL_16,       ropJNL_16,      ropJLE_16,      ropJNLE_16,
-/*90*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*a0*/  ropPUSH_FS_16,  ropPOP_FS_16,   NULL,           NULL,           ropSHLD_16_imm, NULL,           NULL,           NULL,           ropPUSH_GS_16,  ropPOP_GS_16,   NULL,           NULL,           ropSHRD_16_imm, NULL,           NULL,           NULL,
+/*90*/  ropSETO,        ropSETNO,       ropSETB,        ropSETNB,       ropSETE,        ropSETNE,       ropSETBE,       ropSETNBE,      ropSETS,        ropSETNS,       ropSETP,        ropSETNP,       ropSETL,        ropSETNL,       ropSETLE,       ropSETNLE,
+/*a0*/  ropPUSH_FS_16,  ropPOP_FS_16,   NULL,           NULL,           ropSHLD_16_imm, ropSHLD_16_CL,  NULL,           NULL,           ropPUSH_GS_16,  ropPOP_GS_16,   NULL,           NULL,           ropSHRD_16_imm, ropSHRD_16_CL,  NULL,           ropIMUL_w_rm,
 /*b0*/  NULL,           NULL,           ropLSS_16,      NULL,           ropLFS_16,      ropLGS_16,      ropMOVZX_16_8,  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropMOVSX_16_8,  NULL,
 
-/*c0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*c0*/  ropXADD_b,      ropXADD_w,      NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -170,17 +187,17 @@ RecompOpFn recomp_opcodes_0f_no_mmx[512] = {
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*30*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
-/*40*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*40*/  ropCMOVO_l,     ropCMOVNO_l,    ropCMOVB_l,     ropCMOVNB_l,    ropCMOVE_l,     ropCMOVNE_l,    ropCMOVBE_l,    ropCMOVNBE_l,   ropCMOVS_l,     ropCMOVNS_l,    ropCMOVP_l,     ropCMOVNP_l,    ropCMOVL_l,     ropCMOVNL_l,    ropCMOVLE_l,    ropCMOVNLE_l,
 /*50*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*60*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*70*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
 /*80*/  ropJO_32,       ropJNO_32,      ropJB_32,       ropJNB_32,      ropJE_32,       ropJNE_32,      ropJBE_32,      ropJNBE_32,     ropJS_32,       ropJNS_32,      ropJP_32,       ropJNP_32,      ropJL_32,       ropJNL_32,      ropJLE_32,      ropJNLE_32,
-/*90*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*a0*/  ropPUSH_FS_32,  ropPOP_FS_32,   NULL,           NULL,           ropSHLD_32_imm, NULL,           NULL,           NULL,           ropPUSH_GS_32,  ropPOP_GS_32,   NULL,           NULL,           ropSHRD_32_imm, NULL,           NULL,           NULL,
+/*90*/  ropSETO,        ropSETNO,       ropSETB,        ropSETNB,       ropSETE,        ropSETNE,       ropSETBE,       ropSETNBE,      ropSETS,        ropSETNS,       ropSETP,        ropSETNP,       ropSETL,        ropSETNL,       ropSETLE,       ropSETNLE,
+/*a0*/  ropPUSH_FS_32,  ropPOP_FS_32,   NULL,           NULL,           ropSHLD_32_imm, ropSHLD_32_CL,  NULL,           NULL,           ropPUSH_GS_32,  ropPOP_GS_32,   NULL,           NULL,           ropSHRD_32_imm, ropSHRD_32_CL,  NULL,           ropIMUL_l_rm,
 /*b0*/  NULL,           NULL,           ropLSS_32,      NULL,           ropLFS_32,      ropLGS_32,      ropMOVZX_32_8,  ropMOVZX_32_16, NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropMOVSX_32_8,  ropMOVSX_32_16,
 
-/*c0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*c0*/  ropXADD_b,      ropXADD_l,      NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -290,7 +307,6 @@ RecompOpFn recomp_opcodes_d8[512] = {
 
 RecompOpFn recomp_opcodes_d9[512] = {
     // clang-format off
-    /* TODO: Fix the recompilation of D9 44 so Blood II's gameplay music no longer breaks! */
         /*16-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -298,7 +314,7 @@ RecompOpFn recomp_opcodes_d9[512] = {
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*30*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,
 
-/*40*/  ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        NULL,           ropFLDs,        ropFLDs,        ropFLDs,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*40*/  ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*50*/  ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,
 /*60*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*70*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,
@@ -320,7 +336,7 @@ RecompOpFn recomp_opcodes_d9[512] = {
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*30*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,
 
-/*40*/  ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        NULL,           ropFLDs,        ropFLDs,        ropFLDs,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*40*/  ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*50*/  ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,
 /*60*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*70*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,
@@ -356,9 +372,9 @@ RecompOpFn recomp_opcodes_da[512] = {
 /*a0*/  ropFISUBl,      ropFISUBl,      ropFISUBl,      ropFISUBl,      ropFISUBl,      ropFISUBl,      ropFISUBl,      ropFISUBl,      ropFISUBRl,     ropFISUBRl,     ropFISUBRl,     ropFISUBRl,     ropFISUBRl,     ropFISUBRl,     ropFISUBRl,     ropFISUBRl,
 /*b0*/  ropFIDIVl,      ropFIDIVl,      ropFIDIVl,      ropFIDIVl,      ropFIDIVl,      ropFIDIVl,      ropFIDIVl,      ropFIDIVl,      ropFIDIVRl,     ropFIDIVRl,     ropFIDIVRl,     ropFIDIVRl,     ropFIDIVRl,     ropFIDIVRl,     ropFIDIVRl,     ropFIDIVRl,
 
-/*c0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFUCOMPP,     NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*c0*/  ropFCMOVB,      ropFCMOVB,      ropFCMOVB,      ropFCMOVB,      ropFCMOVB,      ropFCMOVB,      ropFCMOVB,      ropFCMOVB,      ropFCMOVE,      ropFCMOVE,      ropFCMOVE,      ropFCMOVE,      ropFCMOVE,      ropFCMOVE,      ropFCMOVE,      ropFCMOVE,
+/*d0*/  ropFCMOVBE,     ropFCMOVBE,     ropFCMOVBE,     ropFCMOVBE,     ropFCMOVBE,     ropFCMOVBE,     ropFCMOVBE,     ropFCMOVBE,     ropFCMOVU,      ropFCMOVU,      ropFCMOVU,      ropFCMOVU,      ropFCMOVU,      ropFCMOVU,      ropFCMOVU,      ropFCMOVU,
+/*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFUCOMPP,     NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
         /*32-bit data*/
@@ -378,9 +394,9 @@ RecompOpFn recomp_opcodes_da[512] = {
 /*a0*/  ropFISUBl,      ropFISUBl,      ropFISUBl,      ropFISUBl,      ropFISUBl,      ropFISUBl,      ropFISUBl,      ropFISUBl,      ropFISUBRl,     ropFISUBRl,     ropFISUBRl,     ropFISUBRl,     ropFISUBRl,     ropFISUBRl,     ropFISUBRl,     ropFISUBRl,
 /*b0*/  ropFIDIVl,      ropFIDIVl,      ropFIDIVl,      ropFIDIVl,      ropFIDIVl,      ropFIDIVl,      ropFIDIVl,      ropFIDIVl,      ropFIDIVRl,     ropFIDIVRl,     ropFIDIVRl,     ropFIDIVRl,     ropFIDIVRl,     ropFIDIVRl,     ropFIDIVRl,     ropFIDIVRl,
 
-/*c0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFUCOMPP,     NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*c0*/  ropFCMOVB,      ropFCMOVB,      ropFCMOVB,      ropFCMOVB,      ropFCMOVB,      ropFCMOVB,      ropFCMOVB,      ropFCMOVB,      ropFCMOVE,      ropFCMOVE,      ropFCMOVE,      ropFCMOVE,      ropFCMOVE,      ropFCMOVE,      ropFCMOVE,      ropFCMOVE,
+/*d0*/  ropFCMOVBE,     ropFCMOVBE,     ropFCMOVBE,     ropFCMOVBE,     ropFCMOVBE,     ropFCMOVBE,     ropFCMOVBE,     ropFCMOVBE,     ropFCMOVU,      ropFCMOVU,      ropFCMOVU,      ropFCMOVU,      ropFCMOVU,      ropFCMOVU,      ropFCMOVU,      ropFCMOVU,
+/*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFUCOMPP,     NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
     // clang-format on
 };
@@ -404,8 +420,8 @@ RecompOpFn recomp_opcodes_db[512] = {
 /*a0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*b0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
-/*c0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*c0*/  ropFCMOVNB,     ropFCMOVNB,     ropFCMOVNB,     ropFCMOVNB,     ropFCMOVNB,     ropFCMOVNB,     ropFCMOVNB,     ropFCMOVNB,     ropFCMOVNE,     ropFCMOVNE,     ropFCMOVNE,     ropFCMOVNE,     ropFCMOVNE,     ropFCMOVNE,     ropFCMOVNE,     ropFCMOVNE,
+/*d0*/  ropFCMOVNBE,    ropFCMOVNBE,    ropFCMOVNBE,    ropFCMOVNBE,    ropFCMOVNBE,    ropFCMOVNBE,    ropFCMOVNBE,    ropFCMOVNBE,    ropFCMOVNU,     ropFCMOVNU,     ropFCMOVNU,     ropFCMOVNU,     ropFCMOVNU,     ropFCMOVNU,     ropFCMOVNU,     ropFCMOVNU,
 /*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
@@ -426,8 +442,8 @@ RecompOpFn recomp_opcodes_db[512] = {
 /*a0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*b0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
-/*c0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*c0*/  ropFCMOVNB,     ropFCMOVNB,     ropFCMOVNB,     ropFCMOVNB,     ropFCMOVNB,     ropFCMOVNB,     ropFCMOVNB,     ropFCMOVNB,     ropFCMOVNE,     ropFCMOVNE,     ropFCMOVNE,     ropFCMOVNE,     ropFCMOVNE,     ropFCMOVNE,     ropFCMOVNE,     ropFCMOVNE,
+/*d0*/  ropFCMOVNBE,    ropFCMOVNBE,    ropFCMOVNBE,    ropFCMOVNBE,    ropFCMOVNBE,    ropFCMOVNBE,    ropFCMOVNBE,    ropFCMOVNBE,    ropFCMOVNU,     ropFCMOVNU,     ropFCMOVNU,     ropFCMOVNU,     ropFCMOVNU,     ropFCMOVNU,     ropFCMOVNU,     ropFCMOVNU,
 /*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
     // clang-format on
