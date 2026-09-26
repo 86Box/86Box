@@ -96,6 +96,9 @@ am29f016d_read(uint32_t addr, void *priv)
     uint8_t            ret;
     const uint32_t     calc = am29f016d_calc_addr(dev, addr);
 
+    if (!flash_bios_read_selected(addr))
+        return 0xff;
+
     switch (dev->state) {
         default:
             ret = 0xff;
@@ -214,6 +217,9 @@ am29f016d_readw(uint32_t addr, void *priv)
     uint16_t           ret;
     const uint32_t     calc = am29f016d_calc_addr(dev, addr);
 
+    if (!flash_bios_read_selected(addr))
+        return 0xffff;
+
     switch (dev->state) {
         default:
             ret = 0xffff;
@@ -238,6 +244,9 @@ am29f016d_readl(uint32_t addr, void *priv)
     const am29f016d_t *dev  = (const am29f016d_t *) priv;
     uint32_t           ret;
     const uint32_t     calc = am29f016d_calc_addr(dev, addr);
+
+    if (!flash_bios_read_selected(addr))
+        return 0xffffffff;
 
     switch (dev->state) {
         default:

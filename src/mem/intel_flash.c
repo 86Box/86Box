@@ -75,6 +75,8 @@ typedef struct flash_t {
 
     mem_mapping_t mapping[2];
     mem_mapping_t mapping_h[16];
+    uint8_t      *exec[2];
+    uint8_t      *exec_h[16];
 } flash_t;
 
 static char flash_path[1024];
@@ -84,6 +86,9 @@ flash_read(uint32_t addr, void *priv)
 {
     const flash_t *dev = (flash_t *) priv;
     uint8_t        ret = 0xff;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xff;
 
     if (dev->flags & FLAG_INV_A16)
         addr ^= 0x10000;
@@ -117,6 +122,9 @@ flash_readw(uint32_t addr, void *priv)
     flash_t        *dev = (flash_t *) priv;
     const uint16_t *q;
     uint16_t        ret = 0xffff;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xffff;
 
     if (dev->flags & FLAG_INV_A16)
         addr ^= 0x10000;
@@ -154,6 +162,9 @@ flash_readl(uint32_t addr, void *priv)
 {
     flash_t        *dev = (flash_t *) priv;
     const uint32_t *q;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xffffffff;
 
     if (dev->flags & FLAG_INV_A16)
         addr ^= 0x10000;
@@ -302,6 +313,23 @@ flash_writel(UNUSED(uint32_t addr), UNUSED(uint32_t val), UNUSED(void *priv))
 #endif
 }
 
+/* The chip select changed: keep an exec pointer only on a mapping the
+   chipset decodes whole (flash_bios_mapping_update). */
+static void
+intel_flash_decode_hook(void *priv)
+{
+    flash_t *dev = (flash_t *) priv;
+
+    for (uint8_t i = 0; i < 2; i++) {
+        if (dev->mapping[i].size)
+            flash_bios_mapping_update(&dev->mapping[i], dev->exec[i]);
+    }
+    for (uint8_t i = 0; i < 16; i++) {
+        if (dev->mapping_h[i].size)
+            flash_bios_mapping_update(&dev->mapping_h[i], dev->exec_h[i]);
+    }
+}
+
 static void
 intel_flash_add_mappings(flash_t *dev)
 {
@@ -346,11 +374,14 @@ intel_flash_add_mappings(flash_t *dev)
         memcpy(&dev->array[fbase], &rom[base & biosmask], 0x10000);
 
         if ((max == 2) || (i >= (max - 2))) {
+            dev->exec[i & 1] = dev->array + fbase;
             mem_mapping_add(&(dev->mapping[i & 1]), base, 0x10000,
                             flash_read, flash_readw, flash_readl,
                             flash_write, flash_writew, flash_writel,
                             dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
         }
+        dev->exec_h[i]       = dev->array + fbase;
+        dev->exec_h[i + max] = dev->array + fbase;
         mem_mapping_add(&(dev->mapping_h[i]), (base | 0xfff00000) - sub, 0x10000,
                         flash_read, flash_readw, flash_readl,
                         flash_write, flash_writew, flash_writel,
@@ -540,6 +571,8 @@ intel_flash_init(const device_t *info)
     }
 
     intel_flash_add_mappings(dev);
+    flash_bios_set_decode_hook(intel_flash_decode_hook, dev);
+    intel_flash_decode_hook(dev);
 
     dev->command = CMD_READ_ARRAY;
     dev->status  = 0;
@@ -572,6 +605,8 @@ static void
 intel_flash_close(void *priv)
 {
     flash_t *dev = (flash_t *) priv;
+
+    flash_bios_set_decode_hook(NULL, NULL);
 
     if (dev->dirty) {
         if (strlen(flash_path) > 0) {
