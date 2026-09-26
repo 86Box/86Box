@@ -721,7 +721,9 @@ const device_t xtide_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = xtide_config
+    .config        = xtide_config,
+    .short_name    = "XT-IDE",
+    .ide_boards    = ide_boards_primary
 };
 
 const device_t xtide_at_device = {
@@ -735,7 +737,9 @@ const device_t xtide_at_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = xtide_at_config
+    .config        = xtide_at_config,
+    .short_name    = "XT-IDE",
+    .ide_boards    = ide_boards_primary
 };
 
 const device_t xtide_at_2ch_device = {
@@ -749,7 +753,9 @@ const device_t xtide_at_2ch_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = xtide_at_config
+    .config        = xtide_at_config,
+    .short_name    = "XT-IDE",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t xtide_acculogic_device = {
@@ -763,7 +769,9 @@ const device_t xtide_acculogic_device = {
     .available     = xtide_acculogic_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "Acculogic sIDE-1/16",
+    .ide_boards    = ide_boards_primary
 };
 
 const device_t xtide_at_ps2_device = {
@@ -777,7 +785,9 @@ const device_t xtide_at_ps2_device = {
     .available     = xtide_at_ps2_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "XT-IDE",
+    .ide_boards    = ide_boards_primary
 };
 
 const device_t xtide_at_ps2_2ch_device = {
@@ -791,7 +801,9 @@ const device_t xtide_at_ps2_2ch_device = {
     .available     = xtide_at_ps2_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "XT-IDE",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t jride_device = {
@@ -805,5 +817,7 @@ const device_t jride_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = jride_config
+    .config        = jride_config,
+    .short_name    = "jr-IDE",
+    .ide_boards    = ide_boards_primary
 };

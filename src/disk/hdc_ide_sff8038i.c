@@ -612,7 +612,10 @@ sff_init(UNUSED(const device_t *info))
     if ((device_get_instance() < 3) && (next_id == 0))
         device_add(&ide_pci_2ch_device);
 
-    ide_set_bus_master(next_id, sff_bus_master_dma, sff_bus_master_set_irq, dev);
+    /* Every controller adds its bus masters as instances board + 1: the
+       board the counter would give is not the one it claimed where boards
+       are not claimed in order, as a card on a pair above others' is. */
+    ide_set_bus_master(device_get_instance() - 1, sff_bus_master_dma, sff_bus_master_set_irq, dev);
 
     dev->slot         = 7;
     /* Channel 0 goes to IRQ 14, channel 1 goes to MIRQ0. */

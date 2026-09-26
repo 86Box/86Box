@@ -129,6 +129,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     , ui(new Ui::SettingsFloppyCDROM)
 {
     ui->setupUi(this);
+    Harddrives::widenPopup(ui->comboBoxChannel);
 
     scFloppyType                    = new SettingsCompleter(ui->comboBoxFloppyType, nullptr);
     scCDROMType                     = new SettingsCompleter(ui->comboBoxCDROMType, nullptr);
@@ -558,6 +559,16 @@ SettingsFloppyCDROM::on_comboBoxFloppyAudio_activated(int)
 #else
     ifa[i] = 0;
 #endif
+}
+
+/* The machine, disk controllers and sound cards chosen on other pages
+   decide who has each IDE channel: bring the names up to date. */
+void
+SettingsFloppyCDROM::showEvent(QShowEvent *event)
+{
+    Harddrives::refreshBusNames(ui->treeViewCDROM->model());
+    reloadBusChannels();
+    QWidget::showEvent(event);
 }
 
 void

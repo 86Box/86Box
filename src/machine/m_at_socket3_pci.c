@@ -373,7 +373,7 @@ machine_at_pc330_6573_init(const machine_t *model)
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
-    device_add(&ide_opti611_vlb_device);
+    device_add(machine_get_ide_device(machine));
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -474,7 +474,7 @@ machine_at_pb450_init(const machine_t *model)
     device_add(&opti822_device);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
-    device_add(&ide_opti611_vlb_device);
+    device_add(machine_get_ide_device(machine));
     device_add(&intel_flash_bxt_device);
     device_add(&phoenix_486_jumper_pci_device);
 
@@ -534,7 +534,7 @@ machine_at_bat4ip3e_init(const machine_t *model)
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&i420ex_device);
-    device_add(&ide_cmd640_pci_single_channel_device);
+    device_add(machine_get_ide_device(machine));
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
 
     return ret;
@@ -690,7 +690,7 @@ machine_at_486sp3_init(const machine_t *model)
     device_add(&sst_flash_29ee010_device);
 
     device_add(&i420tx_device);
-    device_add(&ncr53c810_onboard_pci_device);
+    device_add(machine_get_scsi_device(machine));
 
     return ret;
 }
@@ -759,7 +759,7 @@ machine_at_486sp3g_init(const machine_t *model)
     device_add(&sst_flash_29ee010_device);
 
     device_add(&i420zx_device);
-    device_add(&ncr53c810_onboard_pci_device);
+    device_add(machine_get_scsi_device(machine));
 
     return ret;
 }
@@ -855,7 +855,7 @@ machine_at_sb486pv_init(const machine_t *model)
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&sio_zb_device);
-    device_add(&ide_rz1000_pci_single_channel_device);
+    device_add(machine_get_ide_device(machine));
     device_add_params(&i82091aa_device, (void *) I82091AA_26E);
     if (!strcmp(fn, "roms/machines/sb486pv/amiboot.rom"))
         device_add(&intel_flash_bxt_device);
@@ -994,7 +994,7 @@ machine_at_acerp3_init(const machine_t *model)
 
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
     device_close(&ide_pci_2ch_device);
-    device_add(&ide_cmd640_pci_legacy_only_device);
+    device_add(machine_get_ide_device(machine));
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5434_onboard_pci_device);
@@ -1370,7 +1370,7 @@ machine_at_ecs486_init(const machine_t *model)
 
     device_add(&umc_hb4_device);
     device_add(&umc_8886f_device);
-    device_add(&ide_cmd640_pci_legacy_only_device);
+    device_add(machine_get_ide_device(machine));
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&intel_flash_bxt_device);
 
@@ -1436,7 +1436,7 @@ machine_at_actiontower8400_init(const machine_t *model)
     device_add(&umc_hb4_device);
     device_add(&umc_8886f_device);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add(&ide_cmd640_pci_device);
+    device_add(machine_get_ide_device(machine));
     device_add(&intel_flash_bxt_device); // The ActionPC 2600 has this so I'm gonna assume this does too.
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);

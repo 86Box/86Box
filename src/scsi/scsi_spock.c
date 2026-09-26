@@ -1386,7 +1386,8 @@ const device_t spock_device = {
     .available     = spock_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = spock_rom_config
+    .config        = spock_rom_config,
+    .short_name    = "IBM Spock"
 };
 
 const device_t tribble_device = {
@@ -1400,5 +1401,6 @@ const device_t tribble_device = {
     .available     = spock_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = spock_rom_config
+    .config        = spock_rom_config,
+    .short_name    = "IBM Tribble"
 };
