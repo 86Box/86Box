@@ -33,6 +33,12 @@ extern "C" {
 
 extern int ui_msgbox(int flags, char *message);
 extern int ui_msgbox_header(int flags, char *header, char *message);
+/* Configuration loading supplies names and categories; the UI owns all text. */
+typedef struct ui_unsupported_hardware_t {
+    int  kind;
+    char name[160];
+} ui_unsupported_hardware_t;
+extern int ui_confirm_unsupported_hardware(const ui_unsupported_hardware_t *items, int count, int machine_missing);
 
 /* Status Bar functions. */
 #define SB_ICON_WIDTH 24
