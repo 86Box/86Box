@@ -23,7 +23,7 @@ cm153_uart_control(cm153_uart_t *u, cm100_drive_t *drive,
                    uint8_t value, uint64_t now_ns)
 {
     /* The original CM153.MSC writes six zeroes, 40h, 5Eh, then enables
-       TX/RX. 40h is the 8251 internal reset, not a drive BREAK. */
+       TX/RX. 40h is the 8251 internal reset. */
     if (u->await_mode) {
         u->mode = value;
         u->await_mode = 0;

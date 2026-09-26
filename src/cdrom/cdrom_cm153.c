@@ -1,6 +1,4 @@
-/* Philips CM-153 ISA controller for the serial CM-100 drive. The five-signal
-   drive lives in cm100*.c; this file contains only the host card and wiring.
-   See doc/hardware/cm100-sources.md for the evidence and open register details. */
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
