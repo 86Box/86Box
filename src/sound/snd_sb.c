@@ -9265,7 +9265,7 @@ const device_t sb_16_pnp_ide_device = {
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_16_pnp_config,
-    .short_name    = "Creative SB16",
+    .short_name    = "SB16",
     .ide_boards    = ide_boards_quaternary
 };
 
@@ -9323,7 +9323,7 @@ const device_t sb_32_pnp_device = {
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_32_pnp_config,
-    .short_name    = "Creative SB32",
+    .short_name    = "SB32",
     .ide_boards    = ide_boards_quaternary
 };
 
@@ -9353,7 +9353,7 @@ const device_t sb_awe32_pnp_device = {
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_awe32_pnp_config,
-    .short_name    = "Creative AWE32",
+    .short_name    = "AWE32",
     .ide_boards    = ide_boards_quaternary
 };
 
@@ -9370,7 +9370,7 @@ const device_t sb_awe32_ide_pnp_device = {
     .force_redraw  = NULL,
     .config        = sb_awe32_pnp_config,
     .alias         = "Sound Blaster AWE32 IDE PnP Internet Enhanced",
-    .short_name    = "Creative AWE32",
+    .short_name    = "AWE32",
     .ide_boards    = ide_boards_quaternary
 };
 
@@ -9414,7 +9414,7 @@ const device_t sb_awe64_ide_device = {
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_awe64_config,
-    .short_name    = "Creative AWE64",
+    .short_name    = "AWE64",
     .ide_boards    = ide_boards_quaternary
 };
 
