@@ -329,6 +329,10 @@ SettingsBusTracking::busChannelsInUse(const int bus)
             if (philips_tracking)
                 channelsInUse.append(0);
             break;
+        case CDROM_BUS_CM100:
+            if (cm100_tracking)
+                channelsInUse.append(0);
+            break;
         case CDROM_BUS_MITSUMI:
             if (mitsumi_tracking)
                 channelsInUse.append(0);
@@ -424,6 +428,9 @@ SettingsBusTracking::device_track(int set, uint8_t dev_type, int bus, int channe
             break;
         case CDROM_BUS_PHILIPS:
             philips_tracking = set;
+            break;
+        case CDROM_BUS_CM100:
+            cm100_tracking = set;
             break;
         case CDROM_BUS_MITSUMI:
             mitsumi_tracking = set;

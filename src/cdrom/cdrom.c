@@ -34,6 +34,7 @@
 #include <86box/cdrom_mitsumi.h>
 #include <86box/cdrom_hitachi.h>
 #include <86box/cdrom_philips.h>
+#include <86box/cdrom_cm153.h>
 #include <86box/cdrom_mke.h>
 #include <86box/crc.h>
 #include <86box/log.h>
@@ -136,6 +137,7 @@ static const struct {
     { &mke_cdrom_noncreative_device },
     { &mke_cdrom_device             },
     { &philips_cm250_device         },
+    { &philips_cm153_device         },
     { &mitsumi_cdrom_device         },
     { NULL                          }
     // clang-format on
