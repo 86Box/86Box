@@ -118,9 +118,9 @@ video_cards[] = {
     { .device = &gd5428_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &gd5429_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &gd5434_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &ht216_standalone_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &inmos_isa_device,                              .flags = VIDEO_FLAG_TYPE_XGA       },
     { .device = &jvga_device,                                   .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &radius_svga_multiview_isa_device,              .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_86c911_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_86c924_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_86c928_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -128,6 +128,7 @@ video_cards[] = {
     { .device = &s3_86c805_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et4000w32_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et4000w32i_isa_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &v7_vram_2_ergo_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
     /* MCA */
     { .device = &mach32_mca_device,                             .flags = VIDEO_FLAG_TYPE_8514      },
     { .device = &gd5426_mca_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },

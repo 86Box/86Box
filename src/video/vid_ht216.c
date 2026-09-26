@@ -65,9 +65,12 @@ typedef struct ht216_t {
 
     uint8_t ht_regs[256];
     uint8_t extensions, reg_3cb;
+    uint16_t ctl;
 
     uint8_t pos_regs[8];
 } ht216_t;
+
+static ht216_t *reset_state = NULL;
 
 #define HT_MISC_PAGE_SEL (1 << 5)
 
@@ -95,10 +98,15 @@ typedef struct ht216_t {
 #define HT_REG_FE_FBMC   (3 << 2)
 #define HT_REG_FE_FBRSL  (3 << 4)
 
-void ht216_remap(ht216_t *ht216);
+void     ht216_remap(ht216_t *ht216);
 
-void    ht216_out(uint16_t addr, uint8_t val, void *priv);
-uint8_t ht216_in(uint16_t addr, void *priv);
+void     ht216_out(uint16_t addr, uint8_t val, void *priv);
+void     ht216_outw(uint16_t addr, uint16_t val, void *priv);
+uint8_t  ht216_in(uint16_t addr, void *priv);
+uint16_t ht216_inw(uint16_t addr, void *priv);
+
+void     ht216_disable(void *priv, uint16_t port);
+void     ht216_enable(void *priv, uint16_t port);
 
 #define BIOS_G2_GC205_PATH              "roms/video/video7/BIOS.BIN"
 #define BIOS_VIDEO7_VGA_1024I_219_PATH  "roms/video/video7/Video Seven VGA 1024i - BIOS - v2.19 - 435-0062-05 - U17 - 27C256.BIN"
@@ -106,6 +114,8 @@ uint8_t ht216_in(uint16_t addr, void *priv);
 #define BIOS_VIDEO7_VGA_1024I_704_HP_LO_PATH  "roms/video/video7/Headland Video 7 VGA 1024i even v7.04 27C256 LO.bin"
 #define BIOS_VIDEO7_VGA_1024I_704_HP_HI_PATH  "roms/video/video7/Headland Video 7 VGA 1024i odd v7.04 27C256 HI.bin"
 #define BIOS_RADIUS_SVGA_MULTIVIEW_PATH "roms/video/video7/U18.BIN"
+#define BIOS_VIDEO7_VRAM_II_ERGO_PATH   "roms/video/video7/VRAM-II_453-0100-06_M27256_v8.59.bin"
+#define BIOS_HT216_PATH                 "roms/video/video7/octek-agva-21.BIN"
 #define BIOS_HT216_32_PATH              "roms/video/video7/HT21632.BIN"
 
 static video_timings_t timing_v7vga_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
@@ -179,12 +189,53 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
     svga_t  *svga  = &ht216->svga;
     uint8_t  old;
 
-    ht216_log("ht216 %i out %04X %02X %04X:%04X\n", svga->miscout & 1, addr, val, CS, cpu_state.pc);
+    ht216_log("ht216 %i out %04X %02X %04X:%04X\n", ht216->misc & 1, addr, val, CS, cpu_state.pc);
 
-    if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
+    if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ht216->misc & 1))
         addr ^= 0x60;
 
     switch (addr) {
+        case 0x102:
+            old = ht216->pos_regs[2];
+
+            ht216->pos_regs[2] = val;
+
+            if ((old ^ val) & 0x01) {
+                ht216_disable(priv, addr);
+
+                if (val & 0x01) {
+                    if (!(ht216->ctl & 0x0010)) {
+                        if (!(ht216->misc & 0x01))
+                            io_sethandler(0x03a0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
+
+                        io_sethandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
+                        if (ht216->ctl & 0x0008)
+                            ht216_enable(priv, addr);
+                    }
+                }
+            }
+            return;
+        case 0x104:
+            if (ht216->pos_regs[2] == 0x05)
+                ht216->pos_regs[4] = val;
+
+            return;
+        case 0x105:
+            if (ht216->pos_regs[2] == 0x05) {
+                ht216->pos_regs[5] = val;
+            }
+            return;
+        case 0x106:
+            if (ht216->pos_regs[2] == 0x05) {
+                ht216->pos_regs[6] = val;
+            }
+            return;
+        case 0x107:
+            if (ht216->pos_regs[2] == 0x05) {
+                ht216->pos_regs[7] = val;
+            }
+            return;
+
         case 0x3c2:
             /*Bit 17 of the display memory address, only active on odd/even modes, has no effect on graphics modes.*/
             ht216->clk_sel = (ht216->clk_sel & ~0x03) | ((val & 0x0c) >> 2);
@@ -260,11 +311,12 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                 old                                  = ht216->ht_regs[svga->seqaddr & 0xff];
                 ht216->ht_regs[svga->seqaddr & 0xff] = val;
 
-                ht216_log("SeqAddr=%02x, val=%02x.\n", svga->seqaddr & 0xff, val);
+                ht216_log("ExtSeqAddr=%02x, Write=%02x.\n", svga->seqaddr & 0xff, val);
                 switch (svga->seqaddr & 0xff) {
                     case 0x83:
                         svga->attraddr = val & 0x1f;
                         svga->attrff   = !!(val & 0x80);
+                        svga->attr_palette_enable = !!(val & 0x20);
                         break;
 
                     case 0x94:
@@ -297,10 +349,10 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                         break;
 
                     case 0xa4:
-                        if (ht216->id == 0x7861)
+                        if (ht216->id >= 0x7761) {
                             ht216->clk_sel = (val >> 2) & 0x0f;
-                        else {
-                            if (svga->getclock == ics1494_getclock) {
+                        } else {
+                            if ((ht216->id == 0x7152) && ht216->mca) {
                                 if (val & 0x10)
                                     val &= ~0x10;
                                 else if (!(val & 0x10))
@@ -308,19 +360,18 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                             }
                             ht216->clk_sel = (val >> 2) & 0x07;
                         }
-                        if (ht216->id >= 0x7152)
-                            svga->miscout = (svga->miscout & ~0x0c) | ((ht216->clk_sel & 0x03) << 2);
-
+                        ht216->misc = (ht216->misc & ~0x0c) | ((ht216->clk_sel & 0x03) << 2);
+                        svga->miscout = (svga->miscout & ~0x0c) | ((ht216->clk_sel & 0x03) << 2);
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
                         break;
                     case 0xf8:
-                        if (ht216->id != 0x7861) {
-                            if ((val & 0x06) == 0x06)
-                                ht216->clk_sel = (val >> 5) & 0x07;
-                        } else {
+                        if (ht216->id >= 0x7761) {
                             if ((val & 0x05) == 0x05)
                                 ht216->clk_sel = (val >> 4) & 0x0f;
+                        } else {
+                            if ((val & 0x06) == 0x06)
+                                ht216->clk_sel = (val >> 5) & 0x03;
                         }
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -328,12 +379,6 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
 
                     case 0xa5:
                         svga->hwcursor.ena = !!(val & 0x80);
-                        break;
-
-                    case 0xc0:
-                        break;
-
-                    case 0xc1:
                         break;
 
                     case 0xc8:
@@ -345,7 +390,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                         break;
 
                     case 0xca:
-                        if (ht216->id == 0x7861)
+                        if (ht216->id >= 0x7761)
                             svga_recalctimings(svga);
                         break;
 
@@ -432,14 +477,14 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3c7:
         case 0x3c8:
         case 0x3c9:
-            if (ht216->id == 0x7152)
+            if (((ht216->id == 0x7152) && ht216->mca) || (ht216->id == 0x7765))
                 sc1148x_ramdac_out(addr, 0, val, svga->ramdac, svga);
             else
                 svga_out(addr, val, svga);
             return;
 
         case 0x3cb:
-            if (ht216->id == 0x7152) {
+            if ((ht216->id == 0x7152) && ht216->mca) {
                 ht216->reg_3cb = val;
                 svga_set_ramdac_type(svga, (val & 0x20) ? RAMDAC_6BIT : RAMDAC_8BIT);
             }
@@ -486,18 +531,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x46e8:
-            io_removehandler(0x03a0, 0x0040, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
-            mem_mapping_disable(&svga->mapping);
-            mem_mapping_disable(&ht216->linear_mapping);
-            if (!(val & 0x10)) {
-                if (!(svga->miscout & 0x01))
-                    io_sethandler(0x03a0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
-                io_sethandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
-                if (val & 0x08) {
-                    mem_mapping_enable(&svga->mapping);
-                    ht216_remap(ht216);
-                }
-            }
+            ht216_outw(addr, val, priv);
             break;
 
         default:
@@ -507,6 +541,30 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
     svga_out(addr, val, svga);
 }
 
+void
+ht216_outw(uint16_t addr, uint16_t val, void *priv)
+{
+    ht216_t *ht216 = (ht216_t *) priv;
+    const uint16_t old = ht216->ctl;
+
+    ht216->ctl = val;
+
+    if ((old ^ val) & 0x0008) {
+        ht216_disable(priv, addr);
+
+        if (ht216->pos_regs[2] & 0x01) {
+            if (!(val & 0x0010)) {
+                if (!(ht216->misc & 0x01))
+                    io_sethandler(0x03a0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
+
+                io_sethandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
+                if (val & 0x0008)
+                    ht216_enable(priv, addr);
+            }
+        }
+    }
+}
+
 uint8_t
 ht216_in(uint16_t addr, void *priv)
 {
@@ -514,33 +572,55 @@ ht216_in(uint16_t addr, void *priv)
     svga_t  *svga  = &ht216->svga;
     uint8_t  ret   = 0xff;
 
-    if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
+    if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ht216->misc & 1))
         addr ^= 0x60;
 
     switch (addr) {
-        case 0x105:
-            if (ht216->isabus && (ht216->id == 0x7152)) {
-                ret &= ~0x03;
-                return ret;
+        case 0x102:
+            ret = ht216->pos_regs[2];
+            break;
+        case 0x104:
+            if (ht216->pos_regs[2] == 0x05) {
+                ret = ht216->pos_regs[4];
+                ht216_log("HTPOS4 input=%02x.\n", ret);
             }
+            break;
+        case 0x105:
+            if (ht216->pos_regs[2] == 0x05) {
+                ret = ht216->pos_regs[5];
+                ht216_log("HTPOS5 input=%02x.\n", ret);
+            }
+            break;
+        case 0x106:
+            if (ht216->pos_regs[2] == 0x05) {
+                ret = ht216->pos_regs[6];
+                ht216_log("HTPOS6 input=%02x.\n", ret);
+            }
+            break;
+        case 0x107:
+            if (ht216->pos_regs[2] == 0x05)
+                ret = ht216->pos_regs[7];
             break;
 
         case 0x3c4:
-            return svga->seqaddr;
+            ret = svga->seqaddr;
+            break;
 
         case 0x3c5:
-            if (svga->seqaddr == 6)
-                return ht216->ext_reg_enable;
-            else if (svga->seqaddr >= 0x80) {
+            if (svga->seqaddr == 6) {
+                ret = ht216->ext_reg_enable;
+                ht216_log("Read Extensions bit 0=%x.\n", ret);
+            } else if (svga->seqaddr >= 0x80) {
                 if (ht216->ext_reg_enable) {
                     ret = ht216->ht_regs[svga->seqaddr & 0xff];
 
                     switch (svga->seqaddr & 0xff) {
                         case 0x83:
+                            ret = svga->attraddr;
                             if (svga->attrff)
-                                ret = svga->attraddr | 0x80;
-                            else
-                                ret = svga->attraddr;
+                                ret |= 0x80;
+                            if (svga->attr_palette_enable)
+                                ret |= 0x20;
                             break;
 
                         case 0x8e:
@@ -563,6 +643,27 @@ ht216_in(uint16_t addr, void *priv)
                             ret = svga->latch.b[3];
                             break;
 
+                        case 0xb4:
+                            if (ht216->id >= 0x7761) {
+                                ret = ht216->pos_regs[4];
+                            }
+                            break;
+                        case 0xb5:
+                            if (ht216->id >= 0x7761) {
+                                ret = ht216->pos_regs[5];
+                            }
+                            break;
+                        case 0xb6:
+                            if (ht216->id >= 0x7761) {
+                                ret = ht216->pos_regs[6];
+                            }
+                            break;
+                        case 0xb7:
+                            if (ht216->id >= 0x7761) {
+                                ret = ht216->pos_regs[7];
+                            }
+                            break;
+
                         case 0xf0:
                             ret                 = ht216->fg_latch[ht216->fg_plane_sel];
                             ht216->fg_plane_sel = 0;
@@ -575,50 +676,130 @@ ht216_in(uint16_t addr, void *priv)
 
                         case 0xff:
                             ret = ht216->ht_regs[0xff];
-                            if (is286 && (ht216->id != 0x7861))
+                            if (is286 && (ht216->id < 0x7761))
                                 ret |= 0x80;
                             break;
 
                         default:
                             break;
                     }
-
-                    return ret;
-                } else
-                    return 0xff;
-            }
+                    ht216_log("ExtSeqAddr=%02x Read=%02x.\n", svga->seqaddr & 0xff, ret);
+                } else {
+                    ret = svga_in(addr, svga);
+                    ht216_log("NormalSeqAddr=%02x Read=%02x.\n", svga->seqaddr & 0xff, ret);
+                }
+            } else
+                ret = svga_in(addr, svga);
             break;
 
         case 0x3c6:
         case 0x3c7:
         case 0x3c8:
         case 0x3c9:
-            if (ht216->id == 0x7152)
-                return sc1148x_ramdac_in(addr, 0, svga->ramdac, svga);
-
-            return svga_in(addr, svga);
+            if (((ht216->id == 0x7152) && ht216->mca) || (ht216->id == 0x7765))
+                ret = sc1148x_ramdac_in(addr, 0, svga->ramdac, svga);
+            else
+                ret = svga_in(addr, svga);
+            break;
 
         case 0x3cb:
-            if (ht216->id == 0x7152)
-                return ht216->reg_3cb;
+            if ((ht216->id == 0x7152) && ht216->mca)
+                ret = ht216->reg_3cb;
+            else
+                ret = svga_in(addr, svga);
             break;
 
         case 0x3cc:
-            return ht216->misc;
+            ret = ht216->misc;
+            ht216_log("MISC read=%02x.\n", ret);
+            break;
 
         case 0x3D4:
-            return svga->crtcreg;
+            ret = svga->crtcreg;
+            break;
         case 0x3D5:
             if (svga->crtcreg == 0x1f)
-                return svga->crtc[0xc] ^ 0xea;
-
-            return svga->crtc[svga->crtcreg];
+                ret = svga->crtc[0xc] ^ 0xea;
+            else
+                ret = svga->crtc[svga->crtcreg];
+            break;
+        case 0x46e8:
+            ret = ht216_inw(addr, priv);
+            break;
 
         default:
+            ret = svga_in(addr, svga);
             break;
     }
 
-    return svga_in(addr, svga);
+    if (addr != 0x3da && addr != 0x3ba)
+        ht216_log("ht216 %i input %04X %02X %04X:%04X\n", ht216->misc & 1, addr, ret, CS, cpu_state.pc);
+
+    return ret;
+}
+
+uint16_t
+ht216_inw(uint16_t addr, void *priv)
+{
+    ht216_t *ht216 = (ht216_t *) priv;
+    uint16_t ret = ht216->ctl;
+
+    return ret;
+}
+
+void
+ht216_disable(void *priv, uint16_t port)
+{
+    ht216_t *ht216 = (ht216_t *) priv;
+    svga_t *svga = &ht216->svga;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    xga_t   *xga = (xga_t *) svga->xga;
+
+    io_removehandler(0x03a0, 0x0040, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
+    mem_mapping_disable(&svga->mapping);
+    mem_mapping_disable(&ht216->linear_mapping);
+    svga->vga_enabled = 0;
+    if (port == 0x03c3) {
+        if (ibm8514_active) {
+            if (dev != NULL)
+                dev->on = 1;
+        }
+        if (xga_active) {
+            if (xga != NULL)
+                xga->on = 1;
+        }
+        svga_recalctimings(svga);
+    } else {
+        svga->miscout &= ~0x01;
+        ht216->misc &= ~0x01;
+    }
+}
+
+void
+ht216_enable(void *priv, uint16_t port)
+{
+    ht216_t *ht216 = (ht216_t *) priv;
+    svga_t *svga = &ht216->svga;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    xga_t   *xga = (xga_t *) svga->xga;
+
+    mem_mapping_enable(&svga->mapping);
+    ht216_remap(ht216);
+    svga->vga_enabled = 1;
+    if (port == 0x03c3) {
+        if (ibm8514_active) {
+            if (dev != NULL)
+                dev->on = 0;
+        }
+        if (xga_active) {
+            if (xga != NULL)
+                xga->on = 0;
+        }
+        svga_recalctimings(svga);
+    } else {
+        svga->miscout |= 0x01;
+        ht216->misc |= 0x01;
+    }
 }
 
 void
@@ -671,10 +852,9 @@ ht216_recalctimings(svga_t *svga)
     ibm8514_t *dev        = (ibm8514_t *) svga->dev8514;
     mach_t    *mach       = (mach_t *) svga->ext8514;
     int        high_res_256 = 0;
-    int        clock0_override = 0;
-    int        clock_sel;
+    int        extendedhigh256col = 0;
 
-    if (ht216->id == 0x7861) {
+    if (ht216->id >= 0x7761) {
         if (ht216->ht_regs[0xe0] & 0x20) {
             if (ht216->ht_regs[0xca] & 0x01)
                 svga->htotal |= 0x200;
@@ -683,55 +863,6 @@ ht216_recalctimings(svga_t *svga)
         }
     }
 
-    if (ht216->id <= 0x7140) {
-        clock_sel = (ht216->ht_regs[0xa4] >> 2) & 0x07;
-
-        if (ht216->ht_regs[0xf8] & 0x01) {
-            if (!(ht216->ht_regs[0xf8] & 0x10) && (((ht216->misc >> 2) & 0x03) == 0x03))
-                clock0_override = 1;
-            else if (!(ht216->ht_regs[0xf8] & 0x08) && (((ht216->misc >> 2) & 0x03) == 0x02))
-                clock0_override = 2;
-        }
-        if (!clock0_override) {
-            if (ht216->ht_regs[0xf8] & 0x02) {
-                if (ht216->ht_regs[0xf8] & 0x04)
-                    clock_sel = (ht216->ht_regs[0xf8] >> 5) & 0x07;
-            }
-            switch (clock_sel) {
-                case 1:
-                    if (!(ht216->ht_regs[0xf8] & 0x01))
-                        svga->clock = (cpuclock * (double) (1ULL << 32)) / 48540000.0;
-                    break;
-                case 2:
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 38000000.0;
-                    break;
-                case 3:
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 32500000.0;
-                    break;
-                case 4:
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 50350000.0;
-                    break;
-                case 5:
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 65000000.0;
-                    break;
-                case 6:
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 38000000.0;
-                    break;
-                case 7:
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 40000000.0;
-                    break;
-                default:
-                    break;
-            }
-        } else {
-            if (clock0_override == 2)
-                svga->clock = (cpuclock * (double) (1ULL << 32)) / 38000000.0;
-        }
-        ht216_log("HT208 Select=%d, clock0override=%d, CRTC17=%02x, MISC=%02x, A4=%02x, FC=%02x, F8=%02x, FF=%02x, reset=%02x.\n", clock_sel, clock0_override, svga->crtc[0x17], ht216->misc & 0x0c, ht216->ht_regs[0xa4], ht216->ht_regs[0xfc], ht216->ht_regs[0xf8], ht216->ht_regs[0xff], svga->seqregs[0] & 0x03);
-    } else {
-        svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(ht216->clk_sel, svga->clock_gen);
-        ht216_log("ClkSel V7=%02x, regf8=%02x, rega4=%02x, miscout=%x, vidclock=%02x.\n", ht216->clk_sel, ht216->ht_regs[0xf8], ht216->ht_regs[0xa4], (svga->miscout >> 2) & 0x03, svga->vidclock);
-    }
     svga->memaddr_latch |= ((ht216->ht_regs[0xf6] & 0x30) << 12);
 
     if (ht216->ht_regs[0xf6] & 0x80)
@@ -773,12 +904,14 @@ ht216_recalctimings(svga_t *svga)
                         svga->dots_per_clock >>= 1;
                         ht216->adjust_cursor = 1;
                     }
+                    extendedhigh256col = 1;
                     svga->render = svga_render_8bpp_highres;
                 } else if (svga->lowres) {
                     if (high_res_256) {
                         svga->hdisp >>= 1;
                         svga->dots_per_clock >>= 1;
                         ht216->adjust_cursor = 1;
+                        extendedhigh256col = 1;
                         svga->render = svga_render_8bpp_highres;
                     } else {
                         ht216_log("8bpp low, packed = %02x, chain4 = %02x\n", svga->packed_chain4, svga->chain4);
@@ -796,6 +929,7 @@ ht216_recalctimings(svga_t *svga)
                         if ((svga->crtc[0x17] & 0x60) == 0x20) /*Would result in a garbled screen with trailing cursor glitches*/
                             svga->crtc[0x17] |= 0x40;
                     }
+                    extendedhigh256col = 1;
                     svga->render = svga_render_8bpp_highres;
                 }
             } else if (svga->bpp == 15) {
@@ -805,9 +939,56 @@ ht216_recalctimings(svga_t *svga)
                 if ((svga->crtc[0x17] & 0x60) == 0x20) /*Would result in a garbled screen with trailing cursor glitches*/
                     svga->crtc[0x17] |= 0x40;
 
+                extendedhigh256col = 1;
                 svga->render = svga_render_15bpp_highres;
             }
         }
+    }
+
+    ht216_log("ClkSel V7=%02x, regf8=%02x, rega4=%02x, miscout=%x, vidclock=%02x.\n", ht216->clk_sel, ht216->ht_regs[0xf8], ht216->ht_regs[0xa4], (ht216->misc >> 2) & 0x03, svga->vidclock);
+    if ((ht216->id == 0x7152) && ht216->mca) {
+        switch (ht216->clk_sel) {
+            case 0:
+                if (extendedhigh256col && svga->interlace)
+                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 47500000.0;
+                else
+                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
+                break;
+            case 1:
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 28322000.0;
+                break;
+            case 2:
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 61440000.0; /*FCLK*/
+                break;
+            case 3:
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 50350000.0; /*XRESM*/
+                break;
+            case 4:
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 50350000.0;
+                break;
+            case 5:
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 65000000.0;
+                break;
+            case 6:
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 37575000.0; /*FCLK*/
+                break;
+            case 7:
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 40000000.0;
+                break;
+        }
+    } else {
+        if (ht216->id == 0x7140) {
+            if ((ht216->clk_sel == 1) && (extendedhigh256col || svga->interlace))
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 48540000.0; /*DOC-70 from the Video 7 VGA 1024i board*/
+            else
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(ht216->clk_sel, svga->clock_gen);
+        } else if (ht216->id == 0x7152) {
+            if ((ht216->clk_sel == 1) && !(ht216->ht_regs[0xf8] & 0x01))
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 65000000.0;
+            else
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(ht216->clk_sel, svga->clock_gen);
+        } else
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(ht216->clk_sel, svga->clock_gen);
     }
 
     if (svga->crtc[0x17] == 0xeb) /*Looks like 1024x768 mono mode expects 512K of video memory*/
@@ -1627,10 +1808,43 @@ radius_mca_feedb(UNUSED(void *priv))
     return 1;
 }
 
+static void
+ht216_disable_handlers(ht216_t *ht216)
+{
+    mem_mapping_disable(&ht216->linear_mapping);
+    mem_mapping_disable(&ht216->svga.mapping);
+
+    /* Save all the mappings and the timers because they are part of linked lists. */
+    reset_state->linear_mapping   = ht216->linear_mapping;
+    reset_state->svga.mapping     = ht216->svga.mapping;
+
+    reset_state->svga.timer       = ht216->svga.timer;
+
+    memset(ht216->svga.vram, 0x00, ht216->svga.vram_max + 8);
+    memset(ht216->svga.changedvram, 0x00, (ht216->svga.vram_max >> 12) + 1);
+}
+
+static void
+ht216_reset(void *priv)
+{
+    ht216_t *ht216 = (ht216_t *) priv;
+
+    if (reset_state != NULL) {
+        ht216_disable_handlers(ht216);
+        ht216_log("HT216 reset.\n");
+        ht216->svga.bpp = 8;
+        ht216->svga.miscout = 0;
+        ht216->misc = ht216->svga.miscout;
+        *ht216 = *reset_state;
+    } else
+        ht216_log("NULL reset.\n");
+}
+
 void *
 ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
 {
     ht216_t *ht216 = calloc(1, sizeof(ht216_t));
+    reset_state = calloc(1, sizeof(ht216_t));
     svga_t  *svga;
     const char *bios_ver = NULL;
     const char *fn = NULL;
@@ -1706,10 +1920,13 @@ ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
                     ht216->pos_regs[0] = 0xb7;
                     ht216->pos_regs[1] = 0x80;
                     mca_add(radius_mca_read, radius_mca_write, radius_mca_feedb, NULL, ht216);
+                    rom_init(&ht216->bios_rom, BIOS_RADIUS_SVGA_MULTIVIEW_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 } else
-                    io_sethandler(0x0105, 0x0001, ht216_in, NULL, NULL, NULL, NULL, NULL, ht216);
+                    rom_init(&ht216->bios_rom, BIOS_VIDEO7_VRAM_II_ERGO_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
             }
-            rom_init(&ht216->bios_rom, BIOS_RADIUS_SVGA_MULTIVIEW_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+            break;
+        case 5:
+            rom_init(&ht216->bios_rom, BIOS_HT216_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
             break;
 
         default:
@@ -1718,17 +1935,27 @@ ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
 
     svga->bpp     = 8;
     svga->miscout = 0;
+    ht216->misc   = svga->miscout;
     svga->hwcursor.cur_ysize = 32;
     ht216->vram_mask         = mem_size - 1;
     svga->decode_mask        = mem_size - 1;
 
     if (ht216->id == 0x7152) {
-        svga->ramdac = device_add(&sc11484_nors2_ramdac_device);
-        svga->clock_gen = device_add(&ics1494m_540_radius_ht209_device);
-        svga->getclock  = ics1494_getclock;
-    } else if (ht216->id == 0x7861) {
+        if (ht216->mca)
+            svga->ramdac = device_add(&sc11484_nors2_ramdac_device);
+        else {
+            svga->clock_gen = device_add(&ch9201_device);
+            svga->getclock  = ch9201_getclock;
+        }
+    } else if (ht216->id >= 0x7761) {
+        if (ht216->id == 0x7765)
+            svga->ramdac = device_add(&sc11487_nors2_ramdac_device);
+
         svga->clock_gen = device_add(&icd2047_20_device);
         svga->getclock  = icd2047_getclock;
+    } else if (ht216->id <= 0x7140) {
+        svga->clock_gen = device_add(&ch9201_device);
+        svga->getclock  = ch9201_getclock;
     }
     svga->read = ht216_read;
     svga->readw = NULL;
@@ -1747,20 +1974,34 @@ ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
     mem_mapping_set_p(&svga->mapping, ht216);
     mem_mapping_disable(&ht216->linear_mapping);
 
+    if (!ht216->mca)
+        io_sethandler(0x0102, 0x0006, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
+
     io_sethandler(0x03a0, 0x0040, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
-    io_sethandler(0x46e8, 0x0001, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
+    io_sethandler(0x46e8, 0x0001, ht216_in, ht216_inw, NULL, ht216_out, ht216_outw, NULL, ht216);
 
-    if (ht216->id == 0x7861)
-        ht216->ht_regs[0xb4] = 0x08; /*32-bit DRAM bus*/
+    if (ht216->id >= 0x7761) {
+        ht216->pos_regs[4] = (ht216->id == 0x7765) ? 0x04 : 0x08; /*16-bit (ISA) or 32-bit (VLB) DRAM bus*/
+        ht216->pos_regs[4] |= 0x10;
+        if (is486)
+            ht216->pos_regs[4] |= 0x20;
+    }
 
-    if (ht216->id == 0x7152)
+    if ((ht216->id == 0x7152) && ht216->mca) {
         ht216->reg_3cb = 0x20;
+        ht216->ht_regs[0xa4] = 0x10;
+    }
 
     /* Initialize the cursor pointer towards the end of its segment, needed for ht256sf.drv to work correctly
        when Windows 3.1 is started after boot. */
     ht216->ht_regs[0x94] = 0xff;
 
     svga->adv_flags = 0;
+
+    if (!ht216->mca)
+        ht216_disable(ht216, 0x0102);
+
+    *reset_state = *ht216;
 
     return ht216;
 }
@@ -1790,7 +2031,7 @@ ht216_pb410a_init(const device_t *info)
 }
 
 static void *
-ht216_standalone_init(const device_t *info)
+ht216_32_standalone_init(const device_t *info)
 {
     ht216_t *ht216 = ht216_init(info, 1 << 20, 3);
 
@@ -1801,6 +2042,14 @@ static void *
 radius_svga_multiview_init(const device_t *info)
 {
     ht216_t *ht216 = ht216_init(info, 1 << 20, 4);
+
+    return ht216;
+}
+
+static void *
+ht216_standalone_init(const device_t *info)
+{
+    ht216_t *ht216 = ht216_init(info, 1 << 20, 5);
 
     return ht216;
 }
@@ -1818,7 +2067,7 @@ v7_vga_1024i_available(void)
 }
 
 static int
-ht216_standalone_available(void)
+ht216_32_standalone_available(void)
 {
     return rom_present(BIOS_HT216_32_PATH);
 }
@@ -1829,12 +2078,27 @@ radius_svga_multiview_available(void)
     return rom_present(BIOS_RADIUS_SVGA_MULTIVIEW_PATH);
 }
 
+static int
+v7_vram_2_ergo_available(void)
+{
+    return rom_present(BIOS_VIDEO7_VRAM_II_ERGO_PATH);
+}
+
+static int
+ht216_standalone_available(void)
+{
+    return rom_present(BIOS_HT216_PATH);
+}
+
 void
 ht216_close(void *priv)
 {
     ht216_t *ht216 = (ht216_t *) priv;
 
     svga_close(&ht216->svga);
+
+    free(reset_state);
+    reset_state = NULL;
 
     free(ht216);
 }
@@ -1944,7 +2208,7 @@ const device_t g2_gc205_device = {
     .local         = 0x7070,
     .init          = g2_gc205_init,
     .close         = ht216_close,
-    .reset         = NULL,
+    .reset         = ht216_reset,
     .available     = g2_gc205_available,
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
@@ -1958,7 +2222,7 @@ const device_t v7_vga_1024i_device = {
     .local         = 0x7140,
     .init          = v7_vga_1024i_init,
     .close         = ht216_close,
-    .reset         = NULL,
+    .reset         = ht216_reset,
     .available     = v7_vga_1024i_available,
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
@@ -1985,27 +2249,13 @@ const device_t ht216_32_standalone_device = {
     .internal_name = "ht216_32",
     .flags         = DEVICE_VLB,
     .local         = 0x7861, /*HT216-32*/
-    .init          = ht216_standalone_init,
+    .init          = ht216_32_standalone_init,
     .close         = ht216_close,
-    .reset         = NULL,
-    .available     = ht216_standalone_available,
+    .reset         = ht216_reset,
+    .available     = ht216_32_standalone_available,
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
     .config        = ht216_32_standalone_config
-};
-
-const device_t radius_svga_multiview_isa_device = {
-    .name          = "Radius SVGA Multiview ISA (HT209)",
-    .internal_name = "radius_isa",
-    .flags         = DEVICE_ISA16,
-    .local         = 0x7152, /*HT209*/
-    .init          = radius_svga_multiview_init,
-    .close         = ht216_close,
-    .reset         = NULL,
-    .available     = radius_svga_multiview_available,
-    .speed_changed = ht216_speed_changed,
-    .force_redraw  = ht216_force_redraw,
-    .config        = NULL
 };
 
 const device_t radius_svga_multiview_mca_device = {
@@ -2017,6 +2267,34 @@ const device_t radius_svga_multiview_mca_device = {
     .close         = ht216_close,
     .reset         = NULL,
     .available     = radius_svga_multiview_available,
+    .speed_changed = ht216_speed_changed,
+    .force_redraw  = ht216_force_redraw,
+    .config        = NULL
+};
+
+const device_t v7_vram_2_ergo_device = {
+    .name          = "Video 7 VRAM II Ergo (HT209)",
+    .internal_name = "v7_vram_2_ergo",
+    .flags         = DEVICE_ISA16,
+    .local         = 0x7152, /*HT209*/
+    .init          = radius_svga_multiview_init,
+    .close         = ht216_close,
+    .reset         = ht216_reset,
+    .available     = v7_vram_2_ergo_available,
+    .speed_changed = ht216_speed_changed,
+    .force_redraw  = ht216_force_redraw,
+    .config        = NULL
+};
+
+const device_t ht216_standalone_device = {
+    .name          = "Headland HT216",
+    .internal_name = "ht216",
+    .flags         = DEVICE_ISA16,
+    .local         = 0x7765, /*HT216*/
+    .init          = ht216_standalone_init,
+    .close         = ht216_close,
+    .reset         = ht216_reset,
+    .available     = ht216_standalone_available,
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
     .config        = NULL
