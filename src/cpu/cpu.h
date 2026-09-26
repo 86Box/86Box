@@ -384,7 +384,7 @@ typedef struct {
     MMX_REG MM[8];
 
 #ifdef USE_NEW_DYNAREC
-#    if (defined(__APPLE__) && defined(__aarch64__)) || defined(__aarch64__)
+#    if (defined(__APPLE__) && defined(__aarch64__)) || defined(__aarch64__) || defined(__loongarch_lp64)
     uint64_t old_fp_control;
     uint64_t new_fp_control;
 #    else

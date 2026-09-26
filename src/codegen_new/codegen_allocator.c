@@ -88,9 +88,10 @@ static uint8_t    *mem_block_alloc = NULL;
 int codegen_allocator_usage = 0;
 
 /* Matches the per-arch direct-branch ranges the header comment above
-   documents (128MB on ARMv8, 2GB on x86) - same arch check already used
-   elsewhere in this codebase (cpu.h, 386_common.h). */
-#if defined(__aarch64__) || defined(_M_ARM64)
+   documents (128MB on ARMv8 and LoongArch64 (`b`/`bl` +/-128MiB), 2GB on
+   x86) - same arch check already used elsewhere in this codebase (cpu.h,
+   386_common.h). */
+#if defined(__aarch64__) || defined(_M_ARM64) || defined(__loongarch_lp64)
 #    define CODEGEN_ALLOCATOR_MAX_POOL_BYTES (128ull * 1024 * 1024)
 #else
 #    define CODEGEN_ALLOCATOR_MAX_POOL_BYTES (2ull * 1024 * 1024 * 1024)
@@ -208,12 +209,20 @@ codeblock_allocator_get_ptr(mem_block_t *block)
     return &mem_block_alloc[block->offset];
 }
 
+/* On LoongArch64 glibc does not provide the legacy __clear_cache()
+   helper; use GCC's __builtin___clear_cache, which emits `ibar 0`. */
+#if defined(__loongarch_lp64)
+#    define CODEGEN_HOST_CLEAR_CACHE __builtin___clear_cache
+#else
+#    define CODEGEN_HOST_CLEAR_CACHE __clear_cache
+#endif
+
 void
 codegen_allocator_clean_blocks(UNUSED(struct mem_block_t *block))
 {
-#if defined __ARM_EABI__ || defined __aarch64__ || defined _M_ARM64
+#if defined __ARM_EABI__ || defined __aarch64__ || defined _M_ARM64 || defined(__loongarch_lp64)
     while (1) {
-        __clear_cache(&mem_block_alloc[block->offset], &mem_block_alloc[block->offset + MEM_BLOCK_SIZE]);
+        CODEGEN_HOST_CLEAR_CACHE(&mem_block_alloc[block->offset], &mem_block_alloc[block->offset + MEM_BLOCK_SIZE]);
         if (block->next)
             block = &mem_blocks[block->next - 1];
         else
