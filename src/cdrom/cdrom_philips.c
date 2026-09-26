@@ -298,7 +298,7 @@ cm_ms_execute(cm250_t *d)
             d->response[1]  = d->drive_error ? d->drive_error : d->adapter_error;
             d->response_len = 2;
             d->drive_error = d->adapter_error = d->changed = 0;
-            d->line &= ~0x10;
+            d->line &= ~0x12;
             break;
         case 0x51:
             {
@@ -880,13 +880,13 @@ cm_insert(void *priv)
     cm_stop(d);
     cm_audio_stop(d);
     timer_disable(&d->command_timer);
-    picintc(1 << d->irq);
     d->packet_pos = d->response_pos = d->response_len = 0;
     d->toc_reply                                      = 0;
     d->async_pending                                  = 0;
-    d->line                                           = 0x41;
+    d->line                                           = 0x53;
     d->drive_error = d->adapter_error = 0;
     d->changed                        = 1;
+    picint(1 << d->irq);
 }
 
 static void
