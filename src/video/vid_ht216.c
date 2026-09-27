@@ -2283,6 +2283,7 @@ const device_t v7_vram_2_ergo_device = {
     .available     = v7_vram_2_ergo_available,
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
+    .alias         = "Headland VRAM II ERGO",
     .config        = NULL
 };
 
