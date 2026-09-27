@@ -541,6 +541,16 @@ paradise_recalctimings(svga_t *svga)
 
     svga->lowres = !(svga->gdcreg[0x0e] & 0x01);
 
+    if (paradise->type == WD90C31) {
+        /* Packed chain-4 storage matches the CRTC doubleword layout only.
+           In text mode the BIOS temporarily enables chain-4 to seed the
+           BitBLT blank-row pattern; that write must use VGA addressing. */
+        svga->packed_chain4 = !!(svga->crtc[0x14] & 0x40);
+        svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) &&
+                     ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) &&
+                     !(svga->adv_flags & FLAG_ADDR_BY8);
+    }
+
     if (paradise->type >= WD90C30) {
         if (svga->crtc[0x3e] & 0x01)
             svga->vtotal |= 0x400;
@@ -846,7 +856,6 @@ paradise_init(const device_t *info, uint32_t memory)
             svga->clock_gen     = device_add(paradise->speedstar24x ? &icd2061_device : &ics90c64a_903_device);
             svga->getclock      = paradise->speedstar24x ? icd2061_getclock : ics90c64a_vclk_getclock;
             if ((info->local & 0xff) == WD90C31) {
-                svga->packed_chain4 = 1;
                 svga->hwcursor_draw = paradise_hwcursor_draw;
                 paradise->accel     = wd90c31_init(svga);
             }

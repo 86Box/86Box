@@ -25,19 +25,7 @@ start:
     out 0x80, al
     call 0xc000:3
     cli
-    mov ax, 3
-    int 0x10
-    mov ax, 0xb800
-    mov es, ax
-    mov word [es:0], 0x1741
-    mov word [es:160], 0x2742
-    mov ax, 0x0601
-    mov bh, 7
-    xor cx, cx
-    mov dx, 0x184f
-    int 0x10
-    cmp word [es:0], 0x2742
-    jne fail_scroll
+    call test_text_scroll
     mov ax, 0x13
     int 0x10
     mov ax, 0xa000
@@ -132,6 +120,8 @@ start:
     test al, al
     jnz fail_pixel
 %endif
+    ; Returning from graphics must restore text-mode memory addressing too.
+    call test_text_scroll
     xor bl, bl
 exit:
     call configure_tester
@@ -159,6 +149,42 @@ fail_height:
 fail_pixel:
     mov bl, 5
     jmp exit
+test_text_scroll:
+    mov ax, 3
+    int 0x10
+    mov ax, 0xb800
+    mov es, ax
+    xor di, di
+    mov ax, 0x0741
+    mov bp, 25
+.fill_row:
+    mov cx, 80
+    rep stosw
+    inc ax
+    dec bp
+    jnz .fill_row
+    mov ax, 0x0601
+    mov bh, 0x2e
+    xor cx, cx
+    mov dx, 0x184f
+    int 0x10
+    xor di, di
+    mov ax, 0x0742
+    mov bp, 24
+.check_row:
+    mov cx, 80
+    repe scasw
+    jne fail_scroll
+    inc ax
+    dec bp
+    jnz .check_row
+    ; The BIOS seeds a blank cell through chain-4, then replicates it with
+    ; the BitBLT engine. Check the entire new row, not just the copied text.
+    mov ax, 0x2e20
+    mov cx, 80
+    repe scasw
+    jne fail_scroll
+    ret
 read_word:
     in al, dx
     mov ah, al
