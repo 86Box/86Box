@@ -264,6 +264,71 @@ build_loadstore_routines(codeblock_t *block)
     build_store_routine(block, 8, 1);
 }
 
+/*JIT-built x87 rounding tables: decode cpu_state.new_fp_control (the raw
+  x87 RC, 0=RN 1=RD 2=RU 3=RZ) and apply the matching fixed-rounding
+  ftintr* form. Static rounding variants mean FCSR.RM is never touched,
+  so no save/restore and no host rounding side effects. Convention:
+  value in REG_V_TEMP (F0) as a double; the integer result is left in
+  REG_V_TEMP (F0[31:0] for the W table, F0[63:0] for the quad table);
+  callers bridge to GPRs via movfr2gr as needed. RA is not clobbered -
+  there are no calls inside, so no frame is needed. Stub layout:
+    ld.w mode; andi 3; beq 1->down; beq 2->up; beq 3->chop;
+    ftintrne; b -> ret; down: ftintrm; b -> ret; up: ftintrp; b -> ret;
+    chop: ftintrz (falls through); ret: RET.
+  All branch offsets are computed from the fixed layout below.*/
+static void
+build_fp_round_routine(codeblock_t *block, int is_quad)
+{
+    uint32_t *branch_down, *branch_up, *branch_chop;
+    uint32_t *branch_ret, *branch_ret2, *branch_ret3;
+
+    codegen_alloc(block, 144);
+    host_loong64_LDR_W_IMM(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.new_fp_control - (uintptr_t) &cpu_state);
+    host_loong64_ANDI(block, REG_TEMP, REG_TEMP, 3);
+
+    host_loong64_ORI(block, REG_TEMP2, REG_ZERO, 1);
+    branch_down = host_loong64_BEQ_(block, REG_TEMP, REG_TEMP2); /*x87 1 = RD (-inf)*/
+    host_loong64_ORI(block, REG_TEMP2, REG_ZERO, 2);
+    branch_up = host_loong64_BEQ_(block, REG_TEMP, REG_TEMP2);   /*x87 2 = RU (+inf)*/
+    host_loong64_ORI(block, REG_TEMP2, REG_ZERO, 3);
+    branch_chop = host_loong64_BEQ_(block, REG_TEMP, REG_TEMP2); /*x87 3 = RZ (chop)*/
+
+    if (is_quad)
+        host_loong64_FTINTRNE_L_D(block, REG_V_TEMP, REG_V_TEMP);
+    else
+        host_loong64_FTINTRNE_W_D(block, REG_V_TEMP, REG_V_TEMP);
+    branch_ret = host_loong64_B_(block);
+
+    /*down: ftintrm (x87 1 = RD, round toward -inf).*/
+    host_loong64_branch_set_offset(branch_down, &block_write_data[block_pos]);
+    if (is_quad)
+        host_loong64_FTINTRM_L_D(block, REG_V_TEMP, REG_V_TEMP);
+    else
+        host_loong64_FTINTRM_W_D(block, REG_V_TEMP, REG_V_TEMP);
+    branch_ret2 = host_loong64_B_(block);
+
+    /*up: ftintrp (x87 2 = RU, round toward +inf).*/
+    host_loong64_branch_set_offset(branch_up, &block_write_data[block_pos]);
+    if (is_quad)
+        host_loong64_FTINTRP_L_D(block, REG_V_TEMP, REG_V_TEMP);
+    else
+        host_loong64_FTINTRP_W_D(block, REG_V_TEMP, REG_V_TEMP);
+    branch_ret3 = host_loong64_B_(block);
+
+    /*chop: ftintrz (x87 3 = RZ, round toward zero) - falls through to ret.*/
+    host_loong64_branch_set_offset(branch_chop, &block_write_data[block_pos]);
+    if (is_quad)
+        host_loong64_FTINTRZ_L_D(block, REG_V_TEMP, REG_V_TEMP);
+    else
+        host_loong64_FTINTRZ_W_D(block, REG_V_TEMP, REG_V_TEMP);
+
+    /*Common ret (RA is live at entry; nothing here clobbers it).*/
+    host_loong64_branch_set_offset(branch_ret, &block_write_data[block_pos]);
+    host_loong64_branch_set_offset(branch_ret2, &block_write_data[block_pos]);
+    host_loong64_branch_set_offset(branch_ret3, &block_write_data[block_pos]);
+    host_loong64_RET(block);
+}
+
 /*Emits the register restores shared by codegen_exit_rout and the block
   epilogue (plan section 8.1).*/
 static void
@@ -306,8 +371,12 @@ codegen_backend_init(void)
 
     build_loadstore_routines(block);
 
-    /*codegen_fp_round / codegen_fp_round_quad are built in M3 (plan
-       section 12); nothing calls them while FPU support is absent.*/
+    /*JIT-built x87 rounding tables (decoded from the raw x87 mode in
+      cpu_state.new_fp_control; no FCSR switching involved).*/
+    codegen_fp_round      = &block_write_data[block_pos];
+    build_fp_round_routine(block, 0);
+    codegen_fp_round_quad = &block_write_data[block_pos];
+    build_fp_round_routine(block, 1);
 
     codegen_alloc(block, 80);
     codegen_gpf_rout = &block_write_data[block_pos];

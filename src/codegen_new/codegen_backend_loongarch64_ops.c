@@ -146,6 +146,34 @@
 #    define OPCODE_MOVFR2GR_S        0x0114b400
 #    define OPCODE_MOVFR2GR_D        0x0114b800
 
+/*Scalar FP arithmetic / conversion / compare (D-form). Encodings per
+  Vol1 FP chapter, cross-checked binutils loongarch-opc.c vs qemu
+  insns.decode; field layout is fd=[4:0], fj=[9:5], fk=[14:10] like the
+  GPR 3R forms. FCMP takes fcond at [18:15] and the FCC destination at
+  [2:0] (mask 0xffff8018).*/
+#    define OPCODE_FADD_D            0x01010000
+#    define OPCODE_FSUB_D            0x01030000
+#    define OPCODE_FMUL_D            0x01050000
+#    define OPCODE_FDIV_D            0x01070000
+#    define OPCODE_FABS_D            0x01140800
+#    define OPCODE_FNEG_D            0x01141800
+#    define OPCODE_FSQRT_D           0x01144800
+#    define OPCODE_FMOV_D            0x01149800
+#    define OPCODE_FCVT_S_D          0x01191800
+#    define OPCODE_FCVT_D_S          0x01192400
+#    define OPCODE_FTINTRM_W_D       0x011a0800
+#    define OPCODE_FTINTRP_W_D       0x011a4800
+#    define OPCODE_FTINTRZ_W_D       0x011a8800
+#    define OPCODE_FTINTRNE_W_D      0x011ac800
+#    define OPCODE_FTINTRM_L_D       0x011a2800
+#    define OPCODE_FTINTRP_L_D       0x011a6800
+#    define OPCODE_FTINTRZ_L_D       0x011aa800
+#    define OPCODE_FTINTRNE_L_D      0x011ae800
+#    define OPCODE_FFINT_D_W         0x011d2000
+#    define OPCODE_FFINT_D_L         0x011d2800
+#    define OPCODE_FCMP_D            0x0c200000
+#    define OPCODE_MOVCF2GR          0x0114dc00
+
 /*vori.b vd, vj, 0 - the LA64 register-register FP/vector move (LA64 has
   no fmov; the f regs alias the low 64 bits of the v regs).*/
 #    define OPCODE_VORI_B            0x73d40000
@@ -752,6 +780,143 @@ host_loong64_VMOV_F(codeblock_t *block, int dst_freg, int src_freg)
     codegen_addlong(block, OPCODE_VORI_B | Rd(dst_freg) | Rj(src_freg) | IMM12(0));
 }
 
+/*Scalar FP arithmetic, D-form (true 3-operand: dst may differ from both
+  sources, no staging register needed).*/
+void
+host_loong64_FADD_D(codeblock_t *block, int dst_freg, int src_a_freg, int src_b_freg)
+{
+    codegen_addlong(block, OPCODE_FADD_D | Rd(dst_freg) | Rj(src_a_freg) | Rk(src_b_freg));
+}
+void
+host_loong64_FSUB_D(codeblock_t *block, int dst_freg, int src_a_freg, int src_b_freg)
+{
+    codegen_addlong(block, OPCODE_FSUB_D | Rd(dst_freg) | Rj(src_a_freg) | Rk(src_b_freg));
+}
+void
+host_loong64_FMUL_D(codeblock_t *block, int dst_freg, int src_a_freg, int src_b_freg)
+{
+    codegen_addlong(block, OPCODE_FMUL_D | Rd(dst_freg) | Rj(src_a_freg) | Rk(src_b_freg));
+}
+void
+host_loong64_FDIV_D(codeblock_t *block, int dst_freg, int src_a_freg, int src_b_freg)
+{
+    codegen_addlong(block, OPCODE_FDIV_D | Rd(dst_freg) | Rj(src_a_freg) | Rk(src_b_freg));
+}
+
+/*2R unary FP ops (fd, fj).*/
+void
+host_loong64_FABS_D(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FABS_D | Rd(dst_freg) | Rj(src_freg));
+}
+void
+host_loong64_FNEG_D(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FNEG_D | Rd(dst_freg) | Rj(src_freg));
+}
+void
+host_loong64_FSQRT_D(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FSQRT_D | Rd(dst_freg) | Rj(src_freg));
+}
+void
+host_loong64_FMOV_D(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FMOV_D | Rd(dst_freg) | Rj(src_freg));
+}
+void
+host_loong64_FCVT_S_D(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FCVT_S_D | Rd(dst_freg) | Rj(src_freg));
+}
+void
+host_loong64_FCVT_D_S(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FCVT_D_S | Rd(dst_freg) | Rj(src_freg));
+}
+
+/*Fixed-rounding FPR->FPR integer conversions (x87 rounding control is
+  applied by picking the variant, never by touching FCSR.RM). x87 mode
+  mapping: 0=RN -> ftintrne, 1=RD(-inf) -> ftintrm, 2=RU(+inf) ->
+  ftintrp, 3=RZ(chop) -> ftintrz. The .w forms write the 32-bit result
+  into fd[31:0] (sign-extended per the LA64 architecture); the .l forms
+  write the full 64 bits. Result upper half beyond the width is
+  architecturally undefined, so callers treat the result register as
+  "32-bit" or "64-bit" exactly as the form chosen.*/
+void
+host_loong64_FTINTRM_W_D(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FTINTRM_W_D | Rd(dst_freg) | Rj(src_freg));
+}
+void
+host_loong64_FTINTRP_W_D(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FTINTRP_W_D | Rd(dst_freg) | Rj(src_freg));
+}
+void
+host_loong64_FTINTRZ_W_D(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FTINTRZ_W_D | Rd(dst_freg) | Rj(src_freg));
+}
+void
+host_loong64_FTINTRNE_W_D(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FTINTRNE_W_D | Rd(dst_freg) | Rj(src_freg));
+}
+void
+host_loong64_FTINTRM_L_D(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FTINTRM_L_D | Rd(dst_freg) | Rj(src_freg));
+}
+void
+host_loong64_FTINTRP_L_D(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FTINTRP_L_D | Rd(dst_freg) | Rj(src_freg));
+}
+void
+host_loong64_FTINTRZ_L_D(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FTINTRZ_L_D | Rd(dst_freg) | Rj(src_freg));
+}
+void
+host_loong64_FTINTRNE_L_D(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FTINTRNE_L_D | Rd(dst_freg) | Rj(src_freg));
+}
+
+/*FPR -> FPR int-to-float (fj[31:0] sign-extended for the .w form).*/
+void
+host_loong64_FFINT_D_W(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FFINT_D_W | Rd(dst_freg) | Rj(src_freg));
+}
+void
+host_loong64_FFINT_D_L(codeblock_t *block, int dst_freg, int src_freg)
+{
+    codegen_addlong(block, OPCODE_FFINT_D_L | Rd(dst_freg) | Rj(src_freg));
+}
+
+/*Quiet FP compare: fcc = cond(fj, fk). cond values (Vol1 comparison
+  table): 2 = clt, 4 = ceq, 8 = cun. The result lands in the 1-bit FCC
+  register dst_fcc (fcc0-fcc7), which FSEL/BCEQZ/BCNEZ and movcf2gr
+  read; FCCs are not part of FCSR and are not preserved across calls -
+  consume them in the same uop they are written in.*/
+void
+host_loong64_FCMP_D(codeblock_t *block, int dst_fcc, int src_a_freg, int src_b_freg, int cond)
+{
+    if (dst_fcc < 0 || dst_fcc > 7)
+        fatal("host_loong64_FCMP_D - bad FCC %i\n", dst_fcc);
+    codegen_addlong(block, OPCODE_FCMP_D | Rd(dst_fcc) | (cond << 15) | Rj(src_a_freg) | Rk(src_b_freg));
+}
+
+/*FCC -> GPR: rd = zero-extended CFR[cj] (0 or 1, qemu models it as an
+  ld8u so the whole register is the bit value).*/
+void
+host_loong64_MOVCF2GR(codeblock_t *block, int dst_greg, int cj)
+{
+    codegen_addlong(block, OPCODE_MOVCF2GR | Rd(dst_greg) | Rj(cj));
+}
+
 /*Branches / jumps.*/
 
 /*Pack a signed byte offset into the B/BL d10k16 fields.*/
@@ -822,6 +987,16 @@ uint32_t *
 host_loong64_BNE_(codeblock_t *block, int src_a_reg, int src_b_reg)
 {
     return branch_template(block, OPCODE_BNE, src_a_reg, src_b_reg);
+}
+
+/*Patchable unconditional B (no inverse-cond template - branch_set_offset
+  just writes the B/br26 pair).*/
+uint32_t *
+host_loong64_B_(codeblock_t *block)
+{
+    codegen_alloc(block, 4);
+    codegen_addlong(block, OPCODE_B);
+    return (uint32_t *) &block_write_data[block_pos - 4];
 }
 uint32_t *
 host_loong64_BLT_(codeblock_t *block, int src_a_reg, int src_b_reg)

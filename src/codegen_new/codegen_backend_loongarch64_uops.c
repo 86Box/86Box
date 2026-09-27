@@ -9,7 +9,7 @@
  *          This file is part of the 86Box distribution.
  *
  *          LoongArch64 backend for the "new" dynamic recompiler -
- *          uop handlers (milestone M1: integer core + control flow).
+ *          uop handlers (M1: integer core + control flow; M3: x87/FPU).
  *
  *          Handlers mirror the arm64 backend's semantics; every uop not
  *          in the M1 set dispatches to a fatal() stub so gaps surface
@@ -1652,6 +1652,379 @@ codegen_XOR_IMM(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*=== FP support (x87), mirroring the arm64 backend's semantics ===
+  All D-class x87 values live in host FPRs (IREG_ST(r) with sizes
+  resolved at compile time); Q-size integer temps are FP-class too.
+  The x87 C0/C2/C3 condition bits are materialised into a W GPR via a
+  quiet FCMP into FCC0-2 plus movcf2gr/sub.d sign-mask/slli/OR chains
+  (LA64 has no CSEL-on-FCC and no fcc->GPR with bit placement). */
+
+static int
+codegen_FADD(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_D(dest_size) && REG_IS_D(src_size_a) && REG_IS_D(src_size_b)) {
+        host_loong64_FADD_D(block, dest_reg, src_reg_a, src_reg_b);
+    } else
+        fatal("codegen_FADD %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+
+    return 0;
+}
+static int
+codegen_FSUB(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_D(dest_size) && REG_IS_D(src_size_a) && REG_IS_D(src_size_b)) {
+        host_loong64_FSUB_D(block, dest_reg, src_reg_a, src_reg_b);
+    } else
+        fatal("codegen_FSUB %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+
+    return 0;
+}
+static int
+codegen_FMUL(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_D(dest_size) && REG_IS_D(src_size_a) && REG_IS_D(src_size_b)) {
+        host_loong64_FMUL_D(block, dest_reg, src_reg_a, src_reg_b);
+    } else
+        fatal("codegen_FMUL %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+
+    return 0;
+}
+static int
+codegen_FDIV(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_D(dest_size) && REG_IS_D(src_size_a) && REG_IS_D(src_size_b)) {
+        host_loong64_FDIV_D(block, dest_reg, src_reg_a, src_reg_b);
+    } else
+        fatal("codegen_FDIV %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+
+    return 0;
+}
+static int
+codegen_FABS(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_D(dest_size) && REG_IS_D(src_size_a)) {
+        host_loong64_FABS_D(block, dest_reg, src_reg_a);
+    } else
+        fatal("codegen_FABS %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
+
+    return 0;
+}
+static int
+codegen_FCHS(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_D(dest_size) && REG_IS_D(src_size_a)) {
+        host_loong64_FNEG_D(block, dest_reg, src_reg_a);
+    } else
+        fatal("codegen_FCHS %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
+
+    return 0;
+}
+static int
+codegen_FSQRT(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_D(dest_size) && REG_IS_D(src_size_a)) {
+        host_loong64_FSQRT_D(block, dest_reg, src_reg_a);
+    } else
+        fatal("codegen_FSQRT %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
+
+    return 0;
+}
+static int
+codegen_FROUND_S(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_D(dest_size) && REG_IS_D(src_size_a)) {
+        /*double -> float -> double, host RM = nearest (the same
+          approximation both references make for 24-bit precision).*/
+        host_loong64_FCVT_S_D(block, REG_V_TEMP, src_reg_a);
+        host_loong64_FCVT_D_S(block, dest_reg, REG_V_TEMP);
+    } else
+        fatal("codegen_FROUND_S %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
+
+    return 0;
+}
+
+/*Emit the x87 C0/C2/C3 nibble for a compare of src_a vs src_b into the
+  W-size GPR dest:
+    C3 (0x4000) = equal, C0 (0x0100) = less, C0|C2|C3 (0x4500) = unordered.
+  Three quiet FCMPs into FCC0-2, then movcf2gr (whole-register,
+  zero-extended 0/1 per the ld8u semantics) + slli/or to place the bits.
+  No sign-mask trick is needed - the 0/1 values shift into exact flag
+  bits, so the result register always holds a clean 32-bit value. LA64
+  has no CSEL-on-FCC; C1 is never set, matching both reference backends
+  and the interpreter (x87_compare).*/
+static void
+emit_fcom_flags(codeblock_t *block, int dest_reg, int src_reg_a, int src_reg_b)
+{
+    host_loong64_MOV_REG(block, dest_reg, REG_ZERO);
+    host_loong64_FCMP_D(block, 0, src_reg_a, src_reg_b, 8); /*cun -> FCC0*/
+    host_loong64_FCMP_D(block, 1, src_reg_a, src_reg_b, 4); /*ceq -> FCC1*/
+    host_loong64_FCMP_D(block, 2, src_reg_a, src_reg_b, 2); /*clt -> FCC2*/
+
+    /*unordered: C0|C2|C3 (the same 0/1 register shifted three times).*/
+    host_loong64_MOVCF2GR(block, REG_TEMP, 0);
+    host_loong64_SHL_D_IMM(block, REG_TEMP, REG_TEMP, 8); /*C0*/
+    host_loong64_OR_REG(block, dest_reg, dest_reg, REG_TEMP);
+    host_loong64_SHL_D_IMM(block, REG_TEMP, REG_TEMP, 2); /*C2*/
+    host_loong64_OR_REG(block, dest_reg, dest_reg, REG_TEMP);
+    host_loong64_SHL_D_IMM(block, REG_TEMP, REG_TEMP, 4); /*C3*/
+    host_loong64_OR_REG(block, dest_reg, dest_reg, REG_TEMP);
+    /*equal: C3.*/
+    host_loong64_MOVCF2GR(block, REG_TEMP2, 1);
+    host_loong64_SHL_D_IMM(block, REG_TEMP2, REG_TEMP2, 14); /*C3*/
+    host_loong64_OR_REG(block, dest_reg, dest_reg, REG_TEMP2);
+    /*less: C0.*/
+    host_loong64_MOVCF2GR(block, REG_TEMP3, 2);
+    host_loong64_SHL_D_IMM(block, REG_TEMP3, REG_TEMP3, 8); /*C0*/
+    host_loong64_OR_REG(block, dest_reg, dest_reg, REG_TEMP3);
+}
+static int
+codegen_FCOM(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_W(dest_size) && REG_IS_D(src_size_a) && REG_IS_D(src_size_b)) {
+        emit_fcom_flags(block, dest_reg, src_reg_a, src_reg_b);
+    } else
+        fatal("codegen_FCOM %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+
+    return 0;
+}
+static int
+codegen_FTST(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_W(dest_size) && REG_IS_D(src_size_a)) {
+        host_loong64_MOVGR2FR_D(block, REG_V_TEMP, REG_ZERO); /*+0.0*/
+        emit_fcom_flags(block, dest_reg, src_reg_a, REG_V_TEMP);
+    } else
+        fatal("codegen_FTST %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
+
+    return 0;
+}
+
+static int
+codegen_MEM_LOAD_SINGLE(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int seg_reg   = HOST_REG_GET(uop->src_reg_a_real);
+    int addr_reg  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+
+    if (!REG_IS_D(dest_size))
+        fatal("MEM_LOAD_SINGLE - %02x\n", uop->dest_reg_a_real);
+
+    host_loong64_ADDX_REG(block, REG_A0, seg_reg, addr_reg);
+    if (uop->imm_data)
+        host_loong64_ADD_W_IMM(block, REG_A0, REG_A0, (uint32_t) uop->imm_data);
+    host_loong64_UBFX_D(block, REG_A0, REG_A0, 0, 32);
+    host_loong64_call(block, codegen_mem_load_single);
+    host_loong64_branch_reg_ne(block, REG_A1, REG_ZERO, codegen_exit_rout);
+    /*The stub returns the raw f32 bits in V_TEMP; convert here like the
+      arm64 backend does.*/
+    host_loong64_FCVT_D_S(block, dest_reg, REG_V_TEMP);
+
+    return 0;
+}
+static int
+codegen_MEM_LOAD_DOUBLE(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int seg_reg   = HOST_REG_GET(uop->src_reg_a_real);
+    int addr_reg  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+
+    if (!REG_IS_D(dest_size))
+        fatal("MEM_LOAD_DOUBLE - %02x\n", uop->dest_reg_a_real);
+
+    host_loong64_ADDX_REG(block, REG_A0, seg_reg, addr_reg);
+    if (uop->imm_data)
+        host_loong64_ADD_W_IMM(block, REG_A0, REG_A0, (uint32_t) uop->imm_data);
+    host_loong64_UBFX_D(block, REG_A0, REG_A0, 0, 32);
+    host_loong64_call(block, codegen_mem_load_double);
+    host_loong64_branch_reg_ne(block, REG_A1, REG_ZERO, codegen_exit_rout);
+    host_loong64_VMOV_F(block, dest_reg, REG_V_TEMP);
+
+    return 0;
+}
+static int
+codegen_MEM_STORE_SINGLE(codeblock_t *block, uop_t *uop)
+{
+    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg  = HOST_REG_GET(uop->src_reg_c_real);
+    int src_size = IREG_GET_SIZE(uop->src_reg_c_real);
+
+    if (!REG_IS_D(src_size))
+        fatal("MEM_STORE_SINGLE - %02x\n", uop->dest_reg_a_real);
+
+    host_loong64_ADDX_REG(block, REG_A0, seg_reg, addr_reg);
+    if (uop->imm_data)
+        host_loong64_ADD_W_IMM(block, REG_A0, REG_A0, (uint32_t) uop->imm_data);
+    host_loong64_UBFX_D(block, REG_A0, REG_A0, 0, 32);
+    host_loong64_FCVT_S_D(block, REG_V_TEMP, src_reg);
+    host_loong64_call(block, codegen_mem_store_single);
+    host_loong64_branch_reg_ne(block, REG_A1, REG_ZERO, codegen_exit_rout);
+
+    return 0;
+}
+static int
+codegen_MEM_STORE_DOUBLE(codeblock_t *block, uop_t *uop)
+{
+    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg  = HOST_REG_GET(uop->src_reg_c_real);
+    int src_size = IREG_GET_SIZE(uop->src_reg_c_real);
+
+    if (!REG_IS_D(src_size))
+        fatal("MEM_STORE_DOUBLE - %02x\n", uop->dest_reg_a_real);
+
+    host_loong64_ADDX_REG(block, REG_A0, seg_reg, addr_reg);
+    if (uop->imm_data)
+        host_loong64_ADD_W_IMM(block, REG_A0, REG_A0, (uint32_t) uop->imm_data);
+    host_loong64_UBFX_D(block, REG_A0, REG_A0, 0, 32);
+    host_loong64_VMOV_F(block, REG_V_TEMP, src_reg);
+    host_loong64_call(block, codegen_mem_store_double);
+    host_loong64_branch_reg_ne(block, REG_A1, REG_ZERO, codegen_exit_rout);
+
+    return 0;
+}
+
+static int
+codegen_MOV_DOUBLE_INT(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_D(dest_size) && REG_IS_L(src_size)) {
+        host_loong64_MOVGR2FR_W(block, REG_V_TEMP, src_reg);
+        host_loong64_FFINT_D_W(block, dest_reg, REG_V_TEMP);
+    } else if (REG_IS_D(dest_size) && REG_IS_W(src_size)) {
+        host_loong64_SEXT_H(block, REG_TEMP, src_reg);
+        host_loong64_MOVGR2FR_W(block, REG_V_TEMP, REG_TEMP);
+        host_loong64_FFINT_D_W(block, dest_reg, REG_V_TEMP);
+    } else if (REG_IS_D(dest_size) && REG_IS_Q(src_size)) {
+        /*Q-size integer regs are FP-class (they hold raw int64 in an
+          FPR), so ffint.d.l converts directly.*/
+        host_loong64_FFINT_D_L(block, dest_reg, src_reg);
+    } else
+        fatal("codegen_MOV_DOUBLE_INT %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
+
+    return 0;
+}
+static int
+codegen_MOV_INT_DOUBLE(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_L(dest_size) && REG_IS_D(src_size)) {
+        host_loong64_VMOV_F(block, REG_V_TEMP, src_reg);
+        host_loong64_call(block, codegen_fp_round);
+        host_loong64_MOVFR2GR_S(block, dest_reg, REG_V_TEMP);
+    } else if (REG_IS_W(dest_size) && REG_IS_D(src_size)) {
+        host_loong64_VMOV_F(block, REG_V_TEMP, src_reg);
+        host_loong64_call(block, codegen_fp_round);
+        host_loong64_MOVFR2GR_S(block, REG_TEMP, REG_V_TEMP);
+        host_loong64_BFI_W(block, dest_reg, REG_TEMP, 0, 16);
+    } else
+        fatal("codegen_MOV_INT_DOUBLE %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
+
+    return 0;
+}
+static int
+codegen_MOV_INT_DOUBLE_64(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg    = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg     = HOST_REG_GET(uop->src_reg_a_real);
+    int src_64_reg  = HOST_REG_GET(uop->src_reg_b_real);
+    int tag_reg     = HOST_REG_GET(uop->src_reg_c_real);
+    int dest_size   = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size    = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_64_size = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_Q(dest_size) && REG_IS_D(src_size) && REG_IS_Q(src_64_size)) {
+        uint32_t *branch_offset;
+
+        /*If TAG_UINT64 is set then the source is MM[] (raw int64 bits in
+          an FPR). Otherwise it is a double in ST() and needs rounding to
+          64-bit integer bits via the fp_round_quad stub. Q-size IR regs
+          are FP-class, so both halves move through FPRs only.*/
+        host_loong64_VMOV_F(block, dest_reg, src_64_reg);
+        host_loong64_ANDI(block, REG_TEMP, tag_reg, TAG_UINT64);
+        branch_offset = host_loong64_BNE_(block, REG_TEMP, REG_ZERO);
+
+        host_loong64_VMOV_F(block, REG_V_TEMP, src_reg);
+        host_loong64_call(block, codegen_fp_round_quad);
+        host_loong64_VMOV_F(block, dest_reg, REG_V_TEMP);
+
+        host_loong64_branch_set_offset(branch_offset, &block_write_data[block_pos]);
+    } else
+        fatal("codegen_MOV_INT_DOUBLE_64 %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+
+    return 0;
+}
+
 const uOpFn uop_handlers[UOP_MAX] = {
     /*Any uop without a handler below lands here and fatal()s - in both
       debug and release builds (plan section 13.3).*/
@@ -1703,6 +2076,29 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_XOR_IMM & UOP_MASK]   = codegen_XOR_IMM,
 
     [UOP_CMP_IMM_JZ & UOP_MASK] = codegen_CMP_IMM_JZ,
+
+    /*FP (x87) support. UOP_FP_ENTER is not dispatched here - the
+      uop_FP_ENTER macro takes the CALL codegen_fp_enter + CMP_IMM_JZ
+      path on LoongArch64 (codegen_ir_defs.h), like arm64.*/
+    [UOP_FADD & UOP_MASK]  = codegen_FADD,
+    [UOP_FSUB & UOP_MASK]  = codegen_FSUB,
+    [UOP_FMUL & UOP_MASK]  = codegen_FMUL,
+    [UOP_FDIV & UOP_MASK]  = codegen_FDIV,
+    [UOP_FCOM & UOP_MASK]  = codegen_FCOM,
+    [UOP_FABS & UOP_MASK]  = codegen_FABS,
+    [UOP_FCHS & UOP_MASK]  = codegen_FCHS,
+    [UOP_FTST & UOP_MASK]  = codegen_FTST,
+    [UOP_FSQRT & UOP_MASK] = codegen_FSQRT,
+    [UOP_FROUND_S & UOP_MASK] = codegen_FROUND_S,
+
+    [UOP_MEM_LOAD_SINGLE & UOP_MASK] = codegen_MEM_LOAD_SINGLE,
+    [UOP_MEM_LOAD_DOUBLE & UOP_MASK] = codegen_MEM_LOAD_DOUBLE,
+    [UOP_MEM_STORE_SINGLE & UOP_MASK] = codegen_MEM_STORE_SINGLE,
+    [UOP_MEM_STORE_DOUBLE & UOP_MASK] = codegen_MEM_STORE_DOUBLE,
+
+    [UOP_MOV_DOUBLE_INT & UOP_MASK]    = codegen_MOV_DOUBLE_INT,
+    [UOP_MOV_INT_DOUBLE & UOP_MASK]    = codegen_MOV_INT_DOUBLE,
+    [UOP_MOV_INT_DOUBLE_64 & UOP_MASK] = codegen_MOV_INT_DOUBLE_64,
 
     [UOP_CMP_IMM_JZ_DEST & UOP_MASK]    = codegen_CMP_IMM_JZ_DEST,
     [UOP_CMP_IMM_JNZ_DEST & UOP_MASK]   = codegen_CMP_IMM_JNZ_DEST,

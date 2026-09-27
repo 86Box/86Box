@@ -52,6 +52,9 @@ uint32_t *host_loong64_BGE_(codeblock_t *block, int src_a_reg, int src_b_reg);
 uint32_t *host_loong64_BLTU_(codeblock_t *block, int src_a_reg, int src_b_reg);
 uint32_t *host_loong64_BGEU_(codeblock_t *block, int src_a_reg, int src_b_reg);
 
+/*Patchable unconditional B (no inverse-cond template).*/
+uint32_t *host_loong64_B_(codeblock_t *block);
+
 void host_loong64_branch_set_offset(uint32_t *opcode, void *dest);
 
 void host_loong64_NOP(codeblock_t *block);
@@ -183,6 +186,41 @@ void host_loong64_MOVGR2FR_D(codeblock_t *block, int dst_freg, int src_greg);
 void host_loong64_MOVFR2GR_S(codeblock_t *block, int dst_greg, int src_freg);
 void host_loong64_MOVFR2GR_D(codeblock_t *block, int dst_greg, int src_freg);
 void host_loong64_VMOV_F(codeblock_t *block, int dst_freg, int src_freg);
+
+/*Scalar FP arithmetic (D-form, true 3-operand).*/
+void host_loong64_FADD_D(codeblock_t *block, int dst_freg, int src_a_freg, int src_b_freg);
+void host_loong64_FSUB_D(codeblock_t *block, int dst_freg, int src_a_freg, int src_b_freg);
+void host_loong64_FMUL_D(codeblock_t *block, int dst_freg, int src_a_freg, int src_b_freg);
+void host_loong64_FDIV_D(codeblock_t *block, int dst_freg, int src_a_freg, int src_b_freg);
+
+/*2R unary FP ops (fd, fj).*/
+void host_loong64_FABS_D(codeblock_t *block, int dst_freg, int src_freg);
+void host_loong64_FNEG_D(codeblock_t *block, int dst_freg, int src_freg);
+void host_loong64_FSQRT_D(codeblock_t *block, int dst_freg, int src_freg);
+void host_loong64_FMOV_D(codeblock_t *block, int dst_freg, int src_freg);
+void host_loong64_FCVT_S_D(codeblock_t *block, int dst_freg, int src_freg);
+void host_loong64_FCVT_D_S(codeblock_t *block, int dst_freg, int src_freg);
+
+/*Fixed-rounding FPR -> FPR integer conversions (x87 rounding control is
+  applied by choosing the variant; FCSR.RM is never touched). .w = 32-bit
+  result, .l = 64-bit result, written into the destination FPR.*/
+void host_loong64_FTINTRM_W_D(codeblock_t *block, int dst_freg, int src_freg);
+void host_loong64_FTINTRP_W_D(codeblock_t *block, int dst_freg, int src_freg);
+void host_loong64_FTINTRZ_W_D(codeblock_t *block, int dst_freg, int src_freg);
+void host_loong64_FTINTRNE_W_D(codeblock_t *block, int dst_freg, int src_freg);
+void host_loong64_FTINTRM_L_D(codeblock_t *block, int dst_freg, int src_freg);
+void host_loong64_FTINTRP_L_D(codeblock_t *block, int dst_freg, int src_freg);
+void host_loong64_FTINTRZ_L_D(codeblock_t *block, int dst_freg, int src_freg);
+void host_loong64_FTINTRNE_L_D(codeblock_t *block, int dst_freg, int src_freg);
+
+/*FPR -> FPR int-to-float (fj[31:0] sign-extended for the .w form).*/
+void host_loong64_FFINT_D_W(codeblock_t *block, int dst_freg, int src_freg);
+void host_loong64_FFINT_D_L(codeblock_t *block, int dst_freg, int src_freg);
+
+/*Quiet compare cond(fj, fk) -> FCC dst_fcc (cond: 2=clt, 4=ceq, 8=cun),
+  and FCC -> GPR bit move (rd = zero-extended 0/1).*/
+void host_loong64_FCMP_D(codeblock_t *block, int dst_fcc, int src_a_freg, int src_b_freg, int cond);
+void host_loong64_MOVCF2GR(codeblock_t *block, int dst_greg, int cj);
 
 /*Block allocation chaining (mirrors the arm64 backend).*/
 void codegen_alloc(codeblock_t *block, int size);
