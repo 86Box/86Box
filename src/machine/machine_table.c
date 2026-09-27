@@ -12835,7 +12835,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         /* Machine has custom (currently unemulated) power management harware
            needed for the APM interface to function */
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
