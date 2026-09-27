@@ -1196,7 +1196,10 @@ aic_scsi_int(aic7xxx_t *dev)
            asks for cannot be refused. */
         dev->seqctl &= ~PAUSEDIS;
         aic_raise(dev, SCSIINT);
-    } else if (dev->intstat & SCSIINT) {
+    } else if ((dev->intstat & SCSIINT) && !(dev->chip->clrint_mask & CLRSCSIINT)) {
+        /* The PCI parts latch SCSIINT until CLRSCSIINT is written
+           (AIC-7870 data book, INTSTAT). Only the AIC-7770 follows the
+           underlying SCSI status without a separate interrupt latch. */
         /* And it goes away again on its own. SCSIINT is not a latch the
            host clears: the data book gives it as set "if the corresponding
            interrupt is enabled in SIMODE0 or SIMODE1", which is why the
@@ -1363,6 +1366,14 @@ aic_set_sstat0(aic7xxx_t *dev, uint8_t bits)
     aic_scsi_int(dev);
 }
 
+/* DMA owns the SCSI handshake while either SCSI-side enable is set,
+   even if firmware leaves SPIOEN enabled (SXFRCTL0, both data books). */
+static int
+aic_pio_enabled(const aic7xxx_t *dev)
+{
+    return (dev->sxfrctl0 & SPIOEN) && !(dev->dfcntrl & (SCSIEN | SDMAEN));
+}
+
 /* ---- the SCSI bus ------------------------------------------------------- */
 
 /* REQINIT follows REQ, and PHASECHG latches a phase that is not the one
@@ -1408,7 +1419,7 @@ aic_bus_changed(aic7xxx_t *dev)
        ARROW.MPD -- starts its command DMA, reads SSTAT0, finds SDONE
        standing on a SPIORDY left over from the last message byte, and
        cancels the transfer it just started. */
-    if (req && !dev->req_seen && (dev->sxfrctl0 & SPIOEN) && !(dev->dfcntrl & (SCSIEN | SDMAEN)))
+    if (req && !dev->req_seen && aic_pio_enabled(dev))
         aic_set_sstat0(dev, SPIORDY);
     dev->req_seen = req;
 
@@ -1729,9 +1740,12 @@ aic_tgt_next(aic7xxx_t *dev)
 
     if (!c->executed) {
         aic_cmd_execute(dev, c);
-        /* A target with work to do and permission to go away takes it,
-           once, so that reselection gets exercised. */
-        if (c->disc_ok && !c->waited && (c->data_len > 0)) {
+        /* Reads have already completed in the backend and their data is
+           private to this command. Keep data-out commands connected until
+           phase1 completes: the backend has only one current CDB, transfer
+           buffer and sector position per target. Disconnecting here lets
+           another queued command overwrite that state before the write. */
+        if (c->data_in && c->disc_ok && !c->waited && (c->data_len > 0)) {
             /* SAVE DATA POINTERS, then DISCONNECT. A target sends both,
                in that order, and the sequencer needs the first: it is
                what tells the program to write the transfer's address and
@@ -2210,6 +2224,8 @@ aic_reselect_try(aic7xxx_t *dev)
 static void
 aic_scsi_reset_bus(aic7xxx_t *dev)
 {
+    uint8_t bus = aic_cur_bus(dev);
+
     aic_log(dev->tag, "[%.3f ms] scsi bus reset\n", aic_now_us() / 1000.0);
     /* A bus reset is where a driver starts over, and where the trace
        should too: the bounded traces above were spent on the option
@@ -2217,37 +2233,40 @@ aic_scsi_reset_bus(aic7xxx_t *dev)
        driver's own first command went unrecorded. */
     dev->busl_reads = dev->sig_logs = dev->scb_dumps = 0;
     for (uint8_t i = 0; i < AIC_CMDS; i++) {
-        if (dev->cmds[i].used)
+        if (dev->cmds[i].used && (!dev->twin || (dev->cmds[i].bus == bus)))
             aic_cmd_free(dev, &dev->cmds[i]);
     }
-    dev->cur       = NULL;
-    dev->bus_state = BUS_FREE;
-    dev->tgt_req   = 0;
-    dev->selecting = 0;
-    dev->req_wait  = 0;
-    dev->atn       = 0;
-    dev->datl_full = 0;
+    /* A twin-channel AIC-7770 has independent reset signals. A reset on
+       the selected bus must not cancel work on the other physical bus. */
+    if (!dev->twin || (dev->cur_ch == dev->cell_live)) {
+        dev->cur       = NULL;
+        dev->bus_state = BUS_FREE;
+        dev->tgt_req   = 0;
+        dev->req_wait  = 0;
+        dev->atn       = 0;
+        dev->datl_full = 0;
+        timer_stop(&dev->tgt_timer);
+        timer_stop(&dev->req_timer);
+    }
+    if (!dev->twin || (dev->sel_ch == dev->cell_live)) {
+        dev->selecting = 0;
+        timer_stop(&dev->sel_timer);
+    }
     /* A reset clears SCSISIGO and everything in SCSISEQ but the bit that
        is causing it. */
     dev->scsisigo = 0;
-    /* "All bits except SCSIRSTO are cleared by SCSI Bus Reset" -- on
-       both cells, not only the one the file is looking at. Leaving the
-       other bank's ENSELO standing had the next bus-free restart a
-       selection from it with whatever SCSIID it last held. */
+    /* Without a second physical bus, clear the unused bank as well so
+       an old probe there cannot restart a selection after reset. */
     dev->scsiseq &= SCSIRSTO;
     dev->sstat0 &= ~(SELDO | SELDI | SELINGO);
     for (uint8_t ch = 0; ch < 2; ch++) {
-        if (ch != dev->cell_live) {
+        if (!dev->twin && (ch != dev->cell_live)) {
             dev->cell_save[ch].scsiseq &= SCSIRSTO;
             dev->cell_save[ch].sstat0 &= (uint8_t) ~(SELDO | SELDI | SELINGO);
         }
     }
-    timer_stop(&dev->sel_timer);
-    timer_stop(&dev->tgt_timer);
-    timer_stop(&dev->req_timer);
-
     for (uint8_t i = 0; i < (dev->wide ? 16 : 8); i++)
-        scsi_device_reset(&scsi_devices[aic_cur_bus(dev)][i]);
+        scsi_device_reset(&scsi_devices[bus][i]);
 
     if (dev->chip->own_reset_seen)
         aic_set_sstat1(dev, SCSIRSTI);
@@ -2539,7 +2558,7 @@ aic_pio_counted(aic7xxx_t *dev)
 static void
 aic_pio_out(aic7xxx_t *dev)
 {
-    if (!dev->datl_full || !(dev->sxfrctl0 & SPIOEN))
+    if (!dev->datl_full || !aic_pio_enabled(dev))
         return;
     if ((dev->bus_state != BUS_BUSY) || !dev->tgt_req || (dev->tgt_phase & IOI))
         return;
@@ -2687,7 +2706,7 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
                             seq ? "seq" : "host", ret,
                             aic_phase_name(dev->tgt_phase), dev->msgin_pos, dev->msgin_len,
                             !!(dev->sxfrctl0 & SPIOEN),
-                            (dev->sxfrctl0 & SPIOEN) ? "acked" : "NOT acked");
+                            aic_pio_enabled(dev) ? "acked" : "NOT acked");
                 }
                 /* The handshake is automatic PIO's, and SPIOEN is what
                    turns that on: "The individual PIO transfers are
@@ -2702,7 +2721,7 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
                    An earlier pass removed this gate on the strength of
                    the SCSIDATL description alone; the SPIOEN text is the
                    more specific and it puts the gate back. */
-                if (dev->sxfrctl0 & SPIOEN) {
+                if (aic_pio_enabled(dev)) {
                     /* "During a transfer from SCSI, it is cleared on a
                        read from SCSIDATL." */
                     dev->sstat0 &= ~SPIORDY;
@@ -3164,7 +3183,7 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                 aic_scsi_reset_bus(dev);
             if (val & ENSELO)
                 aic_select_start(dev);
-            else if (!(val & ENSELO) && dev->selecting) {
+            else if (!(val & ENSELO) && dev->selecting && (dev->sel_ch == dev->cell_live)) {
                 dev->selecting = 0;
                 dev->sstat0 &= ~SELINGO;
                 timer_stop(&dev->sel_timer);
@@ -3475,6 +3494,7 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
         case DSCOMMAND0:
             if (dev->eisa) {
                 dev->bctl = val & 0x09;
+                aic_update_irq(dev); /* ENABLE also gates the EISA IRQ output. */
                 break;
             }
             dev->dscommand0 = val & 0xf0;
@@ -3545,9 +3565,9 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                interrupt and must not look like one in INTSTAT, or the
                handler will think the firmware stopped in mid-transfer. */
             aic_update_irq(dev);
-            /* Any write that leaves PAUSE clear ends a sleep. */
-            if (!(val & PAUSE))
-                dev->sleepctl &= ~(SLP1 | SLP0);
+            /* Every HCNTRL write wakes the sequencer, including a write
+               that keeps it paused (AIC-7870 HCNTRL description). */
+            dev->sleepctl &= ~(SLP1 | SLP0);
             if (!(val & PAUSE) && (was & PAUSE)) {
                 /* Releasing PAUSE always gets one instruction executed,
                    whatever else wants the sequencer stopped. Single step
@@ -3639,6 +3659,12 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                 aic_log(dev->tag, "host: CLRINT %02x (intstat %02x) at pc %03x\n", val,
                         dev->intstat, dev->pc);
             }
+            /* Clear parity causes before handling CLRBRKADRINT so a
+               single write can clear both the cause and its interrupt.
+               ILLOPCODE still requires a chip reset; the AIC-7770 has
+               no CLRPARERR bit. */
+            if (val & CLRPARERR & dev->chip->clrint_mask)
+                dev->error &= ILLOPCODE;
             /* A breakpoint's BRKADRINT clears here; a hard error's does
                not. "If this condition occurs BRKADRINT may only be
                cleared by setting CHIPRST" (the AIC-7770 book, Hardware
@@ -3659,11 +3685,6 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                 dev->intstat &= ~CMDCMPLT;
             if (val & CLRSEQINT)
                 dev->intstat &= ~SEQINT;
-            /* Not ILLOPCODE: only a chip reset gets rid of that. And not
-               on an AIC-7770 at all -- bit 4 of CLRINT is not used there,
-               the parity error being a later part's. */
-            if (val & CLRPARERR & dev->chip->clrint_mask)
-                dev->error &= ILLOPCODE;
             aic_update_irq(dev);
             /* SCSIINT reads clear only once its cause has been dealt with;
                with the cause still standing it comes straight back. */
@@ -3673,6 +3694,11 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
             break;
         case DFCNTRL:
             was = dev->dfcntrl;
+            /* DIRECTIONACK cannot change while a transfer stays enabled
+               (DFCNTRL, both data books). A direction may be selected
+               when starting from idle or when clearing all enables. */
+            if ((was & (SCSIEN | SDMAEN | HDMAEN)) && (val & (SCSIEN | SDMAEN | HDMAEN)))
+                val = (val & ~DIRECTION) | (was & DIRECTION);
             /* FIFORESET is a strobe and reads back clear. Firmware turns
                the engine off with a read-modify-write, and a reset bit
                that stuck would empty the FIFO it is about to read. */
@@ -3859,7 +3885,7 @@ aic_seq_flags(aic7xxx_t *dev, uint8_t result, int carry)
         dev->flags |= CARRY;
 }
 
-/* The logical operations and the rotate set ZERO and LEAVE CARRY ALONE.
+/* The logical operations and conditional tests set ZERO and leave carry alone.
    Adaptec's own firmware proves it: the routine that turns an SCB number
    into a host address puts a mov between an add and its adc, and an and
    between two adcs, and the twenty-four bit sum it builds is only right if
@@ -4461,7 +4487,7 @@ aic_seq_step(aic7xxx_t *dev)
             a   = aic_seq_rd(dev, src);
             b   = (imm == 0) ? dev->accum : imm;
             res = a ^ b; /* a compare is an exclusive-or, not a subtract */
-            aic_seq_flags(dev, res, 0);
+            aic_seq_flags_logic(dev, res);
             taken = (opcode == OP_JE) ? (res == 0) : (res != 0);
             if (taken) {
                 dev->pc = addr;
@@ -4474,7 +4500,7 @@ aic_seq_step(aic7xxx_t *dev)
             a   = aic_seq_rd(dev, src);
             b   = (imm == 0) ? dev->accum : imm;
             res = a & b;
-            aic_seq_flags(dev, res, 0);
+            aic_seq_flags_logic(dev, res);
             taken = (opcode == OP_JZ) ? (res == 0) : (res != 0);
             if (taken) {
                 dev->pc = addr;
@@ -5464,6 +5490,22 @@ aic_reset(void *priv)
 
     aic_ram_clear(dev);
     aic_chip_reset(dev);
+    /* PCI RST# also initializes configuration space. HCNTRL.CHIPRST
+       deliberately leaves it intact (AIC-7870 data book, pp. 2-15,
+       4-69), so this belongs only in the machine-reset callback. */
+    if (!dev->eisa) {
+        dev->pci_regs[0x04] = dev->pci_regs[0x05] = 0;
+        dev->pci_regs[0x07] = 0x02; /* medium DEVSEL, errors cleared */
+        dev->pci_regs[0x0c] = dev->pci_regs[0x0d] = 0;
+        memset(&dev->pci_regs[0x10], 0, 8);
+        dev->pci_regs[0x10] = 0x01; /* I/O BAR type */
+        memset(&dev->pci_regs[0x30], 0, 4);
+        dev->pci_regs[0x3c] = 0;
+        memset(&dev->pci_regs[DEVCONFIG], 0, 4);
+        aic_io_update(dev);
+        aic_mem_update(dev);
+        aic_bios_update(dev);
+    }
 }
 
 static void *
