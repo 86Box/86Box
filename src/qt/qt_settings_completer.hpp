@@ -2,6 +2,7 @@
 #define QT_SETTINGS_COMPLETER
 
 #include <QWidget>
+#include <QPointer>
 #include <QComboBox>
 #include <QCompleter>
 #include <QLineEdit>
@@ -23,13 +24,11 @@ public:
     void removeRows();
 
 private:
-    QComboBox *         comboBoxMain = nullptr;
-    QComboBox *         comboBoxSort = nullptr;
+    QPointer<QComboBox> comboBoxMain;
+    QPointer<QComboBox> comboBoxSort;
 
     QCompleter *        completer    = nullptr;
     QStandardItemModel *model        = nullptr;
-
-    int                 rows         = 0;
 
     /* Rows added since the model was last filled; they go in together. */
     QList<QStandardItem *> pending;

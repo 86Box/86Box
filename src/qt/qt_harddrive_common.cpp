@@ -479,7 +479,10 @@ Harddrives::widenPopup(QComboBox *cbox)
     view->setTextElideMode(Qt::ElideNone);
     timer->setSingleShot(true);
     timer->setInterval(0);
-    QObject::connect(timer, &QTimer::timeout, cbox, [view]() {
+    QObject::connect(timer, &QTimer::timeout, cbox, [cbox]() {
+        /* The popup view may have been replaced since the update was queued. */
+        auto *view = cbox->view();
+        view->setTextElideMode(Qt::ElideNone);
         view->setMinimumWidth(view->sizeHintForColumn(0) + view->verticalScrollBar()->sizeHint().width() + (2 * view->frameWidth()));
     });
 
