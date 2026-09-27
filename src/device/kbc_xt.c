@@ -125,7 +125,7 @@ get_fdd_switch_settings(void)
     uint8_t fdd_count = 0;
 
     for (uint8_t i = 0; i < FDD_NUM; i++) {
-        if (fdd_get_flags(i))
+        if (fdd_get_flags(&drives[i]))
             fdd_count++;
     }
 

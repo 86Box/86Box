@@ -199,7 +199,7 @@ MediaHistoryManager::initialDeduplication()
                     current_image = cart_fns[device_index];
                     break;
                 case ui::MediaType::Floppy:
-                    current_image = floppyfns[device_index];
+                    current_image = drives[device_index].image_path;
                     break;
                 case ui::MediaType::Optical:
                     current_image = cdrom[device_index].image_path;
@@ -241,7 +241,7 @@ MediaHistoryManager::getEmuHistoryVarForType(ui::MediaType type, int index)
         case ui::MediaType::Cartridge:
             return &cart_image_history[index][0];
         case ui::MediaType::Floppy:
-            return &fdd_image_history[index][0];
+            return &drives[index].image_history[0];
         case ui::MediaType::Optical:
             return &cdrom[index].image_history[0];
         case ui::MediaType::RDisk:

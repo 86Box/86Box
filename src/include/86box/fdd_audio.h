@@ -15,6 +15,14 @@
 #ifndef EMU_FDD_AUDIO_H
 #define EMU_FDD_AUDIO_H
 
+/* Audio sample structure */
+typedef struct {
+    char     filename[512];
+    int16_t *buffer;
+    int      samples;
+    float    volume;
+} audio_sample_t;
+
 #include <stdint.h>
 #include <86box/fdd.h>
 
@@ -26,9 +34,6 @@ extern "C" {
 
 /* Maximum number of seek samples (for 80-track drives: 1-79 tracks) */
 #define MAX_SEEK_SAMPLES 79
-
-/* Maximum number of simultaneous seek sounds per drive */
-#define MAX_CONCURRENT_SEEKS 8
 
 /* Number of BIOS vendors (for BIOS-specific samples) */
 #define BIOS_VENDOR_COUNT 7
@@ -63,37 +68,10 @@ typedef struct {
 
 #define FDD_AUDIO_PROFILE_MAX 64
 
-/* Motor sound states */
-typedef enum {
-    MOTOR_STATE_STOPPED = 0,
-    MOTOR_STATE_STARTING,
-    MOTOR_STATE_RUNNING,
-    MOTOR_STATE_STOPPING
-} motor_state_t;
-
-/* Audio sample structure */
-typedef struct {
-    char     filename[512];
-    int16_t *buffer;
-    int      samples;
-    float    volume;
-} audio_sample_t;
-
 typedef struct {
     int position;
     int active;
 } single_step_state_t;
-
-/* Multi-track seek audio state */
-typedef struct {
-    int position;
-    int active;
-    int duration_samples;
-    int from_track;
-    int to_track;
-    int track_diff;
-    audio_sample_t *sample_to_play;
-} multi_seek_state_t;
 
 /* Drive type specific audio samples */
 typedef struct {
@@ -112,7 +90,7 @@ typedef struct {
 
 /* Fade duration: 75ms at 48kHz = 3600 samples */
 #define FADE_DURATION_MS 75
-#define FADE_SAMPLES     (48000 * FADE_DURATION_MS / 1000)
+#define FADE_SAMPLES     (48000.0 * FADE_DURATION_MS / 1000.0)
 
 /* Functions for configuration management */
 extern void fdd_audio_load_profiles(void);
@@ -121,10 +99,8 @@ extern const fdd_audio_profile_config_t* fdd_audio_get_profile(int id);
 extern const char* fdd_audio_get_profile_name(int id);
 extern const char* fdd_audio_get_profile_internal_name(int id);
 extern int fdd_audio_get_profile_by_internal_name(const char *internal_name);
-extern double fdd_audio_get_seek_time(int drive, int track_count, int is_seek_down);
+extern double fdd_audio_get_seek_time(void *priv, int track_count, int is_seek_down);
 extern void load_profile_samples(int profile_id);
-extern int fdd_get_audio_profile(int drive);
-extern bios_boot_status_t fdd_get_boot_status(void);
 
 #else
 
@@ -147,13 +123,13 @@ extern void fdd_audio_init(void);
 extern void fdd_audio_close(void);
 
 /* Motor control for audio */
-extern void fdd_audio_set_motor_enable(int drive, int motor_enable);
+extern void fdd_audio_set_motor_enable(void *priv, int motor_enable);
 
 /* Single sector movement audio */
-extern void fdd_audio_play_single_track_step(int drive, int from_track, int to_track);
+extern void fdd_audio_play_single_track_step(void *priv, int from_track, int to_track);
 
 /* Multi-track seek audio */
-extern void fdd_audio_play_multi_track_seek(int drive, int from_track, int to_track);
+extern void fdd_audio_play_multi_track_seek(void *priv, int from_track, int to_track);
 
 /* Audio callback function */
 extern void fdd_audio_callback(int16_t *buffer, int length);

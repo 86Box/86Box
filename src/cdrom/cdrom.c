@@ -33,6 +33,8 @@
 #include <86box/cdrom_interface.h>
 #include <86box/cdrom_mitsumi.h>
 #include <86box/cdrom_hitachi.h>
+#include <86box/cdrom_philips.h>
+#include <86box/cdrom_cm153.h>
 #include <86box/cdrom_mke.h>
 #include <86box/crc.h>
 #include <86box/log.h>
@@ -130,10 +132,13 @@ static const struct {
 } controllers[] = {
     // clang-format off
     { &cdrom_interface_none_device  },
-    { &mitsumi_cdrom_device         },
+    { &hitachi_cdrom_isa_device     },
+    { &hitachi_cdrom_mca_device     },
     { &mke_cdrom_noncreative_device },
     { &mke_cdrom_device             },
-    { &hitachi_cdrom_device         },
+    { &philips_cm250_device         },
+    { &philips_cm153_device         },
+    { &mitsumi_cdrom_device         },
     { NULL                          }
     // clang-format on
 };
@@ -2511,7 +2516,7 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
             break;
         case 3:
             if (dev->is_nec) { /* Undocumented on NEC CD-ROM's, from information based on sr_vendor.c from the Linux kernel */
-                if (track == 0xb0) { /*TOC type session */
+                if ((track == 0xa0) || (track == 0xb0)) { /*TOC type session */
                     b[14] = 0x00;
 
                     if (num > 0)

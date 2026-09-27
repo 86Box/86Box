@@ -2658,7 +2658,7 @@ rdisk_hard_reset(void)
             }
 
             /* Make sure to ignore any ATAPI RDISK drive that has an out of range IDE channel. */
-            if ((rdisk_drives[c].bus_type == RDISK_BUS_ATAPI) && (rdisk_drives[c].ide_channel > 7))
+            if ((rdisk_drives[c].bus_type == RDISK_BUS_ATAPI) && (rdisk_drives[c].ide_channel >= IDE_DRIVES_MAX))
                 continue;
 
             rdisk_drive_reset(c);

@@ -38,6 +38,7 @@ add_library(vid OBJECT
 
     # Clock generator chips 
     clockgen/vid_clockgen_av9194.c 
+    clockgen/vid_clockgen_ch9201.c 
     clockgen/vid_clockgen_icd2047.c
     clockgen/vid_clockgen_icd2061.c
     clockgen/vid_clockgen_ics1494.c 
@@ -134,6 +135,7 @@ add_library(vid OBJECT
 
     # Paradise
     vid_paradise.c
+    vid_wd90c31.c
     vid_rtg310x.c
     vid_f82c425.c
     vid_ti_cf62011.c

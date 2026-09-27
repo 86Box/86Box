@@ -1430,10 +1430,10 @@ buslogic_mca_write(const uint16_t port, const uint8_t val, void *priv)
      */
     /* Parity. */
     HALR->structured.autoSCSIData.uSCSIConfiguration &= ~2;
-    HALR->structured.autoSCSIData.uSCSIConfiguration |= (dev->pos_regs[4] & 2);
+    HALR->structured.autoSCSIData.uSCSIConfiguration |= (dev->pos_regs[4] & 0x10) ? 2 : 0;
 
     /* Sync. */
-    HALR->structured.autoSCSIData.u16SynchronousPermittedMask = (dev->pos_regs[4] & 0x10) ? 0xffff : 0x0000;
+    HALR->structured.autoSCSIData.u16SynchronousPermittedMask = (dev->pos_regs[4] & 0x02) ? 0xffff : 0x0000;
 
     /* DOS Disk Space > 1GBytes */
     HALR->structured.autoSCSIData.uBIOSConfiguration &= ~4;
@@ -1485,7 +1485,7 @@ buslogic_mca_write(const uint16_t port, const uint8_t val, void *priv)
      *
      * So, remove current address, if any.
      */
-    mem_mapping_disable(&dev->bios.mapping);
+    mem_mapping_disable(&bl->bios.mapping);
 
     /* Initialize the device if fully configured. */
     if (dev->pos_regs[2] & 0x01) {
@@ -1919,7 +1919,8 @@ const device_t buslogic_542b_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = BT_ISA_Config
+    .config        = BT_ISA_Config,
+    .short_name    = "BT-542B"
 };
 
 const device_t buslogic_545s_device = {
@@ -1933,7 +1934,8 @@ const device_t buslogic_545s_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = BT_ISA_Config
+    .config        = BT_ISA_Config,
+    .short_name    = "BT-545S"
 };
 
 const device_t buslogic_542bh_device = {
@@ -1947,7 +1949,8 @@ const device_t buslogic_542bh_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = BT_ISA_Config
+    .config        = BT_ISA_Config,
+    .short_name    = "BT-542BH"
 };
 
 const device_t buslogic_545c_device = {
@@ -1961,7 +1964,8 @@ const device_t buslogic_545c_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = BT_ISA_Config
+    .config        = BT_ISA_Config,
+    .short_name    = "BT-545C"
 };
 
 const device_t buslogic_640a_device = {
@@ -1975,7 +1979,8 @@ const device_t buslogic_640a_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "BT-640A"
 };
 
 const device_t buslogic_445s_device = {
@@ -1989,7 +1994,8 @@ const device_t buslogic_445s_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = BT_ISA_Config
+    .config        = BT_ISA_Config,
+    .short_name    = "BT-445S"
 };
 
 const device_t buslogic_445c_device = {
@@ -2003,7 +2009,8 @@ const device_t buslogic_445c_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = BT_ISA_Config
+    .config        = BT_ISA_Config,
+    .short_name    = "BT-445C"
 };
 
 const device_t buslogic_958d_pci_device = {
@@ -2017,5 +2024,6 @@ const device_t buslogic_958d_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = BT958D_Config
+    .config        = BT958D_Config,
+    .short_name    = "BT-958D"
 };

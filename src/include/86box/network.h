@@ -220,6 +220,8 @@ extern int network_rx_on_tx_put_pkt(netcard_t *card, netpkt_t *pkt);
 extern const device_t threec501_device;
 extern const device_t threec503_device;
 extern const device_t threec509b_device;
+extern const device_t threec529_mc_device;
+extern const device_t threec529_tp_device;
 extern const device_t threec592_device;
 extern const device_t threec597_device;
 

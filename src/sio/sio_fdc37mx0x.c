@@ -209,20 +209,16 @@ fdc37mx0x_fdc_handler(fdc37mx0x_t *dev)
 {
     const uint8_t  global_enable = !!(dev->regs[0x22] & (1 << 0));
     const uint8_t  local_enable  = !!dev->ld_regs[0][0x30];
-    const uint16_t old_base      = dev->fdc_base;
 
     dev->fdc_base = 0x0000;
 
     if (global_enable && local_enable)
         dev->fdc_base = make_port(dev, 0) & 0xfff8;
 
-    if (dev->fdc_base != old_base) {
-        if ((old_base >= 0x0100) && (old_base <= 0x0ff8))
-            fdc_remove(dev->fdc);
+    fdc_remove(dev->fdc);
 
-        if ((dev->fdc_base >= 0x0100) && (dev->fdc_base <= 0x0ff8))
-            fdc_set_base(dev->fdc, dev->fdc_base);
-    }
+    if ((dev->fdc_base >= 0x0100) && (dev->fdc_base <= 0x0ff8))
+        fdc_set_base(dev->fdc, dev->fdc_base);
 }
 
 static void
@@ -662,7 +658,7 @@ fdc37mx0x_write(uint16_t port, uint8_t val, void *priv)
                         case 0xc1:
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x0f;
                             for (int i = 0; i < 4; i++)
-                                fdc_set_fdd_changed(i, !!(val & (1 << i)));
+                                fdc_set_fdd_changed(dev->fdc, i, !!(val & (1 << i)));
                             break;
                         case 0xc5:
                             if (dev->chip_id == FDC37M70X)
@@ -744,7 +740,7 @@ fdc37mx0x_read(uint16_t port, void *priv)
                 else if ((dev->regs[7] == 0x08) && (dev->cur_reg == 0xc1)) {
                     ret = dev->ld_regs[dev->regs[7]][dev->cur_reg] & 0xf0;
                     for (int i = 0; i < 4; i++)
-                        ret |= (fdc_get_fdd_changed(i) << i);
+                        ret |= (fdc_get_fdd_changed(dev->fdc, i) << i);
                 } else if (((dev->chip_id == FDC37M70X) && dev->regs[7] == 0x08) && (dev->cur_reg == 0xb7)) {
                     ret = dev->ld_regs[dev->regs[7]][dev->cur_reg];
                     dev->ld_regs[dev->regs[7]][dev->cur_reg] &= 0xfb;
@@ -842,7 +838,7 @@ fdc37mx0x_reset(void *priv)
     fdc37mx0x_fdc_handler(dev);
 
     for (int i = 0; i < 4; i++)
-        fdc_set_fdd_changed(i, 1);
+        fdc_set_fdd_changed(dev->fdc, i, 1);
 
     fdc37mx0x_kbc_handler(dev);
 

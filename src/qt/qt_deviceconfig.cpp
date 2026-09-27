@@ -179,27 +179,28 @@ DeviceConfig::GreyOutTakenEisaSlots(QComboBox *cbox, int instance)
     if ((settings == nullptr) || (model == nullptr))
         return;
 
-    if (settings->storageControllers != nullptr) {
-        for (int i = 0; i < SCSI_CARD_MAX; ++i) {
-            const _device_ *dev = scsi_card_getdevice(settings->storageControllers->scsiCard(i));
+    /* A Settings page not built yet has the saved configuration's cards. */
+    for (int i = 0; i < SCSI_CARD_MAX; ++i) {
+        const int       card = (settings->storageControllers != nullptr) ? settings->storageControllers->scsiCard(i)
+                                                                         : scsi_card_current[i];
+        const _device_ *dev  = scsi_card_getdevice(card);
 
-            if ((dev == nullptr) || !(dev->flags & DEVICE_EISA))
-                continue;
-            if ((dev == cfg_dev) && ((i + 1) == instance))
-                continue;
-            taken.insert(EisaSlotOf(dev, i + 1));
-        }
+        if ((dev == nullptr) || !(dev->flags & DEVICE_EISA))
+            continue;
+        if ((dev == cfg_dev) && ((i + 1) == instance))
+            continue;
+        taken.insert(EisaSlotOf(dev, i + 1));
     }
-    if (settings->network != nullptr) {
-        for (int i = 0; i < NET_CARD_MAX; ++i) {
-            const _device_ *dev = network_card_getdevice(settings->network->netCard(i));
+    for (int i = 0; i < NET_CARD_MAX; ++i) {
+        const int       card = (settings->network != nullptr) ? settings->network->netCard(i)
+                                                              : net_cards_conf[i].device_num;
+        const _device_ *dev  = network_card_getdevice(card);
 
-            if ((dev == nullptr) || !(dev->flags & DEVICE_EISA))
-                continue;
-            if ((dev == cfg_dev) && ((i + 1) == instance))
-                continue;
-            taken.insert(EisaSlotOf(dev, i + 1));
-        }
+        if ((dev == nullptr) || !(dev->flags & DEVICE_EISA))
+            continue;
+        if ((dev == cfg_dev) && ((i + 1) == instance))
+            continue;
+        taken.insert(EisaSlotOf(dev, i + 1));
     }
 
     for (int row = 0; row < model->rowCount(); ++row) {

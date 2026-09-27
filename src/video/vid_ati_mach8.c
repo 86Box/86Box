@@ -3010,18 +3010,18 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
     mach_log(mach->log,"ATI Mode: on=%d, set=%02x, disp_cntl=%02x, h_total=%02x, hdisp=%d, realh=%d, vdisp=%d, realv=%d, v_total=%04x, v_syncstart=%04x, hsync_start=%d, hsync_width=%d, clocksel=%02x, advancedcntl=%02x, shadow_cntl=%02x.\n", dev->on, mach->shadow_set & 0x03, dev->disp_cntl, dev->h_total, dev->hdisp, (dev->hdisped + 1) << 3, dev->vdisp, (dev->v_disp + 1) >> 1, dev->v_total, dev->v_syncstart, dev->hsync_start, dev->hsync_width, mach->accel.clock_sel & 0xff, dev->accel.advfunc_cntl & 0x05, mach->shadow_cntl);
     if (ATI_8514A_ULTRA) {
         if (((dev->hdisp == 1024) && (dev->vdisp == 768) && !(dev->accel.advfunc_cntl & 0x04) && !(mach->accel.clock_sel & 0x01)) ||
-            ((dev->hdisp == 640) && (dev->vdisp == 480) && !(dev->accel.advfunc_cntl & 0x04))) {
+            ((dev->hdisp == 640) && (dev->vdisp == 480) && (!(dev->accel.advfunc_cntl & 0x04) || (mach->accel.clock_sel & 0x01)))) {
             dev->hdisp = 640;
             dev->vdisp = 480;
 
             /*If the registers are zero, make sure we read the initialized values from the EEPROM in the case of the add-on mach8*/
-            if (!(mach->accel.clock_sel & 0xfe)) {
+            if (!(mach->accel.clock_sel & 0xfe) || !(mach->accel.clock_sel & 0x01)) {
                 dev->h_total = (mach->eeprom.data[0x11] & 0xff) + 1;
                 dev->v_total = mach->eeprom.data[0x0d] + 1;
                 dev->v_syncstart = mach->eeprom.data[9] + 1;
                 mach->accel.clock_sel_mode = (mach->eeprom.data[4] & 0xff) << 2;
             }
-            mach_log(mach->log,"640x480: EEPROM11=%02x, EEPROMD=%04x, EEPROM9=%04x, EEPROM4=%02x.\n", mach->eeprom.data[0x11] & 0xff, mach->eeprom.data[0x0d], mach->eeprom.data[9], mach->eeprom.data[4] & 0xff);
+            pclog("640x480: EEPROM11=%02x, EEPROMD=%04x, EEPROM9=%04x, EEPROM4=%02x.\n", mach->eeprom.data[0x11] & 0xff, mach->eeprom.data[0x0d], mach->eeprom.data[9], mach->eeprom.data[4] & 0xff);
         } else if ((dev->hdisp == 800) && (dev->vdisp == 600)) {
             /*If the registers are zero, make sure we read the initialized values from the EEPROM in the case of the add-on mach8*/
             if (!(mach->accel.clock_sel & 0xfe)) {
@@ -3039,24 +3039,13 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
 
             /*If the registers are zero, make sure we read the initialized values from the EEPROM in the case of the add-on mach8, and, if the EEPROM is not initialized yet
               just default to 1024x768 87hz Interlaced*/
-            if (!(mach->accel.clock_sel & 0xfe)) {
+            if (!(mach->accel.clock_sel & 0xfe) || !(mach->accel.clock_sel & 0x01)) {
                 dev->h_total = ((mach->eeprom.data[0x11] >> 8) & 0xff) + 1;
-                if (mach->eeprom.data[0x11] == 0xffff)
-                    dev->h_total = 0x9e;
-
                 dev->v_total = mach->eeprom.data[0x0c] + 1;
-                if (mach->eeprom.data[0x0c] == 0xffff)
-                    dev->v_total = 0x0669;
-
                 dev->v_syncstart = mach->eeprom.data[8] + 1;
-                if (mach->eeprom.data[8] == 0xffff)
-                    dev->v_syncstart = 0x0601;
-
                 mach->accel.clock_sel_mode = ((mach->eeprom.data[4] >> 8) & 0xff) << 2;
-                if (mach->eeprom.data[4] == 0xffff)
-                    mach->accel.clock_sel_mode = 0x1c;
             }
-            mach_log(mach->log, "1024x768: EEPROM11=%04x, EEPROMC=%04x, EEPROM8=%04x, EEPROM4=%02x, h_total=%02x, clk_sel=%02x.\n", (mach->eeprom.data[0x11] >> 8) & 0xff, mach->eeprom.data[0x0c], mach->eeprom.data[8], (mach->eeprom.data[4] >> 8) & 0xff, dev->h_total, mach->accel.clock_sel & 0xfe);
+            mach_log(mach->log,"1024x768: EEPROM11=%04x, EEPROMC=%04x, EEPROM8=%04x, EEPROM4=%02x, h_total=%02x, clk_sel=%02x.\n", (mach->eeprom.data[0x11] >> 8) & 0xff, mach->eeprom.data[0x0c], mach->eeprom.data[8], (mach->eeprom.data[4] >> 8) & 0xff, dev->h_total, mach->accel.clock_sel & 0xfe);
         }
         svga_recalctimings(svga);
     } else {
@@ -8306,7 +8295,6 @@ uint8_t
 ati8514_bios_rom_readb(uint32_t addr, void *priv)
 {
     const ibm8514_t *dev = (ibm8514_t *) priv;
-
     addr -= dev->bios_addr & 0x000ff000;
     if (addr >= 0x2000)
         return 0xff;

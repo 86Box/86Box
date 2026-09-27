@@ -701,7 +701,7 @@ machine_at_ap5vm_init(const machine_t *model)
     device_add(&piix3_device);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add(&ncr53c810_onboard_pci_device);
+    device_add(machine_get_scsi_device(machine));
     device_add(&intel_flash_bxt_device);
 
     return ret;

@@ -25,7 +25,7 @@ extern "C" {
 #define MBX_INFO        1
 #define MBX_ERROR       2
 #define MBX_QUESTION    3
-#define MBX_QUESTION_YN 4
+#define MBX_QUESTION_YN 4 /* Yes and No: ui_msgbox*() returns 1 for Yes */
 #define MBX_QUESTION_OK 8
 #define MBX_QMARK       0x10
 #define MBX_WARNING     0x20
@@ -33,6 +33,12 @@ extern "C" {
 
 extern int ui_msgbox(int flags, char *message);
 extern int ui_msgbox_header(int flags, char *header, char *message);
+/* Configuration loading supplies names and categories; the UI owns all text. */
+typedef struct ui_unsupported_hardware_t {
+    int  kind;
+    char name[160];
+} ui_unsupported_hardware_t;
+extern int ui_confirm_unsupported_hardware(const ui_unsupported_hardware_t *items, int count, int machine_missing);
 
 /* Status Bar functions. */
 #define SB_ICON_WIDTH 24

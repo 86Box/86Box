@@ -120,6 +120,7 @@
 #define MACHINE_SCSI              0x0000000040000000ULL /* sys has int SCSI */
 #define MACHINE_USB               0x0000000080000000ULL /* sys has int USB */
 #define MACHINE_ZENITH            0x0000000100000000ULL /* sys is Zenith */
+#define MACHINE_IDE_INTERNAL      0x0000000800000000ULL /* sys int IDE only with the Internal controller */
 /* Combined flags. */
 #define MACHINE_LPT               (MACHINE_LPT_PRI | MACHINE_LPT_SEC | \
                                    MACHINE_LPT_TER | MACHINE_LPT_QUA)
@@ -396,6 +397,8 @@ typedef struct _machine_ {
     const device_t        *tablet_device;
     const device_t        *snd_device;
     const device_t        *net_device;
+    const device_t        *ide_device;  /* on-board IDE chip, not the chipset's */
+    const device_t        *scsi_device; /* on-board SCSI chip */
 #else
     void                  *device;
     void                  *kbd_device;
@@ -404,6 +407,8 @@ typedef struct _machine_ {
     void                  *tablet_device;
     void                  *snd_device;
     void                  *net_device;
+    void                  *ide_device;
+    void                  *scsi_device;
 #endif
     const char            *aliases[16];
 } machine_t;
@@ -434,6 +439,8 @@ extern const device_t *machine_get_vid_device(int m);
 extern const device_t *machine_get_tablet_device(int m);
 extern const device_t *machine_get_snd_device(int m);
 extern const device_t *machine_get_net_device(int m);
+extern const device_t *machine_get_ide_device(int m);
+extern const device_t *machine_get_scsi_device(int m);
 #endif
 extern const char *    machine_get_internal_name_ex(int m);
 extern const char *    machine_get_nvr_name_ex(int m);

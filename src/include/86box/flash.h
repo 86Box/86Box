@@ -27,6 +27,21 @@ extern int  (*flash_bios_write_gate)(uint32_t addr, void *priv);
 extern void  *flash_bios_write_gate_priv;
 extern int    flash_bios_write_selected(uint32_t addr);
 
+/* The same chip select for reads: a range BIOSCSA/B does not enable is not
+   decoded at all, and the bus reads as open (FFh) there. */
+extern int  (*flash_bios_read_gate)(uint32_t addr, void *priv);
+extern void  *flash_bios_read_gate_priv;
+extern int    flash_bios_read_selected(uint32_t addr);
+
+/* Code is fetched straight from a mapping's exec pointer, past the read
+   handlers, so a flash registers a hook that the chipset calls whenever the
+   chip select changes; the hook passes each mapping and its array pointer
+   to flash_bios_mapping_update(), which keeps the exec pointer only while
+   the whole mapping is selected. */
+extern void   flash_bios_set_decode_hook(void (*hook)(void *priv), void *priv);
+extern void   flash_bios_decode_changed(void);
+extern void   flash_bios_mapping_update(mem_mapping_t *map, uint8_t *exec);
+
 extern const device_t intel_flash_e28f0xx_device;
 extern const device_t intel_flash_e28f0xx_cobalt3k_device;
 

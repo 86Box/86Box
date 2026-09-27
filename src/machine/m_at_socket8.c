@@ -64,7 +64,7 @@ machine_at_ap61_init(const machine_t *model)
 
     device_add(&i450kx_device);
     device_add(&sio_zb_device);
-    device_add(&ide_cmd646_device);
+    device_add(machine_get_ide_device(machine));
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&sst_flash_29ee010_device);
@@ -247,7 +247,7 @@ machine_at_p6rp4_init(const machine_t *model)
 
     device_add(&i450kx_device); /* 450GX is a superset of the 450KX */
     device_add(&sio_zb_device);
-    device_add(&ide_cmd646_device);
+    device_add(machine_get_ide_device(machine));
     /* Input port bit 2 must be 1 or CMOS Setup is disabled. */
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
@@ -336,7 +336,7 @@ machine_at_ficpo6000_init(const machine_t *model)
 
     device_add(&i450kx_device);
     device_add(&sio_zb_device);
-    device_add(&ide_cmd646_device);
+    device_add(machine_get_ide_device(machine));
     /* Input port bit 2 must be 1 or CMOS Setup is disabled. */
     device_add_params(&pc87306_device, (void *) PCX730X_PHOENIX_42);
     device_add(&intel_flash_bxt_device);

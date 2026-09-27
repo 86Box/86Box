@@ -1078,6 +1078,12 @@ serial_close(void *priv)
         fifo_close(dev->rcvr_fifo);
     }
 
+    /*
+       Needed to avoid a segmentation fault at serial_devices_init() for any serial port
+       that used be enabled and was then disabled.
+     */
+    com_ports[dev->inst].serial = NULL;
+
     free(dev);
 }
 

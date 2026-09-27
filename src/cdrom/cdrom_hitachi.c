@@ -1,10 +1,33 @@
 /*
- * 86Box: Hitachi CD-IFI4-A ISA interface / CDR-1503S.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- * Initial high-level PIO implementation, reconstructed from Hitachi's
- * HITACHI.SYS 1.02 and HITACHIA.SYS 2.10. No drive firmware is executed.
- * The interface uses an 8255 in mode 0 plus a separate sector-data port.
- * DMA, diagnostic packets and audio playback are not implemented yet.
+ *          This file is part of the 86Box distribution.
+ *
+ *          Hitachi CD-ROM interfaces: the ISA adapter CD-IFI4-A for the
+ *          CDR-1503S drive, and the Micro Channel adapter carrying Adapter
+ *          ID 5EEEh.
+ *
+ *          Both are programmed I/O only: an 8255 in mode 0 in front of a
+ *          separate sector-data port. The ISA card keeps its register block
+ *          at a jumpered base，and the MCA card answers behind an eight-port
+ *          window the POS registers place, its base in POS 2, and puts the
+ *          sector stream on its data port, the control lines on the status
+ *          port and the command and reply bytes on the register between
+ *          them.
+ *
+ *          Reconstructed from Hitachi's HITACHI.SYS 1.02, HITACHIA.SYS 2.10
+ *          and HITACHIB.SYS 2.10, and from the Adapter Description File
+ *          @5eee.adf. No drive firmware is executed. DMA, diagnostic
+ *          packets and audio playback are not implemented yet.
+ *
+ * Authors: heavysink, <winstonwu91@gmail.com>
+ *          WNT50
+ *
+ *          Copyright 2026 heavysink.
+ *          Copyright 2026 WNT50.
  */
 #include <stdint.h>
 #include <stdio.h>
@@ -14,10 +37,19 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
+#include <86box/mca.h>
 #include <86box/plat.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_hitachi.h>
 #include <86box/timer.h>
+
+/* MCA variant (POS adapter ID 5EEEh): the same drive-side engine behind a
+   POS-addressed eight-port window, its control, status, command and data
+   ports laid out differently from the ISA card's. */
+#define HITACHI_MCA_ID_HIGH  0x5e
+#define HITACHI_MCA_ID_LOW   0xee
+#define HITACHI_MCA_WINDOW   8
+#define HITACHI_MCA_BASES    16
 
 typedef struct hitachi_drive_t {
     cdrom_t   *cd;
@@ -36,6 +68,8 @@ typedef struct hitachi_drive_t {
 typedef struct hitachi_t {
     uint16_t        base;
     uint8_t         mode, control, latch;
+    uint8_t         mca_enabled;
+    uint8_t         pos_regs[8];
     hitachi_drive_t drives[4];
 } hitachi_t;
 
@@ -270,6 +304,16 @@ hitachi_selected(hitachi_t *h)
     return d->cd ? d : NULL;
 }
 
+/* The sector stream as the host takes it, four-byte header first. Both card
+   variants feed the same buffer, only through different ports. */
+static uint8_t
+hitachi_data_byte(hitachi_t *h)
+{
+    hitachi_drive_t *d = hitachi_selected(h);
+
+    return (d && (d->data_pos < d->data_len)) ? d->data[d->data_pos++] : 0xff;
+}
+
 static uint8_t
 hitachi_in(uint16_t port, void *priv)
 {
@@ -286,8 +330,8 @@ hitachi_in(uint16_t port, void *priv)
             return ((h->control & 1) ? 2 : 0) | ((d->data_len && !(h->control & 4)) ? 1 : 0);
         case 2:
             return h->control;
-        case 4:
-            return d->data_pos < d->data_len ? d->data[d->data_pos++] : 0xff;
+        case 4: /* The sector stream, four-byte header first. */
+            return hitachi_data_byte(h);
         default:
             return 0xff;
     }
@@ -351,7 +395,7 @@ hitachi_reset(void *priv)
 }
 
 static void *
-hitachi_init(UNUSED(const device_t *info))
+hitachi_isa_init(UNUSED(const device_t *info))
 {
     hitachi_t *h = calloc(1, sizeof(*h));
     h->base      = device_get_config_hex16("base");
@@ -376,7 +420,7 @@ hitachi_init(UNUSED(const device_t *info))
 }
 
 static void
-hitachi_close(void *priv)
+hitachi_isa_close(void *priv)
 {
     hitachi_t *h = priv;
     if (!h)
@@ -393,17 +437,239 @@ hitachi_close(void *priv)
     free(h);
 }
 
-static const device_config_t hitachi_config[] = {
-    { .name = "base", .description = "Address", .type = CONFIG_HEX16, .default_int = 0x300, .selection = { { .description = "200H", .value = 0x200 }, { .description = "220H", .value = 0x220 }, { .description = "240H", .value = 0x240 }, { .description = "260H", .value = 0x260 }, { .description = "300H", .value = 0x300 }, { .description = "320H", .value = 0x320 }, { .description = "340H", .value = 0x340 }, { .description = "360H", .value = 0x360 }, { 0 } } },
-    { .name = "", .type = CONFIG_END }
+/* MCA variant (POS adapter ID 5EEEh): the same drive-side engine behind a
+   POS-addressed eight-port window, with the sector stream on its data port. */
+
+static const uint16_t hitachi_mca_bases[HITACHI_MCA_BASES] = {
+    0x200, 0x220, 0x240, 0x260, 0x300, 0x320, 0x340, 0x360,
+    0x208, 0x228, 0x248, 0x268, 0x308, 0x328, 0x348, 0x368
 };
 
-const device_t hitachi_cdrom_device = {
+static uint8_t
+hitachi_mca_in(uint16_t port, void *priv)
+{
+    hitachi_t *h   = priv;
+    uint16_t   off = (uint16_t) (port - h->base);
+    uint8_t    ret;
+
+    /* The MCA card moves the sector stream on +0 and keeps the replies on +2
+       (also where the driver writes its command bytes), with the status on
+       +1. */
+    switch (off) {
+        case 0: /* Sector bytes, packet header included, come back here. */
+            ret = hitachi_data_byte(h);
+            break;
+
+        case 1:
+            ret = hitachi_in(h->base + 1, h);
+            break;
+
+        case 2: /* Command bytes go out here; replies come back first, then the
+                   sector stream once a read has been loaded. */
+            ret = hitachi_in(h->base, h);
+            if (ret == 0xff)
+                ret = hitachi_data_byte(h);
+            break;
+
+        default:
+            ret = 0xff;
+            break;
+    }
+
+    return ret;
+}
+
+static void
+hitachi_mca_out(uint16_t port, uint8_t val, void *priv)
+{
+    hitachi_t *h   = priv;
+    uint16_t   off = (uint16_t) (port - h->base);
+
+    switch (off) {
+        case 1: {
+            /* Control: bit 0 strobes, bit 1 acknowledges, bit 2 says which way
+               the data lines point. The drive-side engine wants the strobe on
+               bit 0 and the acknowledge on bit 2, and may only take a command
+               byte while the host is the one driving them. */
+            uint8_t isa = (uint8_t) ((val & 0x01) | ((val & 0x02) << 1) | (val & 0x18));
+
+            if (val & 0x04)
+                h->mode &= ~0x10;
+            else
+                h->mode |= 0x10;
+            hitachi_out(h->base + 2, isa, h);
+            h->mode |= 0x10;
+            break;
+        }
+
+        case 2: /* Command and parameter bytes; the latch holds them until the
+                   next strobe. */
+            hitachi_out(h->base, val, h);
+            break;
+
+        default:
+            break;
+    }
+}
+
+static void
+hitachi_mca_window(hitachi_t *h, const uint8_t enable)
+{
+    if (enable == h->mca_enabled)
+        return;
+
+    if (enable)
+        io_sethandler(h->base, HITACHI_MCA_WINDOW, hitachi_mca_in, NULL, NULL, hitachi_mca_out, NULL, NULL, h);
+    else
+        io_removehandler(h->base, HITACHI_MCA_WINDOW, hitachi_mca_in, NULL, NULL, hitachi_mca_out, NULL, NULL, h);
+
+    h->mca_enabled = enable;
+}
+
+static uint8_t
+hitachi_mca_pos_read(uint16_t port, void *priv)
+{
+    const hitachi_t *h = priv;
+
+    return h->pos_regs[port & 7];
+}
+
+static void
+hitachi_mca_pos_write(uint16_t port, uint8_t val, void *priv)
+{
+    hitachi_t *h = priv;
+
+    /* MCA does not write registers below 0x0100. */
+    if (port < 0x0102)
+        return;
+
+    /* The bits above POS 2's window and enable read back zero. */
+    if ((port & 7) == 2)
+        val &= 0x1f;
+
+    hitachi_mca_window(h, 0);
+    h->pos_regs[port & 7] = val;
+
+    /* The window is rebuilt from POS 2: bits 4-1 pick it, bit 0 enables it. */
+    h->base = hitachi_mca_bases[(h->pos_regs[2] >> 1) & 0x0f];
+    hitachi_mca_window(h, h->pos_regs[2] & 0x01);
+}
+
+static uint8_t
+hitachi_mca_feedb(void *priv)
+{
+    const hitachi_t *h = priv;
+
+    return h->pos_regs[2] & 0x01;
+}
+
+static void *
+hitachi_mca_init(UNUSED(const device_t *info))
+{
+    hitachi_t *h = calloc(1, sizeof(*h));
+
+    h->pos_regs[0] = HITACHI_MCA_ID_LOW;
+    h->pos_regs[1] = HITACHI_MCA_ID_HIGH;
+
+    for (unsigned i = 0; i < 4; ++i)
+        timer_add(&h->drives[i].timer, hitachi_read_sector, &h->drives[i], 0);
+
+    for (unsigned i = 0; i < CDROM_NUM; ++i) {
+        cdrom_t *cd = &cdrom[i];
+        if (cd->bus_type != CDROM_BUS_HITACHI || cd->hitachi_channel >= 4)
+            continue;
+
+        hitachi_drive_t *d = &h->drives[cd->hitachi_channel];
+        if (d->cd)
+            continue;
+
+        d->cd             = cd;
+        cd->priv          = d;
+        cd->insert        = hitachi_insert;
+        cd->cached_sector = cd->subc_sector = -1;
+        cd->cur_speed                       = 1;
+    }
+
+    hitachi_reset(h);
+    hitachi_mca_pos_write(0x102, 0x09, h); /* 300h, enabled, until POS says otherwise */
+    mca_add(hitachi_mca_pos_read, hitachi_mca_pos_write, hitachi_mca_feedb, hitachi_reset, h);
+
+    return h;
+}
+
+static void
+hitachi_mca_close(void *priv)
+{
+    hitachi_t *h = priv;
+
+    if (!h)
+        return;
+
+    hitachi_mca_window(h, 0);
+    hitachi_reset(h);
+
+    for (unsigned i = 0; i < 4; ++i) {
+        cdrom_t *cd = h->drives[i].cd;
+        if (cd && cd->priv == &h->drives[i]) {
+            cd->priv   = NULL;
+            cd->insert = NULL;
+        }
+    }
+
+    free(h);
+}
+
+static const device_config_t hitachi_isa_config[] = {
+    // clang-format off
+    {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x300,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "200H", .value = 0x200 },
+            { .description = "220H", .value = 0x220 },
+            { .description = "240H", .value = 0x240 },
+            { .description = "260H", .value = 0x260 },
+            { .description = "300H", .value = 0x300 },
+            { .description = "320H", .value = 0x320 },
+            { .description = "340H", .value = 0x340 },
+            { .description = "360H", .value = 0x360 },
+            { NULL                                  }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t hitachi_cdrom_isa_device = {
     .name          = "Hitachi CD-IFI4-A",
     .internal_name = "hitachi_ifi4a",
     .flags         = DEVICE_ISA,
-    .init          = hitachi_init,
-    .close         = hitachi_close,
+    .local         = 0,
+    .init          = hitachi_isa_init,
+    .close         = hitachi_isa_close,
     .reset         = hitachi_reset,
-    .config        = hitachi_config
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = hitachi_isa_config
+};
+
+const device_t hitachi_cdrom_mca_device = {
+    .name          = "Hitachi CD-ROM Adapter",
+    .internal_name = "hitachi_cdrom_mca",
+    .flags         = DEVICE_MCA,
+    .local         = 0,
+    .init          = hitachi_mca_init,
+    .close         = hitachi_mca_close,
+    .reset         = hitachi_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };

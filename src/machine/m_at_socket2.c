@@ -187,7 +187,7 @@ machine_at_acera1g_init(const machine_t *model)
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add_params(&pc87310_device, (void *) (PC87310_ALI));
-    device_add(&ide_ali5213_device);
+    device_add(machine_get_ide_device(machine));
 
     return ret;
 }
@@ -237,7 +237,7 @@ machine_at_pci400ca_init(const machine_t *model)
     device_add(&intel_flash_bxt_ami_device);
 
     device_add(&i420tx_device);
-    device_add(&ncr53c810_onboard_pci_device);
+    device_add(machine_get_scsi_device(machine));
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);

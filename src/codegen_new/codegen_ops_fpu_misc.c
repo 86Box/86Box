@@ -85,6 +85,17 @@ ropFSTCW(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 
     return op_pc + 1;
 }
+/* The status word as FSTSW gives it: TOP (bits 13-11) is the stack's own,
+   which npxs does not keep up to date. */
+static void
+fpu_status_word(ir_data_t *ir, int dest_reg)
+{
+    uop_AND_IMM(ir, IREG_temp1, IREG_FPU_TOP, 7);
+    uop_SHL_IMM(ir, IREG_temp1, IREG_temp1, 11);
+    uop_AND_IMM(ir, dest_reg, IREG_NPXS, 0xc7ff);
+    uop_OR(ir, dest_reg, dest_reg, IREG_temp1_W);
+}
+
 uint32_t
 ropFSTSW(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
@@ -95,7 +106,8 @@ ropFSTSW(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     op_pc--;
     target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
     codegen_check_seg_write(block, ir, target_seg);
-    uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_NPXS);
+    fpu_status_word(ir, IREG_temp0_W);
+    uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp0_W);
 
     return op_pc + 1;
 }
@@ -103,7 +115,7 @@ uint32_t
 ropFSTSW_AX(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uop_FP_ENTER(ir);
-    uop_MOV(ir, IREG_AX, IREG_NPXS);
+    fpu_status_word(ir, IREG_AX);
 
     return op_pc;
 }

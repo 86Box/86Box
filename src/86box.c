@@ -1368,13 +1368,31 @@ usage:
         mo_global_init();
         tape_global_init();
 
-        /* Load the configuration file. */
-        config_load();
+        /*
+           Set the ID of all the floppy drives so their configuration
+           can load.
+         */
+        for (uint8_t i = 0; i < FDD_NUM; i++) {
+            fdd_drive_t *drv = &drives[i];
+
+            drv->id    = i;
+            drv->empty = 1;
+        }
+
+        /*
+           Load the configuration file; the user may choose not to, for a
+           machine this build does not have, and then nothing is saved.
+         */
+        if (!config_load())
+            return 0;
+
         /* To save the global key binds. */
         config_save_global();
 
-        /* Clear the CMOS and/or BIOS flash file, if we were started with
-           the relevant parameter(s). */
+        /*
+           Clear the CMOS and/or BIOS flash file, if we were started with
+           the relevant parameter(s).
+         */
         if (clear_cmos) {
             delete_nvr_file(0);
             clear_cmos = 0;
@@ -1386,9 +1404,10 @@ usage:
         }
 
         for (uint8_t i = 0; i < FDD_NUM; i++) {
+            fdd_drive_t *drv = &drives[i];
             if (fn[i] != NULL) {
                 if (strlen(fn[i]) <= 511)
-                    strncpy(floppyfns[i], fn[i], 511);
+                    strncpy(drv->image_path, fn[i], 511);
                 free(fn[i]);
                 fn[i] = NULL;
             }
@@ -1907,6 +1926,11 @@ pc_reset_hard_init(void)
        the IDE controllers present are not some form of PCI. */
     ide_drives_set_shadow();
 
+    /* Every IDE board is up by now: check them against what the settings
+       show for each. */
+    ide_plan_check();
+    scsi_plan_check();
+
     /* Make sure to disable any sound timers with no handlers. */
     sound_recalc_timers();
 
@@ -1965,7 +1989,7 @@ pc_close(UNUSED(thread_t *ptr))
     serial_devices_close(0);
 
     for (uint8_t i = 0; i < FDD_NUM; i++)
-        fdd_close(i);
+        fdd_close(&drives[i]);
 
 #ifdef ENABLE_808X_LOG
     if (dump_on_exit)

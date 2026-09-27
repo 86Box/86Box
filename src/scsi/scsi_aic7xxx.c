@@ -68,6 +68,8 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/ini.h>
+#include <86box/config.h>
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -243,6 +245,9 @@ aic_log(const char *tag, const char *fmt, ...)
 #define BOARD_2742W       11 /* one wide channel, floppy controller */
 #define BOARD_2744W       12 /* one wide differential channel */
 #define AIC_BOARD_EISA(b) ((b) >= BOARD_2740)
+/* A card entry that covers several models takes the board from its Model
+   option (and, for the 274x, its floppy jumper) instead of from .local. */
+#define BOARD_FROM_CONFIG 0xff
 #define AIC_BOARD_TWIN(b) (((b) == BOARD_2740T) || ((b) == BOARD_2742T))
 #define AIC_BOARD_WIDE(b) (((b) == BOARD_2740W) || ((b) == BOARD_2742W) || ((b) == BOARD_2744W))
 #define AIC_BOARD_DIFF(b) (((b) == BOARD_2744W) || ((b) == BOARD_2944UW))
@@ -521,6 +526,35 @@ static const aic_chip_t aic_chip_788x = {
    takes the two for one family and goes by the device ID for the rest:
    Linux's feature table makes the AIC-7880 the AIC-7870 plus AHC_ULTRA
    and nothing else. */
+static const aic_chip_t aic_chip_7870;
+
+/* The part a board is built on. */
+static const aic_chip_t *
+aic_board_chip(int board)
+{
+    if (AIC_BOARD_EISA(board))
+        return &aic_chip_7770;
+    else if ((board == BOARD_2940) || (board == BOARD_2940W))
+        return &aic_chip_7870;
+
+    return &aic_chip_788x;
+}
+
+/* A part with SELBUSB has channel B, a bus of its own whether or not the
+   board brings it out (see aic_init()). */
+static uint32_t
+aic_scsi_buses(const device_t *dev)
+{
+    int board = dev->local & 0xff;
+
+    /* An entry covering several models has the model in its options, the
+       current configuration context here. */
+    if (board == BOARD_FROM_CONFIG)
+        board = device_get_config_int("model");
+
+    return (aic_board_chip(board)->sblkctl_mask & SELBUSB) ? 2 : 1;
+}
+
 static const aic_chip_t aic_chip_7870 = {
     .name          = "AIC-7870",
     .scb_pages     = SCB_COUNT,
@@ -5446,6 +5480,27 @@ aic_init(const device_t *info)
     other_scsi_present++;
 
     dev->board = info->local & 0xff;
+    if (dev->board == BOARD_FROM_CONFIG) {
+        dev->board = device_get_config_int("model");
+        /* A 274x with its floppy controller fitted and jumpered on is the
+           2742 of its kind: the same board, the same EISA ID and option
+           ROM, and an N82077 beside the chip. The 2744W has none. */
+        if (AIC_BOARD_EISA(dev->board) && device_get_config_int("floppy")) {
+            switch (dev->board) {
+                case BOARD_2740:
+                    dev->board = BOARD_2742;
+                    break;
+                case BOARD_2740T:
+                    dev->board = BOARD_2742T;
+                    break;
+                case BOARD_2740W:
+                    dev->board = BOARD_2742W;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
     dev->wide  = (dev->board == BOARD_2940UW) || (dev->board == BOARD_2944UW) || (dev->board == BOARD_7880) || (dev->board == BOARD_2940W) || AIC_BOARD_WIDE(dev->board);
     /* An AHA-2740 is one narrow bus. Other members of the family strap the
        same chip for two buses or for one wide one, and on the AIC-7770
@@ -5483,12 +5538,7 @@ aic_init(const device_t *info)
 
     dev->eisa = AIC_BOARD_EISA(dev->board);
     /* Which part this board is built on, before anything asks. */
-    if (dev->eisa)
-        dev->chip = &aic_chip_7770;
-    else if ((dev->board == BOARD_2940) || (dev->board == BOARD_2940W))
-        dev->chip = &aic_chip_7870;
-    else
-        dev->chip = &aic_chip_788x;
+    dev->chip = aic_board_chip(dev->board);
     dev->bus  = scsi_get_bus();
     /* What every line of this board's log will say it is. Set before
        anything else can log, and before the slot is known, so it names
@@ -5755,67 +5805,22 @@ aic_close(void *priv)
 static const device_config_t aic7770_config[] = {
     // clang-format off
     {
-        .name           = "bios_rev",
-        .description    = "BIOS Revision",
-        .type           = CONFIG_BIOS,
-        .default_string = "v2_11_edd",
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .bios           = {
-            {
-                .name          = "Version 2.10",
-                .internal_name = "v2_10",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 16384,
-                .files         = { AHA2740_V210_ROM, "" }
-            },
-            {
-                .name          = "Version 2.11 EDD 1.1",
-                .internal_name = "v2_11_edd",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 32768,
-                .files         = { AHA2742A_V211_ROM, "" }
-            },
-            {
-                .name          = "Version 2.11 EDD 1.1 (2740W dump)",
-                .internal_name = "v2_11_edd_w",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 32768,
-                .files         = { AHA2740W_V211_ROM, "" }
-            },
-            { .files_no = 0 }
-        }
-    },
-    {
-        .name           = "slot",
-        .description    = "EISA slot",
+        .name           = "model",
+        .description    = "Model",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 1,
+        .default_int    = BOARD_2740,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "Slot 1", .value = 1 },
-            { .description = "Slot 2", .value = 2 },
-            { .description = "Slot 3", .value = 3 },
-            { .description = "Slot 4", .value = 4 },
-            { .description = ""                   }
+            { .description = "AHA-274x",                       .value = BOARD_2740  },
+            { .description = "AHA-274xT (twin channel)",       .value = BOARD_2740T },
+            { .description = "AHA-274xW (Wide)",               .value = BOARD_2740W },
+            { .description = "AHA-2744W (Wide, differential)", .value = BOARD_2744W },
+            { .description = ""                                                     }
         },
         .bios           = { { 0 } }
     },
-    { .name = "", .description = "", .type = CONFIG_END }
-    // clang-format on
-};
-
-static const device_config_t aic7770_fdc_config[] = {
-    // clang-format off
     {
         .name           = "bios_rev",
         .description    = "BIOS Revision",
@@ -5887,8 +5892,23 @@ static const device_config_t aic7770_fdc_config[] = {
     // clang-format on
 };
 
-static const device_config_t aic_card_config[] = {
+static const device_config_t aha2940u_config[] = {
     // clang-format off
+    {
+        .name           = "model",
+        .description    = "Model",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = BOARD_2940U,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "AHA-2940U (Ultra)",       .value = BOARD_2940U  },
+            { .description = "AHA-2940UW (Ultra Wide)", .value = BOARD_2940UW },
+            { .description = ""                                               }
+        },
+        .bios           = { { 0 } }
+    },
     {
         .name           = "bios",
         .description    = "Enable BIOS",
@@ -5963,6 +5983,21 @@ static const device_config_t aic_card_config[] = {
 
 static const device_config_t aha2940_config[] = {
     // clang-format off
+    {
+        .name           = "model",
+        .description    = "Model",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = BOARD_2940,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "AHA-2940",         .value = BOARD_2940  },
+            { .description = "AHA-2940W (Wide)", .value = BOARD_2940W },
+            { .description = ""                                       }
+        },
+        .bios           = { { 0 } }
+    },
     {
         .name           = "bios",
         .description    = "Enable BIOS",
@@ -6081,161 +6116,127 @@ const device_t aic7880_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "AIC-7880",
+    .scsi_buses    = aic_scsi_buses
 };
 
-const device_t aha2740_device = {
-    .name          = "Adaptec AHA-2740",
-    .internal_name = "aha2740",
+/* Until the models became options each board had an entry of its own. A
+   configuration naming one of those becomes the entry that covers it, with
+   the model it was; its section (under whichever name the old entry carried)
+   moves to the new name, so the BIOS revision, slot and floppy jumper come
+   along. A 2742's floppy jumper defaulted off as the 274x's does, so the
+   model is all that has to be written. */
+static const struct {
+    const char *old_internal;
+    const char *old_names[2];
+    const char *new_internal;
+    int         model;
+} aic_migrations[] = {
+    { "aha2740",   { "Adaptec AHA-2740"                              }, "aha274x",  BOARD_2740   },
+    { "aha2742",   { "Adaptec AHA-2742"                              }, "aha274x",  BOARD_2740   },
+    { "aha2740t",  { "Adaptec AHA-2740T"                             }, "aha274x",  BOARD_2740T  },
+    { "aha2742t",  { "Adaptec AHA-2742T"                             }, "aha274x",  BOARD_2740T  },
+    { "aha2740w",  { "Adaptec AHA-2740W"                             }, "aha274x",  BOARD_2740W  },
+    { "aha2742w",  { "Adaptec AHA-2742W"                             }, "aha274x",  BOARD_2740W  },
+    { "aha2744w",  { "Adaptec AHA-2744W"                             }, "aha274x",  BOARD_2744W  },
+    { "aha2940w",  { "Adaptec AHA-2940W"                             }, "aha2940",  BOARD_2940W  },
+    { "aha2940uw", { "Adaptec AHA-2940UW", "Adaptec AHA-2940 Ultra Wide" }, "aha2940u", BOARD_2940UW },
+};
+
+const char *
+aic_config_migrate(const char *internal_name, int slot)
+{
+    const device_t *dev = NULL;
+    char            new_sec[512];
+    char            old_sec[512];
+
+    for (size_t i = 0; i < (sizeof(aic_migrations) / sizeof(aic_migrations[0])); i++) {
+        if (strcmp(internal_name, aic_migrations[i].old_internal))
+            continue;
+
+        if (!strcmp(aic_migrations[i].new_internal, "aha274x"))
+            dev = &aha274x_device;
+        else if (!strcmp(aic_migrations[i].new_internal, "aha2940"))
+            dev = &aha2940_pci_device;
+        else
+            dev = &aha2940u_pci_device;
+
+        /* Sections are the entry's name and its instance, the card's slot. */
+        snprintf(new_sec, sizeof(new_sec), "%s #%i", dev->name, slot);
+        if (config_find_section(new_sec) == NULL) {
+            for (int n = 0; (n < 2) && (aic_migrations[i].old_names[n] != NULL); n++) {
+                void *sec;
+
+                snprintf(old_sec, sizeof(old_sec), "%s #%i", aic_migrations[i].old_names[n], slot);
+                sec = config_find_section(old_sec);
+                if (sec == NULL)
+                    sec = config_find_section((char *) aic_migrations[i].old_names[n]);
+                if (sec != NULL) {
+                    config_rename_section(sec, new_sec);
+                    break;
+                }
+            }
+        }
+        config_set_int(new_sec, "model", aic_migrations[i].model);
+
+        return aic_migrations[i].new_internal;
+    }
+
+    return NULL;
+}
+
+/* The AIC-7770 boards: one EISA ID (ADP7771) and one option ROM, told apart
+   by the chip's straps -- one narrow channel, two, one wide, one wide
+   differential -- and by whether a floppy controller is fitted. */
+const device_t aha274x_device = {
+    .name          = "Adaptec AHA-274x (EISA)",
+    .internal_name = "aha274x",
     .flags         = DEVICE_EISA,
-    .local         = BOARD_2740,
+    .local         = BOARD_FROM_CONFIG,
     .init          = aic_init,
     .close         = aic_close,
     .reset         = aic_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aic7770_config
+    .config        = aic7770_config,
+    .short_name    = "AHA-274x",
+    .scsi_buses    = aic_scsi_buses
 };
 
-const device_t aha2742_device = {
-    .name          = "Adaptec AHA-2742",
-    .internal_name = "aha2742",
-    .flags         = DEVICE_EISA,
-    .local         = BOARD_2742,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aic7770_fdc_config
-};
-
-const device_t aha2740t_device = {
-    .name          = "Adaptec AHA-2740T",
-    .internal_name = "aha2740t",
-    .flags         = DEVICE_EISA,
-    .local         = BOARD_2740T,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aic7770_config
-};
-
-const device_t aha2742t_device = {
-    .name          = "Adaptec AHA-2742T",
-    .internal_name = "aha2742t",
-    .flags         = DEVICE_EISA,
-    .local         = BOARD_2742T,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aic7770_fdc_config
-};
-
-const device_t aha2740w_device = {
-    .name          = "Adaptec AHA-2740W",
-    .internal_name = "aha2740w",
-    .flags         = DEVICE_EISA,
-    .local         = BOARD_2740W,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aic7770_config
-};
-
-const device_t aha2742w_device = {
-    .name          = "Adaptec AHA-2742W",
-    .internal_name = "aha2742w",
-    .flags         = DEVICE_EISA,
-    .local         = BOARD_2742W,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aic7770_fdc_config
-};
-
-const device_t aha2744w_device = {
-    .name          = "Adaptec AHA-2744W",
-    .internal_name = "aha2744w",
-    .flags         = DEVICE_EISA,
-    .local         = BOARD_2744W,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aic7770_config
-};
-
+/* The AIC-7870 card, strapped narrow (AHA-2940) or wide (AHA-2940W). */
 const device_t aha2940_pci_device = {
-    .name          = "Adaptec AHA-2940",
+    .name          = "Adaptec AHA-2940 (AIC-7870)",
     .internal_name = "aha2940",
     .flags         = DEVICE_PCI,
-    .local         = BOARD_2940,
+    .local         = BOARD_FROM_CONFIG,
     .init          = aic_init,
     .close         = aic_close,
     .reset         = aic_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha2940_config
+    .config        = aha2940_config,
+    .short_name    = "AHA-2940",
+    .scsi_buses    = aic_scsi_buses
 };
 
-const device_t aha2940w_pci_device = {
-    .name          = "Adaptec AHA-2940W",
-    .internal_name = "aha2940w",
-    .flags         = DEVICE_PCI,
-    .local         = BOARD_2940W,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aha2940_config
-};
-
+/* The AIC-7880 card, narrow (AHA-2940U) or wide (AHA-2940UW). */
 const device_t aha2940u_pci_device = {
-    .name          = "Adaptec AHA-2940U",
+    .name          = "Adaptec AHA-2940 Ultra (AIC-7880)",
     .internal_name = "aha2940u",
     .flags         = DEVICE_PCI,
-    .local         = BOARD_2940U,
+    .local         = BOARD_FROM_CONFIG,
     .init          = aic_init,
     .close         = aic_close,
     .reset         = aic_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aic_card_config
-};
-
-const device_t aha2940uw_pci_device = {
-    .name          = "Adaptec AHA-2940UW",
-    .internal_name = "aha2940uw",
-    .flags         = DEVICE_PCI,
-    .local         = BOARD_2940UW,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aic_card_config
+    .config        = aha2940u_config,
+    .short_name    = "AHA-2940U",
+    .scsi_buses    = aic_scsi_buses
 };
 
 const device_t aha2944uw_pci_device = {
@@ -6249,5 +6250,7 @@ const device_t aha2944uw_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha2944uw_config
+    .config        = aha2944uw_config,
+    .short_name    = "AHA-2944UW",
+    .scsi_buses    = aic_scsi_buses
 };
