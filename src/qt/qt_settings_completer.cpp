@@ -134,8 +134,11 @@ SettingsCompleter::flush()
     if (pending.isEmpty())
         return;
 
-    model->invisibleRootItem()->appendRows(pending);
-    pending.clear();
+    /* Model signals can re-enter the event filter or rebuild the list.
+       Detach the batch before the model takes ownership of its items. */
+    QList<QStandardItem *> batch;
+    batch.swap(pending);
+    model->invisibleRootItem()->appendRows(batch);
 }
 
 void
