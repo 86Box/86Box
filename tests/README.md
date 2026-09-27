@@ -17,6 +17,10 @@ Try to match your code's filename and append the type of test it is.
 
 ## Summary of current tests
 
+# WD90C31 graphics
+
+Build `wd90c31_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^Wd90c31\.'` for register, BitBLT, host-transfer and hardware-cursor checks. The optional `video/wd90c31_bios_smoke.py` runs the supplied option ROMs in a complete SDL emulator using a synthetic AT BIOS. See [the WD90C31 hardware notes](../doc/hardware/wd90c31.md) for ROM paths, commands, tested modes and validation limits.
+
 # Mitsumi
 
 The Mitsumi tests exercise the device implementation in isolation using mocked CD-ROM, DMA, interrupt and timer dependencies. They are device-level unit tests, not full-emulator or guest-driver integration tests. The benchmark measures performance and is not a correctness test.
