@@ -786,16 +786,16 @@ read_toc_raw(const cdrom_t *dev, unsigned char *b, const unsigned char start_tra
 
     if (num != 0)  for (int i = 0; i < num; i++)
         if (t[i].session >= start_track) {
-            memcpy(&(b[len]), &(t[i]), 11);
+            unsigned char *e = &b[len];
+            memcpy(e, &(t[i]), 11);
 
-            if ((dev->is_bcd || dev->is_chinon) && (b[3] >= 1) && (b[3] <= 99))
-                b[3] = bin2bcd(b[3]);
+            if ((dev->is_bcd || dev->is_chinon) && (e[3] >= 1) && (e[3] <= 99))
+                e[3] = bin2bcd(e[3]);
 
-            for (int j = 0; j < 3; j++)
-                if (dev->is_bcd) {
-                    b[4 + j] = bin2bcd(b[4 + j]);
-                    b[8 + j] = bin2bcd(b[8 + j]);
-                }
+            if (dev->is_bcd)  for (int j = 0; j < 3; j++) {
+                e[4 + j] = bin2bcd(e[4 + j]);
+                e[8 + j] = bin2bcd(e[8 + j]);
+            }
 
             len += 11;
         }

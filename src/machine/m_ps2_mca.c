@@ -2703,6 +2703,28 @@ machine_ps2_model_60_init(const machine_t *model)
 }
 
 int
+machine_ps2_model_55ls_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ibmps2_m55ls/84F7048.BIN",
+                                "roms/machines/ibmps2_m55ls/84F7047.BIN",
+                                0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_ps2_common_init(model);
+
+    ps2.planar_id = 0xf5ff;
+    ps2_mca_board_model_55sx_init(1, 4);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    return ret;
+}
+
+int
 machine_ps2_model_55sx_init(const machine_t *model)
 {
     int ret;

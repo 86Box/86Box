@@ -7199,6 +7199,54 @@ const machine_t machines[] = {
     /* 386SX machines which utilize the MCA bus */
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
+        .name              = "[MCA] IBM PS/2 model 55LS",
+        .internal_name     = "ibmps2_m55ls",
+        .type              = MACHINE_TYPE_386SX,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_ps2_model_55ls_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386SX,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 16000000,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags     = MACHINE_VIDEO,
+        .ram       = {
+            .min  = 1024,
+            .max  = 8192,
+            .step = 1024
+        },
+        .nvrmask                  = 63,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    {
         .name              = "[MCA] IBM PS/2 model 55SX",
         .internal_name     = "ibmps2_m55sx",
         .type              = MACHINE_TYPE_386SX,
@@ -22892,8 +22940,8 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SLOT1,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 60000000,
-            .max_bus     = 83333333,
-            .min_voltage = 1800,
+            .max_bus     = 66666667,
+            .min_voltage = 2800,
             .max_voltage = 3500,
             .min_multi   = 1.5,
             .max_multi   = 8.0
@@ -22902,10 +22950,10 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
         .ram       = {
             .min  = 8192,
-            .max  = 393216,
+            .max  = 786432,
             .step = 8192
         },
-        .nvrmask                  = 511,
+        .nvrmask                  = 255,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
@@ -22917,13 +22965,13 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &acerv62x_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Acer AcerPower 9606WC", "Acer AcerPower 9606NC", "" }
     },
     /* Has an SM(S)C FDC37C932 Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
