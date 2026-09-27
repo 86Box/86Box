@@ -12,7 +12,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--emulator", required=True, type=Path)
     parser.add_argument("--rom-dir", required=True, type=Path,
-                        help="Directory containing BIOS.BIN and either SpeedStar dump")
+                        help="Directory containing BIOS.BIN and wd90c31alrdiamondspeedstar24x1.BIN")
     args = parser.parse_args()
     emulator = args.emulator.resolve()
     source = Path(__file__).with_suffix(".asm")

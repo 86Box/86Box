@@ -33,10 +33,9 @@
 #include <86box/vid_svga_render.h>
 #include "vid_wd90c31.h"
 
-#define WD90C31_ROM          "roms/video/wd90c31a/BIOS.BIN"
-#define SPEEDSTAR24X_ROM     "roms/video/wd90c31a/wd90c31alrdiamondspeedstar24x1.BIN"
-#define SPEEDSTAR24X_ALT_ROM "roms/video/wd90c31a/wd90c31alrdiamondspeedstar24x2.BIN"
-#define SPEEDSTAR24X         0x100
+#define WD90C31_ROM      "roms/video/wd90c31a/BIOS.BIN"
+#define SPEEDSTAR24X_ROM "roms/video/wd90c31a/wd90c31alrdiamondspeedstar24x1.BIN"
+#define SPEEDSTAR24X     0x100
 
 #define VAR_BYTE_MODE      (0 << 0)
 #define VAR_WORD_MODE_MA13 (1 << 0)
@@ -1013,10 +1012,8 @@ paradise_wd90c31_standalone_init(const device_t *info)
     int         speedstar = !!(info->local & SPEEDSTAR24X);
     uint32_t    memory    = speedstar ? 1024 : device_get_config_int("memory");
     paradise_t *paradise  = paradise_init(info, memory);
-    const char *rom       = WD90C31_ROM;
+    const char *rom       = speedstar ? SPEEDSTAR24X_ROM : WD90C31_ROM;
 
-    if (speedstar)
-        rom = rom_present(SPEEDSTAR24X_ROM) ? SPEEDSTAR24X_ROM : SPEEDSTAR24X_ALT_ROM;
     rom_init(&paradise->bios_rom, rom, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     return paradise;
 }
@@ -1030,8 +1027,7 @@ paradise_wd90c31_available(void)
 static int
 speedstar24x_available(void)
 {
-    /* The two supplied dumps are identical; either filename is sufficient. */
-    return rom_present(SPEEDSTAR24X_ROM) || rom_present(SPEEDSTAR24X_ALT_ROM);
+    return rom_present(SPEEDSTAR24X_ROM);
 }
 
 void
