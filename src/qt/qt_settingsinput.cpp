@@ -76,6 +76,7 @@ SettingsInput::SettingsInput(QWidget *parent)
 SettingsInput::~SettingsInput()
 {
     delete scJoystick0;
+    delete scTablet;
 
     delete scMouse;
     delete scKeyboard;
