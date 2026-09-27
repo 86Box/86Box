@@ -1392,6 +1392,9 @@ extern int             machine_at_6dxp_init(const machine_t *);
 extern int             machine_at_m729_init(const machine_t *);
 
 /* i440FX */
+#ifdef EMU_DEVICE_H
+extern const device_t  acerv62x_device;
+#endif
 extern int             machine_at_acerv62x_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  p6kdi_device;
