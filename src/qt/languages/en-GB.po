@@ -141,3 +141,12 @@ msgstr "Colour scheme"
 
 msgid "PC-CM (Color)"
 msgstr "PC-CM (Colour)"
+
+msgid "Enable audio input (mic/line-in)"
+msgstr ""
+
+msgid "Audio input device:"
+msgstr ""
+
+msgid "Audio input sample rate:"
+msgstr ""
