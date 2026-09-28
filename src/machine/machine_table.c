@@ -6005,7 +6005,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 512,
-            .max  = 1024,
+            .max  = 15360,
             .step = 128 /* assumed */
         },
         .nvrmask                  = 127,
