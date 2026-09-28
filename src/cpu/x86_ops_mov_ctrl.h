@@ -187,11 +187,16 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
             if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x00000001)
                 flushmmucache();
             else if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000000) {
-                if (is_p6 || cpu_use_dynarec)
+                if (is_p6)
                     flushmmucache();
                 else {
                     flushmmucache_nopc();
                     cpu_flush_pending = 1;
+                    /* The recompiler runs the next instruction through the
+                       interpreter, which still fetches it with the old
+                       paging state. */
+                    if (cpu_use_dynarec)
+                        CPU_BLOCK_END();
                 }
             } else if ((cpu_state.regs[cpu_rm].l ^ cr0) & WP_FLAG)
                 flushmmucache_write();
@@ -251,11 +256,16 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
             if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x00000001)
                 flushmmucache();
             else if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000000) {
-                if (is_p6 || cpu_use_dynarec)
+                if (is_p6)
                     flushmmucache();
                 else {
                     flushmmucache_nopc();
                     cpu_flush_pending = 1;
+                    /* The recompiler runs the next instruction through the
+                       interpreter, which still fetches it with the old
+                       paging state. */
+                    if (cpu_use_dynarec)
+                        CPU_BLOCK_END();
                 }
             } else if ((cpu_state.regs[cpu_rm].l ^ cr0) & WP_FLAG)
                 flushmmucache_write();

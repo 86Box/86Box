@@ -462,9 +462,6 @@ machine_at_valuepoint433_init(const machine_t *model) // hangs without the PS/2 
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-
     video_reset(gfxcard[0]);
 
     if (gfxcard[0] != VID_INTERNAL) {
