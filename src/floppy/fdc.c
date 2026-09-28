@@ -1008,11 +1008,11 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         ui_sb_update_icon_write(SB_FLOPPY | fdc->bus, 0);
                         fdc_ctrl_reset(fdc);
                     }
-                    if (!fdd_get_flags(0))
+                    if (!fdd_get_flags(fdc->fdd[0]))
                         val &= 0xfe;
                     fdd_set_motor_enable(fdc->fdd[0], val & 0x01);
                     fdc->st0 &= ~0x07;
-                    fdc->st0 |= (fdd_get_head(0) ? 4 : 0);
+                    fdc->st0 |= (fdd_get_head(fdc->fdd[0]) ? 4 : 0);
                 } else {
                     /*
                        Writing this bit to logic "1" will enable the DRQ,
