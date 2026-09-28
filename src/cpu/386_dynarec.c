@@ -420,11 +420,6 @@ exec386_dynarec_int(void)
             x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
         }
 
-#    ifndef USE_NEW_DYNAREC
-        if (!use32)
-            cpu_state.pc &= 0xffff;
-#    endif
-
 #    ifdef USE_DEBUG_REGS_486
         if (!cpu_state.abrt) {
             if (!rf_flag_no_clear) {
@@ -684,11 +679,6 @@ exec386_dynarec_dyn(void)
         acycs = 0;
 #    endif
         inrecomp = 0;
-
-#    ifndef USE_NEW_DYNAREC
-        if (!use32)
-            cpu_state.pc &= 0xffff;
-#    endif
     } else if (valid_block && !cpu_state.abrt) {
 #    ifdef USE_NEW_DYNAREC
         start_pc                 = cs + cpu_state.pc;
@@ -741,11 +731,6 @@ exec386_dynarec_dyn(void)
                 if (x86_was_reset)
                     break;
             }
-
-#    ifndef USE_NEW_DYNAREC
-            if (!use32)
-                cpu_state.pc &= 0xffff;
-#    endif
 
                 /* Cap source code at 4000 bytes per block; this
                    will prevent any block from spanning more than
@@ -854,11 +839,6 @@ exec386_dynarec_dyn(void)
                 if (x86_was_reset)
                     break;
             }
-
-#    ifndef USE_NEW_DYNAREC
-            if (!use32)
-                cpu_state.pc &= 0xffff;
-#    endif
 
                 /* Cap source code at 4000 bytes per block; this
                    will prevent any block from spanning more than
@@ -1360,11 +1340,6 @@ exec386(int32_t cycs)
                 cpu_flush_pending = 0;
                 flushmmucache_pc();
             }
-
-#ifndef USE_NEW_DYNAREC
-            if (!use32)
-                cpu_state.pc &= 0xffff;
-#endif
 
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
