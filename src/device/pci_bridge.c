@@ -518,7 +518,7 @@ pci_bridge_reset(void *priv)
 static void *
 pci_bridge_init(const device_t *info)
 {
-    uint8_t interrupts[4];
+    uint8_t interrupts[4] = { 0 };
     uint8_t interrupt_mask;
     uint8_t add_type;
     uint8_t slot_count;
@@ -532,13 +532,6 @@ pci_bridge_init(const device_t *info)
     pci_bridge_reset(dev);
 
     interrupt_mask = sizeof(interrupts) - 1;
-    if (dev->slot < 32) {
-        for (uint8_t i = 0; i <= interrupt_mask; i++)
-            interrupts[i] = pci_get_int(dev->slot, PCI_INTA + i);
-    }
-    pci_bridge_log("PCI Bridge %d: upstream bus %02X slot %02X interrupts %02X %02X %02X %02X\n",
-                   dev->bus_index, (dev->slot >> 5) & 0xff, dev->slot & 31, interrupts[0],
-                   interrupts[1], interrupts[2], interrupts[3]);
 
     if (info->local == PCI_BRIDGE_DEC_21150) {
         slot_count = 9; /* 9 bus masters */
@@ -552,6 +545,17 @@ pci_bridge_init(const device_t *info)
     }
 
     pci_add_bridge(add_type, pci_bridge_read, pci_bridge_write, dev, &dev->slot);
+
+    /* dev->slot is only valid after pci_add_bridge(); reading the upstream
+       INT routing earlier hits slot 0 (northbridge, all-zero routing) and
+       leaves every downstream slot's interrupts unroutable. */
+    if (dev->slot < 32) {
+        for (uint8_t i = 0; i <= interrupt_mask; i++)
+            interrupts[i] = pci_get_int(dev->slot, PCI_INTA + i);
+    }
+    pci_bridge_log("PCI Bridge %d: upstream bus %02X slot %02X interrupts %02X %02X %02X %02X\n",
+                   dev->bus_index, (dev->slot >> 5) & 0xff, dev->slot & 31, interrupts[0],
+                   interrupts[1], interrupts[2], interrupts[3]);
 
     for (uint8_t i = 0; i < slot_count; i++) {
         /* Interrupts for bridge slots are assigned in round-robin: ABCD, BCDA, CDAB and so on. */
