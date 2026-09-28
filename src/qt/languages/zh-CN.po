@@ -3341,7 +3341,7 @@ msgid "Use EDC/ECC emulation"
 msgstr "使用EDC/ECC模拟"
 
 msgid "Audio output device:"
-msgstr "音频输出设备:"
+msgstr "音频输出设备："
 
 msgid "System Default"
 msgstr "系统默认"
@@ -3508,6 +3508,15 @@ msgstr "938 (繁体中文)"
 
 msgid "Sample rate:"
 msgstr "采样率："
+
+msgid "Enable audio input (mic/line-in)"
+msgstr "启用音频输入（麦克风/线路输入）"
+
+msgid "Audio input device:"
+msgstr "音频输入设备："
+
+msgid "Audio input sample rate:"
+msgstr "音频输入采样率："
 
 msgid "CGA lightpen"
 msgstr "CGA光笔"

@@ -3583,6 +3583,15 @@ msgstr "938 (중국어 번체)"
 msgid "Sample rate:"
 msgstr "샘플링 주파수:"
 
+msgid "Enable audio input (mic/line-in)"
+msgstr ""
+
+msgid "Audio input device:"
+msgstr ""
+
+msgid "Audio input sample rate:"
+msgstr ""
+
 msgid "CGA lightpen"
 msgstr "CGA 라이트펜"
 

@@ -2924,7 +2924,7 @@ TEST_NONZERO_JUMP_L(int host_reg, uint32_t new_pc, int taken_cycles)
 }
 
 static __inline void
-BRANCH_COND_BE(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
+BRANCH_COND_BE(uint32_t dest_addr, int not )
 {
     uint8_t *jump1;
 
@@ -2956,7 +2956,7 @@ BRANCH_COND_BE(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
     addbyte(0xC7); /*MOVL [pc], new_pc*/
     addbyte(0x45);
     addbyte((uint8_t) cpu_state_offset(pc));
-    addlong(op_pc + pc_offset + offset);
+    addlong(dest_addr);
     if (timing_bt) {
         addbyte(0x83); /*SUB $codegen_block_cycles, cyclcs*/
         addbyte(0x6d);
@@ -2970,7 +2970,7 @@ BRANCH_COND_BE(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
 }
 
 static __inline void
-BRANCH_COND_L(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
+BRANCH_COND_L(uint32_t dest_addr, int not )
 {
     CALL_FUNC((uintptr_t) NF_SET);
     addbyte(0x85); /*TEST EAX,EAX*/
@@ -2994,7 +2994,7 @@ BRANCH_COND_L(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
     addbyte(0xC7); /*MOVL [pc], new_pc*/
     addbyte(0x45);
     addbyte((uint8_t) cpu_state_offset(pc));
-    addlong(op_pc + pc_offset + offset);
+    addlong(dest_addr);
     if (timing_bt) {
         addbyte(0x83); /*SUB $codegen_block_cycles, cyclcs*/
         addbyte(0x6d);
@@ -3006,7 +3006,7 @@ BRANCH_COND_L(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
 }
 
 static __inline void
-BRANCH_COND_LE(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
+BRANCH_COND_LE(uint32_t dest_addr, int not )
 {
     uint8_t *jump1;
     if (codegen_flags_changed && cpu_state.flags_op != FLAGS_UNKNOWN) {
@@ -3047,7 +3047,7 @@ BRANCH_COND_LE(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
     addbyte(0xC7); /*MOVL [pc], new_pc*/
     addbyte(0x45);
     addbyte((uint8_t) cpu_state_offset(pc));
-    addlong(op_pc + pc_offset + offset);
+    addlong(dest_addr);
     if (timing_bt) {
         addbyte(0x83); /*SUB $codegen_block_cycles, cyclcs*/
         addbyte(0x6d);

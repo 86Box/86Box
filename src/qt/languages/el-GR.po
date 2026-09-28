@@ -3573,6 +3573,15 @@ msgstr "938 (Παραδοσιακά Κινέζικα)"
 msgid "Sample rate:"
 msgstr "Ρυθμός δειγματοληψίας:"
 
+msgid "Enable audio input (mic/line-in)"
+msgstr ""
+
+msgid "Audio input device:"
+msgstr ""
+
+msgid "Audio input sample rate:"
+msgstr ""
+
 msgid "CGA lightpen"
 msgstr "Φωτογραφίδα CGA"
 

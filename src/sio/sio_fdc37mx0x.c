@@ -730,7 +730,7 @@ fdc37mx0x_read(uint16_t port, void *priv)
         else {
             if (dev->cur_reg < 0x30) {
                 if (dev->cur_reg == 0x20)
-                    ret = 0x47;
+                    ret = dev->chip_id;
                 else
                     ret = dev->regs[dev->cur_reg];
             } else if (dev->regs[7] <= dev->max_ld) {

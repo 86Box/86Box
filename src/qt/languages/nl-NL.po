@@ -3512,6 +3512,15 @@ msgstr "938 (Traditioneel Chinees)"
 msgid "Sample rate:"
 msgstr "Samplefrequentie:"
 
+msgid "Enable audio input (mic/line-in)"
+msgstr ""
+
+msgid "Audio input device:"
+msgstr ""
+
+msgid "Audio input sample rate:"
+msgstr ""
+
 msgid "CGA lightpen"
 msgstr "CGA-lichtpen"
 
