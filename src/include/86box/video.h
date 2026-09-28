@@ -532,12 +532,15 @@ extern const device_t oti077_pcs44c_device;
 extern const device_t oti077_device;
 
 /* Paradise/WD (S)VGA */
-extern const device_t paradise_pvga1a_ncr3302_device;
 extern const device_t paradise_pvga1a_pc2086_device;
 extern const device_t paradise_pvga1a_pc3086_device;
+extern const device_t paradise_pvga1a_ncr3302_device;
 extern const device_t paradise_pvga1a_device;
 extern const device_t paradise_wd90c11_megapc_device;
 extern const device_t paradise_wd90c11_device;
+extern const device_t paradise_wd90c20_5535s_device;
+extern void           paradise_wd90c20_vga_disable(void *priv, uint16_t port);
+extern void           paradise_wd90c20_vga_enable(void *priv, uint16_t port);
 extern const device_t paradise_wd90c30_device;
 extern const device_t paradise_wd90c31_device;
 extern const device_t paradise_speedstar24x_device;

@@ -108,6 +108,7 @@ static struct ps2_t {
     lpt_t    *lpt;
 
     vga_t *mb_vga;
+    void  *mb_paradise;
     int    has_e0000_hole;
 } ps2;
 
@@ -567,7 +568,7 @@ model_p70_type2_read(uint16_t port)
 }
 
 static uint8_t
-ps55_model_50t_read(uint16_t port)
+ps55_model_5550t_read(uint16_t port)
 {
     ps2_mca_log(" Read SysBrd %04X xx %04X:%04X\n", port, cs >> 4, cpu_state.pc);
     switch (port) {
@@ -630,7 +631,7 @@ ps55_model_50t_read(uint16_t port)
 }
 
 static uint8_t
-ps55_model_50v_read(uint16_t port)
+ps55_model_5550v_read(uint16_t port)
 {
     switch (port) {
         case 0x100:
@@ -1223,7 +1224,7 @@ model_p70_type2_write(uint16_t port, uint8_t val)
 }
 
 static void
-ps55_model_50tv_write(uint16_t port, uint8_t val)
+ps55_model_5550tv_write(uint16_t port, uint8_t val)
 {
     ps2_mca_log(" Write SysBrd %04X %02X %04X:%04X\n", port, val, cs >> 4, cpu_state.pc);
     switch (port) {
@@ -1487,15 +1488,23 @@ ps2_mca_vga_read(UNUSED(uint16_t addr), UNUSED(void *priv))
 static void
 ps2_mca_vga_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
-    if (!ps2.mb_vga)
+    if (ps2.mb_paradise != NULL) {
+        if (val & 0x01)
+            paradise_wd90c20_vga_enable(ps2.mb_paradise, addr);
+        else
+            paradise_wd90c20_vga_disable(ps2.mb_paradise, addr);
         return;
+    }
 
-    if (val & 0x01) {
-        if (!vga_isenabled(ps2.mb_vga))
-            vga_enable(ps2.mb_vga, addr);
-    } else {
-        if (vga_isenabled(ps2.mb_vga))
-            vga_disable(ps2.mb_vga, addr);
+    if (ps2.mb_vga != NULL) {
+        if (val & 0x01) {
+            if (!vga_isenabled(ps2.mb_vga))
+                vga_enable(ps2.mb_vga, addr);
+        } else {
+            if (vga_isenabled(ps2.mb_vga))
+                vga_disable(ps2.mb_vga, addr);
+        }
+        return;
     }
 }
 
@@ -1513,6 +1522,7 @@ ps2_mca_board_common_init(void)
 
     ps2.setup = 0xff;
     ps2.pos_vga = 0x01;
+    ps2.mb_paradise = NULL;
 
     lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
 }
@@ -2444,7 +2454,65 @@ ps2_mca_board_model_p70_type2_init(void)
 }
 
 static void
-ps55_mca_board_model_50t_init(void)
+ps55_mca_board_model_5535s_init(void)
+{
+    ps2_mca_board_common_init();
+
+    mca_init(3);
+
+    ps2.planar_read  = model_55sx_read;
+    ps2.planar_write = model_55sx_write;
+
+    device_add(&ps2_nvr_55ls_device);
+
+    ps2.option[1] = 0x00;
+    ps2.option[2] = 0x00;
+    ps2.option[3] = 0x10;
+
+    memset(ps2.memory_bank, 0xf0, 8);
+    switch (mem_size / 1024) {
+        case 1:
+            ps2.memory_bank[0] = 0x61;
+            break;
+        case 2:
+            ps2.memory_bank[0] = 0x51;
+            break;
+        case 3:
+            ps2.memory_bank[0] = 0x51;
+            ps2.memory_bank[1] = 0x61;
+            break;
+        case 4:
+            ps2.memory_bank[0] = 0x51;
+            ps2.memory_bank[1] = 0x51;
+            break;
+        case 5:
+            ps2.memory_bank[0] = 0x01;
+            ps2.memory_bank[1] = 0x61;
+            break;
+        case 6:
+        case 7: /*Not supported*/
+            ps2.memory_bank[0] = 0x01;
+            ps2.memory_bank[1] = 0x51;
+            break;
+        case 8:
+            ps2.memory_bank[0] = 0x01;
+            ps2.memory_bank[1] = 0x01;
+            break;
+
+        default:
+            break;
+    }
+
+    /* The flat panel controller is on the card; 0x3C3 is forwarded to it
+       instead of to the planar VGA. */
+    if (gfxcard[0] == VID_INTERNAL)
+        ps2.mb_paradise = device_add(&paradise_wd90c20_5535s_device);
+
+    model_55sx_mem_recalc();
+}
+
+static void
+ps55_mca_board_model_5550t_init(void)
 {
     ps2_mca_board_common_init();
 
@@ -2452,8 +2520,8 @@ ps55_mca_board_model_50t_init(void)
     /* The slot 5 is reserved for the Integrated Fixed Disk II (an internal ESDI hard drive). */
     mca_init(5);
 
-    ps2.planar_read  = ps55_model_50t_read;
-    ps2.planar_write = ps55_model_50tv_write;
+    ps2.planar_read  = ps55_model_5550t_read;
+    ps2.planar_write = ps55_model_5550tv_write;
 
     device_add(&ps2_nvr_device);
 
@@ -2495,7 +2563,7 @@ ps55_mca_board_model_50t_init(void)
 }
 
 static void
-ps55_mca_board_model_50v_init(void)
+ps55_mca_board_model_5550v_init(void)
 {
     ps2_mca_board_common_init();
 
@@ -2503,8 +2571,8 @@ ps55_mca_board_model_50v_init(void)
     /* The slot 5 is reserved for the Integrated Fixed Disk II (an internal ESDI hard drive). */
     mca_init(5);
 
-    ps2.planar_read  = ps55_model_50v_read;
-    ps2.planar_write = ps55_model_50tv_write;
+    ps2.planar_read  = ps55_model_5550v_read;
+    ps2.planar_write = ps55_model_5550tv_write;
 
     device_add(&ps2_nvr_device);
 
@@ -2967,7 +3035,29 @@ machine_ps2_model_p70_type2_init(const machine_t *model)
 }
 
 int
-machine_ps55_model_50t_init(const machine_t *model)
+machine_ps55_model_5535s_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ibmps55_m35s/79F1105.BIN",
+                                "roms/machines/ibmps55_m35s/79F1106.BIN",
+                                0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_ps2_common_init(model);
+
+    ps2.planar_id = 0xe6ff;
+    ps55_mca_board_model_5535s_init();
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    return ret;
+}
+
+int
+machine_ps55_model_5550t_init(const machine_t *model)
 {
     int ret;
 
@@ -2990,7 +3080,7 @@ machine_ps55_model_50t_init(const machine_t *model)
      * The VM in 86Box runs faster than the real, so the POST always determines it as the T model.
      */
     ps2.planar_id = 0xffee;
-    ps55_mca_board_model_50t_init();
+    ps55_mca_board_model_5550t_init();
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
@@ -2998,7 +3088,7 @@ machine_ps55_model_50t_init(const machine_t *model)
 }
 
 int
-machine_ps55_model_50v_init(const machine_t *model)
+machine_ps55_model_5550v_init(const machine_t *model)
 {
     int ret;
 
@@ -3017,7 +3107,7 @@ machine_ps55_model_50v_init(const machine_t *model)
      * Verification in BIOS P/N 56F7416,56F7417: FBxx -> 5 slots (ok), F1xx -> 5 slots (ok), others -> 8 (error)
      */
     ps2.planar_id = 0xf1ff;
-    ps55_mca_board_model_50v_init();
+    ps55_mca_board_model_5550v_init();
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
