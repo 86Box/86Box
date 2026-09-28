@@ -438,6 +438,9 @@ aic6360_read(uint16_t port, void *priv)
             case SCSIBUS:
             case SCSIDAT:
                 ret = aic6360_peek(dev);
+                /* Windows NT 4.0 drivers drain the SCSI bus completely on init, and expect SCSIBUS reads to return 0 if drained. */
+                if (dev->phase != AIC_DATA_IN && dev->phase != AIC_STATUS && dev->phase != AIC_MSG_IN && reg == SCSIBUS)
+                    ret = 0x00;
                 if (reg == SCSIDAT && (dev->regs[SXFRCTL0] & SPIOEN) && (dev->phase & 0x40))
                     aic6360_transfer(dev, 0);
                 break;
