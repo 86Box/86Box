@@ -3533,6 +3533,15 @@ msgstr "938 (正體中文)"
 msgid "Sample rate:"
 msgstr "取樣率:"
 
+msgid "Enable audio input (mic/line-in)"
+msgstr ""
+
+msgid "Audio input device:"
+msgstr ""
+
+msgid "Audio input sample rate:"
+msgstr ""
+
 msgid "CGA lightpen"
 msgstr "CGA光筆"
 

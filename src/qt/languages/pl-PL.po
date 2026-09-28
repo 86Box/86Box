@@ -3522,6 +3522,15 @@ msgstr "938 (chiński uproszczony)"
 msgid "Sample rate:"
 msgstr "Częstotliwość próbkowania:"
 
+msgid "Enable audio input (mic/line-in)"
+msgstr ""
+
+msgid "Audio input device:"
+msgstr ""
+
+msgid "Audio input sample rate:"
+msgstr ""
+
 msgid "CGA lightpen"
 msgstr "Pióro świetlne CGA"
 

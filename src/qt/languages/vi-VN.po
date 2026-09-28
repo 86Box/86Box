@@ -3510,6 +3510,15 @@ msgstr "938 (Trung phồn thể)"
 msgid "Sample rate:"
 msgstr "Tần số lấy mẫu:"
 
+msgid "Enable audio input (mic/line-in)"
+msgstr ""
+
+msgid "Audio input device:"
+msgstr ""
+
+msgid "Audio input sample rate:"
+msgstr ""
+
 msgid "CGA lightpen"
 msgstr ""
 
