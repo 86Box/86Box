@@ -7338,6 +7338,55 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    {
+        .name              = "[MCA] IBM PS/55 model 5535-S",
+        .internal_name     = "ibmps55_m35s",
+        .type              = MACHINE_TYPE_386SX,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_ps55_model_5535s_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386SX,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 16000000,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags     = MACHINE_VIDEO | MACHINE_KEYBOARD_JIS,
+        .ram       = {
+            /* 1MB is not enough for the reference disk */
+            .min  = 2048,
+            .max  = 8192,
+            .step = 1024
+        },
+        .nvrmask                  = 63,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
 
     /* ALi M6117 machines */
     /* Has IBM PS/2 Type 1 KBC firmware. */
@@ -8623,7 +8672,7 @@ const machine_t machines[] = {
         .internal_name     = "ibmps55_m50t",
         .type              = MACHINE_TYPE_386DX,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,
-        .init              = machine_ps55_model_50t_init,
+        .init              = machine_ps55_model_5550t_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -9010,7 +9059,7 @@ const machine_t machines[] = {
         .internal_name     = "ibmps55_m50v",
         .type              = MACHINE_TYPE_386DX_486,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,
-        .init              = machine_ps55_model_50v_init,
+        .init              = machine_ps55_model_5550v_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
