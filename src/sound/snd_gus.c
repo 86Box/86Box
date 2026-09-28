@@ -634,9 +634,6 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
             break;
         case 0x304: /*Global low*/
             switch (gus->global) {
-                case 0: /*Voice control*/
-                    gus->ctrl[gus->voice] = val;
-                    break;
                 case 1: /*Frequency control*/
                     gus->freq[gus->voice] = (gus->freq[gus->voice] & 0xFF00) | val;
                     break;

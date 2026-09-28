@@ -1559,6 +1559,8 @@ img_close(void *priv)
 
     /* Release the memory. */
     free(dev);
+
+    drv->local = NULL;
 }
 
 /* Load a raw floppy device (support for ioctl:// path) */

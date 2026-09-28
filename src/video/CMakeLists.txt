@@ -135,6 +135,7 @@ add_library(vid OBJECT
 
     # Paradise
     vid_paradise.c
+    vid_wd90c31.c
     vid_rtg310x.c
     vid_f82c425.c
     vid_ti_cf62011.c
