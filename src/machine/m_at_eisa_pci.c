@@ -52,6 +52,9 @@
 #include <86box/machine.h>
 #include <86box/rom.h>
 #include <86box/keyboard.h>
+#include <86box/thread.h>
+#include <86box/network.h>
+#include "cpu.h"
 
 static const device_config_t at_54tdp_config[] = {
     // clang-format off
@@ -281,6 +284,113 @@ machine_at_d823_init(const machine_t *model)
        board has no EISA configuration store option; the CMOS is the plain
        128-byte AT one, with the EISA status in byte 33h. */
     device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+static const device_config_t td3_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "td3",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMI WinBIOS (081594) - Revision 5890G",
+                .internal_name = "td3_g",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/td3/5890G.ROM", "" }
+            },
+            {
+                .name          = "AMI WinBIOS (081594) - Revision 5890H",
+                .internal_name = "td3",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/td3/5890H.ROM", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t td3_device = {
+    .name          = "Intergraph TD-3",
+    .internal_name = "td3_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = td3_config
+};
+
+int
+machine_at_td3_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_2);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x06, PCI_CARD_SCSI,        4, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_NETWORK,     1, 0, 0, 0);
+
+    eisa_init(1);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    device_add(&i430nx_device);
+    device_add(&pceb_device);
+    device_add(&esc_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
+    device_add(&intel_flash_bxt_device);
+
+    /* For some odd reason, the 90 and 100 MHz CPU board variants use different identifiers. 
+       Perhaps they use different variants of the same board with different supported bus
+       speeds. Although, for the sake of simplicity, it is probably a better idea to support
+       both variants under a single TD-3 entry, with the statement below to ensure the
+       identifiers are accurate for the selected CPU. */
+    if (cpu_busspeed <= 60000000) /* for 60 MHz and lower bus speeds (90 MHz CPU) */
+        esc_set_board_id("ING", 0x2850, 0);
+    else /* for 66 MHz and all other bus speeds (100 MHz CPU) */
+        esc_set_board_id("ING", 0x2920, 0);   
+
+    device_add(machine_get_scsi_device(machine));
+
+    if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
+        device_add(machine_get_net_device(machine));
 
     return ret;
 }

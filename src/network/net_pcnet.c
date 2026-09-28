@@ -3302,6 +3302,20 @@ const device_t pcnet_am79c970a_device = {
     .config        = pcnet_pci_config
 };
 
+const device_t pcnet_am79c970a_onboard_device = {
+    .name          = "AMD PCnet-PCI II (On-Board)",
+    .internal_name = "pcnetpci_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = DEV_AM79C970A | 0x0100,
+    .init          = pcnet_init,
+    .close         = pcnet_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pcnet_pci_config
+};
+
 const device_t pcnet_am79c973_device = {
     .name          = "AMD PCnet-FAST III",
     .internal_name = "pcnetfast",
