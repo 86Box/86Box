@@ -1,292 +1,300 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2026-09-29 15:04+0000\n"
+"Last-Translator: MayuriNanako <gordonkoopaplays@gmail.com>\n"
+"Language-Team: Romanian <https://weblate.86box.net/projects/86box/86box/ro/>"
+"\n"
+"Language: ro-RO\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
+"20)) ? 1 : 2;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: ro_RO\n"
 "X-Source-Language: en_US\n"
 
 msgid "&Action"
-msgstr ""
+msgstr "&Acțiune"
 
 msgid "&Keyboard requires capture"
-msgstr ""
+msgstr "&Tastatura necesită capturare"
 
 msgid "&Right CTRL is left ALT"
-msgstr ""
+msgstr "&CTRL din dreapta este ALT din stânga"
 
 msgid "&Hard reset"
-msgstr ""
+msgstr "&Resetare dură"
 
 msgid "&Ctrl+Alt+Del"
-msgstr ""
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
-msgstr ""
+msgstr "Ctrl+Alt+&Esc"
 
 msgid "&Pause"
-msgstr ""
+msgstr "&Pauză"
 
 msgid "Pause"
-msgstr ""
+msgstr "Pauză"
 
 msgid "Re&sume"
-msgstr ""
+msgstr "Re&luați"
 
 msgid "E&xit"
-msgstr ""
+msgstr "Ie&șire"
 
 msgid "&View"
-msgstr ""
+msgstr "&Vizualizare"
 
 msgid "&Hide status bar"
-msgstr ""
+msgstr "&Ascunde bara de stare"
 
 msgid "Hide &toolbar"
-msgstr ""
+msgstr "Ascunde &bara de unelte"
 
 msgid "&Resizeable window"
-msgstr ""
+msgstr "&Fereastră redimensionabilă"
 
 msgid "R&emember size && position"
-msgstr ""
+msgstr "&Ține minte poziția &și dimensiunea"
 
 msgid "Remember size && position"
-msgstr ""
+msgstr "Ține minte poziția& și dimensiunea"
 
 msgid "Re&nderer"
-msgstr ""
+msgstr "Ra&ndor"
 
 msgid "&Qt (Software)"
-msgstr ""
+msgstr "&Qt (Software)"
 
 msgid "Open&GL"
-msgstr ""
+msgstr "Open&GL"
 
 msgid "&Vulkan"
-msgstr ""
+msgstr "&Vulkan"
 
 msgid "V&NC"
-msgstr ""
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
-msgstr ""
+msgstr "Specifică &dimensiunile…"
 
 msgid "Force &4:3 display ratio"
-msgstr ""
+msgstr "Forțează raportul de aspect &4:3"
 
 msgid "Force &%1:%2 display ratio"
-msgstr ""
+msgstr "Forțează raportul de aspect &%1:%2"
 
 msgid "&Window scale factor"
-msgstr ""
+msgstr "&Factor de scalare fereastră"
 
 msgid "&0.5x"
-msgstr ""
+msgstr "&0.5x"
 
 msgid "&1x"
-msgstr ""
+msgstr "&1x"
 
 msgid "1.&5x"
-msgstr ""
+msgstr "1.&5x"
 
 msgid "&2x"
-msgstr ""
+msgstr "&2x"
 
 msgid "&3x"
-msgstr ""
+msgstr "&3x"
 
 msgid "&4x"
-msgstr ""
+msgstr "&4x"
 
 msgid "&5x"
-msgstr ""
+msgstr "&5x"
 
 msgid "&6x"
-msgstr ""
+msgstr "&6x"
 
 msgid "&7x"
-msgstr ""
+msgstr "&7x"
 
 msgid "&8x"
-msgstr ""
+msgstr "&8x"
 
 msgid "Fi&lter method"
-msgstr ""
+msgstr "Metodă de &filtrare"
 
 msgid "&Nearest"
-msgstr ""
+msgstr "&Cel mai apropriat"
 
 msgid "&Linear"
-msgstr ""
+msgstr "&Liniar"
 
 msgid "Hi&DPI scaling"
-msgstr ""
+msgstr "Scalare &HiDPI"
 
 msgid "&Fullscreen"
-msgstr ""
+msgstr "&Ecran complet"
 
 msgid "Fullscreen &stretch mode"
-msgstr ""
+msgstr "&Mod de întindere pe tot ecranul"
 
 msgid "&Full screen stretch"
-msgstr ""
+msgstr "Întindere pe tot &ecranul"
 
 msgid "&4:3"
-msgstr ""
+msgstr "&4:3"
 
 msgid "&Square pixels (Keep ratio)"
-msgstr ""
+msgstr "&Pixeli pătrați (păstrează raportul de aspect)"
 
 msgid "&Integer scale"
-msgstr ""
+msgstr "Scalare &întreagă"
 
 msgid "4:&3 Integer scale"
-msgstr ""
+msgstr "Scalare întreagă la &4:3"
 
 msgid "Inverted VGA monitor"
-msgstr ""
+msgstr "Monitor VGA inversat"
 
 msgid "VGA screen type:"
-msgstr ""
+msgstr "Tip de ecran VGA:"
 
 msgid "RGB Color"
-msgstr ""
+msgstr "Culoarei RGB"
 
 msgid "RGB (no brown)"
-msgstr ""
+msgstr "RGB (fără maro)"
 
 msgid "RGB Grayscale"
-msgstr ""
+msgstr "RGB în nuanțe de gri"
 
 msgid "Generic RGBI color monitor"
-msgstr ""
+msgstr "Monitor RGBI color generic"
 
 msgid "Amber monitor"
-msgstr ""
+msgstr "Monitor chihlimbariu"
 
 msgid "Green monitor"
-msgstr ""
+msgstr "Monitor verde"
 
 msgid "White monitor"
-msgstr ""
+msgstr "Monitor alb"
 
 msgid "Grayscale conversion type:"
-msgstr ""
+msgstr "Tip de conversie în nuanțe de gri:"
 
 msgid "Average"
-msgstr ""
+msgstr "Medie"
 
 msgid "Overscan"
-msgstr ""
+msgstr "Suprascanare"
 
 msgid "Change contrast for monochrome display"
-msgstr ""
+msgstr "Schimbă contrastul pentru afișajul monocrom"
 
 msgid "&Media"
-msgstr ""
+msgstr "&Medii"
 
 msgid "&Tools"
-msgstr ""
+msgstr "&Unelte"
 
 msgid "&Settings…"
-msgstr ""
+msgstr "&Setări…"
 
 msgid "Settings…"
-msgstr ""
+msgstr "Setări…"
 
 msgid "&Update status bar icons"
-msgstr ""
+msgstr "Actualizează pictogramele din &bara de stare"
 
 msgid "Take s&creenshot"
-msgstr ""
+msgstr "Efectuea&ză o captură de ecran"
 
 msgid "Take screenshot"
-msgstr ""
+msgstr "Efectuează o captură de ecran"
 
 msgid "Take &raw screenshot"
-msgstr ""
+msgstr "Efectuea&ză o captură de ecran brută"
 
 msgid "Take raw screenshot"
-msgstr ""
+msgstr "Efectuează o captură de ecran brută"
 
 msgid "C&opy screenshot"
-msgstr ""
+msgstr "C&opiază captura de ecran"
 
 msgid "Copy screenshot"
-msgstr ""
+msgstr "Copiază captura de ecran"
 
 msgid "Copy r&aw screenshot"
-msgstr ""
+msgstr "Copiază captura de ecran &brută"
 
 msgid "Copy raw screenshot"
-msgstr ""
+msgstr "Copiază captura de ecran brută"
 
 msgid "S&ound"
-msgstr ""
+msgstr "S&unet"
 
 msgid "&Preferences…"
-msgstr ""
+msgstr "&Preferințe…"
 
 msgid "Enable &Discord integration"
-msgstr ""
+msgstr "Activează integrarea &Discord"
 
 msgid "Sound &gain…"
-msgstr ""
+msgstr "Câș&tig sunet…"
 
 msgid "Begin trace"
-msgstr ""
+msgstr "Începe urmărirea"
 
 msgid "End trace"
-msgstr ""
+msgstr "Termină urmărirea"
 
 msgid "&Help"
-msgstr ""
+msgstr "&Ajutor"
 
 msgid "&Documentation…"
-msgstr ""
+msgstr "&Documentație…"
 
 msgid "&About 86Box…"
-msgstr ""
+msgstr "&Despre 86Box…"
 
 msgid "&New image…"
-msgstr ""
+msgstr "Imagine &nouă…"
 
 msgid "&Existing image…"
-msgstr ""
+msgstr "Imagine &existentă…"
 
 msgid "Existing image (&Write-protected)…"
-msgstr ""
+msgstr "Imagine existentă (&protejată la scriere)…"
 
 msgid "&Record"
-msgstr ""
+msgstr "În&registrează"
 
 msgid "&Play"
-msgstr ""
+msgstr "&Redă"
 
 msgid "&Rewind to the beginning"
-msgstr ""
+msgstr "&Derulează la început"
 
 msgid "&Fast forward to the end"
-msgstr ""
+msgstr "Derulează rapid până la &sfârșit"
 
 msgid "E&ject"
-msgstr ""
+msgstr "Eje&ctare"
 
 msgid "&Image…"
-msgstr ""
+msgstr "&Imagine…"
 
 msgid "E&xport to 86F…"
-msgstr ""
+msgstr "&Exportează în format 86F…"
 
 msgid "&Mute"
-msgstr ""
+msgstr "&Fără sunet"
 
 msgid "E&mpty"
-msgstr ""
+msgstr "&Goală"
 
 msgid "Reload previous image"
-msgstr ""
+msgstr "Reîncarcă imaginea anterioară"
 
 msgid "&Folder…"
 msgstr ""
