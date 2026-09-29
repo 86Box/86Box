@@ -41,6 +41,7 @@
 #include <86box/video.h>
 #include <86box/vid_cga.h>
 #include <86box/vid_mcga.h>
+#include <86box/vid_ps55da2.h>
 #include <86box/plat_unused.h>
 #include <86box/thread.h>
 #include <86box/network.h>
@@ -8709,7 +8710,7 @@ const machine_t machines[] = {
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &ps55db2_device,
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "" }

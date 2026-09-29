@@ -69,6 +69,7 @@
 #include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_vga.h>
+#include <86box/vid_ps55da2.h>
 #include <86box/machine.h>
 #include <86box/plat_unused.h>
 
@@ -108,6 +109,7 @@ static struct ps2_t {
     lpt_t    *lpt;
 
     vga_t *mb_vga;
+    vga_t *mb_da2_vga;
     void  *mb_paradise;
     int    has_e0000_hole;
 } ps2;
@@ -1595,6 +1597,17 @@ ps2_mca_vga_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
         return;
     }
 
+    if (ps2.mb_da2_vga != NULL) {
+        if (val & 0x01) {
+            if (!vga_isenabled(ps2.mb_da2_vga))
+                vga_enable(ps2.mb_da2_vga, addr);
+        } else {
+            if (vga_isenabled(ps2.mb_da2_vga))
+                vga_disable(ps2.mb_da2_vga, addr);
+        }
+        return;
+    }
+
     if (ps2.mb_vga != NULL) {
         if (val & 0x01) {
             if (!vga_isenabled(ps2.mb_vga))
@@ -1622,6 +1635,8 @@ ps2_mca_board_common_init(void)
     ps2.setup = 0xff;
     ps2.pos_vga = 0x01;
     ps2.mb_paradise = NULL;
+    ps2.mb_da2_vga = NULL;
+    ps2.mb_vga = NULL;
 
     lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
 }
@@ -2656,6 +2671,11 @@ ps55_mca_board_model_5540t_init(void)
             ps2_mca_mem_fffc_init(12);
         }
     }
+
+    /* The display comes from the built-in Display Adapter B-II (BVEC), so it is added here
+       instead of being selectable in the video card list; without its ROMs there is none. */
+    if ((gfxcard[0] == VID_INTERNAL) && device_available(&ps55db2_device))
+        ps2.mb_da2_vga = (vga_t *) da2_get_vga(device_add(&ps55db2_device));
 }
 
 static void

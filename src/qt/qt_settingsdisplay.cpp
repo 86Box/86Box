@@ -203,7 +203,7 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
 
         if (card.available && device_is_valid(card.dev, machineId)) {
             QString name = card.name;
-            if (c == 1 && machine_get_vid_device(machineId)) {
+            if (c == 1 && machine_get_vid_device(machineId) && device_available(machine_get_vid_device(machineId))) {
                 name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_vid_device(machineId), machine_get_vid_device(machineId)->internal_name, 0));
             }
             int row = rows.add(name, c);
@@ -292,7 +292,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     auto                      curVideoCard_2 = videoCard[1];
     videoCard[0]                             = ui->comboBoxVideo->currentData().toInt();
     if (videoCard[0] == VID_INTERNAL)
-        ui->pushButtonConfigureVideo->setEnabled(machine_has_flags(machineId, MACHINE_VIDEO) && device_has_config(machine_get_vid_device(machineId)));
+        ui->pushButtonConfigureVideo->setEnabled(machine_has_flags(machineId, MACHINE_VIDEO) && device_has_config(machine_get_vid_device(machineId)) && device_available(machine_get_vid_device(machineId)));
     else
         ui->pushButtonConfigureVideo->setEnabled(video_card_has_config(videoCard[0]) > 0);
     bool machineHasPci = machine_has_bus(machineId, MACHINE_BUS_PCI) > 0;
@@ -303,10 +303,11 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 
     bool videoCardHas8514 = ((videoCard[0] == VID_INTERNAL) ? machine_has_flags(machineId, MACHINE_VIDEO_8514A) : (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_8514));
     bool videoCardHasXga  = ((videoCard[0] == VID_INTERNAL) ? 0 : (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_XGA));
+    bool videoCardHasDa2  = ((videoCard[0] == VID_INTERNAL) ? (machine_get_vid_device(machineId) == &ps55db2_device) : (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_DA2));
 
     bool machineSupports8514 = ((machineHasIsa16 || machineHasMca) && !videoCardHas8514);
     bool machineSupportsXga  = ((machineHasMca && device_available(&xga_device)) && !videoCardHasXga);
-    bool machineSupportsDa2  = machineHasMca && device_available(&ps55da2_device);
+    bool machineSupportsDa2  = (machineHasMca && device_available(&ps55da2_device) && !videoCardHasDa2);
 
     ui->checkBox8514->setEnabled(machineSupports8514);
     ui->checkBox8514->setChecked(ibm8514_standalone_enabled && machineSupports8514);
