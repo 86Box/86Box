@@ -2080,6 +2080,17 @@ static const device_config_t rc440bx_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
+                .name          = "AMIBIOS 6 (071595) - Revision P08-0018 (Gateway)",
+                .internal_name = "rc440bx_p08gw",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 6,
+                .local         = 0,
+                .size          = 524288,
+                .files         = { "roms/machines/rc440bx/P08-0018.BIO", "roms/machines/rc440bx/P08-0018.BI1",
+                                   "roms/machines/rc440bx/P08-0018.BI2", "roms/machines/rc440bx/P08-0018.BI3",
+                                   "roms/machines/rc440bx/P08-0018.BI4", "roms/machines/rc440bx/P08-0018.BBO", "" }
+            },
+            {
                 .name          = "AMIBIOS 6 (071595) - Revision P12-0018",
                 .internal_name = "rc440bx_p12",
                 .bios_type     = BIOS_NORMAL,
