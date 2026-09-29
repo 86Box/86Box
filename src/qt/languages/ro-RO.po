@@ -297,7 +297,7 @@ msgid "Reload previous image"
 msgstr "Reîncarcă imaginea anterioară"
 
 msgid "&Folder…"
-msgstr ""
+msgstr "&Dosar…"
 
 msgid "Preferences"
 msgstr ""
