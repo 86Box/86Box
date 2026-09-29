@@ -2067,6 +2067,116 @@ machine_at_ga686_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t rc440bx_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "rc440bx",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision P12-0018",
+                .internal_name = "rc440bx_p12",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 6,
+                .local         = 0,
+                .size          = 524288,
+                .files         = { "roms/machines/rc440bx/P12-0018.BIO", "roms/machines/rc440bx/P12-0018.BI1",
+                                   "roms/machines/rc440bx/P12-0018.BI2", "roms/machines/rc440bx/P12-0018.BI3",
+                                   "roms/machines/rc440bx/P12-0018.BI4", "roms/machines/rc440bx/P12-0018.BBO", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision P13-0019",
+                .internal_name = "rc440bx_p13",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 6,
+                .local         = 0,
+                .size          = 524288,
+                .files         = { "roms/machines/rc440bx/P13-0019.BIO", "roms/machines/rc440bx/P13-0019.BI1",
+                                   "roms/machines/rc440bx/P13-0019.BI2", "roms/machines/rc440bx/P13-0019.BI3",
+                                   "roms/machines/rc440bx/P13-0019.BI4", "roms/machines/rc440bx/P13-0019.BBO", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision P14-0020",
+                .internal_name = "rc440bx",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 6,
+                .local         = 0,
+                .size          = 524288,
+                .files         = { "roms/machines/rc440bx/P14-0020.BIO", "roms/machines/rc440bx/P14-0020.BI1",
+                                   "roms/machines/rc440bx/P14-0020.BI2", "roms/machines/rc440bx/P14-0020.BI3",
+                                   "roms/machines/rc440bx/P14-0020.BI4", "roms/machines/rc440bx/P14-0020.BBO", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t rc440bx_device = {
+    .name          = "Intel RC440BX",
+    .internal_name = "rc440bx",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = rc440bx_config
+};
+
+int
+machine_at_rc440bx_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn[2];
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn[0] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    fn[1] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 5);
+    ret   = bios_load_intel(fn[0], fn[1], 524288, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0C, PCI_CARD_SOUND,       2, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&i440bx_device);
+    device_add(&piix4e_device);
+    device_add_params(&fdc37mx0x_device, (void *) (FDC37M70X | FDC37XXX7 | FDC37C93X_NO_NVR | FDC37XXXX_370));
+    device_add(&intel_flash_e28f0xx_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+    device_add(&lm78_al440lx_device); /* Probably NOT the correct HWM, but it works! */
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
 int
 machine_at_se440bx2_init(const machine_t *model)
 {
