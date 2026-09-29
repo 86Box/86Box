@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-29 19:35+0000\n"
+"PO-Revision-Date: 2026-09-29 20:43+0000\n"
 "Last-Translator: MayuriNanako <gordonkoopaplays@gmail.com>\n"
 "Language-Team: Romanian <https://weblate.86box.net/projects/86box/86box/ro/>"
 "\n"
@@ -159,7 +159,7 @@ msgid "VGA screen type:"
 msgstr "Tip de ecran VGA:"
 
 msgid "RGB Color"
-msgstr "Culoarei RGB"
+msgstr "Culoare RGB"
 
 msgid "RGB (no brown)"
 msgstr "RGB (fără maro)"
