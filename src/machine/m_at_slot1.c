@@ -2120,7 +2120,7 @@ static const device_config_t rc440bx_config[] = {
 };
 
 const device_t rc440bx_device = {
-    .name          = "Intel RC440BX",
+    .name          = "Intel RC440BX (microATX)",
     .internal_name = "rc440bx",
     .flags         = 0,
     .local         = 0,
@@ -2177,12 +2177,98 @@ machine_at_rc440bx_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t se440bx2_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "se440bx2",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P04-0005 (Micron)",
+                .internal_name = "se440bx2_p04mr",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 6,
+                .local         = 0,
+                .size          = 524288,
+                .files         = { "roms/machines/se440bx2/P04-0005.BIO", "roms/machines/se440bx2/P04-0005.BI1",
+                                   "roms/machines/se440bx2/P04-0005.BI2", "roms/machines/se440bx2/P04-0005.BI3",
+                                   "roms/machines/se440bx2/P04-0005.BI4", "roms/machines/se440bx2/P04-0005.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P05-0012",
+                .internal_name = "se440bx2_p05",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 6,
+                .local         = 0,
+                .size          = 524288,
+                .files         = { "roms/machines/se440bx2/P05-0012.BIO", "roms/machines/se440bx2/P05-0012.BI1",
+                                   "roms/machines/se440bx2/P05-0012.BI2", "roms/machines/se440bx2/P05-0012.BI3",
+                                   "roms/machines/se440bx2/P05-0012.BI4", "roms/machines/se440bx2/P05-0012.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P15-0016 (Micron)",
+                .internal_name = "se440bx2_p15mr",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 6,
+                .local         = 0,
+                .size          = 524288,
+                .files         = { "roms/machines/se440bx2/P15-0016.BIO", "roms/machines/se440bx2/P15-0016.BI1",
+                                   "roms/machines/se440bx2/P15-0016.BI2", "roms/machines/se440bx2/P15-0016.BI3",
+                                   "roms/machines/se440bx2/P15-0016.BI4", "roms/machines/se440bx2/P15-0016.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P17-0024",
+                .internal_name = "se440bx2",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 6,
+                .local         = 0,
+                .size          = 524288,
+                .files         = { "roms/machines/se440bx2/P17-0024.BIO", "roms/machines/se440bx2/P17-0024.BI1",
+                                   "roms/machines/se440bx2/P17-0024.BI2", "roms/machines/se440bx2/P17-0024.BI3",
+                                   "roms/machines/se440bx2/P17-0024.BI4", "roms/machines/se440bx2/P17-0024.RCV", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t se440bx2_device = {
+    .name          = "Intel SE440BX-2",
+    .internal_name = "se440bx2",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = se440bx2_config
+};
+
 int
 machine_at_se440bx2_init(const machine_t *model)
 {
-    const int ret = bios_load_intel("roms/machines/se440bx2/P17-0024.BIO",
-                                    "roms/machines/se440bx2/P17-0024.RCV",
-                                    524288, 0);
+    int         ret = 0;
+    const char *fn[2];
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn[0] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    fn[1] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 5);
+    ret   = bios_load_intel(fn[0], fn[1], 524288, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;

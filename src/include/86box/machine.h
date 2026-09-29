@@ -1471,6 +1471,9 @@ extern int             machine_at_ga686_init(const machine_t *);
 extern const device_t  rc440bx_device;
 #endif
 extern int             machine_at_rc440bx_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  se440bx2_device;
+#endif
 extern int             machine_at_se440bx2_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  ms6117_device;
