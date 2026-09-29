@@ -666,6 +666,14 @@ paradise_recalctimings(svga_t *svga)
     if ((paradise->type == WD90C11) && (svga->hdisp == 1024) &&
         (svga->render == svga_render_4bpp_highres) && paradise_mode_is_word(svga))
         svga->render = paradise_render_4bpp_word_highres;
+
+    /* The BIOS doubles the CRTC horizontal counts along with halved dot clock
+       (sequencer bit 3), so the generic 16/18 dots per character is twice
+       the real row and the row gets fetched (and drawn) twice over. */
+    if ((paradise->type == WD90C20) && (svga->seqregs[1] & 0x08) &&
+        ((svga->render == svga_render_4bpp_lowres) || (svga->render == svga_render_2bpp_lowres) ||
+         (svga->render == svga_render_text_40)))
+        svga->hdisp >>= 1;
 }
 
 uint32_t
