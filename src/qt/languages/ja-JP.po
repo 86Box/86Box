@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-17 04:35+0000\n"
+"PO-Revision-Date: 2026-09-29 05:07+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.86box.net/projects/86box/86box/ja/>"
 "\n"
@@ -494,7 +494,7 @@ msgid "&Tablet"
 msgstr "タブレット(&T)"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "タブレット (十字線)(&C)"
 
 msgid "Joystick:"
 msgstr "ジョイスティック:"
@@ -1768,7 +1768,7 @@ msgid "Auto-pause on focus loss"
 msgstr "フォーカスが奪われると自動停止"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "ダイアログボックス表示時に自動で一時停止"
 
 msgid "WinBox is no longer supported"
 msgstr "WinBoxはサポート終了"
@@ -2365,7 +2365,7 @@ msgid "Control PC speaker"
 msgstr "コントロールPCスピーカー"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "MIDI音量を制御する"
 
 msgid "Memory size"
 msgstr "メモリーサイズ"
