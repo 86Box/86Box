@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-29 18:53+0000\n"
+"PO-Revision-Date: 2026-09-29 19:35+0000\n"
 "Last-Translator: MayuriNanako <gordonkoopaplays@gmail.com>\n"
 "Language-Team: Romanian <https://weblate.86box.net/projects/86box/86box/ro/>"
 "\n"
@@ -1837,66 +1837,81 @@ msgstr "(Implicit în sistem)"
 
 msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
 msgstr ""
+"Inițializarea driverului de rețea a eșuat:\n"
+"\n"
+"%s\n"
+"\n"
+"Configurația de rețea va fi comutată pe driverul nul."
 
 msgid "Mouse sensitivity:"
-msgstr ""
+msgstr "Sensibilitatea maus-ului:"
 
 msgid "Select media images from program working directory"
-msgstr ""
+msgstr "Selectați imaginile de mediu din directorul de lucru al programului"
 
 msgid "PIT mode:"
-msgstr ""
+msgstr "Mod PIT:"
 
 msgid "Auto"
-msgstr ""
+msgstr "Auto"
 
 msgid "Slow"
-msgstr ""
+msgstr "Lent"
 
 msgid "Fast"
-msgstr ""
+msgstr "Rapid"
 
 msgid "Auto-pause on focus loss"
-msgstr ""
+msgstr "Pauză automată la pierderea focalizării"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "Pauză automată la afișarea casetelor de dialog"
 
 msgid "WinBox is no longer supported"
-msgstr ""
+msgstr "WinBox nu mai este suportat"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 msgstr ""
+"Dezvoltarea manager-ului WinBox a încetat în 2022 din cauza lipsei de "
+"mentenanță. Pe măsură ce ne îndreptăm eforturile spre a face 86Box și mai "
+"bun, am luat decizia de a nu mai susține WinBox ca manager.\n"
+"\n"
+"Nu vor mai fi furnizate actualizări prin WinBox și este posibil să "
+"întâmpinați un comportament incorect dacă continuați să îl folosiți cu "
+"versiuni mai noi de 86Box. Orice rapoarte de erori legate de comportamentul "
+"WinBox vor fi închise ca nevalid.\n"
+"\n"
+"Accesați 86box.net pentru o listă cu alte managere pe care le puteți folosi."
 
 msgid "Generate"
-msgstr ""
+msgstr "Generează"
 
 msgid "Joystick configuration"
-msgstr ""
+msgstr "Configurare joystick"
 
 msgid "Device"
-msgstr ""
+msgstr "Dispozitiv"
 
 msgid "%1 (X axis)"
-msgstr ""
+msgstr "%1 (X axe)"
 
 msgid "%1 (Y axis)"
-msgstr ""
+msgstr "%1 (Y axe)"
 
 msgid "MCA devices"
-msgstr ""
+msgstr "Dispozitive MCA"
 
 msgid "List of MCA devices:"
-msgstr ""
+msgstr "Lista de dispozitive MCA:"
 
 msgid "&Tablet tool"
-msgstr ""
+msgstr "&Unealta de tabletă"
 
 msgid "About &Qt"
-msgstr ""
+msgstr "Despre &Qt"
 
 msgid "&MCA devices…"
-msgstr ""
+msgstr "Dispozitive &MCA…"
 
 msgid "Show non-&primary monitors"
 msgstr ""
