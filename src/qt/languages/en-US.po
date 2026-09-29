@@ -39,12 +39,3 @@ msgid "%n disk(s)"
 msgid_plural "%n disks"
 msgstr[0] "%n disk"
 msgstr[1] "%n disks"
-
-msgid "Enable audio input (mic/line-in)"
-msgstr ""
-
-msgid "Audio input device:"
-msgstr ""
-
-msgid "Audio input sample rate:"
-msgstr ""
