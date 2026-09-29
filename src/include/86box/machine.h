@@ -1186,6 +1186,10 @@ extern int             machine_at_zeoswildcat_init(const machine_t *);
 /* i430HX */
 extern int             machine_at_54tdp_init(const machine_t *);
 extern int             machine_at_d823_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  td3_device;
+#endif
+extern int             machine_at_td3_init(const machine_t *);
 
 /* m_at_socket7.c */
 /* i430HX */
@@ -1463,6 +1467,13 @@ extern int             machine_at_ergox365_init(const machine_t *);
 extern const device_t  ga686_device;
 #endif
 extern int             machine_at_ga686_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  rc440bx_device;
+#endif
+extern int             machine_at_rc440bx_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  se440bx2_device;
+#endif
 extern int             machine_at_se440bx2_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  ms6117_device;
@@ -1664,6 +1675,7 @@ extern int             machine_ps2_model_80_type3_init(const machine_t *);
 extern int             machine_ps2_model_p70_type1_init(const machine_t *);
 extern int             machine_ps2_model_p70_type2_init(const machine_t *);
 extern int             machine_ps55_model_5535s_init(const machine_t *);
+extern int             machine_ps55_model_5540t_init(const machine_t *);
 extern int             machine_ps55_model_5550t_init(const machine_t *);
 extern int             machine_ps55_model_5550v_init(const machine_t *);
 

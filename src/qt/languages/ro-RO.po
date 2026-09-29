@@ -1,467 +1,468 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-29 02:26+0000\n"
-"Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
-"Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
-"projects/86box/86box/zh_Hant/>\n"
-"Language: zh-TW\n"
+"PO-Revision-Date: 2026-09-29 20:43+0000\n"
+"Last-Translator: MayuriNanako <gordonkoopaplays@gmail.com>\n"
+"Language-Team: Romanian <https://weblate.86box.net/projects/86box/86box/ro/>"
+"\n"
+"Language: ro-RO\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Plural-Forms: nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
+"20)) ? 1 : 2;\n"
 "X-Generator: Weblate 5.12.2\n"
-"X-Language: zh_TW\n"
+"X-Language: ro_RO\n"
 "X-Source-Language: en_US\n"
 
 msgid "&Action"
-msgstr "動作(&A)"
+msgstr "&Acțiune"
 
 msgid "&Keyboard requires capture"
-msgstr "鍵盤需要捕捉(&K)"
+msgstr "&Tastatura necesită capturare"
 
 msgid "&Right CTRL is left ALT"
-msgstr "將右 CTRL 鍵映射為左 ALT 鍵(&R)"
+msgstr "&CTRL din dreapta este ALT din stânga"
 
 msgid "&Hard reset"
-msgstr "硬重設(&H)"
+msgstr "&Resetare dură"
 
 msgid "&Ctrl+Alt+Del"
-msgstr "Ctrl+Alt+Del(&C)"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
-msgstr "Ctrl+Alt+Esc(&E)"
+msgstr "Ctrl+Alt+&Esc"
 
 msgid "&Pause"
-msgstr "暫停(&P)"
+msgstr "&Pauză"
 
 msgid "Pause"
-msgstr "暫停"
+msgstr "Pauză"
 
 msgid "Re&sume"
-msgstr "恢復(&S)"
+msgstr "Re&luați"
 
 msgid "E&xit"
-msgstr "退出(&X)"
+msgstr "Ie&șire"
 
 msgid "&View"
-msgstr "檢視(&V)"
+msgstr "&Vizualizare"
 
 msgid "&Hide status bar"
-msgstr "隱藏狀態列(&H)"
+msgstr "&Ascunde bara de stare"
 
 msgid "Hide &toolbar"
-msgstr "隱藏工具列(&T)"
+msgstr "Ascunde &bara de unelte"
 
 msgid "&Resizeable window"
-msgstr "視窗大小可調(&R)"
+msgstr "&Fereastră redimensionabilă"
 
 msgid "R&emember size && position"
-msgstr "記住視窗大小和位置(&E)"
+msgstr "&Ține minte poziția &și dimensiunea"
 
 msgid "Remember size && position"
-msgstr "記住視窗大小和位置"
+msgstr "Ține minte poziția& și dimensiunea"
 
 msgid "Re&nderer"
-msgstr "渲染器(&N)"
+msgstr "Ra&ndor"
 
 msgid "&Qt (Software)"
-msgstr "Qt (軟體)(&Q)"
+msgstr "&Qt (Software)"
 
 msgid "Open&GL"
-msgstr "OpenGL(&G)"
+msgstr "Open&GL"
 
 msgid "&Vulkan"
-msgstr "Vulkan(&V)"
+msgstr "&Vulkan"
 
 msgid "V&NC"
-msgstr "VNC(&N)"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
-msgstr "指定視窗大小(&D)…"
+msgstr "Specifică &dimensiunile…"
 
 msgid "Force &4:3 display ratio"
-msgstr "強制 4:3 顯示比例(&4)"
+msgstr "Forțează raportul de aspect &4:3"
 
 msgid "Force &%1:%2 display ratio"
-msgstr "強制 %1:%2 顯示比例(&%1)"
+msgstr "Forțează raportul de aspect &%1:%2"
 
 msgid "&Window scale factor"
-msgstr "視窗縮放係數(&W)"
+msgstr "&Factor de scalare fereastră"
 
 msgid "&0.5x"
-msgstr "0.5x(&0)"
+msgstr "&0.5x"
 
 msgid "&1x"
-msgstr "1x(&1)"
+msgstr "&1x"
 
 msgid "1.&5x"
-msgstr "1.5x(&5)"
+msgstr "1.&5x"
 
 msgid "&2x"
-msgstr "2x(&2)"
+msgstr "&2x"
 
 msgid "&3x"
-msgstr "3x(&3)"
+msgstr "&3x"
 
 msgid "&4x"
-msgstr "4x(&4)"
+msgstr "&4x"
 
 msgid "&5x"
-msgstr "5x(&5)"
+msgstr "&5x"
 
 msgid "&6x"
-msgstr "6x(&6)"
+msgstr "&6x"
 
 msgid "&7x"
-msgstr "7x(&7)"
+msgstr "&7x"
 
 msgid "&8x"
-msgstr "8x(&8)"
+msgstr "&8x"
 
 msgid "Fi&lter method"
-msgstr "過濾方式(&L)"
+msgstr "Metodă de &filtrare"
 
 msgid "&Nearest"
-msgstr "鄰近(&N)"
+msgstr "&Cel mai apropriat"
 
 msgid "&Linear"
-msgstr "線性(&L)"
+msgstr "&Liniar"
 
 msgid "Hi&DPI scaling"
-msgstr "高 DPI 縮放(&D)"
+msgstr "Scalare &HiDPI"
 
 msgid "&Fullscreen"
-msgstr "全螢幕(&F)"
+msgstr "&Ecran complet"
 
 msgid "Fullscreen &stretch mode"
-msgstr "全螢幕延展模式(&S)"
+msgstr "&Mod de întindere pe tot ecranul"
 
 msgid "&Full screen stretch"
-msgstr "全螢幕延展(&F)"
+msgstr "Întindere pe tot &ecranul"
 
 msgid "&4:3"
-msgstr "4:3(&4)"
+msgstr "&4:3"
 
 msgid "&Square pixels (Keep ratio)"
-msgstr "保持比例(&S)"
+msgstr "&Pixeli pătrați (păstrează raportul de aspect)"
 
 msgid "&Integer scale"
-msgstr "整數比例(&I)"
+msgstr "Scalare &întreagă"
 
 msgid "4:&3 Integer scale"
-msgstr "4:3 整數比例(&3)"
+msgstr "Scalare întreagă la &4:3"
 
 msgid "Inverted VGA monitor"
-msgstr "VGA 監視器反色顯示"
+msgstr "Monitor VGA inversat"
 
 msgid "VGA screen type:"
-msgstr "VGA 螢幕類型:"
+msgstr "Tip de ecran VGA:"
 
 msgid "RGB Color"
-msgstr "RGB 彩色"
+msgstr "Culoare RGB"
 
 msgid "RGB (no brown)"
-msgstr "RGB (無棕色)"
+msgstr "RGB (fără maro)"
 
 msgid "RGB Grayscale"
-msgstr "RGB 灰階"
+msgstr "RGB în nuanțe de gri"
 
 msgid "Generic RGBI color monitor"
-msgstr "通用 RGBI 彩色監視器"
+msgstr "Monitor RGBI color generic"
 
 msgid "Amber monitor"
-msgstr "琥珀色單色監視器"
+msgstr "Monitor chihlimbariu"
 
 msgid "Green monitor"
-msgstr "綠色單色監視器"
+msgstr "Monitor verde"
 
 msgid "White monitor"
-msgstr "白色單色監視器"
+msgstr "Monitor alb"
 
 msgid "Grayscale conversion type:"
-msgstr "灰階轉換類型:"
+msgstr "Tip de conversie în nuanțe de gri:"
 
 msgid "Average"
-msgstr "平均"
+msgstr "Medie"
 
 msgid "Overscan"
-msgstr "過掃描"
+msgstr "Suprascanare"
 
 msgid "Change contrast for monochrome display"
-msgstr "變更單色顯示對比度"
+msgstr "Schimbă contrastul pentru afișajul monocrom"
 
 msgid "&Media"
-msgstr "媒體(&M)"
+msgstr "&Medii"
 
 msgid "&Tools"
-msgstr "工具(&T)"
+msgstr "&Unelte"
 
 msgid "&Settings…"
-msgstr "設定(&S)…"
+msgstr "&Setări…"
 
 msgid "Settings…"
-msgstr "設定…"
+msgstr "Setări…"
 
 msgid "&Update status bar icons"
-msgstr "更新狀態列圖示(&U)"
+msgstr "Actualizează pictogramele din &bara de stare"
 
 msgid "Take s&creenshot"
-msgstr "擷取螢幕畫面(&C)"
+msgstr "Efectuea&ză o captură de ecran"
 
 msgid "Take screenshot"
-msgstr "擷取螢幕畫面"
+msgstr "Efectuează o captură de ecran"
 
 msgid "Take &raw screenshot"
-msgstr "擷取原始螢幕畫面(&R)"
+msgstr "Efectuea&ză o captură de ecran brută"
 
 msgid "Take raw screenshot"
-msgstr "擷取原始螢幕畫面"
+msgstr "Efectuează o captură de ecran brută"
 
 msgid "C&opy screenshot"
-msgstr "擷取螢幕畫面至剪貼簿(&O)"
+msgstr "C&opiază captura de ecran"
 
 msgid "Copy screenshot"
-msgstr "擷取螢幕畫面至剪貼簿"
+msgstr "Copiază captura de ecran"
 
 msgid "Copy r&aw screenshot"
-msgstr "擷取原始螢幕畫面至剪貼薄(&A)"
+msgstr "Copiază captura de ecran &brută"
 
 msgid "Copy raw screenshot"
-msgstr "擷取原始螢幕畫面至剪貼薄"
+msgstr "Copiază captura de ecran brută"
 
 msgid "S&ound"
-msgstr "聲音(&O)"
+msgstr "S&unet"
 
 msgid "&Preferences…"
-msgstr "偏好設定(&P)…"
+msgstr "&Preferințe…"
 
 msgid "Enable &Discord integration"
-msgstr "啟用 Discord 整合(&D)"
+msgstr "Activează integrarea &Discord"
 
 msgid "Sound &gain…"
-msgstr "音量增益(&G)…"
+msgstr "Câș&tig sunet…"
 
 msgid "Begin trace"
-msgstr "開始追踪"
+msgstr "Începe urmărirea"
 
 msgid "End trace"
-msgstr "結束追踪"
+msgstr "Termină urmărirea"
 
 msgid "&Help"
-msgstr "說明(&H)"
+msgstr "&Ajutor"
 
 msgid "&Documentation…"
-msgstr "文件(&D)…"
+msgstr "&Documentație…"
 
 msgid "&About 86Box…"
-msgstr "關於 86Box(&A)…"
+msgstr "&Despre 86Box…"
 
 msgid "&New image…"
-msgstr "新增映像(&N)…"
+msgstr "Imagine &nouă…"
 
 msgid "&Existing image…"
-msgstr "開啟已存在的映像(&E)…"
+msgstr "Imagine &existentă…"
 
 msgid "Existing image (&Write-protected)…"
-msgstr "以防寫保護開啟已存在的映像(&W)…"
+msgstr "Imagine existentă (&protejată la scriere)…"
 
 msgid "&Record"
-msgstr "錄製(&R)"
+msgstr "În&registrează"
 
 msgid "&Play"
-msgstr "播放(&P)"
+msgstr "&Redă"
 
 msgid "&Rewind to the beginning"
-msgstr "倒迴至起頭(&R)"
+msgstr "&Derulează la început"
 
 msgid "&Fast forward to the end"
-msgstr "快進至結尾(&F)"
+msgstr "Derulează rapid până la &sfârșit"
 
 msgid "E&ject"
-msgstr "退出(&J)"
+msgstr "Eje&ctare"
 
 msgid "&Image…"
-msgstr "映像(&I)…"
+msgstr "&Imagine…"
 
 msgid "E&xport to 86F…"
-msgstr "匯出為 86F 格式(&X)…"
+msgstr "&Exportează în format 86F…"
 
 msgid "&Mute"
-msgstr "靜音(&M)"
+msgstr "&Fără sunet"
 
 msgid "E&mpty"
-msgstr "卸載(&M)"
+msgstr "&Goală"
 
 msgid "Reload previous image"
-msgstr "載入上一個映像"
+msgstr "Reîncarcă imaginea anterioară"
 
 msgid "&Folder…"
-msgstr "資料夾(&F)…"
+msgstr "&Dosar…"
 
 msgid "Preferences"
-msgstr "偏好設定"
+msgstr "Preferințe"
 
 msgid "Sound Gain"
-msgstr "音量增益"
+msgstr "Câștig sunet"
 
 msgid "New Image"
-msgstr "新增映像"
+msgstr "Imagine nouă"
 
 msgid "Settings"
-msgstr "設定"
+msgstr "Setări"
 
 msgid "Specify Main Window Dimensions"
-msgstr "指定主視窗大小"
+msgstr "Specificați dimensiunile ferestrei principale"
 
 msgid "OK"
-msgstr "確定"
+msgstr "OK"
 
 msgid "Cancel"
-msgstr "取消"
+msgstr "Anulare"
 
 msgid "&Default"
-msgstr "預設(&D)"
+msgstr "Im&plicit"
 
 msgid "Language:"
-msgstr "語言:"
+msgstr "Limbă:"
 
 msgid "Gain"
-msgstr "增益"
+msgstr "Câștig"
 
 msgid "File name:"
-msgstr "檔案名:"
+msgstr "Nume fișier:"
 
 msgid "Disk size:"
-msgstr "磁碟大小:"
+msgstr "Capacitate disc:"
 
 msgid "RPM mode:"
-msgstr "轉速 (RPM) 模式:"
+msgstr "Mod viteză de rotație:"
 
 msgid "Progress:"
-msgstr "進度:"
+msgstr "Progres:"
 
 msgid "Width:"
-msgstr "寬度:"
+msgstr "Lățime:"
 
 msgid "Height:"
-msgstr "高度:"
+msgstr "Lungime:"
 
 msgid "Lock to this size"
-msgstr "鎖定此大小"
+msgstr "Blochează la această dimensiune"
 
 msgid "General"
-msgstr "一般"
+msgstr "General"
 
 msgid "Processor"
-msgstr "處理器"
+msgstr "Procesor"
 
 msgid "Performance"
-msgstr "效能"
+msgstr "Performanță"
 
 msgid "Machine type:"
-msgstr "機器類型:"
+msgstr "Tip mașină:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr "[1989] i486 (腳座 168 及 1)"
+msgstr "[1989] i486 (Socket 168 și 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr "[1994] i486 (其他)"
+msgstr "[1994] i486 (Altele)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr "[1995] 腳座 7 (單電壓)"
+msgstr "[1995] Socket 7 (Tensiune unică)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr "[1996] 腳座 7 (雙電壓)"
+msgstr "[1996] Socket 7 (Tensiune dublă)"
 
 msgid "Miscellaneous"
-msgstr "其他"
+msgstr "Altele"
 
 msgid "Machine:"
-msgstr "機型:"
+msgstr "Mașină:"
 
 msgid "Configure"
-msgstr "組態"
+msgstr "Configurează"
 
 msgid "CPU:"
 msgstr "CPU:"
 
 msgid "CPU type:"
-msgstr "CPU 類型:"
+msgstr "Tip de procesor:"
 
 msgid "Speed:"
-msgstr "速度:"
+msgstr "Viteză:"
 
 msgid "Frequency:"
-msgstr "頻率:"
+msgstr "Frecvență:"
 
 msgid "%1 MHz"
 msgstr "%1 MHz"
 
 msgid "FPU:"
-msgstr "浮點運算器 (FPU):"
+msgstr "FPU:"
 
 msgid "Internal"
-msgstr "內建"
+msgstr "Intern"
 
 msgid "Wait states:"
-msgstr "等待狀態 (WS):"
+msgstr "Stări de așteptare:"
 
 msgid "MB"
 msgstr "MB"
 
 msgid "Memory:"
-msgstr "記憶體:"
+msgstr "Memorie:"
 
 msgid "Time synchronization"
-msgstr "時間同步"
+msgstr "Sincronizarea timpului"
 
 msgid "Disabled"
-msgstr "停用"
+msgstr "Dezactivat"
 
 msgid "Enabled (local time)"
-msgstr "啟用 (本地時間)"
+msgstr "Activat (ora locală)"
 
 msgid "Enabled (UTC)"
-msgstr "啟用 (UTC)"
+msgstr "Activat (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr "啟用 486 直譯器於 286 及 386 處理器"
+msgstr "Folosește interpretorul 486 pentru procesoarele 286 și 386"
 
 msgid "Dynamic recompiler"
-msgstr "動態重編譯器"
+msgstr "Recompilator dinamic"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr "動態重編譯時精確的浮點運算器模擬"
+msgstr "Mediu FPU precis pe recompilatorul dinamic"
 
 msgid "CPU frame size"
-msgstr "CPU 執行期框架大小"
+msgstr "Dimensiunea cadre CPU"
 
 msgid "Larger frames (less smooth)"
-msgstr "大執行期框架 (運行欠平順)"
+msgstr "Cadre mai mari (mai puțin fluid)"
 
 msgid "Smaller frames (smoother)"
-msgstr "小執行期框架 (運行更平順)"
+msgstr "Cadre mai mici (mai fluide)"
 
 msgid "Video:"
-msgstr "顯示卡:"
+msgstr "Video:"
 
 msgid "Video #2:"
-msgstr "顯示卡 2:"
+msgstr "Video #2:"
 
 msgid "Monitor"
-msgstr "監視器"
+msgstr "Monitor"
 
 msgid "Voodoo 1 or 2 Graphics"
-msgstr "Voodoo 1 或 2 圖形"
+msgstr "Grafică Voodoo 1 sau 2"
 
 msgid "IBM 8514/A Graphics"
-msgstr "IBM 8514/A 圖形"
+msgstr "Grafică IBM 8514/A"
 
 msgid "XGA Graphics"
-msgstr "XGA 圖形"
+msgstr "Grafică XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
-msgstr "IBM PS/55 顯示介面卡圖形"
+msgstr "Grafică adaptor de afișaj IBM PS/55"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -470,420 +471,425 @@ msgid "Voodoo:"
 msgstr "Voodoo:"
 
 msgid "Keyboard:"
-msgstr "鍵盤:"
+msgstr "Tastatură:"
 
 msgid "Keyboard"
-msgstr "鍵盤"
+msgstr "Tastatură"
 
 msgid "Mouse:"
-msgstr "滑鼠:"
+msgstr "Maus:"
 
 msgid "Mouse"
-msgstr "滑鼠"
+msgstr "Maus"
 
 msgid "&Mouse"
-msgstr "滑鼠(&M)"
+msgstr "&Maus"
 
 msgid "Tablet:"
-msgstr "平板:"
+msgstr "Tabletă:"
 
 msgid "Tablet"
-msgstr "平板"
+msgstr "Tabletă"
 
 msgid "&Tablet"
-msgstr "平板(&T)"
+msgstr "&Tabletă"
 
 msgid "Tablet (&Crosshair)"
-msgstr "平板 (十字線)(&C)"
+msgstr "Tabletă (&Cruce)"
 
 msgid "Joystick:"
-msgstr "搖桿:"
+msgstr "Joystick:"
 
 msgid "Joystick"
-msgstr "搖桿"
+msgstr "Joystick"
 
 msgid "Joystick 1…"
-msgstr "搖桿 1…"
+msgstr "Joystick 1…"
 
 msgid "Joystick 2…"
-msgstr "搖桿 2…"
+msgstr "Joystick 2…"
 
 msgid "Joystick 3…"
-msgstr "搖桿 3…"
+msgstr "Joystick 3…"
 
 msgid "Joystick 4…"
-msgstr "搖桿 4…"
+msgstr "Joystick 4…"
 
 msgid "Sound card 1:"
-msgstr "音效卡 1:"
+msgstr "Card de sunet 1:"
 
 msgid "Sound card 2:"
-msgstr "音效卡 2:"
+msgstr "Card de sunet 2:"
 
 msgid "Sound card 3:"
-msgstr "音效卡 3:"
+msgstr "Card de sunet 3:"
 
 msgid "Sound card 4:"
-msgstr "音效卡 4:"
+msgstr "Card de sunet 4:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI 輸出裝置:"
+msgstr "Dispozitiv de ieșire MIDI:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI 輸入裝置:"
+msgstr "Dispozitiv de intrare MIDI:"
 
 msgid "MIDI Out:"
-msgstr "MIDI 輸出:"
+msgstr "Ieșire MIDI:"
 
 msgid "Standalone MPU-401"
-msgstr "獨立 MPU-401"
+msgstr "MPU-401 autonom"
 
 msgid "Use FLOAT32 sound"
-msgstr "使用單精度浮點 (FLOAT32) 音訊"
+msgstr "Folosește sunet FLOAT32"
 
 msgid "FM synth driver:"
-msgstr "FM 合成驅動器:"
+msgstr "Driver de sinteză FM:"
 
 msgid "Nuked (more accurate)"
-msgstr "Nuked (更準確)"
+msgstr "Nuked (mai precis)"
 
 msgid "YMFM (faster)"
-msgstr "YMFM (更快)"
+msgstr "YMFM (rapid)"
 
 msgid "Internal LPT ECP DMA:"
-msgstr "內部 LPT 的 ECP 的 DMA:"
+msgstr "DMA ECP LPT intern:"
 
 msgid "Floppy disk controller:"
-msgstr "軟碟控制器:"
+msgstr "Controler de disc floppy:"
 
 msgid "CD-ROM controller:"
-msgstr "光碟機控制器:"
+msgstr "Controler de CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr "Mitsumi 介面"
+msgstr "Interfață Mitsumi"
 
 msgid "MKE/Panasonic interface"
-msgstr "MKE/Panasonic 介面"
+msgstr "Interfață MKE/Panasonic"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr "MKE/Panasonic 介面 (創巨)"
+msgstr "Interfață MKE/Panasonic (Creative)"
 
 msgid "IDE Controller"
-msgstr "IDE 控制器"
+msgstr "Controler IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr "IDE 控制器 (雙通道)"
+msgstr "Controler IDE (dublu canal)"
 
 msgid "PC/AT IDE Controller"
-msgstr "PC/AT IDE 控制器"
+msgstr "Controler PC/AT IDE"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr "PC/AT IDE 控制器 (雙通道)"
+msgstr "Controler PC/AT IDE (dublu canal)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr "PC/AT XTIDE (僅主通道)"
+msgstr "XTIDE PC/AT (Doar primar)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr "PS/2 AT XTIDE (1.1.5) (僅主通道)"
+msgstr "PS/2 AT XTIDE (1.1.5) (Doar primar)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr "CMD PCI-0646 (第三及第四)"
+msgstr "CMD PCI-0646 (Terțiar și cuaternar)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr "CMD PCI-0648 (第三及第四)"
+msgstr "CMD PCI-0648 (Terțiar și cuaternar)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr "CMD PCI-0649 (第三及第四)"
+msgstr "CMD PCI-0649 (Terțiar și cuaternar)"
 
 msgid "McIDE Controller"
-msgstr "McIDE 控制器"
+msgstr "Controler McIDE"
 
 msgid "Tertiary IDE Controller"
-msgstr "第三 IDE 控制器"
+msgstr "Controler IDE terțiar"
 
 msgid "Quaternary IDE Controller"
-msgstr "第四 IDE 控制器"
+msgstr "Controler IDE cuaternar"
 
 msgid "Hard disk controllers"
-msgstr "硬碟控制器"
+msgstr "Controlere de discuri dure"
 
 msgid "SCSI controllers"
-msgstr "SCSI 控制器"
+msgstr "Controlere SCSI"
 
 msgid "Controller 1:"
-msgstr "控制器 1:"
+msgstr "Controler 1:"
 
 msgid "Controller 2:"
-msgstr "控制器 2:"
+msgstr "Controler 2:"
 
 msgid "Controller 3:"
-msgstr "控制器 3:"
+msgstr "Controler 3:"
 
 msgid "Controller 4:"
-msgstr "控制器 4:"
+msgstr "Controler 4:"
 
 msgid "Cassette"
-msgstr "卡帶"
+msgstr "Casetă"
 
 msgid "Hard disks:"
-msgstr "硬碟:"
+msgstr "Discuri dure:"
 
 msgid "Firmware Version"
-msgstr "韌體版本"
+msgstr "Versiune de firmware"
 
 msgid "DSP Version"
-msgstr "DSP 版本"
+msgstr "Versiunea DSP"
 
 msgid "&New…"
-msgstr "新增(&N)…"
+msgstr "&Nou…"
 
 msgid "&Existing…"
-msgstr "已有影像(&E)…"
+msgstr "&Existent…"
 
 msgid "&Remove"
-msgstr "移除(&R)"
+msgstr "&Elimină"
 
 msgid "Bus:"
-msgstr "匯流排:"
+msgstr "Magistrală:"
 
 msgid "Channel:"
-msgstr "通道:"
+msgstr "Canal:"
 
 msgid "ID:"
 msgstr "ID:"
 
 msgid "Sectors:"
-msgstr "磁區(S):"
+msgstr "Sectoare:"
 
 msgid "Heads:"
-msgstr "磁頭(H):"
+msgstr "Capete:"
 
 msgid "Cylinders:"
-msgstr "磁柱(C):"
+msgstr "Cilindri:"
 
 msgid "Size (MB):"
-msgstr "大小 (MB):"
+msgstr "Dimensiune (MB):"
 
 msgid "Type:"
-msgstr "類型:"
+msgstr "Tip:"
 
 msgid "Image Format:"
-msgstr "映像格式:"
+msgstr "Format de imagine:"
 
 msgid "Block Size:"
-msgstr "區塊大小:"
+msgstr "Dimensiune blocuri:"
 
 msgid "Floppy drives"
-msgstr "軟碟機"
+msgstr "Unități floppy"
 
 msgid "5.25\" 180k"
-msgstr "5.25 英吋 180k"
+msgstr "5.25\" 180k"
 
 msgid "5.25\" 360k"
-msgstr "5.25 英吋 360k"
+msgstr "5.25\" 360k"
 
 msgid "5.25\" 720k"
-msgstr "5.25 英吋 720k"
+msgstr "5.25\" 720k"
 
 msgid "5.25\" 1.2M"
-msgstr "5.25 英吋 1.2M"
+msgstr "5.25\" 1.2M"
 
 msgid "5.25\" 1.2M 300/360 RPM"
-msgstr "5.25 英吋 1.2M 300/360 RPM"
+msgstr "5.25 1.2M 300/360 RPM"
 
 msgid "3.5\" 360k"
-msgstr "3.5 英吋 360k"
+msgstr "3.5\" 360k"
 
 msgid "3.5\" 720k"
-msgstr "3.5 英吋 720k"
+msgstr "3.5\" 720k"
 
 msgid "3.5\" 1.44M"
-msgstr "3.5 英吋 1.44M"
+msgstr "3.5\" 1.44M"
 
 msgid "3.5\" 1.25M PC-98"
-msgstr "3.5 英吋 1.25M PC-98"
+msgstr "PC-98 3.5 1.25M"
 
 msgid "3.5\" 1.44M 300/360 RPM"
-msgstr "3.5 英吋 1.44M 300/360 RPM"
+msgstr "3.5\" 1.44M 300/360 RPM"
 
 msgid "3.5\" 2.88M"
-msgstr "3.5 英吋 2.88M"
+msgstr "3.5\" 2.88M"
 
 msgid "3.5\" 2.88M 300/360 RPM"
-msgstr "3.5 英吋 2.88M 300/360 RPM"
+msgstr "3.5\" 2.88M 300/360 RPM"
 
 msgid "Turbo timings"
-msgstr "加速時序"
+msgstr "Timpi turbo"
 
 msgid "Check BPB"
-msgstr "檢查 BPB"
+msgstr "Verifică BPB"
 
 msgid "CD-ROM drives"
-msgstr "光碟機"
+msgstr "Unități CD-ROM"
 
 msgid "CD-ROM:"
-msgstr "光碟:"
+msgstr "CD-ROM:"
 
 msgid "MO drives"
-msgstr "磁光碟機"
+msgstr "Unități MO"
 
 msgid "MO:"
-msgstr "磁光碟:"
+msgstr "MO:"
 
 msgid "Removable disk drives"
-msgstr "抽取式磁碟機"
+msgstr "Unități de disc amovibile"
 
 msgid "Removable disks:"
-msgstr "抽取式磁碟:"
+msgstr "Unități amovibile:"
 
 msgid "Tape drives"
-msgstr "磁帶機"
+msgstr "Unități de bandă"
 
 msgid "Tape drives:"
-msgstr "磁帶機:"
+msgstr "Unități de bandă:"
 
 msgid "ISA RTC:"
-msgstr "ISA 實時時鐘:"
+msgstr "ISA RTC:"
 
 msgid "ISA Memory Expansion"
-msgstr "ISA 記憶體擴充"
+msgstr "Expansiune de memorie ISA"
 
 msgid "ISA ROM Cards"
-msgstr "ISA ROM 擴充卡"
+msgstr "Plăci ROM ISA"
 
 msgid "Card 1:"
-msgstr "擴充卡 1:"
+msgstr "Placa 1:"
 
 msgid "Card 2:"
-msgstr "擴充卡 2:"
+msgstr "Placa 2:"
 
 msgid "Card 3:"
-msgstr "擴充卡 3:"
+msgstr "Placa 3:"
 
 msgid "Card 4:"
-msgstr "擴充卡 4:"
+msgstr "Placa 4:"
 
 msgid "Generic ISA ROM Board"
-msgstr "通用 ISA 單 ROM 板"
+msgstr "Placă de ROM ISA generică"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr "通用 ISA 雙 ROM 板"
+msgstr "Placă dublă ROM ISA generică"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr "通用 ISA 四 ROM 板"
+msgstr "Placă cvadruplă ROM ISA generică"
 
 msgid "ISABugger device"
-msgstr "ISABugger 裝置"
+msgstr "Dispozitiv ISABugger"
 
 msgid "POST card"
-msgstr "自我檢測 (POST) 卡"
+msgstr "Placă POST"
 
 msgid "Error"
-msgstr "錯誤"
+msgstr "Eroare"
 
 msgid "Fatal error"
-msgstr "致命錯誤"
+msgstr "Eroare fatală"
 
 msgid " - PAUSED"
-msgstr " - 已暫停"
+msgstr " - PAUZĂ"
 
 msgid "Speed"
-msgstr "速度"
+msgstr "Viteză"
 
 msgid "Removable disk %1 (%2): %3"
-msgstr "抽取式磁碟 %1 (%2): %3"
+msgstr "Disc amovibil %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr "抽取式磁碟 %1 (%2): %3(&R)"
+msgstr "%Disc amovibil %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr "抽取式磁碟映像"
+msgstr "Imagini de disc amovibile"
 
 msgid "Tape %1 (%2): %3"
-msgstr "磁帶機 %1 (%2): %3"
+msgstr "Bandă %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr "磁帶機 %1 (%2): %3(&T)"
+msgstr "&Bandă %1 (%2): %3"
 
 msgid "Tape images"
-msgstr "磁帶映像"
+msgstr "Imagini de bandă"
 
 msgid "Image %1"
-msgstr "映像 %1"
+msgstr "Imagine %1"
 
 msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr ""
-"%1 找不到任何可用的 ROM 映像。\n"
+"%1 nu a putut găsi nici o imagine ROM utilă.\n"
 "\n"
-"請<a href=\"%2\">下載</a> ROM 套件並將其解壓到 \"roms\" 目錄。"
+"Te rugăm să <a href=\"%2\">descarci</a> un set de ROM-uri și să îl extragi "
+"în directorul \"roms\"."
 
 msgid "(empty)"
-msgstr "(空)"
+msgstr "(gol)"
 
 msgid "All files"
-msgstr "所有檔案"
+msgstr "Toate fișierele"
 
 msgid "Turbo"
-msgstr "加速"
+msgstr "Turbo"
 
 msgid "On"
-msgstr "開"
+msgstr "Pornit"
 
 msgid "Off"
-msgstr "關"
+msgstr "Închis"
 
 msgid "All images"
-msgstr "所有映像"
+msgstr "Toate imaginile"
 
 msgid "Basic sector images"
-msgstr "基本磁區映像"
+msgstr "Imagini de sector de bază"
 
 msgid "Surface images"
-msgstr "表面映像"
+msgstr "Imagini de suprafață"
 
 msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "由於 roms/machines 目錄中缺少合適的 ROM，機型 \"%s\" "
-"不可用。將切換到其他可用機型。"
+msgstr ""
+"Mașina \"%s\" nu este disponibilă din cauza lipsei fișierelor ROM din "
+"directorul roms/machines. Se comută la o mașină disponibilă."
 
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "由於 roms/video 目錄中缺少合適的 ROM，顯示卡 \"%s\" "
-"不可用。將切換到其他可用顯示卡。"
+msgstr ""
+"Placa video \"%s\" nu este disponibilă din cauza lipsei fișierelor ROM din "
+"directorul roms/video. Se comută la o placă video disponibilă."
 
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
-msgstr "由於缺少合適的 ROM，裝置 \"%s\" 不可用。忽略裝置。"
+msgstr ""
+"Dispozitivul \"%s\" nu este disponibil din cauza lipsei fișierelor ROM. Se "
+"va ignora dispozitivul."
 
 msgid "Machine"
-msgstr "機型"
+msgstr "Mașină"
 
 msgid "Display"
-msgstr "顯示"
+msgstr "Afișaj"
 
 msgid "Input devices"
-msgstr "輸入裝置"
+msgstr "Dispozitive de intrare"
 
 msgid "Input &device"
-msgstr "輸入裝置(&D)"
+msgstr "&Dispozitiv de intrare"
 
 msgid "Sound"
-msgstr "聲音"
+msgstr "Sunet"
 
 msgid "Network"
-msgstr "網路"
+msgstr "Rețea"
 
 msgid "Ports (COM & LPT)"
-msgstr "連接埠 (COM 和 LPT)"
+msgstr "Porturi (COM și LPT)"
 
 msgid "Port"
-msgstr "連接埠"
+msgstr "Port"
 
 msgid "Ports"
-msgstr "連接埠"
+msgstr "Porturi"
 
 msgid "Serial ports"
-msgstr "序列埠"
+msgstr "Porturi seriale"
 
 msgid "Serial ports:"
-msgstr "序列埠:"
+msgstr "Porturi seriale:"
 
 msgid "COM1:"
 msgstr "COM1:"
@@ -898,10 +904,10 @@ msgid "COM4:"
 msgstr "COM4:"
 
 msgid "Parallel ports"
-msgstr "並列埠"
+msgstr "Porturi paralele"
 
 msgid "Parallel ports:"
-msgstr "並列埠:"
+msgstr "Porturi paralele:"
 
 msgid "LPT1:"
 msgstr "LPT1:"
@@ -916,760 +922,834 @@ msgid "LPT4:"
 msgstr "LPT4:"
 
 msgid "Storage controllers"
-msgstr "儲存控制器"
+msgstr "Controlere de stocare"
 
 msgid "Hard disks"
-msgstr "硬碟"
+msgstr "Discuri dure"
 
 msgid "Disks:"
-msgstr "磁碟:"
+msgstr "Discuri:"
 
 msgid "Floppy:"
-msgstr "軟碟:"
+msgstr "Floppy:"
 
 msgid "Controllers:"
-msgstr "控制器:"
+msgstr "Controlere:"
 
 msgid "Floppy & CD-ROM drives"
-msgstr "軟碟機/光碟機"
+msgstr "Unități dischetă și CD-ROM"
 
 msgid "Other removable devices"
-msgstr "其他抽取式裝置"
+msgstr "Alte dispozitive amovibile"
 
 msgid "Other peripherals"
-msgstr "其他周邊裝置"
+msgstr "Alte periferice"
 
 msgid "Other devices"
-msgstr "其他裝置"
+msgstr "Alte dispozitive"
 
 msgid "Click to capture mouse"
-msgstr "點擊視窗捕捉滑鼠"
+msgstr "Clic pentru a captura maus-ul"
 
 msgid "Press %1 to release mouse"
-msgstr "按下 %1 釋放滑鼠"
+msgstr "Apasă pe %1 pentru a elibera maus-ul"
 
 msgid "Press %1 or middle button to release mouse"
-msgstr "按下 %1 或滑鼠中鍵釋放滑鼠"
+msgstr "Apasă pe %1 sau butonul din mijloc pentru a elibera maus-ul"
+
+msgid "Press %1 or thumb button to release mouse"
+msgstr "Apasă pe %1 sau pe butonul lateral pentru a elibera maus-ul"
 
 msgid "Bus"
-msgstr "匯流排"
+msgstr "Magistrală"
 
 msgid "File"
-msgstr "檔案"
+msgstr "Fișier"
 
 msgid "Geometry"
-msgstr "磁碟參數"
+msgstr "Geometrie"
 
 msgid "KB"
 msgstr "KB"
 
 msgid "Default"
-msgstr "預設"
+msgstr "Implicit"
 
 msgid "%n wait state(s)"
 msgid_plural "%n wait states"
-msgstr[0] "%n 等待狀態 (WS)"
+msgstr[0] "%n stare de așteptare"
+msgstr[1] "%n stări de așteptare"
+msgstr[2] "%n de stări de așteptare"
 
 msgid "Type"
-msgstr "類型"
+msgstr "Tip"
 
 msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "未發現 PCap 裝置。請確認 %1 已安裝且使用相容 %1 的網路連線。"
+msgstr ""
+"Nu s-au găsit dispozitive PCap. Asigură te că %1 e instalat și că ești pe o "
+"conexiune de rețea compatibilă cu %1."
 
 msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "無效的 PCap 裝置。請確認 %1 已安裝且使用相容 %1 的網路連線。"
+msgstr ""
+"Dispozitiv PCap nevalid. Asigură te că %1 e instalat și că ești pe o "
+"conexiune de rețea compatibilă cu %1."
 
 msgid "Generic paddle controller(s)"
-msgstr "通用旋鈕控制器"
+msgstr "Controler(e) paddle generic(e)"
 
 msgid "2-axis, 1-button joystick(s)"
-msgstr "2 軸, 1 鍵搖桿"
+msgstr "Joystick(uri) cu 2 axe și 1 buton"
 
 msgid "2-axis, 2-button joystick(s)"
-msgstr "2 軸, 2 鍵搖桿"
+msgstr "Joystick(uri) cu 2 axe și 2 butoane"
 
 msgid "2-axis, 3-button joystick"
-msgstr "2 軸, 3 鍵搖桿"
+msgstr "Joystick(uri) cu 2 axe și 3 butoane"
 
 msgid "2-axis, 4-button joystick"
-msgstr "2 軸, 4 鍵搖桿"
+msgstr "Joystick(uri) cu 2 axe și 4 butoane"
 
 msgid "2-axis, 6-button joystick"
-msgstr "2 軸, 6 鍵搖桿"
+msgstr "Joystick(uri) cu 2 axe și șase butoane"
 
 msgid "2-axis, 8-button joystick"
-msgstr "2 軸, 8 鍵搖桿"
+msgstr "Joystick(uri) cu 2 axe și 8 butoane"
 
 msgid "3-axis, 2-button joystick"
-msgstr "3 軸, 2 鍵搖桿"
+msgstr "Joystick(uri) cu 3 axe și 2 butoane"
 
 msgid "3-axis, 3-button joystick"
-msgstr "3 軸, 3 鍵搖桿"
+msgstr "Joystick(uri) cu 3 axe și 3 butoane"
 
 msgid "3-axis, 4-button joystick"
-msgstr "3 軸, 4 鍵搖桿"
+msgstr "Joystick(uri) cu 3 axe și 4 butoane"
 
 msgid "4-axis, 2-button joystick"
-msgstr "4 軸, 2 鍵搖桿"
+msgstr "Joystick(uri) cu 4 axe și 2 butoane"
 
 msgid "4-axis, 3-button joystick"
-msgstr "4 軸, 3 鍵搖桿"
+msgstr "Joystick(uri) cu 4 axe și 3 butoane"
 
 msgid "4-axis, 4-button joystick"
-msgstr "4 軸, 4 鍵搖桿"
+msgstr "Joystick(uri) cu 4 axe și 4 butoane"
 
 msgid "2-button gamepad(s)"
-msgstr "2 鍵遊戲手把"
+msgstr "Gamepad(uri) cu 2 butoane"
 
 msgid "3-button gamepad"
-msgstr "3 鍵遊戲手把"
+msgstr "Gamepad cu 3 butoane"
 
 msgid "4-button gamepad"
-msgstr "4 鍵遊戲手把"
+msgstr "Gamepad cu 4 butoane"
 
 msgid "6-button gamepad"
-msgstr "6 鍵遊戲手把"
+msgstr "Gamepad cu 6 butoane"
 
 msgid "2-button flight yoke"
-msgstr "2 按鈕飛行控制器"
+msgstr "Manșă de zbor cu 2 butoane"
 
 msgid "3-button flight yoke"
-msgstr "3 按鈕飛行控制器"
+msgstr "Manșă de zbor cu 3 butoane"
 
 msgid "4-button flight yoke"
-msgstr "4 按鈕飛行控制器"
+msgstr "Manșă de zbor cu 4 butoane"
 
 msgid "2-button flight yoke with throttle"
-msgstr "2 按鈕帶油門飛行控制器"
+msgstr "Manșă de zbor cu 2 butoane și accelerație"
 
 msgid "3-button flight yoke with throttle"
-msgstr "3 按鈕帶油門飛行控制器"
+msgstr "Manșă de zbor cu 3 butoane și accelerație"
 
 msgid "4-button flight yoke with throttle"
-msgstr "4 按鈕帶油門飛行控制器"
+msgstr "Manșă de zbor cu 4 butoane și accelerație"
 
 msgid "Steering wheel (3-axis, 2-button)"
-msgstr "方向盤 (3 軸, 2 鍵)"
+msgstr "Volan (3 axe, 2 butoane)"
 
 msgid "Steering wheel (3-axis, 3-button)"
-msgstr "方向盤 (3 軸, 3 鍵)"
+msgstr "Volan (3 axe, 3 butoane)"
 
 msgid "Steering wheel (3-axis, 4-button)"
-msgstr "方向盤 (3 軸, 4 鍵)"
+msgstr "Volan (3 axe, 4 butoane)"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
-msgstr "Thrustmaster Formula T1/T2 帶轉接器"
+msgstr "Thrustmaster Formula T1/T2 cu adaptor"
 
 msgid "Thrustmaster Formula T1/T2 without adapter"
-msgstr "Thrustmaster Formula T1/T2 無轉接器"
+msgstr "Thrustmaster Formula T1/T2 fără adaptor"
 
 msgid "None"
-msgstr "無"
+msgstr "Fără"
 
 msgid "%1 MB (CHS: %2, %3, %4)"
-msgstr "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CCS: %2, %3, %4)"
 
 msgid "Floppy %1 (%2): %3"
-msgstr "軟碟 %1 (%2): %3"
+msgstr "Dischetă %1 (%2): %3"
 
 msgid "&Floppy %1 (%2): %3"
-msgstr "軟碟 %1 (%2): %3(&F)"
+msgstr "&Dischetă %1 (%2): %3"
 
 msgid "Advanced sector images"
-msgstr "進階磁區映像"
+msgstr "Imagini de sector avansat"
 
 msgid "Flux images"
-msgstr "Flux 映像"
+msgstr "Imagini de flux"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
-msgstr "確定要硬重設模擬器嗎？"
+msgstr "Ești sigur că vrei să resetezi complet această mașină emulată?"
 
 msgid "Are you sure you want to exit 86Box?"
-msgstr "確定要退出 86Box 嗎？"
+msgstr "Ești sigur că vrei să ieși din 86Box?"
 
 msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "無法初始化 Ghostscript。自動將 PostScript 檔案轉換為 PDF 需要 %1。\n\n使用通用 PostScript 印表機列印的文件將被儲存為 PostScript (.ps) 檔案。"
+msgstr ""
+"Nu s-a putut inițializa Ghostscript. %1 este necesar pentru conseria "
+"automată a fișierelor PostScript în PDF.\n"
+"\n"
+"Orice document trimis la imprimanta PostScript generică va fi salvată ca "
+"fișiere PostScript (.ps)."
 
 msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "無法初始化 GhostPCL。自動將 PCL 檔案轉換為 PDF 需要 %1。\n\n使用通用 PCL 印表機列印的文件將被儲存為 Printer Command Language (.pcl) 檔案。"
+msgstr ""
+"Nu s-a putut inițializa GhostPCL. %1 este necesar pentru conversia automată "
+"a fișierelor PCL în PDF.\n"
+"\n"
+"Orice document trimis către imprimanta PCL generică va fi salvat ca fișiere "
+"PostScript (.ps)."
 
 msgid "MO %1 (%2): %3"
-msgstr "磁光碟 %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
 
 msgid "&MO %1 (%2): %3"
-msgstr "磁光碟 %1 (%2): %3(&M)"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
-msgstr "磁光碟映像"
+msgstr "Imagini MO"
 
 msgid "Welcome to 86Box!"
-msgstr "歡迎使用 86Box！"
+msgstr "Bun venit la 86Box!"
 
 msgid "Internal device"
-msgstr "內部裝置"
+msgstr "Dispozitiv intern"
 
 msgid "&File"
-msgstr "檔案(&F)"
+msgstr "&Fișier"
 
 msgid "&New machine…"
-msgstr "新機器(&N)…"
+msgstr "&Mașină nouă…"
 
 msgid "New machine…"
-msgstr "新機器…"
+msgstr "Mașină nouă…"
 
 msgid "New machine"
-msgstr "新機器"
+msgstr "Mașină nouă"
 
 msgid "&Check for updates…"
-msgstr "檢查更新(&C)…"
+msgstr "&Verifică actualizările…"
 
 msgid "Exit"
-msgstr "退出"
+msgstr "Ieșire"
 
 msgid "No ROMs found"
-msgstr "找不到 ROM"
+msgstr "Nu s-au găsit fișiere ROM"
 
 msgid "Do you want to save the settings?"
-msgstr "要儲存設定嗎？"
+msgstr "Dorești să salvezi aceste setări?"
 
 msgid "This will hard reset the emulated machine."
-msgstr "此操作將硬重設模擬器。"
+msgstr "Aceasta va reporni complet mașina emulată."
 
 msgid "Save"
-msgstr "儲存"
+msgstr "Salvează"
 
 msgid "About %1"
-msgstr "關於 %1"
+msgstr "Despre %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr ""
-"一個舊型個人電腦模擬器\n"
+"Un emulator de calculatoare vechi\n"
 "\n"
-"作者: Miran Grča (OBattler)、RichardG867、Jasmine "
-"Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、"
-"Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. "
-"van Kempen (waltje)、Tiseno100、reenigne 等人。\n"
+"Autori: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, "
+"coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin "
+"(elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen "
+"(waltje), Tiseno100, reenigne, și alții.\n"
 "\n"
-"早期的核心貢獻來自 Sarah Walker、leilei、JohnElliott、greatpsycho 等人。\n"
+"Cu contribuții anterioare la nucleu de la Sarah Walker, leilei, JohnElliott, "
+"greatpsycho, și alții.\n"
 "\n"
-"本軟體依據 GNU 通用公眾授權條款第二版或更新版本發佈。詳情見 LICENSE 檔案。"
+"Lansat sub licența GNU General Public License versiunea 2 sau ulterioară. "
+"Consultați fișierul LICENSE pentru mai multe informații."
 
 msgid "Hardware not available"
-msgstr "硬體不可用"
+msgstr "Hardware indisponibil"
 
 msgid "Don't show this message again"
-msgstr "不要再顯示此訊息"
+msgstr "Nu mai afișa din nou acest mesaj"
 
 msgid "CD-ROM images"
-msgstr "光碟映像"
+msgstr "Imagini CD-ROM"
 
 msgid "%1 Device Configuration"
-msgstr "%1 裝置組態"
+msgstr "Configurare dispozitiv %1"
 
 msgid "Monitor in sleep mode"
-msgstr "監視器處於睡眠模式"
+msgstr "Monitorul în modul de repaus"
 
 msgid "GLSL shaders"
-msgstr "GLSL 著色器"
+msgstr "Shadere GLSL"
 
 msgid "You are loading an unsupported configuration"
-msgstr "正在載入一個不受支援的組態"
+msgstr "Se încarcă o configurație nesuportată"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "此模擬電腦停用了基於選定電腦的 CPU 類型過濾。\n\n能夠選中與所選機器本不相容的 CPU，但是可能會遇到與機器 BIOS 或其他軟體不相容的問題。\n\n啟用此設定不受官方支援，並且提交的任何錯誤報告可能會視為無效而結案。"
+msgstr ""
+"Filtrarea tipului de CPU bazată pe mașina selectată este dezactivată pentru "
+"această mașină selectată.\n"
+"\n"
+"Acest lucru face posibilă alegerea unui CPU care altfel ar fi incompatibil "
+"cu mașina selectată. Cu toate acestea, este posibil să întâmpinați "
+"incompatibilități cu BIOS-ul mașinii sau cu alte programe.\n"
+"\n"
+"Activarea acestei setări nu este acceptată oficial, iar orice raport de "
+"eroare trimis va putea fi închis ca fiind nevalid."
 
 msgid "Continue"
-msgstr "繼續"
+msgstr "Continuare"
 
 msgid "Cassette: %1"
-msgstr "卡帶: %1"
+msgstr "Casetă: %1"
 
 msgid "C&assette: %1"
-msgstr "卡帶: %1(&A)"
+msgstr "C&asetă: %1"
 
 msgid "Cassette images"
-msgstr "卡帶映像"
+msgstr "Imagini casetă"
 
 msgid "Cartridge %1: %2"
-msgstr "卡匣 %1: %2"
+msgstr "Cartuș %1: %2"
 
 msgid "Car&tridge %1: %2"
-msgstr "卡匣 %1: %2(&T)"
+msgstr "Car%tuș %1: %2"
 
 msgid "Cartridge images"
-msgstr "卡匣映像"
+msgstr "Imagini cartușe"
 
 msgid "Resume execution"
-msgstr "恢復執行"
+msgstr "Reluare execuție"
 
 msgid "Pause execution"
-msgstr "暫停執行"
+msgstr "Pauză execuție"
 
 msgid "Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "按下 Ctrl+Alt+Del"
+msgstr "Apasă Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "按下 Ctrl+Alt+Esc"
+msgstr "Apasă Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "硬重設"
+msgstr "Repornire brută"
 
 msgid "Force shutdown"
-msgstr "強制關機"
+msgstr "Oprire forțată"
 
 msgid "Start"
-msgstr "開始"
+msgstr "Pornire"
 
 msgid "&Force shutdown"
-msgstr "強制關機(&F)"
+msgstr "Oprire &forțată"
 
 msgid "&Start"
-msgstr "開始(&S)"
+msgstr "&Pornire"
 
 msgid "Not running"
-msgstr "未執行"
+msgstr "Nu rulează"
 
 msgid "Running"
-msgstr "執行中"
+msgstr "Rulează"
 
 msgid "Paused"
-msgstr "已暫停"
+msgstr "Pauzat"
 
 msgid "Waiting"
-msgstr "等待中"
+msgstr "Așteptare"
 
 msgid "Powered Off"
-msgstr "關閉電源"
+msgstr "Oprit"
 
 msgid "%n running"
 msgid_plural "%n running"
-msgstr[0] "%n 執行中"
+msgstr[0] "%n care rulează"
+msgstr[1] "%n care rulează"
+msgstr[2] "%n de care rulează"
 
 msgid "%n paused"
 msgid_plural "%n paused"
-msgstr[0] "%n 已暫停"
+msgstr[0] "%n în pauză"
+msgstr[1] "%n în pauză"
+msgstr[2] "%n în pauză"
 
 msgid "%n waiting"
 msgid_plural "%n waiting"
-msgstr[0] "%n 等待中"
+msgstr[0] "%n în așteptare"
+msgstr[1] "%n în așteptare"
+msgstr[2] "%n în așteptare"
 
 msgid "%1 total"
-msgstr "%1 總計"
+msgstr "%1 total"
 
 msgid "VMs: %1"
-msgstr "虛擬機器: %1"
+msgstr "MV: %1"
 
 msgid "System Directory:"
-msgstr "系統目錄:"
+msgstr "Director de sistem:"
 
 msgid "Choose directory"
-msgstr "選擇目錄"
+msgstr "Alege directorul"
 
 msgid "Choose configuration file"
-msgstr "選擇組態檔"
+msgstr "Alege fișierul de configurație"
 
 msgid "86Box configuration files (86box.cfg)"
-msgstr "86Box 組態檔 (86box.cfg)"
+msgstr "Fișiere de configurație 86Box (86box.cfg)"
 
 msgid "Configuration read failed"
-msgstr "組態讀取失敗"
+msgstr "Citirea configurației a eșuat"
 
 msgid "Unable to open the selected configuration file for reading: %1"
-msgstr "無法開啟選取的組態檔進行讀取: %1"
+msgstr ""
+"Nu s-a putut deschide fișierul de configurație selectat pentru citire: %1"
 
 msgid "Use regular expressions in search box"
-msgstr "在搜尋欄中使用正規表示式"
+msgstr "Utilizează expresii regulate în bara de căutare"
 
 msgid "Delete virtual machines to Recycle Bin"
-msgstr "刪除虛擬機至回收筒"
+msgstr "Șterge toate mașinile virtuale în Coșul de Reciclare"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr[0] "%n 台機器目前處於活動狀態。您確定要退出虛擬機器管理員嗎？"
+msgstr[0] ""
+"%n mașină este activ în prezent. Sigur doriți să ieșiți din manager-ul de VM "
+"totuși?"
+msgstr[1] ""
+"%n mașini sunt active în prezent. Sigur doriți să ieșiți din manager-ul de "
+"VM totuși?"
+msgstr[2] ""
+"%n de mașini sunt active în prezent. Sigur doriți să ieșiți din manager-ul "
+"de VM totuși?"
 
 msgid "Add new system wizard"
-msgstr "新增系統精靈"
+msgstr "Asistent pentru adăugarea unui sistem nou"
 
 msgid "Introduction"
-msgstr "簡介"
+msgstr "Introducere"
 
 msgid "This will help you add a new system to 86Box."
-msgstr "這將協助您在 86Box 中加入新系統。"
+msgstr "Aceasta te va ajuta să adaugi un nou sistem în 86Box."
 
 msgid "New configuration"
-msgstr "新增組態"
+msgstr "Configurație nouă"
 
 msgid "Complete"
-msgstr "完成"
+msgstr "Completează"
 
 msgid "The wizard will now launch the configuration for the new system."
-msgstr "精靈現在將啟動新系統的組態。"
+msgstr "Asistentul va lansa configurația pentru noul sistem."
 
 msgid "Use existing configuration"
-msgstr "使用現有組態"
+msgstr "Utilizează configurația existentă"
 
 msgid "Type some notes here"
-msgstr "在此輸入備註"
+msgstr "Introdu câteva note aici"
 
 msgid "Paste the contents of the existing configuration file into the box below."
-msgstr "將現有組態檔的內容貼到下面的輸入欄中。"
+msgstr ""
+"LIpește conținutul fișierului de configurație existent în caseta de mai jos."
 
 msgid "Load configuration from file"
-msgstr "從檔案載入組態"
+msgstr "Încarcă configurația din fișier"
 
 msgid "System name"
-msgstr "系統名稱"
+msgstr "Numele sistemului"
 
 msgid "System name:"
-msgstr "系統名稱:"
+msgstr "Numele sistemului:"
 
 msgid "System name cannot contain certain characters"
-msgstr "系統名稱不能包含特定字元"
+msgstr "Numele sistemului nu poate conține anumite caractere"
 
 msgid "System name already exists"
-msgstr "系統名稱已存在"
+msgstr "Numele sistemului este deja existent"
 
 msgid "Please enter a directory for the system"
-msgstr "請輸入系統目錄"
+msgstr "Vă rugăm să introduceți un director pentru sistem"
 
 msgid "Directory does not exist"
-msgstr "目錄不存在"
+msgstr "Directorul nu există"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr "系統的新目錄將會在上述選取的目錄中建立"
+msgstr ""
+"Un nou director pentru sistem va fi creat în directorul selectat de mai sus"
 
 msgid "System location:"
-msgstr "系統位置:"
+msgstr "Locația sistemului:"
 
 msgid "System name and location"
-msgstr "系統名稱和位置"
+msgstr "Numele sistemului și locația"
 
 msgid "Enter the name of the system and choose the location"
-msgstr "輸入系統名稱並選擇位置"
+msgstr "Introdu numele sistemului și alege locația"
 
 msgid "Enter the name of the system"
-msgstr "輸入系統名稱"
+msgstr "Introdu numele sistemului"
 
 msgid "Please enter a system name"
-msgstr "請輸入系統名稱"
+msgstr "Vă rugăm să introduceți un nume de sistem"
 
 msgid "Display name (optional):"
-msgstr "顯示名稱 (可選):"
+msgstr "Numele de afișaj (opțional):"
 
 msgid "Display name:"
-msgstr "顯示名稱:"
+msgstr "Numele de afișaj:"
 
 msgid "Set display name"
-msgstr "設定顯示名稱"
+msgstr "Setează numele de afișaj"
 
 msgid "Enter the new display name (blank to reset)"
-msgstr "輸入新的顯示名稱 (留空以重設)"
+msgstr "Introdu noul nume de afișaj (gol pentru a reseta)"
 
 msgid "Change &display name…"
-msgstr "變更顯示名稱(&D)…"
+msgstr "Modifică &numele de afișaj…"
 
 msgid "&Open folder…"
-msgstr "開啟資料夾(&O)…"
+msgstr "&Deschide director…"
 
 msgid "Open p&rinter tray…"
-msgstr "開啟印表機托盤(&R)…"
+msgstr "Deschide tava pentru im&primantă…"
 
 msgid "Set &icon…"
-msgstr "設定圖示(&I)…"
+msgstr "Setează &pictograma…"
 
 msgid "Select an icon"
-msgstr "選擇圖示"
+msgstr "Selectează o pictogramă"
 
 msgid "C&lone…"
-msgstr "複製(&L)…"
+msgstr "Cl&onează…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
-msgstr "虛擬機器 \"%1\" (%2) 將被複製到:"
+msgstr "Mașina virtuală \"%1\" (%2) va fi clonată în:"
 
 msgid "Directory %1 already exists"
-msgstr "目錄 %1 已經存在"
+msgstr "Directorul %1 este deja existent"
 
 msgid "You cannot use the following characters in the name: %1"
-msgstr "您不能在名稱中使用下列字元: %1"
+msgstr "Nu se pot utiliza următoarele caractere în nume: %1"
 
 msgid "Clone"
-msgstr "複製"
+msgstr "Clonează"
 
 msgid "Failed to create directory for cloned VM"
-msgstr "建立複製虛擬機器的目錄失敗"
+msgstr "Nu s-a putut crea directorul pentru mașina virtuală clonată"
 
 msgid "Failed to clone VM."
-msgstr "複製虛擬機器失敗。"
+msgstr "Clonarea mașinii virtuale a eșuat."
 
 msgid "Directory in use"
-msgstr "使用中的目錄"
+msgstr "Director în uz"
 
 msgid "The selected directory is already in use. Please select a different directory."
-msgstr "所選目錄已被使用。請選擇其他目錄。"
+msgstr ""
+"Directorul selectat este deja folosit. Vă rugăm să selectați un director "
+"diferit."
 
 msgid "Create directory failed"
-msgstr "建立目錄失敗"
+msgstr "Crearea directorului a eșuat"
 
 msgid "Unable to create the directory for the new system"
-msgstr "無法為新系統建立目錄"
+msgstr "Nu s-a putut crea directorul pentru noul sistem"
 
 msgid "Configuration write failed"
-msgstr "組態寫入失敗"
+msgstr "Scrierea configurației a eșuat"
 
 msgid "Unable to open the configuration file at %1 for writing"
-msgstr "無法開啟 %1 的組態檔進行寫入"
+msgstr "Nu s-a putut deschide fișierul de configurație la %1 pentru scriere"
 
 msgid "Error adding system"
-msgstr "新增系統錯誤"
+msgstr "Eroare la adăugarea sistemului"
 
 msgid "Remove directory failed"
-msgstr "移除目錄失敗"
+msgstr "Ștergerea directorului a eșuat"
 
 msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
-msgstr "機器目錄中的某些檔案無法刪除。請手動刪除它們。"
+msgstr ""
+"Unele fișierele din directorul mașinii nu s-au putut șterge. Vă rugăm să le "
+"ștergeți manual."
 
 msgid "Build"
-msgstr "建置"
+msgstr "Compilare"
 
 msgid "Version"
-msgstr "版本"
+msgstr "Versiune"
 
 msgid "An update to 86Box is available: %1 %2"
-msgstr "86Box 的更新可用: %1 %2"
+msgstr "O actualizare pentru 86Box este disponibilă: %1 %2"
 
 msgid "An error has occurred while checking for updates: %1"
-msgstr "檢查更新時發生錯誤: %1"
+msgstr "A apărut o eroare în timpul verificării actualizărilor: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
-msgstr "<b>有 86Box 的更新可用！</b>"
+msgstr "<b>O actualizare pentru 86Box este disponibilă!</b>"
 
 msgid "Warning"
-msgstr "警告"
+msgstr "Avertizare"
 
 msgid "&Kill"
-msgstr "強制終止(&K)"
+msgstr "&Termină"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "強制終止虛擬機器可能會導致資料遺失。只有在 86Box 行程卡住時才執行此操作。\n\n您真的希望強制終止虛擬機器 \"%1\"？"
+msgstr ""
+"Oprirea forțată a unei mașini virtuale poate cauza pierderea datelor. Faceți "
+"acest lucru doar dacă procesul 86Box se blochează.\n"
+"\n"
+"Doriți cu adevărat să opriți forțat mașina virtuală \"%1\"?"
 
 msgid "&Delete"
-msgstr "刪除(&D)"
+msgstr "&Șterge"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
-msgstr "您真的想要刪除虛擬機器 \"%1\" 及其所有檔案嗎？"
+msgstr ""
+"Doriți cu adevărat să ștergeți mașina virtuală \"%1\" împreună cu toate "
+"fișierele sale?"
 
 msgid "This action cannot be undone!"
-msgstr "此操作無法回復！"
+msgstr "Acestă acțiune nu poate fi anulată!"
 
 msgid "Show &config file"
-msgstr "顯示組態檔(&C)"
+msgstr "Afișează fișierul de &configurație"
 
 msgid "No screenshot"
-msgstr "沒有螢幕畫面擷取"
+msgstr "Fără captură de ecran"
 
 msgid "Search"
-msgstr "搜尋"
+msgstr "Caută"
 
 msgid "Searching for VMs…"
-msgstr "搜尋虛擬機器…"
+msgstr "Se caută mașini virtuale…"
 
 msgid "Found %1"
-msgstr "找到 %1"
+msgstr "S-a găsit %1"
 
 msgid "System"
-msgstr "系統"
+msgstr "Sistem"
 
 msgid "Storage"
-msgstr "儲存"
+msgstr "Stocare"
 
 msgid "Disk %1:"
-msgstr "磁碟 %1:"
+msgstr "Disc %1:"
 
 msgid "No disks"
-msgstr "無磁碟"
+msgstr "Fără discuri"
 
 msgid "Audio"
-msgstr "音訊"
+msgstr "Audio"
 
 msgid "Audio:"
-msgstr "音訊:"
+msgstr "Audio:"
 
 msgid "ACPI shutdown"
-msgstr "ACPI 關機"
+msgstr "Oprire ACPI"
 
 msgid "ACP&I shutdown"
-msgstr "ACPI 關機(&I)"
+msgstr "Oprire ACP&I"
 
 msgid "Power off"
-msgstr "關閉電源"
+msgstr "Oprire"
 
 msgid "Power &off…"
-msgstr "關閉電源(&O)…"
+msgstr "&Oprire…"
 
 msgid "Power &off"
-msgstr "關閉電源(&O)"
+msgstr "&Oprire"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
-msgstr "強制關閉電源可能導致模擬機資料流失，確定要繼續嗎？"
+msgstr ""
+"Oprirea mașinii virtuale ar putea cauza pierdere de date. Sunteți sigur că "
+"doriți să continuați?"
 
 msgid "Hard disk (%1)"
-msgstr "硬碟 (%1)"
+msgstr "Disc dur (%1)"
 
 msgid "Custom…"
-msgstr "自訂…"
+msgstr "Personalizat…"
 
 msgid "Custom (large)…"
-msgstr "自訂 (大容量)…"
+msgstr "Personalizat (mare)…"
 
 msgid "Add New Hard Disk"
-msgstr "增加新硬碟"
+msgstr "Adaugă disc nou"
 
 msgid "Add Existing Hard Disk"
-msgstr "增加已存在的硬碟"
+msgstr "Adaugă disc existent"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI 磁碟映像不能超過 4 GB。"
+msgstr "Imaginile de disc HDI nu pot fi mai mari de 4 GB."
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "磁碟映像不能超過 127 GB。"
+msgstr "Imaginile de disc nu pot fi mai mari de 127 GB."
 
 msgid "Hard disk images"
-msgstr "硬碟映像"
+msgstr "Imagini de disc"
 
 msgid "Unable to read file"
-msgstr "無法讀取檔案"
+msgstr "Nu s-a putut citi fișierul"
 
 msgid "Unable to write file"
-msgstr "無法寫入檔案"
+msgstr "Nu s-a putut scrie fișierul"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "不支援非 512 位元組磁區大小的 HDI 或 HDX 映像。"
+msgstr ""
+"Imaginile HDI sau HDX cu o dimensiune de sector diferită decât 512 nu sunt "
+"suportate."
 
 msgid "Disk image file already exists"
-msgstr "磁碟映像檔案已存在"
+msgstr "Fișierul imagine de disc există deja"
 
 msgid "Please specify a valid file name."
-msgstr "請指定有效的檔案名。"
+msgstr "Vă rugăm să specificați un nume de fișier valid."
 
 msgid "Disk image created"
-msgstr "已創建磁碟映像"
+msgstr "S-a creat imaginea de disc"
 
 msgid "Make sure the file exists and is readable."
-msgstr "請確定此檔案已存在並可讀取。"
+msgstr "Asigurați-vă că fișierul există și poate fi citit."
 
 msgid "Make sure the file is being saved to a writable directory."
-msgstr "請確定此檔案儲存在可寫目錄中。"
+msgstr ""
+"Asigurați-vă că fișierul este salvat într-un director în care se poate scrie."
 
 msgid "Disk image too large"
-msgstr "磁碟映像太大"
+msgstr "Imaginea de disc este prea mare"
 
 msgid "Remember to partition and format the newly-created drive."
-msgstr "請記得為新創建的影像建立分割區並格式化。"
+msgstr "Rețineți să partiționați și să formatați noua unitate creată."
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
-msgstr "選定的檔案將被覆蓋。確定繼續使用此檔案嗎？"
+msgstr ""
+"Fișierul selectat va fi suprascris. Sunteți sigur că doriți să îl folosiți?"
 
 msgid "Unsupported disk image"
-msgstr "不支援的磁碟映像"
+msgstr "Imagine de disc nesuportată"
 
 msgid "Unable to read device"
-msgstr "無法讀取裝置"
+msgstr "Nu s-a putut citi dispozitivul"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
-msgstr "無法得知區塊裝置大小。請確認你有權限存取此裝置。"
+msgstr ""
+"Nu s-a putut determina dimensiunea blocurilor dispozitivului. Asigurați-vă "
+"că aveți permisiunile de a accesa acest dispozitiv."
 
 msgid "Device too large"
-msgstr "裝置過大"
+msgstr "Dispozitivul este prea larg"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr "區塊裝置過大，無法做為硬碟使用。"
+msgstr ""
+"Blocurile dispozitivului este prea larg pentru a fi folosit ca disc dur."
 
 msgid "Block device detected"
-msgstr "偵測到區塊裝置"
+msgstr "Dispozitiv bloc detectat"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
-"偵測到的區塊裝置: %1\n"
-"大小: %2 MB\n"
-"參數: %3 磁柱, %4 磁頭, %5 磁區"
+"Dispozitiv block detectat: %1\n"
+"Dimensiune: %2 MB\n"
+"Geometrie: %3 cilindri, %4 capete, %5 sectoare"
 
 msgid "Failed to write the disk image."
-msgstr "寫入磁碟映像失敗。"
+msgstr "Scrierea imaginii de disc a eșuat."
 
 msgid "Failed to read the disk image."
-msgstr "讀取磁碟映像失敗。"
+msgstr "Citirea imaginii de disc a eșuat."
 
 msgid "The disk image has been successfully created."
-msgstr "成功創建磁碟映像。"
+msgstr "Imaginea de disc a fost creată cu succes."
 
 msgid "Raw image"
-msgstr "原始映像"
+msgstr "Imagine brută"
 
 msgid "HDI image"
-msgstr "HDI 映像"
+msgstr "Imagine HDI"
 
 msgid "HDX image"
-msgstr "HDX 映像"
+msgstr "Imagine HDX"
 
 msgid "Fixed-size VHD"
-msgstr "固定大小 VHD"
+msgstr "VHD de dimensiune fixă"
 
 msgid "Dynamic-size VHD"
-msgstr "動態大小 VHD"
+msgstr "VHD de dimensiune dinamică"
 
 msgid "Differencing VHD"
-msgstr "差異影像 VHD"
+msgstr "VHD diferențial"
 
 msgid "(N/A)"
-msgstr "(不適用)"
+msgstr "(N/A)"
 
 msgid "Raw image (.img)"
-msgstr "原始映像 (.img)"
+msgstr "Imagine brută (.img)"
 
 msgid "HDI image (.hdi)"
-msgstr "HDI 映像 (.hdi)"
+msgstr "Imagine HDI (.hdi)"
 
 msgid "HDX image (.hdx)"
-msgstr "HDX 映像 (.hdx)"
+msgstr "Imagine HDX (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
-msgstr "固定大小 VHD (.vhd)"
+msgstr "VHD de dimensiune fixă (.vhd)"
 
 msgid "Dynamic-size VHD (.vhd)"
-msgstr "動態大小 VHD (.vhd)"
+msgstr "VHD de dimensiune dinamică (.vhd)"
 
 msgid "Differencing VHD (.vhd)"
-msgstr "差異影像 VHD (.vhd)"
+msgstr "VHD diferențial (.vhd)"
 
 msgid "Large blocks (2 MB)"
-msgstr "大區塊 (2 MB)"
+msgstr "Blocuri mari (2 MB)"
 
 msgid "Small blocks (512 KB)"
-msgstr "小區塊 (512 KB)"
+msgstr "Blocuri mici (512 KB)"
 
 msgid "VHD files"
-msgstr "VHD 檔案"
+msgstr "Fișiere VHD"
 
 msgid "Select the parent VHD"
-msgstr "選取父 VHD 檔案"
+msgstr "Selectați fișierul VHD părinte"
 
 msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "父碟與子碟的時間戳不匹配。父映像可能在創建差異映像後被修改。\n\n如果映像檔案被移動或複製，或創建此磁碟的程式中存在錯誤，也可能發生這種情況。\n\n是否需要修復時間戳？"
+msgstr ""
+"Marcajele de timp ale discului părinte și cel copil nu se potrivesc. Acest "
+"lucru poate însemna că imaginea părinte a fost modificată după ce a fost "
+"creată imaginea diferențială.\n"
+"\n"
+"Acest lucru se poate întâmpla și dacă fișierele imagine au fost mutate sau "
+"copiate, ori din cauza unui defect din programul care a creat acest disc.\n"
+"\n"
+"Doriți să corectați marcajele de timp?"
 
 msgid "Parent and child disk timestamps do not match"
-msgstr "父碟與子碟的時間戳不匹配"
+msgstr "Marcajele de timp ale discului părinte și cel copil nu se potrivesc"
 
 msgid "Could not fix VHD timestamp."
-msgstr "無法修復 VHD 時間戳。"
+msgstr "Nu s-a putut corecta marcajele de timp ale fișierului VHD."
 
 msgid "CD-ROM %1 (%2): %3"
-msgstr "光碟 %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "&CD-ROM %1 (%2): %3"
-msgstr "光碟 %1 (%2): %3(&C)"
+msgstr "&CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1699,1848 +1779,1847 @@ msgid "1.44 MB"
 msgstr "1.44 MB"
 
 msgid "DMF (cluster 1024)"
-msgstr "DMF (1024 位元組叢集)"
+msgstr "DMF (cluster 1024)"
 
 msgid "DMF (cluster 2048)"
-msgstr "DMF (2048 位元組叢集)"
+msgstr "DMF (cluster 2048)"
 
 msgid "2.88 MB"
 msgstr "2.88 MB"
 
 msgid "3.5\" 128 MB (ISO 10090)"
-msgstr "3.5 英吋 128 MB (ISO 10090)"
+msgstr "3.5\" 128 MB (ISO 10090)"
 
 msgid "3.5\" 230 MB (ISO 13963)"
-msgstr "3.5 英吋 230 MB (ISO 13963)"
+msgstr "3.5' 230 MB (ISO 13963)"
 
 msgid "3.5\" 540 MB (ISO 15498)"
-msgstr "3.5 英吋 540 MB (ISO 15498)"
+msgstr "3.5\" 540 MB (ISO 15498)"
 
 msgid "3.5\" 640 MB (ISO 15498)"
-msgstr "3.5 英吋 640 MB (ISO 15498)"
+msgstr "3.5\" 640 MB (ISO 15498)"
 
 msgid "3.5\" 1.3 GB (GigaMO)"
-msgstr "3.5 英吋 1.3 GB (GigaMO)"
+msgstr "3.5\" 1.3 GB (GigaMO)"
 
 msgid "3.5\" 2.3 GB (GigaMO 2)"
-msgstr "3.5 英吋 2.3 GB (GigaMO 2)"
+msgstr "3.5\" 2.3 GB (GigaMO 2)"
 
 msgid "5.25\" 600 MB"
-msgstr "5.25 英吋 600 MB"
+msgstr "5.25\" 600 MB"
 
 msgid "5.25\" 650 MB"
-msgstr "5.25 英吋 650 MB"
+msgstr "5.25\" 650 MB"
 
 msgid "5.25\" 1 GB"
-msgstr "5.25 英吋 1 GB"
+msgstr "5.25\" 1 GB"
 
 msgid "5.25\" 1.3 GB"
-msgstr "5.25 英吋 1.3 GB"
+msgstr "5.25\" 1.3 GB"
 
 msgid "Perfect RPM"
-msgstr "標準轉速 (RPM)"
+msgstr "Perfect RPM"
 
 msgid "1% below perfect RPM"
-msgstr "低於標準轉速的 1%"
+msgstr "1% sub RPM perfect"
 
 msgid "1.5% below perfect RPM"
-msgstr "低於標準轉速的 1.5%"
+msgstr "1.5% sub RPM perfect"
 
 msgid "2% below perfect RPM"
-msgstr "低於標準轉速的 2%"
+msgstr "2% sub RPM perfect"
 
 msgid "Creating image…"
-msgstr "新建映像…"
+msgstr "Se crează imaginea…"
 
 msgid "(System Default)"
-msgstr "(系統預設)"
+msgstr "(Implicit în sistem)"
 
 msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
 msgstr ""
-"初始化網路驅動器失敗:\n"
+"Inițializarea driverului de rețea a eșuat:\n"
 "\n"
 "%s\n"
 "\n"
-"網路組態將切換為空驅動器。"
+"Configurația de rețea va fi comutată pe driverul nul."
 
 msgid "Mouse sensitivity:"
-msgstr "滑鼠靈敏度:"
+msgstr "Sensibilitatea maus-ului:"
 
 msgid "Select media images from program working directory"
-msgstr "從程式工作目錄中選擇媒體映像"
+msgstr "Selectați imaginile de mediu din directorul de lucru al programului"
 
 msgid "PIT mode:"
-msgstr "PIT 模式:"
+msgstr "Mod PIT:"
 
 msgid "Auto"
-msgstr "自動"
+msgstr "Auto"
 
 msgid "Slow"
-msgstr "慢"
+msgstr "Lent"
 
 msgid "Fast"
-msgstr "快"
+msgstr "Rapid"
 
 msgid "Auto-pause on focus loss"
-msgstr "失去焦點時自動暫停"
+msgstr "Pauză automată la pierderea focalizării"
 
 msgid "Auto-pause on dialog boxes"
-msgstr "開啟對話框時自動暫停"
+msgstr "Pauză automată la afișarea casetelor de dialog"
 
 msgid "WinBox is no longer supported"
-msgstr "不再支援 WinBox"
+msgstr "WinBox nu mai este suportat"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
-msgstr "WinBox 於 2022 年因缺乏維護者而停止發展。由於我們傾注全力於將 86Box 做的更好，我們決定不再支援將 WinBox 做為前端管理程式。\n\n在 WinBox 未提供更新前，搭配新版本的 86Box 使用將導致不正確的行為。任何由 WinBox 引起的錯誤回報將標記為無效而結案。\n\n請造訪 86box.net 網站以取得其他可用的前端管理程式列表。"
+msgstr ""
+"Dezvoltarea manager-ului WinBox a încetat în 2022 din cauza lipsei de "
+"mentenanță. Pe măsură ce ne îndreptăm eforturile spre a face 86Box și mai "
+"bun, am luat decizia de a nu mai susține WinBox ca manager.\n"
+"\n"
+"Nu vor mai fi furnizate actualizări prin WinBox și este posibil să "
+"întâmpinați un comportament incorect dacă continuați să îl folosiți cu "
+"versiuni mai noi de 86Box. Orice rapoarte de erori legate de comportamentul "
+"WinBox vor fi închise ca nevalid.\n"
+"\n"
+"Accesați 86box.net pentru o listă cu alte managere pe care le puteți folosi."
 
 msgid "Generate"
-msgstr "產生"
+msgstr "Generează"
 
 msgid "Joystick configuration"
-msgstr "搖桿組態"
+msgstr "Configurare joystick"
 
 msgid "Device"
-msgstr "裝置"
+msgstr "Dispozitiv"
 
 msgid "%1 (X axis)"
-msgstr "%1 (X 軸)"
+msgstr "%1 (X axe)"
 
 msgid "%1 (Y axis)"
-msgstr "%1 (Y 軸)"
+msgstr "%1 (Y axe)"
 
 msgid "MCA devices"
-msgstr "MCA 裝置"
+msgstr "Dispozitive MCA"
 
 msgid "List of MCA devices:"
-msgstr "MCA 裝置清單:"
+msgstr "Lista de dispozitive MCA:"
 
 msgid "&Tablet tool"
-msgstr "平板工具(&T)"
+msgstr "&Unealta de tabletă"
 
 msgid "About &Qt"
-msgstr "關於 Qt(&Q)"
+msgstr "Despre &Qt"
 
 msgid "&MCA devices…"
-msgstr "MCA 裝置(&M)…"
+msgstr "Dispozitive &MCA…"
 
 msgid "Show non-&primary monitors"
-msgstr "顯示非主要監視器(&P)"
+msgstr ""
 
 msgid "Open screenshots &folder…"
-msgstr "開啟螢幕畫面擷取資料夾(&F)…"
+msgstr ""
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "最大化時套用全螢幕延展模式(&Y)"
+msgstr ""
 
 msgid "&Cursor/Puck"
-msgstr "數位板標定器(&C)"
+msgstr ""
 
 msgid "&Pen"
-msgstr "筆(&P)"
+msgstr ""
 
 msgid "&Host CD/DVD Drive (%1)"
-msgstr "主機 CD/DVD 光碟機 (%1)(&H)"
+msgstr ""
 
 msgid "&Connected"
-msgstr "已連線(&C)"
+msgstr ""
 
 msgid "Clear image &history"
-msgstr "清除映像歷史記錄(&H)"
+msgstr ""
 
 msgid "Create…"
-msgstr "建立…"
+msgstr ""
 
 msgid "Host CD/DVD Drive (%1)"
-msgstr "主機 CD/DVD 光碟機 (%1)"
+msgstr ""
 
 msgid "Unknown Bus"
-msgstr "未知匯流排"
+msgstr ""
 
 msgid "Null Driver"
-msgstr "空驅動器"
+msgstr ""
 
 msgid "NIC:"
-msgstr "網路介面控制器:"
+msgstr ""
 
 msgid "NIC %1 (%2) %3"
-msgstr "網路介面控制器 %1 (%2) %3"
+msgstr ""
 
 msgid "&NIC %1 (%2) %3"
-msgstr "網路介面控制器 %1 (%2) %3(&N)"
+msgstr ""
 
 msgid "Render behavior"
-msgstr "渲染行為"
+msgstr ""
 
 msgid "Use target framerate:"
-msgstr "使用目標影格速率:"
+msgstr ""
 
 msgid " fps"
-msgstr " fps"
+msgstr ""
 
 msgid "VSync"
-msgstr "垂直同步"
+msgstr ""
 
 msgid "Synchronize with video"
-msgstr "與視訊同步"
+msgstr ""
 
 msgid "Shaders"
-msgstr "著色器"
+msgstr ""
 
 msgid "Remove"
-msgstr "移除"
+msgstr ""
 
 msgid "Browse…"
-msgstr "瀏覽…"
+msgstr ""
 
 msgid "Couldn't create OpenGL context."
-msgstr "無法建立 OpenGL 內容。"
+msgstr ""
 
 msgid "Couldn't switch to OpenGL context."
-msgstr "無法切換至 OpenGL 內容。"
+msgstr ""
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
-msgstr "需要 OpenGL 版本 3.0 或更高版本。目前版本為 %1.%2"
+msgstr ""
 
 msgid "Error initializing OpenGL."
-msgstr "初始化 OpenGL 錯誤。"
+msgstr ""
 
 msgid "Falling back to software rendering."
-msgstr "退回到軟體渲染。"
+msgstr ""
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr ""
-"<html><head/><body><p>當選擇媒體映像 (光碟、軟碟等) 時，開啟對話框會在與 "
-"86Box 組態檔相同的目錄中開始。此設定可能只會在 macOS "
-"上有所影響。</p></body></html>"
 
 msgid "This machine might have been moved or copied."
-msgstr "這台機器可能已被移動或複製。"
+msgstr ""
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "為了確保正常的網路功能，86Box 需要知道這台機器是否被移動或複製。\n\n如果您不確定，請選擇「我已複製這台機器」。"
+msgstr ""
 
 msgid "I Moved It"
-msgstr "我已移動這台機器"
+msgstr ""
 
 msgid "I Copied It"
-msgstr "我已複製這台機器"
+msgstr ""
 
 msgid "86Box Monitor #%1"
-msgstr "86Box 監視器 #%1"
+msgstr ""
 
 msgid "No MCA devices."
-msgstr "沒有 MCA 裝置。"
+msgstr ""
 
 msgid "MiB"
-msgstr "MiB"
+msgstr ""
 
 msgid "GiB"
-msgstr "GiB"
+msgstr ""
 
 msgid "Adapter 1"
-msgstr "配接器 1"
+msgstr ""
 
 msgid "Adapter 2"
-msgstr "配接器 2"
+msgstr ""
 
 msgid "Adapter 3"
-msgstr "配接器 3"
+msgstr ""
 
 msgid "Adapter 4"
-msgstr "配接器 4"
+msgstr ""
 
 msgid "Mode:"
-msgstr "模式:"
+msgstr ""
 
 msgid "Interface:"
-msgstr "介面:"
+msgstr ""
 
 msgid "Adapter:"
-msgstr "配接器:"
+msgstr ""
 
 msgid "VDE Socket:"
-msgstr "VDE 插座:"
+msgstr ""
 
 msgid "TAP Bridge Device:"
-msgstr "TAP 橋接裝置:"
+msgstr ""
 
 msgid "86Box Unit Tester"
-msgstr "86Box 單元測試器"
+msgstr ""
 
 msgid "Novell NetWare 2.x Key Card"
-msgstr "Novell NetWare 2.x 金鑰卡"
+msgstr ""
 
 msgid "Renderer &options…"
-msgstr "渲染器選項(&O)…"
+msgstr ""
 
 msgid "PC/XT Keyboard"
-msgstr "PC/XT 鍵盤"
+msgstr ""
 
 msgid "AT Keyboard"
-msgstr "AT 鍵盤"
+msgstr ""
 
 msgid "AX Keyboard"
-msgstr "AX 鍵盤"
+msgstr ""
 
 msgid "PS/2 Keyboard"
-msgstr "PS/2 鍵盤"
+msgstr ""
 
 msgid "PS/55 Keyboard"
-msgstr "PS/55 鍵盤"
+msgstr ""
 
 msgid "Keys"
-msgstr "按鍵"
+msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"
-msgstr "Logitech/Microsoft 匯流排滑鼠"
+msgstr ""
 
 msgid "Microsoft Bus Mouse (InPort)"
-msgstr "Microsoft 匯流排滑鼠 (InPort)"
+msgstr ""
 
 msgid "Mouse Systems Serial Mouse"
-msgstr "Mouse Systems 序列滑鼠"
+msgstr ""
 
 msgid "Mouse Systems Bus Mouse"
-msgstr "Mouse Systems 匯流排滑鼠"
+msgstr ""
 
 msgid "Microsoft Serial Mouse"
-msgstr "Microsoft 序列滑鼠"
+msgstr ""
 
 msgid "Microsoft Serial BallPoint"
-msgstr "Microsoft BallPoint 序列滑鼠"
+msgstr ""
 
 msgid "Logitech Serial Mouse"
-msgstr "Logitech 序列滑鼠"
+msgstr ""
 
 msgid "PS/2 Mouse"
-msgstr "PS/2 滑鼠"
+msgstr ""
 
 msgid "PS/2 QuickPort Mouse"
-msgstr "PS/2 QuickPort 滑鼠"
+msgstr ""
 
 msgid "3M MicroTouch (Serial)"
-msgstr "3M MicroTouch (序列埠)"
+msgstr ""
 
 msgid "Default Baud rate"
-msgstr "預設鮑率"
+msgstr ""
 
 msgid "Standard Hayes-compliant Modem"
-msgstr "標準 Hayes 相容的數據機"
+msgstr ""
 
 msgid "Roland MT-32 Emulation"
-msgstr "Roland MT-32 模擬"
+msgstr ""
 
 msgid "Roland MT-32 (New) Emulation"
-msgstr "Roland MT-32 (新) 模擬"
+msgstr ""
 
 msgid "Roland CM-32L Emulation"
-msgstr "Roland CM-32L 模擬"
+msgstr ""
 
 msgid "Roland CM-32LN Emulation"
-msgstr "Roland CM-32LN 模擬"
+msgstr ""
 
 msgid "OPL4-ML Daughterboard"
-msgstr "OPL4-ML 子板"
+msgstr ""
 
 msgid "System MIDI"
-msgstr "系統的 MIDI"
+msgstr ""
 
 msgid "MIDI Input Device"
-msgstr "MIDI 輸入裝置"
+msgstr ""
 
 msgid "BIOS file"
-msgstr "BIOS 檔案"
+msgstr ""
 
 msgid "BIOS file (ROM #1)"
-msgstr "BIOS 檔案 (ROM 1)"
+msgstr ""
 
 msgid "BIOS file (ROM #2)"
-msgstr "BIOS 檔案 (ROM 2)"
+msgstr ""
 
 msgid "BIOS file (ROM #3)"
-msgstr "BIOS 檔案 (ROM 3)"
+msgstr ""
 
 msgid "BIOS file (ROM #4)"
-msgstr "BIOS 檔案 (ROM 4)"
+msgstr ""
 
 msgid "BIOS address"
-msgstr "BIOS 位址"
+msgstr ""
 
 msgid "BIOS address (ROM #1)"
-msgstr "BIOS 位址 (ROM 1)"
+msgstr ""
 
 msgid "BIOS address (ROM #2)"
-msgstr "BIOS 位址 (ROM 2)"
+msgstr ""
 
 msgid "BIOS address (ROM #3)"
-msgstr "BIOS 位址 (ROM 3)"
+msgstr ""
 
 msgid "BIOS address (ROM #4)"
-msgstr "BIOS 位址 (ROM 4)"
+msgstr ""
 
 msgid "Enable BIOS extension ROM Writes"
-msgstr "啟用 BIOS 擴充 ROM 寫入"
+msgstr ""
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr "啟用 BIOS 擴充 ROM 寫入 (ROM 1)"
+msgstr ""
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr "啟用 BIOS 擴充 ROM 寫入 (ROM 2)"
+msgstr ""
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr "啟用 BIOS 擴充 ROM 寫入 (ROM 3)"
+msgstr ""
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr "啟用 BIOS 擴充 ROM 寫入 (ROM 4)"
+msgstr ""
 
 msgid "Linear framebuffer base"
-msgstr "線性影格緩衝記憶體的起始位址"
+msgstr ""
 
 msgid "Address"
-msgstr "位址"
+msgstr ""
 
 msgid "IRQ"
-msgstr "IRQ"
+msgstr ""
 
 msgid "Serial port IRQ"
-msgstr "序列埠的 IRQ"
+msgstr ""
 
 msgid "Parallel port IRQ"
-msgstr "並列埠的 IRQ"
+msgstr ""
 
 msgid "Hard disk"
-msgstr "硬碟"
+msgstr ""
 
 msgid "BIOS Revision"
-msgstr "BIOS 修訂版號"
+msgstr ""
 
 msgid "BIOS Version"
-msgstr "BIOS 版本"
+msgstr ""
 
 msgid "BIOS Language"
-msgstr "BIOS 語言"
+msgstr ""
 
 msgid "Variant"
-msgstr "變體"
+msgstr ""
 
 msgid "IBM 5161 Expansion Unit"
-msgstr "IBM 5161 擴充單元"
+msgstr ""
 
 msgid "IBM Cassette Basic"
-msgstr "IBM 卡帶式 BASIC"
+msgstr ""
 
 msgid "Translate 26 -> 17"
-msgstr "轉換 26 -> 17"
+msgstr ""
 
 msgid "Language"
-msgstr "語言"
+msgstr ""
 
 msgid "Enable backlight"
-msgstr "啟用背光"
+msgstr ""
 
 msgid "Invert colors"
-msgstr "反轉顏色"
+msgstr ""
 
 msgid "BIOS size"
-msgstr "BIOS 大小"
+msgstr ""
 
 msgid "BIOS size (ROM #1)"
-msgstr "BIOS 大小 (ROM 1)"
+msgstr ""
 
 msgid "BIOS size (ROM #2)"
-msgstr "BIOS 大小 (ROM 2)"
+msgstr ""
 
 msgid "BIOS size (ROM #3)"
-msgstr "BIOS 大小 (ROM 3)"
+msgstr ""
 
 msgid "BIOS size (ROM #4)"
-msgstr "BIOS 大小 (ROM 4)"
+msgstr ""
 
 msgid "Map C0000-C7FFF as UMB"
-msgstr "映射 C0000-C7FFF 為 UMB"
+msgstr ""
 
 msgid "Map C8000-CFFFF as UMB"
-msgstr "映射 C8000-CFFFF 為 UMB"
+msgstr ""
 
 msgid "Map D0000-D7FFF as UMB"
-msgstr "映射 D0000-D7FFF 為 UMB"
+msgstr ""
 
 msgid "Map D8000-DFFFF as UMB"
-msgstr "映射 D8000-DFFFF 為 UMB"
+msgstr ""
 
 msgid "Map E0000-E7FFF as UMB"
-msgstr "映射 E0000-E7FFF 為 UMB"
+msgstr ""
 
 msgid "Map E8000-EFFFF as UMB"
-msgstr "映射 E8000-EFFFF 為 UMB"
+msgstr ""
 
 msgid "JS9 Jumper (JIM)"
-msgstr "JS9 跳線 (JIM)"
+msgstr ""
 
 msgid "MIDI Output Device"
-msgstr "MIDI 輸出裝置"
+msgstr ""
 
 msgid "MIDI Real time"
-msgstr "實時 MIDI"
+msgstr ""
 
 msgid "MIDI Thru"
-msgstr "MIDI 輸入直通"
+msgstr ""
 
 msgid "MIDI Clockout"
-msgstr "MIDI 時脈輸出"
+msgstr ""
 
 msgid "Output Gain"
-msgstr "輸出增益"
+msgstr ""
 
 msgid "Chorus"
-msgstr "合唱"
+msgstr ""
 
 msgid "Chorus Voices"
-msgstr "合唱聲部"
+msgstr ""
 
 msgid "Chorus Level"
-msgstr "合唱音量"
+msgstr ""
 
 msgid "Chorus Speed"
-msgstr "合唱速度"
+msgstr ""
 
 msgid "Chorus Depth"
-msgstr "合唱深度"
+msgstr ""
 
 msgid "Chorus Waveform"
-msgstr "合唱波形"
+msgstr ""
 
 msgid "Reverb"
-msgstr "殘響"
+msgstr ""
 
 msgid "Reverb Room Size"
-msgstr "殘響室的大小"
+msgstr ""
 
 msgid "Reverb Damping"
-msgstr "殘響阻尼"
+msgstr ""
 
 msgid "Reverb Width"
-msgstr "殘響寬度"
+msgstr ""
 
 msgid "Reverb Level"
-msgstr "殘響位準"
+msgstr ""
 
 msgid "Interpolation Method"
-msgstr "插補法"
+msgstr ""
 
 msgid "Dynamic Sample Loading"
-msgstr "動態取樣載入"
+msgstr ""
 
 msgid "Reverb Output Gain"
-msgstr "殘響輸出增益"
+msgstr ""
 
 msgid "Reversed stereo"
-msgstr "左右互換立體聲"
+msgstr ""
 
 msgid "Nice ramp"
-msgstr "平滑漸變曲線"
+msgstr ""
 
 msgid "Hz"
-msgstr "赫茲"
+msgstr ""
 
 msgid "Buttons"
-msgstr "按鈕"
+msgstr ""
 
 msgid "Serial Port"
-msgstr "序列埠"
+msgstr ""
 
 msgid "RTS toggle"
-msgstr "RTS 切換"
+msgstr ""
 
 msgid "Revision"
-msgstr "修訂版號"
+msgstr ""
 
 msgid "Controller"
-msgstr "控制器"
+msgstr ""
 
 msgid "Show Crosshair"
-msgstr "顯示十字線"
+msgstr ""
 
 msgid "DMA"
-msgstr "DMA"
+msgstr ""
 
 msgid "MAC Address"
-msgstr "MAC 位址"
+msgstr ""
 
 msgid "MAC Address OUI"
-msgstr "MAC 位址的 OUI"
+msgstr ""
 
 msgid "Enable BIOS"
-msgstr "啟用 BIOS"
+msgstr ""
 
 msgid "Baud Rate"
-msgstr "鮑率"
+msgstr ""
 
 msgid "TCP/IP listening port"
-msgstr "TCP/IP 監聽埠"
+msgstr ""
 
 msgid "Phonebook File"
-msgstr "電話簿檔案"
+msgstr ""
 
 msgid "Telnet emulation"
-msgstr "Telnet 模擬"
+msgstr ""
 
 msgid "RAM Address"
-msgstr "RAM 位址"
+msgstr ""
 
 msgid "RAM size"
-msgstr "RAM 大小"
+msgstr ""
 
 msgid "Initial RAM size"
-msgstr "初始 RAM 大小"
+msgstr ""
 
 msgid "Serial Number"
-msgstr "序號"
+msgstr ""
 
 msgid "Host ID"
-msgstr "主機 ID"
+msgstr ""
 
 msgid "Host"
-msgstr "主機"
+msgstr ""
 
 msgid "FDC Address"
-msgstr "FDC 位址"
+msgstr ""
 
 msgid "MPU-401 Address"
-msgstr "MPU-401 位址"
+msgstr ""
 
 msgid "MPU-401 IRQ"
-msgstr "MPU-401 IRQ"
+msgstr ""
 
 msgid "Receive MIDI input"
-msgstr "接收 MIDI 輸入"
+msgstr ""
 
 msgid "Low DMA"
-msgstr "低 DMA"
+msgstr ""
 
 msgid "Enable Game port"
-msgstr "啟用遊戲埠"
+msgstr ""
 
 msgid "Enable Adlib ports"
-msgstr "啟用 Adlib 連接埠"
+msgstr ""
 
 msgid "SID Model"
-msgstr "SID 型號"
+msgstr ""
 
 msgid "SID Filter Strength"
-msgstr "SID 過濾強度"
+msgstr ""
 
 msgid "Surround module"
-msgstr "環繞聲模組"
+msgstr ""
 
 msgid "SB Address"
-msgstr "SB 位址"
+msgstr ""
 
 msgid "Adlib Address"
-msgstr "Adlib 位址"
+msgstr ""
 
 msgid "Use EEPROM setting"
-msgstr "使用 EEPROM 中的設定"
+msgstr ""
 
 msgid "WSS IRQ"
-msgstr "WSS IRQ"
+msgstr ""
 
 msgid "WSS DMA"
-msgstr "WSS DMA"
+msgstr ""
 
 msgid "RTC IRQ"
-msgstr "實時時鐘 IRQ"
+msgstr ""
 
 msgid "RTC Port Address"
-msgstr "實時時鐘埠位址"
+msgstr ""
 
 msgid "Onboard RTC"
-msgstr "內建實時時鐘"
+msgstr ""
 
 msgid "Not installed"
-msgstr "未安裝"
+msgstr ""
 
 msgid "Enable OPL"
-msgstr "啟用 OPL"
+msgstr ""
 
 msgid "Receive MIDI input (MPU-401)"
-msgstr "接收 MIDI 輸入 (MPU-401)"
+msgstr ""
 
 msgid "SB low DMA"
-msgstr "SB 低 DMA"
+msgstr ""
 
 msgid "6CH variant (6-channel)"
-msgstr "6CH 變體 (6 通道)"
+msgstr ""
 
 msgid "Enable CMS"
-msgstr "啟用 CMS"
+msgstr ""
 
 msgid "Mixer"
-msgstr "混音器"
+msgstr ""
 
 msgid "High DMA"
-msgstr "高 DMA"
+msgstr ""
 
 msgid "Control PC speaker"
-msgstr "控制電腦喇叭"
+msgstr ""
 
 msgid "Control MIDI volume"
-msgstr "控制MIDI音量"
+msgstr ""
 
 msgid "Memory size"
-msgstr "記憶體大小"
+msgstr ""
 
 msgid "EMU8000 Address"
-msgstr "EMU8000 位址"
+msgstr ""
 
 msgid "Codec"
-msgstr "編解碼器"
+msgstr ""
 
 msgid "GUS type"
-msgstr "GUS 類型"
+msgstr ""
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
-msgstr "啟用 0x04 \"退出 86Box\" 指令"
+msgstr ""
 
 msgid "Display type"
-msgstr "顯示類型"
+msgstr ""
 
 msgid "Composite type"
-msgstr "複合視訊類型"
+msgstr ""
 
 msgid "RGB type"
-msgstr "RGB 類型"
+msgstr ""
 
 msgid "Line doubling type"
-msgstr "行倍增類型"
+msgstr ""
 
 msgid "Snow emulation"
-msgstr "雪花模擬"
+msgstr ""
 
 msgid "Monitor type"
-msgstr "監視器類型"
+msgstr ""
 
 msgid "Character set"
-msgstr "字元集"
+msgstr ""
 
 msgid "XGA type"
-msgstr "XGA 類型"
+msgstr ""
 
 msgid "Instance"
-msgstr "實例"
+msgstr ""
 
 msgid "MMIO Address"
-msgstr "MMIO 位址"
+msgstr ""
 
 msgid "RAMDAC type"
-msgstr "RAMDAC 類型"
+msgstr ""
 
 msgid "Blend"
-msgstr "混合"
+msgstr ""
 
 msgid "Font"
-msgstr "字型"
+msgstr ""
 
 msgid "Bilinear filtering"
-msgstr "雙線性濾波"
+msgstr ""
 
 msgid "Video chroma-keying"
-msgstr "視訊色鍵"
+msgstr ""
 
 msgid "Dithering"
-msgstr "抖動"
+msgstr ""
 
 msgid "Enable NMI for CGA emulation"
-msgstr "啟用 CGA 模擬的 NMI"
+msgstr ""
 
 msgid "Voodoo type"
-msgstr "Voodoo 類型"
+msgstr ""
 
 msgid "Framebuffer memory size"
-msgstr "影格緩衝記憶體大小"
+msgstr ""
 
 msgid "Texture memory size"
-msgstr "材質記憶體大小"
+msgstr ""
 
 msgid "Dither subtraction"
-msgstr "抖動減法"
+msgstr ""
 
 msgid "Screen Filter"
-msgstr "濾鏡"
+msgstr ""
 
 msgid "Render threads"
-msgstr "渲染執行緒"
+msgstr ""
 
 msgid "SLI"
-msgstr "SLI"
+msgstr ""
 
 msgid "Start Address"
-msgstr "起始位址"
+msgstr ""
 
 msgid "Contiguous Size"
-msgstr "連續大小"
+msgstr ""
 
 msgid "I/O Width"
-msgstr "I/O 寬度"
+msgstr ""
 
 msgid "Transfer Speed"
-msgstr "傳輸速度"
+msgstr ""
 
 msgid "EMS mode"
-msgstr "EMS 模式"
+msgstr ""
 
 msgid "EMS Address"
-msgstr "EMS 位址"
+msgstr ""
 
 msgid "EMS 1 Address"
-msgstr "EMS 1 位址"
+msgstr ""
 
 msgid "EMS 2 Address"
-msgstr "EMS 2 位址"
+msgstr ""
 
 msgid "EMS Memory Size"
-msgstr "EMS 記憶體大小"
+msgstr ""
 
 msgid "EMS 1 Memory Size"
-msgstr "EMS 1 記憶體大小"
+msgstr ""
 
 msgid "EMS 2 Memory Size"
-msgstr "EMS 2 記憶體大小"
+msgstr ""
 
 msgid "Enable EMS"
-msgstr "啟用 EMS"
+msgstr ""
 
 msgid "Address for > 2 MB"
-msgstr "> 2 MB 的位址"
+msgstr ""
 
 msgid "Frame Address"
-msgstr "頁框位址"
+msgstr ""
 
 msgid "English"
-msgstr "英語"
+msgstr ""
 
 msgid "English (US)"
-msgstr "英語 (美國)"
+msgstr ""
 
 msgid "English (UK)"
-msgstr "英語 (英國)"
+msgstr ""
 
 msgid "English (Canada)"
-msgstr "英語 (加拿大)"
+msgstr ""
 
 msgid "German"
-msgstr "德語"
+msgstr ""
 
 msgid "French"
-msgstr "法語"
+msgstr ""
 
 msgid "Spanish"
-msgstr "西班牙語"
+msgstr ""
 
 msgid "Swedish"
-msgstr "瑞典語"
+msgstr ""
 
 msgid "Italian"
-msgstr "義大利語"
+msgstr ""
 
 msgid "Portuguese"
-msgstr "葡萄牙語"
+msgstr ""
 
 msgid "Norwegian"
-msgstr "挪威語"
+msgstr ""
 
 msgid "Greek"
-msgstr "希臘語"
+msgstr ""
 
 msgid "Danish"
-msgstr "丹麥語"
+msgstr ""
 
 msgid "Always at selected speed"
-msgstr "永遠以所選速度運作"
+msgstr ""
 
 msgid "BIOS setting + Hotkeys (off during POST)"
-msgstr "BIOS 設定 + 熱鍵 (POST 期間關閉)"
+msgstr ""
 
 msgid "64 KB starting from F0000"
-msgstr "64 KB 從 F0000 開始"
+msgstr ""
 
 msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
-msgstr "128 KB 從 E0000 開始 (位址 MSB 反轉，後 64 KB 為先)"
+msgstr ""
 
 msgid "Sine"
-msgstr "正弦"
+msgstr ""
 
 msgid "Triangle"
-msgstr "三角"
+msgstr ""
 
 msgid "Linear"
-msgstr "線性"
+msgstr ""
 
 msgid "4th Order"
-msgstr "四階"
+msgstr ""
 
 msgid "7th Order"
-msgstr "七階"
+msgstr ""
 
 msgid "Non-timed (original)"
-msgstr "無計時 (原始)"
+msgstr ""
 
 msgid "45 Hz (JMP2 not populated)"
-msgstr "45 Hz (JMP2 未安插)"
+msgstr ""
 
 msgid "Two"
-msgstr "二鍵"
+msgstr ""
 
 msgid "Three"
-msgstr "三鍵"
+msgstr ""
 
 msgid "Wheel"
-msgstr "滾輪"
+msgstr ""
 
 msgid "Five + Wheel"
-msgstr "五鍵 + 滾輪"
+msgstr ""
 
 msgid "Five + 2 Wheels"
-msgstr "五鍵 + 2 滾輪"
+msgstr ""
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
-msgstr "A3 - SMT2 序列 / SMT3(R)V"
+msgstr ""
 
 msgid "Q1 - SMT3(R) Serial"
-msgstr "Q1 - SMT3(R) 序列"
+msgstr ""
 
 msgid "8 KB"
-msgstr "8 KB"
+msgstr ""
 
 msgid "32 KB"
-msgstr "32 KB"
+msgstr ""
 
 msgid "16 KB"
-msgstr "16 KB"
+msgstr ""
 
 msgid "64 KB"
-msgstr "64 KB"
+msgstr ""
 
 msgid "Disable BIOS"
-msgstr "停用 BIOS"
+msgstr ""
 
 msgid "512 KB"
-msgstr "512 KB"
+msgstr ""
 
 msgid "2 MB"
-msgstr "2 MB"
+msgstr ""
 
 msgid "8 MB"
-msgstr "8 MB"
+msgstr ""
 
 msgid "28 MB"
-msgstr "28 MB"
+msgstr ""
 
 msgid "1 MB"
-msgstr "1 MB"
+msgstr ""
 
 msgid "4 MB"
-msgstr "4 MB"
+msgstr ""
 
 msgid "12 MB"
-msgstr "12 MB"
+msgstr ""
 
 msgid "16 MB"
-msgstr "16 MB"
+msgstr ""
 
 msgid "20 MB"
-msgstr "20 MB"
+msgstr ""
 
 msgid "24 MB"
-msgstr "24 MB"
+msgstr ""
 
 msgid "SigmaTel STAC9721T (stereo)"
-msgstr "SigmaTel STAC9721T (立體聲)"
+msgstr ""
 
 msgid "256 KB"
-msgstr "256 KB"
+msgstr ""
 
 msgid "Composite"
-msgstr "複合視訊"
+msgstr ""
 
 msgid "True color"
-msgstr "真實色彩"
+msgstr ""
 
 msgid "Old"
-msgstr "舊"
+msgstr ""
 
 msgid "New"
-msgstr "新"
+msgstr ""
 
 msgid "Color (generic)"
-msgstr "彩色 (通用)"
+msgstr ""
 
 msgid "Green Monochrome"
-msgstr "綠色單色"
+msgstr ""
 
 msgid "Amber Monochrome"
-msgstr "琥珀單色"
+msgstr ""
 
 msgid "Gray Monochrome"
-msgstr "灰色單色"
+msgstr ""
 
 msgid "Color (no brown)"
-msgstr "彩色 (無棕色)"
+msgstr ""
 
 msgid "Color (IBM 5153)"
-msgstr "彩色 (IBM 5153)"
+msgstr ""
 
 msgid "Simple doubling"
-msgstr "簡單倍增"
+msgstr ""
 
 msgid "sRGB interpolation"
-msgstr "sRGB 插補"
+msgstr ""
 
 msgid "Linear interpolation"
-msgstr "線性插補"
+msgstr ""
 
 msgid "Has secondary 8x8 character set"
-msgstr "具有輔助 8x8 字元集"
+msgstr ""
 
 msgid "Has Quadcolor II daughter board"
-msgstr "具有 Quadcolor II 子板"
+msgstr ""
 
 msgid "Alternate monochrome contrast"
-msgstr "反轉單色對比"
+msgstr ""
 
 msgid "128 KB"
-msgstr "128 KB"
+msgstr ""
 
 msgid "Monochrome (5151/MDA) (white)"
-msgstr "單色 (5151/MDA) (白色)"
+msgstr ""
 
 msgid "Monochrome (5151/MDA) (green)"
-msgstr "單色 (5151/MDA) (綠色)"
+msgstr ""
 
 msgid "Monochrome (5151/MDA) (amber)"
-msgstr "單色 (5151/MDA) (琥珀色)"
+msgstr ""
 
 msgid "Color 40x25 (5153/CGA)"
-msgstr "彩色 40x25 (5153/CGA)"
+msgstr ""
 
 msgid "Color 80x25 (5153/CGA)"
-msgstr "彩色 80x25 (5153/CGA)"
+msgstr ""
 
 msgid "Enhanced Color - Normal Mode (5154/ECD)"
-msgstr "增強色彩 - 一般模式 (5154/ECD)"
+msgstr ""
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
-msgstr "增強色彩 - 增強模式 (5154/ECD)"
+msgstr ""
 
 msgid "IBM 8507 (1024x768, Monochrome)"
-msgstr "IBM 8507 (1024x768，單色)"
+msgstr ""
 
 msgid "IBM 8514 (1024x768, Color)"
-msgstr "IBM 8514 (1024x768，彩色)"
+msgstr ""
 
 msgid "IBM 8503 (640x480, Monochrome)"
-msgstr "IBM 8503 (640x480，單色)"
+msgstr ""
 
 msgid "IBM 8512/13 (640x480, Color)"
-msgstr "IBM 8512/13 (640x480，彩色)"
+msgstr ""
 
 msgid "Green"
-msgstr "綠色"
+msgstr ""
 
 msgid "Amber"
-msgstr "琥珀色"
+msgstr ""
 
 msgid "Gray"
-msgstr "灰色"
+msgstr ""
 
 msgid "Grayscale"
-msgstr "灰階"
+msgstr ""
 
 msgid "Color"
-msgstr "顏色"
+msgstr ""
 
 msgid "Scandinavian"
-msgstr "斯堪地那維亞語"
+msgstr ""
 
 msgid "Other languages"
-msgstr "其他語言"
+msgstr ""
 
 msgid "Bochs latest"
-msgstr "Bochs 最新"
+msgstr ""
 
 msgid "Apply overscan deltas"
-msgstr "套用過掃描差值"
+msgstr ""
 
 msgid "Mono Interlaced"
-msgstr "單色隔行掃描"
+msgstr ""
 
 msgid "Mono Non-Interlaced"
-msgstr "單色逐行掃描"
+msgstr ""
 
 msgid "Color Interlaced"
-msgstr "彩色隔行掃描"
+msgstr ""
 
 msgid "Color Non-Interlaced"
-msgstr "彩色逐行掃描"
+msgstr ""
 
 msgid "3Dfx Voodoo Graphics"
-msgstr "3Dfx Voodoo 圖形"
+msgstr ""
 
 msgid "3Dfx Voodoo 2"
-msgstr "3Dfx Voodoo 2"
+msgstr ""
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
-msgstr "Obsidian SB50 + Amethyst (2 TMUs)"
+msgstr ""
 
 msgid "8-bit"
-msgstr "8 位元"
+msgstr ""
 
 msgid "16-bit"
-msgstr "16 位元"
+msgstr ""
 
 msgid "Standard (150ns)"
-msgstr "標準 (150ns)"
+msgstr ""
 
 msgid "High-Speed (120ns)"
-msgstr "高速 (120ns)"
+msgstr ""
 
 msgid "Enabled"
-msgstr "啟用"
+msgstr ""
 
 msgid "Standard"
-msgstr "標準"
+msgstr ""
 
 msgid "High-Speed"
-msgstr "高速"
+msgstr ""
 
 msgid "LPT DAC / Covox Speech Thing"
-msgstr "LPT DAC / Covox Speech Thing"
+msgstr ""
 
 msgid "Stereo LPT DAC"
-msgstr "立體聲 LPT DAC"
+msgstr ""
 
 msgid "Generic Text Printer"
-msgstr "通用文字印表機"
+msgstr ""
 
 msgid "Generic ESC/P 2 Dot-Matrix Printer"
-msgstr "通用 ESC/P 2 點矩陣印表機"
+msgstr ""
 
 msgid "Generic PostScript Printer"
-msgstr "通用 PostScript 印表機"
+msgstr ""
 
 msgid "Generic PCL Printer"
-msgstr "通用 PCL 印表機"
+msgstr ""
 
 msgid "Parallel Line Internet Protocol"
-msgstr "Parallel Line Internet Protocol"
+msgstr ""
 
 msgid "Protection Dongle for Savage Quest"
-msgstr "用於 Savage Quest 的防拷保護鎖"
+msgstr ""
 
 msgid "Loopback Plug"
-msgstr "回送測試接頭"
+msgstr ""
 
 msgid "Serial Passthrough"
-msgstr "序列埠直通裝置"
+msgstr ""
 
 msgid "Host serial device"
-msgstr "主機序列裝置"
+msgstr ""
 
 msgid "Named Pipe"
-msgstr "命名管道"
+msgstr ""
 
 msgid "Output file"
-msgstr "輸出檔案"
+msgstr ""
 
 msgid "Append to file if it exists"
-msgstr "附加到已存在檔案"
+msgstr ""
 
 msgid "Input file"
-msgstr "輸入檔案"
+msgstr ""
 
 msgid "Loop input file"
-msgstr "輸入檔案回送"
+msgstr ""
 
 msgid "Require STROBE signal"
-msgstr "要求 STROBE 訊號"
+msgstr ""
 
 msgid "Loopback Type"
-msgstr "回送型式"
+msgstr ""
 
 msgid "Parallel cable"
-msgstr "並列纜線"
+msgstr ""
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr "單向 (8位元) / LapLink (4位元)"
+msgstr ""
 
 msgid "Bidirectional (8-bit)"
-msgstr "雙向 (8位元)"
+msgstr ""
 
 msgid "Pipe path"
-msgstr "管道路徑"
+msgstr ""
 
 msgid "FIFO / terminal"
-msgstr "FIFO / 終端機"
+msgstr ""
 
 msgid "Mode"
-msgstr "模式"
+msgstr ""
 
 msgid "Server"
-msgstr "伺服器"
+msgstr ""
 
 msgid "Client"
-msgstr "用戶端"
+msgstr ""
 
 msgid "Reconnect automatically"
-msgstr "自動重新連線"
+msgstr ""
 
 msgid "Use standard input/output"
-msgstr "使用標準輸入/輸出"
+msgstr ""
 
 msgid "Create pseudoterminal"
-msgstr "建立虛擬終端機"
+msgstr ""
 
 msgid "Start terminal emulator"
-msgstr "開始終端機模擬"
+msgstr ""
 
 msgid "Run custom command"
-msgstr "執行自訂命令"
+msgstr ""
 
 msgid "Custom command"
-msgstr "自訂命令"
+msgstr ""
 
 msgid "Run custom command in terminal"
-msgstr "在終端機執行自訂命令"
+msgstr ""
 
 msgid "Virtual Console"
-msgstr "虛擬控制台"
+msgstr ""
 
 msgid "E&ject %1"
-msgstr "退出 %1(&J)"
+msgstr ""
 
 msgid "&Unmute"
-msgstr "解除靜音(&U)"
+msgstr ""
 
 msgid "Softfloat FPU"
-msgstr "Softfloat 浮點運算器模擬"
+msgstr ""
 
 msgid "High performance impact"
-msgstr "對效能影響高"
+msgstr ""
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[通用] RAM 磁碟 (最大速度)"
+msgstr ""
 
 msgid "[Generic] 1983 MFM (3600 RPM)"
-msgstr "[通用] 1983 MFM (3600 轉速)"
+msgstr ""
 
 msgid "[Generic] 1983 RLL (3600 RPM)"
-msgstr "[通用] 1983 RLL (3600 轉速)"
+msgstr ""
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr "[通用] 1989 (3500 轉速)"
+msgstr ""
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr "[通用] 1992 (3600 轉速)"
+msgstr ""
 
 msgid "[Generic] 1993 (4000 RPM)"
-msgstr "[通用] 1993 (4000 轉速)"
+msgstr ""
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr "[通用] 1994 (4500 轉速)"
+msgstr ""
 
 msgid "[Generic] 1995 (5200 RPM)"
-msgstr "[通用] 1995 (5200 轉速)"
+msgstr ""
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr "[通用] 1996 (5400 轉速)"
+msgstr ""
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr "[通用] 1997 (5400 轉速)"
+msgstr ""
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr "[通用] 1998 (5400 轉速)"
+msgstr ""
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr "[通用] 2000 (7200 轉速)"
+msgstr ""
 
 msgid "[Generic] 2004 (10000 RPM)"
-msgstr "[通用] 2004 (10000 轉速)"
+msgstr ""
 
 msgid "IBM 8514/A clone"
-msgstr "IBM 8514/A 相容品"
+msgstr ""
 
 msgid "Vendor"
-msgstr "銷售商"
+msgstr ""
 
 msgid "30 Hz (JMP2 = 1)"
-msgstr "30 Hz (JMP2 = 1)"
+msgstr ""
 
 msgid "60 Hz (JMP2 = 2)"
-msgstr "60 Hz (JMP2 = 2)"
+msgstr ""
 
 msgid "Generic PC/XT Memory Expansion"
-msgstr "通用 PC/XT 記憶體擴充"
+msgstr ""
 
 msgid "Generic PC/AT Memory Expansion"
-msgstr "通用 PC/AT 記憶體擴充"
+msgstr ""
 
 msgid "Generic MM58167 RTC"
-msgstr "通用 MM58167 實時時鐘"
+msgstr ""
 
 msgid "OPL2Board (External Device)"
-msgstr "OPL2卡 (外部裝置)"
+msgstr ""
 
 msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr ""
-"無法找到點矩陣字型。模擬通用 ESC/P 2 點矩陣印表機需要 \"roms/printer/fonts\" "
-"目錄中的 TrueType 字體。"
 
 msgid "Inhibit multimedia keys"
-msgstr "禁止多媒體按鍵"
+msgstr ""
 
 msgid "Ask for confirmation before saving settings"
-msgstr "儲存設定前要求確認"
+msgstr ""
 
 msgid "Ask for confirmation before hard resetting"
-msgstr "硬重設前要求確認"
+msgstr ""
 
 msgid "Ask for confirmation before quitting"
-msgstr "退出前請先確認"
+msgstr ""
 
 msgid "Precache CHD files into memory"
-msgstr "預快取 CHD 檔於記憶體中"
+msgstr ""
 
 msgid "Options"
-msgstr "選項"
+msgstr ""
 
 msgid "Model"
-msgstr "型號"
+msgstr ""
 
 msgid "Model:"
-msgstr "型號:"
+msgstr ""
 
 msgid "Brand:"
-msgstr "品牌:"
+msgstr ""
 
 msgid "Revision:"
-msgstr "修訂版號:"
+msgstr ""
 
 msgid "[Generic HDD] Device Configuration"
-msgstr "[通用硬碟機] 裝置組態"
+msgstr ""
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr "初始化 Vulkan 渲染器失敗。"
+msgstr ""
 
 msgid "Failed to create Vulkan 1.3 instance."
-msgstr "Vulkan 1.3 執行體創建失敗。"
+msgstr ""
 
 msgid "No usable Vulkan physical devices found."
-msgstr "未發現可用的 Vulkan 實體裝置。"
+msgstr ""
 
 msgid "No Vulkan-capable physical devices found."
-msgstr "未發現支援 Vulkan 的實體裝置。"
+msgstr ""
 
 msgid "librashader not found. Shaders will not be available."
-msgstr "未發現 librashader。著色器將無法使用。"
+msgstr ""
 
 msgid "Vulkan device lost."
-msgstr "失去 Vulkan 裝置。"
+msgstr ""
 
 msgid "Vulkan surface lost."
-msgstr "遺失 Vulkan 描繪面。"
+msgstr ""
 
 msgid "GLSL Error"
-msgstr "GLSL 錯誤"
+msgstr ""
 
 msgid "Could not load shader: %1"
-msgstr "無法載入著色器: %1"
+msgstr ""
 
 msgid "Could not load texture: %1"
-msgstr "無法載入材質: %1"
+msgstr ""
 
 msgid "Could not compile shader:\n\n%1"
-msgstr "無法編譯著色器:\n\n%1"
+msgstr ""
 
 msgid "Program not linked:\n\n%1"
-msgstr "程式未連結:\n\n%1"
+msgstr ""
 
 msgid "Shader Manager"
-msgstr "著色器管理員"
+msgstr ""
 
 msgid "Shader Configuration"
-msgstr "著色器組態"
+msgstr ""
 
 msgid "GPU:"
-msgstr "GPU:"
+msgstr ""
 
 msgid "Add"
-msgstr "新增"
+msgstr ""
 
 msgid "Move up"
-msgstr "上移"
+msgstr ""
 
 msgid "Move down"
-msgstr "下移"
+msgstr ""
 
 msgid "Could not load file %1"
-msgstr "無法載入檔案 %1"
+msgstr ""
 
 msgid "Emulator"
-msgstr "模擬器"
+msgstr ""
 
 msgid "Input"
-msgstr "輸入"
+msgstr ""
 
 msgid "Key bindings"
-msgstr "按鍵組合"
+msgstr ""
 
 msgid "Action"
-msgstr "動作"
+msgstr ""
 
 msgid "Keybind"
-msgstr "按鍵組合"
+msgstr ""
 
 msgid "Clear binding"
-msgstr "解除組合"
+msgstr ""
 
 msgid "Bind"
-msgstr "組合"
+msgstr ""
 
 msgid "Bind Key"
-msgstr "組合按鍵"
+msgstr ""
 
 msgid "Enter key combo:"
-msgstr "輸入組合鍵:"
+msgstr ""
 
 msgid "Bind conflict"
-msgstr "組合衝突"
+msgstr ""
 
 msgid "This key combo is already in use."
-msgstr "此組合鍵已在使用中。"
+msgstr ""
 
 msgid "Send Control+Alt+Del"
-msgstr "傳送 Ctrl+Alt+Del"
+msgstr ""
 
 msgid "Send Control+Alt+Escape"
-msgstr "傳送 Ctrl+Alt+Esc"
+msgstr ""
 
 msgid "Toggle fullscreen"
-msgstr "切換全螢幕"
+msgstr ""
 
 msgid "Toggle UI in fullscreen"
-msgstr "全螢幕模式下切換使用者介面顯示"
+msgstr ""
 
 msgid "Release mouse pointer"
-msgstr "放開滑鼠游標"
+msgstr ""
 
 msgid "Toggle pause"
-msgstr "切換暫停"
+msgstr ""
 
 msgid "Toggle mute"
-msgstr "切換靜音"
+msgstr ""
 
 msgid "Toggle on-screen display"
-msgstr "切換 OSD"
+msgstr ""
 
 msgid "Toggle &on-screen display"
-msgstr "切換 OSD(&O)"
+msgstr ""
 
 msgid "Text files"
-msgstr "文字檔案"
+msgstr ""
 
 msgid "ROM files"
-msgstr "ROM 檔案"
+msgstr ""
 
 msgid "SoundFont files"
-msgstr "SoundFont 檔案"
+msgstr ""
 
 msgid "Local Switch"
-msgstr "本地交換器"
+msgstr ""
 
 msgid "Remote Switch"
-msgstr "遠端交換器"
+msgstr ""
 
 msgid "Shared secret:"
-msgstr "共用密鑰:"
+msgstr ""
 
 msgid "Hub Mode"
-msgstr "集線器模式"
+msgstr ""
 
 msgid "Hostname:"
-msgstr "主機名稱:"
+msgstr ""
 
 msgid "ISA RAM:"
-msgstr "ISA RAM:"
+msgstr ""
 
 msgid "ISA ROM:"
-msgstr "ISA ROM:"
+msgstr ""
 
 msgid "&Wipe NVRAM"
-msgstr "清除 NVRAM(&W)"
+msgstr ""
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
 msgstr ""
-"這將刪除位於 \"nvr\" 子目錄中的虛擬機器的所有 NVRAM (和相關) "
-"檔案。如果套用的話，您必須重新設定 BIOS (可能還有虛擬機器內的其他裝置設定) 。"
-"\n"
-"\n"
-"您確定要清除虛擬機 \"%1\" 的所有 NVRAM 內容嗎？"
 
 msgid "Success"
-msgstr "成功"
+msgstr ""
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr "成功清除虛擬機 \"%1\" 的 NVRAM 內容"
+msgstr ""
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr "嘗試清除虛擬機 \"%1\" 的 NVRAM 內容時發生錯誤"
+msgstr ""
 
 msgid "%1 VM Manager"
-msgstr "%1 虛擬機器管理員"
+msgstr ""
 
 msgid "%n disk(s)"
 msgid_plural "%n disks"
-msgstr[0] "%n 磁碟"
+msgstr[0] ""
 
 msgid "Unknown Status"
-msgstr "狀態不明"
+msgstr ""
 
 msgid "No Machines Found!"
-msgstr "找不到機器!"
+msgstr ""
 
 msgid "Check for updates on startup"
-msgstr "啟動時檢查更新"
+msgstr ""
 
 msgid "Unable to determine release information"
-msgstr "無法確定版本發佈資訊"
+msgstr ""
 
 msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
-msgstr "檢查更新時錯誤:\n\n%1\n\n請稍後再試。"
+msgstr ""
 
 msgid "Update check complete"
-msgstr "更新檢查完成"
+msgstr ""
 
 msgid "stable"
-msgstr "穩定版"
+msgstr ""
 
 msgid "beta"
-msgstr "測試版"
+msgstr ""
 
 msgid "You are running the latest %1 version of 86Box: %2"
-msgstr "您正在執行 86Box 的最新 %1 版本: %2"
+msgstr ""
 
 msgid "version"
-msgstr "版本"
+msgstr ""
 
 msgid "build"
-msgstr "建置"
+msgstr ""
 
 msgid "You are currently running version <b>%1</b>."
-msgstr "您目前執行的是 <b>%1</b> 版本。"
+msgstr ""
 
 msgid "<b>Version %1</b> is now available."
-msgstr "<b>版本 %1</b> 現在可用。"
+msgstr ""
 
 msgid "You are currently running build <b>%1</b>."
-msgstr "您目前執行的是 <b>%1</b> 建置。"
+msgstr ""
 
 msgid "<b>Build %1</b> is now available."
-msgstr "<b>建置 %1</b> 現在可用。"
+msgstr ""
 
 msgid "Would you like to visit the download page?"
-msgstr "您要造訪下載頁面嗎？"
+msgstr ""
 
 msgid "Visit download page"
-msgstr "造訪下載頁面"
+msgstr ""
 
 msgid "Update check"
-msgstr "更新檢查"
+msgstr ""
 
 msgid "Checking for updates…"
-msgstr "正在檢查更新…"
+msgstr ""
 
 msgid "86Box Update"
-msgstr "86Box 更新"
+msgstr ""
 
 msgid "Release notes:"
-msgstr "版本發佈備註:"
+msgstr ""
 
 msgid "%1 Hz"
-msgstr "%1 Hz"
+msgstr ""
 
 msgid "Virtual machine crash"
-msgstr "虛擬機當機"
+msgstr ""
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
-msgstr "虛擬機 \"%1\" 的行程以結束碼 %2 意外終止。"
+msgstr ""
 
 msgid "The system will not be added."
-msgstr "系統將不會被新增。"
+msgstr ""
 
 msgid "&Update mouse every CPU frame"
-msgstr "每 CPU 執行期框架更新滑鼠(&U)"
+msgstr ""
 
 msgid "Hue"
-msgstr "色調"
+msgstr ""
 
 msgid "Saturation"
-msgstr "飽和度"
+msgstr ""
 
 msgid "Contrast"
-msgstr "對比度"
+msgstr ""
 
 msgid "Brightness"
-msgstr "亮度"
+msgstr ""
 
 msgid "Sharpness"
-msgstr "銳利度"
+msgstr ""
 
 msgid "&CGA composite settings…"
-msgstr "CGA 複合視訊的設定(&C)…"
+msgstr ""
 
 msgid "CGA composite settings"
-msgstr "CGA 複合視訊的設定"
+msgstr ""
 
 msgid "Monitor EDID"
-msgstr "監視器的 EDID"
+msgstr ""
 
 msgid "Export…"
-msgstr "匯出…"
+msgstr ""
 
 msgid "Export EDID"
-msgstr "匯出 EDID"
+msgstr ""
 
 msgid "EDID file \"%s\" is invalid."
-msgstr "EDID 檔案 \"%s\" 無效。"
+msgstr ""
 
 msgid "EDID file \"%s\" is too large."
-msgstr "EDID 檔案 \"%s\" 太大。"
+msgstr ""
 
 msgid "OpenGL input scale"
-msgstr "OpenGL 的輸入比例"
+msgstr ""
 
 msgid "OpenGL input stretch mode"
-msgstr "OpenGL 的輸入延展模式"
+msgstr ""
 
 msgid "Color scheme"
-msgstr "色彩配置"
+msgstr ""
 
 msgid "Light"
-msgstr "亮色"
+msgstr ""
 
 msgid "Dark"
-msgstr "暗色"
+msgstr ""
 
 msgid "Force interpretation"
-msgstr "強制解譯執行"
+msgstr ""
 
 msgid "Allow recompilation"
-msgstr "允許重編譯"
+msgstr ""
 
 msgid "&Force interpretation"
-msgstr "強制解譯執行(&F)"
+msgstr ""
 
 msgid "&Allow recompilation"
-msgstr "允許重編譯(&A)"
+msgstr ""
 
 msgid "&Fast forward"
-msgstr "快轉(&F)"
+msgstr ""
 
 msgid "Fast forward"
-msgstr "快轉"
+msgstr ""
 
 msgid "&Non-maskable interrupt"
-msgstr "不可遮罩中斷(&N)"
+msgstr ""
 
 msgid "Non-maskable interrupt"
-msgstr "不可遮罩中斷"
+msgstr ""
 
 msgid "To change the system directory, stop all running machines."
-msgstr "欲變更系統目錄，請先停止全部運行中的機器。"
+msgstr ""
 
 msgid "Raw"
-msgstr "原始"
+msgstr ""
 
 msgid "Use EDC/ECC emulation"
-msgstr "使用 EDC/ECC 模擬"
+msgstr ""
 
 msgid "Audio output device:"
-msgstr "音訊輸出裝置:"
+msgstr ""
 
 msgid "System Default"
-msgstr "系統預設"
+msgstr ""
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr "無法開啟影映或資料夾 \"%s\"。"
+msgstr ""
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr "無法開啟 cue sheet \"%s\"。"
+msgstr ""
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr "無法開啟 MDS 檔 \"%s\"。"
+msgstr ""
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr "無法載入光碟映像 \"%s\"。"
+msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
-msgstr "無法載入映像 \"%s\": 缺少 %1 ，此為支援 Daemon Tools MDS v2 及 MDX "
-"映像格式所必需。"
+msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
-msgstr "無法載入映像 \"%s\": 缺少 %1，此為支援 Aaru 映像格式所必需。"
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
-msgstr "DVD 映像 \"%s\" 被置入不支援 DVD 之光碟機，將被忽略。"
+msgstr ""
 
 msgid "%s: Could not connect to %s: %s"
-msgstr "%s: 無法連接到 %s: %s"
+msgstr ""
 
 msgid "%s: Could not create %s: %s"
-msgstr "%s: 無法創建 %s: %s"
+msgstr ""
 
 msgid "%s: Attached to %s"
-msgstr "%s: 附加到 %s"
+msgstr ""
 
 msgid "%s: Virtual console already in use by %s"
-msgstr "%s: 虛擬控制台已被 %s 使用中"
+msgstr ""
 
 msgid "%s: Could not create terminal: %s"
-msgstr "%s: 無法創建終端機: %s"
+msgstr ""
 
 msgid "Auto-detect"
-msgstr "自動偵測"
+msgstr ""
 
 msgid "Channel"
-msgstr "聲道"
+msgstr ""
 
 msgid "Both Channels"
-msgstr "雙聲道"
+msgstr ""
 
 msgid "Left Channel"
-msgstr "左聲道"
+msgstr ""
 
 msgid "Right Channel"
-msgstr "右聲道"
+msgstr ""
 
 msgid "Allow Flash BIOS Updates"
-msgstr "允許更新 BIOS 快閃記憶體"
+msgstr ""
 
 msgid "Slot #"
-msgstr "插槽 #"
+msgstr ""
 
 msgid "Parallel Port"
-msgstr "並列埠"
+msgstr ""
 
 msgid "Paper Size"
-msgstr "紙張大小"
+msgstr ""
 
 msgid "Letter"
-msgstr "Letter"
+msgstr ""
 
 msgid "Legal (sideways)"
-msgstr "Legal (橫向)"
+msgstr ""
 
 msgid "B4 (sideways)"
-msgstr "B4 (橫向)"
+msgstr ""
 
 msgid "Quality"
-msgstr "品質"
+msgstr ""
 
 msgid "Draft"
-msgstr "草稿"
+msgstr ""
 
 msgid "(Near) Letter"
-msgstr "近信件品質 (NLQ)"
+msgstr ""
 
 msgid "Auto LF"
-msgstr "自動送行"
+msgstr ""
 
 msgid "Tandy PSSJ Clone"
-msgstr "Tandy PSSJ 相容品"
+msgstr ""
 
 msgid "PC-CM (Color)"
-msgstr "PC-CM (彩色)"
+msgstr ""
 
 msgid "PC-MM (Monochrome)"
-msgstr "PC-MM (單色)"
+msgstr ""
 
 msgid "White Monochrome"
-msgstr "白色單色"
+msgstr ""
 
 msgid "Hardware font"
-msgstr "硬體字型"
+msgstr ""
 
 msgid "Diagnostic mode"
-msgstr "診斷模式"
+msgstr ""
 
 msgid "CGA monitor"
-msgstr "CGA 監視器"
+msgstr ""
 
 msgid "MDA monitor"
-msgstr "MDA 監視器"
+msgstr ""
 
 msgid "Television"
-msgstr "電視"
+msgstr ""
 
 msgid "Invert LCD colors"
-msgstr "反轉液晶顯示色彩"
+msgstr ""
 
 msgid "LCD (CGA mode)"
-msgstr "液晶顯示 (CGA 模式)"
+msgstr ""
 
 msgid "LCD (MDA mode)"
-msgstr "液晶顯示 (MDA 模式)"
+msgstr ""
 
 msgid "Disabled (250h)"
-msgstr "停用 (250h)"
+msgstr ""
 
 msgid "Enabled (350h)"
-msgstr "啟用 (350h)"
+msgstr ""
 
 msgid "Test mode"
-msgstr "測試模式"
+msgstr ""
 
 msgid "32 MB"
-msgstr "32 MB"
+msgstr ""
 
 msgid "64 MB"
-msgstr "64 MB"
+msgstr ""
 
 msgid "2048 MB"
-msgstr "2048 MB"
+msgstr ""
 
 msgid "Refresh rate"
-msgstr "更新頻率"
+msgstr ""
 
 msgid "US (CP 437)"
-msgstr "US (CP 437)"
+msgstr ""
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr "IBM Nordic (CP 437-Nordic)"
+msgstr ""
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr "Czech Kamenicky (CP 895) #1"
+msgstr ""
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr "Czech Kamenicky (CP 895) #2"
+msgstr ""
 
 msgid "932 (Japanese)"
-msgstr "932 (日文)"
+msgstr ""
 
 msgid "938 (Traditional Chinese)"
-msgstr "938 (正體中文)"
+msgstr ""
 
 msgid "Sample rate:"
-msgstr "取樣率:"
+msgstr ""
 
 msgid "Enable audio input (mic/line-in)"
-msgstr "啟用音訊輸入 (麥克風/線輸入)"
+msgstr ""
 
 msgid "Audio input device:"
-msgstr "音訊輸入裝置:"
+msgstr ""
 
 msgid "Audio input sample rate:"
-msgstr "音訊輸入取樣率:"
+msgstr ""
 
 msgid "Rate the emulator mixes to the host output device."
 msgstr ""
@@ -3549,7 +3628,7 @@ msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly 
 msgstr ""
 
 msgid "CGA lightpen"
-msgstr "CGA光筆"
+msgstr ""
 
 msgid "Luminance threshold (%)"
-msgstr "亮度閾值 (%)"
+msgstr ""

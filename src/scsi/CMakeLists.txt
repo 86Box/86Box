@@ -24,6 +24,7 @@ add_library(scsi OBJECT
     scsi_x54x.c
     scsi_aha154x.c
     scsi_aha1740.c
+    scsi_aic6360.c
     scsi_aic7xxx.c
     scsi_buslogic.c
     scsi_ncr5380.c

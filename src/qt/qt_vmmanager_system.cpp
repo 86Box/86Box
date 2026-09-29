@@ -600,7 +600,7 @@ VMManagerSystem::setupVars()
 
     if ((ci != -1) && (QString(video_internal_name) == "internal")) {
         auto internal_device = machine_get_vid_device(ci);
-        if (internal_device)
+        if (internal_device && device_available(internal_device))
             display_table[VMManager::Display::Name::Video].append(QString(" (%1)").arg(DeviceConfig::DeviceName(internal_device, internal_device->internal_name, 0)));
     }
 

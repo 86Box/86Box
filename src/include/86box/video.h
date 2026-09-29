@@ -79,7 +79,8 @@ typedef enum video_font_format_e
 #define VIDEO_FLAG_TYPE_SPECIAL 2
 #define VIDEO_FLAG_TYPE_8514    3
 #define VIDEO_FLAG_TYPE_XGA     4
-#define VIDEO_FLAG_TYPE_NONE    5
+#define VIDEO_FLAG_TYPE_DA2     5
+#define VIDEO_FLAG_TYPE_NONE    6
 #define VIDEO_FLAG_TYPE_MASK    7
 
 #define VIDEO_FLAG_TYPE_SECONDARY VIDEO_FLAG_TYPE_SPECIAL
