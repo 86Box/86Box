@@ -21517,7 +21517,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_NIC_PRI | MACHINE_NIC_SEC | MACHINE_USB, /* Machine has internal SCSI: NCR 53C875 (825 seen in one unit) and network: 2x NSC DP83815 */
         .ram       = {
             .min  = 32768,
-            .max  = 1048576,
+            .max  = 524288,
             .step = 8192
         },
         .nvrmask                  = 255,
@@ -21566,7 +21566,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_NIC_PRI | MACHINE_NIC_SEC | MACHINE_USB, /* Machine has internal SCSI: NCR 53C875 and network: 2x Intel 82559ER */
         .ram       = {
             .min  = 32768,
-            .max  = 1048576,
+            .max  = 524288,
             .step = 8192
         },
         .nvrmask                  = 255,

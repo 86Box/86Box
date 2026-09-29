@@ -651,6 +651,12 @@ extern const device_t tandy_1000sl_video_device;
 /* Hitachi HD44780 character LCD */
 extern const device_t hd44780_device;
 extern const device_t hd44780_cobalt3k_device;
+enum {
+    HD44780_COLOR_GREEN = 0,
+    HD44780_COLOR_BLUE,
+    HD44780_COLOR_NONE,
+    HD44780_COLOR_MAX
+};
 
 #endif
 
