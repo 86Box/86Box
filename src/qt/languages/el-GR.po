@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-17 04:35+0000\n"
+"PO-Revision-Date: 2026-09-28 18:40+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -3574,13 +3574,13 @@ msgid "Sample rate:"
 msgstr "Ρυθμός δειγματοληψίας:"
 
 msgid "Enable audio input (mic/line-in)"
-msgstr ""
+msgstr "Ενεργοποίηση εισόδου ήχου (mic/line-in)"
 
 msgid "Audio input device:"
-msgstr ""
+msgstr "Συσκευή εισόδου ήχου:"
 
 msgid "Audio input sample rate:"
-msgstr ""
+msgstr "Ρυθμός δειγματοληψίας εισόδου ήχου:"
 
 msgid "CGA lightpen"
 msgstr "Φωτογραφίδα CGA"
