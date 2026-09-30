@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-30 08:57+0000\n"
+"PO-Revision-Date: 2026-09-30 21:23+0000\n"
 "Last-Translator: MayuriNanako <gordonkoopaplays@gmail.com>\n"
 "Language-Team: Romanian <https://weblate.86box.net/projects/86box/86box/ro/>"
 "\n"
@@ -1997,355 +1997,363 @@ msgid "Error initializing OpenGL."
 msgstr "Eroare la inițializarea OpenGL."
 
 msgid "Falling back to software rendering."
-msgstr ""
+msgstr "Se revine la randarea software."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr ""
+"<html><head/><body><p>La selectarea imaginilor de suport (CD-ROM, dischetă, "
+"etc.) dialogul de deschidere va porni în același director ca și fișierul de "
+"configurație 86Box. Această setare va avea probabil efect doar pe "
+"macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
-msgstr ""
+msgstr "Această mașină s-ar putea să fi fost mutată sau copiată."
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
 msgstr ""
+"Pentru a asigura o funcționalitate corespunzătoare a rețelei, 86Box trebuie "
+"să știe dacă această mașină a fost copiată sau mutată.\n"
+"\n"
+"Selectați \"Am copiat-o\" dacă nu sunteți sigur."
 
 msgid "I Moved It"
-msgstr ""
+msgstr "Am mutat-o"
 
 msgid "I Copied It"
-msgstr ""
+msgstr "Am copiat-o"
 
 msgid "86Box Monitor #%1"
-msgstr ""
+msgstr "Monitor 86Box #%1"
 
 msgid "No MCA devices."
-msgstr ""
+msgstr "Fără niciun dispozitiv MCA."
 
 msgid "MiB"
-msgstr ""
+msgstr "MiB"
 
 msgid "GiB"
-msgstr ""
+msgstr "GiB"
 
 msgid "Adapter 1"
-msgstr ""
+msgstr "Adaptor 1"
 
 msgid "Adapter 2"
-msgstr ""
+msgstr "Adaptor 2"
 
 msgid "Adapter 3"
-msgstr ""
+msgstr "Adaptor 3"
 
 msgid "Adapter 4"
-msgstr ""
+msgstr "Adaptor 4"
 
 msgid "Mode:"
-msgstr ""
+msgstr "Mod:"
 
 msgid "Interface:"
-msgstr ""
+msgstr "Interfață:"
 
 msgid "Adapter:"
-msgstr ""
+msgstr "Adaptor:"
 
 msgid "VDE Socket:"
-msgstr ""
+msgstr "Socket VDE:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "Dispozitiv punte TAP:"
 
 msgid "86Box Unit Tester"
-msgstr ""
+msgstr "Tester unități 86Box"
 
 msgid "Novell NetWare 2.x Key Card"
-msgstr ""
+msgstr "Cartelă cheie Novell NetWare 2.x"
 
 msgid "Renderer &options…"
-msgstr ""
+msgstr "&Opțiuni de randare…"
 
 msgid "PC/XT Keyboard"
-msgstr ""
+msgstr "Tastatură PC/XT"
 
 msgid "AT Keyboard"
-msgstr ""
+msgstr "Tastatură AT"
 
 msgid "AX Keyboard"
-msgstr ""
+msgstr "Tastatură AX"
 
 msgid "PS/2 Keyboard"
-msgstr ""
+msgstr "Tastatură PS/2"
 
 msgid "PS/55 Keyboard"
-msgstr ""
+msgstr "Tastatură PS/55"
 
 msgid "Keys"
-msgstr ""
+msgstr "Taste"
 
 msgid "Logitech/Microsoft Bus Mouse"
-msgstr ""
+msgstr "Maus pe magistrală Logitech/Microsoft"
 
 msgid "Microsoft Bus Mouse (InPort)"
-msgstr ""
+msgstr "Maus pe magistrală Microsoft (InPort)"
 
 msgid "Mouse Systems Serial Mouse"
-msgstr ""
+msgstr "Maus serial Mouse Systems"
 
 msgid "Mouse Systems Bus Mouse"
-msgstr ""
+msgstr "Maus pe magistrală Mouse Systems"
 
 msgid "Microsoft Serial Mouse"
-msgstr ""
+msgstr "Maus serial Microsoft"
 
 msgid "Microsoft Serial BallPoint"
-msgstr ""
+msgstr "Trackball serial Microsoft"
 
 msgid "Logitech Serial Mouse"
-msgstr ""
+msgstr "Maus serial Logitech"
 
 msgid "PS/2 Mouse"
-msgstr ""
+msgstr "Maus PS/2"
 
 msgid "PS/2 QuickPort Mouse"
-msgstr ""
+msgstr "Maus PS/2 QuickPort"
 
 msgid "3M MicroTouch (Serial)"
-msgstr ""
+msgstr "3M MicroTouch (Serial)"
 
 msgid "Default Baud rate"
-msgstr ""
+msgstr "Rata baud implicită"
 
 msgid "Standard Hayes-compliant Modem"
-msgstr ""
+msgstr "Modem standard compatibil Hayes"
 
 msgid "Roland MT-32 Emulation"
-msgstr ""
+msgstr "Emulare Roland MT-32"
 
 msgid "Roland MT-32 (New) Emulation"
-msgstr ""
+msgstr "Emulare Roland MT-32 (nouă)"
 
 msgid "Roland CM-32L Emulation"
-msgstr ""
+msgstr "Emulare Roland CM-32L"
 
 msgid "Roland CM-32LN Emulation"
-msgstr ""
+msgstr "Emulare Roland CM-32LN"
 
 msgid "OPL4-ML Daughterboard"
-msgstr ""
+msgstr "Placa fiică OPL4-ML"
 
 msgid "System MIDI"
-msgstr ""
+msgstr "Sistem MIDI"
 
 msgid "MIDI Input Device"
-msgstr ""
+msgstr "Dispozitiv de intrare MIDI"
 
 msgid "BIOS file"
-msgstr ""
+msgstr "Fișier BIOS"
 
 msgid "BIOS file (ROM #1)"
-msgstr ""
+msgstr "Fișier BIOS (ROM #1)"
 
 msgid "BIOS file (ROM #2)"
-msgstr ""
+msgstr "Fișier BIOS (ROM #2)"
 
 msgid "BIOS file (ROM #3)"
-msgstr ""
+msgstr "Fișier BIOS (ROM #3)"
 
 msgid "BIOS file (ROM #4)"
-msgstr ""
+msgstr "Fișier BIOS (ROM #4)"
 
 msgid "BIOS address"
-msgstr ""
+msgstr "Adresă BIOS"
 
 msgid "BIOS address (ROM #1)"
-msgstr ""
+msgstr "Adresă BIOS (ROM #1)"
 
 msgid "BIOS address (ROM #2)"
-msgstr ""
+msgstr "Adresă BIOS (ROM #2)"
 
 msgid "BIOS address (ROM #3)"
-msgstr ""
+msgstr "Adresă BIOS (ROM #3)"
 
 msgid "BIOS address (ROM #4)"
-msgstr ""
+msgstr "Adresă BIOS (ROM #4)"
 
 msgid "Enable BIOS extension ROM Writes"
-msgstr ""
+msgstr "Activați scrierile în ROM-ul de extensie BIOS"
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr ""
+msgstr "Activați scrierile în ROM-ul de extensie BIOS (ROM #1)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr ""
+msgstr "Activați scrierile în ROM-ul de extensie BIOS (ROM #2)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr ""
+msgstr "Activați scrierile în ROM-ul de extensie BIOS (ROM #3)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr ""
+msgstr "Activați scrierile în ROM-ul de extensie BIOS (ROM #4)"
 
 msgid "Linear framebuffer base"
-msgstr ""
+msgstr "Baza buffer de cadre liniar"
 
 msgid "Address"
-msgstr ""
+msgstr "Adresă"
 
 msgid "IRQ"
-msgstr ""
+msgstr "IRQ"
 
 msgid "Serial port IRQ"
-msgstr ""
+msgstr "IRQ port serial"
 
 msgid "Parallel port IRQ"
-msgstr ""
+msgstr "IRQ port paralel"
 
 msgid "Hard disk"
-msgstr ""
+msgstr "Disc dur"
 
 msgid "BIOS Revision"
-msgstr ""
+msgstr "Reviziunea BIOS"
 
 msgid "BIOS Version"
-msgstr ""
+msgstr "Versiune BIOS"
 
 msgid "BIOS Language"
-msgstr ""
+msgstr "Limbă BIOS"
 
 msgid "Variant"
-msgstr ""
+msgstr "Variantă"
 
 msgid "IBM 5161 Expansion Unit"
-msgstr ""
+msgstr "Unitate de expansiune IBM 5161"
 
 msgid "IBM Cassette Basic"
-msgstr ""
+msgstr "IBM Cassette BASIC"
 
 msgid "Translate 26 -> 17"
-msgstr ""
+msgstr "Traduceți 26 -> 17"
 
 msgid "Language"
-msgstr ""
+msgstr "Limbă"
 
 msgid "Enable backlight"
-msgstr ""
+msgstr "Activați iluminarea de fundal"
 
 msgid "Invert colors"
-msgstr ""
+msgstr "Inversați culorile"
 
 msgid "BIOS size"
-msgstr ""
+msgstr "Dimensiune BIOS"
 
 msgid "BIOS size (ROM #1)"
-msgstr ""
+msgstr "Dimensiune BIOS (ROM #1)"
 
 msgid "BIOS size (ROM #2)"
-msgstr ""
+msgstr "Dimensiune BIOS (ROM #2)"
 
 msgid "BIOS size (ROM #3)"
-msgstr ""
+msgstr "Dimensiune BIOS (ROM #3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr ""
+msgstr "Dimensiune BIOS (ROM #4)"
 
 msgid "Map C0000-C7FFF as UMB"
-msgstr ""
+msgstr "Mapați C0000-C7FFF ca UMB"
 
 msgid "Map C8000-CFFFF as UMB"
-msgstr ""
+msgstr "Mapați C8000-CFFFF ca UMB"
 
 msgid "Map D0000-D7FFF as UMB"
-msgstr ""
+msgstr "Mapați D0000-D7FFF ca UMB"
 
 msgid "Map D8000-DFFFF as UMB"
-msgstr ""
+msgstr "Mapați D8000-DFFFF ca UMB"
 
 msgid "Map E0000-E7FFF as UMB"
-msgstr ""
+msgstr "Mapați E0000-E7FFF ca UMB"
 
 msgid "Map E8000-EFFFF as UMB"
-msgstr ""
+msgstr "Mapați E8000-EFFFF ca UMB"
 
 msgid "JS9 Jumper (JIM)"
-msgstr ""
+msgstr "Jumper JS9 (JIM)"
 
 msgid "MIDI Output Device"
-msgstr ""
+msgstr "Dispozitiv de ieșire MIDI"
 
 msgid "MIDI Real time"
-msgstr ""
+msgstr "Timp real MIDI"
 
 msgid "MIDI Thru"
-msgstr ""
+msgstr "MIDI Thru"
 
 msgid "MIDI Clockout"
-msgstr ""
+msgstr "Ieșire de ceas MIDI"
 
 msgid "Output Gain"
-msgstr ""
+msgstr "Amplificare ieșire"
 
 msgid "Chorus"
-msgstr ""
+msgstr "Chorus"
 
 msgid "Chorus Voices"
-msgstr ""
+msgstr "Voci chorus"
 
 msgid "Chorus Level"
-msgstr ""
+msgstr "Nivel chorus"
 
 msgid "Chorus Speed"
-msgstr ""
+msgstr "Viteză chorus"
 
 msgid "Chorus Depth"
-msgstr ""
+msgstr "Adâncime chorus"
 
 msgid "Chorus Waveform"
-msgstr ""
+msgstr "Formă de undă chorus"
 
 msgid "Reverb"
-msgstr ""
+msgstr "Reverberație"
 
 msgid "Reverb Room Size"
-msgstr ""
+msgstr "Dimensiune cameră reverberație"
 
 msgid "Reverb Damping"
-msgstr ""
+msgstr "Amortizare reverberație"
 
 msgid "Reverb Width"
-msgstr ""
+msgstr "Lățime reverberație"
 
 msgid "Reverb Level"
-msgstr ""
+msgstr "Nivel reverberație"
 
 msgid "Interpolation Method"
-msgstr ""
+msgstr "Metodă de interpolare"
 
 msgid "Dynamic Sample Loading"
-msgstr ""
+msgstr "Încărcare dinamică eșantioane"
 
 msgid "Reverb Output Gain"
-msgstr ""
+msgstr "Amplificare ieșire reverberație"
 
 msgid "Reversed stereo"
-msgstr ""
+msgstr "Stereo inversat"
 
 msgid "Nice ramp"
-msgstr ""
+msgstr "Rampă lină"
 
 msgid "Hz"
-msgstr ""
+msgstr "Hz"
 
 msgid "Buttons"
-msgstr ""
+msgstr "Butoane"
 
 msgid "Serial Port"
-msgstr ""
+msgstr "Port serial"
 
 msgid "RTS toggle"
-msgstr ""
+msgstr "Comutare RTS"
 
 msgid "Revision"
-msgstr ""
+msgstr "Reviziune"
 
 msgid "Controller"
-msgstr ""
+msgstr "Controler"
 
 msgid "Show Crosshair"
 msgstr ""
