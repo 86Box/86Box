@@ -326,7 +326,7 @@ static const device_config_t td3_config[] = {
 };
 
 const device_t td3_device = {
-    .name          = "Intergraph TD-3",
+    .name          = "InterGraph TD-3",
     .internal_name = "td3_device",
     .flags         = 0,
     .local         = 0,

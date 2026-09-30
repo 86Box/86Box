@@ -3740,7 +3740,8 @@ const device_t mach64gx_pci_device = {
     .available     = mach64gx_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
-    .config        = mach64gx_config
+    .config        = mach64gx_config,
+    .alias         = "ATI WinTurbo"
 };
 
 const device_t mach64ct_device = {
