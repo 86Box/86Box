@@ -3815,7 +3815,8 @@ execute_instruction(void)
             if (cpu_mod != 3)
                 do_cycles_i(2);    /* load_operand() */
             tempw = cpu_state.pc;
-            geteaw();
+            if (!hasfpu)
+                geteaw();
             /* fpu_op() */
             x87_op = ((opcode & 0x07) << 8) | (rmdat & 0xff);
             if (hasfpu) {

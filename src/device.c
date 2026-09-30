@@ -260,6 +260,8 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Adaptec AHA-2940U", .new = "Adaptec AHA-2940 Ultra (AIC-7880)" },
         { .old = "Adaptec AHA-2940 Ultra", .new = "Adaptec AHA-2940 Ultra (AIC-7880)" },
         { .old = "Adaptec AHA-2944 Ultra Wide (differential)", .new = "Adaptec AHA-2944UW" },
+        { .old = "ATI Mach64GX ISA", .new = "ATI Graphics Pro Turbo (Mach64GX) ISA" },
+        { .old = "ATI Mach64GX VLB", .new = "ATI Graphics Pro Turbo (Mach64GX) VLB" },
         { 0 }
     };
 

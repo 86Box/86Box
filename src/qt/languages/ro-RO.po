@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-29 20:43+0000\n"
+"PO-Revision-Date: 2026-09-30 08:57+0000\n"
 "Last-Translator: MayuriNanako <gordonkoopaplays@gmail.com>\n"
 "Language-Team: Romanian <https://weblate.86box.net/projects/86box/86box/ro/>"
 "\n"
@@ -555,7 +555,7 @@ msgid "Internal LPT ECP DMA:"
 msgstr "DMA ECP LPT intern:"
 
 msgid "Floppy disk controller:"
-msgstr "Controler de disc floppy:"
+msgstr "Controler de dischete:"
 
 msgid "CD-ROM controller:"
 msgstr "Controler de CD-ROM:"
@@ -675,7 +675,7 @@ msgid "Block Size:"
 msgstr "Dimensiune blocuri:"
 
 msgid "Floppy drives"
-msgstr "Unități floppy"
+msgstr "Unități de dischete"
 
 msgid "5.25\" 180k"
 msgstr "5.25\" 180k"
@@ -931,7 +931,7 @@ msgid "Disks:"
 msgstr "Discuri:"
 
 msgid "Floppy:"
-msgstr "Floppy:"
+msgstr "Dischete:"
 
 msgid "Controllers:"
 msgstr "Controlere:"
@@ -1914,85 +1914,87 @@ msgid "&MCA devices…"
 msgstr "Dispozitive &MCA…"
 
 msgid "Show non-&primary monitors"
-msgstr ""
+msgstr "Afișați monitoarele ne&primare"
 
 msgid "Open screenshots &folder…"
-msgstr ""
+msgstr "Deschide &directorul de capturi de ecran…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr ""
+msgstr "A&plicați modul de întindere pe tot ecranul la maximizare"
 
 msgid "&Cursor/Puck"
-msgstr ""
+msgstr "&Cursor/Puck"
 
 msgid "&Pen"
-msgstr ""
+msgstr "&Stilou"
 
 msgid "&Host CD/DVD Drive (%1)"
-msgstr ""
+msgstr "Unitate CD/DVD &gazdă (%1)"
 
 msgid "&Connected"
-msgstr ""
+msgstr "&Conectat"
 
 msgid "Clear image &history"
-msgstr ""
+msgstr "Ștergeți istoric&ul imaginilor"
 
 msgid "Create…"
-msgstr ""
+msgstr "Creați…"
 
 msgid "Host CD/DVD Drive (%1)"
-msgstr ""
+msgstr "Unitate CD/DVD gazdă (%1)"
 
 msgid "Unknown Bus"
-msgstr ""
+msgstr "Magistrală necunoscută"
 
 msgid "Null Driver"
-msgstr ""
+msgstr "Driver nul"
 
 msgid "NIC:"
-msgstr ""
+msgstr "NIC:"
 
 msgid "NIC %1 (%2) %3"
-msgstr ""
+msgstr "NIC %1 (%2) %3"
 
 msgid "&NIC %1 (%2) %3"
-msgstr ""
+msgstr "&NIC %1 (%2) (%3)"
 
 msgid "Render behavior"
-msgstr ""
+msgstr "Comportament de randare"
 
 msgid "Use target framerate:"
-msgstr ""
+msgstr "Folosiți rata de cadre țintă:"
 
 msgid " fps"
-msgstr ""
+msgstr " .fps"
 
 msgid "VSync"
-msgstr ""
+msgstr "VSync"
 
 msgid "Synchronize with video"
-msgstr ""
+msgstr "Sincronizați cu video"
 
 msgid "Shaders"
-msgstr ""
+msgstr "Shadere"
 
 msgid "Remove"
-msgstr ""
+msgstr "Eliminați"
 
 msgid "Browse…"
-msgstr ""
+msgstr "Răsfoiți…"
 
 msgid "Couldn't create OpenGL context."
-msgstr ""
+msgstr "Nu s-a putut crea contextul OpenGL."
 
 msgid "Couldn't switch to OpenGL context."
-msgstr ""
+msgstr "Nu s-a putut comuta la contextul OpenGL."
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr ""
+"Versiunea OpenGL 3.0 sau ulterioară este necesară. Versiunea curentă este "
+"%1.%2"
 
 msgid "Error initializing OpenGL."
-msgstr ""
+msgstr "Eroare la inițializarea OpenGL."
 
 msgid "Falling back to software rendering."
 msgstr ""
