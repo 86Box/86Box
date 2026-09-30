@@ -125,3 +125,13 @@ Build the `cartridge_tests` target with `BUILD_TESTING=ON`, then run:
 ```sh
 ctest --test-dir build --output-on-failure -R '^CartridgeTest\.'
 ```
+
+# MicroTouch
+
+The MicroTouch tests exercise `src/device/mouse_microtouch_touchscreen.c` in isolation against the MicroTouch Touch Controllers Reference Guide: serial port, timers and host mouse are mocked, commands go in byte by byte and each byte slot of the controller's transmit timer is stepped by hand. They cover the data formats (Tablet, Decimal, Hexadecimal, Binary, Zone, Raw), the operating modes (Stream, Point, Down/Up, Polled, Inactive, Status), calibration acknowledgements, NOVRAM settings across a power cycle, Restore Defaults and the status commands.
+
+Build `mouse_microtouch_tests` with `BUILD_TESTING=ON`, then run:
+
+```sh
+ctest --test-dir build --output-on-failure -R '^MicroTouch\.'
+```
