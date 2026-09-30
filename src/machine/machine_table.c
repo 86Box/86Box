@@ -15430,7 +15430,7 @@ const machine_t machines[] = {
     },
     /* EISA and PCI, the PCEB and ESC; AMI 'H' KBC. */
     {
-        .name              = "[i430NX] InterGraph TD-3",
+        .name              = "[i430NX] Intergraph TD-3",
         .internal_name     = "td3",
         .type              = MACHINE_TYPE_SOCKET5,
         .chipset           = MACHINE_CHIPSET_INTEL_430NX,
@@ -15475,7 +15475,7 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = &pcnet_am79c970a_onboard_device,
         .scsi_device              = &ncr53c810_onboard_pci_device,
-        .aliases                  = { "InterGraph MSMT282", "" }
+        .aliases                  = { "Intergraph MSMT282", "" }
     },
     /* EISA and PCI, the PCEB and ESC; unknown KBC firmware. */
     {
