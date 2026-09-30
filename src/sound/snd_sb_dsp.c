@@ -1807,7 +1807,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xA8: /* Set input mode to stereo (8-bit on Jazz16) */
             if (!IS_MV1216(dsp) && ((dsp->sb_type < SBPRO_DSP_300) || (dsp->sb_type > SBPRO_DSP_302)))
                 break;
-            /* TODO: Implement. 3.xx-only command. */
+            if ((dsp->sb_type >= SBPRO_DSP_300) && (dsp->sb_type <= SBPRO_DSP_302))
+                dsp->stereoi = !!(dsp->sb_command & 0x08);
         case 0xAC: /* Set input mode to stereo (16-bit on Jazz16) */
             if (IS_MV1216(dsp)) {
                 /* The MVD1216 extends the SB Pro A0/A8 mode commands with

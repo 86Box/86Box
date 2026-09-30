@@ -116,6 +116,7 @@ typedef struct sb_dsp_t {
 
     int sbleftright;
     int sbleftright_default;
+    int sbleftrighti;
 
     int     sbreset;
     uint8_t sbreaddat;
@@ -156,6 +157,7 @@ typedef struct sb_dsp_t {
     uint16_t sb_addr;
 
     int stereo;
+    int stereoi;
 
     int asp_data_len;
 
