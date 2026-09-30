@@ -443,6 +443,14 @@ mtouch_write_to_host(void *priv)
     if (dev->in_reset) {
         goto no_write_to_machine;
     }
+    /* serial_write_fifo() only places the byte in the receive shift register
+       (out_new); the UART's receive timer moves it into RBR or the FIFO.
+       Writing again before that has happened overwrites the previous byte.
+       Losing the status byte of a liftoff report makes drivers miss the
+       liftoff, so wait until the receive shift register is free. */
+    if (dev->serial->out_new != 0xffff) {
+        goto no_write_to_machine;
+    }
     if (fifo8_num_used(&dev->resp)) {
         serial_write_fifo(dev->serial, fifo8_pop(&dev->resp));
     }
