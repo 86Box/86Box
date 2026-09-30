@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-29 02:26+0000\n"
+"PO-Revision-Date: 2026-09-30 02:43+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -3543,7 +3543,7 @@ msgid "Audio input sample rate:"
 msgstr "音訊輸入取樣率:"
 
 msgid "Rate the emulator mixes to the host output device."
-msgstr ""
+msgstr "模擬器混音至主機輸出裝置之取樣率。"
 
 msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
 msgstr ""
