@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-17 04:35+0000\n"
+"PO-Revision-Date: 2026-09-30 02:49+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -3519,7 +3519,7 @@ msgid "Audio input sample rate:"
 msgstr "音频输入采样率："
 
 msgid "Rate the emulator mixes to the host output device."
-msgstr ""
+msgstr "模拟器混音至主机输出设备的采样率。"
 
 msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
 msgstr ""
