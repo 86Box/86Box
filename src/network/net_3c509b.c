@@ -2641,10 +2641,11 @@ static const device_config_t el3_isa_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
+            { .description = "3C509B (BNC, AUI)",                   .value = BOARD_BNC   },
             { .description = "3C509B-TPO (10BASE-T)",               .value = BOARD_TPO   },
             { .description = "3C509B-TP (10BASE-T, AUI)",           .value = BOARD_TPAUI },
+         // { .description = "3C509B-TPC (10BASE-T, Coaxial)",      .value = BOARD_TPC   }, TODO: to implement its coaxial (wireless?) version
             { .description = "3C509B-COMBO (10BASE-T, BNC, AUI)",   .value = BOARD_COMBO },
-            { .description = "3C509B (BNC, AUI)",                   .value = BOARD_BNC   },
             { .description = ""                                                          }
         },
         .bios           = { { 0 } }
@@ -2682,7 +2683,7 @@ static const device_config_t el3_mca_config[] = {
 const device_t threec509b_device = {
     .name          = "3Com EtherLink III ISA (3C509B)",
     .internal_name = "3c509b",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = el3_init,
     .close         = el3_close,
