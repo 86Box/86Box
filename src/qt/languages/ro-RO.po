@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-30 17:11+0000\n"
+"PO-Revision-Date: 2026-09-30 21:23+0000\n"
 "Last-Translator: MayuriNanako <gordonkoopaplays@gmail.com>\n"
 "Language-Team: Romanian <https://weblate.86box.net/projects/86box/86box/ro/>"
 "\n"
@@ -2311,49 +2311,49 @@ msgid "Reverb"
 msgstr "Reverberație"
 
 msgid "Reverb Room Size"
-msgstr ""
+msgstr "Dimensiune cameră reverberație"
 
 msgid "Reverb Damping"
-msgstr ""
+msgstr "Amortizare reverberație"
 
 msgid "Reverb Width"
-msgstr ""
+msgstr "Lățime reverberație"
 
 msgid "Reverb Level"
-msgstr ""
+msgstr "Nivel reverberație"
 
 msgid "Interpolation Method"
-msgstr ""
+msgstr "Metodă de interpolare"
 
 msgid "Dynamic Sample Loading"
-msgstr ""
+msgstr "Încărcare dinamică eșantioane"
 
 msgid "Reverb Output Gain"
-msgstr ""
+msgstr "Amplificare ieșire reverberație"
 
 msgid "Reversed stereo"
-msgstr ""
+msgstr "Stereo inversat"
 
 msgid "Nice ramp"
-msgstr ""
+msgstr "Rampă lină"
 
 msgid "Hz"
-msgstr ""
+msgstr "Hz"
 
 msgid "Buttons"
-msgstr ""
+msgstr "Butoane"
 
 msgid "Serial Port"
-msgstr ""
+msgstr "Port serial"
 
 msgid "RTS toggle"
-msgstr ""
+msgstr "Comutare RTS"
 
 msgid "Revision"
-msgstr ""
+msgstr "Reviziune"
 
 msgid "Controller"
-msgstr ""
+msgstr "Controler"
 
 msgid "Show Crosshair"
 msgstr ""
