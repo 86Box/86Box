@@ -34,6 +34,12 @@ its own `fdd[]` pointers; image backends and D86F callbacks accept a drive objec
   replacement remains serialized with emulation via the existing pause path.
 - Failed image loads retain an empty drive instead of overriding the loader's
   failure with a mounted state.
+- D86F now uses the physical drive object passed into the backend for RPM and
+  medium compatibility. Reapplying the controller's drive swap here selected
+  a different physical drive on the primary controller. GAP2 converts the
+  global drive ID to a controller-local unit before consulting controller bits.
+- FDC close stops its attached drive decoders and deferred seek timers before
+  detaching their owner pointers, preserving mounted media.
 
 ## SASI (PC-9801-27)
 
@@ -63,7 +69,8 @@ Controller close performs the same command cleanup before removing its mapping.
 
 ## Validation limits
 
-The normal Windows build is used to compile and link the merged implementation.
+The normal Windows build compiled and linked the merged implementation,
+including the restored pre-existing video and keyboard-controller edits.
 No new tests or guest runtime checks were requested or run. This integration
 does not establish hardware-exact timing for the existing synchronous SASI and
 WD33C93 transfer models. D88 structural formatting remains unsupported.

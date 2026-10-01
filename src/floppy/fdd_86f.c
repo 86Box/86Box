@@ -971,7 +971,7 @@ d86f_can_format(void *priv)
     int          ret = !drv->writeprot;
 
     ret = ret && !fdc_get_swwp(drv->fdc);
-    ret = ret && fdd_can_read_medium(&drives[real_drive(drv->fdc, drv->id)]);
+    ret = ret && fdd_can_read_medium(drv);
     /* Allows proxied formats to add their own extra conditions to formatting. */
     ret = ret && drv->d86f_handler.format_conditions(drv);
     ret = ret && !d86f_wrong_densel(drv);
@@ -1087,7 +1087,7 @@ d86f_get_bitcell_period(void *priv)
         rate /= 2.0;
     size = (size * 250.0) / rate;
     size = (size * 300.0) / rpm;
-    size = (size * fdd_getrpm(&drives[real_drive(drv->fdc, drv->id)])) / 300.0;
+    size = (size * fdd_getrpm(drv)) / 300.0;
 
     return (int) size;
 }
@@ -1098,7 +1098,7 @@ d86f_can_read_address(void *priv)
     fdd_drive_t *drv = (fdd_drive_t *) priv;
     int          ret = (fdc_get_bitcell_period(drv->fdc) == d86f_get_bitcell_period(drv));
 
-    ret = ret && fdd_can_read_medium(&drives[real_drive(drv->fdc, drv->id)]);
+    ret = ret && fdd_can_read_medium(drv);
     ret = ret && (fdc_is_mfm(drv->fdc) == d86f_is_mfm(drv));
     ret = ret && (d86f_get_encoding(drv) <= 1);
 
@@ -2051,7 +2051,7 @@ d86f_format_track(void *priv, const int side, int do_write)
     am_len                    = mfm ? 4 : 1;
     gap_sizes[0]              = mfm ? 80 : 40;
     gap_sizes[1]              = mfm ? 50 : 26;
-    gap_sizes[2]              = fdc_get_gap2(drv->fdc, real_drive(drv->fdc, drv->id));
+    gap_sizes[2]              = fdc_get_gap2(drv->fdc, real_drive(drv->fdc, drv->id & 3));
     gap_sizes[3]              = fdc_get_gap(drv->fdc);
     sync_len                  = mfm ? 12 : 6;
     sc                        = fdc_get_format_sectors(drv->fdc);
@@ -3634,7 +3634,7 @@ d86f_common_format(void *priv, const int side, UNUSED(int rate), const uint8_t f
 
     if (!proxy) {
         dev->side_flags[side] = 0;
-        dev->side_flags[side] |= (fdd_getrpm(&(drives[real_drive(drv->fdc, drv->id)])) == 360) ? 0x20 : 0;
+        dev->side_flags[side] |= (fdd_getrpm(drv) == 360) ? 0x20 : 0;
         dev->side_flags[side] |= fdc_get_bit_rate(drv->fdc);
         dev->side_flags[side] |= fdc_is_mfm(drv->fdc) ? 8 : 0;
 

@@ -2931,8 +2931,18 @@ fdc_close(void *priv)
 
     next_bus = 0;
 
-    for (int i = 0; i < 4; i++)
-        drives[fdc->bus + i].fdc = NULL;
+    for (int i = 0; i < 4; i++) {
+        fdd_drive_t *drv = (fdd_drive_t *) fdc->fdd[i];
+        /* A drive's decoder and deferred seek still reference this FDC.
+         * Cancel them before detaching the controller, retaining the media. */
+        fdd_stop(drv);
+        fdd_set_motor_enable(drv, 0);
+        timer_disable(&drv->seek_timer);
+        timer_disable(&drv->ready_timer);
+        drv->seek_in_progress = 0;
+        memset(&drv->pending, 0, sizeof(drv->pending));
+        drv->fdc = NULL;
+    }
 
     free(fdc);
 }
