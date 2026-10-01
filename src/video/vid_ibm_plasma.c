@@ -506,7 +506,7 @@ ibm_plasma_remap(ibm_plasma_t *dev)
 
     /* 320x200 logical dots doubled in both directions, i.e. the mode the half-toning makes
        its 64 grey patterns for; the other 8bpp low resolution modes do not double the rows. */
-    const void (*panel_render)(svga_t *) = dev->external_display ? dev->core_render : svga->render;
+    void (*panel_render)(svga_t *) = dev->external_display ? dev->core_render : svga->render;
     const int   half_toning = ((panel_render == svga_render_8bpp_lowres) || (panel_render == ibm_plasma_13h_render))
                               && (svga->rowcount == 1);
 
