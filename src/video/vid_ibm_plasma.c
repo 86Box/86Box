@@ -400,6 +400,7 @@ static void
 ibm_plasma_render_external(ibm_plasma_t *dev, svga_t *svga)
 {
     monitor_t *saved_monitor = svga->monitor;
+    uint32_t   saved_memaddr = svga->memaddr;
 
     memcpy(dev->saved_pallook, svga->pallook, sizeof(dev->plain_pallook));
     memcpy(svga->pallook, dev->plain_pallook, sizeof(dev->plain_pallook));
@@ -407,6 +408,10 @@ ibm_plasma_render_external(ibm_plasma_t *dev, svga_t *svga)
     svga->monitor = &monitors[1];
     dev->core_render(svga);
     svga->monitor = saved_monitor;
+
+    /* The renderers walk the display address as they paint a row, so without putting it back
+       the panel pass that follows would read a row it has already drawn. */
+    svga->memaddr = saved_memaddr;
 
     memcpy(svga->pallook, dev->saved_pallook, sizeof(dev->plain_pallook));
 }
