@@ -56,6 +56,9 @@ static const uint16_t blt_masks[16] = {
     0x0fff, 0x04fd, 0x0fff, 0x01ff, 0x0fff, 0x01ff, 0x0fff, 0x0fff,
     0x0fff, 0x0f00, 0x00ff, 0x00ff, 0x00ff, 0x00ff, 0x00ff, 0
 };
+/* Bit n set: a planar row whose starting pixel phase is the index and whose
+   X dimension is n modulo 8 is drawn 8 pixels short. */
+static const uint8_t planar_short_rows[8] = { 0, 0, 0, 0, 0x40, 0, 0x70, 0xb8 };
 static const uint16_t cursor_masks[16] = {
     0x0fe0, 0x0fff, 0x01ff, 0x00ff, 0x00ff, 0x0fff, 0x07ff, 0x03ff,
     0x00ff, 0, 0, 0, 0, 0, 0, 0
@@ -170,7 +173,9 @@ wd90c31_blt_pixel(wd90c31_t *wd, uint8_t source)
     unsigned        format       = (r[BLT_CONTROL1] >> 2) & 3;
     uint32_t        dst          = wd90c31_blt_address(wd, 0);
     uint8_t         dest         = (r[BLT_CONTROL1] & 0x20) ? 0 : wd90c31_pixel_read(wd, dst);
-    uint8_t         compare_mask = ~r[BLT_TRANS_MASK];
+    /* Contrary to the data sheet, set mask bits select the bits that are
+       compared: WD's drivers extract glyph plane n with a mask of 1 << n. */
+    uint8_t         compare_mask = r[BLT_TRANS_MASK];
     int             write        = 1;
 
     if (!(r[BLT_CONTROL1] & 0x100))
@@ -216,6 +221,19 @@ wd90c31_blt_start(wd90c31_t *wd)
         wd->busy = 0;
         wd->blt[BLT_CONTROL1] &= ~0x800;
         return;
+    }
+    /* Planar rows starting at some pixel phases come out one byte short for
+       some widths. WD's 16-colour drivers (WD800_4.DRV, WD1024_4.DRV) add 8
+       to the X dimension in exactly these cases, but only supply host data
+       for the width they want drawn. The phase is counted from the starting
+       corner, so it is mirrored for right-to-left operations. */
+    if (!(wd->blt[BLT_CONTROL1] & 0x120) && (wd->blt[BLT_WIDTH] > 8)) {
+        unsigned phase = wd->destination & 7;
+
+        if (wd->blt[BLT_CONTROL1] & 0x400)
+            phase ^= 7;
+        if ((planar_short_rows[phase] >> (wd->blt[BLT_WIDTH] & 7)) & 1)
+            wd->active[BLT_WIDTH] -= 8;
     }
     if (wd->blt[BLT_CONTROL1] & 0x22)
         return;
@@ -404,6 +422,14 @@ wd90c31_out(uint16_t port, uint8_t value, void *priv)
     if (!pair) {
         unsigned shift = (port & 1) * 8;
         wd->index      = ((wd->index & ~(0xffu << shift)) | (value << shift)) & 0x1fff;
+        return;
+    }
+    /* Monochrome host data only uses the low byte of the BitBLT I/O port
+       (section 9.14), so a write to the even port is a complete transfer
+       and the odd port is ignored. WD's planar drivers use OUTSB here. */
+    if ((pair == 2) && ((wd->active[BLT_CONTROL1] & 0x0c) == 0x0c)) {
+        if (!(port & 1))
+            wd90c31_host_write(wd, value);
         return;
     }
     if (!(port & 1))
