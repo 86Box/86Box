@@ -456,7 +456,7 @@ acc3221_init(UNUSED(const device_t *info))
 {
     acc3221_t *dev = (acc3221_t *) calloc(1, sizeof(acc3221_t));
 
-    dev->fdc = device_add(&fdc_at_device);
+    dev->fdc = device_add_params(&fdc_at_device, (void *) FDC_FLAG_PNP);
 
     dev->uart[0] = device_add_inst(&ns16450_device, 1);
     dev->uart[1] = device_add_inst(&ns16450_device, 2);

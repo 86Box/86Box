@@ -444,7 +444,7 @@ w837x7_init(const device_t *info)
     dev->has_ide   = (info->local >> 16) & 0xff;
     dev->ide_start = !!(info->local & W837X7_IDE_START);
 
-    dev->fdc       = device_add(&fdc_at_winbond_device);
+    dev->fdc       = device_add_params(&fdc_at_winbond_device, (void *) FDC_FLAG_PNP);
 
     dev->uart[0]   = device_add_inst(&ns16550_device, 1);
     dev->uart[1]   = device_add_inst(&ns16550_device, 2);

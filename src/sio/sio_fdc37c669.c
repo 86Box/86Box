@@ -401,7 +401,7 @@ fdc37c669_init(const device_t *info)
     dev->id = next_id;
 
     if (next_id != 1) {
-        dev->fdc     = device_add(&fdc_at_smc_device);
+        dev->fdc     = device_add_params(&fdc_at_smc_device, (void *) FDC_FLAG_PNP);
         dev->has_ide = (info->local >> 8) & 0xff;
     }
 
