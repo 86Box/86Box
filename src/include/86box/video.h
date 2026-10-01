@@ -375,10 +375,12 @@ extern const device_t ibm_plasma_vga_device;
 /* ATi Mach64 */
 extern const device_t mach64gx_isa_device;
 extern const device_t mach64gx_vlb_device;
+extern const device_t mach64gx_vlb_onboard_device;
 extern const device_t mach64gx_xpression_vlb_device;
 extern const device_t mach64gx_pci_device;
+extern const device_t mach64gx_pci_onboard_device;
 extern const device_t mach64ct_device;
-extern const device_t mach64ct_device_onboard;
+extern const device_t mach64ct_onboard_device;
 extern const device_t mach64vt_device;
 extern const device_t mach64vt2_device;
 extern const device_t mach64vt3_onboard_device;

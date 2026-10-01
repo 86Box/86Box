@@ -3715,6 +3715,20 @@ const device_t mach64gx_vlb_device = {
     .config        = mach64gx_vram_config
 };
 
+const device_t mach64gx_vlb_onboard_device = {
+    .name          = "ATI Mach64GX VLB (On-Board)",
+    .internal_name = "mach64gx_vlb_onboard",
+    .flags         = DEVICE_VLB,
+    .local         = MACH64_GX | MACH64_FLAG_ONBOARD,
+    .init          = mach64gx_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
+    .available     = NULL,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64gx_vram_config
+};
+
 const device_t mach64gx_xpression_vlb_device = {
     .name          = "ATI Graphics Xpression (Mach64GX) VLB",
     .internal_name = "mach64gx_xpression_vlb",
@@ -3744,6 +3758,20 @@ const device_t mach64gx_pci_device = {
     .alias         = "ATI WinTurbo"
 };
 
+const device_t mach64gx_pci_onboard_device = {
+    .name          = "ATI Mach64GX PCI (On-Board)",
+    .internal_name = "mach64gx_pci_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = MACH64_GX | MACH64_FLAG_DRAM | MACH64_FLAG_ONBOARD,
+    .init          = mach64gx_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
+    .available     = NULL,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64gx_config,
+};
+
 const device_t mach64ct_device = {
     .name          = "ATI Mach64CT",
     .internal_name = "mach64ct",
@@ -3758,7 +3786,7 @@ const device_t mach64ct_device = {
     .config        = NULL
 };
 
-const device_t mach64ct_device_onboard = {
+const device_t mach64ct_onboard_device = {
     .name          = "ATI Mach64CT (On-Board)",
     .internal_name = "mach64ct_onboard",
     .flags         = DEVICE_PCI,
