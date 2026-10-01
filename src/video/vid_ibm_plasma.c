@@ -547,17 +547,36 @@ ibm_plasma_remap(ibm_plasma_t *dev)
 }
 
 /* Hand the connector's frame to its own monitor: the core blits the picture it renders for the
-   panel, and this device paints the second one, so nothing else pushes it out. */
+   panel, and this device paints the second one, so nothing else pushes it out. The window and the
+   two border strips are the same ones the core's own blit uses, or the two would not sit alike. */
 static void
 ibm_plasma_external_flush(ibm_plasma_t *dev)
 {
-    const svga_t *svga = dev->svga;
-    const int     w    = svga->monitor->mon_xsize + svga->x_add;
-    const int     h    = svga->monitor->mon_ysize + svga->y_add;
+    const svga_t  *svga   = dev->svga;
+    const int      ox     = enable_overscan ? svga->monitor->mon_overscan_x : 0;
+    const int      oy     = enable_overscan ? svga->monitor->mon_overscan_y : 0;
+    const int      w      = svga->monitor->mon_xsize + ox;
+    const int      h      = svga->monitor->mon_ysize + oy;
+    const int      bottom = svga->monitor->mon_overscan_y - svga->y_add;
+    const uint32_t border = svga->dpms ? 0 : svga->overscan_color;
 
     /* The monitor is the framework's to take down, and a closed one has no blit thread left. */
     if ((monitors[1].target_buffer == NULL) || (w <= 0) || (h <= 0))
         return;
+
+    for (int i = 0; i < svga->y_add; i++) {
+        uint32_t *p = &monitors[1].target_buffer->line[i & 0x7ff][0];
+
+        for (int j = 0; j < w; j++)
+            p[j] = border;
+    }
+
+    for (int i = 0; i < bottom; i++) {
+        uint32_t *p = &monitors[1].target_buffer->line[(svga->monitor->mon_ysize + svga->y_add + i) & 0x7ff][0];
+
+        for (int j = 0; j < w; j++)
+            p[j] = border;
+    }
 
     if ((w != dev->ext_w) || (h != dev->ext_h)) {
         dev->ext_w = w;
@@ -566,7 +585,8 @@ ibm_plasma_external_flush(ibm_plasma_t *dev)
         set_screen_size_monitor(w, h, 1);
     }
 
-    video_blit_memtoscreen_monitor(0, 0, w, h, 1);
+    video_blit_memtoscreen_monitor(enable_overscan ? 0 : svga->left_overscan, enable_overscan ? 0 : svga->y_add,
+                                   w, h, 1);
 }
 
 /* The panel's vertical synchronization is the video mode's own field, so the pulse is started by
