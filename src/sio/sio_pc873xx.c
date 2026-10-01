@@ -366,7 +366,7 @@ pc873xx_init(const device_t *info)
 {
     pc873xx_t *dev = (pc873xx_t *) calloc(1, sizeof(pc873xx_t));
 
-    dev->fdc = device_add(&fdc_at_nsc_device);
+    dev->fdc = device_add_params(&fdc_at_nsc_device, (void *) FDC_FLAG_PNP);
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);

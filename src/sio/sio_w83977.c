@@ -1288,7 +1288,7 @@ w83977_init(const device_t *info)
     if (next_id == 1)
         dev->hefras   ^= W83977_370;
     else
-        dev->fdc       = device_add(&fdc_at_smc_device);
+        dev->fdc       = device_add_params(&fdc_at_smc_device, (void *) FDC_FLAG_PNP);
 
     if (info->local & W83977_UART_FORCE_SEC) {
         dev->uart[0]   = device_add_inst(&ns16550_device, 3);

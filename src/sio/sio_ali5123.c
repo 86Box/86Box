@@ -514,7 +514,7 @@ ali5123_init(const device_t *info)
 {
     ali5123_t *dev = (ali5123_t *) calloc(1, sizeof(ali5123_t));
 
-    dev->fdc = device_add(&fdc_at_ali_device);
+    dev->fdc = device_add_params(&fdc_at_ali_device, (void *) FDC_FLAG_PNP);
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);

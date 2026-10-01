@@ -863,7 +863,7 @@ it86x1f_init(UNUSED(const device_t *info))
     for (uint8_t j = 0; it86x1f_models[i].pnp_defaults[j].activate != (uint8_t) -1; j++)
         isapnp_set_device_defaults(dev->pnp_card, j, &it86x1f_models[i].pnp_defaults[j]);
 
-    dev->fdc = device_add(&fdc_at_smc_device);
+    dev->fdc = device_add_params(&fdc_at_smc_device, (void *) FDC_FLAG_PNP);
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);

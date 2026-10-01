@@ -72,17 +72,6 @@
 #define FLAG_IGNORE_DENSEL 512
 #define FLAG_PS2           1024
 
-typedef struct fdd_t {
-    int type;
-    int track;
-    int densel;
-    int head;
-    int turbo;
-    int check_bpb;
-} fdd_t;
-
-fdd_t fdd[FDD_NUM];
-
 enum {
     FDD_OP_NONE = 0,
     FDD_OP_READ,
@@ -338,18 +327,17 @@ fdd_do_seek_ex(const void *priv, const int track)
 void
 fdd_forced_seek(void *priv, const int track_diff)
 {
-    const fdd_drive_t *drv     = (fdd_drive_t *) priv;
-    fdd_t *            fdd_drv = &(fdd[drv->id]);
+    fdd_drive_t *drv     = (fdd_drive_t *) priv;
 
-    fdd_drv->track += track_diff;
+    drv->track += track_diff;
 
-    if (fdd_drv->track < 0)
-        fdd_drv->track = 0;
+    if (drv->track < 0)
+        drv->track = 0;
 
-    if (fdd_drv->track > drive_types[fdd_drv->type].max_track)
-        fdd_drv->track = drive_types[fdd_drv->type].max_track;
+    if (drv->track > drive_types[drv->type].max_track)
+        drv->track = drive_types[drv->type].max_track;
 
-    fdd_do_seek_ex(drv, fdd_drv->track);
+    fdd_do_seek_ex(drv, drv->track);
 }
 
 static void
@@ -359,15 +347,16 @@ fdd_seek_complete_callback(void *priv)
 
     drv->seek_in_progress = 0;
 
-    fdd_log("fdd_seek_complete_callback(drive=%d) - TIMER FIRED! seek_in_progress=1\n", drive->id);
+    fdd_log("fdd_seek_complete_callback(drive=%d) - TIMER FIRED! seek_in_progress=1\n",
+            drv->id);
     fdd_log("Notifying FDC of seek completion\n");
-    fdd_do_seek_ex(drv, fdd[drv->id].track);
+    fdd_do_seek_ex(drv, drv->track);
 
     int had_pending = drv->pending.pending;
     if (had_pending) {
         fdd_pending_op_t *po = &drv->pending;
         fdd_log("Starting deferred op %d after seek on drive %d (trk=%d, side=%d, sec=%d)\n",
-                po->op, drive->id, po->track, po->side, po->sector);
+                po->op, drv->id, po->track, po->side, po->sector);
 
         switch (po->op) {
             case FDD_OP_READ:
@@ -419,12 +408,13 @@ fdd_seek(void *priv, const int track_diff)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
 
-    fdd_log("fdd_seek(drive=%d, track_diff=%d)\n", drive, track_diff);
+    fdd_log("fdd_seek(drive=%d, track_diff=%d)\n", drv->id, track_diff);
     if (track_diff == 0)
         return;
 
     if (drv->seek_in_progress) {
-        fdd_log("Seek already in progress for drive %d, ignoring new seek request\n", drive);
+        fdd_log("Seek already in progress for drive %d, ignoring new seek request\n",
+                drv->id);
         return;
     }
 
@@ -452,34 +442,33 @@ fdd_seek(void *priv, const int track_diff)
         return;
     }
 
-    fdd_t *fdd_drv = &(fdd[drv->id]);
     fdc_t *fdc     = (fdc_t *) drv->fdc;
 
-    int old_track = fdd_drv->track;
+    int old_track = drv->track;
     const int ibm5140 = (fdc != NULL) && (fdc->flags & FDC_FLAG_IBM5140);
     const int degated = ibm5140 && fdc->drive_interface_gated;
 
     if (!degated)
-        fdd_drv->track += track_diff;
+        drv->track += track_diff;
 
-    if (fdd_drv->track < 0)
-        fdd_drv->track = 0;
+    if (drv->track < 0)
+        drv->track = 0;
 
-    if (fdd_drv->track > drive_types[fdd_drv->type].max_track)
-        fdd_drv->track = drive_types[fdd_drv->type].max_track;
+    if (drv->track > drive_types[drv->type].max_track)
+        drv->track = drive_types[drv->type].max_track;
 
     if (!degated && (!ibm5140 || !drv->empty))
         drv->changed = 0;
 
-    if (fdd_drv->turbo) {
-        fdd_do_seek_ex(drv, fdd_drv->track);
+    if (drv->turbo) {
+        fdd_do_seek_ex(drv, drv->track);
     } else {
         /* Trigger appropriate audio for track movements */
-        int actual_track_diff = abs(old_track - fdd_drv->track);
+        int actual_track_diff = abs(old_track - drv->track);
         if (actual_track_diff > 0) {
             /* Multi-track seek */
             fdd_audio_play_multi_track_seek(drv, old_track,
-                                            fdd_drv->track);
+                                            drv->track);
         }
 
         drv->seek_in_progress = 1;
@@ -490,7 +479,7 @@ fdd_seek(void *priv, const int track_diff)
         }
 
         /* Determine seek direction - seeking down means moving toward track 0 */
-        const int is_seek_down = (fdd_drv->track < old_track);
+        const int is_seek_down = (drv->track < old_track);
 
         /* Get seek timings from audio profile configuration with direction awareness */
         const int step_count = ibm5140 && !degated &&
@@ -504,7 +493,7 @@ fdd_seek(void *priv, const int track_diff)
         }
 
         fdd_log("Seek timing for drive %d: %.2f µs (%s)\n",
-                drive, seek_time_us, is_seek_down ? "DOWN" : "UP");
+                drv->id, seek_time_us, is_seek_down ? "DOWN" : "UP");
         const uint64_t seek_delay_us = (uint64_t) (seek_time_us * (double) TIMER_USEC);
         timer_set_delay_u64(&drv->seek_timer, seek_delay_us);
     }
@@ -518,19 +507,17 @@ fdd_track0(void *priv)
     if (drv == NULL)
         return 0;
 
-    fdd_log("fdd_track0(drive=%d)\n", drv-id);
+    fdd_log("fdd_track0(drive=%d)\n", drv->id);
 
     /* On a floppy tape drive, TRK0 is the drive's result line. */
     if (fdd_tape_present(drv))
         return fdd_tape_track0(drv);
 
-    fdd_t *fdd_drv = &(fdd[drv->id]);
-
     /* If drive is disabled, TRK0 never gets set. */
-    if (!drive_types[fdd_drv->type].max_track)
+    if (!drive_types[drv->type].max_track)
         return 0;
 
-    return !fdd_drv->track;
+    return !drv->track;
 }
 
 int
@@ -546,9 +533,8 @@ int
 fdd_current_track(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdd_t *fdd_drv = &(fdd[drv->id]);
 
-    return fdd_drv->track;
+    return drv->track;
 }
 
 static int
@@ -569,27 +555,16 @@ fdd_type_invert_densel(int type)
     return ret;
 }
 
-static int
-fdd_invert_densel(void *priv)
-{
-    fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdd_t *fdd_drv = &(fdd[drv->id]);
-
-    int ret = fdd_type_invert_densel(fdd_drv->type);
-
-    return ret;
-}
-
 void
 fdd_set_densel(const int bus, const int densel)
 {
     for (uint8_t i = 0; i < 4; i++) {
         fdd_drive_t *drv = &(drives[bus + i]);
 
-        if (fdd_invert_densel(drv))
-            fdd[i].densel = densel ^ 1;
+        if (fdd_type_invert_densel(drv->type))
+            drv->densel = densel ^ 1;
         else
-            fdd[i].densel = densel;
+            drv->densel = densel;
     }
 }
 
@@ -601,20 +576,18 @@ fdd_getrpm(void *priv)
     int densel = 0;
     int hole;
 
-    fdd_t *fdd_drv = &(fdd[drv->id]);
-
     hole   = fdd_hole(drv);
-    densel = fdd_drv->densel;
+    densel = drv->densel;
 
-    if (fdd_invert_densel(drv))
+    if (fdd_type_invert_densel(drv->type))
         densel ^= 1;
 
-    if (!(drive_types[fdd_drv->type].flags & FLAG_RPM_360))
+    if (!(drive_types[drv->type].flags & FLAG_RPM_360))
         return 300;
-    if (!(drive_types[fdd_drv->type].flags & FLAG_RPM_300))
+    if (!(drive_types[drv->type].flags & FLAG_RPM_300))
         return 360;
 
-    if (drive_types[fdd_drv->type].flags & FLAG_525)
+    if (drive_types[drv->type].flags & FLAG_525)
         return densel ? 360 : 300;
     else {
         /* fdd_hole(drive) returns 0 for double density media, 1 for high density, and 2 for extended density. */
@@ -641,9 +614,8 @@ int
 fdd_doublestep_40(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdd_t *fdd_drv = &(fdd[drv->id]);
 
-    return !!(drive_types[fdd_drv->type].flags & FLAG_DOUBLE_STEP);
+    return !!(drive_types[drv->type].flags & FLAG_DOUBLE_STEP);
 }
 
 int
@@ -654,9 +626,8 @@ fdd_is_pcjx_360(void *priv)
     if ((drv == NULL) || !machine_is_pcjx(machine))
         return 0;
 
-    fdd_t *fdd_drv = &(fdd[drv->id]);
     const int flags = fdd_get_flags(drv);
-    return (drive_types[fdd_drv->type].max_track >= 80) &&
+    return (drive_types[drv->type].max_track >= 80) &&
            !(flags & FLAG_525) && ((flags & (FLAG_DS | FLAG_HOLE0)) == (FLAG_DS | FLAG_HOLE0));
 }
 
@@ -664,34 +635,31 @@ void
 fdd_set_type(void *priv, int type)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdd_t *fdd_drv = &(fdd[drv->id]);
 
-    if (fdd_type_invert_densel(fdd_drv->type) != fdd_type_invert_densel(type))
-        fdd_drv->densel ^= 1;
-    fdd_drv->type = type;
+    if (fdd_type_invert_densel(drv->type) != fdd_type_invert_densel(type))
+        drv->densel ^= 1;
+    drv->type = type;
 }
 
 int
 fdd_get_type(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdd_t *fdd_drv = &(fdd[drv->id]);
 
-    return fdd_drv->type;
+    return drv->type;
 }
 
 int
 fdd_get_flags(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdd_t *fdd_drv = &(fdd[drv->id]);
 
     /* A floppy tape drive answers on this drive select line instead of
        whatever floppy drive may be configured on it. */
     if (fdd_tape_present(drv))
         return fdd_tape_get_flags(drv);
 
-    return drive_types[fdd_drv->type].flags;
+    return drive_types[drv->type].flags;
 }
 
 int
@@ -746,69 +714,64 @@ void
 fdd_set_head(void *priv, int head)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdd_t *fdd_drv = &(fdd[drv->id]);
 
     fdd_log("fdd_set_head(%d, %d)\n", drv->id, head);
     if (head && !fdd_is_double_sided(drv))
-        fdd_drv->head = 0;
+        drv->head = 0;
     else
-        fdd_drv->head = head;
+        drv->head = head;
 }
 
 int
 fdd_get_head(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdd_t *fdd_drv = &(fdd[drv->id]);
+    int          ret = 0;
 
-    if (!fdd_is_double_sided(drv))
-        return 0;
-    return fdd_drv->head;
+    if (fdd_is_double_sided(drv))
+        ret = drv->head;
+
+    return ret;
 }
 
 void
 fdd_set_turbo(void *priv, const int turbo)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdd_t *fdd_drv = &(fdd[drv->id]);
 
-    fdd_drv->turbo = turbo;
+    drv->turbo = turbo;
 }
 
 int
 fdd_get_turbo(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdd_t *fdd_drv = &(fdd[drv->id]);
 
-    return fdd_drv->turbo;
+    return drv->turbo;
 }
 
 void
 fdd_set_check_bpb(void *priv, int check_bpb)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdd_t *fdd_drv = &(fdd[drv->id]);
 
-    fdd_drv->check_bpb = check_bpb;
+    drv->check_bpb = check_bpb;
 }
 
 int
 fdd_get_check_bpb(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdd_t *fdd_drv = &(fdd[drv->id]);
 
-    return fdd_drv->check_bpb;
+    return drv->check_bpb;
 }
 
 int
 fdd_get_densel(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdd_t *fdd_drv = &(fdd[drv->id]);
 
-    return fdd_drv->densel;
+    return drv->densel;
 }
 
 void
@@ -983,7 +946,7 @@ fdd_set_motor_enable(void *priv, int motor_enable)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
 
-    fdd_log("fdd_set_motor_enable(%d, %d)\n", drive, motor_enable);
+    fdd_log("fdd_set_motor_enable(%d, %d)\n", drv->id, motor_enable);
     fdd_audio_set_motor_enable(drv, motor_enable);
 
     if (motor_enable && !drv->motoron)
@@ -1082,7 +1045,7 @@ fdd_readsector(void *priv, const int sector, const int track, const int side,
 
     if (fdd_defer_op(drv)) {
         fdd_log("Seek in progress on drive %d, deferring READ (trk=%d->%d, side=%d, sec=%d)\n",
-                drv->id, fdd[drive].track, track, side, sector);
+                drv->id, drv->track, track, side, sector);
         drv->pending = (fdd_pending_op_t) {
             .pending     = 1,
             .op          = FDD_OP_READ,
@@ -1110,11 +1073,12 @@ fdd_writesector(void *priv, const int sector, const int track, const int side,
     if (drv == NULL)
         return;
 
-    fdd_log("fdd_writesector(%d, %d, %d, %d, %d, %d)\n", drive, sector, track, side, density, sector_size);
+    fdd_log("fdd_writesector(%d, %d, %d, %d, %d, %d)\n", drv->id, sector, track, side,
+            density, sector_size);
 
     if (fdd_defer_op(drv)) {
         fdd_log("Seek in progress on drive %d, deferring WRITE (trk=%d->%d, side=%d, sec=%d)\n",
-                drv->id, fdd[drv->id].track, track, side, sector);
+                drv->id, drv->track, track, side, sector);
         drv->pending = (fdd_pending_op_t) {
             .pending     = 1,
             .op          = FDD_OP_WRITE,
@@ -1144,7 +1108,7 @@ fdd_comparesector(void *priv, const int sector, const int track,const  int side,
 
     if (fdd_defer_op(drv)) {
         fdd_log("Seek in progress on drive %d, deferring COMPARE (trk=%d->%d, side=%d, sec=%d)\n",
-                drive, fdd[drv->id].track, track, side, sector);
+                drv->id, drv->track, track, side, sector);
         drv->pending = (fdd_pending_op_t) {
             .pending     = 1,
             .op          = FDD_OP_COMPARE,
@@ -1173,11 +1137,11 @@ fdd_readaddress(void *priv, const int side, const int density)
 
     if (fdd_defer_op(drv)) {
         fdd_log("Seek in progress on drive %d, deferring READADDRESS (trk=%d, side=%d)\n",
-                drv->id, fdd[drv->id].track, side);
+                drv->id, drv->track, side);
         drv->pending = (fdd_pending_op_t) {
             .pending = 1,
             .op      = FDD_OP_READADDR,
-            .track   = fdd[drv->id].track,
+            .track   = drv->track,
             .side    = side,
             .density = density
         };
@@ -1198,11 +1162,11 @@ fdd_format(void *priv, int side, int density, uint8_t fill)
 
     if (fdd_defer_op(drv)) {
         fdd_log("Seek in progress on drive %d, deferring FORMAT (trk=%d, side=%d)\n",
-                drv->id, fdd[drv->id].track, side);
+                drv->id, drv->track, side);
         drv->pending = (fdd_pending_op_t) {
             .pending = 1,
             .op      = FDD_OP_FORMAT,
-            .track   = fdd[drv->id].track,
+            .track   = drv->track,
             .side    = side,
             .density = density,
             .fill    = fill
@@ -1234,7 +1198,7 @@ fdd_stop(void *priv)
         drv->pending.op = FDD_OP_NONE;
         fdd_notfound = 0;
         if (was_seeking)
-            fdd_do_seek(drv, fdd[drv->id].track);
+            fdd_do_seek(drv, drv->track);
     }
 
     if (drv->stop != NULL)

@@ -888,6 +888,12 @@ pc_init(int argc, char *argv[])
     plat_getcwd(rom_path, sizeof(rom_path) - 1);
     plat_getcwd(asset_path, sizeof(asset_path) - 1);
 
+    for (uint8_t i = 0; i < FDD_NUM; i++) {
+        fdd_drive_t *drv = &drives[i];
+
+        memset(drv, 0x00, sizeof(fdd_drive_t));
+    }
+
     for (c = 1; c < argc; c++) {
         if (argv[c][0] != '-')
             break;

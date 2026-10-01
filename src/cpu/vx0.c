@@ -19,6 +19,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 
@@ -444,8 +445,8 @@ put_i8080_data(UNUSED(void* priv), uint16_t addr, uint8_t val)
     writememb(ds, addr, val);
 }
 
-static
-uint8_t i8080_port_in(UNUSED(void* priv), uint8_t port)
+static uint8_t
+i8080_port_in(UNUSED(void* priv), uint8_t port)
 {
     cpu_data = port;
     cpu_state.eaaddr = cpu_data;
@@ -453,8 +454,8 @@ uint8_t i8080_port_in(UNUSED(void* priv), uint8_t port)
     return AL;
 }
 
-static
-void i8080_port_out(UNUSED(void* priv), uint8_t port, uint8_t val)
+static void
+i8080_port_out(UNUSED(void* priv), uint8_t port, uint8_t val)
 {
     cpu_data = DX;
     AL = val;
@@ -596,11 +597,11 @@ geteal(void)
     return ret;
 }
 
-/* Neede for 8087 - memory only. */
+/* Needed for 8087 - memory only. */
 static uint64_t
 geteaq(void)
 {
-    uint32_t ret;
+    uint64_t ret;
 
     if (cpu_mod == 3) {
         fatal("Vx0 register geteaq()\n");
@@ -698,6 +699,7 @@ seteaq(uint64_t val)
 #include "x87.h"
 #include "x87_ops.h"
 #undef tempc
+#undef FPU_NEC
 #undef FPU_8087
 
 static void
@@ -1946,6 +1948,11 @@ decode(void)
 
         do_cycle();
 
+        /* Temp variables for FPU exception reporting. */
+        cpu_state.temp_CS = CS;
+        cpu_state.temp_cs = cs;
+        cpu_state.temp_pc = cpu_state.pc;
+
         opcode  = biu_pfq_fetchb_common();
     }
 }
@@ -3138,11 +3145,11 @@ execute_instruction(void)
             sign_extend_ax();
             break;
 
-       case 0x9a: /* CALLF */
+        case 0x9a: /* CALLF */
             /* read_operand_faraddr() */
             new_ip = biu_pfq_fetchw();
             new_cs = biu_pfq_fetchw();
- 
+
             farcall(new_cs, new_ip, 1);
 
             jump = 1;
@@ -3152,6 +3159,7 @@ execute_instruction(void)
             do_cycles(3);
             if (fpu_softfloat && (fpu_state.swd & FPU_SW_Summary) && !(fpu_state.cwd & FPU_SW_Summary))
                 nmi = 1;
+            check_interrupts();
             break;
 
         case 0x9c: /* PUSHF */
@@ -3274,8 +3282,7 @@ execute_instruction(void)
                     }
 
                     if (!end) {
-                        do_cycle_i();
-
+                       do_cycle_i();
                         if (irq_pending()) {
                             do_cycle_i();
                             rep_interrupt();
@@ -3812,77 +3819,69 @@ execute_instruction(void)
 
         case 0xd8 ... 0xdf: /* ESC - FPU instructions. */
             /* read_operand16() */
-            if (cpu_mod != 3)
-                do_cycles_i(2);    /* load_operand() */
+            do_cycles_i(2);
             tempw = cpu_state.pc;
+            x87_op = ((opcode & 0x07) << 8) | (rmdat & 0xff);
+            /* fpu_op() */
             if (!hasfpu)
                 geteaw();
-            /* fpu_op() */
-            x87_op = ((opcode & 0x07) << 8) | (rmdat & 0xff);
-            if (hasfpu) {
-                if (fpu_softfloat) {
-                    switch (opcode) {
-                        case 0xd8:
-                            ops_sf_fpu_8087_d8[(rmdat >> 3) & 0x1f](rmdat);
-                            break;
-                        case 0xd9:
-                            ops_sf_fpu_8087_d9[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xda:
-                            ops_sf_fpu_8087_da[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xdb:
-                            ops_sf_fpu_8087_db[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xdc:
-                            ops_sf_fpu_8087_dc[(rmdat >> 3) & 0x1f](rmdat);
-                            break;
-                        case 0xdd:
-                            ops_sf_fpu_8087_dd[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xde:
-                            ops_sf_fpu_8087_de[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xdf:
-                            ops_sf_fpu_8087_df[rmdat & 0xff](rmdat);
-                            break;
+            else if (fpu_softfloat)  switch (opcode) {
+                case 0xd8:
+                    ops_sf_fpu_8087_d8[(rmdat >> 3) & 0x1f](rmdat);
+                    break;
+                case 0xd9:
+                    ops_sf_fpu_8087_d9[rmdat & 0xff](rmdat);
+                    break;
+                case 0xda:
+                    ops_sf_fpu_8087_da[rmdat & 0xff](rmdat);
+                    break;
+                case 0xdb:
+                    ops_sf_fpu_8087_db[rmdat & 0xff](rmdat);
+                    break;
+                case 0xdc:
+                    ops_sf_fpu_8087_dc[(rmdat >> 3) & 0x1f](rmdat);
+                    break;
+                case 0xdd:
+                    ops_sf_fpu_8087_dd[rmdat & 0xff](rmdat);
+                    break;
+                case 0xde:
+                    ops_sf_fpu_8087_de[rmdat & 0xff](rmdat);
+                    break;
+                case 0xdf:
+                    ops_sf_fpu_8087_df[rmdat & 0xff](rmdat);
+                    break;
 
-                        default:
-                             break;
-                    }
-                } else {
-                    switch (opcode) {
-                        case 0xd8:
-                            ops_fpu_8087_d8[(rmdat >> 3) & 0x1f](rmdat);
-                            break;
-                        case 0xd9:
-                            ops_fpu_8087_d9[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xdA:
-                            ops_fpu_8087_da[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xdb:
-                            ops_fpu_8087_db[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xdc:
-                            ops_fpu_8087_dc[(rmdat >> 3) & 0x1f](rmdat);
-                            break;
-                        case 0xdd:
-                            ops_fpu_8087_dd[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xde:
-                            ops_fpu_8087_de[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xdf:
-                            ops_fpu_8087_df[rmdat & 0xff](rmdat);
-                            break;
+                default:
+                    break;
+            } else  switch (opcode) {
+                case 0xd8:
+                    ops_fpu_8087_d8[(rmdat >> 3) & 0x1f](rmdat);
+                    break;
+                case 0xd9:
+                    ops_fpu_8087_d9[rmdat & 0xff](rmdat);
+                    break;
+                case 0xda:
+                    ops_fpu_8087_da[rmdat & 0xff](rmdat);
+                    break;
+                case 0xdb:
+                    ops_fpu_8087_db[rmdat & 0xff](rmdat);
+                    break;
+                case 0xdc:
+                    ops_fpu_8087_dc[(rmdat >> 3) & 0x1f](rmdat);
+                    break;
+                case 0xdd:
+                    ops_fpu_8087_dd[rmdat & 0xff](rmdat);
+                    break;
+                case 0xde:
+                    ops_fpu_8087_de[rmdat & 0xff](rmdat);
+                    break;
+                case 0xdf:
+                    ops_fpu_8087_df[rmdat & 0xff](rmdat);
+                    break;
 
-                        default:
-                            break;
-                    }
-                }
+                default:
+                    break;
             }
-
             cpu_state.fpu_op = x87_op;
             cpu_state.fpu_CS = cpu_state.temp_CS;
             cpu_state.fpu_cs = cpu_state.temp_cs;
@@ -3890,9 +3889,10 @@ execute_instruction(void)
             cpu_state.fpu_DS = easeg >> 4;
             cpu_state.fpu_ds = easeg;
             cpu_state.fpu_ea = cpu_state.eaaddr;
-
             cpu_state.pc = tempw; /* Do this as the x87 code advances it, which is needed on
                                      the 286+ core, but not here. */
+            if (cpu_mod != 3)
+                do_cycles_i(2);    /* load_operand() */
             break;
 
         case 0xe0: /* LOOPNE & LOOPE */
