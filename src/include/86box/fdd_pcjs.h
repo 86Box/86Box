@@ -246,9 +246,9 @@ var = var##_json->valueint; \
         goto fail; \
     }
 
-extern void pcjs_init(void);
-extern void pcjs_load(int drive, char *fn);
-extern void pcjs_close(int drive);
+extern void pcjs_load(void *priv, char *fn);
+extern void pcjs_close(void *priv);
+
 extern const char* pcjs_errmsg(void);
 
 #endif

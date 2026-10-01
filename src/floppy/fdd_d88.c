@@ -79,7 +79,6 @@ typedef struct d88_t {
     d88_track_t   tracks[D88_TRACKS];
 } d88_t;
 
-static d88_t *d88[FDD_NUM];
 
 static uint16_t
 rd16(const uint8_t *p)
@@ -120,7 +119,7 @@ d88_free_tracks(d88_t *dev)
 }
 
 /* Return 1 for a valid first D88 disk, 0 for a malformed image.  A D88 file
- * may contain several concatenated disks; one 86Box floppy drive mounts the
+ * may contain several concatenated disks; one 86Box floppy drv mounts the
  * first disk while preserving the trailing bytes verbatim on writeback. */
 static int
 d88_parse(d88_t *dev)
@@ -295,21 +294,23 @@ d88_flags_for_track(const d88_t *dev, int logical_track)
 }
 
 static uint16_t
-disk_flags(int drive)
+disk_flags(void *priv)
 {
-    const d88_t *dev = d88[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    const d88_t *dev = drv->local;
     return dev ? dev->disk_flags : 0;
 }
 
 static uint16_t
-side_flags(int drive)
+side_flags(void *priv)
 {
-    const d88_t *dev = d88[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    const d88_t *dev = drv->local;
     int side;
 
     if (dev == NULL)
         return 0x0a;
-    side = dev->building ? dev->build_side : fdd_get_head(drive);
+    side = dev->building ? dev->build_side : fdd_get_head(drv);
     side &= 1;
     return dev->current_side_flags[side];
 }
@@ -345,8 +346,9 @@ sector_flags(const d88_sector_t *sec)
 }
 
 static int
-d88_gap3_for_track(int drive, int side, const d88_track_t *trk, uint16_t sflags)
+d88_gap3_for_track(void *priv, int side, const d88_track_t *trk, uint16_t sflags)
 {
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
     uint32_t raw_bytes;
     uint32_t used;
     uint32_t remaining;
@@ -356,7 +358,7 @@ d88_gap3_for_track(int drive, int side, const d88_track_t *trk, uint16_t sflags)
     if (!trk->count)
         return 24;
 
-    raw_bytes = common_get_raw_size(drive, side) >> 4;
+    raw_bytes = common_get_raw_size(drv, side) >> 4;
     mfm = (sflags & 0x08) != 0;
     used = mfm ? 146u : 73u; /* GAP0 + sync/IAM + GAP1 */
 
@@ -384,9 +386,10 @@ d88_gap3_for_track(int drive, int side, const d88_track_t *trk, uint16_t sflags)
 }
 
 static void
-d88_build_side(int drive, int side)
+d88_build_side(void *priv, int side)
 {
-    d88_t *dev = d88[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d88_t *dev = drv->local;
     int logical = (dev->track << 1) | side;
     d88_track_t *trk;
     uint16_t pos;
@@ -402,14 +405,14 @@ d88_build_side(int drive, int side)
     dev->building   = 1;
     dev->build_side = (uint8_t) side;
 
-    pos = d86f_prepare_pretrack(drive, side, 0);
+    pos = d86f_prepare_pretrack(drv, side, 0);
     gap2 = (dev->current_side_flags[side] & 0x08) ? 22 : 11;
-    gap3 = d88_gap3_for_track(drive, side, trk, dev->current_side_flags[side]);
+    gap3 = d88_gap3_for_track(drv, side, trk, dev->current_side_flags[side]);
 
     for (uint16_t i = 0; i < trk->count; i++) {
         d88_sector_t *sec = &trk->sectors[i];
         uint8_t id[4] = { sec->c, sec->h, sec->r, sec->n };
-        pos = d86f_prepare_sector(drive, side, pos, id, sec->data,
+        pos = d86f_prepare_sector(drv, side, pos, id, sec->data,
                                   sec->data_size, gap2, gap3,
                                   sector_flags(sec));
     }
@@ -418,38 +421,40 @@ d88_build_side(int drive, int side)
 }
 
 static void
-d88_seek(int drive, int track)
+d88_seek(void *priv, int track)
 {
-    d88_t *dev = d88[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d88_t *dev = drv->local;
 
     if (dev == NULL)
         return;
 
-    /* 40-track media in an 80-track double-step drive uses every other
+    /* 40-track media in an 80-track double-step drv uses every other
      * physical cylinder, like the IMG/IMD loaders. */
-    if (!dev->track_width && fdd_doublestep_40(drive))
+    if (!dev->track_width && fdd_doublestep_40(drv))
         track /= 2;
     if (track < 0)
         track = 0;
 
     dev->track = track;
-    d86f_set_cur_track(drive, track);
+    d86f_set_cur_track(drv, track);
 
     for (int side = 0; side < 2; side++)
         dev->current_side_flags[side] = d88_flags_for_track(dev, (track << 1) | side);
 
-    d86f_zero_track(drive);
+    d86f_zero_track(drv);
     for (int side = 0; side < dev->sides; side++)
-        d88_build_side(drive, side);
+        d88_build_side(drv, side);
 
     dev->building = 0;
     dev->current_sector[0] = dev->current_sector[1] = NULL;
 }
 
 static void
-d88_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
+d88_set_sector(void *priv, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 {
-    d88_t *dev = d88[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d88_t *dev = drv->local;
     int logical;
     d88_track_t *trk;
 
@@ -473,9 +478,10 @@ d88_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 }
 
 static uint8_t
-d88_read_data(int drive, int side, uint16_t pos)
+d88_read_data(void *priv, int side, uint16_t pos)
 {
-    const d88_t *dev = d88[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    const d88_t *dev = drv->local;
     const d88_sector_t *sec;
 
     if ((dev == NULL) || (side < 0) || (side > 1))
@@ -487,12 +493,13 @@ d88_read_data(int drive, int side, uint16_t pos)
 }
 
 static void
-d88_write_data(int drive, int side, uint16_t pos, uint8_t data)
+d88_write_data(void *priv, int side, uint16_t pos, uint8_t data)
 {
-    d88_t *dev = d88[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d88_t *dev = drv->local;
     d88_sector_t *sec;
 
-    if ((dev == NULL) || !dev->writable || writeprot[drive] ||
+    if ((dev == NULL) || !dev->writable || drv->writeprot ||
         (side < 0) || (side > 1))
         return;
     sec = dev->current_sector[side];
@@ -503,11 +510,12 @@ d88_write_data(int drive, int side, uint16_t pos, uint8_t data)
 }
 
 static void
-d88_writeback(int drive)
+d88_writeback(void *priv)
 {
-    d88_t *dev = d88[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d88_t *dev = drv->local;
 
-    if ((dev == NULL) || !dev->dirty || !dev->writable || (dev->fp == NULL) || writeprot[drive])
+    if ((dev == NULL) || !dev->dirty || !dev->writable || (dev->fp == NULL) || drv->writeprot)
         return;
 
     if ((fseek(dev->fp, 0, SEEK_SET) == 0) &&
@@ -518,7 +526,7 @@ d88_writeback(int drive)
 }
 
 static int
-d88_format_track(UNUSED(int drive), UNUSED(int side),
+d88_format_track(UNUSED(void *priv), UNUSED(int side),
                  UNUSED(const d86f_format_id_t *ids), UNUSED(uint16_t count),
                  UNUSED(uint8_t fill))
 {
@@ -529,13 +537,13 @@ d88_format_track(UNUSED(int drive), UNUSED(int side),
 }
 
 static int
-d88_format_conditions(UNUSED(int drive))
+d88_format_conditions(UNUSED(void *priv))
 {
     return 0;
 }
 
 static uint32_t
-d88_index_hole_pos(UNUSED(int drive), UNUSED(int side))
+d88_index_hole_pos(UNUSED(void *priv), UNUSED(int side))
 {
     return 0;
 }
@@ -573,12 +581,13 @@ d88_open_image(d88_t *dev, const char *fn)
 }
 
 void
-d88_load(int drive, char *fn)
+d88_load(void *priv, char *fn)
 {
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
     d88_t *dev;
     uint8_t media_class;
 
-    d86f_unregister(drive);
+    d86f_unregister(drv);
 
     dev = (d88_t *) calloc(1, sizeof(d88_t));
     if (dev == NULL)
@@ -588,44 +597,43 @@ d88_load(int drive, char *fn)
         goto fail_dev;
 
     /* Header protection and the UI write-protect toggle both win. */
-    if ((dev->protect & 0x10) || ui_writeprot[drive])
+    if ((dev->protect & 0x10) || drv->read_only)
         dev->writable = 0;
-    writeprot[drive]  = dev->writable ? 0 : 1;
-    fwriteprot[drive] = writeprot[drive];
+    drv->writeprot = dev->writable ? 0 : 1;
 
     media_class = dev->media & 0xf0u;
     dev->disk_flags = (dev->sides == 2) ? 0x08 : 0x00;
     if (media_class == D88_MEDIA_2HD)
         dev->disk_flags |= 0x02; /* HD density hole. */
-    if (writeprot[drive])
+    if (drv->writeprot)
         dev->disk_flags |= 0x10;
 
-    d88[drive] = dev;
+    drv->local = dev;
 
     dev->current_side_flags[0] = d88_default_side_flags(dev);
     dev->current_side_flags[1] = dev->current_side_flags[0];
 
-    d86f_handler[drive].disk_flags        = disk_flags;
-    d86f_handler[drive].side_flags        = side_flags;
-    d86f_handler[drive].writeback         = d88_writeback;
-    d86f_handler[drive].set_sector        = d88_set_sector;
-    d86f_handler[drive].format_track      = d88_format_track;
-    d86f_handler[drive].read_data         = d88_read_data;
-    d86f_handler[drive].write_data        = d88_write_data;
-    d86f_handler[drive].format_conditions = d88_format_conditions;
-    d86f_handler[drive].extra_bit_cells   = null_extra_bit_cells;
-    d86f_handler[drive].encoded_data      = common_encoded_data;
-    d86f_handler[drive].read_revolution   = common_read_revolution;
-    d86f_handler[drive].index_hole_pos    = d88_index_hole_pos;
-    d86f_handler[drive].get_raw_size      = common_get_raw_size;
-    d86f_handler[drive].check_crc         = 1;
-    d86f_set_version(drive, D86FVER);
-    d86f_common_handlers(drive);
-    drives[drive].seek = d88_seek;
+    drv->d86f_handler.disk_flags        = disk_flags;
+    drv->d86f_handler.side_flags        = side_flags;
+    drv->d86f_handler.writeback         = d88_writeback;
+    drv->d86f_handler.set_sector        = d88_set_sector;
+    drv->d86f_handler.format_track      = d88_format_track;
+    drv->d86f_handler.read_data         = d88_read_data;
+    drv->d86f_handler.write_data        = d88_write_data;
+    drv->d86f_handler.format_conditions = d88_format_conditions;
+    drv->d86f_handler.extra_bit_cells   = null_extra_bit_cells;
+    drv->d86f_handler.encoded_data      = common_encoded_data;
+    drv->d86f_handler.read_revolution   = common_read_revolution;
+    drv->d86f_handler.index_hole_pos    = d88_index_hole_pos;
+    drv->d86f_handler.get_raw_size      = common_get_raw_size;
+    drv->d86f_handler.check_crc         = 1;
+    d86f_set_version(drv, D86FVER);
+    d86f_common_handlers(drv);
+    drv->seek = d88_seek;
 
     /* Populate the first track immediately, matching the other sector-image
      * loaders and avoiding a blank revolution before the first seek. */
-    d88_seek(drive, 0);
+    d88_seek(drv, 0);
     return;
 
 fail_dev:
@@ -637,26 +645,27 @@ fail_dev:
         free(dev);
     }
 fail:
-    memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
-    drive_empty[drive] = 1;
+    memset(drv->image_path, 0, sizeof(drv->image_path));
+    drv->empty = 1;
 }
 
 void
-d88_close(int drive)
+d88_close(void *priv)
 {
-    d88_t *dev = d88[drive];
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    d88_t *dev = drv->local;
 
     if (dev == NULL)
         return;
 
-    d88_writeback(drive);
-    d86f_unregister(drive);
-    drives[drive].seek = NULL;
+    d88_writeback(drv);
+    d86f_unregister(drv);
+    drv->seek = NULL;
 
     d88_free_tracks(dev);
     free(dev->image);
     if (dev->fp != NULL)
         fclose(dev->fp);
     free(dev);
-    d88[drive] = NULL;
+    drv->local = NULL;
 }

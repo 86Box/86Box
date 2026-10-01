@@ -30,6 +30,9 @@
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/hdc.h>
+#include <86box/scsi_ncr53c8xx.h>
+#include <86box/scsi_aic7xxx.h>
 #include <86box/keyboard.h>
 #include <86box/nvr.h>
 #include <86box/sio.h>
@@ -39,6 +42,7 @@
 #include <86box/vid_cga.h>
 #include <86box/vid_mcga.h>
 #include <86box/vid_pc98.h>
+#include <86box/vid_ps55da2.h>
 #include <86box/plat_unused.h>
 #include <86box/thread.h>
 #include <86box/network.h>
@@ -139,6 +143,7 @@ const machine_filter_t machine_chipsets[] = {
     { "SARC RC2016A",               MACHINE_CHIPSET_SARC_RC2016A        },
     { "SiS 310",                    MACHINE_CHIPSET_SIS_310             },
     { "SiS 401",                    MACHINE_CHIPSET_SIS_401             },
+    { "SiS 411",                    MACHINE_CHIPSET_SIS_411             },
     { "SiS 460",                    MACHINE_CHIPSET_SIS_460             },
     { "SiS 461",                    MACHINE_CHIPSET_SIS_461             },
     { "SiS 471",                    MACHINE_CHIPSET_SIS_471             },
@@ -658,7 +663,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_FDC, /* Machine has internal video: NSI EVC315-S EGA */
+        .flags     = MACHINE_FDC, /* Machine has internal video: NSI EVC315-S EGA (not yet implemented) */
         .ram       = {
             .min  = 64,
             .max  = 640,
@@ -1034,7 +1039,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_FDC, /* Machine has internal video: Paradise PVC2 */
+        .flags     = MACHINE_FDC, /* Machine has internal video: Paradise PVC2 (not yet implemented) */
         .ram       = {
             .min  = 128,
             .max  = 640,
@@ -1880,7 +1885,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_XTA | MACHINE_KEYBOARD | MACHINE_MOUSE, /* Machine has internal video: Paradise PVC4 */
+        .flags     = MACHINE_XTA | MACHINE_KEYBOARD | MACHINE_MOUSE, /* Machine has internal video: Paradise PVC4 (not yet implemented) */
         .ram       = {
             .min  = 512,
             .max  = 640,
@@ -3728,9 +3733,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_XTA | MACHINE_VIDEO_FIXED,
         .ram       = {
-            .min  = 256,
+            .min  = 512,
             .max  = 2560,
-            .step = 128
+            .step = 512
         },
         .nvrmask                  = 63,
         .jumpered_ecp_dma         = 0,
@@ -3798,7 +3803,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "IBM PS/2 model 25-386", "" }
+        .aliases                  = { "IBM PS/2 model 25-286", "" }
     },
     /* Has IBM AT KBC firmware. */
     {
@@ -3967,7 +3972,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_KEYBOARD,
+        .flags     = MACHINE_IDE | MACHINE_IDE_INTERNAL | MACHINE_VIDEO | MACHINE_KEYBOARD,
         .ram       = {
             .min  = 256,
             .max  = 6784,
@@ -5271,7 +5276,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_FLAGS_NONE, /* Machine has internal SCSI: Western Digital WD33C93AJM */
+        .flags     = MACHINE_FLAGS_NONE, /* Machine has internal SCSI: Western Digital WD33C93AJM (not yet implemented) */
         .ram       = {
             .min  = 640,
             .max  = 640, /* memory upgrades are only possible with proprietary 1 or 2 MB
@@ -5659,7 +5664,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE, /* Has internal video: C&T VGA 411 */
+        .flags     = MACHINE_IDE, /* Machine has internal video: C&T VGA 411 (not yet implemented) */
         .ram       = {
             .min  = 512, /* crashes and bootloops during POST with less */
             .max  = 8192,
@@ -5708,7 +5713,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE, /* Has internal video: C&T VGA 411 */
+        .flags     = MACHINE_IDE, /* Machine has internal video: C&T VGA 411 (not yet implemented) */
         .ram       = {
             .min  = 512, /* crashes and bootloops during POST with less */
             .max  = 8192,
@@ -6018,7 +6023,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &ps1_2121_device,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
@@ -6050,7 +6055,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 512,
-            .max  = 1024,
+            .max  = 15360,
             .step = 128 /* assumed */
         },
         .nvrmask                  = 127,
@@ -6386,7 +6391,7 @@ const machine_t machines[] = {
             .max_multi   = 0,
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO , /* Machine has internal OTI 077 Video card*/
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
             .max  = 16256,
@@ -7018,7 +7023,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_FLAGS_NONE,
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 512,
             .max  = 16384,
@@ -7244,6 +7249,54 @@ const machine_t machines[] = {
     /* 386SX machines which utilize the MCA bus */
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
+        .name              = "[MCA] IBM PS/2 model 55LS",
+        .internal_name     = "ibmps2_m55ls",
+        .type              = MACHINE_TYPE_386SX,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_ps2_model_55ls_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386SX,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 16000000,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags     = MACHINE_VIDEO,
+        .ram       = {
+            .min  = 1024,
+            .max  = 8192,
+            .step = 1024
+        },
+        .nvrmask                  = 63,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    {
         .name              = "[MCA] IBM PS/2 model 55SX",
         .internal_name     = "ibmps2_m55sx",
         .type              = MACHINE_TYPE_386SX,
@@ -7329,6 +7382,55 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    {
+        .name              = "[MCA] IBM PS/55 model 5535-S",
+        .internal_name     = "ibmps55_m35s",
+        .type              = MACHINE_TYPE_386SX,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_ps55_model_5535s_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386SX,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 16000000,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags     = MACHINE_VIDEO | MACHINE_KEYBOARD_JIS,
+        .ram       = {
+            /* 1MB is not enough for the reference disk */
+            .min  = 2048,
+            .max  = 8192,
+            .step = 1024
+        },
+        .nvrmask                  = 63,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
@@ -7714,7 +7816,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_KEYBOARD,
+        .flags     = MACHINE_IDE | MACHINE_IDE_INTERNAL | MACHINE_VIDEO | MACHINE_KEYBOARD,
         .ram       = {
             .min  = 1024,
             .max  = 14336,
@@ -8424,11 +8526,59 @@ const machine_t machines[] = {
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
+        .name              = "[MCA] IBM PS/2 model 80 (type 1)",
+        .internal_name     = "ibmps2_m80_type1",
+        .type              = MACHINE_TYPE_386DX,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_ps2_model_80_type1_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386DX | CPU_PKG_486BL,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 16000000,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
+        .flags     = MACHINE_VIDEO,
+        .ram       = {
+            .min  = 1024,
+            .max  = 4096,
+            .step = 1024
+        },
+        .nvrmask                  = 63,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    {
         .name              = "[MCA] IBM PS/2 model 80 (type 2)",
         .internal_name     = "ibmps2_m80",
         .type              = MACHINE_TYPE_386DX,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,
-        .init              = machine_ps2_model_80_init,
+        .init              = machine_ps2_model_80_type2_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -8470,13 +8620,157 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    {
+        .name              = "[MCA] IBM PS/2 model P70 (type 1)",
+        .internal_name     = "ibmps2_p70_type1",
+        .type              = MACHINE_TYPE_386DX,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_ps2_model_p70_type1_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386DX,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 16000000,
+            .max_bus     = 0,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
+        .flags     = MACHINE_VIDEO_PANEL,
+        .ram       = {
+            .min  = 1024,
+            .max  = 8192,
+            .step = 1024
+        },
+        .nvrmask                  = 63,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &ibm_plasma_vga_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has IBM PS/2 Type 2 KBC firmware. */
+    {
+        .name              = "[MCA] IBM PS/2 model P70 (type 2)",
+        .internal_name     = "ibmps2_p70_type2",
+        .type              = MACHINE_TYPE_386DX,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_ps2_model_p70_type2_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386DX,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 16000000,
+            .max_bus     = 0,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
+        .flags     = MACHINE_VIDEO_PANEL,
+        .ram       = {
+            .min  = 1024,
+            .max  = 8192,
+            .step = 1024
+        },
+        .nvrmask                  = 63,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_IBM | KBC_FLAG_IS_TYPE2,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &ibm_plasma_vga_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    {
+        .name              = "[MCA] IBM PS/55 model 5540-T",
+        .internal_name     = "ibmps55_m40t",
+        .type              = MACHINE_TYPE_386DX,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_ps55_model_5540t_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386DX | CPU_PKG_486BL,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 20000000,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
+        .flags     = MACHINE_VIDEO | MACHINE_KEYBOARD_JIS,
+        .ram       = {
+            .min  = 2048,
+            .max  = 65536,
+            .step = 2048
+        },
+        .nvrmask                  = 63,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &ps55db2_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
     /* Has IBM PS/55 5551-Sxx, Txx stage 2 firmware. */
     {
         .name              = "[MCA] IBM PS/55 model 5550-S/T Stage II",
         .internal_name     = "ibmps55_m50t",
         .type              = MACHINE_TYPE_386DX,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,
-        .init              = machine_ps55_model_50t_init,
+        .init              = machine_ps55_model_5550t_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -8815,7 +9109,7 @@ const machine_t machines[] = {
         .internal_name     = "ibmps2_m80_type3",
         .type              = MACHINE_TYPE_386DX_486,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,
-        .init              = machine_ps2_model_80_axx_init,
+        .init              = machine_ps2_model_80_type3_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -8863,7 +9157,7 @@ const machine_t machines[] = {
         .internal_name     = "ibmps55_m50v",
         .type              = MACHINE_TYPE_386DX_486,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,
-        .init              = machine_ps55_model_50v_init,
+        .init              = machine_ps55_model_5550v_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -10169,6 +10463,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5428_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_ali5213_device,
         .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
@@ -10265,6 +10560,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .scsi_device              = &ncr53c810_onboard_pci_device,
         .aliases                  = { "" }
     },
     /* This has a standalone AMI Megakey 1993, which is type 'P'. */
@@ -10337,7 +10633,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_FLAGS_NONE, /* Machine has IDE with controller: Appian ADI/2 */
+        .flags     = MACHINE_IDE, /* Machine has IDE with controller: Appian ADI/2 */
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -10348,6 +10644,57 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Tyan S1437: SiS 85C405/406/411/420/431, eight EISA slots and two
+       VLB slots, four banks of 30-pin SIMMs to 256 MB, AMIKEY keyboard
+       controller, DS1387 clock with the 8 KB EISA configuration RAM. No
+       IDE or floppy on the board: those are cards. */
+    {
+        .name              = "[SiS 411] Tyan 486VL/EISA (S1437)",
+        .internal_name     = "s1437",
+        .type              = MACHINE_TYPE_SOCKET2,
+        .chipset           = MACHINE_CHIPSET_SIS_411,
+        .init              = machine_at_s1437_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 16000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_EISA | MACHINE_BUS_VLB,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 1024,
+            .max  = 262144,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
         .nvr_device               = &nvr_at_device,
         .nvr_params               = NVR_AT,
         .sio_device               = NULL,
@@ -10386,7 +10733,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_APM, /* Machine has internal Adaptec SCSI */
+        .flags     = MACHINE_IDE | MACHINE_APM, /* Machine has internal Adaptec SCSI which is not identified. */
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -10412,7 +10759,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Uses an Intel KBC with Phoenix MultiKey 2.03 KBC firmware and has a early PhoenixBIOS (known as Phoenix DragonBIOS) 4.00. */
+    /* Uses an Intel KBC with Phoenix MultiKey 2.03 KBC firmware and has an early PhoenixBIOS (known as Phoenix DragonBIOS) 4.00. */
     {
         .name              = "[SiS 461] Auva Computer CAM/SG0",
         .internal_name     = "auvacam",
@@ -11091,6 +11438,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5428_vlb_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_opti611_vlb_device,
         .aliases                  = { "" }
     },
     /* Version 1.0 has an AMIKEY-2, version 2.0 has a VIA VT82C42N KBC. */
@@ -11165,7 +11513,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_VLB,
-        .flags     = MACHINE_IDE, /* Machine has internal SCSI: Adaptec AIC-6360 */
+        .flags     = MACHINE_IDE, /* Machine has internal SCSI: Adaptec AIC-6360 (onboard variant not yet emulated) */
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -11431,6 +11779,7 @@ const machine_t machines[] = {
         .vid_device               = &s3_trio32_onboard_vlb_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_vlb_pri_device,
         .aliases                  = { "" }
     },
     /* Has JetKey v5.0G KBC Firmware which is a clone of AMIKey type F. */
@@ -11529,6 +11878,55 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    /* Uses some variant of the Phoenix MultiKey/42 */
+    {
+        .name              = "[SiS 471] Micronics LPM30",
+        .internal_name     = "lpm30",
+        .type              = MACHINE_TYPE_SOCKET3,
+        .chipset           = MACHINE_CHIPSET_SIS_471,
+        .init              = machine_at_lpm30_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 40000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SUPER_IO | MACHINE_APM | MACHINE_SOUND | MACHINE_VIDEO,
+        .ram       = {
+            .min  = 1024,
+            .max  = 131072,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_PHOENIX | 0x00012900 /* Guess. */,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &mach64gx_vlb_onboard_device,
+        .snd_device               = &ess_688_device,
+        .net_device               = NULL,
+        .ide_device               = &ide_cmd640_vlb_pri_device,
+        .aliases                  = { "Micronics 09-00232-xx", "" }
+    },
     /* TriGem AMIBIOS Pre-Color with TriGem AMI 'Z' keyboard controller */
     {
         .name              = "[SiS 471] TriGem 486G",
@@ -11551,7 +11949,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_VLB,
-        .flags     = MACHINE_IDE, /* Has internal video: Western Digital WD90C33-ZZ */
+        .flags     = MACHINE_IDE, /* Machine has internal video: Western Digital WD90C33-ZZ (not yet implemented) */
         .ram       = {
         /* In theory, this machine should support up to 128 MB RAM. In practice, likely 
            due to a BIOS bug, it does not detect more than 64 MB at all. */
@@ -11701,7 +12099,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PCIV,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_APM,
         .ram       = {
             .min  = 1024,
             .max  = 131072,
@@ -11894,7 +12292,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_SUPER_IO | MACHINE_IDE, /* Has onboard video: C&T F65545 */
+        .flags     = MACHINE_SUPER_IO | MACHINE_IDE, /* Machine has internal video: C&T F65545 (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 73728,
@@ -12166,6 +12564,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_single_channel_device,
         .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
@@ -12409,6 +12808,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .scsi_device              = &ncr53c810_onboard_pci_device,
         .aliases                  = { "" }
     },
     /* This has the Phoenix MultiKey KBC firmware. */
@@ -12506,6 +12906,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .scsi_device              = &ncr53c810_onboard_pci_device,
         .aliases                  = { "" }
     },
     /* This has an AMI MEGAKey 'P' or 'R' keyboard controller. */
@@ -12555,6 +12956,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5436_onboard_pci_ics_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_rz1000_pci_single_channel_device,
         .aliases                  = { "" }
     },
     /* This most likely has a standalone AMI Megakey 1993, which is type 'P', like the below Tekram board. */
@@ -12629,7 +13031,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         /* Machine has custom (currently unemulated) power management harware
            needed for the APM interface to function */
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -12654,6 +13056,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5430_onboard_vlb_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_opti611_vlb_device,
         .aliases                  = { "Aptiva 510", "Aptiva 710", "Aptiva Vision", "" }
     },
     /* has a Phoenix PLCC Multikey copyrighted 1993, version unknown. */
@@ -12703,6 +13106,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5428_vlb_onboard_pb450_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_opti611_vlb_device,
         .aliases                  = { "Packard Bell Firehawk", "" }
     },
     /* Has Acer KBC firmware. */
@@ -12751,6 +13155,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5434_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_legacy_only_device,
         .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
@@ -13284,6 +13689,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_legacy_only_device,
         .aliases                  = { "" }
     },
     /* Has AMIKey Z(!) KBC firmware. */
@@ -13381,6 +13787,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5430_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_device,
         .aliases                  = { "Epson ActionTower 7300", "Epson ActionTower 7500", "Epson ActionTower 8400", "" }
     },
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
@@ -13651,7 +14058,7 @@ const machine_t machines[] = {
             .max_multi   = 1.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: ST STPC Atlas */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: ST STPC Atlas (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -13700,7 +14107,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -13749,7 +14156,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL | MACHINE_USB, /* Machine has internal video: ST STPC Atlas, NIC: Realtek RTL8100B */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL | MACHINE_USB, /* Machine has internal video: ST STPC Atlas, NIC: Realtek RTL8100B (both not yet implemented) */
         .ram       = {
             /* 32 MB soldered SDRAM, neither upgradable nor other known configurations exist. */
             .min  = 32768,
@@ -13799,7 +14206,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas and NIC: Realtek RTL8139C+ */
+        .flags     = MACHINE_IDE | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas (not yet implemented) and NIC: Realtek RTL8139C+ (onboard variant not yet emulated) */
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -13848,7 +14255,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: SMI LynxEM+ 712 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: SMI LynxEM+ 712 (not yet implemented) */
         .ram       = {
             .min  = 32768,
             .max  = 98304,
@@ -13897,7 +14304,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas (not yet implemented) */
         .ram       = {
             .min  = 32768,
             .max  = 131072,
@@ -14052,7 +14459,7 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE, /* Machine has internal SCSI */
+        .flags     = MACHINE_IDE, /* Machine has unknown internal SCSI */
         .ram       = {
             .min  = 2048,
             .max  = 131072,
@@ -14076,6 +14483,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_legacy_only_device,
         .aliases                  = { "AMI S701", "" }
     },
     /* Has AMIKey F KBC firmware (AMIKey). */
@@ -14244,7 +14652,7 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_VIDEO_8514A,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
             .max  = 131072,
@@ -14364,6 +14772,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_rz1000_pci_single_channel_device,
         .aliases                  = { "Intel Batman's Revenge", "Intel Premiere/PCI Expandable Desktop", "" }
     },
     /* The M5Pi appears to have a Phoenix MultiKey KBC firmware according to photos. */
@@ -14412,6 +14821,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_w83769f_pci_single_channel_device,
         .aliases                  = { "" }
     },
     /* This has the Phoenix MultiKey KBC firmware. */
@@ -14460,6 +14870,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5434_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_single_channel_legacy_only_device,
         .aliases                  = { "Packard Bell Robin LC", "Intel Robin LC", "" }
     },
 
@@ -14563,6 +14974,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_opti611_vlb_device,
         .aliases                  = { "AMI S75", "" }
     },
     /* Has a VIA VT82C42N KBC with AMI 'F' firmware */
@@ -14757,6 +15169,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_legacy_only_device,
         .aliases                  = { "AMI S722", "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
@@ -14805,6 +15218,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_device,
         .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
@@ -14853,6 +15267,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_device,
         .aliases                  = { "" }
     },
 
@@ -14929,7 +15344,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: S3 Vision864 PCI (onboard variant not yet emulated) */
         .ram       = {
             .min  = 4096,
             .max  = 262144,
@@ -14951,10 +15366,10 @@ const machine_t machines[] = {
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        // .vid_device               = &s3_phoenix_vision864_pci_device,  /* Onboard variant not yet emulated */
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_device,
         .aliases                  = { "" }
     },
 
@@ -14982,7 +15397,7 @@ const machine_t machines[] = {
             .max_multi   = 1.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE /*| MACHINE_SCSI */ | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_APM,
         .ram       = {
             .min  = 2048,
             .max  = 524288,
@@ -15108,7 +15523,106 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_rz1000_pci_single_channel_device,
         .aliases                  = { "Intel Plato", "Dell Dimension XPS P___", "Ambra DP90 PCI", "" }
+    },
+    /* EISA and PCI, the PCEB and ESC; AMI 'H' KBC. */
+    {
+        .name              = "[i430NX] Intergraph TD-3",
+        .internal_name     = "td3",
+        .type              = MACHINE_TYPE_SOCKET5,
+        .chipset           = MACHINE_CHIPSET_INTEL_430NX,
+        .init              = machine_at_td3_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 60000000,
+            .max_bus     = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 1.5
+        },
+        .bus_flags = MACHINE_PCIE | MACHINE_BUS_PS2,
+        .flags     = MACHINE_SCSI | MACHINE_NIC | MACHINE_APM,
+        .ram       = {
+            .min  = 2048,
+            .max  = 524288,
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &td3_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = &pcnet_am79c970a_onboard_device,
+        .scsi_device              = &ncr53c810_onboard_pci_device,
+        .aliases                  = { "Intergraph MSMT282", "" }
+    },
+    /* EISA and PCI, the PCEB and ESC; unknown KBC firmware. */
+    {
+        .name              = "[i430NX] Siemens-Nixdorf D823",
+        .internal_name     = "d823",
+        .type              = MACHINE_TYPE_SOCKET5,
+        .chipset           = MACHINE_CHIPSET_INTEL_430NX,
+        .init              = machine_at_d823_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 2.0
+        },
+        .bus_flags = MACHINE_PCIE | MACHINE_BUS_PS2,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram       = {
+            .min  = 8192,
+            .max  = 262144,
+            .step = 2048 /* assumed as the chipset supports */
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &d823_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .ide_device               = &ide_rz1000_pci_device,
+        .aliases                  = { "Siemens-Nixdorf PCD-5T", "Siemens-Nixdorf Primergy 350", "" }
     },
     /* Has unknown KBC firmware. */
     {
@@ -15132,7 +15646,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has onboard video: TLI ET4000/w32p */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: Tseng Labs ET4000/w32p (onboard variant not yet emulated) */
         .ram       = {
             .min  = 2048,
             .max  = 524288,
@@ -15326,7 +15840,7 @@ const machine_t machines[] = {
             .max_multi   = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM, /* Video: S3 Trio64V+ (86C765), Sound: Creative ViBRA 16S (CT2504), Network: 3Com ETHERLINK III (3C509B) */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM, /* Machine has internal NIC: 3Com ETHERLINK III (3C509B) (onboard variant not yet emulated) */
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -15349,7 +15863,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = &s3_trio64vplus_onboard_pci_device,
         .snd_device               = &sb_vibra16s_onboard_device,
-        .net_device               = NULL, /* not yet emulated */
+        .net_device               = NULL,
         .aliases                  = { "" }
     },
     /* KBC On-Chip the VT82C406MV. */
@@ -15796,6 +16310,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_opti611_vlb_device,
         .aliases                  = { "Northgate Computer Systems Elegance Pentium 90", "" }
     },
 
@@ -15972,7 +16487,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SUPER_IO | MACHINE_APM, /* Machine has internal SCSI: Adaptec AIC-7850 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SUPER_IO | MACHINE_APM, /* Machine has internal SCSI: Adaptec AIC-7850 (not yet implemented) */
         .ram       = {
             .min  = 4096,
             .max  = 524288,
@@ -15996,6 +16511,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd646_device,
         .aliases                  = { "" }
     },
     /* This uses a VIA VT82C42N KBC, which is a clone of type 'F' with additional commands.
@@ -16045,6 +16561,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_pc87410_device,
         .aliases                  = { "" }
     },
     /* Has TriGem AMI KBC firmware */
@@ -16093,6 +16610,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_device,
         .aliases                  = { "TriGem GEM4530", "" }
     },
 
@@ -16143,6 +16661,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_device,
         .aliases                  = { "President Technology P54SP4", "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
@@ -16191,6 +16710,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_single_channel_device,
         .aliases                  = { "" }
     },
     /* This machine has a Winbond W83C842 KBC */
@@ -16287,6 +16807,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_w83769f_pci_device,
         .aliases                  = { "" }
     },
     /* Has AMIKey Z(!) KBC firmware. */
@@ -16335,6 +16856,7 @@ const machine_t machines[] = {
         .vid_device               = &tgui9660_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_um8673f_device,
         .aliases                  = { "TriGem Torino", "Olivetti BA2199", "Olivetti BA2259", "Olivetti M4-xxx", "" }
     },
 
@@ -16486,6 +17008,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5434_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_single_channel_device,
         .aliases                  = { "AST Bravo MS-T", "AST Bravo MS-L", "AST Rattler", "" }
     },
     /* KBC firmware is unknown. No commands outside of the base PS/2 */
@@ -16536,6 +17059,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_single_channel_device,
         .aliases                  = { "Micron Diablo", "Micron MBD001013-xx", "" }
     },
     /* This has Phoenix KBC firmware. */
@@ -16585,6 +17109,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5430_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_device,
         .aliases                  = { "Packard Bell Agoura", "Packard Bell Wildcat", "" }
     },
 
@@ -16636,6 +17161,7 @@ const machine_t machines[] = {
         .vid_device               = &s3_trio64_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd640_pci_single_channel_legacy_only_device,
         .aliases                  = { "AT&T Globalyst 630", "NCR 3248", "NCR 3348", "" }
     },
     /* Has a VIA KBC chip */
@@ -16688,6 +17214,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd646_device,
         .aliases                  = { "" }
     },
 
@@ -17060,7 +17587,7 @@ const machine_t machines[] = {
             .max_multi   = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM,  /* Machine has onboard sound: Crystal CS4232-KQ */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM,
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -17082,7 +17609,7 @@ const machine_t machines[] = {
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = &mach64ct_device_onboard,
+        .vid_device               = &mach64ct_onboard_device,
         .snd_device               = &cs4232_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "Intel Atlantis", "" }
@@ -17213,7 +17740,7 @@ const machine_t machines[] = {
             .max_multi   = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM,  /* Machine has onboard sound: Crystal CS4232-KQ */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM,
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -17235,7 +17762,7 @@ const machine_t machines[] = {
         .device                   = &monaco_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = &mach64ct_device_onboard,
+        .vid_device               = &mach64ct_onboard_device,
         .snd_device               = &cs4232_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "Intel Monaco", "AST Bravo MS-T", "" }
@@ -17700,7 +18227,7 @@ const machine_t machines[] = {
             .max_multi   = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has onboard video: C&T F65548 (not yet implemented) */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: C&T F65548 (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 65536,
@@ -17751,7 +18278,7 @@ const machine_t machines[] = {
             .max_multi   = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: ATI 3D Rage II+ DVD (Mach64GT-B) (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -18001,7 +18528,7 @@ const machine_t machines[] = {
             .max_multi   = 2.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM, /* Machine has internal sound: Crystal CS4232-KQ, and video: SiS 6205 (not yet emulated) */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM, /* Machine has internal video: SiS 6205 (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -18176,6 +18703,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_rz1001_pci_device,
         .aliases                  = { "Zeos Pantera", "Zeos Wildcat", "" }
     },
 
@@ -18350,7 +18878,7 @@ const machine_t machines[] = {
             .max_multi   = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal SCSI */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has optional SCSI/ASM */
         .ram       = {
             .min  = 4096,
             .max  = 524288,
@@ -18375,6 +18903,70 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "Acer M3A", "" }
+    },
+    /* The AIR 54TDP: a 430HX board with four EISA slots, four PCI slots,
+       no ISA at all, and an AIC-7880 on board. It has no PIIX -- the
+       82374SB ESC is the south bridge -- so the EISA bridge pair is not
+       an addition to this machine, it is what runs it. */
+    /* THESE VALUES ARE FROM THE REAL BOARD, IN HAND, and its manual. They
+       are not guesses: please do not change them without the board.
+       - Dual-voltage Socket 7: the board takes the Pentium MMX (P55C, 2.8 V
+         core) through its "Support P55 CPU" jumpers JP10, JP11 and JS14
+         (54TDP System Board User's Manual, page 19). The board in hand runs
+         two Pentium MMX 233s.
+       - Multipliers 1.5 to 3.5: JS13 sets 1.5x to 3x (page 17); on a P55C
+         the 1.5x setting is 3.5x, 233 MHz at 66 MHz, as the board in hand
+         runs.
+       - Memory 2 MB to 768 MB: three banks of two 72-pin SIMMs, 256Kx36 to
+         32Mx36 (page 32).
+       Manual: https://theretroweb.com/motherboard/manual/tdpman-5f04d9492eea4539273477.pdf */
+    {
+        .name              = "[i430HX] AIR 54TDP",
+        .internal_name     = "54tdp",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_INTEL_430HX,
+        .init              = machine_at_54tdp_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 3.5
+        },
+        .bus_flags = MACHINE_PCIE | MACHINE_BUS_PS2,
+        .flags     = MACHINE_SCSI | MACHINE_APM,
+        .ram       = {
+            .min  = 2048,
+            .max  = 786432,
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &at_54tdp_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .scsi_device              = &aic7880_pci_device,
+        .aliases                  = { "Advanced Integration Research 54TDP", "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
     {
@@ -18546,7 +19138,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_USB | MACHINE_NIC, /* Machine has internal video: ATI Mach64GT 3D Rage and internal NIC: Intel 82557 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_USB | MACHINE_NIC, /* Machine has internal video: either ATI 3D Rage (Mach64GT) or 3D Rage II+ DVD (Mach64GT-B) (both not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -18597,7 +19189,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_USB, /* Has internal sound: Yamaha YMF701-S */
+        .flags     = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -18746,7 +19338,7 @@ const machine_t machines[] = {
             .max_multi   = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: ATI 3D Rage II+ DVD (Mach64GT-B) (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -18869,6 +19461,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .scsi_device              = &ncr53c810_onboard_pci_device,
         .aliases                  = { "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2) on a BestKey KBC. */
@@ -18992,7 +19585,6 @@ const machine_t machines[] = {
         },
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM,
-        /* Machine has internal video: S3 Trio64V2/DX, S3 Trio32/64/64V+ or S3 ViRGE DX/GX */
         .ram       = {
             .min  = 4096,
             .max  = 131072,
@@ -19013,7 +19605,7 @@ const machine_t machines[] = {
         .device                   = &pb810_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = &s3_trio64v2dx_onboard_pci_device,
+        .vid_device               = &s3_trio64v2dx_onboard_pci_device, /* Machine has also internal videos: either S3 Trio32/64/64V+ or S3 ViRGE DX/GX */
         .snd_device               = &cs4237b_device,
         .net_device               = NULL,
         .aliases                  = { "AST 221630-xxx", "AST Bravo EL", "Packard Bell PB810", "Packard Bell PB820", "" }
@@ -19089,10 +19681,10 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM, /* Machine has internal audio: ESS ES1888F */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM,
         .ram       = {
             .min  = 16384,
-            .max  = 49152,
+            .max  = 65536,
             .step = 4096
         },
         .nvrmask                  = 511,
@@ -19138,10 +19730,10 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM, /* Machine has internal audio: ESS ES1887F */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM,
         .ram       = {
             .min  = 16384,
-            .max  = 49152,
+            .max  = 65536,
             .step = 4096
         },
         .nvrmask                  = 511,
@@ -19335,7 +19927,7 @@ const machine_t machines[] = {
             .max_multi   = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: S3 Trio64V+ */
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -19384,7 +19976,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: S3 Trio64V2/DX */
+        .flags     = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -19505,7 +20097,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &s3_trio64vplus_onboard_pci_device, /* Machine has also internal video: S3 ViRGE */
-        .snd_device               = NULL, /* Machine has Crystal CS4236-KQ onboard sound but it's unpopulated */
+        .snd_device               = NULL, /* Machine has internal sound but it's unpopulated: Crystal CS4236-KQ */
         .net_device               = NULL,
         .aliases                  = { "Packard Bell Orlando", "Packard Bell 2D", "Packard Bell 3D", "Packard Bell MMX", "Packard Bell R501", "Intel NV430VX", "Intel Orlando", "Intel Tampa", "" }
     },
@@ -19631,7 +20223,7 @@ const machine_t machines[] = {
             .max_multi   = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO | MACHINE_NIC, /* Machine has internal NIC: Intel 82559C */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO | MACHINE_NIC,
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -19832,8 +20424,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        /* Video: S3 86C785 (Trio64V2/GX), ethernet: 3C905. */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO | MACHINE_SOUND,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO | MACHINE_SOUND, /* Machine has internal NIC: 3Com 3C905 (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -19854,7 +20445,6 @@ const machine_t machines[] = {
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-
         /* Stop-gap measure until the Trio64V2/GX is emulated, as both use the same VBIOS. */
         .vid_device               = &s3_trio64v2dx_onboard_pci_device,
         .snd_device               = &sb_vibra16xv_onboard_device,
@@ -19953,7 +20543,7 @@ const machine_t machines[] = {
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = &mach64vt3_onboard_device,
+        .vid_device               = &mach64vt3_onboard_device, /* Machine has also internal video: ATI 3D Rage II+ DVD (Mach64GT-B) (not yet implemented) */
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "ASUS TX97-XV", "HP Arnold3", "" }
@@ -19981,7 +20571,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: ATI 3D Rage II+ DVD (Mach64GT-B) (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -20182,7 +20772,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCIONLY | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_USB, /* Machine has internal video: Cirrus Logic CL-GD5465 and internal sound: Yamaha YMF715 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_USB, /* Machine has internal video: Cirrus Logic CL-GD5465 (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -21018,10 +21608,10 @@ const machine_t machines[] = {
             .max_multi   = 4.5
         },
         .bus_flags = (MACHINE_PS2_NOISA & ~(MACHINE_BUS_XT_KBD | MACHINE_BUS_AT_KBD | MACHINE_BUS_PS2_PORTS)) | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_NIC_PRI | MACHINE_NIC_SEC | MACHINE_USB, /* Machine has internal SCSI: NCR 53C875 (825 seen in one unit) and network: 2x NSC DP83815 */
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_NIC_PRI | MACHINE_NIC_SEC | MACHINE_USB,
         .ram       = {
             .min  = 32768,
-            .max  = 1048576,
+            .max  = 524288,
             .step = 8192
         },
         .nvrmask                  = 255,
@@ -21042,6 +21632,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = &i82559er_onboard_device, /* stand-in for DP83815 (also accepted by BIOS and software) */
+        .scsi_device              = &ncr53c875_onboard_pci_device, /* Machine has also internal SCSI: NCR 53c825 (as seen in one unit) */
         .aliases                  = { "Cobalt 4xxxWG", "Cobalt Carmel", "" }
     },
     /* ALi M1543C southbridge with unused KBC. */
@@ -21066,10 +21657,10 @@ const machine_t machines[] = {
             .max_multi   = 4.5
         },
         .bus_flags = (MACHINE_PS2_NOISA & ~(MACHINE_BUS_XT_KBD | MACHINE_BUS_AT_KBD | MACHINE_BUS_PS2_PORTS)) | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_NIC_PRI | MACHINE_NIC_SEC | MACHINE_USB, /* Machine has internal SCSI: NCR 53C875 and network: 2x Intel 82559ER */
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_NIC_PRI | MACHINE_NIC_SEC | MACHINE_USB,
         .ram       = {
             .min  = 32768,
-            .max  = 1048576,
+            .max  = 524288,
             .step = 8192
         },
         .nvrmask                  = 255,
@@ -21090,6 +21681,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = &i82559er_onboard_device,
+        .scsi_device              = &ncr53c875_onboard_pci_device,
         .aliases                  = { "Cobalt 3xxxR", "Cobalt Pacifica", "" }
     },
     /* M1534c kbc */
@@ -21114,7 +21706,7 @@ const machine_t machines[] = {
             .max_multi   = 5.5
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Has internal video: ATI 3D Rage Pro Turbo AGP and sound: Ensoniq ES1373 */
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: ATI Rage Pro Turbo AGP (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -21307,7 +21899,7 @@ const machine_t machines[] = {
             .max_multi   = 5.5
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal sound: C-Media CMI8330 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal sound: C-Media CMI8330 (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 1572864,
@@ -21357,7 +21949,7 @@ const machine_t machines[] = {
             .max_multi   = 6.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: SiS 6306 (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 1048576,
@@ -21385,6 +21977,54 @@ const machine_t machines[] = {
     },
     /* Has the SiS 5595 southbridge with on-chip KBC. */
     {
+        .name              = "[SiS 530] Gigabyte GA-5SMM",
+        .internal_name     = "5smm",
+        .type              = MACHINE_TYPE_SOCKETS7,
+        .chipset           = MACHINE_CHIPSET_SIS_530,
+        .init              = machine_at_ga5smm_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 66666667,
+            .max_bus     = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 5.5
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: SiS 6306 (not yet implemented) */
+        .ram       = {
+            .min  = 8192,
+            .max  = 1572864,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ga5smm_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = &ess_solo1_onboard_device,
+        .net_device               = NULL,
+        .aliases                  = { "Compaq Presario 5301", "Compaq Presario 5304", "Compaq Presario 54xx", "" }
+    },
+    /* Has the SiS 5595 southbridge with on-chip KBC. */
+    {
         .name              = "[SiS 530] IBM Aptiva 2187",
         .internal_name     = "aptiva2187",
         .type              = MACHINE_TYPE_SOCKETS7,
@@ -21405,7 +22045,7 @@ const machine_t machines[] = {
             .max_multi   = 6.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: SiS 6306 (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 1048576,
@@ -21749,8 +22389,8 @@ const machine_t machines[] = {
             .min_multi   = 1.5,
             .max_multi   = 5.5
         },
-        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, /* Has internal video: ATI 3D Rage IIc AGP (Rage 2) */
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_USB,
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_USB, /* Machine has internal video: ATI Rage IIc AGP (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -21827,6 +22467,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd646_device,
         .aliases                  = { "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
@@ -21927,6 +22568,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd646_device,
         .aliases                  = { "" }
     },
     /* This has a PC87306 with unknown keyboard controller firmware (Phoenix?). */
@@ -21975,6 +22617,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd646_device,
         .aliases                  = { "" }
     },
 
@@ -22196,7 +22839,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_VIDEO | MACHINE_USB, /* Machine has internal video: S3 ViRGE/DX and sound: Crystal CS4236B */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_VIDEO | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -22296,7 +22939,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal SCSI: Adaptec AIC-7880U */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal(?) SCSI: Adaptec AIC-7880U (onboard variant not yet emulated) */
         .ram       = {
             .min  = 40960,  /* temporary higher limit set due to a DRB(?) issue that prevents POST with less than this amount
                                on PhoenixBIOS */
@@ -22346,7 +22989,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: Creative Vibra 16C */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: Sound Blaster ViBRA 16C */
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -22494,7 +23137,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: C-Media CMI8330 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: C-Media CMI8330 (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 1572864,
@@ -22538,8 +23181,8 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SLOT1,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 60000000,
-            .max_bus     = 83333333,
-            .min_voltage = 1800,
+            .max_bus     = 66666667,
+            .min_voltage = 2800,
             .max_voltage = 3500,
             .min_multi   = 1.5,
             .max_multi   = 8.0
@@ -22548,10 +23191,10 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
         .ram       = {
             .min  = 8192,
-            .max  = 393216,
+            .max  = 786432,
             .step = 8192
         },
-        .nvrmask                  = 511,
+        .nvrmask                  = 255,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
@@ -22563,13 +23206,13 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &acerv62x_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Acer AcerPower 9606WC", "Acer AcerPower 9606NC", "" }
     },
     /* Has an SM(S)C FDC37C932 Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
@@ -22594,7 +23237,7 @@ const machine_t machines[] = {
             .max_multi   = 4.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal SCSI: Adaptec unknown (possibly AIC-7880) */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal SCSI: unknown Adaptec chip (possibly AIC-7880?) */
         .ram       = {
             .min  = 8192,
             .max  = 1048576,
@@ -22788,7 +23431,7 @@ const machine_t machines[] = {
             .max_multi   = 5.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Has onboard sound: Yamaha YMF711-S/YMF704C-S */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal sound: Yamaha YMF711-S/YMF704C-S (not yet implemented) */
         .ram       = {
             .min  = 40960, /* temporary higher limit set due to a DRB(?) issue that prevents POST with less than this amount */
             .max  = 1048576,
@@ -22888,7 +23531,7 @@ const machine_t machines[] = {
             .max_multi   = 5.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_USB, /* Video: ATi 3D Rage Pro, Network: 3Com 3C905, Sound: Crystal CS4236B */
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_USB, /* Machine has internal video: ATI 3D Rage Pro AGP 2X and NIC: 3Com 3C905 (both not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -22909,10 +23552,10 @@ const machine_t machines[] = {
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL, /* not yet emulated */
+        .vid_device               = NULL,
         .snd_device               = &cs4236b_onboard_device,
-        .net_device               = NULL, /* not yet emulated */
-        .aliases                  = { "Dell System Tabasco", "" }
+        .net_device               = NULL,
+        .aliases                  = { "Dell System Tabasco", "Dell OptiPlex NX", "" }
     },
     /* This has the AMI MegaKey '5' firmware on the NSC Super I/O chip. */
     {
@@ -22936,7 +23579,7 @@ const machine_t machines[] = {
             .max_multi   = 5.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal sound: Yamaha YMF715 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT,
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -23082,8 +23725,8 @@ const machine_t machines[] = {
             .min_multi   = 1.5,
             .max_multi   = 8.0
         },
-        .bus_flags = MACHINE_PS2_NOISA | MACHINE_BUS_USB, /* Has internal video: SGS Thompson Riva 128 AGP and sound: YAMAHA YMF724 for MA30D or OAK Audia 3D (OTI-610) for some MA23D submodel */
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .bus_flags = MACHINE_PS2_NOISA | MACHINE_BUS_USB,
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: nVidia RIVA 128 and sound: either YAMAHA YMF724 for MA30D or OAK Audia 3D (OTI-610) for some MA23D submodels (both not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -23134,7 +23777,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_SOUND, /* Has internal video: ATi Rage Pro Turbo (AGP) */
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_SOUND, /* Machine has internal video: ATI Rage Pro Turbo AGP (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -23155,7 +23798,7 @@ const machine_t machines[] = {
         .device                   = &in440ex_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL, /* not yet emulated */
+        .vid_device               = NULL,
         .snd_device               = &ess_solo1_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "Gobi Internet PC", "Toshiba Equium 3000M", "Sony Kokomo", "Sony Vaio PCV-E2xx", "" }
@@ -23183,7 +23826,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_SOUND, /* Has internal video: ATi Rage Pro Turbo (AGP) */
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_SOUND, /* Machine has internal video: ATI Rage Pro Turbo AGP (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -23204,7 +23847,7 @@ const machine_t machines[] = {
         .device                   = &in440exd_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL, /* not yet emulated */
+        .vid_device               = NULL,
         .snd_device               = &ess_solo1_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "CompUSA PC American Pro", "" }
@@ -23232,7 +23875,7 @@ const machine_t machines[] = {
             .max_multi   = 5.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Video: ATi Rage IIc, Network: 3Com 3C905B-TX, Sound: Crystal CS4236B */
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: ATI Rage IIc AGP and NIC: 3Com 3C905B-TX (both not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -23253,9 +23896,9 @@ const machine_t machines[] = {
         .device                   = &optiplexe1_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL, /* not yet emulated */
+        .vid_device               = NULL,
         .snd_device               = &cs4236b_onboard_device,
-        .net_device               = NULL, /* not yet emulated */
+        .net_device               = NULL,
         .aliases                  = { "Dell System Apex", "" }
     },
     /* Has a SM(S)C FDC37C675 Super I/O chip with on-chip KBC with Phoenix
@@ -23284,8 +23927,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
-            /* PC manual says 128 MB max, but 256 MB confirmed to work
-               and 512 MB confirmed to not work. */
+            /* PC manual says 128 MB max, but 256 MB confirmed working
+               and 512 MB confirmed not working. */
             .min  = 8192,
             .max  = 262144,
             .step = 8192
@@ -23384,7 +24027,7 @@ const machine_t machines[] = {
             .max_multi   = 5.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: ATI Rage IIc AGP (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -23405,7 +24048,7 @@ const machine_t machines[] = {
         .device                   = &como_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL, /* Onboard video not yet emulated: ATi Rage IIc AGP */
+        .vid_device               = NULL,
         .snd_device               = &cs4235_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "TriGem Como-3", "Olivetti M24KD", "Olivetti M3000 MT/DT", "eMachines eTower 333i", "Sotec Micro PC Station 3__", "" }
@@ -23459,6 +24102,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_hpt366_ter_qua_onboard_device,
         .aliases                  = { "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -23631,7 +24275,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal SCSI: Adaptec AIC-7890AB */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal NIC: Intel 82558B and SCSI: Adaptec AIC-7890AB (the latter not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 1048576,
@@ -23729,7 +24373,7 @@ const machine_t machines[] = {
             .max_multi   = 5.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Video: ATi Rage Pro Turbo AGP, Network: 3Com 3C905B-TX, Sound: Crystal CS4236B */
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: ATI Rage Pro Turbo AGP and NIC: 3Com 3C905B-TX (both not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -23750,9 +24394,9 @@ const machine_t machines[] = {
         .device                   = &optiplexgx1_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL, /* not yet emulated */
+        .vid_device               = NULL,
         .snd_device               = &cs4236b_onboard_device,
-        .net_device               = NULL, /* not yet emulated */
+        .net_device               = NULL,
         .aliases                  = { "Dell System Banff", "" }
     },
     /* Has a SM(S)C FDC37C67x Super I/O chip with on-chip KBC with Phoenix or
@@ -23777,7 +24421,7 @@ const machine_t machines[] = {
             .min_multi   = 1.5,
             .max_multi   = 8.0
         },
-        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, /* Has (optional) internal video: ATi 3D Rage Pro Turbo AGP, network: Intel 82558-based, and sound: Crystal CS4235B */
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, /* Machine has (optional) internal video: ATI 3D Rage Pro PCI (not yet implemented) */
         .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_NIC | MACHINE_USB,
         .ram       = {
             .min  = 8192,
@@ -23853,6 +24497,104 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "Amptron PII-3100", "" }
     },
+    /* Has a SM(S)C FDC37M707 Super I/O chip with on-chip Phoenix MultiKey/42i
+       KBC firmware. */
+    {
+        .name              = "[i440BX] Intel RC440BX (microATX)",
+        .internal_name     = "rc440bx",
+        .type              = MACHINE_TYPE_SLOT1,
+        .chipset           = MACHINE_CHIPSET_INTEL_440BX,
+        .init              = machine_at_rc440bx_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1,
+            .block       = CPU_BLOCK(CPU_PENTIUMPRO, CPU_CYRIX3S),
+            .min_bus     = 66666667,
+            .max_bus     = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: nVidia RIVA 128ZX (not yet implemented) */
+        .ram       = {
+            .min  = 8192,
+            .max  = 524288,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &rc440bx_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = &es1373_onboard_device,
+        .net_device               = NULL,
+        .aliases                  = { "Intel Rochester", "Gateway Tolstoy", "" }
+    },
+    /* Has a SM(S)C FDC37M707 Super I/O chip with on-chip Phoenix MultiKey/42i
+       KBC firmware. */
+    {
+        .name              = "[i440BX] Intel SE440BX-2",
+        .internal_name     = "se440bx2",
+        .type              = MACHINE_TYPE_SLOT1,
+        .chipset           = MACHINE_CHIPSET_INTEL_440BX,
+        .init              = machine_at_se440bx2_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 66666667,
+            .max_bus     = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal audio: Analog Devices AD1819A standard, Yamaha DS-1L optional (both not yet implemented) */
+        .ram       = {
+            .min  = 8192,
+            .max  = 786432,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &se440bx2_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Intel Seattle 2", "Micron MBD001109-xx", "Packard Bell PB872", "NEC Direction SPB", "Quantum3D Quicksilver II", "" }
+    },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 (updated 'H') KBC firmware. */
     {
         .name              = "[i440BX] MSI MS-6119",
@@ -23922,8 +24664,8 @@ const machine_t machines[] = {
             .min_multi   = 1.5,
             .max_multi   = 8.0
         },
-        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, /* Has internal video: ATI 3D Rage Pro PCI */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB,
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: ATI 3D Rage Pro PCI (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -24021,7 +24763,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal sound: Ensoniq ES1371 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -24072,7 +24814,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: Matrox MGA-G200 and sound: Crystal CS4820 */
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: Matrox MGA-G200 and sound: Crystal CS4820 (both not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -24220,7 +24962,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: Ensoniq ES1373 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 1572864,
@@ -24268,7 +25010,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: SiS 6326 and internal sound: C-Media CMI8330 */
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: SiS 6326 and internal sound: C-Media CMI8330 (both not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 1572864,
@@ -24570,7 +25312,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: Ensoniq ES1373 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 3145728,
@@ -24877,7 +25619,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal SCSI */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal Adaptec SCSI */
         .ram       = {
             .min  = 16384,
             .max  = 2097152,
@@ -25030,7 +25772,7 @@ const machine_t machines[] = {
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, /* Machine has EISA, possibly for a riser? */
                                                         /* Yes, that's a riser slot, not EISA. */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_AGP_INTERNAL | MACHINE_VIDEO | MACHINE_SOUND, /* Machine has internal NIC: Realtek RTL8139C */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_AGP_INTERNAL | MACHINE_VIDEO | MACHINE_SOUND, /* Machine has internal NIC: either Intel 82559ER or Realtek RTL8139C+ (the latter's onboard variant not yet emulated) */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -25152,6 +25894,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
+        .ide_device               = &ide_cmd648_ter_qua_onboard_device,
         .aliases                  = { "" }
     },
     /* Has a National Semiconductor PC87309 Super I/O with on-chip KBC, which has one of these
@@ -26077,6 +26820,18 @@ machine_get_net_device(int m)
         return (machines[m].net_device);
 
     return (NULL);
+}
+
+const device_t *
+machine_get_ide_device(int m)
+{
+    return (machines[m].ide_device);
+}
+
+const device_t *
+machine_get_scsi_device(int m)
+{
+    return (machines[m].scsi_device);
 }
 
 const char *

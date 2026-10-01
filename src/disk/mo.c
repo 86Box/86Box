@@ -2188,7 +2188,7 @@ mo_hard_reset(void)
             }
 
             /* Make sure to ignore any ATAPI MO drive that has an out of range IDE channel. */
-            if ((mo_drives[c].bus_type == MO_BUS_ATAPI) && (mo_drives[c].ide_channel > 7))
+            if ((mo_drives[c].bus_type == MO_BUS_ATAPI) && (mo_drives[c].ide_channel >= IDE_DRIVES_MAX))
                 continue;
 
             mo_drive_reset(c);

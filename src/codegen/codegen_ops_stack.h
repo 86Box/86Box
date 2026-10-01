@@ -118,7 +118,7 @@ ropRET_16(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_
     STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
     LOAD_STACK_TO_EA(0);
     MEM_LOAD_ADDR_EA_W(&cpu_state.seg_ss);
-    STORE_HOST_REG_ADDR((uintptr_t) &cpu_state.pc, 0);
+    STORE_HOST_REG_ADDR_WL((uintptr_t) &cpu_state.pc, 0);
     SP_MODIFY(2);
 
     return -1;
@@ -143,7 +143,7 @@ ropRET_imm_16(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32),
     STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
     LOAD_STACK_TO_EA(0);
     MEM_LOAD_ADDR_EA_W(&cpu_state.seg_ss);
-    STORE_HOST_REG_ADDR((uintptr_t) &cpu_state.pc, 0);
+    STORE_HOST_REG_ADDR_WL((uintptr_t) &cpu_state.pc, 0);
     SP_MODIFY(2 + offset);
 
     return -1;

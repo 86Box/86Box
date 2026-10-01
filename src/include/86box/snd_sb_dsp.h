@@ -116,6 +116,7 @@ typedef struct sb_dsp_t {
 
     int sbleftright;
     int sbleftright_default;
+    int sbleftrighti;
 
     int     sbreset;
     uint8_t sbreaddat;
@@ -156,6 +157,7 @@ typedef struct sb_dsp_t {
     uint16_t sb_addr;
 
     int stereo;
+    int stereoi;
 
     int asp_data_len;
 
@@ -169,7 +171,22 @@ typedef struct sb_dsp_t {
 
     int     record_pos_read;
     int     record_pos_write;
-    int16_t record_buffer[0xFFFF];
+    int     record_pos_write_mic;
+    int     record_phase_mic;
+    int     record_denom_mic;
+    int     record_rate_mic;
+    int32_t record_prev_l_mic;
+    int32_t record_prev_r_mic;
+    int     record_prev_valid_mic;
+    int     record_aa_active_mic;
+    double  record_aa_b0_mic;
+    double  record_aa_b1_mic;
+    double  record_aa_b2_mic;
+    double  record_aa_a1_mic;
+    double  record_aa_a2_mic;
+    double  record_aa_z1_mic[2];
+    double  record_aa_z2_mic[2];
+    int16_t record_buffer[0x10000];
     int16_t buffer[SOUNDBUFLEN * 2];
     int     pos;
 
@@ -181,6 +198,8 @@ typedef struct sb_dsp_t {
     uint8_t  ess_reload_len;
     uint32_t ess_dma_counter;
     uint8_t  ess_input_gain;
+    uint8_t  ess_input_gain_l;
+    uint8_t  ess_input_gain_r;
 
     /* IRQ status flags (0x22C) */
     uint8_t  ess_irq_generic;

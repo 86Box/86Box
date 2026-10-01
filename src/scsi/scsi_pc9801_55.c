@@ -593,11 +593,19 @@ static uint8_t pc98_55_data_read(pc98_55_t *dev)
 
 static void pc98_55_reset_controller(pc98_55_t *dev, int reset_targets)
 {
+    scsi_device_t *target = pc98_55_target(dev);
+    if (target && target->sc && !dev->target_data_finished)
+        scsi_device_command_stop(target);
     always_log("[PC98-55] controller reset reset_targets=%d bus=%u\n", reset_targets, dev->bus);
     pc98_55_irq(dev, 0);
+    dma_set_drq(dev->dma_channel, 0);
     dev->selected = 0;
     dev->transfer_active = 0;
     dev->transfer_remaining = 0;
+    dev->transfer_position = 0;
+    dev->target_data_finished = 0;
+    dev->cdb_pos = 0;
+    dev->message_out_pos = 0;
     dev->pending_phase = 0;
     dev->pending_csr = 0;
     dev->phase = PC98_55_PHASE_COMPLETE;
@@ -609,6 +617,25 @@ static void pc98_55_reset_controller(pc98_55_t *dev, int reset_targets)
             scsi_device_reset(&scsi_devices[dev->bus][id]);
         always_log("[PC98-55] reset all targets on bus %u\n", dev->bus);
     }
+}
+
+static void pc98_55_reset(void *priv)
+{
+    pc98_55_t *dev = (pc98_55_t *) priv;
+
+    pc98_55_reset_controller(dev, 1);
+    memset(dev->regs, 0, sizeof(dev->regs));
+    dev->regs[PC98_55_REG_OWN_ID] = (uint8_t) (0x40 | dev->source_id);
+    dev->regs[PC98_55_REG_SOURCE_ID] = dev->source_id;
+    dev->regs[PC98_55_REG_COMMAND_PHASE] = dev->phase;
+    dev->regs[PC98_55_REG_SCSI_STATUS] = dev->scsi_status;
+    dev->address = 0;
+    dev->memory_bank = 0;
+    dev->board_dma_status = 0;
+    dev->data_reg = 0;
+    dev->message_in = 0;
+    dev->aux_status_valid = 0;
+    mem_mapping_set_exec(&dev->bios->mapping, dev->bios->rom);
 }
 
 static void pc98_55_select(pc98_55_t *dev, uint8_t command)
@@ -1015,7 +1042,7 @@ static void pc98_55_close(void *priv)
     if (dev) {
         always_log("[PC98-55] closing bus=%u I/O=%04X\n", dev->bus, dev->io_base);
         io_removehandler(dev->io_base, 6, pc98_55_in, NULL, NULL, pc98_55_out, NULL, NULL, dev);
-        pc98_55_irq(dev, 0);
+        pc98_55_reset_controller(dev, 0);
         mem_mapping_disable(&dev->bios->mapping);
         mem_mapping_set_handler(&dev->bios->mapping, NULL, NULL, NULL, NULL, NULL, NULL);
         mem_mapping_set_exec(&dev->bios->mapping, NULL);
@@ -1163,7 +1190,7 @@ const device_t scsi_pc9801_55_device = {
     .local         = 0,
     .init          = pc98_55_init,
     .close         = pc98_55_close,
-    .reset         = NULL,
+    .reset         = pc98_55_reset,
     .available     = pc98_55_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,

@@ -298,10 +298,10 @@ ali1541_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *pr
         case 0x54:
             dev->pci_conf[addr] = val & 0x3c;
 
-            if (mem_size > 0xe00000)
+            if (mem_size > 0x3800) /* 14 MB, and mem_size counts KiB */
                 mem_set_mem_state_both(0xe00000, 0x100000, (val & 0x20) ? (MEM_READ_EXTANY | MEM_WRITE_EXTANY) : (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL));
 
-            if (mem_size > 0xf00000)
+            if (mem_size > 0x3c00) /* 15 MB */
                 mem_set_mem_state_both(0xf00000, 0x100000, (val & 0x10) ? (MEM_READ_EXTANY | MEM_WRITE_EXTANY) : (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL));
 
             mem_set_mem_state_both(0xa0000, 0x20000, (val & 8) ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));

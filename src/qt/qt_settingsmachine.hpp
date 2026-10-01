@@ -20,6 +20,8 @@ public:
 
     void restore();
     void save(int soft);
+    /* The machine selected on the page, saved or not. */
+    int  currentMachineId() const;
 
 signals:
     void currentMachineChanged(int machineId);

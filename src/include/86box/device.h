@@ -112,6 +112,7 @@ enum {
 
     DEVICE_BIOS_ALIAS = 0x8000000,  /* use only BIOS names for aliases */
 
+    DEVICE_AUDIO_IN   = 0x10000000,
     DEVICE_ONBOARD    = 0x40000000, /* is on-board */
     DEVICE_PIT        = 0x80000000, /* device is a PIT */
 
@@ -185,7 +186,22 @@ typedef struct _device_ {
     const device_config_t *config;
 
     void (*power_button)(void *priv); /* Optional emulated power-button press. */
+
+    const char *short_name;                           /* Short label, as on an IDE channel; name if NULL. */
+    uint32_t  (*ide_boards)(const struct _device_ *); /* The IDE boards the device claims, with its
+                                                         configuration as the current context. */
+    uint32_t  (*scsi_buses)(const struct _device_ *); /* How many SCSI buses it takes, the same way;
+                                                         one for a SCSI card without it. */
 } device_t;
+
+/* Who has a bus (an IDE board, a SCSI bus): the device and its instance,
+   and whether it is on the machine's board (with device NULL, the
+   chipset's own). */
+typedef struct bus_owner_t {
+    const device_t *device;
+    int             instance;
+    int             onboard;
+} bus_owner_t;
 
 typedef struct device_context_t {
     const device_t *dev;
@@ -269,6 +285,7 @@ extern int         machine_device_available(const device_t *dev);
 
 extern const device_t device_none;
 extern const device_t device_internal;
+extern const device_t device_external;
 
 #ifdef __cplusplus
 }

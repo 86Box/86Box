@@ -115,6 +115,7 @@ struct Pixmaps {
     PixmapSetEmptyActive rdisk;
     PixmapSetEmptyActive zip;
     PixmapSetEmptyActive jaz;
+    PixmapSetEmptyActive syquest;
     PixmapSetEmptyActive mo;
     PixmapSetEmptyActive tape;
     PixmapSetActive      hd;
@@ -348,6 +349,7 @@ struct MachineStatus::States {
         pixmaps.rdisk.load(QIcon(":/settings/qt/icons/rdisk.ico"));
         pixmaps.zip.load(QIcon(":/settings/qt/icons/zip.ico"));
         pixmaps.jaz.load(QIcon(":/settings/qt/icons/jaz.ico"));
+        pixmaps.syquest.load(QIcon(":/settings/qt/icons/syquest.ico"));
         pixmaps.mo.load(QIcon(":/settings/qt/icons/mo.ico"));
         pixmaps.tape.load(QIcon(":/settings/qt/icons/tape.ico"));
         pixmaps.hd.load(QIcon(":/settings/qt/icons/hard_disk.ico"));
@@ -446,7 +448,7 @@ MachineStatus::iterateFDD(const std::function<void(int)> &cb)
         return;
 
     for (int i = 0; i < FDD_NUM; ++i) {
-        if (fdd_get_type(i) != 0) {
+        if (fdd_get_type(&drives[i]) != 0) {
             cb(i);
         }
     }
@@ -468,7 +470,7 @@ MachineStatus::iterateCDROM(const std::function<void(int)> &cb)
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
             (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
             continue;
-        if ((cdrom[i].bus_type == CDROM_BUS_MITSUMI || cdrom[i].bus_type == CDROM_BUS_MKE) && (cdrom_interface_current == 0))
+        if ((cdrom[i].bus_type == CDROM_BUS_CM100 || cdrom[i].bus_type == CDROM_BUS_PHILIPS || cdrom[i].bus_type == CDROM_BUS_HITACHI || cdrom[i].bus_type == CDROM_BUS_MITSUMI || cdrom[i].bus_type == CDROM_BUS_MKE) && (cdrom_interface_current == 0))
             continue;
         if (cdrom[i].bus_type != 0) {
             cb(i);
@@ -813,7 +815,8 @@ MachineStatus::refresh(QStatusBar *sbar)
     }
 
     iterateFDD([this, sbar](int i) {
-        int t = fdd_get_type(i);
+        fdd_drive_t *drv = &drives[i];
+        int t = fdd_get_type(drv);
         if (t == 0)
             d->fdd[i].pixmaps = &d->pixmaps.floppy_disabled;
         else if ((t >= 1) && (t <= 6))
@@ -821,13 +824,13 @@ MachineStatus::refresh(QStatusBar *sbar)
         else
             d->fdd[i].pixmaps = &d->pixmaps.floppy_35;
         d->fdd[i].label = std::make_unique<ClickableLabel>();
-        d->fdd[i].setEmpty(QString(floppyfns[i]).isEmpty());
-        if (QString(floppyfns[i]).isEmpty())
+        d->fdd[i].setEmpty(QString(drv->image_path).isEmpty());
+        if (QString(drv->image_path).isEmpty())
             d->fdd[i].setWriteProtected(false);
-        else if (QString(floppyfns[i]).left(5) == "wp://")
+        else if (QString(drv->image_path).left(5) == "wp://")
             d->fdd[i].setWriteProtected(true);
         else
-            d->fdd[i].setWriteProtected(ui_writeprot[i]);
+            d->fdd[i].setWriteProtected(drv->read_only);
         d->fdd[i].setActive(false);
         d->fdd[i].setWriteActive(false);
         d->fdd[i].refresh();
@@ -872,6 +875,8 @@ MachineStatus::refresh(QStatusBar *sbar)
             d->rdisk[i].pixmaps = &d->pixmaps.zip;
         else if ((t == RDISK_TYPE_JAZ_1GB) || (t == RDISK_TYPE_JAZ_2GB))
             d->rdisk[i].pixmaps = &d->pixmaps.jaz;
+		else if ((t == RDISK_TYPE_SYJET_1_5GB) || (t == RDISK_TYPE_SPARQ_1GB))
+            d->rdisk[i].pixmaps = &d->pixmaps.syquest;
         else
             d->rdisk[i].pixmaps = &d->pixmaps.rdisk;
         d->rdisk[i].label = std::make_unique<ClickableLabel>();

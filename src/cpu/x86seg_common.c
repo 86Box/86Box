@@ -40,6 +40,7 @@ uint8_t opcode2;
 
 int cgate16;
 int cgate32;
+int cgate_task;
 
 int intgatesize;
 

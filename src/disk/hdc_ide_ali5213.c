@@ -247,7 +247,9 @@ const device_t ide_ali1489_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "ALi M1489",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_ali5213_device = {
@@ -261,5 +263,7 @@ const device_t ide_ali5213_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "ALi M5213",
+    .ide_boards    = ide_boards_pri_sec
 };

@@ -16,8 +16,10 @@
  *             512K and next 128K of RAM, in bits 0 of registers 0 and 1
  *             respectively.
  *
- *             Port 0x105 has bit 7 forced high. Without this 128K of
- *             memory will be missed by the BIOS on cold boots.
+ *             Port 0x105 bit 7 selects the ROM for reads of E0000-FFFFF
+ *             and bit 6 sends writes to the shadow RAM, which the ROM's
+ *             own power-on code uses to copy itself into the RAM behind
+ *             it. The BIOS would otherwise miss that 128K on cold boots.
  *
  *             The reserved 384K is remapped to the top of extended memory.
  *             If this is not done then you get an error on startup.
@@ -71,11 +73,12 @@ typedef struct {
     uint8_t ps1_91,
         ps1_92,
         ps1_94,
+        ps1_100,
+        ps1_101,
         ps1_102,
         ps1_103,
         ps1_104,
-        ps1_105,
-        ps1_190;
+        ps1_105;
     int     ps1_e0_addr;
     uint8_t ps1_e0_regs[256];
 
@@ -83,8 +86,68 @@ typedef struct {
     lpt_t    *lpt;
 } ps1_t;
 
+static uint8_t
+ps1_read(uint16_t port, void *priv)
+{
+    ps1_t  *ps  = (ps1_t *) priv;
+    uint8_t ret = 0xff;
+
+    switch (port) {
+        case 0x0091:
+            ret        = ps->ps1_91;
+            ps->ps1_91 = 0;
+            break;
+
+        case 0x0092:
+            ret = ps->ps1_92;
+            break;
+
+        case 0x0094:
+            ret = ps->ps1_94;
+            break;
+
+        case 0x00e1:
+            if (ps->model != 2011) {
+                ret = ps->ps1_e0_regs[ps->ps1_e0_addr];
+            }
+            break;
+
+        case 0x0100:
+            ret = ps->ps1_100;
+            break;
+
+        case 0x0101:
+            ret = ps->ps1_101;
+            break;
+
+        case 0x0102:
+            if (ps->model == 2011)
+                ret = ps->ps1_102 | 0x08;
+            else
+                ret = ps->ps1_102;
+            break;
+
+        case 0x0103:
+            ret = ps->ps1_103;
+            break;
+
+        case 0x0104:
+            ret = ps->ps1_104;
+            break;
+
+        case 0x0105:
+            ret = ps->ps1_105;
+            break;
+
+        default:
+            break;
+    }
+
+    return ret;
+}
+
 static void
-recalc_memory(ps1_t *ps)
+ps1_m2121_recalc_memory(ps1_t *ps)
 {
     /* Enable first 512K */
     mem_set_mem_state(0x00000, 0x80000,
@@ -93,6 +156,20 @@ recalc_memory(ps1_t *ps)
     /* Enable 512-640K */
     mem_set_mem_state(0x80000, 0x20000,
                       (ps->ps1_e0_regs[1] & 0x01) ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
+}
+
+/* 105h bit 7 selects the ROM for reads of E0000-FFFFF, bit 6 sends its
+   writes to the shadow RAM. */
+static void
+ps1_m2121_shadow_update(ps1_t *ps)
+{
+    uint32_t read, write;
+
+    read  = (ps->ps1_105 & 0x80) ? MEM_READ_EXTANY : MEM_READ_INTERNAL;
+    write = (ps->ps1_105 & 0x40) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+
+    mem_set_mem_state_both(0x000e0000, 0x00020000, read | write);
+    flushmmucache();
 }
 
 static void
@@ -128,7 +205,7 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
         case 0x00e1:
             if (ps->model != 2011) {
                 ps->ps1_e0_regs[ps->ps1_e0_addr] = val;
-                recalc_memory(ps);
+                ps1_m2121_recalc_memory(ps);
             }
             break;
 
@@ -172,189 +249,14 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
 
         case 0x0105:
             ps->ps1_105 = val;
-            break;
-
-        case 0x0190:
-            ps->ps1_190 = val;
+            if (ps->model != 2011)
+                ps1_m2121_shadow_update(ps);
             break;
 
         default:
             break;
     }
 }
-
-static uint8_t
-ps1_read(uint16_t port, void *priv)
-{
-    ps1_t  *ps  = (ps1_t *) priv;
-    uint8_t ret = 0xff;
-
-    switch (port) {
-        case 0x0091:
-            ret        = ps->ps1_91;
-            ps->ps1_91 = 0;
-            break;
-
-        case 0x0092:
-            ret = ps->ps1_92;
-            break;
-
-        case 0x0094:
-            ret = ps->ps1_94;
-            break;
-
-        case 0x00e1:
-            if (ps->model != 2011) {
-                ret = ps->ps1_e0_regs[ps->ps1_e0_addr];
-            }
-            break;
-
-        case 0x0102:
-            if (ps->model == 2011)
-                ret = ps->ps1_102 | 0x08;
-            else
-                ret = ps->ps1_102;
-            break;
-
-        case 0x0103:
-            ret = ps->ps1_103;
-            break;
-
-        case 0x0104:
-            ret = ps->ps1_104;
-            break;
-
-        case 0x0105:
-            if (ps->model == 2011)
-                ret = ps->ps1_105;
-            else
-                ret = ps->ps1_105 | 0x80;
-            break;
-
-        case 0x0190:
-            ret = ps->ps1_190;
-            break;
-
-        default:
-            break;
-    }
-
-    return ret;
-}
-
-static const device_config_t ps1_2011_config[] = {
-    // clang-format off
-    {
-        .name           = "bios_language",
-        .description    = "BIOS Language",
-        .type           = CONFIG_BIOS,
-        .default_string = "english_us",
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios = {
-            {
-                .name          = "English (US)",
-                .internal_name = "english_us",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/ibmps1es/FC0000_US.BIN", "" }
-            },
-            {
-                .name          = "English (UK)",
-                .internal_name = "english_uk",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 2,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/ibmps1es/F80000_UK.BIN", "roms/machines/ibmps1es/FC0000_UK.BIN", "" }
-            },
-            {
-                .name          = "English (Canada)",
-                .internal_name = "english_ca",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 2,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/ibmps1es/F80000_CA.BIN", "roms/machines/ibmps1es/FC0000_CA.BIN", "" }
-            },
-            {
-                .name          = "Portuguese",
-                .internal_name = "portuguese",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 2,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/ibmps1es/F80000_PT.BIN", "roms/machines/ibmps1es/FC0000_PT.BIN", "" }
-            },
-            {
-                .name          = "German",
-                .internal_name = "german",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 2,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/ibmps1es/F80000_DE.BIN", "roms/machines/ibmps1es/FC0000_DE.BIN", "" }
-            },
-            {
-                .name          = "Swedish",
-                .internal_name = "swedish",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 2,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/ibmps1es/F80000_SE.BIN", "roms/machines/ibmps1es/FC0000_SE.BIN", "" }
-            },
-            {
-                .name          = "French",
-                .internal_name = "french",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 2,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/ibmps1es/F80000_FR.BIN", "roms/machines/ibmps1es/FC0000_FR.BIN", "" }
-            },
-            {
-                .name          = "Italian",
-                .internal_name = "italian",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 524288,
-                .files         = { "roms/machines/ibmps1es/f80000.bin", "" }
-            },
-            {
-                .name          = "Spanish",
-                .internal_name = "spanish",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 524288,
-                .files         = { "roms/machines/ibmps1es/F80000_ES.BIN", "" }
-            },
-            { .files_no = 0 }
-        }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-    // clang-format on
-};
-
-const device_t ps1_2011_device = {
-    .name          = "IBM PS/1 model 2011",
-    .internal_name = "ibmps1es",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = ps1_2011_config
-};
 
 extern const device_t ps1midi_device;
 static void
@@ -372,9 +274,7 @@ ps1_setup(int model)
                   ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
     io_sethandler(0x0094, 1,
                   ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
-    io_sethandler(0x0102, 4,
-                  ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
-    io_sethandler(0x0190, 1,
+    io_sethandler(0x0100, 6,
                   ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
 
     ps->uart = device_add_inst(&ns16450_device, 1);
@@ -391,6 +291,10 @@ ps1_setup(int model)
         const char     *bios   = device_get_config_bios("bios_language");
         const char     *first  = device_get_bios_file(d, bios, 0);
         const char     *second = device_get_bios_file(d, bios, 1);
+
+        /* No planar ID on the 2011; both POS registers read 0FFh. */
+        ps->ps1_100 = 0xff;
+        ps->ps1_101 = 0xff;
 
         if (!strcmp(bios, "english_us")) {
             /* US English */
@@ -424,19 +328,35 @@ ps1_setup(int model)
         /* Enable the PS/1 VGA controller. */
         device_add(&ps1vga_device);
     } else if (model == 2121) {
+        const device_t *d      = device_context_get_device();
+        const char     *bios   = device_get_config_bios("bios_language");
+        const char     *first  = device_get_bios_file(d, bios, 0);
+        const char     *second = device_get_bios_file(d, bios, 1);
+
+        /* Read-only planar ID: the ROM compares it against 0FEh/0E8h. */
+        ps->ps1_100 = 0xfe;
+        ps->ps1_101 = 0xe8;
+
+        /* Start with the ROM visible and the shadow RAM writable, which
+           is the state the ROM's own power-on sequence expect to find. */
+        ps->ps1_105 = 0xc0;
+        ps1_m2121_shadow_update(ps);
+
         io_sethandler(0x00e0, 2,
                       ps1_read, NULL, NULL,
                       ps1_write, NULL, NULL,
                       ps);
 
-        if (rom_present("roms/machines/ibmps1_2121/F80000.BIN")) {
-            rom_init(&ps->mid_rom,
-                     "roms/machines/ibmps1_2121/F80000.BIN",
+        if (second == NULL) {
+            rom_init(&ps->high_rom, first,
+                     0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
+        } else {
+            rom_init(&ps->mid_rom, first,
                      0xf80000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
+
+            rom_init(&ps->high_rom, second,
+                     0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
         }
-        rom_init(&ps->high_rom,
-                 "roms/machines/ibmps1_2121/FC0000.BIN",
-                 0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
 
         /* Initialize the video controller. */
         if (gfxcard[0] == VID_INTERNAL)
@@ -447,6 +367,15 @@ ps1_setup(int model)
         device_add(&ps1snd_device);
         device_add(&ps1midi_device);
     }
+}
+
+uint8_t
+machine_ps1_p1_handler(void)
+{
+    const uint8_t current_drive = fdc_get_current_drive();
+
+    /* (B0 or F0) | (fdd_is_525(current_drive) on bit 6) */
+    return 0xb0 | (fdd_is_525(&drives[current_drive]) ? 0x40 : 0x00);
 }
 
 static void
@@ -467,14 +396,146 @@ ps1_common_init(const machine_t *model)
     standalone_gameport_type = &gameport_201_device;
 }
 
-uint8_t
-machine_ps1_p1_handler(void)
-{
-    const uint8_t current_drive = fdc_get_current_drive();
+static const device_config_t ps1_2011_config[] = {
+    // clang-format off
+    {
+        .name           = "bios_language",
+        .description    = "BIOS Language",
+        .type           = CONFIG_BIOS,
+        .default_string = "english_us",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios = {
+            {
+                .name          = "English (US)",
+                .internal_name = "english_us",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1es/FC0000_US.BIN",
+                                   "" }
+            },
+            {
+                .name          = "English (UK)",
+                .internal_name = "english_uk",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1es/F80000_UK.BIN",
+                                   "roms/machines/ibmps1es/FC0000_UK.BIN",
+                                   "" }
+            },
+            {
+                .name          = "English (Canada)",
+                .internal_name = "english_ca",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1es/F80000_CA.BIN",
+                                   "roms/machines/ibmps1es/FC0000_CA.BIN",
+                                   "" }
+            },
+            {
+                .name          = "Portuguese",
+                .internal_name = "portuguese",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1es/F80000_PT.BIN",
+                                   "roms/machines/ibmps1es/FC0000_PT.BIN",
+                                   "" }
+            },
+            {
+                .name          = "Swedish",
+                .internal_name = "swedish",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1es/F80000_SE.BIN",
+                                   "roms/machines/ibmps1es/FC0000_SE.BIN",
+                                   "" }
+            },
+            {
+                .name          = "Dutch",
+                .internal_name = "dutch",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1es/F80000_NL.BIN",
+                                   "roms/machines/ibmps1es/FC0000_NL.BIN",
+                                   "" }
+            },
+            {
+                .name          = "French",
+                .internal_name = "french",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1es/F80000_FR.BIN",
+                                   "roms/machines/ibmps1es/FC0000_FR.BIN",
+                                   "" }
+            },
+            {
+                .name          = "German",
+                .internal_name = "german",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1es/F80000_DE.BIN",
+                                   "roms/machines/ibmps1es/FC0000_DE.BIN",
+                                   "" }
+            },
+            {
+                .name          = "Italian",
+                .internal_name = "italian",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1es/F80000_IT.BIN",
+                                   "roms/machines/ibmps1es/FC0000_IT.BIN",
+                                   "" }
+            },
+            {
+                .name          = "Spanish",
+                .internal_name = "spanish",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 524288,
+                .files         = { "roms/machines/ibmps1es/F80000_ES.BIN",
+                                   "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
 
-    /* (B0 or F0) | (fdd_is_525(current_drive) on bit 6) */
-    return 0xb0 | (fdd_is_525(current_drive) ? 0x40 : 0x00);
-}
+const device_t ps1_2011_device = {
+    .name          = "IBM PS/1 model 2011",
+    .internal_name = "ibmps1es",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ps1_2011_config
+};
 
 int
 machine_ps1_m2011_init(const machine_t *model)
@@ -521,20 +582,155 @@ machine_ps1_m2011_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t ps1_2121_config[] = {
+    // clang-format off
+    {
+        .name           = "bios_language",
+        .description    = "BIOS Language",
+        .type           = CONFIG_BIOS,
+        .default_string = "no_rom_drive",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios = {
+            {
+                .name          = "No ROM drive",
+                .internal_name = "no_rom_drive",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1_2121/FC0000.BIN",
+                                   "" }
+            },
+            {
+                .name          = "English (US)",
+                .internal_name = "english_us",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1_2121/FC0000_US.BIN",
+                                   "" }
+            },
+            {
+                .name          = "English (UK)",
+                .internal_name = "english_uk",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1_2121/F80000_UK.BIN",
+                                   "roms/machines/ibmps1_2121/FC0000_UK.BIN",
+                                   "" }
+            },
+            {
+                .name          = "Portuguese",
+                .internal_name = "portuguese",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1_2121/F80000_PT.BIN",
+                                   "roms/machines/ibmps1_2121/FC0000_PT.BIN",
+                                   "" }
+            },
+            {
+                .name          = "French",
+                .internal_name = "french",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1_2121/F80000_FR.BIN",
+                                   "roms/machines/ibmps1_2121/FC0000_FR.BIN",
+                                   "" }
+            },
+            {
+                .name          = "German",
+                .internal_name = "german",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1_2121/F80000_DE.BIN",
+                                   "roms/machines/ibmps1_2121/FC0000_DE.BIN",
+                                   "" }
+            },
+            {
+                .name          = "Italian",
+                .internal_name = "italian",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1_2121/F80000_IT.BIN",
+                                   "roms/machines/ibmps1_2121/FC0000_IT.BIN",
+                                   "" }
+            },
+            {
+                .name          = "Spanish",
+                .internal_name = "spanish",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ibmps1_2121/F80000_ES.BIN",
+                                   "roms/machines/ibmps1_2121/FC0000_ES.BIN",
+                                   "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ps1_2121_device = {
+    .name          = "IBM PS/1 model 2121",
+    .internal_name = "ibmps1_2121",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ps1_2121_config
+};
+
 int
 machine_ps1_m2121_init(const machine_t *model)
 {
-    int ret;
+    int         ret;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/ibmps1_2121/FC0000.BIN",
-                           0x000e0000, 131072, 0x20000);
+    if (!device_available(model->device)) {
+        /* No ROMs available. */
+        return 0;
+    }
 
-    if (bios_only || !ret)
+    device_context(model->device);
+    if ((fn = device_get_bios_file(model->device, device_get_config_bios("bios_language"), 1)) == NULL) {
+        fn = device_get_bios_file(model->device, device_get_config_bios("bios_language"), 0);
+    }
+
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0x20000);
+    device_context_restore();
+
+    if (bios_only || !ret) {
         return ret;
+    }
 
     ps1_common_init(model);
 
+    device_context(model->device);
+
     ps1_setup(2121);
+
+    device_context_restore();
 
     return ret;
 }

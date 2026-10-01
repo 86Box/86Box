@@ -1,0 +1,3644 @@
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2026-09-30 21:23+0000\n"
+"Last-Translator: MayuriNanako <gordonkoopaplays@gmail.com>\n"
+"Language-Team: Romanian <https://weblate.86box.net/projects/86box/86box/ro/>"
+"\n"
+"Language: ro-RO\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
+"20)) ? 1 : 2;\n"
+"X-Generator: Weblate 5.12.2\n"
+"X-Language: ro_RO\n"
+"X-Source-Language: en_US\n"
+
+msgid "&Action"
+msgstr "&Acțiune"
+
+msgid "&Keyboard requires capture"
+msgstr "&Tastatura necesită capturare"
+
+msgid "&Right CTRL is left ALT"
+msgstr "&CTRL din dreapta este ALT din stânga"
+
+msgid "&Hard reset"
+msgstr "&Resetare dură"
+
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
+
+msgid "Ctrl+Alt+&Esc"
+msgstr "Ctrl+Alt+&Esc"
+
+msgid "&Pause"
+msgstr "&Pauză"
+
+msgid "Pause"
+msgstr "Pauză"
+
+msgid "Re&sume"
+msgstr "Re&luați"
+
+msgid "E&xit"
+msgstr "Ie&șire"
+
+msgid "&View"
+msgstr "&Vizualizare"
+
+msgid "&Hide status bar"
+msgstr "&Ascunde bara de stare"
+
+msgid "Hide &toolbar"
+msgstr "Ascunde &bara de unelte"
+
+msgid "&Resizeable window"
+msgstr "&Fereastră redimensionabilă"
+
+msgid "R&emember size && position"
+msgstr "&Ține minte poziția &și dimensiunea"
+
+msgid "Remember size && position"
+msgstr "Ține minte poziția& și dimensiunea"
+
+msgid "Re&nderer"
+msgstr "Ra&ndor"
+
+msgid "&Qt (Software)"
+msgstr "&Qt (Software)"
+
+msgid "Open&GL"
+msgstr "Open&GL"
+
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
+
+msgid "Specify &dimensions…"
+msgstr "Specifică &dimensiunile…"
+
+msgid "Force &4:3 display ratio"
+msgstr "Forțează raportul de aspect &4:3"
+
+msgid "Force &%1:%2 display ratio"
+msgstr "Forțează raportul de aspect &%1:%2"
+
+msgid "&Window scale factor"
+msgstr "&Factor de scalare fereastră"
+
+msgid "&0.5x"
+msgstr "&0.5x"
+
+msgid "&1x"
+msgstr "&1x"
+
+msgid "1.&5x"
+msgstr "1.&5x"
+
+msgid "&2x"
+msgstr "&2x"
+
+msgid "&3x"
+msgstr "&3x"
+
+msgid "&4x"
+msgstr "&4x"
+
+msgid "&5x"
+msgstr "&5x"
+
+msgid "&6x"
+msgstr "&6x"
+
+msgid "&7x"
+msgstr "&7x"
+
+msgid "&8x"
+msgstr "&8x"
+
+msgid "Fi&lter method"
+msgstr "Metodă de &filtrare"
+
+msgid "&Nearest"
+msgstr "&Cel mai apropriat"
+
+msgid "&Linear"
+msgstr "&Liniar"
+
+msgid "Hi&DPI scaling"
+msgstr "Scalare &HiDPI"
+
+msgid "&Fullscreen"
+msgstr "&Ecran complet"
+
+msgid "Fullscreen &stretch mode"
+msgstr "&Mod de întindere pe tot ecranul"
+
+msgid "&Full screen stretch"
+msgstr "Întindere pe tot &ecranul"
+
+msgid "&4:3"
+msgstr "&4:3"
+
+msgid "&Square pixels (Keep ratio)"
+msgstr "&Pixeli pătrați (păstrează raportul de aspect)"
+
+msgid "&Integer scale"
+msgstr "Scalare &întreagă"
+
+msgid "4:&3 Integer scale"
+msgstr "Scalare întreagă la &4:3"
+
+msgid "Inverted VGA monitor"
+msgstr "Monitor VGA inversat"
+
+msgid "VGA screen type:"
+msgstr "Tip de ecran VGA:"
+
+msgid "RGB Color"
+msgstr "Culoare RGB"
+
+msgid "RGB (no brown)"
+msgstr "RGB (fără maro)"
+
+msgid "RGB Grayscale"
+msgstr "RGB în nuanțe de gri"
+
+msgid "Generic RGBI color monitor"
+msgstr "Monitor RGBI color generic"
+
+msgid "Amber monitor"
+msgstr "Monitor chihlimbariu"
+
+msgid "Green monitor"
+msgstr "Monitor verde"
+
+msgid "White monitor"
+msgstr "Monitor alb"
+
+msgid "Grayscale conversion type:"
+msgstr "Tip de conversie în nuanțe de gri:"
+
+msgid "Average"
+msgstr "Medie"
+
+msgid "Overscan"
+msgstr "Suprascanare"
+
+msgid "Change contrast for monochrome display"
+msgstr "Schimbă contrastul pentru afișajul monocrom"
+
+msgid "&Media"
+msgstr "&Medii"
+
+msgid "&Tools"
+msgstr "&Unelte"
+
+msgid "&Settings…"
+msgstr "&Setări…"
+
+msgid "Settings…"
+msgstr "Setări…"
+
+msgid "&Update status bar icons"
+msgstr "Actualizează pictogramele din &bara de stare"
+
+msgid "Take s&creenshot"
+msgstr "Efectuea&ză o captură de ecran"
+
+msgid "Take screenshot"
+msgstr "Efectuează o captură de ecran"
+
+msgid "Take &raw screenshot"
+msgstr "Efectuea&ză o captură de ecran brută"
+
+msgid "Take raw screenshot"
+msgstr "Efectuează o captură de ecran brută"
+
+msgid "C&opy screenshot"
+msgstr "C&opiază captura de ecran"
+
+msgid "Copy screenshot"
+msgstr "Copiază captura de ecran"
+
+msgid "Copy r&aw screenshot"
+msgstr "Copiază captura de ecran &brută"
+
+msgid "Copy raw screenshot"
+msgstr "Copiază captura de ecran brută"
+
+msgid "S&ound"
+msgstr "S&unet"
+
+msgid "&Preferences…"
+msgstr "&Preferințe…"
+
+msgid "Enable &Discord integration"
+msgstr "Activează integrarea &Discord"
+
+msgid "Sound &gain…"
+msgstr "Câș&tig sunet…"
+
+msgid "Begin trace"
+msgstr "Începe urmărirea"
+
+msgid "End trace"
+msgstr "Termină urmărirea"
+
+msgid "&Help"
+msgstr "&Ajutor"
+
+msgid "&Documentation…"
+msgstr "&Documentație…"
+
+msgid "&About 86Box…"
+msgstr "&Despre 86Box…"
+
+msgid "&New image…"
+msgstr "Imagine &nouă…"
+
+msgid "&Existing image…"
+msgstr "Imagine &existentă…"
+
+msgid "Existing image (&Write-protected)…"
+msgstr "Imagine existentă (&protejată la scriere)…"
+
+msgid "&Record"
+msgstr "În&registrează"
+
+msgid "&Play"
+msgstr "&Redă"
+
+msgid "&Rewind to the beginning"
+msgstr "&Derulează la început"
+
+msgid "&Fast forward to the end"
+msgstr "Derulează rapid până la &sfârșit"
+
+msgid "E&ject"
+msgstr "Eje&ctare"
+
+msgid "&Image…"
+msgstr "&Imagine…"
+
+msgid "E&xport to 86F…"
+msgstr "&Exportează în format 86F…"
+
+msgid "&Mute"
+msgstr "&Fără sunet"
+
+msgid "E&mpty"
+msgstr "&Goală"
+
+msgid "Reload previous image"
+msgstr "Reîncarcă imaginea anterioară"
+
+msgid "&Folder…"
+msgstr "&Dosar…"
+
+msgid "Preferences"
+msgstr "Preferințe"
+
+msgid "Sound Gain"
+msgstr "Câștig sunet"
+
+msgid "New Image"
+msgstr "Imagine nouă"
+
+msgid "Settings"
+msgstr "Setări"
+
+msgid "Specify Main Window Dimensions"
+msgstr "Specificați dimensiunile ferestrei principale"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Cancel"
+msgstr "Anulare"
+
+msgid "&Default"
+msgstr "Im&plicit"
+
+msgid "Language:"
+msgstr "Limbă:"
+
+msgid "Gain"
+msgstr "Câștig"
+
+msgid "File name:"
+msgstr "Nume fișier:"
+
+msgid "Disk size:"
+msgstr "Capacitate disc:"
+
+msgid "RPM mode:"
+msgstr "Mod viteză de rotație:"
+
+msgid "Progress:"
+msgstr "Progres:"
+
+msgid "Width:"
+msgstr "Lățime:"
+
+msgid "Height:"
+msgstr "Lungime:"
+
+msgid "Lock to this size"
+msgstr "Blochează la această dimensiune"
+
+msgid "General"
+msgstr "General"
+
+msgid "Processor"
+msgstr "Procesor"
+
+msgid "Performance"
+msgstr "Performanță"
+
+msgid "Machine type:"
+msgstr "Tip mașină:"
+
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr "[1989] i486 (Socket 168 și 1)"
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr "[1994] i486 (Altele)"
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr "[1995] Socket 7 (Tensiune unică)"
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr "[1996] Socket 7 (Tensiune dublă)"
+
+msgid "Miscellaneous"
+msgstr "Altele"
+
+msgid "Machine:"
+msgstr "Mașină:"
+
+msgid "Configure"
+msgstr "Configurează"
+
+msgid "CPU:"
+msgstr "CPU:"
+
+msgid "CPU type:"
+msgstr "Tip de procesor:"
+
+msgid "Speed:"
+msgstr "Viteză:"
+
+msgid "Frequency:"
+msgstr "Frecvență:"
+
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
+msgid "FPU:"
+msgstr "FPU:"
+
+msgid "Internal"
+msgstr "Intern"
+
+msgid "Wait states:"
+msgstr "Stări de așteptare:"
+
+msgid "MB"
+msgstr "MB"
+
+msgid "Memory:"
+msgstr "Memorie:"
+
+msgid "Time synchronization"
+msgstr "Sincronizarea timpului"
+
+msgid "Disabled"
+msgstr "Dezactivat"
+
+msgid "Enabled (local time)"
+msgstr "Activat (ora locală)"
+
+msgid "Enabled (UTC)"
+msgstr "Activat (UTC)"
+
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr "Folosește interpretorul 486 pentru procesoarele 286 și 386"
+
+msgid "Dynamic recompiler"
+msgstr "Recompilator dinamic"
+
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr "Mediu FPU precis pe recompilatorul dinamic"
+
+msgid "CPU frame size"
+msgstr "Dimensiunea cadre CPU"
+
+msgid "Larger frames (less smooth)"
+msgstr "Cadre mai mari (mai puțin fluid)"
+
+msgid "Smaller frames (smoother)"
+msgstr "Cadre mai mici (mai fluide)"
+
+msgid "Video:"
+msgstr "Video:"
+
+msgid "Video #2:"
+msgstr "Video #2:"
+
+msgid "Monitor"
+msgstr "Monitor"
+
+msgid "Voodoo 1 or 2 Graphics"
+msgstr "Grafică Voodoo 1 sau 2"
+
+msgid "IBM 8514/A Graphics"
+msgstr "Grafică IBM 8514/A"
+
+msgid "XGA Graphics"
+msgstr "Grafică XGA"
+
+msgid "IBM PS/55 Display Adapter Graphics"
+msgstr "Grafică adaptor de afișaj IBM PS/55"
+
+msgid "SCSI:"
+msgstr "SCSI:"
+
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
+msgid "Keyboard:"
+msgstr "Tastatură:"
+
+msgid "Keyboard"
+msgstr "Tastatură"
+
+msgid "Mouse:"
+msgstr "Maus:"
+
+msgid "Mouse"
+msgstr "Maus"
+
+msgid "&Mouse"
+msgstr "&Maus"
+
+msgid "Tablet:"
+msgstr "Tabletă:"
+
+msgid "Tablet"
+msgstr "Tabletă"
+
+msgid "&Tablet"
+msgstr "&Tabletă"
+
+msgid "Tablet (&Crosshair)"
+msgstr "Tabletă (&Cruce)"
+
+msgid "Joystick:"
+msgstr "Joystick:"
+
+msgid "Joystick"
+msgstr "Joystick"
+
+msgid "Joystick 1…"
+msgstr "Joystick 1…"
+
+msgid "Joystick 2…"
+msgstr "Joystick 2…"
+
+msgid "Joystick 3…"
+msgstr "Joystick 3…"
+
+msgid "Joystick 4…"
+msgstr "Joystick 4…"
+
+msgid "Sound card 1:"
+msgstr "Card de sunet 1:"
+
+msgid "Sound card 2:"
+msgstr "Card de sunet 2:"
+
+msgid "Sound card 3:"
+msgstr "Card de sunet 3:"
+
+msgid "Sound card 4:"
+msgstr "Card de sunet 4:"
+
+msgid "MIDI Out Device:"
+msgstr "Dispozitiv de ieșire MIDI:"
+
+msgid "MIDI In Device:"
+msgstr "Dispozitiv de intrare MIDI:"
+
+msgid "MIDI Out:"
+msgstr "Ieșire MIDI:"
+
+msgid "Standalone MPU-401"
+msgstr "MPU-401 autonom"
+
+msgid "Use FLOAT32 sound"
+msgstr "Folosește sunet FLOAT32"
+
+msgid "FM synth driver:"
+msgstr "Driver de sinteză FM:"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (mai precis)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (rapid)"
+
+msgid "Internal LPT ECP DMA:"
+msgstr "DMA ECP LPT intern:"
+
+msgid "Floppy disk controller:"
+msgstr "Controler de dischete:"
+
+msgid "CD-ROM controller:"
+msgstr "Controler de CD-ROM:"
+
+msgid "Mitsumi interface"
+msgstr "Interfață Mitsumi"
+
+msgid "MKE/Panasonic interface"
+msgstr "Interfață MKE/Panasonic"
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr "Interfață MKE/Panasonic (Creative)"
+
+msgid "IDE Controller"
+msgstr "Controler IDE"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr "Controler IDE (dublu canal)"
+
+msgid "PC/AT IDE Controller"
+msgstr "Controler PC/AT IDE"
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr "Controler PC/AT IDE (dublu canal)"
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr "XTIDE PC/AT (Doar primar)"
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr "PS/2 AT XTIDE (1.1.5) (Doar primar)"
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0646 (Terțiar și cuaternar)"
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0648 (Terțiar și cuaternar)"
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0649 (Terțiar și cuaternar)"
+
+msgid "McIDE Controller"
+msgstr "Controler McIDE"
+
+msgid "Tertiary IDE Controller"
+msgstr "Controler IDE terțiar"
+
+msgid "Quaternary IDE Controller"
+msgstr "Controler IDE cuaternar"
+
+msgid "Hard disk controllers"
+msgstr "Controlere de discuri dure"
+
+msgid "SCSI controllers"
+msgstr "Controlere SCSI"
+
+msgid "Controller 1:"
+msgstr "Controler 1:"
+
+msgid "Controller 2:"
+msgstr "Controler 2:"
+
+msgid "Controller 3:"
+msgstr "Controler 3:"
+
+msgid "Controller 4:"
+msgstr "Controler 4:"
+
+msgid "Cassette"
+msgstr "Casetă"
+
+msgid "Hard disks:"
+msgstr "Discuri dure:"
+
+msgid "Firmware Version"
+msgstr "Versiune de firmware"
+
+msgid "DSP Version"
+msgstr "Versiunea DSP"
+
+msgid "&New…"
+msgstr "&Nou…"
+
+msgid "&Existing…"
+msgstr "&Existent…"
+
+msgid "&Remove"
+msgstr "&Elimină"
+
+msgid "Bus:"
+msgstr "Magistrală:"
+
+msgid "Channel:"
+msgstr "Canal:"
+
+msgid "ID:"
+msgstr "ID:"
+
+msgid "Sectors:"
+msgstr "Sectoare:"
+
+msgid "Heads:"
+msgstr "Capete:"
+
+msgid "Cylinders:"
+msgstr "Cilindri:"
+
+msgid "Size (MB):"
+msgstr "Dimensiune (MB):"
+
+msgid "Type:"
+msgstr "Tip:"
+
+msgid "Image Format:"
+msgstr "Format de imagine:"
+
+msgid "Block Size:"
+msgstr "Dimensiune blocuri:"
+
+msgid "Floppy drives"
+msgstr "Unități de dischete"
+
+msgid "5.25\" 180k"
+msgstr "5.25\" 180k"
+
+msgid "5.25\" 360k"
+msgstr "5.25\" 360k"
+
+msgid "5.25\" 720k"
+msgstr "5.25\" 720k"
+
+msgid "5.25\" 1.2M"
+msgstr "5.25\" 1.2M"
+
+msgid "5.25\" 1.2M 300/360 RPM"
+msgstr "5.25 1.2M 300/360 RPM"
+
+msgid "3.5\" 360k"
+msgstr "3.5\" 360k"
+
+msgid "3.5\" 720k"
+msgstr "3.5\" 720k"
+
+msgid "3.5\" 1.44M"
+msgstr "3.5\" 1.44M"
+
+msgid "3.5\" 1.25M PC-98"
+msgstr "PC-98 3.5 1.25M"
+
+msgid "3.5\" 1.44M 300/360 RPM"
+msgstr "3.5\" 1.44M 300/360 RPM"
+
+msgid "3.5\" 2.88M"
+msgstr "3.5\" 2.88M"
+
+msgid "3.5\" 2.88M 300/360 RPM"
+msgstr "3.5\" 2.88M 300/360 RPM"
+
+msgid "Turbo timings"
+msgstr "Timpi turbo"
+
+msgid "Check BPB"
+msgstr "Verifică BPB"
+
+msgid "CD-ROM drives"
+msgstr "Unități CD-ROM"
+
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
+msgid "MO drives"
+msgstr "Unități MO"
+
+msgid "MO:"
+msgstr "MO:"
+
+msgid "Removable disk drives"
+msgstr "Unități de disc amovibile"
+
+msgid "Removable disks:"
+msgstr "Unități amovibile:"
+
+msgid "Tape drives"
+msgstr "Unități de bandă"
+
+msgid "Tape drives:"
+msgstr "Unități de bandă:"
+
+msgid "ISA RTC:"
+msgstr "ISA RTC:"
+
+msgid "ISA Memory Expansion"
+msgstr "Expansiune de memorie ISA"
+
+msgid "ISA ROM Cards"
+msgstr "Plăci ROM ISA"
+
+msgid "Card 1:"
+msgstr "Placa 1:"
+
+msgid "Card 2:"
+msgstr "Placa 2:"
+
+msgid "Card 3:"
+msgstr "Placa 3:"
+
+msgid "Card 4:"
+msgstr "Placa 4:"
+
+msgid "Generic ISA ROM Board"
+msgstr "Placă de ROM ISA generică"
+
+msgid "Generic Dual ISA ROM Board"
+msgstr "Placă dublă ROM ISA generică"
+
+msgid "Generic Quad ISA ROM Board"
+msgstr "Placă cvadruplă ROM ISA generică"
+
+msgid "ISABugger device"
+msgstr "Dispozitiv ISABugger"
+
+msgid "POST card"
+msgstr "Placă POST"
+
+msgid "Error"
+msgstr "Eroare"
+
+msgid "Fatal error"
+msgstr "Eroare fatală"
+
+msgid " - PAUSED"
+msgstr " - PAUZĂ"
+
+msgid "Speed"
+msgstr "Viteză"
+
+msgid "Removable disk %1 (%2): %3"
+msgstr "Disc amovibil %1 (%2): %3"
+
+msgid "&Removable disk %1 (%2): %3"
+msgstr "%Disc amovibil %1 (%2): %3"
+
+msgid "Removable disk images"
+msgstr "Imagini de disc amovibile"
+
+msgid "Tape %1 (%2): %3"
+msgstr "Bandă %1 (%2): %3"
+
+msgid "&Tape %1 (%2): %3"
+msgstr "&Bandă %1 (%2): %3"
+
+msgid "Tape images"
+msgstr "Imagini de bandă"
+
+msgid "Image %1"
+msgstr "Imagine %1"
+
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr ""
+"%1 nu a putut găsi nici o imagine ROM utilă.\n"
+"\n"
+"Te rugăm să <a href=\"%2\">descarci</a> un set de ROM-uri și să îl extragi "
+"în directorul \"roms\"."
+
+msgid "(empty)"
+msgstr "(gol)"
+
+msgid "All files"
+msgstr "Toate fișierele"
+
+msgid "Turbo"
+msgstr "Turbo"
+
+msgid "On"
+msgstr "Pornit"
+
+msgid "Off"
+msgstr "Închis"
+
+msgid "All images"
+msgstr "Toate imaginile"
+
+msgid "Basic sector images"
+msgstr "Imagini de sector de bază"
+
+msgid "Surface images"
+msgstr "Imagini de suprafață"
+
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr ""
+"Mașina \"%s\" nu este disponibilă din cauza lipsei fișierelor ROM din "
+"directorul roms/machines. Se comută la o mașină disponibilă."
+
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr ""
+"Placa video \"%s\" nu este disponibilă din cauza lipsei fișierelor ROM din "
+"directorul roms/video. Se comută la o placă video disponibilă."
+
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr ""
+"Dispozitivul \"%s\" nu este disponibil din cauza lipsei fișierelor ROM. Se "
+"va ignora dispozitivul."
+
+msgid "Machine"
+msgstr "Mașină"
+
+msgid "Display"
+msgstr "Afișaj"
+
+msgid "Input devices"
+msgstr "Dispozitive de intrare"
+
+msgid "Input &device"
+msgstr "&Dispozitiv de intrare"
+
+msgid "Sound"
+msgstr "Sunet"
+
+msgid "Network"
+msgstr "Rețea"
+
+msgid "Ports (COM & LPT)"
+msgstr "Porturi (COM și LPT)"
+
+msgid "Port"
+msgstr "Port"
+
+msgid "Ports"
+msgstr "Porturi"
+
+msgid "Serial ports"
+msgstr "Porturi seriale"
+
+msgid "Serial ports:"
+msgstr "Porturi seriale:"
+
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
+msgid "Parallel ports"
+msgstr "Porturi paralele"
+
+msgid "Parallel ports:"
+msgstr "Porturi paralele:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
+
+msgid "Storage controllers"
+msgstr "Controlere de stocare"
+
+msgid "Hard disks"
+msgstr "Discuri dure"
+
+msgid "Disks:"
+msgstr "Discuri:"
+
+msgid "Floppy:"
+msgstr "Dischete:"
+
+msgid "Controllers:"
+msgstr "Controlere:"
+
+msgid "Floppy & CD-ROM drives"
+msgstr "Unități dischetă și CD-ROM"
+
+msgid "Other removable devices"
+msgstr "Alte dispozitive amovibile"
+
+msgid "Other peripherals"
+msgstr "Alte periferice"
+
+msgid "Other devices"
+msgstr "Alte dispozitive"
+
+msgid "Click to capture mouse"
+msgstr "Clic pentru a captura maus-ul"
+
+msgid "Press %1 to release mouse"
+msgstr "Apasă pe %1 pentru a elibera maus-ul"
+
+msgid "Press %1 or middle button to release mouse"
+msgstr "Apasă pe %1 sau butonul din mijloc pentru a elibera maus-ul"
+
+msgid "Press %1 or thumb button to release mouse"
+msgstr "Apasă pe %1 sau pe butonul lateral pentru a elibera maus-ul"
+
+msgid "Bus"
+msgstr "Magistrală"
+
+msgid "File"
+msgstr "Fișier"
+
+msgid "Geometry"
+msgstr "Geometrie"
+
+msgid "KB"
+msgstr "KB"
+
+msgid "Default"
+msgstr "Implicit"
+
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n stare de așteptare"
+msgstr[1] "%n stări de așteptare"
+msgstr[2] "%n de stări de așteptare"
+
+msgid "Type"
+msgstr "Tip"
+
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr ""
+"Nu s-au găsit dispozitive PCap. Asigură te că %1 e instalat și că ești pe o "
+"conexiune de rețea compatibilă cu %1."
+
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr ""
+"Dispozitiv PCap nevalid. Asigură te că %1 e instalat și că ești pe o "
+"conexiune de rețea compatibilă cu %1."
+
+msgid "Generic paddle controller(s)"
+msgstr "Controler(e) paddle generic(e)"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "Joystick(uri) cu 2 axe și 1 buton"
+
+msgid "2-axis, 2-button joystick(s)"
+msgstr "Joystick(uri) cu 2 axe și 2 butoane"
+
+msgid "2-axis, 3-button joystick"
+msgstr "Joystick(uri) cu 2 axe și 3 butoane"
+
+msgid "2-axis, 4-button joystick"
+msgstr "Joystick(uri) cu 2 axe și 4 butoane"
+
+msgid "2-axis, 6-button joystick"
+msgstr "Joystick(uri) cu 2 axe și șase butoane"
+
+msgid "2-axis, 8-button joystick"
+msgstr "Joystick(uri) cu 2 axe și 8 butoane"
+
+msgid "3-axis, 2-button joystick"
+msgstr "Joystick(uri) cu 3 axe și 2 butoane"
+
+msgid "3-axis, 3-button joystick"
+msgstr "Joystick(uri) cu 3 axe și 3 butoane"
+
+msgid "3-axis, 4-button joystick"
+msgstr "Joystick(uri) cu 3 axe și 4 butoane"
+
+msgid "4-axis, 2-button joystick"
+msgstr "Joystick(uri) cu 4 axe și 2 butoane"
+
+msgid "4-axis, 3-button joystick"
+msgstr "Joystick(uri) cu 4 axe și 3 butoane"
+
+msgid "4-axis, 4-button joystick"
+msgstr "Joystick(uri) cu 4 axe și 4 butoane"
+
+msgid "2-button gamepad(s)"
+msgstr "Gamepad(uri) cu 2 butoane"
+
+msgid "3-button gamepad"
+msgstr "Gamepad cu 3 butoane"
+
+msgid "4-button gamepad"
+msgstr "Gamepad cu 4 butoane"
+
+msgid "6-button gamepad"
+msgstr "Gamepad cu 6 butoane"
+
+msgid "2-button flight yoke"
+msgstr "Manșă de zbor cu 2 butoane"
+
+msgid "3-button flight yoke"
+msgstr "Manșă de zbor cu 3 butoane"
+
+msgid "4-button flight yoke"
+msgstr "Manșă de zbor cu 4 butoane"
+
+msgid "2-button flight yoke with throttle"
+msgstr "Manșă de zbor cu 2 butoane și accelerație"
+
+msgid "3-button flight yoke with throttle"
+msgstr "Manșă de zbor cu 3 butoane și accelerație"
+
+msgid "4-button flight yoke with throttle"
+msgstr "Manșă de zbor cu 4 butoane și accelerație"
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "Volan (3 axe, 2 butoane)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "Volan (3 axe, 3 butoane)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "Volan (3 axe, 4 butoane)"
+
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 cu adaptor"
+
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 fără adaptor"
+
+msgid "None"
+msgstr "Fără"
+
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CCS: %2, %3, %4)"
+
+msgid "Floppy %1 (%2): %3"
+msgstr "Dischetă %1 (%2): %3"
+
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Dischetă %1 (%2): %3"
+
+msgid "Advanced sector images"
+msgstr "Imagini de sector avansat"
+
+msgid "Flux images"
+msgstr "Imagini de flux"
+
+msgid "Are you sure you want to hard reset the emulated machine?"
+msgstr "Ești sigur că vrei să resetezi complet această mașină emulată?"
+
+msgid "Are you sure you want to exit 86Box?"
+msgstr "Ești sigur că vrei să ieși din 86Box?"
+
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr ""
+"Nu s-a putut inițializa Ghostscript. %1 este necesar pentru conseria "
+"automată a fișierelor PostScript în PDF.\n"
+"\n"
+"Orice document trimis la imprimanta PostScript generică va fi salvată ca "
+"fișiere PostScript (.ps)."
+
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr ""
+"Nu s-a putut inițializa GhostPCL. %1 este necesar pentru conversia automată "
+"a fișierelor PCL în PDF.\n"
+"\n"
+"Orice document trimis către imprimanta PCL generică va fi salvat ca fișiere "
+"PostScript (.ps)."
+
+msgid "MO %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
+
+msgid "MO images"
+msgstr "Imagini MO"
+
+msgid "Welcome to 86Box!"
+msgstr "Bun venit la 86Box!"
+
+msgid "Internal device"
+msgstr "Dispozitiv intern"
+
+msgid "&File"
+msgstr "&Fișier"
+
+msgid "&New machine…"
+msgstr "&Mașină nouă…"
+
+msgid "New machine…"
+msgstr "Mașină nouă…"
+
+msgid "New machine"
+msgstr "Mașină nouă"
+
+msgid "&Check for updates…"
+msgstr "&Verifică actualizările…"
+
+msgid "Exit"
+msgstr "Ieșire"
+
+msgid "No ROMs found"
+msgstr "Nu s-au găsit fișiere ROM"
+
+msgid "Do you want to save the settings?"
+msgstr "Dorești să salvezi aceste setări?"
+
+msgid "This will hard reset the emulated machine."
+msgstr "Aceasta va reporni complet mașina emulată."
+
+msgid "Save"
+msgstr "Salvează"
+
+msgid "About %1"
+msgstr "Despre %1"
+
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr ""
+"Un emulator de calculatoare vechi\n"
+"\n"
+"Autori: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, "
+"coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin "
+"(elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen "
+"(waltje), Tiseno100, reenigne, și alții.\n"
+"\n"
+"Cu contribuții anterioare la nucleu de la Sarah Walker, leilei, JohnElliott, "
+"greatpsycho, și alții.\n"
+"\n"
+"Lansat sub licența GNU General Public License versiunea 2 sau ulterioară. "
+"Consultați fișierul LICENSE pentru mai multe informații."
+
+msgid "Hardware not available"
+msgstr "Hardware indisponibil"
+
+msgid "Don't show this message again"
+msgstr "Nu mai afișa din nou acest mesaj"
+
+msgid "CD-ROM images"
+msgstr "Imagini CD-ROM"
+
+msgid "%1 Device Configuration"
+msgstr "Configurare dispozitiv %1"
+
+msgid "Monitor in sleep mode"
+msgstr "Monitorul în modul de repaus"
+
+msgid "GLSL shaders"
+msgstr "Shadere GLSL"
+
+msgid "You are loading an unsupported configuration"
+msgstr "Se încarcă o configurație nesuportată"
+
+msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
+msgstr ""
+"Filtrarea tipului de CPU bazată pe mașina selectată este dezactivată pentru "
+"această mașină selectată.\n"
+"\n"
+"Acest lucru face posibilă alegerea unui CPU care altfel ar fi incompatibil "
+"cu mașina selectată. Cu toate acestea, este posibil să întâmpinați "
+"incompatibilități cu BIOS-ul mașinii sau cu alte programe.\n"
+"\n"
+"Activarea acestei setări nu este acceptată oficial, iar orice raport de "
+"eroare trimis va putea fi închis ca fiind nevalid."
+
+msgid "Continue"
+msgstr "Continuare"
+
+msgid "Cassette: %1"
+msgstr "Casetă: %1"
+
+msgid "C&assette: %1"
+msgstr "C&asetă: %1"
+
+msgid "Cassette images"
+msgstr "Imagini casetă"
+
+msgid "Cartridge %1: %2"
+msgstr "Cartuș %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Car%tuș %1: %2"
+
+msgid "Cartridge images"
+msgstr "Imagini cartușe"
+
+msgid "Resume execution"
+msgstr "Reluare execuție"
+
+msgid "Pause execution"
+msgstr "Pauză execuție"
+
+msgid "Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "Apasă Ctrl+Alt+Del"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "Apasă Ctrl+Alt+Esc"
+
+msgid "Hard reset"
+msgstr "Repornire brută"
+
+msgid "Force shutdown"
+msgstr "Oprire forțată"
+
+msgid "Start"
+msgstr "Pornire"
+
+msgid "&Force shutdown"
+msgstr "Oprire &forțată"
+
+msgid "&Start"
+msgstr "&Pornire"
+
+msgid "Not running"
+msgstr "Nu rulează"
+
+msgid "Running"
+msgstr "Rulează"
+
+msgid "Paused"
+msgstr "Pauzat"
+
+msgid "Waiting"
+msgstr "Așteptare"
+
+msgid "Powered Off"
+msgstr "Oprit"
+
+msgid "%n running"
+msgid_plural "%n running"
+msgstr[0] "%n care rulează"
+msgstr[1] "%n care rulează"
+msgstr[2] "%n de care rulează"
+
+msgid "%n paused"
+msgid_plural "%n paused"
+msgstr[0] "%n în pauză"
+msgstr[1] "%n în pauză"
+msgstr[2] "%n în pauză"
+
+msgid "%n waiting"
+msgid_plural "%n waiting"
+msgstr[0] "%n în așteptare"
+msgstr[1] "%n în așteptare"
+msgstr[2] "%n în așteptare"
+
+msgid "%1 total"
+msgstr "%1 total"
+
+msgid "VMs: %1"
+msgstr "MV: %1"
+
+msgid "System Directory:"
+msgstr "Director de sistem:"
+
+msgid "Choose directory"
+msgstr "Alege directorul"
+
+msgid "Choose configuration file"
+msgstr "Alege fișierul de configurație"
+
+msgid "86Box configuration files (86box.cfg)"
+msgstr "Fișiere de configurație 86Box (86box.cfg)"
+
+msgid "Configuration read failed"
+msgstr "Citirea configurației a eșuat"
+
+msgid "Unable to open the selected configuration file for reading: %1"
+msgstr ""
+"Nu s-a putut deschide fișierul de configurație selectat pentru citire: %1"
+
+msgid "Use regular expressions in search box"
+msgstr "Utilizează expresii regulate în bara de căutare"
+
+msgid "Delete virtual machines to Recycle Bin"
+msgstr "Șterge toate mașinile virtuale în Coșul de Reciclare"
+
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] ""
+"%n mașină este activ în prezent. Sigur doriți să ieșiți din manager-ul de VM "
+"totuși?"
+msgstr[1] ""
+"%n mașini sunt active în prezent. Sigur doriți să ieșiți din manager-ul de "
+"VM totuși?"
+msgstr[2] ""
+"%n de mașini sunt active în prezent. Sigur doriți să ieșiți din manager-ul "
+"de VM totuși?"
+
+msgid "Add new system wizard"
+msgstr "Asistent pentru adăugarea unui sistem nou"
+
+msgid "Introduction"
+msgstr "Introducere"
+
+msgid "This will help you add a new system to 86Box."
+msgstr "Aceasta te va ajuta să adaugi un nou sistem în 86Box."
+
+msgid "New configuration"
+msgstr "Configurație nouă"
+
+msgid "Complete"
+msgstr "Completează"
+
+msgid "The wizard will now launch the configuration for the new system."
+msgstr "Asistentul va lansa configurația pentru noul sistem."
+
+msgid "Use existing configuration"
+msgstr "Utilizează configurația existentă"
+
+msgid "Type some notes here"
+msgstr "Introdu câteva note aici"
+
+msgid "Paste the contents of the existing configuration file into the box below."
+msgstr ""
+"LIpește conținutul fișierului de configurație existent în caseta de mai jos."
+
+msgid "Load configuration from file"
+msgstr "Încarcă configurația din fișier"
+
+msgid "System name"
+msgstr "Numele sistemului"
+
+msgid "System name:"
+msgstr "Numele sistemului:"
+
+msgid "System name cannot contain certain characters"
+msgstr "Numele sistemului nu poate conține anumite caractere"
+
+msgid "System name already exists"
+msgstr "Numele sistemului este deja existent"
+
+msgid "Please enter a directory for the system"
+msgstr "Vă rugăm să introduceți un director pentru sistem"
+
+msgid "Directory does not exist"
+msgstr "Directorul nu există"
+
+msgid "A new directory for the system will be created in the selected directory above"
+msgstr ""
+"Un nou director pentru sistem va fi creat în directorul selectat de mai sus"
+
+msgid "System location:"
+msgstr "Locația sistemului:"
+
+msgid "System name and location"
+msgstr "Numele sistemului și locația"
+
+msgid "Enter the name of the system and choose the location"
+msgstr "Introdu numele sistemului și alege locația"
+
+msgid "Enter the name of the system"
+msgstr "Introdu numele sistemului"
+
+msgid "Please enter a system name"
+msgstr "Vă rugăm să introduceți un nume de sistem"
+
+msgid "Display name (optional):"
+msgstr "Numele de afișaj (opțional):"
+
+msgid "Display name:"
+msgstr "Numele de afișaj:"
+
+msgid "Set display name"
+msgstr "Setează numele de afișaj"
+
+msgid "Enter the new display name (blank to reset)"
+msgstr "Introdu noul nume de afișaj (gol pentru a reseta)"
+
+msgid "Change &display name…"
+msgstr "Modifică &numele de afișaj…"
+
+msgid "&Open folder…"
+msgstr "&Deschide director…"
+
+msgid "Open p&rinter tray…"
+msgstr "Deschide tava pentru im&primantă…"
+
+msgid "Set &icon…"
+msgstr "Setează &pictograma…"
+
+msgid "Select an icon"
+msgstr "Selectează o pictogramă"
+
+msgid "C&lone…"
+msgstr "Cl&onează…"
+
+msgid "Virtual machine \"%1\" (%2) will be cloned into:"
+msgstr "Mașina virtuală \"%1\" (%2) va fi clonată în:"
+
+msgid "Directory %1 already exists"
+msgstr "Directorul %1 este deja existent"
+
+msgid "You cannot use the following characters in the name: %1"
+msgstr "Nu se pot utiliza următoarele caractere în nume: %1"
+
+msgid "Clone"
+msgstr "Clonează"
+
+msgid "Failed to create directory for cloned VM"
+msgstr "Nu s-a putut crea directorul pentru mașina virtuală clonată"
+
+msgid "Failed to clone VM."
+msgstr "Clonarea mașinii virtuale a eșuat."
+
+msgid "Directory in use"
+msgstr "Director în uz"
+
+msgid "The selected directory is already in use. Please select a different directory."
+msgstr ""
+"Directorul selectat este deja folosit. Vă rugăm să selectați un director "
+"diferit."
+
+msgid "Create directory failed"
+msgstr "Crearea directorului a eșuat"
+
+msgid "Unable to create the directory for the new system"
+msgstr "Nu s-a putut crea directorul pentru noul sistem"
+
+msgid "Configuration write failed"
+msgstr "Scrierea configurației a eșuat"
+
+msgid "Unable to open the configuration file at %1 for writing"
+msgstr "Nu s-a putut deschide fișierul de configurație la %1 pentru scriere"
+
+msgid "Error adding system"
+msgstr "Eroare la adăugarea sistemului"
+
+msgid "Remove directory failed"
+msgstr "Ștergerea directorului a eșuat"
+
+msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
+msgstr ""
+"Unele fișierele din directorul mașinii nu s-au putut șterge. Vă rugăm să le "
+"ștergeți manual."
+
+msgid "Build"
+msgstr "Compilare"
+
+msgid "Version"
+msgstr "Versiune"
+
+msgid "An update to 86Box is available: %1 %2"
+msgstr "O actualizare pentru 86Box este disponibilă: %1 %2"
+
+msgid "An error has occurred while checking for updates: %1"
+msgstr "A apărut o eroare în timpul verificării actualizărilor: %1"
+
+msgid "<b>An update to 86Box is available!</b>"
+msgstr "<b>O actualizare pentru 86Box este disponibilă!</b>"
+
+msgid "Warning"
+msgstr "Avertizare"
+
+msgid "&Kill"
+msgstr "&Termină"
+
+msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
+msgstr ""
+"Oprirea forțată a unei mașini virtuale poate cauza pierderea datelor. Faceți "
+"acest lucru doar dacă procesul 86Box se blochează.\n"
+"\n"
+"Doriți cu adevărat să opriți forțat mașina virtuală \"%1\"?"
+
+msgid "&Delete"
+msgstr "&Șterge"
+
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr ""
+"Doriți cu adevărat să ștergeți mașina virtuală \"%1\" împreună cu toate "
+"fișierele sale?"
+
+msgid "This action cannot be undone!"
+msgstr "Acestă acțiune nu poate fi anulată!"
+
+msgid "Show &config file"
+msgstr "Afișează fișierul de &configurație"
+
+msgid "No screenshot"
+msgstr "Fără captură de ecran"
+
+msgid "Search"
+msgstr "Caută"
+
+msgid "Searching for VMs…"
+msgstr "Se caută mașini virtuale…"
+
+msgid "Found %1"
+msgstr "S-a găsit %1"
+
+msgid "System"
+msgstr "Sistem"
+
+msgid "Storage"
+msgstr "Stocare"
+
+msgid "Disk %1:"
+msgstr "Disc %1:"
+
+msgid "No disks"
+msgstr "Fără discuri"
+
+msgid "Audio"
+msgstr "Audio"
+
+msgid "Audio:"
+msgstr "Audio:"
+
+msgid "ACPI shutdown"
+msgstr "Oprire ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Oprire ACP&I"
+
+msgid "Power off"
+msgstr "Oprire"
+
+msgid "Power &off…"
+msgstr "&Oprire…"
+
+msgid "Power &off"
+msgstr "&Oprire"
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
+"Oprirea mașinii virtuale ar putea cauza pierdere de date. Sunteți sigur că "
+"doriți să continuați?"
+
+msgid "Hard disk (%1)"
+msgstr "Disc dur (%1)"
+
+msgid "Custom…"
+msgstr "Personalizat…"
+
+msgid "Custom (large)…"
+msgstr "Personalizat (mare)…"
+
+msgid "Add New Hard Disk"
+msgstr "Adaugă disc nou"
+
+msgid "Add Existing Hard Disk"
+msgstr "Adaugă disc existent"
+
+msgid "HDI disk images cannot be larger than 4 GB."
+msgstr "Imaginile de disc HDI nu pot fi mai mari de 4 GB."
+
+msgid "Disk images cannot be larger than 127 GB."
+msgstr "Imaginile de disc nu pot fi mai mari de 127 GB."
+
+msgid "Hard disk images"
+msgstr "Imagini de disc"
+
+msgid "Unable to read file"
+msgstr "Nu s-a putut citi fișierul"
+
+msgid "Unable to write file"
+msgstr "Nu s-a putut scrie fișierul"
+
+msgid "HDI or HDX images with a sector size other than 512 are not supported."
+msgstr ""
+"Imaginile HDI sau HDX cu o dimensiune de sector diferită decât 512 nu sunt "
+"suportate."
+
+msgid "Disk image file already exists"
+msgstr "Fișierul imagine de disc există deja"
+
+msgid "Please specify a valid file name."
+msgstr "Vă rugăm să specificați un nume de fișier valid."
+
+msgid "Disk image created"
+msgstr "S-a creat imaginea de disc"
+
+msgid "Make sure the file exists and is readable."
+msgstr "Asigurați-vă că fișierul există și poate fi citit."
+
+msgid "Make sure the file is being saved to a writable directory."
+msgstr ""
+"Asigurați-vă că fișierul este salvat într-un director în care se poate scrie."
+
+msgid "Disk image too large"
+msgstr "Imaginea de disc este prea mare"
+
+msgid "Remember to partition and format the newly-created drive."
+msgstr "Rețineți să partiționați și să formatați noua unitate creată."
+
+msgid "The selected file will be overwritten. Are you sure you want to use it?"
+msgstr ""
+"Fișierul selectat va fi suprascris. Sunteți sigur că doriți să îl folosiți?"
+
+msgid "Unsupported disk image"
+msgstr "Imagine de disc nesuportată"
+
+msgid "Unable to read device"
+msgstr "Nu s-a putut citi dispozitivul"
+
+msgid "Could not determine block device size. Make sure you have permission to access this device."
+msgstr ""
+"Nu s-a putut determina dimensiunea blocurilor dispozitivului. Asigurați-vă "
+"că aveți permisiunile de a accesa acest dispozitiv."
+
+msgid "Device too large"
+msgstr "Dispozitivul este prea larg"
+
+msgid "Block device is too large to be used as a hard disk."
+msgstr ""
+"Blocurile dispozitivului este prea larg pentru a fi folosit ca disc dur."
+
+msgid "Block device detected"
+msgstr "Dispozitiv bloc detectat"
+
+msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
+msgstr ""
+"Dispozitiv block detectat: %1\n"
+"Dimensiune: %2 MB\n"
+"Geometrie: %3 cilindri, %4 capete, %5 sectoare"
+
+msgid "Failed to write the disk image."
+msgstr "Scrierea imaginii de disc a eșuat."
+
+msgid "Failed to read the disk image."
+msgstr "Citirea imaginii de disc a eșuat."
+
+msgid "The disk image has been successfully created."
+msgstr "Imaginea de disc a fost creată cu succes."
+
+msgid "Raw image"
+msgstr "Imagine brută"
+
+msgid "HDI image"
+msgstr "Imagine HDI"
+
+msgid "HDX image"
+msgstr "Imagine HDX"
+
+msgid "Fixed-size VHD"
+msgstr "VHD de dimensiune fixă"
+
+msgid "Dynamic-size VHD"
+msgstr "VHD de dimensiune dinamică"
+
+msgid "Differencing VHD"
+msgstr "VHD diferențial"
+
+msgid "(N/A)"
+msgstr "(N/A)"
+
+msgid "Raw image (.img)"
+msgstr "Imagine brută (.img)"
+
+msgid "HDI image (.hdi)"
+msgstr "Imagine HDI (.hdi)"
+
+msgid "HDX image (.hdx)"
+msgstr "Imagine HDX (.hdx)"
+
+msgid "Fixed-size VHD (.vhd)"
+msgstr "VHD de dimensiune fixă (.vhd)"
+
+msgid "Dynamic-size VHD (.vhd)"
+msgstr "VHD de dimensiune dinamică (.vhd)"
+
+msgid "Differencing VHD (.vhd)"
+msgstr "VHD diferențial (.vhd)"
+
+msgid "Large blocks (2 MB)"
+msgstr "Blocuri mari (2 MB)"
+
+msgid "Small blocks (512 KB)"
+msgstr "Blocuri mici (512 KB)"
+
+msgid "VHD files"
+msgstr "Fișiere VHD"
+
+msgid "Select the parent VHD"
+msgstr "Selectați fișierul VHD părinte"
+
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr ""
+"Marcajele de timp ale discului părinte și cel copil nu se potrivesc. Acest "
+"lucru poate însemna că imaginea părinte a fost modificată după ce a fost "
+"creată imaginea diferențială.\n"
+"\n"
+"Acest lucru se poate întâmpla și dacă fișierele imagine au fost mutate sau "
+"copiate, ori din cauza unui defect din programul care a creat acest disc.\n"
+"\n"
+"Doriți să corectați marcajele de timp?"
+
+msgid "Parent and child disk timestamps do not match"
+msgstr "Marcajele de timp ale discului părinte și cel copil nu se potrivesc"
+
+msgid "Could not fix VHD timestamp."
+msgstr "Nu s-a putut corecta marcajele de timp ale fișierului VHD."
+
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
+
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
+msgid "160 KB"
+msgstr "160 KB"
+
+msgid "180 KB"
+msgstr "180 KB"
+
+msgid "320 KB"
+msgstr "320 KB"
+
+msgid "360 KB"
+msgstr "360 KB"
+
+msgid "640 KB"
+msgstr "640 KB"
+
+msgid "720 KB"
+msgstr "720 KB"
+
+msgid "1.2 MB"
+msgstr "1.2 MB"
+
+msgid "1.25 MB"
+msgstr "1.25 MB"
+
+msgid "1.44 MB"
+msgstr "1.44 MB"
+
+msgid "DMF (cluster 1024)"
+msgstr "DMF (cluster 1024)"
+
+msgid "DMF (cluster 2048)"
+msgstr "DMF (cluster 2048)"
+
+msgid "2.88 MB"
+msgstr "2.88 MB"
+
+msgid "3.5\" 128 MB (ISO 10090)"
+msgstr "3.5\" 128 MB (ISO 10090)"
+
+msgid "3.5\" 230 MB (ISO 13963)"
+msgstr "3.5' 230 MB (ISO 13963)"
+
+msgid "3.5\" 540 MB (ISO 15498)"
+msgstr "3.5\" 540 MB (ISO 15498)"
+
+msgid "3.5\" 640 MB (ISO 15498)"
+msgstr "3.5\" 640 MB (ISO 15498)"
+
+msgid "3.5\" 1.3 GB (GigaMO)"
+msgstr "3.5\" 1.3 GB (GigaMO)"
+
+msgid "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3.5\" 2.3 GB (GigaMO 2)"
+
+msgid "5.25\" 600 MB"
+msgstr "5.25\" 600 MB"
+
+msgid "5.25\" 650 MB"
+msgstr "5.25\" 650 MB"
+
+msgid "5.25\" 1 GB"
+msgstr "5.25\" 1 GB"
+
+msgid "5.25\" 1.3 GB"
+msgstr "5.25\" 1.3 GB"
+
+msgid "Perfect RPM"
+msgstr "Perfect RPM"
+
+msgid "1% below perfect RPM"
+msgstr "1% sub RPM perfect"
+
+msgid "1.5% below perfect RPM"
+msgstr "1.5% sub RPM perfect"
+
+msgid "2% below perfect RPM"
+msgstr "2% sub RPM perfect"
+
+msgid "Creating image…"
+msgstr "Se crează imaginea…"
+
+msgid "(System Default)"
+msgstr "(Implicit în sistem)"
+
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr ""
+"Inițializarea driverului de rețea a eșuat:\n"
+"\n"
+"%s\n"
+"\n"
+"Configurația de rețea va fi comutată pe driverul nul."
+
+msgid "Mouse sensitivity:"
+msgstr "Sensibilitatea maus-ului:"
+
+msgid "Select media images from program working directory"
+msgstr "Selectați imaginile de mediu din directorul de lucru al programului"
+
+msgid "PIT mode:"
+msgstr "Mod PIT:"
+
+msgid "Auto"
+msgstr "Auto"
+
+msgid "Slow"
+msgstr "Lent"
+
+msgid "Fast"
+msgstr "Rapid"
+
+msgid "Auto-pause on focus loss"
+msgstr "Pauză automată la pierderea focalizării"
+
+msgid "Auto-pause on dialog boxes"
+msgstr "Pauză automată la afișarea casetelor de dialog"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBox nu mai este suportat"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr ""
+"Dezvoltarea manager-ului WinBox a încetat în 2022 din cauza lipsei de "
+"mentenanță. Pe măsură ce ne îndreptăm eforturile spre a face 86Box și mai "
+"bun, am luat decizia de a nu mai susține WinBox ca manager.\n"
+"\n"
+"Nu vor mai fi furnizate actualizări prin WinBox și este posibil să "
+"întâmpinați un comportament incorect dacă continuați să îl folosiți cu "
+"versiuni mai noi de 86Box. Orice rapoarte de erori legate de comportamentul "
+"WinBox vor fi închise ca nevalid.\n"
+"\n"
+"Accesați 86box.net pentru o listă cu alte managere pe care le puteți folosi."
+
+msgid "Generate"
+msgstr "Generează"
+
+msgid "Joystick configuration"
+msgstr "Configurare joystick"
+
+msgid "Device"
+msgstr "Dispozitiv"
+
+msgid "%1 (X axis)"
+msgstr "%1 (X axe)"
+
+msgid "%1 (Y axis)"
+msgstr "%1 (Y axe)"
+
+msgid "MCA devices"
+msgstr "Dispozitive MCA"
+
+msgid "List of MCA devices:"
+msgstr "Lista de dispozitive MCA:"
+
+msgid "&Tablet tool"
+msgstr "&Unealta de tabletă"
+
+msgid "About &Qt"
+msgstr "Despre &Qt"
+
+msgid "&MCA devices…"
+msgstr "Dispozitive &MCA…"
+
+msgid "Show non-&primary monitors"
+msgstr "Afișați monitoarele ne&primare"
+
+msgid "Open screenshots &folder…"
+msgstr "Deschide &directorul de capturi de ecran…"
+
+msgid "Appl&y fullscreen stretch mode when maximized"
+msgstr "A&plicați modul de întindere pe tot ecranul la maximizare"
+
+msgid "&Cursor/Puck"
+msgstr "&Cursor/Puck"
+
+msgid "&Pen"
+msgstr "&Stilou"
+
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "Unitate CD/DVD &gazdă (%1)"
+
+msgid "&Connected"
+msgstr "&Conectat"
+
+msgid "Clear image &history"
+msgstr "Ștergeți istoric&ul imaginilor"
+
+msgid "Create…"
+msgstr "Creați…"
+
+msgid "Host CD/DVD Drive (%1)"
+msgstr "Unitate CD/DVD gazdă (%1)"
+
+msgid "Unknown Bus"
+msgstr "Magistrală necunoscută"
+
+msgid "Null Driver"
+msgstr "Driver nul"
+
+msgid "NIC:"
+msgstr "NIC:"
+
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) (%3)"
+
+msgid "Render behavior"
+msgstr "Comportament de randare"
+
+msgid "Use target framerate:"
+msgstr "Folosiți rata de cadre țintă:"
+
+msgid " fps"
+msgstr " .fps"
+
+msgid "VSync"
+msgstr "VSync"
+
+msgid "Synchronize with video"
+msgstr "Sincronizați cu video"
+
+msgid "Shaders"
+msgstr "Shadere"
+
+msgid "Remove"
+msgstr "Eliminați"
+
+msgid "Browse…"
+msgstr "Răsfoiți…"
+
+msgid "Couldn't create OpenGL context."
+msgstr "Nu s-a putut crea contextul OpenGL."
+
+msgid "Couldn't switch to OpenGL context."
+msgstr "Nu s-a putut comuta la contextul OpenGL."
+
+msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
+msgstr ""
+"Versiunea OpenGL 3.0 sau ulterioară este necesară. Versiunea curentă este "
+"%1.%2"
+
+msgid "Error initializing OpenGL."
+msgstr "Eroare la inițializarea OpenGL."
+
+msgid "Falling back to software rendering."
+msgstr "Se revine la randarea software."
+
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr ""
+"<html><head/><body><p>La selectarea imaginilor de suport (CD-ROM, dischetă, "
+"etc.) dialogul de deschidere va porni în același director ca și fișierul de "
+"configurație 86Box. Această setare va avea probabil efect doar pe "
+"macOS.</p></body></html>"
+
+msgid "This machine might have been moved or copied."
+msgstr "Această mașină s-ar putea să fi fost mutată sau copiată."
+
+msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
+msgstr ""
+"Pentru a asigura o funcționalitate corespunzătoare a rețelei, 86Box trebuie "
+"să știe dacă această mașină a fost copiată sau mutată.\n"
+"\n"
+"Selectați \"Am copiat-o\" dacă nu sunteți sigur."
+
+msgid "I Moved It"
+msgstr "Am mutat-o"
+
+msgid "I Copied It"
+msgstr "Am copiat-o"
+
+msgid "86Box Monitor #%1"
+msgstr "Monitor 86Box #%1"
+
+msgid "No MCA devices."
+msgstr "Fără niciun dispozitiv MCA."
+
+msgid "MiB"
+msgstr "MiB"
+
+msgid "GiB"
+msgstr "GiB"
+
+msgid "Adapter 1"
+msgstr "Adaptor 1"
+
+msgid "Adapter 2"
+msgstr "Adaptor 2"
+
+msgid "Adapter 3"
+msgstr "Adaptor 3"
+
+msgid "Adapter 4"
+msgstr "Adaptor 4"
+
+msgid "Mode:"
+msgstr "Mod:"
+
+msgid "Interface:"
+msgstr "Interfață:"
+
+msgid "Adapter:"
+msgstr "Adaptor:"
+
+msgid "VDE Socket:"
+msgstr "Socket VDE:"
+
+msgid "TAP Bridge Device:"
+msgstr "Dispozitiv punte TAP:"
+
+msgid "86Box Unit Tester"
+msgstr "Tester unități 86Box"
+
+msgid "Novell NetWare 2.x Key Card"
+msgstr "Cartelă cheie Novell NetWare 2.x"
+
+msgid "Renderer &options…"
+msgstr "&Opțiuni de randare…"
+
+msgid "PC/XT Keyboard"
+msgstr "Tastatură PC/XT"
+
+msgid "AT Keyboard"
+msgstr "Tastatură AT"
+
+msgid "AX Keyboard"
+msgstr "Tastatură AX"
+
+msgid "PS/2 Keyboard"
+msgstr "Tastatură PS/2"
+
+msgid "PS/55 Keyboard"
+msgstr "Tastatură PS/55"
+
+msgid "Keys"
+msgstr "Taste"
+
+msgid "Logitech/Microsoft Bus Mouse"
+msgstr "Maus pe magistrală Logitech/Microsoft"
+
+msgid "Microsoft Bus Mouse (InPort)"
+msgstr "Maus pe magistrală Microsoft (InPort)"
+
+msgid "Mouse Systems Serial Mouse"
+msgstr "Maus serial Mouse Systems"
+
+msgid "Mouse Systems Bus Mouse"
+msgstr "Maus pe magistrală Mouse Systems"
+
+msgid "Microsoft Serial Mouse"
+msgstr "Maus serial Microsoft"
+
+msgid "Microsoft Serial BallPoint"
+msgstr "Trackball serial Microsoft"
+
+msgid "Logitech Serial Mouse"
+msgstr "Maus serial Logitech"
+
+msgid "PS/2 Mouse"
+msgstr "Maus PS/2"
+
+msgid "PS/2 QuickPort Mouse"
+msgstr "Maus PS/2 QuickPort"
+
+msgid "3M MicroTouch (Serial)"
+msgstr "3M MicroTouch (Serial)"
+
+msgid "Default Baud rate"
+msgstr "Rata baud implicită"
+
+msgid "Standard Hayes-compliant Modem"
+msgstr "Modem standard compatibil Hayes"
+
+msgid "Roland MT-32 Emulation"
+msgstr "Emulare Roland MT-32"
+
+msgid "Roland MT-32 (New) Emulation"
+msgstr "Emulare Roland MT-32 (nouă)"
+
+msgid "Roland CM-32L Emulation"
+msgstr "Emulare Roland CM-32L"
+
+msgid "Roland CM-32LN Emulation"
+msgstr "Emulare Roland CM-32LN"
+
+msgid "OPL4-ML Daughterboard"
+msgstr "Placa fiică OPL4-ML"
+
+msgid "System MIDI"
+msgstr "Sistem MIDI"
+
+msgid "MIDI Input Device"
+msgstr "Dispozitiv de intrare MIDI"
+
+msgid "BIOS file"
+msgstr "Fișier BIOS"
+
+msgid "BIOS file (ROM #1)"
+msgstr "Fișier BIOS (ROM #1)"
+
+msgid "BIOS file (ROM #2)"
+msgstr "Fișier BIOS (ROM #2)"
+
+msgid "BIOS file (ROM #3)"
+msgstr "Fișier BIOS (ROM #3)"
+
+msgid "BIOS file (ROM #4)"
+msgstr "Fișier BIOS (ROM #4)"
+
+msgid "BIOS address"
+msgstr "Adresă BIOS"
+
+msgid "BIOS address (ROM #1)"
+msgstr "Adresă BIOS (ROM #1)"
+
+msgid "BIOS address (ROM #2)"
+msgstr "Adresă BIOS (ROM #2)"
+
+msgid "BIOS address (ROM #3)"
+msgstr "Adresă BIOS (ROM #3)"
+
+msgid "BIOS address (ROM #4)"
+msgstr "Adresă BIOS (ROM #4)"
+
+msgid "Enable BIOS extension ROM Writes"
+msgstr "Activați scrierile în ROM-ul de extensie BIOS"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr "Activați scrierile în ROM-ul de extensie BIOS (ROM #1)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr "Activați scrierile în ROM-ul de extensie BIOS (ROM #2)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr "Activați scrierile în ROM-ul de extensie BIOS (ROM #3)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr "Activați scrierile în ROM-ul de extensie BIOS (ROM #4)"
+
+msgid "Linear framebuffer base"
+msgstr "Baza buffer de cadre liniar"
+
+msgid "Address"
+msgstr "Adresă"
+
+msgid "IRQ"
+msgstr "IRQ"
+
+msgid "Serial port IRQ"
+msgstr "IRQ port serial"
+
+msgid "Parallel port IRQ"
+msgstr "IRQ port paralel"
+
+msgid "Hard disk"
+msgstr "Disc dur"
+
+msgid "BIOS Revision"
+msgstr "Reviziunea BIOS"
+
+msgid "BIOS Version"
+msgstr "Versiune BIOS"
+
+msgid "BIOS Language"
+msgstr "Limbă BIOS"
+
+msgid "Variant"
+msgstr "Variantă"
+
+msgid "IBM 5161 Expansion Unit"
+msgstr "Unitate de expansiune IBM 5161"
+
+msgid "IBM Cassette Basic"
+msgstr "IBM Cassette BASIC"
+
+msgid "Translate 26 -> 17"
+msgstr "Traduceți 26 -> 17"
+
+msgid "Language"
+msgstr "Limbă"
+
+msgid "Enable backlight"
+msgstr "Activați iluminarea de fundal"
+
+msgid "Invert colors"
+msgstr "Inversați culorile"
+
+msgid "BIOS size"
+msgstr "Dimensiune BIOS"
+
+msgid "BIOS size (ROM #1)"
+msgstr "Dimensiune BIOS (ROM #1)"
+
+msgid "BIOS size (ROM #2)"
+msgstr "Dimensiune BIOS (ROM #2)"
+
+msgid "BIOS size (ROM #3)"
+msgstr "Dimensiune BIOS (ROM #3)"
+
+msgid "BIOS size (ROM #4)"
+msgstr "Dimensiune BIOS (ROM #4)"
+
+msgid "Map C0000-C7FFF as UMB"
+msgstr "Mapați C0000-C7FFF ca UMB"
+
+msgid "Map C8000-CFFFF as UMB"
+msgstr "Mapați C8000-CFFFF ca UMB"
+
+msgid "Map D0000-D7FFF as UMB"
+msgstr "Mapați D0000-D7FFF ca UMB"
+
+msgid "Map D8000-DFFFF as UMB"
+msgstr "Mapați D8000-DFFFF ca UMB"
+
+msgid "Map E0000-E7FFF as UMB"
+msgstr "Mapați E0000-E7FFF ca UMB"
+
+msgid "Map E8000-EFFFF as UMB"
+msgstr "Mapați E8000-EFFFF ca UMB"
+
+msgid "JS9 Jumper (JIM)"
+msgstr "Jumper JS9 (JIM)"
+
+msgid "MIDI Output Device"
+msgstr "Dispozitiv de ieșire MIDI"
+
+msgid "MIDI Real time"
+msgstr "Timp real MIDI"
+
+msgid "MIDI Thru"
+msgstr "MIDI Thru"
+
+msgid "MIDI Clockout"
+msgstr "Ieșire de ceas MIDI"
+
+msgid "Output Gain"
+msgstr "Amplificare ieșire"
+
+msgid "Chorus"
+msgstr "Chorus"
+
+msgid "Chorus Voices"
+msgstr "Voci chorus"
+
+msgid "Chorus Level"
+msgstr "Nivel chorus"
+
+msgid "Chorus Speed"
+msgstr "Viteză chorus"
+
+msgid "Chorus Depth"
+msgstr "Adâncime chorus"
+
+msgid "Chorus Waveform"
+msgstr "Formă de undă chorus"
+
+msgid "Reverb"
+msgstr "Reverberație"
+
+msgid "Reverb Room Size"
+msgstr "Dimensiune cameră reverberație"
+
+msgid "Reverb Damping"
+msgstr "Amortizare reverberație"
+
+msgid "Reverb Width"
+msgstr "Lățime reverberație"
+
+msgid "Reverb Level"
+msgstr "Nivel reverberație"
+
+msgid "Interpolation Method"
+msgstr "Metodă de interpolare"
+
+msgid "Dynamic Sample Loading"
+msgstr "Încărcare dinamică eșantioane"
+
+msgid "Reverb Output Gain"
+msgstr "Amplificare ieșire reverberație"
+
+msgid "Reversed stereo"
+msgstr "Stereo inversat"
+
+msgid "Nice ramp"
+msgstr "Rampă lină"
+
+msgid "Hz"
+msgstr "Hz"
+
+msgid "Buttons"
+msgstr "Butoane"
+
+msgid "Serial Port"
+msgstr "Port serial"
+
+msgid "RTS toggle"
+msgstr "Comutare RTS"
+
+msgid "Revision"
+msgstr "Reviziune"
+
+msgid "Controller"
+msgstr "Controler"
+
+msgid "Show Crosshair"
+msgstr ""
+
+msgid "DMA"
+msgstr ""
+
+msgid "MAC Address"
+msgstr ""
+
+msgid "MAC Address OUI"
+msgstr ""
+
+msgid "Enable BIOS"
+msgstr ""
+
+msgid "Baud Rate"
+msgstr ""
+
+msgid "TCP/IP listening port"
+msgstr ""
+
+msgid "Phonebook File"
+msgstr ""
+
+msgid "Telnet emulation"
+msgstr ""
+
+msgid "RAM Address"
+msgstr ""
+
+msgid "RAM size"
+msgstr ""
+
+msgid "Initial RAM size"
+msgstr ""
+
+msgid "Serial Number"
+msgstr ""
+
+msgid "Host ID"
+msgstr ""
+
+msgid "Host"
+msgstr ""
+
+msgid "FDC Address"
+msgstr ""
+
+msgid "MPU-401 Address"
+msgstr ""
+
+msgid "MPU-401 IRQ"
+msgstr ""
+
+msgid "Receive MIDI input"
+msgstr ""
+
+msgid "Low DMA"
+msgstr ""
+
+msgid "Enable Game port"
+msgstr ""
+
+msgid "Enable Adlib ports"
+msgstr ""
+
+msgid "SID Model"
+msgstr ""
+
+msgid "SID Filter Strength"
+msgstr ""
+
+msgid "Surround module"
+msgstr ""
+
+msgid "SB Address"
+msgstr ""
+
+msgid "Adlib Address"
+msgstr ""
+
+msgid "Use EEPROM setting"
+msgstr ""
+
+msgid "WSS IRQ"
+msgstr ""
+
+msgid "WSS DMA"
+msgstr ""
+
+msgid "RTC IRQ"
+msgstr ""
+
+msgid "RTC Port Address"
+msgstr ""
+
+msgid "Onboard RTC"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
+
+msgid "Enable OPL"
+msgstr ""
+
+msgid "Receive MIDI input (MPU-401)"
+msgstr ""
+
+msgid "SB low DMA"
+msgstr ""
+
+msgid "6CH variant (6-channel)"
+msgstr ""
+
+msgid "Enable CMS"
+msgstr ""
+
+msgid "Mixer"
+msgstr ""
+
+msgid "High DMA"
+msgstr ""
+
+msgid "Control PC speaker"
+msgstr ""
+
+msgid "Control MIDI volume"
+msgstr ""
+
+msgid "Memory size"
+msgstr ""
+
+msgid "EMU8000 Address"
+msgstr ""
+
+msgid "Codec"
+msgstr ""
+
+msgid "GUS type"
+msgstr ""
+
+msgid "Enable 0x04 \"Exit 86Box\" command"
+msgstr ""
+
+msgid "Display type"
+msgstr ""
+
+msgid "Composite type"
+msgstr ""
+
+msgid "RGB type"
+msgstr ""
+
+msgid "Line doubling type"
+msgstr ""
+
+msgid "Snow emulation"
+msgstr ""
+
+msgid "Monitor type"
+msgstr ""
+
+msgid "Character set"
+msgstr ""
+
+msgid "XGA type"
+msgstr ""
+
+msgid "Instance"
+msgstr ""
+
+msgid "MMIO Address"
+msgstr ""
+
+msgid "RAMDAC type"
+msgstr ""
+
+msgid "Blend"
+msgstr ""
+
+msgid "Font"
+msgstr ""
+
+msgid "Bilinear filtering"
+msgstr ""
+
+msgid "Video chroma-keying"
+msgstr ""
+
+msgid "Dithering"
+msgstr ""
+
+msgid "Enable NMI for CGA emulation"
+msgstr ""
+
+msgid "Voodoo type"
+msgstr ""
+
+msgid "Framebuffer memory size"
+msgstr ""
+
+msgid "Texture memory size"
+msgstr ""
+
+msgid "Dither subtraction"
+msgstr ""
+
+msgid "Screen Filter"
+msgstr ""
+
+msgid "Render threads"
+msgstr ""
+
+msgid "SLI"
+msgstr ""
+
+msgid "Start Address"
+msgstr ""
+
+msgid "Contiguous Size"
+msgstr ""
+
+msgid "I/O Width"
+msgstr ""
+
+msgid "Transfer Speed"
+msgstr ""
+
+msgid "EMS mode"
+msgstr ""
+
+msgid "EMS Address"
+msgstr ""
+
+msgid "EMS 1 Address"
+msgstr ""
+
+msgid "EMS 2 Address"
+msgstr ""
+
+msgid "EMS Memory Size"
+msgstr ""
+
+msgid "EMS 1 Memory Size"
+msgstr ""
+
+msgid "EMS 2 Memory Size"
+msgstr ""
+
+msgid "Enable EMS"
+msgstr ""
+
+msgid "Address for > 2 MB"
+msgstr ""
+
+msgid "Frame Address"
+msgstr ""
+
+msgid "English"
+msgstr ""
+
+msgid "English (US)"
+msgstr ""
+
+msgid "English (UK)"
+msgstr ""
+
+msgid "English (Canada)"
+msgstr ""
+
+msgid "German"
+msgstr ""
+
+msgid "French"
+msgstr ""
+
+msgid "Spanish"
+msgstr ""
+
+msgid "Swedish"
+msgstr ""
+
+msgid "Italian"
+msgstr ""
+
+msgid "Portuguese"
+msgstr ""
+
+msgid "Norwegian"
+msgstr ""
+
+msgid "Greek"
+msgstr ""
+
+msgid "Danish"
+msgstr ""
+
+msgid "Always at selected speed"
+msgstr ""
+
+msgid "BIOS setting + Hotkeys (off during POST)"
+msgstr ""
+
+msgid "64 KB starting from F0000"
+msgstr ""
+
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr ""
+
+msgid "Sine"
+msgstr ""
+
+msgid "Triangle"
+msgstr ""
+
+msgid "Linear"
+msgstr ""
+
+msgid "4th Order"
+msgstr ""
+
+msgid "7th Order"
+msgstr ""
+
+msgid "Non-timed (original)"
+msgstr ""
+
+msgid "45 Hz (JMP2 not populated)"
+msgstr ""
+
+msgid "Two"
+msgstr ""
+
+msgid "Three"
+msgstr ""
+
+msgid "Wheel"
+msgstr ""
+
+msgid "Five + Wheel"
+msgstr ""
+
+msgid "Five + 2 Wheels"
+msgstr ""
+
+msgid "A3 - SMT2 Serial / SMT3(R)V"
+msgstr ""
+
+msgid "Q1 - SMT3(R) Serial"
+msgstr ""
+
+msgid "8 KB"
+msgstr ""
+
+msgid "32 KB"
+msgstr ""
+
+msgid "16 KB"
+msgstr ""
+
+msgid "64 KB"
+msgstr ""
+
+msgid "Disable BIOS"
+msgstr ""
+
+msgid "512 KB"
+msgstr ""
+
+msgid "2 MB"
+msgstr ""
+
+msgid "8 MB"
+msgstr ""
+
+msgid "28 MB"
+msgstr ""
+
+msgid "1 MB"
+msgstr ""
+
+msgid "4 MB"
+msgstr ""
+
+msgid "12 MB"
+msgstr ""
+
+msgid "16 MB"
+msgstr ""
+
+msgid "20 MB"
+msgstr ""
+
+msgid "24 MB"
+msgstr ""
+
+msgid "SigmaTel STAC9721T (stereo)"
+msgstr ""
+
+msgid "256 KB"
+msgstr ""
+
+msgid "Composite"
+msgstr ""
+
+msgid "True color"
+msgstr ""
+
+msgid "Old"
+msgstr ""
+
+msgid "New"
+msgstr ""
+
+msgid "Color (generic)"
+msgstr ""
+
+msgid "Green Monochrome"
+msgstr ""
+
+msgid "Amber Monochrome"
+msgstr ""
+
+msgid "Gray Monochrome"
+msgstr ""
+
+msgid "Color (no brown)"
+msgstr ""
+
+msgid "Color (IBM 5153)"
+msgstr ""
+
+msgid "Simple doubling"
+msgstr ""
+
+msgid "sRGB interpolation"
+msgstr ""
+
+msgid "Linear interpolation"
+msgstr ""
+
+msgid "Has secondary 8x8 character set"
+msgstr ""
+
+msgid "Has Quadcolor II daughter board"
+msgstr ""
+
+msgid "Alternate monochrome contrast"
+msgstr ""
+
+msgid "128 KB"
+msgstr ""
+
+msgid "Monochrome (5151/MDA) (white)"
+msgstr ""
+
+msgid "Monochrome (5151/MDA) (green)"
+msgstr ""
+
+msgid "Monochrome (5151/MDA) (amber)"
+msgstr ""
+
+msgid "Color 40x25 (5153/CGA)"
+msgstr ""
+
+msgid "Color 80x25 (5153/CGA)"
+msgstr ""
+
+msgid "Enhanced Color - Normal Mode (5154/ECD)"
+msgstr ""
+
+msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
+msgstr ""
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr ""
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr ""
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr ""
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr ""
+
+msgid "Green"
+msgstr ""
+
+msgid "Amber"
+msgstr ""
+
+msgid "Gray"
+msgstr ""
+
+msgid "Grayscale"
+msgstr ""
+
+msgid "Color"
+msgstr ""
+
+msgid "Scandinavian"
+msgstr ""
+
+msgid "Other languages"
+msgstr ""
+
+msgid "Bochs latest"
+msgstr ""
+
+msgid "Apply overscan deltas"
+msgstr ""
+
+msgid "Mono Interlaced"
+msgstr ""
+
+msgid "Mono Non-Interlaced"
+msgstr ""
+
+msgid "Color Interlaced"
+msgstr ""
+
+msgid "Color Non-Interlaced"
+msgstr ""
+
+msgid "3Dfx Voodoo Graphics"
+msgstr ""
+
+msgid "3Dfx Voodoo 2"
+msgstr ""
+
+msgid "Obsidian SB50 + Amethyst (2 TMUs)"
+msgstr ""
+
+msgid "8-bit"
+msgstr ""
+
+msgid "16-bit"
+msgstr ""
+
+msgid "Standard (150ns)"
+msgstr ""
+
+msgid "High-Speed (120ns)"
+msgstr ""
+
+msgid "Enabled"
+msgstr ""
+
+msgid "Standard"
+msgstr ""
+
+msgid "High-Speed"
+msgstr ""
+
+msgid "LPT DAC / Covox Speech Thing"
+msgstr ""
+
+msgid "Stereo LPT DAC"
+msgstr ""
+
+msgid "Generic Text Printer"
+msgstr ""
+
+msgid "Generic ESC/P 2 Dot-Matrix Printer"
+msgstr ""
+
+msgid "Generic PostScript Printer"
+msgstr ""
+
+msgid "Generic PCL Printer"
+msgstr ""
+
+msgid "Parallel Line Internet Protocol"
+msgstr ""
+
+msgid "Protection Dongle for Savage Quest"
+msgstr ""
+
+msgid "Loopback Plug"
+msgstr ""
+
+msgid "Serial Passthrough"
+msgstr ""
+
+msgid "Host serial device"
+msgstr ""
+
+msgid "Named Pipe"
+msgstr ""
+
+msgid "Output file"
+msgstr ""
+
+msgid "Append to file if it exists"
+msgstr ""
+
+msgid "Input file"
+msgstr ""
+
+msgid "Loop input file"
+msgstr ""
+
+msgid "Require STROBE signal"
+msgstr ""
+
+msgid "Loopback Type"
+msgstr ""
+
+msgid "Parallel cable"
+msgstr ""
+
+msgid "Unidirectional (8-bit) / LapLink (4-bit)"
+msgstr ""
+
+msgid "Bidirectional (8-bit)"
+msgstr ""
+
+msgid "Pipe path"
+msgstr ""
+
+msgid "FIFO / terminal"
+msgstr ""
+
+msgid "Mode"
+msgstr ""
+
+msgid "Server"
+msgstr ""
+
+msgid "Client"
+msgstr ""
+
+msgid "Reconnect automatically"
+msgstr ""
+
+msgid "Use standard input/output"
+msgstr ""
+
+msgid "Create pseudoterminal"
+msgstr ""
+
+msgid "Start terminal emulator"
+msgstr ""
+
+msgid "Run custom command"
+msgstr ""
+
+msgid "Custom command"
+msgstr ""
+
+msgid "Run custom command in terminal"
+msgstr ""
+
+msgid "Virtual Console"
+msgstr ""
+
+msgid "E&ject %1"
+msgstr ""
+
+msgid "&Unmute"
+msgstr ""
+
+msgid "Softfloat FPU"
+msgstr ""
+
+msgid "High performance impact"
+msgstr ""
+
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr ""
+
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1995 (5200 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
+
+msgid "[Generic] 2004 (10000 RPM)"
+msgstr ""
+
+msgid "IBM 8514/A clone"
+msgstr ""
+
+msgid "Vendor"
+msgstr ""
+
+msgid "30 Hz (JMP2 = 1)"
+msgstr ""
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr ""
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr ""
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr ""
+
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr ""
+
+msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Ask for confirmation before saving settings"
+msgstr ""
+
+msgid "Ask for confirmation before hard resetting"
+msgstr ""
+
+msgid "Ask for confirmation before quitting"
+msgstr ""
+
+msgid "Precache CHD files into memory"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Model"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
+
+msgid "GLSL Error"
+msgstr ""
+
+msgid "Could not load shader: %1"
+msgstr ""
+
+msgid "Could not load texture: %1"
+msgstr ""
+
+msgid "Could not compile shader:\n\n%1"
+msgstr ""
+
+msgid "Program not linked:\n\n%1"
+msgstr ""
+
+msgid "Shader Manager"
+msgstr ""
+
+msgid "Shader Configuration"
+msgstr ""
+
+msgid "GPU:"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Could not load file %1"
+msgstr ""
+
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
+msgid "Key bindings"
+msgstr ""
+
+msgid "Action"
+msgstr ""
+
+msgid "Keybind"
+msgstr ""
+
+msgid "Clear binding"
+msgstr ""
+
+msgid "Bind"
+msgstr ""
+
+msgid "Bind Key"
+msgstr ""
+
+msgid "Enter key combo:"
+msgstr ""
+
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
+msgstr ""
+
+msgid "Send Control+Alt+Del"
+msgstr ""
+
+msgid "Send Control+Alt+Escape"
+msgstr ""
+
+msgid "Toggle fullscreen"
+msgstr ""
+
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
+msgid "Release mouse pointer"
+msgstr ""
+
+msgid "Toggle pause"
+msgstr ""
+
+msgid "Toggle mute"
+msgstr ""
+
+msgid "Toggle on-screen display"
+msgstr ""
+
+msgid "Toggle &on-screen display"
+msgstr ""
+
+msgid "Text files"
+msgstr ""
+
+msgid "ROM files"
+msgstr ""
+
+msgid "SoundFont files"
+msgstr ""
+
+msgid "Local Switch"
+msgstr ""
+
+msgid "Remote Switch"
+msgstr ""
+
+msgid "Shared secret:"
+msgstr ""
+
+msgid "Hub Mode"
+msgstr ""
+
+msgid "Hostname:"
+msgstr ""
+
+msgid "ISA RAM:"
+msgstr ""
+
+msgid "ISA ROM:"
+msgstr ""
+
+msgid "&Wipe NVRAM"
+msgstr ""
+
+msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
+msgstr ""
+
+msgid "Success"
+msgstr ""
+
+msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
+msgstr ""
+
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgstr ""
+
+msgid "%1 VM Manager"
+msgstr ""
+
+msgid "%n disk(s)"
+msgid_plural "%n disks"
+msgstr[0] ""
+
+msgid "Unknown Status"
+msgstr ""
+
+msgid "No Machines Found!"
+msgstr ""
+
+msgid "Check for updates on startup"
+msgstr ""
+
+msgid "Unable to determine release information"
+msgstr ""
+
+msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
+msgstr ""
+
+msgid "Update check complete"
+msgstr ""
+
+msgid "stable"
+msgstr ""
+
+msgid "beta"
+msgstr ""
+
+msgid "You are running the latest %1 version of 86Box: %2"
+msgstr ""
+
+msgid "version"
+msgstr ""
+
+msgid "build"
+msgstr ""
+
+msgid "You are currently running version <b>%1</b>."
+msgstr ""
+
+msgid "<b>Version %1</b> is now available."
+msgstr ""
+
+msgid "You are currently running build <b>%1</b>."
+msgstr ""
+
+msgid "<b>Build %1</b> is now available."
+msgstr ""
+
+msgid "Would you like to visit the download page?"
+msgstr ""
+
+msgid "Visit download page"
+msgstr ""
+
+msgid "Update check"
+msgstr ""
+
+msgid "Checking for updates…"
+msgstr ""
+
+msgid "86Box Update"
+msgstr ""
+
+msgid "Release notes:"
+msgstr ""
+
+msgid "%1 Hz"
+msgstr ""
+
+msgid "Virtual machine crash"
+msgstr ""
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr ""
+
+msgid "The system will not be added."
+msgstr ""
+
+msgid "&Update mouse every CPU frame"
+msgstr ""
+
+msgid "Hue"
+msgstr ""
+
+msgid "Saturation"
+msgstr ""
+
+msgid "Contrast"
+msgstr ""
+
+msgid "Brightness"
+msgstr ""
+
+msgid "Sharpness"
+msgstr ""
+
+msgid "&CGA composite settings…"
+msgstr ""
+
+msgid "CGA composite settings"
+msgstr ""
+
+msgid "Monitor EDID"
+msgstr ""
+
+msgid "Export…"
+msgstr ""
+
+msgid "Export EDID"
+msgstr ""
+
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
+msgid "EDID file \"%s\" is too large."
+msgstr ""
+
+msgid "OpenGL input scale"
+msgstr ""
+
+msgid "OpenGL input stretch mode"
+msgstr ""
+
+msgid "Color scheme"
+msgstr ""
+
+msgid "Light"
+msgstr ""
+
+msgid "Dark"
+msgstr ""
+
+msgid "Force interpretation"
+msgstr ""
+
+msgid "Allow recompilation"
+msgstr ""
+
+msgid "&Force interpretation"
+msgstr ""
+
+msgid "&Allow recompilation"
+msgstr ""
+
+msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
+msgstr ""
+
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
+msgid "To change the system directory, stop all running machines."
+msgstr ""
+
+msgid "Raw"
+msgstr ""
+
+msgid "Use EDC/ECC emulation"
+msgstr ""
+
+msgid "Audio output device:"
+msgstr ""
+
+msgid "System Default"
+msgstr ""
+
+msgid "Unable to open image or folder \"%s\"."
+msgstr ""
+
+msgid "Unable to open cue sheet \"%s\"."
+msgstr ""
+
+msgid "Unable to open MDS file \"%s\"."
+msgstr ""
+
+msgid "Unable to load CD-ROM image \"%s\"."
+msgstr ""
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgstr ""
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+
+msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
+msgstr ""
+
+msgid "%s: Could not connect to %s: %s"
+msgstr ""
+
+msgid "%s: Could not create %s: %s"
+msgstr ""
+
+msgid "%s: Attached to %s"
+msgstr ""
+
+msgid "%s: Virtual console already in use by %s"
+msgstr ""
+
+msgid "%s: Could not create terminal: %s"
+msgstr ""
+
+msgid "Auto-detect"
+msgstr ""
+
+msgid "Channel"
+msgstr ""
+
+msgid "Both Channels"
+msgstr ""
+
+msgid "Left Channel"
+msgstr ""
+
+msgid "Right Channel"
+msgstr ""
+
+msgid "Allow Flash BIOS Updates"
+msgstr ""
+
+msgid "Slot #"
+msgstr ""
+
+msgid "Parallel Port"
+msgstr ""
+
+msgid "Paper Size"
+msgstr ""
+
+msgid "Letter"
+msgstr ""
+
+msgid "Legal (sideways)"
+msgstr ""
+
+msgid "B4 (sideways)"
+msgstr ""
+
+msgid "Quality"
+msgstr ""
+
+msgid "Draft"
+msgstr ""
+
+msgid "(Near) Letter"
+msgstr ""
+
+msgid "Auto LF"
+msgstr ""
+
+msgid "Tandy PSSJ Clone"
+msgstr ""
+
+msgid "PC-CM (Color)"
+msgstr ""
+
+msgid "PC-MM (Monochrome)"
+msgstr ""
+
+msgid "White Monochrome"
+msgstr ""
+
+msgid "Hardware font"
+msgstr ""
+
+msgid "Diagnostic mode"
+msgstr ""
+
+msgid "CGA monitor"
+msgstr ""
+
+msgid "MDA monitor"
+msgstr ""
+
+msgid "Television"
+msgstr ""
+
+msgid "Invert LCD colors"
+msgstr ""
+
+msgid "LCD (CGA mode)"
+msgstr ""
+
+msgid "LCD (MDA mode)"
+msgstr ""
+
+msgid "Disabled (250h)"
+msgstr ""
+
+msgid "Enabled (350h)"
+msgstr ""
+
+msgid "Test mode"
+msgstr ""
+
+msgid "32 MB"
+msgstr ""
+
+msgid "64 MB"
+msgstr ""
+
+msgid "2048 MB"
+msgstr ""
+
+msgid "Refresh rate"
+msgstr ""
+
+msgid "US (CP 437)"
+msgstr ""
+
+msgid "IBM Nordic (CP 437-Nordic)"
+msgstr ""
+
+msgid "Czech Kamenicky (CP 895) #1"
+msgstr ""
+
+msgid "Czech Kamenicky (CP 895) #2"
+msgstr ""
+
+msgid "932 (Japanese)"
+msgstr ""
+
+msgid "938 (Traditional Chinese)"
+msgstr ""
+
+msgid "Sample rate:"
+msgstr ""
+
+msgid "Enable audio input (mic/line-in)"
+msgstr ""
+
+msgid "Audio input device:"
+msgstr ""
+
+msgid "Audio input sample rate:"
+msgstr ""
+
+msgid "Rate the emulator mixes to the host output device."
+msgstr ""
+
+msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

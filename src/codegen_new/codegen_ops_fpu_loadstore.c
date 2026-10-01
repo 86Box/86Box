@@ -178,7 +178,7 @@ ropFISTw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     codegen_check_seg_write(block, ir, target_seg);
     uop_MOV_INT_DOUBLE(ir, IREG_temp0_W, IREG_ST(0));
     uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp0_W);
-    uop_MOV_IMM(ir, IREG_tag(0), TAG_EMPTY);
+    /* FIST leaves ST(0) where it is: its tag stays as it was. */
 
     return op_pc + 1;
 }
@@ -211,7 +211,7 @@ ropFISTl(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     codegen_check_seg_write(block, ir, target_seg);
     uop_MOV_INT_DOUBLE(ir, IREG_temp0, IREG_ST(0));
     uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp0);
-    uop_MOV_IMM(ir, IREG_tag(0), TAG_EMPTY);
+    /* FIST leaves ST(0) where it is: its tag stays as it was. */
 
     return op_pc + 1;
 }

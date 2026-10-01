@@ -298,6 +298,7 @@ typedef struct gd54xx_t {
     uint8_t pos_regs[8];
 
     uint32_t vlb_lfb_base;
+    uint32_t linear_mask; /* an ISA-style aperture is 1 or 2 MB wide and need not sit on a 4 MB boundary */
 
     uint32_t lfb_base;
     uint32_t vgablt_base;
@@ -1891,6 +1892,7 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
                 base = (svga->seqregs[0x07] & 0xe0) << 16;
                 size = 2 * 1024 * 1024;
             }
+            gd54xx->linear_mask = size - 1;
         } else if (gd54xx->pci) {
             base = gd54xx->lfb_base;
             if (svga->crtc[0x27] == CIRRUS_ID_CLGD5480)
@@ -1910,6 +1912,8 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
                 size = 4 * 1024 * 1024;
         }
 
+        if (size >= (4 * 1024 * 1024))
+            gd54xx->linear_mask = 0x003fffff;
         if (size >= (16 * 1024 * 1024))
             gd54xx->aperture_mask = 0x03;
 
@@ -2627,7 +2631,7 @@ gd54xx_readb_linear(uint32_t addr, void *priv)
     svga_t   *svga   = &gd54xx->svga;
 
     uint8_t ap = gd54xx_get_aperture(gd54xx, addr);
-    addr &= 0x003fffff; /* 4 MB mask */
+    addr &= gd54xx->linear_mask; /* the aperture's own width: 4 MB, or 1-2 MB on ISA */
 
     if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA))
         return svga_read_linear(addr, svga);
@@ -2675,7 +2679,7 @@ gd54xx_readw_linear(uint32_t addr, void *priv)
     uint8_t  ap = gd54xx_get_aperture(gd54xx, addr);
     uint16_t temp;
 
-    addr &= 0x003fffff; /* 4 MB mask */
+    addr &= gd54xx->linear_mask; /* the aperture's own width: 4 MB, or 1-2 MB on ISA */
 
     if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA))
         return svga_readw_linear(addr, svga);
@@ -2729,7 +2733,7 @@ gd54xx_readl_linear(uint32_t addr, void *priv)
     uint8_t  ap = gd54xx_get_aperture(gd54xx, addr);
     uint32_t temp;
 
-    addr &= 0x003fffff; /* 4 MB mask */
+    addr &= gd54xx->linear_mask; /* the aperture's own width: 4 MB, or 1-2 MB on ISA */
 
     if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA))
         return svga_readl_linear(addr, svga);
@@ -2880,7 +2884,7 @@ gd54xx_writeb_linear(uint32_t addr, uint8_t val, void *priv)
         return;
     }
 
-    addr &= 0x003fffff; /* 4 MB mask */
+    addr &= gd54xx->linear_mask; /* the aperture's own width: 4 MB, or 1-2 MB on ISA */
 
     if ((addr >= (svga->vram_max - 256)) && (addr < svga->vram_max)) {
         if ((svga->seqregs[0x17] & CIRRUS_MMIO_ENABLE) &&
@@ -2932,7 +2936,7 @@ gd54xx_writew_linear(uint32_t addr, uint16_t val, void *priv)
         return;
     }
 
-    addr &= 0x003fffff; /* 4 MB mask */
+    addr &= gd54xx->linear_mask; /* the aperture's own width: 4 MB, or 1-2 MB on ISA */
 
     if ((addr >= (svga->vram_max - 256)) && (addr < svga->vram_max)) {
         if ((svga->seqregs[0x17] & CIRRUS_MMIO_ENABLE) &&
@@ -3004,7 +3008,7 @@ gd54xx_writel_linear(uint32_t addr, uint32_t val, void *priv)
         return;
     }
 
-    addr &= 0x003fffff; /* 4 MB mask */
+    addr &= gd54xx->linear_mask; /* the aperture's own width: 4 MB, or 1-2 MB on ISA */
 
     if ((addr >= (svga->vram_max - 256)) && (addr < svga->vram_max)) {
         if ((svga->seqregs[0x17] & CIRRUS_MMIO_ENABLE) &&

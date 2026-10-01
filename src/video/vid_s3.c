@@ -5152,11 +5152,12 @@ s3_updatemapping(s3_t *s3)
                     s3_log("Actually enable banked mapping=%d.\n", svga->mapping.enable);
                 }
             } else {
-                if (s3->chip >= S3_TRIO64V)
-                    s3->linear_base &= 0xfc000000;
-                else if ((s3->chip == S3_VISION968) || (s3->chip == S3_VISION868))
-                    s3->linear_base &= 0xfe000000;
-
+                if (s3->pci) {
+                    if (s3->chip >= S3_TRIO64V)
+                        s3->linear_base &= 0xfc000000;
+                    else if ((s3->chip == S3_VISION968) || (s3->chip == S3_VISION868))
+                        s3->linear_base &= 0xfe000000;
+                }
                 s3_log("Update LinearBase update=%x, size=%x.\n", s3->linear_base, s3->linear_size);
                 if (s3->linear_base)
                     mem_mapping_set_addr(&s3->linear_mapping, s3->linear_base, s3->linear_size);

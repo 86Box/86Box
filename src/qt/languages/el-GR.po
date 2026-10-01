@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-17 04:35+0000\n"
+"PO-Revision-Date: 2026-09-29 18:53+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -3572,6 +3572,26 @@ msgstr "938 (Παραδοσιακά Κινέζικα)"
 
 msgid "Sample rate:"
 msgstr "Ρυθμός δειγματοληψίας:"
+
+msgid "Enable audio input (mic/line-in)"
+msgstr "Ενεργοποίηση εισόδου ήχου (mic/line-in)"
+
+msgid "Audio input device:"
+msgstr "Συσκευή εισόδου ήχου:"
+
+msgid "Audio input sample rate:"
+msgstr "Ρυθμός δειγματοληψίας εισόδου ήχου:"
+
+msgid "Rate the emulator mixes to the host output device."
+msgstr ""
+"Ρυθμίστε τις μίξεις του εξομοιωτή στη συσκευή εξόδου του συστήματος "
+"οικοδεσπότη ."
+
+msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
+msgstr ""
+"Ρυθμός ανοίγματος της συσκευής καταγραφής εισόδου συστήματος οικοδεσπότη.\n"
+"\n"
+"44100 διαιρείται ακριβώς με τους ρυθμούς 44.1/22/11 kHz των SB16/AWE32."
 
 msgid "CGA lightpen"
 msgstr "Φωτογραφίδα CGA"

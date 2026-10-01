@@ -87,7 +87,7 @@ fdc37c669_uart_handler(fdc37c669_t *dev, uint8_t uart)
     serial_remove(dev->uart[uart]);
 
     if ((dev->regs[0x02] & pwrdn_mask) && (dev->regs[uart_reg] & 0xc0))
-        serial_setup(dev->uart[0], ((uint16_t) dev->regs[0x24]) << 2,
+        serial_setup(dev->uart[uart], ((uint16_t) dev->regs[uart_reg]) << 2,
                      (dev->regs[0x28] >> uart_shift) & 0x0f);
 }
 
@@ -368,6 +368,8 @@ fdc37c669_reset(void *priv)
         fdc37c669_fdc_handler(dev);
         fdc_clear_flags(dev->fdc, FDC_FLAG_PS2 | FDC_FLAG_PS2_MCA);
 
+        fdc_set_power_down(dev->fdc, !(dev->regs[0x00] & 0x08));
+
         ide_handler(dev);
     }
 
@@ -401,7 +403,7 @@ fdc37c669_init(const device_t *info)
     dev->id = next_id;
 
     if (next_id != 1) {
-        dev->fdc     = device_add(&fdc_at_smc_device);
+        dev->fdc     = device_add_params(&fdc_at_smc_device, (void *) FDC_FLAG_PNP);
         dev->has_ide = (info->local >> 8) & 0xff;
     }
 

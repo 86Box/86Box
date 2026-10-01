@@ -3514,6 +3514,21 @@ msgstr "938 (Traditionelles Chinesisch)"
 msgid "Sample rate:"
 msgstr ""
 
+msgid "Enable audio input (mic/line-in)"
+msgstr ""
+
+msgid "Audio input device:"
+msgstr ""
+
+msgid "Audio input sample rate:"
+msgstr ""
+
+msgid "Rate the emulator mixes to the host output device."
+msgstr ""
+
+msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
+msgstr ""
+
 msgid "CGA lightpen"
 msgstr ""
 

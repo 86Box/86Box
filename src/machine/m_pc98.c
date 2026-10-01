@@ -1040,7 +1040,7 @@ static void pc98_fdc_density_for_drive(pc98_mb_t *d, int is_2hd, unsigned drive)
      * per-drive latch is still honoured when 1.44 MB access is explicitly
      * requested, but normal 1 MB access works even if firmware never probes
      * the 3-mode extension port. */
-    if (drive < 2u && !fdd_is_525((int)drive))
+    if (drive < 2u && !fdd_is_525(d->fdc->fdd[drive]))
         densel_polarity = !!d->fdc_3mode_144[drive];
 
     d->fdc->rate = is_2hd ? 0 : 2;       /* 500 kbit/s : 250 kbit/s */
@@ -1135,7 +1135,7 @@ static uint8_t pc98_fdc_switch_value(pc98_mb_t *d, int port_640)
         v |= PC98_FDC_SW_640;
         if (d && d->fdc) {
             for (unsigned drive = 0; drive < 2u; drive++) {
-                if (fdd_is_ready((int)drive)) {
+                if (fdd_is_ready(d->fdc->fdd[drive])) {
                     v |= PC98_FDC_SW_RDY;
                     break;
                 }
@@ -1218,8 +1218,8 @@ static void pc98_fdc_motor_update(pc98_mb_t *d)
     if (on == d->motor_on)
         return;
     d->motor_on = (uint8_t)on;
-    fdd_set_motor_enable(0, on);
-    fdd_set_motor_enable(1, on);
+    fdd_set_motor_enable(d->fdc->fdd[0], on);
+    fdd_set_motor_enable(d->fdc->fdd[1], on);
 }
 
 /* Both interfaces reset the uPD765 through bit 7 of their control register,
@@ -1408,11 +1408,11 @@ static void pc98_fdc_complete_seek(pc98_mb_t *d, unsigned bank)
      * failure; 86Box's own recalibrate path uses 70h|drive for this case.
      * An installed but merely empty drive is different: it can recalibrate
      * normally because TRACK0 does not require a diskette. */
-    if (!fdd_get_flags((int)drive)) {
+    if (!fdd_get_flags(d->fdc->fdd[drive])) {
         st0 = (uint8_t)(0x70u | (head << 2) | drive);
     } else {
         st0 = (uint8_t)(0x20u | (head << 2) | drive);
-        fdd_forced_seek((int)drive, delta);
+        fdd_forced_seek(d->fdc->fdd[drive], delta);
     }
 
     d->fdc->drive = (uint8_t)drive;
@@ -1746,7 +1746,7 @@ static uint8_t fdc_in(uint16_t port, void *priv)
          * D4 identifies the 1MB/1.44MB-capable drive and D0 reports the
          * currently selected 1.44MB access mode. */
         if (d->fdc_3mode_dev_sel >= 2 ||
-            fdd_is_525(d->fdc_3mode_dev_sel))
+            fdd_is_525(d->fdc->fdd[d->fdc_3mode_dev_sel]))
             return 0x00;
         return (uint8_t)(0xeeu |
                          (!!(d->fdc_mode & PC98_FDC_MODE_FDE) << 4) |
@@ -1872,7 +1872,7 @@ static void fdc_out(uint16_t port, uint8_t val, void *priv)
             pc98_fdc_density_for_drive(
                 d, !!(d->fdc_mode & PC98_FDC_MODE_FDE), drive);
 
-            if (drive >= FDD_NUM || !fdd_is_ready((int)drive)) {
+            if (drive >= 4 || !fdd_is_ready(d->fdc->fdd[drive])) {
                 pc98_fdc_complete_not_ready_read_id(d, bank, drvsel);
                 pc98_fdc_log_cmd(d, port);
                 d->trace_cmd_n = 0;
@@ -1952,7 +1952,7 @@ static void fdc_out(uint16_t port, uint8_t val, void *priv)
     case 0x04be:
         d->fdc_3mode_dev_sel = (uint8_t)((val & 0x60) >> 5);
         if ((val & 0x10) && d->fdc_3mode_dev_sel < 2 &&
-            !fdd_is_525(d->fdc_3mode_dev_sel))
+            !fdd_is_525(d->fdc->fdd[d->fdc_3mode_dev_sel]))
             d->fdc_3mode_144[d->fdc_3mode_dev_sel] = val & 1;
         /* DENSEL means opposite spindle speeds to 5.25-inch and 3.5-inch
          * dual-RPM mechanisms.  Refresh it even for a select-only write so

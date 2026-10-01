@@ -114,7 +114,6 @@ static bool cpu_md_write_disable = 1;
         wait_cycs(val, 0);       \
     }
 
-#if 0
 #    define CLOCK_CYCLES_FPU(val) \
         {                         \
             wait_cycs(val, 0);    \
@@ -133,19 +132,6 @@ static bool cpu_md_write_disable = 1;
         }
 
 #    define CONCURRENCY_CYCLES(c) fpu_cycles = (c)
-#else
-#    define CLOCK_CYCLES(val)  \
-        {                      \
-            wait_cycs(val, 0); \
-        }
-
-#    define CLOCK_CYCLES_FPU(val) \
-        {                         \
-            wait_cycs(val, 0);    \
-        }
-
-#    define CONCURRENCY_CYCLES(c)
-#endif
 
 typedef int (*OpFn)(uint32_t fetchdat);
 

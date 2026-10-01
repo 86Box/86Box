@@ -71,7 +71,7 @@ static const char *const pc98_sasi_rom_paths[] = {
 
 typedef struct pc98_sasi_dev_t {
     pc98_sasi_t core;
-    rom_t       bios;
+    rom_t      *bios;
     int         dma_ch;
     int         irq_state;
     int         unit_profile[PC98_SASI_MAX_UNITS];
@@ -81,16 +81,17 @@ typedef struct pc98_sasi_dev_t {
     /* Native HDI/NHD access preserves the container's 256- or 512-byte
      * sectors.  86Box's generic image layer rejects 256-byte HDI sectors. */
     pc98_hdi_t  unit_img[PC98_SASI_MAX_UNITS];
+    uint8_t     sector_buf[PC98_SASI_BUF_SIZE + 512u];
 } pc98_sasi_dev_t;
 
-static pc98_sasi_dev_t *pc98_sasi_active = NULL;
+
 
 /* ------------------------------------------------------------------ */
 /* Image access                                                        */
 /* ------------------------------------------------------------------ */
 
 /* Staging storage for the largest SASI data phase. */
-static uint8_t sasi_sector_buf[PC98_SASI_BUF_SIZE + 512u];
+
 
 static int
 sasi_hdd_id(pc98_sasi_dev_t *dev, unsigned unit)
@@ -177,10 +178,10 @@ sasi_read_cb(void *priv, unsigned unit, uint32_t lba, uint32_t count,
     const uint32_t last  = (lba + count - 1u) >> 1;
     const uint32_t n512  = (last - first) + 1u;
 
-    if (hdd_image_read((uint8_t) id, first, n512, sasi_sector_buf) < 0)
+    if (hdd_image_read((uint8_t) id, first, n512, dev->sector_buf) < 0)
         return 0;
 
-    memcpy(buf, sasi_sector_buf + ((lba & 1u) * PC98_SASI_BLOCK_SIZE),
+    memcpy(buf, dev->sector_buf + ((lba & 1u) * PC98_SASI_BLOCK_SIZE),
            (size_t)count * PC98_SASI_BLOCK_SIZE);
     sasi_log_bytes("READ-HDD", unit, lba, count, first * 512u, buf,
                    count * PC98_SASI_BLOCK_SIZE);
@@ -222,12 +223,12 @@ sasi_write_cb(void *priv, unsigned unit, uint32_t lba, uint32_t count,
 
     /* Preserve the untouched half of an odd first/last 512-byte host sector. */
     if (head || tail) {
-        if (hdd_image_read((uint8_t) id, first, n512, sasi_sector_buf) < 0)
+        if (hdd_image_read((uint8_t) id, first, n512, dev->sector_buf) < 0)
             return 0;
     }
 
-    memcpy(sasi_sector_buf + head, buf, (size_t)count * PC98_SASI_BLOCK_SIZE);
-    return hdd_image_write((uint8_t) id, first, n512, sasi_sector_buf) >= 0;
+    memcpy(dev->sector_buf + head, buf, (size_t)count * PC98_SASI_BLOCK_SIZE);
+    return hdd_image_write((uint8_t) id, first, n512, dev->sector_buf) >= 0;
 }
 
 /* ------------------------------------------------------------------ */
@@ -298,6 +299,7 @@ sasi_dma_write_cb(void *priv, const uint8_t *buf, uint32_t len)
     if (board_drives_mem_write)
         dma[dev->dma_ch].mode = (uint8_t) ((saved_mode & ~0x0cu) | 0x04u);
 
+    dma_set_drq(dev->dma_ch, 1);
     for (i = 0; i < len; i++) {
         const int r = dma_channel_write(dev->dma_ch, buf[i]);
         if (r == DMA_NODATA)
@@ -309,6 +311,7 @@ sasi_dma_write_cb(void *priv, const uint8_t *buf, uint32_t len)
     }
 
     dma[dev->dma_ch].mode = saved_mode;
+    dma_set_drq(dev->dma_ch, 0);
 
     pclog("[PC98-SASI-DMA] ch=%d len=%u moved=%u mode=%02X%s ab=%08X "
           "ac_start=%08X ac_end=%08X first=%02X %02X %02X %02X %02X %02X %02X %02X\n",
@@ -334,6 +337,7 @@ sasi_dma_read_cb(void *priv, uint8_t *buf, uint32_t len)
 
     sasi_log_dma_count(dev, len);
 
+    dma_set_drq(dev->dma_ch, 1);
     for (i = 0; i < len; i++) {
         const int r = dma_channel_read(dev->dma_ch);
         if (r == DMA_NODATA)
@@ -344,6 +348,7 @@ sasi_dma_read_cb(void *priv, uint8_t *buf, uint32_t len)
             break;
         }
     }
+    dma_set_drq(dev->dma_ch, 0);
     pclog("[PC98-SASI-DMA-OUT] ch=%d len=%u moved=%u ab=%08X ac_start=%08X "
           "ac_end=%08X first=%02X %02X %02X %02X %02X %02X %02X %02X\n",
           dev->dma_ch, (unsigned) len, (unsigned) i, (unsigned) start_ab,
@@ -607,6 +612,7 @@ pc98_sasi_dev_reset(void *priv)
      * intact across hard reset.  Reattachment belongs to device creation. */
     pc98_sasi_reset(&dev->core);
     sasi_irq_cb(dev, 0);
+    dma_set_drq(dev->dma_ch, 0);
 }
 
 static void *
@@ -618,6 +624,14 @@ pc98_sasi_dev_init(UNUSED(const device_t *info))
 
     if (!dev)
         return NULL;
+
+    /* Keep the mapping node alive after controller teardown, as the memory
+     * layer retains linked ROM mappings until its own reset. */
+    dev->bios = (rom_t *) calloc(1, sizeof(rom_t));
+    if (!dev->bios) {
+        free(dev);
+        return NULL;
+    }
 
     const pc98_sasi_ops_t ops = {
         .read_blocks  = sasi_read_cb,
@@ -648,10 +662,11 @@ pc98_sasi_dev_init(UNUSED(const device_t *info))
      */
     if (!pc98_rom_find(pc98_sasi_rom_paths, rom_path, sizeof(rom_path),
                        "PC-9801-27 board BIOS (sasi.rom)") ||
-        rom_init(&dev->bios, rom_path, dev->rom_addr, PC98_SASI_ROM_SIZE,
+        rom_init(dev->bios, rom_path, dev->rom_addr, PC98_SASI_ROM_SIZE,
                  PC98_SASI_ROM_SIZE - 1, 0, MEM_MAPPING_EXTERNAL)) {
         pclog("[PC98] SASI: the board BIOS is what hooks the disk vector, "
               "so the interface is not installed\n");
+        free(dev->bios);
         free(dev);
         return NULL;
     }
@@ -665,7 +680,7 @@ pc98_sasi_dev_init(UNUSED(const device_t *info))
 
     sasi_attach_drives(dev);
     pc98_sasi_dev_reset(dev);
-    pc98_sasi_active = dev;
+
     return dev;
 }
 
@@ -682,14 +697,21 @@ pc98_sasi_dev_close(void *priv)
     io_removehandler(PC98_SASI_PORT_CTRL, 1, sasi_in, NULL, NULL, sasi_out,
                      NULL, NULL, dev);
 
+    pc98_sasi_dev_reset(dev);
+    mem_mapping_disable(&dev->bios->mapping);
+    mem_mapping_set_handler(&dev->bios->mapping, NULL, NULL, NULL, NULL, NULL, NULL);
+    mem_mapping_set_exec(&dev->bios->mapping, NULL);
+    mem_mapping_set_p(&dev->bios->mapping, NULL);
+    free(dev->bios->rom);
+    dev->bios->rom = NULL;
+
     for (unsigned u = 0; u < PC98_SASI_MAX_UNITS; u++) {
         if (dev->unit_hdd[u] >= 0)
             hdd_image_close((uint8_t) dev->unit_hdd[u]);
         pc98_hdi_close(&dev->unit_img[u]);
     }
 
-    if (pc98_sasi_active == dev)
-        pc98_sasi_active = NULL;
+
 
     free(dev);
 }

@@ -38,11 +38,23 @@
 #include <86box/vid_ps55da2.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
+#include <86box/vid_vga.h>
 #include "cpu.h"
 
-#define DA2_FONTROM_PATH_JPAN    "roms/video/da2/94X1320.BIN"
-#define DA2_FONTROM_PATH_HANT    "roms/video/da2/23F2698.BIN"
-#define DA2_FONTROM_SIZE         (1536 * 1024)
+/* Display Adapter II New (DA-2): the Japanese card carries its own font in the ROS, while the
+   Traditional Chinese one is taken from the DA-3 font card. Both fills the same font space. */
+#define DA2_FONTROM_PATH_JPAN_A2 "roms/video/da2/94X1320.BIN"
+#define DA2_FONTROM_PATH_HANT_A2 "roms/video/da2/23F2698.BIN"
+#define DA2_FONTROM_SIZE_A2      (1536 * 1024)
+
+/* Display Adapter B-II (BVEC, New revision): fonts sit on U12 (first half) and U11
+   (second half) - Japanese U12 = 79F5421, Chinese U12 + U11 = 95F4223 + 95F4224. */
+#define DA2_FONTROM_PATH_JPAN_B2 "roms/video/db2/79F5421.BIN"
+#define DA2_FONTROM_PATH_U12T_B2 "roms/video/db2/95F4223_U12.BIN"
+#define DA2_FONTROM_PATH_U11T_B2 "roms/video/db2/95F4224_U11.BIN"
+#define DA2_FONTROM_SIZE_FULL_B2 (2048 * 1024)
+#define DA2_FONTROM_SIZE_ROM_B2  (1024 * 1024)
+
 #define DA2_FONTROM_BASESBCS     0x98000
 #define DA2_GAIJIRAM_SBCS        0x34000
 #define DA2_GAIJIRAM_SBEX        0x3c000
@@ -391,6 +403,7 @@ typedef struct da2_t {
         uint8_t       ram[DA2_SIZE_GAIJIRAM];
         uint8_t      *font;
         int           charset;
+        int           font_size;
     } mmio;
 
     struct {
@@ -441,12 +454,14 @@ typedef struct da2_t {
     uint32_t mmrdbg_vidaddr;
 #endif
 
-    uint8_t    pos_regs[8];
-    svga_t    *mb_vga;
+    int        b2;
+    vga_t      *vga;
+    svga_t     *mb_vga;
     uint8_t    monitorid;
     pc_timer_t timer_vidupd;
 
-    int old_pos2;
+    uint8_t pos_regs[8];
+    int     old_pos2;
 } da2_t;
 
 static video_timings_t timing_da2_mca = 
@@ -1649,9 +1664,8 @@ da2_in(uint16_t addr, void *priv)
     uint16_t temp = 0xff;
 
     switch (addr) {
-        case 0x3c3:
-            temp = 0;
-            break;
+        /* 0x03c3 is left undecoded: the machine layer owns it and forwards it to the
+           VGA core (see da2_get_vga()). Returning 0 here would mask the machine layer. */
         case 0x3c6:
             temp = da2->dac_mask;
             break;
@@ -2045,7 +2059,7 @@ getfont_ps55dbcs(int32_t code, int32_t line, void *priv)
     int32_t  fline = line - 2; /* Start line of drawing character (line >= 1 AND line < 24 + 1 ) */
     if (code >= 0x8000 && code <= 0x8183)
         code -= 0x6000; /* shift for IBM extended characters (I don't know how the real card works.) */
-    if (code < DA2_FONTROM_SIZE / 72 && fline >= 0 && fline < 24) {
+    if (code < da2->mmio.font_size / 72 && fline >= 0 && fline < 24) {
         font = da2->mmio.font[code * 72 + fline * 3];             /* 0000 0000 0000 0000 0000 0000 1111 1111 */
         font <<= 8;                                               /* 0000 0000 0000 0000 1111 1111 0000 0000 */
         font |= da2->mmio.font[code * 72 + fline * 3 + 1] & 0xf0; /* 0000 0000 0000 0000 1111 1111 2222 0000 */
@@ -2067,7 +2081,7 @@ getfont_ps55dbcs(int32_t code, int32_t line, void *priv)
         font |= da2->mmio.ram[code + line * 4 + 2];
         font <<= 8;
         font |= da2->mmio.ram[code + line * 4 + 3];
-    } else if (code > DA2_FONTROM_SIZE)
+    } else if (code > da2->mmio.font_size)
         font = 0xffffffff;
     else
         font = 0;
@@ -2758,7 +2772,7 @@ da2_mmio_read(uint32_t addr, void *priv)
                         addr -= 0x40000; /* The bank 12 (180000h-19ffffh) is beyond the available ROM address range,
                                               but the Chinese font sub card actually has this alias, and is used by DOS T5.0. */
                 }
-                if (addr >= DA2_FONTROM_SIZE)
+                if (addr >= da2->mmio.font_size)
                     return DA2_INVALIDACCESS8;
                 // da2_log("PS55_MemHnd: Read from mem %x, bank %x, chr %x (%x), val %x\n", da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr / 72, addr, da2->mmio.font[addr]);
                 return da2->mmio.font[addr];
@@ -3342,7 +3356,7 @@ da2_poll(void *priv)
 }
 
 static void
-da2_video_load_font(char *fname, void *priv)
+da2_video_load_font(char *fname, void *priv, uint32_t offset, uint32_t maxsize)
 {
     da2_t  *da2 = (da2_t *) priv;
     uint8_t buf;
@@ -3359,8 +3373,8 @@ da2_video_load_font(char *fname, void *priv)
     fseek(mfile, 0, SEEK_END);
     fsize = ftell(mfile); /* get filesize */
     fseek(mfile, 0, SEEK_SET);
-    if (fsize > DA2_FONTROM_SIZE) {
-        fsize = DA2_FONTROM_SIZE; /* truncate read data */
+    if (fsize > maxsize) {
+        fsize = maxsize; /* truncate read data */
         // da2_log("MSG: The binary ROM font is truncated: %s\n", fname);
         // fclose(mfile);
         // return 1;
@@ -3368,7 +3382,7 @@ da2_video_load_font(char *fname, void *priv)
     uint32_t j = 0;
     while (ftell(mfile) < fsize) {
         (void) !fread(&buf, sizeof(uint8_t), 1, mfile);
-        da2->mmio.font[j] = buf;
+        da2->mmio.font[offset + j] = buf;
         j++;
     }
     fclose(mfile);
@@ -3397,6 +3411,8 @@ da2_reset(void *priv)
     da2->pos_regs[2]       = 0x40;                           /* Bit 7-5: 010=Mono, 100=Color, Bit 0 : Card Enable (set by reference diskette) */
     da2->ioctl[LS_CONFIG1] = Page_Two;                       /* Configuration 1 : DA-III, 1024 KB */
     da2->ioctl[LS_CONFIG1] |= ((da2->monitorid & 0x8) << 1); /* Configuration 1 : Monitor ID 3 */
+    if (da2->b2)
+        da2->ioctl[LS_CONFIG1] |= 0x20; /* Configuration 1 : Bit 5 = Display Adapter B2 (BVEC) */
     da2->ioctl[LS_CONFIG2]         = (da2->monitorid & 0x7); /* Configuration 2: Monitor ID 0-2 */
     da2->fctl[0]                   = 0x2b;                   /* 3E3h:0 */
     da2->fctl[LF_MMIO_MODE]        = 0xb0;                   /* 3E3h:0bh */
@@ -3412,15 +3428,32 @@ da2_reset(void *priv)
 }
 
 static void *
-da2_init(UNUSED(const device_t *info))
+da2_init(const device_t *info)
 {
-    if (svga_get_pri() == NULL)
-        return NULL;
-    svga_t *mb_vga          = svga_get_pri();
-    mb_vga->cable_connected = 0;
+    vga_t  *vga = NULL;
+    svga_t *mb_vga;
+
+    if (info->local) {
+        /* Display Adapter B-II (BVEC) */
+        vga = calloc(1, sizeof(vga_t));
+        vga_init(info, vga, 1);
+        mb_vga = &vga->svga;
+        io_sethandler(0x03a0, 0x0040, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
+    } else {
+        /* Display Adapter II (AVEC) */
+        if (svga_get_pri() == NULL)
+            return NULL;
+        mb_vga = svga_get_pri();
+        /* The monitor hangs off the adapter, not off the planar VGA, so 3C2h has to
+           report "no cable". The B-II keeps it set: its VGA core drives the card's
+           own connector, the same one the adapter itself uses. */
+        mb_vga->cable_connected = 0;
+    }
 
     da2_t *da2  = calloc(1, sizeof(da2_t));
     da2->mb_vga = mb_vga;
+    da2->vga    = vga;
+    da2->b2     = info->local;
 
     da2->dispontime        = 1000ull << 32;
     da2->dispofftime       = 1000ull << 32;
@@ -3430,14 +3463,26 @@ da2_init(UNUSED(const device_t *info))
     da2->monitorid         = device_get_config_int("montype");
     da2->changedvram       = calloc(1,  (DA2_MASK_VRAMPLANE + 1) >> 9); /* XX000h */
 
-    da2->mmio.charset = device_get_config_int("charset");
-    da2->mmio.font    = calloc(1, DA2_FONTROM_SIZE);
+    da2->mmio.charset   = device_get_config_int("charset");
+    da2->mmio.font_size = da2->b2 ? DA2_FONTROM_SIZE_FULL_B2 : DA2_FONTROM_SIZE_A2;
+    da2->mmio.font      = calloc(1, da2->mmio.font_size);
     switch (da2->mmio.charset) {
         case DA2_DCONFIG_CHARSET_HANT:
-            da2_video_load_font(DA2_FONTROM_PATH_HANT, da2);
+            if (da2->b2) {
+                /* The B2's Chinese font is a pair of 1 MB ROMs: U12 first, U11 second. */
+                da2_video_load_font(DA2_FONTROM_PATH_U12T_B2, da2, 0, DA2_FONTROM_SIZE_ROM_B2);
+                da2_video_load_font(DA2_FONTROM_PATH_U11T_B2, da2, DA2_FONTROM_SIZE_ROM_B2, DA2_FONTROM_SIZE_ROM_B2);
+            } else {
+                da2_video_load_font(DA2_FONTROM_PATH_HANT_A2, da2, 0, DA2_FONTROM_SIZE_A2);
+            }
             break;
         case DA2_DCONFIG_CHARSET_JPAN:
-            da2_video_load_font(DA2_FONTROM_PATH_JPAN, da2);
+            if (da2->b2) {
+                /* The B-II New has its own Japanese ROS (79F5421) on U12. */
+                da2_video_load_font(DA2_FONTROM_PATH_JPAN_B2, da2, 0, DA2_FONTROM_SIZE_ROM_B2);
+            } else {
+                da2_video_load_font(DA2_FONTROM_PATH_JPAN_A2, da2, 0, DA2_FONTROM_SIZE_A2);
+            }
             /* Add magic code for OS/2 J1.3. This disables BitBlt's text drawing function. */
             da2->mmio.font[0x1AFFE] = 0x80;
             da2->mmio.font[0x1AFFF] = 0x01;
@@ -3483,10 +3528,26 @@ da2_init(UNUSED(const device_t *info))
 
     return da2;
 }
+
+void *
+da2_get_vga(void *priv)
+{
+    da2_t *da2 = (da2_t *) priv;
+
+    return da2->vga;
+}
+
 static int
 da2_available(void)
 {
-    return (rom_present(DA2_FONTROM_PATH_HANT) || rom_present(DA2_FONTROM_PATH_JPAN));
+    return (rom_present(DA2_FONTROM_PATH_JPAN_A2) || rom_present(DA2_FONTROM_PATH_HANT_A2));
+}
+
+static int
+da2_b2_available(void)
+{
+    return (rom_present(DA2_FONTROM_PATH_JPAN_B2) ||
+           (rom_present(DA2_FONTROM_PATH_U12T_B2) && rom_present(DA2_FONTROM_PATH_U11T_B2)));
 }
 
 static void
@@ -3591,6 +3652,10 @@ da2_close(void *priv)
     free(da2->cram);
     free(da2->vram);
     free(da2->changedvram);
+    if (da2->vga != NULL) {
+        svga_close(&da2->vga->svga);
+        free(da2->vga);
+    }
     free(da2->mmio.font);
     free(da2);
 }
@@ -3663,6 +3728,20 @@ const device_t ps55da2_device = {
     .close         = da2_close,
     .reset         = da2_reset,
     .available     = da2_available,
+    .speed_changed = da2_speed_changed,
+    .force_redraw  = da2_force_redraw,
+    .config        = da2_configuration
+};
+
+const device_t ps55db2_device = {
+    .name          = "IBM Display Adapter B-II (MCA)",
+    .internal_name = "ps55db2",
+    .flags         = DEVICE_MCA,
+    .local         = 1,
+    .init          = da2_init,
+    .close         = da2_close,
+    .reset         = da2_reset,
+    .available     = da2_b2_available,
     .speed_changed = da2_speed_changed,
     .force_redraw  = da2_force_redraw,
     .config        = da2_configuration

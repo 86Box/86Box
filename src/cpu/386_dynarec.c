@@ -420,10 +420,13 @@ exec386_dynarec_int(void)
             x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
         }
 
-#    ifndef USE_NEW_DYNAREC
-        if (!use32)
-            cpu_state.pc &= 0xffff;
-#    endif
+        if (cpu_flush_pending == 1)
+            cpu_flush_pending++;
+        else if (cpu_flush_pending == 2) {
+            cpu_flush_pending = 0;
+            flushmmucache_pc();
+            CPU_BLOCK_END();
+        }
 
 #    ifdef USE_DEBUG_REGS_486
         if (!cpu_state.abrt) {
@@ -492,6 +495,15 @@ exec386_dynarec_dyn(void)
     codeblock_t *block = codeblock_hash[hash];
 #    endif
     int valid_block = 0;
+
+    /* Code in device memory (a BIOS copying a routine into video memory) is
+       fetched through the device's read handlers, and nothing tracks writes
+       there, so it is interpreted every time rather than kept in a block. */
+    if (!cpu_state.abrt && (_mem_exec[phys_addr >> MEM_GRANULARITY_BITS] == NULL)) {
+        exec386_dynarec_int();
+        return;
+    }
+    cpu_fetch_device = 0;
 
     /* Refresh before the lookup AND before a fresh compile: the old
        dynarec skips the lookup on an empty hash slot, and the new block
@@ -675,11 +687,6 @@ exec386_dynarec_dyn(void)
         acycs = 0;
 #    endif
         inrecomp = 0;
-
-#    ifndef USE_NEW_DYNAREC
-        if (!use32)
-            cpu_state.pc &= 0xffff;
-#    endif
     } else if (valid_block && !cpu_state.abrt) {
 #    ifdef USE_NEW_DYNAREC
         start_pc                 = cs + cpu_state.pc;
@@ -733,11 +740,6 @@ exec386_dynarec_dyn(void)
                     break;
             }
 
-#    ifndef USE_NEW_DYNAREC
-            if (!use32)
-                cpu_state.pc &= 0xffff;
-#    endif
-
                 /* Cap source code at 4000 bytes per block; this
                    will prevent any block from spanning more than
                    2 pages. In practice this limit will never be
@@ -769,6 +771,13 @@ exec386_dynarec_dyn(void)
                     CPU_BLOCK_END();
             }
 
+            /* An instruction ran on into device memory: interpreted, never kept. */
+            if (cpu_fetch_device) {
+                if (!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED))
+                    codegen_block_remove();
+                CPU_BLOCK_END();
+            }
+
             if (cpu_state.abrt) {
                 if (!(cpu_state.abrt & ABRT_EXPECTED))
                     codegen_block_remove();
@@ -778,7 +787,7 @@ exec386_dynarec_dyn(void)
 
         cpu_end_block_after_ins = 0;
 
-        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset)
+        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset && !cpu_fetch_device)
             codegen_block_end_recompile(block);
 
         if (x86_was_reset)
@@ -839,11 +848,6 @@ exec386_dynarec_dyn(void)
                     break;
             }
 
-#    ifndef USE_NEW_DYNAREC
-            if (!use32)
-                cpu_state.pc &= 0xffff;
-#    endif
-
                 /* Cap source code at 4000 bytes per block; this
                    will prevent any block from spanning more than
                    2 pages. In practice this limit will never be
@@ -875,6 +879,13 @@ exec386_dynarec_dyn(void)
                     CPU_BLOCK_END();
             }
 
+            /* An instruction ran on into device memory: interpreted, never kept. */
+            if (cpu_fetch_device) {
+                if (!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED))
+                    codegen_block_remove();
+                CPU_BLOCK_END();
+            }
+
             if (cpu_state.abrt) {
                 if (!(cpu_state.abrt & ABRT_EXPECTED))
                     codegen_block_remove();
@@ -884,7 +895,7 @@ exec386_dynarec_dyn(void)
 
         cpu_end_block_after_ins = 0;
 
-        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset)
+        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset && !cpu_fetch_device)
             codegen_block_end();
 
         if (x86_was_reset)
@@ -933,11 +944,15 @@ exec386_dynarec(int32_t cycs)
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
-            if (cpu_force_interpreter || cpu_override_dynarec ||  (!CACHE_ON())) /*Interpret block*/
+            if (cpu_force_interpreter || cpu_override_dynarec || cpu_flush_pending || (!CACHE_ON())) /*Interpret block*/
             {
                 exec386_dynarec_int();
             } else {
                 exec386_dynarec_dyn();
+                /* A CR0 paging toggle ends the block it is in, so it was the
+                   last instruction executed. */
+                if (cpu_flush_pending == 1)
+                    cpu_flush_pending++;
             }
 
             if (cpu_init) {
@@ -1337,11 +1352,6 @@ exec386(int32_t cycs)
                 cpu_flush_pending = 0;
                 flushmmucache_pc();
             }
-
-#ifndef USE_NEW_DYNAREC
-            if (!use32)
-                cpu_state.pc &= 0xffff;
-#endif
 
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;

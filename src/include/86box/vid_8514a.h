@@ -86,6 +86,8 @@ typedef struct ibm8514_t {
     uint32_t vram_mask;
     uint32_t pallook[512];
     uint32_t bios_addr;
+    uint8_t  rom_page;  /* ROM_PAGE_SEL (46E8h) bits 2:0 */
+    uint8_t *rom_image; /* the whole ROM file; bios_rom.rom is the window */
     uint32_t memaddr_latch;
 
     PALETTE   vgapal;

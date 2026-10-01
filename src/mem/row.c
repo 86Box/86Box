@@ -137,7 +137,7 @@ row_allocate(uint8_t row_id, uint8_t set)
     }
 
     if (rows[row_id].host_base >= 0x00100000) {
-        mem_set_mem_state_both(rows[row_id].host_base, rows[row_id].host_base + rows[row_id].host_size,
+        mem_set_mem_state_both(rows[row_id].host_base, rows[row_id].host_size,
                                set ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL));
     } else {
         if (0x000a0000 > rows[row_id].host_base) {

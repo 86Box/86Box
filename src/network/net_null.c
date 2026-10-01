@@ -43,10 +43,9 @@ enum {
     NET_EVENT_MAX
 };
 
-/* Special define for the windows portion. Because we are not interested
- * in NET_EVENT_RX for the null driver, we only need to poll up to
- * NET_EVENT_TX. NET_EVENT_RX gives us a different NET_EVENT_MAX
- * excluding NET_EVENT_RX. */
+/* Because we are not interested in NET_EVENT_RX for the null driver, we
+ * only need to poll up to NET_EVENT_TX, on Windows and elsewhere alike.
+ * NET_EVENT_RX gives us a different NET_EVENT_MAX excluding NET_EVENT_RX. */
 #define NET_EVENT_TX_MAX NET_EVENT_RX
 
 #define NULL_PKT_BATCH NET_QUEUE_LEN
@@ -126,7 +125,7 @@ net_null_thread(void *priv)
 
     net_null_log("Null Network: polling started.\n");
 
-    struct pollfd pfd[NET_EVENT_MAX];
+    struct pollfd pfd[NET_EVENT_TX_MAX];
     pfd[NET_EVENT_STOP].fd     = net_event_get_fd(&net_null->stop_event);
     pfd[NET_EVENT_STOP].events = POLLIN | POLLPRI;
 
@@ -134,7 +133,10 @@ net_null_thread(void *priv)
     pfd[NET_EVENT_TX].events = POLLIN | POLLPRI;
 
     while (1) {
-        poll(pfd, NET_EVENT_MAX, -1);
+        /* Only the events set up above: pfd[NET_EVENT_RX] is never filled
+           in, and polling it (stack garbage, often fd 0) returned at once
+           every time, spinning this thread on a whole host core. */
+        poll(pfd, NET_EVENT_TX_MAX, -1);
 
         if (pfd[NET_EVENT_STOP].revents & POLLIN) {
             net_event_clear(&net_null->stop_event);

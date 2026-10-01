@@ -147,6 +147,7 @@ QVector<QPair<QString, QString>> Preferences::languages = {
     { "pt-BR",  "Português (Brasil)"       },
     { "pt-PT",  "Português (Portugal)"     },
     { "ru-RU",  "Русский"                  },
+    { "ro-RO",  "Română"                   },
     { "sk-SK",  "Slovenčina"               },
     { "sl-SI",  "Slovenščina"              },
     { "sv-SE",  "Svenska"                  },

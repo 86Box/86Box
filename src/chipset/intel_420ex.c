@@ -556,8 +556,12 @@ i420ex_init(const device_t *info)
 
     dma_alias_set();
 
-    if (dev->has_ide)
-        device_add(&ide_pci_2ch_device);
+    if (dev->has_ide) {
+        if (machine_has_flags(machine, MACHINE_IDE_SEC))
+            device_add(&ide_pci_2ch_device);
+        else
+            device_add(&ide_pci_device);
+    }
 
 #ifndef USE_DRB_HACK
     row_device.local = 4 | (1 << 8) | (0x01 << 16) | (8 << 24);

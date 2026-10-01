@@ -375,27 +375,48 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
     int                     m, s, f;
     uint8_t                 mode = 0, form = 0;
     int64_t                 pregap_length = 0;
+    int32_t                 long_res;
+    int                     cooked        = 0;
 
     memset(buffer, 0, 2448);
 
     if (sector == 0xFFFFFFFF)
         lba = ioctl->dev->seek_pos;
 
-    aaru_image_get_track_mode(local, (int64_t) (uint64_t) sector, &mode, &form);
+    /* Use the resolved LBA, not the raw sector argument (which may be ~0u). */
+    aaru_image_get_track_mode(ioctl, (int64_t) lba, &mode, &form);
 
     if (mode == 0) {
         length = 2352;
-        // Just read the audio sector. Errors can be ignored here.
-        (void)f_aaruf_read_sector(ioctl->aaruf_context, lba,
-                                  false, buffer, &length, &sector_status);
-    } else if (ioctl->is_dvd || f_aaruf_read_sector_long(ioctl->aaruf_context, lba,
-                                                         false, buffer,
-                                                         &length, &sector_status)) {
-        length = 2048;
-        if (!f_aaruf_read_sector(ioctl->aaruf_context, lba, false, buffer,
-                                 &length, &sector_status))
+        (void) f_aaruf_read_sector(ioctl->aaruf_context, lba,
+                                   false, buffer, &length, &sector_status);
+    } else if (ioctl->is_dvd) {
+        /*
+         * DVDs only have 2048-byte user data.  The rest of the CD-ROM
+         * stack still wants a 2352-byte Mode 1 frame, so place the
+         * cooked payload at offset 16 and synthesize the header.
+         */
+        length  = 2048;
+        cooked  = 1;
+        if (f_aaruf_read_sector(ioctl->aaruf_context, lba, false,
+                                buffer + 16, &length, &sector_status))
+            return -1;
+        mode = 1;
+        form = 0;
+        goto generate_headers;
+    } else {
+        length   = 2352;
+        long_res = f_aaruf_read_sector_long(ioctl->aaruf_context, lba,
+                                            false, buffer, &length, &sector_status);
+        if (long_res) {
+            /* No raw frame in the image: cooked 2048 + synthetic header. */
+            length = 2048;
+            cooked = 1;
+            if (f_aaruf_read_sector(ioctl->aaruf_context, lba, false,
+                                    buffer + 16, &length, &sector_status))
+                return -1;
             goto generate_headers;
-        return -1;
+        }
     }
 
     length = 96;
@@ -404,8 +425,24 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
 
 generate_headers:
         m = s = f = 0;
-        if (length == 96)
+        if (!cooked && (length == 96))
             goto generate_subchannel;
+
+        buffer[0] = 0x00;
+        memset(&(buffer[1]), 0xff, 10);
+        buffer[11] = 0x00;
+
+        FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+        buffer[12] = bin2bcd(m);
+        buffer[13] = bin2bcd(s);
+        buffer[14] = bin2bcd(f);
+        buffer[15] = mode;
+
+        if (form >= 1) {
+            uint8_t *subheader = buffer + 16;
+            subheader[2] = subheader[6] = (form - 1) << 5;
+        }
+
         /* Construct sector header and sub-header. */
         {
             /* Sync bytes. */

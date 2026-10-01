@@ -229,7 +229,7 @@ seek_to_block(pc98_hdi_t *img, uint32_t lba, uint32_t count)
 {
     if (!img->f)
         return 0;
-    if (count == 0u || lba > img->blocks || (lba + count) > img->blocks)
+    if (count == 0u || lba >= img->blocks || count > img->blocks - lba)
         return 0;
 
     const uint64_t off = (uint64_t) img->base +

@@ -52,6 +52,7 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
     , existingImageDialog(existing)
 {
     ui->setupUi(this);
+    Harddrives::widenPopup(ui->comboBoxChannel);
 
     scSpeed = new SettingsCompleter(ui->comboBoxSpeed, nullptr);
 

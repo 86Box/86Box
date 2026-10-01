@@ -337,7 +337,7 @@ gm82c803c_init(const device_t *info)
 {
     gm82c803c_t *dev = (gm82c803c_t *) calloc(1, sizeof(gm82c803c_t));
 
-    dev->fdc = device_add(&fdc_at_smc_device);
+    dev->fdc = device_add_params(&fdc_at_smc_device, (void *) FDC_FLAG_PNP);
 
     dev->has_ide = (info->local >> 8) & 0xff;
 

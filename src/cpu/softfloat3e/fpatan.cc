@@ -33,7 +33,7 @@ these four paragraphs for those parts of this code that are retained.
 #include "fpu_constant.h"
 #include "poly.h"
 
-#define FPATAN_ARR_SIZE 11
+#define FPATAN_ARR_SIZE 20
 
 static const float128_t float128_one =
         packFloat128(BX_CONST64(0x3fff000000000000), BX_CONST64(0x0000000000000000));
@@ -61,12 +61,21 @@ static float128_t atan_arr[FPATAN_ARR_SIZE] =
     PACK_FLOAT_128(0xbffb111111111111, 0x1111111111111111), /* 15 */
     PACK_FLOAT_128(0x3ffae1e1e1e1e1e1, 0xe1e1e1e1e1e1e1e2), /* 17 */
     PACK_FLOAT_128(0xbffaaf286bca1af2, 0x86bca1af286bca1b), /* 19 */
-    PACK_FLOAT_128(0x3ffa861861861861, 0x8618618618618618)  /* 21 */
+    PACK_FLOAT_128(0x3ffa861861861861, 0x8618618618618618), /* 21 */
+    PACK_FLOAT_128(0xbffa642c8590b216, 0x42c8590b21642c86), /* 23 */
+    PACK_FLOAT_128(0x3ffa47ae147ae147, 0xae147ae147ae147b), /* 25 */
+    PACK_FLOAT_128(0xbffa2f684bda12f6, 0x84bda12f684bda13), /* 27 */
+    PACK_FLOAT_128(0x3ffa1a7b9611a7b9, 0x611a7b9611a7b961), /* 29 */
+    PACK_FLOAT_128(0xbffa084210842108, 0x4210842108421084), /* 31 */
+    PACK_FLOAT_128(0x3ff9f07c1f07c1f0, 0x7c1f07c1f07c1f08), /* 33 */
+    PACK_FLOAT_128(0xbff9d41d41d41d41, 0xd41d41d41d41d41d), /* 35 */
+    PACK_FLOAT_128(0x3ff9bacf914c1bac, 0xf914c1bacf914c1c), /* 37 */
+    PACK_FLOAT_128(0xbff9a41a41a41a41, 0xa41a41a41a41a41a)  /* 39 */
 };
 
 extern float128_t OddPoly(float128_t x, const float128_t *arr, int n, softfloat_status_t &status);
 
-/* |x| < 1/4 */
+/* |x| < 0.29 (the largest argument left by the reductions in fpatan()) */
 static float128_t poly_atan(float128_t x1, softfloat_status_t &status)
 {
 /*

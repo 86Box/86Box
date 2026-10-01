@@ -32,14 +32,22 @@
 #include <86box/midi.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
+#include <86box/thread.h>
 
 ALuint                    buffers[I_MAX][4]; /* front and back buffers */
 static ALuint             source[I_MAX];     /* audio sources */
 
 static int                initialized       = 0;
+static int                atexit_registered = 0;
 static int                sources           = 2;
 static ALCcontext *       Context;
 static ALCdevice  *       Device;
+static ALCdevice  *       CaptureDevice;
+static int         CaptureChannels = 2;
+static int         CaptureRate     = 0;
+static mutex_t *capture_mutex = NULL;
+
+#define SNDIN_CAPTURE_BUFLEN (SOUNDBUFLEN * 16)
 
 static unsigned long long buf_sizes[I_MAX] = {
     0, (MUSICBUFLEN << 1), (WTBUFLEN << 1),     (CD_BUFLEN << 1),
@@ -63,6 +71,14 @@ sound_get_output_devices(void)
     return NULL;
 }
 
+const char *
+sound_get_input_devices(void)
+{
+    if (alcIsExtensionPresent(NULL, "ALC_EXT_CAPTURE"))
+        return alcGetString(NULL, ALC_CAPTURE_DEVICE_SPECIFIER);
+    return NULL;
+}
+
 int
 sound_get_device_sample_rate(const char *device_name)
 {
@@ -82,6 +98,20 @@ sound_get_device_sample_rate(const char *device_name)
         alcCloseDevice(dev);
     }
     return (int) freq;
+}
+
+int
+al_capture_get_rate(void)
+{
+    int rate;
+
+    if (capture_mutex != NULL)
+        thread_wait_mutex(capture_mutex);
+    rate = CaptureDevice ? CaptureRate : 0;
+    if (capture_mutex != NULL)
+        thread_release_mutex(capture_mutex);
+
+    return rate;
 }
 
 int
@@ -131,6 +161,9 @@ sound_get_device_supported_rates(const char *device_name, int *rates_out, int ma
 ALvoid
 alutInit(UNUSED(ALint *argc), UNUSED(ALbyte **argv))
 {
+    if (capture_mutex == NULL)
+        capture_mutex = thread_create_mutex();
+
     /* Open device: use the user-selected device, or NULL for system default */
     const ALCchar *dev_name = (sound_output_device[0] != '\0') ? sound_output_device : NULL;
     Device = alcOpenDevice(dev_name);
@@ -142,11 +175,82 @@ alutInit(UNUSED(ALint *argc), UNUSED(ALbyte **argv))
             alcMakeContextCurrent(Context);
         }
     }
+
+    CaptureDevice   = NULL;
+    CaptureChannels = 2;
+    CaptureRate     = 0;
+
+}
+
+void
+al_capture_open(void)
+{
+    if (capture_mutex != NULL)
+        thread_wait_mutex(capture_mutex);
+
+    if (CaptureDevice != NULL) {
+        if (capture_mutex != NULL)
+            thread_release_mutex(capture_mutex);
+        return;
+    }
+
+    CaptureChannels = 2;
+    CaptureRate     = 0;
+    if (sound_input_enabled) {
+        const ALCchar *cap_name = (sound_input_dev_name[0] != '\0') ? sound_input_dev_name : NULL;
+
+        int            want     = (sb_input_rate == FREQ_48000) ? FREQ_48000
+                                                                   : FREQ_44100;
+
+        CaptureRate   = want;
+        CaptureDevice = alcCaptureOpenDevice(cap_name, want, AL_FORMAT_STEREO16, SNDIN_CAPTURE_BUFLEN);
+        if (CaptureDevice == NULL) {
+            CaptureDevice = alcCaptureOpenDevice(cap_name, want, AL_FORMAT_MONO16, SNDIN_CAPTURE_BUFLEN);
+            if (CaptureDevice != NULL)
+                CaptureChannels = 1;
+        }
+
+        if ((CaptureDevice == NULL) && (want != SOUND_FREQ)) {
+            CaptureDevice = alcCaptureOpenDevice(cap_name, SOUND_FREQ, AL_FORMAT_STEREO16, SNDIN_CAPTURE_BUFLEN);
+            if (CaptureDevice == NULL) {
+                CaptureDevice = alcCaptureOpenDevice(cap_name, SOUND_FREQ, AL_FORMAT_MONO16, SNDIN_CAPTURE_BUFLEN);
+                if (CaptureDevice != NULL)
+                    CaptureChannels = 1;
+            }
+            if (CaptureDevice != NULL)
+                CaptureRate = SOUND_FREQ;
+        }
+
+        if (CaptureDevice == NULL)
+            CaptureRate = 0;
+    }
+
+    if (capture_mutex != NULL)
+        thread_release_mutex(capture_mutex);
+}
+
+void
+al_capture_close(void)
+{
+    if (capture_mutex != NULL)
+        thread_wait_mutex(capture_mutex);
+
+    if (CaptureDevice != NULL) {
+        alcCaptureCloseDevice(CaptureDevice);
+        CaptureDevice   = NULL;
+        CaptureChannels = 2;
+        CaptureRate     = 0;
+    }
+
+    if (capture_mutex != NULL)
+        thread_release_mutex(capture_mutex);
 }
 
 ALvoid
 alutExit(ALvoid)
 {
+    al_capture_close();
+
     if (Context != NULL) {
         /* Disable context */
         alcMakeContextCurrent(NULL);
@@ -178,6 +282,84 @@ closeal(void)
     initialized = 0;
 }
 
+int
+al_capture_available(void)
+{
+    int available;
+
+    if (capture_mutex != NULL)
+        thread_wait_mutex(capture_mutex);
+    available = !!CaptureDevice;
+    if (capture_mutex != NULL)
+        thread_release_mutex(capture_mutex);
+
+    return available;
+}
+
+void
+al_capture_start(void)
+{
+    if (capture_mutex != NULL)
+        thread_wait_mutex(capture_mutex);
+    if (CaptureDevice != NULL)
+        alcCaptureStart(CaptureDevice);
+    if (capture_mutex != NULL)
+        thread_release_mutex(capture_mutex);
+}
+
+void
+al_capture_stop(void)
+{
+    if (capture_mutex != NULL)
+        thread_wait_mutex(capture_mutex);
+    if (CaptureDevice != NULL)
+        alcCaptureStop(CaptureDevice);
+    if (capture_mutex != NULL)
+        thread_release_mutex(capture_mutex);
+}
+
+void
+al_capture_get_data(int16_t *buf, size_t *len)
+{
+    ALint availableSamples = 0;
+
+    if (!buf || !len)
+        return;
+
+    if (capture_mutex != NULL)
+        thread_wait_mutex(capture_mutex);
+
+    if (CaptureDevice == NULL) {
+        *len = 0;
+        goto unlock;
+    }
+
+    alcGetIntegerv(CaptureDevice, ALC_CAPTURE_SAMPLES, 1, &availableSamples);
+    if (availableSamples <= 0) {
+        *len = 0;
+        goto unlock;
+    }
+
+    if ((size_t) availableSamples > *len)
+        availableSamples = (ALint) *len;
+
+    alcCaptureSamples(CaptureDevice, buf, availableSamples);
+
+    if (CaptureChannels == 1) {
+        int i;
+        for (i = availableSamples - 1; i >= 0; i--) {
+            buf[i * 2]     = buf[i];
+            buf[i * 2 + 1] = buf[i];
+        }
+    }
+
+    *len = (size_t) availableSamples;
+
+unlock:
+    if (capture_mutex != NULL)
+        thread_release_mutex(capture_mutex);
+}
+
 void
 inital(void)
 {
@@ -190,7 +372,11 @@ inital(void)
         return;
 
     alutInit(0, 0);
-    atexit(closeal);
+
+    if (!atexit_registered) {
+        atexit(closeal);
+        atexit_registered = 1;
+    }
 
     const char *mdn = midi_out_device_get_internal_name(midi_output_device_current);
     if ((strcmp(mdn, "none") != 0) && (strcmp(mdn, SYSTEM_MIDI_INTERNAL_NAME) != 0))

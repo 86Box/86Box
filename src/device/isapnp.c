@@ -830,6 +830,17 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
     return card;
 }
 
+/* Whether a card is in Wait for Key with no initiation key being received,
+   for a card whose own activation scheme gives way to Plug and Play's. */
+int
+isapnp_card_waiting_for_key(void *priv)
+{
+    const isapnp_card_t *card = (isapnp_card_t *) priv;
+    const isapnp_t      *dev  = (isapnp_t *) device_get_priv(&isapnp_device);
+
+    return (card->state == PNP_STATE_WAIT_FOR_KEY) && (!dev || !dev->key_pos);
+}
+
 void
 isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
 {

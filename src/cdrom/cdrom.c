@@ -32,6 +32,9 @@
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_interface.h>
 #include <86box/cdrom_mitsumi.h>
+#include <86box/cdrom_hitachi.h>
+#include <86box/cdrom_philips.h>
+#include <86box/cdrom_cm153.h>
 #include <86box/cdrom_mke.h>
 #include <86box/crc.h>
 #include <86box/log.h>
@@ -129,9 +132,13 @@ static const struct {
 } controllers[] = {
     // clang-format off
     { &cdrom_interface_none_device  },
-    { &mitsumi_cdrom_device         },
+    { &hitachi_cdrom_isa_device     },
+    { &hitachi_cdrom_mca_device     },
     { &mke_cdrom_noncreative_device },
     { &mke_cdrom_device             },
+    { &philips_cm250_device         },
+    { &philips_cm153_device         },
+    { &mitsumi_cdrom_device         },
     { NULL                          }
     // clang-format on
 };
@@ -697,6 +704,7 @@ read_toc_session(const cdrom_t *dev, unsigned char *b, const int msf)
     const raw_track_info_t *first      = NULL;
     int                     num        = 0;
     int                     len        = 4;
+    uint8_t                 ft         = 0;
 
     dev->ops->get_raw_track_info(dev->local, &num, rti);
 
@@ -708,54 +716,71 @@ read_toc_session(const cdrom_t *dev, unsigned char *b, const int msf)
 
     if (num != 0) {
         for (int i = 0; i < num; i++) {
-            if ((t[i].session == b[3]) && (t[i].point >= 0x01) && (t[i].point <= 0x63)) {
+            if ((t[i].session == b[3]) && (t[i].point == 0xa0)) {
                 first = &(t[i]);
                 break;
             }
         }
+
         if (first != NULL) {
             b[len++] = 0x00;
             b[len++] = first->adr_ctl;
-            if ((dev->is_bcd || dev->is_chinon) && (first->point >= 1) &&
-                (first->point <= 99))
-                b[len++] = bin2bcd(first->point);
+            ft = first->pm;
+            if ((dev->is_bcd || dev->is_chinon) && (ft >= 1) && (ft <= 99))
+                b[len++] = bin2bcd(ft);
             else
-                b[len++] = first->point;
+                b[len++] = ft;
             b[len++] = 0x00;
 
-            if (msf) {
-                b[len++] = 0x00;
+            first = NULL;
+            for (int i = 0; i < num; i++) {
+                if ((t[i].session == b[3]) && (t[i].point == ft)) {
+                    first = &(t[i]);
+                    break;
+                }
+            }
 
-                /* NEC CDR-260 speaks BCD. */
-                if (dev->is_bcd) {
-                    int m = first->pm;
-                    int s = first->ps;
-                    int f = first->pf;
+            if (first != NULL) {
+                if (msf) {
+                    b[len++] = 0x00;
 
-                    msf_to_bcd(&m, &s, &f);
+                    /* NEC CDR-260 speaks BCD. */
+                    if (dev->is_bcd) {
+                        int m = first->pm;
+                        int s = first->ps;
+                        int f = first->pf;
 
-                    b[len++] = m;
-                    b[len++] = s;
-                    b[len++] = f;
+                        msf_to_bcd(&m, &s, &f);
+
+                        b[len++] = m;
+                        b[len++] = s;
+                        b[len++] = f;
+                    } else {
+                        b[len++] = first->pm;
+                        b[len++] = first->ps;
+                        b[len++] = first->pf;
+                    }
                 } else {
-                    b[len++] = first->pm;
-                    b[len++] = first->ps;
-                    b[len++] = first->pf;
+                    const uint32_t temp = MSFtoLBA(first->pm, first->ps,
+                                                   first->pf) - 150;
+
+                    b[len++] = temp >> 24;
+                    b[len++] = temp >> 16;
+                    b[len++] = temp >> 8;
+                    b[len++] = temp;
                 }
             } else {
-                const uint32_t temp = MSFtoLBA(first->pm, first->ps,
-                                               first->pf) - 150;
-
-                b[len++] = temp >> 24;
-                b[len++] = temp >> 16;
-                b[len++] = temp >> 8;
-                b[len++] = temp;
+                memset(&(b[len]), 0x00, 4);
+                len += 4;
             }
+        } else {
+            memset(&(b[len]), 0x00, 8);
+            len += 8;
         }
+    } else {
+        memset(&(b[len]), 0x00, 8);
+        len += 8;
     }
-
-    if (len == 4)
-        memset(&(b[len += 8]), 0x00, 8);
 
     return len;
 }
@@ -779,16 +804,16 @@ read_toc_raw(const cdrom_t *dev, unsigned char *b, const unsigned char start_tra
 
     if (num != 0)  for (int i = 0; i < num; i++)
         if (t[i].session >= start_track) {
-            memcpy(&(b[len]), &(t[i]), 11);
+            unsigned char *e = &b[len];
+            memcpy(e, &(t[i]), 11);
 
-            if ((dev->is_bcd || dev->is_chinon) && (b[3] >= 1) && (b[3] <= 99))
-                b[3] = bin2bcd(b[3]);
+            if ((dev->is_bcd || dev->is_chinon) && (e[3] >= 1) && (e[3] <= 99))
+                e[3] = bin2bcd(e[3]);
 
-            for (int j = 0; j < 3; j++)
-                if (dev->is_bcd) {
-                    b[4 + j] = bin2bcd(b[4 + j]);
-                    b[8 + j] = bin2bcd(b[8 + j]);
-                }
+            if (dev->is_bcd)  for (int j = 0; j < 3; j++) {
+                e[4 + j] = bin2bcd(e[4 + j]);
+                e[8 + j] = bin2bcd(e[8 + j]);
+            }
 
             len += 11;
         }
@@ -2509,7 +2534,7 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
             break;
         case 3:
             if (dev->is_nec) { /* Undocumented on NEC CD-ROM's, from information based on sr_vendor.c from the Linux kernel */
-                if (track == 0xb0) { /*TOC type session */
+                if ((track == 0xa0) || (track == 0xb0)) { /*TOC type session */
                     b[14] = 0x00;
 
                     if (num > 0)
@@ -3505,6 +3530,9 @@ cdrom_hard_reset(void)
             switch (dev->bus_type) {
                 case CDROM_BUS_ATAPI:
                 case CDROM_BUS_SCSI:
+                    scsi_cdrom_drive_reset(i);
+                    break;
+
                 case CDROM_BUS_LPT:
                     scsi_cdrom_drive_reset(i);
                     /*

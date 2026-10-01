@@ -253,6 +253,15 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Gravis UltraSound PnP (New PnP ROM)", .new = "Gravis UltraSound PnP (New)" },
         { .old = "Gravis UltraSound PnP (No CD-ROM)", .new = "Gravis UltraSound PnP (No CD)" },
         { .old = "Compaq/STB UltraSound 32", .new = "Compaq UltraSound 32" },
+        { .old = "IBM PS/2 Adapter/A for Ethernet Networks (WD8013WP/A, AUI/RJ-45, EFD4/92F0046)", .new = "IBM PS/2 Adapter/A (WD8013WP/A)" },
+        { .old = "IBM PS/2 Adapter/A for Ethernet Networks (WD8013EP/A, AUI/BNC, EFD5)", .new = "IBM PS/2 Adapter/A (WD8013EP/A)" },
+        { .old = "IBM PS/2 Adapter/A for Ethernet Networks (WD8003E/A, AUI/BNC, EFE5)", .new = "IBM PS/2 Adapter/A (WD8003E/A)" },
+        { .old = "Adaptec AHA-2940", .new = "Adaptec AHA-2940 (AIC-7870)" },
+        { .old = "Adaptec AHA-2940U", .new = "Adaptec AHA-2940 Ultra (AIC-7880)" },
+        { .old = "Adaptec AHA-2940 Ultra", .new = "Adaptec AHA-2940 Ultra (AIC-7880)" },
+        { .old = "Adaptec AHA-2944 Ultra Wide (differential)", .new = "Adaptec AHA-2944UW" },
+        { .old = "ATI Mach64GX ISA", .new = "ATI Graphics Pro Turbo (Mach64GX) ISA" },
+        { .old = "ATI Mach64GX VLB", .new = "ATI Graphics Pro Turbo (Mach64GX) VLB" },
         { 0 }
     };
 
@@ -621,7 +630,8 @@ device_reset_all(uint32_t match_flags)
 {
     for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
-            if ((devices[c]->reset != NULL) && (devices[c]->flags & match_flags))
+            if ((devices[c]->reset != NULL) &&
+                ((match_flags == DEVICE_ALL) || (devices[c]->flags & match_flags)))
                 devices[c]->reset(device_priv[c]);
         }
     }
@@ -1342,6 +1352,20 @@ const device_t device_none = {
 const device_t device_internal = {
     .name          = "Internal",
     .internal_name = "internal",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t device_external = {
+    .name          = "External",
+    .internal_name = "external",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

@@ -74,8 +74,8 @@ enum {
     HDD_BUS_ATAPI    =  8,
     HDD_BUS_SCSI     =  9,
     HDD_BUS_USB      = 10,
-    HDD_BUS_SASI     = 12,
-    HDD_BUS_MAX      = 13
+    HDD_BUS_SASI     = 15, /* Shared storage UI IDs 12..14 belong to CD-ROM buses. */
+    HDD_BUS_MAX      = 16
 };
 #endif
 

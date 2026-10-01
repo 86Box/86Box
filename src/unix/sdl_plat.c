@@ -114,6 +114,60 @@ plat_get_string(int i)
             return "Device \"%s\" is not available due to missing ROMs. Ignoring the device.";
         case STRING_HW_NOT_AVAILABLE_TITLE:
             return "Hardware not available";
+        case STRING_UNSUPPORTED_TITLE:
+            return "Unsupported Hardware";
+        case STRING_UNSUPPORTED_TEXT:
+            return "Hardware in this machine profile is not supported by this current build of 86Box.";
+        case STRING_UNSUPPORTED_OTHERS:
+            return "(and %i others)";
+        case STRING_UNSUPPORTED_REPLACE:
+            return "Loading the configuration anyway will replace the machine and overwrite the existing configuration.";
+        case STRING_UNSUPPORTED_REMOVE:
+            return "Loading the configuration anyway will remove these components and overwrite the existing configuration.";
+        case STRING_UNSUPPORTED_REPLACE_REMOVE:
+            return "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration.";
+        case STRING_UNSUPPORTED_CONTINUE:
+            return "Do you want to continue?";
+        case STRING_UNSUPPORTED_MACHINE:
+            return "Machine type \"%s\"";
+        case STRING_UNSUPPORTED_VIDEO:
+            return "Video card \"%s\"";
+        case STRING_UNSUPPORTED_KEYBOARD:
+            return "Keyboard \"%s\"";
+        case STRING_UNSUPPORTED_MOUSE:
+            return "Mouse \"%s\"";
+        case STRING_UNSUPPORTED_TABLET:
+            return "Tablet \"%s\"";
+        case STRING_UNSUPPORTED_JOYSTICK:
+            return "Joystick \"%s\"";
+        case STRING_UNSUPPORTED_SOUND:
+            return "Sound card \"%s\"";
+        case STRING_UNSUPPORTED_MIDI_OUT:
+            return "MIDI output device \"%s\"";
+        case STRING_UNSUPPORTED_MIDI_IN:
+            return "MIDI input device \"%s\"";
+        case STRING_UNSUPPORTED_NETWORK:
+            return "Network card \"%s\"";
+        case STRING_UNSUPPORTED_SERIAL:
+            return "Serial port device \"%s\"";
+        case STRING_UNSUPPORTED_PARALLEL:
+            return "Parallel port device \"%s\"";
+        case STRING_UNSUPPORTED_GAMEPORT:
+            return "Game port \"%s\"";
+        case STRING_UNSUPPORTED_SCSI:
+            return "SCSI card \"%s\"";
+        case STRING_UNSUPPORTED_FDC:
+            return "Floppy controller \"%s\"";
+        case STRING_UNSUPPORTED_HDC:
+            return "Disk controller \"%s\"";
+        case STRING_UNSUPPORTED_CDROM_INTERFACE:
+            return "CD-ROM interface \"%s\"";
+        case STRING_UNSUPPORTED_MEMORY:
+            return "Memory expansion card \"%s\"";
+        case STRING_UNSUPPORTED_ROM:
+            return "ROM expansion card \"%s\"";
+        case STRING_UNSUPPORTED_RTC:
+            return "RTC card \"%s\"";
         case STRING_NET_ERROR:
             return "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver.";
         case STRING_ESCP_ERROR:

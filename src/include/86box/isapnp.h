@@ -61,6 +61,7 @@ extern void    *isapnp_add_card(uint8_t *rom, uint16_t rom_size,
                                 void (*write_vendor_reg)(uint8_t ld, uint8_t reg, uint8_t val, void *priv),
                                 void *priv);
 extern void     isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size);
+extern int      isapnp_card_waiting_for_key(void *priv);
 extern void     isapnp_enable_card(void *priv, uint8_t enable);
 extern void     isapnp_set_csn(void *priv, uint8_t csn);
 extern uint8_t  isapnp_read_reg(void *priv, uint8_t ldn, uint8_t reg);

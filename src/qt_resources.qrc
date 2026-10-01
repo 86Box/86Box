@@ -86,6 +86,8 @@
         <file>qt/icons/scroll_lock_on.ico</file>
         <file>qt/icons/jaz.ico</file>
         <file>qt/icons/jaz_image.ico</file>
+        <file>qt/icons/syquest.ico</file>
+        <file>qt/icons/syquest_image.ico</file>
     </qresource>
     <qresource prefix="/menuicons">
         <file>qt/icons/acpi_shutdown.ico</file>

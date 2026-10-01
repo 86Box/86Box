@@ -12,8 +12,8 @@
 extern "C" {
 #endif
 
-void d88_load(int drive, char *fn);
-void d88_close(int drive);
+void d88_load(void *priv, char *fn);
+void d88_close(void *priv);
 
 #ifdef __cplusplus
 }

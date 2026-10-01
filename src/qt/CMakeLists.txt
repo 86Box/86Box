@@ -312,9 +312,15 @@ add_library(ui STATIC
 
 # Build the Qt ImGui backend separately so AUTOMOC skips it.
 set(OSD_DIR ${CMAKE_SOURCE_DIR}/src/osd)
+
+find_path(Vulkan_INCLUDE_DIRS NAMES vulkan/vulkan.h)
+if(NOT Vulkan_INCLUDE_DIRS)
+    message(FATAL_ERROR "Vulkan headers (vulkan/vulkan.h) not found")
+endif()
+
 add_library(osd_backend OBJECT ${OSD_DIR}/imgui/imgui_impl_opengl3.cpp ${OSD_DIR}/imgui/imgui_impl_vulkan.cpp)
 set_target_properties(osd_backend PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
-target_include_directories(osd_backend PRIVATE ${OSD_DIR}/imgui)
+target_include_directories(osd_backend PRIVATE ${OSD_DIR}/imgui ${Vulkan_INCLUDE_DIRS})
 target_link_libraries(86Box osd_backend)
 
 target_sources(ui PRIVATE qt_osd.cpp qt_osd.hpp qt_osd_raster.cpp qt_osd_raster.hpp)
@@ -601,7 +607,7 @@ if (UNIX AND NOT APPLE AND NOT HAIKU)
     target_sources(ui PRIVATE evdev_keyboard.cpp xinput2_mouse.cpp)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(LIBEVDEV IMPORTED_TARGET libevdev)
-    if (LIBEVDEV_FOUND)
+    if (LIBEVDEV_FOUND AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
         target_compile_definitions(ui PRIVATE EVDEV_INPUT)
         target_link_libraries(ui PUBLIC PkgConfig::LIBEVDEV)
         target_sources(ui PRIVATE evdev_mouse.cpp)

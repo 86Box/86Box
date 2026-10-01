@@ -350,9 +350,9 @@ f82c710_init(const device_t *info)
     upc_t *dev = (upc_t *) calloc(1, sizeof(upc_t));
 
     if (machines[machine].init == machine_xt_pc5086_init)
-        dev->fdc        = device_add(&fdc_at_actlow_device);
+        dev->fdc        = device_add_params(&fdc_at_actlow_device, (void *) FDC_FLAG_PNP);
     else
-        dev->fdc        = device_add(&fdc_at_device);
+        dev->fdc        = device_add_params(&fdc_at_device, (void *) FDC_FLAG_PNP);
 
     dev->uart       = device_add_inst(&ns16450_device, 1);
     dev->lpt        = device_add_inst(&lpt_port_device, 1);

@@ -160,6 +160,13 @@ ui_msgbox_header(int flags, char *header, char *message)
     const auto hdr = QString::fromUtf8(header);
     const auto msg = QString::fromUtf8(message);
 
+    if (flags & MBX_QUESTION_YN) {
+        QMessageBox box((flags & MBX_WARNING) ? QMessageBox::Icon::Warning : QMessageBox::Icon::Question,
+                        hdr.isEmpty() ? QString(EMU_NAME) : hdr, msg, QMessageBox::Yes | QMessageBox::No, main_window);
+        box.setDefaultButton(QMessageBox::No);
+        return (box.exec() == QMessageBox::Yes) ? 1 : 0;
+    }
+
     // any error in early init
     if (main_window == nullptr) {
         auto defaultheader = QString();
@@ -186,6 +193,30 @@ ui_msgbox_header(int flags, char *header, char *message)
         main_window->showMessage(flags, hdr, msg, false);
     }
     return 0;
+}
+
+int
+ui_confirm_unsupported_hardware(const ui_unsupported_hardware_t *items, int count, int machine_missing)
+{
+    if (count <= 0)
+        return 1;
+
+    QString message = QString::fromUtf8(plat_get_string(STRING_UNSUPPORTED_TEXT)) + QStringLiteral("\n\n");
+    /* Show six names in full; for larger lists show five and the remainder. */
+    const int listed = count <= 6 ? count : 5;
+    for (int i = 0; i < listed; i++)
+        message += QString::asprintf(plat_get_string(items[i].kind), items[i].name) + QLatin1Char('\n');
+    if (count > listed)
+        message += QString::asprintf(plat_get_string(STRING_UNSUPPORTED_OTHERS), count - listed) + QLatin1Char('\n');
+
+    const int explanation = !machine_missing ? STRING_UNSUPPORTED_REMOVE :
+                            count > 1 ? STRING_UNSUPPORTED_REPLACE_REMOVE : STRING_UNSUPPORTED_REPLACE;
+    message += QLatin1Char('\n') + QString::fromUtf8(plat_get_string(explanation)) +
+               QStringLiteral("\n\n") + QString::fromUtf8(plat_get_string(STRING_UNSUPPORTED_CONTINUE));
+
+    QByteArray title = QByteArray(plat_get_string(STRING_UNSUPPORTED_TITLE));
+    QByteArray body  = message.toUtf8();
+    return ui_msgbox_header(MBX_WARNING | MBX_QUESTION_YN, title.data(), body.data()) == 1;
 }
 
 void

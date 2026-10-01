@@ -38,6 +38,7 @@ add_library(vid OBJECT
 
     # Clock generator chips 
     clockgen/vid_clockgen_av9194.c 
+    clockgen/vid_clockgen_ch9201.c 
     clockgen/vid_clockgen_icd2047.c
     clockgen/vid_clockgen_icd2061.c
     clockgen/vid_clockgen_ics1494.c 
@@ -64,14 +65,16 @@ add_library(vid OBJECT
     vid_cga_toshiba_t3100e.c
     vid_cga_v6355.c
 
+    # IBM PC Convertible LCD display
+    vid_ibm5140.c
+
     # PCjr/PC JX/Tandy
     vid_pcjr.c
     vid_pcjx.c
-    vid_ibm5140.c
     vid_tandy.c
-    vid_mda.c
 
     # Hercules
+    vid_mda.c
     vid_hercules.c
     vid_hercules_plus.c
     vid_hercules_incolor.c
@@ -103,6 +106,9 @@ add_library(vid OBJECT
     vid_svga.c
     vid_svga_render.c
 
+    # IBM PS/2 plasma display
+    vid_ibm_plasma.c
+
     # 8514/A, XGA and derivatives
     vid_8514a.c
     vid_xga.c
@@ -133,6 +139,7 @@ add_library(vid OBJECT
 
     # Paradise
     vid_paradise.c
+    vid_wd90c31.c
     vid_rtg310x.c
     vid_f82c425.c
     vid_ti_cf62011.c

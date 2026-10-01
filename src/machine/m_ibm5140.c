@@ -86,7 +86,9 @@ ibm5140_fdc_read(uint16_t port, void *priv)
     if (port == 0x77) {
         if (dev->disk_control & 0x10)
             return dev->disk_control;
-        return fdd_current_track((dev->disk_control & 8) ? 0 : 1);
+        int fdd_id = (dev->disk_control & 8) ? 0 : 1;
+        fdd_id += dev->fdc->bus;
+        return fdd_current_track(&drives[fdd_id]);
     }
     switch (port & 7) {
         case 2:
@@ -100,14 +102,15 @@ ibm5140_fdc_read(uint16_t port, void *priv)
             }
             return fdc_read(port, dev->fdc);
         case 7: {
-            const unsigned drive = dev->dor & 3;
+            unsigned drive = dev->dor & 3;
             uint8_t value = (dev->dor & 0x10) | ((dev->dor & 0x20) >> 2);
             if (drive < 2) {
+                fdd_drive_t *drv = (fdd_drive_t *) dev->fdc->fdd[drive];
                 if ((dev->dor & 8) && !dev->fdc->drive_interface_gated)
                     value |= drive ? 0x20 : 0x40;
-                if (fdd_changed[drive] || drive_empty[drive])
+                if (drv->changed || drv->empty)
                     value |= 0x80;
-                if (fdd_track0(drive))
+                if (fdd_track0(drv))
                     value |= 1;
             }
             return value;
@@ -144,7 +147,7 @@ ibm5140_fdc_write(uint16_t port, uint8_t value, void *priv)
             else {
                 dev->fdc->dor = dev->dor;
                 for (unsigned i = 0; i < 2; i++)
-                    fdd_set_motor_enable(i, dev->dor & (0x10 << i));
+                    fdd_set_motor_enable(&drives[dev->fdc->bus + i], dev->dor & (0x10 << i));
                 ibm5140_fdc_request(dev);
             }
             break;
@@ -317,8 +320,9 @@ ibm5140_chipset_reset(void)
         dev->fdc->drive_interface_gated = 1;
         fdc_set_power_down(dev->fdc, 1);
         for (unsigned i = 0; i < 2; i++) {
-            fdd_set_motor_enable(i, 0);
-            fdd_changed[i] = 1;
+            fdd_drive_t *drv = (fdd_drive_t *) dev->fdc->fdd[i];
+            fdd_set_motor_enable(drv, 0);
+            drv->changed = 1;
         }
     }
 }
@@ -368,12 +372,12 @@ machine_ibm5140_init(const machine_t *model)
     /* No timer1 refresh callback: all installed working memory is SRAM. */
     pit_devs[0].set_using_timer(pit_devs[0].data, 1, 0);
 
-    for (unsigned i = 0; i < FDD_NUM; i++) {
-        fdd_set_type(i, i < 2 ? fdd_get_from_internal_name("35_2dd") : 0);
-        fdd_set_turbo(i, 0);
-    }
     fdc_current[0] = FDC_INTERNAL;
     dev->fdc = device_add(&fdc_ibm5140_device);
+    for (unsigned i = 0; i < FDD_NUM; i++) {
+        fdd_set_type(&drives[dev->fdc->bus + i], i < 2 ? fdd_get_from_internal_name("35_2dd") : 0);
+        fdd_set_turbo(&drives[dev->fdc->bus + i], 0);
+    }
     video_reset(gfxcard[0]);
     dev->video = ibm5140_video_create(display, composite);
     if (adapter) {
