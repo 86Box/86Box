@@ -301,9 +301,9 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     bool machineHasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA16) > 0;
     bool machineHasMca   = machine_has_bus(machineId, MACHINE_BUS_MCA) > 0;
 
-    bool videoCardHas8514 = ((videoCard[0] == VID_INTERNAL) ? machine_has_flags(machineId, MACHINE_VIDEO_8514A) : (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_8514));
-    bool videoCardHasXga  = ((videoCard[0] == VID_INTERNAL) ? 0 : (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_XGA));
-    bool videoCardHasDa2  = ((videoCard[0] == VID_INTERNAL) ? (machine_get_vid_device(machineId) == &ps55db2_device) : (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_DA2));
+    bool videoCardHas8514 = (video_get_primary_flags(machineId, videoCard[0]) == VIDEO_FLAG_TYPE_8514);
+    bool videoCardHasXga  = (video_get_primary_flags(machineId, videoCard[0]) == VIDEO_FLAG_TYPE_XGA);
+    bool videoCardHasDa2  = (video_get_primary_flags(machineId, videoCard[0]) == VIDEO_FLAG_TYPE_DA2);
 
     bool machineSupports8514 = ((machineHasIsa16 || machineHasMca) && !videoCardHas8514);
     bool machineSupportsXga  = ((machineHasMca && device_available(&xga_device)) && !videoCardHasXga);

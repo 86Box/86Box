@@ -759,9 +759,11 @@ load_video(void)
         }
     }
 
-    if (((gfxcard[0] == VID_INTERNAL) && machine_has_flags(machine, MACHINE_VIDEO_8514A)) ||
-        video_card_get_flags(gfxcard[0]) == VIDEO_FLAG_TYPE_8514)
+    if (video_get_primary_flags(machine, gfxcard[0]) == VIDEO_FLAG_TYPE_8514)
         ini_section_delete_var(cat, "8514a");
+
+    if (video_get_primary_flags(machine, gfxcard[0]) == VIDEO_FLAG_TYPE_DA2)
+        ini_section_delete_var(cat, "da2");
 
     voodoo_enabled                   = !!ini_section_get_int(cat, "voodoo", 0);
     ibm8514_standalone_enabled       = !!ini_section_get_int(cat, "8514a", 0);

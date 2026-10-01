@@ -83,7 +83,6 @@
 #define MACHINE_FLAGS_NONE        0x0000000000000000ULL /* sys has no int devices */
 #define MACHINE_SOFTFLOAT_ONLY    0x0000000000000001ULL /* sys requires SoftFloat FPU */
 #define MACHINE_VIDEO             0x0000000000000002ULL /* sys has int video */
-#define MACHINE_VIDEO_8514A       0x0000000000000004ULL /* sys has int video */
 #define MACHINE_VIDEO_ONLY        0x0000000000000008ULL /* sys has fixed video */
 #define MACHINE_KEYBOARD          0x0000000000000010ULL /* sys has int keyboard */
 #define MACHINE_AX                0x0000000000000020ULL /* sys adheres to Japanese AX standard */

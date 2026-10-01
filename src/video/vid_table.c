@@ -23,9 +23,9 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/mem.h>
-#include <86box/device.h>
 #include <86box/lpt.h>
 #include <86box/plat.h>
 #include <86box/video.h>
@@ -33,9 +33,10 @@
 
 #include <86box/vid_cga.h>
 #include <86box/vid_ega.h>
-#include <86box/vid_colorplus.h>
 #include <86box/vid_mda.h>
+#include <86box/vid_colorplus.h>
 #include <86box/vid_xga_device.h>
+#include <86box/vid_ps55da2.h>
 
 typedef struct video_card_t {
     const device_t *device;
@@ -581,6 +582,24 @@ video_card_has_config(int card)
         return 0;
 
     return (device_has_config(video_cards[card].device) ? 1 : 0);
+}
+
+/* The built-in video is not one of the video_cards[], so its class has to come from the
+   machine's own adapter: the GA-586IS's 8514/A and the PS/55 Display Adapter B-II are
+   the only two that have one, and the machine's own XGA is not emulated. */
+int
+video_get_primary_flags(int m, int card)
+{
+    if (card != VID_INTERNAL)
+        return video_card_get_flags(card);
+
+    if (machine_get_vid_device(m) == &mach32_onboard_pci_device)
+        return VIDEO_FLAG_TYPE_8514;
+
+    if (machine_get_vid_device(m) == &ps55db2_device)
+        return VIDEO_FLAG_TYPE_DA2;
+
+    return VIDEO_FLAG_TYPE_NONE;
 }
 
 const char *
