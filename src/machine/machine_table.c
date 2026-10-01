@@ -11829,6 +11829,55 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    /* Uses some variant of the Phoenix MultiKey/42 */
+    {
+        .name              = "[SiS 471] Micronics LPM30",
+        .internal_name     = "lpm30",
+        .type              = MACHINE_TYPE_SOCKET3,
+        .chipset           = MACHINE_CHIPSET_SIS_471,
+        .init              = machine_at_lpm30_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 40000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SUPER_IO | MACHINE_APM | MACHINE_SOUND | MACHINE_VIDEO,
+        .ram       = {
+            .min  = 1024,
+            .max  = 131072,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_PHOENIX | 0x00012900 /* Guess. */,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &mach64gx_vlb_onboard_device,
+        .snd_device               = &ess_688_device,
+        .net_device               = NULL,
+        .ide_device               = &ide_cmd640_vlb_pri_device,
+        .aliases                  = { "Micronics 09-00232-xx", "" }
+    },
     /* TriGem AMIBIOS Pre-Color with TriGem AMI 'Z' keyboard controller */
     {
         .name              = "[SiS 471] TriGem 486G",
@@ -17511,7 +17560,7 @@ const machine_t machines[] = {
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = &mach64ct_device_onboard,
+        .vid_device               = &mach64ct_onboard_device,
         .snd_device               = &cs4232_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "Intel Atlantis", "" }
@@ -17664,7 +17713,7 @@ const machine_t machines[] = {
         .device                   = &monaco_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = &mach64ct_device_onboard,
+        .vid_device               = &mach64ct_onboard_device,
         .snd_device               = &cs4232_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "Intel Monaco", "AST Bravo MS-T", "" }
