@@ -217,9 +217,11 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
 
     // TODO
     if (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0) {
+        const bool ext = machine_has_flags(machineId, MACHINE_VIDEO_EXT) > 0;
+
         ui->comboBoxVideo->setEnabled(false);
-        ui->comboBoxVideoSecondary->setEnabled(false);
-        ui->pushButtonConfigureVideoSecondary->setEnabled(false);
+        ui->comboBoxVideoSecondary->setEnabled(ext);
+        ui->pushButtonConfigureVideoSecondary->setEnabled(ext);
         selectedRow = 1;
     } else {
         ui->comboBoxVideo->setEnabled(true);
@@ -345,7 +347,6 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         const device_t *video_dev = card.dev;
         const QString  &name      = card.name;
 
-        int primaryFlags   = video_card_get_flags(videoCard[0]);
         int secondaryFlags = video_card_get_flags(c);
 
         const device_t *primary_dev = video_card_getdevice(videoCard[0]);
@@ -354,10 +355,8 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 
         if (card.available
             && device_is_valid(video_dev, machineId)
-            && !(primary_is_agp && secondary_is_agp)
-            && !((secondaryFlags == primaryFlags) && (secondaryFlags != VIDEO_FLAG_TYPE_SECONDARY))
-            && !(((primaryFlags == VIDEO_FLAG_TYPE_8514) || (primaryFlags == VIDEO_FLAG_TYPE_XGA)) && (secondaryFlags != VIDEO_FLAG_TYPE_MDA) && (secondaryFlags != VIDEO_FLAG_TYPE_SECONDARY))
-            && !((primaryFlags != VIDEO_FLAG_TYPE_MDA) && (primaryFlags != VIDEO_FLAG_TYPE_SECONDARY) && ((secondaryFlags == VIDEO_FLAG_TYPE_8514) || (secondaryFlags == VIDEO_FLAG_TYPE_XGA)))) {
+            && (secondaryFlags == VIDEO_FLAG_TYPE_SECONDARY)
+            && !(primary_is_agp && secondary_is_agp)) {
             int row = secondaryRows.add(name, c);
             scSecondary->addDevice(video_dev, name);
             if (c == curVideoCard_2)
@@ -367,7 +366,8 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     secondaryRows.commit();
     ui->comboBoxVideoSecondary->setCurrentIndex(selectedSecondaryRow);
 
-    if ((videoCard[1] == 0) || (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0)) {
+    if ((videoCard[1] == 0) || ((machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0) &&
+                                !machine_has_flags(machineId, MACHINE_VIDEO_EXT))) {
         ui->comboBoxVideoSecondary->setCurrentIndex(0);
         ui->pushButtonConfigureVideoSecondary->setEnabled(false);
     }
