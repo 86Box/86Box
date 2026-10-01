@@ -365,7 +365,7 @@ fdc37c6xx_init(const device_t *info)
     if (dev->chip_id >= 0x63)
         dev->fdc = device_add_params(&fdc_at_smc_device, (void *) FDC_FLAG_PNP);
     else
-        dev->fdc = device_add_params(&fdc_at_smc_661_device,, (void *) FDC_FLAG_PNP);
+        dev->fdc = device_add_params(&fdc_at_smc_661_device, (void *) FDC_FLAG_PNP);
 
     dev->chip_id = info->local & 0xff;
     dev->has_ide = (info->local >> 8) & 0xff;
