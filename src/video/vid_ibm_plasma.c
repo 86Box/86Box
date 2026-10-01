@@ -438,6 +438,20 @@ ibm_plasma_render(svga_t *svga)
         dev->core_render(svga);
 }
 
+/* Installed as the core's DPMS renderer while the connector is in use. The panel's sleep is the
+   auto-dim comparator acting on the panel alone, so the connector keeps carrying the core's
+   output and only the panel goes dark. */
+static void
+ibm_plasma_render_dpms(svga_t *svga)
+{
+    ibm_plasma_t *dev = (ibm_plasma_t *) svga->plasma;
+
+    if ((dev != NULL) && dev->external_display && (dev->core_render != NULL))
+        ibm_plasma_render_external(dev, svga);
+
+    svga_render_blank(svga);
+}
+
 static void
 ibm_plasma_remap(ibm_plasma_t *dev)
 {
@@ -481,7 +495,8 @@ ibm_plasma_remap(ibm_plasma_t *dev)
 
         ibm_plasma_plain_pallook(svga, dev->plain_pallook);
 
-        svga->render = ibm_plasma_render;
+        svga->render      = ibm_plasma_render;
+        svga->dpms_render = ibm_plasma_render_dpms;
     }
 
     if (asleep) {
@@ -563,7 +578,7 @@ ibm_plasma_external_flush(ibm_plasma_t *dev)
     const int      w      = svga->monitor->mon_xsize + ox;
     const int      h      = svga->monitor->mon_ysize + oy;
     const int      bottom = svga->monitor->mon_overscan_y - svga->y_add;
-    const uint32_t border = svga->dpms ? 0 : svga->overscan_color;
+    const uint32_t border = monitors[1].mon_dpms ? 0 : svga->overscan_color;
 
     /* The monitor is the framework's to take down, and a closed one has no blit thread left. */
     if ((monitors[1].target_buffer == NULL) || (w <= 0) || (h <= 0))
@@ -731,6 +746,9 @@ ibm_plasma_close(void *priv)
     if (dev->svga != NULL) {
         if (dev->svga->vsync_callback == ibm_plasma_vsync_start)
             dev->svga->vsync_callback = NULL;
+
+        if (dev->svga->dpms_render == ibm_plasma_render_dpms)
+            dev->svga->dpms_render = NULL;
 
         dev->svga->plasma = NULL;
     }

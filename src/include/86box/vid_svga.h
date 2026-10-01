@@ -237,6 +237,10 @@ typedef struct svga_t {
     /*Called at the start of vertical sync*/
     void (*vsync_callback)(struct svga_t *svga);
 
+    /* Called instead of the blank while the core is in DPMS mode, by a device whose monitors
+       do not all sleep together and which therefore paints the sleep state itself. */
+    void (*dpms_render)(struct svga_t *svga);
+
     /* Called on each new CRTC line, after vc advances. */
     void (*line_callback)(struct svga_t *svga);
 
