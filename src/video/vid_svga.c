@@ -1397,9 +1397,14 @@ svga_recalctimings(svga_t *svga)
 static void
 svga_do_render(svga_t *svga)
 {
-    /* Always render a blank screen and nothing else while in DPMS mode. */
+    /* Render a blank screen and nothing else while in DPMS mode, unless the device's monitors
+       do not all sleep together and it has taken the sleep state over. */
     if (svga->dpms) {
-        svga_render_blank(svga);
+        if (svga->dpms_render != NULL)
+            svga->dpms_render(svga);
+        else
+            svga_render_blank(svga);
+
         return;
     }
 

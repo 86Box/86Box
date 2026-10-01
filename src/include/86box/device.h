@@ -285,6 +285,7 @@ extern int         machine_device_available(const device_t *dev);
 
 extern const device_t device_none;
 extern const device_t device_internal;
+extern const device_t device_external;
 
 #ifdef __cplusplus
 }

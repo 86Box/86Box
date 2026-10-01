@@ -51,6 +51,9 @@
 /* Brightness levels per PEL. */
 #define IBM_PLASMA_PANEL_LEVELS 16
 
+/* Palette entries the core's lookup covers. */
+#define IBM_PLASMA_PALETTE_ENTRIES 256
+
 typedef struct ibm_plasma_t {
     uint8_t    pdc_index;
     uint8_t    pdc_regs[3];
@@ -64,6 +67,15 @@ typedef struct ibm_plasma_t {
     svga_t    *svga;
     uint8_t    panel_data;
     uint32_t   levels[IBM_PLASMA_PANEL_LEVELS];
+
+    /* The external display is the connector of this same adapter, and it taps the core ahead of
+       the panel mapping, so the plain lookup and the core's own renderer are what paint it. */
+    int        external_display;
+    int        ext_w;
+    int        ext_h;
+    void       (*core_render)(svga_t *svga);
+    uint32_t   plain_pallook[IBM_PLASMA_PALETTE_ENTRIES];
+    uint32_t   saved_pallook[IBM_PLASMA_PALETTE_ENTRIES];
 
     /* Auto-dim: the period PDC register 2 was programmed with in minutes (0 while it holds a
        code that configures no period at all), and whether the up-counter has tripped. */
@@ -367,6 +379,79 @@ ibm_plasma_panel_disabled(const ibm_plasma_t *dev)
     return (dev->pdc_regs[1] & 0x40) || autodim;
 }
 
+/* The lookup the core drives out of its connector with no panel mapping in the way, rebuilt the
+   way the core rebuilds it on a DAC write. */
+static void
+ibm_plasma_plain_pallook(const svga_t *svga, uint32_t *out)
+{
+    for (int i = 0; i < IBM_PLASMA_PALETTE_ENTRIES; i++) {
+        if (svga->ramdac_type == RAMDAC_8BIT)
+            out[i] = makecol32(svga->vgapal[i].r, svga->vgapal[i].g, svga->vgapal[i].b);
+        else
+            out[i] = makecol32(video_6to8[svga->vgapal[i].r & 0x3f],
+                               video_6to8[svga->vgapal[i].g & 0x3f],
+                               video_6to8[svga->vgapal[i].b & 0x3f]);
+    }
+}
+
+/* The same scanline painted a second time for the connector, with the lookup the core would
+   have driven out of it: the panel's mapping never reaches the external display. */
+static void
+ibm_plasma_render_external(ibm_plasma_t *dev, svga_t *svga)
+{
+    monitor_t *saved_monitor = svga->monitor;
+    uint32_t   saved_memaddr = svga->memaddr;
+
+    memcpy(dev->saved_pallook, svga->pallook, sizeof(dev->plain_pallook));
+    memcpy(svga->pallook, dev->plain_pallook, sizeof(dev->plain_pallook));
+
+    svga->monitor = &monitors[1];
+    dev->core_render(svga);
+    svga->monitor = saved_monitor;
+
+    /* The renderers walk the display address as they paint a row, so without putting it back
+       the panel pass that follows would read a row it has already drawn. */
+    svga->memaddr = saved_memaddr;
+
+    memcpy(svga->pallook, dev->saved_pallook, sizeof(dev->plain_pallook));
+}
+
+/* Installed as the core's renderer while the connector is in use. The panel's own picture is
+   made by the same half-tone test the mapping commits with, so a panel that is off or asleep
+   still gets its blank while the connector keeps carrying the core's output. */
+static void
+ibm_plasma_render(svga_t *svga)
+{
+    ibm_plasma_t *dev = (ibm_plasma_t *) svga->plasma;
+
+    if ((dev == NULL) || (dev->core_render == NULL)) {
+        svga_render_8bpp_lowres(svga);
+        return;
+    }
+
+    if (dev->external_display)
+        ibm_plasma_render_external(dev, svga);
+
+    if (!ibm_plasma_panel_disabled(dev) && (dev->core_render == svga_render_8bpp_lowres) && (svga->rowcount == 1))
+        ibm_plasma_13h_render(svga);
+    else
+        dev->core_render(svga);
+}
+
+/* Installed as the core's DPMS renderer while the connector is in use. The panel's sleep is the
+   auto-dim comparator acting on the panel alone, so the connector keeps carrying the core's
+   output and only the panel goes dark. */
+static void
+ibm_plasma_render_dpms(svga_t *svga)
+{
+    ibm_plasma_t *dev = (ibm_plasma_t *) svga->plasma;
+
+    if ((dev != NULL) && dev->external_display && (dev->core_render != NULL))
+        ibm_plasma_render_external(dev, svga);
+
+    svga_render_blank(svga);
+}
+
 static void
 ibm_plasma_remap(ibm_plasma_t *dev)
 {
@@ -377,14 +462,11 @@ ibm_plasma_remap(ibm_plasma_t *dev)
     int      j;
     int      rank;
 
-    const int disabled = ibm_plasma_panel_disabled(dev);
-    const int panel_on = !disabled;
-
-    /* The two inputs of the gate are not the same thing to the output: PDP ENABLE selects the
-       external PS/2 display and leaves that picture alone, while the auto-dim comparator only
-       takes the panel's own light away - the panel with nothing lit, i.e. the monitor asleep. */
-    const int external = (dev->pdc_regs[1] & 0x40) != 0;
-    const int asleep   = disabled && !external;
+    /* Both inputs of the panel's disable gate leave the panel dark: the auto-dim comparator
+       turns the panel's own light off, and PDP ENABLE hands the output to the external PS/2
+       display instead. Plasma connector follows the core either way, and this device paints
+       that picture on the external display, so the panel's window is asleep in both cases. */
+    const int asleep = ibm_plasma_panel_disabled(dev);
 
     if (svga->dpms != asleep) {
         const int woke = svga->dpms && !asleep;
@@ -400,6 +482,20 @@ ibm_plasma_remap(ibm_plasma_t *dev)
             svga->fullchange = changeframecount;
     }
 
+    /* The core re-programs its own renderer on every mode change, and the wrapper this device
+       keeps in its place would hide that, so what it wraps is read back before it goes on again.
+       This runs before the sleep return below, so the connector keeps carrying the core's output
+       while the panel is dark. */
+    if (dev->external_display) {
+        if (svga->render != ibm_plasma_render)
+            dev->core_render = svga->render;
+
+        ibm_plasma_plain_pallook(svga, dev->plain_pallook);
+
+        svga->render      = ibm_plasma_render;
+        svga->dpms_render = ibm_plasma_render_dpms;
+    }
+
     if (asleep) {
         /* Nothing is drawn while the monitor sleeps, so the mapping is left as it is and waking
            up restores the picture the panel would have been showing. */
@@ -410,24 +506,11 @@ ibm_plasma_remap(ibm_plasma_t *dev)
 
     /* 320x200 logical dots doubled in both directions, i.e. the mode the half-toning makes
        its 64 grey patterns for; the other 8bpp low resolution modes do not double the rows. */
-    const int half_toning = ((svga->render == svga_render_8bpp_lowres) || (svga->render == ibm_plasma_13h_render))
-                            && (svga->rowcount == 1) && panel_on;
+    const void (*panel_render)(svga_t *) = dev->external_display ? dev->core_render : svga->render;
+    const int   half_toning = ((panel_render == svga_render_8bpp_lowres) || (panel_render == ibm_plasma_13h_render))
+                              && (svga->rowcount == 1);
 
-    if (!panel_on) {
-        /* Nothing the PDC does reaches the panel, so the machine drives the plain VGA lookup out
-           for the external display, rebuilt the way the core rebuilds it on a DAC write. */
-        for (i = 0; i < 256; i++) {
-            if (svga->ramdac_type == RAMDAC_8BIT)
-                newpal[i] = makecol32(svga->vgapal[i].r, svga->vgapal[i].g, svga->vgapal[i].b);
-            else
-                newpal[i] = makecol32(video_6to8[svga->vgapal[i].r & 0x3f],
-                                      video_6to8[svga->vgapal[i].g & 0x3f],
-                                      video_6to8[svga->vgapal[i].b & 0x3f]);
-        }
-
-        if (svga->render == ibm_plasma_13h_render)
-            svga->render = svga_render_8bpp_lowres;
-    } else if (half_toning) {
+    if (half_toning) {
         for (i = 0; i < 256; i++)
             newpal[i] = ibm_plasma_13h_encode(svga, i);
     } else {
@@ -468,9 +551,64 @@ ibm_plasma_remap(ibm_plasma_t *dev)
     if (half_toning && (svga->render == svga_render_8bpp_lowres))
         svga->render = ibm_plasma_13h_render;
 
-    /* Like the mapping itself, the read-back the PDC offers is refreshed once per panel frame.
-       A disabled panel drives no grey-scale data. */
-    dev->panel_data = panel_on ? ibm_plasma_panel_data(dev) : 0;
+    /* Like the mapping itself, the read-back the PDC offers is refreshed once per panel frame. */
+    dev->panel_data = ibm_plasma_panel_data(dev);
+}
+
+/* Hand the connector's frame to its own monitor: the core blits the picture it renders for the
+   panel, and this device paints the second one, so nothing else pushes it out. The window and
+   the border are the same ones the core's own blit uses, or the two would not sit alike. */
+static void
+ibm_plasma_external_flush(ibm_plasma_t *dev)
+{
+    const svga_t  *svga   = dev->svga;
+    const int      ox     = enable_overscan ? svga->monitor->mon_overscan_x : 0;
+    const int      oy     = enable_overscan ? svga->monitor->mon_overscan_y : 0;
+    const int      w      = svga->monitor->mon_xsize + ox;
+    const int      h      = svga->monitor->mon_ysize + oy;
+    const int      bottom = svga->monitor->mon_overscan_y - svga->y_add;
+    const uint32_t border = monitors[1].mon_dpms ? 0 : svga->overscan_color;
+
+    /* The monitor is the framework's to take down, and a closed one has no blit thread left. */
+    if ((monitors[1].target_buffer == NULL) || (w <= 0) || (h <= 0))
+        return;
+
+    for (int i = 0; i < svga->y_add; i++) {
+        uint32_t *p = &monitors[1].target_buffer->line[i & 0x7ff][0];
+
+        for (int j = 0; j < w; j++)
+            p[j] = border;
+    }
+
+    /* The core paints the two side bands itself, but it does that on the monitor it is bound to,
+       so the connector's copy of them would keep whatever the previous mode left there. The
+       picture starts at the left overscan, the way the core's own renderers lay it out. */
+    for (int i = 0; i < svga->monitor->mon_ysize; i++) {
+        uint32_t *p = &monitors[1].target_buffer->line[(svga->y_add + i) & 0x7ff][0];
+
+        for (int j = 0; (j < svga->left_overscan) && (j < w); j++)
+            p[j] = border;
+
+        for (int j = svga->left_overscan + svga->hdisp; j < w; j++)
+            p[j] = border;
+    }
+
+    for (int i = 0; i < bottom; i++) {
+        uint32_t *p = &monitors[1].target_buffer->line[(svga->monitor->mon_ysize + svga->y_add + i) & 0x7ff][0];
+
+        for (int j = 0; j < w; j++)
+            p[j] = border;
+    }
+
+    if ((w != dev->ext_w) || (h != dev->ext_h)) {
+        dev->ext_w = w;
+        dev->ext_h = h;
+
+        set_screen_size_monitor(w, h, 1);
+    }
+
+    video_blit_memtoscreen_monitor(enable_overscan ? 0 : svga->left_overscan, enable_overscan ? 0 : svga->y_add,
+                                   w, h, 1);
 }
 
 /* The panel's vertical synchronization is the video mode's own field, so the pulse is started by
@@ -492,6 +630,9 @@ ibm_plasma_vsync_start(svga_t *svga)
     timer_set_delay_u64(&dev->vsync_timer, ((uint64_t) IBM_PLASMA_VSYNC_SYNC_USEC) * TIMER_USEC);
 
     ibm_plasma_remap(dev);
+
+    if (dev->external_display)
+        ibm_plasma_external_flush(dev);
 }
 
 /* The pulse the retrace started ends here, and the next retrace starts the following one;
@@ -557,6 +698,15 @@ ibm_plasma_init(UNUSED(const device_t *info))
     timer_add(&dev->autodim_timer, ibm_plasma_autodim_callback, dev, 0);
     timer_add(&dev->vsync_timer, ibm_plasma_vsync_end, dev, 0);
 
+    /* The connector of this adapter is what the machine's second monitor is; the panel is the
+       first one, so the framework leaves the entry alone and this device sets the monitor up. */
+    dev->external_display = (gfxcard[1] == VID_EXTERNAL);
+
+    if (dev->external_display && (monitors[1].target_buffer == NULL)) {
+        video_monitor_init(1);
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_vga, 1);
+    }
+
     /* The VGA core belongs to the machine, not to the adapter card, so the panel filter attaches
        to whatever core is already up. The P70 has fixed video (MACHINE_VIDEO_FIXED), so that core
        is always the machine's built-in VGA and is up before this runs. */
@@ -574,10 +724,11 @@ ibm_plasma_init(UNUSED(const device_t *info))
 
         svga->vsync_callback = ibm_plasma_vsync_start;
 
-        /* The panel is what this adapter drives, so there is no monitor on the planar VGA's
-           connector and its 3C2h switch sense has to report "no cable" - that is the state
-           the reference diskette's brightness program reads. */
-        svga->cable_connected = 0;
+        /* The panel is what this adapter drives, and it is not on the planar VGA's connector,
+           so 3C2h switch sense has to report "no cable" - that is the state the reference
+           diskette's brightness program reads. An external display is a monitor on that
+           connector, so with one in use the switch sense reports a cable again. */
+        svga->cable_connected = dev->external_display;
 
         /* The mapping is committed from the retrace hook above; this is the state before
            the first frame. */
@@ -598,6 +749,9 @@ ibm_plasma_close(void *priv)
     if (dev->svga != NULL) {
         if (dev->svga->vsync_callback == ibm_plasma_vsync_start)
             dev->svga->vsync_callback = NULL;
+
+        if (dev->svga->dpms_render == ibm_plasma_render_dpms)
+            dev->svga->dpms_render = NULL;
 
         dev->svga->plasma = NULL;
     }
