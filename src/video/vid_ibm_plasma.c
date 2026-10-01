@@ -556,8 +556,8 @@ ibm_plasma_remap(ibm_plasma_t *dev)
 }
 
 /* Hand the connector's frame to its own monitor: the core blits the picture it renders for the
-   panel, and this device paints the second one, so nothing else pushes it out. The window and the
-   two border strips are the same ones the core's own blit uses, or the two would not sit alike. */
+   panel, and this device paints the second one, so nothing else pushes it out. The window and
+   the border are the same ones the core's own blit uses, or the two would not sit alike. */
 static void
 ibm_plasma_external_flush(ibm_plasma_t *dev)
 {
@@ -577,6 +577,19 @@ ibm_plasma_external_flush(ibm_plasma_t *dev)
         uint32_t *p = &monitors[1].target_buffer->line[i & 0x7ff][0];
 
         for (int j = 0; j < w; j++)
+            p[j] = border;
+    }
+
+    /* The core paints the two side bands itself, but it does that on the monitor it is bound to,
+       so the connector's copy of them would keep whatever the previous mode left there. The
+       picture starts at the left overscan, the way the core's own renderers lay it out. */
+    for (int i = 0; i < svga->monitor->mon_ysize; i++) {
+        uint32_t *p = &monitors[1].target_buffer->line[(svga->y_add + i) & 0x7ff][0];
+
+        for (int j = 0; (j < svga->left_overscan) && (j < w); j++)
+            p[j] = border;
+
+        for (int j = svga->left_overscan + svga->hdisp; j < w; j++)
             p[j] = border;
     }
 
