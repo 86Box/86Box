@@ -11730,7 +11730,7 @@ const machine_t machines[] = {
         .vid_device               = &s3_trio32_onboard_vlb_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .ide_device               = &ide_cmd640_vlb_178_device,
+        .ide_device               = &ide_cmd640_vlb_pri_device,
         .aliases                  = { "" }
     },
     /* Has JetKey v5.0G KBC Firmware which is a clone of AMIKey type F. */
