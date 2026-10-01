@@ -346,8 +346,9 @@ pc873xx_reset(pc873xx_t *dev)
     serial_handler(dev, 0);
     serial_handler(dev, 1);
     fdc_reset(dev->fdc);
-    if (!dev->fdc_on)
-        fdc_remove(dev->fdc);
+    fdc_remove(dev->fdc);
+    if ((dev->regs[0x00] & 0x08) && !(dev->regs[0x02] & 0x01))
+        fdc_set_base(dev->fdc, (dev->regs[0x00] & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 
     if (dev->has_ide)
         ide_handler(dev);

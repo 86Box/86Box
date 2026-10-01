@@ -184,8 +184,8 @@ fdc_get_current_drive(void)
     return current_drive;
 }
 
-void
-fdc_ctrl_reset(void *priv)
+static void
+fdc_ctrl_reset(void *priv, int reset_power_down)
 {
     fdc_t *fdc = (fdc_t *) priv;
 
@@ -194,7 +194,8 @@ fdc_ctrl_reset(void *priv)
     fdc->st0              = 0;
     fdc->head             = 0;
     fdc->step             = 0;
-    fdc->power_down       = 0;
+    if (reset_power_down)
+        fdc->power_down       = 0;
 
     if (!fdc->lock && !fdc->fifointest) {
         fdc->fifo  = 0;
@@ -872,7 +873,7 @@ fdc_soft_reset(fdc_t *fdc)
             ui_sb_update_icon_write(SB_FLOPPY | (fdc->bus + i), 0);
         }
 
-        fdc_ctrl_reset(fdc);
+        fdc_ctrl_reset(fdc, 1);
     }
 }
 
@@ -903,7 +904,7 @@ fdc_pcjx_dor(fdc_t *fdc, uint8_t val)
             picintc(1 << fdc->irq);
         for (int drive = 0; drive < 4; drive++)
             fdd_stop(fdc->fdd[drive]);
-        fdc_ctrl_reset(fdc);
+        fdc_ctrl_reset(fdc, 1);
         fdc->stat = 0;
         fdc->fintr = fdc->data_ready = fdc->paramstogo = 0;
         fdc->tc = fdc->error = fdc->format_state = fdc->reset_stat = 0;
@@ -1006,7 +1007,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         fdc->interrupt = -1;
                         ui_sb_update_icon(SB_FLOPPY | fdc->bus, 0);
                         ui_sb_update_icon_write(SB_FLOPPY | fdc->bus, 0);
-                        fdc_ctrl_reset(fdc);
+                        fdc_ctrl_reset(fdc, 1);
                     }
                     if (!fdd_get_flags(fdc->fdd[0]))
                         val &= 0xfe;
@@ -1998,7 +1999,7 @@ fdc_callback(void *priv)
                 ui_sb_update_icon_write(SB_FLOPPY | (fdc->bus + i), 0);
             }
 
-            fdc_ctrl_reset(fdc);
+            fdc_ctrl_reset(fdc, 1);
 
             fdc->fintr = 0;
             memset(fdc->pcn, 0x00, 4 * sizeof(uint16_t));
@@ -2861,7 +2862,7 @@ fdc_reset(void *priv)
 
     fdc->lock          = 0;
 
-    fdc_ctrl_reset(fdc);
+    fdc_ctrl_reset(fdc, !(fdc->flags & FDC_FLAG_PNP));
 
     if (!(fdc->flags & FDC_FLAG_AT))
         fdc->rate = 2;
@@ -2870,8 +2871,8 @@ fdc_reset(void *priv)
 
     /* The JX motherboard owns every programmable decode alias. */
     if (!(fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_IBM5140))) {
-        fdc_remove(fdc);
         if (!(fdc->flags & FDC_FLAG_PNP)) {
+            fdc_remove(fdc);
             if (fdc->flags & FDC_FLAG_SEC)
                 fdc_set_base(fdc, FDC_SECONDARY_ADDR);
             else if (fdc->flags & FDC_FLAG_TER)
@@ -2892,7 +2893,8 @@ fdc_reset(void *priv)
         ui_sb_update_icon_write(SB_FLOPPY | (fdc->bus + i), 0);
     }
 
-    fdc->power_down = 0;
+    if (!(fdc->flags & FDC_FLAG_PNP))
+        fdc->power_down = 0;
 
     fdc->media_id   = 0;
 }
