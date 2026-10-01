@@ -197,6 +197,10 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
     for (const auto &card : Models::Devices(video_card_getdevice, video_get_internal_name, video_card_available, 1)) {
         const int c = card.id;
 
+        /* The external display entry belongs to the secondary list only. */
+        if (c == VID_EXTERNAL)
+            continue;
+
         /* Skip "internal" if machine doesn't have it. */
         if ((c == 1) && (machine_has_flags(machineId, MACHINE_VIDEO) == 0))
             continue;
@@ -339,9 +343,19 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         return;
     }
     int selectedSecondaryRow = 0;
+    /* The machine's own external display is not a card, so it is not part of the loop below, and
+       it is only offered when the machine's fixed video can drive one. */
+    if (machine_has_flags(machineId, MACHINE_VIDEO_EXT) > 0) {
+        int row = secondaryRows.add(QObject::tr("External"), VID_EXTERNAL);
+        scSecondary->addDevice(&device_external, QObject::tr("External"));
+        if (curVideoCard_2 == VID_EXTERNAL)
+            selectedSecondaryRow = row;
+    }
     for (const auto &card : Models::Devices(video_card_getdevice, video_get_internal_name, video_card_available, 1)) {
         const int c = card.id;
-        if (c < 2)
+
+        /* None, Internal and External are the list's own entries, not cards to drive a monitor. */
+        if ((c == VID_NONE) || (c == VID_INTERNAL) || (c == VID_EXTERNAL))
             continue;
 
         const device_t *video_dev = card.dev;

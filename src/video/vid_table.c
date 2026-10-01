@@ -57,6 +57,7 @@ video_cards[] = {
   // clang-format off
     { .device = &device_none,                                   .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &device_internal,                               .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &device_external,                               .flags = VIDEO_FLAG_TYPE_SECONDARY },
     /* ISA */
     { .device = &ati18800_wonder_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &ati18800_vga88_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -495,7 +496,12 @@ video_reset(int card)
     video_load_font(FONT_IBM_MDA_437_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
 
     for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
-        if ((card != VID_NONE) && (gfxcard[i] > VID_INTERNAL) && device_is_valid(video_card_getdevice(gfxcard[i]), machine) &&
+        /* None and Internal have no device to add here, and External is a placeholder
+           for the machine's own output, so none of the three is a card for this loop. */
+        if ((gfxcard[i] == VID_NONE) || (gfxcard[i] == VID_INTERNAL) || (gfxcard[i] == VID_EXTERNAL))
+            continue;
+
+        if ((card != VID_NONE) && device_is_valid(video_card_getdevice(gfxcard[i]), machine) &&
             (!machine_has_flags(machine, MACHINE_VIDEO_ONLY) || machine_has_flags(machine, MACHINE_VIDEO_EXT))) {
             video_monitor_init(i);
             monitor_index_global = 1;
@@ -504,8 +510,9 @@ video_reset(int card)
         }
     }
 
-    /* Do not initialize internal cards here. */
-    if ((card > VID_INTERNAL) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
+    /* Do not initialize internal cards here, and the external entry is never a card. */
+    if ((card != VID_NONE) && (card != VID_INTERNAL) && (card != VID_EXTERNAL) &&
+        !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
         vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].device->name);
 
         video_prepare();

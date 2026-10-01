@@ -39,7 +39,8 @@ extern "C" {
 
 enum {
     VID_NONE = 0,
-    VID_INTERNAL
+    VID_INTERNAL,
+    VID_EXTERNAL
 };
 
 enum {
