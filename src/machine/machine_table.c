@@ -11829,8 +11829,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Uses some variant of Phoenix MultiKey/42 as the BIOS sends keyboard controller
-       command C7 (OR input byte with received data byte). */
+    /* Uses some variant of the Phoenix MultiKey/42 */
     {
         .name              = "[SiS 471] Micronics LPM30",
         .internal_name     = "lpm30",
@@ -11851,8 +11850,8 @@ const machine_t machines[] = {
             .min_multi   = 0,
             .max_multi   = 0
         },
-        .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SUPER_IO | MACHINE_APM | MACHINE_VIDEO,
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SUPER_IO | MACHINE_APM | MACHINE_SOUND | MACHINE_VIDEO,
         .ram       = {
             .min  = 1024,
             .max  = 131072,
@@ -11874,10 +11873,10 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &mach64gx_vlb_onboard_device,
-        .snd_device               = NULL,
+        .snd_device               = &ess_688_device,
         .net_device               = NULL,
         .ide_device               = &ide_cmd640_vlb_pri_device,
-        .aliases                  = { "" }
+        .aliases                  = { "Micronics 09-00232-xx", "" }
     },
     /* TriGem AMIBIOS Pre-Color with TriGem AMI 'Z' keyboard controller */
     {
