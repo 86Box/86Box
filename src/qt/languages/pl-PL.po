@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-21 02:12+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"PO-Revision-Date: 2026-10-02 12:29+0000\n"
+"Last-Translator: TheCawa <vos80584@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -431,7 +431,7 @@ msgid "Dynamic recompiler"
 msgstr "Dynamiczny rekompilator"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Precyzyjne środowisko FPU w dynamicznym rekompilatorze"
 
 msgid "CPU frame size"
 msgstr "Rozmiar ramki CPU"
@@ -494,7 +494,7 @@ msgid "&Tablet"
 msgstr "&Tablet"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "Tablet (&Crosshair)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -857,7 +857,7 @@ msgid "Input devices"
 msgstr "Urządzenia wejściowe"
 
 msgid "Input &device"
-msgstr ""
+msgstr "Urządzenie &wejściowe"
 
 msgid "Sound"
 msgstr "Dźwięk"
@@ -947,7 +947,7 @@ msgid "Press %1 or middle button to release mouse"
 msgstr "Naciśnij %1 lub środkowy przycisk, by wypuścić mysz"
 
 msgid "Press %1 or side button to release mouse"
-msgstr ""
+msgstr "Naciśnij klawisz %1 lub przycisk boczny, aby zwolnić mysz"
 
 msgid "Bus"
 msgstr "Magistrala"
@@ -1502,16 +1502,18 @@ msgid "ACP&I shutdown"
 msgstr "Wyłączenie ACP&I"
 
 msgid "Power off"
-msgstr ""
+msgstr "Wyłącz zasilanie"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "Wyłącz &zasilanie…"
 
 msgid "Power &off"
-msgstr ""
+msgstr "Wyłącz &zasilanie"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
+"Wyłączenie emulowanej maszyny może spowodować utratę danych. Czy na pewno "
+"chcesz kontynuować?"
 
 msgid "Hard disk (%1)"
 msgstr "Dysk twardy (%1)"
@@ -3010,13 +3012,13 @@ msgid "Model:"
 msgstr "Model:"
 
 msgid "Brand:"
-msgstr ""
+msgstr "Marka:"
 
 msgid "Revision:"
-msgstr ""
+msgstr "Rewizja:"
 
 msgid "[Generic HDD] Device Configuration"
-msgstr ""
+msgstr "[Ogólny dysk twardy] Konfiguracja urządzenia"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Nie udało się zainicjować renderera Vulkan."
