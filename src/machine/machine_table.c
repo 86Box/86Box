@@ -24226,7 +24226,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal NIC: Intel 82558B and SCSI: Adaptec AIC-7890AB (the latter not yet implemented) */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_NIC | MACHINE_USB, /* Machine has internal NIC: Intel 82558B and SCSI: Adaptec AIC-7890AB (the latter not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 1048576,
@@ -24249,7 +24249,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL,
+        .net_device               = &i82558b_onboard_device,
         .aliases                  = { "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
