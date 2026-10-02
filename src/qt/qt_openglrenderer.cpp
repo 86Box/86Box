@@ -1494,6 +1494,11 @@ OpenGLRenderer::render()
     if (notReady())
         return;
 
+    /* The timer-driven callers reach here with no context current, and each monitor has its own
+       context, so the frame would otherwise be drawn into whichever window drew last. */
+    if (!context->makeCurrent(this))
+        return;
+
     struct {
         uint32_t x;
         uint32_t y;

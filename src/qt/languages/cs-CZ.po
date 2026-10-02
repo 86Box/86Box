@@ -945,6 +945,9 @@ msgstr "Stiskněte %1 pro uvolnění myši"
 msgid "Press %1 or middle button to release mouse"
 msgstr "Stiskněte %1 nebo prostřední tlačítko pro uvolnění myši"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "Sběrnice"
 

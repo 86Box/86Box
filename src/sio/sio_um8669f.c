@@ -298,6 +298,7 @@ um8669f_reset(um8669f_t *dev)
     um8669f_log("UM8669F: reset()\n");
 
     fdc_reset(dev->fdc);
+    fdc_remove(dev->fdc);
 
     serial_remove(dev->uart[0]);
 

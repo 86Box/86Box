@@ -103,6 +103,7 @@ typedef struct es137x_t {
 
         uint32_t vf;
         uint32_t ac;
+        uint32_t clock_divider;
 
         int16_t buffer_l[64];
         int16_t buffer_r[64];
@@ -143,18 +144,6 @@ typedef struct es137x_t {
     uint32_t type;
 
     akm4531_t akm_codec;
-
-    uint32_t calc_sample_rate;
-    uint32_t calc_sample_rate_synth;
-
-    double   interp_factor;
-    uint32_t interp_step;
-
-    double   interp_factor_synth;
-    uint32_t interp_step_synth;
-
-    uint32_t step_pcm;
-    uint32_t step_synth;
 } es137x_t;
 
 static const double akm4531_att_2dbstep_5bits[] = {
@@ -402,36 +391,12 @@ es1370_calc_sample_rate(es137x_t *dev)
     if (dev->type != AUDIOPCI_ES1370)
         return;
 
-    dev->calc_sample_rate = 1411200 / (((dev->int_ctrl >> 16) & 0x1fff) + 2);
-
-    // audiopci_log("ES1370 calc sample rate %u\n", dev->calc_sample_rate);
-
-    dev->interp_factor = 1.0;
-    dev->interp_step   = 1;
-
-    if (dev->calc_sample_rate >= 44100 || dev->calc_sample_rate < 11025) {
-        dev->interp_factor    = 1.0;
-        dev->interp_step      = 1;
-        dev->calc_sample_rate = 44100;
-    }
-    if (dev->calc_sample_rate == 22050) {
-        dev->interp_factor = 0.5;
-        dev->interp_step   = 2;
-    }
-    if (dev->calc_sample_rate == 11025) {
-        dev->interp_factor = 0.25;
-        dev->interp_step   = 4;
-    }
-    if ((((dev->int_ctrl >> 16) & 0x1fff) + 2) == 256) {
-        /* 5512.5 Hz */
-        dev->interp_factor    = 0.125;
-        dev->interp_step      = 8;
-        dev->calc_sample_rate = 5512;
-    }
-
-    dev->calc_sample_rate_synth = 44100 / (1 << (((dev->int_ctrl >> 12) & 3) ^ 3));
-    dev->interp_factor_synth    = 1. / (double) ((1 << ((dev->int_ctrl >> 12) & 3) ^ 3));
-    dev->interp_step_synth      = (1 << (((dev->int_ctrl >> 12) & 3) ^ 3));
+    /* Express both clocks relative to the 44.1 kHz wavetable timer. DAC2
+       runs at 1411200 / (PCLKDIV + 2), including non-integer sample rates. */
+    dev->dac[0].vf            = 1;
+    dev->dac[0].clock_divider = 1 << (((dev->int_ctrl >> 12) & 3) ^ 3);
+    dev->dac[1].vf            = 32;
+    dev->dac[1].clock_divider = ((dev->int_ctrl >> 16) & 0x1fff) + 2;
 }
 
 static void
@@ -558,6 +523,8 @@ es137x_reset(void *priv)
 
     /* Reset the codec. */
     akm4531_reset(dev);
+
+    es1370_calc_sample_rate(dev);
 }
 
 static uint32_t
@@ -1137,6 +1104,8 @@ es137x_outb(uint16_t port, uint8_t val, void *priv)
                 dev->dac[0].buffer_pos_end = 0;
                 dev->dac[0].prev_out_l     = 0;
                 dev->dac[0].prev_out_r     = 0;
+                if (dev->type == AUDIOPCI_ES1370)
+                    dev->dac[0].ac = 0;
                 es137x_fetch(dev, 0);
             }
             if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN)) {
@@ -1145,6 +1114,8 @@ es137x_outb(uint16_t port, uint8_t val, void *priv)
                 dev->dac[1].buffer_pos_end = 0;
                 dev->dac[1].prev_out_l     = 0;
                 dev->dac[1].prev_out_r     = 0;
+                if (dev->type == AUDIOPCI_ES1370)
+                    dev->dac[1].ac = 0;
                 es137x_fetch(dev, 1);
             }
             // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
@@ -1300,7 +1271,8 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
                 dev->dac[0].buffer_pos_end = 0;
                 dev->dac[0].prev_out_l     = 0;
                 dev->dac[0].prev_out_r     = 0;
-                dev->step_synth            = dev->interp_step_synth;
+                if (dev->type == AUDIOPCI_ES1370)
+                    dev->dac[0].ac = 0;
                 es137x_fetch(dev, 0);
             }
             if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN)) {
@@ -1309,11 +1281,13 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
                 dev->dac[1].buffer_pos_end = 0;
                 dev->dac[1].prev_out_l     = 0;
                 dev->dac[1].prev_out_r     = 0;
-                dev->step_pcm              = dev->interp_step;
+                if (dev->type == AUDIOPCI_ES1370)
+                    dev->dac[1].ac = 0;
                 es137x_fetch(dev, 1);
             }
             // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
             dev->int_ctrl = (dev->int_ctrl & 0xffff0000) | val;
+            es1370_calc_sample_rate(dev);
             break;
         case 0x02:
             dev->int_ctrl = (dev->int_ctrl & 0x0000ffff) | (val << 16);
@@ -1418,16 +1392,14 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
            Addressable as byte, word, longword */
         case 0x00:
             {
-                uint8_t dac1start = 0;
-                uint8_t dac2start = 0;
-
                 if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN)) {
                     dev->dac[0].addr           = dev->dac[0].addr_latch;
                     dev->dac[0].buffer_pos     = 0;
                     dev->dac[0].buffer_pos_end = 0;
                     dev->dac[0].prev_out_l     = 0;
                     dev->dac[0].prev_out_r     = 0;
-                    dac1start                  = 1;
+                    if (dev->type == AUDIOPCI_ES1370)
+                        dev->dac[0].ac = 0;
                     es137x_fetch(dev, 0);
                 }
                 if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN)) {
@@ -1436,17 +1408,14 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
                     dev->dac[1].buffer_pos_end = 0;
                     dev->dac[1].prev_out_l     = 0;
                     dev->dac[1].prev_out_r     = 0;
-                    dac2start                  = 1;
+                    if (dev->type == AUDIOPCI_ES1370)
+                        dev->dac[1].ac = 0;
                     es137x_fetch(dev, 1);
                 }
                 // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
                 dev->int_ctrl = val;
                 gameport_remap(dev->gameport, 0x200 | ((val & 0x03000000) >> 21));
                 es1370_calc_sample_rate(dev);
-                if (dac1start)
-                    dev->step_synth = dev->interp_step_synth;
-                if (dac2start)
-                    dev->step_pcm = dev->interp_step;
                 break;
             }
 
@@ -2411,15 +2380,45 @@ es137x_update(es137x_t *dev)
 }
 
 static void
+es137x_sample_count(es137x_t *dev, int dac_nr)
+{
+    dev->dac[dac_nr].curr_samp_ct--;
+    if (dev->dac[dac_nr].curr_samp_ct < 0) {
+        dev->int_status |= dac_nr ? INT_STATUS_DAC2 : INT_STATUS_DAC1;
+        es137x_update_irqs(dev);
+        dev->dac[dac_nr].curr_samp_ct = dev->dac[dac_nr].samp_ct;
+    }
+}
+
+static void
+es1370_poll_dac(es137x_t *dev, int dac_nr)
+{
+    const uint32_t divider = dev->dac[dac_nr].clock_divider;
+
+    dev->dac[dac_nr].ac += dev->dac[dac_nr].vf;
+    while (dev->dac[dac_nr].ac >= divider) {
+        if (dev->dac[dac_nr].buffer_pos >= dev->dac[dac_nr].buffer_pos_end)
+            es137x_fetch(dev, dac_nr);
+
+        dev->dac[dac_nr].prev_out_l = dev->dac[dac_nr].buffer_l[dev->dac[dac_nr].buffer_pos & 63];
+        dev->dac[dac_nr].prev_out_r = dev->dac[dac_nr].buffer_r[dev->dac[dac_nr].buffer_pos & 63];
+        dev->dac[dac_nr].buffer_pos++;
+        dev->dac[dac_nr].ac -= divider;
+        es137x_sample_count(dev, dac_nr);
+    }
+
+    if (dev->dac[dac_nr].buffer_pos >= dev->dac[dac_nr].buffer_pos_end)
+        es137x_fetch(dev, dac_nr);
+
+    const double fraction  = (double) dev->dac[dac_nr].ac / divider;
+    dev->dac[dac_nr].out_l = lerp(dev->dac[dac_nr].prev_out_l, dev->dac[dac_nr].buffer_l[dev->dac[dac_nr].buffer_pos & 63], fraction);
+    dev->dac[dac_nr].out_r = lerp(dev->dac[dac_nr].prev_out_r, dev->dac[dac_nr].buffer_r[dev->dac[dac_nr].buffer_pos & 63], fraction);
+}
+
+static void
 es137x_poll(void *priv)
 {
     es137x_t *dev = (es137x_t *) priv;
-    int       frac;
-    int       idx;
-    int       samp1_l;
-    int       samp1_r;
-    int       samp2_l;
-    int       samp2_r;
 
     timer_advance_u64(&dev->dac[1].timer, dev->dac[1].latch);
 
@@ -2427,118 +2426,41 @@ es137x_poll(void *priv)
 
     es137x_update(dev);
 
-    if (dev->int_ctrl & INT_DAC1_EN) {
-        if ((((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880)) && (dev->int_ctrl & INT_DAC1_BYPASS)) || (dev->type == AUDIOPCI_ES1370)) {
-            if ((dev->calc_sample_rate_synth != 44100) && (dev->type == AUDIOPCI_ES1370)) {
-                if ((dev->dac[0].buffer_pos - dev->dac[0].buffer_pos_end) >= 0 && dev->step_synth >= dev->interp_step_synth)
-                    es137x_fetch(dev, 0);
+    for (int dac_nr = 0; dac_nr < 2; dac_nr++) {
+        const uint32_t enable = dac_nr ? INT_DAC2_EN : INT_DAC1_EN;
+        const uint32_t pause  = dac_nr ? SI_P2_PAUSE : SI_P1_PAUSE;
+        const uint32_t bypass = dac_nr ? INT_DAC2_BYPASS : INT_DAC1_BYPASS;
 
-                if (dev->step_synth >= dev->interp_step_synth) {
-                    dev->step_synth = 0;
-                }
+        /* Pause holds the last output sample, DMA position and sample count. */
+        if (!(dev->int_ctrl & enable) || (dev->si_cr & pause))
+            continue;
 
-                dev->dac[0].out_l = lerp(dev->dac[0].prev_out_l, dev->dac[0].buffer_l[(dev->dac[0].buffer_pos) & 63], (dev->step_synth + 1) * dev->interp_factor_synth);
-                dev->dac[0].out_r = lerp(dev->dac[0].prev_out_r, dev->dac[0].buffer_r[(dev->dac[0].buffer_pos) & 63], (dev->step_synth + 1) * dev->interp_factor_synth);
+        if (dev->type == AUDIOPCI_ES1370) {
+            es1370_poll_dac(dev, dac_nr);
+        } else if (((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880)) && (dev->int_ctrl & bypass)) {
+            if (dev->dac[dac_nr].buffer_pos >= dev->dac[dac_nr].buffer_pos_end)
+                es137x_fetch(dev, dac_nr);
 
-                dev->step_synth++;
-                if (dev->step_synth >= dev->interp_step_synth) {
-                    dev->dac[0].prev_out_l = dev->dac[0].out_l;
-                    dev->dac[0].prev_out_r = dev->dac[0].out_r;
-                    dev->dac[0].buffer_pos++;
-                    goto dac0_count;
-                }
-            } else {
-                /* SRC bypass. */
-                if ((dev->dac[0].buffer_pos - dev->dac[0].buffer_pos_end) >= 0)
-                    es137x_fetch(dev, 0);
-
-                dev->dac[0].out_l = dev->dac[0].buffer_l[dev->dac[0].buffer_pos & 63];
-                dev->dac[0].out_r = dev->dac[0].buffer_r[dev->dac[0].buffer_pos & 63];
-                dev->dac[0].buffer_pos++;
-
-                goto dac0_count;
-            }
+            dev->dac[dac_nr].out_l = dev->dac[dac_nr].buffer_l[dev->dac[dac_nr].buffer_pos & 63];
+            dev->dac[dac_nr].out_r = dev->dac[dac_nr].buffer_r[dev->dac[dac_nr].buffer_pos & 63];
+            dev->dac[dac_nr].buffer_pos++;
+            es137x_sample_count(dev, dac_nr);
         } else {
-            frac    = dev->dac[0].ac & 0x7fff;
-            idx     = dev->dac[0].ac >> 15;
-            samp1_l = dev->dac[0].filtered_l[idx];
-            samp1_r = dev->dac[0].filtered_r[idx];
-            samp2_l = dev->dac[0].filtered_l[(idx + 1) & 31];
-            samp2_r = dev->dac[0].filtered_r[(idx + 1) & 31];
+            const int frac    = dev->dac[dac_nr].ac & 0x7fff;
+            const int idx     = dev->dac[dac_nr].ac >> 15;
+            const int samp1_l = dev->dac[dac_nr].filtered_l[idx];
+            const int samp1_r = dev->dac[dac_nr].filtered_r[idx];
+            const int samp2_l = dev->dac[dac_nr].filtered_l[(idx + 1) & 31];
+            const int samp2_r = dev->dac[dac_nr].filtered_r[(idx + 1) & 31];
 
-            dev->dac[0].out_l = ((samp1_l * (0x8000 - frac)) + (samp2_l * frac)) >> 15;
-            dev->dac[0].out_r = ((samp1_r * (0x8000 - frac)) + (samp2_r * frac)) >> 15;
-            dev->dac[0].ac += dev->dac[0].vf;
-            dev->dac[0].ac &= ((32 << 15) - 1);
-            if ((dev->dac[0].ac >> (15 + 4)) != dev->dac[0].f_pos) {
-                es137x_next_sample_filtered(dev, 0, dev->dac[0].f_pos ? 16 : 0);
-                dev->dac[0].f_pos = (dev->dac[0].f_pos + 1) & 1;
-
-dac0_count:
-                dev->dac[0].curr_samp_ct--;
-                if (dev->dac[0].curr_samp_ct < 0) {
-                    dev->int_status |= INT_STATUS_DAC1;
-                    es137x_update_irqs(dev);
-                    dev->dac[0].curr_samp_ct = dev->dac[0].samp_ct;
-                }
-            }
-        }
-    }
-
-    if (dev->int_ctrl & INT_DAC2_EN) {
-        if ((((dev->type == AUDIOPCI_ES1373) || (dev->type == AUDIOPCI_CT5880)) && (dev->int_ctrl & INT_DAC2_BYPASS)) || (dev->type == AUDIOPCI_ES1370)) {
-            if ((dev->calc_sample_rate != 44100) && (dev->type == AUDIOPCI_ES1370)) {
-                if ((dev->dac[1].buffer_pos - dev->dac[1].buffer_pos_end) >= 0 && dev->step_pcm >= dev->interp_step)
-                    es137x_fetch(dev, 1);
-
-                if (dev->step_pcm >= dev->interp_step) {
-                    dev->step_pcm = 0;
-                }
-
-                dev->dac[1].out_l = lerp(dev->dac[1].prev_out_l, dev->dac[1].buffer_l[(dev->dac[1].buffer_pos) & 63], (dev->step_pcm + 1) * dev->interp_factor);
-                dev->dac[1].out_r = lerp(dev->dac[1].prev_out_r, dev->dac[1].buffer_r[(dev->dac[1].buffer_pos) & 63], (dev->step_pcm + 1) * dev->interp_factor);
-
-                dev->step_pcm++;
-                if (dev->step_pcm >= dev->interp_step) {
-                    dev->dac[1].prev_out_l = dev->dac[1].out_l;
-                    dev->dac[1].prev_out_r = dev->dac[1].out_r;
-                    dev->dac[1].buffer_pos++;
-                    goto dac1_count;
-                }
-            } else {
-                /* SRC bypass. */
-                if ((dev->dac[1].buffer_pos - dev->dac[1].buffer_pos_end) >= 0)
-                    es137x_fetch(dev, 1);
-
-                dev->dac[1].out_l = dev->dac[1].buffer_l[dev->dac[1].buffer_pos & 63];
-                dev->dac[1].out_r = dev->dac[1].buffer_r[dev->dac[1].buffer_pos & 63];
-                dev->dac[1].buffer_pos++;
-
-                goto dac1_count;
-            }
-        } else {
-            frac    = dev->dac[1].ac & 0x7fff;
-            idx     = dev->dac[1].ac >> 15;
-            samp1_l = dev->dac[1].filtered_l[idx];
-            samp1_r = dev->dac[1].filtered_r[idx];
-            samp2_l = dev->dac[1].filtered_l[(idx + 1) & 31];
-            samp2_r = dev->dac[1].filtered_r[(idx + 1) & 31];
-
-            dev->dac[1].out_l = ((samp1_l * (0x8000 - frac)) + (samp2_l * frac)) >> 15;
-            dev->dac[1].out_r = ((samp1_r * (0x8000 - frac)) + (samp2_r * frac)) >> 15;
-            dev->dac[1].ac += dev->dac[1].vf;
-            dev->dac[1].ac &= ((32 << 15) - 1);
-            if ((dev->dac[1].ac >> (15 + 4)) != dev->dac[1].f_pos) {
-                es137x_next_sample_filtered(dev, 1, dev->dac[1].f_pos ? 16 : 0);
-                dev->dac[1].f_pos = (dev->dac[1].f_pos + 1) & 1;
-
-dac1_count:
-                dev->dac[1].curr_samp_ct--;
-                if (dev->dac[1].curr_samp_ct < 0) {
-                    dev->int_status |= INT_STATUS_DAC2;
-                    es137x_update_irqs(dev);
-                    dev->dac[1].curr_samp_ct = dev->dac[1].samp_ct;
-                }
+            dev->dac[dac_nr].out_l = ((samp1_l * (0x8000 - frac)) + (samp2_l * frac)) >> 15;
+            dev->dac[dac_nr].out_r = ((samp1_r * (0x8000 - frac)) + (samp2_r * frac)) >> 15;
+            dev->dac[dac_nr].ac += dev->dac[dac_nr].vf;
+            dev->dac[dac_nr].ac &= ((32 << 15) - 1);
+            if ((dev->dac[dac_nr].ac >> (15 + 4)) != dev->dac[dac_nr].f_pos) {
+                es137x_next_sample_filtered(dev, dac_nr, dev->dac[dac_nr].f_pos ? 16 : 0);
+                dev->dac[dac_nr].f_pos = (dev->dac[dac_nr].f_pos + 1) & 1;
+                es137x_sample_count(dev, dac_nr);
             }
         }
     }

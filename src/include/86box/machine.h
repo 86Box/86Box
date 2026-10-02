@@ -83,7 +83,7 @@
 #define MACHINE_FLAGS_NONE        0x0000000000000000ULL /* sys has no int devices */
 #define MACHINE_SOFTFLOAT_ONLY    0x0000000000000001ULL /* sys requires SoftFloat FPU */
 #define MACHINE_VIDEO             0x0000000000000002ULL /* sys has int video */
-#define MACHINE_VIDEO_8514A       0x0000000000000004ULL /* sys has int video */
+#define MACHINE_VIDEO_EXT         0x0000000000000004ULL /* sys has ext display */
 #define MACHINE_VIDEO_ONLY        0x0000000000000008ULL /* sys has fixed video */
 #define MACHINE_KEYBOARD          0x0000000000000010ULL /* sys has int keyboard */
 #define MACHINE_AX                0x0000000000000020ULL /* sys adheres to Japanese AX standard */
@@ -127,6 +127,7 @@
 #define MACHINE_UART              (MACHINE_UART_PRI | MACHINE_UART_SEC | \
                                    MACHINE_UART_TER | MACHINE_UART_QUA)
 #define MACHINE_VIDEO_FIXED       (MACHINE_VIDEO | MACHINE_VIDEO_ONLY) /* sys has fixed int video */
+#define MACHINE_VIDEO_PANEL       (MACHINE_VIDEO_FIXED | MACHINE_VIDEO_EXT) /* sys can drive ext display */
 #define MACHINE_SUPER_IO          (MACHINE_FDC | MACHINE_LPT_PRI | MACHINE_UART_PRI | MACHINE_UART_SEC)
 #define MACHINE_SUPER_IO_GAME     (MACHINE_SUPER_IO | MACHINE_GAMEPORT)
 #define MACHINE_SUPER_IO_DUAL     (MACHINE_SUPER_IO | MACHINE_LPT_SEC | \
@@ -866,6 +867,7 @@ extern int             machine_at_vli486sv2g_init(const machine_t *);
 extern int             machine_at_dvent4xx_init(const machine_t *);
 extern int             machine_at_dtk486_init(const machine_t *);
 extern int             machine_at_ami471_init(const machine_t *);
+extern int             machine_at_lpm30_init(const machine_t *);
 extern int             machine_at_px471_init(const machine_t *);
 extern int             machine_at_tg486g_init(const machine_t *);
 

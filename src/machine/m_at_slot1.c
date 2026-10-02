@@ -1703,6 +1703,9 @@ machine_at_p2bls_init(const machine_t *model)
     hwm_values.temperatures[1] = 0;  /* unused */
     hwm_values.temperatures[2] -= 3; /* CPU offset */
 
+    if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
+        device_add(machine_get_net_device(machine));
+
     return ret;
 }
 

@@ -1362,3 +1362,17 @@ const device_t device_internal = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+const device_t device_external = {
+    .name          = "External",
+    .internal_name = "external",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};

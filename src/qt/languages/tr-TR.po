@@ -948,6 +948,9 @@ msgstr "Farenin bırakılması için %1 tuşlarına basın"
 msgid "Press %1 or middle button to release mouse"
 msgstr "Farenin bırakılması için %1 ya da tekerlek tuşuna basın"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "Veri yolu"
 

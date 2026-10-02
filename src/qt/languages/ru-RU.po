@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-16 00:00+0000\n"
+"PO-Revision-Date: 2026-10-02 03:39+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -431,7 +431,7 @@ msgid "Dynamic recompiler"
 msgstr "Динамический рекомпилятор"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Точное окружение FPU в динамическом рекомпиляторе"
 
 msgid "CPU frame size"
 msgstr "Размер кадра ЦП"
@@ -945,6 +945,9 @@ msgstr "Нажмите %1, чтобы освободить курсор"
 
 msgid "Press %1 or middle button to release mouse"
 msgstr "Нажмите %1 или среднюю кнопку мыши, чтобы освободить курсор"
+
+msgid "Press %1 or side button to release mouse"
+msgstr "Нажмите %1 или боковую кнопку мыши, чтобы освободить курсор"
 
 msgid "Bus"
 msgstr "Шина"
@@ -1511,16 +1514,16 @@ msgid "ACP&I shutdown"
 msgstr "Сигнал завершения ACP&I"
 
 msgid "Power off"
-msgstr ""
+msgstr "Выключить питание"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "Выключить &питание…"
 
 msgid "Power &off"
-msgstr ""
+msgstr "Выключить &питание"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
-msgstr ""
+msgstr "Выключение эмулируемой машины может привести к потере данных. Вы уверены, что хотите продолжить?"
 
 msgid "Hard disk (%1)"
 msgstr "Жёсткий диск (%1)"
@@ -3014,13 +3017,13 @@ msgid "Model:"
 msgstr "Модель:"
 
 msgid "Brand:"
-msgstr ""
+msgstr "Производитель:"
 
 msgid "Revision:"
-msgstr ""
+msgstr "Ревизия:"
 
 msgid "[Generic HDD] Device Configuration"
-msgstr ""
+msgstr "[Стандартный жесткий диск] Настройка устройства"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Не удалось инициализировать рендерер Vulkan."
@@ -3528,19 +3531,19 @@ msgid "Sample rate:"
 msgstr "Частота дискретизации:"
 
 msgid "Enable audio input (mic/line-in)"
-msgstr ""
+msgstr "Включить аудиовход (микрофон/линейный вход)"
 
 msgid "Audio input device:"
-msgstr ""
+msgstr "Аудиоустройство ввода:"
 
 msgid "Audio input sample rate:"
-msgstr ""
+msgstr "Частота дискретизации аудиовхода:"
 
 msgid "Rate the emulator mixes to the host output device."
-msgstr ""
+msgstr "Частота микширования эмулятора для устройства вывода хоста."
 
 msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
-msgstr ""
+msgstr "Частота, на которой открывается устройство захвата звука хоста.\n\n44100 без остатка делится на частоты SB16/AWE32: 44.1/22/11 кГц."
 
 msgid "CGA lightpen"
 msgstr "Световое перо CGA"

@@ -945,6 +945,9 @@ msgstr "Druk op %1 om de muis vrij te geven"
 msgid "Press %1 or middle button to release mouse"
 msgstr "Druk op %1 of middelste knop om de muis los te laten"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "Bus"
 

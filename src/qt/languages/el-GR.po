@@ -945,6 +945,9 @@ msgstr "Πατήστε %1 για απαγκίστρωση ποντικιού"
 msgid "Press %1 or middle button to release mouse"
 msgstr "Πατήστε %1 ή το μεσαίο κουμπί για απαγκίστρωση ποντικιού"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "Δίαυλος"
 

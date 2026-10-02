@@ -957,7 +957,7 @@ msgstr "Apasă pe %1 pentru a elibera maus-ul"
 msgid "Press %1 or middle button to release mouse"
 msgstr "Apasă pe %1 sau butonul din mijloc pentru a elibera maus-ul"
 
-msgid "Press %1 or thumb button to release mouse"
+msgid "Press %1 or side button to release mouse"
 msgstr "Apasă pe %1 sau pe butonul lateral pentru a elibera maus-ul"
 
 msgid "Bus"

@@ -946,6 +946,9 @@ msgstr "Naciśnij %1, by wypuścić mysz"
 msgid "Press %1 or middle button to release mouse"
 msgstr "Naciśnij %1 lub środkowy przycisk, by wypuścić mysz"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "Magistrala"
 
