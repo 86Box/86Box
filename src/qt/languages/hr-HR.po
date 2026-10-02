@@ -947,6 +947,9 @@ msgstr "Pritisnite %1 za otpustanje miša"
 msgid "Press %1 or middle button to release mouse"
 msgstr "Pritisnite %1 ili srednji gumb miša za otpuštanje miša"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "Bus"
 

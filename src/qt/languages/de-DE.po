@@ -945,6 +945,9 @@ msgstr "Drücke %1 zur Mausfreigabe"
 msgid "Press %1 or middle button to release mouse"
 msgstr "Drücke %1 oder die mittlere Maustaste zur Mausfreigabe"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "Bus"
 

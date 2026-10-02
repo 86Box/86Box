@@ -947,6 +947,9 @@ msgstr "Натисніть %1, щоб звільнити курсор"
 msgid "Press %1 or middle button to release mouse"
 msgstr "Натисніть %1 або середню кнопку миші, щоб звільнити курсор"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "Шина"
 

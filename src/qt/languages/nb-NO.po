@@ -946,6 +946,9 @@ msgstr "Trykk %1 for å slippe mus"
 msgid "Press %1 or middle button to release mouse"
 msgstr "Trykk %1 eller midtknappen for å slippe mus"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "Buss"
 

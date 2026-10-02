@@ -1163,7 +1163,7 @@ MainWindow::updateMouseStrings()
     if (release_buttons & MOUSE_RELEASE_MIDDLE)
         mouseStringCaptured = tr("Press %1 or middle button to release mouse").arg(seq);
     else if (release_buttons & MOUSE_RELEASE_THUMB)
-        mouseStringCaptured = tr("Press %1 or thumb button to release mouse").arg(seq);
+        mouseStringCaptured = tr("Press %1 or side button to release mouse").arg(seq);
     else
         mouseStringCaptured = tr("Press %1 to release mouse").arg(seq);
 

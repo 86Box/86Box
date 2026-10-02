@@ -951,6 +951,9 @@ msgstr "按下 %1 釋放滑鼠"
 msgid "Press %1 or middle button to release mouse"
 msgstr "按下 %1 或滑鼠中鍵釋放滑鼠"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "匯流排"
 
