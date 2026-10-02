@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-10-02 12:29+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"Last-Translator: TheCawa <vos80584@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -3135,7 +3135,7 @@ msgid "Toggle on-screen display"
 msgstr "Przełącz menu ekranowe"
 
 msgid "Toggle &on-screen display"
-msgstr ""
+msgstr "Włącz/wyłącz &wyświetlanie na ekranie"
 
 msgid "Text files"
 msgstr "Pliki tekstowe"
