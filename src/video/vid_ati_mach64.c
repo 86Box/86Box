@@ -4217,7 +4217,8 @@ const device_t mach64gtb_device = {
     .available     = mach64gtb_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
-    .config        = mach64gtb_config
+    .config        = mach64gtb_config,
+    .alias         = "ATI 3D Charger"
 };
 
 const device_t mach64vt3_onboard_device = {
