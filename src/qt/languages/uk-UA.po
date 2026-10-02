@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-02 05:45+0000\n"
-"Last-Translator: TheCawa <thecawax@gmail.com>\n"
+"PO-Revision-Date: 2026-10-02 04:16+0000\n"
+"Last-Translator: TheCawa <vos80584@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
 "Language: uk-UA\n"
@@ -948,7 +948,7 @@ msgid "Press %1 or middle button to release mouse"
 msgstr "Натисніть %1 або середню кнопку миші, щоб звільнити курсор"
 
 msgid "Press %1 or side button to release mouse"
-msgstr ""
+msgstr "Натисніть %1 або бічну кнопку миші, щоб звільнити курсор"
 
 msgid "Bus"
 msgstr "Шина"
@@ -3378,6 +3378,8 @@ msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
+"Не вдалося завантажити образ «%s»: відсутній %1, який необхідний для "
+"підтримки образів у форматі Aaru."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
