@@ -117,6 +117,7 @@ add_library(vid OBJECT
     vid_ati_mach8.c
     vid_ati_mach64.c
     vid_ati_mach64_accel.c
+    vid_ati_mach64_3d.c
 
     # Chips & Technologies
     vid_chips_69000.c
