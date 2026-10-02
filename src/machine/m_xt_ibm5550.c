@@ -61,9 +61,6 @@
 #include <86box/pit.h>
 #include <86box/mouse.h>
 
-// #define EPOCH_FONTROM_SIZE         (1024 * 1024)
-// #define EPOCH_FONTROM_MASK         0xffff
-// #define EPOCH_FONTROM_BASESBCS     0x98000
 #define EPOCH_VRAM_SBCS        0x38000
 #define EPOCH_VRAM_SBEX        0x30000
 #define EPOCH_INVALIDACCESS8       0xffu
@@ -79,6 +76,17 @@
 #define EPOCH_PIXELCLOCK16         20000000.0    /* 20 MHz interlaced (not confirmed) */
 #define EPOCH_CONFIG_MONO16 0 /* Model 5551-Axx (Font 16, monochrome) */
 #define EPOCH_CONFIG_MONO24 1 /* Model 5551-Bxx (Font 24, monochrome) */
+
+/* Optional kanji font card: a page ROM behind a 32KB or 48KB RAM window
+   at F0000h. Only installed when its ROM image is present, so a machine
+   without the card behaves exactly as before. */
+#define EPOCH_FONTCARD_WIN_ADDR 0xf0000
+#define EPOCH_FONTCARD_WIN_SIZE 0x8000
+#define EPOCH_FONTCARD_ROM_OLD  0 /* Old font card ROM revision (94X1372) */
+#define EPOCH_FONTCARD_ROM_NEW  1 /* New font card ROM revision (65X1460) */
+#define EPOCH_FONTCARD_ROM_SIZE (512 * 1024) /* Font card ROM size (512K) */
+#define EPOCH_FONTCARD_ROM_PATH_OLD "roms/machines/ibm5535/94X1372.BIN"
+#define EPOCH_FONTCARD_ROM_PATH_NEW "roms/machines/ibm5535/65X1460.BIN"
 
 #define LC_INDEX                0x3D0
 #define LC_DATA                 0x3D1
@@ -279,14 +287,21 @@ typedef struct epoch_t {
     /* APA Buffer A0000-DFFFFh (256 KB) */
     uint8_t *vram;
     mem_mapping_t cmap, vmap, paritymap;
-    /* Font ROM card option (?KB) */
-    // struct {
-    //     int           bank;
-    //     mem_mapping_t map;
-    //     uint8_t      *rom;
-    //     int           charset;
-    //     int           portdata;
-    // } fontcard;
+    /* Kanji font card (optional): the card's page ROM and the 32 or 48 KB
+       window RAM the guest sees at F0000h. */
+    uint8_t      *fontcard_rom;
+    uint8_t      *fontcard_win;
+    uint32_t      fontcard_page;
+    uint32_t      fontcard_pages;
+    int           fontcard_isnew;
+    /* Set once the guest has issued the "serve page" command; the page latch
+       in the window's low 16 bytes only works from then on. */
+    int           fontcard_ready;
+    /* Holds the last port written (0x160/0x168/0x16A), not a data byte: it must
+       be wide enough to keep the port number, otherwise the 0x168/0x16A cases
+       in epoch_fontcard_in() can never match. */
+    uint16_t      fontcard_data;
+    mem_mapping_t fontcard_map;
     // uint8_t *changedvram;
     uint32_t vram_display_mask;
 
@@ -389,30 +404,6 @@ The IBM 5550 has different IRQ assignments like the 6580 Displaywriter System.
 | FC000h        | ROM                                                   | 
 */
 
-#ifdef ENABLE_EPOCH_LOG
-// #include <ctype.h>
-// static int dumpno = 0x61;
-// static void
-// epoch_dumpvram(void *priv)
-// {
-//             FILE *fp;
-//     epoch_t *epoch = (epoch_t *) priv;
-//             char str1[64] = "epoch_vramvm_";
-//             char str2[3] = {0x30, 0x30, 0};
-//             if (!isalnum(dumpno))
-//                return;
-//             str2[0] = dumpno;
-//             dumpno++;
-//             str2[1] = (epoch->crtmode & 0xf) + 0x30;
-//             strcat(str1,str2);
-//             fp = fopen(str1, "wb");
-//             if (fp != NULL) {
-//                 fwrite(epoch->vram, EPOCH_SIZE_VRAM, 1, fp);
-//                 fclose(fp);
-//             }
-// }
-#endif
-
 static void
 epoch_out(uint16_t addr, uint16_t val, void *priv)
 {
@@ -474,9 +465,6 @@ epoch_out(uint16_t addr, uint16_t val, void *priv)
         case LS_MODE:
             /* Bit 3: Video output enable, Bit 1: Graphic mode (switch 16 / 9 bit word in Font 16 system) */
             epoch->crtmode = val;
-#ifdef ENABLE_EPOCH_LOG
-            // epoch_dumpvram(epoch);
-#endif
             epoch_recalctimings(epoch);
             // epoch->attrff ^= 1;
             break;
@@ -739,48 +727,54 @@ getaddr_9bitword(int32_t addr)
             return bit9addr;
 }
 
-/* Get font pattern in a line from video memory */
+/* One scanline of a DBCS glyph out of video memory: two 9-dot halves, the 9th
+   dot of each taken from the plane at 0x20000.  This is the layout the kanji
+   card fills in (18 dots wide, the glyph itself sitting on columns 1-16). */
+static uint32_t
+getfont_ps55dbcs_vram(epoch_t *epoch, int32_t code, int32_t line)
+{
+    uint32_t font = 0;
+
+    code *= 0x80;
+    code += line * 4;
+    if (epoch->font24) { /* Font 24 (2 x 13 x 29) */
+        font = epoch->vram[code];
+        font <<= 8;
+        code++;
+        font |= epoch->vram[code];
+        font <<= 8;
+        code++;
+        font |= epoch->vram[code];
+        font <<= 8;
+        code++;
+        font |= epoch->vram[code];
+    } else { /* Font 16 (2 x 9 x 21) */
+        int32_t bit9addr = getaddr_9bitword(code);
+        int bitnum = bit9addr & 7;
+        bit9addr >>= 3;
+        bit9addr += 0x20000; /* real: C0000h */
+        font = epoch->vram[code];
+        font <<= 8;
+        font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80; /* get 9th bit */
+        font <<= 8;
+        code++;
+        font |= epoch->vram[code];
+        font <<= 8;
+        bitnum = code & 0x7;
+        font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80; /* get 9th bit */
+    }
+    return font;
+}
+
+/* Get font pattern in a line */
 static uint32_t
 getfont_ps55dbcs(int32_t code, int32_t line, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    uint32_t font  = 0;
-    if (code < 1536) {
-        code *= 0x80;
-        code += line * 4;
-        if (epoch->font24) { /* Font 24 (2 x 13 x 29) */
-            font = epoch->vram[code];
-            font <<= 8;
-            code++;
-            font |= epoch->vram[code];
-            font <<= 8;
-            code++;
-            font |= epoch->vram[code];
-            font <<= 8;
-            code++;
-            font |= epoch->vram[code];
-        } else { /* Font 16 (2 x 9 x 21) */
-            int32_t bit9addr = getaddr_9bitword(code);
-            int bitnum = bit9addr & 7;
-            bit9addr >>= 3;
-            bit9addr += 0x20000; /* real: C0000h */
-            font = epoch->vram[code];
-            font <<= 8;
-            font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80; /* get 9th bit */
-            // font &= 0xff80;
-            // font |= epoch->vram[code + line * 4 + 1];
-            font <<= 8;
-            code++;
-            font |= epoch->vram[code];
-            font <<= 8;
-            bitnum = code & 0x7;
-            font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80; /* get 9th bit */
-            // font &= 0xff80ff80;
-            // font |= epoch->vram[code + line * 4 + 3];
-        }
-    } else
-        font = EPOCH_INVALIDACCESS32;
-    return font;
+
+    if (code < 1536)
+        return getfont_ps55dbcs_vram(epoch, code, line);
+    return EPOCH_INVALIDACCESS32;
 }
 
 /* Get the foreground color from the attribute byte */
@@ -814,6 +808,8 @@ epoch_render_blank(epoch_t *epoch)
 static void
 epoch_render_text(epoch_t *epoch)
 {
+    /* Refresh a "what is on screen right now" pair every few frames, so the
+       state behind a problem screen can be picked up at any time. */
     if (epoch->firstline_draw == 2000)
         epoch->firstline_draw = epoch->displine;
     epoch->lastline_draw = epoch->displine;
@@ -1341,7 +1337,9 @@ epoch_parity_device_write(epoch_t *epoch)
 static void
 epoch_vram_writeb(uint32_t addr, uint8_t val, void *priv)
 {
-    epoch_parity_device_write((epoch_t *) priv);
+    epoch_t *epoch = (epoch_t *) priv;
+
+    epoch_parity_device_write(epoch);
 }
 
 static void
@@ -2496,82 +2494,213 @@ epoch_reset(void *priv)
         epoch->pallook[i]  = makecol32((epoch->vgapal[i].r & 0x3f) * 4, (epoch->vgapal[i].g & 0x3f) * 4, (epoch->vgapal[i].b & 0x3f) * 4);
     }
 
-    // mem_mapping_disable(&epoch->fontcard.map);
-
     epoch_log("epoch_reset done.\n");
 }
 
-/*
-//[Font ROM Map (DA1)]
-//Bank 0
-// 0000-581Fh Pointers (Low) for each character font?
-// 5820-7FFFh Pointers (High) for each character font?
-// 8000- *  h Font Data
-*/
-// static void
-// epoch_video_load_font(char *fname, epoch_t *epoch)
-// {
-//     uint8_t buf;
-//     uint64_t fsize;
-//     if (!fname)
-//         return;
-//     if (*fname == '\0')
-//         return;
-//     FILE *mfile = rom_fopen(fname, "rb");
-//     if (!mfile) {
-//         // da2_log("MSG: Can't open binary ROM font file: %s\n", fname);
-//         return;
-//     }
-//     fseek(mfile, 0, SEEK_END);
-//     fsize = ftell(mfile); /* get filesize */
-//     fseek(mfile, 0, SEEK_SET);
-//     if (fsize > EPOCH_FONTROM_SIZE) {
-//         fsize = EPOCH_FONTROM_SIZE; /* truncate read data */
-//         // da2_log("MSG: The binary ROM font is truncated: %s\n", fname);
-//         // fclose(mfile);
-//         // return 1;
-//     }
-//     uint32_t j = 0;
-//     while (ftell(mfile) < fsize) {
-//         (void) !fread(&buf, sizeof(uint8_t), 1, mfile);
-//         epoch->fontcard.rom[j] = buf;
-//         j++;
-//     }
-//     fclose(mfile);
-//     return;
-// }
+/* ---- Optional kanji font card ------------------------------------------
+   The card holds a page ROM behind a 32 KB RAM window at F0000h; the guest
+   selects a page and reads glyphs from this window. Page 0 is the page the
+   IPL sums: after clearing F000:0000 it wants the 32 KB 16-bit word sum to
+   be 1. Note what is *not* done here: IBMBIO also compares F000:0000..000F
+   with a constant in its own segment (0540:8083), but a real card's page 0
+   holds the pointer table's entries for cells 0..7 there, so that compare
+   cannot pass on real 5535-M and is intended to protect glyphs[0..7]. */
+static void
+epoch_fontcard_fix_page(uint8_t *page, uint32_t index)
+{
+    uint32_t i;
+    uint16_t sum;
+    uint8_t  first = page[0];
 
-// static void
-// epoch_font_writeb(uint32_t addr, uint8_t val, void *priv)
-// {
-//     epoch_t *epoch = (epoch_t *) priv;
-//     epoch->fontcard.bank = val;
-//     // if ((addr & ~0xfff) != 0xE0000) return;
-//     epoch_log("cw %04X %02X %04X %04X %04X %04X\n", addr, val, DS, SI, ES, DI);
-// }
-// static uint8_t
-// epoch_font_readb(uint32_t addr, void *priv)
-// {
-//     epoch_t *epoch = (epoch_t *) priv;
-//     uint32_t readaddr = epoch->fontcard.bank;
-//     addr &= EPOCH_FONTROM_MASK;
-//     readaddr *= 0xc000;/* xxx x000 0000 0000 0000 (8000h) */
-//     readaddr += addr;
-//     if (readaddr >= EPOCH_FONTROM_SIZE)
-//         return EPOCH_INVALIDACCESS8;
-//     // epoch_log("cr %X %x %04X %04X %04X %04X\n", readaddr, epoch->fontcard.rom[readaddr], DS, SI, ES, DI);
-//     // if(epoch->vram[addr] == 0xcb)
-//     //         epoch_log("CB %04X:%04X %04X:%04X>%04X:%04X\n", cs >> 4, cpu_state.pc, DS, SI,ES,DI);
-//     return epoch->fontcard.rom[readaddr];
-// }
+    if (index != 0)
+        return;
+
+    page[0] = 0x00;
+    sum     = 0;
+    for (i = 0; i < EPOCH_FONTCARD_WIN_SIZE; i += 2)
+        sum += (uint16_t) (page[i] | (page[i + 1] << 8));
+    page[0] = first;
+    if (sum == 1)
+        return;
+
+    epoch_log("font card: page 0 sum %04X, repaired\n", sum);
+    page[0] = 0x00;
+    sum     = 0;
+    for (i = 0; i < EPOCH_FONTCARD_WIN_SIZE; i += 2)
+        sum += (uint16_t) (page[i] | (page[i + 1] << 8));
+    /* Replace the last word so the whole page sums to exactly 1. */
+    sum -= (uint16_t) (page[EPOCH_FONTCARD_WIN_SIZE - 2]
+                     | (page[EPOCH_FONTCARD_WIN_SIZE - 1] << 8));
+    sum  = (uint16_t) (1 - sum);
+    page[EPOCH_FONTCARD_WIN_SIZE - 2] = sum & 0xff;
+    page[EPOCH_FONTCARD_WIN_SIZE - 1] = sum >> 8;
+    page[0] = first;
+}
+
+static void
+epoch_fontcard_set_page(epoch_t *epoch, uint32_t page)
+{
+    uint32_t offset;
+
+    if (epoch->fontcard_win == NULL)
+        return;
+    if (epoch->fontcard_pages != 0)
+        page %= epoch->fontcard_pages;
+    epoch->fontcard_page = page;
+    offset               = page * EPOCH_FONTCARD_WIN_SIZE;
+    if ((epoch->fontcard_rom != NULL)
+     && (offset + EPOCH_FONTCARD_WIN_SIZE <= EPOCH_FONTCARD_ROM_SIZE))
+        memcpy(epoch->fontcard_win, &epoch->fontcard_rom[offset],
+               EPOCH_FONTCARD_WIN_SIZE);
+    else
+        memset(epoch->fontcard_win, 0, EPOCH_FONTCARD_WIN_SIZE);
+    epoch_fontcard_fix_page(epoch->fontcard_win, page);
+}
+
+static uint8_t
+epoch_fontcard_readb(uint32_t addr, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+
+    return epoch->fontcard_win[addr & (EPOCH_FONTCARD_WIN_SIZE - 1)];
+}
+
+static uint16_t
+epoch_fontcard_readw(uint32_t addr, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+    addr &= EPOCH_FONTCARD_WIN_SIZE - 1;
+    return (uint16_t) (epoch->fontcard_win[addr]
+        | (epoch->fontcard_win[(addr + 1) & (EPOCH_FONTCARD_WIN_SIZE - 1)] << 8));
+}
+
+static void
+epoch_fontcard_writeb(uint32_t addr, uint8_t val, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+
+    addr &= EPOCH_FONTCARD_WIN_SIZE - 1;
+    /* Writing 2 to the first byte is the "serve" command; IBMBIO compares
+       F000:0000..000F with a constant right after (its result only sets a
+       flag the driver does not need). Serving page 0 keeps that comparison
+       reading a stable place, and the IPL's sum tests only ever write 0/1,
+       so they keep seeing plain RAM. */
+    if ((addr == 0) && (val == 0x02)) {
+        epoch->fontcard_ready = 1;
+        epoch_fontcard_set_page(epoch, 0);
+        return;
+    }
+    /* The low 16 bytes are the page latch.  The guest reads the pointer table
+       with page 0 selected and then writes the cell's attribute at the offset
+       that carries the same number (seg0540:7F0D, "mov [bx],bl" with bx == bl
+       == attribute), so the record is read from that page; the "select page 0"
+       before it is the same write with 0. Only a value equal to the offset
+       counts, and only after the serve command above, so the IPL's 0/1
+       memory walks keep seeing plain RAM. */
+    if (epoch->fontcard_ready && (addr <= 15) && (val == addr)) {
+        epoch_fontcard_set_page(epoch, val);
+        return;
+    }
+    epoch->fontcard_win[addr] = val;
+}
+
+static void
+epoch_fontcard_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+    addr &= EPOCH_FONTCARD_WIN_SIZE - 1;
+    epoch->fontcard_win[addr] = val & 0xff;
+    epoch->fontcard_win[(addr + 1) & (EPOCH_FONTCARD_WIN_SIZE - 1)] = val >> 8;
+}
+
+/* 0x164 reports whether the card accepted the last command, and which one:
+   the IPL reads it right after writing 0x160 and needs 0xFF, while IBMBIO
+   looks for 0xFD after a 0x16A write and 0xFE after a 0x168 write. */
+static uint8_t
+epoch_fontcard_in(uint16_t port, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+    uint8_t  ret   = 0xff;
+
+    if (port == 0x164) {
+        switch (epoch->fontcard_data) {
+            case 0x168:
+                ret = 0xfe;
+                break;
+            case 0x16a:
+                ret = 0xfd;
+                break;
+            default:
+                ret = 0xff;
+                break;
+        }
+    }
+
+    return ret;
+}
+
+static void
+epoch_fontcard_out(uint16_t port, uint8_t val, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+
+    /* The last port touched decides what a 0x164 read reports. */
+    epoch->fontcard_data = port;
+    switch (port) {
+        case 0x160:
+            /* Command/index; its bank semantics are still unknown,
+               so the current page simply stays served. */
+            break;
+        default:
+            break;
+    }
+}
+
+static void
+epoch_fontcard_init(epoch_t *epoch)
+{
+    FILE   *fp;
+    size_t  fsize;
+
+    fp = rom_fopen(epoch->fontcard_isnew ? EPOCH_FONTCARD_ROM_PATH_NEW
+                                         : EPOCH_FONTCARD_ROM_PATH_OLD,
+                   "rb");
+    if (fp == NULL)
+        return; /* No font card installed. */
+    epoch->fontcard_rom = calloc(1, EPOCH_FONTCARD_ROM_SIZE);
+    fsize = fread(epoch->fontcard_rom, 1, EPOCH_FONTCARD_ROM_SIZE, fp);
+    fclose(fp);
+    if (fsize < EPOCH_FONTCARD_WIN_SIZE) {
+        free(epoch->fontcard_rom);
+        epoch->fontcard_rom = NULL;
+        return;
+    }
+    epoch->fontcard_pages = (uint32_t) (fsize / EPOCH_FONTCARD_WIN_SIZE);
+    epoch->fontcard_win   = calloc(1, EPOCH_FONTCARD_WIN_SIZE);
+
+    mem_mapping_add(&epoch->fontcard_map, EPOCH_FONTCARD_WIN_ADDR,
+                    EPOCH_FONTCARD_WIN_SIZE, epoch_fontcard_readb,
+                    epoch_fontcard_readw, NULL, epoch_fontcard_writeb,
+                    epoch_fontcard_writew, NULL, NULL, MEM_MAPPING_EXTERNAL,
+                    epoch);
+    io_sethandler(0x160, 0x000b, epoch_fontcard_in, NULL, NULL,
+                  epoch_fontcard_out, NULL, NULL, epoch);
+    epoch_fontcard_set_page(epoch, 0);
+    epoch_log("font card: %u pages installed\n", epoch->fontcard_pages);
+}
+
 static void *
 epoch_init(UNUSED(const device_t *info))
 {
     epoch_t *epoch  = calloc(1, sizeof(epoch_t));
-    /* The 5535-M has only the 16-dot monochrome LCD model, so it
-       has no font selection; the 5550's CRT is either 16- or 24-dot. */
-    epoch->font24 = epoch_is_5535 ? 0 : device_get_config_int("model");
     epoch->testmode = device_get_config_int("testmode");
+
+    /* The 5535-M has only the 16-dot monochrome LCD model, so it has
+       no font selection; the 5550's CRT is either 16- or 24-dot. */
+    if (epoch_is_5535)
+        epoch->fontcard_isnew = device_get_config_int("font");
+    else
+        epoch->font24 = device_get_config_int("model");
 
     video_inform(VIDEO_FLAG_TYPE_NONE, &timing_epoch_vid);
     video_update_timing();
@@ -2590,8 +2719,9 @@ epoch_init(UNUSED(const device_t *info))
     //     epoch->vram[i] = 0xff;
     epoch->cram              = calloc(1, 4 * 1024);
     epoch->paritybad         = calloc(1, 0xA0000 >> 3);
-    // epoch->fontcard.rom      = calloc(1, EPOCH_FONTROM_SIZE);
-    // epoch_video_load_font("roms/machines/ibm5550/GEN1FONT.BIN", epoch);
+    /* The kanji font card is a 5535-M option. */
+    if (epoch_is_5535)
+        epoch_fontcard_init(epoch);
 
     epoch->epochconst = (uint64_t) ((cpuclock / epoch->pixelclock) * (double) (1ull << 32));
 
@@ -2599,10 +2729,6 @@ epoch_init(UNUSED(const device_t *info))
         epoch_cram_writeb, epoch_cram_writew, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
     mem_mapping_add(&epoch->vmap, 0xA0000, 0x40000, NULL, epoch_vram_readw, NULL,
         epoch_vram_writeb, epoch_vram_writew, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
-    // mem_mapping_add(&epoch->fontcard.map, 0xF0000, 0xC000, epoch_font_readb, NULL, NULL,
-    //     epoch_font_writeb, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
-
-    // mem_mapping_disable(&epoch->fontcard.map);
     mem_mapping_add(&epoch->paritymap, 0, 0xA0000, epoch_parity_readb, epoch_parity_readw, NULL,
         epoch_parity_writeb, epoch_parity_writew, NULL, NULL, MEM_MAPPING_CACHE, epoch);
 
@@ -2697,7 +2823,8 @@ epoch_close(void *priv)
     free(epoch->cram);
     free(epoch->vram);
     free(epoch->paritybad);
-    // free(epoch->fontcard.rom);
+    free(epoch->fontcard_win);
+    free(epoch->fontcard_rom);
     // free(epoch->changedvram);
     free(epoch);
 }
@@ -2857,6 +2984,23 @@ machine_xt_ibm5550_init(const machine_t *model)
 
 static const device_config_t epoch_5535_config[] = {
     // clang-format off
+    {
+        .name        = "font",
+        .description = "Font",
+        .type        = CONFIG_SELECTION,
+        .default_int = EPOCH_FONTCARD_ROM_NEW,
+        .selection   = {
+            {
+                .description = "Old",
+                .value = EPOCH_FONTCARD_ROM_OLD
+            },
+            {
+                .description = "New",
+                .value = EPOCH_FONTCARD_ROM_NEW
+            },
+            { .description = "" }
+        }
+    },
     {
         .name        = "testmode",
         .description = "Test mode",
