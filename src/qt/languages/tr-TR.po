@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-07-29 14:45+0000\n"
-"Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
+"PO-Revision-Date: 2026-10-02 13:07+0000\n"
+"Last-Translator: Hisuzu <185547947+sentogahara@users.noreply.github.com>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
 "MIME-Version: 1.0\n"
@@ -430,7 +430,7 @@ msgid "Dynamic recompiler"
 msgstr "Dinamik derleyici"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Dinamik derleyicide hassas FPU ortamı"
 
 msgid "CPU frame size"
 msgstr "İşlemci kare boyutu"
@@ -484,16 +484,16 @@ msgid "&Mouse"
 msgstr "&Fare"
 
 msgid "Tablet:"
-msgstr ""
+msgstr "Tablet:"
 
 msgid "Tablet"
-msgstr ""
+msgstr "Tablet"
 
 msgid "&Tablet"
-msgstr ""
+msgstr "&Tablet"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "Tablet (&Nişangah)"
 
 msgid "Joystick:"
 msgstr "Oyun Kolu:"
@@ -859,7 +859,7 @@ msgid "Input devices"
 msgstr "Giriş cihazları"
 
 msgid "Input &device"
-msgstr ""
+msgstr "Giriş &cihazı"
 
 msgid "Sound"
 msgstr "Ses"
@@ -871,7 +871,7 @@ msgid "Ports (COM & LPT)"
 msgstr "Bağlantı noktaları (COM & LPT)"
 
 msgid "Port"
-msgstr ""
+msgstr "Bağlantı noktası"
 
 msgid "Ports"
 msgstr "Bağlantı noktaları"
@@ -943,13 +943,13 @@ msgid "Click to capture mouse"
 msgstr "Farenin yakalanması için tıklayın"
 
 msgid "Press %1 to release mouse"
-msgstr "Farenin bırakılması için %1 tuşlarına basın"
+msgstr "Farenin serbest bırakılması için %1 tuşuna basın"
 
 msgid "Press %1 or middle button to release mouse"
 msgstr "Farenin bırakılması için %1 ya da tekerlek tuşuna basın"
 
 msgid "Press %1 or side button to release mouse"
-msgstr ""
+msgstr "Farenin serbest bırakılması için %1 veya yan tuşa basın"
 
 msgid "Bus"
 msgstr "Veri yolu"
@@ -1520,16 +1520,18 @@ msgid "ACP&I shutdown"
 msgstr "ACP&I ile kapat"
 
 msgid "Power off"
-msgstr ""
+msgstr "Gücü kapat"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "Gücü &kapat…"
 
 msgid "Power &off"
-msgstr ""
+msgstr "Gücü &kapat"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
+"Emüle edilen makinenin gücünü kapatmak veri kaybına neden olabilir. Devam "
+"etmek istediğinizden emin misiniz?"
 
 msgid "Hard disk (%1)"
 msgstr "Sabit disk (%1)"
@@ -2340,7 +2342,7 @@ msgid "Host ID"
 msgstr "Ana sistem kimliği"
 
 msgid "Host"
-msgstr ""
+msgstr "Ana Sistem"
 
 msgid "FDC Address"
 msgstr "FDC Adresi"
@@ -3045,7 +3047,7 @@ msgid "Ask for confirmation before quitting"
 msgstr "Çıkış yapmadan once onay için sor"
 
 msgid "Precache CHD files into memory"
-msgstr ""
+msgstr "CHD dosyalarını önbellekte sakla"
 
 msgid "Options"
 msgstr "Seçenekler"
@@ -3057,23 +3059,22 @@ msgid "Model:"
 msgstr "Model:"
 
 msgid "Brand:"
-msgstr ""
+msgstr "Marka:"
 
 msgid "Revision:"
-msgstr ""
+msgstr "Revizyon:"
 
 msgid "[Generic HDD] Device Configuration"
-msgstr ""
+msgstr "[Genel Hard Disk] Cihaz Seçenekleri"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkan derleyicisi başlatılamadı."
 
-#, fuzzy
 msgid "Failed to create Vulkan 1.3 instance."
-msgstr "Vulkan 1.3 instance'ı oluşturulamadı."
+msgstr "Vulkan 1.3 örneği oluşturulamadı."
 
 msgid "No usable Vulkan physical devices found."
-msgstr ""
+msgstr "Kullanılabilir bir fiziksel Vulkan cihazı bulunamadı."
 
 msgid "No Vulkan-capable physical devices found."
 msgstr "Vulkan uyumlu fiziksel cihaz bulunamadı."
@@ -3392,10 +3393,10 @@ msgid "Fast forward"
 msgstr "İleri sar"
 
 msgid "&Non-maskable interrupt"
-msgstr ""
+msgstr "&Maskelendirilemeyen kesinti"
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "Maskelendirilemeyen kesinti"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "Sistem dizinini değiştirmek için çalışan tüm makineleri durdurun."
@@ -3581,13 +3582,13 @@ msgid "Sample rate:"
 msgstr "Örnekleme hızı:"
 
 msgid "Enable audio input (mic/line-in)"
-msgstr ""
+msgstr "Ses girişini etkinleştir (mikrofon/hat girişi)"
 
 msgid "Audio input device:"
-msgstr ""
+msgstr "Ses giriş cihazı:"
 
 msgid "Audio input sample rate:"
-msgstr ""
+msgstr "Ses girişi örnekleme hızı:"
 
 msgid "Rate the emulator mixes to the host output device."
 msgstr ""
@@ -3596,7 +3597,7 @@ msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly 
 msgstr ""
 
 msgid "CGA lightpen"
-msgstr ""
+msgstr "CGA lightpen"
 
 msgid "Luminance threshold (%)"
-msgstr ""
+msgstr "Parıltı eşiği (%)"
