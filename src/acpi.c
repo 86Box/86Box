@@ -2345,7 +2345,7 @@ acpi_apm_out(uint16_t port, uint8_t val, void *priv)
 
     acpi_log("[%04X:%08X] APM write: %04X = %02X (AX = %04X, BX = %04X, CX = %04X)\n", CS, cpu_state.pc, port, val, AX, BX, CX);
 
-    port &= 0x0001;
+    port &= (dev->vendor == VEN_ALI) ? 0x0003 : 0x0001;
 
     if (dev->vendor == VEN_ALI) {
         if (port == 0x0001) {
@@ -2376,7 +2376,7 @@ acpi_apm_in(uint16_t port, void *priv)
     const acpi_t *dev = (acpi_t *) priv;
     uint8_t       ret = 0xff;
 
-    port &= 0x0001;
+    port &= (dev->vendor == VEN_ALI) ? 0x0003 : 0x0001;
 
     if (dev->vendor == VEN_ALI) {
         if (port == 0x0001)
