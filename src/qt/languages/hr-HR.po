@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-02 19:23+0000\n"
+"PO-Revision-Date: 2026-10-02 19:29+0000\n"
 "Last-Translator: dob205 <dominik.babic0@gmail.com>\n"
 "Language-Team: Croatian <https://weblate.86box.net/projects/86box/86box/hr/>"
 "\n"
@@ -1281,7 +1281,7 @@ msgid "Use regular expressions in search box"
 msgstr "U polju za pretraživanje koristite regularne izraze"
 
 msgid "Delete virtual machines to Recycle Bin"
-msgstr ""
+msgstr "Izbrisate virtualne sisteme u Koš za smeće"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -1503,16 +1503,18 @@ msgid "ACP&I shutdown"
 msgstr "ACP&I bazirano gašenje"
 
 msgid "Power off"
-msgstr ""
+msgstr "Isključite"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "Isključite&…"
 
 msgid "Power &off"
-msgstr ""
+msgstr "Isključite&"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
+"Isključivanje emuliranog sistema može dovesti do gubitka podataka. Jeste li "
+"sigurni da želite nastaviti?"
 
 msgid "Hard disk (%1)"
 msgstr "Tvrdi disk (%1)"
