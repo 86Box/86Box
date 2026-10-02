@@ -1986,7 +1986,16 @@ fdc_callback(void *priv)
         case -3: /*End of command with interrupt*/
         case -4: /*Recalibrate/seek completion (PCjr/JX polled status)*/
             fdc_int(fdc, fdc->interrupt & 1);
-            fdc->stat = (fdc->stat & 0xf) | 0x80;
+            /*
+               A completion can land while the CPU is still reading out a
+               result phase - the command's own timer and the result phase
+               are independent. Overwriting the status there would make the
+               FDC drop the result bytes it has not handed over yet, so only
+               take the status back to idle once the result phase is done;
+               The last byte read leaves the same 0x80 behind by itself.
+             */
+            if (!fdc->paramstogo)
+                fdc->stat = (fdc->stat & 0xf) | 0x80;
             return;
         case -2: /*End of command*/
             fdc->stat = (fdc->stat & 0xf) | 0x80;
