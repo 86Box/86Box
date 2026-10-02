@@ -3408,7 +3408,7 @@ mach64_common_init(const device_t *info)
         mach64->isa_8bit = (device_get_config_int("bus_width") == 8);
     mach64->ati_io[0] = 0xce; /* 1CEh, offset 2 (VGA Register Guide 5-1) */
     mach64->ati_io[1] = 0x81;
-    mach64->vram_size = (mach64->type == MACH64_CT || mach64->type == MACH64_VT || mach64->type == MACH64_VT3) ? 2 : ((info->local & (1 << 20)) ? 4 : device_get_config_int("memory"));
+    mach64->vram_size = (mach64->type == MACH64_CT || mach64->type == MACH64_VT || mach64->type == MACH64_VT3) ? 2 : (device_get_config_int("memory"));
     mach64->vram_mask = (mach64->vram_size << 20) - 1;
     mach64->io_base = 0; /* PCI 40h select: 0 = 2ECh */
 
@@ -4042,6 +4042,27 @@ static const device_config_t mach64vt2_config[] = {
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
+
+static const device_config_t mach64gtb_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 // clang-format on
 
 const device_t mach64gx_isa_device = {
@@ -4189,14 +4210,14 @@ const device_t mach64gtb_device = {
     .name          = "ATI 3D Rage II+ DVD",
     .internal_name = "mach64_rage2p",
     .flags         = DEVICE_PCI,
-    .local         = MACH64_GTB | (1 << 20), /* 4 MB */
+    .local         = MACH64_GTB,
     .init          = mach64gtb_init,
     .close         = mach64_close,
     .reset         = mach64_reset,
     .available     = mach64gtb_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
-    .config        = NULL
+    .config        = mach64gtb_config
 };
 
 const device_t mach64vt3_onboard_device = {
