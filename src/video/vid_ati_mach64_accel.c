@@ -352,6 +352,29 @@ start_blit_op:
         case 0x2d8 ... 0x2db:
             WRITE8(addr, mach64->dp_src, val);
             break;
+        /* DP_FRGD_CLR_MIX (0_B7) loads the foreground color's low 16 bits
+           and both mixes, DP_FRGD_BKGD_CLR (0_B8) both colors' low 16 bits,
+           for 16 bpp and below (RRG-G03300 5-44, 5-45). The GT-B is given
+           them as it is DST_X_Y from the same block: ATI's 5.24 Windows 95
+           driver, which lists the RAGE IIC (a Rage II+ with AGP), draws
+           disabled text with them at 15 bpp. */
+        case 0x2dc ... 0x2dd:
+        case 0x2e0 ... 0x2e1:
+            if (mach64->type >= MACH64_GTB)
+                WRITE8(addr, mach64->dp_frgd_clr, val);
+            break;
+        case 0x2de:
+            if (mach64->type >= MACH64_GTB)
+                mach64->dp_mix = (mach64->dp_mix & ~(0x1f << 16)) | ((val & 0x1f) << 16);
+            break;
+        case 0x2df:
+            if (mach64->type >= MACH64_GTB)
+                mach64->dp_mix = (mach64->dp_mix & ~0x1f) | (val & 0x1f);
+            break;
+        case 0x2e2 ... 0x2e3:
+            if (mach64->type >= MACH64_GTB)
+                WRITE8(addr - 2, mach64->dp_bkgd_clr, val);
+            break;
         case 0x2fc ... 0x2ff:
             WRITE8(addr, mach64->dp_set_gui_engine, val);
             mach64_recalc_dp_set_engine(mach64);
