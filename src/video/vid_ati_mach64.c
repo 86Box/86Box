@@ -657,12 +657,22 @@ mach64_map_aperture(mach64_t *mach64, mem_mapping_t *map, int ap_8m, uint32_t of
     mach64_mapping_set(map, (uint32_t) start, size);
 }
 
+/* The address bits of the PCI ROM BAR's second byte: bit 15, as a 32K ROM
+   needs (PCI 2.1, 6.2.5.2), but none on the 3D Rage II+. It decodes bits
+   31:16, bits 15:8 being "Reserved. Always 00h" (VT/RAGE RRG 7-3), so its 36K
+   ROM gets a 64K window and stays below 4 GB wherever the BAR is put. */
+static uint8_t
+mach64_rom_bar_byte1(const mach64_t *mach64)
+{
+    return mach64->pci_regs[0x31] & ((mach64->type == MACH64_GTB) ? 0x00 : 0x80);
+}
+
 /* The video BIOS ROM: at the PCI ROM BAR while it is enabled on PCI, at
    C0000 otherwise, and on no address at all while BUS_ROM_DIS (BUS_CNTL
    bit 12, "ROM disabled", RRG 3-2) is set -- how a second card's BIOS gets
    out of the first one's way. BUS_ROM_PAGE (11:8) selects a page of a ROM
-   larger than the window; the ROMs here fit their window, 32K but for the
-   3D Rage II+'s 36K, so it is stored and nothing more. */
+   larger than the window; the ROMs here fit their window, so it is stored
+   and nothing more. */
 static void
 mach64_update_rom(mach64_t *mach64)
 {
@@ -674,9 +684,7 @@ mach64_update_rom(mach64_t *mach64)
     }
     if (mach64->pci) {
         if (mach64->pci_regs[PCI_REG_ROM_BAR_BYTE0] & 0x01) {
-            uint32_t biosaddr = ((mach64->pci_regs[0x31] & 0x80) << 8) | (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
-            if (mach64->type == MACH64_GTB)
-                biosaddr = (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
+            uint32_t biosaddr = (mach64_rom_bar_byte1(mach64) << 8) | (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
 
             mach64_log("Mach64 bios_rom enabled at %08x\n", biosaddr);
             mach64_mapping_set(&mach64->bios_rom.mapping, biosaddr, mach64->bios_rom.sz);
@@ -3215,8 +3223,7 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
         case PCI_REG_ROM_BAR_BYTE0:
             return (mach64->on_board) ? 0 : (mach64->pci_regs[0x30] & 0x01); /*BIOS ROM address*/
         case PCI_REG_ROM_BAR_BYTE1:
-            /* The ROM is 32K: address bits 31:15 (PCI 2.1, 6.2.5.2). */
-            return (mach64->on_board) ? 0 : (mach64->pci_regs[0x31] & 0x80);
+            return (mach64->on_board) ? 0 : mach64_rom_bar_byte1(mach64);
         case PCI_REG_ROM_BAR_BYTE2:
             return (mach64->on_board) ? 0 : mach64->pci_regs[0x32];
         case PCI_REG_ROM_BAR_BYTE3:
