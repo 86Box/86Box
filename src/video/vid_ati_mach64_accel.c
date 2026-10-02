@@ -553,8 +553,8 @@ mach64_fifo_thread(void *param)
     }
 }
 
-void
-mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
+static void
+mach64_queue_fifo(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 {
     fifo_entry_t *fifo = &mach64->fifo[mach64->fifo_write_idx & FIFO_MASK];
     int limit = 0;
@@ -608,6 +608,15 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
         mach64_wake_fifo_thread(mach64);
     if (FIFO_ENTRIES > 0xe000 || FIFO_ENTRIES < 8)
         mach64_wake_fifo_thread(mach64);
+}
+
+/* A register write to the draw engine. The 3D Rage II+'s 3D and scaler
+   registers go to its 3D engine at once, the rest through the FIFO. */
+void
+mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
+{
+    if (!mach64->gt3d || !mach64_3d_write(mach64, addr, val, type))
+        mach64_queue_fifo(mach64, addr, val, type);
 }
 
 /* Pixel access by the draw engine. Width is a mach64_width[] code: 0, 1

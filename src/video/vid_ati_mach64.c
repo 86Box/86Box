@@ -1253,10 +1253,13 @@ static int
 mach64_gtb_readb(mach64_t *mach64, uint32_t addr, uint8_t *val)
 {
     const uint32_t reg = addr & 0x3ff;
+    uint32_t       dword;
 
-    if (reg >= 0x100)
-        return 0;
-    if ((reg & 0xfc) == 0x78)
+    if (reg >= 0x100) {
+        if (!mach64_3d_read(mach64, addr, &dword))
+            return 0;
+        *val = dword >> ((addr & 3) * 8);
+    } else if ((reg & 0xfc) == 0x78)
         *val = mach64_gtb_gp_io_read(mach64, addr);
     else if (mach64_gtb_latched(reg))
         *val = mach64->gtb_regs[reg];
@@ -1862,14 +1865,18 @@ mach64_ext_readb(uint32_t addr, void *priv)
 uint16_t
 mach64_ext_readw(uint32_t addr, void *priv)
 {
-    const mach64_t *mach64 = (mach64_t *) priv;
-    uint16_t        ret    = 0xffff;
+    mach64_t *mach64 = (mach64_t *) priv;
+    uint16_t  ret    = 0xffff;
+    uint32_t  dword;
 
     const svga_t   *svga   = &mach64->svga;
 
     if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         ret = svga->mapping.read_w(addr, svga->mapping.priv);
     else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
+        /* A 3D register in one read, not two halves. */
+        if (mach64->gt3d && (addr & 0x400) && (addr & 0x300) && ((addr & 3) <= 2) && mach64_3d_read(mach64, addr, &dword))
+            return dword >> ((addr & 3) * 8);
         if (!(addr & 0x400)) {
             mach64_log("mach64_ext_readw: addr=%04x\n", addr);
             ret = mach64_ext_readb(addr, priv);
@@ -1895,14 +1902,17 @@ mach64_ext_readw(uint32_t addr, void *priv)
 uint32_t
 mach64_ext_readl(uint32_t addr, void *priv)
 {
-    const mach64_t *mach64 = (mach64_t *) priv;
-    uint32_t        ret    = 0xffffffff;
+    mach64_t *mach64 = (mach64_t *) priv;
+    uint32_t  ret    = 0xffffffff;
 
     const svga_t   *svga   = &mach64->svga;
 
     if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         ret = svga->mapping.read_l(addr, svga->mapping.priv);
     else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
+        /* A 3D register in one read, not four bytes. */
+        if (mach64->gt3d && (addr & 0x400) && (addr & 0x300) && !(addr & 3) && mach64_3d_read(mach64, addr, &ret))
+            return ret;
         if (!(addr & 0x400)) {
             mach64_log("mach64_ext_readl: addr=%04x\n", addr);
             ret = mach64_ext_readw(addr, priv);
@@ -3636,8 +3646,8 @@ mach64vt2_init(const device_t *info)
 }
 
 /*
- * The 3D Rage II+ DVD (GT-B, PCI ID GU): to the 2D engine and display of
- * the VT2 it adds SGRAM and the 3D engine of the 3D RAGE.
+ * The 3D Rage II+ DVD (GT-B, PCI ID GU): a VT2 with the 3D engine and the
+ * front-end scaler of the 3D RAGE (vid_ati_mach64_3d.c), and SGRAM.
  */
 static void *
 mach64gtb_init(const device_t *info)
@@ -3679,6 +3689,8 @@ mach64gtb_init(const device_t *info)
     io_sethandler(0x0102, 0x0001, mach64_gtb_genvs_in, NULL, NULL, mach64_gtb_genvs_out, NULL, NULL, mach64);
     io_sethandler(0x46e8, 0x0001, mach64_gtb_genena_in, NULL, NULL, mach64_gtb_genena_out, NULL, NULL, mach64);
     mach64_gtb_gp_io_drive(mach64);
+
+    mach64->gt3d = mach64_3d_init(mach64);
 
     svga->vblank_start = mach64_vblank_start;
     svga->adv_flags   |= FLAG_PANNING_ATI;
@@ -3780,6 +3792,7 @@ mach64_close(void *priv)
     if (mach64->type == MACH64_GTB) {
         io_removehandler(0x0102, 0x0001, mach64_gtb_genvs_in, NULL, NULL, mach64_gtb_genvs_out, NULL, NULL, mach64);
         io_removehandler(0x46e8, 0x0001, mach64_gtb_genena_in, NULL, NULL, mach64_gtb_genena_out, NULL, NULL, mach64);
+        mach64_3d_close(mach64->gt3d);
     }
 
     svga_close(&mach64->svga);

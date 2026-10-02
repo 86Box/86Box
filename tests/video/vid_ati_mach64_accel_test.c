@@ -94,6 +94,17 @@ pclog(const char *format, ...)
     (void) format;
 }
 
+/* No 3D engine: every register belongs to the draw engine. */
+int
+mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
+{
+    (void) mach64;
+    (void) addr;
+    (void) val;
+    (void) type;
+    return 0;
+}
+
 static mach64_t *
 card_create(void)
 {
