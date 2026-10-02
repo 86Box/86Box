@@ -21,7 +21,8 @@ extern const device_t acc3221_device;
 /* Acer / ALi */
 extern const device_t ali5113_device;
 
-#define ALI5123_370 0x00100
+#define ALI5123_370      0x00100
+#define ALI5123_NO_UART3 0x00200 /* M1543 (non-C): logical device 5 is UART2, no UART3 */
 
 extern const device_t ali5123_device;
 
