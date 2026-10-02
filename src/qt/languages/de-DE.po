@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-02 19:09+0000\n"
+"PO-Revision-Date: 2026-10-02 19:10+0000\n"
 "Last-Translator: creopard <support@creopard.de>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
@@ -490,7 +490,7 @@ msgid "Tablet"
 msgstr "Tablet"
 
 msgid "&Tablet"
-msgstr "&Grafiktablett"
+msgstr "&Tablet"
 
 msgid "Tablet (&Crosshair)"
 msgstr "Grafiktablett (&Fadenkreuz)"
