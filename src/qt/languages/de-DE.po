@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 19:36+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-10-02 18:44+0000\n"
+"Last-Translator: creopard <support@creopard.de>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
 "MIME-Version: 1.0\n"
@@ -430,7 +430,7 @@ msgid "Dynamic recompiler"
 msgstr "Dynamischer Recompiler"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Genaue FPU-Umgebung beim dynamischen Recompiler"
 
 msgid "CPU frame size"
 msgstr "CPU-Framegröße"
