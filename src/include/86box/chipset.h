@@ -28,6 +28,7 @@ extern const device_t ali1435_device;
 extern const device_t ali1489_device;
 extern const device_t ali1531_device;
 extern const device_t ali1541_device;
+extern const device_t ali1541_rowdecode_device;
 
 #define ALI1543_SIO_370 0x10000ULL
 
