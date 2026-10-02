@@ -221,38 +221,59 @@ ps2_cache_clean(void)
 static uint8_t
 ps2_read_split_ram(uint32_t addr, void *priv)
 {
-    addr = (addr % (ps2.split_size << 10)) + ps2.split_phys;
-    return mem_read_ram(addr, priv);
+    addr = ((addr - ps2.split_addr) & 0x000fffff) + ps2.split_phys;
+    if (cpu_use_exec)
+        addreadlookup(mem_logical_addr, addr);
+    return ram[addr];
 }
 static uint16_t
 ps2_read_split_ramw(uint32_t addr, void *priv)
 {
-    addr = (addr % (ps2.split_size << 10)) + ps2.split_phys;
-    return mem_read_ramw(addr, priv);
+    addr = ((addr - ps2.split_addr) & 0x000fffff) + ps2.split_phys;
+    if (cpu_use_exec)
+        addreadlookup(mem_logical_addr, addr);
+    return *(uint16_t *) &ram[addr];
 }
 static uint32_t
 ps2_read_split_raml(uint32_t addr, void *priv)
 {
-    addr = (addr % (ps2.split_size << 10)) + ps2.split_phys;
-    return mem_read_raml(addr, priv);
+    addr = ((addr - ps2.split_addr) & 0x000fffff) + ps2.split_phys;
+    if (cpu_use_exec)
+        addreadlookup(mem_logical_addr, addr);
+    return *(uint32_t *) &ram[addr];
 }
 static void
 ps2_write_split_ram(uint32_t addr, uint8_t val, void *priv)
 {
-    addr = (addr % (ps2.split_size << 10)) + ps2.split_phys;
-    mem_write_ram(addr, val, priv);
+    uint32_t oldaddr = addr;
+    addr             = ((addr - ps2.split_addr) & 0x000fffff) + ps2.split_phys;
+    if (cpu_use_exec) {
+        addwritelookup(mem_logical_addr, addr);
+        mem_write_ramb_page(addr, val, &pages[oldaddr >> 12]);
+    } else
+        ram[addr] = val;
 }
 static void
 ps2_write_split_ramw(uint32_t addr, uint16_t val, void *priv)
 {
-    addr = (addr % (ps2.split_size << 10)) + ps2.split_phys;
-    mem_write_ramw(addr, val, priv);
+    uint32_t oldaddr = addr;
+    addr             = ((addr - ps2.split_addr) & 0x000fffff) + ps2.split_phys;
+    if (cpu_use_exec) {
+        addwritelookup(mem_logical_addr, addr);
+        mem_write_ramw_page(addr, val, &pages[oldaddr >> 12]);
+    } else
+        *(uint16_t *) &ram[addr] = val;
 }
 static void
 ps2_write_split_raml(uint32_t addr, uint32_t val, void *priv)
 {
-    addr = (addr % (ps2.split_size << 10)) + ps2.split_phys;
-    mem_write_raml(addr, val, priv);
+    uint32_t oldaddr = addr;
+    addr             = ((addr - ps2.split_addr) & 0x000fffff) + ps2.split_phys;
+    if (cpu_use_exec) {
+        addwritelookup(mem_logical_addr, addr);
+        mem_write_raml_page(addr, val, &pages[oldaddr >> 12]);
+    } else
+        *(uint32_t *) &ram[addr] = val;
 }
 
 #define PS2_SETUP_IO      0x80
@@ -1900,9 +1921,68 @@ ps2_mca_board_model_55sx_init(int has_sec_nvram, int slots)
 }
 
 static void
+mem_remap_top_ps2(int kb, uint32_t start, uint32_t phys_base)
+{
+    uint32_t        c;
+    uint32_t        size       = mem_size - 640;
+    int             set        = 1;
+    static int      old_kb     = 0;
+    static uint32_t old_start  = 0x00000000;
+    static uint32_t old_pb     = 0x00000000;
+    uint32_t        start_addr = 0;
+    uint32_t        addr = 0;
+
+    if (mem_size <= 640)
+        return;
+
+    /* Do not remap if we're have more than (16 MB - RAM) memory. */
+    if ((kb != 0) && (mem_size >= (16384 - kb)))
+        return;
+
+    if (kb == 0) {
+        kb        = old_kb;
+        start     = old_start;
+        phys_base = old_pb;
+        set       = 0;
+    } else {
+        old_kb    = kb;
+        old_start = start;
+        old_pb    = phys_base;
+    }
+
+    if (size > kb)
+        size = kb;
+
+    for (c = (start >> 12); c < ((start + (size << 10)) >> 12); c++) {
+        const uint32_t offset = c - (start >> 12);
+        addr = phys_base + (offset << 12);
+        if (start_addr == 0)
+            start_addr = addr;
+        pages[c].mem     = set ? &ram[addr] : page_ff;
+        if (c > (mem_size >> 10)) {
+            pages[c].write_b = set ? mem_write_ramb_page : NULL;
+            pages[c].write_w = set ? mem_write_ramw_page : NULL;
+            pages[c].write_l = set ? mem_write_raml_page : NULL;
+        } else {
+            pages[c].write_b = mem_write_ramb_page;
+            pages[c].write_w = mem_write_ramw_page;
+            pages[c].write_l = mem_write_raml_page;
+        }
+#ifdef USE_NEW_DYNAREC
+        pages[c].byte_dirty_mask        = &byte_dirty_mask[(addr >> 12) * 64];
+        pages[c].byte_code_present_mask = &byte_code_present_mask[(addr >> 12) * 64];
+#endif
+    }
+
+    flushmmucache();
+}
+
+static void
 mem_encoding_update(void)
 {
     mem_mapping_disable(&ps2.split_mapping);
+
+    mem_remap_top_ps2(0, 0, 0);
 
     if (ps2.split_size > 0)
         mem_set_mem_state(ps2.split_addr, ps2.split_size << 10, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
@@ -1940,9 +2020,12 @@ mem_encoding_update(void)
             ps2.split_phys = 0xa0000;
         }
 
+
         mem_set_mem_state(ps2.split_addr, ps2.split_size << 10, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
         mem_mapping_set_exec(&ps2.split_mapping, &ram[ps2.split_phys]);
         mem_mapping_set_addr(&ps2.split_mapping, ps2.split_addr, ps2.split_size << 10);
+
+        mem_remap_top_ps2(ps2.split_size, ps2.split_addr, ps2.split_phys);
 
         ps2_mca_log("PS/2 Model 80-111: Split memory block enabled at %08X\n", ps2.split_addr);
     } else {
