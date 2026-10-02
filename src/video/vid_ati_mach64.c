@@ -675,6 +675,8 @@ mach64_update_rom(mach64_t *mach64)
     if (mach64->pci) {
         if (mach64->pci_regs[PCI_REG_ROM_BAR_BYTE0] & 0x01) {
             uint32_t biosaddr = ((mach64->pci_regs[0x31] & 0x80) << 8) | (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
+            if (mach64->type == MACH64_GTB)
+                biosaddr = (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
 
             mach64_log("Mach64 bios_rom enabled at %08x\n", biosaddr);
             mach64_mapping_set(&mach64->bios_rom.mapping, biosaddr, mach64->bios_rom.sz);
