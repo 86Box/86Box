@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-02 06:25+0000\n"
-"Last-Translator: TheCawa <thecawax@gmail.com>\n"
+"PO-Revision-Date: 2026-10-02 03:39+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
 "MIME-Version: 1.0\n"
@@ -947,7 +947,7 @@ msgid "Press %1 or middle button to release mouse"
 msgstr "Нажмите %1 или среднюю кнопку мыши, чтобы освободить курсор"
 
 msgid "Press %1 or side button to release mouse"
-msgstr ""
+msgstr "Нажмите %1 или боковую кнопку мыши, чтобы освободить курсор"
 
 msgid "Bus"
 msgstr "Шина"
