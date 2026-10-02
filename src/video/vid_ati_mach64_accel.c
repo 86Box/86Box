@@ -1458,6 +1458,11 @@ mach64_load_context(mach64_t *mach64)
 // Overlay
 //
 
+/* OVERLAY_SCALE_CNTL (VT/RAGE RRG 5-8): pixel and line replication in place
+   of the horizontal and vertical blends. */
+#define SCALE_HORZ_MODE (1 << 2)
+#define SCALE_VERT_MODE (1 << 3)
+
 #define CLAMP(x)                      \
     do {                              \
         if ((x) & ~0xff)              \
@@ -1466,7 +1471,7 @@ mach64_load_context(mach64_t *mach64)
 
 #define DECODE_ARGB1555()                                            \
     do {                                                             \
-        for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) { \
+        for (x = 0; x < src_w; x++) {                                \
             uint16_t dat = ((uint16_t *) src)[x];                    \
                                                                      \
             int b = dat & 0x1f;                                      \
@@ -1477,13 +1482,13 @@ mach64_load_context(mach64_t *mach64)
             g = (g << 3) | (g >> 2);                                 \
             r = (r << 3) | (r >> 2);                                 \
                                                                      \
-            mach64->overlay_dat[x] = (r << 16) | (g << 8) | b;       \
+            out[x] = (r << 16) | (g << 8) | b;                       \
         }                                                            \
     } while (0)
 
 #define DECODE_RGB565()                                              \
     do {                                                             \
-        for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) { \
+        for (x = 0; x < src_w; x++) {                                \
             uint16_t dat = ((uint16_t *) src)[x];                    \
                                                                      \
             int b = dat & 0x1f;                                      \
@@ -1494,130 +1499,170 @@ mach64_load_context(mach64_t *mach64)
             g = (g << 2) | (g >> 4);                                 \
             r = (r << 3) | (r >> 2);                                 \
                                                                      \
-            mach64->overlay_dat[x] = (r << 16) | (g << 8) | b;       \
+            out[x] = (r << 16) | (g << 8) | b;                       \
         }                                                            \
     } while (0)
 
 #define DECODE_ARGB8888()                                            \
     do {                                                             \
-        for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) { \
+        for (x = 0; x < src_w; x++) {                                \
             int b = src[0];                                          \
             int g = src[1];                                          \
             int r = src[2];                                          \
             src += 4;                                                \
                                                                      \
-            mach64->overlay_dat[x] = (r << 16) | (g << 8) | b;       \
+            out[x] = (r << 16) | (g << 8) | b;                       \
         }                                                            \
     } while (0)
 
-#define DECODE_VYUY422()                                                 \
-    do {                                                                 \
-        for (x = 0; x < src_w; x += 1) {                                 \
-            uint8_t y1, y2;                                              \
-            int8_t  u, v;                                                \
-            int     dR, dG, dB;                                          \
-            int     r, g, b;                                             \
-                                                                         \
-            y1 = src[0];                                                 \
-            u  = src[1] - 0x80;                                          \
-            y2 = src[2];                                                 \
-            v  = src[3] - 0x80;                                          \
-            src += 4;                                                    \
-                                                                         \
-            dR = (359 * v) >> 8;                                         \
-            dG = (88 * u + 183 * v) >> 8;                                \
-            dB = (453 * u) >> 8;                                         \
-                                                                         \
-            r = y1 + dR;                                                 \
-            CLAMP(r);                                                    \
-            g = y1 - dG;                                                 \
-            CLAMP(g);                                                    \
-            b = y1 + dB;                                                 \
-            CLAMP(b);                                                    \
-            mach64->overlay_dat[x * 2] = (r << 16) | (g << 8) | b;       \
-                                                                         \
-            r = y2 + dR;                                                 \
-            CLAMP(r);                                                    \
-            g = y2 - dG;                                                 \
-            CLAMP(g);                                                    \
-            b = y2 + dB;                                                 \
-            CLAMP(b);                                                    \
-            mach64->overlay_dat[(x * 2) + 1] = (r << 16) | (g << 8) | b; \
-        }                                                                \
+/* The YUV decoders keep each pixel's Y in bits 7:0 and its pair's U and V in
+   15:8 and 23:16, for the blender; mach64_overlay_y2r converts after it. */
+#define DECODE_VYUY422()                                  \
+    do {                                                  \
+        for (x = 0; x < ((src_w + 1) >> 1); x++) {        \
+            uint32_t uv = (src[1] << 8) | (src[3] << 16); \
+                                                          \
+            out[x * 2]       = src[0] | uv;               \
+            out[(x * 2) + 1] = src[2] | uv;               \
+            src += 4;                                     \
+        }                                                 \
     } while (0)
 
-#define DECODE_YVYU422()                                                 \
-    do {                                                                 \
-        for (x = 0; x < src_w; x += 1) {                                 \
-            uint8_t y1, y2;                                              \
-            int8_t  u, v;                                                \
-            int     dR, dG, dB;                                          \
-            int     r, g, b;                                             \
-                                                                         \
-            u  = src[0] - 0x80;                                          \
-            y1 = src[1];                                                 \
-            v  = src[2] - 0x80;                                          \
-            y2 = src[3];                                                 \
-            src += 4;                                                    \
-                                                                         \
-            dR = (359 * v) >> 8;                                         \
-            dG = (88 * u + 183 * v) >> 8;                                \
-            dB = (453 * u) >> 8;                                         \
-                                                                         \
-            r = y1 + dR;                                                 \
-            CLAMP(r);                                                    \
-            g = y1 - dG;                                                 \
-            CLAMP(g);                                                    \
-            b = y1 + dB;                                                 \
-            CLAMP(b);                                                    \
-            mach64->overlay_dat[x * 2] = (r << 16) | (g << 8) | b;       \
-                                                                         \
-            r = y2 + dR;                                                 \
-            CLAMP(r);                                                    \
-            g = y2 - dG;                                                 \
-            CLAMP(g);                                                    \
-            b = y2 + dB;                                                 \
-            CLAMP(b);                                                    \
-            mach64->overlay_dat[(x * 2) + 1] = (r << 16) | (g << 8) | b; \
-        }                                                                \
+#define DECODE_YVYU422()                                  \
+    do {                                                  \
+        for (x = 0; x < ((src_w + 1) >> 1); x++) {        \
+            uint32_t uv = (src[0] << 8) | (src[2] << 16); \
+                                                          \
+            out[x * 2]       = src[1] | uv;               \
+            out[(x * 2) + 1] = src[3] | uv;               \
+            src += 4;                                     \
+        }                                                 \
     } while (0)
 
-#define DECODE_YUV12_PACKED()                                            \
-    do {                                                                 \
-        for (x = 0; x < src_w; x += 1) {                                 \
-            uint8_t y1, y2;                                              \
-            int8_t  u, v;                                                \
-            int     dR, dG, dB;                                          \
-            int     r, g, b;                                             \
-                                                                         \
-            u  = uvsrc[3] - 0x80;                                        \
-            y1 = src[0];                                                 \
-            v  = uvsrc[2] - 0x80;                                        \
-            y2 = src[1];                                                 \
-            src += 4;                                                    \
-            uvsrc += 4;                                                  \
-                                                                         \
-            dR = (359 * v) >> 8;                                         \
-            dG = (88 * u + 183 * v) >> 8;                                \
-            dB = (453 * u) >> 8;                                         \
-                                                                         \
-            r = y1 + dR;                                                 \
-            CLAMP(r);                                                    \
-            g = y1 - dG;                                                 \
-            CLAMP(g);                                                    \
-            b = y1 + dB;                                                 \
-            CLAMP(b);                                                    \
-            mach64->overlay_dat[x * 2] = (r << 16) | (g << 8) | b;       \
-                                                                         \
-            r = y2 + dR;                                                 \
-            CLAMP(r);                                                    \
-            g = y2 - dG;                                                 \
-            CLAMP(g);                                                    \
-            b = y2 + dB;                                                 \
-            CLAMP(b);                                                    \
-            mach64->overlay_dat[(x * 2) + 1] = (r << 16) | (g << 8) | b; \
-        }                                                                \
+#define DECODE_YUV12_PACKED()                                 \
+    do {                                                      \
+        for (x = 0; x < ((src_w + 1) >> 1); x++) {            \
+            uint32_t uv = (uvsrc[3] << 8) | (uvsrc[2] << 16); \
+                                                              \
+            out[x * 2]       = src[0] | uv;                   \
+            out[(x * 2) + 1] = src[1] | uv;                   \
+            src += 4;                                         \
+            uvsrc += 4;                                       \
+        }                                                     \
     } while (0)
+
+/* One line of the source: RGB widened to 24 bits, YUV as decoded. */
+static void
+mach64_overlay_decode(mach64_t *mach64, uint32_t *out, uint8_t *src, uint8_t *uvsrc, int src_w)
+{
+    int x;
+
+    switch (mach64->scaler_format) {
+        case 0x3:
+            DECODE_ARGB1555();
+            break;
+        case 0x4:
+            DECODE_RGB565();
+            break;
+        case 0x6:
+            DECODE_ARGB8888();
+            break;
+        case 0xa:
+            DECODE_YUV12_PACKED();
+            break;
+        case 0xb:
+            DECODE_VYUY422();
+            break;
+        case 0xc:
+            DECODE_YVYU422();
+            break;
+        default:
+            pclog("Unknown Mach64 scaler format %x\n", mach64->scaler_format);
+            /*Fill buffer with something recognisably wrong*/
+            for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++)
+                out[x] = 0xff00ff;
+            break;
+    }
+}
+
+/* Where YUV12 packed takes the U and V of source line y. */
+static uint8_t *
+mach64_overlay_uv_line(mach64_t *mach64, uint8_t *src, uint32_t y)
+{
+    /* Avoid corrupt UV data on YUV12 packed modes */
+    if (y >= 2)
+        return &mach64->svga.vram[mach64->overlay_base + mach64->svga.overlay.pitch * 2 * (!(y & 1) ? (y + 1) : y)];
+    return src;
+}
+
+static uint32_t
+mach64_overlay_y2r(uint32_t yuv)
+{
+    int y  = yuv & 0xff;
+    int u  = ((yuv >> 8) & 0xff) - 0x80;
+    int v  = ((yuv >> 16) & 0xff) - 0x80;
+    int dR = (359 * v) >> 8;
+    int dG = (88 * u + 183 * v) >> 8;
+    int dB = (453 * u) >> 8;
+    int r  = y + dR;
+    int g  = y - dG;
+    int b  = y + dB;
+
+    CLAMP(r);
+    CLAMP(g);
+    CLAMP(b);
+    return (r << 16) | (g << 8) | b;
+}
+
+/*
+ * The scaler blends YUV only and replicates RGB (VT/RAGE RRG 5-9). Its
+ * blender is a five-bit multiplier: (1 - alpha) times a pixel or line plus
+ * alpha times the next one, alpha the top five fraction bits of the
+ * accumulator. Where the next pixel or line fetched is two or more on, alpha
+ * gives way to "either a 50-50 blend or alpha = 0"; this takes the 50-50
+ * blend. (RAGE PRO and derivatives guide 8-6, of the VT's scaler.) How the
+ * blender rounds is not given.
+ */
+static int
+mach64_overlay_alpha(int acc, int next_acc)
+{
+    if (((next_acc >> 12) - (acc >> 12)) >= 2)
+        return 16;
+    return (acc >> 7) & 0x1f;
+}
+
+/* Bytes 0 to 2 of two pixels, blended. */
+static uint32_t
+mach64_overlay_blend(uint32_t first, uint32_t second, int alpha)
+{
+    uint32_t blended = 0;
+
+    for (int shift = 0; shift < 24; shift += 8) {
+        int a = (first >> shift) & 0xff;
+        int b = (second >> shift) & 0xff;
+
+        blended |= (uint32_t) (((a * (32 - alpha)) + (b * alpha) + 16) >> 5) << shift;
+    }
+    return blended;
+}
+
+/*
+ * One scaler output from a line of YUV: Y from pixel h_acc and the next, U
+ * and V from the pair at half of h_acc and the next pair, as subsampled U
+ * and V are scaled apart from Y (8-6 again).
+ */
+static uint32_t
+mach64_overlay_yuv(const uint32_t *line, int h_acc, int h_next, int h_max, int blend)
+{
+    int      h       = h_acc >> 12;
+    int      pair    = h_acc >> 13;
+    int      y_alpha = blend ? mach64_overlay_alpha(h_acc, h_next) : 0;
+    int      c_alpha = blend ? mach64_overlay_alpha(h_acc >> 1, h_next >> 1) : 0;
+    uint32_t y       = mach64_overlay_blend(line[h], line[MIN(h + 1, h_max)], y_alpha) & 0xff;
+    uint32_t uv      = mach64_overlay_blend(line[pair * 2], line[MIN(pair + 1, h_max >> 1) * 2], c_alpha) & 0xffff00;
+
+    return mach64_overlay_y2r(y | uv);
+}
 
 void
 mach64_overlay_draw(svga_t *svga, int displine)
@@ -1625,15 +1670,32 @@ mach64_overlay_draw(svga_t *svga, int displine)
     mach64_t *mach64 = (mach64_t *) svga->priv;
     int       x;
     int       h_acc = 0;
-    int       h_max = (mach64->scaler_height_width >> 16) & 0x3ff;
-    int       src_w = h_max;
+    int       src_w = (mach64->scaler_height_width >> 16) & 0x3ff;
+    int       src_h = mach64->scaler_height_width & 0x3ff;
+    /* Past its last pixel or line the source repeats it (VT/RAGE RRG 5-12). */
+    int       h_max = (src_w > 0) ? (src_w - 1) : 0;
     int       h_inc = mach64->overlay_scale_inc >> 16;
-    int       v_max = mach64->scaler_height_width & 0x3ff;
+    int       v_max = (src_h > 0) ? (src_h - 1) : 0;
     int       v_inc = mach64->overlay_scale_inc & 0xffff;
+    /* ECP_DIV (PLL_VCLK_CNTL 5:4, VT/RAGE RRG B-2; 3 is reserved) clocks
+       the scaler at VCLK/2 or VCLK/4. It then takes one HORZ_INC step per
+       two or four display pixels, and drivers multiply HORZ_INC to match. */
+    int       ecp_div  = (mach64->pll_regs[5] >> 4) & 3;
+    int       ecp_mask = (ecp_div == 3) ? 0 : ((1 << ecp_div) - 1);
+    /* YUV formats, the ones blended (mach64_overlay_alpha). */
+    int       yuv        = (mach64->scaler_format >= 0xa) && (mach64->scaler_format <= 0xc);
+    int       horz_blend = yuv && !(mach64->overlay_scale_cntl & SCALE_HORZ_MODE);
+    int       vert_blend = yuv && !(mach64->overlay_scale_cntl & SCALE_VERT_MODE);
+    int       v_acc      = mach64->overlay_v_acc;
+    int       v_next     = MIN(v_acc + v_inc, v_max << 12);
+    int       v_alpha    = vert_blend ? mach64_overlay_alpha(v_acc, v_next) : 0;
+    uint32_t  line_bytes = svga->overlay.pitch * ((mach64->scaler_format == 6) ? 4 : 2);
+    uint32_t *line       = mach64->overlay_dat;
+    uint32_t  blended[2048];
+    uint32_t  scaled[2048];
+    uint32_t  pixel = 0;
     uint32_t *p;
-    uint8_t  *src   = &svga->vram[svga->overlay.addr];
-    uint8_t  *uvsrc = src;
-    int       old_y = mach64->overlay_v_acc;
+    uint8_t  *src = &svga->vram[svga->overlay.addr];
     int       y_diff;
     int       video_key_fn    = mach64->overlay_key_cntl & 5;
     int       graphics_key_fn = (mach64->overlay_key_cntl >> 4) & 5;
@@ -1644,53 +1706,41 @@ mach64_overlay_draw(svga_t *svga, int displine)
 
     p = &buffer32->line[displine][svga->x_add + mach64->svga.overlay_latch.x];
 
-    if (mach64->overlay_cur_y >= 2) {
-        /* Avoid corrupt UV data on YUV12 packed modes */
-        uvsrc = &svga->vram[mach64->overlay_base + svga->overlay.pitch * 2 * (!(mach64->overlay_cur_y & 1) ? (mach64->overlay_cur_y + 1) : mach64->overlay_cur_y)];
-    }
-
+    /* The vertical blend takes the next line with this one. */
     if (mach64->scaler_update) {
-        switch (mach64->scaler_format) {
-            case 0x3:
-                DECODE_ARGB1555();
-                break;
-            case 0x4:
-                DECODE_RGB565();
-                break;
-            case 0x6:
-                DECODE_ARGB8888();
-                break;
-            case 0xa:
-                DECODE_YUV12_PACKED();
-                break;
-            case 0xb:
-                DECODE_VYUY422();
-                break;
-            case 0xc:
-                DECODE_YVYU422();
-                break;
-            default:
-                pclog("Unknown Mach64 scaler format %x\n", mach64->scaler_format);
-                /*Fill buffer with something recognisably wrong*/
-                for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++)
-                    mach64->overlay_dat[x] = 0xff00ff;
-                break;
-        }
+        mach64_overlay_decode(mach64, mach64->overlay_dat, src,
+                              mach64_overlay_uv_line(mach64, src, mach64->overlay_cur_y), src_w);
+        if (vert_blend && ((v_acc >> 12) < v_max))
+            mach64_overlay_decode(mach64, mach64->overlay_dat_next, src + line_bytes,
+                                  mach64_overlay_uv_line(mach64, src + line_bytes, mach64->overlay_cur_y + 1), src_w);
+    }
+    if (v_alpha) {
+        for (x = 0; x <= h_max; x++)
+            blended[x] = mach64_overlay_blend(mach64->overlay_dat[x], mach64->overlay_dat_next[x], v_alpha);
+        line = blended;
     }
 
-    if (overlay_cmp_mix == 2) {
-        for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) {
-            int h = h_acc >> 12;
+    for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) {
+        if (!(x & ecp_mask)) {
+            if (yuv)
+                pixel = mach64_overlay_yuv(line, h_acc, MIN(h_acc + h_inc, h_max << 12), h_max, horz_blend);
+            else
+                pixel = line[h_acc >> 12];
+        }
+        scaled[x] = pixel;
 
-            p[x] = mach64->overlay_dat[h];
-
+        if (((x + 1) & ecp_mask) == 0) {
             h_acc += h_inc;
             if (h_acc > (h_max << 12))
                 h_acc = (h_max << 12);
         }
+    }
+
+    if (overlay_cmp_mix == 2) {
+        for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++)
+            p[x] = scaled[x];
     } else {
         for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) {
-            int h         = h_acc >> 12;
             int gr_cmp    = 0;
             int vid_cmp   = 0;
             int use_video = 0;
@@ -1703,10 +1753,10 @@ mach64_overlay_draw(svga_t *svga, int displine)
                     vid_cmp = 1;
                     break;
                 case 4:
-                    vid_cmp = ((mach64->overlay_dat[h] ^ mach64->overlay_video_key_clr) & mach64->overlay_video_key_msk);
+                    vid_cmp = ((scaled[x] ^ mach64->overlay_video_key_clr) & mach64->overlay_video_key_msk);
                     break;
                 case 5:
-                    vid_cmp = !((mach64->overlay_dat[h] ^ mach64->overlay_video_key_clr) & mach64->overlay_video_key_msk);
+                    vid_cmp = !((scaled[x] ^ mach64->overlay_video_key_clr) & mach64->overlay_video_key_msk);
                     break;
                 default:
                     break;
@@ -1801,24 +1851,15 @@ mach64_overlay_draw(svga_t *svga, int displine)
             }
 
             if (use_video)
-                p[x] = mach64->overlay_dat[h];
-
-            h_acc += h_inc;
-            if (h_acc > (h_max << 12))
-                h_acc = (h_max << 12);
+                p[x] = scaled[x];
         }
     }
 
-    mach64->overlay_v_acc += v_inc;
-    if (mach64->overlay_v_acc > (v_max << 12))
-        mach64->overlay_v_acc = v_max << 12;
+    mach64->overlay_v_acc = v_next;
 
-    y_diff = (mach64->overlay_v_acc >> 12) - (old_y >> 12);
+    y_diff = (v_next >> 12) - (v_acc >> 12);
 
-    if (mach64->scaler_format == 6)
-        svga->overlay.addr += svga->overlay.pitch * 4 * y_diff;
-    else
-        svga->overlay.addr += svga->overlay.pitch * 2 * y_diff;
+    svga->overlay.addr += line_bytes * y_diff;
 
     mach64->scaler_update = y_diff;
     mach64->overlay_cur_y += y_diff;

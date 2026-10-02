@@ -337,6 +337,7 @@ typedef struct mach64_t {
     uint32_t cur_clr1;
 
     uint32_t overlay_dat[2048];
+    uint32_t overlay_dat_next[2048]; /* the source line after it, for the vertical blend */
     uint32_t overlay_graphics_key_clr;
     uint32_t overlay_graphics_key_msk;
     uint32_t overlay_video_key_clr;

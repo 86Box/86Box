@@ -21,6 +21,12 @@ Try to match your code's filename and append the type of test it is.
 
 Build `wd90c31_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^Wd90c31\.'` for register, BitBLT, host-transfer and hardware-cursor checks. The optional `video/wd90c31_bios_smoke.py` runs the supplied option ROMs in a complete SDL emulator using a synthetic AT BIOS. See [the WD90C31 hardware notes](../doc/hardware/wd90c31.md) for ROM paths, commands, tested modes and validation limits.
 
+# ATI Mach64
+
+Build `mach64_accel_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^Mach64\.'`. It includes the source it tests, for its private functions.
+
+`video/vid_ati_mach64_accel_test.c` checks the overlay's ECP clock division, source edges and YUV blends on the VT2.
+
 # Mitsumi
 
 The Mitsumi tests exercise the device implementation in isolation using mocked CD-ROM, DMA, interrupt and timer dependencies. They are device-level unit tests, not full-emulator or guest-driver integration tests. The benchmark measures performance and is not a correctness test.
