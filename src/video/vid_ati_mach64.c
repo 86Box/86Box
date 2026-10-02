@@ -3647,7 +3647,8 @@ mach64vt2_init(const device_t *info)
 
 /*
  * The 3D Rage II+ DVD (GT-B, PCI ID GU): a VT2 with the 3D engine and the
- * front-end scaler of the 3D RAGE (vid_ati_mach64_3d.c), and SGRAM.
+ * front-end scaler of the 3D RAGE (vid_ati_mach64_3d.c), SGRAM, and a timed
+ * draw engine (vid_ati_mach64_accel.c).
  */
 static void *
 mach64gtb_init(const device_t *info)
@@ -3690,7 +3691,8 @@ mach64gtb_init(const device_t *info)
     io_sethandler(0x46e8, 0x0001, mach64_gtb_genena_in, NULL, NULL, mach64_gtb_genena_out, NULL, NULL, mach64);
     mach64_gtb_gp_io_drive(mach64);
 
-    mach64->gt3d = mach64_3d_init(mach64);
+    mach64->gt3d   = mach64_3d_init(mach64);
+    mach64->timing = mach64_timing_init();
 
     svga->vblank_start = mach64_vblank_start;
     svga->adv_flags   |= FLAG_PANNING_ATI;
@@ -3793,6 +3795,7 @@ mach64_close(void *priv)
         io_removehandler(0x0102, 0x0001, mach64_gtb_genvs_in, NULL, NULL, mach64_gtb_genvs_out, NULL, NULL, mach64);
         io_removehandler(0x46e8, 0x0001, mach64_gtb_genena_in, NULL, NULL, mach64_gtb_genena_out, NULL, NULL, mach64);
         mach64_3d_close(mach64->gt3d);
+        mach64_timing_close(mach64->timing);
     }
 
     svga_close(&mach64->svga);

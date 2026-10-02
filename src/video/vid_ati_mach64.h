@@ -108,7 +108,8 @@ enum {
 #define MACH64_FLAG_DRAM    (1 << 17) /* the board's memory is DRAM (256Kx16), not VRAM */
 #define MACH64_PCI_IOCONFIG 0x40        // "User Defined Configuration"
 
-typedef struct mach64_3d_t mach64_3d_t;
+typedef struct mach64_3d_t     mach64_3d_t;
+typedef struct mach64_timing_t mach64_timing_t;
 
 typedef struct mach64_t {
     mem_mapping_t linear_mapping;
@@ -381,12 +382,13 @@ typedef struct mach64_t {
     void   *ddc;
 
     /* 3D Rage II+ (GT-B) */
-    mach64_3d_t  *gt3d;        /* 3D engine and scaler, vid_ati_mach64_3d.c */
-    mem_mapping_t aux_mapping; /* the register aperture at BAR2 */
-    uint32_t      aux_base;
-    uint8_t       gtb_regs[256]; /* control registers kept as written */
-    uint8_t       genena;        /* 46E8h */
-    uint8_t       genvs;         /* 102h */
+    mach64_3d_t     *gt3d;        /* 3D engine and scaler, vid_ati_mach64_3d.c */
+    mach64_timing_t *timing;      /* draw engine timing, vid_ati_mach64_accel.c */
+    mem_mapping_t    aux_mapping; /* the register aperture at BAR2 */
+    uint32_t         aux_base;
+    uint8_t          gtb_regs[256]; /* control registers kept as written */
+    uint8_t          genena;        /* 46E8h */
+    uint8_t          genvs;         /* 102h */
 } mach64_t;
 
 extern video_timings_t timing_mach64_isa;
@@ -491,10 +493,26 @@ void     mach64_fifo_discard(mach64_t *mach64);
 uint8_t  mach64_readb_be(uint32_t addr, void *priv);
 void     mach64_writeb_be(uint32_t addr, uint8_t val, void *priv);
 
-mach64_3d_t *mach64_3d_init(mach64_t *mach64);
-void         mach64_3d_close(mach64_3d_t *ctx);
-int          mach64_3d_read(mach64_t *mach64, uint32_t addr, uint32_t *val);
-int          mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type);
+/* What a 3D draw takes from the GT-B's memory, for the timing model. */
+typedef struct mach64_3d_work_t {
+    uint32_t pixels;
+    uint32_t rows;
+    uint32_t dst_bits;
+    uint32_t tex_bits;
+    uint32_t texels; /* fetched per pixel */
+    int      z_read;
+    int      z_write;
+    int      dst_read;
+} mach64_3d_work_t;
+
+mach64_3d_t     *mach64_3d_init(mach64_t *mach64);
+void             mach64_3d_close(mach64_3d_t *ctx);
+int              mach64_3d_read(mach64_t *mach64, uint32_t addr, uint32_t *val);
+int              mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type);
+mach64_timing_t *mach64_timing_init(void);
+void             mach64_timing_close(mach64_timing_t *timing);
+void             mach64_timing_3d(mach64_t *mach64, const mach64_3d_work_t *work);
+int              mach64_timing_status(mach64_t *mach64, uint32_t *used, int *busy);
 
 #ifdef ENABLE_MACH64_LOG
 extern int mach64_do_log;

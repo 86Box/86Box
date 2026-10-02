@@ -45,6 +45,7 @@
 #define SCALE_Y_INC    0x1f4
 #define SCALE_VACC     0x1f8
 #define SCALE_3D_CNTL  0x1fc
+#define FIFO_STAT      0x310
 #define GUI_STAT       0x338
 #define S_X_INC2       0x340
 #define S_Y_INC2       0x344
@@ -1696,6 +1697,36 @@ mach64_3d_dst_init(mach64_t *mach64, mach64_3d_dst_t *dst)
     return 1;
 }
 
+/* Tells the engine timing model the pixels and scan lines a draw walked and
+   what each pixel takes from memory. */
+static void
+mach64_3d_report_work(mach64_3d_t *ctx, uint32_t pixels, uint32_t rows)
+{
+    mach64_t        *mach64 = ctx->mach64;
+    uint32_t         cntl   = ctx->regs[SCALE_3D_CNTL >> 2];
+    uint32_t         z_cntl = ctx->regs[Z_CNTL >> 2];
+    int              fcn    = (cntl >> SCALE_3D_FCN_SHIFT) & 3;
+    int              z_test = (z_cntl >> Z_TEST_SHIFT) & 7;
+    int              blend  = (cntl >> TEX_BLEND_FCN) & 3;
+    int              z_on   = (z_cntl & Z_EN) && (((ctx->regs[Z_OFF_PITCH >> 2] >> 22) & 0x3ff) != 0);
+    mach64_3d_work_t work   = { 0 };
+
+    work.pixels   = pixels;
+    work.rows     = rows;
+    work.dst_bits = mach64_3d_bytes_per_pixel(mach64_3d_dst_format(mach64)) * 8;
+    if (fcn == FCN_TEXTURE) {
+        work.tex_bits = mach64_3d_bytes_per_pixel(mach64_3d_src_format(mach64)) * 8;
+        if (cntl & MIP_MAP_DISABLE)
+            work.texels = ((cntl & BILINEAR_TEX_EN) || (blend >= 2)) ? 4 : 1;
+        else
+            work.texels = (blend >= 2) ? 4 : ((blend == 1) ? 2 : ((cntl & BILINEAR_TEX_EN) ? 4 : 1));
+    }
+    work.z_read   = z_on && (z_test != 0) && (z_test != 7);
+    work.z_write  = z_on && !!(z_cntl & Z_MASK);
+    work.dst_read = (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND) || mach64_3d_destination_compare_enabled(mach64->clr_cmp_cntl);
+    mach64_timing_3d(mach64, &work);
+}
+
 /* What every pixel of a draw shares. */
 typedef struct mach64_3d_pixel_t {
     uint32_t            cntl;
@@ -1787,6 +1818,7 @@ mach64_3d_draw_trapezoid(mach64_3d_t *ctx, uint32_t cmd)
     int                z_pitch;
     int                dp_constant;
     int                initial_steps;
+    uint32_t           walked = 0;
     mach64_3d_dst_t    dst;
     mach64_3d_pixel_t  px;
     mach64_3d_interp_t p;
@@ -1870,6 +1902,7 @@ mach64_3d_draw_trapezoid(mach64_3d_t *ctx, uint32_t cmd)
             uint32_t addr   = dst.base + (y * dst.pitch + first) * dst.bpp;
             uint32_t z_addr = px.z_enabled ? (z_base + (y * z_pitch + first) * 2) : 0;
 
+            walked += end - first;
             if (px.textured) {
                 s    = mach64_3d_quad_at(p.s, p.sxi, p.sx2, n);
                 t    = mach64_3d_quad_at(p.t, p.txi, p.tx2, n);
@@ -1968,6 +2001,9 @@ mach64_3d_draw_trapezoid(mach64_3d_t *ctx, uint32_t cmd)
     ctx->regs[T_Y_INC >> 2]        = p.tyi;
     ctx->regs[T_XINC_START >> 2]   = p.txi;
     ctx->tex_hidden                = TEX_HIDDEN_ALL;
+
+    if (mach64->timing)
+        mach64_3d_report_work(ctx, walked, len);
 }
 
 /*
@@ -2108,6 +2144,9 @@ mach64_3d_draw_line(mach64_3d_t *ctx, uint32_t cmd)
     /* DST_X/Y end on the last pixel of the line, drawn or not: Windows
        chains connected lines from there. */
     mach64->dst_y_x = ((x & 0x1fff) << 16) | (y & 0x7fff);
+
+    if (mach64->timing)
+        mach64_3d_report_work(ctx, len, 0);
 }
 
 /*
@@ -2662,7 +2701,8 @@ mach64_3d_gui_stat(mach64_t *mach64)
 
     if (used && !mach64->blitter_busy)
         mach64_wake_fifo_thread(mach64);
-    busy = used || mach64->blitter_busy;
+    if (!mach64_timing_status(mach64, &used, &busy))
+        busy = used || mach64->blitter_busy;
 
     ret = ((used >= GT_FIFO_DEPTH) ? 0 : (GT_FIFO_DEPTH - used)) << 16;
     if (busy || mach64->accel.busy)
@@ -2690,10 +2730,19 @@ mach64_3d_read(mach64_t *mach64, uint32_t addr, uint32_t *val)
 {
     mach64_3d_t *ctx = mach64->gt3d;
     uint32_t     reg = addr & 0x3fc;
+    uint32_t     used;
+    int          busy;
 
     switch (reg) {
         case GUI_STAT:
             *val = mach64_3d_gui_stat(mach64);
+            return 1;
+        case FIFO_STAT:
+            /* A bit for each of the 16 entries shown in use: of the timed
+               FIFO, as the 2D one empties at once. */
+            if (!mach64_timing_status(mach64, &used, &busy))
+                return 0;
+            *val = (used >= 16) ? 0xffff : ((1u << used) - 1);
             return 1;
         case DST_BRES_LNTH:
             /* The 2D line length, unless the last command was a 3D one. */

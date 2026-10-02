@@ -6,10 +6,12 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Tests of the Mach64 draw engine and the overlay.
+ *          Tests of the Mach64 draw engine, the overlay and the 3D Rage
+ *          II+'s engine timing.
  *
  *          The engine is included as C, for its private functions. The
- *          FIFO thread runs on the test's own thread.
+ *          FIFO thread runs on the test's own thread, and a 1 GHz CPU
+ *          clock makes a time stamp tick a nanosecond.
  *
  * Authors: Avastrap2, <https://github.com/Avastrap2>
  *
@@ -39,10 +41,20 @@ int mach64_width[8] = { WIDTH_1BIT, WIDTH_4BIT, 0, 1, 1, 2, 2, 0 };
 
 monitor_t   monitors[MONITORS_NUM];
 int         monitor_index_global;
+cpu_state_t cpu_state;
+uint64_t    tsc;
+double      cpuclock      = 1000000000.0;
+int         cpu_pci_speed = 33333333;
+int         cpu_use_dynarec;
 
 static int       failures;
 static mach64_t *fifo_owner;
 static int       fifo_waits;
+
+void
+update_tsc(void)
+{
+}
 
 void
 thread_set_event(event_t *event)
@@ -129,6 +141,7 @@ card_create(void)
 static void
 card_close(mach64_t *mach64)
 {
+    mach64_timing_close(mach64->timing);
     free(mach64->svga.monitor);
     free(mach64->svga.changedvram);
     free(mach64->svga.vram);
@@ -513,12 +526,260 @@ overlay_tests(void)
     }
 }
 
+/*
+ * The 3D Rage II+'s engine timing.
+ */
+static int
+near(double a, double b, double tolerance)
+{
+    return ((a - b) <= tolerance) && ((b - a) <= tolerance);
+}
+
+static void
+timing_push(mach64_timing_t *timing, uint64_t arrival, int queued, int fifo_idx, uint64_t cost)
+{
+    mach64_timing_entry_t *e = &timing->ring[timing->tail++ & TIMING_RING_MASK];
+
+    e->arrival  = arrival;
+    e->start    = 0;
+    e->cost     = cost;
+    e->fifo_idx = fifo_idx;
+    e->queued   = queued;
+}
+
+/* The FIFO_STAT and GUI_STAT view at the given time. */
+static uint32_t
+timing_used(mach64_t *mach64, uint64_t now, int *busy)
+{
+    uint32_t used = 0;
+
+    tsc   = now;
+    *busy = 0;
+    mach64_timing_status(mach64, &used, busy);
+    return used;
+}
+
+static void
+timing_fifo_tests(void)
+{
+    mach64_t        *mach64 = card_create();
+    mach64_timing_t *timing = mach64->timing = mach64_timing_init();
+    uint32_t         used;
+    int              busy;
+
+    /* The engine takes the first entry at once; the others wait for its
+       10 ticks. */
+    timing_push(timing, 0, 0, 0, 10);
+    timing_push(timing, 0, 0, 0, 0);
+    timing_push(timing, 0, 0, 0, 100);
+    mach64_timing_fold(mach64);
+    CHECK((timing->fold == 3) && (timing->free_at == 110), "fold %u, free at %llu", timing->fold,
+          (unsigned long long) timing->free_at);
+    used = timing_used(mach64, 5, &busy);
+    CHECK((used == 2) && busy, "at 5: %u used, busy %d", used, busy);
+    used = timing_used(mach64, 10, &busy);
+    CHECK(used == 0, "at 10: %u used", used);
+    timing_used(mach64, 109, &busy);
+    CHECK(busy, "the engine is idle at 109");
+    timing_used(mach64, 110, &busy);
+    CHECK(!busy, "the engine is busy at 110");
+
+    /* An entry written to an idle engine starts when it arrives. */
+    timing_push(timing, 500, 0, 0, 20);
+    mach64_timing_fold(mach64);
+    CHECK((timing->ring[3].start == 500) && (timing->free_at == 520), "start %llu, free at %llu",
+          (unsigned long long) timing->ring[3].start, (unsigned long long) timing->free_at);
+    card_close(mach64);
+
+    /* A draw engine FIFO entry's cost is known once the FIFO thread has run
+       it; until then it holds the entries behind it. */
+    mach64 = card_create();
+    timing = mach64->timing = mach64_timing_init();
+    timing_push(timing, 0, 1, 3, 0);
+    timing_push(timing, 0, 0, 0, 5);
+    used = timing_used(mach64, 1000, &busy);
+    CHECK((timing->fold == 0) && (used == 2), "fold %u, %u used before the entry ran", timing->fold, used);
+    timing->fifo_ns[3]    = 21.0;
+    mach64->fifo_read_idx = mach64->fifo_write_idx = 4;
+    mach64_timing_fold(mach64);
+    CHECK((timing->fold == 2) && (timing->free_at == 26), "fold %u, free at %llu once it ran", timing->fold,
+          (unsigned long long) timing->free_at);
+    card_close(mach64);
+
+    /* A write to a full FIFO waits for the engine to take an entry. */
+    mach64 = card_create();
+    timing = mach64->timing = mach64_timing_init();
+    for (int i = 0; i <= TIMING_FIFO_DEPTH; i++)
+        timing_push(timing, 0, 0, 0, 100);
+    tsc    = 0;
+    cycles = 0;
+    mach64_timing_before_write(mach64);
+    CHECK((timing->floor == 100) && (cycles == -100) && ((timing->tail - timing->head) == (TIMING_FIFO_DEPTH - 1)),
+          "a full FIFO waited until %llu, %d cycles, %u used", (unsigned long long) timing->floor, cycles,
+          timing->tail - timing->head);
+    card_close(mach64);
+
+    /* Entries that a reset of the draw engine FIFO took away are dropped. */
+    mach64 = card_create();
+    timing = mach64->timing = mach64_timing_init();
+    for (int i = 0; i < TIMING_FIFO_DEPTH; i++)
+        timing_push(timing, 0, 1, 100 + i, 0);
+    mach64_timing_before_write(mach64);
+    CHECK(timing->tail == timing->head, "%u lost entries kept", timing->tail - timing->head);
+    card_close(mach64);
+}
+
+static void
+timing_clock_tests(void)
+{
+    uint8_t                pll[64] = { 0 };
+    mach64_timing_clocks_t c;
+    double                 pll_mclk;
+    mach64_t              *mach64;
+
+    pll[2]   = 0x21; /* PLL_REF_DIV */
+    pll[3]   = 0x10; /* MCLK_SRC_SEL: PLLMCLK / 2 */
+    pll[4]   = 0x96; /* MCLK_FB_DIV */
+    pll[11]  = 0x00; /* XCLK = MCLK = the source, 2 * MCLK_FB_DIV */
+    c        = mach64_timing_pll_clocks(pll, 33333333.0);
+    pll_mclk = PLL_REF_HZ * 2.0 * 0x96 / 0x21;
+    CHECK(near(c.mclk, pll_mclk / 2.0, 1.0) && near(c.xclk, pll_mclk / 2.0, 1.0), "MCLK %.0f, XCLK %.0f", c.mclk, c.xclk);
+
+    pll[11] = 0x04; /* MFB_TIMES_4_2B */
+    pll[3]  = 0x20; /* PLLMCLK / 4 */
+    c       = mach64_timing_pll_clocks(pll, 33333333.0);
+    CHECK(near(c.mclk, pll_mclk / 2.0, 1.0), "MFB_TIMES_4_2B: MCLK %.0f", c.mclk);
+
+    pll[11] = 0x06; /* XCLK_MCLK_RATIO 2: XCLK the source / 2, MCLK / 3 */
+    c       = mach64_timing_pll_clocks(pll, 33333333.0);
+    CHECK(near(c.xclk, pll_mclk / 4.0, 1.0) && near(c.mclk, pll_mclk / 6.0, 1.0), "ratio 2: XCLK %.0f, MCLK %.0f", c.xclk,
+          c.mclk);
+
+    /* An unprogrammed PLL is taken as 60 MHz. */
+    memset(pll, 0, sizeof(pll));
+    c = mach64_timing_pll_clocks(pll, 33333333.0);
+    CHECK((c.mclk == 60000000.0) && (c.xclk == 60000000.0), "unprogrammed: MCLK %.0f, XCLK %.0f", c.mclk, c.xclk);
+
+    /* 640x480 at 16 bpp and 25.175 MHz: 80 of 100 characters, 480 of 525
+       lines, two bytes a pixel of the 8 a memory cycle of 60 MHz moves. */
+    mach64                    = card_create();
+    mach64->crtc_gen_cntl     = 1 << 24;
+    mach64->crtc_h_total_disp = (79 << 16) | 99;
+    mach64->crtc_v_total_disp = (479 << 16) | 524;
+    mach64->pll_freq[0]       = 25175000.0;
+    mach64->svga.bpp          = 16;
+    c                         = mach64_timing_measure(mach64);
+    CHECK(near(c.crtc_fraction, 25175000.0 * 2.0 * (80.0 * 480.0) / (100.0 * 525.0) / (60000000.0 * 8.0), 1e-9),
+          "the display takes %.4f of the memory", c.crtc_fraction);
+    card_close(mach64);
+}
+
+static void
+timing_cost_tests(void)
+{
+    mach64_timing_clocks_t c = { 60000000.0, 60000000.0, 0.0 };
+    mach64_timing_rect_t   r = { 0 };
+    mach64_3d_work_t       t = { 0 };
+    mach64_timing_work_t   w;
+    mach64_timing_work_t   flat;
+    mach64_t              *mach64;
+    double                 take_ns;
+    double                 fill_ns;
+    uint64_t               expect;
+    uint32_t               used;
+    int                    busy;
+
+    /* A 640x480 16 bpp fill with a 1280-byte pitch: 76,800 qwords of one
+       cycle each, and 150 pages of 4 KiB opened once each (ATI 7.9.7). */
+    r.width     = 640;
+    r.height    = 480;
+    r.dst_pitch = 1280;
+    r.dst_bits  = 16;
+    w           = mach64_timing_rect_work(&r);
+    CHECK(near(w.memory_cycles, 76800.0 + 6.0 * 150.0, 0.5), "fill: %.1f memory cycles", w.memory_cycles);
+    CHECK(near(mach64_timing_seconds(&w, &c), 77700.0 / 60000000.0, 1e-9), "fill: %.9f s", mach64_timing_seconds(&w, &c));
+
+    /* The display's share of the memory slows memory-bound work. */
+    c.crtc_fraction = 0.25;
+    CHECK(near(mach64_timing_seconds(&w, &c), 77700.0 / 45000000.0, 1e-9), "fill with the display: %.9f s",
+          mach64_timing_seconds(&w, &c));
+    c.crtc_fraction = 0.0;
+
+    /* An XOR blit reads the source and the destination and writes the
+       destination: three accesses a qword in ATI's example. */
+    r.width     = 160;
+    r.height    = 120;
+    r.dst_pitch = 1024;
+    r.dst_bits  = 8;
+    r.src_bits  = 8;
+    r.dst_read  = 1;
+    w           = mach64_timing_rect_work(&r);
+    CHECK((w.memory_cycles > (120.0 * 20.0 * 3.0)) && (w.memory_cycles < (120.0 * 20.0 * 3.25 * 1.3)),
+          "XOR blit: %.1f memory cycles", w.memory_cycles);
+
+    /* An unaligned edge costs a read. */
+    memset(&r, 0, sizeof(r));
+    r.width     = 10;
+    r.height    = 1;
+    r.x         = 1;
+    r.dst_pitch = 4096;
+    r.dst_bits  = 16;
+    w           = mach64_timing_rect_work(&r);
+    CHECK(near(w.memory_cycles, 3.0 + 2.0 + 6.0, 0.5), "unaligned: %.1f memory cycles", w.memory_cycles);
+
+    /* Nothing to draw: the set-up only. */
+    r.width = 0;
+    w       = mach64_timing_rect_work(&r);
+    CHECK((w.memory_cycles == 0.0) && (w.engine_clocks > 0.0), "empty: %.1f memory cycles", w.memory_cycles);
+
+    /* A flat 16 bpp draw without Z is held by the engine, a pixel a clock;
+       a bilinear one with Z by the memory. */
+    t.pixels   = 1000;
+    t.rows     = 10;
+    t.dst_bits = 16;
+    flat       = mach64_timing_3d_work(&t);
+    CHECK(flat.engine_clocks > flat.memory_cycles, "flat: %.1f engine clocks, %.1f memory cycles", flat.engine_clocks,
+          flat.memory_cycles);
+    t.z_read   = 1;
+    t.z_write  = 1;
+    t.tex_bits = 16;
+    t.texels   = 4;
+    w          = mach64_timing_3d_work(&t);
+    CHECK(w.memory_cycles > w.engine_clocks, "bilinear with Z: %.1f engine clocks, %.1f memory cycles", w.engine_clocks,
+          w.memory_cycles);
+    CHECK(mach64_timing_seconds(&w, &c) > (mach64_timing_seconds(&flat, &c) * 1.5), "bilinear with Z is not slower");
+
+    /* A fill through the FIFO: its four writes take an XCLK each at the 60
+       MHz of an unprogrammed PLL, and the 256x128 fill on a 4096-byte pitch
+       128 qwords a line and a page a line. */
+    mach64         = card_create();
+    mach64->timing = mach64_timing_init();
+    tsc            = 0;
+    write_reg(mach64, 0x2fc, 0x0010a070); /* 32 bpp, 1024 pixels a line, a color fill */
+    write_reg(mach64, 0x2c4, 0x00c0c0c0);
+    write_reg(mach64, 0x10c, 0x00000000);
+    write_reg(mach64, 0x118, (256 << 16) | 128);
+    fifo_run(mach64);
+    take_ns = 1000000000.0 / 60000000.0;
+    fill_ns = ((128.0 * 128.0) + (6.0 * 128.0)) * take_ns;
+    expect  = (3 * mach64_timing_ticks(take_ns)) + mach64_timing_ticks(take_ns + fill_ns);
+    used    = timing_used(mach64, 0, &busy);
+    CHECK((used == 3) && busy && (mach64->timing->free_at == expect), "fill: %u used, busy %d, free at %llu, not %llu",
+          used, busy, (unsigned long long) mach64->timing->free_at, (unsigned long long) expect);
+    timing_used(mach64, expect, &busy);
+    CHECK(!busy, "fill: busy at %llu", (unsigned long long) expect);
+    card_close(mach64);
+}
+
 int
 main(void)
 {
     key_tests();
     gui_engine_tests();
     overlay_tests();
+    timing_fifo_tests();
+    timing_clock_tests();
+    timing_cost_tests();
 
     if (failures) {
         fprintf(stderr, "Mach64 draw engine: %d checks failed\n", failures);

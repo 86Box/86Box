@@ -9,8 +9,9 @@
  *          Tests of the 3D Rage II+ 3D engine and front-end scaler.
  *
  *          The engine is included as C, for its private functions, with
- *          the draw engine FIFO as a stub: register streams go to
- *          mach64_3d_write and the results come from video memory. The expected images are worked out here, not with the
+ *          the draw engine FIFO and the timing model as stubs: register
+ *          streams go to mach64_3d_write and the results come from video
+ *          memory. The expected images are worked out here, not with the
  *          engine's own helpers.
  *
  * Authors: Avastrap2, <https://github.com/Avastrap2>
@@ -62,6 +63,22 @@ void
 mach64_wake_fifo_thread(mach64_t *mach64)
 {
     (void) mach64;
+}
+
+void
+mach64_timing_3d(mach64_t *mach64, const mach64_3d_work_t *work)
+{
+    (void) mach64;
+    (void) work;
+}
+
+int
+mach64_timing_status(mach64_t *mach64, uint32_t *used, int *busy)
+{
+    (void) mach64;
+    (void) used;
+    (void) busy;
+    return 0;
 }
 
 static void
