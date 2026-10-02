@@ -54,6 +54,7 @@ mach64_recalc_dp_set_engine(mach64_t *mach64)
     mach64->sc_left_right = 0x1FFF0000;
     mach64->write_mask = ~0u;
     mach64->clr_cmp_clr = 0;
+    mach64->clr_cmp_cntl = 0;
     mach64->src_y_x_start = 0;
     mach64->src_cntl &= ~((3 << 13) | (1 << 5) | (1 << 12));
     mach64->dst_cntl &= ~(7 << 13);
@@ -183,8 +184,9 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
             break;
         case 0x2e8 ... 0x2eb:
             /* DST_X_Y (0_BA) and DST_WIDTH_HEIGHT (0_BB) are VT-B registers,
-               in neither the GX nor the VT book. */
-            if (mach64->type >= MACH64_VT3)
+               in neither the GX nor the VT book. The GT-B (Rage II+) is of
+               the same generation and keeps them. */
+            if (mach64->type >= MACH64_GTB)
                 WRITE8(addr ^ 2, mach64->dst_y_x, val);
             break;
         case 0x110 ... 0x111:
@@ -211,7 +213,7 @@ start_blit_op:
             break;
 
         case 0x2ec ... 0x2ef:
-            if (mach64->type < MACH64_VT3)
+            if (mach64->type < MACH64_GTB)
                 break;
             WRITE8(addr ^ 2, mach64->dst_height_width, val);
             mach64->dst_bres_lnth = (mach64->dst_bres_lnth & ~0x7fff) | ((mach64->dst_height_width >> 16) & 0x1fff);
@@ -922,9 +924,17 @@ mach64_accel_common(mach64_t *mach64)
         }
     }
 
-    /* Scissors are signed: 13 bits across, 15 down (RRG 3-78..3-83). */
-    mach64->accel.sc_left   = mach64_sext(mach64->sc_left_right & 0x1fff, 13);
-    mach64->accel.sc_right  = mach64_sext((mach64->sc_left_right >> 16) & 0x1fff, 13);
+    /* Scissors are signed: 13 bits across, 15 down (RRG 3-78..3-83). The
+       GT-B's are 14 bits across, as on the RAGE LT PRO (RRG-G03300 5-40): its
+       DP_SET_GUI_ENGINE opens them with SC_RIGHT 1FFFh (5-54), which as 13
+       bits would be -1 and clip everything the Rage II+ driver draws. */
+    {
+        const int      sc_bits = (mach64->type == MACH64_GTB) ? 14 : 13;
+        const uint32_t sc_mask = (1u << sc_bits) - 1;
+
+        mach64->accel.sc_left  = mach64_sext(mach64->sc_left_right & sc_mask, sc_bits);
+        mach64->accel.sc_right = mach64_sext((mach64->sc_left_right >> 16) & sc_mask, sc_bits);
+    }
     mach64->accel.sc_top    = mach64_sext(mach64->sc_top_bottom & 0x7fff, 15);
     mach64->accel.sc_bottom = mach64_sext((mach64->sc_top_bottom >> 16) & 0x7fff, 15);
 
@@ -1026,10 +1036,10 @@ mach64_blit_calc_cmp_clr(mach64_t* mach64, uint32_t src_dat, uint32_t dest_dat)
         case 1: /*TRUE*/
             cmp_clr = 1;
             break;
-        case 4: /*DST_CLR != CLR_CMP_CLR*/
+        case 4: /*SELECTED_CLR != CLR_CMP_CLR*/
             cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) != mach64->accel.clr_cmp_clr;
             break;
-        case 5: /*DST_CLR == CLR_CMP_CLR*/
+        case 5: /*SELECTED_CLR == CLR_CMP_CLR*/
             cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) == mach64->accel.clr_cmp_clr;
             break;
         default:
@@ -1551,6 +1561,33 @@ mach64_load_context(mach64_t *mach64)
         }                                                     \
     } while (0)
 
+/* A 15 or 16-bit pixel, or each bit of a mask of them, as the overlay
+   decoders widen it to 24 bits. */
+static uint32_t
+mach64_overlay_rgb888(uint16_t pixel, int format)
+{
+    uint32_t r = (format == 3) ? ((pixel >> 10) & 0x1f) : ((pixel >> 11) & 0x1f);
+    uint32_t g = (format == 3) ? ((pixel >> 5) & 0x1f) : ((pixel >> 5) & 0x3f);
+    uint32_t b = pixel & 0x1f;
+
+    r = (r << 3) | (r >> 2);
+    g = (format == 3) ? ((g << 3) | (g >> 2)) : ((g << 2) | (g >> 4));
+    b = (b << 3) | (b >> 2);
+    return (r << 16) | (g << 8) | b;
+}
+
+static uint32_t
+mach64_overlay_mask888(uint16_t mask, int format)
+{
+    uint32_t expanded = 0;
+
+    for (int bit = 0; bit < ((format == 3) ? 15 : 16); bit++) {
+        if (mask & (1 << bit))
+            expanded |= mach64_overlay_rgb888(1 << bit, format);
+    }
+    return expanded;
+}
+
 /* One line of the source: RGB widened to 24 bits, YUV as decoded. */
 static void
 mach64_overlay_decode(mach64_t *mach64, uint32_t *out, uint8_t *src, uint8_t *uvsrc, int src_w)
@@ -1700,11 +1737,26 @@ mach64_overlay_draw(svga_t *svga, int displine)
     int       video_key_fn    = mach64->overlay_key_cntl & 5;
     int       graphics_key_fn = (mach64->overlay_key_cntl >> 4) & 5;
     int       overlay_cmp_mix = (mach64->overlay_key_cntl >> 8) & 0xf;
+    uint32_t  video_key_clr   = mach64->overlay_video_key_clr;
+    uint32_t  video_key_msk   = mach64->overlay_video_key_msk;
     int       gfx_src         = 0;
     int       desktop_x = mach64->svga.overlay_latch.x;
     int       desktop_y = displine - svga->y_add;
 
     p = &buffer32->line[displine][svga->x_add + mach64->svga.overlay_latch.x];
+
+    if (mach64->type == MACH64_GTB) {
+        /* The GT-B's mixer is OVERLAY_KEY_CNTL bit 8 alone: the graphics
+           key, or the graphics and the video key (functions 0h and Ch). It
+           compares 15 and 16-bit video in that format, the one its key is
+           written in. */
+        overlay_cmp_mix = (mach64->overlay_key_cntl & 0x100) ? 0xc : 0x0;
+        if ((((mach64->overlay_key_cntl & 7) == 4) || ((mach64->overlay_key_cntl & 7) == 5)) &&
+            ((mach64->scaler_format == 3) || (mach64->scaler_format == 4))) {
+            video_key_clr = mach64_overlay_rgb888(video_key_clr, mach64->scaler_format);
+            video_key_msk = mach64_overlay_mask888(video_key_msk, mach64->scaler_format);
+        }
+    }
 
     /* The vertical blend takes the next line with this one. */
     if (mach64->scaler_update) {
@@ -1753,10 +1805,10 @@ mach64_overlay_draw(svga_t *svga, int displine)
                     vid_cmp = 1;
                     break;
                 case 4:
-                    vid_cmp = ((scaled[x] ^ mach64->overlay_video_key_clr) & mach64->overlay_video_key_msk);
+                    vid_cmp = ((scaled[x] ^ video_key_clr) & video_key_msk);
                     break;
                 case 5:
-                    vid_cmp = !((scaled[x] ^ mach64->overlay_video_key_clr) & mach64->overlay_video_key_msk);
+                    vid_cmp = !((scaled[x] ^ video_key_clr) & video_key_msk);
                     break;
                 default:
                     break;

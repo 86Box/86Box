@@ -25,7 +25,7 @@ Build `wd90c31_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build 
 
 Build `mach64_accel_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^Mach64\.'`. It includes the source it tests, for its private functions.
 
-`video/vid_ati_mach64_accel_test.c` checks the overlay's ECP clock division, source edges and YUV blends on the VT2.
+`video/vid_ati_mach64_accel_test.c` runs the draw engine's FIFO thread on the test's own thread. It checks the color compare of transparent blits as the 3D Rage II+ DirectDraw driver writes them, `DP_SET_GUI_ENGINE` and the scissors it opens, and the overlay's ECP clock division, source edges and YUV blends on the VT2 and the GT-B.
 
 # Mitsumi
 

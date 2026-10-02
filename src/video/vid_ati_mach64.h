@@ -62,6 +62,7 @@
 #define BIOS_ROMCT_PATH               "roms/video/mach64/mach64-68b110b8cddfd546595673.bin"
 #define BIOS_ROMVT_PATH               "roms/video/mach64/mach64vt-660c60c135839345779942.bin"
 #define BIOS_ROMVT2_PATH              "roms/video/mach64/atimach64vt2pci.bin"
+#define BIOS_ROMGTB_PATH              "roms/video/mach64/ARS2D.bin"
 
 #define FIFO_SIZE         65536
 #define FIFO_MASK         (FIFO_SIZE - 1)
@@ -99,6 +100,7 @@ enum {
     MACH64_CT,
     MACH64_VT,
     MACH64_VT2,
+    MACH64_GTB, /* 3D Rage II+; before the VT3, whose GP_IO DDC it does not have */
     MACH64_VT3
 };
 
@@ -375,6 +377,13 @@ typedef struct mach64_t {
     void   *i2c;
     void   *i2c_tv;
     void   *ddc;
+
+    /* 3D Rage II+ (GT-B) */
+    mem_mapping_t aux_mapping; /* the register aperture at BAR2 */
+    uint32_t      aux_base;
+    uint8_t       gtb_regs[256]; /* control registers kept as written */
+    uint8_t       genena;        /* 46E8h */
+    uint8_t       genvs;         /* 102h */
 } mach64_t;
 
 extern video_timings_t timing_mach64_isa;

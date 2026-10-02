@@ -6,9 +6,10 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Tests of the Mach64 overlay.
+ *          Tests of the Mach64 draw engine and the overlay.
  *
- *          The engine is included as C, for its private functions.
+ *          The engine is included as C, for its private functions. The
+ *          FIFO thread runs on the test's own thread.
  *
  * Authors: Avastrap2, <https://github.com/Avastrap2>
  *
@@ -39,7 +40,9 @@ int mach64_width[8] = { WIDTH_1BIT, WIDTH_4BIT, 0, 1, 1, 2, 2, 0 };
 monitor_t   monitors[MONITORS_NUM];
 int         monitor_index_global;
 
-static int failures;
+static int       failures;
+static mach64_t *fifo_owner;
+static int       fifo_waits;
 
 void
 thread_set_event(event_t *event)
@@ -53,11 +56,15 @@ thread_reset_event(event_t *event)
     (void) event;
 }
 
+/* The FIFO thread's loop runs once: its second wait ends it. */
 int
 thread_wait_event(event_t *event, int timeout)
 {
     (void) event;
     (void) timeout;
+
+    if (fifo_owner && (++fifo_waits > 1))
+        fifo_owner->thread_run = 0;
     return 0;
 }
 
@@ -104,7 +111,7 @@ card_create(void)
     mach64->svga.priv = mach64;
     mach64->vram_size = VRAM_SIZE;
     mach64->vram_mask = VRAM_SIZE - 1;
-    mach64->type      = MACH64_VT2;
+    mach64->type      = MACH64_GTB;
     return mach64;
 }
 
@@ -118,6 +125,33 @@ card_close(mach64_t *mach64)
 }
 
 static void
+write_reg(mach64_t *mach64, uint32_t addr, uint32_t val)
+{
+    mach64_queue(mach64, addr, val, FIFO_WRITE_DWORD);
+}
+
+/* Runs what is queued, as the FIFO thread does. */
+static void
+fifo_run(mach64_t *mach64)
+{
+    fifo_owner         = mach64;
+    fifo_waits         = 0;
+    mach64->thread_run = 1;
+    mach64_fifo_thread(mach64);
+    fifo_owner = NULL;
+}
+
+static uint32_t
+vram_read(const mach64_t *mach64, int bpp, uint32_t addr)
+{
+    uint32_t val = 0;
+
+    for (int i = 0; i < (bpp >> 3); i++)
+        val |= (uint32_t) mach64->svga.vram[(addr + i) & mach64->vram_mask] << (i << 3);
+    return val;
+}
+
+static void
 vram_write(mach64_t *mach64, int bpp, uint32_t addr, uint32_t val)
 {
     for (int i = 0; i < (bpp >> 3); i++)
@@ -125,9 +159,183 @@ vram_write(mach64_t *mach64, int bpp, uint32_t addr, uint32_t val)
 }
 
 /*
+ * Color compare: a write is inhibited where the compare is true. Each case
+ * is a transparent blit as the Rage II+ DirectDraw driver writes it, from a
+ * 128-pixel pitch to the screen: 128x128 pixels to (100, 100) at 640x480,
+ * and at 16 bpp 64x64 pixels to (728, 8) at 800x600. The blit has two
+ * regions, the left and right halves or the center and the rest.
+ */
+typedef struct key_case_t {
+    const char *name;
+    int         bpp;
+    int         halves;
+    uint32_t    cmp_cntl; /* CLR_CMP_CNTL */
+    uint32_t    cmp_msk;  /* CLR_CMP_MSK */
+    uint32_t    cmp_clr;  /* CLR_CMP_CLR */
+    uint32_t    src[2];   /* in each region */
+    uint32_t    dst[2];
+    uint32_t    result[2]; /* the destination afterwards */
+} key_case_t;
+
+static const key_case_t key_cases[] = {
+    { "source equal",                  32, 0, 0x01000005, 0xffffffff, 0x00ff00ff, { 0x0000ff00, 0x00ff00ff }, { 0x000000ff, 0x000000ff }, { 0x0000ff00, 0x000000ff } },
+    { "source equal, 8 bpp",           8,  0, 0x01000005, 0xffffffff, 0x05,       { 0x02, 0x05 },             { 0x04, 0x04 },             { 0x02, 0x04 }             },
+    { "destination not equal, 8 bpp",  8,  0, 0x00000004, 0xffffffff, 0x00,       { 0x01, 0x01 },             { 0x00, 0x04 },             { 0x01, 0x04 }             },
+    { "source equal, 16 bpp",          16, 0, 0x01000005, 0xffffffff, 0x7c1f,     { 0x03e0, 0x7c1f },         { 0x001f, 0x001f },         { 0x03e0, 0x001f }         },
+    { "destination not equal, 16 bpp", 16, 0, 0x00000004, 0xffffffff, 0x03e0,     { 0x7c00, 0x7c00 },         { 0x03e0, 0x001f },         { 0x7c00, 0x001f }         },
+    { "source not equal, masked",      32, 1, 0x01000004, 0x00ffffff, 0x000000ff, { 0xa50000ff, 0x00ff0000 }, { 0x000000ff, 0x000000ff }, { 0xa50000ff, 0x000000ff } },
+    { "false",                         32, 1, 0x00000000, 0xffffffff, 0x000000ff, { 0x0000ff00, 0x0000ff00 }, { 0x000000ff, 0x00ff0000 }, { 0x0000ff00, 0x0000ff00 } },
+    { "true",                          32, 1, 0x00000001, 0xffffffff, 0x000000ff, { 0x0000ff00, 0x0000ff00 }, { 0x000000ff, 0x00ff0000 }, { 0x000000ff, 0x00ff0000 } },
+    { "destination equal",             32, 1, 0x00000005, 0xffffffff, 0x000000ff, { 0x0000ff00, 0x0000ff00 }, { 0x000000ff, 0x00ff0000 }, { 0x000000ff, 0x0000ff00 } },
+    { "destination not equal, masked", 32, 1, 0x00000004, 0x00ffffff, 0x000000ff, { 0x0000ff00, 0x0000ff00 }, { 0xa50000ff, 0x00ff0000 }, { 0x0000ff00, 0x00ff0000 } }
+};
+
+typedef struct key_blit_t {
+    int      size;
+    int      screen_w;
+    int      screen_h;
+    int      x;
+    int      y;
+    uint32_t src; /* bytes */
+} key_blit_t;
+
+static const key_blit_t key_blit_640 = { 128, 640, 480, 100, 100, 0x12f200 };
+static const key_blit_t key_blit_800 = { 64, 800, 600, 728, 8, 0x0ec540 };
+
+static int
+key_region(const key_case_t *c, int size, int x, int y)
+{
+    if (c->halves)
+        return x >= (size / 2);
+    return (x < (size / 4)) || (x >= (size * 3 / 4)) || (y < (size / 4)) || (y >= (size * 3 / 4));
+}
+
+static void
+key_blit(mach64_t *mach64, const key_case_t *c, const key_blit_t *b)
+{
+    uint32_t pix_width = (c->bpp == 8) ? 0x00020202 : ((c->bpp == 16) ? 0x30030303 : 0x60060606);
+
+    write_reg(mach64, 0x130, (c->bpp == 16) ? 0 : 3);           /* DST_CNTL */
+    write_reg(mach64, 0x2c8, 0xffffffff);                       /* DP_WRITE_MASK */
+    write_reg(mach64, 0x2d0, pix_width);                        /* DP_PIX_WIDTH */
+    write_reg(mach64, 0x2a8, (b->screen_w - 1) << 16);          /* SC_LEFT_RIGHT */
+    write_reg(mach64, 0x2b4, (b->screen_h - 1) << 16);          /* SC_TOP_BOTTOM */
+    write_reg(mach64, 0x180, ((128 / 8) << 22) | (b->src / 8)); /* SRC_OFF_PITCH */
+    write_reg(mach64, 0x100, (b->screen_w / 8) << 22);          /* DST_OFF_PITCH */
+    write_reg(mach64, 0x198, (b->size << 16) | b->size);        /* SRC_HEIGHT1_WIDTH1 */
+    write_reg(mach64, 0x2d8, 0x00000300);                       /* DP_SRC: the blit source */
+    write_reg(mach64, 0x2d4, 0x00070003);                       /* DP_MIX: S, else D */
+    write_reg(mach64, 0x308, c->cmp_cntl);
+    write_reg(mach64, 0x304, c->cmp_msk);
+    write_reg(mach64, 0x300, c->cmp_clr);
+    if (c->bpp == 16)
+        write_reg(mach64, 0x330, 0x00000003);            /* GUI_TRAJ_CNTL */
+    write_reg(mach64, 0x18c, 0x00000000);                /* SRC_Y_X */
+    write_reg(mach64, 0x10c, (b->x << 16) | b->y);       /* DST_Y_X */
+    write_reg(mach64, 0x118, (b->size << 16) | b->size); /* DST_HEIGHT_WIDTH */
+    fifo_run(mach64);
+}
+
+static void
+key_tests(void)
+{
+    for (size_t i = 0; i < (sizeof(key_cases) / sizeof(key_cases[0])); i++) {
+        const key_case_t *c      = &key_cases[i];
+        const key_blit_t *b      = (c->bpp == 16) ? &key_blit_800 : &key_blit_640;
+        mach64_t         *mach64 = card_create();
+        int               bytes  = c->bpp >> 3;
+        int               wrong  = 0;
+
+        for (int y = 0; y < b->size; y++) {
+            for (int x = 0; x < b->size; x++) {
+                int r = key_region(c, b->size, x, y);
+
+                vram_write(mach64, c->bpp, b->src + ((y * 128) + x) * bytes, c->src[r]);
+                vram_write(mach64, c->bpp, (((b->y + y) * b->screen_w) + b->x + x) * bytes, c->dst[r]);
+            }
+        }
+
+        key_blit(mach64, c, b);
+
+        for (int y = 0; y < b->size; y++) {
+            for (int x = 0; x < b->size; x++) {
+                int      r   = key_region(c, b->size, x, y);
+                uint32_t src = vram_read(mach64, c->bpp, b->src + ((y * 128) + x) * bytes);
+                uint32_t dst = vram_read(mach64, c->bpp, (((b->y + y) * b->screen_w) + b->x + x) * bytes);
+
+                if (((src != c->src[r]) || (dst != c->result[r])) && !wrong++)
+                    fprintf(stderr, "Color compare, %s: at %d,%d source %08x, destination %08x, not %08x\n",
+                            c->name, x, y, src, dst, c->result[r]);
+            }
+        }
+        CHECK(!wrong, "color compare, %s: %d pixels wrong", c->name, wrong);
+        CHECK(!mach64->accel.busy && (mach64->fifo_read_idx == mach64->fifo_write_idx),
+              "color compare, %s: the engine did not finish", c->name);
+        card_close(mach64);
+    }
+}
+
+/*
+ * DP_SET_GUI_ENGINE (2FCh) sets the engine up in one write; it also turns
+ * the color compare off. The Rage II+ Windows 95 driver writes it before
+ * each solid fill and then only the color and the rectangle, so the
+ * scissors it opens (SC_LEFT_RIGHT 1FFF0000h, "OPEN completely" in
+ * RRG-G03300 5-54) must not clip the fill. An SC_RIGHT of 3FFFh, -1 in the GT-B's 14
+ * bits, written afterwards still clips all of it. Returns the pixels the
+ * 4x2 fill drew.
+ */
+static int
+gui_engine_fill(uint32_t sc_left_right)
+{
+    mach64_t *mach64 = card_create();
+    int       drawn  = 0;
+
+    write_reg(mach64, 0x2fc, 0x0010a070); /* 32 bpp, 1024 pixels a line, a color fill */
+    if (sc_left_right)
+        write_reg(mach64, 0x2a8, sc_left_right);
+    write_reg(mach64, 0x2c4, 0x00c0c0c0); /* DP_FRGD_CLR */
+    write_reg(mach64, 0x10c, (16 << 16) | 8);
+    write_reg(mach64, 0x118, (4 << 16) | 2);
+    fifo_run(mach64);
+
+    for (int y = 0; y < 2; y++) {
+        for (int x = 0; x < 4; x++) {
+            if (vram_read(mach64, 32, (((8 + y) * 1024) + 16 + x) * 4) == 0x00c0c0c0)
+                drawn++;
+        }
+    }
+    card_close(mach64);
+    return drawn;
+}
+
+static void
+gui_engine_tests(void)
+{
+    mach64_t *mach64 = card_create();
+    int       drawn;
+
+    /* The source-equal transparent blit of ATI's TBLIT sample. */
+    mach64->clr_cmp_cntl = 0x01000005;
+    mach64->clr_cmp_clr  = 0x00007c1f;
+    mach64->clr_cmp_mask = 0xffffffff;
+    write_reg(mach64, 0x2fc, 0x00000000);
+    fifo_run(mach64);
+    CHECK(mach64->fifo_read_idx == mach64->fifo_write_idx, "DP_SET_GUI_ENGINE stayed in the FIFO");
+    CHECK(mach64->clr_cmp_cntl == 0, "DP_SET_GUI_ENGINE left CLR_CMP_CNTL at %08x", mach64->clr_cmp_cntl);
+    card_close(mach64);
+
+    drawn = gui_engine_fill(0);
+    CHECK(drawn == 8, "a fill after DP_SET_GUI_ENGINE drew %d of 8 pixels", drawn);
+    drawn = gui_engine_fill(0x3fff0000);
+    CHECK(drawn == 0, "a fill with SC_RIGHT 3FFFh drew %d pixels", drawn);
+}
+
+/*
  * The overlay: a source of two lines of four pixels, drawn eight pixels wide
- * on four lines with the video everywhere, mixer function 2. What follows
- * the source in memory must never reach the screen.
+ * on four lines with the video everywhere. That is mixer function 2, or on
+ * the GT-B, whose mixer has only functions 0 and Ch, both keys true and
+ * function Ch. What follows the source in memory must never reach the
+ * screen.
  */
 #define OVERLAY_SRC_W   4
 #define OVERLAY_SRC_H   2
@@ -185,7 +393,7 @@ overlay_draw(int type, int format, const uint32_t *source, int dwords, int ecp_d
     mach64->scaler_height_width          = (OVERLAY_SRC_W << 16) | OVERLAY_SRC_H;
     mach64->overlay_scale_cntl           = scale_cntl;
     mach64->overlay_scale_inc            = scale_inc;
-    mach64->overlay_key_cntl             = 0x200;
+    mach64->overlay_key_cntl             = (type == MACH64_GTB) ? 0x111 : 0x200;
     mach64->pll_regs[5]                  = ecp_div << 4;
     mach64->scaler_update                = 1;
 
@@ -227,7 +435,8 @@ overlay_tests(void)
         int         type;
         const char *name;
     } cards[] = {
-        { MACH64_VT2, "VT2" }
+        { MACH64_VT2, "VT2" },
+        { MACH64_GTB, "GT-B" }
     };
     static const uint32_t pairs[OVERLAY_W] = { 0x100000, 0x100000, 0x200000, 0x200000, 0x300000, 0x300000, 0x400000, 0x400000 };
     static const uint32_t quads[OVERLAY_W] = { 0x100000, 0x100000, 0x100000, 0x100000, 0x300000, 0x300000, 0x300000, 0x300000 };
@@ -296,12 +505,14 @@ overlay_tests(void)
 int
 main(void)
 {
+    key_tests();
+    gui_engine_tests();
     overlay_tests();
 
     if (failures) {
-        fprintf(stderr, "Mach64 overlay: %d checks failed\n", failures);
+        fprintf(stderr, "Mach64 draw engine: %d checks failed\n", failures);
         return 1;
     }
-    printf("Mach64 overlay: all checks passed\n");
+    printf("Mach64 draw engine: all checks passed\n");
     return 0;
 }
