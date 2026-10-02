@@ -3528,13 +3528,13 @@ msgid "Sample rate:"
 msgstr "Częstotliwość próbkowania:"
 
 msgid "Enable audio input (mic/line-in)"
-msgstr ""
+msgstr "Włącz wejście audio (mikrofon/wejście liniowe)"
 
 msgid "Audio input device:"
-msgstr ""
+msgstr "Urządzenie wejściowe audio:"
 
 msgid "Audio input sample rate:"
-msgstr ""
+msgstr "Częstotliwość próbkowania sygnału audio:"
 
 msgid "Rate the emulator mixes to the host output device."
 msgstr ""
