@@ -1162,7 +1162,7 @@ static void
 mach64_queue_fifo(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 {
     fifo_entry_t *fifo = &mach64->fifo[mach64->fifo_write_idx & FIFO_MASK];
-    int limit = 0;
+    int limit = 1;
 
     /*FIXME: I know it's a hack, but the way the threading is done causes some desyncs in the FIFO queue on some stuff
       (particularly accelerated 24bpp using Calculator on NT 3.x), so, until a proper solution is found, slow down only on
