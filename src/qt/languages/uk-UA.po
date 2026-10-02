@@ -3008,7 +3008,7 @@ msgstr "Модель"
 msgid "Model:"
 msgstr "Модель:"
 
-msgid "Brend:"
+msgid "Brand:"
 msgstr "Виробник:"
 
 msgid "Revision:"
