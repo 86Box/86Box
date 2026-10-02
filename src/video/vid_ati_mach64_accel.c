@@ -54,6 +54,7 @@ mach64_recalc_dp_set_engine(mach64_t *mach64)
     mach64->sc_left_right = 0x1FFF0000;
     mach64->write_mask = ~0u;
     mach64->clr_cmp_clr = 0;
+    mach64->clr_cmp_cntl = 0;
     mach64->src_y_x_start = 0;
     mach64->src_cntl &= ~((3 << 13) | (1 << 5) | (1 << 12));
     mach64->dst_cntl &= ~(7 << 13);
@@ -183,8 +184,9 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
             break;
         case 0x2e8 ... 0x2eb:
             /* DST_X_Y (0_BA) and DST_WIDTH_HEIGHT (0_BB) are VT-B registers,
-               in neither the GX nor the VT book. */
-            if (mach64->type >= MACH64_VT3)
+               in neither the GX nor the VT book. The GT-B (Rage II+) is of
+               the same generation and keeps them. */
+            if (mach64->type >= MACH64_GTB)
                 WRITE8(addr ^ 2, mach64->dst_y_x, val);
             break;
         case 0x110 ... 0x111:
@@ -211,7 +213,7 @@ start_blit_op:
             break;
 
         case 0x2ec ... 0x2ef:
-            if (mach64->type < MACH64_VT3)
+            if (mach64->type < MACH64_GTB)
                 break;
             WRITE8(addr ^ 2, mach64->dst_height_width, val);
             mach64->dst_bres_lnth = (mach64->dst_bres_lnth & ~0x7fff) | ((mach64->dst_height_width >> 16) & 0x1fff);
@@ -551,8 +553,590 @@ mach64_fifo_thread(void *param)
     }
 }
 
+/*
+ * The 3D Rage II+'s draw engine in emulated time.
+ *
+ * The engine above draws an operation as soon as it is queued, in no
+ * emulated time at all. Software that measures the engine, or keeps it
+ * busy for a while, then sees an impossibly fast chip; 3D WinBench 98's
+ * Z-buffer clear reported 7600 Mpixels/s and took six real minutes for nine
+ * emulated seconds. On the 3D Rage II+ every register write is an entry of a
+ * model of the chip's 48-entry command FIFO, which leaves the FIFO when the
+ * modeled engine is free. GUI_STAT and FIFO_STAT show its occupancy, and a
+ * write to a full FIFO makes the CPU wait, as a PCI retry does on the card.
+ * The pixels are still drawn at once; only time is modeled.
+ *
+ * Memory costs follow ATI's own method (RAGE PRO and Derivatives
+ * Programmer's Guide 7.9.7 and table 7-1, the RAGE II+ column): 64-bit
+ * memory, one cycle per access to an open page and seven for a page change,
+ * pages of 512 qwords, one access per qword for a write-only operation and
+ * two for a read-modify-write one, screen to screen blits changing page at
+ * every load of the 32x32-bit source FIFO, and the display taking its share
+ * of the bandwidth. ATI gives no figures for the 3D engine, which takes the
+ * same memory rule and a pixel per engine clock.
+ */
+#define TIMING_FIFO_DEPTH 48
+#define TIMING_RING       64
+#define TIMING_RING_MASK  (TIMING_RING - 1)
+#define TIMING_MAX_WAIT   50000000.0   /* ns charged to the CPU in one wait */
+#define TIMING_LOST       1000000000.0 /* ns of backlog the card cannot have */
+#define PLL_REF_HZ        14318180.0
+
+#define PAGE_SHIFT        12  /* 512 qwords */
+#define PAGE_MISS_EXTRA   6.0 /* 7 cycles less the access itself */
+#define SRC_FIFO_QWORDS   16.0
+#define OP_SETUP_CLOCKS   16.0 /* ATI calls the set-up costly but gives no figure */
+#define ROW_CLOCKS_2D     2.0
+#define SETUP_CLOCKS_3D   20.0
+#define ROW_CLOCKS_3D     2.0
+
+typedef struct mach64_timing_entry_t {
+    uint64_t arrival; /* when the CPU wrote it */
+    uint64_t start;   /* when the engine took it, once known */
+    uint64_t cost;    /* engine time, known on arrival for a 3D register */
+    int      fifo_idx;
+    int      queued; /* a draw engine FIFO entry: the cost is known once it ran */
+} mach64_timing_entry_t;
+
+/* Work in engine clocks (XCLK) and memory cycles (MCLK). */
+typedef struct mach64_timing_work_t {
+    double engine_clocks;
+    double memory_cycles;
+} mach64_timing_work_t;
+
+typedef struct mach64_timing_clocks_t {
+    double mclk;
+    double xclk;
+    double crtc_fraction; /* of the memory bandwidth, taken by the display */
+} mach64_timing_clocks_t;
+
+typedef struct mach64_timing_rect_t {
+    uint32_t width;
+    uint32_t height;
+    int32_t  x;
+    uint32_t dst_offset; /* bytes */
+    uint32_t dst_pitch;  /* bytes */
+    uint32_t dst_bits;
+    uint32_t src_bits; /* 0: no source in video memory */
+    int      dst_read;
+} mach64_timing_rect_t;
+
+struct mach64_timing_t {
+    mach64_timing_entry_t  ring[TIMING_RING];
+    uint32_t               head; /* the oldest entry still in the FIFO */
+    uint32_t               fold; /* the first whose start is not known */
+    uint32_t               tail;
+    uint64_t               free_at;              /* the engine is busy until then */
+    double                 fifo_ns[TIMING_RING]; /* by draw engine FIFO index */
+    double                 pending_ns;           /* 3D drawn by this write */
+    uint64_t               floor;                /* time already charged */
+    uint32_t               clock_key;
+    mach64_timing_clocks_t clocks;
+};
+
+static double
+mach64_timing_seconds(const mach64_timing_work_t *work, const mach64_timing_clocks_t *clocks)
+{
+    double fraction = clocks->crtc_fraction;
+    double mclk;
+    double engine = 0.0;
+    double memory = 0.0;
+
+    if (fraction < 0.0)
+        fraction = 0.0;
+    if (fraction > 0.6)
+        fraction = 0.6;
+    mclk = clocks->mclk * (1.0 - fraction);
+
+    if (clocks->xclk > 0.0)
+        engine = work->engine_clocks / clocks->xclk;
+    if (mclk > 0.0)
+        memory = work->memory_cycles / mclk;
+    return (engine > memory) ? engine : memory;
+}
+
+/*
+ * MCLK and XCLK from the PLL (VT/RAGE RRG B-2, B-3): PLLMCLK is the
+ * reference times 2 or, with MFB_TIMES_4_2b, 4 times MCLK_FB_DIV over
+ * PLL_REF_DIV; MCLK_SRC_SEL picks it, a division of it, the bus clock or
+ * the reference, and XCLK_MCLK_RATIO divides that. Anything unprogrammed
+ * or out of reach of the chip is taken as 60 MHz.
+ */
+static mach64_timing_clocks_t
+mach64_timing_pll_clocks(const uint8_t *pll_regs, double cpu_bus_hz)
+{
+    const mach64_timing_clocks_t fallback = { 60000000.0, 60000000.0, 0.0 };
+    mach64_timing_clocks_t       c        = fallback;
+    unsigned                     ref_div  = pll_regs[2];
+    unsigned                     gen_cntl = pll_regs[3];
+    unsigned                     fb_div   = pll_regs[4];
+    unsigned                     xclk     = pll_regs[11];
+    double                       pll_mclk;
+    double                       src;
+
+    if (!ref_div || !fb_div)
+        return fallback;
+
+    pll_mclk = PLL_REF_HZ * ((xclk & 4) ? 4.0 : 2.0) * fb_div / ref_div;
+    switch ((gen_cntl >> 4) & 7) {
+        case 0:
+            src = pll_mclk;
+            break;
+        case 1:
+            src = pll_mclk / 2.0;
+            break;
+        case 2:
+            src = pll_mclk / 4.0;
+            break;
+        case 3:
+            src = pll_mclk / 8.0;
+            break;
+        case 4:
+            src = cpu_bus_hz;
+            break;
+        case 6:
+        case 7:
+            src = PLL_REF_HZ;
+            break;
+        default:
+            return fallback;
+    }
+
+    switch (xclk & 3) {
+        case 0:
+            c.xclk = src;
+            c.mclk = src;
+            break;
+        case 1:
+            c.xclk = src / 2.0;
+            c.mclk = src / 4.0;
+            break;
+        case 2:
+            c.xclk = src / 2.0;
+            c.mclk = src / 3.0;
+            break;
+        default:
+            c.xclk = src / 3.0;
+            c.mclk = src / 4.0;
+            break;
+    }
+
+    if ((c.mclk < 20000000.0) || (c.mclk > 150000000.0) || (c.xclk < 20000000.0) || (c.xclk > 150000000.0))
+        return fallback;
+    return c;
+}
+
+static uint64_t
+mach64_timing_div_up(uint64_t a, uint64_t b)
+{
+    return (a + b - 1) / b;
+}
+
+/*
+ * A rectangle: a fill or a blit. An unaligned edge qword is read and written
+ * even by a fill. A blit's source and destination take turns at each source
+ * FIFO load, each turn opening a page; any other walks its rows across the
+ * pages.
+ */
+static mach64_timing_work_t
+mach64_timing_rect_work(const mach64_timing_rect_t *r)
+{
+    mach64_timing_work_t work   = { OP_SETUP_CLOCKS, 0.0 };
+    int32_t              x      = (r->x < 0) ? 0 : r->x;
+    double               misses = 0.0;
+    uint64_t             left;
+    uint64_t             right;
+    uint64_t             qwords_row;
+    double               accesses_row;
+
+    if (!r->width || !r->height || !r->dst_bits)
+        return work;
+
+    left         = (uint64_t) x * r->dst_bits;
+    right        = left + (uint64_t) r->width * r->dst_bits;
+    qwords_row   = mach64_timing_div_up(right, 64) - left / 64;
+    accesses_row = (double) qwords_row * (r->dst_read ? 2.0 : 1.0);
+    if (!r->dst_read)
+        accesses_row += ((left & 63) ? 1.0 : 0.0) + ((right & 63) ? 1.0 : 0.0);
+    if (r->src_bits)
+        accesses_row += (double) mach64_timing_div_up((uint64_t) r->width * r->src_bits, 64) + 1.0;
+
+    if (r->src_bits)
+        misses = 2.0 * (double) mach64_timing_div_up(qwords_row * r->height, (uint64_t) SRC_FIFO_QWORDS);
+    else {
+        uint64_t row_bytes = qwords_row * 8;
+        uint64_t base      = (uint64_t) r->dst_offset + (left / 64) * 8;
+        uint64_t last      = UINT64_MAX;
+        uint32_t walked    = (r->height > 2048) ? 2048 : r->height;
+
+        for (uint32_t y = 0; y < walked; y++) {
+            uint64_t start = base + (uint64_t) y * r->dst_pitch;
+            uint64_t p0    = start >> PAGE_SHIFT;
+            uint64_t p1    = (start + row_bytes - 1) >> PAGE_SHIFT;
+
+            if (p0 != last)
+                misses += 1.0;
+            misses += (double) (p1 - p0);
+            last = p1;
+        }
+        if (walked < r->height)
+            misses *= (double) r->height / (double) walked;
+    }
+
+    work.memory_cycles = accesses_row * r->height + PAGE_MISS_EXTRA * misses;
+    work.engine_clocks += ROW_CLOCKS_2D * r->height;
+    return work;
+}
+
+/* A line: each pixel of a Y-major one is on another row; an X-major one
+   is taken to change row every other pixel. */
+static mach64_timing_work_t
+mach64_timing_line_work(uint32_t length, uint32_t dst_bits, uint32_t dst_pitch, int y_major, int dst_read)
+{
+    mach64_timing_work_t work        = { OP_SETUP_CLOCKS, 0.0 };
+    double               pitch_share = (double) dst_pitch / (double) (1u << PAGE_SHIFT);
+    double               accesses;
+    double               misses;
+
+    if (!length)
+        return work;
+    if (pitch_share > 1.0)
+        pitch_share = 1.0;
+
+    if (y_major) {
+        accesses = (double) length * (dst_read ? 2.0 : 1.0);
+        misses   = (double) length * pitch_share;
+    } else {
+        accesses = ((double) mach64_timing_div_up((uint64_t) length * dst_bits, 64) + length / 2.0) * (dst_read ? 2.0 : 1.0);
+        misses   = (length / 2.0) * pitch_share;
+    }
+    work.engine_clocks += (double) length;
+    work.memory_cycles = accesses + PAGE_MISS_EXTRA * misses;
+    return work;
+}
+
+/*
+ * A 3D draw: qword accesses per pixel for the color write, the destination
+ * read of blending, the 16-bit Z read and write and the texels, a 2x2 filter
+ * sharing half of its texels with the next pixel. Each stream past the first
+ * changes page at every source FIFO load.
+ */
+static mach64_timing_work_t
+mach64_timing_3d_work(const mach64_3d_work_t *t)
+{
+    mach64_timing_work_t work    = { SETUP_CLOCKS_3D + ROW_CLOCKS_3D * t->rows, 0.0 };
+    int                  streams = 1;
+    double               per_pixel;
+
+    if (!t->pixels)
+        return work;
+
+    per_pixel = t->dst_bits / 64.0;
+    if (t->dst_read)
+        per_pixel += t->dst_bits / 64.0;
+    if (t->z_read)
+        per_pixel += 16.0 / 64.0;
+    if (t->z_write)
+        per_pixel += 16.0 / 64.0;
+    if (t->z_read || t->z_write)
+        streams++;
+    if (t->tex_bits) {
+        double fetched = (t->texels <= 1) ? 1.0 : ((t->texels <= 2) ? 2.0 : (t->texels / 2.0));
+
+        per_pixel += (t->tex_bits / 64.0) * fetched;
+        streams++;
+    }
+
+    work.memory_cycles = t->pixels * per_pixel * (1.0 + (PAGE_MISS_EXTRA / SRC_FIFO_QWORDS) * (streams - 1));
+    work.engine_clocks += (double) t->pixels;
+    return work;
+}
+
+static uint64_t
+mach64_timing_ticks(double ns)
+{
+    return (uint64_t) (ns * cpuclock / 1000000000.0 + 0.5);
+}
+
+static uint64_t
+mach64_timing_now(mach64_timing_t *timing)
+{
+#ifdef USE_DYNAREC
+    if (cpu_use_dynarec)
+        update_tsc();
+#endif
+    return (tsc > timing->floor) ? tsc : timing->floor;
+}
+
+/*
+ * The clocks, and the display's share of the memory: its bytes per pixel at
+ * the pixel clock, while the CRTC is in its displayed part of the frame.
+ */
+static mach64_timing_clocks_t
+mach64_timing_measure(const mach64_t *mach64)
+{
+    mach64_timing_clocks_t clocks = mach64_timing_pll_clocks(mach64->pll_regs, (double) cpu_pci_speed);
+
+    if (mach64->crtc_gen_cntl & (1u << 24)) {
+        double pixel_clock = mach64->pll_freq[mach64->clock_cntl & 3];
+        double h_total     = (double) ((mach64->crtc_h_total_disp & 0x1ff) + 1);
+        double h_disp      = (double) (((mach64->crtc_h_total_disp >> 16) & 0xff) + 1);
+        double v_total     = (double) ((mach64->crtc_v_total_disp & 0x7ff) + 1);
+        double v_disp      = (double) (((mach64->crtc_v_total_disp >> 16) & 0x7ff) + 1);
+        double active      = (h_disp * v_disp) / (h_total * v_total);
+
+        if (active > 1.0)
+            active = 1.0;
+        if (pixel_clock > 0.0)
+            clocks.crtc_fraction = pixel_clock * ((mach64->svga.bpp + 7) / 8) * active / (clocks.mclk * 8.0);
+    }
+    return clocks;
+}
+
+/* The CPU thread's clocks, measured again when the PLL or the mode change. */
+static const mach64_timing_clocks_t *
+mach64_timing_clocks(mach64_t *mach64)
+{
+    mach64_timing_t *timing = mach64->timing;
+    uint32_t         key    = 2166136261u;
+
+    for (int i = 2; i <= 11; i++)
+        key = (key ^ mach64->pll_regs[i]) * 16777619u;
+    key = (key ^ (mach64->clock_cntl & 3) ^ ((mach64->crtc_gen_cntl >> 20) & 0x10) ^ ((uint32_t) mach64->svga.bpp << 8)) * 16777619u;
+    key = (key ^ mach64->crtc_h_total_disp) * 16777619u;
+    key = (key ^ mach64->crtc_v_total_disp) * 16777619u;
+    if ((key != timing->clock_key) || (timing->clocks.mclk == 0.0)) {
+        timing->clocks    = mach64_timing_measure(mach64);
+        timing->clock_key = key;
+        mach64_log("Rage II+ engine timing: MCLK %.1f MHz, XCLK %.1f MHz, display %.0f%% of memory\n",
+                   timing->clocks.mclk / 1000000.0, timing->clocks.xclk / 1000000.0, timing->clocks.crtc_fraction * 100.0);
+    }
+    return &timing->clocks;
+}
+
+/* Puts every entry whose cost is known on the engine's time line. A 2D
+   FIFO entry's cost is known once the engine thread has run it. */
+static void
+mach64_timing_fold(mach64_t *mach64)
+{
+    mach64_timing_t *timing = mach64->timing;
+
+    while (timing->fold != timing->tail) {
+        mach64_timing_entry_t *e = &timing->ring[timing->fold & TIMING_RING_MASK];
+        uint64_t               cost;
+
+        if (!e->queued)
+            cost = e->cost;
+        else if ((int) ((unsigned) mach64->fifo_read_idx - (unsigned) e->fifo_idx) <= 0)
+            break;
+        else
+            cost = mach64_timing_ticks(timing->fifo_ns[e->fifo_idx & TIMING_RING_MASK]);
+
+        e->start        = (e->arrival > timing->free_at) ? e->arrival : timing->free_at;
+        timing->free_at = e->start + cost;
+        timing->fold++;
+    }
+}
+
+/* Entries the engine has taken by now leave the FIFO. */
+static void
+mach64_timing_depart(mach64_timing_t *timing, uint64_t now)
+{
+    while ((timing->head != timing->fold) && (timing->ring[timing->head & TIMING_RING_MASK].start <= now))
+        timing->head++;
+}
+
+static uint64_t
+mach64_timing_update(mach64_t *mach64)
+{
+    mach64_timing_t *timing = mach64->timing;
+    uint64_t         now    = mach64_timing_now(timing);
+
+    mach64_timing_fold(mach64);
+    if (timing->free_at > (now + mach64_timing_ticks(TIMING_LOST))) {
+        timing->head = timing->fold = timing->tail = 0;
+        timing->free_at                            = 0;
+        timing->floor                              = 0;
+        now                                        = mach64_timing_now(timing);
+    }
+    mach64_timing_depart(timing, now);
+    return now;
+}
+
+/* The CPU waits until the given time, as a write held off by a PCI retry. */
+static uint64_t
+mach64_timing_wait(mach64_timing_t *timing, uint64_t until)
+{
+    uint64_t now = mach64_timing_now(timing);
+
+    if (until > now) {
+        uint64_t wait  = until - now;
+        uint64_t limit = mach64_timing_ticks(TIMING_MAX_WAIT);
+
+        if (wait > limit)
+            wait = limit;
+        cycles -= (int) wait;
+        timing->floor = now + wait;
+        now           = mach64_timing_now(timing);
+    }
+    return now;
+}
+
+/* Before a register write: room in the FIFO for it. */
+static void
+mach64_timing_before_write(mach64_t *mach64)
+{
+    mach64_timing_t *timing = mach64->timing;
+    uint64_t         now    = mach64_timing_update(mach64);
+
+    while ((timing->tail - timing->head) >= TIMING_FIFO_DEPTH) {
+        if (timing->head == timing->fold) {
+            /* The oldest entry's cost is known only once the engine thread
+               has run it. */
+            mach64_wait_fifo_idle(mach64);
+            mach64_timing_fold(mach64);
+            if (timing->head == timing->fold) {
+                /* The 2D FIFO was reset under these entries. */
+                timing->tail = timing->fold;
+                break;
+            }
+        }
+        now = mach64_timing_wait(timing, timing->ring[timing->head & TIMING_RING_MASK].start);
+        mach64_timing_depart(timing, now);
+    }
+}
+
+/* After it: the write as an entry. A 3D one costs the engine a clock to
+   take it and the time of anything it drew. */
+static void
+mach64_timing_after_write(mach64_t *mach64, int queued, int fifo_idx)
+{
+    mach64_timing_t       *timing  = mach64->timing;
+    double                 take_ns = 1000000000.0 / mach64_timing_clocks(mach64)->xclk;
+    mach64_timing_entry_t *e       = &timing->ring[timing->tail & TIMING_RING_MASK];
+
+    e->arrival         = mach64_timing_now(timing);
+    e->start           = 0;
+    e->cost            = queued ? 0 : mach64_timing_ticks(take_ns + timing->pending_ns);
+    e->fifo_idx        = fifo_idx;
+    e->queued          = queued;
+    timing->pending_ns = 0.0;
+    timing->tail++;
+}
+
+static uint32_t
+mach64_timing_bits(int size)
+{
+    switch (size) {
+        case 0:
+            return 8;
+        case 1:
+            return 16;
+        case 2:
+            return 32;
+        case WIDTH_4BIT:
+            return 4;
+        default:
+            return 1;
+    }
+}
+
+/* The mixes that read the destination: all but "0", "1", DST, not SRC
+   and SRC (VT/RAGE RRG 4-95). */
+static int
+mach64_timing_mix_reads_dst(int mix)
+{
+    switch (mix & 0x1f) {
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 7:
+            return 0;
+        default:
+            return 1;
+    }
+}
+
+/* The cost of a 2D operation, added to its FIFO entry where it runs: on the
+   engine thread or the CPU thread. */
+static void
+mach64_timing_op(mach64_t *mach64, int op)
+{
+    mach64_timing_t       *timing   = mach64->timing;
+    mach64_timing_clocks_t clocks   = mach64_timing_measure(mach64);
+    uint32_t               dst_bits = mach64_timing_bits(mach64->accel.dst_size);
+    uint32_t               pixel    = (dst_bits >= 32) ? 0xffffffff : ((1u << ((dst_bits < 8) ? 8 : dst_bits)) - 1);
+    uint32_t               pitch    = (((mach64->dst_off_pitch >> 22) & 0x3ff) << 3) * dst_bits / 8;
+    int                    dst_read = mach64_timing_mix_reads_dst(mach64->accel.mix_fg) ||
+                                      ((mach64->accel.source_mix != MONO_SRC_1) && mach64_timing_mix_reads_dst(mach64->accel.mix_bg)) ||
+                                      ((mach64->accel.write_mask & pixel) != pixel) ||
+                                      (!mach64->accel.clr_cmp_src && (mach64->accel.clr_cmp_fn > 1));
+    mach64_timing_work_t   work;
+
+    if (op == OP_RECT) {
+        mach64_timing_rect_t r = { 0 };
+
+        r.width      = mach64->accel.dst_width;
+        r.height     = mach64->accel.dst_height;
+        r.x          = mach64->accel.dst_x_start;
+        r.dst_offset = (mach64->dst_off_pitch & 0xfffff) << 3;
+        r.dst_pitch  = pitch;
+        r.dst_bits   = dst_bits;
+        r.dst_read   = dst_read;
+        if ((mach64->accel.source_fg == SRC_BLITSRC) || (mach64->accel.source_bg == SRC_BLITSRC))
+            r.src_bits = mach64_timing_bits(mach64->accel.src_size);
+        else if (mach64->accel.source_mix == MONO_SRC_BLITSRC)
+            r.src_bits = 1;
+        work = mach64_timing_rect_work(&r);
+    } else
+        work = mach64_timing_line_work(mach64->accel.x_count, dst_bits, pitch, !!(mach64->dst_cntl & DST_Y_MAJOR), dst_read);
+
+    timing->fifo_ns[mach64->fifo_read_idx & TIMING_RING_MASK] += mach64_timing_seconds(&work, &clocks) * 1000000000.0;
+}
+
+/* A 3D draw, done at once on the CPU thread. */
 void
-mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
+mach64_timing_3d(mach64_t *mach64, const mach64_3d_work_t *work)
+{
+    mach64_timing_work_t engine = mach64_timing_3d_work(work);
+
+    mach64->timing->pending_ns += mach64_timing_seconds(&engine, mach64_timing_clocks(mach64)) * 1000000000.0;
+}
+
+/* The modeled FIFO's entries in use and whether the engine is busy, for
+   GUI_STAT and FIFO_STAT. Returns 0 without a model. */
+int
+mach64_timing_status(mach64_t *mach64, uint32_t *used, int *busy)
+{
+    mach64_timing_t *timing = mach64->timing;
+    uint64_t         now;
+
+    if (!timing)
+        return 0;
+    /* A guest polling the FIFO waits for entries the engine has yet to run. */
+    if ((mach64->fifo_write_idx != mach64->fifo_read_idx) && !mach64->blitter_busy)
+        mach64_wake_fifo_thread(mach64);
+    now   = mach64_timing_update(mach64);
+    *used = timing->tail - timing->head;
+    *busy = (timing->tail != timing->head) || (timing->free_at > now);
+    return 1;
+}
+
+mach64_timing_t *
+mach64_timing_init(void)
+{
+    return calloc(1, sizeof(mach64_timing_t));
+}
+
+void
+mach64_timing_close(mach64_timing_t *timing)
+{
+    free(timing);
+}
+
+static void
+mach64_queue_fifo(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 {
     fifo_entry_t *fifo = &mach64->fifo[mach64->fifo_write_idx & FIFO_MASK];
     int limit = 0;
@@ -606,6 +1190,32 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
         mach64_wake_fifo_thread(mach64);
     if (FIFO_ENTRIES > 0xe000 || FIFO_ENTRIES < 8)
         mach64_wake_fifo_thread(mach64);
+}
+
+/* A register write to the draw engine. The 3D Rage II+'s 3D and scaler
+   registers go to its 3D engine at once, the rest through the FIFO; its
+   timing model sees each as an entry of the chip's own FIFO. */
+void
+mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
+{
+    int idx;
+
+    if (!mach64->timing) {
+        if (!mach64->gt3d || !mach64_3d_write(mach64, addr, val, type))
+            mach64_queue_fifo(mach64, addr, val, type);
+        return;
+    }
+
+    mach64_timing_before_write(mach64);
+    if (mach64->gt3d && mach64_3d_write(mach64, addr, val, type)) {
+        mach64_timing_after_write(mach64, 0, 0);
+        return;
+    }
+    /* The engine adds the operation's cost to this entry when it runs it. */
+    idx                                             = mach64->fifo_write_idx;
+    mach64->timing->fifo_ns[idx & TIMING_RING_MASK] = 1000000000.0 / mach64_timing_clocks(mach64)->xclk;
+    mach64_queue_fifo(mach64, addr, val, type);
+    mach64_timing_after_write(mach64, 1, idx);
 }
 
 /* Pixel access by the draw engine. Width is a mach64_width[] code: 0, 1
@@ -922,9 +1532,17 @@ mach64_accel_common(mach64_t *mach64)
         }
     }
 
-    /* Scissors are signed: 13 bits across, 15 down (RRG 3-78..3-83). */
-    mach64->accel.sc_left   = mach64_sext(mach64->sc_left_right & 0x1fff, 13);
-    mach64->accel.sc_right  = mach64_sext((mach64->sc_left_right >> 16) & 0x1fff, 13);
+    /* Scissors are signed: 13 bits across, 15 down (RRG 3-78..3-83). The
+       GT-B's are 14 bits across, as on the RAGE LT PRO (RRG-G03300 5-40): its
+       DP_SET_GUI_ENGINE opens them with SC_RIGHT 1FFFh (5-54), which as 13
+       bits would be -1 and clip everything the Rage II+ driver draws. */
+    {
+        const int      sc_bits = (mach64->type == MACH64_GTB) ? 14 : 13;
+        const uint32_t sc_mask = (1u << sc_bits) - 1;
+
+        mach64->accel.sc_left  = mach64_sext(mach64->sc_left_right & sc_mask, sc_bits);
+        mach64->accel.sc_right = mach64_sext((mach64->sc_left_right >> 16) & sc_mask, sc_bits);
+    }
     mach64->accel.sc_top    = mach64_sext(mach64->sc_top_bottom & 0x7fff, 15);
     mach64->accel.sc_bottom = mach64_sext((mach64->sc_top_bottom >> 16) & 0x7fff, 15);
 
@@ -994,6 +1612,9 @@ mach64_start_fill(mach64_t *mach64)
     mach64->accel.poly_draw = 0;
     mach64->accel.busy      = 1;
     mach64->accel.op        = OP_RECT;
+
+    if (mach64->timing)
+        mach64_timing_op(mach64, OP_RECT);
 }
 
 void
@@ -1014,6 +1635,9 @@ mach64_start_line(mach64_t *mach64)
 
     mach64->accel.busy = 1;
     mach64->accel.op   = OP_LINE;
+
+    if (mach64->timing)
+        mach64_timing_op(mach64, OP_LINE);
 }
 
 // calculates colour compare function for mach64 blit
@@ -1026,10 +1650,10 @@ mach64_blit_calc_cmp_clr(mach64_t* mach64, uint32_t src_dat, uint32_t dest_dat)
         case 1: /*TRUE*/
             cmp_clr = 1;
             break;
-        case 4: /*DST_CLR != CLR_CMP_CLR*/
+        case 4: /*SELECTED_CLR != CLR_CMP_CLR*/
             cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) != mach64->accel.clr_cmp_clr;
             break;
-        case 5: /*DST_CLR == CLR_CMP_CLR*/
+        case 5: /*SELECTED_CLR == CLR_CMP_CLR*/
             cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) == mach64->accel.clr_cmp_clr;
             break;
         default:
@@ -1458,6 +2082,11 @@ mach64_load_context(mach64_t *mach64)
 // Overlay
 //
 
+/* OVERLAY_SCALE_CNTL (VT/RAGE RRG 5-8): pixel and line replication in place
+   of the horizontal and vertical blends. */
+#define SCALE_HORZ_MODE (1 << 2)
+#define SCALE_VERT_MODE (1 << 3)
+
 #define CLAMP(x)                      \
     do {                              \
         if ((x) & ~0xff)              \
@@ -1466,7 +2095,7 @@ mach64_load_context(mach64_t *mach64)
 
 #define DECODE_ARGB1555()                                            \
     do {                                                             \
-        for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) { \
+        for (x = 0; x < src_w; x++) {                                \
             uint16_t dat = ((uint16_t *) src)[x];                    \
                                                                      \
             int b = dat & 0x1f;                                      \
@@ -1477,13 +2106,13 @@ mach64_load_context(mach64_t *mach64)
             g = (g << 3) | (g >> 2);                                 \
             r = (r << 3) | (r >> 2);                                 \
                                                                      \
-            mach64->overlay_dat[x] = (r << 16) | (g << 8) | b;       \
+            out[x] = (r << 16) | (g << 8) | b;                       \
         }                                                            \
     } while (0)
 
 #define DECODE_RGB565()                                              \
     do {                                                             \
-        for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) { \
+        for (x = 0; x < src_w; x++) {                                \
             uint16_t dat = ((uint16_t *) src)[x];                    \
                                                                      \
             int b = dat & 0x1f;                                      \
@@ -1494,130 +2123,197 @@ mach64_load_context(mach64_t *mach64)
             g = (g << 2) | (g >> 4);                                 \
             r = (r << 3) | (r >> 2);                                 \
                                                                      \
-            mach64->overlay_dat[x] = (r << 16) | (g << 8) | b;       \
+            out[x] = (r << 16) | (g << 8) | b;                       \
         }                                                            \
     } while (0)
 
 #define DECODE_ARGB8888()                                            \
     do {                                                             \
-        for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) { \
+        for (x = 0; x < src_w; x++) {                                \
             int b = src[0];                                          \
             int g = src[1];                                          \
             int r = src[2];                                          \
             src += 4;                                                \
                                                                      \
-            mach64->overlay_dat[x] = (r << 16) | (g << 8) | b;       \
+            out[x] = (r << 16) | (g << 8) | b;                       \
         }                                                            \
     } while (0)
 
-#define DECODE_VYUY422()                                                 \
-    do {                                                                 \
-        for (x = 0; x < src_w; x += 1) {                                 \
-            uint8_t y1, y2;                                              \
-            int8_t  u, v;                                                \
-            int     dR, dG, dB;                                          \
-            int     r, g, b;                                             \
-                                                                         \
-            y1 = src[0];                                                 \
-            u  = src[1] - 0x80;                                          \
-            y2 = src[2];                                                 \
-            v  = src[3] - 0x80;                                          \
-            src += 4;                                                    \
-                                                                         \
-            dR = (359 * v) >> 8;                                         \
-            dG = (88 * u + 183 * v) >> 8;                                \
-            dB = (453 * u) >> 8;                                         \
-                                                                         \
-            r = y1 + dR;                                                 \
-            CLAMP(r);                                                    \
-            g = y1 - dG;                                                 \
-            CLAMP(g);                                                    \
-            b = y1 + dB;                                                 \
-            CLAMP(b);                                                    \
-            mach64->overlay_dat[x * 2] = (r << 16) | (g << 8) | b;       \
-                                                                         \
-            r = y2 + dR;                                                 \
-            CLAMP(r);                                                    \
-            g = y2 - dG;                                                 \
-            CLAMP(g);                                                    \
-            b = y2 + dB;                                                 \
-            CLAMP(b);                                                    \
-            mach64->overlay_dat[(x * 2) + 1] = (r << 16) | (g << 8) | b; \
-        }                                                                \
+/* The YUV decoders keep each pixel's Y in bits 7:0 and its pair's U and V in
+   15:8 and 23:16, for the blender; mach64_overlay_y2r converts after it. */
+#define DECODE_VYUY422()                                  \
+    do {                                                  \
+        for (x = 0; x < ((src_w + 1) >> 1); x++) {        \
+            uint32_t uv = (src[1] << 8) | (src[3] << 16); \
+                                                          \
+            out[x * 2]       = src[0] | uv;               \
+            out[(x * 2) + 1] = src[2] | uv;               \
+            src += 4;                                     \
+        }                                                 \
     } while (0)
 
-#define DECODE_YVYU422()                                                 \
-    do {                                                                 \
-        for (x = 0; x < src_w; x += 1) {                                 \
-            uint8_t y1, y2;                                              \
-            int8_t  u, v;                                                \
-            int     dR, dG, dB;                                          \
-            int     r, g, b;                                             \
-                                                                         \
-            u  = src[0] - 0x80;                                          \
-            y1 = src[1];                                                 \
-            v  = src[2] - 0x80;                                          \
-            y2 = src[3];                                                 \
-            src += 4;                                                    \
-                                                                         \
-            dR = (359 * v) >> 8;                                         \
-            dG = (88 * u + 183 * v) >> 8;                                \
-            dB = (453 * u) >> 8;                                         \
-                                                                         \
-            r = y1 + dR;                                                 \
-            CLAMP(r);                                                    \
-            g = y1 - dG;                                                 \
-            CLAMP(g);                                                    \
-            b = y1 + dB;                                                 \
-            CLAMP(b);                                                    \
-            mach64->overlay_dat[x * 2] = (r << 16) | (g << 8) | b;       \
-                                                                         \
-            r = y2 + dR;                                                 \
-            CLAMP(r);                                                    \
-            g = y2 - dG;                                                 \
-            CLAMP(g);                                                    \
-            b = y2 + dB;                                                 \
-            CLAMP(b);                                                    \
-            mach64->overlay_dat[(x * 2) + 1] = (r << 16) | (g << 8) | b; \
-        }                                                                \
+#define DECODE_YVYU422()                                  \
+    do {                                                  \
+        for (x = 0; x < ((src_w + 1) >> 1); x++) {        \
+            uint32_t uv = (src[0] << 8) | (src[2] << 16); \
+                                                          \
+            out[x * 2]       = src[1] | uv;               \
+            out[(x * 2) + 1] = src[3] | uv;               \
+            src += 4;                                     \
+        }                                                 \
     } while (0)
 
-#define DECODE_YUV12_PACKED()                                            \
-    do {                                                                 \
-        for (x = 0; x < src_w; x += 1) {                                 \
-            uint8_t y1, y2;                                              \
-            int8_t  u, v;                                                \
-            int     dR, dG, dB;                                          \
-            int     r, g, b;                                             \
-                                                                         \
-            u  = uvsrc[3] - 0x80;                                        \
-            y1 = src[0];                                                 \
-            v  = uvsrc[2] - 0x80;                                        \
-            y2 = src[1];                                                 \
-            src += 4;                                                    \
-            uvsrc += 4;                                                  \
-                                                                         \
-            dR = (359 * v) >> 8;                                         \
-            dG = (88 * u + 183 * v) >> 8;                                \
-            dB = (453 * u) >> 8;                                         \
-                                                                         \
-            r = y1 + dR;                                                 \
-            CLAMP(r);                                                    \
-            g = y1 - dG;                                                 \
-            CLAMP(g);                                                    \
-            b = y1 + dB;                                                 \
-            CLAMP(b);                                                    \
-            mach64->overlay_dat[x * 2] = (r << 16) | (g << 8) | b;       \
-                                                                         \
-            r = y2 + dR;                                                 \
-            CLAMP(r);                                                    \
-            g = y2 - dG;                                                 \
-            CLAMP(g);                                                    \
-            b = y2 + dB;                                                 \
-            CLAMP(b);                                                    \
-            mach64->overlay_dat[(x * 2) + 1] = (r << 16) | (g << 8) | b; \
-        }                                                                \
+#define DECODE_YUV12_PACKED()                                 \
+    do {                                                      \
+        for (x = 0; x < ((src_w + 1) >> 1); x++) {            \
+            uint32_t uv = (uvsrc[3] << 8) | (uvsrc[2] << 16); \
+                                                              \
+            out[x * 2]       = src[0] | uv;                   \
+            out[(x * 2) + 1] = src[1] | uv;                   \
+            src += 4;                                         \
+            uvsrc += 4;                                       \
+        }                                                     \
     } while (0)
+
+/* A 15 or 16-bit pixel, or each bit of a mask of them, as the overlay
+   decoders widen it to 24 bits. */
+static uint32_t
+mach64_overlay_rgb888(uint16_t pixel, int format)
+{
+    uint32_t r = (format == 3) ? ((pixel >> 10) & 0x1f) : ((pixel >> 11) & 0x1f);
+    uint32_t g = (format == 3) ? ((pixel >> 5) & 0x1f) : ((pixel >> 5) & 0x3f);
+    uint32_t b = pixel & 0x1f;
+
+    r = (r << 3) | (r >> 2);
+    g = (format == 3) ? ((g << 3) | (g >> 2)) : ((g << 2) | (g >> 4));
+    b = (b << 3) | (b >> 2);
+    return (r << 16) | (g << 8) | b;
+}
+
+static uint32_t
+mach64_overlay_mask888(uint16_t mask, int format)
+{
+    uint32_t expanded = 0;
+
+    for (int bit = 0; bit < ((format == 3) ? 15 : 16); bit++) {
+        if (mask & (1 << bit))
+            expanded |= mach64_overlay_rgb888(1 << bit, format);
+    }
+    return expanded;
+}
+
+/* One line of the source: RGB widened to 24 bits, YUV as decoded. */
+static void
+mach64_overlay_decode(mach64_t *mach64, uint32_t *out, uint8_t *src, uint8_t *uvsrc, int src_w)
+{
+    int x;
+
+    switch (mach64->scaler_format) {
+        case 0x3:
+            DECODE_ARGB1555();
+            break;
+        case 0x4:
+            DECODE_RGB565();
+            break;
+        case 0x6:
+            DECODE_ARGB8888();
+            break;
+        case 0xa:
+            DECODE_YUV12_PACKED();
+            break;
+        case 0xb:
+            DECODE_VYUY422();
+            break;
+        case 0xc:
+            DECODE_YVYU422();
+            break;
+        default:
+            pclog("Unknown Mach64 scaler format %x\n", mach64->scaler_format);
+            /*Fill buffer with something recognisably wrong*/
+            for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++)
+                out[x] = 0xff00ff;
+            break;
+    }
+}
+
+/* Where YUV12 packed takes the U and V of source line y. */
+static uint8_t *
+mach64_overlay_uv_line(mach64_t *mach64, uint8_t *src, uint32_t y)
+{
+    /* Avoid corrupt UV data on YUV12 packed modes */
+    if (y >= 2)
+        return &mach64->svga.vram[mach64->overlay_base + mach64->svga.overlay.pitch * 2 * (!(y & 1) ? (y + 1) : y)];
+    return src;
+}
+
+static uint32_t
+mach64_overlay_y2r(uint32_t yuv)
+{
+    int y  = yuv & 0xff;
+    int u  = ((yuv >> 8) & 0xff) - 0x80;
+    int v  = ((yuv >> 16) & 0xff) - 0x80;
+    int dR = (359 * v) >> 8;
+    int dG = (88 * u + 183 * v) >> 8;
+    int dB = (453 * u) >> 8;
+    int r  = y + dR;
+    int g  = y - dG;
+    int b  = y + dB;
+
+    CLAMP(r);
+    CLAMP(g);
+    CLAMP(b);
+    return (r << 16) | (g << 8) | b;
+}
+
+/*
+ * The scaler blends YUV only and replicates RGB (VT/RAGE RRG 5-9). Its
+ * blender is a five-bit multiplier: (1 - alpha) times a pixel or line plus
+ * alpha times the next one, alpha the top five fraction bits of the
+ * accumulator. Where the next pixel or line fetched is two or more on, alpha
+ * gives way to "either a 50-50 blend or alpha = 0"; this takes the 50-50
+ * blend. (RAGE PRO and derivatives guide 8-6, of the VT's scaler.) How the
+ * blender rounds is not given.
+ */
+static int
+mach64_overlay_alpha(int acc, int next_acc)
+{
+    if (((next_acc >> 12) - (acc >> 12)) >= 2)
+        return 16;
+    return (acc >> 7) & 0x1f;
+}
+
+/* Bytes 0 to 2 of two pixels, blended. */
+static uint32_t
+mach64_overlay_blend(uint32_t first, uint32_t second, int alpha)
+{
+    uint32_t blended = 0;
+
+    for (int shift = 0; shift < 24; shift += 8) {
+        int a = (first >> shift) & 0xff;
+        int b = (second >> shift) & 0xff;
+
+        blended |= (uint32_t) (((a * (32 - alpha)) + (b * alpha) + 16) >> 5) << shift;
+    }
+    return blended;
+}
+
+/*
+ * One scaler output from a line of YUV: Y from pixel h_acc and the next, U
+ * and V from the pair at half of h_acc and the next pair, as subsampled U
+ * and V are scaled apart from Y (8-6 again).
+ */
+static uint32_t
+mach64_overlay_yuv(const uint32_t *line, int h_acc, int h_next, int h_max, int blend)
+{
+    int      h       = h_acc >> 12;
+    int      pair    = h_acc >> 13;
+    int      y_alpha = blend ? mach64_overlay_alpha(h_acc, h_next) : 0;
+    int      c_alpha = blend ? mach64_overlay_alpha(h_acc >> 1, h_next >> 1) : 0;
+    uint32_t y       = mach64_overlay_blend(line[h], line[MIN(h + 1, h_max)], y_alpha) & 0xff;
+    uint32_t uv      = mach64_overlay_blend(line[pair * 2], line[MIN(pair + 1, h_max >> 1) * 2], c_alpha) & 0xffff00;
+
+    return mach64_overlay_y2r(y | uv);
+}
 
 void
 mach64_overlay_draw(svga_t *svga, int displine)
@@ -1625,72 +2321,92 @@ mach64_overlay_draw(svga_t *svga, int displine)
     mach64_t *mach64 = (mach64_t *) svga->priv;
     int       x;
     int       h_acc = 0;
-    int       h_max = (mach64->scaler_height_width >> 16) & 0x3ff;
-    int       src_w = h_max;
+    int       src_w = (mach64->scaler_height_width >> 16) & 0x3ff;
+    int       src_h = mach64->scaler_height_width & 0x3ff;
+    /* Past its last pixel or line the source repeats it (VT/RAGE RRG 5-12). */
+    int       h_max = (src_w > 0) ? (src_w - 1) : 0;
     int       h_inc = mach64->overlay_scale_inc >> 16;
-    int       v_max = mach64->scaler_height_width & 0x3ff;
+    int       v_max = (src_h > 0) ? (src_h - 1) : 0;
     int       v_inc = mach64->overlay_scale_inc & 0xffff;
+    /* ECP_DIV (PLL_VCLK_CNTL 5:4, VT/RAGE RRG B-2; 3 is reserved) clocks
+       the scaler at VCLK/2 or VCLK/4. It then takes one HORZ_INC step per
+       two or four display pixels, and drivers multiply HORZ_INC to match. */
+    int       ecp_div  = (mach64->pll_regs[5] >> 4) & 3;
+    int       ecp_mask = (ecp_div == 3) ? 0 : ((1 << ecp_div) - 1);
+    /* YUV formats, the ones blended (mach64_overlay_alpha). */
+    int       yuv        = (mach64->scaler_format >= 0xa) && (mach64->scaler_format <= 0xc);
+    int       horz_blend = yuv && !(mach64->overlay_scale_cntl & SCALE_HORZ_MODE);
+    int       vert_blend = yuv && !(mach64->overlay_scale_cntl & SCALE_VERT_MODE);
+    int       v_acc      = mach64->overlay_v_acc;
+    int       v_next     = MIN(v_acc + v_inc, v_max << 12);
+    int       v_alpha    = vert_blend ? mach64_overlay_alpha(v_acc, v_next) : 0;
+    uint32_t  line_bytes = svga->overlay.pitch * ((mach64->scaler_format == 6) ? 4 : 2);
+    uint32_t *line       = mach64->overlay_dat;
+    uint32_t  blended[2048];
+    uint32_t  scaled[2048];
+    uint32_t  pixel = 0;
     uint32_t *p;
-    uint8_t  *src   = &svga->vram[svga->overlay.addr];
-    uint8_t  *uvsrc = src;
-    int       old_y = mach64->overlay_v_acc;
+    uint8_t  *src = &svga->vram[svga->overlay.addr];
     int       y_diff;
     int       video_key_fn    = mach64->overlay_key_cntl & 5;
     int       graphics_key_fn = (mach64->overlay_key_cntl >> 4) & 5;
     int       overlay_cmp_mix = (mach64->overlay_key_cntl >> 8) & 0xf;
+    uint32_t  video_key_clr   = mach64->overlay_video_key_clr;
+    uint32_t  video_key_msk   = mach64->overlay_video_key_msk;
     int       gfx_src         = 0;
     int       desktop_x = mach64->svga.overlay_latch.x;
     int       desktop_y = displine - svga->y_add;
 
     p = &buffer32->line[displine][svga->x_add + mach64->svga.overlay_latch.x];
 
-    if (mach64->overlay_cur_y >= 2) {
-        /* Avoid corrupt UV data on YUV12 packed modes */
-        uvsrc = &svga->vram[mach64->overlay_base + svga->overlay.pitch * 2 * (!(mach64->overlay_cur_y & 1) ? (mach64->overlay_cur_y + 1) : mach64->overlay_cur_y)];
-    }
-
-    if (mach64->scaler_update) {
-        switch (mach64->scaler_format) {
-            case 0x3:
-                DECODE_ARGB1555();
-                break;
-            case 0x4:
-                DECODE_RGB565();
-                break;
-            case 0x6:
-                DECODE_ARGB8888();
-                break;
-            case 0xa:
-                DECODE_YUV12_PACKED();
-                break;
-            case 0xb:
-                DECODE_VYUY422();
-                break;
-            case 0xc:
-                DECODE_YVYU422();
-                break;
-            default:
-                pclog("Unknown Mach64 scaler format %x\n", mach64->scaler_format);
-                /*Fill buffer with something recognisably wrong*/
-                for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++)
-                    mach64->overlay_dat[x] = 0xff00ff;
-                break;
+    if (mach64->type == MACH64_GTB) {
+        /* The GT-B's mixer is OVERLAY_KEY_CNTL bit 8 alone: the graphics
+           key, or the graphics and the video key (functions 0h and Ch). It
+           compares 15 and 16-bit video in that format, the one its key is
+           written in. */
+        overlay_cmp_mix = (mach64->overlay_key_cntl & 0x100) ? 0xc : 0x0;
+        if ((((mach64->overlay_key_cntl & 7) == 4) || ((mach64->overlay_key_cntl & 7) == 5)) &&
+            ((mach64->scaler_format == 3) || (mach64->scaler_format == 4))) {
+            video_key_clr = mach64_overlay_rgb888(video_key_clr, mach64->scaler_format);
+            video_key_msk = mach64_overlay_mask888(video_key_msk, mach64->scaler_format);
         }
     }
 
-    if (overlay_cmp_mix == 2) {
-        for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) {
-            int h = h_acc >> 12;
+    /* The vertical blend takes the next line with this one. */
+    if (mach64->scaler_update) {
+        mach64_overlay_decode(mach64, mach64->overlay_dat, src,
+                              mach64_overlay_uv_line(mach64, src, mach64->overlay_cur_y), src_w);
+        if (vert_blend && ((v_acc >> 12) < v_max))
+            mach64_overlay_decode(mach64, mach64->overlay_dat_next, src + line_bytes,
+                                  mach64_overlay_uv_line(mach64, src + line_bytes, mach64->overlay_cur_y + 1), src_w);
+    }
+    if (v_alpha) {
+        for (x = 0; x <= h_max; x++)
+            blended[x] = mach64_overlay_blend(mach64->overlay_dat[x], mach64->overlay_dat_next[x], v_alpha);
+        line = blended;
+    }
 
-            p[x] = mach64->overlay_dat[h];
+    for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) {
+        if (!(x & ecp_mask)) {
+            if (yuv)
+                pixel = mach64_overlay_yuv(line, h_acc, MIN(h_acc + h_inc, h_max << 12), h_max, horz_blend);
+            else
+                pixel = line[h_acc >> 12];
+        }
+        scaled[x] = pixel;
 
+        if (((x + 1) & ecp_mask) == 0) {
             h_acc += h_inc;
             if (h_acc > (h_max << 12))
                 h_acc = (h_max << 12);
         }
+    }
+
+    if (overlay_cmp_mix == 2) {
+        for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++)
+            p[x] = scaled[x];
     } else {
         for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) {
-            int h         = h_acc >> 12;
             int gr_cmp    = 0;
             int vid_cmp   = 0;
             int use_video = 0;
@@ -1703,10 +2419,10 @@ mach64_overlay_draw(svga_t *svga, int displine)
                     vid_cmp = 1;
                     break;
                 case 4:
-                    vid_cmp = ((mach64->overlay_dat[h] ^ mach64->overlay_video_key_clr) & mach64->overlay_video_key_msk);
+                    vid_cmp = ((scaled[x] ^ video_key_clr) & video_key_msk);
                     break;
                 case 5:
-                    vid_cmp = !((mach64->overlay_dat[h] ^ mach64->overlay_video_key_clr) & mach64->overlay_video_key_msk);
+                    vid_cmp = !((scaled[x] ^ video_key_clr) & video_key_msk);
                     break;
                 default:
                     break;
@@ -1801,24 +2517,15 @@ mach64_overlay_draw(svga_t *svga, int displine)
             }
 
             if (use_video)
-                p[x] = mach64->overlay_dat[h];
-
-            h_acc += h_inc;
-            if (h_acc > (h_max << 12))
-                h_acc = (h_max << 12);
+                p[x] = scaled[x];
         }
     }
 
-    mach64->overlay_v_acc += v_inc;
-    if (mach64->overlay_v_acc > (v_max << 12))
-        mach64->overlay_v_acc = v_max << 12;
+    mach64->overlay_v_acc = v_next;
 
-    y_diff = (mach64->overlay_v_acc >> 12) - (old_y >> 12);
+    y_diff = (v_next >> 12) - (v_acc >> 12);
 
-    if (mach64->scaler_format == 6)
-        svga->overlay.addr += svga->overlay.pitch * 4 * y_diff;
-    else
-        svga->overlay.addr += svga->overlay.pitch * 2 * y_diff;
+    svga->overlay.addr += line_bytes * y_diff;
 
     mach64->scaler_update = y_diff;
     mach64->overlay_cur_y += y_diff;

@@ -13,10 +13,12 @@
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Connor Hyde, <mario64crashed@gmail.com> <https://starfrost.net>
+ *          Avastrap2, <https://github.com/Avastrap2>
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2026 Connor Hyde.
+ *          Copyright 2026 Avastrap2.
  */
 
 #include "vid_ati_mach64.h"
@@ -655,12 +657,22 @@ mach64_map_aperture(mach64_t *mach64, mem_mapping_t *map, int ap_8m, uint32_t of
     mach64_mapping_set(map, (uint32_t) start, size);
 }
 
+/* The address bits of the PCI ROM BAR's second byte: bit 15, as a 32K ROM
+   needs (PCI 2.1, 6.2.5.2), but none on the 3D Rage II+. It decodes bits
+   31:16, bits 15:8 being "Reserved. Always 00h" (VT/RAGE RRG 7-3), so its 36K
+   ROM gets a 64K window and stays below 4 GB wherever the BAR is put. */
+static uint8_t
+mach64_rom_bar_byte1(const mach64_t *mach64)
+{
+    return mach64->pci_regs[0x31] & ((mach64->type == MACH64_GTB) ? 0x00 : 0x80);
+}
+
 /* The video BIOS ROM: at the PCI ROM BAR while it is enabled on PCI, at
    C0000 otherwise, and on no address at all while BUS_ROM_DIS (BUS_CNTL
    bit 12, "ROM disabled", RRG 3-2) is set -- how a second card's BIOS gets
    out of the first one's way. BUS_ROM_PAGE (11:8) selects a page of a ROM
-   larger than the window; the ROMs here are the window's 32K, so it is
-   stored and nothing more. */
+   larger than the window; the ROMs here fit their window, so it is stored
+   and nothing more. */
 static void
 mach64_update_rom(mach64_t *mach64)
 {
@@ -672,10 +684,10 @@ mach64_update_rom(mach64_t *mach64)
     }
     if (mach64->pci) {
         if (mach64->pci_regs[PCI_REG_ROM_BAR_BYTE0] & 0x01) {
-            uint32_t biosaddr = ((mach64->pci_regs[0x31] & 0x80) << 8) | (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
+            uint32_t biosaddr = (mach64_rom_bar_byte1(mach64) << 8) | (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
 
             mach64_log("Mach64 bios_rom enabled at %08x\n", biosaddr);
-            mach64_mapping_set(&mach64->bios_rom.mapping, biosaddr, 0x8000);
+            mach64_mapping_set(&mach64->bios_rom.mapping, biosaddr, mach64->bios_rom.sz);
         } else {
             mach64_log("Mach64 bios_rom disabled\n");
             mach64_mapping_off(&mach64->bios_rom.mapping);
@@ -720,6 +732,7 @@ mach64_updatemapping(mach64_t *mach64)
         mach64_mapping_off(&mach64->linear_mapping_big_endian);
         mach64_mapping_off(&mach64->mmio_mapping);
         mach64_mapping_off(&mach64->mmio_linear_mapping);
+        mach64_mapping_off(&mach64->aux_mapping);
         return;
     }
 
@@ -808,13 +821,25 @@ mach64_updatemapping(mach64_t *mach64)
             mach64_map_aperture(mach64, &mach64->linear_mapping, 1, 0, (8 << 20) - win);
             mach64_map_aperture(mach64, &mach64->mmio_linear_mapping, 1, (8 << 20) - win, win);
             /* The big-endian aperture, the second 8M, is memory only (VT RRG
-               figure 2.1). */
+               figure 2.1), but for the 3D Rage II+'s registers in its top 4K
+               (mach64_readb_be). */
             mach64_map_aperture(mach64, &mach64->linear_mapping_big_endian, 1, 8 << 20, 8 << 20);
         }
     } else {
         mach64_mapping_off(&mach64->linear_mapping);
         mach64_mapping_off(&mach64->mmio_linear_mapping);
         mach64_mapping_off(&mach64->linear_mapping_big_endian);
+    }
+
+    /* The 3D Rage II+'s third BAR: its registers again, 4K, block 1 at the
+       start and block 0 at 400h, as the RAGE LT PRO's auxiliary register
+       aperture (RRG-G03300 2-15). FFFFF000h is what a BAR sizing probe
+       leaves there, not an address. */
+    if (mach64->type == MACH64_GTB) {
+        if (mach64->aux_base && (mach64->aux_base != 0xfffff000))
+            mach64_mapping_set(&mach64->aux_mapping, mach64->aux_base, 0x1000);
+        else
+            mach64_mapping_off(&mach64->aux_mapping);
     }
 }
 
@@ -925,7 +950,7 @@ static void
 mach64_pll_recalc(mach64_t *mach64)
 {
     for (uint8_t c = 0; c < 4; c++) {
-        /* From the VT-B (the VT3 here), PLL register 0Bh bits 7:4 are
+        /* From the VT-B (the GT-B and the VT3 here), PLL register 0Bh bits 7:4 are
            VCLK0-3_XDIV: each picks the post dividers 3, 6 and 12 over
            1, 2, 4 and 8, index 5 being unused. The VT RRG (B-3) has the
            VT-A's 0Bh, which has no such bits; every driver for the
@@ -958,7 +983,7 @@ mach64_pll_recalc(mach64_t *mach64)
             }
         }
 
-        if (mach64->type >= MACH64_VT3)
+        if (mach64->type >= MACH64_GTB)
             idx |= ((mach64->pll_regs[PLL_XCLK_CNTL] >> (4 + c)) & 1) << 2;
         p = (double) vtb_post_div[idx];
         if ((p == 0.0) || (m == 0.0)) {
@@ -1054,7 +1079,7 @@ mach64_vblank_start(svga_t *svga)
     svga->overlay.cur_xsize = ((mach64->overlay_y_x_end >> 16) & 0x7ff) - svga->overlay.x + 1;
     svga->overlay.cur_ysize = (mach64->overlay_y_x_end & 0x7ff) - svga->overlay.y + 1;
 
-    if (mach64->type >= MACH64_VT3) {
+    if (mach64->type >= MACH64_GTB) {
         svga->overlay.addr  = mach64->scaler_buf_offset[0] & 0x3fffff;
         svga->overlay.pitch = mach64->scaler_buf_pitch & 0xfff;
     } else {
@@ -1062,7 +1087,9 @@ mach64_vblank_start(svga_t *svga)
         svga->overlay.pitch = mach64->buf_pitch[0] & 0xfff;
     }
 
-    svga->overlay.ena = (mach64->overlay_scale_cntl & OVERLAY_EN) && (overlay_cmp_mix != 1);
+    /* OVERLAY_CMP_MIX 1 hides the overlay; the GT-B's mixer, bit 8 alone
+       (mach64_overlay_draw), has no such function. */
+    svga->overlay.ena = (mach64->overlay_scale_cntl & OVERLAY_EN) && ((mach64->type == MACH64_GTB) || (overlay_cmp_mix != 1));
 
     mach64->overlay_v_acc   = 0;
     mach64->scaler_update   = 1;
@@ -1136,6 +1163,178 @@ mach64_vt_blk1_mask(const mach64_t *mach64, int reg)
     }
 }
 
+/*
+ * The 3D Rage II+ (GT-B)'s control registers that the core does not model
+ * for it are kept as written. ARS2D sizes its SGRAM by toggling bit 29 of
+ * EXT_MEM_CNTL and reading it back; POST stalls if the write is lost. The
+ * names are those of the RAGE LT PRO's table 3-1 (RRG-G03300), but for its
+ * "LT only" registers; the VT/RAGE RRG calls 7Ch GP_IO_CNTL.
+ */
+static int
+mach64_gtb_latched(uint32_t reg)
+{
+    switch (reg & 0xfc) {
+        case 0x28: /* TIMER_CONFIG */
+        case 0x2c: /* MEM_BUF_CNTL */
+        case 0x34: /* MEM_ADDR_CONFIG */
+        case 0x38: /* CRT_TRAP */
+        case 0x3c: /* I2C_CNTL_0 */
+        case 0x54:
+        case 0x58:
+        case 0x5c:
+        case 0x74:
+        case 0x7c: /* HW_DEBUG */
+        case 0x88: /* SCRATCH_REG2 */
+        case 0x8c: /* SCRATCH_REG3 */
+        case 0x94: /* CONFIG_STAT1 */
+        case 0x98: /* CONFIG_STAT2 */
+        case 0x9c:
+        case 0xa0: /* BUS_CNTL */
+        case 0xa4:
+        case 0xa8:
+        case 0xac: /* EXT_MEM_CNTL */
+        case 0xbc: /* I2C_CNTL_1 */
+        case 0xc8:
+        case 0xcc:
+        case 0xd4: /* CUSTOM_MACRO_CNTL */
+        case 0xd8:
+        case 0xe8 ... 0xfc: /* CRC_SIG and on */
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+/*
+ * GP_IO (VT/RAGE RRG 4-4). ATI's software for the GT-B bit-bangs I2C on
+ * its pins, the clock on B or A and the data on 4 or C; a pin's direction
+ * bit is its data bit's plus 16, and a pin not driven floats high. The card
+ * has one DDC bus, so both pairs drive it, wired-AND.
+ */
+#define GTB_GP_IO_SDA_4     (1 << 4)
+#define GTB_GP_IO_SCL_A     (1 << 10)
+#define GTB_GP_IO_SCL_B     (1 << 11)
+#define GTB_GP_IO_SDA_C     (1 << 12)
+#define GTB_GP_IO_DIR_SDA_4 (1 << 20)
+#define GTB_GP_IO_DIR_SCL_A (1 << 26)
+#define GTB_GP_IO_DIR_SCL_B (1 << 27)
+#define GTB_GP_IO_DIR_SDA_C (1 << 28)
+
+static int
+mach64_gtb_gp_io_pin(uint32_t gp_io, uint32_t data, uint32_t dir)
+{
+    return !(gp_io & dir) || (gp_io & data);
+}
+
+static void
+mach64_gtb_gp_io_drive(mach64_t *mach64)
+{
+    const uint32_t gp_io = mach64->gp_io;
+
+    i2c_gpio_set(mach64->i2c,
+                 mach64_gtb_gp_io_pin(gp_io, GTB_GP_IO_SCL_A, GTB_GP_IO_DIR_SCL_A) &&
+                     mach64_gtb_gp_io_pin(gp_io, GTB_GP_IO_SCL_B, GTB_GP_IO_DIR_SCL_B),
+                 mach64_gtb_gp_io_pin(gp_io, GTB_GP_IO_SDA_4, GTB_GP_IO_DIR_SDA_4) &&
+                     mach64_gtb_gp_io_pin(gp_io, GTB_GP_IO_SDA_C, GTB_GP_IO_DIR_SDA_C));
+}
+
+static uint8_t
+mach64_gtb_gp_io_read(mach64_t *mach64, uint32_t addr)
+{
+    uint8_t ret = mach64->gp_io >> ((addr & 3) * 8);
+    int     scl = i2c_gpio_get_scl(mach64->i2c);
+    int     sda = i2c_gpio_get_sda(mach64->i2c);
+
+    switch (addr & 3) {
+        case 0: /* GP_IO_4 */
+            ret = (ret & ~0x10) | (sda ? 0x10 : 0x00);
+            break;
+        case 1: /* GP_IO_A and B, GP_IO_C */
+            ret = (ret & ~0x1c) | (scl ? 0x0c : 0x00) | (sda ? 0x10 : 0x00);
+            break;
+        default:
+            break;
+    }
+    return ret;
+}
+
+/* The GT-B's own registers in block 0: returns 0 for those of the core. */
+static int
+mach64_gtb_readb(mach64_t *mach64, uint32_t addr, uint8_t *val)
+{
+    const uint32_t reg = addr & 0x3ff;
+    uint32_t       dword;
+
+    if (reg >= 0x100) {
+        if (!mach64_3d_read(mach64, addr, &dword))
+            return 0;
+        *val = dword >> ((addr & 3) * 8);
+    } else if ((reg & 0xfc) == 0x78)
+        *val = mach64_gtb_gp_io_read(mach64, addr);
+    else if (mach64_gtb_latched(reg))
+        *val = mach64->gtb_regs[reg];
+    else
+        return 0;
+    return 1;
+}
+
+static int
+mach64_gtb_writeb(mach64_t *mach64, uint32_t addr, uint8_t val)
+{
+    const uint32_t reg = addr & 0xff;
+
+    if ((reg & 0xfc) == 0x78) {
+        WRITE8(addr, mach64->gp_io, val);
+        mach64_gtb_gp_io_drive(mach64);
+    } else if (mach64_gtb_latched(reg))
+        mach64->gtb_regs[reg] = val;
+    else
+        return 0;
+    return 1;
+}
+
+/*
+ * GENVS (102h) and GENENA (46E8h), the VGA's sleep and enable registers
+ * (VT/RAGE RRG 10-22, 10-24), which ARS2D sets before it uses the VGA's
+ * ports: GENENA bit 4 lets GENVS be written, and GENENA bit 3 and GENVS
+ * bit 0 enable the VGA. IOCONFIG bit 3 (PCI 40h, 7-4) turns the decoding
+ * of GENENA off; here its writes are ignored. A read of GENENA has GENVS
+ * bit 0 in bit 3.
+ */
+static uint8_t
+mach64_gtb_genvs_in(UNUSED(uint16_t port), void *priv)
+{
+    const mach64_t *mach64 = (mach64_t *) priv;
+
+    return mach64->genvs;
+}
+
+static void
+mach64_gtb_genvs_out(UNUSED(uint16_t port), uint8_t val, void *priv)
+{
+    mach64_t *mach64 = (mach64_t *) priv;
+
+    if (mach64->genena & 0x10)
+        mach64->genvs = val & 0x01;
+}
+
+static uint8_t
+mach64_gtb_genena_in(UNUSED(uint16_t port), void *priv)
+{
+    const mach64_t *mach64 = (mach64_t *) priv;
+
+    return (mach64->genena & ~0x08) | (mach64->genvs ? 0x08 : 0x00);
+}
+
+static void
+mach64_gtb_genena_out(UNUSED(uint16_t port), uint8_t val, void *priv)
+{
+    mach64_t *mach64 = (mach64_t *) priv;
+
+    if (!(mach64->pci_regs[MACH64_PCI_IOCONFIG] & 0x08))
+        mach64->genena = val;
+}
+
 static int
 mach64_is_vt(const mach64_t *mach64)
 {
@@ -1153,6 +1352,8 @@ mach64_ext_readb(uint32_t addr, void *priv)
     if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         ret = svga->mapping.read_b(addr, svga->mapping.priv);
     else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
+        if ((mach64->type == MACH64_GTB) && (addr & 0x400) && mach64_gtb_readb(mach64, addr, &ret))
+            return ret;
         if (!(addr & 0x400) && mach64_is_vt(mach64)) {
             ret = mach64->vt_blk1[(addr & 0x3ff) >> 2] >> ((addr & 3) * 8);
         } else if (!(addr & 0x400)) {
@@ -1416,16 +1617,17 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     break;
                 case 0x2e8 ... 0x2eb:
                     /* DST_X_Y and DST_WIDTH_HEIGHT (0_BA, 0_BB) are VT-B
-                       registers: neither the GX nor the VT book has them. */
+                       registers: neither the GX nor the VT book has them.
+                       The GT-B (Rage II+) is of the same generation. */
                     ret = 0;
-                    if (mach64->type < MACH64_VT3)
+                    if (mach64->type < MACH64_GTB)
                         break;
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr ^ 2, mach64->dst_y_x);
                     break;
                 case 0x2ec ... 0x2ef:
                     ret = 0;
-                    if (mach64->type < MACH64_VT3)
+                    if (mach64->type < MACH64_GTB)
                         break;
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr ^ 2, mach64->dst_height_width);
@@ -1673,14 +1875,18 @@ mach64_ext_readb(uint32_t addr, void *priv)
 uint16_t
 mach64_ext_readw(uint32_t addr, void *priv)
 {
-    const mach64_t *mach64 = (mach64_t *) priv;
-    uint16_t        ret    = 0xffff;
+    mach64_t *mach64 = (mach64_t *) priv;
+    uint16_t  ret    = 0xffff;
+    uint32_t  dword;
 
     const svga_t   *svga   = &mach64->svga;
 
     if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         ret = svga->mapping.read_w(addr, svga->mapping.priv);
     else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
+        /* A 3D register in one read, not two halves. */
+        if (mach64->gt3d && (addr & 0x400) && (addr & 0x300) && ((addr & 3) <= 2) && mach64_3d_read(mach64, addr, &dword))
+            return dword >> ((addr & 3) * 8);
         if (!(addr & 0x400)) {
             mach64_log("mach64_ext_readw: addr=%04x\n", addr);
             ret = mach64_ext_readb(addr, priv);
@@ -1706,14 +1912,17 @@ mach64_ext_readw(uint32_t addr, void *priv)
 uint32_t
 mach64_ext_readl(uint32_t addr, void *priv)
 {
-    const mach64_t *mach64 = (mach64_t *) priv;
-    uint32_t        ret    = 0xffffffff;
+    mach64_t *mach64 = (mach64_t *) priv;
+    uint32_t  ret    = 0xffffffff;
 
     const svga_t   *svga   = &mach64->svga;
 
     if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         ret = svga->mapping.read_l(addr, svga->mapping.priv);
     else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
+        /* A 3D register in one read, not four bytes. */
+        if (mach64->gt3d && (addr & 0x400) && (addr & 0x300) && !(addr & 3) && mach64_3d_read(mach64, addr, &ret))
+            return ret;
         if (!(addr & 0x400)) {
             mach64_log("mach64_ext_readl: addr=%04x\n", addr);
             ret = mach64_ext_readw(addr, priv);
@@ -1752,6 +1961,8 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
     else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
         mach64_log("mach64_ext_writeb : addr %08X val %02X\n", addr, val);
 
+        if ((mach64->type == MACH64_GTB) && ((addr & 0x700) == 0x400) && mach64_gtb_writeb(mach64, addr, val))
+            return;
         if (!(addr & 0x400) && mach64_is_vt(mach64)) {
             const int      reg   = (addr & 0x3ff) >> 2;
             const int      shift = (addr & 3) * 8;
@@ -2248,14 +2459,18 @@ mach64_ext_inb(uint16_t port, void *priv)
                 else if (port_high == 0x7e)
                     addr_or_value = 0x00; // must be 0
                 /* BUS_CNTL is I/O select 13h (4EECh) and CONFIG_STAT1 1Dh
-                   (76ECh); select 1Eh (7AECh) is no register (RRG 2-6). All
-                   three fell through to CRTC_H_TOTAL_DISP. */
+                   (76ECh); select 1Eh (7AECh) is no register (RRG 2-6) but
+                   on the GT-B, where it is GP_IO as in the VT/RAGE RRG
+                   (4-4). All three fell through to CRTC_H_TOTAL_DISP. */
                 else if (port_high == 0x4E)
                     addr_or_value = 0xa0;
                 else if (port_high == 0x76)
                     addr_or_value = 0xe8;
-                else if (port_high == 0x7A)
-                    break;
+                else if (port_high == 0x7A) {
+                    if (mach64->type != MACH64_GTB)
+                        break;
+                    addr_or_value = 0x78;
+                }
 
                 ret = mach64_ext_readb(0x400 | addr_or_value | (lane), priv);
                 break;
@@ -2373,13 +2588,17 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
                 else if (port_high == 0x7e)
                     addr_or_value = 0x00; // must be 0
                 /* BUS_CNTL (13h, 4EECh), CONFIG_STAT1 (1Dh, 76ECh), and 1Eh
-                   (7AECh), which is no register (RRG 2-6). */
+                   (7AECh), which is no register (RRG 2-6) but the GT-B's
+                   GP_IO (VT/RAGE RRG 4-4). */
                 else if (port_high == 0x4E)
                     addr_or_value = 0xa0;
                 else if (port_high == 0x76)
                     addr_or_value = 0xe8;
-                else if (port_high == 0x7A)
-                    break;
+                else if (port_high == 0x7A) {
+                    if (mach64->type != MACH64_GTB)
+                        break;
+                    addr_or_value = 0x78;
+                }
 
                 mach64_ext_writeb(0x400 | addr_or_value | (port & 3), val, priv);
 
@@ -2404,13 +2623,15 @@ mach64_ext_outl(uint16_t port, uint32_t val, void *priv)
     mach64_ext_outw(port + 2, val >> 16, priv);
 }
 
+/* Block I/O: the 256 bytes of block 0 at the PCI BAR, which places them on
+   any 256-byte boundary. */
 static uint8_t
 mach64_block_inb(uint16_t port, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
     uint8_t   ret;
 
-    ret = mach64_ext_readb(0x400 | (port & 0x3ff), mach64);
+    ret = mach64_ext_readb(0x400 | (port & 0xff), mach64);
     mach64_log("mach64_block_inb : port %04X ret %02X\n", port, ret);
     return ret;
 }
@@ -2420,7 +2641,7 @@ mach64_block_inw(uint16_t port, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
     uint16_t  ret;
 
-    ret = mach64_ext_readw(0x400 | (port & 0x3ff), mach64);
+    ret = mach64_ext_readw(0x400 | (port & 0xff), mach64);
     mach64_log("mach64_block_inw : port %04X ret %04X\n", port, ret);
     return ret;
 }
@@ -2430,7 +2651,7 @@ mach64_block_inl(uint16_t port, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
     uint32_t  ret;
 
-    ret = mach64_ext_readl(0x400 | (port & 0x3ff), mach64);
+    ret = mach64_ext_readl(0x400 | (port & 0xff), mach64);
     mach64_log("mach64_block_inl : port %04X ret %08X\n", port, ret);
     return ret;
 }
@@ -2441,7 +2662,7 @@ mach64_block_outb(uint16_t port, uint8_t val, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
 
     mach64_log("mach64_block_outb : port %04X val %02X\n ", port, val);
-    mach64_ext_writeb(0x400 | (port & 0x3ff), val, mach64);
+    mach64_ext_writeb(0x400 | (port & 0xff), val, mach64);
 }
 static void
 mach64_block_outw(uint16_t port, uint16_t val, void *priv)
@@ -2449,7 +2670,7 @@ mach64_block_outw(uint16_t port, uint16_t val, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
 
     mach64_log("mach64_block_outw : port %04X val %04X\n ", port, val);
-    mach64_ext_writew(0x400 | (port & 0x3ff), val, mach64);
+    mach64_ext_writew(0x400 | (port & 0xff), val, mach64);
 }
 static void
 mach64_block_outl(uint16_t port, uint32_t val, void *priv)
@@ -2457,7 +2678,7 @@ mach64_block_outl(uint16_t port, uint32_t val, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
 
     mach64_log("mach64_block_outl : port %04X val %08X\n ", port, val);
-    mach64_ext_writel(0x400 | (port & 0x3ff), val, mach64);
+    mach64_ext_writel(0x400 | (port & 0xff), val, mach64);
 }
 
 static uint32_t
@@ -2855,40 +3076,84 @@ mach64_writel_linear(uint32_t addr, uint32_t val, void *priv)
     *(uint32_t *) &svga->vram[addr] = val;
 }
 
+/*
+ * The 3D Rage II+ has its registers in the top 4K of the big-endian
+ * aperture too, as they are, and ATI's Windows 95 driver uses them there:
+ * with that window read as memory, it rejects the card ("The adapter type
+ * is incorrect").
+ */
+static mach64_t *
+mach64_be_regs(uint32_t addr, void *priv)
+{
+    mach64_t            *mach64 = (mach64_t *) ((svga_t *) priv)->priv;
+    const mem_mapping_t *map    = &mach64->linear_mapping_big_endian;
+
+    if ((mach64->type == MACH64_GTB) && ((addr - map->base) >= (map->size - 0x1000)))
+        return mach64;
+    return NULL;
+}
+
 uint8_t
 mach64_readb_be(uint32_t addr, void *priv)
 {
+    mach64_t *mach64 = mach64_be_regs(addr, priv);
+
+    if (mach64)
+        return mach64_ext_readb(addr, mach64);
     return mach64_read_linear(addr, priv);
 }
 
 uint16_t
 mach64_readw_be(uint32_t addr, void *priv)
 {
+    mach64_t *mach64 = mach64_be_regs(addr, priv);
+
+    if (mach64)
+        return mach64_ext_readw(addr, mach64);
     return bswap16(mach64_readw_linear(addr, priv));
 }
 
 uint32_t
 mach64_readl_be(uint32_t addr, void *priv)
 {
+    mach64_t *mach64 = mach64_be_regs(addr, priv);
+
+    if (mach64)
+        return mach64_ext_readl(addr, mach64);
     return bswap32(mach64_readl_linear(addr, priv));
 }
 
 void
 mach64_writeb_be(uint32_t addr, uint8_t val, void *priv)
 {
-    return mach64_write_linear(addr, val, priv);
+    mach64_t *mach64 = mach64_be_regs(addr, priv);
+
+    if (mach64)
+        mach64_ext_writeb(addr, val, mach64);
+    else
+        mach64_write_linear(addr, val, priv);
 }
 
 void
 mach64_writew_be(uint32_t addr, uint16_t val, void *priv)
 {
-    return mach64_writew_linear(addr, bswap16(val), priv);
+    mach64_t *mach64 = mach64_be_regs(addr, priv);
+
+    if (mach64)
+        mach64_ext_writew(addr, val, mach64);
+    else
+        mach64_writew_linear(addr, bswap16(val), priv);
 }
 
 void
 mach64_writel_be(uint32_t addr, uint32_t val, void *priv)
 {
-    return mach64_writel_linear(addr, bswap32(val), priv);
+    mach64_t *mach64 = mach64_be_regs(addr, priv);
+
+    if (mach64)
+        mach64_ext_writel(addr, val, mach64);
+    else
+        mach64_writel_linear(addr, bswap32(val), priv);
 }
 
 // PCI config space I/O read function
@@ -2950,11 +3215,15 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             if (mach64->type >= MACH64_CT)
                 return mach64->block_decoded_io >> 24;
             return 0x00;
+        case PCI_REG_BAR2_BYTE0 ... PCI_REG_BAR2_BYTE3:
+            /* The GT-B's register aperture, 4K (mach64_updatemapping). */
+            if (mach64->type == MACH64_GTB)
+                return mach64->aux_base >> ((addr & 3) * 8);
+            return 0x00;
         case PCI_REG_ROM_BAR_BYTE0:
             return (mach64->on_board) ? 0 : (mach64->pci_regs[0x30] & 0x01); /*BIOS ROM address*/
         case PCI_REG_ROM_BAR_BYTE1:
-            /* The ROM is 32K: address bits 31:15 (PCI 2.1, 6.2.5.2). */
-            return (mach64->on_board) ? 0 : (mach64->pci_regs[0x31] & 0x80);
+            return (mach64->on_board) ? 0 : mach64_rom_bar_byte1(mach64);
         case PCI_REG_ROM_BAR_BYTE2:
             return (mach64->on_board) ? 0 : mach64->pci_regs[0x32];
         case PCI_REG_ROM_BAR_BYTE3:
@@ -2964,6 +3233,8 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
         case PCI_REG_INT_PIN:
             return PCI_INTA;
         case MACH64_PCI_IOCONFIG:
+            if (mach64->type == MACH64_GTB)
+                return mach64->pci_regs[MACH64_PCI_IOCONFIG];
             return mach64->use_block_decoded_io | mach64->io_base;
         default:
             break;
@@ -3022,6 +3293,17 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
             if (mach64->type >= MACH64_CT)
                 mach64->block_decoded_io = (mach64->block_decoded_io & 0x00ffffff) | (val << 24);
             break;
+        case PCI_REG_BAR2_BYTE0 ... PCI_REG_BAR2_BYTE3:
+            if (mach64->type == MACH64_GTB) {
+                const int shift = (addr & 3) * 8;
+
+                mach64->aux_base = ((mach64->aux_base & ~(0xffu << shift)) | (val << shift)) & 0xfffff000;
+                /* Moved with the last byte: configuration writes come a byte
+                   at a time, and the halves of a sizing probe are no address. */
+                if (addr == PCI_REG_BAR2_BYTE3)
+                    mach64_updatemapping(mach64);
+            }
+            break;
         case PCI_REG_ROM_BAR_BYTE0 ... PCI_REG_ROM_BAR_BYTE3:
             if (mach64->on_board)
                 return;
@@ -3032,6 +3314,9 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
             mach64->int_line = val;
             break;
         case MACH64_PCI_IOCONFIG:
+            /* The GT-B has bit 3 too, the lock of GENENA. */
+            if (mach64->type == MACH64_GTB)
+                mach64->pci_regs[MACH64_PCI_IOCONFIG] = val & 0x0f;
             mach64->io_base = val & 0x03;
             if (mach64->type >= MACH64_CT)
                 mach64->use_block_decoded_io = val & 0x04;
@@ -3059,6 +3344,8 @@ mach64_disable_handlers(mach64_t *dev)
     mem_mapping_disable(&dev->svga.mapping);
     if (dev->pci && !dev->on_board)
         mem_mapping_disable(&dev->bios_rom.mapping);
+    if (dev->type == MACH64_GTB)
+        mem_mapping_disable(&dev->aux_mapping);
 
     /* Save all the mappings and the timers because they are part of linked lists. */
     reset_state[dev->svga.monitor_index]->linear_mapping            = dev->linear_mapping;
@@ -3067,6 +3354,7 @@ mach64_disable_handlers(mach64_t *dev)
     reset_state[dev->svga.monitor_index]->mmio_linear_mapping       = dev->mmio_linear_mapping;
     reset_state[dev->svga.monitor_index]->svga.mapping              = dev->svga.mapping;
     reset_state[dev->svga.monitor_index]->bios_rom.mapping          = dev->bios_rom.mapping;
+    reset_state[dev->svga.monitor_index]->aux_mapping               = dev->aux_mapping;
 
     reset_state[dev->svga.monitor_index]->svga.timer      = dev->svga.timer;
     reset_state[dev->svga.monitor_index]->svga.timer_8514 = dev->svga.timer_8514;
@@ -3366,6 +3654,62 @@ mach64vt2_init(const device_t *info)
     return mach64;
 }
 
+/*
+ * The 3D Rage II+ DVD (GT-B, PCI ID GU): a VT2 with the 3D engine and the
+ * front-end scaler of the 3D RAGE (vid_ati_mach64_3d.c), SGRAM, and a timed
+ * draw engine (vid_ati_mach64_accel.c).
+ */
+static void *
+mach64gtb_init(const device_t *info)
+{
+    mach64_t *mach64 = mach64_common_init(info);
+    svga_t   *svga   = &mach64->svga;
+
+    svga->dac_hwcursor_draw = NULL;
+
+    svga->hwcursor.cur_ysize = 64;
+    svga->hwcursor.cur_xsize = 64;
+
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
+
+    mach64->pci                           = 1;
+    mach64->vlb                           = 0;
+    mach64->pci_id                        = 0x4755;
+    mach64->config_chip_id                = 0x9a004755;   /* "GU", ASIC ID 9Ah (VT/RAGE RRG 4-17) */
+    mach64->dac_cntl                      = 1 << 16;      /*Internal 24-bit DAC*/
+    mach64->config_stat0                  = 5 | (1 << 4); /* CFG_MEM_TYPE 5, SGRAM on the GT-B, and the CFG_VGA_EN strap */
+    mach64->mem_cntl                      = 7;            /* MEM_SIZE, 4 bits from the VT-B on: 4 MB */
+    mach64->use_block_decoded_io          = 4;
+    mach64->pci_regs[MACH64_PCI_IOCONFIG] = 4;
+    mach64->genena                        = 0x08;
+    mach64->genvs                         = 0x01;
+
+    mach64_vt_pll_reset(mach64);
+    /* The clock generator starts on the first clock of the GX's clock chip,
+       100 MHz: the VGA's 25.175 MHz instead, until ARS2D programs the PLL. */
+    ics2595_setclock(svga->clock_gen, 25175000.0);
+
+    ati_eeprom_load(&mach64->eeprom, "mach64rage2p_ars2d.nvr", 1);
+    /* ARS2D is 36K, 48h blocks of 512 bytes by its PCI data structure. */
+    rom_init(&mach64->bios_rom, BIOS_ROMGTB_PATH, 0xc0000, 0x9000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+    mem_mapping_disable(&mach64->bios_rom.mapping);
+
+    mem_mapping_add(&mach64->aux_mapping, 0, 0, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
+    mem_mapping_disable(&mach64->aux_mapping);
+    io_sethandler(0x0102, 0x0001, mach64_gtb_genvs_in, NULL, NULL, mach64_gtb_genvs_out, NULL, NULL, mach64);
+    io_sethandler(0x46e8, 0x0001, mach64_gtb_genena_in, NULL, NULL, mach64_gtb_genena_out, NULL, NULL, mach64);
+    mach64_gtb_gp_io_drive(mach64);
+
+    mach64->gt3d   = mach64_3d_init(mach64);
+    mach64->timing = mach64_timing_init();
+
+    svga->vblank_start = mach64_vblank_start;
+    svga->adv_flags   |= FLAG_PANNING_ATI;
+
+    *reset_state[monitor_index_global] = *mach64;
+    return mach64;
+}
+
 static void *
 mach64vt3_onboard_init(const device_t *info)
 {
@@ -3427,6 +3771,12 @@ mach64vt_available(void)
 {
     return rom_present(BIOS_ROMVT_PATH);
 }
+static int
+mach64gtb_available(void)
+{
+    return rom_present(BIOS_ROMGTB_PATH);
+}
+
 int
 mach64vt2_available(void)
 {
@@ -3449,6 +3799,13 @@ mach64_close(void *priv)
 #ifdef DMA_BM
     thread_close_mutex(mach64->dma.lock);
 #endif
+
+    if (mach64->type == MACH64_GTB) {
+        io_removehandler(0x0102, 0x0001, mach64_gtb_genvs_in, NULL, NULL, mach64_gtb_genvs_out, NULL, NULL, mach64);
+        io_removehandler(0x46e8, 0x0001, mach64_gtb_genena_in, NULL, NULL, mach64_gtb_genena_out, NULL, NULL, mach64);
+        mach64_3d_close(mach64->gt3d);
+        mach64_timing_close(mach64->timing);
+    }
 
     svga_close(&mach64->svga);
 
@@ -3826,6 +4183,20 @@ const device_t mach64vt2_device = {
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64vt2_config
+};
+
+const device_t mach64gtb_device = {
+    .name          = "ATI 3D Rage II+ DVD",
+    .internal_name = "mach64_rage2p",
+    .flags         = DEVICE_PCI,
+    .local         = MACH64_GTB | (1 << 20), /* 4 MB */
+    .init          = mach64gtb_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
+    .available     = mach64gtb_available,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = NULL
 };
 
 const device_t mach64vt3_onboard_device = {

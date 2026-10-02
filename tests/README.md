@@ -21,6 +21,14 @@ Try to match your code's filename and append the type of test it is.
 
 Build `wd90c31_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^Wd90c31\.'` for register, BitBLT, host-transfer and hardware-cursor checks. The optional `video/wd90c31_bios_smoke.py` runs the supplied option ROMs in a complete SDL emulator using a synthetic AT BIOS. See [the WD90C31 hardware notes](../doc/hardware/wd90c31.md) for ROM paths, commands, tested modes and validation limits.
 
+# ATI Mach64
+
+Build `mach64_accel_tests` and `mach64_3d_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^Mach64\.'`. Both include the source they test, for its private functions.
+
+`video/vid_ati_mach64_accel_test.c` runs the draw engine's FIFO thread on the test's own thread. It checks the color compare of transparent blits as the 3D Rage II+ DirectDraw driver writes them, `DP_SET_GUI_ENGINE` and the scissors it opens, the overlay's ECP clock division, source edges and YUV blends on the VT2 and the GT-B, and the GT-B's engine timing: its 48-entry FIFO, a CPU write waiting on a full FIFO, the clocks from the PLL, the display's share of the memory and the memory costs of ATI's method (RAGE PRO Programmer's Guide 7.9.7).
+
+`video/vid_ati_mach64_3d_test.c` stubs the draw engine FIFO and the timing model. It checks the 3D registers' fixed-point fields, the texture palette and keys, mip level selection, YUV and the scaler, then 1,077 draw cases through the registers against the whole frame and Z buffers: triangles of two trapezoids in ARGB1555, RGB565 and ARGB8888, shaded, textured and additive, in both directions and clipped; all eight Z tests; texel keys, alpha masks and the destination compare; the `DST_BRES_LNTH` commands of RRG-G02700 4-46; signed scissors; color and Z fields that wrap; textured lines; bilinear texel centers; and eight register streams of ATI3DCIF 4.03.2510's triangle setup against the color and depth planes of their vertices. The expected images are closed forms, not the engine's own helpers. The tests establish the documented register behavior and the engine's consistency, not the chip's undocumented rounding or dither.
+
 # Mitsumi
 
 The Mitsumi tests exercise the device implementation in isolation using mocked CD-ROM, DMA, interrupt and timer dependencies. They are device-level unit tests, not full-emulator or guest-driver integration tests. The benchmark measures performance and is not a correctness test.
