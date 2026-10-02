@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-10-02 12:29+0000\n"
-"Last-Translator: TheCawa <vos80584@gmail.com>\n"
+"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -3018,7 +3018,7 @@ msgid "Revision:"
 msgstr "Rewizja:"
 
 msgid "[Generic HDD] Device Configuration"
-msgstr "[Ogólny dysk twardy] Konfiguracja urządzenia"
+msgstr "[Generyczny dysk twardy] Konfiguracja urządzenia"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Nie udało się zainicjować renderera Vulkan."
