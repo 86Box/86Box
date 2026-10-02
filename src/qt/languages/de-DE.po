@@ -490,7 +490,7 @@ msgid "Tablet"
 msgstr "Grafiktablett"
 
 msgid "&Tablet"
-msgstr "&Tablet"
+msgstr "&Grafiktablett"
 
 msgid "Tablet (&Crosshair)"
 msgstr "Grafiktablett (&Fadenkreuz)"
