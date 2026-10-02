@@ -3519,8 +3519,8 @@ msgstr "932 (японська)"
 msgid "938 (Traditional Chinese)"
 msgstr "938 (китайська, традиційне письмо)"
 
-msgid "Частота дискретизації:"
-msgstr ""
+msgid "Sample rate:"
+msgstr "Частота дискретизації:"
 
 msgid "Enable audio input (mic/line-in)"
 msgstr "Увімкнути аудіовхід (мікрофон/лінійний вхід)"
