@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 19:36+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-10-02 19:23+0000\n"
+"Last-Translator: dob205 <dominik.babic0@gmail.com>\n"
 "Language-Team: Croatian <https://weblate.86box.net/projects/86box/86box/hr/>"
 "\n"
 "Language: hr-HR\n"
@@ -432,7 +432,7 @@ msgid "Dynamic recompiler"
 msgstr "Dinamički rekompilator"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Precizno FPU okruženje za dinamički rekompilator"
 
 msgid "CPU frame size"
 msgstr "Veličina blokova procesora"
@@ -486,16 +486,16 @@ msgid "&Mouse"
 msgstr "&Miš"
 
 msgid "Tablet:"
-msgstr ""
+msgstr "Tablet:"
 
 msgid "Tablet"
-msgstr ""
+msgstr "Tablet"
 
 msgid "&Tablet"
-msgstr ""
+msgstr "&Tablet"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "Tablet (&nišan)"
 
 msgid "Joystick:"
 msgstr "Palica za igru:"
@@ -858,7 +858,7 @@ msgid "Input devices"
 msgstr "Ulazni uređaji"
 
 msgid "Input &device"
-msgstr ""
+msgstr "Uređaj za &unos"
 
 msgid "Sound"
 msgstr "Zvuk"
@@ -870,10 +870,10 @@ msgid "Ports (COM & LPT)"
 msgstr "Vrata (COM & LPT)"
 
 msgid "Port"
-msgstr ""
+msgstr "Priključak"
 
 msgid "Ports"
-msgstr "Vrata"
+msgstr "Priključci"
 
 msgid "Serial ports"
 msgstr "Serijska vrata"
@@ -948,7 +948,7 @@ msgid "Press %1 or middle button to release mouse"
 msgstr "Pritisnite %1 ili srednji gumb miša za otpuštanje miša"
 
 msgid "Press %1 or side button to release mouse"
-msgstr ""
+msgstr "Pritisnite %1 ili bočni gumb za otpuštanje miša"
 
 msgid "Bus"
 msgstr "Bus"
