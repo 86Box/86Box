@@ -620,7 +620,7 @@ device_get_config_hex16(const char *)
     return 0x340;
 }
 void
-pclog(const char *, ...)
+(pclog)(const char *, ...)
 {
 }
 void

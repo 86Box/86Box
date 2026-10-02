@@ -32,6 +32,7 @@
 #include <86box/pit.h>
 #include <86box/postcard.h>
 #include <86box/rom.h>
+#include <86box/snd_speaker.h>
 #include <86box/video.h>
 #include <86box/vid_pc98.h>
 #include <86box/pc98_ppi8255.h>
@@ -166,6 +167,7 @@ enum {
  * 86Box's log collapses consecutive identical entries, so emitting one pclog
  * per byte turns every dump into "00 *** 15 repeats ***" and has to be
  * reassembled by hand.  Format the whole line first. */
+#ifndef RELEASE_BUILD
 static void pc98_hexdump(const char *tag, uint32_t addr, unsigned count)
 {
     char line[3 * 16 + 1];
@@ -217,6 +219,8 @@ static void pc98_find_walk_descriptors(void)
     if (!found)
         pclog("[PC98] no walk descriptor pair found in conventional RAM\n");
 }
+
+#endif
 
 static unsigned pc98_dma_logged = 0;
 static int pc98_firmware_memsize_logged = 0;
@@ -812,6 +816,12 @@ static uint8_t ppi_sys_in(uint16_t port, void *priv)
      * into a cold reboot.  pc98_ppi_read_cb() supplies the real pin state. */
     return pc98_ppi8255_read(&d->ppi_sys, reg);
 }
+static void pc98_speaker_update(pc98_mb_t *d)
+{
+    speaker_set_pc98_state(!(d->sys_port_c & PC98_SYS_C_BUZ),
+                           d->pit ? pit_devs[0].get_outlevel(d->pit, 1) : 0);
+}
+
 static void ppi_sys_out(uint16_t port, uint8_t val, void *priv)
 {
     pc98_mb_t *d = (pc98_mb_t *)priv;
@@ -824,8 +834,11 @@ static void ppi_sys_out(uint16_t port, uint8_t val, void *priv)
      * mode word at all - every write to 37h in the IPL is a BSR write. */
     if (reg == 3u)
         d->sys_port_c = pc98_ppi8255_bsr_latch(d->sys_port_c, val, 0xffu);
+    else if (reg == 2u)
+        d->sys_port_c = (d->sys_port_c & ~PC98_SYS_C_BUZ) | (val & PC98_SYS_C_BUZ);
 
     pc98_ppi8255_write(&d->ppi_sys, reg, val);
+    pc98_speaker_update(d);
 }
 static uint8_t ppi_prn_in(uint16_t port, void *priv)
 {
@@ -893,6 +906,14 @@ static void pc98_pit_irq(int new_out, int old_out, void *priv)
     else         picintc(1u << 0);
 }
 
+static void pc98_pit_speaker(int new_out, int old_out, void *priv)
+{
+    pit_t *pit = (pit_t *)priv;
+    pc98_mb_t *d = (pc98_mb_t *)pit->dev_priv;
+    (void)old_out;
+    speaker_set_pc98_state(!(d->sys_port_c & PC98_SYS_C_BUZ), new_out);
+}
+
 /* PC-9801VX drives all three 8253 CLK inputs from X1 = 31.9488 MHz / 16
  * = 1.9968 MHz, with the GATE inputs tied active.  86Box's pit_set_clock()
  * changes the *global machine/CPU timing basis* and must not be used here.
@@ -919,7 +940,9 @@ static void pc98_pit_reset(pc98_mb_t *d)
         pit_devs[0].set_gate(d->pit, i, 1);
     }
     pit_devs[0].set_out_func(d->pit, 0, pc98_pit_irq);
+    pit_devs[0].set_out_func(d->pit, 1, pc98_pit_speaker);
     pc98_pit_reclock(d);
+    pc98_speaker_update(d);
 }
 
 static uint32_t pc98_dma_effective_page(const pc98_mb_t *d, uint8_t page)
@@ -1040,7 +1063,8 @@ static void pc98_fdc_density_for_drive(pc98_mb_t *d, int is_2hd, unsigned drive)
      * per-drive latch is still honoured when 1.44 MB access is explicitly
      * requested, but normal 1 MB access works even if firmware never probes
      * the 3-mode extension port. */
-    if (drive < 2u && !fdd_is_525(d->fdc->fdd[drive]))
+    if (drive < 2u && fdd_get_flags(d->fdc->fdd[drive]) &&
+        !fdd_is_525(d->fdc->fdd[drive]))
         densel_polarity = !!d->fdc_3mode_144[drive];
 
     d->fdc->rate = is_2hd ? 0 : 2;       /* 500 kbit/s : 250 kbit/s */
@@ -1058,8 +1082,9 @@ static void pc98_fdc_density(pc98_mb_t *d, int is_2hd)
     /* 04BEh explicitly selects an internal drive while programming 1.44 MB
      * mode.  Otherwise use the drive currently selected by the shared 765,
      * which is what old VX firmware does for normal 1 MB operation. */
-    drive = (d->fdc_3mode_dev_sel < 2u) ? d->fdc_3mode_dev_sel
-                                        : (unsigned)(d->fdc->drive & 3u);
+    drive = (d->fdc_3mode_dev_sel < 2u &&
+             fdd_get_flags(d->fdc->fdd[d->fdc_3mode_dev_sel]))
+                ? d->fdc_3mode_dev_sel : (unsigned)(d->fdc->drive & 3u);
     pc98_fdc_density_for_drive(d, is_2hd, drive);
 }
 
@@ -1215,11 +1240,13 @@ static void pc98_fdc_motor_update(pc98_mb_t *d)
 {
     const int on = d->motor_1mb || d->motor_640;
 
-    if (on == d->motor_on)
-        return;
+    /* fdd_reset() rebuilds the drive timers independently of this latch.
+     * Reconcile the physical drives even if the requested level is unchanged;
+     * fdd_set_motor_enable() itself only schedules on an actual transition. */
     d->motor_on = (uint8_t)on;
-    fdd_set_motor_enable(d->fdc->fdd[0], on);
-    fdd_set_motor_enable(d->fdc->fdd[1], on);
+    for (unsigned drive = 0; drive < 2u; drive++)
+        fdd_set_motor_enable(d->fdc->fdd[drive],
+                             on && fdd_get_flags(d->fdc->fdd[drive]));
 }
 
 /* Both interfaces reset the uPD765 through bit 7 of their control register,
@@ -1248,12 +1275,17 @@ static void pc98_fdc_apply_ctrl(pc98_mb_t *d, uint8_t old, uint8_t val,
 
     pc98_fdc_motor_update(d);
 
-    /* Asserting RESET aborts any in-flight command on the one physical 765.
-     * Drop its route pin before selecting the identity which drives the reset
-     * line; otherwise a stale CAh transfer can leave the core stuck on DMA3
-     * across the reset edge (or vice versa). */
-    if (((old ^ val) & PC98_FDC_1MB_RST) && in_reset)
-        d->fdc_route_lock = 0u;
+    uint8_t dor = 0x08u; /* DMA and interrupt requests enabled */
+    if (d->motor_on)
+        dor |= 0x30u;
+
+    /* Cancel the physical command on its OLD IRQ/DMA route before dropping
+     * the route pin.  Retargeting first leaves the old channel's DRQ asserted. */
+    if (((old ^ val) & PC98_FDC_1MB_RST) && in_reset) {
+        fdc_write(2, dor, d->fdc);
+        pc98_fdc_forget_results(d);
+        picintc((1u << 10) | (1u << 11));
+    }
 
     /* Select the bank before touching /RESET: releasing it can schedule the
      * post-reset interrupt straight away, so routing afterwards is too late. */
@@ -1263,17 +1295,9 @@ static void pc98_fdc_apply_ctrl(pc98_mb_t *d, uint8_t old, uint8_t val,
     if (!((old ^ val) & PC98_FDC_1MB_RST))
         return;
 
-    uint8_t dor = 0x08u; /* DMA and interrupt requests enabled */
-    if (d->motor_on)
-        dor |= 0x30u;    /* both internal drives */
-    if (!in_reset)
-        dor |= 0x04u;    /* release /RESET: schedules the reset interrupt */
-
-    fdc_write(2, dor, d->fdc);
-
-    if (in_reset)
-        pc98_fdc_forget_results(d);
-    else {
+    if (!in_reset) {
+        /* Route is now established before the post-reset IRQ is scheduled. */
+        fdc_write(2, dor | 0x04u, d->fdc);
         pc98_fdc_density(d, !!(d->fdc_mode & PC98_FDC_MODE_FDE));
         pc98_fdc_apply_dma_gate(d);
     }
@@ -1499,6 +1523,7 @@ static unsigned pc98_fdc_logged = 0;
  * same port, and mistaking a parameter for a command byte - or reading ST0
  * bit 2, the head address, as a fault - sends you chasing the wrong thing.
  * Collect a whole phase and print it decoded. */
+#ifndef RELEASE_BUILD
 static const char *pc98_fdc_cmd_name(uint8_t cmd)
 {
     switch (cmd & 0x1fu) {
@@ -1597,8 +1622,14 @@ static void pc98_fdc_log_result(pc98_mb_t *d, uint16_t port)
     pclog("[PC98] %03X   -> (%u result bytes)\n", port, n);
 }
 
+#else
+#define pc98_fdc_log_cmd(...) ((void)0)
+#define pc98_fdc_log_result(...) ((void)0)
+#endif
+
 static void pc98_fdc_trace_flush(pc98_mb_t *d, uint16_t port)
 {
+    (void)port;
     if (d->trace_res_n) {
         pc98_fdc_log_result(d, port);
         d->trace_res_n = 0;
@@ -1618,14 +1649,19 @@ static void pc98_fdc_report_transfer(pc98_mb_t *d);
 
 static void pc98_fdc_trace(const char *what, uint16_t port, uint8_t val)
 {
+#ifndef RELEASE_BUILD
     if (pc98_fdc_logged >= 600u)
         return;
     pc98_fdc_logged++;
     pclog("[PC98] FDC %s %02X: %02X\n", what, port, val);
+#else
+    (void)what; (void)port; (void)val;
+#endif
 }
 
 static void pc98_fdc_report_transfer(pc98_mb_t *d)
 {
+#ifndef RELEASE_BUILD
     const int ch = pc98_fdc_core_bank(d) ? 2 : 3;
 
     /* By the time the IPL starts its first floppy transfer it has returned
@@ -1670,6 +1706,9 @@ static void pc98_fdc_report_transfer(pc98_mb_t *d)
               (unsigned)!!(dma_e & (1u << ch)),
               (unsigned)d->fdc->dma,
               (unsigned)dma_channel_writable(ch));
+#else
+    (void)d;
+#endif
 }
 
 static uint8_t fdc_in(uint16_t port, void *priv)
@@ -1746,6 +1785,7 @@ static uint8_t fdc_in(uint16_t port, void *priv)
          * D4 identifies the 1MB/1.44MB-capable drive and D0 reports the
          * currently selected 1.44MB access mode. */
         if (d->fdc_3mode_dev_sel >= 2 ||
+            !fdd_get_flags(d->fdc->fdd[d->fdc_3mode_dev_sel]) ||
             fdd_is_525(d->fdc->fdd[d->fdc_3mode_dev_sel]))
             return 0x00;
         return (uint8_t)(0xeeu |
@@ -1952,6 +1992,7 @@ static void fdc_out(uint16_t port, uint8_t val, void *priv)
     case 0x04be:
         d->fdc_3mode_dev_sel = (uint8_t)((val & 0x60) >> 5);
         if ((val & 0x10) && d->fdc_3mode_dev_sel < 2 &&
+            fdd_get_flags(d->fdc->fdd[d->fdc_3mode_dev_sel]) &&
             !fdd_is_525(d->fdc->fdd[d->fdc_3mode_dev_sel]))
             d->fdc_3mode_144[d->fdc_3mode_dev_sel] = val & 1;
         /* DENSEL means opposite spindle speeds to 5.25-inch and 3.5-inch
@@ -2001,12 +2042,14 @@ static void vrtc_clear_out(uint16_t port, uint8_t val, void *priv)
     (void)port; (void)val; (void)priv;
     picintc(1u << 2);
 
+#ifndef RELEASE_BUILD
     static int vrtc_count = 0;
     if (++vrtc_count >= 60) {
         vrtc_count = 0;
         pclog("[PC98-CPU] %04X:%04X AX=%04X BX=%04X CX=%04X DX=%04X SP=%04X BP=%04X SI=%04X DI=%04X DS=%04X ES=%04X SS=%04X\n",
               CS, (uint16_t)cpu_state.pc, AX, BX, CX, DX, SP, BP, SI, DI, DS, ES, SS);
     }
+#endif
 }
 
 static void nmi_ff_out(uint16_t port, uint8_t val, void *priv)
@@ -2073,7 +2116,10 @@ static void a20_out(uint16_t port, uint8_t val, void *priv)
  * motherboard or machine reset here would destroy all three. */
 static void pc98_cpu_reset_out(uint16_t port, uint8_t val, void *priv)
 {
+#ifndef RELEASE_BUILD
     pc98_mb_t *d = (pc98_mb_t *)priv;
+#endif
+    (void)priv;
     (void)port;
     (void)val;
 
@@ -2081,6 +2127,7 @@ static void pc98_cpu_reset_out(uint16_t port, uint8_t val, void *priv)
           !!(d->sys_port_c & PC98_SYS_C_SHUT0),
           !!(d->sys_port_c & PC98_SYS_C_SHUT1));
 
+#ifndef RELEASE_BUILD
     /* The ITF sizes extended memory by walking a protected-mode descriptor
      * upward in 128 KiB steps, then resets the CPU through this port and, back
      * in real mode, converts the descriptor's final base into the answer:
@@ -2133,12 +2180,12 @@ static void pc98_cpu_reset_out(uint16_t port, uint8_t val, void *priv)
         pc98_find_walk_descriptors();
     }
 
-    /* The CPU reset can interrupt an FDC command without resetting the
-     * motherboard wrapper.  Drop its queued results and route pin so the new
-     * BIOS session chooses IRQ/DMA from the interface it actually accesses. */
-    pc98_fdc_forget_results(d);
-    pc98_fdc_route(d, !!(d->fdc_mode & PC98_FDC_MODE_PE));
-    pc98_fdc_apply_dma_gate(d);
+#endif
+
+    /* F0h resets only the CPU (including protected-mode return through RESET).
+     * Preserve both the physical FDC command and its wrapper/route until the
+     * guest resets the controller at 94h/CCh. Dropping just the wrapper here
+     * orphaned a live DMA request and its media callback on a CPU-only reset. */
 
     /* F0h starts a new firmware pass without rebuilding the motherboard.
      * Reset the bounded trace counters so a warm boot still captures the
@@ -2219,6 +2266,11 @@ static void pc98_mb_reset(void *priv)
 {
     pc98_mb_t *d = (pc98_mb_t *)priv;
 
+    /* Abort on the old physical route before the wrapper loses its route pin.
+     * Motors remain off until firmware starts them after fdd_reset(). */
+    if (d->fdc)
+        fdc_write(2, 0x08u, d->fdc);
+
     /* Reset leaves both control registers with RESET deasserted, and BEh
      * selecting the 1MB port identity and 1MB drive mode, which is how a VX
      * comes up. */
@@ -2248,19 +2300,23 @@ static void pc98_mb_reset(void *priv)
     d->dma_autoinc_latch = 0;
     for (uint8_t ch = 0; ch < 4; ch++)
         dma_set_pc98_autoinc(ch, 0);
-    d->dma_access_ctrl = 0x00;
-    dma_set_mask(0x00ffffffu);
+    /* NEC's normal DMA mode masks A23-A20 (0439h MSK=1).  Legacy disk
+     * ROMs form the page byte with ROL segment,4 and can leave unrelated
+     * segment bits in its upper nibble; those bits must not reach memory.
+     * Software can clear MSK explicitly when it needs DMA above 1 MiB. */
+    d->dma_access_ctrl = 0x04;
+    dma_set_mask(0x000fffffu);
     pc98_pit_reset(d);
     if (d->fdc) {
         /* PC-98 has no IBM DOR at 3F2h: the DOR exists only as the core's
          * internal view of /RESET, the DMA/interrupt gate and the motors, all
          * of which the board drives from 94h/CCh.  Come up with reset released
-         * and both internal motors enabled so the first command works even if
+         * and the motors off so the first command starts media polling even if
          * the firmware never pulses RESET. */
-        fdc_write(2, 0x0cu, d->fdc);
         pc98_fdc_route(d, 1);
         pc98_fdc_apply_dma_gate(d);
         pc98_fdc_density(d, 1);
+        fdc_write(2, 0x0cu, d->fdc);
     }
     pc98_ppi8255_reset(&d->ppi_sys);
     pc98_ppi8255_reset(&d->ppi_prn);
@@ -2282,12 +2338,15 @@ static void pc98_mb_speed_changed(void *priv)
 static void pc98_mb_close(void *priv)
 {
     pc98_mb_t *d = (pc98_mb_t *)priv;
+    speaker_set_pc98_state(0, 0);
     pc98_rtc_save(&d->rtc);
     pclog("[PC98-SHUTDOWN-CPU] CS:IP=%04X:%04X AX=%04X BX=%04X CX=%04X DX=%04X SP=%04X BP=%04X SI=%04X DI=%04X DS=%04X ES=%04X SS=%04X\n",
           CS, (uint16_t)cpu_state.pc, AX, BX, CX, DX, SP, BP, SI, DI, DS, ES, SS);
+#ifndef RELEASE_BUILD
     uint32_t phys_ip = (CS << 4) + (uint16_t)cpu_state.pc;
     if (ram != NULL && phys_ip < (uint32_t)mem_size * 1024u)
         pc98_hexdump("CS:IP bytes", phys_ip, 16u);
+#endif
     keyboard_set_input_handler(NULL, NULL);
     timer_disable(&d->seek_irq_timer[0]);
     timer_disable(&d->seek_irq_timer[1]);
@@ -2351,11 +2410,11 @@ static void *pc98_mb_init(const device_t *info)
     dma_init_pc98();
 
     d->pit = (pit_t *)device_add(&i8253_ext_io_device);
+    d->pit->dev_priv = d;
     pit_devs[0] = pit_classic_intf;
     pit_devs[0].data = d->pit;
 
     d->fdc = (fdc_t *)device_add(&fdc_pc98_device);
-    fdc_remove(d->fdc); /* replace IBM 3f0h decode with 90h/92h/94h */
     fdc_set_irq(d->fdc, PC98_FDC_IRQ);
     fdc_set_dma_ch(d->fdc, PC98_FDC_DMA);
     /* pc98_mb_reset() below establishes the DOR through the core's own path. */

@@ -14,7 +14,12 @@
  *          Copyright 2025-2026 Plamen Ivanov.
  */
 #define _GNU_SOURCE
-#if defined(DEBUG) && !defined(ENABLE_TAPE_LOG)
+/* Explicit tape tracing flags must not bypass release logging policy. */
+#ifdef RELEASE_BUILD
+#    undef ENABLE_TAPE_LOG
+#    undef TAPE_FILE_LOG
+#endif
+#if defined(DEBUG) && !defined(RELEASE_BUILD) && !defined(ENABLE_TAPE_LOG)
 #    define ENABLE_TAPE_LOG 1
 #    define TAPE_FILE_LOG
 #endif

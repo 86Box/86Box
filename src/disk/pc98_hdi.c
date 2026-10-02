@@ -33,6 +33,7 @@
  *          for the data actually present, so a misparse fails at load
  *          instead of reading the drive at the wrong offsets.
  */
+#define _GNU_SOURCE
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -101,6 +102,14 @@ pc98_hdi_header_is_sane(const pc98_hdi_t *img, uint64_t file_size)
 
     /* Guard the multiplication below against a nonsense header. */
     if (img->spt > 0x10000u || img->hpc > 0x100u || img->cylinders > 0x10000u)
+        return 0;
+
+    if ((uint64_t) img->spt * img->hpc * img->cylinders > UINT32_MAX)
+        return 0;
+
+    /* Never allow sector writes to overlap the container header. */
+    const uint32_t header_size = (img->format == PC98_HDI_T98NEXT) ? 0x120u : 0x20u;
+    if (img->base < header_size)
         return 0;
 
     if (file_size <= (uint64_t) img->base)
@@ -182,18 +191,18 @@ pc98_hdi_open(pc98_hdi_t *img, const char *path)
     if (!img->f) {
         img->f = plat_fopen(path, "rb");
         if (!img->f)
-            return 0;
+            return -1;
         img->read_only = 1;
     }
 
-    if (fseek(img->f, 0, SEEK_END) != 0) {
+    if (fseeko64(img->f, 0, SEEK_END) != 0) {
         pc98_hdi_close(img);
-        return 0;
+        return -1;
     }
-    const long end = ftell(img->f);
+    const int64_t end = ftello64(img->f);
     if (end <= 0) {
         pc98_hdi_close(img);
-        return 0;
+        return -1;
     }
     const uint64_t file_size = (uint64_t) end;
 
@@ -204,12 +213,8 @@ pc98_hdi_open(pc98_hdi_t *img, const char *path)
         ok = open_anex86(img, file_size);
 
     if (!ok) {
-        /* Leave the file alone: the caller falls back to 86Box's own image
-         * layer, which may still be able to make sense of it. */
-        const int ro = img->read_only;
         pc98_hdi_close(img);
-        img->read_only = ro;
-        return 0;
+        return -1;
     }
 
     img->blocks = (uint32_t) ((uint64_t) img->spt * img->hpc * img->cylinders);
@@ -235,18 +240,7 @@ seek_to_block(pc98_hdi_t *img, uint32_t lba, uint32_t count)
     const uint64_t off = (uint64_t) img->base +
                          ((uint64_t) lba * img->sector_size);
 
-    /*
-     * Plain fseek() is enough here, and avoids the fseeko64/_fseeki64
-     * portability dance 86Box's own image layer has to do: the largest
-     * geometry the board BIOS can describe is 175296 blocks, just under
-     * 45 MB, so a SASI image never approaches the 2 GB a 32-bit long
-     * guarantees.  The check keeps that reasoning enforced rather than
-     * assumed.
-     */
-    if (off > 0x7ffffffful)
-        return 0;
-
-    return fseek(img->f, (long) off, SEEK_SET) == 0;
+    return fseeko64(img->f, (int64_t) off, SEEK_SET) == 0;
 }
 
 /*
@@ -270,8 +264,7 @@ pc98_hdi_write(pc98_hdi_t *img, uint32_t lba, uint32_t count,
         return 0;
     if (fwrite(buf, img->sector_size, count, img->f) != count)
         return 0;
-    fflush(img->f);
-    return 1;
+    return fflush(img->f) == 0;
 }
 
 static int
@@ -285,7 +278,7 @@ seek_to_256_block(pc98_hdi_t *img, uint32_t lba, uint32_t count)
         return 0;
     const uint64_t off = (uint64_t) img->base +
                          (uint64_t) lba * PC98_HDI_BLOCK_SIZE;
-    return off <= 0x7ffffffful && fseek(img->f, (long) off, SEEK_SET) == 0;
+    return fseeko64(img->f, (int64_t) off, SEEK_SET) == 0;
 }
 
 int
@@ -304,8 +297,7 @@ pc98_hdi_write_256(pc98_hdi_t *img, uint32_t lba, uint32_t count,
         return 0;
     if (fwrite(buf, PC98_HDI_BLOCK_SIZE, count, img->f) != count)
         return 0;
-    fflush(img->f);
-    return 1;
+    return fflush(img->f) == 0;
 }
 
 
@@ -356,8 +348,7 @@ pc98_hdi_sasi_read(pc98_hdi_t *img, uint32_t lba, uint32_t count,
         const uint64_t off = (uint64_t) img->base +
                              (uint64_t) track * img->spt * img->sector_size +
                              (uint64_t) slot * PC98_HDI_BLOCK_SIZE;
-        const uint64_t end = off + (uint64_t) chunk * PC98_HDI_BLOCK_SIZE;
-        if (end > 0x7fffffffull || fseek(img->f, (long) off, SEEK_SET) != 0 ||
+        if (fseeko64(img->f, (int64_t) off, SEEK_SET) != 0 ||
             fread(buf, PC98_HDI_BLOCK_SIZE, chunk, img->f) != chunk)
             return 0;
 
@@ -395,8 +386,7 @@ pc98_hdi_sasi_write(pc98_hdi_t *img, uint32_t lba, uint32_t count,
         const uint64_t off = (uint64_t) img->base +
                              (uint64_t) track * img->spt * img->sector_size +
                              (uint64_t) slot * PC98_HDI_BLOCK_SIZE;
-        const uint64_t end = off + (uint64_t) chunk * PC98_HDI_BLOCK_SIZE;
-        if (end > 0x7fffffffull || fseek(img->f, (long) off, SEEK_SET) != 0 ||
+        if (fseeko64(img->f, (int64_t) off, SEEK_SET) != 0 ||
             fwrite(buf, PC98_HDI_BLOCK_SIZE, chunk, img->f) != chunk)
             return 0;
 

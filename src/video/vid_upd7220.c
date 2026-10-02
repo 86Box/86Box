@@ -42,6 +42,14 @@
 #define CMD_DMAW    0x24
 #define CMD_5A      0x5a
 
+#define WORK_NONE 0
+#define WORK_FIGD 1
+#define WORK_GCHR 2
+#define WORK_WDAT 3
+#define WORK_RDAT 4
+
+static void engine_schedule(upd7220_t *g);
+
 static uint16_t dummy_read(void *opaque, uint32_t addr)
 {
     (void)opaque; (void)addr;
@@ -97,8 +105,10 @@ static void fifo_direction(upd7220_t *g, unsigned dir)
 static bool fifo_push(upd7220_t *g, uint8_t value, int flag)
 {
     if (g->fifo_count == 16) {
-        fifo_status(g);
-        return false;
+        /* The chip loses the oldest byte on overflow (NEC manual 5-1).
+         * Software must observe FULL; overflow never executes a byte early. */
+        g->fifo_head = (uint8_t)((g->fifo_head + 1) & 15);
+        g->fifo_count--;
     }
     g->fifo[g->fifo_tail] = value;
     g->fifo_flag[g->fifo_tail] = (int8_t)flag;
@@ -124,14 +134,6 @@ static bool fifo_pop(upd7220_t *g, uint8_t *value, int *flag)
     return true;
 }
 
-static void set_busy(upd7220_t *g, uint32_t clocks)
-{
-    if (clocks > g->busy_clocks)
-        g->busy_clocks = clocks;
-    if (g->busy_clocks)
-        g->sr |= UPD7220_SR_DRAW;
-}
-
 /* Command processing times from the NEC user's manual, in 2xWCLK periods.
  * Data-transfer commands add memory-cycle work separately. */
 static uint8_t command_cost(uint8_t cr)
@@ -146,12 +148,12 @@ static uint8_t command_cost(uint8_t cr)
     if (cr == CMD_CURS) return 6;
     if ((cr & 0xf0) == CMD_PRAM) return 10;
     if (cr == CMD_PITCH) return 10;
-    if ((cr & 0xe4) == CMD_WDAT) return 12;
+    if ((cr & 0xe4) == CMD_WDAT) return ((cr >> 3) & 3) == 2 ? 14 : 12;
     if (cr == CMD_MASK) return 10;
     if (cr == CMD_FIGS) return 10;
     if (cr == CMD_FIGD) return 18;
     if (cr == CMD_GCHRD) return 16;
-    if ((cr & 0xe4) == CMD_RDAT) return 14;
+    if ((cr & 0xe4) == CMD_RDAT) return ((cr >> 3) & 3) == 3 ? 12 : 14;
     if (cr == CMD_CURD) return 14;
     if (cr == CMD_LPRD) return 12;
     if ((cr & 0xe4) == CMD_DMAR) return 14;
@@ -159,7 +161,18 @@ static uint8_t command_cost(uint8_t cr)
     return 6;
 }
 
-static void reset_figs(upd7220_t *g)
+static uint8_t parameter_cost(const upd7220_t *g)
+{
+    if ((g->cr & 0xf0) == CMD_PRAM) return 4;
+    if ((g->cr & 0xe4) == CMD_WDAT)
+        return (g->cr & 0x10) ? 8 : (g->param_ptr ? 4 : 2);
+    /* CURS P3 depends on the dot address on a 7220; the 7220A removes that
+     * wait (manual appendix E). Model its minimum documented processing time. */
+    if (g->cr == CMD_CURS && g->param_ptr == 2) return 4;
+    return 2;
+}
+
+static void figs_defaults(upd7220_t *g)
 {
     /* DIR is not reset by the FIGS post-operation reset; software can rely on
      * the current drawing direction surviving WDAT/FIGD. */
@@ -170,6 +183,11 @@ static void reset_figs(upd7220_t *g)
     g->figs.d1 = 0xffff;
     g->figs.d2 = 8;
     g->figs.dm = 0xffff;
+}
+
+static void reset_figs(upd7220_t *g)
+{
+    figs_defaults(g);
     g->pattern = (uint16_t)(g->ra[8] | ((uint16_t)g->ra[9] << 8));
 }
 
@@ -285,94 +303,115 @@ static void draw_dot(upd7220_t *g, unsigned cycle)
     write_vram_op(g, 0, g->bitmap_mod, pattern_at(g, cycle), g->mask);
 }
 
-static void draw_pixel(upd7220_t *g)
+/* Four 2xWCLK periods per RMW cycle at display zoom 1 or 2; larger
+ * display zooms lengthen the memory cycle (NEC manual section 2). This models
+ * execution work, without yet arbitrating display/refresh bus slots. */
+static uint32_t memory_cost(const upd7220_t *g)
 {
-    uint32_t n = (uint32_t)g->figs.dc + 1;
-    for (uint32_t i = 0; i < n; i++) {
-        draw_dot(g, i);
-        next_pixel(g, g->figs.dir);
-    }
+    return g->disp > 1 ? 2u * ((uint32_t)g->disp + 1) : 4u;
 }
 
-/* Bresenham-form line parameters match the 7220 FIGS accumulator model. */
-static void draw_line(upd7220_t *g)
+static void finish_work(upd7220_t *g)
 {
-    int32_t d = sext14(g->figs.d);
-    int32_t d1 = sext14(g->figs.d1);
-    int32_t d2 = sext14(g->figs.d2);
-    unsigned base = g->figs.dir & 7;
-    uint32_t n = (uint32_t)g->figs.dc + 1;
-
-    for (uint32_t i = 0; i < n; i++) {
-        draw_dot(g, i);
-        if (base & 1)
-            g->figs.dir = (uint8_t)((d < 0) ? ((base + 1) & 7) : base);
-        else
-            g->figs.dir = (uint8_t)((d < 0) ? base : ((base + 1) & 7));
-        d += (d < 0) ? d1 : d2;
-        /* FIGD advances EAD after every generated pixel, including the final
-         * one. Software commonly chains vectors from that updated address. */
-        next_pixel(g, g->figs.dir);
-    }
+    g->work_kind = WORK_NONE;
+    g->sr &= (uint8_t)~UPD7220_SR_DRAW;
+    reset_figs(g);
 }
 
-static void draw_rect(upd7220_t *g)
+/* Complete exactly one memory/DDA cycle. Keep the original figure geometry,
+ * pattern phase and final cursor rules while making execution observable. */
+static void figure_step(upd7220_t *g)
 {
-    unsigned dir = g->figs.dir & 7;
-    for (unsigned side = 0; side < 4; side++) {
-        uint16_t dist = (side & 1) ? g->figs.d2 : g->figs.d;
-        for (uint16_t i = 0; i < dist; i++) {
-            draw_dot(g, i);
-            if (!(side == 3 && i + 1 == dist)) next_pixel(g, dir);
-        }
-        dir = (dir + 2) & 7;
-        g->figs.dir = (uint8_t)dir;
+    uint32_t i = g->work_index;
+    if (g->work_kind == WORK_WDAT) {
+        write_vram_op(g, (g->cr >> 3) & 3, g->cr & 3, g->work_data, g->mask);
+        next_word(g, g->figs.dir);
+        if (++g->work_index > g->figs.dc) finish_work(g);
+        return;
     }
-}
-
-static void draw_arc(upd7220_t *g)
-{
-    int32_t radius = g->figs.d;
-    int32_t err = -radius;
-    int32_t d = radius + 1;
-    unsigned oct = g->figs.dir & 7;
-    uint32_t n = (uint32_t)g->figs.dc + 1;
-
-    for (uint32_t i = 0; i < n; i++) {
-        if (i >= g->figs.dm) draw_dot(g, i);
-        if (err < 0) g->figs.dir = (uint8_t)((oct & 1) ? ((oct + 1) & 7) : oct);
-        else         g->figs.dir = (uint8_t)((oct & 1) ? oct : ((oct + 1) & 7));
-        err += (err < 0) ? ((int32_t)(i + 1) << 1)
-                         : (((int32_t)i - --d + 1) << 1);
-        next_pixel(g, g->figs.dir);
-    }
-}
-
-static void draw_gchr(upd7220_t *g)
-{
-    unsigned lines = (unsigned)g->figs.dc + 1;
-    unsigned width = g->figs.d ? g->figs.d : 8;
-    unsigned zoom = (unsigned)g->gchr + 1;
-    unsigned original_dir = g->figs.dir & 7;
-
-    /* PRAM bytes 8..15 are the documented graphics-character pattern. */
-    for (unsigned y = 0; y < lines; y++) {
-        uint8_t row = g->ra[8 + (y & 7)];
+    if (g->work_kind == WORK_GCHR) {
+        unsigned zoom = (unsigned)g->gchr + 1;
+        unsigned width = g->figs.d ? g->figs.d : 8;
+        uint8_t row = g->ra[8 + ((g->work_row / zoom) & 7)];
         g->pattern = (uint16_t)(row | ((uint16_t)row << 8));
-        for (unsigned zy = 0; zy < zoom; zy++) {
-            for (unsigned x = 0; x < width; x++) {
-                for (unsigned zx = 0; zx < zoom; zx++) {
-                    draw_dot(g, x);
-                    if (!(x + 1 == width && zx + 1 == zoom)) next_pixel(g, original_dir);
-                }
-            }
-            /* Return to the next scan direction using the same 8-way geometry.
-             * This deliberately avoids assuming a linear framebuffer. */
-            g->figs.dir = (uint8_t)((original_dir + 2) & 7);
-            next_pixel(g, g->figs.dir);
-            g->figs.dir = (uint8_t)original_dir;
+        draw_dot(g, i / zoom);
+        if (++g->work_index < width * zoom) {
+            next_pixel(g, g->work_dir);
+        } else {
+            next_pixel(g, (g->work_dir + 2) & 7);
+            g->work_index = 0;
+            if (++g->work_row >= ((uint32_t)g->figs.dc + 1) * zoom)
+                finish_work(g);
         }
+        return;
     }
+
+    switch (g->figs.type) {
+    case 0:
+        draw_dot(g, i);
+        next_pixel(g, g->figs.dir);
+        break;
+    case 1: {
+        int32_t d = g->work_error;
+        unsigned base = g->work_dir;
+        draw_dot(g, i);
+        g->figs.dir = (uint8_t)((base & 1)
+            ? ((d < 0) ? ((base + 1) & 7) : base)
+            : ((d < 0) ? base : ((base + 1) & 7)));
+        g->work_error += sext14(d < 0 ? g->figs.d1 : g->figs.d2);
+        next_pixel(g, g->figs.dir);
+        break;
+    }
+    case 4: {
+        unsigned oct = g->work_dir;
+        if (i >= g->figs.dm) draw_dot(g, i);
+        g->figs.dir = (uint8_t)((g->work_error < 0)
+            ? ((oct & 1) ? ((oct + 1) & 7) : oct)
+            : ((oct & 1) ? oct : ((oct + 1) & 7)));
+        g->work_error += (g->work_error < 0) ? (int32_t)(2 * (i + 1))
+            : 2 * ((int32_t)i - --g->work_arc_d + 1);
+        next_pixel(g, g->figs.dir);
+        break;
+    }
+    case 8: {
+        unsigned side = g->work_side;
+        uint16_t dist = (side & 1) ? g->figs.d2 : g->figs.d;
+        draw_dot(g, i);
+        if (!(side == 3 && i + 1 == dist)) next_pixel(g, g->figs.dir);
+        if (++g->work_index == dist) {
+            g->figs.dir = (g->figs.dir + 2) & 7;
+            g->work_index = 0;
+            /* A zero-length side still turns the drawing direction. */
+            do {
+                if (++g->work_side == 4) { finish_work(g); return; }
+                dist = (g->work_side & 1) ? g->figs.d2 : g->figs.d;
+                if (!dist) g->figs.dir = (g->figs.dir + 2) & 7;
+            } while (!dist);
+        }
+        return;
+    }
+    default:
+        finish_work(g);
+        return;
+    }
+    if (++g->work_index > g->figs.dc) finish_work(g);
+}
+
+static void start_figure(upd7220_t *g, unsigned kind)
+{
+    g->work_index = g->work_row = g->work_side = 0;
+    g->work_dir = g->figs.dir & 7;
+    g->work_error = g->figs.type == 4 ? -(int32_t)g->figs.d : sext14(g->figs.d);
+    g->work_arc_d = (int32_t)g->figs.d + 1;
+    if (kind == WORK_FIGD && g->figs.type == 8) {
+        while (g->work_side < 4 && !(g->work_side & 1 ? g->figs.d2 : g->figs.d)) {
+            g->work_side++;
+            g->figs.dir = (g->figs.dir + 2) & 7;
+        }
+        if (g->work_side == 4) { finish_work(g); return; }
+    }
+    g->work_kind = (uint8_t)kind;
+    g->sr |= UPD7220_SR_DRAW;
 }
 
 static void queue_word_for_read(upd7220_t *g, uint16_t value, unsigned type)
@@ -387,10 +426,9 @@ static void queue_word_for_read(upd7220_t *g, uint16_t value, unsigned type)
 
 static void rdat_fill(upd7220_t *g)
 {
-    unsigned type = (g->cr >> 3) & 3;
-    while (g->transfer_words_left && g->fifo_count <= 14) {
-        uint16_t value = read_vram_type(g, type);
-        queue_word_for_read(g, value, type);
+    unsigned type = g->transfer_type;
+    if (g->transfer_words_left) {
+        queue_word_for_read(g, read_vram_type(g, type), type);
         g->transfer_words_left--;
         if (g->transfer_words_left) next_word(g, g->figs.dir);
     }
@@ -403,7 +441,6 @@ static void start_read_transfer(upd7220_t *g)
     g->bitmap_mod = (uint8_t)(g->cr & 3);
     g->transfer_words_left = (uint32_t)g->figs.dc + 1;
     fifo_direction(g, FIFO_READ);
-    rdat_fill(g);
 }
 
 static void begin_command(upd7220_t *g, uint8_t cr)
@@ -414,7 +451,6 @@ static void begin_command(upd7220_t *g, uint8_t cr)
     memset(g->pr, 0, sizeof(g->pr));
     if ((cr & 0xe4) == CMD_WDAT)
         g->bitmap_mod = cr & 3;
-    set_busy(g, command_cost(cr));
 
     if (cr == CMD_RESET || cr == CMD_RESET2 || cr == CMD_RESET3) {
         g->de = 0;
@@ -422,7 +458,9 @@ static void begin_command(upd7220_t *g, uint8_t cr)
         /* NEC RESET clears the execution mask; it does not clear PRAM. */
         g->mask = 0x0000;
         g->sr &= (uint8_t)~(UPD7220_SR_DRAW | UPD7220_SR_DMA);
-        g->busy_clocks = command_cost(cr);
+        g->dma_bytes_left = 0;
+        g->dma_phase = 0;
+        if (g->drq_changed) g->drq_changed(g->opaque, 0);
         reset_figs(g);
         return;
     }
@@ -450,21 +488,23 @@ static void begin_command(upd7220_t *g, uint8_t cr)
         g->ra_addr = cr & 0x0f;
         return;
     }
+    if (cr == CMD_FIGS) {
+        /* Omitted fields belong to this FIGS, rather than the previous one.
+         * Do not reload the pattern latch merely for specifying geometry. */
+        figs_defaults(g);
+        return;
+    }
     if (cr == CMD_FIGD) {
         switch (g->figs.type) {
-        case 0: draw_pixel(g); break;
-        case 1: draw_line(g); break;
-        case 4: draw_arc(g); break;
-        case 8: draw_rect(g); break;
-        default: break;
+        case 0: case 1: case 4: case 8: start_figure(g, WORK_FIGD); break;
+        default: finish_work(g); break;
         }
-        reset_figs(g);
         g->command_active = 0;
         return;
     }
     if (cr == CMD_GCHRD) {
-        if ((g->figs.type & 0x0f) == 2) draw_gchr(g);
-        reset_figs(g);
+        if ((g->figs.type & 0x0f) == 2) start_figure(g, WORK_GCHR);
+        else finish_work(g);
         g->command_active = 0;
         return;
     }
@@ -519,8 +559,9 @@ static void accept_param(upd7220_t *g, uint8_t data)
 {
     uint8_t cr = g->cr;
     if (g->param_ptr < sizeof(g->pr)) g->pr[g->param_ptr] = data;
-    g->param_ptr++;
-    set_busy(g, 2);
+    /* PRAM and reserved commands accept arbitrary streams. Saturate the
+     * parser index so an overlong stream cannot wrap back into old fields. */
+    if (g->param_ptr < sizeof(g->pr)) g->param_ptr++;
 
     if (cr == CMD_RESET || cr == CMD_RESET2 || cr == CMD_RESET3 || (cr & 0xfe) == CMD_SYNC) {
         if (g->param_ptr == 8) { decode_timing(g); param_complete(g); }
@@ -605,7 +646,6 @@ static void accept_param(upd7220_t *g, uint8_t data)
     }
     if ((cr & 0xe4) == CMD_WDAT) {
         unsigned type = (cr >> 3) & 3;
-        unsigned mod = cr & 3;
         unsigned need = (cr & 0x10) ? 1u : 2u;
         if (type == 1) return; /* reserved transfer type */
         if (g->param_ptr == need) {
@@ -628,12 +668,8 @@ static void accept_param(upd7220_t *g, uint8_t data)
             g->pattern = (uint16_t)((g->pattern & 0xff00) | g->pr[0]);
             if (need == 2) g->pattern = (uint16_t)((g->pattern & 0x00ff) | ((uint16_t)g->pr[1] << 8));
 
-            /* WDAT repeats the supplied datum DC+1 times. */
-            for (uint32_t i = 0; i <= g->figs.dc; i++) {
-                write_vram_op(g, type, mod, w, g->mask);
-                next_word(g, g->figs.dir);
-            }
-            reset_figs(g);
+            g->work_data = w;
+            start_figure(g, WORK_WDAT);
             /* Hardware keeps WDAT selected; another datum may follow. */
             g->param_ptr = 0;
         }
@@ -663,6 +699,8 @@ void upd7220_reset(upd7220_t *g)
     upd7220_timing_changed_cb tc = g->timing_changed;
     upd7220_signal_cb drq = g->drq_changed;
 
+    if (drq && (g->sr & UPD7220_SR_DMA)) drq(opaque, 0);
+
     memset(g, 0, sizeof(*g));
     g->opaque = opaque;
     g->vram_read = rd ? rd : dummy_read;
@@ -677,23 +715,62 @@ void upd7220_reset(upd7220_t *g)
     fifo_clear(g);
 }
 
+/* Start the next byte or memory cycle only when its predecessor finished.
+ * RDAT stalls on a full output FIFO; writes can turn it around immediately. */
+static void engine_schedule(upd7220_t *g)
+{
+    if (g->busy_clocks) return;
+    if (g->work_kind != WORK_NONE) {
+        g->busy_clocks = memory_cost(g);
+    } else if (g->fifo_dir == FIFO_READ) {
+        unsigned bytes = g->transfer_type == 0 ? 2 : 1;
+        if (g->transfer_words_left && g->fifo_count <= 16 - bytes) {
+            g->work_kind = WORK_RDAT;
+            g->busy_clocks = memory_cost(g);
+        }
+    } else if (!(g->sr & UPD7220_SR_DMA) && g->fifo_count) {
+        int flag;
+        fifo_pop(g, &g->pending_byte, &flag);
+        g->pending_valid = 1;
+        g->pending_command = (uint8_t)(flag == FIFO_COMMAND);
+        if (g->pending_command && (g->pending_byte == CMD_FIGD ||
+                                    g->pending_byte == CMD_GCHRD))
+            g->sr |= UPD7220_SR_DRAW;
+        g->busy_clocks = g->pending_command ? command_cost(g->pending_byte)
+                                            : parameter_cost(g);
+    }
+}
+
 void upd7220_write(upd7220_t *g, unsigned offset, uint8_t data)
 {
-    if (offset & 1) {
-        /* A new command terminates PRAM/WDAT streaming and switches FIFO to input. */
-        fifo_direction(g, FIFO_WRITE);
-        fifo_push(g, data, FIFO_COMMAND);
+    bool command = !!(offset & 1);
+    if (command && (data == CMD_RESET || data == CMD_RESET2 || data == CMD_RESET3)) {
+        /* RESET has a dedicated decoder ahead of the FIFO (manual 5-2), so
+         * it can recover a full FIFO or an in-progress drawing/read/DMA. */
+        fifo_clear(g);
+        g->fifo_dir = FIFO_WRITE;
+        g->pending_valid = 0;
+        g->work_kind = WORK_NONE;
+        g->transfer_words_left = g->dma_bytes_left = 0;
+        g->sr &= (uint8_t)~(UPD7220_SR_DRAW | UPD7220_SR_DMA);
+        if (g->drq_changed) g->drq_changed(g->opaque, 0);
         begin_command(g, data);
-    } else {
-        fifo_direction(g, FIFO_WRITE);
-        fifo_push(g, data, FIFO_PARAMETER);
-        if (g->command_active) accept_param(g, data);
+        g->busy_clocks = command_cost(data);
+        return;
     }
-
-    /* The software-visible write FIFO is consumed by the command processor;
-     * this model executes command bytes synchronously and accounts for the
-     * documented processing latency through busy_clocks. */
-    if (g->fifo_dir == FIFO_WRITE) fifo_clear(g);
+    if (g->fifo_dir == FIFO_READ) {
+        /* An opcode aborts RDAT even when the read FIFO is full. A stray
+         * parameter is not an opcode and must not destroy its output. */
+        if (!command) return;
+        g->transfer_words_left = 0;
+        if (g->work_kind == WORK_RDAT) {
+            g->work_kind = WORK_NONE;
+            g->busy_clocks = 0;
+        }
+        fifo_direction(g, FIFO_WRITE);
+    }
+    fifo_push(g, data, command ? FIFO_COMMAND : FIFO_PARAMETER);
+    engine_schedule(g);
 }
 
 uint8_t upd7220_read(upd7220_t *g, unsigned offset)
@@ -702,13 +779,12 @@ uint8_t upd7220_read(upd7220_t *g, unsigned offset)
         fifo_status(g);
         return g->sr;
     }
-
-    fifo_direction(g, FIFO_READ);
+    /* Reading before DRDY must not turn around and erase queued commands. */
+    if (g->fifo_dir != FIFO_READ) return 0xff;
     uint8_t value;
     int flag;
     fifo_pop(g, &value, &flag);
-    (void)flag;
-    if (g->transfer_words_left) rdat_fill(g);
+    engine_schedule(g);
     return value;
 }
 
@@ -735,6 +811,7 @@ void upd7220_dack_write(upd7220_t *g, uint8_t data)
     if (--g->dma_bytes_left == 0) {
         g->sr &= (uint8_t)~UPD7220_SR_DMA;
         if (g->drq_changed) g->drq_changed(g->opaque, 0);
+        engine_schedule(g);
     }
 }
 
@@ -747,7 +824,7 @@ uint8_t upd7220_dack_read(upd7220_t *g)
     if ((g->dma_type & 3) == 0) {
         out = g->dma_phase ? (uint8_t)(v >> 8) : (uint8_t)v;
         g->dma_phase ^= 1;
-        if (!g->dma_phase && g->dma_bytes_left > 1) next_pixel(g, g->figs.dir);
+        if (!g->dma_phase && g->dma_bytes_left > 1) next_word(g, g->figs.dir);
     } else {
         out = ((g->dma_type & 3) == 3) ? (uint8_t)(v >> 8) : (uint8_t)v;
         if (g->dma_bytes_left > 1) next_word(g, g->figs.dir);
@@ -756,6 +833,7 @@ uint8_t upd7220_dack_read(upd7220_t *g)
     if (--g->dma_bytes_left == 0) {
         g->sr &= (uint8_t)~UPD7220_SR_DMA;
         if (g->drq_changed) g->drq_changed(g->opaque, 0);
+        engine_schedule(g);
     }
     return out;
 }
@@ -780,9 +858,30 @@ void upd7220_set_retrace(upd7220_t *g, int hblank, int vsync)
 
 void upd7220_advance(upd7220_t *g, uint32_t clocks)
 {
-    if (clocks >= g->busy_clocks) g->busy_clocks = 0;
-    else g->busy_clocks -= clocks;
-    if (!g->busy_clocks) g->sr &= (uint8_t)~UPD7220_SR_DRAW;
+    engine_schedule(g);
+    while (g->busy_clocks && clocks >= g->busy_clocks) {
+        clocks -= g->busy_clocks;
+        g->busy_clocks = 0;
+        if (g->pending_valid) {
+            uint8_t byte = g->pending_byte;
+            bool command = !!g->pending_command;
+            g->pending_valid = 0;
+            if (command) begin_command(g, byte);
+            else if (g->command_active) accept_param(g, byte);
+        } else if (g->work_kind == WORK_RDAT) {
+            rdat_fill(g);
+            g->work_kind = WORK_NONE;
+        } else if (g->work_kind != WORK_NONE) {
+            figure_step(g);
+        }
+        engine_schedule(g);
+    }
+    if (g->busy_clocks) g->busy_clocks -= clocks;
+}
+
+uint32_t upd7220_next_event(const upd7220_t *g)
+{
+    return g->busy_clocks;
 }
 
 void upd7220_get_graphics_partition(const upd7220_t *g, unsigned index,

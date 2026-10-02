@@ -71,7 +71,9 @@ if(NEW_DYNAREC)
 endif()
 
 if(RELEASE)
-    add_compile_definitions(RELEASE_BUILD)
+    # Explicit Debug configurations retain diagnostics even in a release
+    # packaging checkout.
+    add_compile_definitions("$<$<NOT:$<CONFIG:Debug>>:RELEASE_BUILD>")
 endif()
 
 if(DYNAREC)

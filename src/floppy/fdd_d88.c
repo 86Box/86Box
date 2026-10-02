@@ -519,9 +519,11 @@ d88_writeback(void *priv)
         return;
 
     if ((fseek(dev->fp, 0, SEEK_SET) == 0) &&
-        (fwrite(dev->image, 1, dev->file_size, dev->fp) == dev->file_size)) {
-        fflush(dev->fp);
+        (fwrite(dev->image, 1, dev->file_size, dev->fp) == dev->file_size) &&
+        (fflush(dev->fp) == 0)) {
         dev->dirty = 0;
+    } else {
+        pclog("[PC98-D88] Failed to save floppy image; retaining dirty state\n");
     }
 }
 

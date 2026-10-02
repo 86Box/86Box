@@ -1,4 +1,5 @@
 if(BUILD_TESTING)
+    add_subdirectory(pc98)
     add_library(fdc_read_id_engine OBJECT
         ../../src/floppy/fdd_86f.c
         ../../src/floppy/fdd_img.c

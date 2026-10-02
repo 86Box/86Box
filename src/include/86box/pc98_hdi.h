@@ -49,10 +49,10 @@ typedef struct pc98_hdi_t {
 } pc98_hdi_t;
 
 /*
- * Returns 1 when the file was recognised AND its header passes the
- * consistency check below, 0 otherwise.  A file that is not one of these
- * containers is not an error - the caller falls back to 86Box's image
- * layer.
+ * Returns 1 for a valid native container, 0 for a different file type,
+ * and -1 for an HDI/NHD that cannot be opened or has an invalid header.
+ * Only 0 permits falling back to the generic image layer: treating a bad
+ * native container as raw exposes its header as disk sectors.
  */
 int pc98_hdi_open(pc98_hdi_t *img, const char *path);
 void pc98_hdi_close(pc98_hdi_t *img);

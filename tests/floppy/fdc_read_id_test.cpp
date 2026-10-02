@@ -343,11 +343,11 @@ path_get_extension(char *path)
     return dot ? dot + 1 : path + std::strlen(path);
 }
 void
-pclog(const char *, ...)
+(pclog)(const char *, ...)
 {
 }
 void
-pclog_ex(const char *, va_list)
+(pclog_ex)(const char *, va_list)
 {
 }
 void

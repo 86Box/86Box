@@ -38,9 +38,12 @@ typedef struct pc98_grcg_t {
 typedef struct pc98_egc_t {
     uint16_t regs[8];      /* 4A0,4A2,...4AE */
     uint16_t pat[4];
+    uint16_t fg[4];       /* physical foreground latches, also GRCG tiles */
+    uint16_t bg[4];
     uint16_t src[4];
     uint16_t leftover[4];
     uint16_t mask;
+    uint16_t cpu_data;    /* NEC CPU-source readback latch */
     int32_t count;
     uint8_t first;
     uint8_t start;

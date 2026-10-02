@@ -19,22 +19,16 @@
 #include <86box/mem.h>
 #include <86box/pic.h>
 #include <86box/rom.h>
+#include <86box/pc98_rom.h>
 #include <86box/timer.h>
 #include <86box/vid_pc98.h>
 #include <86box/video.h>
 
-#define PC98_IPL_PATH       "roms/machines/pc9801/ipl.rom"
-#define PC98_ITF_PATH       "roms/machines/pc9801/itf.rom"
-#define PC98_BIOS_PATH      "roms/machines/pc9801/bios.rom"
 #define PC98_FONT_PATH      "roms/machines/pc9801/font.rom"
 #define PC98_KANJI_X01_PATH "roms/machines/pc9801/24256c-x01.bin"
 #define PC98_KANJI_X02_PATH "roms/machines/pc9801/24256c-x02.bin"
 #define PC98_KANJI_X03_PATH "roms/machines/pc9801/24256c-x03.bin"
 #define PC98_KANJI_X04_PATH "roms/machines/pc9801/24256c-x04.bin"
-#define PC98_VX_YLL01_PATH  "roms/machines/pc9801/nec_d27c256d-15_cpu_extboard_yll01.bin"
-#define PC98_VX_YLL02_PATH  "roms/machines/pc9801/nec_d27c256d-15_cpu_extboard_yll02.bin"
-#define PC98_VX_YLL03_PATH  "roms/machines/pc9801/nec_d27c256d-15_cpu_extboard_yll03.bin"
-#define PC98_VX_YLL04_PATH  "roms/machines/pc9801/nec_d27c256d-15_cpu_extboard_yll04.bin"
 
 #define PC98_DEFAULT_ACTIVE_END 400u
 #define PC98_DEFAULT_TOTAL_LINES 440u
@@ -53,7 +47,10 @@ struct pc98_86box_t {
     pc_timer_t scan_timer;
     uint32_t frame_no;
     uint16_t raster_line;
-    uint16_t gdc_clock_fraction;
+    pc_timer_t gdc_timer;
+    uint64_t gdc_last_tsc;
+    uint64_t gdc_timer_usec;
+    uint32_t gdc_clock_fraction;
     uint8_t in_vsync;
     uint8_t raster_phase;
     uint8_t need_resize;
@@ -69,9 +66,13 @@ struct pc98_86box_t {
     pc98_plane_map_t plane_map[4];
 };
 
+static void pc98_gdc_sync(pc98_86box_t *d);
+static void pc98_gdc_schedule(pc98_86box_t *d);
+
 static uint8_t tvram_rb(uint32_t addr, void *priv)
 {
     pc98_86box_t *d = (pc98_86box_t *)priv;
+    pc98_gdc_sync(d);
     uint32_t off = (addr - 0xa0000u) & 0x3fffu;
 
     /* A3FE2-A3FFF is the firmware memory-switch window.  It occupies the
@@ -99,6 +100,7 @@ static uint16_t tvram_rw(uint32_t addr, void *priv)
 static void tvram_wb(uint32_t addr, uint8_t val, void *priv)
 {
     pc98_86box_t *d = (pc98_86box_t *)priv;
+    pc98_gdc_sync(d);
     uint32_t off = (addr - 0xa0000u) & 0x3fffu;
     if (off >= 0x3fe2u) {
         if (!(off & 1u) && d->core.video_ff[6])
@@ -183,6 +185,7 @@ static void cg_ww(uint32_t addr, uint16_t val, void *priv)
 static uint8_t gvram_rb(uint32_t addr, void *priv)
 {
     pc98_plane_map_t *m = (pc98_plane_map_t *)priv;
+    pc98_gdc_sync(m->dev);
     uint16_t off = (uint16_t)(addr & 0x7fffu);
     return pc98_gvram_read8(&m->dev->core, m->plane, off);
 }
@@ -190,6 +193,15 @@ static uint8_t gvram_rb(uint32_t addr, void *priv)
 static uint16_t gvram_rw(uint32_t addr, void *priv)
 {
     pc98_plane_map_t *m = (pc98_plane_map_t *)priv;
+    pc98_gdc_sync(m->dev);
+    if (addr & 1) {
+        /* The VX has a 16-bit bus: an unaligned word is two byte cycles.
+         * Dispatch the second cycle through its actual aperture, including
+         * accesses crossing a plane or ROM boundary. */
+        uint8_t lo = gvram_rb(addr, priv);
+        uint8_t hi = mem_readb_phys(addr + 1u);
+        return (uint16_t)(lo | ((uint16_t)hi << 8));
+    }
     uint16_t off = (uint16_t)((addr & 0x7fffu) >> 1);
     return pc98_gvram_read16(&m->dev->core, m->plane, off, 0xffff);
 }
@@ -197,37 +209,61 @@ static uint16_t gvram_rw(uint32_t addr, void *priv)
 static void gvram_wb(uint32_t addr, uint8_t val, void *priv)
 {
     pc98_plane_map_t *m = (pc98_plane_map_t *)priv;
+    pc98_gdc_sync(m->dev);
     pc98_gvram_write8(&m->dev->core, m->plane, (uint16_t)(addr & 0x7fffu), val);
 }
 
 static void gvram_ww(uint32_t addr, uint16_t val, void *priv)
 {
     pc98_plane_map_t *m = (pc98_plane_map_t *)priv;
+    pc98_gdc_sync(m->dev);
+    if (addr & 1) {
+        gvram_wb(addr, (uint8_t)val, priv);
+        mem_writeb_phys(addr + 1u, (uint8_t)(val >> 8));
+        return;
+    }
     uint16_t off = (uint16_t)((addr & 0x7fffu) >> 1);
     pc98_gvram_write16(&m->dev->core, m->plane, off, val, 0xffff);
 }
 
 static uint8_t pc98_inb(uint16_t port, void *priv)
 {
-    return pc98_video_in8(&((pc98_86box_t *)priv)->core, port);
+    pc98_86box_t *d = (pc98_86box_t *)priv;
+    pc98_gdc_sync(d);
+    uint8_t value = pc98_video_in8(&d->core, port);
+    pc98_gdc_schedule(d);
+    return value;
 }
 
 static void pc98_outb(uint16_t port, uint8_t val, void *priv)
 {
-    pc98_video_out8(&((pc98_86box_t *)priv)->core, port, val);
+    pc98_86box_t *d = (pc98_86box_t *)priv;
+    pc98_gdc_sync(d);
+    pc98_video_out8(&d->core, port, val);
+    pc98_gdc_schedule(d);
 }
 
-static uint32_t ipl_window_offset(uint32_t addr)
+static uint16_t pc98_inw(uint16_t port, void *priv)
 {
-    if (addr >= 0x00fe8000u)
-        return addr - 0x00fe8000u;
-    return addr - 0x000e8000u;
+    pc98_86box_t *d = (pc98_86box_t *)priv;
+    pc98_gdc_sync(d);
+    uint16_t value = pc98_video_in16(&d->core, port);
+    pc98_gdc_schedule(d);
+    return value;
+}
+
+static void pc98_outw(uint16_t port, uint16_t val, void *priv)
+{
+    pc98_86box_t *d = (pc98_86box_t *)priv;
+    pc98_gdc_sync(d);
+    pc98_video_out16(&d->core, port, val);
+    pc98_gdc_schedule(d);
 }
 
 static uint8_t ipl_rb(uint32_t addr, void *priv)
 {
     pc98_86box_t *d = (pc98_86box_t *)priv;
-    uint32_t off = ipl_window_offset(addr);
+    uint32_t off = pc98_ipl_window_offset(addr);
     if (!d->ipl || off >= PC98_IPL_WINDOW_SIZE)
         return 0xff;
     return d->ipl[(uint32_t)d->ipl_bank * PC98_IPL_WINDOW_SIZE + off];
@@ -241,93 +277,6 @@ static uint16_t ipl_rw(uint32_t addr, void *priv)
 static uint32_t ipl_rl(uint32_t addr, void *priv)
 {
     return (uint32_t)ipl_rw(addr, priv) | ((uint32_t)ipl_rw(addr + 2u, priv) << 16);
-}
-
-static int read_rom_exact(const char *path, uint8_t *dst, size_t bytes)
-{
-    FILE *fp = rom_fopen(path, "rb");
-    if (!fp) return 0;
-    if (fseek(fp, 0, SEEK_END) != 0 || ftell(fp) != (long)bytes ||
-        fseek(fp, 0, SEEK_SET) != 0 || fread(dst, 1, bytes, fp) != bytes) {
-        fclose(fp);
-        return 0;
-    }
-    fclose(fp);
-    return 1;
-}
-
-static int rom_has_exact_size(const char *path, size_t bytes)
-{
-    FILE *fp = rom_fopen(path, "rb");
-    long size;
-    if (!fp) return 0;
-    if (fseek(fp, 0, SEEK_END) != 0) { fclose(fp); return 0; }
-    size = ftell(fp);
-    fclose(fp);
-    return size == (long)bytes;
-}
-
-/* Build MAME/real-hardware normalized VX IPL layout.
- *
- *   region 00000-0ffff : erased
- *   region 10000-17fff : ITF (reset bank)
- *   region 18000-2ffff : main BIOS bank
- *
- * Accepted inputs, in preference order:
- *   1) a ready-made 0x30000 ipl.rom;
- *   2) 0x8000 itf.rom + 0x18000 bios.rom;
- *   3) the four physical 27C256 VX CPU-board dumps used by MAME.
- */
-static uint8_t *load_vx_ipl(void)
-{
-    uint8_t *ipl = (uint8_t *)malloc(PC98_IPL_REGION_SIZE);
-    if (!ipl) return NULL;
-    memset(ipl, 0xff, PC98_IPL_REGION_SIZE);
-
-    if (read_rom_exact(PC98_IPL_PATH, ipl, PC98_IPL_REGION_SIZE))
-        return ipl;
-
-    if (rom_has_exact_size(PC98_ITF_PATH, 0x8000u) &&
-        rom_has_exact_size(PC98_BIOS_PATH, PC98_IPL_WINDOW_SIZE)) {
-        if (!read_rom_exact(PC98_ITF_PATH, ipl + 0x10000u, 0x8000u) ||
-            !read_rom_exact(PC98_BIOS_PATH, ipl + 0x18000u, PC98_IPL_WINDOW_SIZE)) {
-            free(ipl);
-            return NULL;
-        }
-        return ipl;
-    }
-
-    if (rom_has_exact_size(PC98_VX_YLL01_PATH, 0x8000u) &&
-        rom_has_exact_size(PC98_VX_YLL02_PATH, 0x8000u) &&
-        rom_has_exact_size(PC98_VX_YLL03_PATH, 0x8000u) &&
-        rom_has_exact_size(PC98_VX_YLL04_PATH, 0x8000u)) {
-        uint8_t *biosrom = (uint8_t *)malloc(0x20000u);
-        uint8_t *tmp = (uint8_t *)malloc(0x8000u);
-        if (!biosrom || !tmp) { free(tmp); free(biosrom); free(ipl); return NULL; }
-        memset(biosrom, 0xff, 0x20000u);
-        const char *paths[4] = {
-            PC98_VX_YLL01_PATH, PC98_VX_YLL03_PATH,
-            PC98_VX_YLL02_PATH, PC98_VX_YLL04_PATH
-        };
-        const unsigned bases[4] = { 0x00000u, 0x00001u, 0x10000u, 0x10001u };
-        for (unsigned r = 0; r < 4; r++) {
-            if (!read_rom_exact(paths[r], tmp, 0x8000u)) {
-                free(tmp); free(biosrom); free(ipl); return NULL;
-            }
-            for (unsigned i = 0; i < 0x8000u; i++)
-                biosrom[bases[r] + i * 2u] = tmp[i];
-        }
-        memcpy(ipl + 0x10000u, biosrom + 0x18000u, 0x8000u);
-        memcpy(ipl + 0x18000u, biosrom + 0x08000u, 0x8000u);
-        memcpy(ipl + 0x20000u, biosrom + 0x00000u, 0x8000u);
-        memcpy(ipl + 0x28000u, biosrom + 0x10000u, 0x8000u);
-        free(tmp);
-        free(biosrom);
-        return ipl;
-    }
-
-    free(ipl);
-    return NULL;
 }
 
 static void ipl_bank_out(uint16_t port, uint8_t val, void *priv)
@@ -356,7 +305,7 @@ static int load_font_from_rom_path(pc98_video_t *v)
 
     if (!dump || !raw || !part)
         goto done;
-    if (!read_rom_exact(PC98_FONT_PATH, dump, PC98_FONT_DUMP_SIZE))
+    if (!pc98_rom_read_exact(PC98_FONT_PATH, dump, PC98_FONT_DUMP_SIZE))
         goto done;
 
     /* Reproduce MAME's ROM_LOAD16_BYTE + ROM_CONTINUE layout.  X01/X02
@@ -366,7 +315,7 @@ static int load_font_from_rom_path(pc98_video_t *v)
     for (unsigned rom = 0; rom < 4u; rom++) {
         const size_t bank = (rom >> 1) ? 0x40000u : 0u;
         const size_t lane = rom & 1u;
-        if (!read_rom_exact(paths[rom], part, 0x8000u))
+        if (!pc98_rom_read_exact(paths[rom], part, 0x8000u))
             goto done;
         for (unsigned half = 0; half < 2u; half++)
             for (unsigned i = 0; i < 0x4000u; i++)
@@ -459,9 +408,8 @@ static uint8_t pc98_semigraphics_bits(uint8_t tile, unsigned line, unsigned char
     return bits;
 }
 
-static int pc98_cursor_phase(const pc98_86box_t *d)
+static int pc98_cursor_phase(const pc98_86box_t *d, const upd7220_t *g)
 {
-    const upd7220_t *g = &d->core.text_gdc;
     if (!g->dc)
         return 0;
     if (g->sc)
@@ -474,15 +422,22 @@ static int pc98_cursor_phase(const pc98_86box_t *d)
     return ((d->frame_no / span) & 1u) == 0u;
 }
 
-static int pc98_attribute_blink_off(const pc98_86box_t *d)
+static int pc98_attribute_blink_off(const pc98_86box_t *d, const upd7220_t *g)
 {
-    unsigned br = d->core.text_gdc.br ? d->core.text_gdc.br : 1u;
+    unsigned br = g->br ? g->br : 1u;
     unsigned period = 8u * br;
     unsigned phase = d->frame_no % period;
 
     /* Attribute blink is half the cursor rate with a 3/4-on, 1/4-off duty. */
     return phase >= 6u * br;
 }
+
+static void pc98_render_graphics_text_area(pc98_86box_t *d,
+                                           const upd7220_t *g,
+                                           const upd7220_partition_t *area,
+                                           unsigned back_y,
+                                           unsigned zoom,
+                                           unsigned lines);
 
 static void pc98_render_graphics(pc98_86box_t *d)
 {
@@ -491,37 +446,61 @@ static void pc98_render_graphics(pc98_86box_t *d)
     const unsigned lr = g->lr ? g->lr : 1u;
     const unsigned zoom = (unsigned)g->disp + 1u;
     const unsigned interlace = ((g->mode & 0x09u) == 0x09u) ? 1u : 0u;
+    const unsigned display_mode = g->mode & 0x22u;
+    const int mixed_mode = (display_mode == 0x00u);
+    const int bitmap_mode = (display_mode == 0x02u);
     const unsigned active_lines = g->al ? ((unsigned)g->al << interlace) : 400u;
     unsigned back_y = 0;
 
-    if (!g->de) return;
+    if (!g->de || (!mixed_mode && !bitmap_mode)) return;
 
     /* Each of the four GDC areas has its own start address, length, memory
-     * increment and pitch mode.  The PC-98 graphics GDC is in bitmap mode, so
-     * each area's length is scanned as lines and its IM bit halves the pitch. */
+     * increment and pitch mode. In mixed mode, IM selects bitmap areas and
+     * bitmap memory advances once per scanline. */
     for (unsigned part = 0; part < 4u; part++) {
         upd7220_partition_t area;
         upd7220_get_graphics_partition(g, part, &area);
 
-        unsigned pitch = g->pitch >> area.im;
-        if (!pitch) pitch = 40u;
-        unsigned width_words = g->aw ? (g->aw >> area.im) : 40u;
+        const int area_bitmap = bitmap_mode || area.im;
+        /* The GDC exposes only three bitmap areas in mixed mode.  Area four
+         * may still be text there; the area limit applies when IM selects
+         * bitmap data, matching the controller's update path. */
+        if (mixed_mode && area.im && part >= 3u)
+            break;
+
+        unsigned lines;
+        if (area_bitmap) {
+            lines = area.len ? area.len : 0x400u;
+            if (interlace) lines <<= 1;
+        } else {
+            /* In mixed mode, non-bitmap partitions are text from this GDC.
+             * Their zero LEN field is empty (the 1024-line rule is bitmap-only). */
+            lines = area.len ? ((area.len + lr - 1u) / lr) * lr : 0u;
+            pc98_render_graphics_text_area(d, g, &area, back_y, zoom, lines);
+            back_y += lines * zoom;
+            continue;
+        }
+
+        const unsigned pitch_shift = bitmap_mode ? area.im : 1u;
+        unsigned addr_pitch = g->pitch >> pitch_shift;
+        if (!addr_pitch) addr_pitch = 40u;
+        unsigned display_pitch = g->pitch >> pitch_shift;
+        if (!display_pitch) display_pitch = 40u;
+        unsigned width_words = g->aw ? (g->aw >> pitch_shift) : 40u;
         if (width_words > 40u) width_words = 40u;
 
-        unsigned lines = area.len ? area.len : 0x400u;
-        if (interlace) lines <<= 1;
-
         for (unsigned y = 0; y < lines; y++) {
-            const uint32_t line_addr = (area.sad & 0x3ffffu) + (y / lr) * pitch;
+            const unsigned y_divisor = mixed_mode ? 1u : lr;
+            const uint32_t line_addr = (area.sad & 0x3ffffu) + (y / y_divisor) * addr_pitch;
             for (unsigned z = 0; z < zoom; z++) {
-                /* VBP is blanking before the active picture, not an offset
-                 * into the 400-line frame buffer. */
+                /* The 640x400 buffer starts at the active picture origin;
+                 * VBP belongs to raster timing, not a row offset in this buffer. */
                 const unsigned dst_y = back_y + y * zoom + z;
                 if (dst_y >= 400u || dst_y >= active_lines)
                     continue;
 
                 for (unsigned w = 0; w < width_words; w++) {
-                    const uint32_t wa = (line_addr + (area.wd + 1u) * (w % pitch)) & 0x3fffu;
+                    const uint32_t wa = (line_addr + (area.wd + 1u) * (w % display_pitch)) & 0x3fffu;
                     const uint16_t pb = v->gvram[v->display_page & 1][PC98_PLANE_B][wa];
                     const uint16_t pr = v->gvram[v->display_page & 1][PC98_PLANE_R][wa];
                     const uint16_t pg = v->gvram[v->display_page & 1][PC98_PLANE_G][wa];
@@ -529,10 +508,11 @@ static void pc98_render_graphics(pc98_86box_t *d)
                     for (unsigned bit = 0; bit < 16; bit++) {
                         const unsigned x = w * 16u + bit;
                         if (x >= 640u) break;
-                        const unsigned pen = ((pb >> bit) & 1u) |
-                                             (((pr >> bit) & 1u) << 1) |
-                                             (((pg >> bit) & 1u) << 2) |
-                                             (((pi >> bit) & 1u) << 3);
+                        unsigned pen = ((pb >> bit) & 1u) |
+                                       (((pr >> bit) & 1u) << 1) |
+                                       (((pg >> bit) & 1u) << 2);
+                        if (v->ex_video_ff[0])
+                            pen |= ((pi >> bit) & 1u) << 3;
                         buffer32->line[dst_y][x] = pc98_graphics_rgb(v, pen);
                     }
                 }
@@ -543,7 +523,8 @@ static void pc98_render_graphics(pc98_86box_t *d)
     }
 }
 
-static void pc98_render_text_scanline(pc98_86box_t *d, uint32_t base,
+static void pc98_render_text_scanline(pc98_86box_t *d, const upd7220_t *g,
+                                      uint32_t base,
                                       unsigned pitch, unsigned widthmul,
                                       unsigned lr, unsigned char_size,
                                       unsigned sy, unsigned y,
@@ -602,8 +583,8 @@ static void pc98_render_text_scanline(pc98_86box_t *d, uint32_t base,
                 unsigned vline = !v->video_ff[0] && !!(attr & 0x10u);
                 unsigned semigraphics = v->video_ff[0] && !!(attr & 0x10u) && !hi;
                 unsigned cursor_here = cursor_on &&
-                    (((v->text_gdc.ead & 0x0fffu) == ta) ||
-                     (halves == 2u && ((v->text_gdc.ead + 1u) & 0x0fffu) == ta));
+                    (((g->ead & 0x0fffu) == ta) ||
+                     (halves == 2u && ((g->ead + 1u) & 0x0fffu) == ta));
 
                 uint8_t bits = 0;
 
@@ -628,7 +609,7 @@ static void pc98_render_text_scanline(pc98_86box_t *d, uint32_t base,
                 if (vline)
                     bits |= 0x08u;
 
-                if (cursor_here && sy >= v->text_gdc.ctop && sy <= v->text_gdc.cbot)
+                if (cursor_here && sy >= g->ctop && sy <= g->cbot)
                     bits ^= 0xffu;
                 if (blink)
                     bits = 0;
@@ -649,13 +630,65 @@ static void pc98_render_text_scanline(pc98_86box_t *d, uint32_t base,
     }
 }
 
-static void pc98_render_text(pc98_86box_t *d)
+static void pc98_render_graphics_text_area(pc98_86box_t *d,
+                                           const upd7220_t *g,
+                                           const upd7220_partition_t *area,
+                                           unsigned back_y,
+                                           unsigned zoom,
+                                           unsigned lines)
 {
     pc98_video_t *v = &d->core;
-    const upd7220_t *g = &v->text_gdc;
     unsigned pitch, lr, widthmul, char_size;
-    const int cursor_on = pc98_cursor_phase(d);
-    const int blink_off = pc98_attribute_blink_off(d);
+    const int cursor_on = pc98_cursor_phase(d, g);
+    const int blink_off = pc98_attribute_blink_off(d, g);
+
+    if (!g->de || !v->font_rom || !lines)
+        return;
+
+    pitch = g->pitch ? g->pitch : 80u;
+    if (pitch > 80u) pitch = 80u;
+    lr = g->lr ? g->lr : 1u;
+    if (lr > 32u) lr = 32u;
+    widthmul = v->video_ff[2] ? 2u : 1u;
+    char_size = v->video_ff[3] ? 16u : 8u;
+    if (!v->video_ff[3] && lr >= 16u)
+        char_size = 16u;
+
+    const unsigned scroll = v->txt_scroll[3] & 0x0fu;
+    const unsigned scroll_start = (32u - v->txt_scroll[4]) & 0x1fu;
+    unsigned scroll_rows = (unsigned)v->txt_scroll[5] + 1u;
+    if (scroll_rows > 32u) scroll_rows = 32u;
+
+    for (unsigned row = 0; row * lr < area->len; row++) {
+        const unsigned display_row = (back_y / lr) + row;
+        const int in_scroll = scroll && display_row >= scroll_start &&
+                              display_row - scroll_start < scroll_rows;
+
+        for (unsigned sy = 0; sy < lr; sy++) {
+            const unsigned source_offset = in_scroll ? sy + scroll : sy;
+            const unsigned source_row = row + source_offset / lr;
+            const unsigned source_sy = source_offset % lr;
+            const uint32_t source_base = (area->sad + source_row * pitch) & 0x0fffu;
+
+            for (unsigned z = 0; z < zoom; z++) {
+                const unsigned y = back_y + (row * lr + sy) * zoom + z;
+                if (y >= 400u)
+                    continue;
+
+                pc98_render_text_scanline(d, g, source_base, pitch, widthmul,
+                                          lr, char_size, source_sy, y,
+                                          cursor_on, blink_off);
+            }
+        }
+    }
+}
+
+static void pc98_render_text(pc98_86box_t *d, const upd7220_t *g)
+{
+    pc98_video_t *v = &d->core;
+    unsigned pitch, lr, widthmul, char_size;
+    const int cursor_on = pc98_cursor_phase(d, g);
+    const int blink_off = pc98_attribute_blink_off(d, g);
     unsigned row_start = 0;
 
     if (!g->de || !v->font_rom) return;
@@ -678,8 +711,8 @@ static void pc98_render_text(pc98_86box_t *d)
     for (unsigned part = 0; part < 4u; part++) {
         upd7220_partition_t area;
         upd7220_get_text_partition(g, part, &area);
-        /* A zero LEN field denotes 1024 rows on the GDC. */
-        const unsigned rows = area.len ? area.len : 0x400u;
+        /* Unlike bitmap partitions, a zero-length text partition is empty. */
+        const unsigned rows = area.len;
         for (unsigned row = 0; row < rows; row++) {
             const unsigned display_row = row_start + row;
             if (display_row * lr >= 400u)
@@ -692,18 +725,17 @@ static void pc98_render_text(pc98_86box_t *d)
                 const int in_scroll = scroll && display_row >= scroll_start &&
                                       display_row - scroll_start < scroll_rows;
                 const unsigned source_offset = in_scroll ? (sy + scroll) : sy;
-                const unsigned source_row = row + source_offset / lr;
+                const unsigned source_row = display_row + source_offset / lr;
                 const unsigned source_sy = source_offset % lr;
                 const uint32_t source_base = (area.sad + source_row * pitch) & 0x0fffu;
 
-                pc98_render_text_scanline(d, source_base, pitch, widthmul,
+                pc98_render_text_scanline(d, g, source_base, pitch, widthmul,
                                           lr, char_size, source_sy, y,
                                           cursor_on, blink_off);
             }
         }
-        /* The next partition begins immediately after this one's LEN rows;
-         * its SAD is its own VRAM base, not an offset from partition zero. */
-        row_start += rows;
+        /* Text partitions advance by LEN rows and leave one row between areas. */
+        row_start += rows + 1u;
     }
 }
 
@@ -734,16 +766,61 @@ static uint64_t pc98_active_line_delay(void)
     return line - TIMER_USEC * PC98_HBLANK_US;
 }
 
-static void pc98_gdc_advance(pc98_86box_t *d, uint32_t clocks)
-{
-    upd7220_advance(&d->core.text_gdc, clocks);
-    upd7220_advance(&d->core.graph_gdc, clocks);
-}
-
 static uint32_t pc98_gdc_clock_scale(void)
 {
     /* VX BIOS data 54Dh bit 2 selects 5 MHz instead of 2.5 MHz. */
     return (mem_readb_phys(0x54du) & 0x04u) ? 2u : 1u;
+}
+
+static void pc98_gdc_schedule(pc98_86box_t *d)
+{
+    uint32_t text = upd7220_next_event(&d->core.text_gdc);
+    uint32_t graph = upd7220_next_event(&d->core.graph_gdc);
+    uint32_t clocks = !text ? graph : (!graph || text < graph ? text : graph);
+    timer_disable(&d->gdc_timer);
+    if (!clocks || !TIMER_USEC) return;
+
+    /* Round the deadline up to a CPU cycle, since the timer dispatcher uses
+     * integer TSC timestamps. Preserve fractional GDC clocks between events. */
+    uint64_t remaining = ((uint64_t)clocks << 32) - d->gdc_clock_fraction;
+    uint128_t numerator = (uint128_t)remaining * TIMER_USEC * 2;
+    uint128_t denominator = (uint128_t)(5u * pc98_gdc_clock_scale()) << 64;
+    uint64_t cycles = (uint64_t)((numerator + denominator - 1) / denominator);
+    timer_set_delay_u64(&d->gdc_timer, (cycles ? cycles : 1) << 32);
+}
+
+static void pc98_gdc_sync(pc98_86box_t *d)
+{
+    uint64_t elapsed = tsc >= d->gdc_last_tsc ? tsc - d->gdc_last_tsc : 0;
+    d->gdc_last_tsc = tsc;
+    if (elapsed && d->gdc_timer_usec) {
+        uint128_t fixed = (((uint128_t)elapsed << 64) *
+                           (5u * pc98_gdc_clock_scale())) /
+                          ((uint128_t)d->gdc_timer_usec * 2);
+        fixed += d->gdc_clock_fraction;
+        d->gdc_clock_fraction = (uint32_t)fixed;
+        uint64_t clocks = (uint64_t)(fixed >> 32);
+        while (clocks) {
+            uint32_t step = clocks > UINT32_MAX ? UINT32_MAX : (uint32_t)clocks;
+            upd7220_advance(&d->core.text_gdc, step);
+            upd7220_advance(&d->core.graph_gdc, step);
+            clocks -= step;
+        }
+    }
+    d->gdc_timer_usec = TIMER_USEC;
+    pc98_gdc_schedule(d);
+}
+
+static void pc98_gdc_tick(void *priv)
+{
+    pc98_86box_t *d = (pc98_86box_t *)priv;
+    if (d == pc98_active) pc98_gdc_sync(d);
+}
+
+static void pc98_speed_changed(void *priv)
+{
+    pc98_86box_t *d = (pc98_86box_t *)priv;
+    pc98_gdc_sync(d);
 }
 
 static void pc98_begin_vsync(pc98_86box_t *d)
@@ -781,6 +858,9 @@ static void pc98_arm_raster(pc98_86box_t *d, unsigned first_vsync_us)
     d->in_vsync = 0;
     d->raster_line = 0;
     d->gdc_clock_fraction = 0;
+    d->gdc_last_tsc = tsc;
+    d->gdc_timer_usec = TIMER_USEC;
+    timer_disable(&d->gdc_timer);
     d->raster_phase = 0;
     upd7220_set_retrace(&d->core.text_gdc, 0, 0);
     upd7220_set_retrace(&d->core.graph_gdc, 0, 0);
@@ -793,6 +873,8 @@ static void pc98_scan_tick(void *priv)
 
     if (d != pc98_active)
         return;
+
+    pc98_gdc_sync(d);
 
     if (d->raster_phase == 0) {
         uint16_t total_lines;
@@ -814,25 +896,15 @@ static void pc98_scan_tick(void *priv)
         d->raster_phase = 2;
         upd7220_set_retrace(&d->core.text_gdc, 1, d->in_vsync);
         upd7220_set_retrace(&d->core.graph_gdc, 1, d->in_vsync);
-        pc98_gdc_advance(d, 25u * pc98_gdc_clock_scale());
         timer_advance_u64(&d->scan_timer, TIMER_USEC * PC98_HBLANK_US);
         return;
     }
 
-    /* End HBLANK, advance one scanline and account for the remainder of the
-     * line at the selected 2.5/5 MHz clock. The fractional accumulator
-     * avoids drifting GDC busy time against the 40.278 us horizontal period. */
+    /* End HBLANK and advance one scanline. Command/memory execution has its
+     * own clock and no longer advances in coarse raster-sized batches. */
     d->raster_phase = 1;
     upd7220_set_retrace(&d->core.text_gdc, 0, d->in_vsync);
     upd7220_set_retrace(&d->core.graph_gdc, 0, d->in_vsync);
-    const uint32_t clock_scale = pc98_gdc_clock_scale();
-    uint32_t clocks = 75u * clock_scale;
-    d->gdc_clock_fraction = (uint16_t)(d->gdc_clock_fraction + 695u * clock_scale);
-    if (d->gdc_clock_fraction >= 1000u) {
-        d->gdc_clock_fraction = (uint16_t)(d->gdc_clock_fraction - 1000u);
-        clocks++;
-    }
-    pc98_gdc_advance(d, clocks);
 
     uint16_t total_lines;
     uint16_t active_end;
@@ -867,10 +939,15 @@ static int pc98_present_frame(pc98_86box_t *d)
     /* PC-98 enables both bitmap and text layers through video FF 7, set by
      * "out 68h,0Fh" and cleared by 0Eh. */
     if (d->core.video_ff[7]) {
-        pc98_render_graphics(d);
-        pc98_render_text(d);
+        const unsigned graph_mode = d->core.graph_gdc.mode & 0x22u;
+        if (graph_mode == 0x20u)
+            pc98_render_text(d, &d->core.graph_gdc);
+        else
+            pc98_render_graphics(d);
+        pc98_render_text(d, &d->core.text_gdc);
     }
 
+#ifndef RELEASE_BUILD
     if (d->core.video_ff[7] != d->display_on || !d->logged_state) {
         d->display_on = d->core.video_ff[7];
         d->logged_state = 1;
@@ -878,6 +955,7 @@ static int pc98_present_frame(pc98_86box_t *d)
               d->display_on ? "enabled" : "disabled", d->frame_no,
               d->core.text_gdc.de, d->core.graph_gdc.de);
     }
+#endif
 
     /* The geometry must be re-established after every init and reset: xsize
      * and ysize are globals that survive a machine re-init, so testing them
@@ -901,19 +979,13 @@ static int pc98_present_frame(pc98_86box_t *d)
 
 int pc9801_video_firmware_available(void)
 {
-    int have_ipl = rom_has_exact_size(PC98_IPL_PATH, PC98_IPL_REGION_SIZE) ||
-        (rom_has_exact_size(PC98_ITF_PATH, 0x8000u) &&
-         rom_has_exact_size(PC98_BIOS_PATH, PC98_IPL_WINDOW_SIZE)) ||
-        (rom_has_exact_size(PC98_VX_YLL01_PATH, 0x8000u) &&
-         rom_has_exact_size(PC98_VX_YLL02_PATH, 0x8000u) &&
-         rom_has_exact_size(PC98_VX_YLL03_PATH, 0x8000u) &&
-         rom_has_exact_size(PC98_VX_YLL04_PATH, 0x8000u));
+    int have_ipl = pc98_ipl_available();
     return have_ipl &&
-        rom_has_exact_size(PC98_FONT_PATH, PC98_FONT_DUMP_SIZE) &&
-        rom_has_exact_size(PC98_KANJI_X01_PATH, 0x8000u) &&
-        rom_has_exact_size(PC98_KANJI_X02_PATH, 0x8000u) &&
-        rom_has_exact_size(PC98_KANJI_X03_PATH, 0x8000u) &&
-        rom_has_exact_size(PC98_KANJI_X04_PATH, 0x8000u);
+        pc98_rom_has_size(PC98_FONT_PATH, PC98_FONT_DUMP_SIZE) &&
+        pc98_rom_has_size(PC98_KANJI_X01_PATH, 0x8000u) &&
+        pc98_rom_has_size(PC98_KANJI_X02_PATH, 0x8000u) &&
+        pc98_rom_has_size(PC98_KANJI_X03_PATH, 0x8000u) &&
+        pc98_rom_has_size(PC98_KANJI_X04_PATH, 0x8000u);
 }
 
 static int pc98_available(void)
@@ -935,17 +1007,19 @@ static void *pc98_init(const device_t *info)
         return NULL;
     }
 
-    d->ipl = load_vx_ipl();
+    d->ipl = pc98_ipl_load();
     if (!d->ipl) {
         pc98_video_destroy(&d->core);
         free(d);
         return NULL;
     }
     d->ipl_bank = 0; /* hardware reset enters the ITF bank */
+#ifndef RELEASE_BUILD
     pclog("[PC98] IPL reset vector bytes:");
     for (unsigned i = 0; i < 16; i++)
         pclog(" %02X", d->ipl[0x17ff0u + i]);
     pclog("\n");
+#endif
     d->core.ipl_rom = d->ipl;
     d->core.ipl_size = PC98_IPL_REGION_SIZE;
     d->core.owns_ipl = 0;
@@ -984,8 +1058,7 @@ static void *pc98_init(const device_t *info)
     };
       for (unsigned i=0;i<sizeof(vp)/sizeof(vp[0]);i++)
           io_sethandler(vp[i],1,pc98_inb,NULL,NULL,pc98_outb,NULL,NULL,d);
-      for (uint16_t p=0x04a0;p<=0x04af;p++)
-          io_sethandler(p,1,pc98_inb,NULL,NULL,pc98_outb,NULL,NULL,d);
+      io_sethandler(0x04a0,0x10,pc98_inb,pc98_inw,NULL,pc98_outb,pc98_outw,NULL,d);
       io_sethandler(0x043d,1,NULL,NULL,NULL,ipl_bank_out,NULL,NULL,d);
     }
 
@@ -993,6 +1066,7 @@ static void *pc98_init(const device_t *info)
     d->need_resize = 1;
     pc98_active = d; /* this device now owns the display; see pc98_scan_tick */
     timer_add(&d->scan_timer, pc98_scan_tick, d, 0);
+    timer_add(&d->gdc_timer, pc98_gdc_tick, d, 0);
     pc98_arm_raster(d, 1000u);
 
     /* Deliberately no frame is presented here.  Composing one would mean
@@ -1030,6 +1104,7 @@ static void pc98_close(void *priv)
     /* The frame timer lives inside this allocation and is linked into 86Box's
      * timer list, so it has to be taken out before the memory goes away. */
     timer_disable(&d->scan_timer);
+    timer_disable(&d->gdc_timer);
     if (pc98_active == d)
         pc98_active = NULL;
 
@@ -1054,7 +1129,7 @@ const device_t pc9801_video_device = {
     .close         = pc98_close,
     .reset         = pc98_reset,
     .available     = pc98_available,
-    .speed_changed = NULL,
+    .speed_changed = pc98_speed_changed,
     .force_redraw  = pc98_force_redraw,
     .config        = NULL
 };

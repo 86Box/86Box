@@ -30,7 +30,7 @@ typedef enum pc98_opn_type_t {
     PC98_OPN_YM2608 = 1  /* PC-9801-86  */
 } pc98_opn_type_t;
 
-/* The YM2608's ADPCM-B RAM.  The -86 carries 256 KiB of it. */
+/* Optional ADPCM-B memory modification; a stock -86 has no ADPCM-B RAM. */
 #define PC98_OPNA_RAM_SIZE 0x40000u
 
 /*
@@ -52,6 +52,11 @@ void    pc98_opn_write(pc98_opn_t *chip, uint32_t addr, uint8_t data);
  * hands it over here; the buffer must outlive the chip.
  */
 void pc98_opn_set_adpcm_rom(pc98_opn_t *chip, const uint8_t *rom, uint32_t len);
+
+/* PC-9801-86 board controls, separate from the chip register file. */
+void pc98_opn_set_extended(pc98_opn_t *chip, int enabled);
+void pc98_opn_set_output_enabled(pc98_opn_t *chip, int enabled);
+int  pc98_opn_set_adpcm_ram(pc98_opn_t *chip, int enabled);
 
 /* Add `frames` stereo frames at SOUND_FREQ into buf, which is interleaved. */
 void pc98_opn_generate(pc98_opn_t *chip, int32_t *buf, uint32_t frames);

@@ -242,6 +242,9 @@ if(QT)
 endif()
 
 # Determine the build type
+# CMake's Release configuration must also silence diagnostics, including with
+# multi-configuration generators and when the packaging RELEASE option is off.
+add_compile_definitions("$<$<CONFIG:Release>:RELEASE_BUILD>")
 set(RELEASE_BUILD   OFF)
 set(BETA_BUILD      OFF)
 set(ALPHA_BUILD     OFF)
@@ -250,7 +253,7 @@ string(TOLOWER "${BUILD_TYPE}" BUILD_TYPE_LOWER)
 if(BUILD_TYPE_LOWER STREQUAL "release")
     # Release build
     set(RELEASE_BUILD ON)
-    add_compile_definitions(RELEASE_BUILD)
+    add_compile_definitions("$<$<NOT:$<CONFIG:Debug>>:RELEASE_BUILD>")
 elseif(BUILD_TYPE_LOWER STREQUAL "beta")
     # Beta build
     set(BETA_BUILD ON)

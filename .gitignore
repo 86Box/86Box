@@ -3,6 +3,7 @@ CMakeUserPresets.json
 CMakeCache.txt
 CMakeFiles
 /build
+/build-*/
 *.a
 /src/*.exe
 /src/86Box
@@ -72,3 +73,12 @@ CMakeLists.txt.user
 *.patch
 *.*.orig
 *.*.rej
+
+# Local firmware, converted disk images and investigation outputs
+/roms/
+/converted/
+/tmp/
+
+# Python-generated caches
+__pycache__/
+*.py[cod]

@@ -842,6 +842,7 @@ fdd_load(void *priv, char *fn)
 
         d86f_setup(drv);
 
+        drv->image_close = img_close;
         img_load_raw_device(drv, device_path);
 
         if (drv->image_path[0] == '\0') {
@@ -880,6 +881,7 @@ fdd_load(void *priv, char *fn)
                     drv->image_path[sizeof(drv->image_path) - 1] = '\0';
                 }
                 d86f_setup(drv);
+                drv->image_close = loaders[c].close;
                 loaders[c].load(drv, drv->image_path + offs);
                 /* A failed loader clears the path; keep that media empty. */
                 drv->empty = drv->image_path[0] == '\0';
@@ -910,7 +912,12 @@ fdd_close(void *priv)
         return;
     }
 
+    /* Stop every callback before releasing the backend it can access. The
+     * motor may remain on, but its empty-drive poll is restarted afterwards. */
+    const int was_polling = timer_is_enabled(&drv->poll_time);
+    timer_disable(&drv->poll_time);
     timer_disable(&drv->seek_timer);
+    fdd_ready_cancel(drv);
     drv->seek_in_progress = 0;
     drv->notfound = 0;
     memset(&drv->pending, 0, sizeof(drv->pending));
@@ -929,17 +936,19 @@ fdd_close(void *priv)
     drv->stop          = NULL;
     drv->seek_in_progress = 0;
 
-    if (strstr(drv->image_path, "ioctl://") != NULL) {
-        floppy_ioctl_close(drv);
-        img_close(drv);
-    } else if (loaders[drv->driveloader].close)
-        loaders[drv->driveloader].close(drv);
+    /* Close the backend that actually owns local, rather than choosing a
+     * destructor from the filename extension. */
+    if (drv->image_close)
+        drv->image_close(drv);
+    drv->image_close = NULL;
 
     drv->empty = 1;
     fdd_ready_cancel(drv);
     fdd_set_head(drv, 0);
     drv->image_path[0] = 0;
     d86f_destroy(drv);
+    if (was_polling && drv->motoron && drv->fdc)
+        timer_set_delay_u64(&drv->poll_time, 32ULL * TIMER_USEC);
     ui_sb_update_icon_state(SB_FLOPPY | drv->id, 1);
 }
 
@@ -1252,7 +1261,7 @@ fdd_stop(void *priv)
 
     drv->notfound = 0;
 
-    if ((fdc != NULL) && (fdc->flags & FDC_FLAG_PCJX)) {
+    if ((fdc != NULL) && (fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_PC98))) {
         /* Abort the pending operation, not the physical head position. */
         const int was_seeking = drv->seek_in_progress;
         timer_disable(&drv->seek_timer);

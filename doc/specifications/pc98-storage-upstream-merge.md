@@ -69,6 +69,9 @@ Controller close performs the same command cleanup before removing its mapping.
 
 ## Validation limits
 
+The subsequent speaker implementation and additional storage fixes are
+recorded in [pc98-speaker-storage-audit.md](pc98-speaker-storage-audit.md).
+
 The normal Windows build compiled and linked the merged implementation,
 including the restored pre-existing video and keyboard-controller edits.
 No new tests or guest runtime checks were requested or run. This integration

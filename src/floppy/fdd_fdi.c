@@ -319,16 +319,19 @@ fdi_load(void *priv, char *fn)
     d86f_unregister(drv);
 
     dev->fp = plat_fopen(fn, "rb");
+    if (!dev->fp)
+        goto fail;
     if (fread(header, 1, 25, dev->fp) != 25)
-        fatal("fdi_load(): Error reading header\n");
+        goto fail;
     if (fseek(dev->fp, 0, SEEK_SET) == -1)
-        fatal("fdi_load(): Error seeking to the beginning of the file\n");
+        goto fail;
     header[25] = 0;
     if (strcmp(header, "Formatted Disk Image file") != 0) {
         /* This is a Japanese FDI file. */
         fdi_log("fdi_load(): Japanese FDI file detected, redirecting to IMG loader\n");
         fclose(dev->fp);
         free(dev);
+        drv->image_close = img_close;
         img_load(drv, fn);
         return;
     }
@@ -337,6 +340,8 @@ fdi_load(void *priv, char *fn)
     drv->local     = dev;
 
     dev->h         = fdi2raw_header(dev->fp);
+    if (!dev->h)
+        goto fail;
     dev->lasttrack = fdi2raw_get_last_track(dev->h);
     dev->sides     = fdi2raw_get_last_head(dev->h) + 1;
 
@@ -360,6 +365,17 @@ fdi_load(void *priv, char *fn)
     drv->seek = fdi_seek;
 
     fdi_log("Loaded as FDI\n");
+    return;
+
+fail:
+    if (dev->h)
+        fdi2raw_header_free(dev->h);
+    if (dev->fp)
+        fclose(dev->fp);
+    free(dev);
+    drv->local = NULL;
+    drv->empty = 1;
+    memset(drv->image_path, 0, sizeof(drv->image_path));
 }
 
 void

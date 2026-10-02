@@ -2,9 +2,8 @@
  * NEC PC-9801 graphics front end: dual uPD7220, GRCG, EGC, planar VRAM and
  * character-generator window.
  *
- * GRCG and EGC operate on CPU accesses to planar GVRAM.  They are deliberately
- * kept out of the uPD7220 command engine: on real PC-98 hardware these are
- * separate pieces of the video data path.
+ * On the VX the EGC sits between both bus masters (CPU and graphics GDC)
+ * and planar VRAM. Its compatibility mode supplies the GRCG functions.
  */
 #include <86box/vid_pc98.h>
 
@@ -32,10 +31,19 @@ static unsigned gdc_plane(uint32_t addr)
     return order[(addr >> 14) & 3];
 }
 
+static void charger_write(pc98_video_t *v, unsigned page, unsigned plane,
+                          uint16_t off, uint16_t data, uint16_t mem_mask,
+                          bool gdc);
+
 static uint16_t gvram_gdc_read(void *opaque, uint32_t addr)
 {
     pc98_video_t *v = (pc98_video_t *)opaque;
     unsigned page = (addr >> 16) & 1;
+    /* With the charger active, the GDC's read/modify/write reads see zero.
+     * This prevents its preliminary read from feeding the CPU shifter or
+     * contaminating the pixel mask it subsequently presents to the EGC.
+     * PC-9801 Programmer's Bible, p.464 (GDC drawing through EGC). */
+    if (v->grcg.mode & 0x80) return 0;
     return v->gvram[page][gdc_plane(addr)][addr & 0x3fff];
 }
 
@@ -43,7 +51,8 @@ static void gvram_gdc_write(void *opaque, uint32_t addr, uint16_t data)
 {
     pc98_video_t *v = (pc98_video_t *)opaque;
     unsigned page = (addr >> 16) & 1;
-    v->gvram[page][gdc_plane(addr)][addr & 0x3fff] = data;
+    charger_write(v, page, gdc_plane(addr), (uint16_t)(addr & 0x3fff),
+                  data, 0xffff, true);
 }
 
 static uint8_t bitrev8(uint8_t x)
@@ -60,15 +69,15 @@ static uint16_t egc_bus_mask(uint16_t x)
     return (uint16_t)(bitrev8((uint8_t)x) | ((uint16_t)bitrev8((uint8_t)(x >> 8)) << 8));
 }
 
-static uint16_t direct_word(const pc98_video_t *v, unsigned plane, uint16_t off)
+static uint16_t direct_word(const pc98_video_t *v, unsigned page, unsigned plane, uint16_t off)
 {
-    return v->gvram[v->cpu_page & 1][plane & 3][off & 0x3fff];
+    return v->gvram[page & 1][plane & 3][off & 0x3fff];
 }
 
-static void direct_word_write(pc98_video_t *v, unsigned plane, uint16_t off,
+static void direct_word_write(pc98_video_t *v, unsigned page, unsigned plane, uint16_t off,
                               uint16_t data, uint16_t mem_mask)
 {
-    uint16_t *p = &v->gvram[v->cpu_page & 1][plane & 3][off & 0x3fff];
+    uint16_t *p = &v->gvram[page & 1][plane & 3][off & 0x3fff];
     *p = (uint16_t)((*p & ~mem_mask) | (data & mem_mask));
 }
 
@@ -76,9 +85,9 @@ static uint16_t color_pattern(const pc98_video_t *v, unsigned plane)
 {
     switch ((v->egc.regs[1] >> 13) & 3) {
     case 1:
-        return (v->egc.regs[5] & (1u << plane)) ? 0xffff : 0x0000;
+        return v->egc.bg[plane & 3];
     case 2:
-        return (v->egc.regs[3] & (1u << plane)) ? 0xffff : 0x0000;
+        return v->egc.fg[plane & 3];
     default:
         return v->egc.pat[plane & 3];
     }
@@ -142,7 +151,6 @@ static uint16_t egc_shift(pc98_egc_t *e, unsigned plane, uint16_t val)
 
 static void egc_restart(pc98_egc_t *e)
 {
-    memset(e->leftover, 0, sizeof(e->leftover));
     e->count = (int32_t)(e->regs[7] & 0x0fff) + 1;
     e->first = 1;
     e->start = 0;
@@ -165,19 +173,38 @@ static void egc_reg_write(pc98_video_t *v, unsigned reg, uint16_t data, uint16_t
     pc98_egc_t *e = &v->egc;
     reg &= 7;
 
-    /* When FG/BG substitution is active, the hardware mask latch is not
-     * writable; NP2 and MAME both model this gating. */
+    /* VX registers are decoded only in active extended mode. The 6Ah
+     * register-write unlock controls mode changes, not these data ports. */
+    if (!v->egc_enabled || !(v->grcg.mode & 0x80)) return;
+
+    /* The mask and color ports have opposite write gates. See NEC VX
+     * supplement p.43 and the TSG EGC hardware notes pp.23-25. */
     if (reg == 4 && (e->regs[1] & 0x6000)) return;
+    if ((reg == 3 || reg == 5) && !(e->regs[1] & 0x6000)) return;
 
     e->regs[reg] = (uint16_t)((e->regs[reg] & ~mem_mask) | (data & mem_mask));
 
     switch (reg) {
+    case 3:
+    case 5:
+        for (unsigned i = 0; i < 4; i++) {
+            uint16_t color = (e->regs[reg] & (1u << i)) ? 0xffff : 0;
+            if (reg == 3) {
+                e->fg[i] = color;
+                v->grcg.tile[i] = (uint8_t)color;
+            } else {
+                e->bg[i] = color;
+            }
+        }
+        break;
     case 4:
         e->mask = egc_bus_mask(e->regs[4]);
         break;
-    case 2:
     case 6:
     case 7:
+        /* Shift/length programming starts a new stream. Changing the ROP
+         * does not discard a source already read into the shifter. */
+        memset(e->leftover, 0, sizeof(e->leftover));
         egc_restart(e);
         break;
     default:
@@ -185,16 +212,36 @@ static void egc_reg_write(pc98_video_t *v, unsigned reg, uint16_t data, uint16_t
     }
 }
 
-static uint16_t egc_read_vram(pc98_video_t *v, uint16_t off, uint16_t mem_mask)
+static void egc_load_pattern(pc98_egc_t *e, const uint16_t data[4], uint16_t mask,
+                             bool write)
+{
+    unsigned lead = (e->regs[1] >> 8) & 3;
+    for (unsigned i = 0; i < 4; i++) {
+        /* Lead-plane selection is a read-bus choice. PLOAD_W snapshots the
+         * destination bank before the write, even with compare read disabled.
+         * EGC v1.3 B06/W10/W11 distinguish this from selected-plane PLOAD_R. */
+        if ((e->regs[0] & (1u << i)) ||
+            (!write && !(e->regs[2] & 0x2000) && i != lead))
+            continue;
+        e->pat[i] = (uint16_t)((e->pat[i] & ~mask) | (data[i] & mask));
+    }
+}
+
+static uint16_t egc_read_vram(pc98_video_t *v, unsigned page, uint16_t off, uint16_t mem_mask)
 {
     pc98_egc_t *e = &v->egc;
     uint16_t plane_data[4];
 
     for (unsigned i = 0; i < 4; i++)
-        plane_data[i] = direct_word(v, i, off);
+        plane_data[i] = direct_word(v, page, i, off);
+
+    /* Original NEC EGCs return the previous CPU VRAM write in CPU-source
+     * mode, rather than performing a VRAM read/compare (TSG notes p.30).
+     * In particular, this read must not clock VRAM data into the shifter. */
+    if (e->regs[2] & 0x0400) return (uint16_t)(e->cpu_data & mem_mask);
 
     if ((e->regs[2] & 0x0300) == 0x0100) {
-        for (unsigned i = 0; i < 4; i++) e->pat[i] = plane_data[i];
+        egc_load_pattern(e, plane_data, mem_mask, false);
     }
 
     if (e->first && !e->start && !e->loaded) {
@@ -211,12 +258,17 @@ static uint16_t egc_read_vram(pc98_video_t *v, uint16_t off, uint16_t mem_mask)
 
     uint16_t ret;
     if (e->regs[2] & 0x2000) {
-        /* color compare: 1 means all four planes match the requested color */
+        /* Compare against the physical foreground latches, independently
+         * of the choice of P input. Inhibited planes do not participate. */
         ret = 0xffff;
-        for (unsigned i = 0; i < 4; i++)
-            ret &= (uint16_t)~(color_pattern(v, i) ^ plane_data[i]);
+        for (unsigned i = 0; i < 4; i++) {
+            if (!(e->regs[0] & (1u << i)))
+                ret &= (uint16_t)~(e->fg[i] ^ plane_data[i]);
+        }
     } else {
-        ret = e->src[(e->regs[1] >> 8) & 3];
+        /* Lead-plane readback is the unshifted bus data. The shifted
+         * four-plane source is held separately for the next write. */
+        ret = plane_data[(e->regs[1] >> 8) & 3];
     }
     return (uint16_t)(ret & mem_mask);
 }
@@ -237,7 +289,8 @@ static uint16_t end_mask_bits(bool forward, unsigned count)
     return (uint16_t)~((1u << (16 - count)) - 1u);
 }
 
-static void egc_write_vram(pc98_video_t *v, uint16_t off, uint16_t data, uint16_t mem_mask)
+static void egc_write_vram(pc98_video_t *v, unsigned page, uint16_t off,
+                          uint16_t data, uint16_t mem_mask, bool gdc)
 {
     pc98_egc_t *e = &v->egc;
     uint16_t mask = (uint16_t)(e->mask & mem_mask);
@@ -245,9 +298,20 @@ static void egc_write_vram(pc98_video_t *v, uint16_t off, uint16_t data, uint16_
     unsigned dst_off = (e->regs[6] >> 4) & 0x0f;
     unsigned src_off = e->regs[6] & 0x0f;
 
+    if ((e->regs[2] & 0x0300) == 0x0200) {
+        uint16_t before[4];
+        for (unsigned i = 0; i < 4; i++) before[i] = direct_word(v, page, i, off);
+        egc_load_pattern(e, before, mem_mask, true);
+    } else if (!gdc && (e->regs[2] & 0x0700) == 0x0500) {
+        /* PS=source and SD=CPU loads the CPU data on a write, including
+         * the dummy write which primes a shifted transfer. */
+        uint16_t cpu[4] = { data, data, data, data };
+        egc_load_pattern(e, cpu, mem_mask, false);
+    }
+
     /* If source starts later than destination, the first host write primes
      * the shifter instead of producing destination bits. */
-    if (!e->start && src_off > dst_off) {
+    if (!gdc && !e->start && src_off > dst_off) {
         if (e->regs[2] & 0x0400) {
             (void)egc_shift(e, 0, data);
             e->leftover[1] = e->leftover[2] = e->leftover[3] = e->leftover[0];
@@ -256,13 +320,13 @@ static void egc_write_vram(pc98_video_t *v, uint16_t off, uint16_t data, uint16_
         return;
     }
 
-    if (e->first) {
+    if (!gdc && e->first) {
         mask = mask_first_bits(mask, forward, dst_off);
         e->start = 1;
     }
 
     unsigned transfer_bits = (mem_mask == 0xffff) ? 16u : 8u;
-    if (e->count < (int32_t)transfer_bits) {
+    if (!gdc && e->count < (int32_t)transfer_bits) {
         uint16_t endm = end_mask_bits(forward, (unsigned)(e->count > 0 ? e->count : 0));
         if (e->first && dst_off) {
             if (forward) endm = (uint16_t)(endm << dst_off);
@@ -271,22 +335,25 @@ static void egc_write_vram(pc98_video_t *v, uint16_t off, uint16_t data, uint16_
         mask &= endm;
     }
 
-    if ((e->regs[2] & 0x0300) == 0x0200) {
-        for (unsigned i = 0; i < 4; i++) e->pat[i] = direct_word(v, i, off);
-    }
-
     unsigned output_mode = (e->regs[2] >> 11) & 3;
     if (output_mode == 3) return; /* reserved */
+
+    /* Clock all four shifters, including inhibited write planes. The access
+     * mask controls the final stores, not the state of the source stream. */
+    if (!gdc && (e->regs[2] & 0x0400)) {
+        for (unsigned i = 0; i < 4; i++)
+            e->src[i] = egc_shift(e, i, data);
+    }
 
     for (unsigned i = 0; i < 4; i++) {
         if (e->regs[0] & (1u << i)) continue; /* 1 = plane inhibited */
 
-        uint16_t dst = direct_word(v, i, off);
+        uint16_t dst = direct_word(v, page, i, off);
         uint16_t src = e->src[i];
         uint16_t pat = color_pattern(v, i);
         uint16_t out;
 
-        if (e->regs[2] & 0x0400) src = egc_shift(e, i, data);
+        if (gdc && (e->regs[2] & 0x0400)) src = data;
 
         switch (output_mode) {
         case 0: out = data; break;
@@ -295,8 +362,12 @@ static void egc_write_vram(pc98_video_t *v, uint16_t off, uint16_t data, uint16_
         default: out = dst; break;
         }
 
-        direct_word_write(v, i, off, out, mask);
+        direct_word_write(v, page, i, off, out, mask);
     }
+
+    /* Source/destination bit addresses are explicitly invalid for GDC
+     * accesses (NEC VX supplement p.46). Do not consume the CPU stream. */
+    if (gdc) return;
 
     int consumed;
     if (mem_mask != 0xffff)
@@ -306,7 +377,11 @@ static void egc_write_vram(pc98_video_t *v, uint16_t off, uint16_t data, uint16_
     e->count -= consumed;
     e->first = 0;
 
-    if (e->count <= 0) egc_restart(e);
+    if (e->count <= 0) {
+        /* The length setting is retained for the next raster. First/last
+         * masks and the dummy-write stage delimit the new line. */
+        egc_restart(e);
+    }
 }
 
 void pc98_video_init(pc98_video_t *v)
@@ -597,17 +672,17 @@ uint16_t pc98_gvram_read16(pc98_video_t *v, unsigned plane, uint16_t off, uint16
     uint16_t native;
 
     if (!(v->grcg.mode & 0x80))
-        native = (uint16_t)(direct_word(v, plane, off) & native_mask);
+        native = (uint16_t)(direct_word(v, v->cpu_page, plane, off) & native_mask);
     else if (v->egc_enabled)
-        native = egc_read_vram(v, off, native_mask);
+        native = egc_read_vram(v, v->cpu_page, off, native_mask);
     else if (v->grcg.mode & 0x40)
-        native = 0; /* GRCG RMW mode does not expose a normal plane read. */
+        native = 0; /* NEC prohibits RMW reads; zero is an emulation policy. */
     else {
         uint16_t mismatch = 0;
         for (unsigned i = 0; i < 4; i++) {
             if (!(v->grcg.mode & (1u << i))) {
                 uint16_t tile = (uint16_t)(v->grcg.tile[i] | ((uint16_t)v->grcg.tile[i] << 8));
-                mismatch |= (uint16_t)(direct_word(v, i, off) ^ tile);
+                mismatch |= (uint16_t)(direct_word(v, v->cpu_page, i, off) ^ tile);
             }
         }
         native = (uint16_t)(~mismatch & native_mask);
@@ -618,34 +693,51 @@ uint16_t pc98_gvram_read16(pc98_video_t *v, unsigned plane, uint16_t off, uint16
     return (uint16_t)(egc_bus_mask(native) & mem_mask);
 }
 
-void pc98_gvram_write16(pc98_video_t *v, unsigned plane, uint16_t off,
-                        uint16_t data, uint16_t mem_mask)
+static void charger_write(pc98_video_t *v, unsigned page, unsigned plane,
+                          uint16_t off, uint16_t data, uint16_t mem_mask,
+                          bool gdc)
 {
-    uint16_t native_data = egc_bus_mask(data);
-    uint16_t native_mask = egc_bus_mask(mem_mask);
+    if (!gdc) v->egc.cpu_data = (uint16_t)(data & mem_mask);
 
     if (!(v->grcg.mode & 0x80)) {
-        direct_word_write(v, plane, off, native_data, native_mask);
+        direct_word_write(v, page, plane, off, data, mem_mask);
         return;
     }
 
     if (v->egc_enabled) {
-        egc_write_vram(v, off, native_data, native_mask);
+        egc_write_vram(v, page, off, data, mem_mask, gdc);
         return;
+    }
+
+    /* GRCG RMW uses the same mask latch as extended EGC mode. A byte
+     * access clears the other lane rather than merging its previous mask.
+     * TSG hardware experiments, pp.28-29. */
+    if (v->grcg.mode & 0x40) {
+        v->egc.mask = (uint16_t)(data & mem_mask);
+        v->egc.regs[4] = egc_bus_mask(v->egc.mask);
     }
 
     for (unsigned i = 0; i < 4; i++) {
         if (v->grcg.mode & (1u << i)) continue;
         uint16_t tile = (uint16_t)(v->grcg.tile[i] | ((uint16_t)v->grcg.tile[i] << 8));
         if (v->grcg.mode & 0x40) {
-            uint16_t old = direct_word(v, i, off);
-            uint16_t effective = (uint16_t)(native_data & native_mask);
+            uint16_t old = direct_word(v, page, i, off);
+            uint16_t effective = (uint16_t)(data & mem_mask);
             uint16_t out = (uint16_t)((old & ~effective) | (tile & effective));
-            direct_word_write(v, i, off, out, native_mask);
+            direct_word_write(v, page, i, off, out, mem_mask);
         } else {
-            direct_word_write(v, i, off, tile, native_mask);
+            direct_word_write(v, page, i, off, tile, mem_mask);
         }
     }
+}
+
+void pc98_gvram_write16(pc98_video_t *v, unsigned plane, uint16_t off,
+                        uint16_t data, uint16_t mem_mask)
+{
+    /* The GDC and CPU see different bit numbering, but share the charger
+     * and its latches. Page selection is independent for the two masters. */
+    charger_write(v, v->cpu_page, plane, off, egc_bus_mask(data),
+                  egc_bus_mask(mem_mask), false);
 }
 
 uint8_t pc98_gvram_read8(pc98_video_t *v, unsigned plane, uint16_t byte_off)
@@ -689,6 +781,7 @@ static void ex_video_ff_write(pc98_video_t *v, uint8_t data)
 {
     if ((data & 0xf0) != 0) return;
     unsigned reg = (data & 0x0e) >> 1;
+    if (reg == 2 && !v->ex_video_ff[3]) return;
     if (reg < 4) v->ex_video_ff[reg] = data & 1;
     v->egc_enabled = v->ex_video_ff[2];
 }
@@ -720,11 +813,8 @@ uint8_t pc98_video_in8(pc98_video_t *v, uint16_t port)
         if (v->font_rom) return v->font_rom[pc98_font_window_offset(v)];
         return 0xff;
     default:
-        if (port >= 0x04a0 && port <= 0x04af) {
-            unsigned reg = (port - 0x04a0) >> 1;
-            uint16_t r = v->egc.regs[reg & 7];
-            return (port & 1) ? (uint8_t)(r >> 8) : (uint8_t)r;
-        }
+        /* VX EGC ports are write-only. Readback exists on later H98/GS
+         * hardware, not on the machine this device emulates. */
         return 0xff;
     }
 }
@@ -747,7 +837,12 @@ void pc98_video_out8(pc98_video_t *v, uint16_t port, uint8_t data)
         v->grcg.tile_index = 0;
         return;
     case 0x007e:
-        v->grcg.tile[v->grcg.tile_index & 3] = bitrev8(data);
+        {
+            unsigned i = v->grcg.tile_index & 3;
+            uint8_t tile = bitrev8(data);
+            v->grcg.tile[i] = tile;
+            v->egc.fg[i] = (uint16_t)(tile | ((uint16_t)tile << 8));
+        }
         v->grcg.tile_index = (uint8_t)((v->grcg.tile_index + 1) & 3);
         return;
     case 0x00a0: upd7220_write(&v->graph_gdc, 0, data); return;
@@ -792,6 +887,9 @@ void pc98_video_out8(pc98_video_t *v, uint16_t port, uint8_t data)
         return;
     default:
         if (port >= 0x04a0 && port <= 0x04af) {
+            /* Tolerate byte programming for existing guests. Real VX EGC
+             * software must use even-port word OUTs; this fallback does not
+             * emulate the bus hang from unsupported accesses. */
             unsigned reg = (port - 0x04a0) >> 1;
             uint16_t mask = (port & 1) ? 0xff00 : 0x00ff;
             uint16_t word = (port & 1) ? (uint16_t)data << 8 : data;
@@ -803,8 +901,6 @@ void pc98_video_out8(pc98_video_t *v, uint16_t port, uint8_t data)
 
 uint16_t pc98_video_in16(pc98_video_t *v, uint16_t port)
 {
-    if (port >= 0x04a0 && port <= 0x04ae && !(port & 1))
-        return v->egc.regs[(port - 0x04a0) >> 1];
     return (uint16_t)(pc98_video_in8(v, port) |
                       ((uint16_t)pc98_video_in8(v, (uint16_t)(port + 1)) << 8));
 }

@@ -24,6 +24,7 @@ extern int speaker_enable;
 extern int was_speaker_enable;
 
 extern void speaker_set_count(uint8_t new_m, int new_count);
+extern void speaker_set_pc98_state(int enabled, int output);
 extern void speaker_update(void);
 
 #endif /*SOUND_SPEAKER_H*/

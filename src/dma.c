@@ -2024,7 +2024,9 @@ dma_reset_legacy(void)
         dma[c].sg_status = DMA_SG_BASE; /* 08h after reset (3.2.22) */
     dma_stop_en   = 0x00;
 
-    dma_mask = 0x00ffffff;
+    /* A hard reset also calls this after motherboard initialization, so keep
+     * the PC-98 board's normal 0439h MSK=1 state in the generic DMA core. */
+    dma_mask = IS_ARCH(machine, MACHINE_PC98) ? 0x000fffff : 0x00ffffff;
 
     /* A reset clears the registers, not the controller's kind. The power-on
        reset comes after the chipset has said what it has, so an EISA
@@ -2288,9 +2290,9 @@ dma_init_pc98(void)
     dma_ps2.is_ps2 = 0;
     dma_reset();
 
-    /* VX-class machines have 8-bit DMA page registers.  Port 439h can later
-     * force the 20-bit compatibility mask; reset permits the full 24 bits. */
-    dma_set_mask(0x00ffffff);
+    /* VX-class machines latch all eight page bits, but normally mask A23-A20.
+     * Software clears 0439h MSK explicitly for DMA above 1 MiB. */
+    dma_set_mask(0x000fffff);
 
     for (uint16_t port = 0x0001; port <= 0x001f; port += 2)
         io_sethandler(port, 0x0001, dma_pc98_read, NULL, NULL,

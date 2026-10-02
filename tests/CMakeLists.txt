@@ -4,6 +4,10 @@ add_subdirectory(device)
 add_subdirectory(video)
 add_subdirectory(scsi)
 add_subdirectory(mem)
+if(BUILD_TESTING)
+    add_subdirectory(machine/pc98)
+    add_subdirectory(logging)
+endif()
 
 if(BUILD_TESTING)
     add_library(pcjx_floppy_engine OBJECT

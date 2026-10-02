@@ -27,6 +27,7 @@
 #include <86box/86box.h>
 #include <86box/cdrom.h>
 #include <86box/device.h>
+#include <86box/machine.h>
 #include <86box/midi.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
@@ -1142,7 +1143,7 @@ sound_reset(void)
 void
 sound_card_reset(void)
 {
-    device_add(&speaker_device);
+    device_add(IS_ARCH(machine, MACHINE_PC98) ? &speaker_pc98_device : &speaker_device);
 
     sound_card_init();
 

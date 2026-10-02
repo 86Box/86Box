@@ -43,6 +43,8 @@ add_library(dev OBJECT
     isapnp.c
     kbc_3270pc.c
     kbc_at.c
+    kbc_rom.c
+    ../upi42.c
     kbc_at_dev.c
     kbc_ps2_m25.c
     kbc_xt.c

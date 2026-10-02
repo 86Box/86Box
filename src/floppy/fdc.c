@@ -219,6 +219,29 @@ fdc_ctrl_reset(void *priv, int reset_power_down)
     }
 }
 
+/* The PC-98 board owns the external motor, density and IRQ/DMA wiring.
+ * Reset the 765's execution state without changing those board outputs.
+ * A command may address unit 1 while the internal IBM-style DOR selects 0,
+ * so stopping only the DOR-selected decoder is insufficient here. */
+static void
+fdc_pc98_abort(fdc_t *fdc)
+{
+    timer_disable(&fdc->timer);
+    if (fdc->irq != 0xff)
+        picintc(1 << fdc->irq);
+    dma_set_drq(fdc->dma_ch, 0);
+    for (int i = 0; i < 4; i++)
+        fdd_stop(fdc->fdd[i]);
+
+    fdc_ctrl_reset(fdc, 1);
+    fifo_reset(fdc->fifo_p);
+    fdc->stat = 0;
+    fdc->interrupt = 0;
+    fdc->command = fdc->processed_cmd = 0;
+    fdc->fintr = fdc->data_ready = fdc->paramstogo = 0;
+    fdc->tc = fdc->error = fdc->format_state = fdc->reset_stat = 0;
+}
+
 sector_id_t
 fdc_get_read_track_sector(fdc_t *fdc)
 {
@@ -1040,9 +1063,13 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         picintc(1 << fdc->irq);
                     }
                     if (!(val & 4)) {
-                        fdd_stop(fdc->fdd[real_drive(fdc, val & 3)]);
-                        fdc->stat = 0x00;
-                        fdc->pnum = fdc->ptot = 0;
+                        if (fdc->flags & FDC_FLAG_PC98)
+                            fdc_pc98_abort(fdc);
+                        else {
+                            fdd_stop(fdc->fdd[real_drive(fdc, val & 3)]);
+                            fdc->stat = 0x00;
+                            fdc->pnum = fdc->ptot = 0;
+                        }
                     }
                     if ((val & 4) && !(fdc->dor & 4))
                         fdc_soft_reset(fdc);
@@ -2822,6 +2849,9 @@ fdc_reset(void *priv)
 
     fdc_t *fdc = (fdc_t *) priv;
 
+    if (fdc->flags & FDC_FLAG_PC98)
+        fdc_pc98_abort(fdc);
+
     /* Reset boot status to POST on controller reset */
     fdd_boot_status_reset();
 
@@ -2830,10 +2860,10 @@ fdc_reset(void *priv)
     fdc->enable_3f1 = 1;
 
     fdc_update_enh_mode(fdc, 0);
-    if (fdc->flags & FDC_FLAG_DENSEL_INVERT)
-        fdc_update_densel_polarity(fdc, 0);
-    else
-        fdc_update_densel_polarity(fdc, 1);
+    /* PC-98 DENSEL is driven by the motherboard, not a resettable AT CCR.
+     * device_reset_all() visits that board before its nested FDC. */
+    if (!(fdc->flags & FDC_FLAG_PC98))
+        fdc_update_densel_polarity(fdc, !(fdc->flags & FDC_FLAG_DENSEL_INVERT));
     if (fdc->flags & FDC_FLAG_NSC)
         fdc_update_densel_force(fdc, 3);
     else
@@ -2881,13 +2911,17 @@ fdc_reset(void *priv)
 
     fdc_ctrl_reset(fdc, !(fdc->flags & FDC_FLAG_PNP));
 
-    if (!(fdc->flags & FDC_FLAG_AT))
+    if (!(fdc->flags & (FDC_FLAG_AT | FDC_FLAG_PC98)))
         fdc->rate = 2;
+
+    if (fdc->flags & FDC_FLAG_PC98)
+        fdc_update_rates(fdc);
 
     fdc->max_track = (fdc->flags & FDC_FLAG_MORE_TRACKS) ? 85 : 79;
 
-    /* The JX motherboard owns every programmable decode alias. */
-    if (!(fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_IBM5140))) {
+    /* Native motherboard adapters own their port decoders.  A later reset
+     * must not install a second, IBM-style controller at 3F0h on PC-98. */
+    if (!(fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_IBM5140 | FDC_FLAG_PC98))) {
         if (!(fdc->flags & FDC_FLAG_PNP)) {
             fdc_remove(fdc);
             if (fdc->flags & FDC_FLAG_SEC)
@@ -2914,6 +2948,15 @@ fdc_reset(void *priv)
         fdc->power_down = 0;
 
     fdc->media_id   = 0;
+
+    /* The board may have released RESET before this device's reset callback.
+     * Recreate only the post-reset notification after cancelling old work. */
+    if (fdc->flags & FDC_FLAG_PC98) {
+        if (fdc->dor & 4)
+            fdc_soft_reset(fdc);
+        else
+            fdc->stat = 0;
+    }
 }
 
 static void
@@ -3022,8 +3065,8 @@ const device_t fdc_ibm5140_device = {
 };
 
 
-/* Native PC-98 on-board uPD765.  The motherboard removes the generic 3f0h
- * decoder and exposes the controller at 90h/92h/94h instead. */
+/* Native PC-98 on-board uPD765.  The motherboard owns its native decoders;
+ * this device never installs a generic 3F0h decoder. */
 const device_t fdc_pc98_device = {
     .name          = "NEC PC-98 uPD765 FDC",
     .internal_name = "fdc_pc98",

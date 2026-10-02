@@ -77,10 +77,10 @@ static const char *const pc98_26k_rom_odd[] = {
  * YM2203 PSG Port A bits 7:6 reflect PC-9801-26K SW3/SW4.
  *
  * Config ordering:
- *   0 = INT5
+ *   0 = INT0
  *   1 = INT6
  *   2 = INT41
- *   3 = INT0
+ *   3 = INT5
  *
  * PSG encoding:
  *   00 = INT0
@@ -92,9 +92,7 @@ static const uint8_t pc98_26k_irq_pa_bits[4] = {
     0x00, /* INT0  */
     0x40, /* INT6  */
     0x80, /* INT41 */
-    0xc0 /* INT5  */
-    
-    
+    0xc0  /* INT5  */
 };
 /*
  * PC-98 C-BUS interrupt levels, in 86Box's flattened IRQ numbering.  The
@@ -113,14 +111,12 @@ static const uint32_t pc98_26k_rom_addr[8] = {
 
 typedef struct pc98_26k_t {
     pc98_opn_t *opn;
-    rom_t       bios;
+    rom_t      *bios;
     int         has_rom;
     uint16_t    base;
     int         irq;
-    int         irq_sel;
     uint8_t     opn_addr;
     int         irq_state;
-    uint8_t     joy_sel;
     uint8_t     int_level;
 } pc98_26k_t;
 
@@ -151,8 +147,9 @@ pc98_26k_in(uint16_t port, void *priv)
 
     val = pc98_opn_read(dev->opn, index);
     if ((index == 1) && (dev->opn_addr == 0x0e)) {
-        val &= 0x3f; // return irq selector on ssg port a. required by music drivers and games.
-        val |= pc98_26k_irq_pa_bits[dev->irq_sel];
+        /* The same jumpers drive Port A and the physical interrupt line. */
+        val &= 0x3f;
+        val |= pc98_26k_irq_pa_bits[dev->int_level];
     }
     return val;
 }
@@ -165,10 +162,8 @@ pc98_26k_out(uint16_t port, uint8_t val, void *priv)
     if (port & 1u)
         return;
     if (index == 0)
-    {
         dev->opn_addr = val;
-    }
-    pc98_opn_write(dev->opn, index , val);
+    pc98_opn_write(dev->opn, index, val);
 }
 
 static void
@@ -199,8 +194,12 @@ pc98_26k_load_rom(pc98_26k_t *dev, uint32_t addr)
     char p1[PC98_ROM_PATH_MAX];
     char p2[PC98_ROM_PATH_MAX];
 
+    dev->bios = (rom_t *) calloc(1, sizeof(rom_t));
+    if (!dev->bios)
+        return 0;
+
     if (pc98_rom_find_quiet(pc98_26k_rom_linear, p1, sizeof(p1))) {
-        if (!rom_init(&dev->bios, p1, addr, PC98_26K_ROM_SIZE,
+        if (!rom_init(dev->bios, p1, addr, PC98_26K_ROM_SIZE,
                       PC98_26K_ROM_SIZE - 1, 0, MEM_MAPPING_EXTERNAL)) {
             pclog("[PC98] 26K: %s mapped at %05X\n", p1, (unsigned) addr);
             return 1;
@@ -208,7 +207,7 @@ pc98_26k_load_rom(pc98_26k_t *dev, uint32_t addr)
     }
 
     if (pc98_rom_find_quiet(pc98_26k_rom_9821, p1, sizeof(p1))) {
-        if (!rom_init(&dev->bios, p1, addr, PC98_26K_ROM_SIZE,
+        if (!rom_init(dev->bios, p1, addr, PC98_26K_ROM_SIZE,
                       PC98_26K_ROM_SIZE - 1, 0, MEM_MAPPING_EXTERNAL)) {
             pclog("[PC98] 26K: %s mapped at %05X\n", p1, (unsigned) addr);
             return 1;
@@ -218,7 +217,7 @@ pc98_26k_load_rom(pc98_26k_t *dev, uint32_t addr)
     /* The physical -26K pair: 01 carries the even bytes, 02 the odd ones. */
     if (pc98_rom_find_quiet(pc98_26k_rom_even, p1, sizeof(p1)) &&
         pc98_rom_find_quiet(pc98_26k_rom_odd, p2, sizeof(p2))) {
-        if (!rom_init_interleaved(&dev->bios, p1, p2, addr,
+        if (!rom_init_interleaved(dev->bios, p1, p2, addr,
                                   PC98_26K_ROM_SIZE, PC98_26K_ROM_SIZE - 1, 0,
                                   MEM_MAPPING_EXTERNAL)) {
             pclog("[PC98] 26K: %s + %s mapped at %05X\n", p1, p2,
@@ -226,6 +225,9 @@ pc98_26k_load_rom(pc98_26k_t *dev, uint32_t addr)
             return 1;
         }
     }
+
+    free(dev->bios);
+    dev->bios = NULL;
 
     /*
      * The FM hardware works without it; only the BIOS calls that software
@@ -246,6 +248,7 @@ pc98_26k_reset(void *priv)
     pc98_26k_t *dev = (pc98_26k_t *) priv;
 
     pc98_opn_reset(dev->opn);
+    dev->opn_addr = 0u;
     pc98_26k_irq(dev, 0);
 }
 
@@ -297,6 +300,15 @@ pc98_26k_close(void *priv)
     io_removehandler(dev->base, 4, pc98_26k_in, NULL, NULL, pc98_26k_out, NULL,
                      NULL, dev);
     pc98_opn_destroy(dev->opn);
+    if (dev->has_rom) {
+        /* Mapping nodes are retained by the memory subsystem until reset. */
+        mem_mapping_disable(&dev->bios->mapping);
+        mem_mapping_set_handler(&dev->bios->mapping, NULL, NULL, NULL, NULL, NULL, NULL);
+        mem_mapping_set_exec(&dev->bios->mapping, NULL);
+        mem_mapping_set_p(&dev->bios->mapping, NULL);
+        free(dev->bios->rom);
+        dev->bios->rom = NULL;
+    }
     free(dev);
 }
 

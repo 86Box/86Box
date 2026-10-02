@@ -1,4 +1,5 @@
 if(BUILD_TESTING)
+    add_subdirectory(pc98)
     add_executable(wd90c31_tests
         wd90c31_test.cpp
         ../../src/video/vid_wd90c31.c

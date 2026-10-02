@@ -368,6 +368,7 @@ extern const device_t opti_82c931_device;
 
 /* PC Speaker */
 extern const device_t speaker_device;
+extern const device_t speaker_pc98_device;
 
 /* Pro Audio Spectrum, Plus, 16, and 16D */
 extern const device_t pas_device;

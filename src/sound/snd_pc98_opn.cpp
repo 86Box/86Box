@@ -46,6 +46,9 @@ public:
     virtual void    generate(int32_t *buf, uint32_t frames) = 0;
 
     virtual void set_adpcm_rom(const uint8_t *rom, uint32_t len) = 0;
+    virtual void set_extended(bool enabled) = 0;
+    virtual void set_output_enabled(bool enabled) = 0;
+    virtual bool set_adpcm_ram(bool enabled) = 0;
 
     uint8_t port_a = 0xffu;
     uint8_t port_b = 0x00u;
@@ -65,7 +68,6 @@ public:
         std::memset(m_samples, 0, sizeof(m_samples));
         std::memset(m_oldsamples, 0, sizeof(m_oldsamples));
         std::memset(m_buffer, 0, sizeof(m_buffer));
-        std::memset(m_ram, 0, sizeof(m_ram));
 
         timer_add(&m_timers[0], pc98_opn_chip::timer0, this, 0);
         timer_add(&m_timers[1], pc98_opn_chip::timer1, this, 0);
@@ -86,6 +88,7 @@ public:
         timer_disable(&m_timers[0]);
         timer_disable(&m_timers[1]);
         timer_disable(&m_busy_timer);
+        std::free(m_ram);
     }
 
     void
@@ -101,7 +104,13 @@ public:
         std::memset(m_oldsamples, 0, sizeof(m_oldsamples));
         std::memset(m_buffer, 0, sizeof(m_buffer));
         update_rateratio();
+        m_extended = false;
+        m_output_enabled = true;
+        m_address_port = 0;
+        m_address_data = 0;
+        m_irq_enable = 0x1f;
         m_chip.reset();
+        m_chip.write(0u, 0u);
         port_a = 0xffu;
         port_b = 0x00u;
     }
@@ -117,7 +126,50 @@ public:
     write(uint32_t addr, uint8_t data) override
     {
         update_to((uint32_t) sound_pos_global);
+        if ((addr == 0u) || (addr == 2u)) {
+            m_address_port = addr;
+            m_address_data = data;
+        } else if constexpr (ChipType::OUTPUTS == 3) {
+            if ((addr == 1u) && (m_address_port == 0u) && (m_address_data == 0x29u)) {
+                m_irq_enable = data;
+                data = (data & 0x7fu) | (m_extended ? 0x80u : 0u);
+            }
+        }
         m_chip.write(addr, data);
+    }
+
+    void
+    set_extended(bool enabled) override
+    {
+        if constexpr (ChipType::OUTPUTS == 3) {
+            update_to((uint32_t) sound_pos_global);
+            m_extended = enabled;
+            /* Board mode selects three or six FM channels. Preserve the
+             * guest's IRQ mask and the chip's current address latch. */
+            m_chip.write(0u, 0x29u);
+            m_chip.write(1u, (m_irq_enable & 0x7fu) | (enabled ? 0x80u : 0u));
+            m_chip.write(m_address_port, m_address_data);
+        }
+    }
+
+    void
+    set_output_enabled(bool enabled) override
+    {
+        update_to((uint32_t) sound_pos_global);
+        m_output_enabled = enabled;
+    }
+
+    bool
+    set_adpcm_ram(bool enabled) override
+    {
+        update_to((uint32_t) sound_pos_global);
+        if (enabled && !m_ram)
+            m_ram = (uint8_t *) std::calloc(1, PC98_OPNA_RAM_SIZE);
+        else if (!enabled) {
+            std::free(m_ram);
+            m_ram = nullptr;
+        }
+        return !enabled || m_ram != nullptr;
     }
 
     void
@@ -205,8 +257,8 @@ public:
                                           m_samples[1] * (int64_t) m_samplecnt) /
                                          m_rateratio);
 
-            buf[i * 2]     = l;
-            buf[i * 2 + 1] = r;
+            buf[i * 2]     = m_output_enabled ? l : 0;
+            buf[i * 2 + 1] = m_output_enabled ? r : 0;
 
             m_samplecnt += 1 << RSM_FRAC;
         }
@@ -277,7 +329,7 @@ public:
                 return 0u;
 
             case ymfm::ACCESS_ADPCM_B:
-                return m_ram[address & (PC98_OPNA_RAM_SIZE - 1u)];
+                return m_ram ? m_ram[address & (PC98_OPNA_RAM_SIZE - 1u)] : 0xffu;
 
             default:
                 return 0u;
@@ -297,7 +349,7 @@ public:
         }
 
         /* Only the ADPCM-B RAM is writable; the rhythm ROM is not. */
-        if (type == ymfm::ACCESS_ADPCM_B)
+        if ((type == ymfm::ACCESS_ADPCM_B) && m_ram)
             m_ram[address & (PC98_OPNA_RAM_SIZE - 1u)] = data;
     }
 
@@ -337,6 +389,7 @@ private:
     timer0(void *priv)
     {
         pc98_opn_chip *self = (pc98_opn_chip *) priv;
+        self->update_to((uint32_t) sound_pos_global);
         self->m_engine->engine_timer_expired(0);
     }
 
@@ -344,6 +397,7 @@ private:
     timer1(void *priv)
     {
         pc98_opn_chip *self = (pc98_opn_chip *) priv;
+        self->update_to((uint32_t) sound_pos_global);
         self->m_engine->engine_timer_expired(1);
     }
 
@@ -370,7 +424,12 @@ private:
 
     const uint8_t *m_adpcm_rom     = nullptr;
     uint32_t       m_adpcm_rom_len = 0u;
-    uint8_t        m_ram[PC98_OPNA_RAM_SIZE];
+    uint8_t       *m_ram = nullptr;
+    bool           m_extended = false;
+    bool           m_output_enabled = true;
+    uint32_t       m_address_port = 0u;
+    uint8_t        m_address_data = 0u;
+    uint8_t        m_irq_enable = 0x1fu;
 
     pc_timer_t m_timers[2] {};
     pc_timer_t m_busy_timer {};
@@ -450,6 +509,26 @@ pc98_opn_generate(pc98_opn_t *chip, int32_t *buf, uint32_t frames)
 {
     if (chip && chip->chip)
         chip->chip->generate(buf, frames);
+}
+
+void
+pc98_opn_set_extended(pc98_opn_t *chip, int enabled)
+{
+    if (chip && chip->chip)
+        chip->chip->set_extended(enabled != 0);
+}
+
+void
+pc98_opn_set_output_enabled(pc98_opn_t *chip, int enabled)
+{
+    if (chip && chip->chip)
+        chip->chip->set_output_enabled(enabled != 0);
+}
+
+int
+pc98_opn_set_adpcm_ram(pc98_opn_t *chip, int enabled)
+{
+    return chip && chip->chip && chip->chip->set_adpcm_ram(enabled != 0);
 }
 
 void

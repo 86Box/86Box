@@ -258,6 +258,13 @@ serial_handler(pc87306_t *dev, int uart)
 static void
 kbc_handler(pc87306_t *dev)
 {
+    if (dev->kbc_type == PCX730X_AMI_ROM) {
+        kbc_rom_handler(0, 0x0060, dev->kbc);
+        if (dev->regs[0x05] & 0x01)
+            kbc_rom_handler(1, 0x0060, dev->kbc);
+        return;
+    }
+
     kbc_at_handler(0, 0x0060, dev->kbc);
 
     if (dev->regs[0x05] & 0x01)
@@ -333,6 +340,8 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
         case 0x05:
             if (valxor & 0x01)
                 kbc_handler(dev);
+            if ((valxor & 0x83) && (dev->kbc_type == PCX730X_AMI_ROM))
+                kbc_rom_set_krr(dev->kbc, val);
             if (valxor & 0x08)
                 nvr_at_handler(!!(val & 0x08), 0x0070, dev->nvr);
             if (valxor & 0x20)
@@ -426,6 +435,8 @@ pc87306_reset_common(void *priv)
     dev->regs[0x01] = 0x01;
     dev->regs[0x03] = 0x01;
     dev->regs[0x05] = 0x0d;
+    if (dev->kbc_type == PCX730X_AMI_ROM)
+        kbc_rom_set_krr(dev->kbc, dev->regs[0x05]);
     dev->regs[0x08] = 0x71;
     dev->regs[0x09] = 0xc0;
     dev->regs[0x0b] = 0x80;
@@ -494,6 +505,9 @@ pc87306_init(UNUSED(const device_t *info))
     dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT_MB);
 
     switch (dev->kbc_type) {
+        case PCX730X_AMI_ROM:
+            dev->kbc = device_add(&kbc_rom_device);
+            break;
         case PCX730X_AMI:
         default:
             dev->kbc = device_add_params(&kbc_at_device, (void *) (KBC_VEN_AMI | 0x00003500));

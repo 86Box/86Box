@@ -400,8 +400,14 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
     uint8_t          i;
     double           multi;
 
+    /* Native PC-98 models describe soldered CPUs, not upgradeable PC sockets.
+       Do not let old override settings turn a VX into an imaginary 386. */
+    const int allow_override = !(machine_s->bus_flags & MACHINE_PC98);
+    if (machine_s->init == machine_pc9801vx_init && cpu_s->cpu_type != CPU_286)
+        return 0;
+
     /* Full override. */
-    if (cpu_override > 1)
+    if (allow_override && cpu_override > 1)
         return 1;
 
     /* Add implicit CPU package compatibility. */
@@ -416,7 +422,7 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
         return 0;
 
     /* Partial override. */
-    if (cpu_override)
+    if (allow_override && cpu_override)
         return 1;
 
     /* Cyrix 6x86MX on the NuPRO 592. */

@@ -27,9 +27,9 @@ Example for Touhou 3:
 
 ```powershell
 py -3 tools\pc98_sasi_convert.py `
-  'C:\Users\Clara\Downloads\Touhou 3 - Phantasmagoria of Dimensional Dream\th03e.hdi' `
-  'C:\Users\Clara\pc98\converted\th03e_sasi.hdi' `
-  --template 'C:\Users\Clara\Downloads\2023_sessions_lemonspin\lemonspin_freedos_sasi.hdi' `
+  input/th03e.hdi `
+  converted/th03e_sasi.hdi `
+  --template input/lemonspin_freedos_sasi.hdi `
   --launch GAME.BAT
 ```
 

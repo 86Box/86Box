@@ -20,11 +20,13 @@
  *          leaves the upper half of physical sector 16 as padding.
  */
 #include <stdarg.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/dma.h>
@@ -39,6 +41,19 @@
 #include <86box/rom.h>
 #include <86box/timer.h>
 #include <86box/ui.h>
+
+static void sasi_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+static void sasi_log(const char *fmt, ...)
+{
+#if defined(ENABLE_PC98_SASI_LOG) && ENABLE_PC98_SASI_LOG
+    va_list ap;
+    va_start(ap, fmt);
+    pclog_ex(fmt, ap);
+    va_end(ap);
+#else
+    (void)fmt;
+#endif
+}
 
 /*
  * The board BIOS, in the layouts these ROM sets ship in.  Each is tried
@@ -76,6 +91,7 @@ typedef struct pc98_sasi_dev_t {
     int         irq_state;
     int         unit_profile[PC98_SASI_MAX_UNITS];
     uint32_t    unit_capacity[PC98_SASI_MAX_UNITS];
+    uint32_t    unit_backing_blocks[PC98_SASI_MAX_UNITS];
     uint32_t    rom_addr;
     int8_t      unit_hdd[PC98_SASI_MAX_UNITS]; /* index into hdd[], -1 = none */
     /* Native HDI/NHD access preserves the container's 256- or 512-byte
@@ -84,14 +100,9 @@ typedef struct pc98_sasi_dev_t {
     uint8_t     sector_buf[PC98_SASI_BUF_SIZE + 512u];
 } pc98_sasi_dev_t;
 
-
-
 /* ------------------------------------------------------------------ */
 /* Image access                                                        */
 /* ------------------------------------------------------------------ */
-
-/* Staging storage for the largest SASI data phase. */
-
 
 static int
 sasi_hdd_id(pc98_sasi_dev_t *dev, unsigned unit)
@@ -126,7 +137,7 @@ sasi_log_bytes(const char *tag, unsigned unit, uint32_t lba,
     if (!n)
         hex[0] = '\0';
 
-    pclog("[PC98-SASI-BOOT] %s u%u lba=%u count=%u bytes=%u "
+    sasi_log("[PC98-SASI-BOOT] %s u%u lba=%u count=%u bytes=%u "
           "file_off=%08X data=%s\n", tag, unit, (unsigned) lba,
           (unsigned) count, (unsigned) len, (unsigned) file_off, hex);
 }
@@ -155,7 +166,8 @@ sasi_read_cb(void *priv, unsigned unit, uint32_t lba, uint32_t count,
 
     ui_sb_update_icon(SB_HDD | HDD_BUS_SASI, 1);
 
-    if (!count || count > PC98_SASI_BUF_BLOCKS)
+    if (unit >= PC98_SASI_MAX_UNITS || !count || count > PC98_SASI_BUF_BLOCKS ||
+        lba >= dev->unit_backing_blocks[unit] || count > dev->unit_backing_blocks[unit] - lba)
         return 0;
 
     if (unit < PC98_SASI_MAX_UNITS && dev->unit_img[unit].f) {
@@ -196,7 +208,8 @@ sasi_write_cb(void *priv, unsigned unit, uint32_t lba, uint32_t count,
 
     ui_sb_update_icon_write(SB_HDD | HDD_BUS_SASI, 1);
 
-    if (!count || count > PC98_SASI_BUF_BLOCKS)
+    if (unit >= PC98_SASI_MAX_UNITS || !count || count > PC98_SASI_BUF_BLOCKS ||
+        lba >= dev->unit_backing_blocks[unit] || count > dev->unit_backing_blocks[unit] - lba)
         return 0;
 
     if (unit < PC98_SASI_MAX_UNITS && dev->unit_img[unit].f) {
@@ -259,7 +272,7 @@ sasi_log_dma_count(pc98_sasi_dev_t *dev, uint32_t len)
      * FORMAT it is interleave, and for parameter/buffer commands it is a
      * don't-care.  Logging it as a decoded count made traces actively
      * misleading while debugging DMA. */
-    pclog("[PC98-SASI-DMA-TC] op=%02X u%u cdb4=%02X block=%u tc=%04X "
+    sasi_log("[PC98-SASI-DMA-TC] op=%02X u%u cdb4=%02X block=%u tc=%04X "
           "programmed_bytes=%u target_bytes=%u\n", dev->core.cdb[0],
           dev->core.unit, dev->core.cdb[4], PC98_SASI_BLOCK_SIZE,
           (unsigned) tc, (unsigned) (tc + 1u), (unsigned) len);
@@ -313,7 +326,7 @@ sasi_dma_write_cb(void *priv, const uint8_t *buf, uint32_t len)
     dma[dev->dma_ch].mode = saved_mode;
     dma_set_drq(dev->dma_ch, 0);
 
-    pclog("[PC98-SASI-DMA] ch=%d len=%u moved=%u mode=%02X%s ab=%08X "
+    sasi_log("[PC98-SASI-DMA] ch=%d len=%u moved=%u mode=%02X%s ab=%08X "
           "ac_start=%08X ac_end=%08X first=%02X %02X %02X %02X %02X %02X %02X %02X\n",
           dev->dma_ch, (unsigned) len, (unsigned) i, saved_mode,
           board_drives_mem_write ? " (PC-9801-27 ext-MW)" : "",
@@ -349,7 +362,7 @@ sasi_dma_read_cb(void *priv, uint8_t *buf, uint32_t len)
         }
     }
     dma_set_drq(dev->dma_ch, 0);
-    pclog("[PC98-SASI-DMA-OUT] ch=%d len=%u moved=%u ab=%08X ac_start=%08X "
+    sasi_log("[PC98-SASI-DMA-OUT] ch=%d len=%u moved=%u ab=%08X ac_start=%08X "
           "ac_end=%08X first=%02X %02X %02X %02X %02X %02X %02X %02X\n",
           dev->dma_ch, (unsigned) len, (unsigned) i, (unsigned) start_ab,
           (unsigned) start_ac, (unsigned) dma[dev->dma_ch].ac,
@@ -389,17 +402,17 @@ sasi_in(uint16_t port, void *priv)
         const uint8_t v = pc98_sasi_data_in(&dev->core);
 
         if (before == PC98_SASI_STATUS)
-            pclog("[PC98] SASI status u%u: %02X -> %s\n",
+            sasi_log("[PC98] SASI status u%u: %02X -> %s\n",
                   dev->core.unit, v, sasi_phase_name(dev->core.phase));
         else if (before == PC98_SASI_MSGIN)
-            pclog("[PC98] SASI message u%u: %02X -> %s\n",
+            sasi_log("[PC98] SASI message u%u: %02X -> %s\n",
                   dev->core.unit, v, sasi_phase_name(dev->core.phase));
         return v;
     }
 
     const uint8_t v = pc98_sasi_status_in(&dev->core);
     if (!(dev->core.ctrl & PC98_SASI_CTL_STS))
-        pclog("[PC98] SASI config read: %02X (CT=%u, u0 DT=%u, u1 DT=%u)\n",
+        sasi_log("[PC98] SASI config read: %02X (CT=%u, u0 DT=%u, u1 DT=%u)\n",
               v, (v >> 6) & 3u, (v >> 3) & 7u, v & 7u);
     return v;
 }
@@ -426,7 +439,7 @@ sasi_out(uint16_t port, uint8_t val, void *priv)
             const uint32_t trace_xfer =
                 (dev->core.phase == PC98_SASI_DATAIN ||
                  dev->core.phase == PC98_SASI_DATAOUT) ? dev->core.buf_len : 0u;
-            pclog("[PC98] SASI CDB u%u: %02X %02X %02X %02X %02X %02X "
+            sasi_log("[PC98] SASI CDB u%u: %02X %02X %02X %02X %02X %02X "
                   "LBA=%u cdb4=%02X xfer_bytes=%u -> %s irq=%d\n",
                   dev->core.unit,
                   dev->core.cdb[0], dev->core.cdb[1], dev->core.cdb[2],
@@ -436,7 +449,7 @@ sasi_out(uint16_t port, uint8_t val, void *priv)
                   dev->irq_state);
         } else if (before == PC98_SASI_DATAOUT &&
                    dev->core.cdb[0] == 0xc2u && buf_pos == 9u) {
-            pclog("[PC98] SASI C2 parameters u%u complete -> %s\n",
+            sasi_log("[PC98] SASI C2 parameters u%u complete -> %s\n",
                   dev->core.unit, sasi_phase_name(dev->core.phase));
         }
     } else {
@@ -456,6 +469,7 @@ sasi_attach_drives(pc98_sasi_dev_t *dev)
     for (unsigned i = 0; i < PC98_SASI_MAX_UNITS; i++) {
         dev->unit_hdd[i] = -1;
         dev->unit_capacity[i] = 0u;
+        dev->unit_backing_blocks[i] = 0u;
         pc98_hdi_close(&dev->unit_img[i]);
         pc98_sasi_set_unit_dip(&dev->core, i, PC98_SASI_DIP_DISCONNECTED);
     }
@@ -483,7 +497,13 @@ sasi_attach_drives(pc98_sasi_dev_t *dev)
          * headerless raw, which yields a drive full of noise - so this has
          * to come before it rather than after.
          */
-        if (pc98_hdi_open(&dev->unit_img[unit], hdd[i].fn)) {
+        const int native_result = pc98_hdi_open(&dev->unit_img[unit], hdd[i].fn);
+        if (native_result < 0) {
+            pclog("[PC98] SASI unit %u: cannot open native container or invalid header: %s\n",
+                  unit, hdd[i].fn);
+            continue;
+        }
+        if (native_result > 0) {
             pclog("[PC98] SASI unit %u: %s, %u-byte sectors, "
                   "%u cyl / %u heads / %u sec, %u blocks%s\n",
                   unit,
@@ -512,14 +532,18 @@ sasi_attach_drives(pc98_sasi_dev_t *dev)
         uint32_t logical_blocks;
         unsigned image_spt = 0u, image_heads = 0u, image_cylinders = 0u;
         unsigned container_sector_size = 512u;
+        (void) container_sector_size; /* used only by non-release diagnostics */
         int native = 0;
 
         if (dev->unit_img[u].f) {
             const pc98_hdi_t *img = &dev->unit_img[u];
             logical_blocks = pc98_hdi_sasi_blocks(
                 img, PC98_SASI_TRACK_BLOCKS_256);
-            if (!logical_blocks)
+            if (!logical_blocks) {
+                pclog("[PC98] SASI unit %u: native geometry cannot supply 33 logical blocks per track\n", u);
+                pc98_hdi_close(&dev->unit_img[u]);
                 continue;
+            }
             container_sector_size = img->sector_size;
             image_spt = img->spt;
             image_heads = img->hpc;
@@ -529,8 +553,12 @@ sasi_attach_drives(pc98_sasi_dev_t *dev)
             const uint64_t sectors512 =
                 (uint64_t) hdd_image_get_last_sector((uint8_t) dev->unit_hdd[u]) + 1u;
             const uint64_t blocks256 = sectors512 * 2u;
-            if (blocks256 > 0xffffffffu)
+            if (blocks256 > UINT32_MAX) {
+                pclog("[PC98] SASI unit %u: backing exceeds the logical block address range\n", u);
+                hdd_image_close((uint8_t) dev->unit_hdd[u]);
+                dev->unit_hdd[u] = -1;
                 continue;
+            }
             logical_blocks = (uint32_t) blocks256;
         } else {
             continue;
@@ -571,6 +599,7 @@ sasi_attach_drives(pc98_sasi_dev_t *dev)
         pc98_sasi_set_unit_dip(&dev->core, u, (unsigned) dip);
 
         const uint32_t profile_capacity = pc98_sasi_dip_capacity((unsigned) dip);
+        dev->unit_backing_blocks[u] = logical_blocks;
         dev->unit_capacity[u] = logical_blocks < profile_capacity
                               ? logical_blocks : profile_capacity;
 

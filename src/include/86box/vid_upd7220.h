@@ -125,6 +125,20 @@ typedef struct upd7220_t {
 
     /* command processor busy time in 2xWCLK periods */
     uint32_t busy_clocks;
+    uint8_t pending_valid;
+    uint8_t pending_byte;
+    uint8_t pending_command;
+
+    /* Incremental memory execution. The command processor waits while this
+     * engine runs, leaving the input FIFO available to the host. */
+    uint8_t work_kind;
+    uint8_t work_dir;
+    uint8_t work_side;
+    uint16_t work_data;
+    uint32_t work_index;
+    uint32_t work_row;
+    int32_t work_error;
+    int32_t work_arc_d;
 } upd7220_t;
 
 void upd7220_init(upd7220_t *gdc, void *opaque,
@@ -142,6 +156,8 @@ uint8_t upd7220_dack_read(upd7220_t *gdc);
 void upd7220_lpen(upd7220_t *gdc, int level, uint32_t current_word_addr);
 void upd7220_set_retrace(upd7220_t *gdc, int hblank, int vsync);
 void upd7220_advance(upd7220_t *gdc, uint32_t two_x_wclk_periods);
+/* Zero when idle or waiting for the host to drain a full read FIFO. */
+uint32_t upd7220_next_event(const upd7220_t *gdc);
 
 void upd7220_get_graphics_partition(const upd7220_t *gdc, unsigned index,
                                     upd7220_partition_t *out);

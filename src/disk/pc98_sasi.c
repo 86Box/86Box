@@ -1199,12 +1199,6 @@ pc98_sasi_ctrl_out(pc98_sasi_t *s, uint8_t val)
 
     s->ctrl = val;
 
-    /* Bits 0 and 1 are independent gates: bit 0 is INT3 enable and bit 1
-     * is DMA enable.  In particular, the ROM's C1h probe enables IRQ only,
-     * while C3h enables both. */
-    if ((prev ^ val) & PC98_SASI_CTL_IEN)
-        sasi_update_irq(s);
-
     /*
      * Reset is a pulse: the board ROM writes 08h then 00h.  Hold the bus
      * quiescent while RST is asserted and perform the reset when it is
@@ -1212,12 +1206,30 @@ pc98_sasi_ctrl_out(pc98_sasi_t *s, uint8_t val)
      */
     s->lines.rst = (val & PC98_SASI_CTL_RST) != 0u;
     s->lines.sel = (val & PC98_SASI_CTL_SEL) != 0u;
-    if (val & PC98_SASI_CTL_RST)
-        return;
-    if ((prev & PC98_SASI_CTL_RST) && !(val & PC98_SASI_CTL_RST)) {
-        pc98_sasi_reset(s);
+    if (val & PC98_SASI_CTL_RST) {
+        /* A held reset must not leave REQ/BSY or a completion interrupt
+         * asserted, nor accept bytes into the interrupted command. */
+        sasi_set_phase(s, PC98_SASI_BUSFREE);
+        s->lines.ack = 0u;
+        s->cdb_pos = 0u;
+        s->buf_len = s->buf_pos = 0u;
+        s->dataout_action = PC98_SASI_DATAOUT_NONE;
+        sasi_clear_irq(s);
         return;
     }
+    if ((prev & PC98_SASI_CTL_RST) && !(val & PC98_SASI_CTL_RST)) {
+        pc98_sasi_reset(s);
+        /* Reset the target while retaining the adapter's new gate levels. */
+        s->ctrl = val;
+        s->lines.sel = (val & PC98_SASI_CTL_SEL) != 0u;
+        return;
+    }
+
+    /* Bits 0 and 1 are independent gates: bit 0 is INT3 enable and bit 1
+     * is DMA enable.  In particular, the ROM's C1h probe enables IRQ only,
+     * while C3h enables both. */
+    if ((prev ^ val) & PC98_SASI_CTL_IEN)
+        sasi_update_irq(s);
 
     /*
      * Rising SEL selects the SASI controller target.  The PC-9801-27 ROM
@@ -1256,7 +1268,7 @@ pc98_sasi_data_in(pc98_sasi_t *s)
 {
     uint8_t v = 0xffu;
 
-    if (!s->lines.req || !s->lines.io)
+    if (s->lines.rst || !s->lines.req || !s->lines.io)
         return v;
     sasi_ack_begin(s);
 
@@ -1291,6 +1303,8 @@ pc98_sasi_data_in(pc98_sasi_t *s)
 void
 pc98_sasi_data_out(pc98_sasi_t *s, uint8_t val)
 {
+    if (s->lines.rst)
+        return;
     s->data = val;
 
     /* The pre-selection ID latch is not a SASI information transfer. */

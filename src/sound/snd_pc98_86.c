@@ -8,7 +8,7 @@
  *
  *          NEC PC-9801-86 sound board.
  *
- *          A YM2608 (OPNA) with its ADPCM RAM, plus the board's own 16-bit
+ *          A YM2608 (OPNA), plus the board's own 16-bit
  *          PCM engine at A460h-A46Eh: a 32 KiB FIFO feeding a pair of DACs
  *          at one of eight sample clocks, with an interrupt raised when the
  *          FIFO drains below a programmed level.  That second engine is
@@ -83,7 +83,7 @@ static const char *const pc98_86_rom_adpcm[] = {
 
 typedef struct pc98_86_t {
     pc98_opn_t *opn;
-    rom_t       bios;
+    rom_t      *bios;
     int         has_rom;
 
     uint8_t *adpcm_rom;
@@ -93,7 +93,6 @@ typedef struct pc98_86_t {
     int      irq_sel;
     int      irq_state;
     uint8_t  opna_addr[2];
-    uint8_t  board_probe_stage;
     uint8_t  joy_select;
     uint8_t  joy_axis_state;
     uint8_t  joy_alias_addr;
@@ -118,6 +117,8 @@ typedef struct pc98_86_t {
     uint32_t   irq_rate;
     int        dac_l;
     int        dac_r;
+    int32_t    pcm_buffer[SOUNDBUFLEN * 2];
+    uint32_t   pcm_buffer_pos;
     int        initialised;
     double     dac_period_us;
 } pc98_86_t;
@@ -162,7 +163,8 @@ static const int pc98_86_dac_div[8] = { 36, 48, 72, 96, 144, 192, 288, 384 };
 static void
 pc98_86_update_irq(pc98_86_t *dev)
 {
-    const int level = (dev->fm_irq || dev->pcm_irq) ? 1 : 0;
+    const int level = (dev->fm_irq ||
+                       (dev->pcm_irq && (dev->pcm_ctrl & PC98_86_CTL_IRQE))) ? 1 : 0;
 
     if (level == dev->irq_state)
         return;
@@ -186,6 +188,27 @@ pc98_86_fm_irq(void *priv, int level)
 /* ------------------------------------------------------------------ */
 /* PCM FIFO                                                            */
 /* ------------------------------------------------------------------ */
+
+static void
+pc98_86_pcm_update(pc98_86_t *dev, uint32_t position)
+{
+    if (position > SOUNDBUFLEN)
+        position = SOUNDBUFLEN;
+
+    if (position < dev->pcm_buffer_pos)
+        dev->pcm_buffer_pos = 0;
+
+    /* Preserve the DAC output over time. The mixer runs once per output
+     * buffer, whereas the FIFO can advance hundreds of times within it.
+     * Flush before changing the DACs, attenuation or mute state. */
+    const int volume = (dev->pcm_mute & 1u) ? 0 : dev->vol[5];
+    const int32_t left = (dev->dac_l * volume) / 15;
+    const int32_t right = (dev->dac_r * volume) / 15;
+    for (; dev->pcm_buffer_pos < position; dev->pcm_buffer_pos++) {
+        dev->pcm_buffer[dev->pcm_buffer_pos * 2] = left;
+        dev->pcm_buffer[dev->pcm_buffer_pos * 2 + 1] = right;
+    }
+}
 
 static uint8_t
 pc98_86_fifo_pop(pc98_86_t *dev)
@@ -262,24 +285,22 @@ pc98_86_dac_tick(void *priv)
      * it at A466h bit 0 to time itself. */
     dev->pcm_clk = !dev->pcm_clk;
 
-    /* Free-running: re-arm from the period the control register set, not
-     * from the timer's own state, so a rate change mid-stream takes effect
-     * on the next tick rather than the next reset. */
-    timer_on_auto(&dev->dac_timer, dev->dac_period_us);
+    /* Advance from the scheduled tick, preserving the oscillator phase
+     * even when the CPU services this callback slightly late. */
+    timer_advance_u64(&dev->dac_timer, (uint64_t) (dev->dac_period_us * TIMER_USEC));
 
     if ((dev->pcm_ctrl & PC98_86_CTL_PAUS) || !(dev->pcm_ctrl & PC98_86_CTL_RUN))
         return;
 
-    if (!dev->count)
-        return;
+    if (dev->count) {
+        pc98_86_pcm_update(dev, (uint32_t) sound_pos_global);
+        pc98_86_dac_transfer(dev);
+    }
 
-    pc98_86_dac_transfer(dev);
-
-    /* Drained below the programmed level: ask for more.  The interrupt is
-     * edge-triggered - Windows drivers rely on that. */
-    if ((dev->count < dev->irq_rate) && (dev->pcm_ctrl & PC98_86_CTL_IRQE)) {
-        dev->pcm_irq = 0;
-        pc98_86_update_irq(dev);
+    /* Keep the request latched until acknowledged. Repeated DAC ticks
+     * below the threshold must not manufacture new interrupt edges. */
+    if (!dev->pcm_irq && (dev->count < dev->irq_rate) &&
+        (dev->pcm_ctrl & PC98_86_CTL_IRQE)) {
         dev->pcm_irq = 1;
         pc98_86_update_irq(dev);
     }
@@ -451,31 +472,15 @@ pc98_86_opna_in(uint16_t port, void *priv)
     if (port & 1u)
         return 0xffu;
 
-    /* KAJA's PMD86/PMDB2 check selects YM2608 register FFh, reads its 01h
-     * ID, then checks the two adjacent upper-bank ports. Match only that
-     * ordered detector sequence at the card boundary; ordinary YMFM reads
-     * continue through unchanged. */
-    if (dev->board_probe_stage == 2u) {
-        dev->board_probe_stage = 0u;
-        if (index == 2u) {
-            dev->board_probe_stage = 3u;
-            return 0xffu;
-        }
-    } else if (dev->board_probe_stage == 3u) {
-        dev->board_probe_stage = 0u;
-        if (index == 3u)
-            return 0xffu;
-    } else if ((dev->board_probe_stage == 1u) && (index != 1u)) {
-        dev->board_probe_stage = 0u;
-    }
+    /* A460h bit 0 enables the extended OPNA ports. In OPN mode they
+     * float high for every read, including PMD's board detection. */
+    if ((index >= 2u) && !(dev->id_mask & 1u))
+        return 0xffu;
 
     if ((index == 1u) && (dev->opna_addr[0] == 0x0eu))
         pc98_opn_set_port_a(dev->opn, pc98_86_joystick_read(dev, dev->joy_select));
 
     val = pc98_opn_read(dev->opn, index);
-
-    if ((index == 1u) && (dev->board_probe_stage == 1u))
-        dev->board_probe_stage = (val == 0x01u) ? 2u : 0u;
 
     if ((index == 1u) && (dev->opna_addr[0] == 0x0eu)) {
         val &= 0x3fu;
@@ -492,15 +497,13 @@ pc98_86_opna_out(uint16_t port, uint8_t val, void *priv)
     const uint32_t index = (uint32_t) ((port - dev->base) >> 1);
     if (port & 1u)
         return;
+    if ((index >= 2u) && !(dev->id_mask & 1u))
+        return;
 
-    if (index == 0) {
+    if (index == 0u)
         dev->opna_addr[0] = val;
-        dev->board_probe_stage = (val == 0xffu) ? 1u : 0u;
-    } else {
-        dev->board_probe_stage = 0u;
-        if (index == 2u)
-            dev->opna_addr[1] = val;
-    }
+    else if (index == 2u)
+        dev->opna_addr[1] = val;
     pc98_opn_write(dev->opn, index, val);
 
     if ((index == 1u) && (dev->opna_addr[0] == 0x0fu))
@@ -556,6 +559,10 @@ pc98_86_pcm_out(uint16_t port, uint8_t val, void *priv)
 
     switch (port) {
         case 0xa460u:
+            if ((dev->id_mask ^ val) & 1u)
+                pc98_opn_set_extended(dev->opn, val & 1u);
+            if ((dev->id_mask ^ val) & 2u)
+                pc98_opn_set_output_enabled(dev->opn, !(val & 2u));
             dev->id_mask = (uint8_t) (val & 3u);
             break;
 
@@ -563,6 +570,7 @@ pc98_86_pcm_out(uint16_t port, uint8_t val, void *priv)
             /* The PCM output is mixer line 5; its four-bit level is active
              * low. Keep the other line latches for their shared register
              * behavior, but only line 5 affects this board's PCM DAC. */
+            pc98_86_pcm_update(dev, (uint32_t) sound_pos_global);
             if ((val & 0xe0u) == 0xa0u)
                 dev->vol[5] = (uint8_t) ((~val) & 0x0fu);
             else
@@ -574,18 +582,15 @@ pc98_86_pcm_out(uint16_t port, uint8_t val, void *priv)
                 !dev->initialised)
                 pc98_86_set_rate(dev, val);
 
-            if (val & PC98_86_CTL_RST)
+            if ((val & PC98_86_CTL_RST) && !(dev->pcm_ctrl & PC98_86_CTL_RST))
                 dev->head = dev->tail = dev->count = 0u;
 
-            if (!(val & PC98_86_CTL_IRQC)) {
-                if (!(dev->count < dev->irq_rate) || !(val & PC98_86_CTL_RUN)) {
-                    dev->pcm_irq = 0;
-                    pc98_86_update_irq(dev);
-                }
-            }
+            if (!(val & PC98_86_CTL_IRQC))
+                dev->pcm_irq = 0;
 
             dev->initialised = 1;
             dev->pcm_ctrl    = (uint8_t) (val & ~PC98_86_CTL_IRQC);
+            pc98_86_update_irq(dev);
             break;
 
         case 0xa46au:
@@ -601,14 +606,9 @@ pc98_86_pcm_out(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0xa46cu:
-            /*
-             * A full FIFO is not an error the board reports; it simply
-             * cannot take the byte.  Step the DAC once so a driver that has
-             * over-filled still makes progress rather than wedging.
-             */
-            if (dev->count >= PC98_86_FIFO_SIZE)
-                pc98_86_dac_transfer(dev);
-
+            /* The DAC advances on its oscillator, including when the FIFO
+             * is full. A write must not force playback while paused or
+             * stopped. CPU WAIT timing on overflow is not modelled. */
             if (dev->count < PC98_86_FIFO_SIZE) {
                 dev->fifo[dev->head] = val;
                 dev->head            = (dev->head + 1u) % PC98_86_FIFO_SIZE;
@@ -617,6 +617,7 @@ pc98_86_pcm_out(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0xa66eu:
+            pc98_86_pcm_update(dev, (uint32_t) sound_pos_global);
             dev->pcm_mute = (uint8_t) (val & 1u);
             break;
 
@@ -629,20 +630,15 @@ static void
 pc98_86_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pc98_86_t *dev = (pc98_86_t *) priv;
-    const int pcm_volume = dev->vol[5];
-
     pc98_opn_generate(dev->opn, buffer, len);
+    pc98_86_pcm_update(dev, len);
 
-    /* The PCM DACs hold their last sample between ticks, so the mixer sees
-     * a step-held signal rather than an interpolated one - which is what
-     * the hardware does too. */
-    if (dev->pcm_mute & 1u)
-        return;
-
-    for (uint16_t i = 0; i < len; i++) {
-        buffer[i * 2]     += (dev->dac_l * pcm_volume) / 15;
-        buffer[i * 2 + 1] += (dev->dac_r * pcm_volume) / 15;
+    const uint32_t frames = (len < SOUNDBUFLEN) ? len : SOUNDBUFLEN;
+    for (uint32_t i = 0; i < frames; i++) {
+        buffer[i * 2]     += dev->pcm_buffer[i * 2];
+        buffer[i * 2 + 1] += dev->pcm_buffer[i * 2 + 1];
     }
+    dev->pcm_buffer_pos = 0;
 }
 
 /* ------------------------------------------------------------------ */
@@ -679,12 +675,12 @@ pc98_86_reset(void *priv)
 {
     pc98_86_t *dev = (pc98_86_t *) priv;
 
+    pc98_86_pcm_update(dev, (uint32_t) sound_pos_global);
     pc98_opn_reset(dev->opn);
 
-    /* Start this board in the YM2608's six-channel OPNA mode.  Keep the
-     * reset timer IRQ enables (bits 4:0) while setting the six-channel bit. */
-    pc98_opn_write(dev->opn, 0u, 0x29u);
-    pc98_opn_write(dev->opn, 1u, 0x9fu);
+    /* A460h resets to OPN compatibility mode (three FM channels). */
+    dev->opna_addr[0] = 0u;
+    dev->opna_addr[1] = 0u;
 
     dev->head = dev->tail = dev->count = 0u;
     dev->pcm_ctrl = dev->pcm_mode = 0u;
@@ -694,7 +690,6 @@ pc98_86_reset(void *priv)
     dev->dac_l = dev->dac_r = 0;
     dev->initialised        = 0;
     dev->id_mask            = 0u;
-    dev->board_probe_stage  = 0u;
     dev->joy_select = 0u;
     dev->joy_axis_state = 0u;
     dev->joy_alias_addr = 0u;
@@ -704,6 +699,7 @@ pc98_86_reset(void *priv)
     memset(dev->vol, 0x0f, sizeof(dev->vol));
 
     pc98_86_update_irq(dev);
+    pc98_86_set_rate(dev, 0u);
 }
 
 static void *
@@ -726,6 +722,11 @@ pc98_86_init(UNUSED(const device_t *info))
         return NULL;
     }
 
+    /* The FIFO is separate from the OPNA's ADPCM-B memory bus. A stock
+     * -86 has no RAM on that bus; Chibi-oto adds it as a modification. */
+    if (!pc98_opn_set_adpcm_ram(dev->opn, device_get_config_int("adpcm_ram")))
+        pclog("[PC98] 86: unable to allocate optional ADPCM-B memory\n");
+
     pc98_86_load_adpcm_rom(dev);
 
     if (device_get_config_int("rom")) {
@@ -733,9 +734,15 @@ pc98_86_init(UNUSED(const device_t *info))
 
         if (pc98_rom_find_quiet(pc98_86_rom_bios, bios_path,
                                 sizeof(bios_path))) {
-            dev->has_rom = !rom_init(&dev->bios, bios_path, PC98_86_ROM_ADDR,
+            dev->bios = (rom_t *) calloc(1, sizeof(rom_t));
+            if (dev->bios)
+                dev->has_rom = !rom_init(dev->bios, bios_path, PC98_86_ROM_ADDR,
                                      PC98_86_ROM_SIZE, PC98_86_ROM_SIZE - 1, 0,
                                      MEM_MAPPING_EXTERNAL);
+            if (!dev->has_rom) {
+                free(dev->bios);
+                dev->bios = NULL;
+            }
             if (dev->has_rom)
                 pclog("[PC98] 86: %s mapped at CC000h\n", bios_path);
         }
@@ -768,10 +775,6 @@ pc98_86_init(UNUSED(const device_t *info))
 
     pc98_86_reset(dev);
 
-    /* Free-run the DAC clock: software polls A466h bit 0 before it ever
-     * writes a control byte. */
-    pc98_86_set_rate(dev, 0u);
-
     pclog("[PC98] 86: YM2608 at %03Xh, IRQ %d%s\n", dev->base, dev->irq,
           dev->has_rom ? ", sound BIOS at CC000h" : "");
     return dev;
@@ -802,6 +805,16 @@ pc98_86_close(void *priv)
 
     pc98_opn_destroy(dev->opn);
     free(dev->adpcm_rom);
+    if (dev->has_rom) {
+        /* Registered mapping nodes remain in the memory subsystem until
+         * its next reset. Keep the node alive, with no backing storage. */
+        mem_mapping_disable(&dev->bios->mapping);
+        mem_mapping_set_handler(&dev->bios->mapping, NULL, NULL, NULL, NULL, NULL, NULL);
+        mem_mapping_set_exec(&dev->bios->mapping, NULL);
+        mem_mapping_set_p(&dev->bios->mapping, NULL);
+        free(dev->bios->rom);
+        dev->bios->rom = NULL;
+    }
     free(dev);
 }
 
@@ -843,6 +856,17 @@ static const device_config_t pc98_86_config[] = {
             { .description = "INT0 (IRQ 3)",   .value = 3 },
             { .description = ""                           }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "adpcm_ram",
+        .description    = "Chibi-oto ADPCM memory (256 KiB)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {

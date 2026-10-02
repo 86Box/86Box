@@ -25,12 +25,21 @@
 #define EMU_PC98_ROM_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define PC98_ROM_PATH_MAX 512
+
+/* Load VX firmware. Returned IPL is heap owned.
+ * Availability and loading use the same exact sizes; partial sets fail closed. */
+int pc98_rom_read_exact(const char *path, uint8_t *dst, size_t bytes);
+int pc98_rom_has_size(const char *path, size_t bytes);
+int pc98_ipl_available(void);
+uint8_t *pc98_ipl_load(void);
+uint32_t pc98_ipl_window_offset(uint32_t addr);
 
 /*
  * candidates is a NULL-terminated list of relative paths, most preferred

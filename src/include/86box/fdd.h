@@ -198,6 +198,9 @@ typedef struct fdd_drive_t {
 
     void *             fdc;
 
+    /* Actual mounted backend; an extension loader may delegate to another
+     * format (notably Japanese FDI files handled by the IMG backend). */
+    void (*image_close)(void *priv);
     void (*seek)(void *priv, int track);
     void (*readsector)(void *priv, int sector, int track, int side,
                        int density, int sector_size);
