@@ -3339,7 +3339,7 @@ msgid "Fast forward"
 msgstr "Przewiń do przodu"
 
 msgid "&Non-maskable interrupt"
-msgstr ""
+msgstr "&Przerwanie niemożliwe do zamaskowania"
 
 msgid "Non-maskable interrupt"
 msgstr ""
