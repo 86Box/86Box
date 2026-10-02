@@ -354,6 +354,92 @@ gui_engine_tests(void)
     CHECK(drawn == 0, "a fill with SC_RIGHT 3FFFh drew %d pixels", drawn);
 }
 
+/* A 24x16 color fill at the origin, set up as ATI's 5.24 driver does it. */
+static void
+composite_xor_fill(mach64_t *mach64, uint32_t frgd_clr_mix)
+{
+    write_reg(mach64, 0x2fc, 0x0010a058); /* DP_SET_GUI_ENGINE: 15 bpp, 1024 pixels a line, a color fill */
+    write_reg(mach64, 0x330, 0x00000023); /* GUI_TRAJ_CNTL */
+    write_reg(mach64, 0x2dc, frgd_clr_mix);
+    write_reg(mach64, 0x10c, 0x00000000);
+    write_reg(mach64, 0x118, (24 << 16) | 16);
+    fifo_run(mach64);
+}
+
+/*
+ * DP_FRGD_CLR_MIX (2DCh) and DP_FRGD_BKGD_CLR (2E0h) load colors and mixes
+ * in one write (RRG-G03300 5-44, 5-45). ATI's 5.24 Windows 95 driver draws
+ * disabled text with them at 15 bpp: an XOR fill with the color, an AND with
+ * the text's mask from the host, and the XOR fill again, so the color lands
+ * only where the mask is clear. These are its writes for 24x16 pixels of the
+ * white part of disabled text over gray; with the registers ignored, the
+ * fills painted all of it white (issue 8181). The mask here is clear on the
+ * odd lines, so the result does not depend on the order of its bits.
+ */
+static void
+composite_tests(void)
+{
+    const uint32_t face   = 0x5ef7;
+    const uint32_t white  = 0x7fff;
+    mach64_t      *mach64 = card_create();
+    int            wrong  = 0;
+
+    for (int y = 0; y < 16; y++) {
+        for (int x = 0; x < 32; x++)
+            vram_write(mach64, 16, ((y * 1024) + x) * 2, face);
+    }
+
+    composite_xor_fill(mach64, 0x03057fff); /* white; XOR, else D */
+    CHECK(mach64->dp_mix == 0x00050003, "DP_FRGD_CLR_MIX left DP_MIX at %08x", mach64->dp_mix);
+    CHECK((mach64->dp_frgd_clr & 0xffff) == white, "DP_FRGD_CLR_MIX left DP_FRGD_CLR at %08x", mach64->dp_frgd_clr);
+
+    write_reg(mach64, 0x2fc, 0x00312018); /* 15 bpp, a monochrome expansion from the host */
+    write_reg(mach64, 0x330, 0x00000003);
+    write_reg(mach64, 0x2d4, 0x000c000c); /* DP_MIX: D AND S */
+    write_reg(mach64, 0x2a8, 23 << 16);   /* SC_LEFT_RIGHT */
+    write_reg(mach64, 0x2c4, 0x40ffffff); /* DP_FRGD_CLR */
+    write_reg(mach64, 0x2c0, 0x40000000); /* DP_BKGD_CLR */
+    write_reg(mach64, 0x10c, 0x00000000);
+    write_reg(mach64, 0x118, (32 << 16) | 16);
+    for (int y = 0; y < 16; y++)
+        write_reg(mach64, 0x200, (y & 1) ? 0x00000000 : 0xffffffff);
+    fifo_run(mach64);
+
+    composite_xor_fill(mach64, 0x03057fff);
+
+    for (int y = 0; y < 16; y++) {
+        for (int x = 0; x < 32; x++) {
+            uint32_t expect = ((x < 24) && (y & 1)) ? white : face;
+            uint32_t got    = vram_read(mach64, 16, ((y * 1024) + x) * 2);
+
+            if ((got != expect) && !wrong++)
+                fprintf(stderr, "Disabled text: at %d,%d %04x, not %04x\n", x, y, got, expect);
+        }
+    }
+    CHECK(!wrong, "disabled text: %d pixels wrong", wrong);
+
+    /* DP_FRGD_BKGD_CLR: an expansion in blue on red. */
+    write_reg(mach64, 0x2fc, 0x00312018);
+    write_reg(mach64, 0x330, 0x00000003);
+    write_reg(mach64, 0x2e0, 0x7c00001f);
+    write_reg(mach64, 0x10c, 20);
+    write_reg(mach64, 0x118, (32 << 16) | 2);
+    write_reg(mach64, 0x200, 0xffffffff);
+    write_reg(mach64, 0x200, 0x00000000);
+    fifo_run(mach64);
+    CHECK(((mach64->dp_frgd_clr & 0xffff) == 0x001f) && ((mach64->dp_bkgd_clr & 0xffff) == 0x7c00),
+          "DP_FRGD_BKGD_CLR left the colors at %08x and %08x", mach64->dp_frgd_clr, mach64->dp_bkgd_clr);
+    wrong = 0;
+    for (int x = 0; x < 32; x++) {
+        if (vram_read(mach64, 16, ((20 * 1024) + x) * 2) != 0x001f)
+            wrong++;
+        if (vram_read(mach64, 16, ((21 * 1024) + x) * 2) != 0x7c00)
+            wrong++;
+    }
+    CHECK(!wrong, "DP_FRGD_BKGD_CLR: %d pixels wrong", wrong);
+    card_close(mach64);
+}
+
 /*
  * The overlay: a source of two lines of four pixels, drawn eight pixels wide
  * on four lines with the video everywhere. That is mixer function 2, or on
@@ -776,6 +862,7 @@ main(void)
 {
     key_tests();
     gui_engine_tests();
+    composite_tests();
     overlay_tests();
     timing_fifo_tests();
     timing_clock_tests();
