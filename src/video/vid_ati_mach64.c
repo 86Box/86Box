@@ -2404,13 +2404,15 @@ mach64_ext_outl(uint16_t port, uint32_t val, void *priv)
     mach64_ext_outw(port + 2, val >> 16, priv);
 }
 
+/* Block I/O: the 256 bytes of block 0 at the PCI BAR, which places them on
+   any 256-byte boundary. */
 static uint8_t
 mach64_block_inb(uint16_t port, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
     uint8_t   ret;
 
-    ret = mach64_ext_readb(0x400 | (port & 0x3ff), mach64);
+    ret = mach64_ext_readb(0x400 | (port & 0xff), mach64);
     mach64_log("mach64_block_inb : port %04X ret %02X\n", port, ret);
     return ret;
 }
@@ -2420,7 +2422,7 @@ mach64_block_inw(uint16_t port, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
     uint16_t  ret;
 
-    ret = mach64_ext_readw(0x400 | (port & 0x3ff), mach64);
+    ret = mach64_ext_readw(0x400 | (port & 0xff), mach64);
     mach64_log("mach64_block_inw : port %04X ret %04X\n", port, ret);
     return ret;
 }
@@ -2430,7 +2432,7 @@ mach64_block_inl(uint16_t port, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
     uint32_t  ret;
 
-    ret = mach64_ext_readl(0x400 | (port & 0x3ff), mach64);
+    ret = mach64_ext_readl(0x400 | (port & 0xff), mach64);
     mach64_log("mach64_block_inl : port %04X ret %08X\n", port, ret);
     return ret;
 }
@@ -2441,7 +2443,7 @@ mach64_block_outb(uint16_t port, uint8_t val, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
 
     mach64_log("mach64_block_outb : port %04X val %02X\n ", port, val);
-    mach64_ext_writeb(0x400 | (port & 0x3ff), val, mach64);
+    mach64_ext_writeb(0x400 | (port & 0xff), val, mach64);
 }
 static void
 mach64_block_outw(uint16_t port, uint16_t val, void *priv)
@@ -2449,7 +2451,7 @@ mach64_block_outw(uint16_t port, uint16_t val, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
 
     mach64_log("mach64_block_outw : port %04X val %04X\n ", port, val);
-    mach64_ext_writew(0x400 | (port & 0x3ff), val, mach64);
+    mach64_ext_writew(0x400 | (port & 0xff), val, mach64);
 }
 static void
 mach64_block_outl(uint16_t port, uint32_t val, void *priv)
@@ -2457,7 +2459,7 @@ mach64_block_outl(uint16_t port, uint32_t val, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
 
     mach64_log("mach64_block_outl : port %04X val %08X\n ", port, val);
-    mach64_ext_writel(0x400 | (port & 0x3ff), val, mach64);
+    mach64_ext_writel(0x400 | (port & 0xff), val, mach64);
 }
 
 static uint32_t
