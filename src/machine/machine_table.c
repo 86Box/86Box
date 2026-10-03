@@ -22867,7 +22867,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &cs4236_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "Intel Venus", "Dell Dimension XPS Pro___n", "Gateway 2000 Venus", "Micron ClientPro XVI", "Micron Millennia Pro 1", "" }
+        .aliases                  = { "Intel Venus", "AST Bravo MS-T 6___", "Dell Dimension XPS Pro___n", "Gateway 2000 G6 FPC", "Micron ClientPro XVI", "Micron Millennia Pro 1", "NEC PowerMate MT 17_0", "NEC PowerMate PM 17_0", "NEC PowerMate Pro2___", "" }
     },
     /* Has the AMIKey-2 ('H') KBC firmware. */
     {
