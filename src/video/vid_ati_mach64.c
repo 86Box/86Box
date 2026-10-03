@@ -2835,6 +2835,7 @@ mach64_int_hwcursor_draw(svga_t *svga, int displine)
     int                      x_pos;
     int                      y_pos;
     int                      shift = 0;
+    int                      line;
     uint16_t                 dat;
     uint32_t                 col0 = makecol32((mach64->cur_clr0 >> 24) & 0xff, (mach64->cur_clr0 >> 16) & 0xff, (mach64->cur_clr0 >> 8) & 0xff);
     uint32_t                 col1 = makecol32((mach64->cur_clr1 >> 24) & 0xff, (mach64->cur_clr1 >> 16) & 0xff, (mach64->cur_clr1 >> 8) & 0xff);
@@ -2843,6 +2844,18 @@ mach64_int_hwcursor_draw(svga_t *svga, int displine)
     offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
     if (svga->packed_4bpp)
         shift = 1;
+    line = (svga->hwcursor_latch.cur_xsize / (8 >> shift)) * 2;
+
+    /* Line n of the cursor definition is on display line CUR_VERT_POSN + n
+       (a cursor moved up by n lines starts n lines further on, Programmer's
+       Guide 2-49), and in an interlaced mode the display lines are those of
+       the frame, as the vertical registers count them. The cursor works as
+       the mach32's does (2-49), whose vertical counter counts twice a line
+       when interlaced (Programmer's Guide to the mach32 Registers 9-1). A
+       field scans every other line, so it shows every other line of the
+       cursor: the field without line CUR_VERT_POSN starts at the second. */
+    if (svga->interlace && svga->hwcursor_oddeven)
+        svga->hwcursor_latch.addr += line;
 
     for (int x = 0; x < svga->hwcursor_latch.cur_xsize; x += (8 >> shift)) {
         if (shift) {
@@ -2880,6 +2893,9 @@ mach64_int_hwcursor_draw(svga_t *svga, int displine)
         }
         svga->hwcursor_latch.addr += 2;
     }
+
+    if (svga->interlace && !svga->hwcursor_oddeven)
+        svga->hwcursor_latch.addr += line;
 }
 
 
