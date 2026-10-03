@@ -2269,7 +2269,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                 case 0xd0 ... 0xd3:
                     /* GEN_GUI_EN (bit 8): "0 = Resets draw engine" (RRG 3-57). */
                     if (((addr & 3) == 1) && (mach64->gen_test_cntl & 0x100) && !(val & 0x01))
-                        mach64_fifo_discard(mach64);
+                        mach64_reset_engine(mach64);
                     WRITE8(addr, mach64->gen_test_cntl, val);
                     if ((mach64->type >= MACH64_VT) && !mach64_pll_test_mode(mach64))
                         mach64->pll_regs[PLL_TEST_CNTL] = 0;

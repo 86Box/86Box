@@ -857,6 +857,80 @@ timing_cost_tests(void)
     card_close(mach64);
 }
 
+/*
+ * An engine reset (GEN_GUI_EN to 0) runs the writes queued before it and
+ * ends the operation in progress. ATI's Windows NT 3.5 driver for the 3D
+ * Rage II+ sets the scissors to its 800x600 screen, opens them over all of
+ * video memory and resets the engine at once, the opening still queued;
+ * then it caches bitmaps from line 627 down. With the opening dropped,
+ * those were clipped away (issue 8188). These are its writes at 8 bpp.
+ */
+static void
+engine_reset_tests(void)
+{
+    mach64_t        *mach64 = card_create();
+    mach64_timing_t *timing;
+    uint32_t         used;
+    int              busy;
+    int              wrong = 0;
+
+    write_reg(mach64, 0x100, 0x1a000000); /* DST_OFF_PITCH: 832 pixels a line */
+    write_reg(mach64, 0x130, 0x00000003); /* DST_CNTL */
+    write_reg(mach64, 0x2c8, 0xffffffff); /* DP_WRITE_MASK */
+    write_reg(mach64, 0x2d0, 0x00020202); /* DP_PIX_WIDTH: 8 bpp */
+    write_reg(mach64, 0x2d8, 0x00000100); /* DP_SRC: DP_FRGD_CLR */
+    write_reg(mach64, 0x2d4, 0x00070003); /* DP_MIX: S, else D */
+    write_reg(mach64, 0x2a8, 0x03200000); /* SC_LEFT_RIGHT: the screen */
+    write_reg(mach64, 0x2b4, 0x02580000); /* SC_TOP_BOTTOM */
+    fifo_run(mach64);
+
+    write_reg(mach64, 0x2a8, 0x0fff0000);
+    write_reg(mach64, 0x2b4, 0x13b10000); /* down to line 5041, the end of video memory */
+    mach64_reset_engine(mach64);
+
+    write_reg(mach64, 0x2c4, 0x00000007); /* DP_FRGD_CLR */
+    write_reg(mach64, 0x10c, 627);        /* DST_Y_X */
+    write_reg(mach64, 0x118, (8 << 16) | 2);
+    fifo_run(mach64);
+    for (int y = 627; y < 629; y++) {
+        for (int x = 0; x < 8; x++) {
+            if (vram_read(mach64, 8, (y * 832) + x) != 7)
+                wrong++;
+        }
+    }
+    CHECK(!wrong, "a fill at line 627 after the reset: %d of 16 pixels not drawn", wrong);
+
+    /* A host data blit waiting for its data ends; what follows draws nothing. */
+    write_reg(mach64, 0x2d8, 0x00000200); /* DP_SRC: host data */
+    write_reg(mach64, 0x10c, 640);
+    write_reg(mach64, 0x118, (8 << 16) | 1);
+    fifo_run(mach64);
+    CHECK(mach64->accel.busy, "the host data blit did not start");
+    mach64_reset_engine(mach64);
+    CHECK(!mach64->accel.busy, "the reset left the engine busy");
+    write_reg(mach64, 0x200, 0x0f0f0f0f);
+    write_reg(mach64, 0x200, 0x0f0f0f0f);
+    fifo_run(mach64);
+    wrong = 0;
+    for (int x = 0; x < 8; x++) {
+        if (vram_read(mach64, 8, (640 * 832) + x) != 0)
+            wrong++;
+    }
+    CHECK(!wrong, "host data after the reset drew %d pixels", wrong);
+
+    /* The GT-B's modeled FIFO is emptied and its engine idle. */
+    timing = mach64->timing = mach64_timing_init();
+    timing_push(timing, 0, 0, 0, 1000);
+    timing_push(timing, 0, 0, 0, 1000);
+    mach64_timing_fold(mach64);
+    used = timing_used(mach64, 10, &busy);
+    CHECK((used == 1) && busy, "before the reset: %u used, busy %d", used, busy);
+    mach64_reset_engine(mach64);
+    used = timing_used(mach64, 10, &busy);
+    CHECK(!used && !busy, "after the reset: %u used, busy %d", used, busy);
+    card_close(mach64);
+}
+
 int
 main(void)
 {
@@ -867,6 +941,7 @@ main(void)
     timing_fifo_tests();
     timing_clock_tests();
     timing_cost_tests();
+    engine_reset_tests();
 
     if (failures) {
         fprintf(stderr, "Mach64 draw engine: %d checks failed\n", failures);
