@@ -534,7 +534,7 @@ static const device_config_t vs440fx_config[] = {
             },
             {
                 .name          = "Intel AMIBIOS - Revision 1.00.05.CS1Q (AST)",
-                .internal_name = "powermate17x0",
+                .internal_name = "bravomst6xxx",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 5,
                 .local         = 0,
