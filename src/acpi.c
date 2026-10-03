@@ -2410,6 +2410,9 @@ acpi_reset(void *priv)
        - Bit 3: ??? - must be cleared as otherwise POST complains about regulator failure */    
     dev->regs.gpireg[0] = ((machines[machine].init == machine_at_optiplexe1_init) ||
                            (machines[machine].init == machine_at_optiplexgx1_init)) ? 0xb7 : 0xff;
+    /* AST Bravo MS-T 6233:
+       - Bit 5: Recovery mode - must be cleared as otherwise the machine enters recovery flash mode */
+    dev->regs.gpireg[0] = (machines[machine].init == machine_at_bravomst6233_init) ? 0xdf : 0xff;
     dev->regs.gpireg[1] = 0xff;
     /* A-Trend ATC7020BXII:
        - Bit 3: 80-conductor cable on secondary IDE channel (active low)
