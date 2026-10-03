@@ -1573,7 +1573,7 @@ mach64_accel_common(mach64_t *mach64)
        DP_SET_GUI_ENGINE opens them with SC_RIGHT 1FFFh (5-54), which as 13
        bits would be -1 and clip everything the Rage II+ driver draws. */
     {
-        const int      sc_bits = (mach64->type == MACH64_GTB) ? 14 : 13;
+        const int      sc_bits = (mach64->type >= MACH64_GTB) ? 14 : 13;
         const uint32_t sc_mask = (1u << sc_bits) - 1;
 
         mach64->accel.sc_left  = mach64_sext(mach64->sc_left_right & sc_mask, sc_bits);
