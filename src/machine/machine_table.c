@@ -10048,7 +10048,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_SOUND | MACHINE_GAMEPORT,
+        .flags     = MACHINE_IDE | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: Paradise WD90C31 (onboard variant not yet emulated) */
         .ram       = {
             .min  = 2048,
             .max  = 32768,
@@ -10584,7 +10584,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_IDE, /* Machine has IDE with controller: Appian ADI/2 */
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -11511,7 +11511,7 @@ const machine_t machines[] = {
             .min_voltage = 5000,
             .max_voltage = 5000,
             .min_multi   = 0,
-            .max_multi   = 2
+            .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
         .flags     = MACHINE_APM,
@@ -14500,7 +14500,7 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SOCKET4,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 60000000,
-            .max_bus     = 60000000,
+            .max_bus     = 66666667, /* Its retail version from Intel does support 66MHz speed */
             .min_voltage = 5000,
             .max_voltage = 5000,
             .min_multi   = MACHINE_MULTIPLIER_FIXED,
