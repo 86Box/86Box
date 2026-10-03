@@ -116,7 +116,10 @@ sis_5511_shadow_recalc(sis_5511_host_to_pci_t *dev)
         dev->states[i & 0x0f] = dev->pci_conf[i];
     }
 
-    flushmmucache_nopc();
+    /* Flush the code fetch cache as well: the IBM PC 340 BIOS turns off F-segment
+       shadowing while running from that very page after a warm reset, and must
+       then fetch from the ROM, not the INT 3 padding left in shadow RAM. */
+    flushmmucache();
 }
 
 static void
