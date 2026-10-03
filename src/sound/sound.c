@@ -934,13 +934,6 @@ sound_poll(UNUSED(void *priv))
         else
             givealbuffer(outbuffer_ex_int16);
 
-        if (fdd_thread_enable) {
-            thread_set_event(sound_fdd_event);
-        }
-
-        if (hdd_thread_enable) {
-            thread_set_event(sound_hdd_event);
-        }
         sound_pos_global = 0;
     }
 }
@@ -1205,17 +1198,38 @@ static void
 sound_fdd_thread(UNUSED(void *param))
 {
     thread_set_event(sound_fdd_start_event);
-    while (fddaudioon) {
-        thread_wait_event(sound_fdd_event, -1);
-        thread_reset_event(sound_fdd_event);
+    uint32_t start_time      = plat_get_ticks();
+    uint64_t frames_rendered = 0;
 
-        if (!fddaudioon)
-            break;
+    while (fddaudioon) {
+        if (dopause) {
+            thread_wait_event(sound_fdd_event, 50);
+            thread_reset_event(sound_fdd_event);
+            start_time      = plat_get_ticks();
+            frames_rendered = 0;
+            continue;
+        }
 
         static float fdd_float_buffer[SOUNDBUFLEN * 2];
         memset(fdd_float_buffer, 0, sizeof(fdd_float_buffer));
-        fdd_audio_callback((int16_t*)fdd_float_buffer, SOUNDBUFLEN * 2);
+        fdd_audio_callback((int16_t *) fdd_float_buffer, SOUNDBUFLEN * 2);
         givealbuffer_fdd(fdd_float_buffer, SOUNDBUFLEN * 2);
+
+        frames_rendered += SOUNDBUFLEN;
+        uint32_t target_ms = start_time + (uint32_t) ((frames_rendered * 1000ULL) / sound_sample_rate);
+        uint32_t now       = plat_get_ticks();
+        int      wait_ms   = (int) (target_ms - now);
+
+        if (wait_ms > 0) {
+            thread_wait_event(sound_fdd_event, wait_ms);
+            thread_reset_event(sound_fdd_event);
+        } else if (wait_ms < -100) {
+            start_time      = plat_get_ticks();
+            frames_rendered = 0;
+        }
+
+        if (!fddaudioon)
+            break;
     }
 }
 
@@ -1263,17 +1277,38 @@ static void
 sound_hdd_thread(UNUSED(void *param))
 {
     thread_set_event(sound_hdd_start_event);
-    while (hddaudioon) {
-        thread_wait_event(sound_hdd_event, -1);
-        thread_reset_event(sound_hdd_event);
+    uint32_t start_time      = plat_get_ticks();
+    uint64_t frames_rendered = 0;
 
-        if (!hddaudioon)
-            break;
+    while (hddaudioon) {
+        if (dopause) {
+            thread_wait_event(sound_hdd_event, 50);
+            thread_reset_event(sound_hdd_event);
+            start_time      = plat_get_ticks();
+            frames_rendered = 0;
+            continue;
+        }
 
         static float hdd_float_buffer[SOUNDBUFLEN * 2];
         memset(hdd_float_buffer, 0, sizeof(hdd_float_buffer));
-        hdd_audio_callback((int16_t*)hdd_float_buffer, SOUNDBUFLEN * 2);
+        hdd_audio_callback((int16_t *) hdd_float_buffer, SOUNDBUFLEN * 2);
         givealbuffer_hdd(hdd_float_buffer, SOUNDBUFLEN * 2);
+
+        frames_rendered += SOUNDBUFLEN;
+        uint32_t target_ms = start_time + (uint32_t) ((frames_rendered * 1000ULL) / sound_sample_rate);
+        uint32_t now       = plat_get_ticks();
+        int      wait_ms   = (int) (target_ms - now);
+
+        if (wait_ms > 0) {
+            thread_wait_event(sound_hdd_event, wait_ms);
+            thread_reset_event(sound_hdd_event);
+        } else if (wait_ms < -100) {
+            start_time      = plat_get_ticks();
+            frames_rendered = 0;
+        }
+
+        if (!hddaudioon)
+            break;
     }
 }
 
