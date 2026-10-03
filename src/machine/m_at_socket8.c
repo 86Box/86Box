@@ -85,8 +85,8 @@ static const device_config_t aurora_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Intel AMIBIOS - Revision 1.00.01.CG0Q (AST Bravo MS-T 6___)",
-                .internal_name = "bravomst6xxx",
+                .name          = "Intel AMIBIOS - Revision 1.00.01.CG0Q (AST Bravo MS-T 6150)",
+                .internal_name = "bravomst6150",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 5,
                 .local         = 0,
@@ -534,7 +534,7 @@ static const device_config_t vs440fx_config[] = {
             },
             {
                 .name          = "Intel AMIBIOS - Revision 1.00.05.CS1Q (AST)",
-                .internal_name = "bravomst6xxx",
+                .internal_name = "bravomst6200",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 5,
                 .local         = 0,
