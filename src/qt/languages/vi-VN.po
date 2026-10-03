@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-07-21 10:48+0000\n"
+"PO-Revision-Date: 2026-10-03 18:32+0000\n"
 "Last-Translator: nguyen <barnacl437@disroot.org>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
@@ -431,7 +431,7 @@ msgid "Dynamic recompiler"
 msgstr "Bộ tái biên dịch động (Dynamic recompiler)"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Môi trường FPU chính xác trên bộ tái biên dịch động"
 
 msgid "CPU frame size"
 msgstr "Cỡ khung CPU"
