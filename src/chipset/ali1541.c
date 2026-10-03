@@ -43,6 +43,17 @@ typedef struct ali1541_t {
 
     smram_t *smram;
     void    *agp_bridge;
+
+    int           row_decode;
+    int           row_pop[8];
+    int           row_ok[8];
+    int           phys_sdram[8];
+    uint32_t      row_start[8];
+    uint32_t      row_end[8];
+    uint32_t      phys_base[8];
+    uint32_t      phys_size[8];
+    mem_mapping_t row_low_mapping;
+    mem_mapping_t row_high_mapping;
 } ali1541_t;
 
 #ifdef ENABLE_ALI1541_LOG
@@ -174,6 +185,135 @@ ali1541_mask_bar(ali1541_t *dev)
     bar                 = ((dev->pci_conf[0x13] << 24) | (dev->pci_conf[0x12] << 16)) & mask;
     dev->pci_conf[0x12] = (bar >> 16) & 0xff;
     dev->pci_conf[0x13] = (bar >> 24) & 0xff;
+}
+
+
+/* Row-aware DRAM decode, for BIOSes that size memory by probing each row
+   (Acer V70MA/V72MA) instead of reading SPD. DBxCI/DBxCII (60h-6Fh) are kept
+   as the guest writes them; while they do not describe the installed
+   modules, an overlay decodes 0-640K and 1M-512M row by row:
+   - a row claims the addresses from the previous row's top up to its own
+     top ("not less than" decode); an FPM/EDO row with MA definition 00 is
+     disabled;
+   - an address in a row maps modulo the physical row size, as the module
+     ignores the address lines it does not have;
+   - an empty row, or a row whose programmed DRAM type does not suit the
+     module (SDRAM driven with FPM/EDO cycles or vice versa), floats high.
+     The BIOS tells the DRAM type apart this way.
+   Once the guest programs the real layout the overlay turns off and RAM is
+   linear again. The MA mapping tables themselves are not modelled. */
+extern uint8_t spd_present;
+extern spd_t  *spd_modules[SPD_MAX_SLOTS];
+
+static int64_t
+ali1541_row_xlate(ali1541_t *dev, uint32_t addr)
+{
+    for (uint8_t i = 0; i < 8; i++) {
+        if (dev->row_pop[i] && (addr >= dev->row_start[i]) && (addr < dev->row_end[i])) {
+            if (!dev->row_ok[i])
+                return -1;
+            return (int64_t) dev->phys_base[i] + ((addr - dev->row_start[i]) % dev->phys_size[i]);
+        }
+    }
+
+    return -1;
+}
+
+static uint8_t
+ali1541_row_readb(uint32_t addr, void *priv)
+{
+    int64_t off = ali1541_row_xlate((ali1541_t *) priv, addr);
+
+    return ((off < 0) || (off >= ((int64_t) mem_size << 10))) ? 0xff : ram[off];
+}
+
+static uint16_t
+ali1541_row_readw(uint32_t addr, void *priv)
+{
+    return ali1541_row_readb(addr, priv) | (ali1541_row_readb(addr + 1, priv) << 8);
+}
+
+static uint32_t
+ali1541_row_readl(uint32_t addr, void *priv)
+{
+    return ali1541_row_readw(addr, priv) | (ali1541_row_readw(addr + 2, priv) << 16);
+}
+
+static void
+ali1541_row_writeb(uint32_t addr, uint8_t val, void *priv)
+{
+    int64_t off = ali1541_row_xlate((ali1541_t *) priv, addr);
+
+    if ((off >= 0) && (off < ((int64_t) mem_size << 10)))
+        ram[off] = val;
+}
+
+static void
+ali1541_row_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    ali1541_row_writeb(addr, val & 0xff, priv);
+    ali1541_row_writeb(addr + 1, val >> 8, priv);
+}
+
+static void
+ali1541_row_writel(uint32_t addr, uint32_t val, void *priv)
+{
+    ali1541_row_writew(addr, val & 0xffff, priv);
+    ali1541_row_writew(addr + 2, val >> 16, priv);
+}
+
+static void
+ali1541_row_recalc(ali1541_t *dev)
+{
+    uint32_t base     = 0;
+    uint32_t prev     = 0;
+    int      identity = 1;
+
+    /* Physical rows: two per DIMM, from SPD. */
+    for (uint8_t i = 0; i < 8; i++) {
+        uint32_t size = 0;
+        uint8_t  type = SPD_TYPE_SDRAM;
+
+        if (spd_present) {
+            if (spd_modules[i >> 1]) {
+                size = ((i & 1) ? spd_modules[i >> 1]->row2 : spd_modules[i >> 1]->row1) << 20;
+                type = spd_modules[i >> 1]->data[2];
+            }
+        } else if (!i)
+            size = mem_size << 10;
+
+        dev->phys_size[i] = size;
+        dev->phys_base[i] = base;
+        dev->phys_sdram[i] = (type == SPD_TYPE_SDRAM);
+        base += size;
+    }
+
+    /* Rows as programmed. */
+    for (uint8_t i = 0; i < 8; i++) {
+        uint8_t  lo    = dev->pci_conf[0x60 + (i << 1)];
+        uint8_t  hi    = dev->pci_conf[0x61 + (i << 1)];
+        uint8_t  sdram = !!(hi & 0x20);
+        uint32_t top   = ((((hi & 0x0f) << 8) | lo) + 1) << 20;
+
+        dev->row_pop[i] = (sdram || (hi & 0xc0)) && (top > prev);
+        if (dev->row_pop[i]) {
+            dev->row_start[i] = prev;
+            dev->row_end[i]   = top;
+            dev->row_ok[i]    = dev->phys_size[i] && (sdram == dev->phys_sdram[i]);
+            prev              = top;
+            if (!dev->row_ok[i] || (dev->row_start[i] != dev->phys_base[i]) || ((dev->row_end[i] - dev->row_start[i]) != dev->phys_size[i]))
+                identity = 0;
+        } else if (dev->phys_size[i])
+            identity = 0;
+    }
+
+    if (identity) {
+        mem_mapping_disable(&dev->row_low_mapping);
+        mem_mapping_disable(&dev->row_high_mapping);
+    } else {
+        mem_mapping_enable(&dev->row_low_mapping);
+        mem_mapping_enable(&dev->row_high_mapping);
+    }
 }
 
 static void
@@ -343,7 +483,10 @@ ali1541_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *pr
 
         case 0x60 ... 0x6f: /* DRB's */
             dev->pci_conf[addr] = val;
-            spd_write_drbs_interleaved(dev->pci_conf, 0x60, 0x6f, 1);
+            if (dev->row_decode)
+                ali1541_row_recalc(dev);
+            else
+                spd_write_drbs_interleaved(dev->pci_conf, 0x60, 0x6f, 1);
             break;
 
         case 0x70:
@@ -640,13 +783,31 @@ ali1541_close(void *priv)
 }
 
 static void *
-ali1541_init(UNUSED(const device_t *info))
+ali1541_init(const device_t *info)
 {
     ali1541_t *dev = (ali1541_t *) calloc(1, sizeof(ali1541_t));
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, ali1541_read, ali1541_write, dev, &dev->pci_slot);
 
     dev->smram = smram_add();
+
+    dev->row_decode = info->local & 1;
+    if (dev->row_decode) {
+        mem_mapping_add(&dev->row_low_mapping, 0x00000000, 0x000a0000,
+                        ali1541_row_readb, ali1541_row_readw, ali1541_row_readl,
+                        ali1541_row_writeb, ali1541_row_writew, ali1541_row_writel,
+                        NULL, MEM_MAPPING_INTERNAL, dev);
+        mem_mapping_add(&dev->row_high_mapping, 0x00100000, 0x1ff00000,
+                        ali1541_row_readb, ali1541_row_readw, ali1541_row_readl,
+                        ali1541_row_writeb, ali1541_row_writew, ali1541_row_writel,
+                        NULL, MEM_MAPPING_INTERNAL, dev);
+        mem_mapping_disable(&dev->row_low_mapping);
+        mem_mapping_disable(&dev->row_high_mapping);
+        /* Let the overlay see the space above the installed RAM, where
+           an oversized row aliases. */
+        if ((mem_size << 10) < 0x20000000)
+            mem_set_mem_state_both(mem_size << 10, 0x20000000 - (mem_size << 10), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    }
 
     ali1541_reset(dev);
 
@@ -660,6 +821,20 @@ const device_t ali1541_device = {
     .internal_name = "ali1541",
     .flags         = DEVICE_PCI,
     .local         = 0,
+    .init          = ali1541_init,
+    .close         = ali1541_close,
+    .reset         = ali1541_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ali1541_rowdecode_device = {
+    .name          = "ALi M1541 CPU-to-PCI Bridge",
+    .internal_name = "ali1541_rowdecode",
+    .flags         = DEVICE_PCI,
+    .local         = 1, /* row-aware DRAM decode */
     .init          = ali1541_init,
     .close         = ali1541_close,
     .reset         = ali1541_reset,

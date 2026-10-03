@@ -2818,7 +2818,7 @@ const device_t es1370_device = {
     .speed_changed = es137x_speed_changed,
     .force_redraw  = NULL,
     .config        = es1370_config,
-    .alias         = "Creative Sound Blaster PCI 64"
+    .alias         = "Sound Blaster PCI 64"
 };
 
 const device_t es1371_device = {
@@ -2850,7 +2850,7 @@ const device_t es1371_onboard_device = {
 };
 
 const device_t es1373_device = {
-    .name          = "Creative Sound Blaster PCI 128 (ES1373)",
+    .name          = "Sound Blaster PCI 128 (ES1373)",
     .internal_name = "es1373",
     .flags         = DEVICE_PCI,
     .local         = AUDIOPCI_ES1373,
@@ -2865,7 +2865,7 @@ const device_t es1373_device = {
 };
 
 const device_t es1373_onboard_device = {
-    .name          = "Creative Sound Blaster PCI 128 (ES1373) (On-Board)",
+    .name          = "Sound Blaster PCI 128 (ES1373) (On-Board)",
     .internal_name = "es1373_onboard",
     .flags         = DEVICE_PCI,
     .local         = AUDIOPCI_ES1373 | 1,
@@ -2879,7 +2879,7 @@ const device_t es1373_onboard_device = {
 };
 
 const device_t ct5880_device = {
-    .name          = "Creative Sound Blaster PCI 4.1 (CT5880)",
+    .name          = "Sound Blaster PCI 4.1 (CT5880)",
     .internal_name = "ct5880",
     .flags         = DEVICE_PCI,
     .local         = AUDIOPCI_CT5880,
@@ -2894,7 +2894,7 @@ const device_t ct5880_device = {
 };
 
 const device_t ct5880_onboard_device = {
-    .name          = "Creative Sound Blaster PCI 4.1 (CT5880) (On-Board)",
+    .name          = "Sound Blaster PCI 4.1 (CT5880) (On-Board)",
     .internal_name = "ct5880_onboard",
     .flags         = DEVICE_PCI,
     .local         = AUDIOPCI_CT5880 | 1,

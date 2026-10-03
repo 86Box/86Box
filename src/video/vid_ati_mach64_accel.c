@@ -539,21 +539,6 @@ mach64_wait_fifo_idle(mach64_t *mach64)
     thread_release_mutex(mach64->fifo_mutex);
 }
 
-/* GEN_GUI_EN going to 0 resets the draw engine, which is how software
-   recovers from a locked FIFO (RRG 3-55, 3-59); the queued writes are
-   lost with it rather than run. */
-void
-mach64_fifo_discard(mach64_t *mach64)
-{
-    thread_wait_mutex(mach64->fifo_mutex);
-    while (!FIFO_EMPTY) {
-        mach64->fifo[mach64->fifo_read_idx & FIFO_MASK].addr_type = FIFO_INVALID;
-        mach64->fifo_read_idx++;
-    }
-    mach64->accel.busy = 0;
-    thread_release_mutex(mach64->fifo_mutex);
-}
-
 void
 mach64_fifo_thread(void *param)
 {
@@ -1156,6 +1141,34 @@ void
 mach64_timing_close(mach64_timing_t *timing)
 {
     free(timing);
+}
+
+/* GEN_GUI_EN going to 0 resets the draw engine, which is how software
+   recovers from a locked FIFO (RRG 3-55, 3-59). The writes queued before it
+   run first: the chip takes a register write in a clock or two, and this
+   engine draws an operation as soon as it gets it, so they are writes the
+   chip has done; the queue only trails the CPU because the engine runs on
+   its own thread. ATI's Windows NT 3.5 driver for the 3D Rage II+ opens the
+   scissors over all of video memory just before its reset, and with those
+   writes dropped, the bitmaps it then cached below the screen were clipped
+   away and came back black (issue 8188). The reset ends the operation in
+   progress, and on the GT-B empties the modeled FIFO. */
+void
+mach64_reset_engine(mach64_t *mach64)
+{
+    mach64_wait_fifo_idle(mach64);
+
+    thread_wait_mutex(mach64->fifo_mutex);
+    mach64->accel.busy = 0;
+    thread_release_mutex(mach64->fifo_mutex);
+
+    if (mach64->timing) {
+        mach64_timing_t *timing = mach64->timing;
+
+        timing->head = timing->fold = timing->tail;
+        timing->free_at    = mach64_timing_now(timing);
+        timing->pending_ns = 0.0;
+    }
 }
 
 static void
