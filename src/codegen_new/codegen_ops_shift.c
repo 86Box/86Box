@@ -970,6 +970,11 @@ ropSHLD_16_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
 
     if (!imm)
         return op_pc + 2;
+    /* A count above 16 shifts the second operand into the result (ATI's
+       Windows 3.1 mach64 driver uses SHLD r16,r16,22); 16 - imm below
+       would be negative. Leave it to the interpreter. */
+    if (imm > 16)
+        return 0;
 
     if ((fetchdat & 0xc0) == 0xc0) {
         int dest_reg = fetchdat & 7;
@@ -1060,6 +1065,9 @@ ropSHRD_16_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
 
     if (!imm)
         return op_pc + 2;
+    /* As for SHLD: a count above 16 is left to the interpreter. */
+    if (imm > 16)
+        return 0;
 
     if ((fetchdat & 0xc0) == 0xc0) {
         int dest_reg = fetchdat & 7;
