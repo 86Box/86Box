@@ -24545,7 +24545,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "Intel Seattle 2", "Micron MBD001109-xx", "Packard Bell PB872", "NEC Direction SPB", "Quantum3D Quicksilver II", "" }
+        .aliases                  = { "Intel Seattle 2", "Micron MBD001109-xx", "Packard Bell PB872", "Packard Bell Seattle", "" }
     },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 (updated 'H') KBC firmware. */
     {

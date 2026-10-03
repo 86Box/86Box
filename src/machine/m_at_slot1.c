@@ -2215,6 +2215,17 @@ static const device_config_t se440bx2_config[] = {
                                    "roms/machines/se440bx2/P04-0005.BI4", "roms/machines/se440bx2/P04-0005.RCV", "" }
             },
             {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P05-0006 (Packard Bell)",
+                .internal_name = "se440bx2_p05pb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 6,
+                .local         = 0,
+                .size          = 524288,
+                .files         = { "roms/machines/se440bx2/S21AP05.BIO", "roms/machines/se440bx2/S21AP05.BI1",
+                                   "roms/machines/se440bx2/S21AP05.BI2", "roms/machines/se440bx2/S21AP05.BI3",
+                                   "roms/machines/se440bx2/S21AP05.BI4", "roms/machines/se440bx2/S21AP05.RCV", "" }
+            },
+            {
                 .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P05-0012",
                 .internal_name = "se440bx2_p05",
                 .bios_type     = BIOS_NORMAL,
