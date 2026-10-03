@@ -156,6 +156,13 @@ char_attach(uint32_t flags,
 }
 
 void
+char_set_read_error(char_port_t *port, uint32_t (*read_error)(void *priv))
+{
+    if (port)
+        port->chardev.read_error = read_error;
+}
+
+void
 char_update_status(char_port_t *port)
 {
     if (port && port->update_status)
