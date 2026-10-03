@@ -1849,8 +1849,9 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     /* DSTX/DSTY against the scissors, bits 8-11. */
                     int x  = ((int) (mach64->dst_y_x << 3)) >> 19;
                     int y  = ((int) (mach64->dst_y_x << 17)) >> 17;
-                    int sl = ((int) (mach64->sc_left_right << 19)) >> 19;
-                    int sr = ((int) (mach64->sc_left_right << 3)) >> 19;
+                    const int sc_shift = (mach64->type >= MACH64_GTB) ? 18 : 19;
+                    int sl = ((int) (mach64->sc_left_right << sc_shift)) >> sc_shift;
+                    int sr = ((int) ((mach64->sc_left_right >> 16) << sc_shift)) >> sc_shift;
                     int st = ((int) (mach64->sc_top_bottom << 17)) >> 17;
                     int sb = ((int) (mach64->sc_top_bottom << 1)) >> 17;
 
