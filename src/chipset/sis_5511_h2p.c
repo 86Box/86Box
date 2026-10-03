@@ -279,7 +279,10 @@ sis_5511_host_to_pci_write(int addr, uint8_t val, void *priv)
         case 0x77: /* DRAM Bank Register 1-1 */
         case 0x7b: /* DRAM Bank Register 2-1 */
         case 0x7f: /* DRAM Bank Register 3-1 */
-            dev->pci_conf[addr] = val & 0x83;
+            /* Bit 2 is documented as reserved, but it is writable: the IBM PC 340
+               BIOS keeps its per-bank EDO test state in it and loops forever at
+               POST 0E if it does not stick. */
+            dev->pci_conf[addr] = val & 0x87;
             break;
 
         case 0x80 ... 0x85:
