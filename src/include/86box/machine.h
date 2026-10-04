@@ -1470,6 +1470,10 @@ extern const device_t  ga686_device;
 #endif
 extern int             machine_at_ga686_init(const machine_t *);
 #ifdef EMU_DEVICE_H
+extern const device_t  pavilion85xx_device;
+#endif
+extern int             machine_at_pavilion85xx_init(const machine_t *);
+#ifdef EMU_DEVICE_H
 extern const device_t  rc440bx_device;
 #endif
 extern int             machine_at_rc440bx_init(const machine_t *);
