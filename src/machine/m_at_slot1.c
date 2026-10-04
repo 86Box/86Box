@@ -2318,8 +2318,10 @@ machine_at_rc440bx_init(const machine_t *model)
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
     device_add(&lm78_al440lx_device); /* Probably NOT the correct HWM, but it works! */
 
-    if (sound_card_current[0] == SOUND_INTERNAL)
+    if (sound_card_current[0] == SOUND_INTERNAL) {
         machine_snd = device_add(machine_get_snd_device(machine));
+        device_add(&cs4297a_device);
+    }
 
     return ret;
 }
