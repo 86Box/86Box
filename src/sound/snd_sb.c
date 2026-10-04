@@ -4670,7 +4670,8 @@ ess_186x_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, vo
             gameport_remap(ess->gameport, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
             break;
         case 3: /* IDE */
-            ide_pnp_config_changed_1addr(0, config, (void *) 3);
+            if (ess->has_ide)
+                ide_pnp_config_changed_1addr(0, config, (void *) 3);
             break;
         default:
             break;
@@ -6932,7 +6933,7 @@ ess_186x_init(const device_t *info)
     fm_driver_get_cs(FM_ESFM, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
-    if (info->local)
+    if (info->local & 1)
         sb_dsp_init(&ess->dsp, SBPRO_DSP_301, SB_SUBTYPE_ESS_ES1869, ess);
     else
         sb_dsp_init(&ess->dsp, SBPRO_DSP_301, SB_SUBTYPE_ESS_ES1868, ess);
@@ -6965,10 +6966,13 @@ ess_186x_init(const device_t *info)
 
     ess->gameport = gameport_add(&gameport_pnp_device);
 
-    device_add(&ide_qua_pnp_device);
-    other_ide_present++;
+    /* On-board chips have their IDE interface left unconnected. */
+    if (!(info->local & 2)) {
+        device_add(&ide_qua_pnp_device);
+        other_ide_present++;
 
-    ess->has_ide = 1;
+        ess->has_ide = 1;
+    }
 
     const char *pnp_rom_file = NULL;
     uint16_t    pnp_rom_len  = 512;
@@ -7006,7 +7010,8 @@ ess_186x_init(const device_t *info)
     ess->gameport_addr = 0;
     gameport_remap(ess->gameport, 0);
 
-    ide_remove_handlers(3);
+    if (ess->has_ide)
+        ide_remove_handlers(3);
 
     sound_add_handler(sb_get_buffer_ess_dac2, ess);
     timer_add(&ess->ess_dac2_timer, ess_dac2_poll, ess, 0);
@@ -10273,4 +10278,18 @@ const device_t ess_1869_device = {
     .config        = ess_1688_pnp_config,
     .short_name    = "ESS ES1869",
     .ide_boards    = ide_boards_quaternary
+};
+
+const device_t ess_1869_onboard_device = {
+    .name          = "ESS AudioDrive ES1869 (On-Board)",
+    .internal_name = "ess_es1869_onboard",
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
+    .local         = 1 | 2,
+    .init          = ess_186x_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = ess_1688_pnp_config
 };

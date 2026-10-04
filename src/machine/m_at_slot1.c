@@ -460,6 +460,48 @@ machine_at_lx6_init(const machine_t *model)
 }
 
 int
+machine_at_bravomst6233_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/bravomst6233/ast440lx.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_VIDEO,       3, 0, 0, 0);
+    pci_register_slot(0x03, PCI_CARD_NETWORK,     4, 0, 0, 0);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&i440lx_device);
+    device_add(&piix4_device);
+    device_add_params(&pc87307_device, (void *) (PCX730X_15C | PCX730X_PHOENIX_42 | PCX7307_PC87307));
+    device_add(&intel_flash_bxt_device);
+    device_add(&lm78_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
+        device_add(machine_get_net_device(machine));
+
+    return ret;
+}
+
+int
 machine_at_optiplexgxa_init(const machine_t *model)
 {
     int ret;
