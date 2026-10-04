@@ -66,6 +66,7 @@ extern const device_t fdc37c669_device;
 
 #define FDC37M60X            0x00047
 #define FDC37M70X            0x00042
+#define FDC37B80X            0x00042
 #define FDC37XXXX_CHIP_ID    0x000ff
 
 #define FDC37XXX1            0x00100    /* Compaq KBC firmware and configuration registers on GPIO ports. */

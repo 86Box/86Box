@@ -1849,8 +1849,9 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     /* DSTX/DSTY against the scissors, bits 8-11. */
                     int x  = ((int) (mach64->dst_y_x << 3)) >> 19;
                     int y  = ((int) (mach64->dst_y_x << 17)) >> 17;
-                    int sl = ((int) (mach64->sc_left_right << 19)) >> 19;
-                    int sr = ((int) (mach64->sc_left_right << 3)) >> 19;
+                    const int sc_shift = (mach64->type >= MACH64_GTB) ? 18 : 19;
+                    int sl = ((int) (mach64->sc_left_right << sc_shift)) >> sc_shift;
+                    int sr = ((int) ((mach64->sc_left_right >> 16) << sc_shift)) >> sc_shift;
                     int st = ((int) (mach64->sc_top_bottom << 17)) >> 17;
                     int sb = ((int) (mach64->sc_top_bottom << 1)) >> 17;
 
@@ -2835,6 +2836,7 @@ mach64_int_hwcursor_draw(svga_t *svga, int displine)
     int                      x_pos;
     int                      y_pos;
     int                      shift = 0;
+    int                      line;
     uint16_t                 dat;
     uint32_t                 col0 = makecol32((mach64->cur_clr0 >> 24) & 0xff, (mach64->cur_clr0 >> 16) & 0xff, (mach64->cur_clr0 >> 8) & 0xff);
     uint32_t                 col1 = makecol32((mach64->cur_clr1 >> 24) & 0xff, (mach64->cur_clr1 >> 16) & 0xff, (mach64->cur_clr1 >> 8) & 0xff);
@@ -2843,6 +2845,18 @@ mach64_int_hwcursor_draw(svga_t *svga, int displine)
     offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
     if (svga->packed_4bpp)
         shift = 1;
+    line = (svga->hwcursor_latch.cur_xsize / (8 >> shift)) * 2;
+
+    /* Line n of the cursor definition is on display line CUR_VERT_POSN + n
+       (a cursor moved up by n lines starts n lines further on, Programmer's
+       Guide 2-49), and in an interlaced mode the display lines are those of
+       the frame, as the vertical registers count them. The cursor works as
+       the mach32's does (2-49), whose vertical counter counts twice a line
+       when interlaced (Programmer's Guide to the mach32 Registers 9-1). A
+       field scans every other line, so it shows every other line of the
+       cursor: the field without line CUR_VERT_POSN starts at the second. */
+    if (svga->interlace && svga->hwcursor_oddeven)
+        svga->hwcursor_latch.addr += line;
 
     for (int x = 0; x < svga->hwcursor_latch.cur_xsize; x += (8 >> shift)) {
         if (shift) {
@@ -2880,6 +2894,9 @@ mach64_int_hwcursor_draw(svga_t *svga, int displine)
         }
         svga->hwcursor_latch.addr += 2;
     }
+
+    if (svga->interlace && !svga->hwcursor_oddeven)
+        svga->hwcursor_latch.addr += line;
 }
 
 
@@ -3088,7 +3105,7 @@ mach64_be_regs(uint32_t addr, void *priv)
     mach64_t            *mach64 = (mach64_t *) ((svga_t *) priv)->priv;
     const mem_mapping_t *map    = &mach64->linear_mapping_big_endian;
 
-    if ((mach64->type == MACH64_GTB) && ((addr - map->base) >= (map->size - 0x1000)))
+    if ((mach64->type >= MACH64_GTB) && ((addr - map->base) >= (map->size - 0x1000)))
         return mach64;
     return NULL;
 }
@@ -3217,7 +3234,7 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             return 0x00;
         case PCI_REG_BAR2_BYTE0 ... PCI_REG_BAR2_BYTE3:
             /* The GT-B's register aperture, 4K (mach64_updatemapping). */
-            if (mach64->type == MACH64_GTB)
+            if (mach64->type >= MACH64_GTB)
                 return mach64->aux_base >> ((addr & 3) * 8);
             return 0x00;
         case PCI_REG_ROM_BAR_BYTE0:
@@ -3233,7 +3250,7 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
         case PCI_REG_INT_PIN:
             return PCI_INTA;
         case MACH64_PCI_IOCONFIG:
-            if (mach64->type == MACH64_GTB)
+            if (mach64->type >= MACH64_GTB)
                 return mach64->pci_regs[MACH64_PCI_IOCONFIG];
             return mach64->use_block_decoded_io | mach64->io_base;
         default:
@@ -3294,7 +3311,7 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
                 mach64->block_decoded_io = (mach64->block_decoded_io & 0x00ffffff) | (val << 24);
             break;
         case PCI_REG_BAR2_BYTE0 ... PCI_REG_BAR2_BYTE3:
-            if (mach64->type == MACH64_GTB) {
+            if (mach64->type >= MACH64_GTB) {
                 const int shift = (addr & 3) * 8;
 
                 mach64->aux_base = ((mach64->aux_base & ~(0xffu << shift)) | (val << shift)) & 0xfffff000;
@@ -3315,7 +3332,7 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
             break;
         case MACH64_PCI_IOCONFIG:
             /* The GT-B has bit 3 too, the lock of GENENA. */
-            if (mach64->type == MACH64_GTB)
+            if (mach64->type >= MACH64_GTB)
                 mach64->pci_regs[MACH64_PCI_IOCONFIG] = val & 0x0f;
             mach64->io_base = val & 0x03;
             if (mach64->type >= MACH64_CT)
@@ -3344,7 +3361,7 @@ mach64_disable_handlers(mach64_t *dev)
     mem_mapping_disable(&dev->svga.mapping);
     if (dev->pci && !dev->on_board)
         mem_mapping_disable(&dev->bios_rom.mapping);
-    if (dev->type == MACH64_GTB)
+    if (dev->type >= MACH64_GTB)
         mem_mapping_disable(&dev->aux_mapping);
 
     /* Save all the mappings and the timers because they are part of linked lists. */
@@ -3408,7 +3425,10 @@ mach64_common_init(const device_t *info)
         mach64->isa_8bit = (device_get_config_int("bus_width") == 8);
     mach64->ati_io[0] = 0xce; /* 1CEh, offset 2 (VGA Register Guide 5-1) */
     mach64->ati_io[1] = 0x81;
-    mach64->vram_size = (mach64->type == MACH64_CT || mach64->type == MACH64_VT || mach64->type == MACH64_VT3) ? 2 : (device_get_config_int("memory"));
+    if (!info->config)
+        mach64->vram_size = 4;
+    else
+        mach64->vram_size = (mach64->type == MACH64_CT || mach64->type == MACH64_VT || mach64->type == MACH64_VT3) ? 2 : (device_get_config_int("memory"));
     mach64->vram_mask = (mach64->vram_size << 20) - 1;
     mach64->io_base = 0; /* PCI 40h select: 0 = 2ECh */
 
@@ -3691,8 +3711,10 @@ mach64gtb_init(const device_t *info)
 
     ati_eeprom_load(&mach64->eeprom, "mach64rage2p_ars2d.nvr", 1);
     /* ARS2D is 36K, 48h blocks of 512 bytes by its PCI data structure. */
-    rom_init(&mach64->bios_rom, BIOS_ROMGTB_PATH, 0xc0000, 0x9000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-    mem_mapping_disable(&mach64->bios_rom.mapping);
+    if (!mach64->on_board) {
+        rom_init(&mach64->bios_rom, BIOS_ROMGTB_PATH, 0xc0000, 0x9000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+        mem_mapping_disable(&mach64->bios_rom.mapping);
+    }
 
     mem_mapping_add(&mach64->aux_mapping, 0, 0, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     mem_mapping_disable(&mach64->aux_mapping);

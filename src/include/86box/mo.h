@@ -42,7 +42,7 @@ static const mo_type_t mo_types[KNOWN_MO_TYPES] = {
     { 310352,  2048 },
     { 605846,  2048 },
     { 1063146, 2048 },
- // 5.25" M.O. disks
+  // 5.25" M.O. disks
     { 573624,   512 },
     { 314568,  1024 },
     { 904995,   512 },
@@ -56,14 +56,20 @@ typedef struct mo_drive_type_t {
     int8_t      supported_media[KNOWN_MO_TYPES];
 } mo_drive_type_t;
 
-#define KNOWN_MO_DRIVE_TYPES 22
+#define KNOWN_MO_DRIVE_TYPES 28
 static const mo_drive_type_t mo_drive_types[KNOWN_MO_DRIVE_TYPES] = {
-    {"86BOX",     "MAGNETO OPTICAL", "1.00", { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }},
+    { "86BOX",    "MAGNETO OPTICAL", "1.00", { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }},
     { "FUJITSU",  "M2512A",          "1314", { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 }},
+    { "FUJITSU",  "M25-MCC3064AP",   "0051", { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 }}, /* ATAPI */
     { "FUJITSU",  "M2513-MCC3064SS", "1.00", { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 }},
+    { "FUJITSU",  "MCE3130AP",       "0011", { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 }}, /* ATAPI */
     { "FUJITSU",  "MCE3130SS",       "0070", { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 }},
+    { "FUJITSU",  "MCF3064AP",       "0030", { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 }}, /* ATAPI */
     { "FUJITSU",  "MCF3064SS",       "0030", { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 }},
-    { "FUJITSU",  "MCJ3230UB-S",     "0040", { 1, 1, 1, 1, 1, 1, 0, 0, 0, 0 }},
+    { "FUJITSU",  "MCF3064UB",       "0030", { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 }}, /* USB */
+    { "FUJITSU",  "MCJ3230AP-S",     "0030", { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 }}, /* ATAPI */
+    { "FUJITSU",  "MCJ3230SS-S",     "0030", { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 }},
+    { "FUJITSU",  "MCJ3230UB-S",     "0040", { 1, 1, 1, 1, 1, 1, 0, 0, 0, 0 }}, /* USB */
     { "HP",       "S6300.65",        "1.00", { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0 }},
     { "HP",       "C1716C",          "1.00", { 0, 0, 0, 0, 0, 0, 1, 1, 0, 1 }},
     { "IBM",      "0632AAA",         "1.00", { 0, 0, 0, 0, 0, 0, 1, 1, 0, 0 }},

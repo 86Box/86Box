@@ -3044,7 +3044,7 @@ const machine_t machines[] = {
         .name              = "[8086] IBM Multistation 5550",
         .internal_name     = "ibm5550",
         .type              = MACHINE_TYPE_8086,
-        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
         .init              = machine_xt_ibm5550_init,
         .p1_handler        = NULL,
         .gpio_handler      = NULL,
@@ -5827,6 +5827,58 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* 286 Multistation (non-AT) machine */
+    {
+        .name              = "[Multistation] IBM Multistation 5535-M",
+        .internal_name     = "ibm5535",
+        .type              = MACHINE_TYPE_286,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_xt_ibm5535_init,
+        .p1_handler        = NULL,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_286,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 10000000,
+            .max_bus     = 10000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_FDC | MACHINE_KEYBOARD | MACHINE_MOUSE,
+        /* The IPL's memory walk hard-codes the low window as 64K-640K and rejects
+           anything less with error 6111, so 1MB (640K low plus the extended 384K)
+           is the smallest configuration. The presence bitmap in the memory
+           configuration register file is 16 bits of 128K. */
+        .ram       = {
+            .min  = 1024,
+            .max  = 2048,
+            .step = 1024
+        },
+        .nvrmask                  = 15,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0xff,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ibm5535_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
@@ -10048,7 +10100,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_SOUND | MACHINE_GAMEPORT,
+        .flags     = MACHINE_IDE | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: Paradise WD90C31 (onboard variant not yet emulated) */
         .ram       = {
             .min  = 2048,
             .max  = 32768,
@@ -10584,7 +10636,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_IDE, /* Machine has IDE with controller: Appian ADI/2 */
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -11511,7 +11563,7 @@ const machine_t machines[] = {
             .min_voltage = 5000,
             .max_voltage = 5000,
             .min_multi   = 0,
-            .max_multi   = 2
+            .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
         .flags     = MACHINE_APM,
@@ -14500,7 +14552,7 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SOCKET4,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 60000000,
-            .max_bus     = 60000000,
+            .max_bus     = 66666667, /* Its retail version from Intel does support 66MHz speed */
             .min_voltage = 5000,
             .max_voltage = 5000,
             .min_multi   = MACHINE_MULTIPLIER_FIXED,
@@ -24497,6 +24549,55 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "Amptron PII-3100", "" }
+    },
+    /* Has a SM(S)C FDC37B802 Super I/O chip with on-chip KBC with most likely
+       AMIKey-2 KBC firmware. */
+    {
+        .name              = "[i440BX] HP Pavilion 85xx",
+        .internal_name     = "pavilion85xx",
+        .type              = MACHINE_TYPE_SLOT1,
+        .chipset           = MACHINE_CHIPSET_INTEL_440BX,
+        .init              = machine_at_pavilion85xx_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 66666667,
+            .max_bus     = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: nVidia RIVA TNT PCI (not yet implemented) */
+        .ram       = {
+            .min  = 49152, /* Temporary higher limit set due to the PhoenixBIOS DRB bug, which prevents POST with less than this amount. */
+            .max  = 786432,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &pavilion85xx_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "ASUS P2B-VT", "HP 5183-9028", "HP 5184-3913", "HP Harrier", "" }
     },
     /* Has a SM(S)C FDC37M707 Super I/O chip with on-chip Phoenix MultiKey/42i
        KBC firmware. */
