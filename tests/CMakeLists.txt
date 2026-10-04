@@ -5,7 +5,6 @@ add_subdirectory(disk)
 add_subdirectory(video)
 add_subdirectory(scsi)
 add_subdirectory(mem)
-add_subdirectory(sound)
 
 if(BUILD_TESTING)
     add_library(pcjx_floppy_engine OBJECT

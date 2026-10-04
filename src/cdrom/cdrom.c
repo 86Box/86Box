@@ -136,6 +136,8 @@ static const struct {
     { &hitachi_cdrom_mca_device     },
     { &mke_cdrom_noncreative_device },
     { &mke_cdrom_device             },
+    { &teac_cdrom_device            },
+    { &teac_cdrom_16bit_device      },
     { &philips_cm250_device         },
     { &philips_cm153_device         },
     { &mitsumi_cdrom_device         },
