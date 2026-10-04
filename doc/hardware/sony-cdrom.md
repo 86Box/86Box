@@ -113,6 +113,28 @@ run. The original binary passed adapter detection
 but failed during I/O because of its second-drive probe. This is a driver
 workaround, not a claim that the unchanged vendor binary installs successfully.
 
+## Windows NT 3.5 disc changes
+
+The NT 3.5 `SLCD32.SYS` enables automatic spin-up through mechanical
+parameter 05h. Loading a disc now honors that setting: it spins up, reads
+the TOC, and queues loading-mechanism (80h), spin-up-complete (24h), and
+TOC-read-complete (62h) attentions. With automatic spin-up disabled, loading
+still requires explicit spin-up/TOC commands.
+
+Previously, insertion left the disc stopped even with automatic spin-up
+enabled. NT received the media-change notification, but subsequent
+`TEST UNIT READY` requests continued to report no medium (sense 02/3A/00).
+
+The unchanged x86 driver from NT 3.5 Workstation 3.50.807 was executed in
+a Unicorn harness against the Sony emulation with mocked image, timer,
+PIC, and SCSI port services. Eject/reinsert, direct replacement, and queued
+eject/load passed for both drive models, including repeated image-loader
+callbacks, media-change sense 06/28/00, readiness, refreshed capacity, and
+sector reads. The same test fails after reinsertion with the previous
+emulator code. This is driver-level validation, not a full NT 3.5 guest run.
+The driver SHA-256 is
+`ff18d453b728f980cc07eba58f0bb58c17070819faa68117f98c4502f2275a07`.
+
 ## Implemented behavior
 
 - Command/status, parameter/result FIFO, data, and control registers at base
@@ -199,13 +221,14 @@ address shortened playback by one frame. The DOS probe acknowledges the
 initial disc change through IOCTL 9 before querying the TOC; older SLCD.SYS
 versions otherwise keep returning the media-changed error 800Fh.
 
-The nineteen Sony unit tests exercise public I/O with mocked timers, image
+The twenty-one Sony unit tests exercise public I/O with mocked timers, image
 access, PIC, and DMA. They cover both models, FIFO probing/batching, TOC
 replies longer than 255 bytes, PIO/DMA continuation, terminal counts,
 all selectable addresses/IRQs/DMA channels, errors, short reads, raw-sector
 lengths, audio state/routing and inclusive end frames, reset, eject, media
 changes, an absent drive, NT's read-before-acknowledge attention handling, and interrupt-enable
-readback when Setup polls before a sector is ready.
+readback when Setup polls before a sector is ready, and automatic versus
+manual spin-up after insertion with both attention acknowledgment orders.
 They pass with AddressSanitizer and UndefinedBehaviorSanitizer; LeakSanitizer
 must be disabled in the ptraced test environment. These are protocol and
 software integration checks, not physical-hardware validation.
@@ -279,9 +302,9 @@ establish compatibility with every CUE layout or audio-player application.
 This is a host-protocol implementation. It does not execute Sony firmware
 or reproduce mechanical timings, read-ahead RAM, or all error conditions.
 Multisession Photo CD, XA ADPCM playback, diagnostic/buffer commands,
-UPC/ISRC, and audio-scan modes are not implemented. NT 3.1 Setup testing is
-described above; other Windows versions and Linux guest drivers have not
-been tested.
+UPC/ISRC, and audio-scan modes are not implemented. NT 3.1 Setup testing and
+NT 3.5 driver-level disc-change testing are described above; other Windows
+versions and Linux guest drivers have not been tested.
 
 - [CDU31A service manual, 9-974-500-11 (1993)](https://theretroweb.com/storage/documentation/9-974-500-11-cdu31a-service-1993-677d4f912e12a059646658.pdf):
   command exercises (including spin-up 51h and read-TOC 30h on printed

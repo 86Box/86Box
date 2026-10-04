@@ -481,6 +481,67 @@ TEST_F(SonyTest, MechanicalStatusReportsClosedSpinningDiscAndToc)
     EXPECT_EQ(result(), (std::vector<uint8_t> { 0, 3, 0, 0, 0 }));
 }
 
+TEST_F(SonyTest, MediaInsertionHonorsAutoSpinUpAndReportsCompletion)
+{
+    for (bool model : { false, true }) {
+        for (bool read_first : { false, true }) {
+            double_speed = model;
+            init();
+            command(0x10, { 5, 7 });
+            ok();
+            cdrom[0].cd_status = CD_STATUS_EMPTY;
+            cdrom[0].insert(dev);
+            out(3, 1);
+            EXPECT_EQ(in(1), 0x28);
+
+            out(3, 8);
+            cdrom[0].cd_status = CD_STATUS_DATA_ONLY;
+            cdrom[0].insert(dev);
+            for (uint8_t expected : { 0x80, 0x24, 0x62 }) {
+                EXPECT_EQ(irq, 1);
+                EXPECT_EQ(in(0) & 1, 1);
+                if (read_first) {
+                    EXPECT_EQ(in(1), expected);
+                    out(3, 9);
+                } else {
+                    out(3, 9);
+                    EXPECT_EQ(in(1), expected);
+                }
+            }
+            EXPECT_EQ(irq, 0);
+            EXPECT_EQ(in(0) & 1, 0);
+            EXPECT_EQ(cdrom[0].cur_speed, model ? 2 : 1);
+            command(0x03);
+            EXPECT_EQ(result(), (std::vector<uint8_t> { 0, 3, 0x1b, 0, 0 }));
+            command(0x20);
+            EXPECT_EQ(result().size(), 22U);
+        }
+    }
+}
+
+TEST_F(SonyTest, MediaInsertionWithoutAutoSpinUpWaitsForExplicitCommands)
+{
+    /* Auto-eject and double-speed must not imply automatic spin-up. */
+    for (uint8_t mechanical : { 0, 2, 4, 6 }) {
+        command(0x10, { 5, mechanical });
+        ok();
+        command(0x30);
+        ok();
+        cdrom[0].insert(dev);
+        out(3, 1);
+        EXPECT_EQ(in(1), 0x80);
+        EXPECT_EQ(in(0) & 1, 0);
+        command(0x03);
+        EXPECT_EQ(result(), (std::vector<uint8_t> { 0, 3, 3, 0, 0 }));
+        command(0x20);
+        EXPECT_EQ(result(), (std::vector<uint8_t> { 0x20, 0x60 }));
+        command(0x30);
+        ok();
+        command(0x20);
+        EXPECT_EQ(result().size(), 22U);
+    }
+}
+
 TEST_F(SonyTest, AudioPositionPauseResumeCompletionAndMixerRouting)
 {
     audio_track = true;

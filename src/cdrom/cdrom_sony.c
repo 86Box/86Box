@@ -633,6 +633,13 @@ sony_insert(void *priv)
     d->status &= ~SONY_RESULT;
     d->toc_read = d->spinning = d->audio_active = 0;
     sony_attention(d, sony_ready(d) ? 0x80 : 0x28);
+    if (sony_ready(d) && (d->settings[5][0] & 1)) {
+        /* Automatic spin-up also reads the TOC. NT 3.5 waits for the drive
+           to become ready after loading, without issuing a spin-up command. */
+        d->spinning = d->toc_read = 1;
+        sony_attention(d, 0x24);
+        sony_attention(d, 0x62);
+    }
 }
 
 static void
