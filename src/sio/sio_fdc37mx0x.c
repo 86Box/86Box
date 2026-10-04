@@ -123,7 +123,7 @@ fdc37mx0x_watchdog_reset(fdc37mx0x_t *dev)
     if (timer_is_on(&dev->watchdog_timer))
         timer_stop(&dev->watchdog_timer);
 
-    if (dev->ld_regs[0x08][0xf2] == 0x00)
+    if (dev->ld_regs[0x08][0xf2] != 0x00)
         timer_on_auto(&dev->watchdog_timer, period);
 
     fdc37mx0x_watchdog_irq_reset(dev);
@@ -393,6 +393,67 @@ fdc37mx0x_state_change(fdc37mx0x_t *dev, const uint8_t locked)
 }
 
 static void
+fdc37mx0x_soft_reset(fdc37mx0x_t *dev)
+{
+    fdc37mx0x_state_change(dev, 0);
+
+    dev->regs[0x07] = 0x00;
+    dev->regs[0x20] = dev->chip_id;
+    dev->regs[0x22] = 0x00;
+    dev->regs[0x23] = 0x00;
+
+    /* Logical device 0: FDD */
+    dev->ld_regs[0x00][0x30] = 0x00;
+    dev->ld_regs[0x00][0x60] = 0x03;
+    dev->ld_regs[0x00][0x61] = 0xf0;
+    dev->ld_regs[0x00][0x70] = 0x06;
+    dev->ld_regs[0x00][0x74] = 0x02;
+
+    /* Logical device 3: Parallel Port */
+    dev->ld_regs[0x03][0x30] = 0x00;
+    dev->ld_regs[0x03][0x60] = 0x03;
+    dev->ld_regs[0x03][0x61] = 0x78;
+    dev->ld_regs[0x03][0x70] = 0x07;
+    dev->ld_regs[0x03][0x74] = 0x04;
+
+    /* Logical device 4: Serial Port 1 */
+    dev->ld_regs[0x04][0x30] = 0x00;
+    dev->ld_regs[0x04][0x60] = 0x03;
+    dev->ld_regs[0x04][0x61] = 0xf8;
+    dev->ld_regs[0x04][0x70] = 0x04;
+    serial_irq(dev->uart[0], dev->ld_regs[4][0x70]);
+
+    /* Logical device 5: Serial Port 2 */
+    dev->ld_regs[0x05][0x30] = 0x00;
+    dev->ld_regs[0x05][0x60] = 0x02;
+    dev->ld_regs[0x05][0x61] = 0xf8;
+    dev->ld_regs[0x05][0x70] = 0x03;
+    dev->ld_regs[0x05][0x74] = 0x04;
+    serial_irq(dev->uart[1], dev->ld_regs[5][0x70]);
+
+    /* Logical device 7: Keyboard */
+    dev->ld_regs[0x07][0x30] = 0x00;
+    dev->ld_regs[0x07][0x61] = 0x60;
+    dev->ld_regs[0x07][0x70] = 0x01;
+    dev->ld_regs[0x07][0x72] = 0x00;
+
+    /* Logical device 8: Auxiliary I/O */
+    dev->ld_regs[0x08][0x30] = 0x00;
+
+    if (dev->chip_id == FDC37M70X)
+        fdc37mx0x_gpio_handler(dev);
+    fdc37mx0x_lpt_handler(dev);
+    fdc37mx0x_serial_handler(dev, 0);
+    fdc37mx0x_serial_handler(dev, 1);
+
+    fdc37mx0x_fdc_handler(dev);
+
+    fdc37mx0x_kbc_handler(dev);
+
+    fdc37mx0x_superio_handler(dev);
+}
+
+static void
 fdc37mx0x_write(uint16_t port, uint8_t val, void *priv)
 {
     fdc37mx0x_t *dev    = (fdc37mx0x_t *) priv;
@@ -421,9 +482,9 @@ fdc37mx0x_write(uint16_t port, uint8_t val, void *priv)
 
             switch (dev->cur_reg) {
                 case 0x02:
-                    dev->regs[dev->cur_reg] = val;
-                    if (val == 0x02)
-                        fdc37mx0x_state_change(dev, 0);
+                    dev->regs[dev->cur_reg] = val & 0xfd;
+                    if (val & 0x02)
+                        fdc37mx0x_soft_reset(dev);
                     break;
                 case 0x03:
                     if (dev->chip_id == FDC37M70X) {
@@ -785,6 +846,8 @@ fdc37mx0x_reset(void *priv)
 {
     fdc37mx0x_t *dev = (fdc37mx0x_t *) priv;
 
+    fdc37mx0x_state_change(dev, 0);
+
     memset(dev->regs, 0x00, sizeof(dev->regs));
 
     if (dev->chip_id == FDC37M70X)
@@ -867,8 +930,6 @@ fdc37mx0x_reset(void *priv)
 
     if (dev->chip_id == FDC37M70X)
         fdc37mx0x_watchdog_reset(dev);
-
-    dev->locked = 0;
 }
 
 static void
