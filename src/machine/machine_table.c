@@ -26026,7 +26026,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_NOISA | MACHINE_BUS_USB,
         .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_NIC | MACHINE_SOUND, /* Machine has internal video: ATI Rage Pro Turbo AGP */
         .ram       = {
-            .min  = 8192,
+            .min  = 16384, /* 8 MB RAM is detected as 16 MB by DOS. 16 MB is detected incorrectly by BIOS Setup but is otherwise fully functional */
             .max  = 524288,
             .step = 8192
         },
