@@ -285,9 +285,13 @@ int timing_misaligned;
 uint32_t cpu_features;
 uint32_t cpu_fast_off_flags;
 
-uint32_t _tr[8]      = { 0, 0, 0, 0, 0, 0, 0, 0 };
-uint32_t cache_index = 0;
-uint8_t  _cache[2048];
+uint32_t _tr[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+/* 486 on-chip cache as seen through the TR3-TR5 cache test registers. */
+static uint32_t tr_cache_tag[256][4];     /* Tag (bits 31-11) and valid bit (bit 10). */
+static uint32_t tr_cache_data[256][4][4];
+static uint32_t tr_cache_fill_buf[4];
+static uint32_t tr_cache_read_buf[4];
 
 uint64_t cpu_CR4_mask;
 uint64_t tsc = 0;
@@ -4584,5 +4588,103 @@ cpu_update_waitstates(void)
 
         if (cpu_s->rspeed <= 8000000)
             cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
+    }
+}
+
+void
+cpu_tr_reset(void)
+{
+    memset(_tr, 0x00, sizeof(_tr));
+    memset(tr_cache_tag, 0x00, sizeof(tr_cache_tag));
+    memset(tr_cache_data, 0x00, sizeof(tr_cache_data));
+    memset(tr_cache_fill_buf, 0x00, sizeof(tr_cache_fill_buf));
+    memset(tr_cache_read_buf, 0x00, sizeof(tr_cache_read_buf));
+}
+
+/* TR5 bits 1-0 = CTL, bits 3-2 = ENT, bits 10-4 = SET (bits 11-4 on the
+   16 kB cache of the IntelDX4). */
+static uint32_t
+cpu_tr_cache_set_mask(void)
+{
+    return strcmp(cpu_f->internal_name, "idx4") ? 0x7f0 : 0xff0;
+}
+
+uint32_t
+cpu_tr_read(int reg)
+{
+    if (reg == 3)
+        _tr[3] = tr_cache_read_buf[(_tr[5] >> 2) & 3];
+
+    return _tr[reg];
+}
+
+void
+cpu_tr_write(int reg, uint32_t val)
+{
+    uint32_t set_mask;
+    uint32_t addr;
+    int      set;
+    int      ent;
+    uint8_t  valid = 0x00;
+
+    _tr[reg] = val;
+
+    switch (reg) {
+        default:
+            break;
+
+        case 3:
+            /* Writes go to the cache fill buffer, ENT selects the doubleword. */
+            tr_cache_fill_buf[(_tr[5] >> 2) & 3] = val;
+            break;
+
+        case 5:
+            if (_tr[5] & (1 << 19))
+                break;
+
+            set_mask = cpu_tr_cache_set_mask();
+            set      = (_tr[5] & set_mask) >> 4;
+            ent      = (_tr[5] >> 2) & 3;
+
+            switch (_tr[5] & 3) {
+                default:
+                    /* 00 = TR3 data access, ENT selects the doubleword. */
+                    break;
+
+                case 1:
+                    /* Cache write: fill buffer and TR4 tag/valid into the entry. */
+                    tr_cache_tag[set][ent] = _tr[4] & 0xfffffc00;
+                    memcpy(tr_cache_data[set][ent], tr_cache_fill_buf, sizeof(tr_cache_fill_buf));
+
+                    /* A valid line is returned on reads of its address, which
+                       BIOSes use as cache-as-RAM (the J-Bond PCI400C-A Phoenix
+                       BIOS runs its CPU clock measurement that way). The on-chip
+                       cache is not otherwise emulated, so put the line in memory.
+                       Invalid lines (as written by cache tests) are never seen. */
+                    if (_tr[4] & (1 << 10)) {
+                        addr = (_tr[4] & ~(set_mask | 0x7ff)) | (set << 4);
+                        for (int i = 0; i < 4; i++)
+                            mem_writel_phys(addr + (i << 2), tr_cache_fill_buf[i]);
+                    }
+                    break;
+
+                case 2:
+                    /* Cache read: the entry into the read buffer, and its tag, its
+                       valid bit, and the valid bits of the whole set into TR4.
+                       The LRU bits (9-7) are not modelled and read as 0. */
+                    for (int i = 0; i < 4; i++)
+                        valid |= ((tr_cache_tag[set][i] >> 10) & 1) << i;
+                    _tr[4] = tr_cache_tag[set][ent] | (valid << 3);
+                    memcpy(tr_cache_read_buf, tr_cache_data[set][ent], sizeof(tr_cache_read_buf));
+                    break;
+
+                case 3:
+                    /* Cache flush: invalidate every entry. */
+                    for (int i = 0; i < 256; i++)
+                        for (int j = 0; j < 4; j++)
+                            tr_cache_tag[i][j] &= ~(1 << 10);
+                    break;
+            }
+            break;
     }
 }
