@@ -114,13 +114,36 @@ CR-562-B is classified as Family1 in this driver, so uses the CMD1_ prefix.
 #define CMD0_PAU_RES    0x8d
 #define CMD0_PACKET     0x8e
 
+/* CD-200/CD200F (family 2): seven-byte packets, not TEAC's ten-byte CDBs. */
+#define CMD2_STATUS     0x00
+#define CMD2_RESET      0x01
+#define CMD2_READ_ERR   0x03
+#define CMD2_ABORT      0x08
+#define CMD2_READ_VER   0x12
+#define CMD2_TRAY_CTL   0x1b
+#define CMD2_LOCK_CTL   0x1e
+#define CMD2_CAPACITY   0x25
+#define CMD2_READ       0x28
+#define CMD2_SEEK       0x2b
+#define CMD2_READ_RAW   0x2c
+#define CMD2_READSUBQ   0x42
+#define CMD2_DISKINFO   0x43
+#define CMD2_PLAY_MSF   0x47
+#define CMD2_PAU_RES    0x4b
+#define CMD2_SETMODE    0x55
+#define CMD2_GETMODE    0x5a
+#define CMD2_READ_XA2   0xd5
+#define CMD2_SETSPEED   0xda
+
 typedef struct mke_t {
     bool       present;
     bool       tray_open;
     bool       family0;
+    bool       family2;
     bool       teac;
     bool       locked;
     bool       teac_data_completion;
+    bool       family2_data_completion;
     bool       spinning;
     uint8_t    teac_mode[10];
 
@@ -174,6 +197,7 @@ typedef struct mke_interface_t {
     uint8_t    is_sb;
     uint8_t    word_data;
     uint8_t    has_teac;
+    uint8_t    has_family2;
 
     uint8_t    drvsel;
     uint8_t    data_select;
@@ -237,14 +261,15 @@ mke_cdrom_insert(void *priv)
     if ((dev == NULL) || (dev->cdrom_dev == NULL))
         return;
 
-    if (dev->family0 || dev->teac) {
+    if (dev->family0 || dev->family2 || dev->teac) {
         timer_disable(&dev->timer);
         dev->read_count = 0;
         dev->spinning   = false;
         fifo8_reset(&dev->data_fifo);
-        if (dev->teac)
+        if (dev->family2 || dev->teac)
             fifo8_reset(&dev->info_fifo);
         dev->teac_data_completion = false;
+        dev->family2_data_completion = false;
     }
 
     if (dev->cdrom_dev->ops == NULL) {
@@ -556,7 +581,7 @@ mke_reset(mke_t *mke)
     mke->vol0                   = 255;
     mke->vol1                   = 255;
     mke->cdrom_dev->sector_size = 2048;
-    if (mke->family0 || mke->teac) {
+    if (mke->family0 || mke->family2 || mke->teac) {
         mke->command_buffer_pending = mke->teac ? 10 : 7;
         mke->read_count             = 0;
         mke->packet_size            = 0;
@@ -567,6 +592,14 @@ mke_reset(mke_t *mke)
         memset(mke->sense, 0, sizeof(mke->sense));
         fifo8_reset(&mke->data_fifo);
         fifo8_reset(&mke->info_fifo);
+        if (mke->family2) {
+            mke->cdrom_dev->cur_speed = 2;
+            mke->locked = false;
+            mke->family2_data_completion = false;
+            /* Power-on/reset is reported by READ ERROR, not a TEAC signature. */
+            mke->sense[2] = 0x12;
+            mke->is_error = 1;
+        }
         if (mke->teac) {
             memset(mke->teac_mode, 0, sizeof(mke->teac_mode));
             mke->teac_mode[1] = 2; /* Automatic, up to 4x. */
@@ -895,6 +928,338 @@ mke0_execute(mke_t *mke)
     }
 }
 
+/* CD-200 protocol, from CRCCD2.ADD 2.00 and the CMD2_ paths in Eberhard
+   Moenkeberg's Linux sbpcd driver. Responses end with a family-2 status
+   byte, as required by SBCDNT.SYS; fixed-length readers may leave it unread. */
+static uint8_t
+mke2_status(const mke_t *mke)
+{
+    const cdrom_t *dev = mke->cdrom_dev;
+    uint8_t status = mke->tray_open ? 0 : 0x04;
+
+    if (!mke->tray_open && dev->ops && dev->cd_status != CD_STATUS_EMPTY && dev->cd_status != CD_STATUS_DVD_REJECTED)
+        status |= 0x82; /* Disc present and readable. */
+    if (mke->locked)
+        status |= 0x40;
+    if (mke->spinning)
+        status |= 0x20;
+    if (dev->cd_status == CD_STATUS_PLAYING || dev->cd_status == CD_STATUS_PAUSED)
+        status |= 0x08;
+    if (mke->family2_data_completion)
+        status |= 0x10;
+    if (mke->is_error)
+        status |= 0x01;
+    return status;
+}
+
+static void
+mke2_error(mke_t *mke, uint8_t error)
+{
+    mke_update_sense(mke, error);
+    timer_disable(&mke->timer);
+    mke->read_count = 0;
+    mke->family2_data_completion = false;
+    fifo8_reset(&mke->data_fifo);
+    ui_sb_update_icon(SB_CDROM | mke->cdrom_dev->id, 0);
+}
+
+static int
+mke2_ready(mke_t *mke)
+{
+    if (mke->cdrom_dev->cd_status & CD_STATUS_TRANSITION)
+        mke_cdrom_insert(mke);
+    if (!(mke2_status(mke) & 0x80)) {
+        mke2_error(mke, 0x03);
+        return 0;
+    }
+    if (mke->medium_changed) {
+        mke->medium_changed = 0;
+        mke2_error(mke, 0x11);
+        return 0;
+    }
+    return 1;
+}
+
+static double
+mke2_sector_time(const mke_t *mke)
+{
+    return 1000000.0 / (75.0 * mke->cdrom_dev->cur_speed);
+}
+
+static void
+mke2_read_callback(mke_t *mke)
+{
+    int len = 0;
+    if (!mke->read_count)
+        return;
+    if (mke2_ready(mke)) {
+        int result = cdrom_readsector_raw(mke->cdrom_dev, mke->cdbuffer, mke->read_lba,
+                                          0, mke->read_type, mke->read_flags, &len, 0);
+        if (result > 0 && len == mke->read_size) {
+            fifo8_push_all(&mke->data_fifo, mke->cdbuffer, len);
+            mke->read_lba++;
+            mke->read_count--;
+            return;
+        }
+        mke2_error(mke, 0x05);
+    }
+    fifo8_push(&mke->info_fifo, mke2_status(mke));
+}
+
+static int
+mke2_toc(mke_t *mke, uint8_t *out)
+{
+    const uint8_t *cmd = mke->command_buffer;
+    const raw_track_info_t *tracks = (const raw_track_info_t *) mke->temp_buf;
+    int num = 0, first_session = 255, last_session = 0;
+    int first_track = 255, last_track = 0, entry = -1;
+
+    mke->cdrom_dev->ops->get_raw_track_info(mke->cdrom_dev->local, &num, mke->temp_buf);
+    for (int i = 0; i < num; i++) {
+        if (!tracks[i].session)
+            continue;
+        first_session = MIN(first_session, tracks[i].session);
+        last_session = MAX(last_session, tracks[i].session);
+    }
+    if (!last_session)
+        return 0;
+    /* Zero and FFh select the last session (CRCCD2 uses both). */
+    int session = (!cmd[3] || cmd[3] == 0xff) ? last_session : cmd[3];
+    if (session < first_session || session > last_session)
+        return 0;
+    for (int i = 0; i < num; i++) {
+        if (tracks[i].point >= 1 && tracks[i].point <= 99) {
+            first_track = MIN(first_track, tracks[i].point);
+            last_track = MAX(last_track, tracks[i].point);
+            if (cmd[2] == 0xab && tracks[i].session == session &&
+                (entry < 0 || tracks[i].point < tracks[entry].point))
+                entry = i;
+        }
+        if (cmd[2] != 0xab && tracks[i].point == ((cmd[2] == 0xaa) ? 0xa2 : cmd[2]) &&
+            (cmd[2] != 0xaa || tracks[i].session == session))
+            entry = i;
+    }
+    if (entry < 0 || !last_track)
+        return 0;
+    if (cmd[2] == 0xab) {
+        uint8_t disc_info[34];
+        cdrom_read_disc_information(mke->cdrom_dev, disc_info);
+        out[0] = disc_info[8];
+        out[1] = first_session;
+        out[2] = last_session;
+        out[3] = first_track;
+        out[4] = last_track;
+        out[5] = tracks[entry].pm;
+        out[6] = tracks[entry].ps;
+        out[7] = tracks[entry].pf;
+        return 8;
+    }
+    out[0] = tracks[entry].adr_ctl;
+    /* SBCDNT copies this byte into the SCSI TOC track-number field. */
+    out[1] = cmd[2];
+    out[2] = tracks[entry].pm;
+    out[3] = tracks[entry].ps;
+    out[4] = tracks[entry].pf;
+    return 5;
+}
+
+static void
+mke2_execute(mke_t *mke)
+{
+    const uint8_t *cmd = mke->command_buffer;
+    cdrom_t *dev = mke->cdrom_dev;
+    uint8_t out[16] = { 0 };
+    uint32_t lba, end;
+    unsigned count, speed;
+    int len;
+
+    mke_log("MKE2 command: %02X %02X %02X %02X %02X %02X %02X\n",
+            cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6]);
+    fifo8_reset(&mke->info_fifo);
+    /* Polling and sense must not cancel a sector transfer or audio playback. */
+    if (cmd[0] == CMD2_STATUS) {
+        if (dev->cd_status & CD_STATUS_TRANSITION)
+            mke_cdrom_insert(mke);
+        if (mke->medium_changed) {
+            mke->medium_changed = 0;
+            mke2_error(mke, 0x11);
+        }
+        fifo8_push(&mke->info_fifo, mke2_status(mke));
+        return;
+    }
+    if (cmd[0] == CMD2_READ_ERR) {
+        memcpy(out, mke->sense, 6);
+        memset(mke->sense, 0, sizeof(mke->sense));
+        mke->is_error = 0;
+        fifo8_push_all(&mke->info_fifo, out, 6);
+        fifo8_push(&mke->info_fifo, mke2_status(mke));
+        return;
+    }
+
+    timer_disable(&mke->timer);
+    fifo8_reset(&mke->data_fifo);
+    mke->read_count = 0;
+    mke->family2_data_completion = false;
+    ui_sb_update_icon(SB_CDROM | dev->id, 0);
+
+    switch (cmd[0]) {
+        case CMD2_RESET:
+            mke_reset(mke);
+            return;
+        case CMD2_READ_VER:
+            fifo8_push_all(&mke->info_fifo, (const uint8_t *) mke->ver, 12);
+            break;
+        case CMD2_SETSPEED:
+            speed = (cmd[2] << 8) | cmd[3];
+            /* CRCCD2.ADD stores 150/300 as a little-endian word; sbpcd
+               sends big-endian 150 or FFFFh (automatic double speed). */
+            if (speed == 0x9600 || speed == 0x2c01)
+                speed = (cmd[3] << 8) | cmd[2];
+            if (speed != 150 && speed != 300 && speed != 0xffff)
+                mke2_error(mke, 0x0e);
+            else
+                dev->cur_speed = (speed == 150) ? 1 : 2;
+            break;
+        case CMD2_LOCK_CTL:
+            mke->locked = cmd[4] & 1;
+            break;
+        case CMD2_TRAY_CTL:
+            if ((cmd[4] & 3) == 2) {
+                if (mke->locked) {
+                    mke2_error(mke, 0x0d);
+                    break;
+                }
+                mke->tray_open = true;
+                cdrom_eject(dev->id);
+            } else if ((cmd[4] & 3) == 3) {
+                mke->tray_open = false;
+                cdrom_reload(dev->id);
+            }
+            mke->spinning = false;
+            if (cmd[4] & 1) {
+                if (mke2_ready(mke))
+                    mke->spinning = true;
+            } else
+                cdrom_stop(dev);
+            break;
+        case CMD2_ABORT:
+            cdrom_stop(dev);
+            break;
+        case CMD2_SETMODE:
+            if (cmd[1] != 0x0e) {
+                mke2_error(mke, 0x0e);
+                break;
+            }
+            mke->patch0 = cmd[3] & 3;
+            mke->vol0 = cmd[4];
+            mke->patch1 = cmd[5] & 3;
+            mke->vol1 = cmd[6];
+            break;
+        case CMD2_GETMODE:
+            if (cmd[1] != 0x0e) {
+                mke2_error(mke, 0x0e);
+                break;
+            }
+            out[0] = 0x0e;
+            out[1] = mke->patch0;
+            out[2] = mke->vol0;
+            out[3] = mke->patch1;
+            out[4] = mke->vol1;
+            fifo8_push_all(&mke->info_fifo, out, 5);
+            break;
+        case CMD2_DISKINFO:
+            if (!mke2_ready(mke))
+                break;
+            len = mke2_toc(mke, out);
+            if (!len) {
+                mke2_error(mke, 0x0e);
+                break;
+            }
+            fifo8_push_all(&mke->info_fifo, out, len);
+            break;
+        case CMD2_CAPACITY:
+            /* SBCDNT.SYS 1.14 passes these eight bytes straight through to
+               SCSI READ CAPACITY: last LBA and block length, big endian.
+               sbpcd avoids this command because some firmware lacks it. */
+            if (!mke2_ready(mke))
+                break;
+            if (!dev->cdrom_capacity) {
+                mke2_error(mke, 0x03);
+                break;
+            }
+            lba = dev->cdrom_capacity - 1;
+            out[0] = lba >> 24;
+            out[1] = lba >> 16;
+            out[2] = lba >> 8;
+            out[3] = lba;
+            out[6] = 8;
+            fifo8_push_all(&mke->info_fifo, out, 8);
+            break;
+        case CMD2_READSUBQ:
+            if (!mke2_ready(mke))
+                break;
+            mke_get_subq(mke, out);
+            out[0] = cdrom_get_current_status(dev);
+            fifo8_push_all(&mke->info_fifo, out, 10);
+            break;
+        case CMD2_READ:
+        case CMD2_READ_RAW: /* CRCCD2's 2340-byte read. */
+        case CMD2_READ_XA2: /* sbpcd's 2352-byte digital audio read. */
+            if (!mke2_ready(mke))
+                break;
+            count = (cmd[4] << 8) | cmd[5];
+            if (((cmd[0] == CMD2_READ_XA2) ? cmd[6] != 0x11 : cmd[6] != 2) ||
+                !mke0_address(cmd + 1, 1, 0, &lba) ||
+                lba >= dev->cdrom_capacity || count > dev->cdrom_capacity - lba) {
+                mke2_error(mke, 0x06);
+                break;
+            }
+            cdrom_stop(dev);
+            cdrom_seek(dev, lba, 0);
+            mke->spinning = true;
+            mke->read_lba = lba;
+            mke->read_count = count;
+            mke->read_size = cmd[0] == CMD2_READ ? 2048 : cmd[0] == CMD2_READ_RAW ? 2340 : 2352;
+            mke->read_type = cmd[0] == CMD2_READ ? 0x18 : 0;
+            mke->read_flags = cmd[0] == CMD2_READ ? 0x10 : cmd[0] == CMD2_READ_RAW ? 0x78 : 0xf8;
+            if (count) {
+                mke->family2_data_completion = true;
+                timer_on_auto(&mke->timer, cdrom_seek_time(dev) + mke2_sector_time(mke));
+                ui_sb_update_icon(SB_CDROM | dev->id, 1);
+                return;
+            }
+            break;
+        case CMD2_SEEK:
+            if (!mke2_ready(mke))
+                break;
+            if (!mke0_address(cmd + 3, 1, 0, &lba) || lba >= dev->cdrom_capacity) {
+                mke2_error(mke, 0x06);
+                break;
+            }
+            cdrom_stop(dev);
+            cdrom_seek(dev, lba, 0);
+            mke->spinning = true;
+            break;
+        case CMD2_PLAY_MSF:
+            if (!mke2_ready(mke))
+                break;
+            if (!mke0_address(cmd + 1, 1, 0, &lba) || !mke0_address(cmd + 4, 1, 0, &end) ||
+                end < lba || end >= dev->cdrom_capacity || !cdrom_audio_play(dev, lba, end - lba + 1, 0))
+                mke2_error(mke, 0x06);
+            else
+                mke->spinning = true;
+            break;
+        case CMD2_PAU_RES:
+            if (mke2_ready(mke))
+                cdrom_audio_pause_resume(dev, cmd[2] & 1);
+            break;
+        default:
+            mke2_error(mke, 0x0e);
+            break;
+    }
+    fifo8_push(&mke->info_fifo, mke2_status(mke));
+}
+
 /* CD-55A uses the Panasonic electrical interface, but a different ten-byte
    protocol. Sources: TEAC_CDA.SYS 1.10g/1.11h/1.15i/1.18k and the CMDT_ paths
    in Linux v2.6.12 drivers/cdrom/sbpcd.c and sbpcd.h (Eberhard Moenkeberg).
@@ -1130,6 +1495,15 @@ mke_read_data(mke_t *mke)
         ret = fifo8_pop(&mke->data_fifo);
         if (mke->family0 && !fifo8_num_used(&mke->data_fifo) && mke->read_count)
             timer_on_auto(&mke->timer, 1000000.0 / 75.0);
+        if (mke->family2 && !fifo8_num_used(&mke->data_fifo)) {
+            if (mke->read_count)
+                timer_on_auto(&mke->timer, mke2_sector_time(mke));
+            else if (mke->family2_data_completion) {
+                mke->family2_data_completion = false;
+                fifo8_push(&mke->info_fifo, mke2_status(mke));
+                ui_sb_update_icon(SB_CDROM | mke->cdrom_dev->id, 0);
+            }
+        }
         if (mke->teac && !fifo8_num_used(&mke->data_fifo)) {
             if (mke->read_count)
                 timer_on_auto(&mke->timer, mket_sector_time(mke));
@@ -1156,6 +1530,10 @@ mke_command_callback(void *priv)
         mke0_read_callback(mke);
         return;
     }
+    if (mke->family2) {
+        mke2_read_callback(mke);
+        return;
+    }
 
     switch (mke->command_buffer[0]) {
         case CMD1_SEEK: {
@@ -1179,6 +1557,14 @@ mke_command(mke_t *mke, uint8_t value)
     /* This is wasteful handling of buffers for compatibility, but will optimize later. */
     uint8_t      x[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
+    if (mke->family2) {
+        mke->command_buffer[7 - mke->command_buffer_pending] = value;
+        if (!--mke->command_buffer_pending) {
+            mke->command_buffer_pending = 7;
+            mke2_execute(mke);
+        }
+        return;
+    }
     if (mke->teac) {
         mke->command_buffer[10 - mke->command_buffer_pending] = value;
         if (!--mke->command_buffer_pending) {
@@ -1525,11 +1911,11 @@ mke_write(uint16_t port, uint8_t val, void *priv)
                 mki->data_select = val;
             break;
         case 2:
-            /* The reset signal is shared by TEAC drives on the cable. */
+            /* The reset signal is shared by CD-200/TEAC drives on the cable. */
             for (unsigned i = 0; i < 4; i++)
-                if (mki->mke[i].present && mki->mke[i].teac)
+                if (mki->mke[i].present && (mki->mke[i].family2 || mki->mke[i].teac))
                     mke_reset(&mki->mke[i]);
-            if (mke->present && !mke->teac)
+            if (mke->present && !mke->family2 && !mke->teac)
                 mke_reset(mke);
             break;
         case 3:
@@ -1591,7 +1977,7 @@ mke_read(uint16_t port, void *priv)
             mke_log("MKE Unknown Read Port: %04X\n", port);
             ret = 0xff;
             break;
-    } else if (mki->has_teac || (port & 0x0003) == 0x0003)
+    } else if (mki->has_family2 || mki->has_teac || (port & 0x0003) == 0x0003)
         /* This is needed for the Windows 95 built-in driver to function correctly. */
         ret = 0xff;
 
@@ -1661,10 +2047,17 @@ mke_init(const device_t *info)
             memset(mke->ver, 0x00, 512);
             cdrom_generate_name_mke(dev->type, mke->ver);
             mke->family0 = !strcmp(cdrom_get_internal_name(dev->type), "cr521b");
+            mke->family2 = !strcmp(cdrom_get_internal_name(dev->type), "creative_cd200") ||
+                           !strcmp(cdrom_get_internal_name(dev->type), "funai_cd200f");
             mke->teac = !strcmp(cdrom_get_internal_name(dev->type), "teac_cd55a");
             mki->has_teac |= mke->teac;
+            mki->has_family2 |= mke->family2;
             if (mke->family0)
                 snprintf(mke->ver, sizeof(mke->ver), "MATSHITA%s",
+                         cdrom_drive_types[dev->type].revision);
+            else if (mke->family2)
+                snprintf(mke->ver, sizeof(mke->ver), "%-7s%s",
+                         !strcmp(cdrom_get_internal_name(dev->type), "funai_cd200f") ? "CD200F" : "CD200",
                          cdrom_drive_types[dev->type].revision);
             else
                 mke->ver[10] = 0x00;
@@ -1693,7 +2086,7 @@ mke_init(const device_t *info)
             dev->subc_sector = -1;
 
             timer_add(&mke->timer, mke_command_callback, mke, 0);
-            if (mke->teac)
+            if (mke->family2 || mke->teac)
                 mke_reset(mke);
 
             num++;

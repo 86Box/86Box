@@ -383,6 +383,8 @@ static const struct cdrom_drive_types_s {
     { "MATSHITA", "CR-563",           "0.74", "",          "cr563",          BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
     { "MATSHITA", "CR-563",           "0.75", "",          "cr563_075",      BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
     { "MATSHITA", "CR-563",           "0.80", "",          "cr563_080",      BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
+    { "CREATIVE", "CD-200",           "1.01", "",          "creative_cd200", BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
+    { "FUNAI",    "CD200F",           "2.10", "",          "funai_cd200f",   BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
     { "TEAC",     "CD-55A",           "1.00", "",          "teac_cd55a",     BUS_TYPE_MKE , 0,  4,  0, 0, 0, { -1, -1, -1, -1 } },
     { "",         "",                 "",     "",          "",               BUS_TYPE_NONE, 0, -1,  0, 0, 0, { -1, -1, -1, -1 } }
 };
