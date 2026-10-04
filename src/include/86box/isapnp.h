@@ -69,6 +69,8 @@ extern void     isapnp_write_reg(void *priv, uint8_t ldn, uint8_t reg, uint8_t v
 extern void     isapnp_set_device_defaults(void *priv, uint8_t ldn, const isapnp_device_config_t *config);
 extern void     isapnp_reset_card(void *priv);
 extern void     isapnp_reset_device(void *priv, uint8_t ld);
+extern void     isapnp_power_up_card(void *priv);
+extern void     isapnp_set_reg(void *priv, uint8_t ldn, uint8_t reg, uint8_t val);
 extern void     isapnp_set_rt(void *priv, uint8_t is_rt);
 extern void     isapnp_set_normal(void *priv, uint8_t normal);
 extern void     isapnp_activate(void *priv, uint16_t base, uint8_t irq, int active);
