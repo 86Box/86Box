@@ -926,6 +926,12 @@ codegen_MOV(codeblock_t *block, uop_t *uop)
     } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size)) {
         host_loong64_UBFX_D(block, REG_TEMP, src_reg, 8, 8);
         host_loong64_BFI_W(block, dest_reg, REG_TEMP, 8, 8);
+    } else if (REG_IS_D(dest_size) && REG_IS_D(src_size)) {
+        /*x87 ST(i) copy (FLD/FST/FXCH): 64-bit FP<->FP move.*/
+        host_loong64_VMOV_F(block, dest_reg, src_reg);
+    } else if (REG_IS_Q(dest_size) && REG_IS_Q(src_size)) {
+        /*ST(i)_i64 mirror and Q temps live in the FP set as well.*/
+        host_loong64_VMOV_F(block, dest_reg, src_reg);
     } else if (REG_IS_W(dest_size) && REG_IS_L(src_size)) {
         /*Preserve upper destination bits; only replace the low 16 bits.*/
         host_loong64_BFI_W(block, dest_reg, src_reg, 0, 16);
