@@ -23483,7 +23483,7 @@ const machine_t machines[] = {
             .max_multi   = 5.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_USB, /* Machine has internal video: ATI 3D Rage Pro AGP 2X and NIC: 3Com 3C905 (both not yet implemented) */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM | MACHINE_NIC | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -23504,9 +23504,9 @@ const machine_t machines[] = {
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL,
+        .vid_device               = &mach64gtb_onboard_device,
+        .snd_device               = &ess_1869_onboard_device,
+        .net_device               = &i82557b_onboard_device,
         .aliases                  = { "" }
     },
     /* Has a National Semiconductor PC87307 Super I/O with on-chip KBC, which has one of these
