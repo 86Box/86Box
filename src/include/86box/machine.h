@@ -1578,6 +1578,7 @@ extern const device_t  em440_device;
 extern int             machine_at_em440_init(const machine_t *);
 
 /* i440ZX */
+extern int             machine_at_bl440zx_init(const machine_t *);
 extern int             machine_at_63a1_init(const machine_t *);
 
 /* SiS 600 */
