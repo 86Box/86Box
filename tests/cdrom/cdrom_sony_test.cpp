@@ -414,7 +414,9 @@ TEST_F(SonyTest, AudioPositionPauseResumeCompletionAndMixerRouting)
     audio_track = true;
     command(0x40, { 3, 0, 2, 0, 0, 4, 0 });
     ok();
-    EXPECT_EQ(cdrom[0].cd_end, 150U);
+    EXPECT_EQ(cdrom[0].cd_end, 151U);
+    command(0x03);
+    EXPECT_EQ(result(), (std::vector<uint8_t> { 0, 3, 0x0b, 0x10, 0 }));
     cdrom[0].seek_pos = 30;
     command(0x21);
     EXPECT_EQ(result(), (std::vector<uint8_t> { 0, 10, 1, 1, 1, 0, 0, 0x30, 0, 0, 2, 0x30 }));
@@ -422,6 +424,8 @@ TEST_F(SonyTest, AudioPositionPauseResumeCompletionAndMixerRouting)
     ok();
     EXPECT_EQ(cdrom[0].cd_status, CD_STATUS_PAUSED);
     EXPECT_EQ(cdrom[0].seek_pos, 30U);
+    command(0x03);
+    EXPECT_EQ(result(), (std::vector<uint8_t> { 0, 3, 0x0b, 0, 0 }));
     command(0x40, { 3, 0, 2, 0x30, 0, 4, 0 });
     ok();
     EXPECT_EQ(cdrom[0].seek_pos, 30U);
@@ -437,6 +441,25 @@ TEST_F(SonyTest, AudioPositionPauseResumeCompletionAndMixerRouting)
     EXPECT_EQ(in(0) & 1, 1);
     out(3, 1);
     EXPECT_EQ(in(1), 0x90);
+    command(0x03);
+    EXPECT_EQ(result(), (std::vector<uint8_t> { 0, 3, 0x0b, 0, 0 }));
+}
+
+TEST_F(SonyTest, AudioRangeIncludesLastFrameAndExcludesLeadout)
+{
+    audio_track = true;
+    command(0x40, { 3, 0, 2, 0x10, 0, 2, 0x10 });
+    ok();
+    EXPECT_EQ(cdrom[0].seek_pos, 10U);
+    EXPECT_EQ(cdrom[0].cd_end, 11U);
+    command(0x40, { 3, 0, 2, 0x10, 0, 2, 9 });
+    EXPECT_EQ(result(), (std::vector<uint8_t> { 0x20, 0x11 }));
+    command(0x40, { 3, 2, 0x15, 0x24, 2, 0x15, 0x24 });
+    ok();
+    EXPECT_EQ(cdrom[0].seek_pos, 9999U);
+    EXPECT_EQ(cdrom[0].cd_end, 10000U);
+    command(0x40, { 3, 2, 0x15, 0x24, 2, 0x15, 0x25 });
+    EXPECT_EQ(result(), (std::vector<uint8_t> { 0x20, 0x11 }));
 }
 
 TEST_F(SonyTest, InterfaceWithoutDriveNeverRespondsToProbe)

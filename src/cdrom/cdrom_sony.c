@@ -353,7 +353,10 @@ sony_command_done(void *priv)
                 sony_reply(d, d->settings[d->params[0]], d->params[0] == 4 ? 2 : 1);
             break;
         case 0x03: /* Mechanical status. */
-            reply[0] = (!d->tray_open ? 1 : 0) | (sony_ready(d) ? 2 : 0) | (d->spinning ? 8 : 0) | (d->toc_read ? 0x10 : 0) | (d->audio_active ? 0x20 : 0);
+            reply[0] = (!d->tray_open ? 1 : 0) | (sony_ready(d) ? 2 : 0) | (d->spinning ? 8 : 0) | (d->toc_read ? 0x10 : 0);
+            /* SLCD.SYS tests bit 4 of the second mechanical-status byte.
+               Without it, a status poll discards its saved play/resume state. */
+            reply[1] = d->audio_active ? 0x10 : 0;
             sony_reply(d, reply, 3);
             break;
         case 0x10:
@@ -445,11 +448,14 @@ sony_command_done(void *priv)
                     timer_set_delay_u64(&d->sector_timer, (1000000 / (75 * d->cd->cur_speed)) * TIMER_USEC);
                     break;
                 case 0x40:
-                    if (d->param_count != 7 || d->params[0] != 3 || !sony_lba(d->params + 1, &start) || !sony_lba(d->params + 4, &end) || end <= start || end > sony_capacity(d))
+                    if (d->param_count != 7 || d->params[0] != 3 || !sony_lba(d->params + 1, &start) || !sony_lba(d->params + 4, &end) || end < start || end >= sony_capacity(d))
                         sony_error(d, SONY_BAD_PARAM);
-                    else if (!cdrom_audio_play(d->cd, start, end - start, 0))
+                    /* Sony's last-frame address is inclusive; SLCD.SYS sends
+                       start + length - 1 for an MSCDEX PLAY AUDIO request. */
+                    else if (!cdrom_audio_play(d->cd, start, end - start + 1, 0))
                         sony_error(d, 0x93);
                     else {
+                        d->spinning     = 1;
                         d->audio_active = 1;
                         sony_reply(d, NULL, 0);
                     }

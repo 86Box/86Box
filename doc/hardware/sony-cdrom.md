@@ -116,14 +116,44 @@ Driver SHA-256 values (binaries remain external to the repository):
 1.74d 61f7372f96111397f3cba10495594630bddd10d782a9c6faf06ccd6d95a2d859
 ```
 
-The fifteen Sony unit tests exercise public I/O with mocked timers, image
+### BIN/CUE and audio CD playback
+
+The same five driver versions were tested with both drive models and both
+interfaces using two generated BIN/CUE discs (40 combinations):
+
+- A mixed-mode disc containing a MODE1/2352 data track and two CD-DA tracks.
+  Both test files copied exactly from the raw-sector image.
+- An audio-only disc containing two CD-DA tracks, each ten seconds long.
+
+Every case passed TOC and track queries, play, advancing sub-Q position,
+pause with a stationary position, resume, and playback completion at the
+requested frame. Four additional cases passed with SLCD.SYS 1.74d and Sony
+DMA 3: both disc types on both drive models. These tests use Sony at 340h
+and Creative at 230h, with IRQ disabled.
+
+The test captures the CD mixer's buffers at the OpenAL submission boundary
+with no emulated sound card or audio filter. Every non-silent captured
+buffer matched the generated stereo PCM source exactly. This verifies
+digital audio output through the emulator's mixer; physical speaker output
+and sound-card-specific filtering are not tested.
+
+These tests exposed and fixed two Sony protocol errors: the audio-playing
+flag belongs in bit 4 of the second mechanical-status byte, and the play
+command's final-frame address is inclusive. The incorrect status flag made
+SLCD.SYS discard its resume state during status polling. The incorrect end
+address shortened playback by one frame. The DOS probe acknowledges the
+initial disc change through IOCTL 9 before querying the TOC; older SLCD.SYS
+versions otherwise keep returning the media-changed error 800Fh.
+
+The sixteen Sony unit tests exercise public I/O with mocked timers, image
 access, PIC, and DMA. They cover both models, FIFO probing/batching, TOC
 replies longer than 255 bytes, PIO/DMA continuation, terminal counts,
 all selectable addresses/IRQs/DMA channels, errors, short reads, raw-sector
-lengths, audio state/routing, reset, eject, media changes, and an absent drive.
+lengths, audio state/routing and inclusive end frames, reset, eject, media
+changes, and an absent drive.
 They pass with AddressSanitizer and UndefinedBehaviorSanitizer; LeakSanitizer
-must be disabled in the ptraced test environment. Raw-sector and audio checks
-are unit tests, not original-driver playback or physical-hardware validation.
+must be disabled in the ptraced test environment. These are protocol and
+software integration checks, not physical-hardware validation.
 
 ```sh
 cmake --build build --target 86Box sony_cdrom_tests
@@ -169,14 +199,33 @@ results, not Qt shutdown. Earlier runs using the unit-tester exit port
 occasionally crashed during frontend teardown after correct file copies.
 No DOS, Sony driver, ROM, or manual is bundled with the test.
 
+### Repeating the BIN/CUE and audio matrix
+
+`tests/cdrom/sony_audio_smoke.py` accepts the same external emulator, DOS
+disk, CMOS, ROM and driver arguments shown above. It additionally requires
+a C compiler and OpenAL development headers on a little-endian Linux host.
+Use a new output directory, such as `--output /tmp/sony-audio-matrix`.
+The default matrix covers mixed-mode and audio-only BIN/CUE images, both
+drive models, and Sony/Creative PIO. `--modes dma` selects Sony DMA 3;
+`--media audio` or `--media mixed` narrows the disc types. `--workers 4`
+runs four isolated guests concurrently. Each worker needs enough space
+for a copy of the DOS disk; successful guests' disk copies are removed.
+
+The harness generates valid MODE1/2352 sectors with EDC/ECC and stereo test
+tones, assembles `sony_audio_probe.s`, and builds `sony_audio_capture.c` as
+an OpenAL capture shim. It saves guest logs, request/IOCTL records, PCM
+captures, file copies, driver hashes and `results.json`. A nonzero exit
+status identifies a failed assertion. The generated discs use one BIN per
+CUE, ordinary INDEX 01 tracks, and no extra pregaps. This matrix does not
+establish compatibility with every CUE layout or audio-player application.
+
 ## Limits and references
 
 This is a host-protocol implementation. It does not execute Sony firmware
 or reproduce mechanical timings, read-ahead RAM, or all error conditions.
 Multisession Photo CD, XA ADPCM playback, diagnostic/buffer commands,
 UPC/ISRC, and audio-scan modes are not implemented. Windows and Linux guest
-drivers, original-driver audio playback, and IRQ-driven guest software have
-not been tested. A successful DOS data matrix does not qualify those paths.
+drivers and IRQ-driven guest software have not been tested.
 
 - [CDU31A service manual, 9-974-500-11 (1993)](https://theretroweb.com/storage/documentation/9-974-500-11-cdu31a-service-1993-677d4f912e12a059646658.pdf):
   command exercises (including spin-up 51h and read-TOC 30h on printed
@@ -191,3 +240,5 @@ not been tested. A successful DOS data matrix does not qualify those paths.
   Corey Minyard, GPL-2.0-or-later: register bits, commands, FIFO batching,
   TOC/sub-Q formats, and raw-sector conventions. Unmodified Sony DOS driver
   execution supplied independent checks of probe and transfer behavior.
+- [Microsoft MSCDEX device-driver specification (archived transcription)](https://gist.github.com/abrasive/7a615e6dde0c1da962f9930cc63ee43d):
+  request packets and audio IOCTL layouts used by the DOS playback probe.
