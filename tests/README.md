@@ -153,3 +153,18 @@ Build `mouse_microtouch_tests` with `BUILD_TESTING=ON`, then run:
 ```sh
 ctest --test-dir build --output-on-failure -R '^MicroTouch\.'
 ```
+
+# Sony CDU31A / CDU33A
+
+Build `sony_cdrom_tests` with `BUILD_TESTING=ON`, then run:
+
+```sh
+ctest --test-dir build --output-on-failure -R '^SonyTest\.'
+```
+
+The nineteen tests exercise the Sony and Sony/Creative interfaces through public
+I/O handlers, with mocked image access, timers, PIC and DMA. The separate
+`tests/cdrom/sony_slcd_smoke.py` boots external DOS drivers in an isolated VM
+and compares copied ISO files byte for byte. See the
+[Sony hardware guide](../doc/hardware/sony-cdrom.md) for prerequisites, resource
+settings, the five-version driver matrix, and validation limits.
