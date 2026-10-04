@@ -613,6 +613,34 @@ el3_rom_window(uint8_t field, uint32_t *base, uint32_t *window, uint32_t *part, 
     }
 }
 
+/* The 3C529's: its POS ROM Size "selects the window size of the boot PROM.
+   The PROM may be 8 K, 16 K, or 32 K", each a whole window -- 32 K at
+   C0000h for 0001b, and at C8000h, D0000h, D8000h for 01xxb, 10xxb, 11xxb
+   (7-11). There is no ROM Control register to page it ("3C509B only",
+   6-22), and no 64 K size. ROM BASE 0000b is no PROM. */
+static void
+el3_mca_rom_window(uint8_t field, uint32_t *base, uint32_t *window, uint32_t *part, uint8_t *paged)
+{
+    const uint32_t step = field & 0x0f;
+    const uint32_t size = 0x2000u << ((field >> 4) & 3);
+
+    *base   = 0x00000;
+    *window = 0;
+    *part   = 0;
+    *paged  = 0;
+    if ((step == 0) || (size > 0x8000))
+        return;
+
+    *part   = size;
+    *window = size;
+    if (size == 0x2000)
+        *base = 0xc0000 + (step << 13);
+    else if (size == 0x4000)
+        *base = 0xc0000 + ((step >> 1) << 14);
+    else
+        *base = 0xc0000 + ((step >> 2) << 15);
+}
+
 /* The EEPROM a card ships with: the image read from a real card, with the
    settings the configuration software owns set to their factory defaults -
    I/O base, IRQ, transceiver and no boot PROM (7-16) - and the emulator's
@@ -1759,7 +1787,7 @@ el3_reg_read(el3_t *dev, uint8_t off)
                 case W3_INTERNAL_CONFIG + 3:
                     return (uint8_t) (dev->internal_config >> ((off & 3) * 8));
                 case W3_ROM_CONTROL:
-                    return dev->rom_control;
+                    return dev->mca ? 0x00 : dev->rom_control; /* 3C509B only (6-22) */
                 case W3_RX_FREE:
                 case W3_RX_FREE + 1:
                     w = (uint16_t) ((dev->rx_used >= dev->rx_size) ? 0 : (dev->rx_size - dev->rx_used));
@@ -1951,6 +1979,9 @@ el3_reg_write(el3_t *dev, uint8_t off, uint8_t val)
                     el3_pnp_update(dev);
                     break;
                 case W3_ROM_CONTROL:
+                    /* "ROM Control Register (3C509B only)" (6-22). */
+                    if (dev->mca)
+                        break;
                     dev->rom_control = val & 0x03;
                     /* Writing the page bits moves the page the window shows. */
                     el3_prom_show(dev);
@@ -2158,8 +2189,8 @@ el3_mca_pos_apply(el3_t *dev)
         el3_activate(dev, base);
         el3_set_irq(dev, el3_irq_of(dev->resource_config));
 
-        /* The POS register's ROM field names the boot PROM's window the same
-           way the EEPROM's does (@627C.ADF). */
+        /* The POS register's ROM field names the boot PROM's window, its
+           own way (el3_mca_rom_window). */
         el3_prom_place(dev, (uint8_t) (rom >> 8));
     } else {
         el3_deactivate(dev);
@@ -2512,21 +2543,19 @@ el3_prom_show(el3_t *dev)
     }
 }
 
-/* The part and window a ROM field names (el3_rom_window), put on the bus. */
+/* The part and window a ROM field names, the ISA card's way or the 3C529's,
+   put on the bus. A window smaller than the part shows its start, as on the
+   adapter: a BootWare that needs more of itself is configured wrong there
+   too. */
 static void
 el3_prom_place(el3_t *dev, uint8_t field)
 {
-    el3_rom_window(field, &dev->prom_base, &dev->prom_window, &dev->prom_part, &dev->prom_paged);
+    if (dev->mca)
+        el3_mca_rom_window(field, &dev->prom_base, &dev->prom_window, &dev->prom_part, &dev->prom_paged);
+    else
+        el3_rom_window(field, &dev->prom_base, &dev->prom_window, &dev->prom_part, &dev->prom_paged);
     if ((dev->prom_window != 0) && !el3_prom_load(dev))
         dev->prom_window = 0;
-
-    /* An MCA adapter's window comes from the POS registers, and a BootWare
-       denied a full part wedges the machine waiting for F1 with no keyboard. */
-    if (dev->mca && (dev->prom_window != 0) && (dev->prom_part < (dev->prom_mask + 1))) {
-        el3_log("3C509B: boot PROM is %u KB but the adapter names %u KB - left off the bus\n",
-                (dev->prom_mask + 1) >> 10, dev->prom_part >> 10);
-        dev->prom_window = 0;
-    }
 
     el3_prom_show(dev);
 }
