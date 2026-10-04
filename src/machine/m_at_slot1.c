@@ -2150,8 +2150,7 @@ machine_at_pavilion85xx_init(const machine_t *model)
 
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    /* This is not exactly the correct super I/O, but functionally it should be nearly identical. */
-    device_add_params(&fdc37mx0x_device, (void *) (FDC37M70X | FDC37XXX2 | FDC37C93X_NO_NVR));
+    device_add_params(&fdc37mx0x_device, (void *) (FDC37B80X | FDC37XXX2 | FDC37C93X_NO_NVR));
     device_add(ics9xxx_get(ICS9248_39));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
