@@ -123,7 +123,7 @@ fdc37mx0x_watchdog_reset(fdc37mx0x_t *dev)
     if (timer_is_on(&dev->watchdog_timer))
         timer_stop(&dev->watchdog_timer);
 
-    if (dev->ld_regs[0x08][0xf2] !== 0x00)
+    if (dev->ld_regs[0x08][0xf2] != 0x00)
         timer_on_auto(&dev->watchdog_timer, period);
 
     fdc37mx0x_watchdog_irq_reset(dev);
