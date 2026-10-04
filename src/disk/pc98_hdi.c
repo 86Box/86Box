@@ -14,7 +14,7 @@
  *              0x04  drive type
  *              0x08  header size - the offset of the first data byte
  *              0x0C  data size in bytes
- *              0x10  sector size (256 on SASI, 512 on IDE)
+ *              0x10  sector size (256..4096; usually 256 or 512)
  *              0x14  sectors per track
  *              0x18  heads per cylinder
  *              0x1C  cylinders
@@ -93,8 +93,9 @@ ext_is(const char *path, const char *want)
 int
 pc98_hdi_header_is_sane(const pc98_hdi_t *img, uint64_t file_size)
 {
-    /* Only the two sizes this layer can express. */
-    if (img->sector_size != 256u && img->sector_size != 512u)
+    /* PC-98 container sectors need not match the controller's transfer size. */
+    if (img->sector_size < 256u || img->sector_size > 4096u ||
+        (img->sector_size & (img->sector_size - 1u)))
         return 0;
 
     if (!img->spt || !img->hpc || !img->cylinders)
@@ -207,8 +208,8 @@ pc98_hdi_open(pc98_hdi_t *img, const char *path)
     const uint64_t file_size = (uint64_t) end;
 
     int ok = 0;
-    if (maybe_nhd)
-        ok = open_t98next(img, file_size);
+    /* NHD has an unambiguous signature. Some collections rename it .hdi. */
+    ok = open_t98next(img, file_size);
     if (!ok && maybe_hdi)
         ok = open_anex86(img, file_size);
 

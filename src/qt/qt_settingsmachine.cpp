@@ -304,27 +304,7 @@ SettingsMachine::on_comboBoxMachine_currentIndexChanged(int index)
         const auto *device    = machine_get_device(machineId);
         ui->pushButtonConfigure->setEnabled((device != nullptr) && (device->config != nullptr));
 
-        auto *modelCpu   = ui->comboBoxCPU->model();
-        int   removeRows = modelCpu->rowCount();
-
-        int i                    = 0;
-        int eligibleRows         = 0;
-        int selectedCpuFamilyRow = 0;
-        Models::Batch cpuRows(modelCpu);
-        while (cpu_families[i].package != 0) {
-            if (cpu_family_is_eligible(&cpu_families[i], machineId)) {
-                cpuRows.add(QString("%1 %2").arg(cpu_families[i].manufacturer, cpu_families[i].name), i);
-                if (&cpu_families[i] == cpu_f)
-                    selectedCpuFamilyRow = eligibleRows;
-                ++eligibleRows;
-            }
-            ++i;
-        }
-        cpuRows.commit();
-        modelCpu->removeRows(0, removeRows);
-        ui->comboBoxCPU->setEnabled(eligibleRows > 1);
-        ui->comboBoxCPU->setCurrentIndex(-1);
-        ui->comboBoxCPU->setCurrentIndex(selectedCpuFamilyRow);
+        refreshCpuChoices(machineId, cpu_f ? static_cast<int>(cpu_f - cpu_families) : -1, cpu);
 
         int divisor;
         if (machine_get_ram_granularity(machineId) < 1024) {
@@ -341,6 +321,37 @@ SettingsMachine::on_comboBoxMachine_currentIndexChanged(int index)
         ui->spinBoxRAM->setEnabled(machine_get_min_ram(machineId) != machine_get_max_ram(machineId));
 
         emit currentMachineChanged(machineId);
+    }
+}
+
+void
+SettingsMachine::refreshCpuChoices(int machineId, int preferredFamily, int preferredSpeed)
+{
+    auto *modelCpu = ui->comboBoxCPU->model();
+    const int removeRows = modelCpu->rowCount();
+    int eligibleRows = 0;
+    int selectedRow = 0;
+    {
+        const QSignalBlocker blocker(ui->comboBoxCPU);
+        Models::Batch cpuRows(modelCpu);
+        for (int i = 0; cpu_families[i].package; ++i) {
+            if (cpu_family_is_eligible(&cpu_families[i], machineId)) {
+                cpuRows.add(QString("%1 %2").arg(cpu_families[i].manufacturer, cpu_families[i].name), i);
+                if (i == preferredFamily)
+                    selectedRow = eligibleRows;
+                ++eligibleRows;
+            }
+        }
+        cpuRows.commit();
+        modelCpu->removeRows(0, removeRows);
+        ui->comboBoxCPU->setCurrentIndex(-1);
+    }
+    ui->comboBoxCPU->setEnabled(eligibleRows > 1);
+    ui->comboBoxCPU->setCurrentIndex(selectedRow);
+    if (ui->comboBoxCPU->currentData().toInt() == preferredFamily) {
+        const int speedRow = ui->comboBoxSpeed->findData(preferredSpeed);
+        if (speedRow >= 0)
+            ui->comboBoxSpeed->setCurrentIndex(speedRow);
     }
 }
 
@@ -387,7 +398,7 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
         int         cpuId       = ui->comboBoxSpeed->currentData().toInt();
         uint        cpuType     = cpuFamily->cpus[cpuId].cpu_type;
 
-        if ((cpuType >= CPU_286) && (cpuType < CPU_386DX)) {
+        if ((cpuType >= CPU_286) && (cpuType <= CPU_386DX)) {
             ui->comboBoxWaitStates->setEnabled(true);
             ui->comboBoxWaitStates->setCurrentIndex(cpu_waitstates);
         } else {
@@ -469,7 +480,39 @@ SettingsMachine::on_pushButtonConfigure_clicked()
     // deviceconfig_inst_open
     int         machineId = ui->comboBoxMachine->currentData().toInt();
     const auto *device    = machine_get_device(machineId);
-    machine_cfg_changed |= DeviceConfig::ConfigureDevice(device);
+    const int family = ui->comboBoxCPU->currentData().toInt();
+    const int speed = ui->comboBoxSpeed->currentData().toInt();
+    const int waitStates = ui->comboBoxWaitStates->currentIndex();
+    const int fpu = ui->comboBoxFPU->currentData().toInt();
+    const bool softfloat = ui->checkBoxFPUSoftfloat->isChecked();
+    const bool interpreter = ui->checkBoxOverrideInterpreter->isChecked();
+#ifdef USE_DYNAREC
+    const bool dynarec = ui->checkBoxDynamicRecompiler->isChecked();
+    const bool accurateFpu = ui->checkBoxAccurateFPUEnvironment->isChecked();
+#endif
+    const int changed = DeviceConfig::ConfigureDevice(device);
+    machine_cfg_changed |= changed;
+    if (changed && machines[machineId].init == machine_pc9801vx_init) {
+        refreshCpuChoices(machineId, family, speed);
+        if (ui->comboBoxWaitStates->isEnabled())
+            ui->comboBoxWaitStates->setCurrentIndex(waitStates);
+        if (ui->comboBoxCPU->currentData().toInt() == family &&
+            ui->comboBoxSpeed->currentData().toInt() == speed) {
+            const int fpuRow = ui->comboBoxFPU->findData(fpu);
+            if (fpuRow >= 0)
+                ui->comboBoxFPU->setCurrentIndex(fpuRow);
+            if (ui->checkBoxFPUSoftfloat->isEnabled())
+                ui->checkBoxFPUSoftfloat->setChecked(softfloat);
+            if (ui->checkBoxOverrideInterpreter->isEnabled())
+                ui->checkBoxOverrideInterpreter->setChecked(interpreter);
+#ifdef USE_DYNAREC
+            if (ui->checkBoxDynamicRecompiler->isEnabled())
+                ui->checkBoxDynamicRecompiler->setChecked(dynarec);
+            if (ui->checkBoxAccurateFPUEnvironment->isEnabled())
+                ui->checkBoxAccurateFPUEnvironment->setChecked(accurateFpu);
+#endif
+        }
+    }
 }
 
 void

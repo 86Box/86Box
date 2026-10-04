@@ -27,7 +27,8 @@ typedef struct pc98_opn_t pc98_opn_t;
 
 typedef enum pc98_opn_type_t {
     PC98_OPN_YM2203 = 0, /* PC-9801-26K */
-    PC98_OPN_YM2608 = 1  /* PC-9801-86  */
+    PC98_OPN_YM2608 = 1, /* PC-9801-86 / Speak Board */
+    PC98_OPN_YM3438 = 2  /* Spark Board's second FM chip */
 } pc98_opn_type_t;
 
 /* Optional ADPCM-B memory modification; a stock -86 has no ADPCM-B RAM. */

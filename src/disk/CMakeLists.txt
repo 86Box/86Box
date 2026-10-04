@@ -44,6 +44,7 @@ add_library(hdd OBJECT
     # NEC PC-9801-27 SASI interface
     pc98_sasi.c
     pc98_hdi.c
+    pc98_hdi_import.c
     hdc_pc98_sasi.c
 )
 

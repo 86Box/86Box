@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <86box/vid_upd7220.h>
+#include <86box/pc98_rom.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -128,8 +129,13 @@ uint32_t pc98_cg_offset(const pc98_video_t *v, uint32_t line, uint32_t lr,
 
 #ifdef EMU_DEVICE_H
 extern const device_t pc9801_video_device;
+extern const device_t pc9801bx4_video_device;
 extern int pc9801_video_firmware_available(void);
+extern int pc9801_video_firmware_available_for_model(pc98_model_t model);
 pc98_video_t *pc9801_video_get_core(void *priv);
+pc98_model_t pc9801_video_get_model(void *priv);
+/* Any write at motherboard port 64h rearms the next CRTV interrupt. */
+void pc9801_video_vrtc_reset(void *priv);
 #endif
 
 #ifdef __cplusplus

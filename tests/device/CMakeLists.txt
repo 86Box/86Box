@@ -1,4 +1,5 @@
 if(BUILD_TESTING)
+    add_subdirectory(pc98)
     add_executable(cartridge_tests
         cartridge_test.cpp
         ../../src/device/cartridge.c

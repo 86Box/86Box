@@ -278,6 +278,7 @@ extern void    fdc_reset(void *priv);
 extern uint8_t fdc_get_current_drive(void);
 extern void    fdc_seek_complete_interrupt(fdc_t *fdc, int drive);
 extern void    fdc_diskchange_interrupt(fdc_t *fdc, int drive);
+extern void    fdc_media_removed(fdc_t *fdc, int drive);
 
 #ifdef EMU_DEVICE_H
 extern const device_t fdc_xt_device;

@@ -19,10 +19,23 @@ string(SUBSTRING "${table}" ${profile_start} ${profile_size} profiles)
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/pc98_profiles.inc"
     "const machine_t machines[] = {\n${profiles}\n{ .cpu = { .package = CPU_PKG_286, .min_bus = 8000000, .max_bus = 10000000 } }\n};\n")
 
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/machine/m_pc98.c" motherboard)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/machine/m_pc98.c")
+string(FIND "${motherboard}" "static const device_config_t pc9801vx_config[]" config_start)
+string(FIND "${motherboard}" "static const device_t pc9801vx_motherboard_device" config_end)
+if(config_start LESS 0 OR config_end LESS config_start)
+    message(FATAL_ERROR "Cannot find PC-9801VX configuration descriptor")
+endif()
+math(EXPR config_size "${config_end} - ${config_start}")
+string(SUBSTRING "${motherboard}" ${config_start} ${config_size} config_descriptor)
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/pc98_config.inc" "${config_descriptor}")
+
 add_executable(pc98_machine_tests
     ../pc98_machine_test.c
     ../../../src/cpu/cpu.c
     ../../../src/cpu/cpu_table.c
+    ../../../src/utils/ini.c
     ../../../src/machine/pc98_rom.c)
 target_include_directories(pc98_machine_tests PRIVATE
     ../../../src/include ../../../src/cpu "${CMAKE_CURRENT_BINARY_DIR}")
@@ -42,8 +55,18 @@ add_test(NAME pc98_machine COMMAND pc98_machine_tests)
 
 add_executable(pc98_video_mapping_tests ../pc98_video_mapping_test.c
     ../../../src/machine/pc98_rom.c
+    ../../../src/machine/pc98_bios_patch.c
     ../../../src/video/vid_pc98.c ../../../src/video/vid_upd7220.c)
 target_include_directories(pc98_video_mapping_tests PRIVATE ../../../src/include)
+target_include_directories(pc98_video_mapping_tests PRIVATE ../../../src/cpu)
+set_property(TARGET pc98_video_mapping_tests PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+target_compile_options(pc98_video_mapping_tests PRIVATE
+    $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-ffunction-sections;-fdata-sections>
+    $<$<AND:$<CONFIG:Debug>,$<C_COMPILER_ID:GNU,Clang,AppleClang>>:-O1>)
+target_link_options(pc98_video_mapping_tests PRIVATE
+    $<$<AND:$<CONFIG:Debug>,$<C_COMPILER_ID:GNU,Clang,AppleClang>>:-O1>
+    $<$<PLATFORM_ID:Darwin>:-Wl,-dead_strip>
+    $<$<AND:$<NOT:$<PLATFORM_ID:Darwin>>,$<C_COMPILER_ID:GNU,Clang>>:-Wl,--gc-sections>)
 target_compile_features(pc98_video_mapping_tests PRIVATE c_std_11)
 target_compile_definitions(pc98_video_mapping_tests PRIVATE "$<$<CONFIG:Release>:RELEASE_BUILD>")
 add_test(NAME pc98_video_mapping COMMAND pc98_video_mapping_tests)

@@ -65,6 +65,7 @@ add_library(dev OBJECT
     nec_mate_unk.c
     # Generic Intel 8251/8255 cores used by PC-98
     pc98_i8251.c
+    pc98_mouse.c
     pc98_ppi8255.c
     novell_cardkey.c
     pci_bridge.c

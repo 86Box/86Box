@@ -177,3 +177,69 @@ uint32_t pc98_ipl_window_offset(uint32_t addr)
         return addr - 0x000e8000u;
     return UINT32_MAX;
 }
+
+static void pc98_bx4_bank_path(unsigned bank, char *path, size_t len)
+{
+    snprintf(path, len, "roms/machines/pc9801bx4/pc98BANK%u.BIN", bank);
+}
+
+int pc98_ipl_available_for_model(pc98_model_t model)
+{
+    if (model == PC98_MODEL_VX)
+        return pc98_ipl_available();
+    if (model != PC98_MODEL_BX4)
+        return 0;
+    char path[PC98_ROM_PATH_MAX];
+    for (unsigned bank = 0; bank < 8; bank++) {
+        pc98_bx4_bank_path(bank, path, sizeof(path));
+        if (!pc98_rom_has_size(path, PC98_BX4_BANK_SIZE))
+            return 0;
+    }
+    return 1;
+}
+
+uint8_t *pc98_bx4_banks_load(void)
+{
+    uint8_t *banks = malloc(PC98_BX4_BANKS_SIZE);
+    if (!banks)
+        return NULL;
+    char path[PC98_ROM_PATH_MAX];
+    for (unsigned bank = 0; bank < 8; bank++) {
+        pc98_bx4_bank_path(bank, path, sizeof(path));
+        if (!pc98_rom_read_exact(path, banks + bank * PC98_BX4_BANK_SIZE,
+                                  PC98_BX4_BANK_SIZE)) {
+            free(banks);
+            return NULL;
+        }
+    }
+    return banks;
+}
+
+uint8_t *pc98_ipl_load_for_model(pc98_model_t model)
+{
+    if (model == PC98_MODEL_VX)
+        return pc98_ipl_load();
+    if (model != PC98_MODEL_BX4)
+        return NULL;
+    uint8_t *banks = pc98_bx4_banks_load();
+    if (!banks)
+        return NULL;
+    uint8_t *ipl = malloc(PC98_IPL_REGION_SIZE);
+    if (ipl) {
+        memset(ipl, 0xff, PC98_IPL_REGION_SIZE);
+        /* getitf98 uses logical bank numbering, including on flash boards:
+         * bank 4 = ITF, 5 = BASIC at E8000h, 6/7 = BIOS at F0000h/F8000h.
+         * Do not interpret these files as physical flash-chip ordering. */
+        memcpy(ipl + 0x10000u, banks + 4u * PC98_BX4_BANK_SIZE, PC98_BX4_BANK_SIZE);
+        memcpy(ipl + 0x18000u, banks + 5u * PC98_BX4_BANK_SIZE, 3u * PC98_BX4_BANK_SIZE);
+    }
+    free(banks);
+    return ipl;
+}
+
+uint32_t pc98_ipl_window_offset_for_model(uint32_t addr, pc98_model_t model)
+{
+    if (model == PC98_MODEL_BX4 && addr >= 0xfffe8000u)
+        return addr - 0xfffe8000u;
+    return pc98_ipl_window_offset(addr);
+}

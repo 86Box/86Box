@@ -72,6 +72,7 @@ add_library(snd OBJECT
     snd_pc98_opn.cpp
     snd_pc98_26k.c
     snd_pc98_86.c
+    snd_pc98_spb.c
 )
 
 # TODO: Should platform-specific audio driver be here?

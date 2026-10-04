@@ -219,7 +219,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
         if (device_is_valid(dev, machineId) == 0)
             continue;
 
-        QString name = DeviceConfig::DeviceName(dev, mouse_get_internal_name(i), 0);
+        QString name = DeviceConfig::MouseName(i, machineId);
         int     row  = mouseRows.add(name, i);
 
         scMouse->addDevice(nullptr, name);

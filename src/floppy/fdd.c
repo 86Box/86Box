@@ -915,14 +915,23 @@ fdd_close(void *priv)
     /* Stop every callback before releasing the backend it can access. The
      * motor may remain on, but its empty-drive poll is restarted afterwards. */
     const int was_polling = timer_is_enabled(&drv->poll_time);
+    /* A mechanical SEEK does not depend on the medium. Its delayed completion
+     * still belongs to the FDC after eject, but a deferred data command cannot
+     * retain a callback into the image being released. */
+    const int keep_seek = drv->fdc && (((fdc_t *) drv->fdc)->flags & FDC_FLAG_PC98) &&
+                          drv->seek_in_progress && !drv->pending.pending;
     timer_disable(&drv->poll_time);
-    timer_disable(&drv->seek_timer);
+    if (!keep_seek)
+        timer_disable(&drv->seek_timer);
     fdd_ready_cancel(drv);
-    drv->seek_in_progress = 0;
+    if (!keep_seek)
+        drv->seek_in_progress = 0;
     drv->notfound = 0;
     memset(&drv->pending, 0, sizeof(drv->pending));
 
     d86f_stop(drv); /* Call this first of all to make sure the 86F poll is back to idle state. */
+    if (drv->fdc && !drv->empty)
+        fdc_media_removed(drv->fdc, drv->id & 3);
 
     drv->hole          = NULL;
     drv->poll          = NULL;
@@ -934,7 +943,6 @@ fdd_close(void *priv)
     drv->format        = NULL;
     drv->byteperiod    = NULL;
     drv->stop          = NULL;
-    drv->seek_in_progress = 0;
 
     /* Close the backend that actually owns local, rather than choosing a
      * destructor from the filename extension. */

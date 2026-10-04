@@ -497,13 +497,36 @@ sasi_attach_drives(pc98_sasi_dev_t *dev)
          * headerless raw, which yields a drive full of noise - so this has
          * to come before it rather than after.
          */
-        const int native_result = pc98_hdi_open(&dev->unit_img[unit], hdd[i].fn);
+        char      import_error[256];
+        const int native_result = pc98_hdi_open_sasi(&dev->unit_img[unit], hdd[i].fn,
+                                                     import_error, sizeof(import_error));
         if (native_result < 0) {
-            pclog("[PC98] SASI unit %u: cannot open native container or invalid header: %s\n",
-                  unit, hdd[i].fn);
+            char message[sizeof(hdd[i].fn) + 512];
+            snprintf(message, sizeof(message), "SASI disk %u could not be attached:\n%s\n\n%s",
+                     unit, hdd[i].fn, import_error);
+            ui_msgbox(MBX_ERROR, message);
             continue;
         }
         if (native_result > 0) {
+            if (dev->unit_img[unit].sasi_imported) {
+                char      imported[sizeof(hdd[i].fn)];
+                const int length = snprintf(imported, sizeof(imported), "%s.sasi.hdi", hdd[i].fn);
+                if (length < 0 || (size_t) length >= sizeof(imported)) {
+                    pc98_hdi_close(&dev->unit_img[unit]);
+                    ui_msgbox(MBX_ERROR, "The imported SASI image path exceeds the disk settings limit.");
+                    continue;
+                }
+                memcpy(hdd[i].fn, imported, (size_t) length + 1u);
+                hdd[i].tracks = dev->unit_img[unit].cylinders;
+                hdd[i].hpc    = dev->unit_img[unit].hpc;
+                hdd[i].spt    = dev->unit_img[unit].spt;
+                char message[sizeof(hdd[i].fn) + 512];
+                snprintf(message, sizeof(message),
+                         "A SASI-compatible copy was selected:\n%s\n\n"
+                         "The original disk is unchanged. Disk writes go to this copy.",
+                         imported);
+                ui_msgbox(MBX_INFO, message);
+            }
             pclog("[PC98] SASI unit %u: %s, %u-byte sectors, "
                   "%u cyl / %u heads / %u sec, %u blocks%s\n",
                   unit,

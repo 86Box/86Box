@@ -40,12 +40,13 @@ typedef struct pc98_hdi_t {
     FILE             *f;
     pc98_hdi_format_t format;
     uint32_t          base;        /* offset of the first data byte      */
-    uint32_t          sector_size; /* 256 or 512, from the header        */
+    uint32_t          sector_size; /* 256..4096, from the header         */
     uint32_t          spt;         /* sectors per track                  */
     uint32_t          hpc;         /* heads per cylinder                 */
     uint32_t          cylinders;
     uint32_t          blocks;      /* total capacity in native sectors  */
     int               read_only;
+    int               sasi_imported; /* open_sasi selected a separate copy */
 } pc98_hdi_t;
 
 /*
@@ -56,6 +57,18 @@ typedef struct pc98_hdi_t {
  */
 int pc98_hdi_open(pc98_hdi_t *img, const char *path);
 void pc98_hdi_close(pc98_hdi_t *img);
+
+/* Open for the PC-9801-27. Compatible media is opened directly; supported
+ * PC-98 MS-DOS FAT12/16 media with different geometry is imported into
+ * <path>.sasi.hdi. The original is never written. Existing imports are reused
+ * only if their recorded source fingerprint matches; they are never replaced.
+ * error receives a reason on failure, including unsupported guest boot code. */
+int pc98_hdi_open_sasi(pc98_hdi_t *img, const char *path,
+                       char *error, size_t error_size);
+
+/* Create a new native SASI image without replacing an existing path. */
+int pc98_hdi_import_sasi(pc98_hdi_t *source, const char *output,
+                         char *error, size_t error_size);
 
 /* lba and count are in img->sector_size logical sectors. */
 int pc98_hdi_read(pc98_hdi_t *img, uint32_t lba, uint32_t count, uint8_t *buf);
@@ -82,7 +95,7 @@ uint32_t pc98_hdi_sasi_blocks(const pc98_hdi_t *img, uint32_t bios_spt);
 /*
  * Header sanity check, exposed for the tests.  A header is accepted only
  * when the geometry it states accounts for the data actually in the file,
- * and when the sector size is one of the two this can represent.  That
+ * and when the sector size is a power of two from 256 through 4096. That
  * makes a misparsed or hand-edited header fail loudly at load rather than
  * silently reading a drive at the wrong offsets.
  */

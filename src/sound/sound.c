@@ -158,10 +158,6 @@ void *filter_pc_speaker_p                                          = NULL;
 void (*filter_midi)(int channel, double *buffer, void *priv) = NULL;
 void *filter_midi_p                                          = NULL;
 
-/* NEC PC-9801-26K and PC-9801-86, from snd_pc98_26k.c/snd_pc98_86.c. */
-extern const device_t pc98_26k_device;
-extern const device_t pc98_86_device;
-
 static const SOUND_CARD sound_cards[] = {
     // clang-format off
     { &device_none                  },
@@ -169,6 +165,8 @@ static const SOUND_CARD sound_cards[] = {
     /* NEC C-BUS, added by the PC-9801VX integration. */
     { &pc98_26k_device              },
     { &pc98_86_device               },
+    { &pc98_speakboard_device       },
+    { &pc98_sparkboard_device       },
     /* ISA */
     { &adgold_device                },
     { &soundmaster_device           },

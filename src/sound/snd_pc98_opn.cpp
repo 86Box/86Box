@@ -110,6 +110,16 @@ public:
         m_address_data = 0;
         m_irq_enable = 0x1f;
         m_chip.reset();
+        if constexpr (ChipType::OUTPUTS == 2) {
+            /* ymfm's YM2612/YM3438 reset only resets the FM engine. The
+             * discrete DAC enable/data latches also reset on the board. */
+            m_chip.write(0u, 0x2bu);
+            m_chip.write(1u, 0u);
+            m_chip.write(0u, 0x2au);
+            m_chip.write(1u, 0x80u);
+            m_busy = false;
+            timer_disable(&m_busy_timer);
+        }
         m_chip.write(0u, 0u);
         port_a = 0xffu;
         port_b = 0x00u;
@@ -374,14 +384,18 @@ private:
             const int32_t ssg = out.data[1] + out.data[2] + out.data[3];
             const int32_t mix = out.data[0] + (ssg >> 3);
             m_samples[0] = m_samples[1] = mix;
-        } else {
+        } else if constexpr (ChipType::OUTPUTS == 3) {
             /*
              * YM2608: data[0]/data[1] are FM left/right and data[2] is the
              * mono SSG, which feeds both sides.
              */
             const int32_t ssg = out.data[2] / 2;
             m_samples[0]      = out.data[0] + (ssg >> 2);
-            m_samples[1]      = out.data[1 % ChipType::OUTPUTS] + (ssg >> 2);
+            m_samples[1]      = out.data[1] + (ssg >> 2);
+        } else {
+            /* YM3438: stereo FM/DAC, with no SSG output. */
+            m_samples[0] = out.data[0];
+            m_samples[1] = out.data[1];
         }
     }
 
@@ -454,6 +468,8 @@ pc98_opn_create(pc98_opn_type_t type, uint32_t clock,
 
     if (type == PC98_OPN_YM2608)
         handle->chip = new pc98_opn_chip<ymfm::ym2608>(clock, irq, priv);
+    else if (type == PC98_OPN_YM3438)
+        handle->chip = new pc98_opn_chip<ymfm::ym3438>(clock, irq, priv);
     else
         handle->chip = new pc98_opn_chip<ymfm::ym2203>(clock, irq, priv);
 

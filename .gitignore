@@ -4,7 +4,24 @@ CMakeCache.txt
 CMakeFiles
 /build
 /build-*/
+build/
+build-*/
 *.a
+*.o
+*.obj
+*.exe
+*.dll
+*.pdb
+*.ilk
+*.idb
+*.lib
+*.map
+.ninja_deps
+.ninja_log
+build.ninja
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
 /src/*.exe
 /src/86Box
 /src/include/86box/version.h
@@ -78,6 +95,11 @@ CMakeLists.txt.user
 /roms/
 /converted/
 /tmp/
+
+# Separate local project and source-installer backup state
+/98bridge-software/
+.pc98-install/
+.pc98-backup-*/
 
 # Python-generated caches
 __pycache__/

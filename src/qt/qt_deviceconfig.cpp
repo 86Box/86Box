@@ -41,6 +41,8 @@ extern "C" {
 #include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/device.h>
+#include <86box/machine.h>
+#include <86box/mouse.h>
 #include <86box/midi_rtmidi.h>
 #include <86box/mem.h>
 #include <86box/random.h>
@@ -726,6 +728,14 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
     }
 
     return has_changed;
+}
+
+QString
+DeviceConfig::MouseName(int mouseId, int machineId)
+{
+    if (mouseId == MOUSE_TYPE_INTERNAL && machineId >= 0 && machine_has_bus(machineId, MACHINE_PC98))
+        return tr("NEC PC-9872 mouse");
+    return DeviceName(mouse_get_device(mouseId), mouse_get_internal_name(mouseId), 0);
 }
 
 QString

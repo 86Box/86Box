@@ -3612,7 +3612,8 @@ const machine_t machines[] = {
         .aliases                  = { "" }
     },
 
-    /* NEC PC-9801VX: 80286, C-BUS, fixed dual-uPD7220 video. */
+    /* NEC PC-9801VX: 80286, C-BUS, fixed dual-uPD7220 video.
+       CPU upgrade choices and their opt-in firmware patch are filtered in cpu.c. */
     {
         .name              = "[C-BUS] NEC PC-9801VX",
         .internal_name     = "pc9801vx",
@@ -3624,17 +3625,17 @@ const machine_t machines[] = {
         .available_flag    = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
         .cpu               = {
-            .package     = CPU_PKG_286,
+            .package     = CPU_PKG_286 | CPU_PKG_386SX | CPU_PKG_386DX,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 8000000,
-            .max_bus     = 10000000,
+            .max_bus     = 33333333,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC98,
-        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_FDC,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_FDC | MACHINE_MOUSE | MACHINE_LPT_PRI,
         .ram       = {
             .min  = 640,
             .max  = 8832,
@@ -3652,13 +3653,41 @@ const machine_t machines[] = {
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &pc9801vx_device,
         .kbd_device               = NULL,
         .fdc_device               = &fdc_pc98_device,
         .vid_device               = &pc9801_video_device,
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "PC-9801VX", "PC98VX", "" }
+    },
+    /* Supplied getitf98 BX4 firmware; legacy devices only until the later
+       model's GD5430/full configuration/PMC/onboard IDE are validated. */
+    {
+        .name              = "[C-BUS] NEC PC-9801BX4 (experimental)",
+        .internal_name     = "pc9801bx4",
+        .type              = MACHINE_TYPE_SOCKET1,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_pc9801bx4_init,
+        .available_flag    = MACHINE_AVAILABLE,
+        .cpu               = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 33333333,
+            .max_bus = 33333333,
+            .min_multi = 2,
+            .max_multi = 3
+        },
+        .bus_flags = MACHINE_PC98,
+        .flags = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_FDC | MACHINE_MOUSE | MACHINE_LPT_PRI,
+        .ram = { .min = 2048, .max = 65536, .step = 2048 },
+        .default_jumpered_ecp_dma = -1,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .fdc_device = &fdc_pc98_device,
+        .vid_device = &pc9801bx4_video_device,
+        .aliases = { "PC-9801BX4", "PC98BX4", "" }
     },
     /* 286 AT machines */
     /* Has IBM AT KBC firmware. */

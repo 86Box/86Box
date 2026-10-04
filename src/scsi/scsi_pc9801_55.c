@@ -87,6 +87,7 @@ static void pc98_55_log(const char *fmt, ...)
 #define PC98_55_CMD_TRANSFER_PAD       0x21
 
 #define PC98_55_ASR_INT                0x80
+#define PC98_55_ASR_BSY                0x20
 #define PC98_55_ASR_CIP                0x10
 #define PC98_55_ASR_DBR                0x01
 
@@ -98,6 +99,9 @@ static void pc98_55_log(const char *fmt, ...)
 #define PC98_55_CSR_INVALID            0x40
 #define PC98_55_CSR_TIMEOUT            0x42
 #define PC98_55_CSR_SEL_ABORT          0x22
+#define PC98_55_CSR_SERVICE_REQ        0x88
+#define PC98_55_CSR_MSG_ACK            0x20
+#define PC98_55_CSR_DISCONNECT         0x85
 
 #define PC98_55_PHASE_DATA_OUT         0x00
 #define PC98_55_PHASE_DATA_IN          0x01
@@ -109,7 +113,7 @@ static void pc98_55_log(const char *fmt, ...)
 
 #define PC98_55_IRQ_ENABLE             0x04
 #define PC98_55_BUS_RESET              0x02
-#define PC98_55_ROM_BANK               0x01
+#define PC98_55_ROM_BANK               0x40
 #define PC98_55_DMA_OUT_TO_MEMORY      0x01
 #define PC98_55_DMA_IN_FROM_MEMORY     0x02
 
@@ -130,6 +134,7 @@ typedef struct pc98_55_t {
     uint8_t  last_aux_status;
     uint8_t  aux_status_valid;
     uint8_t  selected;
+    uint8_t  level2;
     uint8_t  transfer_active;
     uint8_t  transfer_direction;
     uint8_t  transfer_special;
@@ -229,7 +234,7 @@ static void pc98_55_disconnect(pc98_55_t *dev)
     dev->phase = PC98_55_PHASE_COMPLETE;
     pc98_55_log("[PC98-55] disconnect target=%u target_status=%02X\n", dev->target_id,
                target ? target->status : 0xff);
-    pc98_55_raise(dev, PC98_55_CSR_SELECT_XFER_DONE);
+    pc98_55_raise(dev, dev->level2 ? PC98_55_CSR_SELECT_XFER_DONE : PC98_55_CSR_DISCONNECT);
 }
 
 static void pc98_55_advance_pending(pc98_55_t *dev)
@@ -249,12 +254,6 @@ static void pc98_55_advance_pending(pc98_55_t *dev)
 
     dev->phase = next_phase;
     pc98_55_raise(dev, next_csr);
-}
-
-static void pc98_55_schedule_phase(pc98_55_t *dev, uint8_t phase)
-{
-    dev->pending_phase = phase;
-    dev->pending_csr   = PC98_55_CSR_XFER_DONE | phase;
 }
 
 static int pc98_55_cdb_length(const pc98_55_t *dev, uint8_t opcode)
@@ -415,7 +414,9 @@ static void pc98_55_finish_data(pc98_55_t *dev)
         dev->transfer_remaining = 0;
         scsi_device_command_phase1(target);
         dev->target_data_finished = 1;
-        pc98_55_schedule_phase(dev, PC98_55_PHASE_STATUS);
+        /* WD33C93 INFO completion reports the new phase requested by the
+         * target in CSR's low bits, using one completion interrupt. */
+        dev->phase = PC98_55_PHASE_STATUS;
         pc98_55_log("[PC98-55] target data phase complete: transferred=%u status=%02X\n",
                    dev->transfer_position, target->status);
     }
@@ -521,11 +522,12 @@ static void pc98_55_transfer_byte_done(pc98_55_t *dev)
             pc98_55_raise(dev, PC98_55_CSR_XFER_DONE | dev->phase);
             break;
         case PC98_55_PHASE_STATUS:
-            pc98_55_schedule_phase(dev, PC98_55_PHASE_MESSAGE_IN);
-            pc98_55_raise(dev, PC98_55_CSR_XFER_DONE | PC98_55_PHASE_STATUS);
+            dev->phase = PC98_55_PHASE_MESSAGE_IN;
+            pc98_55_raise(dev, PC98_55_CSR_XFER_DONE | dev->phase);
             break;
         case PC98_55_PHASE_MESSAGE_IN:
-            pc98_55_raise(dev, PC98_55_CSR_XFER_DONE | PC98_55_PHASE_MESSAGE_IN);
+            /* Message-In INFO leaves ACK asserted for host inspection. */
+            pc98_55_raise(dev, PC98_55_CSR_MSG_ACK);
             break;
         default:
             break;
@@ -569,10 +571,9 @@ static void pc98_55_data_write(pc98_55_t *dev, uint8_t value)
                         break;
                     }
                 }
-                pc98_55_schedule_phase(dev,
-                    (dev->message_in == 0x07) ?
-                    PC98_55_PHASE_MESSAGE_IN : PC98_55_PHASE_COMMAND);
-                pc98_55_raise(dev, PC98_55_CSR_XFER_DONE | PC98_55_PHASE_MESSAGE_OUT);
+                dev->phase = (dev->message_in == 0x07) ?
+                    PC98_55_PHASE_MESSAGE_IN : PC98_55_PHASE_COMMAND;
+                pc98_55_raise(dev, PC98_55_CSR_XFER_DONE | dev->phase);
             }
             break;
         case PC98_55_PHASE_COMMAND: {
@@ -641,6 +642,7 @@ static void pc98_55_reset_controller(pc98_55_t *dev, int reset_targets)
     pc98_55_irq(dev, 0);
     dma_set_drq(dev->dma_channel, 0);
     dev->selected = 0;
+    dev->level2 = 0;
     dev->transfer_active = 0;
     dev->transfer_remaining = 0;
     dev->transfer_position = 0;
@@ -710,11 +712,18 @@ static void pc98_55_select(pc98_55_t *dev, uint8_t command)
     }
 
     dev->selected = 1;
+    dev->level2 = (command == PC98_55_CMD_SELECT_ATN_XFER) ||
+                  (command == PC98_55_CMD_SELECT_XFER);
     scsi_device_identify(target, dev->regs[PC98_55_REG_TARGET_LUN] & 7);
 
     if ((command == PC98_55_CMD_SELECT_ATN) || (command == PC98_55_CMD_SELECT)) {
         dev->phase = (command == PC98_55_CMD_SELECT_ATN) ?
                      PC98_55_PHASE_MESSAGE_OUT : PC98_55_PHASE_COMMAND;
+        /* Selection completion and the target's first REQ are separate
+         * interrupts. The 55L BIOS acknowledges 11h, then waits for the
+         * command/message phase service request before issuing INFO. */
+        dev->pending_phase = dev->phase;
+        dev->pending_csr = PC98_55_CSR_SERVICE_REQ | dev->phase;
         pc98_55_raise(dev, PC98_55_CSR_SELECT);
         return;
     }
@@ -792,8 +801,10 @@ static uint8_t pc98_55_read_reg(pc98_55_t *dev, uint8_t reg)
         uint8_t status = 0;
         if (dev->irq_pending)
             status |= PC98_55_ASR_INT;
+        /* TRANSFER INFO owns the SCSI bus until its byte count completes.
+         * The 55L BIOS polls for BSY|DBR (21h) before each PIO byte. */
         if (dev->transfer_active)
-            status |= PC98_55_ASR_DBR;
+            status |= PC98_55_ASR_BSY | PC98_55_ASR_DBR;
         if (!dev->aux_status_valid || (dev->last_aux_status != status)) {
             pc98_55_log("[PC98-55] AUX status=%02X (IRQ pending=%u, data ready=%u)\n",
                        status, !!(status & PC98_55_ASR_INT), !!(status & PC98_55_ASR_DBR));
@@ -1060,7 +1071,7 @@ static void *pc98_55_init(const device_t *info)
         return NULL;
     }
 
-    dev->regs[PC98_55_REG_OWN_ID] = (uint8_t) (0x40 | dev->source_id); /* 12-byte CDB-size encoding */
+    dev->regs[PC98_55_REG_OWN_ID] = (uint8_t) (0x40 | dev->source_id); /* 12-15 MHz clock range */
     dev->regs[PC98_55_REG_SOURCE_ID] = dev->source_id;
     dev->phase = PC98_55_PHASE_COMPLETE;
     dev->scsi_status = PC98_55_CSR_RESET;
@@ -1180,7 +1191,7 @@ static const device_config_t pc98_55_config[] = {
             { .description = "IRQ 6",  .value = 6 },
             { .description = "IRQ 9",  .value = 9 },
             { .description = "IRQ 12", .value = 12 },
-            { .description = "IRQ 13", .value = 13 },
+            { .description = "IRQ 13 (PC-98 mouse clock)", .value = 13 },
             { .description = ""                    }
         },
         .bios           = { { 0 } }

@@ -275,13 +275,16 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
 
         auto *checkBox  = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
         auto *buttonCfg = findChild<QPushButton *>(QString("pushButtonConfigureLpt%1").arg(i + 1));
-        if (checkBox != NULL)
+        const bool available = !machine_has_bus(machineId, MACHINE_PC98) || i == 0;
+        if (checkBox != NULL) {
             checkBox->setChecked(lpt_ports[i].enabled > 0);
+            checkBox->setEnabled(available);
+        }
         if (cbox[i] != NULL) {
-            cbox[i]->setEnabled(lpt_ports[i].enabled > 0);
+            cbox[i]->setEnabled(available && lpt_ports[i].enabled > 0);
             if (buttonCfg != NULL) {
                 int lptDevice = cbox[i]->currentData().toInt();
-                buttonCfg->setEnabled(device_has_config(char_get_device(lptDevice)) && (lpt_ports[i].enabled > 0));
+                buttonCfg->setEnabled(available && device_has_config(char_get_device(lptDevice)) && (lpt_ports[i].enabled > 0));
             }
         }
 
@@ -321,13 +324,17 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
 
         auto *checkBox  = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
         auto *buttonCfg = findChild<QPushButton *>(QString("pushButtonConfigureCom%1").arg(i + 1));
-        if (checkBox != NULL)
+        /* The native 8251 registers exist, but have no host connection yet. */
+        const bool available = !machine_has_bus(machineId, MACHINE_PC98);
+        if (checkBox != NULL) {
             checkBox->setChecked(com_ports[i].enabled > 0);
+            checkBox->setEnabled(available);
+        }
         if (cbox[i] != NULL) {
-            cbox[i]->setEnabled(com_ports[i].enabled > 0);
+            cbox[i]->setEnabled(available && com_ports[i].enabled > 0);
             if (buttonCfg != NULL) {
                 int comDevice = cbox[i]->currentData().toInt();
-                buttonCfg->setEnabled(device_has_config(char_get_device(comDevice)) && (com_ports[i].enabled > 0));
+                buttonCfg->setEnabled(available && device_has_config(char_get_device(comDevice)) && (com_ports[i].enabled > 0));
             }
         }
     }

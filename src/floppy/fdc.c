@@ -69,6 +69,7 @@ const uint8_t command_has_drivesel[32] = {
 
 static void fdc_callback(void *priv);
 static void fdc_rate(fdc_t *fdc, int drive);
+void        fdc_error(fdc_t *fdc, int st5, int st6);
 
 int            lastbyte             = 0;
 volatile int   fdcinited            = 0;
@@ -240,6 +241,18 @@ fdc_pc98_abort(fdc_t *fdc)
     fdc->command = fdc->processed_cmd = 0;
     fdc->fintr = fdc->data_ready = fdc->paramstogo = 0;
     fdc->tc = fdc->error = fdc->format_state = fdc->reset_stat = 0;
+}
+
+static int
+fdc_command_uses_media(uint8_t command)
+{
+    switch (command) {
+        case 0x02: case 0x05: case 0x06: case 0x09: case 0x0a:
+        case 0x0c: case 0x0d: case 0x11: case 0x16: case 0x19: case 0x1d:
+            return 1;
+        default:
+            return 0;
+    }
 }
 
 sector_id_t
@@ -1422,7 +1435,20 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                             }
                             return;
                         }
-                        /* Process the firt phase of the command. */
+                        /* Unlike IBM PC adapters, PC-98 exposes READY. An
+                         * absent mechanism has no poll timer to expire an ID
+                         * search, so reject media access before starting it. */
+                        if ((fdc->flags & FDC_FLAG_PC98) &&
+                            fdc_command_uses_media(fdc->processed_cmd) &&
+                            !fdd_is_ready(fdc->fdd[real_drive(fdc, fdc->drive)])) {
+                            fdc->rw_track = fdc->params[1];
+                            fdc->head = (fdc->params[0] & 4) ? 1 : 0;
+                            fdc->sector = fdc->params[3];
+                            fdc_error(fdc, 0, 0);
+                            fdc->st0 = fdc->res[4] = 0x48 | (fdc->params[0] & 7);
+                            return;
+                        }
+                        /* Process the first phase of the command. */
                         switch (fdc->processed_cmd) {
                             case 0x02: /* Read a track */
                                 fdc_io_command_phase1(fdc, 0);
@@ -2434,6 +2460,26 @@ fdc_overrun(fdc_t *fdc)
     fdc_error(fdc, 0x10, 0);
 }
 
+void
+fdc_media_removed(fdc_t *fdc, int drive)
+{
+    /* PC-98 wires the mechanism's READY input to the 765. IBM PC adapters
+     * tie it active and still detect absent media by searching for IDs. */
+    if (!(fdc->flags & FDC_FLAG_PC98) ||
+        real_drive(fdc, fdc->drive) != drive || fdc->pnum != fdc->ptot ||
+        !(fdc->stat & 0x10) || (fdc->stat & 0xf0) == 0xd0 ||
+        (fdc->stat & 0xf0) == 0x90)
+        return;
+
+    if (fdc_command_uses_media(fdc->processed_cmd)) {
+        fifo_reset(fdc->fifo_p);
+        fdc->data_ready = 0;
+        fdc_error(fdc, 0, 0);
+        /* uPD765 ST0 IC=11: READY changed during execution; NR=1. */
+        fdc->st0 = fdc->res[4] = 0xc8 | (fdc->params[0] & 7);
+    }
+}
+
 int
 fdc_is_verify(fdc_t *fdc)
 {
@@ -2967,6 +3013,13 @@ fdc_close(void *priv)
     /* Stop timers. */
     timer_disable(&fdc->watchdog_timer);
     timer_disable(&fdc->timer);
+
+    /* Detaching a native controller must also release its bus outputs. */
+    if (fdc->flags & FDC_FLAG_PC98) {
+        dma_set_drq(fdc->dma_ch, 0);
+        if (fdc->irq != 0xff)
+            picintc(1 << fdc->irq);
+    }
 
     fifo_close(fdc->fifo_p);
 

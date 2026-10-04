@@ -20,9 +20,11 @@
 #include <86box/pic.h>
 #include <86box/rom.h>
 #include <86box/pc98_rom.h>
+#include <86box/pc98_bios_patch.h>
 #include <86box/timer.h>
 #include <86box/vid_pc98.h>
 #include <86box/video.h>
+#include <86box/ui.h>
 
 #define PC98_FONT_PATH      "roms/machines/pc9801/font.rom"
 #define PC98_KANJI_X01_PATH "roms/machines/pc9801/24256c-x01.bin"
@@ -52,17 +54,22 @@ struct pc98_86box_t {
     uint64_t gdc_timer_usec;
     uint32_t gdc_clock_fraction;
     uint8_t in_vsync;
+    uint8_t vrtc_armed;
     uint8_t raster_phase;
     uint8_t need_resize;
     uint8_t display_on;   /* last presented state of video FF 7 */
     uint8_t logged_state;
     uint8_t *ipl;
+    uint8_t *firmware_banks;
+    pc98_model_t model;
     uint8_t ipl_bank;
+    uint8_t flash_bank;
     mem_mapping_t ipl_low_map;
     mem_mapping_t tvram_map;
     mem_mapping_t cg_map;
     mem_mapping_t gvram_map[4];
     mem_mapping_t ipl_high_map;
+    mem_mapping_t ipl_reset_map;
     pc98_plane_map_t plane_map[4];
 };
 
@@ -263,9 +270,11 @@ static void pc98_outw(uint16_t port, uint16_t val, void *priv)
 static uint8_t ipl_rb(uint32_t addr, void *priv)
 {
     pc98_86box_t *d = (pc98_86box_t *)priv;
-    uint32_t off = pc98_ipl_window_offset(addr);
+    uint32_t off = pc98_ipl_window_offset_for_model(addr, d->model);
     if (!d->ipl || off >= PC98_IPL_WINDOW_SIZE)
         return 0xff;
+    if (d->firmware_banks && d->flash_bank < 8 && off >= 0x10000u)
+        return d->firmware_banks[d->flash_bank * PC98_BX4_BANK_SIZE + off - 0x10000u];
     return d->ipl[(uint32_t)d->ipl_bank * PC98_IPL_WINDOW_SIZE + off];
 }
 
@@ -289,7 +298,17 @@ static void ipl_bank_out(uint16_t port, uint8_t val, void *priv)
         if (bank != d->ipl_bank)
             pclog("[PC98] IPL bank %u -> %u (43D=%02X)\n", d->ipl_bank, bank, val);
         d->ipl_bank = bank;
+        d->flash_bank = 0xffu;
     }
+}
+
+static void pc98_flash_bank_out(uint16_t port, uint8_t val, void *priv)
+{
+    pc98_86box_t *d = priv;
+    (void)port;
+    /* getitf98's documented E0,E2,...EE logical bank selection at F8000h. */
+    if ((val & 0xf1u) == 0xe0u)
+        d->flash_bank = (val >> 1) & 7u;
 }
 
 static int load_font_from_rom_path(pc98_video_t *v)
@@ -689,7 +708,7 @@ static void pc98_render_text(pc98_86box_t *d, const upd7220_t *g)
     unsigned pitch, lr, widthmul, char_size;
     const int cursor_on = pc98_cursor_phase(d, g);
     const int blink_off = pc98_attribute_blink_off(d, g);
-    unsigned row_start = 0;
+    unsigned back_y = 0;
 
     if (!g->de || !v->font_rom) return;
     pitch = g->pitch ? g->pitch : 80u;
@@ -708,34 +727,28 @@ static void pc98_render_text(pc98_86box_t *d, const upd7220_t *g)
     unsigned scroll_rows = (unsigned)v->txt_scroll[5] + 1u;
     if (scroll_rows > 32u) scroll_rows = 32u;
 
-    for (unsigned part = 0; part < 4u; part++) {
+    for (unsigned part = 0; part < 4u && back_y < 400u; part++) {
         upd7220_partition_t area;
         upd7220_get_text_partition(g, part, &area);
-        /* Unlike bitmap partitions, a zero-length text partition is empty. */
-        const unsigned rows = area.len;
-        for (unsigned row = 0; row < rows; row++) {
-            const unsigned display_row = row_start + row;
-            if (display_row * lr >= 400u)
-                break;
+        /* PRAM LEN counts raster lines, even in character mode.  Areas are
+         * contiguous and each SAD starts a new character row.  A boundary
+         * within a character row must be clipped without rounding LEN or
+         * shifting the next area's SAD. */
+        for (unsigned line = 0; line < area.len && back_y + line < 400u; line++) {
+            const unsigned y = back_y + line;
+            const unsigned display_row = y / lr;
+            const int in_scroll = scroll && display_row >= scroll_start &&
+                                  display_row - scroll_start < scroll_rows;
+            const unsigned source_line = line + (in_scroll ? scroll : 0u);
+            const uint32_t source_base =
+                (area.sad + (source_line / lr) * pitch) & 0x0fffu;
 
-            for (unsigned sy = 0; sy < lr; sy++) {
-                const unsigned y = display_row * lr + sy;
-                if (y >= 400u) break;
-
-                const int in_scroll = scroll && display_row >= scroll_start &&
-                                      display_row - scroll_start < scroll_rows;
-                const unsigned source_offset = in_scroll ? (sy + scroll) : sy;
-                const unsigned source_row = display_row + source_offset / lr;
-                const unsigned source_sy = source_offset % lr;
-                const uint32_t source_base = (area.sad + source_row * pitch) & 0x0fffu;
-
-                pc98_render_text_scanline(d, g, source_base, pitch, widthmul,
-                                          lr, char_size, source_sy, y,
-                                          cursor_on, blink_off);
-            }
+            pc98_render_text_scanline(d, g, source_base, pitch, widthmul,
+                                      lr, char_size, source_line % lr, y,
+                                      cursor_on, blink_off);
         }
-        /* Text partitions advance by LEN rows and leave one row between areas. */
-        row_start += rows + 1u;
+        /* A zero-length text area is empty and introduces no gap. */
+        back_y += area.len;
     }
 }
 
@@ -828,7 +841,20 @@ static void pc98_begin_vsync(pc98_86box_t *d)
     d->in_vsync = 1;
     upd7220_set_retrace(&d->core.text_gdc, 0, 1);
     upd7220_set_retrace(&d->core.graph_gdc, 0, 1);
-    picint(1u << 2); /* VRTC interrupt; motherboard port 64h clears it. */
+    /* CRTV fires once after power-on and then once per reset write at 64h.
+     * EOI alone cannot request another frame interrupt. */
+    if (d->vrtc_armed) {
+        d->vrtc_armed = 0;
+        picint(1u << 2);
+    }
+}
+
+void pc9801_video_vrtc_reset(void *priv)
+{
+    pc98_86box_t *d = (pc98_86box_t *)priv;
+    if (!d) return;
+    picintc(1u << 2);
+    d->vrtc_armed = 1;
 }
 
 static void pc98_raster_limits(const pc98_86box_t *d, uint16_t *total_lines,
@@ -977,9 +1003,9 @@ static int pc98_present_frame(pc98_86box_t *d)
     return 1;
 }
 
-int pc9801_video_firmware_available(void)
+int pc9801_video_firmware_available_for_model(pc98_model_t model)
 {
-    int have_ipl = pc98_ipl_available();
+    int have_ipl = pc98_ipl_available_for_model(model);
     return have_ipl &&
         pc98_rom_has_size(PC98_FONT_PATH, PC98_FONT_DUMP_SIZE) &&
         pc98_rom_has_size(PC98_KANJI_X01_PATH, 0x8000u) &&
@@ -988,14 +1014,23 @@ int pc9801_video_firmware_available(void)
         pc98_rom_has_size(PC98_KANJI_X04_PATH, 0x8000u);
 }
 
+int pc9801_video_firmware_available(void)
+{
+    return pc9801_video_firmware_available_for_model(PC98_MODEL_VX);
+}
+
 static int pc98_available(void)
 {
     return pc9801_video_firmware_available();
 }
 
+static int pc98_bx4_available(void)
+{
+    return pc9801_video_firmware_available_for_model(PC98_MODEL_BX4);
+}
+
 static void *pc98_init(const device_t *info)
 {
-    (void)info;
     pc98_86box_t *d = (pc98_86box_t *)calloc(1, sizeof(*d));
     if (!d) return NULL;
 
@@ -1007,13 +1042,32 @@ static void *pc98_init(const device_t *info)
         return NULL;
     }
 
-    d->ipl = pc98_ipl_load();
+    d->model = (pc98_model_t)info->local;
+    d->ipl = pc98_ipl_load_for_model(d->model);
+    if (d->ipl && d->model == PC98_MODEL_BX4) {
+        d->firmware_banks = pc98_bx4_banks_load();
+        if (!d->firmware_banks) {
+            free(d->ipl);
+            d->ipl = NULL;
+        }
+    }
     if (!d->ipl) {
         pc98_video_destroy(&d->core);
         free(d);
         return NULL;
     }
+    if (d->model == PC98_MODEL_VX && machine_get_config_int("skip_timer_checks") &&
+        pc98_bios_patch_vx_timer(d->ipl + 0x10000u, 0x8000u) == PC98_BIOS_PATCH_UNSUPPORTED) {
+        ui_msgbox_header(MBX_ERROR, "PC-9801VX BIOS timer patch",
+                         "The loaded VX BIOS revision is not supported by the timer patch. "
+                         "Disable Skip BIOS timer checks to start with the original firmware.");
+        free(d->ipl);
+        pc98_video_destroy(&d->core);
+        free(d);
+        return NULL;
+    }
     d->ipl_bank = 0; /* hardware reset enters the ITF bank */
+    d->flash_bank = 0xffu;
 #ifndef RELEASE_BUILD
     pclog("[PC98] IPL reset vector bytes:");
     for (unsigned i = 0; i < 16; i++)
@@ -1032,6 +1086,10 @@ static void *pc98_init(const device_t *info)
     mem_mapping_add(&d->ipl_high_map, 0x00fe8000, PC98_IPL_WINDOW_SIZE,
                     ipl_rb, ipl_rw, ipl_rl, NULL, NULL, NULL,
                     NULL, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM, d);
+    if (d->model == PC98_MODEL_BX4)
+        mem_mapping_add(&d->ipl_reset_map, 0xfffe8000u, PC98_IPL_WINDOW_SIZE,
+                        ipl_rb, ipl_rw, ipl_rl, NULL, NULL, NULL,
+                        NULL, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM, d);
 
     mem_mapping_add(&d->tvram_map, 0x000a0000, 0x4000,
                     tvram_rb, tvram_rw, NULL, tvram_wb, tvram_ww, NULL,
@@ -1060,11 +1118,14 @@ static void *pc98_init(const device_t *info)
           io_sethandler(vp[i],1,pc98_inb,NULL,NULL,pc98_outb,NULL,NULL,d);
       io_sethandler(0x04a0,0x10,pc98_inb,pc98_inw,NULL,pc98_outb,pc98_outw,NULL,d);
       io_sethandler(0x043d,1,NULL,NULL,NULL,ipl_bank_out,NULL,NULL,d);
+      if (d->model == PC98_MODEL_BX4)
+          io_sethandler(0x043f,1,NULL,NULL,NULL,pc98_flash_bank_out,NULL,NULL,d);
     }
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &pc98_timings);
     d->need_resize = 1;
     pc98_active = d; /* this device now owns the display; see pc98_scan_tick */
+    d->vrtc_armed = 1; /* The hardware produces one initial CRTV request. */
     timer_add(&d->scan_timer, pc98_scan_tick, d, 0);
     timer_add(&d->gdc_timer, pc98_gdc_tick, d, 0);
     pc98_arm_raster(d, 1000u);
@@ -1083,10 +1144,11 @@ static void pc98_reset(void *priv)
     pc98_86box_t *d = (pc98_86box_t *)priv;
 
     d->ipl_bank = 0;
+    d->flash_bank = 0xffu;
     d->need_resize = 1;
     d->logged_state = 0;
     pc98_video_reset(&d->core);
-    picintc(1u << 2); /* drop any VRTC request raised before the reset */
+    pc9801_video_vrtc_reset(d);
     pc98_arm_raster(d, 1000u);
     video_force_resize_set(1);
 }
@@ -1109,6 +1171,7 @@ static void pc98_close(void *priv)
         pc98_active = NULL;
 
     free(d->ipl);
+    free(d->firmware_banks);
     d->ipl = NULL;
     d->core.ipl_rom = NULL;
     pc98_video_destroy(&d->core);
@@ -1118,6 +1181,11 @@ static void pc98_close(void *priv)
 pc98_video_t *pc9801_video_get_core(void *priv)
 {
     return priv ? &((pc98_86box_t *)priv)->core : NULL;
+}
+
+pc98_model_t pc9801_video_get_model(void *priv)
+{
+    return priv ? ((pc98_86box_t *)priv)->model : PC98_MODEL_VX;
 }
 
 const device_t pc9801_video_device = {
@@ -1132,4 +1200,17 @@ const device_t pc9801_video_device = {
     .speed_changed = pc98_speed_changed,
     .force_redraw  = pc98_force_redraw,
     .config        = NULL
+};
+
+const device_t pc9801bx4_video_device = {
+    .name          = "NEC PC-9801BX4 legacy graphics (experimental)",
+    .internal_name = "pc9801bx4_video",
+    .flags         = DEVICE_ONBOARD,
+    .local         = PC98_MODEL_BX4,
+    .init          = pc98_init,
+    .close         = pc98_close,
+    .reset         = pc98_reset,
+    .available     = pc98_bx4_available,
+    .speed_changed = pc98_speed_changed,
+    .force_redraw  = pc98_force_redraw
 };

@@ -35,6 +35,7 @@ add_library(mch OBJECT
     # NEC PC-9801 motherboard support
     m_pc98.c
     pc98_rom.c
+    pc98_bios_patch.c
     m_tandy.c
     m_v86p.c
     m_at_t3100e.c

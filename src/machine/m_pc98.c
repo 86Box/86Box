@@ -25,19 +25,24 @@
 #include <86box/hdc.h>
 #include <86box/io.h>
 #include <86box/keyboard.h>
+#include <86box/lpt.h>
 #include <86box/machine.h>
 #include <86box/mem.h>
+#include <86box/mouse.h>
 #include <86box/nvr.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/postcard.h>
 #include <86box/rom.h>
+#include <86box/serial.h>
 #include <86box/snd_speaker.h>
 #include <86box/video.h>
 #include <86box/vid_pc98.h>
 #include <86box/pc98_ppi8255.h>
 #include <86box/pc98_i8251.h>
+#include <86box/pc98_mouse.h>
 #include <86box/pc98_sasi.h>
+#include <86box/plat.h>
 #include <86box/plat_unused.h>
 
 #define PC98_PIT_CLOCK 1996800u
@@ -248,6 +253,9 @@ typedef struct pc98_mb_t {
     pc98_ppi8255_t ppi_sys;
     pc98_ppi8255_t ppi_prn;
     pc98_ppi8255_t ppi_mouse;
+    pc98_mouse_t mouse;
+    pc_timer_t mouse_timer;
+    lpt_t *printer;
     pc98_i8251_t usart_kbd;
     pc98_i8251_t usart_rs;
 
@@ -255,6 +263,10 @@ typedef struct pc98_mb_t {
     fdc_t *fdc;
     void *video_dev;
     pc98_video_t *video;
+    pc98_model_t model;
+    uint8_t sdip[24];
+    uint8_t sdip_bank;
+    uint8_t display_frequency;
 
     uint8_t dma_autoinc[4];
     uint8_t dma_autoinc_latch;
@@ -739,19 +751,21 @@ static uint8_t pc98_ppi_read_cb(void *opaque, unsigned port)
          * is active low, so no printer reads as not busy.  ACPU is set only
          * on V30 machines. */
         if (port == 1)
-            return (uint8_t)(0x80u | PC98_PRN_B_MOD | 0x04u |
+            return (uint8_t)(0x80u | PC98_PRN_B_MOD |
+                             (d->printer ? ((lpt_read_status(d->printer) & 0x80u) >> 5) : 0x04u) |
                              ((d->dsw1 & PC98_SW1_3) ? PC98_PRN_B_SW13 : 0u) |
                              ((d->dsw1 & PC98_SW1_8) ? PC98_PRN_B_SW18 : 0u));
         return 0xff;
     case 2: /* mouse PPI (7FD9h-7FDFh) */
         if (port == 0)
-            return 0xff; /* mouse status / counters */
+            return pc98_mouse_data(&d->mouse);
         if (port == 1) {
             /* Port B (7FDBh):
              * Bit 1: Clock switch (0: HIGH, 1: LOW) -> 0 = HIGH
-             * Bit 6: DIP SW3-6 (internal RAM: 1 = connected) -> 1
+             * Bit 6: DIP SW3-6 (internal RAM: 1 = connected).
+             * The DIP byte stores SW3-6 in bit 5, relocated to PB6.
              */
-            return 0x40u;
+            return (uint8_t)((d->dsw3 & 0x20u) << 1);
         }
         if (port == 2) {
             /* Port C (7FDDh):
@@ -773,11 +787,39 @@ static uint8_t pc98_ppi_read_cb(void *opaque, unsigned port)
     return 0xff;
 }
 
+static void pc98_printer_control(pc98_mb_t *d)
+{
+    if (!d->printer)
+        return;
+    /* PC7 is the raw active-low PSTB pin; system PC6 forces it inactive.
+     * The common host backend uses IBM's inverted STROBE control bit. */
+    int inhibited = d->ppi_prn.dir_c_upper || (d->sys_port_c & PC98_SYS_C_PSTM);
+    uint8_t control = (inhibited || (d->ppi_prn.latch[2] & 0x80u)) ? 0x0c : 0x0d;
+    lpt_write(2, control, d->printer);
+}
+
 static void pc98_ppi_write_cb(void *opaque, unsigned port, uint8_t value)
 {
     pc98_ppi_ctx_t *c = (pc98_ppi_ctx_t *)opaque;
     pc98_mb_t *d = c->mb;
     (void)port;
+    if (c->which == 1) {
+        if (port == 0 && !d->ppi_prn.dir_a && d->printer)
+            lpt_write(0, value, d->printer);
+        if (port == 2)
+            pc98_printer_control(d);
+    }
+    if (c->which == 2 && port == 2) {
+        /* Ignore the latch while its pins are configured as inputs. The
+         * board's inhibit input remains pulled high after an 8255 reset. */
+        if (d->ppi_mouse.dir_c_upper)
+            d->mouse.control = 0x10;
+        else
+            pc98_mouse_control(&d->mouse, value);
+        /* Inhibiting the source stops future clock pulses. The edge-triggered
+         * 8259 retains a latched request until acknowledgement; withdrawing
+         * IRQ13 here would also erase a pending C-BUS card interrupt. */
+    }
     if (c->which == 0 && port == 2) {
         /* Low three bits are the RS-232 interrupt mask on the common PC-98
          * system-PPI wiring. */
@@ -838,6 +880,7 @@ static void ppi_sys_out(uint16_t port, uint8_t val, void *priv)
         d->sys_port_c = (d->sys_port_c & ~PC98_SYS_C_BUZ) | (val & PC98_SYS_C_BUZ);
 
     pc98_ppi8255_write(&d->ppi_sys, reg, val);
+    pc98_printer_control(d);
     pc98_speaker_update(d);
 }
 static uint8_t ppi_prn_in(uint16_t port, void *priv)
@@ -848,13 +891,55 @@ static void ppi_prn_out(uint16_t port, uint8_t val, void *priv)
 {
     pc98_ppi8255_write(&((pc98_mb_t *)priv)->ppi_prn, (port - 0x40u) >> 1, val);
 }
+static int pc98_mouse_poll(void *priv);
+
 static uint8_t ppi_mouse_in(uint16_t port, void *priv)
 {
+    pc98_mouse_poll(priv);
     return pc98_ppi8255_read(&((pc98_mb_t *)priv)->ppi_mouse, (port - 0x7fd9u) >> 1);
 }
 static void ppi_mouse_out(uint16_t port, uint8_t val, void *priv)
 {
+    /* Account for host motion up to the latch edge, including when a driver
+     * polls without mouse interrupts or selects a slower interrupt divisor. */
+    pc98_mouse_poll(priv);
     pc98_ppi8255_write(&((pc98_mb_t *)priv)->ppi_mouse, (port - 0x7fd9u) >> 1, val);
+}
+
+static int pc98_mouse_poll(void *priv)
+{
+    pc98_mb_t *d = (pc98_mb_t *)priv;
+    int dx, dy;
+
+    if (mouse_type != MOUSE_TYPE_INTERNAL || mouse_input_mode != 0 ||
+        (!mouse_capture && !(video_fullscreen && !fullscreen_ui_visible)))
+        return 1;
+
+    mouse_subtract_coords(&dx, &dy, NULL, NULL, -32768, 32767, 0, 0);
+    pc98_mouse_motion(&d->mouse, dx, dy, mouse_get_buttons_ex());
+    return 0;
+}
+
+static void pc98_mouse_tick(void *priv)
+{
+    pc98_mb_t *d = (pc98_mb_t *)priv;
+    timer_advance_u64(&d->mouse_timer,
+                      (uint64_t)((1000000.0 / (120u >> d->mouse.divider)) * TIMER_USEC));
+    pc98_mouse_poll(d);
+    /* INT6 belongs to slave IR5. It is a periodic hardware clock, including
+     * when no motion occurs: some games also use it for animation timing. */
+    if (!(d->mouse.control & 0x10)) {
+        picint(1u << 13);
+    }
+}
+
+static void pc98_mouse_rate_out(uint16_t port, uint8_t value, void *priv)
+{
+    pc98_mb_t *d = (pc98_mb_t *)priv;
+    (void)port;
+    d->mouse.divider = value & 3u;
+    timer_set_delay_u64(&d->mouse_timer,
+                        (uint64_t)((1000000.0 / (120u >> d->mouse.divider)) * TIMER_USEC));
 }
 
 static uint8_t usart_rs_in(uint16_t port, void *priv)
@@ -1204,7 +1289,9 @@ static void pc98_fdc_apply_dma_gate(pc98_mb_t *d)
 {
     if (d->fdc) {
         const unsigned bank = pc98_fdc_core_bank(d);
-        d->fdc->dma = bank ? 1 : d->dmae_640;
+        /* The interface gate permits DMA; it cannot undo ND=1 programmed
+         * by the uPD765 SPECIFY command. */
+        d->fdc->dma = (bank || d->dmae_640) && !(d->fdc->specify[1] & 1u);
     }
 }
 
@@ -1258,10 +1345,14 @@ static void pc98_fdc_motor_update(pc98_mb_t *d)
  * The 1MB control register has no motor bit at all - the drive spins under
  * uPD765 control - so its motors are simply held enabled.  The 640KB register
  * drives the motor explicitly through MTON and can inhibit DMA through DMAE. */
-static void pc98_fdc_apply_ctrl(pc98_mb_t *d, uint8_t old, uint8_t val,
+static void pc98_fdc_apply_ctrl(pc98_mb_t *d, uint8_t val,
                                 int port_640)
 {
     const int in_reset = !!(val & PC98_FDC_1MB_RST);
+    /* Both address identities drive one physical RESET input. Firmware may
+     * assert it through one address, exchange the interface, then release it
+     * through the other. Per-port write history is not the old pin level. */
+    const int was_in_reset = !(d->fdc->dor & 0x04u);
 
     if (port_640) {
         d->motor_640 = !!(val & PC98_FDC_640_MTON);
@@ -1281,7 +1372,7 @@ static void pc98_fdc_apply_ctrl(pc98_mb_t *d, uint8_t old, uint8_t val,
 
     /* Cancel the physical command on its OLD IRQ/DMA route before dropping
      * the route pin.  Retargeting first leaves the old channel's DRQ asserted. */
-    if (((old ^ val) & PC98_FDC_1MB_RST) && in_reset) {
+    if (!was_in_reset && in_reset) {
         fdc_write(2, dor, d->fdc);
         pc98_fdc_forget_results(d);
         picintc((1u << 10) | (1u << 11));
@@ -1292,7 +1383,7 @@ static void pc98_fdc_apply_ctrl(pc98_mb_t *d, uint8_t old, uint8_t val,
     pc98_fdc_route(d, !port_640);
     pc98_fdc_apply_dma_gate(d);
 
-    if (!((old ^ val) & PC98_FDC_1MB_RST))
+    if (was_in_reset == in_reset)
         return;
 
     if (!in_reset) {
@@ -1421,7 +1512,10 @@ static void pc98_fdc_complete_seek(pc98_mb_t *d, unsigned bank)
     const uint8_t head = (drvsel >> 2) & 1u;
     const uint8_t old_pcn = d->fdc->pcn[drive];
     const uint8_t pcn = (cmd == 0x07u) ? 0u : d->trace_cmd[2];
-    const int delta = (int)pcn - (int)old_pcn;
+    /* RESET clears PCN but cannot move a mechanism's head. RECALIBRATE
+     * steps to physical TRACK0, whereas SEEK uses the controller's PCN. */
+    const int delta = (cmd == 0x07u) ?
+        -fdd_current_track(d->fdc->fdd[drive]) : (int)pcn - (int)old_pcn;
     uint8_t st0;
 
     /* Match the generic 86Box uPD765's failure semantics for a drive which
@@ -1736,6 +1830,7 @@ static uint8_t fdc_in(uint16_t port, void *priv)
     case 0xca: {
         const unsigned bank = (port == 0x92u) ? 1u : 0u;
         uint8_t v;
+        int core_result_completed = 0;
 
         if (d->sis_res_n[bank]) {
             v = d->sis_res[bank][d->sis_res_i[bank]++];
@@ -1754,7 +1849,11 @@ static uint8_t fdc_in(uint16_t port, void *priv)
                 picintc(1u << (bank ? 11 : 10));
             }
         } else {
+            const int in_result_phase = (fdc_read(4, d->fdc) & 0xf0u) == 0xd0u;
+            const unsigned results_before = d->fdc->paramstogo;
             v = fdc_read(5, d->fdc);
+            core_result_completed = in_result_phase && results_before &&
+                                    !d->fdc->paramstogo;
         }
         if (d->trace_res_n < sizeof(d->trace_res))
             d->trace_res[d->trace_res_n++] = v;
@@ -1764,11 +1863,14 @@ static uint8_t fdc_in(uint16_t port, void *priv)
             !d->sis_res_n[bank] && !d->cmd_res_n[bank]) {
             pc98_fdc_log_result(d, port);
             d->trace_res_n = 0;
-            /* The asynchronous physical command has ended only now.  It is
-             * safe for later accesses through the other PC-98 identity to
-             * reclaim the shared core's IRQ/DMA route. */
-            pc98_fdc_unlock_route(d);
         }
+        /* A programmed-I/O data byte also leaves RQM/DIO clear while the
+         * decoder supplies the next byte. Only draining the final actual
+         * 765 result byte completes the asynchronous command and releases
+         * its route; FIFO probes or private results from the other identity
+         * must not retarget the command's IRQ/DMA lines. */
+        if (core_result_completed)
+            pc98_fdc_unlock_route(d);
         return v;
     }
     case 0x94:
@@ -1800,10 +1902,8 @@ static void pc98_fdc_ctrl_write(pc98_mb_t *d, uint16_t port, uint8_t val)
 {
     const int port_640 = (port == 0xccu);
     uint8_t *slot = port_640 ? &d->fdc_ctrl_640 : &d->fdc_ctrl_1mb;
-    const uint8_t old = *slot;
-
     *slot = val;
-    pc98_fdc_apply_ctrl(d, old, val, port_640);
+    pc98_fdc_apply_ctrl(d, val, port_640);
 }
 
 static void fdc_out(uint16_t port, uint8_t val, void *priv)
@@ -1813,6 +1913,20 @@ static void fdc_out(uint16_t port, uint8_t val, void *priv)
     case 0x92:
     case 0xca: {
         const unsigned bank = (port == 0x92u) ? 1u : 0u;
+
+        /* RQM/NDM/CB with DIO clear is a programmed-I/O execution byte,
+         * not a new command. Sector data may have the same value as SEEK,
+         * READ ID or any other opcode; bypass wrapper command framing. */
+        if ((fdc_read(4, d->fdc) & 0xf0u) == 0xb0u) {
+            fdc_write(5, val, d->fdc);
+            return;
+        }
+        /* A busy or reset 765 does not accept a new command. Apply that
+         * hardware rule before changing wrapper queues, command framing or
+         * routes; the generic core's own rejection happens too late for
+         * wrapper-owned SEEK/READ ID and their side effects. */
+        if (!d->fdc_in_params && (fdc_read(4, d->fdc) & 0xf0u) != 0x80u)
+            return;
 
         if (!d->fdc_in_params)
             pc98_fdc_trace_flush(d, port);
@@ -1926,7 +2040,7 @@ static void fdc_out(uint16_t port, uint8_t val, void *priv)
             pc98_fdc_lock_route(d, bank);
             fdc_write(5, original_cmd, d->fdc);
             fdc_write(5, drvsel, d->fdc);
-            d->fdc_in_params = ((fdc_read(4, d->fdc) & 0xd0u) == 0x90u);
+            d->fdc_in_params = ((fdc_read(4, d->fdc) & 0xf0u) == 0x90u);
             if (!d->fdc_in_params) {
                 pc98_fdc_log_cmd(d, port);
                 d->trace_cmd_n = 0;
@@ -1960,10 +2074,13 @@ static void fdc_out(uint16_t port, uint8_t val, void *priv)
 
         fdc_write(5, val, d->fdc);
 
-        /* RQM set, CB set, DIO clear means the controller wants more
-         * parameter bytes; anything else ends the command phase. */
-        d->fdc_in_params = ((fdc_read(4, d->fdc) & 0xd0u) == 0x90u);
+        /* RQM/CB set with DIO/NDM clear means more command parameters.
+         * NDM distinguishes programmed-I/O execution bytes from parameters. */
+        d->fdc_in_params = ((fdc_read(4, d->fdc) & 0xf0u) == 0x90u);
         if (!d->fdc_in_params) {
+            /* SPECIFY can update the controller's ND bit as its last
+             * parameter is accepted. Reconcile it with the interface gate. */
+            pc98_fdc_apply_dma_gate(d);
             pc98_fdc_log_cmd(d, port);
             d->trace_cmd_n = 0;
         }
@@ -2039,8 +2156,9 @@ static void rtc_out(uint16_t port, uint8_t val, void *priv)
 
 static void vrtc_clear_out(uint16_t port, uint8_t val, void *priv)
 {
-    (void)port; (void)val; (void)priv;
-    picintc(1u << 2);
+    pc98_mb_t *d = (pc98_mb_t *)priv;
+    (void)port; (void)val;
+    pc9801_video_vrtc_reset(d->video_dev);
 
 #ifndef RELEASE_BUILD
     static int vrtc_count = 0;
@@ -2067,30 +2185,101 @@ static int pc98_a20_enabled(void)
     return (rammask & 0x00100000u) != 0;
 }
 
+static void pc98_sdip_translate(pc98_mb_t *d)
+{
+    d->dsw1 = d->sdip[0] | 1u;
+    d->dsw2 = (d->sdip[1] & 0xefu) | ((d->sdip[3] & 0x20u) >> 1);
+    d->dsw3 = ((d->sdip[2] & 3u) ^ 2u) | (d->sdip[2] & 0x7cu);
+}
+
+static void pc98_sdip_load(pc98_mb_t *d)
+{
+    uint8_t image[sizeof(d->sdip)];
+    memset(d->sdip, 0xff, sizeof(d->sdip));
+    FILE *f = nvr_fopen("pc9801bx4.sdip", "rb");
+    if (f) {
+        if (fread(image, 1, sizeof(image), f) == sizeof(image) && fgetc(f) == EOF)
+            memcpy(d->sdip, image, sizeof(image));
+        fclose(f);
+    }
+    pc98_sdip_translate(d);
+}
+
+static void pc98_sdip_save(const pc98_mb_t *d)
+{
+    FILE *f = nvr_fopen("pc9801bx4.sdip", "wb");
+    if (f) {
+        (void)fwrite(d->sdip, 1, sizeof(d->sdip), f);
+        fclose(f);
+    }
+}
+
+static uint8_t pc98_sdip_in(uint16_t port, void *priv)
+{
+    pc98_mb_t *d = priv;
+    return d->sdip[d->sdip_bank * 12u + ((port >> 8) - 0x84u)];
+}
+
+static void pc98_sdip_out(uint16_t port, uint8_t val, void *priv)
+{
+    pc98_mb_t *d = priv;
+    if (port == 0x8f1f) {
+        if (val == 0x80u || val == 0xc0u)
+            d->sdip_bank = (val >> 6) & 1u;
+    } else {
+        const unsigned offset = d->sdip_bank * 12u + ((port >> 8) - 0x84u);
+        if (d->sdip[offset] == val)
+            return;
+        d->sdip[offset] = val;
+        pc98_sdip_translate(d);
+        /* Persist guest writes, including setup followed by an immediate
+         * reset. No firmware bytes or synthesized parity are supplied. */
+        pc98_sdip_save(d);
+    }
+}
+
+static uint8_t pc98_display_frequency_in(uint16_t port, void *priv)
+{
+    (void)port;
+    return ((pc98_mb_t *)priv)->display_frequency;
+}
+
+static void pc98_display_frequency_out(uint16_t port, uint8_t val, void *priv)
+{
+    (void)port;
+    /* Later PC-98 monitor-frequency selector. Bits 0..1 are writable;
+     * bit 7 stays low. The legacy renderer still uses its 24 kHz timing. */
+    ((pc98_mb_t *)priv)->display_frequency = val & 3u;
+}
+
 static uint8_t a20_in(uint16_t port, void *priv)
 {
     pc98_mb_t *d = (pc98_mb_t *)priv;
     const uint8_t masked = pc98_a20_enabled() ? 0u : 1u;
 
     /* PC-98 A20 status is active-low: bit 0 == 1 means A20 is masked.
-     * F2h has the remaining bits pulled high.  F6h also exposes the NMI FF
-     * in bit 1 on VX-class hardware. */
-    (void)d;
+     * F2h has the remaining bits pulled high. Later 32-bit boards also
+     * expose the NMI FF in F6h bit 1. VX leaves F6h undecoded. */
     if (port == 0xf2)
         return (uint8_t)(0xfeu | masked);
+    if (port == 0xf6 && d->model == PC98_MODEL_BX4)
+        return masked | (d->nmi_ff << 1);
     return 0xff;
 }
 
 static void a20_out(uint16_t port, uint8_t val, void *priv)
 {
-    (void)priv;
+    pc98_mb_t *d = priv;
 
-    /* PC-9801VX 80286 A20 control: reset masks address line A20; any
-     * write to F2h opens A20 again.  F6h is a later 32-bit-machine control
-     * and is deliberately not decoded here. */
-    (void)val;
+    /* F2h opens A20 on both models. The BX4's later F6h gate additionally
+     * accepts 02h (open) / 03h (mask); other values have no effect. */
     if (port == 0xf2) {
         mem_a20_alt = 2;
+        mem_a20_recalc();
+    } else if (port == 0xf6 && d->model == PC98_MODEL_BX4 &&
+               (val == 2u || val == 3u)) {
+        mem_a20_key = mem_a20_chipset = 0;
+        mem_a20_alt = val == 2u ? 2 : 0;
         mem_a20_recalc();
     }
 }
@@ -2255,16 +2444,27 @@ static void pc98_install_io(pc98_mb_t *d)
 
     io_sethandler(0xf0, 1, NULL, NULL, NULL, pc98_cpu_reset_out, NULL, NULL, d);
     io_sethandler(0xf2, 1, a20_in, NULL, NULL, a20_out, NULL, NULL, d);
+    if (d->model == PC98_MODEL_BX4)
+        io_sethandler(0xf6, 1, a20_in, NULL, NULL, a20_out, NULL, NULL, d);
+    if (d->model == PC98_MODEL_BX4) {
+        for (uint16_t p = 0x841e; p <= 0x8f1e; p += 0x100)
+            io_sethandler(p, 1, pc98_sdip_in, NULL, NULL, pc98_sdip_out, NULL, NULL, d);
+        io_sethandler(0x8f1f, 1, NULL, NULL, NULL, pc98_sdip_out, NULL, NULL, d);
+        io_sethandler(0x09a8, 1, pc98_display_frequency_in, NULL, NULL,
+                      pc98_display_frequency_out, NULL, NULL, d);
+    }
     io_sethandler(0x0439, 1, dma_access_ctrl_in, NULL, NULL,
                   dma_access_ctrl_out, NULL, NULL, d);
 
     for (uint16_t p = 0x7fd9; p <= 0x7fdf; p += 2)
         io_sethandler(p, 1, ppi_mouse_in, NULL, NULL, ppi_mouse_out, NULL, NULL, d);
+    io_sethandler(0xbfdb, 1, NULL, NULL, NULL, pc98_mouse_rate_out, NULL, NULL, d);
 }
 
 static void pc98_mb_reset(void *priv)
 {
     pc98_mb_t *d = (pc98_mb_t *)priv;
+    d->sdip_bank = d->display_frequency = 0;
 
     /* Abort on the old physical route before the wrapper loses its route pin.
      * Motors remain off until firmware starts them after fdd_reset(). */
@@ -2320,7 +2520,11 @@ static void pc98_mb_reset(void *priv)
     }
     pc98_ppi8255_reset(&d->ppi_sys);
     pc98_ppi8255_reset(&d->ppi_prn);
+    pc98_printer_control(d);
     pc98_ppi8255_reset(&d->ppi_mouse);
+    pc98_mouse_reset(&d->mouse);
+    picintc(1u << 13);
+    timer_set_delay_u64(&d->mouse_timer, (uint64_t)((1000000.0 / 120.0) * TIMER_USEC));
     pc98_i8251_reset(&d->usart_kbd);
     pc98_i8251_reset(&d->usart_rs);
     pc98_i8251_set_cts(&d->usart_kbd, 1);
@@ -2340,6 +2544,8 @@ static void pc98_mb_close(void *priv)
     pc98_mb_t *d = (pc98_mb_t *)priv;
     speaker_set_pc98_state(0, 0);
     pc98_rtc_save(&d->rtc);
+    if (d->model == PC98_MODEL_BX4)
+        pc98_sdip_save(d);
     pclog("[PC98-SHUTDOWN-CPU] CS:IP=%04X:%04X AX=%04X BX=%04X CX=%04X DX=%04X SP=%04X BP=%04X SI=%04X DI=%04X DS=%04X ES=%04X SS=%04X\n",
           CS, (uint16_t)cpu_state.pc, AX, BX, CX, DX, SP, BP, SI, DI, DS, ES, SS);
 #ifndef RELEASE_BUILD
@@ -2350,6 +2556,9 @@ static void pc98_mb_close(void *priv)
     keyboard_set_input_handler(NULL, NULL);
     timer_disable(&d->seek_irq_timer[0]);
     timer_disable(&d->seek_irq_timer[1]);
+    timer_disable(&d->mouse_timer);
+    if (mouse_type == MOUSE_TYPE_INTERNAL)
+        mouse_set_poll(NULL, NULL);
     free(d->kbd_fifo);
     free(d);
 }
@@ -2361,8 +2570,26 @@ static void *pc98_mb_init(const device_t *info)
 
     pc98_rtc_load(&d->rtc);
 
+    /* Claim the host LPT slots without installing IBM 378h/278h/3BCh ports.
+     * LPT1 is the native printer; further backends have no guest decoder. */
+    for (int i = 0; i < PARALLEL_MAX; i++) {
+        lpt_t *backend = device_add_inst(&lpt_port_native_device, i + 1);
+        if (i == 0)
+            d->printer = backend;
+    }
+    lpt_set_next_inst(PARALLEL_MAX);
+    /* RS-232C belongs to the native 8251 at 30h/32h. Until its host bridge is
+     * implemented, don't create unrelated 8250 ports in the later generic
+     * serial setup pass. These would install AT decoders on a PC-98. */
+    serial_set_next_inst(SERIAL_MAX);
+
     timer_add(&d->seek_irq_timer[0], pc98_seek_irq_640_tick, d, 0);
     timer_add(&d->seek_irq_timer[1], pc98_seek_irq_1mb_tick, d, 0);
+    timer_add(&d->mouse_timer, pc98_mouse_tick, d, 0);
+    if (mouse_type == MOUSE_TYPE_INTERNAL) {
+        mouse_set_buttons(2);
+        mouse_set_poll(pc98_mouse_poll, d);
+    }
 
     /* Diagnostic limits are per machine instance.  Keeping the static count
      * from a previous reset/recreate hid the useful READ/READ-ID trace exactly
@@ -2374,6 +2601,7 @@ static void *pc98_mb_init(const device_t *info)
 
     d->video_dev = (void *)info->local;
     d->video = pc9801_video_get_core(d->video_dev);
+    d->model = pc9801_video_get_model(d->video_dev);
     /* VX factory DIP defaults.  In particular SW2 bit 1 must be 1: a zero
      * selects Terminal Mode and the firmware intentionally avoids the normal
      * local display path.  SW1 bit 0 selects the normal PC-98 24 kHz display. */
@@ -2393,6 +2621,8 @@ static void *pc98_mb_init(const device_t *info)
      * Clearing them selects 2HD with auto-switching, which is how a VX with
      * 1.25MB media is meant to come up. */
     d->dsw3 = 0x7c;
+    if (d->model == PC98_MODEL_BX4)
+        pc98_sdip_load(d);
 
     ppi_ctx_sys.mb = d; ppi_ctx_sys.which = 0;
     ppi_ctx_prn.mb = d; ppi_ctx_prn.which = 1;
@@ -2426,6 +2656,23 @@ static void *pc98_mb_init(const device_t *info)
     return d;
 }
 
+static const device_config_t pc9801vx_config[] = {
+    {
+        .name = "skip_timer_checks",
+        .description = "Skip BIOS timer checks (CPU upgrades)",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    { .name = "", .type = CONFIG_END }
+};
+
+/* Configuration only: the video-backed motherboard is created separately. */
+const device_t pc9801vx_device = {
+    .name = "NEC PC-9801VX",
+    .internal_name = "pc9801vx",
+    .config = pc9801vx_config
+};
+
 static const device_t pc9801vx_motherboard_device = {
     .name          = "NEC PC-9801VX motherboard",
     .internal_name = "pc9801vx_motherboard",
@@ -2440,59 +2687,45 @@ static const device_t pc9801vx_motherboard_device = {
     .config        = NULL
 };
 
-static int
-pc98_sasi_disk_configured(void)
+static const device_t pc9801bx4_motherboard_device = {
+    .name          = "NEC PC-9801BX4 legacy motherboard (experimental)",
+    .internal_name = "pc9801bx4_motherboard",
+    .flags         = DEVICE_ONBOARD | DEVICE_CBUS,
+    .init          = pc98_mb_init,
+    .close         = pc98_mb_close,
+    .reset         = pc98_mb_reset,
+    .speed_changed = pc98_mb_speed_changed
+};
+
+static int pc98_machine_init(const machine_t *model, pc98_model_t firmware_model)
 {
-    for (uint8_t i = 0; i < HDD_NUM; i++) {
-        if ((hdd[i].bus_type == HDD_BUS_SASI) && hdd[i].fn[0])
-            return 1;
-    }
-
-    return 0;
-}
-
-static int
-pc98_sasi_hdc_selected(void)
-{
-    for (int i = 0; i < HDC_MAX; i++) {
-        if (hdc_current[i] < 0)
-            continue;
-
-        const char *name = hdc_get_internal_name(hdc_current[i]);
-        if (name && !strcmp(name, "pc9801_27"))
-            return 1;
-    }
-
-    return 0;
-}
-
-int machine_pc9801vx_init(const machine_t *model)
-{
-    (void)model;
-    if (!pc9801_video_firmware_available())
+    if (!pc9801_video_firmware_available_for_model(firmware_model))
         return 0;
     if (bios_only)
         return 1;
 
     /* Video owns the low/high IPL mappings as well as all PC-98 VRAM. */
-    void *video = device_add(&pc9801_video_device);
+    void *video = device_add(model->vid_device);
     if (!video)
         return 0;
-    device_add_params(&pc9801vx_motherboard_device, video);
+    device_add_params(firmware_model == PC98_MODEL_BX4 ?
+                      &pc9801bx4_motherboard_device : &pc9801vx_motherboard_device, video);
 
-    /*
-     * A configured SASI hard disk implies that a PC-9801-27 interface is
-     * physically present.  86Box normally keeps controller selection and
-     * hard-disk bus selection separate, but that left a SASI-bus disk
-     * completely invisible unless the user also discovered the controller
-     * selector.  Auto-add the PC-9801-27 for this machine when SASI media is
-     * configured.  If the user explicitly selected the same controller in
-     * an HDC slot, hdc_reset() owns it and we must not install a duplicate.
-     */
-    if (pc98_sasi_disk_configured() && !pc98_sasi_hdc_selected()) {
-        pclog("[PC98] SASI disk configured; auto-installing PC-9801-27 interface\n");
-        device_add(&pc98_sasi_device);
-    }
+    /* hdc_reset() installs explicitly selected cards. A disk image does not
+     * imply a controller: the UI's None selection must leave SASI absent. */
 
     return 1;
+}
+
+int machine_pc9801vx_init(const machine_t *model)
+{
+    return pc98_machine_init(model, PC98_MODEL_VX);
+}
+
+int machine_pc9801bx4_init(const machine_t *model)
+{
+    if (!bios_only)
+        pclog("[PC98] BX4 experimental: running supplied BX4 firmware on legacy "
+              "PC-98 peripherals; GD5430, PMC and onboard IDE are not implemented\n");
+    return pc98_machine_init(model, PC98_MODEL_BX4);
 }

@@ -370,6 +370,12 @@ extern const device_t opti_82c931_device;
 extern const device_t speaker_device;
 extern const device_t speaker_pc98_device;
 
+/* PC-98 C-BUS sound boards. */
+extern const device_t pc98_26k_device;
+extern const device_t pc98_86_device;
+extern const device_t pc98_speakboard_device;
+extern const device_t pc98_sparkboard_device;
+
 /* Pro Audio Spectrum, Plus, 16, and 16D */
 extern const device_t pas_device;
 extern const device_t pasplus_device;

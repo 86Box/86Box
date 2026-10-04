@@ -24,6 +24,7 @@
 
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/gameport.h>
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/pic.h>
@@ -33,6 +34,7 @@
 #include <86box/snd_pc98_opn.h>
 #include <86box/sound.h>
 #include <86box/timer.h>
+#include "snd_pc98_joystick.h"
 
 /* 15.9744 MHz / 4.  The -26 drew this from the C-BUS clock instead, which
  * is the only documented difference between the two revisions. */
@@ -145,6 +147,10 @@ pc98_26k_in(uint16_t port, void *priv)
     if (port & 1u)
         return 0xffu;
 
+    if ((index == 1) && (dev->opn_addr == 0x0e))
+        pc98_opn_set_port_a(dev->opn,
+            pc98_sound_joystick(pc98_opn_get_port_b(dev->opn),
+                                pc98_26k_irq_pa_bits[dev->int_level]));
     val = pc98_opn_read(dev->opn, index);
     if ((index == 1) && (dev->opn_addr == 0x0e)) {
         /* The same jumpers drive Port A and the physical interrupt line. */
