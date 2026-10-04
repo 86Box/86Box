@@ -233,6 +233,11 @@ extern const device_t via_vt82c686b_device;
 extern const device_t via_vt8231_device;
 
 /* VLSI */
+/* Size of the secondary cache SRAM, for the Direct Access mode of CACHCTL. */
+#define VL82C480_CACHE_128K  0x0400
+#define VL82C480_CACHE_256K  0x0800
+#define VL82C480_CACHE_SHIFT 8
+
 extern const device_t vl82c480_device;
 extern const device_t vl82c486_device;
 extern const device_t vl82c59x_device;
