@@ -48,7 +48,7 @@ typedef struct sony_cdrom_t {
     uint8_t    settings[7][2];
     uint8_t    results[1024];
     unsigned   result_pos, result_len, result_end;
-    uint8_t    attention[16], attention_head, attention_count, attention_read;
+    uint8_t    attention[16], attention_head, attention_count, attention_read, attention_ack;
     uint8_t    reading, block_status, block_pending, final_pending;
     uint8_t    spinning, toc_read, audio_active, tray_open;
     uint32_t   lba, remaining;
@@ -81,8 +81,22 @@ sony_attention(sony_cdrom_t *d, uint8_t code)
 {
     if (d->attention_count < sizeof(d->attention)) {
         d->attention[(d->attention_head + d->attention_count++) % sizeof(d->attention)] = code;
-        d->status |= SONY_ATTN;
+        if (!d->attention_ack)
+            d->status |= SONY_ATTN;
         sony_irq(d);
+    }
+}
+
+static void
+sony_next_attention(sony_cdrom_t *d)
+{
+    /* DOS acknowledges before reading; NT 3.1 reads before acknowledging. */
+    if (d->attention_read && d->attention_ack) {
+        d->attention_head = (d->attention_head + 1) % sizeof(d->attention);
+        --d->attention_count;
+        d->attention_read = d->attention_ack = 0;
+        if (d->attention_count)
+            d->status |= SONY_ATTN;
     }
 }
 
@@ -499,16 +513,14 @@ sony_in(uint16_t port, void *priv)
                 d->audio_active = 0;
                 sony_attention(d, 0x90);
             }
-            value = d->status | (((d->status & 7) << 3) & d->control) | (d->data_pos < d->data_len ? 0x40 : 0);
+            /* The interrupt control bits can be saved even with no pending event. */
+            value = d->status | d->control | (d->data_pos < d->data_len ? 0x40 : 0);
             break;
         case 1:
-            if (d->attention_read && d->attention_count) {
+            if (d->attention_count && !d->attention_read) {
                 value             = d->attention[d->attention_head];
-                d->attention_head = (d->attention_head + 1) % sizeof(d->attention);
-                --d->attention_count;
-                d->attention_read = 0;
-                if (d->attention_count)
-                    d->status |= SONY_ATTN;
+                d->attention_read = 1;
+                sony_next_attention(d);
             } else if (d->result_pos < d->result_end) {
                 value = d->results[d->result_pos++];
                 if (d->result_pos == d->result_end) {
@@ -530,7 +542,7 @@ sony_in(uint16_t port, void *priv)
             }
             break;
         case 3:
-            value = 0xf0 | (d->param_count < sizeof(d->params) ? 1 : 0) | (!d->param_count ? 2 : 0) | (d->result_pos < d->result_end || d->attention_read ? 4 : 0) | (d->result_end - d->result_pos == 10 ? 8 : 0);
+            value = 0xf0 | (d->param_count < sizeof(d->params) ? 1 : 0) | (!d->param_count ? 2 : 0) | (d->result_pos < d->result_end || (d->attention_count && !d->attention_read) ? 4 : 0) | (d->result_end - d->result_pos == 10 ? 8 : 0);
             break;
         default:
             break;
@@ -574,7 +586,10 @@ sony_out(uint16_t port, uint8_t value, void *priv)
             d->control = value & 0x38;
             if (value & 1) {
                 d->status &= ~SONY_ATTN;
-                d->attention_read = d->attention_count != 0;
+                if (d->attention_count) {
+                    d->attention_ack = 1;
+                    sony_next_attention(d);
+                }
             }
             if (value & 2)
                 d->status &= ~SONY_RESULT;
@@ -631,7 +646,7 @@ sony_reset(void *priv)
     d->control = d->status = 0;
     d->param_count = d->param_overflow = 0;
     d->result_pos = d->result_len = d->result_end = 0;
-    d->attention_head = d->attention_count = d->attention_read = 0;
+    d->attention_head = d->attention_count = d->attention_read = d->attention_ack = 0;
     d->toc_read = d->spinning = d->audio_active = 0;
     memset(d->settings, 0, sizeof(d->settings));
     d->settings[0][0] = 0x0f;

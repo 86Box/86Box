@@ -59,6 +59,60 @@ with only `base`, defaulting to `0230`. The formerly unused Sony bus number 2 co
 with XTA in shared storage settings; the implemented Sony bus uses 15.
 Configuration files persist the bus name rather than that number.
 
+## Windows NT 3.1 Setup
+
+Use **SONY CDU31A interface**, IRQ **5**, and DMA **disabled** with Sony's
+`SLCD32.SYS` from [s31x86.exe](https://apricot.retropc.se/files/area88/s31x86.exe).
+The tested address is **320h**, also specified by the supplied `TXTSETUP.OEM`.
+The README's example registry configuration uses 340h; match the adapter
+address to the configuration actually used. The default IRQ-disabled
+configuration is suitable for DOS but does not match this NT driver's
+requirements. The Creative variant has no CD-ROM IRQ and is not the
+configuration tested here.
+
+Copy the driver archive's files to a floppy, boot the NT 3.1 CD-ROM Setup
+disk, and choose **Custom Setup**. After the adapter scan, press **S**, select
+**Other**, insert the Sony driver floppy, and select **Textsetup for Sony
+CDU-31A**. Keep the NT Setup floppy available for subsequent prompts.
+
+NT reads attention codes before acknowledging them; the DOS drivers use
+the opposite order. Both orders are supported, including queued attentions.
+Previously, NT read FFh instead of the reset attention and then saw a
+nonempty FIFO, causing its adapter probe to fail.
+The status register also reports the interrupt enables while no event is
+pending. Setup polls the miniport ISR before data arrives; the ISR saves
+those enables, disables interrupts, then restores them. Reporting only
+pending interrupts caused the enables to be lost and the first read to stall.
+
+The October 1993 driver in this archive has an additional automatic-search
+bug: its second-drive probe tests the first drive again, then registers
+base+4 as another drive. The unchanged binary consequently polls an absent
+drive during I/O. This is separate from the two emulator fixes above.
+Do not infer complete compatibility from successful adapter detection.
+
+For a single-drive diagnostic copy of this exact binary, changing file
+offset 082Bh from `0F BF` to `EB 39` skips the second-drive probe and retains
+a drive count of one. Set the four bytes at checksum offset 00D8h to
+`BA AA 01 00` (PE checksum `0001AABA`) after the edit and preserve the
+original file. This workaround is specific to this driver
+and single-drive testing. The binary is not included in the repository.
+
+```text
+Original SLCD32.SYS SHA-256:
+2cc65c0bf06a3d36df5877189a6359878d208c79cac17d7184c0f0d956e08501
+Single-drive copy SHA-256 (including updated PE checksum):
+92f55ceeed876f1dc545c1c674e69d5d2ad7b76737b5585f2d9971e4dfef5259
+```
+
+With both emulator fixes and the single-drive copy, NT 3.1 Workstation
+3.10.511.1 completed text-mode Setup, including all CD-to-disk file copies,
+on a PB430 with 486DX2/66 and 16 MiB RAM. The installed miniport matched the
+single-drive hash above. The first NT kernel boot initialized the miniport
+and reached graphical Setup; the remaining graphical installation was not
+run. The original binary passed adapter detection
+but failed during I/O because of its second-drive probe. This is a driver
+workaround, not a claim that the unchanged vendor binary installs successfully.
+
 ## Implemented behavior
 
 - Command/status, parameter/result FIFO, data, and control registers at base
@@ -145,12 +199,13 @@ address shortened playback by one frame. The DOS probe acknowledges the
 initial disc change through IOCTL 9 before querying the TOC; older SLCD.SYS
 versions otherwise keep returning the media-changed error 800Fh.
 
-The sixteen Sony unit tests exercise public I/O with mocked timers, image
+The nineteen Sony unit tests exercise public I/O with mocked timers, image
 access, PIC, and DMA. They cover both models, FIFO probing/batching, TOC
 replies longer than 255 bytes, PIO/DMA continuation, terminal counts,
 all selectable addresses/IRQs/DMA channels, errors, short reads, raw-sector
 lengths, audio state/routing and inclusive end frames, reset, eject, media
-changes, and an absent drive.
+changes, an absent drive, NT's read-before-acknowledge attention handling, and interrupt-enable
+readback when Setup polls before a sector is ready.
 They pass with AddressSanitizer and UndefinedBehaviorSanitizer; LeakSanitizer
 must be disabled in the ptraced test environment. These are protocol and
 software integration checks, not physical-hardware validation.
@@ -224,8 +279,9 @@ establish compatibility with every CUE layout or audio-player application.
 This is a host-protocol implementation. It does not execute Sony firmware
 or reproduce mechanical timings, read-ahead RAM, or all error conditions.
 Multisession Photo CD, XA ADPCM playback, diagnostic/buffer commands,
-UPC/ISRC, and audio-scan modes are not implemented. Windows and Linux guest
-drivers and IRQ-driven guest software have not been tested.
+UPC/ISRC, and audio-scan modes are not implemented. NT 3.1 Setup testing is
+described above; other Windows versions and Linux guest drivers have not
+been tested.
 
 - [CDU31A service manual, 9-974-500-11 (1993)](https://theretroweb.com/storage/documentation/9-974-500-11-cdu31a-service-1993-677d4f912e12a059646658.pdf):
   command exercises (including spin-up 51h and read-TOC 30h on printed

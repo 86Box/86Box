@@ -149,6 +149,56 @@ TEST_F(SonyTest, SlcdDetectionFillsExactlyTenParameterBytes)
     EXPECT_EQ(in(3), 0xf3);
 }
 
+TEST_F(SonyTest, Nt31ProbeReadsResetAttentionBeforeAcknowledging)
+{
+    out(3, 0x80);
+    EXPECT_EQ(in(0) & 1, 1);
+    EXPECT_EQ(in(1), 0x80);
+    EXPECT_EQ(in(0) & 1, 1);
+    out(3, 1);
+    EXPECT_EQ(in(0) & 1, 0);
+    EXPECT_EQ(in(3), 0xf3);
+    out(1, 0x55);
+    EXPECT_EQ(in(3), 0xf1);
+    for (int i = 0; i < 9; ++i)
+        out(1, 0x55);
+    EXPECT_EQ(in(3), 0xf0);
+    out(3, 0x80);
+    EXPECT_EQ(in(1), 0x80);
+    out(3, 1);
+    command(0);
+    EXPECT_EQ(result().size(), 36U);
+}
+
+TEST_F(SonyTest, QueuedAttentionsAcceptEitherAcknowledgmentOrder)
+{
+    for (bool read_first : { false, true }) {
+        cdrom[0].cd_status = CD_STATUS_DATA_ONLY;
+        out(3, 0x80);
+        cdrom[0].cd_status = CD_STATUS_EMPTY;
+        cdrom[0].insert(dev);
+        out(3, 8);
+        for (uint8_t expected : { 0x80, 0x28 }) {
+            EXPECT_EQ(irq, 1);
+            EXPECT_EQ(in(3) & 4, 4);
+            if (read_first) {
+                EXPECT_EQ(in(1), expected);
+                EXPECT_EQ(in(3) & 4, 0);
+                EXPECT_EQ(irq, 1);
+                out(3, 9);
+            } else {
+                out(3, 9);
+                EXPECT_EQ(irq, 0);
+                EXPECT_EQ(in(1), expected);
+            }
+        }
+        EXPECT_EQ(irq, 0);
+        EXPECT_EQ(in(0) & 1, 0);
+        EXPECT_EQ(in(3), 0xf3);
+        EXPECT_EQ(in(1), 0xff);
+    }
+}
+
 TEST_F(SonyTest, CreativeHasSelectableAddressAndNoInterruptOrDma)
 {
     const auto *config = sony_creative_device.config;
@@ -226,6 +276,28 @@ TEST_F(SonyTest, AdapterResourcesAndAttentionAndDataInterrupts)
         out(3, 0x80);
         EXPECT_FALSE(timers[1]->flags & TIMER_ENABLED);
     }
+}
+
+TEST_F(SonyTest, Nt31InterruptPollingPreservesEnablesBeforeDataIsReady)
+{
+    out(3, 0x38);
+    EXPECT_EQ(irq, 0);
+    EXPECT_EQ(in(0) & 0x38, 0x38);
+    command(0x32, { 0, 2, 0, 0, 0, 1 });
+    out(3, 0x38);
+    /* Setup polls the ISR before the sector timer fires. It saves the
+       enables from status, disables interrupts, then restores the enables. */
+    uint8_t enables = in(0) & 0x38;
+    out(3, 0);
+    EXPECT_EQ(in(0) & 0x38, 0);
+    out(3, enables);
+    EXPECT_EQ(irq, 0);
+    tick(1);
+    EXPECT_EQ(irq, 1);
+    EXPECT_EQ(in(0) & 0x3c, 0x3c);
+    out(3, 0x3c);
+    EXPECT_EQ(irq, 0);
+    EXPECT_EQ(in(0) & 0x38, 0x38);
 }
 
 TEST_F(SonyTest, DmaTerminalCountInMiddleOfSectorPreservesRemainingBytes)

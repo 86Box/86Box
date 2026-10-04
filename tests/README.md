@@ -152,7 +152,7 @@ Build `sony_cdrom_tests` with `BUILD_TESTING=ON`, then run:
 ctest --test-dir build --output-on-failure -R '^SonyTest\.'
 ```
 
-The fifteen tests exercise the Sony and Sony/Creative interfaces through public
+The nineteen tests exercise the Sony and Sony/Creative interfaces through public
 I/O handlers, with mocked image access, timers, PIC and DMA. The separate
 `tests/cdrom/sony_slcd_smoke.py` boots external DOS drivers in an isolated VM
 and compares copied ISO files byte for byte. See the
