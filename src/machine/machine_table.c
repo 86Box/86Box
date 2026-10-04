@@ -23559,7 +23559,7 @@ const machine_t machines[] = {
         .vid_device               = &mach64gtb_onboard_device,
         .snd_device               = &ess_1869_onboard_device,
         .net_device               = &i82557b_onboard_device,
-        .aliases                  = { "" }
+        .aliases                  = { "AST Bravo MS-T 6300", "AST 440LX", "" }
     },
     /* Has a National Semiconductor PC87307 Super I/O with on-chip KBC, which has one of these
        firmwares: AMI '5' MegaKey, Phoenix MultiKey/42 1.37, or Phoenix MultiKey/42i 4.16. */
