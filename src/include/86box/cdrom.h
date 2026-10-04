@@ -283,7 +283,7 @@ static const struct cdrom_drive_types_s {
     { "SONY",     "DVD-ROM DRU-810A", "71BD", "",          "sony_810a",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } }, /* Updated version of DRU-710A */
     { "SONY",     "DVD-ROM DDU1612",  "BA01", "",          "sony_1612",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
     { "SONY",     "DVD-ROM DDU1615",  "B2EE", "",          "sony_1615",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  5 } }, /* Updated version of DDU1612 */
-    { "TEAC",     "CD 55A",           "2.10", "",          "teac_55a",       BUS_TYPE_IDE,  1,  4, 36, 0, 0, {  2, -1, -1, -1 } }, /* Firmware revision confirmed in its manual, although it's not %100 confirmed yet. */
+    { "TEAC",     "CD 55A",           "2.10", "",          "teac_55a",       BUS_TYPE_IDE,  1,  4, 36, 0, 0, {  2, -1, -1, -1 } }, /* Legacy ATAPI profile; the proprietary CD-55A is teac_cd55a below. */
     { "TEAC",     "CD-SN250",         "N.0A", "",          "teac_520",       BUS_TYPE_IDE,  0, 10, 36, 0, 0, {  3,  2,  1,  0 } },
     { "TEAC",     "CD-516E",          "1.0G", "",          "teac_516e",      BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  3,  2,  2,  1 } },
     { "TEAC",     "CD-224E",          "4.0D", "",          "teac_224e",      BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  1 } }, /* Slimline CD-ROM drive */
@@ -381,6 +381,7 @@ static const struct cdrom_drive_types_s {
     { "MATSHITA", "CR-563",           "0.74", "",          "cr563",          BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
     { "MATSHITA", "CR-563",           "0.75", "",          "cr563_075",      BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
     { "MATSHITA", "CR-563",           "0.80", "",          "cr563_080",      BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
+    { "TEAC",     "CD-55A",           "1.00", "",          "teac_cd55a",     BUS_TYPE_MKE , 0,  4,  0, 0, 0, { -1, -1, -1, -1 } },
     { "",         "",                 "",     "",          "",               BUS_TYPE_NONE, 0, -1,  0, 0, 0, { -1, -1, -1, -1 } }
 };
 
