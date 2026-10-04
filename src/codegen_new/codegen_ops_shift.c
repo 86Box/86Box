@@ -975,9 +975,15 @@ ropSHLD_16_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
         int dest_reg = fetchdat & 7;
 
         uop_MOVZX(ir, IREG_flags_op1, IREG_16(dest_reg));
-        uop_SHL_IMM(ir, IREG_temp0_W, IREG_16(dest_reg), imm);
-        uop_SHR_IMM(ir, IREG_temp1_W, IREG_16(src_reg), 16 - imm);
-        uop_OR(ir, IREG_16(dest_reg), IREG_temp0_W, IREG_temp1_W);
+        if (imm == 16) {
+            uop_MOV(ir, IREG_16(dest_reg), IREG_16(src_reg));
+        } else if (imm >= 16) {
+            uop_SHL_IMM(ir, IREG_16(dest_reg), IREG_16(src_reg), (imm - 16));
+        } else {
+            uop_SHL_IMM(ir, IREG_temp0_W, IREG_16(dest_reg), imm);
+            uop_SHR_IMM(ir, IREG_temp1_W, IREG_16(src_reg), 16 - imm);
+            uop_OR(ir, IREG_16(dest_reg), IREG_temp0_W, IREG_temp1_W);
+        }
         uop_MOV_IMM(ir, IREG_flags_op2, imm);
         uop_MOV_IMM(ir, IREG_flags_op, FLAGS_SHL16);
         uop_MOVZX(ir, IREG_flags_res, IREG_16(dest_reg));
@@ -985,9 +991,15 @@ ropSHLD_16_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
         codegen_check_seg_write(block, ir, target_seg);
         uop_MEM_LOAD_REG(ir, IREG_temp2_W, ireg_seg_base(target_seg), IREG_eaaddr);
 
-        uop_SHL_IMM(ir, IREG_temp0_W, IREG_temp2, imm);
-        uop_SHR_IMM(ir, IREG_temp1_W, IREG_16(src_reg), 16 - imm);
-        uop_OR(ir, IREG_temp0_W, IREG_temp0_W, IREG_temp1_W);
+        if (imm == 16) {
+            uop_MOV(ir, IREG_temp0_W, IREG_16(src_reg));
+        } else if (imm >= 16) {
+            uop_SHL_IMM(ir, IREG_temp0_W, IREG_16(src_reg), (imm - 16));
+        } else {
+            uop_SHL_IMM(ir, IREG_temp0_W, IREG_temp2, imm);
+            uop_SHR_IMM(ir, IREG_temp1_W, IREG_16(src_reg), 16 - imm);
+            uop_OR(ir, IREG_temp0_W, IREG_temp0_W, IREG_temp1_W);
+        }
         uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp0_W);
 
         uop_MOVZX(ir, IREG_flags_op1, IREG_temp2_W);
@@ -1020,9 +1032,13 @@ ropSHLD_32_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
         int dest_reg = fetchdat & 7;
 
         uop_MOV(ir, IREG_flags_op1, IREG_32(dest_reg));
-        uop_SHL_IMM(ir, IREG_temp0, IREG_32(dest_reg), imm);
-        uop_SHR_IMM(ir, IREG_temp1, IREG_32(src_reg), 32 - imm);
-        uop_OR(ir, IREG_32(dest_reg), IREG_temp0, IREG_temp1);
+        if (imm == 32) {
+            uop_MOV(ir, IREG_32(dest_reg), IREG_32(src_reg));
+        } else {
+            uop_SHL_IMM(ir, IREG_temp0, IREG_32(dest_reg), imm);
+            uop_SHR_IMM(ir, IREG_temp1, IREG_32(src_reg), 32 - imm);
+            uop_OR(ir, IREG_32(dest_reg), IREG_temp0, IREG_temp1);
+        }
         uop_MOV_IMM(ir, IREG_flags_op2, imm);
         uop_MOV_IMM(ir, IREG_flags_op, FLAGS_SHL32);
         uop_MOV(ir, IREG_flags_res, IREG_32(dest_reg));
@@ -1030,9 +1046,13 @@ ropSHLD_32_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
         codegen_check_seg_write(block, ir, target_seg);
         uop_MEM_LOAD_REG(ir, IREG_temp2, ireg_seg_base(target_seg), IREG_eaaddr);
 
-        uop_SHL_IMM(ir, IREG_temp0, IREG_temp2, imm);
-        uop_SHR_IMM(ir, IREG_temp1, IREG_32(src_reg), 32 - imm);
-        uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+        if (imm == 32) {
+            uop_MOV(ir, IREG_temp0, IREG_32(src_reg));
+        } else {
+            uop_SHL_IMM(ir, IREG_temp0, IREG_temp2, imm);
+            uop_SHR_IMM(ir, IREG_temp1, IREG_32(src_reg), 32 - imm);
+            uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+        }
         uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp0);
 
         uop_MOV(ir, IREG_flags_op1, IREG_temp2);
@@ -1065,9 +1085,15 @@ ropSHRD_16_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
         int dest_reg = fetchdat & 7;
 
         uop_MOVZX(ir, IREG_flags_op1, IREG_16(dest_reg));
-        uop_SHR_IMM(ir, IREG_temp0_W, IREG_16(dest_reg), imm);
-        uop_SHL_IMM(ir, IREG_temp1_W, IREG_16(src_reg), 16 - imm);
-        uop_OR(ir, IREG_16(dest_reg), IREG_temp0_W, IREG_temp1_W);
+        if (imm == 16) {
+            uop_MOV(ir, IREG_16(dest_reg), IREG_16(src_reg));
+        } else if (imm >= 16) {
+            uop_SHR_IMM(ir, IREG_16(dest_reg), IREG_16(src_reg), (imm - 16));
+        } else {
+            uop_SHR_IMM(ir, IREG_temp0_W, IREG_16(dest_reg), imm);
+            uop_SHL_IMM(ir, IREG_temp1_W, IREG_16(src_reg), 16 - imm);
+            uop_OR(ir, IREG_16(dest_reg), IREG_temp0_W, IREG_temp1_W);
+        }
         uop_MOV_IMM(ir, IREG_flags_op2, imm);
         uop_MOV_IMM(ir, IREG_flags_op, FLAGS_SHR16);
         uop_MOVZX(ir, IREG_flags_res, IREG_16(dest_reg));
@@ -1075,9 +1101,15 @@ ropSHRD_16_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
         codegen_check_seg_write(block, ir, target_seg);
         uop_MEM_LOAD_REG(ir, IREG_temp2_W, ireg_seg_base(target_seg), IREG_eaaddr);
 
-        uop_SHR_IMM(ir, IREG_temp0_W, IREG_temp2, imm);
-        uop_SHL_IMM(ir, IREG_temp1_W, IREG_16(src_reg), 16 - imm);
-        uop_OR(ir, IREG_temp0_W, IREG_temp0_W, IREG_temp1_W);
+        if (imm == 16) {
+            uop_MOV(ir, IREG_temp0_W, IREG_16(src_reg));
+        } else if (imm >= 16) {
+            uop_SHR_IMM(ir, IREG_temp0_W, IREG_16(src_reg), (imm - 16));
+        } else {
+            uop_SHR_IMM(ir, IREG_temp0_W, IREG_temp2, imm);
+            uop_SHL_IMM(ir, IREG_temp1_W, IREG_16(src_reg), 16 - imm);
+            uop_OR(ir, IREG_temp0_W, IREG_temp0_W, IREG_temp1_W);
+        }
         uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp0_W);
 
         uop_MOVZX(ir, IREG_flags_op1, IREG_temp2_W);
@@ -1110,9 +1142,13 @@ ropSHRD_32_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
         int dest_reg = fetchdat & 7;
 
         uop_MOV(ir, IREG_flags_op1, IREG_32(dest_reg));
-        uop_SHR_IMM(ir, IREG_temp0, IREG_32(dest_reg), imm);
-        uop_SHL_IMM(ir, IREG_temp1, IREG_32(src_reg), 32 - imm);
-        uop_OR(ir, IREG_32(dest_reg), IREG_temp0, IREG_temp1);
+        if (imm == 32) {
+            uop_MOV(ir, IREG_32(dest_reg), IREG_32(src_reg));
+        } else {
+            uop_SHR_IMM(ir, IREG_temp0, IREG_32(dest_reg), imm);
+            uop_SHL_IMM(ir, IREG_temp1, IREG_32(src_reg), 32 - imm);
+            uop_OR(ir, IREG_32(dest_reg), IREG_temp0, IREG_temp1);
+        }
         uop_MOV_IMM(ir, IREG_flags_op2, imm);
         uop_MOV_IMM(ir, IREG_flags_op, FLAGS_SHR32);
         uop_MOV(ir, IREG_flags_res, IREG_32(dest_reg));
@@ -1120,9 +1156,13 @@ ropSHRD_32_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
         codegen_check_seg_write(block, ir, target_seg);
         uop_MEM_LOAD_REG(ir, IREG_temp2, ireg_seg_base(target_seg), IREG_eaaddr);
 
-        uop_SHR_IMM(ir, IREG_temp0, IREG_temp2, imm);
-        uop_SHL_IMM(ir, IREG_temp1, IREG_32(src_reg), 32 - imm);
-        uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+        if (imm == 32) {
+            uop_MOV(ir, IREG_temp0, IREG_32(src_reg));
+        } else {
+            uop_SHR_IMM(ir, IREG_temp0, IREG_temp2, imm);
+            uop_SHL_IMM(ir, IREG_temp1, IREG_32(src_reg), 32 - imm);
+            uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+        }
         uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp0);
 
         uop_MOV(ir, IREG_flags_op1, IREG_temp2);
