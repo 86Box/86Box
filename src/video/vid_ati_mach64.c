@@ -3709,12 +3709,15 @@ mach64gtb_init(const device_t *info)
        100 MHz: the VGA's 25.175 MHz instead, until ARS2D programs the PLL. */
     ics2595_setclock(svga->clock_gen, 25175000.0);
 
-    ati_eeprom_load(&mach64->eeprom, "mach64rage2p_ars2d.nvr", 1);
-    /* ARS2D is 36K, 48h blocks of 512 bytes by its PCI data structure. */
-    if (!mach64->on_board) {
+    if (info->local & MACH64_FLAG_ONBOARD)
+        /* On-board: the video BIOS is part of the system BIOS. */
+        ati_eeprom_load(&mach64->eeprom, "mach64rage2p_onboard.nvr", 1);
+    else {
+        ati_eeprom_load(&mach64->eeprom, "mach64rage2p_ars2d.nvr", 1);
+        /* ARS2D is 36K, 48h blocks of 512 bytes by its PCI data structure. */
         rom_init(&mach64->bios_rom, BIOS_ROMGTB_PATH, 0xc0000, 0x9000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-        mem_mapping_disable(&mach64->bios_rom.mapping);
     }
+    mem_mapping_disable(&mach64->bios_rom.mapping);
 
     mem_mapping_add(&mach64->aux_mapping, 0, 0, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     mem_mapping_disable(&mach64->aux_mapping);
