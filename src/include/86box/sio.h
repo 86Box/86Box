@@ -109,6 +109,7 @@ extern const device_t i82091aa_device;
 #define PCX73XX_IDE_SEC      0x00002
 
 #define PCX73XX_FDC_ON       0x10000
+#define PCX73XX_DENSEL_LOW   0x20000    /* IDENT strapped low: DENSEL active low at 500 kbps and 1 Mbps. */
 
 #define PC87310_ALI          0x00004
 #define PC87332              PC87310_ALI
