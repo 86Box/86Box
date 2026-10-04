@@ -36,6 +36,7 @@
 #include <86box/acpi.h>
 #include <86box/dma.h>
 #include <86box/machine.h>
+#include <86box/sound.h>
 #include <86box/i2c.h>
 #include <86box/video.h>
 #include <86box/smbus.h>
@@ -2409,8 +2410,21 @@ acpi_reset(void *priv)
        - Bit 6: Chassis intrusion switch - must be cleared as otherwise POST complains that the chassis was opened
        - Bit 3: ??? - must be cleared as otherwise POST complains about regulator failure */    
     dev->regs.gpireg[0] = ((machines[machine].init == machine_at_optiplexe1_init) ||
-                           (machines[machine].init == machine_at_optiplexgx1_init)) ? 0xb7 : 0xff;
-    dev->regs.gpireg[1] = 0xff;
+                           (machines[machine].init == machine_at_optiplexgx1_init)) ? 0xb7 : dev->regs.gpireg[0];
+    /* AST Bravo MS-T 6233:
+       - Bit 6: Setup access - must be cleared as otherwise F2 is ignored, the F2 prompts are not shown,
+                and the on-board LANDesk boot agent is not initialized
+       - Bit 5: Recovery mode - must be cleared as otherwise the machine enters recovery flash mode */
+    dev->regs.gpireg[0] = (machines[machine].init == machine_at_bravomst6233_init) ? 0x9f : dev->regs.gpireg[0];
+    /* AST Bravo MS-T 6233:
+       - Bits 7-5 (GPI15-13): On-board audio populated when all clear - the BIOS only configures the
+                              ES1869 (through its PnP bypass key) then
+       - Bit 1 (GPI9): Powered on by AC power restore rather than the power button - must be cleared as
+                       otherwise POST applies the AC power loss policy, which powers off on invalid CMOS */
+    if (machines[machine].init == machine_at_bravomst6233_init)
+        dev->regs.gpireg[1] = (sound_card_current[0] == SOUND_INTERNAL) ? 0x1d : 0xfd;
+    else
+        dev->regs.gpireg[1] = 0xff;
     /* A-Trend ATC7020BXII:
        - Bit 3: 80-conductor cable on secondary IDE channel (active low)
        - Bit 2: 80-conductor cable on primary IDE channel (active low)
@@ -2418,7 +2432,8 @@ acpi_reset(void *priv)
        - Bit 1: CMOS battery low (active high) */
     if ((machines[machine].init == machine_at_al440lx_init) ||
         (machines[machine].init == machine_at_se440bx2_init) ||
-        (machines[machine].init == machine_at_rc440bx_init))
+        (machines[machine].init == machine_at_rc440bx_init) ||
+        (machines[machine].init == machine_at_bl440zx_init))
         /* ED = Normal, DD (2-3) - Maintenance, BD, FD (none) - Recovery. */
         dev->regs.gpireg[2] = 0xed;
     else if ((machines[machine].init == machine_at_in440ex_init) || (machines[machine].init == machine_at_in440exd_init))

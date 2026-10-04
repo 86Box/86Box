@@ -23515,6 +23515,55 @@ const machine_t machines[] = {
     /* Has a National Semiconductor PC87307 Super I/O with on-chip KBC, which has one of these
        firmwares: AMI '5' MegaKey, Phoenix MultiKey/42 1.37, or Phoenix MultiKey/42i 4.16. */
     {
+        .name              = "[i440LX] AST Bravo MS-T 6233",
+        .internal_name     = "bravomst6233",
+        .type              = MACHINE_TYPE_SLOT1,
+        .chipset           = MACHINE_CHIPSET_INTEL_440LX,
+        .init              = machine_at_bravomst6233_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 66666667,
+            .max_bus     = 66666667,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 5.0
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM | MACHINE_NIC | MACHINE_USB,
+        .ram       = {
+            .min  = 8192,
+            .max  = 786432,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &mach64gtb_onboard_device,
+        .snd_device               = &ess_1869_onboard_device,
+        .net_device               = &i82557b_onboard_device,
+        .aliases                  = { "AST Bravo MS-T 6300", "AST 440LX", "" }
+    },
+    /* Has a National Semiconductor PC87307 Super I/O with on-chip KBC, which has one of these
+       firmwares: AMI '5' MegaKey, Phoenix MultiKey/42 1.37, or Phoenix MultiKey/42i 4.16. */
+    {
         .name              = "[i440LX] Dell OptiPlex GXa",
         .internal_name     = "optiplexgxa",
         .type              = MACHINE_TYPE_SLOT1,
@@ -26001,6 +26050,55 @@ const machine_t machines[] = {
     },
 
     /* 440ZX */
+    /* Has a SM(S)C FDC37B807 Super I/O chip with on-chip Phoenix MultiKey/42i
+       KBC firmware. */
+    {
+        .name              = "[i440ZX] Intel BL440ZX",
+        .internal_name     = "bl440zx",
+        .type              = MACHINE_TYPE_SOCKET370,
+        .chipset           = MACHINE_CHIPSET_INTEL_440ZX,
+        .init              = machine_at_bl440zx_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET370,
+            .block       = CPU_BLOCK(CPU_CYRIX3S),
+            .min_bus     = 66666667,
+            .max_bus     = 66666667,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_NOISA | MACHINE_BUS_USB,
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_NIC | MACHINE_SOUND, /* Machine has internal video: ATI Rage Pro Turbo AGP */
+        .ram       = {
+            .min  = 16384, /* 8 MB RAM is detected as 16 MB by DOS. 16 MB is detected incorrectly by BIOS Setup but is otherwise fully functional */
+            .max  = 524288,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = &es1373_onboard_device,
+        .net_device               = &i82559c_onboard_device,
+        .aliases                  = { "Intel Bali", "" }
+    },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {

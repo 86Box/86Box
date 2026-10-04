@@ -17,6 +17,16 @@ Try to match your code's filename and append the type of test it is.
 
 ## Summary of current tests
 
+# TEAC CD-55A
+
+The `mke_cdrom_tests` target includes Panasonic regressions and TEAC protocol
+tests. Run `ctest --test-dir build -R '^(Mke|Teac)Test\.' --output-on-failure`.
+The optional `cdrom/teac_cda_smoke.py` boots external TEAC DOS drivers against
+Creative, standard Panasonic, TEAC 8-bit and TEAC 16-bit interfaces. It checks
+exact ISO/BIN file copies and optional CD-DA/MSCDEX operations and PCM output.
+See [TEAC hardware and validation notes](../doc/hardware/teac-cdrom.md) for
+setup, required external images and validation limits.
+
 # WD90C31 graphics
 
 Build `wd90c31_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^Wd90c31\.'` for register, BitBLT, host-transfer and hardware-cursor checks. The optional `video/wd90c31_bios_smoke.py` runs the supplied option ROMs in a complete SDL emulator using a synthetic AT BIOS. See [the WD90C31 hardware notes](../doc/hardware/wd90c31.md) for ROM paths, commands, tested modes and validation limits.
@@ -143,3 +153,18 @@ Build `mouse_microtouch_tests` with `BUILD_TESTING=ON`, then run:
 ```sh
 ctest --test-dir build --output-on-failure -R '^MicroTouch\.'
 ```
+
+# Sony CDU31A / CDU33A
+
+Build `sony_cdrom_tests` with `BUILD_TESTING=ON`, then run:
+
+```sh
+ctest --test-dir build --output-on-failure -R '^SonyTest\.'
+```
+
+The nineteen tests exercise the Sony and Sony/Creative interfaces through public
+I/O handlers, with mocked image access, timers, PIC and DMA. The separate
+`tests/cdrom/sony_slcd_smoke.py` boots external DOS drivers in an isolated VM
+and compares copied ISO files byte for byte. See the
+[Sony hardware guide](../doc/hardware/sony-cdrom.md) for prerequisites, resource
+settings, the five-version driver matrix, and validation limits.

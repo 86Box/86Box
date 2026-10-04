@@ -118,7 +118,11 @@ typedef struct mke_t {
     bool       present;
     bool       tray_open;
     bool       family0;
+    bool       teac;
+    bool       locked;
+    bool       teac_data_completion;
     bool       spinning;
+    uint8_t    teac_mode[10];
 
     uint32_t read_lba;
     uint32_t read_count;
@@ -130,7 +134,7 @@ typedef struct mke_t {
     uint8_t  volume_switch;
     uint8_t  volume_level;
 
-    uint8_t    command_buffer[7];
+    uint8_t    command_buffer[10];
     uint8_t    command_buffer_pending;
 
     uint8_t    medium_changed;
@@ -168,6 +172,8 @@ typedef struct mke_interface_t {
     mke_t      mke[4];
 
     uint8_t    is_sb;
+    uint8_t    word_data;
+    uint8_t    has_teac;
 
     uint8_t    drvsel;
     uint8_t    data_select;
@@ -231,11 +237,14 @@ mke_cdrom_insert(void *priv)
     if ((dev == NULL) || (dev->cdrom_dev == NULL))
         return;
 
-    if (dev->family0) {
+    if (dev->family0 || dev->teac) {
         timer_disable(&dev->timer);
         dev->read_count = 0;
         dev->spinning   = false;
         fifo8_reset(&dev->data_fifo);
+        if (dev->teac)
+            fifo8_reset(&dev->info_fifo);
+        dev->teac_data_completion = false;
     }
 
     if (dev->cdrom_dev->ops == NULL) {
@@ -547,8 +556,8 @@ mke_reset(mke_t *mke)
     mke->vol0                   = 255;
     mke->vol1                   = 255;
     mke->cdrom_dev->sector_size = 2048;
-    if (mke->family0) {
-        mke->command_buffer_pending = 7;
+    if (mke->family0 || mke->teac) {
+        mke->command_buffer_pending = mke->teac ? 10 : 7;
         mke->read_count             = 0;
         mke->packet_size            = 0;
         mke->spinning               = false;
@@ -558,6 +567,16 @@ mke_reset(mke_t *mke)
         memset(mke->sense, 0, sizeof(mke->sense));
         fifo8_reset(&mke->data_fifo);
         fifo8_reset(&mke->info_fifo);
+        if (mke->teac) {
+            memset(mke->teac_mode, 0, sizeof(mke->teac_mode));
+            mke->teac_mode[1] = 2; /* Automatic, up to 4x. */
+            mke->teac_mode[2] = 8; /* 2048-byte sectors, big endian. */
+            mke->teac_mode[7] = 1;
+            mke->cdrom_dev->cur_speed = 4;
+            mke->locked = false;
+            mke->teac_data_completion = false;
+            fifo8_push(&mke->info_fifo, 0x55);
+        }
     }
 }
 
@@ -876,6 +895,233 @@ mke0_execute(mke_t *mke)
     }
 }
 
+/* CD-55A uses the Panasonic electrical interface, but a different ten-byte
+   protocol. Sources: TEAC_CDA.SYS 1.10g/1.11h/1.15i/1.18k and the CMDT_ paths
+   in Linux v2.6.12 drivers/cdrom/sbpcd.c and sbpcd.h (Eberhard Moenkeberg).
+   Results begin with 00h (success) or 02h (check condition). TOC and sector
+   payloads use the data FIFO; other results use the information FIFO. */
+static void
+mket_error(mke_t *mke, uint8_t key, uint8_t asc, uint8_t ascq)
+{
+    memset(mke->sense, 0, sizeof(mke->sense));
+    mke->sense[2]             = key;
+    mke->sense[3]             = asc;
+    mke->sense[4]             = ascq;
+    mke->is_error             = 1;
+    mke->read_count           = 0;
+    mke->teac_data_completion = false;
+    timer_disable(&mke->timer);
+    fifo8_reset(&mke->data_fifo);
+    fifo8_reset(&mke->info_fifo);
+    fifo8_push(&mke->info_fifo, 2);
+    ui_sb_update_icon(SB_CDROM | mke->cdrom_dev->id, 0);
+}
+
+static int
+mket_ready(mke_t *mke)
+{
+    cdrom_t *dev = mke->cdrom_dev;
+    if (dev->cd_status & CD_STATUS_TRANSITION)
+        mke_cdrom_insert(mke);
+    if (mke->tray_open || !dev->ops || dev->cd_status == CD_STATUS_EMPTY || dev->cd_status == CD_STATUS_DVD_REJECTED) {
+        mket_error(mke, 2, 0x3a, mke->tray_open ? 1 : 0);
+        return 0;
+    }
+    if (mke->medium_changed) {
+        mke->medium_changed = 0;
+        mket_error(mke, 6, 0x28, 0);
+        return 0;
+    }
+    return 1;
+}
+
+static double
+mket_sector_time(const mke_t *mke)
+{
+    unsigned speed = mke->teac_mode[1];
+    speed          = (speed == 0x80) ? 1 : (speed == 0x81) ? 2
+                                                           : 4;
+    return 1000000.0 / (75.0 * speed);
+}
+
+static void
+mket_read_callback(mke_t *mke)
+{
+    int len = 0;
+    if (!mke->read_count || !mket_ready(mke))
+        return;
+    int result = cdrom_readsector_raw(mke->cdrom_dev, mke->cdbuffer, mke->read_lba,
+                                      0, mke->read_type, mke->read_flags, &len, 0);
+    if (result <= 0 || len != mke->read_size) {
+        mket_error(mke, 3, 0x11, 0);
+        return;
+    }
+    fifo8_push_all(&mke->data_fifo, mke->cdbuffer, len);
+    mke->read_lba++;
+    mke->read_count--;
+}
+
+static uint32_t
+mket_u32(const uint8_t *p)
+{
+    return ((uint32_t) p[0] << 24) | mke0_u24(p + 1);
+}
+
+static void
+mket_execute(mke_t *mke)
+{
+    const uint8_t *cmd     = mke->command_buffer;
+    cdrom_t       *dev     = mke->cdrom_dev;
+    uint8_t        out[16] = { 0 };
+    unsigned       len, allocation;
+    uint32_t       lba, end;
+
+    mke_log("TEAC command: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
+            cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7], cmd[8], cmd[9]);
+    timer_disable(&mke->timer);
+    fifo8_reset(&mke->data_fifo);
+    fifo8_reset(&mke->info_fifo);
+    mke->read_count           = 0;
+    mke->teac_data_completion = false;
+    ui_sb_update_icon(SB_CDROM | dev->id, 0);
+
+    switch (cmd[0]) {
+        case 0xc0: /* Reset, including the power-on signature. */
+            mke_reset(mke);
+            return;
+        case 0x12: /* Identification: emulated firmware 1.00. */
+            memcpy(out + 1, "CD-55A1. 00", 11);
+            fifo8_push_all(&mke->info_fifo, out, MIN(cmd[4], 12));
+            return;
+        case 0x03: /* Sense: key/ASC/ASCQ; audio status is ASCQ with key zero. */
+            memcpy(out, mke->sense, 5);
+            if (!out[2])
+                out[4] = cdrom_get_current_status(dev);
+            fifo8_push_all(&mke->info_fifo, out, 5);
+            memset(mke->sense, 0, sizeof(mke->sense));
+            mke->is_error = 0;
+            return;
+        case 0x5a: /* Mode sense includes the success byte. */
+            fifo8_push_all(&mke->info_fifo, mke->teac_mode, MIN(cmd[4], 10));
+            return;
+        case 0x55: /* Mode select parameters are in the command itself. */
+            len = ((unsigned) cmd[2] << 8) | cmd[3];
+            if ((len != 2048 && len != 2340 && len != 2352) || (cmd[1] != 0 && cmd[1] != 1 && cmd[1] != 2 && cmd[1] != 0x80 && cmd[1] != 0x81 && cmd[1] != 0x82)) {
+                mket_error(mke, 5, 0x24, 0);
+                return;
+            }
+            memcpy(mke->teac_mode + 1, cmd + 1, 9);
+            dev->sector_size = len;
+            dev->cur_speed   = cmd[1] == 0x80 ? 1 : cmd[1] == 0x81 ? 2
+                                                                   : 4;
+            mke->vol0        = (cmd[7] & 0x10) ? 0 : 255;
+            mke->vol1        = (cmd[7] & 0x20) ? 0 : 255;
+            break;
+        case 0x1e: /* Prevent/allow removal. */
+            mke->locked = cmd[4] & 1;
+            break;
+        case 0x1b: /* Stop/start/eject/load. */
+            if ((cmd[4] & 3) == 2) {
+                if (mke->locked) {
+                    mket_error(mke, 5, 0x53, 2);
+                    return;
+                }
+                mke->tray_open = true;
+                cdrom_eject(dev->id);
+            } else if ((cmd[4] & 3) == 3) {
+                mke->tray_open = false;
+                cdrom_reload(dev->id);
+            }
+            mke->spinning = cmd[4] & 1;
+            if (!mke->spinning)
+                cdrom_stop(dev);
+            break;
+        case 0x08: /* Abort. */
+            cdrom_stop(dev);
+            break;
+        case 0x00: /* Test ready. */
+            if (!mket_ready(mke))
+                return;
+            break;
+        case 0x43: /* SCSI-shaped TOC data, followed by TEAC completion. */
+            if (!mket_ready(mke))
+                return;
+            if ((cmd[9] & 0xc0) != 0 && (cmd[9] & 0xc0) != 0x40) {
+                mket_error(mke, 5, 0x24, 0);
+                return;
+            }
+            allocation = ((unsigned) cmd[7] << 8) | cmd[8];
+            len        = cdrom_read_toc(dev, mke->temp_buf,
+                                        (cmd[9] & 0x40) ? CD_TOC_SESSION : CD_TOC_NORMAL,
+                                        cmd[6], (cmd[1] & 2) << 8, sizeof(mke->temp_buf));
+            if (!len) {
+                mket_error(mke, 5, 0x24, 0);
+                return;
+            }
+            len = MIN(len, allocation);
+            if (len) {
+                fifo8_push_all(&mke->data_fifo, mke->temp_buf, len);
+                mke->teac_data_completion = true;
+                return;
+            }
+            break;
+        case 0x28: /* READ(10), 32-bit LBA and 16-bit sector count. */
+        case 0x2b: /* SEEK(10). */
+            if (!mket_ready(mke))
+                return;
+            lba = mket_u32(cmd + 2);
+            len = (cmd[0] == 0x28) ? (((unsigned) cmd[7] << 8) | cmd[8]) : 0;
+            if (lba >= dev->cdrom_capacity || len > dev->cdrom_capacity - lba) {
+                mket_error(mke, 5, 0x21, 0);
+                return;
+            }
+            cdrom_stop(dev);
+            cdrom_seek(dev, lba, 0);
+            mke->spinning = true;
+            if (!len)
+                break;
+            mke->read_lba   = lba;
+            mke->read_count = len;
+            mke->read_size  = ((unsigned) mke->teac_mode[2] << 8) | mke->teac_mode[3];
+            /* Backend type 8 encodes the logical-block multiplier above bit 3. */
+            mke->read_type            = (mke->read_size == 2048) ? 0x18 : 0;
+            mke->read_flags           = (mke->read_size == 2048) ? 0x10 : (mke->read_size == 2340) ? 0x78
+                                                                                                   : 0xf8;
+            mke->teac_data_completion = true;
+            timer_on_auto(&mke->timer, cdrom_seek_time(dev) + mket_sector_time(mke));
+            ui_sb_update_icon(SB_CDROM | dev->id, 1);
+            return;
+        case 0x42: /* Compact sub-Q: status, ADR/CTL, track, index, rel/abs MSF. */
+            if (!mket_ready(mke))
+                return;
+            cdrom_get_current_subchannel_sony(dev, mke->temp_buf, 1);
+            memcpy(out + 1, mke->temp_buf, 6);
+            memcpy(out + 8, mke->temp_buf + 6, 3);
+            allocation = ((unsigned) cmd[7] << 8) | cmd[8];
+            fifo8_push_all(&mke->info_fifo, out, MIN(allocation, 12));
+            return;
+        case 0x47: /* Play MSF. */
+            if (!mket_ready(mke))
+                return;
+            if (!mke0_address(cmd + 3, 1, 0, &lba) || !mke0_address(cmd + 6, 1, 0, &end) || end < lba || end >= dev->cdrom_capacity ||
+                /* TEAC_CDA.SYS sends start + length - 1, an inclusive end. */
+                !cdrom_audio_play(dev, lba, end - lba + 1, 0)) {
+                mket_error(mke, 5, 0x24, 0);
+                return;
+            }
+            break;
+        case 0x4b: /* Pause; drivers resume with a new PLAY MSF. */
+            if (!mket_ready(mke))
+                return;
+            cdrom_audio_pause_resume(dev, 0);
+            break;
+        default:
+            mket_error(mke, 5, 0x20, 0);
+            return;
+    }
+    fifo8_push(&mke->info_fifo, 0);
+}
+
 static uint8_t
 mke_read_data(mke_t *mke)
 {
@@ -884,6 +1130,15 @@ mke_read_data(mke_t *mke)
         ret = fifo8_pop(&mke->data_fifo);
         if (mke->family0 && !fifo8_num_used(&mke->data_fifo) && mke->read_count)
             timer_on_auto(&mke->timer, 1000000.0 / 75.0);
+        if (mke->teac && !fifo8_num_used(&mke->data_fifo)) {
+            if (mke->read_count)
+                timer_on_auto(&mke->timer, mket_sector_time(mke));
+            else if (mke->teac_data_completion) {
+                mke->teac_data_completion = false;
+                fifo8_push(&mke->info_fifo, 0);
+                ui_sb_update_icon(SB_CDROM | mke->cdrom_dev->id, 0);
+            }
+        }
     }
     return ret;
 }
@@ -893,6 +1148,10 @@ mke_command_callback(void *priv)
 {
     mke_t *mke = (mke_t *) priv;
 
+    if (mke->teac) {
+        mket_read_callback(mke);
+        return;
+    }
     if (mke->family0) {
         mke0_read_callback(mke);
         return;
@@ -920,6 +1179,14 @@ mke_command(mke_t *mke, uint8_t value)
     /* This is wasteful handling of buffers for compatibility, but will optimize later. */
     uint8_t      x[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
+    if (mke->teac) {
+        mke->command_buffer[10 - mke->command_buffer_pending] = value;
+        if (!--mke->command_buffer_pending) {
+            mke->command_buffer_pending = 10;
+            mket_execute(mke);
+        }
+        return;
+    }
     if (mke->command_buffer_pending) {
         mke->command_buffer[6 - mke->command_buffer_pending + 1] = value;
         mke->command_buffer_pending--;
@@ -1258,7 +1525,11 @@ mke_write(uint16_t port, uint8_t val, void *priv)
                 mki->data_select = val;
             break;
         case 2:
-            if (mke->present)
+            /* The reset signal is shared by TEAC drives on the cable. */
+            for (unsigned i = 0; i < 4; i++)
+                if (mki->mke[i].present && mki->mke[i].teac)
+                    mke_reset(&mki->mke[i]);
+            if (mke->present && !mke->teac)
                 mke_reset(mke);
             break;
         case 3:
@@ -1296,6 +1567,8 @@ mke_read(uint16_t port, void *priv)
                    - 8 = Attention / Issue?
             */
             ret = 0xff;
+            if (mki->word_data)
+                ret &= ~0x80; /* TEAC_CDA /T:1 enables INSW when this is low. */
             if (fifo8_num_used(&mke->data_fifo))
                 /* Data FIFO */
                 ret ^= 2;
@@ -1318,13 +1591,22 @@ mke_read(uint16_t port, void *priv)
             mke_log("MKE Unknown Read Port: %04X\n", port);
             ret = 0xff;
             break;
-    } else if ((port & 0x0003) == 0x0003)
+    } else if (mki->has_teac || (port & 0x0003) == 0x0003)
         /* This is needed for the Windows 95 built-in driver to function correctly. */
         ret = 0xff;
 
     mke_log("[%04X:%08X] [R] %04X = %02X\n", CS, cpu_state.pc, port, ret);
 
     return ret;
+}
+
+static uint16_t
+mke_readw(uint16_t port, void *priv)
+{
+    mke_interface_t *mki = (mke_interface_t *) priv;
+    uint16_t lo = mke_read(port, priv);
+    /* TEAC's 16-bit latch supplies consecutive bytes at the SAME data port. */
+    return lo | ((uint16_t) mke_read(((port & 3) == 0 && mki->data_select) ? port : port + 1, priv) << 8);
 }
 
 uint32_t
@@ -1379,6 +1661,8 @@ mke_init(const device_t *info)
             memset(mke->ver, 0x00, 512);
             cdrom_generate_name_mke(dev->type, mke->ver);
             mke->family0 = !strcmp(cdrom_get_internal_name(dev->type), "cr521b");
+            mke->teac = !strcmp(cdrom_get_internal_name(dev->type), "teac_cd55a");
+            mki->has_teac |= mke->teac;
             if (mke->family0)
                 snprintf(mke->ver, sizeof(mke->ver), "MATSHITA%s",
                          cdrom_drive_types[dev->type].revision);
@@ -1409,6 +1693,8 @@ mke_init(const device_t *info)
             dev->subc_sector = -1;
 
             timer_add(&mke->timer, mke_command_callback, mke, 0);
+            if (mke->teac)
+                mke_reset(mke);
 
             num++;
 
@@ -1417,10 +1703,11 @@ mke_init(const device_t *info)
         }
     }
 
-    mki->is_sb                  = info->local;
+    mki->is_sb                  = info->local & 1;
+    mki->word_data              = info->local & 2;
 
     uint16_t base = device_get_config_hex16("base");
-    io_sethandler(base, 4, mke_read, NULL, NULL, mke_write, NULL, NULL, mki);
+    io_sethandler(base, 4, mke_read, mki->word_data ? mke_readw : NULL, NULL, mke_write, NULL, NULL, mki);
 
     return mki;
 }
@@ -1482,4 +1769,47 @@ const device_t mke_cdrom_noncreative_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mke_config
+};
+
+/* Match the installation software's address choices and default for both
+   cards (TEAC CD-55A manual, PDF pages 5-6). */
+static const device_config_t teac_config[] = {
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_int = 0x2c0,
+        .selection = {
+            { .description = "2C0H", .value = 0x2c0 },
+            { .description = "2E0H", .value = 0x2e0 },
+            { .description = "300H", .value = 0x300 },
+            { .description = "320H", .value = 0x320 },
+            { .description = "340H", .value = 0x340 },
+            { .description = "360H", .value = 0x360 },
+            { .description = "380H", .value = 0x380 },
+            { .description = "3A0H", .value = 0x3a0 },
+            { .description = "" }
+        }
+    },
+    { .type = CONFIG_END }
+};
+
+const device_t teac_cdrom_device = {
+    .name          = "TEAC CD-55A interface (8-bit)",
+    .internal_name = "teac_8bit",
+    .flags         = DEVICE_ISA,
+    .local         = 1,
+    .init          = mke_init,
+    .close         = mke_close,
+    .config        = teac_config
+};
+
+const device_t teac_cdrom_16bit_device = {
+    .name          = "TEAC CD-55A interface (16-bit)",
+    .internal_name = "teac_16bit",
+    .flags         = DEVICE_ISA16,
+    .local         = 3,
+    .init          = mke_init,
+    .close         = mke_close,
+    .config        = teac_config
 };
