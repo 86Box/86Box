@@ -31,8 +31,8 @@
  *          Written against the "EtherLink III Parallel Tasking ISA, EISA,
  *          Micro Channel, and PCMCIA Adapter Drivers Technical Reference",
  *          3Com part 09-0398-002B. Register and command names below are
- *          that book's. Plug and Play isolation is not modelled; the ISA
- *          contention mechanism is. The boot PROM is: the configuration's
+ *          that book's. Both ISA activation mechanisms are modelled, 3Com's
+ *          ID contention and Plug and Play. The boot PROM is: the configuration's
  *          ROM size and base name the part and its window, and ROM Control
  *          pages a part of 32 or 64 K through the ISA card's 16 K window.
  *
@@ -316,10 +316,12 @@ typedef struct el3_t {
     /* The EEPROM file. */
     char    nvr_name[64];
 
-    /* Plug and Play: the card's resource data is EEPROM words 18h-3Fh. */
-    uint8_t pnp;
-    void   *pnp_card;
-    uint8_t pnp_rom[80];
+    /* Plug and Play: the card's resource data is EEPROM words 18h-3Fh, and
+       its power-up registers the configuration the EEPROM last loaded. */
+    uint8_t                pnp;
+    void                  *pnp_card;
+    uint8_t                pnp_rom[80];
+    isapnp_device_config_t pnp_power_up;
 
     /* The ISA activation mechanism. */
     uint8_t  ids_state;
@@ -1398,6 +1400,9 @@ el3_tx_reset(el3_t *dev, uint8_t mask)
 static void el3_deactivate(el3_t *dev);
 static void el3_pnp_update(el3_t *dev);
 static void el3_pnp_load_rom(el3_t *dev);
+static void el3_pnp_load_power_up(el3_t *dev);
+static void el3_pnp_mirror_active(el3_t *dev);
+static void el3_pnp_mirror_config(el3_t *dev);
 
 /* Global Reset. Bit 4 is the auto-initialize state machine: resetting it
    rereads the EEPROM and returns the card to ID_WAIT, inactive, so a driver
@@ -1451,10 +1456,14 @@ el3_global_reset(el3_t *dev, uint8_t mask)
             el3_isa_prom_update(dev);
         }
         /* "Plug and Play configuration is also placed in a reset state"
-           (6-3). */
+           (6-3), and the reset has "the same effect as a power-up reset":
+           Wait for Key and CSN 0, and the Plug and Play registers -- the
+           same registers as Address and Resource Configuration (Table 7-2)
+           -- hold what the EEPROM just loaded into those. */
         if (dev->pnp_card != NULL) {
             el3_pnp_load_rom(dev);
-            isapnp_reset_card(dev->pnp_card);
+            el3_pnp_load_power_up(dev);
+            isapnp_power_up_card(dev->pnp_card);
             el3_pnp_update(dev);
         }
         dev->ids_state = IDS_WAIT;
@@ -1917,6 +1926,7 @@ el3_reg_write(el3_t *dev, uint8_t off, uint8_t val)
                     if (dev->mca)
                         break;
                     dev->address_config = (uint16_t) ((dev->address_config & 0xff00) | (val & 0xbf));
+                    el3_pnp_mirror_config(dev); /* the same register as Plug and Play's (Table 7-2) */
                     break;
                 case W0_ADDRESS_CONFIG + 1:
                     if (dev->mca)
@@ -1925,6 +1935,7 @@ el3_reg_write(el3_t *dev, uint8_t off, uint8_t val)
                     /* ROM SIZE and ROM BASE are this register's: the window
                        follows them. */
                     el3_isa_prom_update(dev);
+                    el3_pnp_mirror_config(dev);
                     break;
                 case W0_RESOURCE_CONFIG:
                     dev->resource_config = (uint16_t) ((dev->resource_config & 0xff00) | val);
@@ -1937,6 +1948,7 @@ el3_reg_write(el3_t *dev, uint8_t off, uint8_t val)
                         val = (uint8_t) ((val & 0x0f) | ((dev->resource_config >> 8) & 0xf0));
                     dev->resource_config = (uint16_t) ((dev->resource_config & 0x00ff) | (val << 8));
                     el3_set_irq(dev, el3_irq_of(dev->resource_config));
+                    el3_pnp_mirror_config(dev);
                     break;
                 case W0_EEPROM_COMMAND:
                     el3_eeprom_command(dev, val);
@@ -2152,6 +2164,7 @@ el3_deactivate(el3_t *dev)
     io_removehandler(dev->io_base, 0x10, el3_read, el3_readw, el3_readl, el3_write, el3_writew, el3_writel, dev);
     dev->active = 0;
     el3_update_irq(dev);
+    el3_pnp_mirror_active(dev);
 }
 
 static void
@@ -2163,6 +2176,7 @@ el3_activate(el3_t *dev, uint16_t base)
     dev->active = 1;
     el3_log("3C509B: active at %03x, IRQ %i\n", dev->io_base, dev->irq);
     el3_update_irq(dev);
+    el3_pnp_mirror_active(dev);
 }
 
 /* ---- the MCA POS registers --------------------------------------------------- */
@@ -2249,8 +2263,10 @@ el3_id_command(el3_t *dev, uint8_t val)
     } else {
         /* Activate: E0h-FEh names the base, FFh keeps the EEPROM's. The
            last value is also EISA mode, which an ISA slot cannot reach. */
-        if (val != 0xff)
+        if (val != 0xff) {
             dev->address_config = (uint16_t) ((dev->address_config & ~AC_IO_BASE) | (val & AC_IO_BASE));
+            el3_pnp_mirror_config(dev); /* the same register as Plug and Play's (Table 7-2) */
+        }
         if ((dev->address_config & AC_IO_BASE) != AC_EISA)
             el3_activate(dev, (uint16_t) (0x200 + ((dev->address_config & AC_IO_BASE) << 4)));
         dev->ids_state = IDS_WAIT;
@@ -2345,10 +2361,111 @@ el3_pnp_addr_write(UNUSED(uint16_t port), UNUSED(uint8_t val), void *priv)
     }
 }
 
+/* Where the window Address Configuration's ROM SIZE and ROM BASE select
+   starts, 0 when they select none (el3_rom_window). */
+static uint32_t
+el3_rom_start(const el3_t *dev)
+{
+    uint32_t base;
+    uint32_t window;
+    uint32_t part;
+    uint8_t  paged;
+
+    el3_rom_window((uint8_t) ((dev->address_config & AC_ROM) >> 8), &base, &window, &part, &paged);
+    return window ? base : 0;
+}
+
+/* The ROM BASE that starts a window at rom, for the part ROM SIZE names: an
+   8 K part's 8 K step, a larger one's 16 K step, 0001b for C0000h (7-17,
+   7-18); 0000b, no PROM, for an address no window of it starts at. */
+static uint8_t
+el3_rom_base_for(const el3_t *dev, uint32_t rom)
+{
+    if (!(dev->address_config & 0x3000)) {
+        if ((rom >= 0xc2000) && (rom <= 0xde000) && !(rom & 0x1fff))
+            return (uint8_t) ((rom - 0xc0000) >> 13);
+        return 0;
+    }
+    if ((rom < 0xc0000) || (rom > 0xdc000) || (rom & 0x3fff))
+        return 0;
+    if (rom == 0xc0000)
+        return 1;
+    return (uint8_t) (((rom - 0xc0000) >> 14) << 1);
+}
+
+/* The Plug and Play resource registers are "Same as" Address and Resource
+   Configuration (Table 7-2): the I/O base unless it is EISA's, the IRQ, the
+   ROM window. The interrupt type is 02h, edge-triggered and active high. */
+static void
+el3_pnp_config_of(const el3_t *dev, isapnp_device_config_t *config)
+{
+    memset(config, 0, sizeof(*config));
+    if ((dev->address_config & AC_IO_BASE) != AC_EISA)
+        config->io[0].base = (uint16_t) (0x200 + ((dev->address_config & AC_IO_BASE) << 4));
+    config->irq[0].irq   = (uint8_t) (dev->resource_config >> 12);
+    config->irq[0].level = 1;
+    config->mem[0].base  = el3_rom_start(dev);
+    config->activate     = dev->active;
+    config->dma[0].dma   = ISAPNP_DMA_DISABLED;
+    config->dma[1].dma   = ISAPNP_DMA_DISABLED;
+}
+
+/* The power-up values Plug and Play loads at a reset: what the EEPROM put
+   in Address and Resource Configuration, the card inactive -- it comes out
+   of reset in ID_WAIT (7-3). */
+static void
+el3_pnp_load_power_up(el3_t *dev)
+{
+    el3_pnp_config_of(dev, &dev->pnp_power_up);
+    dev->pnp_power_up.activate = 0;
+}
+
+/* Activate reads what the card is: "Cards must report their actual active
+   status when the Activate register is read" (Plug and Play ISA 1.0a,
+   5.1), whichever way it was turned on or off. */
+static void
+el3_pnp_mirror_active(el3_t *dev)
+{
+    if (dev->pnp_card != NULL)
+        isapnp_set_reg(dev->pnp_card, 0, 0x30, dev->active);
+}
+
+/* The resource registers as a read finds them after Address or Resource
+   Configuration changed some other way: a window 0 write, an ID sequence
+   activation. */
+static void
+el3_pnp_mirror_config(el3_t *dev)
+{
+    isapnp_device_config_t config;
+
+    if (dev->pnp_card == NULL)
+        return;
+    el3_pnp_config_of(dev, &config);
+    isapnp_set_reg(dev->pnp_card, 0, 0x40, (uint8_t) (config.mem[0].base >> 16));
+    isapnp_set_reg(dev->pnp_card, 0, 0x41, (uint8_t) (config.mem[0].base >> 8));
+    isapnp_set_reg(dev->pnp_card, 0, 0x60, (uint8_t) (config.io[0].base >> 8));
+    isapnp_set_reg(dev->pnp_card, 0, 0x61, (uint8_t) config.io[0].base);
+    isapnp_set_reg(dev->pnp_card, 0, 0x70, config.irq[0].irq);
+}
+
+/* The registers that do not keep what is written: Memory Control reads 0
+   (fixed size), the range length is not a register of this card ("Any Plug
+   and Play registers that are not shown ... return zero when read"), and
+   the interrupt type is 02h (Table 7-2). */
+static void
+el3_pnp_fixed_regs(el3_t *dev)
+{
+    isapnp_set_reg(dev->pnp_card, 0, 0x42, 0x00);
+    isapnp_set_reg(dev->pnp_card, 0, 0x43, 0x00);
+    isapnp_set_reg(dev->pnp_card, 0, 0x44, 0x00);
+    isapnp_set_reg(dev->pnp_card, 0, 0x71, 0x02);
+}
+
 /* The Plug and Play registers for the I/O base, the IRQ and the ROM base
    "are also transferred into their respective Address Configuration and
-   Resource Configuration fields", and Activate turns the card's I/O on
-   and off (7-5). */
+   Resource Configuration fields" as they are written, and Activate turns
+   the card's I/O on and off (7-5). A reset hands over the power-up values,
+   which are what the EEPROM loaded (el3_pnp_load_power_up). */
 static void
 el3_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
@@ -2359,22 +2476,13 @@ el3_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
     if (ld != 0)
         return;
 
-    /* A reset or deactivation turns the card off but must not replace the
-       I/O base and IRQ it took from the EEPROM: a card activated by the ID
-       sequence still uses those. Plug and Play resources apply only when
-       Plug and Play activates the card. */
-    if (!config->activate) {
-        el3_deactivate(dev);
-        return;
-    }
-
     if ((base >= 0x200) && (base <= 0x3e0))
         dev->address_config = (uint16_t) ((dev->address_config & ~AC_IO_BASE) | ((base - 0x200) >> 4));
-    /* An 8 KB ROM window (the resource data's) at C2000h-DE000h: ROM SIZE
-       00b and ROM BASE its 8 KB step (7-17); anything else disables it. */
-    dev->address_config &= (uint16_t) ~AC_ROM;
-    if ((rom >= 0xc2000) && (rom <= 0xde000) && !(rom & 0x1fff))
-        dev->address_config |= (uint16_t) (((rom - 0xc0000) >> 13) << 8);
+    /* The registers hold the window's base and go to ROM BASE; ROM SIZE is
+       the part's, "the size of the ROM installed" (7-16), and stays. The
+       window already selected keeps ROM BASE as it is. */
+    if (rom != el3_rom_start(dev))
+        dev->address_config = (uint16_t) ((dev->address_config & ~0x0f00) | (el3_rom_base_for(dev, rom) << 8));
     dev->resource_config = (uint16_t) ((dev->resource_config & 0x0fff) | ((config->irq[0].irq & 0x0f) << 12));
     el3_set_irq(dev, el3_irq_of(dev->resource_config));
 
@@ -2387,6 +2495,9 @@ el3_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
        reset paths place one, so an activated card shows its PROM where the
        configuration program put it. */
     el3_isa_prom_update(dev);
+
+    el3_pnp_fixed_regs(dev);
+    el3_pnp_mirror_active(dev);
 }
 
 /* The serial identifier and resource data are the EEPROM's words 18h-3Fh,
@@ -2618,14 +2729,18 @@ el3_init(const device_t *info)
         el3_eeprom_build(dev, 0x300, 10);
         el3_eeprom_save(dev);
     }
+    /* The Plug and Play card before the power-up reset, which loads its
+       registers with the EEPROM's configuration as every reset does. */
+    if (!dev->mca) {
+        el3_pnp_load_rom(dev);
+        dev->pnp_card = isapnp_add_card(dev->pnp_rom, sizeof(dev->pnp_rom), el3_pnp_config_changed, NULL, NULL, NULL, dev);
+        isapnp_set_device_defaults(dev->pnp_card, 0, &dev->pnp_power_up);
+    }
     el3_global_reset(dev, 0);
 
     if (dev->mca) {
         mca_add(el3_mca_read, el3_mca_write, el3_mca_feedb, NULL, dev);
     } else {
-        el3_pnp_load_rom(dev);
-        dev->pnp_card = isapnp_add_card(dev->pnp_rom, sizeof(dev->pnp_rom), el3_pnp_config_changed, NULL, NULL, NULL, dev);
-        el3_pnp_update(dev);
         io_sethandler(0x279, 1, NULL, NULL, NULL, el3_pnp_addr_write, NULL, NULL, dev);
 
         /* The ID port can be any 01x0h port the host picks. */
