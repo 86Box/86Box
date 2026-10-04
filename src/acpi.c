@@ -2418,7 +2418,8 @@ acpi_reset(void *priv)
        - Bit 1: CMOS battery low (active high) */
     if ((machines[machine].init == machine_at_al440lx_init) ||
         (machines[machine].init == machine_at_se440bx2_init) ||
-        (machines[machine].init == machine_at_rc440bx_init))
+        (machines[machine].init == machine_at_rc440bx_init) ||
+        (machines[machine].init == machine_at_bl440zx_init))
         /* ED = Normal, DD (2-3) - Maintenance, BD, FD (none) - Recovery. */
         dev->regs.gpireg[2] = 0xed;
     else if ((machines[machine].init == machine_at_in440ex_init) || (machines[machine].init == machine_at_in440exd_init))
