@@ -45,10 +45,10 @@ def testcase(a, root, case):
         subprocess.run(["mdel", "-i", image, "::" + name], capture_output=True)
     interface, section, base, options = CARDS[mode]
     (dest / "CONFIG.SYS").write_text(
-        f"DEVICE=C:\\TEAC_CDA.SYS /D:TEACCD {options}\r\n"
+        f"DEVICE=C:\\{a.driver_filename} /D:{a.device_name} {options}\r\n"
         "FILES=30\r\nBUFFERS=20\r\nLASTDRIVE=Z\r\n", newline="")
     lines = ["@ECHO OFF", r"C:\SCREEN.COM",
-             r"C:\DOS\MSCDEX.EXE /D:TEACCD /L:R /V >C:\MSCDEX.LOG"]
+             rf"C:\DOS\MSCDEX.EXE /D:{a.device_name} /L:R /V >C:\MSCDEX.LOG"]
     if media != "audio":
         lines += [r"DIR R:\ >C:\CDDIR.LOG", r"COPY /B R:\CHECK.BIN C:\CHECK.OUT >C:\COPY1.LOG",
                   r"COPY /B R:\ODD.BIN C:\ODD.OUT >C:\COPY2.LOG"]
@@ -60,7 +60,7 @@ def testcase(a, root, case):
         run(["mcopy", "-o", "-i", image, dest / name, "::" + name])
     for name in ["PROBE.COM", "DONE.COM", "SCREEN.COM"]:
         run(["mcopy", "-o", "-i", image, root / name, "::" + name])
-    run(["mcopy", "-o", "-i", image, driver, "::TEAC_CDA.SYS"])
+    run(["mcopy", "-o", "-i", image, driver, "::" + a.driver_filename])
     medium = root / ("test.iso" if media == "iso" else media + ".cue")
     (dest / "86box.cfg").write_text(f"""[General]
 vid_renderer = qt_software
@@ -146,8 +146,10 @@ base = 0{base}
     return result
 
 
-def main():
-    p = argparse.ArgumentParser(description=__doc__)
+def main(drive_models=("teac_cd55a", "cr563"), description=__doc__,
+         driver_filename="TEAC_CDA.SYS", device_name="TEACCD",
+         media_modes=("iso", "mixed", "audio")):
+    p = argparse.ArgumentParser(description=description)
     for name in ["emulator", "dos-image", "nvr", "roms", "output"]:
         p.add_argument("--" + name, type=Path, required=True)
     p.add_argument("--driver", action="append", required=True, metavar="VERSION=PATH")
@@ -156,10 +158,11 @@ def main():
     p.add_argument("--timeout", type=float, default=90)
     p.add_argument("--workers", type=int, default=1)
     p.add_argument("--modes", nargs="+", choices=CARDS, default=list(CARDS))
-    p.add_argument("--media", nargs="+", choices=["iso", "mixed", "audio"], default=["iso"])
-    p.add_argument("--drive-model", choices=["teac_cd55a", "cr563"], default="teac_cd55a",
-                   help="cr563 reproduces the incompatible Panasonic-drive baseline")
+    p.add_argument("--media", nargs="+", choices=media_modes, default=["iso"])
+    p.add_argument("--drive-model", choices=drive_models, default=drive_models[0])
     a = p.parse_args()
+    a.driver_filename = driver_filename
+    a.device_name = device_name
     if (not re.fullmatch(r"[1-9][0-9]*,[1-9][0-9]*,[1-9][0-9]*", a.geometry)
             or a.partition_offset < 0 or a.timeout <= 0 or a.workers < 1):
         p.error("Invalid geometry, partition offset, timeout or worker count")

@@ -27,6 +27,17 @@ exact ISO/BIN file copies and optional CD-DA/MSCDEX operations and PCM output.
 See [TEAC hardware and validation notes](../doc/hardware/teac-cdrom.md) for
 setup, required external images and validation limits.
 
+# Creative CD-200 / FUNAI CD200F
+
+The `mke_cdrom_tests` target also exercises the seven-byte CMD2 protocol on
+both MKE adapter layouts, including the packets used by CRCCD2.ADD in
+CRCCD2.ZIP. Run `ctest --test-dir build -R '^(Mke|Mke2|Teac)Test\.'
+--output-on-failure`. These are isolated device tests with mocked media and
+timers. The optional `cdrom/cd200_smoke.py` boots external Creative DOS
+drivers and checks exact CD file copies on both adapter layouts for either
+drive model. See [CD-200 protocol and validation notes](../doc/hardware/cd200-cdrom.md)
+for the archive evidence and the limits of guest-driver validation.
+
 # WD90C31 graphics
 
 Build `wd90c31_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^Wd90c31\.'` for register, BitBLT, host-transfer and hardware-cursor checks. The optional `video/wd90c31_bios_smoke.py` runs the supplied option ROMs in a complete SDL emulator using a synthetic AT BIOS. See [the WD90C31 hardware notes](../doc/hardware/wd90c31.md) for ROM paths, commands, tested modes and validation limits.
