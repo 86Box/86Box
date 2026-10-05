@@ -440,7 +440,7 @@ fdc37mx0x_soft_reset(fdc37mx0x_t *dev)
     /* Logical device 8: Auxiliary I/O */
     dev->ld_regs[0x08][0x30] = 0x00;
 
-    if (dev->chip_id == FDC37M70X)
+    if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X))
         fdc37mx0x_gpio_handler(dev);
     fdc37mx0x_lpt_handler(dev);
     fdc37mx0x_serial_handler(dev, 0);
