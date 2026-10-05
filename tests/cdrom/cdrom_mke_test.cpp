@@ -318,6 +318,243 @@ TEST_F(MkeTest, ExistingFamilyOneCommandsRetainTheirFraming)
     command({ 8 });
     EXPECT_EQ(response(), (std::vector<uint8_t> { 0xe3 }));
 }
+class Mke2Test : public MkeTest {
+protected:
+    void SetUp() override
+    {
+        MkeTest::SetUp();
+        ops.get_raw_track_info = [](const void *, int *num, uint8_t *buffer) {
+            auto *out = reinterpret_cast<raw_track_info_t *>(buffer);
+            *num = 4;
+            std::memset(out, 0, sizeof(*out) * 4);
+            out[0].session = out[1].session = 1;
+            out[2].session = out[3].session = 2;
+            out[0].point = 1; out[0].ps = 2;
+            out[1].point = 0xa2; out[1].pm = 10;
+            out[2].point = 2; out[2].pm = 12;
+            out[3].point = 0xa2; out[3].pm = 22; out[3].ps = 15; out[3].pf = 25;
+            for (int i = 0; i < 4; ++i)
+                out[i].adr_ctl = 0x14;
+        };
+        select("creative_cd200", mke_cdrom_device);
+    }
+    void select(const char *name, const device_t &card)
+    {
+        mke_cdrom_device.close(interface);
+        cdrom[0].type = type(name);
+        cdrom[0].ops = &ops;
+        cdrom[0].cd_status = CD_STATUS_DATA_ONLY;
+        standard = &card == &mke_cdrom_noncreative_device;
+        interface = card.init(&card);
+    }
+    void send(std::initializer_list<uint8_t> bytes)
+    {
+        std::array<uint8_t, 7> packet {};
+        std::copy(bytes.begin(), bytes.end(), packet.begin());
+        for (auto b : packet)
+            write_port(0x230, b, interface);
+    }
+    std::vector<uint8_t> sense()
+    {
+        send({ 3 });
+        return response();
+    }
+    uint8_t status2()
+    {
+        send({ 0 });
+        const auto r = response();
+        EXPECT_EQ(r.size(), 1u);
+        return r.empty() ? 0 : r[0];
+    }
+    std::vector<uint8_t> data2(unsigned count = 2048)
+    {
+        if (!standard)
+            return data(count);
+        std::vector<uint8_t> out;
+        while (count--)
+            out.push_back(read_port(0x232, interface));
+        return out;
+    }
+    bool standard = false;
+};
+
+TEST_F(Mke2Test, InquiryResetAndSevenByteFramingOnBothAdapters)
+{
+    for (const auto *model : { "creative_cd200", "funai_cd200f" })
+        for (const auto *card : { &mke_cdrom_device, &mke_cdrom_noncreative_device }) {
+            select(model, *card);
+            EXPECT_TRUE(response().empty());
+            EXPECT_EQ(status2(), 0x87);
+            EXPECT_EQ(sense(), (std::vector<uint8_t>{ 0, 0, 0x12, 0, 0, 0, 0x86 }));
+            EXPECT_EQ(status2(), 0x86);
+            command({ 0x12 });
+            EXPECT_TRUE(response().empty());
+            command({ 0, 0, 0, 0, 0, 0 });
+            const auto r = response();
+            ASSERT_EQ(r.size(), 13u);
+            EXPECT_EQ(r.back(), 0x86);
+            EXPECT_EQ(std::string(r.begin(), r.end() - 1),
+                      std::string(model[0] == 'f' ? "CD200F 2.10\0" : "CD200  1.01\0", 12));
+            send({ 8 });
+            EXPECT_EQ(response(), (std::vector<uint8_t>{ 0x86 }));
+            send({ 0xff });
+            EXPECT_EQ(response(), (std::vector<uint8_t>{ 0x87 }));
+            EXPECT_EQ(sense()[2], 0x0e);
+        }
+}
+
+TEST_F(Mke2Test, MultisessionInformationAndTocHaveExactPayloads)
+{
+    for (const auto *model : { "creative_cd200", "funai_cd200f" })
+        for (const auto *card : { &mke_cdrom_device, &mke_cdrom_noncreative_device }) {
+            select(model, *card); sense();
+            send({ 0x43, 2, 0xab, 0xff });
+            EXPECT_EQ(response(), (std::vector<uint8_t>{ 0, 1, 2, 1, 2, 12, 0, 0, 0x86 }));
+            send({ 0x43, 0, 0xab, 0 });
+            EXPECT_EQ(response(), (std::vector<uint8_t>{ 0, 1, 2, 1, 2, 12, 0, 0, 0x86 }));
+            send({ 0x43, 2, 0xab, 1 });
+            EXPECT_EQ(response(), (std::vector<uint8_t>{ 0, 1, 2, 1, 2, 0, 2, 0, 0x86 }));
+            send({ 0x43, 2, 1 });
+            EXPECT_EQ(response(), (std::vector<uint8_t>{ 0x14, 1, 0, 2, 0, 0x86 }));
+            send({ 0x43, 2, 0xaa, 0xff });
+            EXPECT_EQ(response(), (std::vector<uint8_t>{ 0x14, 0xaa, 22, 15, 25, 0x86 }));
+            send({ 0x43, 2, 3 });
+            EXPECT_EQ(response(), (std::vector<uint8_t>{ 0x87 }));
+            EXPECT_EQ(sense()[2], 0x0e);
+        }
+}
+
+TEST_F(Mke2Test, SpeedEncodingsLongTransfersAndCompletionAfterData)
+{
+    for (const auto *model : { "creative_cd200", "funai_cd200f" })
+        for (const auto *card : { &mke_cdrom_device, &mke_cdrom_noncreative_device }) {
+            select(model, *card); sense();
+            for (auto speed : { 0x0096, 0x9600, 0x012c, 0x2c01, 0xffff }) {
+                send({ 0xda, 0, uint8_t(speed >> 8), uint8_t(speed) });
+                EXPECT_EQ(response(), (std::vector<uint8_t>{ 0x86 }));
+                EXPECT_EQ(cdrom[0].cur_speed, (speed == 0x0096 || speed == 0x9600) ? 1 : 2);
+            }
+            send({ 0x28, 0, 2, 16, 4, 1, 2 });
+            EXPECT_TRUE(response().empty());
+            EXPECT_EQ(status2(), 0xb6);
+            for (unsigned i = 0; i < 1025; ++i) {
+                tick();
+                EXPECT_EQ(read_delay, 1000000.0 / 150.0);
+                EXPECT_EQ(data2().front(), uint8_t(16 + i));
+                EXPECT_EQ(response(), i == 1024 ? std::vector<uint8_t>{ 0xa6 } : std::vector<uint8_t>{});
+            }
+            EXPECT_EQ(read_lbas.back(), 1040);
+            EXPECT_FALSE(read_timer->flags & TIMER_ENABLED);
+            send({ 0x28, 0, 2, 0, 0, 0, 2 });
+            EXPECT_EQ(response(), (std::vector<uint8_t>{ 0xa6 }));
+        }
+}
+
+TEST_F(Mke2Test, NtReadCapacityReturnsLastLbaBlockLengthAndFinalStatus)
+{
+    for (const auto *model : { "creative_cd200", "funai_cd200f" })
+        for (const auto *card : { &mke_cdrom_device, &mke_cdrom_noncreative_device }) {
+            select(model, *card); sense();
+            send({ 0x25 });
+            EXPECT_EQ(response(), (std::vector<uint8_t>{ 0, 1, 0x86, 0x9f, 0, 0, 8, 0, 0x86 }));
+            EXPECT_EQ(status2(), 0x86);
+            cdrom[0].cd_status = CD_STATUS_EMPTY;
+            send({ 0x25 });
+            EXPECT_EQ(response(), (std::vector<uint8_t>{ 5 }));
+            EXPECT_EQ(sense()[2], 3);
+        }
+}
+
+TEST_F(Mke2Test, RawReadsAndErrorsDoNotLeaveDataPending)
+{
+    sense();
+    for (const auto &[cmd, size, mode] : std::array<std::array<int, 3>, 2>{{ {0x2c, 2340, 2}, {0xd5, 2352, 0x11} }}) {
+        send({ uint8_t(cmd), 0, 2, 0, 0, 1, uint8_t(mode) });
+        tick();
+        EXPECT_EQ(data2(size).size(), unsigned(size));
+        EXPECT_EQ(response(), (std::vector<uint8_t>{ 0xa6 }));
+    }
+    send({ 0x28, 0, 60, 0, 0, 1, 2 });
+    EXPECT_EQ(response()[0] & 1, 1);
+    EXPECT_EQ(sense()[2], 6);
+    read_result = -1;
+    send({ 0x28, 0, 2, 0, 0, 1, 2 }); tick();
+    EXPECT_EQ(response()[0] & 1, 1);
+    EXPECT_EQ(sense()[2], 5);
+    EXPECT_EQ(read_port(0x231, interface) & 6, 6);
+    cdrom[0].cd_status = CD_STATUS_EMPTY;
+    send({ 0x43, 2, 0xab, 0xff });
+    EXPECT_EQ(response()[0] & 0x83, 1);
+    EXPECT_EQ(sense()[2], 3);
+}
+
+TEST_F(Mke2Test, AudioVolumeSubchannelAndTrayControls)
+{
+    sense();
+    send({ 0x55, 0x0e, 0, 2, 0x80, 1, 0x40 }); response();
+    EXPECT_EQ(cdrom[0].get_volume(cdrom[0].priv, 0), 128u);
+    EXPECT_EQ(cdrom[0].get_channel(cdrom[0].priv, 1), 1u);
+    send({ 0x5a, 0x0e });
+    EXPECT_EQ(response(), (std::vector<uint8_t>{ 0x0e, 2, 0x80, 1, 0x40, 0x86 }));
+    send({ 0x47, 0, 2, 0, 0, 2, 74 }); response();
+    EXPECT_EQ(audio_start, 0u); EXPECT_EQ(audio_end, 75u); EXPECT_EQ(audio_mode, 0);
+    EXPECT_NE(status2() & 8, 0);
+    send({ 0x4b, 0, 0 }); response();
+    EXPECT_EQ(cdrom[0].cd_status, CD_STATUS_PAUSED);
+    send({ 0x42, 0, 0, 2 });
+    const auto sub = response(); ASSERT_EQ(sub.size(), 11u); EXPECT_EQ(sub[0], 0x12);
+    send({ 0x4b, 0, 1 }); response();
+    EXPECT_EQ(cdrom[0].cd_status, CD_STATUS_PLAYING);
+    send({ 8 }); response();
+    send({ 0x2b, 0, 0, 0, 12, 0 }); response();
+    EXPECT_EQ(seek_lba, 750u);
+    send({ 0x1e, 0, 0, 0, 1 }); response();
+    send({ 0x1b, 0, 0, 0, 2 }); response();
+    EXPECT_EQ(eject_calls, 0); EXPECT_EQ(sense()[2], 0x0d);
+    send({ 0x1e }); response();
+    send({ 0x1b, 0, 0, 0, 2 }); response();
+    EXPECT_EQ(eject_calls, 1); EXPECT_EQ(status2() & 0x86, 0);
+}
+
+TEST_F(Mke2Test, MediaChangeAndHardwareResetCancelPendingTransfers)
+{
+    sense();
+    send({ 0x28, 0, 2, 0, 0, 2, 2 }); tick();
+    cdrom[0].ops = nullptr;
+    cdrom[0].insert(cdrom[0].priv);
+    EXPECT_EQ(read_port(0x231, interface) & 6, 6);
+    EXPECT_FALSE(read_timer->flags & TIMER_ENABLED);
+    cdrom[0].ops = &ops;
+    cdrom[0].cd_status = CD_STATUS_DATA_ONLY | CD_STATUS_TRANSITION;
+    cdrom[0].insert(cdrom[0].priv);
+    EXPECT_NE(status2() & 1, 0); EXPECT_EQ(sense()[2], 0x11);
+    send({ 0x28, 0, 2, 0, 0, 2, 2 }); tick();
+    command({ 0x55, 0x0e });
+    write_port(0x233, 1, interface); // Reset from an empty ID still resets the shared cable.
+    write_port(0x232, 0, interface);
+    write_port(0x233, 0, interface);
+    EXPECT_EQ(read_port(0x231, interface) & 6, 6);
+    EXPECT_FALSE(read_timer->flags & TIMER_ENABLED);
+    EXPECT_EQ(sense()[2], 0x12);
+    send({ 0x12 }); EXPECT_EQ(response().size(), 13u);
+}
+
+TEST_F(Mke2Test, MixedFamilyOneAndTwoDrivesKeepIndependentFraming)
+{
+    mke_cdrom_device.close(interface);
+    cdrom[1] = cdrom[0]; cdrom[1].id = 1; cdrom[1].mke_channel = 1;
+    cdrom[1].type = type("cr563");
+    interface = mke_cdrom_device.init(&mke_cdrom_device);
+    sense();
+    send({ 0x12 }); EXPECT_EQ(response().size(), 13u);
+    write_port(0x233, 2, interface); // Creative swaps the low two ID bits.
+    send({ 0x83 }); EXPECT_EQ(response().size(), 11u);
+    command({ 8 }); EXPECT_EQ(response().size(), 1u);
+    write_port(0x233, 0, interface);
+    command({ 8 }); EXPECT_TRUE(response().empty());
+    command({ 0, 0, 0, 0, 0, 0 }); EXPECT_EQ(response().size(), 1u);
+}
+
 class TeacTest : public MkeTest {
 protected:
     void SetUp() override
