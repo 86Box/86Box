@@ -350,19 +350,16 @@ w83977_fdc_handler(w83977_t *dev)
 {
     const uint8_t  global_enable = !!(dev->regs[0x22] & (1 << 0));
     const uint8_t  local_enable  = !!dev->ld_regs[0][0x30];
-    const uint16_t old_base      = dev->fdc_base;
 
     dev->fdc_base = 0x0000;
 
     if (global_enable && local_enable)
         dev->fdc_base = make_port(dev, 0) & 0xfff8;
 
-    if ((dev->id != 1) && ((dev->fdc_base != old_base) ||
-                           (dev->fdc_base == 0x0000)))
+    if (dev->id != 1)
         fdc_remove(dev->fdc);
 
-    if ((dev->id != 1) && (dev->fdc_base != old_base) &&
-        (dev->fdc_base >= 0x0100) && (dev->fdc_base <= 0x0ff8))
+    if ((dev->id != 1) && (dev->fdc_base >= 0x0100) && (dev->fdc_base <= 0x0ff8))
         fdc_set_base(dev->fdc, dev->fdc_base);
 }
 
@@ -994,8 +991,11 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
                             break;
                         case 0xe4:
+                            /* Bit 2 is documented as reserved, but the ASUS CUBX SMM
+                               handler writes 04h and spins until it reads back as 04h
+                               before it will enter S1, so it must be read/write. */
                             if (dev->type == W83977EF)
-                                dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0xf0;
+                                dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0xf4;
                             else
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
                             break;
@@ -1288,7 +1288,7 @@ w83977_init(const device_t *info)
     if (next_id == 1)
         dev->hefras   ^= W83977_370;
     else
-        dev->fdc       = device_add(&fdc_at_smc_device);
+        dev->fdc       = device_add_params(&fdc_at_smc_device, (void *) FDC_FLAG_PNP);
 
     if (info->local & W83977_UART_FORCE_SEC) {
         dev->uart[0]   = device_add_inst(&ns16550_device, 3);

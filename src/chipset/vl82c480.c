@@ -57,6 +57,10 @@ typedef struct vl82c480_t {
     uint8_t  regs[256];
     uint32_t banks[4];
 
+    uint32_t      sram_size;
+    uint8_t      *sram;
+    mem_mapping_t sram_mapping;
+
     void *  log; // New logging system
 } vl82c480_t;
 
@@ -145,6 +149,79 @@ vl82c480_recalc_banks(vl82c480_t *dev)
     flushmmucache();
 }
 
+/*
+   CACHCTL size 111 = Direct Access: the cache data SRAM replaces the DRAM at
+   the bottom of memory, so that the BIOS can size and test it. With two banks
+   installed but CACHCTL still in single bank mode, A3 does not select between
+   the banks, so the BIOS sees a doubleword at 8 alias the one at 0.
+ */
+static uint32_t
+vl82c480_sram_addr(const vl82c480_t *dev, uint32_t addr)
+{
+    addr &= (dev->sram_size - 1);
+
+    if ((dev->sram_size > (128 << 10)) && !(dev->regs[0x19] & 0x80))
+        addr &= ~0x00000008;
+
+    return addr;
+}
+
+static uint8_t
+vl82c480_sram_readb(uint32_t addr, void *priv)
+{
+    const vl82c480_t *dev = (vl82c480_t *) priv;
+
+    return dev->sram[vl82c480_sram_addr(dev, addr)];
+}
+
+static uint16_t
+vl82c480_sram_readw(uint32_t addr, void *priv)
+{
+    return vl82c480_sram_readb(addr, priv) | (vl82c480_sram_readb(addr + 1, priv) << 8);
+}
+
+static uint32_t
+vl82c480_sram_readl(uint32_t addr, void *priv)
+{
+    return vl82c480_sram_readw(addr, priv) | (vl82c480_sram_readw(addr + 2, priv) << 16);
+}
+
+static void
+vl82c480_sram_writeb(uint32_t addr, uint8_t val, void *priv)
+{
+    vl82c480_t *dev = (vl82c480_t *) priv;
+
+    dev->sram[vl82c480_sram_addr(dev, addr)] = val;
+}
+
+static void
+vl82c480_sram_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    vl82c480_sram_writeb(addr, val & 0xff, priv);
+    vl82c480_sram_writeb(addr + 1, val >> 8, priv);
+}
+
+static void
+vl82c480_sram_writel(uint32_t addr, uint32_t val, void *priv)
+{
+    vl82c480_sram_writew(addr, val & 0xffff, priv);
+    vl82c480_sram_writew(addr + 2, val >> 16, priv);
+}
+
+static void
+vl82c480_recalc_cache(vl82c480_t *dev)
+{
+    if (dev->sram_size == 0)
+        return;
+
+    if ((dev->regs[0x19] & 0x07) == 0x07)
+        mem_mapping_enable(&dev->sram_mapping);
+    else
+        mem_mapping_disable(&dev->sram_mapping);
+
+    flushmmucache();
+}
+
 static void
 vl82c480_write(uint16_t addr, uint8_t val, void *priv)
 {
@@ -189,6 +266,10 @@ vl82c480_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x0d ... 0x12:
                         dev->regs[dev->idx] = val;
                         vl82c480_recalc_shadow(dev);
+                        break;
+                    case 0x19:
+                        dev->regs[dev->idx] = val;
+                        vl82c480_recalc_cache(dev);
                         break;
                 }
             }
@@ -245,6 +326,9 @@ vl82c480_close(void *priv)
 {
     vl82c480_t *dev = (vl82c480_t *) priv;
 
+    if (dev->sram != NULL)
+        free(dev->sram);
+
     if (dev->log != NULL) {
         log_close(dev->log);
         dev->log = NULL;
@@ -266,7 +350,7 @@ vl82c480_init(const device_t *info)
 
     dev->log = log_open("VL82c48x");
 
-    dev->regs[0x00] = info->local;
+    dev->regs[0x00] = info->local & 0xff;
     dev->regs[0x01] = 0xff;
     dev->regs[0x02] = 0x8a;
     dev->regs[0x03] = 0x88;
@@ -295,6 +379,16 @@ vl82c480_init(const device_t *info)
 
         if ((ms == 0) || (dev->banks[i] == 0))
             break;
+    }
+
+    dev->sram_size = ((info->local >> VL82C480_CACHE_SHIFT) & 0xff) << 15;
+    if (dev->sram_size != 0) {
+        dev->sram = (uint8_t *) calloc(1, dev->sram_size);
+        mem_mapping_add(&dev->sram_mapping, 0x00000000, dev->sram_size,
+                        vl82c480_sram_readb, vl82c480_sram_readw, vl82c480_sram_readl,
+                        vl82c480_sram_writeb, vl82c480_sram_writew, vl82c480_sram_writel,
+                        dev->sram, MEM_MAPPING_INTERNAL, dev);
+        mem_mapping_disable(&dev->sram_mapping);
     }
 
     io_sethandler(0x00ec, 0x0004, vl82c480_read, NULL, NULL, vl82c480_write, NULL, NULL, dev);

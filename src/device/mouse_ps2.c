@@ -33,6 +33,8 @@ enum {
     MODE_ECHO
 };
 
+#define MODE_MASK              1
+
 #define FLAG_HWHL          0x800  /* Report horizontal wheel movements. */
 #define FLAG_EXPLORER_HWHL 0x400  /* Has tilt-wheel/horizontal scroll wheel */
 #define FLAG_EXPLORER      0x200  /* Has 5 buttons */
@@ -167,6 +169,9 @@ ps2_write(void *priv)
 
     val = dev->port->dat;
 
+    if (dev->mode & MODE_ECHO)
+        kbc_at_dev_queue_add(dev, val, 0);
+
     dev->state = DEV_STATE_MAIN_OUT;
 
     if (dev->flags & FLAG_CTRLDAT) {
@@ -235,7 +240,7 @@ ps2_write(void *priv)
             case 0xea: /* set stream */
                 mouse_ps2_log("%s: Set stream\n", dev->name);
                 dev->flags &= ~FLAG_CTRLDAT;
-                dev->mode = MODE_STREAM;
+                dev->mode = (dev->mode & ~MODE_MASK) | MODE_STREAM;
                 mouse_scan = 1;
                 kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK for command byte */
                 break;
@@ -247,10 +252,22 @@ ps2_write(void *priv)
                 ps2_report_coordinates(dev, 0);
                 break;
 
+            case 0xec: /* clear echo */
+                mouse_ps2_log("%s: Clear echo\n", dev->name);
+                dev->mode &= ~MODE_ECHO;
+                kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK for command byte */
+                break;
+
+            case 0xee: /* set echo */
+                mouse_ps2_log("%s: Set echo\n", dev->name);
+                dev->mode |= MODE_ECHO;
+                kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK for command byte */
+                break;
+
             case 0xf0: /* set remote */
                 mouse_ps2_log("%s: Set remote\n", dev->name);
                 dev->flags &= ~FLAG_CTRLDAT;
-                dev->mode = MODE_REMOTE;
+                dev->mode = (dev->mode & ~MODE_MASK) | MODE_REMOTE;
                 mouse_scan = 1;
                 kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK for command byte */
                 break;
@@ -332,8 +349,9 @@ ps2_poll(void *priv)
     atkbc_dev_t *dev = (atkbc_dev_t *) priv;
     int packet_size = (dev->flags & FLAG_INTMODE) ? 4 : 3;
 
-    int cond = (mouse_capture || (video_fullscreen && !fullscreen_ui_visible)) && mouse_scan && (dev->mode == MODE_STREAM) &&
-               mouse_state_changed() && (kbc_at_dev_queue_pos(dev, 1) < (FIFO_SIZE - packet_size));
+    int cond = (mouse_capture || (video_fullscreen && !fullscreen_ui_visible)) && mouse_scan &&
+                ((dev->mode & MODE_MASK) == MODE_STREAM) && mouse_state_changed() &&
+                (kbc_at_dev_queue_pos(dev, 1) < (FIFO_SIZE - packet_size));
 
     if (cond)
         ps2_report_coordinates(dev, 1);

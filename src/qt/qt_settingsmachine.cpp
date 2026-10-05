@@ -25,6 +25,7 @@
 #include <QStandardItem>
 #include <QStandardItemModel>
 #include <QCompleter>
+#include <QSignalBlocker>
 #include <QTimer>
 
 #include <algorithm>
@@ -60,12 +61,13 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     int         j                   = 0;
     int         cur_j               = 0;
     const void *miname;
+    Models::Batch machineTypeRows(machineTypesModel);
     do {
         miname = machine_get_internal_name_ex(j);
 
         if ((miname == nullptr) || (machine_get_type(j) != i)) {
             if ((i != -1) && (cur_j != 0)) {
-                int row = Models::AddEntry(machineTypesModel, tr(machine_types[i].name), machine_types[i].id);
+                int row = machineTypeRows.add(tr(machine_types[i].name), machine_types[i].id);
                 if (machine_types[i].id == machine_get_type(machine))
                     selectedMachineType = row;
             }
@@ -82,6 +84,7 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 
         j++;
     } while (miname != nullptr);
+    machineTypeRows.commit();
 
     auto warning_icon = QIcon(":/misc/qt/icons/warning.ico");
     ui->softFloatWarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
@@ -206,6 +209,12 @@ SettingsMachine::restore()
 {
 }
 
+int
+SettingsMachine::currentMachineId() const
+{
+    return ui->comboBoxMachine->currentData().toInt();
+}
+
 void
 SettingsMachine::save(int soft)
 {
@@ -262,16 +271,26 @@ SettingsMachine::on_comboBoxMachineType_currentIndexChanged(int index)
         int   removeRows = model->rowCount();
 
         int selectedMachineRow = 0;
-        for (int i = 0; i < machine_count(); ++i) {
-            if ((machine_get_type(i) == ui->comboBoxMachineType->currentData().toInt()) && machine_available(i)) {
-                int row = Models::AddEntry(model, machines[i].name, i);
-                if (i == machine)
-                    selectedMachineRow = row - removeRows;
-            }
-        }
-        model->removeRows(0, removeRows);
+        {
+            /* Swapping the list over moves the selection through machines
+               nobody chose; only the one it lands on is announced, so the
+               other pages are not rebuilt for the others, nor drop devices
+               those machines cannot take. */
+            const QSignalBlocker blocker(ui->comboBoxMachine);
 
-        ui->comboBoxMachine->setCurrentIndex(-1);
+            Models::Batch rows(model);
+            for (int i = 0; i < machine_count(); ++i) {
+                if ((machine_get_type(i) == ui->comboBoxMachineType->currentData().toInt()) && machine_available(i)) {
+                    int row = rows.add(machines[i].name, i);
+                    if (i == machine)
+                        selectedMachineRow = row - removeRows;
+                }
+            }
+            rows.commit();
+            model->removeRows(0, removeRows);
+
+            ui->comboBoxMachine->setCurrentIndex(-1);
+        }
         ui->comboBoxMachine->setCurrentIndex(selectedMachineRow);
     }
 }
@@ -291,15 +310,17 @@ SettingsMachine::on_comboBoxMachine_currentIndexChanged(int index)
         int i                    = 0;
         int eligibleRows         = 0;
         int selectedCpuFamilyRow = 0;
+        Models::Batch cpuRows(modelCpu);
         while (cpu_families[i].package != 0) {
             if (cpu_family_is_eligible(&cpu_families[i], machineId)) {
-                Models::AddEntry(modelCpu, QString("%1 %2").arg(cpu_families[i].manufacturer, cpu_families[i].name), i);
+                cpuRows.add(QString("%1 %2").arg(cpu_families[i].manufacturer, cpu_families[i].name), i);
                 if (&cpu_families[i] == cpu_f)
                     selectedCpuFamilyRow = eligibleRows;
                 ++eligibleRows;
             }
             ++i;
         }
+        cpuRows.commit();
         modelCpu->removeRows(0, removeRows);
         ui->comboBoxCPU->setEnabled(eligibleRows > 1);
         ui->comboBoxCPU->setCurrentIndex(-1);
@@ -338,15 +359,17 @@ SettingsMachine::on_comboBoxCPU_currentIndexChanged(int index)
         int i                = 0;
         int eligibleRows     = 0;
         int selectedSpeedRow = 0;
+        Models::Batch speedRows(modelSpeed);
         while (cpuFamily->cpus[i].cpu_type != 0) {
             if (cpu_is_eligible(cpuFamily, i, machineId)) {
-                Models::AddEntry(modelSpeed, QString("%1").arg(cpuFamily->cpus[i].name), i);
+                speedRows.add(QString("%1").arg(cpuFamily->cpus[i].name), i);
                 if (cpu == i)
                     selectedSpeedRow = eligibleRows;
                 ++eligibleRows;
             }
             ++i;
         }
+        speedRows.commit();
         modelSpeed->removeRows(0, removeRows);
         ui->comboBoxSpeed->setEnabled(eligibleRows > 1);
         ui->comboBoxSpeed->setCurrentIndex(-1);
@@ -404,14 +427,16 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
 
         int i              = 0;
         int selectedFpuRow = 0;
+        Models::Batch fpuRows(modelFpu);
         for (const char *fpuName         = fpu_get_name_from_index(cpuFamily, cpuId, i);
              fpuName != nullptr; fpuName = fpu_get_name_from_index(cpuFamily, cpuId, ++i)) {
             auto fpuType = fpu_get_type_from_index(cpuFamily, cpuId, i);
-            Models::AddEntry(modelFpu, tr(fpuName), fpuType);
+            fpuRows.add(tr(fpuName), fpuType);
             if (fpu_type == fpuType)
                 selectedFpuRow = i;
         }
 
+        fpuRows.commit();
         modelFpu->removeRows(0, removeRows);
         ui->comboBoxFPU->setEnabled(modelFpu->rowCount() > 1);
         ui->comboBoxFPU->setCurrentIndex(-1);

@@ -377,6 +377,8 @@ fastreadb(uint32_t a)
     t = getpccache(a);
     if (cpu_state.abrt)
         return 0;
+    if (t == NULL)
+        return readmembl(a);
     pccache  = a >> 12;
     pccache2 = t;
 
@@ -405,6 +407,8 @@ fastreadw(uint32_t a)
     t = getpccache(a);
     if (cpu_state.abrt)
         return 0;
+    if (t == NULL)
+        return readmemwl(a);
 
     pccache  = a >> 12;
     pccache2 = t;
@@ -430,6 +434,8 @@ fastreadl(uint32_t a)
             t = getpccache(a);
             if (cpu_state.abrt)
                 return 0;
+            if (t == NULL)
+                return readmemll(a);
             pccache2 = t;
             pccache  = a >> 12;
         }
@@ -442,6 +448,8 @@ fastreadl(uint32_t a)
 }
 #endif
 
+static uint32_t get_ram_ptr_none[2];
+
 static __inline void *
 get_ram_ptr(uint32_t a)
 {
@@ -449,6 +457,10 @@ get_ram_ptr(uint32_t a)
         return (void *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL));
     else {
         uint8_t *t = getpccache(a);
+        /* Device memory has no host copy; the block that asked is dropped
+           (cpu_fetch_device), so it only needs somewhere harmless to point. */
+        if (t == NULL)
+            return (void *) &get_ram_ptr_none;
         return (void *) (((uintptr_t) &t[a] & 0x00000000ffffffffULL) | ((uintptr_t) &t[0] & 0xffffffff00000000ULL));
     }
 }
@@ -523,6 +535,8 @@ fastreadw_fetch(uint32_t a)
     t = getpccache(a);
     if (cpu_state.abrt)
         return 0;
+    if (t == NULL)
+        return readmemwl(a);
 
     pccache  = a >> 12;
     pccache2 = t;
@@ -549,6 +563,8 @@ fastreadl_fetch(uint32_t a)
             t = getpccache(a);
             if (cpu_state.abrt)
                 return 0;
+            if (t == NULL)
+                return readmemll(a);
             pccache2 = t;
             pccache  = a >> 12;
         }

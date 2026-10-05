@@ -232,7 +232,7 @@ dw90c50_init(const device_t *info)
     /* Avoid conflicting with machines that make no use of the 90C50 Internal IDE */
     dev->flags = info->local;
 
-    dev->fdc = device_add(&fdc_at_nsc_device);
+    dev->fdc = device_add_params(&fdc_at_nsc_device, (void *) FDC_FLAG_PNP);
 
     dev->uart[0] = device_add_inst(&ns16450_device, 1);
     dev->uart[1] = device_add_inst(&ns16450_device, 2);

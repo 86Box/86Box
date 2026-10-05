@@ -685,8 +685,22 @@ pitf_set_pit_const(void *data, uint64_t pit_const)
 
     for (uint8_t i = 0; i < NUM_COUNTERS; i++) {
         ctr = &pit->counters[i];
-        ctr->pit_const = pit_const;
+        ctr->pit_const = pit_const * (uint64_t) ((ctr->clock_div > 1) ? ctr->clock_div : 1);
     }
+}
+
+/* A counter clocked slower than its neighbours. The divider is kept apart
+   from the constant so that a speed change, which sets the constant again,
+   keeps it. */
+static void
+pitf_ctr_set_clock_div(void *data, int counter_id, int div)
+{
+    pitf_t *pit = (pitf_t *) data;
+    ctrf_t *ctr = &pit->counters[counter_id];
+    int     old = (ctr->clock_div > 1) ? ctr->clock_div : 1;
+
+    ctr->clock_div = (div > 1) ? div : 1;
+    ctr->pit_const = (ctr->pit_const / (uint64_t) old) * (uint64_t) ctr->clock_div;
 }
 
 static void
@@ -705,6 +719,8 @@ pitf_close(void *priv)
 
     if (dev == pit_devs[1].data)
         pit_devs[1].data = NULL;
+    if (dev == pit_ps2_watchdog)
+        pit_ps2_watchdog = NULL;
 
     if (dev != NULL)
         free(dev);
@@ -837,5 +853,6 @@ const pit_intf_t pit_fast_intf = {
     .set_load_func   = &pitf_ctr_set_load_func,
     .ctr_clock       = &pitf_ctr_clock,
     .set_pit_const   = &pitf_set_pit_const,
+    .set_clock_div   = &pitf_ctr_set_clock_div,
     .data            = NULL,
 };

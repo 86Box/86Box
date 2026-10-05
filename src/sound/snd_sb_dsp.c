@@ -1052,7 +1052,6 @@ sb_ess_update_reg_a2(sb_dsp_t *dsp, const uint8_t val)
 
     if (dsp->sb_freq != temp)
         recalc_sb16_filter(temp);
-    dsp->sb_freq = temp;
 }
 
 /* TODO: Investigate ESS cards' filtering on real hardware as well.
@@ -1197,6 +1196,10 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
             sb_ess_update_irq_drq_readback_regs(dsp, false);
             if (chg & 0x40)
                 sb_ess_update_dma_status(dsp);
+            break;
+        case 0xB4: /* Input Volume Control */
+            dsp->ess_input_gain_l = (data >> 4) & 0x0f;
+            dsp->ess_input_gain_r = data & 0x0f;
             break;
         case 0xB5: /* DAC Direct Access Holding (low) */
         case 0xB6: /* DAC Direct Access Holding (high) */
@@ -1514,6 +1517,7 @@ sb_exec_command(sb_dsp_t *dsp)
             break;
         case 0x20: /* 8-bit direct input */
             sb_add_data(dsp, (dsp->record_buffer[dsp->record_pos_read] >> 8) ^ 0x80);
+            dsp->record_pos_read += 2;
             /* Due to the current implementation, I need to emulate a samplerate, even if this
                mode does not imply such samplerate. Position is increased in sb_poll_i(). */
             if (!timer_is_enabled(&dsp->input_timer)) {
@@ -1528,6 +1532,7 @@ sb_exec_command(sb_dsp_t *dsp)
             if (IS_ESS(dsp)) {
                 sb_add_data(dsp, (dsp->record_buffer[dsp->record_pos_read]) ^ 0x80);
                 sb_add_data(dsp, (dsp->record_buffer[dsp->record_pos_read] >> 8) ^ 0x80);
+                dsp->record_pos_read += 2;
                 /* Due to the current implementation, I need to emulate a samplerate, even if this
                    mode does not imply such samplerate. Position is increased in sb_poll_i(). */
                 if (!timer_is_enabled(&dsp->input_timer)) {
@@ -1566,7 +1571,7 @@ sb_exec_command(sb_dsp_t *dsp)
                     sb_start_dma_i(dsp, 1, 1, 0, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
             }
             break;
-        case 0x2D: /* ESS 16-bit autoinit DMA output */
+        case 0x2D: /* ESS 16-bit autoinit DMA input */
             if (IS_ESS(dsp)) {
                 dsp->sb_16_autolen = dsp->sb_data[0] + (dsp->sb_data[1] << 8);
                 sb_start_dma_i(dsp, 0, 1, 0, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
@@ -1659,7 +1664,6 @@ sb_exec_command(sb_dsp_t *dsp)
 
                 if (dsp->sb_freq != temp)
                     recalc_sb16_filter(temp);
-                dsp->sb_freq = temp;
             }
             break;
         case 0x45: /* Continue Auto-Initialize DMA, 8-bit */
@@ -1807,7 +1811,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xA8: /* Set input mode to stereo (8-bit on Jazz16) */
             if (!IS_MV1216(dsp) && ((dsp->sb_type < SBPRO_DSP_300) || (dsp->sb_type > SBPRO_DSP_302)))
                 break;
-            /* TODO: Implement. 3.xx-only command. */
+            if ((dsp->sb_type >= SBPRO_DSP_300) && (dsp->sb_type <= SBPRO_DSP_302))
+                dsp->stereoi = !!(dsp->sb_command & 0x08);
         case 0xAC: /* Set input mode to stereo (16-bit on Jazz16) */
             if (IS_MV1216(dsp)) {
                 /* The MVD1216 extends the SB Pro A0/A8 mode commands with

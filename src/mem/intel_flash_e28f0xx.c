@@ -96,6 +96,9 @@ flash_read(uint32_t addr, void *priv)
     const flash_t *dev = (flash_t *) priv;
     uint8_t        ret;
 
+    if (!flash_bios_read_selected(addr))
+        return 0xff;
+
     addr = flash_calc_addr(dev, addr);
     if (addr == 0xffffffff)
         return 0xff;
@@ -138,6 +141,9 @@ static uint16_t
 flash_readw(uint32_t addr, void *priv)
 {
     const flash_t  *dev = (flash_t *) priv;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xffff;
 
     addr = flash_calc_addr(dev, addr);
     if (addr == 0xffffffff)
@@ -188,6 +194,9 @@ flash_readl(uint32_t addr, void *priv)
 {
     const flash_t  *dev = (flash_t *) priv;
 
+    if (!flash_bios_read_selected(addr))
+        return 0xffffffff;
+
     addr = flash_calc_addr(dev, addr);
     if (addr == 0xffffffff)
         return 0xffffffff;
@@ -201,6 +210,9 @@ static void
 flash_write(uint32_t addr, uint8_t val, void *priv)
 {
     flash_t *      dev         = (flash_t *) priv;
+
+    if (!flash_bios_write_selected(addr))
+        return;
 
     addr = flash_calc_addr(dev, addr);
     if (addr == 0xffffffff)
@@ -285,6 +297,9 @@ static void
 flash_writew(uint32_t addr, uint16_t val, void *priv)
 {
     flash_t *      dev         = (flash_t *) priv;
+
+    if (!flash_bios_write_selected(addr))
+        return;
 
     addr = flash_calc_addr(dev, addr);
     if (addr == 0xffffffff)

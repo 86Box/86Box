@@ -611,7 +611,8 @@ const device_t scsi_t128_device = {
     .available     = t128_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = t128_config
+    .config        = t128_config,
+    .short_name    = "T128"
 };
 
 const device_t scsi_t228_device = {
@@ -625,7 +626,8 @@ const device_t scsi_t228_device = {
     .available     = t128_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "T228"
 };
 
 const device_t scsi_pas_device = {

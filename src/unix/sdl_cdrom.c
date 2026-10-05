@@ -96,11 +96,13 @@ cartridge_eject(uint8_t id)
 void
 floppy_mount(uint8_t id, char *fn, uint8_t wp)
 {
-    fdd_close(id);
-    ui_writeprot[id] = wp;
-    fdd_load(id, fn);
+    fdd_drive_t *drv = &drives[id];
 
-    ui_sb_update_icon_state(SB_FLOPPY | id, strlen(floppyfns[id]) ? 0 : 1);
+    fdd_close(drv);
+    drv->read_only = wp;
+    fdd_load(&drives[id], fn);
+
+    ui_sb_update_icon_state(SB_FLOPPY | id, strlen(drv->image_path) ? 0 : 1);
 
     ui_sb_update_tip(SB_FLOPPY | id);
 
@@ -110,7 +112,9 @@ floppy_mount(uint8_t id, char *fn, uint8_t wp)
 void
 floppy_eject(uint8_t id)
 {
-    fdd_close(id);
+    fdd_drive_t *drv = &drives[id];
+
+    fdd_close(drv);
 
     ui_sb_update_icon_state(SB_FLOPPY | id, 1);
 

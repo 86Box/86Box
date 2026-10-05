@@ -1,6 +1,10 @@
 add_subdirectory(cdrom)
 add_subdirectory(floppy)
 add_subdirectory(device)
+add_subdirectory(disk)
+add_subdirectory(video)
+add_subdirectory(scsi)
+add_subdirectory(mem)
 
 if(BUILD_TESTING)
     add_library(pcjx_floppy_engine OBJECT

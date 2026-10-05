@@ -143,7 +143,18 @@ opCMPXCHG8B_a16(uint32_t fetchdat)
     uint32_t temp2_hi = EDX;
 
     fetch_ea_16(fetchdat);
-    ILLEGAL_ON(cpu_mod == 3);
+    if (cpu_mod == 3) {
+        /* The register form of CMPXCHG8B is illegal on real CPUs. The Microsoft
+           Virtual PC 2007 BIOS abuses this encoding as a hypervisor call during
+           its removable-media boot path; treat it as a no-op there so the guest
+           does not get stuck in an endless #UD loop. Everywhere else, raise #UD
+           (required e.g. by the Windows 7 DEC Tulip driver). */
+        if (is_vpc) {
+            cycles -= 6;
+            return 0;
+        }
+        return ILLEGAL(fetchdat);
+    }
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3UL);
     temp    = geteal();
@@ -176,7 +187,15 @@ opCMPXCHG8B_a32(uint32_t fetchdat)
     uint32_t temp2_hi = EDX;
 
     fetch_ea_32(fetchdat);
-    ILLEGAL_ON(cpu_mod == 3);
+    if (cpu_mod == 3) {
+        /* See the a16 variant: allow the Virtual PC 2007 BIOS hypervisor-call
+           encoding, otherwise raise #UD as a real CPU would. */
+        if (is_vpc) {
+            cycles -= 6;
+            return 0;
+        }
+        return ILLEGAL(fetchdat);
+    }
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3UL);
     temp    = geteal();

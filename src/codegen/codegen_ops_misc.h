@@ -156,11 +156,11 @@ ropFF_16(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_
             SP_MODIFY(-2);
 
             host_reg = LOAD_VAR_W((uintptr_t) &codegen_temp);
-            STORE_HOST_REG_ADDR_W((uintptr_t) &cpu_state.pc, host_reg);
+            STORE_HOST_REG_ADDR((uintptr_t) &cpu_state.pc, host_reg);
             return -1;
 
         case 0x20: /*JMP*/
-            STORE_HOST_REG_ADDR((uintptr_t) &cpu_state.pc, host_reg);
+            STORE_HOST_REG_ADDR_WL((uintptr_t) &cpu_state.pc, host_reg);
             return -1;
 
         case 0x30: /*PUSH*/

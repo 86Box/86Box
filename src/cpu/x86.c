@@ -266,6 +266,15 @@ reset_common(int hard)
         }
     }
 
+    /* A reset leaves no NMI in progress and none pending: the processor
+       comes out of RESET accepting NMIs, and an NMI that was latched or
+       being serviced is gone with the state it was taken in. Only the
+       blocking and the pending request are the processor's; the chipset's
+       NMI mask (port 70h) is not, and stays where it is. */
+    nmi_enable     = 1;
+    nmi            = 0;
+    nmi_auto_clear = 0;
+
     use32          = 0;
     cpu_cur_status = 0;
     stack32        = 0;
@@ -357,9 +366,7 @@ reset_common(int hard)
 
     if (hard) {
         reset_on_hlt = hlt_reset_pending = 0;
-        cache_index                      = 0;
-        memset(_tr, 0x00, sizeof(_tr));
-        memset(_cache, 0x00, sizeof(_cache));
+        cpu_tr_reset();
 
         /* If we have an AT or PS/2 keyboard controller, make sure the A20 state
            is correct. */

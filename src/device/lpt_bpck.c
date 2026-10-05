@@ -39,7 +39,6 @@
 #include <86box/scsi_cdrom.h>
 #include <86box/log.h>
 
-#define ENABLE_LPT_BPCK_LOG 1
 #ifdef ENABLE_LPT_BPCK_LOG
 static void
 bpck_log(const char *fmt, ...)
@@ -204,6 +203,7 @@ static const uint16_t bpck_ee_default[64] = {
     0x3236, 0x3037, 0x3730, 0x0C08, 0x07CD, 0x0C08, 0x07CD, 0x0000,
 };
 
+#ifdef ENABLE_LPT_BPCK_LOG
 static const char *bpck_proto_name[] = { "SPP 4-bit", "PS/2 8-bit", "EPP" };
 
 static const char *
@@ -217,6 +217,7 @@ bpck_state(const bpck_t *dev)
 
     return buf;
 }
+#endif
 
 /* The ATAPI engine, defined below: the task file is served out of it. */
 static uint8_t bpck_reg_read(bpck_t *dev, const uint8_t addr);
@@ -1085,7 +1086,7 @@ bpck_init(UNUSED(const device_t *info))
         return NULL;
 
     dev->unit  = (uint8_t) device_get_config_int("unit");
-    dev->port  = (uint8_t) device_get_config_int("port");
+    dev->port  = (uint8_t) (device_get_instance() - 1);
 
     memcpy(dev->ee_data, bpck_ee_default, sizeof(dev->ee_data));
     dev->proto = BPCK_PROTO_SPP;
@@ -1129,23 +1130,6 @@ static const device_config_t bpck_config[] = {
             { .description = "Unit 2", .value = 2 },
             { .description = "Unit 3", .value = 3 },
             { .description = "Unit 7", .value = 7 },
-            { .description = "" }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "port",
-        .description    = "LPT port the drive is assigned to",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "LPT1", .value = 0 },
-            { .description = "LPT2", .value = 1 },
-            { .description = "LPT3", .value = 2 },
-            { .description = "LPT4", .value = 3 },
             { .description = "" }
         },
         .bios           = { { 0 } }

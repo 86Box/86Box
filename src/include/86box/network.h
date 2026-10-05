@@ -219,6 +219,9 @@ extern int network_rx_on_tx_put_pkt(netcard_t *card, netpkt_t *pkt);
 /* 3Com Etherlink */
 extern const device_t threec501_device;
 extern const device_t threec503_device;
+extern const device_t threec509b_device;
+extern const device_t threec529_mc_device;
+extern const device_t threec529_tp_device;
 extern const device_t threec592_device;
 extern const device_t threec597_device;
 
@@ -239,6 +242,7 @@ extern const device_t pcnet_am79c960_eb_device;
 extern const device_t pcnet_am79c960_vlb_device;
 extern const device_t pcnet_am79c961_device;
 extern const device_t pcnet_am79c970a_device;
+extern const device_t pcnet_am79c970a_onboard_device;
 extern const device_t pcnet_am79c973_device;
 extern const device_t pcnet_am79c973_onboard_device;
 

@@ -1652,14 +1652,20 @@ pmodeint(int num, int soft)
                             newsp = readmemw(0, addr);
                         }
                         cpl_override = 0;
+                        /* The new stack from the TSS is checked as the TSS's:
+                           #TS for a null, out-of-table, wrong-privilege or
+                           wrong-type SS, #SS only for one not present
+                           (Pentium Vol. 3, INT n, inter-privilege-level
+                           interrupt). The null SS's error code is the EXT
+                           bit alone, 0 for a software interrupt. */
                         if (!(newss & 0xfffc)) {
-                            x86ss("pmodeint(): Interrupt or trap gate stack segment is NULL", newss & 0xfffc);
+                            x86ts("pmodeint(): Interrupt or trap gate stack segment is NULL", 0);
                             return;
                         }
                         addr = newss & 0xfff8;
                         dt   = (newss & 0x0004) ? &ldt : &gdt;
                         if ((addr + 7) > dt->limit) {
-                            x86ss("pmodeint(): Interrupt or trap gate stack segment > DT", newss & 0xfffc);
+                            x86ts("pmodeint(): Interrupt or trap gate stack segment > DT", newss & 0xfffc);
                             return;
                         }
                         addr += dt->base;
@@ -1667,19 +1673,19 @@ pmodeint(int num, int soft)
                         if (cpu_state.abrt)
                             return;
                         if ((newss & 3) != DPL2) {
-                            x86ss("pmodeint(): Interrupt or trap gate tack segment RPL > DPL", newss & 0xfffc);
+                            x86ts("pmodeint(): Interrupt or trap gate stack segment RPL != DPL", newss & 0xfffc);
                             return;
                         }
                         if (DPL3 != DPL2) {
-                            x86ss("pmodeint(): Interrupt or trap gate tack segment DPL > DPL", newss & 0xfffc);
+                            x86ts("pmodeint(): Interrupt or trap gate stack segment DPL != DPL", newss & 0xfffc);
                             return;
                         }
                         if ((segdat3[2] & 0x1a00) != 0x1200) {
-                            x86ss("pmodeint(): Interrupt or trap gate stack segment bad type", newss & 0xfffc);
+                            x86ts("pmodeint(): Interrupt or trap gate stack segment bad type", newss & 0xfffc);
                             return;
                         }
                         if (!(segdat3[2] & 0x8000)) {
-                            x86np("Int gate loading SS not present", newss & 0xfffc);
+                            x86ss("Int gate loading SS not present", newss & 0xfffc);
                             return;
                         }
                         SS = newss;

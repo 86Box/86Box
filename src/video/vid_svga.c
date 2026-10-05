@@ -1004,7 +1004,14 @@ svga_recalctimings(svga_t *svga)
     if (svga->vblankend <= svga->vblankstart)
         svga->vblankend += 0x00000080;
 
-    if (svga->hoverride || svga->override) {
+    if (svga->border_override) {
+        svga->y_add         = svga->border_top;
+        svga->left_overscan = svga->x_add = svga->border_left;
+
+        svga->hblank_sub = 0;
+
+        svga->htotal &= 0x7fff;
+    } else if (svga->hoverride || svga->override) {
         if (svga->hdisp >= 2048)
             svga->monitor->mon_overscan_x = 0;
 
@@ -1390,9 +1397,14 @@ svga_recalctimings(svga_t *svga)
 static void
 svga_do_render(svga_t *svga)
 {
-    /* Always render a blank screen and nothing else while in DPMS mode. */
+    /* Render a blank screen and nothing else while in DPMS mode, unless the device's monitors
+       do not all sleep together and it has taken the sleep state over. */
     if (svga->dpms) {
-        svga_render_blank(svga);
+        if (svga->dpms_render != NULL)
+            svga->dpms_render(svga);
+        else
+            svga_render_blank(svga);
+
         return;
     }
 
@@ -1530,7 +1542,7 @@ svga_poll(void *priv)
         video_lightpen_hsync();
 
         if (svga->adv_flags & FLAG_PANNING_ATI) {
-            if (svga->panning_blank) {
+            if (svga->panning_blank || svga->border_override) {
                 svga->scrollcache = 0;
                 svga->half_pixel  = 0;
 
@@ -1603,6 +1615,9 @@ svga_poll(void *priv)
         svga->vc++;
         svga->vc &= 0x7ff;
 
+        if (svga->line_callback)
+            svga->line_callback(svga);
+
         if (svga->vc == svga->split) {
             ret = 1;
 
@@ -1638,10 +1653,12 @@ svga_poll(void *priv)
             blink_delay  = (svga->crtc[11] & 0x60) >> 5;
             if (svga->crtc[10] & 0x20)
                 svga->cursoron = 0;
+            else if (svga->cursor_noblink)
+                svga->cursoron = 1;
             else if (blink_delay == 2)
-                svga->cursoron = ((svga->blink % 96) >= 48);
+                svga->cursoron = (((svga->blink >> svga->cursor_blink_half) % 96) >= 48);
             else
-                svga->cursoron = svga->blink & (16 + (16 * blink_delay));
+                svga->cursoron = (svga->blink >> svga->cursor_blink_half) & (16 + (16 * blink_delay));
 
             if (!(svga->blink & 15))
                 svga->fullchange = 2;
@@ -1719,7 +1736,7 @@ svga_poll(void *priv)
             svga->dispon   = 1;
             svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
 
-            if (svga->hoverride || ((svga->adv_flags & FLAG_PANNING_ATI) && svga->panning_blank)) {
+            if (svga->hoverride || svga->border_override || ((svga->adv_flags & FLAG_PANNING_ATI) && svga->panning_blank)) {
                 svga->scrollcache = 0;
                 svga->half_pixel  = 0;
 

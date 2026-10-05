@@ -64,6 +64,7 @@
 #define FDC_FLAG_PCJX           0x800000 /* IBM PC JX no-DMA adapter */
 #define FDC_FLAG_IRQ_ON_NOOP_SEEK 0x1000000 /* Interrupt on zero-step SEEK completion */
 #define FDC_FLAG_IBM5140        0x2000000 /* Convertible motherboard adapter */
+#define FDC_FLAG_PNP            0x80000000 /* FDC is PnP */
 
 typedef struct sector_id_fields_t {
     uint8_t c;
@@ -139,6 +140,7 @@ typedef struct fdc_t {
     uint8_t dsr;
 
     uint8_t media_id;
+    uint8_t bus;
 
     uint8_t params[15];
     uint8_t specify[2];
@@ -178,6 +180,8 @@ typedef struct fdc_t {
 
     pc_timer_t timer;
     pc_timer_t watchdog_timer;
+
+    void *fdd[4];
 } fdc_t;
 
 extern void fdc_remove(fdc_t *fdc);
@@ -237,15 +241,15 @@ extern int         fdc_get_gap2(fdc_t *fdc, int drive);
 extern int         fdc_get_dtl(fdc_t *fdc);
 extern int         fdc_get_format_sectors(fdc_t *fdc);
 extern uint8_t     fdc_get_swwp(fdc_t *fdc);
-extern void        fdc_set_swwp(fdc_t *fdc, uint8_t swwp);
+extern void        fdc_set_swwp(fdc_t *fdc, uint8_t new_swwp);
 extern uint8_t     fdc_get_diswr(fdc_t *fdc);
 extern void        fdc_set_diswr(fdc_t *fdc, uint8_t diswr);
 extern uint8_t     fdc_get_swap(fdc_t *fdc);
 extern void        fdc_set_swap(fdc_t *fdc, uint8_t swap);
 extern void        fdc_set_flags(fdc_t *fdc, int flags);
 extern void        fdc_clear_flags(fdc_t *fdc, int flags);
-extern void        fdc_set_fdd_changed(int drive, int changed);
-extern uint8_t     fdc_get_fdd_changed(int drive);
+extern void        fdc_set_fdd_changed(fdc_t *fdc, int drive, int changed);
+extern uint8_t     fdc_get_fdd_changed(fdc_t *fdc, int drive);
 extern uint8_t     fdc_get_shadow(fdc_t *fdc);
 
 extern void fdc_finishcompare(fdc_t *fdc, int satisfying);

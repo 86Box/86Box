@@ -36,6 +36,7 @@
 #include "cpu.h"
 #include <86box/timer.h>
 #include <86box/pci.h>
+#include <86box/pic.h>
 #include <86box/rom.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
@@ -52,12 +53,16 @@
 #    undef CLAMP
 #endif
 
-#define BIOS_ROM_PATH     "roms/video/mach64/bios.bin"
-#define BIOS_ISA_ROM_PATH "roms/video/mach64/M64-1994.VBI"
-#define BIOS_VLB_ROM_PATH "roms/video/mach64/mach64_vlb_vram.bin"
-#define BIOS_ROMCT_PATH   "roms/video/mach64/mach64-68b110b8cddfd546595673.bin"
-#define BIOS_ROMVT_PATH   "roms/video/mach64/mach64vt-660c60c135839345779942.bin"
-#define BIOS_ROMVT2_PATH  "roms/video/mach64/atimach64vt2pci.bin"
+#define BIOS_ROM_PATH                 "roms/video/mach64/bios.bin"
+#define BIOS_ISA_ROM_PATH             "roms/video/mach64/M64-1994.VBI"
+#define BIOS_VLB_ROM_PATH             "roms/video/mach64/mach64_vlb_vram.bin"
+#define BIOS_XPRESSION_VLB_27802_PATH "roms/video/mach64/xpression_vlb_113-27802-101.bin"
+#define BIOS_XPRESSION_VLB_27804_PATH "roms/video/mach64/xpression_vlb_113-27804-101.bin"
+#define BIOS_XPRESSION_VLB_27803_PATH "roms/video/mach64/xpression_vlb_113-27803-102.bin"
+#define BIOS_ROMCT_PATH               "roms/video/mach64/mach64-68b110b8cddfd546595673.bin"
+#define BIOS_ROMVT_PATH               "roms/video/mach64/mach64vt-660c60c135839345779942.bin"
+#define BIOS_ROMVT2_PATH              "roms/video/mach64/atimach64vt2pci.bin"
+#define BIOS_ROMGTB_PATH              "roms/video/mach64/ARS2D.bin"
 
 #define FIFO_SIZE         65536
 #define FIFO_MASK         (FIFO_SIZE - 1)
@@ -95,18 +100,22 @@ enum {
     MACH64_CT,
     MACH64_VT,
     MACH64_VT2,
+    MACH64_GTB, /* 3D Rage II+; before the VT3, whose GP_IO DDC it does not have */
     MACH64_VT3
 };
 
 #define MACH64_FLAG_ONBOARD (1 << 19)
+#define MACH64_FLAG_DRAM    (1 << 17) /* the board's memory is DRAM (256Kx16), not VRAM */
 #define MACH64_PCI_IOCONFIG 0x40        // "User Defined Configuration"
+
+typedef struct mach64_3d_t     mach64_3d_t;
+typedef struct mach64_timing_t mach64_timing_t;
 
 typedef struct mach64_t {
     mem_mapping_t linear_mapping;
     mem_mapping_t mmio_mapping;
     mem_mapping_t linear_mapping_big_endian;
     mem_mapping_t mmio_linear_mapping;
-    mem_mapping_t mmio_linear_mapping_2;
 
     ati_eeprom_t eeprom;
     svga_t       svga;
@@ -115,6 +124,7 @@ typedef struct mach64_t {
 
     uint8_t regs[256];
     int     index;
+    uint8_t ati_io[2]; /* GDC 50h and 51h: extended register address and offset */
 
     int type;
     int pci;
@@ -122,6 +132,9 @@ typedef struct mach64_t {
 
     uint8_t pci_slot;
     uint8_t irq_state;
+    int     isa_irq;        /* ISA/VLB interrupt jumper; 0 = not fitted */
+    int     isa_8bit;       /* ISA card in an 8-bit slot: byte cycles only */
+    int     isa_irq_raised;
 
     uint8_t on_board;
 
@@ -140,7 +153,7 @@ typedef struct mach64_t {
     uint32_t context_mask;
 
     uint32_t crtc_gen_cntl;
-    uint8_t  crtc_int_cntl;
+    uint32_t crtc_int_cntl;
     uint32_t crtc_h_sync_strt_wid;
     uint32_t crtc_h_total_disp;
     uint32_t crtc_v_sync_strt_wid;
@@ -158,6 +171,8 @@ typedef struct mach64_t {
     uint32_t cur_offset;
 
     uint32_t gp_io;
+    uint32_t gp_io_cntl; /* GP_IO_CNTL (VT) */
+    uint32_t vt_blk1[256]; /* the VT's register block 1, as its fields read back */
 
     uint32_t dac_cntl;
 
@@ -185,6 +200,8 @@ typedef struct mach64_t {
     uint32_t host_cntl;
 
     uint32_t mem_cntl;
+    uint32_t bus_cntl;   /* BUS_CNTL */
+    uint32_t crtc_vline; /* CRTC_VLINE, 10:0 */
 
     uint32_t ovr_clr;
     uint32_t ovr_wid_left_right;
@@ -276,6 +293,13 @@ typedef struct mach64_t {
         int      clr_cmp_src;
 
         int err;
+        int inc;           /* Bresenham terms, sign-extended from 18 bits */
+        int dec;
+        uint32_t poly_offset; /* polygon boundary source, in bits */
+        int rot0;          /* packed 24 bpp component at the start of a row */
+        int rot;
+        int skip_byte;
+        int row_ended;     /* for HOST_BYTE_ALIGN */
         int poly_draw;
     } accel;
 
@@ -298,7 +322,7 @@ typedef struct mach64_t {
 
     thread_t *fifo_thread;
     event_t  *wake_fifo_thread;
-    event_t  *fifo_not_full_event;
+    mutex_t  *fifo_mutex; /* held while a FIFO entry runs, by either thread */
 
     uint64_t blitter_time;
     uint64_t status_time;
@@ -309,7 +333,7 @@ typedef struct mach64_t {
     int      use_block_decoded_io;
 
     int     pll_addr;
-    uint8_t pll_regs[16];
+    uint8_t pll_regs[64];
     double  pll_freq[4];
 
     uint32_t config_stat0;
@@ -318,6 +342,7 @@ typedef struct mach64_t {
     uint32_t cur_clr1;
 
     uint32_t overlay_dat[2048];
+    uint32_t overlay_dat_next[2048]; /* the source line after it, for the vertical blend */
     uint32_t overlay_graphics_key_clr;
     uint32_t overlay_graphics_key_msk;
     uint32_t overlay_video_key_clr;
@@ -355,6 +380,15 @@ typedef struct mach64_t {
     void   *i2c;
     void   *i2c_tv;
     void   *ddc;
+
+    /* 3D Rage II+ (GT-B) */
+    mach64_3d_t     *gt3d;        /* 3D engine and scaler, vid_ati_mach64_3d.c */
+    mach64_timing_t *timing;      /* draw engine timing, vid_ati_mach64_accel.c */
+    mem_mapping_t    aux_mapping; /* the register aperture at BAR2 */
+    uint32_t         aux_base;
+    uint8_t          gtb_regs[256]; /* control registers kept as written */
+    uint8_t          genena;        /* 46E8h */
+    uint8_t          genvs;         /* 102h */
 } mach64_t;
 
 extern video_timings_t timing_mach64_isa;
@@ -366,7 +400,8 @@ enum {
     SRC_FG      = 1,
     SRC_HOST    = 2,
     SRC_BLITSRC = 3,
-    SRC_PAT     = 4
+    SRC_PAT     = 4,
+    SRC_3D      = 5 /* GT: the scaler or the 3D engine */
 };
 
 enum {
@@ -396,6 +431,7 @@ enum {
     SRC_PATT_ROT_EN = 2,
     SRC_LINEAR_EN   = 4,
     SRC_BYTE_ALIGN  = 8,
+    SRC_LINE_X_DIR  = 16,
     SRC_8x8x8_BRUSH = 32,
 
     SRC_8x8x8_BRUSH_LOADED = 1 << 12
@@ -406,6 +442,7 @@ enum {
 };
 
 #define WIDTH_1BIT 3
+#define WIDTH_4BIT 4
 
 extern int mach64_width[8];
 
@@ -418,7 +455,9 @@ enum {
     DST_Y_TILE     = 0x10,
     DST_LAST_PEL   = 0x20,
     DST_POLYGON_EN = 0x40,
-    DST_24_ROT_EN  = 0x80
+    DST_24_ROT_EN  = 0x80,
+    DST_BRES_SIGN  = 0x800,
+    DST_POLYGON_RTEDGE_DIS = 0x1000 /* CT */
 };
 
 enum {
@@ -449,9 +488,31 @@ void     mach64_ext_writel(uint32_t addr, uint32_t val, void *priv);
 void     mach64_fifo_thread(void *param);
 void     mach64_wake_fifo_thread(mach64_t *mach64);
 void     mach64_wait_fifo_idle(mach64_t *mach64);
+void     mach64_reset_engine(mach64_t *mach64);
 
 uint8_t  mach64_readb_be(uint32_t addr, void *priv);
 void     mach64_writeb_be(uint32_t addr, uint8_t val, void *priv);
+
+/* What a 3D draw takes from the GT-B's memory, for the timing model. */
+typedef struct mach64_3d_work_t {
+    uint32_t pixels;
+    uint32_t rows;
+    uint32_t dst_bits;
+    uint32_t tex_bits;
+    uint32_t texels; /* fetched per pixel */
+    int      z_read;
+    int      z_write;
+    int      dst_read;
+} mach64_3d_work_t;
+
+mach64_3d_t     *mach64_3d_init(mach64_t *mach64);
+void             mach64_3d_close(mach64_3d_t *ctx);
+int              mach64_3d_read(mach64_t *mach64, uint32_t addr, uint32_t *val);
+int              mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type);
+mach64_timing_t *mach64_timing_init(void);
+void             mach64_timing_close(mach64_timing_t *timing);
+void             mach64_timing_3d(mach64_t *mach64, const mach64_3d_work_t *work);
+int              mach64_timing_status(mach64_t *mach64, uint32_t *used, int *busy);
 
 #ifdef ENABLE_MACH64_LOG
 extern int mach64_do_log;
@@ -466,6 +527,24 @@ extern mach64_t* reset_state[2];
 
 
 
+
+/* MEM_BNDRY (MEM_CNTL 17:16): 0, 256K, 512K or 1M, enabled by
+   MEM_BNDRY_EN (bit 18), on the GX and CT (RRG 3-67). The VT's MEM_CNTL
+   has no boundary: those bits are its refresh rate and DLL reset
+   (VT/RAGE RRG 4-10). */
+static inline int
+mach64_mem_bndry_en(const mach64_t *mach64)
+{
+    return (mach64->type <= MACH64_CT) && (mach64->mem_cntl & (1 << 18));
+}
+
+static inline uint32_t
+mach64_mem_bndry(const mach64_t *mach64)
+{
+    const uint32_t n = (mach64->mem_cntl >> 16) & 3;
+
+    return n ? (0x20000u << n) : 0;
+}
 
 #define READ8(addr, var)                \
     switch ((addr) &3) {                \

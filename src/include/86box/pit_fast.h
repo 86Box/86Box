@@ -55,6 +55,7 @@ typedef struct ctrf_t {
     uint32_t l;
 
     uint64_t pit_const;
+    int      clock_div; /* see ctr_t; the constant above already includes it */
 
     pc_timer_t timer;
 

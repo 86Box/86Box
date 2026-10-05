@@ -637,8 +637,6 @@ extern uint32_t cr3;
 extern uint32_t cr4;
 extern uint32_t dr[8];
 extern uint32_t _tr[8];
-extern uint32_t cache_index;
-extern uint8_t  _cache[2048];
 
 /* For the Cyrix 6x86(MX) */
 extern uint8_t ccr0;
@@ -749,6 +747,9 @@ extern char *cpu_current_pc(char *bufp);
 
 extern void cpu_update_waitstates(void);
 extern void cpu_set(void);
+extern void cpu_tr_reset(void);
+extern uint32_t cpu_tr_read(int reg);
+extern void cpu_tr_write(int reg, uint32_t val);
 extern void cpu_close(void);
 extern void cpu_set_isa_speed(int speed);
 extern void cpu_set_pci_speed(int speed);

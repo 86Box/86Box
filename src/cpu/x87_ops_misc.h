@@ -20,7 +20,9 @@ opFSTSW_AX(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
-    AX = cpu_state.npxs;
+    /* The status word's TOP field is the stack's: npxs alone can hold a
+       stale one (after FRSTOR, FLDENV and every push or pop since). */
+    AX = (cpu_state.npxs & 0xC7FF) | ((cpu_state.TOP & 7) << 11);
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fstcw_sw) : (x87_timings.fstcw_sw * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fstcw_sw) : (x87_concurrency.fstcw_sw * cpu_multi));
     return 0;

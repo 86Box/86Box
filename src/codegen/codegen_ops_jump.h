@@ -1,12 +1,17 @@
 static uint32_t
-ropJMP_r8(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
+ropJMP_r8(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     uint32_t offset = fetchdat & 0xff;
+    uint32_t dest_addr;
 
     if (offset & 0x80)
         offset |= 0xffffff00;
 
-    STORE_IMM_ADDR_L((uintptr_t) &cpu_state.pc, op_pc + 1 + offset);
+    dest_addr = op_pc + 1 + offset;
+    if (!(op_32 & 0x100))
+        dest_addr &= 0xffff;
+
+    STORE_IMM_ADDR_L((uintptr_t) &cpu_state.pc, dest_addr);
 
     return -1;
 }
@@ -35,16 +40,21 @@ static uint32_t
 ropJCXZ(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     uint32_t offset = fetchdat & 0xff;
+    uint32_t dest_addr;
 
     if (offset & 0x80)
         offset |= 0xffffff00;
 
+    dest_addr = op_pc + 1 + offset;
+    if (!(op_32 & 0x100))
+        dest_addr &= 0xffff;
+
     if (op_32 & 0x200) {
         int host_reg = LOAD_REG_L(REG_ECX);
-        TEST_ZERO_JUMP_L(host_reg, op_pc + 1 + offset, 0);
+        TEST_ZERO_JUMP_L(host_reg, dest_addr, 0);
     } else {
         int host_reg = LOAD_REG_W(REG_CX);
-        TEST_ZERO_JUMP_W(host_reg, op_pc + 1 + offset, 0);
+        TEST_ZERO_JUMP_W(host_reg, dest_addr, 0);
     }
 
     return op_pc + 1;
@@ -54,37 +64,42 @@ static uint32_t
 ropLOOP(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     uint32_t offset = fetchdat & 0xff;
+    uint32_t dest_addr;
 
     if (offset & 0x80)
         offset |= 0xffffff00;
+
+    dest_addr = op_pc + 1 + offset;
+    if (!(op_32 & 0x100))
+        dest_addr &= 0xffff;
 
     if (op_32 & 0x200) {
         int host_reg = LOAD_REG_L(REG_ECX);
         SUB_HOST_REG_IMM(host_reg, 1);
         STORE_REG_L_RELEASE(host_reg);
-        TEST_NONZERO_JUMP_L(host_reg, op_pc + 1 + offset, 0);
+        TEST_NONZERO_JUMP_L(host_reg, dest_addr, 0);
     } else {
         int host_reg = LOAD_REG_W(REG_CX);
         SUB_HOST_REG_IMM(host_reg, 1);
         STORE_REG_W_RELEASE(host_reg);
-        TEST_NONZERO_JUMP_W(host_reg, op_pc + 1 + offset, 0);
+        TEST_NONZERO_JUMP_W(host_reg, dest_addr, 0);
     }
 
     return op_pc + 1;
 }
 
 static void
-BRANCH_COND_B(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
+BRANCH_COND_B(uint32_t dest_addr, int not )
 {
     CALL_FUNC((uintptr_t) CF_SET);
     if (not )
-        TEST_ZERO_JUMP_L(0, op_pc + pc_offset + offset, timing_bt);
+        TEST_ZERO_JUMP_L(0, dest_addr, timing_bt);
     else
-        TEST_NONZERO_JUMP_L(0, op_pc + pc_offset + offset, timing_bt);
+        TEST_NONZERO_JUMP_L(0, dest_addr, timing_bt);
 }
 
 static void
-BRANCH_COND_E(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
+BRANCH_COND_E(uint32_t dest_addr, int not )
 {
     int host_reg;
 
@@ -115,43 +130,43 @@ BRANCH_COND_E(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
         case FLAGS_DEC32:
             host_reg = LOAD_VAR_L((uintptr_t) &cpu_state.flags_res);
             if (not )
-                TEST_NONZERO_JUMP_L(host_reg, op_pc + pc_offset + offset, timing_bt);
+                TEST_NONZERO_JUMP_L(host_reg, dest_addr, timing_bt);
             else
-                TEST_ZERO_JUMP_L(host_reg, op_pc + pc_offset + offset, timing_bt);
+                TEST_ZERO_JUMP_L(host_reg, dest_addr, timing_bt);
             break;
 
         case FLAGS_UNKNOWN:
             CALL_FUNC((uintptr_t) ZF_SET);
             if (not )
-                TEST_ZERO_JUMP_L(0, op_pc + pc_offset + offset, timing_bt);
+                TEST_ZERO_JUMP_L(0, dest_addr, timing_bt);
             else
-                TEST_NONZERO_JUMP_L(0, op_pc + pc_offset + offset, timing_bt);
+                TEST_NONZERO_JUMP_L(0, dest_addr, timing_bt);
             break;
     }
 }
 
 static void
-BRANCH_COND_O(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
+BRANCH_COND_O(uint32_t dest_addr, int not )
 {
     CALL_FUNC((uintptr_t) VF_SET);
     if (not )
-        TEST_ZERO_JUMP_L(0, op_pc + pc_offset + offset, timing_bt);
+        TEST_ZERO_JUMP_L(0, dest_addr, timing_bt);
     else
-        TEST_NONZERO_JUMP_L(0, op_pc + pc_offset + offset, timing_bt);
+        TEST_NONZERO_JUMP_L(0, dest_addr, timing_bt);
 }
 
 static void
-BRANCH_COND_P(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
+BRANCH_COND_P(uint32_t dest_addr, int not )
 {
     CALL_FUNC((uintptr_t) PF_SET);
     if (not )
-        TEST_ZERO_JUMP_L(0, op_pc + pc_offset + offset, timing_bt);
+        TEST_ZERO_JUMP_L(0, dest_addr, timing_bt);
     else
-        TEST_NONZERO_JUMP_L(0, op_pc + pc_offset + offset, timing_bt);
+        TEST_NONZERO_JUMP_L(0, dest_addr, timing_bt);
 }
 
 static void
-BRANCH_COND_S(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
+BRANCH_COND_S(uint32_t dest_addr, int not )
 {
     int host_reg;
 
@@ -167,9 +182,9 @@ BRANCH_COND_S(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
             host_reg = LOAD_VAR_L((uintptr_t) &cpu_state.flags_res);
             AND_HOST_REG_IMM(host_reg, 0x80);
             if (not )
-                TEST_ZERO_JUMP_L(host_reg, op_pc + pc_offset + offset, timing_bt);
+                TEST_ZERO_JUMP_L(host_reg, dest_addr, timing_bt);
             else
-                TEST_NONZERO_JUMP_L(host_reg, op_pc + pc_offset + offset, timing_bt);
+                TEST_NONZERO_JUMP_L(host_reg, dest_addr, timing_bt);
             break;
 
         case FLAGS_ZN16:
@@ -183,9 +198,9 @@ BRANCH_COND_S(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
             host_reg = LOAD_VAR_L((uintptr_t) &cpu_state.flags_res);
             AND_HOST_REG_IMM(host_reg, 0x8000);
             if (not )
-                TEST_ZERO_JUMP_L(host_reg, op_pc + pc_offset + offset, timing_bt);
+                TEST_ZERO_JUMP_L(host_reg, dest_addr, timing_bt);
             else
-                TEST_NONZERO_JUMP_L(host_reg, op_pc + pc_offset + offset, timing_bt);
+                TEST_NONZERO_JUMP_L(host_reg, dest_addr, timing_bt);
             break;
 
         case FLAGS_ZN32:
@@ -199,66 +214,71 @@ BRANCH_COND_S(int pc_offset, uint32_t op_pc, uint32_t offset, int not )
             host_reg = LOAD_VAR_L((uintptr_t) &cpu_state.flags_res);
             AND_HOST_REG_IMM(host_reg, 0x80000000);
             if (not )
-                TEST_ZERO_JUMP_L(host_reg, op_pc + pc_offset + offset, timing_bt);
+                TEST_ZERO_JUMP_L(host_reg, dest_addr, timing_bt);
             else
-                TEST_NONZERO_JUMP_L(host_reg, op_pc + pc_offset + offset, timing_bt);
+                TEST_NONZERO_JUMP_L(host_reg, dest_addr, timing_bt);
             break;
 
         case FLAGS_UNKNOWN:
             CALL_FUNC((uintptr_t) NF_SET);
             if (not )
-                TEST_ZERO_JUMP_L(0, op_pc + pc_offset + offset, timing_bt);
+                TEST_ZERO_JUMP_L(0, dest_addr, timing_bt);
             else
-                TEST_NONZERO_JUMP_L(0, op_pc + pc_offset + offset, timing_bt);
+                TEST_NONZERO_JUMP_L(0, dest_addr, timing_bt);
             break;
     }
 }
 
-#define ropBRANCH(name, func, not )              \
-    static uint32_t                              \
-    rop##name(UNUSED(uint8_t opcode),            \
-              uint32_t fetchdat,                 \
-              UNUSED(uint32_t op_32),            \
-              uint32_t op_pc,                    \
-              UNUSED(codeblock_t *block))        \
-    {                                            \
-        uint32_t offset = fetchdat & 0xff;       \
-                                                 \
-        if (offset & 0x80)                       \
-            offset |= 0xffffff00;                \
-                                                 \
-        func(1, op_pc, offset, not );            \
-                                                 \
-        return op_pc + 1;                        \
-    }                                            \
-    static uint32_t                              \
-    rop##name##_w(UNUSED(uint8_t opcode),        \
-                  uint32_t fetchdat,             \
-                  UNUSED(uint32_t op_32),        \
-                  uint32_t op_pc,                \
-                  UNUSED(codeblock_t *block))    \
-    {                                            \
-        uint32_t offset = fetchdat & 0xffff;     \
-                                                 \
-        if (offset & 0x8000)                     \
-            offset |= 0xffff0000;                \
-                                                 \
-        func(2, op_pc, offset, not );            \
-                                                 \
-        return op_pc + 2;                        \
-    }                                            \
-    static uint32_t                              \
-    rop##name##_l(UNUSED(uint8_t opcode),        \
-                  UNUSED(uint32_t fetchdat),     \
-                  UNUSED(uint32_t op_32),        \
-                  uint32_t op_pc,                \
-                  UNUSED(codeblock_t *block))    \
-    {                                            \
-        uint32_t offset = fastreadl(cs + op_pc); \
-                                                 \
-        func(4, op_pc, offset, not );            \
-                                                 \
-        return op_pc + 4;                        \
+#define ropBRANCH(name, func, not )                \
+    static uint32_t                                \
+    rop##name(UNUSED(uint8_t opcode),              \
+              uint32_t fetchdat,                   \
+              uint32_t op_32,                      \
+              uint32_t op_pc,                      \
+              UNUSED(codeblock_t *block))          \
+    {                                              \
+        uint32_t offset = fetchdat & 0xff;         \
+        uint32_t dest_addr;                        \
+                                                   \
+        if (offset & 0x80)                         \
+            offset |= 0xffffff00;                  \
+                                                   \
+        dest_addr = op_pc + 1 + offset;            \
+        if (!(op_32 & 0x100))                      \
+            dest_addr &= 0xffff;                   \
+                                                   \
+        func(dest_addr, not );                     \
+                                                   \
+        return op_pc + 1;                          \
+    }                                              \
+    static uint32_t                                \
+    rop##name##_w(UNUSED(uint8_t opcode),          \
+                  uint32_t fetchdat,               \
+                  UNUSED(uint32_t op_32),          \
+                  uint32_t op_pc,                  \
+                  UNUSED(codeblock_t *block))      \
+    {                                              \
+        uint32_t offset = fetchdat & 0xffff;       \
+                                                   \
+        if (offset & 0x8000)                       \
+            offset |= 0xffff0000;                  \
+                                                   \
+        func((op_pc + 2 + offset) & 0xffff, not ); \
+                                                   \
+        return op_pc + 2;                          \
+    }                                              \
+    static uint32_t                                \
+    rop##name##_l(UNUSED(uint8_t opcode),          \
+                  UNUSED(uint32_t fetchdat),       \
+                  UNUSED(uint32_t op_32),          \
+                  uint32_t op_pc,                  \
+                  UNUSED(codeblock_t *block))      \
+    {                                              \
+        uint32_t offset = fastreadl(cs + op_pc);   \
+                                                   \
+        func(op_pc + 4 + offset, not );            \
+                                                   \
+        return op_pc + 4;                          \
     }
 
 // clang-format off

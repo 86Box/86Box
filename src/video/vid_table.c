@@ -23,9 +23,9 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/mem.h>
-#include <86box/device.h>
 #include <86box/lpt.h>
 #include <86box/plat.h>
 #include <86box/video.h>
@@ -33,9 +33,10 @@
 
 #include <86box/vid_cga.h>
 #include <86box/vid_ega.h>
-#include <86box/vid_colorplus.h>
 #include <86box/vid_mda.h>
+#include <86box/vid_colorplus.h>
 #include <86box/vid_xga_device.h>
+#include <86box/vid_ps55da2.h>
 
 typedef struct video_card_t {
     const device_t *device;
@@ -56,6 +57,7 @@ video_cards[] = {
   // clang-format off
     { .device = &device_none,                                   .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &device_internal,                               .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &device_external,                               .flags = VIDEO_FLAG_TYPE_SECONDARY },
     /* ISA */
     { .device = &ati18800_wonder_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &ati18800_vga88_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -118,9 +120,11 @@ video_cards[] = {
     { .device = &gd5428_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &gd5429_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &gd5434_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &paradise_speedstar24x_device,                  .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &ht216_standalone_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &inmos_isa_device,                              .flags = VIDEO_FLAG_TYPE_XGA       },
     { .device = &jvga_device,                                   .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &radius_svga_multiview_isa_device,              .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &paradise_wd90c31_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_86c911_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_86c924_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_86c928_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -128,6 +132,7 @@ video_cards[] = {
     { .device = &s3_86c805_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et4000w32_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et4000w32i_isa_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &v7_vram_2_ergo_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
     /* MCA */
     { .device = &mach32_mca_device,                             .flags = VIDEO_FLAG_TYPE_8514      },
     { .device = &gd5426_mca_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -162,6 +167,7 @@ video_cards[] = {
     { .device = &voodoo_3_1000_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &voodoo_3_2000_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &voodoo_3_3000_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &mach64gtb_device,                              .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &mach32_pci_device,                             .flags = VIDEO_FLAG_TYPE_8514      },
     { .device = &mach64gx_pci_device,                           .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &mach64ct_device,                               .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -491,8 +497,13 @@ video_reset(int card)
     video_load_font(FONT_IBM_MDA_437_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
 
     for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
-        if ((card != VID_NONE) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY) &&
-            (gfxcard[i] > VID_INTERNAL) && device_is_valid(video_card_getdevice(gfxcard[i]), machine)) {
+        /* None and Internal have no device to add here, and External is a placeholder
+           for the machine's own output, so none of the three is a card for this loop. */
+        if ((gfxcard[i] == VID_NONE) || (gfxcard[i] == VID_INTERNAL) || (gfxcard[i] == VID_EXTERNAL))
+            continue;
+
+        if ((card != VID_NONE) && device_is_valid(video_card_getdevice(gfxcard[i]), machine) &&
+            (!machine_has_flags(machine, MACHINE_VIDEO_ONLY) || machine_has_flags(machine, MACHINE_VIDEO_EXT))) {
             video_monitor_init(i);
             monitor_index_global = 1;
             device_add_inst(video_cards[gfxcard[i]].device, i + 1);
@@ -500,8 +511,9 @@ video_reset(int card)
         }
     }
 
-    /* Do not initialize internal cards here. */
-    if ((card > VID_INTERNAL) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
+    /* Do not initialize internal cards here, and the external entry is never a card. */
+    if ((card != VID_NONE) && (card != VID_INTERNAL) && (card != VID_EXTERNAL) &&
+        !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
         vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].device->name);
 
         video_prepare();
@@ -578,6 +590,24 @@ video_card_has_config(int card)
         return 0;
 
     return (device_has_config(video_cards[card].device) ? 1 : 0);
+}
+
+/* The built-in video is not one of the video_cards[], so its class has to come from the
+   machine's own adapter: the GA-586IS's 8514/A and the PS/55 Display Adapter B-II are
+   the only two that have one, and the machine's own XGA is not emulated. */
+int
+video_get_primary_flags(int m, int card)
+{
+    if (card != VID_INTERNAL)
+        return video_card_get_flags(card);
+
+    if (machine_get_vid_device(m) == &mach32_onboard_pci_device)
+        return VIDEO_FLAG_TYPE_8514;
+
+    if (machine_get_vid_device(m) == &ps55db2_device)
+        return VIDEO_FLAG_TYPE_DA2;
+
+    return VIDEO_FLAG_TYPE_NONE;
 }
 
 const char *

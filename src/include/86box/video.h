@@ -39,7 +39,8 @@ extern "C" {
 
 enum {
     VID_NONE = 0,
-    VID_INTERNAL
+    VID_INTERNAL,
+    VID_EXTERNAL
 };
 
 enum {
@@ -79,7 +80,8 @@ typedef enum video_font_format_e
 #define VIDEO_FLAG_TYPE_SPECIAL 2
 #define VIDEO_FLAG_TYPE_8514    3
 #define VIDEO_FLAG_TYPE_XGA     4
-#define VIDEO_FLAG_TYPE_NONE    5
+#define VIDEO_FLAG_TYPE_DA2     5
+#define VIDEO_FLAG_TYPE_NONE    6
 #define VIDEO_FLAG_TYPE_MASK    7
 
 #define VIDEO_FLAG_TYPE_SECONDARY VIDEO_FLAG_TYPE_SPECIAL
@@ -284,9 +286,10 @@ extern int         video_get_video_from_internal_name(char *s);
 #ifdef EMU_DEVICE_H
 extern const device_t *video_get_video_from_old_internal_name(char *s);
 #endif
-extern int         video_card_get_flags(int card);
 extern int         video_is_mda(void);
 extern int         video_is_cga(void);
+extern int         video_card_get_flags(int card);
+extern int         video_get_primary_flags(int m, int card);
 /* Query the active video implementation before a memory transfer so
  * pin-level CPU cores can model READY without hardcoding a card. */
 extern unsigned    video_get_wait_states(uint32_t address, int write,
@@ -374,11 +377,16 @@ extern const device_t ibm_plasma_vga_device;
 /* ATi Mach64 */
 extern const device_t mach64gx_isa_device;
 extern const device_t mach64gx_vlb_device;
+extern const device_t mach64gx_vlb_onboard_device;
+extern const device_t mach64gx_xpression_vlb_device;
 extern const device_t mach64gx_pci_device;
+extern const device_t mach64gx_pci_onboard_device;
 extern const device_t mach64ct_device;
-extern const device_t mach64ct_device_onboard;
+extern const device_t mach64ct_onboard_device;
 extern const device_t mach64vt_device;
 extern const device_t mach64vt2_device;
+extern const device_t mach64gtb_device;
+extern const device_t mach64gtb_onboard_device;
 extern const device_t mach64vt3_onboard_device;
 
 /* ATi 18800 */
@@ -496,8 +504,9 @@ extern const device_t incolor_device;
 /* Headland GC-2xx/HT-2xx */
 extern const device_t g2_gc205_device;
 extern const device_t v7_vga_1024i_device;
-extern const device_t radius_svga_multiview_isa_device;
+extern const device_t v7_vram_2_ergo_device;
 extern const device_t radius_svga_multiview_mca_device;
+extern const device_t ht216_standalone_device;
 extern const device_t ht216_32_pb410a_device;
 extern const device_t ht216_32_standalone_device;
 
@@ -530,13 +539,18 @@ extern const device_t oti077_pcs44c_device;
 extern const device_t oti077_device;
 
 /* Paradise/WD (S)VGA */
-extern const device_t paradise_pvga1a_ncr3302_device;
 extern const device_t paradise_pvga1a_pc2086_device;
 extern const device_t paradise_pvga1a_pc3086_device;
+extern const device_t paradise_pvga1a_ncr3302_device;
 extern const device_t paradise_pvga1a_device;
 extern const device_t paradise_wd90c11_megapc_device;
 extern const device_t paradise_wd90c11_device;
+extern const device_t paradise_wd90c20_5535s_device;
+extern void           paradise_wd90c20_vga_disable(void *priv, uint16_t port);
+extern void           paradise_wd90c20_vga_enable(void *priv, uint16_t port);
 extern const device_t paradise_wd90c30_device;
+extern const device_t paradise_wd90c31_device;
+extern const device_t paradise_speedstar24x_device;
 
 /* Quadram Quadcolor I / I + II */
 extern const device_t quadcolor_device;
@@ -643,6 +657,12 @@ extern const device_t tandy_1000sl_video_device;
 /* Hitachi HD44780 character LCD */
 extern const device_t hd44780_device;
 extern const device_t hd44780_cobalt3k_device;
+enum {
+    HD44780_COLOR_GREEN = 0,
+    HD44780_COLOR_BLUE,
+    HD44780_COLOR_NONE,
+    HD44780_COLOR_MAX
+};
 
 #endif
 

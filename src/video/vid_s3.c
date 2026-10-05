@@ -4723,16 +4723,19 @@ s3_recalctimings(svga_t *svga)
                         svga->clock /= 2.0;
                         break;
                     case S3_VISION868:
+                        /* HCTR x2 (CR43 bit 7) has already doubled dots_per_clock but not
+                           hdisp, so undo that doubling too, or the blanking (and overscan)
+                           widths come out twice as large as the active display. */
                         switch (s3->ramdac_type) {
                             case ATT498: /*AT&T 498 RAMDAC*/
                                 if (svga->getclock == icd2061_getclock) { /*ICD2061 clock chip*/
                                     svga->hdisp >>= 1;
-                                    svga->dots_per_clock >>= 1;
+                                    svga->dots_per_clock >>= (svga->dots_per_clock == 16) ? 2 : 1;
                                 }
                                 break;
                             case S3_SDAC: /*S3 SDAC/GENDAC RAMDAC with its clock chip*/
                                 svga->hdisp >>= 1;
-                                svga->dots_per_clock >>= 1;
+                                svga->dots_per_clock >>= (svga->dots_per_clock == 16) ? 2 : 1;
                                 break;
                             default:
                                 break;
@@ -5152,11 +5155,12 @@ s3_updatemapping(s3_t *s3)
                     s3_log("Actually enable banked mapping=%d.\n", svga->mapping.enable);
                 }
             } else {
-                if (s3->chip >= S3_TRIO64V)
-                    s3->linear_base &= 0xfc000000;
-                else if ((s3->chip == S3_VISION968) || (s3->chip == S3_VISION868))
-                    s3->linear_base &= 0xfe000000;
-
+                if (s3->pci) {
+                    if (s3->chip >= S3_TRIO64V)
+                        s3->linear_base &= 0xfc000000;
+                    else if ((s3->chip == S3_VISION968) || (s3->chip == S3_VISION868))
+                        s3->linear_base &= 0xfe000000;
+                }
                 s3_log("Update LinearBase update=%x, size=%x.\n", s3->linear_base, s3->linear_size);
                 if (s3->linear_base)
                     mem_mapping_set_addr(&s3->linear_mapping, s3->linear_base, s3->linear_size);

@@ -20,6 +20,9 @@ public:
     void restore();
     void save(int soft);
 
+protected:
+    void showEvent(QShowEvent *event) override;
+
 signals:
     void driveChannelChanged();
 
