@@ -452,7 +452,12 @@ inboard386_apply_rom_prefetch(const inboard386_t *dev)
    reserved 128 KB is decoded. Set, as INBRDPC.SYS leaves it: F0000-FFFFF reads come from
    the card's RAM and the 5E0000/5F0000 windows have no address at all (the real 5160 reads
    FF there and drops writes). Clear: the windows reach the reserved RAM and F0000 reads
-   the ROM. The low F0000 mapping stays enabled; inboard386_bios_shadow_read() steers it. */
+   the ROM. The low F0000 mapping stays enabled; inboard386_bios_shadow_read() steers it.
+
+   The dynarec fetches code through the mapping's exec pointer, not through
+   inboard386_bios_shadow_read(), so the pointer must follow the same choice the read
+   handler makes. INBRDPC.SYS writes test patterns into the shadow buffer while shadowing
+   is off; with the pointer left on the buffer the dynarec runs them as BIOS code. */
 static void
 inboard386_apply_rom_shadow(inboard386_t *dev)
 {
@@ -463,6 +468,8 @@ inboard386_apply_rom_shadow(inboard386_t *dev)
         mem_mapping_enable(&dev->bios_shadow_alias_mapping);
         mem_mapping_enable(&dev->video_shadow_alias_mapping);
     }
+    mem_mapping_set_exec(&dev->bios_shadow_mapping,
+                         dev->rom_shadow_enabled ? dev->bios_shadow_ram : dev->bios_rom_snapshot);
 }
 
 /* Real hardware (confirmed against UniPCemu's inboard.c, the reference implementation
