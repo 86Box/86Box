@@ -2777,11 +2777,10 @@ tape_phase_data_out(scsi_common_t *sc)
                 param_list_len = dev->current_cdb[4];
             }
 
-            if (dev->current_cdb[0] == GPCMD_MODE_SELECT_6) {
-                block_desc_len = dev->buffer[2];
-                block_desc_len <<= 8;
-                block_desc_len |= dev->buffer[3];
-            } else {
+            if (dev->current_cdb[0] == GPCMD_MODE_SELECT_6)
+                /* Byte 2 is the device-specific parameter (buffered mode and speed). */
+                block_desc_len = dev->buffer[3];
+            else {
                 block_desc_len = dev->buffer[6];
                 block_desc_len <<= 8;
                 block_desc_len |= dev->buffer[7];
@@ -2790,7 +2789,9 @@ tape_phase_data_out(scsi_common_t *sc)
             /* If there's a block descriptor, parse the block size from it. */
             if (block_desc_len >= 8) {
                 const uint8_t density = dev->buffer[hdr_len];
-                if (density != 0) {
+                /* SSC: density code 00h selects the default density and 7Fh
+                   leaves the current density unchanged. */
+                if ((density != 0x00) && (density != 0x7f)) {
                     int media = -1;
                     for (int i = 0; i < KNOWN_TAPE_TYPES; i++) {
                         if ((tape_types[i].density_code == density) &&
