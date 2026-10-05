@@ -178,11 +178,11 @@ inboard386_apply_waitstates(inboard386_t *dev)
 
 /* Real, previously-un-scaled general memory timing override - parallel to
    inboard386_apply_rom_prefetch() below but for ALL memory access, not just
-   MEM_MAPPING_ROM_WS-flagged ROM fetches. Per MINBRDPC.ASM's ram_enable flag (default 1,
-   forced to 0 by intrboot before every BIOS POST): while the Inboard hasn't taken over with
-   its own fast 32-bit RAM (rom_shadow_enabled off, matching ram_enable=0), ALL memory access
-   - not just ROM - still goes through the original, real, XT-bus-speed-limited system board,
-   so general RAM should be exactly as bus-paced as ROM is during that phase. Bypasses
+   MEM_MAPPING_ROM_WS-flagged ROM fetches. Until INBRDPC.SYS programs port 670h, the card
+   runs at its reset setting (bits 4-1 clear = 30 wait states), and all memory access is
+   paced like the XT bus; the POST memory count is calibrated against that phase. This keys
+   on the wait-state field, not bit 0: on the card bit 0 only steers the reserved-block
+   decode (inboard386_apply_rom_shadow()), so clearing it after boot must not slow RAM. Bypasses
    cpu_waitstates/cpu_update_waitstates() entirely (confirmed dead for CPU_IBM486BL above) and
    sets the actual consumed variables (cpu.c ~line 4515-4536) directly, scaled by the same
    cpu_busspeed/4772728 ratio used everywhere else in this file, using the CPU table's own
@@ -206,9 +206,9 @@ inboard386_apply_mem_timing(const inboard386_t *dev)
     if (native_write_baseline < 1)
         native_write_baseline = 1;
 
-    if (dev->rom_shadow_enabled || (cpu_busspeed <= 4772728.0)) {
-        /* Shadowed into the Inboard's own fast RAM (or genuinely at/below XT bus speed
-           already) - let 86Box's own CPU-table defaults stand, unscaled. */
+    if ((dev->speed & 0x1e) || (cpu_busspeed <= 4772728.0)) {
+        /* Port 670h programmed (or genuinely at/below XT bus speed already) - let 86Box's
+           own CPU-table defaults stand, unscaled. */
         cpu_prefetch_cycles     = native_read_baseline;
         cpu_mem_prefetch_cycles = native_read_baseline;
         cpu_cycles_read         = native_read_baseline;
