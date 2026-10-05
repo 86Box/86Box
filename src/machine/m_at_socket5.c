@@ -53,7 +53,7 @@ machine_at_p54np4_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&ide_vlb_2ch_device);
+    device_add(&ide_vlb_device);
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_CAN_SWITCH_TYPE);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
