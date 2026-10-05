@@ -854,13 +854,8 @@ tablet_reset(void)
     /* Poll at 100 Hz. */
     tablet_set_sample_rate(100.0);
 
-    /* The internal slot is the machine's to fill, as the internal mouse is; a
-       machine that supplies none falls back to the slot's own device. */
-    if (tablet_type == TABLET_TYPE_INTERNAL) {
-        if (machine_get_tablet_device(machine) == NULL)
-            mouse_ex_priv = device_add(tablet_devices[TABLET_TYPE_INTERNAL].device);
-    } else if (tablet_devices[tablet_type].device != NULL)
-        mouse_ex_priv = device_add(tablet_devices[tablet_type].device);
+    if ((tablet_type > 1) && (tablet_devices[tablet_type].device != NULL))
+        mouse_ex_priv = device_add(mouse_devices[tablet_type].device);
 
     if (!mouse_both_enabled()) {
         mouse_dev_poll = mouse_poll_ex;

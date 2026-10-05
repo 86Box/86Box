@@ -240,26 +240,19 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     Models::Batch tabletRows(tabletModel);
     for (int i = 0; i < tablet_get_ndev(); ++i) {
         const auto *dev = tablet_get_device(i);
+        if ((i == TABLET_TYPE_INTERNAL) && (machine_get_tablet_device(machineId) == nullptr))
+            continue;
+
         if (device_is_valid(dev, machineId) == 0)
             continue;
 
         if (!has_cga_pen && !strcmp(tablet_get_internal_name(i), "cga_lightpen"))
             continue;
 
-        /* Allow tablet types other than the "internal device" to be chosen. */
-        QString name;
-        if (i == TABLET_TYPE_INTERNAL) {
-            const device_t *mdev = machine_get_tablet_device(machineId);
-            /* Use the device name instead of hardcoding it here. */
-            if (mdev != nullptr)
-                name = tr("Internal device (%1)").arg(QString::fromUtf8(mdev->name));
-            else
-                name = QString::fromUtf8(dev->name);
-        } else
-            name = DeviceConfig::DeviceName(dev, tablet_get_internal_name(i), 0);
+        QString name = DeviceConfig::DeviceName(dev, tablet_get_internal_name(i), 0);
         int     row  = tabletRows.add(name, i);
 
-        scTablet->addDevice(nullptr, name);
+        scMouse->addDevice(nullptr, name);
 
         if (i == curTabletType)
             selectedRow = row - removeRows;
