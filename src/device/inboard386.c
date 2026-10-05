@@ -82,6 +82,7 @@ typedef struct inboard386_t {
     mem_mapping_t bios_shadow_mapping;
     mem_mapping_t ram_a31_alias_mapping; /* The card does not decode A31 - see the long
                                            note at the mapping in inboard386_init(). */
+    mem_mapping_t ram_a31_top_mapping;   /* A31 alias of the 256 KB remapped above RAM */
     mem_mapping_t video_shadow_alias_mapping; /* Second half of the card's 128 KB reserved
                                            block, at INBOARD_VIDEO_SHADOW_ALIAS. Plain RAM -
                                            see the #define above for why it must exist. */
@@ -447,13 +448,28 @@ inboard386_apply_rom_prefetch(const inboard386_t *dev)
     cpu_rom_prefetch_cycles = extra;
 }
 
-/* The mapping itself now stays permanently enabled (see inboard386_init()) - this only
-   exists so callers that flip rom_shadow_enabled don't need to know that detail; kept as
-   a no-op hook in case a future revision needs to do more here. Read steering happens in
-   inboard386_bios_shadow_read() below, keyed directly off dev->rom_shadow_enabled. */
+/* Port 670h bit 0 (ROMCACHE, U69 Q0 on RonnyRoy's netlist) decides which way the card's
+   reserved 128 KB is decoded. Set, as INBRDPC.SYS leaves it: F0000-FFFFF reads come from
+   the card's RAM and the 5E0000/5F0000 windows have no address at all (the real 5160 reads
+   FF there and drops writes). Clear: the windows reach the reserved RAM and F0000 reads
+   the ROM. The low F0000 mapping stays enabled; inboard386_bios_shadow_read() steers it.
+
+   The dynarec fetches code through the mapping's exec pointer, not through
+   inboard386_bios_shadow_read(), so the pointer must follow the same choice the read
+   handler makes. INBRDPC.SYS writes test patterns into the shadow buffer while shadowing
+   is off; with the pointer left on the buffer the dynarec runs them as BIOS code. */
 static void
-inboard386_apply_rom_shadow(UNUSED(inboard386_t *dev))
+inboard386_apply_rom_shadow(inboard386_t *dev)
 {
+    if (dev->rom_shadow_enabled) {
+        mem_mapping_disable(&dev->bios_shadow_alias_mapping);
+        mem_mapping_disable(&dev->video_shadow_alias_mapping);
+    } else {
+        mem_mapping_enable(&dev->bios_shadow_alias_mapping);
+        mem_mapping_enable(&dev->video_shadow_alias_mapping);
+    }
+    mem_mapping_set_exec(&dev->bios_shadow_mapping,
+                         dev->rom_shadow_enabled ? dev->bios_shadow_ram : dev->bios_rom_snapshot);
 }
 
 /* Real hardware (confirmed against UniPCemu's inboard.c, the reference implementation
@@ -509,6 +525,50 @@ static void
 inboard386_ram_a31_writel(uint32_t addr, uint32_t val, UNUSED(void *priv))
 {
     *(uint32_t *) &ram[addr & 0x7fffffff] = val;
+}
+
+/* The same fold for the 256 KB that inboard386_reset() remaps to the top of RAM: its
+   backing is the RAM behind the 640 KB-1 MB hole, not ram[] at the absolute address. */
+static uint32_t
+inboard386_ram_a31_top_offset(uint32_t addr)
+{
+    return 0xa0000 + ((addr & 0x7fffffff) - ((uint32_t) mem_size * 1024));
+}
+
+static uint8_t
+inboard386_ram_a31_top_read(uint32_t addr, UNUSED(void *priv))
+{
+    return ram[inboard386_ram_a31_top_offset(addr)];
+}
+
+static uint16_t
+inboard386_ram_a31_top_readw(uint32_t addr, UNUSED(void *priv))
+{
+    return *(uint16_t *) &ram[inboard386_ram_a31_top_offset(addr)];
+}
+
+static uint32_t
+inboard386_ram_a31_top_readl(uint32_t addr, UNUSED(void *priv))
+{
+    return *(uint32_t *) &ram[inboard386_ram_a31_top_offset(addr)];
+}
+
+static void
+inboard386_ram_a31_top_write(uint32_t addr, uint8_t val, UNUSED(void *priv))
+{
+    ram[inboard386_ram_a31_top_offset(addr)] = val;
+}
+
+static void
+inboard386_ram_a31_top_writew(uint32_t addr, uint16_t val, UNUSED(void *priv))
+{
+    *(uint16_t *) &ram[inboard386_ram_a31_top_offset(addr)] = val;
+}
+
+static void
+inboard386_ram_a31_top_writel(uint32_t addr, uint32_t val, UNUSED(void *priv))
+{
+    *(uint32_t *) &ram[inboard386_ram_a31_top_offset(addr)] = val;
 }
 
 /* The video/EGA half of the reserved block. Straight RAM in both directions - the driver's
@@ -707,6 +767,14 @@ inboard386_reset(void *priv)
     mem_mapping_enable(&dev->bios_shadow_alias_mapping);
     mem_mapping_enable(&dev->video_shadow_alias_mapping);
 
+    /* The card reserves only 128 KB of its first megabyte (the two shadow windows), not
+       the whole 640 KB-1 MB hole, so the other 256 KB is extended memory: Intel's manual
+       gives the base board 256 KB of it, and a 5 MB board reports 4352 KB. mem.c maps only
+       (mem_size - 1024) KB above 1 MB; put the missing 256 KB directly after it. No mid
+       remap: the shadow windows below 1 MB have their own storage. */
+    if (dev->is_xt)
+        mem_remap_top_ex_nomid(256, mem_size);
+
     inboard386_apply_rom_shadow(dev);
     inboard386_apply_waitstates(dev);
     inboard386_apply_io_waitstates();
@@ -878,6 +946,12 @@ inboard386_init(const device_t *info)
     mem_mapping_enable(&dev->ram_a31_alias_mapping);
 
     if (dev->is_xt) {
+        mem_mapping_add(&dev->ram_a31_top_mapping, 0x80000000 + (uint32_t) mem_size * 1024, 0x40000,
+                         inboard386_ram_a31_top_read, inboard386_ram_a31_top_readw, inboard386_ram_a31_top_readl,
+                         inboard386_ram_a31_top_write, inboard386_ram_a31_top_writew, inboard386_ram_a31_top_writel,
+                         ram + 0xa0000, 0, NULL);
+        mem_mapping_enable(&dev->ram_a31_top_mapping);
+
         io_sethandler(0x0060, 1, NULL, NULL, NULL, inboard386_write_60, NULL, NULL, dev);
         io_sethandler(0x00a0, 1, NULL, NULL, NULL, inboard386_write_a0, NULL, NULL, dev);
         io_sethandler(0x00a1, 1, inboard386_read_a1, NULL, NULL, inboard386_write_a1, NULL, NULL, dev);
