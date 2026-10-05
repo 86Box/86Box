@@ -77,8 +77,8 @@ Harddrives::populateCDROMBuses(QAbstractItemModel *model)
     model->setData(model->index(4, 0), "Hitachi");
     model->setData(model->index(5, 0), "Mitsumi");
     model->setData(model->index(6, 0), "Panasonic/MKE");
-    model->setData(model->index(7, 0), "Philips/LMS");
-    model->setData(model->index(8, 0), "Philips CM-100/CM-153");
+    model->setData(model->index(7, 0), "Philips CM-100/CM-153");
+    model->setData(model->index(8, 0), "Philips/LMS");
     model->setData(model->index(9, 0), "Sony");
 
     model->setData(model->index(0, 0), HDD_BUS_DISABLED, Qt::UserRole);
@@ -88,8 +88,8 @@ Harddrives::populateCDROMBuses(QAbstractItemModel *model)
     model->setData(model->index(4, 0), CDROM_BUS_HITACHI, Qt::UserRole);
     model->setData(model->index(5, 0), CDROM_BUS_MITSUMI, Qt::UserRole);
     model->setData(model->index(6, 0), CDROM_BUS_MKE, Qt::UserRole);
-    model->setData(model->index(7, 0), CDROM_BUS_PHILIPS, Qt::UserRole);
-    model->setData(model->index(8, 0), CDROM_BUS_CM100, Qt::UserRole);
+    model->setData(model->index(7, 0), CDROM_BUS_CM100, Qt::UserRole);
+    model->setData(model->index(8, 0), CDROM_BUS_PHILIPS, Qt::UserRole);
     model->setData(model->index(9, 0), CDROM_BUS_SONY, Qt::UserRole);
 }
 
