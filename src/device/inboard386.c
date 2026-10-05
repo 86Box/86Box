@@ -448,13 +448,21 @@ inboard386_apply_rom_prefetch(const inboard386_t *dev)
     cpu_rom_prefetch_cycles = extra;
 }
 
-/* The mapping itself now stays permanently enabled (see inboard386_init()) - this only
-   exists so callers that flip rom_shadow_enabled don't need to know that detail; kept as
-   a no-op hook in case a future revision needs to do more here. Read steering happens in
-   inboard386_bios_shadow_read() below, keyed directly off dev->rom_shadow_enabled. */
+/* Port 670h bit 0 (ROMCACHE, U69 Q0 on RonnyRoy's netlist) decides which way the card's
+   reserved 128 KB is decoded. Set, as INBRDPC.SYS leaves it: F0000-FFFFF reads come from
+   the card's RAM and the 5E0000/5F0000 windows have no address at all (the real 5160 reads
+   FF there and drops writes). Clear: the windows reach the reserved RAM and F0000 reads
+   the ROM. The low F0000 mapping stays enabled; inboard386_bios_shadow_read() steers it. */
 static void
-inboard386_apply_rom_shadow(UNUSED(inboard386_t *dev))
+inboard386_apply_rom_shadow(inboard386_t *dev)
 {
+    if (dev->rom_shadow_enabled) {
+        mem_mapping_disable(&dev->bios_shadow_alias_mapping);
+        mem_mapping_disable(&dev->video_shadow_alias_mapping);
+    } else {
+        mem_mapping_enable(&dev->bios_shadow_alias_mapping);
+        mem_mapping_enable(&dev->video_shadow_alias_mapping);
+    }
 }
 
 /* Real hardware (confirmed against UniPCemu's inboard.c, the reference implementation
