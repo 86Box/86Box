@@ -686,8 +686,8 @@ ymf71x_put_buffer(int16_t *buffer, int len, void *priv)
     int c;
     int gain_l;
     int gain_r;
-    int sel_l_mic, sel_l_linel, sel_l_liner;
-    int sel_r_mic, sel_r_linel, sel_r_liner;
+    int sel_l_mic, sel_l_linel;
+    int sel_r_mic, sel_r_liner;
     int interp;
     int filt;
 
