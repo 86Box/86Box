@@ -67,6 +67,7 @@ static int optimc_wss_dma2[4] = { 1, 1, 0, 0 };
 static int optimc_wss_irq[8] = { 5, 7, 9, 10, 11, 12, 14, 15 };
 static int opti930_wss_irq[8] = { 0, 7, 9, 10, 11, 5, 0, 0 };
 static double opti930_vols_5bits[32];
+static double optimc_input_gain_vols_4bits[16];
 
 enum optimc_types {
     OPTI_929 = 0xE3,
@@ -233,6 +234,168 @@ optimc_wss_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
     } else {
         optimc_log(optimc->log, "OPTi WSS: Full-duplex mode disabled\n");
         ad1848_setdma2(&optimc->ad1848, 4);
+    }
+}
+
+#define OPTIMC_RECORD_CLAMP(x) (((x) < -32768) ? -32768 : (((x) > 32767) ? 32767 : (x)))
+
+/* filter when freq < capture rate */
+#define OPTIMC_RECORD_ANTIALIAS 1
+
+/* nyquist anti alias */
+#define OPTIMC_RECORD_AA_NYQ 0.9
+
+/* audio filter called on filter rate change */
+static void
+optimc_record_aa_design(ad1848_t *ad1848, int out_rate, int in_rate)
+{
+    const double fc    = (OPTIMC_RECORD_AA_NYQ * 0.5) * ((double) out_rate);
+    const double w0    = (2.0 * M_PI * fc) / ((double) in_rate);
+    const double cw    = cos(w0);
+    const double sw    = sin(w0);
+    const double alpha = sw / (2.0 * 0.70710678118654752);
+    const double a0    = 1.0 + alpha;
+
+    ad1848->record_aa_b0_mic = ((1.0 - cw) / 2.0) / a0;
+    ad1848->record_aa_b1_mic = (1.0 - cw) / a0;
+    ad1848->record_aa_b2_mic = ad1848->record_aa_b0_mic;
+    ad1848->record_aa_a1_mic = (-2.0 * cw) / a0;
+    ad1848->record_aa_a2_mic = (1.0 - alpha) / a0;
+}
+
+static double
+optimc_record_aa_step(ad1848_t *ad1848, int ch, double x)
+{
+    const double y = (ad1848->record_aa_b0_mic * x) + ad1848->record_aa_z1_mic[ch];
+
+    ad1848->record_aa_z1_mic[ch] = (ad1848->record_aa_b1_mic * x) - (ad1848->record_aa_a1_mic * y)
+                                + ad1848->record_aa_z2_mic[ch];
+    ad1848->record_aa_z2_mic[ch] = (ad1848->record_aa_b2_mic * x) - (ad1848->record_aa_a2_mic * y);
+
+    return y;
+}
+
+static void
+optimc_put_buffer(int16_t *buffer, int len, void *priv)
+{
+    optimc_t *optimc = (optimc_t *) priv;
+
+    /* divisor is rate capture device opened at*/
+    const int cap_rate = al_capture_get_rate();
+    const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+    int rate = 0;
+    if (optimc->ad1848.regs[9] & 0x02)
+        rate = optimc->ad1848.freq;
+    else
+        rate = optimc->sb->dsp.sb_freq;
+
+    int c;
+    int gain_l;
+    int gain_r;
+    int sel_l_mic, sel_l_linel;
+    int sel_r_mic, sel_r_liner;
+    int interp;
+    int filt;
+
+    /* freq is 0 until the guest programs a rate  */
+    if (rate <= 0)
+        return;
+
+    if ((denom != optimc->ad1848.record_denom_mic) || (rate != optimc->ad1848.record_rate_mic)) {
+        optimc->ad1848.record_denom_mic      = denom;
+        optimc->ad1848.record_rate_mic       = rate;
+        optimc->ad1848.record_phase_mic      = 0;
+        optimc->ad1848.record_prev_l_mic     = 0;
+        optimc->ad1848.record_prev_r_mic     = 0;
+        optimc->ad1848.record_prev_valid_mic = 0;
+
+        optimc->ad1848.record_aa_z1_mic[0] = 0.0;
+        optimc->ad1848.record_aa_z1_mic[1] = 0.0;
+        optimc->ad1848.record_aa_z2_mic[0] = 0.0;
+        optimc->ad1848.record_aa_z2_mic[1] = 0.0;
+        optimc->ad1848.record_aa_active_mic = 0;
+
+#if OPTIMC_RECORD_ANTIALIAS
+        /* only when decimating */
+        if (rate < denom) {
+            optimc_record_aa_design(&optimc->ad1848, rate, denom);
+            optimc->ad1848.record_aa_active_mic = 1;
+        }
+#endif
+    }
+
+    interp = (rate != denom);
+    filt   = optimc->ad1848.record_aa_active_mic;
+
+    gain_l = optimc->ad1848.regs[0] & 0x0f;
+    gain_r = optimc->ad1848.regs[1] & 0x0f;
+
+    sel_l_mic   = (((optimc->ad1848.regs[0] & 0xc0) == 0x80) ? 1 : 0);
+    sel_l_linel = (((optimc->ad1848.regs[0] & 0xc0) == 0x00) ? 1 : 0);
+
+    sel_r_mic   = (((optimc->ad1848.regs[1] & 0xc0) == 0x80) ? 1 : 0);
+    sel_r_liner = (((optimc->ad1848.regs[1] & 0xc0) == 0x00) ? 1 : 0);
+
+    for (c = 0; c < len * 2; c += 2) {
+        const int32_t cap_l = (int32_t) buffer[c];
+        const int32_t cap_r = (int32_t) buffer[c + 1];
+
+        /* mic is the mono sum of line-in. truncating division for dc symmetry */
+        const int32_t mic = (cap_l + cap_r) / 2;
+
+        int32_t mix_l = (mic * sel_l_mic) + (cap_l * sel_l_linel);
+        int32_t mix_r = (mic * sel_r_mic) + (cap_r * sel_r_liner);
+        int32_t in_l;
+        int32_t in_r;
+
+        /* run on every input frame*/
+        if (filt) {
+            mix_l = (int32_t) lrint(optimc_record_aa_step(&optimc->ad1848, 0, (double) mix_l));
+            mix_r = (int32_t) lrint(optimc_record_aa_step(&optimc->ad1848, 1, (double) mix_r));
+        }
+
+        in_l = OPTIMC_RECORD_CLAMP(mix_l * optimc_input_gain_vols_4bits[gain_l]);
+        in_r = OPTIMC_RECORD_CLAMP(mix_r * optimc_input_gain_vols_4bits[gain_r]);
+
+        /* start new device change with first frame in interpolartor queue */
+        if (!optimc->ad1848.record_prev_valid_mic) {
+            optimc->ad1848.record_prev_l_mic     = in_l;
+            optimc->ad1848.record_prev_r_mic     = in_r;
+            optimc->ad1848.record_prev_valid_mic = 1;
+        }
+
+        /* phase ticks this forward, while-loop for new samples so they arent dropped */
+        optimc->ad1848.record_phase_mic += rate;
+        while (optimc->ad1848.record_phase_mic >= denom) {
+            int32_t out_l;
+            int32_t out_r;
+
+            optimc->ad1848.record_phase_mic -= denom; /* denom tracks input frame vs emitted frame , (rate - phase) / rate */
+
+            if (interp) {
+
+                const int32_t num = rate - optimc->ad1848.record_phase_mic;
+
+                out_l = optimc->ad1848.record_prev_l_mic
+                        + (int32_t) ((((int64_t) (in_l - optimc->ad1848.record_prev_l_mic)) * num) / rate);
+                out_r = optimc->ad1848.record_prev_r_mic
+                        + (int32_t) ((((int64_t) (in_r - optimc->ad1848.record_prev_r_mic)) * num) / rate);
+            } else {
+                out_l = in_l;
+                out_r = in_r;
+            }
+
+            optimc->ad1848.record_buffer[optimc->ad1848.record_pos_write_mic]                = (int16_t) out_l;
+            optimc->ad1848.record_buffer[(optimc->ad1848.record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
+            optimc->sb->dsp.record_buffer[optimc->sb->dsp.record_pos_write_mic]                = (int16_t) out_l;
+            optimc->sb->dsp.record_buffer[(optimc->sb->dsp.record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
+
+            optimc->ad1848.record_pos_write_mic = (optimc->ad1848.record_pos_write_mic + 2) & 0xffff;
+            optimc->sb->dsp.record_pos_write_mic = (optimc->sb->dsp.record_pos_write_mic +2) & 0xffff;
+        }
+
+        optimc->ad1848.record_prev_l_mic = in_l;
+        optimc->ad1848.record_prev_r_mic = in_r;
     }
 }
 
@@ -1167,6 +1330,9 @@ optimc_init(const device_t *info)
         sound_add_handler(optimc_get_buffer, optimc);
         sound_add_handler(optimc_get_sbpro_buffer, optimc);
     }
+    sound_in_add_handler(optimc_put_buffer, optimc);
+    sound_in_start_input();
+
     if (optimc->fm_type == FM_YMF278B)
         wavetable_add_handler(sb_get_music_buffer_sbpro, optimc->sb);
     else
@@ -1231,6 +1397,22 @@ optimc_init(const device_t *info)
         attenuation = pow(10, attenuation / 10);
 
         opti930_vols_5bits[c] = (attenuation * 65536);
+    }
+
+    for (uint8_t c = 0; c < 16; c++) {
+        attenuation = 0.0;
+        if (c & 0x01)
+            attenuation += 1.5;
+        if (c & 0x02)
+            attenuation += 3.0;
+        if (c & 0x04)
+            attenuation += 6.0;
+        if (c & 0x08)
+            attenuation += 12.0;
+
+        attenuation = pow(10, attenuation / 10);
+
+        optimc_input_gain_vols_4bits[c] = (int) (attenuation);
     }
 
     return optimc;
@@ -1303,7 +1485,7 @@ static const device_config_t optimc_config[] = {
 const device_t acermagic_s20_device = {
     .name          = "AcerMagic S20",
     .internal_name = "acermagic_s20",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = OPTI_929 | OPTIMC_CS4231,
     .init          = optimc_init,
     .close         = optimc_close,
@@ -1317,7 +1499,7 @@ const device_t acermagic_s20_device = {
 const device_t mirosound_pcm10_device = {
     .name          = "miroSOUND PCM10",
     .internal_name = "mirosound_pcm10",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = OPTI_929 | OPTIMC_OPL4,
     .init          = optimc_init,
     .close         = optimc_close,
@@ -1331,7 +1513,7 @@ const device_t mirosound_pcm10_device = {
 const device_t opti_82c930_device = {
     .name          = "OPTi 82C930",
     .internal_name = "opti_82c930",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = OPTI_930 | OPTIMC_CS4231,
     .init          = optimc_init,
     .close         = optimc_close,
@@ -1345,7 +1527,7 @@ const device_t opti_82c930_device = {
 const device_t opti_82c931_device = {
     .name          = "OPTi 82C931",
     .internal_name = "opti_82c931",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = OPTI_930 | OPTIMC_CS4231 | OPTI_931,
     .init          = optimc_init,
     .close         = optimc_close,

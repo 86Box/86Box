@@ -67,6 +67,8 @@ enum {
     CRYSTAL_SLAM_BYTE2 = 3
 };
 
+static double cs423x_input_gain_vols_4bits[16];
+
 #ifdef ENABLE_CS423X_LOG
 int cs423x_do_log = ENABLE_CS423X_LOG;
 
@@ -625,6 +627,176 @@ cs423x_ctxswitch_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
     dev->opl_wss         = ctx && enable_opl;
 }
 
+#define CS423X_RECORD_CLAMP(x) (((x) < -32768) ? -32768 : (((x) > 32767) ? 32767 : (x)))
+
+/* filter when freq < capture rate */
+#define CS423X_RECORD_ANTIALIAS 1
+
+/* nyquist anti alias */
+#define CS423X_RECORD_AA_NYQ 0.9
+
+/* audio filter called on filter rate change */
+static void
+cs423x_record_aa_design(ad1848_t *ad1848, int out_rate, int in_rate)
+{
+    const double fc    = (CS423X_RECORD_AA_NYQ * 0.5) * ((double) out_rate);
+    const double w0    = (2.0 * M_PI * fc) / ((double) in_rate);
+    const double cw    = cos(w0);
+    const double sw    = sin(w0);
+    const double alpha = sw / (2.0 * 0.70710678118654752);
+    const double a0    = 1.0 + alpha;
+
+    ad1848->record_aa_b0_mic = ((1.0 - cw) / 2.0) / a0;
+    ad1848->record_aa_b1_mic = (1.0 - cw) / a0;
+    ad1848->record_aa_b2_mic = ad1848->record_aa_b0_mic;
+    ad1848->record_aa_a1_mic = (-2.0 * cw) / a0;
+    ad1848->record_aa_a2_mic = (1.0 - alpha) / a0;
+}
+
+static double
+cs423x_record_aa_step(ad1848_t *ad1848, int ch, double x)
+{
+    const double y = (ad1848->record_aa_b0_mic * x) + ad1848->record_aa_z1_mic[ch];
+
+    ad1848->record_aa_z1_mic[ch] = (ad1848->record_aa_b1_mic * x) - (ad1848->record_aa_a1_mic * y)
+                                + ad1848->record_aa_z2_mic[ch];
+    ad1848->record_aa_z2_mic[ch] = (ad1848->record_aa_b2_mic * x) - (ad1848->record_aa_a2_mic * y);
+
+    return y;
+}
+
+static void
+cs423x_put_buffer(int16_t *buffer, int len, void *priv)
+{
+    cs423x_t *cs423x = (cs423x_t *) priv;
+
+    /* divisor is rate capture device opened at*/
+    const int cap_rate = al_capture_get_rate();
+    const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+    int rate = 0;
+    if (cs423x->ad1848.regs[9] & 0x02)
+        rate = cs423x->ad1848.freq;
+    else
+        rate = cs423x->sb->dsp.sb_freq;
+
+    int c;
+    int gain_l;
+    int gain_r;
+    int sel_l_mic, sel_l_linel;
+    int sel_r_mic, sel_r_liner;
+    int interp;
+    int filt;
+
+    /* freq is 0 until the guest programs a rate  */
+    if (rate <= 0)
+        return;
+
+    if ((denom != cs423x->ad1848.record_denom_mic) || (rate != cs423x->ad1848.record_rate_mic)) {
+        cs423x->ad1848.record_denom_mic      = denom;
+        cs423x->ad1848.record_rate_mic       = rate;
+        cs423x->ad1848.record_phase_mic      = 0;
+        cs423x->ad1848.record_prev_l_mic     = 0;
+        cs423x->ad1848.record_prev_r_mic     = 0;
+        cs423x->ad1848.record_prev_valid_mic = 0;
+
+        cs423x->ad1848.record_aa_z1_mic[0] = 0.0;
+        cs423x->ad1848.record_aa_z1_mic[1] = 0.0;
+        cs423x->ad1848.record_aa_z2_mic[0] = 0.0;
+        cs423x->ad1848.record_aa_z2_mic[1] = 0.0;
+        cs423x->ad1848.record_aa_active_mic = 0;
+
+#if CS423X_RECORD_ANTIALIAS
+        /* only when decimating */
+        if (rate < denom) {
+            cs423x_record_aa_design(&cs423x->ad1848, rate, denom);
+            cs423x->ad1848.record_aa_active_mic = 1;
+        }
+#endif
+    }
+
+    interp = (rate != denom);
+    filt   = cs423x->ad1848.record_aa_active_mic;
+
+    gain_l = cs423x->ad1848.regs[0] & 0x0f;
+    gain_r = cs423x->ad1848.regs[1] & 0x0f;
+
+    if (cs423x->type >= CRYSTAL_CS4236B) {
+        sel_l_mic   = (((cs423x->ad1848.xregs[2] & 0x80) == 0x80) ? 0 : 1);
+        sel_l_linel = (((cs423x->ad1848.regs[2] & 0x40) == 0x40) ? 0 : 1);
+
+        sel_r_mic   = (((cs423x->ad1848.xregs[2] & 0x80) == 0x80) ? 0 : 1);
+        sel_r_liner = (((cs423x->ad1848.regs[3] & 0x40) == 0x40) ? 0 : 1);
+    } else {
+        sel_l_mic   = (((cs423x->ad1848.regs[0] & 0xc0) == 0x80) ? 1 : 0);
+        sel_l_linel = (((cs423x->ad1848.regs[0] & 0xc0) == 0x40) ? 1 : 0);
+
+        sel_r_mic   = (((cs423x->ad1848.regs[1] & 0xc0) == 0x80) ? 1 : 0);
+        sel_r_liner = (((cs423x->ad1848.regs[1] & 0xc0) == 0x40) ? 1 : 0);
+    }
+
+    for (c = 0; c < len * 2; c += 2) {
+        const int32_t cap_l = (int32_t) buffer[c];
+        const int32_t cap_r = (int32_t) buffer[c + 1];
+
+        /* mic is the mono sum of line-in. truncating division for dc symmetry */
+        const int32_t mic = (cap_l + cap_r) / 2;
+
+        int32_t mix_l = (mic * sel_l_mic) + (cap_l * sel_l_linel);
+        int32_t mix_r = (mic * sel_r_mic) + (cap_r * sel_r_liner);
+        int32_t in_l;
+        int32_t in_r;
+
+        /* run on every input frame*/
+        if (filt) {
+            mix_l = (int32_t) lrint(cs423x_record_aa_step(&cs423x->ad1848, 0, (double) mix_l));
+            mix_r = (int32_t) lrint(cs423x_record_aa_step(&cs423x->ad1848, 1, (double) mix_r));
+        }
+
+        in_l = CS423X_RECORD_CLAMP(mix_l * cs423x_input_gain_vols_4bits[gain_l]);
+        in_r = CS423X_RECORD_CLAMP(mix_r * cs423x_input_gain_vols_4bits[gain_r]);
+
+        /* start new device change with first frame in interpolartor queue */
+        if (!cs423x->ad1848.record_prev_valid_mic) {
+            cs423x->ad1848.record_prev_l_mic     = in_l;
+            cs423x->ad1848.record_prev_r_mic     = in_r;
+            cs423x->ad1848.record_prev_valid_mic = 1;
+        }
+
+        /* phase ticks this forward, while-loop for new samples so they arent dropped */
+        cs423x->ad1848.record_phase_mic += rate;
+        while (cs423x->ad1848.record_phase_mic >= denom) {
+            int32_t out_l;
+            int32_t out_r;
+
+            cs423x->ad1848.record_phase_mic -= denom; /* denom tracks input frame vs emitted frame , (rate - phase) / rate */
+
+            if (interp) {
+
+                const int32_t num = rate - cs423x->ad1848.record_phase_mic;
+
+                out_l = cs423x->ad1848.record_prev_l_mic
+                        + (int32_t) ((((int64_t) (in_l - cs423x->ad1848.record_prev_l_mic)) * num) / rate);
+                out_r = cs423x->ad1848.record_prev_r_mic
+                        + (int32_t) ((((int64_t) (in_r - cs423x->ad1848.record_prev_r_mic)) * num) / rate);
+            } else {
+                out_l = in_l;
+                out_r = in_r;
+            }
+
+            cs423x->ad1848.record_buffer[cs423x->ad1848.record_pos_write_mic]                = (int16_t) out_l;
+            cs423x->ad1848.record_buffer[(cs423x->ad1848.record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
+            cs423x->sb->dsp.record_buffer[cs423x->sb->dsp.record_pos_write_mic]                = (int16_t) out_l;
+            cs423x->sb->dsp.record_buffer[(cs423x->sb->dsp.record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
+
+            cs423x->ad1848.record_pos_write_mic = (cs423x->ad1848.record_pos_write_mic + 2) & 0xffff;
+            cs423x->sb->dsp.record_pos_write_mic = (cs423x->sb->dsp.record_pos_write_mic +2) & 0xffff;
+        }
+
+        cs423x->ad1848.record_prev_l_mic = in_l;
+        cs423x->ad1848.record_prev_r_mic = in_r;
+    }
+}
+
 static void
 cs423x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
@@ -1074,11 +1246,30 @@ cs423x_init(const device_t *info)
     cs423x_reset(dev);
     sound_add_handler(cs423x_get_buffer, dev);
     music_add_handler(cs423x_get_music_buffer, dev);
+    sound_in_add_handler(cs423x_put_buffer, dev);
+    sound_in_start_input();
 
     /* Add Control/RAM backdoor handlers for CS4235. */
     dev->ad1848.cram_priv  = dev;
     dev->ad1848.cram_read  = cs423x_read;
     dev->ad1848.cram_write = cs423x_write;
+
+    double attenuation;
+    for (uint8_t c = 0; c < 16; c++) {
+        attenuation = 0.0;
+        if (c & 0x01)
+            attenuation += 1.5;
+        if (c & 0x02)
+            attenuation += 3.0;
+        if (c & 0x04)
+            attenuation += 6.0;
+        if (c & 0x08)
+            attenuation += 12.0;
+
+        attenuation = pow(10, attenuation / 10);
+
+        cs423x_input_gain_vols_4bits[c] = (int) (attenuation);
+    }
 
     return dev;
 }
@@ -1124,7 +1315,7 @@ cs423x_speed_changed(void *priv)
 const device_t cs4232_device = {
     .name          = "Crystal CS4232",
     .internal_name = "cs4232",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = CRYSTAL_CS4232,
     .init          = cs423x_init,
     .close         = cs423x_close,
@@ -1138,7 +1329,7 @@ const device_t cs4232_device = {
 const device_t cs4232_onboard_device = {
     .name          = "Crystal CS4232 (On-Board)",
     .internal_name = "cs4232_onboard",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = CRYSTAL_CS4232 | CRYSTAL_NOEEPROM,
     .init          = cs423x_init,
     .close         = cs423x_close,
@@ -1152,7 +1343,7 @@ const device_t cs4232_onboard_device = {
 const device_t cs4235_device = {
     .name          = "Crystal CS4235",
     .internal_name = "cs4235",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = CRYSTAL_CS4235,
     .init          = cs423x_init,
     .close         = cs423x_close,
@@ -1166,7 +1357,7 @@ const device_t cs4235_device = {
 const device_t cs4235_onboard_device = {
     .name          = "Crystal CS4235 (On-Board)",
     .internal_name = "cs4235_onboard",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = CRYSTAL_CS4235 | CRYSTAL_NOEEPROM,
     .init          = cs423x_init,
     .close         = cs423x_close,
@@ -1180,7 +1371,7 @@ const device_t cs4235_onboard_device = {
 const device_t cs4236_onboard_device = {
     .name          = "Crystal CS4236 (On-Board)",
     .internal_name = "cs4236_onboard",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = CRYSTAL_CS4236 | CRYSTAL_NOEEPROM,
     .init          = cs423x_init,
     .close         = cs423x_close,
@@ -1194,7 +1385,7 @@ const device_t cs4236_onboard_device = {
 const device_t cs4236b_device = {
     .name          = "Crystal CS4236B",
     .internal_name = "cs4236b",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = CRYSTAL_CS4236B,
     .init          = cs423x_init,
     .close         = cs423x_close,
@@ -1208,7 +1399,7 @@ const device_t cs4236b_device = {
 const device_t cs4236b_onboard_device = {
     .name          = "Crystal CS4236B (On-Board)",
     .internal_name = "cs4236b",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = CRYSTAL_CS4236B | CRYSTAL_NOEEPROM,
     .init          = cs423x_init,
     .close         = cs423x_close,
@@ -1222,7 +1413,7 @@ const device_t cs4236b_onboard_device = {
 const device_t cs4237b_device = {
     .name          = "Crystal CS4237B",
     .internal_name = "cs4237b",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = CRYSTAL_CS4237B,
     .init          = cs423x_init,
     .close         = cs423x_close,
@@ -1236,7 +1427,7 @@ const device_t cs4237b_device = {
 const device_t cs4238b_device = {
     .name          = "Crystal CS4238B",
     .internal_name = "cs4238b",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = CRYSTAL_CS4238B,
     .init          = cs423x_init,
     .close         = cs423x_close,
