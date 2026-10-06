@@ -1,8 +1,8 @@
 #ifndef _CODEGEN_BACKEND_LOONGARCH64_DEFS_H_
 #define _CODEGEN_BACKEND_LOONGARCH64_DEFS_H_
 
-/* LSX is a hard platform requirement for the new dynarec on LoongArch64
-   (plan section 2) - hosts without it (LA264/LA364E-class) are unsupported.
+/* LSX is a hard platform requirement for the new dynarec on LoongArch64;
+   hosts without it (LA264/LA364E-class) are unsupported.
    LSX instructions are emitted unconditionally, so gate at compile time. */
 #if !defined(__loongarch_sx)
 #    error "LoongArch64 new dynarec requires LSX; build with -march=la464 (or newer) -mlsx"

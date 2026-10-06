@@ -9,7 +9,7 @@
  *          This file is part of the 86Box distribution.
  *
  *          LoongArch64 backend for the "new" dynamic recompiler -
- *          immediate materialisation (plan section 8.2).
+ *          immediate materialisation.
  */
 
 #    include <stdint.h>
@@ -52,8 +52,7 @@ host_loong64_mov_imm_w(codeblock_t *block, int reg, uint32_t imm_data)
 void
 host_loong64_mov_imm(codeblock_t *block, int reg, uint64_t imm_data)
 {
-    /*64-bit constant (QEMU tcg_out_movi, PC-relative fast paths omitted -
-       see plan section 8.2).*/
+    /*64-bit constant (QEMU tcg_out_movi, PC-relative fast paths omitted).*/
     uint32_t hi32_field;
     uint32_t hi52_field;
     uint32_t cur_hi32;

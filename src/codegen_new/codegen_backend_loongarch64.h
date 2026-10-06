@@ -20,7 +20,7 @@
 /* Let generic uop emitters use backend-specific immediate store helpers. */
 #define CODEGEN_BACKEND_HAS_MOV_IMM
 
-/* Host frame used by the block prologue/epilogue (plan section 8.1).
+/* Host frame used by the block prologue/epilogue.
    16 bytes at the bottom hold $ra and REG_CPUSTATE, SP+16..SP+56 is left
    free for the generic IREG_temp/TOP-diff slots, the allocatable integer
    registers follow at SP+56..SP+128 and the FP set at SP+128..SP+192. */
@@ -186,6 +186,12 @@ void host_loong64_MOVGR2FR_D(codeblock_t *block, int dst_freg, int src_greg);
 void host_loong64_MOVFR2GR_S(codeblock_t *block, int dst_greg, int src_freg);
 void host_loong64_MOVFR2GR_D(codeblock_t *block, int dst_greg, int src_freg);
 void host_loong64_VMOV_F(codeblock_t *block, int dst_freg, int src_freg);
+
+/* Raw LSX formats used by the packed-MMX selector.  opcode is the fixed
+   portion from the architecture opcode table; register fields occupy the
+   same vd/vj/vk positions as scalar fd/fj/fk. */
+void host_loong64_LSX_3R(codeblock_t *block, uint32_t opcode, int vd, int vj, int vk);
+void host_loong64_LSX_2RI(codeblock_t *block, uint32_t opcode, int vd, int vj, int imm);
 
 /*Scalar FP arithmetic (D-form, true 3-operand).*/
 void host_loong64_FADD_D(codeblock_t *block, int dst_freg, int src_a_freg, int src_b_freg);

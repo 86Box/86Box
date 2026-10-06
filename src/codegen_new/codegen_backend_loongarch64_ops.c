@@ -11,9 +11,9 @@
  *          LoongArch64 backend for the "new" dynamic recompiler -
  *          primitive emitters and the codegen_direct_* accessors.
  *
- *          Encodings follow the binutils 2.47 opcode table (plan section
- *          7); instruction-selection patterns follow QEMU's TCG LoongArch
- *          backend (plan section 8).
+ *          Encodings follow the binutils 2.47 opcode table;
+ *          instruction-selection patterns follow QEMU's TCG LoongArch
+ *          backend.
  */
 
 #    include <inttypes.h>
@@ -47,7 +47,7 @@
 #    define BSTR_LSB_D(x)            (((x) & 0x3f) << 10)
 #    define ALSL_SA2(x)              ((((x) -1) & 3) << 15)
 
-/*DJSk16 conditional branches (plan section 7.5).*/
+/*DJSk16 conditional branches.*/
 #    define OPCODE_BEQ               0x58000000
 #    define OPCODE_BNE               0x5c000000
 #    define OPCODE_BLT               0x60000000
@@ -58,7 +58,7 @@
 #    define OPCODE_BL                0x54000000
 #    define OPCODE_JIRL              0x4c000000
 
-/*3-register ALU (plan section 7.1).*/
+/*3-register ALU.*/
 #    define OPCODE_ADD_W             0x00100000
 #    define OPCODE_ADD_D             0x00108000
 #    define OPCODE_SUB_W             0x00110000
@@ -79,7 +79,7 @@
 #    define OPCODE_ROTR_D            0x001b8000
 #    define OPCODE_ALSL_D            0x002c0000
 
-/*Register formats with only two operands (plan section 7.2).*/
+/*Register formats with only two operands.*/
 #    define OPCODE_EXT_W_H           0x00005800
 #    define OPCODE_EXT_W_B           0x00005c00
 #    define OPCODE_BSTRINS_W         0x00600000
@@ -87,7 +87,7 @@
 #    define OPCODE_BSTRINS_D         0x00800000
 #    define OPCODE_BSTRPICK_D        0x00c00000
 
-/*Immediates (plan section 7.3).*/
+/*Immediates.*/
 #    define OPCODE_SLTI              0x02000000
 #    define OPCODE_SLTUI             0x02400000
 #    define OPCODE_ADDI_W            0x02800000
@@ -108,7 +108,7 @@
 #    define OPCODE_ROTRI_W           0x004c8000
 #    define OPCODE_ROTRI_D           0x004d0000
 
-/*Loads / stores (plan section 7.4).*/
+/*Loads / stores.*/
 #    define OPCODE_LD_B              0x28000000
 #    define OPCODE_LD_H              0x28400000
 #    define OPCODE_LD_W              0x28800000
@@ -778,6 +778,22 @@ host_loong64_VMOV_F(codeblock_t *block, int dst_freg, int src_freg)
     /*FP<->FP register copy: vori.b dst, src, 0 (copies all 128 bits; the
       f regs alias the low 64).*/
     codegen_addlong(block, OPCODE_VORI_B | Rd(dst_freg) | Rj(src_freg) | IMM12(0));
+}
+
+void
+host_loong64_LSX_3R(codeblock_t *block, uint32_t opcode, int vd, int vj, int vk)
+{
+    codegen_alloc(block, 4);
+    *(uint32_t *) &block_write_data[block_pos] = opcode | Rd(vd) | Rj(vj) | Rk(vk);
+    block_pos += 4;
+}
+
+void
+host_loong64_LSX_2RI(codeblock_t *block, uint32_t opcode, int vd, int vj, int imm)
+{
+    codegen_alloc(block, 4);
+    *(uint32_t *) &block_write_data[block_pos] = opcode | Rd(vd) | Rj(vj) | ((uint32_t) imm << 10);
+    block_pos += 4;
 }
 
 /*Scalar FP arithmetic, D-form (true 3-operand: dst may differ from both

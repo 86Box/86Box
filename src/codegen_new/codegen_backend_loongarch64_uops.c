@@ -9,11 +9,12 @@
  *          This file is part of the 86Box distribution.
  *
  *          LoongArch64 backend for the "new" dynamic recompiler -
- *          uop handlers (M1: integer core + control flow; M3: x87/FPU).
+ *          uop handlers (M1: integer core + control flow; M3: x87/FPU;
+ *          M4: MMX).
  *
- *          Handlers mirror the arm64 backend's semantics; every uop not
- *          in the M1 set dispatches to a fatal() stub so gaps surface
- *          immediately on the target machine (plan section 13.3).
+ *          Handlers mirror the arm64 backend's semantics; every unsupported
+ *          uop dispatches to a fatal() stub so gaps surface
+ *          immediately on the target machine.
  */
 
 #    include <stdint.h>
@@ -89,6 +90,22 @@ codegen_ADD(codeblock_t *block, uop_t *uop)
 }
 
 static int
+codegen_ANDN(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_a = HOST_REG_GET(uop->src_reg_a_real);
+    int src_b = HOST_REG_GET(uop->src_reg_b_real);
+    if (REG_IS_Q(IREG_GET_SIZE(uop->dest_reg_a_real)) &&
+        REG_IS_Q(IREG_GET_SIZE(uop->src_reg_a_real)) &&
+        REG_IS_Q(IREG_GET_SIZE(uop->src_reg_b_real))) {
+        /* x86 PANDN is (~a) & b; LSX vandn.v is a & ~b. */
+        host_loong64_LSX_3R(block, 0x71280000, dest_reg, src_b, src_a);
+    } else
+        fatal("ANDN %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+    return 0;
+}
+
+static int
 codegen_ADD_IMM(codeblock_t *block, uop_t *uop)
 {
     int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
@@ -148,7 +165,9 @@ codegen_AND(codeblock_t *block, uop_t *uop)
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
-    if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
+    if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a) && REG_IS_Q(src_size_b)) {
+        host_loong64_LSX_3R(block, 0x71260000, dest_reg, src_reg_a, src_reg_b); /* vand.v */
+    } else if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
         host_loong64_AND_REG(block, dest_reg, src_reg_a, src_reg_b);
     } else if (REG_IS_W(dest_size) && REG_IS_W(src_size_a) && REG_IS_W(src_size_b)) {
         host_loong64_AND_REG(block, REG_TEMP, src_reg_a, src_reg_b);
@@ -279,7 +298,7 @@ codegen_JMP(codeblock_t *block, uop_t *uop)
 /*Compare helpers - LA64 has no flags register, so every conditional uop
   canonicalises its operands (32-bit values may be held zero-extended or
   sign-extended) and materialises the condition in a register before
-  branching (plan sections 6.1 and 8.4).*/
+  branching.*/
 
 /*Both operands sign-extended to the uop's width (ext.w.b/h do the 8/16-bit
   forms in one instruction); returns the two registers for blt/bge-family
@@ -1110,7 +1129,9 @@ codegen_OR(codeblock_t *block, uop_t *uop)
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
-    if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
+    if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a) && REG_IS_Q(src_size_b)) {
+        host_loong64_LSX_3R(block, 0x71268000, dest_reg, src_reg_a, src_reg_b); /* vor.v */
+    } else if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
         host_loong64_OR_REG(block, dest_reg, src_reg_a, src_reg_b);
     } else if (REG_IS_W(dest_size) && REG_IS_W(src_size_a) && REG_IS_W(src_size_b)) {
         host_loong64_OR_REG(block, REG_TEMP, src_reg_a, src_reg_b);
@@ -1612,7 +1633,9 @@ codegen_XOR(codeblock_t *block, uop_t *uop)
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
-    if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
+    if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a) && REG_IS_Q(src_size_b)) {
+        host_loong64_LSX_3R(block, 0x71270000, dest_reg, src_reg_a, src_reg_b); /* vxor.v */
+    } else if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
         host_loong64_XOR_REG(block, dest_reg, src_reg_a, src_reg_b);
     } else if (REG_IS_W(dest_size) && REG_IS_W(src_size_a) && REG_IS_W(src_size_b) && dest_reg == src_reg_a) {
         host_loong64_UBFX_D(block, REG_TEMP, src_reg_b, 0, 16);
@@ -2031,9 +2054,199 @@ codegen_MOV_INT_DOUBLE_64(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/* MMX values live in the low 64 bits of an LSX register.  Most packed
+   operations therefore map one-for-one to LSX; the upper lanes are dead. */
+static int
+codegen_MMX_BINOP(codeblock_t *block, uop_t *uop)
+{
+    int d = HOST_REG_GET(uop->dest_reg_a_real);
+    int a = HOST_REG_GET(uop->src_reg_a_real);
+    int b = HOST_REG_GET(uop->src_reg_b_real);
+    uint32_t op;
+
+    if (!REG_IS_Q(IREG_GET_SIZE(uop->dest_reg_a_real)) ||
+        !REG_IS_Q(IREG_GET_SIZE(uop->src_reg_a_real)) ||
+        !REG_IS_Q(IREG_GET_SIZE(uop->src_reg_b_real)))
+        fatal("MMX_BINOP %08x %02x %02x %02x\n", uop->type, uop->dest_reg_a_real,
+              uop->src_reg_a_real, uop->src_reg_b_real);
+
+    switch (uop->type & UOP_MASK) {
+        case UOP_PADDB & UOP_MASK:   op = 0x700a0000; break;
+        case UOP_PADDW & UOP_MASK:   op = 0x700a8000; break;
+        case UOP_PADDD & UOP_MASK:   op = 0x700b0000; break;
+        case UOP_PADDSB & UOP_MASK:  op = 0x70460000; break;
+        case UOP_PADDSW & UOP_MASK:  op = 0x70468000; break;
+        case UOP_PADDUSB & UOP_MASK: op = 0x704a0000; break;
+        case UOP_PADDUSW & UOP_MASK: op = 0x704a8000; break;
+        case UOP_PSUBB & UOP_MASK:   op = 0x700c0000; break;
+        case UOP_PSUBW & UOP_MASK:   op = 0x700c8000; break;
+        case UOP_PSUBD & UOP_MASK:   op = 0x700d0000; break;
+        case UOP_PSUBSB & UOP_MASK:  op = 0x70480000; break;
+        case UOP_PSUBSW & UOP_MASK:  op = 0x70488000; break;
+        case UOP_PSUBUSB & UOP_MASK: op = 0x704c0000; break;
+        case UOP_PSUBUSW & UOP_MASK: op = 0x704c8000; break;
+        case UOP_PCMPEQB & UOP_MASK: op = 0x70000000; break;
+        case UOP_PCMPEQW & UOP_MASK: op = 0x70008000; break;
+        case UOP_PCMPEQD & UOP_MASK: op = 0x70010000; break;
+        case UOP_PCMPGTB & UOP_MASK: op = 0x70060000; { int t = a; a = b; b = t; } break;
+        case UOP_PCMPGTW & UOP_MASK: op = 0x70068000; { int t = a; a = b; b = t; } break;
+        case UOP_PCMPGTD & UOP_MASK: op = 0x70070000; { int t = a; a = b; b = t; } break;
+        case UOP_PMULLW & UOP_MASK:  op = 0x70848000; break;
+        case UOP_PMULHW & UOP_MASK:  op = 0x70868000; break;
+        default: fatal("MMX_BINOP unknown %08x\n", uop->type); return 0;
+    }
+    host_loong64_LSX_3R(block, op, d, a, b);
+    return 0;
+}
+
+static int
+codegen_MMX_SHIFT(codeblock_t *block, uop_t *uop)
+{
+    int d = HOST_REG_GET(uop->dest_reg_a_real);
+    int s = HOST_REG_GET(uop->src_reg_a_real);
+    unsigned count = (unsigned) uop->imm_data;
+    unsigned width;
+    uint32_t op;
+    int arithmetic = 0;
+
+    if (!REG_IS_Q(IREG_GET_SIZE(uop->dest_reg_a_real)) ||
+        !REG_IS_Q(IREG_GET_SIZE(uop->src_reg_a_real)))
+        fatal("MMX_SHIFT %08x %02x %02x\n", uop->type, uop->dest_reg_a_real, uop->src_reg_a_real);
+
+    switch (uop->type & UOP_MASK) {
+        case UOP_PSLLW_IMM & UOP_MASK: width = 16; op = 0x732c4000; break;
+        case UOP_PSLLD_IMM & UOP_MASK: width = 32; op = 0x732c8000; break;
+        case UOP_PSLLQ_IMM & UOP_MASK: width = 64; op = 0x732d0000; break;
+        case UOP_PSRLW_IMM & UOP_MASK: width = 16; op = 0x73304000; break;
+        case UOP_PSRLD_IMM & UOP_MASK: width = 32; op = 0x73308000; break;
+        case UOP_PSRLQ_IMM & UOP_MASK: width = 64; op = 0x73310000; break;
+        case UOP_PSRAW_IMM & UOP_MASK: width = 16; op = 0x73344000; arithmetic = 1; break;
+        case UOP_PSRAD_IMM & UOP_MASK: width = 32; op = 0x73348000; arithmetic = 1; break;
+        case UOP_PSRAQ_IMM & UOP_MASK: width = 64; op = 0x73350000; arithmetic = 1; break;
+        default: fatal("MMX_SHIFT unknown %08x\n", uop->type); return 0;
+    }
+    if (!count)
+        host_loong64_VMOV_F(block, d, s);
+    else if (count >= width && !arithmetic)
+        host_loong64_LSX_3R(block, 0x71270000, d, d, d); /* vxor.v */
+    else {
+        if (count >= width)
+            count = width - 1;
+        host_loong64_LSX_2RI(block, op, d, s, count);
+    }
+    return 0;
+}
+
+static int
+codegen_MMX_UNPACK(codeblock_t *block, uop_t *uop)
+{
+    int d = HOST_REG_GET(uop->dest_reg_a_real);
+    int a = HOST_REG_GET(uop->src_reg_a_real);
+    int b = HOST_REG_GET(uop->src_reg_b_real);
+    uint32_t op;
+    int high = 0;
+
+    if (!REG_IS_Q(IREG_GET_SIZE(uop->dest_reg_a_real)) ||
+        !REG_IS_Q(IREG_GET_SIZE(uop->src_reg_a_real)) ||
+        !REG_IS_Q(IREG_GET_SIZE(uop->src_reg_b_real)))
+        fatal("MMX_UNPACK %08x\n", uop->type);
+    switch (uop->type & UOP_MASK) {
+        case UOP_PUNPCKLBW & UOP_MASK: op = 0x711a0000; break;
+        case UOP_PUNPCKLWD & UOP_MASK: op = 0x711a8000; break;
+        case UOP_PUNPCKLDQ & UOP_MASK: op = 0x711b0000; break;
+        case UOP_PUNPCKHBW & UOP_MASK: op = 0x711a0000; high = 1; break;
+        case UOP_PUNPCKHWD & UOP_MASK: op = 0x711a8000; high = 1; break;
+        case UOP_PUNPCKHDQ & UOP_MASK: op = 0x711b0000; high = 1; break;
+        default: fatal("MMX_UNPACK unknown %08x\n", uop->type); return 0;
+    }
+    if (high) {
+        /* Shift before overwriting d: d is normally also a. */
+        host_loong64_LSX_2RI(block, 0x728e8000, REG_V_TEMP, a, 4);
+        host_loong64_LSX_2RI(block, 0x728e8000, d, b, 4);
+        host_loong64_LSX_3R(block, op, d, d, REG_V_TEMP);
+    } else
+        /* vilvl emits lanes from vk first, which is x86's a,b order. */
+        host_loong64_LSX_3R(block, op, d, b, a);
+    return 0;
+}
+
+static uint64_t
+mmx_packsswb(uint64_t a, uint64_t b)
+{
+    uint64_t r = 0;
+    for (int i = 0; i < 8; i++) {
+        int16_t v = (int16_t) ((i < 4 ? a : b) >> ((i & 3) * 16));
+        int n = v < -128 ? -128 : (v > 127 ? 127 : v);
+        r |= (uint64_t) (uint8_t) n << (i * 8);
+    }
+    return r;
+}
+
+static uint64_t
+mmx_packssdw(uint64_t a, uint64_t b)
+{
+    uint64_t r = 0;
+    for (int i = 0; i < 4; i++) {
+        int32_t v = (int32_t) ((i < 2 ? a : b) >> ((i & 1) * 32));
+        int32_t n = v < -32768 ? -32768 : (v > 32767 ? 32767 : v);
+        r |= (uint64_t) (uint16_t) n << (i * 16);
+    }
+    return r;
+}
+
+static uint64_t
+mmx_packuswb(uint64_t a, uint64_t b)
+{
+    uint64_t r = 0;
+    for (int i = 0; i < 8; i++) {
+        int16_t v = (int16_t) ((i < 4 ? a : b) >> ((i & 3) * 16));
+        int n = v < 0 ? 0 : (v > 255 ? 255 : v);
+        r |= (uint64_t) n << (i * 8);
+    }
+    return r;
+}
+
+static uint64_t
+mmx_pmaddwd(uint64_t a, uint64_t b)
+{
+    uint64_t r = 0;
+    for (int pair = 0; pair < 2; pair++) {
+        int i = pair * 2;
+        int32_t p0 = (int16_t) (a >> (i * 16)) * (int16_t) (b >> (i * 16));
+        int32_t p1 = (int16_t) (a >> ((i + 1) * 16)) * (int16_t) (b >> ((i + 1) * 16));
+        r |= (uint64_t) (uint32_t) ((uint32_t) p0 + (uint32_t) p1) << (pair * 32);
+    }
+    return r;
+}
+
+static int
+codegen_MMX_HELPER2(codeblock_t *block, uop_t *uop)
+{
+    int d = HOST_REG_GET(uop->dest_reg_a_real);
+    int a = HOST_REG_GET(uop->src_reg_a_real);
+    int b = HOST_REG_GET(uop->src_reg_b_real);
+    void *fn;
+    if (!REG_IS_Q(IREG_GET_SIZE(uop->dest_reg_a_real)) ||
+        !REG_IS_Q(IREG_GET_SIZE(uop->src_reg_a_real)) ||
+        !REG_IS_Q(IREG_GET_SIZE(uop->src_reg_b_real)))
+        fatal("MMX_HELPER2 %08x\n", uop->type);
+    switch (uop->type & UOP_MASK) {
+        case UOP_PACKSSWB & UOP_MASK: fn = mmx_packsswb; break;
+        case UOP_PACKSSDW & UOP_MASK: fn = mmx_packssdw; break;
+        case UOP_PACKUSWB & UOP_MASK: fn = mmx_packuswb; break;
+        case UOP_PMADDWD & UOP_MASK:  fn = mmx_pmaddwd; break;
+        default: fatal("MMX_HELPER2 unknown %08x\n", uop->type); return 0;
+    }
+    host_loong64_MOVFR2GR_D(block, REG_A0, a);
+    host_loong64_MOVFR2GR_D(block, REG_A1, b);
+    host_loong64_call(block, fn);
+    host_loong64_MOVGR2FR_D(block, d, REG_A0);
+    return 0;
+}
+
 const uOpFn uop_handlers[UOP_MAX] = {
-    /*Any uop without a handler below lands here and fatal()s - in both
-      debug and release builds (plan section 13.3).*/
+    /*Any uop without a handler below lands here and fatal()s in both
+      debug and release builds.*/
     [0 ... UOP_MAX - 1] = codegen_UOP_UNIMPLEMENTED,
 
     [UOP_CALL_FUNC & UOP_MASK]         = codegen_CALL_FUNC,
@@ -2073,6 +2286,7 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_ADD_IMM & UOP_MASK]   = codegen_ADD_IMM,
     [UOP_ADD_LSHIFT & UOP_MASK] = codegen_ADD_LSHIFT,
     [UOP_AND & UOP_MASK]       = codegen_AND,
+    [UOP_ANDN & UOP_MASK]      = codegen_ANDN,
     [UOP_AND_IMM & UOP_MASK]   = codegen_AND_IMM,
     [UOP_OR & UOP_MASK]        = codegen_OR,
     [UOP_OR_IMM & UOP_MASK]    = codegen_OR_IMM,
@@ -2096,6 +2310,51 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FTST & UOP_MASK]  = codegen_FTST,
     [UOP_FSQRT & UOP_MASK] = codegen_FSQRT,
     [UOP_FROUND_S & UOP_MASK] = codegen_FROUND_S,
+
+    [UOP_PADDB & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PADDW & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PADDD & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PADDSB & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PADDSW & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PADDUSB & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PADDUSW & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PSUBB & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PSUBW & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PSUBD & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PSUBSB & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PSUBSW & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PSUBUSB & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PSUBUSW & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PCMPEQB & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PCMPEQW & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PCMPEQD & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PCMPGTB & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PCMPGTW & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PCMPGTD & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PMULLW & UOP_MASK] = codegen_MMX_BINOP,
+    [UOP_PMULHW & UOP_MASK] = codegen_MMX_BINOP,
+
+    [UOP_PSLLW_IMM & UOP_MASK] = codegen_MMX_SHIFT,
+    [UOP_PSLLD_IMM & UOP_MASK] = codegen_MMX_SHIFT,
+    [UOP_PSLLQ_IMM & UOP_MASK] = codegen_MMX_SHIFT,
+    [UOP_PSRAW_IMM & UOP_MASK] = codegen_MMX_SHIFT,
+    [UOP_PSRAD_IMM & UOP_MASK] = codegen_MMX_SHIFT,
+    [UOP_PSRAQ_IMM & UOP_MASK] = codegen_MMX_SHIFT,
+    [UOP_PSRLW_IMM & UOP_MASK] = codegen_MMX_SHIFT,
+    [UOP_PSRLD_IMM & UOP_MASK] = codegen_MMX_SHIFT,
+    [UOP_PSRLQ_IMM & UOP_MASK] = codegen_MMX_SHIFT,
+
+    [UOP_PUNPCKLBW & UOP_MASK] = codegen_MMX_UNPACK,
+    [UOP_PUNPCKLWD & UOP_MASK] = codegen_MMX_UNPACK,
+    [UOP_PUNPCKLDQ & UOP_MASK] = codegen_MMX_UNPACK,
+    [UOP_PUNPCKHBW & UOP_MASK] = codegen_MMX_UNPACK,
+    [UOP_PUNPCKHWD & UOP_MASK] = codegen_MMX_UNPACK,
+    [UOP_PUNPCKHDQ & UOP_MASK] = codegen_MMX_UNPACK,
+
+    [UOP_PACKSSWB & UOP_MASK] = codegen_MMX_HELPER2,
+    [UOP_PACKSSDW & UOP_MASK] = codegen_MMX_HELPER2,
+    [UOP_PACKUSWB & UOP_MASK] = codegen_MMX_HELPER2,
+    [UOP_PMADDWD & UOP_MASK] = codegen_MMX_HELPER2,
 
     [UOP_MEM_LOAD_SINGLE & UOP_MASK] = codegen_MEM_LOAD_SINGLE,
     [UOP_MEM_LOAD_DOUBLE & UOP_MASK] = codegen_MEM_LOAD_DOUBLE,

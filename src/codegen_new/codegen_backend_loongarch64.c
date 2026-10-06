@@ -10,8 +10,7 @@
  *
  *          LoongArch64 backend for the "new" dynamic recompiler -
  *          initialization (block-0 load/store stubs, gpf/exit), the block
- *          prologue/epilogue and rounding-mode control (plan sections
- *          8.1, 9 and 11).
+ *          prologue/epilogue and rounding-mode control.
  */
 
 #    include <inttypes.h>
@@ -69,8 +68,7 @@ host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS] = {
 };
 
 /* $fs0-$fs7 = f24-f31, callee-saved; saved/restored by the block
-   prologue/epilogue (plan section 3: do not copy arm64's shortcut of
-   leaving the FP set unsaved). */
+   prologue/epilogue rather than leaving the FP set unsaved. */
 host_reg_def_t codegen_host_fp_reg_list[CODEGEN_HOST_FP_REGS] = {
     { REG_F24, 0},
     { REG_F25, 0},
@@ -330,7 +328,7 @@ build_fp_round_routine(codeblock_t *block, int is_quad)
 }
 
 /*Emits the register restores shared by codegen_exit_rout and the block
-  epilogue (plan section 8.1).*/
+  epilogue.*/
 static void
 codegen_backend_restore_saves(codeblock_t *block)
 {
@@ -393,7 +391,7 @@ codegen_backend_init(void)
 
     codegen_allocator_clean_blocks(block->head_mem_block);
 
-    /*Read FCSR0 into cpu_state.old_fp_control (plan section 9). The
+    /*Read FCSR0 into cpu_state.old_fp_control. The
       x87 mode is stored raw in new_fp_control by codegen_set_rounding_mode
       and decoded by the (M3) fp_round tables - no FCSR switching needed.*/
     asm volatile("movfcsr2gr %0, $fcsr0"
@@ -415,8 +413,8 @@ codegen_set_rounding_mode(int mode)
 }
 
 /*Save set: $ra, REG_CPUSTATE ($r22), $s0-$s8 and $fs0-$fs7. SP+16..56 is
-  left free for the generic IREG_temp / TOP-diff stack slots (plan section
-  8.1; see LOONG64_PROLOGUE_FRAME in the backend header).*/
+  left free for the generic IREG_temp / TOP-diff stack slots; see
+  LOONG64_PROLOGUE_FRAME in the backend header.*/
 void
 codegen_backend_prologue(codeblock_t *block)
 {
