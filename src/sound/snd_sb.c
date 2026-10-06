@@ -736,7 +736,7 @@ ess_put_buffer_esx488(int16_t *buffer, int len, void *priv)
     }
 }
 
-static void
+void
 ess_put_buffer(int16_t *buffer, int len, void *priv)
 {
     sb_t                    *ess   = (sb_t *) priv;
@@ -5196,6 +5196,28 @@ es186x_pnp_write(uint16_t port, uint8_t val, void *priv)
                 ess->es186x_bypass = 1;
             }
         }
+    }
+}
+
+void
+ess_calc_input_gains(void)
+{
+    int c = 0;
+    double  attenuation;
+    for (c = 0; c < 16; c++) {
+        attenuation = -6.0;
+        if (c & 0x01)
+            attenuation += 1.5;
+        if (c & 0x02)
+            attenuation += 3.0;
+        if (c & 0x04)
+            attenuation += 6.0;
+        if (c & 0x08)
+            attenuation += 12.0;
+
+        attenuation = pow(10, attenuation / 10);
+
+        ess_input_gain_vols_4bits[c] = (int) (attenuation);
     }
 }
 

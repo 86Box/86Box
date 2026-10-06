@@ -3445,7 +3445,11 @@ gus_extreme_init(UNUSED(const device_t *info))
     timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
 
+    ess_calc_input_gains();
+
     sound_add_handler(gus_extreme_get_buffer, gus);
+    sound_in_add_handler(ess_put_buffer, gus->ess);
+    sound_in_start_input();
 
     gus->gameport = gameport_add(&gameport_pnp_1io_device);
     gameport_remap(gus->gameport, 0x201);
@@ -4188,7 +4192,7 @@ const device_t gus_ace_device = {
 const device_t gus_extreme_device = {
     .name          = "Gravis UltraSound Extreme",
     .internal_name = "gusextreme",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = GUS_EXTREME,
     .init          = gus_extreme_init,
     .close         = gus_close,
@@ -4204,7 +4208,7 @@ const device_t gus_extreme_device = {
 const device_t gus_vipermax_device = {
     .name          = "Synergy ViperMAX",
     .internal_name = "gusvipermax",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = GUS_VIPERMAX,
     .init          = gus_extreme_init,
     .close         = gus_close,
