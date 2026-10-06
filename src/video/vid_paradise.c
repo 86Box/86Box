@@ -1259,6 +1259,15 @@ paradise_wd90c31_standalone_init(const device_t *info)
     return paradise;
 }
 
+static void *
+paradise_wd90c31_onboard_init(const device_t *info)
+{
+    uint32_t    memory    = device_get_config_int("memory");
+    paradise_t *paradise  = paradise_init(info, memory);
+
+    return paradise;
+}
+
 static int
 paradise_wd90c31_available(void)
 {
@@ -1445,6 +1454,27 @@ static const device_config_t paradise_wd90c30_config[] = {
   // clang-format on
 };
 
+static const device_config_t paradise_wd90c31_onboard_config[] = {
+  // clang-format off
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
 const device_t paradise_wd90c30_device = {
     .name          = "Paradise WD90C30-LR",
     .internal_name = "wd90c30",
@@ -1471,6 +1501,20 @@ const device_t paradise_wd90c31_device = {
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = paradise_wd90c30_config
+};
+
+const device_t paradise_wd90c31_onboard_device = {
+    .name          = "Paradise WD90C31A-LR",
+    .internal_name = "wd90c31_onboard",
+    .flags         = DEVICE_ISA16,
+    .local         = WD90C31,
+    .init          = paradise_wd90c31_onboard_init,
+    .close         = paradise_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = paradise_speed_changed,
+    .force_redraw  = paradise_force_redraw,
+    .config        = paradise_wd90c31_onboard_config
 };
 
 const device_t paradise_speedstar24x_device = {
