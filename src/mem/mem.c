@@ -2234,15 +2234,15 @@ mem_write_remappedl2(uint32_t addr, uint32_t val, UNUSED(void *priv))
 void
 mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 {
+    start_addr &= 0xfffff000;
+    end_addr &= 0xfffff000;
+
 #ifdef USE_NEW_DYNAREC
     page_t *page;
 
-    start_addr &= ~PAGE_MASK_MASK;
-    end_addr = (end_addr + PAGE_MASK_MASK) & ~PAGE_MASK_MASK;
-
     for (; start_addr <= end_addr; start_addr += 0x1000) {
         if ((start_addr >> 12) >= pages_sz)
-            continue;
+            break;
 
         page = &pages[start_addr >> 12];
         if (page) {
@@ -2257,8 +2257,6 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
     }
 #else
     uint32_t cur_addr;
-    start_addr &= ~PAGE_MASK_MASK;
-    end_addr = (end_addr + PAGE_MASK_MASK) & ~PAGE_MASK_MASK;
 
     for (; start_addr <= end_addr; start_addr += 0x1000) {
         /* Do nothing if the pages array is empty or DMA reads/writes to/from PCI device memory addresses
