@@ -13186,7 +13186,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 1024,
-            .max  = 261120,
+            .max  = 262144,
             .step = 1024
         },
         .nvrmask                  = 255,
@@ -13379,7 +13379,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_PS2_KBC | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 1024,
-            .max  = 261120,
+            .max  = 262144,
             .step = 1024
         },
         .nvrmask                  = 255,
@@ -13428,7 +13428,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 2048,
-            .max  = 261120,
+            .max  = 262144,
             .step = 1024
         },
         .nvrmask                  = 255,
@@ -13477,7 +13477,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT,
         .ram       = {
             .min  = 2048,
-            .max  = 261120,
+            .max  = 262144,
             .step = 1024
         },
         .nvrmask                  = 255,
