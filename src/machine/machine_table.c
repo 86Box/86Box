@@ -13492,13 +13492,13 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &zida4dps_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "J-Bond PCI400-02", "Taken PCI400-4", "Funworld unknown", "" }
     },
     /* This has the UMC 88xx on-chip KBC. */
     {
