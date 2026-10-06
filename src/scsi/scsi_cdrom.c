@@ -2312,7 +2312,7 @@ scsi_cdrom_command_nec(void *sc, const uint8_t *cdb, int32_t *BufLen)
             break;
 
         case GPCMD_READ_CDDA_NEC:
-            cmd_stat = 1;
+            cmd_stat = 0x01;
             alloc_length = 2852;
             dev->sector_len = (cdb[7] << 8) | cdb[8];
             pos             = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
@@ -2442,7 +2442,7 @@ scsi_cdrom_command_nec(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
         case GPCMD_READ_SUBCODEQ_PLAYING_STATUS_NEC:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
-            dev->was_cached = (dev->drv->cached_sector == -1);
+            dev->was_cached = (dev->drv->cached_sector != -1);
 
             alloc_length = cdb[1] & 0x1f;
             len          = 10;
@@ -2461,6 +2461,7 @@ scsi_cdrom_command_nec(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
                 memset(dev->buffer, 0, len);
                 dev->buffer[0] = cdrom_get_current_subcodeq_playstatus(dev->drv, &dev->buffer[1]);
+                scsi_cdrom_one_sector_seek(dev);
                 scsi_cdrom_log(dev->log, "Audio Status = %02x\n", dev->buffer[0]);
 
                 scsi_cdrom_set_buf_len(dev, BufLen, &alloc_length);
@@ -2521,6 +2522,9 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
                    cdb[8], cdb[9], cdb[10], cdb[11]);
 
     switch (cdb[0]) {
+        default:
+            break;
+
         case GPCMD_READ_ALL_SUBCODES_PIONEER:
             cmd_stat = 1;
             alloc_length = 2852;
@@ -2657,9 +2661,6 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
                 dev->callback      = 20.0 * CDROM_TIME;
                 scsi_cdrom_set_callback(dev);
             }
-            break;
-
-        default:
             break;
 
         case GPCMD_MAGAZINE_EJECT_PIONEER:
@@ -2843,6 +2844,16 @@ scsi_cdrom_command_toshiba(void *sc, const uint8_t *cdb, int32_t *BufLen)
     int           ret;
     int           len;
     int           alloc_length;
+
+    scsi_cdrom_log(dev->log,"Toshiba Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, "
+                   "Unit attention: %i\n", cdb[0], scsi_cdrom_sense_key, scsi_cdrom_asc,
+                   scsi_cdrom_ascq, dev->unit_attention);
+    scsi_cdrom_log(dev->log,"Toshiba Request length: %04X\n", dev->tf->request_length);
+
+    scsi_cdrom_log(dev->log,"Toshiba CDB: %02X %02X %02X %02X %02X %02X %02X "
+                   "%02X %02X %02X %02X %02X\n",
+                   cdb[0], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5], cdb[6], cdb[7],
+                   cdb[8], cdb[9], cdb[10], cdb[11]);
 
     switch (cdb[0]) {
         default:
