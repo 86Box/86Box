@@ -252,7 +252,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
         QString name = DeviceConfig::DeviceName(dev, tablet_get_internal_name(i), 0);
         int     row  = tabletRows.add(name, i);
 
-        scMouse->addDevice(nullptr, name);
+        scTablet->addDevice(nullptr, name);
 
         if (i == curTabletType)
             selectedRow = row - removeRows;

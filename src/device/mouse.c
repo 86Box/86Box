@@ -855,7 +855,7 @@ tablet_reset(void)
     tablet_set_sample_rate(100.0);
 
     if ((tablet_type > 1) && (tablet_devices[tablet_type].device != NULL))
-        mouse_ex_priv = device_add(mouse_devices[tablet_type].device);
+        mouse_ex_priv = device_add(tablet_devices[tablet_type].device);
 
     if (!mouse_both_enabled()) {
         mouse_dev_poll = mouse_poll_ex;
