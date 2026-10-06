@@ -628,8 +628,9 @@ paradise_recalctimings(svga_t *svga)
         if (!paradise->speedstar24x) {
             if (!(svga->gdcreg[0x0c] & 0x02))
                 clk_sel |= 0x04;
-            if (paradise->type == WD90C31)
-                clk_sel |= (svga->seqregs[0x12] & 4) << 1;
+
+            clk_sel |= (svga->seqregs[0x12] & 0x04) << 1;
+            clk_sel ^= 0x04; /*VGATTL*/
         }
 
         svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
