@@ -3309,7 +3309,7 @@ dma_channel_write_legacy(int channel, uint16_t val)
         tc = dma_count_out(channel);
 
     /* A scatter-gather list or a chain gives EOP only where it chose EOP. */
-    if (sg ? tc : (dma_m & (1 << channel)))
+    if (sg ? (dma_m & (1 << channel)) : tc)
         return DMA_OVER;
 
     return 0;
