@@ -1504,7 +1504,7 @@ const device_t paradise_wd90c31_device = {
 };
 
 const device_t paradise_wd90c31_onboard_device = {
-    .name          = "Paradise WD90C31A-LR",
+    .name          = "Paradise WD90C31A-LR On-Board",
     .internal_name = "wd90c31_onboard",
     .flags         = DEVICE_ISA16,
     .local         = WD90C31,
