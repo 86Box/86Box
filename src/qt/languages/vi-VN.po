@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-04 05:42+0000\n"
+"PO-Revision-Date: 2026-10-05 16:36+0000\n"
 "Last-Translator: nguyen <barnacl437@disroot.org>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
@@ -3366,6 +3366,7 @@ msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
+"Không thể nạp ảnh \"%s\": Bị thiếu %1 cần cho hỗ trợ định dạng ảnh Aaru."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3514,13 +3515,13 @@ msgid "Sample rate:"
 msgstr "Tần số lấy mẫu:"
 
 msgid "Enable audio input (mic/line-in)"
-msgstr ""
+msgstr "Cho dùng đầu vào âm thanh (mic/line-in)"
 
 msgid "Audio input device:"
-msgstr ""
+msgstr "Thiết bị đầu vào âm thanh:"
 
 msgid "Audio input sample rate:"
-msgstr ""
+msgstr "Tần số lấy mẫu âm thanh vào:"
 
 msgid "Rate the emulator mixes to the host output device."
 msgstr ""

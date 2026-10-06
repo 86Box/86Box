@@ -623,23 +623,9 @@ machine_ibmxt_init(const machine_t *model)
 /* IBM XT (1982) with an Intel Inboard 386/PC accelerator card fitted in place of the stock
    8088 - same real BIOS ROM chips, same base XT platform, plus the Inboard's own wait-state/
    A20/ROM-shadow hardware. */
-/* The Inboard 386/PC deliberately gets its OWN BIOS list rather than sharing ibmxt_config,
-   because the 1982-dated 5160 ROMs are genuinely INCOMPATIBLE with this card and must not be
-   selectable here:
-
-   INBRDPC.SYS v1.1 (02/17/89) - the Inboard's own required DOS driver - hardcodes a 3-byte
-   reference signature at a fixed BIOS offset (F000:E05B) as part of its ROM-shadow self-
-   verification, and the 1982 ROMs do not contain that signature at that offset. This is a real
-   ROM-revision mismatch, not an emulation shortcoming: real Inboard installations from the 1989
-   driver era used a later ROM revision. Booting this machine on a 1982 ROM produces spurious POST
-   errors (301 among them), a visibly wrong-speed memory count (the 1982 ROM's memory test is
-   different code entirely), and cannot boot Windows 95 - it hangs at the splash screen.
-
-   Sharing ibmxt_config previously made that failure mode *silent and very hard to diagnose*: the
-   1986 ROM entries are not in the stock shared list, so a `bios = ibm5160_050986` line in a config
-   file was not a valid option, was ignored without any warning, and selection fell back to the
-   1982 default. Listing only the compatible revisions here makes the incompatible ones
-   unselectable by construction. */
+/* The Inboard 386/PC keeps its own BIOS list: the 1986 ROMs are not in ibmxt_config, and a
+   config file naming a BIOS the list lacks is ignored without warning and falls back to the
+   default. The 08NOV82 ROM runs INBRDPC.SYS and Windows 95, here and on a real 5160. */
 static const device_config_t ibmxt_inboard386_config[] = {
   // clang-format off
     {
@@ -670,6 +656,16 @@ static const device_config_t ibmxt_inboard386_config[] = {
                 .size          = 65536,
                 .files         = { "roms/machines/ibmxt86/BIOS_5160_10JAN86_U18_62X0851_27256_F800.BIN",
                                    "roms/machines/ibmxt86/BIOS_5160_10JAN86_U19_62X0854_27256_F000.BIN", "" }
+            },
+            {
+                .name          = "IBM BIOS - Revision 1501512 (11/08/82)",
+                .internal_name = "ibm5160_1501512_5000027",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ibmxt/BIOS_5160_08NOV82_U18_1501512.BIN",
+                                   "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
             },
             { .files_no = 0 }
         }

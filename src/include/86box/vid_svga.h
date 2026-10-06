@@ -480,7 +480,7 @@ extern float icd2047_getclock(int clock, void *priv);
 
 extern void  icd2061_write(void *priv, int val);
 extern float icd2061_getclock(int clock, void *priv);
-extern void  icd2061_set_ref_clock(void *priv, float ref_clock);
+extern void  icd2061_set_clocks(void *priv, float ref_clock, float reg0, float reg1, float reg2);
 
 /* The code is the same, the #define's are so that the correct name can be used. */
 #    define ics9161_write    icd2061_write
@@ -490,6 +490,7 @@ extern float ics1494_getclock(int clock, void *priv);
 
 extern float ics2494_getclock(int clock, void *priv);
 extern float ch9201_getclock(int clock, void *priv);
+extern float ch9204_getclock(int clock, void *priv);
 
 extern float ics90c64a_vclk_getclock(int clock, void *priv);
 extern float ics90c64a_mclk_getclock(int clock, void *priv);
@@ -544,6 +545,7 @@ extern const device_t bt485a_ramdac_device;
 extern const device_t gendac_ramdac_device;
 extern const device_t ibm_rgb528_ramdac_device;
 extern const device_t ch9201_device;
+extern const device_t ch9204_device;
 extern const device_t ics1494m_540_device;
 extern const device_t ics2494an_304_device;
 extern const device_t ics2494an_305_device;

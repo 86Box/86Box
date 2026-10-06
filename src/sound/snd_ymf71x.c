@@ -73,6 +73,8 @@ static const uint8_t ymf71x_init_key[32] = { 0xB1, 0xD8, 0x6C, 0x36, 0x9B, 0x4D,
                                              0xDD, 0xEE, 0xF7, 0x7B, 0x3D, 0x9E, 0xCF, 0x67,
                                              0x33, 0x19, 0x8C, 0x46, 0xA3, 0x51, 0xA8, 0x54 };
 
+static double ymf71x_input_gain_vols_4bits[16];
+
 /* Reversed attenuation values borrowed from snd_sb.c */
 /* YMF71x master volume attenuation is -30dB when all bits are 1, 0dB when all bits are 0 */
 static const double ymf71x_att_2dbstep_4bits[] = {
@@ -629,6 +631,168 @@ ymf71x_filter_opl(void *priv, double *out_l, double *out_r)
     }
 }
 
+#define YMF71X_RECORD_CLAMP(x) (((x) < -32768) ? -32768 : (((x) > 32767) ? 32767 : (x)))
+
+/* filter when freq < capture rate */
+#define YMF71X_RECORD_ANTIALIAS 1
+
+/* nyquist anti alias */
+#define YMF71X_RECORD_AA_NYQ 0.9
+
+/* audio filter called on filter rate change */
+static void
+ymf71x_record_aa_design(ad1848_t *ad1848, int out_rate, int in_rate)
+{
+    const double fc    = (YMF71X_RECORD_AA_NYQ * 0.5) * ((double) out_rate);
+    const double w0    = (2.0 * M_PI * fc) / ((double) in_rate);
+    const double cw    = cos(w0);
+    const double sw    = sin(w0);
+    const double alpha = sw / (2.0 * 0.70710678118654752);
+    const double a0    = 1.0 + alpha;
+
+    ad1848->record_aa_b0_mic = ((1.0 - cw) / 2.0) / a0;
+    ad1848->record_aa_b1_mic = (1.0 - cw) / a0;
+    ad1848->record_aa_b2_mic = ad1848->record_aa_b0_mic;
+    ad1848->record_aa_a1_mic = (-2.0 * cw) / a0;
+    ad1848->record_aa_a2_mic = (1.0 - alpha) / a0;
+}
+
+static double
+ymf71x_record_aa_step(ad1848_t *ad1848, int ch, double x)
+{
+    const double y = (ad1848->record_aa_b0_mic * x) + ad1848->record_aa_z1_mic[ch];
+
+    ad1848->record_aa_z1_mic[ch] = (ad1848->record_aa_b1_mic * x) - (ad1848->record_aa_a1_mic * y)
+                                + ad1848->record_aa_z2_mic[ch];
+    ad1848->record_aa_z2_mic[ch] = (ad1848->record_aa_b2_mic * x) - (ad1848->record_aa_a2_mic * y);
+
+    return y;
+}
+
+static void
+ymf71x_put_buffer(int16_t *buffer, int len, void *priv)
+{
+    ymf71x_t *ymf71x = (ymf71x_t *) priv;
+
+    /* divisor is rate capture device opened at*/
+    const int cap_rate = al_capture_get_rate();
+    const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+    int rate = 0;
+    if (ymf71x->ad1848.regs[9] & 0x02)
+        rate = ymf71x->ad1848.freq;
+    else
+        rate = ymf71x->sb->dsp.sb_freq;
+
+    int c;
+    int gain_l;
+    int gain_r;
+    int sel_l_mic, sel_l_linel;
+    int sel_r_mic, sel_r_liner;
+    int interp;
+    int filt;
+
+    /* freq is 0 until the guest programs a rate  */
+    if (rate <= 0)
+        return;
+
+    if ((denom != ymf71x->ad1848.record_denom_mic) || (rate != ymf71x->ad1848.record_rate_mic)) {
+        ymf71x->ad1848.record_denom_mic      = denom;
+        ymf71x->ad1848.record_rate_mic       = rate;
+        ymf71x->ad1848.record_phase_mic      = 0;
+        ymf71x->ad1848.record_prev_l_mic     = 0;
+        ymf71x->ad1848.record_prev_r_mic     = 0;
+        ymf71x->ad1848.record_prev_valid_mic = 0;
+
+        ymf71x->ad1848.record_aa_z1_mic[0] = 0.0;
+        ymf71x->ad1848.record_aa_z1_mic[1] = 0.0;
+        ymf71x->ad1848.record_aa_z2_mic[0] = 0.0;
+        ymf71x->ad1848.record_aa_z2_mic[1] = 0.0;
+        ymf71x->ad1848.record_aa_active_mic = 0;
+
+#if YMF71X_RECORD_ANTIALIAS
+        /* only when decimating */
+        if (rate < denom) {
+            ymf71x_record_aa_design(&ymf71x->ad1848, rate, denom);
+            ymf71x->ad1848.record_aa_active_mic = 1;
+        }
+#endif
+    }
+
+    interp = (rate != denom);
+    filt   = ymf71x->ad1848.record_aa_active_mic;
+
+    gain_l = ymf71x->ad1848.regs[0] & 0x0f;
+    gain_r = ymf71x->ad1848.regs[1] & 0x0f;
+
+    sel_l_mic   = (((ymf71x->ad1848.regs[0] & 0xc0) == 0x80) ? 1 : 0);
+    sel_l_linel = (((ymf71x->ad1848.regs[0] & 0xc0) == 0x00) ? 1 : 0);
+
+    sel_r_mic   = (((ymf71x->ad1848.regs[1] & 0xc0) == 0x80) ? 1 : 0);
+    sel_r_liner = (((ymf71x->ad1848.regs[1] & 0xc0) == 0x00) ? 1 : 0);
+
+    for (c = 0; c < len * 2; c += 2) {
+        const int32_t cap_l = (int32_t) buffer[c];
+        const int32_t cap_r = (int32_t) buffer[c + 1];
+
+        /* mic is the mono sum of line-in. truncating division for dc symmetry */
+        const int32_t mic = (cap_l + cap_r) / 2;
+
+        int32_t mix_l = (mic * sel_l_mic) + (cap_l * sel_l_linel);
+        int32_t mix_r = (mic * sel_r_mic) + (cap_r * sel_r_liner);
+        int32_t in_l;
+        int32_t in_r;
+
+        /* run on every input frame*/
+        if (filt) {
+            mix_l = (int32_t) lrint(ymf71x_record_aa_step(&ymf71x->ad1848, 0, (double) mix_l));
+            mix_r = (int32_t) lrint(ymf71x_record_aa_step(&ymf71x->ad1848, 1, (double) mix_r));
+        }
+
+        in_l = YMF71X_RECORD_CLAMP(mix_l * ymf71x_input_gain_vols_4bits[gain_l]);
+        in_r = YMF71X_RECORD_CLAMP(mix_r * ymf71x_input_gain_vols_4bits[gain_r]);
+
+        /* start new device change with first frame in interpolartor queue */
+        if (!ymf71x->ad1848.record_prev_valid_mic) {
+            ymf71x->ad1848.record_prev_l_mic     = in_l;
+            ymf71x->ad1848.record_prev_r_mic     = in_r;
+            ymf71x->ad1848.record_prev_valid_mic = 1;
+        }
+
+        /* phase ticks this forward, while-loop for new samples so they arent dropped */
+        ymf71x->ad1848.record_phase_mic += rate;
+        while (ymf71x->ad1848.record_phase_mic >= denom) {
+            int32_t out_l;
+            int32_t out_r;
+
+            ymf71x->ad1848.record_phase_mic -= denom; /* denom tracks input frame vs emitted frame , (rate - phase) / rate */
+
+            if (interp) {
+
+                const int32_t num = rate - ymf71x->ad1848.record_phase_mic;
+
+                out_l = ymf71x->ad1848.record_prev_l_mic
+                        + (int32_t) ((((int64_t) (in_l - ymf71x->ad1848.record_prev_l_mic)) * num) / rate);
+                out_r = ymf71x->ad1848.record_prev_r_mic
+                        + (int32_t) ((((int64_t) (in_r - ymf71x->ad1848.record_prev_r_mic)) * num) / rate);
+            } else {
+                out_l = in_l;
+                out_r = in_r;
+            }
+
+            ymf71x->ad1848.record_buffer[ymf71x->ad1848.record_pos_write_mic]                = (int16_t) out_l;
+            ymf71x->ad1848.record_buffer[(ymf71x->ad1848.record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
+            ymf71x->sb->dsp.record_buffer[ymf71x->sb->dsp.record_pos_write_mic]                = (int16_t) out_l;
+            ymf71x->sb->dsp.record_buffer[(ymf71x->sb->dsp.record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
+
+            ymf71x->ad1848.record_pos_write_mic = (ymf71x->ad1848.record_pos_write_mic + 2) & 0xffff;
+            ymf71x->sb->dsp.record_pos_write_mic = (ymf71x->sb->dsp.record_pos_write_mic +2) & 0xffff;
+        }
+
+        ymf71x->ad1848.record_prev_l_mic = in_l;
+        ymf71x->ad1848.record_prev_r_mic = in_r;
+    }
+}
+
 static void
 ymf71x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
@@ -763,6 +927,8 @@ ymf71x_init(const device_t *info)
 
     sound_add_handler(ymf71x_get_buffer, ymf71x);
     sound_add_handler(ymf71x_get_sbpro_buffer, ymf71x);
+    sound_in_add_handler(ymf71x_put_buffer, ymf71x);
+    sound_in_start_input();
     music_add_handler(sb_get_music_buffer_sbpro, ymf71x->sb);
     ad1848_set_cd_audio_channel(&ymf71x->ad1848, AD1848_AUX1);
     sound_set_cd_audio_filter(NULL, NULL); /* Seems to be necessary for the filter below to apply */
@@ -809,6 +975,23 @@ ymf71x_init(const device_t *info)
     io_sethandler(0x0A79, 0x0001, NULL, NULL, NULL, ymf71x_config_write, NULL, NULL, ymf71x);
 
     ymf71x_update_mastervol(ymf71x);
+
+    double attenuation;
+    for (uint8_t c = 0; c < 16; c++) {
+        attenuation = 0.0;
+        if (c & 0x01)
+            attenuation += 1.5;
+        if (c & 0x02)
+            attenuation += 3.0;
+        if (c & 0x04)
+            attenuation += 6.0;
+        if (c & 0x08)
+            attenuation += 12.0;
+
+        attenuation = pow(10, attenuation / 10);
+
+        ymf71x_input_gain_vols_4bits[c] = (int) (attenuation);
+    }
 
     return ymf71x;
 }
@@ -880,7 +1063,7 @@ static const device_config_t ymf71x_config[] = {
 const device_t ymf715_onboard_device = {
     .name          = "Yamaha YMF715 (OPL3-SA3) (On-Board)",
     .internal_name = "ymf715_onboard",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = 0x102,
     .init          = ymf71x_init,
     .close         = ymf71x_close,
@@ -894,7 +1077,7 @@ const device_t ymf715_onboard_device = {
 const device_t ymf718_device = {
     .name          = "Yamaha YMF718 (OPL3-SA2)",
     .internal_name = "ymf718",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = 0x01,
     .init          = ymf71x_init,
     .close         = ymf71x_close,
@@ -908,7 +1091,7 @@ const device_t ymf718_device = {
 const device_t ymf719_device = {
     .name          = "Yamaha YMF719 (OPL3-SA3)",
     .internal_name = "ymf719",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = 0x02,
     .init          = ymf71x_init,
     .close         = ymf71x_close,
