@@ -550,6 +550,7 @@ extern void           paradise_wd90c20_vga_disable(void *priv, uint16_t port);
 extern void           paradise_wd90c20_vga_enable(void *priv, uint16_t port);
 extern const device_t paradise_wd90c30_device;
 extern const device_t paradise_wd90c31_device;
+extern const device_t paradise_wd90c31_onboard_device;
 extern const device_t paradise_speedstar24x_device;
 
 /* Quadram Quadcolor I / I + II */
