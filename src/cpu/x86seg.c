@@ -212,6 +212,18 @@ do_seg_v86_init(x86seg *s)
     s->limit_high = 0xffff;
 }
 
+/* Load a null selector the way protected mode does, even while VM is still set. */
+static void
+load_null_seg(x86seg *s)
+{
+    s->seg     = 0;
+    s->access  = 0x80;
+    s->ar_high = 0x10;
+    s->base    = -1;
+    if (s == &cpu_state.seg_ds)
+        cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+}
+
 static void
 check_seg_valid(x86seg *s)
 {
@@ -1718,10 +1730,14 @@ pmodeint(int num, int soft)
                                 }
                                 if (cpu_state.abrt)
                                     return;
-                                op_loadseg(0, &cpu_state.seg_ds);
-                                op_loadseg(0, &cpu_state.seg_es);
-                                op_loadseg(0, &cpu_state.seg_fs);
-                                op_loadseg(0, &cpu_state.seg_gs);
+                                /* The data segment registers are left holding null selectors,
+                                   unusable until protected mode code reloads them. VM is still
+                                   set at this point, so op_loadseg() would instead load them as
+                                   usable V86 segments with a base of 0. */
+                                load_null_seg(&cpu_state.seg_ds);
+                                load_null_seg(&cpu_state.seg_es);
+                                load_null_seg(&cpu_state.seg_fs);
+                                load_null_seg(&cpu_state.seg_gs);
                             }
                             is586 ? PUSHL(oldss) : PUSHL_SEL(oldss);
                             PUSHL(oldsp);
