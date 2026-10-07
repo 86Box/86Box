@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-05 16:36+0000\n"
+"PO-Revision-Date: 2026-10-07 02:17+0000\n"
 "Last-Translator: nguyen <barnacl437@disroot.org>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
@@ -3524,7 +3524,7 @@ msgid "Audio input sample rate:"
 msgstr "Tần số lấy mẫu âm thanh vào:"
 
 msgid "Rate the emulator mixes to the host output device."
-msgstr ""
+msgstr "Chỉnh tần số lấy mẫu giả lập như của thiết bị host."
 
 msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
 msgstr ""
