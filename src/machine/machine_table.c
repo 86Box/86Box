@@ -9152,7 +9152,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "IBM PS/55 model 5570-V0/V1", "" }
     },
     /* Has IBM PS/55 5551-V0x, V1x firmware. */
     {
