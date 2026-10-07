@@ -152,6 +152,41 @@ typedef struct rgba_t {
     int a;
 } rgba_t;
 
+/* X error diffusion: the scan line it is on and each component's error. */
+typedef struct mach64_3d_dither_t {
+    int valid;
+    int y;
+    int err[3];
+} mach64_3d_dither_t;
+
+/* A row of a trapezoid as the edge walk leaves it: its span and the
+   interpolators at its leading edge. */
+typedef struct mach64_3d_row_t {
+    int     y;
+    int     lead;
+    int     first;
+    int     end;
+    int64_t r, g, b, a, z;
+    int64_t s, sxi, syi;
+    int64_t t, txi, tyi;
+} mach64_3d_row_t;
+
+#define MACH64_3D_ROWS    128 /* rows walked before they are drawn */
+#define MACH64_3D_THREADS 4   /* the emulation thread and up to three helpers */
+
+typedef struct mach64_3d_rows_job_t mach64_3d_rows_job_t;
+
+/* A helper thread, drawing every threads-th row from its index on. */
+typedef struct mach64_3d_helper_t {
+    struct mach64_3d_t *ctx;
+    int                 index;
+    thread_t           *thread;
+    event_t            *go;
+    atomic_int          sleeping;
+    unsigned            seen; /* the last batch it took, from its making on */
+    mach64_3d_dither_t  dither;
+} mach64_3d_helper_t;
+
 struct mach64_3d_t {
     mach64_t *mach64;
     uint32_t  regs[256];            /* the register block, as dwords */
@@ -169,15 +204,47 @@ struct mach64_3d_t {
     uint8_t tex_hidden;
 
     /* X error diffusion of the current scan line. */
-    int dither_valid;
-    int dither_y;
-    int dither_err[3];
+    mach64_3d_dither_t dither;
+
+    /*
+     * The rows a trapezoid has walked and not yet drawn, and the threads
+     * that draw them: 1, 2 or 4 with the emulation thread. The helpers are
+     * made on first use; a draw returns only when all its rows are done.
+     * job_gen counts the batches handed to the helpers, job_left the
+     * helpers still drawing the last one.
+     */
+    mach64_3d_row_t             rows[MACH64_3D_ROWS];
+    int                         threads;
+    int                         helpers_made;
+    int                         helpers_quit;
+    mach64_3d_helper_t          helpers[MACH64_3D_THREADS - 1];
+    const mach64_3d_rows_job_t *job;
+    int                         job_threads;
+    atomic_uint                 job_gen;
+    atomic_int                  job_left;
+    uint64_t                    spin_ticks;
 };
 
 static int
 mach64_3d_clamp8(int v)
 {
     return (v < 0) ? 0 : ((v > 255) ? 255 : v);
+}
+
+/* A color as 0xAARRGGBB, which the texture path carries, and back; the
+   components must be 0 to 255. */
+static inline rgba_t
+mach64_3d_argb_rgba(uint32_t argb)
+{
+    rgba_t c = { (argb >> 16) & 0xff, (argb >> 8) & 0xff, argb & 0xff, argb >> 24 };
+
+    return c;
+}
+
+static inline uint32_t
+mach64_3d_rgba_argb(rgba_t c)
+{
+    return ((uint32_t) c.a << 24) | ((uint32_t) c.r << 16) | ((uint32_t) c.g << 8) | (uint32_t) c.b;
 }
 
 static int
@@ -305,22 +372,29 @@ mach64_3d_vram_read8(mach64_t *mach64, uint32_t addr)
     return mach64->svga.vram[addr & mach64->vram_mask];
 }
 
-static uint16_t
+/* Only a value at the very end of video memory wraps to its start. */
+static inline uint16_t
 mach64_3d_vram_read16(mach64_t *mach64, uint32_t addr)
 {
     const uint8_t *vram = mach64->svga.vram;
     uint32_t       mask = mach64->vram_mask;
+    uint32_t       a    = addr & mask;
 
-    return vram[addr & mask] | (vram[(addr + 1) & mask] << 8);
+    if (a < mask)
+        return vram[a] | (vram[a + 1] << 8);
+    return vram[a] | (vram[0] << 8);
 }
 
-static uint32_t
+static inline uint32_t
 mach64_3d_vram_read32(mach64_t *mach64, uint32_t addr)
 {
     const uint8_t *vram = mach64->svga.vram;
     uint32_t       mask = mach64->vram_mask;
+    uint32_t       a    = addr & mask;
 
-    return vram[addr & mask] | (vram[(addr + 1) & mask] << 8) | (vram[(addr + 2) & mask] << 16) | ((uint32_t) vram[(addr + 3) & mask] << 24);
+    if (a < (mask - 2))
+        return vram[a] | (vram[a + 1] << 8) | (vram[a + 2] << 16) | ((uint32_t) vram[a + 3] << 24);
+    return vram[a] | (vram[(addr + 1) & mask] << 8) | (vram[(addr + 2) & mask] << 16) | ((uint32_t) vram[(addr + 3) & mask] << 24);
 }
 
 static uint32_t
@@ -338,19 +412,22 @@ mach64_3d_vram_read(mach64_t *mach64, uint32_t addr, int bpp)
     }
 }
 
-static void
+/* A page already marked is not written again, so threads drawing rows of
+   the same pages do not fight over its cache line. */
+static inline void
 mach64_3d_vram_changed(mach64_t *mach64, uint32_t addr, unsigned bytes)
 {
     uint32_t first = addr & mach64->vram_mask;
     uint32_t last  = (addr + bytes - 1) & mach64->vram_mask;
-    int      stamp = mach64->svga.monitor->mon_changeframecount;
+    uint8_t  stamp = mach64->svga.monitor->mon_changeframecount;
 
-    mach64->svga.changedvram[first >> 12] = stamp;
-    if ((first >> 12) != (last >> 12))
+    if (mach64->svga.changedvram[first >> 12] != stamp)
+        mach64->svga.changedvram[first >> 12] = stamp;
+    if (((first >> 12) != (last >> 12)) && (mach64->svga.changedvram[last >> 12] != stamp))
         mach64->svga.changedvram[last >> 12] = stamp;
 }
 
-static void
+static inline void
 mach64_3d_vram_write(mach64_t *mach64, uint32_t addr, uint32_t val, int bpp)
 {
     uint32_t mask = mach64->vram_mask;
@@ -423,6 +500,47 @@ mach64_3d_expand_component(unsigned value, unsigned bits, int dynamic_range)
         remaining -= copy;
     }
     return result;
+}
+
+/* mach64_3d_expand_component of every component narrower than 8 bits, by
+   [dynamic range][bits][value], made by mach64_3d_init. */
+static uint8_t mach64_3d_expand_table[2][8][128];
+
+static void
+mach64_3d_expand_table_init(void)
+{
+    for (int dynamic_range = 0; dynamic_range < 2; dynamic_range++) {
+        for (unsigned bits = 1; bits < 8; bits++) {
+            for (unsigned value = 0; value < (1u << bits); value++)
+                mach64_3d_expand_table[dynamic_range][bits][value] = mach64_3d_expand_component(value, bits, dynamic_range);
+        }
+    }
+}
+
+/* The 16-bit pixel types as 0xAARRGGBB; dynamic_range is 0 or 1. */
+static inline uint32_t
+mach64_3d_argb1555(uint32_t raw, int dynamic_range)
+{
+    const uint8_t *x5 = mach64_3d_expand_table[dynamic_range][5];
+
+    return ((raw & 0x8000) ? 0xff000000 : 0) | ((uint32_t) x5[(raw >> 10) & 31] << 16) | ((uint32_t) x5[(raw >> 5) & 31] << 8) | x5[raw & 31];
+}
+
+static inline uint32_t
+mach64_3d_argb565(uint32_t raw, int dynamic_range)
+{
+    const uint8_t *x5 = mach64_3d_expand_table[dynamic_range][5];
+    const uint8_t *x6 = mach64_3d_expand_table[dynamic_range][6];
+
+    return 0xff000000 | ((uint32_t) x5[(raw >> 11) & 31] << 16) | ((uint32_t) x6[(raw >> 5) & 63] << 8) | x5[raw & 31];
+}
+
+static inline uint32_t
+mach64_3d_argb4444(uint32_t raw, int dynamic_range)
+{
+    const uint8_t *x4 = mach64_3d_expand_table[dynamic_range][4];
+
+    return ((((raw >> 12) & 15) * 17) << 24) | ((uint32_t) x4[(raw >> 8) & 15] << 16) | ((uint32_t) x4[(raw >> 4) & 15] << 8) | x4[raw & 15];
 }
 
 /*
@@ -628,66 +746,45 @@ mach64_3d_yuv_to_rgba(mach64_3d_t *ctx, int y, int u, int v, int a)
     return c;
 }
 
-/* Unpacks a pixel to 8 bits a component. A destination pixel is always
-   range corrected, a texel or scaler source one per SCALE_PIX_EXPAND. */
-static rgba_t
-mach64_3d_unpack(mach64_3d_t *ctx, int format, uint32_t raw, int source)
+/* Unpacks a pixel to 8 bits a component, as 0xAARRGGBB. A destination pixel
+   is always range corrected, a texel or scaler source one per
+   SCALE_PIX_EXPAND. */
+static uint32_t
+mach64_3d_unpack_argb(mach64_3d_t *ctx, int format, uint32_t raw, int source)
 {
     int      dynamic = !source || (ctx->regs[SCALE_3D_CNTL >> 2] & SCALE_PIX_EXPAND);
-    rgba_t   c       = { 0, 0, 0, 255 };
     uint32_t p;
 
     switch (format) {
         case 2:
-            if (source) {
-                p   = ctx->texture_palette[mach64_3d_texture_palette_texel_index(ctx->mach64->dp_pix_width, raw)];
-                c.r = (p >> 16) & 0xff;
-                c.g = (p >> 8) & 0xff;
-                c.b = p & 0xff;
-            } else {
-                p   = ctx->mach64->svga.pallook[raw & 0xff];
-                c.r = getcolr(p);
-                c.g = getcolg(p);
-                c.b = getcolb(p);
-            }
-            break;
+            if (source)
+                return 0xff000000 | (ctx->texture_palette[mach64_3d_texture_palette_texel_index(ctx->mach64->dp_pix_width, raw)] & 0x00ffffff);
+            p = ctx->mach64->svga.pallook[raw & 0xff];
+            return 0xff000000 | ((uint32_t) getcolr(p) << 16) | ((uint32_t) getcolg(p) << 8) | (uint32_t) getcolb(p);
         case 3:
-            c.a = (raw & 0x8000) ? 255 : 0;
-            c.r = mach64_3d_expand_component((raw >> 10) & 31, 5, dynamic);
-            c.g = mach64_3d_expand_component((raw >> 5) & 31, 5, dynamic);
-            c.b = mach64_3d_expand_component(raw & 31, 5, dynamic);
-            break;
+            return mach64_3d_argb1555(raw, dynamic);
         case 4:
-            c.r = mach64_3d_expand_component((raw >> 11) & 31, 5, dynamic);
-            c.g = mach64_3d_expand_component((raw >> 5) & 63, 6, dynamic);
-            c.b = mach64_3d_expand_component(raw & 31, 5, dynamic);
-            break;
+            return mach64_3d_argb565(raw, dynamic);
         case 6:
-            c.a = (raw >> 24) & 0xff;
-            c.r = (raw >> 16) & 0xff;
-            c.g = (raw >> 8) & 0xff;
-            c.b = raw & 0xff;
-            break;
+            return raw;
         case 7:
-            c.r = mach64_3d_expand_component((raw >> 5) & 7, 3, dynamic);
-            c.g = mach64_3d_expand_component((raw >> 2) & 7, 3, dynamic);
-            c.b = mach64_3d_expand_component(raw & 3, 2, dynamic);
-            break;
+            return 0xff000000 | ((uint32_t) mach64_3d_expand_table[dynamic][3][(raw >> 5) & 7] << 16) |
+                   ((uint32_t) mach64_3d_expand_table[dynamic][3][(raw >> 2) & 7] << 8) | mach64_3d_expand_table[dynamic][2][raw & 3];
         case 8:
-            c.r = c.g = c.b = raw & 0xff;
-            break;
+            return 0xff000000 | ((raw & 0xff) * 0x010101);
         case 14:
-            return mach64_3d_yuv_to_rgba(ctx, (raw >> 16) & 0xff, (raw >> 8) & 0xff, raw & 0xff, (raw >> 24) & 0xff);
+            return mach64_3d_rgba_argb(mach64_3d_yuv_to_rgba(ctx, (raw >> 16) & 0xff, (raw >> 8) & 0xff, raw & 0xff, (raw >> 24) & 0xff));
         case 15:
-            c.a = ((raw >> 12) & 15) * 17;
-            c.r = mach64_3d_expand_component((raw >> 8) & 15, 4, dynamic);
-            c.g = mach64_3d_expand_component((raw >> 4) & 15, 4, dynamic);
-            c.b = mach64_3d_expand_component(raw & 15, 4, dynamic);
-            break;
+            return mach64_3d_argb4444(raw, dynamic);
         default:
-            break;
+            return 0xff000000;
     }
-    return c;
+}
+
+static rgba_t
+mach64_3d_unpack(mach64_3d_t *ctx, int format, uint32_t raw, int source)
+{
+    return mach64_3d_argb_rgba(mach64_3d_unpack_argb(ctx, format, raw, source));
 }
 
 /*
@@ -697,20 +794,34 @@ mach64_3d_unpack(mach64_3d_t *ctx, int format, uint32_t raw, int source)
  * at each scan line; ROUND_EN rounds when not dithering. The register guide
  * does not give the table, so a 4x4 Bayer matrix stands in for it.
  */
-static int
+static const uint8_t mach64_3d_bayer4[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
+
+/* What the table adds before the low bits are dropped, by [bits dropped][Y
+   and X in the cell], made by mach64_3d_init. */
+static uint8_t mach64_3d_dither_add[8][16];
+
+static void
+mach64_3d_dither_table_init(void)
+{
+    for (int drop = 0; drop < 8; drop++) {
+        int span = (1 << drop) - 1;
+
+        for (int i = 0; i < 16; i++)
+            mach64_3d_dither_add[drop][i] = (mach64_3d_bayer4[i] * span + 7) / 15;
+    }
+}
+
+static inline int
 mach64_3d_quantize_ordered(int v, int bits, int x, int y)
 {
-    static const uint8_t bayer4[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
-    int                  drop       = 8 - bits;
-    int                  max        = (1 << bits) - 1;
-    int                  span       = (1 << drop) - 1;
-    int                  add        = (bayer4[((y & 3) << 2) | (x & 3)] * span + 7) / 15;
-    int                  q          = (mach64_3d_clamp8(v) + add) >> drop;
+    int drop = 8 - bits;
+    int max  = (1 << bits) - 1;
+    int q    = (mach64_3d_clamp8(v) + mach64_3d_dither_add[drop][((y & 3) << 2) | (x & 3)]) >> drop;
 
     return (q > max) ? max : q;
 }
 
-static int
+static inline int
 mach64_3d_quantize_round(int v, int bits)
 {
     int drop = 8 - bits;
@@ -721,7 +832,7 @@ mach64_3d_quantize_round(int v, int bits)
 }
 
 /* The quantization error carries into the next pixel in X. */
-static int
+static inline int
 mach64_3d_quantize_diffuse(int v, int bits, int *err)
 {
     int max = (1 << bits) - 1;
@@ -734,21 +845,21 @@ mach64_3d_quantize_diffuse(int v, int bits, int *err)
     return q;
 }
 
-static int
-mach64_3d_quantize(mach64_3d_t *ctx, uint32_t cntl, int v, int bits, int channel, int x, int y)
+static inline int
+mach64_3d_quantize(mach64_3d_dither_t *dither, uint32_t cntl, int v, int bits, int channel, int x, int y)
 {
     if (cntl & DITHER_EN) {
         if (cntl & SCALE_DITHER)
             return mach64_3d_quantize_ordered(v, bits, x, y);
-        return mach64_3d_quantize_diffuse(v, bits, &ctx->dither_err[channel]);
+        return mach64_3d_quantize_diffuse(v, bits, &dither->err[channel]);
     }
     if (cntl & ROUND_EN)
         return mach64_3d_quantize_round(v, bits);
     return v >> (8 - bits);
 }
 
-static uint32_t
-mach64_3d_pack(mach64_3d_t *ctx, int format, rgba_t c, int x, int y)
+static inline uint32_t
+mach64_3d_pack(mach64_3d_t *ctx, mach64_3d_dither_t *dither, int format, rgba_t c, int x, int y)
 {
     uint32_t cntl = ctx->regs[SCALE_3D_CNTL >> 2];
     int      r;
@@ -761,44 +872,44 @@ mach64_3d_pack(mach64_3d_t *ctx, int format, rgba_t c, int x, int y)
     c.a = mach64_3d_clamp8(c.a);
 
     if (!(cntl & DITHER_EN))
-        ctx->dither_valid = 0;
+        dither->valid = 0;
     else if (!(cntl & SCALE_DITHER)) {
-        if (!ctx->dither_valid) {
-            ctx->dither_valid  = 1;
-            ctx->dither_y      = y;
-            ctx->dither_err[0] = ctx->dither_err[1] = ctx->dither_err[2] = 0;
-        } else if (y != ctx->dither_y) {
+        if (!dither->valid) {
+            dither->valid  = 1;
+            dither->y      = y;
+            dither->err[0] = dither->err[1] = dither->err[2] = 0;
+        } else if (y != dither->y) {
             if (cntl & DITHER_INIT)
-                ctx->dither_err[0] = ctx->dither_err[1] = ctx->dither_err[2] = 0;
-            ctx->dither_y = y;
+                dither->err[0] = dither->err[1] = dither->err[2] = 0;
+            dither->y = y;
         }
     }
 
     switch (format) {
         case 3:
-            r = mach64_3d_quantize(ctx, cntl, c.r, 5, 0, x, y);
-            g = mach64_3d_quantize(ctx, cntl, c.g, 5, 1, x, y);
-            b = mach64_3d_quantize(ctx, cntl, c.b, 5, 2, x, y);
+            r = mach64_3d_quantize(dither, cntl, c.r, 5, 0, x, y);
+            g = mach64_3d_quantize(dither, cntl, c.g, 5, 1, x, y);
+            b = mach64_3d_quantize(dither, cntl, c.b, 5, 2, x, y);
             return ((c.a >= 128) ? 0x8000 : 0) | (r << 10) | (g << 5) | b;
         case 4:
-            r = mach64_3d_quantize(ctx, cntl, c.r, 5, 0, x, y);
-            g = mach64_3d_quantize(ctx, cntl, c.g, 6, 1, x, y);
-            b = mach64_3d_quantize(ctx, cntl, c.b, 5, 2, x, y);
+            r = mach64_3d_quantize(dither, cntl, c.r, 5, 0, x, y);
+            g = mach64_3d_quantize(dither, cntl, c.g, 6, 1, x, y);
+            b = mach64_3d_quantize(dither, cntl, c.b, 5, 2, x, y);
             return (r << 11) | (g << 5) | b;
         case 6:
             return ((uint32_t) c.a << 24) | (c.r << 16) | (c.g << 8) | c.b;
         case 7:
-            r = mach64_3d_quantize(ctx, cntl, c.r, 3, 0, x, y);
-            g = mach64_3d_quantize(ctx, cntl, c.g, 3, 1, x, y);
-            b = mach64_3d_quantize(ctx, cntl, c.b, 2, 2, x, y);
+            r = mach64_3d_quantize(dither, cntl, c.r, 3, 0, x, y);
+            g = mach64_3d_quantize(dither, cntl, c.g, 3, 1, x, y);
+            b = mach64_3d_quantize(dither, cntl, c.b, 2, 2, x, y);
             r = mach64_3d_rgb8_red_code(r, !!(cntl & DITHER_EN), !!(cntl & RED_DITHER_MAX));
             return (r << 5) | (g << 2) | b;
         case 8:
             return (c.r * 77 + c.g * 150 + c.b * 29) >> 8;
         case 15:
-            r = mach64_3d_quantize(ctx, cntl, c.r, 4, 0, x, y);
-            g = mach64_3d_quantize(ctx, cntl, c.g, 4, 1, x, y);
-            b = mach64_3d_quantize(ctx, cntl, c.b, 4, 2, x, y);
+            r = mach64_3d_quantize(dither, cntl, c.r, 4, 0, x, y);
+            g = mach64_3d_quantize(dither, cntl, c.g, 4, 1, x, y);
+            b = mach64_3d_quantize(dither, cntl, c.b, 4, 2, x, y);
             return ((c.a >> 4) << 12) | (r << 8) | (g << 4) | b;
         default:
             return 0;
@@ -817,7 +928,7 @@ mach64_3d_read_dst(mach64_3d_t *ctx, uint32_t addr, int format)
 }
 
 /* WRITE_MASK picks the bits written; the whole pixel needs no read. */
-static void
+static inline void
 mach64_3d_write_dst_raw(mach64_3d_t *ctx, uint32_t addr, int format, uint32_t raw)
 {
     mach64_t *mach64     = ctx->mach64;
@@ -832,25 +943,13 @@ mach64_3d_write_dst_raw(mach64_3d_t *ctx, uint32_t addr, int format, uint32_t ra
     mach64_3d_vram_write(mach64, addr, raw, bpp);
 }
 
-static void
-mach64_3d_write_dst(mach64_3d_t *ctx, uint32_t addr, int format, rgba_t c)
+/* The pixel at x, y of the destination, which dithering goes by. */
+static inline void
+mach64_3d_write_dst(mach64_3d_t *ctx, mach64_3d_dither_t *dither, uint32_t addr, int format, rgba_t c, int x, int y)
 {
     mach64_t *mach64 = ctx->mach64;
     uint32_t  cntl   = ctx->regs[SCALE_3D_CNTL >> 2];
-    int       bpp    = mach64_3d_bytes_per_pixel(format);
-    uint32_t  base   = (mach64->dst_off_pitch & 0xfffff) << 3;
-    int       pitch  = ((mach64->dst_off_pitch >> 22) & 0x3ff) << 3;
-    int       x      = 0;
-    int       y      = 0;
     uint32_t  raw;
-
-    /* Dithering is by the pixel's place on the destination. */
-    if (bpp && pitch && (addr >= base)) {
-        uint32_t pixel = (addr - base) / bpp;
-
-        x = pixel % pitch;
-        y = pixel / pitch;
-    }
 
     if (format == 2) {
         raw = ((mach64_3d_clamp8(c.r) >> 5) << 5) | ((mach64_3d_clamp8(c.g) >> 5) << 2) | (mach64_3d_clamp8(c.b) >> 6);
@@ -858,7 +957,7 @@ mach64_3d_write_dst(mach64_3d_t *ctx, uint32_t addr, int format, rgba_t c)
         return;
     }
 
-    raw = mach64_3d_pack(ctx, format, c, x, y);
+    raw = mach64_3d_pack(ctx, dither, format, c, x, y);
 
     /*
      * A blended 15/16-bpp pixel through the dither table: a component equal
@@ -868,7 +967,7 @@ mach64_3d_write_dst(mach64_3d_t *ctx, uint32_t addr, int format, rgba_t c)
      */
     if (((format == 3) || (format == 4)) && (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND) &&
         ((cntl & (DITHER_EN | SCALE_DITHER)) == (DITHER_EN | SCALE_DITHER))) {
-        uint32_t old  = mach64_3d_vram_read(mach64, addr, bpp);
+        uint32_t old  = mach64_3d_vram_read16(mach64, addr);
         rgba_t   dst  = mach64_3d_unpack(ctx, format, old, 0);
         uint32_t keep = 0;
 
@@ -897,18 +996,19 @@ mach64_3d_lerp(rgba_t a, rgba_t b, int t)
     return r;
 }
 
-/* A texture coordinate's fraction is binary: 128 is one half, and 255 is
-   255/256 of the way to the next texel, not the next texel. */
-static rgba_t
-mach64_3d_lerp_texel(rgba_t a, rgba_t b, int fraction)
+/*
+ * A texture coordinate's fraction is binary: 128 is one half, and 255 is
+ * 255/256 of the way to the next texel, not the next texel. Each component
+ * is (a * (256 - fraction) + b * fraction + 128) >> 8, worked out for two at
+ * a time in 16-bit lanes, which the largest sum, 65408, cannot overflow.
+ */
+static inline uint32_t
+mach64_3d_lerp_texel(uint32_t a, uint32_t b, unsigned fraction)
 {
-    rgba_t r;
+    uint32_t rb = ((a & 0x00ff00ff) * (256 - fraction) + (b & 0x00ff00ff) * fraction + 0x00800080) >> 8;
+    uint32_t ag = (((a >> 8) & 0x00ff00ff) * (256 - fraction) + ((b >> 8) & 0x00ff00ff) * fraction + 0x00800080) >> 8;
 
-    r.r = (a.r * (256 - fraction) + b.r * fraction + 128) >> 8;
-    r.g = (a.g * (256 - fraction) + b.g * fraction + 128) >> 8;
-    r.b = (a.b * (256 - fraction) + b.b * fraction + 128) >> 8;
-    r.a = (a.a * (256 - fraction) + b.a * fraction + 128) >> 8;
-    return r;
+    return (rb & 0x00ff00ff) | ((ag & 0x00ff00ff) << 8);
 }
 
 static int
@@ -970,7 +1070,7 @@ mach64_3d_blend(uint32_t cntl, rgba_t src, rgba_t dst)
 }
 
 /* Z_TEST: never, <, <=, ==, >=, >, != and always. */
-static int
+static inline int
 mach64_3d_z_test(uint16_t src, uint16_t dst, int test)
 {
     switch (test & 7) {
@@ -996,7 +1096,7 @@ mach64_3d_z_test(uint16_t src, uint16_t dst, int test)
 /* TEX_LIGHT_FCN: 0 replaces with the texel, 1 modulates by the shading,
    2 blends towards the texel by its alpha. COLOR_OVERRIDE keeps the shading
    with the texel's alpha. */
-static rgba_t
+static inline rgba_t
 mach64_3d_texture_light(uint32_t cntl, rgba_t texel, rgba_t shade)
 {
     if (cntl & COLOR_OVERRIDE) {
@@ -1032,7 +1132,7 @@ mach64_3d_texture_light(uint32_t cntl, rgba_t texel, rgba_t shade)
  * TEX_AMASK_AEN makes the texel's low alpha bit a mask: with TEX_AMASK_MODE
  * clear a 0 drops the pixel, set a 1 makes it opaque. Returns 0 to drop.
  */
-static int
+static inline int
 mach64_3d_texture_alpha(uint32_t cntl, rgba_t *texel, int alpha)
 {
     if (mach64_3d_uses_lod_alpha((cntl >> ALPHA_FOG_SHIFT) & 3, (cntl >> TEX_BLEND_FCN) & 3))
@@ -1165,9 +1265,14 @@ mach64_3d_texture_filter(int minifying, unsigned tex_blend_fcn, int bilinear_tex
     return ((tex_blend_fcn == 2) || (tex_blend_fcn == 3)) ? MACH64_3D_TEXTURE_FILTER_BILINEAR : MACH64_3D_TEXTURE_FILTER_NEAREST;
 }
 
-/* A texture map: the largest, or the one a level selects. */
+/*
+ * A texture map: the largest, or the one a level selects. SCALE_PIX_EXPAND
+ * and the texel color key hold through a draw, so they are taken with the
+ * map: CLR_CMP_FCN when CLR_CMP_SRC is the texel, else 0, and the masked key.
+ */
 typedef struct mach64_3d_texture_t {
     int      format;
+    int      dynamic_range;
     int      bpp;
     int      pitch_log2;
     int      size_log2;
@@ -1176,15 +1281,18 @@ typedef struct mach64_3d_texture_t {
     int      width;
     int      width_mask;
     int      height_mask;
-    int      bilinear;
     int      coord_shift;
     uint32_t base;
+    unsigned key_fcn;
+    uint32_t key;
+    uint32_t key_mask;
 } mach64_3d_texture_t;
 
+/* A texel, or the texels of a filter blended, as 0xAARRGGBB. */
 typedef struct mach64_3d_texel_t {
-    rgba_t color;
-    int    nearest_inhibits;
-    int    any_inhibits;
+    uint32_t argb;
+    int      nearest_inhibits;
+    int      any_inhibits;
 } mach64_3d_texel_t;
 
 /*
@@ -1209,13 +1317,14 @@ mach64_3d_texture_select(mach64_3d_t *ctx, mach64_3d_texture_t *map, int pitch_l
 
 /* TEX_SIZE_PITCH holds through a draw: the largest map is set up once. */
 static void
-mach64_3d_texture_init(mach64_3d_t *ctx, int format, int bilinear, mach64_3d_texture_t *map)
+mach64_3d_texture_init(mach64_3d_t *ctx, int format, mach64_3d_texture_t *map)
 {
-    uint32_t tex_size_pitch = ctx->regs[TEX_SIZE_PITCH >> 2];
-    int      pitch_log2     = tex_size_pitch & 15;
-    int      size_log2      = (tex_size_pitch >> 4) & 15;
-    int      height_log2    = (tex_size_pitch >> 8) & 15;
-    uint32_t offsets[11];
+    mach64_t *mach64         = ctx->mach64;
+    uint32_t  tex_size_pitch = ctx->regs[TEX_SIZE_PITCH >> 2];
+    int       pitch_log2     = tex_size_pitch & 15;
+    int       size_log2      = (tex_size_pitch >> 4) & 15;
+    int       height_log2    = (tex_size_pitch >> 8) & 15;
+    uint32_t  offsets[11];
 
     if (pitch_log2 > 10)
         pitch_log2 = 10;
@@ -1228,15 +1337,18 @@ mach64_3d_texture_init(mach64_3d_t *ctx, int format, int bilinear, mach64_3d_tex
     for (int level = 0; level <= 10; level++)
         offsets[level] = ctx->regs[(TEX_0_OFF + (level << 2)) >> 2];
 
-    map->format   = format;
-    map->bpp      = mach64_3d_bytes_per_pixel(format);
-    map->max_lod  = size_log2 - mach64_3d_mip_lowest_populated_level(offsets, size_log2);
-    map->bilinear = bilinear;
+    map->format        = format;
+    map->dynamic_range = !!(ctx->regs[SCALE_3D_CNTL >> 2] & SCALE_PIX_EXPAND);
+    map->bpp           = mach64_3d_bytes_per_pixel(format);
+    map->max_lod       = size_log2 - mach64_3d_mip_lowest_populated_level(offsets, size_log2);
+    map->key_fcn       = (((mach64->clr_cmp_cntl >> 24) & 3) == 2) ? (mach64->clr_cmp_cntl & 7) : 0;
+    map->key           = mach64->clr_cmp_clr & mach64->clr_cmp_mask;
+    map->key_mask      = mach64->clr_cmp_mask;
     mach64_3d_texture_select(ctx, map, pitch_log2, size_log2, height_log2);
 }
 
 static void
-mach64_3d_texture_level(mach64_3d_t *ctx, const mach64_3d_texture_t *largest, int lod, int bilinear, mach64_3d_texture_t *map)
+mach64_3d_texture_level(mach64_3d_t *ctx, const mach64_3d_texture_t *largest, int lod, mach64_3d_texture_t *map)
 {
     int pitch_log2;
     int size_log2;
@@ -1250,38 +1362,67 @@ mach64_3d_texture_level(mach64_3d_t *ctx, const mach64_3d_texture_t *largest, in
     size_log2   = largest->size_log2 - lod;
     height_log2 = largest->height_log2 - lod;
 
-    *map          = *largest;
-    map->bilinear = bilinear;
+    *map = *largest;
     mach64_3d_texture_select(ctx, map, (pitch_log2 < 0) ? 0 : pitch_log2, (size_log2 < 0) ? 0 : size_log2,
                              (height_log2 < 0) ? 0 : height_log2);
 }
 
-static mach64_3d_texel_t
-mach64_3d_texel_at(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int u, int v)
+/* The texel color key of a map, as mach64_3d_texel_key_compare. */
+static inline int
+mach64_3d_texel_key_inhibits(const mach64_3d_texture_t *map, uint32_t selected)
 {
-    mach64_t         *mach64 = ctx->mach64;
-    mach64_3d_texel_t texel  = { 0 };
-    uint32_t          raw;
-    int               inhibits;
-
-    texel.color.a = 255;
-    if (map->format == 11) {
-        raw         = mach64_3d_vram_read32(mach64, map->base + (v * map->width + (u & ~1)) * 2);
-        texel.color = mach64_3d_yuv_to_rgba(ctx, mach64_yuyv_y(raw, u), mach64_yuyv_u(raw), mach64_yuyv_v(raw), 255);
-        inhibits    = mach64_3d_texel_key_match(mach64->clr_cmp_cntl, mach64->clr_cmp_clr, mach64->clr_cmp_mask,
-                                                texel.color.r, texel.color.g, texel.color.b);
-    } else {
-        raw         = mach64_3d_vram_read(mach64, map->base + (v * map->width + u) * map->bpp, map->bpp);
-        texel.color = mach64_3d_unpack(ctx, map->format, raw, 1);
-        if (map->format == 2)
-            inhibits = mach64_3d_texel_key_match_index(mach64->clr_cmp_cntl, mach64->clr_cmp_clr, mach64->clr_cmp_mask,
-                                                       mach64_3d_texture_palette_texel_index(mach64->dp_pix_width, raw));
-        else
-            inhibits = mach64_3d_texel_key_match(mach64->clr_cmp_cntl, mach64->clr_cmp_clr, mach64->clr_cmp_mask,
-                                                 texel.color.r, texel.color.g, texel.color.b);
+    switch (map->key_fcn) {
+        case 1:
+            return 1;
+        case 4:
+            return (selected & map->key_mask) != map->key;
+        case 5:
+            return (selected & map->key_mask) == map->key;
+        default:
+            return 0;
     }
-    texel.nearest_inhibits = texel.any_inhibits = inhibits;
-    return texel;
+}
+
+/* The texel at u, v, and whether the key hides it: a pseudo-color texel by
+   its index, any other by its color. The 16 and 32-bit types are unpacked
+   here, the others by mach64_3d_unpack_argb. The 2x2 filter fetches four,
+   so it is inlined even there. */
+__attribute__((always_inline)) static inline uint32_t
+mach64_3d_texel_at(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int u, int v, int *inhibits)
+{
+    mach64_t *mach64 = ctx->mach64;
+    uint32_t  addr   = map->base + (v * map->width + u) * map->bpp;
+    uint32_t  raw;
+    uint32_t  argb;
+
+    switch (map->format) {
+        case 3:
+            argb = mach64_3d_argb1555(mach64_3d_vram_read16(mach64, addr), map->dynamic_range);
+            break;
+        case 4:
+            argb = mach64_3d_argb565(mach64_3d_vram_read16(mach64, addr), map->dynamic_range);
+            break;
+        case 6:
+            argb = mach64_3d_vram_read32(mach64, addr);
+            break;
+        case 15:
+            argb = mach64_3d_argb4444(mach64_3d_vram_read16(mach64, addr), map->dynamic_range);
+            break;
+        case 11:
+            raw  = mach64_3d_vram_read32(mach64, map->base + (v * map->width + (u & ~1)) * 2);
+            argb = mach64_3d_rgba_argb(mach64_3d_yuv_to_rgba(ctx, mach64_yuyv_y(raw, u), mach64_yuyv_u(raw), mach64_yuyv_v(raw), 255));
+            break;
+        default:
+            raw  = mach64_3d_vram_read(mach64, addr, map->bpp);
+            argb = mach64_3d_unpack_argb(ctx, map->format, raw, 1);
+            if (map->format == 2) {
+                *inhibits = mach64_3d_texel_key_inhibits(map, mach64_3d_texture_palette_texel_index(mach64->dp_pix_width, raw));
+                return argb;
+            }
+            break;
+    }
+    *inhibits = mach64_3d_texel_key_inhibits(map, argb & 0x00ffffff);
+    return argb;
 }
 
 /*
@@ -1291,23 +1432,27 @@ mach64_3d_texel_at(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int u, int 
  * equally, which the rim of Final Reality's neon entrance relies on.
  * Without the filter the sample is the texel holding the coordinate.
  */
-static mach64_3d_texel_t
-mach64_3d_sample_map(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int64_t s, int64_t t)
+static inline mach64_3d_texel_t
+mach64_3d_sample_map(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int bilinear, int64_t s, int64_t t)
 {
     int               shift = map->coord_shift;
     int               u;
     int               v;
     int               u1;
     int               v1;
-    int               fu;
-    int               fv;
-    mach64_3d_texel_t c00;
-    mach64_3d_texel_t c10;
-    mach64_3d_texel_t c01;
-    mach64_3d_texel_t c11;
+    unsigned          fu;
+    unsigned          fv;
+    int               i00;
+    int               i10;
+    int               i01;
+    int               i11;
+    uint32_t          c00;
+    uint32_t          c10;
+    uint32_t          c01;
+    uint32_t          c11;
     mach64_3d_texel_t result;
 
-    if (map->bilinear) {
+    if (bilinear) {
         int64_t half = (int64_t) 1 << (shift - 1);
 
         s -= half;
@@ -1315,92 +1460,108 @@ mach64_3d_sample_map(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int64_t s
     }
     u   = (int) (s >> shift) & map->width_mask;
     v   = (int) (t >> shift) & map->height_mask;
-    c00 = mach64_3d_texel_at(ctx, map, u, v);
-    if (!map->bilinear)
-        return c00;
+    c00 = mach64_3d_texel_at(ctx, map, u, v, &i00);
+    if (!bilinear) {
+        result.argb             = c00;
+        result.nearest_inhibits = result.any_inhibits = i00;
+        return result;
+    }
 
     u1  = (u + 1) & map->width_mask;
     v1  = (v + 1) & map->height_mask;
-    fu  = (int) (s >> (shift - 8)) & 255;
-    fv  = (int) (t >> (shift - 8)) & 255;
-    c10 = mach64_3d_texel_at(ctx, map, u1, v);
-    c01 = mach64_3d_texel_at(ctx, map, u, v1);
-    c11 = mach64_3d_texel_at(ctx, map, u1, v1);
+    fu  = (unsigned) (s >> (shift - 8)) & 255;
+    fv  = (unsigned) (t >> (shift - 8)) & 255;
+    c10 = mach64_3d_texel_at(ctx, map, u1, v, &i10);
+    c01 = mach64_3d_texel_at(ctx, map, u, v1, &i01);
+    c11 = mach64_3d_texel_at(ctx, map, u1, v1, &i11);
 
-    result.color        = mach64_3d_lerp_texel(mach64_3d_lerp_texel(c00.color, c10.color, fu),
-                                               mach64_3d_lerp_texel(c01.color, c11.color, fu), fv);
-    result.any_inhibits = c00.any_inhibits || c10.any_inhibits || c01.any_inhibits || c11.any_inhibits;
+    result.argb         = mach64_3d_lerp_texel(mach64_3d_lerp_texel(c00, c10, fu), mach64_3d_lerp_texel(c01, c11, fu), fv);
+    result.any_inhibits = i00 || i10 || i01 || i11;
     if (fv >= 128)
-        result.nearest_inhibits = (fu >= 128) ? c11.nearest_inhibits : c01.nearest_inhibits;
+        result.nearest_inhibits = (fu >= 128) ? i11 : i01;
     else
-        result.nearest_inhibits = (fu >= 128) ? c10.nearest_inhibits : c00.nearest_inhibits;
+        result.nearest_inhibits = (fu >= 128) ? i10 : i00;
     return result;
 }
 
-/*
- * The texel for a pixel, by the filter and mip map mode. *draw is cleared
- * when the filter draws nothing, *key_inhibit set when the source color key
- * hides the pixel.
- */
-static rgba_t
-mach64_3d_sample_texture(mach64_3d_t *ctx, const mach64_3d_texture_t *largest, uint32_t cntl, int64_t s, int64_t t,
-                         int64_t dsdx, int64_t dtdx, int64_t dsdy, int64_t dtdy, int *draw, int *key_inhibit)
+/* Whether the S/T derivatives minify the largest map, as mach64_3d_mip_lod
+   decides it without the level. */
+static inline int
+mach64_3d_minifying(int64_t dsdx, int64_t dtdx, int64_t dsdy, int64_t dtdy, int coord_shift)
 {
-    int                        blend   = (cntl >> TEX_BLEND_FCN) & 3;
-    int                        nearest = !!(cntl & NEAREST_TEX_VIS);
-    mach64_3d_mip_lod_t        lod     = mach64_3d_mip_lod(dsdx, dtdx, dsdy, dtdy, largest->coord_shift, largest->max_lod);
-    mach64_3d_texture_filter_t filter  = mach64_3d_texture_filter(lod.minifying, blend, !!(cntl & BILINEAR_TEX_EN));
-    mach64_3d_texture_t        map;
+    uint64_t rho = mach64_3d_abs64(dsdx);
+
+    if (mach64_3d_abs64(dtdx) > rho)
+        rho = mach64_3d_abs64(dtdx);
+    if (mach64_3d_abs64(dsdy) > rho)
+        rho = mach64_3d_abs64(dsdy);
+    if (mach64_3d_abs64(dtdy) > rho)
+        rho = mach64_3d_abs64(dtdy);
+
+    if (coord_shift < 0)
+        coord_shift = 0;
+    if (coord_shift > 62)
+        coord_shift = 62;
+    return rho > (UINT64_C(1) << coord_shift);
+}
+
+/*
+ * The texel for a pixel, by the filter and mip map mode, from maps[0], the
+ * largest map, or the level maps after it. *draw is cleared when the filter
+ * draws nothing, *key_inhibit set when the source color key hides the pixel.
+ */
+static inline uint32_t
+mach64_3d_sample_texture(mach64_3d_t *ctx, const mach64_3d_texture_t *maps, uint32_t cntl, int64_t s, int64_t t, int64_t dsdx,
+                         int64_t dtdx, int64_t dsdy, int64_t dtdy, int *draw, int *key_inhibit)
+{
+    const mach64_3d_texture_t *largest   = &maps[0];
+    int                        blend     = (cntl >> TEX_BLEND_FCN) & 3;
+    int                        nearest   = !!(cntl & NEAREST_TEX_VIS);
+    int                        minifying = mach64_3d_minifying(dsdx, dtdx, dsdy, dtdy, largest->coord_shift);
+    mach64_3d_texture_filter_t filter    = mach64_3d_texture_filter(minifying, blend, !!(cntl & BILINEAR_TEX_EN));
     mach64_3d_texel_t          texel;
-    rgba_t                     none = { 0, 0, 0, 0 };
 
     *draw        = 1;
     *key_inhibit = 0;
     if (filter == MACH64_3D_TEXTURE_FILTER_NONE) {
         *draw = 0;
-        return none;
+        return 0;
     }
 
-    if (!lod.minifying || (cntl & MIP_MAP_DISABLE)) {
+    if (!minifying || (cntl & MIP_MAP_DISABLE)) {
         /* One map: the nearest texel, or the 2x2 filter of TEX_BLEND_FCN 2
            and 3. */
-        map          = *largest;
-        map.bilinear = (filter == MACH64_3D_TEXTURE_FILTER_BILINEAR);
-        texel        = mach64_3d_sample_map(ctx, &map, s, t);
-    } else if ((blend == 1) && (lod.floor_lod < largest->max_lod)) {
-        /* Nearest texels of the two levels, blended between them. */
-        mach64_3d_texture_t next;
-        mach64_3d_texel_t   a;
-        mach64_3d_texel_t   b;
-
-        mach64_3d_texture_level(ctx, largest, lod.floor_lod, 0, &map);
-        mach64_3d_texture_level(ctx, largest, lod.floor_lod + 1, 0, &next);
-        a                      = mach64_3d_sample_map(ctx, &map, s, t);
-        b                      = mach64_3d_sample_map(ctx, &next, s, t);
-        texel.color            = mach64_3d_lerp(a.color, b.color, lod.fraction);
-        texel.any_inhibits     = a.any_inhibits || b.any_inhibits;
-        texel.nearest_inhibits = (lod.nearest_lod == lod.floor_lod) ? a.nearest_inhibits : b.nearest_inhibits;
-    } else if (blend == 2) {
-        /* The 2x2 filter in the nearest level. */
-        mach64_3d_texture_level(ctx, largest, lod.nearest_lod, 1, &map);
-        texel = mach64_3d_sample_map(ctx, &map, s, t);
-    } else if (blend == 3) {
-        /* One pass of the two-pass trilinear filter: the 2x2 filter in the
-           other level, its distance as alpha. */
-        int other = (lod.nearest_lod == lod.floor_lod) ? (lod.floor_lod + 1) : lod.floor_lod;
-
-        if (other > largest->max_lod)
-            other = largest->max_lod;
-        mach64_3d_texture_level(ctx, largest, other, 1, &map);
-        texel         = mach64_3d_sample_map(ctx, &map, s, t);
-        texel.color.a = (lod.nearest_lod == lod.floor_lod) ? lod.fraction : (255 - lod.fraction);
+        texel = mach64_3d_sample_map(ctx, largest, filter == MACH64_3D_TEXTURE_FILTER_BILINEAR, s, t);
     } else {
-        mach64_3d_texture_level(ctx, largest, lod.nearest_lod, 0, &map);
-        texel = mach64_3d_sample_map(ctx, &map, s, t);
+        mach64_3d_mip_lod_t lod = mach64_3d_mip_lod(dsdx, dtdx, dsdy, dtdy, largest->coord_shift, largest->max_lod);
+
+        if ((blend == 1) && (lod.floor_lod < largest->max_lod)) {
+            /* Nearest texels of the two levels, blended between them. */
+            mach64_3d_texel_t a = mach64_3d_sample_map(ctx, &maps[lod.floor_lod], 0, s, t);
+            mach64_3d_texel_t b = mach64_3d_sample_map(ctx, &maps[lod.floor_lod + 1], 0, s, t);
+
+            texel.argb             = mach64_3d_rgba_argb(mach64_3d_lerp(mach64_3d_argb_rgba(a.argb), mach64_3d_argb_rgba(b.argb), lod.fraction));
+            texel.any_inhibits     = a.any_inhibits || b.any_inhibits;
+            texel.nearest_inhibits = (lod.nearest_lod == lod.floor_lod) ? a.nearest_inhibits : b.nearest_inhibits;
+        } else if (blend == 2) {
+            /* The 2x2 filter in the nearest level. */
+            texel = mach64_3d_sample_map(ctx, &maps[lod.nearest_lod], 1, s, t);
+        } else if (blend == 3) {
+            /* One pass of the two-pass trilinear filter: the 2x2 filter in
+               the other level, its distance as alpha. */
+            int      other = (lod.nearest_lod == lod.floor_lod) ? (lod.floor_lod + 1) : lod.floor_lod;
+            uint32_t alpha = (lod.nearest_lod == lod.floor_lod) ? lod.fraction : (255 - lod.fraction);
+
+            if (other > largest->max_lod)
+                other = largest->max_lod;
+            texel      = mach64_3d_sample_map(ctx, &maps[other], 1, s, t);
+            texel.argb = (texel.argb & 0x00ffffff) | (alpha << 24);
+        } else
+            texel = mach64_3d_sample_map(ctx, &maps[lod.nearest_lod], 0, s, t);
     }
 
     *key_inhibit = mach64_3d_texel_visibility_inhibits(nearest, texel.nearest_inhibits, texel.any_inhibits);
-    return texel.color;
+    return texel.argb;
 }
 
 /*
@@ -1727,7 +1888,8 @@ mach64_3d_report_work(mach64_3d_t *ctx, uint32_t pixels, uint32_t rows)
     mach64_timing_3d(mach64, &work);
 }
 
-/* What every pixel of a draw shares. */
+/* What every pixel of a draw shares: texture[0] is the largest map, and
+   with mip mapping on the levels below it follow. */
 typedef struct mach64_3d_pixel_t {
     uint32_t            cntl;
     uint32_t            z_cntl;
@@ -1738,7 +1900,7 @@ typedef struct mach64_3d_pixel_t {
     int                 dst_compare;
     uint32_t            dst_compare_mask;
     rgba_t              fog;
-    mach64_3d_texture_t texture;
+    mach64_3d_texture_t texture[11];
 } mach64_3d_pixel_t;
 
 static void
@@ -1758,8 +1920,13 @@ mach64_3d_pixel_init(mach64_3d_t *ctx, const mach64_3d_dst_t *dst, int z_pitch, 
     px->fog.g            = (mach64->dp_frgd_clr >> 8) & 0xff;
     px->fog.b            = mach64->dp_frgd_clr & 0xff;
     px->fog.a            = 255;
-    if (px->textured)
-        mach64_3d_texture_init(ctx, mach64_3d_src_format(mach64), !!(px->cntl & BILINEAR_TEX_EN), &px->texture);
+    if (px->textured) {
+        mach64_3d_texture_init(ctx, mach64_3d_src_format(mach64), &px->texture[0]);
+        if (!(px->cntl & MIP_MAP_DISABLE)) {
+            for (int lod = 1; lod <= px->texture[0].max_lod; lod++)
+                mach64_3d_texture_level(ctx, &px->texture[0], lod, &px->texture[lod]);
+        }
+    }
 }
 
 /*
@@ -1767,7 +1934,7 @@ mach64_3d_pixel_init(mach64_3d_t *ctx, const mach64_3d_dst_t *dst, int z_pitch, 
  * (ALPHA_FOG_EN 2) blends towards DP_FRGD_CLR by the shading's alpha.
  * Returns 0 when the texture draws nothing there.
  */
-static int
+static inline int
 mach64_3d_pixel_source(mach64_3d_t *ctx, const mach64_3d_pixel_t *px, rgba_t shade, int64_t s, int64_t t, int64_t dsdx,
                        int64_t dtdx, int64_t dsdy, int64_t dtdy, rgba_t *src)
 {
@@ -1775,7 +1942,7 @@ mach64_3d_pixel_source(mach64_3d_t *ctx, const mach64_3d_pixel_t *px, rgba_t sha
     if (px->textured) {
         int    draw;
         int    key_inhibit;
-        rgba_t texel = mach64_3d_sample_texture(ctx, &px->texture, px->cntl, s, t, dsdx, dtdx, dsdy, dtdy, &draw, &key_inhibit);
+        rgba_t texel = mach64_3d_argb_rgba(mach64_3d_sample_texture(ctx, px->texture, px->cntl, s, t, dsdx, dtdx, dsdy, dtdy, &draw, &key_inhibit));
 
         if (!draw || key_inhibit || !mach64_3d_texture_alpha(px->cntl, &texel, shade.a))
             return 0;
@@ -1786,42 +1953,357 @@ mach64_3d_pixel_source(mach64_3d_t *ctx, const mach64_3d_pixel_t *px, rgba_t sha
     return 1;
 }
 
+/* What the rows of a trapezoid share, read only while they are drawn. */
+struct mach64_3d_rows_job_t {
+    mach64_3d_dst_t    dst;
+    mach64_3d_pixel_t  px;
+    mach64_3d_interp_t p; /* the increments; each row has its values */
+    int                lead_dir;
+    uint32_t           z_base;
+    int                z_pitch;
+    int                dp_constant;
+    int                nrows;
+};
+
+/* The pixels of a row, from its leading edge's interpolators. */
+static void
+mach64_3d_draw_row(mach64_3d_t *ctx, const mach64_3d_rows_job_t *job, const mach64_3d_row_t *row, mach64_3d_dither_t *dither)
+{
+    mach64_t                 *mach64   = ctx->mach64;
+    const mach64_3d_dst_t    *dst      = &job->dst;
+    const mach64_3d_pixel_t  *px       = &job->px;
+    const mach64_3d_interp_t *p        = &job->p;
+    int                       lead_dir = job->lead_dir;
+    int                       y        = row->y;
+
+    /* The interpolators at the first pixel, which is n steps along
+       DST_X_DIR from the leading edge. */
+    int      n      = (row->first - row->lead) * lead_dir;
+    int64_t  r      = row->r + p->rx * n;
+    int64_t  g      = row->g + p->gx * n;
+    int64_t  b      = row->b + p->bx * n;
+    int64_t  a      = row->a + p->ax * n;
+    int64_t  z      = row->z + p->zx * n;
+    int64_t  s      = 0;
+    int64_t  t      = 0;
+    int64_t  dsdx   = 0;
+    int64_t  dtdx   = 0;
+    int64_t  dsdy   = 0;
+    int64_t  dtdy   = 0;
+    uint32_t addr   = dst->base + (y * dst->pitch + row->first) * dst->bpp;
+    uint32_t z_addr = px->z_enabled ? (job->z_base + (y * job->z_pitch + row->first) * 2) : 0;
+
+    if (px->textured) {
+        s    = mach64_3d_quad_at(row->s, row->sxi, p->sx2, n);
+        t    = mach64_3d_quad_at(row->t, row->txi, p->tx2, n);
+        dsdx = mach64_3d_quad_step(row->sxi, p->sx2, n, lead_dir);
+        dtdx = mach64_3d_quad_step(row->txi, p->tx2, n, lead_dir);
+        dsdy = row->syi + n * p->sxy2;
+        dtdy = row->tyi + n * p->txy2;
+    }
+
+    for (int x = row->first; x < row->end; x++) {
+        rgba_t   shade = { mach64_3d_s8_12_color(r), mach64_3d_s8_12_color(g), mach64_3d_s8_12_color(b), mach64_3d_s8_12_color(a) };
+        rgba_t   src;
+        uint16_t depth = 0;
+        int      draw  = mach64_3d_pixel_source(ctx, px, shade, s, t, dsdx, dtdx, dsdy, dtdy, &src);
+
+        if (draw && px->z_enabled) {
+            depth = mach64_3d_s16_12_depth(z);
+            draw  = mach64_3d_z_test(depth, mach64_3d_vram_read16(mach64, z_addr), (px->z_cntl >> Z_TEST_SHIFT) & 7);
+        }
+        if (draw) {
+            uint32_t raw        = 0;
+            int      raw_source = 0;
+
+            if (px->alpha_fog == ALPHA_FOG_BLEND)
+                src = mach64_3d_blend(px->cntl, src, mach64_3d_read_dst(ctx, addr, dst->format));
+            if (job->dp_constant) {
+                raw        = mach64_3d_dp_select_source(mach64->dp_src, mach64->dp_bkgd_clr, mach64->dp_frgd_clr,
+                                                        mach64_3d_pack(ctx, dither, dst->format, src, x, y));
+                src        = mach64_3d_unpack(ctx, dst->format, raw, 0);
+                raw_source = 1;
+            }
+            if (px->dst_compare &&
+                mach64_3d_destination_compare_inhibits(mach64->clr_cmp_cntl, mach64->clr_cmp_clr, mach64->clr_cmp_mask,
+                                                       mach64_3d_vram_read(mach64, addr, dst->bpp), px->dst_compare_mask))
+                draw = 0;
+            if (draw) {
+                if (raw_source)
+                    mach64_3d_write_dst_raw(ctx, addr, dst->format, raw);
+                else
+                    mach64_3d_write_dst(ctx, dither, addr, dst->format, src, x, y);
+                if (px->z_write)
+                    mach64_3d_vram_write(mach64, z_addr, depth, 2);
+            }
+        }
+
+        addr += dst->bpp;
+        if (px->z_enabled)
+            z_addr += 2;
+        r += p->rx * lead_dir;
+        g += p->gx * lead_dir;
+        b += p->bx * lead_dir;
+        a += p->ax * lead_dir;
+        z += p->zx * lead_dir;
+        if (px->textured) {
+            s += dsdx;
+            t += dtdx;
+            dsdx += p->sx2;
+            dtdx += p->tx2;
+            dsdy += p->sxy2 * lead_dir;
+            dtdy += p->txy2 * lead_dir;
+        }
+    }
+}
+
+/* Whether two runs of video memory share a byte, each wrapping at its end
+   as the frame buffer does. */
+static int
+mach64_3d_ranges_overlap(uint64_t a, uint64_t a_len, uint64_t b, uint64_t b_len, uint64_t size)
+{
+    uint64_t a_to_b;
+    uint64_t b_to_a;
+
+    a %= size;
+    b %= size;
+    a_to_b = (b >= a) ? (b - a) : (b + size - a);
+    b_to_a = (a >= b) ? (a - b) : (a + size - b);
+    return (a_to_b < a_len) || (b_to_a < b_len);
+}
+
+/* Fewer pixels than this are drawn by the emulation thread alone. */
+#define MACH64_3D_SHARED_PIXELS 1024
+
+/*
+ * Whether the rows may be drawn by several threads at once, which needs no
+ * row to read what another writes. The X error diffusion runs on from row
+ * to row. Rows of the destination or the Z buffer meet only if they wrap
+ * around video memory, or a span is wider than the Z buffer's pitch; the
+ * destination, the Z buffer and the texture must not share memory either.
+ */
+static int
+mach64_3d_rows_shared(mach64_3d_t *ctx, const mach64_3d_rows_job_t *job, uint32_t pixels)
+{
+    uint64_t size  = (uint64_t) ctx->mach64->vram_mask + 1;
+    int      y_min = ctx->rows[0].y;
+    int      y_max = ctx->rows[0].y;
+    int      x_min = ctx->rows[0].first;
+    int      x_max = ctx->rows[0].end;
+    uint64_t dst_start;
+    uint64_t dst_len;
+    uint64_t z_start = 0;
+    uint64_t z_len   = 0;
+
+    if ((ctx->threads < 2) || (job->nrows < 2) || (pixels < MACH64_3D_SHARED_PIXELS))
+        return 0;
+    if ((job->px.cntl & DITHER_EN) && !(job->px.cntl & SCALE_DITHER))
+        return 0;
+
+    for (int i = 1; i < job->nrows; i++) {
+        const mach64_3d_row_t *row = &ctx->rows[i];
+
+        y_min = (row->y < y_min) ? row->y : y_min;
+        y_max = (row->y > y_max) ? row->y : y_max;
+        x_min = (row->first < x_min) ? row->first : x_min;
+        x_max = (row->end > x_max) ? row->end : x_max;
+    }
+
+    dst_start = job->dst.base + ((uint64_t) y_min * job->dst.pitch + x_min) * job->dst.bpp;
+    dst_len   = ((uint64_t) (y_max - y_min) * job->dst.pitch + (x_max - x_min)) * job->dst.bpp;
+    if (dst_len >= size)
+        return 0;
+    if (job->px.z_enabled) {
+        if (x_max > job->z_pitch)
+            return 0;
+        z_start = job->z_base + ((uint64_t) y_min * job->z_pitch + x_min) * 2;
+        z_len   = ((uint64_t) (y_max - y_min) * job->z_pitch + (x_max - x_min)) * 2;
+        if ((z_len >= size) || mach64_3d_ranges_overlap(dst_start, dst_len, z_start, z_len, size))
+            return 0;
+    }
+    if (job->px.textured) {
+        int levels = (job->px.cntl & MIP_MAP_DISABLE) ? 0 : job->px.texture[0].max_lod;
+
+        for (int lod = 0; lod <= levels; lod++) {
+            const mach64_3d_texture_t *map = &job->px.texture[lod];
+            uint64_t                   len = ((uint64_t) map->width << map->height_log2) * map->bpp + 4;
+
+            if ((len >= size) || mach64_3d_ranges_overlap(map->base, len, dst_start, dst_len, size) ||
+                (job->px.z_write && mach64_3d_ranges_overlap(map->base, len, z_start, z_len, size)))
+                return 0;
+        }
+    }
+    return 1;
+}
+
+/* A short wait in a spin loop. */
+static inline void
+mach64_3d_pause(void)
+{
+#if defined(__i386__) || defined(__x86_64__)
+    __builtin_ia32_pause();
+#elif defined(__aarch64__)
+    __asm__ __volatile__("yield");
+#endif
+}
+
+/*
+ * A helper draws its rows of each batch. Batches of a scene come close
+ * together, so it spins a while for the next one before it sleeps; whoever
+ * hands one out wakes the helpers found sleeping. A helper flags itself
+ * sleeping before it looks at the batch count a last time, so either it
+ * sees the new batch or the batch's maker sees it asleep.
+ */
+static void
+mach64_3d_helper_thread(void *param)
+{
+    mach64_3d_helper_t *helper = (mach64_3d_helper_t *) param;
+    mach64_3d_t        *ctx    = helper->ctx;
+    unsigned            seen   = helper->seen;
+
+    for (;;) {
+        uint64_t start = plat_timer_read();
+
+        while (atomic_load(&ctx->job_gen) == seen) {
+            if ((plat_timer_read() - start) < ctx->spin_ticks) {
+                mach64_3d_pause();
+                continue;
+            }
+            atomic_store(&helper->sleeping, 1);
+            if (atomic_load(&ctx->job_gen) == seen) {
+                thread_wait_event(helper->go, -1);
+                thread_reset_event(helper->go); /* the Unix events stay set */
+            }
+            atomic_store(&helper->sleeping, 0);
+            start = plat_timer_read();
+        }
+        seen = atomic_load(&ctx->job_gen);
+        if (ctx->helpers_quit)
+            break;
+        for (int i = helper->index; i < ctx->job->nrows; i += ctx->job_threads)
+            mach64_3d_draw_row(ctx, ctx->job, &ctx->rows[i], &helper->dither);
+        atomic_fetch_sub(&ctx->job_left, 1);
+    }
+}
+
+static void
+mach64_3d_helpers_make(mach64_3d_t *ctx)
+{
+    ctx->spin_ticks = timer_freq / 5000; /* 200 us */
+    for (int i = 0; i < (ctx->threads - 1); i++) {
+        mach64_3d_helper_t *helper = &ctx->helpers[i];
+
+        helper->ctx    = ctx;
+        helper->index  = i + 1;
+        helper->seen   = atomic_load(&ctx->job_gen);
+        helper->go     = thread_create_event();
+        helper->thread = thread_create(mach64_3d_helper_thread, helper);
+    }
+    ctx->helpers_made = 1;
+}
+
+/* Hands the helpers a batch: job, job_threads and their dither copies are
+   set before the count moves on. */
+static void
+mach64_3d_helpers_start(mach64_3d_t *ctx)
+{
+    atomic_store(&ctx->job_left, ctx->job_threads - 1);
+    atomic_fetch_add(&ctx->job_gen, 1);
+    for (int i = 0; i < (ctx->job_threads - 1); i++) {
+        if (atomic_load(&ctx->helpers[i].sleeping))
+            thread_set_event(ctx->helpers[i].go);
+    }
+}
+
+static void
+mach64_3d_helpers_close(mach64_3d_t *ctx)
+{
+    if (!ctx->helpers_made)
+        return;
+    ctx->helpers_quit = 1;
+    atomic_fetch_add(&ctx->job_gen, 1);
+    for (int i = 0; i < (ctx->threads - 1); i++) {
+        thread_set_event(ctx->helpers[i].go);
+        thread_wait(ctx->helpers[i].thread);
+        thread_destroy_event(ctx->helpers[i].go);
+    }
+    ctx->helpers_made = 0;
+}
+
+/*
+ * The rows walked so far. Shared among the threads, each draws every
+ * threads-th row; the helpers dither on copies, as no X error diffusion
+ * runs then, and a pixel any of them packs without dithering ends the
+ * diffusion state as one packed by this thread would.
+ */
+static void
+mach64_3d_draw_rows(mach64_3d_t *ctx, const mach64_3d_rows_job_t *job, uint32_t pixels)
+{
+    mach64_3d_dither_t own;
+    int                threads = ctx->threads;
+
+    if (!mach64_3d_rows_shared(ctx, job, pixels)) {
+        for (int i = 0; i < job->nrows; i++)
+            mach64_3d_draw_row(ctx, job, &ctx->rows[i], &ctx->dither);
+        return;
+    }
+
+    if (!ctx->helpers_made)
+        mach64_3d_helpers_make(ctx);
+    ctx->job         = job;
+    ctx->job_threads = threads;
+    for (int i = 0; i < (threads - 1); i++)
+        ctx->helpers[i].dither = ctx->dither;
+    mach64_3d_helpers_start(ctx);
+
+    own = ctx->dither;
+    for (int i = 0; i < job->nrows; i += threads)
+        mach64_3d_draw_row(ctx, job, &ctx->rows[i], &own);
+    while (atomic_load(&ctx->job_left))
+        mach64_3d_pause();
+
+    for (int i = 0; i < (threads - 1); i++) {
+        if (!ctx->helpers[i].dither.valid)
+            own.valid = 0;
+    }
+    ctx->dither.valid = own.valid;
+}
+
 /*
  * A trapezoid (DST_BRES_LNTH with DRAW_TRAP): the leading edge is DST_Y_X's
  * walker with the 2D engine's error terms, the trailing edge its own one
  * from TRAIL_BRES_*. A triangle is two trapezoids sharing the leading edge.
+ * The edges are walked first, a batch of rows at a time, and the rows then
+ * drawn, by more than one thread when they are many.
  */
 static void
 mach64_3d_draw_trapezoid(mach64_3d_t *ctx, uint32_t cmd)
 {
-    mach64_t          *mach64 = ctx->mach64;
-    uint32_t           cntl   = ctx->regs[SCALE_3D_CNTL >> 2];
-    int                fcn    = (cntl >> SCALE_3D_FCN_SHIFT) & 3;
-    int                len    = cmd & 0x7fff;
-    int                lead;
-    int                trail;
-    int                y;
-    int                lead_err;
-    int                trail_err;
-    int                lead_inc   = (int32_t) mach64->dst_bres_inc;
-    int                lead_dec   = (int32_t) mach64->dst_bres_dec;
-    int                trail_inc  = (int32_t) ctx->regs[TRAIL_BRES_INC >> 2];
-    int                trail_dec  = (int32_t) ctx->regs[TRAIL_BRES_DEC >> 2];
-    int                y_dir      = (mach64->dst_cntl & DST_Y_DIR) ? 1 : -1;
-    int                lead_dir   = (mach64->dst_cntl & DST_X_DIR) ? 1 : -1;
-    int                trail_dir  = (mach64->dst_cntl & TRAIL_X_DIR) ? 1 : -1;
-    int                fill_l2r   = !!(mach64->dst_cntl & TRAP_FILL_DIR);
-    int                lead_zneg  = !!(mach64->dst_cntl & DST_BRES_SIGN);
-    int                trail_zneg = !!(mach64->dst_cntl & TRAIL_BRES_SIGN);
-    uint32_t           z_off_pitch;
-    uint32_t           z_base;
-    int                z_pitch;
-    int                dp_constant;
-    int                initial_steps;
-    uint32_t           walked = 0;
-    mach64_3d_dst_t    dst;
-    mach64_3d_pixel_t  px;
-    mach64_3d_interp_t p;
+    mach64_t            *mach64 = ctx->mach64;
+    uint32_t             cntl   = ctx->regs[SCALE_3D_CNTL >> 2];
+    int                  fcn    = (cntl >> SCALE_3D_FCN_SHIFT) & 3;
+    int                  len    = cmd & 0x7fff;
+    int                  lead;
+    int                  trail;
+    int                  y;
+    int                  lead_err;
+    int                  trail_err;
+    int                  lead_inc   = (int32_t) mach64->dst_bres_inc;
+    int                  lead_dec   = (int32_t) mach64->dst_bres_dec;
+    int                  trail_inc  = (int32_t) ctx->regs[TRAIL_BRES_INC >> 2];
+    int                  trail_dec  = (int32_t) ctx->regs[TRAIL_BRES_DEC >> 2];
+    int                  y_dir      = (mach64->dst_cntl & DST_Y_DIR) ? 1 : -1;
+    int                  lead_dir   = (mach64->dst_cntl & DST_X_DIR) ? 1 : -1;
+    int                  trail_dir  = (mach64->dst_cntl & TRAIL_X_DIR) ? 1 : -1;
+    int                  fill_l2r   = !!(mach64->dst_cntl & TRAP_FILL_DIR);
+    int                  lead_zneg  = !!(mach64->dst_cntl & DST_BRES_SIGN);
+    int                  trail_zneg = !!(mach64->dst_cntl & TRAIL_BRES_SIGN);
+    uint32_t             z_off_pitch;
+    int                  initial_steps;
+    uint32_t             walked = 0;
+    uint32_t             batch  = 0;
+    mach64_3d_rows_job_t job;
+    mach64_3d_interp_t  *p = &job.p;
 
     if (!len || !fcn || !mach64_3d_bytes_per_pixel(mach64_3d_dst_format(mach64)))
         return;
@@ -1841,17 +2323,19 @@ mach64_3d_draw_trapezoid(mach64_3d_t *ctx, uint32_t cmd)
     lead_err  = (int32_t) mach64->dst_bres_err;
     trail_err = (int32_t) ctx->regs[TRAIL_BRES_ERR >> 2];
 
-    if (!mach64_3d_dst_init(mach64, &dst))
+    if (!mach64_3d_dst_init(mach64, &job.dst))
         return;
     z_off_pitch = ctx->regs[Z_OFF_PITCH >> 2];
-    z_base      = (z_off_pitch & 0xfffff) << 3;
-    z_pitch     = ((z_off_pitch >> 22) & 0x3ff) << 3;
-    mach64_3d_pixel_init(ctx, &dst, z_pitch, &px);
-    mach64_3d_interp_load(ctx, &p);
+    job.z_base  = (z_off_pitch & 0xfffff) << 3;
+    job.z_pitch = ((z_off_pitch >> 22) & 0x3ff) << 3;
+    job.nrows   = 0;
+    job.lead_dir = lead_dir;
+    mach64_3d_pixel_init(ctx, &job.dst, job.z_pitch, &job.px);
+    mach64_3d_interp_load(ctx, p);
 
     /* DP_MONO_SRC always one with DP_FRGD_SRC a constant color: the data
        path takes that color instead of the 3D one. */
-    dp_constant = (((mach64->dp_src >> 16) & 3) == MONO_SRC_1) && ((((mach64->dp_src >> 8) & 7) == SRC_BG) || (((mach64->dp_src >> 8) & 7) == SRC_FG));
+    job.dp_constant = (((mach64->dp_src >> 16) & 3) == MONO_SRC_1) && ((((mach64->dp_src >> 8) & 7) == SRC_BG) || (((mach64->dp_src >> 8) & 7) == SRC_FG));
 
     /*
      * ATI's HAL leaves a positive starting error for the walkers to take up
@@ -1866,105 +2350,48 @@ mach64_3d_draw_trapezoid(mach64_3d_t *ctx, uint32_t cmd)
     if (trail_dec < 0)
         mach64_3d_edge_step(&trail, &trail_err, 0, trail_dec, trail_dir, trail_zneg);
     if (initial_steps) {
-        p.r = mach64_3d_s8_12_decode((uint32_t) (p.r + p.rx * initial_steps));
-        p.g = mach64_3d_s8_12_decode((uint32_t) (p.g + p.gx * initial_steps));
-        p.b = mach64_3d_s8_12_decode((uint32_t) (p.b + p.bx * initial_steps));
-        p.a = mach64_3d_s8_12_decode((uint32_t) (p.a + p.ax * initial_steps));
-        p.z = mach64_3d_s16_12_decode((uint32_t) (p.z + p.zx * initial_steps));
-        p.s = mach64_3d_quad_at(p.s, p.sxi, p.sx2, initial_steps);
-        p.sxi += p.sx2 * initial_steps;
-        p.syi += p.sxy2 * initial_steps;
-        p.t = mach64_3d_quad_at(p.t, p.txi, p.tx2, initial_steps);
-        p.txi += p.tx2 * initial_steps;
-        p.tyi += p.txy2 * initial_steps;
+        p->r = mach64_3d_s8_12_decode((uint32_t) (p->r + p->rx * initial_steps));
+        p->g = mach64_3d_s8_12_decode((uint32_t) (p->g + p->gx * initial_steps));
+        p->b = mach64_3d_s8_12_decode((uint32_t) (p->b + p->bx * initial_steps));
+        p->a = mach64_3d_s8_12_decode((uint32_t) (p->a + p->ax * initial_steps));
+        p->z = mach64_3d_s16_12_decode((uint32_t) (p->z + p->zx * initial_steps));
+        p->s = mach64_3d_quad_at(p->s, p->sxi, p->sx2, initial_steps);
+        p->sxi += p->sx2 * initial_steps;
+        p->syi += p->sxy2 * initial_steps;
+        p->t = mach64_3d_quad_at(p->t, p->txi, p->tx2, initial_steps);
+        p->txi += p->tx2 * initial_steps;
+        p->tyi += p->txy2 * initial_steps;
     }
 
-    for (int row = 0; row < len; row++) {
+    for (int i = 0; i < len; i++) {
         int first;
         int end;
         int lead_steps;
 
-        if ((y >= dst.top) && (y <= dst.bottom) && mach64_3d_trapezoid_clip_span(lead, trail, fill_l2r, dst.left, dst.right, &first, &end)) {
-            /* The interpolators at the first pixel, which is n steps along
-               DST_X_DIR from the leading edge. */
-            int      n      = (first - lead) * lead_dir;
-            int64_t  r      = p.r + p.rx * n;
-            int64_t  g      = p.g + p.gx * n;
-            int64_t  b      = p.b + p.bx * n;
-            int64_t  a      = p.a + p.ax * n;
-            int64_t  z      = p.z + p.zx * n;
-            int64_t  s      = 0;
-            int64_t  t      = 0;
-            int64_t  dsdx   = 0;
-            int64_t  dtdx   = 0;
-            int64_t  dsdy   = 0;
-            int64_t  dtdy   = 0;
-            uint32_t addr   = dst.base + (y * dst.pitch + first) * dst.bpp;
-            uint32_t z_addr = px.z_enabled ? (z_base + (y * z_pitch + first) * 2) : 0;
+        if ((y >= job.dst.top) && (y <= job.dst.bottom) && mach64_3d_trapezoid_clip_span(lead, trail, fill_l2r, job.dst.left, job.dst.right, &first, &end)) {
+            mach64_3d_row_t *row = &ctx->rows[job.nrows++];
 
+            row->y     = y;
+            row->lead  = lead;
+            row->first = first;
+            row->end   = end;
+            row->r     = p->r;
+            row->g     = p->g;
+            row->b     = p->b;
+            row->a     = p->a;
+            row->z     = p->z;
+            row->s     = p->s;
+            row->sxi   = p->sxi;
+            row->syi   = p->syi;
+            row->t     = p->t;
+            row->txi   = p->txi;
+            row->tyi   = p->tyi;
             walked += end - first;
-            if (px.textured) {
-                s    = mach64_3d_quad_at(p.s, p.sxi, p.sx2, n);
-                t    = mach64_3d_quad_at(p.t, p.txi, p.tx2, n);
-                dsdx = mach64_3d_quad_step(p.sxi, p.sx2, n, lead_dir);
-                dtdx = mach64_3d_quad_step(p.txi, p.tx2, n, lead_dir);
-                dsdy = p.syi + n * p.sxy2;
-                dtdy = p.tyi + n * p.txy2;
-            }
-
-            for (int x = first; x < end; x++) {
-                rgba_t   shade = { mach64_3d_s8_12_color(r), mach64_3d_s8_12_color(g), mach64_3d_s8_12_color(b),
-                                   mach64_3d_s8_12_color(a) };
-                rgba_t   src;
-                uint16_t depth = 0;
-                int      draw  = mach64_3d_pixel_source(ctx, &px, shade, s, t, dsdx, dtdx, dsdy, dtdy, &src);
-
-                if (draw && px.z_enabled) {
-                    depth = mach64_3d_s16_12_depth(z);
-                    draw  = mach64_3d_z_test(depth, mach64_3d_vram_read16(mach64, z_addr), (px.z_cntl >> Z_TEST_SHIFT) & 7);
-                }
-                if (draw) {
-                    uint32_t raw        = 0;
-                    int      raw_source = 0;
-
-                    if (px.alpha_fog == ALPHA_FOG_BLEND)
-                        src = mach64_3d_blend(px.cntl, src, mach64_3d_read_dst(ctx, addr, dst.format));
-                    if (dp_constant) {
-                        raw        = mach64_3d_dp_select_source(mach64->dp_src, mach64->dp_bkgd_clr, mach64->dp_frgd_clr,
-                                                                mach64_3d_pack(ctx, dst.format, src, x, y));
-                        src        = mach64_3d_unpack(ctx, dst.format, raw, 0);
-                        raw_source = 1;
-                    }
-                    if (px.dst_compare &&
-                        mach64_3d_destination_compare_inhibits(mach64->clr_cmp_cntl, mach64->clr_cmp_clr, mach64->clr_cmp_mask,
-                                                               mach64_3d_vram_read(mach64, addr, dst.bpp), px.dst_compare_mask))
-                        draw = 0;
-                    if (draw) {
-                        if (raw_source)
-                            mach64_3d_write_dst_raw(ctx, addr, dst.format, raw);
-                        else
-                            mach64_3d_write_dst(ctx, addr, dst.format, src);
-                        if (px.z_write)
-                            mach64_3d_vram_write(mach64, z_addr, depth, 2);
-                    }
-                }
-
-                addr += dst.bpp;
-                if (px.z_enabled)
-                    z_addr += 2;
-                r += p.rx * lead_dir;
-                g += p.gx * lead_dir;
-                b += p.bx * lead_dir;
-                a += p.ax * lead_dir;
-                z += p.zx * lead_dir;
-                if (px.textured) {
-                    s += dsdx;
-                    t += dtdx;
-                    dsdx += p.sx2;
-                    dtdx += p.tx2;
-                    dsdy += p.sxy2 * lead_dir;
-                    dtdy += p.txy2 * lead_dir;
-                }
+            batch += end - first;
+            if (job.nrows == MACH64_3D_ROWS) {
+                mach64_3d_draw_rows(ctx, &job, batch);
+                job.nrows = 0;
+                batch     = 0;
             }
         }
 
@@ -1974,11 +2401,13 @@ mach64_3d_draw_trapezoid(mach64_3d_t *ctx, uint32_t cmd)
         if (lead_steps < 0)
             lead_steps = -lead_steps;
         mach64_3d_edge_step(&trail, &trail_err, trail_inc, trail_dec, trail_dir, trail_zneg);
-        mach64_3d_interp_step_y(&p);
+        mach64_3d_interp_step_y(p);
         for (int step = 0; step < lead_steps; step++)
-            mach64_3d_interp_step_x(&p);
+            mach64_3d_interp_step_x(p);
         y += y_dir;
     }
+    if (job.nrows)
+        mach64_3d_draw_rows(ctx, &job, batch);
 
     /*
      * The edges and interpolators are live registers, like a line's DST_Y_X:
@@ -1989,17 +2418,17 @@ mach64_3d_draw_trapezoid(mach64_3d_t *ctx, uint32_t cmd)
     mach64->dst_bres_err           = lead_err;
     ctx->trail_x                   = trail;
     ctx->regs[TRAIL_BRES_ERR >> 2] = trail_err;
-    ctx->regs[RED_START >> 2]      = mach64_3d_s8_12_encode(p.r);
-    ctx->regs[GREEN_START >> 2]    = mach64_3d_s8_12_encode(p.g);
-    ctx->regs[BLUE_START >> 2]     = mach64_3d_s8_12_encode(p.b);
-    ctx->regs[ALPHA_START >> 2]    = mach64_3d_s8_12_encode(p.a);
-    ctx->regs[Z_START >> 2]        = mach64_3d_s16_12_encode(p.z);
-    ctx->regs[S_START >> 2]        = p.s;
-    ctx->regs[S_Y_INC >> 2]        = p.syi;
-    ctx->regs[S_XINC_START >> 2]   = p.sxi;
-    ctx->regs[T_START >> 2]        = p.t;
-    ctx->regs[T_Y_INC >> 2]        = p.tyi;
-    ctx->regs[T_XINC_START >> 2]   = p.txi;
+    ctx->regs[RED_START >> 2]      = mach64_3d_s8_12_encode(p->r);
+    ctx->regs[GREEN_START >> 2]    = mach64_3d_s8_12_encode(p->g);
+    ctx->regs[BLUE_START >> 2]     = mach64_3d_s8_12_encode(p->b);
+    ctx->regs[ALPHA_START >> 2]    = mach64_3d_s8_12_encode(p->a);
+    ctx->regs[Z_START >> 2]        = mach64_3d_s16_12_encode(p->z);
+    ctx->regs[S_START >> 2]        = p->s;
+    ctx->regs[S_Y_INC >> 2]        = p->syi;
+    ctx->regs[S_XINC_START >> 2]   = p->sxi;
+    ctx->regs[T_START >> 2]        = p->t;
+    ctx->regs[T_Y_INC >> 2]        = p->tyi;
+    ctx->regs[T_XINC_START >> 2]   = p->txi;
     ctx->tex_hidden                = TEX_HIDDEN_ALL;
 
     if (mach64->timing)
@@ -2110,7 +2539,7 @@ mach64_3d_draw_line(mach64_3d_t *ctx, uint32_t cmd)
                     draw = 0;
             }
             if (draw) {
-                mach64_3d_write_dst(ctx, addr, dst.format, src);
+                mach64_3d_write_dst(ctx, &ctx->dither, addr, dst.format, src, x, y);
                 if (px.z_write)
                     mach64_3d_vram_write(mach64, z_addr, depth, 2);
             }
@@ -2430,7 +2859,7 @@ mach64_scaler_write_pixel(mach64_3d_t *ctx, uint32_t addr, int format, int x, in
     if (format == 2)
         packed = ((mach64_3d_clamp8(src.r) >> 5) << 5) | ((mach64_3d_clamp8(src.g) >> 5) << 2) | (mach64_3d_clamp8(src.b) >> 6);
     else
-        packed = mach64_3d_pack(ctx, format, src, x, y);
+        packed = mach64_3d_pack(ctx, &ctx->dither, format, src, x, y);
     packed &= pixel_mask;
 
     switch ((mach64->clr_cmp_cntl >> 24) & 3) {
@@ -2876,12 +3305,16 @@ mach64_3d_init(mach64_t *mach64)
 {
     mach64_3d_t *ctx = calloc(1, sizeof(mach64_3d_t));
 
-    ctx->mach64 = mach64;
+    mach64_3d_expand_table_init();
+    mach64_3d_dither_table_init();
+    ctx->mach64  = mach64;
+    ctx->threads = ((mach64->render_threads == 2) || (mach64->render_threads == 4)) ? mach64->render_threads : 1;
     return ctx;
 }
 
 void
 mach64_3d_close(mach64_3d_t *ctx)
 {
+    mach64_3d_helpers_close(ctx);
     free(ctx);
 }

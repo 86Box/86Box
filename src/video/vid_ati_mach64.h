@@ -384,6 +384,7 @@ typedef struct mach64_t {
     /* 3D Rage II+ (GT-B) */
     mach64_3d_t     *gt3d;        /* 3D engine and scaler, vid_ati_mach64_3d.c */
     mach64_timing_t *timing;      /* draw engine timing, vid_ati_mach64_accel.c */
+    int              render_threads; /* threads drawing a large trapezoid's rows */
     mem_mapping_t    aux_mapping; /* the register aperture at BAR2 */
     uint32_t         aux_base;
     uint8_t          gtb_regs[256]; /* control registers kept as written */

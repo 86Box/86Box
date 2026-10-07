@@ -3725,8 +3725,9 @@ mach64gtb_init(const device_t *info)
     io_sethandler(0x46e8, 0x0001, mach64_gtb_genena_in, NULL, NULL, mach64_gtb_genena_out, NULL, NULL, mach64);
     mach64_gtb_gp_io_drive(mach64);
 
-    mach64->gt3d   = mach64_3d_init(mach64);
-    mach64->timing = mach64_timing_init();
+    mach64->render_threads = device_get_config_int("render_threads");
+    mach64->gt3d           = mach64_3d_init(mach64);
+    mach64->timing         = mach64_timing_init();
 
     svga->vblank_start = mach64_vblank_start;
     svga->adv_flags   |= FLAG_PANNING_ATI;
@@ -4085,6 +4086,22 @@ static const device_config_t mach64gtb_config[] = {
         },
         .bios           = { { 0 } }
     },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
@@ -4101,6 +4118,22 @@ static const device_config_t mach64gtb_onboard_config[] = {
             { .description = "2 MB", .value = 2 },
             { .description = "4 MB", .value = 4 },
             { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
         },
         .bios           = { { 0 } }
     },
