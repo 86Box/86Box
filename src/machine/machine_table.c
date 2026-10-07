@@ -8767,7 +8767,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Has IBM PS/55 5551-Sxx, Txx stage 2 firmware. */
+    /* Has IBM PS/2 Type 1 KBC firmware. */
     {
         .name              = "[MCA] IBM PS/55 model 5550-S/T Stage II",
         .internal_name     = "ibmps55_m50t",
@@ -9154,7 +9154,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "IBM PS/55 model 5570-V0/V1", "" }
     },
-    /* Has IBM PS/55 5551-V0x, V1x firmware. */
+    /* Has IBM PS/2 Type 1 KBC firmware. */
     {
         .name              = "[MCA] IBM PS/55 model 5550-V0/V1",
         .internal_name     = "ibmps55_m50v",
