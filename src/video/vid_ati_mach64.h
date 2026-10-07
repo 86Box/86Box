@@ -320,9 +320,10 @@ typedef struct mach64_t {
     ATOMIC_INT   fifo_write_idx;
     ATOMIC_INT   blitter_busy;
 
-    thread_t *fifo_thread;
-    event_t  *wake_fifo_thread;
-    mutex_t  *fifo_mutex; /* held while a FIFO entry runs, by either thread */
+    thread_t  *fifo_thread;
+    event_t   *wake_fifo_thread;
+    atomic_int fifo_wake_pending; /* wake_fifo_thread set, the thread not yet up */
+    mutex_t   *fifo_mutex; /* held while a FIFO entry runs, by either thread */
 
     uint64_t blitter_time;
     uint64_t status_time;
