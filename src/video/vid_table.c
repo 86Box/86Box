@@ -136,7 +136,8 @@ video_cards[] = {
     /* MCA */
     { .device = &mach32_mca_device,                             .flags = VIDEO_FLAG_TYPE_8514      },
     { .device = &gd5426_mca_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &gd5428_mca_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &gd5428_mca_jp_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &gd5428_mca_us_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &radius_svga_multiview_mca_device,              .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et4000_mca_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     /* VLB */
