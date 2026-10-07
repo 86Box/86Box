@@ -821,7 +821,7 @@ load_input_devices(void)
             keyboard_type = KEYBOARD_TYPE_PS2;
     } else if (machine_has_bus(machine, MACHINE_BUS_ISA16) ||
                machine_has_bus(machine, MACHINE_BUS_PCI)) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
+        if (machine_has_flags(machine, MACHINE_KEYBOARD_AX))
             keyboard_type = KEYBOARD_TYPE_AX;
         else
             keyboard_type = KEYBOARD_TYPE_AT;
