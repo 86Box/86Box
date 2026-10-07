@@ -1820,6 +1820,9 @@ pmodeint(int num, int soft)
                 x86np("Int task gate not present", segdat[1] & 0xfffc);
                 return;
             }
+            /* The error code, if any, is pushed onto the new task's stack with
+               the size of the target TSS (word for a 286 TSS, dword for a 386 one). */
+            intgatesize  = (segdat2[2] & 0x0800) ? 32 : 16;
             optype       = OPTYPE_INT;
             cpl_override = 1;
             op_taskswitch286(seg, segdat2, segdat2[2] & 0x0800);
