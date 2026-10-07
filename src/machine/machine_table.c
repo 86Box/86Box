@@ -5909,7 +5909,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags     = MACHINE_VIDEO,
+        .flags     = MACHINE_VIDEO | MACHINE_MFM | MACHINE_ESDI,
         .ram       = {
             .min  = 1024,
             .max  = 2048,
@@ -6828,7 +6828,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_KEYBOARD_JIS | MACHINE_AX,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_KEYBOARD_AX,
         .ram       = {
             .min  = 1024,
             .max  = 4096,
@@ -7272,7 +7272,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags     = MACHINE_VIDEO,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
         .ram       = {
             .min  = 1024,
             .max  = 8192,
@@ -7320,7 +7320,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags     = MACHINE_VIDEO,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
         .ram       = {
             .min  = 1024,
             .max  = 8192,
@@ -7413,7 +7413,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags     = MACHINE_VIDEO | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_KEYBOARD_JIS,
         .ram       = {
             /* 1MB is not enough for the reference disk */
             .min  = 2048,
@@ -8453,7 +8453,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -8501,7 +8501,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -8645,7 +8645,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO_PANEL,
+        .flags     = MACHINE_VIDEO_PANEL | MACHINE_ESDI,
         .ram       = {
             .min  = 1024,
             .max  = 8192,
@@ -8693,7 +8693,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO_PANEL,
+        .flags     = MACHINE_VIDEO_PANEL | MACHINE_ESDI,
         .ram       = {
             .min  = 1024,
             .max  = 8192,
@@ -8741,7 +8741,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_KEYBOARD_JIS,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -8767,7 +8767,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Has IBM PS/55 5551-Sxx, Txx stage 2 firmware. */
+    /* Has IBM PS/2 Type 1 KBC firmware. */
     {
         .name              = "[MCA] IBM PS/55 model 5550-S/T Stage II",
         .internal_name     = "ibmps55_m50t",
@@ -8789,7 +8789,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_KEYBOARD_JIS,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -9080,7 +9080,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -9152,9 +9152,9 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "IBM PS/55 model 5570-V0/V1", "" }
     },
-    /* Has IBM PS/55 5551-V0x, V1x firmware. */
+    /* Has IBM PS/2 Type 1 KBC firmware. */
     {
         .name              = "[MCA] IBM PS/55 model 5550-V0/V1",
         .internal_name     = "ibmps55_m50v",
@@ -9176,7 +9176,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_KEYBOARD_JIS,
         .ram       = {
             .min  = 4096,
             .max  = 65536,
@@ -10294,7 +10294,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO | MACHINE_SOFTFLOAT_ONLY,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_SOFTFLOAT_ONLY,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -27086,7 +27086,7 @@ machine_has_bus(int m, uintptr_t bus_flags)
 int
 machine_has_cartridge(int m)
 {
-    return (machine_has_flags(m, MACHINE_CARTRIDGE) ? 1 : 0);
+    return (machine_has_flags_64(m, MACHINE_CARTRIDGE) ? 1 : 0);
 }
 
 int

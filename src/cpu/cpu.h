@@ -891,6 +891,7 @@ extern void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int 
 extern int lock_legal[256];
 extern int lock_legal_0f[256];
 extern int lock_legal_ba[8];
+extern int lock_legal_c7[8];
 extern int lock_legal_80[8];
 extern int lock_legal_f6[8];
 extern int lock_legal_fe[8];

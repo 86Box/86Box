@@ -108,9 +108,10 @@
 #include <86box/machine.h>
 #include "cpu.h"
 
-#define MFM_TIME          (100 * TIMER_USEC)
-#define MFM_SECTOR_TIME   (500 * TIMER_USEC)
-#define MFM_TYPE_USER 255 /* user drive type */
+#define MFM_TIME           (100 * TIMER_USEC)
+#define MFM_SECTOR_TIME    (500 * TIMER_USEC)
+#define MFM_TYPE_USER 255  /* user drive type */
+#define MFM_SLOT_MASK 0x07 /* planar slot mask */
 
 enum {
     STATE_IDLE = 0,
@@ -1645,9 +1646,14 @@ mfm_init(UNUSED(const device_t *info))
     /* Sectors are 1-based. */
     dev->sector = 1;
 
-    /* Enable the I/O block. */
+    /* Enable the I/O block. The slot is fixed by the planar (in local, see
+       MFM_SLOT_MASK) unless the setting overrides it; 0 means the first free slot. */
     int slotno = device_get_config_int("in_mfm_slot");
-    if (slotno)
+
+    if (slotno == 0)
+        slotno = info->local & MFM_SLOT_MASK;
+
+    if (slotno != 0)
         mca_add_to_slot(mfm_mca_read, mfm_mca_write, mfm_mca_feedb, NULL, dev, slotno - 1);
     else
         mca_add(mfm_mca_read, mfm_mca_write, mfm_mca_feedb, NULL, dev);

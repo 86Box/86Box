@@ -90,7 +90,9 @@
 #define BIOS_FILE_H     "roms/hdd/esdi/90x8970.bin"
 
 #define ESDI_TIME       500.0
-#define CMD_ADAPTER     0
+
+#define ESDI_SLOT_MASK     0x07
+#define ESDI_IS_INTEGRATED 0x08
 
 typedef struct esdi_drive_t {
     int spt;
@@ -149,11 +151,6 @@ typedef struct esdi_t {
 
     uint8_t pos_regs[8];
 } esdi_t;
-
-enum {
-    ESDI_IS_ADAPTER,
-    ESDI_IS_INTEGRATED
-};
 
 static uint8_t
 esdi_bios_read(uint32_t addr, void *priv)
@@ -1672,7 +1669,7 @@ esdi_init(UNUSED(const device_t *info))
     dev->irq_status = 0xff;
     dev->base       = ESDI_IOADDR_PRI;
 
-    if (info->local == ESDI_IS_ADAPTER) {
+    if (!(info->local & ESDI_IS_INTEGRATED)) {
         rom_init_interleaved(&dev->bios_rom,
             BIOS_FILE_H, BIOS_FILE_L,
             0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
@@ -1718,10 +1715,10 @@ esdi_init(UNUSED(const device_t *info))
     }
 
     /* Set the MCA ID for this controller. */
-    if (info->local == ESDI_IS_ADAPTER) {
+    if (!(info->local & ESDI_IS_INTEGRATED)) {
         dev->pos_regs[0] = 0xff;
         dev->pos_regs[1] = 0xdd;
-    } else if (info->local == ESDI_IS_INTEGRATED) {
+    } else {
         dev->pos_regs[0] = 0x9f;
         dev->pos_regs[1] = 0xdf;
     }
@@ -1730,10 +1727,15 @@ esdi_init(UNUSED(const device_t *info))
     esdi_build_diag_status(dev, 0); 
 
     /* Enable the device. */
-    if (info->local == ESDI_IS_INTEGRATED) {
-        /* The slot number of this controller is fixed by the planar. IBM PS/55 5551-T assigns it #5. */
+    if (info->local & ESDI_IS_INTEGRATED) {
+        /* The slot is fixed by the planar (in local, see ESDI_SLOT_MASK) unless the
+           setting overrides it; 0 means the first free slot. */
         int slotno = device_get_config_int("in_esdi_slot");
-        if (slotno)
+
+        if (slotno == 0)
+            slotno = info->local & ESDI_SLOT_MASK;
+
+        if (slotno != 0)
             mca_add_to_slot(esdi_mca_read, esdi_integrated_mca_write, esdi_mca_feedb, esdi_reset, dev, slotno - 1);
         else
             mca_add(esdi_mca_read, esdi_integrated_mca_write, esdi_mca_feedb, esdi_reset, dev);
@@ -1778,7 +1780,7 @@ const device_t esdi_ps2_device = {
     .name          = "IBM ESDI Fixed Disk Adapter",
     .internal_name = "esdi_mca",
     .flags         = DEVICE_MCA,
-    .local         = ESDI_IS_ADAPTER,
+    .local         = 0,
     .init          = esdi_init,
     .close         = esdi_close,
     .reset         = NULL,
@@ -1788,51 +1790,37 @@ const device_t esdi_ps2_device = {
     .config        = NULL
 };
 
-static device_config_t
-    esdi_integrated_config[] = {
-          {
-           .name        = "in_esdi_slot",
-           .description = "Slot #",
-           .type        = CONFIG_SELECTION,
-           .selection   = {
-                { .description = "Auto", .value = 0 },
-                { .description = "1", .value = 1 },
-                { .description = "2", .value = 2 },
-                { .description = "3", .value = 3 },
-                { .description = "4", .value = 4 },
-                { .description = "5", .value = 5 },
-                { .description = "6", .value = 6 },
-                { .description = "7", .value = 7 },
-                { .description = "8", .value = 8 }
-            },
-           .default_int = 0
+static device_config_t esdi_integrated_config[] = {
+    {
+        .name        = "in_esdi_slot",
+        .description = "Slot #",
+        .type        = CONFIG_SELECTION,
+        .selection   = {
+            { .description = "Auto", .value = 0 },
+            { .description = "1",    .value = 1 },
+            { .description = "2",    .value = 2 },
+            { .description = "3",    .value = 3 },
+            { .description = "4",    .value = 4 },
+            { .description = "5",    .value = 5 },
+            { .description = "6",    .value = 6 },
+            { .description = "7",    .value = 7 },
+            { .description = "8",    .value = 8 }
         },
-          { .type = -1 }
+        .default_int = 0
+    },
+    { .type = -1 }
 };
 
-/*
-Device for an IBM DBA (Direct Bus Attachment) hard disk.
-The Disk BIOS is included in the System ROM.
-Some models have an exclusive channel slot for the DBA hard disk.
-Following IBM machines are supported:
-  * PS/2 model 55SX
-  * PS/2 model 65SX
-  * PS/2 model 70 type 3 (Slot #4)
-  * PS/2 model 70 type 4 (Slot #4)
-  * PS/55 model 5550-T (Slot #5)
-  * PS/55 model 5550-V (Slot #5)
-*/
-const device_t
-esdi_integrated_device = {
-    .name = "IBM Integrated Fixed Disk",
+const device_t esdi_integrated_device = {
+    .name          = "IBM Integrated ESDI Fixed Disk",
     .internal_name = "esdi_integrated_mca",
-    .flags = DEVICE_MCA,
-    .local = ESDI_IS_INTEGRATED,
-    .init = esdi_init,
-    .close = esdi_close,
-    .reset = esdi_reset,
-    .available = NULL,
+    .flags         = DEVICE_MCA,
+    .local         = ESDI_IS_INTEGRATED,
+    .init          = esdi_init,
+    .close         = esdi_close,
+    .reset         = esdi_reset,
+    .available     = NULL,
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = esdi_integrated_config
+    .force_redraw  = NULL,
+    .config        = esdi_integrated_config
 };

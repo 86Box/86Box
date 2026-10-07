@@ -748,12 +748,15 @@ opLOCK(uint32_t fetchdat)
 static int
 opLOCK(uint32_t fetchdat)
 {
+    int legal;
     fetchdat = fastreadl(cs + cpu_state.pc);
     if (cpu_state.abrt)
         return 0;
     cpu_state.pc++;
 
-    ILLEGAL_ON(((fetchdat & 0xff) == 0x90) || ((fetchdat & 0xff) == 0xec));
+    legal = is_lock_legal(fetchdat);
+
+    ILLEGAL_ON(legal == 0);
 
     CLOCK_CYCLES(4);
     PREFETCH_PREFIX();

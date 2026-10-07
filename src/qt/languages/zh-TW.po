@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-30 02:49+0000\n"
+"PO-Revision-Date: 2026-10-07 02:17+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -952,7 +952,7 @@ msgid "Press %1 or middle button to release mouse"
 msgstr "按下 %1 或滑鼠中鍵釋放滑鼠"
 
 msgid "Press %1 or side button to release mouse"
-msgstr ""
+msgstr "按壓 %1 或側按鍵以釋放滑鼠"
 
 msgid "Bus"
 msgstr "匯流排"
