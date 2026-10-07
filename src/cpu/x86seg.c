@@ -448,6 +448,11 @@ loadseg(uint16_t seg, x86seg *s)
         s->base    = seg << 4;
         s->seg     = seg;
         s->checked = 1;
+        /* In V86 mode every segment load also resets the limit to 64K, unlike
+           real mode where the cached limit is kept. Otherwise a task switch
+           into a V86 task inherits stale protected-mode limits. */
+        if (cpu_state.eflags & VM_FLAG)
+            do_seg_v86_init(s);
 #ifdef USE_DYNAREC
         if (s == &cpu_state.seg_ds)
             codegen_flat_ds = 0;
