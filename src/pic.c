@@ -276,7 +276,7 @@ void
 pic_reset(void)
 {
     int is_at     = IS_AT(machine);
-    int is_zenith = machine_has_flags(machine, MACHINE_ZENITH);
+    int is_zenith = !!machine_has_flags_64(machine, MACHINE_ZENITH);
     is_at         = is_at || (machines[machine].init == machine_xt_xi8088_init);
     const uint8_t board_flags = pic.flags & PIC_IBM5140;
 
