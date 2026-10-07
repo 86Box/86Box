@@ -233,7 +233,7 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Aztech Sound Galaxy Pro 16 (AZTPR16)", .new = "Aztech Sound Galaxy Pro 16" },
         { .old = "HP Multimedia Pro 16V-A (AZT2320)", .new = "HP Multimedia Pro 16V-A" },
         { .old = "IBM PS/2 ESDI Fixed Disk Adapter (MCA)", .new = "IBM ESDI Fixed Disk Adapter" },
-        { .old = "IBM Integrated Fixed Disk and Controller (MCA)", .new = "IBM Integrated Fixed Disk" },
+        { .old = "IBM Integrated Fixed Disk and Controller (MCA)", .new = "IBM Integrated ESDI Fixed Disk" },
         { .old = "IBM PS/2 ST506 Fixed Disk Adapter (MCA)", .new = "IBM ST506 Fixed Disk Adapter" },
         { .old = "Cirrus Logic GD5401 (ISA) (ACUMOS AVGA1)", .new = "Cirrus Logic GD5401 (ISA)" },
         { .old = "Cirrus Logic GD5401 (ISA) (ACUMOS AVGA1) (On-Board)", .new = "Cirrus Logic GD5401 (ISA) (On-Board)" },
@@ -262,6 +262,7 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Adaptec AHA-2944 Ultra Wide (differential)", .new = "Adaptec AHA-2944UW" },
         { .old = "ATI Mach64GX ISA", .new = "ATI Graphics Pro Turbo (Mach64GX) ISA" },
         { .old = "ATI Mach64GX VLB", .new = "ATI Graphics Pro Turbo (Mach64GX) VLB" },
+        { .old = "IBM Integrated Fixed Disk", .new = "IBM Integrated ESDI Fixed Disk" },
         { 0 }
     };
 

@@ -1788,26 +1788,25 @@ const device_t esdi_ps2_device = {
     .config        = NULL
 };
 
-static device_config_t
-    esdi_integrated_config[] = {
-          {
-           .name        = "in_esdi_slot",
-           .description = "Slot #",
-           .type        = CONFIG_SELECTION,
-           .selection   = {
-                { .description = "Auto", .value = 0 },
-                { .description = "1", .value = 1 },
-                { .description = "2", .value = 2 },
-                { .description = "3", .value = 3 },
-                { .description = "4", .value = 4 },
-                { .description = "5", .value = 5 },
-                { .description = "6", .value = 6 },
-                { .description = "7", .value = 7 },
-                { .description = "8", .value = 8 }
-            },
-           .default_int = 0
+static device_config_t esdi_integrated_config[] = {
+    {
+        .name        = "in_esdi_slot",
+        .description = "Slot #",
+        .type        = CONFIG_SELECTION,
+        .selection   = {
+            { .description = "Auto", .value = 0 },
+            { .description = "1",    .value = 1 },
+            { .description = "2",    .value = 2 },
+            { .description = "3",    .value = 3 },
+            { .description = "4",    .value = 4 },
+            { .description = "5",    .value = 5 },
+            { .description = "6",    .value = 6 },
+            { .description = "7",    .value = 7 },
+            { .description = "8",    .value = 8 }
         },
-          { .type = -1 }
+        .default_int = 0
+    },
+    { .type = -1 }
 };
 
 /*
@@ -1822,17 +1821,16 @@ Following IBM machines are supported:
   * PS/55 model 5550-T (Slot #5)
   * PS/55 model 5550-V (Slot #5)
 */
-const device_t
-esdi_integrated_device = {
-    .name = "IBM Integrated Fixed Disk",
+const device_t esdi_integrated_device = {
+    .name          = "IBM Integrated ESDI Fixed Disk",
     .internal_name = "esdi_integrated_mca",
-    .flags = DEVICE_MCA,
-    .local = ESDI_IS_INTEGRATED,
-    .init = esdi_init,
-    .close = esdi_close,
-    .reset = esdi_reset,
-    .available = NULL,
+    .flags         = DEVICE_MCA,
+    .local         = ESDI_IS_INTEGRATED,
+    .init          = esdi_init,
+    .close         = esdi_close,
+    .reset         = esdi_reset,
+    .available     = NULL,
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = esdi_integrated_config
+    .force_redraw  = NULL,
+    .config        = esdi_integrated_config
 };
