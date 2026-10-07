@@ -548,10 +548,6 @@ loadcs(uint16_t seg)
             cpl_override = 0;
         } else {
             /* System segment */
-            if (!(segdat[2] & 0x8000)) {
-                x86np("Load CS system seg not present", seg & 0xfffc);
-                return;
-            }
             switch (segdat[2] & 0x0f00) {
                 default:
                     x86gpf("Load CS system segment has bits 0-3 of access rights set", seg & 0xfffc);
@@ -643,10 +639,6 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
 #endif
             cycles -= timing_jmp_pm;
         } else { /* System segment */
-            if (!(segdat[2] & 0x8000)) {
-                x86np("Load CS JMP system selector not present", seg & 0xfffc);
-                return;
-            }
             type  = segdat[2] & 0x0f00;
             newpc = segdat[0];
             if (type & 0x0800)
@@ -732,8 +724,12 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                     cycles -= timing_jmp_pm_gate;
                     break;
 
-                case 0x100: /* 286 Task gate */
-                case 0x900: /* 386 Task gate */
+                case 0x100: /* 286 TSS */
+                case 0x900: /* 386 TSS */
+                    if (!(segdat[2] & 0x8000)) {
+                        x86np("Load CS JMP TSS not present", seg & 0xfffc);
+                        return;
+                    }
                     cpu_state.pc = old_pc;
                     optype       = JMP;
                     cpl_override = 1;
@@ -743,7 +739,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                     return;
 
                 default:
-                    x86gpf("Load CS JMP call gate selector unknown type", 0);
+                    x86gpf("Load CS JMP system selector unknown type", seg & 0xfffc);
                     return;
             }
         }
