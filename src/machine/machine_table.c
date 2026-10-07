@@ -27086,7 +27086,7 @@ machine_has_bus(int m, uintptr_t bus_flags)
 int
 machine_has_cartridge(int m)
 {
-    return (machine_has_flags(m, MACHINE_CARTRIDGE) ? 1 : 0);
+    return (machine_has_flags_64(m, MACHINE_CARTRIDGE) ? 1 : 0);
 }
 
 int

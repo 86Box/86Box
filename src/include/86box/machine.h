@@ -95,7 +95,7 @@
 #define MACHINE_LPT_TER           0x0000000000000400ULL /* sys has int ter LPT */
 #define MACHINE_PS2_KBC           0x0000000000000800ULL /* sys has a PS/2 keyboard controller */
                                                         /* this is separate from having PS/2 ports */
-#define MACHINE_UART_PRI          0x0000000000010800ULL /* sys has int pri UART */
+#define MACHINE_UART_PRI          0x0000000000001000ULL /* sys has int pri UART */
 #define MACHINE_UART_SEC          0x0000000000002000ULL /* sys has int sec UART */
 #define MACHINE_UART_TER          0x0000000000004000ULL /* sys has int ter UART */
 #define MACHINE_UART_QUA          0x0000000000008000ULL /* sys has int qua UART */
@@ -107,8 +107,8 @@
 #define MACHINE_APM               0x0000000000080000ULL /* sys has APM */
 #define MACHINE_ACPI              0x0000000000100000ULL /* sys has ACPI */
 #define MACHINE_PCI_INTERNAL      0x0000000000200000ULL /* sys has only internal PCI */
-#define MACHINE_AGP_INTERNAL      0x0000000200000000ULL /* sys has only internal AGP */
-#define MACHINE_CARTRIDGE         0x0000000000400000ULL /* sys has cartridge bays */
+#define MACHINE_AGP_INTERNAL      0x0000000000400000ULL /* sys has only internal AGP */
+#define MACHINE_CARTRIDGE         0x0000000200000000ULL /* sys has cartridge bays */
 /* Feature flags for internal storage controllers. */
 #define MACHINE_MFM               0x0000000000800000ULL /* sys has int MFM/RLL */
 #define MACHINE_XTA               0x0000000001000000ULL /* sys has int XTA */
@@ -122,8 +122,7 @@
 #define MACHINE_ZENITH            0x0000000100000000ULL /* sys is Zenith */
 #define MACHINE_IDE_INTERNAL      0x0000000800000000ULL /* sys int IDE only with the Internal controller */
 /* Combined flags. */
-#define MACHINE_LPT               (MACHINE_LPT_PRI | MACHINE_LPT_SEC | \
-                                   MACHINE_LPT_TER | MACHINE_LPT_QUA)
+#define MACHINE_LPT               (MACHINE_LPT_PRI | MACHINE_LPT_SEC | MACHINE_LPT_TER)
 #define MACHINE_UART              (MACHINE_UART_PRI | MACHINE_UART_SEC | \
                                    MACHINE_UART_TER | MACHINE_UART_QUA)
 #define MACHINE_VIDEO_FIXED       (MACHINE_VIDEO | MACHINE_VIDEO_ONLY) /* sys has fixed int video */
