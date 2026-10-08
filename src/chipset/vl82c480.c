@@ -34,6 +34,7 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 #include <86box/log.h>
+#include "vl82c486_cache.h"
 
 #ifdef ENABLE_VL82C48X_LOG
 int vl82c48x_do_log = ENABLE_VL82C48X_LOG;
@@ -56,6 +57,7 @@ typedef struct vl82c480_t {
     uint8_t  idx;
     uint8_t  regs[256];
     uint32_t banks[4];
+    int      cpu_cache;
 
     uint32_t      sram_size;
     uint8_t      *sram;
@@ -63,6 +65,27 @@ typedef struct vl82c480_t {
 
     void *  log; // New logging system
 } vl82c480_t;
+
+static int
+vl82c486_cache_policy(uint32_t addr, void *priv)
+{
+    const vl82c480_t *dev = (const vl82c480_t *) priv;
+
+    return vl82c486_cache_flags(dev->regs, addr, mem_addr_is_ram(addr));
+}
+
+int
+vl82c486_cpu_cache_enable(void *priv)
+{
+    vl82c480_t *dev = (vl82c480_t *) priv;
+
+    /* Only the standard Intel write-through 486 parts are supported so far. */
+    if (cpu_s->cpu_type != CPU_i486SX && cpu_s->cpu_type != CPU_i486DX)
+        return 0;
+    dev->cpu_cache = 1;
+    cpu_cache_set_handler(vl82c486_cache_policy, dev);
+    return 1;
+}
 
 static int
 vl82c480_shflags(uint8_t access)
@@ -325,6 +348,9 @@ static void
 vl82c480_close(void *priv)
 {
     vl82c480_t *dev = (vl82c480_t *) priv;
+
+    if (dev->cpu_cache)
+        cpu_cache_set_handler(NULL, NULL);
 
     if (dev->sram != NULL)
         free(dev->sram);

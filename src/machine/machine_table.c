@@ -10029,6 +10029,57 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    /* The VLSI VL82C113A holds the KBC and RTC.
+       See doc/hardware/hp-vectra-486n.md for firmware and cache options. */
+    {
+        .name              = "[VLSI 82C486] HP Vectra 486N",
+        .internal_name     = "vect486n",
+        .type              = MACHINE_TYPE_SOCKET1,
+        .chipset           = MACHINE_CHIPSET_VLSI_VL82C486,
+        .init              = machine_at_vect486n_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_SOFTFLOAT_ONLY,
+        .ram       = {
+            .min  = 2048,
+            .max  = 49152,
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        /* The NVR is on the VLSI VL82C113. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cd0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &vect486n_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        /* Reuse the S3 924; AMI and the complete HP C.02.02 BIOS are selectable. */
+        .vid_device               = &s3_86c924_isa_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
     /* Has a VLSI VL82C113A SCAMP Combination I/O which holds the KBC. */
     {
         .name              = "[VLSI 82C486] Olivetti PCS 44/C",

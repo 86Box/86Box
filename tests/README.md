@@ -179,3 +179,24 @@ I/O handlers, with mocked image access, timers, PIC and DMA. The separate
 and compares copied ISO files byte for byte. See the
 [Sony hardware guide](../doc/hardware/sony-cdrom.md) for prerequisites, resource
 settings, the five-version driver matrix, and validation limits.
+
+# CPU cache and TLB diagnostics
+
+Build `cpu_tr_tests`, `cpu_cache_tests` and `vect486n_tests` with
+`BUILD_TESTING=ON`, then run:
+
+```sh
+ctest --test-dir build --output-on-failure -R 'Cpu(Tlb|Cache)Test\.|Vectra486nBiosTest\.'
+```
+
+The six TLB tests exercise production TR6/TR7 accesses, including the HP
+Vectra 486N POST patterns. Thirteen cache tests exercise production CPU and
+memory dispatch: line fills, eviction, write-through, CR0.CD/NW, PCD and page
+walks, partial and cross-line/page accesses, DMA snoops, write protection,
+TR3-TR5 cache-as-RAM, and the VLSI cacheability register decoder. The three
+BIOS-patch tests check the guarded 486N cache-test bypass, its checksum and
+branch target, and rejection of unrecognized images.
+
+These do not prove that the Vectra boots. See the
+[experimental machine notes](../doc/hardware/hp-vectra-486n.md) for scope,
+performance limitations, and remaining hardware/firmware requirements.
