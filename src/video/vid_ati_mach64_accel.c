@@ -485,10 +485,14 @@ run_dma(mach64_t *mach64)
 }
 #endif
 
+/* Wakes the FIFO thread once: a guest polling GUI_STAT calls this between
+   every two reads. The thread clears the flag before it looks at the FIFO,
+   so an entry it might miss sets the event again. */
 __inline void
 mach64_wake_fifo_thread(mach64_t *mach64)
 {
-    thread_set_event(mach64->wake_fifo_thread); /*Wake up FIFO thread if moving from idle*/
+    if (!atomic_exchange(&mach64->fifo_wake_pending, 1))
+        thread_set_event(mach64->wake_fifo_thread); /*Wake up FIFO thread if moving from idle*/
 }
 
 /* Runs the oldest FIFO entry. The caller holds fifo_mutex, so the entries
@@ -547,6 +551,7 @@ mach64_fifo_thread(void *param)
     while (mach64->thread_run) {
         thread_wait_event(mach64->wake_fifo_thread, -1);
         thread_reset_event(mach64->wake_fifo_thread);
+        atomic_store(&mach64->fifo_wake_pending, 0);
         mach64->blitter_busy = 1;
         while (!FIFO_EMPTY) {
             thread_wait_mutex(mach64->fifo_mutex);
