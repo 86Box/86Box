@@ -13136,8 +13136,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
         .ram       = {
-            .min  = 2048,
-            .max  = 131072,
+            .min  = 2048, /* Becomes unstable with less than this amount */
+            .max  = 262144,
             .step = 1024
         },
         .nvrmask                  = 255,
@@ -13186,7 +13186,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 1024,
-            .max  = 262144,
+            .max  = 131072,
             .step = 1024
         },
         .nvrmask                  = 255,
@@ -13233,8 +13233,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCI,
         .flags     = MACHINE_PS2_KBC | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 2048,
-            .max  = 131072,
+            .min  = 2048, /* Gets stuck at POST code D3 with less than this amount */
+            .max  = 229376, /* Gets stuck at the same code with 256 MB */
             .step = 1024
         },
         .nvrmask                  = 255,
@@ -13282,7 +13282,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 1024,
-            .max  = 131072,
+            .max  = 262144,
             .step = 1024
         },
         .nvrmask                  = 127,
@@ -13329,8 +13329,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCI,
         .flags     = MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 5120, /* Hack: machine seems to break with less than 5 MBs of RAM */
-            .max  = 131072,
+            .min  = 2048, /* Gets stuck at POST code D3 with less than this amount */
+            .max  = 65536, /* DOS does not recognize more than this amount */
             .step = 1024
         },
         .nvrmask                  = 127,
@@ -13427,7 +13427,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCIV,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 2048,
+            .min  = 2048, /* Freezes during POST with less than this amount */
             .max  = 262144,
             .step = 1024
         },
@@ -13476,8 +13476,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT,
         .ram       = {
-            .min  = 2048,
-            .max  = 262144,
+            .min  = 1024,
+            .max  = 131072,
             .step = 1024
         },
         .nvrmask                  = 255,
@@ -13498,7 +13498,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "J-Bond PCI400-02", "Taken PCI400-4", "Funworld unknown", "" }
+        .aliases                  = { "J-Bond PCI400-02", "Taken PCI400-4", "Funworld Photo Play 2000", "" }
     },
     /* This has the UMC 88xx on-chip KBC. */
     {
