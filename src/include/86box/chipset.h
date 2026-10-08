@@ -240,6 +240,7 @@ extern const device_t via_vt8231_device;
 
 extern const device_t vl82c480_device;
 extern const device_t vl82c486_device;
+extern int            vl82c486_cpu_cache_enable(void *priv);
 extern const device_t vl82c59x_device;
 extern const device_t vl82c59x_compaq_device;
 extern const device_t vl82c59x_wildcat_device;

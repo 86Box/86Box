@@ -874,6 +874,11 @@ opCLTS(UNUSED(uint32_t fetchdat))
 static int
 opINVD(UNUSED(uint32_t fetchdat))
 {
+    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
+        x86gpf(NULL, 0);
+        return 1;
+    }
+    cpu_cache_invalidate();
     CLOCK_CYCLES(1000);
     CPU_BLOCK_END();
     return 0;
@@ -885,6 +890,8 @@ opWBINVD(UNUSED(uint32_t fetchdat))
         x86gpf(NULL, 0);
         return 1;
     }
+    /* The i486 cache is write-through, so there are no dirty lines to drain. */
+    cpu_cache_invalidate();
     CLOCK_CYCLES(10000);
     CPU_BLOCK_END();
     return 0;
