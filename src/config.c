@@ -759,9 +759,11 @@ load_video(void)
         }
     }
 
-    if (((gfxcard[0] == VID_INTERNAL) && machine_has_flags(machine, MACHINE_VIDEO_8514A)) ||
-        video_card_get_flags(gfxcard[0]) == VIDEO_FLAG_TYPE_8514)
+    if (video_get_primary_flags(machine, gfxcard[0]) == VIDEO_FLAG_TYPE_8514)
         ini_section_delete_var(cat, "8514a");
+
+    if (video_get_primary_flags(machine, gfxcard[0]) == VIDEO_FLAG_TYPE_DA2)
+        ini_section_delete_var(cat, "da2");
 
     voodoo_enabled                   = !!ini_section_get_int(cat, "voodoo", 0);
     ibm8514_standalone_enabled       = !!ini_section_get_int(cat, "8514a", 0);
@@ -819,7 +821,7 @@ load_input_devices(void)
             keyboard_type = KEYBOARD_TYPE_PS2;
     } else if (machine_has_bus(machine, MACHINE_BUS_ISA16) ||
                machine_has_bus(machine, MACHINE_BUS_PCI)) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
+        if (machine_has_flags(machine, MACHINE_KEYBOARD_AX))
             keyboard_type = KEYBOARD_TYPE_AX;
         else
             keyboard_type = KEYBOARD_TYPE_AT;
@@ -2000,7 +2002,8 @@ load_floppy_and_cdrom_drives(void)
         cdrom[c].no_check = ini_section_get_int(cat, temp, 0);
 
         sprintf(temp, "cdrom_%02i_type", c + 1);
-        p = ini_section_get_string(cat, temp, cdrom[c].bus_type == CDROM_BUS_CM100 ? "philips_cm100" :
+        p = ini_section_get_string(cat, temp, cdrom[c].bus_type == CDROM_BUS_SONY ? "sony_cdu31a" :
+                                       cdrom[c].bus_type == CDROM_BUS_CM100 ? "philips_cm100" :
                                        cdrom[c].bus_type == CDROM_BUS_PHILIPS ? "philips_cm205" :
                                        cdrom[c].bus_type == CDROM_BUS_HITACHI ? "hitachi_1503s" :
                                        cdrom[c].bus_type == CDROM_BUS_MKE ? "cr563" : "86cd");
@@ -2022,7 +2025,11 @@ load_floppy_and_cdrom_drives(void)
         /* Default values, needed for proper operation of the Settings dialog. */
         cdrom[c].mke_channel = cdrom[c].ide_channel = cdrom[c].scsi_device_id = c & 3;
 
-        if (cdrom[c].bus_type == CDROM_BUS_CM100) {
+        if (cdrom[c].bus_type == CDROM_BUS_SONY) {
+            if (cdrom_drive_types[cdrom_get_type(c)].bus_type != CDROM_BUS_SONY)
+                cdrom_set_type(c, cdrom_get_from_internal_name("sony_cdu31a"));
+            cdrom[c].speed = cdrom_get_speed(cdrom_get_type(c));
+        } else if (cdrom[c].bus_type == CDROM_BUS_CM100) {
             cdrom_set_type(c, cdrom_get_from_internal_name("philips_cm100"));
             cdrom[c].speed = 1;
         } else if (cdrom[c].bus_type == CDROM_BUS_PHILIPS) {

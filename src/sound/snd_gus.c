@@ -66,6 +66,9 @@
 #define GUS_COMPAQ_N  "roms/sound/gravis/COMPNEW.ROM" /* Compaq/STB UltraSound 32 ROM */
 #define IW_SAMPLE_ROM "roms/sound/gravis/IWROM.BIN" /* 1MB InterWave sample ROM */
 
+#define GUS_REC_SAFEFTY_MARGIN 4096
+#define GUS_REC_MAX_MARGIN (GUS_REC_SAFEFTY_MARGIN * 2)
+
 #ifdef ENABLE_GUS_LOG
 int gus_do_log = ENABLE_GUS_LOG;
 
@@ -268,13 +271,32 @@ typedef struct gus_t {
     uint16_t cur_codec_addr;
     uint8_t  dmaover;
 
-    /* GUS ADC stub */
+    /* GUS ADC */
     uint8_t    adc_srate;
     uint8_t    adc_ctrl;
     uint16_t   adc_freq;
     uint8_t    adc_irq;
     double     inputlatch;
     pc_timer_t sample_timer;
+    uint8_t    rec_dma_ff;
+    uint16_t   rec_dma_data;
+    int     record_pos_read;
+    int     record_pos_write_mic;
+    int     record_phase_mic;
+    int     record_denom_mic;
+    int     record_rate_mic;
+    int32_t record_prev_l_mic;
+    int32_t record_prev_r_mic;
+    int     record_prev_valid_mic;
+    int     record_aa_active_mic;
+    double  record_aa_b0_mic;
+    double  record_aa_b1_mic;
+    double  record_aa_b2_mic;
+    double  record_aa_a1_mic;
+    double  record_aa_a2_mic;
+    double  record_aa_z1_mic[2];
+    double  record_aa_z2_mic[2];
+    int16_t record_buffer[0x10000];
 
     /* GUS PnP */
     void     *pnp_card;
@@ -364,6 +386,7 @@ double ics2101_pan[] = { 0.35481, 0.35481, 0.35481, 0.37584, 0.47315, 0.53088, 0
                          0.74989, 0.79433, 0.84140, 0.89125, 0.94406, 1.00000, 1.00000, 1.00000 };
 
 static double iw_vols_5bits_master_gain[32];
+static double iw_input_gain_vols_4bits[16];
 
 void    gus_write(uint16_t addr, uint8_t val, void *priv);
 uint8_t gus_read(uint16_t addr, void *priv);
@@ -460,28 +483,55 @@ gus_midi_update_int_status(gus_t *gus)
     gus_update_int_status(gus);
 }
 
+static void
+gus_record_resync(gus_t *gus)
+{
+    int pos = (gus->record_pos_write_mic - GUS_REC_SAFEFTY_MARGIN) & 0xFFFF;
+
+    gus->record_pos_read = pos;
+
+    for (int i = 0; i < GUS_REC_SAFEFTY_MARGIN; i++) {
+        gus->record_buffer[pos] = 0;
+        pos                     = (pos + 1) & 0xFFFF;
+    }
+}
+
 void
 gus_input_poll(void *priv)
 {
     gus_t   *gus = (gus_t *) priv;
-    int dma_result;
+    uint32_t dma_result;
 
     timer_advance_u64(&gus->sample_timer, (uint64_t) gus->inputlatch);
 
     if (gus->adc_ctrl & 0x01) {
+        dma_set_drq(gus->dma2, 1);
+        const int diff = (int) (int16_t) (gus->record_pos_write_mic - gus->record_pos_read);
+        if ((diff <= 0) || (diff > GUS_REC_MAX_MARGIN))
+            gus_record_resync(gus);
+
         if (gus->adc_ctrl & 0x02) {
             if (gus->adc_ctrl & 0x04)
-                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x8080);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? (((gus->record_buffer[gus->record_pos_read] >> 8) & 0xff) | (gus->record_buffer[gus->record_pos_read + 1] & 0xff00)) ^ 0x8080 : ((gus->record_buffer[gus->record_pos_read] >> 8) & 0xff) | (gus->record_buffer[gus->record_pos_read + 1] & 0xff00));
             else {
-                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
-                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? (gus->record_buffer[gus->record_pos_read] >> 8) ^ 0x80 : (gus->record_buffer[gus->record_pos_read] >> 8));
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? (gus->record_buffer[gus->record_pos_read + 1] >> 8) ^ 0x80 : (gus->record_buffer[gus->record_pos_read + 1] >> 8));
             }
         } else {
-            if (gus->adc_ctrl & 0x04)
-                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x0080);
-            else
-                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+            if (gus->adc_ctrl & 0x04) {
+                if (gus->rec_dma_ff) {
+                    gus->rec_dma_data |= (gus->record_buffer[gus->record_pos_read] & 0xff00);
+                    dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? gus->rec_dma_data ^ 0x8080 : gus->rec_dma_data);
+                } else {
+                    gus->rec_dma_data = (gus->record_buffer[gus->record_pos_read] >> 8) & 0xff;
+                    dma_result = 0;
+                }
+            } else
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? (gus->record_buffer[gus->record_pos_read] >> 8) ^ 0x80 : (gus->record_buffer[gus->record_pos_read] >> 8));
+            gus->rec_dma_ff = !gus->rec_dma_ff;
         }
+        gus->record_pos_read += 2;
+        gus->record_pos_read &= 0xFFFF;
         if (dma_result & DMA_OVER) {
             gus->adc_ctrl &= 0xfe;
             gus->irqstatus |= 0x80;
@@ -489,6 +539,7 @@ gus_input_poll(void *priv)
             gus_log(gus->log, "ADC DMA complete, firing IRQ\n");
             timer_disable(&gus->sample_timer);
         }
+        dma_set_drq(gus->dma2, 0);
     } else {
         timer_disable(&gus->sample_timer);
     }
@@ -1169,6 +1220,7 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     /* This is the ADC equivalent of index 41h DMA Control and is relied on by MegaEM 3.x */
                     gus->adc_ctrl = val;
                     gus->adc_ctrl &= ~0x40;
+                    gus->rec_dma_ff = 0;
                     if (val & 1)
                         timer_set_delay_u64(&gus->sample_timer, (uint64_t) gus->inputlatch);
                     gus_log(gus->log, "GUS DMA Control write! new val = %02X\n", val);
@@ -1399,6 +1451,8 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                             ad1848_setdma(&gus->ad1848, gus->dma2);
                             if (gus->dma2 != gus->dma)
                                 ad1848_setdma2(&gus->ad1848, gus->dma);
+                            else
+                                ad1848_setdma2(&gus->ad1848, 4);
                         }
 
                         /* Bit 7 of this register fires/clears the secondary IRQ when in combine IRQs mode */
@@ -2692,6 +2746,319 @@ gus_ics2101_filter(void *priv, int channel, double *out_l, double *out_r)
     *out_r = master_r;
 }
 
+#define GUS_RECORD_CLAMP(x) (((x) < -32768) ? -32768 : (((x) > 32767) ? 32767 : (x)))
+
+/* filter when freq < capture rate */
+#define GUS_RECORD_ANTIALIAS 1
+
+/* nyquist anti alias */
+#define GUS_RECORD_AA_NYQ 0.9
+
+/* audio filter called on filter rate change */
+static void
+gus_record_aa_design(gus_t *gus, int out_rate, int in_rate)
+{
+    const double fc    = (GUS_RECORD_AA_NYQ * 0.5) * ((double) out_rate);
+    const double w0    = (2.0 * M_PI * fc) / ((double) in_rate);
+    const double cw    = cos(w0);
+    const double sw    = sin(w0);
+    const double alpha = sw / (2.0 * 0.70710678118654752);
+    const double a0    = 1.0 + alpha;
+
+    gus->record_aa_b0_mic = ((1.0 - cw) / 2.0) / a0;
+    gus->record_aa_b1_mic = (1.0 - cw) / a0;
+    gus->record_aa_b2_mic = gus->record_aa_b0_mic;
+    gus->record_aa_a1_mic = (-2.0 * cw) / a0;
+    gus->record_aa_a2_mic = (1.0 - alpha) / a0;
+}
+
+static double
+gus_record_aa_step(gus_t *gus, int ch, double x)
+{
+    const double y = (gus->record_aa_b0_mic * x) + gus->record_aa_z1_mic[ch];
+
+    gus->record_aa_z1_mic[ch] = (gus->record_aa_b1_mic * x) - (gus->record_aa_a1_mic * y)
+                                + gus->record_aa_z2_mic[ch];
+    gus->record_aa_z2_mic[ch] = (gus->record_aa_b2_mic * x) - (gus->record_aa_a2_mic * y);
+
+    return y;
+}
+
+static void
+gus_put_buffer(int16_t *buffer, int len, void *priv)
+{
+    gus_t                *gus = (gus_t *) priv;
+
+    /* divisor is rate capture device opened at*/
+    const int cap_rate = al_capture_get_rate();
+    const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+    const int rate = gus->adc_freq;
+
+    int c;
+    int gain_l;
+    int gain_r;
+    int sel_l_mic, sel_l_linel;
+    int sel_r_mic, sel_r_liner;
+    int interp;
+    int filt;
+
+    /* freq is 0 until the guest programs a rate  */
+    if (rate <= 0)
+        return;
+
+    if ((denom != gus->record_denom_mic) || (rate != gus->record_rate_mic)) {
+        gus->record_denom_mic      = denom;
+        gus->record_rate_mic       = rate;
+        gus->record_phase_mic      = 0;
+        gus->record_prev_l_mic     = 0;
+        gus->record_prev_r_mic     = 0;
+        gus->record_prev_valid_mic = 0;
+
+        gus->record_aa_z1_mic[0] = 0.0;
+        gus->record_aa_z1_mic[1] = 0.0;
+        gus->record_aa_z2_mic[0] = 0.0;
+        gus->record_aa_z2_mic[1] = 0.0;
+        gus->record_aa_active_mic = 0;
+
+#if GUS_RECORD_ANTIALIAS
+        /* only when decimating */
+        if (rate < denom) {
+            gus_record_aa_design(gus, rate, denom);
+            gus->record_aa_active_mic = 1;
+        }
+#endif
+    }
+
+    interp = (rate != denom);
+    filt   = gus->record_aa_active_mic;
+
+    gain_l = 8;
+    gain_r = 8;
+
+    sel_l_mic = sel_r_mic = 0;
+    sel_l_linel = sel_r_liner = 0;
+
+    sel_l_mic = sel_r_mic = (gus->latch_enable & 0x04) ? 1 : 0;
+    sel_l_linel = sel_r_liner = !(gus->latch_enable & 0x01) ? 1 : 0;
+
+    for (c = 0; c < len * 2; c += 2) {
+        const int32_t cap_l = (int32_t) buffer[c];
+        const int32_t cap_r = (int32_t) buffer[c + 1];
+
+        /* mic is the mono sum of line-in. truncating division for dc symmetry */
+        const int32_t mic = (cap_l + cap_r) / 2;
+
+        int32_t mix_l = (mic * sel_l_mic) + (cap_l * sel_l_linel);
+        int32_t mix_r = (mic * sel_r_mic) + (cap_r * sel_r_liner);
+        int32_t in_l;
+        int32_t in_r;
+
+        /* run on every input frame*/
+        if (filt) {
+            mix_l = (int32_t) lrint(gus_record_aa_step(gus, 0, (double) mix_l));
+            mix_r = (int32_t) lrint(gus_record_aa_step(gus, 1, (double) mix_r));
+        }
+
+        in_l = GUS_RECORD_CLAMP(mix_l * iw_input_gain_vols_4bits[gain_l]);
+        in_r = GUS_RECORD_CLAMP(mix_r * iw_input_gain_vols_4bits[gain_r]);
+
+        /* start new device change with first frame in interpolartor queue */
+        if (!gus->record_prev_valid_mic) {
+            gus->record_prev_l_mic     = in_l;
+            gus->record_prev_r_mic     = in_r;
+            gus->record_prev_valid_mic = 1;
+        }
+
+        /* phase ticks this forward, while-loop for new samples so they arent dropped */
+        gus->record_phase_mic += rate;
+        while (gus->record_phase_mic >= denom) {
+            int32_t out_l;
+            int32_t out_r;
+
+            gus->record_phase_mic -= denom; /* denom tracks input frame vs emitted frame , (rate - phase) / rate */
+
+            if (interp) {
+
+                const int32_t num = rate - gus->record_phase_mic;
+
+                out_l = gus->record_prev_l_mic
+                        + (int32_t) ((((int64_t) (in_l - gus->record_prev_l_mic)) * num) / rate);
+                out_r = gus->record_prev_r_mic
+                        + (int32_t) ((((int64_t) (in_r - gus->record_prev_r_mic)) * num) / rate);
+            } else {
+                out_l = in_l;
+                out_r = in_r;
+            }
+
+            gus->record_buffer[gus->record_pos_write_mic]                = (int16_t) out_l;
+            gus->record_buffer[(gus->record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
+
+            gus->record_pos_write_mic = (gus->record_pos_write_mic + 2) & 0xffff;
+        }
+
+        gus->record_prev_l_mic = in_l;
+        gus->record_prev_r_mic = in_r;
+    }
+}
+
+static void
+iw_record_aa_design(ad1848_t *ad1848, int out_rate, int in_rate)
+{
+    const double fc    = (GUS_RECORD_AA_NYQ * 0.5) * ((double) out_rate);
+    const double w0    = (2.0 * M_PI * fc) / ((double) in_rate);
+    const double cw    = cos(w0);
+    const double sw    = sin(w0);
+    const double alpha = sw / (2.0 * 0.70710678118654752);
+    const double a0    = 1.0 + alpha;
+
+    ad1848->record_aa_b0_mic = ((1.0 - cw) / 2.0) / a0;
+    ad1848->record_aa_b1_mic = (1.0 - cw) / a0;
+    ad1848->record_aa_b2_mic = ad1848->record_aa_b0_mic;
+    ad1848->record_aa_a1_mic = (-2.0 * cw) / a0;
+    ad1848->record_aa_a2_mic = (1.0 - alpha) / a0;
+}
+
+static double
+iw_record_aa_step(ad1848_t *ad1848, int ch, double x)
+{
+    const double y = (ad1848->record_aa_b0_mic * x) + ad1848->record_aa_z1_mic[ch];
+
+    ad1848->record_aa_z1_mic[ch] = (ad1848->record_aa_b1_mic * x) - (ad1848->record_aa_a1_mic * y)
+                                + ad1848->record_aa_z2_mic[ch];
+    ad1848->record_aa_z2_mic[ch] = (ad1848->record_aa_b2_mic * x) - (ad1848->record_aa_a2_mic * y);
+
+    return y;
+}
+
+static void
+iw_put_buffer(int16_t *buffer, int len, void *priv)
+{
+    gus_t                *gus = (gus_t *) priv;
+
+    /* divisor is rate capture device opened at*/
+    const int cap_rate = al_capture_get_rate();
+    const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+    int rate = 0;
+    if (gus->ad1848.iw_mode3)
+        rate = gus->ad1848.rec_freq;
+    else
+        rate = gus->ad1848.freq;
+
+    int c;
+    int gain_l;
+    int gain_r;
+    int sel_l_mic, sel_l_linel;
+    int sel_r_mic, sel_r_liner;
+    int interp;
+    int filt;
+
+    /* freq is 0 until the guest programs a rate  */
+    if (rate <= 0)
+        return;
+
+    if ((denom != gus->ad1848.record_denom_mic) || (rate != gus->ad1848.record_rate_mic)) {
+        gus->ad1848.record_denom_mic      = denom;
+        gus->ad1848.record_rate_mic       = rate;
+        gus->ad1848.record_phase_mic      = 0;
+        gus->ad1848.record_prev_l_mic     = 0;
+        gus->ad1848.record_prev_r_mic     = 0;
+        gus->ad1848.record_prev_valid_mic = 0;
+
+        gus->ad1848.record_aa_z1_mic[0] = 0.0;
+        gus->ad1848.record_aa_z1_mic[1] = 0.0;
+        gus->ad1848.record_aa_z2_mic[0] = 0.0;
+        gus->ad1848.record_aa_z2_mic[1] = 0.0;
+        gus->ad1848.record_aa_active_mic = 0;
+
+#if GUS_RECORD_ANTIALIAS
+        /* only when decimating */
+        if (rate < denom) {
+            iw_record_aa_design(&gus->ad1848, rate, denom);
+            gus->ad1848.record_aa_active_mic = 1;
+        }
+#endif
+    }
+
+    interp = (rate != denom);
+    filt   = gus->ad1848.record_aa_active_mic;
+
+    gain_l = gus->ad1848.regs[0] & 0x0f;
+    gain_r = gus->ad1848.regs[1] & 0x0f;
+
+    sel_l_mic = sel_r_mic = 0;
+    sel_l_linel = sel_r_liner = 0;
+
+    if (gus->type == GUS_INTERWAVE) {
+        sel_l_mic   = (((gus->ad1848.regs[0] & 0xc0) == 0x80) ? 1 : 0);
+        sel_l_linel = (((gus->ad1848.regs[0] & 0xc0) == 0x00) ? 1 : 0);
+
+        sel_r_mic   = (((gus->ad1848.regs[1] & 0xc0) == 0x80) ? 1 : 0);
+        sel_r_liner = (((gus->ad1848.regs[1] & 0xc0) == 0x00) ? 1 : 0);
+    } else { /* GUS MAX drivers only have recording gain control */
+        sel_l_linel = 1;
+        sel_r_liner = 1;
+    }
+
+    for (c = 0; c < len * 2; c += 2) {
+        const int32_t cap_l = (int32_t) buffer[c];
+        const int32_t cap_r = (int32_t) buffer[c + 1];
+
+        /* mic is the mono sum of line-in. truncating division for dc symmetry */
+        const int32_t mic = (cap_l + cap_r) / 2;
+
+        int32_t mix_l = (mic * sel_l_mic) + (cap_l * sel_l_linel);
+        int32_t mix_r = (mic * sel_r_mic) + (cap_r * sel_r_liner);
+        int32_t in_l;
+        int32_t in_r;
+
+        /* run on every input frame*/
+        if (filt) {
+            mix_l = (int32_t) lrint(iw_record_aa_step(&gus->ad1848, 0, (double) mix_l));
+            mix_r = (int32_t) lrint(iw_record_aa_step(&gus->ad1848, 1, (double) mix_r));
+        }
+
+        in_l = GUS_RECORD_CLAMP(mix_l * iw_input_gain_vols_4bits[gain_l]);
+        in_r = GUS_RECORD_CLAMP(mix_r * iw_input_gain_vols_4bits[gain_r]);
+
+        /* start new device change with first frame in interpolartor queue */
+        if (!gus->ad1848.record_prev_valid_mic) {
+            gus->ad1848.record_prev_l_mic     = in_l;
+            gus->ad1848.record_prev_r_mic     = in_r;
+            gus->ad1848.record_prev_valid_mic = 1;
+        }
+
+        /* phase ticks this forward, while-loop for new samples so they arent dropped */
+        gus->ad1848.record_phase_mic += rate;
+        while (gus->ad1848.record_phase_mic >= denom) {
+            int32_t out_l;
+            int32_t out_r;
+
+            gus->ad1848.record_phase_mic -= denom; /* denom tracks input frame vs emitted frame , (rate - phase) / rate */
+
+            if (interp) {
+
+                const int32_t num = rate - gus->ad1848.record_phase_mic;
+
+                out_l = gus->ad1848.record_prev_l_mic
+                        + (int32_t) ((((int64_t) (in_l - gus->ad1848.record_prev_l_mic)) * num) / rate);
+                out_r = gus->ad1848.record_prev_r_mic
+                        + (int32_t) ((((int64_t) (in_r - gus->ad1848.record_prev_r_mic)) * num) / rate);
+            } else {
+                out_l = in_l;
+                out_r = in_r;
+            }
+
+            gus->ad1848.record_buffer[gus->ad1848.record_pos_write_mic]                = (int16_t) out_l;
+            gus->ad1848.record_buffer[(gus->ad1848.record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
+
+            gus->ad1848.record_pos_write_mic = (gus->ad1848.record_pos_write_mic + 2) & 0xffff;
+        }
+
+        gus->ad1848.record_prev_l_mic = in_l;
+        gus->ad1848.record_prev_r_mic = in_r;
+    }
+}
+
 static void
 gus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
@@ -3262,6 +3629,7 @@ gus_init(UNUSED(const device_t *info))
     int     c;
     double  out     = 1.0;
     double  gain;
+    double  attenuation;
     uint8_t gus_ram = device_get_config_int("gus_ram");
     gus_t  *gus     = calloc(1, sizeof(gus_t));
 
@@ -3345,9 +3713,32 @@ gus_init(UNUSED(const device_t *info))
     timer_add(&gus->sample_timer, gus_input_poll, gus, 0);
 
     sound_add_handler(gus_get_buffer, gus);
+    if (gus->type == GUS_MAX) {
+        sound_in_add_handler(iw_put_buffer, gus);
+        sound_in_start_input();
+    } else if (gus->type <= GUS_CLASSIC_37) {
+        sound_in_add_handler(gus_put_buffer, gus);
+        sound_in_start_input();
+    }
 
     if ((gus->type != GUS_ACE) && (device_get_config_int("receive_input")))
         midi_in_handler(1, gus_input_msg, gus_input_sysex, gus_input_remain, gus);
+
+    for (c = 0; c < 16; c++) {
+        attenuation = 0.0;
+        if (c & 0x01)
+            attenuation += 1.5;
+        if (c & 0x02)
+            attenuation += 3.0;
+        if (c & 0x04)
+            attenuation += 6.0;
+        if (c & 0x08)
+            attenuation += 12.0;
+
+        attenuation = pow(10, attenuation / 10);
+
+        iw_input_gain_vols_4bits[c] = (int) (attenuation);
+    }
 
     return gus;
 }
@@ -3445,7 +3836,11 @@ gus_extreme_init(UNUSED(const device_t *info))
     timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
 
+    ess_calc_input_gains();
+
     sound_add_handler(gus_extreme_get_buffer, gus);
+    sound_in_add_handler(ess_put_buffer, gus->ess);
+    sound_in_start_input();
 
     gus->gameport = gameport_add(&gameport_pnp_1io_device);
     gameport_remap(gus->gameport, 0x201);
@@ -3567,6 +3962,22 @@ gus_pnp_init(const device_t *info)
         iw_vols_5bits_master_gain[c] = (attenuation * 65536);
     }
 
+    for (c = 0; c < 16; c++) {
+        attenuation = 0.0;
+        if (c & 0x01)
+            attenuation += 1.5;
+        if (c & 0x02)
+            attenuation += 3.0;
+        if (c & 0x04)
+            attenuation += 6.0;
+        if (c & 0x08)
+            attenuation += 12.0;
+
+        attenuation = pow(10, attenuation / 10);
+
+        iw_input_gain_vols_4bits[c] = (int) (attenuation);
+    }
+
     gus->voices = 14;
 
     gus->samp_latch = (uint64_t) (TIMER_USEC * (1000000.0 / 44100.0));
@@ -3598,6 +4009,8 @@ gus_pnp_init(const device_t *info)
     timer_add(&gus->sample_timer, gus_input_poll, gus, 0);
 
     sound_add_handler(gus_get_buffer, gus);
+    sound_in_add_handler(iw_put_buffer, gus);
+    sound_in_start_input();
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, gus_input_msg, gus_input_sysex, gus_input_remain, gus);
@@ -4118,7 +4531,7 @@ static const device_config_t gus_pnp_compaq_config[] = {
 const device_t gus_device = {
     .name          = "Gravis UltraSound",
     .internal_name = "gus",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = GUS_CLASSIC,
     .init          = gus_init,
     .close         = gus_close,
@@ -4132,7 +4545,7 @@ const device_t gus_device = {
 const device_t gus_v34_device = {
     .name          = "Gravis UltraSound (rev 3.4)",
     .internal_name = "gusv34",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = GUS_CLASSIC_34,
     .init          = gus_init,
     .close         = gus_close,
@@ -4146,7 +4559,7 @@ const device_t gus_v34_device = {
 const device_t gus_v37_device = {
     .name          = "Gravis UltraSound (rev 3.7)",
     .internal_name = "gusv37",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = GUS_CLASSIC_37,
     .init          = gus_init,
     .close         = gus_close,
@@ -4160,7 +4573,7 @@ const device_t gus_v37_device = {
 const device_t gus_max_device = {
     .name          = "Gravis UltraSound MAX",
     .internal_name = "gusmax",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = GUS_MAX,
     .init          = gus_init,
     .close         = gus_close,
@@ -4188,7 +4601,7 @@ const device_t gus_ace_device = {
 const device_t gus_extreme_device = {
     .name          = "Gravis UltraSound Extreme",
     .internal_name = "gusextreme",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = GUS_EXTREME,
     .init          = gus_extreme_init,
     .close         = gus_close,
@@ -4204,7 +4617,7 @@ const device_t gus_extreme_device = {
 const device_t gus_vipermax_device = {
     .name          = "Synergy ViperMAX",
     .internal_name = "gusvipermax",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = GUS_VIPERMAX,
     .init          = gus_extreme_init,
     .close         = gus_close,
@@ -4221,7 +4634,7 @@ const device_t gus_vipermax_device = {
 const device_t gus_pnp_device = {
     .name          = "Gravis UltraSound PnP (Old)",
     .internal_name = "guspnp",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = IW_GUS_PNP_OLD,
     .init          = gus_pnp_init,
     .close         = gus_close,
@@ -4237,7 +4650,7 @@ const device_t gus_pnp_device = {
 const device_t gus_pnp_new_device = {
     .name          = "Gravis UltraSound PnP (New)",
     .internal_name = "guspnp_new",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = IW_GUS_PNP_NEW,
     .init          = gus_pnp_init,
     .close         = gus_close,
@@ -4253,7 +4666,7 @@ const device_t gus_pnp_new_device = {
 const device_t gus_pnp_nocd_device = {
     .name          = "Gravis UltraSound PnP (No CD)",
     .internal_name = "guspnp_nocd",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = IW_GUS_PNP_NOCD,
     .init          = gus_pnp_init,
     .close         = gus_close,
@@ -4267,7 +4680,7 @@ const device_t gus_pnp_nocd_device = {
 const device_t gus_pnp_compaq_device = {
     .name          = "Compaq UltraSound 32",
     .internal_name = "guspnp_compaq",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = IW_GUS_COMPAQ,
     .init          = gus_pnp_init,
     .close         = gus_close,

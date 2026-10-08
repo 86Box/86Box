@@ -197,13 +197,17 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
     for (const auto &card : Models::Devices(video_card_getdevice, video_get_internal_name, video_card_available, 1)) {
         const int c = card.id;
 
+        /* The external display entry belongs to the secondary list only. */
+        if (c == VID_EXTERNAL)
+            continue;
+
         /* Skip "internal" if machine doesn't have it. */
         if ((c == 1) && (machine_has_flags(machineId, MACHINE_VIDEO) == 0))
             continue;
 
         if (card.available && device_is_valid(card.dev, machineId)) {
             QString name = card.name;
-            if (c == 1 && machine_get_vid_device(machineId)) {
+            if (c == 1 && machine_get_vid_device(machineId) && device_available(machine_get_vid_device(machineId))) {
                 name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_vid_device(machineId), machine_get_vid_device(machineId)->internal_name, 0));
             }
             int row = rows.add(name, c);
@@ -217,9 +221,11 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
 
     // TODO
     if (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0) {
+        const bool ext = machine_has_flags(machineId, MACHINE_VIDEO_EXT) > 0;
+
         ui->comboBoxVideo->setEnabled(false);
-        ui->comboBoxVideoSecondary->setEnabled(false);
-        ui->pushButtonConfigureVideoSecondary->setEnabled(false);
+        ui->comboBoxVideoSecondary->setEnabled(ext);
+        ui->pushButtonConfigureVideoSecondary->setEnabled(ext);
         selectedRow = 1;
     } else {
         ui->comboBoxVideo->setEnabled(true);
@@ -292,7 +298,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     auto                      curVideoCard_2 = videoCard[1];
     videoCard[0]                             = ui->comboBoxVideo->currentData().toInt();
     if (videoCard[0] == VID_INTERNAL)
-        ui->pushButtonConfigureVideo->setEnabled(machine_has_flags(machineId, MACHINE_VIDEO) && device_has_config(machine_get_vid_device(machineId)));
+        ui->pushButtonConfigureVideo->setEnabled(machine_has_flags(machineId, MACHINE_VIDEO) && device_has_config(machine_get_vid_device(machineId)) && device_available(machine_get_vid_device(machineId)));
     else
         ui->pushButtonConfigureVideo->setEnabled(video_card_has_config(videoCard[0]) > 0);
     bool machineHasPci = machine_has_bus(machineId, MACHINE_BUS_PCI) > 0;
@@ -301,12 +307,13 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     bool machineHasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA16) > 0;
     bool machineHasMca   = machine_has_bus(machineId, MACHINE_BUS_MCA) > 0;
 
-    bool videoCardHas8514 = ((videoCard[0] == VID_INTERNAL) ? machine_has_flags(machineId, MACHINE_VIDEO_8514A) : (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_8514));
-    bool videoCardHasXga  = ((videoCard[0] == VID_INTERNAL) ? 0 : (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_XGA));
+    bool videoCardHas8514 = (video_get_primary_flags(machineId, videoCard[0]) == VIDEO_FLAG_TYPE_8514);
+    bool videoCardHasXga  = (video_get_primary_flags(machineId, videoCard[0]) == VIDEO_FLAG_TYPE_XGA);
+    bool videoCardHasDa2  = (video_get_primary_flags(machineId, videoCard[0]) == VIDEO_FLAG_TYPE_DA2);
 
     bool machineSupports8514 = ((machineHasIsa16 || machineHasMca) && !videoCardHas8514);
     bool machineSupportsXga  = ((machineHasMca && device_available(&xga_device)) && !videoCardHasXga);
-    bool machineSupportsDa2  = machineHasMca && device_available(&ps55da2_device);
+    bool machineSupportsDa2  = (machineHasMca && device_available(&ps55da2_device) && !videoCardHasDa2);
 
     ui->checkBox8514->setEnabled(machineSupports8514);
     ui->checkBox8514->setChecked(ibm8514_standalone_enabled && machineSupports8514);
@@ -336,15 +343,24 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         return;
     }
     int selectedSecondaryRow = 0;
+    /* The machine's own external display is not a card, so it is not part of the loop below, and
+       it is only offered when the machine's fixed video can drive one. */
+    if (machine_has_flags(machineId, MACHINE_VIDEO_EXT) > 0) {
+        int row = secondaryRows.add(QObject::tr("External"), VID_EXTERNAL);
+        scSecondary->addDevice(&device_external, QObject::tr("External"));
+        if (curVideoCard_2 == VID_EXTERNAL)
+            selectedSecondaryRow = row;
+    }
     for (const auto &card : Models::Devices(video_card_getdevice, video_get_internal_name, video_card_available, 1)) {
         const int c = card.id;
-        if (c < 2)
+
+        /* None, Internal and External are the list's own entries, not cards to drive a monitor. */
+        if ((c == VID_NONE) || (c == VID_INTERNAL) || (c == VID_EXTERNAL))
             continue;
 
         const device_t *video_dev = card.dev;
         const QString  &name      = card.name;
 
-        int primaryFlags   = video_card_get_flags(videoCard[0]);
         int secondaryFlags = video_card_get_flags(c);
 
         const device_t *primary_dev = video_card_getdevice(videoCard[0]);
@@ -353,10 +369,8 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 
         if (card.available
             && device_is_valid(video_dev, machineId)
-            && !(primary_is_agp && secondary_is_agp)
-            && !((secondaryFlags == primaryFlags) && (secondaryFlags != VIDEO_FLAG_TYPE_SECONDARY))
-            && !(((primaryFlags == VIDEO_FLAG_TYPE_8514) || (primaryFlags == VIDEO_FLAG_TYPE_XGA)) && (secondaryFlags != VIDEO_FLAG_TYPE_MDA) && (secondaryFlags != VIDEO_FLAG_TYPE_SECONDARY))
-            && !((primaryFlags != VIDEO_FLAG_TYPE_MDA) && (primaryFlags != VIDEO_FLAG_TYPE_SECONDARY) && ((secondaryFlags == VIDEO_FLAG_TYPE_8514) || (secondaryFlags == VIDEO_FLAG_TYPE_XGA)))) {
+            && (secondaryFlags == VIDEO_FLAG_TYPE_SECONDARY)
+            && !(primary_is_agp && secondary_is_agp)) {
             int row = secondaryRows.add(name, c);
             scSecondary->addDevice(video_dev, name);
             if (c == curVideoCard_2)
@@ -366,7 +380,8 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     secondaryRows.commit();
     ui->comboBoxVideoSecondary->setCurrentIndex(selectedSecondaryRow);
 
-    if ((videoCard[1] == 0) || (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0)) {
+    if ((videoCard[1] == 0) || ((machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0) &&
+                                !machine_has_flags(machineId, MACHINE_VIDEO_EXT))) {
         ui->comboBoxVideoSecondary->setCurrentIndex(0);
         ui->pushButtonConfigureVideoSecondary->setEnabled(false);
     }

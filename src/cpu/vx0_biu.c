@@ -343,7 +343,9 @@ bus_do_io(int io_type)
 {
     int      old_cycles = cycles;
 
-    vx0_biu_log("(%02X) bus_do_io(%02X): %04X\n", opcode, io_type, cpu_state.eaaddr);
+    if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
+        vx0_biu_log("(%02X) bus_do_io(%02X): %04X\n", opcode, io_type, cpu_state.eaaddr);
+    }
 
     if (io_type & BUS_OUT) {
         if (io_type & BUS_WIDE)
@@ -539,7 +541,9 @@ do_bus_access(void)
 {
     int io_type = (biu_state == BIU_STATE_EU) ? bus_request_type : BUS_CODE;
 
-    vx0_biu_log("[%04X:%04X] %02X bus access %02X\n", CS, cpu_state.pc, opcode, io_type);
+    if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
+        vx0_biu_log("[%04X:%04X] %02X bus access %02X\n", CS, cpu_state.pc, opcode, io_type);
+    }
 
     if (io_type != 0) {
         wait_states = 0;
@@ -704,6 +708,9 @@ biu_cycle(void)
 static void
 biu_eu_request(void)
 {
+    if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
+        vx0_biu_log("[%04X:%04X] EU request, biu_state = %02X\n", CS, cpu_state.pc, biu_state);
+    }
     switch (biu_state) {
         default:
             fatal("Invalid BIU state: %02X\n", biu_state);
@@ -760,9 +767,11 @@ biu_eu_request(void)
 void
 wait_vx0(int c, UNUSED(int bus))
 {
-    vx0_biu_log("[%04X:%04X] %02X %i cycles\n", CS, cpu_state.pc, opcode, c);
+    if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
+        vx0_biu_log("[%04X:%04X] %02X %i cycles\n", CS, cpu_state.pc, opcode, c);
+    }
 
-    for (uint8_t i = 0; i < c; i++)
+    for (uint16_t i = 0; i < c; i++)
         biu_cycle();
 }
 
@@ -862,6 +871,10 @@ readmemb_vx0(uint32_t s, uint16_t a)
 {
     uint8_t ret;
 
+    if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
+        vx0_biu_log("[%04X:%04X] readmemb_vx0\n", CS, cpu_state.pc);
+    }
+
     mem_seg          = s;
     mem_addr         = a;
     /* Do this, otherwise, the first half of the operation never happens. */
@@ -881,6 +894,10 @@ uint16_t
 readmemw_vx0(uint32_t s, uint16_t a)
 {
     uint16_t ret;
+
+    if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
+        vx0_biu_log("[%04X:%04X] readmemw_vx0\n", CS, cpu_state.pc);
+    }
 
     mem_seg  = s;
     mem_addr = a;
@@ -915,26 +932,108 @@ readmem_vx0(uint32_t s)
         return (uint16_t) readmemb_vx0(s, cpu_state.eaaddr);
 }
 
+#include <inttypes.h>
+
 uint32_t
 readmeml_vx0(uint32_t s, uint16_t a)
 {
-    uint32_t temp;
+    uint32_t ret = 0;
 
-    temp = (uint32_t) (readmemw_vx0(s, a + 2)) << 16;
-    temp |= readmemw_vx0(s, a);
+    if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
+        vx0_biu_log("[%04X:%04X] readmeml_vx0\n", CS, cpu_state.pc);
+    }
 
-    return temp;
+    mem_seg  = s;
+    mem_addr = a;
+    /* Do this, otherwise, the first half of the operation never happens. */
+    if ((BUS_CYCLE == BUS_T4) && (biu_state == BIU_STATE_EU))
+        BUS_CYCLE_T1;
+    int i = 0;
+    int shift = 0;
+    int len = 0;
+    while (i < 4) {
+        if (i == 3) {
+            bus_request_type = BUS_MEM;
+            biu_begin_eu();
+            biu_wait_for_read_finish();
+            len = 1;
+        } else {
+            if (is8086 && !(a & 1)) {
+                bus_request_type = BUS_MEM | BUS_WIDE;
+                biu_begin_eu();
+                biu_wait_for_read_finish();
+            } else {
+                bus_request_type = BUS_MEM | BUS_HIGH;
+                biu_begin_eu();
+                biu_wait_for_read_finish();
+                biu_state = BIU_STATE_EU;
+                biu_state_length = 0;
+                bus_request_type = BUS_MEM;
+                biu_wait_for_read_finish();
+            }
+            len = 2;
+        }
+        ret |= ((uint32_t) mem_data << shift);
+        shift += (8 * len);
+        i += len;
+        mem_addr = (mem_addr + len) & 0xffff;
+        biu_state = BIU_STATE_EU;
+        biu_state_length = 0;
+    }
+    bus_request_type = 0;
+
+    return ret;
 }
 
 uint64_t
 readmemq_vx0(uint32_t s, uint16_t a)
 {
-    uint64_t temp;
+    uint64_t ret = 0;
 
-    temp = (uint64_t) (readmeml_vx0(s, a + 4)) << 32;
-    temp |= readmeml_vx0(s, a);
+    if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
+        vx0_biu_log("[%04X:%04X] readmemq_vx0\n", CS, cpu_state.pc);
+    }
 
-    return temp;
+    mem_seg  = s;
+    mem_addr = a;
+    /* Do this, otherwise, the first half of the operation never happens. */
+    if ((BUS_CYCLE == BUS_T4) && (biu_state == BIU_STATE_EU))
+        BUS_CYCLE_T1;
+    int i = 0;
+    int shift = 0;
+    int len = 0;
+    while (i < 8) {
+        if (i == 7) {
+            bus_request_type = BUS_MEM;
+            biu_begin_eu();
+            biu_wait_for_read_finish();
+            len = 1;
+        } else {
+            if (is8086 && !(a & 1)) {
+                bus_request_type = BUS_MEM | BUS_WIDE;
+                biu_begin_eu();
+                biu_wait_for_read_finish();
+            } else {
+                bus_request_type = BUS_MEM | BUS_HIGH;
+                biu_begin_eu();
+                biu_wait_for_read_finish();
+                biu_state = BIU_STATE_EU;
+                biu_state_length = 0;
+                bus_request_type = BUS_MEM;
+                biu_wait_for_read_finish();
+            }
+            len = 2;
+        }
+        ret |= ((uint64_t) mem_data << shift);
+        shift += (8 * len);
+        i += len;
+        mem_addr = (mem_addr + len) & 0xffff;
+        biu_state = BIU_STATE_EU;
+        biu_state_length = 0;
+    }
+    bus_request_type = 0;
+
+    return ret;
 }
 
 /* Writes a byte to the memory and advances the BIU. */
@@ -942,6 +1041,10 @@ void
 writememb_vx0(uint32_t s, uint32_t a, uint8_t v)
 {
     uint32_t addr = s + a;
+
+    if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
+        vx0_biu_log("[%04X:%04X] writememb_vx0\n", CS, cpu_state.pc);
+    }
 
     mem_seg          = s;
     mem_addr         = a;
@@ -963,6 +1066,10 @@ void
 writememw_vx0(uint32_t s, uint32_t a, uint16_t v)
 {
     uint32_t addr = s + a;
+
+    if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
+        vx0_biu_log("[%04X:%04X] writememw_vx0\n", CS, cpu_state.pc);
+    }
 
     mem_seg  = s;
     mem_addr = a;
@@ -1002,15 +1109,111 @@ writemem_vx0(uint32_t s, uint16_t v)
 void
 writememl_vx0(uint32_t s, uint32_t a, uint32_t v)
 {
-    writememw_vx0(s, a, v & 0xffff);
-    writememw_vx0(s, a + 2, v >> 16);
+    uint32_t addr = s + a;
+
+    if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
+        vx0_biu_log("[%04X:%04X] writememl_vx0\n", CS, cpu_state.pc);
+    }
+
+    mem_seg  = s;
+    mem_addr = a;
+    mem_data = v;
+    /* Do this, otherwise, the first half of the operation never happens. */
+    if ((BUS_CYCLE == BUS_T4) && (biu_state == BIU_STATE_EU))
+        BUS_CYCLE_T1;
+    int i = 0;
+    int shift = 0;
+    int len = 0;
+    while (i < 4) {
+        if (i == 3) {
+            bus_request_type = BUS_MEM | BUS_OUT;
+            biu_begin_eu();
+            biu_wait_for_write_finish();
+            len = 1;
+        } else {
+            if (is8086 && !(a & 1)) {
+                bus_request_type = BUS_MEM | BUS_OUT | BUS_WIDE;
+                biu_begin_eu();
+                biu_wait_for_write_finish();
+            } else {
+                bus_request_type = BUS_MEM | BUS_OUT | BUS_HIGH;
+                biu_begin_eu();
+                biu_wait_for_write_finish();
+                biu_cycle();
+                biu_state = BIU_STATE_EU;
+                biu_state_length = 0;
+                bus_request_type = BUS_MEM | BUS_OUT;
+                biu_wait_for_write_finish();
+            }
+            len = 2;
+        }
+        shift += (8 * len);
+        mem_data = v >> shift;
+        i += len;
+        mem_addr = (mem_addr + len) & 0xffff;
+        biu_cycle();
+        biu_state = BIU_STATE_EU;
+        biu_state_length = 0;
+    }
+    bus_request_type = 0;
+
+    if ((addr >= 0xf0000) && (addr <= 0xfffff))
+        last_addr = addr & 0xffff;
 }
 
 void
 writememq_vx0(uint32_t s, uint32_t a, uint64_t v)
 {
-    writememl_vx0(s, a, v & 0xffffffff);
-    writememl_vx0(s, a + 4, v >> 32);
+    uint32_t addr = s + a;
+
+    if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
+        vx0_biu_log("[%04X:%04X] writememq_vx0\n", CS, cpu_state.pc);
+    }
+
+    mem_seg  = s;
+    mem_addr = a;
+    mem_data = v;
+    /* Do this, otherwise, the first half of the operation never happens. */
+    if ((BUS_CYCLE == BUS_T4) && (biu_state == BIU_STATE_EU))
+        BUS_CYCLE_T1;
+    int i = 0;
+    int shift = 0;
+    int len = 0;
+    while (i < 8) {
+        if (i == 7) {
+            bus_request_type = BUS_MEM | BUS_OUT;
+            biu_begin_eu();
+            biu_wait_for_write_finish();
+            len = 1;
+        } else {
+            if (is8086 && !(a & 1)) {
+                bus_request_type = BUS_MEM | BUS_OUT | BUS_WIDE;
+                biu_begin_eu();
+                biu_wait_for_write_finish();
+            } else {
+                bus_request_type = BUS_MEM | BUS_OUT | BUS_HIGH;
+                biu_begin_eu();
+                biu_wait_for_write_finish();
+                biu_cycle();
+                biu_state = BIU_STATE_EU;
+                biu_state_length = 0;
+                bus_request_type = BUS_MEM | BUS_OUT;
+                biu_wait_for_write_finish();
+            }
+            len = 2;
+        }
+        shift += (8 * len);
+        mem_data = v >> shift;
+        i += len;
+        mem_addr = (mem_addr + len) & 0xffff;
+        biu_cycle();
+        biu_state = BIU_STATE_EU;
+        biu_state_length = 0;
+    }
+    bus_request_type = 0;
+
+    if ((addr >= 0xf0000) && (addr <= 0xfffff))
+        last_addr = addr & 0xffff;
 }
 
 static void

@@ -748,12 +748,15 @@ opLOCK(uint32_t fetchdat)
 static int
 opLOCK(uint32_t fetchdat)
 {
+    int legal;
     fetchdat = fastreadl(cs + cpu_state.pc);
     if (cpu_state.abrt)
         return 0;
     cpu_state.pc++;
 
-    ILLEGAL_ON(((fetchdat & 0xff) == 0x90) || ((fetchdat & 0xff) == 0xec));
+    legal = is_lock_legal(fetchdat);
+
+    ILLEGAL_ON(legal == 0);
 
     CLOCK_CYCLES(4);
     PREFETCH_PREFIX();
@@ -871,6 +874,11 @@ opCLTS(UNUSED(uint32_t fetchdat))
 static int
 opINVD(UNUSED(uint32_t fetchdat))
 {
+    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
+        x86gpf(NULL, 0);
+        return 1;
+    }
+    cpu_cache_invalidate();
     CLOCK_CYCLES(1000);
     CPU_BLOCK_END();
     return 0;
@@ -882,6 +890,8 @@ opWBINVD(UNUSED(uint32_t fetchdat))
         x86gpf(NULL, 0);
         return 1;
     }
+    /* The i486 cache is write-through, so there are no dirty lines to drain. */
+    cpu_cache_invalidate();
     CLOCK_CYCLES(10000);
     CPU_BLOCK_END();
     return 0;

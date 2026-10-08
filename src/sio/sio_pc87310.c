@@ -261,6 +261,10 @@ pc87310_reset(pc87310_t *dev)
         ide_pri_enable();
     }
     fdc_reset(dev->fdc);
+    fdc_remove(dev->fdc);
+    /* Bit 6: 1 = Disable FDC. */
+    if (!(dev->regs[1] & 0x40))
+        fdc_set_base(dev->fdc, FDC_PRIMARY_ADDR);
 }
 
 static void
@@ -279,7 +283,7 @@ pc87310_init(const device_t *info)
     /* Avoid conflicting with machines that make no use of the PC87310 Internal IDE */
     dev->flags = info->local;
 
-    dev->fdc = device_add(&fdc_at_nsc_pc87310_device);
+    dev->fdc = device_add_params(&fdc_at_nsc_pc87310_device, (void *) FDC_FLAG_PNP);
 
     dev->uart[0] = device_add_inst(&ns16450_device, 1);
     dev->uart[1] = device_add_inst(&ns16450_device, 2);

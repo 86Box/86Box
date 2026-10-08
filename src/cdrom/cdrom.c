@@ -34,6 +34,7 @@
 #include <86box/cdrom_mitsumi.h>
 #include <86box/cdrom_hitachi.h>
 #include <86box/cdrom_philips.h>
+#include <86box/cdrom_sony.h>
 #include <86box/cdrom_cm153.h>
 #include <86box/cdrom_mke.h>
 #include <86box/crc.h>
@@ -133,12 +134,16 @@ static const struct {
     // clang-format off
     { &cdrom_interface_none_device  },
     { &hitachi_cdrom_isa_device     },
-    { &hitachi_cdrom_mca_device     },
     { &mke_cdrom_noncreative_device },
     { &mke_cdrom_device             },
-    { &philips_cm250_device         },
     { &philips_cm153_device         },
+    { &philips_cm250_device         },
+    { &sony_cdu31a_device           },
+    { &sony_creative_device         },
+    { &teac_cdrom_device            },
     { &mitsumi_cdrom_device         },
+    { &teac_cdrom_16bit_device      },
+    { &hitachi_cdrom_mca_device     },
     { NULL                          }
     // clang-format on
 };
@@ -704,6 +709,7 @@ read_toc_session(const cdrom_t *dev, unsigned char *b, const int msf)
     const raw_track_info_t *first      = NULL;
     int                     num        = 0;
     int                     len        = 4;
+    uint8_t                 ft         = 0;
 
     dev->ops->get_raw_track_info(dev->local, &num, rti);
 
@@ -715,54 +721,71 @@ read_toc_session(const cdrom_t *dev, unsigned char *b, const int msf)
 
     if (num != 0) {
         for (int i = 0; i < num; i++) {
-            if ((t[i].session == b[3]) && (t[i].point >= 0x01) && (t[i].point <= 0x63)) {
+            if ((t[i].session == b[3]) && (t[i].point == 0xa0)) {
                 first = &(t[i]);
                 break;
             }
         }
+
         if (first != NULL) {
             b[len++] = 0x00;
             b[len++] = first->adr_ctl;
-            if ((dev->is_bcd || dev->is_chinon) && (first->point >= 1) &&
-                (first->point <= 99))
-                b[len++] = bin2bcd(first->point);
+            ft = first->pm;
+            if ((dev->is_bcd || dev->is_chinon) && (ft >= 1) && (ft <= 99))
+                b[len++] = bin2bcd(ft);
             else
-                b[len++] = first->point;
+                b[len++] = ft;
             b[len++] = 0x00;
 
-            if (msf) {
-                b[len++] = 0x00;
+            first = NULL;
+            for (int i = 0; i < num; i++) {
+                if ((t[i].session == b[3]) && (t[i].point == ft)) {
+                    first = &(t[i]);
+                    break;
+                }
+            }
 
-                /* NEC CDR-260 speaks BCD. */
-                if (dev->is_bcd) {
-                    int m = first->pm;
-                    int s = first->ps;
-                    int f = first->pf;
+            if (first != NULL) {
+                if (msf) {
+                    b[len++] = 0x00;
 
-                    msf_to_bcd(&m, &s, &f);
+                    /* NEC CDR-260 speaks BCD. */
+                    if (dev->is_bcd) {
+                        int m = first->pm;
+                        int s = first->ps;
+                        int f = first->pf;
 
-                    b[len++] = m;
-                    b[len++] = s;
-                    b[len++] = f;
+                        msf_to_bcd(&m, &s, &f);
+
+                        b[len++] = m;
+                        b[len++] = s;
+                        b[len++] = f;
+                    } else {
+                        b[len++] = first->pm;
+                        b[len++] = first->ps;
+                        b[len++] = first->pf;
+                    }
                 } else {
-                    b[len++] = first->pm;
-                    b[len++] = first->ps;
-                    b[len++] = first->pf;
+                    const uint32_t temp = MSFtoLBA(first->pm, first->ps,
+                                                   first->pf) - 150;
+
+                    b[len++] = temp >> 24;
+                    b[len++] = temp >> 16;
+                    b[len++] = temp >> 8;
+                    b[len++] = temp;
                 }
             } else {
-                const uint32_t temp = MSFtoLBA(first->pm, first->ps,
-                                               first->pf) - 150;
-
-                b[len++] = temp >> 24;
-                b[len++] = temp >> 16;
-                b[len++] = temp >> 8;
-                b[len++] = temp;
+                memset(&(b[len]), 0x00, 4);
+                len += 4;
             }
+        } else {
+            memset(&(b[len]), 0x00, 8);
+            len += 8;
         }
+    } else {
+        memset(&(b[len]), 0x00, 8);
+        len += 8;
     }
-
-    if (len == 4)
-        memset(&(b[len += 8]), 0x00, 8);
 
     return len;
 }
@@ -2450,13 +2473,12 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
                          const uint8_t track, const int type)
 {
     uint8_t                 rti[65536]  = { 0 };
-    uint8_t                 prti[65536] = { 0 };
     const raw_track_info_t *trti        = (raw_track_info_t *) rti;
-    raw_track_info_t *      tprti       = (raw_track_info_t *) prti;
     int                     num         = 0;
     int                     first       = -1;
     int                     t           = -1;
     uint8_t                 ret         = 1;
+    int                     len         = 2;
     uint32_t                temp;
 
     cdrom_log(dev->log,"Read DISC Info TOC Type = %d, track = %d\n", type, track);
@@ -2526,81 +2548,34 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
                         ret = 0;
                     else {
                         temp  = MSFtoLBA(trti[first].pm, trti[first].ps, trti[first].pf) - 150;
-                        b[2]  = trti[first].adr_ctl;
+                        b[2]  = (trti[first].adr_ctl >> 4) | (trti[first].adr_ctl << 4);
                         b[15] = bin2bcd(temp >> 24);
                         b[16] = bin2bcd(temp >> 16);
                         b[17] = bin2bcd(temp >> 8);
                     }
                 } else {
-                    if (num > 0) {
-                        int j = 0;
+                    if (num != 0) {
                         for (int i = 0; i < num; i++) {
-                            if ((trti[i].point >= 0x01) && (trti[i].point <= 0x63)) {
-                                tprti[j] = trti[i];
-                                if (t == -1)
-                                    t = j;
+                            unsigned char *e = &(b[len]);
+                            unsigned char *a = ((unsigned char *) &(trti[i])) + 1;
 
-                                j++;
+                            memcpy(e, a, 10);
+
+                            if ((e[2] >= 1) && (e[2] <= 99))
+                                e[2] = bin2bcd(e[2]);
+
+                            for (int j = 0; j < 3; j++) {
+                                e[3 + j] = bin2bcd(e[3 + j]);
+                                e[7 + j] = bin2bcd(e[7 + j]);
                             }
+
+                            uint8_t adr_ctl = (uint8_t) ((e[0] >> 4) | (e[0] << 4));
+                            e[0] = adr_ctl;
+
+                            len += 10;
                         }
-
-                        /* Bytes 9 and 19 = Number of first and last tracks found before lead out */
-                        b[9] = bin2bcd(tprti[0].point);
-                        b[19] = bin2bcd(tprti[j - 1].point);
-
-                        for (int i = (num - 1); i >= 0; i--) {
-                            if (trti[i].point == 0xa2) {
-                                tprti[j] = trti[i];
-                                tprti[j].point = 0xaa;
-                                if (t == -1)
-                                    t = j;
-
-                                j++;
-                                break;
-                            }
-                        }
-
-                        if (t != -1) {
-                            int lead_out = 0;
-                            int lead_out_trk_num = -1;
-                            for (int i = t; i < j; i++) {
-                                int track = (tprti[i].point > 0x63) ? tprti[i].point : bin2bcd(tprti[i].point);
-                                if (track == 0xaa) {
-                                    lead_out = 1;
-                                    lead_out_trk_num = i;
-                                    break;
-                                } else {
-                                    int pm = tprti[i].pm;
-                                    int ps = tprti[i].ps;
-                                    int pf = tprti[i].pf;
-                                    b[(i * 10) + 32] = tprti[i].adr_ctl;
-                                    b[(i * 10) + 33] = 0x00;
-                                    b[(i * 10) + 34] = track;
-                                    msf_to_bcd(&pm, &ps, &pf);
-                                    b[(i * 10) + 38] = 0x00;
-                                    b[(i * 10) + 39] = pm;
-                                    b[(i * 10) + 40] = ps;
-                                    b[(i * 10) + 41] = pf;
-                                    cdrom_log(dev->log, "I=%d, pm=%d, ps=%d, pf=%d, adr_ctl=%02x, point=%d.\n", i, pm, ps, pf, tprti[i].adr_ctl, tprti[i].point);
-                                }
-                            }
-                            if (lead_out) {
-                                int pm = tprti[lead_out_trk_num].pm;
-                                int ps = tprti[lead_out_trk_num].ps;
-                                int pf = tprti[lead_out_trk_num].pf;
-                                b[22] = tprti[lead_out_trk_num].adr_ctl;
-                                b[23] = 0x00;
-                                b[24] = 0xaa;
-                                msf_to_bcd(&pm, &ps, &pf);
-                                b[28] = 0x00;
-                                b[29] = pm;
-                                b[30] = ps;
-                                b[31] = pf;
-                            }
-                        } else
-                            ret = 0;
                     } else
-                        b[9] = b[19] = 0x00;
+                        ret = 0;
                 }
             } else {
                 b[0] = trti[0].ps;    /* Disc type. */

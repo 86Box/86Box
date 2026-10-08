@@ -152,6 +152,12 @@ typedef struct fdd_drive_t {
     pc_timer_t         poll_time;
     pc_timer_t         seek_timer;
 
+    int                type;
+    int                track;
+    int                densel;
+    int                head;
+    int                turbo;
+    int                check_bpb;
     int                seek_in_progress;
     int                driveloader;
     int                audio_profile;

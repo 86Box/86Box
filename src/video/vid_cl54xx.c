@@ -54,7 +54,8 @@
 #define BIOS_GD5426_MCA_PATH            "roms/video/cirruslogic/Reply.BIN"
 #define BIOS_GD5428_DIAMOND_B1_VLB_PATH "roms/video/cirruslogic/Diamond SpeedStar PRO VLB v3.04.bin"
 #define BIOS_GD5428_ISA_PATH            "roms/video/cirruslogic/5428.bin"
-#define BIOS_GD5428_MCA_PATH            "roms/video/cirruslogic/SVGA141.ROM"
+#define BIOS_GD5428_MCA_JP_PATH         "roms/video/cirruslogic/84G7129.BIN"
+#define BIOS_GD5428_MCA_US_PATH         "roms/video/cirruslogic/06H6915.BIN"
 #define BIOS_GD5428_ONBOARD_ACER_PATH   "roms/machines/acera1g/4alo001.bin"
 #define BIOS_GD5428_PATH                "roms/video/cirruslogic/vlbusjapan.BIN"
 #define BIOS_GD5429_PATH                "roms/video/cirruslogic/5429.vbi"
@@ -5206,7 +5207,7 @@ gd54xx_init(const device_t *info)
                 if (gd54xx->vlb)
                     romfn = BIOS_GD5428_PATH;
                 else if (gd54xx->mca)
-                    romfn = BIOS_GD5428_MCA_PATH;
+                    romfn = (local & 0x400) ? BIOS_GD5428_MCA_US_PATH : BIOS_GD5428_MCA_JP_PATH;
                 else
                     romfn = BIOS_GD5428_ISA_PATH;
             }
@@ -5286,7 +5287,7 @@ gd54xx_init(const device_t *info)
     }
 
     if (info->flags & DEVICE_MCA) {
-        if (id == CIRRUS_ID_CLGD5428)
+        if ((id == CIRRUS_ID_CLGD5428) && (local & 0x400))
             vram              = 1024;
         else
             vram = device_get_config_int("memory");
@@ -5453,7 +5454,7 @@ gd54xx_init(const device_t *info)
         gd54xx->unlocked = 1;
 
     if (gd54xx->mca) {
-        gd54xx->pos_regs[0] = svga->crtc[0x27] == CIRRUS_ID_CLGD5426 ? 0x82 : 0x7b;
+        gd54xx->pos_regs[0] = svga->crtc[0x27] == CIRRUS_ID_CLGD5426 ? 0x82 : ((local & 0x400) ? 0x7b : 0x7a);
         gd54xx->pos_regs[1] = svga->crtc[0x27] == CIRRUS_ID_CLGD5426 ? 0x81 : 0x91;
         mem_mapping_disable(&gd54xx->bios_rom.mapping);
         mca_add(gd5428_mca_read, gd5428_mca_write, gd5428_mca_feedb, NULL, gd54xx);
@@ -5520,9 +5521,15 @@ gd5426_mca_available(void)
 }
 
 static int
-gd5428_mca_available(void)
+gd5428_mca_jp_available(void)
 {
-    return rom_present(BIOS_GD5428_MCA_PATH);
+    return rom_present(BIOS_GD5428_MCA_JP_PATH);
+}
+
+static int
+gd5428_mca_us_available(void)
+{
+    return rom_present(BIOS_GD5428_MCA_US_PATH);
 }
 
 static int
@@ -5637,6 +5644,45 @@ static const device_config_t gd542x_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t gd542x_1mb_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB",   .value = 1024 },
+            { .description = "2 MB",   .value = 2048 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t gd542x_2mb_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2048,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = "2 MB",   .value = 2048 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t gd5422_isa_config[] = {
     {
         .name           = "bios",
@@ -5681,26 +5727,6 @@ static const device_config_t gd5422_isa_config[] = {
         .selection      = {
             { .description = "512 KB", .value =  512 },
             { .description = "1 MB",   .value = 1024 },
-            { .description = ""                      }
-        },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
-static const device_config_t gd5426_config[] = {
-    {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 2048,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "512 KB", .value =  512 },
-            { .description = "1 MB",   .value = 1024 },
-            { .description = "2 MB",   .value = 2048 },
             { .description = ""                      }
         },
         .bios           = { { 0 } }
@@ -5814,26 +5840,7 @@ static const device_config_t gd5428_vlb_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_config_t gd5428_1mb_config[] = {
-    {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 2048,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "1 MB",   .value = 1024 },
-            { .description = "2 MB",   .value = 2048 },
-            { .description = ""                      }
-        },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
-static const device_config_t gd5429_config[] = {
+static const device_config_t gd543x_2mb_config[] = {
     {
         .name           = "memory",
         .description    = "Memory size",
@@ -5845,6 +5852,26 @@ static const device_config_t gd5429_config[] = {
         .selection      = {
             { .description = "1 MB", .value = 1 },
             { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t gd543x_4mb_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
             { .description = ""                 }
         },
         .bios           = { { 0 } }
@@ -5955,45 +5982,6 @@ static const device_config_t gd5430_onboard_vlb_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_config_t gd5440_onboard_config[] = {
-    {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 2,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "1 MB", .value = 1 },
-            { .description = "2 MB", .value = 2 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
-static const device_config_t gd5434_config[] = {
-    {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 4,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "1 MB", .value = 1 },
-            { .description = "2 MB", .value = 2 },
-            { .description = "4 MB", .value = 4 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
 static const device_config_t gd5434_isa_config[] = {
     {
         .name           = "bios",
@@ -6076,25 +6064,6 @@ static const device_config_t gd5434_vlb_config[] = {
             { .description = "32 MB", .value = 32 },
             { .description = "64 MB", .value = 64 },
             { .description = "2048 MB", .value = 2048 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
-static const device_config_t gd5434_onboard_config[] = {
-    {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 2,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "1 MB", .value = 1 },
-            { .description = "2 MB", .value = 2 },
             { .description = ""                 }
         },
         .bios           = { { 0 } }
@@ -6355,7 +6324,22 @@ const device_t gd5426_vlb_device = {
     .available     = gd5428_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5426_config
+    .config        = gd542x_2mb_config
+};
+
+const device_t gd5426_mca_device = {
+    .name          = "Cirrus Logic GD5426 (MCA)",
+    .internal_name = "replymcasvga",
+    .flags         = DEVICE_MCA,
+    .local         = CIRRUS_ID_CLGD5426,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    .available     = gd5426_mca_available,
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .alias         = "Reply Video Adapter",
+    .config        = gd542x_1mb_config
 };
 
 const device_t gd5426_onboard_isa_device = {
@@ -6397,7 +6381,7 @@ const device_t gd5428_isa_device = {
     .available     = gd5428_isa_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5426_config
+    .config        = gd542x_2mb_config
 };
 
 const device_t gd5428_vlb_device = {
@@ -6419,34 +6403,33 @@ const device_t gd5428_vlb_device = {
     .config        = gd5428_vlb_config
 };
 
-const device_t gd5428_mca_device = {
-    .name          = "Cirrus Logic GD5428 (MCA)",
-    .internal_name = "ibm1mbsvga",
+const device_t gd5428_mca_jp_device = {
+    .name          = "Cirrus Logic GD5428 (MCA) (Japanese)",
+    .internal_name = "japanesesvga",
     .flags         = DEVICE_MCA,
     .local         = CIRRUS_ID_CLGD5428,
     .init          = gd54xx_init,
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
-    .available     = gd5428_mca_available,
+    .available     = gd5428_mca_jp_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .alias         = "IBM SVGA Adapter/A",
-    .config        = NULL
+    .config        = gd542x_1mb_config
 };
 
-const device_t gd5426_mca_device = {
-    .name          = "Cirrus Logic GD5426 (MCA)",
-    .internal_name = "replymcasvga",
+const device_t gd5428_mca_us_device = {
+    .name          = "Cirrus Logic GD5428 (MCA) (US/EMEA)",
+    .internal_name = "ibm1mbsvga",
     .flags         = DEVICE_MCA,
-    .local         = CIRRUS_ID_CLGD5426,
+    .local         = CIRRUS_ID_CLGD5428 | 0x400,
     .init          = gd54xx_init,
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
-    .available     = gd5426_mca_available,
+    .available     = gd5428_mca_us_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .alias         = "Reply Video Adapter",
-    .config        = gd5426_config
+    .alias         = "IBM 1MB Short SVGA",
+    .config        = NULL
 };
 
 const device_t gd5428_onboard_device = {
@@ -6474,7 +6457,7 @@ const device_t gd5428_vlb_onboard_device = {
     .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5426_config
+    .config        = gd542x_2mb_config
 };
 
 const device_t gd5428_onboard_vlb_device = {
@@ -6505,7 +6488,7 @@ const device_t gd5428_vlb_onboard_pb450_device = {
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
     .machine       = "PB450",
-    .config        = gd5428_1mb_config
+    .config        = gd542x_1mb_config
 };
 
 const device_t gd5428_vlb_onboard_tandy_device = {
@@ -6534,7 +6517,7 @@ const device_t gd5429_isa_device = {
     .available     = gd5429_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5429_config
+    .config        = gd543x_2mb_config
 };
 
 const device_t gd5429_vlb_device = {
@@ -6548,7 +6531,7 @@ const device_t gd5429_vlb_device = {
     .available     = gd5429_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5429_config
+    .config        = gd543x_2mb_config
 };
 
 const device_t gd5430_vlb_device = {
@@ -6595,7 +6578,7 @@ const device_t gd5430_pci_device = {
     .available     = gd5430_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5429_config
+    .config        = gd543x_2mb_config
 };
 
 const device_t gd5430_onboard_pci_device = {
@@ -6609,7 +6592,7 @@ const device_t gd5430_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5429_config
+    .config        = gd543x_2mb_config
 };
 
 const device_t gd5434_isa_device = {
@@ -6642,7 +6625,7 @@ const device_t gd5434_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5434_onboard_config
+    .config        = gd543x_2mb_config
 };
 
 const device_t gd5434_vlb_device = {
@@ -6670,7 +6653,7 @@ const device_t gd5434_pci_device = {
     .available     = gd5434_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5434_config
+    .config        = gd543x_4mb_config
 };
 
 const device_t gd5436_onboard_pci_device = {
@@ -6684,7 +6667,7 @@ const device_t gd5436_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5434_onboard_config
+    .config        = gd543x_2mb_config
 };
 
 const device_t gd5436_onboard_pci_ics_device = {
@@ -6713,7 +6696,7 @@ const device_t gd5436_pci_device = {
     .available     = gd5436_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5434_config
+    .config        = gd543x_4mb_config
 };
 
 const device_t gd5440_onboard_pci_device = {
@@ -6727,7 +6710,7 @@ const device_t gd5440_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5440_onboard_config
+    .config        = gd543x_2mb_config
 };
 
 const device_t gd5440_pci_device = {
@@ -6741,7 +6724,7 @@ const device_t gd5440_pci_device = {
     .available     = gd5440_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5429_config
+    .config        = gd543x_2mb_config
 };
 
 const device_t gd5446_pci_device = {

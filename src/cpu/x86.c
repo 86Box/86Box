@@ -345,6 +345,7 @@ reset_common(int hard)
     cpu_old_paging = 0;
     if (!hard)
         flushmmucache();
+    cpu_cache_invalidate();
     x86_was_reset = 1;
     cpu_alt_reset = 0;
 
@@ -366,9 +367,7 @@ reset_common(int hard)
 
     if (hard) {
         reset_on_hlt = hlt_reset_pending = 0;
-        cache_index                      = 0;
-        memset(_tr, 0x00, sizeof(_tr));
-        memset(_cache, 0x00, sizeof(_cache));
+        cpu_tr_reset();
 
         /* If we have an AT or PS/2 keyboard controller, make sure the A20 state
            is correct. */

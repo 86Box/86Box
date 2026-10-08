@@ -1219,16 +1219,143 @@ machine_at_4saw2_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t zida4dps_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "4dps",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AwardBIOS v4.50G - Revision 09/21/95 (Taken/J-Bond OEM)",
+                .internal_name = "4dps_0995tjb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/4dps/uni4967.awa", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.50G - Revision 1.4",
+                .internal_name = "4dps_14",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/4dps/4dps14.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.50G - Revision 1.6",
+                .internal_name = "4dps_16",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/4dps/4dps_160.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.50G - Revision 01/10/96 (Taken/J-Bond OEM)",
+                .internal_name = "4dps_0196tjb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/4dps/uni496-p.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.50G - Revision 4.01",
+                .internal_name = "4dps_401",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/4dps/4dps401e.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.50PG - Revision 1.5AF",
+                .internal_name = "4dps_15af",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/4dps/4dps-v10.awa", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51G - Revision 10/07/96 (Taken/J-Bond OEM)",
+                .internal_name = "4dps_1096tjb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/4dps/PCI400.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51G - Revision 1.71",
+                .internal_name = "4dps_171",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/4dps/4DPS_171.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.72F (Funworld OEM)",
+                .internal_name = "4dps_172f",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/4dps/4DPS172G.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 4.00A (patched)",
+                .internal_name = "4dps",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/4dps/4dps400b.bin", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t zida4dps_device = {
+    .name          = "Zida 4DPS",
+    .internal_name = "4dps",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = zida4dps_config
+};
+
 int
 machine_at_4dps_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/4dps/4DPS172G.BIN",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     machine_at_common_init(model);
 

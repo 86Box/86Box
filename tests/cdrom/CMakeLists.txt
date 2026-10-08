@@ -1,4 +1,10 @@
 if(BUILD_TESTING)
+    add_executable(sony_cdrom_tests cdrom_sony_test.cpp ../../src/cdrom/cdrom_sony.c)
+    target_include_directories(sony_cdrom_tests PRIVATE ${PROJECT_SOURCE_DIR}/src/include ${PROJECT_BINARY_DIR}/src/include)
+    target_link_libraries(sony_cdrom_tests PRIVATE GTest::gtest_main)
+    include(GoogleTest)
+    gtest_discover_tests(sony_cdrom_tests)
+
     add_executable(cm100_core_tests
         cm100_core_test.c
         ../../src/cdrom/cm100.c

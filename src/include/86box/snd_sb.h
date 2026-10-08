@@ -273,6 +273,7 @@ extern uint8_t sb_ess_mixer_read(uint16_t addr, void *priv);
 extern void    sb_ess_mixer_reset(sb_t *sb);
 
 extern void sb_get_buffer_sbpro(int32_t *buffer, uint16_t len, void *priv);
+extern void sb_put_buffer_sbpro(int16_t *buffer, int len, void *priv);
 extern void sb_get_music_buffer_sbpro(int32_t *buffer, uint16_t len, void *priv);
 extern void sbpro_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb16_awe32_filter_cd_audio(int channel, double *buffer, void *priv);
@@ -288,6 +289,8 @@ extern void sb_get_music_buffer_ess(int32_t *buffer, uint16_t len, void *priv);
 extern void ess_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void ess_filter_pc_speaker(int channel, double *buffer, void *priv);
 extern void ess_filter_midi(int channel, double *buffer, void *priv);
+extern void ess_put_buffer(int16_t *buffer, int len, void *priv);
+extern void ess_calc_input_gains(void);
 
 extern void   *ess_solo1_legacy_init(void);
 extern void    ess_solo1_legacy_mix_esfm(void *priv, int32_t *buffer, uint16_t len);

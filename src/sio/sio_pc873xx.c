@@ -346,8 +346,9 @@ pc873xx_reset(pc873xx_t *dev)
     serial_handler(dev, 0);
     serial_handler(dev, 1);
     fdc_reset(dev->fdc);
-    if (!dev->fdc_on)
-        fdc_remove(dev->fdc);
+    fdc_remove(dev->fdc);
+    if ((dev->regs[0x00] & 0x08) && !(dev->regs[0x02] & 0x01))
+        fdc_set_base(dev->fdc, (dev->regs[0x00] & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 
     if (dev->has_ide)
         ide_handler(dev);
@@ -366,7 +367,10 @@ pc873xx_init(const device_t *info)
 {
     pc873xx_t *dev = (pc873xx_t *) calloc(1, sizeof(pc873xx_t));
 
-    dev->fdc = device_add(&fdc_at_nsc_device);
+    if (info->local & PCX73XX_DENSEL_LOW)
+        dev->fdc = device_add_params(&fdc_at_nsc_device, (void *) (FDC_FLAG_PNP | FDC_FLAG_DENSEL_INVERT));
+    else
+        dev->fdc = device_add_params(&fdc_at_nsc_device, (void *) FDC_FLAG_PNP);
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
@@ -378,7 +382,7 @@ pc873xx_init(const device_t *info)
     dev->max_reg = dev->is_332 ? 0x08 : 0x02;
 
     dev->has_ide = info->local & (PCX73XX_IDE_PRI | PCX73XX_IDE_SEC);
-    dev->fdc_on  = info->local & PCX73XX_FDC_ON;
+    dev->fdc_on  = !!(info->local & PCX73XX_FDC_ON);
 
     dev->baddr   = (info->local & PCX730X_BADDR) >> PCX730X_BADDR_SHIFT;
     pc873xx_reset(dev);

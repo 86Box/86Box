@@ -184,8 +184,8 @@ fdc_get_current_drive(void)
     return current_drive;
 }
 
-void
-fdc_ctrl_reset(void *priv)
+static void
+fdc_ctrl_reset(void *priv, int reset_power_down)
 {
     fdc_t *fdc = (fdc_t *) priv;
 
@@ -194,7 +194,8 @@ fdc_ctrl_reset(void *priv)
     fdc->st0              = 0;
     fdc->head             = 0;
     fdc->step             = 0;
-    fdc->power_down       = 0;
+    if (reset_power_down)
+        fdc->power_down       = 0;
 
     if (!fdc->lock && !fdc->fifointest) {
         fdc->fifo  = 0;
@@ -688,6 +689,25 @@ fdc_ps2_tdr_per_slot(void)
 static void
 fdc_rate(fdc_t *fdc, int drive)
 {
+    if (fdc->flags & FDC_FLAG_5550) {
+        /* The density is the drive's media sense, not a guest choice: the
+           guest writes the same 3F1h value for 1.44M and 720K media, so
+           latching its bit 4 selects the wrong rate for one of them. */
+        uint8_t dens = (uint8_t) fdd_hole(fdc->fdd[drive]);
+
+        switch (dens) {
+            case 1:
+                fdc->rate = 0;
+                break;
+            case 2:
+                fdc->rate = 3;
+                break;
+            default:
+                fdc->rate = 2;
+                break;
+        }
+    }
+
     fdc_update_rate(fdc, drive);
     fdc_log("FDD %c: [%i] Setting rate: %i, %i, %i (%i, %i, %i)\n", 0x41 + drive,
             fdc->enh_mode, fdc->drvrate[drive], fdc->rate, fdc_get_densel(fdc, drive),
@@ -872,7 +892,7 @@ fdc_soft_reset(fdc_t *fdc)
             ui_sb_update_icon_write(SB_FLOPPY | (fdc->bus + i), 0);
         }
 
-        fdc_ctrl_reset(fdc);
+        fdc_ctrl_reset(fdc, 1);
     }
 }
 
@@ -903,7 +923,7 @@ fdc_pcjx_dor(fdc_t *fdc, uint8_t val)
             picintc(1 << fdc->irq);
         for (int drive = 0; drive < 4; drive++)
             fdd_stop(fdc->fdd[drive]);
-        fdc_ctrl_reset(fdc);
+        fdc_ctrl_reset(fdc, 1);
         fdc->stat = 0;
         fdc->fintr = fdc->data_ready = fdc->paramstogo = 0;
         fdc->tc = fdc->error = fdc->format_state = fdc->reset_stat = 0;
@@ -1006,13 +1026,13 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         fdc->interrupt = -1;
                         ui_sb_update_icon(SB_FLOPPY | fdc->bus, 0);
                         ui_sb_update_icon_write(SB_FLOPPY | fdc->bus, 0);
-                        fdc_ctrl_reset(fdc);
+                        fdc_ctrl_reset(fdc, 1);
                     }
-                    if (!fdd_get_flags(0))
+                    if (!fdd_get_flags(fdc->fdd[0]))
                         val &= 0xfe;
                     fdd_set_motor_enable(fdc->fdd[0], val & 0x01);
                     fdc->st0 &= ~0x07;
-                    fdc->st0 |= (fdd_get_head(0) ? 4 : 0);
+                    fdc->st0 |= (fdd_get_head(fdc->fdd[0]) ? 4 : 0);
                 } else {
                     /*
                        Writing this bit to logic "1" will enable the DRQ,
@@ -1982,15 +2002,24 @@ fdc_callback(void *priv)
     int    old_sector = 0;
     fdc_log("fdc_callback(): %i\n", fdc->interrupt);
     switch (fdc->interrupt) {
-        case -3: /*End of command with interrupt*/
-        case -4: /*Recalibrate/seek completion (PCjr/JX polled status)*/
+        case -3: /* End of command with interrupt */
+        case -4: /* Recalibrate/seek completion (PCjr/JX polled status) */
             fdc_int(fdc, fdc->interrupt & 1);
+            /*
+               A completion can land while the CPU is still reading out a
+               result phase - the command's own timer and the result phase
+               are independent. Overwriting the status there would make the
+               FDC drop the result bytes it has not handed over yet, so only
+               take the status back to idle once the result phase is done;
+               The last byte read leaves the same 0x80 behind by itself.
+             */
+            if (!fdc->paramstogo)
+                fdc->stat = (fdc->stat & 0xf) | 0x80;
+            return;
+        case -2: /* End of command */
             fdc->stat = (fdc->stat & 0xf) | 0x80;
             return;
-        case -2: /*End of command*/
-            fdc->stat = (fdc->stat & 0xf) | 0x80;
-            return;
-        case -5: /*Reset in power down mode */
+        case -5: /* Reset in power down mode */ 
             fdc->perp &= 0xfc;
 
             for (uint8_t i = 0; i < 4; i++) {
@@ -1998,18 +2027,18 @@ fdc_callback(void *priv)
                 ui_sb_update_icon_write(SB_FLOPPY | (fdc->bus + i), 0);
             }
 
-            fdc_ctrl_reset(fdc);
+            fdc_ctrl_reset(fdc, 1);
 
             fdc->fintr = 0;
             memset(fdc->pcn, 0x00, 4 * sizeof(uint16_t));
             return;
-        case -1: /*Reset*/
+        case -1: /* Reset */
             fdc_int(fdc, 1);
             fdc->fintr = 0;
             memset(fdc->pcn, 0x00, 4 * sizeof(uint16_t));
             fdc->reset_stat = 4;
             return;
-        case -6: /*DSR Reset clear*/
+        case -6: /* DSR Reset clear */
             fdc->dsr |= 0x80;
             return;
         case 0x01: /* Mode */
@@ -2861,7 +2890,7 @@ fdc_reset(void *priv)
 
     fdc->lock          = 0;
 
-    fdc_ctrl_reset(fdc);
+    fdc_ctrl_reset(fdc, !(fdc->flags & FDC_FLAG_PNP));
 
     if (!(fdc->flags & FDC_FLAG_AT))
         fdc->rate = 2;
@@ -2870,8 +2899,8 @@ fdc_reset(void *priv)
 
     /* The JX motherboard owns every programmable decode alias. */
     if (!(fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_IBM5140))) {
-        fdc_remove(fdc);
         if (!(fdc->flags & FDC_FLAG_PNP)) {
+            fdc_remove(fdc);
             if (fdc->flags & FDC_FLAG_SEC)
                 fdc_set_base(fdc, FDC_SECONDARY_ADDR);
             else if (fdc->flags & FDC_FLAG_TER)
@@ -2892,7 +2921,8 @@ fdc_reset(void *priv)
         ui_sb_update_icon_write(SB_FLOPPY | (fdc->bus + i), 0);
     }
 
-    fdc->power_down = 0;
+    if (!(fdc->flags & FDC_FLAG_PNP))
+        fdc->power_down = 0;
 
     fdc->media_id   = 0;
 }

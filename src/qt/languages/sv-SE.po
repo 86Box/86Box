@@ -945,6 +945,9 @@ msgstr "Tryck på %1 för att släppa musen"
 msgid "Press %1 or middle button to release mouse"
 msgstr "Tryck på %1 eller mellersta musknappen för att släppa musen"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "Buss"
 
@@ -3516,6 +3519,21 @@ msgstr "938 (Traditionell kinesiska)"
 
 msgid "Sample rate:"
 msgstr "Samplingsfrekvens:"
+
+msgid "Enable audio input (mic/line-in)"
+msgstr ""
+
+msgid "Audio input device:"
+msgstr ""
+
+msgid "Audio input sample rate:"
+msgstr ""
+
+msgid "Rate the emulator mixes to the host output device."
+msgstr ""
+
+msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
+msgstr ""
 
 msgid "CGA lightpen"
 msgstr "CGA-ljuspenna"

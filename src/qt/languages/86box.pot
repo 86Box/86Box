@@ -939,7 +939,7 @@ msgstr ""
 msgid "Press %1 or middle button to release mouse"
 msgstr ""
 
-msgid "Press %1 or thumb button to release mouse"
+msgid "Press %1 or side button to release mouse"
 msgstr ""
 
 msgid "Bus"
@@ -3493,6 +3493,21 @@ msgid "938 (Traditional Chinese)"
 msgstr ""
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "Enable audio input (mic/line-in)"
+msgstr ""
+
+msgid "Audio input device:"
+msgstr ""
+
+msgid "Audio input sample rate:"
+msgstr ""
+
+msgid "Rate the emulator mixes to the host output device."
+msgstr ""
+
+msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
 msgstr ""
 
 msgid "CGA lightpen"

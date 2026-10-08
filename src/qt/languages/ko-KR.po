@@ -952,6 +952,9 @@ msgstr "마우스를 해제하려면 %1을 누르세요"
 msgid "Press %1 or middle button to release mouse"
 msgstr "마우스를 해제하려면 %1 또는 가운데 버튼을 누르세요"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "버스"
 
@@ -3582,6 +3585,21 @@ msgstr "938 (중국어 번체)"
 
 msgid "Sample rate:"
 msgstr "샘플링 주파수:"
+
+msgid "Enable audio input (mic/line-in)"
+msgstr ""
+
+msgid "Audio input device:"
+msgstr ""
+
+msgid "Audio input sample rate:"
+msgstr ""
+
+msgid "Rate the emulator mixes to the host output device."
+msgstr ""
+
+msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
+msgstr ""
 
 msgid "CGA lightpen"
 msgstr "CGA 라이트펜"

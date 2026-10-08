@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-16 15:16+0000\n"
+"PO-Revision-Date: 2026-10-02 12:13+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -945,6 +945,9 @@ msgstr "Aperte %1 para liberar o mouse"
 
 msgid "Press %1 or middle button to release mouse"
 msgstr "Aperte %1 ou botão do meio para liberar o mouse"
+
+msgid "Press %1 or side button to release mouse"
+msgstr "Aperte %1 ou botão lateral para liberar o mouse"
 
 msgid "Bus"
 msgstr "Barramento"
@@ -3517,6 +3520,20 @@ msgstr "938 (Chinês tradicional)"
 msgid "Sample rate:"
 msgstr "Taxa de amostragem:"
 
+msgid "Enable audio input (mic/line-in)"
+msgstr "Habilitar entrada de áudio (mic/line-in)"
+
+msgid "Audio input device:"
+msgstr "Dispositivo de entrada de áudio:"
+
+msgid "Audio input sample rate:"
+msgstr "Taxa de amostragem da entrada de áudio:"
+
+msgid "Rate the emulator mixes to the host output device."
+msgstr "Taxa que o emulador mixa para o dispositivo de saída de áudio."
+
+msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
+msgstr "Taxa que o dispositivo de captura de áudio é aberto no hospedeiro.\n\n44100 é divisível de forma exata pelas taxas de 44.1/22/11 kHz da SB16/AWE32."
 
 msgid "CGA lightpen"
 msgstr "Caneta óptica CGA"

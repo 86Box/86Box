@@ -354,7 +354,7 @@ MainWindow::MainWindow(QWidget *parent)
         scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
-        int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
+        int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_AX) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
         kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
 
         ui->actionMouse->setEnabled(true);
@@ -1163,7 +1163,7 @@ MainWindow::updateMouseStrings()
     if (release_buttons & MOUSE_RELEASE_MIDDLE)
         mouseStringCaptured = tr("Press %1 or middle button to release mouse").arg(seq);
     else if (release_buttons & MOUSE_RELEASE_THUMB)
-        mouseStringCaptured = tr("Press %1 or thumb button to release mouse").arg(seq);
+        mouseStringCaptured = tr("Press %1 or side button to release mouse").arg(seq);
     else
         mouseStringCaptured = tr("Press %1 to release mouse").arg(seq);
 
@@ -1866,7 +1866,7 @@ MainWindow::refreshMediaMenu()
     caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
     kana_label->setToolTip(QShortcut::tr("Kana Lock"));
     int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
-    int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
+    int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_AX) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
     kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
 
     bool enable_comp_option = false;

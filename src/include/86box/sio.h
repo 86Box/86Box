@@ -21,7 +21,8 @@ extern const device_t acc3221_device;
 /* Acer / ALi */
 extern const device_t ali5113_device;
 
-#define ALI5123_370 0x00100
+#define ALI5123_370      0x00100
+#define ALI5123_NO_UART3 0x00200 /* M1543 (non-C): logical device 5 is UART2, no UART3 */
 
 extern const device_t ali5123_device;
 
@@ -65,6 +66,7 @@ extern const device_t fdc37c669_device;
 
 #define FDC37M60X            0x00047
 #define FDC37M70X            0x00042
+#define FDC37B80X            0x00042
 #define FDC37XXXX_CHIP_ID    0x000ff
 
 #define FDC37XXX1            0x00100    /* Compaq KBC firmware and configuration registers on GPIO ports. */
@@ -107,6 +109,7 @@ extern const device_t i82091aa_device;
 #define PCX73XX_IDE_SEC      0x00002
 
 #define PCX73XX_FDC_ON       0x10000
+#define PCX73XX_DENSEL_LOW   0x20000    /* IDENT strapped low: DENSEL active low at 500 kbps and 1 Mbps. */
 
 #define PC87310_ALI          0x00004
 #define PC87332              PC87310_ALI

@@ -285,9 +285,23 @@ int timing_misaligned;
 uint32_t cpu_features;
 uint32_t cpu_fast_off_flags;
 
-uint32_t _tr[8]      = { 0, 0, 0, 0, 0, 0, 0, 0 };
-uint32_t cache_index = 0;
-uint8_t  _cache[2048];
+uint32_t _tr[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+/* 486 on-chip cache, shared with the TR3-TR5 cache test registers. */
+static uint32_t tr_cache_tag[256][4];     /* Tag (bits 31-11) and valid bit (bit 10). */
+static uint32_t tr_cache_data[256][4][4];
+static uint32_t tr_cache_fill_buf[4];
+static uint32_t tr_cache_read_buf[4];
+static uint8_t  tr_cache_lru[256];
+
+int cpu_cache_enabled;
+static int (*cpu_cache_policy)(uint32_t, void *);
+static void *cpu_cache_priv;
+
+/* TR6/TR7 diagnostic TLB, separate from the emulator's address-translation cache. */
+static uint32_t tr_tlb_tag[8][4];
+static uint32_t tr_tlb_data[8][4];
+static uint8_t  tr_tlb_lru[8];
 
 uint64_t cpu_CR4_mask;
 uint64_t tsc = 0;
@@ -421,6 +435,15 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 
     /* Cyrix 6x86MX on the NuPRO 592. */
     if (((cpu_s->cyrix_id & 0xff00) == 0x0400) && (machine_s->init == machine_at_nupro592_init))
+        return 0;
+
+    /* The 486N supports Intel SX/DX/DX2 and 5 V i486 OverDrive upgrades.
+       iDX4 is the CPU table's Socket 1 OverDrive family. */
+    if ((machine_s->init == machine_at_vect486n_init) &&
+        strcmp(cpu_family->internal_name, "i486sx") &&
+        strcmp(cpu_family->internal_name, "i486dx") &&
+        strcmp(cpu_family->internal_name, "i486dx2") &&
+        strcmp(cpu_family->internal_name, "idx4"))
         return 0;
 
     /* Hardwired multipliers on Cobalt machines. */
@@ -4584,5 +4607,275 @@ cpu_update_waitstates(void)
 
         if (cpu_s->rspeed <= 8000000)
             cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
+    }
+}
+
+void
+cpu_tr_reset(void)
+{
+    memset(_tr, 0x00, sizeof(_tr));
+    memset(tr_cache_tag, 0x00, sizeof(tr_cache_tag));
+    memset(tr_cache_data, 0x00, sizeof(tr_cache_data));
+    memset(tr_cache_fill_buf, 0x00, sizeof(tr_cache_fill_buf));
+    memset(tr_cache_read_buf, 0x00, sizeof(tr_cache_read_buf));
+    memset(tr_cache_lru, 0x00, sizeof(tr_cache_lru));
+    memset(tr_tlb_tag, 0x00, sizeof(tr_tlb_tag));
+    memset(tr_tlb_data, 0x00, sizeof(tr_tlb_data));
+    memset(tr_tlb_lru, 0x00, sizeof(tr_tlb_lru));
+}
+
+/* TR5 bits 1-0 = CTL, bits 3-2 = ENT, bits 10-4 = SET (bits 11-4 on the
+   16 kB cache of the IntelDX4). */
+static uint32_t
+cpu_tr_cache_set_mask(void)
+{
+    return (!cpu_f || strcmp(cpu_f->internal_name, "idx4")) ? 0x7f0 : 0xff0;
+}
+
+void
+cpu_cache_invalidate(void)
+{
+    for (int set = 0; set < 256; set++)
+        for (int ent = 0; ent < 4; ent++)
+            tr_cache_tag[set][ent] &= ~0x400;
+    memset(tr_cache_lru, 0, sizeof(tr_cache_lru));
+}
+
+void
+cpu_cache_set_handler(int (*policy)(uint32_t, void *), void *priv)
+{
+    cpu_cache_policy  = policy;
+    cpu_cache_priv    = priv;
+    cpu_cache_enabled = (policy != NULL);
+    cpu_cache_invalidate();
+    flushmmucache();
+}
+
+static void
+cpu_cache_touch(int set, int ent)
+{
+    if (ent < 2)
+        tr_cache_lru[set] = (tr_cache_lru[set] & 4) | 1 | ((ent ^ 1) << 1);
+    else
+        tr_cache_lru[set] = (tr_cache_lru[set] & 2) | ((ent ^ 3) << 2);
+}
+
+static int
+cpu_cache_find(uint32_t addr, int set)
+{
+    const uint32_t mask = ~(cpu_tr_cache_set_mask() | 0x7ff);
+
+    for (int ent = 0; ent < 4; ent++)
+        if ((tr_cache_tag[set][ent] & (mask | 0x400)) == ((addr & mask) | 0x400))
+            return ent;
+    return -1;
+}
+
+/* The caller splits accesses at line boundaries and handles misses using the
+   original bus width. CD, PCD and KEN# inhibit allocation, not cache hits. */
+int
+cpu_cache_read(uint32_t addr, unsigned size, int pcd, uint64_t *value)
+{
+    const int set = (addr & cpu_tr_cache_set_mask()) >> 4;
+    int ent = cpu_cache_find(addr, set);
+
+    if (ent < 0) {
+        if ((cr0 & 0x40000000) || pcd || in_lock ||
+            !(cpu_cache_policy(addr, cpu_cache_priv) & CPU_CACHE_FILL))
+            return 0;
+
+        for (ent = 0; ent < 4; ent++)
+            if (!(tr_cache_tag[set][ent] & 0x400))
+                break;
+        if (ent == 4) {
+            const uint8_t lru = tr_cache_lru[set];
+            ent = (lru & 1) ? (2 | ((lru >> 2) & 1)) : ((lru >> 1) & 1);
+        }
+        mem_read_cache_line(addr & ~15U, tr_cache_data[set][ent]);
+        tr_cache_tag[set][ent] = (addr & ~(cpu_tr_cache_set_mask() | 0x7ff)) | 0x400;
+    }
+    cpu_cache_touch(set, ent);
+    *value = 0;
+    for (unsigned i = 0; i < size; i++) {
+        unsigned offset = (addr & 15) + i;
+        *value |= (uint64_t) ((tr_cache_data[set][ent][offset >> 2] >> ((offset & 3) * 8)) & 0xff) << (i * 8);
+    }
+    return 1;
+}
+
+/* Write misses do not allocate. NW suppresses the bus write only on a hit. */
+int
+cpu_cache_write(uint32_t addr, unsigned size, uint64_t value)
+{
+    const int set = (addr & cpu_tr_cache_set_mask()) >> 4;
+    const int ent = cpu_cache_find(addr, set);
+
+    if (ent < 0)
+        return 0;
+    for (unsigned i = 0; i < size; i++) {
+        unsigned offset = (addr & 15) + i;
+        unsigned shift  = (offset & 3) * 8;
+        uint32_t *data  = &tr_cache_data[set][ent][offset >> 2];
+        *data = (*data & ~(0xffU << shift)) | (((value >> (i * 8)) & 0xff) << shift);
+    }
+    cpu_cache_touch(set, ent);
+    if (cr0 & 0x20000000)
+        return 1;
+    /* VLSI asserts EADS# on writes to protected cacheable ROM regions. */
+    if (cpu_cache_policy(addr, cpu_cache_priv) & CPU_CACHE_WRITE_PROTECT)
+        tr_cache_tag[set][ent] &= ~0x400;
+    return 0;
+}
+
+void
+cpu_cache_snoop(uint32_t addr, unsigned size)
+{
+    if (!cpu_cache_enabled || (cr0 & 0x20000000))
+        return;
+    while (size) {
+        const int set = (addr & cpu_tr_cache_set_mask()) >> 4;
+        const int ent = cpu_cache_find(addr, set);
+        const unsigned count = MIN(size, 16 - (addr & 15));
+        if (ent >= 0)
+            tr_cache_tag[set][ent] &= ~0x400;
+        addr += count;
+        size -= count;
+    }
+}
+
+uint32_t
+cpu_tr_read(int reg)
+{
+    if (reg == 3)
+        _tr[3] = tr_cache_read_buf[(_tr[5] >> 2) & 3];
+
+    return _tr[reg];
+}
+
+/* Intel i486 datasheet, section 8.3: eight sets of four entries.  TR6
+   supplies the linear tag, V and the D/D#, U/U#, W/W# match pairs.
+   TR7 supplies the physical page, PCD/PWT and replacement selection. */
+static void
+cpu_tr_tlb_test(uint32_t val)
+{
+    const int set = (val >> 12) & 7;
+    int       ent;
+
+    if (val & 1) {
+        int hit = -1;
+
+        _tr[7] &= ~0x10;
+        for (ent = 0; ent < 4; ent++) {
+            const uint32_t tag = tr_tlb_tag[set][ent];
+            int match = ((tag ^ val) & 0xfffff800) == 0;
+
+            /* 00 forces a miss, 11 ignores the bit, 01/10 compare 0/1. */
+            for (int bit = 6; bit <= 10; bit += 2) {
+                const int pair = (val >> (bit - 1)) & 3;
+                if (!pair || ((pair != 3) && (((tag ^ val) >> bit) & 1)))
+                    match = 0;
+            }
+            if (match) {
+                /* Multiple matching entries are not a hit. */
+                if (hit != -1)
+                    return;
+                hit = ent;
+            }
+        }
+        if (hit == -1)
+            return;
+
+        ent = hit;
+        /* A lookup reports the LRU state before this access. */
+        _tr[7] = tr_tlb_data[set][ent] | (tr_tlb_lru[set] << 7) | 0x10 | (ent << 2);
+    } else {
+        if (_tr[7] & 0x10)
+            ent = (_tr[7] >> 2) & 3;
+        else if (tr_tlb_lru[set] & 1)
+            ent = 2 | ((tr_tlb_lru[set] >> 2) & 1);
+        else
+            ent = (tr_tlb_lru[set] >> 1) & 1;
+
+        tr_tlb_tag[set][ent]  = val & 0xfffffd40;
+        tr_tlb_data[set][ent] = _tr[7] & 0xfffffc00;
+    }
+
+    if (ent < 2)
+        tr_tlb_lru[set] = (tr_tlb_lru[set] & 4) | 1 | ((ent ^ 1) << 1);
+    else
+        tr_tlb_lru[set] = (tr_tlb_lru[set] & 2) | ((ent ^ 3) << 2);
+}
+
+void
+cpu_tr_write(int reg, uint32_t val)
+{
+    uint32_t set_mask;
+    uint32_t addr;
+    int      set;
+    int      ent;
+    uint8_t  valid = 0x00;
+
+    _tr[reg] = val;
+
+    switch (reg) {
+        default:
+            break;
+
+        case 6:
+            cpu_tr_tlb_test(val);
+            break;
+
+        case 3:
+            /* Writes go to the cache fill buffer, ENT selects the doubleword. */
+            tr_cache_fill_buf[(_tr[5] >> 2) & 3] = val;
+            break;
+
+        case 5:
+            if (_tr[5] & (1 << 19))
+                break;
+
+            set_mask = cpu_tr_cache_set_mask();
+            set      = (_tr[5] & set_mask) >> 4;
+            ent      = (_tr[5] >> 2) & 3;
+
+            switch (_tr[5] & 3) {
+                default:
+                    /* 00 = TR3 data access, ENT selects the doubleword. */
+                    break;
+
+                case 1:
+                    /* Cache write: fill buffer and TR4 tag/valid into the entry. */
+                    tr_cache_tag[set][ent] = _tr[4] & 0xfffffc00;
+                    memcpy(tr_cache_data[set][ent], tr_cache_fill_buf, sizeof(tr_cache_fill_buf));
+                    cpu_cache_touch(set, ent);
+
+                    /* A valid line is returned on reads of its address, which
+                       BIOSes use as cache-as-RAM (the J-Bond PCI400C-A Phoenix
+                       BIOS runs its CPU clock measurement that way). The on-chip
+                       cache is not functionally emulated on other machines, so
+                       retain their existing behavior of putting the line in memory.
+                       Invalid lines (as written by cache tests) are never seen. */
+                    if (!cpu_cache_enabled && (_tr[4] & (1 << 10))) {
+                        addr = (_tr[4] & ~(set_mask | 0x7ff)) | (set << 4);
+                        for (int i = 0; i < 4; i++)
+                            mem_writel_phys(addr + (i << 2), tr_cache_fill_buf[i]);
+                    }
+                    break;
+
+                case 2:
+                    /* Copy the entry into the read buffer and report its tag,
+                       valid bit, all four valid bits and replacement state in TR4. */
+                    for (int i = 0; i < 4; i++)
+                        valid |= ((tr_cache_tag[set][i] >> 10) & 1) << i;
+                    _tr[4] = tr_cache_tag[set][ent] | (tr_cache_lru[set] << 7) | (valid << 3);
+                    memcpy(tr_cache_read_buf, tr_cache_data[set][ent], sizeof(tr_cache_read_buf));
+                    break;
+
+                case 3:
+                    /* Cache flush: invalidate every entry. */
+                    cpu_cache_invalidate();
+                    break;
+            }
+            break;
     }
 }
