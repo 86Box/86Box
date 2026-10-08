@@ -155,6 +155,11 @@ timing-only model. This is not a cycle-accurate implementation or an L2 cache.
   page-table walks use the cache; PCD is honored for line allocation. DMA
   writes through the physical-memory API snoop it without reading cached data.
 
+Cache-aware page-table walks use a separate implementation selected only when
+the functional cache is enabled. With it disabled, the normal page-table walker
+retains its original direct RAM accesses, without cache callbacks or PCD
+bookkeeping. PAE translation is unchanged.
+
 When the functional model is enabled, direct host RAM lookups and compiled
 blocks are disabled because they bypass cache accesses. Selecting the dynamic
 recompiler in this mode still uses its interpreter path. Expect lower host
@@ -187,9 +192,11 @@ Both test installations omit networking. The supplied NT 3.5 boot disk 2 had a W
 with `MsDosInitiated=1`; a working copy with that file removed allows direct CD
 installation without an MS-DOS staging partition. The original media is unchanged.
 
-The Qt 6 build and 25 cache, diagnostic-TLB and BIOS-patch tests pass with
+The Qt 6 build and 28 cache, diagnostic-TLB and BIOS-patch tests pass with
 AddressSanitizer and UndefinedBehaviorSanitizer. LeakSanitizer is disabled
 because process inspection is unavailable in the test sandbox.
+The page-walker tests cover switching the cache on and off, accessed/dirty bits
+for 4 KB and 4 MB pages, and page-fault addresses and error codes in both paths.
 
 The NT 3.5 CD setup test exposed stale ATAPI packet-transfer flags: HP's BIOS
 writes FFh to the shared write-precompensation/Features register while reading

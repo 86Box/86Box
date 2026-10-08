@@ -317,12 +317,10 @@ static void mem_cpu_cache_write(uint32_t addr, unsigned size, uint64_t value);
 /* A 486 page-table walk also uses the unified cache. Directory accesses take
    PCD from CR3, and table accesses take PCD from the directory entry. */
 static uint32_t
-mem_read_pte(uint32_t addr, int pcd)
+mem_read_pte_cached(uint32_t addr, int pcd)
 {
     uint64_t value;
 
-    if (!cpu_cache_enabled)
-        return rammap(addr);
     addr &= rammask;
     if (cpu_cache_read(addr, 4, pcd, &value))
         return value;
@@ -330,16 +328,15 @@ mem_read_pte(uint32_t addr, int pcd)
 }
 
 static void
-mem_write_pte(uint32_t addr, uint32_t value)
+mem_write_pte_cached(uint32_t addr, uint32_t value)
 {
-    if (cpu_cache_enabled)
-        mem_cpu_cache_write(addr & rammask, 4, value);
-    else
-        rammap(addr) = value;
+    mem_cpu_cache_write(addr & rammask, 4, value);
 }
 
-static __inline uint64_t
-mmutranslatereal_normal(uint32_t addr, int rw)
+/* Separate slow path for the Vectra's optional functional cache. Keep the
+   normal walker below free of cache callbacks and PCD bookkeeping. */
+static uint64_t
+mmutranslatereal_cached(uint32_t addr, int rw)
 {
     uint32_t temp;
     uint32_t temp2;
@@ -350,7 +347,7 @@ mmutranslatereal_normal(uint32_t addr, int rw)
         return 0xffffffffffffffffULL;
 
     addr2 = ((cr3 & ~0xfff) + ((addr >> 20) & 0xffc));
-    temp = temp2 = mem_read_pte(addr2, cr3 & 0x10);
+    temp = temp2 = mem_read_pte_cached(addr2, cr3 & 0x10);
     if (!(temp & 1)) {
         cr2 = addr;
         temp &= 1;
@@ -378,7 +375,7 @@ mmutranslatereal_normal(uint32_t addr, int rw)
             return 0xffffffffffffffffULL;
         }
 
-        mem_write_pte(addr2, temp | (rw ? 0x60 : 0x20));
+        mem_write_pte_cached(addr2, temp | (rw ? 0x60 : 0x20));
 
         cpu_cache_pcd[addr >> 12] = temp & 0x10;
         uint64_t page = temp & ~0x3fffff;
@@ -387,7 +384,7 @@ mmutranslatereal_normal(uint32_t addr, int rw)
         return page + (addr & 0x3fffff);
     }
 
-    temp  = mem_read_pte((temp & ~0xfff) + ((addr >> 10) & 0xffc), temp & 0x10);
+    temp  = mem_read_pte_cached((temp & ~0xfff) + ((addr >> 10) & 0xffc), temp & 0x10);
     temp3 = temp & temp2;
     if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !cpl_override && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
         cr2 = addr;
@@ -401,10 +398,78 @@ mmutranslatereal_normal(uint32_t addr, int rw)
         return 0xffffffffffffffffULL;
     }
 
-    mem_write_pte(addr2, temp2 | 0x20);
-    mem_write_pte((temp2 & ~0xfff) + ((addr >> 10) & 0xffc), temp | (rw ? 0x60 : 0x20));
+    mem_write_pte_cached(addr2, temp2 | 0x20);
+    mem_write_pte_cached((temp2 & ~0xfff) + ((addr >> 10) & 0xffc), temp | (rw ? 0x60 : 0x20));
 
     cpu_cache_pcd[addr >> 12] = temp & 0x10;
+    return (uint64_t) ((temp & ~0xfff) + (addr & 0xfff));
+}
+
+static __inline uint64_t
+mmutranslatereal_normal(uint32_t addr, int rw)
+{
+    uint32_t temp;
+    uint32_t temp2;
+    uint32_t temp3;
+    uint32_t addr2;
+
+    if (cpu_state.abrt)
+        return 0xffffffffffffffffULL;
+
+    addr2 = ((cr3 & ~0xfff) + ((addr >> 20) & 0xffc));
+    temp = temp2 = rammap(addr2);
+    if (!(temp & 1)) {
+        cr2 = addr;
+        temp &= 1;
+        if (CPL == 3)
+            temp |= 4;
+        if (rw)
+            temp |= 2;
+        cpu_state.abrt = ABRT_PF;
+        abrt_error     = temp;
+        return 0xffffffffffffffffULL;
+    }
+
+    if ((temp & 0x80) && (cr4 & CR4_PSE)) {
+        /*4MB page*/
+        if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !cpl_override && !(temp & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
+            cr2 = addr;
+            temp &= 1;
+            if (CPL == 3)
+                temp |= 4;
+            if (rw)
+                temp |= 2;
+            cpu_state.abrt = ABRT_PF;
+            abrt_error     = temp;
+
+            return 0xffffffffffffffffULL;
+        }
+
+        rammap(addr2) |= (rw ? 0x60 : 0x20);
+
+        uint64_t page = temp & ~0x3fffff;
+        if (cpu_features & CPU_FEATURE_PSE36)
+            page |= (uint64_t) (temp & 0x1e000) << 19;
+        return page + (addr & 0x3fffff);
+    }
+
+    temp  = rammap((temp & ~0xfff) + ((addr >> 10) & 0xffc));
+    temp3 = temp & temp2;
+    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !cpl_override && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
+        cr2 = addr;
+        temp &= 1;
+        if (CPL == 3)
+            temp |= 4;
+        if (rw)
+            temp |= 2;
+        cpu_state.abrt = ABRT_PF;
+        abrt_error     = temp;
+        return 0xffffffffffffffffULL;
+    }
+
+    rammap(addr2) |= 0x20;
+    rammap((temp2 & ~0xfff) + ((addr >> 10) & 0xffc)) |= (rw ? 0x60 : 0x20);
+
     return (uint64_t) ((temp & ~0xfff) + (addr & 0xfff));
 }
 
@@ -500,6 +565,8 @@ mmutranslatereal(uint32_t addr, int rw)
 
     if (cr4 & CR4_PAE)
         return mmutranslatereal_pae(addr, rw);
+    else if (cpu_cache_enabled)
+        return mmutranslatereal_cached(addr, rw);
     else
         return mmutranslatereal_normal(addr, rw);
 }

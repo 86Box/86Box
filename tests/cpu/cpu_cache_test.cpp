@@ -16,6 +16,7 @@ uint32_t cr2, cr3, cr4;
 uint32_t addr64;
 uint32_t addr64a[8];
 int      cpl_override;
+extern uint32_t abrt_error;
 void
 fatal(const char *, ...)
 {
@@ -73,8 +74,13 @@ protected:
         rammask                = 0xffffffff;
         cpu_state              = { };
         cpu_f                  = nullptr;
-        cr3 = cr4 = 0;
-        in_lock   = 0;
+        cr3 = cr4               = 0;
+        in_lock                = 0;
+        cpl_override           = 0;
+        is486                  = 1;
+        isibm486               = 0;
+        cpu_features           = 0;
+        mem_logical_addr        = 0xffffffff;
         resetreadlookup();
         cpu_tr_reset();
         // The mapping persists between tests, like the machine's RAM mapping.
@@ -239,6 +245,92 @@ TEST_F(CpuCacheTest, PcdFromCr3OrPageTablePreventsAllocation)
     readmemll(0);
     readmemll(0);
     EXPECT_EQ(bus_reads, 32u); // PTE refill and data fill
+}
+
+TEST_F(CpuCacheTest, DisablingCacheRestoresDirectPageTableWalks)
+{
+    wl(0x1000, 0x2003, nullptr);
+    wl(0x2000, 0x5003, nullptr);
+    cr3 = 0x1000;
+    cr0 = 0x80000001;
+    ASSERT_EQ(mmutranslatereal(0x123, 0), 0x5123u);
+
+    // Change backing RAM without a snoop: the cached walker retains its PTE.
+    memory[0x2001] = 0x60;
+    EXPECT_EQ(mmutranslatereal(0x123, 0), 0x5123u);
+    // The accessed-bit write went through to RAM; replace the PTE again.
+    memory[0x2001] = 0x60;
+    cpu_cache_set_handler(nullptr, nullptr);
+    bus_reads = bus_writes = 0;
+    EXPECT_EQ(mmutranslatereal(0x123, 1), 0x6123u);
+    EXPECT_EQ(bus_reads, 0u);
+    EXPECT_EQ(bus_writes, 0u);
+    EXPECT_EQ(memory[0x2000] & 0x60, 0x60);
+
+    cpu_cache_set_handler(cache_policy, nullptr);
+    EXPECT_EQ(mmutranslatereal(0x123, 0), 0x6123u);
+    EXPECT_GT(bus_reads, 0u);
+}
+
+TEST_F(CpuCacheTest, BothPageWalkersUpdateAccessedAndDirtyBits)
+{
+    for (bool cached : { false, true }) {
+        SCOPED_TRACE(cached);
+        cpu_cache_set_handler(cached ? cache_policy : nullptr, nullptr);
+        wl(0x1000, 0x2007, nullptr);
+        wl(0x2000, 0x5007, nullptr);
+        cr3 = 0x1000;
+        cr0 = 0x80000001;
+        cr4 = 0;
+        cpu_state.seg_cs.access = 3 << 5;
+        ASSERT_EQ(mmutranslatereal(0x123, 0), 0x5123u);
+        EXPECT_EQ(rl(0x1000, nullptr), 0x2027u);
+        EXPECT_EQ(rl(0x2000, nullptr), 0x5027u);
+        ASSERT_EQ(mmutranslatereal(0x123, 1), 0x5123u);
+        EXPECT_EQ(rl(0x2000, nullptr), 0x5067u);
+
+        // Retain the existing large-page behavior in both implementations.
+        cpu_cache_invalidate();
+        wl(0x1000, 0x400087, nullptr);
+        cr4 = CR4_PSE;
+        ASSERT_EQ(mmutranslatereal(0x12345, 1), 0x412345u);
+        EXPECT_EQ(rl(0x1000, nullptr), 0x4000e7u);
+    }
+}
+
+TEST_F(CpuCacheTest, BothPageWalkersPreserveFaultsAndPermissions)
+{
+    const struct {
+        const char *name;
+        uint32_t    pde, pte;
+        int         cpl, write;
+        uint32_t    error;
+    } cases[] = {
+        { "directory not present", 0, 0x5007, 0, 0, 0 },
+        { "table not present", 0x2007, 0, 0, 0, 0 },
+        { "user reads supervisor page", 0x2007, 0x5003, 3, 0, 5 },
+        { "supervisor writes read-only page with WP", 0x2007, 0x5005, 0, 1, 3 },
+    };
+    for (bool cached : { false, true }) {
+        SCOPED_TRACE(cached);
+        cpu_cache_set_handler(cached ? cache_policy : nullptr, nullptr);
+        cr3 = 0x1000;
+        cr0 = 0x80010001; // paging, supervisor write protection
+        for (const auto &fault : cases) {
+            SCOPED_TRACE(fault.name);
+            cpu_cache_invalidate();
+            cpu_state.abrt = 0;
+            cpu_state.seg_cs.access = fault.cpl << 5;
+            wl(0x1000, fault.pde, nullptr);
+            wl(0x2000, fault.pte, nullptr);
+            EXPECT_EQ(mmutranslatereal(0x123, fault.write), UINT64_MAX);
+            EXPECT_NE(cpu_state.abrt, 0);
+            EXPECT_EQ(abrt_error, fault.error);
+            EXPECT_EQ(cr2, 0x123u);
+            EXPECT_EQ(memory[0x1000] & 0x20, 0);
+            EXPECT_EQ(memory[0x2000] & 0x60, 0);
+        }
+    }
 }
 
 TEST_F(CpuCacheTest, VlsiSegmentControlsAndGlobalEnable)
