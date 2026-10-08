@@ -178,6 +178,14 @@ T.04.05 and cache bypass. Set a period-appropriate date (tested with 1994)
 and disable host time synchronization; NT 3.1 otherwise reports an invalid
 system time with the host's 2026 date and this BIOS's 19xx century byte.
 
+Windows NT 3.5 Workstation (3.50.807) completes CD installation and boots from
+NTFS with the same board configuration, plus an ATAPI Toshiba XM-5302B slave.
+Its built-in S3 driver passes the display test at 640×480 in 256 colors with
+512 KB video memory, and Setup creates an emergency repair floppy. A full
+emulator exit/relaunch with the normal build also logs in to Program Manager.
+Both test installations omit networking. The supplied NT 3.5 boot disk 2 had a WINNT.SIF
+with `MsDosInitiated=1`; a working copy with that file removed allows direct CD
+installation without an MS-DOS staging partition. The original media is unchanged.
 
 The Qt 6 build and 25 cache, diagnostic-TLB and BIOS-patch tests pass with
 AddressSanitizer and UndefinedBehaviorSanitizer. LeakSanitizer is disabled
