@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-07 02:17+0000\n"
+"PO-Revision-Date: 2026-10-09 04:11+0000\n"
 "Last-Translator: nguyen <barnacl437@disroot.org>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
@@ -3530,7 +3530,7 @@ msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly 
 msgstr ""
 
 msgid "CGA lightpen"
-msgstr ""
+msgstr "Bút ánh sáng CGA"
 
 msgid "Luminance threshold (%)"
-msgstr ""
+msgstr "Ngưỡng độ sáng (%)"
