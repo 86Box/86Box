@@ -611,9 +611,30 @@ ropFISTPl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
     return new_pc;
 }
 static uint32_t
-ropFISTPq(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc), UNUSED(codeblock_t *block))
+ropFISTPq(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-    /* The generated store cannot report an empty-stack exception or suppress
+    if (machines[machine].init != machine_at_vect486n_init) {
+        x86seg *target_seg;
+        int     host_reg1;
+        int     host_reg2;
+
+        FP_ENTER();
+        op_pc--;
+        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
+
+        FP_LOAD_REG_INT_Q(0, &host_reg1, &host_reg2);
+
+        STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
+
+        CHECK_SEG_WRITE(target_seg);
+
+        MEM_STORE_ADDR_EA_Q(target_seg, host_reg1, host_reg2);
+
+        FP_POP();
+
+        return op_pc + 1;
+    }
+    /* /* On the HP Vectra 486N, the generated store cannot report an empty-stack exception or suppress
        the store/pop. Use the common FISTP m64 handler to preserve exception behavior. */
     return 0;
 }

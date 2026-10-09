@@ -2,6 +2,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/machine.h>
 #include <86box/plat_unused.h>
 
 #include "x86.h"
@@ -233,9 +234,24 @@ ropFISTPl(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fe
     return op_pc + 1;
 }
 uint32_t
-ropFISTPq(UNUSED(codeblock_t *block), UNUSED(ir_data_t *ir), UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
+ropFISTPq(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
-    /* The generated store cannot report an empty-stack exception or suppress
+    if (machines[machine].init != machine_at_vect486n_init) {
+        x86seg *target_seg;
+
+        uop_FP_ENTER(ir);
+        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+        op_pc--;
+        target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+        codegen_check_seg_write(block, ir, target_seg);
+        uop_MOV_INT_DOUBLE_64(ir, IREG_temp0_Q, IREG_ST(0), IREG_ST_i64(0), IREG_tag(0));
+        uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp0_Q);
+        uop_MOV_IMM(ir, IREG_tag(0), TAG_EMPTY);
+        fpu_POP(block, ir);
+
+        return op_pc + 1;
+    }
+    /* On the HP Vectra 486N, the generated store cannot report an empty-stack exception or suppress
        the store/pop. Use the common FISTP m64 handler to preserve exception behavior. */
     return 0;
 }
