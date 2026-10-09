@@ -19,6 +19,15 @@ bit drives the EEPROM clock. Treating it as a simple readback register made
 POST erase the saved configuration every time. KBC input bit 5 reports the
 CPU fan connected.
 
+The board uses an HP-specific keyboard-controller command set. Its `DEh`
+extended-command prefix and following payload are consumed by the controller,
+including the one-byte `94h` and eight-byte `93h` payloads used by the BIOS.
+Forwarding these bytes to the keyboard produced resend replies which DOS-era
+BIOS calls could mistake for the controller command byte, disabling IRQ1 and
+locking out input after boot. The extended commands' board/security side
+effects are not yet modeled. Other VL82C113 machines retain their existing
+controller selection.
+
 Hardware reference: supplied motherboard photograph and HP's
 [PC Service Handbook Volume 2, 9th edition, chapter 12, pp. 127–134](https://manuals.plus/m/29dac22b29f9684e28eacf47d75918be4e263d8e039219d220f46d13e455b255.pdf).
 This is not the later D27xxA N/NI or N2.
@@ -192,11 +201,16 @@ Both test installations omit networking. The supplied NT 3.5 boot disk 2 had a W
 with `MsDosInitiated=1`; a working copy with that file removed allows direct CD
 installation without an MS-DOS staging partition. The original media is unchanged.
 
-The Qt 6 build and 28 cache, diagnostic-TLB and BIOS-patch tests pass with
+The Qt 6 build and 31 cache, diagnostic-TLB, BIOS-patch and keyboard-command tests pass with
 AddressSanitizer and UndefinedBehaviorSanitizer. LeakSanitizer is disabled
 because process inspection is unavailable in the test sandbox.
 The page-walker tests cover switching the cache on and off, accessed/dirty bits
 for 4 KB and 4 MB pages, and page-fault addresses and error codes in both paths.
+
+MS-DOS 6.22 boots from a minimal floppy and accepts commands with both AT and
+PS/2 keyboards on a DX4-100 with 8 MB RAM, T.04.05, SoftFloat and the CPU
+interpreter. This reproduces and verifies the fix for issue #8254 without
+requiring the reporter's hard-disk image or startup drivers.
 
 The NT 3.5 CD setup test exposed stale ATAPI packet-transfer flags: HP's BIOS
 writes FFh to the shared write-precompensation/Features register while reading
