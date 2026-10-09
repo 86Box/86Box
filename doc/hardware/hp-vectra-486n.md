@@ -5,8 +5,21 @@ VL82C486 chipset, VL82C113 keyboard/RTC I/O, PC87311 Super I/O at 026Eh,
 primary ISA IDE and the existing S3 86C924 ISA video device. It supports
 2–48 MB RAM and 512 KB or 1 MB video memory.
 
-Normal CPU selection is restricted to Intel 486SX, 486DX, 486DX2 and the
-5 V iDX4 family used for Socket 1 OverDrive upgrades, with a 25/33 MHz bus.
+Normal CPU selection is restricted to these Socket 1, 5 V Intel processors:
+
+- 486SX-25 and 486SX-33
+- 486DX-33 and 486DX-50
+- 486DX2-50 and 486DX2-66
+- i486DX OverDrive 25 (50 MHz core) and 33 (66 MHz core)
+
+The original clock-doubled OverDrive entries use the existing DX2 emulation
+with a 25/33 MHz bus and 2x multiplier. Intel's
+[OverDrive datasheet, section 2](https://datasheets.chipdb.org/Intel/x86/486/applnots/29043606.PDF)
+describes these 50/66 MHz upgrades. DX4 upgrades are not offered.
+The machine name is **HP Vectra 486N (D26xxA)**; its configuration identifier
+remains `vect486n` and its device settings remain in `[HP Vectra 486N]` so
+existing BIOS and cache selections are preserved.
+
 The global CPU override retains its usual meaning. Both fast and accurate
 (SoftFloat) FPU emulation are supported. HP tests an unmasked empty-stack
 FISTP m64 exception and its IRQ13 delivery; the fast FPU now handles this
@@ -187,6 +200,10 @@ CPU behavior follows the
 
 ## Validation and limitations
 
+The Qt 6 build passes with the restricted CPU list. Runtime enumeration reports
+exactly the eight supported CPU selections above; loading a saved configuration
+for each preserves its CPU family, core frequency and multiplier.
+
 Windows NT 3.1 Workstation (3.10.511.1) completes both text and graphical
 Setup from the 3.5-inch floppy distribution, boots from its FAT partition,
 and logs in to Program Manager after a full emulator exit/relaunch. The test
@@ -222,7 +239,7 @@ instructions retain their existing accuracy limitations.
 
 MS-DOS 6.22 boots from a minimal floppy and accepts commands with both AT and
 PS/2 keyboards on a DX4-100 with 8 MB RAM, T.04.05, SoftFloat and the CPU
-interpreter. This reproduces and verifies the fix for issue #8254 without
+interpreter (tested before restricting the CPU list). This reproduces and verifies the fix for issue #8254 without
 requiring the reporter's hard-disk image or startup drivers.
 
 The NT 3.5 CD setup test exposed stale ATAPI packet-transfer flags: HP's BIOS
