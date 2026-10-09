@@ -19,7 +19,7 @@
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2018-2020 TheCollector1995.
  *          Copyright 2021-2025 RichardG.
- *          Copyright 2025 win2kgamer
+ *          Copyright 2025-2026 win2kgamer
  */
 #include <math.h>
 #include <stdarg.h>
@@ -47,6 +47,9 @@
 #include <86box/log.h>
 
 #define PNP_ROM_AD1816 "roms/sound/ad1816/ad1816.bin"
+
+#define AD1816_REC_SAFEFTY_MARGIN 4096
+#define AD1816_REC_MAX_MARGIN (AD1816_REC_SAFEFTY_MARGIN * 2)
 
 #ifdef ENABLE_AD1816_LOG
 int ad1816_do_log = ENABLE_AD1816_LOG;
@@ -82,25 +85,34 @@ typedef struct ad1816_t {
     uint8_t  cur_irq;
     uint8_t  cur_mpu_irq;
     uint8_t  cur_dma;
+    uint8_t  cur_dma2;
 
     int freq;
+    int rec_freq;
 
     pc_timer_t timer_count;
+    pc_timer_t rec_timer_count;
     uint64_t   timer_latch;
+    uint64_t   rec_timer_latch;
 
     pc_timer_t ad1816_irq_timer;
 
     uint8_t status;
     int count;
+    int rec_count;
     int16_t out_l;
     int16_t out_r;
     uint8_t fmt_mask;
     uint8_t dma_ff;
+    uint8_t rec_dma_ff;
     uint32_t dma_data;
+    uint32_t rec_dma_data;
     int16_t buffer[SOUNDBUFLEN * 2];
     int pos;
     uint8_t playback_pos : 2;
+    uint8_t rec_pos : 2;
     uint8_t enable;
+    uint8_t rec_enable;
     uint8_t codec_enable;
 
     double master_l;
@@ -114,12 +126,33 @@ typedef struct ad1816_t {
     mpu_t *mpu;
     sb_t  *sb;
 
+    /* Recording */
+    int     record_pos_read;
+    int     record_pos_write_mic;
+    int     record_phase_mic;
+    int     record_denom_mic;
+    int     record_rate_mic;
+    int32_t record_prev_l_mic;
+    int32_t record_prev_r_mic;
+    int     record_prev_valid_mic;
+    int     record_aa_active_mic;
+    double  record_aa_b0_mic;
+    double  record_aa_b1_mic;
+    double  record_aa_b2_mic;
+    double  record_aa_a1_mic;
+    double  record_aa_a2_mic;
+    double  record_aa_z1_mic[2];
+    double  record_aa_z2_mic[2];
+    int16_t record_buffer[0x10000];
+
     void                   *pnp_card;
     uint8_t                pnp_rom[512];
     isapnp_device_config_t *ad1816_pnp_config;
 
     void * log; /* New logging system */
 } ad1816_t;
+
+static double ad1816_input_gain_vols_4bits[16];
 
 static void
 ad1816_update_mastervol(void *priv)
@@ -173,6 +206,25 @@ ad1816_update(ad1816_t *ad1816)
     }
 }
 
+static uint8_t
+ad1816_encode_mulaw(int16_t sample)
+{
+    uint8_t sign = 0x00;
+    uint16_t mask = 0x1000;
+    uint8_t position = 12;
+    uint8_t lsb = 0;
+    if (sample < 0) {
+        sample = -sample;
+        sign = 0x80;
+    }
+    sample += 33;
+    if (sample > 0x1fff)
+        sample = 0x1fff;
+    for (; ((sample & mask) != mask && position >= 5); mask >>= 1, position--);
+    lsb = (sample >> (position - 4)) & 0x0f;
+    return (~(sign | ((position - 5) << 4) | lsb));
+}
+
 static int16_t
 ad1816_process_mulaw(uint8_t byte)
 {
@@ -185,6 +237,24 @@ ad1816_process_mulaw(uint8_t byte)
     else if (temp < -32768)
         return -32768;
     return (int16_t) temp;
+}
+
+static uint8_t
+ad1816_encode_alaw(int16_t sample)
+{
+    uint16_t mask = 0x800;
+    uint8_t sign = 0x00;
+    uint8_t position = 11;
+    uint8_t lsb = 0;
+    if (sample < 0) {
+        sample = -sample;
+        sign = 0x80;
+    }
+    if (sample > 0xfff)
+        sample = 0xfff;
+    for (; ((sample & mask) != mask && position >= 5); mask >>= 1, position--);
+    lsb = (sample >> ((position == 4) ? 1 : (position - 4))) & 0x0f;
+    return (sign | ((position - 4) << 4) | lsb) ^ 0x55;
 }
 
 static int16_t
@@ -233,6 +303,202 @@ ad1816_dma_channel_read(ad1816_t *ad1816, int channel)
         ret = dma_channel_read(channel);
 
     return ret;
+}
+
+static void
+ad1816_record_resync(ad1816_t *ad1816)
+{
+    int pos = (ad1816->record_pos_write_mic - AD1816_REC_SAFEFTY_MARGIN) & 0xFFFF;
+
+    ad1816->record_pos_read = pos;
+
+    for (int i = 0; i < AD1816_REC_SAFEFTY_MARGIN; i++) {
+        ad1816->record_buffer[pos] = 0;
+        pos                     = (pos + 1) & 0xFFFF;
+    }
+}
+
+static void
+ad1816_input_poll(void *priv)
+{
+    ad1816_t *ad1816 = (ad1816_t *) priv;
+
+    if (ad1816->rec_timer_latch)
+        timer_advance_u64(&ad1816->rec_timer_count, ad1816->rec_timer_latch);
+    else
+        timer_advance_u64(&ad1816->rec_timer_count, TIMER_USEC * 1000);
+
+    if (ad1816->rec_enable) {
+        int32_t temp;
+        uint8_t format;
+        uint8_t channel = (ad1816->cur_dma2 != 4) ? ad1816->cur_dma2 : ad1816->cur_dma;
+
+        format = (ad1816->regs[9] << 2) & 0xf0;
+        ad1816_log(ad1816->log, "AD1816 format = %04X\n", format);
+        ad1816_log(ad1816->log, "count = %04X, pos = %02X\n", ad1816->rec_count, ad1816->rec_pos);
+
+        const int diff = (int) (int16_t) (ad1816->record_pos_write_mic - ad1816->record_pos_read);
+        if ((diff <= 0) || (diff > AD1816_REC_MAX_MARGIN))
+            ad1816_record_resync(ad1816);
+
+        switch (format) {
+            case 0x00: /* Mono, 8-bit PCM */
+                if ((channel >= 4) && ad1816->rec_dma_ff) {
+                    ad1816->rec_dma_data |= (ad1816->record_buffer[ad1816->record_pos_read] & 0xff00);
+                    ad1816->rec_dma_data ^= 0x8080;
+                    dma_channel_write(channel, ad1816->rec_dma_data);
+                } else if ((channel >= 4) && !ad1816->rec_dma_ff)
+                    ad1816->rec_dma_data = ((ad1816->record_buffer[ad1816->record_pos_read] >> 8) & 0xff);
+                else if (channel <= 3)
+                    dma_channel_write(channel, (ad1816->record_buffer[ad1816->record_pos_read] >> 8) ^ 0x80);
+                ad1816->rec_dma_ff = !ad1816->rec_dma_ff;
+                ad1816->record_pos_read += 2;
+                ad1816->record_pos_read &= 0xFFFF;
+                ad1816->rec_pos++;
+                break;
+
+            case 0x10: /* Stereo, 8-bit PCM */
+                if (channel >= 4)
+                    dma_channel_write(channel, (((ad1816->record_buffer[ad1816->record_pos_read] >> 8) & 0xff) | (ad1816->record_buffer[ad1816->record_pos_read + 1] & 0xff00)) ^ 0x8080);
+                else {
+                    dma_channel_write(channel, (ad1816->record_buffer[ad1816->record_pos_read] >> 8) ^ 0x80);
+                    dma_channel_write(channel, (ad1816->record_buffer[ad1816->record_pos_read + 1] >> 8) ^ 0x80);
+                }
+                ad1816->record_pos_read += 2;
+                ad1816->record_pos_read &= 0xFFFF;
+                ad1816->rec_pos += 2;
+                break;
+
+            case 0x20: /* Mono, 8-bit Mu-Law */
+                if ((channel >= 4) && ad1816->rec_dma_ff) {
+                    ad1816->rec_dma_data |= (ad1816_encode_mulaw(ad1816->record_buffer[ad1816->record_pos_read]) << 8);
+                    dma_channel_write(channel, ad1816->rec_dma_data);
+                } else if ((channel >= 4) && !ad1816->rec_dma_ff)
+                    ad1816->rec_dma_data = ad1816_encode_mulaw(ad1816->record_buffer[ad1816->record_pos_read]);
+                else if (channel <= 3)
+                    dma_channel_write(channel, ad1816_encode_mulaw(ad1816->record_buffer[ad1816->record_pos_read]));
+                ad1816->rec_dma_ff = !ad1816->rec_dma_ff;
+                ad1816->record_pos_read += 2;
+                ad1816->record_pos_read &= 0xFFFF;
+                ad1816->rec_pos++;
+                break;
+
+            case 0x30: /* Stereo, 8-bit Mu-Law */
+                if (channel >= 4)
+                    dma_channel_write(channel, ad1816_encode_mulaw(ad1816->record_buffer[ad1816->record_pos_read]) | (ad1816_encode_mulaw(ad1816->record_buffer[ad1816->record_pos_read + 1]) << 8));
+                else {
+                    dma_channel_write(channel, ad1816_encode_mulaw(ad1816->record_buffer[ad1816->record_pos_read]));
+                    dma_channel_write(channel, ad1816_encode_mulaw(ad1816->record_buffer[ad1816->record_pos_read + 1]));
+                }
+                ad1816->record_pos_read += 2;
+                ad1816->record_pos_read &= 0xFFFF;
+                ad1816->rec_pos += 2;
+                break;
+
+            case 0x40: /* Mono, 16-bit PCM little endian */
+                if (channel >= 4)
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read]);
+                else {
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read] & 0xff);
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read] >> 8);
+                }
+                ad1816->record_pos_read += 2;
+                ad1816->record_pos_read &= 0xFFFF;
+                ad1816->rec_pos += 2;
+                break;
+
+            case 0x50: /* Stereo, 16-bit PCM little endian */
+                if (channel >= 4) {
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read]);
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read + 1]);
+                } else {
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read] & 0xff);
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read] >> 8);
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read + 1] & 0xff);
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read + 1] >> 8);
+                }
+                ad1816->record_pos_read += 2;
+                ad1816->record_pos_read &= 0xFFFF;
+                ad1816->rec_pos += 4;
+                break;
+
+            case 0x60: /* Mono, 8-bit A-Law */
+                if ((channel >= 4) && ad1816->rec_dma_ff) {
+                    ad1816->rec_dma_data |= (ad1816_encode_alaw(ad1816->record_buffer[ad1816->record_pos_read]) << 8);
+                    dma_channel_write(channel, ad1816->rec_dma_data);
+                } else if ((channel >= 4) && !ad1816->rec_dma_ff)
+                    ad1816->rec_dma_data = ad1816_encode_alaw(ad1816->record_buffer[ad1816->record_pos_read]);
+                else if (channel <= 3)
+                    dma_channel_write(channel, ad1816_encode_alaw(ad1816->record_buffer[ad1816->record_pos_read]));
+                ad1816->rec_dma_ff = !ad1816->rec_dma_ff;
+                ad1816->record_pos_read += 2;
+                ad1816->record_pos_read &= 0xFFFF;
+                ad1816->rec_pos++;
+                break;
+
+            case 0x70: /* Stereo, 8-bit A-Law */
+                if (channel >= 4)
+                    dma_channel_write(channel, ad1816_encode_alaw(ad1816->record_buffer[ad1816->record_pos_read]) | (ad1816_encode_alaw(ad1816->record_buffer[ad1816->record_pos_read + 1]) << 8));
+                else {
+                    dma_channel_write(channel, ad1816_encode_alaw(ad1816->record_buffer[ad1816->record_pos_read]));
+                    dma_channel_write(channel, ad1816_encode_alaw(ad1816->record_buffer[ad1816->record_pos_read + 1]));
+                }
+                ad1816->record_pos_read += 2;
+                ad1816->record_pos_read &= 0xFFFF;
+                ad1816->rec_pos += 2;
+                break;
+
+                /* 0x80, 0x90, 0xa0, 0xb0 reserved */
+
+            case 0xc0: /* Mono, 16-bit PCM big endian */
+                if (channel >= 4)
+                    dma_channel_write(channel, ((ad1816->record_buffer[ad1816->record_pos_read] & 0xff) << 8) | (ad1816->record_buffer[ad1816->record_pos_read] >> 8));
+                else {
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read] >> 8);
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read] & 0xff);
+                }
+                ad1816->record_pos_read += 2;
+                ad1816->record_pos_read &= 0xFFFF;
+                ad1816->rec_pos += 2;
+                break;
+
+            case 0xd0: /* Stereo, 16-bit PCM big endian */
+                if (channel >= 4) {
+                    dma_channel_write(channel, ((ad1816->record_buffer[ad1816->record_pos_read] & 0xff) << 8) | (ad1816->record_buffer[ad1816->record_pos_read] >> 8));
+                    dma_channel_write(channel, ((ad1816->record_buffer[ad1816->record_pos_read + 1] & 0xff) << 8) | (ad1816->record_buffer[ad1816->record_pos_read + 1] >> 8));
+                } else {
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read] >> 8);
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read] & 0xff);
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read + 1] >> 8);
+                    dma_channel_write(channel, ad1816->record_buffer[ad1816->record_pos_read + 1] & 0xff);
+                }
+                ad1816->record_pos_read += 2;
+                ad1816->record_pos_read &= 0xFFFF;
+                ad1816->rec_pos += 4;
+                break;
+
+                /* 0xe0 and 0xf0 reserved */
+
+            default:
+                break;
+        }
+
+        if (ad1816->rec_count < 0) {
+            ad1816->rec_count = ad1816->iregs[10];
+            ad1816->regs[1] |= 0x40;
+            if (ad1816->iregs[1] & 0x4000) {
+                ad1816_log(ad1816->log, "AD1816 Playback interrupt fired\n");
+                picint(1 << ad1816->cur_irq);
+            }
+            else {
+                ad1816_log(ad1816->log, "AD1816 Playback interrupt cleared\n");
+                picintc(1 << ad1816->cur_irq);
+            }
+        }
+        /* AD1816 count decrements every 4 bytes */
+        if (!(ad1816->rec_pos & 3))
+            ad1816->rec_count--;
+    }
 }
 
 static void
@@ -354,6 +620,161 @@ ad1816_poll(void *priv)
     }
 }
 
+#define AD1816_RECORD_CLAMP(x) (((x) < -32768) ? -32768 : (((x) > 32767) ? 32767 : (x)))
+
+/* filter when freq < capture rate */
+#define AD1816_RECORD_ANTIALIAS 1
+
+/* nyquist anti alias */
+#define AD1816_RECORD_AA_NYQ 0.9
+
+/* audio filter called on filter rate change */
+static void
+ad1816_record_aa_design(ad1816_t *ad1816, int out_rate, int in_rate)
+{
+    const double fc    = (AD1816_RECORD_AA_NYQ * 0.5) * ((double) out_rate);
+    const double w0    = (2.0 * M_PI * fc) / ((double) in_rate);
+    const double cw    = cos(w0);
+    const double sw    = sin(w0);
+    const double alpha = sw / (2.0 * 0.70710678118654752);
+    const double a0    = 1.0 + alpha;
+
+    ad1816->record_aa_b0_mic = ((1.0 - cw) / 2.0) / a0;
+    ad1816->record_aa_b1_mic = (1.0 - cw) / a0;
+    ad1816->record_aa_b2_mic = ad1816->record_aa_b0_mic;
+    ad1816->record_aa_a1_mic = (-2.0 * cw) / a0;
+    ad1816->record_aa_a2_mic = (1.0 - alpha) / a0;
+}
+
+static double
+ad1816_record_aa_step(ad1816_t *ad1816, int ch, double x)
+{
+    const double y = (ad1816->record_aa_b0_mic * x) + ad1816->record_aa_z1_mic[ch];
+
+    ad1816->record_aa_z1_mic[ch] = (ad1816->record_aa_b1_mic * x) - (ad1816->record_aa_a1_mic * y)
+                                + ad1816->record_aa_z2_mic[ch];
+    ad1816->record_aa_z2_mic[ch] = (ad1816->record_aa_b2_mic * x) - (ad1816->record_aa_a2_mic * y);
+
+    return y;
+}
+
+static void
+ad1816_put_buffer(int16_t *buffer, int len, void *priv)
+{
+    ad1816_t                *ad1816 = (ad1816_t *) priv;
+
+    /* divisor is rate capture device opened at*/
+    const int cap_rate = al_capture_get_rate();
+    const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+    const int rate     = ad1816->rec_freq;
+
+    int c;
+    int gain_l;
+    int gain_r;
+    int sel_l_mic, sel_l_linel;
+    int sel_r_mic, sel_r_liner;
+    int interp;
+    int filt;
+
+    /* freq is 0 until the guest programs a rate  */
+    if (rate <= 0)
+        return;
+
+    if ((denom != ad1816->record_denom_mic) || (rate != ad1816->record_rate_mic)) {
+        ad1816->record_denom_mic      = denom;
+        ad1816->record_rate_mic       = rate;
+        ad1816->record_phase_mic      = 0;
+        ad1816->record_prev_l_mic     = 0;
+        ad1816->record_prev_r_mic     = 0;
+        ad1816->record_prev_valid_mic = 0;
+
+        ad1816->record_aa_z1_mic[0] = 0.0;
+        ad1816->record_aa_z1_mic[1] = 0.0;
+        ad1816->record_aa_z2_mic[0] = 0.0;
+        ad1816->record_aa_z2_mic[1] = 0.0;
+        ad1816->record_aa_active_mic = 0;
+
+#if AD1816_RECORD_ANTIALIAS
+        /* only when decimating */
+        if (rate < denom) {
+            ad1816_record_aa_design(ad1816, rate, denom);
+            ad1816->record_aa_active_mic = 1;
+        }
+#endif
+    }
+
+    interp = (rate != denom);
+    filt   = ad1816->record_aa_active_mic;
+
+    gain_l = (ad1816->iregs[20] >> 8) & 0x000f;
+    gain_r = ad1816->iregs[20] & 0x000f;
+
+    sel_l_mic   = (((ad1816->iregs[20] & 0x7000) == 0x5000) ? 1 : 0);
+    sel_l_linel = (((ad1816->iregs[20] & 0x7000) == 0x0000) ? 1 : 0);
+
+    sel_r_mic   = (((ad1816->iregs[20] & 0x70) == 0x50) ? 1 : 0);
+    sel_r_liner = (((ad1816->iregs[20] & 0x70) == 0x00) ? 1 : 0);
+
+    for (c = 0; c < len * 2; c += 2) {
+        const int32_t cap_l = (int32_t) buffer[c];
+        const int32_t cap_r = (int32_t) buffer[c + 1];
+
+        /* mic is the mono sum of line-in. truncating division for dc symmetry */
+        const int32_t mic = (cap_l + cap_r) / 2;
+
+        int32_t mix_l = (mic * sel_l_mic) + (cap_l * sel_l_linel);
+        int32_t mix_r = (mic * sel_r_mic) + (cap_r * sel_r_liner);
+        int32_t in_l;
+        int32_t in_r;
+
+        /* run on every input frame*/
+        if (filt) {
+            mix_l = (int32_t) lrint(ad1816_record_aa_step(ad1816, 0, (double) mix_l));
+            mix_r = (int32_t) lrint(ad1816_record_aa_step(ad1816, 1, (double) mix_r));
+        }
+
+        in_l = AD1816_RECORD_CLAMP(mix_l * ad1816_input_gain_vols_4bits[gain_l]);
+        in_r = AD1816_RECORD_CLAMP(mix_r * ad1816_input_gain_vols_4bits[gain_r]);
+
+        /* start new device change with first frame in interpolartor queue */
+        if (!ad1816->record_prev_valid_mic) {
+            ad1816->record_prev_l_mic     = in_l;
+            ad1816->record_prev_r_mic     = in_r;
+            ad1816->record_prev_valid_mic = 1;
+        }
+
+        /* phase ticks this forward, while-loop for new samples so they arent dropped */
+        ad1816->record_phase_mic += rate;
+        while (ad1816->record_phase_mic >= denom) {
+            int32_t out_l;
+            int32_t out_r;
+
+            ad1816->record_phase_mic -= denom; /* denom tracks input frame vs emitted frame , (rate - phase) / rate */
+
+            if (interp) {
+
+                const int32_t num = rate - ad1816->record_phase_mic;
+
+                out_l = ad1816->record_prev_l_mic
+                        + (int32_t) ((((int64_t) (in_l - ad1816->record_prev_l_mic)) * num) / rate);
+                out_r = ad1816->record_prev_r_mic
+                        + (int32_t) ((((int64_t) (in_r - ad1816->record_prev_r_mic)) * num) / rate);
+            } else {
+                out_l = in_l;
+                out_r = in_r;
+            }
+
+            ad1816->record_buffer[ad1816->record_pos_write_mic]                = (int16_t) out_l;
+            ad1816->record_buffer[(ad1816->record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
+
+            ad1816->record_pos_write_mic = (ad1816->record_pos_write_mic + 2) & 0xffff;
+        }
+
+        ad1816->record_prev_l_mic = in_l;
+        ad1816->record_prev_r_mic = in_r;
+    }
+}
+
 static void
 ad1816_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
@@ -386,6 +807,21 @@ ad1816_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
 
     /* sbprov2 part */
     sb_get_buffer_sbpro(buffer, len, ad1816->sb);
+}
+
+static void
+ad1816_updaterecfreq(ad1816_t *ad1816)
+{
+    double freq;
+
+    if (ad1816->iregs[3] > 55200)
+        ad1816->iregs[3] = 55200;
+    freq = ad1816->iregs[3];
+
+    ad1816->rec_freq        = (int) trunc(freq);
+    ad1816->rec_timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) ad1816->rec_freq));
+
+    ad1816_log(ad1816->log, "AD1816: Record frequency set to %f\n", freq);
 }
 
 static void
@@ -444,6 +880,7 @@ ad1816_reg_write(uint16_t addr, uint8_t val, void *priv)
                     break;
                 case 3: /* Voice Capture Sample Rate */
                     ad1816->iregs[3] = ((val << 8) | ad1816->regs[2]);
+                    ad1816_updaterecfreq(ad1816);
                     break;
                 case 4: /* Voice Attenuation */
                     ad1816->iregs[4] = ((val << 8) | ad1816->regs[2]);
@@ -486,6 +923,7 @@ ad1816_reg_write(uint16_t addr, uint8_t val, void *priv)
                 case 10: /* Capture Base Count */
                     ad1816->iregs[10] = ((val << 8) | ad1816->regs[2]);
                     ad1816->iregs[11] = ((val << 8) | ad1816->regs[2]);
+                    ad1816->rec_count = ad1816->iregs[10];
                     break;
                 case 11: /* Capture Current Count */
                     ad1816->iregs[11] = ((val << 8) | ad1816->regs[2]);
@@ -619,6 +1057,18 @@ ad1816_reg_write(uint16_t addr, uint8_t val, void *priv)
             break;
         case 9: /* Capture Config */
             ad1816->regs[9] = val;
+            if (!ad1816->rec_enable && val & 0x01) {
+                ad1816->rec_pos = 0;
+                ad1816->rec_dma_ff = 0;
+                memset(ad1816->record_buffer, 0, sizeof(ad1816->record_buffer));
+                if (ad1816->timer_latch)
+                    timer_set_delay_u64(&ad1816->rec_timer_count, ad1816->rec_timer_latch);
+                else
+                    timer_set_delay_u64(&ad1816->rec_timer_count, TIMER_USEC);
+            }
+            ad1816->rec_enable = (val & 0x01);
+            if (!ad1816->rec_enable)
+                timer_disable(&ad1816->rec_timer_count);
             break;
         case 10: /* Reserved on AD1816, PIO modem out/in bits 7-0 on AD1815 */
             break;
@@ -729,6 +1179,10 @@ ad1816_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
                     sb_dsp_setdma8(&ad1816->sb->dsp, ad1816->cur_dma);
                     ad1816_log(ad1816->log, "Updated AD1816/SB DMA to %02X\n", ad1816->cur_dma);
                 }
+                if (config->dma[1].dma != ISAPNP_DMA_DISABLED) {
+                    ad1816->cur_dma2 = config->dma[1].dma;
+                    ad1816_log(ad1816->log, "Updated AD1816 Record DMA to %02X\n", ad1816->cur_dma2);
+                }
             }
             break;
         case 1: /* MPU401 */
@@ -783,6 +1237,7 @@ ad1816_init(UNUSED(const device_t *info))
     ad1816->cur_irq         = 5;
     ad1816->cur_mpu_irq     = 9;
     ad1816->cur_dma         = 1;
+    ad1816->cur_dma2        = 4;
     ad1816->enable          = 1;
 
     ad1816->regs[0]  = 0x80;
@@ -840,6 +1295,8 @@ ad1816_init(UNUSED(const device_t *info))
 
     sound_add_handler(ad1816_get_buffer, ad1816);
     sound_add_handler(ad1816_get_sbpro_buffer, ad1816);
+    sound_in_add_handler(ad1816_put_buffer, ad1816);
+    sound_in_start_input();
     music_add_handler(sb_get_music_buffer_sbpro, ad1816->sb);
 
     sound_set_cd_audio_filter(NULL, NULL); /* Seems to be necessary for the filter below to apply */
@@ -868,6 +1325,7 @@ ad1816_init(UNUSED(const device_t *info))
                                        NULL, NULL, NULL, ad1816);
 
     timer_add(&ad1816->timer_count, ad1816_poll, ad1816, 0);
+    timer_add(&ad1816->rec_timer_count, ad1816_input_poll, ad1816, 0);
 
     timer_add(&ad1816->ad1816_irq_timer, ad1816_irq_poll, ad1816, 0);
 
@@ -928,6 +1386,22 @@ ad1816_init(UNUSED(const device_t *info))
         ad1816_vols_5bits_aux_gain[c] = (attenuation * 65536);
     }
 
+    for (c = 0; c < 16; c++) {
+        attenuation = 0.0;
+        if (c & 0x01)
+            attenuation += 1.5;
+        if (c & 0x02)
+            attenuation += 3.0;
+        if (c & 0x04)
+            attenuation += 6.0;
+        if (c & 0x08)
+            attenuation += 12.0;
+
+        attenuation = pow(10, attenuation / 10);
+
+        ad1816_input_gain_vols_4bits[c] = (int) (attenuation);
+    }
+
     return ad1816;
 }
 
@@ -958,6 +1432,7 @@ ad1816_speed_changed(void *priv)
     ad1816_t *ad1816 = (ad1816_t *) priv;
 
     ad1816->timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) ad1816->freq));
+    ad1816->rec_timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) ad1816->rec_freq));
 
     sb_speed_changed(ad1816->sb);
 }
@@ -993,7 +1468,7 @@ static const device_config_t ad1816_config[] = {
 const device_t ad1816_device = {
     .name          = "Analog Devices AD1816",
     .internal_name = "ad1816",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = 0,
     .init          = ad1816_init,
     .close         = ad1816_close,
