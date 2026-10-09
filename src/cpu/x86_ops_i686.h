@@ -288,6 +288,8 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
         fpus = readmemw(easeg, cpu_state.eaaddr + 2);
         x87_set_control_word((readmemw(easeg, cpu_state.eaaddr) & ~FPU_CW_Reserved_Bits) | 0x0040);
         cpu_state.TOP = (fpus >> 11) & 7;
+        /* TOP loaded from memory: end the block, see FSTOR in x87_ops_misc.h. */
+        CPU_BLOCK_END();
         /* Restore the full status word, like FRSTOR does (the previous AND-in
            dropped status bits the guest had set). */
         cpu_state.npxs = fpus;
