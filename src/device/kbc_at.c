@@ -39,6 +39,7 @@
 #include <86box/pci.h>
 #include <86box/sio.h>
 #include <86box/keyboard.h>
+#include "kbc_at_vectra.h"
 
 #define STAT_PARITY        0x80
 #define STAT_RTIMEOUT      0x40
@@ -926,6 +927,41 @@ pulse_poll(void *priv)
 
     kbc_at_log("ATkbc: pulse_poll(): P2 now: %02X\n", dev->p2 | dev->old_p2);
     write_p2(dev, dev->p2 | dev->old_p2);
+}
+
+/* HP Vectra 486N firmware uses DE as an extended-command prefix.
+   These board/security commands must not be forwarded to the keyboard:
+   its FE response can be mistaken for the command byte by the BIOS.
+   T.04.02/T.04.05 send one argument after subcommand 94 and eight after 93.
+   Their board/security side effects are not yet modeled. */
+static uint8_t
+write_cmd_vectra(void *priv, uint8_t val)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+
+    if (val != 0xde)
+        return 1;
+
+    dev->command_phase = 1;
+    dev->wantdata      = 1;
+    dev->state         = STATE_KBC_PARAM;
+    return 0;
+}
+
+static uint8_t
+write_cmd_data_vectra(void *priv, uint8_t val)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+
+    if (dev->command != 0xde)
+        return 1;
+
+    dev->command_phase = kbc_vectra_next_phase(dev->command_phase, val);
+    if (dev->command_phase) {
+        dev->wantdata = 1;
+        dev->state    = STATE_KBC_PARAM;
+    }
+    return 0;
 }
 
 static uint8_t
@@ -3073,6 +3109,11 @@ kbc_at_init(const device_t *info)
             dev->write_cmd_ven = write_cmd_quadtel;
             break;
 
+        case KBC_VEN_HP_VECTRA:
+            dev->write_cmd_data_ven = write_cmd_data_vectra;
+            dev->write_cmd_ven = write_cmd_vectra;
+            break;
+
         case KBC_VEN_TOSHIBA:
             dev->write_cmd_data_ven = write_cmd_data_toshiba;
             dev->write_cmd_ven = write_cmd_toshiba;
@@ -3116,6 +3157,20 @@ const device_t kbc_at_device = {
     .internal_name = "kbc_at",
     .flags         = DEVICE_KBC,
     .local         = KBC_VEN_GENERIC,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t kbc_at_vectra_device = {
+    .name          = "HP Vectra 486N Keyboard Controller",
+    .internal_name = "kbc_at_vectra",
+    .flags         = DEVICE_KBC,
+    .local         = KBC_VEN_HP_VECTRA,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,

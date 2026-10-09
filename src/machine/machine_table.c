@@ -10061,7 +10061,7 @@ const machine_t machines[] = {
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
-        .kbc_device               = NULL,
+        .kbc_device               = &kbc_at_vectra_device,
         .kbc_params               = 0x00000000,
         /* The NVR is on the VLSI VL82C113. */
         .nvr_device               = NULL,
