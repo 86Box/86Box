@@ -10032,7 +10032,7 @@ const machine_t machines[] = {
     /* The VLSI VL82C113A holds the KBC and RTC.
        See doc/hardware/hp-vectra-486n.md for firmware and cache options. */
     {
-        .name              = "[VLSI 82C486] HP Vectra 486N",
+        .name              = "[VLSI 82C486] HP Vectra 486N (D26xxA)",
         .internal_name     = "vect486n",
         .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_VLSI_VL82C486,
@@ -10045,7 +10045,7 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 25000000,
-            .max_bus     = 33333333,
+            .max_bus     = 50000000,
             .min_voltage = 5000,
             .max_voltage = 5000,
             .min_multi   = 0,

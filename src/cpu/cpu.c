@@ -437,14 +437,21 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
     if (((cpu_s->cyrix_id & 0xff00) == 0x0400) && (machine_s->init == machine_at_nupro592_init))
         return 0;
 
-    /* The 486N supports Intel SX/DX/DX2 and 5 V i486 OverDrive upgrades.
-       iDX4 is the CPU table's Socket 1 OverDrive family. */
-    if ((machine_s->init == machine_at_vect486n_init) &&
-        strcmp(cpu_family->internal_name, "i486sx") &&
-        strcmp(cpu_family->internal_name, "i486dx") &&
-        strcmp(cpu_family->internal_name, "i486dx2") &&
-        strcmp(cpu_family->internal_name, "idx4"))
-        return 0;
+    /* HP Vectra 486N (D26xxA) CPU and upgrade options. */
+    if (machine_s->init == machine_at_vect486n_init) {
+        if (!strcmp(cpu_family->internal_name, "i486sx")) {
+            if ((cpu_s->rspeed != 25000000) && (cpu_s->rspeed != 33333333))
+                return 0;
+        } else if (!strcmp(cpu_family->internal_name, "i486dx")) {
+            if ((cpu_s->rspeed != 33333333) && (cpu_s->rspeed != 50000000))
+                return 0;
+        } else if (!strcmp(cpu_family->internal_name, "i486dx2") ||
+                   !strcmp(cpu_family->internal_name, "i486dx_overdrive")) {
+            if ((cpu_s->rspeed != 50000000) && (cpu_s->rspeed != 66666666))
+                return 0;
+        } else
+            return 0;
+    }
 
     /* Hardwired multipliers on Cobalt machines. */
     if ((machine_s->init == machine_at_cobalt3k_init) && (cpu_s->multi != machine_s->cpu.min_multi) && (cpu_s->multi != machine_s->cpu.max_multi))

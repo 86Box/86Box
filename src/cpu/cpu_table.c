@@ -2693,6 +2693,50 @@ const cpu_family_t cpu_families[] = {
             { .name = "", 0 }
         }
     },
+    /* Original clock-doubled OverDrive upgrades, named for the host bus speed. */
+    {
+        .package       = CPU_PKG_SOCKET1,
+        .manufacturer  = "Intel",
+        .name          = "i486DX OverDrive",
+        .internal_name = "i486dx_overdrive",
+        .cpus          = (const CPU[]) {
+            {
+                .name               = "25 (50 MHz)",
+                .cpu_type           = CPU_i486DX,
+                .fpus               = fpus_internal,
+                .rspeed             = 50000000,
+                .multi              = 2,
+                .voltage            = 5000,
+                .edx_reset          = 0x433,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC,
+                .mem_read_cycles    = 8,
+                .mem_write_cycles   = 8,
+                .cache_read_cycles  = 6,
+                .cache_write_cycles = 6,
+                .atclk_div          = 6
+            },
+            {
+                .name               = "33 (66 MHz)",
+                .cpu_type           = CPU_i486DX,
+                .fpus               = fpus_internal,
+                .rspeed             = 66666666,
+                .multi              = 2,
+                .voltage            = 5000,
+                .edx_reset          = 0x433,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC,
+                .mem_read_cycles    = 12,
+                .mem_write_cycles   = 12,
+                .cache_read_cycles  = 6,
+                .cache_write_cycles = 6,
+                .atclk_div          = 8
+            },
+            { .name = "", 0 }
+        }
+    },
     {
         .package       = CPU_PKG_SOCKET1,
         .manufacturer  = "Intel",
