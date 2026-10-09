@@ -10074,8 +10074,8 @@ const machine_t machines[] = {
         .device                   = &vect486n_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        /* Reuse the S3 924; AMI and the complete HP C.02.02 BIOS are selectable. */
-        .vid_device               = &s3_86c924_isa_device,
+        /* Reuse the non-internal S3 86c924 for now; the AMI and HP Ultra VGA BIOSes are selectable. */
+        .vid_device               = &s3_86c924_isa_device, /* TODO: to implement the internal video configuration */
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "" }

@@ -11578,7 +11578,7 @@ static const device_config_t s3_86c924_isa_config[] = {
                 .files         = { ROM_AMI_86C924, "" }
             },
             {
-                .name          = "HP Vectra 486N (C.02.02)",
+                .name          = "HP Ultra VGA 924",
                 .internal_name = "hp_vectra_486n_c0202",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
