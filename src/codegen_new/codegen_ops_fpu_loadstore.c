@@ -233,19 +233,9 @@ ropFISTPl(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fe
     return op_pc + 1;
 }
 uint32_t
-ropFISTPq(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropFISTPq(UNUSED(codeblock_t *block), UNUSED(ir_data_t *ir), UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
 {
-    x86seg *target_seg;
-
-    uop_FP_ENTER(ir);
-    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    op_pc--;
-    target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
-    codegen_check_seg_write(block, ir, target_seg);
-    uop_MOV_INT_DOUBLE_64(ir, IREG_temp0_Q, IREG_ST(0), IREG_ST_i64(0), IREG_tag(0));
-    uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp0_Q);
-    uop_MOV_IMM(ir, IREG_tag(0), TAG_EMPTY);
-    fpu_POP(block, ir);
-
-    return op_pc + 1;
+    /* The generated store cannot report an empty-stack exception or suppress
+       the store/pop. Use the common FISTP m64 handler to preserve exception behavior. */
+    return 0;
 }
