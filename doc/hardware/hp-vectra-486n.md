@@ -7,9 +7,12 @@ primary ISA IDE and the existing S3 86C924 ISA video device. It supports
 
 Normal CPU selection is restricted to Intel 486SX, 486DX, 486DX2 and the
 5 V iDX4 family used for Socket 1 OverDrive upgrades, with a 25/33 MHz bus.
-The global CPU override retains its usual meaning. Accurate (SoftFloat) FPU
-emulation is required: HP tests an unmasked empty-stack FISTP exception and
-its IRQ13 delivery, which the fast FPU implementation does not reproduce.
+The global CPU override retains its usual meaning. Both fast and accurate
+(SoftFloat) FPU emulation are supported. HP tests an unmasked empty-stack
+FISTP m64 exception and its IRQ13 delivery; the fast FPU now handles this
+without writing the destination or popping the empty stack. Both recompilers
+call the instruction handler for FISTP m64 to preserve this behavior. SoftFloat
+remains available for software requiring more complete x87 accuracy.
 
 The complete T.04.05 flash image is the default. It permits F2 Setup,
 error-message display, saved disk geometry and normal boot. Board I/O includes
@@ -192,11 +195,21 @@ Both test installations omit networking. The supplied NT 3.5 boot disk 2 had a W
 with `MsDosInitiated=1`; a working copy with that file removed allows direct CD
 installation without an MS-DOS staging partition. The original media is unchanged.
 
-The Qt 6 build and 28 cache, diagnostic-TLB and BIOS-patch tests pass with
-AddressSanitizer and UndefinedBehaviorSanitizer. LeakSanitizer is disabled
+After the fast-FPU fix, the installed NT 3.1 system also passes POST and logs
+in with SoftFloat disabled using the old recompiler. NT 3.5 passes the same
+check with the new recompiler. These boot checks use DX2-50, T.04.05 and cache
+bypass; the original full installation tests used SoftFloat.
+
+The Qt 6 build succeeds. The 28 cache, diagnostic-TLB and BIOS-patch tests and
+28 FISTP tests pass with AddressSanitizer and UndefinedBehaviorSanitizer.
+LeakSanitizer is disabled
 because process inspection is unavailable in the test sandbox.
 The page-walker tests cover switching the cache on and off, accessed/dirty bits
 for 4 KB and 4 MB pages, and page-fault addresses and error codes in both paths.
+The FISTP tests cover both address sizes and both recompiler stack-tag formats:
+masked and unmasked invalid operations, IRQ13/native exception selection,
+memory faults, and exact 64-bit integer stores. Fast-FPU arithmetic and other
+instructions retain their existing accuracy limitations.
 
 The NT 3.5 CD setup test exposed stale ATAPI packet-transfer flags: HP's BIOS
 writes FFh to the shared write-precompensation/Features register while reading
