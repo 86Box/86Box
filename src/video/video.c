@@ -27,6 +27,9 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>
+#ifdef __APPLE__
+#    include <pthread/qos.h>
+#endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -414,6 +417,12 @@ static void
 blit_thread(void *param)
 {
     blit_data_t *data = param;
+
+#ifdef __APPLE__
+    /* The emulation thread blocks on this thread twice per displayed
+       frame; default QoS makes those waits E-core-latency-bound. */
+    pthread_set_qos_class_self_np(QOS_CLASS_USER_INITIATED, 0);
+#endif
     while (data->thread_run) {
         thread_wait_event(data->wake_blit_thread, -1);
         thread_reset_event(data->wake_blit_thread);

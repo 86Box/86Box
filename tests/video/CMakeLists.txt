@@ -27,4 +27,6 @@ if(BUILD_TESTING)
         ${PROJECT_BINARY_DIR}/src/include
     )
     add_test(NAME Mach64.3D COMMAND mach64_3d_tests)
+
+    add_subdirectory(rage128)
 endif()

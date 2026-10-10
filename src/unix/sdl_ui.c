@@ -20,6 +20,13 @@ ui_msgbox(int flags, char *message)
     return ui_msgbox_header(flags, NULL, message);
 }
 
+void
+ui_progress_wait(UNUSED(const char *message), int total, int (*poll)(void *arg), void *arg)
+{
+    while (poll(arg) < total)
+        SDL_Delay(50);
+}
+
 int
 ui_msgbox_header(int flags, char *header, char *message)
 {

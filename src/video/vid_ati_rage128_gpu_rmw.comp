@@ -1,0 +1,133 @@
+#version 450
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          ATI Rage 128 Pro -- GPU backend, 2D read-modify-write pass.
+ *
+ *          This kernel runs queued 2D operations under any ROP3 and any
+ *          write mask (RRG: DP_WRITE_MSK, p. 3-171 / PDF 189), including
+ *          those whose result depends on the destination bytes. The 2D
+ *          engine in vid_ati_rage128_2d.c queues them through
+ *          rage128_gpu_2d_rmw instead of walking the pixels on the CPU,
+ *          and the result must equal the CPU walk's rage128_2d_store
+ *          byte for byte.
+ *
+ *          The kernel knows nothing about ROP codes, pixel depth or
+ *          patterns. When the op is queued, rage128_2d_rmw_ab works out
+ *          two bytes for every destination byte, from the ROP code, the
+ *          pattern byte p, the source byte s and the write mask byte wm
+ *          for that byte's lane, and stages them as two byte planes:
+ *
+ *              A = (rop3(rop, p, s, 0xff) & wm) | ~wm
+ *              B =  rop3(rop, p, s, 0x00) & wm
+ *
+ *          The kernel then stores, for each destination byte d,
+ *
+ *              out = (d & A) | (~d & B)
+ *
+ *          which equals rage128_2d_store's (rop3(rop, p, s, d) & wm) |
+ *          (d & ~wm) for every ROP code. A ROP3 works on each bit on its
+ *          own, so a result bit is the 0xff result where the d bit is 1
+ *          and the 0x00 result where it is 0. Bits outside the mask get
+ *          A = 1 and B = 0, which keeps d. The queue side uses the same
+ *          A = 0xff, B = 0 pair to leave a pixel alone, for example one
+ *          outside the scissor or a transparent pattern cell.
+ *
+ *          Each op is recorded in gpu_disp_fills in
+ *          vid_ati_rage128_gpu.c, among the queued fills and copies at
+ *          the head of a submit. A barrier covering both transfer and
+ *          compute work sits in front of any queued op whose bytes
+ *          overlap an earlier one, and one more barrier makes all of it
+ *          visible to the draw dispatches that follow.
+ *
+ *          Relevant literature:
+ *
+ *          [1] ATI Technologies, "RAGE 128 PRO Register Reference Guide",
+ *              RRG-G04500-C Rev 1.01, January 2000. Cited below as
+ *              "RRG: <register>, p. <printed page> / PDF <viewer page>".
+ *
+ * Authors: skiretic.
+ *
+ *          Copyright 2026 skiretic.
+ */
+
+layout(local_size_x = 256) in;
+
+/* This kernel has its own descriptor set layout and push-constant range
+   rather than the shading kernels' shared layout in
+   vid_ati_rage128_gpu_abi.glsl. Changing the shared layout would change
+   every shading pipeline, and none of them could then be reused from the
+   persisted pipeline cache. Binding 0 is the VRAM buffer, read and
+   written; binding 1 is the 2D staging ring that holds the A and B
+   planes. */
+layout(std430, binding = 0) buffer V { uint vram[]; };
+layout(std430, binding = 1) readonly buffer W { uint stg[]; };
+
+layout(push_constant) uniform P {
+    uint addr;  /* dst byte address of row 0 (any alignment) */
+    uint pitch; /* dst row stride, bytes (word-aligned when rows > 1) */
+    uint len;   /* row length, bytes */
+    uint rows;
+    uint aoff;  /* staging byte offset of the A plane */
+    uint boff;  /* staging byte offset of the B plane */
+    uint amod;  /* plane row index mask (row stride is len) */
+} pc;
+
+/* Destination row r reads plane row r & amod. The queue side uses three
+   values: 0, one plane row shared by every destination row; 7, eight
+   plane rows for an 8x8 pattern, staged from the op's first row so that
+   row r and row r & 7 fall on the same pattern row; 0xffffffff, one
+   plane row per destination row. */
+
+uint
+stg_byte(uint off)
+{
+    return (stg[off >> 2] >> ((off & 3u) * 8u)) & 0xffu;
+}
+
+/* One thread per 32-bit destination word of one row. A thread loads
+   the word, replaces the bytes that fall inside [row0, row0 + len) and
+   stores the rest unchanged, so a row that starts or ends inside a word
+   needs no special case. Two rows must never share a word, or two
+   threads would store it: rage128_gpu_2d_rmw refuses a multi-row op
+   unless pitch is a multiple of 4 and at least the row's span in whole
+   words. The dispatch rounds the thread count up to 256; the extra
+   threads return at the rows check. */
+void
+main()
+{
+    uint words = ((pc.addr & 3u) + pc.len + 3u) >> 2;
+    uint id    = gl_GlobalInvocationID.x;
+    uint r     = id / words;
+    uint w     = id % words;
+
+    if (r >= pc.rows)
+        return;
+
+    uint row0 = pc.addr + r * pc.pitch;
+    uint wa   = ((row0 & ~3u) >> 2) + w;
+    uint prow = (r & pc.amod) * pc.len;
+    uint d    = vram[wa];
+    uint outv = 0u;
+
+    for (uint b = 0u; b < 4u; b++) {
+        uint ba = (wa << 2) + b;
+        uint db = (d >> (b * 8u)) & 0xffu;
+        uint ob = db;
+
+        if (ba >= row0 && ba < row0 + pc.len) {
+            uint j = ba - row0;
+            uint A = stg_byte(pc.aoff + prow + j);
+            uint B = stg_byte(pc.boff + prow + j);
+
+            ob = (db & A) | ((~db & B) & 0xffu);
+        }
+        outv |= ob << (b * 8u);
+    }
+    vram[wa] = outv;
+}
