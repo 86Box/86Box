@@ -76,12 +76,14 @@ typedef struct {
     unsigned int block_connect     : 1;
     unsigned int prev_config_valid : 1;
     uint32_t     last_connect_attempt;
+    uint32_t last_read_error;
 #ifdef _WIN32
     HANDLE fd;
     DCB    prev_config;
     DCB    config;
 #else
     int fd;
+    int esc_state;
 #    ifdef TCGETS2
     struct termios2 config;
     struct termios2 prev_config;
@@ -305,7 +307,8 @@ char_serial_connect(char_serial_t *dev, int startup)
 
     /* Set up serial port. */
 #    ifdef USE_LINUX_TERMIOS /* cfmakeraw not available here, set manually according to the man page */
-    dev->config.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+    dev->config.c_iflag &= ~(IGNBRK | BRKINT | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+    dev->config.c_iflag |= INPCK | PARMRK;
     dev->config.c_oflag &= ~OPOST;
     dev->config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
 #        ifdef TCSETS2
@@ -315,6 +318,7 @@ char_serial_connect(char_serial_t *dev, int startup)
 #        endif
 #    else
     cfmakeraw(&dev->config);
+    dev->config.c_iflag |= INPCK | PARMRK;
     if (tcsetattr(dev->fd, TCSANOW, &dev->config))
 #    endif
         char_serial_log(dev->log, "Raw mode tcsetattr failed (%d)\n", errno);
@@ -337,14 +341,58 @@ errmsg:
     return 0;
 }
 
+#ifndef _WIN32
+static int
+char_serial_unescape(char_serial_t *dev, uint8_t b, uint8_t *out, uint32_t *out_error)
+{
+    switch (dev->esc_state) {
+        case 1:
+            dev->esc_state = 0;
+            if (b == 0xff) {
+                *out       = 0xff;
+                *out_error = 0;
+                return 1;
+            }
+            if (b == 0x00) {
+                dev->esc_state = 2;
+                return 0;
+            }
+            /* Not a sequence termios(3) documents; don't lose the byte. */
+            *out       = b;
+            *out_error = 0;
+            return 1;
+
+        case 2:
+            dev->esc_state = 0;
+            *out = b;
+            /* \377 \0 \0 is how termios(3) marks a break condition; any
+               other trailing byte is a genuine parity/framing error. */
+            if (b == 0x00)
+                *out_error = CHAR_COM_ERR_BREAK;
+            else
+                *out_error = CHAR_COM_ERR_PARITY | CHAR_COM_ERR_FRAMING;
+            return 1;
+
+        default:
+            if (b == 0xff) {
+                dev->esc_state = 1;
+                return 0;
+            }
+            *out       = b;
+            *out_error = 0;
+            return 1;
+    }
+}
+#endif
+
+#ifdef _WIN32
 static size_t
 char_serial_read(uint8_t *buf, size_t len, void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
-    int connect = !CHAR_FD_VALID(dev->fd) && !dev->block_connect;
-#ifdef _WIN32
-    DWORD ret = 0;
+    int   connect = !CHAR_FD_VALID(dev->fd) && !dev->block_connect;
+    DWORD ret     = 0;
 retry:
     if (connect)
         char_serial_connect(dev, 0);
@@ -355,24 +403,72 @@ retry:
         if ((stats.cbInQue > 0) && !ReadFile(dev->fd, buf, len, &ret, NULL)) {
             char_serial_log(dev->log, "ReadFile failed (%08X)\n", GetLastError());
             ret = 0;
-#else
-    ssize_t ret = 0;
-retry:
-    if (connect)
-        char_serial_connect(dev, 0);
-    if (CHAR_FD_VALID(dev->fd) && ((ret = read(dev->fd, buf, len)) < 0)) {
-        ret = 0;
-        if ((errno != EAGAIN) && (errno != EWOULDBLOCK)) {
-            char_serial_log(dev->log, "read failed (%d)\n", errno);
-#endif
             char_serial_disconnect(dev);
             if (!dev->block_connect && !connect) {
                 connect = 1;
                 goto retry;
             }
+        } else if (ret > 0) {
+            uint32_t mapped = 0;
+            if (err & CE_RXPARITY)
+                mapped |= CHAR_COM_ERR_PARITY;
+            if (err & CE_FRAME)
+                mapped |= CHAR_COM_ERR_FRAMING;
+            if (err & CE_BREAK)
+                mapped |= CHAR_COM_ERR_BREAK;
+            dev->last_read_error = mapped;
         }
     }
     return ret;
+}
+#else
+static size_t
+char_serial_read(uint8_t *buf, size_t len, void *priv)
+{
+    char_serial_t *dev = (char_serial_t *) priv;
+
+    int     connect = !CHAR_FD_VALID(dev->fd) && !dev->block_connect;
+    ssize_t ret      = 0;
+retry:
+    if (connect)
+        char_serial_connect(dev, 0);
+    if (CHAR_FD_VALID(dev->fd)) {
+        for (int iter = 0; iter < 4; iter++) {
+            uint8_t raw_byte;
+            ssize_t r = read(dev->fd, &raw_byte, 1);
+            if (r <= 0) {
+                if ((r < 0) && (errno != EAGAIN) && (errno != EWOULDBLOCK)) {
+                    char_serial_log(dev->log, "read failed (%d)\n", errno);
+                    char_serial_disconnect(dev);
+                    if (!dev->block_connect && !connect) {
+                        connect = 1;
+                        goto retry;
+                    }
+                }
+                break;
+            }
+            uint8_t  out_byte;
+            uint32_t out_error;
+            if (char_serial_unescape(dev, raw_byte, &out_byte, &out_error)) {
+                if (len > 0) {
+                    buf[0]                = out_byte;
+                    dev->last_read_error  = out_error;
+                    ret                   = 1;
+                }
+                break;
+            }
+        }
+    }
+    return ret;
+}
+#endif
+
+static uint32_t
+char_serial_read_error(void *priv)
+{
+    char_serial_t *dev = (char_serial_t *) priv;
+
+    return dev->last_read_error;
 }
 
 static size_t
@@ -758,6 +854,7 @@ char_serial_init(const device_t *info)
 
     /* Attach character device. */
     dev->port = char_attach(0, char_serial_read, char_serial_write, char_serial_status, char_serial_control, char_serial_port_config, dev);
+    char_set_read_error(dev->port, char_serial_read_error);
     dev->log  = char_log_open(dev->port, "Serial Passthrough");
     char_serial_log(dev->log, "init(%s)\n", path);
 
