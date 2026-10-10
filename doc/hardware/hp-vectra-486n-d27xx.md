@@ -135,6 +135,26 @@ tests. Runtime checks cover:
   640×480×256 (101h) and 1024×768×256 (105h), and switching all video banks.
 - The existing D26xxA T.04.05 configuration still passing its video, keyboard
   and FPU POST tests and booting MS-DOS with the new recompiler.
+- Clean installation of Windows NT 3.1 Workstation (3.10.511.1) from its
+  22 floppy disks to FAT, using standard VGA.
+- Clean installation of Windows NT 3.5 Workstation (3.50.807) from CD,
+  including ATAPI detection, conversion to NTFS, and automatic S3 detection.
+  Its built-in S3 driver passes the 640×480×256 display test with 512 KB VRAM.
+- Both NT installations reaching Program Manager, shutting down normally,
+  and retaining a guest-written file through a full emulator exit, cold boot
+  and Administrator login. The NT 3.1 FAT volume checks clean offline;
+  NT 3.5's NTFS volume passes CHKDSK. NT 3.1 also passes floppy write/readback.
+- NT 3.5's Repair Disk Utility successfully creating an emergency repair
+  floppy, with its setup log and compressed registry files verified on disk.
 
-The validation used 8 MB main RAM; Windows NT installation and the full range
-of memory/CPU configurations have not been retested for this new board.
+DOS validation used 8 MB main RAM. NT validation used the new recompiler,
+fast FPU, an Intel 486DX2-S at 50 MHz, 16 MB RAM, and a 252 MiB primary IDE
+disk (512 cylinders, 16 heads, 63 sectors). F2 Setup used matching custom
+disk geometry, the Integrated disk interface, and a 1994 date with host time
+synchronization disabled. The full memory/CPU range and NT on the old
+recompiler have not been tested.
+
+The supplied NT 3.5 boot disk 2 contains `WINNT.SIF` with
+`MsDosInitiated=1`, which requires files staged by DOS. Direct CD installation
+used a copy of that floppy with `WINNT.SIF` removed. No guest OS binaries,
+firmware bytes or emulator code were changed for the NT tests.
