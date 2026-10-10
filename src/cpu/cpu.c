@@ -445,8 +445,7 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
         } else if (!strcmp(cpu_family->internal_name, "i486dx")) {
             if ((cpu_s->rspeed != 33333333) && (cpu_s->rspeed != 50000000))
                 return 0;
-        } else if (!strcmp(cpu_family->internal_name, "i486dx2") ||
-                   !strcmp(cpu_family->internal_name, "i486dx_overdrive")) {
+        } else if (!strcmp(cpu_family->internal_name, "i486dx2")) {
             if ((cpu_s->rspeed != 50000000) && (cpu_s->rspeed != 66666666))
                 return 0;
         } else
