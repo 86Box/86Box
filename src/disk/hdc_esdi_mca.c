@@ -1672,12 +1672,9 @@ esdi_init(UNUSED(const device_t *info))
 
     /* Enable the device. */
     if (info->local & ESDI_IS_INTEGRATED) {
-        /* The slot is fixed by the planar (in local, see ESDI_SLOT_MASK) unless the
-           setting overrides it; 0 means the first free slot. */
-        int slotno = device_get_config_int("in_esdi_slot");
-
-        if (slotno == 0)
-            slotno = info->local & ESDI_SLOT_MASK;
+        /* Enable the I/O block. The slot is fixed by the planar (in local,
+        see ESDI_SLOT_MASK); 0 means the first free slot. */
+        const int slotno = info->local & ESDI_SLOT_MASK;
 
         if (slotno != 0)
             mca_add_to_slot(esdi_mca_read, esdi_mca_write, esdi_mca_feedb, esdi_reset, dev, slotno - 1);
@@ -1726,27 +1723,6 @@ esdi_upgrade_available(void)
     return (rom_present(BIOS_UPG_L) && rom_present(BIOS_UPG_H));
 }
 
-static device_config_t esdi_integrated_config[] = {
-    {
-        .name        = "in_esdi_slot",
-        .description = "Slot #",
-        .type        = CONFIG_SELECTION,
-        .selection   = {
-            { .description = "Auto", .value = 0 },
-            { .description = "1",    .value = 1 },
-            { .description = "2",    .value = 2 },
-            { .description = "3",    .value = 3 },
-            { .description = "4",    .value = 4 },
-            { .description = "5",    .value = 5 },
-            { .description = "6",    .value = 6 },
-            { .description = "7",    .value = 7 },
-            { .description = "8",    .value = 8 }
-        },
-        .default_int = 0
-    },
-    { .type = -1 }
-};
-
 const device_t esdi_integrated_device = {
     .name          = "IBM Integrated ESDI Fixed Disk",
     .internal_name = "esdi_integrated_mca",
@@ -1758,7 +1734,7 @@ const device_t esdi_integrated_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = esdi_integrated_config
+    .config        = NULL
 };
 
 const device_t esdi_upgrade_device = {
