@@ -256,7 +256,7 @@ void opq_registers::cache_operator_data(uint32_t choffs, uint32_t opoffs, opdata
 	// so until we get true measurements just assemble a net detune
 	// value by summing smaller detunes
 	int32_t detune = int32_t(op_detune(opoffs)) - 0x20;
-	int32_t abs_detune = std::abs(detune);
+	int32_t abs_detune = abs(detune);
 	int32_t adjust = (abs_detune / 3) * detune_adjustment(3, keycode) + detune_adjustment(abs_detune % 3, keycode);
 	cache.detune = (detune >= 0) ? adjust : -adjust;
 

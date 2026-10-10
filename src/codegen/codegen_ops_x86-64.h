@@ -828,8 +828,8 @@ CHECK_SEG_READ(x86seg *seg)
         addbyte(0x48); /*MOV RSI, &addr*/
         addbyte(0xb8 | REG_ESI);
         addquad((uint64_t) &seg->base);
-        addbyte(0x83); /*CMP RSI, -1*/
-        addbyte(0xe8 | REG_ESI);
+        addbyte(0x83); /*CMP [RSI], -1*/
+        addbyte(0x3e);
         addbyte(0xff);
     }
     addbyte(0x0f); /*JE GPF_BLOCK_OFFSET*/
@@ -862,8 +862,8 @@ CHECK_SEG_WRITE(x86seg *seg)
         addbyte(0x48); /*MOV RSI, &addr*/
         addbyte(0xb8 | REG_ESI);
         addquad((uint64_t) &seg->base);
-        addbyte(0x83); /*CMP RSI, -1*/
-        addbyte(0xe8 | REG_ESI);
+        addbyte(0x83); /*CMP [RSI], -1*/
+        addbyte(0x3e);
         addbyte(0xff);
     }
     addbyte(0x0f); /*JE GPF_BLOCK_OFFSET*/

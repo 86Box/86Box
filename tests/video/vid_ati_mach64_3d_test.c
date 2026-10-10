@@ -81,6 +81,63 @@ mach64_timing_status(mach64_t *mach64, uint32_t *used, int *busy)
     return 0;
 }
 
+/* The card here has one render thread, so the helpers are never made. */
+uint64_t timer_freq;
+
+uint64_t
+plat_timer_read(void)
+{
+    return 0;
+}
+
+thread_t *
+thread_create_named(void (*thread_func)(void *param), void *param, const char *name)
+{
+    (void) thread_func;
+    (void) param;
+    (void) name;
+    return NULL;
+}
+
+int
+thread_wait(thread_t *arg)
+{
+    (void) arg;
+    return 0;
+}
+
+event_t *
+thread_create_event(void)
+{
+    return NULL;
+}
+
+void
+thread_set_event(event_t *arg)
+{
+    (void) arg;
+}
+
+void
+thread_reset_event(event_t *arg)
+{
+    (void) arg;
+}
+
+int
+thread_wait_event(event_t *arg, int timeout)
+{
+    (void) arg;
+    (void) timeout;
+    return 0;
+}
+
+void
+thread_destroy_event(event_t *arg)
+{
+    (void) arg;
+}
+
 static void
 expect_u32(const char *name, uint32_t actual, uint32_t expected)
 {
@@ -553,6 +610,71 @@ control_tests(void)
     expect_int("multipass LOD alpha", mach64_3d_uses_lod_alpha(1, 3), 1);
     expect_int("no LOD alpha without blending", mach64_3d_uses_lod_alpha(0, 3), 0);
     expect_int("no LOD alpha for nearest-map mode", mach64_3d_uses_lod_alpha(1, 2), 0);
+}
+
+/* The texel path's packed forms against the component ones. */
+
+static void
+texel_path_tests(void)
+{
+    mach64_t *m     = card_create();
+    uint32_t  mask  = m->vram_mask;
+    int       wrong = 0;
+
+    /* The 2x2 filter's blend, two components in each 32-bit lane. */
+    for (unsigned fraction = 0; fraction < 256; fraction++) {
+        for (unsigned a = 0; a < 256; a++) {
+            for (unsigned b = 0; b < 256; b++) {
+                uint32_t pa  = (a << 24) | ((255 - a) << 16) | (b << 8) | (a ^ b);
+                uint32_t pb  = (b << 24) | ((255 - b) << 16) | (a << 8) | ((a + b) & 0xff);
+                uint32_t got = mach64_3d_lerp_texel(pa, pb, fraction);
+
+                for (int shift = 0; shift < 32; shift += 8) {
+                    unsigned ca = (pa >> shift) & 0xff;
+                    unsigned cb = (pb >> shift) & 0xff;
+
+                    if (((got >> shift) & 0xff) != ((ca * (256 - fraction) + cb * fraction + 128) >> 8))
+                        wrong++;
+                }
+            }
+        }
+    }
+    CHECK(wrong == 0);
+
+    /* The 16-bit texel types, for every pixel, with either expansion. */
+    wrong = 0;
+    for (int dynamic = 0; dynamic < 2; dynamic++) {
+        for (uint32_t raw = 0; raw < 0x10000; raw++) {
+            uint32_t argb1555 = ((raw & 0x8000) ? 0xff000000 : 0) | (mach64_3d_expand_component(raw >> 10, 5, dynamic) << 16) |
+                                (mach64_3d_expand_component(raw >> 5, 5, dynamic) << 8) | mach64_3d_expand_component(raw, 5, dynamic);
+            uint32_t argb565  = 0xff000000 | (mach64_3d_expand_component(raw >> 11, 5, dynamic) << 16) |
+                               (mach64_3d_expand_component(raw >> 5, 6, dynamic) << 8) | mach64_3d_expand_component(raw, 5, dynamic);
+            uint32_t argb4444 = ((((raw >> 12) & 15) * 17) << 24) | (mach64_3d_expand_component(raw >> 8, 4, dynamic) << 16) |
+                                (mach64_3d_expand_component(raw >> 4, 4, dynamic) << 8) | mach64_3d_expand_component(raw, 4, dynamic);
+
+            wrong += (mach64_3d_argb1555(raw, dynamic) != argb1555);
+            wrong += (mach64_3d_argb565(raw, dynamic) != argb565);
+            wrong += (mach64_3d_argb4444(raw, dynamic) != argb4444);
+        }
+    }
+    CHECK(wrong == 0);
+
+    /* Reads at the end of video memory wrap a byte at a time. */
+    for (uint32_t i = 0; i < 8; i++) {
+        m->svga.vram[i]        = 0x10 + i;
+        m->svga.vram[mask - i] = 0xa0 + i;
+    }
+    wrong = 0;
+    for (uint32_t addr = mask - 6; addr != mask + 6; addr++) {
+        const uint8_t *vram = m->svga.vram;
+        uint16_t       w    = vram[addr & mask] | (vram[(addr + 1) & mask] << 8);
+        uint32_t       d    = w | (vram[(addr + 2) & mask] << 16) | ((uint32_t) vram[(addr + 3) & mask] << 24);
+
+        wrong += (mach64_3d_vram_read16(m, addr) != w);
+        wrong += (mach64_3d_vram_read32(m, addr) != d);
+    }
+    CHECK(wrong == 0);
+    card_close(m);
 }
 
 /* Scaler arithmetic: the accumulators, the blends and the mixes. */
@@ -2392,6 +2514,7 @@ main(void)
     yuv_tests();
     palette_tests();
     control_tests();
+    texel_path_tests();
     scaler_math_tests();
     scaler_tests();
     draw_tests();

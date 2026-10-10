@@ -86,8 +86,8 @@
 #define MACHINE_VIDEO_EXT         0x0000000000000004ULL /* sys has ext display */
 #define MACHINE_VIDEO_ONLY        0x0000000000000008ULL /* sys has fixed video */
 #define MACHINE_KEYBOARD          0x0000000000000010ULL /* sys has int keyboard */
-#define MACHINE_AX                0x0000000000000020ULL /* sys adheres to Japanese AX standard */
-#define MACHINE_KEYBOARD_JIS      0x0000000000000020ULL /* sys has int keyboard which is Japanese (AX or PS/55) */
+#define MACHINE_KEYBOARD_AX       0x0000000000000020ULL /* sys has Japanese AX keyboard */
+#define MACHINE_KEYBOARD_JIS      0x0000000000000020ULL /* sys has Japanese PS/55 keyboard */
 #define MACHINE_MOUSE             0x0000000000000040ULL /* sys has int mouse */
 #define MACHINE_FDC               0x0000000000000080ULL /* sys has int FDC */
 #define MACHINE_LPT_PRI           0x0000000000000100ULL /* sys has int pri LPT */
@@ -95,7 +95,7 @@
 #define MACHINE_LPT_TER           0x0000000000000400ULL /* sys has int ter LPT */
 #define MACHINE_PS2_KBC           0x0000000000000800ULL /* sys has a PS/2 keyboard controller */
                                                         /* this is separate from having PS/2 ports */
-#define MACHINE_UART_PRI          0x0000000000010800ULL /* sys has int pri UART */
+#define MACHINE_UART_PRI          0x0000000000001000ULL /* sys has int pri UART */
 #define MACHINE_UART_SEC          0x0000000000002000ULL /* sys has int sec UART */
 #define MACHINE_UART_TER          0x0000000000004000ULL /* sys has int ter UART */
 #define MACHINE_UART_QUA          0x0000000000008000ULL /* sys has int qua UART */
@@ -107,8 +107,8 @@
 #define MACHINE_APM               0x0000000000080000ULL /* sys has APM */
 #define MACHINE_ACPI              0x0000000000100000ULL /* sys has ACPI */
 #define MACHINE_PCI_INTERNAL      0x0000000000200000ULL /* sys has only internal PCI */
-#define MACHINE_AGP_INTERNAL      0x0000000200000000ULL /* sys has only internal AGP */
-#define MACHINE_CARTRIDGE         0x0000000000400000ULL /* sys has cartridge bays */
+#define MACHINE_AGP_INTERNAL      0x0000000000400000ULL /* sys has only internal AGP */
+#define MACHINE_CARTRIDGE         0x0000000200000000ULL /* sys has cartridge bays */
 /* Feature flags for internal storage controllers. */
 #define MACHINE_MFM               0x0000000000800000ULL /* sys has int MFM/RLL */
 #define MACHINE_XTA               0x0000000001000000ULL /* sys has int XTA */
@@ -122,8 +122,7 @@
 #define MACHINE_ZENITH            0x0000000100000000ULL /* sys is Zenith */
 #define MACHINE_IDE_INTERNAL      0x0000000800000000ULL /* sys int IDE only with the Internal controller */
 /* Combined flags. */
-#define MACHINE_LPT               (MACHINE_LPT_PRI | MACHINE_LPT_SEC | \
-                                   MACHINE_LPT_TER | MACHINE_LPT_QUA)
+#define MACHINE_LPT               (MACHINE_LPT_PRI | MACHINE_LPT_SEC | MACHINE_LPT_TER)
 #define MACHINE_UART              (MACHINE_UART_PRI | MACHINE_UART_SEC | \
                                    MACHINE_UART_TER | MACHINE_UART_QUA)
 #define MACHINE_VIDEO_FIXED       (MACHINE_VIDEO | MACHINE_VIDEO_ONLY) /* sys has fixed int video */
@@ -777,6 +776,10 @@ extern int             machine_at_vect486vl_init(const machine_t *);
 extern int             machine_at_d824_init(const machine_t *);
 
 /* VLSI 82C486 */
+extern int             machine_at_vect486n_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  vect486n_device;
+#endif
 extern int             machine_at_pcs44c_init(const machine_t *);
 extern int             machine_at_sensation1_init(const machine_t *);
 extern int             machine_at_tuliptc38_init(const machine_t *);
@@ -935,6 +938,9 @@ extern int             machine_at_m4li_init(const machine_t *);
 extern int             machine_at_ms4144_init(const machine_t *);
 extern int             machine_at_r418_init(const machine_t *);
 extern int             machine_at_4saw2_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  zida4dps_device;
+#endif
 extern int             machine_at_4dps_init(const machine_t *);
 
 /* UMC 8881 */

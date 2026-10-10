@@ -56,6 +56,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
+#include <86box/hdc.h>
 #include <86box/nvr.h>
 #include <86box/nvr_ps2.h>
 #include <86box/keyboard.h>
@@ -78,9 +79,9 @@ static struct ps2_t {
     uint8_t option[4];
     uint8_t pos_vga;
     uint8_t setup;
-    uint8_t sys_ctrl_port_a;
     uint8_t subaddr_lo;
     uint8_t subaddr_hi;
+    uint8_t sys_ctrl_port_a;
     uint8_t planar_feedback;
 
     uint8_t memory_bank[8];
@@ -1780,7 +1781,7 @@ ps2_mca_mem_d071_init(int start_mb)
 }
 
 static void
-ps2_mca_board_model_50_init(void)
+ps2_mca_board_model_50_init(int is_50z, int is_mfm)
 {
     ps2_mca_board_common_init();
 
@@ -1814,6 +1815,18 @@ ps2_mca_board_model_50_init(void)
        planar memory answers until a driver disables it at runtime. */
     ps2.option[1] |= (0x02 | 0x01);
 
+    /* Enable the builtin HDC; the planar fixes it to slot 4. Model 50 ships
+       with the MFM/ST-506 adapter and model 50Z with the ESDI one, but they
+       can be swapped, so the choice is exposed as a configuration option. */
+    if (hdc_current[0] == HDC_INTERNAL) {
+        if (is_mfm)
+            device_add_params(&st506_ps2_device, (void *) (uintptr_t) 4);
+        else if (is_50z)
+            device_add_params(&esdi_integrated_device, (void *) (uintptr_t) 4);
+        else
+            device_add_params(&esdi_upgrade_device, (void *) (uintptr_t) 4);
+    }
+
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&ps1vga_mca_device);
 }
@@ -1837,9 +1850,6 @@ ps2_mca_board_model_60_init(void)
     */
 
     switch (mem_size / 1024) {
-        case 0: /*256Kx2*/
-            ps2.option[1] = 0xf0;
-            break;
         case 1: /*256Kx4*/
             ps2.option[1] = 0xf4;
             break;
@@ -1913,6 +1923,11 @@ ps2_mca_board_model_55sx_init(int has_sec_nvram, int slots)
 
     ps2.planar_read  = model_55sx_read;
     ps2.planar_write = model_55sx_write;
+
+    /* The 4-slot model 55LS and 55SX planars reserve slot 4 for the integrated fixed
+       disk; the 8-slot model 65SX has no integrated fixed disk controller. */
+    if (hdc_current[0] == HDC_INTERNAL && (slots == 4))
+        device_add_params(&esdi_integrated_device, (void *) (uintptr_t) 4);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&ps1vga_mca_device);
@@ -2202,6 +2217,10 @@ ps2_mca_board_model_70_type1_init(void)
         }
     }
 
+    /* Enable the builtin HDC; the planar fixes it to slot 4. */
+    if (hdc_current[0] == HDC_INTERNAL)
+        device_add_params(&esdi_integrated_device, (void *) (uintptr_t) 4);
+
     if (gfxcard[0] == VID_INTERNAL)
         ps2.mb_vga = device_add(&ps1vga_mca_device);
 }
@@ -2252,6 +2271,10 @@ ps2_mca_board_model_70_type2_init(void)
             ps2_mca_mem_fffc_init(6);
         }
     }
+
+    /* Enable the builtin HDC; the planar fixes it to slot 4. */
+    if (hdc_current[0] == HDC_INTERNAL)
+        device_add_params(&esdi_integrated_device, (void *) (uintptr_t) 4);
 
     if (gfxcard[0] == VID_INTERNAL)
         ps2.mb_vga = device_add(&ps1vga_mca_device);
@@ -2341,6 +2364,10 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
             ps2_mca_mem_fffc_init(8);
         }
     }
+
+    /* Enable the builtin HDC; the planar fixes it to slot 4. */
+    if (hdc_current[0] == HDC_INTERNAL)
+        device_add_params(&esdi_integrated_device, (void *) (uintptr_t) 4);
 
     if (gfxcard[0] == VID_INTERNAL)
         ps2.mb_vga = device_add(&ps1vga_mca_device);
@@ -2604,6 +2631,10 @@ ps2_mca_board_model_p70_type1_init(void)
                     NULL);
     mem_mapping_disable(&ps2.split_mapping);
 
+    /* Enable the builtin HDC; the planar fixes it to slot 3. */
+    if (hdc_current[0] == HDC_INTERNAL)
+        device_add_params(&esdi_integrated_device, (void *) (uintptr_t) 3);
+
     ps2.mb_vga = device_add(&ps1vga_mca_device);
     device_add(&ibm_plasma_vga_device);
 }
@@ -2645,6 +2676,10 @@ ps2_mca_board_model_p70_type2_init(void)
                     MEM_MAPPING_INTERNAL,
                     NULL);
     mem_mapping_disable(&ps2.split_mapping);
+
+    /* Enable the builtin HDC; the planar fixes it to slot 3. */
+    if (hdc_current[0] == HDC_INTERNAL)
+        device_add_params(&esdi_integrated_device, (void *) (uintptr_t) 3);
 
     ps2.mb_vga = device_add(&ps1vga_mca_device);
     device_add(&ibm_plasma_vga_device);
@@ -2699,6 +2734,10 @@ ps55_mca_board_model_5535s_init(void)
         default:
             break;
     }
+
+    /* Enable the builtin HDC; the planar fixes it to slot 2. */
+    if (hdc_current[0] == HDC_INTERNAL)
+        device_add_params(&esdi_integrated_device, (void *) (uintptr_t) 2);
 
     /* The flat panel controller is on the card; 0x3C3 is forwarded to it
        instead of to the planar VGA. */
@@ -2755,6 +2794,10 @@ ps55_mca_board_model_5540t_init(void)
         }
     }
 
+    /* Enable the builtin HDC; the planar fixes it to slot 4. */
+    if (hdc_current[0] == HDC_INTERNAL)
+        device_add_params(&esdi_integrated_device, (void *) (uintptr_t) 4);
+
     /* The display comes from the built-in Display Adapter B-II (BVEC), so it is added here
        instead of being selectable in the video card list; without its ROMs there is none. */
     if ((gfxcard[0] == VID_INTERNAL) && device_available(&ps55db2_device))
@@ -2807,6 +2850,10 @@ ps55_mca_board_model_5550t_init(void)
             ps2_mca_mem_fffc_init(8);
         }
     }
+
+    /* Enable the builtin HDC; the planar fixes it to slot 5. */
+    if (hdc_current[0] == HDC_INTERNAL)
+        device_add_params(&esdi_integrated_device, (void *) (uintptr_t) 5);
 
     if (gfxcard[0] == VID_INTERNAL)
         ps2.mb_vga = (vga_t *) device_add(&ps1vga_mca_device);
@@ -2879,6 +2926,10 @@ ps55_mca_board_model_5550v_init(void)
         }
     }
 
+    /* Enable the builtin HDC; the planar fixes it to slot 5. */
+    if (hdc_current[0] == HDC_INTERNAL)
+        device_add_params(&esdi_integrated_device, (void *) (uintptr_t) 5);
+
     if (gfxcard[0] == VID_INTERNAL)
         ps2.mb_vga = (vga_t *) device_add(&ps1vga_mca_device);
 }
@@ -2943,6 +2994,21 @@ static const device_config_t ps2_model_50_config[] = {
             { .files_no = 0 }
         }
     },
+    {
+        .name           = "hdd",
+        .description    = "Hard disk",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "ST-506", .value = 0 },
+            { .description = "ESDI",   .value = 1 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -2973,6 +3039,7 @@ machine_ps2_model_50_init(const machine_t *model)
 
     device_context(model->device);
     int is_50z = !strcmp(device_get_config_bios("bios"), "ibmps2_m50z");
+    int is_mfm = (device_get_config_int("hdd") == 0);
     if (is_50z) {
         for (uint8_t i = 0; i < 2; i++)
             fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
@@ -2988,7 +3055,7 @@ machine_ps2_model_50_init(const machine_t *model)
     machine_ps2_common_init(model);
 
     ps2.planar_id = 0xfbff;
-    ps2_mca_board_model_50_init();
+    ps2_mca_board_model_50_init(is_50z, is_mfm);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 

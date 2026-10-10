@@ -48,7 +48,7 @@ Build `mach64_accel_tests` and `mach64_3d_tests` with `BUILD_TESTING=ON`, then r
 
 `video/vid_ati_mach64_accel_test.c` runs the draw engine's FIFO thread on the test's own thread. It checks the color compare of transparent blits as the 3D Rage II+ DirectDraw driver writes them, `DP_SET_GUI_ENGINE` and the scissors it opens, the overlay's ECP clock division, source edges and YUV blends on the VT2 and the GT-B, and the GT-B's engine timing: its 48-entry FIFO, a CPU write waiting on a full FIFO, the clocks from the PLL, the display's share of the memory and the memory costs of ATI's method (RAGE PRO Programmer's Guide 7.9.7).
 
-`video/vid_ati_mach64_3d_test.c` stubs the draw engine FIFO and the timing model. It checks the 3D registers' fixed-point fields, the texture palette and keys, mip level selection, YUV and the scaler, then 1,077 draw cases through the registers against the whole frame and Z buffers: triangles of two trapezoids in ARGB1555, RGB565 and ARGB8888, shaded, textured and additive, in both directions and clipped; all eight Z tests; texel keys, alpha masks and the destination compare; the `DST_BRES_LNTH` commands of RRG-G02700 4-46; signed scissors; color and Z fields that wrap; textured lines; bilinear texel centers; and eight register streams of ATI3DCIF 4.03.2510's triangle setup against the color and depth planes of their vertices. The expected images are closed forms, not the engine's own helpers. The tests establish the documented register behavior and the engine's consistency, not the chip's undocumented rounding or dither.
+`video/vid_ati_mach64_3d_test.c` stubs the draw engine FIFO, the timing model and the render threads, so its card draws on one thread. It checks the 3D registers' fixed-point fields, the texture palette and keys, the texel path's packed forms (the 2x2 filter's blend two components at a time, every 16-bit texel unpacked through the expansion tables, and reads that wrap at the end of video memory), mip level selection, YUV and the scaler, then 1,077 draw cases through the registers against the whole frame and Z buffers: triangles of two trapezoids in ARGB1555, RGB565 and ARGB8888, shaded, textured and additive, in both directions and clipped; all eight Z tests; texel keys, alpha masks and the destination compare; the `DST_BRES_LNTH` commands of RRG-G02700 4-46; signed scissors; color and Z fields that wrap; textured lines; bilinear texel centers; and eight register streams of ATI3DCIF 4.03.2510's triangle setup against the color and depth planes of their vertices. The expected images are closed forms, not the engine's own helpers. The tests establish the documented register behavior and the engine's consistency, not the chip's undocumented rounding or dither.
 
 # Mitsumi
 
@@ -179,3 +179,24 @@ I/O handlers, with mocked image access, timers, PIC and DMA. The separate
 and compares copied ISO files byte for byte. See the
 [Sony hardware guide](../doc/hardware/sony-cdrom.md) for prerequisites, resource
 settings, the five-version driver matrix, and validation limits.
+
+# CPU cache and TLB diagnostics
+
+Build `cpu_tr_tests`, `cpu_cache_tests` and `vect486n_tests` with
+`BUILD_TESTING=ON`, then run:
+
+```sh
+ctest --test-dir build --output-on-failure -R 'Cpu(Tlb|Cache)Test\.|Vectra486nBiosTest\.'
+```
+
+The six TLB tests exercise production TR6/TR7 accesses, including the HP
+Vectra 486N POST patterns. Thirteen cache tests exercise production CPU and
+memory dispatch: line fills, eviction, write-through, CR0.CD/NW, PCD and page
+walks, partial and cross-line/page accesses, DMA snoops, write protection,
+TR3-TR5 cache-as-RAM, and the VLSI cacheability register decoder. The three
+BIOS-patch tests check the guarded 486N cache-test bypass, its checksum and
+branch target, and rejection of unrecognized images.
+
+These do not prove that the Vectra boots. See the
+[experimental machine notes](../doc/hardware/hp-vectra-486n.md) for scope,
+performance limitations, and remaining hardware/firmware requirements.

@@ -944,7 +944,7 @@ exec386_dynarec(int32_t cycs)
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
-            if (cpu_force_interpreter || cpu_override_dynarec || cpu_flush_pending || (!CACHE_ON())) /*Interpret block*/
+            if (cpu_cache_enabled || cpu_force_interpreter || cpu_override_dynarec || cpu_flush_pending || (!CACHE_ON())) /*Interpret block*/
             {
                 exec386_dynarec_int();
             } else {
@@ -1049,7 +1049,7 @@ is_dynarec_active(void)
 #ifndef USE_DYNAREC
     return false;
 #else
-    return cpu_exec == exec386_dynarec && cpu_use_dynarec && !(cpu_force_interpreter || cpu_override_dynarec || (!CACHE_ON()));
+    return cpu_exec == exec386_dynarec && cpu_use_dynarec && !(cpu_cache_enabled || cpu_force_interpreter || cpu_override_dynarec || (!CACHE_ON()));
 #endif
 }
 

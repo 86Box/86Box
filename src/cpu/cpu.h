@@ -384,7 +384,7 @@ typedef struct {
     MMX_REG MM[8];
 
 #ifdef USE_NEW_DYNAREC
-#    if (defined(__APPLE__) && defined(__aarch64__)) || defined(__aarch64__)
+#    if (defined(__APPLE__) && defined(__aarch64__)) || defined(__aarch64__) || defined(__loongarch_lp64)
     uint64_t old_fp_control;
     uint64_t new_fp_control;
 #    else
@@ -748,6 +748,16 @@ extern char *cpu_current_pc(char *bufp);
 extern void cpu_update_waitstates(void);
 extern void cpu_set(void);
 extern void cpu_tr_reset(void);
+/* Optional functional write-through i486 cache. The chipset supplies KEN# and
+   write-protect policy; unregistered machines retain the timing-only model. */
+#define CPU_CACHE_FILL          1
+#define CPU_CACHE_WRITE_PROTECT 2
+extern int  cpu_cache_enabled;
+extern void cpu_cache_set_handler(int (*policy)(uint32_t, void *), void *priv);
+extern void cpu_cache_invalidate(void);
+extern void cpu_cache_snoop(uint32_t addr, unsigned size);
+extern int  cpu_cache_read(uint32_t addr, unsigned size, int pcd, uint64_t *value);
+extern int  cpu_cache_write(uint32_t addr, unsigned size, uint64_t value);
 extern uint32_t cpu_tr_read(int reg);
 extern void cpu_tr_write(int reg, uint32_t val);
 extern void cpu_close(void);
@@ -891,6 +901,7 @@ extern void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int 
 extern int lock_legal[256];
 extern int lock_legal_0f[256];
 extern int lock_legal_ba[8];
+extern int lock_legal_c7[8];
 extern int lock_legal_80[8];
 extern int lock_legal_f6[8];
 extern int lock_legal_fe[8];

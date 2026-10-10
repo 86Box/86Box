@@ -96,6 +96,10 @@ aha1740_log(const char *fmt, ...)
    the compatibility port it would answer at otherwise. */
 #define PORTADDR_ENH 0x80
 
+/* INTDEF. The low three bits pick the interrupt; bit 4 lets the card
+   drive it at all. */
+#define INTDEF_INTEN 0x10
+
 /* G2STAT */
 #define G2STAT_MBXOUT  0x04 /* the outgoing mailbox is free */
 #define G2STAT_INTPEND 0x02
@@ -166,8 +170,6 @@ aha1740_log(const char *fmt, ...)
 #define CMD_DOWN    0x09
 #define CMD_RINQ    0x0a
 #define CMD_TARG    0x10
-
-#define AHA_SCATTER 16
 
 typedef struct aha1740_t {
     uint8_t slot;
@@ -328,13 +330,19 @@ aha1740_irq(aha1740_t *dev, int set)
     }
 }
 
+/* A completion is always posted in G2STAT, but it only reaches the line
+   while INTDEF has interrupts enabled. The OS/2 driver turns them off on
+   entry to its handler and starts the next block from inside it; that
+   block finishing must wait for the handler to turn them back on, not
+   re-enter it on its own interrupt stack. */
 static void
 aha1740_interrupt(aha1740_t *dev, uint8_t code, uint32_t ecb)
 {
     dev->mbox_in = ecb;
     dev->g2intst = code;
     dev->g2stat |= G2STAT_INTPEND;
-    aha1740_irq(dev, 1);
+    if (dev->regs[AHA_INTDEF] & INTDEF_INTEN)
+        aha1740_irq(dev, 1);
 }
 
 /* Write the status block the way the driver's decoder reads it: byte zero
@@ -359,7 +367,10 @@ aha1740_status(uint32_t ptr, uint8_t f0, uint8_t f1, uint8_t code,
 
 /* How much data the block describes, and where. A scatter-gather block
    points at a list of address and length pairs and its own length is the
-   length of that list, not of the transfer. */
+   length of that list, not of the transfer. The list is read to its end:
+   the OS/2 driver hands over thirty-two entries for a sixty-four kilobyte
+   read, and stopping at sixteen moved half of it and still reported the
+   block as good. */
 static uint32_t
 aha1740_datalen(const uint8_t *ecb, uint16_t flags1)
 {
@@ -372,8 +383,6 @@ aha1740_datalen(const uint8_t *ecb, uint16_t flags1)
         return datalen;
 
     for (uint32_t off = 0; off < datalen; off += 8) {
-        if (off >= (AHA_SCATTER * 8))
-            break;
         dma_bm_read(dataptr + off, entry, 8, 4);
         total += *(uint32_t *) &entry[4];
     }
@@ -405,9 +414,6 @@ aha1740_move(const uint8_t *ecb, uint16_t flags1, uint8_t *buf, uint32_t len,
     for (uint32_t off = 0; (off < datalen) && (done < len); off += 8) {
         uint32_t piece;
         uint32_t addr;
-
-        if (off >= (AHA_SCATTER * 8))
-            break;
 
         dma_bm_read(dataptr + off, entry, 8, 4);
         addr  = *(uint32_t *) &entry[0];
@@ -709,8 +715,13 @@ aha1740_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case AHA_INTDEF:
+            /* Drop the line before it moves or is masked, then raise it
+               again if a completion has been held while it was off. */
+            aha1740_irq(dev, 0);
             dev->regs[off] = val;
             dev->irq       = aha1740_intab[val & 0x07];
+            if ((val & INTDEF_INTEN) && (dev->g2stat & G2STAT_INTPEND))
+                aha1740_irq(dev, 1);
             break;
 
         case AHA_SCSIDEF:
