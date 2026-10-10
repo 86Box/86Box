@@ -329,7 +329,6 @@ ad1816_input_poll(void *priv)
         timer_advance_u64(&ad1816->rec_timer_count, TIMER_USEC * 1000);
 
     if (ad1816->rec_enable) {
-        int32_t temp;
         uint8_t format;
         uint8_t channel = (ad1816->cur_dma2 != 4) ? ad1816->cur_dma2 : ad1816->cur_dma;
 
