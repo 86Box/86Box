@@ -2965,7 +2965,7 @@ cdrom_read_dvd_structure(const cdrom_t *dev, const uint8_t layer, const uint8_t 
 
     if (ret == 0)  switch (format) {
         case 0x00:    /* Physical format information */
-            total_sectors = (uint64_t) dev->cdrom_capacity;
+            total_sectors = (uint64_t) dev->cdrom_capacity + 1;
 
             if (total_sectors > DVD_LAYER_0_SECTORS)
                 max_layer++;
