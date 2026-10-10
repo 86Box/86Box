@@ -88,11 +88,14 @@
 
 #define BIOS_FILE_L     "roms/hdd/esdi/90x8969.bin"
 #define BIOS_FILE_H     "roms/hdd/esdi/90x8970.bin"
+#define BIOS_UPG_L      "roms/hdd/esdi/15F6995_U19.BIN"
+#define BIOS_UPG_H      "roms/hdd/esdi/15F6994_U18.BIN"
 
 #define ESDI_TIME       500.0
 
 #define ESDI_SLOT_MASK     0x07
-#define ESDI_IS_INTEGRATED 0x08
+#define ESDI_IS_UPGRADE    0x10
+#define ESDI_IS_INTEGRATED 0x20
 
 typedef struct esdi_drive_t {
     int spt;
@@ -1573,68 +1576,6 @@ esdi_mca_write(const uint16_t port, uint8_t val, void *priv)
     }
 }
 
-static void
-esdi_integrated_mca_write(const uint16_t port, uint8_t val, void* priv)
-{
-    esdi_t* dev = (esdi_t*)priv;
-
-    esdi_mca_log("ESDI: mcawr(%04x, %02x)  pos[2]=%02x pos[3]=%02x\n",
-        port, val, dev->pos_regs[2], dev->pos_regs[3]);
-
-    if (port < 0x102)
-        return;
-
-    /* Save the new value. */
-    dev->pos_regs[port & 7] = val;
-
-    io_removehandler(dev->base, 8,
-        esdi_read, esdi_readw, NULL,
-        esdi_write, esdi_writew, NULL, dev);
-
-    switch (dev->pos_regs[2] & 0x3c) {
-    case 0x14:
-        dev->dma = 5;
-        break;
-    case 0x18:
-        dev->dma = 6;
-        break;
-    case 0x1c:
-        dev->dma = 7;
-        break;
-    case 0x00:
-        dev->dma = 0;
-        break;
-    case 0x04:
-        dev->dma = 1;
-        break;
-    case 0x0c:
-        dev->dma = 3;
-        break;
-    case 0x10:
-        dev->dma = 4;
-        break;
-
-    default:
-        break;
-    }
-
-    /* Set up controller I/O address. */
-    if (dev->pos_regs[2] & 0x02)
-        dev->base = ESDI_IOADDR_SEC;
-    else
-        dev->base = ESDI_IOADDR_PRI;
-
-    if (dev->pos_regs[2] & 1) {
-        io_sethandler(dev->base, 8,
-            esdi_read, esdi_readw, NULL,
-            esdi_write, esdi_writew, NULL, dev);
-
-        /* Say hello. */
-        esdi_mca_log("ESDI: I/O=%04X, IRQ=14, DMA=%d\n",
-            dev->base, dev->dma);
-    }
-}
-
 static uint8_t
 esdi_mca_feedb(void *priv)
 {
@@ -1669,9 +1610,12 @@ esdi_init(UNUSED(const device_t *info))
     dev->irq_status = 0xff;
     dev->base       = ESDI_IOADDR_PRI;
 
-    if (!(info->local & ESDI_IS_INTEGRATED)) {
+    if (!(info->local & ESDI_IS_INTEGRATED) || (info->local & ESDI_IS_UPGRADE)) {
+        const int upgrade = (info->local & ESDI_IS_UPGRADE) != 0;
+
         rom_init_interleaved(&dev->bios_rom,
-            BIOS_FILE_H, BIOS_FILE_L,
+            upgrade ? BIOS_UPG_H : BIOS_FILE_H,
+            upgrade ? BIOS_UPG_L : BIOS_FILE_L,
             0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
         mem_mapping_set_handler(&dev->bios_rom.mapping,
             esdi_bios_read, esdi_bios_readw, esdi_bios_readl,
@@ -1736,9 +1680,9 @@ esdi_init(UNUSED(const device_t *info))
             slotno = info->local & ESDI_SLOT_MASK;
 
         if (slotno != 0)
-            mca_add_to_slot(esdi_mca_read, esdi_integrated_mca_write, esdi_mca_feedb, esdi_reset, dev, slotno - 1);
+            mca_add_to_slot(esdi_mca_read, esdi_mca_write, esdi_mca_feedb, esdi_reset, dev, slotno - 1);
         else
-            mca_add(esdi_mca_read, esdi_integrated_mca_write, esdi_mca_feedb, esdi_reset, dev);
+            mca_add(esdi_mca_read, esdi_mca_write, esdi_mca_feedb, esdi_reset, dev);
     } else
         mca_add(esdi_mca_read, esdi_mca_write, esdi_mca_feedb, NULL, dev);
 
@@ -1776,19 +1720,11 @@ esdi_available(void)
     return (rom_present(BIOS_FILE_L) && rom_present(BIOS_FILE_H));
 }
 
-const device_t esdi_ps2_device = {
-    .name          = "IBM ESDI Fixed Disk Adapter",
-    .internal_name = "esdi_mca",
-    .flags         = DEVICE_MCA,
-    .local         = 0,
-    .init          = esdi_init,
-    .close         = esdi_close,
-    .reset         = NULL,
-    .available     = esdi_available,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
+static int
+esdi_upgrade_available(void)
+{
+    return (rom_present(BIOS_UPG_L) && rom_present(BIOS_UPG_H));
+}
 
 static device_config_t esdi_integrated_config[] = {
     {
@@ -1823,4 +1759,32 @@ const device_t esdi_integrated_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = esdi_integrated_config
+};
+
+const device_t esdi_upgrade_device = {
+    .name          = "IBM 50-021 to 50Z HD-Upgrade Controller",
+    .internal_name = "esdi_upgrade_mca",
+    .flags         = DEVICE_MCA,
+    .local         = ESDI_IS_INTEGRATED | ESDI_IS_UPGRADE,
+    .init          = esdi_init,
+    .close         = esdi_close,
+    .reset         = esdi_reset,
+    .available     = esdi_upgrade_available,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t esdi_ps2_device = {
+    .name          = "IBM ESDI Fixed Disk Adapter",
+    .internal_name = "esdi_mca",
+    .flags         = DEVICE_MCA,
+    .local         = 0,
+    .init          = esdi_init,
+    .close         = esdi_close,
+    .reset         = NULL,
+    .available     = esdi_available,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };

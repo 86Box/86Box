@@ -79,9 +79,9 @@ static struct ps2_t {
     uint8_t option[4];
     uint8_t pos_vga;
     uint8_t setup;
-    uint8_t sys_ctrl_port_a;
     uint8_t subaddr_lo;
     uint8_t subaddr_hi;
+    uint8_t sys_ctrl_port_a;
     uint8_t planar_feedback;
 
     uint8_t memory_bank[8];
@@ -1781,7 +1781,7 @@ ps2_mca_mem_d071_init(int start_mb)
 }
 
 static void
-ps2_mca_board_model_50_init(int is_50z)
+ps2_mca_board_model_50_init(int is_50z, int is_mfm)
 {
     ps2_mca_board_common_init();
 
@@ -1815,13 +1815,16 @@ ps2_mca_board_model_50_init(int is_50z)
        planar memory answers until a driver disables it at runtime. */
     ps2.option[1] |= (0x02 | 0x01);
 
-    /* Enable the builtin HDC; the planar fixes it to slot 4. The model 50Z BIOS
-       pairs with the ESDI controller, the original model 50 BIOS with the MFM one. */
+    /* Enable the builtin HDC; the planar fixes it to slot 4. Model 50 ships
+       with the MFM/ST-506 adapter and model 50Z with the ESDI one, but they
+       can be swapped, so the choice is exposed as a configuration option. */
     if (hdc_current[0] == HDC_INTERNAL) {
-        if (is_50z)
+        if (is_mfm)
+            device_add_params(&st506_ps2_device, (void *) (uintptr_t) 4);
+        else if (is_50z)
             device_add_params(&esdi_integrated_device, (void *) (uintptr_t) 4);
         else
-            device_add_params(&st506_ps2_device, (void *) (uintptr_t) 4);
+            device_add_params(&esdi_upgrade_device, (void *) (uintptr_t) 4);
     }
 
     if (gfxcard[0] == VID_INTERNAL)
@@ -1847,9 +1850,6 @@ ps2_mca_board_model_60_init(void)
     */
 
     switch (mem_size / 1024) {
-        case 0: /*256Kx2*/
-            ps2.option[1] = 0xf0;
-            break;
         case 1: /*256Kx4*/
             ps2.option[1] = 0xf4;
             break;
@@ -2994,6 +2994,21 @@ static const device_config_t ps2_model_50_config[] = {
             { .files_no = 0 }
         }
     },
+    {
+        .name           = "hdd",
+        .description    = "Hard disk",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "ST-506", .value = 0 },
+            { .description = "ESDI",   .value = 1 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -3024,6 +3039,7 @@ machine_ps2_model_50_init(const machine_t *model)
 
     device_context(model->device);
     int is_50z = !strcmp(device_get_config_bios("bios"), "ibmps2_m50z");
+    int is_mfm = (device_get_config_int("hdd") == 0);
     if (is_50z) {
         for (uint8_t i = 0; i < 2; i++)
             fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
@@ -3039,7 +3055,7 @@ machine_ps2_model_50_init(const machine_t *model)
     machine_ps2_common_init(model);
 
     ps2.planar_id = 0xfbff;
-    ps2_mca_board_model_50_init(is_50z);
+    ps2_mca_board_model_50_init(is_50z, is_mfm);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
