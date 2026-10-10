@@ -37,6 +37,9 @@
 #include <86box/clock.h>
 #include <86box/sound.h>
 #include <86box/snd_ac97.h>
+#include <86box/thread.h>
+#include <86box/timer.h>
+#include <86box/network.h>
 
 /* i440LX */
 int
@@ -279,6 +282,51 @@ machine_at_em440_init(const machine_t *model)
 }
 
 /* i440ZX */
+int
+machine_at_bl440zx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_intel("roms/machines/bl440zx/P05-0012.BIO",
+                          "roms/machines/bl440zx/P05-0012.BBO",
+                          262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    /* The official Intel riser only has a single PCI slot, although the PCI IRQ table still defines
+       three more slots, possibly intended for allowing the use of risers with more slots if Intel
+       would have ever decided to make them. */
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x06, PCI_CARD_NETWORK,     4, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_SOUND,       2, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&i440zx_device);
+    device_add(&piix4e_device);
+    device_add_params(&fdc37mx0x_device, (void *) (FDC37B80X | FDC37XXX7 | FDC37C93X_NO_NVR | FDC37XXXX_370));
+    /* TODO: Implement Intel E28F200 flash */
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
+        device_add(machine_get_net_device(machine));
+
+    if (sound_card_current[0] == SOUND_INTERNAL) {
+        device_add(machine_get_snd_device(machine));
+        device_add(&cs4297a_device);
+    }
+
+    return ret;
+}
+
 int
 machine_at_63a1_init(const machine_t *model)
 {

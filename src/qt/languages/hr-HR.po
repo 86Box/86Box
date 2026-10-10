@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 19:36+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-10-02 20:17+0000\n"
+"Last-Translator: dob205 <dominik.babic0@gmail.com>\n"
 "Language-Team: Croatian <https://weblate.86box.net/projects/86box/86box/hr/>"
 "\n"
 "Language: hr-HR\n"
@@ -432,7 +432,7 @@ msgid "Dynamic recompiler"
 msgstr "Dinamički rekompilator"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Precizno FPU okruženje za dinamički rekompilator"
 
 msgid "CPU frame size"
 msgstr "Veličina blokova procesora"
@@ -486,16 +486,16 @@ msgid "&Mouse"
 msgstr "&Miš"
 
 msgid "Tablet:"
-msgstr ""
+msgstr "Tablet:"
 
 msgid "Tablet"
-msgstr ""
+msgstr "Tablet"
 
 msgid "&Tablet"
-msgstr ""
+msgstr "&Tablet"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "Tablet (&nišan)"
 
 msgid "Joystick:"
 msgstr "Palica za igru:"
@@ -858,7 +858,7 @@ msgid "Input devices"
 msgstr "Ulazni uređaji"
 
 msgid "Input &device"
-msgstr ""
+msgstr "Uređaj za &unos"
 
 msgid "Sound"
 msgstr "Zvuk"
@@ -870,10 +870,10 @@ msgid "Ports (COM & LPT)"
 msgstr "Vrata (COM & LPT)"
 
 msgid "Port"
-msgstr ""
+msgstr "Priključak"
 
 msgid "Ports"
-msgstr "Vrata"
+msgstr "Priključci"
 
 msgid "Serial ports"
 msgstr "Serijska vrata"
@@ -946,6 +946,9 @@ msgstr "Pritisnite %1 za otpustanje miša"
 
 msgid "Press %1 or middle button to release mouse"
 msgstr "Pritisnite %1 ili srednji gumb miša za otpuštanje miša"
+
+msgid "Press %1 or side button to release mouse"
+msgstr "Pritisnite %1 ili bočni gumb za otpuštanje miša"
 
 msgid "Bus"
 msgstr "Bus"
@@ -1278,7 +1281,7 @@ msgid "Use regular expressions in search box"
 msgstr "U polju za pretraživanje koristite regularne izraze"
 
 msgid "Delete virtual machines to Recycle Bin"
-msgstr ""
+msgstr "Izbrisate virtualne sisteme u Koš za smeće"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -1500,16 +1503,18 @@ msgid "ACP&I shutdown"
 msgstr "ACP&I bazirano gašenje"
 
 msgid "Power off"
-msgstr ""
+msgstr "Isključite"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "Isključite&…"
 
 msgid "Power &off"
-msgstr ""
+msgstr "Isključite&"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
+"Isključivanje emuliranog sistema može dovesti do gubitka podataka. Jeste li "
+"sigurni da želite nastaviti?"
 
 msgid "Hard disk (%1)"
 msgstr "Tvrdi disk (%1)"
@@ -1778,10 +1783,10 @@ msgid "Auto-pause on focus loss"
 msgstr "Automatska pauza pri gubitku fokusa"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "Automatska pauza pri dijaloškim okvirima"
 
 msgid "WinBox is no longer supported"
-msgstr "WinBox seviše ne podržava"
+msgstr "WinBox više nije podržan"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 msgstr "Razvoj menadžera WinBox zaustavio se 2022. zbog nedostatka održavača. Dok usmjeravamo svoje napore, da 86Box bude još bolji, odlučili smo se, da više ne podržavmo Winbox kao menadžer.\n\nDaljnja ažuriranja neće bit više osigurana putem WinBox-a i možete naići na pogrešno ponašanje ako ga nastavite koristiti s novijim verzijama 86Box-a. Sva izvješća o pogreškama u vezi s ponašanjem WinBox-a bit će zatvorena kao nevaljana.\n\nZa popis drugih menadžera koje možete koristiti, idite na 86box.net."
@@ -2291,7 +2296,7 @@ msgid "Host ID"
 msgstr "ID nositelja"
 
 msgid "Host"
-msgstr ""
+msgstr "Nositelj"
 
 msgid "FDC Address"
 msgstr "Adresa FDC-a"
@@ -2375,7 +2380,7 @@ msgid "Control PC speaker"
 msgstr "Kontroliraj zvučnik računala"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "Kontroliraj glasnoću MIDI uređaja"
 
 msgid "Memory size"
 msgstr "Veličina memorije"
@@ -2996,7 +3001,7 @@ msgid "Ask for confirmation before quitting"
 msgstr "Zatraži potvrdu prije izlaza"
 
 msgid "Precache CHD files into memory"
-msgstr ""
+msgstr "Predmemoriraj CHD datoteku u memoriju"
 
 msgid "Options"
 msgstr "Opcije"
@@ -3008,34 +3013,34 @@ msgid "Model:"
 msgstr "Model:"
 
 msgid "Brand:"
-msgstr ""
+msgstr "Marka:"
 
 msgid "Revision:"
-msgstr ""
+msgstr "Revizija:"
 
 msgid "[Generic HDD] Device Configuration"
-msgstr ""
+msgstr "[Generički HDD] Konfiguracija uređaja"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Nije uspjelo inicijaliziranje renderera Vulkan."
 
 msgid "Failed to create Vulkan 1.3 instance."
-msgstr ""
+msgstr "Nije moguće stvoriti Vulkan 1.3 primjer."
 
 msgid "No usable Vulkan physical devices found."
-msgstr ""
+msgstr "Nijedan fizički Vulkan uređaj nije pronađen."
 
 msgid "No Vulkan-capable physical devices found."
-msgstr ""
+msgstr "Nema fizičkih uređaja sposobnih za Vulkan."
 
 msgid "librashader not found. Shaders will not be available."
-msgstr ""
+msgstr "librashader nije pronađen. Shaderi neće biti dostupni."
 
 msgid "Vulkan device lost."
-msgstr ""
+msgstr "Izgubilo se Vulkan uređaj."
 
 msgid "Vulkan surface lost."
-msgstr ""
+msgstr "Izgubilo se Vulkan povrišina."
 
 msgid "GLSL Error"
 msgstr "Greška GLSL"
@@ -3059,7 +3064,7 @@ msgid "Shader Configuration"
 msgstr "Konfiguracija shadera"
 
 msgid "GPU:"
-msgstr ""
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "Dodaj"
@@ -3128,10 +3133,10 @@ msgid "Toggle mute"
 msgstr "Uključi/isključi zvuk"
 
 msgid "Toggle on-screen display"
-msgstr ""
+msgstr "Uključi/isključi zaslonski prikaz"
 
 msgid "Toggle &on-screen display"
-msgstr ""
+msgstr "Uključi/isključi &zaslonski prikaz"
 
 msgid "Text files"
 msgstr "Tekstualne datoteke"
@@ -3296,7 +3301,7 @@ msgid "Export EDID"
 msgstr "Izvoz EDID-a"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr ""
+msgstr "EDID datoteka \"%s\" je neispravna."
 
 msgid "EDID file \"%s\" is too large."
 msgstr "EDID datoteka \"%s\" je prevelika."
@@ -3335,10 +3340,10 @@ msgid "Fast forward"
 msgstr "Brzo naprijed"
 
 msgid "&Non-maskable interrupt"
-msgstr ""
+msgstr "&Nemaskirajući prekid"
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "Nemaskirajući prekid"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "Za promjenu sustavskog direktorija zaustavite sve pokrenute strojeve."
@@ -3374,6 +3379,8 @@ msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
+"Nije bilo moguće otvoriti sliku \"%s\": nedostaje biblioteka %1, koja je "
+"potrebna za podršku slika formata Aaru."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3519,25 +3526,32 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (tradicionalni kineski)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "Frekvencija uzorkovanja:"
 
 msgid "Enable audio input (mic/line-in)"
-msgstr ""
+msgstr "Omogući audio ulaz (mikrofon/line-in)"
 
 msgid "Audio input device:"
-msgstr ""
+msgstr "Uređaj za unos zvuka:"
 
 msgid "Audio input sample rate:"
-msgstr ""
+msgstr "Frekvencija uzorkovanja audio ulaza:"
 
 msgid "Rate the emulator mixes to the host output device."
 msgstr ""
+"Frekvencija uzorkovanja pod kojom emulator šalje audio na izlazni uređaj "
+"hosta."
 
 msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
 msgstr ""
+"Frekvencija uzorkovanja pod kojom je otvoren ulazni uređaj računala za "
+"snimanje.\n"
+"\n"
+"Frekvencija 44100 djeljiva je bez ostatka s frekvencijama od 44,1/22/11 kHz "
+"za SB16/AWE32."
 
 msgid "CGA lightpen"
-msgstr ""
+msgstr "CGA svjetlosno pero"
 
 msgid "Luminance threshold (%)"
-msgstr ""
+msgstr "Prag luminacije (%)"

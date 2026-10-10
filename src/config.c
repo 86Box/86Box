@@ -826,7 +826,7 @@ load_input_devices(void)
             keyboard_type = KEYBOARD_TYPE_PS2;
     } else if (machine_has_bus(machine, MACHINE_BUS_ISA16) ||
                machine_has_bus(machine, MACHINE_BUS_PCI)) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
+        if (machine_has_flags(machine, MACHINE_KEYBOARD_AX))
             keyboard_type = KEYBOARD_TYPE_AX;
         else
             keyboard_type = KEYBOARD_TYPE_AT;
@@ -1498,9 +1498,13 @@ load_storage_controllers(void)
         sprintf(temp, "hdc_%d", c + 1);
 
         p = ini_section_get_string(cat, temp, NULL);
-        if (p != NULL)
-            hdc_current[c] = config_known(hdc_get_from_internal_name(p), STRING_UNSUPPORTED_HDC, p);
-        else
+        if (p != NULL) {
+            /* The integrated ESDI controller became a planar device, so a config
+               that picked this from the list now means the Internal controller. */
+            const char *hdc_name = !strcmp(p, "esdi_integrated_mca") ? "internal" : p;
+
+            hdc_current[c] = config_known(hdc_get_from_internal_name(hdc_name), STRING_UNSUPPORTED_HDC, hdc_name);
+        } else
             hdc_current[c] = -1;
     }
 
@@ -2015,7 +2019,8 @@ load_floppy_and_cdrom_drives(void)
         cdrom[c].no_check = ini_section_get_int(cat, temp, 0);
 
         sprintf(temp, "cdrom_%02i_type", c + 1);
-        p = ini_section_get_string(cat, temp, cdrom[c].bus_type == CDROM_BUS_CM100 ? "philips_cm100" :
+        p = ini_section_get_string(cat, temp, cdrom[c].bus_type == CDROM_BUS_SONY ? "sony_cdu31a" :
+                                       cdrom[c].bus_type == CDROM_BUS_CM100 ? "philips_cm100" :
                                        cdrom[c].bus_type == CDROM_BUS_PHILIPS ? "philips_cm205" :
                                        cdrom[c].bus_type == CDROM_BUS_HITACHI ? "hitachi_1503s" :
                                        cdrom[c].bus_type == CDROM_BUS_MKE ? "cr563" : "86cd");
@@ -2037,7 +2042,11 @@ load_floppy_and_cdrom_drives(void)
         /* Default values, needed for proper operation of the Settings dialog. */
         cdrom[c].mke_channel = cdrom[c].ide_channel = cdrom[c].scsi_device_id = c & 3;
 
-        if (cdrom[c].bus_type == CDROM_BUS_CM100) {
+        if (cdrom[c].bus_type == CDROM_BUS_SONY) {
+            if (cdrom_drive_types[cdrom_get_type(c)].bus_type != CDROM_BUS_SONY)
+                cdrom_set_type(c, cdrom_get_from_internal_name("sony_cdu31a"));
+            cdrom[c].speed = cdrom_get_speed(cdrom_get_type(c));
+        } else if (cdrom[c].bus_type == CDROM_BUS_CM100) {
             cdrom_set_type(c, cdrom_get_from_internal_name("philips_cm100"));
             cdrom[c].speed = 1;
         } else if (cdrom[c].bus_type == CDROM_BUS_PHILIPS) {

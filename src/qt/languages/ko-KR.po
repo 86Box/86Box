@@ -952,6 +952,9 @@ msgstr "마우스를 해제하려면 %1을 누르세요"
 msgid "Press %1 or middle button to release mouse"
 msgstr "마우스를 해제하려면 %1 또는 가운데 버튼을 누르세요"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "버스"
 

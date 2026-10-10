@@ -7,7 +7,7 @@
  *          This file is part of the 86Box distribution.
  *
  *          ICD2061 clock generator emulation.
- *          Also emulates the ICS9161 which is the same as the ICD2016,
+ *          Also emulates the ICS9161 which is the same as the ICD2061,
  *          but without the need for tuning (which is irrelevant in
  *          emulation anyway).
  *
@@ -142,12 +142,16 @@ icd2061_getclock(int clock, void *priv)
 }
 
 void
-icd2061_set_ref_clock(void *priv, float ref_clock)
+icd2061_set_clocks(void *priv, float ref_clock, float reg0, float reg1, float reg2)
 {
     icd2061_t *icd2061 = (icd2061_t *) priv;
 
-    if (icd2061 != NULL)
+    if (icd2061 != NULL) {
         icd2061->ref_clock = ref_clock;
+        icd2061->freq[0] = reg0;
+        icd2061->freq[1] = reg1;
+        icd2061->freq[2] = reg2;
+    }
 }
 
 static void *

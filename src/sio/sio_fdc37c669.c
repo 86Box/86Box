@@ -171,7 +171,7 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
             } else
                 dev->tries = 0;
         }
-    } else if (!dev->rw_locked || (dev->cur_reg > 0x0f))  switch (dev->cur_reg) {
+    } else if (dev->locked && (!dev->rw_locked || (dev->cur_reg > 0x0f)))  switch (dev->cur_reg) {
         case 0x00:
             dev->regs[dev->cur_reg] = (dev->regs[dev->cur_reg] & 0x74) | (val & 0x8b);
             if (!dev->id && (valxor & 0x08))

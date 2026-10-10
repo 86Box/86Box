@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-25 09:40+0000\n"
+"PO-Revision-Date: 2026-10-02 16:32+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -944,6 +944,9 @@ msgstr "Druk op %1 om de muis vrij te geven"
 
 msgid "Press %1 or middle button to release mouse"
 msgstr "Druk op %1 of middelste knop om de muis los te laten"
+
+msgid "Press %1 or side button to release mouse"
+msgstr "Klik %1 of zijknop om muis vrij te geven"
 
 msgid "Bus"
 msgstr "Bus"
@@ -3513,19 +3516,22 @@ msgid "Sample rate:"
 msgstr "Samplefrequentie:"
 
 msgid "Enable audio input (mic/line-in)"
-msgstr ""
+msgstr "Schakel audioinvoer in (mic/lijn in)"
 
 msgid "Audio input device:"
-msgstr ""
+msgstr "Audio invoerapparaat:"
 
 msgid "Audio input sample rate:"
-msgstr ""
+msgstr "Audio invoer-samplefrequentie:"
 
 msgid "Rate the emulator mixes to the host output device."
-msgstr ""
+msgstr "Emulator mixfrequentie naar het host-uitvoerapparaat."
 
 msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
 msgstr ""
+"Samplefrequentie waarop het opnameapparaat van de host geopend wordt.\n"
+"\n"
+"44100 is deelbaar door de SB16/AWE32-samplefrequenties van 44,1/22/11 kHz."
 
 msgid "CGA lightpen"
 msgstr "CGA-lichtpen"

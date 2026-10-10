@@ -212,6 +212,12 @@ FSTOR(void)
 #endif
         cpu_state.ismmx = 1;
 
+    /* The new recompiler compiles a block against the TOP it had on entry,
+       either fixed or as an offset it computes once. TOP loaded here can
+       differ from that, so the block ends: the next instruction then
+       starts one dispatched with the TOP it sees. */
+    CPU_BLOCK_END();
+
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.frstor) : (x87_timings.frstor * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.frstor) : (x87_concurrency.frstor * cpu_multi));
     return cpu_state.abrt;
@@ -440,6 +446,8 @@ FSAVE(void)
 #endif
     cpu_state.TOP   = 0;
     cpu_state.ismmx = 0;
+    /* TOP reset: end the block, see FSTOR. */
+    CPU_BLOCK_END();
 
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fsave) : (x87_timings.fsave * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fsave) : (x87_concurrency.fsave * cpu_multi));
@@ -1014,6 +1022,8 @@ FLDENV(void)
             cpu_state.TOP = (cpu_state.npxs >> 11) & 7;
             break;
     }
+    /* TOP loaded from memory: end the block, see FSTOR. */
+    CPU_BLOCK_END();
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fldenv) : (x87_timings.fldenv * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fldenv) : (x87_concurrency.fldenv * cpu_multi));
     return cpu_state.abrt;

@@ -163,17 +163,26 @@ serial_clear_timeout(serial_t *dev)
     serial_update_ints(dev);
 }
 
-/* The receive timer polls the host character device, so it should run once
+/*
+   The receive timer polls the host character device, so it should run once
    per character, not once per bit: at 115200 baud that is the difference
    between 11520 and 115200 callbacks per second on the emulation thread.
 
    bits is 0 until the guest programs the LCR, and arming a timer with 0 is
    presumably why the multiplication was commented out, so assume a full
-   10-bit frame until the guest says otherwise. */
+   10-bit frame until the guest says otherwise.
+
+   Note by OBattler: I originally wrote the receive timer and the per-bit
+   polling is intentional because the NT 3.x Logitech serial mouse driver
+   likes writing the next byte at a very tight timing after the previous
+   byte - changing it to per-byte timing delays the byte movement so much
+   that it goes way out of specification, even breaking the Windows 9x
+   modem detection.
+ */
 static double
 serial_receive_period(const serial_t *dev)
 {
-    return (double) (dev->bits ? dev->bits : 10) * dev->transmit_period;
+    return (double) /* (dev->bits ? dev->bits : 10) * */ dev->transmit_period;
 }
 
 static void

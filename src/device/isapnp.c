@@ -293,6 +293,21 @@ isapnp_reset_ld_regs(isapnp_device_t *ld)
         ld->regs[0x70] = ld->defs[0x70];
 }
 
+static void isapnp_ld_io_remove(isapnp_device_t *ld);
+static void isapnp_ld_io_set(isapnp_device_t *ld);
+
+/* A logical device's registers back to their power-up values, as the Reset
+   command and RESET_DRV load them (Plug and Play ISA 1.0a, 4.5), and the
+   card told. The I/O range check answers where the registers now say. */
+static void
+isapnp_reset_ld(isapnp_card_t *card, isapnp_device_t *ld)
+{
+    isapnp_ld_io_remove(ld);
+    isapnp_reset_ld_regs(ld);
+    isapnp_ld_io_set(ld);
+    isapnp_device_config_changed(card, ld);
+}
+
 static uint8_t
 isapnp_read_rangecheck(UNUSED(uint16_t addr), void *priv)
 {
@@ -531,8 +546,7 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
                     ld = card->first_ld;
                     while (ld) {
                         if (card->state != PNP_STATE_WAIT_FOR_KEY) {
-                            isapnp_reset_ld_regs(ld);
-                            isapnp_device_config_changed(card, ld);
+                            isapnp_reset_ld(card, ld);
                             reset_cards++;
                         }
                         ld = ld->next;
@@ -1290,7 +1304,9 @@ isapnp_activate(void *priv, uint16_t base, uint8_t irq, int active)
         ld->defs[0x61] = base & 0xff;
         ld->defs[0x70] = irq;
 
+        isapnp_ld_io_remove(ld);
         isapnp_reset_ld_regs(ld);
+        isapnp_ld_io_set(ld);
     }
 }
 
@@ -1340,18 +1356,21 @@ isapnp_set_device_defaults(void *priv, uint8_t ldn, const isapnp_device_config_t
     ld->defaults = config;
 }
 
+/* Every logical device of a card back to its power-up registers, as the
+   Reset command loads them: "The configuration registers for all logical
+   devices are loaded with their power-up values from non-volatile memory
+   or jumpers" (Plug and Play ISA 1.0a, 4.5) -- the card's defaults
+   (isapnp_set_device_defaults, isapnp_activate), and zero where it gave
+   none. The CSN and the card's state are kept, as the Reset command keeps
+   them; isapnp_power_up_card resets those too. */
 void
 isapnp_reset_card(void *priv)
 {
     isapnp_card_t   *card = (isapnp_card_t *) priv;
     isapnp_device_t *ld   = card->first_ld;
 
-    /* Reset all logical devices. */
     while (ld) {
-        /* Reset the logical device's configuration. */
-        isapnp_reset_ld_config(ld);
-        isapnp_device_config_changed(card, ld);
-
+        isapnp_reset_ld(card, ld);
         ld = ld->next;
     }
 }
@@ -1369,9 +1388,53 @@ isapnp_reset_device(void *priv, uint8_t ldn)
     if (!ld) /* none found */
         return;
 
-    /* Reset the logical device's configuration. */
-    isapnp_reset_ld_config(ld);
-    isapnp_device_config_changed(card, ld);
+    isapnp_reset_ld(card, ld);
+}
+
+/* A card's own power-up reset, what RESET_DRV does to every card: "it
+   enters the Wait for Key state. All CSNs are reset to 0x0. The
+   configuration registers for all logical devices are loaded with their
+   power-up values" (Plug and Play ISA 1.0a, 4.5). For a card whose own
+   reset includes its Plug and Play logic. A state a chip is forced into
+   (isapnp_enable_card) stays. */
+void
+isapnp_power_up_card(void *priv)
+{
+    isapnp_card_t *card = (isapnp_card_t *) priv;
+    isapnp_t      *dev  = (isapnp_t *) device_get_priv(&isapnp_device);
+
+    if (dev != NULL) {
+        if (dev->isolated_card == card)
+            dev->isolated_card = NULL;
+        if (dev->current_ld_card == card) {
+            dev->current_ld      = NULL;
+            dev->current_ld_card = NULL;
+        }
+    }
+    if ((card->enable != ISAPNP_CARD_FORCE_CONFIG) && (card->enable != ISAPNP_CARD_FORCE_SLEEP))
+        card->state = PNP_STATE_WAIT_FOR_KEY;
+    isapnp_set_csn(card, 0);
+    isapnp_reset_card(card);
+}
+
+/* A register a card changed itself, stored as the host will read it back:
+   for a card whose Plug and Play registers are its own configuration
+   registers, changed another way too. The card is not called back. */
+void
+isapnp_set_reg(void *priv, uint8_t ldn, uint8_t reg, uint8_t val)
+{
+    isapnp_card_t   *card = (isapnp_card_t *) priv;
+    isapnp_device_t *ld   = card->first_ld;
+
+    while (ld && (ld->number != ldn))
+        ld = ld->next;
+
+    if (!ld)
+        return;
+
+    isapnp_ld_io_remove(ld);
+    ld->regs[reg] = val;
+    isapnp_ld_io_set(ld);
 }
 
 static const device_t isapnp_device = {

@@ -713,7 +713,7 @@ update_mouse_msg(void)
     if (release_buttons & MOUSE_RELEASE_MIDDLE)
         release_msg = "Press CTRL-SHIFT-G or middle button to release mouse";
     else if (release_buttons & MOUSE_RELEASE_THUMB)
-        release_msg = "Press CTRL-SHIFT-G or thumb button to release mouse";
+        release_msg = "Press CTRL-SHIFT-G or side button to release mouse";
     else
         release_msg = "Press CTRL-SHIFT-G to release mouse";
 

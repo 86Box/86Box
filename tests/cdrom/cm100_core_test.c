@@ -73,6 +73,37 @@ command(cm100_drive_t *d, uint8_t value)
     assert(receive_frame(d) == value);
 }
 
+static void
+test_media_swap_cancels_pending_read(void)
+{
+    cm100_drive_t *d = cm100_create(read_sector, on_signal, NULL);
+    cm100_snapshot_t s;
+    assert(d);
+    now_ns = UINT64_C(20000000);
+    cm100_set_medium(d, 8, 1);
+    cm100_advance(d, now_ns);
+    command(d, 0x4e);
+
+    /* Start reading the old disc, then replace it before spin-up finishes. */
+    command(d, 0x17);
+    command(d, 0x00);
+    command(d, 0x02);
+    command(d, 0x00);
+    cm100_snapshot(d, &s);
+    assert(s.motion == CM100_SPINNING_UP);
+
+    sector_reads = 0;
+    cm100_set_medium(d, 16, 1);
+    now_ns += UINT64_C(2100000000);
+    cm100_advance(d, now_ns);
+    cm100_snapshot(d, &s);
+    /* A new disc must wait for a new read command from the guest. */
+    assert(cm100_data_edge(d, 0, now_ns + 167) < 0);
+    assert(sector_reads == 0);
+    assert(s.motion != CM100_READING);
+    cm100_destroy(d);
+}
+
 int
 main(void)
 {
@@ -176,6 +207,7 @@ main(void)
     assert(s.attention && s.drive_error == 0x0e);
 
     cm100_destroy(d);
+    test_media_swap_cancels_pending_read();
     puts("CM-100 protocol and data edge tests passed");
     return 0;
 }

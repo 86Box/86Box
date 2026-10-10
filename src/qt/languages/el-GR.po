@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-29 18:53+0000\n"
+"PO-Revision-Date: 2026-10-02 16:32+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -944,6 +944,9 @@ msgstr "Πατήστε %1 για απαγκίστρωση ποντικιού"
 
 msgid "Press %1 or middle button to release mouse"
 msgstr "Πατήστε %1 ή το μεσαίο κουμπί για απαγκίστρωση ποντικιού"
+
+msgid "Press %1 or side button to release mouse"
+msgstr "Πατήστε %1 ή το πλευρικό κουμπί για απαγκίστρωση ποντικιού"
 
 msgid "Bus"
 msgstr "Δίαυλος"

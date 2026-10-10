@@ -587,6 +587,7 @@ cdrom_get_internal_name(int)
     static char original[] = "philips_cm205", ms[] = "philips_cm205ms";
     return ms_model ? ms : original;
 }
+void ui_sb_update_icon(int, int) {}
 cdrom_t  cdrom[CDROM_NUM];
 uint64_t TIMER_USEC = 1ULL << 32;
 uint64_t tsc, timer_target;

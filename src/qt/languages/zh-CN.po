@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-30 08:57+0000\n"
-"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
+"PO-Revision-Date: 2026-10-02 04:16+0000\n"
+"Last-Translator: Canadew <chun-awa@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -945,6 +945,9 @@ msgstr "按下 %1 释放鼠标"
 
 msgid "Press %1 or middle button to release mouse"
 msgstr "按下 %1 或鼠标中键释放鼠标"
+
+msgid "Press %1 or side button to release mouse"
+msgstr "按下 %1 或鼠标侧键释放鼠标"
 
 msgid "Bus"
 msgstr "总线"

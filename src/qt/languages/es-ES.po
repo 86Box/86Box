@@ -945,6 +945,9 @@ msgstr "Pulse %1 para liberar el ratón"
 msgid "Press %1 or middle button to release mouse"
 msgstr "Pulse %1 o el botón central para liberar el ratón"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "Bus"
 

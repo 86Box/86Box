@@ -263,6 +263,7 @@ ati68860_hwcursor_draw(svga_t *svga, int displine)
     int                      x_pos;
     int                      y_pos;
     int                      shift = 0;
+    int                      line;
     uint16_t                 dat;
     uint32_t                 col0 = ramdac->pallook[0];
     uint32_t                 col1 = ramdac->pallook[1];
@@ -271,6 +272,13 @@ ati68860_hwcursor_draw(svga_t *svga, int displine)
     offset = svga->dac_hwcursor_latch.x - svga->dac_hwcursor_latch.xoff;
     if (svga->packed_4bpp)
         shift = 1;
+    line = (svga->dac_hwcursor_latch.cur_xsize / (8 >> shift)) * 2;
+
+    /* The mach64 GX places the cursor as the later chips do: in an
+       interlaced mode a field shows every other line of it (see
+       mach64_int_hwcursor_draw). */
+    if (svga->interlace && svga->dac_hwcursor_oddeven)
+        svga->dac_hwcursor_latch.addr += line;
 
     for (int x = 0; x < svga->dac_hwcursor_latch.cur_xsize; x += (8 >> shift)) {
         if (shift) {
@@ -309,6 +317,9 @@ ati68860_hwcursor_draw(svga_t *svga, int displine)
         }
         svga->dac_hwcursor_latch.addr += 2;
     }
+
+    if (svga->interlace && !svga->dac_hwcursor_oddeven)
+        svga->dac_hwcursor_latch.addr += line;
 }
 
 static void

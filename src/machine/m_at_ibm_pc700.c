@@ -378,7 +378,7 @@ ibm_pc700_init(UNUSED(const device_t *info))
     params.default_content = dev->eeprom_default;
 
     dev->eeprom    = device_add_params(&nmc93cxx_device, &params);
-    dev->riser_nvr = device_add(&ps2_nvr_device);
+    dev->riser_nvr = device_add(&ps2_nvr_8kb_device);
     ibm_pc700_seed_riser_nvr(dev);
 
     ibm_pc700 = dev;

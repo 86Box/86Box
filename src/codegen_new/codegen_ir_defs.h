@@ -354,7 +354,7 @@ typedef struct uop_t {
     ir_reg_t      src_reg_a;
     ir_reg_t      src_reg_b;
     ir_reg_t      src_reg_c;
-#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
+#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64 || defined __loongarch_lp64
     uintptr_t     imm_data;
 #else
     uint32_t      imm_data;
@@ -623,7 +623,7 @@ uop_gen_reg_src3_imm(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int src_re
 }
 
 static inline void
-#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
+#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64 || defined __loongarch_lp64
 uop_gen_imm(uint32_t uop_type, ir_data_t *ir, uintptr_t imm)
 #else
 uop_gen_imm(uint32_t uop_type, ir_data_t *ir, uint32_t imm)
@@ -755,7 +755,7 @@ extern int codegen_fp_enter(void);
 #define uop_FROUND_S(ir, dst_reg, src_reg)                       uop_gen_reg_dst_src1(UOP_FROUND_S, ir, dst_reg, src_reg)
 #define uop_FTST(ir, dst_reg, src_reg)                           uop_gen_reg_dst_src1(UOP_FTST, ir, dst_reg, src_reg)
 
-#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
+#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64 || defined __loongarch_lp64
 #define uop_FP_ENTER(ir)                                    \
     do {                                                    \
         if (!codegen_fpu_entered) {                         \
