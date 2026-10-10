@@ -465,6 +465,9 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
                    !strcmp(cpu_family->internal_name, "i486dx_overdrive")) {
             if ((cpu_s->rspeed != 50000000) && (cpu_s->rspeed != 66666666))
                 return 0;
+        } else if (!strcmp(cpu_family->internal_name, "pentium_p24t")) {
+            if ((cpu_s->rspeed != 62500000) && (cpu_s->rspeed != 83333333))
+                return 0;
         } else
             return 0;
     }
