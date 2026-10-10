@@ -9,9 +9,10 @@ The board uses the existing VL82C486, VL82C113 and PC87311 emulation, with
 primary ISA IDE, PS/2 keyboard/mouse and 2–48 MB RAM. Its Super I/O registers
 are at 398h/399h, the default switch setting documented by HP. Normal CPU
 selection offers the factory SX-S 25/33, DX 33 and DX2-S 50/66 configurations,
-and the 25/33 MHz bus OverDrive upgrades. The global CPU override retains its
-usual meaning. Socket 2 machines use the project's `CPU_PKG_SOCKET3` package
-mask; the machine is listed under Socket 2 in the UI.
+the 25/33 MHz bus 486 OverDrive upgrades, and Pentium OverDrive (P24T) 63/83
+upgrades. Pentium OverDrive is available only on D27xxA, not D26xxA. The global
+CPU override retains its usual meaning. Socket 2 machines use the project's
+`CPU_PKG_SOCKET3` package mask; the machine is listed under Socket 2 in the UI.
 
 Hardware reference: HP's [PC Service Handbook, Volume 2, chapter 13](https://manuals.plus/m/29dac22b29f9684e28eacf47d75918be4e263d8e039219d220f46d13e455b255.pdf).
 
@@ -135,6 +136,11 @@ tests. Runtime checks cover:
   640×480×256 (101h) and 1024×768×256 (105h), and switching all video banks.
 - The existing D26xxA T.04.05 configuration still passing its video, keyboard
   and FPU POST tests and booting MS-DOS with the new recompiler.
+- Pentium OverDrive 63 and 83 passing V.04.09 POST and booting MS-DOS 6.22
+  with 8 MB RAM, the new recompiler and fast FPU. Guest CPUID reports 1531h
+  and 1532h respectively; the BIOS speed display reports 63 MHz for both.
+  Normal CPU selection offers nine D27xxA choices, while D26xxA retains its
+  eight 486 choices and excludes Pentium OverDrive.
 - Clean installation of Windows NT 3.1 Workstation (3.10.511.1) from its
   22 floppy disks to FAT, using standard VGA.
 - Clean installation of Windows NT 3.5 Workstation (3.50.807) from CD,
