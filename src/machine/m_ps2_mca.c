@@ -1781,7 +1781,7 @@ ps2_mca_mem_d071_init(int start_mb)
 }
 
 static void
-ps2_mca_board_model_50_init(int is_mfm)
+ps2_mca_board_model_50_init(int is_50z, int is_mfm)
 {
     ps2_mca_board_common_init();
 
@@ -1821,8 +1821,10 @@ ps2_mca_board_model_50_init(int is_mfm)
     if (hdc_current[0] == HDC_INTERNAL) {
         if (is_mfm)
             device_add_params(&st506_ps2_device, (void *) (uintptr_t) 4);
-        else
+        else if (is_50z)
             device_add_params(&esdi_integrated_device, (void *) (uintptr_t) 4);
+        else
+            device_add_params(&esdi_upgrade_device, (void *) (uintptr_t) 4);
     }
 
     if (gfxcard[0] == VID_INTERNAL)
@@ -3053,7 +3055,7 @@ machine_ps2_model_50_init(const machine_t *model)
     machine_ps2_common_init(model);
 
     ps2.planar_id = 0xfbff;
-    ps2_mca_board_model_50_init(is_mfm);
+    ps2_mca_board_model_50_init(is_50z, is_mfm);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
