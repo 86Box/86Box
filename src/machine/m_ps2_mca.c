@@ -1867,7 +1867,7 @@ ps2_mca_board_model_60_init(void)
        planar memory answers until a driver disables it at runtime. */
     ps2.option[1] |= (0x02 | 0x01);
 
-    device_add(&ps2_nvr_55ls_device);
+    device_add(&ps2_nvr_2kb_device);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&ps1vga_mca_device);
@@ -1919,7 +1919,7 @@ ps2_mca_board_model_55sx_init(int has_sec_nvram, int slots)
     mca_init(slots);
 
     if (has_sec_nvram)
-        device_add(&ps2_nvr_55ls_device);
+        device_add(&ps2_nvr_2kb_device);
 
     ps2.planar_read  = model_55sx_read;
     ps2.planar_write = model_55sx_write;
@@ -2185,7 +2185,7 @@ ps2_mca_board_model_70_type1_init(void)
     ps2.planar_read  = model_70_type1_read;
     ps2.planar_write = model_70_type1_write;
 
-    device_add(&ps2_nvr_device);
+    device_add(&ps2_nvr_8kb_device);
 
     io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
 
@@ -2236,7 +2236,7 @@ ps2_mca_board_model_70_type2_init(void)
     ps2.planar_read  = model_70_type2_read;
     ps2.planar_write = model_70_type2_write;
 
-    device_add(&ps2_nvr_device);
+    device_add(&ps2_nvr_8kb_device);
 
     io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
 
@@ -2291,7 +2291,7 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
     ps2.planar_read  = model_70_type34_read;
     ps2.planar_write = model_70_type34_write;
 
-    device_add(&ps2_nvr_device);
+    device_add(&ps2_nvr_8kb_device);
 
     io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached, NULL, NULL, NULL);
 
@@ -2384,7 +2384,7 @@ ps2_mca_board_model_80_type1_init(void)
     ps2.planar_read  = model_80_read;
     ps2.planar_write = model_80_write;
 
-    device_add(&ps2_nvr_device);
+    device_add(&ps2_nvr_8kb_device);
 
     io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
 
@@ -2450,7 +2450,7 @@ ps2_mca_board_model_80_type2_init(void)
     ps2.planar_read  = model_80_read;
     ps2.planar_write = model_80_write;
 
-    device_add(&ps2_nvr_device);
+    device_add(&ps2_nvr_8kb_device);
 
     io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
 
@@ -2526,7 +2526,7 @@ ps2_mca_board_model_80_type3_init(void)
     ps2.planar_read  = model_80_read;
     ps2.planar_write = model_80_write;
 
-    device_add(&ps2_nvr_device);
+    device_add(&ps2_nvr_8kb_device);
 
     io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached, NULL, NULL, NULL);
 
@@ -2608,7 +2608,7 @@ ps2_mca_board_model_p70_type1_init(void)
     ps2.planar_read  = model_p70_type1_read;
     ps2.planar_write = model_p70_type1_write;
 
-    device_add(&ps2_nvr_device);
+    device_add(&ps2_nvr_8kb_device);
 
     io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
 
@@ -2650,7 +2650,7 @@ ps2_mca_board_model_p70_type2_init(void)
     ps2.planar_read  = model_p70_type2_read;
     ps2.planar_write = model_p70_type2_write;
 
-    device_add(&ps2_nvr_device);
+    device_add(&ps2_nvr_8kb_device);
 
     io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
 
@@ -2695,7 +2695,7 @@ ps55_mca_board_model_5535s_init(void)
     ps2.planar_read  = model_55sx_read;
     ps2.planar_write = model_55sx_write;
 
-    device_add(&ps2_nvr_55ls_device);
+    device_add(&ps2_nvr_2kb_device);
 
     ps2.option[1] = 0x00;
     ps2.option[2] = 0x00;
@@ -2759,7 +2759,7 @@ ps55_mca_board_model_5540t_init(void)
     ps2.planar_read  = ps55_model_5540t_read;
     ps2.planar_write = ps55_model_5540t_write;
 
-    device_add(&ps2_nvr_device);
+    device_add(&ps2_nvr_8kb_device);
 
     io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
 
@@ -2816,7 +2816,7 @@ ps55_mca_board_model_5550t_init(void)
     ps2.planar_read  = ps55_model_5550t_read;
     ps2.planar_write = ps55_model_5550tv_write;
 
-    device_add(&ps2_nvr_device);
+    device_add(&ps2_nvr_8kb_device);
 
     io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
 
@@ -2871,7 +2871,7 @@ ps55_mca_board_model_5550v_init(void)
     ps2.planar_read  = ps55_model_5550v_read;
     ps2.planar_write = ps55_model_5550tv_write;
 
-    device_add(&ps2_nvr_device);
+    device_add(&ps2_nvr_8kb_device);
 
     io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached, NULL, NULL, NULL);
 
