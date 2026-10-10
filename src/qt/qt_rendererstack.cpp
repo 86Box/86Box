@@ -558,9 +558,18 @@ RendererStack::blit(int x, int y, int w, int h)
     sw = this->w = w;
     sh = this->h       = h;
     uint8_t *imagebits = std::get<uint8_t *>(imagebufs[currentBuf]);
-    for (int y1 = y; y1 < (y + h); y1++) {
-        auto scanline = imagebits + (y1 * rendererWindow->getBytesPerRow()) + (x * 4);
-        video_copy(scanline, &(monitors[m_monitor_index].target_buffer->line[y1][x]), w * 4);
+    /* Copy one texel past each edge as well (Rage 128 edge-line fix):
+       the staging image is 2048x2048 and keeps whatever an earlier,
+       larger mode left there, and a linear-filtered scale samples those
+       neighbours. The Rage 128 paints its blanking into that ring of
+       the frame buffer; for other cards the ring is what they leave. */
+    int cx0 = (x > 0) ? (x - 1) : 0;
+    int cx1 = ((x + w) < 2048) ? (x + w + 1) : 2048;
+    int cy0 = (y > 0) ? (y - 1) : 0;
+    int cy1 = ((y + h) < 2048) ? (y + h + 1) : 2048;
+    for (int y1 = cy0; y1 < cy1; y1++) {
+        auto scanline = imagebits + (y1 * rendererWindow->getBytesPerRow()) + (cx0 * 4);
+        video_copy(scanline, &(monitors[m_monitor_index].target_buffer->line[y1][cx0]), (cx1 - cx0) * 4);
     }
 
     if (monitors[m_monitor_index].mon_screenshots_raw) {

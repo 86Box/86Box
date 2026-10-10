@@ -40,6 +40,15 @@ typedef struct ui_unsupported_hardware_t {
 } ui_unsupported_hardware_t;
 extern int ui_confirm_unsupported_hardware(const ui_unsupported_hardware_t *items, int count, int machine_missing);
 
+/* Block until poll(arg) reaches total, keeping the UI responsive with a
+   progress display where the frontend has one. poll returns the
+   current count and must be callable from any thread. Intended for long
+   one-time device work (cold shader compile) that would otherwise
+   freeze the event loop; the display only appears if the wait is still
+   running after a short grace period. */
+extern void ui_progress_wait(const char *message, int total,
+                             int (*poll)(void *arg), void *arg);
+
 /* Status Bar functions. */
 #define SB_ICON_WIDTH 24
 #define SB_CASSETTE   0x00
