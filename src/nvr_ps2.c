@@ -190,11 +190,11 @@ ps2_nvr_close(void *priv)
     free(nvr);
 }
 
-const device_t ps2_nvr_device = {
-    .name          = "PS/2 Secondary NVRAM for PS/2 Models 70-80",
-    .internal_name = "ps2_nvr",
+const device_t ps2_nvr_2kb_device = {
+    .name          = "IBM PS/2 2KB Secondary NVRAM",
+    .internal_name = "ps2_nvr_2kb",
     .flags         = 0,
-    .local         = 0,
+    .local         = 1,
     .init          = ps2_nvr_init,
     .close         = ps2_nvr_close,
     .reset         = NULL,
@@ -204,11 +204,11 @@ const device_t ps2_nvr_device = {
     .config        = NULL
 };
 
-const device_t ps2_nvr_55ls_device = {
-    .name          = "PS/2 Secondary NVRAM for PS/2 Models 55LS-65SX",
-    .internal_name = "ps2_nvr_55ls",
+const device_t ps2_nvr_8kb_device = {
+    .name          = "IBM PS/2 8KB Secondary NVRAM",
+    .internal_name = "ps2_nvr_8kb",
     .flags         = 0,
-    .local         = 1,
+    .local         = 0,
     .init          = ps2_nvr_init,
     .close         = ps2_nvr_close,
     .reset         = NULL,
