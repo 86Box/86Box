@@ -3450,10 +3450,7 @@ image_get_last_block(const void *local)
         }
 
         if (lo != NULL)
-            /* Track starts are absolute CD frames (LBA + 150), while the
-               get_last_block contract uses a zero-based logical block. */
-            if (lo->idx[1].start > 150)
-                lb = lo->idx[1].start - 151;
+            lb = lo->idx[1].start - 1;
     }
 
     return lb;
