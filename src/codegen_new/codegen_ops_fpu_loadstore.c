@@ -236,7 +236,8 @@ ropFISTPl(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fe
 uint32_t
 ropFISTPq(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
-    if (machines[machine].init != machine_at_vect486n_init) {
+    if ((machines[machine].init != machine_at_vect486n_init) &&
+        (machines[machine].init != machine_at_vect486n_d27xx_init)) {
         x86seg *target_seg;
 
         uop_FP_ENTER(ir);

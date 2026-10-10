@@ -564,6 +564,7 @@ extern const device_t realtek_rtg3106_device;
 /* S3 9XX/8XX/Vision/Trio */
 /* On-board */
 extern const device_t s3_86c805_onboard_vlb_device;
+extern const device_t s3_86c805_hp_device;
 extern const device_t s3_trio32_onboard_vlb_device;
 extern const device_t s3_trio32_onboard_pci_device;
 extern const device_t s3_trio64_onboard_pci_device;
