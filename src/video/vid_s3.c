@@ -48,6 +48,7 @@
 #define ROM_ORCHID_86C911              "roms/video/s3/BIOS.BIN"
 #define ROM_DIAMOND_STEALTH_VRAM       "roms/video/s3/Diamond Stealth VRAM BIOS v2.31 U14.BIN"
 #define ROM_AMI_86C924                 "roms/video/s3/S3924AMI.BIN"
+#define ROM_HP_86C805                  "roms/machines/vect486n_d27xx/vga10100.rom"
 #define ROM_HP_86C924                  "roms/machines/vect486n/c0202.rom"
 #define ROM_METHEUS_86C928             "roms/video/s3/928.VBI"
 #define ROM_ELSAWIN1KVL_86C928         "roms/video/s3/ELSA_Winner_XHR_1000VL.BIN"
@@ -164,6 +165,7 @@ enum {
     S3_ACER_TRIO64V2,
     S3_ASUS_TRIO64V2,
     S3_HP_86C924,
+    S3_HP_86C805,
     S3_USE_CONFIG_BIOS
 };
 
@@ -232,6 +234,7 @@ typedef enum {
     ATT49X,
     ATT498,
     BT48X,
+    BT481,
     IBM_RGB,
     S3_SDAC,
     TVP3026
@@ -3109,6 +3112,9 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                 case ATT498:
                     att498_ramdac_out(addr, rs2, val, svga->ramdac, svga);
                     break;
+                case BT481:
+                    bt481_ramdac_out(addr, rs2, val, svga->ramdac, svga);
+                    break;
                 case BT48X:
                     rs3 = !!(svga->crtc[0x55] & 0x02);
                     bt48x_ramdac_out(addr, rs2, rs3, val, svga->ramdac, svga);
@@ -3489,6 +3495,9 @@ s3_in(uint16_t addr, void *priv)
                     break;
                 case ATT498:
                     temp = att498_ramdac_in(addr, rs2, svga->ramdac, svga);
+                    break;
+                case BT481:
+                    temp = bt481_ramdac_in(addr, rs2, svga->ramdac, svga);
                     break;
                 case BT48X:
                     if (s3->card_type == S3_METHEUS_86C928)
@@ -10321,6 +10330,11 @@ s3_init(const device_t *info)
             chip    = S3_86C805I;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801);
             break;
+        case S3_HP_86C805:
+            bios_fn = ROM_HP_86C805;
+            chip    = S3_86C805;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
+            break;
         case S3_86C805_ONBOARD:
             bios_fn = NULL;
             chip    = S3_86C805;
@@ -10925,6 +10939,20 @@ s3_init(const device_t *info)
             svga_recalctimings(svga);
             break;
 
+        case S3_HP_86C805:
+            svga->decode_mask = (2 << 20) - 1;
+            stepping          = 0xa0;
+            s3->id            = stepping;
+            s3->id_ext        = stepping;
+            s3->id_ext_pci    = 0;
+            s3->packed_mmio   = 0;
+            svga->crtc[0x5a]  = 0x0a;
+            svga->ramdac      = device_add(&bt481_ramdac_device);
+            s3->ramdac_type   = BT481;
+            svga->clock_gen   = device_add(&ics2494an_305_device);
+            svga->getclock    = ics2494_getclock;
+            break;
+
         case S3_86C805_ONBOARD:
             svga->decode_mask = (2 << 20) - 1;
             stepping          = 0xa0; /*86C801/86C805*/
@@ -11420,6 +11448,41 @@ static const device_config_t s3_trio64v_onboard_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
+
+static const device_config_t s3_86c805_hp_config[] = {
+    {
+        .name        = "memory",
+        .description = "Memory size",
+        .type        = CONFIG_SELECTION,
+        .default_int = 0,
+        .selection   = {
+            { .description = "512 KB", .value = 0 },
+            { .description = "1 MB",   .value = 1 },
+            { .description = "" }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static int
+s3_86c805_hp_available(void)
+{
+    return rom_present(ROM_HP_86C805);
+}
+
+const device_t s3_86c805_hp_device = {
+    .name          = "HP Ultra VGA+ 805",
+    .internal_name = "hp_ultra_vga_805",
+    .flags         = DEVICE_VLB,
+    .local         = S3_HP_86C805,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = s3_86c805_hp_available,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_86c805_hp_config
+};
 
 const device_t s3_86c805_onboard_vlb_device = {
     .name          = "S3 86c805 VLB On-Board",
