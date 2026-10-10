@@ -10,12 +10,10 @@ Normal CPU selection is restricted to these Socket 1, 5 V Intel processors:
 - 486SX-25 and 486SX-33
 - 486DX-33 and 486DX-50
 - 486DX2-50 and 486DX2-66
-- i486DX OverDrive 25 (50 MHz core) and 33 (66 MHz core)
 
-The original clock-doubled OverDrive entries use the existing DX2 emulation
-with a 25/33 MHz bus and 2x multiplier. Intel's
-[OverDrive datasheet, section 2](https://datasheets.chipdb.org/Intel/x86/486/applnots/29043606.PDF)
-describes these 50/66 MHz upgrades. DX4 upgrades are not offered.
+The 50/66 MHz clock-doubled configurations use the DX2 entries with a
+25/33 MHz bus and 2x multiplier. A separate 486 OverDrive family and DX4
+upgrades are not offered.
 The machine name is **HP Vectra 486N (D26xxA)**; its configuration identifier
 remains `vect486n` and its device settings remain in `[HP Vectra 486N]` so
 existing BIOS and cache selections are preserved.
@@ -201,7 +199,7 @@ CPU behavior follows the
 ## Validation and limitations
 
 The Qt 6 build passes with the restricted CPU list. Runtime enumeration reports
-exactly the eight supported CPU selections above; loading a saved configuration
+exactly the six supported CPU selections above; loading a saved configuration
 for each preserves its CPU family, core frequency and multiplier.
 
 Windows NT 3.1 Workstation (3.10.511.1) completes both text and graphical

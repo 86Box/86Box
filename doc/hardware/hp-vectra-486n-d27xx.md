@@ -139,8 +139,8 @@ tests. Runtime checks cover:
 - Pentium OverDrive 63 and 83 passing V.04.09 POST and booting MS-DOS 6.22
   with 8 MB RAM, the new recompiler and fast FPU. Guest CPUID reports 1531h
   and 1532h respectively; the BIOS speed display reports 63 MHz for both.
-  Normal CPU selection offers nine D27xxA choices, while D26xxA retains its
-  eight 486 choices and excludes Pentium OverDrive.
+  Normal CPU selection offers nine D27xxA choices. D26xxA offers six
+  SX/DX/DX2 choices, excluding the separate 486 and Pentium OverDrive families.
 - Clean installation of Windows NT 3.1 Workstation (3.10.511.1) from its
   22 floppy disks to FAT, using standard VGA.
 - Clean installation of Windows NT 3.5 Workstation (3.50.807) from CD,
