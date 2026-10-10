@@ -174,6 +174,7 @@ video_cards[] = {
     { .device = &mach64ct_device,                               .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &mach64vt_device,                               .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &mach64vt2_device,                              .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &ati_xpert128_pci_device,                       .flags = VIDEO_FLAG_TYPE_SECONDARY },
     { .device = &bochs_svga_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &chips_69000_device,                            .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &gd5430_pci_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -205,10 +206,7 @@ video_cards[] = {
     { .device = &tgui9660_pci_device,                           .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &tgui9680_pci_device,                           .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et4000w32p_pci_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &ati_xpert128_pci_device,                       .flags = VIDEO_FLAG_TYPE_SECONDARY },
     /* AGP */
-    { .device = &ati_rage128_pro_device,                        .flags = VIDEO_FLAG_TYPE_SECONDARY },
-    { .device = &ati_rage128_maxx_device,                       .flags = VIDEO_FLAG_TYPE_SECONDARY },
     { .device = &voodoo_banshee_agp_device,                     .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &velocity_100_agp_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &velocity_200_agp_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -216,6 +214,8 @@ video_cards[] = {
     { .device = &voodoo_3_2000_agp_device,                      .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &voodoo_3_3000_agp_device,                      .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &voodoo_3_3500_agp_device,                      .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &ati_rage128_maxx_device,                       .flags = VIDEO_FLAG_TYPE_SECONDARY },
+    { .device = &ati_rage128_pro_device,                        .flags = VIDEO_FLAG_TYPE_SECONDARY },
     { .device = &millennium_ii_agp_device,                      .flags = VIDEO_FLAG_TYPE_SECONDARY },
 #ifdef USE_G100
     { .device = &productiva_g100_device,                        .flags = VIDEO_FLAG_TYPE_SPECIAL   },
