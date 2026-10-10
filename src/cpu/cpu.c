@@ -453,6 +453,22 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
             return 0;
     }
 
+    /* D27xx factory SL-enhanced parts and Socket 2 OverDrive upgrades. */
+    if (machine_s->init == machine_at_vect486n_d27xx_init) {
+        if (!strcmp(cpu_family->internal_name, "i486sx_slenh")) {
+            if ((cpu_s->rspeed != 25000000) && (cpu_s->rspeed != 33333333))
+                return 0;
+        } else if (!strcmp(cpu_family->internal_name, "i486dx")) {
+            if (cpu_s->rspeed != 33333333)
+                return 0;
+        } else if (!strcmp(cpu_family->internal_name, "i486dx2_slenh") ||
+                   !strcmp(cpu_family->internal_name, "i486dx_overdrive")) {
+            if ((cpu_s->rspeed != 50000000) && (cpu_s->rspeed != 66666666))
+                return 0;
+        } else
+            return 0;
+    }
+
     /* Hardwired multipliers on Cobalt machines. */
     if ((machine_s->init == machine_at_cobalt3k_init) && (cpu_s->multi != machine_s->cpu.min_multi) && (cpu_s->multi != machine_s->cpu.max_multi))
         return 0;

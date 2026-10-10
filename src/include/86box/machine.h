@@ -777,8 +777,10 @@ extern int             machine_at_d824_init(const machine_t *);
 
 /* VLSI 82C486 */
 extern int             machine_at_vect486n_init(const machine_t *);
+extern int             machine_at_vect486n_d27xx_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  vect486n_device;
+extern const device_t  vect486n_d27xx_device;
 #endif
 extern int             machine_at_pcs44c_init(const machine_t *);
 extern int             machine_at_sensation1_init(const machine_t *);

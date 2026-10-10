@@ -46,6 +46,7 @@ add_library(mch OBJECT
     m_at_486slc.c
     m_at_386dx_486.c
     m_at_vect486n.c
+    m_at_vect486n_d27xx.c
     m_at_socket1.c
     m_at_socket2.c
     m_at_socket3.c
