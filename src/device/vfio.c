@@ -31,8 +31,6 @@
 #define HAVE_STDARG_H
 #include "cpu.h"
 #include <86box/86box.h>
-#include <86box/ini.h>
-#include <86box/config.h>
 #include <86box/device.h>
 #include <86box/i2c.h> /* log2i */
 #include <86box/io.h>
@@ -43,6 +41,7 @@
 #include <86box/thread.h>
 #include <86box/timer.h>
 #include <86box/video.h>
+#include <86box/vfio.h>
 
 /* Just so we don't have to include Linux's pci.h, which
    has some defines that conflict with our own pci.h */
@@ -2422,7 +2421,7 @@ vfio_region_init(vfio_device_t *dev, struct vfio_region_info *reg, vfio_region_t
         /* Add a helpful reminder if a sanity check warning was printed
            and no ROM file was specified in this device's configuration. */
         if (j && !dev->rom_fn)
-            pclog("VFIO %s: A custom ROM can be loaded with the _rom_fn directive.\n", dev->name);
+            pclog("VFIO %s: A custom ROM can be loaded through the VFIO settings.\n", dev->name);
     } else {
         /* Attempt to mmap the region. */
         region->mmap_base = mmap(NULL, region->size,
@@ -3066,15 +3065,57 @@ next2:
     }
 }
 
+int
+vfio_parse_location(const char *location, char *out, int out_size)
+{
+    int domain_id;
+    int bus_id;
+    int dev_id;
+    int func_id;
+
+    /* sysfs path: the basename is the location. */
+    if (location[0] == '/')
+        location = path_get_basename(location);
+
+    /* Don't take a name that starts with hex digits as a location. */
+    if (!location[0] || (location[strspn(location, "0123456789abcdefABCDEF:.")] != '\0'))
+        return 0;
+
+    /* Read domain/bus/device/function, with domain, bus and function optional. */
+    int i = sscanf(location, "%x:%x:%x.%x", &domain_id, &bus_id, &dev_id, &func_id);
+    if (i < 3) {
+        domain_id = 0;
+        i         = sscanf(location, "%x:%x.%x", &bus_id, &dev_id, &func_id);
+        if (i < 2) {
+            bus_id = 0;
+            i      = sscanf(location, "%x.%x", &dev_id, &func_id);
+            if (i < 1)
+                return 0;
+            else if (i == 1)
+                func_id = 0;
+        } else if (i == 2) {
+            func_id = 0;
+        }
+    } else if (i == 3) {
+        func_id = 0;
+    }
+
+    if ((domain_id < 0) || (domain_id > 0xffff) || (bus_id < 0) || (bus_id > 0xff) ||
+        (dev_id < 0) || (dev_id > 0x1f) || (func_id < 0) || (func_id > 7))
+        return 0;
+
+    /* Output as dddd:bb:dd.f */
+    snprintf(out, out_size, "%04x:%02x:%02x.%1x", domain_id, bus_id, dev_id, func_id);
+    return 1;
+}
+
 void
 vfio_init(void)
 {
     vfio_log("VFIO: init()\n");
 
     /* Stay quiet if VFIO is not configured. */
-    char *category = "VFIO",
-         *devices  = config_get_string(category, "devices", NULL);
-    if (!devices || !strlen(devices))
+    if (!vfio_device_conf[0].location[0])
         return;
 
     /* Open VFIO container. */
@@ -3098,21 +3139,18 @@ vfio_init(void)
     }
 
     /* Parse device list. */
-    char          *strtok_save;
-    char          *token = strtok_r(devices, " ", &strtok_save);
-    char          *p;
-    char          *dev_name;
-    char          *sysfs_device;
-    char          *config_key;
-    int            i;
-    int            domain_id;
-    int            bus_id;
-    int            dev_id;
-    int            func_id;
-    vfio_device_t *dev = NULL;
-    vfio_device_t *prev_dev;
-    vfio_group_t  *group;
-    while (token) {
+    vfio_device_conf_t *conf;
+    char               *token;
+    char               *p;
+    char               *dev_name;
+    char               *sysfs_device;
+    int                 i;
+    vfio_device_t      *dev = NULL;
+    vfio_device_t      *prev_dev;
+    vfio_group_t       *group;
+    for (conf = vfio_device_conf; (conf < &vfio_device_conf[VFIO_DEVICE_MAX]) && conf->location[0]; conf++) {
+        token = conf->location;
+
         /* Determine if the device was specified by location or sysfs path. */
         dev_name = NULL;
         if (token[0] == '/') {
@@ -3125,40 +3163,18 @@ vfio_init(void)
             sysfs_device = calloc(1, i + 13);
             snprintf(sysfs_device, i + 13,
                      "%s/iommu_group", token);
-        } else if (token[0]) {
-            /* Location: read domain/bus/device/function. */
-            i = sscanf(token, "%x:%x:%x.%x", &domain_id, &bus_id, &dev_id, &func_id);
-            if (i < 3) {
-                domain_id = 0;
-                i         = sscanf(token, "%x:%x.%x", &bus_id, &dev_id, &func_id);
-                if (i < 2) {
-                    bus_id = 0;
-                    i      = sscanf(token, "%x.%x", &dev_id, &func_id);
-                    if (i < 1) {
-                        pclog("VFIO: Invalid device location: %s\n", token);
-                        goto next;
-                    } else if (i == 1) {
-                        func_id = 0;
-                    }
-                } else if (i == 2) {
-                    func_id = 0;
-                }
-            } else if (i == 3) {
-                func_id = 0;
-            }
-
-            /* Use dddd:bb:dd.f as device name. */
+        } else {
+            /* Location: use dddd:bb:dd.f as device name. */
             dev_name = calloc(1, 13);
-            snprintf(dev_name, 13,
-                     "%04x:%02x:%02x.%1x", domain_id, bus_id, dev_id, func_id);
+            if (!vfio_parse_location(token, dev_name, 13)) {
+                pclog("VFIO: Invalid device location: %s\n", token);
+                goto next;
+            }
 
             /* Generate sysfs path. */
             sysfs_device = calloc(1, 46);
             snprintf(sysfs_device, 46,
                      "/sys/bus/pci/devices/%s/iommu_group", dev_name);
-        } else {
-            /* Skip blank token. */
-            goto next;
         }
 
         pclog("VFIO %s: IOMMU group ", dev_name);
@@ -3198,12 +3214,8 @@ vfio_init(void)
         dev_name      = NULL; /* don't free it further down */
         dev->irq.type = VFIO_PCI_NUM_IRQS;
 
-        /* Read device-specific settings. */
-        i          = strlen(token) + 8;
-        config_key = calloc(1, i);
-        snprintf(config_key, i, "%s_rom_fn", token);
-        dev->rom_fn = config_get_string(category, config_key, NULL);
-        free(config_key);
+        /* Apply device-specific settings. */
+        dev->rom_fn = conf->rom_fn[0] ? conf->rom_fn : NULL;
 
         /* Add to linked device list. */
         if (prev_dev)
@@ -3214,9 +3226,6 @@ vfio_init(void)
 next: /* Clean up. */
         if (dev_name)
             free(dev_name);
-
-        /* Read next device name. */
-        token = strtok_r(NULL, " ", &strtok_save);
     }
 
     /* Stop if no devices were added. */
