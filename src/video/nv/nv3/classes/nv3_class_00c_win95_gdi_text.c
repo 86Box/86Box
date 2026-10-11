@@ -98,7 +98,7 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv3->pgraph.win95_gdi_text.clip_c.right = (param & 0xFFFF);
             nv3->pgraph.win95_gdi_text.clip_c.bottom = ((param >> 16) & 0xFFFF);
             /* is it "only if we are out of the top left or the bottom right or is it "all of them"*/
-            nv_log("Method Execution: GDI-C Clip Right,Bottom %04x,%04x\n", nv3->pgraph.win95_gdi_text.clip_c.left, nv3->pgraph.win95_gdi_text.clip_c.top);
+            nv_log("Method Execution: GDI-C Clip Right,Bottom %04x,%04x\n", nv3->pgraph.win95_gdi_text.clip_c.right, nv3->pgraph.win95_gdi_text.clip_c.bottom);
             nv3_gdi_share_clip(&nv3->pgraph.win95_gdi_text.clip_c);
             break;
         /* Type B and C not implemented YET, as they are not used by NT GDI driver */
@@ -113,12 +113,12 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv3->pgraph.win95_gdi_text.clip_d.bottom = ((param >> 16) & 0xFFFF);
             /* is it "only if we are out of the top left or the bottom right or is it "all of them"*/
             
-            nv_log("Method Execution: GDI-D Clip Right,Bottom %04x,%04x\n", nv3->pgraph.win95_gdi_text.clip_d.left, nv3->pgraph.win95_gdi_text.clip_d.top);
+            nv_log("Method Execution: GDI-D Clip Right,Bottom %04x,%04x\n", nv3->pgraph.win95_gdi_text.clip_d.right, nv3->pgraph.win95_gdi_text.clip_d.bottom);
             nv3_gdi_share_clip(&nv3->pgraph.win95_gdi_text.clip_d);
             break;
         case NV3_W95TXT_D_CLIP_COLOR:
             nv3->pgraph.win95_gdi_text.color1_d = param;
-            nv_log("Method Execution: GDI-D Color 0x%08x\n", nv3->pgraph.win95_gdi_text.color_a);
+            nv_log("Method Execution: GDI-D Color 0x%08x\n", nv3->pgraph.win95_gdi_text.color1_d);
             break;
         case NV3_W95TXT_D_CLIP_SIZE_IN:
             nv3->pgraph.win95_gdi_text.size_in_d.x = (param & 0xFFFF);
@@ -147,23 +147,23 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
         case NV3_W95TXT_E_CLIP_TOPLEFT: 
             nv3->pgraph.win95_gdi_text.clip_e.left = (param & 0xFFFF);
             nv3->pgraph.win95_gdi_text.clip_e.top = ((param >> 16) & 0xFFFF);
-            nv_log("Method Execution: GDI-E Clip Left,Top 0x%08x\n", nv3->pgraph.win95_gdi_text.clip_e.left, nv3->pgraph.win95_gdi_text.clip_e.top);
+            nv_log("Method Execution: GDI-E Clip Left,Top %04x,%04x\n", nv3->pgraph.win95_gdi_text.clip_e.left, nv3->pgraph.win95_gdi_text.clip_e.top);
             nv3_gdi_share_clip(&nv3->pgraph.win95_gdi_text.clip_e);
             break; 
         case NV3_W95TXT_E_CLIP_BOTTOMRIGHT:
             nv3->pgraph.win95_gdi_text.clip_e.right = (param & 0xFFFF);
             nv3->pgraph.win95_gdi_text.clip_e.bottom = ((param >> 16) & 0xFFFF);
-            nv_log("Method Execution: GDI-E Clip Bottom,Right 0x%08x\n", nv3->pgraph.win95_gdi_text.clip_e.right, nv3->pgraph.win95_gdi_text.clip_e.bottom);
+            nv_log("Method Execution: GDI-E Clip Right,Bottom %04x,%04x\n", nv3->pgraph.win95_gdi_text.clip_e.right, nv3->pgraph.win95_gdi_text.clip_e.bottom);
             /* is it "only if we are out of the top left or the bottom right or is it "all of them"*/
             nv3_gdi_share_clip(&nv3->pgraph.win95_gdi_text.clip_e);
             break;
         case NV3_W95TXT_E_CLIP_COLOR_0:
             nv3->pgraph.win95_gdi_text.color0_e = param;
-            nv_log("Method Execution: GDI-E Color0 0x%08x\n", nv3->pgraph.win95_gdi_text.color_a);
+            nv_log("Method Execution: GDI-E Color0 0x%08x\n", nv3->pgraph.win95_gdi_text.color0_e);
             break;
         case NV3_W95TXT_E_CLIP_COLOR_1:
             nv3->pgraph.win95_gdi_text.color1_e = param;
-            nv_log("Method Execution: GDI-E Color1 0x%08x\n", nv3->pgraph.win95_gdi_text.color_a);
+            nv_log("Method Execution: GDI-E Color1 0x%08x\n", nv3->pgraph.win95_gdi_text.color1_e);
             break;
         case NV3_W95TXT_E_CLIP_SIZE_IN:
             nv3->pgraph.win95_gdi_text.size_in_e.x = (param & 0xFFFF);
