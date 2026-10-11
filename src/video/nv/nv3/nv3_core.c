@@ -677,6 +677,25 @@ void nv3_recalc_timings(svga_t* svga)
     if (ext_horz & 0x04)
         svga->hblankstart += 0x100;
 
+    /* Line compare has no bit 10 here (CR25/CR2D extend everything else), so the drivers' "no
+       split" value 0x3FF would restart the scan-out at line 1024 and repeat the top of a
+       1600x1200 screen; at its maximum it never cuts a taller screen */
+    if ((svga->split == 0x400) && (svga->dispend > 0x400))
+        svga->split = 0x7FFFFFFF;
+
+    /* Horizontal blank end is compared from the character after blank start, so an end equal to
+       the start in the compared bits blanks a whole 64 (or 128) characters -- 1600x1200 sets
+       start 0xC7, end 0x07. The SVGA core would match at once and make a 512-pixel overscan:
+       give it the end with the 7-bit compare (bit 7 makes the core use the mask). */
+    {
+        uint32_t mask = (svga->hblank_end_val & ~0x3F) ? svga->hblank_end_mask : 0x3F;
+
+        if (((svga->hblankstart ^ svga->hblank_end_val) & mask) == 0) {
+            svga->hblank_end_val  = 0x80 | ((svga->hblankstart + mask + 1) & 0x7F);
+            svga->hblank_end_mask = 0x7F;
+        }
+    }
+
     /* The CRTC scans VRAM out linearly from the start address with the CRTC pitch,
        so the SVGA core draws the screen; PGRAPH and the linear framebuffer only mark
        what they change in changedvram. */
