@@ -358,7 +358,7 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                reads back on the other. ATI's TEST.COM (797Eh) sets the read index on 3C7h and expects
                2ECh to return it plus one; otherwise it takes the VGA for a separate passthrough DAC and
                sets 6AEEh bit 10, which blanks the VGA picture. */
-            if (ATI_GRAPHICS_ULTRA && dev) {
+            if ((dev != NULL) && (ATI_GRAPHICS_ULTRA)) {
                 dev->dac_pos    = 0;
                 dev->dac_status = svga->dac_status;
                 dev->dac_addr   = svga->dac_addr;
