@@ -1365,6 +1365,18 @@ static void nv3_debug_hook(const char *args)
         if (!nv3_mmio_trace_hi)
             nv3_mmio_trace_hi = 0xFFFFFFFF;
     }
+    /* "dev nv3 cache1": every CACHE1 entry from GET to PUT */
+    if (args && strstr(args, "cache1")) {
+        extern uint32_t nv3_pfifo_cache1_slot(uint32_t ptr);
+        extern uint32_t nv3_pfifo_cache1_next(uint32_t ptr);
+        uint32_t ptr = nv3->pfifo.cache1_settings.get_address;
+        for (int n = 0; (n < NV3_PFIFO_CACHE1_SIZE_MAX) && (ptr != nv3->pfifo.cache1_settings.put_address); n++) {
+            uint32_t s = nv3_pfifo_cache1_slot(ptr);
+            always_log("nv3: cache1 %02x subch %d mthd %04x data %08x\n", ptr, nv3->pfifo.cache1_entries[s].subchannel,
+                       nv3->pfifo.cache1_entries[s].method, nv3->pfifo.cache1_entries[s].data);
+            ptr = nv3_pfifo_cache1_next(ptr);
+        }
+    }
     /* "dev nv3 inst <instance>": the first 16 words of an object in RAMIN */
     const char *inst_arg = args ? strstr(args, "inst ") : NULL;
     if (inst_arg) {
