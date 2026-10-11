@@ -265,7 +265,7 @@ char_stdio_close(void *priv)
 #else
     if (dev->prev_config_valid && CHAR_FD_VALID(dev->fd_in) && tcsetattr(dev->fd_in, TCSAFLUSH, &dev->prev_config))
         char_stdio_log(dev->log, "Restore TCSAFLUSH failed (%d)\n", errno);
-    if (dev->prev_flags_valid && CHAR_FD_VALID(dev->fd_out) && (fcntl(dev->fd_out, F_SETFL, dev->prev_flags) < 0))
+    if (dev->prev_flags_valid && CHAR_FD_VALID(dev->fd_in) && (fcntl(dev->fd_in, F_SETFL, dev->prev_flags) < 0))
         char_stdio_log(dev->log, "Restore F_SETFL failed (%d)\n", errno);
 
     /* Release console. */
@@ -465,12 +465,12 @@ errmsg:
     dev->fd_out = STDOUT_FILENO;
 
     /* Save current stdout flags for restoring on close. */
-    dev->prev_flags = fcntl(dev->fd_out, F_GETFL);
+    dev->prev_flags = fcntl(dev->fd_in, F_GETFL);
     if (dev->prev_flags >= 0) {
         dev->prev_flags_valid = 1;
 
         /* Enable non-blocking input. */
-        if (fcntl(dev->fd_out, F_SETFL, dev->prev_flags | O_NONBLOCK))
+        if (fcntl(dev->fd_in, F_SETFL, dev->prev_flags | O_NONBLOCK))
             char_stdio_log(dev->log, "F_SETFL failed (%d)\n", errno);
     } else {
         char_stdio_log(dev->log, "F_GETFL failed (%d)\n", errno);

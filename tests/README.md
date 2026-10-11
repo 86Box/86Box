@@ -42,6 +42,16 @@ for the archive evidence and the limits of guest-driver validation.
 
 Build `wd90c31_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^Wd90c31\.'` for register, BitBLT, host-transfer and hardware-cursor checks. The optional `video/wd90c31_bios_smoke.py` runs the supplied option ROMs in a complete SDL emulator using a synthetic AT BIOS. See [the WD90C31 hardware notes](../doc/hardware/wd90c31.md) for ROM paths, commands, tested modes and validation limits.
 
+# S3 911/924 display
+
+Build `s3_display_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^S3.Display$' --output-on-failure`.
+The test covers 800x600 and 1024x768 planar BIOS and accelerated Windows 3.x
+16-color display states, accelerator drawing, packed pixel uploads/readback,
+scanline pitch, rendered pixels and cursor colors, plus VGA, 256-color,
+high-color byte-lane and later-chip controls. It uses the HP C.02.02 BIOS and S3 Windows
+driver register values; it does not require ROMs or a Windows installation.
+
 # ATI Mach64
 
 Build `mach64_accel_tests` and `mach64_3d_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^Mach64\.'`. Both include the source they test, for its private functions.

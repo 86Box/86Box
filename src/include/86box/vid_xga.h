@@ -152,6 +152,7 @@ typedef struct xga_t {
     int pal_test;
     int a5_test;
     int test_stage;
+    int display_id;
     int type;
     int bus;
 

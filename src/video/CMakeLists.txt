@@ -29,6 +29,7 @@ add_library(vid OBJECT
     ramdac/vid_ramdac_bt48x.c 
     ramdac/vid_ramdac_bt481.c 
     ramdac/vid_ramdac_ibm_rgb528.c
+    ramdac/vid_ramdac_mu9c1880.c
     ramdac/vid_ramdac_sc1148x.c 
     ramdac/vid_ramdac_sc1502x.c 
     ramdac/vid_ramdac_sdac.c 

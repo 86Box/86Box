@@ -41,6 +41,7 @@ public:
     void         reloadAllRenderers();
     QShortcut   *windowedShortcut;
     QKeySequence FindAcceleratorSeq(const char *name);
+    bool         keyMatchesAccelerator(const QKeyEvent *ke, const char *name);
 
     QString mouseStringUncaptured;
     QString mouseStringCaptured;

@@ -46,6 +46,7 @@
 #    include <ws2tcpip.h>
 #else
 #    include <poll.h>
+#    include <signal.h>
 #endif
 #include <86box/net_event.h>
 
@@ -70,11 +71,15 @@ typedef struct net_slirp_t {
     netpkt_t       pkt_tx_v[SLIRP_PKT_BATCH];
     int            during_tx;
     int            recv_on_tx;
-#ifdef _WIN32
-    HANDLE         sock_event;
-#else
     uint32_t       pfd_len;
     uint32_t       pfd_size;
+#ifdef _WIN32
+    HANDLE         sock_event;
+    struct {
+        slirp_os_socket fd;
+        int             events;
+    }             *pfd;
+#else
     struct pollfd *pfd;
 #endif
 } net_slirp_t;
@@ -216,6 +221,19 @@ net_slirp_add_poll(int fd, int events, void *opaque)
 {
     net_slirp_t *slirp   = (net_slirp_t *) opaque;
     long         bitmask = 0;
+
+    if (slirp->pfd_len >= slirp->pfd_size) {
+        uint32_t newsize = slirp->pfd_size + 16;
+        void    *new     = realloc(slirp->pfd, newsize * sizeof(*slirp->pfd));
+        if (!new)
+            return -1;
+        slirp->pfd      = new;
+        slirp->pfd_size = newsize;
+    }
+    int idx                = slirp->pfd_len++;
+    slirp->pfd[idx].fd     = fd;
+    slirp->pfd[idx].events = events;
+
     if (events & SLIRP_POLL_IN)
         bitmask |= FD_READ | FD_ACCEPT;
     if (events & SLIRP_POLL_OUT)
@@ -226,7 +244,7 @@ net_slirp_add_poll(int fd, int events, void *opaque)
         bitmask |= FD_OOB;
 
     WSAEventSelect(fd, slirp->sock_event, bitmask);
-    return fd;
+    return idx;
 }
 #else
 static int
@@ -274,7 +292,7 @@ net_slirp_get_revents(int idx, void *opaque)
     net_slirp_t     *slirp = (net_slirp_t *) opaque;
     int              ret   = 0;
     WSANETWORKEVENTS ev;
-    if (WSAEnumNetworkEvents(idx, slirp->sock_event, &ev) != 0) {
+    if (WSAEnumNetworkEvents(slirp->pfd[idx].fd, slirp->sock_event, &ev) != 0) {
         return ret;
     }
 
@@ -296,7 +314,11 @@ net_slirp_get_revents(int idx, void *opaque)
     WSA_TO_POLL(FD_CLOSE, SLIRP_POLL_IN);
     WSA_TO_POLL(FD_CLOSE, SLIRP_POLL_HUP);
 
-    if (ret == 0)
+    /* Only fall back to readable if slirp asked for it. A socket whose
+       connect() is still in progress is polled for SLIRP_POLL_OUT only, and
+       recv() on it fails with WSAENOTCONN, which makes slirp reset the
+       guest's connection ("Connection refused"). */
+    if ((ret == 0) && (slirp->pfd[idx].events & SLIRP_POLL_IN))
         ret |= SLIRP_POLL_IN;
 
     return ret;
@@ -391,6 +413,8 @@ net_slirp_thread(void *priv)
     bool run               = true;
     while (run) {
         uint32_t timeout = -1;
+
+        slirp->pfd_len = 0;
 #    if SLIRP_CHECK_VERSION(4, 9, 0)
         slirp_pollfds_fill_socket(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
 #    else
@@ -489,10 +513,8 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
     memcpy(slirp->mac_addr, mac_addr, sizeof(slirp->mac_addr));
     slirp->card = (netcard_t *) card;
 
-#ifndef _WIN32
-    slirp->pfd_size = 16 * sizeof(struct pollfd);
-    slirp->pfd      = calloc(1, slirp->pfd_size);
-#endif
+    slirp->pfd_size = 16;
+    slirp->pfd      = calloc(slirp->pfd_size, sizeof(*slirp->pfd));
 
     struct in_addr net;
     struct in_addr host;
@@ -556,6 +578,13 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
         .oob_eth_addr          = { 0, 0, 0, 0, 0, 0 }
 #endif
     };
+
+#ifndef _WIN32
+    /* libslirp writes to host sockets without MSG_NOSIGNAL, so a host peer
+       closing a forwarded connection mid-transfer raises SIGPIPE, whose
+       default action kills the emulator. */
+    signal(SIGPIPE, SIG_IGN);
+#endif
 
     /* Initialize SLiRP. */
     slirp->slirp = slirp_new(&slirp_config, &slirp_cb, slirp);
@@ -661,6 +690,7 @@ net_slirp_close(void *priv)
         free(slirp->pkt_tx_v[i].data);
     }
     free(slirp->pkt.data);
+    free(slirp->pfd);
     free(slirp);
 }
 
