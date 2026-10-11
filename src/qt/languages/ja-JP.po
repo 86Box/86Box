@@ -946,6 +946,9 @@ msgstr "%1キーでマウスを解放します"
 msgid "Press %1 or middle button to release mouse"
 msgstr "%1キーまたは中クリックでマウスを解放します"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "バス"
 

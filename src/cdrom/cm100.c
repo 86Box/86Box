@@ -85,11 +85,15 @@ cm100_set_medium(cm100_drive_t *d, uint32_t sectors, int present)
     d->door_open = !present;
     d->sector_loaded = 0;
     cm100_stop_read(d);
+    /* A seek or read queued for the previous disc must not run on the new
+       one; the guest has to issue a fresh command. */
+    d->pending_seek = 0;
+    d->seek_read = 0;
+    d->seek_invalid = 0;
+    d->spin_notice = 0;
     if (!present) {
         d->motion = CM100_STOPPED;
         d->motion_end_ns = 0;
-        d->pending_seek = 0;
-        d->seek_invalid = 0;
     }
     if (changed)
         cm100_raise_drive_error(d, CM100_EVENT_UNIT_CHANGE);

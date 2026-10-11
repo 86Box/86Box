@@ -945,6 +945,9 @@ msgstr "Paina %1 vapauttaaksesi hiiren"
 msgid "Press %1 or middle button to release mouse"
 msgstr "Paina %1 tai keskipainiketta vapauttaaksesi hiiren"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "Väylä"
 

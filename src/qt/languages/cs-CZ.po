@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-27 20:33+0000\n"
+"PO-Revision-Date: 2026-10-02 16:32+0000\n"
 "Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
@@ -944,6 +944,9 @@ msgstr "Stiskněte %1 pro uvolnění myši"
 
 msgid "Press %1 or middle button to release mouse"
 msgstr "Stiskněte %1 nebo prostřední tlačítko pro uvolnění myši"
+
+msgid "Press %1 or side button to release mouse"
+msgstr "Stiskněte %1 nebo boční tlačítko pro uvolnění myši"
 
 msgid "Bus"
 msgstr "Sběrnice"
@@ -2325,7 +2328,7 @@ msgid "Host ID"
 msgstr "ID hostitele"
 
 msgid "Host"
-msgstr ""
+msgstr "Hostitel"
 
 msgid "FDC Address"
 msgstr "Adresa FDC"
@@ -3044,10 +3047,10 @@ msgid "Model:"
 msgstr "Model:"
 
 msgid "Brand:"
-msgstr ""
+msgstr "Výrobce:"
 
 msgid "Revision:"
-msgstr ""
+msgstr "Revize:"
 
 msgid "[Generic HDD] Device Configuration"
 msgstr ""
@@ -3056,22 +3059,25 @@ msgid "Failed to initialize Vulkan renderer."
 msgstr "Selhala inicializace rendereru Vulkan."
 
 msgid "Failed to create Vulkan 1.3 instance."
-msgstr ""
+msgstr "Selhalo vytváření instance Vulkan 1.3."
 
 msgid "No usable Vulkan physical devices found."
-msgstr ""
+msgstr "Nebyla nalezena žádná použitelná fyzická zařízení podporující Vulkan."
 
 msgid "No Vulkan-capable physical devices found."
-msgstr ""
+msgstr "Nebyla nalezena žádná fyzická zařízení podporující Vulkan."
 
 msgid "librashader not found. Shaders will not be available."
 msgstr ""
+"Knihovna librashader nebyla nalezena. Shadery pro Vulkan nebudou dostupné."
 
+#, fuzzy
 msgid "Vulkan device lost."
-msgstr ""
+msgstr "Bylo ztraceno Vulkan zařízení."
 
+#, fuzzy
 msgid "Vulkan surface lost."
-msgstr ""
+msgstr "Byl ztracen Vulkan surface."
 
 msgid "GLSL Error"
 msgstr "Chyba GLSL"
@@ -3095,7 +3101,7 @@ msgid "Shader Configuration"
 msgstr "Konfigurace shaderu"
 
 msgid "GPU:"
-msgstr ""
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "Přidat"
@@ -3374,7 +3380,7 @@ msgid "&Non-maskable interrupt"
 msgstr ""
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "Nemaskovatelné přerušení"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "Před změnou systémového adresáře nejprve zastavte všechny běžící počítače."
@@ -3410,6 +3416,8 @@ msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
+"Nebylo možné načíst obraz \"%s\": nebyla nalezena knihovna %1, která je "
+"potřeba pro podporu obrazů ve formátu Aaru."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3558,22 +3566,26 @@ msgid "Sample rate:"
 msgstr "Vzorkovací frekvence:"
 
 msgid "Enable audio input (mic/line-in)"
-msgstr ""
+msgstr "Povolit audio vstup (mikrofon/line-in)"
 
 msgid "Audio input device:"
-msgstr ""
+msgstr "Zařízení pro audio vstup:"
 
 msgid "Audio input sample rate:"
-msgstr ""
+msgstr "Vzorkovací frekvence audio vstupu:"
 
 msgid "Rate the emulator mixes to the host output device."
-msgstr ""
+msgstr "Frekvence, kterou emulátor mixuje výstup na zařízení hostitele."
 
 msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
 msgstr ""
+"Frekvence, na kterou je otevřeno zařízení záznamu zvuku hostitele.\n"
+"\n"
+"44100 je dělitelné beze zbytku frekvencemi 44.1/22/11 kHz podporovanými SB16 "
+"nebo AWE32."
 
 msgid "CGA lightpen"
-msgstr ""
+msgstr "Světelné pero CGA"
 
 msgid "Luminance threshold (%)"
-msgstr ""
+msgstr "Prah svítivosti (%)"

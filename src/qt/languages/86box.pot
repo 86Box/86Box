@@ -939,7 +939,7 @@ msgstr ""
 msgid "Press %1 or middle button to release mouse"
 msgstr ""
 
-msgid "Press %1 or thumb button to release mouse"
+msgid "Press %1 or side button to release mouse"
 msgstr ""
 
 msgid "Bus"

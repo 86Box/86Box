@@ -426,6 +426,7 @@ extern void     mem_write_ramw(uint32_t addr, uint16_t val, void *priv);
 extern void     mem_write_raml(uint32_t addr, uint32_t val, void *priv);
 
 extern int mem_addr_is_ram(uint32_t addr);
+extern void mem_read_cache_line(uint32_t addr, uint32_t *data);
 
 extern uint64_t mmutranslate_noabrt(uint32_t addr, int rw);
 

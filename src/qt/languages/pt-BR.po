@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-16 15:16+0000\n"
+"PO-Revision-Date: 2026-10-02 12:13+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -945,6 +945,9 @@ msgstr "Aperte %1 para liberar o mouse"
 
 msgid "Press %1 or middle button to release mouse"
 msgstr "Aperte %1 ou botão do meio para liberar o mouse"
+
+msgid "Press %1 or side button to release mouse"
+msgstr "Aperte %1 ou botão lateral para liberar o mouse"
 
 msgid "Bus"
 msgstr "Barramento"

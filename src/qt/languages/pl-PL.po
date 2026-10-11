@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-21 02:12+0000\n"
+"PO-Revision-Date: 2026-10-02 12:32+0000\n"
 "Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
@@ -431,7 +431,7 @@ msgid "Dynamic recompiler"
 msgstr "Dynamiczny rekompilator"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Precyzyjne środowisko FPU w dynamicznym rekompilatorze"
 
 msgid "CPU frame size"
 msgstr "Rozmiar ramki CPU"
@@ -494,7 +494,7 @@ msgid "&Tablet"
 msgstr "&Tablet"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "Tablet (&Crosshair)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -857,7 +857,7 @@ msgid "Input devices"
 msgstr "Urządzenia wejściowe"
 
 msgid "Input &device"
-msgstr ""
+msgstr "Urządzenie &wejściowe"
 
 msgid "Sound"
 msgstr "Dźwięk"
@@ -945,6 +945,9 @@ msgstr "Naciśnij %1, by wypuścić mysz"
 
 msgid "Press %1 or middle button to release mouse"
 msgstr "Naciśnij %1 lub środkowy przycisk, by wypuścić mysz"
+
+msgid "Press %1 or side button to release mouse"
+msgstr "Naciśnij klawisz %1 lub przycisk boczny, aby zwolnić mysz"
 
 msgid "Bus"
 msgstr "Magistrala"
@@ -1499,16 +1502,18 @@ msgid "ACP&I shutdown"
 msgstr "Wyłączenie ACP&I"
 
 msgid "Power off"
-msgstr ""
+msgstr "Wyłącz zasilanie"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "Wyłącz &zasilanie…"
 
 msgid "Power &off"
-msgstr ""
+msgstr "Wyłącz &zasilanie"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
+"Wyłączenie emulowanej maszyny może spowodować utratę danych. Czy na pewno "
+"chcesz kontynuować?"
 
 msgid "Hard disk (%1)"
 msgstr "Dysk twardy (%1)"
@@ -3007,13 +3012,13 @@ msgid "Model:"
 msgstr "Model:"
 
 msgid "Brand:"
-msgstr ""
+msgstr "Marka:"
 
 msgid "Revision:"
-msgstr ""
+msgstr "Rewizja:"
 
 msgid "[Generic HDD] Device Configuration"
-msgstr ""
+msgstr "[Generyczny dysk twardy] Konfiguracja urządzenia"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Nie udało się zainicjować renderera Vulkan."
@@ -3130,7 +3135,7 @@ msgid "Toggle on-screen display"
 msgstr "Przełącz menu ekranowe"
 
 msgid "Toggle &on-screen display"
-msgstr ""
+msgstr "Przełącz &wyświetlanie na ekranie"
 
 msgid "Text files"
 msgstr "Pliki tekstowe"
@@ -3334,10 +3339,10 @@ msgid "Fast forward"
 msgstr "Przewiń do przodu"
 
 msgid "&Non-maskable interrupt"
-msgstr ""
+msgstr "&Przerwanie niemaskowalne"
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "Przerwanie niemaskowalne"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "Aby zmienić katalog systemowy, zatrzymaj wszystkie działające maszyny."
@@ -3523,19 +3528,23 @@ msgid "Sample rate:"
 msgstr "Częstotliwość próbkowania:"
 
 msgid "Enable audio input (mic/line-in)"
-msgstr ""
+msgstr "Włącz wejście audio (mikrofon/wejście liniowe)"
 
 msgid "Audio input device:"
-msgstr ""
+msgstr "Urządzenie wejściowe audio:"
 
 msgid "Audio input sample rate:"
-msgstr ""
+msgstr "Częstotliwość próbkowania audio wejściowego:"
 
 msgid "Rate the emulator mixes to the host output device."
-msgstr ""
+msgstr "Częstotliwość miksowania emulatora dla urządzenia wyjściowego hosta."
 
 msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
 msgstr ""
+"Częstotliwość, z jaką otwierane jest urządzenie przechwytywania dźwięku "
+"hosta.\n"
+"\n"
+"44100 dzieli się bez reszty przez częstotliwości SB16/AWE32: 44.1/22/11 kHz."
 
 msgid "CGA lightpen"
 msgstr "Pióro świetlne CGA"

@@ -61,6 +61,8 @@ static int ymf701_wss_dma[4]  = { 0, 0, 1, 3 };
 static int ymf701_wss_dma2[4] = { 1, 1, 0, 0 };
 static int ymf701_wss_irq[8]  = { 0, 7, 9, 10, 11, 0, 0, 0 };
 
+static double ymf701_input_gain_vols_4bits[16];
+
 typedef struct ymf701_t {
     uint8_t type;
 
@@ -153,6 +155,168 @@ ymf701_wss_write(uint16_t addr, uint8_t val, void *priv)
             break;
         default:
             break;
+    }
+}
+
+#define YMF701_RECORD_CLAMP(x) (((x) < -32768) ? -32768 : (((x) > 32767) ? 32767 : (x)))
+
+/* filter when freq < capture rate */
+#define YMF701_RECORD_ANTIALIAS 1
+
+/* nyquist anti alias */
+#define YMF701_RECORD_AA_NYQ 0.9
+
+/* audio filter called on filter rate change */
+static void
+ymf701_record_aa_design(ad1848_t *ad1848, int out_rate, int in_rate)
+{
+    const double fc    = (YMF701_RECORD_AA_NYQ * 0.5) * ((double) out_rate);
+    const double w0    = (2.0 * M_PI * fc) / ((double) in_rate);
+    const double cw    = cos(w0);
+    const double sw    = sin(w0);
+    const double alpha = sw / (2.0 * 0.70710678118654752);
+    const double a0    = 1.0 + alpha;
+
+    ad1848->record_aa_b0_mic = ((1.0 - cw) / 2.0) / a0;
+    ad1848->record_aa_b1_mic = (1.0 - cw) / a0;
+    ad1848->record_aa_b2_mic = ad1848->record_aa_b0_mic;
+    ad1848->record_aa_a1_mic = (-2.0 * cw) / a0;
+    ad1848->record_aa_a2_mic = (1.0 - alpha) / a0;
+}
+
+static double
+ymf701_record_aa_step(ad1848_t *ad1848, int ch, double x)
+{
+    const double y = (ad1848->record_aa_b0_mic * x) + ad1848->record_aa_z1_mic[ch];
+
+    ad1848->record_aa_z1_mic[ch] = (ad1848->record_aa_b1_mic * x) - (ad1848->record_aa_a1_mic * y)
+                                + ad1848->record_aa_z2_mic[ch];
+    ad1848->record_aa_z2_mic[ch] = (ad1848->record_aa_b2_mic * x) - (ad1848->record_aa_a2_mic * y);
+
+    return y;
+}
+
+static void
+ymf701_put_buffer(int16_t *buffer, int len, void *priv)
+{
+    ymf701_t *ymf701 = (ymf701_t *) priv;
+
+    /* divisor is rate capture device opened at*/
+    const int cap_rate = al_capture_get_rate();
+    const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+    int rate = 0;
+    if (ymf701->ad1848.regs[9] & 0x02)
+        rate = ymf701->ad1848.freq;
+    else
+        rate = ymf701->sb->dsp.sb_freq;
+
+    int c;
+    int gain_l;
+    int gain_r;
+    int sel_l_mic, sel_l_linel;
+    int sel_r_mic, sel_r_liner;
+    int interp;
+    int filt;
+
+    /* freq is 0 until the guest programs a rate  */
+    if (rate <= 0)
+        return;
+
+    if ((denom != ymf701->ad1848.record_denom_mic) || (rate != ymf701->ad1848.record_rate_mic)) {
+        ymf701->ad1848.record_denom_mic      = denom;
+        ymf701->ad1848.record_rate_mic       = rate;
+        ymf701->ad1848.record_phase_mic      = 0;
+        ymf701->ad1848.record_prev_l_mic     = 0;
+        ymf701->ad1848.record_prev_r_mic     = 0;
+        ymf701->ad1848.record_prev_valid_mic = 0;
+
+        ymf701->ad1848.record_aa_z1_mic[0] = 0.0;
+        ymf701->ad1848.record_aa_z1_mic[1] = 0.0;
+        ymf701->ad1848.record_aa_z2_mic[0] = 0.0;
+        ymf701->ad1848.record_aa_z2_mic[1] = 0.0;
+        ymf701->ad1848.record_aa_active_mic = 0;
+
+#if YMF701_RECORD_ANTIALIAS
+        /* only when decimating */
+        if (rate < denom) {
+            ymf701_record_aa_design(&ymf701->ad1848, rate, denom);
+            ymf701->ad1848.record_aa_active_mic = 1;
+        }
+#endif
+    }
+
+    interp = (rate != denom);
+    filt   = ymf701->ad1848.record_aa_active_mic;
+
+    gain_l = ymf701->ad1848.regs[0] & 0x0f;
+    gain_r = ymf701->ad1848.regs[1] & 0x0f;
+
+    sel_l_mic   = (((ymf701->ad1848.regs[0] & 0xc0) == 0x80) ? 1 : 0);
+    sel_l_linel = (((ymf701->ad1848.regs[0] & 0xc0) == 0x00) ? 1 : 0);
+
+    sel_r_mic   = (((ymf701->ad1848.regs[1] & 0xc0) == 0x80) ? 1 : 0);
+    sel_r_liner = (((ymf701->ad1848.regs[1] & 0xc0) == 0x00) ? 1 : 0);
+
+    for (c = 0; c < len * 2; c += 2) {
+        const int32_t cap_l = (int32_t) buffer[c];
+        const int32_t cap_r = (int32_t) buffer[c + 1];
+
+        /* mic is the mono sum of line-in. truncating division for dc symmetry */
+        const int32_t mic = (cap_l + cap_r) / 2;
+
+        int32_t mix_l = (mic * sel_l_mic) + (cap_l * sel_l_linel);
+        int32_t mix_r = (mic * sel_r_mic) + (cap_r * sel_r_liner);
+        int32_t in_l;
+        int32_t in_r;
+
+        /* run on every input frame*/
+        if (filt) {
+            mix_l = (int32_t) lrint(ymf701_record_aa_step(&ymf701->ad1848, 0, (double) mix_l));
+            mix_r = (int32_t) lrint(ymf701_record_aa_step(&ymf701->ad1848, 1, (double) mix_r));
+        }
+
+        in_l = YMF701_RECORD_CLAMP(mix_l * ymf701_input_gain_vols_4bits[gain_l]);
+        in_r = YMF701_RECORD_CLAMP(mix_r * ymf701_input_gain_vols_4bits[gain_r]);
+
+        /* start new device change with first frame in interpolartor queue */
+        if (!ymf701->ad1848.record_prev_valid_mic) {
+            ymf701->ad1848.record_prev_l_mic     = in_l;
+            ymf701->ad1848.record_prev_r_mic     = in_r;
+            ymf701->ad1848.record_prev_valid_mic = 1;
+        }
+
+        /* phase ticks this forward, while-loop for new samples so they arent dropped */
+        ymf701->ad1848.record_phase_mic += rate;
+        while (ymf701->ad1848.record_phase_mic >= denom) {
+            int32_t out_l;
+            int32_t out_r;
+
+            ymf701->ad1848.record_phase_mic -= denom; /* denom tracks input frame vs emitted frame , (rate - phase) / rate */
+
+            if (interp) {
+
+                const int32_t num = rate - ymf701->ad1848.record_phase_mic;
+
+                out_l = ymf701->ad1848.record_prev_l_mic
+                        + (int32_t) ((((int64_t) (in_l - ymf701->ad1848.record_prev_l_mic)) * num) / rate);
+                out_r = ymf701->ad1848.record_prev_r_mic
+                        + (int32_t) ((((int64_t) (in_r - ymf701->ad1848.record_prev_r_mic)) * num) / rate);
+            } else {
+                out_l = in_l;
+                out_r = in_r;
+            }
+
+            ymf701->ad1848.record_buffer[ymf701->ad1848.record_pos_write_mic]                = (int16_t) out_l;
+            ymf701->ad1848.record_buffer[(ymf701->ad1848.record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
+            ymf701->sb->dsp.record_buffer[ymf701->sb->dsp.record_pos_write_mic]                = (int16_t) out_l;
+            ymf701->sb->dsp.record_buffer[(ymf701->sb->dsp.record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
+
+            ymf701->ad1848.record_pos_write_mic = (ymf701->ad1848.record_pos_write_mic + 2) & 0xffff;
+            ymf701->sb->dsp.record_pos_write_mic = (ymf701->sb->dsp.record_pos_write_mic +2) & 0xffff;
+        }
+
+        ymf701->ad1848.record_prev_l_mic = in_l;
+        ymf701->ad1848.record_prev_r_mic = in_r;
     }
 }
 
@@ -456,6 +620,9 @@ ymf701_init(const device_t *info)
 
     sound_add_handler(ymf701_get_buffer, ymf701);
     sound_add_handler(ymf701_get_sbpro_buffer, ymf701);
+    sound_in_add_handler(ymf701_put_buffer, ymf701);
+    sound_in_start_input();
+
     music_add_handler(sb_get_music_buffer_sbpro, ymf701->sb);
     ad1848_set_cd_audio_channel(&ymf701->ad1848, AD1848_AUX1);
     sound_set_cd_audio_filter(ad1848_filter_cd_audio, &ymf701->ad1848);
@@ -465,6 +632,23 @@ ymf701_init(const device_t *info)
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &ymf701->sb->dsp);
+
+    double attenuation;
+    for (uint8_t c = 0; c < 16; c++) {
+        attenuation = 0.0;
+        if (c & 0x01)
+            attenuation += 1.5;
+        if (c & 0x02)
+            attenuation += 3.0;
+        if (c & 0x04)
+            attenuation += 6.0;
+        if (c & 0x08)
+            attenuation += 12.0;
+
+        attenuation = pow(10, attenuation / 10);
+
+        ymf701_input_gain_vols_4bits[c] = (int) (attenuation);
+    }
 
     return ymf701;
 }
@@ -524,7 +708,7 @@ static const device_config_t ymf701_config[] = {
 const device_t ymf701_device = {
     .name          = "Yamaha YMF-701 (OPL3-SA)",
     .internal_name = "ymf701",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = 0x00,
     .init          = ymf701_init,
     .close         = ymf701_close,

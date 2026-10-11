@@ -19,5 +19,7 @@
 
 extern const device_t mke_cdrom_device;
 extern const device_t mke_cdrom_noncreative_device;
+extern const device_t teac_cdrom_device;
+extern const device_t teac_cdrom_16bit_device;
 
 #endif /*CDROM_MKE_H*/

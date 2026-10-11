@@ -182,14 +182,17 @@ int lock_legal_0f[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x8x */
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x9x */
                            0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,   /* 0xax */
-                           0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 3, 1, 0, 0, 0, 0,   /* 0xbx */
-                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xcx */
+                           1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 3, 1, 0, 0, 0, 0,   /* 0xbx */
+                           1, 1, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xcx */
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xdx */
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xex */
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; /* 0xfx */
 
 /* (modrm >> 3) & 0x07 */
 int lock_legal_ba[8]   = { 0, 0, 0, 0, 1, 1, 1, 1 };
+
+/* (modrm >> 3) & 0x07 */
+int lock_legal_c7[8]   = { 0, 1, 0, 0, 0, 0, 0, 0 };
 
 /* Also applies to 81, 82, and 83 */
 int lock_legal_80[8]   = { 1, 1, 1, 1, 1, 1, 1, 0 };
@@ -473,7 +476,10 @@ is_lock_legal(uint32_t fetchdat)
             if (legal == 1)
                 legal = ((fetch_dat.b[2] >> 6) != 0x03);    /* reg,reg is illegal */
             else if (legal == 3) {
-                legal = lock_legal_ba[(fetch_dat.b[2] >> 3) & 0x07];
+                if (fetch_dat.b[1] == 0xc7)
+                    legal = lock_legal_c7[(fetch_dat.b[2] >> 3) & 0x07];
+                else
+                    legal = lock_legal_ba[(fetch_dat.b[2] >> 3) & 0x07];
                 if (legal == 1)
                     legal = ((fetch_dat.b[2] >> 6) != 0x03);    /* reg,imm is illegal */
             }

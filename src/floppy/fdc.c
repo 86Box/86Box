@@ -737,6 +737,25 @@ fdc_ps2_tdr_per_slot(void)
 static void
 fdc_rate(fdc_t *fdc, int drive)
 {
+    if (fdc->flags & FDC_FLAG_5550) {
+        /* The density is the drive's media sense, not a guest choice: the
+           guest writes the same 3F1h value for 1.44M and 720K media, so
+           latching its bit 4 selects the wrong rate for one of them. */
+        uint8_t dens = (uint8_t) fdd_hole(fdc->fdd[drive]);
+
+        switch (dens) {
+            case 1:
+                fdc->rate = 0;
+                break;
+            case 2:
+                fdc->rate = 3;
+                break;
+            default:
+                fdc->rate = 2;
+                break;
+        }
+    }
+
     fdc_update_rate(fdc, drive);
     fdc_log("FDD %c: [%i] Setting rate: %i, %i, %i (%i, %i, %i)\n", 0x41 + drive,
             fdc->enh_mode, fdc->drvrate[drive], fdc->rate, fdc_get_densel(fdc, drive),
@@ -2050,15 +2069,24 @@ fdc_callback(void *priv)
     int    old_sector = 0;
     fdc_log("fdc_callback(): %i\n", fdc->interrupt);
     switch (fdc->interrupt) {
-        case -3: /*End of command with interrupt*/
-        case -4: /*Recalibrate/seek completion (PCjr/JX polled status)*/
+        case -3: /* End of command with interrupt */
+        case -4: /* Recalibrate/seek completion (PCjr/JX polled status) */
             fdc_int(fdc, fdc->interrupt & 1);
+            /*
+               A completion can land while the CPU is still reading out a
+               result phase - the command's own timer and the result phase
+               are independent. Overwriting the status there would make the
+               FDC drop the result bytes it has not handed over yet, so only
+               take the status back to idle once the result phase is done;
+               The last byte read leaves the same 0x80 behind by itself.
+             */
+            if (!fdc->paramstogo)
+                fdc->stat = (fdc->stat & 0xf) | 0x80;
+            return;
+        case -2: /* End of command */
             fdc->stat = (fdc->stat & 0xf) | 0x80;
             return;
-        case -2: /*End of command*/
-            fdc->stat = (fdc->stat & 0xf) | 0x80;
-            return;
-        case -5: /*Reset in power down mode */
+        case -5: /* Reset in power down mode */ 
             fdc->perp &= 0xfc;
 
             for (uint8_t i = 0; i < 4; i++) {
@@ -2071,13 +2099,13 @@ fdc_callback(void *priv)
             fdc->fintr = 0;
             memset(fdc->pcn, 0x00, 4 * sizeof(uint16_t));
             return;
-        case -1: /*Reset*/
+        case -1: /* Reset */
             fdc_int(fdc, 1);
             fdc->fintr = 0;
             memset(fdc->pcn, 0x00, 4 * sizeof(uint16_t));
             fdc->reset_stat = 4;
             return;
-        case -6: /*DSR Reset clear*/
+        case -6: /* DSR Reset clear */
             fdc->dsr |= 0x80;
             return;
         case 0x01: /* Mode */

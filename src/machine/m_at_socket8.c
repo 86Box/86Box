@@ -85,8 +85,8 @@ static const device_config_t aurora_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Intel AMIBIOS - Revision 1.00.01.CG0Q (AST Bravo MS-T 6___)",
-                .internal_name = "bravomst6xxx",
+                .name          = "Intel AMIBIOS - Revision 1.00.01.CG0Q (AST Bravo MS-T 6150)",
+                .internal_name = "bravomst6150",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 5,
                 .local         = 0,
@@ -511,7 +511,40 @@ static const device_config_t vs440fx_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Intel AMIBIOS - Revision 1.00.06.CS1J (Dell Dimension XPS Pro___n)",
+                .name          = "Intel AMIBIOS - Revision 1.00.02.CS1K (NEC)",
+                .internal_name = "powermate17x0_02",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/vs440fx/1002cs1k.bio", "roms/machines/vs440fx/1002cs1k.bi1",
+                                   "roms/machines/vs440fx/1002cs1k.bi2", "roms/machines/vs440fx/1002cs1k.bi3",
+                                   "roms/machines/vs440fx/1002cs1k.rcv", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.03.CS1K (NEC)",
+                .internal_name = "powermate17x0",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/vs440fx/1003cs1k.bio", "roms/machines/vs440fx/1003cs1k.bi1",
+                                   "roms/machines/vs440fx/1003cs1k.bi2", "roms/machines/vs440fx/1003cs1k.bi3",
+                                   "roms/machines/vs440fx/1003cs1k.rcv", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.05.CS1Q (AST)",
+                .internal_name = "bravomst6200",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/vs440fx/1005CS1Q.BIO", "roms/machines/vs440fx/1005CS1Q.BI1",
+                                   "roms/machines/vs440fx/1005CS1Q.BI2", "roms/machines/vs440fx/1005CS1Q.BI3",
+                                   "roms/machines/vs440fx/1005CS1Q.RCV", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.06.CS1J (Dell)",
                 .internal_name = "dellvenus",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 5,
@@ -522,7 +555,7 @@ static const device_config_t vs440fx_config[] = {
                                    "roms/machines/vs440fx/1006CS1J.RCV", "" }
             },
             {
-                .name          = "Intel AMIBIOS - Revision 1.00.07.CS15 (Micron Millennia Pro 1/ClientPro XVI)",
+                .name          = "Intel AMIBIOS - Revision 1.00.07.CS15 (Micron)",
                 .internal_name = "millenniapro1",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 5,

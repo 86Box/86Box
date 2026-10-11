@@ -1803,7 +1803,7 @@ pipc_init(const device_t *info)
             break;
     }
 
-    kbc_params |= KBC_VEN_VIA;
+    kbc_params |= (KBC_VEN_VIA | KBC_FLAG_IS_ASIC);
 
     if ((machine_get_kbc_device(machine) == NULL) && !(info->local & VIA_PIPC_NO_KBC))
         device_add_params(&kbc_at_device, (void *) (uintptr_t) kbc_params);

@@ -4,8 +4,10 @@ opMOVZX_w_b_a16(uint32_t fetchdat)
     uint8_t temp;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
+    }
     temp = geteab();
     if (cpu_state.abrt)
         return 1;
@@ -21,8 +23,10 @@ opMOVZX_w_b_a32(uint32_t fetchdat)
     uint8_t temp;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
+    }
     temp = geteab();
     if (cpu_state.abrt)
         return 1;
@@ -38,8 +42,10 @@ opMOVZX_l_b_a16(uint32_t fetchdat)
     uint8_t temp;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
+    }
     temp = geteab();
     if (cpu_state.abrt)
         return 1;
@@ -55,8 +61,10 @@ opMOVZX_l_b_a32(uint32_t fetchdat)
     uint8_t temp;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
+    }
     temp = geteab();
     if (cpu_state.abrt)
         return 1;
@@ -72,8 +80,10 @@ opMOVZX_w_w_a16(uint32_t fetchdat)
     uint16_t temp;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1);
+    }
     temp = geteaw();
     if (cpu_state.abrt)
         return 1;
@@ -89,8 +99,10 @@ opMOVZX_w_w_a32(uint32_t fetchdat)
     uint16_t temp;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1);
+    }
     temp = geteaw();
     if (cpu_state.abrt)
         return 1;
@@ -106,8 +118,10 @@ opMOVZX_l_w_a16(uint32_t fetchdat)
     uint16_t temp;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1);
+    }
     temp = geteaw();
     if (cpu_state.abrt)
         return 1;
@@ -123,8 +137,10 @@ opMOVZX_l_w_a32(uint32_t fetchdat)
     uint16_t temp;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1);
+    }
     temp = geteaw();
     if (cpu_state.abrt)
         return 1;
@@ -141,8 +157,10 @@ opMOVSX_w_b_a16(uint32_t fetchdat)
     uint8_t temp;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
+    }
     temp = geteab();
     if (cpu_state.abrt)
         return 1;
@@ -160,8 +178,10 @@ opMOVSX_w_b_a32(uint32_t fetchdat)
     uint8_t temp;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
+    }
     temp = geteab();
     if (cpu_state.abrt)
         return 1;
@@ -179,8 +199,10 @@ opMOVSX_l_b_a16(uint32_t fetchdat)
     uint8_t temp;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
+    }
     temp = geteab();
     if (cpu_state.abrt)
         return 1;
@@ -198,8 +220,10 @@ opMOVSX_l_b_a32(uint32_t fetchdat)
     uint8_t temp;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
+    }
     temp = geteab();
     if (cpu_state.abrt)
         return 1;
@@ -220,8 +244,10 @@ opMOVSX_w_w_a16(uint32_t fetchdat)
     uint16_t temp;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1);
+    }
     temp = geteaw();
     if (cpu_state.abrt)
         return 1;
@@ -237,8 +263,10 @@ opMOVSX_w_w_a32(uint32_t fetchdat)
     uint16_t temp;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1);
+    }
     temp = geteaw();
     if (cpu_state.abrt)
         return 1;
@@ -254,8 +282,10 @@ opMOVSX_l_w_a16(uint32_t fetchdat)
     uint16_t temp;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1);
+    }
     temp = geteaw();
     if (cpu_state.abrt)
         return 1;
@@ -273,8 +303,10 @@ opMOVSX_l_w_a32(uint32_t fetchdat)
     uint16_t temp;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod != 3) {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1);
+    }
     temp = geteaw();
     if (cpu_state.abrt)
         return 1;

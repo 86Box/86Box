@@ -200,9 +200,8 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
         return 1;
     }
 
-    uint64_t target_size = (full_size + hdd_images[id].base) - ftello64(hdd_images[id].file);
-
 #ifndef __unix__
+    uint64_t target_size = (full_size + hdd_images[id].base) - ftello64(hdd_images[id].file);
     uint32_t size;
     uint32_t t;
 
@@ -238,7 +237,7 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
     free(empty_sector_1mb);
 #else
     pclog("Creating hard disk image: ");
-    int ret = ftruncate(fileno(hdd_images[id].file), (size_t) target_size);
+    int ret = ftruncate(fileno(hdd_images[id].file), (off_t) (full_size + hdd_images[id].base));
 
     if (ret) {
         pclog("failed\n");

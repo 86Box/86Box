@@ -37,8 +37,8 @@
 
 #include <stdint.h>
 
-extern const device_t ps2_nvr_device;
-extern const device_t ps2_nvr_55ls_device;
+extern const device_t ps2_nvr_2kb_device;
+extern const device_t ps2_nvr_8kb_device;
 
 extern int  ps2_nvr_is_new(void *priv);
 extern void ps2_nvr_set_byte(void *priv, uint16_t addr, uint8_t val);

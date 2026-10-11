@@ -28,6 +28,7 @@ extern const device_t ali1435_device;
 extern const device_t ali1489_device;
 extern const device_t ali1531_device;
 extern const device_t ali1541_device;
+extern const device_t ali1541_rowdecode_device;
 
 #define ALI1543_SIO_370 0x10000ULL
 
@@ -232,8 +233,14 @@ extern const device_t via_vt82c686b_device;
 extern const device_t via_vt8231_device;
 
 /* VLSI */
+/* Size of the secondary cache SRAM, for the Direct Access mode of CACHCTL. */
+#define VL82C480_CACHE_128K  0x0400
+#define VL82C480_CACHE_256K  0x0800
+#define VL82C480_CACHE_SHIFT 8
+
 extern const device_t vl82c480_device;
 extern const device_t vl82c486_device;
+extern int            vl82c486_cpu_cache_enable(void *priv);
 extern const device_t vl82c59x_device;
 extern const device_t vl82c59x_compaq_device;
 extern const device_t vl82c59x_wildcat_device;

@@ -185,12 +185,11 @@ pc87307_pm_write(uint16_t port, uint8_t val, void *priv)
 {
     pc87307_t *dev = (pc87307_t *) priv;
 
-    if (port & 1)
+    if (port & 1) {
         dev->pm[dev->pm_idx] = val;
-    else {
-        dev->pm_idx = val & 0x07;
 
         switch (dev->pm_idx) {
+            /* FER1 - Function Enable Register 1. */
             case 0x00:
                 fdc_handler(dev);
                 lpt_handler(dev);
@@ -201,7 +200,8 @@ pc87307_pm_write(uint16_t port, uint8_t val, void *priv)
             default:
                 break;
         }
-    }
+    } else
+        dev->pm_idx = val & 0x07;
 }
 
 uint8_t
@@ -219,7 +219,7 @@ static void
 pc87307_pm_remove(pc87307_t *dev)
 {
     if (dev->pm_base != 0xffff) {
-        io_removehandler(dev->pm_base, 0x0008,
+        io_removehandler(dev->pm_base, 0x0002,
                          pc87307_pm_read, NULL, NULL, pc87307_pm_write, NULL, NULL, dev);
         dev->pm_base = 0xffff;
     }
@@ -230,7 +230,7 @@ pc87307_pm_init(pc87307_t *dev, uint16_t addr)
 {
     dev->pm_base = addr;
 
-    io_sethandler(dev->pm_base, 0x0008,
+    io_sethandler(dev->pm_base, 0x0002,
                   pc87307_pm_read, NULL, NULL, pc87307_pm_write, NULL, NULL, dev);
 }
 

@@ -10,15 +10,24 @@
  *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
+ *          skiretic
  *
  *          Copyright 2021 Joakim L. Gilje
  *          Copyright 2021-2022 Cacodemon345
+ *          Copyright 2026 skiretic
  */
 #include <cstdint>
+
+#include <atomic>
 
 #include <QDebug>
 #include <QThread>
 #include <QMessageBox>
+#include <QProgressDialog>
+#include <QProgressBar>
+#include <QElapsedTimer>
+#include <QEventLoop>
+#include <QTimer>
 
 #include <QStatusBar>
 #include <QApplication>
@@ -243,11 +252,149 @@ ui_msgbox(int flags, char *message)
     return ui_msgbox_header(flags, nullptr, message);
 }
 
+/* Progress state shared between a waiting non-UI thread and the UI-thread
+   dialog closure. The waiter owns poll/arg and never touches this struct
+   after storing done; the UI timer frees it (and the dialog) once done is
+   seen, so poll is never called on a frame the waiter has already left. */
+struct ui_progress_relay {
+    std::atomic<int>  value { 0 };
+    std::atomic<bool> done { false };
+};
+
+/* Qt 5.15's native macOS style stopped painting QProgressBar entirely on
+   current macOS betas (label shows, bar area stays empty, every driving
+   style). A stylesheet forces QStyleSheetStyle to draw the bar instead;
+   the rules imitate the native thin rounded bar with the accent color. */
+static void
+ui_progress_style_bar(QProgressDialog *dlg)
+{
+#ifdef Q_OS_MACOS
+    auto *bar = new QProgressBar(dlg);
+
+    bar->setTextVisible(false);
+    bar->setStyleSheet("QProgressBar {"
+                       "  border: none;"
+                       "  background: rgba(127, 127, 127, 64);"
+                       "  border-radius: 3px;"
+                       "  min-height: 6px;"
+                       "  max-height: 6px;"
+                       "} QProgressBar::chunk {"
+                       "  background: palette(highlight);"
+                       "  border-radius: 3px;"
+                       "}");
+    dlg->setBar(bar);
+#else
+    (void) dlg;
+#endif
+}
+
+void
+ui_progress_wait(const char *message, int total, int (*poll)(void *arg), void *arg)
+{
+    /* Off the UI thread the event loop is alive; this thread polls and
+       publishes, a queued closure on the UI thread paints the dialog. */
+    if (main_window == nullptr || QThread::currentThread() != main_window->thread()) {
+        ui_progress_relay *relay = main_window ? new ui_progress_relay : nullptr;
+
+        if (relay) {
+            const QString msg = QString::fromUtf8(message);
+
+            QMetaObject::invokeMethod(
+                main_window,
+                [relay, msg, total]() {
+                    auto *dlg = new QProgressDialog(msg, QString(), 0, total, main_window);
+                    ui_progress_style_bar(dlg);
+                    dlg->setWindowModality(Qt::NonModal);
+                    dlg->setWindowFlag(Qt::WindowCloseButtonHint, false);
+                    dlg->setAutoClose(false);
+                    dlg->setAutoReset(false);
+
+                    auto *tick  = new QTimer(dlg);
+                    auto *grace = new QElapsedTimer;
+
+                    grace->start();
+                    QObject::connect(tick, &QTimer::timeout, dlg, [relay, dlg, grace]() {
+                        if (relay->done.load()) {
+                            dlg->deleteLater();
+                            delete grace;
+                            delete relay;
+                            return;
+                        }
+                        /* grace period so a warm (cached) pass never
+                           flashes a dialog */
+                        if (!dlg->isVisible() && grace->elapsed() > 250)
+                            dlg->show();
+                        if (dlg->isVisible())
+                            dlg->setValue(relay->value.load());
+                    });
+                    tick->start(50);
+                },
+                Qt::QueuedConnection);
+        }
+        while (true) {
+            int v = poll(arg);
+
+            if (v >= total)
+                break;
+            if (relay)
+                relay->value.store(v);
+            QThread::msleep(50);
+        }
+        if (relay)
+            relay->done.store(true);
+        return;
+    }
+
+    /* Kept non-modal: a modal QProgressDialog dispatches user input from
+       inside setValue(), which would re-enter half-done device init.
+       The manual pump below excludes user input entirely, so the dialog
+       repaints and animates but clicks and keys stay queued. */
+    QProgressDialog dlg(QString::fromUtf8(message), QString(), 0, total, main_window);
+    ui_progress_style_bar(&dlg);
+    dlg.setWindowModality(Qt::NonModal);
+    dlg.setWindowFlag(Qt::WindowCloseButtonHint, false);
+    dlg.setAutoClose(false);
+    dlg.setAutoReset(false);
+
+    QElapsedTimer grace;
+    bool          shown = false;
+    int           v;
+
+    grace.start();
+    while ((v = poll(arg)) < total) {
+        /* grace period so a warm (cached) pass never flashes a dialog */
+        if (!shown && grace.elapsed() > 250) {
+            dlg.show();
+            shown = true;
+        }
+        if (shown)
+            dlg.setValue(v);
+        QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+        QThread::msleep(16);
+    }
+}
+
+/* The MT-32 LCD is an emulated display, so it takes the label alone. The
+   diagnostic-card slot and the status slot share it instead: a card the user
+   explicitly enabled must stay readable while a device posts progress, and
+   the card goes first so its field does not shift as the status text comes
+   and goes. The join is a plain run of spaces: a glyph would read as part of
+   one field or the other, and the label is plain text so the run survives. */
 void
 ui_sb_update_text()
 {
-    emit main_window->statusBarMessage(!sb_mt32lcdtext.isEmpty() ? sb_mt32lcdtext : sb_text.isEmpty() ? sb_buguitext
-                                                                                                      : sb_text);
+    QString msg;
+
+    if (!sb_mt32lcdtext.isEmpty())
+        msg = sb_mt32lcdtext;
+    else if (sb_buguitext.isEmpty())
+        msg = sb_text;
+    else if (sb_text.isEmpty())
+        msg = sb_buguitext;
+    else
+        msg = sb_buguitext + QStringLiteral("    ") + sb_text;
+
+    emit main_window->statusBarMessage(msg);
 }
 
 void

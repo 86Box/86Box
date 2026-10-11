@@ -949,6 +949,9 @@ msgstr "Appuyer sur %1 pour libérer la souris"
 msgid "Press %1 or middle button to release mouse"
 msgstr "Appuyer sur %1 ou le bouton central pour libérer la souris"
 
+msgid "Press %1 or side button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr "Bus"
 

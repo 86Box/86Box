@@ -1,0 +1,207 @@
+#version 450
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          ATI Rage 128 Pro -- GPU backend, OV0 overlay source compose.
+ *
+ * Authors: skiretic.
+ *
+ *          Copyright 2026 skiretic.
+ */
+/* rage128 GPU raster backend -- OV0 overlay source compose.
+
+   This kernel does the source-side half of the OV0 overlay for the
+   whole overlay window in one dispatch, one thread per output pixel:
+   pick the nearest source sample, convert it to RGB, apply the
+   brightness and saturation from OV0_COLOUR_CNTL, and compute the
+   video-key compare against OV0_VIDEO_KEY_CLR and OV0_VIDEO_KEY_MSK.
+   rage128_gpu_ov0_compose dispatches it with 64-thread groups across a
+   row and one group row per output line, then waits on its fence.
+
+   The other half stays on the CPU. rage128_overlay_draw, called from
+   the svga per-scanline render, tests the graphics key against the
+   rendered line, combines it with the video-key bit from this kernel
+   and overwrites the pixels where video shows. The kernel must match
+   that function's CPU path bit for bit: the same source fetch, the same
+   clamps and the same integer math as ov0_yuv_to_rgb. With R128_GPU=verify
+   the CPU path runs as well and compares every pixel and key bit with
+   this kernel's output. The CPU path alone handles a frame with the
+   subpicture enabled, because this kernel does not blend it, and a
+   window that rage128_gpu_ov0_compose refuses: zero width or height,
+   either one over 4096, or an output buffer it cannot allocate.
+
+   Like the CPU model, the kernel takes the nearest sample; the scaler's
+   filter taps (OV0_FILTER_CNTL) are not modeled. The math is integer
+   only, so no floating-point contraction can make the two sides differ.
+
+   Each output word is [23:0] RGB, [24] alpha, which the host expands to
+   0xff000000, and [25] the video-key match. */
+
+layout(local_size_x = 64) in;
+
+/* vram is the emulated card's video memory, svga.vram imported into
+   the GPU as a buffer, so the kernel reads the same bytes the CPU path
+   does. outw holds w words per row for h rows; the host grows it before
+   a dispatch that needs more room. */
+layout(std430, binding = 0) readonly buffer V { uint vram[]; };
+layout(std430, binding = 1) writeonly buffer O { uint outw[]; };
+
+/* The field order is r128_ov0_frame_t in vid_ati_rage128.h, which the
+   host pushes as one block; a change on either side must be made on
+   both. rage128_overlay_draw fills it from the active OV0 registers.
+   bright holds a signed value stored as uint. */
+layout(push_constant) uniform P {
+    uint fmt, w, h, vram_mask;
+    uint h_step_y, h_step_c, h_rel0_y, h_rel0_c;
+    uint p1_x0, p1_xe, p2_x0, p2_xe, p3_x0, p3_xe;
+    uint v_acc0_y, v_acc0_c, v_inc;
+    uint src_h_y, src_h_c;
+    uint base0, pitch_y, base_u, pitch_u, base_v, pitch_v;
+    uint bright, sat_u, sat_v;
+    uint vkey_clr, vkey_msk;
+} pc;
+
+/* One byte of video memory. The address wraps at vram_mask, as the CPU
+   path masks each byte address. */
+uint
+vb(uint a)
+{
+    a &= pc.vram_mask;
+    return (vram[a >> 2] >> ((a & 3u) * 8u)) & 0xffu;
+}
+
+/* Expand a 5- or 6-bit channel to 8 bits as floor(c * 255 / 31) or
+   floor(c * 255 / 63). The CPU path looks 15 and 16 bpp pixels up in
+   the video_15to32 and video_16to32 tables, which video.c builds with
+   double arithmetic, (c / 31.0) * 255.0 truncated to int. That gives
+   the same value as this integer division for every one of the 32 and
+   64 inputs. */
+uint
+exp5(uint c)
+{
+    return (c * 255u) / 31u;
+}
+
+uint
+exp6(uint c)
+{
+    return (c * 255u) / 63u;
+}
+
+void
+main()
+{
+    uint i   = gl_GlobalInvocationID.x;
+    uint row = gl_GlobalInvocationID.y;
+
+    if (i >= pc.w || row >= pc.h)
+        return;
+
+    /* Source line for this output line, in .20 fixed point. Subtracting
+       0x180000 removes the 1.5-line bias the DDX adds to the start value
+       (xf86-video-r128 r128_video.c R128DisplayVideo422 and
+       R128DisplayVideo420). The accumulator sum is the 32-bit value the
+       CPU path forms; a sum below the bias floors at line 0 before the
+       shift, as the CPU path's signed subtraction does, so it never
+       wraps to a large line number that the clamp would turn into the
+       last source line. Chroma lines step at half the luma rate. */
+    uint acc_y = pc.v_acc0_y + row * pc.v_inc;
+    uint acc_c = pc.v_acc0_c + row * (pc.v_inc >> 1);
+    int src_y  = clamp(int((acc_y >= 0x180000u ? acc_y - 0x180000u : 0u) >> 20),
+                       0, int(pc.src_h_y) - 1);
+    int src_yc = clamp(int((acc_c >= 0x180000u ? acc_c - 0x180000u : 0u) >> 20),
+                       0, int(pc.src_h_c) - 1);
+
+    uint base_y = pc.base0 + uint(src_y) * pc.pitch_y;
+    uint base_u = pc.base_u + uint(src_yc) * pc.pitch_u;
+    uint base_v = pc.base_v + uint(src_yc) * pc.pitch_v;
+
+    int sx = clamp(int(pc.p1_x0) + int((pc.h_rel0_y + i * pc.h_step_y) >> 20),
+                   0, int(pc.p1_xe));
+
+    uint vpx;
+    int  y  = 0;
+    int  cb = 0;
+    int  cr = 0;
+    uint rgb;
+    bool alpha = true;
+
+    /* fmt is the OV0_SCALE_CNTL source-format code; the numbers match
+       RAGE128_OV0_SCALER_SOURCE_YUV12 and the other format defines in
+       vid_ati_rage128_regs.h. vpx holds the source word for RGB format
+       expansion; YUV formats supply the channels to the matrix below. */
+    if (pc.fmt == 0xau) { /* YUV12 planar 4:2:0: Cb from P2, Cr from P3 */
+        int  hc    = int((pc.h_rel0_c + i * pc.h_step_c) >> 20);
+        int  sxc_u = clamp(int(pc.p2_x0) + hc, 0, int(pc.p2_xe));
+        int  sxc_v = clamp(int(pc.p3_x0) + hc, 0, int(pc.p3_xe));
+
+        y   = int(vb(base_y + uint(sx)));
+        cb  = int(vb(base_u + uint(sxc_u)));
+        cr  = int(vb(base_v + uint(sxc_v)));
+        vpx = (uint(cr) << 16) | (uint(cb) << 8) | uint(y);
+    } else if (pc.fmt == 0xbu) { /* VYUY422 = YUY2: Y0 U Y1 V */
+        y   = int(vb(base_y + uint(sx) * 2u));
+        cb  = int(vb(base_y + uint(sx & ~1) * 2u + 1u));
+        cr  = int(vb(base_y + uint(sx & ~1) * 2u + 3u));
+        vpx = (uint(cr) << 16) | (uint(cb) << 8) | uint(y);
+    } else if (pc.fmt == 0xcu) { /* YVYU422 = UYVY: U Y0 V Y1 */
+        y   = int(vb(base_y + uint(sx) * 2u + 1u));
+        cb  = int(vb(base_y + uint(sx & ~1) * 2u));
+        cr  = int(vb(base_y + uint(sx & ~1) * 2u + 2u));
+        vpx = (uint(cr) << 16) | (uint(cb) << 8) | uint(y);
+    } else if (pc.fmt == 0x6u) { /* 32BPP */
+        uint a = base_y + uint(sx) * 4u;
+
+        vpx = vb(a) | (vb(a + 1u) << 8) | (vb(a + 2u) << 16)
+            | (vb(a + 3u) << 24);
+    } else { /* 15/16BPP */
+        vpx = vb(base_y + uint(sx) * 2u)
+            | (vb(base_y + uint(sx) * 2u + 1u) << 8);
+    }
+
+    if (pc.fmt == 0x3u) {
+        uint c = vpx & 0x7fffu;
+
+        rgb = (exp5((c >> 10) & 31u) << 16) | (exp5((c >> 5) & 31u) << 8)
+            | exp5(c & 31u);
+    } else if (pc.fmt == 0x4u) {
+        uint c = vpx & 0xffffu;
+
+        rgb = (exp5((c >> 11) & 31u) << 16) | (exp6((c >> 5) & 63u) << 8)
+            | exp5(c & 31u);
+    } else if (pc.fmt == 0x6u) {
+        rgb   = vpx & 0xffffffu;
+        alpha = false;
+    } else {
+        y = clamp(y + int(pc.bright), 0, 255);
+        /* Saturation scales Cb and Cr about 128 by sat / 16. They are not
+           clamped after it, as on the CPU path; only the RGB result of
+           the matrix below is. The matrix is r128_yuv_to_rgb's. */
+        cb = 128 + (((cb - 128) * int(pc.sat_u)) >> 4);
+        cr = 128 + (((cr - 128) * int(pc.sat_v)) >> 4);
+        {
+            int c = y - 16;
+            int d = cb - 128;
+            int e = cr - 128;
+            int r = (298 * c + 409 * e + 128) >> 8;
+            int g = (298 * c - 100 * d - 208 * e + 128) >> 8;
+            int b = (298 * c + 516 * d + 128) >> 8;
+
+            rgb = (uint(clamp(r, 0, 255)) << 16)
+                | (uint(clamp(g, 0, 255)) << 8) | uint(clamp(b, 0, 255));
+        }
+    }
+
+    /* The video key compares converted RGB with OV0_VIDEO_KEY_MSK[7:0]
+       applied to each channel, excluding alpha and reserved mask bits
+       (Multimedia supplement: OV0_VIDEO_KEY_CLR, OV0_VIDEO_KEY_MSK). */
+    uint vmask_rgb = (pc.vkey_msk & 0xffu) * 0x010101u;
+    uint eq = (((rgb ^ pc.vkey_clr) & vmask_rgb) == 0u) ? 1u : 0u;
+
+    outw[row * pc.w + i] = rgb | (alpha ? 0x1000000u : 0u) | (eq << 25);
+}

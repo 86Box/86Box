@@ -385,7 +385,12 @@ extern const device_t mach64ct_device;
 extern const device_t mach64ct_onboard_device;
 extern const device_t mach64vt_device;
 extern const device_t mach64vt2_device;
+extern const device_t mach64gtb_device;
+extern const device_t mach64gtb_onboard_device;
 extern const device_t mach64vt3_onboard_device;
+extern const device_t ati_rage128_pro_device;
+extern const device_t ati_xpert128_pci_device;
+extern const device_t ati_rage128_maxx_device;
 
 /* ATi 18800 */
 extern const device_t ati18800_wonder_device;
@@ -422,15 +427,16 @@ extern const device_t gd5424_vlb_device;
 extern const device_t gd5424_onboard_device;
 extern const device_t gd5426_isa_device;
 extern const device_t gd5426_vlb_device;
+extern const device_t gd5426_mca_device;
 extern const device_t gd5426_onboard_isa_device;
 extern const device_t gd5426_onboard_device;
 extern const device_t gd5428_isa_device;
+extern const device_t gd5428_vlb_device;
 extern const device_t gd5428_vlb_onboard_device;
 extern const device_t gd5428_vlb_onboard_pb450_device;
 extern const device_t gd5428_vlb_onboard_tandy_device;
-extern const device_t gd5428_vlb_device;
-extern const device_t gd5428_mca_device;
-extern const device_t gd5426_mca_device;
+extern const device_t gd5428_mca_jp_device;
+extern const device_t gd5428_mca_us_device;
 extern const device_t gd5428_onboard_device;
 extern const device_t gd5428_onboard_vlb_device;
 extern const device_t gd5429_isa_device;
@@ -548,6 +554,7 @@ extern void           paradise_wd90c20_vga_disable(void *priv, uint16_t port);
 extern void           paradise_wd90c20_vga_enable(void *priv, uint16_t port);
 extern const device_t paradise_wd90c30_device;
 extern const device_t paradise_wd90c31_device;
+extern const device_t paradise_wd90c31_onboard_device;
 extern const device_t paradise_speedstar24x_device;
 
 /* Quadram Quadcolor I / I + II */

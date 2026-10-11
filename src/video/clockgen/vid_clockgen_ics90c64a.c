@@ -65,23 +65,22 @@ ics90c64a_init(const device_t *info)
     switch (info->local) {
         case 903:
             /* ICS90C64A-903 for PVGA chip series, also per debian svgatext mode textconfig */
-            ics90c64a->freq[0] = 25175000.0;
-            ics90c64a->freq[1] = 28322000.0;
-            ics90c64a->freq[2] = 65000000.0;
-            ics90c64a->freq[3] = 36000000.0;
-            ics90c64a->freq[4] = 40000000.0;
-            ics90c64a->freq[5] = 50000000.0;
-            ics90c64a->freq[6] = 32000000.0;
-            ics90c64a->freq[7] = 45000000.0;
-            ics90c64a->freq[8] = 31500000.0;
-            ics90c64a->freq[9] = 35500000.0;
-            ics90c64a->freq[0x0a] = 74500000.0;
-            ics90c64a->freq[0x0b] = 72000000.0;
-            ics90c64a->freq[0x0c] = 30000000.0;
-            ics90c64a->freq[0x0d] = 77000000.0;
-            ics90c64a->freq[0x0e] = 86000000.0;
-            ics90c64a->freq[0x0f] = 80000000.0;
-            ics90c64a->freq[0x10] = 60000000.0;
+            ics90c64a->freq[0x00] = 30000000.0;
+            ics90c64a->freq[0x01] = 77250000.0;
+            ics90c64a->freq[0x02] = 14318000.0;
+            ics90c64a->freq[0x03] = 80000000.0;
+            ics90c64a->freq[0x04] = 31500000.0;
+            ics90c64a->freq[0x05] = 36000000.0;
+            ics90c64a->freq[0x06] = 75000000.0;
+            ics90c64a->freq[0x07] = 50000000.0;
+            ics90c64a->freq[0x08] = 40000000.0;
+            ics90c64a->freq[0x09] = 50000000.0;
+            ics90c64a->freq[0x0a] = 32000000.0;
+            ics90c64a->freq[0x0b] = 44900000.0;
+            ics90c64a->freq[0x0c] = 25175000.0;
+            ics90c64a->freq[0x0d] = 28322000.0;
+            ics90c64a->freq[0x0e] = 65000000.0;
+            ics90c64a->freq[0x0f] = 36000000.0;
             break;
 
         default:

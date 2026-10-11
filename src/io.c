@@ -384,7 +384,7 @@ inb(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found || (machines[machine].init == machine_xt_ibm5550_init))
+    if (!found || (machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init))
         cycles -= io_delay;
 
     /* TriGem 486-BIOS MHz output. */
@@ -531,7 +531,7 @@ inw(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found || (machines[machine].init == machine_xt_ibm5550_init))
+    if (!found || (machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init))
         cycles -= io_delay;
 
     io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
@@ -719,7 +719,7 @@ inl(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found || (machines[machine].init == machine_xt_ibm5550_init))
+    if (!found || (machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init))
         cycles -= io_delay;
 
     io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
