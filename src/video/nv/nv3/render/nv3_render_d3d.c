@@ -56,9 +56,6 @@ uint32_t nv3_dma_map_pages(uint32_t inst, uint32_t offset, uint32_t *addr, uint3
 #define NV3_D3D_CONFIG_DST_ZERO(c)    (((c) >> 30) & 1)
 #define NV3_D3D_CONFIG_SRC_ZERO(c)    (((c) >> 31) & 1)
 
-/* per-channel primitive state (nv3_prim_state_t, nv3_d3d_state_t) */
-#define nv3_d3d (nv3->pgraph.prim.d3d)
-
 /* Comparison and write-enable functions (nvhw nv03_pgraph_d3d_cmp/wren) */
 static bool
 nv3_d3d_cmp(int func, uint32_t a, uint32_t b)
@@ -120,24 +117,24 @@ nv3_d3d_zeta(double z)
 static void
 nv3_d3d_texture_changed(void)
 {
-    nv3_d3d.tex_mapped = false;
+    nv3->pgraph.prim.d3d.tex_mapped = false;
 }
 
 static uint16_t
 nv3_d3d_read_tex16(UNUSED(nv3_grobj_t grobj), uint32_t byte)
 {
-    if (!nv3_d3d.tex_mapped) {
-        nv3_d3d.tex_target = nv3_dma_map_pages(nv3->pgraph.dma_settings & 0xFFFF, nv3_d3d.tex_offset, nv3_d3d.tex_pages, 64, &nv3_d3d.tex_lin);
-        nv3_d3d.tex_mapped = true;
+    if (!nv3->pgraph.prim.d3d.tex_mapped) {
+        nv3->pgraph.prim.d3d.tex_target = nv3_dma_map_pages(nv3->pgraph.dma_settings & 0xFFFF, nv3->pgraph.prim.d3d.tex_offset, nv3->pgraph.prim.d3d.tex_pages, 64, &nv3->pgraph.prim.d3d.tex_lin);
+        nv3->pgraph.prim.d3d.tex_mapped = true;
     }
 
-    uint32_t lin  = nv3_d3d.tex_lin + byte;
-    uint32_t page = (lin >> 12) - (nv3_d3d.tex_lin >> 12);
+    uint32_t lin  = nv3->pgraph.prim.d3d.tex_lin + byte;
+    uint32_t page = (lin >> 12) - (nv3->pgraph.prim.d3d.tex_lin >> 12);
     if (page >= 64)
         return 0;
-    uint32_t addr = nv3_d3d.tex_pages[page] | (lin & 0xFFE);
+    uint32_t addr = nv3->pgraph.prim.d3d.tex_pages[page] | (lin & 0xFFE);
 
-    if (nv3_d3d.tex_target == NV3_DMA_TARGET_NODE_VRAM)
+    if (nv3->pgraph.prim.d3d.tex_target == NV3_DMA_TARGET_NODE_VRAM)
         return *(uint16_t *) &nv3->nvbase.svga.vram[addr & nv3->nvbase.svga.vram_mask & ~1];
 
     uint16_t val = 0;
@@ -161,7 +158,7 @@ nv3_d3d_swizzle(uint32_t s, uint32_t t)
 static uint32_t
 nv3_d3d_texel(nv3_grobj_t grobj, uint32_t level_offset, UNUSED(uint32_t size), int32_t s, int32_t t)
 {
-    uint32_t fmt = (nv3_d3d.tex_format >> 20) & 0xF;
+    uint32_t fmt = (nv3->pgraph.prim.d3d.tex_format >> 20) & 0xF;
     uint16_t p   = nv3_d3d_read_tex16(grobj, level_offset + nv3_d3d_swizzle((uint32_t) s, (uint32_t) t) * 2);
     uint32_t a, r, g, b;
 
@@ -197,7 +194,7 @@ nv3_d3d_texel(nv3_grobj_t grobj, uint32_t level_offset, UNUSED(uint32_t size), i
     }
     /* colour key: only the alpha goes to zero; filtering still mixes in the
        key colour, which is why NV3DD32 rewrites keyed texels in its textures (colour key fringe fix) */
-    if (((nv3_d3d.tex_format >> 16) & 0xF) && p == (nv3_d3d.tex_format & 0xFFFF))
+    if (((nv3->pgraph.prim.d3d.tex_format >> 16) & 0xF) && p == (nv3->pgraph.prim.d3d.tex_format & 0xFFFF))
         a = 0;
     return (a << 24) | (r << 16) | (g << 8) | b;
 }
@@ -225,8 +222,8 @@ nv3_d3d_wrap(int32_t c, int32_t size, int mode)
 static uint32_t
 nv3_d3d_sample(nv3_grobj_t grobj, float u, float v, int level)
 {
-    int      max_log = (nv3_d3d.tex_format >> 28) & 0xF;
-    int      min_log = (nv3_d3d.tex_format >> 24) & 0xF;
+    int      max_log = (nv3->pgraph.prim.d3d.tex_format >> 28) & 0xF;
+    int      min_log = (nv3->pgraph.prim.d3d.tex_format >> 24) & 0xF;
     uint32_t offset  = 0;
 
     if (max_log > 11)
@@ -409,6 +406,19 @@ nv3_d3d_cylinder(float *c0, float *c1, float *c2)
                 *c[i] += 1.0f;
 }
 
+/* d/dx and d/dy of an attribute that is linear over the triangle a b c, from its values f[] at
+   the three vertices; area is twice the triangle's signed area */
+static void
+nv3_d3d_gradient(const float f[3], const nv3_d3d_vertex_t *a, const nv3_d3d_vertex_t *b, const nv3_d3d_vertex_t *c,
+                 float area, float *ddx, float *ddy)
+{
+    float df1 = f[1] - f[0];
+    float df2 = f[2] - f[0];
+
+    *ddx = (df1 * (c->y - a->y) - df2 * (b->y - a->y)) / area;
+    *ddy = (df2 * (b->x - a->x) - df1 * (c->x - a->x)) / area;
+}
+
 static void
 nv3_d3d_triangle(nv3_grobj_t grobj, const nv3_d3d_vertex_t *a_in, const nv3_d3d_vertex_t *b_in, const nv3_d3d_vertex_t *c_in)
 {
@@ -442,7 +452,7 @@ nv3_d3d_triangle(nv3_grobj_t grobj, const nv3_d3d_vertex_t *a_in, const nv3_d3d_
 
     /* mip level per pixel from the screen-space derivatives of the perspective-correct texture
        coordinates: u*q, v*q and q (q = 1/w) are linear in screen space */
-    int   max_log = (nv3_d3d.tex_format >> 28) & 0xF;
+    int   max_log = (nv3->pgraph.prim.d3d.tex_format >> 28) & 0xF;
     float tsize   = (float) (1 << (max_log > 11 ? 11 : max_log));
     float pq[3], pu[3], pv[3];
     bool  persp   = (a->rhw > 0.0f) && isfinite(a->rhw) && (b->rhw > 0.0f) && isfinite(b->rhw) && (c->rhw > 0.0f) && isfinite(c->rhw);
@@ -451,19 +461,15 @@ nv3_d3d_triangle(nv3_grobj_t grobj, const nv3_d3d_vertex_t *a_in, const nv3_d3d_
         pu[i] = v[i]->u * pq[i];
         pv[i] = v[i]->v * pq[i];
     }
-    /* d/dx and d/dy of a linear attribute f over the triangle */
-#define NV3_D3D_DX(f) ((((f)[1] - (f)[0]) * (c->y - a->y) - ((f)[2] - (f)[0]) * (b->y - a->y)) / area)
-#define NV3_D3D_DY(f) ((((f)[2] - (f)[0]) * (b->x - a->x) - ((f)[1] - (f)[0]) * (c->x - a->x)) / area)
-    float dqdx = NV3_D3D_DX(pq), dqdy = NV3_D3D_DY(pq);
-    float dudx = NV3_D3D_DX(pu), dudy = NV3_D3D_DY(pu);
-    float dvdx = NV3_D3D_DX(pv), dvdy = NV3_D3D_DY(pv);
-#undef NV3_D3D_DX
-#undef NV3_D3D_DY
+    float dqdx, dqdy, dudx, dudy, dvdx, dvdy;
+    nv3_d3d_gradient(pq, a, b, c, area, &dqdx, &dqdy);
+    nv3_d3d_gradient(pu, a, b, c, area, &dudx, &dudy);
+    nv3_d3d_gradient(pv, a, b, c, area, &dvdx, &dvdy);
 
-    bool     textured  = (nv3_d3d.tex_format >> 28) || ((nv3_d3d.tex_format >> 24) & 0xF);
+    bool     textured  = (nv3->pgraph.prim.d3d.tex_format >> 28) || ((nv3->pgraph.prim.d3d.tex_format >> 24) & 0xF);
     uint32_t src_color = NV3_D3D_CONFIG_SRC_COLOR(config);
     bool     argb      = NV3_D3D_CONFIG_ARGB(config);
-    uint32_t fog_rgb   = nv3_d3d.fog_color & 0xFFFFFF;
+    uint32_t fog_rgb   = nv3->pgraph.prim.d3d.fog_color & 0xFFFFFF;
 
     for (int y = y0; y <= y1; y++) {
         for (int x = x0; x <= x1; x++) {
@@ -585,18 +591,18 @@ nv3_class_017_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t con
 {
     switch (method_id) {
         case 0x0304:
-            nv3_d3d.tex_offset = param;
+            nv3->pgraph.prim.d3d.tex_offset = param;
             nv3_d3d_texture_changed();
             return;
         case 0x0308:
-            nv3_d3d.tex_format = param;
+            nv3->pgraph.prim.d3d.tex_format = param;
             nv3_d3d_texture_changed();
             return;
         case 0x030C:
-            nv3_d3d.filter = param;
+            nv3->pgraph.prim.d3d.filter = param;
             return;
         case 0x0310:
-            nv3_d3d.fog_color = param;
+            nv3->pgraph.prim.d3d.fog_color = param;
             return;
         /* CONTROL0/1 live in PGRAPH's CONTROL_OUT and ALPHACNTRL, shared with class 0x18 and
            saved/restored by the resman on channel switches */
@@ -613,38 +619,38 @@ nv3_class_017_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t con
     if (method_id >= 0x1000 && method_id < 0x2000) {
         switch ((method_id >> 2) & 7) {
             case 0: /* fog and triangle indices */
-                nv3_d3d.fog_tri = param;
-                nv3_d3d.cur.fog = param >> 24;
+                nv3->pgraph.prim.d3d.fog_tri = param;
+                nv3->pgraph.prim.d3d.cur.fog = param >> 24;
                 break;
             case 1:
-                nv3_d3d.cur.color = param;
+                nv3->pgraph.prim.d3d.cur.color = param;
                 break;
             case 2:
-                nv3_d3d.cur.x = nv3_d3d_float(param);
+                nv3->pgraph.prim.d3d.cur.x = nv3_d3d_float(param);
                 break;
             case 3:
-                nv3_d3d.cur.y = nv3_d3d_float(param);
+                nv3->pgraph.prim.d3d.cur.y = nv3_d3d_float(param);
                 break;
             case 4:
-                nv3_d3d.cur.z = nv3_d3d_float(param);
+                nv3->pgraph.prim.d3d.cur.z = nv3_d3d_float(param);
                 break;
             case 5:
-                nv3_d3d.cur.rhw = nv3_d3d_float(param);
+                nv3->pgraph.prim.d3d.cur.rhw = nv3_d3d_float(param);
                 break;
             case 6:
-                nv3_d3d.cur.u = nv3_d3d_float(param);
+                nv3->pgraph.prim.d3d.cur.u = nv3_d3d_float(param);
                 break;
             case 7: /* V: the vertex is complete; store it and draw what it asks for */
             {
-                nv3_d3d.cur.v = nv3_d3d_float(param);
-                nv3_d3d.vtx[nv3_d3d.fog_tri & 0xF] = nv3_d3d.cur;
+                nv3->pgraph.prim.d3d.cur.v = nv3_d3d_float(param);
+                nv3->pgraph.prim.d3d.vtx[nv3->pgraph.prim.d3d.fog_tri & 0xF] = nv3->pgraph.prim.d3d.cur;
 
                 for (int t = 0; t < 2; t++) {
-                    uint32_t i0 = (nv3_d3d.fog_tri >> (t * 12)) & 0xF;
-                    uint32_t i1 = (nv3_d3d.fog_tri >> (t * 12 + 4)) & 0xF;
-                    uint32_t i2 = (nv3_d3d.fog_tri >> (t * 12 + 8)) & 0xF;
+                    uint32_t i0 = (nv3->pgraph.prim.d3d.fog_tri >> (t * 12)) & 0xF;
+                    uint32_t i1 = (nv3->pgraph.prim.d3d.fog_tri >> (t * 12 + 4)) & 0xF;
+                    uint32_t i2 = (nv3->pgraph.prim.d3d.fog_tri >> (t * 12 + 8)) & 0xF;
                     if (i0 != i1 && i1 != i2 && i0 != i2) {
-                        nv3_d3d_triangle(grobj, &nv3_d3d.vtx[i0], &nv3_d3d.vtx[i1], &nv3_d3d.vtx[i2]);
+                        nv3_d3d_triangle(grobj, &nv3->pgraph.prim.d3d.vtx[i0], &nv3->pgraph.prim.d3d.vtx[i1], &nv3->pgraph.prim.d3d.vtx[i2]);
                     }
                 }
                 break;
@@ -670,8 +676,8 @@ nv3_class_018_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t con
             nv3->pgraph.d3d_alpha = param & 0xFFF;
             return;
         case 0x07FC:
-            nv3_d3d.zpoint_x = (int16_t) (param & 0xFFFF);
-            nv3_d3d.zpoint_y = (int16_t) (param >> 16);
+            nv3->pgraph.prim.d3d.zpoint_x = (int16_t) (param & 0xFFFF);
+            nv3->pgraph.prim.d3d.zpoint_y = (int16_t) (param >> 16);
             return;
         default:
             break;
@@ -679,14 +685,14 @@ nv3_class_018_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t con
 
     if (method_id >= 0x0800 && method_id < 0x1000) {
         if (!(method_id & 4))
-            nv3_d3d.zpoint_color = param;
+            nv3->pgraph.prim.d3d.zpoint_color = param;
         else {
             /* the colour is in the object's colour format; the point steps right */
-            nv3_color_expanded_t c   = nv3_render_expand_color(nv3_d3d.zpoint_color, grobj);
+            nv3_color_expanded_t c   = nv3_render_expand_color(nv3->pgraph.prim.d3d.zpoint_color, grobj);
             uint32_t             rgb = (((uint32_t) c.a) << 24) | ((uint32_t) (c.r >> 2) << 16) | ((uint32_t) (c.g >> 2) << 8) | (c.b >> 2);
 
-            nv3_d3d_fragment(grobj, nv3->pgraph.d3d_config, nv3->pgraph.d3d_alpha, nv3_d3d.zpoint_x, nv3_d3d.zpoint_y, rgb, rgb >> 24, param >> 16);
-            nv3_d3d.zpoint_x++;
+            nv3_d3d_fragment(grobj, nv3->pgraph.d3d_config, nv3->pgraph.d3d_alpha, nv3->pgraph.prim.d3d.zpoint_x, nv3->pgraph.prim.d3d.zpoint_y, rgb, rgb >> 24, param >> 16);
+            nv3->pgraph.prim.d3d.zpoint_x++;
         }
         return;
     }

@@ -30,9 +30,7 @@
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
 
-/* Line drawing state, one per class: [0] LINE (0x09), [1] LIN (0x0A) */
-/* per-channel primitive state (nv3_prim_state_t): [0] LINE, [1] LIN */
-#define nv3_line_state (nv3->pgraph.prim.line)
+/* Line state is per channel, nv3->pgraph.prim.line: [0] LINE (0x09), [1] LIN (0x0A) */
 
 static void
 nv3_line_to(nv3_line_state_t *st, int32_t x, int32_t y, uint32_t color, nv3_grobj_t grobj, bool last_pixel)
@@ -48,7 +46,7 @@ nv3_line_to(nv3_line_state_t *st, int32_t x, int32_t y, uint32_t color, nv3_grob
 void
 nv3_line_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj, bool lin)
 {
-    nv3_line_state_t *st = &nv3_line_state[lin];
+    nv3_line_state_t *st = &nv3->pgraph.prim.line[lin];
     int32_t           x  = (int16_t) (param & 0xFFFF);
     int32_t           y  = (int16_t) (param >> 16);
 
