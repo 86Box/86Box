@@ -1,4 +1,24 @@
 if(BUILD_TESTING)
+    add_executable(s3_display_tests
+        vid_s3_display_test.c
+        ../../src/video/vid_svga_render.c
+        ../../src/video/clockgen/vid_clockgen_ics2494.c
+        ../../src/video/clockgen/vid_clockgen_icd2061.c
+        ../../src/video/clockgen/vid_clockgen_av9194.c
+    )
+    target_include_directories(s3_display_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    target_compile_options(s3_display_tests PRIVATE
+        $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-ffunction-sections;-fdata-sections>
+    )
+    target_link_options(s3_display_tests PRIVATE
+        $<$<PLATFORM_ID:Darwin>:-Wl,-dead_strip>
+        $<$<AND:$<NOT:$<PLATFORM_ID:Darwin>>,$<C_COMPILER_ID:GNU,Clang>>:-Wl,--gc-sections>
+    )
+    add_test(NAME S3.Display COMMAND s3_display_tests)
+
     add_executable(wd90c31_tests
         wd90c31_test.cpp
         ../../src/video/vid_wd90c31.c

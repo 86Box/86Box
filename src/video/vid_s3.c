@@ -584,6 +584,36 @@ s3_accel_addr(const s3_t *s3, uint32_t addr)
     return addr;
 }
 
+/* The early chips pack enhanced 16-color pixels in VRAM and CPU transfers. */
+static __inline int
+s3_accel_packed4(const s3_t *s3)
+{
+    return (s3->chip <= S3_86C924) && !s3->color_16bit && (s3->svga.crtc[0x31] & 0x08) &&
+           (s3->accel.advfunc_cntl & 0x01) && !(s3->svga.crtc[0x3a] & 0x10);
+}
+
+static __inline uint32_t
+s3_accel_read_pixel(const s3_t *s3, uint32_t addr)
+{
+    if (s3_accel_packed4(s3))
+        return (s3->svga.vram[(addr >> 1) & s3->vram_mask] >> ((addr & 1) ? 0 : 4)) & 0x0f;
+    return s3->svga.vram[s3_accel_addr(s3, addr) & s3->vram_mask];
+}
+
+static __inline void
+s3_accel_write_pixel(s3_t *s3, uint32_t addr, uint8_t color)
+{
+    if (s3_accel_packed4(s3)) {
+        int shift = (addr & 1) ? 0 : 4;
+        addr = (addr >> 1) & s3->vram_mask;
+        s3->svga.vram[addr] = (s3->svga.vram[addr] & ~(0x0f << shift)) | ((color & 0x0f) << shift);
+    } else {
+        addr = s3_accel_addr(s3, addr) & s3->vram_mask;
+        s3->svga.vram[addr] = color;
+    }
+    s3->svga.changedvram[addr >> 12] = s3->svga.monitor->mon_changeframecount;
+}
+
 /*The scissors compare the pixel (X bits 9-0) only: some drivers keep the clip rectangle
   at 0-1023 for both passes, others shift it by 0x400 along with X.*/
 static __inline int
@@ -595,25 +625,35 @@ s3_accel_clip_x(const s3_t *s3, int x)
     return x;
 }
 
+static __inline uint32_t
+s3_accel_read_transfer(const s3_t *s3, uint32_t addr, int offset)
+{
+    if (s3_accel_packed4(s3)) {
+        addr += offset * 2;
+        return (s3_accel_read_pixel(s3, addr) << 4) | s3_accel_read_pixel(s3, addr + 1);
+    }
+    return s3_accel_read_pixel(s3, addr + offset);
+}
+
 #define READ_PIXTRANS_BYTE_IO(n) \
-    s3->accel.pix_trans[n] = vram[s3_accel_addr(s3, (s3->accel.dest + s3->accel.cx + n) * x_mul) & s3->vram_mask];
+    s3->accel.pix_trans[n] = s3_accel_read_transfer(s3, (s3->accel.dest + s3->accel.cx) * x_mul, n * x_mul);
 
 #define READ_PIXTRANS_BYTE_MM \
-    temp = vram[s3_accel_addr(s3, s3->accel.dest + (s3->accel.cx * x_mul)) & s3->vram_mask];
+    temp = s3_accel_read_transfer(s3, s3->accel.dest + (s3->accel.cx * x_mul), 0);
 
 #define READ_PIXTRANS_WORD                                                                                                      \
     if (s3->bpp == 0) {                                                                                                         \
-        temp = vram[s3_accel_addr(s3, s3->accel.dest + (s3->accel.cx * x_mul)) & s3->vram_mask];                                \
-        temp |= (vram[s3_accel_addr(s3, s3->accel.dest + ((s3->accel.cx + 1) * x_mul)) & s3->vram_mask] << 8);                  \
+        temp = s3_accel_read_transfer(s3, s3->accel.dest + (s3->accel.cx * x_mul), 0);                                 \
+        temp |= (s3_accel_read_transfer(s3, s3->accel.dest + (s3->accel.cx * x_mul), x_mul) << 8);                     \
     } else                                                                                                                      \
         temp = *(uint16_t *)&vram[(s3->accel.dest + (s3->accel.cx * x_mul)) & s3->vram_mask];
 
 #define READ_PIXTRANS_LONG                                                                                                      \
     if (s3->bpp == 0) {                                                                                                         \
-        temp = vram[s3_accel_addr(s3, s3->accel.dest + (s3->accel.cx * x_mul)) & s3->vram_mask];                                \
-        temp |= (vram[s3_accel_addr(s3, s3->accel.dest + ((s3->accel.cx + 1) * x_mul)) & s3->vram_mask] << 8);                  \
-        temp |= (vram[s3_accel_addr(s3, s3->accel.dest + ((s3->accel.cx + 2) * x_mul)) & s3->vram_mask] << 16);                 \
-        temp |= (vram[s3_accel_addr(s3, s3->accel.dest + ((s3->accel.cx + 3) * x_mul)) & s3->vram_mask] << 24);                 \
+        temp = s3_accel_read_transfer(s3, s3->accel.dest + (s3->accel.cx * x_mul), 0);                                 \
+        temp |= (s3_accel_read_transfer(s3, s3->accel.dest + (s3->accel.cx * x_mul), x_mul) << 8);                     \
+        temp |= (s3_accel_read_transfer(s3, s3->accel.dest + (s3->accel.cx * x_mul), 2 * x_mul) << 16);                \
+        temp |= (s3_accel_read_transfer(s3, s3->accel.dest + (s3->accel.cx * x_mul), 3 * x_mul) << 24);                \
     } else if (s3->bpp == 1) {                                                                                                  \
         temp = *(uint16_t *)&vram[(s3->accel.dest + (s3->accel.cx * x_mul)) & s3->vram_mask];                                   \
         temp |= (*(uint16_t *)&vram[(s3->accel.dest + ((s3->accel.cx + 2) * x_mul)) & s3->vram_mask] << 16);                    \
@@ -2390,8 +2430,9 @@ s3_hwcursor_draw(svga_t *svga, int displine)
                 fg = svga->pallook[s3->hwc_fg_col & 0xff];
                 bg = svga->pallook[s3->hwc_bg_col & 0xff];
             } else {
-                fg = svga->pallook[svga->crtc[0xe]];
-                bg = svga->pallook[svga->crtc[0xf]];
+                uint8_t color_mask = s3_accel_packed4(s3) ? 0x0f : 0xff;
+                fg = svga->pallook[svga->crtc[0xe] & color_mask];
+                bg = svga->pallook[svga->crtc[0xf] & color_mask];
             }
             break;
     }
@@ -3742,6 +3783,20 @@ s3_readl(uint32_t addr, void *priv)
 }
 
 static void
+s3_render_4bpp_highres(svga_t *svga)
+{
+    uint8_t cr14 = svga->crtc[0x14];
+    uint8_t cr17 = svga->crtc[0x17];
+
+    /* Enhanced planar memory uses linear addressing, bypassing VGA word/dword fetch controls. */
+    svga->crtc[0x14] &= ~0x60;
+    svga->crtc[0x17] = (cr17 & ~0x08) | 0x40;
+    svga_render_4bpp_highres(svga);
+    svga->crtc[0x14] = cr14;
+    svga->crtc[0x17] = cr17;
+}
+
+static void
 s3_recalctimings(svga_t *svga)
 {
     s3_t *s3 = (s3_t *) svga->priv;
@@ -3879,7 +3934,7 @@ s3_recalctimings(svga_t *svga)
             s3->width = s3_accel_16bit_lanes(s3) ? 2048 : 1024;
         else {
             if (s3->chip <= S3_86C924)
-                s3->width = 1024;
+                s3->width = (s3_accel_packed4(s3) && (svga->crtc[0x31] & 0x02)) ? 2048 : 1024;
         }
     }
 
@@ -3910,6 +3965,8 @@ s3_recalctimings(svga_t *svga)
             svga->hblank_end_mask  = 0x7f;
         }
     }
+
+    svga->packed_4bpp = s3_accel_packed4(s3);
 
     if (enhanced_8bpp_modes) {
         s3_log("BPP=%d, pitch=%d, width=%02x, double?=%x, 16bit?=%d, highres?=%d, "
@@ -4721,9 +4778,13 @@ s3_recalctimings(svga_t *svga)
             if (!(svga->crtc[0x5e] & 0x04))
                 svga->vblankstart = svga->dispend; /*Applies only to Enhanced modes*/
 
-            /*Enhanced 4bpp mode, just like the 8bpp mode per the spec. */
-            svga->render = svga_render_8bpp_highres;
-            svga->rowoffset <<= 1;
+            /* On 911/924, ENH MAP also serves planar VGA modes; 4AE8 bit 0 selects the accelerator display. */
+            if ((s3->chip > S3_86C924) || (s3->accel.advfunc_cntl & 0x01))
+                svga->render = svga_render_8bpp_highres;
+            else if (svga->render == svga_render_4bpp_highres)
+                svga->render = s3_render_4bpp_highres;
+            if (s3->chip > S3_86C924)
+                svga->rowoffset <<= 1;
             svga->vram_display_mask = s3->vram_mask;
         } else {
             svga->vram_display_mask = (svga->crtc[0x32] & 0x40) ? 0x3ffff : s3->vram_mask;
@@ -5240,7 +5301,6 @@ s3_accel_in(uint16_t port, void *priv)
     svga_t *svga = &s3->svga;
     int     temp;
     uint8_t temp2 = 0x00;
-    const uint8_t *vram = svga->vram;
     int enhanced_8bpp_modes = !!((svga->crtc[0x3a] & 0x10) && !svga->lowres);
     int x_mul = s3->bpp + 1;
 
@@ -6712,7 +6772,6 @@ s3_accel_read(uint32_t addr, void *priv)
     s3_t   *s3   = (s3_t *) priv;
     svga_t *svga = &s3->svga;
     uint8_t temp = 0x00;
-    const uint8_t *vram = svga->vram;
     const uint32_t addr_mask = (svga->crtc[0x53] & 0x08) ? 0x1ffff : 0xffff;
     int x_mul = s3->bpp + 1;
 
@@ -7083,7 +7142,7 @@ polygon_setup(s3_t *s3)
 
 #define READ(addr, dat)                                                 \
     if (s3->bpp == 0)                                                   \
-        dat = vram[s3_accel_addr(s3, addr) & s3->vram_mask];            \
+        dat = s3_accel_read_pixel(s3, addr);                          \
     else if (s3->bpp == 1)                                              \
         dat = *(uint16_t *)&vram[(addr) & s3->vram_mask];               \
     else if (s3->bpp == 2)                                              \
@@ -7933,8 +7992,7 @@ polygon_setup(s3_t *s3)
 
 #define WRITE(addr, dat)                                                                                                   \
     if (s3->bpp == 0) {                                                                                                    \
-        vram[s3_accel_addr(s3, addr) & s3->vram_mask] = dat;                                                               \
-        svga->changedvram[(s3_accel_addr(s3, addr) & s3->vram_mask) >> 12] = svga->monitor->mon_changeframecount;          \
+        s3_accel_write_pixel(s3, addr, dat);                                                                            \
     } else if (s3->bpp == 1) {                                                                                             \
         *(uint16_t *)&vram[(addr) & s3->vram_mask] = dat;                                                                  \
         svga->changedvram[((addr) & s3->vram_mask) >> 12] = svga->monitor->mon_changeframecount;                           \
@@ -8340,8 +8398,9 @@ s3_short_stroke_start(s3_t *s3, uint8_t ssv)
 }
 
 static void
-s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, void *priv)
+s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_data, void *priv)
 {
+    uint64_t  cpu_dat = cpu_data;
     s3_t     *s3      = (s3_t *)priv;
     svga_t   *svga    = &s3->svga;
     uint32_t  src_dat = 0;
@@ -8399,6 +8458,18 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
     if ((s3->accel.cmd & 0x100) && (s3_cpu_src(s3) || (s3_cpu_dest(s3))) && (!cpu_input || (s3_enable_fifo(s3) == 0)))
         s3->force_busy = 1;
+
+    if (cpu_input && s3_accel_packed4(s3) &&
+        ((((s3->accel.multifunc[0xa] & 0xc0) != 0x80) && !(s3->accel.cmd & 2)) ||
+         (((s3->accel.frgd_mix & 0x60) == 0x40) && ((s3->accel.bkgd_mix & 0x60) == 0x40)))) {
+        /* Expand up to eight nibbles for the byte-oriented drawing loops. */
+        cpu_dat = 0;
+        for (int i = 0; i < 4; i++) {
+            cpu_dat |= (uint64_t) ((cpu_data >> (i * 8 + 4)) & 0x0f) << (i * 16);
+            cpu_dat |= (uint64_t) ((cpu_data >> (i * 8)) & 0x0f) << (i * 16 + 8);
+        }
+        count *= 2;
+    }
 
     if (!cpu_input)
         s3->accel.dat_count = 0;
@@ -8461,7 +8532,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
     /*Bit 4 of the Command register is the draw yes bit, which enables writing to memory/reading from memory when enabled.
       When this bit is disabled, no writing to memory/reading from memory is allowed. (This bit is almost meaningless on
       the NOP command)*/
-    s3_log("CMD=%d, full=%04x, cnt=%d, s3bpp=%x, xmul=%d, clr=%d, clb=%d, sourcedisplay=%02x, mmio=%02x, srcbase=%08x, dstbase=%08x, cpu=%08x, mix=%08x, count=%d, rd_mask=%08x, wrt_mask=%08x, width=%d, s=%d,%d, c=%d,%d, d=%d,%d, 16bitcolor=%x, frgdcolor=%08x, bkgdcolor=%08x, frgdsel=%d, bkgdsel=%d, frgdmix=%02x, curx=%d, cury=%d, cll=%d, b2e8pix=%x, multifuncE=%03x.\n", cmd, s3->accel.cmd, count, s3->bpp, x_mul, clip_r, clip_b, s3->accel.multifunc[0x0a] & 0xc4, svga->crtc[0x53] & 0x18, srcbase, dstbase, cpu_dat & 0xffffffff, mix_dat & 0xffffffff, count, rd_mask, wrt_mask, s3->width, s3->accel.sx, s3->accel.sy, s3->accel.cx, s3->accel.cy, s3->accel.destx_distp, s3->accel.desty_axstp, s3->color_16bit, frgd_color, bkgd_color, frgd_mix, bkgd_mix, s3->accel.frgd_mix & 0x0f, s3->accel.cur_x, s3->accel.cur_y, clip_l, s3->accel.b2e8_pix, s3->accel.multifunc[0xe]);
+    s3_log("CMD=%d, full=%04x, cnt=%d, s3bpp=%x, xmul=%d, clr=%d, clb=%d, sourcedisplay=%02x, mmio=%02x, srcbase=%08x, dstbase=%08x, cpu=%08x, mix=%08x, count=%d, rd_mask=%08x, wrt_mask=%08x, width=%d, s=%d,%d, c=%d,%d, d=%d,%d, 16bitcolor=%x, frgdcolor=%08x, bkgdcolor=%08x, frgdsel=%d, bkgdsel=%d, frgdmix=%02x, curx=%d, cury=%d, cll=%d, b2e8pix=%x, multifuncE=%03x.\n", cmd, s3->accel.cmd, count, s3->bpp, x_mul, clip_r, clip_b, s3->accel.multifunc[0x0a] & 0xc4, svga->crtc[0x53] & 0x18, srcbase, dstbase, (uint32_t) cpu_dat, mix_dat & 0xffffffff, count, rd_mask, wrt_mask, s3->width, s3->accel.sx, s3->accel.sy, s3->accel.cx, s3->accel.cy, s3->accel.destx_distp, s3->accel.desty_axstp, s3->color_16bit, frgd_color, bkgd_color, frgd_mix, bkgd_mix, s3->accel.frgd_mix & 0x0f, s3->accel.cur_x, s3->accel.cur_y, clip_l, s3->accel.b2e8_pix, s3->accel.multifunc[0xe]);
 
     switch (cmd) {
         case 0: /*NOP (Short Stroke Vectors)*/
@@ -9758,14 +9829,13 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                             update = 1;
 
                         if (update) {
-                            dest_dat = vram[s3_accel_addr(s3, s3->accel.dest + s3->accel.dx) & s3->vram_mask];
+                            dest_dat = s3_accel_read_pixel(s3, s3->accel.dest + s3->accel.dx);
 
                             ROPMIX
                             out = (out & wrt_mask) | (old_dest_dat & ~wrt_mask);
 
                             if (s3->accel.cmd & 0x10) {
-                                vram[s3_accel_addr(s3, s3->accel.dest + s3->accel.dx) & s3->vram_mask] = out & 0xff;
-                                svga->changedvram[(s3_accel_addr(s3, s3->accel.dest + s3->accel.dx) & s3->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
+                                s3_accel_write_pixel(s3, s3->accel.dest + s3->accel.dx, out & 0xff);
                             }
                         }
                     }
