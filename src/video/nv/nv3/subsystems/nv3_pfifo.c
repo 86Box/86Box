@@ -307,9 +307,6 @@ void nv3_pfifo_cache1_drain(void)
     }
 }
 
-/* Debug: log the next N push buffer headers ("dev nv3 push N") */
-uint32_t nv3_push_trace_left;
-
 void nv3_pfifo_trigger_dma_if_required(void)
 {
     nv3_pfifo_cache_t *c1 = &nv3->pfifo.cache1_settings;
@@ -349,12 +346,6 @@ void nv3_pfifo_trigger_dma_if_required(void)
 
         uint32_t count = (c1->dma_status >> 18) & 0x7FF;
         if (!count) {
-            extern uint32_t nv3_push_trace_left;
-            if (nv3_push_trace_left) {
-                nv3_push_trace_left--;
-                always_log("nv3: push header %08x at %08x (chan %d, %x bytes left)%c", word, c1->dma_address - 4,
-                           c1->channel, c1->dma_length, 10);
-            }
             /* a header: method and subchannel in bits 15:2, count in 28:18 */
             c1->dma_status = word & 0x1FFCFFFC;
             continue;
@@ -584,12 +575,6 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
     {
         uint32_t ctx_entry_id = ((address - NV3_PFIFO_CACHE1_CTX_START) / 16) % 8;
         nv3->pfifo.cache1_settings.context[ctx_entry_id] = val;
-        {
-            extern uint32_t nv3_swm_trace_left;
-            if (nv3_swm_trace_left) {
-                always_log("nv3: cache1 ctx[%d] = %08x (cs:eip %04x:%08x)%c", ctx_entry_id, val, CS, cpu_state.pc, 10);
-            }
-        }
 
         nv_log_verbose_only("PFIFO Cache1 CTX Write Entry=%d value=0x%04x\n", ctx_entry_id, val);
     }
@@ -768,9 +753,6 @@ void nv3_pfifo_cache0_pull(void)
 
 }
 
-/* Debug: log the next N software methods and the register accesses after each ("dev nv3 swm N") */
-uint32_t nv3_swm_trace_left;
-
 void nv3_pfifo_context_switch(uint32_t new_channel)
 {
     /* The pusher hands CACHE1 to another channel: the puller's eight subchannel contexts are saved
@@ -780,14 +762,6 @@ void nv3_pfifo_context_switch(uint32_t new_channel)
     uint32_t old   = nv3->pfifo.cache1_settings.channel & 0x7F;
 
     new_channel &= 0x7F;
-    {
-        extern uint32_t nv3_swm_trace_left;
-        if (nv3_swm_trace_left) {
-            always_log("nv3: pfifo channel %d -> %d (ramfc %04x cfg %08x) ctx7 %08x -> %08x%c", old, new_channel, ramfc,
-                       nv3->pfifo.ramfc_config, nv3->pfifo.cache1_settings.context[7],
-                       nv3_ramin_read32(ramfc + (new_channel << 5) + 28, nv3), 10);
-        }
-    }
     for (int sc = 0; sc < 8; sc++)
         nv3_ramin_write32(ramfc + (old << 5) + (sc << 2), nv3->pfifo.cache1_settings.context[sc], nv3);
     for (int sc = 0; sc < 8; sc++)
@@ -865,16 +839,6 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
     // Did we fuck up?
     if (oh_shit)
     {
-        {
-            static int runout_logs;
-            if (runout_logs < 30) {
-                runout_logs++;
-                always_log("nv3: runout reason %d chan %d subch %d mthd %04x data %08x (push0 %d free %d get %x put %x)%c", oh_shit_reason,
-                           channel, subchannel, method_offset, param, nv3->pfifo.cache1_settings.push0,
-                           nv3_pfifo_cache1_num_free_spaces(), nv3->pfifo.cache1_settings.get_address,
-                           nv3->pfifo.cache1_settings.put_address, 10);
-            }
-        }
          
         /* the entry: the access's offset in USER (method 12:2, subchannel 15:13, channel 22:16),
            a write (bit 23 clear), all bytes enabled (27:24, inverted: 0) and the reason (31:28) */
@@ -945,15 +909,6 @@ void nv3_pfifo_cache1_pull(void)
     if (!(current_context & 0x800000))
     {
         nv_log_verbose_only("The object in CACHE1 is a software object\n");
-        {
-            extern uint32_t nv3_mmio_trace_left;
-            if (nv3_swm_trace_left) {
-                nv3_swm_trace_left--;
-                always_log("nv3: software method chan %d subch %d mthd %04x data %08x ctx %08x%c", current_channel,
-                           current_subchannel, current_method, current_param, current_context, 10);
-                nv3_mmio_trace_left = 40;
-            }
-        }
 
         nv3->pfifo.cache1_settings.pull0 |= (1 << NV3_PFIFO_CACHE0_PULL0_SOFTWARE_METHOD);
         nv3->pfifo.cache1_settings.pull0 &= ~(1 << NV3_PFIFO_CACHE0_PULL0_ENABLED);

@@ -27,9 +27,6 @@
 #include <86box/pci.h>
 #include <86box/rom.h> // DEPENDENT!!!
 #include <86box/plat_unused.h>
-#ifdef USE_DEBUG_CMD
-#include <86box/debug_cmd.h>
-#endif
 #include <86box/dma.h>
 #include <86box/video.h>
 #include <86box/nv/vid_nv.h>
@@ -994,22 +991,9 @@ uint32_t nv3_dfb_read32(uint32_t addr, UNUSED(void* priv))
     (nv3->nvbase.svga.vram[addr + 1] << 8) | nv3->nvbase.svga.vram[addr];
 }
 
-/* Debug: "dev nv3 watch <start> <end> <count>" logs framebuffer and RAMIN writes into VRAM [start, end)
-   (RAMIN writes log as w1xx) */
-uint32_t nv3_watch_lo, nv3_watch_hi, nv3_watch_left;
-
-void nv3_watch(uint32_t addr, uint32_t val, int size)
-{
-    if (nv3_watch_left && (addr >= nv3_watch_lo) && (addr < nv3_watch_hi)) {
-        nv3_watch_left--;
-        always_log("nv3: lfb w%d %06x %08x (cs:eip %04x:%08x)%c", size, addr, val, CS, cpu_state.pc, 10);
-    }
-}
-
 void nv3_dfb_write8(uint32_t addr, uint8_t val, UNUSED(void* priv))
 {
     addr &= (nv3->nvbase.svga.vram_mask);
-    nv3_watch(addr, val, 8);
     nv3->nvbase.svga.vram[addr] = val;
     nv3->nvbase.svga.changedvram[addr >> 12] = changeframecount;
 }
@@ -1017,7 +1001,6 @@ void nv3_dfb_write8(uint32_t addr, uint8_t val, UNUSED(void* priv))
 void nv3_dfb_write16(uint32_t addr, uint16_t val, UNUSED(void* priv))
 {
     addr &= (nv3->nvbase.svga.vram_mask);
-    nv3_watch(addr, val, 16);
     nv3->nvbase.svga.vram[addr + 1] = (val >> 8) & 0xFF;
     nv3->nvbase.svga.vram[addr] = (val) & 0xFF;
     nv3->nvbase.svga.changedvram[addr >> 12] = changeframecount;
@@ -1026,7 +1009,6 @@ void nv3_dfb_write16(uint32_t addr, uint16_t val, UNUSED(void* priv))
 void nv3_dfb_write32(uint32_t addr, uint32_t val, UNUSED(void* priv))
 {
     addr &= (nv3->nvbase.svga.vram_mask);
-    nv3_watch(addr, val, 32);
     nv3->nvbase.svga.vram[addr + 3] = (val >> 24) & 0xFF;
     nv3->nvbase.svga.vram[addr + 2] = (val >> 16) & 0xFF;
     nv3->nvbase.svga.vram[addr + 1] = (val >> 8) & 0xFF;
@@ -1278,212 +1260,6 @@ void nv3_update_mappings(void)
 // 
 // Init code
 //
-/* Debug dump for tests (debug_cmd "dev nv3"): scanout, surfaces, FIFO and the
-   number of methods each class has executed. */
-uint32_t nv3_debug_class_count[32];
-
-#ifdef USE_DEBUG_CMD
-static void nv3_debug_hook(const char *args)
-{
-    svga_t  *svga = &nv3->nvbase.svga;
-    uint32_t nonzero = 0;
-    uint32_t start   = (svga->memaddr_latch << 2) & svga->vram_mask;
-    uint32_t bytes   = svga->hdisp * svga->dispend * ((svga->bpp + 7) >> 3);
-
-    (void) args;
-    for (uint32_t i = 0; (i < bytes) && (start + i < svga->vram_max); i++)
-        nonzero += (svga->vram[start + i] != 0);
-
-    always_log("nv3: mode %dx%d bpp %d CR28 %02x CR19 %02x CR13 %02x rowoffset %d start %06x scrblank %d override %d nonzero %u/%u\n",
-               svga->hdisp, svga->dispend, svga->bpp, svga->crtc[0x28], svga->crtc[0x19], svga->crtc[0x13],
-               svga->rowoffset, start, svga->scrblank, svga->override, nonzero, bytes);
-    always_log("nv3: CR: %02x %02x %02x %02x %02x %02x %02x %02x | 25=%02x 2D=%02x 30=%02x 31=%02x | seq1 %02x gdc6 %02x attr10 %02x miscout %02x\n",
-               svga->crtc[0], svga->crtc[1], svga->crtc[2], svga->crtc[3], svga->crtc[4], svga->crtc[5], svga->crtc[6], svga->crtc[7],
-               svga->crtc[0x25], svga->crtc[0x2d], svga->crtc[0x30], svga->crtc[0x31],
-               svga->seqregs[1], svga->gdcreg[6], svga->attrregs[0x10], svga->miscout);
-    always_log("nv3: straps %03x pfb boot %08x subsystem %02x%02x:%02x%02x ptimer %016llx num %u den %u\n", nv3->straps,
-               nv3_pfb_read(NV3_PFB_BOOT), nv3->nvbase.pci_config.pci_regs[NV3_PCI_CFG_SUBSYSTEM_ID + 1],
-               nv3->nvbase.pci_config.pci_regs[NV3_PCI_CFG_SUBSYSTEM_ID], nv3->nvbase.pci_config.pci_regs[NV3_PCI_CFG_SUBSYSTEM_ID + 3],
-               nv3->nvbase.pci_config.pci_regs[NV3_PCI_CFG_SUBSYSTEM_ID + 2], (unsigned long long) nv3->ptimer.time,
-               nv3->ptimer.clock_numerator, nv3->ptimer.clock_denominator);
-    always_log("nv3: hdisp %d htotal %d hblankstart %d hblank_end %02x/%02x sub %d x_add %d left %d mon_overscan_x %d CR1A %02x CR03 %02x CR05 %02x\n",
-               svga->hdisp, svga->htotal, svga->hblankstart, svga->hblank_end_val, svga->hblank_end_mask, svga->hblank_sub,
-               svga->x_add, svga->left_overscan, svga->monitor->mon_overscan_x, svga->crtc[0x1a], svga->crtc[3], svga->crtc[5]);
-    always_log("nv3: dac mask %02x ramdac %d | pal 0 %06x 1 %06x 7 %06x 15 %06x 255 %06x | user_dac mask %02x\n",
-               svga->dac_mask, svga->ramdac_type, svga->pallook[0] & 0xffffff, svga->pallook[1] & 0xffffff,
-               svga->pallook[7] & 0xffffff, svga->pallook[15] & 0xffffff, svga->pallook[255] & 0xffffff,
-               nv3->pramdac.user_pixel_mask);
-    {
-        /* Refresh as the CRTC and VPLL give it (htotal in characters of 8 dots) */
-        double pclk = nv3->nvbase.pixel_clock_frequency;
-        double line = (double) svga->htotal * 8.0;
-
-        always_log("nv3: vpll m %d n %d p %d = %.3f MHz | htotal %d vtotal %d char %d dpc %d | %.2f kHz %.2f Hz | svga clock %.4f\n",
-                   nv3->pramdac.pixel_clock_m, nv3->pramdac.pixel_clock_n, nv3->pramdac.pixel_clock_p, pclk / 1000000.0,
-                   svga->htotal, svga->vtotal, svga->char_width, svga->dots_per_clock,
-                   (line > 0) ? pclk / line / 1000.0 : 0.0, (line > 0 && svga->vtotal) ? pclk / line / svga->vtotal : 0.0,
-                   svga->clock);
-    }
-    always_log("nv3: pvideo control %08x key %08x point %08x size %08x scale %08x start %06x/%06x pitch %x/%x | overlay ena %d %d,%d %dx%d bpp %d\n",
-               nv3->pvideo.regs[0x44 >> 2], nv3->pvideo.regs[0x40 >> 2], nv3->pvideo.regs[0x30 >> 2], nv3->pvideo.regs[0x34 >> 2],
-               nv3->pvideo.regs[0x00 >> 2], nv3->pvideo.regs[0x0C >> 2], nv3->pvideo.regs[0x10 >> 2], nv3->pvideo.regs[0x14 >> 2],
-               nv3->pvideo.regs[0x18 >> 2], svga->overlay.ena, svga->overlay.x, svga->overlay.y, svga->overlay.cur_xsize,
-               svga->overlay.cur_ysize, svga->bpp);
-    for (int b = 0; b < NV3_PGRAPH_MAX_BUFFERS; b++)
-        always_log("nv3: buffer %d offset %06x pitch %d bpixel %08x\n", b, nv3->pgraph.boffset[b], nv3->pgraph.bpitch[b], nv3->pgraph.bpixel[b]);
-    always_log("nv3: dst canvas %08x-%08x uclip %d,%d-%d,%d cliprect ctrl %x | rop %02x beta %08x chroma %08x pattern shape %d rgb %08x/%08x a %02x/%02x bits %08x%08x | ctx %08x debug0 %08x\n",
-               nv3->pgraph.dst_canvas_min, nv3->pgraph.dst_canvas_max, nv3->pgraph.uclip_min[0], nv3->pgraph.uclip_min[1],
-               nv3->pgraph.uclip_max[0], nv3->pgraph.uclip_max[1], nv3->pgraph.cliprect_ctrl, nv3->pgraph.rop, nv3->pgraph.beta_factor,
-               nv3->pgraph.chroma_key, nv3->pgraph.pattern_shape, nv3->pgraph.pattern_mono_rgb[0], nv3->pgraph.pattern_mono_rgb[1],
-               nv3->pgraph.pattern_mono_a[0], nv3->pgraph.pattern_mono_a[1], nv3->pgraph.pattern_mono_bitmap[1], nv3->pgraph.pattern_mono_bitmap[0],
-               nv3->pgraph.context_switch, nv3->pgraph.debug_0);
-    always_log("nv3: ifc point %d,%d out %dx%d in %dx%d | sifc in %dx%d dxdu %08x dydv %08x clip %d,%d %dx%d point %08x | bitmap point %d,%d out %dx%d in %dx%d\n",
-               (int16_t) nv3->pgraph.image.point.x, (int16_t) nv3->pgraph.image.point.y, nv3->pgraph.image.size.x, nv3->pgraph.image.size.y,
-               nv3->pgraph.image.size_in.x, nv3->pgraph.image.size_in.y,
-               nv3->pgraph.stretched_image_from_cpu.size_in.x, nv3->pgraph.stretched_image_from_cpu.size_in.y,
-               nv3->pgraph.stretched_image_from_cpu.delta_dx_du, nv3->pgraph.stretched_image_from_cpu.delta_dy_dv,
-               (int16_t) nv3->pgraph.stretched_image_from_cpu.clip_0.x, (int16_t) nv3->pgraph.stretched_image_from_cpu.clip_0.y,
-               nv3->pgraph.stretched_image_from_cpu.clip_1.x, nv3->pgraph.stretched_image_from_cpu.clip_1.y,
-               nv3->pgraph.stretched_image_from_cpu.point12d4,
-               (int16_t) nv3->pgraph.bitmap.point.x, (int16_t) nv3->pgraph.bitmap.point.y, nv3->pgraph.bitmap.size.x, nv3->pgraph.bitmap.size.y,
-               nv3->pgraph.bitmap.size_in.x, nv3->pgraph.bitmap.size_in.y);
-    nv3_render_dump_images();
-    always_log("nv3: m2mf in %08x out %08x pitch %d/%d len %d count %d format %x | notify %08x pending %d index %d | trapped %08x %08x inst %04x\n",
-               nv3->pgraph.m2mf.offset_in, nv3->pgraph.m2mf.offset_out, nv3->pgraph.m2mf.pitch_in, nv3->pgraph.m2mf.pitch_out,
-               nv3->pgraph.m2mf.scanline_length, nv3->pgraph.m2mf.num_scanlines, nv3->pgraph.m2mf.format,
-               nv3->pgraph.notifier, nv3->pgraph.notify_pending, nv3->pgraph.notify_index,
-               nv3->pgraph.trapped_address, nv3->pgraph.trapped_data, nv3->pgraph.trapped_instance);
-    always_log("nv3: ctx_user %08x ctx_control %08x ctx_switch %08x cache %08x %08x %08x %08x %08x %08x %08x %08x%c",
-               nv3->pgraph.context_user, nv3->pgraph.context_control, nv3->pgraph.context_switch,
-               nv3->pgraph.context_cache[0], nv3->pgraph.context_cache[1], nv3->pgraph.context_cache[2], nv3->pgraph.context_cache[3],
-               nv3->pgraph.context_cache[4], nv3->pgraph.context_cache[5], nv3->pgraph.context_cache[6], nv3->pgraph.context_cache[7], 10);
-    for (int sc = 0; sc < 8; sc++) {
-        uint32_t ctx  = nv3->pfifo.cache1_settings.context[sc];
-        uint32_t inst = (ctx & 0xFFFF) << 4;
-        always_log("nv3: subch %d ctx %08x grobj %08x %08x %08x %08x\n", sc, ctx, nv3_ramin_read32(inst, nv3),
-                   nv3_ramin_read32(inst + 4, nv3), nv3_ramin_read32(inst + 8, nv3), nv3_ramin_read32(inst + 12, nv3));
-    }
-    /* "dev nv3 vram <offset>": 64 bytes of VRAM */
-    const char *vram_arg = args ? strstr(args, "vram ") : NULL;
-    if (vram_arg) {
-        uint32_t off = strtoul(vram_arg + 5, NULL, 16) & svga->vram_mask;
-        for (int r = 0; r < 64; r += 16) {
-            const uint8_t *v = &svga->vram[(off + r) & svga->vram_mask];
-            always_log("nv3: vram %06x: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n", off + r,
-                       v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
-        }
-    }
-    /* "dev nv3 mmio <count> [lo hi]": log the next <count> register accesses (within [lo, hi]) */
-    const char *mmio_arg = args ? strstr(args, "mmio ") : NULL;
-    if (mmio_arg) {
-        extern uint32_t nv3_mmio_trace_left, nv3_mmio_trace_lo, nv3_mmio_trace_hi;
-        char *end;
-        nv3_mmio_trace_left = strtoul(mmio_arg + 5, &end, 0);
-        nv3_mmio_trace_lo   = strtoul(end, &end, 16);
-        nv3_mmio_trace_hi   = strtoul(end, NULL, 16);
-        if (!nv3_mmio_trace_hi)
-            nv3_mmio_trace_hi = 0xFFFFFFFF;
-    }
-    /* "dev nv3 cache1": every CACHE1 entry from GET to PUT */
-    if (args && strstr(args, "cache1")) {
-        extern uint32_t nv3_pfifo_cache1_slot(uint32_t ptr);
-        extern uint32_t nv3_pfifo_cache1_next(uint32_t ptr);
-        uint32_t ptr = nv3->pfifo.cache1_settings.get_address;
-        for (int n = 0; (n < NV3_PFIFO_CACHE1_SIZE_MAX) && (ptr != nv3->pfifo.cache1_settings.put_address); n++) {
-            uint32_t s = nv3_pfifo_cache1_slot(ptr);
-            always_log("nv3: cache1 %02x subch %d mthd %04x data %08x\n", ptr, nv3->pfifo.cache1_entries[s].subchannel,
-                       nv3->pfifo.cache1_entries[s].method, nv3->pfifo.cache1_entries[s].data);
-            ptr = nv3_pfifo_cache1_next(ptr);
-        }
-    }
-    /* "dev nv3 inst <instance>": the first 16 words of an object in RAMIN */
-    const char *inst_arg = args ? strstr(args, "inst ") : NULL;
-    if (inst_arg) {
-        uint32_t base = strtoul(inst_arg + 5, NULL, 16) << 4;
-        for (int r = 0; r < 64; r += 16)
-            always_log("nv3: inst %05x: %08x %08x %08x %08x\n", base + r, nv3_ramin_read32(base + r, nv3),
-                       nv3_ramin_read32(base + r + 4, nv3), nv3_ramin_read32(base + r + 8, nv3), nv3_ramin_read32(base + r + 12, nv3));
-    }
-    /* "dev nv3 watch <start> <end> <count>" */
-    const char *watch_arg = args ? strstr(args, "watch ") : NULL;
-    if (watch_arg) {
-        char *end;
-        nv3_watch_lo   = strtoul(watch_arg + 6, &end, 16);
-        nv3_watch_hi   = strtoul(end, &end, 16);
-        nv3_watch_left = strtoul(end, NULL, 0);
-    }
-    /* "dev nv3 notify <count>": log the next <count> notifier writes */
-    const char *notify_arg = args ? strstr(args, "notify ") : NULL;
-    if (notify_arg) {
-        extern uint32_t nv3_notify_trace_left;
-        nv3_notify_trace_left = strtoul(notify_arg + 7, NULL, 0);
-    }
-    /* "dev nv3 d3d <count>": log the next <count> D3D triangles */
-    const char *d3d_arg = args ? strstr(args, "d3d ") : NULL;
-    if (d3d_arg) {
-        extern uint32_t nv3_d3d_trace_left;
-        nv3_d3d_trace_left = strtoul(d3d_arg + 4, NULL, 0);
-    }
-    /* "dev nv3 tex": log the mip levels of the next mipmapped texture drawn with */
-    if (args && strstr(args, "tex")) {
-        extern int nv3_d3d_tex_dump;
-        nv3_d3d_tex_dump = 1;
-    }
-    /* "dev nv3 push <count>": log the next <count> push buffer headers */
-    const char *push_arg = args ? strstr(args, "push ") : NULL;
-    if (push_arg) {
-        extern uint32_t nv3_push_trace_left;
-        nv3_push_trace_left = strtoul(push_arg + 5, NULL, 0);
-    }
-    /* "dev nv3 swm <count>": log the next <count> software methods */
-    const char *swm_arg = args ? strstr(args, "swm ") : NULL;
-    if (swm_arg) {
-        extern uint32_t nv3_swm_trace_left;
-        nv3_swm_trace_left = strtoul(swm_arg + 4, NULL, 0);
-    }
-    /* "dev nv3 m2mf <count>": log the next <count> M2MF transfers */
-    const char *m2mf_arg = args ? strstr(args, "m2mf ") : NULL;
-    if (m2mf_arg) {
-        extern uint32_t nv3_m2mf_trace_left;
-        nv3_m2mf_trace_left = strtoul(m2mf_arg + 5, NULL, 0);
-    }
-    if (args && strstr(args, "methods")) {
-        extern void nv3_pgraph_dump_methods(void);
-        nv3_pgraph_dump_methods();
-    }
-    /* "dev nv3 <physical address>": 64 bytes of guest memory */
-    const char *addr_arg = args ? strchr(args, ' ') : NULL;
-    if (addr_arg && addr_arg[1] >= '0' && addr_arg[1] <= '9') {
-        uint32_t phys = strtoul(addr_arg + 1, NULL, 16);
-        uint8_t  buf[64];
-        dma_bm_read(phys, buf, 64, 4);
-        for (int r = 0; r < 64; r += 16)
-            always_log("nv3: mem %08x: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n", phys + r,
-                       buf[r], buf[r + 1], buf[r + 2], buf[r + 3], buf[r + 4], buf[r + 5], buf[r + 6], buf[r + 7],
-                       buf[r + 8], buf[r + 9], buf[r + 10], buf[r + 11], buf[r + 12], buf[r + 13], buf[r + 14], buf[r + 15]);
-    }
-    always_log("nv3: pmc intr %08x en %08x enable %08x | pgraph intr0 %08x en0 %08x intr1 %08x en1 %08x fifo_access %d | pfifo intr %08x en %08x\n",
-               nv3->pmc.intr, nv3->pmc.intr_en, nv3->pmc.enable, nv3->pgraph.intr_0, nv3->pgraph.intr_en_0,
-               nv3->pgraph.intr_1, nv3->pgraph.intr_en_1, nv3->pgraph.fifo_access, nv3->pfifo.intr, nv3->pfifo.intr_en);
-    always_log("nv3: cache1 push0 %d pull0 %08x put %02x get %02x chan %d | cache0 pull0 %08x put %02x get %02x | runout put %x get %x | general %08x\n",
-               nv3->pfifo.cache1_settings.push0, nv3->pfifo.cache1_settings.pull0, nv3->pfifo.cache1_settings.put_address,
-               nv3->pfifo.cache1_settings.get_address, nv3->pfifo.cache1_settings.channel, nv3->pfifo.cache0_settings.pull0,
-               nv3->pfifo.cache0_settings.put_address, nv3->pfifo.cache0_settings.get_address,
-               nv3->pfifo.runout_put, nv3->pfifo.runout_get, nv3->pramdac.general_control);
-    always_log("nv3: dma pusher ctrl %08x state %08x get %08x count %08x target %x tlb tag %08x pte %08x pt %08x%c",
-               nv3->pfifo.cache1_settings.dma_state, nv3->pfifo.cache1_settings.dma_status, nv3->pfifo.cache1_settings.dma_address,
-               nv3->pfifo.cache1_settings.dma_length, nv3->pfifo.cache1_settings.dma_target_node, nv3->pfifo.cache1_settings.dma_tlb_tag,
-               nv3->pfifo.cache1_settings.dma_tlb_pte, nv3->pfifo.cache1_settings.dma_tlb_pt_base, 10);
-    char line[512];
-    int  len = 0;
-    for (int c = 0; c < 32; c++) {
-        if (nv3_debug_class_count[c])
-            len += snprintf(line + len, sizeof(line) - len, " %02x:%u", c, nv3_debug_class_count[c]);
-    }
-    always_log("nv3: methods by class:%s\n", len ? line : " none");
-}
-#endif
-
 void* nv3_init(UNUSED(const device_t *info))
 {
     // set the vram amount and gpu revision
@@ -1598,9 +1374,6 @@ void* nv3_init(UNUSED(const device_t *info))
     nv3->nvbase.i2c = i2c_gpio_init("nv3_i2c");
     nv3->nvbase.ddc = ddc_init(i2c_gpio_get_bus(nv3->nvbase.i2c));
 
-#ifdef USE_DEBUG_CMD
-    debug_cmd_set_device_hook(nv3_debug_hook);
-#endif
 
     return nv3;
 }
@@ -1685,9 +1458,6 @@ static void nv3_reset(UNUSED(void* priv))
 
 void nv3_close(UNUSED(void* priv))
 {
-#ifdef USE_DEBUG_CMD
-    debug_cmd_set_device_hook(NULL);
-#endif
     // Shut down logging
     log_close(nv3->nvbase.log);
 //#ifdef ENABLE_NV_LOG

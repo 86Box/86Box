@@ -50,8 +50,6 @@ void nv3_render_bitmap(uint32_t data, nv3_grobj_t grobj);
 void nv3_render_blit_screen2screen(nv3_grobj_t grobj);
 void nv3_render_sifc_start(void);
 void nv3_render_sifc(uint32_t color, nv3_grobj_t grobj);
-void nv3_render_dump_images(void);
-void nv3_render_trace_image(uint32_t cls, uint32_t ctx, uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e);
 
 /* GDI */
 void nv3_render_gdi_transparent_bitmap(bool clip, uint32_t color, uint32_t bitmap_data, nv3_grobj_t grobj);

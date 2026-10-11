@@ -56,20 +56,6 @@ nv_register_t* nv_get_register(uint32_t addr, nv_register_t* register_list)
     return NULL;
 }
 
-/* Debug: the next N register accesses (not PTIMER's clock) go to the log ("dev nv3 mmio N") */
-uint32_t nv3_mmio_trace_left;
-uint32_t nv3_mmio_trace_lo, nv3_mmio_trace_hi = 0xFFFFFFFF;
-
-static void nv3_mmio_trace(char rw, uint32_t addr, uint32_t val)
-{
-    if (!nv3_mmio_trace_left || addr == NV3_PTIMER_TIME_0_NSEC || addr == NV3_PTIMER_TIME_1_NSEC)
-        return;
-    if ((addr < nv3_mmio_trace_lo) || (addr > nv3_mmio_trace_hi))
-        return;
-    nv3_mmio_trace_left--;
-    always_log("nv3: mmio %c %06x %08x\n", rw, addr, val);
-}
-
 // Arbitrates an MMIO read
 uint32_t nv3_mmio_arbitrate_read(uint32_t addr)
 {
@@ -143,7 +129,6 @@ uint32_t nv3_mmio_arbitrate_read(uint32_t addr)
             nv_log_verbose_only("Unknown register read 0x%08x\n", addr);
     }
 
-    nv3_mmio_trace('r', addr, ret);
     return ret;
 }
 
@@ -162,7 +147,6 @@ void nv3_mmio_arbitrate_write(uint32_t addr, uint32_t val)
     if (!(addr >= NV3_USER_DAC_PALETTE_START && addr <= NV3_USER_DAC_PALETTE_END))
         addr &= 0xFFFFFC;
 
-    nv3_mmio_trace('w', addr, val);
 
     // gigantic set of if statements to send the write to the right subsystem
     if (addr <= NV3_PMC_END) /* PMC starts at 0 */

@@ -41,12 +41,6 @@
    holds its DMA instance (15:0) and notifier instance (31:16); M2MF's output
    object is in word 2 (15:0). */
 
-/* Debug: log the next N notifier writes ("dev nv3 notify N") */
-uint32_t nv3_notify_trace_left;
-
-/* Debug: log the next N M2MF transfers ("dev nv3 m2mf N") */
-uint32_t nv3_m2mf_trace_left;
-
 /* A byte offset within a DMA object to an address in its target */
 static uint32_t
 nv3_dma_translate(uint32_t inst, uint32_t offset, uint32_t *target)
@@ -195,22 +189,6 @@ bool nv3_perform_dma_m2mf(nv3_grobj_t grobj)
     if (!inc_out)
         inc_out = 1;
 
-    if (nv3_m2mf_trace_left) {
-        uint32_t t_in, t_out;
-        uint32_t a_in  = (in_inst == NV3_M2MF_VRAM) ? (t_in = 0, offset_in) : nv3_dma_translate(in_inst, offset_in, &t_in);
-        uint32_t a_out = (out_inst == NV3_M2MF_VRAM) ? (t_out = 0, offset_out) : nv3_dma_translate(out_inst, offset_out, &t_out);
-        char     line[3 * 16 + 1];
-
-        nv3_m2mf_trace_left--;
-        for (int i = 0; i < 16; i++)
-            snprintf(line + 3 * i, 4, " %02x", nv3_m2mf_read8(in_inst, offset_in + i));
-        always_log("nv3: m2mf %04x:%x (t%d %08x) -> %04x:%x (t%d %08x) %ux%u pitch %u/%u fmt %x grobj %08x %08x %08x %08x ctxi %04x notify %06x debug1 %08x |%s\n",
-                   in_inst, offset_in, t_in, a_in, out_inst, offset_out, t_out, a_out,
-                   nv3->pgraph.m2mf.scanline_length, nv3->pgraph.m2mf.num_scanlines,
-                   nv3->pgraph.m2mf.pitch_in, nv3->pgraph.m2mf.pitch_out, nv3->pgraph.m2mf.format,
-                   grobj.grobj_0, grobj.grobj_1, grobj.grobj_2, grobj.grobj_3, nv3->pgraph.instance, nv3->pgraph.notifier, nv3->pgraph.debug_1, line);
-    }
-
     {
         uint32_t lines = nv3->pgraph.m2mf.num_scanlines;
         uint32_t len   = nv3->pgraph.m2mf.scanline_length;
@@ -226,11 +204,7 @@ bool nv3_perform_dma_m2mf(nv3_grobj_t grobj)
                 fault = nv3_dma_check(out_inst, offset_out, last_out, true);
         }
         if (fault) {
-            static int fault_logs;
-            if (fault_logs < 20) {
-                fault_logs++;
-                always_log("nv3: M2MF DMA fault %d: %04x:%x -> %04x:%x %ux%u%c", fault, in_inst, offset_in, out_inst, offset_out, len, lines, 10);
-            }
+            nv_log("M2MF DMA fault %d: %04x:%x -> %04x:%x %ux%u\n", fault, in_inst, offset_in, out_inst, offset_out, len, lines);
             nv3->pgraph.intr_dma |= (1 << fault);
             nv3_pmc_handle_interrupts(true);
             return false;
@@ -265,13 +239,6 @@ void nv3_write_notifier(UNUSED(nv3_grobj_t grobj), uint32_t index, uint16_t stat
 
     if (!inst)
         return;
-    if (nv3_notify_trace_left) {
-        uint32_t t;
-        uint32_t a = nv3_dma_translate(inst, off + 12, &t);
-        nv3_notify_trace_left--;
-        always_log("nv3: notifier inst %04x index %u status %04x -> %08x (target %u) chan %d%c", inst, index, status, a, t,
-                   nv3->pfifo.cache1_settings.channel, 10);
-    }
     nv3_dma_write32(inst, off + 0, (uint32_t) time);
     nv3_dma_write32(inst, off + 4, (uint32_t) (time >> 32));
     nv3_dma_write32(inst, off + 8, info32);

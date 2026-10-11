@@ -138,10 +138,6 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_d.x;
             nv3->pgraph.win95_gdi_text_current_position.y = nv3->pgraph.win95_gdi_text.point_d.y;
             nv3->pgraph.win95_gdi_text_bit_count = 0;
-            nv3_render_trace_image(0xcd, grobj.grobj_0, param, *(uint32_t *) &nv3->pgraph.win95_gdi_text.size_in_d,
-                                   *(uint32_t *) &nv3->pgraph.win95_gdi_text.size_out_d,
-                                   nv3->pgraph.win95_gdi_text.clip_d.left | ((uint32_t) nv3->pgraph.win95_gdi_text.clip_d.top << 16),
-                                   nv3->pgraph.win95_gdi_text.clip_d.right | ((uint32_t) nv3->pgraph.win95_gdi_text.clip_d.bottom << 16));
             break;
         /* Type E: Two-colour 1bpp */
         case NV3_W95TXT_E_CLIP_TOPLEFT: 
@@ -182,10 +178,6 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_e.x;
             nv3->pgraph.win95_gdi_text_current_position.y = nv3->pgraph.win95_gdi_text.point_e.y;
             nv3->pgraph.win95_gdi_text_bit_count = 0;
-            nv3_render_trace_image(0xce, grobj.grobj_0, param, *(uint32_t *) &nv3->pgraph.win95_gdi_text.size_in_e,
-                                   *(uint32_t *) &nv3->pgraph.win95_gdi_text.size_out_e,
-                                   nv3->pgraph.win95_gdi_text.clip_e.left | ((uint32_t) nv3->pgraph.win95_gdi_text.clip_e.top << 16),
-                                   nv3->pgraph.win95_gdi_text.clip_e.right | ((uint32_t) nv3->pgraph.win95_gdi_text.clip_e.bottom << 16));
 
             nv_log("Method Execution: GDI-E Point %04x,%04x\n", nv3->pgraph.win95_gdi_text.point_e.x,  nv3->pgraph.win95_gdi_text.point_e.y);
             break;

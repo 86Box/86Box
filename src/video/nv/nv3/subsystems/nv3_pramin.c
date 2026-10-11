@@ -104,7 +104,6 @@ void nv3_ramin_write8(uint32_t addr, uint8_t val, UNUSED(void* priv))
     addr &= (NV3_LFB_MAPPING_SIZE - 1) & (nv3->nvbase.svga.vram_max - 1);
 
     uint32_t ramin_addr = (addr ^ (nv3->nvbase.svga.vram_max - 0x10));
-    nv3_watch(ramin_addr, val, 108);
     nv3->nvbase.svga.vram[ramin_addr] = val;
 
     nv_log_verbose_only("Write byte to PRAMIN addr=0x%08x val=0x%02x (raw address=0x%08x)\n", ramin_addr, val, addr);
@@ -121,7 +120,6 @@ void nv3_ramin_write16(uint32_t addr, uint16_t val, UNUSED(void* priv))
     uint16_t* vram_16bit = (uint16_t*)svga->vram;
 
     uint32_t ramin_addr = (addr ^ (nv3->nvbase.svga.vram_max - 0x10)) >> 1;
-    nv3_watch(ramin_addr << 1, val, 116);
     vram_16bit[ramin_addr] = val;
 
     nv_log_verbose_only("Write word to PRAMIN addr=0x%08x val=0x%04x (raw address=0x%08x)\n", ramin_addr, val, addr);
@@ -138,7 +136,6 @@ void nv3_ramin_write32(uint32_t addr, uint32_t val, UNUSED(void* priv))
     uint32_t* vram_32bit = (uint32_t*)svga->vram;
 
     uint32_t ramin_addr = (addr ^ (nv3->nvbase.svga.vram_max - 0x10)) >> 2;
-    nv3_watch(ramin_addr << 2, val, 132);
     vram_32bit[ramin_addr] = val;
 
     nv_log_verbose_only("Write dword to PRAMIN addr=0x%08x val=0x%08x (raw address=0x%08x)\n", ramin_addr, val, addr);
@@ -185,13 +182,8 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
             // This bit fucked me for an extremely long time
             if (!cache_num)
                 nv3->pfifo.cache0_settings.context[0] = obj_context;
-            else {
-                extern uint32_t nv3_swm_trace_left;
-                if (nv3_swm_trace_left && (nv3->pfifo.cache1_settings.context[subchannel] != obj_context))
-                    always_log("nv3: ramht bind subch %d handle %08x ctx %08x -> %08x (entry %04x)%c", subchannel, name,
-                               nv3->pfifo.cache1_settings.context[subchannel], obj_context, ramht_cur_address - 8, 10);
+            else
                 nv3->pfifo.cache1_settings.context[subchannel] = obj_context;
-            }
     
             break;
         }
@@ -199,13 +191,6 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
 
     if (!found_object)
     {
-        {
-            extern uint32_t nv3_swm_trace_left, nv3_mmio_trace_left;
-            if (nv3_swm_trace_left) {
-                always_log("nv3: ramht miss cache%d chan %d subch %d handle %08x%c", cache_num, channel, subchannel, name, 10);
-                nv3_mmio_trace_left = 200;
-            }
-        }
         if (!cache_num)
         {
             nv3->pfifo.debug_0 |= (1 << NV3_PFIFO_CACHE0_ERROR_PENDING);

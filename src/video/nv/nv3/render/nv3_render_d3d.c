@@ -278,36 +278,6 @@ nv3_d3d_sample(nv3_grobj_t grobj, float u, float v, int level)
     return res;
 }
 
-/* Debug ("dev nv3 tex"): log each mip level of the texture -- offset, size, mean colour, first texels */
-int nv3_d3d_tex_dump;
-
-static void
-nv3_d3d_dump_texture(nv3_grobj_t grobj)
-{
-    int      max_log = (nv3_d3d.tex_format >> 28) & 0xF;
-    int      min_log = (nv3_d3d.tex_format >> 24) & 0xF;
-    uint32_t offset  = 0;
-
-    always_log("nv3: d3d tex %08x format %08x levels %d..%d%c", nv3_d3d.tex_offset, nv3_d3d.tex_format, max_log, min_log, 10);
-    for (int l = max_log; l >= min_log && l >= 0 && l <= 11; l--) {
-        uint32_t size = 1u << l;
-        uint64_t sum[4] = { 0 };
-        for (uint32_t t = 0; t < size; t++)
-            for (uint32_t s = 0; s < size; s++) {
-                uint32_t c = nv3_d3d_texel(grobj, offset, size, s, t);
-                for (int i = 0; i < 4; i++)
-                    sum[i] += (c >> (24 - 8 * i)) & 0xFF;
-            }
-        uint32_t n = size * size;
-        always_log("nv3:   level %2u offset %06x mean argb %02x %02x %02x %02x | %04x %04x %04x %04x %04x %04x %04x %04x%c", size, offset,
-                   (uint32_t) (sum[0] / n), (uint32_t) (sum[1] / n), (uint32_t) (sum[2] / n), (uint32_t) (sum[3] / n),
-                   nv3_d3d_read_tex16(grobj, offset), nv3_d3d_read_tex16(grobj, offset + 2), nv3_d3d_read_tex16(grobj, offset + 4),
-                   nv3_d3d_read_tex16(grobj, offset + 6), nv3_d3d_read_tex16(grobj, offset + 8), nv3_d3d_read_tex16(grobj, offset + 10),
-                   nv3_d3d_read_tex16(grobj, offset + 12), nv3_d3d_read_tex16(grobj, offset + 14), 10);
-        offset += n * 2;
-    }
-}
-
 /* ---- pixel output ---- */
 
 static uint32_t
@@ -362,10 +332,6 @@ nv3_d3d_blend(uint32_t config, uint32_t src, uint16_t dst, int32_t x, int32_t y)
         | nv3_d3d_dither_8to5(o[2], x, y, dither);
 }
 
-/* Debug: "dev nv3 d3d N" logs the next N triangles and what they wrote */
-uint32_t        nv3_d3d_trace_left;
-static uint32_t nv3_d3d_frag_in, nv3_d3d_frag_clip, nv3_d3d_frag_written;
-
 /* One fragment: alpha and Z tests, write enables, blend, write. `test_alpha` is what the alpha
    test (CONTROL1) compares: the combined texture x vertex alpha, before SRCCOLOR. The
    "ALPHA" write conditions check the alpha that reaches the blender (in `color`) for non-zero at
@@ -377,9 +343,7 @@ nv3_d3d_fragment(nv3_grobj_t grobj, uint32_t config, uint32_t alpha_ctl, int32_t
 {
     uint32_t ctx = grobj.grobj_0;
 
-    nv3_d3d_frag_in++;
     if (x < 0 || y < 0 || !nv3_render_clip_pass(x, y, grobj, false)) {
-        nv3_d3d_frag_clip++;
         return;
     }
 
@@ -398,7 +362,6 @@ nv3_d3d_fragment(nv3_grobj_t grobj, uint32_t config, uint32_t alpha_ctl, int32_t
             uint32_t addr = (nv3->pgraph.boffset[j] + (uint32_t) y * nv3->pgraph.bpitch[j] + (uint32_t) x * 2) & nv3->nvbase.svga.vram_mask & ~1;
             uint16_t *p   = (uint16_t *) &nv3->nvbase.svga.vram[addr];
             *p            = (*p & 0x8000) | nv3_d3d_blend(config, color, *p, x, y);
-            nv3_d3d_frag_written++;
             nv3->nvbase.svga.changedvram[addr >> 12] = changeframecount;
         }
     }
@@ -498,10 +461,6 @@ nv3_d3d_triangle(nv3_grobj_t grobj, const nv3_d3d_vertex_t *a_in, const nv3_d3d_
 #undef NV3_D3D_DY
 
     bool     textured  = (nv3_d3d.tex_format >> 28) || ((nv3_d3d.tex_format >> 24) & 0xF);
-    if (nv3_d3d_tex_dump && textured && ((nv3_d3d.tex_format >> 28) != ((nv3_d3d.tex_format >> 24) & 0xF))) {
-        nv3_d3d_tex_dump = 0;
-        nv3_d3d_dump_texture(grobj);
-    }
     uint32_t src_color = NV3_D3D_CONFIG_SRC_COLOR(config);
     bool     argb      = NV3_D3D_CONFIG_ARGB(config);
     uint32_t fog_rgb   = nv3_d3d.fog_color & 0xFFFFFF;
@@ -685,24 +644,7 @@ nv3_class_017_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t con
                     uint32_t i1 = (nv3_d3d.fog_tri >> (t * 12 + 4)) & 0xF;
                     uint32_t i2 = (nv3_d3d.fog_tri >> (t * 12 + 8)) & 0xF;
                     if (i0 != i1 && i1 != i2 && i0 != i2) {
-                        nv3_d3d_frag_in = nv3_d3d_frag_clip = nv3_d3d_frag_written = 0;
                         nv3_d3d_triangle(grobj, &nv3_d3d.vtx[i0], &nv3_d3d.vtx[i1], &nv3_d3d.vtx[i2]);
-                        if (nv3_d3d_trace_left) {
-                            const nv3_d3d_vertex_t *a = &nv3_d3d.vtx[i0], *b = &nv3_d3d.vtx[i1], *c = &nv3_d3d.vtx[i2];
-                            nv3_d3d_trace_left--;
-                            always_log("nv3: d3d tri (%.1f,%.1f z%.3f w%.3f c%08x) (%.1f,%.1f) (%.1f,%.1f) cfg %08x filt %08x alpha %03x tex %08x/%08x ctx %08x "
-                                       "surf %06x/%d %06x/%d %06x/%d z %06x/%d fog %02x %02x %02x/%08x | frags %u clipped %u written %u%c",
-                                       a->x, a->y, a->z, a->rhw, a->color, b->x, b->y, c->x, c->y, nv3->pgraph.d3d_config, nv3_d3d.filter, nv3->pgraph.d3d_alpha,
-                                       nv3_d3d.tex_offset, nv3_d3d.tex_format, grobj.grobj_0,
-                                       nv3->pgraph.boffset[0], nv3->pgraph.bpitch[0], nv3->pgraph.boffset[1], nv3->pgraph.bpitch[1],
-                                       nv3->pgraph.boffset[2], nv3->pgraph.bpitch[2], nv3->pgraph.boffset[3], nv3->pgraph.bpitch[3],
-                                       a->fog, b->fog, c->fog, nv3_d3d.fog_color, nv3_d3d_frag_in, nv3_d3d_frag_clip, nv3_d3d_frag_written, 10);
-                            always_log("nv3: d3d tex dma %04x flags %08x limit %08x target %d page0 %08x lin %08x texels %04x %04x %04x%c",
-                                       nv3->pgraph.dma_settings & 0xFFFF, nv3_ramin_read32((nv3->pgraph.dma_settings & 0xFFFF) << 4, nv3),
-                                       nv3_ramin_read32(((nv3->pgraph.dma_settings & 0xFFFF) << 4) + 4, nv3), nv3_d3d.tex_target,
-                                       nv3_d3d.tex_pages[0], nv3_d3d.tex_lin, nv3_d3d_read_tex16(grobj, 0), nv3_d3d_read_tex16(grobj, 0x100 * 2 + 0x80),
-                                       nv3_d3d_read_tex16(grobj, 0x8000), 10);
-                        }
                     }
                 }
                 break;

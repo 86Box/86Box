@@ -31,39 +31,6 @@
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
 
-/* The last few image transfers, for the debug dump */
-#define NV3_IMAGE_TRACE 16
-static struct {
-    uint32_t cls, ctx, a, b, c, d, e;
-} nv3_image_trace[NV3_IMAGE_TRACE];
-static uint32_t nv3_image_trace_pos;
-
-void
-nv3_render_trace_image(uint32_t cls, uint32_t ctx, uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e)
-{
-    uint32_t i = nv3_image_trace_pos++ % NV3_IMAGE_TRACE;
-
-    nv3_image_trace[i].cls = cls;
-    nv3_image_trace[i].ctx = ctx;
-    nv3_image_trace[i].a   = a;
-    nv3_image_trace[i].b   = b;
-    nv3_image_trace[i].c   = c;
-    nv3_image_trace[i].d   = d;
-    nv3_image_trace[i].e   = e;
-}
-
-void
-nv3_render_dump_images(void)
-{
-    for (uint32_t n = 0; n < NV3_IMAGE_TRACE; n++) {
-        uint32_t i = (nv3_image_trace_pos + n) % NV3_IMAGE_TRACE;
-        if (!nv3_image_trace[i].cls)
-            continue;
-        always_log("nv3: image cls %02x ctx %08x %08x %08x %08x %08x %08x\n", nv3_image_trace[i].cls, nv3_image_trace[i].ctx,
-                   nv3_image_trace[i].a, nv3_image_trace[i].b, nv3_image_trace[i].c, nv3_image_trace[i].d, nv3_image_trace[i].e);
-    }
-}
-
 /* Pixels the CPU sends per 32-bit method for a colour format, and the
    width of each */
 static uint32_t
@@ -89,8 +56,6 @@ void
 nv3_render_ifc_start(void)
 {
     nv3->pgraph.image_pixel_count = 0;
-    nv3_render_trace_image(0x11, nv3->pgraph.context_switch, *(uint32_t *) &nv3->pgraph.image.point,
-                           *(uint32_t *) &nv3->pgraph.image.size, *(uint32_t *) &nv3->pgraph.image.size_in, 0, 0);
 }
 
 void
@@ -212,8 +177,6 @@ nv3_render_sifc_start(void)
     nv3_stretched_image_from_cpu_t *sifc = &nv3->pgraph.stretched_image_from_cpu;
 
     nv3->pgraph.image_pixel_count = 0;
-    nv3_render_trace_image(0x15, nv3->pgraph.context_switch, *(uint32_t *) &sifc->size_in, sifc->delta_dx_du, sifc->delta_dy_dv,
-                           *(uint32_t *) &sifc->clip_0, sifc->point12d4);
 }
 
 static int32_t

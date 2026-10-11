@@ -9,8 +9,7 @@
  *          NV3 PVIDEO - Video Overlay
  *
  *          Register meanings from NV3RM.VXD's overlay code (UpdateOverlay at
- *          file 0x56AFB, its interrupt handler at 0x57719); see
- *          NV3-DRIVER-NOTES.md.
+ *          file 0x56AFB, its interrupt handler at 0x57719).
  *
  * Authors: Connor Hyde, <mario64crashed@gmail.com> I need a better email address ;^)
  *          Marcos Alves, <xeon4d@gmail.com>
