@@ -1493,9 +1493,13 @@ load_storage_controllers(void)
         sprintf(temp, "hdc_%d", c + 1);
 
         p = ini_section_get_string(cat, temp, NULL);
-        if (p != NULL)
-            hdc_current[c] = config_known(hdc_get_from_internal_name(p), STRING_UNSUPPORTED_HDC, p);
-        else
+        if (p != NULL) {
+            /* The integrated ESDI controller became a planar device, so a config
+               that picked this from the list now means the Internal controller. */
+            const char *hdc_name = !strcmp(p, "esdi_integrated_mca") ? "internal" : p;
+
+            hdc_current[c] = config_known(hdc_get_from_internal_name(hdc_name), STRING_UNSUPPORTED_HDC, hdc_name);
+        } else
             hdc_current[c] = -1;
     }
 

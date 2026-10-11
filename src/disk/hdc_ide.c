@@ -2596,6 +2596,10 @@ ide_callback(void *priv)
            Cylinder Low = 14h, Cylinder High = EBh and Drive/Head = 00h. */
         case WIN_SRST: /*ATAPI Device Reset */
             if (ide->type == IDE_ATAPI) {
+                /* Reset the packet transfer flags as well as the signature.
+                   NT 3.5 does not rewrite Features before its first INQUIRY;
+                   a BIOS write-precompensation value must not select DMA. */
+                ide->tf->features  = 0;
                 ide->tf->error     = 1; /*Device passed*/
 
                 ide->tf->secount   = 1;

@@ -1646,12 +1646,9 @@ mfm_init(UNUSED(const device_t *info))
     /* Sectors are 1-based. */
     dev->sector = 1;
 
-    /* Enable the I/O block. The slot is fixed by the planar (in local, see
-       MFM_SLOT_MASK) unless the setting overrides it; 0 means the first free slot. */
-    int slotno = device_get_config_int("in_mfm_slot");
-
-    if (slotno == 0)
-        slotno = info->local & MFM_SLOT_MASK;
+    /* Enable the I/O block. The slot is fixed by the planar (in local,
+    see MFM_SLOT_MASK); 0 means the first free slot. */
+    const int slotno = info->local & MFM_SLOT_MASK;
 
     if (slotno != 0)
         mca_add_to_slot(mfm_mca_read, mfm_mca_write, mfm_mca_feedb, NULL, dev, slotno - 1);
@@ -1686,27 +1683,6 @@ mfm_close(void *priv)
     free(dev);
 }
 
-static device_config_t mfm_ps2_config[] = {
-    {
-        .name        = "in_mfm_slot",
-        .description = "Slot #",
-        .type        = CONFIG_SELECTION,
-        .selection   = {
-            { .description = "Auto", .value = 0 },
-            { .description = "1",    .value = 1 },
-            { .description = "2",    .value = 2 },
-            { .description = "3",    .value = 3 },
-            { .description = "4",    .value = 4 },
-            { .description = "5",    .value = 5 },
-            { .description = "6",    .value = 6 },
-            { .description = "7",    .value = 7 },
-            { .description = "8",    .value = 8 }
-        },
-        .default_int = 0
-    },
-    { .type = -1 }
-};
-
 const device_t st506_ps2_device = {
     .name          = "IBM ST506 Fixed Disk Adapter",
     .internal_name = "st506_mca",
@@ -1718,5 +1694,5 @@ const device_t st506_ps2_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = mfm_ps2_config
+    .config        = NULL
 };

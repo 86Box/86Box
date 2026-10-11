@@ -776,6 +776,10 @@ extern int             machine_at_vect486vl_init(const machine_t *);
 extern int             machine_at_d824_init(const machine_t *);
 
 /* VLSI 82C486 */
+extern int             machine_at_vect486n_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  vect486n_device;
+#endif
 extern int             machine_at_pcs44c_init(const machine_t *);
 extern int             machine_at_sensation1_init(const machine_t *);
 extern int             machine_at_tuliptc38_init(const machine_t *);
@@ -934,6 +938,9 @@ extern int             machine_at_m4li_init(const machine_t *);
 extern int             machine_at_ms4144_init(const machine_t *);
 extern int             machine_at_r418_init(const machine_t *);
 extern int             machine_at_4saw2_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  zida4dps_device;
+#endif
 extern int             machine_at_4dps_init(const machine_t *);
 
 /* UMC 8881 */

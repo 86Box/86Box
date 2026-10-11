@@ -1925,7 +1925,8 @@ pc_reset_hard_init(void)
         machine_has_flags(machine, MACHINE_PCI_INTERNAL) ||
         machine_has_flags(machine, MACHINE_AGP_INTERNAL)) {
         pci_register_cards();
-        device_reset_all(DEVICE_PCI);
+        /* The AGP slot shares the bus RST# signal. */
+        device_reset_all(DEVICE_PCI | DEVICE_AGP);
     }
 
     /* Mark IDE shadow drives (slaves with a present master) as such in case

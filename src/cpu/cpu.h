@@ -748,6 +748,16 @@ extern char *cpu_current_pc(char *bufp);
 extern void cpu_update_waitstates(void);
 extern void cpu_set(void);
 extern void cpu_tr_reset(void);
+/* Optional functional write-through i486 cache. The chipset supplies KEN# and
+   write-protect policy; unregistered machines retain the timing-only model. */
+#define CPU_CACHE_FILL          1
+#define CPU_CACHE_WRITE_PROTECT 2
+extern int  cpu_cache_enabled;
+extern void cpu_cache_set_handler(int (*policy)(uint32_t, void *), void *priv);
+extern void cpu_cache_invalidate(void);
+extern void cpu_cache_snoop(uint32_t addr, unsigned size);
+extern int  cpu_cache_read(uint32_t addr, unsigned size, int pcd, uint64_t *value);
+extern int  cpu_cache_write(uint32_t addr, unsigned size, uint64_t value);
 extern uint32_t cpu_tr_read(int reg);
 extern void cpu_tr_write(int reg, uint32_t val);
 extern void cpu_close(void);

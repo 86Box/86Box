@@ -758,6 +758,31 @@ pci_register_bus_slot(int bus, int card, int type, int inta, int intb, int intc,
     last_pci_card++;
 }
 
+/* Register one more slot on the bus a slot of the given type already
+   sits on, as the next device number, with the bus's INTA-D rotated by
+   one as a bridge does for its downstream devices. For a card that
+   presents two IDSELs on one connector (the Rage Fury MAXX: two chips
+   as AGP-bus devices 0 and 1). 1 on success, 0 when no such slot exists
+   or the table is full. */
+int
+pci_register_sibling_slot(int type)
+{
+    for (uint8_t i = 0; i < last_pci_card; i++) {
+        const pci_card_t *dev = &pci_cards[i];
+
+        if ((dev->type != type) || (last_pci_card >= PCI_CARDS_NUM)
+            || (dev->id + 1 >= PCI_CARDS_NUM)
+            || (pci_card_to_slot_mapping[dev->bus][dev->id + 1] != PCI_CARD_INVALID))
+            continue;
+        pci_register_bus_slot(dev->bus, dev->id + 1, type,
+                              dev->irq_routing[1], dev->irq_routing[2],
+                              dev->irq_routing[3], dev->irq_routing[0]);
+        return 1;
+    }
+
+    return 0;
+}
+
 static uint8_t
 pci_find_slot(uint8_t add_type, uint8_t ignore_slot)
 {

@@ -10029,6 +10029,57 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    /* The VLSI VL82C113A holds the KBC and RTC.
+       See doc/hardware/hp-vectra-486n.md for firmware and cache options. */
+    {
+        .name              = "[VLSI 82C486] HP Vectra 486N (D26xxA)",
+        .internal_name     = "vect486n",
+        .type              = MACHINE_TYPE_SOCKET1,
+        .chipset           = MACHINE_CHIPSET_VLSI_VL82C486,
+        .init              = machine_at_vect486n_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
+        .ram       = {
+            .min  = 2048,
+            .max  = 49152,
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_vectra_device,
+        .kbc_params               = 0x00000000,
+        /* The NVR is on the VLSI VL82C113. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cd0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &vect486n_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        /* Reuse the non-internal S3 86c924 for now; the AMI and HP Ultra VGA BIOSes are selectable. */
+        .vid_device               = &s3_86c924_isa_device, /* TODO: to implement the internal video configuration */
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
     /* Has a VLSI VL82C113A SCAMP Combination I/O which holds the KBC. */
     {
         .name              = "[VLSI 82C486] Olivetti PCS 44/C",
@@ -13136,8 +13187,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
         .ram       = {
-            .min  = 2048,
-            .max  = 131072,
+            .min  = 2048, /* Becomes unstable with less than this amount */
+            .max  = 262144,
             .step = 1024
         },
         .nvrmask                  = 255,
@@ -13186,7 +13237,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 1024,
-            .max  = 261120,
+            .max  = 131072,
             .step = 1024
         },
         .nvrmask                  = 255,
@@ -13233,8 +13284,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCI,
         .flags     = MACHINE_PS2_KBC | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 2048,
-            .max  = 131072,
+            .min  = 2048, /* Gets stuck at POST code D3 with less than this amount */
+            .max  = 229376, /* Gets stuck at the same code with 256 MB */
             .step = 1024
         },
         .nvrmask                  = 255,
@@ -13282,7 +13333,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 1024,
-            .max  = 131072,
+            .max  = 262144,
             .step = 1024
         },
         .nvrmask                  = 127,
@@ -13329,8 +13380,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCI,
         .flags     = MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 5120, /* Hack: machine seems to break with less than 5 MBs of RAM */
-            .max  = 131072,
+            .min  = 2048, /* Gets stuck at POST code D3 with less than this amount */
+            .max  = 65536, /* DOS does not recognize more than this amount */
             .step = 1024
         },
         .nvrmask                  = 127,
@@ -13379,7 +13430,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_PS2_KBC | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 1024,
-            .max  = 261120,
+            .max  = 262144,
             .step = 1024
         },
         .nvrmask                  = 255,
@@ -13427,8 +13478,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCIV,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 2048,
-            .max  = 261120,
+            .min  = 2048, /* Freezes during POST with less than this amount */
+            .max  = 262144,
             .step = 1024
         },
         .nvrmask                  = 255,
@@ -13476,8 +13527,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT,
         .ram       = {
-            .min  = 2048,
-            .max  = 261120,
+            .min  = 1024,
+            .max  = 131072,
             .step = 1024
         },
         .nvrmask                  = 255,
@@ -13492,13 +13543,13 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &zida4dps_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "J-Bond PCI400-02", "Taken PCI400-4", "Funworld Photo Play 2000", "" }
     },
     /* This has the UMC 88xx on-chip KBC. */
     {
@@ -20574,7 +20625,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: ATI 3D Rage II+ DVD (Mach64GT-B) */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT,
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -20595,7 +20646,7 @@ const machine_t machines[] = {
         .device                   = &an430tx_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &mach64gtb_onboard_device,
         .snd_device               = &ymf715_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "Intel Anchorage", "Micron Millennia MME", "Packard Bell PB79x", "Sony Vaio PCV-130", "Sony Vaio PCV-150", "" }

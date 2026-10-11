@@ -119,6 +119,21 @@ add_library(vid OBJECT
     vid_ati_mach64.c
     vid_ati_mach64_accel.c
     vid_ati_mach64_3d.c
+    vid_ati_rage128.c
+    vid_ati_rage128_vga.c
+    vid_ati_rage128_display.c
+    vid_ati_rage128_ov0.c
+    vid_ati_rage128_2d.c
+    vid_ati_rage128_pm4.c
+    vid_ati_rage128_3d.c
+    vid_ati_rage128_mpeg.c
+    vid_ati_rage128_raster.c
+    vid_ati_rage128_mem.c
+    vid_ati_rage128_jit.c
+    vid_ati_rage128_synctel.c
+    vid_ati_rage128_census.c
+    vid_ati_rage128_gpu.c
+    vid_ati_rage128_maxx.c
 
     # Chips & Technologies
     vid_chips_69000.c
@@ -171,6 +186,73 @@ endif()
 
 if(XL24)
     target_compile_definitions(vid PRIVATE USE_XL24)
+endif()
+
+option(ENABLE_RAGE128_LOG "Enable ATI Rage 128 debug logging" OFF)
+if(ENABLE_RAGE128_LOG)
+    set_property(SOURCE
+        vid_ati_rage128.c
+        vid_ati_rage128_vga.c
+        vid_ati_rage128_display.c
+        vid_ati_rage128_ov0.c
+        vid_ati_rage128_2d.c
+        vid_ati_rage128_pm4.c
+        vid_ati_rage128_3d.c
+        vid_ati_rage128_mpeg.c
+        vid_ati_rage128_raster.c
+        vid_ati_rage128_mem.c
+        vid_ati_rage128_jit.c
+        vid_ati_rage128_synctel.c
+        vid_ati_rage128_census.c
+        vid_ati_rage128_gpu.c
+        vid_ati_rage128_maxx.c
+        APPEND PROPERTY COMPILE_DEFINITIONS ENABLE_RAGE128_LOG=1
+    )
+endif()
+
+# ATI Rage 128: forbid FMA contraction so per-pixel coverage and texel/mip
+# selection in the software rasterizer are bit-identical across arm64 (HW FMA,
+# one rounding) and x86-64 SSE2 (mul+add, two roundings). MSVC does not
+# contract by default and does not accept the flag.
+if(NOT MSVC)
+    set_source_files_properties(
+        vid_ati_rage128.c
+        vid_ati_rage128_vga.c
+        vid_ati_rage128_display.c
+        vid_ati_rage128_ov0.c
+        vid_ati_rage128_2d.c
+        vid_ati_rage128_pm4.c
+        vid_ati_rage128_3d.c
+        vid_ati_rage128_mpeg.c
+        vid_ati_rage128_raster.c
+        vid_ati_rage128_mem.c
+        vid_ati_rage128_jit.c
+        vid_ati_rage128_synctel.c
+        vid_ati_rage128_census.c
+        vid_ati_rage128_gpu.c
+        PROPERTIES COMPILE_OPTIONS "-ffp-contract=off"
+    )
+endif()
+
+# ATI Rage 128: optional GPU raster backend (vid_ati_rage128_gpu.c) needs
+# Vulkan HEADERS only -- the library is dlopen'd at runtime (after the
+# MoltenVK/loader environment is staged), so the binary carries no Vulkan
+# link and runs unchanged on hosts without it. Without headers the
+# backend compiles to stubs and the CPU renderer is untouched.
+find_package(Vulkan QUIET)
+# Gate on the header, not on Vulkan_FOUND: find_package() also demands the
+# import library, which this backend never links. A static MinGW build narrows
+# CMAKE_FIND_LIBRARY_SUFFIXES to ".a" (src/CMakeLists.txt), which cannot match
+# MSYS2's libvulkan-1.dll.a -- so Vulkan_FOUND is false on every static Windows
+# build and the backend would stub out despite perfectly usable headers.
+# Vulkan_INCLUDE_DIR is still populated in that case, and is used as the hint.
+find_path(R128_VULKAN_INCLUDE_DIR vulkan/vulkan.h HINTS ${Vulkan_INCLUDE_DIR})
+if(R128_VULKAN_INCLUDE_DIR)
+    target_compile_definitions(vid PRIVATE R128_GPU_HAVE_VULKAN)
+    target_include_directories(vid PRIVATE ${R128_VULKAN_INCLUDE_DIR})
+    message(STATUS "Rage 128 GPU raster backend: Vulkan headers found (${R128_VULKAN_INCLUDE_DIR}), enabled (runtime dlopen)")
+else()
+    message(STATUS "Rage 128 GPU raster backend: Vulkan headers not found, stubbed out")
 endif()
 
 # 3Dfx Voodoo

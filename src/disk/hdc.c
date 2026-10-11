@@ -86,7 +86,6 @@ static const struct {
     { &esdi_at_wd1007vse1_device            },
     /* MCA */
     { &esdi_ps2_device                      },
-    { &esdi_integrated_device               },
     { &st506_ps2_device                     },  
     { &mcide_device                         },
     /* VLB */
