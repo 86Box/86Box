@@ -515,8 +515,8 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
     slirp->card = (netcard_t *) card;
 
 #ifndef _WIN32
-    slirp->pfd_size = 16 * sizeof(struct pollfd);
-    slirp->pfd      = calloc(1, slirp->pfd_size);
+    slirp->pfd_size = 16;
+    slirp->pfd      = calloc(slirp->pfd_size, sizeof(struct pollfd));
 #endif
 
     struct in_addr net;
@@ -688,6 +688,8 @@ net_slirp_close(void *priv)
     free(slirp->pkt.data);
 #ifdef _WIN32
     free(slirp->wfd);
+#else
+    free(slirp->pfd);
 #endif
     free(slirp);
 }
