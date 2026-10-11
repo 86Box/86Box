@@ -71,17 +71,15 @@ typedef struct net_slirp_t {
     netpkt_t       pkt_tx_v[SLIRP_PKT_BATCH];
     int            during_tx;
     int            recv_on_tx;
+    uint32_t       pfd_len;
+    uint32_t       pfd_size;
 #ifdef _WIN32
     HANDLE         sock_event;
-    uint32_t       wfd_len;
-    uint32_t       wfd_size;
     struct {
         slirp_os_socket fd;
         int             events;
-    }             *wfd;
+    }             *pfd;
 #else
-    uint32_t       pfd_len;
-    uint32_t       pfd_size;
     struct pollfd *pfd;
 #endif
 } net_slirp_t;
@@ -224,17 +222,17 @@ net_slirp_add_poll(int fd, int events, void *opaque)
     net_slirp_t *slirp   = (net_slirp_t *) opaque;
     long         bitmask = 0;
 
-    if (slirp->wfd_len >= slirp->wfd_size) {
-        uint32_t newsize = slirp->wfd_size + 16;
-        void    *new     = realloc(slirp->wfd, newsize * sizeof(*slirp->wfd));
+    if (slirp->pfd_len >= slirp->pfd_size) {
+        uint32_t newsize = slirp->pfd_size + 16;
+        void    *new     = realloc(slirp->pfd, newsize * sizeof(*slirp->pfd));
         if (!new)
             return -1;
-        slirp->wfd      = new;
-        slirp->wfd_size = newsize;
+        slirp->pfd      = new;
+        slirp->pfd_size = newsize;
     }
-    int idx                  = slirp->wfd_len++;
-    slirp->wfd[idx].fd     = fd;
-    slirp->wfd[idx].events = events;
+    int idx                = slirp->pfd_len++;
+    slirp->pfd[idx].fd     = fd;
+    slirp->pfd[idx].events = events;
 
     if (events & SLIRP_POLL_IN)
         bitmask |= FD_READ | FD_ACCEPT;
@@ -294,7 +292,7 @@ net_slirp_get_revents(int idx, void *opaque)
     net_slirp_t     *slirp = (net_slirp_t *) opaque;
     int              ret   = 0;
     WSANETWORKEVENTS ev;
-    if (WSAEnumNetworkEvents(slirp->wfd[idx].fd, slirp->sock_event, &ev) != 0) {
+    if (WSAEnumNetworkEvents(slirp->pfd[idx].fd, slirp->sock_event, &ev) != 0) {
         return ret;
     }
 
@@ -320,7 +318,7 @@ net_slirp_get_revents(int idx, void *opaque)
        connect() is still in progress is polled for SLIRP_POLL_OUT only, and
        recv() on it fails with WSAENOTCONN, which makes slirp reset the
        guest's connection ("Connection refused"). */
-    if ((ret == 0) && (slirp->wfd[idx].events & SLIRP_POLL_IN))
+    if ((ret == 0) && (slirp->pfd[idx].events & SLIRP_POLL_IN))
         ret |= SLIRP_POLL_IN;
 
     return ret;
@@ -416,7 +414,7 @@ net_slirp_thread(void *priv)
     while (run) {
         uint32_t timeout = -1;
 
-        slirp->wfd_len = 0;
+        slirp->pfd_len = 0;
 #    if SLIRP_CHECK_VERSION(4, 9, 0)
         slirp_pollfds_fill_socket(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
 #    else
@@ -515,10 +513,8 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
     memcpy(slirp->mac_addr, mac_addr, sizeof(slirp->mac_addr));
     slirp->card = (netcard_t *) card;
 
-#ifndef _WIN32
     slirp->pfd_size = 16;
-    slirp->pfd      = calloc(slirp->pfd_size, sizeof(struct pollfd));
-#endif
+    slirp->pfd      = calloc(slirp->pfd_size, sizeof(*slirp->pfd));
 
     struct in_addr net;
     struct in_addr host;
@@ -694,11 +690,7 @@ net_slirp_close(void *priv)
         free(slirp->pkt_tx_v[i].data);
     }
     free(slirp->pkt.data);
-#ifdef _WIN32
-    free(slirp->wfd);
-#else
     free(slirp->pfd);
-#endif
     free(slirp);
 }
 
