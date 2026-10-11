@@ -1777,6 +1777,13 @@ load_hard_disks(void)
         else
             ini_section_delete_var(cat, temp);
 
+        /* SASI */
+        sprintf(temp, "hdd_%02i_sasi_channel", c + 1);
+        if (hdd[c].bus_type == HDD_BUS_SASI)
+            hdd[c].sasi_channel = !!ini_section_get_int(cat, temp, c & 1);
+        else
+            ini_section_delete_var(cat, temp);
+
         /* ESDI */
         sprintf(temp, "hdd_%02i_esdi_channel", c + 1);
         if (hdd[c].bus_type == HDD_BUS_ESDI)
@@ -1868,6 +1875,9 @@ load_hard_disks(void)
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_xta_channel", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "hdd_%02i_sasi_channel", c + 1);
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_esdi_channel", c + 1);
@@ -4296,6 +4306,12 @@ save_hard_disks(void)
         sprintf(temp, "hdd_%02i_xta_channel", c + 1);
         if (hdd_is_valid(c) && (hdd[c].bus_type == HDD_BUS_XTA))
             ini_section_set_int(cat, temp, hdd[c].xta_channel);
+        else
+            ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "hdd_%02i_sasi_channel", c + 1);
+        if (hdd_is_valid(c) && (hdd[c].bus_type == HDD_BUS_SASI))
+            ini_section_set_int(cat, temp, hdd[c].sasi_channel);
         else
             ini_section_delete_var(cat, temp);
 

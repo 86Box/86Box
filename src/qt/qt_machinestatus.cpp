@@ -681,10 +681,11 @@ MachineStatus::refreshIcons()
     for (size_t i = 0; i < HDD_BUS_MAX; i++) {
         d->hdds[i].setActive(machine_status.hdd[i].active);
         d->hdds[i].setWriteActive(machine_status.hdd[i].write_active);
+        const int tag = (i == HDD_BUS_SASI) ? SB_SASI : (SB_HDD | i);
         if (machine_status.hdd[i].active)
-            ui_sb_update_icon(SB_HDD | i, 0);
+            ui_sb_update_icon(tag, 0);
         if (machine_status.hdd[i].write_active)
-            ui_sb_update_icon_write(SB_HDD | i, 0);
+            ui_sb_update_icon_write(tag, 0);
     }
 
     for (size_t i = 0; i < NET_CARD_MAX; i++) {

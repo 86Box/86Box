@@ -62,6 +62,8 @@ extern void ui_progress_wait(const char *message, int total,
 #define SB_NETWORK    0x80
 #define SB_SOUND      0x90
 #define SB_TEXT       0xA0
+/* SASI bus ID 16 does not fit in the status tag's four-bit item field. */
+#define SB_SASI       0xB0
 
 extern void  ui_emu_status(int speed_percent);
 extern void  ui_hard_reset_completed(void);

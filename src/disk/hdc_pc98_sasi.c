@@ -164,7 +164,7 @@ sasi_read_cb(void *priv, unsigned unit, uint32_t lba, uint32_t count,
 {
     pc98_sasi_dev_t *dev = (pc98_sasi_dev_t *) priv;
 
-    ui_sb_update_icon(SB_HDD | HDD_BUS_SASI, 1);
+    ui_sb_update_icon(SB_SASI, 1);
 
     if (unit >= PC98_SASI_MAX_UNITS || !count || count > PC98_SASI_BUF_BLOCKS ||
         lba >= dev->unit_backing_blocks[unit] || count > dev->unit_backing_blocks[unit] - lba)
@@ -206,7 +206,7 @@ sasi_write_cb(void *priv, unsigned unit, uint32_t lba, uint32_t count,
 {
     pc98_sasi_dev_t *dev = (pc98_sasi_dev_t *) priv;
 
-    ui_sb_update_icon_write(SB_HDD | HDD_BUS_SASI, 1);
+    ui_sb_update_icon_write(SB_SASI, 1);
 
     if (unit >= PC98_SASI_MAX_UNITS || !count || count > PC98_SASI_BUF_BLOCKS ||
         lba >= dev->unit_backing_blocks[unit] || count > dev->unit_backing_blocks[unit] - lba)
