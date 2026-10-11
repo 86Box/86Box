@@ -72,6 +72,12 @@ typedef struct net_slirp_t {
     int            recv_on_tx;
 #ifdef _WIN32
     HANDLE         sock_event;
+    uint32_t       wfd_len;
+    uint32_t       wfd_size;
+    struct {
+        slirp_os_socket fd;
+        int             events;
+    }             *wfd;
 #else
     uint32_t       pfd_len;
     uint32_t       pfd_size;
@@ -216,6 +222,19 @@ net_slirp_add_poll(int fd, int events, void *opaque)
 {
     net_slirp_t *slirp   = (net_slirp_t *) opaque;
     long         bitmask = 0;
+
+    if (slirp->wfd_len >= slirp->wfd_size) {
+        uint32_t newsize = slirp->wfd_size + 16;
+        void    *new     = realloc(slirp->wfd, newsize * sizeof(*slirp->wfd));
+        if (!new)
+            return -1;
+        slirp->wfd      = new;
+        slirp->wfd_size = newsize;
+    }
+    int idx                  = slirp->wfd_len++;
+    slirp->wfd[idx].fd     = fd;
+    slirp->wfd[idx].events = events;
+
     if (events & SLIRP_POLL_IN)
         bitmask |= FD_READ | FD_ACCEPT;
     if (events & SLIRP_POLL_OUT)
@@ -226,7 +245,7 @@ net_slirp_add_poll(int fd, int events, void *opaque)
         bitmask |= FD_OOB;
 
     WSAEventSelect(fd, slirp->sock_event, bitmask);
-    return fd;
+    return idx;
 }
 #else
 static int
@@ -274,7 +293,7 @@ net_slirp_get_revents(int idx, void *opaque)
     net_slirp_t     *slirp = (net_slirp_t *) opaque;
     int              ret   = 0;
     WSANETWORKEVENTS ev;
-    if (WSAEnumNetworkEvents(idx, slirp->sock_event, &ev) != 0) {
+    if (WSAEnumNetworkEvents(slirp->wfd[idx].fd, slirp->sock_event, &ev) != 0) {
         return ret;
     }
 
@@ -296,7 +315,11 @@ net_slirp_get_revents(int idx, void *opaque)
     WSA_TO_POLL(FD_CLOSE, SLIRP_POLL_IN);
     WSA_TO_POLL(FD_CLOSE, SLIRP_POLL_HUP);
 
-    if (ret == 0)
+    /* Only fall back to readable if slirp asked for it. A socket whose
+       connect() is still in progress is polled for SLIRP_POLL_OUT only, and
+       recv() on it fails with WSAENOTCONN, which makes slirp reset the
+       guest's connection ("Connection refused"). */
+    if ((ret == 0) && (slirp->wfd[idx].events & SLIRP_POLL_IN))
         ret |= SLIRP_POLL_IN;
 
     return ret;
@@ -391,6 +414,8 @@ net_slirp_thread(void *priv)
     bool run               = true;
     while (run) {
         uint32_t timeout = -1;
+
+        slirp->wfd_len = 0;
 #    if SLIRP_CHECK_VERSION(4, 9, 0)
         slirp_pollfds_fill_socket(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
 #    else
@@ -661,6 +686,9 @@ net_slirp_close(void *priv)
         free(slirp->pkt_tx_v[i].data);
     }
     free(slirp->pkt.data);
+#ifdef _WIN32
+    free(slirp->wfd);
+#endif
     free(slirp);
 }
 
