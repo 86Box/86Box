@@ -100,32 +100,6 @@ const device_config_t nv3_config[] =
         }
 
     },
-    // Multithreading configuration
-    {
-        .name = "pgraph_threads",
-        .description = "Render threads (PFIFO/PGRAPH)", 
-        .type = CONFIG_SELECTION,
-        .default_int = 1, // todo: change later
-        .selection = 
-        {
-            {
-                .description = "1 thread (Only use if issues appear with more threads)",
-                .value = 1,
-            },
-            {
-                .description = "2 threads",
-                .value = 2,
-            },
-            {   
-                .description = "4 threads",
-                .value = 4,
-            },
-            {
-                .description = "8 threads",
-                .value = 8,
-            },
-        },
-    },
 #ifndef RELEASE_BUILD
     {
         .name = "nv_debug_fulllog",
@@ -209,33 +183,6 @@ const device_config_t nv3t_config[] =
                 .files = { NV3T_VBIOS_REFERENCE_CEK_V172, "" },
            },
         }
-    },
-    // Multithreading configuration
-    {
-
-        .name = "pgraph_threads",
-        .description = "PFIFO/PGRAPH - Number of threads to split large object method execution into",
-        .type = CONFIG_SELECTION,
-        .default_int = 1, // todo: change later
-        .selection = 
-        {
-            {
-                .description = "1 thread (Only use if issues appear with more threads)",
-                .value = 1,
-            },
-            {
-                .description = "2 threads",
-                .value = 2,
-            },
-            {   
-                .description = "4 threads",
-                .value = 4,
-            },
-            {
-                .description = "8 threads",
-                .value = 8,
-            },
-        },
     },
 #ifndef RELEASE_BUILD
     {
