@@ -24,6 +24,7 @@ int machine_pc9801bx4_init(const machine_t *m) { (void)m; return 0; }
 int machine_at_nupro592_init(const machine_t *m) { (void)m; return 0; }
 int machine_at_cobalt3k_init(const machine_t *m) { (void)m; return 0; }
 int machine_at_ibm_pc700_init(const machine_t *m) { (void)m; return 0; }
+int machine_at_vect486n_init(const machine_t *m) { (void)m; return 0; }
 #include "pc98_config.inc"
 #include "pc98_profiles.inc"
 static ini_t test_ini;

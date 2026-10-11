@@ -7,6 +7,7 @@ int machine, is_nec, is386, is286 = 1;
 cpu_state_t cpu_state;
 double cpu_busspeed;
 int machine_xt_ibm5550_init(const machine_t *model) { (void)model; abort(); }
+int machine_xt_ibm5535_init(const machine_t *model) { (void)model; abort(); }
 int machine_at_wd76c10_init(const machine_t *model) { (void)model; abort(); }
 void fatal(const char *fmt, ...) { (void)fmt; abort(); }
 const machine_t machines[] = {

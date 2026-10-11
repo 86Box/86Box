@@ -80,3 +80,8 @@ occupancy and production timer-queue reset regression coverage.
 Standalone projects are `tests/video/pc98`, `tests/machine/pc98`,
 `tests/dma/pc98`, `tests/floppy/pc98` and `tests/cpu/pc98`. Generated builds,
 firmware, disks and diagnostic captures remain outside the source push.
+
+After merging `origin/main`, the Release executable builds and all seven
+focused CTest checks pass. A disposable stock-VX SASI boot reaches the
+FreeCOM date prompt. These checks establish build and boot compatibility;
+they do not establish hardware timing accuracy or measure every workload.
