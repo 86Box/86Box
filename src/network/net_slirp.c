@@ -46,6 +46,7 @@
 #    include <ws2tcpip.h>
 #else
 #    include <poll.h>
+#    include <signal.h>
 #endif
 #include <86box/net_event.h>
 
@@ -581,6 +582,13 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
         .oob_eth_addr          = { 0, 0, 0, 0, 0, 0 }
 #endif
     };
+
+#ifndef _WIN32
+    /* libslirp writes to host sockets without MSG_NOSIGNAL, so a host peer
+       closing a forwarded connection mid-transfer raises SIGPIPE, whose
+       default action kills the emulator. */
+    signal(SIGPIPE, SIG_IGN);
+#endif
 
     /* Initialize SLiRP. */
     slirp->slirp = slirp_new(&slirp_config, &slirp_cb, slirp);
