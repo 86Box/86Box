@@ -3638,7 +3638,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_FDC | MACHINE_MOUSE | MACHINE_LPT_PRI,
         .ram       = {
             .min  = 640,
-            .max  = 8832,
+            .max  = 32768,
             .step = 128
         },
         .nvrmask                  = 0,

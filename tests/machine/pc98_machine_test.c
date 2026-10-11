@@ -96,7 +96,7 @@ static void test_cpus(void)
     if (!i286 || !sx || !dx || !am_sx || !am_dx) return;
     CHECK(machines[0].type == MACHINE_TYPE_286);
     CHECK(machines[0].flags & MACHINE_MOUSE);
-    CHECK(machines[0].ram.min == 640 && machines[0].ram.max == 8832);
+    CHECK(machines[0].ram.min == 640 && machines[0].ram.max == 32768);
     CHECK(machines[0].cpu.max_bus == 33333333);
     for (cpu_override = 0; cpu_override <= 2; cpu_override++) {
         /* Check every catalogue entry, including CPUs with the same core type

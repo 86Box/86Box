@@ -234,15 +234,17 @@ static void pc98_configure_ram_map(void)
 {
     /* 86Box already models the conventional A0000h-FFFFFh hole.  PC-98
      * installed-memory sizes exclude that 384 KiB aperture, so recover the
-     * hidden backing at the top of installed RAM using the core mechanism
-     * used by AT/PS2 chipsets instead of changing mem.c globally. */
-    mem_remap_top(384);
+     * hidden backing at the top of installed RAM.  CPU upgrades with a
+     * 32-bit address bus can place this backing above 16 MiB. */
+    mem_remap_top_extended(384);
 
     const unsigned ext_kb = (mem_size > 640) ? (unsigned)(mem_size - 640) : 0u;
     if (ext_kb)
-        pclog("[PC98] RAM map: 640KB conventional + %uKB extended "
-              "(384KB hole remapped at top; configured %dKB total)\n",
-              ext_kb, mem_size);
+        pclog("[PC98] RAM map: configured %dKB total; "
+              "%uKB hole remapped at %08X\n",
+              mem_size, ram_remapped_mapping.enable ?
+              ram_remapped_mapping.size >> 10 : 0u,
+              ram_remapped_mapping.base);
     else
         pclog("[PC98] RAM map: 640KB conventional only, no extended RAM "
               "(configured %dKB)\n", mem_size);
@@ -2190,6 +2192,7 @@ static void pc98_sdip_translate(pc98_mb_t *d)
     d->dsw1 = d->sdip[0] | 1u;
     d->dsw2 = (d->sdip[1] & 0xefu) | ((d->sdip[3] & 0x20u) >> 1);
     d->dsw3 = ((d->sdip[2] & 3u) ^ 2u) | (d->sdip[2] & 0x7cu);
+    if (d->video) d->video->graph_clock_fast = !(d->dsw2 & 0x80u);
 }
 
 static void pc98_sdip_load(pc98_mb_t *d)
@@ -2607,6 +2610,7 @@ static void *pc98_mb_init(const device_t *info)
      * local display path.  SW1 bit 0 selects the normal PC-98 24 kHz display. */
     d->dsw1 = 0x01;
     d->dsw2 = 0xe3;
+    if (d->video) d->video->graph_clock_fast = !(d->dsw2 & 0x80u);
     /* DIP switch SW3.  Only SW3-1 and SW3-2 are read through BEh:
      *
      *   SW3-1  internal FD operating mode   ON: fixed      OFF: auto-switching

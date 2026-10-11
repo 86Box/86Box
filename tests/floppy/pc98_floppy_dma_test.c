@@ -3,9 +3,10 @@
 #define PC98_REAL_DMA
 #include "pc98_floppy_test.c"
 
-int is286 = 1, is_nec;
+int is286 = 1, is_nec, is386;
 static uint8_t transfer_ram[2 * 1024 * 1024];
 static unsigned memory_writes;
+static unsigned dma_stall_clocks;
 uint8_t mem_readb_phys(uint32_t address)
 { if (address >= sizeof(transfer_ram)) fatal("DMA read outside test RAM"); return transfer_ram[address]; }
 void mem_writeb_phys(uint32_t address, uint8_t value)
@@ -22,6 +23,8 @@ void refreshread_vx0(void) { fatal("Unexpected channel-zero refresh"); }
 /* There is no translated code cache or concurrent CPU in this host harness. */
 void mem_invalidate_range(uint32_t start, uint32_t end) { (void)start; (void)end; }
 void sub_cycles(int clocks) { cycles -= clocks; }
+void cpu_bus_stall(int clocks)
+{ cycles -= clocks; tsc += clocks; dma_stall_clocks += clocks; }
 void ibm5140_clock_wake(void) { fatal("Unexpected IBM portable DMA path"); }
 
 static void program_dma(pc98_mb_t *board, unsigned channel, uint16_t address, uint8_t page)
@@ -45,6 +48,7 @@ static void read_with_dma(pc98_mb_t *board, uint16_t address, uint8_t page)
     CHECK(fdd_is_ready(&drives[0]));
     program_dma(board, 2, address, page);
     const uint32_t destination = ((uint32_t)page << 16 & dma_mask) | address;
+    unsigned stalled_before = dma_stall_clocks;
     memset(transfer_ram, 0xcc, sizeof(transfer_ram));
     memory_writes = 0;
     const uint8_t specify[] = {0x03, 0xef, 0x02};
@@ -57,6 +61,7 @@ static void read_with_dma(pc98_mb_t *board, uint16_t address, uint8_t page)
     CHECK(result(board, 1, bytes) == 7);
     CHECK((bytes[0] & 0xc0) == 0 && bytes[1] == 0 && bytes[2] == 0);
     CHECK(memory_writes == 1024);
+    CHECK(dma_stall_clocks - stalled_before == 1024 * 10);
     CHECK(dma[2].cc == -1 && (dma_m & (1u << 2)));
     CHECK(!dma_get_drq(2) && !dma_get_drq(3));
     unsigned mismatches = 0;

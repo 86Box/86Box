@@ -771,6 +771,13 @@ extern void enter_smm(int in_hlt);
 extern void enter_smm_check(int in_hlt);
 extern void leave_smm(void);
 extern void exec386_2386(int32_t cycs);
+extern void cpu_bus_stall(int clocks);
+static inline void cpu_bus_retire(int clocks, uint64_t instruction_tsc)
+{
+    uint64_t advanced = tsc - instruction_tsc;
+    if (clocks > 0 && (uint64_t)clocks > advanced)
+        tsc += (uint64_t)clocks - advanced;
+}
 /* Intel Inboard 386/PC POST fix-ups - shared by both interpreter loops, and gated
    on the card actually being present (inboard386.c). */
 extern int  inboard386_present;

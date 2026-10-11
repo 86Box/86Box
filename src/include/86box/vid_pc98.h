@@ -64,6 +64,7 @@ typedef struct pc98_video_t {
 
     uint8_t cpu_page;
     uint8_t display_page;
+    uint8_t graph_clock_fast; /* Board SW2-8 clock latch, retained on reset. */
 
     uint16_t font_addr;
     uint8_t font_line;

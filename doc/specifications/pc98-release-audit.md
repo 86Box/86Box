@@ -18,8 +18,11 @@ list and original firmware on the next initialization. Details and runtime
 limits are in `pc98-vx-timer-post-bypass.md`.
 
 Ordinary PC override behavior remains available. The VX memory range is
-640–8832 KiB; configurations
-are clamped to the selected machine's limits. The experimental BX4 has its own
+640–32768 KiB in 128 KiB steps; configurations are clamped to the selected
+machine's limits. Access above 16 MiB requires a 386DX or 486 CPU upgrade;
+the stock 286 and 386SX retain their 24-bit address limit. On a CPU with a
+32-bit address bus, the conventional 384 KiB aperture is remapped above the
+configured RAM even when that address exceeds 16 MiB. The experimental BX4 has its own
 CPU, firmware and memory policy, described in `pc98-bx4-experimental.md`.
 
 The banked firmware loader accepts the existing VX layouts and checks exact

@@ -155,6 +155,7 @@ static void rop_truth_table(void)
         CHECK(pc98_egc_rop((uint8_t)truth, 0xf0f0, 0xaaaa, 0xcccc) ==
               (uint16_t)(truth | (truth << 8)));
 }
+
 static void clocked_drawing_and_fifo(void)
 {
     init_gdc();
@@ -300,7 +301,7 @@ static void rectangle_character_and_empty_work(void)
     cmd(&f.g, 0x46, &zoom, 1);
     figs(&f.g, 2, 2, 5, 8, 8, 0x3fff, 0x3fff);
     upd7220_write(&f.g, 1, 0x68);
-    upd7220_advance(&f.g, 16 + 4 * 432 - 1);
+    upd7220_advance(&f.g, 16 + 4 * 432 + 6 * 17 - 1);
     CHECK(f.writes == 471 && (f.g.sr & UPD7220_SR_DRAW));
     upd7220_advance(&f.g, 1);
     CHECK(f.writes == 472 && !(f.g.sr & UPD7220_SR_DRAW));
@@ -314,6 +315,134 @@ static void rectangle_character_and_empty_work(void)
     CHECK(f.writes == 472 && (f.g.sr & UPD7220_SR_DRAW));
     upd7220_advance(&f.g, 1);
     CHECK(f.writes == 473 && !(f.g.sr & UPD7220_SR_DRAW));
+}
+
+static void bus_fixture(unsigned mode, unsigned line, unsigned h, unsigned zoom)
+{
+    init_gdc();
+    f.g.aw = 40; f.g.hfp = 4; f.g.hs = 4; f.g.hbp = 5;
+    f.g.vbp = 25; f.g.al = 400; f.g.vfp = 7; f.g.vs = 8;
+    f.g.mode = (uint8_t)mode;
+    f.g.de = 1;
+    f.g.disp = (uint8_t)zoom;
+    upd7220_enable_bus_timing(&f.g, 1);
+    upd7220_set_bus_position(&f.g, h, (uint16_t)line);
+}
+
+/* An independent edge-by-edge oracle: each clock interval must be free,
+ * with refresh taking precedence and flashless display owning AW. */
+static int reference_free(unsigned tick, unsigned mode, unsigned de)
+{
+    unsigned h = tick % 106, line = (tick / 106) % 440;
+    if ((mode & 4) && h >= 88 && h < 96) return 0;
+    return !(de && (mode & 16) && h < 80 && line >= 25 && line < 425);
+}
+
+static void display_bus_arbitration(void)
+{
+    const unsigned modes[] = { 2, 6, 18, 22 };
+    const unsigned lines[] = { 0, 24, 25, 424, 425, 439 };
+    const unsigned starts[] = { 0, 1, 59, 61, 62, 63, 64, 65, 69, 77, 87, 105 };
+    const unsigned zooms[] = { 0, 1, 2, 15 };
+    for (unsigned m = 0; m < 4; m++)
+    for (unsigned l = 0; l < 6; l++)
+    for (unsigned s = 0; s < 12; s++)
+    for (unsigned z = 0; z < 4; z++)
+    for (unsigned de = 0; de < 2; de++) {
+        bus_fixture(modes[m], lines[l], starts[s], zooms[z]);
+        f.g.de = (uint8_t)de;
+        unsigned initial = lines[l] * 106 + starts[s];
+        unsigned cost = zooms[z] > 1 ? 2 * (zooms[z] + 1) : 4;
+        unsigned grant = initial + 18; /* FIGD preparation. */
+        for (;; grant++) {
+            if (grant & 1) continue;
+            unsigned free;
+            for (free = 0; free < cost; free++)
+                if (!reference_free(grant + free, modes[m], de)) break;
+            if (free == cost) break;
+        }
+        upd7220_write(&f.g, 1, 0x6c);
+        upd7220_advance(&f.g, grant - initial + cost - 1);
+        CHECK(f.writes == 0 && (f.g.sr & UPD7220_SR_DRAW));
+        upd7220_advance(&f.g, 1);
+        CHECK(f.writes == 1 && !(f.g.sr & UPD7220_SR_DRAW));
+        CHECK(f.g.bus_hclock == (grant + cost) % 106);
+        CHECK(f.g.bus_line == ((grant + cost) / 106) % 440);
+    }
+}
+
+static void bus_chunk_invariance_and_reset(void)
+{
+    static fixture_t other;
+    bus_fixture(22, 424, 17, 0);
+    f.g.figs.dc = 999;
+    upd7220_write(&f.g, 1, 0x6c);
+    other = f;
+    other.g.opaque = &other;
+    upd7220_advance(&f.g, 9000);
+    for (unsigned i = 0; i < 9000; i++) upd7220_advance(&other.g, 1);
+    other.g.opaque = &f;
+    CHECK(!memcmp(&f, &other, sizeof(f)));
+    CHECK(f.writes == 1000);
+    upd7220_advance(&f.g, 440u * 106u + 13u);
+    CHECK(f.g.bus_hclock == (other.g.bus_hclock + 13u) % 106u);
+    bus_fixture(22, 25, 0, 0);
+    upd7220_write(&f.g, 1, 0x6c);
+    upd7220_advance(&f.g, 18);
+    CHECK(f.g.bus_waiting && !f.writes);
+    upd7220_write(&f.g, 1, 0);
+    upd7220_advance(&f.g, 1000);
+    CHECK(!f.writes && !f.g.bus_waiting && !f.g.row_waiting);
+    upd7220_reset(&f.g);
+    CHECK(f.g.bus_timing_enabled && !f.g.bus_hclock && !f.g.bus_line);
+}
+
+static void character_row_preparation(void)
+{
+    init_gdc();
+    figs(&f.g, 2, 2, 1, 8, 8, 0x3fff, 0x3fff);
+    upd7220_write(&f.g, 1, 0x68);
+    upd7220_write(&f.g, 1, 0x47); /* Parser waits through the row gap. */
+    upd7220_write(&f.g, 0, 77);
+    upd7220_advance(&f.g, 16 + 8 * 4);
+    CHECK(f.writes == 8 && !(f.g.sr & UPD7220_SR_DRAW));
+    CHECK(f.g.row_waiting && f.g.fifo_count == 2);
+    upd7220_advance(&f.g, 5);
+    CHECK(f.writes == 8 && !(f.g.sr & UPD7220_SR_DRAW));
+    upd7220_advance(&f.g, 1);
+    CHECK((f.g.sr & UPD7220_SR_DRAW) && f.writes == 8);
+    upd7220_advance(&f.g, 8 * 4);
+    CHECK(f.writes == 16 && !(f.g.sr & UPD7220_SR_DRAW));
+    upd7220_advance(&f.g, 12);
+    CHECK(f.g.pitch == 77);
+}
+
+static void dma_blanking_windows(void)
+{
+    bus_fixture(22, 24, 61, 0);
+    upd7220_write(&f.g, 1, 0xa4);
+    upd7220_advance(&f.g, 14); /* Back porch AW: two-byte request. */
+    CHECK(f.drq && upd7220_next_event(&f.g) == 5);
+    upd7220_advance(&f.g, 5);
+    CHECK(!f.drq && f.g.dma_bytes_left == 2);
+    CHECK(upd7220_dack_read(&f.g) == 0xff && f.g.dma_bytes_left == 2);
+    upd7220_advance(&f.g, 26);
+    CHECK(!f.drq && f.g.bus_line == 25); /* Flashless AL blocked. */
+    upd7220_set_bus_position(&f.g, 0, 0);
+    CHECK(f.drq);
+    upd7220_dack_read(&f.g);
+    upd7220_dack_read(&f.g);
+    CHECK(!f.drq && !(f.g.sr & UPD7220_SR_DMA));
+    bus_fixture(6, 25, 0, 0);
+    upd7220_write(&f.g, 1, 0x24);
+    upd7220_advance(&f.g, 12);
+    CHECK(f.drq); /* Flash mode permits active display. */
+    upd7220_set_bus_position(&f.g, 0, 432);
+    CHECK(!f.drq); /* VFP/VS does not request DMA. */
+    upd7220_set_bus_position(&f.g, 0, 0);
+    upd7220_dack_write(&f.g, 0xaa);
+    upd7220_dack_write(&f.g, 0x55);
+    CHECK(f.ram[0] == 0x55aa && !f.drq);
 }
 
 static void rendering_characterization(void)
@@ -362,6 +491,56 @@ static void rendering_characterization(void)
     }
 }
 
+static void external_memory_ownership(void)
+{
+    init_gdc();
+    f.g.figs.dc = 2;
+    upd7220_write(&f.g, 1, 0x6c);
+    upd7220_advance(&f.g, 18);
+    CHECK(upd7220_host_bus_begin(&f.g) == 4);
+    upd7220_advance(&f.g, 3);
+    CHECK(!f.writes);
+    upd7220_advance(&f.g, 1);
+    CHECK(f.writes == 1 && f.g.work_index == 1 && !f.g.busy_clocks);
+    upd7220_advance(&f.g, 100);
+    CHECK(f.writes == 1); /* CPU reservation blocks subsequent memory work. */
+    upd7220_host_bus_end(&f.g);
+    upd7220_advance(&f.g, 8);
+    CHECK(f.writes == 3 && !f.g.work_kind);
+
+    init_gdc();
+    upd7220_write(&f.g, 1, 0x6c);
+    CHECK(!upd7220_host_bus_begin(&f.g)); /* Command decode uses no VRAM. */
+    upd7220_advance(&f.g, 100);
+    CHECK(!f.writes && f.g.work_kind && !f.g.busy_clocks);
+    upd7220_host_bus_end(&f.g);
+    upd7220_advance(&f.g, 4);
+    CHECK(f.writes == 1);
+
+    init_gdc();
+    f.g.aw = 80; f.g.hfp = 8; f.g.hs = 8; f.g.hbp = 10;
+    f.g.vbp = 25; f.g.al = 400; f.g.vfp = 7; f.g.vs = 8;
+    f.g.mode = 0x16; f.g.de = 1;
+    upd7220_enable_bus_timing(&f.g, 1);
+    upd7220_set_bus_position(&f.g, 0, 25);
+    upd7220_write(&f.g, 1, 0x6c);
+    upd7220_advance(&f.g, 18);
+    CHECK(f.g.bus_waiting && !upd7220_host_bus_begin(&f.g));
+    CHECK(!f.g.busy_clocks && !f.g.bus_waiting);
+    CHECK(upd7220_host_bus_wait(&f.g, 2) == 0); /* CPU glue ignores flashless. */
+    upd7220_set_bus_position(&f.g, 176, 25);
+    CHECK(upd7220_host_bus_wait(&f.g, 2) == 16);
+    upd7220_set_bus_position(&f.g, 174, 25);
+    CHECK(upd7220_host_bus_wait(&f.g, 4) == 18); /* No RMW across refresh. */
+    f.g.de = 0;
+    upd7220_set_bus_position(&f.g, 176, 0);
+    CHECK(upd7220_host_bus_wait(&f.g, 2) == 16);
+    f.g.mode &= ~4u;
+    CHECK(upd7220_host_bus_wait(&f.g, 2) == 0);
+    upd7220_reset(&f.g);
+    CHECK(!f.g.host_bus_requested); /* Reset cannot strand bus ownership. */
+}
+
 int main(void)
 {
     partial_figs(0, 0); partial_figs(0, 1);
@@ -372,6 +551,9 @@ int main(void)
     reset_recovers_full_fifo(); rdat_refill_and_abort();
     dma_word_addresses_and_reset(); long_parameter_stream();
     rectangle_character_and_empty_work(); rendering_characterization();
+    display_bus_arbitration(); bus_chunk_invariance_and_reset();
+    character_row_preparation(); dma_blanking_windows();
+    external_memory_ownership();
     printf("PC-98 graphics: %u checks, %u failures\n", checks, failures);
     return failures ? EXIT_FAILURE : EXIT_SUCCESS;
 }

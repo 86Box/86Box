@@ -1264,6 +1264,7 @@ exec386(int32_t cycs)
     int32_t  oldcyc;
     int32_t  cycle_period;
     int32_t  ins_cycles;
+    uint64_t ins_tsc;
     uint32_t addr;
 
     cycles += cycs;
@@ -1279,6 +1280,7 @@ exec386(int32_t cycs)
             int ins_fetch_fault = 0;
 #endif
             ins_cycles = cycles;
+            ins_tsc = tsc;
 
             oldcs  = CS;
             oldcpl = CPL;
@@ -1446,7 +1448,7 @@ block_ended:
             }
 
             ins_cycles -= cycles;
-            tsc += ins_cycles;
+            cpu_bus_retire(ins_cycles, ins_tsc);
 
             cycdiff = oldcyc - cycles;
 

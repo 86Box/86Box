@@ -303,12 +303,183 @@ static void draw_dot(upd7220_t *g, unsigned cycle)
     write_vram_op(g, 0, g->bitmap_mod, pattern_at(g, cycle), g->mask);
 }
 
-/* Four 2xWCLK periods per RMW cycle at display zoom 1 or 2; larger
- * display zooms lengthen the memory cycle (NEC manual section 2). This models
- * execution work, without yet arbitrating display/refresh bus slots. */
+/* NEC user's manual 2-15..2-18: four 2xWCLK periods per RMW cycle at
+ * display zoom 1 or 2; larger zooms lengthen the memory cycle. */
 static uint32_t memory_cost(const upd7220_t *g)
 {
     return g->disp > 1 ? 2u * ((uint32_t)g->disp + 1) : 4u;
+}
+
+static int bus_timing_valid(const upd7220_t *g)
+{
+    return g->bus_timing_enabled && g->aw && g->hs && g->hfp &&
+           g->hbp && g->al && g->vs;
+}
+
+static uint32_t bus_line_clocks(const upd7220_t *g)
+{
+    return ((uint32_t)g->aw + g->hfp + g->hs + g->hbp) * 2u;
+}
+
+static uint32_t bus_frame_lines(const upd7220_t *g)
+{
+    return (uint32_t)g->vbp + g->al + g->vfp + g->vs;
+}
+
+static void set_drq(upd7220_t *g, int level)
+{
+    if (g->dma_drq == !!level) return;
+    g->dma_drq = (uint8_t)!!level;
+    if (g->drq_changed) g->drq_changed(g->opaque, level);
+}
+
+static void dma_request_update(upd7220_t *g)
+{
+    int request = !!(g->sr & UPD7220_SR_DMA) && g->dma_bytes_left;
+    if (request && bus_timing_valid(g)) {
+        /* Manual 5-3: DREQ is inhibited throughout horizontal blank and
+         * VFP/VS. Flashless DMA is confined to the vertical back porch. */
+        request = g->bus_hclock < 2u * g->aw &&
+                  g->bus_line < (uint32_t)g->vbp + g->al &&
+                  (!(g->mode & 0x10u) || !g->de || g->bus_line < g->vbp);
+    }
+    set_drq(g, request);
+}
+
+static uint32_t dma_bus_event(const upd7220_t *g)
+{
+    if (!(g->sr & UPD7220_SR_DMA) || !bus_timing_valid(g)) return 0;
+    uint32_t h = g->bus_hclock % bus_line_clocks(g);
+    uint32_t aw_end = 2u * g->aw;
+    return h < aw_end ? aw_end - h : bus_line_clocks(g) - h;
+}
+
+/* AW -> HFP -> HS -> HBP. REFRESH wins even with DE clear. In flashless
+ * mode the active raster owns the bus; command decoding can still run.
+ * See NEC user's manual 2-4, 4-21 and 6-3. */
+static uint32_t bus_window(const upd7220_t *g, uint32_t h, uint32_t line,
+                            int *available)
+{
+    const uint32_t word = 2u;
+    uint32_t aw = g->aw * word;
+    uint32_t hs_start = aw + g->hfp * word;
+    uint32_t hs_end = hs_start + g->hs * word;
+    uint32_t end;
+    int refresh = h >= hs_start && h < hs_end && (g->mode & 0x04u);
+    int active = h < aw && line >= g->vbp &&
+                 line < (uint32_t)g->vbp + g->al;
+    *available = !refresh && !(active && g->de && (g->mode & 0x10u));
+    if (h < aw) end = aw;
+    else if (h < hs_start) end = hs_start;
+    else if (h < hs_end) end = hs_end;
+    else end = bus_line_clocks(g);
+    return end - h;
+}
+
+static void bus_advance(upd7220_t *g, uint32_t clocks)
+{
+    if (!bus_timing_valid(g)) return;
+    uint32_t width = bus_line_clocks(g);
+    uint64_t h = (uint64_t)g->bus_hclock + clocks;
+    g->bus_line = (uint16_t)(((uint64_t)g->bus_line + h / width) %
+                            bus_frame_lines(g));
+    g->bus_hclock = (uint32_t)(h % width);
+}
+
+/* Reserve a whole RMW operation on a display-word boundary. Never start a
+ * cycle that would run into a refresh or protected display slot. Adjacent
+ * available intervals are joined, including across a vertical-blank line.
+ * All arithmetic is in integer clock edges, not elapsed microseconds. */
+static uint32_t memory_wait_for(const upd7220_t *g, uint32_t cost, int host)
+{
+    if (!bus_timing_valid(g)) return 0;
+    const uint32_t word = 2u;
+    uint32_t width = bus_line_clocks(g);
+    uint32_t height = bus_frame_lines(g);
+    uint32_t h = g->bus_hclock % width;
+    uint32_t line = g->bus_line % height;
+    uint32_t elapsed = 0, start = 0, run = 0;
+    uint32_t limit = width * height + cost;
+    while (elapsed < limit) {
+        int available;
+        uint32_t span = bus_window(g, h, line, &available);
+        if (host) {
+            uint32_t hs_start = 2u * (g->aw + g->hfp);
+            uint32_t hs_end = hs_start + 2u * g->hs;
+            available = !(h >= hs_start && h < hs_end && (g->mode & 4u));
+        }
+        if (!available) run = 0;
+        else {
+            if (!run) {
+                uint32_t align = (word - h % word) % word;
+                if (align < span) {
+                    start = elapsed + align;
+                    run = span - align;
+                }
+            } else run += span;
+            if (run >= cost) return start;
+        }
+        elapsed += span;
+        h += span;
+        if (h == width) {
+            h = 0;
+            line = (line + 1u) % height;
+        }
+    }
+    /* Too-small intervals have no complete grant. Reconsider at the next
+     * boundary; the out-of-FIFO RESET decoder can always recover. */
+    return width - g->bus_hclock % width;
+}
+
+static uint32_t memory_wait(const upd7220_t *g)
+{
+    return memory_wait_for(g, memory_cost(g), 0);
+}
+
+uint32_t upd7220_host_bus_begin(upd7220_t *g)
+{
+    g->host_bus_requested = 1;
+    if (g->bus_waiting) {
+        /* This is a future grant, not an RMW already owning the memory. */
+        g->busy_clocks = 0;
+        g->bus_waiting = 0;
+    }
+    return g->work_kind != WORK_NONE && !g->pending_valid && !g->row_waiting
+        ? g->busy_clocks : 0;
+}
+
+uint32_t upd7220_host_bus_wait(const upd7220_t *g, uint32_t clocks)
+{
+    return memory_wait_for(g, clocks, 1);
+}
+
+void upd7220_host_bus_end(upd7220_t *g)
+{
+    g->host_bus_requested = 0;
+    engine_schedule(g);
+}
+
+void upd7220_enable_bus_timing(upd7220_t *g, int enabled)
+{
+    g->bus_timing_enabled = (uint8_t)!!enabled;
+    if (g->bus_waiting) {
+        g->bus_waiting = 0;
+        g->busy_clocks = 0;
+        engine_schedule(g);
+    }
+    dma_request_update(g);
+}
+
+void upd7220_set_bus_position(upd7220_t *g, uint32_t hclock, uint16_t line)
+{
+    g->bus_hclock = bus_timing_valid(g) ? hclock % bus_line_clocks(g) : hclock;
+    g->bus_line = bus_timing_valid(g) ? line % bus_frame_lines(g) : line;
+    if (g->bus_waiting) {
+        g->bus_waiting = 0;
+        g->busy_clocks = 0;
+        engine_schedule(g);
+    }
+    dma_request_update(g);
 }
 
 static void finish_work(upd7220_t *g)
@@ -342,6 +513,13 @@ static void figure_step(upd7220_t *g)
             g->work_index = 0;
             if (++g->work_row >= ((uint32_t)g->figs.dc + 1) * zoom)
                 finish_work(g);
+            else {
+                /* NEC manual 4-23: the DDA needs six clocks between rows,
+                 * during which DRAW goes low. The FIFO cannot decode yet. */
+                g->row_waiting = 1;
+                g->sr &= (uint8_t)~UPD7220_SR_DRAW;
+                g->busy_clocks = 6;
+            }
         }
         return;
     }
@@ -460,7 +638,7 @@ static void begin_command(upd7220_t *g, uint8_t cr)
         g->sr &= (uint8_t)~(UPD7220_SR_DRAW | UPD7220_SR_DMA);
         g->dma_bytes_left = 0;
         g->dma_phase = 0;
-        if (g->drq_changed) g->drq_changed(g->opaque, 0);
+        set_drq(g, 0);
         reset_figs(g);
         return;
     }
@@ -538,7 +716,7 @@ static void begin_command(upd7220_t *g, uint8_t cr)
         g->dma_bytes_left = ((uint32_t)g->figs.dc + 1) * (((g->dma_type & 3) == 0) ? 2u : 1u);
         g->dma_phase = 0;
         g->sr |= UPD7220_SR_DMA;
-        if (g->drq_changed) g->drq_changed(g->opaque, 1);
+        dma_request_update(g);
         g->command_active = 0;
         return;
     }
@@ -698,6 +876,7 @@ void upd7220_reset(upd7220_t *g)
     upd7220_vram_write_cb wr = g->vram_write;
     upd7220_timing_changed_cb tc = g->timing_changed;
     upd7220_signal_cb drq = g->drq_changed;
+    uint8_t bus_timing_enabled = g->bus_timing_enabled;
 
     if (drq && (g->sr & UPD7220_SR_DMA)) drq(opaque, 0);
 
@@ -707,6 +886,7 @@ void upd7220_reset(upd7220_t *g)
     g->vram_write = wr ? wr : dummy_write;
     g->timing_changed = tc;
     g->drq_changed = drq;
+    g->bus_timing_enabled = bus_timing_enabled;
     g->fifo_dir = FIFO_WRITE;
     g->sr = UPD7220_SR_EMPTY;
     g->mask = 0xffff;
@@ -721,12 +901,18 @@ static void engine_schedule(upd7220_t *g)
 {
     if (g->busy_clocks) return;
     if (g->work_kind != WORK_NONE) {
-        g->busy_clocks = memory_cost(g);
+        if (g->host_bus_requested) return;
+        g->busy_clocks = memory_wait(g);
+        g->bus_waiting = (uint8_t)!!g->busy_clocks;
+        if (!g->busy_clocks) g->busy_clocks = memory_cost(g);
     } else if (g->fifo_dir == FIFO_READ) {
         unsigned bytes = g->transfer_type == 0 ? 2 : 1;
         if (g->transfer_words_left && g->fifo_count <= 16 - bytes) {
+            if (g->host_bus_requested) return;
             g->work_kind = WORK_RDAT;
-            g->busy_clocks = memory_cost(g);
+            g->busy_clocks = memory_wait(g);
+            g->bus_waiting = (uint8_t)!!g->busy_clocks;
+            if (!g->busy_clocks) g->busy_clocks = memory_cost(g);
         }
     } else if (!(g->sr & UPD7220_SR_DMA) && g->fifo_count) {
         int flag;
@@ -750,10 +936,12 @@ void upd7220_write(upd7220_t *g, unsigned offset, uint8_t data)
         fifo_clear(g);
         g->fifo_dir = FIFO_WRITE;
         g->pending_valid = 0;
+        g->bus_waiting = 0;
+        g->row_waiting = 0;
         g->work_kind = WORK_NONE;
         g->transfer_words_left = g->dma_bytes_left = 0;
         g->sr &= (uint8_t)~(UPD7220_SR_DRAW | UPD7220_SR_DMA);
-        if (g->drq_changed) g->drq_changed(g->opaque, 0);
+        set_drq(g, 0);
         begin_command(g, data);
         g->busy_clocks = command_cost(data);
         return;
@@ -766,6 +954,7 @@ void upd7220_write(upd7220_t *g, unsigned offset, uint8_t data)
         if (g->work_kind == WORK_RDAT) {
             g->work_kind = WORK_NONE;
             g->busy_clocks = 0;
+            g->bus_waiting = 0;
         }
         fifo_direction(g, FIFO_WRITE);
     }
@@ -790,7 +979,7 @@ uint8_t upd7220_read(upd7220_t *g, unsigned offset)
 
 void upd7220_dack_write(upd7220_t *g, uint8_t data)
 {
-    if (!(g->sr & UPD7220_SR_DMA) || !g->dma_bytes_left) return;
+    if (!(g->sr & UPD7220_SR_DMA) || !g->dma_bytes_left || !g->dma_drq) return;
 
     if ((g->dma_type & 3) == 0) {
         if (!g->dma_phase) {
@@ -810,14 +999,14 @@ void upd7220_dack_write(upd7220_t *g, uint8_t data)
 
     if (--g->dma_bytes_left == 0) {
         g->sr &= (uint8_t)~UPD7220_SR_DMA;
-        if (g->drq_changed) g->drq_changed(g->opaque, 0);
+        set_drq(g, 0);
         engine_schedule(g);
     }
 }
 
 uint8_t upd7220_dack_read(upd7220_t *g)
 {
-    if (!(g->sr & UPD7220_SR_DMA) || !g->dma_bytes_left) return 0xff;
+    if (!(g->sr & UPD7220_SR_DMA) || !g->dma_bytes_left || !g->dma_drq) return 0xff;
 
     uint16_t v = vram_read(g, g->ead);
     uint8_t out;
@@ -832,7 +1021,7 @@ uint8_t upd7220_dack_read(upd7220_t *g)
 
     if (--g->dma_bytes_left == 0) {
         g->sr &= (uint8_t)~UPD7220_SR_DMA;
-        if (g->drq_changed) g->drq_changed(g->opaque, 0);
+        set_drq(g, 0);
         engine_schedule(g);
     }
     return out;
@@ -859,10 +1048,23 @@ void upd7220_set_retrace(upd7220_t *g, int hblank, int vsync)
 void upd7220_advance(upd7220_t *g, uint32_t clocks)
 {
     engine_schedule(g);
-    while (g->busy_clocks && clocks >= g->busy_clocks) {
-        clocks -= g->busy_clocks;
-        g->busy_clocks = 0;
-        if (g->pending_valid) {
+    while (clocks) {
+        uint32_t step = clocks;
+        uint32_t bus_event = dma_bus_event(g);
+        if (g->busy_clocks && g->busy_clocks < step) step = g->busy_clocks;
+        if (bus_event && bus_event < step) step = bus_event;
+        clocks -= step;
+        bus_advance(g, step);
+        dma_request_update(g);
+        if (!g->busy_clocks) continue;
+        g->busy_clocks -= step;
+        if (g->busy_clocks) continue;
+        if (g->row_waiting) {
+            g->row_waiting = 0;
+            g->sr |= UPD7220_SR_DRAW;
+        } else if (g->bus_waiting) {
+            g->bus_waiting = 0;
+        } else if (g->pending_valid) {
             uint8_t byte = g->pending_byte;
             bool command = !!g->pending_command;
             g->pending_valid = 0;
@@ -876,12 +1078,13 @@ void upd7220_advance(upd7220_t *g, uint32_t clocks)
         }
         engine_schedule(g);
     }
-    if (g->busy_clocks) g->busy_clocks -= clocks;
 }
 
 uint32_t upd7220_next_event(const upd7220_t *g)
 {
-    return g->busy_clocks;
+    uint32_t bus_event = dma_bus_event(g);
+    return !bus_event ? g->busy_clocks : !g->busy_clocks ? bus_event :
+           bus_event < g->busy_clocks ? bus_event : g->busy_clocks;
 }
 
 void upd7220_get_graphics_partition(const upd7220_t *g, unsigned index,

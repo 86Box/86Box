@@ -117,6 +117,7 @@ typedef struct upd7220_t {
     uint8_t dma_type;
     uint8_t dma_mod;
     uint8_t dma_phase;
+    uint8_t dma_drq;
     uint16_t dma_data;
     uint32_t dma_bytes_left;
 
@@ -128,6 +129,16 @@ typedef struct upd7220_t {
     uint8_t pending_valid;
     uint8_t pending_byte;
     uint8_t pending_command;
+
+    /* Display-memory arbiter clocked by the same 2xWCLK as execution.
+     * Horizontal position starts at AW; vertical position starts at VBP.
+     * Glue opts in after providing the board's sync source. */
+    uint8_t bus_timing_enabled;
+    uint8_t bus_waiting;
+    uint8_t row_waiting;
+    uint8_t host_bus_requested;
+    uint32_t bus_hclock;
+    uint16_t bus_line;
 
     /* Incremental memory execution. The command processor waits while this
      * engine runs, leaving the input FIFO available to the host. */
@@ -156,8 +167,18 @@ uint8_t upd7220_dack_read(upd7220_t *gdc);
 void upd7220_lpen(upd7220_t *gdc, int level, uint32_t current_word_addr);
 void upd7220_set_retrace(upd7220_t *gdc, int hblank, int vsync);
 void upd7220_advance(upd7220_t *gdc, uint32_t two_x_wclk_periods);
-/* Zero when idle or waiting for the host to drain a full read FIFO. */
+/* Zero when idle or waiting for the host to drain a full read FIFO;
+ * an active DMA also schedules its next DREQ gating edge. */
 uint32_t upd7220_next_event(const upd7220_t *gdc);
+void upd7220_enable_bus_timing(upd7220_t *gdc, int enabled);
+void upd7220_set_bus_position(upd7220_t *gdc, uint32_t hclock,
+                              uint16_t line);
+/* External memory arbiter: finish a granted GDC RMW, hold subsequent
+ * memory work, then find a host cycle outside refresh. The board, rather
+ * than the GDC's flashless bit, owns CPU/display fetch arbitration. */
+uint32_t upd7220_host_bus_begin(upd7220_t *gdc);
+uint32_t upd7220_host_bus_wait(const upd7220_t *gdc, uint32_t clocks);
+void upd7220_host_bus_end(upd7220_t *gdc);
 
 void upd7220_get_graphics_partition(const upd7220_t *gdc, unsigned index,
                                     upd7220_partition_t *out);
