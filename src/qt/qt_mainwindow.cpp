@@ -1669,6 +1669,22 @@ MainWindow::FindAcceleratorSeq(const char *name)
     return (QKeySequence::fromString(acc_keys[accID].seq));
 }
 
+// Check whether a key event triggers an accelerator
+bool
+MainWindow::keyMatchesAccelerator(const QKeyEvent *ke, const char *name)
+{
+    const QKeySequence seq = FindAcceleratorSeq(name);
+
+    /* An unbound accelerator never matches. Some key events carry no key code
+       (such as the second character from a doubled dead key on Windows), and
+       those would otherwise compare equal to every empty sequence. */
+    if (seq.isEmpty())
+        return false;
+
+    return ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == seq)
+        || ((QKeySequence) (ke->key() | ke->modifiers()) == seq);
+}
+
 #include <iostream>
 
 bool
@@ -1705,8 +1721,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         // because it's not a menu accelerator.
         QKeyEvent *ke = (QKeyEvent *) event;
         if (mouse_capture) {
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("release_mouse")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("release_mouse")) {
+            if (keyMatchesAccelerator(ke, "release_mouse")) {
                 /* Prevent an Alt-based shortcut from looking like a standalone
                  * Alt press to the guest when the held modifiers are released. */
                 this->keyReleaseEvent(ke);
@@ -1720,64 +1735,49 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         this->keyPressEvent(ke);
 
         if (event->type() == QEvent::KeyPress && video_fullscreen != 0) {
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("screenshot")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("screenshot")) {
+            if (keyMatchesAccelerator(ke, "screenshot")) {
                 ui->actionTake_screenshot->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("raw_screenshot")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("raw_screenshot")) {
+            if (keyMatchesAccelerator(ke, "raw_screenshot")) {
                 ui->actionTake_raw_screenshot->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("copy_screenshot")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("copy_screenshot")) {
+            if (keyMatchesAccelerator(ke, "copy_screenshot")) {
                 ui->actionCopy_screenshot->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("copy_raw_screenshot")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("copy_raw_screenshot")) {
+            if (keyMatchesAccelerator(ke, "copy_raw_screenshot")) {
                 ui->actionCopy_raw_screenshot->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("fullscreen")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("fullscreen")) {
+            if (keyMatchesAccelerator(ke, "fullscreen")) {
                 ui->actionFullscreen->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("toggle_osd")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("toggle_osd")) {
+            if (keyMatchesAccelerator(ke, "toggle_osd")) {
                 ui->actionToggle_OSD->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("hard_reset")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset")) {
+            if (keyMatchesAccelerator(ke, "hard_reset")) {
                 ui->actionHard_Reset->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("fast_forward")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("fast_forward")) {
+            if (keyMatchesAccelerator(ke, "fast_forward")) {
                 ui->actionFast_forward->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("send_ctrl_alt_del")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_del")) {
+            if (keyMatchesAccelerator(ke, "send_ctrl_alt_del")) {
                 ui->actionCtrl_Alt_Del->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("send_ctrl_alt_esc")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_esc")) {
+            if (keyMatchesAccelerator(ke, "send_ctrl_alt_esc")) {
                 ui->actionCtrl_Alt_Esc->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("nmi")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("nmi")) {
+            if (keyMatchesAccelerator(ke, "nmi")) {
                 ui->actionNon_maskable_interrupt->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("pause")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("pause")) {
+            if (keyMatchesAccelerator(ke, "pause")) {
                 ui->actionPause->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("mute")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("mute")) {
+            if (keyMatchesAccelerator(ke, "mute")) {
                 ui->actionMute_Unmute->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("exit")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("exit")) {
+            if (keyMatchesAccelerator(ke, "exit")) {
                 ui->actionExit->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("toggle_ui_fullscreen")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("toggle_ui_fullscreen")) {
+            if (keyMatchesAccelerator(ke, "toggle_ui_fullscreen")) {
                 toggleFullscreenUI();
             }
 
