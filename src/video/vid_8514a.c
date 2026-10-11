@@ -3292,8 +3292,9 @@ patt_row:
                             dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
 
                             if (ATI_GRAPHICS_ULTRA) {
-                                if ((dev->accel.cmd & 0x10) && (dev->accel.sy ? ((dev->accel.cmd & 0x40) || (dev->accel.err_term >= 0)) : !(dev->accel.cmd & 0x04)))
+                                if ((dev->accel.cmd & 0x10) && (dev->accel.sy ? ((dev->accel.cmd & 0x40) || (dev->accel.err_term >= 0)) : !(dev->accel.cmd & 0x04))) {
                                     WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                }
                             } else if ((dev->accel.cmd & 0x14) == 0x14) {
                                 if (dev->accel.sy) {
                                     if (dev->accel.oldcy != dev->accel.cy) {
