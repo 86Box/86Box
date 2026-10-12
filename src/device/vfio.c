@@ -1326,8 +1326,9 @@ vfio_quirk_remap(vfio_device_t *dev, vfio_region_t *bar, uint8_t enable)
                     /* There's a configuration space mirror in here as well. */
                     vfio_quirk_configmirror(dev, bar, i + 0x8000, 0, enable);
 
-                    /* Subsystem Control/Status and Advanced Function Control. */
+                    /* Subsystem Control/Status, Video Subsystem Enable and Advanced Function Control. */
                     vfio_quirk_iomirror(dev, bar, i + 0x8504 - 0x42e8, 0x42e8, 2, enable);
+                    vfio_quirk_iomirror(dev, bar, i + 0x8508 - 0x46e8, 0x46e8, 2, enable);
                     vfio_quirk_iomirror(dev, bar, i + 0x850c - 0x4ae8, 0x4ae8, 2, enable);
 
                     /* Main port list from vid_s3.c */
