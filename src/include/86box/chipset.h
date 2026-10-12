@@ -200,6 +200,9 @@ extern const device_t stpc_lpt_device;
 /* Symphony */
 extern const device_t sl82c461_device;
 
+/* Texas Instruments */
+extern const device_t tact83000_device;
+
 /* UMC */
 extern const device_t umc_8886f_device;
 extern const device_t umc_8886af_device;

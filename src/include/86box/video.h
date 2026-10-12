@@ -507,6 +507,7 @@ extern const device_t incolor_device;
 
 /* Headland GC-2xx/HT-2xx */
 extern const device_t g2_gc205_device;
+extern const device_t v7_vga_vect386n_device;
 extern const device_t v7_vga_1024i_device;
 extern const device_t v7_vram_2_ergo_device;
 extern const device_t radius_svga_multiview_mca_device;

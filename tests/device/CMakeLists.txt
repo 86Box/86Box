@@ -47,3 +47,23 @@ if(BUILD_TESTING)
     include(GoogleTest)
     gtest_discover_tests(kbc_vectra_tests)
 endif()
+
+if(BUILD_TESTING)
+    add_executable(tact83000_test tact83000_test.c)
+    target_include_directories(tact83000_test PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    add_test(NAME tact83000_test COMMAND tact83000_test)
+endif()
+
+if(BUILD_TESTING)
+    add_executable(vect386n_test vect386n_test.c)
+    target_include_directories(vect386n_test PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    add_test(NAME vect386n_test COMMAND vect386n_test)
+endif()

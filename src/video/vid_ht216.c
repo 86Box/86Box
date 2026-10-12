@@ -2300,3 +2300,25 @@ const device_t ht216_standalone_device = {
     .force_redraw  = ht216_force_redraw,
     .config        = NULL
 };
+
+static void *
+v7_vga_vect386n_init(const device_t *info)
+{
+    ht216_t *dev = ht216_init(info, 256 << 10, 0);
+    rom_init(&dev->bios_rom, "roms/machines/vect386n/HP_Vectra_386-20_D2480_BIOS.BIN",
+             0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    return dev;
+}
+
+const device_t v7_vga_vect386n_device = {
+    .name          = "HP Super VGA (Vectra 386N)",
+    .internal_name = "v7_vga_vect386n",
+    .flags         = DEVICE_ISA,
+    .local         = 0x7140,
+    .init          = v7_vga_vect386n_init,
+    .close         = ht216_close,
+    .reset         = ht216_reset,
+    .speed_changed = ht216_speed_changed,
+    .force_redraw  = ht216_force_redraw,
+    .config        = NULL
+};

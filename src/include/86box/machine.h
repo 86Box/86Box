@@ -297,6 +297,7 @@ enum {
     MACHINE_CHIPSET_STPC_ELITE,
     MACHINE_CHIPSET_STPC_ATLAS,
     MACHINE_CHIPSET_SYMPHONY_SL82C460,
+    MACHINE_CHIPSET_TI_TACT83000,
     MACHINE_CHIPSET_UMC_UM82C480,
     MACHINE_CHIPSET_UMC_UM82C491,
     MACHINE_CHIPSET_UMC_UM8881,
@@ -593,6 +594,9 @@ extern int             machine_at_spc4200p_init(const machine_t *);
 extern int             machine_at_spc4216p_init(const machine_t *);
 extern int             machine_at_spc4620p_init(const machine_t *);
 extern int             machine_at_senor_scat286_init(const machine_t *);
+
+/* m_at_vect386n.c */
+extern int             machine_at_vect386n_init(const machine_t *);
 
 /* m_at_386sx.c */
 /* ISA */

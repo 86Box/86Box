@@ -89,6 +89,7 @@ add_library(chipset OBJECT
     sis_55xx.c
     sl82c461.c
     stpc.c
+    tact83000.c
     via_vt82c49x.c
     via_vt82c505.c
     umc_8886.c
