@@ -246,6 +246,39 @@ pci_get_int(uint8_t slot, uint8_t pci_int)
     return pci_cards[slot].irq_routing[pci_int - PCI_INTA];
 }
 
+/* Get the IRQ line a PCI card's interrupt pin currently reaches, or 0xff if none.
+   This follows the PCI card path of pci_irq(). */
+uint8_t
+pci_get_irq_line(uint8_t slot, uint8_t pci_int)
+{
+    uint8_t irq_routing;
+    uint8_t irq_line;
+
+    if ((slot > PCI_CARD_MAX) || !last_pci_card || (pci_int < PCI_INTA) || (pci_int > PCI_INTD))
+        return 0xff;
+
+    if (pci_flags & FLAG_NO_IRQ_STEERING)
+        irq_line = pci_cards[slot].read(0, 0x3c, 1, pci_cards[slot].priv);
+    else {
+        irq_routing = pci_cards[slot].irq_routing[pci_int - PCI_INTA];
+
+        switch (irq_routing) {
+            default:
+                return 0xff;
+
+            case 0x01 ... PCI_IRQS_NUM:
+                irq_line = pci_irqs[(irq_routing - PCI_INTA) & PCI_IRQ_MAX];
+                break;
+
+            case (PCI_DIRQ_BASE | 0x00) ... (PCI_DIRQ_BASE | PCI_DIRQ_MAX):
+                irq_line = slot & PCI_IRQ_MAX;
+                break;
+        }
+    }
+
+    return (irq_line > PCI_IRQ_MAX) ? 0xff : irq_line;
+}
+
 static void
 pci_clear_slot(int card)
 {
