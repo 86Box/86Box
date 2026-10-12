@@ -174,8 +174,6 @@ nv3_render_blit_screen2screen(nv3_grobj_t grobj)
 void
 nv3_render_sifc_start(void)
 {
-    nv3_stretched_image_from_cpu_t *sifc = &nv3->pgraph.stretched_image_from_cpu;
-
     nv3->pgraph.image_pixel_count = 0;
 }
 

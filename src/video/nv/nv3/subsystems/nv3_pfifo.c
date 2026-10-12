@@ -786,7 +786,6 @@ void nv3_pfifo_context_switch(uint32_t new_channel)
 void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
 {
     bool oh_shit = false;   // RAMRO needed
-    nv3_ramin_ramro_reason oh_shit_reason = 0x00; // It's all good for now
 
     // bit 23 of a ramin dword means it's a write...
     uint32_t new_address = 0;
@@ -801,7 +800,6 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
     if (!nv3->pfifo.cache1_settings.push0 && !nv3_pfifo_dma_pusher_active)
     {
         oh_shit = true; 
-        oh_shit_reason = nv3_runout_reason_no_cache_available;
         new_address |= (nv3_runout_reason_no_cache_available << NV3_PFIFO_RUNOUT_RAMIN_ERR);
     }
     
@@ -809,7 +807,6 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
     if (nv3->pfifo.runout_get != nv3->pfifo.runout_put)
     {
         oh_shit = true;
-        oh_shit_reason = nv3_runout_reason_cache_ran_out; // ? really ? I guess this means we already ran out..
         new_address |= (nv3_runout_reason_cache_ran_out << NV3_PFIFO_RUNOUT_RAMIN_ERR);
     }
 
@@ -817,7 +814,6 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
     if (!nv3_pfifo_cache1_num_free_spaces())
     {
         oh_shit = true;
-        oh_shit_reason = nv3_runout_reason_free_count_overrun;
         new_address |= (nv3_runout_reason_free_count_overrun << NV3_PFIFO_RUNOUT_RAMIN_ERR);
     }
 
@@ -825,7 +821,6 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
     if (method_offset > 0 && method_offset < 0x100)
     {
         oh_shit = true; 
-        oh_shit_reason = nv3_runout_reason_reserved_access;
         new_address |= (nv3_runout_reason_reserved_access << NV3_PFIFO_RUNOUT_RAMIN_ERR);
     }
 
@@ -838,7 +833,6 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
         || (nv3->pfifo.cache1_settings.get_address != nv3->pfifo.cache1_settings.put_address))
         {
             oh_shit = true;
-            oh_shit_reason = nv3_runout_reason_no_cache_available;
             new_address |= (nv3_runout_reason_no_cache_available << NV3_PFIFO_RUNOUT_RAMIN_ERR);
         }
         else if (nv3->pfifo.cache1_settings.push0)
