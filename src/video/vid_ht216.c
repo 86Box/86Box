@@ -2305,7 +2305,7 @@ static void *
 v7_vga_vect386n_init(const device_t *info)
 {
     ht216_t *dev = ht216_init(info, 256 << 10, 0);
-    rom_init(&dev->bios_rom, "roms/machines/vect386n/HP_Vectra_386-20_D2480_BIOS.BIN",
+    rom_init(&dev->bios_rom, "roms/machines/vect386n/vga.bin",
              0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     return dev;
 }

@@ -135,8 +135,11 @@ static const device_t vect386n_board_device = {
 int
 machine_at_vect386n_init(const machine_t *model)
 {
-    int ret = bios_load_linear("roms/machines/vect386n/HP_Vectra_386-20_D2480_BIOS.BIN",
-                               0x000e0000, 131072, 0);
+    /* Reserve the full 128 KB decode while loading setup and BIOS at E8000. */
+    int ret = bios_load_linear("roms/machines/vect386n/l0305.bin",
+                               0x000e8000, 131072, 0);
+    ret &= bios_load_aux_linear("roms/machines/vect386n/vga.bin",
+                                0x000e0000, 32768, 0);
     if (bios_only || !ret)
         return ret;
 

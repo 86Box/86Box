@@ -1,6 +1,7 @@
 /* HP 386N indexed controller: model selection and firmware register accesses. */
 #undef NDEBUG
 #include <assert.h>
+#include <string.h>
 #include "../../src/machine/m_at_vect386n.c"
 
 CPU            *cpu_s;
@@ -8,6 +9,8 @@ uint8_t        *rom;
 int             bios_only, gfxcard[GFXCARD_MAX];
 const device_t  nmc93cxx_device = { 0 }, pc87310_device = { 0 }, tact83000_device = { 0 }, v7_vga_vect386n_device = { 0 };
 static unsigned indexed_handlers;
+static unsigned bios_loads, board_inits;
+static int missing_rom;
 void *
 device_add(const device_t *d)
 {
@@ -39,17 +42,21 @@ void
 machine_at_ps2_init(const machine_t *m)
 {
     (void) m;
+    board_inits++;
 }
 int
 bios_load(const char *a, const char *b, uint32_t c, int d, int e, int f)
 {
-    (void) a;
-    (void) b;
-    (void) c;
-    (void) d;
-    (void) e;
-    (void) f;
-    return 1;
+    assert(b == NULL && e == 0);
+    if (bios_loads++ == 0) {
+        assert(strcmp(a, "roms/machines/vect386n/l0305.bin") == 0);
+        assert(c == 0xe8000 && d == 0x20000 && f == 0);
+        return missing_rom != 1;
+    }
+    assert(bios_loads == 2);
+    assert(strcmp(a, "roms/machines/vect386n/vga.bin") == 0);
+    assert(c == 0xe0000 && d == 0x8000 && f == FLAG_AUX);
+    return missing_rom != 2;
 }
 void
 mem_mapping_add(mem_mapping_t *m, uint32_t b, uint32_t sz,
@@ -106,6 +113,16 @@ main(void)
 {
     CPU cpu = { 0 };
     cpu_s   = &cpu;
+    /* Both split images are required for detection and normal startup. */
+    for (bios_only = 0; bios_only <= 1; bios_only++) {
+        for (missing_rom = 0; missing_rom <= 2; missing_rom++) {
+            bios_loads = board_inits = 0;
+            assert(machine_at_vect386n_init(NULL) == (missing_rom == 0));
+            assert(bios_loads == 2);
+            assert(board_inits == (!bios_only && !missing_rom));
+        }
+    }
+    bios_only = 0;
     for (unsigned mhz = 16; mhz <= 20; mhz += 4) {
         cpu.rspeed          = mhz * 1000000;
         indexed_handlers    = 0;
