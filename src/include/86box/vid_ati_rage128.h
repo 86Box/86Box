@@ -55,6 +55,9 @@
 #include <86box/timer.h>
 #include <86box/vid_svga.h>
 
+/* The emulator's rasterizer worker option supports counts from 1 to 4. */
+#define RAGE128_MAX_RENDER_THREADS 4
+
 #ifdef ENABLE_RAGE128_LOG
 extern int rage128_do_log;
 
@@ -671,12 +674,39 @@ typedef struct rage128_t {
                                      executing up to                              */
     uint32_t cce_retire_pending;  /* read pointer of the dwords popped so far for
                                 the current packet; owned by the CCE thread.
-                                The CPU thread stores it only while the
-                                executor is stopped (device reset, DL_RPTR
-                                write, GUI reset). It is copied to
-                                cce_retire_rptr only after the packet has run,
+                                The CPU thread stores it after packet work
+                                is drained (device reset, DL_RPTR write) or
+                                with the executor parked (GUI reset). It is
+                                copied to cce_retire_rptr only after the packet has run,
                                 so a type-3 draw is not reported complete
                                 before it has been drawn.                     */
+    atomic_uint cce_retire_done; /* cce_retire_pending at the end of the last
+                                     packet that has finished. The CCE thread
+                                     advances it and CPU reset paths store it.
+                                     Atomic accesses cover idle retirement
+                                     passes that can follow a drain.              */
+    uint32_t cce_retire_hold;     /* While the parallel rasterizer holds a deferred
+                                     batch, the retire pointer published is this
+                                     value, the position before the packet that
+                                     queued the oldest draw not yet drawn, so the
+                                     host's read-pointer copy never reports a draw
+                                     done before its pixels are in memory. A
+                                     modeled boundary: it can lag a little when a
+                                     batch is drawn and a new one starts inside
+                                     the same packet. CCE thread.                 */
+    atomic_int cce_retire_held;   /* 1 while cce_retire_hold is what is published;
+                                     atomic because a drain permits idle
+                                     retirement passes during CPU reset stores.   */
+    uint32_t cce_scratch_pend[6]; /* GUI_SCRATCH_REG0-5 values written by the
+                                     command stream behind a deferred raster
+                                     batch; they become readable when the batch
+                                     is flushed, as the chip's in-order write
+                                     lands after the draw. Bit n of the mask
+                                     marks a pending value. Read and written
+                                     under raster_flush_mtx, except in a GUI
+                                     reset, which drops the mask with the
+                                     executor parked.                             */
+    uint32_t cce_scratch_pend_mask;
     uint8_t  cce_pop_tag;         /* tag of the last ring dword popped; CCE thread */
     uint32_t cce_shadow_last;     /* last read pointer written to the host's
                                      read-pointer copy; CPU (submit) thread    */
@@ -697,8 +727,6 @@ typedef struct rage128_t {
                                  does not read idle while workers still owe
                                  pixels (render_threads > 1).               */
     atomic_int cce_drain_req;     /* CPU thread is waiting for idle */
-    atomic_int cce_room_req;      /* CPU thread is waiting for FIFO room: ends a
-                                     pacer hold early, never a flip stall */
     atomic_int cce_flip_stalled;  /* executor is inside a WAIT_UNTIL flip stall */
     atomic_int cce_abort;         /* dead bus or engine reset: drop the current
                                      packet */
@@ -741,27 +769,11 @@ typedef struct rage128_t {
     event_t   *cce_flip_event; /* vsync consumed a pending flip */
     pc_timer_t cce_pump_timer; /* resumes ring->FIFO copy       */
 
-    /* Realtime pacer. It keeps emulation speed at 100% by making the
-       engine take longer: the guest sees a slower card, never a slower
-       machine. At each vsync, once at least 250 ms of wall time have
-       passed, the controller compares wall time with emulated time over
-       that window and adjusts a hold applied at every flip
-       (pace_hold_us). Slip past the band raises the hold by three times
-       the excess (at most 25 ms a window); a window inside the band
-       lowers it by three times the distance below the band edge, or by
-       a small floor of hold / 32 + 200 us when that is larger; a window
-       with no 3D rendering lowers it by 2 ms. The hold is clamped to
-       0-100 ms, and the CCE thread sleeps it off at each flip. The frame
-       rate therefore settles at the highest the host can carry at 100%
-       speed, and with spare host time the hold falls to zero and costs
-       nothing. Only windows with 3D rendering raise the hold, so slip
-       while booting or drawing 2D does not slow the first frames of a
-       session. The hold is never lifted to recover frame rate: if the
-       CPU side alone runs slow, the hold sits at its maximum and the
-       slip it cannot remove is what the window reports. */
-    int      pace_enabled;    /* "realtime_pacing": 0 off, else on */
-    int      pace_band_x;     /* slip band, us per wall ms (5 = 0.5%) */
-    uint64_t pace_emu_us_tot; /* emulated us over all control windows */
+    /* Emulation speed window, kept by the display block: at each vsync,
+       once at least 250 ms of wall time have passed, emulated time over
+       that window is compared with wall time and logged as the
+       emulation speed. The totals give the run's average at close. */
+    uint64_t pace_emu_us_tot; /* emulated us over all windows */
     /* Time the CPU thread spends waiting for the engine to go idle inside
        a CRTC_OFFSET flip write, the per-frame present barrier for clients
        that flip without a WAIT_UNTIL (the Quake III driver does). Summed
@@ -836,18 +848,9 @@ typedef struct rage128_t {
     uint64_t   conv_rows_win; /* rows served from conv_buf, per window */
     uint64_t   conv_mismatch;
     uint64_t   conv_transient;   /* verify: line changed under the compare */
-    uint64_t   pace_wall_ms_tot; /* wall ms over all control windows */
-    atomic_int pace_3d_seen;     /* Producers coalesce 3D activity; the
-                                   governor exchanges it to consume a window. */
-    atomic_int pace_hold_us;     /* standing engine hold per flip */
-    /* Time rage128_pace_consume slept in the window, as wall time and as
-       the 1 ms steps it asked for (the CCE thread adds, the vsync window
-       prints them as slept= and clears them): a host timer coarser than
-       1 ms shows as far more slept than asked. */
-    _Atomic uint64_t pace_sleep_ns;
-    _Atomic uint64_t pace_sleep_ask_ns;
-    uint32_t         pace_wall_ms_last;
-    uint64_t         pace_tsc_last;
+    uint64_t   pace_wall_ms_tot; /* wall ms over all windows */
+    uint32_t   pace_wall_ms_last;
+    uint64_t   pace_tsc_last;
     /* Frame timeline probe (R128_GPU_PROF only): a CRTC_OFFSET flip on
        the CCE thread opens a frame record, each step is timestamped where
        it happens, and the next flip closes the record. Register reads are
@@ -997,7 +1000,7 @@ typedef struct rage128_t {
     int      vram_size;    /* bytes */
     uint32_t vram_mask;
 
-    int   render_threads; /* parallel rasterizer worker count (1/2/4/8) */
+    int   render_threads; /* emulator rasterizer worker option (1-4) */
     void *raster;         /* opaque tile/worker context (raster.c)      */
     /* Serializes rage128_raster_flush. Both the CCE executor and the CPU
        thread reach a flush, and no state either can read proves the other
@@ -1754,6 +1757,12 @@ extern void rage128_raster_state_capture(rage128_t *dev, rage128_raster_state_t 
 /* Staging helpers (vid_ati_rage128_pm4.c / vid_ati_rage128_raster.c). */
 extern int rage128_pm4_bus_read_block(rage128_t *dev, uint32_t vm, uint8_t *dst, uint32_t len);
 extern int rage128_raster_nthreads(rage128_t *dev);
+/* Command-stream scratch writes held behind a deferred batch
+   (vid_ati_rage128_pm4.c): hold one, apply them once the batch has been
+   drawn, or drop them with an abandoned batch. */
+extern int  rage128_pm4_scratch_hold(rage128_t *dev, uint32_t n, uint32_t val, uint32_t mask);
+extern void rage128_pm4_scratch_apply(rage128_t *dev);
+extern void rage128_pm4_scratch_drop(rage128_t *dev);
 /* Device->guest GART writes -- write-back twin of the staging reads
    (vid_ati_rage128_pm4.c). SUBMIT-THREAD ONLY. */
 extern int rage128_pm4_bus_write_block(rage128_t *dev, uint32_t vm, const uint8_t *src, uint32_t len);
@@ -1961,7 +1970,6 @@ extern void rage128_pm4_kick(rage128_t *dev);
 extern void rage128_pm4_gui_reset(rage128_t *dev);
 extern void rage128_raster_abandon(rage128_t *dev);
 extern void rage128_pm4_flip_notify(rage128_t *dev);
-extern void rage128_pace_consume(rage128_t *dev);
 extern int  rage128_pm4_enqueue_write(rage128_t *dev, uint32_t off, uint32_t val);
 extern int  rage128_pm4_fifo_data_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask);
 
@@ -2151,6 +2159,9 @@ rage128_pm4_active(rage128_t *dev)
    executor, re-check; 2 = nothing left for this packet, abort it. NULL in
    production. */
 extern int (*rage128_harness_drain_hook)(rage128_t *dev);
+/* Register harness only: called by the executor when it runs out of
+   work, before its idle flush, so a test can sample the engine there. */
+extern _Atomic(void (*)(rage128_t *dev)) rage128_harness_idle_hook;
 extern int  rage128_3d_reg_read(rage128_t *dev, uint32_t off, uint32_t *val);
 extern int  rage128_3d_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask);
 extern int  rage128_3d_packet3(rage128_t *dev, uint32_t hdr, const uint32_t *pl, uint32_t count);

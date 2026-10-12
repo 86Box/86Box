@@ -1563,11 +1563,10 @@ typedef struct r128_gpu_t {
     /* live-scan fallback reasons: 0 backward, 1 stale, 2 slots hold
        other bases only, 3 a slot holds this base but its copy is in
        flight, 4 no slot holds anything yet */
-    uint64_t    st_snap_why[5];
-    uint64_t    st_snap_reshow, st_snap_late;
-    atomic_int *pr_pace_hold; /* owner's pace_hold_us, for telemetry */
-    rage128_t  *owner;        /* its poll and CCE-busy counters, for telemetry */
-    uint32_t    st_max_inflight;
+    uint64_t   st_snap_why[5];
+    uint64_t   st_snap_reshow, st_snap_late;
+    rage128_t *owner; /* its poll and CCE-busy counters, for telemetry */
+    uint32_t   st_max_inflight;
     /* combine-fold bookkeeping (always on, not prof-gated):
        st_tsplit = runs opened by a tuple change alone (the extra runs
        folding costs); st_tovfl = draws past GPU_TUPLE_CAP (unfolded
@@ -4095,7 +4094,7 @@ gpu_prof_interval(r128_gpu_t *g, int force)
            mir bytes in MB); cap/sort/rec split the host side per second */
         gpu_log("RAGE128 GPU: interval: t=%llums dt=%llums emu=%u%% gpu=%llums "
                 "reuse=%llums present=%llums 2d=%llums op=%03x/%s opwait=%llums "
-                "submits=%llu chained=%llu max=%u in=%u cap=%u hold=%dus "
+                "submits=%llu chained=%llu max=%u in=%u cap=%u "
                 "polls=%llu cce=%llums spin=0x%04x/%u "
                 "lad=%llums mir=%llums/%lluMB cap=%llums sort=%llums rec=%llums\n",
                 (unsigned long long) ((now - g->pr_int_epoch) / 1000000),
@@ -4109,7 +4108,6 @@ gpu_prof_interval(r128_gpu_t *g, int force)
                 (unsigned long long) (g->st_chained - g->pr_int_chained),
                 g->pr_int_max_inflight, in,
                 atomic_load_explicit(&g->depth_cap, memory_order_relaxed),
-                g->pr_pace_hold ? atomic_load(g->pr_pace_hold) : 0,
                 (unsigned long long) (polls - g->pr_int_polls),
                 (unsigned long long) ((cce - g->pr_int_cce_ns) / 1000000),
                 spin_reg, spin_n,
@@ -5047,11 +5045,7 @@ gpu_flush_body(rage128_t *dev, int cause)
 
     sl    = &g->slot[g->build_slot];
     count = g->cnt;
-    /* Pacer 3D gate: GPU-lane render work counts (the CPU-raster
-       parallel path sets this in raster_flush; nthreads is forced to 1
-       in GPU mode so that site never fires). */
-    if (g->ntris)
-        atomic_store(&dev->pace_3d_seen, 1);
+
     clo = atomic_load(&g->c_lo);
     chi = atomic_load(&g->c_hi);
     zlo = atomic_load(&g->z_lo);
@@ -9214,10 +9208,9 @@ gpu_alloc(rage128_t *dev)
 
         g->prof = (pe && pe[0] && strcmp(pe, "0") != 0)
             || dev->gpu_telemetry_en;
-        g->pr_t0        = prof_now();
-        g->pr_pace_hold = &dev->pace_hold_us;
-        g->owner        = dev;
-        dev->ftl_en     = g->prof;
+        g->pr_t0    = prof_now();
+        g->owner    = dev;
+        dev->ftl_en = g->prof;
     }
     /* depth governor starts at the full ring and adapts from there */
     atomic_store(&g->depth_cap, GPU_RING_SLOTS);
@@ -9271,7 +9264,9 @@ gpu_vram_reseat(rage128_t *dev, r128_gpu_t *g)
 }
 
 /* Create the instance and resolve its entry points. On NULL the
-   instance-level table is loaded and g->inst may be destroyed. */
+   instance-level table is loaded and g->inst may be destroyed. If
+   resolution fails, a direct lookup supplies the destructor when
+   available and g->inst is cleared. */
 static const char *
 gpu_instance_create(r128_gpu_t *g)
 {
@@ -9302,8 +9297,15 @@ gpu_instance_create(r128_gpu_t *g)
                 return "vkCreateInstance failed (no usable Vulkan driver)";
         }
     }
-    if (!r128_vk_load_instance(g->inst))
+    if (!r128_vk_load_instance(g->inst)) {
+        PFN_vkDestroyInstance destroy_instance =
+            (PFN_vkDestroyInstance) r128_vk.gipa(g->inst, "vkDestroyInstance");
+
+        if (destroy_instance)
+            destroy_instance(g->inst, NULL);
+        g->inst = VK_NULL_HANDLE;
         return "instance entry point resolution failed";
+    }
     return NULL;
 }
 
