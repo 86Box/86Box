@@ -2572,7 +2572,8 @@ end:
                         region->write ? vfio_mem_writeb_mm : NULL,
                         region->write ? vfio_mem_writew_mm : NULL,
                         region->write ? vfio_mem_writel_mm : NULL,
-                        NULL, MEM_MAPPING_EXTERNAL, region->mmap_precalc);
+                        (region == &dev->rom) ? region->mmap_base : NULL,
+                        MEM_MAPPING_EXTERNAL, region->mmap_precalc);
     } else if (region->fd >= 0) { /* mmap not available, but fd is */
         vfio_log("(FD)");
         mem_mapping_add(&region->mem_mapping, 0, 0,
