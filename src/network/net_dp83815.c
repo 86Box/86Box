@@ -150,6 +150,7 @@ enum IntrStatus_bits {
     IntrSWInt       = 0x1000,
     IntrWOLPkt      = 0x2000,
     IntrLinkChange  = 0x4000,
+    IntrHighBitsErr = 0x8000,
     IntrRxResetDone = 0x01000000,
     IntrTxResetDone = 0x02000000,
 };
@@ -274,7 +275,12 @@ static void dp83815_tx_run(dp83815_t *dev);
 static void
 dp83815_update_irq(dp83815_t *dev)
 {
-    if ((dev->intr_status & dev->intr_mask) && (dev->intr_enable & 1))
+    uint32_t intr_status = dev->intr_status;
+
+    if (intr_status & 0x03FF0000) /* bits 16-25 set */
+        intr_status |= IntrHighBitsErr;
+
+    if ((intr_status & dev->intr_mask) && (dev->intr_enable & 1))
         pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
     else
         pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
@@ -485,7 +491,7 @@ dp83815_soft_reset(dp83815_t *dev)
 
     dev->eectrl       = 0;
     dev->pci_bus_cfg  = 0;
-    dev->intr_status  = IntrRxIdle | IntrTxIdle | IntrRxResetDone | IntrTxResetDone;
+    dev->intr_status  = IntrRxResetDone | IntrTxResetDone;
     dev->intr_mask    = 0;
     dev->intr_enable  = 0;
     dev->intr_holdoff = 0;
@@ -876,6 +882,8 @@ dp83815_reg_read_ex(dp83815_t *dev, uint32_t off, bool side_effects)
             {
                 uint32_t status = dev->intr_status;
 
+                if (status & 0x03FF0000) /* bits 16-25 set */
+                    status |= IntrHighBitsErr;
                 if (side_effects) {
                     dev->intr_status = 0; /* reading the ISR clears it */
                     dp83815_update_irq(dev);
@@ -926,7 +934,8 @@ dp83815_reg_read_ex(dp83815_t *dev, uint32_t off, bool side_effects)
 static uint32_t
 dp83815_reg_read(dp83815_t *dev, uint32_t off)
 {
-    return dp83815_reg_read_ex(dev, off, true);
+    uint32_t val = dp83815_reg_read_ex(dev, off, true);
+    return val;
 }
 
 static int
@@ -1399,7 +1408,7 @@ dp83815_init(UNUSED(const device_t *info))
 
     dev->inst = device_get_instance();
 
-    int card_model = device_get_config_int("model");
+    int card_model = (info->local & 0x8000) ? 0 : device_get_config_int("model");
 
     int mac = device_get_config_mac("mac", -1);
 
@@ -1498,7 +1507,7 @@ dp83815_init(UNUSED(const device_t *info))
     dp83815_hard_reset(dev);
 
     dev->nic = network_attach(dev, dev->mac, dp83815_receive, dp83815_set_link_status);
-    pci_add_card(PCI_ADD_NORMAL, dp83815_pci_read, dp83815_pci_write, dev, &dev->pci_slot);
+    pci_add_card((info->local & 0x8000) ? PCI_ADD_NETWORK : PCI_ADD_NORMAL, dp83815_pci_read, dp83815_pci_write, dev, &dev->pci_slot);
 
     dp83815_update_phy_state(dev, false);
 
@@ -1578,3 +1587,19 @@ const device_t dp83815_device = {
     .alias         = "National Semiconductor DP83815/16",
     .config        = dp83815_config
 };
+
+const device_t dp83815_onboard_device = {
+    .name          = "National Semiconductor DP83815/16 (Onboard)",
+    .internal_name = "dp83815_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = 0x8001,
+    .init          = dp83815_init,
+    .close         = dp83815_close,
+    .reset         = dp83815_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .alias         = "National Semiconductor DP83815/16",
+    .config        = &dp83815_config[1]
+};
+
