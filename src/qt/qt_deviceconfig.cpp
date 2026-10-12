@@ -260,10 +260,6 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 selected = config_get_string(device_context->name, const_cast<char *>(config->name),
                                              const_cast<char *>(config->default_string));
                 break;
-            case CONFIG_TYPE_STRHEX:
-                selected = config_get_string(device_context->name, const_cast<char *>(config->name),
-                                             const_cast<char *>(config->default_string));
-                break;
         }
 
         switch (config->type) {
@@ -471,6 +467,18 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     this->ui->formLayout->addRow(tr(config->description).append(colon), lineEdit);
                     break;
                 }
+            case CONFIG_STRHEX:
+                {
+                    const auto lineEdit = new QLineEdit;
+                    lineEdit->setObjectName(config->name);
+                    // The mask fixes both the character set and the width: four hex digits,
+                    // which is exactly the 16-bit range this type is meant to hold.
+                    lineEdit->setInputMask("HHHH;0");
+                    lineEdit->setText(selected.toUpper());
+                    lineEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), lineEdit);
+                    break;
+                }
             case CONFIG_SERPORT:
                 {
                     auto *cbox = new QComboBox();
@@ -498,14 +506,15 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     cbox->setCurrentIndex(currentIndex);
                     break;
                 }
-            case CONFIG_STRHEX:
+            case CONFIG_KEYCARD:
                 {
                     const auto lineEdit = new QLineEdit;
                     lineEdit->setObjectName(config->name);
-                    // The mask fixes both the character set and the width: four hex digits,
-                    // which is exactly the 16-bit range this type is meant to hold.
-                    lineEdit->setInputMask("HHHH;0");
+                    // The mask fixes both the character set and the width: eight BCD digits
+                    // of the serial number, then the four hexadecimal digits of the
+                    // application number.
                     lineEdit->setText(selected.toUpper());
+                    lineEdit->setInputMask("99999999HHHH;0");
                     lineEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
                     this->ui->formLayout->addRow(tr(config->description).append(colon), lineEdit);
                     break;
@@ -638,10 +647,6 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     selected = config_get_string(device_context.name, const_cast<char *>(config->name),
                                                  const_cast<char *>(config->default_string));
                     break;
-                case CONFIG_TYPE_STRHEX:
-                    selected = config_get_string(device_context.name, const_cast<char *>(config->name),
-                                                 const_cast<char *>(config->default_string));
-                    break;
             }
 
             switch (config->type) {
@@ -703,6 +708,22 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                         }
                         break;
                     }
+                case CONFIG_STRHEX:
+                    {
+                        const auto *lineEdit = dc.findChild<QLineEdit *>(config->name);
+                        // Store the hex value in uppercase; displayText() skips the mask's
+                        // unfilled placeholders, so a partly typed value is not padded out.
+                        auto hexText     = lineEdit->displayText().toUpper();
+                        int  hex_changed = 0;
+                        hex_changed |= strcasecmp(config_get_string(device_context.name, config->name,
+                                                                    const_cast<char *>(config->default_string)),
+                                                  hexText.toUtf8().constData());
+                        if (hex_changed) {
+                            config_set_string(device_context.name, config->name, hexText.toUtf8().constData());
+                            has_changed |= 1;
+                        }
+                        break;
+                    }
                 case CONFIG_HEX16:
                     {
                         auto *cbox = dc.findChild<QComboBox *>(config->name);
@@ -740,18 +761,19 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                         }
                         break;
                     }
-                case CONFIG_STRHEX:
+                case CONFIG_KEYCARD:
                     {
                         const auto *lineEdit = dc.findChild<QLineEdit *>(config->name);
-                        // Store the hex value in uppercase; displayText() skips the mask's
-                        // unfilled placeholders, so a partly typed value is not padded out.
-                        auto hexText     = lineEdit->displayText().toUpper();
-                        int  hex_changed = 0;
-                        hex_changed |= strcasecmp(config_get_string(device_context.name, config->name,
+                        // Store in uppercase: the card rejects lowercase hex when it validates
+                        // its serial number. displayText() drops the mask's unfilled positions,
+                        // so a partly typed value is not padded out.
+                        auto keyText     = lineEdit->displayText().toUpper();
+                        int  key_changed = 0;
+                        key_changed |= strcasecmp(config_get_string(device_context.name, config->name,
                                                                     const_cast<char *>(config->default_string)),
-                                                  hexText.toUtf8().constData());
-                        if (hex_changed) {
-                            config_set_string(device_context.name, config->name, hexText.toUtf8().constData());
+                                                  keyText.toUtf8().constData());
+                        if (key_changed) {
+                            config_set_string(device_context.name, config->name, keyText.toUtf8().constData());
                             has_changed |= 1;
                         }
                         break;
