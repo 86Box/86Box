@@ -1007,6 +1007,19 @@ Preferences::reloadStrings()
     translatedstrings[STRING_CHARDEV_ATTACHED]          = QCoreApplication::translate("", "%s: Attached to %s").toUtf8();
     translatedstrings[STRING_CHARDEV_VCON_IN_USE]       = QCoreApplication::translate("", "%s: Virtual console already in use by %s").toUtf8();
     translatedstrings[STRING_CHARDEV_TERMINAL_ERROR]    = QCoreApplication::translate("", "%s: Could not create terminal: %s").toUtf8();
+#ifdef USE_VFIO
+    translatedstrings[STRING_VFIO_NO_CONTAINER]         = QCoreApplication::translate("", "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded.").toUtf8();
+    translatedstrings[STRING_VFIO_INVALID_LOCATION]     = QCoreApplication::translate("", "VFIO %s: Invalid device location.").toUtf8();
+    translatedstrings[STRING_VFIO_DEVICE_NOT_FOUND]     = QCoreApplication::translate("", "VFIO %s: Device not found.").toUtf8();
+    translatedstrings[STRING_VFIO_NO_IOMMU_GROUP]       = QCoreApplication::translate("", "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system.").toUtf8();
+    translatedstrings[STRING_VFIO_NOT_BOUND]            = QCoreApplication::translate("", "VFIO %s: Device is not bound to vfio-pci.").toUtf8();
+    translatedstrings[STRING_VFIO_GROUP_OPEN_ERROR]     = QCoreApplication::translate("", "VFIO %s: Could not open IOMMU group %d: %s").toUtf8();
+    translatedstrings[STRING_VFIO_GROUP_NOT_VIABLE]     = QCoreApplication::translate("", "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci.").toUtf8();
+    translatedstrings[STRING_VFIO_DMA_ERROR]            = QCoreApplication::translate("", "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low.").toUtf8();
+    translatedstrings[STRING_VFIO_ROM_FILE_FALLBACK]    = QCoreApplication::translate("", "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM.").toUtf8();
+    translatedstrings[STRING_VFIO_ROM_FILE_DISABLED]    = QCoreApplication::translate("", "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled.").toUtf8();
+    translatedstrings[STRING_VFIO_ROM_INVALID]          = QCoreApplication::translate("", "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings.").toUtf8();
+#endif
 }
 
 char *

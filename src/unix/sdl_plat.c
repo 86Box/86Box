@@ -200,6 +200,30 @@ plat_get_string(int i)
             return "%s: Virtual console already in use by %s";
         case STRING_CHARDEV_TERMINAL_ERROR:
             return "%s: Could not create terminal: %s";
+#ifdef USE_VFIO
+        case STRING_VFIO_NO_CONTAINER:
+            return "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded.";
+        case STRING_VFIO_INVALID_LOCATION:
+            return "VFIO %s: Invalid device location.";
+        case STRING_VFIO_DEVICE_NOT_FOUND:
+            return "VFIO %s: Device not found.";
+        case STRING_VFIO_NO_IOMMU_GROUP:
+            return "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system.";
+        case STRING_VFIO_NOT_BOUND:
+            return "VFIO %s: Device is not bound to vfio-pci.";
+        case STRING_VFIO_GROUP_OPEN_ERROR:
+            return "VFIO %s: Could not open IOMMU group %d: %s";
+        case STRING_VFIO_GROUP_NOT_VIABLE:
+            return "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci.";
+        case STRING_VFIO_DMA_ERROR:
+            return "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low.";
+        case STRING_VFIO_ROM_FILE_FALLBACK:
+            return "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM.";
+        case STRING_VFIO_ROM_FILE_DISABLED:
+            return "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled.";
+        case STRING_VFIO_ROM_INVALID:
+            return "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings.";
+#endif
     }
     return "";
 }

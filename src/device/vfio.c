@@ -42,6 +42,7 @@
 #include <86box/plat.h>
 #include <86box/thread.h>
 #include <86box/timer.h>
+#include <86box/ui.h>
 #include <86box/video.h>
 #include <86box/vfio.h>
 
@@ -116,6 +117,7 @@ typedef struct _vfio_device_ {
     uint8_t  io_enabled    : 1;
     uint8_t  rom_enabled   : 1;
     uint8_t  rom_from_dev  : 1;
+    uint8_t  rom_check     : 1;
     uint8_t  can_reset     : 1;
     uint8_t  can_flr_reset : 1;
     uint8_t  can_pm_reset  : 1;
@@ -218,6 +220,7 @@ typedef struct _vfio_slot_ {
 typedef struct _vfio_group_ {
     int id;
     int fd;
+    int error; /* errno from opening the group, -1 if not viable, 0 for other failures */
 
     vfio_device_t *first_device;
     vfio_device_t *current_device;
@@ -273,6 +276,41 @@ vfio_log(const char *fmt, ...)
 #    define vfio_log(fmt, ...)
 #    define vfio_log_op(fmt, ...)
 #endif
+
+/* Problems the user can act on, shown together once initialization is done. */
+static char *vfio_msgs = NULL;
+
+static void
+vfio_msg(int id, ...)
+{
+    char    line[1024];
+    va_list ap;
+
+    va_start(ap, id);
+    vsnprintf(line, sizeof(line), plat_get_string(id), ap);
+    va_end(ap);
+    pclog("%s\n", line);
+
+    size_t len = vfio_msgs ? strlen(vfio_msgs) : 0;
+    char  *p   = (char *) realloc(vfio_msgs, len + strlen(line) + 2);
+    if (!p)
+        return;
+    vfio_msgs = p;
+    if (len)
+        vfio_msgs[len++] = '\n';
+    strcpy(&vfio_msgs[len], line);
+}
+
+static void
+vfio_msg_show(int flags)
+{
+    if (!vfio_msgs)
+        return;
+
+    ui_msgbox(flags, vfio_msgs);
+    free(vfio_msgs);
+    vfio_msgs = NULL;
+}
 
 static uint8_t  vfio_bar_gettype(vfio_device_t *dev, vfio_region_t *bar);
 static uint8_t  vfio_dev_config_readb(vfio_device_t *dev, int addr);
@@ -2443,6 +2481,64 @@ vfio_rom_sync(vfio_device_t *dev)
         mem_invalidate_range(dev->rom.emulated_offset, dev->rom.emulated_offset + dev->rom.size - 1);
 }
 
+/* Perform a few sanity checks on the ROM, starting with the signature.
+   Returns 1 if the ROM has no signature or a bad checksum. */
+static int
+vfio_rom_check(vfio_device_t *dev)
+{
+    const uint8_t *rom  = dev->rom.mmap_base;
+    uint64_t       size = dev->rom.size;
+
+    if ((size < 3) || (*((uint16_t *) &rom[0x00]) != 0xaa55)) {
+        pclog("VFIO %s: Warning: ROM has no 55 AA signature\n", dev->name);
+        return 1;
+    }
+
+    /* Check ROM length. */
+    uint32_t rom_len = rom[0x02] << 9; /* 512-byte blocks */
+    if (rom_len > size)
+        pclog("VFIO %s: Warning: ROM length (%d bytes) is larger than ROM region (%" PRIu64 " bytes)\n",
+              dev->name, rom_len, size);
+
+    /* Check PCI pointer. */
+    uint16_t pci_ptr = (size >= 0x1a) ? *((uint16_t *) &rom[0x18]) : 0;
+    if (pci_ptr && (pci_ptr != 0xffff)) {
+        /* Check PCI pointer bounds. */
+        if ((pci_ptr + 0x12) <= size) {
+            /* Check PCI header ROM length only if <= 130048 bytes, as the
+               ROM length is 8 bits in the main header and 16 bits in here. */
+            uint32_t pci_len = *((uint16_t *) &rom[pci_ptr + 0x10]) << 9; /* image length, 512-byte blocks */
+            if ((pci_len <= (254 << 9)) && (pci_len != rom_len))
+                pclog("VFIO %s: Warning: ROM length in main header (%d bytes) is "
+                      "different from length in PCI header (%d bytes)\n",
+                      dev->name, rom_len, pci_len);
+        } else {
+            pclog("VFIO %s: Warning: ROM has invalid PCI header pointer: %04X\n",
+                  dev->name, pci_ptr);
+        }
+    } else {
+        pclog("VFIO %s: Warning: ROM has no PCI header pointer\n", dev->name);
+    }
+
+    /* Compare checksum. */
+    if (rom_len > size) /* don't go out of bounds */
+        rom_len = size;
+    if (!rom_len) {
+        pclog("VFIO %s: Warning: ROM length is zero\n", dev->name);
+        return 1;
+    }
+    uint8_t checksum = 0;
+    for (uint32_t i = 0; i < rom_len; i++)
+        checksum += rom[i];
+    if (checksum) {
+        pclog("VFIO %s: Warning: ROM has bad checksum; expected %02X, got %02X\n",
+              dev->name, (uint8_t) (rom[rom_len - 1] - checksum), rom[rom_len - 1]);
+        return 1;
+    }
+
+    return 0;
+}
+
 static void
 vfio_region_init(vfio_device_t *dev, struct vfio_region_info *reg, vfio_region_t *region)
 {
@@ -2493,12 +2589,11 @@ vfio_region_init(vfio_device_t *dev, struct vfio_region_info *reg, vfio_region_t
                 }
             } else {
                 /* Fall back to the device's ROM if it has one. */
-                pclog("VFIO %s: Could not read ROM file, ", dev->name);
                 if (region->size) {
-                    pclog("falling back to device ROM\n");
+                    vfio_msg(STRING_VFIO_ROM_FILE_FALLBACK, dev->name, dev->rom_fn);
                 } else {
                     /* Disable ROM. */
-                    pclog("not enabling ROM\n");
+                    vfio_msg(STRING_VFIO_ROM_FILE_DISABLED, dev->name, dev->rom_fn);
                     region->read = region->write = 0;
                     goto end;
                 }
@@ -2535,63 +2630,8 @@ vfio_region_init(vfio_device_t *dev, struct vfio_region_info *reg, vfio_region_t
             vfio_rom_read(dev);
         }
 
-        /* Perform a few sanity checks on the ROM, starting with the signature. */
-        j = 0;
-        if (*((uint16_t *) &region->mmap_base[0x00]) == 0xaa55) {
-            /* Check ROM length. */
-            uint32_t rom_len = region->mmap_base[0x02] << 9; /* 512-byte blocks */
-            if (rom_len > region->size) {
-                pclog("VFIO %s: Warning: ROM length (%d bytes) is larger than ROM region (%" PRIu64 " bytes)\n",
-                      dev->name, rom_len, region->size);
-                j = 1;
-            }
-
-            /* Check PCI pointer. */
-            uint16_t pci_ptr = *((uint16_t *) &region->mmap_base[0x18]);
-            if (pci_ptr && (pci_ptr != 0xffff)) {
-                /* Check PCI pointer bounds. */
-                if (pci_ptr <= (region->size - 0x12)) {
-                    /* Check PCI header ROM length only if <= 130048 bytes, as the
-                       ROM length is 8 bits in the main header and 16 bits in here. */
-                    uint32_t pci_len = *((uint16_t *) &region->mmap_base[pci_ptr + 0x18]) << 9; /* 512-byte blocks */
-                    if ((pci_len <= (254 << 9)) && (pci_len != rom_len)) {
-                        pclog("VFIO %s: Warning: ROM length in main header (%d bytes) is "
-                              "different from length in PCI header (%d bytes)\n",
-                              dev->name, rom_len, pci_len);
-                        j = 1;
-                    }
-                } else {
-                    pclog("VFIO %s: Warning: ROM has invalid PCI header pointer: %04X\n",
-                          dev->name, pci_ptr);
-                    j = 1;
-                }
-            } else {
-                pclog("VFIO %s: Warning: ROM has no PCI header pointer\n",
-                      dev->name);
-                j = 1;
-            }
-
-            /* Compare checksum. */
-            uint8_t checksum = 0;
-            if (rom_len > region->size) /* don't go out of bounds */
-                rom_len = region->size;
-            rom_len -= 1;
-            for (i = 0; i < rom_len; i++)
-                checksum -= region->mmap_base[i];
-            if (checksum != region->mmap_base[i]) {
-                pclog("VFIO %s: Warning: ROM has bad checksum; expected %02X, got %02X\n",
-                      dev->name, checksum, region->mmap_base[i]);
-                j = 1;
-            }
-        } else {
-            pclog("VFIO %s: Warning: ROM has no 55 AA signature\n", dev->name);
-            j = 1;
-        }
-
-        /* Add a helpful reminder if a sanity check warning was printed
-           and no ROM file was specified in this device's configuration. */
-        if (j && !dev->rom_fn)
-            pclog("VFIO %s: A custom ROM can be loaded through the VFIO settings.\n", dev->name);
+        /* Check the ROM after the device's first reset, as its own ROM may only be readable then. */
+        dev->rom_check = 1;
     } else {
         /* Attempt to mmap the region. */
         region->mmap_base = mmap(NULL, region->size,
@@ -2680,7 +2720,8 @@ vfio_group_get(int id, uint8_t add)
     snprintf(group_file, sizeof(group_file), "/dev/vfio/%d", group->id);
     group->fd = open(group_file, O_RDWR);
     if (group->fd < 0) {
-        pclog("VFIO: Group %d not found\n", group->id);
+        group->error = errno;
+        pclog("VFIO: Group %d could not be opened (%d)\n", group->id, group->error);
         goto end;
     }
 
@@ -2691,6 +2732,7 @@ vfio_group_get(int id, uint8_t add)
         goto close_fd;
     } else if (!(group_status.flags & VFIO_GROUP_FLAGS_VIABLE)) {
         pclog("VFIO: Group %d not viable\n", group->id);
+        group->error = -1;
         goto close_fd;
     }
 
@@ -3076,6 +3118,7 @@ vfio_map_dma(uint8_t *ptr, uint32_t offset, uint32_t size)
     }
 
     pclog("VFIO: map_dma(%08X, %d) failed (%d)\n", offset, size, errno);
+    vfio_msg(STRING_VFIO_DMA_ERROR, strerror(errno));
 }
 
 static void
@@ -3238,6 +3281,20 @@ next2:
         }
         group = group->next;
     }
+
+    /* Check ROMs after the first reset, which is when a device's own ROM was read again. */
+    if (!closing) {
+        for (group = first_group; group; group = group->next) {
+            for (dev = group->first_device; dev; dev = dev->next) {
+                if (dev->rom_check) {
+                    dev->rom_check = 0;
+                    if (vfio_rom_check(dev))
+                        vfio_msg(STRING_VFIO_ROM_INVALID, dev->name);
+                }
+            }
+        }
+        vfio_msg_show(MBX_WARNING);
+    }
 }
 
 static vfio_device_t *
@@ -3378,8 +3435,8 @@ vfio_init(void)
     /* Open VFIO container. */
     container_fd = open("/dev/vfio/vfio", O_RDWR);
     if (container_fd < 0) {
-        pclog("VFIO: Container not found (is vfio-pci loaded?)\n");
-        return;
+        vfio_msg(STRING_VFIO_NO_CONTAINER, strerror(errno));
+        goto close_container;
     }
 
     /* Check VFIO API version. */
@@ -3417,7 +3474,7 @@ vfio_init(void)
         dev_name = NULL;
         if (!vfio_parse_location(token, location, sizeof(location)) ||
             (sscanf(location, "%x:%x:%x.%x", &domain_id, &bus_id, &dev_id, &func_id) != 4)) {
-            pclog("VFIO: Invalid device location: %s\n", token);
+            vfio_msg(STRING_VFIO_INVALID_LOCATION, token);
             goto next;
         }
         if (vfio_dev_find(domain_id, bus_id, dev_id, func_id)) {
@@ -3449,8 +3506,9 @@ vfio_init(void)
         pclog("VFIO %s: IOMMU group ", dev_name);
 
         p = realpath(sysfs_device, NULL);
-        free(sysfs_device);
         if (p) {
+            free(sysfs_device);
+
             /* Parse group ID. */
             if (sscanf(path_get_basename(p), "%d", &i) != 1) {
                 pclog("path could not be parsed: %s\n", p);
@@ -3461,8 +3519,11 @@ vfio_init(void)
             pclog("%d\n", i);
             free(p);
         } else {
-            /* No symlink found, move on to the next device. */
+            /* No symlink found: tell a missing device from a missing IOMMU. */
             pclog("not found (%d)\n", errno);
+            sysfs_device[strlen(sysfs_device) - 12] = '\0'; /* strip /iommu_group */
+            vfio_msg(access(sysfs_device, F_OK) ? STRING_VFIO_DEVICE_NOT_FOUND : STRING_VFIO_NO_IOMMU_GROUP, dev_name);
+            free(sysfs_device);
             goto next;
         }
 
@@ -3471,6 +3532,12 @@ vfio_init(void)
         group = vfio_group_get(i, 1);
         if (group->fd < 0) {
             pclog("VFIO %s: Skipping because group failed to initialize\n", dev_name);
+            if (group->error == ENOENT) /* no device in the group is bound to vfio-pci */
+                vfio_msg(STRING_VFIO_NOT_BOUND, dev_name);
+            else if (group->error == -1)
+                vfio_msg(STRING_VFIO_GROUP_NOT_VIABLE, dev_name, group->id);
+            else if (group->error)
+                vfio_msg(STRING_VFIO_GROUP_OPEN_ERROR, dev_name, group->id, strerror(group->error));
             goto next;
         }
 
@@ -3581,6 +3648,8 @@ next: /* Clean up. */
 close_container:
     close(container_fd);
     container_fd = -1;
+
+    vfio_msg_show(MBX_WARNING);
 }
 
 void
