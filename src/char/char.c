@@ -149,6 +149,7 @@ char_attach(uint32_t flags,
     chardev->status        = status;
     chardev->control       = control;
     chardev->port_config   = port_config;
+    chardev->read_error    = NULL;
     chardev->priv          = priv;
     active_port->attached  = 1;
 

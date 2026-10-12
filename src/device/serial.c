@@ -54,6 +54,7 @@ static int             next_inst = 0;
 static serial_device_t serial_devices[SERIAL_MAX];
 
 static void            serial_xmit_d_empty_evt(void *priv);
+static void            write_fifo(serial_t *dev, uint8_t dat);
 
 #ifdef ENABLE_SERIAL_LOG
 int serial_do_log = ENABLE_SERIAL_LOG;
@@ -83,6 +84,21 @@ serial_data_mask(serial_t *dev)
     return masks[dev->lcr & 0x03];
 }
 
+static void
+serial_lcr_frame(serial_t *dev)
+{
+    /* data bits + start bit. */
+    dev->bits = ((dev->lcr & 0x03) + 5) + 1;
+    dev->bits++; /* First stop bit. */
+    if (dev->lcr & 0x04)
+        dev->bits++; /* Second stop bit. */
+    /* 1.5 stop bits */
+    dev->half_stop = ((dev->lcr & 0x07) == 0x04);
+    /* Parity bit. */
+    if (dev->lcr & 0x08)
+        dev->bits++;
+}
+
 void
 serial_reset_port(serial_t *dev)
 {
@@ -95,13 +111,16 @@ serial_reset_port(serial_t *dev)
 
     dev->lsr = 0x60; /* Mark that both THR/FIFO and TXSR are empty. */
     dev->iir = dev->ier = dev->lcr = dev->fcr = 0;
+    serial_lcr_frame(dev);
 
     dev->fifo_enabled                         = 0;
+    dev->transmit_enabled                     = 0;
     dev->baud_cycles                          = 0;
     dev->out_new                              = 0xffff;
     dev->pending_rx_error                     = 0;
 
     dev->txsr_empty = 1;
+    dev->txsr_sent  = 0;
     dev->thr_empty  = 1;
 
     serial_update_ints(dev);
@@ -109,6 +128,19 @@ serial_reset_port(serial_t *dev)
 
     if (dev->char_port.chardev.control)
         dev->char_port.chardev.control((dev->mctrl & 0x03) | (dev->lcr & 0x40), dev->char_port.chardev.priv);
+}
+
+/* Push the line settings to the host port while DLAB unset */
+static void
+serial_port_config(serial_t *dev)
+{
+    if (dev->lcr & 0x80) {
+        dev->port_config_pending = 1;
+        return;
+    }
+    dev->port_config_pending = 0;
+    if (dev->char_port.chardev.port_config)
+        dev->char_port.chardev.port_config(dev->char_port.chardev.priv);
 }
 
 void
@@ -130,8 +162,7 @@ serial_transmit_period(serial_t *dev)
     dev->char_port.com.data_bits = (dev->lcr & 0x03) + 5;
     dev->char_port.com.parity    = (dev->lcr >> 3) & 0x7;
     dev->char_port.com.stop_bits = !!(dev->lcr & 0x04) + 1;
-    if (dev->char_port.chardev.port_config)
-        dev->char_port.chardev.port_config(dev->char_port.chardev.priv);
+    serial_port_config(dev);
 }
 
 void
@@ -148,8 +179,8 @@ serial_do_irq(serial_t *dev, int set)
 void
 serial_update_ints(serial_t *dev)
 {
-    /* TODO: The IRQ priorities are 6 - we need to find a way to treat timeout and receive
-             as equal and still somehow distinguish them. */
+    /* timeouts If both are pending, timeout IIR 0C wins over
+       receive. timeout is only in FIFO mode for types >= SERIAL_16550 */
     uint8_t ier_map[7] = { 0x04, 0x01, 0x01, 0x02, 0x08, 0x40, 0x80 };
     uint8_t iir_map[7] = { 0x06, 0x0c, 0x04, 0x02, 0x00, 0x0e, 0x0a };
 
@@ -196,32 +227,58 @@ serial_receive_period(const serial_t *dev)
     return (double) /* (dev->bits ? dev->bits : 10) * */ dev->transmit_period;
 }
 
+/* Sets character period and the 4-char rx tmo */
+static double
+serial_frame_bits(const serial_t *dev)
+{
+    /* 5b/1.5s handling : count second stop bit as a whole tick and half_stop divides */
+    if (!dev->bits)
+        return 10.0;
+    return (double) dev->bits - (dev->half_stop ? 0.5 : 0.0);
+}
+
+/* one character time on the line */
+static double
+serial_char_period(const serial_t *dev)
+{
+    return serial_frame_bits(dev) * dev->transmit_period;
+}
+
+/* microseconds interval between host reads while nothing is arriving */
+#define SERIAL_RX_POLL_MIN_US 50.0
+
+static double
+serial_receive_poll_period(const serial_t *dev)
+{
+    double period = dev->transmit_period;
+
+    if (!dev->char_port.chardev.read || (dev->char_port.chardev.flags & CHAR_COM_SYNC_RX) || (dev->mctrl & 0x10))
+        return serial_receive_period(dev);
+    if (period < SERIAL_RX_POLL_MIN_US)
+        period = SERIAL_RX_POLL_MIN_US;
+    if (period > serial_receive_period(dev))
+        period = serial_receive_period(dev);
+    return period;
+}
+
+/* microseconds interval for host modem-status lines sampling timer */
+#define SERIAL_STATUS_PERIOD_US 1000.0
+
+/* modem-status polling runs on its own fixed-rate timer */
 static void
-serial_receive_timer(void *priv)
+serial_status_timer(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
 
-    serial_log("serial_receive_timer()\n");
+    /* stopped until serial_start_polling() active */
+    if (!dev->char_port.chardev.status)
+        return;
 
-    timer_on_auto(&dev->receive_timer, serial_receive_period(dev));
+    timer_on_auto(&dev->status_timer, SERIAL_STATUS_PERIOD_US);
 
-    /* Only read when the receive shift register is free: it still holds the
-       previous byte until the code below moves it into the FIFO, so reading
-       unconditionally can overwrite input that was never delivered. */
-    if (dev->char_port.chardev.read && (dev->out_new == 0xffff)) {
-        uint8_t val;
-        if (dev->char_port.chardev.read(&val, sizeof(val), dev->char_port.chardev.priv) > 0) {
-            dev->pending_rx_error = dev->char_port.chardev.read_error
-                ? dev->char_port.chardev.read_error(dev->char_port.chardev.priv)
-                : 0;
-            serial_write_fifo(dev, val);
-        }
-    }
-
-    /* The modem status lines do not change thousands of times a second, and
-       querying them is not free on every host. */
-    dev->status_divider++;
-    if (dev->char_port.chardev.status && !(dev->status_divider & 0x3f)) {
+    /* for diagnostic loopback , MCR bit 4. MSR inputs come from the MCR
+       outputs */
+    if (!(dev->mctrl & 0x10)) {
         uint8_t prev_msr = dev->msr;
         uint32_t flags = dev->char_port.chardev.status(dev->char_port.chardev.priv);
         uint8_t mask = CHAR_COM_CTS | CHAR_COM_DSR | CHAR_COM_RI | CHAR_COM_DCD;
@@ -235,67 +292,146 @@ serial_receive_timer(void *priv)
             serial_update_ints(dev);
         }
     }
+}
+
+/* LSR error bits PE, FE, BI for a chars CHAR_COM_ERR_* flags */
+static uint8_t
+serial_rx_error_lsr(const serial_t *dev, uint32_t err)
+{
+    uint8_t ret = 0x00;
+
+    if (err & CHAR_COM_ERR_BREAK) {
+        ret = 0x18;
+        if ((dev->lcr & 0x18) == 0x08)
+            ret |= 0x04;
+        return ret;
+    }
+
+    if (err & CHAR_COM_ERR_PARITY)
+        ret |= 0x04;
+    if (err & CHAR_COM_ERR_FRAMING)
+        ret |= 0x08;
+
+    return ret;
+}
+
+/* FIFO mode PE/FE/BI belong to a char */
+static void
+serial_rcvr_fifo_top(serial_t *dev)
+{
+    uint8_t err = fifo_peek_tag(dev->rcvr_fifo);
+
+    if (err) {
+        dev->lsr |= err;
+        dev->int_status |= SERIAL_INT_LSR;
+        serial_update_ints(dev);
+    }
+}
+
+/* store received character in FIFO with its LSR error bits */
+static void
+serial_rcvr_fifo_write(serial_t *dev, uint8_t val, uint8_t err)
+{
+    int was_empty = fifo_get_empty(dev->rcvr_fifo);
+
+    fifo_write_evt_tagged(err, val, dev->rcvr_fifo);
+
+    if (fifo_get_tags(dev->rcvr_fifo))
+        dev->lsr |= 0x80;
+    if (was_empty)
+        serial_rcvr_fifo_top(dev);
+}
+
+/* Move a received char from the RSR into the FIFO or RBR with its
+   pending errors and raise Data Ready */
+static void
+serial_rx_deliver(serial_t *dev)
+{
+    uint8_t err;
+
+    if (dev->out_new == 0xffff)
+        return;
+
+    /* We have received a byte into the RSR. */
+    serial_log("Byte received: %04X\n", dev->out_new);
+
+    err                   = serial_rx_error_lsr(dev, dev->pending_rx_error);
+    dev->pending_rx_error = 0;
 
     if (dev->fifo_enabled) {
         /* FIFO mode. */
-        if (dev->out_new != 0xffff) {
-            /* We have received a byte into the RSR. */
 
-            /* Clear FIFO timeout. */
-            serial_clear_timeout(dev);
+        /* Clear FIFO timeout. */
+        serial_clear_timeout(dev);
 
-            fifo_write_evt((uint8_t) (dev->out_new & 0xff), dev->rcvr_fifo);
-            dev->out_new = 0xffff;
-
-            if (dev->pending_rx_error & (CHAR_COM_ERR_PARITY | CHAR_COM_ERR_FRAMING | CHAR_COM_ERR_BREAK)) {
-                if (dev->pending_rx_error & CHAR_COM_ERR_PARITY)
-                    dev->lsr |= 0x04;
-                if (dev->pending_rx_error & CHAR_COM_ERR_FRAMING)
-                    dev->lsr |= 0x08;
-                if (dev->pending_rx_error & CHAR_COM_ERR_BREAK)
-                    dev->lsr |= 0x10;
-                dev->int_status |= SERIAL_INT_LSR;
-                serial_update_ints(dev);
-            }
-            dev->pending_rx_error = 0;
+        serial_rcvr_fifo_write(dev, (uint8_t) (dev->out_new & 0xff), err);
+        dev->out_new = 0xffff;
 
 #if 0
-            pclog("serial_receive_timer(): lsr = %02X, ier = %02X, iir = %02X, int_status = %02X\n",
-                  dev->lsr, dev->ier, dev->iir, dev->int_status);
+        pclog("serial_receive_timer(): lsr = %02X, ier = %02X, iir = %02X, int_status = %02X\n",
+              dev->lsr, dev->ier, dev->iir, dev->int_status);
 #endif
 
-            timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
-        }
+        timer_on_auto(&dev->timeout_timer, 4.0 * serial_frame_bits(dev) * dev->transmit_period);
     } else {
         /* Non-FIFO mode. */
-        if (dev->out_new != 0xffff) {
-            /* We have received a byte into the RSR. */
-            serial_log("Byte received: %04X\n", dev->out_new);
 
-            /* Indicate overrun. */
-            if (dev->lsr & 0x01)
-                dev->lsr |= 0x02;
+        /* Indicate overrun. */
+        if (dev->lsr & 0x01)
+            dev->lsr |= 0x02;
+        dev->lsr |= err;
 
-            if (dev->pending_rx_error & CHAR_COM_ERR_PARITY)
-                dev->lsr |= 0x04;
-            if (dev->pending_rx_error & CHAR_COM_ERR_FRAMING)
-                dev->lsr |= 0x08;
-            if (dev->pending_rx_error & CHAR_COM_ERR_BREAK)
-                dev->lsr |= 0x10;
-            dev->pending_rx_error = 0;
+        dev->dat     = (uint8_t) (dev->out_new & 0xff);
+        dev->out_new = 0xffff;
 
-            dev->dat = (uint8_t) (dev->out_new & 0xff);
-            dev->out_new = 0xffff;
+        /* Raise Data Ready interrupt. */
+        dev->lsr |= 0x01;
+        dev->int_status |= SERIAL_INT_RECEIVE;
+        if (dev->lsr & 0x1e) /* OE | PE | FE | BI */
+            dev->int_status |= SERIAL_INT_LSR;
 
-            /* Raise Data Ready interrupt. */
-            dev->lsr |= 0x01;
-            dev->int_status |= SERIAL_INT_RECEIVE;
-            if (dev->lsr & 0x1e) /* OE | PE | FE | BI */
-                dev->int_status |= SERIAL_INT_LSR;
-
-            serial_update_ints(dev);
-        }
+        serial_update_ints(dev);
     }
+}
+
+/* copy one character from host device into the RSR
+   returns 1 when a character came off the wire. */
+static int
+serial_rx_take(serial_t *dev)
+{
+    uint8_t val;
+
+    /* only read when the receive shift register is free */
+    if (!dev->char_port.chardev.read || (dev->out_new != 0xffff))
+        return 0;
+    if (dev->char_port.chardev.read(&val, sizeof(val), dev->char_port.chardev.priv) <= 0)
+        return 0;
+
+    /* preserve pending_rx_error for chars in loopback mode */
+    if (dev->mctrl & 0x10)
+        return 1;
+
+    dev->pending_rx_error = dev->char_port.chardev.read_error
+        ? dev->char_port.chardev.read_error(dev->char_port.chardev.priv)
+        : 0;
+    write_fifo(dev, val);
+    return 1;
+}
+
+static void
+serial_receive_timer(void *priv)
+{
+    serial_t *dev = (serial_t *) priv;
+    int       got;
+
+    serial_log("serial_receive_timer()\n");
+
+    got = serial_rx_take(dev);
+    serial_rx_deliver(dev);
+
+    /* rearm timer after byte rx. wait one full character time before polling. 
+    With nothing received, serial_receive_poll_period() polls faster to avoid char slot latency */
+    timer_on_auto(&dev->receive_timer, got ? serial_char_period(dev) : serial_receive_poll_period(dev));
 }
 
 static void
@@ -305,7 +441,7 @@ write_fifo(serial_t *dev, uint8_t dat)
                (dev->type >= SERIAL_16550) && dev->fifo_enabled,
                ((dev->type >= SERIAL_16550) && dev->fifo_enabled) ?
                fifo_get_count(dev->rcvr_fifo) : 0);
-               
+
     /* Do this here, because in non-FIFO mode, this is read directly. */
     dev->out_new = (uint16_t) (dat & serial_data_mask(dev));
 }
@@ -313,22 +449,12 @@ write_fifo(serial_t *dev, uint8_t dat)
 static void
 serial_receive_loopback_break(serial_t *dev)
 {
-    /* In diagnostic loopback the transmitter feeds the receiver internally.
-       Asserting Break therefore receives a zero character with the parity,
-       framing, and break-error indications set. */
-    if (dev->fifo_enabled)
-        fifo_write_evt(0x00, dev->rcvr_fifo);
-    else {
-        if (dev->lsr & 0x01)
-            dev->lsr |= 0x02;
-        dev->dat = 0x00;
-        dev->lsr |= 0x01;
-        dev->int_status |= SERIAL_INT_RECEIVE;
-    }
-
-    dev->lsr |= 0x1c;
-    dev->int_status |= SERIAL_INT_LSR;
-    serial_update_ints(dev);
+    /* loopback: tx feeds rx internally. Break rx's a zero char; FE/PE
+       follow from the LCR in serial_rx_error_lsr(). In FIFO mode errors
+       stay with the char. */
+    dev->out_new          = 0x0000;
+    dev->pending_rx_error = CHAR_COM_ERR_BREAK;
+    serial_rx_deliver(dev);
 }
 
 void
@@ -348,12 +474,20 @@ serial_transmit(serial_t *dev, uint8_t val)
 {
     val &= serial_data_mask(dev);
 
-    if (dev->mctrl & 0x10)
+    if (dev->mctrl & 0x10) {
+        /* loopback mode: rx is clocked with tx, char is ready at frame end.
+           note: the receive timer adds up to one more char time delay */
         write_fifo(dev, val);
-    else if (dev->sd && dev->sd->dev_write)
+        serial_rx_deliver(dev);
+    } else if (dev->sd && dev->sd->dev_write)
         dev->sd->dev_write(dev, dev->sd->priv, val);
-    else if (dev->char_port.chardev.write)
+    else if (dev->char_port.chardev.write) {
         dev->char_port.chardev.write(&val, sizeof(val), dev->char_port.chardev.priv);
+
+        /* loopback mode: SYNC_RX answers write() immediately */
+        if ((dev->char_port.chardev.flags & CHAR_COM_SYNC_RX) && serial_rx_take(dev))
+            serial_rx_deliver(dev);
+    }
 }
 
 static void
@@ -370,6 +504,15 @@ serial_move_to_txsr(serial_t *dev)
     }
 
     dev->lsr &= ~0x40;
+
+    /* emulated frame & wire. */
+    dev->txsr_sent = 0;
+    if (!(dev->mctrl & 0x10) && !(dev->sd && dev->sd->dev_write)
+        && (dev->char_port.chardev.flags & CHAR_COM_WIRE)) {
+        serial_transmit(dev, dev->txsr);
+        dev->txsr_sent = 1;
+    }
+
     serial_log("serial_move_to_txsr(): FIFO %sabled, FIFO pos = %i\n", dev->fifo_enabled ? "en" : "dis",
                fifo_get_count(dev->xmit_fifo) & 0x0f);
 
@@ -386,7 +529,9 @@ static void
 serial_process_txsr(serial_t *dev)
 {
     serial_log("serial_process_txsr(): FIFO %sabled\n", dev->fifo_enabled ? "en" : "dis");
-    serial_transmit(dev, dev->txsr);
+    if (!dev->txsr_sent)
+        serial_transmit(dev, dev->txsr);
+    dev->txsr_sent = 0;
     dev->txsr = 0;
     dev->txsr_empty = 1;
      serial_xmit_d_empty_evt(dev);
@@ -409,39 +554,39 @@ serial_process_txsr(serial_t *dev)
 static void
 serial_transmit_timer(void *priv)
 {
-    serial_t *dev   = (serial_t *) priv;
-    /*
-       Norton Diagnostics waits for up to 2 bit periods, this is
-       confirmed by the NS16550A timings graph, which shows operation
-       as follows after write: 1 bit of delay, then start bit, and at
-       the end of the start bit, move from THR to TXSR.
-     */
-    int       delay = 1;
+    serial_t *dev = (serial_t *) priv;
 
-    if (dev->transmit_enabled & 3) {
-        /*
-           If already transmitting, move from THR to TXSR at the end of
-           the last data bit.
-         */
-        if ((dev->transmit_enabled & 1) && (dev->transmit_enabled & 2))
-            delay = dev->data_bits + 1;
-
-        dev->baud_cycles++;
-
-        /* We have processed (delay + total bits) BAUDOUT cycles, transmit the byte. */
-        if ((dev->baud_cycles == (dev->bits + 1)) && (dev->transmit_enabled & 2))
-            serial_process_txsr(dev);
-
-        /* We have processed (data bits) BAUDOUT cycles. */
-        if ((dev->baud_cycles == delay) && (dev->transmit_enabled & 1))
-            serial_move_to_txsr(dev);
-
-        if (dev->transmit_enabled & 3)
-            timer_on_auto(&dev->transmit_timer, dev->transmit_period);
-    } else {
+    if (!(dev->transmit_enabled & 3)) {
         dev->baud_cycles = 0;
         return;
     }
+
+    dev->baud_cycles++;
+
+    if (dev->transmit_enabled & 2) {
+        /* baud_cycles is 1 at load, +1 per tick */
+        if (dev->baud_cycles >= (dev->bits + 1)) {
+            serial_process_txsr(dev);
+            /* the next start bit follows the last stop bit
+               directly */
+            if (dev->transmit_enabled & 1) {
+                serial_move_to_txsr(dev);
+                dev->baud_cycles = 1;
+            }
+        }
+    } else if (dev->transmit_enabled & 1) {
+        /* idle line, THR has data:
+            load TXSR on first tick after the write, start the frame count */
+        serial_move_to_txsr(dev);
+        dev->baud_cycles = 1;
+    }
+
+    /* 1.5 stop bits:
+        frame-end tick comes half bit early. the next frame starts from that half tick. */
+    if ((dev->transmit_enabled & 2) && dev->half_stop && (dev->baud_cycles == dev->bits))
+        timer_on_auto(&dev->transmit_timer, 0.5 * dev->transmit_period);
+    else if (dev->transmit_enabled & 3)
+        timer_on_auto(&dev->transmit_timer, dev->transmit_period);
 }
 
 static void
@@ -450,6 +595,10 @@ serial_timeout_timer(void *priv)
     serial_t *dev = (serial_t *) priv;
 
     serial_log("serial_timeout_timer()\n");
+
+    /* a timeout only reports characters still waiting in the RX FIFO */
+    if (!dev->fifo_enabled || fifo_get_empty(dev->rcvr_fifo))
+        return;
 
     dev->lsr |= 0x01;
     dev->int_status |= SERIAL_INT_TIMEOUT;
@@ -470,26 +619,44 @@ serial_device_timeout(void *priv)
     }
 }
 
+/* Start the host receive and status timers, begin polling */
+static void
+serial_start_polling(serial_t *dev)
+{
+    if (dev->base_address == 0x0000)
+        return;
+
+    timer_on_auto(&dev->receive_timer, serial_receive_period(dev));
+
+    if (dev->char_port.chardev.status && !timer_is_enabled(&dev->status_timer))
+        timer_on_auto(&dev->status_timer, SERIAL_STATUS_PERIOD_US);
+}
+
 static void
 serial_update_speed(serial_t *dev)
 {
     serial_log("serial_update_speed(%lf)\n", dev->transmit_period);
-    timer_on_auto(&dev->receive_timer, serial_receive_period(dev));
+    serial_start_polling(dev);
 
     if (dev->transmit_enabled & 3)
         timer_on_auto(&dev->transmit_timer, dev->transmit_period);
 
-    if (timer_is_on(&dev->timeout_timer))
-        timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
+    if (timer_is_enabled(&dev->timeout_timer))
+        timer_on_auto(&dev->timeout_timer, 4.0 * serial_frame_bits(dev) * dev->transmit_period);
 }
 
+/* FIFO mode switch: THR and the TX FIFO are one store, so whatever is
+   queued is dropped (the character already in TXSR still finishes), and a
+   receive timeout for the old RX FIFO contents must not fire. */
 static void
 serial_reset_fifo(serial_t *dev)
 {
+    dev->thr_empty = 1;
+    dev->transmit_enabled &= ~1;
     fifo_reset_evt(dev->xmit_fifo);
     fifo_reset_evt(dev->rcvr_fifo);
 
-    serial_update_ints(dev);
+    serial_clear_timeout(dev);
 }
 
 void
@@ -586,6 +753,16 @@ serial_set_clock_src(serial_t *dev, double clock_src)
 void
 serial_set_type(serial_t *dev, uint8_t type)
 {
+    /* 16450, 8250 UART has no FIFO */
+    if ((type < SERIAL_16550) && (dev->type >= SERIAL_16550) && dev->fifo_enabled) {
+        dev->fcr          = 0x00;
+        dev->fifo_enabled = 0;
+        serial_reset_fifo(dev);
+        fifo_reset(dev->xmit_fifo);
+        fifo_reset(dev->rcvr_fifo);
+        dev->lsr &= ~0x80;
+        serial_update_ints(dev);
+    }
     dev->type = type;
 }
 
@@ -619,19 +796,23 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
             }
 
             if (dev->fifo_enabled && (fifo_get_count(dev->xmit_fifo) < 16)) {
-                /* FIFO mode, begin transmitting. */
-                timer_on_auto(&dev->transmit_timer, dev->transmit_period);
-                dev->transmit_enabled |= 1; /* Start moving. */
+                /* FIFO mode, begin transmitting: bit clock keeps
+                   running while a character is tx'ed. only start it
+                   from idle */
+                if (!timer_is_enabled(&dev->transmit_timer))
+                    timer_on_auto(&dev->transmit_timer, dev->transmit_period);
+                dev->transmit_enabled |= 1;
                 fifo_write_evt(val, dev->xmit_fifo);
             } else if (!dev->fifo_enabled) {
-                /* Indicate THR is no longer empty. */
+                /* flag THR = not empty */
                 dev->lsr &= 0x9f;
                 dev->int_status &= ~SERIAL_INT_TRANSMIT;
                 serial_update_ints(dev);
 
-                /* Non-FIFO mode, begin transmitting. */
-                timer_on_auto(&dev->transmit_timer, dev->transmit_period);
-                dev->transmit_enabled |= 1; /* Start moving. */
+                /* Non-FIFO mode: begin transmitting */
+                if (!timer_is_enabled(&dev->transmit_timer))
+                    timer_on_auto(&dev->transmit_timer, dev->transmit_period);
+                dev->transmit_enabled |= 1;
                 dev->thr = val;
                 dev->thr_empty = 0;
             }
@@ -650,28 +831,30 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
             break;
         case 2:
             if (dev->type >= SERIAL_16550) {
-                if ((val ^ dev->fcr) & 0x01)
-                    serial_reset_fifo(dev);
+                uint8_t mode_change = (val ^ dev->fcr) & 0x01;
+
                 dev->fcr          = val & 0xf9;
                 dev->fifo_enabled = val & 0x01;
-                /* TODO: When switching modes, shouldn't we reset the LSR
-                         based on the new conditions? */
+                /* reset events recompute THRE/TEMT from the new mode. */
+                if (mode_change)
+                    serial_reset_fifo(dev);
+                /* Only types >= SERIAL_16550 */
+
                 if (!dev->fifo_enabled) {
                     fifo_reset(dev->xmit_fifo);
                     fifo_reset(dev->rcvr_fifo);
+                    dev->lsr &= ~0x80; /* No RCVR FIFO, so no error in it. */
                     break;
                 }
                 if (val & 0x02) {
-                    if (dev->fifo_enabled)
-                        fifo_reset_evt(dev->rcvr_fifo);
-                    else
-                        fifo_reset(dev->rcvr_fifo);
+                    fifo_reset_evt(dev->rcvr_fifo);
+                    serial_clear_timeout(dev);
                 }
                 if (val & 0x04) {
-                    if (dev->fifo_enabled)
-                        fifo_reset_evt(dev->xmit_fifo);
-                    else
-                        fifo_reset(dev->xmit_fifo);
+                    /* TXSR finishes its character, nothing follows it */
+                    dev->transmit_enabled &= ~1;
+                    fifo_reset_evt(dev->xmit_fifo);
+                    serial_update_ints(dev);
                 }
                 switch ((val >> 6) & 0x03) {
                     case 0:
@@ -699,26 +882,26 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
             old      = dev->lcr;
             dev->lcr = val;
             if ((old ^ val) & 0x3f) {
-                /* Data bits + start bit. */
-                dev->bits = ((dev->lcr & 0x03) + 5) + 1;
-                /* Stop bits. */
-                dev->bits++; /* First stop bit. */
-                if (dev->lcr & 0x04)
-                    dev->bits++; /* Second stop bit. */
-                /* Parity bit. */
-                if (dev->lcr & 0x08)
-                    dev->bits++;
+                serial_lcr_frame(dev);
 
                 serial_transmit_period(dev);
                 serial_update_speed(dev);
 
                 if (dev->sd && dev->sd->lcr_callback)
                     dev->sd->lcr_callback(dev, dev->sd->priv, dev->lcr);
-            }
+            } else if ((old & 0x80) && !(val & 0x80) && dev->port_config_pending)
+                /* divisor written with DLAB set, frame unchanged */
+                serial_port_config(dev);
             if (!(old & 0x40) && (val & 0x40) && (dev->mctrl & 0x10))
                 serial_receive_loopback_break(dev);
-            if (((old ^ val) & 0x40) && dev->char_port.chardev.control)
+            if (((old ^ val) & 0x40) && dev->char_port.chardev.control) {
                 dev->char_port.chardev.control((dev->mctrl & 0x03) | (val & 0x40), dev->char_port.chardev.priv);
+
+                /* loopback plug: SYNC_RX answers a break immediately */
+                if (!(old & 0x40) && (val & 0x40) && !(dev->mctrl & 0x10)
+                    && (dev->char_port.chardev.flags & CHAR_COM_SYNC_RX) && serial_rx_take(dev))
+                    serial_rx_deliver(dev);
+            }
             break;
         case 4:
             old = dev->mctrl;
@@ -764,6 +947,11 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                  * input transition would.
                  */
                 new_msr = (dev->msr_set & 0xf0) | (dev->msr & 0x0f);
+                /* host port lines are sampled by the status timer, which
+                   skips loopback: read them now, msr_set doesn't hold them */
+                if (dev->char_port.chardev.status)
+                    new_msr |= dev->char_port.chardev.status(dev->char_port.chardev.priv) &
+                               (CHAR_COM_CTS | CHAR_COM_DSR | CHAR_COM_RI | CHAR_COM_DCD);
 
                 if ((dev->msr ^ new_msr) & 0x10)
                     new_msr |= 0x01;
@@ -837,9 +1025,10 @@ serial_read(uint16_t addr, void *priv)
                 /* FIFO mode. */
                 serial_clear_timeout(dev);
                 ret = fifo_read_evt(dev->rcvr_fifo);
+                serial_rcvr_fifo_top(dev);
 
                 if (dev->lsr & 0x01)
-                    timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
+                    timer_on_auto(&dev->timeout_timer, 4.0 * serial_frame_bits(dev) * dev->transmit_period);
             } else {
                 /* Non-FIFO mode. */
                 ret = dev->dat;
@@ -877,6 +1066,9 @@ serial_read(uint16_t addr, void *priv)
             ret = dev->lsr;
             if (dev->lsr & 0x1f)
                 dev->lsr &= ~0x1e;
+            /* Error in RCVR FIFO stays set while an errored character is left. */
+            if (!dev->fifo_enabled || !fifo_get_tags(dev->rcvr_fifo))
+                dev->lsr &= ~0x80;
             if (dev->type >= SERIAL_16550)
                 fifo_clear_overrun(dev->rcvr_fifo);
             dev->int_status &= ~SERIAL_INT_LSR;
@@ -927,6 +1119,10 @@ serial_remove(serial_t *dev)
     io_removehandler(dev->base_address, 0x0008,
                      serial_read, NULL, NULL, serial_write, NULL, NULL, dev);
     dev->base_address = 0x0000;
+
+    /* stop polling the host port until serial_setup() maps it again */
+    timer_disable(&dev->receive_timer);
+    timer_disable(&dev->status_timer);
 }
 
 void
@@ -942,8 +1138,10 @@ serial_setup(serial_t *dev, uint16_t addr, uint8_t irq)
     if (dev->base_address != 0x0000)
         serial_remove(dev);
     dev->base_address = addr;
-    if (addr != 0x0000)
+    if (addr != 0x0000) {
         io_sethandler(addr, 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, dev);
+        serial_start_polling(dev);
+    }
     dev->irq = irq;
 }
 
@@ -975,6 +1173,12 @@ serial_rcvr_d_overrun_evt(void *priv)
     serial_t *dev = (serial_t *) priv;
 
     dev->lsr = (dev->lsr & 0xfd) | (fifo_get_overrun(dev->rcvr_fifo) << 1);
+
+    /* OE raises the line status interrupt as in non-FIFO mode */
+    if (dev->lsr & 0x02) {
+        dev->int_status |= SERIAL_INT_LSR;
+        serial_update_ints(dev);
+    }
 }
 
 static void
@@ -1075,6 +1279,9 @@ serial_devices_init(void)
             if (serial->char_port.chardev.control)
                 serial->char_port.chardev.control((serial->mctrl & 0x03) | (serial->lcr & 0x40), serial->char_port.chardev.priv);
 
+            /* check for new sample, status lines may have changed */
+            serial_start_polling(serial);
+
             /* This port is hotunpluggable if the device allows it, unless further serial_attach attempts are made. */
             com_ports[i].hotunplug = (device->flags & DEVICE_HOTPLUG_OUT) ? CHAR_PORT_HOTUNPLUG : CHAR_PORT_NOHOTUNPLUG;
         }
@@ -1144,11 +1351,12 @@ serial_reset(void *priv)
         timer_disable(&dev->transmit_timer);
         timer_disable(&dev->timeout_timer);
         timer_disable(&dev->receive_timer);
+        timer_disable(&dev->status_timer);
 
         dev->lsr = dev->thr = dev->mctrl = dev->rcr = 0x00;
         dev->iir = dev->ier = dev->lcr = dev->msr = 0x00;
         dev->dat = dev->int_status = dev->scratch = dev->fcr = 0x00;
-        dev->fifo_enabled = dev->bits = 0x000;
+        dev->fifo_enabled = dev->bits = dev->half_stop = 0x000;
         dev->data_bits = dev->baud_cycles = 0x00;
         dev->txsr = 0x00;
         dev->txsr_empty = 0x01;
@@ -1188,6 +1396,20 @@ serial_init(const device_t *info)
         com_ports[next_inst].serial    = dev;
         com_ports[next_inst].hotunplug = CHAR_PORT_DETACHED;
 
+        /* Default to 1200,N,7. The timers must exist before serial_setup(),
+           which starts polling as soon as the port is mapped. */
+        dev->dlab = 96;
+        dev->fcr  = 0x06;
+        if ((info->local == SERIAL_8250_PCJR_3F8) || (info->local == SERIAL_8250_PCJR_2F8))
+            dev->clock_src = 1789500.0;
+        else
+            dev->clock_src = 1843200.0;
+        timer_add(&dev->transmit_timer, serial_transmit_timer, dev, 0);
+        timer_add(&dev->timeout_timer, serial_timeout_timer, dev, 0);
+        timer_add(&dev->receive_timer, serial_receive_timer, dev, 0);
+        timer_add(&dev->status_timer, serial_status_timer, dev, 0);
+        serial_transmit_period(dev);
+
         if (info->local & 0xfff00000) {
             dev->base_address = info->local >> 20;
             dev->irq          = (info->local >> 16) & 0xF;
@@ -1213,17 +1435,6 @@ serial_init(const device_t *info)
         else if (next_inst == 0)
             serial_setup(dev, COM1_ADDR, COM1_IRQ);
 
-        /* Default to 1200,N,7. */
-        dev->dlab = 96;
-        dev->fcr  = 0x06;
-        if ((info->local == SERIAL_8250_PCJR_3F8) || (info->local == SERIAL_8250_PCJR_2F8))
-            dev->clock_src = 1789500.0;
-        else
-            dev->clock_src = 1843200.0;
-        timer_add(&dev->transmit_timer, serial_transmit_timer, dev, 0);
-        timer_add(&dev->timeout_timer, serial_timeout_timer, dev, 0);
-        timer_add(&dev->receive_timer, serial_receive_timer, dev, 0);
-        serial_transmit_period(dev);
         serial_update_speed(dev);
 
         dev->rcvr_fifo = fifo64_init();

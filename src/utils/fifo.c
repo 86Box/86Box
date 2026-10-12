@@ -338,6 +338,29 @@ fifo_read_evt_tagged(uint8_t *tag, void *priv)
     return ret;
 }
 
+/* Tag of the entry the next fifo_read*() returns, 0 if the FIFO is empty. */
+uint8_t
+fifo_peek_tag(void *priv)
+{
+    const fifo_t *fifo = (fifo_t *) priv;
+
+    return fifo->empty ? 0x00 : fifo->tag[fifo->start];
+}
+
+/* Tags of every entry in the FIFO, ORed together. */
+uint8_t
+fifo_get_tags(void *priv)
+{
+    const fifo_t *fifo  = (fifo_t *) priv;
+    int           count = fifo_get_count(priv);
+    uint8_t       ret   = 0x00;
+
+    for (int i = 0; i < count; i++)
+        ret |= fifo->tag[(fifo->start + i) % fifo->len];
+
+    return ret;
+}
+
 void
 fifo_clear_overrun(void *priv)
 {
