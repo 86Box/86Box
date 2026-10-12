@@ -13,16 +13,17 @@
  *
  *          Copyright 2024 Cacodemon345.
  */
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <math.h>
-#include <86box/86box.h>
 #include <86box/io.h>
-#include <86box/device.h>
-#include <86box/timer.h>
 #include <86box/plat.h>
+#include <86box/86box.h>
+#include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/novell_cardkey.h>
 
 typedef struct novell_cardkey_t {
@@ -37,11 +38,11 @@ novell_cardkey_read(uint16_t port, void *priv)
     switch (port) {
         /* Byte 5 high nibble + byte 4 high nibble */
         case 0x23A:
-            val = (((cardkey->serial_number_str[10] > 'A') ? ((cardkey->serial_number_str[10] - 'A') + 10) : (cardkey->serial_number_str[10] - '0')) << 4) | (((cardkey->serial_number_str[8] > 'A') ? ((cardkey->serial_number_str[8] - 'A') + 10) : (cardkey->serial_number_str[8] - '0')) << 4);
+            val = (((cardkey->serial_number_str[10] >= 'A') ? ((cardkey->serial_number_str[10] - 'A') + 10) : (cardkey->serial_number_str[10] - '0')) << 4) | ((cardkey->serial_number_str[8] >= 'A') ? ((cardkey->serial_number_str[8] - 'A') + 10) : (cardkey->serial_number_str[8] - '0'));
             break;
         /* Byte 5 low nibble + byte 4 low nibble */
         case 0x23B:
-            val = (((cardkey->serial_number_str[11] > 'A') ? ((cardkey->serial_number_str[11] - 'A') + 10) : (cardkey->serial_number_str[11] - '0')) << 4) | (((cardkey->serial_number_str[9] > 'A') ? ((cardkey->serial_number_str[9] - 'A') + 10) : (cardkey->serial_number_str[9] - '0')) << 4);
+            val = (((cardkey->serial_number_str[11] >= 'A') ? ((cardkey->serial_number_str[11] - 'A') + 10) : (cardkey->serial_number_str[11] - '0')) << 4) | ((cardkey->serial_number_str[9] >= 'A') ? ((cardkey->serial_number_str[9] - 'A') + 10) : (cardkey->serial_number_str[9] - '0'));
             break;
         /* Byte 2 low nibble + byte 1 low nibble */
         case 0x23C:
@@ -71,17 +72,21 @@ void* novell_cardkey_init(UNUSED(const device_t* info))
 
     strncpy(sernumstr, device_get_config_string("serial_number"), sizeof(sernumstr) - 1);
     
-    for (i = 0; i < sizeof(sernumstr) - 4; i++) {
-        if (sernumstr[i] > '8' || sernumstr[i] < '0')
+    for (i = 0; i < sizeof(sernumstr) - 5; i++) {
+        if (sernumstr[i] > '9' || sernumstr[i] < '0')
             sernumstr[i] = '0';
     }
-    if (sernumstr[8] > 'F' || sernumstr[8] < '0')
+    sernumstr[8] = toupper((unsigned char) sernumstr[8]);
+    if (!((sernumstr[8] >= '0' && sernumstr[8] <= '9') || (sernumstr[8] >= 'A' && sernumstr[8] <= 'F')))
         sernumstr[8] = '0';
-    if (sernumstr[9] > 'F' || sernumstr[9] < '0')
+    sernumstr[9] = toupper((unsigned char) sernumstr[9]);
+    if (!((sernumstr[9] >= '0' && sernumstr[9] <= '9') || (sernumstr[9] >= 'A' && sernumstr[9] <= 'F')))
         sernumstr[9] = '0';
-    if (sernumstr[10] > 'F' || sernumstr[10] < '0')
+    sernumstr[10] = toupper((unsigned char) sernumstr[10]);
+    if (!((sernumstr[10] >= '0' && sernumstr[10] <= '9') || (sernumstr[10] >= 'A' && sernumstr[10] <= 'F')))
         sernumstr[10] = '0';
-    if (sernumstr[11] > 'F' || sernumstr[11] < '0')
+    sernumstr[11] = toupper((unsigned char) sernumstr[11]);
+    if (!((sernumstr[11] >= '0' && sernumstr[11] <= '9') || (sernumstr[11] >= 'A' && sernumstr[11] <= 'F')))
         sernumstr[11] = '0';
     sernumstr[12] = 0;
     strncpy(cardkey->serial_number_str, sernumstr, sizeof(sernumstr));
@@ -99,7 +104,7 @@ static const device_config_t keycard_config[] = {
     {
         .name           = "serial_number",
         .description    = "Serial Number",
-        .type           = CONFIG_STRING,
+        .type           = CONFIG_KEYCARD,
         .default_string = "",
         .default_int    = 0,
         .file_filter    = NULL,
