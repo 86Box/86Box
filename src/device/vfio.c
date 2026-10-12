@@ -1284,18 +1284,20 @@ vfio_quirk_remap(vfio_device_t *dev, vfio_region_t *bar, uint8_t enable)
                VGA decode policy doesn't allow those to be forwarded directly to the real card. */
             if (vfio_bar_gettype(dev, &dev->bars[0]) != 0x00)
                 break;
-            if ((dev->bars[0].size == 33554432) && (dev->bar_count == 1)) {
-                /* Older chips can only remap to VGA A0000. We can tell
-                   those through BAR 0 being 32M and the only BAR. */
-                if (bar == &dev->vga_mem) {
-                    i = 0;
+            if ((dev->bars[0].size == 67108864) && (dev->bar_count == 1)) {
+                /* Trio64V+ and ViRGE chips can remap to BAR 0 + 16M. We can tell those through
+                   BAR 0 being 64M = ((16M linear + 16M MMIO) * both endians) and the only BAR. */
+                if (bar->bar_id == 0) {
+                    i = 0x1000000; /* 16M MMIO offset */
+
+                    /* There's a configuration space mirror in here as well. */
+                    vfio_quirk_configmirror(dev, bar, i + 0x8000, 0, enable);
+
+                    /* Subsystem Control/Status and Advanced Function Control. */
+                    vfio_quirk_iomirror(dev, bar, i + 0x8504 - 0x42e8, 0x42e8, 2, enable);
+                    vfio_quirk_iomirror(dev, bar, i + 0x850c - 0x4ae8, 0x4ae8, 2, enable);
 
                     /* Main port list from vid_s3.c */
-                    vfio_quirk_iomirror(dev, bar, i, 0x42e8, 2, enable);
-                    vfio_quirk_iomirror(dev, bar, i, 0x46e8, 2, enable);
-                    vfio_quirk_iomirror(dev, bar, i, 0x4ae8, 2, enable);
-
-s3_old_mmio:
                     vfio_quirk_iomirror(dev, bar, i, 0x82e8, 4, enable);
                     vfio_quirk_iomirror(dev, bar, i, 0x86e8, 4, enable);
                     vfio_quirk_iomirror(dev, bar, i, 0x8ae8, 4, enable);
@@ -1322,22 +1324,6 @@ s3_old_mmio:
                     vfio_quirk_iomirror(dev, bar, i, 0xe6e8, 4, enable);
                     vfio_quirk_iomirror(dev, bar, i, 0xeae8, 4, enable);
                     vfio_quirk_iomirror(dev, bar, i, 0xeee8, 4, enable);
-                }
-            } else if ((dev->bars[0].size == 67108864) && (dev->bar_count == 1)) {
-                /* Trio64V+ and ViRGE chips can remap to BAR 0 + 16M. We can tell those through
-                   BAR 0 being 64M = ((16M linear + 16M MMIO) * both endians) and the only BAR. */
-                if (bar->bar_id == 0) {
-                    i = 0x1000000; /* 16M MMIO offset */
-
-                    /* There's a configuration space mirror in here as well. */
-                    vfio_quirk_configmirror(dev, bar, i + 0x8000, 0, enable);
-
-                    /* Subsystem Control/Status and Advanced Function Control. */
-                    vfio_quirk_iomirror(dev, bar, i + 0x8504 - 0x42e8, 0x42e8, 2, enable);
-                    vfio_quirk_iomirror(dev, bar, i + 0x850c - 0x4ae8, 0x4ae8, 2, enable);
-
-                    /* The rest maps exactly as older chips. */
-                    goto s3_old_mmio;
                 }
             }
             break;
