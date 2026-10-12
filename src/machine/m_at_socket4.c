@@ -341,6 +341,7 @@ machine_at_valuepointp60_init(const machine_t *model)
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&sio_device);
+    device_add(machine_get_ide_device(machine));
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
     device_add(&intel_flash_bxt_ami_device);
 
