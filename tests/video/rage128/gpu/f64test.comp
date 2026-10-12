@@ -1,0 +1,52 @@
+#version 450
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          ATI Rage 128 Pro -- GPU backend test kernel for the software
+ *          binary64 arithmetic.
+ *
+ *          For each input pair (a, b) the kernel writes a + b, a * b and
+ *          the 16-bit depth quantization of a, all computed with the GPU
+ *          backend's software double-precision routines. gputri compares
+ *          the three results against native host doubles.
+ *
+ * Authors: skiretic.
+ *
+ *          Copyright 2026 skiretic.
+ */
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+
+#include "vid_ati_rage128_gpu_f64.glsl"
+
+layout(local_size_x = 64) in;
+
+layout(std430, binding = 0) readonly buffer In {
+    uint64_t pairs[]; /* a0, b0, a1, b1, ... */
+};
+layout(std430, binding = 1) buffer Out {
+    uint64_t res[]; /* add0, mul0, zq0, add1, ... (zq widened to u64) */
+};
+
+layout(push_constant) uniform PC {
+    uint n;
+} pc;
+
+void
+main()
+{
+    uint i = gl_GlobalInvocationID.x;
+
+    if (i >= pc.n)
+        return;
+    uint64_t a = pairs[i * 2u];
+    uint64_t b = pairs[i * 2u + 1u];
+
+    res[i * 3u]      = f64_add(a, b);
+    res[i * 3u + 1u] = f64_mul(a, b);
+    res[i * 3u + 2u] = uint64_t(f64_zq16(a));
+}

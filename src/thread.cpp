@@ -96,16 +96,16 @@ thread_wait_event(event_t *handle, int timeout)
     if (timeout < 0) {
         event->cond.wait(lock, [event] { return event->state; });
     } else {
-        auto           to = std::chrono::system_clock::now() + std::chrono::milliseconds(timeout);
-        std::cv_status status;
+        auto to = std::chrono::system_clock::now() + std::chrono::milliseconds(timeout);
 
-        do {
-            status = event->cond.wait_until(lock, to);
-        } while ((status != std::cv_status::timeout) && !event->state);
-
-        if (status == std::cv_status::timeout) {
+        /* Events are manual-reset: a set latches state until the reset,
+           and its notify reaches only waiters already blocked. The
+           predicate form tests state before it sleeps and again on every
+           wake, so a wait entered on a set event returns at once; a bare
+           wait_until would sleep out the whole timeout for a notify that
+           never comes. */
+        if (!event->cond.wait_until(lock, to, [event] { return event->state; }))
             return 1;
-        }
     }
     return 0;
 }

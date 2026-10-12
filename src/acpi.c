@@ -1031,7 +1031,8 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
                         dma_reset();
                         dma_set_at(1);
 
-                        device_reset_all(DEVICE_PCI);
+                        /* The AGP slot shares the bus RST# signal. */
+                        device_reset_all(DEVICE_PCI | DEVICE_AGP);
                     }
 
                     if (sus_typ & SUS_RESET_CPU)

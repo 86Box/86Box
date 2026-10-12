@@ -329,6 +329,7 @@ typedef struct svga_t {
 
     /* Override the horizontal blanking stuff. */
     int hoverride;
+
     /* Set by a card whose CRTC programs its borders in its own registers:
        left_overscan/y_add come from border_left/border_top, and the card
        sets mon_overscan_x/y to the whole border. */
@@ -500,6 +501,9 @@ extern double ics2595_getclock(void *priv);
 extern double ics2595_getclock_entry(void *priv, int n);
 extern void   ics2595_setclock(void *priv, double clock);
 
+extern void    mu9c1880_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t mu9c1880_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
+
 extern void    sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t sc1148x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
 
@@ -562,6 +566,7 @@ extern const device_t icd2047_20_device;
 extern const device_t icd2061_device;
 extern const device_t ics90c64a_903_device;
 extern const device_t ics9161_device;
+extern const device_t mu9c1880_ramdac_device;
 extern const device_t sc11483_ramdac_device;
 extern const device_t sc11484_ramdac_device;
 extern const device_t sc11487_ramdac_device;

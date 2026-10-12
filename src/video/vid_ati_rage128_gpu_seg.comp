@@ -1,0 +1,1856 @@
+#version 450
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          ATI Rage 128 Pro -- GPU backend, span shading kernel.
+ *
+ * Authors: skiretic.
+ *
+ *          Copyright 2026 skiretic.
+ */
+/* rage128 optional GPU raster backend -- span shading kernel.
+
+   This kernel shades the spans the host captured for one segment and
+   must produce the same bytes as the interpreter's pixel loop in
+   vid_ati_rage128_3d.c. The helper names follow the C copies of that
+   loop in the JIT test harness (the rr_ and ref_ functions in
+   tests/video/rage128/jit-harness/jit_host_test.c).
+
+   The source is compiled once, by scripts/regen-r128-gpu-spv.sh. Four
+   state axes are Vulkan specialization constants, fixed per pipeline
+   at vkCreateComputePipelines time from the r128_gpu_variants table:
+     V_TEX   0 = untextured, 1 = one stage, 2 = two stages
+     V_LOD   stage 0 computes a LOD (draw state need_lod)
+     V_BLEND alpha blending reads the destination (alpha_en)
+     V_Z     the depth/stencil cell is live: Z test, stencil, or both
+   Everything else is a runtime selector read from the triangle record:
+   texel format (every datatype the interpreter decodes, which is all
+   but CI16), clamp and border modes, filter select (minb, mag,
+   mipdis), the full combine code book for both stages, the auxiliary
+   scissor rectangles, Z compare and Z write, the D24S8 stencil test
+   (compare, three ops, reference, value and write masks), the blend
+   code book, sec_sel and need_lod2, and the destination format
+   (ARGB1555, RGB565, ARGB4444 or ARGB8888) with its dither enable and
+   plane mask. A folded pipeline (C_FOLD below) pins some of these to
+   constants as well.
+
+   Execution model: one workgroup per framebuffer row of one run. The
+   host splits a segment into runs of consecutive triangles that share
+   a kernel id and a combine tuple. Each run dispatches its own pipeline
+   over its own region of the rows and slots tables (pc.rows_base). All
+   runs go in one submit, with a pipeline barrier between two runs only
+   where their rows or texture byte ranges overlap. A segment has one
+   render target, and the host keeps draws whose color and Z rows alias
+   each other off the parallel path, so two rows never share bytes and
+   the workgroups need no ordering between them.
+
+   Within a row the workgroup walks batches, with a buffer barrier at
+   the start of each level (see main()). A batch packs several spans
+   into the workgroup's GPU_BATCH_SLOTS lane groups of GPU_SLOT_W lanes
+   each: slots[] names the span a group shades and the pixel offset
+   into it. With GPU_SLOT_W at 16, a 57 px span takes four groups and
+   the rest of the batch holds other spans. A dispatch lasts as long as
+   its row with the most serial passes, so packing several spans into
+   one pass shortens it without needing more workgroups.
+
+   Batch safety: the host packs spans of one row into one batch only
+   when their color byte ranges and their Z byte ranges are disjoint;
+   disjoint pixels are not enough, since a 32 bpp and a 16 bpp draw on
+   one row can share bytes at different x. A segment flushes on any
+   dst_offset, dst_pitch or z_offset change, so drow and zrow depend
+   only on py. A word on the boundary between two byte ranges can still
+   be shared; the unaligned stores below write it with byte-lane
+   atomics. Overlapping spans go to different levels in their original
+   order, which keeps draw order. The one exception is the commutative
+   stencil class (see s_atomic in pixel()), whose spans may overlap in
+   one batch. GPU_SLOT_W is a lane-addressing unit, not an assumption
+   about the device's subgroup size: results do not depend on the
+   subgroup size, only packing efficiency does.
+
+   Z ladder: the interpreter steps zline += dZdx one pixel at a time in
+   double, and zline + i * dZdx computed in parallel would round
+   differently. The pre-pass (vid_ati_rage128_gpu_lad.comp) walks each
+   span's chain at the head of the segment submit and stores the
+   quantized depth per pixel in binding 6; this kernel only reads it.
+
+   Bit-exactness rules:
+   - every float local is `precise`, and the host sets
+     MVK_CONFIG_FAST_MATH_ENABLED=0; both are needed.
+   - no float `/` in the pixel path. Vulkan allows OpFDiv an error of
+     2.5 ULP, so a `/` does not give the C result. fdiv_cr() and
+     div255() build the correctly rounded IEEE-754 quotient in integer
+     math. Add, subtract, multiply and the conversions are correctly
+     rounded under the Vulkan precision rules, so with those helpers
+     the kernel does not depend on how well the driver rounds.
+   - float->int conversions follow the interpreter's explicit rule
+     (truncate, saturate, NaN gives 0) on every host; sat_i32 and
+     sat_u32 spell it out.
+   - the blend wrap quantizer (bfcn bit 0) uses roundEven, the
+     round-to-nearest-even of C lrintf.
+   - texture reads are masked, then linear, as in the interpreter's
+     r3d_texel: the start address wraps through the slot mask and a
+     multi-byte read then runs past it without wrapping. The VRAM
+     buffer has a 4-byte guard word past vram_size, so a read that
+     starts at the top of VRAM stays inside the buffer.
+
+   Relevant literature:
+
+   [1] ATI Technologies, "RAGE 128 PRO Register Reference Guide",
+       RRG-G04500-C Rev 1.01, January 2000. Cited below as
+       "RRG: <register>, p. <printed page> / PDF <viewer page>".
+
+   [2] ATI Technologies, "RAGE 128 Software Development Guide",
+       SDK-G04000 Rev 0.01, August 1999. Cited as "SDK: <section>,
+       p. <printed page> / PDF <viewer page>". */
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_shader_16bit_storage : require
+
+layout(constant_id = 0) const int V_TEX   = 1;
+layout(constant_id = 1) const int V_LOD   = 1;
+layout(constant_id = 2) const int V_BLEND = 0;
+layout(constant_id = 3) const int V_Z     = 1;
+
+/* Bench-only knob for the gputri tool (timing only, wrong results).
+   The device backend never sets it, so its pipelines fold it to 0.
+   B_NOBAR drops the barrier at the start of each batch level. */
+layout(constant_id = 5) const int B_NOBAR = 0;
+/* B_FOLD is a bench-only bitmask for the gputri tool: each bit pins one
+   group of runtime selectors to a fixed value so the compiler can drop
+   that branch tree, which shows what folding the group would save.
+   Pixels are wrong; timing is representative. Bit 8 is unused: the
+   combine selectors fold in the device backend through C_FOLD below. */
+#define FB_FMT   1  /* texel format dt + s3tc block class */
+#define FB_WRAP  2  /* clamp s/t + border            */
+#define FB_FILT  4  /* minb / mag / mipdis           */
+#define FB_BLEND 16 /* blend code book               */
+#define FB_ZAUX  32 /* zfn, alpha test, aux scissor, sec_sel/need_lod2 */
+#define FB_EDGE  64 /* proven signed-32 edge range   */
+layout(constant_id = 6) const int B_FOLD = 0;
+#define FOLDB(bit, v, c) (((B_FOLD & (bit)) != 0) ? uint(c) : (v))
+
+/* Combine fold, used by the device backend. C_FOLD = 0 keeps the
+   runtime per-triangle selectors: the base ("uber") pipelines, which
+   also run any draw whose combine tuple did not fit the host's tuple
+   table. C_FOLD = 1 pins both stages' combine selectors to the
+   constants below, so the compiler drops the unused branches of
+   tex_combine in that pipeline. The values are the comb_cfg[] fields
+   {comb, fmsb, cfac, ifac, comba, afac, ifaca} for each stage. */
+layout(constant_id = 7)  const int C_FOLD   = 0;
+layout(constant_id = 8)  const int C_COMB0  = 0;
+layout(constant_id = 9)  const int C_FMSB0  = 0;
+layout(constant_id = 10) const int C_CFAC0  = 0;
+layout(constant_id = 11) const int C_IFAC0  = 0;
+layout(constant_id = 12) const int C_COMBA0 = 0;
+layout(constant_id = 13) const int C_AFAC0  = 0;
+layout(constant_id = 14) const int C_IFACA0 = 0;
+layout(constant_id = 15) const int C_COMB1  = 0;
+layout(constant_id = 16) const int C_FMSB1  = 0;
+layout(constant_id = 17) const int C_CFAC1  = 0;
+layout(constant_id = 18) const int C_IFAC1  = 0;
+layout(constant_id = 19) const int C_COMBA1 = 0;
+layout(constant_id = 20) const int C_AFAC1  = 0;
+layout(constant_id = 21) const int C_IFACA1 = 0;
+/* stg is a literal at both call sites, so this folds to one constant */
+#define FOLDC(stg, k, c0, c1) \
+    ((C_FOLD != 0) ? uint((stg) == 0u ? (c0) : (c1)) \
+                   : tris[ti].comb_cfg[(stg) * 8u + (k)])
+/* Texture-lighting word, carried in stage 0's spare comb_cfg slot:
+   TEX_LIGHT_FN (SDK: Texture Mapping, p. 6-46 / PDF 158) in [3:0],
+   TEX_CNTL_C bit 6 in [4] and ALPHA_LIGHT_FN (SDK: Texture Mapping,
+   p. 6-47 / PDF 159) in [7:5]. A folded pipeline pins it with the
+   stage selectors; 0 means no lighting pass. */
+layout(constant_id = 29) const int C_LIGHT = 0;
+#define FOLDL() ((C_FOLD != 0) ? uint(C_LIGHT) : tris[ti].comb_cfg[7])
+
+/* Stencil fold. The host's combine tuple includes the draw's stencil
+   enable, so a folded (C_FOLD = 1) pipeline only runs draws whose
+   stencil enable equals S_STEN. Pinning it lets the compiler drop the
+   stencil read, compare and update from the stencil-off pipelines,
+   which are most of them. The uber pipelines (C_FOLD = 0) read the
+   enable at run time. */
+layout(constant_id = 22) const int S_STEN = 0;
+/* Dead-color fold. A draw with no color effect (write mask 0, no alpha
+   test, no chroma key) does no interpolation, texturing, combine,
+   blend, dither or color access. Carrying this bit in the tuple gives
+   such draws, typically stencil-only passes, their own folded kernel
+   without adding an axis to the base kernel table. */
+layout(constant_id = 23) const int C_DEAD = 0;
+/* Texel-format fold. -1 keeps the runtime st_cfg selector (the uber
+   pipelines, and folded pipelines whose tuple leaves that stage's
+   format open). A value >= 0 pins the stage's texel datatype or S3TC
+   class, so the compiler drops the other cases of the texel() format
+   switch in that pipeline. */
+layout(constant_id = 25) const int F_DT0   = -1;
+layout(constant_id = 26) const int F_S3TC0 = -1;
+layout(constant_id = 27) const int F_DT1   = -1;
+layout(constant_id = 28) const int F_S3TC1 = -1;
+/* stg is a literal after inlining (see FOLDC), so this folds away */
+#define FOLDF(stg, c0, c1, k) \
+    ((C_FOLD != 0 && ((stg) == 0u ? (c0) : (c1)) >= 0) \
+        ? uint((stg) == 0u ? (c0) : (c1)) : cfg(ti, stg, k))
+
+/* Serial execution for self-aliasing draws (color and Z rows that
+   alias each other, or a draw that samples its own render target): one
+   workgroup, invocation 0 only, spans in capture order and pixels left
+   to right. That is the interpreter's order, so a texel read that hits
+   a byte an earlier pixel of the same draw stored sees the same value.
+   The rows pair holds (first span index, span count) instead. Serial
+   pipelines are always uber pipelines (C_FOLD 0). */
+layout(constant_id = 24) const int V_SERIAL = 0;
+
+#include "vid_ati_rage128_gpu_f64.glsl"
+#include "vid_ati_rage128_gpu_abi.glsl"
+
+layout(local_size_x = GPU_BATCH_SLOTS * GPU_SLOT_W) in;
+
+layout(std430, binding = 0) coherent buffer V { uint16_t vram[]; };
+/* Same buffer, word view: texture fetches plus the 4-byte color
+   (ARGB8888) and Z (D24S8) cells the u16 view cannot address. It is
+   coherent so that stores are visible to the batches after a level
+   barrier and to later dispatches. An aligned cell belongs to one
+   pixel, so its read-modify-write cannot race another pixel. A
+   straddling cell (a DST_OFFSET or Z_OFFSET that is not a multiple of
+   the cell size) shares its words with the neighboring cells and goes
+   through the byte-lane atomic ust* stores instead. */
+layout(std430, binding = 1) coherent buffer W { uint texw[]; };
+layout(std430, binding = 2) readonly buffer R { uint rows[]; };  /* pairs: batch base, count */
+/* GPU_BATCH_SLOTS words per batch, one per GPU_SLOT_W-lane group:
+   0xffffffff = idle, else span index << 8 | pixel offset. The offset is
+   a multiple of GPU_SLOT_W and fits 8 bits because the host cuts spans
+   at 256 px. Bit 0 of a batch's first word is the level-open flag
+   (see main()). */
+layout(std430, binding = 3) readonly buffer O { uint slots[]; };
+layout(std430, binding = 4) readonly buffer S { seg_span_t spans[]; };
+layout(std430, binding = 5) readonly buffer T { seg_tri_t tris[]; };
+/* quantized depth per pixel (16 or 24 bits; table-fog draws add the fog
+   entry in [31:24] and a second word), written by the pre-pass */
+layout(std430, binding = 6) readonly buffer L { uint lad[]; };
+/* Imported tex_stage arena, word view: texture levels staged from AGP
+   memory. A slot whose packed base has bit 31 set samples here with
+   mask-then-add addressing (arena_off + (off & (slice - 1))), the
+   interpreter's staged scheme; resident slots use the VRAM
+   add-then-mask form. */
+layout(std430, binding = 7) readonly buffer SW { uint stagew[]; };
+/* CI4/CI8 palette snapshots, 256 ARGB words each; tris[].pal_base picks
+   this draw's snapshot */
+layout(std430, binding = 8) readonly buffer PB { uint pal[]; };
+/* Color and Z render targets staged from AGP memory: the c_stage and
+   z_stage arenas, imported without a copy, each with the same u16 and
+   word views as VRAM. A span whose drow or zrow has bit 31 set
+   addresses the matching arena relative to its start, with no
+   vram_mask wrap. That is safe because the host refuses any draw whose
+   scissor extent is longer than the staged length. */
+layout(std430, binding = 9) coherent buffer CS16 { uint16_t cstg16[]; };
+layout(std430, binding = 10) coherent buffer CS32 { uint cstgw[]; };
+layout(std430, binding = 11) coherent buffer ZS16 { uint16_t zstg16[]; };
+layout(std430, binding = 12) coherent buffer ZS32 { uint zstgw[]; };
+
+layout(push_constant) uniform P { uint vram_mask; uint rows_base; } pc;
+
+/* 4x4 ordered dither matrix
+   {0,8,2,10, 12,4,14,6, 3,11,1,9, 15,7,13,5}, packed as nibbles into
+   two words. A const array indexed at run time is lowered to a 64-byte
+   local copy per loop iteration, which would land on the per-pixel
+   path. */
+#define BAYER4(i) ((((i) < 8u ? 0x6e4ca280u : 0x5d7f91b3u) >> (((i) & 7u) * 4u)) & 0xfu)
+
+/* The interpreter's float to signed int conversion: truncate toward
+   zero, saturate to the int range, NaN gives 0. A GLSL int() of an
+   out-of-range value is undefined, so the range is tested first. */
+int
+sat_i32(float f)
+{
+    if (!(f > -2147483648.0))
+        return f < 0.0 ? -2147483648 : 0; /* NaN fails both compares */
+    if (f >= 2147483648.0)
+        return 2147483647;
+    return int(f);
+}
+
+/* The interpreter's float to unsigned conversion: negative and NaN
+   give 0, too large saturates. */
+uint
+sat_u32(float f)
+{
+    if (!(f > 0.0))
+        return 0u;
+    if (f >= 4294967296.0)
+        return 0xffffffffu;
+    return uint(f);
+}
+
+#include "vid_ati_rage128_gpu_fdiv.glsl"
+
+/* ---- masked-then-linear loads: the caller masks the address, the read
+   itself runs linear past it, into the guard word at the top ---- */
+
+uint
+ldu8(uint a)
+{
+    return bitfieldExtract(texw[a >> 2], int((a & 3u) * 8u), 8);
+}
+
+uint
+ldu16(uint a)
+{
+    return ldu8(a) | (ldu8(a + 1u) << 8);
+}
+
+uint
+ldu32(uint a)
+{
+    uint w0 = texw[a >> 2];
+    uint sh = (a & 3u) * 8u;
+
+    if (sh == 0u)
+        return w0;
+    return (w0 >> sh) | (texw[(a >> 2) + 1u] << (32u - sh));
+}
+
+/* the same loads on the stage arena, whose buffer has the same 4-byte
+   guard word past its end as the VRAM buffer */
+uint
+sldu8(uint a)
+{
+    return bitfieldExtract(stagew[a >> 2], int((a & 3u) * 8u), 8);
+}
+
+uint
+sldu16(uint a)
+{
+    return sldu8(a) | (sldu8(a + 1u) << 8);
+}
+
+uint
+sldu32(uint a)
+{
+    uint w0 = stagew[a >> 2];
+    uint sh = (a & 3u) * 8u;
+
+    if (sh == 0u)
+        return w0;
+    return (w0 >> sh) | (stagew[(a >> 2) + 1u] << (32u - sh));
+}
+
+/* ---- staged-or-resident cell accessors for the color and Z targets.
+   The selector (bit 31 of drow or zrow) is the same for a whole span,
+   so every lane of a group takes the same branch. Word cells use the
+   arena's word view and u16 cells its u16 view, matching the two VRAM
+   views the resident paths use. ---- */
+
+uint
+cw_ld(bool s, uint w)
+{
+    return s ? cstgw[w] : texw[w];
+}
+
+void
+cw_st(bool s, uint w, uint v)
+{
+    if (s) cstgw[w] = v; else texw[w] = v;
+}
+
+uint
+c16_ld(bool s, uint c)
+{
+    return s ? uint(cstg16[c]) : uint(vram[c]);
+}
+
+void
+c16_st(bool s, uint c, uint v)
+{
+    if (s) cstg16[c] = uint16_t(v); else vram[c] = uint16_t(v);
+}
+
+uint
+zw_ld(bool s, uint w)
+{
+    return s ? zstgw[w] : texw[w];
+}
+
+void
+zw_st(bool s, uint w, uint v)
+{
+    if (s) zstgw[w] = v; else texw[w] = v;
+}
+
+uint
+zw_cas(bool s, uint w, uint cur, uint nv)
+{
+    return s ? atomicCompSwap(zstgw[w], cur, nv)
+             : atomicCompSwap(texw[w], cur, nv);
+}
+
+uint
+z16_ld(bool s, uint c)
+{
+    return s ? uint(zstg16[c]) : uint(vram[c]);
+}
+
+void
+z16_st(bool s, uint c, uint v)
+{
+    if (s) zstg16[c] = uint16_t(v); else vram[c] = uint16_t(v);
+}
+
+/* ---- unaligned (straddling) cell accessors, resident VRAM only. A
+   staged address is relative to the arena start (row * pitch_bytes +
+   px * bpp), so it is always cell-aligned; only a DST_OFFSET or
+   Z_OFFSET that is not a multiple of the cell size can make a VRAM
+   cell straddle its element. Reads assemble bytes through the word
+   view like the texture loads (the base is pre-masked and the bytes
+   run linear into the guard). Writes must be byte-lane atomic: each
+   byte belongs to one pixel, but a straddled word is shared with the
+   neighboring cell, so a plain read-modify-write of the word could
+   lose the neighbor's concurrent store. The And/Or pair is not atomic
+   as a pair, but between the two operations only this cell's bytes are
+   cleared, and no other invocation reads them. ---- */
+
+void
+ust8(uint a, uint v)
+{
+    uint sh = (a & 3u) * 8u;
+
+    atomicAnd(texw[a >> 2], ~(0xffu << sh));
+    atomicOr(texw[a >> 2], (v & 0xffu) << sh);
+}
+
+/* a is odd (aligned cells use the u16 view), so sh is 8 or 24 */
+void
+ust16(uint a, uint v)
+{
+    uint w  = a >> 2;
+    uint sh = (a & 3u) * 8u;
+
+    if (sh == 24u) {
+        atomicAnd(texw[w], 0x00ffffffu);
+        atomicOr(texw[w], v << 24);
+        atomicAnd(texw[w + 1u], 0xffffff00u);
+        atomicOr(texw[w + 1u], (v >> 8) & 0xffu);
+    } else {
+        atomicAnd(texw[w], ~(0xffffu << sh));
+        atomicOr(texw[w], (v & 0xffffu) << sh);
+    }
+}
+
+/* a & 3 nonzero (aligned cells use the word store) -- both shifts < 32 */
+void
+ust32(uint a, uint v)
+{
+    uint w  = a >> 2;
+    uint sh = (a & 3u) * 8u;
+
+    atomicAnd(texw[w], ~(0xffffffffu << sh));
+    atomicOr(texw[w], v << sh);
+    atomicAnd(texw[w + 1u], 0xffffffffu << sh);
+    atomicOr(texw[w + 1u], v >> (32u - sh));
+}
+
+/* texel address: resident wraps base+off through the slot mask (the
+   interpreter's vram scheme); staged wraps off within its own slice,
+   then offsets into the arena */
+uint
+taddr(bool stgd, uint base, uint mask, uint boff)
+{
+    return stgd ? base + (boff & mask) : (base + boff) & mask;
+}
+
+uint
+tldu8(bool stgd, uint a)
+{
+    return stgd ? sldu8(a) : ldu8(a);
+}
+
+uint
+tldu16(bool stgd, uint a)
+{
+    return stgd ? sldu16(a) : ldu16(a);
+}
+
+uint
+tldu32(bool stgd, uint a)
+{
+    return stgd ? sldu32(a) : ldu32(a);
+}
+
+uint
+lerp_packed(uint x, uint y, uint w)
+{
+    uint iw = 256u - w;
+    uint rb = ((x & 0x00ff00ffu) * iw + (y & 0x00ff00ffu) * w + 0x00800080u) >> 8;
+    uint ag = (((x >> 8) & 0x00ff00ffu) * iw + ((y >> 8) & 0x00ff00ffu) * w + 0x00800080u) >> 8;
+
+    return ((ag & 0x00ff00ffu) << 8) | (rb & 0x00ff00ffu);
+}
+
+/* r3d_texcoord_fx: snap a texel coordinate to a 1/4096 grid before it
+   is floored, so float jitter cannot flip the chosen texel */
+float
+texcoord_fx(float f)
+{
+    precise float r = roundEven(f * 4096.0) * (1.0 / 4096.0);
+
+    return r;
+}
+
+/* r3d_log2f_fast: exponent plus a cubic in the mantissa, the
+   interpreter's LOD approximation term for term */
+float
+log2f_fast(float x)
+{
+    uint          u = floatBitsToUint(x);
+    precise float e = float(int((u >> 23) & 0xffu)) - 127.0;
+    precise float m = uintBitsToFloat((u & 0x007fffffu) | 0x3f800000u);
+    precise float r = e + (-2.133847707 + m * (3.010783972 + m * (-1.029521946 + m * 0.153918478)));
+
+    return r;
+}
+
+/* Compare codes 0 (never) to 7 (always), the same for Z_TEST (SDK:
+   Setting 3D Render States, p. 6-55 / PDF 167), STENCIL_TEST (SDK:
+   Setting 3D Render States, p. 6-56 / PDF 168) and ALPHA_TEST_OP (SDK:
+   Setting 3D Render States, p. 6-51 / PDF 163). a is the left operand
+   in the guide's tables: source Z, masked stencil reference, source
+   alpha. */
+int
+cmp_fn(uint fn, uint a, uint b)
+{
+    switch (fn & 7u) {
+        case 0u: return 0;
+        case 1u: return a < b ? 1 : 0;
+        case 2u: return a <= b ? 1 : 0;
+        case 3u: return a == b ? 1 : 0;
+        case 4u: return a >= b ? 1 : 0;
+        case 5u: return a > b ? 1 : 0;
+        case 6u: return a != b ? 1 : 0;
+        default: return 1;
+    }
+}
+
+/* rr_tex_wrap: the four clamp modes, 0 wrap, 1 mirror, 2 clamp, 3
+   border (SDK: Texture Mapping, p. 6-41 / PDF 153). Border returns -1
+   and the caller substitutes the border color. */
+int
+tex_wrap(int c, int n, uint mode)
+{
+    int m;
+
+    switch (mode & 3u) {
+        case 0u:
+            return c & (n - 1);
+        case 1u:
+            m = c & (2 * n - 1);
+            return (m < n) ? m : (2 * n - 1 - m);
+        case 2u:
+            return (c < 0) ? 0 : (c >= n) ? n - 1 : c;
+        default:
+            return (c < 0 || c >= n) ? -1 : c;
+    }
+}
+
+uint
+cfg(int ti, uint stg, uint k)
+{
+    /* bench-only fixed values, a typical Quake III state: RGB565, no
+       S3TC, wrap, bilinear within the nearest mip level (minb 3),
+       bilinear magnify, mipmapping on */
+    if ((B_FOLD & FB_FMT) != 0 && k < 2u)
+        return k == 0u ? 4u : 0u;
+    if ((B_FOLD & FB_WRAP) != 0 && k >= 2u && k < 5u)
+        return 0u;
+    if ((B_FOLD & FB_FILT) != 0 && k >= 5u)
+        return k == 5u ? 3u : k == 6u ? 1u : 0u;
+    return tris[ti].st_cfg[stg * 8u + k];
+}
+
+void
+slot_of(int ti, uint stg, int cslot, out uint lw, out uint lh,
+        out uint base, out uint mask, out bool stgd)
+{
+    if (stg == 0u) {
+        lw   = tris[ti].slot0[cslot * 4 + 0];
+        lh   = tris[ti].slot0[cslot * 4 + 1];
+        base = tris[ti].slot0[cslot * 4 + 2];
+        mask = tris[ti].slot0[cslot * 4 + 3];
+    } else {
+        lw   = tris[ti].slot1[cslot * 4 + 0];
+        lh   = tris[ti].slot1[cslot * 4 + 1];
+        base = tris[ti].slot1[cslot * 4 + 2];
+        mask = tris[ti].slot1[cslot * 4 + 3];
+    }
+    /* bit 31: the level lives in the stage arena; a resident base is a
+       VRAM byte offset and never has it set */
+    stgd  = (base & 0x80000000u) != 0u;
+    base &= 0x7fffffffu;
+}
+
+/* YCbCr (video range, BT.601) -> ARGB8888: the interpreter's
+   r3d_yuv_to_argb, whose integer matrix (r128_yuv_to_rgb) the overlay
+   scaler uses too. All integer math, so it matches exactly. */
+uint
+yuv_to_argb(uint a, int y, int cb, int cr)
+{
+    int c = y - 16;
+    int d = cb - 128;
+    int e = cr - 128;
+    int r = (298 * c + 409 * e + 128) >> 8;
+    int g = (298 * c - 100 * d - 208 * e + 128) >> 8;
+    int b = (298 * c + 516 * d + 128) >> 8;
+
+    r = clamp(r, 0, 255);
+    g = clamp(g, 0, 255);
+    b = clamp(b, 0, 255);
+    return (a << 24) | (uint(r) << 16) | (uint(g) << 8) | uint(b);
+}
+
+/* rr_texel for every datatype the interpreter decodes, which is all of
+   PRIMARY_DATATYPE but 10, CI16 (SDK: Texture Mapping, p. 6-39 / PDF
+   151); code 0, the guide's 2 bpp VQ, carries the S3TC block formats
+   here, as the interpreter's r3d_texel reads it. Each fetch masks its
+   address, then reads linear, like the interpreter; formats that fetch
+   several times (RGB888, YUV 4:2:2) mask each fetch the way r3d_texel
+   does, which gives the same address modulo the power-of-two mask for
+   resident and staged levels alike.
+
+   texel() stays one real SPIR-V function: the regen script marks it
+   DontInline by name (texel, returning uint), so all its call sites
+   share one body instead of an inlined copy each. The script stops
+   with an error unless it finds exactly one such function, so a rename
+   cannot slip through. */
+uint
+texel(uint dt, uint s3tc, uint palb, bool stgd, uint base, uint mask, uint lw,
+      int u, int v)
+{
+    uint off = uint(v) * lw + uint(u);
+    uint t;
+    /* The host sets selector bit 4 when TEX_MAP_AEN is clear for an
+       alpha-bearing format (Registers for CCE 3D Packets,
+       SCALE_3D_CNTL). The mask is applied at decode, so filtering sees
+       opaque fetched texels and a substituted border color keeps its
+       own alpha. */
+    uint amask = (dt & 0x10u) != 0u ? 0xff000000u : 0u;
+
+    switch (dt) {
+        case 1u: /* CI4: byte-aligned, index in the LOW nibble */
+            t = tldu8(stgd, taddr(stgd, base, mask, off));
+            return pal[palb + (t & 0xfu)];
+        case 2u: /* CI8: index into the 256-entry palette snapshot */
+            t = tldu8(stgd, taddr(stgd, base, mask, off));
+            return pal[palb + t];
+        case 19u:
+        case 3u: /* ARGB1555; 1-bit alpha is a plain MSB test */
+            t = tldu16(stgd, taddr(stgd, base, mask, off * 2u));
+            return (((t & 0x8000u) != 0u) ? 0xff000000u : 0u)
+                 | ((t & 0x7c00u) << 9) | ((t & 0x03e0u) << 6)
+                 | ((t & 0x001fu) << 3) | amask;
+        case 5u: { /* RGB888: 3 packed bytes per texel, LE B G R */
+            uint a5 = taddr(stgd, base, mask, off * 3u);
+
+            return 0xff000000u | (tldu8(stgd, a5 + 2u) << 16)
+                 | (tldu8(stgd, a5 + 1u) << 8) | tldu8(stgd, a5);
+        }
+        case 7u: /* RGB332: shift-only channel expansion */
+            t = tldu8(stgd, taddr(stgd, base, mask, off));
+            return 0xff000000u | ((t & 0xe0u) << 16) | ((t & 0x1cu) << 11)
+                 | ((t & 0x03u) << 6);
+        case 8u: /* Y8 gray scale: intensity to RGB, opaque */
+            t = tldu8(stgd, taddr(stgd, base, mask, off));
+            return 0xff000000u | (t << 16) | (t << 8) | t;
+        case 25u:
+        case 9u: /* RGB8 gray scale: intensity in all four channels */
+            t = tldu8(stgd, taddr(stgd, base, mask, off));
+            return (t << 24) | (t << 16) | (t << 8) | t | amask;
+        /* 11 and 12 are the guide's "YUV 422 packed (VYUY)" and
+           "(YVYU)" (RRG: DP_DATATYPE, p. 3-168 / PDF 186). The byte
+           orders below are the interpreter's reading of those names;
+           the guide gives no byte layout. */
+        case 11u: /* bytes Y0 U Y1 V (YUY2 order), two texels per pair */
+        case 12u: { /* bytes U Y0 V Y1 (UYVY order) */
+            uint poff = (uint(v) * lw + uint(u & ~1)) * 2u;
+            uint yb, cb, cr;
+
+            if (dt == 11u) {
+                yb = tldu8(stgd, taddr(stgd, base, mask, poff + uint(u & 1) * 2u));
+                cb = tldu8(stgd, taddr(stgd, base, mask, poff + 1u));
+                cr = tldu8(stgd, taddr(stgd, base, mask, poff + 3u));
+            } else {
+                yb = tldu8(stgd, taddr(stgd, base, mask, poff + 1u + uint(u & 1) * 2u));
+                cb = tldu8(stgd, taddr(stgd, base, mask, poff));
+                cr = tldu8(stgd, taddr(stgd, base, mask, poff + 2u));
+            }
+            return yuv_to_argb(0xffu, int(yb), int(cb), int(cr));
+        }
+        case 30u:
+        case 14u: /* aYUV444 8:8:8:8: A[31:24] Y[23:16] U[15:8] V[7:0] */
+            t = tldu32(stgd, taddr(stgd, base, mask, off * 4u));
+            return yuv_to_argb(t >> 24, int((t >> 16) & 0xffu),
+                               int((t >> 8) & 0xffu), int(t & 0xffu)) | amask;
+        case 4u:
+            t = tldu16(stgd, taddr(stgd, base, mask, off * 2u));
+            return 0xff000000u | ((t & 0xf800u) << 8) | ((t & 0x07e0u) << 5)
+                 | ((t & 0x001fu) << 3);
+        case 31u:
+        case 15u:
+            t = tldu16(stgd, taddr(stgd, base, mask, off * 2u));
+            return ((t & 0xf000u) << 16) | ((t & 0x0f00u) << 12)
+                 | ((t & 0x00f0u) << 8) | ((t & 0x000fu) << 4) | amask;
+        case 22u:
+        case 6u:
+            return tldu32(stgd, taddr(stgd, base, mask, off * 4u)) | amask;
+        case 16u:
+        default: { /* 0: S3TC */
+            uint bpitch = (lw + 3u) >> 2;
+            uint boff   = (uint(v >> 2) * bpitch + uint(u >> 2))
+                        * ((s3tc >= 2u) ? 16u : 8u);
+            uint coff   = boff + ((s3tc >= 2u) ? 8u : 0u);
+            uint texidx = (uint(v & 3) << 2) | uint(u & 3);
+            uint a      = 0xffu;
+            uint c0, c1, bits, sel, r0, g0, b0, r1, g1, b1;
+
+            if (s3tc == 2u) {
+                uint an = tldu8(stgd, taddr(stgd, base, mask, boff + (texidx >> 1)));
+
+                a = ((texidx & 1u) != 0u) ? (an >> 4) : (an & 0xfu);
+                a *= 0x11u;
+            } else if (s3tc == 3u) {
+                uint a0 = tldu8(stgd, taddr(stgd, base, mask, boff));
+                uint a1 = tldu8(stgd, taddr(stgd, base, mask, boff + 1u));
+                uint bp = texidx * 3u;
+                uint aw = tldu32(stgd, taddr(stgd, base, mask,
+                                             boff + 2u + (bp >> 3)));
+                uint ac = (aw >> (bp & 7u)) & 7u;
+
+                if (ac == 0u)
+                    a = a0;
+                else if (ac == 1u)
+                    a = a1;
+                else if (a0 > a1)
+                    a = ((8u - ac) * a0 + (ac - 1u) * a1) / 7u;
+                else if (ac == 6u)
+                    a = 0u;
+                else if (ac == 7u)
+                    a = 255u;
+                else
+                    a = ((6u - ac) * a0 + (ac - 1u) * a1) / 5u;
+            }
+
+            a |= amask >> 24;
+            c0   = tldu16(stgd, taddr(stgd, base, mask, coff));
+            c1   = tldu16(stgd, taddr(stgd, base, mask, coff + 2u));
+            bits = tldu32(stgd, taddr(stgd, base, mask, coff + 4u));
+            sel  = (bits >> (texidx * 2u)) & 3u;
+            r0 = ((c0 >> 11) & 0x1fu) * 255u / 31u;
+            g0 = ((c0 >> 5) & 0x3fu) * 255u / 63u;
+            b0 = (c0 & 0x1fu) * 255u / 31u;
+            r1 = ((c1 >> 11) & 0x1fu) * 255u / 31u;
+            g1 = ((c1 >> 5) & 0x3fu) * 255u / 63u;
+            b1 = (c1 & 0x1fu) * 255u / 31u;
+            switch (sel) {
+                case 0u: return (a << 24) | (r0 << 16) | (g0 << 8) | b0;
+                case 1u: return (a << 24) | (r1 << 16) | (g1 << 8) | b1;
+                case 2u:
+                    if (c0 > c1 || s3tc >= 2u)
+                        return (a << 24) | (((2u * r0 + r1) / 3u) << 16)
+                             | (((2u * g0 + g1) / 3u) << 8) | ((2u * b0 + b1) / 3u);
+                    return (a << 24) | (((r0 + r1) >> 1) << 16)
+                         | (((g0 + g1) >> 1) << 8) | ((b0 + b1) >> 1);
+                default:
+                    if (c0 > c1 || s3tc >= 2u)
+                        return (a << 24) | (((r0 + 2u * r1) / 3u) << 16)
+                             | (((g0 + 2u * g1) / 3u) << 8) | ((b0 + 2u * b1) / 3u);
+                    return amask;
+            }
+        }
+    }
+}
+
+/* rr_tex_level. The chroma key compares the nearest texel before
+   filtering: want_near forces the nearest tap even under linear
+   filtering and returns it in near_out, which every path assigns
+   because it is a GLSL out parameter.
+
+   The four bilinear taps are written out on purpose. A loop over one
+   texel() call site gives a smaller module, but textured spans run
+   slower in the gputri bench: with a runtime trip count the four
+   fetches are not issued in parallel. */
+uint
+tex_level(int ti, uint stg, int slot, float s, float t, bool linear,
+          bool want_near, out uint near_out)
+{
+    int  cslot = slot < 0 ? 0 : (slot > 10 ? 10 : slot);
+    uint lw, lh, base, mask;
+    bool stgd;
+    uint dt   = FOLDF(stg, F_DT0, F_DT1, 0u);
+    uint s3tc = FOLDF(stg, F_S3TC0, F_S3TC1, 1u);
+    uint palb = tris[ti].pal_base;
+    uint cls  = cfg(ti, stg, 2u);
+    uint clt  = cfg(ti, stg, 3u);
+    uint bord = cfg(ti, stg, 4u);
+
+    slot_of(ti, stg, cslot, lw, lh, base, mask, stgd);
+
+    near_out = 0u;
+    if (!linear || want_near) {
+        int  u = tex_wrap(sat_i32(floor(texcoord_fx(s * float(lw)))), int(lw), cls);
+        int  v = tex_wrap(sat_i32(floor(texcoord_fx(t * float(lh)))), int(lh), clt);
+        uint near = (u < 0 || v < 0) ? bord : texel(dt, s3tc, palb, stgd, base, mask, lw, u, v);
+
+        /* CI formats key on the raw palette index, not the color */
+        near_out = (want_near && u >= 0 && v >= 0 && (dt == 1u || dt == 2u))
+            ? (tldu8(stgd, taddr(stgd, base, mask, uint(v) * lw + uint(u)))
+               & (dt == 1u ? 0xfu : 0xffu))
+            : near;
+        if (!linear)
+            return near;
+    }
+
+    {
+        precise float fu = texcoord_fx(s * float(lw)) - 0.5;
+        precise float fv = texcoord_fx(t * float(lh)) - 0.5;
+        int           u0 = sat_i32(floor(fu));
+        int           v0 = sat_i32(floor(fv));
+        precise float wuf = (fu - float(u0)) * 256.0 + 0.5;
+        precise float wvf = (fv - float(v0)) * 256.0 + 0.5;
+        uint          wu = sat_u32(wuf);
+        uint          wv = sat_u32(wvf);
+        /* Clamp caps the raw successor at the upper edge before the
+           increment; the other modes preserve their modulo addition. */
+        int un = (cls & 3u) == 2u ? min(u0, int(lw) - 1) : u0;
+        int vn = (clt & 3u) == 2u ? min(v0, int(lh) - 1) : v0;
+        int uu0 = tex_wrap(u0, int(lw), cls), uu1 = tex_wrap(un + 1, int(lw), cls);
+        int vv0 = tex_wrap(v0, int(lh), clt), vv1 = tex_wrap(vn + 1, int(lh), clt);
+        uint c0 = (uu0 < 0 || vv0 < 0) ? bord : texel(dt, s3tc, palb, stgd, base, mask, lw, uu0, vv0);
+        uint c1 = (uu1 < 0 || vv0 < 0) ? bord : texel(dt, s3tc, palb, stgd, base, mask, lw, uu1, vv0);
+        uint c2 = (uu0 < 0 || vv1 < 0) ? bord : texel(dt, s3tc, palb, stgd, base, mask, lw, uu0, vv1);
+        uint c3 = (uu1 < 0 || vv1 < 0) ? bord : texel(dt, s3tc, palb, stgd, base, mask, lw, uu1, vv1);
+
+        return lerp_packed(lerp_packed(c0, c1, wu), lerp_packed(c2, c3, wu), wv);
+    }
+}
+
+/* rr_tex_sample: the filter select, all at run time. want_near and
+   near_out carry the chroma-key nearest tap: a mip-linear sample takes
+   it from level A only, as the interpreter does, and every other path
+   from the level it samples.
+
+   The shape keeps the module small: every filter path first resolves
+   its (slot, linear) pair and then reaches one shared tex_level call,
+   with a second call only for the mip-linear B level. tex_level is
+   large once inlined, so one call per filter path would multiply that
+   size for each stage. */
+uint
+tex_sample(int ti, uint stg, float s, float t, float lod, bool has_lod,
+           bool want_near, out uint near_out)
+{
+    uint minb   = cfg(ti, stg, 5u);
+    uint mag    = cfg(ti, stg, 6u);
+    uint mipdis = cfg(ti, stg, 7u);
+    int  top    = stg == 0u ? tris[ti].top0 : tris[ti].top1;
+    int  slotA  = top;
+    int  slotB  = 0;
+    bool linear = false;
+    bool mipl   = false;
+    uint wb     = 0u;
+
+    if (!has_lod || mipdis != 0u || minb < 2u) {
+        linear = has_lod ? (lod > 0.0 ? (minb & 1u) != 0u : (mag == 1u))
+                         : !(minb == 0u && mag == 0u);
+    } else if (lod <= 0.0) {
+        linear = (mag == 1u);
+    } else {
+        precise float lvl = lod > float(top) ? float(top) : lod;
+
+        linear = (minb == 3u || minb == 5u);
+        mipl   = (minb == 4u || minb == 5u);
+        if (mipl) {
+            int           l0 = sat_i32(floor(lvl));
+            precise float f  = lvl - float(l0);
+
+            slotA = top - l0;
+            slotB = top - (l0 + 1);
+            if (slotB < 0)
+                slotB = 0;
+            wb = sat_u32(f * 256.0 + 0.5);
+        } else
+            slotA = top - sat_i32(lvl + 0.5);
+    }
+
+    {
+        uint ca = tex_level(ti, stg, slotA, s, t, linear, want_near, near_out);
+        uint nno, cb;
+
+        if (!mipl)
+            return ca;
+        cb = tex_level(ti, stg, slotB, s, t, linear, false, nno);
+        return lerp_packed(ca, cb, wb);
+    }
+}
+
+/* rr_tex_combine, the interpreter's r3d_tex_combine: the full code
+   book for the color and alpha halves. It takes the texel as floats.
+   tex_combine unpacks a sampled texel; the texture-lighting pass
+   (tex_light) passes the stage chain's output as its texel instead. */
+void
+tex_combine_sel(int ti, uint comb, uint fmsb, uint cfac, uint ifac,
+                uint comba, uint afac, uint ifaca,
+                precise inout float col[4], float tr, float tg, float tb,
+                float ta, float int_color[4], bool first)
+{
+    precise float prev[4];
+    precise float fc[3];
+    precise float ci[3];
+    precise float fa, ia;
+    int           i;
+
+    prev[0] = col[0]; prev[1] = col[1]; prev[2] = col[2]; prev[3] = col[3];
+
+    switch (cfac) {
+        case 0u: fc[0] = tris[ti].cc[0];       fc[1] = tris[ti].cc[1];       fc[2] = tris[ti].cc[2];       break;
+        case 1u: fc[0] = 1.0 - tris[ti].cc[0]; fc[1] = 1.0 - tris[ti].cc[1]; fc[2] = 1.0 - tris[ti].cc[2]; break;
+        case 5u: fc[0] = 1.0 - tr;             fc[1] = 1.0 - tg;             fc[2] = 1.0 - tb;             break;
+        case 6u: fc[0] = fc[1] = fc[2] = ta;       break;
+        case 7u: fc[0] = fc[1] = fc[2] = 1.0 - ta; break;
+        case 8u: fc[0] = prev[0]; fc[1] = prev[1]; fc[2] = prev[2]; break;
+        default: fc[0] = tr; fc[1] = tg; fc[2] = tb; break;
+    }
+    switch (ifac) {
+        case 2u: ci[0] = tris[ti].cc[0]; ci[1] = tris[ti].cc[1]; ci[2] = tris[ti].cc[2]; break;
+        case 3u: ci[0] = ci[1] = ci[2] = tris[ti].cc[3]; break;
+        case 5u: ci[0] = ci[1] = ci[2] = int_color[3]; break;
+        case 8u: ci[0] = prev[0]; ci[1] = prev[1]; ci[2] = prev[2]; break;
+        case 9u: ci[0] = ci[1] = ci[2] = prev[3]; break;
+        default: ci[0] = int_color[0]; ci[1] = int_color[1]; ci[2] = int_color[2]; break;
+    }
+
+    switch (comb) {
+        case 0u:
+            if (fmsb != 0u) {
+                for (i = 0; i < 3; i++) { col[i] = fc[i] - ci[i]; if (col[i] < 0.0) col[i] = 0.0; }
+                break;
+            }
+            col[0] = tr; col[1] = tg; col[2] = tb;
+            break;
+        case 1u:
+            col[0] = fc[0]; col[1] = fc[1]; col[2] = fc[2];
+            break;
+        case 2u:
+            col[0] = ci[0]; col[1] = ci[1]; col[2] = ci[2];
+            break;
+        case 4u:
+            if (fmsb != 0u) {
+                col[0] = ci[0] * (1.0 - tr) + fc[0] * tr;
+                col[1] = ci[1] * (1.0 - tg) + fc[1] * tg;
+                col[2] = ci[2] * (1.0 - tb) + fc[2] * tb;
+            } else {
+                for (i = 0; i < 3; i++) { col[i] = ci[i] * fc[i] * 2.0; if (col[i] > 1.0) col[i] = 1.0; }
+            }
+            break;
+        case 5u:
+            if (fmsb != 0u) {
+                precise float t5[3] = float[3](tr, tg, tb);
+
+                for (i = 0; i < 3; i++) { col[i] = fc[i] + ci[i] * (1.0 - t5[i]); if (col[i] > 1.0) col[i] = 1.0; }
+            } else {
+                for (i = 0; i < 3; i++) { col[i] = ci[i] * fc[i] * 4.0; if (col[i] > 1.0) col[i] = 1.0; }
+            }
+            break;
+        case 6u:
+            if (fmsb != 0u) {
+                precise float t6[3] = float[3](tr, tg, tb);
+
+                for (i = 0; i < 3; i++) { col[i] = fc[i] + ci[i] * t6[i]; if (col[i] > 1.0) col[i] = 1.0; }
+            } else {
+                for (i = 0; i < 3; i++) { col[i] = ci[i] + fc[i]; if (col[i] > 1.0) col[i] = 1.0; }
+            }
+            break;
+        case 7u:
+            for (i = 0; i < 3; i++) { col[i] = ci[i] + fc[i] - 0.5; col[i] = col[i] < 0.0 ? 0.0 : (col[i] > 1.0 ? 1.0 : col[i]); }
+            break;
+        case 8u: {
+            precise float f8 = int_color[3];
+
+            for (i = 0; i < 3; i++) col[i] = ci[i] * (1.0 - f8) + fc[i] * f8;
+            break;
+        }
+        case 9u:
+            for (i = 0; i < 3; i++) col[i] = ci[i] * (1.0 - ta) + fc[i] * ta;
+            break;
+        case 10u:
+            for (i = 0; i < 3; i++) col[i] = ci[i] * (1.0 - tris[ti].cc[3]) + fc[i] * tris[ti].cc[3];
+            break;
+        case 11u:
+            for (i = 0; i < 3; i++) { col[i] = fc[i] + ci[i] * (1.0 - ta); if (col[i] > 1.0) col[i] = 1.0; }
+            break;
+        case 12u:
+            for (i = 0; i < 3; i++) col[i] = ci[i] * (1.0 - prev[3]) + fc[i] * prev[3];
+            break;
+        case 13u:
+            for (i = 0; i < 3; i++) { col[i] = fc[i] + ci[i] * ta; if (col[i] > 1.0) col[i] = 1.0; }
+            break;
+        case 14u:
+            for (i = 0; i < 3; i++) { col[i] = (ci[i] + fc[i] - 0.5) * 2.0; col[i] = col[i] < 0.0 ? 0.0 : (col[i] > 1.0 ? 1.0 : col[i]); }
+            break;
+        case 15u:
+            for (i = 0; i < 3; i++) col[i] = ci[i] * (1.0 - tris[ti].cc[i]) + fc[i] * tris[ti].cc[i];
+            break;
+        default:
+            col[0] = ci[0] * fc[0]; col[1] = ci[1] * fc[1]; col[2] = ci[2] * fc[2];
+            break;
+    }
+
+    fa = (afac == 7u) ? (1.0 - ta) : ta;
+    switch (ifaca) {
+        case 1u:  ia = tris[ti].cc[3]; break;
+        case 2u:  ia = int_color[3];   break;
+        default:  ia = prev[3];        break;
+    }
+    switch (comba) {
+        case 0u: /* the texel alpha on the first stage, the incoming
+                    alpha after it, as in the interpreter */
+            col[3] = first ? ta : prev[3];
+            break;
+        case 1u:
+            col[3] = fa;
+            break;
+        case 2u:
+            col[3] = ia;
+            break;
+        case 4u:
+            col[3] = ia * fa * 2.0; if (col[3] > 1.0) col[3] = 1.0;
+            break;
+        case 6u:
+            col[3] = ia + fa; if (col[3] > 1.0) col[3] = 1.0;
+            break;
+        case 7u:
+            col[3] = ia + fa - 0.5; col[3] = col[3] < 0.0 ? 0.0 : (col[3] > 1.0 ? 1.0 : col[3]);
+            break;
+        case 5u:
+            col[3] = ia * fa * 4.0; if (col[3] > 1.0) col[3] = 1.0;
+            break;
+        case 14u:
+            col[3] = (ia + fa - 0.5) * 2.0; col[3] = col[3] < 0.0 ? 0.0 : (col[3] > 1.0 ? 1.0 : col[3]);
+            break;
+        default:
+            col[3] = ia * fa;
+            break;
+    }
+}
+
+/* one texture stage: the folded (or per-triangle) selectors applied to
+   the packed texel */
+void
+tex_combine(int ti, uint stg, precise inout float col[4], uint tx,
+            float int_color[4])
+{
+    tex_combine_sel(ti,
+                    FOLDC(stg, 0u, C_COMB0, C_COMB1),
+                    FOLDC(stg, 1u, C_FMSB0, C_FMSB1),
+                    FOLDC(stg, 2u, C_CFAC0, C_CFAC1),
+                    FOLDC(stg, 3u, C_IFAC0, C_IFAC1),
+                    FOLDC(stg, 4u, C_COMBA0, C_COMBA1),
+                    FOLDC(stg, 5u, C_AFAC0, C_AFAC1),
+                    FOLDC(stg, 6u, C_IFACA0, C_IFACA1),
+                    col, div255((tx >> 16) & 0xffu), div255((tx >> 8) & 0xffu),
+                    div255(tx & 0xffu), div255(tx >> 24), int_color, stg == 0u);
+}
+
+/* Texture lighting. The guide makes the first argument the output of
+   the texture combine units and the second the interpolated color or
+   alpha (SDK: Texture Mapping, p. 6-42 / PDF 154). So the chain output
+   is the texel here, and the factors are fixed, in the codes of the
+   stage combine fields: COLOR_FACTOR 4, texel color, and INPUT_FACTOR
+   4, interpolated color (SDK: Texture Mapping, p. 6-43 / PDF 155);
+   ALPHA_FACTOR 6, texel alpha, and INPUT_FACTOR_ALPHA 2, interpolated
+   alpha (SDK: Texture Mapping, p. 6-44 / PDF 156). The light word
+   holds the TEX_LIGHT_FN color function in [3:0], the subtract bit in
+   [4] and the ALPHA_LIGHT_FN alpha function in [7:5]. */
+void
+tex_light(int ti, uint lw, precise inout float col[4], float int_color[4])
+{
+    precise float cr = col[0], cg = col[1], cb = col[2], ca = col[3];
+
+    tex_combine_sel(ti, lw & 0xfu, (lw >> 4) & 1u, 4u, 4u, (lw >> 5) & 7u,
+                    6u, 2u, col, cr, cg, cb, ca, int_color, false);
+}
+
+/* ---- destination surface: r3d_dst_read / r3d_dst_write. daddr is a BYTE
+   address; the 16bpp formats (3 ARGB1555, 4 RGB565, 15 ARGB4444) index the
+   u16 view, ARGB8888 (6) the word view. ---- */
+
+uint
+dst_read(uint daddr, uint dt, bool dstg)
+{
+    uint v;
+
+    if (dt == 6u) {
+        if (!dstg && (daddr & 3u) != 0u)
+            return ldu32(daddr);
+        return cw_ld(dstg, daddr >> 2);
+    }
+    if (!dstg && (daddr & 1u) != 0u)
+        v = ldu16(daddr);
+    else
+        v = c16_ld(dstg, daddr >> 1);
+
+    switch (dt) {
+        case 3u:
+            return ((v & 0x8000u) != 0u ? 0xff000000u : 0u)
+                 | ((v & 0x7c00u) << 9) | ((v & 0x03e0u) << 6)
+                 | ((v & 0x001fu) << 3);
+        case 15u:
+            return ((v & 0xf000u) << 16) | ((v & 0x0f00u) << 12)
+                 | ((v & 0x00f0u) << 8) | ((v & 0x000fu) << 4);
+        default: /* 4 */
+            return 0xff000000u | ((v & 0xf800u) << 8) | ((v & 0x07e0u) << 5)
+                 | ((v & 0x001fu) << 3);
+    }
+}
+
+/* 8->n-bit truncation dither offset on one channel, saturating */
+uint
+dq(uint v8, uint add)
+{
+    return min(v8 + add, 255u);
+}
+
+/* bay < 0 = dithering off. pmask is PLANE_3D_MASK_C (RRG:
+   PLANE_3D_MASK_C, p. 3-260 / PDF 278), a bitmask on the color planes;
+   the interpreter applies it to the packed pixel after dithering, not
+   to the ARGB value. */
+void
+dst_write(uint daddr, uint dt, uint argb, int bay, uint pmask, bool dstg)
+{
+    uint a = (argb >> 24) & 0xffu;
+    uint r = (argb >> 16) & 0xffu;
+    uint g = (argb >> 8) & 0xffu;
+    uint b = argb & 0xffu;
+    uint raw, m, dcell;
+
+    /* 8888 has no quantization, so nothing to dither */
+    if (dt == 6u) {
+        if (pmask != 0xffffffffu)
+            argb = (argb & pmask) | (dst_read(daddr, dt, dstg) & ~pmask);
+        if (!dstg && (daddr & 3u) != 0u)
+            ust32(daddr, argb);
+        else
+            cw_st(dstg, daddr >> 2, argb);
+        return;
+    }
+    dcell = daddr >> 1;
+
+    switch (dt) {
+        case 3u: /* ARGB1555; 1-bit alpha stays a plain MSB test */
+            if (bay >= 0) {
+                r = dq(r, uint(bay) >> 1);
+                g = dq(g, uint(bay) >> 1);
+                b = dq(b, uint(bay) >> 1);
+            }
+            raw = ((a << 8) & 0x8000u) | ((r << 7) & 0x7c00u)
+                | ((g << 2) & 0x03e0u) | (b >> 3);
+            break;
+        case 15u: /* ARGB4444 */
+            if (bay >= 0) {
+                a = dq(a, uint(bay));
+                r = dq(r, uint(bay));
+                g = dq(g, uint(bay));
+                b = dq(b, uint(bay));
+            }
+            raw = ((a << 8) & 0xf000u) | ((r << 4) & 0x0f00u)
+                | (g & 0x00f0u) | (b >> 4);
+            break;
+        default: /* 4 = RGB565 */
+            if (bay >= 0) {
+                r = dq(r, uint(bay) >> 1);
+                g = dq(g, uint(bay) >> 2);
+                b = dq(b, uint(bay) >> 1);
+            }
+            raw = ((r << 8) & 0xf800u) | ((g << 3) & 0x07e0u) | (b >> 3);
+            break;
+    }
+    m = pmask & 0xffffu;
+    if (!dstg && (daddr & 1u) != 0u) {
+        if (m != 0xffffu)
+            raw = (raw & m) | (ldu16(daddr) & ~m);
+        ust16(daddr, raw);
+    } else {
+        if (m != 0xffffu)
+            raw = (raw & m) | (c16_ld(dstg, dcell) & ~m);
+        c16_st(dstg, dcell, raw);
+    }
+}
+
+/* ref_aux_pass on the per-triangle copies of the auxiliary scissor
+   rectangles; aux_cntl is 0 when the draw has them off */
+bool
+aux_pass(int ti, int x, int y)
+{
+    bool have_add = false, in_add = false;
+
+    if (FOLDB(FB_ZAUX, tris[ti].aux_cntl, 0u) == 0u)
+        return true;
+    for (int i = 0; i < 3; i++) {
+        if ((tris[ti].aux_cntl & (1u << (i * 2))) == 0u)
+            continue;
+        bool inr = x >= tris[ti].aux_x0[i] && x <= tris[ti].aux_x1[i]
+                && y >= tris[ti].aux_y0[i] && y <= tris[ti].aux_y1[i];
+
+        if ((tris[ti].aux_cntl & (2u << (i * 2))) != 0u) {
+            if (inr)
+                return false;
+        } else {
+            have_add = true;
+            if (inr)
+                in_add = true;
+        }
+    }
+    return have_add ? in_add : true;
+}
+
+/* ref_blend_factor */
+void
+blend_factor(uint code, float sc[4], float dc[4], precise out float o[4])
+{
+    precise float f;
+
+    switch (code & 0xfu) {
+        case 0x0u: o[0] = o[1] = o[2] = o[3] = 0.0; return;
+        case 0x1u: o[0] = o[1] = o[2] = o[3] = 1.0; return;
+        case 0x2u: o[0] = sc[0]; o[1] = sc[1]; o[2] = sc[2]; o[3] = sc[3]; return;
+        case 0x3u: o[0] = 1.0 - sc[0]; o[1] = 1.0 - sc[1]; o[2] = 1.0 - sc[2]; o[3] = 1.0 - sc[3]; return;
+        case 0x4u: o[0] = o[1] = o[2] = o[3] = sc[3]; return;
+        case 0x5u: o[0] = o[1] = o[2] = o[3] = 1.0 - sc[3]; return;
+        case 0x6u: o[0] = o[1] = o[2] = o[3] = dc[3]; return;
+        case 0x7u: o[0] = o[1] = o[2] = o[3] = 1.0 - dc[3]; return;
+        case 0x8u: o[0] = dc[0]; o[1] = dc[1]; o[2] = dc[2]; o[3] = dc[3]; return;
+        case 0x9u: o[0] = 1.0 - dc[0]; o[1] = 1.0 - dc[1]; o[2] = 1.0 - dc[2]; o[3] = 1.0 - dc[3]; return;
+        case 0xau:
+            f = sc[3] < 1.0 - dc[3] ? sc[3] : 1.0 - dc[3];
+            o[0] = o[1] = o[2] = f;
+            o[3] = 1.0;
+            return;
+        default:
+            o[0] = o[1] = o[2] = o[3] = 1.0;
+            return;
+    }
+}
+
+int64_t
+edge_i64(uvec2 e)
+{
+    return int64_t(uint64_t(e.x) | (uint64_t(e.y) << 32));
+}
+
+void
+pixel(int si, int ti, uint i)
+{
+    int  px = spans[si].x0 + int(i);
+    /* ladder slot: table-fog draws have two words per pixel (depth,
+       then the 32-bit fog fraction), every other draw one */
+    uint lat = spans[si].px_base + i * ((tris[ti].ftab_en != 0u) ? 2u : 1u);
+    bool cdead = (C_FOLD != 0)
+        ? (C_DEAD != 0)
+        : (tris[ti].wmask == 0u
+           && FOLDB(FB_ZAUX, tris[ti].atest_en, 0u) == 0u
+           && tris[ti].ck_ctl == 0u);
+    precise float ef0 = 0.0, ef1 = 0.0, ef2 = 0.0;
+
+    /* The host clipped the span to the three edge inequalities, so every
+       pixel in it is covered and the edges are not tested here. A draw
+       with dead color needs no edge values; one with live color uses
+       them only for the barycentric weights. The capture sets pad1 when
+       all three edge values stay in signed 32-bit range across the span,
+       and the 32-bit path is then exact; otherwise the 64-bit path
+       runs. */
+    if (!cdead) {
+        if ((B_FOLD & FB_EDGE) != 0 || spans[si].pad1 != 0u) {
+            int e0 = int(spans[si].e0.x) + int(i) * int(tris[ti].e0dxi.x);
+            int e1 = int(spans[si].e1.x) + int(i) * int(tris[ti].e1dxi.x);
+            int e2 = int(spans[si].e2.x) + int(i) * int(tris[ti].e2dxi.x);
+
+            ef0 = float(e0);
+            ef1 = float(e1);
+            ef2 = float(e2);
+        } else {
+            int64_t e0 = edge_i64(spans[si].e0)
+                       + int64_t(i) * edge_i64(tris[ti].e0dxi);
+            int64_t e1 = edge_i64(spans[si].e1)
+                       + int64_t(i) * edge_i64(tris[ti].e1dxi);
+            int64_t e2 = edge_i64(spans[si].e2)
+                       + int64_t(i) * edge_i64(tris[ti].e2dxi);
+
+            ef0 = float(e0);
+            ef1 = float(e1);
+            ef2 = float(e2);
+        }
+    }
+    if (!aux_pass(ti, px, spans[si].py))
+        return;
+    /* A clear modeled stipple bit discards before depth and stencil;
+       destination coordinates select the captured row and reversed bit. */
+    if (tris[ti].stip_en != 0u
+        && ((tris[ti].stipple[spans[si].py & 31] >> (31 - (px & 31))) & 1u) == 0u)
+        return;
+
+    /* Barycentric weights only (three multiplies). The four Gouraud
+       channels wait until after the Z and stencil tests, so a rejected
+       pixel does not build a color it discards. Dead color needs
+       neither. */
+    precise float w0 = 0.0, w1 = 0.0, w2 = 0.0;
+
+    if (!cdead) {
+        w0 = ef0 * tris[ti].invs;
+        w1 = ef1 * tris[ti].invs;
+        w2 = ef2 * tris[ti].invs;
+    }
+
+    /* ---- Z and stencil tests (runtime selectors; depth from the
+       pre-pass) ---- zbpp 2 reads the u16 cell whole; zbpp 4 reads the
+       word and shifts the depth field out from beside the stencil byte.
+       zcell is the resolved byte address, so the writebacks below hit
+       the same cell. With stencil on, a failed test cannot discard yet:
+       the interpreter runs the stencil update after the alpha test, so
+       the results wait in zres and sres and the discard comes later. A
+       draw with stencil on and the Z test off arrives with zfn set to
+       7 (always) and z_wr 0 by the capture side. */
+    uint zi = 0u, zcell = 0u, zbuf = 0u;
+    uint zbpp = tris[ti].zbpp, zshift = tris[ti].zshift;
+    uint zmax = (zbpp == 4u) ? 0xffffffu : 0xffffu;
+    bool zres = true, sres = true, sten = false, zstg = false, zua = false;
+    uint sbuf = 0u, sshift = 0u;
+
+    if (V_Z != 0) {
+        uint zrw = spans[si].zrow;
+
+        /* bits [31:24] hold the table-fog entry (ftab_en draws only,
+           which read it again below); depth uses at most the low 24 */
+        zi    = lad[lat] & zmax;
+        zstg  = (zrw & 0x80000000u) != 0u;
+        zcell = zstg ? ((zrw & 0x7fffffffu) + uint(px) * zbpp)
+                     : ((zrw + uint(px) * zbpp) & pc.vram_mask);
+        /* straddling resident cell (Z_OFFSET not a multiple of the cell
+           size): reads assemble bytes, writes below are byte-lane
+           atomic */
+        zua   = !zstg && (zcell & (zbpp - 1u)) != 0u;
+        zbuf  = (zbpp == 4u)
+                    ? (((zua ? ldu32(zcell) : zw_ld(zstg, zcell >> 2))
+                        >> zshift) & zmax)
+                    : (zua ? ldu16(zcell) : z16_ld(zstg, zcell >> 1));
+        zres  = cmp_fn(FOLDB(FB_ZAUX, tris[ti].zfn, 2u), zi, zbuf) != 0;
+        sten  = (C_FOLD != 0)
+            ? (S_STEN != 0)
+            : (FOLDB(FB_ZAUX, tris[ti].sten_ctl & 1u, 0u) != 0u);
+        if (sten) {
+            /* stencil sits in the byte the depth field leaves free: the top
+           byte when depth is the low 24 bits (zshift 0), the layout the
+           guide gives (SDK: Setting 3D Render States, p. 6-56 / PDF
+           168), else the low byte */
+            sshift = (zshift != 0u) ? 0u : 24u;
+            sbuf   = ((zua ? ldu32(zcell) : zw_ld(zstg, zcell >> 2))
+                      >> sshift) & 0xffu;
+            {
+                uint svm = (tris[ti].sten_rm >> 8) & 0xffu;
+
+                sres = cmp_fn((tris[ti].sten_ctl >> 4) & 7u,
+                              tris[ti].sten_rm & svm, sbuf & svm) != 0;
+            }
+        } else if (!zres)
+            return;
+    }
+
+    /* Gouraud color, after the Z and stencil tests: with stencil off, a
+       Z-rejected pixel has already returned above. col is only read
+       when the color is live (!cdead). */
+    precise float col[4];
+
+    if (!cdead) {
+        col[0] = w0 * tris[ti].vca[0] + w1 * tris[ti].vcb[0] + w2 * tris[ti].vcc[0];
+        col[1] = w0 * tris[ti].vca[1] + w1 * tris[ti].vcb[1] + w2 * tris[ti].vcc[1];
+        col[2] = w0 * tris[ti].vca[2] + w1 * tris[ti].vcb[2] + w2 * tris[ti].vcc[2];
+        col[3] = w0 * tris[ti].vca[3] + w1 * tris[ti].vcb[3] + w2 * tris[ti].vcc[3];
+    }
+
+    if (V_TEX >= 1 && !cdead) {
+        precise float int_color[4];
+
+        int_color[0] = col[0]; int_color[1] = col[1];
+        int_color[2] = col[2]; int_color[3] = col[3];
+
+        /* Perspective divide, a runtime per-triangle selector. An affine
+           draw (PRIM_TEX_CNTL_C bit 14, the Mesa r128 macro
+           R128_TEX_PERSPECTIVE_DISABLE) never forms rhw and leaves ir at
+           1.0, so S and T are the plain barycentric interpolation. This
+           is the interpreter's !do_persp path, which also skips the
+           rhw dot product. */
+        bool          persp = (tris[ti].persp & 1u) != 0u;
+        precise float rhw = persp ? (w0 * tris[ti].arhw + w1 * tris[ti].brhw
+                                     + w2 * tris[ti].crhw)
+                                  : 0.0;
+        precise float ir  = 1.0;
+
+        if (persp && rhw != 0.0)
+            ir = fdiv_cr(1.0, rhw);
+
+        /* A secondary-only draw keeps the iterated color for stage 1;
+           bit 1 skips stage 0's sampler, chroma keys, and combine. */
+        if ((tris[ti].persp & 2u) == 0u) {
+            precise float sp = w0 * tris[ti].sta + w1 * tris[ti].stb + w2 * tris[ti].stc;
+            precise float tp = w0 * tris[ti].tta + w1 * tris[ti].ttb + w2 * tris[ti].ttc;
+            precise float s  = sp * ir;
+            precise float t  = tp * ir;
+            precise float lod = 0.0;
+
+            if (V_LOD != 0) {
+                precise float dsx, dsy, dtx, dty;
+
+                if (persp) {
+                    precise float wp  = rhw;
+                    precise float iw2 = (wp != 0.0) ? fdiv_cr(1.0, wp * wp) : 0.0;
+
+                    dsx = (tris[ti].dSdx * wp - sp * tris[ti].dWdx) * iw2;
+                    dsy = (tris[ti].dSdy * wp - sp * tris[ti].dWdy) * iw2;
+                    dtx = (tris[ti].dTdx * wp - tp * tris[ti].dWdx) * iw2;
+                    dty = (tris[ti].dTdy * wp - tp * tris[ti].dWdy) * iw2;
+                } else {
+                    dsx = tris[ti].dSdx; dsy = tris[ti].dSdy;
+                    dtx = tris[ti].dTdx; dty = tris[ti].dTdy;
+                }
+
+                dsx *= tris[ti].texw0;
+                dsy *= tris[ti].texw0;
+                dtx *= tris[ti].texh0;
+                dty *= tris[ti].texh0;
+                {
+                    precise float ax2  = dsx * dsx + dtx * dtx;
+                    precise float ay2  = dsy * dsy + dty * dty;
+                    precise float rho2 = ax2 > ay2 ? ax2 : ay2;
+
+                    lod = rho2 > 0.0 ? 0.5 * log2f_fast(rho2) + tris[ti].lod_bias
+                                     : -1000.0;
+                }
+            }
+            {
+                uint tnear = 0u;
+                uint tx = tex_sample(ti, 0u, s, t, lod, V_LOD != 0,
+                                     tris[ti].ck_ctl != 0u, tnear);
+
+                /* Chroma key (stage 0 only), in interpreter order: it
+                   compares the nearest texel before filtering and
+                   discards before the combine, the alpha test and the
+                   stencil update, so a keyed-out pixel changes nothing.
+                   Bit 0 of ck_ctl enables the CLR_CMP_FCN_3D key, where
+                   bit 2 set rejects on equal (function 3) and clear on
+                   not equal (function 2); bit 1 enables the texture
+                   color-compare key, which rejects on equal. */
+                if ((tris[ti].ck_ctl & 1u) != 0u) {
+                    bool eq = (tnear & tris[ti].ck3d_msk)
+                           == (tris[ti].ck3d_clr & tris[ti].ck3d_msk);
+
+                    if (((tris[ti].ck_ctl & 4u) != 0u) ? eq : !eq)
+                        return;
+                }
+                if ((tris[ti].ck_ctl & 2u) != 0u
+                    && (tnear & tris[ti].ckc_msk)
+                       == (tris[ti].ckc_clr & tris[ti].ckc_msk))
+                    return;
+                tex_combine(ti, 0u, col, tx, int_color);
+            }
+        }
+
+        /* ---- stage 1 (sec_sel and need_lod2 read at run time) ---- */
+        if (V_TEX == 2) {
+            bool          sel  = FOLDB(FB_ZAUX, tris[ti].sec_sel, 0u) != 0u;
+            /* The stage's own perspective enable and W, runtime
+               per-triangle selectors like persp. When they match the
+               primary stage's, rhw and ir are the same values and are
+               reused; otherwise the stage forms its own W dot product
+               and reciprocal (1.0 with perspective off), the
+               interpreter's rhw2 and ir2. */
+            bool          persp2 = tris[ti].persp2 != 0u;
+            bool          selw   = tris[ti].sel_w != 0u;
+            bool          own    = selw || persp2 != persp;
+            precise float rhw2   = rhw;
+            precise float ir2    = ir;
+            precise float sp2  = sel ? (w0 * tris[ti].s2a + w1 * tris[ti].s2b + w2 * tris[ti].s2c)
+                                     : (w0 * tris[ti].sta + w1 * tris[ti].stb + w2 * tris[ti].stc);
+            precise float tp2  = sel ? (w0 * tris[ti].t2a + w1 * tris[ti].t2b + w2 * tris[ti].t2c)
+                                     : (w0 * tris[ti].tta + w1 * tris[ti].ttb + w2 * tris[ti].ttc);
+            precise float s2, t2;
+            precise float lod2 = 0.0;
+            bool          hl2  = FOLDB(FB_ZAUX, tris[ti].need_lod2, 1u) != 0u;
+
+            if (own) {
+                rhw2 = 0.0;
+                ir2  = 1.0;
+                if (persp2) {
+                    rhw2 = w0 * tris[ti].a2rhw + w1 * tris[ti].b2rhw + w2 * tris[ti].c2rhw;
+                    if (rhw2 != 0.0)
+                        ir2 = fdiv_cr(1.0, rhw2);
+                }
+            }
+            s2 = sp2 * ir2;
+            t2 = tp2 * ir2;
+
+            if (hl2) {
+                precise float gsx = sel ? tris[ti].dS2dx : tris[ti].dSdx;
+                precise float gsy = sel ? tris[ti].dS2dy : tris[ti].dSdy;
+                precise float gtx = sel ? tris[ti].dT2dx : tris[ti].dTdx;
+                precise float gty = sel ? tris[ti].dT2dy : tris[ti].dTdy;
+                precise float dsx, dsy, dtx, dty;
+
+                if (persp2) {
+                    precise float wp  = rhw2;
+                    precise float iw2 = (wp != 0.0) ? fdiv_cr(1.0, wp * wp) : 0.0;
+                    precise float gwx = selw ? tris[ti].dW2dx : tris[ti].dWdx;
+                    precise float gwy = selw ? tris[ti].dW2dy : tris[ti].dWdy;
+
+                    dsx = (gsx * wp - sp2 * gwx) * iw2;
+                    dsy = (gsy * wp - sp2 * gwy) * iw2;
+                    dtx = (gtx * wp - tp2 * gwx) * iw2;
+                    dty = (gty * wp - tp2 * gwy) * iw2;
+                } else {
+                    dsx = gsx; dsy = gsy; dtx = gtx; dty = gty;
+                }
+
+                dsx *= tris[ti].texw1;
+                dsy *= tris[ti].texw1;
+                dtx *= tris[ti].texh1;
+                dty *= tris[ti].texh1;
+                {
+                    precise float ax2  = dsx * dsx + dtx * dtx;
+                    precise float ay2  = dsy * dsy + dty * dty;
+                    precise float rho2 = ax2 > ay2 ? ax2 : ay2;
+
+                    lod2 = rho2 > 0.0 ? 0.5 * log2f_fast(rho2) + tris[ti].lod_bias
+                                      : -1000.0;
+                }
+            }
+            {
+                uint nn2;
+                uint tx2 = tex_sample(ti, 1u, s2, t2, lod2, hl2, false, nn2);
+
+                tex_combine(ti, 1u, col, tx2, int_color);
+            }
+        }
+        /* texture lighting after the stage chain (rage128_texstage_run) */
+        {
+            uint lw = FOLDL();
+
+            if (lw != 0u)
+                tex_light(ti, lw, col, int_color);
+        }
+    }
+
+    /* Separate specular add (TEX_CNTL_C bit 11, the Mesa r128 macro
+       R128_SPEC_LIGHT_ENABLE), in interpreter order: after the texture
+       stages, before fog and the alpha test. RGB only, saturating;
+       alpha is unchanged. */
+    if (!cdead && tris[ti].spec_en != 0u) {
+        col[0] = col[0] + (w0 * tris[ti].spa[0] + w1 * tris[ti].spb[0] + w2 * tris[ti].spc[0]);
+        col[1] = col[1] + (w0 * tris[ti].spa[1] + w1 * tris[ti].spb[1] + w2 * tris[ti].spc[1]);
+        col[2] = col[2] + (w0 * tris[ti].spa[2] + w1 * tris[ti].spb[2] + w2 * tris[ti].spc[2]);
+        if (col[0] > 1.0) col[0] = 1.0;
+        if (col[1] > 1.0) col[1] = 1.0;
+        if (col[2] > 1.0) col[2] = 1.0;
+    }
+
+    /* Fog, in interpreter order: after the specular add, before the
+       alpha test. Final color = f * C + (1 - f) * fog color, on RGB
+       (SDK: Setting 3D Render States, p. 6-51 / PDF 163). Vertex fog
+       interpolates the per-vertex factor and clamps it, since it can
+       leave [0, 1] near the edges. Table fog, as the interpreter models
+       it, blends the table entry the pre-pass chose with the next one
+       by the 32-bit fraction, in the interpreter's float operations:
+       t = float(fr) * 2^-32, f = (T[i] + (T[i1] - T[i]) * t) / 255,
+       with the divide correctly rounded. */
+    if (!cdead && tris[ti].fog_en != 0u) {
+        precise float f;
+
+        if (tris[ti].ftab_en != 0u) {
+            /* The ladder supplies the fog index and fraction even
+               without a live depth cell. Read them here so the texture
+               stages do not keep the operands live, as with Z writeback. */
+            uint fi = lad[lat] >> 24;
+            uint fr = lad[lat + 1u];
+            uint i1 = min(fi + 1u, 255u);
+            precise float t  = float(fr) * (1.0 / 4294967296.0);
+            precise float fa = float((tris[ti].fog_table[fi >> 2] >> ((fi & 3u) * 8u)) & 0xffu);
+            precise float fd = float(int((tris[ti].fog_table[i1 >> 2] >> ((i1 & 3u) * 8u)) & 0xffu)
+                                     - int((tris[ti].fog_table[fi >> 2] >> ((fi & 3u) * 8u)) & 0xffu));
+            precise float fn = fa + fd * t;
+
+            f = fdiv_cr(fn, 255.0);
+        } else {
+            f = w0 * tris[ti].fga + w1 * tris[ti].fgb + w2 * tris[ti].fgc;
+            if (f < 0.0) f = 0.0;
+            if (f > 1.0) f = 1.0;
+        }
+        col[0] = col[0] * f + tris[ti].fogr * (1.0 - f);
+        col[1] = col[1] * f + tris[ti].fogg * (1.0 - f);
+        col[2] = col[2] * f + tris[ti].fogb * (1.0 - f);
+    }
+
+    /* Alpha test, in interpreter order: after the texture stages,
+       before the stencil update, the color read and the Z writeback. A
+       pixel that fails it changes none of them, while a pixel that
+       failed the stencil or Z test still runs the stencil update
+       below. */
+    if (FOLDB(FB_ZAUX, tris[ti].atest_en, 0u) != 0u
+        && cmp_fn(tris[ti].atest_fn, sat_u32(col[3] * 255.0 + 0.5),
+                  tris[ti].atest_ref) == 0)
+        return;
+
+    /* Stencil update, then the deferred discard. The op is picked by
+       the test outcome (sfail, zfail or zpass) and applied to the
+       stencil byte under the write mask; it runs even when a test
+       failed. Ops 0 to 5 are the guide's table (SDK: Setting 3D Render
+       States, p. 6-57 / PDF 169). Ops 6 and 7, increment and decrement
+       with wrap, are not in that table: they follow Mesa r128, whose
+       R128_STENCIL_S_FAIL_INC_WRAP and R128_STENCIL_S_FAIL_DEC_WRAP
+       are marked as guesses there. The Z writeback below keeps this
+       byte. An aligned cell belongs to this pixel alone, so a plain
+       read-modify-write is safe; a straddling cell and the commutative
+       class below need atomics. */
+    if (V_Z != 0 && sten) {
+        uint sop  = !sres ? ((tris[ti].sten_ctl >> 8) & 7u)
+                          : (zres ? ((tris[ti].sten_ctl >> 12) & 7u)
+                                  : ((tris[ti].sten_ctl >> 16) & 7u));
+        uint swm  = (tris[ti].sten_rm >> 16) & 0xffu;
+        /* address the stencil byte, then the word holding it: for an
+           aligned cell this is w = zcell >> 2 and ssw = sshift; for a
+           straddling cell the byte can be in either word */
+        uint sba  = zcell + (sshift >> 3);
+        uint w    = sba >> 2;
+        uint ssw  = (sba & 3u) * 8u;
+
+        /* Commutative-class draw. This test must match the host's
+           class in capture_span_class (sctl_of), which the batch
+           builder uses: it may pack overlapping spans of the same class
+           into one pass. The class is dead color, no Z write, stencil
+           compare 7 (always, so the sfail op never runs) and zpass and
+           zfail ops in 0 to 4 (keep, zero, replace, saturating
+           increment, saturating decrement). Any two updates
+           in the class commute, so applying them through a
+           compare-and-swap loop in any order gives the result of the
+           serial order. The loop never changes the depth bits, so the
+           Z test read above stays valid. */
+        uint zp_op = (tris[ti].sten_ctl >> 12) & 7u;
+        uint zf_op = (tris[ti].sten_ctl >> 16) & 7u;
+        /* the zpass and zfail ops must also commute with each other
+           (equal, or one of them keep): overlapping spans hit the same
+           pixel with different Z results, so the pixel sees a mix of
+           the two ops in any order */
+        bool s_atomic = cdead && tris[ti].z_wr == 0u
+                        && ((tris[ti].sten_ctl >> 4) & 7u) == 7u
+                        && zp_op <= 4u && zf_op <= 4u
+                        && (zp_op == zf_op || zp_op == 0u || zf_op == 0u);
+
+        if (s_atomic && sop != 0u) {
+            for (;;) {
+                uint cur = zw_ld(zstg, w);
+                uint sb  = (cur >> ssw) & 0xffu;
+                uint sn  = sb;
+
+                switch (sop) {
+                    case 1u: sn = 0u;                            break;
+                    case 2u: sn = tris[ti].sten_rm & 0xffu;      break;
+                    case 3u: sn = sb == 0xffu ? 0xffu : sb + 1u; break;
+                    default: sn = sb == 0u ? 0u : sb - 1u;       break;
+                }
+                sn = (sb & ~swm) | (sn & swm);
+                if (sn == sb)
+                    break;
+                if (zw_cas(zstg, w, cur,
+                           (cur & ~(0xffu << ssw))
+                               | (sn << ssw)) == cur)
+                    break;
+            }
+        } else if (!s_atomic) {
+            uint snew = sbuf;
+
+            switch (sop) {
+                case 0u:                                           break; /* KEEP     */
+                case 1u: snew = 0u;                                break; /* ZERO     */
+                case 2u: snew = tris[ti].sten_rm & 0xffu;          break; /* REPLACE  */
+                case 3u: snew = sbuf == 0xffu ? 0xffu : sbuf + 1u; break; /* INC sat  */
+                case 4u: snew = sbuf == 0u ? 0u : sbuf - 1u;       break; /* DEC sat  */
+                case 5u: snew = ~sbuf & 0xffu;                     break; /* INVERT   */
+                case 6u: snew = (sbuf + 1u) & 0xffu;               break; /* INC wrap */
+                default: snew = (sbuf - 1u) & 0xffu;               break; /* DEC wrap */
+            }
+            snew = (sbuf & ~swm) | (snew & swm);
+            if (snew != sbuf) {
+                /* a straddled word is shared with the neighboring cell,
+                   and a full-word read-modify-write could lose its
+                   concurrent store */
+                if (zua)
+                    ust8(sba, snew);
+                else
+                    zw_st(zstg, w, (zw_ld(zstg, w) & ~(0xffu << ssw))
+                                       | (snew << ssw));
+            }
+        }
+        if (!sres || !zres)
+            return;
+    }
+
+    uint dbpp  = (tris[ti].dst_dt == 6u) ? 4u : 2u;
+    uint drw   = spans[si].drow;
+    bool dstg  = (drw & 0x80000000u) != 0u;
+    uint daddr = dstg ? ((drw & 0x7fffffffu) + uint(px) * dbpp)
+                      : ((drw + uint(px) * dbpp) & pc.vram_mask);
+
+    if (V_BLEND != 0 && !cdead) {
+        uint          dst = dst_read(daddr, tris[ti].dst_dt, dstg);
+        precise float dc[4], fs[4], fd[4];
+
+        dc[0] = div255((dst >> 16) & 0xffu);
+        dc[1] = div255((dst >> 8) & 0xffu);
+        dc[2] = div255(dst & 0xffu);
+        dc[3] = div255(dst >> 24);
+        if (FOLDB(FB_BLEND, tris[ti].bsrc, 0xbu) == 0xbu || FOLDB(FB_BLEND, tris[ti].bsrc, 0xbu) == 0xcu) {
+            precise float sa = (FOLDB(FB_BLEND, tris[ti].bsrc, 0xbu) == 0xbu) ? col[3] : 1.0 - col[3];
+
+            fs[0] = fs[1] = fs[2] = fs[3] = sa;
+            fd[0] = fd[1] = fd[2] = fd[3] = 1.0 - sa;
+        } else {
+            blend_factor(FOLDB(FB_BLEND, tris[ti].bsrc, 0xbu), col, dc, fs);
+            blend_factor(FOLDB(FB_BLEND, tris[ti].bdst, 0xcu), col, dc, fd);
+        }
+        for (int c = 0; c < 4; c++) {
+            precise float v = (FOLDB(FB_BLEND, tris[ti].bfcn, 0u) & 2u) != 0u
+                            ? col[c] * fs[c] - dc[c] * fd[c]
+                            : col[c] * fs[c] + dc[c] * fd[c];
+
+            if ((FOLDB(FB_BLEND, tris[ti].bfcn, 0u) & 1u) != 0u)
+                v = div255(uint(sat_i32(roundEven(v * 255.0)) & 0xff));
+            else
+                v = v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v);
+            col[c] = v;
+        }
+    }
+
+    /* ---- pack, dither and plane-masked write ---- */
+    if (!cdead) {
+        uint outw = (sat_u32(col[3] * 255.0 + 0.5) << 24)
+                  | (sat_u32(col[0] * 255.0 + 0.5) << 16)
+                  | (sat_u32(col[1] * 255.0 + 0.5) << 8)
+                  | sat_u32(col[2] * 255.0 + 0.5);
+        uint bidx = uint(spans[si].py & 3) * 4u + uint(px & 3);
+
+        dst_write(daddr, tris[ti].dst_dt, outw,
+                  tris[ti].dither != 0u ? int(BAYER4(bidx)) : -1,
+                  tris[ti].wmask, dstg);
+    }
+
+    /* Z writeback to the same cell the test read. At zbpp 4 the depth
+       field is merged in and the stencil byte beside it kept. An aligned
+       cell belongs to this pixel alone, so the read-modify-write cannot
+       race; the s_atomic class, whose spans may overlap, never writes
+       Z. A straddling cell merges all 4 bytes, reading its stencil byte
+       again after the update above, and stores them with byte-lane
+       atomics. */
+    if (V_Z != 0 && tris[ti].z_wr != 0u) {
+        /* With stencil folded off, nothing between the test and here
+           uses the cell state, so it is computed again: the address,
+           widths and depth depend only on the same tris, spans and lad
+           inputs, and recomputing them means the compiler does not keep
+           them in registers across the texture stages. When stencil can
+           run (an unfolded pipeline or S_STEN 1), the state is live for
+           the stencil update anyway and recomputing would only add work.
+           The selector is a specialization constant, so only one arm is
+           compiled. */
+        uint wbpp, wshf, wmax, wcell, wzi;
+        bool wstg, wua;
+
+        if (C_FOLD != 0 && S_STEN == 0) {
+            uint wrw = spans[si].zrow;
+
+            wbpp  = tris[ti].zbpp;
+            wshf  = tris[ti].zshift;
+            wmax  = (wbpp == 4u) ? 0xffffffu : 0xffffu;
+            wstg  = (wrw & 0x80000000u) != 0u;
+            wcell = wstg ? ((wrw & 0x7fffffffu) + uint(px) * wbpp)
+                         : ((wrw + uint(px) * wbpp) & pc.vram_mask);
+            wua   = !wstg && (wcell & (wbpp - 1u)) != 0u;
+            wzi   = lad[lat] & wmax;
+        } else {
+            wbpp = zbpp;  wshf = zshift; wmax = zmax; wstg = zstg;
+            wcell = zcell; wua = zua;    wzi  = zi;
+        }
+
+        if (wbpp == 4u) {
+            if (wua)
+                ust32(wcell, (ldu32(wcell) & ~(wmax << wshf))
+                                 | (wzi << wshf));
+            else {
+                uint w = wcell >> 2;
+
+                zw_st(wstg, w, (zw_ld(wstg, w) & ~(wmax << wshf))
+                                   | (wzi << wshf));
+            }
+        } else if (wua)
+            ust16(wcell, wzi);
+        else
+            z16_st(wstg, wcell >> 1, wzi);
+    }
+}
+
+void
+main()
+{
+    uint g    = gl_WorkGroupID.x;
+    uint bb   = rows[(pc.rows_base + g) * 2u];
+    uint bc   = rows[(pc.rows_base + g) * 2u + 1u];
+    uint sub  = gl_LocalInvocationID.x >> GPU_SLOT_SHIFT;
+    uint lane = gl_LocalInvocationID.x & uint(GPU_SLOT_W - 1);
+
+    if (V_SERIAL != 0) {
+        /* one invocation: program order alone gives the interpreter's
+           order, and no barriers run (the batch loop below is dead code
+           under this constant) */
+        if (gl_LocalInvocationID.x != 0u || g != 0u)
+            return;
+        for (uint k = 0u; k < bc; k++) {
+            int si = int(bb + k);
+
+            for (uint i = 0u; i < uint(spans[si].x1 - spans[si].x0 + 1); i++)
+                pixel(si, spans[si].tri, i);
+        }
+        return;
+    }
+
+    for (uint k = 0u; k < bc; k++) {
+        uint sb = (bb + k) * uint(GPU_BATCH_SLOTS);
+        uint e  = slots[sb + sub];
+
+        /* A batch that opens a level may touch bytes an earlier level
+           wrote, so it waits at a barrier first. A batch split off only
+           because the lanes ran out continues its level, whose spans are
+           disjoint (or in the commutative stencil class), and needs no
+           barrier. Bit 0 of the batch's first slot word carries the
+           flag; pixel offsets are multiples of GPU_SLOT_W, so the decode
+           below masks it off. Every invocation reads the same word, so
+           the whole workgroup takes the same branch, as barrier()
+           requires. */
+        if (B_NOBAR == 0 && k > 0u && (slots[sb] & 1u) != 0u) {
+            memoryBarrierBuffer();
+            barrier();
+        }
+        if (e != 0xffffffffu) {
+            int  si = int(e >> 8);
+            uint i  = (e & uint(GPU_SLOT_MASK)) + lane;
+
+            /* One pixel per invocation. A loop over several pixels per
+               invocation runs slower in the gputri bench when texture
+               and Z are both live: the extra registers lower the number
+               of workgroups the GPU keeps resident. */
+            if (i < uint(spans[si].x1 - spans[si].x0 + 1))
+                pixel(si, spans[si].tri, i);
+        }
+    }
+}
