@@ -22,6 +22,7 @@ if(BUILD_TESTING)
     add_subdirectory(sound/midi_handlers)
 endif()
 add_subdirectory(machine)
+add_subdirectory(utils)
 
 if(BUILD_TESTING)
     add_library(pcjx_floppy_engine OBJECT

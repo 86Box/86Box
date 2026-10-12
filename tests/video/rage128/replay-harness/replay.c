@@ -46,6 +46,7 @@
  *
  *          Copyright 2026 skiretic.
  */
+#include <fcntl.h>
 #include <pthread.h>
 #include <sched.h>
 #include <stdarg.h>
@@ -56,6 +57,14 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
+
+#ifdef _WIN32
+#    include <io.h>
+#    include <share.h>
+#    include <sys/stat.h>
+#else
+#    include <unistd.h>
+#endif
 
 #ifdef _WIN32
 /* The MinGW C runtime has no POSIX getline, so Windows builds use this
@@ -93,6 +102,32 @@ getline(char **line, size_t *cap, FILE *f)
     }
 }
 #endif
+
+static FILE *
+replay_open_output(const char *path, const char *mode)
+{
+    FILE *f  = NULL;
+    int   fd = -1;
+
+#ifdef _WIN32
+    int flags = _O_WRONLY | _O_CREAT | _O_TRUNC
+                | (mode[1] == 'b' ? _O_BINARY : _O_TEXT);
+
+    if (_sopen_s(&fd, path, flags, _SH_DENYNO, _S_IREAD | _S_IWRITE) == 0) {
+        f = _fdopen(fd, mode);
+        if (!f)
+            _close(fd);
+    }
+#else
+    fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd >= 0) {
+        f = fdopen(fd, mode);
+        if (!f)
+            close(fd);
+    }
+#endif
+    return f;
+}
 
 #include "../../../../src/video/vid_ati_rage128.c"
 
@@ -1341,7 +1376,7 @@ main(int argc, char **argv)
            taps record replay execution in addition to the input stream.
            Injected D dwords appear as J, and bus dwords can coalesce into B
            runs, so record comparison must account for those forms. */
-        dev->cap_file = fopen(recap, "w");
+        dev->cap_file = replay_open_output(recap, "w");
         if (!dev->cap_file) {
             perror(recap);
             return 2;
@@ -1671,12 +1706,16 @@ main(int argc, char **argv)
         }
     }
     if (dumpvram && !dump_refused) {
-        FILE *o = fopen(dumpvram, "wb");
+        FILE *o = replay_open_output(dumpvram, "wb");
 
         if (o) {
-            fwrite(dev->svga.vram, 1, (size_t) dev->svga.vram_max, o);
-            fclose(o);
-            printf("vram dumped  %s (%d bytes)\n", dumpvram, dev->svga.vram_max);
+            size_t size = (size_t) dev->svga.vram_max;
+            int    ok = fwrite(dev->svga.vram, 1, size, o) == size;
+
+            if (fclose(o) || !ok)
+                fprintf(stderr, "replay: cannot write VRAM dump %s\n", dumpvram);
+            else
+                printf("vram dumped  %s (%d bytes)\n", dumpvram, dev->svga.vram_max);
         } else {
             perror(dumpvram);
         }

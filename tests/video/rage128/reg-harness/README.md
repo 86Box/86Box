@@ -46,10 +46,14 @@ R128_GPU=verify ./reg_harness
 ```
 
 A successful ordinary run exits zero and ends with `pass=` and `fail=`
-totals. `-v` exposes device logging. GPU verify replays accepted draws
-through the interpreter and compares the results. A device that requests
-verification and touches acceleration must have a verifying backend at
-close; initialization failure produces a failure row. On macOS the GPU
+totals; failed rows produce exit 1, and invalid group selections exit 2.
+`-v` exposes device logging. GPU verify replays accepted draws through
+the interpreter and compares the results. A failed GPU start-up check
+skips the verify run with exit 77 unless `R128_GPU_REQUIRE=1` makes it a
+failed row. A device that requests verification and touches acceleration
+must have a verifying backend at close; failure after a successful
+start-up check produces a failure row. Without Vulkan headers, the run
+checks the available vectors and skips GPU vectors. On macOS the GPU
 lane requires MoltenVK.
 
 The repository also provides a CMake route:
@@ -66,6 +70,7 @@ Run the CMake commands at the repository root.
 |---|---|
 | `R128_JIT` | `0` selects the interpreter, `1` enables the JIT, and `verify` compares JIT rows with the interpreter. |
 | `R128_GPU` | `0` disables the GPU lane; `verify` compares accepted GPU work with the interpreter. |
+| `R128_GPU_REQUIRE` | `1` makes a failed GPU start-up check a failed row instead of skipping the `R128_GPU=verify` lane (exit code 77). Set it on hosts known to have a working GPU, where a skip would hide a start-up defect. |
 | `R128_GPU_2D` | `verify` compares the queued GPU 2D operations with the CPU path; the dedicated 2D verification runner sets it while its device initializes. |
 | `R128_GROUPS` | Selects complete device-owning units with a comma-separated list. |
 | `R128_LANEGAP` | When set, adds the expected-failure polyline scissor-clamp vector. The modeled device does not implement that documented clamp. |
@@ -102,6 +107,19 @@ a rendered pixel distinguishable from untouched storage.
 The CCE-ring vectors fetch harness-owned guest RAM through the production
 PCI-GART walk. They check primitive counts, retirement, draw inhibits,
 indirect buffers, and executor synchronization within this regression tool.
+The fence-order vector in `agp-oracle` uses an atomic idle-hook pointer,
+armed after ring setup, to park the executor after the submitted work
+runs and before its idle flush. With render workers, it checks held
+scratch fences, the retire pointer and undrawn pixels, then their values
+after the flush. It covers type-0 and MM_DATA fences, packet starvation,
+a resumed draw that holds at the released pointer position, and a CPU
+indirect-buffer fence made visible by the register-write drain. JIT verify
+and GPU modes use one CPU render thread, so deferred-batch checks apply
+only to the threaded CPU lane.
+
+Capture vectors use an anonymous temporary file. On Windows, a failed
+anonymous-file open falls back to `_sopen_s` in the user's temporary
+directory, with exclusive creation and delete-on-close.
 
 ## Sharded gate
 
@@ -123,12 +141,15 @@ selects the ordinary full run; an empty string selects none. Unknown units
 and empty list elements are errors. `--list-groups` reports active units,
 including optional modes enabled by the environment.
 
-Units include `gpu-tuple-reload`, `atomic-pace`, `inline-pace`, `agp-oracle`,
+Units include `gpu-tuple-reload`, `inline-pace`, `agp-oracle`,
 `agp-16mb`, `pci-xpert128`, `pci-variant`, `monid-mask`, `amcgpio`, `maxx`,
 `vga-decode`, `lanegap`, `lanegap-16mb`, `gpu2d-verify`, `x64legs`,
 `synctel`, `yuv-border`, `texture-alpha`, `dither-init`, `sec-persp`,
 `sec-only`, `dst-1555-4444`, `zoff-tfog`, `stipple-fast`, and the optional
 `lanegap-expectedfail`.
+
+`inline-pace` checks serial primitive pixels, deferred and self-aliasing
+draws, failed staging and a controlled emulation speed window.
 
 A unit retains each device's registers, buffers, counters, and close-time
 verification. `agp-oracle` selects both the serial reference device and its
@@ -148,4 +169,5 @@ CPU detection tries `sysctl`, `nproc`, `getconf`, and the Windows processor
 count. Extra processes beyond the unit count form empty successful shards.
 The largest indivisible unit limits speed. GPU sharding also initializes
 multiple Vulkan backends on one device; an unsharded GPU run usually makes
-the clearer gate.
+the clearer gate. A child that exits 77 fails the shard gate; the
+unsharded verify run supplies the skip status directly to CTest.

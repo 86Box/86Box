@@ -67,6 +67,7 @@
 #include <86box/net_pcnet.h>
 #include <86box/net_wd8003.h>
 #include <86box/net_smc_epic100.h>
+#include <86box/net_dp83815.h>
 
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
@@ -131,6 +132,7 @@ static const NETWORK_CARD net_cards[] = {
     { &dec_tulip_21040_device     },
     { &dec_tulip_21140_device     },
     { &dec_tulip_device           },
+    { &dp83815_device             },
     { &i82557_device              },
     { &i82558_device              },
     { &nec_pk_ug_x006_device      },

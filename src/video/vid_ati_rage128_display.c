@@ -9,7 +9,7 @@
  *          ATI Rage 128 Pro -- display block: the PLL register file and
  *          clocks, the extended CRTC, the DAC and palette, the hardware
  *          cursor, page flips, scanout through the svga core, and the
- *          realtime pacer's control loop.
+ *          emulation speed window.
  *
  *          In VGA mode (CRTC_GEN_CNTL.CRTC_EXT_DISP_EN clear) the svga
  *          core's own VGA timings drive the display. In extended mode
@@ -1502,42 +1502,22 @@ rage128_svga_poll_timed(void *priv)
         dev->svgap_win_ns += rage128_now_ns() - t0;
 }
 
-/* Realtime pacer control loop, run from the vsync callback on the CPU
-   thread; the pacer as a whole is described at pace_enabled in
-   vid_ati_rage128.h. The goal is 100% emulation speed, and the frame
-   rate is whatever is left. Once at least 250 ms of wall time have
-   passed, the loop compares the emulated time that elapsed with the
-   wall time. The window is that long because plat_get_ticks counts
-   whole milliseconds: at 250 ms the rounding stays under 1%, while a
-   100 ms window makes the loop oscillate on the rounding noise
-   (measured in the emulator).
-
-   Slip is wall time minus emulated time, and the band is pace_band_x
-   microseconds per wall millisecond. Slip past the band raises the
-   per-flip hold by three times the excess. A window inside the band
-   lowers it by three times the distance below the band edge (so a
-   window with no slip lowers it by three times the band), or by
-   hold / 32 + 200 us when that is larger. Either step is at most 25 ms
-   a window. A window with no 3D rendering lowers the hold by 2 ms, so a
-   hold left over from earlier 3D work does not slow the start of the
-   next. The hold is always clamped to 0-100 ms. A hold at the maximum
-   that still slips means the CPU side alone is too slow, and the slip
-   left over is what the window reports. The cap also bounds the effect
-   of a host stall (paging, a switch to another program), so the engine
-   can never freeze.
-
-   Slip from waiting on GPU work is not handled here: the depth limit in
-   rage128_gpu_pace_window works from the fence wait time itself, and
-   the two loops share no state. The window bookkeeping and the pace log
-   line run with pace_enabled off too, so a run without the pacer still
-   reports its emulation speed. */
+/* Emulation speed window, run from the vsync callback on the CPU thread.
+   Once at least 250 ms of wall time have passed, it compares the
+   emulated time that elapsed with the wall time and logs the ratio as
+   the emulation speed, with the per-window timings beside it. The
+   window is that long because plat_get_ticks counts whole milliseconds:
+   at 250 ms the rounding stays under 1%. The device does not slow
+   itself to hold any speed. The window also runs the GPU backend's
+   depth limit, rage128_gpu_pace_window, which sizes how much GPU work
+   may be in flight from the time the CPU thread spent waiting on GPU
+   read fences during the window. */
 static void
 rage128_pace_update(rage128_t *dev)
 {
     uint32_t now_ms;
     uint32_t wall_ms;
     uint64_t emu_us;
-    int64_t  slip_us;
     uint64_t rf_us = 0;
     unsigned cap   = 0;
 
@@ -1554,50 +1534,10 @@ rage128_pace_update(rage128_t *dev)
        TIMER_USEC is ticks per microsecond in 32.32 fixed point, so the
        tick count is shifted up 32 bits before the divide. */
     emu_us                 = (uint64_t) (((unsigned __int128) (tsc - dev->pace_tsc_last) << 32) / TIMER_USEC);
-    slip_us                = (int64_t) wall_ms * 1000 - (int64_t) emu_us;
     dev->pace_wall_ms_last = now_ms ? now_ms : 1;
     dev->pace_tsc_last     = tsc;
     if (dev->gpu)
         rf_us = rage128_gpu_pace_window(dev, wall_ms, &cap);
-    if (dev->pace_enabled && dev->cce_thread) {
-        int64_t band_us = (int64_t) wall_ms * dev->pace_band_x;
-        int64_t excess  = slip_us - band_us;
-        int     hold    = atomic_load(&dev->pace_hold_us);
-
-#ifdef REG_HARNESS
-        /* A harness barrier places producer activity on either side of
-           the sample without relying on host thread timing. */
-        extern void (*harness_pace_sample_hook)(void *dev, int phase);
-        if (harness_pace_sample_hook)
-            harness_pace_sample_hook(dev, 0);
-#endif
-        if (!atomic_exchange(&dev->pace_3d_seen, 0))
-            hold -= 2000;
-        else if (excess > 0)
-            hold += (excess > 8333) ? 25000 : (int) (3 * excess);
-        else {
-            /* Lower the hold with the same gain of 3 the raise uses,
-               applied to the distance below the band edge: a window
-               inside the band ran faster than the edge allows, which
-               shows the hold is larger than needed. The hold / 32 +
-               200 us floor matters only for windows close to the edge.
-               A fixed-rate decay in its place measures worse. */
-            int64_t give = -excess;
-            int     dec  = (give > 8333) ? 25000 : (int) (3 * give);
-            int     tr   = (hold >> 5) + 200;
-
-            hold -= (dec > tr) ? dec : tr;
-        }
-#ifdef REG_HARNESS
-        if (harness_pace_sample_hook)
-            harness_pace_sample_hook(dev, 1);
-#endif
-        if (hold > 100000)
-            hold = 100000;
-        if (hold < 0)
-            hold = 0;
-        atomic_store(&dev->pace_hold_us, hold);
-    }
     /* One log line per window, with the emulation speed in tenths of a
        percent so a run's average can be computed from the log. rf= and
        cap= are the GPU depth limit's input and output, logged next to
@@ -1606,8 +1546,7 @@ rage128_pace_update(rage128_t *dev)
     dev->pace_wall_ms_tot += wall_ms;
     pclog("RAGE128 pace: win=%ums emu=%llu.%llu%% rf=%lluus flip=%lluus "
           "pump=%lluus mmr=%lluus mmw=%lluus lfb=%lluus svga=%lluus "
-          "svgap=%lluus cv=%llu cap=%u hold=%dus slept=%llu/%lluus "
-          "cvt=%llu cvm=%llu\n",
+          "svgap=%lluus cv=%llu cap=%u cvt=%llu cvm=%llu\n",
           wall_ms,
           (unsigned long long) (emu_us / wall_ms / 10),
           (unsigned long long) (emu_us / wall_ms % 10),
@@ -1620,9 +1559,6 @@ rage128_pace_update(rage128_t *dev)
           (unsigned long long) (dev->svga_win_ns / 1000),
           (unsigned long long) (dev->svgap_win_ns / 1000),
           (unsigned long long) dev->conv_rows_win, cap,
-          atomic_load(&dev->pace_hold_us),
-          (unsigned long long) (atomic_exchange(&dev->pace_sleep_ns, 0) / 1000),
-          (unsigned long long) (atomic_exchange(&dev->pace_sleep_ask_ns, 0) / 1000),
           (unsigned long long) dev->conv_transient,
           (unsigned long long) dev->conv_mismatch);
     dev->flip_stall_ns = 0;
@@ -2958,16 +2894,6 @@ rage128_display_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t m
                                                           rage128_scanout_bytes(svga));
                         }
                     }
-                    /* Realtime pacer hold, applied once per frame at the
-                       flip, the point where a delay holds the driver back
-                       instead of only adding latency (see
-                       rage128_pace_consume). It comes after the snapshot
-                       copy is submitted, so the copy's fence can complete
-                       during the hold, and with any hold active the vsync
-                       choice finds a finished copy. Only a flip written by
-                       the CCE thread sleeps. */
-                    if (rage128_on_cce_thread)
-                        rage128_pace_consume(dev);
                     dev->crtc_offset_pending = 1;
                     /* With CRTC_OFFSET_FLIP_CNTL set the new base is taken at
                        the next horizontal blank, not at the write (RRG:

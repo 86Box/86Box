@@ -28,10 +28,75 @@
 
 #ifdef R128_GPU_HAVE_VULKAN
 
+#    include <fcntl.h>
+#    ifdef _WIN32
+#        include <io.h>
+#        include <share.h>
+#        include <sys/stat.h>
+#    else
+#        include <unistd.h>
+#    endif
+
+static FILE *
+harness_gpu_open_output(const char *path)
+{
+    FILE *f  = NULL;
+    int   fd = -1;
+
+#ifdef _WIN32
+    if (_sopen_s(&fd, path, _O_WRONLY | _O_CREAT | _O_TRUNC | _O_TEXT,
+                 _SH_DENYNO, _S_IREAD | _S_IWRITE) == 0) {
+        f = _fdopen(fd, "w");
+        if (!f)
+            _close(fd);
+    }
+#else
+    fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd >= 0) {
+        f = fdopen(fd, "w");
+        if (!f)
+            close(fd);
+    }
+#endif
+    return f;
+}
+
 int
 harness_gpu_available(void)
 {
     return 1;
+}
+
+/* Runs the backend's own bring-up steps up to a logical device (load the
+   Vulkan library, create an instance, choose a physical device, check its
+   limits, compute queue, extensions and features, create the device),
+   then destroys what it made. Using the same steps keeps the answer equal
+   to what device init will find, so a host that passes here and then
+   fails at device init is a real failure. */
+const char *
+harness_gpu_runtime_missing(void)
+{
+    r128_gpu_t *g = (r128_gpu_t *) calloc(1, sizeof(*g));
+    const char *why;
+    int         ifn_ok = 0;
+
+    if (!g)
+        return "out of memory";
+    if (!gpu_vk_open())
+        why = "no Vulkan library";
+    else if (!(why = gpu_instance_create(g))) {
+        ifn_ok = 1;
+        if (!(why = gpu_device_pick(g)) && !(why = gpu_device_query(g))
+            && !(why = gpu_queue_pick(g)))
+            why = gpu_device_create(g);
+    }
+    if (ifn_ok) {
+        if (g->dev)
+            vkDestroyDevice(g->dev, NULL);
+        vkDestroyInstance(g->inst, NULL);
+    }
+    free(g);
+    return why;
 }
 
 /* A backend with no Vulkan objects: both arena imports reported live (so
@@ -625,7 +690,7 @@ harness_gpu_tuple_reload(uint32_t fmt0, uint32_t fmt1,
         goto done;
     cache_active = 1;
     gpu_cache_path(path, sizeof(path), "r128gpu.tuples");
-    f = fopen(path, "w");
+    f = harness_gpu_open_output(path);
     if (!f)
         goto done;
     fprintf(f, GPU_TUPLES_HDR "\n%u", kern);
@@ -692,7 +757,7 @@ harness_gpu_tuple_pair(const uint32_t a[7], const uint32_t b[7],
         goto done;
     cache_active = 1;
     gpu_cache_path(path, sizeof(path), "r128gpu.tuples");
-    f = fopen(path, "w");
+    f = harness_gpu_open_output(path);
     if (!f)
         goto done;
     fprintf(f, GPU_TUPLES_HDR "\n");
@@ -946,6 +1011,12 @@ int
 harness_gpu_available(void)
 {
     return 0;
+}
+
+const char *
+harness_gpu_runtime_missing(void)
+{
+    return NULL;
 }
 
 int

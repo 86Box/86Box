@@ -135,8 +135,9 @@ Status 1 means a nonzero `mismatch`, `underrun`, ring-window count, or
 allocation, or thread-start error. A successful replay returns 0; this
 status is an execution check, not a verdict on every displayed pixel.
 Tail underruns, unconsumed records, and short payload counts need separate
-inspection. A dump-file write error is reported but does not set a
-separate failure status, so also check that the output exists.
+inspection. A VRAM dump-file open, write, or close error is reported on
+stderr but does not set a separate failure status. The `vram dumped`
+line prints only after a full write and a successful close.
 
 A recap changes record representation: injected `D` records execute as
 `J`, and consecutive bus dwords can coalesce into a `B` run. Compare

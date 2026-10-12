@@ -75,7 +75,8 @@ endfunction()
 
 # Register harness: one process per lane. Its timing rows measure wall
 # clock, so the three lanes run alone (RUN_SERIAL), each in its own
-# directory for the probe files it writes.
+# directory for the probe files it writes. The GPU verify lane exits 77,
+# reported as skipped, on a host that cannot start the GPU backend.
 add_executable(rage128_reg_harness
     reg-harness/reg_harness.c
     reg-harness/host_stubs.c
@@ -93,7 +94,8 @@ foreach(lane IN ITEMS Stock JitVerify GpuVerify)
     set_tests_properties(Rage128.Registers.${lane} PROPERTIES RUN_SERIAL TRUE)
 endforeach()
 set_tests_properties(Rage128.Registers.JitVerify PROPERTIES ENVIRONMENT R128_JIT=verify)
-set_tests_properties(Rage128.Registers.GpuVerify PROPERTIES ENVIRONMENT R128_GPU=verify)
+set_tests_properties(Rage128.Registers.GpuVerify PROPERTIES ENVIRONMENT R128_GPU=verify
+                     SKIP_RETURN_CODE 77)
 
 # Replay harness: a tool for captures a developer records, not a test.
 add_executable(rage128_replay

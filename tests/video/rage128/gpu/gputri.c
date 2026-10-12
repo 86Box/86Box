@@ -57,6 +57,7 @@
  *
  *          Copyright 2026 skiretic.
  */
+#include <fcntl.h>
 #include <limits.h>
 #include <math.h>
 #include <pthread.h>
@@ -74,6 +75,9 @@
    API so pipeline priming uses the same worker-count rule on every host. */
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
+#    include <io.h>
+#    include <share.h>
+#    include <sys/stat.h>
 #    include <windows.h>
 /* windows.h defines near and far as pointer qualifiers; undefine them
    so local variables such as rr_tex_level's near remain valid. */
@@ -90,6 +94,30 @@ sysconf(int name)
     return (long) si.dwNumberOfProcessors;
 }
 #endif
+
+static FILE *
+gputri_open_output(const char *path)
+{
+    FILE *f  = NULL;
+    int   fd = -1;
+
+#ifdef _WIN32
+    if (_sopen_s(&fd, path, _O_WRONLY | _O_CREAT | _O_TRUNC | _O_BINARY,
+                 _SH_DENYNO, _S_IREAD | _S_IWRITE) == 0) {
+        f = _fdopen(fd, "wb");
+        if (!f)
+            _close(fd);
+    }
+#else
+    fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd >= 0) {
+        f = fdopen(fd, "wb");
+        if (!f)
+            close(fd);
+    }
+#endif
+    return f;
+}
 
 /* A positive GPUTRI_THREADS value sets the pipeline-priming worker
    limit; otherwise use the processor count minus two. Limiting parallel
@@ -6297,7 +6325,7 @@ main(int argc, char **argv)
 
             if (data
                 && vkGetPipelineCacheData(dev, plcache, &sz, data) == VK_SUCCESS) {
-                FILE *pf = fopen("gputri.plcache", "wb");
+                FILE *pf = gputri_open_output("gputri.plcache");
 
                 if (pf) {
                     fwrite(data, 1, sz, pf);

@@ -4871,11 +4871,22 @@ pkt3_paint(rage128_t *dev, uint32_t op, uint32_t g, const uint32_t *pl, uint32_t
                the corner as inclusive paints row H over that
                allocation, which showed as stripes across Quake 3
                textures. The scissor stays inclusive (the display
-               driver's builders subtract 1 only from it). */
-            x = rage128_sx14(pl[p]);
-            y = rage128_sx14(pl[p] >> 16);
-            w = rage128_sx14(pl[p + 1]) - x;
-            h = rage128_sx14(pl[p + 1] >> 16) - y;
+               driver's builders subtract 1 only from it).
+               Each coordinate is read as a signed 16-bit field. The
+               SDK gives the range as -8192 to 8191 and asks for bits
+               14 and 15 to be copies of bit 13, so any value in range
+               reads the same as a 14-bit field. The Windows 95 display
+               driver breaks that rule on purpose: to erase a text line
+               it sends 0x7fff as the right edge, meaning "as far as the
+               scissor allows". Cut to 14 bits, that value is 0x3fff, or
+               -1, so the rect would have a negative width and nothing
+               would be erased; read as 16 bits it is 32767, and the
+               scissor trims it to the line. Reading the sign from bit
+               15 is modeled, not documented. */
+            x = (int16_t) (pl[p] & 0xffff);
+            y = (int16_t) (pl[p] >> 16);
+            w = (int16_t) (pl[p + 1] & 0xffff) - x;
+            h = (int16_t) (pl[p + 1] >> 16) - y;
         } else {
             /* Position x << 16 | y and size w << 16 | h (SDK: Table
                F-32, pp. F-41-F-42 / PDF 331-332), exact sizes: in
@@ -6512,8 +6523,13 @@ rage128_2d_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
     }
 #undef MERGE
     if (off >= RAGE128_GUI_SCRATCH_REG0 && off < RAGE128_GUI_SCRATCH_REG0 + 6 * 4) {
-        uint32_t *r = &dev->gui_scratch[(off - RAGE128_GUI_SCRATCH_REG0) >> 2];
+        uint32_t  n = (off - RAGE128_GUI_SCRATCH_REG0) >> 2;
+        uint32_t *r = &dev->gui_scratch[n];
 
+        /* A command-stream write behind a deferred draw is held until
+           the draw is in memory (rage128_pm4_scratch_hold). */
+        if (rage128_pm4_scratch_hold(dev, n, val, mask))
+            return 1;
         *r = (*r & ~mask) | (val & mask);
         return 1;
     }

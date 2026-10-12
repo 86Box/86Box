@@ -19,8 +19,8 @@
  *          every pixel sees the same sequence of writes as on the serial
  *          path and the output is bit-exact with it.
  *
- *          The thread count is the "Render threads" option (1, 2, 3, 4, 6
- *          or 8). With 1 there are no workers: each primitive is drawn on
+ *          The thread count is the emulator's "Render threads" option
+ *          (1-4). With 1 there are no workers: each primitive is drawn on
  *          the submitting thread as it arrives. The GPU backend, the bus
  *          capture tap and JIT verify mode each force the count to 1.
  *
@@ -75,7 +75,7 @@
 #define RB_TRI         0
 #define RB_LINE        1
 #define RB_POINT       2
-#define RB_MAX_WORKERS 8
+#define RB_MAX_WORKERS RAGE128_MAX_RENDER_THREADS
 
 /* One deferred primitive: the index of the state it was submitted under
    (in the batch's state table) and its vertices (a line uses v[0] and
@@ -314,7 +314,6 @@ rage128_raster_flush(rage128_t *dev)
     thread_wait_mutex(dev->raster_flush_mtx);
 
     if (rb && rb->nthreads > 1 && rb->cmd_count != 0) {
-        atomic_store(&dev->pace_3d_seen, 1); /* tells the speed governor 3D was drawn */
         rb_run_parallel(rb);
 
         rb->cmd_count   = 0;
@@ -324,7 +323,6 @@ rage128_raster_flush(rage128_t *dev)
         rb_reset_written(rb);
         atomic_store(&dev->cce_batch_pending, 0); /* workers have finished */
     }
-
     /* Recycle the texture staging arena and start a new batch generation.
        No worker is running here (they finished above, or there was no
        batch). With workers this is the only place the arena is reset: a
@@ -366,6 +364,11 @@ rage128_raster_flush(rage128_t *dev)
     rage128_z_stage_writeback(dev);
     rage128_c_stage_writeback(dev);
 
+    /* Scratch fences written behind the batch become visible only now,
+       after the write-back above, so a driver that sees one also finds
+       the pixels of a target in AGP memory in guest memory. */
+    rage128_pm4_scratch_apply(dev);
+
     thread_release_mutex(dev->raster_flush_mtx);
 }
 
@@ -386,6 +389,7 @@ rage128_raster_abandon(rage128_t *dev)
     rb->rt_z_valid  = 0;
     rb_reset_written(rb);
     atomic_store(&dev->cce_batch_pending, 0);
+    rage128_pm4_scratch_drop(dev); /* the fences behind the dropped draws go with them */
 }
 
 /* Worker count (1 = no workers). rage128_raster_state_capture uses it to
@@ -657,7 +661,6 @@ rb_run_inline(rage128_t *dev, const rage128_raster_state_t *rs, int kind,
 {
     r128_jit_span_fn jfn = rage128_jit_get_block(dev, &rs->d);
 
-    atomic_store(&dev->pace_3d_seen, 1);
     if (kind == RB_TRI)
         rage128_3d_tri(dev, rs, 0, 0, &v[0], &v[1], &v[2], jfn);
     else if (kind == RB_LINE)
@@ -773,7 +776,6 @@ rage128_raster_submit_tri(rage128_t *dev, const rage128_raster_state_t *rs,
         return;
 
     if (!rb || rb->nthreads <= 1) {
-        atomic_store(&dev->pace_3d_seen, 1);
         rage128_3d_tri(dev, rs, 0, 0, a, b, c, rage128_jit_get_block(dev, &rs->d));
         return;
     }
@@ -809,7 +811,6 @@ rage128_raster_submit_line(rage128_t *dev, const rage128_raster_state_t *rs,
         return;
 
     if (!rb || rb->nthreads <= 1) {
-        atomic_store(&dev->pace_3d_seen, 1);
         rage128_3d_line(dev, rs, 0, 0, a, b, rage128_jit_get_block(dev, &rs->d));
         return;
     }
@@ -842,7 +843,6 @@ rage128_raster_submit_point(rage128_t *dev, const rage128_raster_state_t *rs,
         return;
 
     if (!rb || rb->nthreads <= 1) {
-        atomic_store(&dev->pace_3d_seen, 1);
         rage128_3d_point(dev, rs, 0, 0, v, rage128_jit_get_block(dev, &rs->d));
         return;
     }

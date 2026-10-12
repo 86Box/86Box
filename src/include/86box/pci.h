@@ -276,6 +276,7 @@ extern void        pci_set_mirq_level(int mirq, uint8_t irq);
 extern void        pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state);
 
 extern uint8_t     pci_get_int(uint8_t slot, uint8_t pci_int);
+extern uint8_t     pci_get_irq_line(uint8_t slot, uint8_t pci_int);
 
 /* Relocate a PCI device to a new slot, required for the configurable
    IDSEL's of ALi M1543(c). */
