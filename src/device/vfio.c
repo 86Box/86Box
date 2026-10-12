@@ -58,7 +58,15 @@ enum {
     NVIDIA_3D0_WRITE
 };
 
-typedef struct {
+#define VFIO_IOMIRROR_MAX 32
+
+typedef struct vfio_iomirror_t {
+    struct _vfio_region_ *bar;
+    uint32_t              offset;
+    uint16_t              base;
+} vfio_iomirror_t;
+
+typedef struct _vfio_region_ {
     int                   fd;
     uint64_t              precalc_offset;
     uint64_t              offset;
@@ -77,9 +85,8 @@ typedef struct {
     struct {
         mem_mapping_t mem_mappings[2];
 
-        struct {
-            uint32_t offset;
-        } iomirror;
+        vfio_iomirror_t iomirrors[VFIO_IOMIRROR_MAX];
+        uint8_t         iomirror_count;
 
         struct {
             uint32_t offset;
@@ -728,14 +735,15 @@ vfio_quirk_configwindow(vfio_device_t *dev, vfio_region_t *bar,
 static uint8_t
 vfio_quirk_iomirror_readb(uint16_t addr, void *priv)
 {
-    vfio_region_t *bar = (vfio_region_t *) priv;
+    const vfio_iomirror_t *mirror = (vfio_iomirror_t *) priv;
+    vfio_region_t         *bar    = mirror->bar;
 
     /* Read I/O port mirror from memory-mapped space. */
-    uint8_t ret = vfio_mem_readb_fd(bar->emulated_offset + bar->quirks.iomirror.offset + addr, bar);
+    uint8_t ret = vfio_mem_readb_fd(bar->emulated_offset + mirror->offset + addr, bar);
 #ifdef ENABLE_VFIO_LOG
     vfio_device_t *dev = bar->dev;
     vfio_log_op("VFIO %s: I/O mirror: Read %02X from %04X (%08X)\n", dev->name,
-                ret, addr, bar->quirks.iomirror.offset + addr);
+                ret, addr, mirror->offset + addr);
 #endif
     return ret;
 }
@@ -743,14 +751,15 @@ vfio_quirk_iomirror_readb(uint16_t addr, void *priv)
 static uint16_t
 vfio_quirk_iomirror_readw(uint16_t addr, void *priv)
 {
-    vfio_region_t *bar = (vfio_region_t *) priv;
+    const vfio_iomirror_t *mirror = (vfio_iomirror_t *) priv;
+    vfio_region_t         *bar    = mirror->bar;
 
     /* Read I/O port mirror from memory-mapped space. */
-    uint16_t ret = vfio_mem_readw_fd(bar->emulated_offset + bar->quirks.iomirror.offset + addr, bar);
+    uint16_t ret = vfio_mem_readw_fd(bar->emulated_offset + mirror->offset + addr, bar);
 #ifdef ENABLE_VFIO_LOG
     vfio_device_t *dev = bar->dev;
     vfio_log_op("VFIO %s: I/O mirror: Read %04X from %04X (%08X)\n", dev->name,
-                ret, addr, bar->quirks.iomirror.offset + addr);
+                ret, addr, mirror->offset + addr);
 #endif
     return ret;
 }
@@ -758,14 +767,15 @@ vfio_quirk_iomirror_readw(uint16_t addr, void *priv)
 static uint32_t
 vfio_quirk_iomirror_readl(uint16_t addr, void *priv)
 {
-    vfio_region_t *bar = (vfio_region_t *) priv;
+    const vfio_iomirror_t *mirror = (vfio_iomirror_t *) priv;
+    vfio_region_t         *bar    = mirror->bar;
 
     /* Read I/O port mirror from memory-mapped space. */
-    uint32_t ret = vfio_mem_readl_fd(bar->emulated_offset + bar->quirks.iomirror.offset + addr, bar);
+    uint32_t ret = vfio_mem_readl_fd(bar->emulated_offset + mirror->offset + addr, bar);
 #ifdef ENABLE_VFIO_LOG
     vfio_device_t *dev = bar->dev;
     vfio_log_op("VFIO %s: I/O mirror: Read %08X from %04X (%08X)\n", dev->name,
-                ret, addr, bar->quirks.iomirror.offset + addr);
+                ret, addr, mirror->offset + addr);
 #endif
     return ret;
 }
@@ -773,43 +783,46 @@ vfio_quirk_iomirror_readl(uint16_t addr, void *priv)
 static void
 vfio_quirk_iomirror_writeb(uint16_t addr, uint8_t val, void *priv)
 {
-    vfio_region_t *bar = (vfio_region_t *) priv;
+    const vfio_iomirror_t *mirror = (vfio_iomirror_t *) priv;
+    vfio_region_t         *bar    = mirror->bar;
 
     /* Write I/O port mirror to memory-mapped space. */
 #ifdef ENABLE_VFIO_LOG
     vfio_device_t *dev = bar->dev;
     vfio_log_op("VFIO %s: I/O mirror: Write %02X to %04X (%08X)\n", dev->name,
-                val, addr, bar->quirks.iomirror.offset + addr);
+                val, addr, mirror->offset + addr);
 #endif
-    vfio_mem_writeb_fd(bar->emulated_offset + bar->quirks.iomirror.offset + addr, val, bar);
+    vfio_mem_writeb_fd(bar->emulated_offset + mirror->offset + addr, val, bar);
 }
 
 static void
 vfio_quirk_iomirror_writew(uint16_t addr, uint16_t val, void *priv)
 {
-    vfio_region_t *bar = (vfio_region_t *) priv;
+    const vfio_iomirror_t *mirror = (vfio_iomirror_t *) priv;
+    vfio_region_t         *bar    = mirror->bar;
 
     /* Write I/O port mirror to memory-mapped space. */
 #ifdef ENABLE_VFIO_LOG
     vfio_device_t *dev = bar->dev;
     vfio_log_op("VFIO %s: I/O mirror: Write %04X to %04X (%08X)\n", dev->name,
-                val, addr, bar->quirks.iomirror.offset + addr);
+                val, addr, mirror->offset + addr);
 #endif
-    vfio_mem_writew_fd(bar->emulated_offset + bar->quirks.iomirror.offset + addr, val, bar);
+    vfio_mem_writew_fd(bar->emulated_offset + mirror->offset + addr, val, bar);
 }
 
 static void
 vfio_quirk_iomirror_writel(uint16_t addr, uint32_t val, void *priv)
 {
-    vfio_region_t *bar = (vfio_region_t *) priv;
+    const vfio_iomirror_t *mirror = (vfio_iomirror_t *) priv;
+    vfio_region_t         *bar    = mirror->bar;
 
     /* Write I/O port mirror to memory-mapped space. */
 #ifdef ENABLE_VFIO_LOG
     vfio_device_t *dev = bar->dev;
     vfio_log_op("VFIO %s: I/O mirror: Write %08X to %04X (%08X)\n", dev->name,
-                val, addr, bar->quirks.iomirror.offset + addr);
+                val, addr, mirror->offset + addr);
 #endif
-    vfio_mem_writel_fd(bar->emulated_offset + bar->quirks.iomirror.offset + addr, val, bar);
+    vfio_mem_writel_fd(bar->emulated_offset + mirror->offset + addr, val, bar);
 }
 
 static void
@@ -819,8 +832,26 @@ vfio_quirk_iomirror(vfio_device_t *dev, vfio_region_t *bar,
     vfio_log("VFIO %s: %sapping I/O mirror for %s @ %08X\n",
              dev->name, enable ? "M" : "Unm", bar->name, bar->emulated_offset + offset);
 
-    /* Save I/O mirror offset, only one per BAR for now. */
-    bar->quirks.iomirror.offset = offset;
+    /* Find this port range's mirror, or set up a new one. */
+    vfio_iomirror_t *mirror = NULL;
+    for (uint8_t i = 0; i < bar->quirks.iomirror_count; i++) {
+        if (bar->quirks.iomirrors[i].base == base) {
+            mirror = &bar->quirks.iomirrors[i];
+            break;
+        }
+    }
+    if (!mirror) {
+        if (!enable)
+            return;
+        if (bar->quirks.iomirror_count >= VFIO_IOMIRROR_MAX) {
+            pclog("VFIO %s: Too many I/O mirrors for %s\n", dev->name, bar->name);
+            return;
+        }
+        mirror       = &bar->quirks.iomirrors[bar->quirks.iomirror_count++];
+        mirror->bar  = bar;
+        mirror->base = base;
+    }
+    mirror->offset = offset;
 
     /* Add or remove quirk handler from port range. */
     if (enable)
@@ -831,7 +862,7 @@ vfio_quirk_iomirror(vfio_device_t *dev, vfio_region_t *bar,
                       bar->write ? vfio_quirk_iomirror_writeb : NULL,
                       bar->write ? vfio_quirk_iomirror_writew : NULL,
                       bar->write ? vfio_quirk_iomirror_writel : NULL,
-                      bar);
+                      mirror);
     else
         io_removehandler(base, length,
                          bar->read ? vfio_quirk_iomirror_readb : NULL,
@@ -840,7 +871,7 @@ vfio_quirk_iomirror(vfio_device_t *dev, vfio_region_t *bar,
                          bar->write ? vfio_quirk_iomirror_writeb : NULL,
                          bar->write ? vfio_quirk_iomirror_writew : NULL,
                          bar->write ? vfio_quirk_iomirror_writel : NULL,
-                         bar);
+                         mirror);
 }
 
 static uint8_t
