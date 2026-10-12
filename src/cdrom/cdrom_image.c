@@ -1470,7 +1470,7 @@ image_load_iso(cd_image_t *img, const char *filename)
 
         ci->type         = INDEX_NORMAL;
         ci->file_start   = 0ULL;
-
+        ci->start        = 150ULL;
         ci->file         = tf;
 
         for (int i = 0; i < 8; i++) {

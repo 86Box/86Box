@@ -20625,7 +20625,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: ATI 3D Rage II+ DVD (Mach64GT-B) */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT,
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -20646,7 +20646,7 @@ const machine_t machines[] = {
         .device                   = &an430tx_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &mach64gtb_onboard_device,
         .snd_device               = &ymf715_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "Intel Anchorage", "Micron Millennia MME", "Packard Bell PB79x", "Sony Vaio PCV-130", "Sony Vaio PCV-150", "" }

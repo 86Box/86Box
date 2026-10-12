@@ -49,6 +49,7 @@
 #include <86box/machine.h>
 #include <86box/smbus.h>
 #include <86box/chipset.h>
+#include <86box/flash.h>
 
 typedef struct piix_io_trap_t {
     struct _piix_ *dev;
@@ -1579,10 +1580,45 @@ piix_reset(void *priv)
         sff_set_irq_mode(dev->bm[1], IRQ_MODE_MIRQ_0);
 }
 
+/* BIOSCS# for a write: the PIIX4 asserts it only while XBCS bit 2, BIOSCS#
+   Write Protect Enable, is set, and only in the BIOS space the XBCS decodes
+   -- the top 64K always, the lower 64K with bit 6, the extended 384K with
+   bit 7 and the 1-Meg extended 512K with bit 9 (82371AB 4.1.9, 8.1.3). The
+   flash never sees any other write cycle. */
+static int
+piix4_bios_write_gate(uint32_t addr, void *priv)
+{
+    const piix_t  *dev  = (const piix_t *) priv;
+    const uint16_t xbcs = dev->regs[0][0x4e] | (dev->regs[0][0x4f] << 8);
+
+    if (!(xbcs & 0x0004))
+        return 0;
+
+    /* The top 64K: 0F0000h-0FFFFFh and FFFF0000h-FFFFFFFFh. */
+    if (((addr >= 0x000f0000) && (addr <= 0x000fffff)) || (addr >= 0xffff0000))
+        return 1;
+    /* The lower 64K: 0E0000h-0EFFFFh and FFFE0000h-FFFEFFFFh. */
+    if ((xbcs & 0x0040) && (((addr >= 0x000e0000) && (addr <= 0x000effff)) || ((addr >= 0xfffe0000) && (addr <= 0xfffeffff))))
+        return 1;
+    /* Extended BIOS: FFF80000h-FFFDFFFFh. */
+    if ((xbcs & 0x0080) && (addr >= 0xfff80000) && (addr <= 0xfffdffff))
+        return 1;
+    /* 1-Meg Extended BIOS: FFF00000h-FFF7FFFFh. */
+    if ((xbcs & 0x0200) && (addr >= 0xfff00000) && (addr <= 0xfff7ffff))
+        return 1;
+
+    return 0;
+}
+
 static void
 piix_close(void *priv)
 {
     piix_t *dev = (piix_t *) priv;
+
+    if (flash_bios_write_gate_priv == dev) {
+        flash_bios_write_gate      = NULL;
+        flash_bios_write_gate_priv = NULL;
+    }
 
     if (dev->type < 4)
         pic_set_irq_callback(NULL, NULL);
@@ -1628,6 +1664,12 @@ piix_init(const device_t *info)
     pci_add_card(PCI_ADD_SOUTHBRIDGE, piix_read, piix_write, dev, &dev->pci_slot);
     piix_log("PIIX%i: Added to slot: %02X\n", dev->type, dev->pci_slot);
     piix_log("PIIX%i: Added to slot: %02X\n", dev->type, dev->pci_slot);
+
+    /* The BIOS flash's chip select is the PIIX4's; see piix4_bios_write_gate. */
+    if (dev->type == 4) {
+        flash_bios_write_gate      = piix4_bios_write_gate;
+        flash_bios_write_gate_priv = dev;
+    }
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
     dev->bm[1] = device_add_inst(&sff8038i_device, 2);

@@ -37,6 +37,9 @@
 #include <86box/nvr.h>
 #include <86box/acpi.h>
 #include <86box/plat_unused.h>
+#ifdef USE_VFIO
+#    include <86box/vfio.h>
+#endif
 
 enum {
     STATE_NONE = 0,
@@ -77,6 +80,31 @@ static int16_t  irq_vector_override[8] = {
 };
 
 static void (*update_pending)(void);
+
+#ifdef USE_VFIO
+/* IRQs delivered since their level was last known to be current. VFIO cannot report
+   a passed-through device deasserting INTx, so such a level is resampled before use. */
+static uint16_t pic_acked      = 0x0000;
+static int      pic_resampling = 0;
+
+static uint8_t pic_level_triggered(pic_t *dev, int irq);
+
+/* Have a level resampled before it is delivered. */
+void
+pic_resample_mark(int irq)
+{
+    pic_acked |= 1 << irq;
+}
+
+static void
+pic_resample(int irq)
+{
+    /* Lines dropped by the resample must not re-enter the priority resolver. */
+    pic_resampling++;
+    vfio_irq_intx_resample(irq);
+    pic_resampling--;
+}
+#endif
 
 #ifdef ENABLE_PIC_LOG
 int pic_do_log = ENABLE_PIC_LOG;
@@ -222,6 +250,16 @@ find_best_interrupt(pic_t *dev)
             !((dev->flags & PIC_IBM5140) && dev->special_mask_mode && (dev->imr & b)))
             break;
         else if ((dev->state == 0) && ((dev->irr & ~dev->imr) & b)) {
+#ifdef USE_VFIO
+            /* Resample a level that was already delivered before raising it again. */
+            const int irq = j + ((dev == &pic2) ? 8 : 0);
+            if ((pic_acked & (1 << irq)) && pic_level_triggered(dev, j)) {
+                pic_acked &= ~(1 << irq);
+                pic_resample(irq);
+                if (!((dev->irr & ~dev->imr) & b))
+                    continue;
+            }
+#endif
             ret = j;
             break;
         }
@@ -243,6 +281,10 @@ find_best_interrupt(pic_t *dev)
 static __inline void
 pic_update_pending_xt(void)
 {
+#ifdef USE_VFIO
+    if (pic_resampling)
+        return;
+#endif
     if (!(pic.interrupt & 0x20))
         pic.int_pending = (find_best_interrupt(&pic) != -1);
     if (pic.int_pending && (pic.flags & PIC_IBM5140) && ibm5140_wake)
@@ -254,6 +296,10 @@ pic_update_pending_xt(void)
 static __inline void
 pic_update_pending_at(void)
 {
+#ifdef USE_VFIO
+    if (pic_resampling)
+        return;
+#endif
     if (!(pic.interrupt & 0x20)) {
         pic2.int_pending = (find_best_interrupt(&pic2) != -1);
  
@@ -305,6 +351,10 @@ pic_reset(void)
 
     shadow  = 0;
     pic_pci = 0;
+
+#ifdef USE_VFIO
+    pic_acked = 0x0000;
+#endif
 }
 
 void
@@ -362,7 +412,32 @@ pic_acknowledge(pic_t *dev)
     dev->isr |= pic_int_num;
     if (!pic_level_triggered(dev, pic_int) || (dev->lines[pic_int] == 0))
         dev->irr &= ~pic_int_num;
+
+#ifdef USE_VFIO
+    pic_acked |= 1 << (pic_int + ((dev == &pic2) ? 8 : 0));
+#endif
 }
+
+#ifdef USE_VFIO
+/* Resample the delivered levels of one PIC before they become visible. */
+static void
+pic_resample_delivered(pic_t *dev)
+{
+    const int base      = (dev == &pic2) ? 8 : 0;
+    int       resampled = 0;
+
+    for (uint8_t i = 0; i < 8; i++) {
+        if ((pic_acked & (1 << (base + i))) && (dev->irr & (1 << i)) && pic_level_triggered(dev, i)) {
+            pic_acked &= ~(1 << (base + i));
+            pic_resample(base + i);
+            resampled = 1;
+        }
+    }
+
+    if (resampled)
+        update_pending();
+}
+#endif
 
 /* Find IRQ for non-specific EOI (either by command or automatic) by finding the highest IRQ
    priority with ISR bit set, that is also not masked if the PIC is in special mask mode. */
@@ -393,8 +468,15 @@ pic_action(pic_t *dev, uint8_t irq, uint8_t eoi, uint8_t rotate)
     uint8_t b = (1 << irq);
 
     if (irq != 0xff) {
-        if (eoi)
+        if (eoi) {
             dev->isr &= ~b;
+#ifdef USE_VFIO
+            /* Nothing samples an edge-triggered input's level, so let VFIO
+               rearm a passed-through device once its interrupt was serviced. */
+            if (!pic_level_triggered(dev, irq))
+                pic_resample(irq + ((dev == &pic2) ? 8 : 0));
+#endif
+        }
         if (rotate && !(dev->flags & PIC_IBM5140))
             dev->priority = (irq + 1) & 7;
 
@@ -533,10 +615,17 @@ pic_read(uint16_t addr, void *priv)
         else if (dev->ocw3 & 0x02) {
             if (dev->ocw3 & 0x01)
                 dev->data_bus = dev->isr;
-#ifdef UNDEFINED_READ
-            else
-                dev->data_bus = 0x00;
+            else {
+#ifdef USE_VFIO
+                /* The IRR shows level-triggered line levels, which must be current. */
+                pic_resample_delivered(dev);
 #endif
+#ifdef UNDEFINED_READ
+                dev->data_bus = 0x00;
+#else
+                dev->data_bus = dev->irr;
+#endif
+            }
         }
         /* If A0 = 0, VIA shadow is disabled, and poll mode is disabled,
            simply read whatever is currently on the data bus. */
@@ -615,6 +704,10 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
                     dev->irr              |= (1 << i);
             }
             dev->imr = dev->isr = 0x00;
+#ifdef USE_VFIO
+            /* The rebuilt IRR comes from line levels which may be stale. */
+            pic_acked |= 0xff << ((dev == &pic2) ? 8 : 0);
+#endif
             dev->ack_bytes = dev->priority = 0x00;
             dev->auto_eoi_rotate = dev->special_mask_mode = 0x00;
             dev->interrupt                                = 0x17;

@@ -1,0 +1,6 @@
+# build.sh products and gate logs
+/reg_harness
+/reg_harness_*
+*.exe
+*.dSYM/
+*.log

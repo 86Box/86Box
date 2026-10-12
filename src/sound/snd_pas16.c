@@ -123,6 +123,9 @@
 #include <86box/snd_sb.h>
 #include <86box/snd_sb_dsp.h>
 
+#define PAS16_REC_SAFEFTY_MARGIN 4096
+#define PAS16_REC_MAX_MARGIN (PAS16_REC_SAFEFTY_MARGIN * 2)
+
 typedef struct nsc_mixer_t {
     double master_l;
     double master_r;
@@ -275,6 +278,26 @@ typedef struct pas16_t {
     t128_t * scsi;
 
     pc_timer_t scsi_timer;
+
+    /* Recording */
+    uint8_t rate_div;
+    int     record_pos_read;
+    int     record_pos_write_mic;
+    int     record_phase_mic;
+    int     record_denom_mic;
+    int     record_rate_mic;
+    int32_t record_prev_l_mic;
+    int32_t record_prev_r_mic;
+    int     record_prev_valid_mic;
+    int     record_aa_active_mic;
+    double  record_aa_b0_mic;
+    double  record_aa_b1_mic;
+    double  record_aa_b2_mic;
+    double  record_aa_a1_mic;
+    double  record_aa_a2_mic;
+    double  record_aa_z1_mic[2];
+    double  record_aa_z2_mic[2];
+    int16_t record_buffer[0x10000];
 } pas16_t;
 
 static uint8_t pas16_next = 0;
@@ -1126,6 +1149,9 @@ pas16_io_handler(pas16_t *pas16, int set)
             if (addr != 0x1000)
                 io_handler(set, pas16->base + addr, 0x0004,
                            pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
+            else
+                io_handler(set, pas16->base + addr, 0x0001,
+                           NULL, NULL, NULL, pas16_out, NULL, NULL, pas16);
         }
 
         pitf_handler(set, pas16->base + 0x1000, 0x0004, pas16->pit);
@@ -1651,6 +1677,11 @@ pas_out(uint16_t port, uint8_t val, void *priv)
                 picintc(1 << pas16->irq);
             break;
 
+        case 0x1000:
+            if (val != 0)
+                pas16->rate_div = val;
+            break;
+
         case 0x1401:
             old = pas16->ym3802_rgr;
             pas16->ym3802_rgr = val;
@@ -1816,7 +1847,7 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
 
                 if (mv508_mixer->index & MV508_MIXER) {
 		    bank = !!(val & MV508_INPUT_MIX);
-                    mask = 0x1f;
+                    mask = bank ? 0x3f : 0x1f;
                 } else {
 		    bank = 2;
                     mask = 0x3f;
@@ -2021,6 +2052,11 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
 
             if ((pas16->irq != -1) && !(pas16->irq_stat & 0x1f))
                 picintc(1 << pas16->irq);
+            break;
+
+        case 0x1000:
+            if (val != 0)
+                pas16->rate_div = val;
             break;
 
         case 0x0c00:
@@ -2368,6 +2404,19 @@ pas16_readdma_stereo(pas16_t *pas16)
 }
 
 static void
+pas16_record_resync(pas16_t *pas16)
+{
+    int pos = (pas16->record_pos_write_mic - PAS16_REC_SAFEFTY_MARGIN) & 0xFFFF;
+
+    pas16->record_pos_read = pos;
+
+    for (int i = 0; i < PAS16_REC_SAFEFTY_MARGIN; i++) {
+        pas16->record_buffer[pos] = 0;
+        pos                     = (pos + 1) & 0xFFFF;
+    }
+}
+
+static void
 pas16_pit_timer0(const int new_out, UNUSED(int old_out), void *priv)
 {
     const pitf_t *pit   = (const pitf_t *) priv;
@@ -2378,62 +2427,188 @@ pas16_pit_timer0(const int new_out, UNUSED(int old_out), void *priv)
     if (!pas16->pit->counters[0].gate)
         return;
 
-    if ((!dma_channel_readable(pas16->dma)) && !pas16->is_old_pas)
-        return;
+    if (pas16->pcm_ctrl & 0x10) {
+        if ((!dma_channel_readable(pas16->dma)) && !pas16->is_old_pas)
+            return;
 
-    if (!dma_channel_readable(pas16->dma))
-        dma_channel_unreadable = 1;
+        if (!dma_channel_readable(pas16->dma))
+            dma_channel_unreadable = 1;
 
-    if (!pas16->is_old_pas)
-        pas16_update_irq(pas16);
+        if (!pas16->is_old_pas)
+            pas16_update_irq(pas16);
 
-    if (((pas16->pcm_ctrl & PAS16_PCM_ENA) == PAS16_PCM_ENA) && (pit->counters[1].m & 2) && new_out) {
-        uint16_t temp;
-
-        pas16->ticks = 0;
-
-        if (pas16->pcm_ctrl & PAS16_PCM_MONO) {
-            temp = pas16_readdma_mono(pas16);
-
-            pas16->pcm_dat_l = pas16->pcm_dat_r = temp;
-        } else {
-            temp = pas16_readdma_stereo(pas16);
-
-            if (pas16->sys_conf_1 & 0x02) {
-                pas16->pcm_dat_l = temp;
-
-                temp = pas16_readdma_stereo(pas16);
-
-                pas16->pcm_dat_r = temp;
-            } else {
-                if (pas16->stereo_lr)
-                    pas16->pcm_dat_r = temp;
-                else
-                    pas16->pcm_dat_l = temp;
-
-                pas16->stereo_lr = !pas16->stereo_lr;
-                pas16->irq_stat = (pas16->irq_stat & 0xdf) | (pas16->stereo_lr << 5);
-            }
-        }
-
-        if (dma_channel_unreadable)
-            pas16->pcm_dat_l = pas16->pcm_dat_r = 0;
-
-        if (pas16->ticks) {
-            for (uint16_t i = 0; i < pas16->ticks; i++)
-                pitf_ctr_clock(pas16->pit, 1);
+        if (((pas16->pcm_ctrl & PAS16_PCM_ENA) == PAS16_PCM_ENA) && (pit->counters[1].m & 2) && new_out) {
+            uint16_t temp;
 
             pas16->ticks = 0;
-        }
 
-        pas16->irq_stat |= PAS16_INT_SAMP;
-        if (pas16->irq_ena & PAS16_INT_SAMP) {
-            pas16_log("INT SAMP.\n");
-            if (pas16->irq != -1)
-                picint(1 << pas16->irq);
-        }
+            if (pas16->pcm_ctrl & PAS16_PCM_MONO) {
+                temp = pas16_readdma_mono(pas16);
 
-        pas16_update(pas16);
+                pas16->pcm_dat_l = pas16->pcm_dat_r = temp;
+            } else {
+                temp = pas16_readdma_stereo(pas16);
+
+                if (pas16->sys_conf_1 & 0x02) {
+                    pas16->pcm_dat_l = temp;
+
+                    temp = pas16_readdma_stereo(pas16);
+
+                    pas16->pcm_dat_r = temp;
+                } else {
+                    if (pas16->stereo_lr)
+                        pas16->pcm_dat_r = temp;
+                    else
+                        pas16->pcm_dat_l = temp;
+
+                    pas16->stereo_lr = !pas16->stereo_lr;
+                    pas16->irq_stat = (pas16->irq_stat & 0xdf) | (pas16->stereo_lr << 5);
+                }
+            }
+
+            if (dma_channel_unreadable)
+                pas16->pcm_dat_l = pas16->pcm_dat_r = 0;
+
+            if (pas16->ticks) {
+                for (uint16_t i = 0; i < pas16->ticks; i++)
+                    pitf_ctr_clock(pas16->pit, 1);
+
+                pas16->ticks = 0;
+            }
+
+            pas16->irq_stat |= PAS16_INT_SAMP;
+            if (pas16->irq_ena & PAS16_INT_SAMP) {
+                pas16_log("INT SAMP.\n");
+                if (pas16->irq != -1)
+                    picint(1 << pas16->irq);
+            }
+
+            pas16_update(pas16);
+        }
+    } else {
+        if (!pas16->is_old_pas)
+            pas16_update_irq(pas16);
+
+        if (((pas16->pcm_ctrl & PAS16_PCM_ENA) == PAS16_PCM_ENA) && (pit->counters[1].m & 2) && new_out) {
+            const int diff = (int) (int16_t) (pas16->record_pos_write_mic - pas16->record_pos_read);
+            if ((diff <= 0) || (diff > PAS16_REC_MAX_MARGIN))
+                pas16_record_resync(pas16);
+
+            pas16->ticks = 0;
+
+            if (pas16->pcm_ctrl & PAS16_PCM_MONO) {
+                if (pas16->sys_conf_2 & 0x04) {
+                    if (pas16->dma >= 5) {
+                        dma_channel_write(pas16->dma, pas16->record_buffer[pas16->record_pos_read]);
+                        pas16->ticks++;
+                    } else {
+                        dma_channel_write(pas16->dma, (pas16->record_buffer[pas16->record_pos_read] & 0xff));
+                        dma_channel_write(pas16->dma, (pas16->record_buffer[pas16->record_pos_read] >> 8));
+                        pas16->ticks += 2;
+                    }
+                } else {
+                    if ((pas16->dma >= 5) && pas16->dma8_ff) {
+                        pas16->dma8_dat |= (pas16->record_buffer[pas16->record_pos_read]) & 0xff00;
+                        pas16->dma8_dat ^= 0x8080;
+                        dma_channel_write(pas16->dma, pas16->dma8_dat);
+                        pas16->ticks++;
+                    } else if (pas16->dma >= 5) {
+                        pas16->dma8_dat = (pas16->record_buffer[pas16->record_pos_read] >> 8) & 0xff;
+                    } else {
+                        dma_channel_write(pas16->dma, (pas16->record_buffer[pas16->record_pos_read] >> 8) ^ 0x80);
+                        pas16->ticks++;
+                    }
+                    pas16->dma8_ff = !pas16->dma8_ff;
+                }
+            } else {
+                if (pas16->sys_conf_2 & 0x04) {
+                    if (pas16->dma >= 5) {
+                        if (!(pas16->sys_conf_1 & 0x02) && (pas16->irq_stat & 0x20))
+                            dma_channel_write(pas16->dma, pas16->record_buffer[pas16->record_pos_read + 1]);
+                        else
+                            dma_channel_write(pas16->dma, pas16->record_buffer[pas16->record_pos_read]);
+                        pas16->ticks++;
+                    } else {
+                        if (!(pas16->sys_conf_1 & 0x02) && (pas16->irq_stat & 0x20)) {
+                            dma_channel_write(pas16->dma, pas16->record_buffer[pas16->record_pos_read + 1] & 0xff);
+                            dma_channel_write(pas16->dma, pas16->record_buffer[pas16->record_pos_read + 1] >> 8);
+                        } else {
+                            dma_channel_write(pas16->dma, pas16->record_buffer[pas16->record_pos_read] & 0xff);
+                            dma_channel_write(pas16->dma, pas16->record_buffer[pas16->record_pos_read] >> 8);
+                        }
+                        pas16->ticks += 2;
+                    }
+                } else {
+                    if ((pas16->dma >= 5) && pas16->dma8_ff) {
+                        if (!(pas16->sys_conf_1 & 0x02) && (pas16->irq_stat & 0x20))
+                            pas16->dma8_dat |= (pas16->record_buffer[pas16->record_pos_read + 1]) & 0xff00;
+                        else
+                            pas16->dma8_dat |= (pas16->record_buffer[pas16->record_pos_read]) & 0xff00;
+                        pas16->dma8_dat ^= 0x8080;
+                        dma_channel_write(pas16->dma, pas16->dma8_dat);
+                        pas16->ticks++;
+                    } else if (pas16->dma >= 5) {
+                        if (!(pas16->sys_conf_1 & 0x02) && (pas16->irq_stat & 0x20))
+                            pas16->dma8_dat = (pas16->record_buffer[pas16->record_pos_read + 1] >> 8) & 0xff;
+                        else
+                            pas16->dma8_dat = (pas16->record_buffer[pas16->record_pos_read] >> 8) & 0xff;
+                    } else {
+                        if (!(pas16->sys_conf_1 & 0x02) && (pas16->irq_stat & 0x20))
+                            dma_channel_write(pas16->dma, (pas16->record_buffer[pas16->record_pos_read + 1] >> 8) ^ 0x80);
+                        else
+                            dma_channel_write(pas16->dma, (pas16->record_buffer[pas16->record_pos_read] >> 8) ^ 0x80);
+                        pas16->ticks++;
+                    }
+                    pas16->dma8_ff = !pas16->dma8_ff;
+                }
+
+                if (pas16->sys_conf_1 & 0x02) {
+                    if (pas16->sys_conf_2 & 0x04) {
+                        if (pas16->dma >= 5) {
+                            dma_channel_write(pas16->dma, pas16->record_buffer[pas16->record_pos_read + 1]);
+                            pas16->ticks++;
+                        } else {
+                            dma_channel_write(pas16->dma, pas16->record_buffer[pas16->record_pos_read + 1] & 0xff);
+                            dma_channel_write(pas16->dma, pas16->record_buffer[pas16->record_pos_read + 1] >> 8);
+                            pas16->ticks += 2;
+                        }
+                    } else {
+                        if ((pas16->dma >= 5) && pas16->dma8_ff) {
+                            pas16->dma8_dat |= (pas16->record_buffer[pas16->record_pos_read + 1]) & 0xff00;
+                            pas16->dma8_dat ^= 0x8080;
+                            dma_channel_write(pas16->dma, pas16->dma8_dat);
+                            pas16->ticks++;
+                        } else if (pas16->dma >= 5) {
+                            pas16->dma8_dat = (pas16->record_buffer[pas16->record_pos_read + 1] >> 8) & 0xff;
+                        } else {
+                            dma_channel_write(pas16->dma, (pas16->record_buffer[pas16->record_pos_read + 1] >> 8) ^ 0x80);
+                            pas16->ticks++;
+                        }
+                        pas16->dma8_ff = !pas16->dma8_ff;
+                    }
+
+                } else {
+                    pas16->stereo_lr = !pas16->stereo_lr;
+                    pas16->irq_stat = (pas16->irq_stat & 0xdf) | (pas16->stereo_lr << 5);
+                }
+            }
+            pas16->record_pos_read += 2;
+            pas16->record_pos_read &= 0xFFFF;
+
+            if (pas16->ticks) {
+                for (uint16_t i = 0; i < pas16->ticks; i++)
+                    pitf_ctr_clock(pas16->pit, 1);
+
+                pas16->ticks = 0;
+            }
+
+            pas16->irq_stat |= PAS16_INT_SAMP;
+            if (pas16->irq_ena & PAS16_INT_SAMP) {
+                pas16_log("INT SAMP.\n");
+                if (pas16->irq != -1)
+                    picint(1 << pas16->irq);
+            }
+        }
     }
 }
 
@@ -2558,6 +2733,178 @@ pas16_update(pas16_t *pas16)
             pas16->pcm_buffer[0][pas16->pos] = (int16_t) pas16->pcm_dat_l;
             pas16->pcm_buffer[1][pas16->pos] = (int16_t) pas16->pcm_dat_r;
         }
+    }
+}
+
+#define PAS16_RECORD_CLAMP(x) (((x) < -32768) ? -32768 : (((x) > 32767) ? 32767 : (x)))
+
+/* filter when freq < capture rate */
+#define PAS16_RECORD_ANTIALIAS 1
+
+/* nyquist anti alias */
+#define PAS16_RECORD_AA_NYQ 0.9
+
+/* audio filter called on filter rate change */
+static void
+pas16_record_aa_design(pas16_t *pas16, int out_rate, int in_rate)
+{
+    const double fc    = (PAS16_RECORD_AA_NYQ * 0.5) * ((double) out_rate);
+    const double w0    = (2.0 * M_PI * fc) / ((double) in_rate);
+    const double cw    = cos(w0);
+    const double sw    = sin(w0);
+    const double alpha = sw / (2.0 * 0.70710678118654752);
+    const double a0    = 1.0 + alpha;
+
+    pas16->record_aa_b0_mic = ((1.0 - cw) / 2.0) / a0;
+    pas16->record_aa_b1_mic = (1.0 - cw) / a0;
+    pas16->record_aa_b2_mic = pas16->record_aa_b0_mic;
+    pas16->record_aa_a1_mic = (-2.0 * cw) / a0;
+    pas16->record_aa_a2_mic = (1.0 - alpha) / a0;
+}
+
+static double
+pas16_record_aa_step(pas16_t *pas16, int ch, double x)
+{
+    const double y = (pas16->record_aa_b0_mic * x) + pas16->record_aa_z1_mic[ch];
+
+    pas16->record_aa_z1_mic[ch] = (pas16->record_aa_b1_mic * x) - (pas16->record_aa_a1_mic * y)
+                                + pas16->record_aa_z2_mic[ch];
+    pas16->record_aa_z2_mic[ch] = (pas16->record_aa_b2_mic * x) - (pas16->record_aa_a2_mic * y);
+
+    return y;
+}
+
+static void
+pas16_put_buffer(int16_t *buffer, int len, void *priv)
+{
+    pas16_t                      *pas16 = (pas16_t *) priv;
+    nsc_mixer_t     *nsc_mixer = &pas16->nsc_mixer;
+    mv508_mixer_t *mv508_mixer = &pas16->mv508_mixer;
+
+    /* divisor is rate capture device opened at*/
+    const int cap_rate = al_capture_get_rate();
+    const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+    const int rate     = ((pas16->type) ? 882000 : 1193180) / (pas16->rate_div ? pas16->rate_div : 54);
+
+    int c;
+    int gain_l;
+    int gain_r;
+    int sel_l_mic, sel_l_linel;
+    int sel_r_mic, sel_r_liner;
+    int interp;
+    int filt;
+
+    /* freq is 0 until the guest programs a rate  */
+    if (rate <= 0)
+        return;
+
+    if ((denom != pas16->record_denom_mic) || (rate != pas16->record_rate_mic)) {
+        pas16->record_denom_mic      = denom;
+        pas16->record_rate_mic       = rate;
+        pas16->record_phase_mic      = 0;
+        pas16->record_prev_l_mic     = 0;
+        pas16->record_prev_r_mic     = 0;
+        pas16->record_prev_valid_mic = 0;
+
+        pas16->record_aa_z1_mic[0] = 0.0;
+        pas16->record_aa_z1_mic[1] = 0.0;
+        pas16->record_aa_z2_mic[0] = 0.0;
+        pas16->record_aa_z2_mic[1] = 0.0;
+        pas16->record_aa_active_mic = 0;
+
+#if PAS16_RECORD_ANTIALIAS
+        /* only when decimating */
+        if (rate < denom) {
+            pas16_record_aa_design(pas16, rate, denom);
+            pas16->record_aa_active_mic = 1;
+        }
+#endif
+    }
+
+    interp = (rate != denom);
+    filt   = pas16->record_aa_active_mic;
+
+    gain_l = 8;
+    gain_r = 8;
+
+    if (pas16->type) {
+        sel_l_mic   = (mv508_mixer->regs[1][0x54] & 0x20) ? 1 : 0;
+        sel_l_linel = (mv508_mixer->regs[1][0x52] & 0x20) ? 1 : 0;
+
+        sel_r_mic   = (mv508_mixer->regs[1][0x54] & 0x20) ? 1 : 0;
+        sel_r_liner = (mv508_mixer->regs[1][0x52] & 0x20) ? 1 : 0;
+    } else {
+        sel_l_mic   = (nsc_mixer->lmc835_regs[0x05] & 0x40) ? 1 : 0;
+        sel_l_linel = (nsc_mixer->lmc835_regs[0x03] & 0x40) ? 1 : 0;
+
+        sel_r_mic   = (nsc_mixer->lmc835_regs[0x0c] & 0x40) ? 1 : 0;
+        sel_r_liner = (nsc_mixer->lmc835_regs[0x0a] & 0x40) ? 1 : 0;
+    }
+    /* Mute inputs if gain is zero on original PAS, PASTEST relies on this */
+    if (pas16->is_old_pas) {
+        if (((nsc_mixer->lmc835_regs[0x05] & 0x3f) == 0) && ((nsc_mixer->lmc835_regs[0x0c] & 0x3f) == 0))
+            sel_l_mic = sel_r_mic = 0;
+        if (((nsc_mixer->lmc835_regs[0x03] & 0x3f) == 0) && ((nsc_mixer->lmc835_regs[0x0a] & 0x3f) == 0))
+            sel_l_linel = sel_r_liner = 0;
+    }
+
+    for (c = 0; c < len * 2; c += 2) {
+        const int32_t cap_l = (int32_t) buffer[c];
+        const int32_t cap_r = (int32_t) buffer[c + 1];
+
+        /* mic is the mono sum of line-in. truncating division for dc symmetry */
+        const int32_t mic = (cap_l + cap_r) / 2;
+
+        int32_t mix_l = (mic * sel_l_mic) + (cap_l * sel_l_linel);
+        int32_t mix_r = (mic * sel_r_mic) + (cap_r * sel_r_liner);
+        int32_t in_l;
+        int32_t in_r;
+
+        /* run on every input frame*/
+        if (filt) {
+            mix_l = (int32_t) lrint(pas16_record_aa_step(pas16, 0, (double) mix_l));
+            mix_r = (int32_t) lrint(pas16_record_aa_step(pas16, 1, (double) mix_r));
+        }
+
+        in_l = PAS16_RECORD_CLAMP(mix_l * gain_l);
+        in_r = PAS16_RECORD_CLAMP(mix_r * gain_r);
+
+        /* start new device change with first frame in interpolartor queue */
+        if (!pas16->record_prev_valid_mic) {
+            pas16->record_prev_l_mic     = in_l;
+            pas16->record_prev_r_mic     = in_r;
+            pas16->record_prev_valid_mic = 1;
+        }
+
+        /* phase ticks this forward, while-loop for new samples so they arent dropped */
+        pas16->record_phase_mic += rate;
+        while (pas16->record_phase_mic >= denom) {
+            int32_t out_l;
+            int32_t out_r;
+
+            pas16->record_phase_mic -= denom; /* denom tracks input frame vs emitted frame , (rate - phase) / rate */
+
+            if (interp) {
+
+                const int32_t num = rate - pas16->record_phase_mic;
+
+                out_l = pas16->record_prev_l_mic
+                        + (int32_t) ((((int64_t) (in_l - pas16->record_prev_l_mic)) * num) / rate);
+                out_r = pas16->record_prev_r_mic
+                        + (int32_t) ((((int64_t) (in_r - pas16->record_prev_r_mic)) * num) / rate);
+            } else {
+                out_l = in_l;
+                out_r = in_r;
+            }
+
+            pas16->record_buffer[pas16->record_pos_write_mic]                = (int16_t) out_l;
+            pas16->record_buffer[(pas16->record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
+
+            pas16->record_pos_write_mic = (pas16->record_pos_write_mic + 2) & 0xffff;
+        }
+
+        pas16->record_prev_l_mic = in_l;
+        pas16->record_prev_r_mic = in_r;
     }
 }
 
@@ -3157,6 +3504,9 @@ pas_init(UNUSED(const device_t *info))
         if (addr != 0x1000)
             io_handler(1, 0x388 + addr, 0x0004,
                        pas_in, NULL, NULL, pas_out, NULL, NULL, pas16);
+        else
+                io_handler(1, 0x388 + addr, 0x0001,
+                           NULL, NULL, NULL, pas_out, NULL, NULL, pas16);
     }
 
     if (pas16->has_scsi) {
@@ -3183,6 +3533,8 @@ pas_init(UNUSED(const device_t *info))
     pitf_ctr_set_using_timer(pas16->pit, 2, 0);
 
     sound_add_handler(pas_get_buffer, pas16);
+    sound_in_add_handler(pas16_put_buffer, pas16);
+    sound_in_start_input();
     music_add_handler(pas_get_music_buffer, pas16);
     sound_set_cd_audio_filter(pasplus_filter_cd_audio, pas16);
     if (device_get_config_int("control_pc_speaker"))
@@ -3269,6 +3621,8 @@ pas16_init(const device_t *info)
     if (pas16->type) {
         sound_add_handler(pas16_get_buffer, pas16);
         sound_add_handler(pas16_get_sb_buffer, pas16);
+        sound_in_add_handler(pas16_put_buffer, pas16);
+        sound_in_start_input();
         music_add_handler(pas16_get_music_buffer, pas16);
         sound_set_cd_audio_filter(pas16_filter_cd_audio, pas16);
         if (device_get_config_int("control_pc_speaker"))
@@ -3276,6 +3630,8 @@ pas16_init(const device_t *info)
     } else {
         sound_add_handler(pasplus_get_buffer, pas16);
         sound_add_handler(pasplus_get_sb_buffer, pas16);
+        sound_in_add_handler(pas16_put_buffer, pas16);
+        sound_in_start_input();
         music_add_handler(pasplus_get_music_buffer, pas16);
         sound_set_cd_audio_filter(pasplus_filter_cd_audio, pas16);
         if (device_get_config_int("control_pc_speaker"))
@@ -3414,7 +3770,7 @@ static const device_config_t pas16_config[] = {
 const device_t pas_device = {
     .name          = "Media Vision Pro Audio Spectrum",
     .internal_name = "pas",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA | DEVICE_AUDIO_IN,
     .local         = 0,
     .init          = pas_init,
     .close         = pas16_close,
@@ -3430,7 +3786,7 @@ const device_t pas_device = {
 const device_t pasplus_device = {
     .name          = "Media Vision Pro Audio Spectrum Plus",
     .internal_name = "pasplus",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = 0,
     .init          = pas16_init,
     .close         = pas16_close,
@@ -3446,7 +3802,7 @@ const device_t pasplus_device = {
 const device_t pas16_device = {
     .name          = "Media Vision Pro Audio Spectrum 16",
     .internal_name = "pas16",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = 0x0f,
     .init          = pas16_init,
     .close         = pas16_close,
@@ -3462,7 +3818,7 @@ const device_t pas16_device = {
 const device_t pas16d_device = {
     .name          = "Media Vision Pro Audio Spectrum 16D",
     .internal_name = "pas16d",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = 0x0c,
     .init          = pas16_init,
     .close         = pas16_close,
