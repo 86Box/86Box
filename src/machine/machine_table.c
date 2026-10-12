@@ -21685,7 +21685,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = &i82559er_onboard_device, /* stand-in for DP83815 (also accepted by BIOS and software) */
+        .net_device               = &dp83815_onboard_device,
         .scsi_device              = &ncr53c875_onboard_pci_device, /* Machine has also internal SCSI: NCR 53c825 (as seen in one unit) */
         .aliases                  = { "Cobalt 4xxxWG", "Cobalt Carmel", "" }
     },
