@@ -247,7 +247,7 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
     /* FileField fixes its own width; let this one stretch across the panel. */
     ui->fileFieldVFIOROM->setMinimumWidth(0);
     ui->fileFieldVFIOROM->setMaximumWidth(QWIDGETSIZE_MAX);
-    ui->fileFieldVFIOROM->setFilter(tr("ROM images") % util::DlgFilter({ "bin", "rom" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+    ui->fileFieldVFIOROM->setFilter(tr("ROM images") % util::DlgFilter({ "bin", "rom", "vbi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
 
     vfioEnumerate();
     vfioRestore();
