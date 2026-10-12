@@ -438,7 +438,6 @@ machine_at_batman_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_2);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_IDE,         0, 0, 0, 0);
     if (is_dell) {
         pci_register_slot(0x04, PCI_CARD_NORMAL,  4, 4, 3, 3);
         pci_register_slot(0x05, PCI_CARD_NORMAL,  1, 4, 3, 2);
