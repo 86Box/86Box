@@ -1329,7 +1329,7 @@ s3_old_mmio:
                 if (bar->bar_id == 0) {
                     i = 0x1000000; /* 16M MMIO offset */
 
-s3_new_mmio: /* There's a configuration space mirror in here as well. */
+                    /* There's a configuration space mirror in here as well. */
                     vfio_quirk_configmirror(dev, bar, i + 0x8000, 0, enable);
 
                     /* Subsystem Control/Status and Advanced Function Control. */
@@ -1338,13 +1338,6 @@ s3_new_mmio: /* There's a configuration space mirror in here as well. */
 
                     /* The rest maps exactly as older chips. */
                     goto s3_old_mmio;
-                }
-            } else if ((dev->bars[0].size >= 524288) && (vfio_bar_gettype(dev, &dev->bars[1]) == 0x00)) {
-                /* Savage chips break the linear framebuffer out to
-                   BAR 1+, eliminating the 16M MMIO offset from BAR 0. */
-                if (bar->bar_id == 0) {
-                    i = 0;
-                    goto s3_new_mmio;
                 }
             }
             break;
