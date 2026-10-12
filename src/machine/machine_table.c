@@ -5808,7 +5808,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_IDE,
+        .flags     = 0,
         .ram       = {
             .min  = 512, /* gets stuck at POST code 10 with less */
             .max  = 8192,
