@@ -8549,6 +8549,93 @@ vectors_ck_fcn(rage128_t *dev)
     wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), 0);
     wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00000000);
 }
+
+/* ------------------------------------------------------------------ */
+/* TEX_CNTL_C chroma key (TEX_CHROMA_KEY_EN, bit 12) on an ARGB1555    */
+/* texture with SCALE_3D_CNTL TEX_MAP_AEN (bit 30) clear. The key and  */
+/* mask hold raw texel bits, so the compare sees the texel as stored,  */
+/* before the override that makes its alpha 0xff. Columns 0-31 hold    */
+/* 0x0000 (black, alpha bit 0), columns 32-63 0xfc00 (red, alpha bit   */
+/* 1); (5,9) samples a black texel and (37,2) a red one.               */
+/* ------------------------------------------------------------------ */
+static void
+ck_aen_draw(rage128_t *dev, uint32_t scale, uint32_t key)
+{
+    for (uint32_t i = 0; i < 16384; i += 4)
+        *(uint32_t *) &dev->svga.vram[HZ_A + i] = HZ_MARK;
+    wr(dev, RAGE128_SCALE_3D_CNTL, scale);
+    wr(dev, RAGE128_TEX_CLR_CMP_CLR_C, key);
+    tl_draw_tex(dev);
+    flush_sync(dev);
+}
+
+static void
+vectors_ck_aen(rage128_t *dev)
+{
+    /* r3d_argb1555_to_argb shifts each channel into place with the low
+       bits zero: 0xfc00 -> alpha 0xff, red 0x1f << 3 */
+    const uint32_t red   = 0xff000000u | ((0x1fu << 3) << 16);
+    const uint32_t black = 0xff000000u; /* 0x0000 with alpha forced */
+    uint64_t       vr0 = 0, vt, vs, vm, vs0 = 0, vb0 = 0, vs1, vb1;
+    int            gv;
+
+    flush_sync(dev);
+    /* 64x64 context: linear ARGB8888 dst at HZ_A, scissor (63,63), no Z. */
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x003f003f);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+    for (uint32_t vv = 0; vv < 64; vv++)
+        for (uint32_t uu = 0; uu < 64; uu++)
+            *(uint16_t *) &dev->svga.vram[CK_TEX + (vv * 64 + uu) * 2]
+                = uu < 32 ? 0x0000u : 0xfc00u;
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000606);   /* 64x64, 1 level */
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, 3u << 16);      /* dt 3, nearest  */
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), CK_TEX);   /* linear         */
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00184041u); /* COMB copy, Ct=TEX */
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000); /* legacy key off */
+    wr(dev, RAGE128_TEX_CLR_CMP_MSK_C, 0x0000ffffu);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00001010);         /* TEX_EN, chroma key */
+    if (rage128_jit_verify_mode(dev))
+        rage128_jit_verify_stats(dev, &vr0, &vt, &vs, &vm);
+    gv = harness_gpu_verify_stats(dev, &vs0, &vb0);
+
+    ck_aen_draw(dev, 0x00000000u, 0x0000u);
+    check_true("3d: AEN clear, key 0x0000 rejects the alpha-0 texel",
+               CK_PX(5, 9) == HZ_MARK && CK_PX(37, 2) == red);
+    ck_aen_draw(dev, 0x00000000u, 0x8000u);
+    check_true("3d: AEN clear, key 0x8000 keeps the alpha-0 texel opaque",
+               CK_PX(5, 9) == black && CK_PX(37, 2) == red);
+    ck_aen_draw(dev, 1u << 30, 0x0000u);
+    check_true("3d: AEN set, key 0x0000 rejects the alpha-0 texel",
+               CK_PX(5, 9) == HZ_MARK && CK_PX(37, 2) == red);
+
+    if (rage128_jit_verify_mode(dev)) {
+        uint64_t vr;
+
+        rage128_jit_verify_stats(dev, &vr, &vt, &vs, &vm);
+        check_true("3d: AEN key verify compared the keyed rows", vr > vr0);
+        check_true("3d: AEN key verify rows all match", vm == 0);
+    }
+    if (gv && harness_gpu_verify_stats(dev, &vs1, &vb1))
+        check_true("3d: AEN key draws replayed through the GPU kernel",
+                   vs1 > vs0 && vb1 == vb0);
+
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    wr(dev, RAGE128_TEX_CLR_CMP_CLR_C, 0x00000000);
+    wr(dev, RAGE128_TEX_CLR_CMP_MSK_C, 0x00000000);
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), 0);
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00000000);
+}
 #undef CK_PX
 
 /* ------------------------------------------------------------------ */
@@ -13599,6 +13686,7 @@ run_agp_32mb_threaded(void)
     vectors_tex_light(dev);
     vectors_buddy_light(dev);
     vectors_ck_fcn(dev);
+    vectors_ck_aen(dev);
     vectors_gpu_tiled(dev);
     vectors_gpu_reprice(dev);
     vectors_gpu_texq(dev);
