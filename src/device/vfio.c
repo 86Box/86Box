@@ -19,6 +19,7 @@
 #include <inttypes.h>
 #include <linux/vfio.h>
 #include <stdarg.h>
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,6 +38,7 @@
 #include <86box/mem.h>
 #include <86box/path.h>
 #include <86box/pci.h>
+#include <86box/pic.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
 #include <86box/timer.h>
@@ -137,9 +139,12 @@ typedef struct _vfio_device_ {
         vfio_irq_t *vectors;
 
         struct {
-            int     raised;
-            uint8_t pin;
-            uint8_t state;
+            int        raised; /* line held high until a resample finds it deasserted */
+            uint8_t    pin;
+            uint8_t    state;
+            atomic_int triggered;
+            double     retry_delay;
+            pc_timer_t retry_timer;
         } intx;
         struct {
             uint32_t address;
@@ -217,7 +222,8 @@ static int             container_fd       = -1;
 static int             epoll_fd           = -1;
 static int             irq_thread_wake_fd = -1;
 static int             closing            = 0;
-static int             intx_high          = 0;
+static atomic_int      intx_triggered     = 0;
+static int             intx_asserted      = 0;
 static int             timing_readb       = 0;
 static int             timing_readw       = 0;
 static int             timing_readl       = 0;
@@ -283,7 +289,6 @@ static void     vfio_irq_enable(vfio_device_t *dev, int type);
             ret = -1;                                                                                                                                   \
         vfio_log_op("[%04X:%08X] VFIO: " #space "_read" #length_char "_fd(%0" #addr_slength "X) = %0" #val_slength "X\n", CS, cpu_state.pc, addr, ret); \
         cycles -= timing_read##length_char;                                                                                                             \
-        intx_high = 0;                                                                                                                                  \
         return ret;                                                                                                                                     \
     }                                                                                                                                                   \
                                                                                                                                                         \
@@ -294,7 +299,6 @@ static void     vfio_irq_enable(vfio_device_t *dev, int type);
         vfio_log_op("[%04X:%08X] VFIO: " #space "_write" #length_char "_fd(%0" #addr_slength "X, %0" #val_slength "X)\n", CS, cpu_state.pc, addr, val); \
         (void) !pwrite(region->fd, &val, sizeof(val), region->precalc_offset + addr);                                                                  \
         cycles -= timing_write##length_char;                                                                                                            \
-        intx_high = 0;                                                                                                                                  \
     }                                                                                                                                                   \
                                                                                                                                                         \
     static val_type                                                                                                                                     \
@@ -303,7 +307,6 @@ static void     vfio_irq_enable(vfio_device_t *dev, int type);
         register val_type ret = *((val_type *) &((uint8_t *) priv)[addr]);                                                                              \
         vfio_log_op("[%04X:%08X] VFIO: " #space "_read" #length_char "_mm(%0" #addr_slength "X) = %0" #val_slength "X\n", CS, cpu_state.pc, addr, ret); \
         cycles -= timing_read##length_char;                                                                                                             \
-        intx_high = 0;                                                                                                                                  \
         return ret;                                                                                                                                     \
     }                                                                                                                                                   \
                                                                                                                                                         \
@@ -313,7 +316,6 @@ static void     vfio_irq_enable(vfio_device_t *dev, int type);
         vfio_log_op("[%04X:%08X] VFIO: " #space "_write" #length_char "_mm(%0" #addr_slength "X, %0" #val_slength "X)\n", CS, cpu_state.pc, addr, val); \
         *((val_type *) &((uint8_t *) priv)[addr]) = val;                                                                                                \
         cycles -= timing_write##length_char;                                                                                                            \
-        intx_high = 0;                                                                                                                                  \
     }
 
 VFIO_RW(mem, b, uint32_t, 8, uint8_t, 2)
@@ -1496,8 +1498,6 @@ ceilpow2(uint32_t size)
 static uint8_t
 vfio_dev_config_readb(vfio_device_t *dev, int addr)
 {
-    intx_high = 0;
-
     /* Read register from device. */
     addr &= 0xff;
     uint8_t ret;
@@ -1634,8 +1634,6 @@ vfio_dev_config_writeb(vfio_device_t *dev, int addr, uint8_t val)
 {
     addr &= 0xff;
     vfio_log("VFIO %s: config_writeb(%02X, %02X)\n", dev->name, addr, val);
-
-    intx_high = 0;
 
     /* VFIO should block anything we shouldn't write to, such as BARs. */
     (void) !pwrite(dev->config.fd, &val, 1, dev->config.offset + addr);
@@ -1898,18 +1896,130 @@ vfio_slot_config_writeb(int func, int addr, UNUSED(int len), uint8_t val, void *
         vfio_dev_config_writeb(slot->funcs[func & 7], addr, val);
 }
 
+/* Raise the lines of INTx sources which triggered. VFIO masks INTx as it triggers,
+   so a source stays asserted until vfio_irq_intx_sample finds it deasserted. */
+static void
+vfio_irq_intx_service(void)
+{
+    uint64_t buf;
+    uint8_t  line;
+
+    for (vfio_group_t *group = first_group; group; group = group->next) {
+        for (vfio_device_t *dev = group->first_device; dev; dev = dev->next) {
+            if (!atomic_exchange(&dev->irq.intx.triggered, 0) ||
+                (dev->irq.type != VFIO_PCI_INTX_IRQ_INDEX) || !dev->irq.vectors)
+                continue;
+
+            /* Reset eventfd counter. */
+            (void) !read(dev->irq.vectors[0].fd, &buf, sizeof(buf));
+
+            if (!dev->irq.intx.raised) {
+                vfio_log_op("VFIO %s: Raising IRQ on pin INT%c\n", dev->name,
+                            '@' + dev->irq.intx.pin);
+
+                /* The trigger is up to a timer period old, and a shared handler may have
+                   serviced the device since, so have the level resampled before delivery. */
+                line = pci_get_irq_line(dev->vslot->pci_slot, dev->irq.intx.pin);
+                if (line != 0xff)
+                    pic_resample_mark((line == 2) ? 9 : line);
+
+                /* Mark it asserted first, as raising the line may resample it right away. */
+                dev->irq.intx.raised = 1;
+                intx_asserted++;
+                pci_set_irq(dev->vslot->pci_slot, dev->irq.intx.pin, &dev->irq.intx.state);
+            }
+        }
+    }
+}
+
+/* Check whether an asserted INTx source is still asserted, lowering its line if not.
+   An unmask through the ioctl is synchronous: if the device is still asserting, VFIO
+   masks it again and signals the eventfd before returning. */
+static int
+vfio_irq_intx_sample(vfio_device_t *dev)
+{
+    struct vfio_irq_set irq_set = {
+        .argsz = sizeof(irq_set),
+        .flags = VFIO_IRQ_SET_DATA_NONE | VFIO_IRQ_SET_ACTION_UNMASK,
+        .index = VFIO_PCI_INTX_IRQ_INDEX,
+        .start = 0,
+        .count = 1
+    };
+    struct epoll_event event = { .events = EPOLLIN | EPOLLONESHOT };
+    uint64_t           buf;
+
+    ioctl(dev->fd, VFIO_DEVICE_SET_IRQS, &irq_set);
+    if (read(dev->irq.vectors[0].fd, &buf, sizeof(buf)) == sizeof(buf)) {
+        vfio_log_op("VFIO %s: IRQ still asserted\n", dev->name);
+        return 1;
+    }
+
+    vfio_log_op("VFIO %s: Lowering IRQ on pin INT%c\n", dev->name,
+                '@' + dev->irq.intx.pin);
+    pci_clear_irq(dev->vslot->pci_slot, dev->irq.intx.pin, &dev->irq.intx.state);
+    dev->irq.intx.raised = 0;
+    intx_asserted--;
+    timer_stop(&dev->irq.intx.retry_timer);
+
+    /* Let the IRQ thread see the next trigger. */
+    event.data.ptr = &dev->irq.vectors[0];
+    epoll_ctl(epoll_fd, EPOLL_CTL_MOD, dev->irq.vectors[0].fd, &event);
+    return 0;
+}
+
+/* Poll a source on an edge-triggered input until it deasserts, as only
+   then can VFIO catch the device's next interrupt. */
+static void
+vfio_irq_intx_retry(void *priv)
+{
+    vfio_device_t *dev = (vfio_device_t *) priv;
+
+    if (!dev->irq.intx.raised || (dev->irq.type != VFIO_PCI_INTX_IRQ_INDEX) || !dev->irq.vectors)
+        return;
+
+    if (vfio_irq_intx_sample(dev)) {
+        dev->irq.intx.retry_delay = MIN(dev->irq.intx.retry_delay * 2.0, 16000.0);
+        timer_on_auto(&dev->irq.intx.retry_timer, dev->irq.intx.retry_delay);
+    }
+}
+
+/* Called by the PIC before it relies on the level of an IRQ which was already
+   delivered, and when an edge-triggered IRQ is serviced. */
+void
+vfio_irq_intx_resample(int irq)
+{
+    uint8_t line;
+
+    if (!intx_asserted)
+        return;
+
+    for (vfio_group_t *group = first_group; group; group = group->next) {
+        for (vfio_device_t *dev = group->first_device; dev; dev = dev->next) {
+            if (!dev->irq.intx.raised || (dev->irq.type != VFIO_PCI_INTX_IRQ_INDEX) || !dev->irq.vectors)
+                continue;
+
+            /* Match the IRQ this device's pin currently reaches. IRQ 2 is cascaded to 9. */
+            line = pci_get_irq_line(dev->vslot->pci_slot, dev->irq.intx.pin);
+            if (line == 2)
+                line = 9;
+            if (line != irq)
+                continue;
+
+            if (vfio_irq_intx_sample(dev) && !picint_is_level(irq) &&
+                !timer_is_on(&dev->irq.intx.retry_timer)) {
+                dev->irq.intx.retry_delay = 1000.0;
+                timer_on_auto(&dev->irq.intx.retry_timer, dev->irq.intx.retry_delay);
+            }
+        }
+    }
+}
+
 static void
 vfio_irq_thread(void *priv)
 {
     int                 nfds, i;
     uint64_t            buf;
     struct epoll_event  events[16];
-    struct vfio_irq_set irq_set = {
-        .argsz = sizeof(irq_set),
-        .index = VFIO_PCI_INTX_IRQ_INDEX,
-        .start = 0,
-        .count = 1
-    };
     vfio_device_t *dev;
     vfio_irq_t    *irq;
 
@@ -1938,6 +2048,16 @@ vfio_irq_thread(void *priv)
             }
             dev = irq->dev;
 
+            /* Leave INTx to the CPU thread, which raises the line and later resamples it.
+               The eventfd is one-shot, so it stays quiet until the source is rearmed. */
+            if (irq->type == VFIO_PCI_INTX_IRQ_INDEX) {
+                if (!closing) {
+                    atomic_store(&dev->irq.intx.triggered, 1);
+                    atomic_store(&intx_triggered, 1);
+                }
+                continue;
+            }
+
             /* Reset eventfd counter. */
             (void) !read(irq->fd, &buf, sizeof(buf));
 
@@ -1952,12 +2072,6 @@ vfio_irq_thread(void *priv)
 
             /* Perform pre-checks for specific IRQ types. */
             switch (irq->type) {
-                case VFIO_PCI_INTX_IRQ_INDEX:
-                    /* Mask host IRQ. */
-                    irq_set.flags = VFIO_IRQ_SET_DATA_NONE | VFIO_IRQ_SET_ACTION_MASK;
-                    ioctl(dev->fd, VFIO_DEVICE_SET_IRQS, &irq_set);
-                    break;
-
                 case VFIO_PCI_MSI_IRQ_INDEX:
                     /* Ignore MSI if this vector is not enabled. */
                     if (irq->vector >= dev->irq.msi.vector_enable_count) {
@@ -2005,12 +2119,6 @@ vfio_irq_thread(void *priv)
             thread_wait_event(irq_event, -1);
             thread_reset_event(irq_event);
             vfio_log_op("VFIO %s: IRQ serviced\n", dev->name);
-
-            /* Unmask host IRQ if this is INTx. */
-            if (irq->type == VFIO_PCI_INTX_IRQ_INDEX) {
-                irq_set.flags = VFIO_IRQ_SET_DATA_NONE | VFIO_IRQ_SET_ACTION_UNMASK;
-                ioctl(dev->fd, VFIO_DEVICE_SET_IRQS, &irq_set);
-            }
         }
 
         /* Pause if we were asked to. */
@@ -2027,6 +2135,10 @@ vfio_irq_timer(void *priv)
     /* Schedule next run. */
     timer_on_auto(&irq_timer, 100.0);
 
+    /* Raise the lines of INTx sources which triggered. */
+    if (atomic_exchange(&intx_triggered, 0))
+        vfio_irq_intx_service();
+
     /* Stop if we're not servicing an IRQ at the moment. */
     if (!current_irq)
         return;
@@ -2035,33 +2147,6 @@ vfio_irq_timer(void *priv)
     /* Act according to the IRQ type. */
     uint16_t val;
     switch (current_irq->type) {
-        case VFIO_PCI_INTX_IRQ_INDEX:
-            if (!dev->irq.intx.raised) { /* rising edge */
-                vfio_log_op("VFIO %s: Raising IRQ on pin INT%c\n", dev->name,
-                            '@' + dev->irq.intx.pin);
-
-                /* Raise IRQ. */
-                pci_set_irq(dev->vslot->pci_slot, dev->irq.intx.pin, &dev->irq.intx.state);
-
-                /* Mark the IRQ as active, so that a BAR read/write can lower it. */
-                dev->irq.intx.raised = intx_high = 1;
-            } else if (!intx_high) { /* falling edge */
-                vfio_log_op("VFIO %s: Lowering IRQ on pin INT%c\n", dev->name,
-                            '@' + dev->irq.intx.pin);
-
-                /* Lower IRQ. */
-                pci_clear_irq(dev->vslot->pci_slot, dev->irq.intx.pin, &dev->irq.intx.state);
-
-                /* Mark the IRQ as no longer high. */
-                dev->irq.intx.raised = intx_high = 0;
-
-                /* Allow the IRQ thread to be unblocked. */
-                break;
-            }
-
-            /* Don't unblock the IRQ thread unless otherwise stated. */
-            return;
-
         case VFIO_PCI_MSI_IRQ_INDEX:
             /* Insert the vector number into the value's lower bits. */
             val = (dev->irq.msi.data & ~dev->irq.msi.vector_enable_mask) | (current_irq->vector & dev->irq.msi.vector_enable_mask);
@@ -2106,7 +2191,11 @@ vfio_irq_intx_disable(vfio_device_t *dev)
     vfio_irq_disabletype(dev, VFIO_PCI_INTX_IRQ_INDEX);
 
     /* Clear pending interrupts. */
-    dev->irq.intx.raised = intx_high = 0;
+    if (dev->irq.intx.raised)
+        intx_asserted--;
+    dev->irq.intx.raised = 0;
+    atomic_store(&dev->irq.intx.triggered, 0);
+    timer_stop(&dev->irq.intx.retry_timer);
     if (dev->irq.intx.pin)
         pci_clear_irq(dev->vslot->pci_slot, dev->irq.intx.pin, &dev->irq.intx.state);
 
@@ -2283,11 +2372,14 @@ vfio_irq_enable(vfio_device_t *dev, int type)
         dev->irq.vectors[i].dev    = dev;
         dev->irq.vectors[i].type   = type;
         dev->irq.vectors[i].vector = i;
-        fd_list[i] = dev->irq.vectors[i].fd = eventfd(0, 0);
+        /* INTx eventfds are read by the CPU thread without blocking, and woken up on only once
+           per trigger, as VFIO keeps INTx masked until vfio_irq_intx_sample unmasks it. */
+        fd_list[i] = dev->irq.vectors[i].fd = eventfd(0, (type == VFIO_PCI_INTX_IRQ_INDEX) ? EFD_NONBLOCK : 0);
         if (fd_list[i] < 0)
             pclog("VFIO %s: IRQ eventfd %d failed (%d)\n", dev->name, i, errno);
         else {
             /* Add eventfd to epoll. */
+            event.events   = (type == VFIO_PCI_INTX_IRQ_INDEX) ? (EPOLLIN | EPOLLONESHOT) : EPOLLIN;
             event.data.ptr = &dev->irq.vectors[i];
             epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd_list[i], &event);
         }
@@ -2852,6 +2944,7 @@ vfio_dev_init(vfio_device_t *dev)
 
     /* Read INTx IRQ pin. */
     vfio_irq_intx_setpin(dev);
+    timer_add(&dev->irq.intx.retry_timer, vfio_irq_intx_retry, dev, 0);
 
     return 0;
 
@@ -2865,6 +2958,8 @@ static void
 vfio_dev_close(vfio_device_t *dev)
 {
     vfio_log("VFIO %s: close()\n", dev->name);
+
+    timer_stop(&dev->irq.intx.retry_timer);
 
     /* Close all regions. */
     for (uint8_t i = 0; i < 6; i++)
