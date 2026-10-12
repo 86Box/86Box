@@ -35,6 +35,12 @@
    compiled out. The caller reports the hole rather than passing silently. */
 int harness_gpu_available(void);
 
+/* NULL when this host can start the GPU backend, else the reason it
+   cannot (no Vulkan library, no driver, no device that meets the
+   backend's requirements). A build without the Vulkan headers has
+   nothing to start and returns NULL. */
+const char *harness_gpu_runtime_missing(void);
+
 /* R128_GPU=verify: the backend's own verdict -- segments replayed through
    the interpreter and the count that mismatched. 0 = no verifying backend
    on this device. */

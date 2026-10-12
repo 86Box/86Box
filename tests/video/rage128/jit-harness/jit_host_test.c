@@ -34,6 +34,7 @@
  *
  *          Copyright 2026 skiretic.
  */
+#include <fcntl.h>
 #include <math.h>
 #include <stdatomic.h>
 #include <stdint.h>
@@ -47,6 +48,9 @@
    other POSIX hosts use executable read/write pages and a no-op toggle,
    matching vid_ati_rage128_jit.c through plat_mmap(size, 1). */
 #if defined(_WIN32)
+#    include <io.h>
+#    include <share.h>
+#    include <sys/stat.h>
 #    include <windows.h>
 #    undef near /* windef.h legacy pointer macros; rr_* uses them as idents */
 #    undef far
@@ -59,6 +63,7 @@ map_exec(size_t sz)
 #    define pthread_jit_write_protect_np(w) ((void) (w))
 #else
 #    include <sys/mman.h>
+#    include <unistd.h>
 #    if !defined(MAP_JIT)
 #        define MAP_JIT 0
 #    endif
@@ -85,6 +90,53 @@ map_exec(size_t sz)
 #else
 #    define JHT_EXEC_A64 0
 #endif
+
+static FILE *
+open_output(const char *path)
+{
+    FILE *f  = NULL;
+    int   fd = -1;
+
+#ifdef _WIN32
+    if (_sopen_s(&fd, path, _O_WRONLY | _O_CREAT | _O_TRUNC | _O_BINARY,
+                 _SH_DENYNO, _S_IREAD | _S_IWRITE) == 0) {
+        f = _fdopen(fd, "wb");
+        if (!f)
+            _close(fd);
+    }
+#else
+    fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd >= 0) {
+        f = fdopen(fd, "wb");
+        if (!f)
+            close(fd);
+    }
+#endif
+    return f;
+}
+
+/* Writes a generated block for disassembly with explicit creation
+   permissions: 0644 on POSIX and CRT read and write permissions on
+   Windows. Open, write, and close failures are reported on stderr and
+   return -1; success returns 0. Ordinary dump runs continue on failure,
+   while benchdump returns status 2. */
+static int
+dump_block(const char *path, const void *code, int len)
+{
+    FILE *f = open_output(path);
+    int   ok;
+
+    if (!f) {
+        fprintf(stderr, "dump: cannot open %s\n", path);
+        return -1;
+    }
+    ok = fwrite(code, 1, (size_t) len, f) == (size_t) len;
+    if (fclose(f) || !ok) {
+        fprintf(stderr, "dump: cannot write %s\n", path);
+        return -1;
+    }
+    return 0;
+}
 
 /* The device's own struct definitions (draw state, jit tri, stage
    desc/texctx: the emitters bake offsets from them), through the device
@@ -1701,7 +1753,7 @@ run_config(uint8_t *code, const rage128_draw_state_t *d, int iters, size_t ci)
                            g_tctx.dWdx, g_tctx.dWdy, g_tctx.dS2dx, g_tctx.dS2dy,
                            g_tctx.dT2dx, g_tctx.dT2dy);
                     {
-                        FILE *bf = fopen("mismatch_block.bin", "wb");
+                        FILE *bf = open_output("mismatch_block.bin");
 
                         if (bf) {
                             fwrite(code, 1, 16384, bf);
@@ -2830,13 +2882,11 @@ bench_main(uint8_t *code, uint64_t npx)
         __builtin___clear_cache((char *) code, (char *) code + len);
 
         if (g_bench_dump) {
-            char  fnb[128];
-            FILE *f;
+            char fnb[128];
 
             snprintf(fnb, sizeof(fnb), "block_%s.bin", s->name);
-            f = fopen(fnb, "wb");
-            fwrite(code, 1, (size_t) len, f);
-            fclose(f);
+            if (dump_block(fnb, code, len))
+                return 2;
             printf("%-18s len=%5d -> %s\n", s->name, len, fnb);
             continue;
         }
@@ -4039,7 +4089,7 @@ persp_vectors(uint8_t *code, int dump)
                 "block_persp_ir_x64.bin", "block_persp_iw2_0_x64.bin",
                 "block_persp_iw2_1_x64.bin"
             };
-            FILE *f = fopen(paths[site], "wb");
+            FILE *f = open_output(paths[site]);
 
             if (!f)
                 return -1;
@@ -4330,7 +4380,7 @@ main(int argc, char **argv)
         pthread_jit_write_protect_np(0);
         int len = weight_axis_block(code, &h, 0, 0, 1);
         pthread_jit_write_protect_np(1);
-        FILE *f = len > 0 ? fopen(argv[2], "wb") : NULL;
+        FILE *f = len > 0 ? open_output(argv[2]) : NULL;
         if (!f)
             return 2;
         size_t written = fwrite(code, 1, (size_t) len, f);
@@ -4749,30 +4799,24 @@ main(int argc, char **argv)
             pthread_jit_write_protect_np(0);
             int len = r128_jit_arm64_generate(code, &d);
             pthread_jit_write_protect_np(1);
-            FILE *f = fopen("block_soa.bin", "wb");
-            fwrite(code, 1, (size_t) len, f);
-            fclose(f);
-            printf("dumped SoA case %zu, %d bytes\n", ci, len);
+            if (dump_block("block_soa.bin", code, len) == 0)
+                printf("dumped SoA case %zu, %d bytes\n", ci, len);
             __builtin___clear_cache((char *) code, (char *) code + len);
         }
         if (dump && ci == 12) { /* SoA: 565 + z24-in-32 keep-mask RMW */
             pthread_jit_write_protect_np(0);
             int len = r128_jit_arm64_generate(code, &d);
             pthread_jit_write_protect_np(1);
-            FILE *f = fopen("block_soa_z32.bin", "wb");
-            fwrite(code, 1, (size_t) len, f);
-            fclose(f);
-            printf("dumped SoA z32 case %zu, %d bytes\n", ci, len);
+            if (dump_block("block_soa_z32.bin", code, len) == 0)
+                printf("dumped SoA z32 case %zu, %d bytes\n", ci, len);
             __builtin___clear_cache((char *) code, (char *) code + len);
         }
         if (dump && ci == 32) {
             pthread_jit_write_protect_np(0);
             int len = r128_jit_arm64_generate(code, &d);
             pthread_jit_write_protect_np(1);
-            FILE *f = fopen("block.bin", "wb");
-            fwrite(code, 1, (size_t) len, f);
-            fclose(f);
-            printf("dumped case %zu, %d bytes\n", ci, len);
+            if (dump_block("block.bin", code, len) == 0)
+                printf("dumped case %zu, %d bytes\n", ci, len);
             __builtin___clear_cache((char *) code, (char *) code + len);
         }
         printf("case %zu (dt=%u z=%d/%d zfn=%u dith=%d ab=%d tex=%d/%d at=%d sp=%d fg=%d): done\n",
@@ -4975,10 +5019,8 @@ main(int argc, char **argv)
                     pthread_jit_write_protect_np(0);
                     int len = r128_jit_arm64_generate(code, &d);
                     pthread_jit_write_protect_np(1);
-                    FILE *f = fopen("block_soa_tex.bin", "wb");
-                    fwrite(code, 1, (size_t) len, f);
-                    fclose(f);
-                    printf("dumped SoA tex case, %d bytes\n", len);
+                    if (dump_block("block_soa_tex.bin", code, len) == 0)
+                        printf("dumped SoA tex case, %d bytes\n", len);
                     __builtin___clear_cache((char *) code, (char *) code + len);
                 }
             }
@@ -5054,10 +5096,8 @@ main(int argc, char **argv)
                     pthread_jit_write_protect_np(0);
                     int len = r128_jit_arm64_generate(code, &d);
                     pthread_jit_write_protect_np(1);
-                    FILE *f = fopen("block_soa_tex_lod.bin", "wb");
-                    fwrite(code, 1, (size_t) len, f);
-                    fclose(f);
-                    printf("dumped SoA mip tex case, %d bytes\n", len);
+                    if (dump_block("block_soa_tex_lod.bin", code, len) == 0)
+                        printf("dumped SoA mip tex case, %d bytes\n", len);
                     __builtin___clear_cache((char *) code, (char *) code + len);
                 }
             }
@@ -5132,10 +5172,8 @@ main(int argc, char **argv)
                     pthread_jit_write_protect_np(0);
                     int len = r128_jit_arm64_generate(code, &d);
                     pthread_jit_write_protect_np(1);
-                    FILE *f = fopen("block_soa_tex_tri.bin", "wb");
-                    fwrite(code, 1, (size_t) len, f);
-                    fclose(f);
-                    printf("dumped SoA trilinear case, %d bytes\n", len);
+                    if (dump_block("block_soa_tex_tri.bin", code, len) == 0)
+                        printf("dumped SoA trilinear case, %d bytes\n", len);
                     __builtin___clear_cache((char *) code, (char *) code + len);
                 }
             }
@@ -5210,10 +5248,8 @@ main(int argc, char **argv)
                     pthread_jit_write_protect_np(0);
                     int len = r128_jit_arm64_generate(code, &d);
                     pthread_jit_write_protect_np(1);
-                    FILE *f = fopen("block_soa_tex_split.bin", "wb");
-                    fwrite(code, 1, (size_t) len, f);
-                    fclose(f);
-                    printf("dumped SoA filter-split case, %d bytes\n", len);
+                    if (dump_block("block_soa_tex_split.bin", code, len) == 0)
+                        printf("dumped SoA filter-split case, %d bytes\n", len);
                     __builtin___clear_cache((char *) code, (char *) code + len);
                 }
             }
@@ -6070,10 +6106,8 @@ main(int argc, char **argv)
                     pthread_jit_write_protect_np(0);
                     int len = r128_jit_arm64_generate(code, &d);
                     pthread_jit_write_protect_np(1);
-                    FILE *f = fopen("block_soa_sub_tri.bin", "wb");
-                    fwrite(code, 1, (size_t) len, f);
-                    fclose(f);
-                    printf("dumped SoA sub-dt trilinear case, %d bytes\n", len);
+                    if (dump_block("block_soa_sub_tri.bin", code, len) == 0)
+                        printf("dumped SoA sub-dt trilinear case, %d bytes\n", len);
                     __builtin___clear_cache((char *) code, (char *) code + len);
                 }
             }
@@ -6237,10 +6271,8 @@ main(int argc, char **argv)
                     pthread_jit_write_protect_np(0);
                     int len = r128_jit_arm64_generate(code, &d);
                     pthread_jit_write_protect_np(1);
-                    FILE *f = fopen("block_soa_t2_tri.bin", "wb");
-                    fwrite(code, 1, (size_t) len, f);
-                    fclose(f);
-                    printf("dumped SoA dual trilinear case, %d bytes\n", len);
+                    if (dump_block("block_soa_t2_tri.bin", code, len) == 0)
+                        printf("dumped SoA dual trilinear case, %d bytes\n", len);
                     __builtin___clear_cache((char *) code, (char *) code + len);
                 }
             }
@@ -6924,10 +6956,8 @@ main(int argc, char **argv)
                         pthread_jit_write_protect_np(0);
                         int len = r128_jit_arm64_generate(code, &d);
                         pthread_jit_write_protect_np(1);
-                        FILE *f = fopen("block_soa_dsub.bin", "wb");
-                        fwrite(code, 1, (size_t) len, f);
-                        fclose(f);
-                        printf("dumped SoA dual sub-mode case, %d bytes\n", len);
+                        if (dump_block("block_soa_dsub.bin", code, len) == 0)
+                            printf("dumped SoA dual sub-mode case, %d bytes\n", len);
                         __builtin___clear_cache((char *) code,
                                                 (char *) code + len);
                     }

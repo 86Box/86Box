@@ -66,7 +66,6 @@ extern void *harness_pci_priv;
 extern char  harness_log_tail[];
 extern void  harness_log_tail_reset(void);
 extern int   harness_io_count(uint16_t port);
-extern void (*harness_pace_sample_hook)(void *dev, int phase);
 extern void (*harness_bm_write_hook)(uint32_t addr, uint32_t len);
 
 static int g_fail;
@@ -5708,6 +5707,55 @@ vectors_gart_force_pci(rage128_t *dev)
     check_true("agp: PCI board, no stray bus-master access", harness_sysmem_stray == 0);
 }
 
+#ifdef _WIN32
+#    include <fcntl.h>
+#    include <io.h>
+#    include <share.h>
+#    include <sys/stat.h>
+#endif
+
+/* Opens a read-write temp file for a capture vector; closing it deletes
+   it. The C library's anonymous temp file comes first. On Windows that
+   call creates its file in the root of the current drive, which a user
+   without administrator rights cannot write, so the fallback there
+   builds a name in the user's temp folder and creates the file in one
+   step that fails if anything already has that name, with the system
+   deleting it when the handle closes. Nothing is opened by name a second
+   time, so no other file can be truncated or followed in its place. A
+   taken name is retried with another. */
+static FILE *
+capture_sink_open(void)
+{
+    FILE *f = tmpfile();
+
+#ifdef _WIN32
+    if (!f) {
+        char  dir[MAX_PATH];
+        char  path[MAX_PATH];
+        DWORD n    = GetTempPathA(sizeof(dir), dir);
+        UINT  seed = (UINT) (GetCurrentProcessId() ^ GetTickCount());
+
+        for (UINT i = 0; !f && n > 0 && n < sizeof(dir) && i < 16; i++) {
+            /* a nonzero number makes the call build the name only, not
+               create the file */
+            UINT u = (seed + i) & 0xffff;
+            int  fd;
+
+            if (!GetTempFileNameA(dir, "r128", u ? u : 1, path))
+                break;
+            if (_sopen_s(&fd, path,
+                         _O_CREAT | _O_EXCL | _O_RDWR | _O_BINARY | _O_TEMPORARY,
+                         _SH_DENYNO, _S_IREAD | _S_IWRITE) != 0)
+                continue;
+            f = _fdopen(fd, "w+b");
+            if (!f)
+                _close(fd);
+        }
+    }
+#endif
+    return f;
+}
+
 /* ------------------------------------------------------------------ */
 /* BM_CHUNK_0_VAL / BM_CHUNK_1_VAL writes reach the stream capture as R records.      */
 /* The pair is claimed in reg_write's first switch, ahead of the main  */
@@ -5718,22 +5766,16 @@ vectors_gart_force_pci(rage128_t *dev)
 static void
 vectors_bm_chunk_tap(rage128_t *dev)
 {
-    static const char *tmpname = "rage128-bus-master.tmp";
-    uint32_t           agp     = rd(dev, RAGE128_AGP_BASE);
-    uint32_t           bm0     = rd(dev, RAGE128_BM_CHUNK_0_VAL);
-    uint32_t           bm1     = rd(dev, RAGE128_BM_CHUNK_1_VAL);
-    FILE              *saved   = dev->cap_file;
-    FILE              *f       = tmpfile();
-    int                named   = 0;
-    char               line[8][64];
-    char               want[64];
-    char               buf[128];
-    int                n = 0, stray = 0;
+    uint32_t agp   = rd(dev, RAGE128_AGP_BASE);
+    uint32_t bm0   = rd(dev, RAGE128_BM_CHUNK_0_VAL);
+    uint32_t bm1   = rd(dev, RAGE128_BM_CHUNK_1_VAL);
+    FILE    *saved = dev->cap_file;
+    FILE    *f     = capture_sink_open();
+    char     line[8][64];
+    char     want[64];
+    char     buf[128];
+    int      n = 0, stray = 0;
 
-    if (!f) {
-        f     = fopen(tmpname, "w+");
-        named = f != NULL;
-    }
     check_true("bus master capture: capture sink opened", f != NULL);
     if (!f)
         return;
@@ -5762,8 +5804,6 @@ vectors_bm_chunk_tap(rage128_t *dev)
         n++;
     }
     fclose(f);
-    if (named)
-        remove(tmpname);
 
     snprintf(want, sizeof(want), "R %04x %08x ffffffff", RAGE128_AGP_BASE, agp);
     check_true("bus master capture: control, AGP_BASE R record", !strcmp(line[0], want));
@@ -5804,26 +5844,20 @@ capture_record_count(const char (*line)[64], int n, const char *want)
 static void
 vectors_modeset_tap(rage128_t *dev)
 {
-    static const char *tmpname = "rage128-modeset.tmp";
-    uint32_t           agp     = rd(dev, RAGE128_AGP_BASE);
-    uint32_t           dac     = rd(dev, RAGE128_DAC_CNTL);
-    uint32_t           mem     = rd(dev, RAGE128_CONFIG_MEMSIZE);
-    uint32_t           cntl    = rd(dev, RAGE128_AGP_CNTL);
-    uint32_t           tdc     = rd(dev, RAGE128_TEST_DEBUG_CNTL);
-    uint32_t           tdm     = rd(dev, RAGE128_TEST_DEBUG_MUX);
-    uint32_t           r180    = rd(dev, 0x0180);
-    FILE              *saved   = dev->cap_file;
-    FILE              *f       = tmpfile();
-    int                named   = 0;
-    char               line[12][64];
-    char               want[64];
-    char               buf[128];
-    int                n = 0, stray = 0;
+    uint32_t agp   = rd(dev, RAGE128_AGP_BASE);
+    uint32_t dac   = rd(dev, RAGE128_DAC_CNTL);
+    uint32_t mem   = rd(dev, RAGE128_CONFIG_MEMSIZE);
+    uint32_t cntl  = rd(dev, RAGE128_AGP_CNTL);
+    uint32_t tdc   = rd(dev, RAGE128_TEST_DEBUG_CNTL);
+    uint32_t tdm   = rd(dev, RAGE128_TEST_DEBUG_MUX);
+    uint32_t r180  = rd(dev, 0x0180);
+    FILE    *saved = dev->cap_file;
+    FILE    *f     = capture_sink_open();
+    char     line[12][64];
+    char     want[64];
+    char     buf[128];
+    int      n = 0, stray = 0;
 
-    if (!f) {
-        f     = fopen(tmpname, "w+");
-        named = f != NULL;
-    }
     check_true("modeset capture: capture sink opened", f != NULL);
     if (!f)
         return;
@@ -5857,8 +5891,6 @@ vectors_modeset_tap(rage128_t *dev)
         n++;
     }
     fclose(f);
-    if (named)
-        remove(tmpname);
     if (n > 12)
         n = 12;
 
@@ -5978,24 +6010,18 @@ static const char *const capture_surface_records[12] = {
 static void
 vectors_early_arms(rage128_t *dev)
 {
-    static const char *tmpname = "r128-631-cap.tmp";
-    uint32_t           saved_reg[CAPTURE_NARMS];
-    uint32_t           surf[12];
-    uint32_t           agp   = rd(dev, RAGE128_AGP_BASE);
-    uint32_t           vword = *(uint32_t *) &dev->svga.vram[0x00310000];
-    uint32_t           bios2, vgot;
-    FILE              *saved = dev->cap_file;
-    FILE              *f     = tmpfile();
-    int                named = 0;
-    char               line[80][64];
-    char               buf[128];
-    char               label[96];
-    int                n = 0, stray = 0, surf_hits = 0, ordered = 1;
+    uint32_t saved_reg[CAPTURE_NARMS];
+    uint32_t surf[12];
+    uint32_t agp   = rd(dev, RAGE128_AGP_BASE);
+    uint32_t vword = *(uint32_t *) &dev->svga.vram[0x00310000];
+    uint32_t bios2, vgot;
+    FILE    *saved = dev->cap_file;
+    FILE    *f     = capture_sink_open();
+    char     line[80][64];
+    char     buf[128];
+    char     label[96];
+    int      n = 0, stray = 0, surf_hits = 0, ordered = 1;
 
-    if (!f) {
-        f     = fopen(tmpname, "w+");
-        named = f != NULL;
-    }
     check_true("register capture: early-arm capture sink opened", f != NULL);
     if (!f)
         return;
@@ -6034,8 +6060,6 @@ vectors_early_arms(rage128_t *dev)
         n++;
     }
     fclose(f);
-    if (named)
-        remove(tmpname);
 
     for (int i = 0; i < CAPTURE_NARMS; i++) {
         snprintf(label, sizeof(label), "register capture: %s R record", capture_arms[i].name);
@@ -6078,23 +6102,17 @@ vectors_early_arms(rage128_t *dev)
 static void
 vectors_agp_base_packet(rage128_t *dev)
 {
-    static const char *tmpname = "rage128-agp-packet.tmp";
-    uint32_t           agp     = rd(dev, RAGE128_AGP_BASE);
-    uint32_t           val     = agp ^ 0x00400000;
-    uint32_t           got;
-    FILE              *saved   = dev->cap_file;
-    FILE              *f       = tmpfile();
-    int                named   = 0;
-    uint32_t           pkt[2];
-    char               line[4][64];
-    char               want[64];
-    char               buf[128];
-    int                n = 0, stray = 0;
+    uint32_t agp = rd(dev, RAGE128_AGP_BASE);
+    uint32_t val = agp ^ 0x00400000;
+    uint32_t got;
+    FILE    *saved = dev->cap_file;
+    FILE    *f     = capture_sink_open();
+    uint32_t pkt[2];
+    char     line[4][64];
+    char     want[64];
+    char     buf[128];
+    int      n = 0, stray = 0;
 
-    if (!f) {
-        f     = fopen(tmpname, "w+");
-        named = f != NULL;
-    }
     check_true("agp packet capture: capture sink opened", f != NULL);
     if (!f)
         return;
@@ -6126,8 +6144,6 @@ vectors_agp_base_packet(rage128_t *dev)
         n++;
     }
     fclose(f);
-    if (named)
-        remove(tmpname);
 
     snprintf(want, sizeof(want), "J %08x", pkt[0]);
     snprintf(buf, sizeof(buf), "J %08x", val);
@@ -13286,6 +13302,272 @@ vectors_gui_reset_indirect(rage128_t *dev)
     pci_wr8(0x04, 0x03);
 }
 
+/* ------------------------------------------------------------------ */
+/* Completion signals do not run ahead of a deferred draw. With two    */
+/* workers a ring draw is queued, not drawn. A GUI_SCRATCH write behind */
+/* it is the fence a Direct3D driver polls, and the retire pointer      */
+/* behind it is what the ring read-pointer write-back carries; on the   */
+/* chip both come after the draw's pixels. The idle hook parks the      */
+/* executor where it runs out of work, before its idle flush, so the    */
+/* engine is sampled there every time rather than when a race allows.  */
+/* ------------------------------------------------------------------ */
+#define FO_TGT 0x00480000u /* local VRAM color target, 64 px ARGB8888 */
+#define FO_2D  0x00300000u /* 2D paint target for the indirect-buffer leg */
+
+static atomic_int fo_arrived;
+static atomic_int fo_go;
+static atomic_uint fo_expected_end;
+
+static void
+fo_idle_hook(rage128_t *dev)
+{
+    if (atomic_load(&fo_go)
+        || dev->cce_retire_pending != atomic_load(&fo_expected_end))
+        return;
+    atomic_store(&fo_arrived, 1);
+    while (!atomic_load(&fo_go))
+        ;
+}
+
+/* Configure the empty ring before arming the hook so setup does not wait
+   for a parked executor. Submit the work and return 1 once the executor
+   parks after running it. */
+static int
+fo_start_parked(rage128_t *dev, int n)
+{
+    long spins;
+
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, RING_CARD_ADDR);
+    wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000b); /* 4096-dword ring */
+    atomic_store(&fo_arrived, 0);
+    atomic_store(&fo_go, 0);
+    atomic_store(&fo_expected_end, (uint32_t) n);
+    atomic_store(&rage128_harness_idle_hook, fo_idle_hook);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, (uint32_t) n);
+    for (spins = 0; spins < 2000000000L && !atomic_load(&fo_arrived); spins++)
+        ;
+    return atomic_load(&fo_arrived);
+}
+
+static void
+fo_release(rage128_t *dev)
+{
+    atomic_store(&fo_go, 1);
+    drain_sync(dev);
+    atomic_store(&rage128_harness_idle_hook, NULL);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+}
+
+static void
+vectors_fence_order(rage128_t *dev)
+{
+    uint32_t *tbl  = (uint32_t *) (ram + GART_TABLE_PHYS);
+    uint32_t *ring = (uint32_t *) (ram + RING_PHYS);
+    uint32_t *ib   = (uint32_t *) (ram + IB_PHYS);
+    uint32_t  px   = FO_TGT + (2 * 64 + 2) * 4;
+    uint32_t  g15  = (15u << 4) | (6u << 8) | (0xf0u << 16)
+                   | (1u << 28) | (1u << 29) | (1u << 30);
+    int       n;
+    int       draw_end;
+    long      spins;
+    /* Only a lane with render workers defers a draw. JIT verify and the
+       GPU lane run one CPU worker, so the parked checks do not apply
+       there, and the GPU lane's pixels are read after gpu_sync. */
+    int deferred = rage128_raster_nthreads(dev) > 1;
+
+    harness_ram_alloc();
+    harness_sysmem_stray = 0;
+    memset(ram + GART_TABLE_PHYS, 0, 0x2000);
+    for (int i = 0; i < 4; i++) /* 4096-dword ring, four pages */
+        tbl[(RING_CARD_ADDR >> 12) + i] = RING_PHYS + (uint32_t) i * 0x1000;
+    tbl[IB_CARD_ADDR >> 12] = IB_PHYS;
+    memset(ram + RING_PHYS, 0, 0x4000);
+
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    gart_table_on(dev, GART_TABLE_PHYS);
+    wr(dev, RAGE128_AGP_BASE, 0);
+
+    /* The inline-draw context of the pace vectors, target in local VRAM. */
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0);
+    wr(dev, 0x16f0, 0x001f003f);
+    wr(dev, 0x16c0, 3);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0);
+    wr(dev, 0x16c4, 6);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000 | (FO_TGT >> 5));
+    wr(dev, RAGE128_TEX_CNTL_C, 0);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_PM4_VC_FPU_SETUP,
+       RAGE128_FPU_BACKFACE_SOLID | RAGE128_FPU_FRONTFACE_SOLID | RAGE128_FPU_COLOR_GOURAUD);
+    wr(dev, RAGE128_SETUP_CNTL, 0x20);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0);
+    for (int i = 0; i < 4; i++)
+        wr(dev, RAGE128_GUI_SCRATCH_REG0 + i * 4, 0);
+    memset(&dev->svga.vram[FO_TGT], 0, 64 * 32 * 4);
+
+    /* Leg A: draw, then a type-0 fence. Parked before the idle flush,
+       the draw is still queued, so neither the fence nor the retire
+       pointer may show it done. */
+    n = 0;
+    n = ring_add_tri(ring, n, 0xff00ff00);
+    ring[n++] = 0x00000578; /* PACKET0(GUI_SCRATCH_REG0, 1) */
+    ring[n++] = 0x00000799;
+    check_true("799: executor parked at the idle hook (leg A)", fo_start_parked(dev, n));
+    if (deferred) {
+        check32("799: the draw is still deferred at the park (precondition)",
+                (uint32_t) atomic_load(&dev->cce_batch_pending), 1);
+        check32("799: the fence is held while the draw is deferred",
+                rd(dev, RAGE128_GUI_SCRATCH_REG0), 0);
+        check32("799: the retire pointer holds before the deferred draw",
+                atomic_load(&dev->cce_retire_rptr), 0);
+        check32("799: the pixel is not drawn yet at the park",
+                *(uint32_t *) &dev->svga.vram[px], 0);
+    }
+    fo_release(dev);
+    gpu_sync(dev);
+    check32("799: fence after the flush", rd(dev, RAGE128_GUI_SCRATCH_REG0), 0x799);
+    check32("799: pixel after the flush", *(uint32_t *) &dev->svga.vram[px], 0xff00ff00);
+    check32("799: retire pointer after the flush", atomic_load(&dev->cce_retire_rptr),
+            (uint32_t) n);
+
+    /* Leg B: the same fence reached through MM_INDEX / MM_DATA. */
+    memset(&dev->svga.vram[FO_TGT], 0, 64 * 32 * 4);
+    wr(dev, RAGE128_GUI_SCRATCH_REG0, 0);
+    n = 0;
+    n = ring_add_tri(ring, n, 0xff0000ff);
+    ring[n++] = 0x00010000; /* PACKET0(MM_INDEX, 2): MM_INDEX, MM_DATA */
+    ring[n++] = RAGE128_GUI_SCRATCH_REG0;
+    ring[n++] = 0x00005aa5;
+    check_true("799: executor parked at the idle hook (leg B)", fo_start_parked(dev, n));
+    if (deferred)
+        check32("799: an MM_DATA fence is held while the draw is deferred",
+                dev->gui_scratch[0], 0);
+    fo_release(dev);
+    gpu_sync(dev);
+    check32("799: MM_DATA fence after the flush", dev->gui_scratch[0], 0x5aa5);
+    check32("799: pixel after the flush (leg B)", *(uint32_t *) &dev->svga.vram[px], 0xff0000ff);
+    wr(dev, RAGE128_MM_INDEX, 0);
+
+    /* Leg C: the executor starves in the middle of a packet behind a
+       draw. The draw and the packets before the starved one must be
+       retired, or a guest that waits for them before it writes the rest
+       of the packet waits forever. */
+    memset(&dev->svga.vram[FO_TGT], 0, 64 * 32 * 4);
+    n = 0;
+    n = ring_add_tri(ring, n, 0xffff0000);
+    draw_end  = n;
+    ring[n++] = 0x00010579; /* PACKET0(GUI_SCRATCH_REG1, 2): REG1, REG2 */
+    ring[n++] = 0x00000011; /* REG2's dword is not written yet */
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, RING_CARD_ADDR);
+    wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000b);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, (uint32_t) n);
+    for (spins = 0; spins < 2000000000L; spins++)
+        if (atomic_load(&dev->cce_starved)
+            && atomic_load(&dev->cce_fifo_rd) == atomic_load(&dev->cce_fifo_wr))
+            break;
+    check_true("799: executor starved inside the packet (leg C)", spins < 2000000000L);
+    /* Not on the GPU lane: its draw reaches VRAM through gpu_sync, which
+       drains the engine and would abort the half-written packet. */
+    if (!dev->gpu)
+        check32("799: the draw is drawn while the executor starves",
+                *(uint32_t *) &dev->svga.vram[px], 0xffff0000);
+    check32("799: the retire pointer reaches the end of the draw while starved",
+            atomic_load(&dev->cce_retire_rptr), (uint32_t) draw_end);
+    check32("799: the fence before the starved dword is visible", rd(dev, RAGE128_GUI_SCRATCH_REG0 + 4),
+            0x11);
+    ring[n++] = 0x00000022;
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, (uint32_t) n);
+    drain_sync(dev);
+    check32("799: the starved packet completes", rd(dev, RAGE128_GUI_SCRATCH_REG0 + 8), 0x22);
+    check32("799: retire pointer after the starved packet", atomic_load(&dev->cce_retire_rptr),
+            (uint32_t) n);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+
+    /* Leg E: the starved packet is itself a draw. Draw A is held, the
+       executor starves inside draw B and retires A, then B's rest
+       arrives and B is held in turn. The new hold must sit at the start
+       of B, where the published pointer already is: the chip's read
+       pointer never moves backward, and a hold taken from the position
+       before A would step it back. The executor is parked before its
+       idle flush, so B is still held when the pointer is read. */
+    if (deferred) {
+        int b_start;
+
+        memset(&dev->svga.vram[FO_TGT], 0, 64 * 32 * 4);
+        n       = 0;
+        n       = ring_add_tri(ring, n, 0xffff0000);
+        b_start = n;
+        n       = ring_add_tri(ring, n, 0xff0000ff);
+        wr(dev, RAGE128_PM4_BUFFER_OFFSET, RING_CARD_ADDR);
+        wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
+        wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
+        wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000b);
+        wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, (uint32_t) (b_start + 2));
+        for (spins = 0; spins < 2000000000L; spins++)
+            if (atomic_load(&dev->cce_starved)
+                && atomic_load(&dev->cce_fifo_rd) == atomic_load(&dev->cce_fifo_wr))
+                break;
+        check_true("806: executor starved inside the second draw", spins < 2000000000L);
+        check32("806: the first draw is retired while the executor starves",
+                atomic_load(&dev->cce_retire_rptr), (uint32_t) b_start);
+        atomic_store(&fo_arrived, 0);
+        atomic_store(&fo_go, 0);
+        atomic_store(&fo_expected_end, (uint32_t) n);
+        atomic_store(&rage128_harness_idle_hook, fo_idle_hook);
+        wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, (uint32_t) n);
+        for (spins = 0; spins < 2000000000L && !atomic_load(&fo_arrived); spins++)
+            ;
+        check_true("806: executor parked after the second draw", atomic_load(&fo_arrived));
+        check32("806: the second draw is deferred at the park (precondition)",
+                (uint32_t) atomic_load(&dev->cce_batch_pending), 1);
+        check32("806: the held retire pointer stays at the start of the second draw",
+                atomic_load(&dev->cce_retire_rptr), (uint32_t) b_start);
+        fo_release(dev);
+        check32("806: retire pointer after the flush", atomic_load(&dev->cce_retire_rptr),
+                (uint32_t) n);
+    }
+
+    /* Leg D: an indirect buffer submitted by MMIO runs on the CPU thread:
+       draw, fence, then a 2D paint. The scratch register write drains
+       and flushes any deferred draw before it stores the fence, so the
+       fence is visible and the draw is complete before the paint. */
+    memset(&dev->svga.vram[FO_TGT], 0, 64 * 32 * 4);
+    memset(&dev->svga.vram[FO_2D], 0, 64 * 32 * 4);
+    wr(dev, 0x16e0, FO_2D);
+    wr(dev, 0x16e4, 8);
+    wr(dev, 0x147c, 0x00c0ffee);
+    n       = 0;
+    n       = ring_add_tri(ib, n, 0xff00ffff);
+    ib[n++] = 0x0000057b; /* PACKET0(GUI_SCRATCH_REG3, 1) */
+    ib[n++] = 0x00000033;
+    ib[n++] = 0xc0029a00; /* PAINT_MULTI, one rectangle */
+    ib[n++] = g15;
+    ib[n++] = 20u;            /* x = 0, y = 20 */
+    ib[n++] = (4u << 16) | 1u; /* 4x1 */
+    wr(dev, RAGE128_PM4_IW_INDOFF, IB_CARD_ADDR);
+    wr(dev, RAGE128_PM4_IW_INDSIZE, (uint32_t) n);
+    drain_sync(dev);
+    gpu_sync(dev);
+    check32("799: CPU indirect buffer: fence visible after the register-write drain",
+            rd(dev, RAGE128_GUI_SCRATCH_REG0 + 12), 0x33);
+    check32("799: CPU indirect buffer: draw drawn before the paint",
+            *(uint32_t *) &dev->svga.vram[px], 0xff00ffff);
+    check32("799: CPU indirect buffer: paint landed",
+            *(uint32_t *) &dev->svga.vram[FO_2D + (20 * 64) * 4], 0x00c0ffee);
+    check_true("799: no stray bus-master access", harness_sysmem_stray == 0);
+
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+    pci_wr8(0x04, 0x03);
+}
+
 static void
 run_agp_32mb_threaded(void)
 {
@@ -13293,6 +13575,7 @@ run_agp_32mb_threaded(void)
 
     harness_cfg_render_threads = 2;
     dev = rage128_init(&ati_rage128_pro_device);
+    vectors_fence_order(dev);
     vectors_raster_rt_switch(dev);
     vectors_gui_reset_batch(dev);
     vectors_gui_reset_residue(dev);
@@ -22118,9 +22401,9 @@ run_pci_variant(void)
     close_dev(dev);
 }
 
-/* Inline CPU draws mark activity before the pacing window samples it.
-   The controlled host clock exercises the production VSYNC callback;
-   the CCE executor stays idle while direct submissions draw the pixels. */
+/* Inline CPU draws and the emulation speed window. The controlled host
+   clock exercises the production vsync callback; the CCE executor stays
+   idle while direct submissions draw the pixels. */
 static void
 pace_submit(rage128_t *dev, const rage128_raster_state_t *rs,
             const r3d_vtx_t *v, int kind)
@@ -22141,188 +22424,6 @@ pace_pixels_hash(rage128_t *dev)
     for (int i = 0; i < 64 * 32 * 4; i++)
         hash = (hash ^ dev->svga.vram[HZ_A + i]) * 16777619u;
     return hash;
-}
-
-/* The consumer and producer rendezvous at a chosen side of the atomic
-   sample. The mutex and condition variable form a two-way barrier: the
-   consumer resumes only after the producer has submitted and flushed. */
-static pthread_mutex_t pace_sample_mtx = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t pace_sample_cv = PTHREAD_COND_INITIALIZER;
-static rage128_t *pace_sample_dev;
-static int pace_sample_phase;
-static int pace_sample_arrived;
-static int pace_sample_released;
-
-static void
-pace_sample_hook(void *priv, int phase)
-{
-    rage128_t *dev = priv;
-
-    pthread_mutex_lock(&pace_sample_mtx);
-    if (dev == pace_sample_dev && phase == pace_sample_phase) {
-        pace_sample_arrived = 1;
-        pthread_cond_broadcast(&pace_sample_cv);
-        while (!pace_sample_released)
-            pthread_cond_wait(&pace_sample_cv, &pace_sample_mtx);
-    }
-    pthread_mutex_unlock(&pace_sample_mtx);
-}
-
-typedef struct pace_sample_work_t {
-    rage128_t *dev;
-    rage128_raster_state_t *rs;
-    r3d_vtx_t *v;
-    int queued;
-    int seen;
-    int pending;
-} pace_sample_work_t;
-
-static void *
-pace_sample_producer(void *arg)
-{
-    pace_sample_work_t *work = arg;
-
-    pthread_mutex_lock(&pace_sample_mtx);
-    while (!pace_sample_arrived)
-        pthread_cond_wait(&pace_sample_cv, &pace_sample_mtx);
-    pace_submit(work->dev, work->rs, work->v, 0);
-    work->queued = atomic_load(&work->dev->cce_batch_pending);
-    rage128_raster_flush(work->dev);
-    work->seen = atomic_load(&work->dev->pace_3d_seen);
-    work->pending = atomic_load(&work->dev->cce_batch_pending);
-    pace_sample_released = 1;
-    pthread_cond_broadcast(&pace_sample_cv);
-    pthread_mutex_unlock(&pace_sample_mtx);
-    return NULL;
-}
-
-static void
-pace_sample_window(rage128_t *dev, uint64_t emu_ticks)
-{
-    harness_ticks_ms += 250;
-    tsc += emu_ticks;
-    harness_log_tail_reset();
-    rage128_vsync_callback(&dev->svga);
-}
-
-static void
-run_atomic_pace(void)
-{
-    static rage128_raster_state_t rs;
-    r3d_vtx_t v[3] = {0};
-    uint64_t saved_tsc = tsc;
-    uint64_t emu_ticks = (uint64_t) (((unsigned __int128) 200000 * TIMER_USEC) >> 32);
-    int pass_before = g_pass;
-    int fail_before = g_fail;
-    const char *jitmode = getenv("R128_JIT");
-    int serial = jitmode && !strcmp(jitmode, "verify");
-    rage128_t *dev;
-
-    if (rage128_gpu_mode() != R128_GPU_OFF) {
-        printf("SKIP pace atomic: CPU flush vectors require GPU off\n");
-        return;
-    }
-    harness_cfg_render_threads = 2;
-    dev = rage128_init(&ati_rage128_pro_device);
-    check_true("pace atomic: live CCE executor", dev->cce_thread != NULL);
-    check32("pace atomic: init clears activity", atomic_load(&dev->pace_3d_seen), 0);
-    check32("pace atomic: two render threads configured", dev->render_threads, 2);
-    rage128_raster_flush(dev);
-    check32("pace atomic: empty flush leaves activity clear", atomic_load(&dev->pace_3d_seen), 0);
-    printf("pace atomic init/empty: seen=%d\n", atomic_load(&dev->pace_3d_seen));
-    wr(dev, 0x16e8, 0x1fff1fff);
-    wr(dev, 0x16ec, 0);
-    wr(dev, 0x16f0, 0x001f003f);
-    wr(dev, 0x16c0, 3);
-    wr(dev, 0x16cc, 0xffffffff);
-    wr(dev, 0x1660, 0);
-    wr(dev, 0x16c4, 6);
-    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000 | (HZ_A >> 5));
-    wr(dev, RAGE128_TEX_CNTL_C, 0);
-    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0);
-    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
-    /* the reset value culls both faces and shades solid: draw them solid, Gouraud */
-    wr(dev, RAGE128_PM4_VC_FPU_SETUP,
-       RAGE128_FPU_BACKFACE_SOLID | RAGE128_FPU_FRONTFACE_SOLID | RAGE128_FPU_COLOR_GOURAUD);
-    wr(dev, RAGE128_SETUP_CNTL, 0x20);
-    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0);
-    wr(dev, RAGE128_SCALE_3D_CNTL, 0);
-    for (int k = 0; k < 3; k++) {
-        v[k].z = 0.25f;
-        v[k].rhw = 1.0f;
-        v[k].diffuse = 0xff00ff00;
-        v[k].s = v[k].t = 0.25f;
-    }
-    v[0].x = v[0].y = 0.5f;
-    v[1].x = 16.5f; v[1].y = 0.5f;
-    v[2].x = 0.5f; v[2].y = 16.5f;
-    rage128_raster_state_capture(dev, &rs);
-    check32("pace atomic: valid staging", rs.stage_dead, 0);
-    dev->pace_enabled = 1;
-    dev->pace_band_x = 5;
-    harness_ticks_override = 1;
-    harness_pace_sample_hook = pace_sample_hook;
-
-    for (int phase = 0; phase < 2; phase++) {
-        pthread_t producer;
-        pace_sample_work_t work = { .dev = dev, .rs = &rs, .v = v };
-        int started;
-
-        harness_ticks_ms = 1000;
-        dev->pace_wall_ms_last = 1000;
-        dev->pace_tsc_last = tsc;
-        atomic_store(&dev->pace_hold_us, 10000);
-        atomic_store(&dev->pace_3d_seen, 0);
-        pthread_mutex_lock(&pace_sample_mtx);
-        pace_sample_dev = dev;
-        pace_sample_phase = phase;
-        pace_sample_arrived = 0;
-        pace_sample_released = 0;
-        pthread_mutex_unlock(&pace_sample_mtx);
-        started = pthread_create(&producer, NULL, pace_sample_producer, &work);
-        check32("pace atomic: producer starts", started, 0);
-        if (started) {
-            pthread_mutex_lock(&pace_sample_mtx);
-            pace_sample_dev = NULL;
-            pthread_mutex_unlock(&pace_sample_mtx);
-            break;
-        }
-        pace_sample_window(dev, emu_ticks);
-        pthread_join(producer, NULL);
-        pthread_mutex_lock(&pace_sample_mtx);
-        pace_sample_dev = NULL;
-        pthread_mutex_unlock(&pace_sample_mtx);
-        check32("pace atomic: producer queues parallel work", work.queued, serial ? 0 : 1);
-        check32("pace atomic: nonempty flush marks activity", work.seen, 1);
-        check32("pace atomic: flush retires batch", work.pending, 0);
-        check32("pace atomic: boundary hold", atomic_load(&dev->pace_hold_us), phase ? 8000 : 35000);
-        check32("pace atomic: boundary activity", atomic_load(&dev->pace_3d_seen), phase ? 1 : 0);
-        check_log("pace atomic: window reports 80 percent", "win=250ms emu=80.0%", 1);
-        printf("pace atomic %s: queued=%d producer_seen=%d pending=%d seen=%d hold=%d\n",
-               phase ? "after" : "before", work.queued, work.seen, work.pending,
-               atomic_load(&dev->pace_3d_seen), atomic_load(&dev->pace_hold_us));
-        printf("pace atomic window: %s", harness_log_tail);
-        rage128_raster_flush(dev);
-        check32("pace atomic: empty flush preserves activity", atomic_load(&dev->pace_3d_seen), phase ? 1 : 0);
-        pace_sample_window(dev, emu_ticks);
-        check32("pace atomic: next-window hold", atomic_load(&dev->pace_hold_us), 33000);
-        check32("pace atomic: next-window activity consumed", atomic_load(&dev->pace_3d_seen), 0);
-        printf("pace atomic %s next: seen=%d hold=%d\n", phase ? "after" : "before",
-               atomic_load(&dev->pace_3d_seen), atomic_load(&dev->pace_hold_us));
-        pace_sample_window(dev, emu_ticks);
-        check32("pace atomic: empty-window decay", atomic_load(&dev->pace_hold_us), 31000);
-        check32("pace atomic: empty-window activity", atomic_load(&dev->pace_3d_seen), 0);
-        printf("pace atomic %s empty: seen=%d hold=%d\n", phase ? "after" : "before",
-               atomic_load(&dev->pace_3d_seen), atomic_load(&dev->pace_hold_us));
-    }
-    harness_pace_sample_hook = NULL;
-    dev->pace_enabled = 0;
-    atomic_store(&dev->pace_hold_us, 0);
-    harness_ticks_override = 0;
-    tsc = saved_tsc;
-    close_dev(dev);
-    harness_cfg_render_threads = 1;
-    printf("pace atomic vectors: pass=%d fail=%d\n", g_pass - pass_before, g_fail - fail_before);
 }
 
 static void
@@ -22375,104 +22476,57 @@ run_inline_pace(void)
     rage128_raster_state_capture(dev, &rs);
     check32("pace: valid staging", rs.stage_dead, 0);
     for (int k = 0; k < 3; k++) {
-        dev->pace_3d_seen = 0;
         memset(&dev->svga.vram[HZ_A], 0, 64 * 32 * 4);
         pace_submit(dev, &rs, v, k);
-        check32("pace: serial primitive marks activity", dev->pace_3d_seen, 1);
-        check32("pace: serial pixels match pre-marking output", pace_pixels_hash(dev), hashes[k]);
+        check32("pace: serial pixels match the reference output", pace_pixels_hash(dev), hashes[k]);
         check32("pace: serial primitive is not deferred", atomic_load(&dev->cce_batch_pending), 0);
-        printf("pace inline %s: seen=%d pixels=%08x\n",
-               names[k], dev->pace_3d_seen, pace_pixels_hash(dev));
+        printf("pace inline %s: pixels=%08x\n", names[k], pace_pixels_hash(dev));
     }
 
-    dev->pace_enabled = 1;
-    dev->pace_band_x = 5;
     harness_ticks_override = 1;
     harness_ticks_ms = 1250;
     dev->pace_wall_ms_last = 1000;
     dev->pace_tsc_last = tsc;
-    atomic_store(&dev->pace_hold_us, 10000);
     tsc += emu_ticks;
     harness_log_tail_reset();
     rage128_vsync_callback(&dev->svga);
-    check32("pace: 3D window raises hold", atomic_load(&dev->pace_hold_us), 35000);
-    check32("pace: 3D marker clears after window", dev->pace_3d_seen, 0);
     check_true("pace: controlled wall and emulated time",
                dev->pace_wall_ms_tot == 250 && dev->pace_emu_us_tot == 200000);
     check_log("pace: window reports 80 percent", "win=250ms emu=80.0%", 1);
-    check_log("pace: log reports raised hold", "hold=35000us", 1);
-    printf("pace draw window: %s", harness_log_tail);
-    printf("pace draw window result: seen=%d hold=%d\n",
-           dev->pace_3d_seen, atomic_load(&dev->pace_hold_us));
-
-    harness_ticks_ms += 250;
-    tsc += emu_ticks;
-    harness_log_tail_reset();
-    rage128_vsync_callback(&dev->svga);
-    check32("pace: no-draw window decays hold", atomic_load(&dev->pace_hold_us), 33000);
-    check32("pace: no-draw window leaves marker clear", dev->pace_3d_seen, 0);
-    check_log("pace: log reports no-draw decay", "hold=33000us", 1);
-    printf("pace no-draw window: %s", harness_log_tail);
-
-    atomic_store(&dev->pace_hold_us, 0);
-    pace_submit(dev, &rs, v, 2);
-    harness_ticks_ms += 250;
-    tsc += emu_ticks;
-    harness_log_tail_reset();
-    rage128_vsync_callback(&dev->svga);
-    check32("pace: 3D window raises hold from zero", atomic_load(&dev->pace_hold_us), 25000);
-    check32("pace: zero-hold window clears marker", dev->pace_3d_seen, 0);
-    printf("pace zero-hold window: %s", harness_log_tail);
-    dev->pace_enabled = 0;
-    atomic_store(&dev->pace_hold_us, 0);
+    printf("pace window: %s", harness_log_tail);
     harness_ticks_override = 0;
 
     rs.stage_dead = 1;
     for (int k = 0; k < 3; k++) {
         uint32_t hash = pace_pixels_hash(dev);
 
-        dev->pace_3d_seen = 0;
         pace_submit(dev, &rs, v, k);
-        check32("pace: failed staging leaves marker clear", dev->pace_3d_seen, 0);
         check32("pace: failed staging leaves pixels alone", pace_pixels_hash(dev), hash);
-        printf("pace failed staging %s: seen=%d\n", names[k], dev->pace_3d_seen);
     }
     rs.stage_dead = 0;
 
-    rage128_raster_close(dev);
-    for (int k = 0; k < 3; k++) {
-        dev->pace_3d_seen = 0;
-        pace_submit(dev, &rs, v, k);
-        check32("pace: absent raster draws mark activity", dev->pace_3d_seen, 1);
-    }
-
     /* Verify mode forces a serial raster; the interpreter run owns the
        two-worker enqueue and self-aliasing inline checks. */
+    rage128_raster_close(dev);
     dev->render_threads = 2;
     rage128_raster_init(dev);
     if (jitmode && !strcmp(jitmode, "verify")) {
         printf("SKIP pace: two-worker rows (JIT verify forces serial)\n");
     } else {
-        dev->pace_3d_seen = 0;
         pace_submit(dev, &rs, v, 0);
-        check32("pace: queued parallel work does not mark activity", dev->pace_3d_seen, 0);
         check32("pace: parallel triangle is queued", atomic_load(&dev->cce_batch_pending), 1);
-        printf("pace queued tri: seen=%d pending=%d\n", dev->pace_3d_seen,
-               atomic_load(&dev->cce_batch_pending));
+        printf("pace queued tri: pending=%d\n", atomic_load(&dev->cce_batch_pending));
         rage128_raster_flush(dev);
-        check32("pace: parallel flush marks activity", dev->pace_3d_seen, 1);
 
         hz_tex_one(dev, HZ_A);
         rage128_raster_state_capture(dev, &rs);
         check_true("pace: texture overlaps the draw's color rows",
                    r3d_tex_rng_hit(&rs, 0, HZ_A, HZ_A + 256));
         for (int k = 0; k < 3; k++) {
-            dev->pace_3d_seen = 0;
             pace_submit(dev, &rs, v, k);
-            check32("pace: self-aliasing inline draw marks activity", dev->pace_3d_seen, 1);
             check32("pace: self-aliasing draw is not deferred", atomic_load(&dev->cce_batch_pending), 0);
-            printf("pace self-alias %s: seen=%d pending=%d\n", names[k],
-                   dev->pace_3d_seen, atomic_load(&dev->cce_batch_pending));
+            printf("pace self-alias %s: pending=%d\n", names[k],
+                   atomic_load(&dev->cce_batch_pending));
         }
     }
     tsc = saved_tsc;
@@ -22539,7 +22593,7 @@ vectors_gpu_tuple_reload(void)
    threaded AGP runners share a captured pixel oracle and therefore select
    together, even though other device runners occur between them. */
 static const char *const shard_units[] = {
-    "gpu-tuple-reload", "atomic-pace", "inline-pace", "agp-oracle",
+    "gpu-tuple-reload", "inline-pace", "agp-oracle",
     "agp-16mb", "pci-xpert128", "pci-variant", "monid-mask", "amcgpio",
     "maxx", "vga-decode", "lanegap", "lanegap-16mb", "gpu2d-verify",
     "x64legs", "synctel", "yuv-border", "texture-alpha", "dither-init",
@@ -23090,6 +23144,32 @@ main(int argc, char **argv)
     if (argc > 1 && !strcmp(argv[1], "-v"))
         harness_log_quiet = 0;
 
+    /* The GPU verify lane needs a host that can start the backend. On a
+       host with no usable Vulkan driver or device the whole lane is
+       skipped (exit code 77, which the test runner reports as skipped)
+       instead of failing every device at close. A backend that starts
+       here and then fails inside device init still fails its rows.
+       The check runs the backend's own start-up steps, so a defect in
+       them would also read as skipped; R128_GPU_REQUIRE=1 is for hosts
+       known to have a working GPU, and there a failed check is a failed
+       row and the lane runs on. */
+    {
+        const char *genv = getenv("R128_GPU");
+        const char *renv = getenv("R128_GPU_REQUIRE");
+
+        if (genv && !strcmp(genv, "verify")) {
+            const char *why = harness_gpu_runtime_missing();
+
+            if (why && renv && !strcmp(renv, "1")) {
+                printf("gpu-verify start-up check: %s\n", why);
+                check_true("gpu-verify: backend starts on a host that requires it", 0);
+            } else if (why) {
+                printf("SKIP gpu-verify lane: %s\n", why);
+                return 77;
+            }
+        }
+    }
+
     if (unit_selected("gpu-tuple-reload")) {
         vectors_gpu_tuple_reload();
         vectors_comb_seed();
@@ -23107,8 +23187,6 @@ main(int argc, char **argv)
         return g_fail ? 1 : 0;
     }
 
-    if (unit_selected("atomic-pace"))
-        run_atomic_pace();
     if (unit_selected("inline-pace"))
         run_inline_pace();
     if (unit_selected("agp-oracle"))
