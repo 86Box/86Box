@@ -896,6 +896,12 @@ void nv3_svga_write(uint16_t addr, uint8_t val, UNUSED(void* priv))
     uint8_t crtcreg = nv3->nvbase.svga.crtcreg;
     uint8_t old_value = 0x00;
 
+    /* A synchronous sequencer reset (every mode set) restarts the cursor/attribute blink count, so
+       a text screen's blink phase follows its mode set: NVIDIA's manufacturing test checksums its
+       text modes with the cursor in its off half and fails at random otherwise */
+    if ((addr == 0x3C5) && ((nv3->nvbase.svga.seqaddr & 0x0F) == 0) && !(val & 0x02))
+        nv3->nvbase.svga.blink = 0;
+
     // todo:
     // Pixel formats (8bit vs 555 vs 565)
     // VBE 3.0?

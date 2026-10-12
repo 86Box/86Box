@@ -181,6 +181,92 @@ void nv3_pramdac_set_pixel_clock(void)
     rivatimer_set_period(nv3->nvbase.pixel_clock_timer, time);
 }
 
+/* DAC checksum, accumulated when the display area ends, over the frame just shown, when
+   TEST_CONTROL bit 4 is set. A 24-bit LFSR with XNOR feedback (x^24 + x^23 + x^22 + x^17 + 1,
+   from FFFFFF) is clocked once per displayed clock -- the active area and the border, not the
+   blanking -- and takes the selected channel's 10-bit DAC input each clock. Worked out from a real
+   RIVA 128's readings. */
+static inline uint32_t nv3_pramdac_checksum_clock(uint32_t s, uint32_t d)
+{
+    uint32_t fb = (s & 0x800000) ? 0 : 0xC20001;
+    return (((s << 1) & 0xFFFFFF) ^ fb) ^ d;
+}
+
+/* one channel value as the DAC's 10-bit input: bits = 8 (8-bit), -6 (6-bit CLUT entry v, drawn as
+   v << 2 | v >> 4, which the DAC widens from v << 2) or 5/6 (16-bit field drawn in the top bits:
+   repeated) */
+static inline uint32_t nv3_pramdac_checksum_dac(uint32_t c, int bits)
+{
+    switch (bits) {
+        case -6:
+            c &= 0xFC;
+            return (c << 2) | (c >> 6);
+        case 5:
+            c >>= 3;
+            return (c << 5) | c;
+        case 6:
+            c >>= 2;
+            return (c << 4) | (c >> 2);
+        default:
+            return (c << 2) | (c >> 6);
+    }
+}
+
+void nv3_pramdac_checksum_frame(svga_t *svga)
+{
+    if (!(nv3->pramdac.test_control & 0x10) || !svga->monitor || !svga->monitor->target_buffer)
+        return;
+
+    int      chan  = (nv3->pramdac.test_control >> 8) & 3;     /* 0 blue, 1 green, 2 red */
+    int      shift = (chan > 2) ? 16 : chan * 8;
+    uint32_t pmode = svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 0x03;
+    /* Each channel reaches the DAC as 10 bits: 8-bit values as c << 2 | c >> 6 (a 6-bit CLUT's
+       entries as v << 2 first), and 16-bit pixels' 5- and 6-bit fields with their bits repeated */
+    int      bits  = 8;
+    if (pmode == NV3_CRTC_REGISTER_PIXELMODE_16BPP)
+        bits = ((chan == 1) && (svga->bpp == 16)) ? 6 : 5;
+    else if ((pmode != NV3_CRTC_REGISTER_PIXELMODE_32BPP) && (svga->ramdac_type == RAMDAC_6BIT))
+        bits = -6;   /* 6-bit CLUT entries, zero-filled */
+
+    /* The counted clocks per line run from the end of horizontal blank to its start (the CRTC's
+       blanking takes effect a character late; mon_overscan_x carries a drawing adjustment for odd
+       CR01). The DAC clocks once per two of the drawn pixels when the dot clock is halved (SR1
+       bit 3) or the drawn line is twice what the CRTC counts (320-pixel extended modes). */
+    int chars  = svga->crtc[1] + 1 + ((svga->crtc[NV3_CRTC_REGISTER_HEB] & 0x02) ? 0x100 : 0);
+    int ratio  = ((chars * svga->dots_per_clock) > 0) ? (svga->hdisp / (chars * svga->dots_per_clock)) : 1;
+    if (ratio < 1)
+        ratio = 1;
+    int step   = ratio * ((svga->seqregs[1] & 0x08) ? 2 : 1);
+    int width  = (svga->x_add + (svga->hblankstart + 1 - svga->hblank_sub) * svga->dots_per_clock) * ratio;
+    int left   = svga->x_add * ratio;
+    int height = svga->dispend + svga->monitor->mon_overscan_y;
+    int top    = svga->y_add;
+
+    /* the border is the overscan colour's current palette entry (overscan_color is only refreshed
+       when the attribute register is written) */
+    uint32_t border = nv3_pramdac_checksum_dac((svga->pallook[svga->attrregs[0x11]] >> shift) & 0xFF, (bits == -6) ? -6 : 8);
+    uint32_t s      = nv3->pramdac.checksum;
+
+    for (int y = 0; y < height; y++) {
+        int line = y - top;
+        if ((line < 0) || (line >= svga->dispend) || (y >= svga->monitor->target_buffer->h)) {
+            for (int x = 0; x < width; x += step)
+                s = nv3_pramdac_checksum_clock(s, border);
+            continue;
+        }
+        const uint32_t *row = svga->monitor->target_buffer->line[y];
+        for (int x = 0; x < width; x += step) {
+            int px = x - left;
+            if ((px < 0) || (px >= svga->hdisp))
+                s = nv3_pramdac_checksum_clock(s, border);
+            else
+                s = nv3_pramdac_checksum_clock(s, nv3_pramdac_checksum_dac((row[x] >> shift) & 0xFF, bits));
+        }
+    }
+
+    nv3->pramdac.checksum = s;
+}
+
 //
 // ****** Read/Write functions start ******
 //
@@ -197,6 +283,12 @@ uint32_t nv3_pramdac_read(uint32_t address)
             break;
         case NV3_PRAMDAC_GENERAL_CONTROL:
             ret = nv3->pramdac.general_control;
+            break;
+        case NV3_PRAMDAC_TEST_CONTROL:
+            ret = nv3->pramdac.test_control;
+            break;
+        case NV3_PRAMDAC_CHECKSUM:
+            ret = nv3->pramdac.checksum;
             break;
         case NV3_PRAMDAC_VSERR_WIDTH:
             ret = nv3->pramdac.vserr_width;
@@ -278,6 +370,11 @@ void nv3_pramdac_write(uint32_t address, uint32_t value)
             /* BPC_8BITS: the CLUT takes 8-bit entries (the driver sets it for its modes) */
             svga_set_ramdac_type(&nv3->nvbase.svga, ((value >> NV3_PRAMDAC_GENERAL_CONTROL_BPC_8BITS) & 1) ? RAMDAC_8BIT : RAMDAC_6BIT);
             svga_recalctimings(&nv3->nvbase.svga);
+            break;
+        case NV3_PRAMDAC_TEST_CONTROL:
+            nv3->pramdac.test_control = value;
+            if (value & 1)
+                nv3->pramdac.checksum = 0xFFFFFF;
             break;
         case NV3_PRAMDAC_VSERR_WIDTH:
             //vslines?

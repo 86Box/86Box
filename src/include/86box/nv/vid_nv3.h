@@ -789,6 +789,11 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_PRAMDAC_GENERAL_CONTROL_565_MODE            12
 #define NV3_PRAMDAC_GENERAL_CONTROL_BPC_8BITS           20
 
+/* DAC checksum: TEST_CONTROL bit 0 resets the checksum to FFFFFF, bit 4 accumulates it over every
+   displayed frame, bits 9:8 pick the channel (0 blue, 1 green, 2 red); CHECKSUM bits 23:0 */
+#define NV3_PRAMDAC_TEST_CONTROL                        0x680608
+#define NV3_PRAMDAC_CHECKSUM                            0x68060C
+
 // These are all 10-bit values, but aligned to 32bits
 // so treating them as 32bit should be fine
 #define NV3_PRAMDAC_VSERR_WIDTH                         0x680700
@@ -1150,6 +1155,8 @@ typedef struct nv3_pramdac_s
     uint32_t coeff_select;      // coefficient select
 
     uint32_t general_control;   // general control register
+    uint32_t test_control;      // DAC checksum control
+    uint32_t checksum;          // DAC checksum (24 bits)
 
     // this could duplicate SVGA state but I tihnk it's more readable,
     // we'll just modify both
@@ -1581,6 +1588,7 @@ void        nv3_pme_write(uint32_t address, uint32_t value);
 
 uint32_t    nv3_pramdac_read(uint32_t address);
 void        nv3_pramdac_write(uint32_t address, uint32_t value);
+void        nv3_pramdac_checksum_frame(svga_t *svga);               // Accumulate the DAC checksum over a frame
 uint32_t    nv3_pramdac_get_pixel_clock_register(void);
 uint32_t    nv3_pramdac_get_core_clock_register(void);
 void        nv3_pramdac_set_pixel_clock_register(uint32_t value);
