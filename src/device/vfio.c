@@ -108,6 +108,7 @@ typedef struct _vfio_device_ {
     uint8_t  mem_enabled   : 1;
     uint8_t  io_enabled    : 1;
     uint8_t  rom_enabled   : 1;
+    uint8_t  rom_from_dev  : 1;
     uint8_t  can_reset     : 1;
     uint8_t  can_flr_reset : 1;
     uint8_t  can_pm_reset  : 1;
@@ -278,6 +279,7 @@ static void     vfio_irq_msi_disable(vfio_device_t *dev);
 static void     vfio_irq_msix_disable(vfio_device_t *dev);
 static void     vfio_irq_msix_updatemask(vfio_device_t *dev, uint16_t offset);
 static void     vfio_irq_enable(vfio_device_t *dev, int type);
+static void     vfio_rom_sync(vfio_device_t *dev);
 
 #define VFIO_RW(space, length_char, addr_type, addr_slength, val_type, val_slength)                                                                     \
     static val_type                                                                                                                                     \
@@ -1620,6 +1622,7 @@ vfio_dev_config_writeb(vfio_device_t *dev, int addr, uint8_t val)
     /* Act on some written values. */
     uint8_t  new_mem_enabled;
     uint8_t  new_io_enabled;
+    uint8_t  rom_sync;
     uint8_t  bar_id;
     uint8_t  offset;
     uint32_t new_value;
@@ -1705,7 +1708,9 @@ vfio_dev_config_writeb(vfio_device_t *dev, int addr, uint8_t val)
 
             /* Set ROM enable bit. */
             offset = (addr & 3) << 3;
+            rom_sync = 0;
             if (!offset) {
+                rom_sync         = (val & 0x01) && !dev->rom_enabled;
                 dev->rom_enabled = val & 0x01;
                 val &= 0xfe;
             }
@@ -1715,6 +1720,10 @@ vfio_dev_config_writeb(vfio_device_t *dev, int addr, uint8_t val)
             new_value |= val << offset;
             new_value &= ~(ceilpow2(dev->rom.size) - 1);
             vfio_bar_remap(dev, &dev->rom, new_value);
+
+            /* Read the ROM again whenever it is enabled. */
+            if (rom_sync)
+                vfio_rom_sync(dev);
             break;
 
         case 0x3d: /* Interrupt Pin */
@@ -2373,6 +2382,35 @@ vfio_irq_enable(vfio_device_t *dev, int type)
     dev->irq.type = type;
 }
 
+/* Copy the device's expansion ROM into the ROM shadow area. */
+static void
+vfio_rom_read(vfio_device_t *dev)
+{
+    ssize_t  i;
+    uint64_t j = 0;
+
+    memset(dev->rom.mmap_base, 0xff, dev->rom.size);
+    while ((j < dev->rom.size) &&
+           ((i = pread(dev->fd, dev->rom.mmap_base + j, dev->rom.size - j, dev->rom.offset + j)) > 0))
+        j += i;
+}
+
+/* Read a device's own expansion ROM again, as it may have been reflashed or been
+   unreadable when first read. A ROM loaded from file is left as it is. */
+static void
+vfio_rom_sync(vfio_device_t *dev)
+{
+    if (!dev->rom_from_dev || !dev->rom.mmap_base)
+        return;
+
+    vfio_log("VFIO %s: Reading expansion ROM again\n", dev->name);
+    vfio_rom_read(dev);
+
+    /* Code recompiled from the previous contents is not invalidated by itself. */
+    if (dev->rom.emulated_offset)
+        mem_invalidate_range(dev->rom.emulated_offset, dev->rom.emulated_offset + dev->rom.size - 1);
+}
+
 static void
 vfio_region_init(vfio_device_t *dev, struct vfio_region_info *reg, vfio_region_t *region)
 {
@@ -2461,13 +2499,8 @@ vfio_region_init(vfio_device_t *dev, struct vfio_region_info *reg, vfio_region_t
             fclose(fp);
         } else {
             /* Read ROM from device. */
-            while ((i = pread(dev->fd, region->mmap_precalc,
-                              region->size - j,
-                              region->offset + j))
-                   != 0) {
-                region->mmap_precalc += i;
-                j += i;
-            }
+            dev->rom_from_dev = 1;
+            vfio_rom_read(dev);
         }
 
         /* Perform a few sanity checks on the ROM, starting with the signature. */
@@ -2691,6 +2724,10 @@ vfio_dev_postreset(vfio_device_t *dev)
     uint32_t val = 0;
     for (uint8_t i = 0x10; i < 0x28; i++)
         (void) !pwrite(dev->config.fd, &val, sizeof(val), dev->config.offset + i);
+
+    /* Read the ROM again now that the device is reset and in D0. */
+    if (!closing)
+        vfio_rom_sync(dev);
 }
 
 static int
