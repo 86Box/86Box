@@ -1177,9 +1177,18 @@ void nv3_update_mappings(void)
         nv3_svga_write, NULL, NULL, 
         nv3);   
     
+    /* With memory decode off the card answers no memory cycles, the VGA window included (Windows
+       turns both decodes off on a display adapter it has no driver for; drawing on through the
+       window with the VGA registers gone garbled the screen) */
     if (!(nv3->nvbase.pci_config.pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))
     {
         nv_log("The memory was turned off, not much is going to happen.\n");
+        mem_mapping_disable(&nv3->nvbase.svga.mapping);
+        mem_mapping_disable(&nv3->nvbase.mmio_mapping);
+        mem_mapping_disable(&nv3->nvbase.framebuffer_mapping);
+        mem_mapping_disable(&nv3->nvbase.framebuffer_mapping_mirror);
+        mem_mapping_disable(&nv3->nvbase.ramin_mapping);
+        mem_mapping_disable(&nv3->nvbase.ramin_mapping_mirror);
         return;
     }
 
