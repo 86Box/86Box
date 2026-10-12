@@ -222,3 +222,16 @@ branch target, and rejection of unrecognized images.
 These do not prove that the Vectra boots. See the
 [experimental machine notes](../doc/hardware/hp-vectra-486n.md) for scope,
 performance limitations, and remaining hardware/firmware requirements.
+
+# INI configuration parser
+
+The `ini_tests` target exercises `src/utils/ini.c` on its own, with host stubs
+for file opening and UTF-16 conversion. It reads temporary files with section
+and entry names too long for their 128-byte fields. Build with
+`BUILD_TESTING=ON`, then run:
+
+```sh
+ctest --test-dir build --output-on-failure -R '^Ini'
+```
+
+Build with AddressSanitizer to check the long-name cases for memory errors.
