@@ -36,7 +36,7 @@ void nv3_pstraps_init(void)
 {
     nv_log("Initialising straps....%c", 10);
 
-    /* The power-on configuration the card latches from its FBA[9:0] resistors (datasheet section 10):
+    /* The power-on configuration the card latches from its FBA[9:0] resistors:
        0     bus speed: the 66MHZ bit in PCI status (AGP needs it high)
        1     subsystem IDs from the adapter's VBIOS (0x54-0x57) rather than the system BIOS
        3:2   RAM type: 01 = 8Mbit SGRAM/SDRAM, 128K x 2 banks x 32
@@ -58,7 +58,7 @@ void nv3_pstraps_init(void)
         nv3->straps |= (NV3_PSTRAPS_BUS_TYPE_AGP << NV3_PSTRAPS_BUS_TYPE) | (NV3_PSTRAPS_BUS_SPEED_66MHZ << NV3_PSTRAPS_BUS_SPEED);
 
     /* With the sub-vendor strap the subsystem vendor/device IDs are read from the VBIOS at
-       0x54-0x57 during reset (datasheet appendix A, 0x2C-0x2F) */
+       0x54-0x57 during reset (config space 0x2C-0x2F) */
     if (((nv3->straps >> NV3_PSTRAPS_BIOS) & 1) && nv3->nvbase.vbios.rom && (nv3->nvbase.vbios.sz > 0x57)) {
         for (int i = 0; i < 4; i++)
             nv3->nvbase.pci_config.pci_regs[NV3_PCI_CFG_SUBSYSTEM_ID + i] = nv3->nvbase.vbios.rom[0x54 + i];

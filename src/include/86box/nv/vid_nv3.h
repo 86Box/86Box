@@ -502,7 +502,7 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_PSTRAPS_BIOS_PRESENT                        1
 #define NV3_PSTRAPS_RAM_TYPE                            2           // Type of RAM module
 #define NV3_PSTRAPS_RAM_TYPE_16MBIT                     0x0
-#define NV3_PSTRAPS_RAM_TYPE_8MBIT                      0x1         // datasheet FBA[3:2] = 01: 8Mbit SGRAM, 128K x 2 banks x 32
+#define NV3_PSTRAPS_RAM_TYPE_8MBIT                      0x1         // FBA[3:2] = 01: 8Mbit SGRAM, 128K x 2 banks x 32
 #define NV3_PSTRAPS_NEC_MODE                            3           // PC98?
 #define NV3_PSTRAPS_NEC_MODE_DISABLED                   0x0
 #define NV3_PSTRAPS_NEC_MODE_ENABLED                    0x1
@@ -1635,6 +1635,7 @@ void        nv3_class_01c_method(uint32_t param, uint32_t method_id, nv3_ramin_c
 // Notification Engine
 void        nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t context,nv3_grobj_t grobj);
 void        nv3_write_notifier(nv3_grobj_t grobj, uint32_t index, uint16_t status, uint32_t info32, uint16_t info16);
+void        nv3_write_notifier_to(uint32_t inst, uint32_t index, uint16_t status, uint32_t info32, uint16_t info16);
 uint32_t    nv3_dma_read8(uint32_t inst, uint32_t offset);                              // a byte at offset in a DMA object
 void        nv3_dma_write8(uint32_t inst, uint32_t offset, uint8_t val);
 

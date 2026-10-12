@@ -233,7 +233,12 @@ bool nv3_perform_dma_m2mf(nv3_grobj_t grobj)
    status) at notifier index `index` of the object's notifier DMA object */
 void nv3_write_notifier(UNUSED(nv3_grobj_t grobj), uint32_t index, uint16_t status, uint32_t info32, uint16_t info16)
 {
-    uint32_t inst = nv3->pgraph.notifier & 0xFFFF;
+    nv3_write_notifier_to(nv3->pgraph.notifier & 0xFFFF, index, status, info32, info16);
+}
+
+/* A notifier entry (16 bytes: time, info32, info16 | status << 16) in DMA object <inst> */
+void nv3_write_notifier_to(uint32_t inst, uint32_t index, uint16_t status, uint32_t info32, uint16_t info16)
+{
     uint32_t off  = index << 4;
     uint64_t time = nv3->ptimer.time;
 

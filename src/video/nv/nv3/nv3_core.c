@@ -335,13 +335,14 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, UNUSED(int32_t len), UNUSED(voi
 
         // device id
 
+        /* device id: the RIVA 128 ZX (revision C) is 0x0019 */
         case NV3_PCI_CFG_DEVICE_ID:
-            ret = (NV_PCI_DEVICE_NV3 & 0xFF);
-            break;
-        
         case NV3_PCI_CFG_DEVICE_ID + 1:
-            ret = (NV_PCI_DEVICE_NV3 >> 8);
+        {
+            uint16_t id = (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_C00) ? NV_PCI_DEVICE_NV3T : NV_PCI_DEVICE_NV3;
+            ret = (addr == NV3_PCI_CFG_DEVICE_ID) ? (id & 0xFF) : (id >> 8);
             break;
+        }
         
         // various capabilities enabled by default 
         // IO space         enabled
@@ -361,7 +362,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, UNUSED(int32_t len), UNUSED(voi
             break;
 
         // pci status register
-        /* Status (datasheet appendix A): 66MHZ follows the bus speed strap, CAP_LIST is set when
+        /* Status: 66MHZ follows the bus speed strap, CAP_LIST is set when
            strapped for AGP, DEVSEL timing is medium; the abort bits are clear (no aborts here) */
         case PCI_REG_STATUS_L:
             ret = 0x00;
@@ -401,14 +402,14 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, UNUSED(int32_t len), UNUSED(voi
             ret = 0x00;
             break;
 
-        // BARs are marked as prefetchable per the datasheet
+        // Both BARs are marked prefetchable
         case NV3_PCI_CFG_BAR0_L:
         case NV3_PCI_CFG_BAR1_L:
             // only bit that matters is bit 3 (prefetch bit)
             ret = (NV3_PCI_CFG_BAR_PREFETCHABLE_ENABLED << NV3_PCI_CFG_BAR_PREFETCHABLE);
             break;
 
-        // These registers are hardwired to zero per the datasheet
+        // These bits are hardwired to zero
         // Writes have no effect, we can just handle it here though
         case NV3_PCI_CFG_BAR0_BYTE1 ... NV3_PCI_CFG_BAR0_BYTE2:
         case NV3_PCI_CFG_BAR1_BYTE1 ... NV3_PCI_CFG_BAR1_BYTE2:
@@ -424,7 +425,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, UNUSED(int32_t len), UNUSED(voi
             ret = nv3->nvbase.bar1_lfb_base >> 24; //8bit value
             break;
 
-        /* Expansion ROM BAR (NV_CONFIG_PCI_NV_12): ROM_DECODE bit 0, ROM_BASE 31:22 -- a 4 MB
+        /* Expansion ROM BAR: decode enable bit 0, ROM_BASE 31:22 -- a 4 MB
            window, so a BIOS sizing it with all ones reads back FFC00001. Bits 21:1 read 0: AMI
            BIOSes size the ROM from this and found none when 0x31/0x32 read back FF (1 short,
            3 long beeps); Award BIOSes don't size it */
@@ -698,6 +699,12 @@ void nv3_recalc_timings(svga_t* svga)
        what they change in changedvram. */
     svga->override = 0;
 
+    /* The extended modes scan VRAM out linearly, so CPU accesses through the banked A0000 window
+       in chain-4 must be linear too; only VGA mode 13h keeps the planar chain-4 layout its
+       doubleword scan-out reads. (Packed modes drawn through the window by DOS VESA programs came
+       out as 4-pixel slivers every 16 pixels.) */
+    svga->packed_chain4 = (pixel_mode != NV3_CRTC_REGISTER_PIXELMODE_VGA);
+
     switch (pixel_mode)
     {
         case NV3_CRTC_REGISTER_PIXELMODE_8BPP:
@@ -916,22 +923,20 @@ void nv3_svga_write(uint16_t addr, uint8_t val, UNUSED(void* priv))
             nv3->nvbase.svga.crtc[crtcreg] = val;
             // ...now act on it
 
-            // Handle nvidia extended Bank0/Bank1 IDs
+            /* CR1D/CR1E, the page registers, count 32K of CPU address in every mode. In planar
+               mode a CPU byte spans all four planes, so that is 32K of plane address -- the SVGA
+               core adds the bank before it spreads the address over the planes. (It used to be 8K
+               in planar modes, so VESA planar modes past 64K per plane -- 1024x768 and 1280x1024
+               in 16 colours -- drew over their own top.) */
             switch (crtcreg)
             {
                 case NV3_CRTC_REGISTER_READ_BANK:
                     nv3->nvbase.cio_read_bank = val;
-                    if (nv3->nvbase.svga.chain4) // chain4 addressing (planar?)
-                        nv3->nvbase.svga.read_bank = nv3->nvbase.cio_read_bank << 15;
-                    else
-                        nv3->nvbase.svga.read_bank = nv3->nvbase.cio_read_bank << 13; // extended bank numbers
+                    nv3->nvbase.svga.read_bank = nv3->nvbase.cio_read_bank << 15;
                     break;
                 case NV3_CRTC_REGISTER_WRITE_BANK:
                     nv3->nvbase.cio_write_bank = val;
-                    if (nv3->nvbase.svga.chain4)
-                        nv3->nvbase.svga.write_bank = nv3->nvbase.cio_write_bank << 15;
-                    else
-                        nv3->nvbase.svga.write_bank = nv3->nvbase.cio_write_bank << 13;
+                    nv3->nvbase.svga.write_bank = nv3->nvbase.cio_write_bank << 15;
                     break;
                 case NV3_CRTC_REGISTER_RMA:
                     nv3->pbus.rma.mode = val & NV3_CRTC_REGISTER_RMA_MODE_MAX;
@@ -1156,7 +1161,6 @@ void nv3_update_mappings(void)
     if (!nv3)
         return; 
 
-    // setting this to 0 doesn't seem to disable it, based on the datasheet
 
     nv_log("\nMemory Mapping Config Change:\n");
 
@@ -1355,7 +1359,7 @@ void* nv3_init(UNUSED(const device_t *info))
     nv3_init_mappings();
 
     // make us actually exist
-    nv3->nvbase.pci_config.int_line = 0xFF; // per datasheet
+    nv3->nvbase.pci_config.int_line = 0xFF; // no interrupt line routed yet
     nv3->nvbase.pci_config.pci_regs[PCI_REG_COMMAND] = PCI_COMMAND_IO | PCI_COMMAND_MEM;
 
     // svga is done, so now initialise the real gpu

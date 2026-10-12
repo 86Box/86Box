@@ -63,11 +63,17 @@ void nv3_class_00d_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv_log("Method Execution: M2MF Format = 0x%08x", param);
             break;
         case NV3_M2MF_NOTIFY:
-            /* BUFFER_NOTIFY starts the transfer, then writes the notifier (the Win9x driver waits on slot 0) */
-            /* A DMA fault leaves the notifier to the driver's PDMA interrupt handler */
-            if (nv3_perform_dma_m2mf(grobj))
-                nv3_write_notifier(grobj, 0, NV3_NOTIFICATION_STATUS_DONE_OK, 0, 0);
-            break;                            
+            /* BUFFER_NOTIFY starts the transfer, then writes the notifier (the Win9x driver waits on slot 0).
+               It goes to the buffer notifier, the DMA object in the grobj's word 2 (15:0), or the
+               object's notifier when there is none -- NVIDIA's manufacturing test waits on the
+               word 2 one. A DMA fault leaves the notifier to the driver's PDMA interrupt handler. */
+            if (nv3_perform_dma_m2mf(grobj)) {
+                uint32_t inst = grobj.grobj_2 & 0xFFFF;
+                if (!inst)
+                    inst = nv3->pgraph.notifier & 0xFFFF;
+                nv3_write_notifier_to(inst, 0, NV3_NOTIFICATION_STATUS_DONE_OK, 0, 0);
+            }
+            break;
         default:
             nv_warning("%s: Invalid or unimplemented method 0x%04x\n", nv3_class_names[context.class_id & 0x1F], method_id);
             nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);

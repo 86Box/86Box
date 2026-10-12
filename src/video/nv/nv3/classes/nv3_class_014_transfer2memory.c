@@ -55,11 +55,14 @@ void nv3_class_014_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             uint32_t src_buffer = (grobj.grobj_0 >> NV3_PGRAPH_CTX_SWITCH_SRC_BUFFER) & 0x03;
             uint32_t cpp        = nv3_render_cpp(nv3->pgraph.bpixel[src_buffer]);
             uint32_t inst       = nv3->pgraph.dma_settings & 0xFFFF;
+            /* X1R5G5B5 surfaces come out with the X bit set (NVIDIA's manufacturing test checks
+               each pixel against the framebuffer word | 0x8000) */
+            uint32_t set        = ((nv3->pgraph.bpixel[src_buffer] & 3) == bpixel_fmt_16bit) ? 0x8000 : 0;
 
             itm->image_start = param;
             for (uint32_t y = 0; y < itm->size.y; y++) {
                 for (uint32_t x = 0; x < itm->size.x; x++) {
-                    uint32_t pixel = nv3_render_read_surface(src_buffer, (int16_t) itm->point.x + (int32_t) x, (int16_t) itm->point.y + (int32_t) y, cpp);
+                    uint32_t pixel = set | nv3_render_read_surface(src_buffer, (int16_t) itm->point.x + (int32_t) x, (int16_t) itm->point.y + (int32_t) y, cpp);
                     uint32_t out   = param + y * itm->image_pitch + x * cpp;
 
                     for (uint32_t b = 0; b < cpp; b++)

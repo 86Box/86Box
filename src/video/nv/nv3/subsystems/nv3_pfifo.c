@@ -315,7 +315,9 @@ void nv3_pfifo_trigger_dma_if_required(void)
         return;
     nv3_pfifo_dma_pusher_active = true;
 
-    while ((c1->dma_state & 1) && (c1->dma_length >= 4) && c1->push0) {
+    /* PUSH0 gates the CPU's writes into CACHE1, not the pusher (drivers turn it off while a
+       push buffer runs, and NVIDIA's manufacturing test starts the pusher with it off) */
+    while ((c1->dma_state & 1) && (c1->dma_length >= 4)) {
         /* DMA_PT_INST points at the page table (word 2) of the push buffer's DMA object. DMA_GET
            indexes the page table directly: the resman (NV3RM.VXD) folds the object's adjust
            (word 0, bits 11:0) into the GET it programs, so it is not added again -- with it, a
@@ -359,6 +361,16 @@ void nv3_pfifo_trigger_dma_if_required(void)
         c1->dma_status = (c1->dma_status & ~(0x7FF << 18) & ~0x1FFC) | ((count - 1) << 18) | ((method + 4) & 0x1FFC);
     }
 
+    /* The buffer is done: the pusher turns its access off, reports reason DONE (DMA_STATUS
+       bit 30 clear) and raises PFIFO DMA_PUSHER (INTR_0 bit 12) whether or not it is enabled --
+       NVIDIA's manufacturing test waits for that bit */
+    if ((c1->dma_state & 1) && (c1->dma_length < 4)) {
+        c1->dma_state &= ~1;
+        c1->dma_status &= ~(1u << 30);
+        nv3->pfifo.intr |= (1 << NV3_PFIFO_INTR_DMA_PUSHER);
+        nv3_pmc_handle_interrupts(true);
+    }
+
     nv3_pfifo_dma_pusher_active = false;
 }
 
@@ -384,9 +396,9 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
         // Bit 16 - DMA Page Table Entry (pagefault?)
         case NV3_PFIFO_INTR:
             nv3->pfifo.intr &= ~val;
-            /* DEBUG_0's cache error latches go with the interrupt (the resman's interrupt loop also
-               services PFIFO while CACHE_ERROR0 reads pending, so it must not stay set). The old
-               code tested intr & 0, so they never cleared. */
+            /* DEBUG_0's cache error latches go with the interrupt (a latch left set keeps the driver's
+               interrupt handler servicing PFIFO). The old code tested intr & 0, so they never
+               cleared. */
             if (val & (1 << NV3_PFIFO_INTR_CACHE_ERROR))
                 nv3->pfifo.debug_0 &= ~((1 << NV3_PFIFO_CACHE0_ERROR_PENDING) | (1 << NV3_PFIFO_CACHE1_ERROR_PENDING));
             nv3_pmc_handle_interrupts(true);
@@ -785,8 +797,8 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
     uint32_t channel = (addr >> NV3_OBJECT_SUBMIT_CHANNEL) & 0x7F;
     uint32_t subchannel = (addr >> NV3_OBJECT_SUBMIT_SUBCHANNEL) & (NV3_DMA_CHANNELS - 1);
 
-    // first make sure there is even any cache available
-    if (!nv3->pfifo.cache1_settings.push0)
+    // first make sure there is even any cache available (PUSH0 gates the CPU's writes, not the DMA pusher's)
+    if (!nv3->pfifo.cache1_settings.push0 && !nv3_pfifo_dma_pusher_active)
     {
         oh_shit = true; 
         oh_shit_reason = nv3_runout_reason_no_cache_available;
