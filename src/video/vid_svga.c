@@ -1877,7 +1877,7 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
                         svga_write, svga_writew, svga_writel,
                         NULL, MEM_MAPPING_EXTERNAL, svga);
     /* The chances of ever seeing a C-BUS (S)VGA card are approximately zero, but you never know. */
-    } else if ((info->flags & DEVICE_CBUS) || (info->flags & DEVICE_ISA16)) {
+    } else if ((info->flags & DEVICE_CBUS) || ((info->flags & machines[machine].bus_flags) & DEVICE_ISA16)) {
         svga->read = svga_read;
         svga->readw = svga_readw;
         svga->readl = NULL;
@@ -2401,9 +2401,15 @@ svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
+        /* A word/dword access crosses the bus once even when planar or latched
+           modes split it into byte operations inside the card (a 32-bit write
+           to a 16-bit ISA card is two 16-bit bus cycles, not four byte ones).
+           Keep the byte-wise VRAM behavior but charge the bus timing once. */
     if (!svga->fast) {
+        int bus_cycles = cycles - svga->monitor->mon_video_timing_write_w;
         svga_write_common(addr, val, linear, priv);
         svga_write_common(addr + 1, val >> 8, linear, priv);
+        cycles = bus_cycles;
         return;
     }
 
@@ -2457,11 +2463,17 @@ svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
+        /* A word/dword access crosses the bus once even when planar or latched
+           modes split it into byte operations inside the card (a 32-bit write
+           to a 16-bit ISA card is two 16-bit bus cycles, not four byte ones).
+           Keep the byte-wise VRAM behavior but charge the bus timing once. */
     if (!svga->fast) {
+        int bus_cycles = cycles - svga->monitor->mon_video_timing_write_l;
         svga_write_common(addr, val, linear, priv);
         svga_write_common(addr + 1, val >> 8, linear, priv);
         svga_write_common(addr + 2, val >> 16, linear, priv);
         svga_write_common(addr + 3, val >> 24, linear, priv);
+        cycles = bus_cycles;
         return;
     }
 
@@ -2543,8 +2555,16 @@ svga_readw_common(uint32_t addr, uint8_t linear, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-    if (!svga->fast)
-        return svga_read_common(addr, linear, priv) | (svga_read_common(addr + 1, linear, priv) << 8);
+        /* A word/dword access crosses the bus once even when planar or latched
+           modes split it into byte operations inside the card (a 32-bit write
+           to a 16-bit ISA card is two 16-bit bus cycles, not four byte ones).
+           Keep the byte-wise VRAM behavior but charge the bus timing once. */
+    if (!svga->fast) {
+        int      bus_cycles = cycles - svga->monitor->mon_video_timing_read_w;
+        uint16_t ret        = svga_read_common(addr, linear, priv) | (svga_read_common(addr + 1, linear, priv) << 8);
+        cycles              = bus_cycles;
+        return ret;
+    }
 
     cycles -= svga->monitor->mon_video_timing_read_w;
 
@@ -2591,8 +2611,16 @@ svga_readl_common(uint32_t addr, uint8_t linear, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-    if (!svga->fast)
-        return svga_read_common(addr, linear, priv) | (svga_read_common(addr + 1, linear, priv) << 8) | (svga_read_common(addr + 2, linear, priv) << 16) | (svga_read_common(addr + 3, linear, priv) << 24);
+        /* A word/dword access crosses the bus once even when planar or latched
+           modes split it into byte operations inside the card (a 32-bit write
+           to a 16-bit ISA card is two 16-bit bus cycles, not four byte ones).
+           Keep the byte-wise VRAM behavior but charge the bus timing once. */
+    if (!svga->fast) {
+        int      bus_cycles = cycles - svga->monitor->mon_video_timing_read_l;
+        uint32_t ret        = svga_read_common(addr, linear, priv) | (svga_read_common(addr + 1, linear, priv) << 8) | (svga_read_common(addr + 2, linear, priv) << 16) | (svga_read_common(addr + 3, linear, priv) << 24);
+        cycles              = bus_cycles;
+        return ret;
+    }
 
     cycles -= svga->monitor->mon_video_timing_read_l;
 
