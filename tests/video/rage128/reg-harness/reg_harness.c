@@ -9188,6 +9188,170 @@ vectors_gpu_rowalias(rage128_t *dev)
 }
 
 /* ------------------------------------------------------------------ */
+/* The same defect in the CPU parallel rasterizer: rows go to worker   */
+/* y mod n and draws are ordered per worker only, so a draw past the   */
+/* pitch (its pixel (x, y) lands on row y + 1 linear, y + 16 tiled)    */
+/* races a later draw on the aliased rows when those rows belong to    */
+/* another worker. The fix flushes and draws such a primitive inline.  */
+/* Discriminator: cce_batch_pending after the submit (0 = drawn        */
+/* inline, 1 = queued) -- deterministic, where "who won the bytes"     */
+/* is a race that the earlier draw won 512 of 1024 px in 4 of 6 runs.  */
+/* ------------------------------------------------------------------ */
+
+/* Two triangles (one rectangle) of width w and 16 rows at (x0, y0). */
+static void
+rr_quad(rage128_t *dev, const rage128_raster_state_t *rs, float x0, float y0,
+        float w, uint32_t argb, float z)
+{
+    r3d_vtx_t q[4];
+
+    memset(q, 0, sizeof(q));
+    for (int k = 0; k < 4; k++) {
+        q[k].z       = z;
+        q[k].rhw     = 1.0f;
+        q[k].diffuse = argb;
+    }
+    q[0].x = x0;     q[0].y = y0;
+    q[1].x = x0 + w; q[1].y = y0;
+    q[2].x = x0;     q[2].y = y0 + 16.0f;
+    q[3].x = x0 + w; q[3].y = y0 + 16.0f;
+    rage128_raster_submit_tri(dev, rs, &q[0], &q[1], &q[2]);
+    rage128_raster_submit_tri(dev, rs, &q[1], &q[3], &q[2]);
+}
+
+/* Count the 64 x 16 pixels of rows [row0, row0 + 16) at x 0..63 that
+   hold argb, through the tile transform when tiled. */
+static int
+rr_count(rage128_t *dev, uint32_t row0, int tiled, uint32_t argb)
+{
+    int n = 0;
+
+    for (uint32_t y = row0; y < row0 + 16u; y++)
+        for (uint32_t x = 0; x < 64; x++) {
+            uint32_t off = tiled ? tl_off(x * 4, y, 256) : (y * 64 + x) * 4;
+
+            n += *(uint32_t *) &dev->svga.vram[HZ_A + off] == argb;
+        }
+    return n;
+}
+
+/* One leg: draw A at x 64..127 of rows 0..15 (past the 64 px pitch),
+   then B at x 0..63 of rows [dy, dy + 16), the rows A's bytes alias.
+   A must be drawn inline (not queued), B queued as usual, and after
+   the flush every one of the 1024 shared pixels is B's: the serial
+   order, in which the later draw wins. */
+static void
+rr_leg(rage128_t *dev, const char *leg, const rage128_raster_state_t *rs,
+       int tiled, uint32_t dy)
+{
+    char nm[96];
+    int  nb, na, nm_;
+
+    for (uint32_t i = 0; i < 64u * 40u; i++)
+        *(uint32_t *) &dev->svga.vram[HZ_A + i * 4u] = HZ_MARK;
+    rr_quad(dev, rs, 64.0f, 0.0f, 64.0f, 0xffa00000u, 0.25f);
+    snprintf(nm, sizeof(nm), "raster row-alias %s: the draw past the pitch is drawn inline", leg);
+    check32(nm, (uint32_t) atomic_load(&dev->cce_batch_pending), 0);
+    rr_quad(dev, rs, 0.0f, (float) dy, 64.0f, 0xff00b000u, 0.25f);
+    snprintf(nm, sizeof(nm), "raster row-alias %s: the draw within the pitch is queued", leg);
+    check32(nm, (uint32_t) atomic_load(&dev->cce_batch_pending), 1);
+    rage128_raster_flush(dev);
+    nb  = rr_count(dev, dy, tiled, 0xff00b000u);
+    na  = rr_count(dev, dy, tiled, 0xffa00000u);
+    nm_ = rr_count(dev, dy, tiled, HZ_MARK);
+    printf("raster row-alias %s: shared px B=%d A=%d untouched=%d threads=%d\n",
+           leg, nb, na, nm_, rage128_raster_nthreads(dev));
+    snprintf(nm, sizeof(nm), "raster row-alias %s: the later draw wins every shared pixel", leg);
+    check32(nm, (uint32_t) nb, 1024);
+    snprintf(nm, sizeof(nm), "raster row-alias %s: row 0 within the pitch is untouched", leg);
+    check32(nm, (uint32_t) rr_count(dev, 0, tiled, HZ_MARK), tiled ? 1024 : 64);
+}
+
+static void
+vectors_raster_rowalias(rage128_t *dev)
+{
+    static rage128_raster_state_t rs;
+    int                           n0 = rage128_raster_nthreads(dev);
+    int                           nb;
+
+    if (n0 <= 1) {
+        printf("SKIP raster row-alias: needs render threads (serial lane)\n");
+        return;
+    }
+    flush_sync(dev);
+
+    /* 64 px ARGB8888 color at HZ_A, no Z, scissor at the card maximum:
+       the only clip is the scissor, as on the driver that drew this. */
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x1fff1fff);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+
+    /* linear: x past 63 is row y + 1; with 2 workers the aliased row is
+       always the other worker's */
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+    rage128_raster_state_capture(dev, &rs);
+    rr_leg(dev, "linear", &rs, 0, 1);
+
+    /* tiled: x past 63 is row y + 16, the same worker for 1, 2 or 4
+       workers, so the leg runs with 3 */
+    rage128_raster_close(dev);
+    dev->render_threads = 3;
+    rage128_raster_init(dev);
+    check32("raster row-alias tiled: three workers", (uint32_t) rage128_raster_nthreads(dev), 3);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x81000000u | (HZ_A >> 5));
+    rage128_raster_state_capture(dev, &rs);
+    rr_leg(dev, "tiled", &rs, 1, 16);
+    rage128_raster_close(dev);
+    dev->render_threads = n0;
+    rage128_raster_init(dev);
+
+    /* Z alone past its pitch: 512 px color rows, 64 px 16-bit Z rows at
+       HZ_Z, far Z everywhere. A at x 64..127 of rows 0..15 writes depth
+       0.25 onto Z rows 1..16 at x 0..63; B at x 0..63 of rows 1..16 at
+       depth 0.5 under LESS fails there, so its color never lands. With
+       A on the other worker, the race lets some of B's test read far Z
+       and pass. */
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x08000000u | (HZ_A >> 5));
+    wr(dev, RAGE128_Z_OFFSET_C, HZ_Z);
+    wr(dev, RAGE128_Z_PITCH_C, 0x00000008u);
+    wr(dev, 0x1c98, 0x00000010);             /* 16-bit Z, fn LESS */
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000003); /* Z_EN | Z_WR       */
+    rage128_raster_state_capture(dev, &rs);
+    memset(&dev->svga.vram[HZ_Z], 0xff, 128u * 40u);
+    for (uint32_t i = 0; i < 512u * 20u; i++)
+        *(uint32_t *) &dev->svga.vram[HZ_A + i * 4u] = HZ_MARK;
+    rr_quad(dev, &rs, 64.0f, 0.0f, 64.0f, 0xffa00000u, 0.25f);
+    check32("raster row-alias Z: the draw past the Z pitch is drawn inline",
+            (uint32_t) atomic_load(&dev->cce_batch_pending), 0);
+    rr_quad(dev, &rs, 0.0f, 1.0f, 64.0f, 0xff00b000u, 0.5f);
+    check32("raster row-alias Z: the draw within the Z pitch is queued",
+            (uint32_t) atomic_load(&dev->cce_batch_pending), 1);
+    rage128_raster_flush(dev);
+    nb = 0;
+    for (uint32_t y = 1; y < 17; y++)
+        for (uint32_t x = 0; x < 64; x++)
+            nb += *(uint32_t *) &dev->svga.vram[HZ_A + (y * 512 + x) * 4] == 0xff00b000u;
+    printf("raster row-alias Z: B px landed=%d of 1024\n", nb);
+    check32("raster row-alias Z: the later draw fails the Z test on every aliased cell", (uint32_t) nb, 0);
+    check32("raster row-alias Z: A's color landed in its own columns",
+            (uint32_t) *(uint32_t *) &dev->svga.vram[HZ_A + (8 * 512 + 100) * 4], 0xffa00000u);
+
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+    wr(dev, 0x16f0, 0x003f003f);
+}
+
+/* ------------------------------------------------------------------ */
 /* Two-tier accept pricing. The bbox bound charges every row at full   */
 /* bbox width; a tiled Z multiplies that by its per-row piece count,   */
 /* so a fullscreen-bbox triangle at 1280x1024x32 prices 83106 spans    */
@@ -13954,6 +14118,7 @@ run_agp_32mb_threaded(void)
     vectors_tiled_pitch(dev);
     vectors_tiled_scanout(dev);
     vectors_gpu_rowalias(dev);
+    vectors_raster_rowalias(dev);
     close_dev(dev);
     harness_cfg_render_threads = 1;
 }

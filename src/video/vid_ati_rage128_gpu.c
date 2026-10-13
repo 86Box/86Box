@@ -3013,86 +3013,11 @@ rng_fold(uint32_t vram_mask, int staged, uint32_t *lo, uint32_t *hi)
     *hi = size;
 }
 
-/* Highest pixel column a primitive can cover, clipped to the scissor;
-   negative when none. A triangle covers a pixel whose center (x + 0.5)
-   lies inside it, so the largest is floor(max x - 0.5) on the snapped
-   coordinates; the snap can move a vertex by up to one subpixel, which
-   is added as slack. A line or point walk is bounded more loosely, one
-   column past the ceiling of its vertex. WINDOW_XY_OFFSET shifts the
-   columns as it shifts the rows. */
-static int
-prim_xmax(const rage128_raster_state_t *rs, const r3d_vtx_t *a,
-          const r3d_vtx_t *b, const r3d_vtx_t *c)
-{
-    const r3d_vtx_t *v[3] = { a, b, c };
-    float            wof  = rs->d.sub ? (float) rs->d.woxi / (float) rs->d.sub
-                                      : 0.0f;
-    float            snap = rs->d.sub ? 1.0f / (float) rs->d.sub : 1.0f;
-    int              xm   = -1;
-
-    for (int k = 0; k < 3; k++) {
-        float fx;
-        int   x;
-
-        if (!v[k])
-            continue;
-        fx = v[k]->x + wof;
-        if (!(fx >= -65536.0f && fx <= 65536.0f)) {
-            xm = 0x3fff;
-            break;
-        }
-        if (c)
-            fx += snap - 0.5f;
-        x = (int) fx;
-        if ((float) x > fx)
-            x--; /* floor: the cast truncates toward zero */
-        if (!c)
-            x += 2; /* at least the ceiling plus one column */
-        if (x > xm)
-            xm = x;
-    }
-    if (xm > rs->d.sx1)
-        xm = rs->d.sx1;
-    return xm;
-}
-
-/* Raise hi, the end of a primitive's row band (rows up to ylast) on one
-   surface, when its columns reach past the row: nothing clips a draw to
-   its target's width, only the scissor does, and pixel x of a row then
-   lands on the bytes of a later row (capture_run_bounds). On a linear
-   surface the last byte is row ylast at column xmax. On a tiled one each
-   64-byte tile column past the row is a full tile row (16 lines)
-   further on, so the bound is the last line of ylast's tile row plus
-   the tile-column offset of xmax's last byte; the tile transform grows
-   with both, so no earlier pixel lies past it. The result is truncated
-   to 32 bits as prim_rows_bytes truncates. */
-static void
-prim_past_pitch(uint32_t base, uint32_t stride, int tiled, int ylast,
-                int xmax, uint32_t bpp, uint32_t *hi)
-{
-    uint64_t xbe, far;
-    uint32_t h;
-
-    if (xmax < 0 || ylast < 0)
-        return;
-    xbe = (uint64_t) (uint32_t) (xmax + 1) * bpp;
-    if (xbe <= stride)
-        return;
-    if (tiled)
-        far = 16ull * stride * ((uint32_t) ylast >> 4) + 15u * 64u
-            + r128_tile_x((uint32_t) (xbe - 1));
-    else
-        far = (uint64_t) (uint32_t) ylast * stride + xbe - 1;
-    h = (uint32_t) ((uint64_t) base + far + 1);
-    if (h > *hi)
-        *hi = h;
-}
-
 /* Conservative byte-ranges of a primitive under state rs: full rows
    over the vertex Y extent plus one row of slack each side (the raster
    walk's subpixel snap; over-coverage only), widened past the last row
-   when the columns reach past the pitch (prim_past_pitch), folded into
-   masked space. */
+   when the columns reach past the pitch (r128_prim_past_pitch), folded
+   into masked space. */
 static void
 prim_ranges(const rage128_raster_state_t *rs, uint32_t vram_mask,
             const r3d_vtx_t *a, const r3d_vtx_t *b, const r3d_vtx_t *c,
@@ -3153,15 +3078,15 @@ prim_ranges(const rage128_raster_state_t *rs, uint32_t vram_mask,
         if (ymax <= ymin)
             return;
     }
-    xmax = prim_xmax(rs, a, b, c);
+    xmax = r128_prim_xmax(rs, a, b, c);
     {
         uint32_t cs = rs->dst_pitch * rs->dst_bpp;
 
         if (cs) {
             prim_rows_bytes(rs->dst_offset, cs, rs->d.c_tiled, ymin, ymax,
                             clo, chi);
-            prim_past_pitch(rs->dst_offset, cs, rs->d.c_tiled, ymax - 1,
-                            xmax, rs->dst_bpp, chi);
+            r128_prim_past_pitch(rs->dst_offset, cs, rs->d.c_tiled, ymax - 1,
+                                 xmax, rs->dst_bpp, chi);
             rng_fold(vram_mask, rs->c_staged, clo, chi);
         }
     }
@@ -3174,8 +3099,8 @@ prim_ranges(const rage128_raster_state_t *rs, uint32_t vram_mask,
 
         prim_rows_bytes(rs->t3d.z_offset, zs, rs->d.z_tiled,
                         ymin, ymax, zlo, zhi);
-        prim_past_pitch(rs->t3d.z_offset, zs, rs->d.z_tiled, ymax - 1,
-                        xmax, (uint32_t) rs->d.zbpp, zhi);
+        r128_prim_past_pitch(rs->t3d.z_offset, zs, rs->d.z_tiled, ymax - 1,
+                             xmax, (uint32_t) rs->d.zbpp, zhi);
         rng_fold(vram_mask, rs->z_staged, zlo, zhi);
     }
 }
