@@ -45,9 +45,10 @@
 
 #define CONFIG_TYPE_INT     (0 << CONFIG_SHIFT)
 #define CONFIG_TYPE_STRING  (1 << CONFIG_SHIFT)
-#define CONFIG_TYPE_HEX16   (2 << CONFIG_SHIFT)
-#define CONFIG_TYPE_HEX20   (3 << CONFIG_SHIFT)
-#define CONFIG_TYPE_MAC     (4 << CONFIG_SHIFT)
+#define CONFIG_TYPE_STRHEX  (2 << CONFIG_SHIFT)
+#define CONFIG_TYPE_HEX16   (3 << CONFIG_SHIFT)
+#define CONFIG_TYPE_HEX20   (4 << CONFIG_SHIFT)
+#define CONFIG_TYPE_MAC     (5 << CONFIG_SHIFT)
 
 #define CONFIG_INT          (0 | CONFIG_TYPE_INT)      /* config_get_int() */
 #define CONFIG_BINARY       (1 | CONFIG_TYPE_INT)      /* config_get_int() */
@@ -62,6 +63,8 @@
 #define CONFIG_SERPORT      (2 | CONFIG_TYPE_STRING)     /* config_get_string() */
 #define CONFIG_BIOS         (3 | CONFIG_TYPE_STRING)     /* config_get_string() */
 #define CONFIG_VARIANT      CONFIG_BIOS
+
+#define CONFIG_STRHEX       (0 | CONFIG_TYPE_STRHEX)     /* config_get_string() */
 
 #define CONFIG_HEX16        (0 | CONFIG_TYPE_HEX16)      /* config_get_hex16() */
 

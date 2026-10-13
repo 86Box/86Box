@@ -12,9 +12,9 @@
  *          One pipeline, built from fdivtest.comp, runs the production
  *          divide source without the full gputri pipeline matrix. The
  *          host's float divide supplies the correctly rounded reference,
- *          and the kernel must match each result that is not a NaN bit
- *          for bit; NaN results are compared by class. The divide by 255
- *          is checked over its complete byte-input domain.
+ *          and the kernel must match each tested result bit for bit.
+ *          Cases with a NaN operand or a NaN reference result are skipped.
+ *          The divide by 255 is checked over its complete byte-input domain.
  *
  *          Build through build.sh, with -ffp-contract=off and fast math
  *          disabled. Usage: fdivtest [batches] [seed]; the default is 64

@@ -115,8 +115,9 @@ without a GPU.
 divide-by-255 helper through one standalone pipeline, so arithmetic can be
 iterated without the full gate. It includes the production divide source,
 checks the complete divide-by-255 byte domain, and compares randomized
-quotients with host float division. It compares NaNs by class and other
-results bit-for-bit. The default is 64 batches of 1,048,576 operand pairs;
+quotients with host float division. It skips cases with NaN operands or a
+NaN reference result and compares other results bit-for-bit. The default
+is 64 batches of 1,048,576 operand pairs;
 an optional seed makes failures reproducible. It loads `fdivtest.spv` from
 the working directory.
 

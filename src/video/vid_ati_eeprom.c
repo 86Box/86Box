@@ -101,6 +101,19 @@ ati_eeprom_load_mach8(ati_eeprom_t *eeprom, char *fn, int mca)
     fclose(fp);
 }
 
+/* The EEPROM of an ATI Graphics Ultra 113-11504-002 (1 MB, 8-bit slot), set to 60 Hz in every 8514/A
+   mode: ATI INSTALL's NEC 4D monitor, plus the 640x480 72 Hz bit cleared. The card as read runs 72 Hz. */
+static const uint16_t mach8_vga_eeprom_default[64] = {
+    0x000e, 0x0000, 0x0919, 0x0000, 0x110f, 0x060a, 0x0000, 0x0000,
+    0x0008, 0x0002, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+    0x6509, 0x559a, 0xe80b, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+    0x0000, 0x0000, 0x0000, 0x7e4b, 0x6896, 0x3203, 0x0000, 0x0000,
+    0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x4c24, 0x420b,
+    0x0208, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+    0x0000, 0xc79f, 0xa00a, 0x08f8, 0x07ff, 0x0861, 0x0000, 0x162d,
+    0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+};
+
 void
 ati_eeprom_load_mach8_vga(ati_eeprom_t *eeprom, char *fn)
 {
@@ -111,9 +124,8 @@ ati_eeprom_load_mach8_vga(ati_eeprom_t *eeprom, char *fn)
     strncpy(eeprom->fn, fn, sizeof(eeprom->fn) - 1);
     fp   = nvr_fopen(eeprom->fn, "rb");
     size = 128;
-    if (!fp) { /*The ATI Graphics Ultra bios expects a fresh nvram zero'ed at boot time otherwise
-            it would hang the machine.*/
-        memset(eeprom->data, 0, size);
+    if (!fp) { /*A new card starts with a real card's EEPROM: zeroed, ATI's drivers cannot set modes above 640x480.*/
+        memcpy(eeprom->data, mach8_vga_eeprom_default, size);
         fp = nvr_fopen(eeprom->fn, "wb");
         fwrite(eeprom->data, 1, size, fp);
         fclose(fp);
