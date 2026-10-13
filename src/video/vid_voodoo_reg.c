@@ -67,6 +67,16 @@ voodoo_reg_log(const char *fmt, ...)
 #    define voodoo_reg_log(fmt, ...)
 #endif
 
+static void
+voodoo_reset_texture_cache(voodoo_t *voodoo, int tmu)
+{
+    voodoo_wait_for_render_thread_idle(voodoo);
+    memset(voodoo->texture_present[tmu], 0, sizeof(voodoo->texture_present[0]));
+
+    for (uint8_t c = 0; c < TEX_CACHE_MAX; c++)
+        voodoo->texture_cache[tmu][c].base = -1;
+}
+
 void
 voodoo_reg_writel(uint32_t addr, uint32_t val, void *priv)
 {
@@ -1058,6 +1068,23 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *priv)
                 else
                     voodoo->params.texBaseAddr38[1] = (val & 0x7ffff) << 3;
                 voodoo_recalc_tex(voodoo, 1);
+            }
+            break;
+
+        case SST_trexInit0:
+            if (chip & CHIP_TREX0) {
+                uint32_t old_config = voodoo->trexInit0[0] & TREXINIT0_TEXTURE_MEMORY_CONFIG_MASK;
+
+                voodoo->trexInit0[0] = val;
+                if (old_config != (val & TREXINIT0_TEXTURE_MEMORY_CONFIG_MASK))
+                    voodoo_reset_texture_cache(voodoo, 0);
+            }
+            if (chip & CHIP_TREX1) {
+                uint32_t old_config = voodoo->trexInit0[1] & TREXINIT0_TEXTURE_MEMORY_CONFIG_MASK;
+
+                voodoo->trexInit0[1] = val;
+                if (old_config != (val & TREXINIT0_TEXTURE_MEMORY_CONFIG_MASK))
+                    voodoo_reset_texture_cache(voodoo, 1);
             }
             break;
 

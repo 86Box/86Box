@@ -10,14 +10,16 @@
  *
  * Authors: RichardG, <richardg867@gmail.com>
  *
- *          Copyright 2021-2025 RichardG.
+ *          Copyright 2021-2026 RichardG.
  */
 #define _FILE_OFFSET_BITS   64
 #define _LARGEFILE64_SOURCE 1
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <linux/vfio.h>
+#include <spawn.h>
 #include <stdarg.h>
 #include <stdatomic.h>
 #include <stdint.h>
@@ -28,6 +30,9 @@
 #include <sys/eventfd.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #define HAVE_STDARG_H
 #include "cpu.h"
@@ -40,10 +45,15 @@
 #include <86box/pci.h>
 #include <86box/pic.h>
 #include <86box/plat.h>
+#include <86box/plat_dir.h>
 #include <86box/thread.h>
 #include <86box/timer.h>
+#include <86box/ui.h>
 #include <86box/video.h>
 #include <86box/vfio.h>
+#include "vfio_setup_sh.h" /* generated from vfio-setup.sh */
+
+extern char **environ;
 
 /* Just so we don't have to include Linux's pci.h, which
    has some defines that conflict with our own pci.h */
@@ -58,7 +68,15 @@ enum {
     NVIDIA_3D0_WRITE
 };
 
-typedef struct {
+#define VFIO_IOMIRROR_MAX 32
+
+typedef struct vfio_iomirror_t {
+    struct _vfio_region_ *bar;
+    uint32_t              offset;
+    uint16_t              base;
+} vfio_iomirror_t;
+
+typedef struct _vfio_region_ {
     int                   fd;
     uint64_t              precalc_offset;
     uint64_t              offset;
@@ -77,9 +95,8 @@ typedef struct {
     struct {
         mem_mapping_t mem_mappings[2];
 
-        struct {
-            uint32_t offset;
-        } iomirror;
+        vfio_iomirror_t iomirrors[VFIO_IOMIRROR_MAX];
+        uint8_t         iomirror_count;
 
         struct {
             uint32_t offset;
@@ -108,6 +125,8 @@ typedef struct _vfio_device_ {
     uint8_t  mem_enabled   : 1;
     uint8_t  io_enabled    : 1;
     uint8_t  rom_enabled   : 1;
+    uint8_t  rom_from_dev  : 1;
+    uint8_t  rom_check     : 1;
     uint8_t  can_reset     : 1;
     uint8_t  can_flr_reset : 1;
     uint8_t  can_pm_reset  : 1;
@@ -210,6 +229,7 @@ typedef struct _vfio_slot_ {
 typedef struct _vfio_group_ {
     int id;
     int fd;
+    int error; /* errno from opening the group, -1 if not viable, 0 for other failures */
 
     vfio_device_t *first_device;
     vfio_device_t *current_device;
@@ -266,6 +286,45 @@ vfio_log(const char *fmt, ...)
 #    define vfio_log_op(fmt, ...)
 #endif
 
+/* Problems the user can act on, shown together once initialization is done,
+   unless they all follow from one which has already been shown. */
+static char *vfio_msgs       = NULL;
+static int   vfio_msgs_quiet = 0;
+
+static void
+vfio_msg(int id, ...)
+{
+    char    line[1024];
+    va_list ap;
+
+    va_start(ap, id);
+    vsnprintf(line, sizeof(line), plat_get_string(id), ap);
+    va_end(ap);
+    pclog("%s\n", line);
+    if (vfio_msgs_quiet)
+        return;
+
+    size_t len = vfio_msgs ? strlen(vfio_msgs) : 0;
+    char  *p   = (char *) realloc(vfio_msgs, len + strlen(line) + 2);
+    if (!p)
+        return;
+    vfio_msgs = p;
+    if (len)
+        vfio_msgs[len++] = '\n';
+    strcpy(&vfio_msgs[len], line);
+}
+
+static void
+vfio_msg_show(int flags)
+{
+    if (!vfio_msgs)
+        return;
+
+    ui_msgbox(flags, vfio_msgs);
+    free(vfio_msgs);
+    vfio_msgs = NULL;
+}
+
 static uint8_t  vfio_bar_gettype(vfio_device_t *dev, vfio_region_t *bar);
 static uint8_t  vfio_dev_config_readb(vfio_device_t *dev, int addr);
 static uint16_t vfio_dev_config_readw(vfio_device_t *dev, int addr);
@@ -278,6 +337,7 @@ static void     vfio_irq_msi_disable(vfio_device_t *dev);
 static void     vfio_irq_msix_disable(vfio_device_t *dev);
 static void     vfio_irq_msix_updatemask(vfio_device_t *dev, uint16_t offset);
 static void     vfio_irq_enable(vfio_device_t *dev, int type);
+static void     vfio_rom_sync(vfio_device_t *dev);
 
 #define VFIO_RW(space, length_char, addr_type, addr_slength, val_type, val_slength)                                                                     \
     static val_type                                                                                                                                     \
@@ -726,14 +786,15 @@ vfio_quirk_configwindow(vfio_device_t *dev, vfio_region_t *bar,
 static uint8_t
 vfio_quirk_iomirror_readb(uint16_t addr, void *priv)
 {
-    vfio_region_t *bar = (vfio_region_t *) priv;
+    const vfio_iomirror_t *mirror = (vfio_iomirror_t *) priv;
+    vfio_region_t         *bar    = mirror->bar;
 
     /* Read I/O port mirror from memory-mapped space. */
-    uint8_t ret = vfio_mem_readb_fd(bar->emulated_offset + bar->quirks.iomirror.offset + addr, bar);
+    uint8_t ret = vfio_mem_readb_fd(bar->emulated_offset + mirror->offset + addr, bar);
 #ifdef ENABLE_VFIO_LOG
     vfio_device_t *dev = bar->dev;
     vfio_log_op("VFIO %s: I/O mirror: Read %02X from %04X (%08X)\n", dev->name,
-                ret, addr, bar->quirks.iomirror.offset + addr);
+                ret, addr, mirror->offset + addr);
 #endif
     return ret;
 }
@@ -741,14 +802,15 @@ vfio_quirk_iomirror_readb(uint16_t addr, void *priv)
 static uint16_t
 vfio_quirk_iomirror_readw(uint16_t addr, void *priv)
 {
-    vfio_region_t *bar = (vfio_region_t *) priv;
+    const vfio_iomirror_t *mirror = (vfio_iomirror_t *) priv;
+    vfio_region_t         *bar    = mirror->bar;
 
     /* Read I/O port mirror from memory-mapped space. */
-    uint16_t ret = vfio_mem_readw_fd(bar->emulated_offset + bar->quirks.iomirror.offset + addr, bar);
+    uint16_t ret = vfio_mem_readw_fd(bar->emulated_offset + mirror->offset + addr, bar);
 #ifdef ENABLE_VFIO_LOG
     vfio_device_t *dev = bar->dev;
     vfio_log_op("VFIO %s: I/O mirror: Read %04X from %04X (%08X)\n", dev->name,
-                ret, addr, bar->quirks.iomirror.offset + addr);
+                ret, addr, mirror->offset + addr);
 #endif
     return ret;
 }
@@ -756,14 +818,15 @@ vfio_quirk_iomirror_readw(uint16_t addr, void *priv)
 static uint32_t
 vfio_quirk_iomirror_readl(uint16_t addr, void *priv)
 {
-    vfio_region_t *bar = (vfio_region_t *) priv;
+    const vfio_iomirror_t *mirror = (vfio_iomirror_t *) priv;
+    vfio_region_t         *bar    = mirror->bar;
 
     /* Read I/O port mirror from memory-mapped space. */
-    uint32_t ret = vfio_mem_readl_fd(bar->emulated_offset + bar->quirks.iomirror.offset + addr, bar);
+    uint32_t ret = vfio_mem_readl_fd(bar->emulated_offset + mirror->offset + addr, bar);
 #ifdef ENABLE_VFIO_LOG
     vfio_device_t *dev = bar->dev;
     vfio_log_op("VFIO %s: I/O mirror: Read %08X from %04X (%08X)\n", dev->name,
-                ret, addr, bar->quirks.iomirror.offset + addr);
+                ret, addr, mirror->offset + addr);
 #endif
     return ret;
 }
@@ -771,43 +834,46 @@ vfio_quirk_iomirror_readl(uint16_t addr, void *priv)
 static void
 vfio_quirk_iomirror_writeb(uint16_t addr, uint8_t val, void *priv)
 {
-    vfio_region_t *bar = (vfio_region_t *) priv;
+    const vfio_iomirror_t *mirror = (vfio_iomirror_t *) priv;
+    vfio_region_t         *bar    = mirror->bar;
 
     /* Write I/O port mirror to memory-mapped space. */
 #ifdef ENABLE_VFIO_LOG
     vfio_device_t *dev = bar->dev;
     vfio_log_op("VFIO %s: I/O mirror: Write %02X to %04X (%08X)\n", dev->name,
-                val, addr, bar->quirks.iomirror.offset + addr);
+                val, addr, mirror->offset + addr);
 #endif
-    vfio_mem_writeb_fd(bar->emulated_offset + bar->quirks.iomirror.offset + addr, val, bar);
+    vfio_mem_writeb_fd(bar->emulated_offset + mirror->offset + addr, val, bar);
 }
 
 static void
 vfio_quirk_iomirror_writew(uint16_t addr, uint16_t val, void *priv)
 {
-    vfio_region_t *bar = (vfio_region_t *) priv;
+    const vfio_iomirror_t *mirror = (vfio_iomirror_t *) priv;
+    vfio_region_t         *bar    = mirror->bar;
 
     /* Write I/O port mirror to memory-mapped space. */
 #ifdef ENABLE_VFIO_LOG
     vfio_device_t *dev = bar->dev;
     vfio_log_op("VFIO %s: I/O mirror: Write %04X to %04X (%08X)\n", dev->name,
-                val, addr, bar->quirks.iomirror.offset + addr);
+                val, addr, mirror->offset + addr);
 #endif
-    vfio_mem_writew_fd(bar->emulated_offset + bar->quirks.iomirror.offset + addr, val, bar);
+    vfio_mem_writew_fd(bar->emulated_offset + mirror->offset + addr, val, bar);
 }
 
 static void
 vfio_quirk_iomirror_writel(uint16_t addr, uint32_t val, void *priv)
 {
-    vfio_region_t *bar = (vfio_region_t *) priv;
+    const vfio_iomirror_t *mirror = (vfio_iomirror_t *) priv;
+    vfio_region_t         *bar    = mirror->bar;
 
     /* Write I/O port mirror to memory-mapped space. */
 #ifdef ENABLE_VFIO_LOG
     vfio_device_t *dev = bar->dev;
     vfio_log_op("VFIO %s: I/O mirror: Write %08X to %04X (%08X)\n", dev->name,
-                val, addr, bar->quirks.iomirror.offset + addr);
+                val, addr, mirror->offset + addr);
 #endif
-    vfio_mem_writel_fd(bar->emulated_offset + bar->quirks.iomirror.offset + addr, val, bar);
+    vfio_mem_writel_fd(bar->emulated_offset + mirror->offset + addr, val, bar);
 }
 
 static void
@@ -817,8 +883,26 @@ vfio_quirk_iomirror(vfio_device_t *dev, vfio_region_t *bar,
     vfio_log("VFIO %s: %sapping I/O mirror for %s @ %08X\n",
              dev->name, enable ? "M" : "Unm", bar->name, bar->emulated_offset + offset);
 
-    /* Save I/O mirror offset, only one per BAR for now. */
-    bar->quirks.iomirror.offset = offset;
+    /* Find this port range's mirror, or set up a new one. */
+    vfio_iomirror_t *mirror = NULL;
+    for (uint8_t i = 0; i < bar->quirks.iomirror_count; i++) {
+        if (bar->quirks.iomirrors[i].base == base) {
+            mirror = &bar->quirks.iomirrors[i];
+            break;
+        }
+    }
+    if (!mirror) {
+        if (!enable)
+            return;
+        if (bar->quirks.iomirror_count >= VFIO_IOMIRROR_MAX) {
+            pclog("VFIO %s: Too many I/O mirrors for %s\n", dev->name, bar->name);
+            return;
+        }
+        mirror       = &bar->quirks.iomirrors[bar->quirks.iomirror_count++];
+        mirror->bar  = bar;
+        mirror->base = base;
+    }
+    mirror->offset = offset;
 
     /* Add or remove quirk handler from port range. */
     if (enable)
@@ -829,7 +913,7 @@ vfio_quirk_iomirror(vfio_device_t *dev, vfio_region_t *bar,
                       bar->write ? vfio_quirk_iomirror_writeb : NULL,
                       bar->write ? vfio_quirk_iomirror_writew : NULL,
                       bar->write ? vfio_quirk_iomirror_writel : NULL,
-                      bar);
+                      mirror);
     else
         io_removehandler(base, length,
                          bar->read ? vfio_quirk_iomirror_readb : NULL,
@@ -838,7 +922,7 @@ vfio_quirk_iomirror(vfio_device_t *dev, vfio_region_t *bar,
                          bar->write ? vfio_quirk_iomirror_writeb : NULL,
                          bar->write ? vfio_quirk_iomirror_writew : NULL,
                          bar->write ? vfio_quirk_iomirror_writel : NULL,
-                         bar);
+                         mirror);
 }
 
 static uint8_t
@@ -1284,18 +1368,21 @@ vfio_quirk_remap(vfio_device_t *dev, vfio_region_t *bar, uint8_t enable)
                VGA decode policy doesn't allow those to be forwarded directly to the real card. */
             if (vfio_bar_gettype(dev, &dev->bars[0]) != 0x00)
                 break;
-            if ((dev->bars[0].size == 33554432) && (dev->bar_count == 1)) {
-                /* Older chips can only remap to VGA A0000. We can tell
-                   those through BAR 0 being 32M and the only BAR. */
-                if (bar == &dev->vga_mem) {
-                    i = 0;
+            if ((dev->bars[0].size == 67108864) && (dev->bar_count == 1)) {
+                /* Trio64V+ and ViRGE chips can remap to BAR 0 + 16M. We can tell those through
+                   BAR 0 being 64M = ((16M linear + 16M MMIO) * both endians) and the only BAR. */
+                if (bar->bar_id == 0) {
+                    i = 0x1000000; /* 16M MMIO offset */
+
+                    /* There's a configuration space mirror in here as well. */
+                    vfio_quirk_configmirror(dev, bar, i + 0x8000, 0, enable);
+
+                    /* Subsystem Control/Status, Video Subsystem Enable and Advanced Function Control. */
+                    vfio_quirk_iomirror(dev, bar, i + 0x8504 - 0x42e8, 0x42e8, 2, enable);
+                    vfio_quirk_iomirror(dev, bar, i + 0x8508 - 0x46e8, 0x46e8, 2, enable);
+                    vfio_quirk_iomirror(dev, bar, i + 0x850c - 0x4ae8, 0x4ae8, 2, enable);
 
                     /* Main port list from vid_s3.c */
-                    vfio_quirk_iomirror(dev, bar, i, 0x42e8, 2, enable);
-                    vfio_quirk_iomirror(dev, bar, i, 0x46e8, 2, enable);
-                    vfio_quirk_iomirror(dev, bar, i, 0x4ae8, 2, enable);
-
-s3_old_mmio:
                     vfio_quirk_iomirror(dev, bar, i, 0x82e8, 4, enable);
                     vfio_quirk_iomirror(dev, bar, i, 0x86e8, 4, enable);
                     vfio_quirk_iomirror(dev, bar, i, 0x8ae8, 4, enable);
@@ -1322,29 +1409,6 @@ s3_old_mmio:
                     vfio_quirk_iomirror(dev, bar, i, 0xe6e8, 4, enable);
                     vfio_quirk_iomirror(dev, bar, i, 0xeae8, 4, enable);
                     vfio_quirk_iomirror(dev, bar, i, 0xeee8, 4, enable);
-                }
-            } else if ((dev->bars[0].size == 67108864) && (dev->bar_count == 1)) {
-                /* Trio64V+ and ViRGE chips can remap to BAR 0 + 16M. We can tell those through
-                   BAR 0 being 64M = ((16M linear + 16M MMIO) * both endians) and the only BAR. */
-                if (bar->bar_id == 0) {
-                    i = 0x1000000; /* 16M MMIO offset */
-
-s3_new_mmio: /* There's a configuration space mirror in here as well. */
-                    vfio_quirk_configmirror(dev, bar, i + 0x8000, 0, enable);
-
-                    /* Subsystem Control/Status and Advanced Function Control. */
-                    vfio_quirk_iomirror(dev, bar, i + 0x8504 - 0x42e8, 0x42e8, 2, enable);
-                    vfio_quirk_iomirror(dev, bar, i + 0x850c - 0x4ae8, 0x4ae8, 2, enable);
-
-                    /* The rest maps exactly as older chips. */
-                    goto s3_old_mmio;
-                }
-            } else if ((dev->bars[0].size >= 524288) && (vfio_bar_gettype(dev, &dev->bars[1]) == 0x00)) {
-                /* Savage chips break the linear framebuffer out to
-                   BAR 1+, eliminating the 16M MMIO offset from BAR 0. */
-                if (bar->bar_id == 0) {
-                    i = 0;
-                    goto s3_new_mmio;
                 }
             }
             break;
@@ -1641,6 +1705,7 @@ vfio_dev_config_writeb(vfio_device_t *dev, int addr, uint8_t val)
     /* Act on some written values. */
     uint8_t  new_mem_enabled;
     uint8_t  new_io_enabled;
+    uint8_t  rom_sync;
     uint8_t  bar_id;
     uint8_t  offset;
     uint32_t new_value;
@@ -1726,7 +1791,9 @@ vfio_dev_config_writeb(vfio_device_t *dev, int addr, uint8_t val)
 
             /* Set ROM enable bit. */
             offset = (addr & 3) << 3;
+            rom_sync = 0;
             if (!offset) {
+                rom_sync         = (val & 0x01) && !dev->rom_enabled;
                 dev->rom_enabled = val & 0x01;
                 val &= 0xfe;
             }
@@ -1736,6 +1803,10 @@ vfio_dev_config_writeb(vfio_device_t *dev, int addr, uint8_t val)
             new_value |= val << offset;
             new_value &= ~(ceilpow2(dev->rom.size) - 1);
             vfio_bar_remap(dev, &dev->rom, new_value);
+
+            /* Read the ROM again whenever it is enabled. */
+            if (rom_sync)
+                vfio_rom_sync(dev);
             break;
 
         case 0x3d: /* Interrupt Pin */
@@ -2394,6 +2465,93 @@ vfio_irq_enable(vfio_device_t *dev, int type)
     dev->irq.type = type;
 }
 
+/* Copy the device's expansion ROM into the ROM shadow area. */
+static void
+vfio_rom_read(vfio_device_t *dev)
+{
+    ssize_t  i;
+    uint64_t j = 0;
+
+    memset(dev->rom.mmap_base, 0xff, dev->rom.size);
+    while ((j < dev->rom.size) &&
+           ((i = pread(dev->fd, dev->rom.mmap_base + j, dev->rom.size - j, dev->rom.offset + j)) > 0))
+        j += i;
+}
+
+/* Read a device's own expansion ROM again, as it may have been reflashed or been
+   unreadable when first read. A ROM loaded from file is left as it is. */
+static void
+vfio_rom_sync(vfio_device_t *dev)
+{
+    if (!dev->rom_from_dev || !dev->rom.mmap_base)
+        return;
+
+    vfio_log("VFIO %s: Reading expansion ROM again\n", dev->name);
+    vfio_rom_read(dev);
+
+    /* Code recompiled from the previous contents is not invalidated by itself. */
+    if (dev->rom.emulated_offset)
+        mem_invalidate_range(dev->rom.emulated_offset, dev->rom.emulated_offset + dev->rom.size - 1);
+}
+
+/* Perform a few sanity checks on the ROM, starting with the signature.
+   Returns 1 if the ROM has no signature or a bad checksum. */
+static int
+vfio_rom_check(vfio_device_t *dev)
+{
+    const uint8_t *rom  = dev->rom.mmap_base;
+    uint64_t       size = dev->rom.size;
+
+    if ((size < 3) || (*((uint16_t *) &rom[0x00]) != 0xaa55)) {
+        pclog("VFIO %s: Warning: ROM has no 55 AA signature\n", dev->name);
+        return 1;
+    }
+
+    /* Check ROM length. */
+    uint32_t rom_len = rom[0x02] << 9; /* 512-byte blocks */
+    if (rom_len > size)
+        pclog("VFIO %s: Warning: ROM length (%d bytes) is larger than ROM region (%" PRIu64 " bytes)\n",
+              dev->name, rom_len, size);
+
+    /* Check PCI pointer. */
+    uint16_t pci_ptr = (size >= 0x1a) ? *((uint16_t *) &rom[0x18]) : 0;
+    if (pci_ptr && (pci_ptr != 0xffff)) {
+        /* Check PCI pointer bounds. */
+        if ((pci_ptr + 0x12) <= size) {
+            /* Check PCI header ROM length only if <= 130048 bytes, as the
+               ROM length is 8 bits in the main header and 16 bits in here. */
+            uint32_t pci_len = *((uint16_t *) &rom[pci_ptr + 0x10]) << 9; /* image length, 512-byte blocks */
+            if ((pci_len <= (254 << 9)) && (pci_len != rom_len))
+                pclog("VFIO %s: Warning: ROM length in main header (%d bytes) is "
+                      "different from length in PCI header (%d bytes)\n",
+                      dev->name, rom_len, pci_len);
+        } else {
+            pclog("VFIO %s: Warning: ROM has invalid PCI header pointer: %04X\n",
+                  dev->name, pci_ptr);
+        }
+    } else {
+        pclog("VFIO %s: Warning: ROM has no PCI header pointer\n", dev->name);
+    }
+
+    /* Compare checksum. */
+    if (rom_len > size) /* don't go out of bounds */
+        rom_len = size;
+    if (!rom_len) {
+        pclog("VFIO %s: Warning: ROM length is zero\n", dev->name);
+        return 1;
+    }
+    uint8_t checksum = 0;
+    for (uint32_t i = 0; i < rom_len; i++)
+        checksum += rom[i];
+    if (checksum) {
+        pclog("VFIO %s: Warning: ROM has bad checksum; expected %02X, got %02X\n",
+              dev->name, (uint8_t) (rom[rom_len - 1] - checksum), rom[rom_len - 1]);
+        return 1;
+    }
+
+    return 0;
+}
+
 static void
 vfio_region_init(vfio_device_t *dev, struct vfio_region_info *reg, vfio_region_t *region)
 {
@@ -2444,12 +2602,11 @@ vfio_region_init(vfio_device_t *dev, struct vfio_region_info *reg, vfio_region_t
                 }
             } else {
                 /* Fall back to the device's ROM if it has one. */
-                pclog("VFIO %s: Could not read ROM file, ", dev->name);
                 if (region->size) {
-                    pclog("falling back to device ROM\n");
+                    vfio_msg(STRING_VFIO_ROM_FILE_FALLBACK, dev->name, dev->rom_fn);
                 } else {
                     /* Disable ROM. */
-                    pclog("not enabling ROM\n");
+                    vfio_msg(STRING_VFIO_ROM_FILE_DISABLED, dev->name, dev->rom_fn);
                     region->read = region->write = 0;
                     goto end;
                 }
@@ -2482,72 +2639,12 @@ vfio_region_init(vfio_device_t *dev, struct vfio_region_info *reg, vfio_region_t
             fclose(fp);
         } else {
             /* Read ROM from device. */
-            while ((i = pread(dev->fd, region->mmap_precalc,
-                              region->size - j,
-                              region->offset + j))
-                   != 0) {
-                region->mmap_precalc += i;
-                j += i;
-            }
+            dev->rom_from_dev = 1;
+            vfio_rom_read(dev);
         }
 
-        /* Perform a few sanity checks on the ROM, starting with the signature. */
-        j = 0;
-        if (*((uint16_t *) &region->mmap_base[0x00]) == 0xaa55) {
-            /* Check ROM length. */
-            uint32_t rom_len = region->mmap_base[0x02] << 9; /* 512-byte blocks */
-            if (rom_len > region->size) {
-                pclog("VFIO %s: Warning: ROM length (%d bytes) is larger than ROM region (%" PRIu64 " bytes)\n",
-                      dev->name, rom_len, region->size);
-                j = 1;
-            }
-
-            /* Check PCI pointer. */
-            uint16_t pci_ptr = *((uint16_t *) &region->mmap_base[0x18]);
-            if (pci_ptr && (pci_ptr != 0xffff)) {
-                /* Check PCI pointer bounds. */
-                if (pci_ptr <= (region->size - 0x12)) {
-                    /* Check PCI header ROM length only if <= 130048 bytes, as the
-                       ROM length is 8 bits in the main header and 16 bits in here. */
-                    uint32_t pci_len = *((uint16_t *) &region->mmap_base[pci_ptr + 0x18]) << 9; /* 512-byte blocks */
-                    if ((pci_len <= (254 << 9)) && (pci_len != rom_len)) {
-                        pclog("VFIO %s: Warning: ROM length in main header (%d bytes) is "
-                              "different from length in PCI header (%d bytes)\n",
-                              dev->name, rom_len, pci_len);
-                        j = 1;
-                    }
-                } else {
-                    pclog("VFIO %s: Warning: ROM has invalid PCI header pointer: %04X\n",
-                          dev->name, pci_ptr);
-                    j = 1;
-                }
-            } else {
-                pclog("VFIO %s: Warning: ROM has no PCI header pointer\n",
-                      dev->name);
-                j = 1;
-            }
-
-            /* Compare checksum. */
-            uint8_t checksum = 0;
-            if (rom_len > region->size) /* don't go out of bounds */
-                rom_len = region->size;
-            rom_len -= 1;
-            for (i = 0; i < rom_len; i++)
-                checksum -= region->mmap_base[i];
-            if (checksum != region->mmap_base[i]) {
-                pclog("VFIO %s: Warning: ROM has bad checksum; expected %02X, got %02X\n",
-                      dev->name, checksum, region->mmap_base[i]);
-                j = 1;
-            }
-        } else {
-            pclog("VFIO %s: Warning: ROM has no 55 AA signature\n", dev->name);
-            j = 1;
-        }
-
-        /* Add a helpful reminder if a sanity check warning was printed
-           and no ROM file was specified in this device's configuration. */
-        if (j && !dev->rom_fn)
-            pclog("VFIO %s: A custom ROM can be loaded through the VFIO settings.\n", dev->name);
+        /* Check the ROM after the device's first reset, as its own ROM may only be readable then. */
+        dev->rom_check = 1;
     } else {
         /* Attempt to mmap the region. */
         region->mmap_base = mmap(NULL, region->size,
@@ -2636,7 +2733,8 @@ vfio_group_get(int id, uint8_t add)
     snprintf(group_file, sizeof(group_file), "/dev/vfio/%d", group->id);
     group->fd = open(group_file, O_RDWR);
     if (group->fd < 0) {
-        pclog("VFIO: Group %d not found\n", group->id);
+        group->error = errno;
+        pclog("VFIO: Group %d could not be opened (%d)\n", group->id, group->error);
         goto end;
     }
 
@@ -2647,6 +2745,7 @@ vfio_group_get(int id, uint8_t add)
         goto close_fd;
     } else if (!(group_status.flags & VFIO_GROUP_FLAGS_VIABLE)) {
         pclog("VFIO: Group %d not viable\n", group->id);
+        group->error = -1;
         goto close_fd;
     }
 
@@ -2712,6 +2811,10 @@ vfio_dev_postreset(vfio_device_t *dev)
     uint32_t val = 0;
     for (uint8_t i = 0x10; i < 0x28; i++)
         (void) !pwrite(dev->config.fd, &val, sizeof(val), dev->config.offset + i);
+
+    /* Read the ROM again now that the device is reset and in D0. */
+    if (!closing)
+        vfio_rom_sync(dev);
 }
 
 static int
@@ -3028,6 +3131,7 @@ vfio_map_dma(uint8_t *ptr, uint32_t offset, uint32_t size)
     }
 
     pclog("VFIO: map_dma(%08X, %d) failed (%d)\n", offset, size, errno);
+    vfio_msg(STRING_VFIO_DMA_ERROR, strerror(errno));
 }
 
 static void
@@ -3190,6 +3294,20 @@ next2:
         }
         group = group->next;
     }
+
+    /* Check ROMs after the first reset, which is when a device's own ROM was read again. */
+    if (!closing) {
+        for (group = first_group; group; group = group->next) {
+            for (dev = group->first_device; dev; dev = dev->next) {
+                if (dev->rom_check) {
+                    dev->rom_check = 0;
+                    if (vfio_rom_check(dev))
+                        vfio_msg(STRING_VFIO_ROM_INVALID, dev->name);
+                }
+            }
+        }
+        vfio_msg_show(MBX_WARNING);
+    }
 }
 
 static vfio_device_t *
@@ -3318,6 +3436,422 @@ vfio_parse_location(const char *location, char *out, int out_size)
     return 1;
 }
 
+/* Device preparation: bind the configured devices' IOMMU groups to vfio-pci, give the
+   user access to them and raise the locked memory limit, through vfio-setup.sh as root. */
+#define VFIO_SETUP_TEXT_MAX  4096
+#define VFIO_SETUP_LSPCI_MAX 65536
+#define VFIO_SETUP_GROUP_MAX 64
+
+static int vfio_setup_declined = 0;
+
+static void
+vfio_setup_append(char *buf, const char *fmt, ...)
+{
+    size_t  len = strlen(buf);
+    va_list ap;
+
+    va_start(ap, fmt);
+    vsnprintf(&buf[len], VFIO_SETUP_TEXT_MAX - len, fmt, ap);
+    va_end(ap);
+}
+
+static void
+vfio_setup_driver(const char *location, char *buf, size_t size)
+{
+    char    path[PATH_MAX];
+    char    link[PATH_MAX];
+    ssize_t len;
+
+    snprintf(path, sizeof(path), "/sys/bus/pci/devices/%s/driver", location);
+    len = readlink(path, link, sizeof(link) - 1);
+    if (len <= 0) {
+        snprintf(buf, size, "none");
+        return;
+    }
+    link[len] = '\0';
+    snprintf(buf, size, "%s", path_get_basename(link));
+}
+
+static unsigned int
+vfio_setup_read_hex(const char *location, const char *attr)
+{
+    char         path[PATH_MAX];
+    unsigned int val = 0;
+    FILE        *fp;
+
+    snprintf(path, sizeof(path), "/sys/bus/pci/devices/%s/%s", location, attr);
+    if ((fp = fopen(path, "r"))) {
+        if (fscanf(fp, "%x", &val) != 1)
+            val = 0;
+        fclose(fp);
+    }
+    return val;
+}
+
+static int
+vfio_setup_compare(const void *a, const void *b)
+{
+    return strcmp((const char *) a, (const char *) b);
+}
+
+static int
+vfio_setup_configured(const char *location)
+{
+    char loc[13];
+
+    for (vfio_device_conf_t *conf = vfio_device_conf; (conf < &vfio_device_conf[VFIO_DEVICE_MAX]) && conf->location[0]; conf++) {
+        if (vfio_parse_location(conf->location, loc, sizeof(loc)) && !strcmp(loc, location))
+            return 1;
+    }
+    return 0;
+}
+
+/* Run a program with the given standard input, capturing its output, and return
+   its exit status or -1 if it could not be run. */
+static int
+vfio_setup_spawn(char **argv, const char *input, size_t input_len, char *out, size_t out_size)
+{
+    int   in[2]   = { -1, -1 };
+    int   outp[2] = { -1, -1 };
+    int   status  = -1;
+    pid_t child;
+
+    out[0] = '\0';
+    if (pipe(in) || pipe(outp))
+        goto end;
+    for (int j = 0; j < 2; j++) {
+        fcntl(in[j], F_SETFD, FD_CLOEXEC);
+        fcntl(outp[j], F_SETFD, FD_CLOEXEC);
+    }
+
+    posix_spawn_file_actions_t actions;
+    posix_spawn_file_actions_init(&actions);
+    posix_spawn_file_actions_adddup2(&actions, in[0], STDIN_FILENO);
+    posix_spawn_file_actions_adddup2(&actions, outp[1], STDOUT_FILENO);
+    posix_spawn_file_actions_adddup2(&actions, outp[1], STDERR_FILENO);
+    errno = posix_spawnp(&child, argv[0], &actions, NULL, argv, environ);
+    posix_spawn_file_actions_destroy(&actions);
+    close(in[0]);
+    close(outp[1]);
+    in[0] = outp[1] = -1;
+    if (errno) {
+        pclog("VFIO: Could not run %s (%d)\n", argv[0], errno);
+        goto end;
+    }
+
+    /* The input fits in a pipe's buffer, so writing it all first cannot block. */
+    if (input_len)
+        (void) !write(in[1], input, input_len);
+    close(in[1]);
+    in[1] = -1;
+
+    size_t  len = 0;
+    ssize_t i;
+    char    discard[256];
+    while ((i = read(outp[0], (len < (out_size - 1)) ? &out[len] : discard,
+                     (len < (out_size - 1)) ? (out_size - 1 - len) : sizeof(discard)))
+           > 0) {
+        if (len < (out_size - 1))
+            len += i;
+    }
+    out[len] = '\0';
+    while ((len > 0) && (out[len - 1] == '\n'))
+        out[--len] = '\0';
+
+    if ((waitpid(child, &status, 0) == child) && WIFEXITED(status))
+        status = WEXITSTATUS(status);
+    else
+        status = -1;
+
+end:
+    for (int j = 0; j < 2; j++) {
+        if (in[j] >= 0)
+            close(in[j]);
+        if (outp[j] >= 0)
+            close(outp[j]);
+    }
+    return status;
+}
+
+/* Get a device's name as lspci gives it, like the VFIO settings do, from the
+   output of "lspci -D". */
+static int
+vfio_setup_lspci_name(const char *lspci, const char *location, char *buf, size_t size)
+{
+    size_t      loc_len = strlen(location);
+    const char *line    = lspci;
+
+    while (line && *line) {
+        if (!strncmp(line, location, loc_len) && (line[loc_len] == ' ')) {
+            line += loc_len + 1;
+            size_t len = strcspn(line, "\n");
+            if (len >= size)
+                len = size - 1;
+            memcpy(buf, line, len);
+            buf[len] = '\0';
+            return 1;
+        }
+        if ((line = strchr(line, '\n')))
+            line++;
+    }
+    return 0;
+}
+
+/* Run vfio-setup.sh as root, returning its exit status or -1 if it could not be run. */
+static int
+vfio_setup_run(char **args, int nargs, char *out, size_t out_size)
+{
+    char *argv[8 + VFIO_DEVICE_MAX];
+    int   argc      = 0;
+    int   installed = 0;
+    int   status;
+
+#ifdef VFIO_SETUP_HELPER
+    /* Prefer the installed helper, which comes with a polkit policy. */
+    struct stat st;
+    installed = !stat(VFIO_SETUP_HELPER, &st) && S_ISREG(st.st_mode) && !st.st_uid &&
+                (st.st_mode & S_IXUSR) && !(st.st_mode & (S_IWGRP | S_IWOTH));
+#endif
+
+    if (geteuid()) {
+        /* Never fall back to pkexec's own agent on the terminal, which may not be
+           there or be in use by something else, and is broken on polkit 0.105. */
+        argv[argc++] = "pkexec";
+        argv[argc++] = "--disable-internal-agent";
+    }
+#ifdef VFIO_SETUP_HELPER
+    if (installed)
+        argv[argc++] = VFIO_SETUP_HELPER;
+#endif
+    if (!installed) {
+        /* Feed the embedded script through standard input, as authentication
+           dialogs show the command line and would show the whole script. */
+        argv[argc++] = "/bin/sh";
+        argv[argc++] = "-s";
+    }
+    for (int i = 0; i < nargs; i++)
+        argv[argc++] = args[i];
+    argv[argc] = NULL;
+
+    status = vfio_setup_spawn(argv, installed ? NULL : vfio_setup_sh, installed ? 0 : (sizeof(vfio_setup_sh) - 1), out, out_size);
+    if (status >= 0)
+        pclog("VFIO: %s exited with %d%s%s\n", installed ? "vfio-setup" : "Embedded vfio-setup", status, out[0] ? ":\n" : "", out);
+    return status;
+}
+
+/* Tell the user how to run vfio-setup.sh themselves, when it could not be run as root. */
+static void
+vfio_setup_manual(char **args, int nargs)
+{
+    char cmd[VFIO_SETUP_TEXT_MAX] = "";
+
+#ifdef VFIO_SETUP_HELPER
+    if (!access(VFIO_SETUP_HELPER, X_OK))
+        vfio_setup_append(cmd, "sudo %s", VFIO_SETUP_HELPER);
+#endif
+    if (!cmd[0]) {
+        /* Write the embedded script out, somewhere only this user can change it. */
+        const char *dir = getenv("XDG_RUNTIME_DIR");
+        char        path[PATH_MAX];
+        int         fd;
+        if (dir && dir[0]) {
+            snprintf(path, sizeof(path), "%s/86box-vfio-setup.sh", dir);
+            fd = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, 0600);
+        } else {
+            snprintf(path, sizeof(path), "/tmp/86box-vfio-setup-XXXXXX");
+            fd = mkstemp(path);
+        }
+        if (fd < 0)
+            return;
+        (void) !write(fd, vfio_setup_sh, sizeof(vfio_setup_sh) - 1);
+        close(fd);
+        vfio_setup_append(cmd, "sudo sh %s", path);
+    }
+    for (int i = 0; i < nargs; i++)
+        vfio_setup_append(cmd, " %s", args[i]);
+    vfio_msg(STRING_VFIO_SETUP_MANUAL, cmd);
+}
+
+/* Returns 1 if the devices could not be prepared, which the user has been told about. */
+static int
+vfio_setup(void)
+{
+    char     list[VFIO_SETUP_TEXT_MAX] = "";
+    char     others[VFIO_SETUP_TEXT_MAX] = "";
+    char     locs[VFIO_DEVICE_MAX][13];
+    int      groups[VFIO_DEVICE_MAX];
+    int      nlocs   = 0;
+    int      ngroups = 0;
+    int      need    = 0;
+    int      rebind  = 0;
+    char     path[PATH_MAX];
+    char     members[VFIO_SETUP_GROUP_MAX][16];
+    char     drv[64];
+    char     name[256];
+    char    *lspci = NULL;
+    char    *p;
+    int      group;
+
+    if (vfio_setup_declined)
+        return 0;
+
+    /* The vfio-pci module may not be loaded yet. */
+    if (access("/dev/vfio/vfio", F_OK))
+        need = 1;
+
+    for (vfio_device_conf_t *conf = vfio_device_conf; (conf < &vfio_device_conf[VFIO_DEVICE_MAX]) && conf->location[0]; conf++) {
+        /* Invalid or missing devices are reported later. */
+        if (!vfio_parse_location(conf->location, locs[nlocs], sizeof(locs[nlocs])))
+            continue;
+        snprintf(path, sizeof(path), "/sys/bus/pci/devices/%s/iommu_group", locs[nlocs]);
+        if (!(p = realpath(path, NULL)))
+            continue;
+        group = atoi(path_get_basename(p));
+        free(p);
+
+        /* Look at each group once. */
+        int seen = 0;
+        for (int i = 0; i < ngroups; i++)
+            seen |= (groups[i] == group);
+        if (seen) {
+            nlocs++;
+            continue;
+        }
+        groups[ngroups++] = group;
+
+        /* Find the group's devices which have to be bound to vfio-pci. */
+        char group_list[VFIO_SETUP_TEXT_MAX] = "";
+        char group_others[VFIO_SETUP_TEXT_MAX] = "";
+        int  refused = 0;
+        snprintf(path, sizeof(path), "/sys/kernel/iommu_groups/%d/devices", group);
+        plat_dir_t dir      = PLAT_DIR_INIT;
+        int        nmembers = 0;
+        if (plat_dir_open(&dir, path)) {
+            while ((nmembers < VFIO_SETUP_GROUP_MAX) && plat_dir_read(&dir)) {
+                if (strlen(plat_dir_get_name(&dir)) < sizeof(members[0]))
+                    strcpy(members[nmembers++], plat_dir_get_name(&dir));
+            }
+        }
+        plat_dir_close(&dir);
+        if (!nmembers)
+            continue;
+
+        /* List them in order, which sysfs does not. */
+        qsort(members, nmembers, sizeof(members[0]), vfio_setup_compare);
+        for (int i = 0; (i < nmembers) && !refused; i++) {
+            const char *loc = members[i];
+            vfio_setup_driver(loc, drv, sizeof(drv));
+            unsigned int cls = vfio_setup_read_hex(loc, "class");
+
+            /* Drivers which never claim DMA ownership keep the group viable,
+               but the configured devices themselves need vfio-pci. */
+            if (!strcmp(drv, "vfio-pci") || !strcmp(drv, "pci-stub") || !strcmp(drv, "pcieport") || ((cls >> 8) == 0x0604))
+                continue;
+            int configured = vfio_setup_configured(loc);
+            if (!strcmp(drv, "none") && !configured)
+                continue;
+
+            /* Never take a host or ISA bridge away from the host. */
+            if (((cls >> 8) == 0x0600) || ((cls >> 8) == 0x0601)) {
+                vfio_msg(STRING_VFIO_SETUP_REFUSED, locs[nlocs], group, loc);
+                refused = 1;
+                continue;
+            }
+
+            /* Name the device like the VFIO settings do, if lspci is there. */
+            if (!lspci && (lspci = calloc(1, VFIO_SETUP_LSPCI_MAX))) {
+                char *argv[] = { "lspci", "-D", NULL };
+                if (vfio_setup_spawn(argv, NULL, 0, lspci, VFIO_SETUP_LSPCI_MAX))
+                    lspci[0] = '\0';
+            }
+            if (lspci && vfio_setup_lspci_name(lspci, loc, name, sizeof(name)))
+                vfio_setup_append(configured ? group_list : group_others, "%s %s\n", loc, name);
+            else
+                vfio_setup_append(configured ? group_list : group_others, "%s\n", loc);
+        }
+        if (refused)
+            continue;
+
+        if (group_list[0] || group_others[0]) {
+            vfio_setup_append(list, "%s", group_list);
+            vfio_setup_append(others, "%s", group_others);
+            rebind = need = 1;
+        }
+
+        /* The user has to be able to open the group. */
+        snprintf(path, sizeof(path), "/dev/vfio/%d", group);
+        if (geteuid() && access(path, R_OK | W_OK))
+            need = 1;
+
+        nlocs++;
+    }
+    free(lspci);
+
+    /* Guest memory is locked for DMA, which the locked memory limit has to allow.
+       Raise it ourselves if the hard limit allows, otherwise only root can. */
+    struct rlimit rl;
+    uint64_t      memlock = ((uint64_t) mem_size << 10) + (64ULL << 20);
+    if (geteuid() && !getrlimit(RLIMIT_MEMLOCK, &rl) && (rl.rlim_cur != RLIM_INFINITY) && (rl.rlim_cur < memlock)) {
+        if ((rl.rlim_max == RLIM_INFINITY) || (rl.rlim_max >= memlock)) {
+            rl.rlim_cur = memlock;
+            if (setrlimit(RLIMIT_MEMLOCK, &rl))
+                need = 1;
+        } else {
+            need = 1;
+        }
+    }
+
+    if (!need || !nlocs)
+        return 0;
+
+    /* Ask first, listing what will be taken away from the host, including
+       devices which were not selected but share a group with one that was. */
+    char question[VFIO_SETUP_TEXT_MAX * 2];
+    if (rebind) {
+        if (others[0]) {
+            if (list[0])
+                vfio_setup_append(list, "\n");
+            vfio_setup_append(list, "%s\n\n%s", plat_get_string(STRING_VFIO_SETUP_GROUP), others);
+        }
+        snprintf(question, sizeof(question), plat_get_string(STRING_VFIO_SETUP_QUESTION), list);
+    } else {
+        snprintf(question, sizeof(question), "%s", plat_get_string(STRING_VFIO_SETUP_ACCESS));
+    }
+    if (ui_msgbox(MBX_QUESTION_YN, question) != 1) {
+        pclog("VFIO: Device preparation declined\n");
+        vfio_setup_declined = 1;
+        return 0;
+    }
+
+    char  pid_str[16];
+    char  memlock_str[24];
+    char *args[2 + VFIO_DEVICE_MAX];
+    int   nargs = 0;
+    snprintf(pid_str, sizeof(pid_str), "%d", getpid());
+    snprintf(memlock_str, sizeof(memlock_str), "%" PRIu64, memlock);
+    args[nargs++] = pid_str;
+    args[nargs++] = memlock_str;
+    for (int i = 0; i < nlocs; i++)
+        args[nargs++] = locs[i];
+
+    char out[VFIO_SETUP_TEXT_MAX];
+    int  ret = vfio_setup_run(args, nargs, out, sizeof(out));
+    if (ret == 0)
+        return 0;
+
+    /* pkexec gives 126 if the user dismissed its dialog, and 127 if authorization
+       failed, which is also what it does without an authentication agent. */
+    if (ret == 126) {
+        vfio_setup_declined = 1;
+        return 0;
+    } else if ((ret < 0) || ((ret == 127) && strstr(out, "authentication agent"))) {
+        vfio_setup_manual(args, nargs);
+    } else {
+        vfio_msg(STRING_VFIO_SETUP_FAILED, out[0] ? out : "?");
+    }
+    return 1;
+}
+
 void
 vfio_init(void)
 {
@@ -3327,11 +3861,15 @@ vfio_init(void)
     if (!vfio_device_conf[0].location[0])
         return;
 
+    /* Prepare the devices if they are not ready for passthrough. If that
+       failed, what goes wrong next is no news to the user. */
+    vfio_msgs_quiet = vfio_setup();
+
     /* Open VFIO container. */
     container_fd = open("/dev/vfio/vfio", O_RDWR);
     if (container_fd < 0) {
-        pclog("VFIO: Container not found (is vfio-pci loaded?)\n");
-        return;
+        vfio_msg(STRING_VFIO_NO_CONTAINER, strerror(errno));
+        goto close_container;
     }
 
     /* Check VFIO API version. */
@@ -3369,7 +3907,7 @@ vfio_init(void)
         dev_name = NULL;
         if (!vfio_parse_location(token, location, sizeof(location)) ||
             (sscanf(location, "%x:%x:%x.%x", &domain_id, &bus_id, &dev_id, &func_id) != 4)) {
-            pclog("VFIO: Invalid device location: %s\n", token);
+            vfio_msg(STRING_VFIO_INVALID_LOCATION, token);
             goto next;
         }
         if (vfio_dev_find(domain_id, bus_id, dev_id, func_id)) {
@@ -3401,8 +3939,9 @@ vfio_init(void)
         pclog("VFIO %s: IOMMU group ", dev_name);
 
         p = realpath(sysfs_device, NULL);
-        free(sysfs_device);
         if (p) {
+            free(sysfs_device);
+
             /* Parse group ID. */
             if (sscanf(path_get_basename(p), "%d", &i) != 1) {
                 pclog("path could not be parsed: %s\n", p);
@@ -3413,8 +3952,11 @@ vfio_init(void)
             pclog("%d\n", i);
             free(p);
         } else {
-            /* No symlink found, move on to the next device. */
+            /* No symlink found: tell a missing device from a missing IOMMU. */
             pclog("not found (%d)\n", errno);
+            sysfs_device[strlen(sysfs_device) - 12] = '\0'; /* strip /iommu_group */
+            vfio_msg(access(sysfs_device, F_OK) ? STRING_VFIO_DEVICE_NOT_FOUND : STRING_VFIO_NO_IOMMU_GROUP, dev_name);
+            free(sysfs_device);
             goto next;
         }
 
@@ -3423,6 +3965,12 @@ vfio_init(void)
         group = vfio_group_get(i, 1);
         if (group->fd < 0) {
             pclog("VFIO %s: Skipping because group failed to initialize\n", dev_name);
+            if (group->error == ENOENT) /* no device in the group is bound to vfio-pci */
+                vfio_msg(STRING_VFIO_NOT_BOUND, dev_name);
+            else if (group->error == -1)
+                vfio_msg(STRING_VFIO_GROUP_NOT_VIABLE, dev_name, group->id);
+            else if (group->error)
+                vfio_msg(STRING_VFIO_GROUP_OPEN_ERROR, dev_name, group->id, strerror(group->error));
             goto next;
         }
 
@@ -3533,6 +4081,9 @@ next: /* Clean up. */
 close_container:
     close(container_fd);
     container_fd = -1;
+
+    vfio_msg_show(MBX_WARNING);
+    vfio_msgs_quiet = 0;
 }
 
 void

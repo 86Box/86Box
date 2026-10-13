@@ -801,6 +801,8 @@ device_get_bus_name(const device_t *dev)
         sbus = "Sidecar";
     else if (dev->flags & DEVICE_XT_KBC)
         sbus = "XT KBC";
+    else if ((dev->flags & (DEVICE_ISA | DEVICE_ISA16)) == (DEVICE_ISA | DEVICE_ISA16))
+        sbus = "ISA/ISA16";
     else if (dev->flags & DEVICE_ISA16)
         sbus = "ISA16";
     else if (dev->flags & DEVICE_AT_KBC)

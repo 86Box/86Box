@@ -30,6 +30,15 @@ static const uint32_t texture_offset[LOD_MAX + 3] = {
     256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 1 * 1 + 1
 };
 
+enum {
+    TREXINIT0_TEXTURE_MEMORY_CONFIG_MASK           = 0x7000,
+    TREXINIT0_TEXTURE_MEMORY_SECOND_RAS_ADDRESS_18 = (1 << 12),
+    TREXINIT0_TEXTURE_MEMORY_SECOND_RAS_ENABLE     = (1 << 14)
+};
+
+uint32_t voodoo_tmu_texture_size_bytes(const voodoo_t *voodoo, int tmu);
+uint32_t voodoo_tmu_texture_mask(const voodoo_t *voodoo, int tmu);
+
 void voodoo_recalc_tex12(voodoo_t *voodoo, int tmu);
 void voodoo_recalc_tex3(voodoo_t *voodoo, int tmu);
 void voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu);

@@ -764,14 +764,16 @@ getfont_ps55dbcs_vram(epoch_t *epoch, int32_t code, int32_t line)
         int bitnum = bit9addr & 7;
         bit9addr >>= 3;
         bit9addr += 0x20000; /* real: C0000h */
-        font = epoch->vram[code];
+        /* The card is filled through 9-bit word addressing, so the data bytes
+           must be translated the same way the guest's writes were. */
+        font = epoch->vram[getaddr_9bitword(code)];
         font <<= 8;
         font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80; /* get 9th bit */
         font <<= 8;
         code++;
-        font |= epoch->vram[code];
+        font |= epoch->vram[getaddr_9bitword(code)];
         font <<= 8;
-        bitnum = code & 0x7;
+        bitnum = getaddr_9bitword(code) & 0x7;
         font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80; /* get 9th bit */
     }
     return font;

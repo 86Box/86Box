@@ -332,7 +332,6 @@ machine_at_valuepointp60_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_IDE,         0, 0, 0, 0);
     pci_register_slot(0x03, PCI_CARD_VIDEO,       3, 3, 3, 3);
     pci_register_slot(0x06, PCI_CARD_NORMAL,      3, 2, 1, 4);
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 1, 3, 4);
@@ -437,7 +436,6 @@ machine_at_batman_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_2);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_IDE,         0, 0, 0, 0);
     if (is_dell) {
         pci_register_slot(0x04, PCI_CARD_NORMAL,  4, 4, 3, 3);
         pci_register_slot(0x05, PCI_CARD_NORMAL,  1, 4, 3, 2);

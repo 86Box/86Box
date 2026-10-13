@@ -3550,3 +3550,60 @@ msgstr "Световое перо CGA"
 
 msgid "Luminance threshold (%)"
 msgstr "Порог яркости (%)"
+
+msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
+msgstr ""
+
+msgid "VFIO %s: Invalid device location."
+msgstr ""
+
+msgid "VFIO %s: Device not found."
+msgstr ""
+
+msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
+msgstr ""
+
+msgid "VFIO %s: Device is not bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO %s: Could not open IOMMU group %d: %s"
+msgstr ""
+
+msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
+msgstr ""
+
+msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
+msgstr ""
+
+msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
+msgstr ""
+
+msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
+msgstr ""
+
+msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
+msgstr ""
+
+msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
+msgstr ""
+
+msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
+msgstr ""
+
+msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
+msgstr ""
+
+msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
+msgstr ""
+
+msgid "Prepare PCI devices for VFIO passthrough"
+msgstr ""
+
+msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
+msgstr ""

@@ -5886,7 +5886,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_IDE,
+        .flags     = 0,
         .ram       = {
             .min  = 512, /* gets stuck at POST code 10 with less */
             .max  = 8192,
@@ -14784,7 +14784,7 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
             .max  = 131072,

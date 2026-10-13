@@ -154,7 +154,6 @@ voodoo_v2_blit_start(voodoo_t *voodoo)
     int      size_y = ABS(voodoo->bltSizeY);
     int      x_dir = (voodoo->bltSizeX > 0) ? 1 : -1;
     int      y_dir = (voodoo->bltSizeY > 0) ? 1 : -1;
-    int      dst_x;
     int      src_y = voodoo->bltSrcY & 0x7ff;
     int      dst_y = voodoo->bltDstY & 0x7ff;
     int      src_stride    = (voodoo->bltCommand & BLTCMD_SRC_TILED) ? ((voodoo->bltSrcXYStride & 0x3f) * 32 * 2) : (voodoo->bltSrcXYStride & 0xff8);
@@ -248,37 +247,26 @@ skip_line_fill:
             }
             break;
 
-        case BLIT_COMMAND_SGRAM_FILL:
-            /*32x32 tiles - 2kb*/
+        case BLIT_COMMAND_SGRAM_FILL: {
+            const int sgram_page_words = 512;
+
+            /* Glide uses SGRAM fill for whole pages, with 512 64-bit words in X. */
             dst_y  = voodoo->bltDstY & 0x3ff;
-            size_x = voodoo->bltSizeX & 0x1ff; // 512*8 = 4kb
             size_y = voodoo->bltSizeY & 0x3ff;
 
+            /* Replicate the 16-bit fill color across one 64-bit write. */
             dat64 = voodoo->bltColorFg | ((uint64_t) voodoo->bltColorFg << 16) | ((uint64_t) voodoo->bltColorFg << 32) | ((uint64_t) voodoo->bltColorFg << 48);
 
             for (int y = 0; y <= size_y; y++) {
-                uint64_t *dst;
+                uint64_t *dst = (uint64_t *) &voodoo->fb_mem[(dst_y * sgram_page_words * 8) & voodoo->fb_mask];
 
-                /*This may be wrong*/
-                if (!y) {
-                    dst_x  = voodoo->bltDstX & 0x1ff;
-                    size_x = 511 - dst_x;
-                } else if (y < size_y) {
-                    dst_x  = 0;
-                    size_x = 511;
-                } else {
-                    dst_x  = 0;
-                    size_x = voodoo->bltSizeX & 0x1ff;
-                }
-
-                dst = (uint64_t *) &voodoo->fb_mem[(dst_y * 512 * 8 + dst_x * 8) & voodoo->fb_mask];
-
-                for (int x = 0; x <= size_x; x++)
+                for (int x = 0; x < sgram_page_words; x++)
                     dst[x] = dat64;
 
                 dst_y++;
             }
             break;
+        }
 
         default:
             fatal("bad blit command %08x\n", voodoo->bltCommand);

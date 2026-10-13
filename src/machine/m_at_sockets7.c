@@ -438,13 +438,13 @@ static const device_config_t ms5169_config[] = {
                 .files         = { "roms/machines/ms5169/A569MS14.ROM", "" }
             },
             {
-                .name          = "AMIBIOS 6 (071595) - Revision 2.0",
-                .internal_name = "ms5169v20",
+                .name          = "AMIBIOS 6 (071595) - Revision 2.1",
+                .internal_name = "ms5169v21",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 131072,
-                .files         = { "roms/machines/ms5169/A569MS20.ROM", "" }
+                .files         = { "roms/machines/ms5169/A569MS21.ROM", "" }
             },
             {
                 .name          = "AMIBIOS 6 (071595) - Revision 2.7",

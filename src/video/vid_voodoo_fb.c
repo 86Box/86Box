@@ -174,6 +174,7 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
     int                    y;
     uint32_t               write_addr;
     uint32_t               write_addr_aux;
+    uint32_t               lfb_addr = addr;
     rgba8_t                colour_data;
     uint16_t               depth_data;
     uint8_t                alpha_data;
@@ -214,16 +215,49 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
             write_mask = LFB_WRITE_DEPTH;
             break;
 
+        case LFB_FORMAT_DEPTH_RGB565:
+            lfb_addr >>= 1;
+            if (lfb_addr & 1) {
+                depth_data = val;
+                write_mask = LFB_WRITE_DEPTH;
+            } else {
+                colour_data = rgb565[val];
+                write_mask  = LFB_WRITE_COLOUR;
+            }
+            break;
+        case LFB_FORMAT_DEPTH_RGB555:
+            lfb_addr >>= 1;
+            if (lfb_addr & 1) {
+                depth_data = val;
+                write_mask = LFB_WRITE_DEPTH;
+            } else {
+                colour_data = argb1555[val];
+                alpha_data  = 0xff;
+                write_mask  = LFB_WRITE_COLOUR;
+            }
+            break;
+        case LFB_FORMAT_DEPTH_ARGB1555:
+            lfb_addr >>= 1;
+            if (lfb_addr & 1) {
+                depth_data = val;
+                write_mask = LFB_WRITE_DEPTH;
+            } else {
+                colour_data = argb1555[val];
+                alpha_data  = colour_data.a;
+                write_mask  = LFB_WRITE_COLOUR;
+            }
+            break;
+
         default:
             fatal("voodoo_fb_writew : bad LFB format %08X\n", voodoo->lfbMode);
     }
 
     if (voodoo->type >= VOODOO_BANSHEE) {
-        x = addr & 0xffe;
-        y = (addr >> 12) & 0x3ff;
+        x = lfb_addr & 0xffe;
+        y = (lfb_addr >> 12) & 0x3ff;
     } else {
-        x = addr & 0x7fe;
-        y = (addr >> 11) & 0x3ff;
+        x = lfb_addr & 0x7fe;
+        y = (lfb_addr >> 11) & 0x3ff;
     }
 
     if (SLI_ENABLED) {

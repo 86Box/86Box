@@ -634,8 +634,12 @@ ropFISTPq(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
 
         return op_pc + 1;
     }
-    /* /* On the HP Vectra 486N, the generated store cannot report an empty-stack exception or suppress
-       the store/pop. Use the common FISTP m64 handler to preserve exception behavior. */
+    /*
+       On the HP Vectra 486N, the generated store cannot report an empty-stack exception
+       or suppress the store/pop.
+
+       Use the common FISTP m64 handler to preserve exception behavior.
+     */
     return 0;
 }
 
