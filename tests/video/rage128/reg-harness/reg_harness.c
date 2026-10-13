@@ -10369,23 +10369,35 @@ vectors_tiled_agp_tex(rage128_t *dev)
 
     /* an AGP staging must never cache across draws -- the guest
        writes AGP memory with no signal to the device. Two GPU-lane
-       captures of the same AGP level stage twice, at fresh offsets. */
+       captures of the same AGP level stage twice, at fresh offsets, and
+       add nothing to the cached VRAM range. That range is compared with
+       its value before the captures, not with empty: whether an earlier
+       vector's VRAM level is still cached here depends on the vector
+       order (the GPU lane keeps VRAM levels cached until the arena wraps
+       or idles with no cached level), and the row's claim is only that
+       the AGP stagings register no cached range. */
     if (harness_gpu_available()) {
         void     *fab        = harness_gpu_fab_alloc();
         void     *old_raster = dev->raster;
-        uint32_t  o1, o2;
+        uint32_t  o1, o2, lo0, hi0;
 
         flush_sync(dev);
         dev->raster = NULL;
         fab_in(dev, fab);
+        lo0 = dev->tex_stage.src_lo;
+        hi0 = dev->tex_stage.src_hi;
         rage128_raster_state_capture(dev, &trs);
         o1 = trs.prim_stage_off[0];
         rage128_raster_state_capture(dev, &trs);
         o2 = trs.prim_stage_off[0];
+        printf("gpu arena: AGP stagings o1=%x o2=%x cached=[%x,%x) before, [%x,%x) after\n",
+               o1, o2, lo0, hi0, dev->tex_stage.src_lo, dev->tex_stage.src_hi);
+        check_true("gpu arena: AGP level staged under the GPU lane, both captures",
+                   o1 != R128_TEX_STAGE_NONE && o2 != R128_TEX_STAGE_NONE);
         check_true("gpu arena: AGP staging stays per-draw under the GPU lane",
-                   o1 != R128_TEX_STAGE_NONE && o2 != R128_TEX_STAGE_NONE
-                       && o2 > o1
-                       && dev->tex_stage.src_lo == dev->tex_stage.src_hi);
+                   o2 > o1);
+        check_true("gpu arena: AGP stagings add no cached VRAM range",
+                   dev->tex_stage.src_lo == lo0 && dev->tex_stage.src_hi == hi0);
         fab_out(dev);
         harness_gpu_fab_free(fab);
         dev->raster = old_raster;
