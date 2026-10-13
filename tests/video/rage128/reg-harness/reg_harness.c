@@ -8944,12 +8944,26 @@ vectors_gpu_tiled(rage128_t *dev)
 /* grouping, so the pair test below fails on a per-row grouping on     */
 /* every run, not only when the GPU happens to reorder the writes.     */
 /* ------------------------------------------------------------------ */
-#define RA_SPANS 4096u
+#define RA_SPANS 8192u
+
+/* Do two span byte ranges share a byte, with each one wrapped at the
+   top of VRAM as the kernel's address mask wraps it: a range past the
+   size is its head [a0, size) plus the tail [0, a1 - size). */
+static int
+ra_hit(uint32_t a0, uint32_t a1, uint32_t b0, uint32_t b1, uint32_t size)
+{
+    uint32_t ah0 = a0, ah1 = a1 < size ? a1 : size, at1 = a1 > size ? a1 - size : 0;
+    uint32_t bh0 = b0, bh1 = b1 < size ? b1 : size, bt1 = b1 > size ? b1 - size : 0;
+
+    return (ah0 < bh1 && bh0 < ah1) || (ah0 < bt1) || (bh0 < at1)
+        || (at1 && bt1);
+}
 
 /* Capture ntri triangles (v[3k..3k+2]) into one segment and grade them.
    Byte ranges come from the span records (row base + column * bpp),
-   computed here, not from the backend's own range shadow. wide = the
-   draw passes the pitch. */
+   computed here, not from the backend's own range shadow, and compared
+   wrapped at the top of VRAM. wide = the draw passes the pitch or the
+   top of VRAM, so its rows share bytes. */
 static void
 ra_grade(rage128_t *dev, const char *leg, const rage128_raster_state_t *rs,
          const r3d_vtx_t *v, uint32_t ntri, int wide)
@@ -8960,6 +8974,7 @@ ra_grade(rage128_t *dev, const char *leg, const rage128_raster_state_t *rs,
     int                       ran;
     uint32_t                  clo = 0xffffffffu, chi = 0, zlo = 0xffffffffu, zhi = 0;
     uint32_t                  zbpp = (uint32_t) rs->d.zbpp;
+    uint32_t                  size = dev->vram_mask + 1u;
     int                       zon  = rs->d.z_en || rs->d.sten_on;
     char                      nm[160];
 
@@ -8973,23 +8988,33 @@ ra_grade(rage128_t *dev, const char *leg, const rage128_raster_state_t *rs,
         uint32_t a0 = sp[i].drow + (uint32_t) sp[i].x0 * 4u;
         uint32_t a1 = sp[i].drow + (uint32_t) (sp[i].x1 + 1) * 4u;
 
+        /* coverage: a span wrapped at the top of VRAM needs the whole
+           card, which is how the backend folds such a range */
+        if (a1 > size) {
+            clo = 0;
+            chi = size;
+        }
         if (a0 < clo)
             clo = a0;
-        if (a1 > chi)
+        if (a1 > chi && a1 <= size)
             chi = a1;
         if (zon) {
             uint32_t b0 = sp[i].zrow + (uint32_t) sp[i].x0 * zbpp;
             uint32_t b1 = sp[i].zrow + (uint32_t) (sp[i].x1 + 1) * zbpp;
 
+            if (b1 > size) {
+                zlo = 0;
+                zhi = size;
+            }
             if (b0 < zlo)
                 zlo = b0;
-            if (b1 > zhi)
+            if (b1 > zhi && b1 <= size)
                 zhi = b1;
         }
         for (uint32_t j = 0; j < i; j++) {
             uint32_t c0 = sp[j].drow + (uint32_t) sp[j].x0 * 4u;
             uint32_t c1 = sp[j].drow + (uint32_t) (sp[j].x1 + 1) * 4u;
-            int      ov = a0 < c1 && c0 < a1;
+            int      ov = ra_hit(a0, a1, c0, c1, size);
 
             if (zon) {
                 uint32_t d0 = sp[j].zrow + (uint32_t) sp[j].x0 * zbpp;
@@ -8997,7 +9022,7 @@ ra_grade(rage128_t *dev, const char *leg, const rage128_raster_state_t *rs,
                 uint32_t b0 = sp[i].zrow + (uint32_t) sp[i].x0 * zbpp;
                 uint32_t b1 = sp[i].zrow + (uint32_t) (sp[i].x1 + 1) * zbpp;
 
-                ov |= b0 < d1 && d0 < b1;
+                ov |= ra_hit(b0, b1, d0, d1, size);
             }
             if (!ov)
                 continue;
@@ -9145,6 +9170,48 @@ vectors_gpu_rowalias(rage128_t *dev)
     ra_leg(dev, "Z wide", &rs, 400.0f, 40.0f, 1);
     ra_leg(dev, "Z in-pitch", &rs, 64.0f, 40.0f, 0);
     wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+
+    /* Rows past the top of VRAM, no column past the pitch: a linear
+       8184 px ARGB8888 surface (32736 B rows, the widest the pitch
+       field encodes) at base 0 on the 32 MB card. Row 1024 starts
+       32768 B below the top, row 1025 at 32 B below it, so its columns
+       from 8 on wrap onto row 0's bytes and row 1026 lands on row 1's.
+       Two 200 px wide rectangles of one state, rows 0..7 and rows
+       1022..1030 (four triangles, one run), give both shapes: spans
+       sharing bytes through the wrap, and one span straddling the top.
+       The run stays under the leveler's pairwise cap, so the grading
+       sees the levels the pair scan assigns; it compares byte ranges
+       wrapped at the top, so the straddling span's tail counts. */
+    {
+        r3d_vtx_t q[12];
+
+        if (dev->vram_mask + 1u == 32u << 20) {
+            wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x7fe00000u); /* pitch field 0x3ff, tile bit clear */
+            /* Z is off, but the leveler sizes a span's Z range by the Z
+               pitch and depth anyway (over-reporting only); at the 64
+               px Z pitch of the leg above those ranges would alias
+               across rows and level the spans for the wrong reason, so
+               the Z pitch is widened to the color pitch here. */
+            wr(dev, RAGE128_Z_PITCH_C, 0x000003ffu);
+            rage128_raster_state_capture(dev, &rs);
+            check32("gpu row-alias VRAM wrap: 8184 px linear surface at base 0",
+                    (uint32_t) (rs.dst_pitch == 8184u && rs.dst_offset == 0 && !rs.d.c_tiled), 1);
+            for (int r = 0; r < 2; r++) {
+                float y0 = r ? 1022.0f : 0.0f;
+                float y1 = r ? 1031.0f : 8.0f;
+
+                ra_vtx(&q[6 * r + 0], 0.0f, y0);
+                ra_vtx(&q[6 * r + 1], 200.0f, y0);
+                ra_vtx(&q[6 * r + 2], 0.0f, y1);
+                ra_vtx(&q[6 * r + 3], 200.0f, y0);
+                ra_vtx(&q[6 * r + 4], 200.0f, y1);
+                ra_vtx(&q[6 * r + 5], 0.0f, y1);
+            }
+            ra_grade(dev, "VRAM wrap", &rs, q, 4, 1);
+            wr(dev, RAGE128_Z_PITCH_C, 0x00000008u);
+        } else
+            printf("SKIP gpu row-alias VRAM wrap: needs the 32 MB card\n");
+    }
 
     /* End to end through the submit path: on the tiled 64 px target,
        draw A covers x 64..127 of rows 0..15 and draw B, after it, x 0..63
