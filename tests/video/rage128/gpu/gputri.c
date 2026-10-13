@@ -606,12 +606,17 @@ rr_tex_level(const r3d_stage_desc_t *d, int slot, float s, float t, int linear,
         near = (u < 0 || v < 0) ? d->border
                                 : rr_texel(texbase, basesel, masksel, lw, d->dt, d->amask, d->s3tc, d->pal, u, v);
         if (nearest) {
-            /* CI formats key on the raw palette index (r3d_texel_ci_raw) */
+            /* The keys compare the texel as stored, as r3d_tex_level
+               does: CI formats key on the raw palette index
+               (r3d_texel_ci_raw), other formats on the texel before the
+               TEX_MAP_AEN override */
             if ((d->dt == 1 || d->dt == 2) && u >= 0 && v >= 0) {
                 uint32_t idx = texbase[(basesel + (uint32_t) v * lw + (uint32_t) u) & masksel];
 
                 *nearest = d->dt == 1 ? (idx & 0xfu) : idx;
-            } else
+            } else if (d->amask && u >= 0 && v >= 0)
+                *nearest = rr_texel(texbase, basesel, masksel, lw, d->dt, 0, d->s3tc, d->pal, u, v);
+            else
                 *nearest = near;
         }
         if (g_pd_active)
