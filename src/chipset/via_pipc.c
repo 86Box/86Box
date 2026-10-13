@@ -1434,6 +1434,10 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         if ((dev->local <= VIA_PIPC_596B) && ((addr >= 0x64) && (addr < (dev->local == VIA_PIPC_596A ? 0x80 : 0x85))))
             return;
 
+        /* 596A has the SMBus I/O base and host configuration at 80h-84h instead. */
+        if ((dev->local == VIA_PIPC_596A) && ((addr == 0x90) || (addr == 0x91) || (addr == 0xd2)))
+            return;
+
         switch (addr) {
             case 0x41:
             case 0x48:
@@ -1496,7 +1500,7 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 
             case 0x90:
             case 0x91:
-                if ((addr == 0x90) && (dev->local >= VIA_PIPC_596B))
+                if (addr == 0x90)
                     val = (val & 0xf0) | 0x01;
                 dev->power_regs[addr] = val;
                 smbus_piix4_remap(dev->smbus, (dev->power_regs[0x91] << 8) | (dev->power_regs[0x90] & 0xf0), dev->power_regs[0xd2] & 0x01);
