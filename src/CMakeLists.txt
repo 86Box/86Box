@@ -248,6 +248,26 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     # AppStream metadata
     install(FILES "${ASSETS_DIR}/net.86box.86Box.metainfo.xml"
         DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/metainfo")
+
+    # VFIO device preparation helper, and its polkit policy translated from the UI's .po files
+    if(VFIO AND VFIO_AVAILABLE)
+        install(PROGRAMS "${CMAKE_CURRENT_SOURCE_DIR}/device/vfio-setup.sh"
+            DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}/86box" RENAME vfio-setup)
+
+        set(VFIO_POLICY "${CMAKE_CURRENT_BINARY_DIR}/net.86box.86Box.vfio-setup.policy")
+        file(GLOB VFIO_POLICY_PO "${CMAKE_CURRENT_SOURCE_DIR}/qt/languages/*.po")
+        add_custom_command(OUTPUT "${VFIO_POLICY}"
+            COMMAND "${CMAKE_COMMAND}" "-DIN=${ASSETS_DIR}/net.86box.86Box.vfio-setup.policy.in"
+                    "-DOUT=${VFIO_POLICY}" "-DPO_DIR=${CMAKE_CURRENT_SOURCE_DIR}/qt/languages"
+                    "-DHELPER=${CMAKE_INSTALL_FULL_LIBEXECDIR}/86box/vfio-setup"
+                    -P "${PROJECT_SOURCE_DIR}/cmake/PolkitPolicy.cmake"
+            DEPENDS "${ASSETS_DIR}/net.86box.86Box.vfio-setup.policy.in" ${VFIO_POLICY_PO}
+                    "${PROJECT_SOURCE_DIR}/cmake/PolkitPolicy.cmake"
+            COMMENT "Generating the VFIO polkit policy")
+        add_custom_target(vfio-policy ALL DEPENDS "${VFIO_POLICY}")
+        # polkit only reads policies from its own directory, usually under /usr.
+        install(FILES "${VFIO_POLICY}" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/polkit-1/actions")
+    endif()
 endif()
 
 
