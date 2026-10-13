@@ -8935,6 +8935,259 @@ vectors_gpu_tiled(rage128_t *dev)
 }
 
 /* ------------------------------------------------------------------ */
+/* Draws whose columns pass the surface pitch. Only the scissor clips  */
+/* a draw, so a triangle wider than its target writes pixel x of row y */
+/* onto the bytes of a later row (row y + 1 linear, row y + 16 tiled). */
+/* The GPU lane gives each row its own workgroup, so such a run must   */
+/* be one ordered group, and its hazard range must reach the bytes     */
+/* past the last row. The capture probe reports the production         */
+/* grouping, so the pair test below fails on a per-row grouping on     */
+/* every run, not only when the GPU happens to reorder the writes.     */
+/* ------------------------------------------------------------------ */
+#define RA_SPANS 4096u
+
+/* Capture ntri triangles (v[3k..3k+2]) into one segment and grade them.
+   Byte ranges come from the span records (row base + column * bpp),
+   computed here, not from the backend's own range shadow. wide = the
+   draw passes the pitch. */
+static void
+ra_grade(rage128_t *dev, const char *leg, const rage128_raster_state_t *rs,
+         const r3d_vtx_t *v, uint32_t ntri, int wide)
+{
+    static harness_gpu_span_t sp[RA_SPANS];
+    harness_gpu_cap_t         cap;
+    uint32_t                  pairs = 0, split = 0, order = 0, cross = 0, lvbad = 0;
+    int                       ran;
+    uint32_t                  clo = 0xffffffffu, chi = 0, zlo = 0xffffffffu, zhi = 0;
+    uint32_t                  zbpp = (uint32_t) rs->d.zbpp;
+    int                       zon  = rs->d.z_en || rs->d.sten_on;
+    char                      nm[160];
+
+    snprintf(nm, sizeof(nm), "gpu row-alias %s: capture ran", leg);
+    ran = harness_gpu_capture_tris(dev, rs, v, ntri, sp, RA_SPANS, &cap)
+        && cap.nspans > 0 && cap.got == cap.nspans && cap.leveled;
+    check_true(nm, ran);
+    if (!ran)
+        return; /* nothing below can be graded on a missing or cut capture */
+    for (uint32_t i = 0; i < cap.got; i++) {
+        uint32_t a0 = sp[i].drow + (uint32_t) sp[i].x0 * 4u;
+        uint32_t a1 = sp[i].drow + (uint32_t) (sp[i].x1 + 1) * 4u;
+
+        if (a0 < clo)
+            clo = a0;
+        if (a1 > chi)
+            chi = a1;
+        if (zon) {
+            uint32_t b0 = sp[i].zrow + (uint32_t) sp[i].x0 * zbpp;
+            uint32_t b1 = sp[i].zrow + (uint32_t) (sp[i].x1 + 1) * zbpp;
+
+            if (b0 < zlo)
+                zlo = b0;
+            if (b1 > zhi)
+                zhi = b1;
+        }
+        for (uint32_t j = 0; j < i; j++) {
+            uint32_t c0 = sp[j].drow + (uint32_t) sp[j].x0 * 4u;
+            uint32_t c1 = sp[j].drow + (uint32_t) (sp[j].x1 + 1) * 4u;
+            int      ov = a0 < c1 && c0 < a1;
+
+            if (zon) {
+                uint32_t d0 = sp[j].zrow + (uint32_t) sp[j].x0 * zbpp;
+                uint32_t d1 = sp[j].zrow + (uint32_t) (sp[j].x1 + 1) * zbpp;
+                uint32_t b0 = sp[i].zrow + (uint32_t) sp[i].x0 * zbpp;
+                uint32_t b1 = sp[i].zrow + (uint32_t) (sp[i].x1 + 1) * zbpp;
+
+                ov |= b0 < d1 && d0 < b1;
+            }
+            if (!ov)
+                continue;
+            pairs++;
+            if (sp[i].py != sp[j].py)
+                cross++;
+            if (sp[i].group != sp[j].group)
+                split++;
+            else {
+                if (sp[j].rank >= sp[i].rank)
+                    order++; /* the later capture comes later in its group */
+                if (sp[j].level >= sp[i].level)
+                    lvbad++; /* ... and in a later pass, after a barrier */
+            }
+        }
+    }
+    printf("gpu row-alias %s: spans=%u groups=%u rowalias=%d pairs=%u cross-row=%u "
+           "split=%u misordered=%u same-level=%u c=[%08x,%08x) range=[%08x,%08x)\n",
+           leg, cap.got, cap.ngroups, cap.rowalias, pairs, cross, split, order,
+           lvbad, clo, chi, cap.clo, cap.chi);
+    snprintf(nm, sizeof(nm), "gpu row-alias %s: run flagged only when it passes the pitch", leg);
+    check32(nm, (uint32_t) cap.rowalias, (uint32_t) wide);
+    snprintf(nm, sizeof(nm), "gpu row-alias %s: spans of different rows share bytes only past the pitch", leg);
+    check_true(nm, wide ? cross > 0 : cross == 0);
+    snprintf(nm, sizeof(nm), "gpu row-alias %s: spans sharing a byte are in one group", leg);
+    check32(nm, split, 0);
+    snprintf(nm, sizeof(nm), "gpu row-alias %s: shared bytes keep capture order", leg);
+    check32(nm, order, 0);
+    snprintf(nm, sizeof(nm), "gpu row-alias %s: a span sharing a byte is leveled after the earlier one", leg);
+    check32(nm, lvbad, 0);
+    snprintf(nm, sizeof(nm), "gpu row-alias %s: hazard range covers every color byte", leg);
+    check_true(nm, cap.clo <= clo && cap.chi >= chi);
+    if (zon) {
+        snprintf(nm, sizeof(nm), "gpu row-alias %s: hazard range covers every Z byte", leg);
+        check_true(nm, cap.zlo <= zlo && cap.zhi >= zhi);
+    }
+    if (!wide) {
+        snprintf(nm, sizeof(nm), "gpu row-alias %s: a plain run keeps one group per row", leg);
+        check32(nm, cap.ngroups, (uint32_t) (sp[cap.got - 1].py - sp[0].py + 1));
+    }
+}
+
+static void
+ra_vtx(r3d_vtx_t *v, float x, float y)
+{
+    memset(v, 0, sizeof(*v));
+    v->x       = x;
+    v->y       = y;
+    v->z       = 0.25f;
+    v->rhw     = 1.0f;
+    v->diffuse = 0xff306090;
+}
+
+/* One right triangle from (0,0), widest on its last row, so the bytes
+   past the pitch land beyond the rows' own band and its one-row slack. */
+static void
+ra_leg(rage128_t *dev, const char *leg, const rage128_raster_state_t *rs,
+       float x1, float y1, int wide)
+{
+    r3d_vtx_t v[3];
+
+    ra_vtx(&v[0], 0.0f, 0.0f);
+    ra_vtx(&v[1], x1, y1);
+    ra_vtx(&v[2], 0.0f, y1);
+    ra_grade(dev, leg, rs, v, 1, wide);
+}
+
+/* Two rectangles, each two triangles, in one run: A over columns
+   [pitch, 2 * pitch) of rows [0, 16), then B over columns [0, pitch) of
+   rows [dy, dy + 16), dy being the row the surface's alias lands on
+   (16 tiled, 1 linear). Every byte A writes is a byte B writes later,
+   while the two spans' offsets within their own rows are disjoint, so a
+   leveler that compared within-row offsets would put them in one pass. */
+static void
+ra_quads(rage128_t *dev, const char *leg, const rage128_raster_state_t *rs,
+         float pitch, float dy)
+{
+    r3d_vtx_t v[12];
+
+    for (int q = 0; q < 2; q++) {
+        float x0 = q ? 0.0f : pitch;
+        float y0 = q ? dy : 0.0f;
+
+        ra_vtx(&v[6 * q + 0], x0, y0);
+        ra_vtx(&v[6 * q + 1], x0 + pitch, y0);
+        ra_vtx(&v[6 * q + 2], x0, y0 + 16.0f);
+        ra_vtx(&v[6 * q + 3], x0 + pitch, y0);
+        ra_vtx(&v[6 * q + 4], x0 + pitch, y0 + 16.0f);
+        ra_vtx(&v[6 * q + 5], x0, y0 + 16.0f);
+    }
+    ra_grade(dev, leg, rs, v, 4, 1);
+}
+
+static void
+vectors_gpu_rowalias(rage128_t *dev)
+{
+    static rage128_raster_state_t rs;
+    uint64_t                      gs0 = 0, gb0 = 0, gs1 = 0, gb1 = 0;
+    int                           gv;
+
+    if (!harness_gpu_available()) {
+        printf("SKIP gpu row-alias: GPU-lane vectors (built without Vulkan headers)\n");
+        return;
+    }
+    flush_sync(dev);
+
+    /* 64 px ARGB8888 color at HZ_A, no Z, scissor at the card maximum:
+       the only clip is the scissor, as on the driver that drew this. */
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x1fff1fff);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+
+    /* tiled: 4 tile columns of 16 px; x up to 399 is 21 columns past,
+       in tile column 24, six surface widths on: 96 rows further down */
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x81000000u | (HZ_A >> 5));
+    rage128_raster_state_capture(dev, &rs);
+    ra_leg(dev, "tiled wide", &rs, 400.0f, 40.0f, 1);
+    ra_leg(dev, "tiled in-pitch", &rs, 64.0f, 40.0f, 0);
+    ra_quads(dev, "tiled two draws", &rs, 64.0f, 16.0f);
+
+    /* linear: x past 63 is row y + 1, up to 6 rows further on */
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+    rage128_raster_state_capture(dev, &rs);
+    ra_leg(dev, "linear wide", &rs, 400.0f, 40.0f, 1);
+    ra_leg(dev, "linear in-pitch", &rs, 64.0f, 40.0f, 0);
+    ra_quads(dev, "linear two draws", &rs, 64.0f, 1.0f);
+
+    /* Z alone passes its pitch: 512 px color rows, 64 px 16-bit Z rows */
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x08000000u | (HZ_A >> 5));
+    wr(dev, RAGE128_Z_OFFSET_C, HZ_Z);
+    wr(dev, RAGE128_Z_PITCH_C, 0x00000008u);
+    wr(dev, 0x1c98, 0x00000010);             /* 16-bit Z, fn LESS */
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000003); /* Z_EN | Z_WR       */
+    rage128_raster_state_capture(dev, &rs);
+    ra_leg(dev, "Z wide", &rs, 400.0f, 40.0f, 1);
+    ra_leg(dev, "Z in-pitch", &rs, 64.0f, 40.0f, 0);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+
+    /* End to end through the submit path: on the tiled 64 px target,
+       draw A covers x 64..127 of rows 0..15 and draw B, after it, x 0..63
+       of rows 16..31: the same bytes. B must win, as in the interpreter;
+       under R128_GPU=verify the backend's own replay grades it. */
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x81000000u | (HZ_A >> 5));
+    gv = harness_gpu_verify_stats(dev, &gs0, &gb0);
+    for (uint32_t i = 0; i < 64u * 32u; i++)
+        *(uint32_t *) &dev->svga.vram[HZ_A + i * 4u] = HZ_MARK;
+    for (int pass = 0; pass < 2; pass++) {
+        static rage128_raster_state_t drs;
+        r3d_vtx_t                     q[4];
+        float                         xa = pass ? 0.0f : 64.0f;
+        float                         ya = pass ? 16.0f : 0.0f;
+
+        memset(q, 0, sizeof(q));
+        for (int k = 0; k < 4; k++) {
+            q[k].z       = 0.25f;
+            q[k].rhw     = 1.0f;
+            q[k].diffuse = pass ? 0xff00b000u : 0xffa00000u;
+        }
+        q[0].x = xa;         q[0].y = ya;
+        q[1].x = xa + 64.0f; q[1].y = ya;
+        q[2].x = xa;         q[2].y = ya + 16.0f;
+        q[3].x = xa + 64.0f; q[3].y = ya + 16.0f;
+        rage128_raster_state_capture(dev, &drs);
+        rage128_raster_submit_tri(dev, &drs, &q[0], &q[1], &q[2]);
+        rage128_raster_submit_tri(dev, &drs, &q[1], &q[3], &q[2]);
+    }
+    flush_sync(dev);
+    if (gv && harness_gpu_verify_stats(dev, &gs1, &gb1)) {
+        printf("gpu row-alias end to end: segments=%llu mismatched=%llu\n",
+               (unsigned long long) (gs1 - gs0), (unsigned long long) (gb1 - gb0));
+        check_true("gpu row-alias end to end: the draws reach GPU segments", gs1 > gs0);
+        check_true("gpu row-alias end to end: GPU matches the interpreter", gb1 == gb0);
+    } else if (getenv("R128_GPU") && !strcmp(getenv("R128_GPU"), "verify"))
+        printf("SKIP gpu row-alias end to end: verify backend unavailable\n");
+
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+    wr(dev, 0x16f0, 0x003f003f);
+}
+
+/* ------------------------------------------------------------------ */
 /* Two-tier accept pricing. The bbox bound charges every row at full   */
 /* bbox width; a tiled Z multiplies that by its per-row piece count,   */
 /* so a fullscreen-bbox triangle at 1280x1024x32 prices 83106 spans    */
@@ -13700,6 +13953,7 @@ run_agp_32mb_threaded(void)
     vectors_gpu_tiled_fill(dev);
     vectors_tiled_pitch(dev);
     vectors_tiled_scanout(dev);
+    vectors_gpu_rowalias(dev);
     close_dev(dev);
     harness_cfg_render_threads = 1;
 }
