@@ -9419,6 +9419,90 @@ vectors_raster_rowalias(rage128_t *dev)
 }
 
 /* ------------------------------------------------------------------ */
+/* The commutative-stencil class key. Two stencil-only draws with the  */
+/* same function, operations, reference and masks may share a batch   */
+/* in any order, because the stencil byte is the only byte they touch */
+/* and the kernel updates it atomically. The Z cell layout must be     */
+/* part of that key: with 24-bit depth the stencil byte is the top of  */
+/* the cell, with 32-bit depth the bottom, so two draws of different   */
+/* layouts touch different bytes and one's depth read sees the other's */
+/* stencil write. The probe reports the key the capture assigns.       */
+/* ------------------------------------------------------------------ */
+static uint32_t
+sc_key(rage128_t *dev, uint32_t z_sten_cntl, uint32_t tex_cntl, const char *what)
+{
+    static rage128_raster_state_t rs;
+    static harness_gpu_span_t     sp[64];
+    harness_gpu_cap_t             cap;
+    r3d_vtx_t                     v[3];
+    char                          nm[96];
+
+    wr(dev, RAGE128_Z_STEN_CNTL_C, z_sten_cntl);
+    wr(dev, RAGE128_TEX_CNTL_C, tex_cntl);
+    rage128_raster_state_capture(dev, &rs);
+    memset(v, 0, sizeof(v));
+    for (int k = 0; k < 3; k++) {
+        v[k].z   = 0.25f;
+        v[k].rhw = 1.0f;
+    }
+    v[1].x = 16.0f;
+    v[2].y = 16.0f;
+    snprintf(nm, sizeof(nm), "gpu stencil class: %s captured", what);
+    check_true(nm, harness_gpu_capture_tri(dev, &rs, &v[0], &v[1], &v[2], sp, 64, &cap)
+                       && cap.nspans > 0);
+    printf("gpu stencil class: %s key=%08x ref/masks=%08x\n", what, cap.sctl, cap.srm);
+    return cap.sctl;
+}
+
+static void
+vectors_gpu_stencil_class(rage128_t *dev)
+{
+    uint32_t k24, k24b, k32, kzw;
+
+    if (!harness_gpu_available()) {
+        printf("SKIP gpu stencil class: GPU-lane vectors (built without Vulkan headers)\n");
+        return;
+    }
+    flush_sync(dev);
+
+    /* 64 px ARGB8888 color at HZ_A with every color plane masked off,
+       Z at HZ_Z with 64 px rows; stencil on, Z off: the shape of a
+       stencil-volume fill. Z_STEN_CNTL_C: depth width [2:1] (1 = 24-bit
+       with stencil in the top byte, 2 = 32-bit with stencil in the low
+       byte), STENCIL_TEST [14:12] 7 = always, STEN_ZPASS_OP [22:20] and
+       STEN_ZFAIL_OP [26:24] 2 = replace. */
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x003f003f);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+    wr(dev, RAGE128_Z_OFFSET_C, HZ_Z);
+    wr(dev, RAGE128_Z_PITCH_C, 0x00000008u);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0x00000000);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    wr(dev, RAGE128_STEN_REF_MASK_C, 0xffff0001u);
+
+    k24  = sc_key(dev, 0x02207002u, 0x00000008u, "24-bit depth, stencil only");
+    k32  = sc_key(dev, 0x02207004u, 0x00000008u, "32-bit depth, stencil only");
+    k24b = sc_key(dev, 0x02207002u, 0x00000008u, "24-bit depth again");
+    kzw  = sc_key(dev, 0x02207002u, 0x0000000bu, "24-bit depth with a Z write");
+    check_true("gpu stencil class: a stencil-only draw is in the class", k24 != 0 && k32 != 0);
+    check_true("gpu stencil class: the same layout repeats its key", k24b == k24);
+    check_true("gpu stencil class: the two cell layouts get different keys", k32 != k24);
+    check32("gpu stencil class: a draw that writes depth is outside the class", kzw, 0);
+
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_Z_STEN_CNTL_C, 0x00000010);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+}
+
+/* ------------------------------------------------------------------ */
 /* Two-tier accept pricing. The bbox bound charges every row at full   */
 /* bbox width; a tiled Z multiplies that by its per-row piece count,   */
 /* so a fullscreen-bbox triangle at 1280x1024x32 prices 83106 spans    */
@@ -14198,6 +14282,7 @@ run_agp_32mb_threaded(void)
     vectors_tiled_scanout(dev);
     vectors_gpu_rowalias(dev);
     vectors_raster_rowalias(dev);
+    vectors_gpu_stencil_class(dev);
     close_dev(dev);
     harness_cfg_render_threads = 1;
 }

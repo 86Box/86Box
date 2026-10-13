@@ -288,6 +288,10 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
         res->leveled = slots != NULL;
         free(slots);
     }
+    if (g->nspans > 0) {
+        res->sctl = g->sctl_of[0];
+        res->srm  = g->srm_of[0];
+    }
     for (uint32_t i = 0; i < res->got; i++) {
         out[i].x0   = sp[i].x0;
         out[i].x1   = sp[i].x1;

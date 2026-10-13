@@ -103,6 +103,9 @@ typedef struct harness_gpu_cap_t {
     int      rowalias;   /* the run was flagged row-alias                  */
     uint32_t ngroups;    /* groups the flush splits the run into           */
     int      leveled;    /* the span levels were filled in                 */
+    uint32_t sctl, srm;  /* the first span's commutative-stencil class key
+                            (0 = not in the class) and its reference and
+                            masks                                         */
 } harness_gpu_cap_t;
 
 /* Run one triangle through the real capture path with a fabricated

@@ -1150,11 +1150,17 @@ typedef struct r128_gpu_t {
         uint32_t c0, c1, z0, z1;
     } bb_of[GPU_SPAN_CAP];
     /* commutative-stencil class per span: 0 = not in the class, else
-       the draw's sten_ctl (bit 0 is set when stencil is on, so it is
-       nonzero). Two spans of the class with equal (sctl, srm) never
-       alias: the only bytes they share are the stencil byte, which the
-       kernel updates atomically with operations that commute. The test
-       here must match s_atomic in the seg kernel. */
+       the draw's stencil function and operations with the Z cell
+       layout (bit 0 is set when stencil is on, so it is nonzero). Two
+       spans of the class with equal (sctl, srm) never alias: the only
+       bytes they share are the stencil byte, which the kernel updates
+       atomically with operations that commute. The layout is part of
+       the key because the stencil byte sits at the top of the cell with
+       24-bit depth and at the bottom with 32-bit depth: two draws of
+       different layouts touch different bytes of one cell, and one's
+       depth read sees the other's stencil write, so they are ordered
+       like any other pair. The test here must match s_atomic in the seg
+       kernel. */
     uint32_t sctl_of[GPU_SPAN_CAP];
     uint32_t srm_of[GPU_SPAN_CAP];
     /* sort -> batch handoff: ord = spans row-major in draw order,
@@ -6008,7 +6014,9 @@ capture_span_class(r128_gpu_t *g, uint32_t si, const rage128_draw_state_t *ds,
         g->sctl_of[si] = 1u | (ds->sfn << 4)
             | (ds->sfail_op << 8)
             | (ds->zpass_op << 12)
-            | (ds->zfail_op << 16);
+            | (ds->zfail_op << 16)
+            | ((uint32_t) ds->zshift << 20)
+            | ((uint32_t) ds->zbpp << 25);
         g->srm_of[si] = ds->sref | (ds->svmask << 8)
             | (ds->swmask << 16);
     } else {
