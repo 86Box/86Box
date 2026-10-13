@@ -1019,6 +1019,12 @@ Preferences::reloadStrings()
     translatedstrings[STRING_VFIO_ROM_FILE_FALLBACK]    = QCoreApplication::translate("", "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM.").toUtf8();
     translatedstrings[STRING_VFIO_ROM_FILE_DISABLED]    = QCoreApplication::translate("", "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled.").toUtf8();
     translatedstrings[STRING_VFIO_ROM_INVALID]          = QCoreApplication::translate("", "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings.").toUtf8();
+    translatedstrings[STRING_VFIO_SETUP_QUESTION]      = QCoreApplication::translate("", "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?").toUtf8();
+    translatedstrings[STRING_VFIO_SETUP_ACCESS]        = QCoreApplication::translate("", "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?").toUtf8();
+    translatedstrings[STRING_VFIO_SETUP_GROUP]         = QCoreApplication::translate("", "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:").toUtf8();
+    translatedstrings[STRING_VFIO_SETUP_REFUSED]       = QCoreApplication::translate("", "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci.").toUtf8();
+    translatedstrings[STRING_VFIO_SETUP_FAILED]        = QCoreApplication::translate("", "VFIO: Could not prepare the devices for passthrough:\n%s").toUtf8();
+    translatedstrings[STRING_VFIO_SETUP_MANUAL]        = QCoreApplication::translate("", "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s").toUtf8();
 #endif
 }
 

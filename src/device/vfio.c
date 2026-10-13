@@ -17,7 +17,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <linux/vfio.h>
+#include <spawn.h>
 #include <stdarg.h>
 #include <stdatomic.h>
 #include <stdint.h>
@@ -28,6 +30,9 @@
 #include <sys/eventfd.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #define HAVE_STDARG_H
 #include "cpu.h"
@@ -40,11 +45,15 @@
 #include <86box/pci.h>
 #include <86box/pic.h>
 #include <86box/plat.h>
+#include <86box/plat_dir.h>
 #include <86box/thread.h>
 #include <86box/timer.h>
 #include <86box/ui.h>
 #include <86box/video.h>
 #include <86box/vfio.h>
+#include "vfio_setup_sh.h" /* generated from vfio-setup.sh */
+
+extern char **environ;
 
 /* Just so we don't have to include Linux's pci.h, which
    has some defines that conflict with our own pci.h */
@@ -277,8 +286,10 @@ vfio_log(const char *fmt, ...)
 #    define vfio_log_op(fmt, ...)
 #endif
 
-/* Problems the user can act on, shown together once initialization is done. */
-static char *vfio_msgs = NULL;
+/* Problems the user can act on, shown together once initialization is done,
+   unless they all follow from one which has already been shown. */
+static char *vfio_msgs       = NULL;
+static int   vfio_msgs_quiet = 0;
 
 static void
 vfio_msg(int id, ...)
@@ -290,6 +301,8 @@ vfio_msg(int id, ...)
     vsnprintf(line, sizeof(line), plat_get_string(id), ap);
     va_end(ap);
     pclog("%s\n", line);
+    if (vfio_msgs_quiet)
+        return;
 
     size_t len = vfio_msgs ? strlen(vfio_msgs) : 0;
     char  *p   = (char *) realloc(vfio_msgs, len + strlen(line) + 2);
@@ -3423,6 +3436,422 @@ vfio_parse_location(const char *location, char *out, int out_size)
     return 1;
 }
 
+/* Device preparation: bind the configured devices' IOMMU groups to vfio-pci, give the
+   user access to them and raise the locked memory limit, through vfio-setup.sh as root. */
+#define VFIO_SETUP_TEXT_MAX  4096
+#define VFIO_SETUP_LSPCI_MAX 65536
+#define VFIO_SETUP_GROUP_MAX 64
+
+static int vfio_setup_declined = 0;
+
+static void
+vfio_setup_append(char *buf, const char *fmt, ...)
+{
+    size_t  len = strlen(buf);
+    va_list ap;
+
+    va_start(ap, fmt);
+    vsnprintf(&buf[len], VFIO_SETUP_TEXT_MAX - len, fmt, ap);
+    va_end(ap);
+}
+
+static void
+vfio_setup_driver(const char *location, char *buf, size_t size)
+{
+    char    path[PATH_MAX];
+    char    link[PATH_MAX];
+    ssize_t len;
+
+    snprintf(path, sizeof(path), "/sys/bus/pci/devices/%s/driver", location);
+    len = readlink(path, link, sizeof(link) - 1);
+    if (len <= 0) {
+        snprintf(buf, size, "none");
+        return;
+    }
+    link[len] = '\0';
+    snprintf(buf, size, "%s", path_get_basename(link));
+}
+
+static unsigned int
+vfio_setup_read_hex(const char *location, const char *attr)
+{
+    char         path[PATH_MAX];
+    unsigned int val = 0;
+    FILE        *fp;
+
+    snprintf(path, sizeof(path), "/sys/bus/pci/devices/%s/%s", location, attr);
+    if ((fp = fopen(path, "r"))) {
+        if (fscanf(fp, "%x", &val) != 1)
+            val = 0;
+        fclose(fp);
+    }
+    return val;
+}
+
+static int
+vfio_setup_compare(const void *a, const void *b)
+{
+    return strcmp((const char *) a, (const char *) b);
+}
+
+static int
+vfio_setup_configured(const char *location)
+{
+    char loc[13];
+
+    for (vfio_device_conf_t *conf = vfio_device_conf; (conf < &vfio_device_conf[VFIO_DEVICE_MAX]) && conf->location[0]; conf++) {
+        if (vfio_parse_location(conf->location, loc, sizeof(loc)) && !strcmp(loc, location))
+            return 1;
+    }
+    return 0;
+}
+
+/* Run a program with the given standard input, capturing its output, and return
+   its exit status or -1 if it could not be run. */
+static int
+vfio_setup_spawn(char **argv, const char *input, size_t input_len, char *out, size_t out_size)
+{
+    int   in[2]   = { -1, -1 };
+    int   outp[2] = { -1, -1 };
+    int   status  = -1;
+    pid_t child;
+
+    out[0] = '\0';
+    if (pipe(in) || pipe(outp))
+        goto end;
+    for (int j = 0; j < 2; j++) {
+        fcntl(in[j], F_SETFD, FD_CLOEXEC);
+        fcntl(outp[j], F_SETFD, FD_CLOEXEC);
+    }
+
+    posix_spawn_file_actions_t actions;
+    posix_spawn_file_actions_init(&actions);
+    posix_spawn_file_actions_adddup2(&actions, in[0], STDIN_FILENO);
+    posix_spawn_file_actions_adddup2(&actions, outp[1], STDOUT_FILENO);
+    posix_spawn_file_actions_adddup2(&actions, outp[1], STDERR_FILENO);
+    errno = posix_spawnp(&child, argv[0], &actions, NULL, argv, environ);
+    posix_spawn_file_actions_destroy(&actions);
+    close(in[0]);
+    close(outp[1]);
+    in[0] = outp[1] = -1;
+    if (errno) {
+        pclog("VFIO: Could not run %s (%d)\n", argv[0], errno);
+        goto end;
+    }
+
+    /* The input fits in a pipe's buffer, so writing it all first cannot block. */
+    if (input_len)
+        (void) !write(in[1], input, input_len);
+    close(in[1]);
+    in[1] = -1;
+
+    size_t  len = 0;
+    ssize_t i;
+    char    discard[256];
+    while ((i = read(outp[0], (len < (out_size - 1)) ? &out[len] : discard,
+                     (len < (out_size - 1)) ? (out_size - 1 - len) : sizeof(discard)))
+           > 0) {
+        if (len < (out_size - 1))
+            len += i;
+    }
+    out[len] = '\0';
+    while ((len > 0) && (out[len - 1] == '\n'))
+        out[--len] = '\0';
+
+    if ((waitpid(child, &status, 0) == child) && WIFEXITED(status))
+        status = WEXITSTATUS(status);
+    else
+        status = -1;
+
+end:
+    for (int j = 0; j < 2; j++) {
+        if (in[j] >= 0)
+            close(in[j]);
+        if (outp[j] >= 0)
+            close(outp[j]);
+    }
+    return status;
+}
+
+/* Get a device's name as lspci gives it, like the VFIO settings do, from the
+   output of "lspci -D". */
+static int
+vfio_setup_lspci_name(const char *lspci, const char *location, char *buf, size_t size)
+{
+    size_t      loc_len = strlen(location);
+    const char *line    = lspci;
+
+    while (line && *line) {
+        if (!strncmp(line, location, loc_len) && (line[loc_len] == ' ')) {
+            line += loc_len + 1;
+            size_t len = strcspn(line, "\n");
+            if (len >= size)
+                len = size - 1;
+            memcpy(buf, line, len);
+            buf[len] = '\0';
+            return 1;
+        }
+        if ((line = strchr(line, '\n')))
+            line++;
+    }
+    return 0;
+}
+
+/* Run vfio-setup.sh as root, returning its exit status or -1 if it could not be run. */
+static int
+vfio_setup_run(char **args, int nargs, char *out, size_t out_size)
+{
+    char *argv[8 + VFIO_DEVICE_MAX];
+    int   argc      = 0;
+    int   installed = 0;
+    int   status;
+
+#ifdef VFIO_SETUP_HELPER
+    /* Prefer the installed helper, which comes with a polkit policy. */
+    struct stat st;
+    installed = !stat(VFIO_SETUP_HELPER, &st) && S_ISREG(st.st_mode) && !st.st_uid &&
+                (st.st_mode & S_IXUSR) && !(st.st_mode & (S_IWGRP | S_IWOTH));
+#endif
+
+    if (geteuid()) {
+        /* Never fall back to pkexec's own agent on the terminal, which may not be
+           there or be in use by something else, and is broken on polkit 0.105. */
+        argv[argc++] = "pkexec";
+        argv[argc++] = "--disable-internal-agent";
+    }
+#ifdef VFIO_SETUP_HELPER
+    if (installed)
+        argv[argc++] = VFIO_SETUP_HELPER;
+#endif
+    if (!installed) {
+        /* Feed the embedded script through standard input, as authentication
+           dialogs show the command line and would show the whole script. */
+        argv[argc++] = "/bin/sh";
+        argv[argc++] = "-s";
+    }
+    for (int i = 0; i < nargs; i++)
+        argv[argc++] = args[i];
+    argv[argc] = NULL;
+
+    status = vfio_setup_spawn(argv, installed ? NULL : vfio_setup_sh, installed ? 0 : (sizeof(vfio_setup_sh) - 1), out, out_size);
+    if (status >= 0)
+        pclog("VFIO: %s exited with %d%s%s\n", installed ? "vfio-setup" : "Embedded vfio-setup", status, out[0] ? ":\n" : "", out);
+    return status;
+}
+
+/* Tell the user how to run vfio-setup.sh themselves, when it could not be run as root. */
+static void
+vfio_setup_manual(char **args, int nargs)
+{
+    char cmd[VFIO_SETUP_TEXT_MAX] = "";
+
+#ifdef VFIO_SETUP_HELPER
+    if (!access(VFIO_SETUP_HELPER, X_OK))
+        vfio_setup_append(cmd, "sudo %s", VFIO_SETUP_HELPER);
+#endif
+    if (!cmd[0]) {
+        /* Write the embedded script out, somewhere only this user can change it. */
+        const char *dir = getenv("XDG_RUNTIME_DIR");
+        char        path[PATH_MAX];
+        int         fd;
+        if (dir && dir[0]) {
+            snprintf(path, sizeof(path), "%s/86box-vfio-setup.sh", dir);
+            fd = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, 0600);
+        } else {
+            snprintf(path, sizeof(path), "/tmp/86box-vfio-setup-XXXXXX");
+            fd = mkstemp(path);
+        }
+        if (fd < 0)
+            return;
+        (void) !write(fd, vfio_setup_sh, sizeof(vfio_setup_sh) - 1);
+        close(fd);
+        vfio_setup_append(cmd, "sudo sh %s", path);
+    }
+    for (int i = 0; i < nargs; i++)
+        vfio_setup_append(cmd, " %s", args[i]);
+    vfio_msg(STRING_VFIO_SETUP_MANUAL, cmd);
+}
+
+/* Returns 1 if the devices could not be prepared, which the user has been told about. */
+static int
+vfio_setup(void)
+{
+    char     list[VFIO_SETUP_TEXT_MAX] = "";
+    char     others[VFIO_SETUP_TEXT_MAX] = "";
+    char     locs[VFIO_DEVICE_MAX][13];
+    int      groups[VFIO_DEVICE_MAX];
+    int      nlocs   = 0;
+    int      ngroups = 0;
+    int      need    = 0;
+    int      rebind  = 0;
+    char     path[PATH_MAX];
+    char     members[VFIO_SETUP_GROUP_MAX][16];
+    char     drv[64];
+    char     name[256];
+    char    *lspci = NULL;
+    char    *p;
+    int      group;
+
+    if (vfio_setup_declined)
+        return 0;
+
+    /* The vfio-pci module may not be loaded yet. */
+    if (access("/dev/vfio/vfio", F_OK))
+        need = 1;
+
+    for (vfio_device_conf_t *conf = vfio_device_conf; (conf < &vfio_device_conf[VFIO_DEVICE_MAX]) && conf->location[0]; conf++) {
+        /* Invalid or missing devices are reported later. */
+        if (!vfio_parse_location(conf->location, locs[nlocs], sizeof(locs[nlocs])))
+            continue;
+        snprintf(path, sizeof(path), "/sys/bus/pci/devices/%s/iommu_group", locs[nlocs]);
+        if (!(p = realpath(path, NULL)))
+            continue;
+        group = atoi(path_get_basename(p));
+        free(p);
+
+        /* Look at each group once. */
+        int seen = 0;
+        for (int i = 0; i < ngroups; i++)
+            seen |= (groups[i] == group);
+        if (seen) {
+            nlocs++;
+            continue;
+        }
+        groups[ngroups++] = group;
+
+        /* Find the group's devices which have to be bound to vfio-pci. */
+        char group_list[VFIO_SETUP_TEXT_MAX] = "";
+        char group_others[VFIO_SETUP_TEXT_MAX] = "";
+        int  refused = 0;
+        snprintf(path, sizeof(path), "/sys/kernel/iommu_groups/%d/devices", group);
+        plat_dir_t dir      = PLAT_DIR_INIT;
+        int        nmembers = 0;
+        if (plat_dir_open(&dir, path)) {
+            while ((nmembers < VFIO_SETUP_GROUP_MAX) && plat_dir_read(&dir)) {
+                if (strlen(plat_dir_get_name(&dir)) < sizeof(members[0]))
+                    strcpy(members[nmembers++], plat_dir_get_name(&dir));
+            }
+        }
+        plat_dir_close(&dir);
+        if (!nmembers)
+            continue;
+
+        /* List them in order, which sysfs does not. */
+        qsort(members, nmembers, sizeof(members[0]), vfio_setup_compare);
+        for (int i = 0; (i < nmembers) && !refused; i++) {
+            const char *loc = members[i];
+            vfio_setup_driver(loc, drv, sizeof(drv));
+            unsigned int cls = vfio_setup_read_hex(loc, "class");
+
+            /* Drivers which never claim DMA ownership keep the group viable,
+               but the configured devices themselves need vfio-pci. */
+            if (!strcmp(drv, "vfio-pci") || !strcmp(drv, "pci-stub") || !strcmp(drv, "pcieport") || ((cls >> 8) == 0x0604))
+                continue;
+            int configured = vfio_setup_configured(loc);
+            if (!strcmp(drv, "none") && !configured)
+                continue;
+
+            /* Never take a host or ISA bridge away from the host. */
+            if (((cls >> 8) == 0x0600) || ((cls >> 8) == 0x0601)) {
+                vfio_msg(STRING_VFIO_SETUP_REFUSED, locs[nlocs], group, loc);
+                refused = 1;
+                continue;
+            }
+
+            /* Name the device like the VFIO settings do, if lspci is there. */
+            if (!lspci && (lspci = calloc(1, VFIO_SETUP_LSPCI_MAX))) {
+                char *argv[] = { "lspci", "-D", NULL };
+                if (vfio_setup_spawn(argv, NULL, 0, lspci, VFIO_SETUP_LSPCI_MAX))
+                    lspci[0] = '\0';
+            }
+            if (lspci && vfio_setup_lspci_name(lspci, loc, name, sizeof(name)))
+                vfio_setup_append(configured ? group_list : group_others, "%s %s\n", loc, name);
+            else
+                vfio_setup_append(configured ? group_list : group_others, "%s\n", loc);
+        }
+        if (refused)
+            continue;
+
+        if (group_list[0] || group_others[0]) {
+            vfio_setup_append(list, "%s", group_list);
+            vfio_setup_append(others, "%s", group_others);
+            rebind = need = 1;
+        }
+
+        /* The user has to be able to open the group. */
+        snprintf(path, sizeof(path), "/dev/vfio/%d", group);
+        if (geteuid() && access(path, R_OK | W_OK))
+            need = 1;
+
+        nlocs++;
+    }
+    free(lspci);
+
+    /* Guest memory is locked for DMA, which the locked memory limit has to allow.
+       Raise it ourselves if the hard limit allows, otherwise only root can. */
+    struct rlimit rl;
+    uint64_t      memlock = ((uint64_t) mem_size << 10) + (64ULL << 20);
+    if (geteuid() && !getrlimit(RLIMIT_MEMLOCK, &rl) && (rl.rlim_cur != RLIM_INFINITY) && (rl.rlim_cur < memlock)) {
+        if ((rl.rlim_max == RLIM_INFINITY) || (rl.rlim_max >= memlock)) {
+            rl.rlim_cur = memlock;
+            if (setrlimit(RLIMIT_MEMLOCK, &rl))
+                need = 1;
+        } else {
+            need = 1;
+        }
+    }
+
+    if (!need || !nlocs)
+        return 0;
+
+    /* Ask first, listing what will be taken away from the host, including
+       devices which were not selected but share a group with one that was. */
+    char question[VFIO_SETUP_TEXT_MAX * 2];
+    if (rebind) {
+        if (others[0]) {
+            if (list[0])
+                vfio_setup_append(list, "\n");
+            vfio_setup_append(list, "%s\n\n%s", plat_get_string(STRING_VFIO_SETUP_GROUP), others);
+        }
+        snprintf(question, sizeof(question), plat_get_string(STRING_VFIO_SETUP_QUESTION), list);
+    } else {
+        snprintf(question, sizeof(question), "%s", plat_get_string(STRING_VFIO_SETUP_ACCESS));
+    }
+    if (ui_msgbox(MBX_QUESTION_YN, question) != 1) {
+        pclog("VFIO: Device preparation declined\n");
+        vfio_setup_declined = 1;
+        return 0;
+    }
+
+    char  pid_str[16];
+    char  memlock_str[24];
+    char *args[2 + VFIO_DEVICE_MAX];
+    int   nargs = 0;
+    snprintf(pid_str, sizeof(pid_str), "%d", getpid());
+    snprintf(memlock_str, sizeof(memlock_str), "%" PRIu64, memlock);
+    args[nargs++] = pid_str;
+    args[nargs++] = memlock_str;
+    for (int i = 0; i < nlocs; i++)
+        args[nargs++] = locs[i];
+
+    char out[VFIO_SETUP_TEXT_MAX];
+    int  ret = vfio_setup_run(args, nargs, out, sizeof(out));
+    if (ret == 0)
+        return 0;
+
+    /* pkexec gives 126 if the user dismissed its dialog, and 127 if authorization
+       failed, which is also what it does without an authentication agent. */
+    if (ret == 126) {
+        vfio_setup_declined = 1;
+        return 0;
+    } else if ((ret < 0) || ((ret == 127) && strstr(out, "authentication agent"))) {
+        vfio_setup_manual(args, nargs);
+    } else {
+        vfio_msg(STRING_VFIO_SETUP_FAILED, out[0] ? out : "?");
+    }
+    return 1;
+}
+
 void
 vfio_init(void)
 {
@@ -3431,6 +3860,10 @@ vfio_init(void)
     /* Stay quiet if VFIO is not configured. */
     if (!vfio_device_conf[0].location[0])
         return;
+
+    /* Prepare the devices if they are not ready for passthrough. If that
+       failed, what goes wrong next is no news to the user. */
+    vfio_msgs_quiet = vfio_setup();
 
     /* Open VFIO container. */
     container_fd = open("/dev/vfio/vfio", O_RDWR);
@@ -3650,6 +4083,7 @@ close_container:
     container_fd = -1;
 
     vfio_msg_show(MBX_WARNING);
+    vfio_msgs_quiet = 0;
 }
 
 void

@@ -223,6 +223,18 @@ plat_get_string(int i)
             return "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled.";
         case STRING_VFIO_ROM_INVALID:
             return "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings.";
+        case STRING_VFIO_SETUP_QUESTION:
+            return "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?";
+        case STRING_VFIO_SETUP_ACCESS:
+            return "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?";
+        case STRING_VFIO_SETUP_GROUP:
+            return "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:";
+        case STRING_VFIO_SETUP_REFUSED:
+            return "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci.";
+        case STRING_VFIO_SETUP_FAILED:
+            return "VFIO: Could not prepare the devices for passthrough:\n%s";
+        case STRING_VFIO_SETUP_MANUAL:
+            return "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s";
 #endif
     }
     return "";

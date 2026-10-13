@@ -64,6 +64,12 @@ enum {
     STRING_VFIO_ROM_FILE_FALLBACK,    /* "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM." */
     STRING_VFIO_ROM_FILE_DISABLED,    /* "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled." */
     STRING_VFIO_ROM_INVALID,          /* "VFIO %s: The ROM looks invalid..." */
+    STRING_VFIO_SETUP_QUESTION,       /* "VFIO: These devices must be bound to vfio-pci..." */
+    STRING_VFIO_SETUP_ACCESS,         /* "VFIO: Administrator rights are required..." */
+    STRING_VFIO_SETUP_GROUP,          /* "These devices were not selected, but share an IOMMU group..." */
+    STRING_VFIO_SETUP_REFUSED,        /* "VFIO %s: IOMMU group %d also contains %s..." */
+    STRING_VFIO_SETUP_FAILED,         /* "VFIO: Could not prepare the devices for passthrough:\n%s" */
+    STRING_VFIO_SETUP_MANUAL,         /* "VFIO: Administrator rights could not be requested..." */
 #endif
     /* A configuration naming hardware this build does not have. */
     STRING_UNSUPPORTED_TITLE,
