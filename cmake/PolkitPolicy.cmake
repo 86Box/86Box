@@ -7,10 +7,14 @@
 #          This file is part of the 86Box distribution.
 #
 #          CMake script generating a polkit policy, with its <description>
-#          and <message> translated from the .po files they are message IDs
-#          in. Run with:
-#          cmake -DIN=<template> -DOUT=<policy> -DPO_DIR=<dir> -DHELPER=<path>
-#                -P PolkitPolicy.cmake
+#          and <message> translated from individual language .po files.
+#
+#          Usage: cmake -DIN=<template> -DOUT=<policy> -DPO_DIR=<dir>
+#                       -DHELPER=<path> -P PolkitPolicy.cmake
+#
+# Authors: RichardG, <richardg867@gmail.com>
+#
+#          Copyright 2026 RichardG.
 #
 
 # Look a message ID up in a .po file's contents, giving its translation or nothing.

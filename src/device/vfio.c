@@ -10,7 +10,7 @@
  *
  * Authors: RichardG, <richardg867@gmail.com>
  *
- *          Copyright 2021-2025 RichardG.
+ *          Copyright 2021-2026 RichardG.
  */
 #define _FILE_OFFSET_BITS   64
 #define _LARGEFILE64_SOURCE 1

@@ -6,9 +6,13 @@
 #
 #          This file is part of the 86Box distribution.
 #
-#          CMake script embedding a file as a null-terminated C array, for
-#          compilers without #embed. Run with:
-#          cmake -DIN=<file> -DOUT=<header> -DNAME=<symbol> -P EmbedFile.cmake
+#          CMake script embedding a file as a null-terminated C array.
+#
+#          Usage: cmake -DIN=<file> -DOUT=<header> -DNAME=<symbol> -P EmbedFile.cmake
+#
+# Authors: RichardG, <richardg867@gmail.com>
+#
+#          Copyright 2026 RichardG.
 #
 
 file(READ "${IN}" hex HEX)

@@ -1,21 +1,24 @@
 #!/bin/sh
-# Prepare PCI devices for VFIO passthrough. 86Box runs this as root through
-# pkexec, either installed (with its polkit policy) or embedded in the binary,
-# when the devices it was configured to pass through are not ready.
 #
-# Usage: vfio-setup <pid> <memlock bytes> <dddd:bb:dd.f>...
+# 86Box    A hypervisor and IBM PC system emulator that specializes in
+#          running old operating systems and software designed for IBM
+#          PC systems and compatibles from 1981 through fairly recent
+#          system designs based on the PCI bus.
 #
-# Binds each location, and every device sharing its IOMMU group which has a
-# driver, to vfio-pci, except PCI bridges and drivers which leave DMA alone.
-# Gives the group nodes to the user who authenticated, and raises the locked
-# memory limit of process <pid> so it can map guest memory for DMA. A group is
-# left alone if a host or ISA bridge in it would have to be taken away from
-# the host.
+#          This file is part of the 86Box distribution.
 #
-# Exits with 0 on success, 1 if anything failed and 2 on bad arguments.
+#          Script for preparing PCI devices for VFIO passthrough as root.
 #
-# 86Box feeds this to "sh -s" through standard input, which some shells read
-# as they go, so nothing in here may read standard input.
+#          Usage: vfio-setup <pid> <memlock bytes> <dddd:bb:dd.f>...
+#
+#          Binds the specified devices and any others in the same group
+#          to vfio-pci, and also raises the locked memory limit for the
+#          given PID to ensure DMA mapping works.
+#
+# Authors: RichardG, <richardg867@gmail.com>
+#
+#          Copyright 2026 RichardG.
+#
 
 set -u
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
@@ -23,15 +26,14 @@ PATH=/usr/sbin:/usr/bin:/sbin:/bin
 uid=${PKEXEC_UID:-${SUDO_UID:-}}
 fail=0
 
-[ $# -ge 2 ] || { echo "usage: $0 <pid> <memlock bytes> <location>..." >&2; exit 2; }
-# 86Box always runs this as root, but someone running it by hand might not.
-[ "$(id -u)" -eq 0 ] || { echo "must be run as root" >&2; exit 1; }
+[ $# -ge 2 ] || { echo "Usage: $0 <pid> <memlock bytes> <PCI location>..." >&2; exit 2; }
+[ "$(id -u)" -eq 0 ] || { echo "This script must run as root." >&2; exit 1; }
 
 pid=$1
 memlock=$2
 shift 2
 case "$pid$memlock" in
-    "" | *[!0-9]*) echo "bad arguments" >&2; exit 2 ;;
+    "" | *[!0-9]*) echo "Invalid arguments." >&2; exit 2 ;;
 esac
 
 drv() {
@@ -59,15 +61,15 @@ requested() {
 locs=" $* "
 groups=
 for loc in "$@"; do
-    # Only accept canonical locations, as this runs as root.
+    # Only accept canonical locations to prevent injection.
     if ! echo "$loc" | grep -Eqx '[0-9a-f]{4}:[0-9a-f]{2}:[01][0-9a-f]\.[0-7]'; then
-        echo "$loc: invalid device location" >&2
+        echo "$loc: Invalid PCI device location" >&2
         fail=1
         continue
     fi
     dev=/sys/bus/pci/devices/$loc
     if [ ! -e "$dev/iommu_group" ]; then
-        echo "$loc: no IOMMU group" >&2
+        echo "$loc: No IOMMU group" >&2
         fail=1
         continue
     fi
@@ -107,7 +109,7 @@ for loc in "$@"; do
         [ "$d" = none ] || echo "$m" > "$member/driver/unbind"
         echo "$m" > /sys/bus/pci/drivers_probe
         if [ "$(drv "$member")" != vfio-pci ]; then
-            echo "$m: could not be bound to vfio-pci" >&2
+            echo "$m: Could not bind to vfio-pci" >&2
             fail=1
         fi
     done
