@@ -53,7 +53,10 @@ enum {
 
     FLAGS_SBC8,
     FLAGS_SBC16,
-    FLAGS_SBC32
+    FLAGS_SBC32,
+
+    FLAGS_SHRD16,
+    FLAGS_SHRD32
 #endif
 };
 
@@ -92,6 +95,8 @@ ZF_SET(void)
         case FLAGS_SBC8:
         case FLAGS_SBC16:
         case FLAGS_SBC32:
+        case FLAGS_SHRD16:
+        case FLAGS_SHRD32:
 #endif
             return !cpu_state.flags_res;
 
@@ -145,6 +150,7 @@ NF_SET(void)
 #ifdef USE_NEW_DYNAREC
         case FLAGS_ADC16:
         case FLAGS_SBC16:
+        case FLAGS_SHRD16:
 #endif
             return cpu_state.flags_res & 0x8000;
 
@@ -159,6 +165,7 @@ NF_SET(void)
 #ifdef USE_NEW_DYNAREC
         case FLAGS_ADC32:
         case FLAGS_SBC32:
+        case FLAGS_SHRD32:
 #endif
             return cpu_state.flags_res & 0x80000000;
 
@@ -218,6 +225,8 @@ PF_SET(void)
         case FLAGS_SBC8:
         case FLAGS_SBC16:
         case FLAGS_SBC32:
+        case FLAGS_SHRD16:
+        case FLAGS_SHRD32:
 #endif
             return znptable8[cpu_state.flags_res & 0xff] & P_FLAG;
 
@@ -320,6 +329,11 @@ VF_SET(void)
             return (cpu_state.flags_res ^ (cpu_state.flags_res >> 1)) & 0x4000;
         case FLAGS_ROR32:
             return (cpu_state.flags_res ^ (cpu_state.flags_res >> 1)) & 0x40000000;
+
+        case FLAGS_SHRD16:
+            return ((cpu_state.flags_res ^ cpu_state.flags_op1) & 0x8000) ? 1 : 0;
+        case FLAGS_SHRD32:
+            return ((cpu_state.flags_res ^ cpu_state.flags_op1) & 0x80000000) ? 1 : 0;
 #endif
 
         case FLAGS_UNKNOWN:
@@ -351,6 +365,10 @@ AF_SET(void)
         case FLAGS_SAR8:
         case FLAGS_SAR16:
         case FLAGS_SAR32:
+#ifdef USE_NEW_DYNAREC
+        case FLAGS_SHRD16:
+        case FLAGS_SHRD32:
+#endif
             return 0;
 
         case FLAGS_ADD8:
@@ -446,6 +464,10 @@ CF_SET(void)
         case FLAGS_SHR8:
         case FLAGS_SHR16:
         case FLAGS_SHR32:
+#ifdef USE_NEW_DYNAREC
+        case FLAGS_SHRD16:
+        case FLAGS_SHRD32:
+#endif
             return (cpu_state.flags_op1 >> (cpu_state.flags_op2 - 1)) & 1;
 
         case FLAGS_SAR8:

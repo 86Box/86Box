@@ -295,13 +295,38 @@ FBSTP_a32(uint32_t fetchdat)
 }
 #endif
 
+/* Shared by both address sizes and by the recompiler's interpreter fallback. */
 static int
-FISTPiq_a16(UNUSED(uint32_t fetchdat))
+x87_fistp64(void)
 {
     int64_t temp64;
-    FP_ENTER();
-    fetch_ea_16(fetchdat);
-    SEG_CHECK_WRITE(cpu_state.ea_seg);
+#ifndef FPU_8087
+    uint16_t status = cpu_state.npxs & ~FPU_SW_C1;
+#    ifdef USE_NEW_DYNAREC
+    int empty = cpu_state.tag[cpu_state.TOP & 7] == TAG_EMPTY;
+#    else
+    int empty = cpu_state.tag[cpu_state.TOP & 7] == X87_TAG_EMPTY;
+#    endif
+
+    /* Reject NaNs, infinities and out-of-range doubles before the C integer
+       conversion. FILD's exact integer copy does not use the double value. */
+    if (empty || (!(cpu_state.tag[cpu_state.TOP & 7] & TAG_UINT64) &&
+                  !(ST(0) >= -9223372036854775808.0 && ST(0) < 9223372036854775808.0))) {
+        /* An unmasked invalid operation neither stores nor pops. */
+        status |= FPU_SW_Invalid;
+        if (empty)
+            status |= FPU_SW_Stack_Fault;
+        if (!(cpu_state.npxc & FPU_SW_Invalid)) {
+            cpu_state.npxs = status | FPU_SW_Summary | FPU_SW_Backward;
+            if (is486 && (cr0 & 0x20))
+                new_ne = 1;
+            else
+                picint(1 << 13);
+            goto done;
+        }
+        temp64 = INT64_MIN;
+    } else
+#endif
     if (cpu_state.tag[cpu_state.TOP & 7] & TAG_UINT64)
         temp64 = cpu_state.MM[cpu_state.TOP & 7].q;
     else
@@ -309,30 +334,35 @@ FISTPiq_a16(UNUSED(uint32_t fetchdat))
     seteaq(temp64);
     if (cpu_state.abrt)
         return 1;
+#ifndef FPU_8087
+    /* A memory fault must leave the original status and stack intact. */
+    cpu_state.npxs = status;
+#endif
     x87_pop();
+#ifndef FPU_8087
+ done:
+#endif
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fist_64) : (x87_timings.fist_64 * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fist_64) : (x87_concurrency.fist_64 * cpu_multi));
     return 0;
+}
+
+static int
+FISTPiq_a16(UNUSED(uint32_t fetchdat))
+{
+    FP_ENTER();
+    fetch_ea_16(fetchdat);
+    SEG_CHECK_WRITE(cpu_state.ea_seg);
+    return x87_fistp64();
 }
 #ifndef FPU_8087
 static int
 FISTPiq_a32(uint32_t fetchdat)
 {
-    int64_t temp64;
     FP_ENTER();
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
-    if (cpu_state.tag[cpu_state.TOP & 7] & TAG_UINT64)
-        temp64 = cpu_state.MM[cpu_state.TOP & 7].q;
-    else
-        temp64 = x87_fround(ST(0));
-    seteaq(temp64);
-    if (cpu_state.abrt)
-        return 1;
-    x87_pop();
-    CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fist_64) : (x87_timings.fist_64 * cpu_multi));
-    CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fist_64) : (x87_concurrency.fist_64 * cpu_multi));
-    return 0;
+    return x87_fistp64();
 }
 #endif
 

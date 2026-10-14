@@ -223,6 +223,7 @@ enum {
     SST_texBaseAddr2  = 0x314,
     SST_texBaseAddr38 = 0x318,
 
+    SST_trexInit0 = 0x31c,
     SST_trexInit1 = 0x320,
 
     SST_nccTable0_Y0 = 0x324,
@@ -613,7 +614,7 @@ enum {
 #define TEXTUREMODE_LOCAL_MASK  0x00643000
 #define TEXTUREMODE_LOCAL       0x00241000
 
-#define SLI_ENABLED             (voodoo->fbiInit1 & FBIINIT1_SLI_ENABLE)
+#define SLI_ENABLED             (voodoo->set && voodoo->set->nr_cards > 1 && (voodoo->fbiInit1 & FBIINIT1_SLI_ENABLE))
 #define TRIPLE_BUFFER           ((voodoo->fbiInit2 & 0x10) || (voodoo->fbiInit5 & 0x600) == 0x400)
 
 #define _rgb_sel                (params->fbzColorPath & 3)

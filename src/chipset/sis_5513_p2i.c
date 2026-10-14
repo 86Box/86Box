@@ -305,6 +305,16 @@ sis_5595_ddma_recalc(sis_5513_pci_to_isa_t *dev)
     }
 }
 
+/* Bit 7 of register 64h makes GPIO0 an input (the default) or an output;
+   report bit 0 = GPIO0 is being driven as an output, so boards that use the
+   pin as a strap or a select line can follow it. */
+static void
+sis_5513_00_gpio0_recalc(sis_5513_pci_to_isa_t *dev)
+{
+    if (machines[machine].gpio_handler != NULL)
+        machine_handle_gpio(1, 0xfffffffe | !(dev->pci_conf[0x64] & 0x80));
+}
+
 static void
 sis_5513_00_pci_to_isa_write(int addr, uint8_t val, sis_5513_pci_to_isa_t *dev)
 {
@@ -336,6 +346,7 @@ sis_5513_00_pci_to_isa_write(int addr, uint8_t val, sis_5513_pci_to_isa_t *dev)
 
         case 0x64: /* GPIO0 Control Register */
             dev->pci_conf[addr] = val & 0xef;
+            sis_5513_00_gpio0_recalc(dev);
             break;
 
         case 0x65:
@@ -1044,7 +1055,7 @@ sis_5513_00_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
     dev->pci_conf[0x60] = dev->pci_conf[0x61] = 0x80;
     dev->pci_conf[0x62] = 0x00;
     dev->pci_conf[0x63] = 0x80;
-    dev->pci_conf[0x64] = 0x00;
+    dev->pci_conf[0x64] = 0x80;
     dev->pci_conf[0x65] = 0x00;
     dev->pci_conf[0x66] = dev->pci_conf[0x67] = 0x00;
     dev->pci_conf[0x68] = dev->pci_conf[0x69] = 0x00;
@@ -1058,6 +1069,8 @@ sis_5513_00_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
     dev->regs[0x05] = 0x00;
     dev->regs[0x08] = dev->regs[0x09] = 0x00;
     dev->regs[0x0a] = dev->regs[0x0b] = 0x00;
+
+    sis_5513_00_gpio0_recalc(dev);
 }
 
 static void

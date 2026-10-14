@@ -87,7 +87,6 @@ static const struct {
     /* MCA */
     { &esdi_ps2_device                      },
     { &st506_ps2_device                     },  
-    { &esdi_integrated_device               },
     { &mcide_device                         },
     /* VLB */
 #if 0

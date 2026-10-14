@@ -438,13 +438,13 @@ static const device_config_t ms5169_config[] = {
                 .files         = { "roms/machines/ms5169/A569MS14.ROM", "" }
             },
             {
-                .name          = "AMIBIOS 6 (071595) - Revision 2.0",
-                .internal_name = "ms5169v20",
+                .name          = "AMIBIOS 6 (071595) - Revision 2.1",
+                .internal_name = "ms5169v21",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 131072,
-                .files         = { "roms/machines/ms5169/A569MS20.ROM", "" }
+                .files         = { "roms/machines/ms5169/A569MS21.ROM", "" }
             },
             {
                 .name          = "AMIBIOS 6 (071595) - Revision 2.7",
@@ -905,6 +905,38 @@ machine_in530_boot_logo(void)
     return in530_boot_logo;
 }
 
+/* Physical JP1 (MD62) enables/disables VGA, specific to IN530 */
+static uint8_t in530_md62_seq_stage;
+
+static void
+in530_md62_seq_out(uint16_t port, uint8_t val, void *priv)
+{
+    (void) priv;
+
+    if ((port == 0x03c4) && (val == 0x05))
+        in530_md62_seq_stage = 1;
+    else if ((port == 0x03c5) && (val == 0x86) && (in530_md62_seq_stage == 1))
+        in530_md62_seq_stage = 2;
+    else if ((port == 0x03c4) && (val == 0x0d) && (in530_md62_seq_stage == 2))
+        in530_md62_seq_stage = 3;
+    else
+        in530_md62_seq_stage = 0;
+}
+
+static uint8_t
+in530_md62_seq_in(uint16_t port, void *priv)
+{
+    (void) priv;
+
+    if ((port == 0x03c5) && (in530_md62_seq_stage == 3)) {
+        in530_md62_seq_stage = 0;
+        return 0xfe;
+    }
+
+    in530_md62_seq_stage = 0;
+    return 0xff;
+}
+
 int
 machine_at_in530_init(const machine_t *model)
 {
@@ -926,6 +958,7 @@ machine_at_in530_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,       0, 0, 0, 0);
     /* Physical FR520 / IN530 PCI topology verified with PCITool:
          device 09h - PCI slot 1
          device 0Ah - PCI slot 2
@@ -941,6 +974,15 @@ machine_at_in530_init(const machine_t *model)
     device_add_params(&w83877_device, (void *) (W83877TF | (W83877_3F0 & ~0x04)));
     device_add(&amd_flash_29f002nbt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 512);
+
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine)) {
+        device_add(machine_get_vid_device(machine));
+    } else if (gfxcard[0] != VID_INTERNAL) {
+        /* Prevent false onboard VGA detection with JP1/MD62 closed. */
+        in530_md62_seq_stage = 0;
+        io_sethandler(0x03c4, 2, in530_md62_seq_in, NULL, NULL,
+                      in530_md62_seq_out, NULL, NULL, NULL);
+    }
 
     if (sound_card_current[0] == SOUND_INTERNAL)
         device_add(machine_get_snd_device(machine));

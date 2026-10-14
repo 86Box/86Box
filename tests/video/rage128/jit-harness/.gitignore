@@ -1,0 +1,5 @@
+# build.sh products, dumped blocks and gate logs
+/jit_host_test
+*.exe
+*.bin
+*.log

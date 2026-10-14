@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-27 20:33+0000\n"
+"PO-Revision-Date: 2026-10-02 16:32+0000\n"
 "Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
@@ -944,6 +944,9 @@ msgstr "Stiskněte %1 pro uvolnění myši"
 
 msgid "Press %1 or middle button to release mouse"
 msgstr "Stiskněte %1 nebo prostřední tlačítko pro uvolnění myši"
+
+msgid "Press %1 or side button to release mouse"
+msgstr "Stiskněte %1 nebo boční tlačítko pro uvolnění myši"
 
 msgid "Bus"
 msgstr "Sběrnice"
@@ -2325,7 +2328,7 @@ msgid "Host ID"
 msgstr "ID hostitele"
 
 msgid "Host"
-msgstr ""
+msgstr "Hostitel"
 
 msgid "FDC Address"
 msgstr "Adresa FDC"
@@ -3044,10 +3047,10 @@ msgid "Model:"
 msgstr "Model:"
 
 msgid "Brand:"
-msgstr ""
+msgstr "Výrobce:"
 
 msgid "Revision:"
-msgstr ""
+msgstr "Revize:"
 
 msgid "[Generic HDD] Device Configuration"
 msgstr ""
@@ -3056,22 +3059,25 @@ msgid "Failed to initialize Vulkan renderer."
 msgstr "Selhala inicializace rendereru Vulkan."
 
 msgid "Failed to create Vulkan 1.3 instance."
-msgstr ""
+msgstr "Selhalo vytváření instance Vulkan 1.3."
 
 msgid "No usable Vulkan physical devices found."
-msgstr ""
+msgstr "Nebyla nalezena žádná použitelná fyzická zařízení podporující Vulkan."
 
 msgid "No Vulkan-capable physical devices found."
-msgstr ""
+msgstr "Nebyla nalezena žádná fyzická zařízení podporující Vulkan."
 
 msgid "librashader not found. Shaders will not be available."
 msgstr ""
+"Knihovna librashader nebyla nalezena. Shadery pro Vulkan nebudou dostupné."
 
+#, fuzzy
 msgid "Vulkan device lost."
-msgstr ""
+msgstr "Bylo ztraceno Vulkan zařízení."
 
+#, fuzzy
 msgid "Vulkan surface lost."
-msgstr ""
+msgstr "Byl ztracen Vulkan surface."
 
 msgid "GLSL Error"
 msgstr "Chyba GLSL"
@@ -3095,7 +3101,7 @@ msgid "Shader Configuration"
 msgstr "Konfigurace shaderu"
 
 msgid "GPU:"
-msgstr ""
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "Přidat"
@@ -3374,7 +3380,7 @@ msgid "&Non-maskable interrupt"
 msgstr ""
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "Nemaskovatelné přerušení"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "Před změnou systémového adresáře nejprve zastavte všechny běžící počítače."
@@ -3410,6 +3416,8 @@ msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
+"Nebylo možné načíst obraz \"%s\": nebyla nalezena knihovna %1, která je "
+"potřeba pro podporu obrazů ve formátu Aaru."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3558,22 +3566,83 @@ msgid "Sample rate:"
 msgstr "Vzorkovací frekvence:"
 
 msgid "Enable audio input (mic/line-in)"
-msgstr ""
+msgstr "Povolit audio vstup (mikrofon/line-in)"
 
 msgid "Audio input device:"
-msgstr ""
+msgstr "Zařízení pro audio vstup:"
 
 msgid "Audio input sample rate:"
-msgstr ""
+msgstr "Vzorkovací frekvence audio vstupu:"
 
 msgid "Rate the emulator mixes to the host output device."
-msgstr ""
+msgstr "Frekvence, kterou emulátor mixuje výstup na zařízení hostitele."
 
 msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
 msgstr ""
+"Frekvence, na kterou je otevřeno zařízení záznamu zvuku hostitele.\n"
+"\n"
+"44100 je dělitelné beze zbytku frekvencemi 44.1/22/11 kHz podporovanými SB16 "
+"nebo AWE32."
 
 msgid "CGA lightpen"
-msgstr ""
+msgstr "Světelné pero CGA"
 
 msgid "Luminance threshold (%)"
+msgstr "Prah svítivosti (%)"
+
+msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
+msgstr ""
+
+msgid "VFIO %s: Invalid device location."
+msgstr ""
+
+msgid "VFIO %s: Device not found."
+msgstr ""
+
+msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
+msgstr ""
+
+msgid "VFIO %s: Device is not bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO %s: Could not open IOMMU group %d: %s"
+msgstr ""
+
+msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
+msgstr ""
+
+msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
+msgstr ""
+
+msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
+msgstr ""
+
+msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
+msgstr ""
+
+msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
+msgstr ""
+
+msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
+msgstr ""
+
+msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
+msgstr ""
+
+msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
+msgstr ""
+
+msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
+msgstr ""
+
+msgid "Prepare PCI devices for VFIO passthrough"
+msgstr ""
+
+msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
 msgstr ""

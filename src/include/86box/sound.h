@@ -318,6 +318,7 @@ extern const device_t ess_1888_compaq_device;
 extern const device_t ess_1887_device;
 extern const device_t ess_1868_device;
 extern const device_t ess_1869_device;
+extern const device_t ess_1869_onboard_device;
 extern const device_t ess_solo1_device;
 extern const device_t ess_solo1_onboard_device;
 

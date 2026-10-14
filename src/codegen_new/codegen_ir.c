@@ -53,7 +53,7 @@ duplicate_uop(ir_data_t *ir, uop_t *uop, int offset)
     new_uop->imm_data = uop->imm_data;
     new_uop->p        = uop->p;
     new_uop->pc       = uop->pc;
-#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
+#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64 || defined __loongarch_lp64
     new_uop->is_a16   = uop->is_a16;
 #endif
 

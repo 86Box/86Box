@@ -411,10 +411,11 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     int          over               = 0;
     int          test_modrm         = 1;
     int          pc_off             = 0;
-    int          in_lock            = 0;
+    int          lock_illegal       = 0;
     int          is_fpu             = 0;
     uint32_t     next_pc            = 0;
     uint16_t     op87               = 0x0000;
+    uint32_t     fetchdat_pc;
 #ifdef DEBUG_EXTRA
     uint8_t last_prefix = 0;
 #endif
@@ -591,7 +592,6 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 break;
 
             case 0xf0: /*LOCK*/
-                in_lock         = 1;
                 break;
 
             case 0xf2: /*REPNE*/
@@ -618,6 +618,8 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
         codegen_timing_prefix(opcode, fetchdat);
         if (cpu_state.abrt)
             return;
+        if (opcode == 0xf0) /*LOCK*/
+            lock_illegal = !is_lock_legal(fetchdat);
         opcode = fetchdat & 0xff;
         if (!pc_off)
             fetchdat >>= 8;
@@ -626,6 +628,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     }
 
 generate_call:
+    fetchdat_pc = op_pc + pc_off;
     codegen_instructions[block->ins].pc        = cpu_state.oldpc;
     codegen_instructions[block->ins].op_ssegs  = last_op_ssegs;
     codegen_instructions[block->ins].op_ea_seg = last_op_ea_seg;
@@ -693,6 +696,7 @@ generate_call:
         }
 
         opcode_3dnow = fastreadb(cs + opcode_pc);
+        codegen_mark_code_present(block, cs + opcode_pc, 1);
         if (!fpu_softfloat && recomp_opcodes_3DNOW[opcode_3dnow]) {
             next_pc = opcode_pc + 1;
 
@@ -713,7 +717,7 @@ generate_call:
     if ((recomp_op_table == recomp_opcodes) && (opcode == 0x48))
         goto codegen_skip;
 #endif
-    if (in_lock && ((opcode == 0x90) || (opcode == 0xec)))
+    if (lock_illegal)
         goto codegen_skip;
 
     if (recomp_op_table && recomp_op_table[(opcode | op_32) & recomp_opcode_mask]) {
@@ -747,7 +751,7 @@ codegen_skip:
         recomp_op_table = recomp_opcodes;
     }
 
-    if (in_lock && ((opcode == 0x90) || (opcode == 0xec)))
+    if (lock_illegal)
         /* This is always ILLEGAL. */
         op = x86_dynarec_opcodes_3DNOW[0xff];
     else
@@ -804,7 +808,11 @@ codegen_skip:
             uop_CMP_IMM_JZ(ir, IREG_sf_exc, (uint32_t) 1, codegen_exit_rout);
     }
     codegen_flags_changed = 0;
-    codegen_mark_code_present(block, cs + cpu_state.pc, 8);
+    /* The handler gets the bytes after the opcode through fetchdat, and reads
+       anything further from memory as it runs. Marking more than fetchdat
+       covers would claim the data that often follows an instruction such as
+       RET or IRET, and every write to it would throw the block away. */
+    codegen_mark_code_present(block, cs + fetchdat_pc, pc_off ? 4 : 3);
 
     last_op_32     = op_32;
     last_op_ea_seg = op_ea_seg;

@@ -69,6 +69,41 @@ voodoo_texture_in_use(const voodoo_t *voodoo, const texture_t *tex)
     return 0;
 }
 
+uint32_t
+voodoo_tmu_texture_size_bytes(const voodoo_t *voodoo, int tmu)
+{
+    uint32_t texture_size = (uint32_t) voodoo->texture_size << 20;
+
+    if (voodoo->type >= VOODOO_BANSHEE)
+        return texture_size;
+
+    uint32_t tmu_limit = 2u << 20;
+    if ((voodoo->trexInit0[tmu] & TREXINIT0_TEXTURE_MEMORY_SECOND_RAS_ENABLE) &&
+        (voodoo->trexInit0[tmu] & TREXINIT0_TEXTURE_MEMORY_SECOND_RAS_ADDRESS_18))
+        tmu_limit = 4u << 20;
+
+    return (texture_size < tmu_limit) ? texture_size : tmu_limit;
+}
+
+uint32_t
+voodoo_tmu_texture_mask(const voodoo_t *voodoo, int tmu)
+{
+    return voodoo_tmu_texture_size_bytes(voodoo, tmu) - 1;
+}
+
+static int
+voodoo_tlod_uses_multibase(const voodoo_t *voodoo, int tmu)
+{
+    if (!(voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR))
+        return 0;
+
+    /* Voodoo2 games can leave the upper TLOD nibble dirty; don't treat that as multibase mode. */
+    if (voodoo->type == VOODOO_2 && (voodoo->params.tLOD[tmu] & 0xf0000000))
+        return 0;
+
+    return 1;
+}
+
 void
 voodoo_recalc_tex12(voodoo_t *voodoo, int tmu)
 {
@@ -92,7 +127,7 @@ voodoo_recalc_tex12(voodoo_t *voodoo, int tmu)
         height >>= 1;
         shift--;
         tex_lod++;
-        if (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR)
+        if (voodoo_tlod_uses_multibase(voodoo, tmu))
             base = voodoo->params.texBaseAddr1[tmu];
     }
 
@@ -133,7 +168,7 @@ voodoo_recalc_tex12(voodoo_t *voodoo, int tmu)
                     tex_lod++;
                 }
 
-                if (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR) {
+                if (voodoo_tlod_uses_multibase(voodoo, tmu)) {
                     switch (tex_lod) {
                         case 0:
                             base = voodoo->params.texBaseAddr[tmu];
@@ -207,7 +242,7 @@ voodoo_recalc_tex3(voodoo_t *voodoo, int tmu)
     voodoo_texture_log("TMU %i:    %08x\n", tmu, voodoo->params.textureMode[tmu]);
 #endif
     for (lod = 0; lod <= LOD_MAX + 1; lod++) {
-        if (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR) {
+        if (voodoo_tlod_uses_multibase(voodoo, tmu)) {
             switch (tex_lod) {
                 case 0:
                     base = voodoo->params.texBaseAddr[tmu];
@@ -278,7 +313,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
     } else
         palette_checksum = 0;
 
-    if ((voodoo->params.tLOD[tmu] & LOD_SPLIT) && (voodoo->params.tLOD[tmu] & LOD_ODD) && (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR))
+    if ((voodoo->params.tLOD[tmu] & LOD_SPLIT) && (voodoo->params.tLOD[tmu] & LOD_ODD) && voodoo_tlod_uses_multibase(voodoo, tmu))
         addr = params->texBaseAddr1[tmu];
     else
         addr = params->texBaseAddr[tmu];
@@ -314,7 +349,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
 
     c = voodoo->texture_last_removed;
 
-    if ((voodoo->params.tLOD[tmu] & LOD_SPLIT) && (voodoo->params.tLOD[tmu] & LOD_ODD) && (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR))
+    if ((voodoo->params.tLOD[tmu] & LOD_SPLIT) && (voodoo->params.tLOD[tmu] & LOD_ODD) && voodoo_tlod_uses_multibase(voodoo, tmu))
         voodoo->texture_cache[tmu][c].base = params->texBaseAddr1[tmu];
     else
         voodoo->texture_cache[tmu][c].base = params->texBaseAddr[tmu];
@@ -327,23 +362,24 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
 #endif
     lod_min = MIN(lod_min, 8);
     lod_max = MIN(lod_max, 8);
+    uint32_t texture_mask = voodoo_tmu_texture_mask(voodoo, tmu);
     for (int lod = lod_min; lod <= lod_max; lod++) {
         uint32_t     *base     = &voodoo->texture_cache[tmu][c].data[texture_offset[lod]];
-        uint32_t      tex_addr = params->tex_base[tmu][lod] & voodoo->texture_mask;
+        uint32_t      tex_addr = params->tex_base[tmu][lod] & texture_mask;
         int           x;
         int           y;
         int           shift = 8 - params->tex_lod[tmu][lod];
         const rgba_u *pal;
 
 #if 0
-        voodoo_texture_log("  LOD %i : %08x - %08x %i %i,%i\n", lod, params->tex_base[tmu][lod] & voodoo->texture_mask, addr, voodoo->params.tformat[tmu], voodoo->params.tex_w_mask[tmu][lod],voodoo->params.tex_h_mask[tmu][lod]);
+        voodoo_texture_log("  LOD %i : %08x - %08x %i %i,%i\n", lod, params->tex_base[tmu][lod] & texture_mask, addr, voodoo->params.tformat[tmu], voodoo->params.tex_w_mask[tmu][lod],voodoo->params.tex_h_mask[tmu][lod]);
 #endif
 
         switch (params->tformat[tmu]) {
             case TEX_RGB332:
                 for (y = 0; y < voodoo->params.tex_h_mask[tmu][lod] + 1; y++) {
                     for (x = 0; x < voodoo->params.tex_w_mask[tmu][lod] + 1; x++) {
-                        uint8_t dat = voodoo->tex_mem[tmu][(tex_addr + x) & voodoo->texture_mask];
+                        uint8_t dat = voodoo->tex_mem[tmu][(tex_addr + x) & texture_mask];
 
                         base[x] = makergba(rgb332[dat].r, rgb332[dat].g, rgb332[dat].b, 0xff);
                     }
@@ -356,7 +392,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
                 pal = voodoo->ncc_lookup[tmu][(voodoo->params.textureMode[tmu] & TEXTUREMODE_NCC_SEL) ? 1 : 0];
                 for (y = 0; y < voodoo->params.tex_h_mask[tmu][lod] + 1; y++) {
                     for (x = 0; x < voodoo->params.tex_w_mask[tmu][lod] + 1; x++) {
-                        uint8_t dat = voodoo->tex_mem[tmu][(tex_addr + x) & voodoo->texture_mask];
+                        uint8_t dat = voodoo->tex_mem[tmu][(tex_addr + x) & texture_mask];
 
                         base[x] = makergba(pal[dat].rgba.r, pal[dat].rgba.g, pal[dat].rgba.b, 0xff);
                     }
@@ -368,7 +404,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
             case TEX_A8:
                 for (y = 0; y < voodoo->params.tex_h_mask[tmu][lod] + 1; y++) {
                     for (x = 0; x < voodoo->params.tex_w_mask[tmu][lod] + 1; x++) {
-                        uint8_t dat = voodoo->tex_mem[tmu][(tex_addr + x) & voodoo->texture_mask];
+                        uint8_t dat = voodoo->tex_mem[tmu][(tex_addr + x) & texture_mask];
 
                         base[x] = makergba(dat, dat, dat, dat);
                     }
@@ -380,7 +416,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
             case TEX_I8:
                 for (y = 0; y < voodoo->params.tex_h_mask[tmu][lod] + 1; y++) {
                     for (x = 0; x < voodoo->params.tex_w_mask[tmu][lod] + 1; x++) {
-                        uint8_t dat = voodoo->tex_mem[tmu][(tex_addr + x) & voodoo->texture_mask];
+                        uint8_t dat = voodoo->tex_mem[tmu][(tex_addr + x) & texture_mask];
 
                         base[x] = makergba(dat, dat, dat, 0xff);
                     }
@@ -392,7 +428,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
             case TEX_AI8:
                 for (y = 0; y < voodoo->params.tex_h_mask[tmu][lod] + 1; y++) {
                     for (x = 0; x < voodoo->params.tex_w_mask[tmu][lod] + 1; x++) {
-                        uint8_t dat = voodoo->tex_mem[tmu][(tex_addr + x) & voodoo->texture_mask];
+                        uint8_t dat = voodoo->tex_mem[tmu][(tex_addr + x) & texture_mask];
 
                         base[x] = makergba((dat & 0x0f) | ((dat << 4) & 0xf0), (dat & 0x0f) | ((dat << 4) & 0xf0), (dat & 0x0f) | ((dat << 4) & 0xf0), (dat & 0xf0) | ((dat >> 4) & 0x0f));
                     }
@@ -405,7 +441,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
                 pal = voodoo->palette[tmu];
                 for (y = 0; y < voodoo->params.tex_h_mask[tmu][lod] + 1; y++) {
                     for (x = 0; x < voodoo->params.tex_w_mask[tmu][lod] + 1; x++) {
-                        uint8_t dat = voodoo->tex_mem[tmu][(tex_addr + x) & voodoo->texture_mask];
+                        uint8_t dat = voodoo->tex_mem[tmu][(tex_addr + x) & texture_mask];
 
                         base[x] = makergba(pal[dat].rgba.r, pal[dat].rgba.g, pal[dat].rgba.b, 0xff);
                     }
@@ -418,7 +454,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
                 pal = voodoo->palette[tmu];
                 for (y = 0; y < voodoo->params.tex_h_mask[tmu][lod] + 1; y++) {
                     for (x = 0; x < voodoo->params.tex_w_mask[tmu][lod] + 1; x++) {
-                        uint8_t dat = voodoo->tex_mem[tmu][(tex_addr + x) & voodoo->texture_mask];
+                        uint8_t dat = voodoo->tex_mem[tmu][(tex_addr + x) & texture_mask];
 
                         int r = ((pal[dat].rgba.r & 3) << 6) | ((pal[dat].rgba.g & 0xf0) >> 2) | (pal[dat].rgba.r & 3);
                         int g = ((pal[dat].rgba.g & 0xf) << 4) | ((pal[dat].rgba.b & 0xc0) >> 4) | ((pal[dat].rgba.g & 0xf) >> 2);
@@ -435,7 +471,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
             case TEX_ARGB8332:
                 for (y = 0; y < voodoo->params.tex_h_mask[tmu][lod] + 1; y++) {
                     for (x = 0; x < voodoo->params.tex_w_mask[tmu][lod] + 1; x++) {
-                        uint16_t dat = *(uint16_t *) &voodoo->tex_mem[tmu][(tex_addr + x * 2) & voodoo->texture_mask];
+                        uint16_t dat = *(uint16_t *) &voodoo->tex_mem[tmu][(tex_addr + x * 2) & texture_mask];
 
                         base[x] = makergba(rgb332[dat & 0xff].r, rgb332[dat & 0xff].g, rgb332[dat & 0xff].b, dat >> 8);
                     }
@@ -448,7 +484,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
                 pal = voodoo->ncc_lookup[tmu][(voodoo->params.textureMode[tmu] & TEXTUREMODE_NCC_SEL) ? 1 : 0];
                 for (y = 0; y < voodoo->params.tex_h_mask[tmu][lod] + 1; y++) {
                     for (x = 0; x < voodoo->params.tex_w_mask[tmu][lod] + 1; x++) {
-                        uint16_t dat = *(uint16_t *) &voodoo->tex_mem[tmu][(tex_addr + x * 2) & voodoo->texture_mask];
+                        uint16_t dat = *(uint16_t *) &voodoo->tex_mem[tmu][(tex_addr + x * 2) & texture_mask];
 
                         base[x] = makergba(pal[dat & 0xff].rgba.r, pal[dat & 0xff].rgba.g, pal[dat & 0xff].rgba.b, dat >> 8);
                     }
@@ -460,7 +496,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
             case TEX_R5G6B5:
                 for (y = 0; y < voodoo->params.tex_h_mask[tmu][lod] + 1; y++) {
                     for (x = 0; x < voodoo->params.tex_w_mask[tmu][lod] + 1; x++) {
-                        uint16_t dat = *(uint16_t *) &voodoo->tex_mem[tmu][(tex_addr + x * 2) & voodoo->texture_mask];
+                        uint16_t dat = *(uint16_t *) &voodoo->tex_mem[tmu][(tex_addr + x * 2) & texture_mask];
 
                         base[x] = makergba(rgb565[dat].r, rgb565[dat].g, rgb565[dat].b, 0xff);
                     }
@@ -472,7 +508,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
             case TEX_ARGB1555:
                 for (y = 0; y < voodoo->params.tex_h_mask[tmu][lod] + 1; y++) {
                     for (x = 0; x < voodoo->params.tex_w_mask[tmu][lod] + 1; x++) {
-                        uint16_t dat = *(uint16_t *) &voodoo->tex_mem[tmu][(tex_addr + x * 2) & voodoo->texture_mask];
+                        uint16_t dat = *(uint16_t *) &voodoo->tex_mem[tmu][(tex_addr + x * 2) & texture_mask];
 
                         base[x] = makergba(argb1555[dat].r, argb1555[dat].g, argb1555[dat].b, argb1555[dat].a);
                     }
@@ -484,7 +520,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
             case TEX_ARGB4444:
                 for (y = 0; y < voodoo->params.tex_h_mask[tmu][lod] + 1; y++) {
                     for (x = 0; x < voodoo->params.tex_w_mask[tmu][lod] + 1; x++) {
-                        uint16_t dat = *(uint16_t *) &voodoo->tex_mem[tmu][(tex_addr + x * 2) & voodoo->texture_mask];
+                        uint16_t dat = *(uint16_t *) &voodoo->tex_mem[tmu][(tex_addr + x * 2) & texture_mask];
 
                         base[x] = makergba(argb4444[dat].r, argb4444[dat].g, argb4444[dat].b, argb4444[dat].a);
                     }
@@ -496,7 +532,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
             case TEX_A8I8:
                 for (y = 0; y < voodoo->params.tex_h_mask[tmu][lod] + 1; y++) {
                     for (x = 0; x < voodoo->params.tex_w_mask[tmu][lod] + 1; x++) {
-                        uint16_t dat = *(uint16_t *) &voodoo->tex_mem[tmu][(tex_addr + x * 2) & voodoo->texture_mask];
+                        uint16_t dat = *(uint16_t *) &voodoo->tex_mem[tmu][(tex_addr + x * 2) & texture_mask];
 
                         base[x] = makergba(dat & 0xff, dat & 0xff, dat & 0xff, dat >> 8);
                     }
@@ -509,7 +545,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
                 pal = voodoo->palette[tmu];
                 for (y = 0; y < voodoo->params.tex_h_mask[tmu][lod] + 1; y++) {
                     for (x = 0; x < voodoo->params.tex_w_mask[tmu][lod] + 1; x++) {
-                        uint16_t dat = *(uint16_t *) &voodoo->tex_mem[tmu][(tex_addr + x * 2) & voodoo->texture_mask];
+                        uint16_t dat = *(uint16_t *) &voodoo->tex_mem[tmu][(tex_addr + x * 2) & texture_mask];
 
                         base[x] = makergba(pal[dat & 0xff].rgba.r, pal[dat & 0xff].rgba.g, pal[dat & 0xff].rgba.b, dat >> 8);
                     }
@@ -560,7 +596,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
 
         if (addr_end != 0) {
             for (; addr <= addr_end; addr += (1 << TEX_DIRTY_SHIFT))
-                voodoo->texture_present[tmu][(addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT] = 1;
+                voodoo->texture_present[tmu][(addr & texture_mask) >> TEX_DIRTY_SHIFT] = 1;
         }
     }
 
@@ -572,6 +608,7 @@ void
 flush_texture_cache(voodoo_t *voodoo, uint32_t dirty_addr, int tmu)
 {
     int wait_for_idle = 0;
+    uint32_t texture_mask = voodoo_tmu_texture_mask(voodoo, tmu);
 
     memset(voodoo->texture_present[tmu], 0, sizeof(voodoo->texture_present[0]));
 #if 0
@@ -584,11 +621,11 @@ flush_texture_cache(voodoo_t *voodoo, uint32_t dirty_addr, int tmu)
                 int addr_end   = voodoo->texture_cache[tmu][c].addr_end[d];
 
                 if (addr_end != 0) {
-                    int addr_start_masked = addr_start & voodoo->texture_mask & ~0x3ff;
-                    int addr_end_masked   = ((addr_end & voodoo->texture_mask) + 0x3ff) & ~0x3ff;
+                    int addr_start_masked = addr_start & texture_mask & ~0x3ff;
+                    int addr_end_masked   = ((addr_end & texture_mask) + 0x3ff) & ~0x3ff;
 
                     if (addr_end_masked < addr_start_masked)
-                        addr_end_masked = voodoo->texture_mask + 1;
+                        addr_end_masked = texture_mask + 1;
                     if (dirty_addr >= addr_start_masked && dirty_addr < addr_end_masked) {
 #if 0
                         voodoo_texture_log("  Evict texture %i %08x\n", c, voodoo->texture_cache[tmu][c].base);
@@ -600,7 +637,7 @@ flush_texture_cache(voodoo_t *voodoo, uint32_t dirty_addr, int tmu)
                         voodoo->texture_cache[tmu][c].base = -1;
                     } else {
                         for (; addr_start <= addr_end; addr_start += (1 << TEX_DIRTY_SHIFT))
-                            voodoo->texture_present[tmu][(addr_start & voodoo->texture_mask) >> TEX_DIRTY_SHIFT] = 1;
+                            voodoo->texture_present[tmu][(addr_start & texture_mask) >> TEX_DIRTY_SHIFT] = 1;
                     }
                 }
             }
@@ -618,6 +655,8 @@ voodoo_tex_writel(uint32_t addr, uint32_t val, void *priv)
     int       t;
     voodoo_t *voodoo = (voodoo_t *) priv;
     int       tmu;
+    uint32_t  texture_mask;
+    uint32_t  other_texture_mask;
 
     if (addr & 0x400000)
         return; /*TREX != 0*/
@@ -626,6 +665,9 @@ voodoo_tex_writel(uint32_t addr, uint32_t val, void *priv)
 
     if (tmu && !voodoo->dual_tmus)
         return;
+
+    texture_mask       = voodoo_tmu_texture_mask(voodoo, tmu);
+    other_texture_mask = voodoo_tmu_texture_mask(voodoo, tmu ^ 1);
 
     if (voodoo->type < VOODOO_BANSHEE) {
         if (!(voodoo->params.tformat[tmu] & 8) && voodoo->type >= VOODOO_BANSHEE) {
@@ -658,17 +700,17 @@ voodoo_tex_writel(uint32_t addr, uint32_t val, void *priv)
     } else
         addr = (addr & 0x1ffffc) + voodoo->params.tex_base[tmu][0];
 
-    if (voodoo->texture_present[tmu][(addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT]) {
+    if (voodoo->texture_present[tmu][(addr & texture_mask) >> TEX_DIRTY_SHIFT]) {
 #if 0
-        voodoo_texture_log("texture_present at %08x %i\n", addr, (addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT);
+        voodoo_texture_log("texture_present at %08x %i\n", addr, (addr & texture_mask) >> TEX_DIRTY_SHIFT);
 #endif
-        flush_texture_cache(voodoo, addr & voodoo->texture_mask, tmu);
+        flush_texture_cache(voodoo, addr & texture_mask, tmu);
     }
-    if (voodoo->type == VOODOO_3 && voodoo->texture_present[tmu ^ 1][(addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT]) {
+    if (voodoo->type == VOODOO_3 && voodoo->texture_present[tmu ^ 1][(addr & other_texture_mask) >> TEX_DIRTY_SHIFT]) {
 #if 0
-        voodoo_texture_log("texture_present at %08x %i\n", addr, (addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT);
+        voodoo_texture_log("texture_present at %08x %i\n", addr, (addr & other_texture_mask) >> TEX_DIRTY_SHIFT);
 #endif
-        flush_texture_cache(voodoo, addr & voodoo->texture_mask, tmu ^ 1);
+        flush_texture_cache(voodoo, addr & other_texture_mask, tmu ^ 1);
     }
-    *(uint32_t *) (&voodoo->tex_mem[tmu][addr & voodoo->texture_mask]) = val;
+    *(uint32_t *) (&voodoo->tex_mem[tmu][addr & texture_mask]) = val;
 }

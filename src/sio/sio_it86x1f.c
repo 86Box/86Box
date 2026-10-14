@@ -810,6 +810,7 @@ it86x1f_reset(it86x1f_t *dev)
         fdc_update_drvrate(dev->fdc, i, 0);
 
     fdc_reset(dev->fdc);
+    fdc_remove(dev->fdc);
 
     serial_remove(dev->uart[0]);
 

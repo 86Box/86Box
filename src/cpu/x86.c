@@ -338,13 +338,17 @@ reset_common(int hard)
     }
     x86seg_reset();
 #ifdef USE_DYNAREC
-    if (hard)
+    /* A reset raised from inside a recompiled block (a timer run by RDTSC)
+       must not free the block still running; the dynarec loop flushes once
+       the block has returned. */
+    if (hard && !inrecomp)
         codegen_reset();
 #endif
     cpu_flush_pending = 0;
     cpu_old_paging = 0;
     if (!hard)
         flushmmucache();
+    cpu_cache_invalidate();
     x86_was_reset = 1;
     cpu_alt_reset = 0;
 
@@ -366,9 +370,7 @@ reset_common(int hard)
 
     if (hard) {
         reset_on_hlt = hlt_reset_pending = 0;
-        cache_index                      = 0;
-        memset(_tr, 0x00, sizeof(_tr));
-        memset(_cache, 0x00, sizeof(_cache));
+        cpu_tr_reset();
 
         /* If we have an AT or PS/2 keyboard controller, make sure the A20 state
            is correct. */

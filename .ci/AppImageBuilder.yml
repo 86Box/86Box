@@ -81,13 +81,18 @@ AppDir:
   files:
     exclude:
     - etc
-    - lib/udev
     - usr/[!ls]* # * except lib, local, share
+    - usr/lib/[!adlmx]* # * except aarch64-linux-gnu, discord_game_sdk.so, lib*, mdsx.so, x86_64-linux-gnu
+    - usr/lib/d[!i]* # d* except discord_game_sdk.so
+    - usr/lib/l[!i]* # l* except lib*
+    - usr/lib/m[!d]* # m* except mdsx.so
     - usr/lib/*/*.a # produced by library compilation
+    - usr/lib/*/glib-2.0 # GLib helper executables
     - usr/lib/*/libasound.so.* # using our own ALSA can cause issues, and the API is pretty stable anyway
+    - usr/lib/*/pkgconfig # produced by library compilation
+    - usr/lib/*/security # PAM modules
+    - usr/lib/*/systemd # systemd private libraries
     - usr/lib/*.a # produced by library compilation
-    - usr/lib/cmake # produced by library compilation
-    - usr/lib/pkgconfig # produced by library compilation
     - usr/s[!h]* # s* except share
     - usr/share/[!aim]* # * except applications, icons, metainfo
     - usr/share/a[!p]* # a* except applications

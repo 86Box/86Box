@@ -5,6 +5,8 @@
 #    include "codegen_backend_x86-64.h"
 #elif defined __aarch64__ || defined _M_ARM64
 #    include "codegen_backend_arm64.h"
+#elif defined __loongarch_lp64
+#    include "codegen_backend_loongarch64.h"
 #else
 #    error New dynamic recompiler not implemented on your platform
 #endif

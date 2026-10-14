@@ -442,6 +442,10 @@ pc87306_reset_common(void *priv)
     serial_handler(dev, 0);
     serial_handler(dev, 1);
     fdc_reset(dev->fdc);
+    fdc_remove(dev->fdc);
+    if ((dev->regs[0x00] & 8) && !(dev->regs[0x02] & 1))
+        fdc_set_base(dev->fdc, (dev->regs[0x00] & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
+    fdc_set_power_down(dev->fdc, dev->regs[0x02] & 0x01);
     pc87306_gpio_init(dev);
     if (!dump_missing)
         nvr_lock_set(0x00, 256, 0, dev->nvr);

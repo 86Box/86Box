@@ -84,6 +84,9 @@ int smi_latched = 0;
 int smm_in_hlt  = 0;
 int smi_block   = 0;
 
+/* RSM restarted a HLT and a latched SMI is about to be entered. */
+static int smm_rsm_restart = 0;
+
 int prefetch_prefixes = 0;
 int rf_flag_no_clear = 0;
 
@@ -182,14 +185,17 @@ int lock_legal_0f[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x8x */
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x9x */
                            0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,   /* 0xax */
-                           0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 3, 1, 0, 0, 0, 0,   /* 0xbx */
-                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xcx */
+                           1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 3, 1, 0, 0, 0, 0,   /* 0xbx */
+                           1, 1, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xcx */
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xdx */
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xex */
                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; /* 0xfx */
 
 /* (modrm >> 3) & 0x07 */
 int lock_legal_ba[8]   = { 0, 0, 0, 0, 1, 1, 1, 1 };
+
+/* (modrm >> 3) & 0x07 */
+int lock_legal_c7[8]   = { 0, 1, 0, 0, 0, 0, 0, 0 };
 
 /* Also applies to 81, 82, and 83 */
 int lock_legal_80[8]   = { 1, 1, 1, 1, 1, 1, 1, 0 };
@@ -473,7 +479,10 @@ is_lock_legal(uint32_t fetchdat)
             if (legal == 1)
                 legal = ((fetch_dat.b[2] >> 6) != 0x03);    /* reg,reg is illegal */
             else if (legal == 3) {
-                legal = lock_legal_ba[(fetch_dat.b[2] >> 3) & 0x07];
+                if (fetch_dat.b[1] == 0xc7)
+                    legal = lock_legal_c7[(fetch_dat.b[2] >> 3) & 0x07];
+                else
+                    legal = lock_legal_ba[(fetch_dat.b[2] >> 3) & 0x07];
                 if (legal == 1)
                     legal = ((fetch_dat.b[2] >> 6) != 0x03);    /* reg,imm is illegal */
             }
@@ -809,8 +818,9 @@ smram_restore_state_p5(uint32_t *saved_state)
     cpu_state.seg_ss.base   = saved_state[SMRAM_FIELD_P5_SS_BASE];
     cpu_state.seg_ss.limit  = saved_state[SMRAM_FIELD_P5_SS_LIMIT];
     cpu_state.seg_ss.access = (saved_state[SMRAM_FIELD_P5_SS_ACCESS] >> 8) & 0xff;
-    /* The actual CPL (DPL of CS) is overwritten with DPL of SS. */
-    cpu_state.seg_cs.access  = (cpu_state.seg_cs.access & ~0x60) | (cpu_state.seg_ss.access & 0x60);
+    /* The CPL comes back with the saved CS cache, not from SS.DPL: a real-mode
+       SS cache is kept with DPL 3, and an SMI can land in real mode or after
+       PE is set but before SS is reloaded, both at CPL 0. */
     cpu_state.seg_ss.ar_high = (saved_state[SMRAM_FIELD_P5_SS_ACCESS] >> 16) & 0xff;
     smm_seg_load(&cpu_state.seg_ss);
 
@@ -1289,6 +1299,12 @@ enter_smm(int in_hlt)
     if (!is_am486 && !is_pentium && !is_k5 && !is_k6 && !is_p6 && !is_cxsmm)
         return;
 
+    if (smm_rsm_restart) {
+        cpu_state.pc++;
+        in_hlt          = 1;
+        smm_rsm_restart = 0;
+    }
+
     x386_common_log("enter_smm(): smbase = %08X\n", smbase);
     x386_common_log("CS : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
                     cpu_state.seg_cs.seg, cpu_state.seg_cs.base, cpu_state.seg_cs.limit, cpu_state.seg_cs.limit_low,
@@ -1424,11 +1440,9 @@ enter_smm(int in_hlt)
 
     nmi_mask = 0;
 
-    if (smi_latched) {
-        in_smm      = 2;
-        smi_latched = 0;
-    } else
-        in_smm = 1;
+    /* Entering consumes the latch; this stay can latch one SMI of its own,
+       even when it was entered from the latch. */
+    smi_latched = 0;
 
     smm_in_hlt = in_hlt;
 
@@ -1479,11 +1493,6 @@ enter_smm_check(int in_hlt)
 #endif
                 smi_latched = 1;
                 break;
-            case 2:
-#ifdef ENABLE_386_COMMON_LOG
-                x386_common_log("SMI while in latched SMM\n");
-#endif
-                break;
         }
 #ifdef ENABLE_386_COMMON_LOG
         else {
@@ -1501,6 +1510,7 @@ leave_smm(void)
 {
     uint32_t saved_state[SMM_SAVE_STATE_MAP_SIZE];
     uint32_t smram_state = smbase + 0x10000;
+    uint32_t restart     = 0;
 
     /* If it's a CPU on which SMM is not supported (or not implemented in 86Box), do nothing. */
     if (!is_am486 && !is_pentium && !is_k5 && !is_k6 && !is_p6 && !is_cxsmm)
@@ -1543,12 +1553,23 @@ leave_smm(void)
     x386_common_log("New SMBASE: %08X (%08X)\n", saved_state[SMRAM_FIELD_P5_SMBASE_OFFSET], saved_state[66]);
     if (is_cxsmm) /* Cx6x86 */
         smram_restore_state_cyrix(saved_state);
-    else if (is_pentium || is_am486) /* Am486 / 5x86 / Intel P5 (Pentium) */
+    else if (is_pentium || is_am486) { /* Am486 / 5x86 / Intel P5 (Pentium) */
         smram_restore_state_p5(saved_state);
-    else if (is_k5 || is_k6) /* AMD K5 and K6 */
+        restart = saved_state[SMRAM_FIELD_P5_AUTOHALT_RESTART] & 0xffff;
+    } else if (is_k5 || is_k6) { /* AMD K5 and K6 */
         smram_restore_state_amd_k(saved_state);
-    else if (is_p6) /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
+        restart = saved_state[SMRAM_FIELD_AMD_K_AUTOHALT_RESTART] & 0xffff;
+    } else if (is_p6) { /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
         smram_restore_state_p6(saved_state);
+        restart = saved_state[SMRAM_FIELD_P6_AUTOHALT_RESTART] & 0xffff;
+    }
+
+    /* An auto HALT restart re-enters the HALT state, EIP past the HLT again
+       (Intel SDM vol. 3, 34.10). A latched SMI is taken there, at once, so
+       its stay must save that EIP and the restart flag, not the HLT address
+       the restore points at for the re-execution. */
+    smm_in_hlt      = !!restart;
+    smm_rsm_restart = restart && smi_latched;
 
     in_smm = 0;
     smram_recalc_all(1);

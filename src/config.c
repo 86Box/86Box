@@ -91,6 +91,7 @@
 #include <86box/snd_opl.h>
 #include <86box/version.h>
 #include <86box/plat_floppy_ioctl.h>
+#include <86box/vfio.h>
 
 #ifndef USE_SDL_UI
 /* Deliberate to not make the 86box.h header kitchen-sink. */
@@ -759,9 +760,11 @@ load_video(void)
         }
     }
 
-    if (((gfxcard[0] == VID_INTERNAL) && machine_has_flags(machine, MACHINE_VIDEO_8514A)) ||
-        video_card_get_flags(gfxcard[0]) == VIDEO_FLAG_TYPE_8514)
+    if (video_get_primary_flags(machine, gfxcard[0]) == VIDEO_FLAG_TYPE_8514)
         ini_section_delete_var(cat, "8514a");
+
+    if (video_get_primary_flags(machine, gfxcard[0]) == VIDEO_FLAG_TYPE_DA2)
+        ini_section_delete_var(cat, "da2");
 
     voodoo_enabled                   = !!ini_section_get_int(cat, "voodoo", 0);
     ibm8514_standalone_enabled       = !!ini_section_get_int(cat, "8514a", 0);
@@ -819,7 +822,7 @@ load_input_devices(void)
             keyboard_type = KEYBOARD_TYPE_PS2;
     } else if (machine_has_bus(machine, MACHINE_BUS_ISA16) ||
                machine_has_bus(machine, MACHINE_BUS_PCI)) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
+        if (machine_has_flags(machine, MACHINE_KEYBOARD_AX))
             keyboard_type = KEYBOARD_TYPE_AX;
         else
             keyboard_type = KEYBOARD_TYPE_AT;
@@ -1491,9 +1494,13 @@ load_storage_controllers(void)
         sprintf(temp, "hdc_%d", c + 1);
 
         p = ini_section_get_string(cat, temp, NULL);
-        if (p != NULL)
-            hdc_current[c] = config_known(hdc_get_from_internal_name(p), STRING_UNSUPPORTED_HDC, p);
-        else
+        if (p != NULL) {
+            /* The integrated ESDI controller became a planar device, so a config
+               that picked this from the list now means the Internal controller. */
+            const char *hdc_name = !strcmp(p, "esdi_integrated_mca") ? "internal" : p;
+
+            hdc_current[c] = config_known(hdc_get_from_internal_name(hdc_name), STRING_UNSUPPORTED_HDC, hdc_name);
+        } else
             hdc_current[c] = -1;
     }
 
@@ -2000,7 +2007,8 @@ load_floppy_and_cdrom_drives(void)
         cdrom[c].no_check = ini_section_get_int(cat, temp, 0);
 
         sprintf(temp, "cdrom_%02i_type", c + 1);
-        p = ini_section_get_string(cat, temp, cdrom[c].bus_type == CDROM_BUS_CM100 ? "philips_cm100" :
+        p = ini_section_get_string(cat, temp, cdrom[c].bus_type == CDROM_BUS_SONY ? "sony_cdu31a" :
+                                       cdrom[c].bus_type == CDROM_BUS_CM100 ? "philips_cm100" :
                                        cdrom[c].bus_type == CDROM_BUS_PHILIPS ? "philips_cm205" :
                                        cdrom[c].bus_type == CDROM_BUS_HITACHI ? "hitachi_1503s" :
                                        cdrom[c].bus_type == CDROM_BUS_MKE ? "cr563" : "86cd");
@@ -2022,7 +2030,11 @@ load_floppy_and_cdrom_drives(void)
         /* Default values, needed for proper operation of the Settings dialog. */
         cdrom[c].mke_channel = cdrom[c].ide_channel = cdrom[c].scsi_device_id = c & 3;
 
-        if (cdrom[c].bus_type == CDROM_BUS_CM100) {
+        if (cdrom[c].bus_type == CDROM_BUS_SONY) {
+            if (cdrom_drive_types[cdrom_get_type(c)].bus_type != CDROM_BUS_SONY)
+                cdrom_set_type(c, cdrom_get_from_internal_name("sony_cdu31a"));
+            cdrom[c].speed = cdrom_get_speed(cdrom_get_type(c));
+        } else if (cdrom[c].bus_type == CDROM_BUS_CM100) {
             cdrom_set_type(c, cdrom_get_from_internal_name("philips_cm100"));
             cdrom[c].speed = 1;
         } else if (cdrom[c].bus_type == CDROM_BUS_PHILIPS) {
@@ -2717,6 +2729,30 @@ load_other_peripherals(void)
 
     if (!strcmp(p, "none"))
         ini_section_delete_var(cat, temp);
+
+#ifdef USE_VFIO
+    /* VFIO passthrough devices: a space-separated device list, with
+       an optional custom ROM file for each device. */
+    ini_section_t vfio_cat = ini_find_section(config, "VFIO");
+    char         *devices;
+    char         *token;
+    char         *strtok_save;
+    int           c = 0;
+
+    memset(vfio_device_conf, 0, sizeof(vfio_device_conf));
+    devices = strdup(ini_section_get_string(vfio_cat, "devices", ""));
+    for (token = strtok_r(devices, " ", &strtok_save); token && (c < VFIO_DEVICE_MAX);
+         token = strtok_r(NULL, " ", &strtok_save)) {
+        strncpy(vfio_device_conf[c].location, token, sizeof(vfio_device_conf[c].location) - 1);
+
+        snprintf(temp, sizeof(temp), "%s_rom_fn", token);
+        strncpy(vfio_device_conf[c].rom_fn, ini_section_get_string(vfio_cat, temp, ""),
+                sizeof(vfio_device_conf[c].rom_fn) - 1);
+
+        c++;
+    }
+    free(devices);
+#endif
 }
 
 #ifndef USE_SDL_UI
@@ -4175,6 +4211,41 @@ save_other_peripherals(void)
                                isartc_get_internal_name(isartc_type));
 
     ini_delete_section_if_empty(config, cat);
+
+#ifdef USE_VFIO
+    ini_section_t vfio_cat = ini_find_or_create_section(config, "VFIO");
+    char          devices[VFIO_DEVICE_MAX * (sizeof(vfio_device_conf[0].location) + 1)];
+    char         *p;
+    char         *token;
+    char         *strtok_save;
+
+    /* Remove the ROM files of the previously saved devices. */
+    p = strdup(ini_section_get_string(vfio_cat, "devices", ""));
+    for (token = strtok_r(p, " ", &strtok_save); token; token = strtok_r(NULL, " ", &strtok_save)) {
+        snprintf(temp, sizeof(temp), "%s_rom_fn", token);
+        ini_section_delete_var(vfio_cat, temp);
+    }
+    free(p);
+
+    devices[0] = '\0';
+    for (uint8_t c = 0; (c < VFIO_DEVICE_MAX) && vfio_device_conf[c].location[0]; c++) {
+        if (devices[0])
+            strcat(devices, " ");
+        strcat(devices, vfio_device_conf[c].location);
+
+        if (vfio_device_conf[c].rom_fn[0]) {
+            snprintf(temp, sizeof(temp), "%.255s_rom_fn", vfio_device_conf[c].location);
+            ini_section_set_string(vfio_cat, temp, vfio_device_conf[c].rom_fn);
+        }
+    }
+
+    if (devices[0])
+        ini_section_set_string(vfio_cat, "devices", devices);
+    else
+        ini_section_delete_var(vfio_cat, "devices");
+
+    ini_delete_section_if_empty(config, vfio_cat);
+#endif
 }
 
 #ifndef USE_SDL_UI

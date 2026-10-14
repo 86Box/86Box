@@ -10,7 +10,7 @@
  *
  * Authors: Jasmine Iwanek, <jasmine@iwanek.co.uk>
  *
- *          Copyright 2025 Jasmine Iwanek
+ *          Copyright 2025-2026 Jasmine Iwanek
  */
 #ifndef EMU_PRT_PAPERSIZES_H
 #define EMU_PRT_PAPERSIZES_H
@@ -51,4 +51,4 @@
 #define B4_PAGE_WIDTH   9.8425197
 #define B4_PAGE_HEIGHT  13.897637
 
-#endif /*EMU_PLAT_FALLTHROUGH_H*/
+#endif /*EMU_PRT_PAPERSIZES_H*/

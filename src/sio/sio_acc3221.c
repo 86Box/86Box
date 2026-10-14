@@ -441,6 +441,9 @@ acc3221_reset(acc3221_t *dev)
     lpt_port_irq(dev->lpt, LPT1_IRQ);
 
     fdc_reset(dev->fdc);
+    fdc_remove(dev->fdc);
+    if (!(dev->regs[0xfb] & REG_FB_FDC_DISABLE))
+        fdc_set_base(dev->fdc, FDC_PRIMARY_ADDR);
 }
 
 static void

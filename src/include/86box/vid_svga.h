@@ -237,6 +237,10 @@ typedef struct svga_t {
     /*Called at the start of vertical sync*/
     void (*vsync_callback)(struct svga_t *svga);
 
+    /* Called instead of the blank while the core is in DPMS mode, by a device whose monitors
+       do not all sleep together and which therefore paints the sleep state itself. */
+    void (*dpms_render)(struct svga_t *svga);
+
     /* Called on each new CRTC line, after vc advances. */
     void (*line_callback)(struct svga_t *svga);
 
@@ -325,6 +329,7 @@ typedef struct svga_t {
 
     /* Override the horizontal blanking stuff. */
     int hoverride;
+
     /* Set by a card whose CRTC programs its borders in its own registers:
        left_overscan/y_add come from border_left/border_top, and the card
        sets mon_overscan_x/y to the whole border. */
@@ -476,7 +481,7 @@ extern float icd2047_getclock(int clock, void *priv);
 
 extern void  icd2061_write(void *priv, int val);
 extern float icd2061_getclock(int clock, void *priv);
-extern void  icd2061_set_ref_clock(void *priv, float ref_clock);
+extern void  icd2061_set_clocks(void *priv, float ref_clock, float reg0, float reg1, float reg2);
 
 /* The code is the same, the #define's are so that the correct name can be used. */
 #    define ics9161_write    icd2061_write
@@ -486,6 +491,7 @@ extern float ics1494_getclock(int clock, void *priv);
 
 extern float ics2494_getclock(int clock, void *priv);
 extern float ch9201_getclock(int clock, void *priv);
+extern float ch9204_getclock(int clock, void *priv);
 
 extern float ics90c64a_vclk_getclock(int clock, void *priv);
 extern float ics90c64a_mclk_getclock(int clock, void *priv);
@@ -494,6 +500,9 @@ extern void   ics2595_write(void *priv, int strobe, int dat);
 extern double ics2595_getclock(void *priv);
 extern double ics2595_getclock_entry(void *priv, int n);
 extern void   ics2595_setclock(void *priv, double clock);
+
+extern void    mu9c1880_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t mu9c1880_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
 
 extern void    sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t sc1148x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
@@ -540,6 +549,7 @@ extern const device_t bt485a_ramdac_device;
 extern const device_t gendac_ramdac_device;
 extern const device_t ibm_rgb528_ramdac_device;
 extern const device_t ch9201_device;
+extern const device_t ch9204_device;
 extern const device_t ics1494m_540_device;
 extern const device_t ics2494an_304_device;
 extern const device_t ics2494an_305_device;
@@ -556,6 +566,7 @@ extern const device_t icd2047_20_device;
 extern const device_t icd2061_device;
 extern const device_t ics90c64a_903_device;
 extern const device_t ics9161_device;
+extern const device_t mu9c1880_ramdac_device;
 extern const device_t sc11483_ramdac_device;
 extern const device_t sc11484_ramdac_device;
 extern const device_t sc11487_ramdac_device;

@@ -205,7 +205,7 @@ typedef enum {
 typedef struct ncr53c8xx_t {
     char          nvr_path[64];
     uint8_t       pci_slot;
-    uint8_t       chip, wide;
+    uint8_t       chip, wide, chip_type;
     int           has_bios;
     int           BIOSBase;
     rom_t         bios;
@@ -276,6 +276,7 @@ typedef struct ncr53c8xx_t {
     uint8_t gpreg;
     uint8_t slpar;
     uint8_t swide;
+    uint8_t macntl;
     uint8_t gpcntl;
     uint8_t last_command;
     uint8_t sodl;
@@ -316,10 +317,6 @@ typedef struct ncr53c8xx_t {
     uint8_t bus;
 
     pc_timer_t timer;
-
-#ifdef USE_WDTR
-    uint8_t tr_set[16];
-#endif
 } ncr53c8xx_t;
 
 #ifdef ENABLE_NCR53C8XX_LOG
@@ -431,27 +428,20 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
     dev->last_level = 0;
     dev->gpreg      = 0;
     dev->slpar      = 0;
+    dev->macntl     = 0;
     dev->sstop      = 1;
     dev->gpcntl     = 0x03;
 
     if (dev->wide) {
         /* This *IS* a wide SCSI controller, so reset all SCSI
            devices. */
-        for (i = 0; i < 16; i++) {
-#ifdef USE_WDTR
-            dev->tr_set[i] = 0;
-#endif
+        for (i = 0; i < 16; i++)
             scsi_device_reset(&scsi_devices[dev->bus][i]);
-        }
     } else {
         /* This is *NOT* a wide SCSI controller, so do not touch
            SCSI devices with ID's >= 8. */
-        for (i = 0; i < 8; i++) {
-#ifdef USE_WDTR
-            dev->tr_set[i] = 0;
-#endif
+        for (i = 0; i < 8; i++)
             scsi_device_reset(&scsi_devices[dev->bus][i]);
-        }
     }
 }
 
@@ -800,19 +790,33 @@ ncr53c8xx_do_status(ncr53c8xx_t *dev)
     ncr53c8xx_add_msg_byte(dev, 0); /* COMMAND COMPLETE */
 }
 
-#ifdef USE_WDTR
+/* Answer an initiator's WDTR the way a target does: in a MSG IN phase,
+   with the width it agrees to, then carry on to the COMMAND phase. */
 static void
-ncr53c8xx_do_wdtr(ncr53c8xx_t *dev, int exponent)
+ncr53c8xx_do_wdtr(ncr53c8xx_t *dev, uint8_t exponent)
 {
-    ncr53c8xx_log("Target-initiated WDTR (%08X)\n", dev);
+    ncr53c8xx_log("WDTR response, exponent %d\n", exponent);
     ncr53c8xx_set_phase(dev, PHASE_MI);
-    dev->msg_action = 4;
+    dev->msg_action = 0;
     ncr53c8xx_add_msg_byte(dev, 0x01);     /* EXTENDED MESSAGE */
     ncr53c8xx_add_msg_byte(dev, 0x02);     /* EXTENDED MESSAGE LENGTH */
     ncr53c8xx_add_msg_byte(dev, 0x03);     /* WIDE DATA TRANSFER REQUEST */
-    ncr53c8xx_add_msg_byte(dev, exponent); /* TRANSFER WIDTH EXPONENT (16-bit) */
+    ncr53c8xx_add_msg_byte(dev, exponent); /* TRANSFER WIDTH EXPONENT */
 }
-#endif
+
+/* Same for SDTR. An offset of 0 agrees to asynchronous transfers. */
+static void
+ncr53c8xx_do_sdtr(ncr53c8xx_t *dev, uint8_t period, uint8_t offset)
+{
+    ncr53c8xx_log("SDTR response, period %d, offset %d\n", period, offset);
+    ncr53c8xx_set_phase(dev, PHASE_MI);
+    dev->msg_action = 0;
+    ncr53c8xx_add_msg_byte(dev, 0x01);   /* EXTENDED MESSAGE */
+    ncr53c8xx_add_msg_byte(dev, 0x03);   /* EXTENDED MESSAGE LENGTH */
+    ncr53c8xx_add_msg_byte(dev, 0x01);   /* SYNCHRONOUS DATA TRANSFER REQUEST */
+    ncr53c8xx_add_msg_byte(dev, period); /* TRANSFER PERIOD FACTOR */
+    ncr53c8xx_add_msg_byte(dev, offset); /* REQ/ACK OFFSET */
+}
 
 static void
 ncr53c8xx_do_msgin(ncr53c8xx_t *dev)
@@ -844,9 +848,6 @@ ncr53c8xx_do_msgin(ncr53c8xx_t *dev)
                 break;
             case 3:
                 ncr53c8xx_set_phase(dev, PHASE_DI);
-                break;
-            case 4:
-                ncr53c8xx_set_phase(dev, PHASE_MO);
                 break;
             default:
                 abort();
@@ -902,6 +903,11 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
                 ncr53c8xx_log("MSG: Disconnect\n");
                 ncr53c8xx_disconnect(dev);
                 break;
+            case 0x07:
+                /* The initiator rejected our last message (e.g. a WDTR answer). */
+                ncr53c8xx_log("MSG: Message Reject\n");
+                ncr53c8xx_set_phase(dev, PHASE_CMD);
+                break;
             case 0x08:
                 ncr53c8xx_log("MSG: No Operation\n");
                 ncr53c8xx_set_phase(dev, PHASE_CMD);
@@ -914,19 +920,14 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
                 ncr53c8xx_log("Extended message 0x%x (len %d)\n", msg, len);
                 switch (msg) {
                     case 1:
-                        ncr53c8xx_log("SDTR (ignored)\n");
+                        ncr53c8xx_log("SDTR, period %d\n", arg);
                         ncr53c8xx_skip_msgbytes(dev, 1);
+                        ncr53c8xx_do_sdtr(dev, arg, 0x00);
                         break;
                     case 3:
-                        ncr53c8xx_log("WDTR (ignored)\n");
-#ifdef USE_WDTR
-                        dev->tr_set[dev->sdid] = 1;
-#endif
-                        if (arg > 0x01) {
-                            ncr53c8xx_bad_message(dev, msg);
-                            return;
-                        }
-                        ncr53c8xx_set_phase(dev, PHASE_CMD);
+                        ncr53c8xx_log("WDTR, exponent %d\n", arg);
+                        /* The target does 16 bits at most, and only on a wide bus. */
+                        ncr53c8xx_do_wdtr(dev, (arg && dev->wide) ? 0x01 : 0x00);
                         break;
                     case 5:
                         ncr53c8xx_log("PPR (ignored)\n");
@@ -955,12 +956,7 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
                 scsi_device_command_stop(sd);
                 ncr53c8xx_disconnect(dev);
                 break;
-            case 0x0c:
-                /* BUS DEVICE RESET message, reset wide transfer request. */
-#ifdef USE_WDTR
-                dev->tr_set[dev->sdid] = 0;
-#endif
-                /* FALLTHROUGH */
+            case 0x0c: /* BUS DEVICE RESET */
             case 0x06:
             case 0x0e:
                 /* clear the current I/O process */
@@ -977,12 +973,7 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
                     dev->current_lun = msg & 7;
                     scsi_device_identify(sd, msg & 7);
                     ncr53c8xx_log("Select LUN %d\n", dev->current_lun);
-#ifdef USE_WDTR
-                    if ((dev->chip == CHIP_875) && !dev->tr_set[dev->sdid])
-                        ncr53c8xx_do_wdtr(dev, 0x01);
-                    else
-#endif
-                        ncr53c8xx_set_phase(dev, PHASE_CMD);
+                    ncr53c8xx_set_phase(dev, PHASE_CMD);
                 }
                 break;
         }
@@ -1667,6 +1658,9 @@ ncr53c8xx_reg_writeb(ncr53c8xx_t *dev, uint32_t offset, uint8_t val)
             dev->sien1 = val;
             ncr53c8xx_update_irq(dev);
             break;
+        case 0x46: /* MACNTL */
+            dev->macntl = val & 0x0f;
+            break;
         case 0x47: /* GPCNTL */
             ncr53c8xx_log("GPCNTL write: %02X\n", val);
             dev->gpcntl = val;
@@ -1842,8 +1836,12 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
             return dev->scntl1 & NCR_SCNTL1_CON ? 0 : 2;
             CASE_GET_REG32(dsa, 0x10)
         case 0x14: /* ISTAT */
-            ncr53c8xx_log("NCR 810: Read ISTAT %02X\n", dev->istat);
-            tmp = dev->istat;
+            /* CON follows the connection; the Windows symc8xx driver resets
+               the chip on a negotiation interrupt that arrives without it. */
+            tmp = dev->istat & ~NCR_ISTAT_CON;
+            if (dev->scntl1 & NCR_SCNTL1_CON)
+                tmp |= NCR_ISTAT_CON;
+            ncr53c8xx_log("NCR 810: Read ISTAT %02X\n", tmp);
             return tmp;
         case 0x16: /* MBOX0 */
             if (dev->wide)
@@ -1936,8 +1934,11 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
             ncr53c8xx_log("NCR 810: Read SWIDE %02X\n", dev->stime0);
             return dev->swide;
         case 0x46: /* MACNTL */
-            ncr53c8xx_log("NCR 810: Read MACNTL 4F\n");
-            return 0x4f;
+            /* TYP (bits 7-4) identifies the chip; SDMS 4.x takes the bus width
+               and speed from it, not from the PCI device ID. */
+            tmp = (dev->chip_type << 4) | dev->macntl;
+            ncr53c8xx_log("NCR 810: Read MACNTL %02X\n", tmp);
+            return tmp;
         case 0x47: /* GPCNTL */
             ncr53c8xx_log("NCR 810: Read GPCNTL %02X\n", dev->gpcntl);
             return dev->gpcntl;
@@ -2567,33 +2568,42 @@ ncr53c8xx_init(const device_t *info)
     switch (dev->chip) {
         case CHIP_810:
             sprintf(dev->nvr_path, "ncr53c810_%i.nvr", device_get_instance());
-            dev->wide     = 0;
+            dev->wide      = 0;
+            /* TYP is reserved on the 810 and undocumented for the 815 and 820;
+               keep the 4 they always read, which SDMS 4.x takes for an 810A. */
+            dev->chip_type = 0x04;
             break;
         case CHIP_815:
             dev->chip_rev = 0x04;
             sprintf(dev->nvr_path, "ncr53c815_%i.nvr", device_get_instance());
-            dev->wide     = 0;
+            dev->wide      = 0;
+            dev->chip_type = 0x04;
             break;
         case CHIP_820:
             sprintf(dev->nvr_path, "ncr53c820_%i.nvr", device_get_instance());
-            dev->wide     = 1;
+            dev->wide      = 1;
+            dev->chip_type = 0x04;
             break;
         case CHIP_825:
             dev->chip_rev = 0x26;
             sprintf(dev->nvr_path, "ncr53c825a_%i.nvr", device_get_instance());
-            dev->wide     = 1;
+            dev->wide      = 1;
+            dev->chip_type = 0x06;
             break;
         case CHIP_860:
             scsi_bus_set_speed(dev->bus, 20000000.0);
             dev->chip_rev = 0x04;
             sprintf(dev->nvr_path, "ncr53c860_%i.nvr", device_get_instance());
-            dev->wide     = 1;
+            /* Narrow Ultra: no SCRIPTS RAM, SCRATCHC-J or upper data byte. */
+            dev->wide      = 0;
+            dev->chip_type = 0x05;
             break;
         case CHIP_875:
             scsi_bus_set_speed(dev->bus, 40000000.0);
             dev->chip_rev = 0x04;
             sprintf(dev->nvr_path, "ncr53c875_%i.nvr", device_get_instance());
-            dev->wide     = 1;
+            dev->wide      = 1;
+            dev->chip_type = 0x07;
             break;
     }
 

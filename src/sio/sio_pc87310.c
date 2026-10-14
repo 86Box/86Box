@@ -261,6 +261,10 @@ pc87310_reset(pc87310_t *dev)
         ide_pri_enable();
     }
     fdc_reset(dev->fdc);
+    fdc_remove(dev->fdc);
+    /* Bit 6: 1 = Disable FDC. */
+    if (!(dev->regs[1] & 0x40))
+        fdc_set_base(dev->fdc, FDC_PRIMARY_ADDR);
 }
 
 static void

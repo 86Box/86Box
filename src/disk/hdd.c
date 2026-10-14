@@ -75,6 +75,9 @@ hdd_string_to_bus(char *str, int cdrom)
     if (!strcmp(str, "mitsumi") && cdrom)
         return CDROM_BUS_MITSUMI;
 
+    if (!strcmp(str, "sony") && cdrom)
+        return CDROM_BUS_SONY;
+
     if (!strcmp(str, "philips") && cdrom)
         return CDROM_BUS_PHILIPS;
 
@@ -141,6 +144,11 @@ hdd_bus_to_string(int bus, int cdrom)
         case CDROM_BUS_PHILIPS:
             if (cdrom)
                 s = "philips";
+            break;
+
+        case CDROM_BUS_SONY:
+            if (cdrom)
+                s = "sony";
             break;
 
         case CDROM_BUS_CM100:

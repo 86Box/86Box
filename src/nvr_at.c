@@ -992,9 +992,16 @@ nvr_start(nvr_t *nvr)
 
     /* Initialize the internal and chip times. */
     if (time_sync & TIME_SYNC_ENABLED) {
-        /* Use the internal clock's time. */
+        /* Use the internal clock's time. As in timer_update(), leave the
+           century byte alone unless the NVR is uninitialized: it is ordinary
+           RAM maintained by the firmware, and some firmware checksums it. */
+        const int     seed_cent = (local->cent == 0xff) || (default_found == nvr->size);
+        const uint8_t old_cent  = seed_cent ? 0x00 : nvr->regs[local->cent];
+
         nvr_time_get(&tm);
         time_set(nvr, &tm);
+        if (!seed_cent)
+            nvr->regs[local->cent] = old_cent;
     } else {
         /* Set the internal clock from the chip time. */
         time_get(nvr, &tm);

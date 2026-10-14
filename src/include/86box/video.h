@@ -39,7 +39,8 @@ extern "C" {
 
 enum {
     VID_NONE = 0,
-    VID_INTERNAL
+    VID_INTERNAL,
+    VID_EXTERNAL
 };
 
 enum {
@@ -285,9 +286,10 @@ extern int         video_get_video_from_internal_name(char *s);
 #ifdef EMU_DEVICE_H
 extern const device_t *video_get_video_from_old_internal_name(char *s);
 #endif
-extern int         video_card_get_flags(int card);
 extern int         video_is_mda(void);
 extern int         video_is_cga(void);
+extern int         video_card_get_flags(int card);
+extern int         video_get_primary_flags(int m, int card);
 /* Query the active video implementation before a memory transfer so
  * pin-level CPU cores can model READY without hardcoding a card. */
 extern unsigned    video_get_wait_states(uint32_t address, int write,
@@ -375,13 +377,20 @@ extern const device_t ibm_plasma_vga_device;
 /* ATi Mach64 */
 extern const device_t mach64gx_isa_device;
 extern const device_t mach64gx_vlb_device;
+extern const device_t mach64gx_vlb_onboard_device;
 extern const device_t mach64gx_xpression_vlb_device;
 extern const device_t mach64gx_pci_device;
+extern const device_t mach64gx_pci_onboard_device;
 extern const device_t mach64ct_device;
-extern const device_t mach64ct_device_onboard;
+extern const device_t mach64ct_onboard_device;
 extern const device_t mach64vt_device;
 extern const device_t mach64vt2_device;
+extern const device_t mach64gtb_device;
+extern const device_t mach64gtb_onboard_device;
 extern const device_t mach64vt3_onboard_device;
+extern const device_t ati_rage128_pro_device;
+extern const device_t ati_xpert128_pci_device;
+extern const device_t ati_rage128_maxx_device;
 
 /* ATi 18800 */
 extern const device_t ati18800_wonder_device;
@@ -418,15 +427,16 @@ extern const device_t gd5424_vlb_device;
 extern const device_t gd5424_onboard_device;
 extern const device_t gd5426_isa_device;
 extern const device_t gd5426_vlb_device;
+extern const device_t gd5426_mca_device;
 extern const device_t gd5426_onboard_isa_device;
 extern const device_t gd5426_onboard_device;
 extern const device_t gd5428_isa_device;
+extern const device_t gd5428_vlb_device;
 extern const device_t gd5428_vlb_onboard_device;
 extern const device_t gd5428_vlb_onboard_pb450_device;
 extern const device_t gd5428_vlb_onboard_tandy_device;
-extern const device_t gd5428_vlb_device;
-extern const device_t gd5428_mca_device;
-extern const device_t gd5426_mca_device;
+extern const device_t gd5428_mca_jp_device;
+extern const device_t gd5428_mca_us_device;
 extern const device_t gd5428_onboard_device;
 extern const device_t gd5428_onboard_vlb_device;
 extern const device_t gd5429_isa_device;
@@ -544,6 +554,7 @@ extern void           paradise_wd90c20_vga_disable(void *priv, uint16_t port);
 extern void           paradise_wd90c20_vga_enable(void *priv, uint16_t port);
 extern const device_t paradise_wd90c30_device;
 extern const device_t paradise_wd90c31_device;
+extern const device_t paradise_wd90c31_onboard_device;
 extern const device_t paradise_speedstar24x_device;
 
 /* Quadram Quadcolor I / I + II */
@@ -599,6 +610,9 @@ extern const device_t s3_trio3d2x_agp_device;
 
 /* Sigma Color 400 */
 extern const device_t sigma_device;
+
+/* SiS */
+extern const device_t sis6306_onboard_device;
 
 /* Trident TGUI 94x0 */
 extern const device_t tgui9400cxi_device;

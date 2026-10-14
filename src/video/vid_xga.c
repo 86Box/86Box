@@ -739,6 +739,30 @@ xga_ext_outb(uint16_t addr, uint8_t val, void *priv)
 }
 
 static uint8_t
+xga_display_id_read(xga_t *xga, uint8_t sp)
+{
+    /* The SP field (Display Control 1 Register, Index 50, bits 7-6) selects which
+       bit of each display ID nibble the register returns; the four reads are then
+       assembled into the sixteen bit display ID, MID 3 being the most significant
+       nibble. The IBM adapter select bit 3 with '01', bit 2 with '10', bit 1 with
+       '00' and bit 0 with '11'; the INMOS adapter pairs '00' with bit 0 and '11'
+       with bit 1, '01' with bit 2 and '10' with bit 3 instead. */
+    static const uint8_t sp_bit_mca[4] = { 1, 3, 2, 0 };
+    static const uint8_t sp_bit_isa[4] = { 0, 2, 3, 1 };
+    const uint8_t bit = (xga->bus & DEVICE_MCA)?
+                          sp_bit_mca[sp & 0x03]: 
+                          sp_bit_isa[sp & 0x03];
+    
+    uint8_t ret = 0x00;
+    for (int i = 0; i < 4; i++) {
+        if (xga->display_id & (1 << ((i << 2) + bit)))
+            ret |= (1 << i);
+    }
+
+    return ret;
+}
+
+static uint8_t
 xga_ext_inb(uint16_t addr, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
@@ -886,7 +910,8 @@ xga_ext_inb(uint16_t addr, void *priv)
                     ret = xga->disp_cntl_2;
                     break;
                 case 0x52:
-                    ret = xga->type ? 0xfa : 0xea;
+                    ret = xga_display_id_read(xga, xga->disp_cntl_1 >> 6);
+                    ret |= (xga->type ? 0xf0 : 0xe0);
                     break;
                 case 0x53:
                     ret = xga->type ? 0x53 : 0x30;
@@ -3770,6 +3795,7 @@ xga_init(const device_t *info)
     svga->xga         = xga;
 
     xga->type         = device_get_config_int("type");
+    xga->display_id   = strtoul(device_get_config_string("montype"), NULL, 16) & 0xffff;
     xga->dma_channel  = device_get_config_int("dma");
     xga->bus          = info->flags;
 
@@ -3905,6 +3931,17 @@ static const device_config_t xga_mca_configuration[] = {
         },
         .bios           = { { 0 } }
     },
+    {
+        .name           = "montype",
+        .description    = "Monitor type",
+        .type           = CONFIG_STRHEX,
+        .default_string = "F0F0",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
@@ -3940,6 +3977,17 @@ static const device_config_t xga_inmos_isa_configuration[] = {
             { .description = "DMA 7",    .value = 7 },
             { .description = ""                     }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "montype",
+        .description    = "Monitor type",
+        .type           = CONFIG_STRHEX,
+        .default_string = "F0F0",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }

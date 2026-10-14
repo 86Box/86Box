@@ -36,6 +36,7 @@
 #include <86box/acpi.h>
 #include <86box/dma.h>
 #include <86box/machine.h>
+#include <86box/sound.h>
 #include <86box/i2c.h>
 #include <86box/video.h>
 #include <86box/smbus.h>
@@ -49,6 +50,7 @@ atomic_int acpi_pwrbut_pressed = 0;
 int        acpi_enabled        = 0;
 
 static double cpu_to_acpi;
+static int    acpi_pmtmr_read_cycles;
 
 static int      acpi_power_on    = 0;
 static uint64_t acpi_last_clock  = 0ULL;
@@ -1030,7 +1032,8 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
                         dma_reset();
                         dma_set_at(1);
 
-                        device_reset_all(DEVICE_PCI);
+                        /* The AGP slot shares the bus RST# signal. */
+                        device_reset_all(DEVICE_PCI | DEVICE_AGP);
                     }
 
                     if (sus_typ & SUS_RESET_CPU)
@@ -1988,16 +1991,14 @@ acpi_aux_reg_write_common(int size, uint16_t addr, uint8_t val, void *priv)
 static void
 acpi_latch_pmtmr(acpi_t *dev)
 {
-    uint32_t new_latch = acpi_timer_get(dev);
+    dev->pmtmr_latch = acpi_timer_get(dev);
 
-    if (new_latch == dev->pmtmr_latch) {
-        /* Windows Vista and 7 division by zero mitigation measure. */
-        if (dev->regs.timer32)
-            dev->pmtmr_latch = (new_latch + 1) & 0xffffffff;
-        else
-            dev->pmtmr_latch = (new_latch + 1) & 0x00ffffff;
-    } else
-        dev->pmtmr_latch = new_latch;
+    /* On real hardware, reading the timer takes longer than one of its ticks, so
+       two reads never return the same value, which Windows Vista and 7 rely on to
+       avoid a division by zero. Charge the read one tick, rather than returning the
+       value plus one when it has not changed: that made the timer go backwards, on
+       a third read within the same tick. */
+    cycles -= acpi_pmtmr_read_cycles;
 
 #ifdef USE_DYNAREC
     if (cpu_use_dynarec)
@@ -2345,7 +2346,7 @@ acpi_apm_out(uint16_t port, uint8_t val, void *priv)
 
     acpi_log("[%04X:%08X] APM write: %04X = %02X (AX = %04X, BX = %04X, CX = %04X)\n", CS, cpu_state.pc, port, val, AX, BX, CX);
 
-    port &= 0x0001;
+    port &= (dev->vendor == VEN_ALI) ? 0x0003 : 0x0001;
 
     if (dev->vendor == VEN_ALI) {
         if (port == 0x0001) {
@@ -2376,7 +2377,7 @@ acpi_apm_in(uint16_t port, void *priv)
     const acpi_t *dev = (acpi_t *) priv;
     uint8_t       ret = 0xff;
 
-    port &= 0x0001;
+    port &= (dev->vendor == VEN_ALI) ? 0x0003 : 0x0001;
 
     if (dev->vendor == VEN_ALI) {
         if (port == 0x0001)
@@ -2409,8 +2410,21 @@ acpi_reset(void *priv)
        - Bit 6: Chassis intrusion switch - must be cleared as otherwise POST complains that the chassis was opened
        - Bit 3: ??? - must be cleared as otherwise POST complains about regulator failure */    
     dev->regs.gpireg[0] = ((machines[machine].init == machine_at_optiplexe1_init) ||
-                           (machines[machine].init == machine_at_optiplexgx1_init)) ? 0xb7 : 0xff;
-    dev->regs.gpireg[1] = 0xff;
+                           (machines[machine].init == machine_at_optiplexgx1_init)) ? 0xb7 : dev->regs.gpireg[0];
+    /* AST Bravo MS-T 6233:
+       - Bit 6: Setup access - must be cleared as otherwise F2 is ignored, the F2 prompts are not shown,
+                and the on-board LANDesk boot agent is not initialized
+       - Bit 5: Recovery mode - must be cleared as otherwise the machine enters recovery flash mode */
+    dev->regs.gpireg[0] = (machines[machine].init == machine_at_bravomst6233_init) ? 0x9f : dev->regs.gpireg[0];
+    /* AST Bravo MS-T 6233:
+       - Bits 7-5 (GPI15-13): On-board audio populated when all clear - the BIOS only configures the
+                              ES1869 (through its PnP bypass key) then
+       - Bit 1 (GPI9): Powered on by AC power restore rather than the power button - must be cleared as
+                       otherwise POST applies the AC power loss policy, which powers off on invalid CMOS */
+    if (machines[machine].init == machine_at_bravomst6233_init)
+        dev->regs.gpireg[1] = (sound_card_current[0] == SOUND_INTERNAL) ? 0x1d : 0xfd;
+    else
+        dev->regs.gpireg[1] = 0xff;
     /* A-Trend ATC7020BXII:
        - Bit 3: 80-conductor cable on secondary IDE channel (active low)
        - Bit 2: 80-conductor cable on primary IDE channel (active low)
@@ -2418,7 +2432,8 @@ acpi_reset(void *priv)
        - Bit 1: CMOS battery low (active high) */
     if ((machines[machine].init == machine_at_al440lx_init) ||
         (machines[machine].init == machine_at_se440bx2_init) ||
-        (machines[machine].init == machine_at_rc440bx_init))
+        (machines[machine].init == machine_at_rc440bx_init) ||
+        (machines[machine].init == machine_at_bl440zx_init))
         /* ED = Normal, DD (2-3) - Maintenance, BD, FD (none) - Recovery. */
         dev->regs.gpireg[2] = 0xed;
     else if ((machines[machine].init == machine_at_in440ex_init) || (machines[machine].init == machine_at_in440exd_init))
@@ -2506,9 +2521,10 @@ acpi_reset(void *priv)
 static void
 acpi_speed_changed(void *priv)
 {
-    acpi_t *dev        = (acpi_t *) priv;
-    cpu_to_acpi        = ACPI_TIMER_FREQ / cpuclock;
-    bool timer_enabled = timer_is_enabled(&dev->timer);
+    acpi_t *dev            = (acpi_t *) priv;
+    cpu_to_acpi            = ACPI_TIMER_FREQ / cpuclock;
+    acpi_pmtmr_read_cycles = (int) (cpuclock / ACPI_TIMER_FREQ) + 1;
+    bool timer_enabled     = timer_is_enabled(&dev->timer);
     timer_stop(&dev->timer);
 
     if (timer_enabled)
@@ -2567,8 +2583,9 @@ acpi_init(const device_t *info)
     if (dev == NULL)
         return NULL;
 
-    cpu_to_acpi = ACPI_TIMER_FREQ / cpuclock;
-    dev->vendor = info->local;
+    cpu_to_acpi            = ACPI_TIMER_FREQ / cpuclock;
+    acpi_pmtmr_read_cycles = (int) (cpuclock / ACPI_TIMER_FREQ) + 1;
+    dev->vendor            = info->local;
 
     dev->irq_line = 9;
 

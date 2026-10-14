@@ -60,6 +60,13 @@ if(DYNAREC)
             codegen_backend_arm64_uops.c
             codegen_backend_arm64_imm.c
         )
+    elseif(ARCH STREQUAL "loongarch64")
+        target_sources(dynarec PRIVATE
+            codegen_backend_loongarch64.c
+            codegen_backend_loongarch64_ops.c
+            codegen_backend_loongarch64_uops.c
+            codegen_backend_loongarch64_imm.c
+        )
     else()
         message(SEND_ERROR
             "Dynarec is incompatible with target platform ${ARCH}")

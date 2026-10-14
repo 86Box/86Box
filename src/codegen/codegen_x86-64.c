@@ -902,7 +902,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     int          over            = 0;
     int          pc_off          = 0;
     int          test_modrm      = 1;
-    int          in_lock         = 0;
+    int          lock_illegal    = 0;
     int          is_fpu          = 0;
     int          c;
     uint32_t     op87            = 0x00000000;
@@ -1051,7 +1051,6 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 break;
 
             case 0xf0: /*LOCK*/
-                in_lock         = 0;
                 break;
 
             case 0xf2: /*REPNE*/
@@ -1072,6 +1071,8 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
         codegen_timing_prefix(opcode, fetchdat);
         if (cpu_state.abrt)
             return;
+        if (opcode == 0xf0) /*LOCK*/
+            lock_illegal = !is_lock_legal(fetchdat);
         opcode = fetchdat & 0xff;
         if (!pc_off)
             fetchdat >>= 8;
@@ -1111,7 +1112,7 @@ generate_call:
         STORE_IMM_ADDR_L((uintptr_t) &x87_op, op87);
     }
 
-    if (in_lock && ((opcode == 0x90) || (opcode == 0xec)))
+    if (lock_illegal)
         goto codegen_skip;
 
     if (recomp_op_table && recomp_op_table[(opcode | op_32) & 0x1ff]) {
@@ -1175,7 +1176,7 @@ generate_call:
     }
 
 codegen_skip:
-    if (in_lock && ((opcode == 0x90) || (opcode == 0xec)))
+    if (lock_illegal)
         /* This is always ILLEGAL. */
         op = x86_dynarec_opcodes_3DNOW[0xff];
     else

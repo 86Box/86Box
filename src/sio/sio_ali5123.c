@@ -37,6 +37,7 @@
 
 typedef struct ali5123_t {
     uint8_t   chip_id;
+    uint8_t   no_uart3;
     uint8_t   is_apm;
     uint8_t   tries;
     uint8_t   regs[48];
@@ -142,15 +143,67 @@ ali5123_lpt_handler(ali5123_t *dev)
                                     ((lpt_dma >= 4) ? 0x00 : lpt_dma));
 }
 
+/* The serial ports are assigned by the pins they drive, not by ALi's UART
+   numbering:
+   - dev->uart[0] (COM1) is UART1 on SIN1/SOUT1, logical device 4;
+   - dev->uart[1] (COM2) is the UART on SIN2/SOUT2: UART2 on the M1543,
+     UART3 on the M1543C/M5123;
+   - dev->uart[2] (COM3) is the M1543C/M5123's UART2, the IrDA/FIR port.
+   On the M1543C/M5123, register 2Dh bit 5 (default 1) puts UART3 at
+   logical device 5 and UART2 at logical device B, and 0 the other way round.
+   The M1543 has no UART3: logical device 5 is always UART2, and 2Dh is
+   reserved. */
+static uint8_t
+ali5123_uart_ld(const ali5123_t *dev, int uart)
+{
+    switch (uart) {
+        case 0:
+            return 0x04;
+        case 1:
+            return (dev->no_uart3 || (dev->regs[0x2d] & 0x20)) ? 0x05 : 0x0b;
+        default:
+            return (dev->regs[0x2d] & 0x20) ? 0x0b : 0x05;
+    }
+}
+
+/* ALi's UART number, as used by the power down bits in 22h/23h. */
+static int
+ali5123_uart_chip_no(const ali5123_t *dev, int uart)
+{
+    switch (uart) {
+        case 0:
+            return 1;
+        case 1:
+            return dev->no_uart3 ? 2 : 3;
+        default:
+            return 2;
+    }
+}
+
+static int
+ali5123_ld_uart(const ali5123_t *dev, uint8_t ld)
+{
+    for (int uart = 0; uart < 3; uart++) {
+        if (dev->uart[uart] && (ali5123_uart_ld(dev, uart) == ld))
+            return uart;
+    }
+
+    return -1;
+}
+
 static void
 ali5123_serial_handler(ali5123_t *dev, int uart)
 {
-    uint8_t  uart_nos[2][3]= { { 4, 5, 0xb }, { 4, 0xb, 5 } };
     uint16_t ld_port       = 0;
-    uint8_t  uart_no       = uart_nos[!!(dev->regs[0x2d] & 0x20)][uart];
-    uint8_t  global_enable = !(dev->regs[0x22] & (1 << (4 + uart)));
+    uint8_t  uart_no       = ali5123_uart_ld(dev, uart);
+    int      chip_no       = ali5123_uart_chip_no(dev, uart);
+    uint8_t  global_enable = !(dev->regs[0x22] & (1 << (3 + chip_no)));
     uint8_t  local_enable  = !!dev->ld_regs[uart_no][0x30];
-    uint8_t  mask          = (uart == 1) ? 0x04 : 0x05;
+    /* The IR UART has no 2 MHz (MIDI) clock option. */
+    uint8_t  mask          = (!dev->no_uart3 && (chip_no == 2)) ? 0x04 : 0x05;
+
+    if (dev->uart[uart] == NULL)
+        return;
 
     serial_remove(dev->uart[uart]);
     if (global_enable && local_enable) {
@@ -206,33 +259,30 @@ ali5123_reset(void *priv)
     dev->ld_regs[3][0xf0] = 0x8c;
     dev->ld_regs[3][0xf1] = 0x85;
 
-    /* Logical device 4: Serial Port 1 */
+    /* Logical device 4: UART1 */
     dev->ld_regs[4][0x60] = 3;
     dev->ld_regs[4][0x61] = 0xf8;
     dev->ld_regs[4][0x70] = 4;
     dev->ld_regs[4][0xf2] = 0x0c;
-    serial_setup(dev->uart[0], COM1_ADDR, dev->ld_regs[4][0x70]);
 
-    /* Logical device 5: Serial Port 2 - HP like module */
-    dev->ld_regs[5][0x60] = 3;
-    dev->ld_regs[5][0x61] = 0xe8;
-    dev->ld_regs[5][0x70] = 9;
-    dev->ld_regs[5][0xf0] = 0x80;
-    dev->ld_regs[4][0xf2] = 0x0c;
-    serial_setup(dev->uart[1], 0x03e8, dev->ld_regs[5][0x70]);
+    /* Logical device 5: the UART on the second serial port's pins (UART3 on
+       the M1543C/M5123 with 2Dh bit 5 at its default, UART2 on the M1543) */
+    dev->ld_regs[5][0x60] = 2;
+    dev->ld_regs[5][0x61] = 0xf8;
+    dev->ld_regs[5][0x70] = 3;
+    dev->ld_regs[5][0xf2] = 0x0c;
 
     /* Logical device 7: Keyboard */
     dev->ld_regs[7][0x30] = 1;
     dev->ld_regs[7][0x70] = 1;
     /* TODO: Register F0 bit 6: 0 = PS/2, 1 = AT */
 
-    /* Logical device B: Serial Port 2 - HP like module */
-    dev->ld_regs[0x0b][0x60] = 2;
-    dev->ld_regs[0x0b][0x61] = 0xf8;
-    dev->ld_regs[0x0b][0x70] = 3;
-    dev->ld_regs[0x0b][0xf0] = 0x00;
-    dev->ld_regs[0x0b][0xf2] = 0x0c;
-    serial_setup(dev->uart[2], COM2_ADDR, dev->ld_regs[0x0b][0x70]);
+    /* Logical device B: UART2, the IrDA/FIR port (M1543C/M5123 only) */
+    dev->ld_regs[0x0b][0x60] = 3;
+    dev->ld_regs[0x0b][0x61] = 0xe8;
+    dev->ld_regs[0x0b][0x70] = 9;
+    dev->ld_regs[0x0b][0x74] = 4;
+    dev->ld_regs[0x0b][0xf0] = 0x80;
 
     /* Logical device C: Hotkey */
     dev->ld_regs[0x0c][0xf0] = 0x35;
@@ -307,6 +357,10 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                             if (dev->cur_reg == 0xf0)
                                 val &= 0xbf;
                             break;
+                        case 0x0b:
+                            if (dev->no_uart3)
+                                return;
+                            break;
 
                         default:
                             break;
@@ -329,15 +383,20 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                     ali5123_fdc_handler(dev);
                 if (valxor & 0x08)
                     ali5123_lpt_handler(dev);
-                if (valxor & 0x10)
-                    ali5123_serial_handler(dev, 0);
-                if (valxor & 0x20)
-                    ali5123_serial_handler(dev, 1);
-                if (valxor & 0x40)
-                    ali5123_serial_handler(dev, 2);
+                for (int uart = 0; uart < 3; uart++) {
+                    if (valxor & (1 << (3 + ali5123_uart_chip_no(dev, uart))))
+                        ali5123_serial_handler(dev, uart);
+                }
                 break;
             case 0x2d:
-                if (valxor & 0x20) {
+                /* The register blocks belong to the UARTs, so they trade
+                   logical device numbers along with them. */
+                if ((valxor & 0x20) && !dev->no_uart3) {
+                    uint8_t tmp[256];
+
+                    memcpy(tmp, dev->ld_regs[5], 256);
+                    memcpy(dev->ld_regs[5], dev->ld_regs[0x0b], 256);
+                    memcpy(dev->ld_regs[0x0b], tmp, 256);
                     ali5123_serial_handler(dev, 1);
                     ali5123_serial_handler(dev, 2);
                 }
@@ -415,54 +474,25 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
             }
             break;
         case 4:
-            /* Serial port 1 */
-            switch (dev->cur_reg) {
-                case 0x30:
-                case 0x60:
-                case 0x61:
-                case 0x70:
-                case 0xf0:
-                    if ((dev->cur_reg == 0x30) && (val & 0x01))
-                        dev->regs[0x22] &= ~0x10;
-                    if (valxor)
-                        ali5123_serial_handler(dev, 0);
-                    break;
-
-                default:
-                    break;
-            }
-            break;
         case 5:
-            /* Serial port 2 - HP like module */
-            switch (dev->cur_reg) {
-                case 0x30:
-                case 0x60:
-                case 0x61:
-                case 0x70:
-                case 0xf0:
-                    if ((dev->cur_reg == 0x30) && (val & 0x01))
-                        dev->regs[0x22] &= ~((dev->regs[0x2d] & 0x20) ? 0x40 : 0x20);
-                    if (valxor)
-                        ali5123_serial_handler(dev, (dev->regs[0x2d] & 0x20) ? 2 : 1);
-                    break;
-
-                default:
-                    break;
-            }
-            break;
         case 0x0b:
-            /* Serial port 3 */
+            /* Serial ports */
             switch (dev->cur_reg) {
                 case 0x30:
                 case 0x60:
                 case 0x61:
                 case 0x70:
-                case 0xf0:
+                case 0xf0: {
+                    int uart = ali5123_ld_uart(dev, cur_ld);
+
+                    if (uart < 0)
+                        break;
                     if ((dev->cur_reg == 0x30) && (val & 0x01))
-                        dev->regs[0x22] &= ~((dev->regs[0x2d] & 0x20) ? 0x20 : 0x40);
+                        dev->regs[0x22] &= ~(1 << (3 + ali5123_uart_chip_no(dev, uart)));
                     if (valxor)
-                        ali5123_serial_handler(dev, (dev->regs[0x2d] & 0x20) ? 1 : 2);
+                        ali5123_serial_handler(dev, uart);
                     break;
+                }
 
                 default:
                     break;
@@ -518,7 +548,9 @@ ali5123_init(const device_t *info)
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
-    dev->uart[2] = device_add_inst(&ns16550_device, 3);
+    dev->no_uart3 = !!(info->local & ALI5123_NO_UART3);
+    if (!dev->no_uart3)
+        dev->uart[2] = device_add_inst(&ns16550_device, 3);
     dev->lpt     = device_add_inst(&lpt_port_device, 1);
 
     dev->chip_id = info->local & 0xff;

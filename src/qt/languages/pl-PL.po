@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-21 02:12+0000\n"
+"PO-Revision-Date: 2026-10-02 12:32+0000\n"
 "Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
@@ -431,7 +431,7 @@ msgid "Dynamic recompiler"
 msgstr "Dynamiczny rekompilator"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Precyzyjne środowisko FPU w dynamicznym rekompilatorze"
 
 msgid "CPU frame size"
 msgstr "Rozmiar ramki CPU"
@@ -494,7 +494,7 @@ msgid "&Tablet"
 msgstr "&Tablet"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "Tablet (&Crosshair)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -857,7 +857,7 @@ msgid "Input devices"
 msgstr "Urządzenia wejściowe"
 
 msgid "Input &device"
-msgstr ""
+msgstr "Urządzenie &wejściowe"
 
 msgid "Sound"
 msgstr "Dźwięk"
@@ -945,6 +945,9 @@ msgstr "Naciśnij %1, by wypuścić mysz"
 
 msgid "Press %1 or middle button to release mouse"
 msgstr "Naciśnij %1 lub środkowy przycisk, by wypuścić mysz"
+
+msgid "Press %1 or side button to release mouse"
+msgstr "Naciśnij klawisz %1 lub przycisk boczny, aby zwolnić mysz"
 
 msgid "Bus"
 msgstr "Magistrala"
@@ -1499,16 +1502,18 @@ msgid "ACP&I shutdown"
 msgstr "Wyłączenie ACP&I"
 
 msgid "Power off"
-msgstr ""
+msgstr "Wyłącz zasilanie"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "Wyłącz &zasilanie…"
 
 msgid "Power &off"
-msgstr ""
+msgstr "Wyłącz &zasilanie"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
+"Wyłączenie emulowanej maszyny może spowodować utratę danych. Czy na pewno "
+"chcesz kontynuować?"
 
 msgid "Hard disk (%1)"
 msgstr "Dysk twardy (%1)"
@@ -3007,13 +3012,13 @@ msgid "Model:"
 msgstr "Model:"
 
 msgid "Brand:"
-msgstr ""
+msgstr "Marka:"
 
 msgid "Revision:"
-msgstr ""
+msgstr "Rewizja:"
 
 msgid "[Generic HDD] Device Configuration"
-msgstr ""
+msgstr "[Generyczny dysk twardy] Konfiguracja urządzenia"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Nie udało się zainicjować renderera Vulkan."
@@ -3130,7 +3135,7 @@ msgid "Toggle on-screen display"
 msgstr "Przełącz menu ekranowe"
 
 msgid "Toggle &on-screen display"
-msgstr ""
+msgstr "Przełącz &wyświetlanie na ekranie"
 
 msgid "Text files"
 msgstr "Pliki tekstowe"
@@ -3334,10 +3339,10 @@ msgid "Fast forward"
 msgstr "Przewiń do przodu"
 
 msgid "&Non-maskable interrupt"
-msgstr ""
+msgstr "&Przerwanie niemaskowalne"
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "Przerwanie niemaskowalne"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "Aby zmienić katalog systemowy, zatrzymaj wszystkie działające maszyny."
@@ -3523,22 +3528,83 @@ msgid "Sample rate:"
 msgstr "Częstotliwość próbkowania:"
 
 msgid "Enable audio input (mic/line-in)"
-msgstr ""
+msgstr "Włącz wejście audio (mikrofon/wejście liniowe)"
 
 msgid "Audio input device:"
-msgstr ""
+msgstr "Urządzenie wejściowe audio:"
 
 msgid "Audio input sample rate:"
-msgstr ""
+msgstr "Częstotliwość próbkowania audio wejściowego:"
 
 msgid "Rate the emulator mixes to the host output device."
-msgstr ""
+msgstr "Częstotliwość miksowania emulatora dla urządzenia wyjściowego hosta."
 
 msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
 msgstr ""
+"Częstotliwość, z jaką otwierane jest urządzenie przechwytywania dźwięku "
+"hosta.\n"
+"\n"
+"44100 dzieli się bez reszty przez częstotliwości SB16/AWE32: 44.1/22/11 kHz."
 
 msgid "CGA lightpen"
 msgstr "Pióro świetlne CGA"
 
 msgid "Luminance threshold (%)"
 msgstr "Próg luminancji (%)"
+
+msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
+msgstr ""
+
+msgid "VFIO %s: Invalid device location."
+msgstr ""
+
+msgid "VFIO %s: Device not found."
+msgstr ""
+
+msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
+msgstr ""
+
+msgid "VFIO %s: Device is not bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO %s: Could not open IOMMU group %d: %s"
+msgstr ""
+
+msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
+msgstr ""
+
+msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
+msgstr ""
+
+msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
+msgstr ""
+
+msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
+msgstr ""
+
+msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
+msgstr ""
+
+msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
+msgstr ""
+
+msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
+msgstr ""
+
+msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
+msgstr ""
+
+msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
+msgstr ""
+
+msgid "Prepare PCI devices for VFIO passthrough"
+msgstr ""
+
+msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
+msgstr ""

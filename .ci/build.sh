@@ -1214,6 +1214,9 @@ else
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"
 	[ ! -e "archive_tmp/usr/lib/discord_game_sdk.so" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
+	# Archive mdsx library.
+	mv "archive_tmp/mdsx.so" "archive_tmp/usr/lib/"
+
 	# Archive libaaruformat library.
 	mv "archive_tmp/libaaruformat.so" "archive_tmp/usr/lib/"
 
