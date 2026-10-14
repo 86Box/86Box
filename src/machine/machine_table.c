@@ -26524,7 +26524,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB,
         .ram       = {
             .min  = 16384,
-            .max  = 4194304,
+            .max  = 3145728,
             .step = 8192
         },
         .nvrmask                  = 255,
