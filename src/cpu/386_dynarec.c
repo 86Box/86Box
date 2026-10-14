@@ -687,6 +687,9 @@ exec386_dynarec_dyn(void)
         acycs = 0;
 #    endif
         inrecomp = 0;
+
+        if (x86_was_reset)
+            codegen_reset();
     } else if (valid_block && !cpu_state.abrt) {
 #    ifdef USE_NEW_DYNAREC
         start_pc                 = cs + cpu_state.pc;

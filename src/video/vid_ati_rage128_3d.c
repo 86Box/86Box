@@ -1189,11 +1189,25 @@ r3d_tex_level(rage128_t *dev, const rage128_raster_state_t *rs, int st,
         u    = r3d_tex_wrap(r3d_f2i(floorf(r3d_texcoord_fx(s * (float) lw))), lw, d->clamp_s);
         v    = r3d_tex_wrap(r3d_f2i(floorf(r3d_texcoord_fx(t * (float) lh))), lh, d->clamp_t);
         near = (u < 0 || v < 0) ? border : r3d_texel(texbase, basesel, masksel, lw, tilesel, d->dt, d->amask, d->s3tc, d->pal, u, v);
-        if (nearest)
-            /* CI formats key on the raw palette index, not the color. */
-            *nearest = ((d->dt == 1 || d->dt == 2) && u >= 0 && v >= 0)
-                ? r3d_texel_ci_raw(texbase, basesel, masksel, lw, tilesel, d->dt, u, v)
-                : near;
+        /* The chroma keys hold raw texel bits, so the compare sees the
+           texel as stored. CI formats key on the raw palette index, not
+           the color. Other formats key on the texel before the TEX_MAP_AEN
+           override: with that bit clear the texture alpha is "assumed to
+           be 0xFF" (CCE 3D supplement, SCALE_3D_CNTL TEX_MAP_AEN), which
+           would make every ARGB1555 texel's alpha bit read as 1 and an
+           alpha-0 key never match. Which value the chip's compare sees is
+           not documented; the raw texel is modeled because the Windows 98
+           Direct3D driver 4.13.01.8006 clears TEX_MAP_AEN for ARGB1555
+           cutout textures while its key mask covers the alpha bit, which
+           only selects anything if the compare sees the stored alpha. */
+        if (nearest) {
+            if ((d->dt == 1 || d->dt == 2) && u >= 0 && v >= 0)
+                *nearest = r3d_texel_ci_raw(texbase, basesel, masksel, lw, tilesel, d->dt, u, v);
+            else if (d->amask && u >= 0 && v >= 0)
+                *nearest = r3d_texel(texbase, basesel, masksel, lw, tilesel, d->dt, 0, d->s3tc, d->pal, u, v);
+            else
+                *nearest = near;
+        }
         if (!linear)
             return near;
     }

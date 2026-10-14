@@ -227,10 +227,12 @@ r128_jit_x64_soa_tex_can(const rage128_draw_state_t *ds)
        16-bit targets keep scalar sampling, blending and packing. */
     if (ds->dst_dt == 3 || ds->dst_dt == 15)
         return 0;
-    /* Chroma key on a CI4 or CI8 texture (dt 1, 2): the interpreter
-       compares the raw palette index, but the vector gather keeps only
-       the converted texels, so these draws keep the scalar loop. */
-    if (ds->need_ck && (h->dt == 1 || h->dt == 2))
+    /* Chroma key on a CI4 or CI8 texture (dt 1, 2), or on a stage with
+       the TEX_MAP_AEN alpha override: the interpreter compares the
+       stored texel, the raw palette index or the texel before the
+       override, but the vector gather keeps only the converted texels,
+       so these draws keep the scalar loop. */
+    if (ds->need_ck && (h->dt == 1 || h->dt == 2 || h->aone))
         return 0;
     if (!r128_x64_soa_stage_can(ds, 0))
         return 0;

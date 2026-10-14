@@ -154,4 +154,49 @@ TEST_F(IniTest, LongEntryNameIsTruncatedSafely)
     ini_close(ini);
 }
 
+TEST_F(IniTest, LongStringValueIsTruncatedSafely)
+{
+    std::string   value(600, 'v');
+    ini_t         ini = ini_new();
+    ini_section_t sec = ini_find_or_create_section(ini, "s");
+    ini_section_set_string(sec, "key", value.c_str());
+    ini_section_set_int(sec, "ok", 1);
+
+    EXPECT_EQ(ini_section_get_string(sec, "key", nullptr), value.substr(0, 511));
+    EXPECT_EQ(wcslen(ini_section_get_wstring(sec, "key", nullptr)), 511u);
+
+    ini = round_trip(ini);
+    ASSERT_NE(ini, nullptr);
+    sec = ini_find_section(ini, "s");
+    ASSERT_NE(sec, nullptr);
+    EXPECT_EQ(ini_section_get_string(sec, "key", nullptr), value.substr(0, 511));
+    EXPECT_EQ(ini_section_get_int(sec, "ok", 0), 1);
+    ini_close(ini);
+}
+
+TEST_F(IniTest, LongWstringValueIsTruncatedSafely)
+{
+    std::wstring  value(600, L'w');
+    ini_t         ini = ini_new();
+    ini_section_t sec = ini_find_or_create_section(ini, "s");
+    ini_section_set_wstring(sec, "key", value.data());
+
+    EXPECT_EQ(ini_section_get_wstring(sec, "key", nullptr), value.substr(0, 511));
+    EXPECT_EQ(ini_section_get_string(sec, "key", nullptr), std::string(511, 'w'));
+    ini_close(ini);
+}
+
+TEST_F(IniTest, ShortWstringValueIsCopiedExactly)
+{
+    // Before the fix, the setter always copied 512 wide characters from val.
+    wchar_t       value[] = L"abc";
+    ini_t         ini     = ini_new();
+    ini_section_t sec     = ini_find_or_create_section(ini, "s");
+    ini_section_set_wstring(sec, "key", value);
+
+    EXPECT_STREQ(ini_section_get_wstring(sec, "key", nullptr), L"abc");
+    EXPECT_STREQ(ini_section_get_string(sec, "key", nullptr), "abc");
+    ini_close(ini);
+}
+
 } // namespace

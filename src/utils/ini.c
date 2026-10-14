@@ -1107,8 +1107,10 @@ ini_section_set_string(ini_section_t self, const char *name, const char *val)
 
     if ((strlen(val) + 1) <= sizeof(ent->data))
         memcpy(ent->data, val, strlen(val) + 1);
-    else
-        memcpy(ent->data, val, sizeof(ent->data));
+    else {
+        memcpy(ent->data, val, sizeof(ent->data) - 1);
+        ent->data[sizeof(ent->data) - 1] = '\0';
+    }
 #ifdef _WIN32 /* Make sure the string is converted from UTF-8 rather than a legacy codepage */
     mbstoc16s(ent->wdata, ent->data, sizeof_w(ent->wdata));
 #else
@@ -1129,7 +1131,8 @@ ini_section_set_wstring(ini_section_t self, const char *name, wchar_t *val)
     if (ent == NULL)
         ent = create_entry(section, name);
 
-    memcpy(ent->wdata, val, sizeof_w(ent->wdata));
+    wcsncpy(ent->wdata, val, sizeof_w(ent->wdata) - 1);
+    ent->wdata[sizeof_w(ent->wdata) - 1] = L'\0';
 #ifdef _WIN32 /* Make sure the string is converted to UTF-8 rather than a legacy codepage */
     c16stombs(ent->data, ent->wdata, sizeof(ent->data));
 #else

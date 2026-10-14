@@ -548,6 +548,8 @@ stpc_usb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         case 0x0b:
         case 0x0e:
         case 0x10:
+        case 0x14 ... 0x27:
+        case 0x3d:
             return;
 
         case 0x05:
@@ -555,7 +557,9 @@ stpc_usb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             break;
 
         case 0x11:
-            dev->pci_conf[3][addr] = val & 0xf0;
+            /* BAR bits 11-8 read 0: a 4 KB window (PM 8.10.3). */
+            val &= 0xf0;
+            dev->pci_conf[3][addr] = val;
             ohci_update_mem_mapping(dev->usb, dev->pci_conf[3][0x11], dev->pci_conf[3][0x12], dev->pci_conf[3][0x13], 1);
             break;
 
@@ -792,6 +796,10 @@ stpc_reset(void *priv)
         dev->regs[0x4c] |= 0x80; /* LPT strap */
     if (stpc_serial_handlers(0x00))
         dev->regs[0x4c] |= 0x03; /* UART straps */
+
+    /* BAR_OHCI resets to 0 (PM 8.10.3); usb_reset unmaps the window. */
+    if (dev->usb)
+        memset(&dev->pci_conf[3][0x10], 0x00, 4);
 }
 
 static void
@@ -888,6 +896,9 @@ stpc_setup(stpc_t *dev)
         dev->pci_conf[3][0x02] = 0x30;
         dev->pci_conf[3][0x03] = 0x02;
 
+        /* Bus Master and Memory Enable are hardwired to 1 (PM 8.9.3). */
+        dev->pci_conf[3][0x04] = 0x06;
+
         dev->pci_conf[3][0x06] = 0x80;
         dev->pci_conf[3][0x07] = 0x02;
 
@@ -899,6 +910,9 @@ stpc_setup(stpc_t *dev)
                  STPC chipsets say 0x80, which is indeed multi-function (as the STPC Atlas programming manual
                  indicates as well), and Windows 2000 also issues a 0x7B STOP error if it is 0x40. */
         dev->pci_conf[3][0x0e] = /*0x40*/ 0x80;
+
+        /* The USB function interrupts on INTA# (PM 22.3.1). */
+        dev->pci_conf[3][0x3d] = PCI_INTA;
     }
 
     /* PCI setup */

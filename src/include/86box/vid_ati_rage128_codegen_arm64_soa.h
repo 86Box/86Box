@@ -569,9 +569,11 @@ r128_a64_soa_tex_can(const rage128_draw_state_t *ds)
        16-bit targets keep scalar sampling, blending and packing. */
     if (ds->dst_dt == 3 || ds->dst_dt == 15)
         return 0;
-    /* CI chroma key compares the raw palette index; the vector gather
-       only has the converted lanes, so those draws keep the scalar loop. */
-    if (ds->need_ck && (ds->sh[0].dt == 1 || ds->sh[0].dt == 2))
+    /* The chroma keys compare the texel as stored: the raw palette index
+       for CI, and the texel before the TEX_MAP_AEN alpha override for a
+       stage with that override (r3d_tex_level). The vector gather only
+       has the converted lanes, so those draws keep the scalar loop. */
+    if (ds->need_ck && (ds->sh[0].dt == 1 || ds->sh[0].dt == 2 || ds->sh[0].aone))
         return 0;
     if (ds->sec_en) {
         /* Dual stage: both stages must be in the inline texel families.

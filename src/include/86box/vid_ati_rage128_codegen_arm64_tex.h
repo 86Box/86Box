@@ -1043,9 +1043,14 @@ border:
     /* TEX_MAP_AEN clear (h->aone) makes the fetched texel opaque before
        filtering, the S3TC and YUV subroutine results included. The border
        substitution comes after it, so the border color keeps its own
-       alpha (Registers for CCE 3D Packets, SCALE_3D_CNTL). */
-    if (h->aone)
+       alpha (Registers for CCE 3D Packets, SCALE_3D_CNTL). The chroma
+       keys compare the texel as stored, so its value before the override
+       is also returned in w25 for r128_a64_emit_store_tnear, as in
+       r3d_tex_level. */
+    if (h->aone) {
+        r128_a64_orr_w_lsl(e, 25, 31, 27, 0);
         r128_a64_orr_w_bitmask(e, 27, 27, 0xff000000u);
+    }
     if (border_en) {
         /* u | v is negative exactly when one of them is -1, since the
            other modes return non-negative values; the texel is then
@@ -1058,7 +1063,7 @@ border:
         if (h->border >> 16)
             r128_a64_movk_w(e, 30, h->border >> 16, 1);
         r128_a64_csel_w(e, 27, 30, 27, A64_LT);
-        if (h->dt == 1 || h->dt == 2)
+        if (h->dt == 1 || h->dt == 2 || h->aone)
             /* the chroma-key value is the border color too, as the
                interpreter's nearest texel is */
             r128_a64_csel_w(e, 25, 30, 25, A64_LT);
@@ -1100,13 +1105,14 @@ r128_a64_emit_lerp_pair(r128_a64_emit_t *e, int vx, int vy, int w_off)
 }
 
 /* Store the chroma-key compare value of the texel just fetched to
-   R128_A64_TS_TNEAR: the palette index (w25 from emit_texel) for CI4
-   and CI8, the decoded texel (w27) for every other datatype, as in
-   r3d_tex_level. */
+   R128_A64_TS_TNEAR, as in r3d_tex_level: from w25, set by emit_texel,
+   the palette index for CI4 and CI8 and the decoded texel before the
+   TEX_MAP_AEN override for a stage with that override; the decoded
+   texel (w27) for every other stage. */
 static void
 r128_a64_emit_store_tnear(r128_a64_emit_t *e, const r3d_stage_hdr_t *h)
 {
-    r128_a64_str_w(e, (h->dt == 1 || h->dt == 2) ? 25 : 27, 31, R128_A64_TS_TNEAR);
+    r128_a64_str_w(e, (h->dt == 1 || h->dt == 2 || h->aone) ? 25 : 27, 31, R128_A64_TS_TNEAR);
 }
 
 /* Sample one mip level, r3d_tex_level. In: the slot index in w27, s in

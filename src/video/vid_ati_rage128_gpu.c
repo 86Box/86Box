@@ -30,7 +30,10 @@
  *
  *          Ordering: one workgroup owns one framebuffer row and walks
  *          that row's spans in submission order, so overlapping draws
- *          land in draw order without barriers between workgroups.
+ *          land in draw order without barriers between workgroups. A
+ *          run whose draws reach past the surface pitch writes some
+ *          rows' bytes from other rows; it goes to one workgroup that
+ *          walks all its spans in submission order.
  *          svga.vram is imported zero-copy through
  *          VK_EXT_external_memory_host; the kernels work on a
  *          device-local mirror of the bytes a segment touches when one
@@ -671,13 +674,17 @@ _Static_assert(GPU_SLOT_W >= 2u, "slot offset collides with open flag");
 /* One run: a maximal stretch of consecutive tris sharing a kernel id, a
    combine tuple (the folded pipeline key) and the serial flag. Each run
    is one dispatch; gpu_disp_runs puts a barrier before a run only when
-   its rows overlap the runs since the last barrier, or one side samples
-   bytes the other stores. */
+   its rows overlap the runs since the last barrier, one side samples
+   bytes the other stores, or either side is a row-alias run. */
 typedef struct seg_run_t {
     uint32_t span0; /* first span index of the run */
     uint32_t kernel;
     int32_t  tuple;  /* interned combine tuple; -1 = unfolded pipeline */
     uint32_t serial; /* self-aliasing draw(s): 1-workgroup serial dispatch */
+    /* a span reached past the surface pitch or past the top of VRAM,
+       so rows of the run can share bytes (capture_run_bounds): batched
+       as one ordered group */
+    uint32_t rowalias;
     int32_t  pymin, pymax;
     /* exact byte ranges (card space, hi exclusive, empty = lo>hi):
        c/z from captured spans (staged spans excluded -- arena buffers
@@ -691,6 +698,7 @@ typedef struct gpu_disp_t {
     uint32_t rows_base, nrows, kernel;
     int32_t  tuple;
     uint32_t serial;
+    uint32_t rowalias; /* the run's rowalias flag */
     int32_t  pymin, pymax;
     uint32_t c0, c1, z0, z1, q0, q1;
     uint32_t run; /* source run index: mid fills order against it */
@@ -1131,22 +1139,28 @@ typedef struct r128_gpu_t {
     seg_run_t       runs[GPU_RUN_CAP];
     uint32_t        nruns;
     uint16_t        py_of[GPU_SPAN_CAP]; /* host shadow of span py, for the sort */
-    /* host shadow of each span's within-row color/z byte ranges (hi
-       exclusive; z0==z1 = no z cell). The leveler's O(n^2) pair loop
-       reads these instead of following sp->tri into the mapped tri
-       records, which are slow for the host to read. 32-bit fields: x
-       is bounded only by the scissor, and a range end that wrapped to
-       0 would read as empty, so the leveler would treat overlapping
-       spans as disjoint. */
+    /* host shadow of each span's color/z byte ranges in the address
+       space the kernel stores to (capture_span_class; hi exclusive;
+       z0==z1 = no z cell). The leveler's O(n^2) pair loop reads these
+       instead of following sp->tri into the mapped tri records, which
+       are slow for the host to read. A row base is below the VRAM size
+       or a bit-31 arena offset, and x is bounded by the scissor, so a
+       range end cannot wrap past 32 bits and read as empty. */
     struct {
         uint32_t c0, c1, z0, z1;
     } bb_of[GPU_SPAN_CAP];
     /* commutative-stencil class per span: 0 = not in the class, else
-       the draw's sten_ctl (bit 0 is set when stencil is on, so it is
-       nonzero). Two spans of the class with equal (sctl, srm) never
-       alias: the only bytes they share are the stencil byte, which the
-       kernel updates atomically with operations that commute. The test
-       here must match s_atomic in the seg kernel. */
+       the draw's stencil function and operations with the Z cell
+       layout (bit 0 is set when stencil is on, so it is nonzero). Two
+       spans of the class with equal (sctl, srm) never alias: the only
+       bytes they share are the stencil byte, which the kernel updates
+       atomically with operations that commute. The layout is part of
+       the key because the stencil byte sits at the top of the cell with
+       24-bit depth and at the bottom with 32-bit depth: two draws of
+       different layouts touch different bytes of one cell, and one's
+       depth read sees the other's stencil write, so they are ordered
+       like any other pair. The test here must match s_atomic in the seg
+       kernel. */
     uint32_t sctl_of[GPU_SPAN_CAP];
     uint32_t srm_of[GPU_SPAN_CAP];
     /* sort -> batch handoff: ord = spans row-major in draw order,
@@ -1169,10 +1183,11 @@ typedef struct r128_gpu_t {
        pixel row to bytes (the stride, pitch*bpp, and the tile bit, which
        permutes x within the row), so one segment cannot hold two row
        layouts over the same bases: workgroups own rows, and aliased
-       rows would execute unordered. The batch builder's disjointness
-       test compares within-row byte ranges, which is only valid for one
-       layout at a time. The Z half is recorded only by draws that touch
-       Z cells. */
+       rows would execute unordered. (Rows of one layout share bytes
+       only in a run that reaches past the pitch or past the top of
+       VRAM, which is batched as one group: gpu_run_groups.) The Z half
+       is recorded only by draws
+       that touch Z cells. */
     int      rt_valid, rt_z_valid;
     uint32_t rt_dst, rt_pitch, rt_bpp, rt_z, rt_zstride;
     int      rt_ctiled, rt_ztiled;
@@ -1484,6 +1499,9 @@ typedef struct r128_gpu_t {
     uint64_t st_alias_rej[2], st_alias_ser[2];
     /* accepted draws on the straddling-cell path (odd dst/z offset) */
     uint64_t st_odd_c, st_odd_z;
+    /* runs flagged row-alias: a span reached past the surface pitch
+       (capture_run_bounds) */
+    uint64_t st_rowalias;
     /* shape split of st_fallback: line/point submits have no GPU path
        and always route through the guard; the tri-shaped remainder is
        kern<0 + toobig + alias rejects */
@@ -3003,9 +3021,11 @@ rng_fold(uint32_t vram_mask, int staged, uint32_t *lo, uint32_t *hi)
     *hi = size;
 }
 
-/* Conservative row byte-ranges of a primitive under state rs: full rows
+/* Conservative byte-ranges of a primitive under state rs: full rows
    over the vertex Y extent plus one row of slack each side (the raster
-   walk's subpixel snap; over-coverage only), folded into masked space. */
+   walk's subpixel snap; over-coverage only), widened past the last row
+   when the columns reach past the pitch (r128_prim_past_pitch), folded
+   into masked space. */
 static void
 prim_ranges(const rage128_raster_state_t *rs, uint32_t vram_mask,
             const r3d_vtx_t *a, const r3d_vtx_t *b, const r3d_vtx_t *c,
@@ -3013,6 +3033,7 @@ prim_ranges(const rage128_raster_state_t *rs, uint32_t vram_mask,
 {
     const r3d_vtx_t *v[3] = { a, b, c };
     int              ymin = INT32_MAX, ymax = INT32_MIN;
+    int              xmax;
     /* WINDOW_XY_OFFSET moves every row the walk touches, so it is added
        here; without it a nonzero window origin names the wrong rows. */
     float wof = rs->d.sub ? (float) rs->d.woyi / (float) rs->d.sub
@@ -3065,12 +3086,15 @@ prim_ranges(const rage128_raster_state_t *rs, uint32_t vram_mask,
         if (ymax <= ymin)
             return;
     }
+    xmax = r128_prim_xmax(rs, a, b, c);
     {
         uint32_t cs = rs->dst_pitch * rs->dst_bpp;
 
         if (cs) {
             prim_rows_bytes(rs->dst_offset, cs, rs->d.c_tiled, ymin, ymax,
                             clo, chi);
+            r128_prim_past_pitch(rs->dst_offset, cs, rs->d.c_tiled, ymax - 1,
+                                 xmax, rs->dst_bpp, chi);
             rng_fold(vram_mask, rs->c_staged, clo, chi);
         }
     }
@@ -3079,9 +3103,12 @@ prim_ranges(const rage128_raster_state_t *rs, uint32_t vram_mask,
        lives in the same cell, so a stencil draw owns the rows even with
        the Z test off. */
     if ((rs->d.z_en || rs->d.sten_on) && rs->d.zrowpx) {
-        prim_rows_bytes(rs->t3d.z_offset,
-                        rs->d.zrowpx * (uint32_t) rs->d.zbpp, rs->d.z_tiled,
+        uint32_t zs = rs->d.zrowpx * (uint32_t) rs->d.zbpp;
+
+        prim_rows_bytes(rs->t3d.z_offset, zs, rs->d.z_tiled,
                         ymin, ymax, zlo, zhi);
+        r128_prim_past_pitch(rs->t3d.z_offset, zs, rs->d.z_tiled, ymax - 1,
+                             xmax, (uint32_t) rs->d.zbpp, zhi);
         rng_fold(vram_mask, rs->z_staged, zlo, zhi);
     }
 }
@@ -3721,16 +3748,62 @@ gpu_spans_alias(const r128_gpu_t *g, uint32_t a, uint32_t b)
     return 0;
 }
 
+/* Split run r's spans [s0, s1) into the groups the kernel gives one
+   workgroup each, and return the group count. Group k is
+   g->ord[g->beg[k] .. count[k]), in capture order. A plain run takes a
+   counting sort by row, one group per row from pymin to pymax (a row
+   with no span is an empty group). A row-alias run, whose rows share
+   bytes (capture_run_bounds), is one group holding every span: capture
+   order is the interpreter's pixel order, so the leveler's byte ranges,
+   which are whole kernel addresses (capture_span_class), order each
+   overlap across rows as the interpreter writes it. count needs room
+   for pymax - pymin + 1
+   entries. */
+static int
+gpu_run_groups(r128_gpu_t *g, uint32_t r, uint32_t s0, uint32_t s1,
+               uint32_t *count)
+{
+    int      pymin = g->runs[r].pymin;
+    int      span  = g->runs[r].pymax - pymin + 1;
+    uint32_t off   = s0;
+
+    if (g->runs[r].rowalias) {
+        for (uint32_t i = s0; i < s1; i++)
+            g->ord[i] = i;
+        g->beg[0] = s0;
+        count[0]  = s1;
+        return 1;
+    }
+    memset(count, 0, (size_t) span * sizeof(uint32_t));
+    for (uint32_t i = s0; i < s1; i++)
+        count[g->py_of[i] - pymin]++;
+    for (int row = 0; row < span; row++) {
+        uint32_t c = count[row];
+
+        g->beg[row] = off;
+        count[row]  = off; /* becomes the row's scatter cursor */
+        off += c;
+    }
+    for (uint32_t i = s0; i < s1; i++)
+        g->ord[count[g->py_of[i] - pymin]++] = i;
+    return span;
+}
+
 /* Pack one row's spans (already in draw order) into batches for the
    shading kernel. A batch holds spans whose color and z byte ranges are
    pairwise disjoint and that together fit the workgroup's
    GPU_BATCH_SLOTS lane groups, so they shade in one pass. Draw order is
    kept by leveling (below): overlapping spans always land in different
-   batches, in their original order. Byte ranges within one row are
-   enough because a segment flushes on any change of render-target base,
-   pitch, bpp or tiling (GF_RT), so a row's color and z addresses depend
-   only on py. Returns the number of batches written, the first at
-   slots + nbat * GPU_BATCH_SLOTS. */
+   batches, in their original order. Grouping by row is enough because
+   a segment flushes on any change of render-target base, pitch, bpp or
+   tiling (GF_RT), so a row's color and z addresses depend only on py,
+   and rows own their bytes unless a span reaches past the pitch or
+   past the top of VRAM. A run where one does (row-alias) arrives here
+   as a single group of all its spans in capture order, and the byte
+   ranges, which are whole kernel
+   addresses, order its overlaps across rows the same way. Returns the
+   number of batches written, the first at slots + nbat *
+   GPU_BATCH_SLOTS. */
 static uint32_t
 gpu_batch_row(r128_gpu_t *g, uint32_t *slots, uint32_t nbat,
               const uint32_t *ord, uint32_t c)
@@ -4664,6 +4737,7 @@ gpu_disp_runs(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
     uint32_t ch_c0 = 0xffffffffu, ch_c1 = 0;
     uint32_t ch_z0 = 0xffffffffu, ch_z1 = 0;
     uint32_t ch_q0 = 0xffffffffu, ch_q1 = 0;
+    uint32_t ch_alias = 0; /* the chain holds a row-alias run */
     uint32_t mid_next = 0; /* next mid fill to order in */
 
     for (uint32_t i = 0; i < nd; i++) {
@@ -4699,8 +4773,14 @@ gpu_disp_runs(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
             ch_z1    = dp[i].z1;
             ch_q0    = dp[i].q0;
             ch_q1    = dp[i].q1;
+            ch_alias = dp[i].rowalias;
         } else {
-            int overlap = dp[i].pymin <= chain_hi && chain_lo <= dp[i].pymax;
+            /* A row-alias run on either side always takes the barrier:
+               its rows share bytes with other rows, so row overlap says
+               nothing about store overlap there, and a staged target's
+               spans carry no store range to test instead. */
+            int overlap = (dp[i].pymin <= chain_hi && chain_lo <= dp[i].pymax)
+                || dp[i].rowalias || ch_alias;
             /* byte-exact texture hazard vs the accumulated chain: WAR
                (chain sampled bytes this run stores) and RAW (this run
                samples bytes the chain stored -- excluded segment-wide
@@ -4708,7 +4788,8 @@ gpu_disp_runs(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
                sound on its own). Row overlap stays the write-vs-write
                order guard: one segment has one render target (GF_RT)
                and no c/z cross-alias (GF_CZHAZ), so disjoint rows are
-               disjoint store bytes. */
+               disjoint store bytes unless a run reaches past the pitch
+               or past the top of VRAM (the row-alias case above). */
             int tex_bar = rng_hit(ch_q0, ch_q1, dp[i].c0, dp[i].c1)
                 || rng_hit(ch_q0, ch_q1, dp[i].z0, dp[i].z1)
                 || rng_hit(ch_c0, ch_c1, dp[i].q0, dp[i].q1)
@@ -4732,6 +4813,7 @@ gpu_disp_runs(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
                 ch_z1    = dp[i].z1;
                 ch_q0    = dp[i].q0;
                 ch_q1    = dp[i].q1;
+                ch_alias = dp[i].rowalias;
                 if (g->prof) {
                     g->pr_dbar++;
                     g->pr_dtex += tex_bar;
@@ -5065,18 +5147,18 @@ gpu_flush_body(rage128_t *dev, int cause)
         prof_t = prof_now();
     }
 
-    /* per-run counting sort of spans by row, then a batch build per
-       row: rows[] gets (batch base, batch count) pairs for the run's
-       active rows and slots[] the packed lane-group assignments. */
+    /* per-run grouping of spans (gpu_run_groups: by row, or one group
+       for a row-alias run), then a batch build per group: rows[] gets
+       (batch base, batch count) pairs for the run's non-empty groups
+       and slots[] the packed lane-group assignments. */
     rows  = (uint32_t *) sl->b_rows.map;
     order = (uint32_t *) sl->b_order.map;
     for (uint32_t r = 0; r < g->nruns; r++) {
         uint32_t s0    = g->runs[r].span0;
         uint32_t s1    = (r + 1 < g->nruns) ? g->runs[r + 1].span0 : g->nspans;
-        int      pymin = g->runs[r].pymin;
-        int      span  = g->runs[r].pymax - pymin + 1;
+        int      span;
         uint32_t kn    = g->runs[r].kernel;
-        uint32_t nrows = 0, off = s0, maxb = 0, maxlv = 0, proj_wg = 0;
+        uint32_t nrows = 0, maxb = 0, maxlv = 0, proj_wg = 0;
         uint64_t run_px = 0;
 
         if (s1 <= s0)
@@ -5092,6 +5174,7 @@ gpu_flush_body(rage128_t *dev, int cause)
             disp[ndisp].kernel        = g->runs[r].kernel;
             disp[ndisp].tuple         = -1;
             disp[ndisp].serial        = 1;
+            disp[ndisp].rowalias      = g->runs[r].rowalias;
             disp[ndisp].pymin         = g->runs[r].pymin;
             disp[ndisp].pymax         = g->runs[r].pymax;
             disp[ndisp].run           = r;
@@ -5114,18 +5197,7 @@ gpu_flush_body(rage128_t *dev, int cause)
             }
             continue;
         }
-        memset(count, 0, (size_t) span * sizeof(uint32_t));
-        for (uint32_t i = s0; i < s1; i++)
-            count[g->py_of[i] - pymin]++;
-        for (int row = 0; row < span; row++) {
-            uint32_t c = count[row];
-
-            g->beg[row] = off;
-            count[row]  = off; /* becomes the row's scatter cursor */
-            off += c;
-        }
-        for (uint32_t i = s0; i < s1; i++)
-            g->ord[count[g->py_of[i] - pymin]++] = i;
+        span = gpu_run_groups(g, r, s0, s1, count);
         for (int row = 0; row < span; row++) {
             uint32_t c = count[row] - g->beg[row];
             uint32_t nb;
@@ -5202,6 +5274,7 @@ gpu_flush_body(rage128_t *dev, int cause)
         disp[ndisp].kernel    = g->runs[r].kernel;
         disp[ndisp].tuple     = g->runs[r].tuple;
         disp[ndisp].serial    = 0;
+        disp[ndisp].rowalias  = g->runs[r].rowalias;
         disp[ndisp].pymin     = g->runs[r].pymin;
         disp[ndisp].pymax     = g->runs[r].pymax;
         disp[ndisp].run       = r;
@@ -5745,6 +5818,7 @@ capture_run_open(r128_gpu_t *g)
         ru->kernel   = (uint32_t) g->cur_kernel;
         ru->tuple    = g->cur_tuple;
         ru->serial   = (uint32_t) g->cur_serial;
+        ru->rowalias = 0;
         ru->pymin    = INT32_MAX;
         ru->pymax    = INT32_MIN;
         ru->c0 = ru->z0 = ru->q0 = 0xffffffffu;
@@ -5885,9 +5959,24 @@ capture_run_texrange(r128_gpu_t *g, const rage128_t *dev,
 }
 
 /* Fill the host side tables for span si, pixels [cx, cx+cw). bb_of gets
-   the span's color and z byte ranges within its row, for the leveler's
-   alias test: color by the destination bpp, z by zbpp even when z is
-   off, which can only over-report an overlap. sctl_of/srm_of get the
+   the span's color and z byte ranges for the leveler's alias test, in
+   the address space the kernel stores to: kdrow and kzrow are the row
+   bases the span record carries (a resident row masked into VRAM, a
+   staged one tagged with bit 31 and relative to its arena; both already
+   rebased to the tile column on a tiled surface). Color is sized by the
+   destination bpp, z by zbpp even when z is off, which can only
+   over-report an overlap. Comparing whole addresses rather than offsets
+   within a row lets the leveler order spans of different rows, which a
+   run whose rows share bytes needs (capture_run_bounds), and masking
+   first matches two rows whose card addresses differ only above the
+   VRAM size, which the kernel's mask sends to the same bytes. A
+   resident range that runs past the top of VRAM is not split where the
+   kernel's mask wraps it: it is widened to the whole card instead, so
+   the leveler orders the span after every earlier span of its group
+   that it could share a byte with, including one whose bytes lie
+   where the wrapped tail lands. That over-orders a run no driver seen
+   so far produces (a surface placed across the top of VRAM), and
+   costs it passes, not pixels. sctl_of/srm_of get the
    commutative-stencil class, which must match s_atomic in the seg
    kernel: no color write (wmask 0), no alpha test or color key, no z
    write, stencil compare always (7), and zpass and zfail ops from keep,
@@ -5895,14 +5984,27 @@ capture_run_texrange(r128_gpu_t *g, const rage128_t *dev,
    4) that are equal or have one of them keep. */
 static void
 capture_span_class(r128_gpu_t *g, uint32_t si, const rage128_draw_state_t *ds,
-                   int32_t cx, int32_t cw)
+                   int32_t cx, int32_t cw, uint32_t kdrow, uint32_t kzrow,
+                   uint32_t vram_mask)
 {
-    uint32_t cb = (ds->dst_dt == 6) ? 4u : 2u;
+    uint32_t cb   = (ds->dst_dt == 6) ? 4u : 2u;
+    uint32_t size = vram_mask + 1u;
 
-    g->bb_of[si].c0 = (uint32_t) cx * cb;
-    g->bb_of[si].c1 = (uint32_t) (cx + cw) * cb;
-    g->bb_of[si].z0 = (uint32_t) cx * (uint32_t) ds->zbpp;
-    g->bb_of[si].z1 = (uint32_t) (cx + cw) * (uint32_t) ds->zbpp;
+    g->bb_of[si].c0 = kdrow + (uint32_t) cx * cb;
+    g->bb_of[si].c1 = kdrow + (uint32_t) (cx + cw) * cb;
+    g->bb_of[si].z0 = kzrow + (uint32_t) cx * (uint32_t) ds->zbpp;
+    g->bb_of[si].z1 = kzrow + (uint32_t) (cx + cw) * (uint32_t) ds->zbpp;
+    /* a staged row base carries bit 31 and is never masked, so only a
+       resident range (bit 31 clear, base below the size) can cross the
+       top */
+    if (!(kdrow & 0x80000000u) && g->bb_of[si].c1 > size) {
+        g->bb_of[si].c0 = 0;
+        g->bb_of[si].c1 = size;
+    }
+    if (!(kzrow & 0x80000000u) && g->bb_of[si].z1 > size) {
+        g->bb_of[si].z0 = 0;
+        g->bb_of[si].z1 = size;
+    }
     if (ds->sten_on && ds->wmask == 0 && !ds->atest_en
         && !ds->need_ck
         && !(ds->z_en && ds->z_wr) && ds->sfn == 7
@@ -5912,7 +6014,9 @@ capture_span_class(r128_gpu_t *g, uint32_t si, const rage128_draw_state_t *ds,
         g->sctl_of[si] = 1u | (ds->sfn << 4)
             | (ds->sfail_op << 8)
             | (ds->zpass_op << 12)
-            | (ds->zfail_op << 16);
+            | (ds->zfail_op << 16)
+            | ((uint32_t) ds->zshift << 20)
+            | ((uint32_t) ds->zbpp << 25);
         g->srm_of[si] = ds->sref | (ds->svmask << 8)
             | (ds->swmask << 16);
     } else {
@@ -5921,31 +6025,72 @@ capture_span_class(r128_gpu_t *g, uint32_t si, const rage128_draw_state_t *ds,
     }
 }
 
-/* Widen the current run's row and store bounds by span si. The store
+/* Widen the current run's row and store bounds by one span, pixels
+   [cx, cx+cw) of row py at row bases drow and zrow. The store
    ranges are built from the raw (unmasked) card addresses, so they
    compare directly against the card-space texture ranges in q0..q1.
-   A staged color or z target is not in VRAM and adds no store range. */
+   A staged color or z target is not in VRAM and adds no store range.
+
+   The span also sets the run's row-alias flag when it reaches a column
+   at or past the surface pitch. Nothing clips a draw to its target's
+   width: the scissor is the only clip, and a driver can leave it at the
+   card's maximum while drawing screen-sized triangles into a texture
+   narrower than the triangle. Pixel x of row y then lands on the bytes
+   of a later row: on a linear surface, row y + 1 at x - pitch; on a
+   tiled one, where the tile column past the row's last one starts a
+   full tile row (16 lines) further on, row y + 16 at x - pitch. The
+   batching gives each row its own workgroup on the premise that rows
+   own their bytes, so the interpreter's order (row by row, last write
+   wins) would become a race between workgroups. A flagged run is
+   batched as one ordered group instead (gpu_flush_body). Color is
+   tested even when the draw writes none and z only when the draw reads
+   or writes it; either can only flag a run that did not need it, which
+   costs speed, not pixels.
+
+   The same flag covers a resident surface whose rows reach past the
+   top of VRAM. The kernel masks every store address with vram_mask, so
+   the bytes past the top wrap onto the bottom of the card, where
+   another row of the same run can lie when the run's rows cover more
+   than the card holds; rows then share bytes with no column passing
+   the pitch. A span whose raw card range ends past the size flags the
+   run. No driver seen so far places a surface there, so the cost of
+   the ordered group is not paid in practice. */
 static void
-capture_run_bounds(r128_gpu_t *g, const r3d_texctx_t *tc, uint32_t si,
-                   int32_t py, uint32_t drow, uint32_t zrow)
+capture_run_bounds(r128_gpu_t *g, const r3d_texctx_t *tc, int32_t py,
+                   int32_t cx, int32_t cw, uint32_t drow, uint32_t zrow)
 {
-    seg_run_t *ru = &g->runs[g->nruns - 1];
+    seg_run_t                    *ru   = &g->runs[g->nruns - 1];
+    const rage128_raster_state_t *rs   = tc->rs;
+    uint32_t                      cb   = (rs->d.dst_dt == 6) ? 4u : 2u;
+    uint32_t                      zb   = (uint32_t) rs->d.zbpp;
+    uint32_t                      size = tc->dev->vram_mask + 1u;
+    int                           zlive = (rs->d.z_en || rs->d.sten_on) && rs->d.zrowpx;
+    int                           wrap  = 0;
 
     if (py < ru->pymin)
         ru->pymin = py;
     if (py > ru->pymax)
         ru->pymax = py;
-    if (!tc->rs->c_staged) {
-        if (drow + g->bb_of[si].c0 < ru->c0)
-            ru->c0 = drow + g->bb_of[si].c0;
-        if (drow + g->bb_of[si].c1 > ru->c1)
-            ru->c1 = drow + g->bb_of[si].c1;
+    if (!rs->c_staged) {
+        if (drow + (uint32_t) cx * cb < ru->c0)
+            ru->c0 = drow + (uint32_t) cx * cb;
+        if (drow + (uint32_t) (cx + cw) * cb > ru->c1)
+            ru->c1 = drow + (uint32_t) (cx + cw) * cb;
+        wrap |= drow + (uint32_t) (cx + cw) * cb > size;
     }
-    if (!tc->rs->z_staged) {
-        if (zrow + g->bb_of[si].z0 < ru->z0)
-            ru->z0 = zrow + g->bb_of[si].z0;
-        if (zrow + g->bb_of[si].z1 > ru->z1)
-            ru->z1 = zrow + g->bb_of[si].z1;
+    if (!rs->z_staged) {
+        if (zrow + (uint32_t) cx * zb < ru->z0)
+            ru->z0 = zrow + (uint32_t) cx * zb;
+        if (zrow + (uint32_t) (cx + cw) * zb > ru->z1)
+            ru->z1 = zrow + (uint32_t) (cx + cw) * zb;
+        wrap |= zlive && zrow + (uint32_t) (cx + cw) * zb > size;
+    }
+    if (!ru->rowalias
+        && ((uint32_t) (cx + cw - 1) >= rs->dst_pitch
+            || (zlive && (uint32_t) (cx + cw - 1) >= rs->d.zrowpx)
+            || wrap)) {
+        ru->rowalias = 1;
+        g->st_rowalias++;
     }
 }
 
@@ -6039,6 +6184,7 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
         while (cx <= x1 && g->nspans < GPU_SPAN_CAP) {
             int32_t     cw = x1 - cx + 1;
             seg_span_t *sp;
+            uint32_t    kdrow, kzrow; /* row bases as the kernel addresses them */
 
             if (cw > 256)
                 cw = 256;
@@ -6080,12 +6226,14 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
                bit 31 by accident. The kernel's own add-then-mask result
                is unchanged, since (a + b) & m == ((a & m) + b) & m for a
                power-of-two mask. */
-            sp->drow    = tc->rs->c_staged
-                   ? ((drow - tc->rs->dst_offset) | 0x80000000u)
-                   : (drow & dev->vram_mask);
-            sp->zrow    = tc->rs->z_staged
-                   ? ((zrow - tc->rs->t3d.z_offset) | 0x80000000u)
-                   : (zrow & dev->vram_mask);
+            kdrow       = tc->rs->c_staged
+                     ? ((drow - tc->rs->dst_offset) | 0x80000000u)
+                     : (drow & dev->vram_mask);
+            kzrow       = tc->rs->z_staged
+                     ? ((zrow - tc->rs->t3d.z_offset) | 0x80000000u)
+                     : (zrow & dev->vram_mask);
+            sp->drow    = kdrow;
+            sp->zrow    = kzrow;
             sp->px_base = g->seg_px;
             /* the 32-bit range test runs on the recorded values, which
                are what the shader steps */
@@ -6094,10 +6242,11 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
                 && gpu_edge32_span(sp->e2, tri->e2dxi, cw);
             g->seg_px += (uint32_t) cw * pxw;
             g->py_of[g->nspans] = (uint16_t) py;
-            capture_span_class(g, g->nspans, &tc->rs->d, cx, cw);
+            capture_span_class(g, g->nspans, &tc->rs->d, cx, cw, kdrow, kzrow,
+                               dev->vram_mask);
             g->nspans++;
             g->st_spans++;
-            capture_run_bounds(g, tc, g->nspans - 1, py, drow, zrow);
+            capture_run_bounds(g, tc, py, cx, cw, drow, zrow);
 
             /* Seed the next chunk only when one follows. The z walk is a
                dependent double-add per pixel and nothing reads its result
@@ -6335,8 +6484,9 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
        copies, so a serial run would not see its own stores through them
        the way the interpreter does. So does a draw over
        GPU_SERIAL_PX_CAP pixels, or one that arrives before the serial
-       pipelines are built. */
-    prim_ranges(rs, dev->vram_mask, a, b, c, &clo, &chi, &zlo, &zhi);
+       pipelines are built. A line arrives with c equal to b; gc is null
+       for it, so the ranges take the line's column bound. */
+    prim_ranges(rs, dev->vram_mask, a, b, gc, &clo, &chi, &zlo, &zhi);
     {
         int cz  = rng_hit(clo, chi, zlo, zhi) != 0;
         int rtt = 0, agp = 0;
@@ -10470,7 +10620,7 @@ gpu_stats_core(rage128_t *dev, r128_gpu_t *g)
     gpu_log("RAGE128 GPU: close: segments=%llu runs=%llu spans=%llu tris=%llu fallback_draws=%llu"
             " reprice=%llu reprice-miss=%llu toobig=%llu spandrop=%llu pxdrop=%llu cz-alias=%llu rtt-alias=%llu"
             " cz-serial=%llu rtt-serial=%llu line-fb=%llu point-fb=%llu"
-            " px=%llu wide-spans=%llu wide-px=%llu odd-c=%llu odd-z=%llu\n",
+            " px=%llu wide-spans=%llu wide-px=%llu odd-c=%llu odd-z=%llu row-alias=%llu\n",
             (unsigned long long) g->st_segments, (unsigned long long) g->st_runs,
             (unsigned long long) g->st_spans,
             (unsigned long long) g->st_tris, (unsigned long long) g->st_fallback,
@@ -10488,7 +10638,8 @@ gpu_stats_core(rage128_t *dev, r128_gpu_t *g)
             (unsigned long long) g->st_wide_spans,
             (unsigned long long) g->st_wide_px,
             (unsigned long long) g->st_odd_c,
-            (unsigned long long) g->st_odd_z);
+            (unsigned long long) g->st_odd_z,
+            (unsigned long long) g->st_rowalias);
     if (g->st_rej_total) {
         /* one key per failed gate predicate; a reject failing several
            predicates counts under each, so keys can sum past total */

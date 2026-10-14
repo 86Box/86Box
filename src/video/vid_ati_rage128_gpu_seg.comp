@@ -46,8 +46,11 @@
    runs go in one submit, with a pipeline barrier between two runs only
    where their rows or texture byte ranges overlap. A segment has one
    render target, and the host keeps draws whose color and Z rows alias
-   each other off the parallel path, so two rows never share bytes and
-   the workgroups need no ordering between them.
+   each other off the parallel path, so two workgroups never share bytes
+   and need no ordering between them. A run that draws past its
+   surface's pitch, where one row's pixels land on another row's bytes,
+   is handed over as a single workgroup holding all its spans in draw
+   order, and its rows' overlaps are ordered by the levels within it.
 
    Within a row the workgroup walks batches, with a buffer barrier at
    the start of each level (see main()). A batch packs several spans
@@ -800,11 +803,17 @@ tex_level(int ti, uint stg, int slot, float s, float t, bool linear,
         int  v = tex_wrap(sat_i32(floor(texcoord_fx(t * float(lh)))), int(lh), clt);
         uint near = (u < 0 || v < 0) ? bord : texel(dt, s3tc, palb, stgd, base, mask, lw, u, v);
 
-        /* CI formats key on the raw palette index, not the color */
-        near_out = (want_near && u >= 0 && v >= 0 && (dt == 1u || dt == 2u))
-            ? (tldu8(stgd, taddr(stgd, base, mask, uint(v) * lw + uint(u)))
-               & (dt == 1u ? 0xfu : 0xffu))
-            : near;
+        /* The chroma keys compare the texel as stored, as in
+           r3d_tex_level: CI formats key on the raw palette index, not
+           the color, and a stage with the TEX_MAP_AEN override (selector
+           bit 4) keys on the texel decoded without it. */
+        if (want_near && u >= 0 && v >= 0 && (dt == 1u || dt == 2u))
+            near_out = tldu8(stgd, taddr(stgd, base, mask, uint(v) * lw + uint(u)))
+                & (dt == 1u ? 0xfu : 0xffu);
+        else if (want_near && u >= 0 && v >= 0 && (dt & 0x10u) != 0u)
+            near_out = texel(dt & 0xfu, s3tc, palb, stgd, base, mask, lw, u, v);
+        else
+            near_out = near;
         if (!linear)
             return near;
     }

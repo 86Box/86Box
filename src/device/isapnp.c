@@ -334,11 +334,14 @@ isapnp_read_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uint
             dev->isolated_card = card;
 
             if (card) {
-                if (card->serial_read_pair) { /* second byte (aa/00) */
-                    card->serial_read <<= 1;
+                /* A card only drives the bus for a 1 bit (55h, then AAh). For a 0 bit
+                   it drives nothing, so the read returns the floating bus value FFh;
+                   some BIOSes count anything else on a 0 bit as a read port conflict. */
+                if (card->serial_read_pair) { /* second byte (aa/ff) */
+                    card->serial_read = (card->serial_read == 0x55) ? 0xaa : 0xff;
                     if (!card->serial_read_pos)
                         card->rom_pos = 0x09;
-                } else {                              /* first byte (55/00) */
+                } else {                              /* first byte (55/ff) */
                     if (card->serial_read_pos < 64) { /* reading 64-bit vendor/serial */
                         bit        = (card->rom[card->serial_read_pos >> 3] >> (card->serial_read_pos & 0x7)) & 0x01;
                         next_shift = (!!(card->id_checksum & 0x02) ^ !!(card->id_checksum & 0x01) ^ bit) & 0x01;
@@ -350,7 +353,7 @@ isapnp_read_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uint
                         bit = (card->id_checksum >> (card->serial_read_pos & 0x7)) & 0x01;
                     }
                     isapnp_log("ISAPnP: Read bit %d of byte %02X (%02X) = %d\n", card->serial_read_pos & 0x7, card->serial_read_pos >> 3, card->rom[card->serial_read_pos >> 3], bit);
-                    card->serial_read     = bit ? 0x55 : 0x00;
+                    card->serial_read     = bit ? 0x55 : 0xff;
                     card->serial_read_pos = (card->serial_read_pos + 1) % 72;
                 }
                 card->serial_read_pair ^= 1;

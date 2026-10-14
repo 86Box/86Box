@@ -41,6 +41,7 @@
 #include <86box/vid_svga_render.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include <86box/bswap.h>
 
 #define BIOS_GD5401_PATH                "roms/video/cirruslogic/avga1.rom"
 #define BIOS_GD5401_ONBOARD_PATH        "roms/machines/drsm35286/qpaw01-6658237d5e3c2611427518.bin"
@@ -2712,13 +2713,7 @@ gd54xx_readw_linear(uint32_t addr, void *priv)
             addr ^= 0x00000002;
             fallthrough;
         case 1:
-            temp = svga_readb_linear(addr + 1, svga);
-            temp |= (svga_readb_linear(addr, svga) << 8);
-
-            if (svga->fast)
-                cycles -= svga->monitor->mon_video_timing_read_w;
-
-            return temp;
+            return bswap16(svga_readw_linear(addr, svga));
         case 3:
             return 0xffff;
     }
@@ -2764,25 +2759,12 @@ gd54xx_readl_linear(uint32_t addr, void *priv)
         case 0:
             return svga_readl_linear(addr, svga);
         case 1:
-            temp = svga_readb_linear(addr + 1, svga);
-            temp |= (svga_readb_linear(addr, svga) << 8);
-            temp |= (svga_readb_linear(addr + 3, svga) << 16);
-            temp |= (svga_readb_linear(addr + 2, svga) << 24);
-
-            if (svga->fast)
-                cycles -= svga->monitor->mon_video_timing_read_l;
+            temp = bswap32(svga_readl_linear(addr, svga));
+            temp = ((temp & 0xFFFF0000) >> 16) | ((temp & 0xFFFF) << 16);
 
             return temp;
         case 2:
-            temp = svga_readb_linear(addr + 3, svga);
-            temp |= (svga_readb_linear(addr + 2, svga) << 8);
-            temp |= (svga_readb_linear(addr + 1, svga) << 16);
-            temp |= (svga_readb_linear(addr, svga) << 24);
-
-            if (svga->fast)
-                cycles -= svga->monitor->mon_video_timing_read_l;
-
-            return temp;
+            return bswap32(svga_readl_linear(addr, svga));
         case 3:
             return 0xffffffff;
     }
@@ -2967,21 +2949,19 @@ gd54xx_writew_linear(uint32_t addr, uint16_t val, void *priv)
             case 2:
                 addr ^= 0x00000002;
             case 1:
-                svga_writeb_linear(addr + 1, val & 0xff, svga);
-                svga_writeb_linear(addr, val >> 8, svga);
-
-                if (svga->fast)
-                    cycles -= svga->monitor->mon_video_timing_write_w;
+                svga_writew_linear(addr, bswap16(val), svga);
                 return;
             case 3:
                 return;
         }
     } else {
+        int cycles_lcl = cycles - svga->monitor->mon_video_timing_write_w;
         switch (ap) {
             default:
             case 0:
                 svga_write_linear(addr, val & 0xff, svga);
                 svga_write_linear(addr + 1, val >> 8, svga);
+                cycles = cycles_lcl;
                 return;
             case 2:
                 addr ^= 0x00000002;
@@ -2989,6 +2969,7 @@ gd54xx_writew_linear(uint32_t addr, uint16_t val, void *priv)
             case 1:
                 svga_write_linear(addr + 1, val & 0xff, svga);
                 svga_write_linear(addr, val >> 8, svga);
+                cycles = cycles_lcl;
                 return;
             case 3:
                 return;
@@ -3039,21 +3020,18 @@ gd54xx_writel_linear(uint32_t addr, uint32_t val, void *priv)
                 svga_writel_linear(addr, val, svga);
                 return;
             case 1:
-                svga_writeb_linear(addr + 1, val & 0xff, svga);
-                svga_writeb_linear(addr, val >> 8, svga);
-                svga_writeb_linear(addr + 3, val >> 16, svga);
-                svga_writeb_linear(addr + 2, val >> 24, svga);
+                val = bswap32(val);
+                val = ((val & 0xFFFF0000) >> 16) | ((val & 0xFFFF) << 16);
+                svga_writel_linear(addr, val, svga);
                 return;
             case 2:
-                svga_writeb_linear(addr + 3, val & 0xff, svga);
-                svga_writeb_linear(addr + 2, val >> 8, svga);
-                svga_writeb_linear(addr + 1, val >> 16, svga);
-                svga_writeb_linear(addr, val >> 24, svga);
+                svga_writel_linear(addr, bswap32(val), svga);
                 return;
             case 3:
                 return;
         }
     } else {
+        int cycles_lcl = cycles - svga->monitor->mon_video_timing_write_l;
         switch (ap) {
             default:
             case 0:
@@ -3061,18 +3039,21 @@ gd54xx_writel_linear(uint32_t addr, uint32_t val, void *priv)
                 svga_write_linear(addr + 1, val >> 8, svga);
                 svga_write_linear(addr + 2, val >> 16, svga);
                 svga_write_linear(addr + 3, val >> 24, svga);
+                cycles = cycles_lcl;
                 return;
             case 1:
                 svga_write_linear(addr + 1, val & 0xff, svga);
                 svga_write_linear(addr, val >> 8, svga);
                 svga_write_linear(addr + 3, val >> 16, svga);
                 svga_write_linear(addr + 2, val >> 24, svga);
+                cycles = cycles_lcl;
                 return;
             case 2:
                 svga_write_linear(addr + 3, val & 0xff, svga);
                 svga_write_linear(addr + 2, val >> 8, svga);
                 svga_write_linear(addr + 1, val >> 16, svga);
                 svga_write_linear(addr, val >> 24, svga);
+                cycles = cycles_lcl;
                 return;
             case 3:
                 return;

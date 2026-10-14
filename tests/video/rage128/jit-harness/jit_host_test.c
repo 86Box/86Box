@@ -464,12 +464,17 @@ rr_tex_level(const r3d_stage_desc_t *d, int slot, float s, float t, int linear,
         near = (u < 0 || v < 0) ? d->border
                                 : rr_texel(texbase, basesel, masksel, lw, d->dt, d->amask, d->s3tc, d->pal, u, v);
         if (nearest) {
-            /* CI formats key on the raw palette index (r3d_texel_ci_raw) */
+            /* The keys compare the texel as stored, as r3d_tex_level
+               does: CI formats key on the raw palette index
+               (r3d_texel_ci_raw), other formats on the texel before the
+               TEX_MAP_AEN override */
             if ((d->dt == 1 || d->dt == 2) && u >= 0 && v >= 0) {
                 uint32_t idx = texbase[(basesel + (uint32_t) v * lw + (uint32_t) u) & masksel];
 
                 *nearest = d->dt == 1 ? (idx & 0xfu) : idx;
-            } else
+            } else if (d->amask && u >= 0 && v >= 0)
+                *nearest = rr_texel(texbase, basesel, masksel, lw, d->dt, 0, d->s3tc, d->pal, u, v);
+            else
                 *nearest = near;
         }
         if (!linear)
@@ -5433,6 +5438,7 @@ main(int argc, char **argv)
                 d.ckc_msk  = g_ckmsks[rng() % N_CKMSKS];
                 d.ckc_clr  = pick_key(d.sh[0].dt, d.sh[0].s3tc);
                 d.need_ck  = 1;
+                d.sh[0].aone = 0; /* keyed + TEX_MAP_AEN override: scalar loop */
                 d.need_lod = 0;
                 d.texw0 = (float) (1u << (d.sh[0].tsp & 0xf));
                 d.texh0 = (float) (1u << ((d.sh[0].tsp >> 8) & 0xf));
@@ -5635,6 +5641,7 @@ main(int argc, char **argv)
                         d.ckc_msk  = g_ckmsks[rng() % N_CKMSKS];
                         d.ckc_clr  = pick_key(d.sh[0].dt, d.sh[0].s3tc);
                         d.need_ck  = 1;
+                        d.sh[0].aone = 0; /* keyed + TEX_MAP_AEN override: scalar loop */
                     }
                     d.need_lod = (!d.sh[0].mipdis && d.sh[0].minb >= 2)
                               || ((int) (d.sh[0].minb & 1)
@@ -5941,6 +5948,9 @@ main(int argc, char **argv)
                 if (ck) { /* the gated ck subset: no-LOD nearest */
                     d.sh[0].minb = 0;
                     d.sh[0].mag  = 0;
+                    /* a keyed stage with the TEX_MAP_AEN override keeps
+                       the scalar loop (r128_a64_soa_tex_can) */
+                    d.sh[0].aone = 0;
                     d.ck3d_on  = (int) (rng() & 1);
                     d.ckc_on   = (!d.ck3d_on || (rng() & 3) == 0) ? 1 : 0;
                     d.ckfn     = (rng() & 1) ? 3 : 2;
@@ -6378,6 +6388,7 @@ main(int argc, char **argv)
                 d.ckc_msk  = g_ckmsks[rng() % N_CKMSKS];
                 d.ckc_clr  = pick_key(d.sh[0].dt, d.sh[0].s3tc);
                 d.need_ck  = 1;
+                d.sh[0].aone = 0; /* keyed + TEX_MAP_AEN override: scalar loop */
                 if (sub12 == 8 || sub12 == 9) { /* atest rider: shared stash */
                     d.atest_en  = 1;
                     d.atest_fn  = 1 + rng() % 7;
@@ -6541,6 +6552,7 @@ main(int argc, char **argv)
                 d.ckc_msk  = g_ckmsks[rng() % N_CKMSKS];
                 d.ckc_clr  = pick_key(d.sh[0].dt, d.sh[0].s3tc);
                 d.need_ck  = 1;
+                d.sh[0].aone = 0; /* keyed + TEX_MAP_AEN override: scalar loop */
                 if (sub8 == 4 || sub8 == 5) { /* atest rider: shared stash */
                     d.atest_en  = 1;
                     d.atest_fn  = 1 + rng() % 7;
@@ -6726,6 +6738,7 @@ main(int argc, char **argv)
                         d.ckc_msk  = g_ckmsks[rng() % N_CKMSKS];
                         d.ckc_clr  = pick_key(d.sh[0].dt, d.sh[0].s3tc);
                         d.need_ck  = 1;
+                        d.sh[0].aone = 0; /* keyed + TEX_MAP_AEN override: scalar loop */
                     }
                     d.need_lod = (!d.sh[0].mipdis && d.sh[0].minb >= 2)
                               || ((int) (d.sh[0].minb & 1)
@@ -6900,6 +6913,7 @@ main(int argc, char **argv)
                         d.ckc_msk  = g_ckmsks[rng() % N_CKMSKS];
                         d.ckc_clr  = pick_key(d.sh[0].dt, d.sh[0].s3tc);
                         d.need_ck  = 1;
+                        d.sh[0].aone = 0; /* keyed + TEX_MAP_AEN override: scalar loop */
                     }
                     if (dump && bi == 0 && pi == 0 && cfg == 0) {
                         /* disasm block: DXT1 t-bl stage 0 through the
@@ -7256,6 +7270,7 @@ main(int argc, char **argv)
                         d.ckc_msk  = g_ckmsks[rng() % N_CKMSKS];
                         d.ckc_clr  = pick_key(d.sh[0].dt, d.sh[0].s3tc);
                         d.need_ck  = 1;
+                        d.sh[0].aone = 0; /* keyed + TEX_MAP_AEN override: scalar loop */
                     }
                     d.need_lod = (!d.sh[0].mipdis && d.sh[0].minb >= 2)
                               || ((int) (d.sh[0].minb & 1)

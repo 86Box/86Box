@@ -63,7 +63,12 @@ machine_at_vpc2007_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4);
     device_add(&i440bx_no_agp_device);
 
-    device_add(&piix4e_device);
+    /*
+       Virtual PC 2007's emulated PIIX4 has no USB function: Microsoft's
+       emulated-hardware documentation lists no USB host controller, and the
+       BIOS's DSDT declares only functions 0 and 1 on device 7.
+     */
+    device_add_params(&piix4e_device, (void *) PIIX4_NO_USB);
     device_add_params(&w83977_device, (void *) (W83977F | W83977_370 | W83977_AMI | W83977_NO_NVR));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256); /* real VPC provides invalid SPD data */
