@@ -3196,13 +3196,13 @@ mem_reset(void)
     memset(page_lookup, 0x00, (1 << 20) * sizeof(page_t *));
 
 #ifdef USE_NEW_DYNAREC
-    byte_dirty_mask = calloc(1, (mem_size * 1024) / 8);
+    byte_dirty_mask = calloc(1, ((size_t) mem_size * 1024) / 8);
 
-    byte_code_present_mask = calloc(1, (mem_size * 1024) / 8);
+    byte_code_present_mask = calloc(1, ((size_t) mem_size * 1024) / 8);
 #endif
 
     for (uint32_t c = 0; c < pages_sz; c++) {
-        if ((c << 12) >= (mem_size << 10))
+        if (((uint64_t) c << 12) >= ((uint64_t) mem_size << 10))
             pages[c].mem = page_ff;
         else {
 

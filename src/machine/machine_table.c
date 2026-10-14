@@ -25418,7 +25418,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
             .min  = 8192,
-            .max  = 2097152,
+            .max  = 3145728,
             .step = 8192
         },
         .nvrmask                  = 255,
@@ -26524,7 +26524,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB,
         .ram       = {
             .min  = 16384,
-            .max  = 4194304,
+            .max  = 3145728,
             .step = 8192
         },
         .nvrmask                  = 255,
@@ -27176,7 +27176,7 @@ machine_get_min_ram(int m)
 int
 machine_get_max_ram(int m)
 {
-    return MIN(((int) machines[m].ram.max), 3145728);
+    return MIN(((int) machines[m].ram.max), 4194304);
 }
 
 int
