@@ -1987,7 +1987,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xD6: /* Continue 16-bit DMA (SB16+)/Get Recording Source (ES488) */
             if (dsp->sb_type >= SB16_DSP_404) {
                 dsp->sb_16_pause = 0;
-                sb_resume_dma(dsp, 1);
+                sb_resume_dma(dsp, 0);
             } else if (IS_ESS(dsp) && (dsp->sb_subtype == SB_SUBTYPE_ESS_ES488))
                 sb_add_data(dsp, dsp->es488_source);
             break;
