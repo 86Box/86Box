@@ -27176,7 +27176,7 @@ machine_get_min_ram(int m)
 int
 machine_get_max_ram(int m)
 {
-    return MIN(((int) machines[m].ram.max), 3145728);
+    return MIN(((int) machines[m].ram.max), 4194304);
 }
 
 int
