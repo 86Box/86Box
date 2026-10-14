@@ -45,7 +45,7 @@
 typedef struct via_apollo_t {
     uint8_t  drb_unit;
     uint8_t  pci_slot;
-    uint8_t  pad;
+    uint8_t  last_row_end;
     uint8_t  pad0;
 
     uint8_t  pci_conf[256];
@@ -307,6 +307,9 @@ static void
 via_apollo_host_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     via_apollo_t *dev = (via_apollo_t *) priv;
+    uint8_t       last_row;
+    uint8_t       prev_row;
+
     if (func)
         return;
 
@@ -422,11 +425,26 @@ via_apollo_host_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, v
         case 0x5f: /* DRAM Row Ending Address */
             if ((dev->id >= VIA_691) && (dev->id != VIA_8601)) {
                 spd_write_drbs(dev->pci_conf, 0x5a, 0x56, dev->drb_unit);
-                apollo_set_dram_top(dev, ((uint64_t) dev->pci_conf[0x57] * dev->drb_unit) << 20);
+                last_row = 0x57;
+                prev_row = 0x56;
             } else if (addr >= 0x5a) {
                 spd_write_drbs(dev->pci_conf, 0x5a, 0x5f, dev->drb_unit);
-                apollo_set_dram_top(dev, ((uint64_t) dev->pci_conf[0x5f] * dev->drb_unit) << 20);
-            }
+                last_row = 0x5f;
+                prev_row = 0x5e;
+            } else
+                break;
+
+            /* The rows are always sized from SPD, but once they are, BIOSes may
+               lower the ending address of the last row to make room for their PCI
+               and AGP memory allocations, as the ASUS CUV4X-LS and CUV4X-D ones
+               do with 4 GB. Let the last row shrink, as long as it does not end
+               below the previous one. */
+            if (addr == last_row)
+                dev->last_row_end = val;
+            if ((dev->last_row_end >= dev->pci_conf[prev_row]) && (dev->last_row_end < dev->pci_conf[last_row]))
+                dev->pci_conf[last_row] = dev->last_row_end;
+
+            apollo_set_dram_top(dev, ((uint64_t) dev->pci_conf[last_row] * dev->drb_unit) << 20);
             break;
 
         case 0x58:
@@ -852,7 +870,8 @@ via_apollo_init(const device_t *info)
 
     /* Until the BIOS sizes the rows, decode as much RAM as the row ending
        registers can describe, which leaves the top of the 4 GB space alone. */
-    dev->dram_top = (uint64_t) mem_size << 10;
+    dev->last_row_end = 0xff;
+    dev->dram_top     = (uint64_t) mem_size << 10;
     apollo_set_dram_top(dev, (0xffULL * dev->drb_unit) << 20);
 
     via_apollo_setup(dev);
