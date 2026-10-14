@@ -535,12 +535,121 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="tabVFIO">
+      <attribute name="icon">
+       <iconset resource="../qt_resources.qrc">
+        <normaloff>:/settings/qt/icons/other_peripherals.ico</normaloff>:/settings/qt/icons/other_peripherals.ico</iconset>
+      </attribute>
+      <attribute name="title">
+       <string>VFIO</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayoutVFIO">
+       <item>
+        <widget class="QTreeView" name="treeViewVFIO">
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SingleSelection</enum>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <property name="tabKeyNavigation">
+          <bool>false</bool>
+         </property>
+         <property name="rootIsDecorated">
+          <bool>false</bool>
+         </property>
+         <property name="allColumnsShowFocus">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="vfioControls" native="true">
+         <layout class="QVBoxLayout" name="verticalLayoutVFIOControls">
+          <item>
+           <widget class="QWidget" name="vfioNoGroupsWarning" native="true">
+            <layout class="QHBoxLayout" name="horizontalLayoutVFIONoGroups">
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QLabel" name="labelVFIONoGroupsIcon">
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="labelVFIONoGroups">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>No devices found. Make sure VT-d or IOMMU is enabled on your system.</string>
+               </property>
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayoutVFIOROM">
+            <item>
+             <widget class="QCheckBox" name="checkBoxVFIOCustomROM">
+              <property name="text">
+               <string>Custom ROM:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="FileField" name="fileFieldVFIOROM" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
 
   </layout>
  </widget>
 
+ <customwidgets>
+  <customwidget>
+   <class>FileField</class>
+   <extends>QWidget</extends>
+   <header>qt_filefield.hpp</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <tabstops>
   <tabstop>comboBoxRTC</tabstop>
   <tabstop>pushButtonConfigureRTC</tabstop>
@@ -568,6 +677,9 @@
   <tabstop>pushButtonConfigureIsaRomCard3</tabstop>
   <tabstop>comboBoxIsaRomCard4</tabstop>
   <tabstop>pushButtonConfigureIsaRomCard4</tabstop>
+  <tabstop>treeViewVFIO</tabstop>
+  <tabstop>checkBoxVFIOCustomROM</tabstop>
+  <tabstop>fileFieldVFIOROM</tabstop>
  </tabstops>
  <resources/>
  <connections/>

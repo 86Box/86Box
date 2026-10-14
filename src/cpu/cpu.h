@@ -893,6 +893,8 @@ extern int  cpu_block_end;
 extern int  cpu_force_interpreter;
 extern int  cpu_override_dynarec;
 
+extern int  inrecomp;
+
 extern void mmx_init(void);
 extern void prefetch_flush(void);
 

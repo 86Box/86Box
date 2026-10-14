@@ -276,6 +276,7 @@ extern void        pci_set_mirq_level(int mirq, uint8_t irq);
 extern void        pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state);
 
 extern uint8_t     pci_get_int(uint8_t slot, uint8_t pci_int);
+extern uint8_t     pci_get_irq_line(uint8_t slot, uint8_t pci_int);
 
 /* Relocate a PCI device to a new slot, required for the configurable
    IDSEL's of ALi M1543(c). */
@@ -301,6 +302,9 @@ extern uint32_t    pci_readl(uint16_t port, void *priv);
 extern uint8_t     pci_register_bus(void);
 extern void        pci_remap_bus(uint8_t bus_index, uint8_t bus_number);
 extern void        pci_register_bus_slot(int bus, int card, int type, int inta, int intb, int intc, int intd);
+/* One more slot on the bus a slot of this type sits on, next device
+   number, INTA-D rotated (a two-IDSEL card such as the Rage Fury MAXX). */
+extern int         pci_register_sibling_slot(int type);
 
 /* Add a PCI card. */
 extern void        pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, int len, void *priv),

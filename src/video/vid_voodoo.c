@@ -179,7 +179,9 @@ voodoo_recalc(voodoo_t *voodoo)
             break;
 
         default:
-            fatal("voodoo_recalc : unknown lfb source\n");
+            /* Reserved LFB read selects should behave like an unmapped buffer, not abort the card. */
+            voodoo->fb_read_offset = voodoo->fb_mask + 1;
+            break;
     }
 
     switch (voodoo->params.fbzMode & FBZ_DRAW_MASK) {
@@ -194,6 +196,7 @@ voodoo_recalc(voodoo_t *voodoo)
 
         default:
             fatal("voodoo_recalc : unknown draw buffer\n");
+            break;
     }
 
     voodoo->block_width = ((voodoo->fbiInit1 >> 4) & 15) * 2;
@@ -256,10 +259,12 @@ voodoo_readw(uint32_t addr, void *priv)
                 int pending_unknown = 0;
 
                 if (read_buf >= 0 && read_buf < VOODOO_BUF_COUNT) {
-                    if (!voodoo->lfb_relax_ignore_fb_writes)
-                        pending_buf += voodoo->pending_fb_writes_buf[read_buf];
-                    if (!voodoo->lfb_relax_ignore_draw)
-                        pending_buf += voodoo->pending_draw_cmds_buf[read_buf];
+                    /* Work queued for the buffer being read must always force a sync.
+                       The relax flags only relax the unknown-target heuristic below; they
+                       must not suppress writes aimed at this buffer, or a back-buffer read
+                       races queued draw commands and returns stale data. */
+                    pending_buf += voodoo->pending_fb_writes_buf[read_buf];
+                    pending_buf += voodoo->pending_draw_cmds_buf[read_buf];
                 }
 
                 if (!voodoo->lfb_relax_ignore_fb_writes)
@@ -358,10 +363,12 @@ voodoo_readl(uint32_t addr, void *priv)
                 int pending_unknown = 0;
 
                 if (read_buf >= 0 && read_buf < VOODOO_BUF_COUNT) {
-                    if (!voodoo->lfb_relax_ignore_fb_writes)
-                        pending_buf += voodoo->pending_fb_writes_buf[read_buf];
-                    if (!voodoo->lfb_relax_ignore_draw)
-                        pending_buf += voodoo->pending_draw_cmds_buf[read_buf];
+                    /* Work queued for the buffer being read must always force a sync.
+                       The relax flags only relax the unknown-target heuristic below; they
+                       must not suppress writes aimed at this buffer, or a back-buffer read
+                       races queued draw commands and returns stale data. */
+                    pending_buf += voodoo->pending_fb_writes_buf[read_buf];
+                    pending_buf += voodoo->pending_draw_cmds_buf[read_buf];
                 }
 
                 if (!voodoo->lfb_relax_ignore_fb_writes)
@@ -482,6 +489,10 @@ voodoo_readl(uint32_t addr, void *priv)
                 }
                 break;
 
+            case SST_intrCtrl:
+                temp = voodoo->intrCtrl & VOODOO_INTRCTRL_READ_MASK;
+                break;
+
             case SST_fbzColorPath:
                 voodoo_flush(voodoo);
                 temp = voodoo->params.fbzColorPath;
@@ -556,7 +567,7 @@ voodoo_readl(uint32_t addr, void *priv)
                     temp = voodoo->fbiInit2;
                 break;
             case SST_fbiInit3:
-                temp = voodoo->fbiInit3 | (1 << 10) | (2 << 8);
+                temp = voodoo->fbiInit3;
                 break;
 
             case SST_vRetrace:
@@ -605,6 +616,9 @@ voodoo_readl(uint32_t addr, void *priv)
             case SST_cmdFifoDepth:
                 temp = voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd;
                 break;
+            case SST_cmdFifoHoles:
+                temp = (uint32_t) voodoo->cmdfifo_holecount;
+                break;
 
             default:
                 voodoo_log("voodoo_readl  : bad addr %08X\n", addr);
@@ -626,6 +640,40 @@ voodoo_writew(uint32_t addr, uint16_t val, void *priv)
 
     if ((addr & 0xc00000) == 0x400000) /*Framebuffer*/
         voodoo_queue_command(voodoo, addr | FIFO_WRITEW_FB, val);
+}
+
+static void
+voodoo_cmdfifo_write(voodoo_t *voodoo, uint32_t fifo_addr, uint32_t val)
+{
+    *(uint32_t *) &voodoo->fb_mem[fifo_addr] = val;
+
+    if (fifo_addr == voodoo->cmdfifo_base && !voodoo->cmdfifo_holecount) {
+        voodoo->cmdfifo_amin = fifo_addr;
+        voodoo->cmdfifo_amax = fifo_addr;
+        voodoo->cmdfifo_depth_wr++;
+        voodoo_wake_fifo_thread(voodoo);
+    } else if (voodoo->cmdfifo_holecount) {
+        voodoo->cmdfifo_holecount--;
+        if (!voodoo->cmdfifo_holecount) {
+            voodoo->cmdfifo_depth_wr += ((voodoo->cmdfifo_amax - voodoo->cmdfifo_amin) >> 2);
+            voodoo->cmdfifo_amin = voodoo->cmdfifo_amax;
+            voodoo_wake_fifo_thread(voodoo);
+        }
+    } else if (fifo_addr == voodoo->cmdfifo_amax + 4) {
+        voodoo->cmdfifo_amin = fifo_addr;
+        voodoo->cmdfifo_amax = fifo_addr;
+        voodoo->cmdfifo_depth_wr++;
+        voodoo_wake_fifo_thread(voodoo);
+    } else {
+        /* Out-of-order write: the driver pre-writes the first word of a
+           JSR substream before the JSR header, and can write just past
+           the base before the base word itself. Re-anchor the span at
+           the base and count the gap as holes. */
+        if (fifo_addr < voodoo->cmdfifo_amin)
+            voodoo->cmdfifo_amin = voodoo->cmdfifo_base - 4;
+        voodoo->cmdfifo_amax      = fifo_addr;
+        voodoo->cmdfifo_holecount = ((voodoo->cmdfifo_amax - voodoo->cmdfifo_amin) >> 2) - 1;
+    }
 }
 
 static void
@@ -651,26 +699,18 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
     {
         voodoo_queue_command(voodoo, addr | FIFO_WRITEL_FB, val);
     } else if ((addr & 0x200000) && (voodoo->fbiInit7 & FBIINIT7_CMDFIFO_ENABLE)) {
+        uint32_t fifo_addr = (voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask;
+
 #if 0
         voodoo_log("Write CMDFIFO %08x(%08x) %08x  %08x\n", addr, (voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask, val, (voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask);
 #endif
-        *(uint32_t *) &voodoo->fb_mem[(voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask] = val;
-        voodoo->cmdfifo_depth_wr++;
-
-        /* Voodoo1: use higher CMDFIFO threshold to reduce wake frequency */
-        if (voodoo->type == VOODOO_1) {
-            if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) < 20)
-                voodoo_wake_fifo_thread(voodoo);
-        }
-        /* Other cards (Voodoo2, Banshee, Voodoo3, ...) keep the original behavior */
-        else {
-            if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) < 20)
-                voodoo_wake_fifo_thread(voodoo);
-        }
+        voodoo_cmdfifo_write(voodoo, fifo_addr, val);
     } else
         switch (addr & 0x3fc) {
             case SST_intrCtrl:
-                fatal("intrCtrl write %08x\n", val);
+                if (val & VOODOO_INTRCTRL_INTERRUPT_ACTIVE)
+                    voodoo->intrCtrl &= ~VOODOO_INTRCTRL_PENDING_MASK;
+                voodoo->intrCtrl = (voodoo->intrCtrl & ~VOODOO_INTRCTRL_ENABLE_MASK) | (val & VOODOO_INTRCTRL_ENABLE_MASK);
                 break;
             
             case SST_userIntrCMD:
@@ -904,7 +944,7 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                 break;
 
             case SST_cmdFifoRdPtr:
-                voodoo->cmdfifo_rp = val;
+                voodoo->cmdfifo_rp = val & ~3u;
                 break;
             case SST_cmdFifoAMin:
                 voodoo->cmdfifo_amin = val;
@@ -915,6 +955,9 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
             case SST_cmdFifoDepth:
                 voodoo->cmdfifo_depth_rd = 0;
                 voodoo->cmdfifo_depth_wr = val & 0xffff;
+                break;
+            case SST_cmdFifoHoles:
+                voodoo->cmdfifo_holecount = val & 0xffff;
                 break;
 
             default:
@@ -963,11 +1006,22 @@ static void
 voodoo_recalcmapping(voodoo_set_t *set)
 {
     if (set->nr_cards == 2) {
+        uint32_t snoop_addr = 0;
+
+        if (set->voodoos[0]->type == VOODOO_2 && set->voodoos[1]->type == VOODOO_2 &&
+            (set->voodoos[1]->initEnable & (1 << 23)))
+            snoop_addr = set->voodoos[1]->initEnable & 0xff000000;
+
+        int snoop_active = snoop_addr && set->voodoos[0]->pci_enable &&
+                           set->voodoos[0]->memBaseAddr == snoop_addr;
+        if (!snoop_active)
+            mem_mapping_disable(&set->snoop_mapping);
+
         if (set->voodoos[0]->pci_enable && set->voodoos[0]->memBaseAddr) {
-            if (set->voodoos[0]->type == VOODOO_2 && set->voodoos[1]->initEnable & (1 << 23)) {
+            if (snoop_active) {
                 voodoo_log("voodoo_recalcmapping (pri) with snoop : memBaseAddr %08X\n", set->voodoos[0]->memBaseAddr);
                 mem_mapping_disable(&set->voodoos[0]->mapping);
-                mem_mapping_set_addr(&set->snoop_mapping, set->voodoos[0]->memBaseAddr, 0x01000000);
+                mem_mapping_set_addr(&set->snoop_mapping, snoop_addr, 0x01000000);
             } else if (set->voodoos[1]->pci_enable && (set->voodoos[0]->memBaseAddr == set->voodoos[1]->memBaseAddr)) {
                 voodoo_log("voodoo_recalcmapping (pri) (sec) same addr : memBaseAddr %08X\n", set->voodoos[0]->memBaseAddr);
                 mem_mapping_disable(&set->voodoos[0]->mapping);
@@ -985,8 +1039,12 @@ voodoo_recalcmapping(voodoo_set_t *set)
         }
 
         if (set->voodoos[1]->pci_enable && set->voodoos[1]->memBaseAddr) {
-            voodoo_log("voodoo_recalcmapping (sec) : memBaseAddr %08X\n", set->voodoos[1]->memBaseAddr);
-            mem_mapping_set_addr(&set->voodoos[1]->mapping, set->voodoos[1]->memBaseAddr, 0x01000000);
+            if (snoop_active && set->voodoos[1]->memBaseAddr == snoop_addr) {
+                mem_mapping_disable(&set->voodoos[1]->mapping);
+            } else {
+                voodoo_log("voodoo_recalcmapping (sec) : memBaseAddr %08X\n", set->voodoos[1]->memBaseAddr);
+                mem_mapping_set_addr(&set->voodoos[1]->mapping, set->voodoos[1]->memBaseAddr, 0x01000000);
+            }
         } else {
             voodoo_log("voodoo_recalcmapping (sec) : disabled\n");
             mem_mapping_disable(&set->voodoos[1]->mapping);
@@ -1177,15 +1235,42 @@ voodoo_card_init(const device_t *info)
     int type         = (int) device_get_bios_local(info, device_get_config_bios("type"));
     voodoo->type     = type & 0x0f;
     voodoo->board_id = ((type >> 8) & 0x0f);
+    voodoo->trexInit0[0] = TREXINIT0_TEXTURE_MEMORY_SECOND_RAS_ADDRESS_18;
+    voodoo->trexInit0[1] = TREXINIT0_TEXTURE_MEMORY_SECOND_RAS_ADDRESS_18;
+    if (voodoo->texture_size >= 4) {
+        voodoo->trexInit0[0] |= TREXINIT0_TEXTURE_MEMORY_SECOND_RAS_ENABLE;
+        voodoo->trexInit0[1] |= TREXINIT0_TEXTURE_MEMORY_SECOND_RAS_ENABLE;
+    }
     switch (voodoo->type) {
         case VOODOO_1:
             voodoo->dual_tmus = 0;
+            /* Seed SST-1 power-on defaults (sst1/init/initvg/sst1init.h). These
+               are what the fbiInit registers read before the guest writes them;
+               Glide reads them during board detection (fbiConfig, VGA passthru). */
+            voodoo->fbiInit0 = 0x00000410; /* SST_FBIINIT0_DEFAULT */
+            voodoo->fbiInit1 = 0x00201102; /* SST_FBIINIT1_DEFAULT */
+            voodoo->fbiInit2 = 0x80000040; /* SST_FBIINIT2_DEFAULT */
+            voodoo->fbiInit3 = 0x001e4000; /* SST_FBIINIT3_DEFAULT */
+            voodoo->fbiInit4 = 0x00000001; /* SST_FBIINIT4_DEFAULT */
             break;
         case VOODOO_SB50:
             voodoo->dual_tmus = 1;
+            /* Same SST-1 defaults as VOODOO_1 (SB50 is a 2-TMU SST-1). */
+            voodoo->fbiInit0 = 0x00000410;
+            voodoo->fbiInit1 = 0x00201102;
+            voodoo->fbiInit2 = 0x80000040;
+            voodoo->fbiInit3 = 0x001e4000;
+            voodoo->fbiInit4 = 0x00000001;
             break;
         case VOODOO_2:
             voodoo->dual_tmus = 1;
+            /* Seed CVG power-on defaults (cvg/init/sst1init.h). */
+            voodoo->fbiInit0 = 0x00001c10;
+            voodoo->fbiInit1 = 0x00201102;
+            voodoo->fbiInit2 = 0x80000040;
+            voodoo->fbiInit3 = 0x001E4040;
+            voodoo->fbiInit4 = 0x00000001;
+            voodoo->fbiInit5 = 0x08408000;
             break;
 
         default:
@@ -1222,7 +1307,6 @@ voodoo_card_init(const device_t *info)
     timer_add(&voodoo->timer, voodoo_callback, voodoo, 1);
 
     voodoo->svga     = svga_get_pri();
-    voodoo->fbiInit0 = 0;
 
     voodoo->wake_fifo_thread         = thread_create_event();
     voodoo->wake_render_thread[0]    = thread_create_event();
@@ -1493,7 +1577,14 @@ voodoo_init(const device_t *info)
                 tmuConfig = 1 | (3 << 6);
             break;
         case VOODOO_2:
-            tmuConfig = 1 | (3 << 6);
+            /* tmuConfig for dual-TMU Voodoo2.
+             * Derived from MAME voodoo_2_device::device_start():
+             *   bit  0       = TMU0 present
+             *   bit  4       = Voodoo2 base flag (hardware-defined, undocumented)
+             *   bits 7:6 = 3 = TMU1 present (chipmask bit 2 always set on V2)
+             *   bit 11       = Voodoo2-only capability flag
+             * Yields 0x8d1. */
+            tmuConfig = 1 | (1 << 4) | (3 << 6) | (1 << 11);
             break;
 
         default:

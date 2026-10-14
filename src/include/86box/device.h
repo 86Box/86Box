@@ -45,9 +45,10 @@
 
 #define CONFIG_TYPE_INT     (0 << CONFIG_SHIFT)
 #define CONFIG_TYPE_STRING  (1 << CONFIG_SHIFT)
-#define CONFIG_TYPE_HEX16   (2 << CONFIG_SHIFT)
-#define CONFIG_TYPE_HEX20   (3 << CONFIG_SHIFT)
-#define CONFIG_TYPE_MAC     (4 << CONFIG_SHIFT)
+#define CONFIG_TYPE_STRHEX  (2 << CONFIG_SHIFT)
+#define CONFIG_TYPE_HEX16   (3 << CONFIG_SHIFT)
+#define CONFIG_TYPE_HEX20   (4 << CONFIG_SHIFT)
+#define CONFIG_TYPE_MAC     (5 << CONFIG_SHIFT)
 
 #define CONFIG_INT          (0 | CONFIG_TYPE_INT)      /* config_get_int() */
 #define CONFIG_BINARY       (1 | CONFIG_TYPE_INT)      /* config_get_int() */
@@ -62,6 +63,8 @@
 #define CONFIG_SERPORT      (2 | CONFIG_TYPE_STRING)     /* config_get_string() */
 #define CONFIG_BIOS         (3 | CONFIG_TYPE_STRING)     /* config_get_string() */
 #define CONFIG_VARIANT      CONFIG_BIOS
+
+#define CONFIG_STRHEX       (0 | CONFIG_TYPE_STRHEX)     /* config_get_string() */
 
 #define CONFIG_HEX16        (0 | CONFIG_TYPE_HEX16)      /* config_get_hex16() */
 
@@ -86,7 +89,7 @@ enum {
     DEVICE_ISA16      = 0x20,       /* requires an AT-compatible system */
     DEVICE_AT_KBC     = 0x40,       /* requires an AT-compatible keyboard controller */
     DEVICE_MCA        = 0x80,       /* requires the MCA bus */
-    DEVICE_MCA32      = 0x100,      /* requires the MCA bus */
+    DEVICE_MCA32      = 0x100,      /* requires the 32-bit MCA bus */
     DEVICE_PS2_KBC    = 0x200,      /* requires a PS/1 or PS/2 system */
     DEVICE_PCMCIA     = 0x400,      /* requires the PCMCIA bus */
     DEVICE_HIL        = 0x800,      /* requires the HP HIL bus */

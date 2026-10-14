@@ -5808,7 +5808,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_IDE,
+        .flags     = 0,
         .ram       = {
             .min  = 512, /* gets stuck at POST code 10 with less */
             .max  = 8192,
@@ -10032,7 +10032,7 @@ const machine_t machines[] = {
     /* The VLSI VL82C113A holds the KBC and RTC.
        See doc/hardware/hp-vectra-486n.md for firmware and cache options. */
     {
-        .name              = "[VLSI 82C486] HP Vectra 486N",
+        .name              = "[VLSI 82C486] HP Vectra 486N (D26xxA)",
         .internal_name     = "vect486n",
         .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_VLSI_VL82C486,
@@ -10045,14 +10045,14 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 25000000,
-            .max_bus     = 33333333,
+            .max_bus     = 50000000,
             .min_voltage = 5000,
             .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_SOFTFLOAT_ONLY,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
             .max  = 49152,
@@ -10061,7 +10061,7 @@ const machine_t machines[] = {
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
-        .kbc_device               = NULL,
+        .kbc_device               = &kbc_at_vectra_device,
         .kbc_params               = 0x00000000,
         /* The NVR is on the VLSI VL82C113. */
         .nvr_device               = NULL,
@@ -10074,8 +10074,8 @@ const machine_t machines[] = {
         .device                   = &vect486n_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        /* Reuse the S3 924; AMI and the complete HP C.02.02 BIOS are selectable. */
-        .vid_device               = &s3_86c924_isa_device,
+        /* Reuse the non-internal S3 86c924 for now; the AMI and HP Ultra VGA BIOSes are selectable. */
+        .vid_device               = &s3_86c924_isa_device, /* TODO: to implement the internal video configuration */
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "" }
@@ -14706,7 +14706,7 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
             .max  = 131072,
@@ -20625,7 +20625,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: ATI 3D Rage II+ DVD (Mach64GT-B) */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT,
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -20646,7 +20646,7 @@ const machine_t machines[] = {
         .device                   = &an430tx_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &mach64gtb_onboard_device,
         .snd_device               = &ymf715_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "Intel Anchorage", "Micron Millennia MME", "Packard Bell PB79x", "Sony Vaio PCV-130", "Sony Vaio PCV-150", "" }
@@ -21685,7 +21685,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = &i82559er_onboard_device, /* stand-in for DP83815 (also accepted by BIOS and software) */
+        .net_device               = &dp83815_onboard_device,
         .scsi_device              = &ncr53c875_onboard_pci_device, /* Machine has also internal SCSI: NCR 53c825 (as seen in one unit) */
         .aliases                  = { "Cobalt 4xxxWG", "Cobalt Carmel", "" }
     },
@@ -26669,8 +26669,8 @@ const machine_t machines[] = {
             .min_multi   = 0,
             .max_multi   = 0
         },
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram       = {
             .min  = 8192,
             .max  = 1048576,

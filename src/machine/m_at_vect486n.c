@@ -137,7 +137,7 @@ static const device_config_t vect486n_config[] = {
         .default_int    = 0,
         .bios           = {
             {
-                .name          = "T.04.02 (08/27/92, incomplete dump)",
+                .name          = "PhoenixBIOS (HP) - Revision T.04.02 (08/27/92) (Incomplete dump)",
                 .internal_name = "t0402",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -146,7 +146,7 @@ static const device_config_t vect486n_config[] = {
                 .files         = { "roms/machines/vect486n/f000-64k.rom", "" }
             },
             {
-                .name          = "T.04.05 (10/11/94)",
+                .name          = "PhoenixBIOS (HP) - Revision T.04.05 (10/11/94)",
                 .internal_name = "t0405",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

@@ -195,6 +195,11 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
             dev->dac_pos    = 0;
             dev->dac_status = addr & 0x03;
             dev->dac_addr   = (val + (addr & 0x01)) & 0xff;
+            if (ATI_GRAPHICS_ULTRA) { /*one DAC behind both port sets: see 3C7h/3C8h*/
+                svga->dac_pos    = 0;
+                svga->dac_status = dev->dac_status;
+                svga->dac_addr   = dev->dac_addr;
+            }
             break;
         case 0x2ed:
             svga->fullchange = svga->monitor->mon_changeframecount;
@@ -349,6 +354,15 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
             svga->dac_pos    = 0;
             svga->dac_status = addr & 0x03;
             svga->dac_addr   = (val + (addr & 0x01)) & 0xff;
+            /* The Graphics Ultra has one DAC behind the VGA and 8514/A port sets, so an index set on one
+               reads back on the other. ATI's TEST.COM (797Eh) sets the read index on 3C7h and expects
+               2ECh to return it plus one; otherwise it takes the VGA for a separate passthrough DAC and
+               sets 6AEEh bit 10, which blanks the VGA picture. */
+            if ((dev != NULL) && (ATI_GRAPHICS_ULTRA)) {
+                dev->dac_pos    = 0;
+                dev->dac_status = svga->dac_status;
+                dev->dac_addr   = svga->dac_addr;
+            }
             break;
         case 0x3c9:
             if (svga->adv_flags & FLAG_RAMDAC_SHIFT)
@@ -471,10 +485,11 @@ svga_in(uint16_t addr, void *priv)
             ret = dev->dac_mask;
             break;
         case 0x2eb:
-            /* The 8514/Ultra's DAC (Bt478 type) has no state register: a read
-               of either address port returns the address register, which in
-               read mode runs one entry ahead. Its POST ROM checks this. */
-            if (ATI_8514A_ULTRA)
+            /* The DACs on ATI's 8514/Ultra (Bt478 type) and Graphics Ultra have
+               no state register: a read of either address port returns the
+               address register, which in read mode runs one entry ahead. Their
+               POST ROM and ATI's TEST.COM check this. */
+            if (ATI_8514A_ULTRA || ATI_GRAPHICS_ULTRA)
                 ret = dev->dac_addr;
             else
                 ret = dev->dac_status;
@@ -1862,7 +1877,7 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
                         svga_write, svga_writew, svga_writel,
                         NULL, MEM_MAPPING_EXTERNAL, svga);
     /* The chances of ever seeing a C-BUS (S)VGA card are approximately zero, but you never know. */
-    } else if ((info->flags & DEVICE_CBUS) || (info->flags & DEVICE_ISA16)) {
+    } else if ((info->flags & DEVICE_CBUS) || ((info->flags & machines[machine].bus_flags) & DEVICE_ISA16)) {
         svga->read = svga_read;
         svga->readw = svga_readw;
         svga->readl = NULL;
@@ -2386,9 +2401,15 @@ svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
+        /* A word/dword access crosses the bus once even when planar or latched
+           modes split it into byte operations inside the card (a 32-bit write
+           to a 16-bit ISA card is two 16-bit bus cycles, not four byte ones).
+           Keep the byte-wise VRAM behavior but charge the bus timing once. */
     if (!svga->fast) {
+        int bus_cycles = cycles - svga->monitor->mon_video_timing_write_w;
         svga_write_common(addr, val, linear, priv);
         svga_write_common(addr + 1, val >> 8, linear, priv);
+        cycles = bus_cycles;
         return;
     }
 
@@ -2442,11 +2463,17 @@ svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
+        /* A word/dword access crosses the bus once even when planar or latched
+           modes split it into byte operations inside the card (a 32-bit write
+           to a 16-bit ISA card is two 16-bit bus cycles, not four byte ones).
+           Keep the byte-wise VRAM behavior but charge the bus timing once. */
     if (!svga->fast) {
+        int bus_cycles = cycles - svga->monitor->mon_video_timing_write_l;
         svga_write_common(addr, val, linear, priv);
         svga_write_common(addr + 1, val >> 8, linear, priv);
         svga_write_common(addr + 2, val >> 16, linear, priv);
         svga_write_common(addr + 3, val >> 24, linear, priv);
+        cycles = bus_cycles;
         return;
     }
 
@@ -2528,8 +2555,16 @@ svga_readw_common(uint32_t addr, uint8_t linear, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-    if (!svga->fast)
-        return svga_read_common(addr, linear, priv) | (svga_read_common(addr + 1, linear, priv) << 8);
+        /* A word/dword access crosses the bus once even when planar or latched
+           modes split it into byte operations inside the card (a 32-bit write
+           to a 16-bit ISA card is two 16-bit bus cycles, not four byte ones).
+           Keep the byte-wise VRAM behavior but charge the bus timing once. */
+    if (!svga->fast) {
+        int      bus_cycles = cycles - svga->monitor->mon_video_timing_read_w;
+        uint16_t ret        = svga_read_common(addr, linear, priv) | (svga_read_common(addr + 1, linear, priv) << 8);
+        cycles              = bus_cycles;
+        return ret;
+    }
 
     cycles -= svga->monitor->mon_video_timing_read_w;
 
@@ -2576,8 +2611,16 @@ svga_readl_common(uint32_t addr, uint8_t linear, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-    if (!svga->fast)
-        return svga_read_common(addr, linear, priv) | (svga_read_common(addr + 1, linear, priv) << 8) | (svga_read_common(addr + 2, linear, priv) << 16) | (svga_read_common(addr + 3, linear, priv) << 24);
+        /* A word/dword access crosses the bus once even when planar or latched
+           modes split it into byte operations inside the card (a 32-bit write
+           to a 16-bit ISA card is two 16-bit bus cycles, not four byte ones).
+           Keep the byte-wise VRAM behavior but charge the bus timing once. */
+    if (!svga->fast) {
+        int      bus_cycles = cycles - svga->monitor->mon_video_timing_read_l;
+        uint32_t ret        = svga_read_common(addr, linear, priv) | (svga_read_common(addr + 1, linear, priv) << 8) | (svga_read_common(addr + 2, linear, priv) << 16) | (svga_read_common(addr + 3, linear, priv) << 24);
+        cycles              = bus_cycles;
+        return ret;
+    }
 
     cycles -= svga->monitor->mon_video_timing_read_l;
 

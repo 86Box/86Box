@@ -4161,15 +4161,15 @@ atapi_out:
 
             /* IMPORTANT: What's returned is the last LBA block. */
             memset(dev->buffer, 0, 8);
-            dev->buffer[0] = ((dev->drv->cdrom_capacity - 1) >> 24) & 0xff;
-            dev->buffer[1] = ((dev->drv->cdrom_capacity - 1) >> 16) & 0xff;
-            dev->buffer[2] = ((dev->drv->cdrom_capacity - 1) >> 8) & 0xff;
-            dev->buffer[3] = (dev->drv->cdrom_capacity - 1) & 0xff;
+            dev->buffer[0] = (dev->drv->cdrom_capacity >> 24) & 0xff;
+            dev->buffer[1] = (dev->drv->cdrom_capacity >> 16) & 0xff;
+            dev->buffer[2] = (dev->drv->cdrom_capacity >> 8) & 0xff;
+            dev->buffer[3] = (dev->drv->cdrom_capacity) & 0xff;
             dev->buffer[6] = 8;
             len            = 8;
 
             scsi_cdrom_log(dev->log, "CD-ROM Capacity: %08X\n",
-                           dev->drv->cdrom_capacity - 1);
+                           dev->drv->cdrom_capacity);
 
             scsi_cdrom_cache_toc(dev);
             scsi_cdrom_set_buf_len(dev, BufLen, &len);

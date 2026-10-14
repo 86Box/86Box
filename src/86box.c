@@ -234,6 +234,9 @@ int      global_cfg_overridden = 0;                               /* Global conf
 
 int      monitor_edid = 0;                                        /* (C) Which EDID to use. 0=default, 1=custom. */
 char     monitor_edid_path[1024] = { 0 };                         /* (C) Path to custom EDID */
+#ifdef USE_VFIO
+vfio_device_conf_t vfio_device_conf[VFIO_DEVICE_MAX] = { 0 };    /* (C) VFIO passthrough devices */
+#endif
 
 double   video_gl_input_scale = 1.0;                              /* (C) OpenGL 3.x input scale */
 int      video_gl_input_scale_mode = FULLSCR_SCALE_FULL;          /* (C) OpenGL 3.x input stretch mode */
@@ -1925,7 +1928,8 @@ pc_reset_hard_init(void)
         machine_has_flags(machine, MACHINE_PCI_INTERNAL) ||
         machine_has_flags(machine, MACHINE_AGP_INTERNAL)) {
         pci_register_cards();
-        device_reset_all(DEVICE_PCI);
+        /* The AGP slot shares the bus RST# signal. */
+        device_reset_all(DEVICE_PCI | DEVICE_AGP);
     }
 
     /* Mark IDE shadow drives (slaves with a present master) as such in case

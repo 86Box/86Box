@@ -1470,7 +1470,7 @@ image_load_iso(cd_image_t *img, const char *filename)
 
         ci->type         = INDEX_NORMAL;
         ci->file_start   = 0ULL;
-
+        ci->start        = 150ULL;
         ci->file         = tf;
 
         for (int i = 0; i < 8; i++) {
@@ -2269,7 +2269,7 @@ image_load_cue_fp(cd_image_t *img, const char *cuefile, FILE *fp)
         } else if (!strcmp(command, "CATALOG") || !strcmp(command, "CDTEXTFILE") ||
                    !strcmp(command, "ISRC") || !strcmp(command, "PERFORMER") ||
                    !strcmp(command, "SONGWRITER") || !strcmp(command, "TITLE") ||
-                   !strcmp(command, "")) {
+                   !strcmp(command, "COMPOSER") || !strcmp(command, "")) {
             /* Ignored commands. */
             image_log(img->log, "    [CUE   ] Ignored command \"%s\" in Cue sheet\n",
                       command);

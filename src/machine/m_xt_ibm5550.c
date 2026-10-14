@@ -87,6 +87,18 @@
 #define EPOCH_FONTCARD_ROM_SIZE (512 * 1024) /* Font card ROM size (512K) */
 #define EPOCH_FONTCARD_ROM_PATH_OLD "roms/machines/ibm5535/94X1372.BIN"
 #define EPOCH_FONTCARD_ROM_PATH_NEW "roms/machines/ibm5535/65X1460.BIN"
+#define EPOCH_FONTCARD_ROM_PATH_K16 "roms/machines/ibm5550/FONTK16.BIN"
+#define EPOCH_FONTCARD_ROM_PATH_K24 "roms/machines/ibm5550/FONTK24.BIN"
+#define EPOCH_FONTCARD_ROM_PATH_K52 "roms/machines/ibm5550/FONTK52.BIN"
+#define EPOCH_FONTCARD_ROM_PATH_P24 "roms/machines/ibm5550/FONTP24.BIN"
+
+/* Korean (Hangul) and Traditional Chinese version of Multistation DOS are not dumped yet,
+   so font image cannot be generated. They would have ID 4 and 8 for codepages 934 and 938. */
+#define EPOCH_FONTCARD_CHARSET_NONE 0 /* Software font only, no font card will be available */
+#define EPOCH_FONTCARD_CHARSET_KJ16 1 /* Code page 932 Japanese, Font 16 ($SYS1Z16.FNT) */
+#define EPOCH_FONTCARD_CHARSET_KJ24 2 /* Code page 932 Japanese, Font 24 ($SYS1Z24.FNT) */
+#define EPOCH_FONTCARD_CHARSET_KJ52 3 /* Code page 932 Japanese, 5250 Kanji emulation */
+#define EPOCH_FONTCARD_CHARSET_HANS 6 /* Code page 936 Simplified Chinese, Font 24 */
 
 #define LC_INDEX                0x3D0
 #define LC_DATA                 0x3D1
@@ -294,9 +306,8 @@ typedef struct epoch_t {
     uint32_t      fontcard_page;
     uint32_t      fontcard_pages;
     int           fontcard_isnew;
-    /* Set once the guest has issued the "serve page" command; the page latch
-       in the window's low 16 bytes only works from then on. */
-    int           fontcard_ready;
+    int           fontcard_enabled;
+    int           fontcard_charset; /* 5550 selection, EPOCH_FONTCARD_CHARSET */
     /* Holds the last port written (0x160/0x168/0x16A), not a data byte: it must
        be wide enough to keep the port number, otherwise the 0x168/0x16A cases
        in epoch_fontcard_in() can never match. */
@@ -400,7 +411,7 @@ The IBM 5550 has different IRQ assignments like the 6580 Displaywriter System.
 | A0000h        | Video RAM (Font 16: 144 KB, Font 24: 256 KB)          | 
 | E0000h        | 4 KB Code/Attribute Buffer                            | 
 | E8000h        | ? KB Hard Disk Control Local Memory (not implemented) | 
-| F0000h        | Kanji Font Card (not implemented)                     | 
+| F0000h        | Kanji Font Card                                       | 
 | FC000h        | ROM                                                   | 
 */
 
@@ -753,14 +764,16 @@ getfont_ps55dbcs_vram(epoch_t *epoch, int32_t code, int32_t line)
         int bitnum = bit9addr & 7;
         bit9addr >>= 3;
         bit9addr += 0x20000; /* real: C0000h */
-        font = epoch->vram[code];
+        /* The card is filled through 9-bit word addressing, so the data bytes
+           must be translated the same way the guest's writes were. */
+        font = epoch->vram[getaddr_9bitword(code)];
         font <<= 8;
         font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80; /* get 9th bit */
         font <<= 8;
         code++;
-        font |= epoch->vram[code];
+        font |= epoch->vram[getaddr_9bitword(code)];
         font <<= 8;
-        bitnum = code & 0x7;
+        bitnum = getaddr_9bitword(code) & 0x7;
         font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80; /* get 9th bit */
     }
     return font;
@@ -2580,24 +2593,18 @@ epoch_fontcard_writeb(uint32_t addr, uint8_t val, void *priv)
     epoch_t *epoch = (epoch_t *) priv;
 
     addr &= EPOCH_FONTCARD_WIN_SIZE - 1;
-    /* Writing 2 to the first byte is the "serve" command; IBMBIO compares
-       F000:0000..000F with a constant right after (its result only sets a
-       flag the driver does not need). Serving page 0 keeps that comparison
-       reading a stable place, and the IPL's sum tests only ever write 0/1,
-       so they keep seeing plain RAM. */
+    /* Writing 2 to the first byte is IBMBIO's "serve" command; re-serving
+       page 0 keeps the signature comparison it does right after reading a
+       stable place. */
     if ((addr == 0) && (val == 0x02)) {
-        epoch->fontcard_ready = 1;
         epoch_fontcard_set_page(epoch, 0);
         return;
     }
-    /* The low 16 bytes are the page latch.  The guest reads the pointer table
-       with page 0 selected and then writes the cell's attribute at the offset
-       that carries the same number (seg0540:7F0D, "mov [bx],bl" with bx == bl
-       == attribute), so the record is read from that page; the "select page 0"
-       before it is the same write with 0. Only a value equal to the offset
-       counts, and only after the serve command above, so the IPL's 0/1
-       memory walks keep seeing plain RAM. */
-    if (epoch->fontcard_ready && (addr <= 15) && (val == addr)) {
+    /* The low 16 bytes are the page latch: the guest selects a page by writing
+       the page number at the matching offset (seg0540:7F0D, "mov [bx],bl" with
+       bx == bl). Requiring val == addr keeps unrelated memory writes out (the
+       IPL's walk only touches F000:0000 and F000:7FFF). */
+    if ((addr <= 15) && (val == addr)) {
         epoch_fontcard_set_page(epoch, val);
         return;
     }
@@ -2659,12 +2666,33 @@ epoch_fontcard_out(uint16_t port, uint8_t val, void *priv)
 static void
 epoch_fontcard_init(epoch_t *epoch)
 {
-    FILE   *fp;
-    size_t  fsize;
+    FILE       *fp;
+    size_t      fsize;
+    const char *path;
 
-    fp = rom_fopen(epoch->fontcard_isnew ? EPOCH_FONTCARD_ROM_PATH_NEW
-                                         : EPOCH_FONTCARD_ROM_PATH_OLD,
-                   "rb");
+    if (epoch_is_5535) {
+        path = epoch->fontcard_isnew ? EPOCH_FONTCARD_ROM_PATH_NEW
+                                     : EPOCH_FONTCARD_ROM_PATH_OLD;
+    } else {
+        switch (epoch->fontcard_charset) {
+            case EPOCH_FONTCARD_CHARSET_KJ16:
+                path = EPOCH_FONTCARD_ROM_PATH_K16;
+                break;
+            case EPOCH_FONTCARD_CHARSET_KJ24:
+                path = EPOCH_FONTCARD_ROM_PATH_K24;
+                break;
+            case EPOCH_FONTCARD_CHARSET_KJ52:
+                path = EPOCH_FONTCARD_ROM_PATH_K52;
+                break;
+            case EPOCH_FONTCARD_CHARSET_HANS:
+                path = EPOCH_FONTCARD_ROM_PATH_P24;
+                break;
+            default:  /* No font card installed. */
+                return;
+        }
+    }
+
+    fp = rom_fopen(path, "rb");
     if (fp == NULL)
         return; /* No font card installed. */
     epoch->fontcard_rom = calloc(1, EPOCH_FONTCARD_ROM_SIZE);
@@ -2686,7 +2714,7 @@ epoch_fontcard_init(epoch_t *epoch)
     io_sethandler(0x160, 0x000b, epoch_fontcard_in, NULL, NULL,
                   epoch_fontcard_out, NULL, NULL, epoch);
     epoch_fontcard_set_page(epoch, 0);
-    epoch_log("font card: %u pages installed\n", epoch->fontcard_pages);
+    epoch_log("font card: %s, %u pages installed\n", path, epoch->fontcard_pages);
 }
 
 static void *
@@ -2697,10 +2725,13 @@ epoch_init(UNUSED(const device_t *info))
 
     /* The 5535-M has only the 16-dot monochrome LCD model, so it has
        no font selection; the 5550's CRT is either 16- or 24-dot. */
-    if (epoch_is_5535)
+    if (epoch_is_5535) {
         epoch->fontcard_isnew = device_get_config_int("font");
-    else
+    } else {
         epoch->font24 = device_get_config_int("model");
+        epoch->fontcard_charset = device_get_config_int("font");
+        epoch->fontcard_enabled = (epoch->fontcard_charset != EPOCH_FONTCARD_CHARSET_NONE);
+    }
 
     video_inform(VIDEO_FLAG_TYPE_NONE, &timing_epoch_vid);
     video_update_timing();
@@ -2719,8 +2750,10 @@ epoch_init(UNUSED(const device_t *info))
     //     epoch->vram[i] = 0xff;
     epoch->cram              = calloc(1, 4 * 1024);
     epoch->paritybad         = calloc(1, 0xA0000 >> 3);
-    /* The kanji font card is a 5535-M option. */
-    if (epoch_is_5535)
+    /* Both the 5550 and the 5535-M can carry the kanji font card; the 5550 has
+       a switch for it, the 5535-M always has one. It is installed only when
+       its ROM image is present. */
+    if (epoch_is_5535 || epoch->fontcard_enabled)
         epoch_fontcard_init(epoch);
 
     epoch->epochconst = (uint64_t) ((cpuclock / epoch->pixelclock) * (double) (1ull << 32));
@@ -2899,6 +2932,35 @@ pit_ibm5550_init(void)
 
 static const device_config_t epoch_5550_config[] = {
     // clang-format off
+    {
+        .name        = "font",
+        .description = "Font",
+        .type        = CONFIG_SELECTION,
+        .default_int = EPOCH_FONTCARD_CHARSET_NONE,
+        .selection   = {
+            {
+                .description = "None",
+                .value = EPOCH_FONTCARD_CHARSET_NONE
+            },
+            {
+                .description = "Japanese (Font 16)",
+                .value = EPOCH_FONTCARD_CHARSET_KJ16
+            },
+            {
+                .description = "Japanese (Font 24)",
+                .value = EPOCH_FONTCARD_CHARSET_KJ24
+            },
+            {
+                .description = "Japanese (5250 Emulation)",
+                .value = EPOCH_FONTCARD_CHARSET_KJ52
+            },
+            {
+                .description = "Simplified Chinese (Font 24)",
+                .value = EPOCH_FONTCARD_CHARSET_HANS
+            },
+            { .description = "" }
+        }
+    },
     {
         .name        = "model",
         .description = "Model",

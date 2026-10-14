@@ -444,7 +444,7 @@ static const device_config_t ibmxt_config[] = {
                                    "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
             },
             {
-                .name          = "IBM BIOS - Revision 1501512 (11/08/82) (Alt)",
+                .name          = "IBM BIOS - Revision 1501512 (11/08/82) (Alternate)",
                 .internal_name = "ibm5160_1501512_6359116",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -874,7 +874,7 @@ static const device_config_t ibmxt86_config[] = {
                                    "roms/machines/ibmxt86/BIOS_5160_10JAN86_U19_62X0854_27256_F000.BIN", "" }
             },
             {
-                .name          = "IBM BIOS - Revision 1501512 (01/10/86) (Alt)",
+                .name          = "IBM BIOS - Revision 1501512 (01/10/86) (Alternate)",
                 .internal_name = "ibm5160_011086_alt",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
