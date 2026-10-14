@@ -1477,6 +1477,10 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         if ((dev->local <= VIA_PIPC_596B) && ((addr >= 0x64) && (addr < (dev->local == VIA_PIPC_596A ? 0x80 : 0x85))))
             return;
 
+        /* 596A has the SMBus I/O base and host configuration at 80h-84h instead. */
+        if ((dev->local == VIA_PIPC_596A) && ((addr == 0x90) || (addr == 0x91) || (addr == 0xd2)))
+            return;
+
         switch (addr) {
             case 0x41:
             case 0x48:
@@ -1492,9 +1496,6 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 c                     = (dev->power_regs[0x49] << 8);
                 if (dev->local >= VIA_PIPC_596A)
                     c |= (dev->power_regs[0x48] & 0x80);
-                /* Workaround for P3V133 BIOS in 596B mode mapping ACPI to E800 (same as SMBus) instead of E400. */
-                if ((dev->local == VIA_PIPC_596B) && (c == ((dev->power_regs[0x91] << 8) | (dev->power_regs[0x90] & 0xf0))) && (dev->power_regs[0xd2] & 0x01))
-                    c -= 0x400;
                 acpi_set_timer32(dev->acpi, dev->power_regs[0x41] & 0x08);
                 acpi_update_io_mapping(dev->acpi, c, dev->power_regs[0x41] & 0x80);
                 break;
@@ -1529,6 +1530,8 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             case 0x80:
             case 0x81:
             case 0x84: /* 596A has the SMBus I/O base and enable bit here instead. */
+                if ((addr == 0x80) && (dev->local == VIA_PIPC_596A))
+                    val = (val & 0xf0) | 0x01;
                 dev->power_regs[addr] = val;
                 smbus_piix4_remap(dev->smbus, (dev->power_regs[0x81] << 8) | (dev->power_regs[0x80] & 0xf0), dev->power_regs[0x84] & 0x01);
                 break;
@@ -1540,6 +1543,8 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 
             case 0x90:
             case 0x91:
+                if (addr == 0x90)
+                    val = (val & 0xf0) | 0x01;
                 dev->power_regs[addr] = val;
                 smbus_piix4_remap(dev->smbus, (dev->power_regs[0x91] << 8) | (dev->power_regs[0x90] & 0xf0), dev->power_regs[0xd2] & 0x01);
                 break;
