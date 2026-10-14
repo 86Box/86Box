@@ -58,13 +58,9 @@
 /* The emulator's rasterizer worker option supports counts from 1 to 4. */
 #define RAGE128_MAX_RENDER_THREADS 4
 
-#ifdef ENABLE_RAGE128_LOG
 extern int rage128_do_log;
 
 void rage128_log(const char *fmt, ...);
-#else
-#    define rage128_log(fmt, ...)
-#endif
 
 /* Parameter block for composing the OV0 overlay on the optional GPU
    backend. The field order is the push-constant layout of the compute

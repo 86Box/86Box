@@ -52,8 +52,17 @@
 #include <86box/vid_ati_rage128.h>
 #include <86box/vid_ati_rage128_regs.h>
 
+/* The device's routine log lines (mode changes, the speed line, startup
+   and close summaries) print only when logging is on. The build flag
+   ENABLE_RAGE128_LOG sets the default, and the RAGE128_LOG environment
+   variable overrides it at startup in any build ("1" on, "0" off), so a
+   tester can produce a full log without a special build. Real failures
+   print through pclog whatever this says. */
 #ifdef ENABLE_RAGE128_LOG
 int rage128_do_log = ENABLE_RAGE128_LOG;
+#else
+int rage128_do_log = 0;
+#endif
 
 void
 rage128_log(const char *fmt, ...)
@@ -66,7 +75,6 @@ rage128_log(const char *fmt, ...)
         va_end(ap);
     }
 }
-#endif
 
 /* Bus clocks per CPU access, which video_inform turns into CPU cycles.
    The framebuffer and register read handlers charge them: a read stalls
@@ -2453,8 +2461,12 @@ rage128_reset(void *priv)
 rage128_t *
 rage128_chip_init(const device_t *info, const rage128_chip_cfg_t *cfg)
 {
-    rage128_t *dev  = calloc(1, sizeof(rage128_t));
-    svga_t    *svga = &dev->svga;
+    rage128_t  *dev  = calloc(1, sizeof(rage128_t));
+    svga_t     *svga = &dev->svga;
+    const char *log  = getenv("RAGE128_LOG");
+
+    if (log && log[0])
+        rage128_do_log = strcmp(log, "0") != 0;
 
     dev->is_agp = !!(info->flags & DEVICE_AGP);
     if (dev->is_agp) {

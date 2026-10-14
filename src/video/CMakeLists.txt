@@ -193,7 +193,7 @@ if(RAGE128_MAXX)
     target_compile_definitions(vid PRIVATE USE_RAGE128_MAXX)
 endif()
 
-option(ENABLE_RAGE128_LOG "Enable ATI Rage 128 debug logging" OFF)
+option(ENABLE_RAGE128_LOG "Turn ATI Rage 128 logging on by default (RAGE128_LOG overrides it at run time)" OFF)
 if(ENABLE_RAGE128_LOG)
     set_property(SOURCE
         vid_ati_rage128.c

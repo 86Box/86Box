@@ -223,9 +223,9 @@ rage128_jit_init(rage128_t *dev)
     for (int i = 0; i < R128_JIT_BLOCKS; i++)
         jit->blocks[i].code = jit->arena + (size_t) i * R128_JIT_BLOCK_SIZE;
     dev->jit = jit;
-    pclog("RAGE128 JIT: mode=%s, %d blocks x %d bytes\n",
-          mode == R128_JIT_MODE_VERIFY ? "verify" : "on",
-          R128_JIT_BLOCKS, R128_JIT_BLOCK_SIZE);
+    rage128_log("RAGE128 JIT: mode=%s, %d blocks x %d bytes\n",
+                mode == R128_JIT_MODE_VERIFY ? "verify" : "on",
+                R128_JIT_BLOCKS, R128_JIT_BLOCK_SIZE);
 }
 
 void
@@ -250,7 +250,6 @@ rage128_jit_close(rage128_t *dev)
               (unsigned long long) atomic_load(&jit->v_mismatch_px),
               (unsigned long long) atomic_load(&jit->v_rx_mismatch));
     }
-#ifdef ENABLE_RAGE128_LOG
     {
         uint64_t pt = atomic_load(&jit->p_tris), pr = atomic_load(&jit->p_rows);
         uint64_t pe = atomic_load(&jit->p_rows_empty), pp = atomic_load(&jit->p_px);
@@ -263,7 +262,6 @@ rage128_jit_close(rage128_t *dev)
                         pt ? (double) pr / (double) pt : 0.0,
                         (pr - pe) ? (double) pp / (double) (pr - pe) : 0.0);
     }
-#endif
 
     plat_munmap(jit->arena, (size_t) R128_JIT_BLOCKS * R128_JIT_BLOCK_SIZE);
     free(jit);
