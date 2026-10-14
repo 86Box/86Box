@@ -1603,12 +1603,6 @@ image_load_nrg_fp(cd_image_t *img, FILE* file, const char* nrgfile)
     uint16_t media_type = 0;
     alignas(16) char idbuffer[16];
 
-    struct
-    {
-        uint8_t first_track;
-        uint8_t last_track;
-    } sessions[100];
-
     nrg_cue_t* first = NULL;
 
     fseeko64(file, -12ll, SEEK_END);
@@ -1628,84 +1622,67 @@ image_load_nrg_fp(cd_image_t *img, FILE* file, const char* nrgfile)
             chunk_pos = ftello64(file);
             fread(idbuffer, 4, 1, file);
             uint32_t chunk_size = read_uint32_nrg(file);
-            switch(bswap32(*(uint32_t*)idbuffer)) {
-                case 'TOCT':
-                {
-                    media_type = read_uint16_nrg(file);
-                    break;
-                }
-                case 'SINF':
-                {
-                    uint32_t track_num = read_uint32_nrg(file);
-                    sessions[session - 1].first_track = real_track_num;
-                    sessions[session - 1].last_track = (real_track_num + track_num) - 1;
-                    real_track_num += track_num;
-                    session++;
-                    break;
-                }
-                case 'CUEX':
-                {
-                    for (uint32_t i = 0; i < chunk_size; i += 8) {
-                        nrg_cue_t* cue_point = calloc(1, sizeof(nrg_cue_t));
-                        fread(&cue_point->attr, 1, 1, file);
-                        fread(&cue_point->point, 1, 1, file);
-                        fread(&cue_point->index, 1, 1, file);
-                        fseeko64(file, 1, SEEK_CUR);
-                        cue_point->start = read_uint32_nrg(file) + 150;
-                        cue_point->attr = ((cue_point->attr & 0xF) << 4) | ((cue_point->attr & 0xF0) >> 4);
-                        cue_point->point = bcd2bin(cue_point->point);
-                        cue_point->index = bcd2bin(cue_point->index);
+            if (memcmp(idbuffer, "TOCT", 4) == 0)
+                media_type = read_uint16_nrg(file);
+            else if (memcmp(idbuffer, "SINF", 4) == 0) {
+                uint32_t track_num = read_uint32_nrg(file);
+                real_track_num += track_num;
+                session++;
+            } else if (memcmp(idbuffer, "CUEX", 4) == 0) {
+                for (uint32_t i = 0; i < chunk_size; i += 8) {
+                    nrg_cue_t* cue_point = calloc(1, sizeof(nrg_cue_t));
+                    fread(&cue_point->attr, 1, 1, file);
+                    fread(&cue_point->point, 1, 1, file);
+                    fread(&cue_point->index, 1, 1, file);
+                    fseeko64(file, 1, SEEK_CUR);
+                    cue_point->start = read_uint32_nrg(file) + 150;
+                    cue_point->attr = ((cue_point->attr & 0xF) << 4) | ((cue_point->attr & 0xF0) >> 4);
+                    cue_point->point = bcd2bin(cue_point->point);
+                    cue_point->index = bcd2bin(cue_point->index);
 
-                        if (!first)
-                            first = cue_point;
-                        else {
-                            nrg_cue_t* cur = first;
-                            while (cur->next) {
-                                cur = cur->next;
-                            }
-                            cur->next = cue_point;
+                    if (!first)
+                        first = cue_point;
+                    else {
+                        nrg_cue_t* cur = first;
+                        while (cur->next) {
+                            cur = cur->next;
                         }
+                        cur->next = cue_point;
                     }
-                    break;
                 }
-                case 'CUES':
-                {
-                    for (uint32_t i = 0; i < chunk_size; i += 8) {
-                        uint8_t m = 0, s = 0, f = 0;
-                        nrg_cue_t* cue_point = calloc(1, sizeof(nrg_cue_t));
-                        fread(&cue_point->attr, 1, 1, file);
-                        fread(&cue_point->point, 1, 1, file);
-                        fread(&cue_point->index, 1, 1, file);
-                        fseeko64(file, 2, SEEK_CUR);
-                        cue_point->point = bcd2bin(cue_point->point);
-                        cue_point->index = bcd2bin(cue_point->index);
+            } else if (memcmp(idbuffer, "CUES", 4) == 0) {
+                for (uint32_t i = 0; i < chunk_size; i += 8) {
+                    uint8_t m = 0, s = 0, f = 0;
+                    nrg_cue_t* cue_point = calloc(1, sizeof(nrg_cue_t));
+                    fread(&cue_point->attr, 1, 1, file);
+                    fread(&cue_point->point, 1, 1, file);
+                    fread(&cue_point->index, 1, 1, file);
+                    fseeko64(file, 2, SEEK_CUR);
+                    cue_point->point = bcd2bin(cue_point->point);
+                    cue_point->index = bcd2bin(cue_point->index);
 
-                        fread(&m, 1, 1, file);
-                        fread(&s, 1, 1, file);
-                        fread(&f, 1, 1, file);
-                        
-                        m = bcd2bin(m);
-                        s = bcd2bin(s);
-                        f = bcd2bin(f);
+                    fread(&m, 1, 1, file);
+                    fread(&s, 1, 1, file);
+                    fread(&f, 1, 1, file);
 
-                        cue_point->start = MSFtoLBA(m, s, f);
+                    m = bcd2bin(m);
+                    s = bcd2bin(s);
+                    f = bcd2bin(f);
 
-                        if (!first)
-                            first = cue_point;
-                        else {
-                            nrg_cue_t* cur = first;
-                            while (cur->next) {
-                                cur = cur->next;
-                            }
-                            cur->next = cue_point;
+                    cue_point->start = MSFtoLBA(m, s, f);
+
+                    if (!first)
+                        first = cue_point;
+                    else {
+                        nrg_cue_t* cur = first;
+                        while (cur->next) {
+                            cur = cur->next;
                         }
+                        cur->next = cue_point;
                     }
-                    break;
                 }
-                case 'END!':
-                    parse_ended = true;
-                    break;
-            }
+            } else if (memcmp(idbuffer, "END!", 4) == 0)
+                parse_ended = true;
             fseeko64(file, chunk_pos + chunk_size + 8, SEEK_SET);
             if (parse_ended)
                 break;
@@ -1722,251 +1699,243 @@ image_load_nrg_fp(cd_image_t *img, FILE* file, const char* nrgfile)
             chunk_pos = ftello64(file);
             *(uint32_t*)idbuffer = read_uint32_nrg(file); 
             uint32_t chunk_size = read_uint32_nrg(file);
-            switch(*(uint32_t*)idbuffer) {
-                case 'DAOX': {
-                    uint64_t lead_out_length = 0;
-                    uint8_t first_trk_num = 0;
-                    uint8_t last_trk_num  = 0;
-                    fseeko64(file, 20, SEEK_CUR);
-                    fread(&first_trk_num, 1, 1, file);
-                    fread(&last_trk_num, 1, 1, file);
+            if (memcmp(idbuffer, "XOAD", 4) == 0) {
+                uint64_t lead_out_length = 0;
+                uint8_t first_trk_num = 0;
+                uint8_t last_trk_num  = 0;
+                fseeko64(file, 20, SEEK_CUR);
+                fread(&first_trk_num, 1, 1, file);
+                fread(&last_trk_num, 1, 1, file);
 
-                    for (real_track_num = first_trk_num; real_track_num <= last_trk_num; real_track_num++) {
-                        fseeko64(file, 12, SEEK_CUR);
-                        uint16_t sect_size = read_uint16_nrg(file);
-                        uint8_t  mode_byte = 0;
-                        // The mode is a single byte, followed by 3 unknown bytes.
-                        fread(&mode_byte, 1, 1, file);
-                        uint16_t sect_mode = mode_byte;
-                        fseeko64(file, 3, SEEK_CUR);
-                        uint64_t sect_start_pregap = read_uint64_nrg(file);
-                        uint64_t sect_start_index1 = read_uint64_nrg(file);
-                        uint64_t sect_end = read_uint64_nrg(file);
+                for (real_track_num = first_trk_num; real_track_num <= last_trk_num; real_track_num++) {
+                    fseeko64(file, 12, SEEK_CUR);
+                    uint16_t sect_size = read_uint16_nrg(file);
+                    uint8_t  mode_byte = 0;
+                    // The mode is a single byte, followed by 3 unknown bytes.
+                    fread(&mode_byte, 1, 1, file);
+                    uint16_t sect_mode = mode_byte;
+                    fseeko64(file, 3, SEEK_CUR);
+                    uint64_t sect_start_pregap = read_uint64_nrg(file);
+                    uint64_t sect_start_index1 = read_uint64_nrg(file);
+                    uint64_t sect_end = read_uint64_nrg(file);
 
-                        // MagicISO fixes, per Aaru.
-                        if (sect_size == 2352) {
-                            if (sect_mode == 0) {
-                                sect_mode = 0x0005;
-                            }
-                            if (sect_mode == 0x0002 || sect_mode == 0x0003) {
-                                sect_mode = 0x0006;
-                            }
-                        }
+                    // MagicISO fixes, per Aaru.
+                    if (sect_size == 2352) {
+                        if (sect_mode == 0)
+                            sect_mode = 0x0005;
+                        if (sect_mode == 0x0002 || sect_mode == 0x0003)
+                            sect_mode = 0x0006;
+                    }
 
-                        if (!sect_size) {
-                            switch (sect_mode) {
-                                case Data:
-                                    sect_size = 2048;
-                                    break;
-                                case DataM2F1:
-                                    sect_size = 2048;
-                                    break;
-                                case DataM2F2:
-                                    sect_size = 2336;
-                                    break;
-                                case Audio:
-                                case AudioAlt: // ???
-                                    sect_size = 2352;
-                                    break;
-                                case DataRaw:
-                                    sect_size = 2352;
-                                    break;
-                                case DataRawSub:
-                                    sect_size = 2448;
-                                    break;
-                                case AudioSub:
-                                    sect_size = 2448;
-                                    break;
-
-                                case DataM2Raw:
-                                    sect_size = 2352;
-                                    break;
-
-                                case DataM2RawSub:
-                                    sect_size = 2448;
-                                    break;
-                            }
-                        }
-
-                        if (first_trk_num == real_track_num && session != 1) {
-                            uint64_t next_start_rec = sect_start_pregap / sect_size;
-                            image_insert_track(img, session - 1, 0xb0);
-                            track_t* track = &img->tracks[img->tracks_num - 1];
-                            track->extra[0] = cdrom_lba_to_msf_accurate(next_start_rec) >> 16;
-                            track->extra[1] = cdrom_lba_to_msf_accurate(next_start_rec) >> 8;
-                            track->extra[2] = cdrom_lba_to_msf_accurate(next_start_rec);
-                            track->extra[3] = (session == 2) ? 2 : 1;
-
-                            track->idx[1].start = (0x40 * 60 * 75) + (0x02 * 75);
-
-                            if (session == 2) {
-                                image_insert_track(img, session - 1, 0xc0);
-                                track = &img->tracks[img->tracks_num - 1];
-
-                                track->idx[1].start = 0x5f * 75 * 60;
-                            }
-                        }
-
-                        image_insert_track(img, session, real_track_num);
-                        track_t* track = &img->tracks[img->tracks_num - 1];
-                        
-                        track->sector_size = sect_size;
+                    if (!sect_size) {
                         switch (sect_mode) {
                             case Data:
-                                track->mode = 1;
-                                track->form = 0;
-                                track->sector_size = 2048;
-                                track->attr = 0x14;
+                                sect_size = 2048;
                                 break;
                             case DataM2F1:
-                                track->mode = 2;
-                                track->form = 1;
-                                track->sector_size = 2048;
-                                track->attr = 0x14;
+                                sect_size = 2048;
                                 break;
                             case DataM2F2:
-                                track->mode = 2;
-                                track->form = 2;
-                                track->sector_size = 2336;
-                                track->attr = 0x14;
+                                sect_size = 2336;
                                 break;
                             case Audio:
                             case AudioAlt: // ???
-                                track->mode = 0;
-                                track->form = 0;
-                                track->sector_size = 2352;
-                                track->attr = 0x10;
-                                img->has_audio = 1;
+                                sect_size = 2352;
                                 break;
                             case DataRaw:
-                                track->mode = 1;
-                                track->form = 0;
-                                track->sector_size = 2352;
-                                track->attr = 0x14;
+                                sect_size = 2352;
                                 break;
                             case DataRawSub:
-                                track->mode = 1;
-                                track->form = 0;
-                                track->sector_size = 2448;
-                                track->attr = 0x14;
-                                track->subch_type = 0x08;
+                                sect_size = 2448;
                                 break;
                             case AudioSub:
-                                track->mode = 0;
-                                track->form = 0;
-                                track->sector_size = 2448;
-                                track->attr = 0x10;
-                                track->subch_type = 0x08;
+                                sect_size = 2448;
                                 break;
 
                             case DataM2Raw:
-                                track->mode = 2;
-                                track->form = 2;
-                                track->sector_size = 2352;
-                                track->attr = 0x14;
+                                sect_size = 2352;
                                 break;
 
                             case DataM2RawSub:
-                                track->mode = 2;
-                                track->form = 1;
-                                track->sector_size = 2448;
-                                track->attr = 0x14;
-                                track->subch_type = 0x08;
+                                sect_size = 2448;
                                 break;
                         }
-                        int bin_error = 0;
+                    }
 
-                        track->max_index = 1;
-                        track->idx[1].file = bin_init(0, nrgfile, &bin_error);
-                        track->idx[1].start = sect_start_index1 / track->sector_size;
-                        track->idx[1].length = (sect_end - sect_start_index1) / track->sector_size;
-                        track->idx[1].type = INDEX_NORMAL;
-                        track->idx[0] = track->idx[1];
-                        track->idx[0].file = bin_init(0, nrgfile, &bin_error);
-                        track->idx[0].length = (sect_start_index1 - sect_start_pregap) / track->sector_size;
-                        track->idx[0].start = sect_start_pregap / track->sector_size;
-                        track->idx[1].file_start = (sect_start_index1 - sect_start_pregap) / track->sector_size;
+                    if (first_trk_num == real_track_num && session != 1) {
+                        uint64_t next_start_rec = sect_start_pregap / sect_size;
+                        image_insert_track(img, session - 1, 0xb0);
+                        track_t* track = &img->tracks[img->tracks_num - 1];
+                        track->extra[0] = cdrom_lba_to_msf_accurate(next_start_rec) >> 16;
+                        track->extra[1] = cdrom_lba_to_msf_accurate(next_start_rec) >> 8;
+                        track->extra[2] = cdrom_lba_to_msf_accurate(next_start_rec);
+                        track->extra[3] = (session == 2) ? 2 : 1;
 
-                        track->skip = sect_start_pregap;
+                        track->idx[1].start = (0x40 * 60 * 75) + (0x02 * 75);
 
-                        // Process CUE nodes for this.
-                        nrg_cue_t* cur = first;
-                        int indices_for_track = 0;
+                        if (session == 2) {
+                            image_insert_track(img, session - 1, 0xc0);
+                            track = &img->tracks[img->tracks_num - 1];
+
+                            track->idx[1].start = 0x5f * 75 * 60;
+                        }
+                    }
+
+                    image_insert_track(img, session, real_track_num);
+                    track_t* track = &img->tracks[img->tracks_num - 1];
+
+                    track->sector_size = sect_size;
+                    switch (sect_mode) {
+                        case Data:
+                            track->mode = 1;
+                            track->form = 0;
+                            track->sector_size = 2048;
+                            track->attr = 0x14;
+                            break;
+                        case DataM2F1:
+                            track->mode = 2;
+                            track->form = 1;
+                            track->sector_size = 2048;
+                            track->attr = 0x14;
+                            break;
+                        case DataM2F2:
+                            track->mode = 2;
+                            track->form = 2;
+                            track->sector_size = 2336;
+                            track->attr = 0x14;
+                            break;
+                        case Audio:
+                        case AudioAlt: // ???
+                            track->mode = 0;
+                            track->form = 0;
+                            track->sector_size = 2352;
+                            track->attr = 0x10;
+                            img->has_audio = 1;
+                            break;
+                        case DataRaw:
+                            track->mode = 1;
+                            track->form = 0;
+                            track->sector_size = 2352;
+                            track->attr = 0x14;
+                            break;
+                        case DataRawSub:
+                            track->mode = 1;
+                            track->form = 0;
+                            track->sector_size = 2448;
+                            track->attr = 0x14;
+                            track->subch_type = 0x08;
+                            break;
+                        case AudioSub:
+                            track->mode = 0;
+                            track->form = 0;
+                            track->sector_size = 2448;
+                            track->attr = 0x10;
+                            track->subch_type = 0x08;
+                            break;
+
+                        case DataM2Raw:
+                            track->mode = 2;
+                            track->form = 2;
+                            track->sector_size = 2352;
+                            track->attr = 0x14;
+                            break;
+
+                        case DataM2RawSub:
+                            track->mode = 2;
+                            track->form = 1;
+                            track->sector_size = 2448;
+                            track->attr = 0x14;
+                            track->subch_type = 0x08;
+                            break;
+                    }
+                    int bin_error = 0;
+
+                    track->max_index = 1;
+                    track->idx[1].file = bin_init(0, nrgfile, &bin_error);
+                    track->idx[1].start = sect_start_index1 / track->sector_size;
+                    track->idx[1].length = (sect_end - sect_start_index1) / track->sector_size;
+                    track->idx[1].type = INDEX_NORMAL;
+                    track->idx[0] = track->idx[1];
+                    track->idx[0].file = bin_init(0, nrgfile, &bin_error);
+                    track->idx[0].length = (sect_start_index1 - sect_start_pregap) / track->sector_size;
+                    track->idx[0].start = sect_start_pregap / track->sector_size;
+                    track->idx[1].file_start = (sect_start_index1 - sect_start_pregap) / track->sector_size;
+
+                    track->skip = sect_start_pregap;
+
+                    // Process CUE nodes for this.
+                    nrg_cue_t* cur = first;
+                    int indices_for_track = 0;
+                    while (cur) {
+                        if (cur->point == track->point) {
+                            indices_for_track++;
+                            break;
+                        }
+                        cur = cur->next;
+                    }
+
+                    cur = first;
+
+                    if (indices_for_track) {
                         while (cur) {
                             if (cur->point == track->point) {
-                                indices_for_track++;
-                                break;
+                                if (track->idx[cur->index].file && cur->start > track->idx[cur->index].start) {
+                                    track->idx[cur->index].length -= cur->start - track->idx[cur->index].start;
+                                    track->idx[cur->index].start = cur->start;
+                                }
+                                if (cur->attr)
+                                    track->attr = cur->attr;
                             }
                             cur = cur->next;
                         }
-                        
-                        cur = first;
-
-                        if (indices_for_track) {
-                            while (cur) {
-                                if (cur->point == track->point) {
-                                    if (track->idx[cur->index].file && cur->start > track->idx[cur->index].start) {
-                                        track->idx[cur->index].length -= cur->start - track->idx[cur->index].start;
-                                        track->idx[cur->index].start = cur->start;
-                                    }
-                                    if (cur->attr)
-                                        track->attr = cur->attr;
-                                }
-                                cur = cur->next;
-                            }
-                            if (track->idx[0].start == track->idx[1].start) {
-                                if (track->idx[0].file)
-                                    bin_close(track->idx[0].file);
-                                memset(&track->idx[0], 0, sizeof(track->idx[0]));
-                            }
+                        if (track->idx[0].start == track->idx[1].start) {
+                            if (track->idx[0].file)
+                                bin_close(track->idx[0].file);
+                            memset(&track->idx[0], 0, sizeof(track->idx[0]));
                         }
-
-                        if (first_trk_num == real_track_num) {
-                            lead_out_length = sect_start_pregap / sect_size;
-                        }
-
-                        lead_out_length += (sect_end - sect_start_pregap) / sect_size;
-
-                        // Can't do much if the indices don't exist here.
                     }
 
-                    image_insert_track(img, session, 0xa0);
-                    int track_a0_idx = img->tracks_num - 1;
+                    if (first_trk_num == real_track_num)
+                        lead_out_length = sect_start_pregap / sect_size;
 
-                    image_insert_track(img, session, 0xa1);
-                    int track_a1_idx = img->tracks_num - 1;
+                    lead_out_length += (sect_end - sect_start_pregap) / sect_size;
 
-                    image_insert_track(img, session, 0xa2);
-                    int track_a2_idx = img->tracks_num - 1;
-
-                    track_t* track_a0 = &img->tracks[track_a0_idx];
-                    track_a0->attr = 0x14;
-                    track_a0->max_index = 1;
-                    track_a0->idx[0].type = INDEX_SPECIAL;
-                    track_a0->idx[1].type = INDEX_SPECIAL;
-                    track_a0->idx[1].start = MSFtoLBA(first_trk_num, media_type, 0);
-
-                    track_t* track_a1 = &img->tracks[track_a1_idx];
-                    track_a1->attr = 0x14;
-                    track_a1->max_index = 1;
-                    track_a1->idx[0].type = INDEX_SPECIAL;
-                    track_a1->idx[1].type = INDEX_SPECIAL;
-                    track_a1->idx[1].start = MSFtoLBA(last_trk_num, 0, 0);
-
-                    track_t* track_a2 = &img->tracks[track_a2_idx];
-                    track_a2->attr = 0x14;
-                    track_a2->max_index = 1;
-                    track_a2->idx[0].type = INDEX_SPECIAL;
-                    track_a2->idx[1].type = INDEX_SPECIAL;
-                    track_a2->idx[1].start = lead_out_length;
-
-                    session++;
-                    break;
+                    /* Can't do much if the indices don't exist here. */
                 }
-                case 'END!':
-                    parse_ended = true;
-                    break;
-            }
+
+                image_insert_track(img, session, 0xa0);
+                int track_a0_idx = img->tracks_num - 1;
+
+                image_insert_track(img, session, 0xa1);
+                int track_a1_idx = img->tracks_num - 1;
+
+                image_insert_track(img, session, 0xa2);
+                int track_a2_idx = img->tracks_num - 1;
+
+                track_t* track_a0 = &img->tracks[track_a0_idx];
+                track_a0->attr = 0x14;
+                track_a0->max_index = 1;
+                track_a0->idx[0].type = INDEX_SPECIAL;
+                track_a0->idx[1].type = INDEX_SPECIAL;
+                track_a0->idx[1].start = MSFtoLBA(first_trk_num, media_type, 0);
+
+                track_t* track_a1 = &img->tracks[track_a1_idx];
+                track_a1->attr = 0x14;
+                track_a1->max_index = 1;
+                track_a1->idx[0].type = INDEX_SPECIAL;
+                track_a1->idx[1].type = INDEX_SPECIAL;
+                track_a1->idx[1].start = MSFtoLBA(last_trk_num, 0, 0);
+
+                track_t* track_a2 = &img->tracks[track_a2_idx];
+                track_a2->attr = 0x14;
+                track_a2->max_index = 1;
+                track_a2->idx[0].type = INDEX_SPECIAL;
+                track_a2->idx[1].type = INDEX_SPECIAL;
+                track_a2->idx[1].start = lead_out_length;
+
+                session++;
+            } if (memcmp(idbuffer, "!DNE", 4) == 0)
+                parse_ended = true;
             fseeko64(file, chunk_pos + chunk_size + 8, SEEK_SET);
             if (parse_ended)
                 break;
