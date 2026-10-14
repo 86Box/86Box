@@ -17568,7 +17568,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "HP Chimay", "" }
     },
-    /* IBM's 6877 and 6887 share the same planar and differ in chassis/riser capacity. It was also seen with a i430JX chipset. */
+    /* IBM's 6877 and 6887 share the same planar and differ in chassis/riser capacity. */
     {
         .name              = "[i430FX] IBM PC 7x0 (type 68x7)",
         .internal_name     = "ibm_pc700_6877_6887",
@@ -17592,7 +17592,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM,
         .ram       = {
-            .min  = 16384, /* 16mb memory is onboard */
+            .min  = 16384, /* 52H3381 memory table starts at 16 MB; all memory is in SIMM/DIMM sockets. */
             .max  = 131072,
             .step = 8192
         },

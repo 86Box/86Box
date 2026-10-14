@@ -227,10 +227,12 @@ performance limitations, and remaining hardware/firmware requirements.
 
 Build `ibm_pc700_tests` with `BUILD_TESTING=ON`, then run
 `ctest --test-dir build --output-on-failure -R 'IbmPc700RapidTest\.'`.
-The five tests feed the command decoder for ports 48h-49h the writes the
-LQKT47A BIOS makes: every two-nibble command it sends, the Dh/Eh commands that
-carry a data byte (so a 0Eh data byte does not switch the machine off), and
-writes with SD4 low. They do not model the controller's replies.
+The tests feed the Rapid Resume power controller model for ports 48h-49h the
+writes the LQKT47A BIOS makes: every two-nibble command it sends, the Dh/Eh
+commands that carry a data byte (so a 0Eh data byte does not switch the
+machine off), writes with SD4 low, the BIOS's flag self-test, the wake reason
+reported at power-on and the variable writes. The heartbeat and busy timing
+on the status port live in the machine file and are not covered.
 
 # INI configuration parser
 

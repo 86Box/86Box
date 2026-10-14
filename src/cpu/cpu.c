@@ -469,7 +469,7 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 
     bus_speed = cpu_s->rspeed / cpu_s->multi;
 
-    /* The IBM PC 700 firmware has no speed entry for the 50 MHz / 2x setting. */
+    /* The IBM PC 700 BIOS's speed table (LQKT47A.BIN offset 21C3Ah) has no entry for 50 MHz / 2x. */
     if ((machine_s->init == machine_at_ibm_pc700_init) && (bus_speed == 50000000) && (cpu_s->multi == 2.0))
         return 0;
 

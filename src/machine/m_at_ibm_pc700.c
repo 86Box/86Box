@@ -8,16 +8,23 @@
  *
  *          IBM PC 730/750 (types 6877/6887) system board glue.
  *
+ *          Sources: IBM PC 730 and PC 750 Technical Information Manual
+ *          (52H3381), IBM US patent 5,530,879 and the LQKT47A BIOS, whose
+ *          code locations are given as offsets into LQKT47A.BIN.
+ *
  * Authors: The 86Box Project
  *
  *          Copyright 2026 The 86Box Project
  */
 
+#include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/chipset.h>
@@ -40,17 +47,26 @@
 
 #define IBM_PC700_FLASH_BANK_SIZE 0x20000
 
+/*
+ * Patent 5,530,879: the status port reads the AND of PROC_RDY, low while the
+ * controller takes a nibble, and CMD_STATE#, a heartbeat pulsed low for about
+ * 1.5 us every 50-60 us. The BIOS finds the controller by that pulse
+ * (217C3h) and waits for PROC_RDY before each nibble (2186Ah). The
+ * patent gives no time for PROC_RDY.
+ */
+#define IBM_PC700_RAPID_BEAT_US  55.0
+#define IBM_PC700_RAPID_PULSE_US 1.5
+#define IBM_PC700_RAPID_BUSY_US  10.0
+
 typedef struct ibm_pc700_t {
     nmc93cxx_eeprom_t *eeprom;
-    void            *riser_nvr;
+    void              *riser_nvr;
 
     uint8_t flash_bank;
     uint8_t gpio[2];
 
-    uint8_t rapid_data;
-    uint8_t rapid_status_phase;
-    uint8_t rapid_command;
-    uint8_t rapid_nibbles;
+    ibm_pc700_rapid_t rapid;
+    double            rapid_busy_until;
 
     uint8_t board_7c;
     uint8_t board_7d;
@@ -64,6 +80,24 @@ typedef struct ibm_pc700_t {
 } ibm_pc700_t;
 
 static ibm_pc700_t *ibm_pc700;
+
+#ifdef ENABLE_IBM_PC700_LOG
+int ibm_pc700_do_log = ENABLE_IBM_PC700_LOG;
+
+static void
+ibm_pc700_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (ibm_pc700_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define ibm_pc700_log(fmt, ...)
+#endif
 
 static uint8_t
 ibm_pc700_flash_read(uint32_t addr, void *priv)
@@ -103,15 +137,20 @@ ibm_pc700_flash_map(ibm_pc700_t *dev, uint8_t bank, bool force)
     mem_mapping_set_exec(&bios_mapping, &rom[bank * IBM_PC700_FLASH_BANK_SIZE]);
     mem_mapping_set_exec(&bios_high_mapping, &rom[bank * IBM_PC700_FLASH_BANK_SIZE]);
     flushmmucache();
-    pclog("IBM PC 700: Flash bank %u selected\n", bank);
+    ibm_pc700_log("IBM PC 700: Flash bank %u selected\n", bank);
 }
 
+/*
+ * SW1 as the BIOS reads it on GPIO 78h bits 3:0 (21C5Ch). Its speed table
+ * at 21C3Ah has entries for 0-2 (2.5x at 50/66/60 MHz), 5 (3x at 66 MHz),
+ * 9-Ah (2x at 66/60 MHz) and C-Eh (1.5x at 50/66/60 MHz), and none for 8,
+ * which is 2x at 50 MHz.
+ */
 static uint8_t
 ibm_pc700_cpu_straps(void)
 {
     uint8_t ret;
 
-    /* SW1/4 and SW1/3 select the bus clock; an open switch reads as one. */
     if (cpu_busspeed <= 50000000)
         ret = 0x00;
     else if (cpu_busspeed <= 60000000)
@@ -119,7 +158,6 @@ ibm_pc700_cpu_straps(void)
     else
         ret = 0x01;
 
-    /* SW1/2 and SW1/1 select the multiplier. */
     if (cpu_dmulti <= 1.5)
         ret |= 0x0c;
     else if (cpu_dmulti <= 2.0)
@@ -143,18 +181,22 @@ machine_at_ibm_pc700_gpio_handler(uint8_t write, uint32_t val)
         dev->gpio[1] = (val >> 8) & 0xff;
 
         nmc93cxx_eeprom_write(dev->eeprom,
-                             !!(dev->gpio[1] & 0x04),
-                             !!(dev->gpio[1] & 0x08),
-                             !!(dev->gpio[1] & 0x10));
+                              !!(dev->gpio[1] & 0x04),
+                              !!(dev->gpio[1] & 0x08),
+                              !!(dev->gpio[1] & 0x10));
 
-        /* GPIO 78 bit 4 selects Flash A17; GPIO 79 bit 2 is EEPROM CS. */
+        /*
+         * GPIO 78h bit 4 drives flash A17: the bank-switch code, the same in
+         * both banks (10545h and 10551h, 30545h and 30551h), clears and sets
+         * it. 52H3381 puts A17 on 79h instead.
+         * GPIO 79h bits 4:2 drive the security EEPROM.
+         */
         ibm_pc700_flash_map(dev, !!(dev->gpio[0] & 0x10), false);
     }
 
-    /* GPIO 78 bits 3:0 are SW1/2, SW1/1, SW1/4 and SW1/3. */
     const uint8_t gpio_78 = (dev->gpio[0] & 0xf0) | ibm_pc700_cpu_straps();
 
-    /* GPIO 79 bits 7, 1 and 0 are inputs; the remaining bits are outputs. */
+    /* GPIO 79h bits 7, 1 and 0 are inputs, bit 1 being the EEPROM's data out. */
     uint8_t gpio_79 = (dev->gpio[1] & 0x7c) | 0x81;
     if (nmc93cxx_eeprom_read(dev->eeprom))
         gpio_79 |= 0x02;
@@ -162,49 +204,62 @@ machine_at_ibm_pc700_gpio_handler(uint8_t write, uint32_t val)
     return 0xffff0000 | ((uint32_t) gpio_79 << 8) | gpio_78;
 }
 
+static double
+ibm_pc700_rapid_now_us(void)
+{
+    return (double) tsc / (cpuclock / 1000000.0);
+}
+
 static uint8_t
 ibm_pc700_rapid_read(uint16_t port, void *priv)
 {
-    ibm_pc700_t *dev = (ibm_pc700_t *) priv;
+    const ibm_pc700_t *dev = (const ibm_pc700_t *) priv;
+    const double       now = ibm_pc700_rapid_now_us();
+    uint8_t            ret;
 
     if (port == 0x48)
-        return dev->rapid_data;
+        ret = dev->rapid.reply;
+    else
+        ret = (now >= dev->rapid_busy_until) &&
+              (fmod(now, IBM_PC700_RAPID_BEAT_US) >= IBM_PC700_RAPID_PULSE_US);
 
-    /*
-     * The controller's ready line pulses low after presence detection and
-     * after each nibble transfer. Alternating the sampled state models the
-     * observed transport without inventing command-level power semantics.
-     */
-    return (dev->rapid_status_phase++ & 1) ? 0x00 : 0x01;
+    /* Only SD0 is driven. */
+    return 0xfe | ret;
 }
 
 static void
 ibm_pc700_rapid_write(uint16_t port, uint8_t val, void *priv)
 {
     ibm_pc700_t *dev = (ibm_pc700_t *) priv;
+    int          cmd;
 
     if (port == 0x48) {
-        dev->rapid_data = val;
+        if (val & 0x10)
+            dev->rapid_busy_until = ibm_pc700_rapid_now_us() + IBM_PC700_RAPID_BUSY_US;
 
-        /* Command 0Eh switches the power supply off. */
-        if (ibm_pc700_rapid_decode(&dev->rapid_command, &dev->rapid_nibbles, val) == 0x0e)
+        cmd = ibm_pc700_rapid_decode(&dev->rapid, val);
+        if ((cmd >= 0) && ibm_pc700_rapid_execute(&dev->rapid, cmd)) {
+            ibm_pc700_log("IBM PC 700: Power controller switched the supply off\n");
             plat_power_off();
-    } else {
-        dev->rapid_status_phase = 0;
-        dev->rapid_nibbles      = 0;
+        }
+    } else if (val & 0x01) {
+        /* Bit 0 holds the controller in reset (patent); the BIOS pulses it
+           when the heartbeat is missing (217FBh). */
+        dev->rapid.nibbles = 0;
     }
 }
 
 static uint8_t
 ibm_pc700_board_read(uint16_t port, void *priv)
 {
-    ibm_pc700_t *dev = (ibm_pc700_t *) priv;
-
-    uint8_t ret;
+    const ibm_pc700_t *dev = (const ibm_pc700_t *) priv;
+    uint8_t            ret;
 
     switch (port) {
         case 0x77:
-            ret = 0xff; /* Optional Data Collaboration Card absent. */
+            /* DCC (data collaboration card) setup/presence detect (52H3381).
+               The BIOS treats FFh as no card (2F66Ah). */
+            ret = 0xff;
             break;
         case 0x7c:
             ret = dev->board_7c;
@@ -235,6 +290,13 @@ ibm_pc700_board_read(uint16_t port, void *priv)
     return ret;
 }
 
+/*
+ * 52H3381 lists 7Ch-7Fh as "L2 Cache ID, tamper EEPROM, SMI/PCI IRQ enable",
+ * 94h as reserved and 100h-105h as the reserved riser, without bit layouts,
+ * so these are kept as plain registers. The BIOS tests 7Ch bit 6 (20268h,
+ * 20309h, 204DDh, 204FEh), pulses 7Ch bit 0 around writes to 3F7h
+ * (27753h) and clears the high nibble of 7Dh (30640h).
+ */
 static void
 ibm_pc700_board_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -242,7 +304,6 @@ ibm_pc700_board_write(uint16_t port, uint8_t val, void *priv)
 
     switch (port) {
         case 0x7c:
-            /* Bits 3:1 identify the standard 256 KiB L2 cache. Bit 0 is a latch. */
             dev->board_7c = (dev->board_7c & 0xfe) | (val & 0x01);
             break;
         case 0x7d:
@@ -268,6 +329,11 @@ ibm_pc700_board_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
+/*
+ * Give a new CMOS valid checksums: the AT sum of 10h-2Dh at 2Eh, the sum of
+ * 35h-3Dh at 3Eh and an empty variable-length record at 42h, whose CRC at
+ * 40h is what the BIOS's own routine (2C7A1h) computes for it.
+ */
 static void
 ibm_pc700_seed_nvr(nvr_t *nvr)
 {
@@ -289,44 +355,43 @@ ibm_pc700_seed_nvr(nvr_t *nvr)
     nvr->regs[0x3e] = checksum >> 8;
     nvr->regs[0x3f] = checksum & 0xff;
 
-    /* Empty IBM variable-length CMOS record and its CRC-16. */
     nvr->regs[0x40] = 0xe1;
     nvr->regs[0x41] = 0xf0;
     nvr->regs[0x42] = 0x00;
 }
 
+/*
+ * The riser's 8 KiB NVRAM behind ports 74h-76h, which the BIOS reads (byte
+ * 186h at 27BA3h). These starting values come from the original
+ * contribution; their meaning has not been traced.
+ */
 static void
 ibm_pc700_seed_riser_nvr(ibm_pc700_t *dev)
 {
     if (!ps2_nvr_is_new(dev->riser_nvr))
         return;
 
-    /* Known-good markers used by the IBM firmware. */
     ps2_nvr_set_byte(dev->riser_nvr, 0x0186, 0x00);
     ps2_nvr_set_byte(dev->riser_nvr, 0x018a, 0x6d);
     ps2_nvr_set_byte(dev->riser_nvr, 0x018b, 0xb6);
 
-    /* Minimal empty additive-checksum record at 0500h. */
     ps2_nvr_set_byte(dev->riser_nvr, 0x0500, 0x01);
     ps2_nvr_set_byte(dev->riser_nvr, 0x0501, 0x00);
     ps2_nvr_set_byte(dev->riser_nvr, 0x0502, 0x00);
 }
 
+/* The power controller runs from standby power, so a reset leaves it alone. */
 static void
 ibm_pc700_reset(void *priv)
 {
     ibm_pc700_t *dev = (ibm_pc700_t *) priv;
 
-    dev->gpio[0]             = 0xff;
-    dev->gpio[1]             = 0xff;
-    dev->rapid_data          = 0x00;
-    dev->rapid_status_phase  = 0;
-    dev->rapid_command       = 0x00;
-    dev->rapid_nibbles       = 0;
-    dev->board_7c            = 0x0b; /* 256 KiB L2 cache, no tamper. */
-    dev->board_7d            = 0x00;
-    dev->board_7e            = 0x00;
-    dev->board_7f            = 0x00;
+    dev->gpio[0]  = 0xff;
+    dev->gpio[1]  = 0xff;
+    dev->board_7c = 0x0b;
+    dev->board_7d = 0x00;
+    dev->board_7e = 0x00;
+    dev->board_7f = 0x00;
 
     dev->pos_94 = 0xff;
     memset(dev->pos, 0x00, sizeof(dev->pos));
@@ -354,10 +419,14 @@ ibm_pc700_init(UNUSED(const device_t *info))
     ibm_pc700_t             *dev = (ibm_pc700_t *) calloc(1, sizeof(ibm_pc700_t));
     nmc93cxx_eeprom_params_t params;
 
+    /*
+     * A new security EEPROM starts with the token at word 07h and the CRC at
+     * word 24h that the BIOS generated for the original contribution, rather
+     * than blank. The CRC algorithm has not been traced.
+     */
     memset(dev->eeprom_default, 0xff, sizeof(dev->eeprom_default));
     for (uint8_t i = 0x08; i <= 0x28; i++)
         dev->eeprom_default[i] = 0x0000;
-    /* BIOS-generated default security token and CRC for words 08h-28h. */
     dev->eeprom_default[0x07] = 0x3cd1;
     dev->eeprom_default[0x24] = 0x870c;
     params.type            = NMC_93C46_x16_64;
@@ -379,6 +448,8 @@ ibm_pc700_init(UNUSED(const device_t *info))
                             NULL, NULL, NULL);
     mem_mapping_set_p(&bios_mapping, dev);
     mem_mapping_set_p(&bios_high_mapping, dev);
+
+    ibm_pc700_rapid_power_on(&dev->rapid);
 
     io_sethandler(0x0048, 2,
                   ibm_pc700_rapid_read, NULL, NULL, ibm_pc700_rapid_write, NULL, NULL, dev);
@@ -424,6 +495,7 @@ machine_at_ibm_pc700_init(const machine_t *model)
 
     machine_at_common_init(model);
 
+    /* 52H3381 does not document the slot numbers or interrupt routing. */
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
