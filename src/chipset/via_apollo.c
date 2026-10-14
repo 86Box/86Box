@@ -53,12 +53,9 @@ typedef struct via_apollo_t {
     uint32_t id;
 
     uint64_t dram_top;
-    uint64_t agp_base[2];
-    uint64_t agp_end[2];
 
     smram_t   *smram;
     agpgart_t *agpgart;
-    void      *agp_bridge;
 } via_apollo_t;
 
 static void
@@ -84,55 +81,6 @@ apollo_map(uint32_t addr, uint32_t size, int state)
     flushmmucache_nopc();
 }
 
-static void
-apollo_dram_range_state(via_apollo_t *dev, uint64_t base, uint64_t end, int state)
-{
-    if (base < 0x00100000ULL)
-        base = 0x00100000ULL;
-    if (end > dev->dram_top)
-        end = dev->dram_top;
-    if (end > base)
-        mem_set_mem_state_both(base, end - base, state);
-}
-
-/* The memory windows of the AGP bridge are decoded ahead of DRAM, so the AGP
-   card still works when the rows reach into them. This is not the case for
-   the graphics aperture: BIOSes enable it before giving it a base address. */
-static void
-apollo_agp_ranges_recalc(via_apollo_t *dev, int force)
-{
-    uint64_t base[2] = { 0 };
-    uint64_t end[2]  = { 0 };
-    uint32_t win_base;
-    uint32_t win_limit;
-
-    for (int i = 0; dev->agp_bridge && (i < 2); i++) {
-        if (pci_bridge_get_mem_window(dev->agp_bridge, i, &win_base, &win_limit)) {
-            base[i] = win_base;
-            end[i]  = (uint64_t) win_limit + 1;
-        }
-    }
-
-    if (!force && !memcmp(base, dev->agp_base, sizeof(base)) && !memcmp(end, dev->agp_end, sizeof(end)))
-        return;
-
-    for (int i = 0; i < 2; i++)
-        apollo_dram_range_state(dev, dev->agp_base[i], dev->agp_end[i], MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-    for (int i = 0; i < 2; i++)
-        apollo_dram_range_state(dev, base[i], end[i], MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-
-    memcpy(dev->agp_base, base, sizeof(base));
-    memcpy(dev->agp_end, end, sizeof(end));
-
-    flushmmucache();
-}
-
-static void
-apollo_agp_window_changed(void *priv)
-{
-    apollo_agp_ranges_recalc((via_apollo_t *) priv, 0);
-}
-
 /* DRAM only answers below the ending address of the last row. Anything above
    that, up to 4 GB, goes to PCI and AGP. */
 static void
@@ -154,7 +102,7 @@ apollo_set_dram_top(via_apollo_t *dev, uint64_t top)
 
     dev->dram_top = top;
 
-    apollo_agp_ranges_recalc(dev, 1);
+    flushmmucache();
 }
 
 static void
@@ -834,21 +782,21 @@ via_apollo_init(const device_t *info)
 
     switch (dev->id) {
         case VIA_597:
-            dev->agp_bridge = device_add(&via_vp3_agp_device);
+            device_add(&via_vp3_agp_device);
             break;
 
         case VIA_691:
-            dev->agp_bridge = device_add(&via_apro_agp_device);
+            device_add(&via_apro_agp_device);
             break;
 
         case VIA_8601:
-            dev->agp_bridge = device_add(&via_vt8601_agp_device);
+            device_add(&via_vt8601_agp_device);
             break;
 
         case VIA_598:
         case VIA_693A:
         case VIA_694:
-            dev->agp_bridge = device_add(&via_mvp3_agp_device);
+            device_add(&via_mvp3_agp_device);
             break;
 
         default:
@@ -857,9 +805,6 @@ via_apollo_init(const device_t *info)
 
     if (dev->id >= VIA_597)
         dev->agpgart = device_add(&agpgart_device);
-
-    if (dev->agp_bridge)
-        pci_bridge_set_window_callback(dev->agp_bridge, apollo_agp_window_changed, dev);
 
     if ((dev->id >= VIA_694) && (dev->id != VIA_8601))
         dev->drb_unit = 16;

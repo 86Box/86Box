@@ -323,8 +323,6 @@ extern void        pci_init(int flags);
 /* PCI bridge stuff. */
 extern void        pci_bridge_set_ctl(void *priv, uint8_t ctl);
 extern uint8_t     pci_bridge_get_bus_index(void *priv);
-extern void        pci_bridge_set_window_callback(void *priv, void (*window_changed)(void *priv), void *window_priv);
-extern int         pci_bridge_get_mem_window(void *priv, int prefetch, uint32_t *base, uint32_t *limit);
 
 #ifdef EMU_DEVICE_H
 extern const device_t dec21150_device;
