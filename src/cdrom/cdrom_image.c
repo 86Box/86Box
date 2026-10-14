@@ -1666,6 +1666,7 @@ image_load_nrg_fp(cd_image_t *img, FILE* file, const char* nrgfile)
                             cur->next = cue_point;
                         }
                     }
+                    break;
                 }
                 case 'CUES':
                 {
@@ -1699,6 +1700,7 @@ image_load_nrg_fp(cd_image_t *img, FILE* file, const char* nrgfile)
                             cur->next = cue_point;
                         }
                     }
+                    break;
                 }
                 case 'END!':
                     parse_ended = true;
@@ -1732,8 +1734,11 @@ image_load_nrg_fp(cd_image_t *img, FILE* file, const char* nrgfile)
                     for (real_track_num = first_trk_num; real_track_num <= last_trk_num; real_track_num++) {
                         fseeko64(file, 12, SEEK_CUR);
                         uint16_t sect_size = read_uint16_nrg(file);
-                        uint16_t sect_mode = read_uint16_nrg(file);
-                        fseeko64(file, 2, SEEK_CUR);
+                        uint8_t  mode_byte = 0;
+                        // The mode is a single byte, followed by 3 unknown bytes.
+                        fread(&mode_byte, 1, 1, file);
+                        uint16_t sect_mode = mode_byte;
+                        fseeko64(file, 3, SEEK_CUR);
                         uint64_t sect_start_pregap = read_uint64_nrg(file);
                         uint64_t sect_start_index1 = read_uint64_nrg(file);
                         uint64_t sect_end = read_uint64_nrg(file);
