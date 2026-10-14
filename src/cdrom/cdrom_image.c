@@ -2269,7 +2269,7 @@ image_load_cue_fp(cd_image_t *img, const char *cuefile, FILE *fp)
         } else if (!strcmp(command, "CATALOG") || !strcmp(command, "CDTEXTFILE") ||
                    !strcmp(command, "ISRC") || !strcmp(command, "PERFORMER") ||
                    !strcmp(command, "SONGWRITER") || !strcmp(command, "TITLE") ||
-                   !strcmp(command, "")) {
+                   !strcmp(command, "COMPOSER") || !strcmp(command, "")) {
             /* Ignored commands. */
             image_log(img->log, "    [CUE   ] Ignored command \"%s\" in Cue sheet\n",
                       command);
