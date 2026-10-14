@@ -288,6 +288,12 @@ sis_5600_host_to_pci_reset(void *priv)
 {
     sis_5600_host_to_pci_t *dev = (sis_5600_host_to_pci_t *) priv;
 
+    /*
+       Allow SMM MMIO above 1 MB with A20M# asserted, as on SiS 530
+       with the same SiS 5595 southbridge.
+     */
+    unmask_a20_in_smm = 1;
+
     dev->pci_conf[0x00] = 0x39;
     dev->pci_conf[0x01] = 0x10;
     dev->pci_conf[0x02] = 0x00;
