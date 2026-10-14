@@ -57,6 +57,9 @@ typedef struct pci_bridge_t {
     uint8_t regs[256];
     uint8_t bus_index;
     uint8_t slot;
+
+    void (*window_changed)(void *priv);
+    void  *window_priv;
 } pci_bridge_t;
 
 #ifdef ENABLE_PCI_BRIDGE_LOG
@@ -91,6 +94,31 @@ pci_bridge_get_bus_index(void *priv)
     pci_bridge_t *dev = (pci_bridge_t *) priv;
 
     return dev->bus_index;
+}
+
+/* Let the host bridge know when the memory windows forwarded to the secondary
+   bus change, for chipsets that decode them ahead of DRAM. */
+void
+pci_bridge_set_window_callback(void *priv, void (*window_changed)(void *priv), void *window_priv)
+{
+    pci_bridge_t *dev = (pci_bridge_t *) priv;
+
+    dev->window_changed = window_changed;
+    dev->window_priv    = window_priv;
+}
+
+/* Get the memory (prefetch = 0) or prefetchable memory (prefetch = 1) window
+   forwarded to the secondary bus. Returns 0 if the window is closed. */
+int
+pci_bridge_get_mem_window(void *priv, int prefetch, uint32_t *base, uint32_t *limit)
+{
+    const pci_bridge_t *dev = (pci_bridge_t *) priv;
+    const uint8_t       reg = prefetch ? 0x24 : 0x20;
+
+    *base  = (((uint32_t) dev->regs[reg + 1] << 24) | ((uint32_t) dev->regs[reg] << 16)) & 0xfff00000;
+    *limit = ((uint32_t) dev->regs[reg + 3] << 24) | ((uint32_t) dev->regs[reg + 2] << 16) | 0x000fffff;
+
+    return (dev->regs[0x04] & 0x02) && (*base <= *limit);
 }
 
 static void
@@ -389,6 +417,9 @@ pci_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
     }
 
     dev->regs[addr] = val;
+
+    if (dev->window_changed && ((addr == 0x04) || ((addr >= 0x20) && (addr <= 0x27))))
+        dev->window_changed(dev->window_priv);
 }
 
 static uint8_t
