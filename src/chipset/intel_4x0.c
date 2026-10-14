@@ -58,6 +58,8 @@ typedef struct i4x0_t {
     uint8_t    pci_slot;
     uint8_t    pad;
     uint8_t    pad0;
+    uint8_t    drb_row0_empty;
+    uint8_t    drb_written[8];
     uint8_t    regs[256];
     uint8_t    regs_locked[256];
     uint8_t    mem_state[256];
@@ -269,6 +271,38 @@ i4x0_dram_hole(uint8_t old_val, uint8_t new_val)
         mem_set_mem_state_both(hole_base[old_hen], hole_size[old_hen], MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
     if (hole_size[new_hen] && (ram_top > hole_base[new_hen]))
         mem_set_mem_state_both(hole_base[new_hen], hole_size[new_hen], MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+}
+
+/* The DRBs always read back the installed memory layout (see spd_write_drbs())
+   and RAM stays decoded no matter what the BIOS writes to them. A BIOS that sizes
+   each row by decoding only that row at address 0 and testing it would then find
+   memory in every empty DIMM socket, which the Intel RC440BX BIOS reports as a
+   module with missing or inconclusive SPD data. Leave conventional memory
+   unmapped while the DRB values written by the guest decode an empty row at
+   address 0. */
+static void
+i4x0_drb_row0_update(i4x0_t *dev)
+{
+    uint8_t empty = 0;
+
+    if (spd_present) {
+        /* Address 0 belongs to the first row with a non-zero boundary. */
+        for (uint8_t row = 0; row <= dev->max_drb; row++) {
+            if (dev->drb_written[row]) {
+                empty = (dev->regs[0x60 + row] == (row ? dev->regs[0x5f + row] : 0x00));
+                break;
+            }
+        }
+    }
+
+    if (empty != dev->drb_row0_empty) {
+        i4x0_log("Intel 4x0: Empty DRAM row %sdecoded at address 0\n", empty ? "" : "no longer ");
+        dev->drb_row0_empty = empty;
+        if (empty)
+            mem_mapping_disable(&ram_low_mapping);
+        else
+            mem_mapping_enable(&ram_low_mapping);
+    }
 }
 
 static void
@@ -806,7 +840,9 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             case 0x63:
             case 0x64:
                 if ((addr & 0x7) <= dev->max_drb) {
+                    dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+                    i4x0_drb_row0_update(dev);
                     break;
                 }
                 switch (dev->type) {
@@ -835,7 +871,9 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0x65:
                 if ((addr & 0x7) <= dev->max_drb) {
+                    dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+                    i4x0_drb_row0_update(dev);
                     break;
                 }
                 switch (dev->type) {
@@ -864,7 +902,9 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0x66:
                 if ((addr & 0x7) <= dev->max_drb) {
+                    dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+                    i4x0_drb_row0_update(dev);
                     break;
                 }
                 switch (dev->type) {
@@ -884,7 +924,9 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0x67:
                 if ((addr & 0x7) <= dev->max_drb) {
+                    dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+                    i4x0_drb_row0_update(dev);
                     break;
                 }
                 switch (dev->type) {
@@ -1610,7 +1652,8 @@ i4x0_reset(void *priv)
         i4x0_write(0, 0x5a + i, 1, 0x00, priv);
 
     for (uint8_t i = 0; i <= dev->max_drb; i++)
-        dev->regs[0x60 + i] = dev->drb_default;
+        dev->regs[0x60 + i] = dev->drb_written[i] = dev->drb_default;
+    i4x0_drb_row0_update(dev);
 
     if (dev->type >= INTEL_430NX) {
         for (uint8_t i = 0; i < 4; i++)
@@ -1970,6 +2013,8 @@ i4x0_init(const device_t *info)
         cpu_set_agp_speed(cpu_busspeed / 1.5);
     else if (dev->type >= INTEL_440LX)
         cpu_set_agp_speed(cpu_busspeed);
+
+    memcpy(dev->drb_written, &regs[0x60], sizeof(dev->drb_written));
 
     i4x0_write(regs[0x59], 0x59, 1, 0x00, dev);
     i4x0_write(regs[0x5a], 0x5a, 1, 0x00, dev);
