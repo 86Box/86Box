@@ -138,20 +138,45 @@ static FILE *gpu_tel;
 #        define GPU_TEL_ARCH "other"
 #    endif
 
+/* Two log levels share one formatter. gpu_log carries the routine lines
+   (startup, statistics, profiling) and prints only while the device's
+   logging is on (rage128_log); gpu_err carries failures, which always
+   print. Both go to the telemetry file when it is open, so a tester's
+   telemetry is the same whether logging is on or not. */
 static void
-gpu_log(const char *fmt, ...)
+gpu_logv(int always, const char *fmt, va_list ap)
 {
-    char    buf[1024];
-    va_list ap;
+    char buf[1024];
 
-    va_start(ap, fmt);
+    if (!always && !rage128_do_log && !gpu_tel)
+        return;
     vsnprintf(buf, sizeof(buf), fmt, ap);
-    va_end(ap);
-    pclog("%s", buf);
+    if (always || rage128_do_log)
+        pclog("%s", buf);
     if (gpu_tel) {
         fputs(buf, gpu_tel);
         fflush(gpu_tel);
     }
+}
+
+static void
+gpu_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    gpu_logv(0, fmt, ap);
+    va_end(ap);
+}
+
+static void
+gpu_err(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    gpu_logv(1, fmt, ap);
+    va_end(ap);
 }
 
 /* Append one formatted field to a log line held in a fixed buffer and
@@ -1793,7 +1818,7 @@ gpu_tuple_intern(r128_gpu_t *g, const uint32_t sel[GPU_TUPLE_SEL])
             }
         if (!comb_known) {
             g->st_tunknown++;
-            gpu_log("RAGE128 GPU: combine tuple outside enumeration: "
+            gpu_err("RAGE128 GPU: combine tuple outside enumeration: "
                     "st0=%u/%u/%u/%u/%u/%u/%u st1=%u/%u/%u/%u/%u/%u/%u "
                     "sten=%u dead=%u fmt=%d/%d %d/%d\n",
                     sel[0], sel[1], sel[2], sel[3], sel[4], sel[5], sel[6],
@@ -2162,7 +2187,7 @@ gpu_serial_drain(gpu_serial_ctx_t *c, int ui)
         sd[4] = 1; /* V_SERIAL */
         if (gpu_seg_create(g, sme, sd, 5, &g->pipes_serial[v])
             != VK_SUCCESS) {
-            gpu_log("RAGE128 GPU: serial pipeline (%s) failed; aliasing draws "
+            gpu_err("RAGE128 GPU: serial pipeline (%s) failed; aliasing draws "
                     "stay on the CPU path\n",
                     r128_gpu_variants[v].name);
             atomic_store(&c->fail, 1);
@@ -2473,7 +2498,7 @@ gpu_fold_publish(r128_gpu_t *g, uint32_t kern, int32_t tid, VkPipeline p,
     pthread_mutex_unlock(&g->fold_mtx);
 
     if (vr != VK_SUCCESS)
-        gpu_log("RAGE128 GPU: folded pipeline (%s, tuple %d) failed (%d), "
+        gpu_err("RAGE128 GPU: folded pipeline (%s, tuple %d) failed (%d), "
                 "using unfolded\n",
                 r128_gpu_variants[kern].name, tid, (int) vr);
     else if (!boot)
@@ -3714,7 +3739,7 @@ gpu_gate_census(rage128_t *dev)
             "z %d/4 tile %d/4\n",
             kern_ok, GPU_KERNELS, dst_ok, tex_ok, z_ok, tile_ok);
     if (nmiss)
-        gpu_log("RAGE128 GPU: gate census HOLES (%d):%s\n", nmiss, miss);
+        gpu_err("RAGE128 GPU: gate census HOLES (%d):%s\n", nmiss, miss);
 }
 
 /* ------------------------------------------------------------------ */
@@ -4273,7 +4298,7 @@ gpu_slot_retire(r128_gpu_t *g, gpu_slot_t *sl, int cause)
             break;
         if (vr != VK_TIMEOUT)
             fatal("RAGE128 GPU: fence wait failed (%d)\n", vr);
-        gpu_log("RAGE128 GPU: STUCK FENCE slot seq=%llu wait#%u status=%d\n",
+        gpu_err("RAGE128 GPU: STUCK FENCE slot seq=%llu wait#%u status=%d\n",
                 (unsigned long long) sl->seq, ++tries,
                 vkGetFenceStatus(g->dev, sl->fence));
     }
@@ -4327,7 +4352,7 @@ gpu_slot_retire(r128_gpu_t *g, gpu_slot_t *sl, int cause)
                a second is a scheduling defect, not load; log it while
                the workload is still on screen. */
             if (lad_ns + shade_ns > 500000000ull)
-                gpu_log("RAGE128 GPU: SLOW SEGMENT seq=%llu lad=%llums "
+                gpu_err("RAGE128 GPU: SLOW SEGMENT seq=%llu lad=%llums "
                         "shade=%llums ndisp=%u rows=%u kmask=%05x\n",
                         (unsigned long long) sl->seq,
                         (unsigned long long) (lad_ns / 1000000),
@@ -5477,35 +5502,35 @@ gpu_verify_segment(rage128_t *dev, r128_gpu_t *g,
         for (uint32_t i = 0; i < clen; i++)
             if (dev->svga.vram[clo + i] != snap[i]) {
                 if (bad < 4)
-                    gpu_log("RAGE128 GPU verify MISMATCH c+0x%x: gpu=%02x interp=%02x\n",
+                    gpu_err("RAGE128 GPU verify MISMATCH c+0x%x: gpu=%02x interp=%02x\n",
                             clo + i, snap[i], dev->svga.vram[clo + i]);
                 bad++;
             }
         for (uint32_t i = 0; i < zlen; i++)
             if (dev->svga.vram[zlo + i] != snap[clen + i]) {
                 if (bad < 4)
-                    gpu_log("RAGE128 GPU verify MISMATCH z+0x%x: gpu=%02x interp=%02x\n",
+                    gpu_err("RAGE128 GPU verify MISMATCH z+0x%x: gpu=%02x interp=%02x\n",
                             zlo + i, snap[clen + i], dev->svga.vram[zlo + i]);
                 bad++;
             }
         for (uint32_t i = 0; i < cslen; i++)
             if (dev->c_stage.arena[i] != snap[clen + zlen + i]) {
                 if (bad < 4)
-                    gpu_log("RAGE128 GPU verify MISMATCH cs+0x%x: gpu=%02x interp=%02x\n",
+                    gpu_err("RAGE128 GPU verify MISMATCH cs+0x%x: gpu=%02x interp=%02x\n",
                             i, snap[clen + zlen + i], dev->c_stage.arena[i]);
                 bad++;
             }
         for (uint32_t i = 0; i < zslen; i++)
             if (dev->z_stage.arena[i] != snap[clen + zlen + cslen + i]) {
                 if (bad < 4)
-                    gpu_log("RAGE128 GPU verify MISMATCH zs+0x%x: gpu=%02x interp=%02x\n",
+                    gpu_err("RAGE128 GPU verify MISMATCH zs+0x%x: gpu=%02x interp=%02x\n",
                             i, snap[clen + zlen + cslen + i],
                             dev->z_stage.arena[i]);
                 bad++;
             }
         if (bad) {
             g->st_verify_bad++;
-            gpu_log("RAGE128 GPU verify: segment %llu: %u mismatched bytes (spans=%u tris=%u)\n",
+            gpu_err("RAGE128 GPU verify: segment %llu: %u mismatched bytes (spans=%u tris=%u)\n",
                     (unsigned long long) g->st_segments, bad, g->nspans, g->ntris);
         }
     }
@@ -6268,7 +6293,7 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
            rendered, so the loss shows up in the stats. */
         if (cx <= x1) {
             if (!g->st_spandrop && !g->st_pxdrop)
-                gpu_log("RAGE128 GPU: span capture overflow past accept bound, "
+                gpu_err("RAGE128 GPU: span capture overflow past accept bound, "
                         "pixels dropped\n");
             g->st_spandrop += (uint64_t) (x1 - cx + 256) / 256u;
             g->st_pxdrop += (uint64_t) (x1 - cx + 1);
@@ -6716,7 +6741,7 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
             && ((uint64_t) (g->nspans - sp0) != need_spans
                 || (uint64_t) (g->seg_px - px0) != need_px)) {
             if (!g->st_reprice_miss)
-                gpu_log("RAGE128 GPU: reprice miss: predicted %llu/%llu spans/px,"
+                gpu_err("RAGE128 GPU: reprice miss: predicted %llu/%llu spans/px,"
                         " capture consumed %u/%u\n",
                         (unsigned long long) need_spans,
                         (unsigned long long) need_px,
@@ -6773,7 +6798,7 @@ gpu_read_fence(r128_gpu_t *g, uint32_t lo, uint32_t hi)
                                               VK_TRUE, 5000000000ull);
                 if (wr != VK_TIMEOUT)
                     break;
-                gpu_log("RAGE128 GPU: STUCK FENCE (read) seq=%llu wait#%u status=%d\n",
+                gpu_err("RAGE128 GPU: STUCK FENCE (read) seq=%llu wait#%u status=%d\n",
                         (unsigned long long) sl->seq, ++tries,
                         vkGetFenceStatus(g->dev, sl->fence));
             }
@@ -7495,7 +7520,7 @@ gpu_fence_range(r128_gpu_t *g, uint32_t lo, uint32_t hi, int writes,
                                               VK_TRUE, 5000000000ull);
                 if (wr != VK_TIMEOUT)
                     break;
-                gpu_log("RAGE128 GPU: STUCK FENCE (2d) seq=%llu wait#%u "
+                gpu_err("RAGE128 GPU: STUCK FENCE (2d) seq=%llu wait#%u "
                         "status=%d\n",
                         (unsigned long long) sl->seq, ++tries,
                         vkGetFenceStatus(g->dev, sl->fence));
@@ -7781,7 +7806,7 @@ rage128_gpu_2d_fill(rage128_t *dev, uint32_t addr, uint32_t pitch,
         }
         if (bad) {
             if (!g->st_fill_bad)
-                gpu_log("RAGE128 GPU: 2d fill VERIFY MISMATCH: addr=%08x "
+                gpu_err("RAGE128 GPU: 2d fill VERIFY MISMATCH: addr=%08x "
                         "pitch=%u len=%u rows=%u color=%08x bpp=%d bad=%llu\n",
                         addr, pitch, len, rows, color, bpp,
                         (unsigned long long) bad);
@@ -8014,7 +8039,7 @@ rage128_gpu_2d_fill_tiled(rage128_t *dev, uint32_t tbase, uint32_t tpitch,
                     bad++;
         if (bad) {
             if (!g->st_fill_bad)
-                gpu_log("RAGE128 GPU: 2d tiled fill VERIFY MISMATCH: "
+                gpu_err("RAGE128 GPU: 2d tiled fill VERIFY MISMATCH: "
                         "base=%08x pitch=%u xb=[%u,%u) y=[%u,%u] color=%08x "
                         "bpp=%d pieces=%u bad=%llu\n",
                         tbase, tpitch, xb0, xb1, y0, y1, color, bpp, nrec,
@@ -8122,7 +8147,7 @@ rage128_gpu_2d_verify_bad(rage128_t *dev, int table, uint64_t bad)
     if (!g || !bad)
         return;
     if (!g->st_qbad[table])
-        gpu_log("RAGE128 GPU: 2d op VERIFY MISMATCH: table=%d bad=%llu\n",
+        gpu_err("RAGE128 GPU: 2d op VERIFY MISMATCH: table=%d bad=%llu\n",
                 table, (unsigned long long) bad);
     g->st_qbad[table] += bad;
 }
@@ -8281,7 +8306,7 @@ rage128_gpu_2d_copy(rage128_t *dev, uint32_t addr, uint32_t pitch,
                     bad++;
         if (bad) {
             if (!g->st_copy_bad)
-                gpu_log("RAGE128 GPU: 2d copy VERIFY MISMATCH: addr=%08x "
+                gpu_err("RAGE128 GPU: 2d copy VERIFY MISMATCH: addr=%08x "
                         "pitch=%u len=%u rows=%u soff=%u bad=%llu\n",
                         addr, pitch, len, rows, soff,
                         (unsigned long long) bad);
@@ -8527,7 +8552,7 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
         }
         if (bad) {
             if (!g->st_blit_bad)
-                gpu_log("RAGE128 GPU: 2d blit VERIFY MISMATCH: addr=%08x "
+                gpu_err("RAGE128 GPU: 2d blit VERIFY MISMATCH: addr=%08x "
                         "src=%08x pitch=%u spitch=%u len=%u rows=%u "
                         "ovl=%d bad=%llu\n",
                         addr, src, pitch, spitch,
@@ -8654,7 +8679,7 @@ rage128_gpu_ov0_bad(rage128_t *dev, uint64_t bad)
     if (!g || !bad)
         return;
     if (!g->st_ov0_bad)
-        gpu_log("RAGE128 GPU: OV0 VERIFY MISMATCH (first batch: %llu px)\n",
+        gpu_err("RAGE128 GPU: OV0 VERIFY MISMATCH (first batch: %llu px)\n",
                 (unsigned long long) bad);
     g->st_ov0_bad += bad;
 }
@@ -8706,7 +8731,7 @@ rage128_gpu_ov0_compose(rage128_t *dev, const r128_ov0_frame_t *f)
         g->ov0_cap = 0;
         if (!gpu_mk_buf(g, &g->ov0_out, cap,
                         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)) {
-            gpu_log("RAGE128 GPU: OV0 out buffer alloc failed (%u bytes), "
+            gpu_err("RAGE128 GPU: OV0 out buffer alloc failed (%u bytes), "
                     "overlay stays on the CPU compositor\n",
                     cap);
             g->ov0_ok = 0;
@@ -8782,7 +8807,7 @@ rage128_gpu_ov0_compose(rage128_t *dev, const r128_ov0_frame_t *f)
 
             if (wr != VK_TIMEOUT)
                 break;
-            gpu_log("RAGE128 GPU: STUCK FENCE (ov0) wait#%u status=%d\n",
+            gpu_err("RAGE128 GPU: STUCK FENCE (ov0) wait#%u status=%d\n",
                     ++tries, vkGetFenceStatus(g->dev, g->ov0_fence));
         }
     }
@@ -9286,7 +9311,7 @@ gpu_vk_open(void)
         }
 
         if (!r128_vk_load_loader()) {
-            gpu_log("RAGE128 GPU: disabled: no Vulkan library found "
+            gpu_err("RAGE128 GPU: disabled: no Vulkan library found "
                     "(CPU renderer unaffected)\n");
             return 0;
         }
@@ -9491,7 +9516,7 @@ gpu_device_pick(r128_gpu_t *g)
     if (fe && fe[0]) {
         force = atoi(fe);
         if (force < 0 || (uint32_t) force >= np) {
-            gpu_log("RAGE128 GPU: R128_GPU_DEVICE=%s is out of range "
+            gpu_err("RAGE128 GPU: R128_GPU_DEVICE=%s is out of range "
                     "(%u devices), ignored\n",
                     fe, np);
             force = -1;
@@ -10391,7 +10416,7 @@ gpu_threads_start(r128_gpu_t *g)
 static void
 gpu_init_abort(rage128_t *dev, r128_gpu_t *g, int ifn_ok, const char *why)
 {
-    gpu_log("RAGE128 GPU: disabled: %s (CPU renderer unaffected)\n",
+    gpu_err("RAGE128 GPU: disabled: %s (CPU renderer unaffected)\n",
             why ? why : "unknown");
     if (ifn_ok) {
         if (g->dev) {

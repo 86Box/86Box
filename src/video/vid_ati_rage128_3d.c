@@ -5021,17 +5021,12 @@ rage128_3d_packet3(rage128_t *dev, uint32_t hdr, const uint32_t *pl, uint32_t co
 
                 if (n > max)
                     n = max;
-#ifdef ENABLE_RAGE128_LOG
                 uint32_t wide = 0;
-#endif
 
                 for (uint32_t k = 0; k < n; k++) {
                     dev->scl_palette[k] = pl[k + 1];
-#ifdef ENABLE_RAGE128_LOG
                     wide |= pl[k + 1] >> 16;
-#endif
                 }
-#ifdef ENABLE_RAGE128_LOG
                 /* The ati2draa.drv display driver's 16 bpp path packs
                    its entries to RGB565 before sending them, unlike
                    ati2drau.drv's 24-bit entries. With no captured output
@@ -5046,7 +5041,6 @@ rage128_3d_packet3(rage128_t *dev, uint32_t hdr, const uint32_t *pl, uint32_t co
                                     "dst-packed payload, conversion unverified\n");
                     }
                 }
-#endif
             }
             return 1;
         case RAGE128_PM4_OP_NEXT_VERTEX_BUNDLE:
