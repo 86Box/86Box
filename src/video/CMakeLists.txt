@@ -189,6 +189,10 @@ if(XL24)
     target_compile_definitions(vid PRIVATE USE_XL24)
 endif()
 
+if(RAGE128_MAXX)
+    target_compile_definitions(vid PRIVATE USE_RAGE128_MAXX)
+endif()
+
 option(ENABLE_RAGE128_LOG "Enable ATI Rage 128 debug logging" OFF)
 if(ENABLE_RAGE128_LOG)
     set_property(SOURCE

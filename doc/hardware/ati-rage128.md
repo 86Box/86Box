@@ -1,6 +1,8 @@
 # ATI Rage 128 graphics cards
 
-Three devices are available in the Display settings:
+Three devices are available in the Display settings. The Rage Fury MAXX
+is listed only in builds configured with `DEV_BRANCH` or `RAGE128_MAXX`
+on:
 
 | Device | Configuration name | Bus | Chip | Video memory |
 | --- | --- | --- | --- | --- |
