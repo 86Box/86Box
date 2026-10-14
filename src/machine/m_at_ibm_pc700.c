@@ -36,6 +36,7 @@
 #include <86box/video.h>
 
 #include "cpu.h"
+#include "m_at_ibm_pc700.h"
 
 #define IBM_PC700_FLASH_BANK_SIZE 0x20000
 
@@ -49,7 +50,7 @@ typedef struct ibm_pc700_t {
     uint8_t rapid_data;
     uint8_t rapid_status_phase;
     uint8_t rapid_command;
-    uint8_t rapid_command_phase;
+    uint8_t rapid_nibbles;
 
     uint8_t board_7c;
     uint8_t board_7d;
@@ -185,26 +186,12 @@ ibm_pc700_rapid_write(uint16_t port, uint8_t val, void *priv)
     if (port == 0x48) {
         dev->rapid_data = val;
 
-        if (val & 0x80) {
-            dev->rapid_command_phase = 0;
-        } else if ((val & 0xf0) == 0x10) {
-            if (dev->rapid_command_phase == 0) {
-                dev->rapid_command = (val & 0x0f) << 4;
-                dev->rapid_command_phase = 1;
-            } else {
-                dev->rapid_command |= val & 0x0f;
-                dev->rapid_command_phase = 0;
-
-                /* Command 0Eh asserts the PC 700 power-supply Off signal. */
-                if (dev->rapid_command == 0x0e)
-                    plat_power_off();
-            }
-        } else {
-            dev->rapid_command_phase = 0;
-        }
+        /* Command 0Eh switches the power supply off. */
+        if (ibm_pc700_rapid_decode(&dev->rapid_command, &dev->rapid_nibbles, val) == 0x0e)
+            plat_power_off();
     } else {
         dev->rapid_status_phase = 0;
-        dev->rapid_command_phase = 0;
+        dev->rapid_nibbles      = 0;
     }
 }
 
@@ -335,7 +322,7 @@ ibm_pc700_reset(void *priv)
     dev->rapid_data          = 0x00;
     dev->rapid_status_phase  = 0;
     dev->rapid_command       = 0x00;
-    dev->rapid_command_phase = 0;
+    dev->rapid_nibbles       = 0;
     dev->board_7c            = 0x0b; /* 256 KiB L2 cache, no tamper. */
     dev->board_7d            = 0x00;
     dev->board_7e            = 0x00;

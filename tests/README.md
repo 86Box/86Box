@@ -223,6 +223,15 @@ These do not prove that the Vectra boots. See the
 [experimental machine notes](../doc/hardware/hp-vectra-486n.md) for scope,
 performance limitations, and remaining hardware/firmware requirements.
 
+# IBM PC 7x0 Rapid Resume controller
+
+Build `ibm_pc700_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build --output-on-failure -R 'IbmPc700RapidTest\.'`.
+The five tests feed the command decoder for ports 48h-49h the writes the
+LQKT47A BIOS makes: every two-nibble command it sends, the Dh/Eh commands that
+carry a data byte (so a 0Eh data byte does not switch the machine off), and
+writes with SD4 low. They do not model the controller's replies.
+
 # INI configuration parser
 
 The `ini_tests` target exercises `src/utils/ini.c` on its own, with host stubs
