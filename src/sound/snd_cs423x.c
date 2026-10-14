@@ -1269,6 +1269,10 @@ cs423x_init(const device_t *info)
         cs423x_input_gain_vols_4bits[c] = (int) (attenuation);
     }
 
+    /* CS423x SBPro codec has a nondefeatable lowpass filter */
+    dev->sb->mixer_quirks = QUIRK_FILTERND;
+    dev->sb->mixer_sbpro.output_filter = dev->sb->mixer_sbpro.input_filter = 1;
+
     return dev;
 }
 
