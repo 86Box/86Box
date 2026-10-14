@@ -1334,7 +1334,11 @@ rage128_dac_forced_color(const rage128_t *dev)
    line, so the two buffer pixels past the right and bottom edges are
    cleared to black. The host scaler filters across the edge of the
    blitted area, and without this the leftover content of an earlier,
-   larger mode shows as a one-pixel line along the last column and row. */
+   larger mode shows as a one-pixel line along the last column and row.
+   Under interlace displine counts frame lines while dispend holds field
+   lines, so the last frame line is (dispend << 1) - 1, reached in the
+   odd field. Comparing against dispend - 1 would clear two rows at the
+   middle of the frame, which the other field draws. */
 static void
 rage128_render_blank_ring(svga_t *svga)
 {
@@ -1347,7 +1351,7 @@ rage128_render_blank_ring(svga_t *svga)
     if (bm->line[y] != NULL)
         for (int i = 0; i < 2 && (x + i) < bm->w; i++)
             bm->line[y][x + i] = 0;
-    if (svga->displine == (svga->dispend - 1)) {
+    if (svga->displine == ((svga->dispend << (svga->interlace ? 1 : 0)) - 1)) {
         int w = x + 2;
 
         if (w > bm->w)
