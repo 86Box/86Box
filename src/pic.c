@@ -307,10 +307,17 @@ pic_update_pending_at(void)
            pic.slaves[2]), regardless of the cascade ID programmed into the
            slave's ICW3 - firmware that never initializes the slave (eg. the
            Tandy VIS) would otherwise have its IRQ 0 cleared here. */
-        if (pic2.int_pending)
-            pic.irr |= 0x04;
-        else
-            pic.irr &= ~0x04;
+        if (machines[machine].init == machine_at_tandy_vis_init) {
+            if (pic2.int_pending)
+                pic.irr |= 0x04;
+            else
+                pic.irr &= ~0x04;
+        } else {
+            if (pic2.int_pending)
+                pic.irr |= (1 << pic2.icw3);
+            else
+                pic.irr &= ~(1 << pic2.icw3);
+        }
 
         pic.int_pending = (find_best_interrupt(&pic) != -1);
     }
