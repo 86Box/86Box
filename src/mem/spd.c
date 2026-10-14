@@ -398,8 +398,15 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
             regs[drb] = regs[drb | 0xf]; /* 5F comes before 56 */
         else
             regs[drb] = regs[drb - 1];
-        if (size)
-            regs[drb] += size / drb_unit; /* this will intentionally overflow on 440GX with 2 GB */
+        if (size) {
+            /* The Apollo Pro row ending registers only hold address bits 31-24. When the
+               rows add up to 4 GB, the BIOS writes FFh to the last one instead of letting
+               it wrap around to zero, so do the same. */
+            if (apollo && ((regs[drb] + (size / drb_unit)) > 0xff))
+                regs[drb] = 0xff;
+            else
+                regs[drb] += size / drb_unit; /* this will intentionally overflow on 440GX with 2 GB */
+        }
         spd_log("SPD: DRB[%d] = %d MB (%02Xh raw)\n", row, size, regs[drb]);
     }
 }
