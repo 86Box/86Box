@@ -1424,6 +1424,29 @@ sb_exec_command(sb_dsp_t *dsp)
                     }
                 }
                 sb_dsp_log("SB16 ASP write reg %02X, val %02X\n", dsp->sb_data[0], dsp->sb_data[1]);
+
+                /* Registers 08h and 10h are the 8-bit and 16-bit DMA control registers,
+                   where bit 1 halts the transfer; the DSP's own pause and continue commands
+                   (D0h/D4h, D5h/D6h) work by setting and clearing it. Creative's Windows
+                   2000 driver sets it directly to stop playback at once, before it exits
+                   auto-initialize mode, which by itself only stops at the end of the block. */
+                if (dsp->sb_data[0] == 0x08) {
+                    if ((dsp->sb_data[1] & 0x02) && !dsp->sb_8_pause) {
+                        dsp->sb_8_pause = 1;
+                        sb_stop_dma(dsp);
+                    } else if (!(dsp->sb_data[1] & 0x02) && dsp->sb_8_pause) {
+                        dsp->sb_8_pause = 0;
+                        sb_resume_dma(dsp, 1);
+                    }
+                } else if (dsp->sb_data[0] == 0x10) {
+                    if ((dsp->sb_data[1] & 0x02) && !dsp->sb_16_pause) {
+                        dsp->sb_16_pause = 1;
+                        sb_stop_dma(dsp);
+                    } else if (!(dsp->sb_data[1] & 0x02) && dsp->sb_16_pause) {
+                        dsp->sb_16_pause = 0;
+                        sb_resume_dma(dsp, 0);
+                    }
+                }
             }
             break;
         case 0x0F: /* ASP get register */
@@ -1441,6 +1464,10 @@ sb_exec_command(sb_dsp_t *dsp)
                     }
                 } else if (dsp->sb_data[0] == 0x83) {
                     dsp->sb_asp_regs[0x83] = 0x18;
+                } else if (dsp->sb_data[0] == 0x08) {
+                    dsp->sb_asp_regs[0x08] = (dsp->sb_asp_regs[0x08] & ~0x02) | (dsp->sb_8_pause ? 0x02 : 0x00);
+                } else if (dsp->sb_data[0] == 0x10) {
+                    dsp->sb_asp_regs[0x10] = (dsp->sb_asp_regs[0x10] & ~0x02) | (dsp->sb_16_pause ? 0x02 : 0x00);
                 }
                 sb_add_data(dsp, dsp->sb_asp_regs[dsp->sb_data[0]]);
                 sb_dsp_log("SB16 ASP read reg %02X, val %02X\n", dsp->sb_data[0], dsp->sb_asp_regs[dsp->sb_data[0]]);
@@ -1960,7 +1987,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xD6: /* Continue 16-bit DMA (SB16+)/Get Recording Source (ES488) */
             if (dsp->sb_type >= SB16_DSP_404) {
                 dsp->sb_16_pause = 0;
-                sb_resume_dma(dsp, 1);
+                sb_resume_dma(dsp, 0);
             } else if (IS_ESS(dsp) && (dsp->sb_subtype == SB_SUBTYPE_ESS_ES488))
                 sb_add_data(dsp, dsp->es488_source);
             break;
