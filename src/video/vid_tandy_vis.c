@@ -160,6 +160,7 @@ tvis_in(uint16_t addr, void *priv)
                     pclog("TVIS ramdac read\n");
                     return vga->m_extreg;
                 }
+                vga->rdac_ext_cnt++;
                 temp = svga_in(addr, svga);
                 break;
             }
