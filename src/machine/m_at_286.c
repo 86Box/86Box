@@ -1169,7 +1169,37 @@ tvis_reset(void *priv)
     picintc(1 << 3);
 }
 
-static const device_t tvis_device = {
+static const device_config_t tvis_config[] = {
+    // clang-format off
+    {
+        .name           = "memcard",
+        .description    = "Memory card inserted",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        /* Empty means tvis_memcard.bin in the NVR directory. A new file
+           (default_int = 1 allows picking one) becomes a blank card. */
+        .name           = "memcard_image",
+        .description    = "Memory card image",
+        .type           = CONFIG_FNAME,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = "Memory card images (*.bin)|*.bin",
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t tvis_device = {
     .name          = "Tandy VIS",
     .internal_name = "tvis",
     .flags         = DEVICE_ISA,
@@ -1180,7 +1210,7 @@ static const device_t tvis_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = tvis_config
 };
 
 int
@@ -1218,6 +1248,7 @@ machine_at_tandy_vis_init(const machine_t *model)
     io_sethandler(0x6a, 1, tvis_unk2_read, NULL, NULL, NULL, NULL, NULL, (void*)1);
     io_sethandler(0x23c, 4, tvis_unk1_read, NULL, NULL, tvis_unk1_write, NULL, NULL, (void*)1);
     device_add(&tvis_device);
+    device_add(&tvis_memcard_device);
 
     extern const device_t tvis_vid_device;
     device_add(&tvis_vid_device);
