@@ -415,6 +415,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     int          is_fpu             = 0;
     uint32_t     next_pc            = 0;
     uint16_t     op87               = 0x0000;
+    uint32_t     fetchdat_pc;
 #ifdef DEBUG_EXTRA
     uint8_t last_prefix = 0;
 #endif
@@ -627,6 +628,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     }
 
 generate_call:
+    fetchdat_pc = op_pc + pc_off;
     codegen_instructions[block->ins].pc        = cpu_state.oldpc;
     codegen_instructions[block->ins].op_ssegs  = last_op_ssegs;
     codegen_instructions[block->ins].op_ea_seg = last_op_ea_seg;
@@ -694,6 +696,7 @@ generate_call:
         }
 
         opcode_3dnow = fastreadb(cs + opcode_pc);
+        codegen_mark_code_present(block, cs + opcode_pc, 1);
         if (!fpu_softfloat && recomp_opcodes_3DNOW[opcode_3dnow]) {
             next_pc = opcode_pc + 1;
 
@@ -805,7 +808,11 @@ codegen_skip:
             uop_CMP_IMM_JZ(ir, IREG_sf_exc, (uint32_t) 1, codegen_exit_rout);
     }
     codegen_flags_changed = 0;
-    codegen_mark_code_present(block, cs + cpu_state.pc, 8);
+    /* The handler gets the bytes after the opcode through fetchdat, and reads
+       anything further from memory as it runs. Marking more than fetchdat
+       covers would claim the data that often follows an instruction such as
+       RET or IRET, and every write to it would throw the block away. */
+    codegen_mark_code_present(block, cs + fetchdat_pc, pc_off ? 4 : 3);
 
     last_op_32     = op_32;
     last_op_ea_seg = op_ea_seg;

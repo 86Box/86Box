@@ -349,6 +349,7 @@ extern const device_t imfc_device;
 
 /* IBM PS/1 Audio Card */
 extern const device_t ps1snd_device;
+extern const device_t ps1midi_device;
 
 /* Innovation SSI-2001 */
 extern const device_t ssi2001_device;

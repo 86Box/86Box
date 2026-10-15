@@ -1888,8 +1888,18 @@ sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *priv)
 
         mixer->mic = sb_att_7dbstep_2bits[(mixer->regs[0x0a] >> 1) & 0x3] / 32768.0;
 
-        mixer->output_filter  = !(mixer->regs[0xe] & 0x20);
-        mixer->input_filter   = !(mixer->regs[0xc] & 0x20);
+        switch (sb->mixer_quirks) {
+            case QUIRK_NOFILTER:
+                mixer->output_filter = mixer->input_filter = 0;
+                break;
+            case QUIRK_FILTERND:
+                mixer->output_filter = mixer->input_filter = 1;
+                break;
+            default:
+                mixer->output_filter  = !(mixer->regs[0xe] & 0x20);
+                mixer->input_filter   = !(mixer->regs[0xc] & 0x20);
+                break;
+        }
         mixer->in_filter_freq = ((mixer->regs[0xc] & 0x8) == 0) ? 3200 : 8800;
         mixer->stereo         = mixer->regs[0xe] & 2;
         if (mixer->index == 0xe)

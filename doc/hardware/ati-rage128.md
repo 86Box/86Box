@@ -1,6 +1,8 @@
 # ATI Rage 128 graphics cards
 
-Three devices are available in the Display settings:
+Three devices are available in the Display settings. The Rage Fury MAXX
+is listed only in builds configured with `DEV_BRANCH` or `RAGE128_MAXX`
+on:
 
 | Device | Configuration name | Bus | Chip | Video memory |
 | --- | --- | --- | --- | --- |
@@ -107,8 +109,8 @@ and clocks (the reference oscillator and dividers come from the PLL
 information block of each board's BIOS image, 27 MHz on the AGP boards
 and 29.5 MHz on the PCI board), the extended CRTC, the DAC and palette,
 the hardware cursor, page flips, scanout and the emulation speed window
-that logs the emulation speed at a vertical sync once at least 250 ms of
-wall time has passed. In VGA mode the core's own timings drive the
+that measures the emulation speed at a vertical sync once at least 250 ms
+of wall time has passed, and logs it when `RAGE128_LOG` is on. In VGA mode the core's own timings drive the
 display; in extended mode this file derives the core's timings, pixel
 format and scan address from the chip's CRTC registers, including
 interlaced and double-scanned modes and tiled scanout. The 256-entry
@@ -331,6 +333,12 @@ succeeds and clears the instance handle.
 
 Every Rage 128 environment switch the device reads, taken from the
 source. All are development switches; none is needed to use the device.
+
+Logging:
+
+| Variable | Values | Effect |
+| --- | --- | --- |
+| `RAGE128_LOG` | `1`, `0` | Turns the device's routine log lines on or off for the session: mode changes, the emulation speed window line, startup and close summaries, and the lines the profiling switches below produce. Off by default; a build configured with `ENABLE_RAGE128_LOG` defaults to on. Failures (no Vulkan, a stuck fence, a verify mismatch, an unhandled packet) are logged either way. |
 
 Lane selection:
 

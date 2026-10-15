@@ -17,6 +17,35 @@ Try to match your code's filename and append the type of test it is.
 
 ## Summary of current tests
 
+# Network packet buffering
+
+Build `network_queue_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^network_queue$' --output-on-failure`.
+The tests exercise the shared queues, scheduler and SLiRP receive callbacks
+with timer, mutex and backend stubs. They cover bounded 255-frame capacity,
+wraparound, overflow counters, failed-swap ownership, burst retention,
+partial deferred merges, FIFO ordering, backend wakeups and unchanged
+16-frame batches and link pacing. They do not measure guest SMB throughput.
+
+# Realtek RTL8139C+ receive flow control
+
+Build `rtl8139_rx_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^rtl8139_rx$' --output-on-failure`.
+The test checks that, in C+ mode, a frame arriving with no guest-owned
+receive descriptor is refused for later retry instead of being counted as
+missed and discarded.
+
+# Realtek RTL8139C+ timer
+
+Build `rtl8139_timer_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^rtl8139_timer$' --output-on-failure`.
+The tests use the NIC's private timer implementation and the real timer engine,
+with PCI interrupt stubs. They cover counter polling without interrupts,
+match deadlines, wraparound, disabling/reprogramming interrupts, counter reset,
+clock halt/resume, guest TSC rewrites, speed changes, fractional PCI periods,
+late callbacks, and idle callback frequency. They are isolated regressions,
+not guest-driver integration tests or a host-performance benchmark.
+
 # TEAC CD-55A
 
 The `mke_cdrom_tests` target includes Panasonic regressions and TEAC protocol

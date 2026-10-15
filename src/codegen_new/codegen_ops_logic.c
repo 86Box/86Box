@@ -18,27 +18,37 @@
 uint32_t
 ropAND_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint8_t imm_data = fastreadb(cs + op_pc);
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+        LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0_B, cs + op_pc);
+        uop_AND(ir, IREG_AL, IREG_AL, IREG_temp0_B);
+    } else {
+        uint8_t imm_data = fastreadb(cs + op_pc);
 
-    uop_AND_IMM(ir, IREG_AL, IREG_AL, imm_data);
+        uop_AND_IMM(ir, IREG_AL, IREG_AL, imm_data);
+        codegen_mark_code_present(block, cs + op_pc, 1);
+    }
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN8);
     uop_MOVZX(ir, IREG_flags_res, IREG_AL);
 
     codegen_flags_changed = 1;
-    codegen_mark_code_present(block, cs + op_pc, 1);
     return op_pc + 1;
 }
 uint32_t
 ropAND_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint16_t imm_data = fastreadw(cs + op_pc);
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+        LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp0_W, cs + op_pc);
+        uop_AND(ir, IREG_AX, IREG_AX, IREG_temp0_W);
+    } else {
+        uint16_t imm_data = fastreadw(cs + op_pc);
 
-    uop_AND_IMM(ir, IREG_AX, IREG_AX, imm_data);
+        uop_AND_IMM(ir, IREG_AX, IREG_AX, imm_data);
+        codegen_mark_code_present(block, cs + op_pc, 2);
+    }
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN16);
     uop_MOVZX(ir, IREG_flags_res, IREG_AX);
 
     codegen_flags_changed = 1;
-    codegen_mark_code_present(block, cs + op_pc, 2);
     return op_pc + 2;
 }
 uint32_t
@@ -228,27 +238,37 @@ ropAND_l_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
 uint32_t
 ropOR_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint8_t imm_data = fastreadb(cs + op_pc);
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+        LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0_B, cs + op_pc);
+        uop_OR(ir, IREG_AL, IREG_AL, IREG_temp0_B);
+    } else {
+        uint8_t imm_data = fastreadb(cs + op_pc);
 
-    uop_OR_IMM(ir, IREG_AL, IREG_AL, imm_data);
+        uop_OR_IMM(ir, IREG_AL, IREG_AL, imm_data);
+        codegen_mark_code_present(block, cs + op_pc, 1);
+    }
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN8);
     uop_MOVZX(ir, IREG_flags_res, IREG_AL);
 
     codegen_flags_changed = 1;
-    codegen_mark_code_present(block, cs + op_pc, 1);
     return op_pc + 1;
 }
 uint32_t
 ropOR_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint16_t imm_data = fastreadw(cs + op_pc);
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+        LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp0_W, cs + op_pc);
+        uop_OR(ir, IREG_AX, IREG_AX, IREG_temp0_W);
+    } else {
+        uint16_t imm_data = fastreadw(cs + op_pc);
 
-    uop_OR_IMM(ir, IREG_AX, IREG_AX, imm_data);
+        uop_OR_IMM(ir, IREG_AX, IREG_AX, imm_data);
+        codegen_mark_code_present(block, cs + op_pc, 2);
+    }
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN16);
     uop_MOVZX(ir, IREG_flags_res, IREG_AX);
 
     codegen_flags_changed = 1;
-    codegen_mark_code_present(block, cs + op_pc, 2);
     return op_pc + 2;
 }
 uint32_t
@@ -439,25 +459,37 @@ ropOR_l_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t 
 uint32_t
 ropTEST_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint8_t imm_data = fastreadb(cs + op_pc);
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+        LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0_B, cs + op_pc);
+        uop_AND(ir, IREG_flags_res_B, IREG_AL, IREG_temp0_B);
+        uop_MOVZX(ir, IREG_flags_res, IREG_flags_res_B);
+    } else {
+        uint8_t imm_data = fastreadb(cs + op_pc);
 
-    uop_AND_IMM(ir, IREG_flags_res, IREG_EAX, imm_data);
+        uop_AND_IMM(ir, IREG_flags_res, IREG_EAX, imm_data);
+        codegen_mark_code_present(block, cs + op_pc, 1);
+    }
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN8);
 
     codegen_flags_changed = 1;
-    codegen_mark_code_present(block, cs + op_pc, 1);
     return op_pc + 1;
 }
 uint32_t
 ropTEST_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint16_t imm_data = fastreadw(cs + op_pc);
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+        LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp0_W, cs + op_pc);
+        uop_AND(ir, IREG_flags_res_W, IREG_AX, IREG_temp0_W);
+        uop_MOVZX(ir, IREG_flags_res, IREG_flags_res_W);
+    } else {
+        uint16_t imm_data = fastreadw(cs + op_pc);
 
-    uop_AND_IMM(ir, IREG_flags_res, IREG_EAX, imm_data);
+        uop_AND_IMM(ir, IREG_flags_res, IREG_EAX, imm_data);
+        codegen_mark_code_present(block, cs + op_pc, 2);
+    }
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN16);
 
     codegen_flags_changed = 1;
-    codegen_mark_code_present(block, cs + op_pc, 2);
     return op_pc + 2;
 }
 uint32_t
@@ -475,7 +507,6 @@ ropTEST_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint3
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN32);
 
     codegen_flags_changed = 1;
-    codegen_mark_code_present(block, cs + op_pc, 4);
     return op_pc + 4;
 }
 uint32_t
@@ -559,27 +590,37 @@ ropTEST_l_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
 uint32_t
 ropXOR_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint8_t imm_data = fastreadb(cs + op_pc);
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+        LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0_B, cs + op_pc);
+        uop_XOR(ir, IREG_AL, IREG_AL, IREG_temp0_B);
+    } else {
+        uint8_t imm_data = fastreadb(cs + op_pc);
 
-    uop_XOR_IMM(ir, IREG_AL, IREG_AL, imm_data);
+        uop_XOR_IMM(ir, IREG_AL, IREG_AL, imm_data);
+        codegen_mark_code_present(block, cs + op_pc, 1);
+    }
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN8);
     uop_MOVZX(ir, IREG_flags_res, IREG_AL);
 
     codegen_flags_changed = 1;
-    codegen_mark_code_present(block, cs + op_pc, 1);
     return op_pc + 1;
 }
 uint32_t
 ropXOR_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint16_t imm_data = fastreadw(cs + op_pc);
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+        LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp0_W, cs + op_pc);
+        uop_XOR(ir, IREG_AX, IREG_AX, IREG_temp0_W);
+    } else {
+        uint16_t imm_data = fastreadw(cs + op_pc);
 
-    uop_XOR_IMM(ir, IREG_AX, IREG_AX, imm_data);
+        uop_XOR_IMM(ir, IREG_AX, IREG_AX, imm_data);
+        codegen_mark_code_present(block, cs + op_pc, 2);
+    }
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN16);
     uop_MOVZX(ir, IREG_flags_res, IREG_AX);
 
     codegen_flags_changed = 1;
-    codegen_mark_code_present(block, cs + op_pc, 2);
     return op_pc + 2;
 }
 uint32_t

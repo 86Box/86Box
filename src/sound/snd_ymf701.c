@@ -308,11 +308,8 @@ ymf701_put_buffer(int16_t *buffer, int len, void *priv)
 
             ymf701->ad1848.record_buffer[ymf701->ad1848.record_pos_write_mic]                = (int16_t) out_l;
             ymf701->ad1848.record_buffer[(ymf701->ad1848.record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
-            ymf701->sb->dsp.record_buffer[ymf701->sb->dsp.record_pos_write_mic]                = (int16_t) out_l;
-            ymf701->sb->dsp.record_buffer[(ymf701->sb->dsp.record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
 
             ymf701->ad1848.record_pos_write_mic = (ymf701->ad1848.record_pos_write_mic + 2) & 0xffff;
-            ymf701->sb->dsp.record_pos_write_mic = (ymf701->sb->dsp.record_pos_write_mic +2) & 0xffff;
         }
 
         ymf701->ad1848.record_prev_l_mic = in_l;

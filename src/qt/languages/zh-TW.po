@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-07 02:17+0000\n"
+"PO-Revision-Date: 2026-10-15 02:27+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -2844,7 +2844,7 @@ msgid "Loopback Plug"
 msgstr "回送測試接頭"
 
 msgid "Serial Passthrough"
-msgstr "序列埠直通裝置"
+msgstr "序列埠裝置透通"
 
 msgid "Host serial device"
 msgstr "主機序列裝置"
@@ -3561,58 +3561,68 @@ msgid "Luminance threshold (%)"
 msgstr "亮度閾值 (%)"
 
 msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
-msgstr ""
+msgstr "VFIO: 無法開啟 /dev/vfio/vfio: %s。請確認 vfio-pci 模組已載入。"
 
 msgid "VFIO %s: Invalid device location."
-msgstr ""
+msgstr "VFIO %s: 無效的裝置位置。"
 
 msgid "VFIO %s: Device not found."
-msgstr ""
+msgstr "VFIO %s: 未發現裝置。"
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
-msgstr ""
+msgstr "VFIO %s: 裝置無 IOMMU 群組。請確認系統 VT-d 或 IOMMU 已啟用。"
 
 msgid "VFIO %s: Device is not bound to vfio-pci."
-msgstr ""
+msgstr "VFIO %s: 裝置未繫結至 vfio-pci。"
 
 msgid "VFIO %s: Could not open IOMMU group %d: %s"
-msgstr ""
+msgstr "VFIO %s: 無法開啟 IOMMU 群組 %d: %s"
 
 msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
-msgstr ""
+msgstr "VFIO %s: IOMMU 群組 %d 不可行。群組中所有裝置都必需繫結至 vfio-pci。"
 
 msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
-msgstr ""
+msgstr "VFIO: 無法映射記憶體予 DMA: %s，鎖定的記憶體限制 (ulimit -l) 或許太低。"
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
-msgstr ""
+msgstr "VFIO %s: 無法讀取 ROM 檔 \"%s\"；使用裝置自有的 ROM。"
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
-msgstr ""
+msgstr "VFIO %s: 無法讀取 ROM 檔 \"%s\"；該 ROM 已被停用。"
 
 msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
-msgstr ""
+msgstr "VFIO %s: ROM 似乎不可用。可於 VFIO 設定中載入指定 ROM。"
 
 msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
 msgstr ""
+"VFIO: 這些裝置必須繫結至 vfio-pci，這要求管理員權限:\n"
+"\n"
+"％s\n"
+"現在進行繫結？"
 
 msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
-msgstr ""
+msgstr "VFIO: 要求管理員權限以使 86Box 能取存透通裝置。繼續？"
 
 msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
-msgstr ""
+msgstr "這些裝置未被選用，但與被選用裝置共用 IOMMU 群組，所以亦將被繫結:"
 
 msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
-msgstr ""
+msgstr "VFIO %s: IOMMU 群組 %d 中也包含 %s，此為主機所需。該群組將不被繫結至 vfio-"
+"pci。"
 
 msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
 msgstr ""
+"VFIO: 無法為裝置設置透通;\n"
+"%s"
 
 msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
 msgstr ""
+"VFIO: 無法取得管理員權限。為裝置設置透通，請執行下列指令，並重新啟動主機:\n"
+"\n"
+"%s"
 
 msgid "Prepare PCI devices for VFIO passthrough"
-msgstr ""
+msgstr "為 PCI 裝置設置 VFIO 透通"
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
-msgstr ""
+msgstr "要求授權以設置 PCI 裝置透通予 86Box。"

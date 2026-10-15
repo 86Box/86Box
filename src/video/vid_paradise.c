@@ -1519,7 +1519,7 @@ const device_t paradise_wd90c31_onboard_device = {
 };
 
 const device_t paradise_speedstar24x_device = {
-    .name          = "Diamond SpeedStar 24X",
+    .name          = "Paradise WD90C31A-LR (Diamond SpeedStar 24X)",
     .internal_name = "speedstar24x",
     .flags         = DEVICE_ISA16,
     .local         = WD90C31 | SPEEDSTAR24X,

@@ -2216,7 +2216,7 @@ const device_t g2_gc205_device = {
 };
 
 const device_t v7_vga_1024i_device = {
-    .name          = "Video 7 VGA 1024i (HT208)",
+    .name          = "Headland HT208 (Video 7 VGA 1024i)",
     .internal_name = "v7_vga_1024i",
     .flags         = DEVICE_ISA,
     .local         = 0x7140,
@@ -2259,7 +2259,7 @@ const device_t ht216_32_standalone_device = {
 };
 
 const device_t radius_svga_multiview_mca_device = {
-    .name          = "Radius SVGA Multiview MCA (HT209)",
+    .name          = "Headland HT209 (Radius SVGA Multiview MCA)",
     .internal_name = "radius_mc",
     .flags         = DEVICE_MCA,
     .local         = 0x7152, /*HT209*/
@@ -2273,7 +2273,7 @@ const device_t radius_svga_multiview_mca_device = {
 };
 
 const device_t v7_vram_2_ergo_device = {
-    .name          = "Video 7 VRAM II Ergo (HT209)",
+    .name          = "Headland HT209 (Video 7 VRAM II Ergo)",
     .internal_name = "v7_vram_2_ergo",
     .flags         = DEVICE_ISA16,
     .local         = 0x7152, /*HT209*/

@@ -2241,6 +2241,12 @@ azt_init(const device_t *info)
         azt2316a_input_gain_vols_4bits[c] = (int) (attenuation);
     }
 
+    /* AZT2316A/2316R lack a lowpass filter */
+    if ((azt2316a->type == SB_SUBTYPE_CLONE_AZT2316R_0X12) || (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11)) {
+        azt2316a->sb->mixer_quirks = QUIRK_NOFILTER;
+        azt2316a->sb->mixer_sbpro.output_filter = azt2316a->sb->mixer_sbpro.input_filter = 0;
+    }
+
     return azt2316a;
 }
 

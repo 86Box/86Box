@@ -46,6 +46,11 @@ enum {
     SBAWE64_DSP_416  /* DSP v4.16 + OPL3 */
 };
 
+enum {
+    QUIRK_NOFILTER = 0x01, /* Clone lacks SBPro-compatible lowpass filter */
+    QUIRK_FILTERND = 0x02  /* Clone has non-defeatable lowpass filter */
+};
+
 /* SB 2.0 CD version */
 typedef struct sb_ct1335_mixer_t {
     double master;
@@ -249,6 +254,9 @@ typedef struct sb_t {
     int        ess_dac2_dmadat;
     uint8_t    ess_dac2_dmaff;
     uint8_t    ess_dac2_dmacount;
+
+    /* Clone mixer quirks */
+    uint8_t    mixer_quirks;
 
     void   *opl_mixer;
     void  (*opl_mix)(void*, double*, double*);

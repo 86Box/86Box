@@ -30,6 +30,7 @@ add_library(chipset OBJECT
     ali1621.c
     ali6117.c
     ali1409.c
+	asus48625.c
     compaq.c
     compaq_386.c
     contaq_82c59x.c

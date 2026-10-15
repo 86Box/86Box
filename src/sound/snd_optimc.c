@@ -1415,6 +1415,12 @@ optimc_init(const device_t *info)
         optimc_input_gain_vols_4bits[c] = (int) (attenuation);
     }
 
+    /* OPTi 929 SBPro codec has a nondefeatable lowpass filter */
+    if (optimc->type == OPTI_929) {
+        optimc->sb->mixer_quirks = QUIRK_FILTERND;
+        optimc->sb->mixer_sbpro.output_filter = optimc->sb->mixer_sbpro.input_filter = 1;
+    }
+
     return optimc;
 }
 

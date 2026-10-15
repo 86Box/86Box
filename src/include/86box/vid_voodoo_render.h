@@ -255,9 +255,9 @@ void voodoo_codegen_close(voodoo_t *voodoo);
                 break;                                       \
             case AFUNC_ASATURATE:                            \
                 _a        = MIN(src_a, 255 - dest_a);        \
-                src_r     = (dest_r * _a) / 255;             \
-                src_g     = (dest_g * _a) / 255;             \
-                src_b     = (dest_b * _a) / 255;             \
+                src_r     = (src_r * _a) / 255;              \
+                src_g     = (src_g * _a) / 255;              \
+                src_b     = (src_b * _a) / 255;              \
                 break;                                       \
         }                                                    \
                                                              \

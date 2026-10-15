@@ -795,6 +795,10 @@ extern rgba8_t rgb332[0x100];
 extern rgba8_t ai44[0x100];
 extern rgba8_t rgb565[0x10000];
 extern rgba8_t argb1555[0x10000];
+extern rgba8_t bgr565[0x10000];
+extern rgba8_t abgr1555[0x10000];
+extern rgba8_t rgba1555[0x10000];
+extern rgba8_t bgra1555[0x10000];
 extern rgba8_t argb4444[0x10000];
 extern rgba8_t ai88[0x10000];
 
