@@ -348,7 +348,6 @@ reset_common(int hard)
     cpu_old_paging = 0;
     if (!hard)
         flushmmucache();
-    cpu_cache_invalidate();
     x86_was_reset = 1;
     cpu_alt_reset = 0;
 

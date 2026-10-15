@@ -2031,17 +2031,8 @@ gd54xx_recalctimings(svga_t *svga)
     if (svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) {
         if (linedbl)
             svga->render = svga_render_8bpp_lowres;
-        else {
+        else
             svga->render = svga_render_8bpp_highres;
-            if ((svga->dispend == 512) && !svga->interlace && gd54xx_is_5434(svga)) {
-                if (svga->crtc[0x27] != CIRRUS_ID_CLGD5480) {
-                    svga->hdisp <<= 1;
-                    svga->dots_per_clock <<= 1;
-                    svga->clock *= 2.0;
-                }
-            }
-            //pclog("GD5480 Clocking: %02x, interlace=%x, clocksel=%d, hdisp=%d.\n", svga->seqregs[0x07] & (gd54xx_is_5434(svga) ? 0xe : 6), svga->interlace, clocksel, svga->hdisp);
-        }
     } else if (svga->gdcreg[5] & 0x40)
         svga->render = svga_render_8bpp_lowres;
 
@@ -2221,11 +2212,17 @@ gd54xx_recalctimings(svga_t *svga)
                     }
                     break;
                 case 6:
-                    if (svga->crtc[0x27] == CIRRUS_ID_CLGD5480) {
-                        if (svga->bpp == 8) {
-                            svga->hdisp <<= 1;
-                            svga->dots_per_clock <<= 1;
-                        }
+                    /*
+                       Clock-doubled 8 bpp mode, used for pixel rates above ~85 MHz:
+                       the sequencer uses the 16-bit data path with the palette DAC in
+                       8 bpp mode, VCLK is programmed to half the pixel rate and the DAC
+                       unpacks two pixels per VCLK, so each character clock is 16 pixels
+                       wide and the CRTC horizontal timings are programmed halved.
+                     */
+                    if (gd54xx_is_5434(svga) && (svga->bpp == 8)) {
+                        svga->render = svga_render_8bpp_highres;
+                        svga->hdisp <<= 1;
+                        svga->dots_per_clock <<= 1;
                     }
                     break;
                 default:
@@ -2237,15 +2234,6 @@ gd54xx_recalctimings(svga_t *svga)
     if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) && (((svga->gdcreg[6] >> 2) & 0x03) != 0x01)) {
         svga->extra_banks[0] = 0;
         svga->extra_banks[1] = 0x8000;
-    }
-
-    if ((svga->crtc[0x27] == CIRRUS_ID_CLGD5446) && linedbl &&
-        !svga->vertical_linedbl && (svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) &&
-        (svga->render == svga_render_8bpp_lowres) && (svga->dispend == 768)) {
-        svga->render = svga_render_8bpp_highres;
-        svga->hdisp <<= 1;
-        svga->dots_per_clock <<= 1;
-        svga->clock *= 2.0;
     }
 }
 

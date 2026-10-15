@@ -54,9 +54,11 @@
 #define NET_TYPE_NRSWITCH 6 /* use the remote switch provider */
 
 #define NET_MAX_FRAME  1518
-/* Queue size must be a power of 2 */
+/* Packets moved per transfer batch */
 #define NET_QUEUE_LEN      16
-#define NET_QUEUE_LEN_MASK (NET_QUEUE_LEN - 1)
+/* Queue size must be a power of 2 */
+#define NET_QUEUE_CAPACITY 256
+#define NET_QUEUE_MASK     (NET_QUEUE_CAPACITY - 1)
 #define NET_QUEUE_COUNT    4
 #define NET_CARD_MAX       4
 #define NET_HOST_INTF_MAX  64
@@ -114,9 +116,10 @@ typedef struct netpkt {
 } netpkt_t;
 
 typedef struct netqueue_t {
-    netpkt_t packets[NET_QUEUE_LEN];
+    netpkt_t packets[NET_QUEUE_CAPACITY];
     int      head;
     int      tail;
+    uint64_t dropped_full;
 } netqueue_t;
 
 typedef struct _netcard_t netcard_t;
@@ -145,6 +148,7 @@ struct _netcard_t {
     netpkt_t        queued_pkt;
     mutex_t        *tx_mutex;
     mutex_t        *rx_mutex;
+    int             rx_deferred_pending; /* protected by rx_mutex */
     pc_timer_t      timer;
     uint16_t        card_num;
     double          byte_period;
@@ -211,6 +215,7 @@ extern int network_tx_pop(netcard_t *card, netpkt_t *out_pkt);
 extern int network_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size);
 extern int network_rx_put(netcard_t *card, uint8_t *bufp, int len);
 extern int network_rx_on_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size);
+extern int network_rx_on_tx_flush(netcard_t *card);
 extern int network_rx_on_tx_put(netcard_t *card, uint8_t *bufp, int len);
 extern int network_rx_put_pkt(netcard_t *card, netpkt_t *pkt);
 extern int network_rx_on_tx_put_pkt(netcard_t *card, netpkt_t *pkt);

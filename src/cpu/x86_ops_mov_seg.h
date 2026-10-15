@@ -2,6 +2,8 @@ static int
 opMOV_w_seg_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
+    /* Segment register encodings 6 and 7 are reserved. */
+    ILLEGAL_ON((rmdat & 0x38) >= 0x30);
     if (cpu_mod != 3)
         SEG_CHECK_WRITE(cpu_state.ea_seg);
 
@@ -34,6 +36,8 @@ static int
 opMOV_w_seg_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
+    /* Segment register encodings 6 and 7 are reserved. */
+    ILLEGAL_ON((rmdat & 0x38) >= 0x30);
     if (cpu_mod != 3)
         SEG_CHECK_WRITE(cpu_state.ea_seg);
 
@@ -67,6 +71,8 @@ static int
 opMOV_l_seg_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
+    /* Segment register encodings 6 and 7 are reserved. */
+    ILLEGAL_ON((rmdat & 0x38) >= 0x30);
     if (cpu_mod != 3)
         SEG_CHECK_WRITE(cpu_state.ea_seg);
 
@@ -117,6 +123,8 @@ static int
 opMOV_l_seg_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
+    /* Segment register encodings 6 and 7 are reserved. */
+    ILLEGAL_ON((rmdat & 0x38) >= 0x30);
     if (cpu_mod != 3)
         SEG_CHECK_WRITE(cpu_state.ea_seg);
 
@@ -170,6 +178,8 @@ opMOV_seg_w_a16(uint32_t fetchdat)
     uint16_t new_seg;
 
     fetch_ea_16(fetchdat);
+    /* CS and the reserved encodings 6 and 7 are not valid destinations. */
+    ILLEGAL_ON(((rmdat & 0x38) == 0x08) || ((rmdat & 0x38) >= 0x30));
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
     new_seg = geteaw();
@@ -219,6 +229,8 @@ opMOV_seg_w_a32(uint32_t fetchdat)
     uint16_t new_seg;
 
     fetch_ea_32(fetchdat);
+    /* CS and the reserved encodings 6 and 7 are not valid destinations. */
+    ILLEGAL_ON(((rmdat & 0x38) == 0x08) || ((rmdat & 0x38) >= 0x30));
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
     new_seg = geteaw();

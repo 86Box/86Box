@@ -4143,7 +4143,7 @@ static const device_config_t mach64gtb_onboard_config[] = {
 // clang-format on
 
 const device_t mach64gx_isa_device = {
-    .name          = "ATI Graphics Pro Turbo (Mach64GX) ISA",
+    .name          = "ATI Mach64GX (Graphics Pro Turbo)",
     .internal_name = "mach64gx_isa",
     .flags         = DEVICE_ISA16,
     .local         = MACH64_GX,
@@ -4157,7 +4157,7 @@ const device_t mach64gx_isa_device = {
 };
 
 const device_t mach64gx_vlb_device = {
-    .name          = "ATI Graphics Pro Turbo (Mach64GX) VLB",
+    .name          = "ATI Mach64GX (Graphics Pro Turbo)",
     .internal_name = "mach64gx_vlb",
     .flags         = DEVICE_VLB,
     .local         = MACH64_GX,
