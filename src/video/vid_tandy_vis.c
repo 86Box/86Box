@@ -23,6 +23,7 @@ typedef struct tvis_vid_t {
     uint8_t rdac_ext_cnt;
 
     uint8_t m_extreg;
+    uint8_t ext_dbl;
 } tvis_vid_t;
 
 static video_timings_t timing_vis = { .type = VIDEO_ISA, .write_b = 2, .write_w = 2, .write_l = 4, .read_b = 2, .read_w = 2, .read_l = 4 };
@@ -82,6 +83,7 @@ tvis_render_ext(svga_t *svga)
     uint32_t    changed_addr;
     int         n;
     int         x;
+    int         dbl;
 
     if (((svga->displine + svga->y_add) < 0) ||
         (svga->monitor->target_buffer == NULL) ||
@@ -104,7 +106,8 @@ tvis_render_ext(svga_t *svga)
     skip = svga->hblank_sub << 2;
     if ((skip < 0) || (skip > 64))
         skip = 0;
-    n = svga->hdisp + svga->scrollcache;
+    dbl = ((tvis_vid_t *) svga->priv)->ext_dbl;
+    n   = (svga->hdisp + svga->scrollcache) >> dbl;
     if (n > 2048)
         n = 2048;
     n = (n + skip + 3) & ~3;
@@ -118,7 +121,11 @@ tvis_render_ext(svga_t *svga)
     memset(&buf[n], 0, 8);
 
     tvis_decode_ext(svga, buf, line, n);
-    memcpy(p, &line[skip], (n - skip) * sizeof(uint32_t));
+    if (dbl) {
+        for (x = 0; x < (n - skip); x++)
+            p[x << 1] = p[(x << 1) + 1] = line[skip + x];
+    } else
+        memcpy(p, &line[skip], (n - skip) * sizeof(uint32_t));
 }
 
 static void
@@ -235,15 +242,23 @@ tvis_decode_ext(svga_t *svga, const uint8_t *buf, uint32_t *p, int n)
 static void
 tvis_recalctimings(svga_t *svga)
 {
+    tvis_vid_t *vga = (tvis_vid_t *) svga->priv;
+    int         tv_halved;
+
     /* CRTC register 0x30 selects TV scanning: the vertical registers count
        lines per field, and unless sequencer register 0x25 bit 5 is set the
        horizontal registers are programmed at twice the character rate, so
        each character clock carries half as many dots. With bit 4 set the
-       fields are interlaced (odd field one row down); otherwise both fields
-       scan the same rows, so each row is shown twice. */
+       fields are interlaced (odd field one row down).
+
+       The VIS only drives a TV, and the firmware programs a 262-line total
+       in every mode, so a non-interlaced mode is a TV field whose lines each
+       cover two lines of the interlaced frame: show every line twice, or a
+       200-line mode such as the firmware logo comes out at half height. */
     svga->interlace        = !!(svga->crtc[0x30] & 0x10);
-    svga->vertical_linedbl = svga->crtc[0x30] && !svga->interlace;
-    if (svga->crtc[0x30] && !(svga->seqregs[0x25] & 0x20) && (svga->render != svga_render_blank)) {
+    svga->vertical_linedbl = !svga->interlace && (svga->vtotal < 400);
+    tv_halved              = svga->crtc[0x30] && !(svga->seqregs[0x25] & 0x20);
+    if (tv_halved && (svga->render != svga_render_blank)) {
         svga->hdisp >>= 1;
         svga->dots_per_clock >>= 1;
     }
@@ -255,15 +270,23 @@ tvis_recalctimings(svga_t *svga)
         return;
 
     svga->map8 = svga->pallook;
-    if (svga->seqregs[1] & 8) {
+
+    if (vga->m_extreg & 0x80) {
+        /* The RAMDAC takes one byte per pixel clock, eight per character.
+           In TV timing with the halved dot clock the line is still only as
+           many pixels as bytes, so each byte covers two dots. */
+        vga->ext_dbl = tv_halved && (svga->seqregs[1] & 8);
+        if ((svga->seqregs[1] & 8) && !tv_halved) {
+            svga->hdisp >>= 1;
+            svga->dots_per_clock >>= 1;
+        }
+        svga->render = tvis_render_ext;
+    } else if (svga->seqregs[1] & 8) {
         svga->hdisp >>= 1;
         svga->dots_per_clock >>= 1;
         svga->render = svga_render_8bpp_lowres;
     } else
         svga->render = svga_render_8bpp_highres;
-
-    if (((tvis_vid_t *) svga->priv)->m_extreg & 0x80)
-        svga->render = tvis_render_ext;
 }
 
 void
