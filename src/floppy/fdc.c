@@ -1106,6 +1106,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             case 5: /*Command register*/
                 if (fdc->flags & FDC_FLAG_5550)
                     picintc(1 << fdc->irq);
+                /* While result bytes are still pending, a write is not a command
+                   parameter; taking the parameter path would clobber the results. */
+                if (fdc->paramstogo)
+                    return;
                 if (fdc->fifointest) {
                     /* Write FIFO buffer in the test mode (PS/55) */
                     fdc_log("FIFO buffer position = %X\n", ((fifo_t *) fdc->fifo_p)->end);
@@ -1998,14 +2002,9 @@ fdc_callback(void *priv)
         case -3: /* End of command with interrupt */
         case -4: /* Recalibrate/seek completion (PCjr/JX polled status) */
             fdc_int(fdc, fdc->interrupt & 1);
-            /*
-               A completion can land while the CPU is still reading out a
-               result phase - the command's own timer and the result phase
-               are independent. Overwriting the status there would make the
-               FDC drop the result bytes it has not handed over yet, so only
-               take the status back to idle once the result phase is done;
-               The last byte read leaves the same 0x80 behind by itself.
-             */
+            /* The uPD765A/B main status register keeps CB (DB4, "a read or write
+               command is in process") set while a result phase is still being read
+               out, so a completion landing mid-transfer must not force idle here. */
             if (!fdc->paramstogo)
                 fdc->stat = (fdc->stat & 0xf) | 0x80;
             return;
