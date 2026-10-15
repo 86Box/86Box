@@ -389,7 +389,9 @@ mitsumi_cdrom_reset(mcd_t *dev)
     dev->cur_control     = 0x0c;
     dev->cur_sense       = 0;
     dev->last_flags      = 0xff;
-    dev->tray_open       = !mitsumi_cdrom_is_ready(dev);
+    /* A reset leaves the tray where it is. It powers up closed, so an empty
+       drive reads as no disc rather than door open, fixes the Tandy VIS
+       skipping its intro. */
 
     dev->cdrom_vols.att0 = 255;
     dev->cdrom_vols.att1 = 0;

@@ -137,7 +137,6 @@ typedef struct sensation_t {
 
     int16_t visdac_buffer[SOUNDBUFLEN * 2];
     int visdac_pos;
-    uint8_t visdac_playback_pos : 1;
     int visdac_irq_status;
     uint8_t visdac_dma_nodata;
 
@@ -179,6 +178,24 @@ sensation_visdac_update(sensation_t *dev)
     }
 }
 
+/* The sample counter counts 16-bit DMA transfers, so it only advances when
+   a word has actually been fetched, and it fires on underflow. */
+static void
+sensation_visdac_count_word(sensation_t *dev)
+{
+    dev->visdac_count--;
+
+    if (dev->visdac_count < 0) {
+        dev->visdac_count = ((dev->visdac_regs[0x0e] << 8) | dev->visdac_regs[0x0c]);
+        dev->visdac_ctrl |= 0x04;
+        if (dev->visdac_ctrl & 0x02) {
+            sensation_log(dev->log, "VISDAC IRQ fired\n");
+            dev->visdac_irq_status = 1;
+            picint(1 << dev->visdac_irq);
+        }
+    }
+}
+
 static uint32_t
 sensation_visdac_dmaread(sensation_t *dev, UNUSED(int channel))
 {
@@ -196,6 +213,8 @@ sensation_visdac_dmaread(sensation_t *dev, UNUSED(int channel))
             return DMA_NODATA;
         } else
             dev->visdac_dma_nodata = 0;
+
+        sensation_visdac_count_word(dev);
 
         ret = dev->visdac_dma_data & 0xff;
     }
@@ -258,7 +277,6 @@ sensation_visdac_poll(void *priv)
                 if (dev->visdac_dma_nodata) {
                     dev->visdac_out_l = dev->visdac_out_r = 0;
                 }
-                dev->visdac_playback_pos++;
                 break;
             case 0x00: /* 8-bit Stereo PCM */
                 dev->visdac_out_l = (int16_t) ((sensation_visdac_dmaread(dev, dev->visdac_dma) ^ 0x80) << 8);
@@ -294,30 +312,6 @@ sensation_visdac_poll(void *priv)
             dev->visdac_out_r = 0;
         else
             dev->visdac_out_r = (int16_t) ((dev->visdac_out_r * dev->wave_vol_r) >> 16);
-        if (dev->visdac_count < 0) {
-            dev->visdac_count = ((dev->visdac_regs[0x0e] << 8) | dev->visdac_regs[0x0c]);
-            dev->visdac_ctrl |= 0x04;
-            if (dev->visdac_ctrl & 0x02) {
-                sensation_log(dev->log, "VISDAC IRQ fired\n");
-                dev->visdac_irq_status = 1;
-                picint(1 << dev->visdac_irq);
-            }
-        }
-        switch (format) {
-            case 0x80: /* 8-bit Mono */
-                if (!(dev->visdac_playback_pos & 0x01))
-                    dev->visdac_count--;
-                break;
-            case 0x00: /* 8-bit Stereo */
-            case 0x88: /* 16-bit Mono */
-                    dev->visdac_count--;
-                    break;
-            case 0x08: /* 16-bit Stereo */
-                    dev->visdac_count -= 2;
-                    break;
-            default:
-                    break;
-        }
     } else {
         dev->visdac_out_l = dev->visdac_out_r = 0;
     }
@@ -388,6 +382,25 @@ sensation_getsamp_dma(sensation_t *dev, int channel)
     }
 }
 
+/* The mixer registers: set 0 is CD (0/1 mute, 4/5 volume) and MIDI (2/3 mute,
+   6/7 volume), set 1 is wave (0/1 mute, 4/5 volume) and mic/line/phone (2/3
+   mute, 6/7 volume). A mute register only mutes while it is non-zero: the VIS
+   firmware keeps the wave mute registers at 0 during normal playback and
+   ramps them around DAC rate changes, so 0 cannot mean muted. */
+static void
+sensation_visdac_update_mixer(sensation_t *dev)
+{
+    const uint8_t *r0 = dev->visdac_iregs0;
+    const uint8_t *r1 = dev->visdac_iregs1;
+
+    dev->cd_vol_l   = (r0[0] || !r0[4]) ? 0 : visdac_vols_6bits[r0[4] & 0x3f];
+    dev->cd_vol_r   = (r0[1] || !r0[5]) ? 0 : visdac_vols_6bits[r0[5] & 0x3f];
+    dev->fm_vol_l   = (r0[2] || !r0[6]) ? 0 : visdac_vols_6bits[r0[6] & 0x3f];
+    dev->fm_vol_r   = (r0[3] || !r0[7]) ? 0 : visdac_vols_6bits[r0[7] & 0x3f];
+    dev->wave_vol_l = r1[0] ? 0 : visdac_vols_6bits[r1[4] & 0x3f];
+    dev->wave_vol_r = r1[1] ? 0 : visdac_vols_6bits[r1[5] & 0x3f];
+}
+
 void
 sensation_visdac_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -398,6 +411,9 @@ sensation_visdac_write(uint16_t port, uint8_t val, void *priv)
     switch (port & 0xF) {
         case 0x00: /* Mode/Enable register */
             visdac->visdac_regs[0x00] = val;
+            /* A mode change discards any half-consumed DMA word. */
+            if (visdac->visdac_mode != val)
+                visdac->visdac_dma_ff = 0;
             visdac->visdac_mode = val;
             sensation_visdac_updatefreq(visdac);
             if (!(visdac->visdac_mode & 0x10)) {
@@ -419,46 +435,7 @@ sensation_visdac_write(uint16_t port, uint8_t val, void *priv)
         case 0x02: /* Indirect register set 0 data */
             visdac->visdac_regs[0x02] = val;
             visdac->visdac_iregs0[visdac->visdac_regs[0x03] & 0x0f] = val;
-            switch (visdac->visdac_regs[0x03]) {
-                case 0: /* CD L Mute */
-                    visdac->cd_vol_l = 0;
-                    break;
-                case 1: /* CD R Mute */
-                    visdac->cd_vol_r = 0;
-                    break;
-                case 2: /* MIDI L Mute */
-                    visdac->fm_vol_l = 0;
-                    break;
-                case 3: /* MIDI R Mute */
-                    visdac->fm_vol_r = 0;
-                    break;
-                case 4: /* CD L Volume */
-                    if (visdac->visdac_iregs0[0x04] == 0x00)
-                        visdac->cd_vol_l = 0;
-                    else
-                        visdac->cd_vol_l = visdac_vols_6bits[(visdac->visdac_iregs0[0x04] & 0x3f)];
-                    break;
-                case 5: /* CD R Volume */
-                    if (visdac->visdac_iregs0[0x05] == 0x00)
-                        visdac->cd_vol_r = 0;
-                    else
-                        visdac->cd_vol_r = visdac_vols_6bits[(visdac->visdac_iregs0[0x05] & 0x3f)];
-                    break;
-                case 6: /* MIDI L Volume */
-                    if (visdac->visdac_iregs0[0x06] == 0x00)
-                        visdac->fm_vol_l = 0;
-                    else
-                        visdac->fm_vol_l = visdac_vols_6bits[(visdac->visdac_iregs0[0x06] & 0x3f)];
-                    break;
-                case 7: /* MIDI R Volume */
-                    if (visdac->visdac_iregs0[0x07] == 0x00)
-                        visdac->fm_vol_r = 0;
-                    else
-                        visdac->fm_vol_r = visdac_vols_6bits[(visdac->visdac_iregs0[0x07] & 0x3f)];
-                    break;
-                default:
-                    break;
-            }
+            sensation_visdac_update_mixer(visdac);
             break;
         case 0x03: /* Indirect register set 0 index */
             visdac->visdac_regs[0x03] = val;
@@ -466,30 +443,7 @@ sensation_visdac_write(uint16_t port, uint8_t val, void *priv)
         case 0x04: /* Indirect register set 1 data */
             visdac->visdac_regs[0x04] = val;
             visdac->visdac_iregs1[visdac->visdac_regs[0x05] & 0x0f] = val;
-            switch (visdac->visdac_regs[0x05]) {
-                case 0: /* Wave L Mute */
-                    visdac->wave_vol_l = 0;
-                    break;
-                case 1: /* Wave R Mute */
-                    visdac->wave_vol_r = 0;
-                    break;
-                case 2: /* Mic/Line/Phone L Mute */
-                    break;
-                case 3: /* Mic/Line/Phone R Mute */
-                    break;
-                case 4: /* Wave L Volume */
-                    visdac->wave_vol_l = visdac_vols_6bits[(visdac->visdac_iregs1[0x04] & 0x3f)];
-                    break;
-                case 5: /* Wave R Volume */
-                    visdac->wave_vol_r = visdac_vols_6bits[(visdac->visdac_iregs1[0x05] & 0x3f)];
-                    break;
-                case 6: /* Mic/Line/Phone L Volume */
-                    break;
-                case 7: /* Mic/Line/Phone R Volume */
-                    break;
-                default:
-                    break;
-            }
+            sensation_visdac_update_mixer(visdac);
             break;
         case 0x05: /* Indirect register set 1 index */
             visdac->visdac_regs[0x05] = val;
@@ -532,14 +486,14 @@ sensation_visdac_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x0c: /* Sample Count Low Byte */
             visdac->visdac_regs[0x0c] = val;
-            visdac->visdac_count = (visdac->visdac_count & 0xFF00) | val;
+            visdac->visdac_count = (visdac->visdac_regs[0x0e] << 8) | val;
             break;
         case 0x0d:
             visdac->visdac_regs[0x0d] = val;
             break;
         case 0x0e: /* Sample Count High Byte */
             visdac->visdac_regs[0x0e] = val;
-            visdac->visdac_count = (visdac->visdac_count & 0xFF) | (val << 8);
+            visdac->visdac_count = (val << 8) | visdac->visdac_regs[0x0c];
             break;
         case 0x0f:
             visdac->visdac_regs[0x0f] = val;
@@ -1161,19 +1115,20 @@ sensation_input_remain(void *priv)
 }
 
 void *
-sensation_init(UNUSED(const device_t *info))
+sensation_init(const device_t *info)
 {
     sensation_t *dev = calloc(1, sizeof(sensation_t));
 
     dev->mma_irq = 5;
     dev->mma_dma = 3;
-    dev->visdac_irq = 5;
+    /* The VIS firmware unmasks and services IRQ 7 for the DAC. */
+    dev->visdac_irq = (info->local & SENSATION_TANDY_VIS) ? 7 : 5;
     dev->visdac_dma = 7;
 
     dev->log = log_open("SensationAud");
 
     /* Set up VIS DAC registers at 0x220-0x22F */
-    io_sethandler(0x0220, 0x000F, sensation_visdac_read, NULL, NULL, sensation_visdac_write, NULL, NULL, dev);
+    io_sethandler(0x0220, 0x0010, sensation_visdac_read, NULL, NULL, sensation_visdac_write, NULL, NULL, dev);
 
     /* Set up MMA registers at 0x38C-0x38F */
     io_sethandler(0x388, 0x08, sensation_mma_read, NULL, NULL, sensation_mma_write, NULL, NULL, dev);

@@ -389,6 +389,8 @@ extern const device_t pssj_1e0_device;
 extern const device_t tndy_device;
 
 /* Tandy Sensation */
+#define SENSATION_TANDY_VIS 0x01 /* VIS wiring: VIS DAC on IRQ 7 */
+
 extern const device_t sensationaud_device;
 
 /* TexElec SAAYM */

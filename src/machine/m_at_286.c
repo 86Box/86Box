@@ -1036,7 +1036,7 @@ machine_at_tandy_vis_init(const machine_t *model)
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&port_92_device);
-    device_add(&sensationaud_device);
+    device_add_params(&sensationaud_device, (void *) SENSATION_TANDY_VIS);
 
     memset(tvis_chipset_regs, 0, sizeof(tvis_chipset_regs));
     io_sethandler(0x26, 2, tvis_unk_read, NULL, NULL, tvis_unk_write, NULL, NULL, (void*)1);
