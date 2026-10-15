@@ -234,8 +234,10 @@ via_apollo_setup(via_apollo_t *dev)
 
     if (dev->id >= VIA_597) {
         dev->pci_conf[0xa0] = 0x02;
-        dev->pci_conf[0xa2] = 0x10;
-        dev->pci_conf[0xa4] = 0x03;
+        /* The VT82C694X (Pro133A) is AGP 2.0 with 4x; the others are
+           AGP 1.0 with 1x and 2x. */
+        dev->pci_conf[0xa2] = (dev->id == VIA_694) ? 0x20 : 0x10;
+        dev->pci_conf[0xa4] = (dev->id == VIA_694) ? 0x07 : 0x03;
         dev->pci_conf[0xa5] = 0x02;
         dev->pci_conf[0xa7] = 0x07;
 
@@ -694,7 +696,7 @@ via_apollo_host_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, v
 
         case 0xa8:
             if (dev->id == VIA_694)
-                dev->pci_conf[0xa8] = (dev->pci_conf[0xa8] & ~0x33) | (val & 0x33);
+                dev->pci_conf[0xa8] = (dev->pci_conf[0xa8] & ~0x37) | (val & 0x37);
             else
                 dev->pci_conf[0xa8] = (dev->pci_conf[0xa8] & ~0x03) | (val & 0x03);
             break;
@@ -708,7 +710,7 @@ via_apollo_host_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, v
                 dev->pci_conf[0xac] = (dev->pci_conf[0xac] & ~0x0f) | (val & 0x0f);
             break;
         case 0xad:
-            dev->pci_conf[0xac] = (dev->pci_conf[0xac] & ~0x0f) | (val & 0x0f);
+            dev->pci_conf[0xad] = (dev->pci_conf[0xad] & ~0x0f) | (val & 0x0f);
             break;
 
         case 0xfc:
