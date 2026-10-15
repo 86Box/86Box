@@ -611,6 +611,9 @@ extern const device_t s3_trio3d2x_agp_device;
 /* Sigma Color 400 */
 extern const device_t sigma_device;
 
+/* SiS */
+extern const device_t sis6306_onboard_device;
+
 /* Trident TGUI 94x0 */
 extern const device_t tgui9400cxi_device;
 extern const device_t tgui9440_vlb_device;

@@ -352,6 +352,14 @@ enum {
 };
 
 enum {
+    LFB_RGBCHANNEL_ARGB = (0 << 9),
+    LFB_RGBCHANNEL_ABGR = (1 << 9),
+    LFB_RGBCHANNEL_RGBA = (2 << 9),
+    LFB_RGBCHANNEL_BGRA = (3 << 9),
+    LFB_RGBCHANNEL_MASK = (3 << 9)
+};
+
+enum {
     LFB_WRITE_COLOUR = 1,
     LFB_WRITE_DEPTH  = 2,
     LFB_WRITE_BOTH   = 4

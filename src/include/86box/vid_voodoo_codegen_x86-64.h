@@ -2797,6 +2797,11 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 addbyte(8);
                 break;
             case AFUNC_ACOLORBEFOREFOG:
+                addbyte(0x66); /*PUNPCKLBW XMM15, XMM2*/
+                addbyte(0x44);
+                addbyte(0x0f);
+                addbyte(0x60);
+                addbyte(0xfa);
                 addbyte(0x66); /*PMULLW XMM4, XMM15(colbfog)*/
                 addbyte(0x41);
                 addbyte(0x0f);

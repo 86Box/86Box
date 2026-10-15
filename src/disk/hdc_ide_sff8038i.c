@@ -149,20 +149,20 @@ sff_bus_master_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 4:
             dev->ptr = (dev->ptr & 0xffffff00) | (val & 0xfc);
-            dev->ptr %= (mem_size * 1024);
+            dev->ptr %= ((uint64_t) mem_size << 10);
             dev->ptr0 = val;
             break;
         case 5:
             dev->ptr = (dev->ptr & 0xffff00fc) | (val << 8);
-            dev->ptr %= (mem_size * 1024);
+            dev->ptr %= ((uint64_t) mem_size << 10);
             break;
         case 6:
             dev->ptr = (dev->ptr & 0xff00fffc) | (val << 16);
-            dev->ptr %= (mem_size * 1024);
+            dev->ptr %= ((uint64_t) mem_size << 10);
             break;
         case 7:
             dev->ptr = (dev->ptr & 0x00fffffc) | (val << 24);
-            dev->ptr %= (mem_size * 1024);
+            dev->ptr %= ((uint64_t) mem_size << 10);
             break;
 
         default:
@@ -185,12 +185,12 @@ sff_bus_master_writew(uint16_t port, uint16_t val, void *priv)
             break;
         case 4:
             dev->ptr = (dev->ptr & 0xffff0000) | (val & 0xfffc);
-            dev->ptr %= (mem_size * 1024);
+            dev->ptr %= ((uint64_t) mem_size << 10);
             dev->ptr0 = val & 0xff;
             break;
         case 6:
             dev->ptr = (dev->ptr & 0x0000fffc) | (val << 16);
-            dev->ptr %= (mem_size * 1024);
+            dev->ptr %= ((uint64_t) mem_size << 10);
             break;
 
         default:
@@ -213,7 +213,7 @@ sff_bus_master_writel(uint16_t port, uint32_t val, void *priv)
             break;
         case 4:
             dev->ptr = (val & 0xfffffffc);
-            dev->ptr %= (mem_size * 1024);
+            dev->ptr %= ((uint64_t) mem_size << 10);
             dev->ptr0 = val & 0xff;
             break;
 

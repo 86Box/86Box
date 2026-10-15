@@ -41,6 +41,7 @@ extern const device_t ali6117d_device;
 extern const device_t amd640_device;
 
 /* ASUS */
+extern const device_t asus48625_device;
 extern const device_t isa486c_device;
 
 /* Compaq */
@@ -114,6 +115,8 @@ extern const device_t sio_zb_device;
 
 #define PIIX4_NVR_AMI_1995  0x0000000100000000
 #define PIIX4_NVR_AMI_1995J 0x0000000200000000
+/* Function 2 (USB) absent, for an emulated board whose PIIX4 has none. */
+#define PIIX4_NO_USB        0x0000000400000000
 
 extern const device_t piix_device;
 extern const device_t piix_no_mirq_device;
@@ -240,7 +243,6 @@ extern const device_t via_vt8231_device;
 
 extern const device_t vl82c480_device;
 extern const device_t vl82c486_device;
-extern int            vl82c486_cpu_cache_enable(void *priv);
 extern const device_t vl82c59x_device;
 extern const device_t vl82c59x_compaq_device;
 extern const device_t vl82c59x_wildcat_device;
