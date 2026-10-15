@@ -690,9 +690,8 @@ static void
 fdc_rate(fdc_t *fdc, int drive)
 {
     if (fdc->flags & FDC_FLAG_5550) {
-        /* The density is the drive's media sense, not a guest choice: the
-           guest writes the same 3F1h value for 1.44M and 720K media, so
-           latching its bit 4 selects the wrong rate for one of them. */
+        /* Follow the inserted media: the rate also comes from a board-level
+           input (DR1), and the guest's bit 4 did not track the media here. */
         uint8_t dens = (uint8_t) fdd_hole(fdc->fdd[drive]);
 
         switch (dens) {
@@ -966,18 +965,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 return;
             case 1:
                 if (fdc->flags & FDC_FLAG_5550) {
-                    val = 0;
-                    if (!(val & 0x08)) { /* Drive 2 active */
-                        val = 0x42;
-                    }
-                    if (!(val & 0x04)) { /* Drive 1 active */
-                        val &= 0xf0;
-                        val |= 0x21;
-                    }
-                    if (!(val & 0x02)) { /* Drive 0 active */
-                        val &= 0xf0;
-                        val |= 0x10;
-                    }
+                    /* The guest's drive select bits are not decoded: enable
+                       every motor and let the loop below prune absent drives. */
+                    val = 0x70;
                     /* Update the DOR because this emulation module depend on it */
                     fdc->dor &= 0x0c;
                     fdc->dor |= val;
@@ -1759,7 +1749,10 @@ fdc_read(uint16_t addr, void *priv)
                     ret  |= (fdc->dor & 0x01) << 5;    /* Drive Select 0 */
                     ret  |= (fdc->dor & 0x30) >> 4;    /* Motor Select 1, 0 */
                 } else if (fdc->flags & FDC_FLAG_5550) {
-                    ret = 0;
+                    /* Register mode's digital out register status: the drive
+                       is always selected and its motor on, and IPL checks
+                       exactly that after it has set up the drive. */
+                    ret = 0x71;
                 } else {
                     if (is486 || !fdc->enable_3f1)
                         ret = 0xff;
