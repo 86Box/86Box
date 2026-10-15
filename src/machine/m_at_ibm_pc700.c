@@ -388,6 +388,8 @@ ibm_pc700_reset(void *priv)
 
     dev->gpio[0]  = 0xff;
     dev->gpio[1]  = 0xff;
+    /* Bits 3:0 are the L2 cache ID, which the BIOS's sizing routine (2FB6Dh)
+       inverts into size and SRAM type: 0Bh is 256 KiB of pipelined burst. */
     dev->board_7c = 0x0b;
     dev->board_7d = 0x00;
     dev->board_7e = 0x00;
