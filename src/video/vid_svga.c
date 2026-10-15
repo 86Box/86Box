@@ -2373,9 +2373,6 @@ svga_doblit(int wx, int wy, svga_t *svga)
     }
 
     video_blit_memtoscreen_monitor(x_start, y_start, svga->monitor->mon_xsize + x_add, svga->monitor->mon_ysize + y_add, svga->monitor_index);
-
-    if (svga->vertical_linedbl)
-        svga->vertical_linedbl >>= 1;
 }
 
 void
