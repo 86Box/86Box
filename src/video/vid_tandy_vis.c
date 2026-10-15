@@ -52,6 +52,16 @@ tvis_recalc_banks(tvis_vid_t* tvis_vid)
 static void
 tvis_recalctimings(svga_t *svga)
 {
+    /* CRTC register 0x30 selects interlaced (TV) scanning: the vertical
+       registers count lines per field, and unless sequencer register 0x25
+       bit 5 is set the horizontal registers are programmed at twice the
+       character rate, so each character clock carries half as many dots. */
+    svga->interlace = !!svga->crtc[0x30];
+    if (svga->interlace && !(svga->seqregs[0x25] & 0x20) && (svga->render != svga_render_blank)) {
+        svga->hdisp >>= 1;
+        svga->dots_per_clock >>= 1;
+    }
+
     svga->force_dword_mode = !!(svga->seqregs[0x1f] & 0x10);
 
     if (!svga->force_dword_mode || (svga->render == svga_render_blank) ||
@@ -141,6 +151,15 @@ tvis_out(uint16_t addr, uint8_t val, void *priv)
             svga->crtcreg = val & 0x3f;
             return;
         case 0x3D5:
+            if (svga->crtcreg == 0x30) {
+                old              = svga->crtc[0x30];
+                svga->crtc[0x30] = val;
+                if (old != val) {
+                    svga->fullchange = changeframecount;
+                    svga_recalctimings(svga);
+                }
+                return;
+            }
             if (svga->crtcreg & 0x20)
                 return;
             if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
@@ -196,7 +215,9 @@ tvis_in(uint16_t addr, void *priv)
             temp = svga->crtcreg;
             break;
         case 0x3D5:
-            if (svga->crtcreg & 0x20)
+            if (svga->crtcreg == 0x30)
+                temp = svga->crtc[0x30];
+            else if (svga->crtcreg & 0x20)
                 temp = 0xff;
             else
                 temp = svga->crtc[svga->crtcreg];
