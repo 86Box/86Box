@@ -17,6 +17,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
@@ -976,25 +977,199 @@ tvis_unk1_write(uint16_t addr, uint8_t val, void* priv)
     }
 }
 
-void*
-tvis_init(const device_t* info)
+/* Handheld controller ("pad") interface at 0x268-0x26B, IRQ 3.
+
+   The VIS has no keyboard controller that the firmware uses: KEYBOARD.DRV in
+   ROM hooks IRQ 3, reads the button state word from 0x268 and turns every
+   changed button into a keystroke (controller 1 = VK_F1-VK_F10, controller 2 =
+   VK_F11-VK_F20). Reading 0x268 alternates between controller 1 (bit 10 clear)
+   and controller 2 (bit 10 set); 0x26A bit 7 means new data is pending. The
+   BIOS pad driver probes for the receiver by expecting bit 10 to toggle.
+
+   Host keys are mapped onto controller 1. */
+#define TVIS_PAD_DOWN  0x001
+#define TVIS_PAD_1     0x002
+#define TVIS_PAD_A     0x004
+#define TVIS_PAD_2     0x008
+#define TVIS_PAD_4     0x010
+#define TVIS_PAD_B     0x020
+#define TVIS_PAD_3     0x040
+#define TVIS_PAD_LEFT  0x080
+#define TVIS_PAD_UP    0x100
+#define TVIS_PAD_RIGHT 0x200
+#define TVIS_PAD_SEL2  0x400
+
+typedef struct tvis_pad_t {
+    uint16_t buttons;
+    uint8_t  key_down[512];
+    uint8_t  stat;
+    uint8_t  ctl;
+    uint8_t  sel;
+    uint16_t last;
+} tvis_pad_t;
+
+static uint16_t
+tvis_pad_key_to_button(uint16_t scan)
 {
-    return (void*)1;
+    switch (scan) {
+        case 0x148: /* Up */
+        case 0x048: /* Keypad 8 */
+            return TVIS_PAD_UP;
+        case 0x150: /* Down */
+        case 0x050: /* Keypad 2 */
+            return TVIS_PAD_DOWN;
+        case 0x14b: /* Left */
+        case 0x04b: /* Keypad 4 */
+            return TVIS_PAD_LEFT;
+        case 0x14d: /* Right */
+        case 0x04d: /* Keypad 6 */
+            return TVIS_PAD_RIGHT;
+        case 0x01c: /* Enter */
+        case 0x11c: /* Keypad Enter */
+        case 0x039: /* Space */
+        case 0x02c: /* Z */
+            return TVIS_PAD_A;
+        case 0x001: /* Esc */
+        case 0x00e: /* Backspace */
+        case 0x02d: /* X */
+            return TVIS_PAD_B;
+        case 0x002: /* 1 */
+            return TVIS_PAD_1;
+        case 0x003: /* 2 */
+            return TVIS_PAD_2;
+        case 0x004: /* 3 */
+            return TVIS_PAD_3;
+        case 0x005: /* 4 */
+            return TVIS_PAD_4;
+        default:
+            return 0;
+    }
 }
 
-void
-tvis_close(void* priv)
+static void
+tvis_pad_key(uint16_t scan, int down, void *priv)
 {
+    tvis_pad_t *dev = (tvis_pad_t *) priv;
+    uint16_t    buttons = 0;
 
+    if (!tvis_pad_key_to_button(scan & 0x1ff))
+        return;
+
+    dev->key_down[scan & 0x1ff] = !!down;
+
+    /* Several host keys can map to the same button. */
+    for (int i = 0; i < 512; i++) {
+        if (dev->key_down[i])
+            buttons |= tvis_pad_key_to_button(i);
+    }
+
+    if (buttons != dev->buttons) {
+        dev->buttons = buttons;
+        dev->stat    = 0x80;
+        dev->sel     = 0;
+        picint(1 << 3);
+    }
 }
 
-void
-tvis_reset(void* priv)
+static uint16_t
+tvis_pad_readw(uint16_t addr, void *priv)
 {
+    tvis_pad_t *dev = (tvis_pad_t *) priv;
+    uint16_t    ret = 0x0000;
+
+    switch (addr & 3) {
+        case 0:
+            if (!dev->sel) {
+                ret       = dev->buttons;
+                dev->stat = 0x00;
+                dev->sel  = 1;
+            } else {
+                /* Controller 2, not connected. */
+                ret      = TVIS_PAD_SEL2;
+                dev->sel = 0;
+            }
+            dev->last = ret;
+            picintc(1 << 3);
+            break;
+        case 2:
+            ret = dev->stat;
+            break;
+        default:
+            break;
+    }
+
+    return ret;
+}
+
+static uint8_t
+tvis_pad_read(uint16_t addr, void *priv)
+{
+    tvis_pad_t *dev = (tvis_pad_t *) priv;
+
+    switch (addr & 3) {
+        case 0:
+            return tvis_pad_readw(addr, priv) & 0xff;
+        case 1:
+            return dev->last >> 8;
+        case 2:
+            return dev->stat;
+        default:
+            return 0x00;
+    }
+}
+
+static void
+tvis_pad_write(uint16_t addr, uint8_t val, void *priv)
+{
+    tvis_pad_t *dev = (tvis_pad_t *) priv;
+
+    if ((addr & 3) == 2)
+        dev->ctl = val;
+}
+
+static void
+tvis_pad_writew(uint16_t addr, uint16_t val, void *priv)
+{
+    tvis_pad_write(addr, val & 0xff, priv);
+}
+
+static void *
+tvis_init(const device_t *info)
+{
+    tvis_pad_t *dev = (tvis_pad_t *) calloc(1, sizeof(tvis_pad_t));
+
+    io_sethandler(0x268, 4, tvis_pad_read, tvis_pad_readw, NULL, tvis_pad_write, tvis_pad_writew, NULL, dev);
+
+    keyboard_scan = 1;
+    keyboard_set_input_handler(tvis_pad_key, dev);
+
+    return dev;
+}
+
+static void
+tvis_close(void *priv)
+{
+    keyboard_set_input_handler(NULL, NULL);
+    free(priv);
+}
+
+static void
+tvis_reset(void *priv)
+{
+    tvis_pad_t *dev = (tvis_pad_t *) priv;
+
     memset(tvis_chipset_regs, 0, sizeof(tvis_chipset_regs));
+
+    dev->buttons = 0;
+    dev->stat    = 0;
+    dev->ctl     = 0;
+    dev->sel     = 0;
+    dev->last    = 0;
+    memset(dev->key_down, 0, sizeof(dev->key_down));
+    picintc(1 << 3);
 }
 
-const device_t tvis_device = {
+static const device_t tvis_device = {
     .name          = "Tandy VIS",
     .internal_name = "tvis",
     .flags         = DEVICE_ISA,
@@ -1042,6 +1217,7 @@ machine_at_tandy_vis_init(const machine_t *model)
     io_sethandler(0x26, 2, tvis_unk_read, NULL, NULL, tvis_unk_write, NULL, NULL, (void*)1);
     io_sethandler(0x6a, 1, tvis_unk2_read, NULL, NULL, NULL, NULL, NULL, (void*)1);
     io_sethandler(0x23c, 4, tvis_unk1_read, NULL, NULL, tvis_unk1_write, NULL, NULL, (void*)1);
+    device_add(&tvis_device);
 
     extern const device_t tvis_vid_device;
     device_add(&tvis_vid_device);
