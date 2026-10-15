@@ -2813,7 +2813,7 @@ const device_config_t rage128_config[] = {
 };
 
 const device_t ati_rage128_pro_device = {
-    .name          = "ATI Rage Fury Pro AGP",
+    .name          = "ATI Rage 128 Pro (Fury Pro)",
     .internal_name = "ati_rage128_pro",
     .flags         = DEVICE_AGP,
     .local         = 0,
@@ -2832,7 +2832,7 @@ const device_t ati_rage128_pro_device = {
    Windows 98 and Windows 2000 INFs list as "Xpert 128" (see
    RAGE128_PCI_VENDOR in vid_ati_rage128_regs.h). */
 const device_t ati_xpert128_pci_device = {
-    .name          = "ATI Xpert 128 PCI",
+    .name          = "ATI Rage 128 (Xpert 128)",
     .internal_name = "ati_xpert128_pci",
     .flags         = DEVICE_PCI,
     .local         = 0,
