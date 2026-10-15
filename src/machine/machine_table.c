@@ -3682,7 +3682,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_XTA | MACHINE_VIDEO_FIXED,
+        .flags     = MACHINE_XTA | MACHINE_SOUND | MACHINE_VIDEO_FIXED,
         .ram       = {
             .min  = 512,
             .max  = 2560,
@@ -3704,7 +3704,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &ps1snd_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -6008,7 +6008,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO,
+        .flags     = MACHINE_IDE | MACHINE_SOUND | MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
             .max  = 6144,
@@ -6029,7 +6029,7 @@ const machine_t machines[] = {
         .device                   = &ps1_2121_device,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &ps1snd_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
