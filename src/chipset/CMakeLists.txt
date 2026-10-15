@@ -39,6 +39,7 @@ add_library(chipset OBJECT
     gc100.c
     headland.c
     ims8848.c
+    intel_8018x.c
     intel_82335.c
     intel_420ex.c
     intel_4x0.c

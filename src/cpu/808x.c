@@ -27,6 +27,7 @@
 
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/device.h>
 #include "cpu.h"
 #include "x86.h"
 #include <86box/machine.h>
