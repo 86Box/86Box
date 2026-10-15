@@ -4,7 +4,7 @@ The 86Box project welcomes contributions from anyone, as long as some basic guid
 
 ## Code pull request guidelines
 
-* The usage of AI to generate parts of code is tolerated but must be disclosed within the PR description.
+* The usage of AI to generate parts of code is tolerated but must be disclosed within the PR description. Agent plans, work summaries, test instructions or other AI artifacts should be removed before submission.
 * The submitted code must be compilable without any warnings and follow the established coding style, including copyright headers and logging practices.
 * New emulated hardware should fall into the project scope, i.e. emulation of x86-based machines and associated ecosystem up to ~2000-01 hardware.
 * Emulation of a piece of hardware should be self-contained within 86Box if possible and should implement the actual behavior of the real hardware rather than second-guessing from driver expectations.
