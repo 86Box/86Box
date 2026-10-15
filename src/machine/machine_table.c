@@ -5130,7 +5130,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_VIDEO | MACHINE_VIDEO_ONLY,
+        .flags     = MACHINE_VIDEO | MACHINE_VIDEO_ONLY | MACHINE_SOUND,
         .ram       = {
             .min  = 16384,
             .max  = 16384,
@@ -5152,7 +5152,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &sensationaud_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
