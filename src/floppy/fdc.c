@@ -2885,6 +2885,11 @@ fdc_reset(void *priv)
 
     fdc_ctrl_reset(fdc, !(fdc->flags & FDC_FLAG_PNP));
 
+    /* The 5550's FDC reset port (3F2h) comes up asserted, so the MSR reads
+       0x00 rather than the uPD765's idle 0x80 until the guest pulses it. */
+    if (fdc->flags & FDC_FLAG_5550)
+        fdc->stat = 0x00;
+
     if (!(fdc->flags & FDC_FLAG_AT))
         fdc->rate = 2;
 
