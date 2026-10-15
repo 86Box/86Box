@@ -776,16 +776,12 @@ extern int             machine_at_vect486vl_init(const machine_t *);
 extern int             machine_at_d824_init(const machine_t *);
 
 /* VLSI 82C486 */
-extern int             machine_at_vect486n_init(const machine_t *);
-#ifdef EMU_DEVICE_H
-extern const device_t  vect486n_device;
-#endif
 extern int             machine_at_pcs44c_init(const machine_t *);
 extern int             machine_at_sensation1_init(const machine_t *);
 extern int             machine_at_tuliptc38_init(const machine_t *);
 
 /* ZyMOS Poach */
-extern int             machine_at_asus48625_init(const machine_t *); // Not yet ready
+extern int             machine_at_asus48625_init(const machine_t *);
 extern int             machine_at_isa486c_init(const machine_t *);
 extern int             machine_at_genoa486_init(const machine_t *);
 
@@ -1125,8 +1121,6 @@ extern const device_t vectra52_device;
 extern int             machine_at_vectra52_init(const machine_t *);
 extern int             machine_at_vectra500mt_init(const machine_t *);
 extern int             machine_at_vectra54_init(const machine_t *);
-extern uint32_t        machine_at_ibm_pc700_gpio_handler(uint8_t write, uint32_t val);
-extern int             machine_at_ibm_pc700_init(const machine_t *);
 extern int             machine_at_atlantis_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  thor_device;

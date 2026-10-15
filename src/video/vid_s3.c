@@ -48,7 +48,6 @@
 #define ROM_ORCHID_86C911              "roms/video/s3/BIOS.BIN"
 #define ROM_DIAMOND_STEALTH_VRAM_911   "roms/video/s3/Diamond Stealth VRAM BIOS v2.31 U14.BIN"
 #define ROM_AMI_86C924                 "roms/video/s3/S3924AMI.BIN"
-#define ROM_HP_86C924                  "roms/machines/vect486n/c0202.rom"
 #define ROM_DIAMOND_STEALTH_VRAM_924   "roms/video/s3/STEALTH.BIN"
 #define ROM_METHEUS_86C928             "roms/video/s3/928.VBI"
 #define ROM_ELSAWIN1KVL_86C928         "roms/video/s3/ELSA_Winner_XHR_1000VL.BIN"
@@ -165,7 +164,6 @@ enum {
     S3_MIRO_TRIO64V,
     S3_ACER_TRIO64V2,
     S3_ASUS_TRIO64V2,
-    S3_HP_86C924,
     S3_USE_CONFIG_BIOS
 };
 
@@ -10400,11 +10398,6 @@ s3_init(const device_t *info)
             chip    = S3_86C924;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c911);
             break;
-        case S3_HP_86C924:
-            bios_fn = ROM_HP_86C924;
-            chip    = S3_86C924;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c911);
-            break;
         case S3_ORCHID_86C801:
             bios_fn = ROM_ORCHID_86C801;
             chip    = S3_86C801;
@@ -10952,7 +10945,6 @@ s3_init(const device_t *info)
             }
             break;
 
-        case S3_HP_86C924:
         case S3_AMI_86C924:
         case S3_DIAMOND_STEALTH_VRAM_924:
             svga->decode_mask = (1 << 20) - 1;
@@ -10962,7 +10954,6 @@ s3_init(const device_t *info)
             s3->id_ext_pci    = 0;
             s3->packed_mmio   = 0;
 
-            /* HP's INMOS IMS G176 uses the standard VGA palette interface. */
             if (s3->card_type == S3_DIAMOND_STEALTH_VRAM_924) {
                 svga->ramdac    = device_add(&mu9c1880_ramdac_device);
                 s3->ramdac_type = MU9C1880;
@@ -10971,10 +10962,8 @@ s3_init(const device_t *info)
                 icd2061_set_clocks(svga->clock_gen, 14318184.0f, 25175000.0f, 28322000.0f, 28322000.0f);
                 svga_recalctimings(svga);
             } else {
-            	if (s3->card_type != S3_HP_86C924) {
-                	svga->ramdac    = device_add(&sc11483_ramdac_device);
-                	s3->ramdac_type = SC1148X;
-            	}
+                svga->ramdac    = device_add(&sc11483_ramdac_device);
+                s3->ramdac_type = SC1148X;
                 svga->clock_gen = device_add(&ics2494an_305_device);
                 svga->getclock  = ics2494_getclock;
             }
@@ -11695,16 +11684,6 @@ static const device_config_t s3_86c924_isa_config[] = {
                 .size          = 32768,
                 .flags         = 0,
                 .files         = { ROM_DIAMOND_STEALTH_VRAM_924, "" }
-            },
-            {
-                .name          = "HP Ultra VGA 924",
-                .internal_name = "hp_vectra_486n_c0202",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = S3_HP_86C924,
-                .size          = 32768,
-                .flags         = 0,
-                .files         = { ROM_HP_86C924, "" }
             },
             { .files_no = 0 }
         },
