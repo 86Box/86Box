@@ -14,6 +14,7 @@
 #include <86box/vid_8514a.h>
 #include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
+#include <86box/vid_svga_render.h>
 #include "cpu.h"
 
 typedef struct tvis_vid_t {
@@ -42,6 +43,28 @@ tvis_recalc_banks(tvis_vid_t* tvis_vid)
 
     tvis_vid->svga.write_bank = tvis_vid->svga.seqregs[0x19] | (tvis_vid->svga.seqregs[0x18] << 8);
     tvis_vid->svga.write_bank *= 64;
+}
+
+/* Sequencer register 0x1F bit 4 selects the 256-colour mode: it forces
+   dword addressing and the 256-colour shifter regardless of the CRTC and
+   GDC settings. Each pixel is then one byte shifted out over two dots, so
+   with the halved dot clock a line is half as many bytes as dots. */
+static void
+tvis_recalctimings(svga_t *svga)
+{
+    svga->force_dword_mode = !!(svga->seqregs[0x1f] & 0x10);
+
+    if (!svga->force_dword_mode || (svga->render == svga_render_blank) ||
+        (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)))
+        return;
+
+    svga->map8 = svga->pallook;
+    if (svga->seqregs[1] & 8) {
+        svga->hdisp >>= 1;
+        svga->dots_per_clock >>= 1;
+        svga->render = svga_render_8bpp_lowres;
+    } else
+        svga->render = svga_render_8bpp_highres;
 }
 
 void
@@ -91,6 +114,11 @@ tvis_out(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x18 ... 0x1d:
                     tvis_recalc_banks(vga);
+                    break;
+
+                case 0x1f:
+                    if (o != val)
+                        svga_recalctimings(svga);
                     break;
 
                 default:
@@ -190,7 +218,7 @@ tvis_vid_init(const device_t *info)
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_vis);
 
     svga_init(info, &vga->svga, vga, 1 << 18, /*256kb*/
-              NULL,
+              tvis_recalctimings,
               tvis_in, tvis_out,
               NULL,
               NULL);
