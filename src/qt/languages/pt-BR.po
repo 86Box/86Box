@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-16 15:02+0000\n"
+"PO-Revision-Date: 2026-10-16 16:24+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -3628,3 +3628,5 @@ msgstr "Preparar dispositivos PCI para passagem VFIO"
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
 msgstr ""
+"Autenticação é necessária para preparar dispositivos PCI para passagem para "
+"o 86Box."
