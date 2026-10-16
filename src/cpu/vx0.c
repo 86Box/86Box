@@ -1481,9 +1481,6 @@ check_interrupts(void)
         }
         if (nmi && nmi_enable && nmi_mask) {
             nmi_enable = 0;
-#ifndef OLD_NMI_BEHAVIOR
-            nmi = 0;
-#endif
             if (use_custom_nmi_vector) {
                 do_cycles(2);
                 custom_nmi();

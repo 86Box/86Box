@@ -4712,9 +4712,6 @@ static void
 m808x_consume_host_nmi(void)
 {
     nmi_enable = 0;
-#ifndef OLD_NMI_BEHAVIOR
-    nmi = 0;
-#endif
 }
 
 void
