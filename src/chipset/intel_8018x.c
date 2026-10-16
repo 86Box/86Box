@@ -115,6 +115,12 @@
    set (the reset value) leaves no level masked. */
 #define I8018X_ICU_PRM_BITS     0x0007u
 
+/* Status Register (270788-001 Figure 88): the DMA halt bit stops every DMA
+   transfer until it is cleared again. Only the programmer's access to it
+   is modelled, not the NMI that sets it and the IRET that clears it
+   (section 9.5.2.10). */
+#define I8018X_ICU_DHLT         0x8000u
+
 /* EOI register: bit 15 asks for a non-specific acknowledgement, the low
    five bits name an interrupt type (Table 19) for a specific one. */
 #define I8018X_ICU_EOI_NSPEC    0x8000u
@@ -668,10 +674,16 @@ i8018x_pcb_dma_slot(struct i8018x_pcb_t *dev, int channel)
     return -1;
 }
 
-/* A channel transfers only while ST/STOP is set. */
+/* A channel transfers only while ST/STOP is set and the DMA halt bit is clear;
+   the ROM sets the halt bit through the status register while it programs a
+   descriptor and clears it again just before arming one (270788-001
+   sections 8.2 and 9.5.2.10). */
 static int
 i8018x_pcb_dma_armed(struct i8018x_pcb_t *dev, int slot)
 {
+    if (dev->regs[I8018X_ICU_STATUS / 2] & I8018X_ICU_DHLT)
+        return 0;
+
     return !!(dev->regs[I8018X_DMA_CTRL(slot)] & I8018X_DMA_ST);
 }
 
@@ -880,11 +892,11 @@ i8018x_pcb_reset(void *priv)
         io_removehandler(dev->base, I8018X_PCB_SIZE, NULL, i8018x_pcb_inw, NULL, NULL, i8018x_pcb_outw, NULL, dev);
 
     memset(dev->regs, 0x00, sizeof(dev->regs));
+    dev->icu_latch = 0;
     dev->icu_ext = 0;
     dev->icu_dma = 0;
     dev->icu_isr = 0;
     dev->tmr_req = 0;
-    dev->icu_latch = 0;
 
     /* The 86Box channel numbers survive a reset: the controller keeps owning
        them until the device is closed. */
