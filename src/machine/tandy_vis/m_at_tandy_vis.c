@@ -32,6 +32,10 @@
 #include <86box/pic.h>
 #include <86box/sound.h>
 
+extern int cpu_waitstates;
+extern void cpu_update_waitstates(void);
+extern const device_t tvis_vid_device;
+
 static rom_t tandy_vis_rom_struct;
 static rom_t tandy_vis_rom_struct_2;
 
@@ -347,8 +351,10 @@ machine_at_tandy_vis_init(const machine_t *model)
     device_add(&tvis_device);
     device_add(&tvis_memcard_device);
 
-    extern const device_t tvis_vid_device;
     device_add(&tvis_vid_device);
+
+    cpu_waitstates = 1;
+    cpu_update_waitstates();
 
     return ret;
 }

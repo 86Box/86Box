@@ -1,3 +1,19 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Implementation of the Tandy VIS (Video Information System) video.
+ *
+ * Authors: Cacodemon345
+ *          Carl
+ *
+ *          Copyright 2026 Cacodemon345.
+ *          Copyright Carl
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -26,7 +42,7 @@ typedef struct tvis_vid_t {
     uint8_t ext_dbl;
 } tvis_vid_t;
 
-static video_timings_t timing_vis = { .type = VIDEO_ISA, .write_b = 2, .write_w = 2, .write_l = 4, .read_b = 2, .read_w = 2, .read_l = 4 };
+static video_timings_t timing_vis = { .type = VIDEO_ISA, .write_b = 0, .write_w = 0, .write_l = 0, .read_b = 0, .read_w = 0, .read_l = 0 };
 
 void
 tvis_recalc_banks(tvis_vid_t* tvis_vid)
@@ -465,6 +481,7 @@ tvis_vid_init(const device_t *info)
     tvis_vid_t *vga = calloc(1, sizeof(tvis_vid_t));
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_vis);
+    video_update_timing();
 
     svga_init(info, &vga->svga, vga, 1 << 18, /*256kb*/
               tvis_recalctimings,
