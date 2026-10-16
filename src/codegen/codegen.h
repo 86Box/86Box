@@ -375,6 +375,11 @@ extern int codegen_flags_changed;
 
 extern int codegen_fpu_entered;
 extern int codegen_mmx_entered;
+/*While an x87 instruction is compiled with the FPU pointers kept
+  (cpu_dyn_accurate_fpu_env): FETCH_EA stores the operand's address in
+  eaaddr and its segment in codegen_ea_target_seg, for fpu_postamble*/
+extern int     codegen_x87_ea_record;
+extern x86seg *codegen_ea_target_seg;
 
 extern int codegen_fpu_loaded_iq[8];
 extern int codegen_reg_loaded[8];

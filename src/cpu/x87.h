@@ -18,7 +18,12 @@ x87_set_mmx(void)
     } else {
         cpu_state.TOP = 0;
         p             = (uint64_t *) cpu_state.tag;
-        *p            = 0x0101010101010101ULL;
+        /* Every tag valid: TAG_VALID, or the old recompiler's raw 00b */
+#ifdef USE_NEW_DYNAREC
+        *p = 0x0101010101010101ULL;
+#else
+        *p = 0;
+#endif
     }
     cpu_state.ismmx = 1;
 }
@@ -78,7 +83,12 @@ x87_emms(void)
         fpu_state.tos = 0;
     } else {
         p  = (uint64_t *) cpu_state.tag;
+        /* Every tag empty: TAG_EMPTY, or the old recompiler's raw 11b */
+#ifdef USE_NEW_DYNAREC
         *p = 0;
+#else
+        *p = 0x0303030303030303ULL;
+#endif
         cpu_state.TOP = 0; /* as the softfloat path */
     }
     cpu_state.ismmx = 0;

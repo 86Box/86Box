@@ -99,3 +99,22 @@ const OpFn dynarec_op_illegal = ILLEGAL;
   later, nothing before (x87_ops.h)*/
 const OpFn dynarec_fpu_illegal_a16 = FPU_ILLEGAL_a16;
 const OpFn dynarec_fpu_illegal_a32 = FPU_ILLEGAL_a32;
+
+#ifndef USE_NEW_DYNAREC
+/*The old recompiler's FST and FSTP when ST(0) is empty at run time: the
+  interpreter's stack fault. arg is the operand size, or 0 for the register
+  forms (DD D0-DF) with ST(i) in bits 16-18, and bit 8 is set for FSTP. A
+  memory form's operand is in cpu_state.eaaddr and ea_seg.*/
+void
+codegen_x87_fst_empty(uint32_t arg)
+{
+    const int pop = arg & 0x100;
+
+    if (arg & 0xff)
+        x87_empty_store(arg & 0xff, 0, pop);
+    else if (pop)
+        opFSTP(arg >> 16);
+    else
+        opFST(arg >> 16);
+}
+#endif
