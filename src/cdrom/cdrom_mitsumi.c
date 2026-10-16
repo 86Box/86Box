@@ -1489,7 +1489,7 @@ mitsumi_cdrom_init(UNUSED(const device_t *info))
     dev->cdrom_dev->cached_sector = -1;
     dev->cdrom_dev->subc_sector = -1;
 
-    dev->base = (info->local & 1) ? 0x340 : device_get_config_hex16("base");
+    dev->base = (info->local & 1) ? 0x310 : device_get_config_hex16("base");
     dev->irq  = (info->local & 1) ? 5 : device_get_config_int("irq");
     dev->dma  = (info->local & 1) ? 5 : device_get_config_int("dma");
 

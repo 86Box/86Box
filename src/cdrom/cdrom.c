@@ -1198,14 +1198,17 @@ cdrom_toc_dump(cdrom_t *dev)
 void
 cdrom_interface_reset(void)
 {
+    /* On a Tandy VIS machine, add the Mitsumi controller; it has no ISA slots
+       for another one, and that one would clash with it at 0x310. */
+    if (machines[machine].init == machine_at_tandy_vis_init) {
+        device_add(&mitsumi_cdrom_vis_device);
+        return;
+    }
+
     /* If we have a valid controller, add its device. */
     if ((cdrom_interface_current > 0) &&
         controllers[cdrom_interface_current].device)
         device_add(controllers[cdrom_interface_current].device);
-
-    /* On a Tandy VIS machine, add the Mitsumi controller. */
-    if (machines[machine].init == machine_at_tandy_vis_init)
-        device_add(&mitsumi_cdrom_vis_device);
 }
 
 const char *
