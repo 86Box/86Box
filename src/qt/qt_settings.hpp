@@ -30,6 +30,7 @@ public:
     int currentScsiCard(int i) const;
     int currentNetCard(int i) const;
     int currentUsbMsd() const;
+    int currentPcmciaCard(int s) const;
 
     static Settings *settings;
 protected slots:

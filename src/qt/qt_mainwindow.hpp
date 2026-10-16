@@ -191,6 +191,7 @@ private:
     QMenu                         *dynarecMenu  = nullptr;
     QActionGroup                  *midiOutGroup = nullptr;
     MidiLcdWindow                 *midiLcd      = nullptr;
+    class PcCardMenu              *pcCardMenu   = nullptr;
 
     bool hasKanaLock();
     void refreshMidiOutMenu();

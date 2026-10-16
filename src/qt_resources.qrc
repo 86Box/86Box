@@ -65,6 +65,7 @@
         <file>qt/icons/monitor.ico</file>
         <file>qt/icons/network.ico</file>
         <file>qt/icons/other_peripherals.ico</file>
+        <file>qt/icons/pcmcia.ico</file>
         <file>qt/icons/other_removable_devices.ico</file>
         <file>qt/icons/parallel_ports.ico</file>
         <file>qt/icons/performance.ico</file>

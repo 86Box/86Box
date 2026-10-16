@@ -10,9 +10,11 @@
  *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
+ *          Marcos Alves
  *
  *          Copyright 2021 Joakim L. Gilje
  *          Copyright 2021-2022 Cacodemon345
+ *          Copyright 2026 Marcos Alves
  */
 #include <cstdint>
 #include <cstdio>
@@ -38,6 +40,7 @@ extern "C" {
 #include <86box/hdc.h>
 #include <86box/sound.h>
 #include <86box/scsi.h>
+#include <86box/pcmcia.h>
 #include <86box/scsi_device.h>
 #include <86box/hdc_ide.h>
 #include <86box/lpt.h>
@@ -383,6 +386,15 @@ int
 Settings::currentUsbMsd() const
 {
     return (ports != nullptr) ? ports->usbMsd() : usb_msd_type;
+}
+
+/* The PC Card in socket s, 0 with no PCMCIA controller. */
+int
+Settings::currentPcmciaCard(int s) const
+{
+    if (otherPeripherals != nullptr)
+        return otherPeripherals->pcmciaCard(s);
+    return pcmcia_enabled ? pcmcia_card_type[s] : 0;
 }
 
 void

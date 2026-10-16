@@ -41,8 +41,10 @@
  *          EtherLink III programming model.
  *
  * Authors: Mike Lycett and contributors
+ *          Marcos Alves
  *
  *          Copyright 2026 Mike Lycett.
+ *          Copyright 2026 Marcos Alves.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -65,6 +67,7 @@
 #include <86box/network.h>
 #include <86box/nvr.h>
 #include <86box/isapnp.h>
+#include <86box/pcmcia.h>
 #include <86box/plat_unused.h>
 
 #ifdef ENABLE_3C509B_LOG
@@ -105,6 +108,11 @@ enum {
     BOARD_3C529_TP = 1  /* 3C529-TP: 10BASE-T and AUI */
 };
 
+/* The PC Card, as its device's local; and the LAN function of
+   the 3C562 LAN+modem PC Card (src/pcmcia/pccard_3c562.c). */
+#define BOARD_PCCARD     0x589
+#define BOARD_PCCARD_MFC 0x562
+
 /* Everything that differs from one card in the family to the next: the
    identity in EEPROM word 3, the EEPROM's default transceiver, and the
    connector the board has fitted (AUI 0x20, coax 0x10, TP 0x02), which
@@ -128,6 +136,14 @@ static const el3_variant_t el3_mca_variants[2] = {
     { MCA_ADAPTER_ID_COAX, 0xc000, 0x30 },
     { MCA_ADAPTER_ID_TP,   0x0000, 0x22 }
 };
+
+/* The PC Card, the 3C589D -- 10BASE-T and 10BASE2 through its
+   dongle, Product ID 9058h. */
+static const el3_variant_t el3_pccard_variant = { 0x9058, 0x0000, 0x12 };
+
+/* The 3C562's LAN function -- 10BASE-T only.  Product ID 9562h
+   by the family's numbering; not checked against a real card. */
+static const el3_variant_t el3_3c562_variant = { 0x9562, 0x0000, 0x02 };
 
 /* The boot EPROM's image, in the layout the ROM directory uses. */
 #define ROM_PATH_3C509 "roms/network/3c509/BootWare_3C509_v1.0.BIN"
@@ -313,6 +329,21 @@ typedef struct el3_t {
     uint8_t mca;
     uint8_t pos_regs[8];
 
+    /* The PC Card (3C589D).  Its socket gives it its I/O window
+       and steers its interrupt; the card answers once its Configuration
+       Option Register holds a configuration index. */
+    uint8_t  pccard;
+    int      pc_socket;
+    uint8_t  pc_cor;
+    pccard_t pc;
+    uint8_t  pc_cis[256];
+    int      pc_cis_len;
+    /* ...or a function of a multi-function card (the 3C562), which holds
+       the configuration registers and the card's IREQ. */
+    pccard_mfc_t *pc_mfc;
+    int           pc_func;
+    pccard_func_t pc_fn;
+
     /* The EEPROM file. */
     char    nvr_name[64];
 
@@ -438,12 +469,15 @@ static void el3_prom_place(el3_t *dev, uint8_t field);
 static void el3_prom_show(el3_t *dev);
 static void el3_isa_prom_update(el3_t *dev);
 static uint16_t el3_status(const el3_t *dev);
+static void el3_pccard_plug(el3_t *dev);
 
 /* The card this instance is, from the bus it sits on and the board it was
    made as. */
 static const el3_variant_t *
 el3_variant(const el3_t *dev)
 {
+    if (dev->pccard)
+        return dev->board ? &el3_3c562_variant : &el3_pccard_variant;   /* board 1: the 3C562's LAN */
     return dev->mca ? &el3_mca_variants[dev->board] : &el3_isa_variants[dev->board];
 }
 
@@ -824,10 +858,16 @@ el3_update_irq(el3_t *dev)
     }
 
     line = dev->latch && dev->irq && dev->active && (dev->config_control & CC_ENABLE) && (dev->window != 0);
+    if (dev->pccard && !dev->pc_mfc)
+        line = line && (dev->pc_cor & 0x3f);
     if (line == dev->irq_line)
         return;
     dev->irq_line = line;
-    if (line)
+    if (dev->pc_mfc)
+        pccard_mfc_irq(dev->pc_mfc, dev->pc_func, line);   /* its COR gates it */
+    else if (dev->pccard)
+        pcmcia_card_irq(dev->pc_socket, line);   /* the socket steers it */
+    else if (line)
         picint(1 << dev->irq);
     else
         picintc(1 << dev->irq);
@@ -839,7 +879,7 @@ el3_set_irq(el3_t *dev, uint8_t irq)
 {
     if (irq == dev->irq)
         return;
-    if (dev->irq_line)
+    if (dev->irq_line && !dev->pccard)
         picintc(1 << dev->irq);
     dev->irq_line = 0;
     dev->irq      = irq;
@@ -2164,6 +2204,8 @@ el3_writel(uint16_t port, uint32_t val, void *priv)
 static void
 el3_deactivate(el3_t *dev)
 {
+    if (dev->pccard)
+        return;   /* the socket's I/O window is the card's activation */
     if (!dev->active)
         return;
     io_removehandler(dev->io_base, 0x10, el3_read, el3_readw, el3_readl, el3_write, el3_writew, el3_writel, dev);
@@ -2175,6 +2217,8 @@ el3_deactivate(el3_t *dev)
 static void
 el3_activate(el3_t *dev, uint16_t base)
 {
+    if (dev->pccard)
+        return;
     el3_deactivate(dev);
     dev->io_base = base;
     io_sethandler(dev->io_base, 0x10, el3_read, el3_readw, el3_readl, el3_write, el3_writew, el3_writel, dev);
@@ -2691,7 +2735,18 @@ el3_init(const device_t *info)
     el3_t   *dev = (el3_t *) calloc(1, sizeof(el3_t));
     int      mac;
 
-    if (info->flags & DEVICE_MCA) {
+    if ((info->local == BOARD_PCCARD) || (info->local == BOARD_PCCARD_MFC)) {
+        /* The 3C589D PC Card, in the socket its instance names;
+           no Plug and Play, no ID port.  Or the 3C562's LAN function, made by
+           that card (in its device context, so the same socket and the
+           card's settings), which then takes el3_mfc_function(). */
+        dev->pccard    = 1;
+        dev->board     = (info->local == BOARD_PCCARD_MFC);
+        dev->pnp       = 0;
+        dev->pc_socket = device_get_instance() - 1;
+        if ((dev->pc_socket < 0) || (dev->pc_socket >= PCMCIA_SOCKETS))
+            dev->pc_socket = 0;
+    } else if (info->flags & DEVICE_MCA) {
         /* The MCA adapter has no jumpers and Plug and Play: the system
            configuration program gives it its resources through the POS
            registers, so nothing here comes from the device's own options. */
@@ -2730,8 +2785,14 @@ el3_init(const device_t *info)
     if (!el3_eeprom_restore(dev)) {
         /* What a card ships with, as 3Com documents it for the 3C509B-TP: I/O
            base 300h, IRQ 10, Plug and Play enabled and no boot PROM - the last
-           is why word 08h's ROM field is left alone. */
-        el3_eeprom_build(dev, 0x300, 10);
+           is why word 08h's ROM field is left alone.  The PC Card's address
+           and resource configuration are 0 and IRQ 3, which its drivers set
+           anyway (3c589_cs): the socket decodes the address, and IRQ 3
+           sends the interrupt to the card's IREQ pin. */
+        if (dev->pccard)
+            el3_eeprom_build(dev, 0x200, 3);
+        else
+            el3_eeprom_build(dev, 0x300, 10);
         el3_eeprom_save(dev);
     }
     /* The Plug and Play card before the power-up reset, which loads its
@@ -2743,7 +2804,9 @@ el3_init(const device_t *info)
     }
     el3_global_reset(dev, 0);
 
-    if (dev->mca) {
+    if (dev->pccard) {
+        /* Nothing on the bus of its own: the socket's windows lead here. */
+    } else if (dev->mca) {
         mca_add(el3_mca_read, el3_mca_write, el3_mca_feedb, NULL, dev);
     } else {
         io_sethandler(0x279, 1, NULL, NULL, NULL, el3_pnp_addr_write, NULL, NULL, dev);
@@ -2754,7 +2817,13 @@ el3_init(const device_t *info)
     }
 
     dev->link_up = 1;
-    dev->card    = network_attach(dev, dev->mac, el3_rx, el3_set_link_state);
+    if (dev->pccard) {
+        dev->active = 1;
+        dev->card   = pcmcia_network_attach(dev->pc_socket, dev, dev->mac, el3_rx);
+        if (info->local == BOARD_PCCARD)
+            el3_pccard_plug(dev);
+    } else
+        dev->card = network_attach(dev, dev->mac, el3_rx, el3_set_link_state);
     if (dev->card->link_state & NET_LINK_DOWN)
         dev->link_up = 0;
 
@@ -2773,12 +2842,14 @@ el3_close(void *priv)
     if (dev == NULL)
         return;
     el3_deactivate(dev);
-    if (!dev->mca) {
+    if (!dev->mca && !dev->pccard) {
         for (uint16_t p = 0x100; p < 0x200; p += 0x10)
             io_removehandler(p, 1, el3_id_read, NULL, NULL, el3_id_write, NULL, NULL, dev);
         io_removehandler(0x279, 1, NULL, NULL, NULL, el3_pnp_addr_write, NULL, NULL, dev);
     }
-    if (dev->irq_line)
+    if (dev->pccard && !dev->board)
+        pcmcia_insert(dev->pc_socket, NULL);   /* the 3C562's card takes itself out */
+    else if (dev->irq_line && !dev->pccard)
         picintc(1 << dev->irq);
     if (dev->prom != NULL) {
         mem_mapping_disable(&dev->prom_mapping);
@@ -2786,6 +2857,156 @@ el3_close(void *priv)
     }
     netcard_close(dev->card);
     free(dev);
+}
+
+/* ---- The PC Card (3C589D) --------------------------------------- */
+
+#define PC_COR        0x0200   /* attribute memory: the Configuration Option Register */
+#define PC_COR_SRESET 0x80
+#define PC_COR_INDEX  0x3f
+
+static uint8_t
+el3_pc_attr_read(uint32_t addr, void *priv)
+{
+    const el3_t *dev = (el3_t *) priv;
+
+    if (addr & 1)
+        return 0xff;
+    if (addr == PC_COR)
+        return dev->pc_cor;
+    return ((addr >> 1) < (uint32_t) dev->pc_cis_len) ? dev->pc_cis[addr >> 1] : 0xff;
+}
+
+static void
+el3_pc_attr_write(uint32_t addr, uint8_t val, void *priv)
+{
+    el3_t *dev = (el3_t *) priv;
+
+    if (addr != PC_COR)
+        return;
+    if (val & PC_COR_SRESET) {
+        el3_global_reset(dev, 0);
+        dev->pc_cor = PC_COR_SRESET;
+    } else
+        dev->pc_cor = val;
+    el3_update_irq(dev);
+}
+
+/* The card's sixteen ports, wherever the socket's I/O window put them. */
+static uint8_t
+el3_pc_read(uint16_t port, void *priv)
+{
+    el3_t *dev = (el3_t *) priv;
+    return (dev->pc_cor & PC_COR_INDEX) ? el3_read(port, dev) : 0xff;
+}
+
+static uint16_t
+el3_pc_readw(uint16_t port, void *priv)
+{
+    el3_t *dev = (el3_t *) priv;
+    return (dev->pc_cor & PC_COR_INDEX) ? el3_readw(port, dev) : 0xffff;
+}
+
+static void
+el3_pc_write(uint16_t port, uint8_t val, void *priv)
+{
+    el3_t *dev = (el3_t *) priv;
+    if (dev->pc_cor & PC_COR_INDEX)
+        el3_write(port, val, dev);
+}
+
+static void
+el3_pc_writew(uint16_t port, uint16_t val, void *priv)
+{
+    el3_t *dev = (el3_t *) priv;
+    if (dev->pc_cor & PC_COR_INDEX)
+        el3_writew(port, val, dev);
+}
+
+/* Power-on, power-off and the RESET pin: the card's own reset, and an
+   unconfigured card. */
+static void
+el3_pc_reset(void *priv)
+{
+    el3_t *dev = (el3_t *) priv;
+
+    dev->pc_cor = 0;
+    el3_global_reset(dev, 0);
+}
+
+static void
+el3_pccard_plug(el3_t *dev)
+{
+    dev->pc_cis_len = pccard_cis_3c589d(dev->pc_cis);
+    dev->pc         = (pccard_t) {
+        .name       = "3Com 3C589D",
+        .attr_read  = el3_pc_attr_read,
+        .attr_write = el3_pc_attr_write,
+        .io_read    = el3_pc_read,
+        .io_readw   = el3_pc_readw,
+        .io_write   = el3_pc_write,
+        .io_writew  = el3_pc_writew,
+        .reset      = el3_pc_reset,
+        .priv       = dev
+    };
+    pcmcia_insert(dev->pc_socket, &dev->pc);
+}
+
+/* ---- The 3C562's LAN function ---------------------------------- */
+
+/* The function's I/O: the offset into its sixteen ports is the register. */
+static uint8_t
+el3_mfc_read(uint16_t off, void *priv)
+{
+    return el3_read(off, priv);
+}
+
+static uint16_t
+el3_mfc_readw(uint16_t off, void *priv)
+{
+    return el3_readw(off, priv);
+}
+
+static void
+el3_mfc_write(uint16_t off, uint8_t val, void *priv)
+{
+    el3_write(off, val, priv);
+}
+
+static void
+el3_mfc_writew(uint16_t off, uint16_t val, void *priv)
+{
+    el3_writew(off, val, priv);
+}
+
+/* RESET, power-off or the function's COR SRESET: an unconfigured card. */
+static void
+el3_mfc_reset(void *priv)
+{
+    el3_global_reset((el3_t *) priv, 0);
+}
+
+/* For pccard_3c562.c: the LAN function made by threec562_lan_device's init,
+   as function func of m; its station address into mac (for the CIS). */
+const pccard_func_t *
+el3_mfc_function(void *priv, pccard_mfc_t *m, int func, uint8_t mac[6])
+{
+    el3_t *dev = (el3_t *) priv;
+
+    dev->pc_mfc  = m;
+    dev->pc_func = func;
+    dev->pc_fn   = (pccard_func_t) {
+        .io_len    = 16,
+        .io_read   = el3_mfc_read,
+        .io_write  = el3_mfc_write,
+        .io_readw  = el3_mfc_readw,
+        .io_writew = el3_mfc_writew,
+        .reset     = el3_mfc_reset,
+        .enable    = NULL,
+        .priv      = dev
+    };
+    memcpy(mac, dev->mac, 6);
+    return &dev->pc_fn;
 }
 
 static const device_config_t el3_isa_config[] = {
@@ -2878,4 +3099,36 @@ const device_t threec529_tp_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = el3_mca_config
+};
+
+/* The 3C589D, a PC Card (pcmcia.c's list). */
+const device_t threec589d_device = {
+    .name          = "3Com EtherLink III LAN PC Card (3C589D)",
+    .internal_name = "3c589d",
+    .flags         = DEVICE_ISA,
+    .local         = BOARD_PCCARD,
+    .init          = el3_init,
+    .close         = el3_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = el3_mca_config
+};
+
+/* The LAN function of the 3C562D LAN+modem PC Card; made by
+   pccard_3c562.c, in no list of its own.  Its EEPROM file is
+   eeprom_3c562d_lan_<socket + 1>.nvr. */
+const device_t threec562_lan_device = {
+    .name          = "3Com EtherLink III LAN+33.6 Modem PC Card (3C562D)",
+    .internal_name = "3c562d_lan",
+    .flags         = DEVICE_ISA,
+    .local         = BOARD_PCCARD_MFC,
+    .init          = el3_init,
+    .close         = el3_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
