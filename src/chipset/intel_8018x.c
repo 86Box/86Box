@@ -141,6 +141,7 @@ struct i8018x_pcb_t {
     uint16_t icu_latch;     /* edge-mode input requests, INT0-INT3 in bits 4-7 */
     uint16_t icu_dma;       /* DMA channel requests: DMA0 bit 2, DMA1 bit 3 */
     uint16_t icu_isr;       /* in-service register bits */
+    uint32_t icu_dhlt;      /* CPU NMI/IRET events already applied to the halt bit */
     uint8_t  tmr_alt[3];    /* MAX COUNT register in use: 0 = A, 1 = B (ALT) */
     int      dma_ch[2];       /* 86Box DMA channel the on-chip channel drives, -1 = unused */
     uint8_t  dma_drq[2];      /* request pin state, recorded only */
@@ -350,6 +351,24 @@ i8018x_pcb_icu_requests(struct i8018x_pcb_t *dev)
                        dev->icu_dma | (dev->tmr_req ? I8018X_ICU_SRC_TMR : 0x0000u));
 }
 
+/* The controller halts DMA when it takes an NMI and releases it again when an
+   IRET executes. The CPU core record both events, and the halt bit is brought
+   up to date whenever the guest can see it or a transfer asks to happen
+   (270788-001 section 9.5.2.10). */
+static void
+i8018x_pcb_dhlt_update(struct i8018x_pcb_t *dev)
+{
+    if (dev->icu_dhlt == cpu_dhlt_events)
+        return;
+
+    dev->icu_dhlt = cpu_dhlt_events;
+
+    if (cpu_dhlt_last_event == 1)
+        dev->regs[I8018X_ICU_STATUS / 2] |= I8018X_ICU_DHLT;
+    else
+        dev->regs[I8018X_ICU_STATUS / 2] &= (uint16_t) ~I8018X_ICU_DHLT;
+}
+
 /* Interrupt type of the highest priority request that is unmasked, above the
    priority mask's threshold and not being serviced already, 0 when there is
    none. That source moves into service so the guest's EOI has something to
@@ -501,8 +520,10 @@ i8018x_pcb_read_word(struct i8018x_pcb_t *dev, uint16_t off)
         return i8018x_pcb_icu_requests(dev);
     if (off == I8018X_ICU_INSERVICE)
         return dev->icu_isr;
-    if (off == I8018X_ICU_STATUS)
+    if (off == I8018X_ICU_STATUS) {
+        i8018x_pcb_dhlt_update(dev);
         return (uint16_t) (dev->regs[off / 2] | (dev->tmr_req & 0x0007u));
+    }
 
     /* CHG/NOCHG is write only (270788-001 section 8.2). */
     if ((off == I8018X_DMA_CTRL(0)) || (off == I8018X_DMA_CTRL(1)))
@@ -681,6 +702,8 @@ i8018x_pcb_dma_slot(struct i8018x_pcb_t *dev, int channel)
 static int
 i8018x_pcb_dma_armed(struct i8018x_pcb_t *dev, int slot)
 {
+    i8018x_pcb_dhlt_update(dev);
+
     if (dev->regs[I8018X_ICU_STATUS / 2] & I8018X_ICU_DHLT)
         return 0;
 
@@ -897,6 +920,9 @@ i8018x_pcb_reset(void *priv)
     dev->icu_dma = 0;
     dev->icu_isr = 0;
     dev->tmr_req = 0;
+
+    /* An NMI or IRET from before the reset is not this register's business. */
+    dev->icu_dhlt = cpu_dhlt_events;
 
     /* The 86Box channel numbers survive a reset: the controller keeps owning
        them until the device is closed. */

@@ -50,6 +50,13 @@ int is8086 = 0;
 uint8_t  use_custom_nmi_vector = 0;
 uint32_t custom_nmi_vector     = 0x00000000;
 
+/* The 80186's integrated controller halts DMA when it takes an NMI and lets it
+   run again when an IRET executes (270788-001 section 9.5.2.10). This core is
+   where both events happen; the peripheral control block reads them when it
+   next looks at its status register or moves a byte. */
+uint32_t cpu_dhlt_events     = 0;
+uint8_t  cpu_dhlt_last_event = 0;
+
 /* The prefetch queue (4 bytes for 8088, 6 bytes for 8086). */
 static uint8_t pfq[6];
 
@@ -1256,6 +1263,9 @@ check_interrupts(int nec_hlt)
 #ifndef OLD_NMI_BEHAVIOR
             nmi = 0;
 #endif
+            /* An 80186 stops DMA from here until the handler's IRET. */
+            cpu_dhlt_events++;
+            cpu_dhlt_last_event = 1;
             return;
         }
         if (i_flag && pic.int_pending && (is80c88 ? !(noint & 1) : !noint)) {
@@ -2890,6 +2900,9 @@ execx86_instruction(void)
                  * legacy models keep their upstream interpretation of noint. */
                 noint      = 2;
                 nmi_enable = 1;
+                /* ... and an 80186 lets DMA run again from here. */
+                cpu_dhlt_events++;
+                cpu_dhlt_last_event = 2;
                 break;
 
             case 0xd0 ... 0xd3:    /* rot rm */
