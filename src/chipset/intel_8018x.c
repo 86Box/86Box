@@ -42,6 +42,7 @@
 #define I8018X_UMCS_RESET       0xFFFBu /* UMCS reads 0xFFFB after RESET */
 
 /* PCB register offsets (word). */
+#define I8018X_ICU_BASE         0x20u
 #define I8018X_ICU_END          0x3Fu
 #define I8018X_TMR_COUNT(i)     (0x50u + ((i) * 8u)) /* T0 0x50 / T1 0x58 / T2 0x60 */
 #define I8018X_TMR_MAXA(i)      (0x52u + ((i) * 8u))
@@ -304,6 +305,24 @@ i8018x_pcb_icu_int(struct i8018x_pcb_t *pcb, int line, int level)
         pcb->icu_ext &= (uint16_t) ~I8018X_ICU_SRC_INT(line);
 }
 
+/* The offsets this block decodes. io.c ANDs the value of every handler on a
+   port, so an offset we do not claim has to leave the bus alone rather than
+   return a stored zero, which would mask a device sharing the window. */
+static int
+i8018x_pcb_decoded(uint16_t off)
+{
+    if ((off >= I8018X_CS_BASE) && (off <= I8018X_CS_END))
+        return 1;
+    if ((off >= I8018X_ICU_BASE) && (off <= I8018X_ICU_END))
+        return 1;
+    if ((off >= I8018X_DMA0_BASE) && (off <= I8018X_DMA1_END))
+        return 1;
+    if ((off >= I8018X_TMR_COUNT(0)) && (off <= I8018X_TMR_END))
+        return 1;
+
+    return (off == I8018X_RELOC_OFF);
+}
+
 static uint16_t
 i8018x_pcb_read_word(struct i8018x_pcb_t *dev, uint16_t off)
 {
@@ -336,7 +355,7 @@ i8018x_pcb_read_word(struct i8018x_pcb_t *dev, uint16_t off)
     if ((off == I8018X_DMA_CTRL(0)) || (off == I8018X_DMA_CTRL(1)))
         return (uint16_t) (dev->regs[off / 2] & ~I8018X_DMA_CHG);
 
-    return dev->regs[off / 2];
+    return i8018x_pcb_decoded(off) ? dev->regs[off / 2] : 0xFFFF;
 }
 
 static void
