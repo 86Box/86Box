@@ -2237,11 +2237,11 @@ sis6306_engine_color_expand(sis6306_t *dev, uint32_t command, int enhanced,
                         mono = !!(svga->vram[sa] & (0x80U >> (sx & 7)));
                 }
             } else {
-                uint32_t bit = yy * width + xx;
-                uint32_t byte = bit >> 3;
-                if (byte < 0x180)
-                    mono = !!(dev->accel_regs[0x8300 + byte] &
-                              (0x80U >> (bit & 7)));
+                const uint32_t row_bytes = ((uint32_t) width + 7U) >> 3;
+                const uint32_t byte = yy * row_bytes + (xx >> 3);
+                if (byte < 0x180U)
+                    mono = !!(dev->accel_regs[0x8300U + byte] &
+                              (0x80U >> (xx & 7U)));
             }
 
             if (transparent && !mono)
