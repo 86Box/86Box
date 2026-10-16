@@ -241,7 +241,18 @@ enum {
 
 #define IREG_MM(reg)               ((reg) + IREG_MM0)
 
-#define IREG_TOP_diff_stack_offset 32
+/*Where the block temporaries start on the stack: above the 32 bytes of home
+  space on Windows x64, whose callees may store their arguments there (the
+  frame is CODEGEN_WIN64_FRAME, codegen_backend_x86-64.c). The FPU TOP
+  difference the block keeps between the integer and the double ones moves
+  with them: left at 32, it was temp0.*/
+#if defined(_WIN64) && (defined(__x86_64__) || defined(_M_X64))
+#    define CODEGEN_TEMP_BASE 0x10
+#else
+#    define CODEGEN_TEMP_BASE 0
+#endif
+
+#define IREG_TOP_diff_stack_offset (32 + CODEGEN_TEMP_BASE)
 
 static inline int
 ireg_seg_base(x86seg *seg)

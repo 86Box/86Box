@@ -9,15 +9,6 @@
 #include "codegen_ir_defs.h"
 #include "codegen_reg.h"
 
-/*Where the block temporaries start on the stack: above the 32 bytes of home
-  space on Windows x64, whose callees may store their arguments there (the
-  frame is CODEGEN_WIN64_FRAME, codegen_backend_x86-64.c)*/
-#if defined(_WIN64) && (defined(__x86_64__) || defined(_M_X64))
-#    define CODEGEN_TEMP_BASE 0x10
-#else
-#    define CODEGEN_TEMP_BASE 0
-#endif
-
 int      max_version_refcount;
 uint16_t reg_dead_list = 0;
 
