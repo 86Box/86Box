@@ -68,10 +68,10 @@
                     break;                                                                                                       \
                 case 0x20:                                                                                                       \
                 case 0x30: /*SHL b,CL*/                                                                                          \
-                    seteab(temp << c);                                                                                           \
+                    seteab((uint32_t) temp << c);                                                                                \
                     if (cpu_state.abrt)                                                                                          \
                         return 1;                                                                                                \
-                    set_flags_shift(FLAGS_SHL8, temp_orig, c, (temp << c) & 0xff);                                               \
+                    set_flags_shift(FLAGS_SHL8, temp_orig, c, ((uint32_t) temp << c) & 0xff);                                    \
                     CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                                                        \
                     PREFETCH_RUN((cpu_mod == 3) ? 3 : 7, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, (cpu_mod == 3) ? 0 : 1, 0, ea32);  \
                     break;                                                                                                       \
@@ -164,10 +164,10 @@
                     break;                                                                                                       \
                 case 0x20:                                                                                                       \
                 case 0x30: /*SHL w, c*/                                                                                          \
-                    seteaw(temp << c);                                                                                           \
+                    seteaw((uint32_t) temp << c);                                                                                \
                     if (cpu_state.abrt)                                                                                          \
                         return 1;                                                                                                \
-                    set_flags_shift(FLAGS_SHL16, temp_orig, c, (temp << c) & 0xffff);                                            \
+                    set_flags_shift(FLAGS_SHL16, temp_orig, c, ((uint32_t) temp << c) & 0xffff);                                 \
                     CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                                                        \
                     PREFETCH_RUN((cpu_mod == 3) ? 3 : 7, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, (cpu_mod == 3) ? 0 : 1, 0, ea32);  \
                     break;                                                                                                       \
@@ -364,10 +364,10 @@
                     break;                                                                                                       \
                 case 0x20:                                                                                                       \
                 case 0x30: /*SHL b,CL*/                                                                                          \
-                    seteab(temp << c);                                                                                           \
+                    seteab((uint32_t) temp << c);                                                                                \
                     if (cpu_state.abrt)                                                                                          \
                         return 1;                                                                                                \
-                    set_flags_shift(FLAGS_SHL8, temp_orig, c, (temp << c) & 0xff);                                               \
+                    set_flags_shift(FLAGS_SHL8, temp_orig, c, ((uint32_t) temp << c) & 0xff);                                    \
                     CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                                                        \
                     PREFETCH_RUN((cpu_mod == 3) ? 3 : 7, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, (cpu_mod == 3) ? 0 : 1, 0, ea32);  \
                     break;                                                                                                       \
@@ -468,10 +468,10 @@
                     break;                                                                                                       \
                 case 0x20:                                                                                                       \
                 case 0x30: /*SHL w, c*/                                                                                          \
-                    seteaw(temp << c);                                                                                           \
+                    seteaw((uint32_t) temp << c);                                                                                \
                     if (cpu_state.abrt)                                                                                          \
                         return 1;                                                                                                \
-                    set_flags_shift(FLAGS_SHL16, temp_orig, c, (temp << c) & 0xffff);                                            \
+                    set_flags_shift(FLAGS_SHL16, temp_orig, c, ((uint32_t) temp << c) & 0xffff);                                 \
                     CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                                                        \
                     PREFETCH_RUN((cpu_mod == 3) ? 3 : 7, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, (cpu_mod == 3) ? 0 : 1, 0, ea32);  \
                     break;                                                                                                       \
