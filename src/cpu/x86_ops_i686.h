@@ -69,6 +69,9 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
 
     if (fxinst == 1) {
         /* FXRSTOR */
+        CHECK_READ_EA(512);
+        const int sf_was_es = fpu_state.swd & FPU_SW_Summary;
+
         fpu_state.cwd = readmemw(easeg, cpu_state.eaaddr);
         fpu_state.swd = readmemw(easeg, cpu_state.eaaddr + 2);
         fpu_state.tos = (fpu_state.swd >> 11) & 7;
@@ -105,18 +108,13 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
 
         fpu_state.tag = unpack_FPU_TW(tag_byte);
 
-        /* check for unmasked exceptions */
-        if (fpu_state.swd & ~fpu_state.cwd & FPU_CW_Exceptions_Mask) {
-            /* set the B and ES bits in the status-word */
-            fpu_state.swd |= (FPU_SW_Summary | FPU_SW_Backward);
-        } else {
-            /* clear the B and ES bits in the status-word */
-            fpu_state.swd &= ~(FPU_SW_Summary | FPU_SW_Backward);
-        }
+        /* ES and B from the unmasked flags, FERR# as FRSTOR raises it */
+        x87_sf_status_es(sf_was_es, 0x0520);
 
         CLOCK_CYCLES(1);
     } else {
         /* FXSAVE */
+        CHECK_WRITE_EA(512);
         writememw(easeg, cpu_state.eaaddr, i387_get_control_word());
         writememw(easeg, cpu_state.eaaddr + 2, i387_get_status_word());
         writememw(easeg, cpu_state.eaaddr + 4, pack_FPU_TW(fpu_state.tag));
@@ -285,6 +283,7 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
     if (fxinst == 1) {
         /* FXRSTOR */
+        CHECK_READ_EA(512);
         fpus = readmemw(easeg, cpu_state.eaaddr + 2);
         x87_set_control_word((readmemw(easeg, cpu_state.eaaddr) & ~FPU_CW_Reserved_Bits) | 0x0040);
         cpu_state.TOP = (fpus >> 11) & 7;
@@ -292,7 +291,13 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
         CPU_BLOCK_END();
         /* Restore the full status word, like FRSTOR does (the previous AND-in
            dropped status bits the guest had set). */
-        cpu_state.npxs = fpus;
+        {
+            const int was_es = cpu_state.npxs & FPU_SW_Summary;
+
+            cpu_state.npxs = fpus;
+            /* ES as FRSTOR makes it (x87_legacy_status_es) */
+            x87_legacy_status_es(was_es, 0x0520);
+        }
 
         if (bits == 32)
             x87_pc_off = readmeml(easeg, cpu_state.eaaddr + 8);
@@ -301,7 +306,8 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
         x87_pc_seg = readmemw(easeg, cpu_state.eaaddr + 12);
 
         ftwb = readmemb(easeg, cpu_state.eaaddr + 4);
-        x87_op = readmemw(easeg, cpu_state.eaaddr + 6) & 0x07ff;
+        /* FOP, as FXSAVE stores it (cpu_state.fpu_op) */
+        cpu_state.fpu_op = readmemw(easeg, cpu_state.eaaddr + 6) & 0x07ff;
 
         if (bits == 32)
             x87_op_off = readmeml(easeg, cpu_state.eaaddr + 16);
@@ -384,6 +390,7 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
         CLOCK_CYCLES(1);
     } else {
         /* FXSAVE */
+        CHECK_WRITE_EA(512);
         if ((twd & 0x0003) != 0x0003)
             ftwb |= 0x01;
         if ((twd & 0x000c) != 0x000c)

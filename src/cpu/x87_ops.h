@@ -86,8 +86,8 @@ typedef union {
     } while (0)
 
 /* Dynarec blocks are keyed on PC=24 and RC!=nearest, but FLDCW/FLDENV/
-   FRSTOR/FSAVE run as helper calls inside a block: a change to either must
-   end the block so the ops after it are compiled under the new value. */
+   FRSTOR/FSAVE/FINIT run as helper calls inside a block: a change to either
+   must end the block so the ops after it are compiled under the new value. */
 #define x87_set_control_word(w)                                                                                                 \
     do {                                                                                                                        \
         uint16_t old_npxc_ = cpu_state.npxc;                                                                                    \
@@ -115,23 +115,15 @@ typedef union {
             } else                                      \
                 dst = src1 / (double) src2;             \
         } while (0)
+#    define x87_div_memory(dst, src1, src2, mem) x87_div(dst, src1, src2)
 #else
-#    define x87_div(dst, src1, src2)                    \
-        do {                                            \
-            if (((double) src2) == 0.0) {               \
-                cpu_state.npxs |= FPU_SW_Zero_Div;      \
-                if (cpu_state.npxc & FPU_SW_Zero_Div)   \
-                    dst = src1 / (double) src2;         \
-                else {                                  \
-                    fpu_log("FPU : divide by zero\n");  \
-                    if (is486 && (cr0 & 0x20))          \
-                        new_ne = 1;                     \
-                    else                                \
-                        picint(1 << 13);                \
-                    return 1;                           \
-                }                                       \
-            } else                                      \
-                dst = src1 / (double) src2;             \
+#    define x87_div_memory(dst, src1, src2, mem)                            \
+        do {                                                               \
+            int denormal_ = (mem) != 0 && fabs((double)(mem)) <             \
+                            (sizeof(mem) == 4 ? 0x1p-126 : 0x1p-1022);    \
+            if (x87_legacy_divide(&(dst), (double) (src1), (double) (src2), \
+                                  X87_ST_EMPTY(0) | (denormal_ << 1))) \
+                return 0;                                                  \
         } while (0)
 #endif
 
@@ -193,134 +185,7 @@ x87_pop(void)
     return t;
 }
 
-static __inline int16_t
-x87_fround16(double b)
-{
-    double da;
-    double dc;
-    int16_t a;
-    int16_t c;
-
-    switch ((cpu_state.npxc >> 10) & 3) {
-        case 0: /*Nearest*/
-            da = floor(b);
-            dc = floor(b + 1.0);
-            a = (int16_t) da;
-            c = (int16_t) dc;
-            if ((b - a) < (c - b))
-                return a;
-            else if ((b - a) > (c - b))
-                return c;
-            else
-                return (a & 1) ? c : a;
-        case 1: /*Down*/
-            da = floor(b);
-            return (int16_t) da;
-        case 2: /*Up*/
-            da = ceil(b);
-            return (int16_t) da;
-        case 3: /*Chop*/
-            return (int16_t) b;
-    }
-
-    return 0;
-}
-
-static __inline int64_t
-x87_fround16_64(double b)
-{
-    return (int64_t) x87_fround16(b);
-}
-
-static __inline int32_t
-x87_fround32(double b)
-{
-    double da;
-    double dc;
-    int32_t a;
-    int32_t c;
-
-    switch ((cpu_state.npxc >> 10) & 3) {
-        case 0: /*Nearest*/
-            da = floor(b);
-            dc = floor(b + 1.0);
-            a = (int32_t) da;
-            c = (int32_t) dc;
-            if ((b - a) < (c - b))
-                return a;
-            else if ((b - a) > (c - b))
-                return c;
-            else
-                return (a & 1) ? c : a;
-        case 1: /*Down*/
-            da = floor(b);
-            return (int32_t) da;
-        case 2: /*Up*/
-            da = ceil(b);
-            return (int32_t) da;
-        case 3: /*Chop*/
-            return (int32_t) b;
-    }
-
-    return 0;
-}
-
-static __inline int64_t
-x87_fround32_64(double b)
-{
-    return (int64_t) x87_fround32(b);
-}
-
-static __inline int64_t
-x87_fround_nearest(double b)
-{
-    double da, dc;
-    int64_t a, c;
-    
-    da = floor(b);
-    dc = floor(b + 1.0);
-    a = (int64_t) da;
-    c = (int64_t) dc;
-    if ((b - a) < (c - b))
-        return a;
-    else if ((b - a) > (c - b))
-        return c;
-    else
-        return (a & 1) ? c : a;
-}
-
-static __inline int64_t
-x87_fround(double b)
-{
-    double da;
-    double dc;
-    int64_t a;
-    int64_t c;
-
-    switch ((cpu_state.npxc >> 10) & 3) {
-        case 0: /*Nearest*/
-            da = floor(b);
-            dc = floor(b + 1.0);
-            a = (int64_t) da;
-            c = (int64_t) dc;
-            if ((b - a) < (c - b))
-                return a;
-            else if ((b - a) > (c - b))
-                return c;
-            else
-                return (a & 1) ? c : a;
-        case 1: /*Down*/
-            da = floor(b);
-            return (int64_t) da;
-        case 2: /*Up*/
-            da = ceil(b);
-            return (int64_t) da;
-        case 3: /*Chop*/
-            return (int64_t) b;
-    }
-
-    return 0LL;
-}
+#include "x87_ops_fist.h"
 
 static __inline double
 x87_ld80(void)
@@ -595,7 +460,15 @@ FPU_ILLEGAL_a16(UNUSED(uint32_t fetchdat))
 static int
 FPU_ILLEGAL_a16(uint32_t fetchdat)
 {
+    /* An undefined ESC opcode takes #NM like a defined one, then #UD on
+       the 486 and later; no pending-exception check, no state change
+       (Pentium Vol. 3, 23.3.5) */
+    FP_ENTER();
     fetch_ea_16(fetchdat);
+    if (is486 || isibm486) {
+        x86illegal();
+        return 1;
+    }
     CLOCK_CYCLES(timing_rr);
     PREFETCH_RUN(timing_rr, 2, rmdat, 0, 0, 0, 0, 0);
     return 0;
@@ -604,7 +477,15 @@ FPU_ILLEGAL_a16(uint32_t fetchdat)
 static int
 FPU_ILLEGAL_a32(uint32_t fetchdat)
 {
+    /* An undefined ESC opcode takes #NM like a defined one, then #UD on
+       the 486 and later; no pending-exception check, no state change
+       (Pentium Vol. 3, 23.3.5) */
+    FP_ENTER();
     fetch_ea_32(fetchdat);
+    if (is486 || isibm486) {
+        x86illegal();
+        return 1;
+    }
     CLOCK_CYCLES(timing_rr);
     PREFETCH_RUN(timing_rr, 2, rmdat, 0, 0, 0, 0, 0);
     return 0;

@@ -291,6 +291,8 @@ FPU_status_word_flags_fpu_compare(int float_relation)
 void
 FPU_write_eflags_fpu_compare(int float_relation)
 {
+    /* ZF, PF and CF are written, not ORed in */
+    cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
     switch (float_relation) {
         case softfloat_relation_unordered:
             cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
@@ -312,8 +314,8 @@ FPU_write_eflags_fpu_compare(int float_relation)
     }
 }
 
-uint16_t
-FPU_exception(UNUSED(uint32_t fetchdat), uint16_t exceptions, int store)
+static uint16_t
+FPU_exception_record(uint16_t exceptions, int store)
 {
     uint16_t status;
     uint16_t unmasked;
@@ -390,6 +392,31 @@ FPU_exception(UNUSED(uint32_t fetchdat), uint16_t exceptions, int store)
         }
     }
     return unmasked;
+}
+
+/* An exception the instruction raised: its flags, ES and B with an
+   unmasked one, and FERR# for it as the processor asserts it
+   (x87_ferr_raised). A store whose result is still written (its
+   exceptions masked, or only precision unmasked) raises it once the write
+   is done (FPU_store_done): a faulting write leaves the status as it was. */
+uint16_t
+FPU_exception(UNUSED(uint32_t fetchdat), uint16_t exceptions, int store)
+{
+    const int was_es = fpu_state.swd & FPU_SW_Summary;
+    uint16_t  raised = (exceptions & FPU_SW_Exceptions_Mask) & ~fpu_state.cwd & FPU_CW_Exceptions_Mask;
+    uint16_t  ret;
+
+    if (exceptions & (FPU_EX_Invalid | FPU_EX_Zero_Div))
+        raised &= (FPU_EX_Invalid | FPU_EX_Zero_Div);
+    x87_ferr_store_hold(0, 0);
+    ret = FPU_exception_record(exceptions, store);
+    if (raised) {
+        if (store && !ret)
+            x87_ferr_store_hold(was_es, raised);
+        else
+            x87_ferr_raised(was_es, raised, x87_op);
+    }
+    return ret;
 }
 
 void
@@ -551,3 +578,82 @@ x87_dumpregs(void)
     fpu_x87_log("Status = %04X  Control = %04X  Tag = %04X\n", cpu_state.npxs, cpu_state.npxc, x87_gettag());
 }
 #endif
+
+/* The legacy register file is double based, but guest exception classes
+   still follow x87 rules. Use the existing software arithmetic rather than
+   treating every zero denominator as divide-by-zero. Unmasked exceptions
+   suppress the result; delivery waits for the next waiting instruction. */
+int
+x87_legacy_divide(double *dest, double numerator, double denominator, int empty)
+{
+    union { double d; uint64_t u; } a = { .d = numerator }, b = { .d = denominator }, result;
+    struct softfloat_status_t status = i387cw_to_softfloat_status_word(cpu_state.npxc);
+    cpu_state.npxs &= ~FPU_SW_C1;
+    if (empty & 1) {
+        cpu_state.npxs |= FPU_SW_Stack_Fault | FPU_SW_Invalid;
+        result.u = UINT64_C(0xfff8000000000000);
+        status.softfloat_exceptionFlags = FPU_SW_Invalid;
+    } else {
+        extFloat80_t x = f64_to_extF80(a.u, &status);
+        extFloat80_t y = f64_to_extF80(b.u, &status);
+        /* A subnormal double is normal in the x87 extended register
+           format. DE applies to a denormal memory operand, not to the
+           legacy host representation of a register. Preserve SNaN IE. */
+        status.softfloat_exceptionFlags &= FPU_SW_Invalid;
+        if (empty & 2)
+            status.softfloat_exceptionFlags |= FPU_SW_Denormal_Op;
+        extFloat80_t q = extF80_div(x, y, &status);
+        /* Converting the representation back must not invent guest x87
+           exceptions caused solely by the legacy double register file. */
+        struct softfloat_status_t conversion = i387cw_to_softfloat_status_word(cpu_state.npxc);
+        result.u = extF80_to_f64(q, &conversion);
+    }
+    unsigned exceptions = status.softfloat_exceptionFlags & (0x3f | FPU_SW_C1);
+    if (exceptions & FPU_SW_Invalid)
+        exceptions &= FPU_SW_Invalid;
+    else if (exceptions & FPU_SW_Zero_Div)
+        exceptions = FPU_SW_Zero_Div;
+    else if ((exceptions & FPU_SW_Denormal_Op) && !(cpu_state.npxc & FPU_SW_Denormal_Op))
+        exceptions = FPU_SW_Denormal_Op;
+    cpu_state.npxs |= exceptions;
+    unsigned unmasked = exceptions & ~cpu_state.npxc & 0x3f;
+    if (unmasked) {
+        const int was_es = cpu_state.npxs & FPU_SW_Summary;
+
+        cpu_state.npxs |= 0x8080;
+        x87_ferr_raised(was_es, unmasked, x87_op);
+        /* Unlike pre-computation faults, unmasked precision still commits
+           the rounded arithmetic result (Intel Vol. 1, inexact result). */
+        if (unmasked & ~FPU_SW_Precision)
+            return 1;
+    }
+    *dest = result.d;
+    return 0;
+}
+
+int
+x87_legacy_pending(void)
+{
+    if (!(cpu_state.npxs & FPU_SW_Summary)) {
+        fpu_ignne = 0;
+        return 0;
+    }
+    if (cr0 & 0x20) {
+        cpu_state.pc = cpu_state.oldpc;
+        new_ne = 1;
+        return 1;
+    }
+    if (!fpu_ignne) {
+        cpu_state.pc = cpu_state.oldpc;
+        x87_ferr_assert();
+        return 1;
+    }
+    return 0;
+}
+
+int
+x87_legacy_pending_entry(void)
+{
+    /* The ordinary entry check gives #NM priority over pending #MF. */
+    return (cr0 & 0xc) ? 0 : x87_legacy_pending();
+}

@@ -9,9 +9,11 @@ if(BUILD_TESTING)
         ../../src/cpu/cpu.c
         ../../src/mem/mem.c
     )
-    add_executable(x87_fistp_tests x87_fistp_test.cpp)
-    add_executable(x87_fistp_new_tags_tests x87_fistp_test.cpp)
-    target_compile_definitions(x87_fistp_new_tags_tests PRIVATE X87_TEST_NEW_TAGS)
+    # The FERR# unit (x87_ferr.c) is built with each, so it sees the same
+    # cpu_state layout: the new recompiler's (USE_NEW_DYNAREC) or the old one's.
+    add_executable(x87_fistp_tests x87_fistp_test.cpp ../../src/cpu/x87_ferr.c)
+    add_executable(x87_fistp_new_tags_tests x87_fistp_test.cpp ../../src/cpu/x87_ferr.c)
+    target_compile_definitions(x87_fistp_new_tags_tests PRIVATE USE_NEW_DYNAREC)
     foreach(target cpu_tr_tests cpu_cache_tests x87_fistp_tests x87_fistp_new_tags_tests)
         target_include_directories(${target} PRIVATE
             ${PROJECT_SOURCE_DIR}/src/include
