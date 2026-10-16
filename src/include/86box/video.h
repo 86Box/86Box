@@ -637,6 +637,9 @@ extern const device_t ps1vga_mca_device;
 
 /* 3DFX Voodoo Graphics */
 extern const device_t voodoo_device;
+
+/* PowerVR PCX1/PCX2 */
+extern const device_t powervr_pcx_device;
 extern const device_t voodoo_banshee_pci_device;
 extern const device_t voodoo_banshee_agp_device;
 extern const device_t voodoo_3_1000_device;

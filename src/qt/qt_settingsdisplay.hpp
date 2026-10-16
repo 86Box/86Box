@@ -36,6 +36,8 @@ private slots:
 
     void on_checkBoxVoodoo_stateChanged(int state);
     void on_pushButtonConfigureVoodoo_clicked();
+    void on_checkBoxPowerVR_stateChanged(int state);
+    void on_pushButtonConfigurePowerVR_clicked();
 
     void on_checkBox8514_stateChanged(int state);
     void on_pushButtonConfigure8514_clicked();
@@ -57,6 +59,7 @@ private:
 
     int                  gfxcard_cfg_changed[VIDEOCARD_MAX] = { 0, 0 };
     int                  voodoo_cfg_changed                 = 0;
+    int                  powervr_cfg_changed                = 0;
     int                  ibm8514_cfg_changed                = 0;
     int                  xga_cfg_changed                    = 0;
     int                  ps55da2_cfg_changed                = 0;

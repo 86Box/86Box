@@ -186,6 +186,7 @@ int      sound_input_enabled                    = 0;              /* (C) enable 
 int      sound_sample_rate                      = FREQ_48000;     /* (C) sound output sample rate */
 int      sb_input_rate                          = FREQ_44100;     /* (C) SB16/AWE32 hardware sample rate */
 int      voodoo_enabled                         = 0;              /* (C) video option */
+int      powervr_enabled                        = 0;              /* (C) video option */
 int      ibm8514_standalone_enabled             = 0;              /* (C) video option */
 int      xga_standalone_enabled                 = 0;              /* (C) video option */
 int      da2_standalone_enabled                 = 0;              /* (C) video option */
