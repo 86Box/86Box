@@ -249,6 +249,14 @@ tvis_init(const device_t *info)
 static void
 tvis_close(void *priv)
 {
+    free(tandy_vis_rom_struct.rom);
+    free(tandy_vis_rom_struct_2.rom);
+    free(tandy_vis_rom_struct_3.rom);
+    free(tandy_vis_rom_struct_4.rom);
+    memset(&tandy_vis_rom_struct, 0, sizeof(tandy_vis_rom_struct));
+    memset(&tandy_vis_rom_struct_2, 0, sizeof(tandy_vis_rom_struct));
+    memset(&tandy_vis_rom_struct_3, 0, sizeof(tandy_vis_rom_struct));
+    memset(&tandy_vis_rom_struct_4, 0, sizeof(tandy_vis_rom_struct));
     keyboard_set_input_handler(NULL, NULL);
     free(priv);
 }
