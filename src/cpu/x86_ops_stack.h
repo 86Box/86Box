@@ -474,10 +474,9 @@ opENTER_w(uint32_t fetchdat)
         instr_cycles += (is486) ? 3 : 5;
 #endif
     }
-    if (stack32)
-        EBP = frame_ptr;
-    else
-        BP = frame_ptr;
+    /* The operand size picks BP or EBP for the frame (the current SDM's
+       ENTER, and Bochs; the 1999 book had the stack size pick it) */
+    BP = frame_ptr;
 
     if (stack32)
         ESP -= offset;
@@ -554,10 +553,9 @@ opENTER_l(uint32_t fetchdat)
         instr_cycles += (is486) ? 3 : 5;
 #endif
     }
-    if (stack32)
-        EBP = frame_ptr;
-    else
-        BP = frame_ptr;
+    /* The operand size picks BP or EBP for the frame (the current SDM's
+       ENTER, and Bochs; the 1999 book had the stack size pick it) */
+    EBP = frame_ptr;
 
     if (stack32)
         ESP -= offset;

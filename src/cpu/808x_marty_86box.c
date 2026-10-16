@@ -1539,6 +1539,7 @@ extern uint32_t   cpu_data;
 #define SEG_CHECK_WRITE(seg)
 #define CHECK_READ(a, b, c)
 #define CHECK_READ_EA(n)
+#define PROBE_READ_EA(n)
 #define CHECK_WRITE_EA(n)
 #define CHECK_WRITE(a, b, c)
 #define UN_USED(x) (void) (x)

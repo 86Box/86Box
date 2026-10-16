@@ -105,6 +105,31 @@ x87_ferr_assert(void)
     picint(1 << 13);
 }
 
+/* ES cleared (FNCLEX, FNINIT, FNSAVE, or an environment or control word
+   leaving no error): FERR# goes down, and the board's IGNNE# latch, which
+   inactive FERR# clears, with it: "IGNNE# can never be active when FERR# is
+   inactive" (SDM 1999 vol. 1, E.2.1.2, Figure E-1) */
+void
+x87_ferr_clear(void)
+{
+    fpu_ferr  = 0;
+    fpu_ignne = 0;
+}
+
+/* FXRSTOR loads an error without reporting it: "FXRSTOR does not flush
+   pending x87-FP exceptions. To check and raise exceptions when loading a
+   new operating environment, use FWAIT after FXRSTOR" (SDM 1999 vol. 2,
+   FXRSTOR). A newly loaded one lowers FERR#, and the next waiting
+   instruction, finding it pending, asserts it. */
+void
+x87_ferr_loaded(int was_es, int es_now)
+{
+    if (!es_now)
+        x87_ferr_clear();
+    else if (!was_es)
+        fpu_ferr = 0;
+}
+
 /* An unmasked exception has set ES (was_es: it was set already) in the
    instruction op: a new error lowers FERR#, and it goes up now where the
    processor asserts it at the fault. */
@@ -186,8 +211,10 @@ x87_legacy_status_es(int was_es, uint16_t op)
     if (unmasked) {
         cpu_state.npxs |= 0x8080;
         x87_ferr_raised(was_es, unmasked, op);
-    } else
+    } else {
         cpu_state.npxs &= ~0x8080;
+        x87_ferr_clear();
+    }
 }
 
 /* The softfloat FPU's, after an environment, a control word or an FXRSTOR
@@ -200,6 +227,8 @@ x87_sf_status_es(int was_es, uint16_t op)
     if (unmasked) {
         fpu_state.swd |= (FPU_SW_Summary | FPU_SW_Backward);
         x87_ferr_raised(was_es, unmasked, op);
-    } else
+    } else {
         fpu_state.swd &= ~(FPU_SW_Summary | FPU_SW_Backward);
+        x87_ferr_clear();
+    }
 }

@@ -67,6 +67,7 @@ opFCLEX(UNUSED(uint32_t fetchdat))
     FP_ENTER();
     cpu_state.pc++;
     cpu_state.npxs &= 0xff00;
+    x87_ferr_clear();
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fnop) : (x87_timings.fnop * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fnop) : (x87_concurrency.fnop * cpu_multi));
     return 0;
@@ -87,6 +88,7 @@ opFINIT(UNUSED(uint32_t fetchdat))
     cpu_state.npxs &= 0x4700;
 #else
     cpu_state.npxs = 0;
+    x87_ferr_clear();
 #endif
     p              = (uint64_t *) cpu_state.tag;
 #ifdef USE_NEW_DYNAREC
@@ -316,6 +318,7 @@ opFSTOR_a16(UNUSED(uint32_t fetchdat))
     fetch_ea_16(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     CHECK_READ_EA((cpu_state.op32 & 0x100) ? 108 : 94);
+    PROBE_READ_EA((cpu_state.op32 & 0x100) ? 108 : 94);
     FSTOR();
     return cpu_state.abrt;
 }
@@ -327,6 +330,7 @@ opFSTOR_a32(uint32_t fetchdat)
     fetch_ea_32(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     CHECK_READ_EA((cpu_state.op32 & 0x100) ? 108 : 94);
+    PROBE_READ_EA((cpu_state.op32 & 0x100) ? 108 : 94);
     FSTOR();
     return cpu_state.abrt;
 }
@@ -529,6 +533,7 @@ FSAVE(void)
     cpu_state.npxs &= 0x4700;
 #else
     cpu_state.npxs = 0;
+    x87_ferr_clear();
 #endif
     p              = (uint64_t *) cpu_state.tag;
 #ifdef USE_NEW_DYNAREC
@@ -1196,6 +1201,7 @@ opFLDENV_a16(UNUSED(uint32_t fetchdat))
     fetch_ea_16(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     CHECK_READ_EA((cpu_state.op32 & 0x100) ? 28 : 14);
+    PROBE_READ_EA((cpu_state.op32 & 0x100) ? 28 : 14);
     FLDENV();
     return cpu_state.abrt;
 }
@@ -1207,6 +1213,7 @@ opFLDENV_a32(uint32_t fetchdat)
     fetch_ea_32(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     CHECK_READ_EA((cpu_state.op32 & 0x100) ? 28 : 14);
+    PROBE_READ_EA((cpu_state.op32 & 0x100) ? 28 : 14);
     FLDENV();
     return cpu_state.abrt;
 }

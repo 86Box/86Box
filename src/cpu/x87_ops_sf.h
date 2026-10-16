@@ -374,6 +374,7 @@ sf_FRSTOR_a16(UNUSED(uint32_t fetchdat))
     fetch_ea_16(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     CHECK_READ_EA((cpu_state.op32 & 0x100) ? 108 : 94);
+    PROBE_READ_EA((cpu_state.op32 & 0x100) ? 108 : 94);
     offset = fpu_load_environment();
     for (int n = 0; n < 8; n++) {
         tmp.signif  = readmemq(easeg, offset + (n * 10));
@@ -396,6 +397,7 @@ sf_FRSTOR_a32(uint32_t fetchdat)
     fetch_ea_32(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     CHECK_READ_EA((cpu_state.op32 & 0x100) ? 108 : 94);
+    PROBE_READ_EA((cpu_state.op32 & 0x100) ? 108 : 94);
     offset = fpu_load_environment();
     for (int n = 0; n < 8; n++) {
         tmp.signif   = readmemq(easeg, offset + (n * 10));
@@ -434,6 +436,7 @@ sf_FNSAVE_a16(UNUSED(uint32_t fetchdat))
 #else
     fpu_state.cwd = 0x37F;
     fpu_state.swd   = 0;
+    x87_ferr_clear();
 #endif
     fpu_state.tos   = 0;
     fpu_state.tag   = 0xffff;
@@ -475,6 +478,7 @@ sf_FNSAVE_a32(uint32_t fetchdat)
     fpu_state.cwd = 0x37F;
 #    endif
     fpu_state.swd   = 0;
+    x87_ferr_clear();
     fpu_state.tos   = 0;
     fpu_state.tag   = 0xffff;
     cpu_state.ismmx = 0;
@@ -496,6 +500,7 @@ sf_FNCLEX(UNUSED(uint32_t fetchdat))
     FP_ENTER();
     cpu_state.pc++;
     fpu_state.swd &= ~(FPU_SW_Backward | FPU_SW_Summary | FPU_SW_Stack_Fault | FPU_SW_Precision | FPU_SW_Underflow | FPU_SW_Overflow | FPU_SW_Zero_Div | FPU_SW_Denormal_Op | FPU_SW_Invalid);
+    x87_ferr_clear();
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fnop) : (x87_timings.fnop * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fnop) : (x87_concurrency.fnop * cpu_multi));
     return 0;
@@ -512,6 +517,7 @@ sf_FNINIT(UNUSED(uint32_t fetchdat))
 #else
     fpu_state.cwd = 0x37F;
     fpu_state.swd   = 0;
+    x87_ferr_clear();
 #endif
     fpu_state.tos   = 0;
     fpu_state.tag   = 0xffff;
@@ -543,6 +549,7 @@ sf_FLDENV_a16(UNUSED(uint32_t fetchdat))
     fetch_ea_16(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     CHECK_READ_EA((cpu_state.op32 & 0x100) ? 28 : 14);
+    PROBE_READ_EA((cpu_state.op32 & 0x100) ? 28 : 14);
     fpu_load_environment();
     /* read all registers in stack order and update x87 tag word */
     for (int n = 0; n < 8; n++) {
@@ -567,6 +574,7 @@ sf_FLDENV_a32(uint32_t fetchdat)
     fetch_ea_32(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     CHECK_READ_EA((cpu_state.op32 & 0x100) ? 28 : 14);
+    PROBE_READ_EA((cpu_state.op32 & 0x100) ? 28 : 14);
     fpu_load_environment();
     /* read all registers in stack order and update x87 tag word */
     for (int n = 0; n < 8; n++) {

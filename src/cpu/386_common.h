@@ -288,6 +288,25 @@
    read, as CHECK_READ checks a range. */
 #define CHECK_READ_EA(n) CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + (n) - 1)
 
+/* Both ends of the n bytes from eaaddr present and readable (n is at most
+   512, so two pages at most), before an instruction loading state from them
+   (FLDENV, FRSTOR, FXRSTOR) changes any of it: a page fault part way through
+   leaves the FPU as it was. "A program-state change does not normally
+   accompany a page-fault exception" (SDM 1999 vol. 3, 5.12). */
+#define PROBE_READ_EA(n)                                               \
+    do {                                                               \
+        if (cr0 & 0x80000000) {                                        \
+            const uint32_t probe_lo_ = easeg + cpu_state.eaaddr;       \
+            const uint32_t probe_hi_ = probe_lo_ + (n) - 1;            \
+                                                                       \
+            mmutranslatereal(probe_lo_, 0);                            \
+            if (!cpu_state.abrt && ((probe_lo_ ^ probe_hi_) & ~0xfff)) \
+                mmutranslatereal(probe_hi_, 0);                        \
+            if (cpu_state.abrt)                                        \
+                return 1;                                              \
+        }                                                              \
+    } while (0)
+
 #define CHECK_READ_REP(chseg, low, high)                                         \
     if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high)) {            \
         SEG_LIMIT_FAULT(chseg);                                                  \

@@ -604,6 +604,7 @@ extern int smi_block;
    taken from there returns past it. */
 extern int cpu_halted;
 extern int cpu_is_p5(void);
+extern int cpu_init_keeps_state(void);
 
 #ifdef USE_NEW_DYNAREC
 extern uint16_t cpu_cur_status;

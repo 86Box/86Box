@@ -244,8 +244,9 @@ static int reset_init;
 static void
 reset_common(int hard)
 {
-    /* A soft reset is the INIT pin on the P54C and P55C. */
-    reset_init = !hard && cpu_is_p5();
+    /* A soft reset is the INIT pin: on the P54C, the P55C and the P6 family
+       it leaves the FPU, the caches and the MSRs (cpu_init_keeps_state). */
+    reset_init = !hard && cpu_init_keeps_state();
 
 #ifdef ENABLE_X86_LOG
     if (hard)
@@ -324,7 +325,9 @@ reset_common(int hard)
            note 2). */
         cr0 = (cr0 & 0x60000000) | 0x10;
     else if (hascache)
-        cr0 = 1 << 30;
+        /* CD, NW and ET: "The state of control register CR0 is 60000010H"
+           after reset on the Intel486 and later (SDM 1999 vol. 3, 8.1.1) */
+        cr0 = 0x60000010;
     else
         cr0 = 0;
     if (is386 && !is486 && ((fpu_type == FPU_387) || (fpu_type == FPU_NONE)))

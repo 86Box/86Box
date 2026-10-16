@@ -382,6 +382,16 @@ cpu_dynamic_switch(int new_cpu)
     cpu = c;
 }
 
+/* Whether a soft reset (the INIT pin) leaves the FPU, the MSRs and the
+   caches as they were: the P54C and P55C (Pentium Vol. 3, 16.2), and the
+   P6 family, "during an INIT, the internal caches, MSRs, MTRRs, and FPU
+   state are left unchanged" (SDM 1999 vol. 3, 8.1). */
+int
+cpu_init_keeps_state(void)
+{
+    return cpu_is_p5() || (cpu_isintel && is_p6);
+}
+
 void
 cpu_set_edx(void)
 {
@@ -389,7 +399,7 @@ cpu_set_edx(void)
     /* Its callers are soft resets, the INIT pin: a processor that has one
        (the P54C and P55C) resets "without altering the FPU state"
        (Pentium Vol. 3, 16.2). */
-    if (fpu_softfloat && !cpu_is_p5())
+    if (fpu_softfloat && !cpu_init_keeps_state())
         SF_FPU_reset();
 }
 
@@ -4520,7 +4530,10 @@ cpu_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
         /* Writes to F0 clear FPU error and deassert the interrupt. */
         if (is286) {
             picintc(1 << 13);
-            fpu_ignne = 1; /* IGNNE# until FERR# goes away */
+            /* The board's IGNNE# latch: set only while FERR# is up, which
+               clears it as it goes down (x87_ferr_clear) */
+            if (fpu_ferr)
+                fpu_ignne = 1;
         } else
             nmi = 0;
     } else if ((addr < 0xf1) && !(addr & 1))

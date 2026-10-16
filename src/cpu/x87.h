@@ -337,6 +337,8 @@ int x87_legacy_pending_entry(void);
 void x87_ferr_assert(void);
 void x87_ferr_raised(int was_es, uint16_t unmasked, uint16_t op);
 void x87_ferr_nowait(uint16_t op);
+void x87_ferr_clear(void);
+void x87_ferr_loaded(int was_es, int es_now);
 void x87_ferr_store_hold(int was_es, uint16_t unmasked);
 void x87_ferr_store_done(void);
 void x87_legacy_status_es(int was_es, uint16_t op);
