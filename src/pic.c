@@ -302,11 +302,22 @@ pic_update_pending_at(void)
 #endif
     if (!(pic.interrupt & 0x20)) {
         pic2.int_pending = (find_best_interrupt(&pic2) != -1);
- 
-        if (pic2.int_pending)
-            pic.irr |= (1 << pic2.icw3);
-        else
-            pic.irr &= ~(1 << pic2.icw3);
+
+        /* The slave's INT output is hard-wired to the master's IR2 (see
+           pic.slaves[2]), regardless of the cascade ID programmed into the
+           slave's ICW3 - firmware that never initializes the slave (eg. the
+           Tandy VIS) would otherwise have its IRQ 0 cleared here. */
+        if (machines[machine].init == machine_at_tandy_vis_init) {
+            if (pic2.int_pending)
+                pic.irr |= 0x04;
+            else
+                pic.irr &= ~0x04;
+        } else {
+            if (pic2.int_pending)
+                pic.irr |= (1 << pic2.icw3);
+            else
+                pic.irr &= ~(1 << pic2.icw3);
+        }
 
         pic.int_pending = (find_best_interrupt(&pic) != -1);
     }
@@ -935,6 +946,14 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
     }
 
     uint16_t lines = level ? 0x0000 : num;
+
+    /* The Tandy VIS firmware leaves the master's ICW3 at 0 and never
+       initializes the slave, but the slave is still wired to the master's
+       IR2 and its IRQ's still reach its IRR - Modular Windows probes IRQ 9
+       through the IRR's at startup, and the VIS reboots in a loop if the
+       probe fails. */
+    if (!slaves && (machines[machine].init == machine_at_tandy_vis_init))
+        slaves = 1;
 
     if (!slaves)
         max = 8;

@@ -432,6 +432,10 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
     if ((machine_s->init == machine_at_cobalt3k_init) && (cpu_s->multi != machine_s->cpu.min_multi) && (cpu_s->multi != machine_s->cpu.max_multi))
         return 0;
 
+    /* Tandy VIS only shipped with 12 MHz 286. */
+    if ((machine_s->init == machine_at_tandy_vis_init) && (cpu_s->rspeed != 12500000))
+        return 0;
+
     /* Check CPU blocklist. */
     if (machine_s->cpu.block) {
         i = 0;
