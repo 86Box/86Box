@@ -1470,13 +1470,14 @@ static const device_config_t paradise_wd90c31_config[] = {
                 .files         = { WD90C31_ROM, "" }
             },
             {
-                /* SS2410 RAMDAC and ICD2061 clock; always 1 MB. */
+                /* SS2410 RAMDAC and ICD2061 clock; always 1 MB (the default). */
                 .name          = "Diamond SpeedStar 24X",
                 .internal_name = "speedstar24x",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 1,
                 .size          = 32768,
+                .flags         = BIOS_FIXED_MEMORY,
                 .files         = { SPEEDSTAR24X_ROM, "" }
             },
             { .files_no = 0 }
