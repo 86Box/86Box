@@ -3413,6 +3413,10 @@ dma_ps2_run(int channel)
 int
 dma_mode(int channel)
 {
+    /* Callers pass a configured channel number, which can be out of range. */
+    if ((channel < 0) || (channel > 7))
+        return 0;
+
     return (dma[channel].mode);
 }
 
