@@ -20,6 +20,8 @@ struct i8018x_pcb_t;
 
 extern const device_t i8018x_pcb_device;
 
+extern int  i8018x_pcb_icu_pending(void);
+extern int  i8018x_pcb_icu_int_type(void);
 extern int  i8018x_pcb_icu_acknowledge(struct i8018x_pcb_t *pcb);
 extern void i8018x_pcb_icu_int(struct i8018x_pcb_t *pcb, int line, int level);
 extern void i8018x_pcb_set_dma_channels(struct i8018x_pcb_t *pcb, int dma0_ch, int dma1_ch);

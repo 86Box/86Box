@@ -271,6 +271,10 @@ static const uint16_t i8018x_icu_src[I8018X_ICU_SOURCES] = {
     I8018X_ICU_SRC_INT(0), I8018X_ICU_SRC_INT(1), I8018X_ICU_SRC_INT(2), I8018X_ICU_SRC_INT(3)
 };
 
+/* The controller the CPU core asks, since it has no way to be handed one: a
+   board has at most one, and it is set up when the device comes up. */
+static struct i8018x_pcb_t *i8018x_pcb_current;
+
 /* Control register holding a source's MSK bit; master mode merges the three
    timers into one register, so they share theirs. */
 static uint16_t
@@ -371,17 +375,15 @@ i8018x_pcb_dhlt_update(struct i8018x_pcb_t *dev)
         dev->regs[I8018X_ICU_STATUS / 2] &= (uint16_t) ~I8018X_ICU_DHLT;
 }
 
-/* Interrupt type of the highest priority request that is unmasked, above the
-   priority mask's threshold and not being serviced already, 0 when there is
-   none. That source moves into service so the guest's EOI has something to
-   clear; delivering the interrupt itself is the board's business, as this
-   controller reaches the CPU through the machine's own interrupt controller. */
-int
-i8018x_pcb_icu_acknowledge(struct i8018x_pcb_t *pcb)
+/* Index of the source that would be acknowledged right now: the highest
+   priority one among those whose request is unmasked, above the priority
+   mask's threshold and not being serviced already, -1 when there is none.
+   The core asks this at every instruction boundary, so it must leave the
+   controller's state alone; moving the winner into service is
+   i8018x_pcb_icu_acknowledge()'s job. */
+static int
+i8018x_pcb_icu_peek(struct i8018x_pcb_t *pcb)
 {
-    if (pcb == NULL)
-        return 0;
-
     i8018x_pcb_tmr_update(pcb);
 
     uint16_t pending = (uint16_t) (i8018x_pcb_icu_requests(pcb) &
@@ -411,7 +413,7 @@ i8018x_pcb_icu_acknowledge(struct i8018x_pcb_t *pcb)
     int i = i8018x_pcb_icu_highest(pcb, servable);
 
     if (i < 0)
-        return 0;
+        return -1;
 
     /* The three timers answered through the one bit they share, so the index
        picked above is whichever of them comes first; their own latches say
@@ -424,6 +426,22 @@ i8018x_pcb_icu_acknowledge(struct i8018x_pcb_t *pcb)
             }
         }
     }
+
+    return i;
+}
+
+/* Interrupt type of the source peeked above, 0 when there is none. That source
+   moves into service so the guest's EOI has something to clear. */
+int
+i8018x_pcb_icu_acknowledge(struct i8018x_pcb_t *pcb)
+{
+    if (pcb == NULL)
+        return 0;
+
+    int i = i8018x_pcb_icu_peek(pcb);
+
+    if (i < 0)
+        return 0;
 
     pcb->icu_isr |= i8018x_icu_src[i];
 
@@ -442,6 +460,24 @@ i8018x_pcb_icu_acknowledge(struct i8018x_pcb_t *pcb)
         pcb->icu_latch &= (uint16_t) ~i8018x_icu_src[i];
 
     return i8018x_icu_type[i];
+}
+
+/* Whether a source is waiting to be serviced, for the core to ask at an
+   instruction boundary. Advancing the timers to now is what a register read
+   does as well; the request and in-service state stay untouched. */
+int
+i8018x_pcb_icu_pending(void)
+{
+    return (i8018x_pcb_current != NULL) && (i8018x_pcb_icu_peek(i8018x_pcb_current) >= 0);
+}
+
+/* Take the pending source in as the interrupt the core is about to vector and
+   answer its type, which is the vector number the controller's internal vectoring
+   hands over (270788-001 section 9.5.4.1); 0 when none was pending. */
+int
+i8018x_pcb_icu_int_type(void)
+{
+    return (i8018x_pcb_current != NULL) ? i8018x_pcb_icu_acknowledge(i8018x_pcb_current) : 0;
 }
 
 /* Drive one of the external interrupt inputs from the board. In level-triggered
@@ -993,6 +1029,9 @@ i8018x_pcb_close(void *priv)
 
     dma_set_controller(NULL, NULL);
 
+    if (i8018x_pcb_current == dev)
+        i8018x_pcb_current = NULL;
+
     free(dev);
 }
 
@@ -1006,6 +1045,10 @@ i8018x_pcb_init(const device_t *info)
     dev->dma_ch[0] = dev->dma_ch[1] = -1;
 
     i8018x_pcb_reset(dev);
+
+    /* The core asks the controller through i8018x_pcb_icu_pending() and
+       i8018x_pcb_icu_int_type(), which have no argument to carry it. */
+    i8018x_pcb_current = dev;
 
     return dev;
 }
