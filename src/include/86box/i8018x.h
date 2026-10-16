@@ -16,6 +16,10 @@
 #ifndef EMU_I8018X_H
 #define EMU_I8018X_H
 
+struct i8018x_pcb_t;
+
 extern const device_t i8018x_pcb_device;
+
+extern void i8018x_pcb_set_dma_channels(struct i8018x_pcb_t *pcb, int dma0_ch, int dma1_ch);
 
 #endif /* EMU_I8018X_H */
