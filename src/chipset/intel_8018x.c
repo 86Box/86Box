@@ -148,7 +148,9 @@ struct i8018x_pcb_t {
     uint8_t  dma_adv_pend[2]; /* pointer step owed to the read_only/advance pair */
 };
 
+static uint8_t  i8018x_pcb_inb(uint16_t port, void *priv);
 static uint16_t i8018x_pcb_inw(uint16_t port, void *priv);
+static void     i8018x_pcb_outb(uint16_t port, uint8_t val, void *priv);
 static void     i8018x_pcb_outw(uint16_t port, uint16_t val, void *priv);
 
 /* Timer control register (270788-001 Figure 56). EN and INH work as a pair: a
@@ -547,9 +549,9 @@ i8018x_pcb_write_word(struct i8018x_pcb_t *dev, uint16_t off, uint16_t val)
         /* Only the I/O-space PCB is modelled; a memory-space PCB is stored
            but left where it is. */
         if (!(val & 0x1000u) && (new_base != dev->base)) {
-            io_removehandler(dev->base, I8018X_PCB_SIZE, NULL, i8018x_pcb_inw, NULL, NULL, i8018x_pcb_outw, NULL, dev);
+            io_removehandler(dev->base, I8018X_PCB_SIZE, i8018x_pcb_inb, i8018x_pcb_inw, NULL, i8018x_pcb_outb, i8018x_pcb_outw, NULL, dev);
             dev->base = new_base;
-            io_sethandler(dev->base, I8018X_PCB_SIZE, NULL, i8018x_pcb_inw, NULL, NULL, i8018x_pcb_outw, NULL, dev);
+            io_sethandler(dev->base, I8018X_PCB_SIZE, i8018x_pcb_inb, i8018x_pcb_inw, NULL, i8018x_pcb_outb, i8018x_pcb_outw, NULL, dev);
         }
         return;
     }
@@ -662,6 +664,21 @@ i8018x_pcb_write_word(struct i8018x_pcb_t *dev, uint16_t off, uint16_t val)
     }
 }
 
+/* A byte access addresses the whole 16-bit register (270788-001 section
+   5.2): an even address answers with the register's low byte, an odd one
+   is undefined, which this leaves to the bus as an unclaimed offset. */
+static uint8_t
+i8018x_pcb_inb(uint16_t port, void *priv)
+{
+    struct i8018x_pcb_t *dev = (struct i8018x_pcb_t *) priv;
+    uint16_t  off = (uint16_t) (port - dev->base);
+
+    if (off & 1u)
+        return 0xFFu;
+
+    return (uint8_t) (i8018x_pcb_read_word(dev, off) & 0x00FFu);
+}
+
 static uint16_t
 i8018x_pcb_inw(uint16_t port, void *priv)
 {
@@ -669,6 +686,17 @@ i8018x_pcb_inw(uint16_t port, void *priv)
     uint16_t  off = (uint16_t) ((port - dev->base) & 0xFEu);
 
     return i8018x_pcb_read_word(dev, off);
+}
+
+/* A byte write modifies every bit of the register it lands in; the byte it
+   did not address reads as zero (270788-001 section 5.2). */
+static void
+i8018x_pcb_outb(uint16_t port, uint8_t val, void *priv)
+{
+    struct i8018x_pcb_t *dev = (struct i8018x_pcb_t *) priv;
+    uint16_t  off = (uint16_t) (port - dev->base);
+
+    i8018x_pcb_write_word(dev, (uint16_t) (off & 0xFEu), (uint16_t) ((off & 1u) ? (val << 8) : val));
 }
 
 static void
@@ -912,7 +940,7 @@ i8018x_pcb_reset(void *priv)
     struct i8018x_pcb_t *dev = (struct i8018x_pcb_t *) priv;
 
     if (dev->handler_set)
-        io_removehandler(dev->base, I8018X_PCB_SIZE, NULL, i8018x_pcb_inw, NULL, NULL, i8018x_pcb_outw, NULL, dev);
+        io_removehandler(dev->base, I8018X_PCB_SIZE, i8018x_pcb_inb, i8018x_pcb_inw, NULL, i8018x_pcb_outb, i8018x_pcb_outw, NULL, dev);
 
     memset(dev->regs, 0x00, sizeof(dev->regs));
     dev->icu_latch = 0;
@@ -951,7 +979,7 @@ i8018x_pcb_reset(void *priv)
     dev->regs[I8018X_ICU_MASK / 2]      = I8018X_ICU_SRC_ALL;
     dev->regs[I8018X_ICU_PRIO_MASK / 2] = I8018X_ICU_PRM_BITS;
 
-    io_sethandler(dev->base, I8018X_PCB_SIZE, NULL, i8018x_pcb_inw, NULL, NULL, i8018x_pcb_outw, NULL, dev);
+    io_sethandler(dev->base, I8018X_PCB_SIZE, i8018x_pcb_inb, i8018x_pcb_inw, NULL, i8018x_pcb_outb, i8018x_pcb_outw, NULL, dev);
     dev->handler_set = 1;
 }
 
@@ -961,7 +989,7 @@ i8018x_pcb_close(void *priv)
     struct i8018x_pcb_t *dev = (struct i8018x_pcb_t *) priv;
 
     if (dev->handler_set)
-        io_removehandler(dev->base, I8018X_PCB_SIZE, NULL, i8018x_pcb_inw, NULL, NULL, i8018x_pcb_outw, NULL, dev);
+        io_removehandler(dev->base, I8018X_PCB_SIZE, i8018x_pcb_inb, i8018x_pcb_inw, NULL, i8018x_pcb_outb, i8018x_pcb_outw, NULL, dev);
 
     dma_set_controller(NULL, NULL);
 
