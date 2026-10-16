@@ -9,8 +9,10 @@
  *          Implementation of the Tandy VIS (Video Information System).
  *
  * Authors: Cacodemon345
+ *          Carl
  *
  *          Copyright 2026 Cacodemon345.
+ *          Copyright Carl
  */
 #include <stdarg.h>
 #include <stdint.h>

@@ -41,6 +41,7 @@
  *          Carl
  *
  *          Copyright 2026 Cacodemon345.
+ *          Copyright Carl.
  */
 #include <stdarg.h>
 #include <stdint.h>
