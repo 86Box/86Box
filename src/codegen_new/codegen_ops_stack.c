@@ -74,62 +74,64 @@ ropPOP_r32(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, UNUSED(uin
     return op_pc;
 }
 
+/*PUSH imm. In a block rewritten again and again (CODEBLOCK_NO_IMMEDIATES)
+  the immediate is read from RAM as the block runs, and not marked.*/
+static uint32_t
+push_imm_common(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int size32, int imm8)
+{
+    const int len = imm8 ? 1 : (size32 ? 4 : 2);
+    int       sp_reg;
+
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+        if (imm8) {
+            LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0, cs + op_pc);
+            uop_MOVSX(ir, size32 ? IREG_temp0 : IREG_temp0_W, IREG_temp0_B);
+        } else if (size32)
+            LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + op_pc);
+        else
+            LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp0, cs + op_pc);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, size32 ? -4 : -2);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, size32 ? IREG_temp0 : IREG_temp0_W);
+    } else {
+        uint32_t imm;
+
+        if (imm8)
+            imm = (uint32_t) (int32_t) (int8_t) fastreadb(cs + op_pc);
+        else
+            imm = size32 ? fastreadl(cs + op_pc) : fastreadw(cs + op_pc);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, size32 ? -4 : -2);
+        if (size32)
+            uop_MEM_STORE_IMM_32(ir, IREG_SS_base, sp_reg, imm);
+        else
+            uop_MEM_STORE_IMM_16(ir, IREG_SS_base, sp_reg, imm & 0xffff);
+        codegen_mark_code_present(block, cs + op_pc, len);
+    }
+    SUB_SP(ir, size32 ? 4 : 2);
+
+    return op_pc + len;
+}
+
 uint32_t
 ropPUSH_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint16_t imm = fastreadw(cs + op_pc);
-    int      sp_reg;
-
-    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
-    uop_MEM_STORE_IMM_16(ir, IREG_SS_base, sp_reg, imm);
-    SUB_SP(ir, 2);
-
-    codegen_mark_code_present(block, cs + op_pc, 2);
-    return op_pc + 2;
+    return push_imm_common(block, ir, op_pc, 0, 0);
 }
 uint32_t
 ropPUSH_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint32_t imm = fastreadl(cs + op_pc);
-    int      sp_reg;
-
-    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
-    uop_MEM_STORE_IMM_32(ir, IREG_SS_base, sp_reg, imm);
-    SUB_SP(ir, 4);
-
-    codegen_mark_code_present(block, cs + op_pc, 4);
-    return op_pc + 4;
+    return push_imm_common(block, ir, op_pc, 1, 0);
 }
 
 uint32_t
 ropPUSH_imm_16_8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint16_t imm = (int16_t) (int8_t) fastreadb(cs + op_pc);
-    int      sp_reg;
-
-    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
-    uop_MEM_STORE_IMM_16(ir, IREG_SS_base, sp_reg, imm);
-    SUB_SP(ir, 2);
-
-    codegen_mark_code_present(block, cs + op_pc, 1);
-    return op_pc + 1;
+    return push_imm_common(block, ir, op_pc, 0, 1);
 }
 uint32_t
 ropPUSH_imm_32_8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint32_t imm = (int32_t) (int8_t) fastreadb(cs + op_pc);
-    int      sp_reg;
-
-    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
-    uop_MEM_STORE_IMM_32(ir, IREG_SS_base, sp_reg, imm);
-    SUB_SP(ir, 4);
-
-    codegen_mark_code_present(block, cs + op_pc, 1);
-    return op_pc + 1;
+    return push_imm_common(block, ir, op_pc, 1, 1);
 }
 
 uint32_t

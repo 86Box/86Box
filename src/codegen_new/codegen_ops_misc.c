@@ -139,14 +139,18 @@ ropF6(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchd
     switch (fetchdat & 0x38) {
         case 0x00:
         case 0x08: /*TEST*/
-            imm_data = fastreadb(cs + op_pc + 1);
-
-            uop_AND_IMM(ir, IREG_flags_res_B, reg, imm_data);
+            if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+                LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp1, cs + op_pc + 1);
+                uop_AND(ir, IREG_flags_res_B, reg, IREG_temp1_B);
+            } else {
+                imm_data = fastreadb(cs + op_pc + 1);
+                uop_AND_IMM(ir, IREG_flags_res_B, reg, imm_data);
+                codegen_mark_code_present(block, cs + op_pc + 1, 1);
+            }
             uop_MOVZX(ir, IREG_flags_res, IREG_flags_res_B);
             uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN8);
 
             codegen_flags_changed = 1;
-            codegen_mark_code_present(block, cs + op_pc + 1, 1);
             return op_pc + 2;
 
         case 0x10: /*NOT*/
@@ -219,14 +223,18 @@ ropF7_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     switch (fetchdat & 0x38) {
         case 0x00:
         case 0x08: /*TEST*/
-            imm_data = fastreadw(cs + op_pc + 1);
-
-            uop_AND_IMM(ir, IREG_flags_res_W, reg, imm_data);
+            if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+                LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp1, cs + op_pc + 1);
+                uop_AND(ir, IREG_flags_res_W, reg, IREG_temp1_W);
+            } else {
+                imm_data = fastreadw(cs + op_pc + 1);
+                uop_AND_IMM(ir, IREG_flags_res_W, reg, imm_data);
+                codegen_mark_code_present(block, cs + op_pc + 1, 2);
+            }
             uop_MOVZX(ir, IREG_flags_res, IREG_flags_res_W);
             uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN16);
 
             codegen_flags_changed = 1;
-            codegen_mark_code_present(block, cs + op_pc + 1, 2);
             return op_pc + 3;
 
         case 0x10: /*NOT*/
@@ -299,13 +307,17 @@ ropF7_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     switch (fetchdat & 0x38) {
         case 0x00:
         case 0x08: /*TEST*/
-            imm_data = fastreadl(cs + op_pc + 1);
-
-            uop_AND_IMM(ir, IREG_flags_res, reg, imm_data);
+            if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+                LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp1, cs + op_pc + 1);
+                uop_AND(ir, IREG_flags_res, reg, IREG_temp1);
+            } else {
+                imm_data = fastreadl(cs + op_pc + 1);
+                uop_AND_IMM(ir, IREG_flags_res, reg, imm_data);
+                codegen_mark_code_present(block, cs + op_pc + 1, 4);
+            }
             uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN32);
 
             codegen_flags_changed = 1;
-            codegen_mark_code_present(block, cs + op_pc + 1, 4);
             return op_pc + 5;
 
         case 0x10: /*NOT*/

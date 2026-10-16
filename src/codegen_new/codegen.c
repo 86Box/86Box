@@ -166,10 +166,18 @@ codegen_check_seg_write(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg)
 static x86seg *
 codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, uint32_t *op_pc)
 {
-    uint32_t old_pc = (*op_pc) + 1;
+    codeblock_t *block  = ir->block;
+    uint32_t     old_pc = (*op_pc) + 1;
+    /*In a block rewritten again and again (CODEBLOCK_NO_IMMEDIATES) the
+      displacement is read from RAM as the block runs, and not marked: a
+      write to it doesn't throw the block away*/
+    int          dyn    = !!(block->flags & CODEBLOCK_NO_IMMEDIATES);
+
     if (!cpu_mod && cpu_rm == 6) {
-        uint16_t addr = (fetchdat >> 8) & 0xffff;
-        uop_MOV_IMM(ir, IREG_eaaddr, addr);
+        if (dyn)
+            LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_eaaddr, cs + old_pc);
+        else
+            uop_MOV_IMM(ir, IREG_eaaddr, (fetchdat >> 8) & 0xffff);
         (*op_pc) += 2;
     } else {
         int base_reg;
@@ -208,13 +216,24 @@ codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
 
         switch (cpu_mod) {
             case 1:
-                offset = (int) (int8_t) ((fetchdat >> 8) & 0xff);
-                uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, offset);
+                if (dyn) {
+                    LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0, cs + old_pc);
+                    uop_MOVSX(ir, IREG_temp0, IREG_temp0_B);
+                    uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
+                } else {
+                    offset = (int) (int8_t) ((fetchdat >> 8) & 0xff);
+                    uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, offset);
+                }
                 (*op_pc)++;
                 break;
             case 2:
-                offset = (fetchdat >> 8) & 0xffff;
-                uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, offset);
+                if (dyn) {
+                    LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp0, cs + old_pc);
+                    uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
+                } else {
+                    offset = (fetchdat >> 8) & 0xffff;
+                    uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, offset);
+                }
                 (*op_pc) += 2;
                 break;
 
@@ -229,7 +248,8 @@ codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
         }
     }
 
-    codegen_mark_code_present(ir->block, cs + old_pc, ((*op_pc) + 1) - old_pc);
+    if (!dyn)
+        codegen_mark_code_present(block, cs + old_pc, ((*op_pc) + 1) - old_pc);
     return op_ea_seg;
 }
 
@@ -263,11 +283,17 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                 }
                 break;
             case 1:
-                new_eaaddr = (uint32_t) (int8_t) ((fetchdat >> 16) & 0xff);
-                uop_MOV_IMM(ir, IREG_eaaddr, new_eaaddr);
+                if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+                    LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0, cs + (*op_pc) + 1);
+                    uop_MOVSX(ir, IREG_eaaddr, IREG_temp0_B);
+                    extra_bytes = 1;
+                } else {
+                    new_eaaddr = (uint32_t) (int8_t) ((fetchdat >> 16) & 0xff);
+                    uop_MOV_IMM(ir, IREG_eaaddr, new_eaaddr);
+                    extra_bytes = 2;
+                }
                 uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
                 (*op_pc)++;
-                extra_bytes = 2;
                 break;
             case 2:
                 if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
@@ -330,9 +356,15 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                 if (cpu_rm == 5 && !op_ssegs)
                     op_ea_seg = &cpu_state.seg_ss;
                 if (cpu_mod == 1) {
-                    uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, (uint32_t) (int8_t) (fetchdat >> 8));
+                    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+                        LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0, cs + (*op_pc) + 1);
+                        uop_MOVSX(ir, IREG_temp0, IREG_temp0_B);
+                        uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
+                    } else {
+                        uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, (uint32_t) (int8_t) (fetchdat >> 8));
+                        extra_bytes = 1;
+                    }
                     (*op_pc)++;
-                    extra_bytes = 1;
                 } else {
                     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
                         LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + (*op_pc) + 1);
