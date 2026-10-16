@@ -1489,9 +1489,9 @@ mitsumi_cdrom_init(UNUSED(const device_t *info))
     dev->cdrom_dev->cached_sector = -1;
     dev->cdrom_dev->subc_sector = -1;
 
-    dev->base = device_get_config_hex16("base");
-    dev->irq  = device_get_config_int("irq");
-    dev->dma  = device_get_config_int("dma");
+    dev->base = (info->local & 1) ? 0x340 : device_get_config_hex16("base");
+    dev->irq  = (info->local & 1) ? 5 : device_get_config_int("irq");
+    dev->dma  = (info->local & 1) ? 5 : device_get_config_int("dma");
 
     io_sethandler(dev->base, 4,
                   mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
@@ -1607,4 +1607,18 @@ const device_t mitsumi_cdrom_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mitsumi_config
+};
+
+const device_t mitsumi_cdrom_vis_device = {
+    .name          = "Mitsumi interface (Tandy VIS)",
+    .internal_name = "mcd_vis",
+    .flags         = 0,
+    .local         = 1,
+    .init          = mitsumi_cdrom_init,
+    .close         = mitsumi_cdrom_close,
+    .reset         = mitsumi_cdrom_device_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };

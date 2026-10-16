@@ -1202,6 +1202,10 @@ cdrom_interface_reset(void)
     if ((cdrom_interface_current > 0) &&
         controllers[cdrom_interface_current].device)
         device_add(controllers[cdrom_interface_current].device);
+
+    /* On a Tandy VIS machine, add the Mitsumi controller. */
+    if (machines[machine].init == machine_at_tandy_vis_init)
+        device_add(&mitsumi_cdrom_vis_device);
 }
 
 const char *
@@ -3448,6 +3452,40 @@ void
 cdrom_hard_reset(void)
 {
     cdrom_assigned_letters = 0;
+
+    if (machines[machine].init == machine_at_tandy_vis_init) {
+        bool mitsumi_bus_found = false;
+        /* Ensure there's at least one Mitsumi bus type used. */
+        for (uint8_t i = 0; i < CDROM_NUM; i++) {
+            if (cdrom[i].bus_type == CDROM_BUS_MITSUMI) {
+                mitsumi_bus_found = true;
+                break;
+            }
+        }
+        if (!mitsumi_bus_found) {
+            bool mitsumi_bus_enabled = false;
+            for (uint8_t i = 0; i < CDROM_NUM; i++) {
+                if (!cdrom[i].bus_type) {
+                    mitsumi_bus_enabled = true;
+                    cdrom[i].bus_type = CDROM_BUS_MITSUMI;
+                    break;
+                }
+            }
+            if (!mitsumi_bus_enabled) {                
+                cdrom[0].priv        = NULL;
+                cdrom[0].ops         = NULL;
+                cdrom[0].local       = NULL;
+                cdrom[0].insert      = NULL;
+                cdrom[0].close       = NULL;
+                cdrom[0].get_volume  = NULL;
+                cdrom[0].get_channel = NULL;
+                cdrom[0].bus_type    = CDROM_BUS_MITSUMI;
+                cdrom[0].res         = 0;
+                cdrom[0].speed       = 2;
+                cdrom[0].type        = 0;
+            }
+        }
+    }
 
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom_t *dev = &cdrom[i];
