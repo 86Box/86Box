@@ -256,6 +256,15 @@ tvis_recalctimings(svga_t *svga)
        cover two lines of the interlaced frame: show every line twice, or a
        200-line mode such as the firmware logo comes out at half height. */
     svga->interlace        = !!(svga->crtc[0x30] & 0x10);
+
+    /* The video clocks come from the 14.31818 MHz crystal. Clock select 1 is
+       twice that (8x the NTSC colour subcarrier); in TV scanning the encoder
+       needs that clock, so it is used whatever the clock select bits say.
+       The interlaced modes keep the VGA clock select 0 (miscellaneous output
+       0xE3) and would otherwise run at 53 Hz instead of 60. */
+    if (svga->crtc[0x30] || svga->vidclock)
+        svga->clock = (cpuclock * (double) (1ULL << 32)) / 28636363.0;
+
     svga->vertical_linedbl = !svga->interlace && (svga->vtotal < 400);
     tv_halved              = svga->crtc[0x30] && !(svga->seqregs[0x25] & 0x20);
     if (tv_halved && (svga->render != svga_render_blank)) {
