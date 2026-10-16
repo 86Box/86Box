@@ -312,6 +312,13 @@ ireg_seg_limit_high(x86seg *seg)
 
 extern uint8_t reg_last_version[IREG_COUNT];
 extern uint64_t dirty_ir_regs[2];
+extern uint64_t ireg_permanent_mask[2];
+
+static inline int
+ireg_is_permanent(int reg)
+{
+    return !!(ireg_permanent_mask[(reg >> 6) & 1] & (1ull << (reg & 0x3f)));
+}
 
 /*This version of the register must be calculated, regardless of whether it is
   apparently required or not. Do not optimise out.*/
@@ -399,7 +406,7 @@ codegen_reg_write(int reg, int uop_nr)
 
     if (dirty_ir_regs[(IREG_GET_REG(reg) >> 6) & 3] & (1ull << ((uint64_t)IREG_GET_REG(reg) & 0x3full))) {
         dirty_ir_regs[(IREG_GET_REG(reg) >> 6) & 3] &= ~(1ull << ((uint64_t)IREG_GET_REG(reg) & 0x3full));
-        if ((IREG_GET_REG(reg) > IREG_EBX && IREG_GET_REG(reg) < IREG_temp0) && last_version > 0) {
+        if ((IREG_GET_REG(reg) > IREG_EBX && ireg_is_permanent(IREG_GET_REG(reg))) && last_version > 0) {
             reg_version[IREG_GET_REG(reg)][last_version].flags |= REG_FLAGS_REQUIRED;
         }
     }

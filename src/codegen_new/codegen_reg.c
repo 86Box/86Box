@@ -218,12 +218,22 @@ static const uint8_t native_requested_sizes[9][8] =
 #endif
 };
 
+/*The IR registers that hold state outside the block (REG_PERMANENT): a
+  version of one may be read by C code the IR does not see -- a helper, the
+  interpreter after the block -- so it is kept once such code may have run,
+  wherever it sits in the enumeration (IREG_x87_operandx and IREG_fpu_op..
+  IREG_sf_exc come after the temporaries)*/
+uint64_t ireg_permanent_mask[2];
+
 void
 codegen_reg_mark_as_required(void)
 {
     /* This used to start from IREG_EAX, now only starts from IREG_ESP since the first 4 registers are never optimized out. */
     /* It also no longer iterates through volatile registers unnecessarily. */
-    for (uint8_t reg = IREG_ESP; reg < IREG_temp0; reg++) {
+    for (uint8_t reg = IREG_ESP; reg < IREG_COUNT; reg++) {
+        if (!ireg_is_permanent(reg))
+            continue;
+
         int last_version = reg_last_version[reg];
 
         if (last_version > 0)
@@ -292,6 +302,12 @@ void
 codegen_reg_reset(void)
 {
     int c;
+
+    ireg_permanent_mask[0] = ireg_permanent_mask[1] = 0;
+    for (c = 0; c < IREG_COUNT; c++) {
+        if (ireg_data[c].is_volatile == REG_PERMANENT)
+            ireg_permanent_mask[c >> 6] |= 1ull << (c & 0x3f);
+    }
 
     host_reg_set.regs        = _host_regs;
     host_reg_set.dirty       = _host_reg_dirty;
