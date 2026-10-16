@@ -87,7 +87,6 @@ void host_x86_PSLLD_XREG_IMM(codeblock_t *block, int dst_reg, int shift);
 void host_x86_PSLLQ_XREG_IMM(codeblock_t *block, int dst_reg, int shift);
 void host_x86_PSRAW_XREG_IMM(codeblock_t *block, int dst_reg, int shift);
 void host_x86_PSRAD_XREG_IMM(codeblock_t *block, int dst_reg, int shift);
-void host_x86_PSRAQ_XREG_IMM(codeblock_t *block, int dst_reg, int shift);
 void host_x86_PSRLW_XREG_IMM(codeblock_t *block, int dst_reg, int shift);
 void host_x86_PSRLD_XREG_IMM(codeblock_t *block, int dst_reg, int shift);
 void host_x86_PSRLQ_XREG_IMM(codeblock_t *block, int dst_reg, int shift);

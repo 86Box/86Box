@@ -67,6 +67,9 @@
 #define SEG_CHECK_READ(seg)
 #define SEG_CHECK_WRITE(seg)
 #define CHECK_READ(a, b, c)
+#define CHECK_READ_EA(n)
+#define PROBE_READ_EA(n)
+#define CHECK_WRITE_EA(n)
 #define CHECK_WRITE(a, b, c)
 #define UN_USED(x) (void) (x)
 #define fetch_ea_16(val)
@@ -4354,7 +4357,7 @@ execute_instruction(void)
 
                     tempws = (int) ((DX << 16) | AX);
                     if (cpu_data)
-                        tempws2 = tempws / (int) ((int16_t) cpu_data);
+                        tempws2 = (int) ((int64_t) tempws / (int16_t) cpu_data); /*64-bit: 80000000h / -1 must not trap the host*/
                     temps16 = tempws2 & 0xffff;
                     if ((cpu_data != 0) && ((int) temps16 == tempws2)) {
                         DX = tempws % (int) ((int16_t) cpu_data);

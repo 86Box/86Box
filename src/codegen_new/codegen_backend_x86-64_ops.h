@@ -34,6 +34,7 @@ uint8_t *host_x86_JNZ_short(codeblock_t *block);
 uint8_t *host_x86_JS_short(codeblock_t *block);
 uint8_t *host_x86_JZ_short(codeblock_t *block);
 
+uint32_t *host_x86_JMP_long(codeblock_t *block);
 uint32_t *host_x86_JNB_long(codeblock_t *block);
 uint32_t *host_x86_JNBE_long(codeblock_t *block);
 uint32_t *host_x86_JNL_long(codeblock_t *block);
@@ -82,12 +83,15 @@ void host_x86_MOV64_REG_ABS(codeblock_t *block, int dst_reg, void *p);
 
 void host_x86_MOV8_REG_ABS_REG_REG_SHIFT(codeblock_t *block, int dst_reg, uint32_t addr, int base_reg, int index_reg, int shift);
 
+void host_x86_MOV8_REG_BASE_INDEX(codeblock_t *block, int dst_reg, int base_reg, int index_reg);
+void host_x86_MOV16_REG_BASE_INDEX(codeblock_t *block, int dst_reg, int base_reg, int index_reg);
 void host_x86_MOV32_REG_BASE_INDEX(codeblock_t *block, int dst_reg, int base_reg, int index_reg);
 
 void host_x86_MOV64_REG_BASE_INDEX_SHIFT(codeblock_t *block, int dst_reg, int base_reg, int index_reg, int scale);
 
 void host_x86_MOV16_REG_BASE_OFFSET(codeblock_t *block, int dst_reg, int base_reg, int offset);
 void host_x86_MOV32_REG_BASE_OFFSET(codeblock_t *block, int dst_reg, int base_reg, int offset);
+void host_x86_MOV64_REG_DEREF(codeblock_t *block, int dst_reg, int base_reg);
 void host_x86_MOV64_REG_BASE_OFFSET(codeblock_t *block, int dst_reg, int base_reg, int offset);
 
 void host_x86_MOV8_REG_IMM(codeblock_t *block, int reg, uint16_t imm_data);
@@ -111,6 +115,15 @@ void host_x86_MOVZX_BASE_INDEX_32_16(codeblock_t *block, int dst_reg, int base_r
 
 void host_x86_MOVZX_REG_16_8(codeblock_t *block, int dst_reg, int src_reg);
 void host_x86_MOVZX_REG_32_8(codeblock_t *block, int dst_reg, int src_reg);
+void host_x86_SETcc_REG(codeblock_t *block, int cc, int dst_reg);
+void host_x86_BSWAP32_REG(codeblock_t *block, int reg);
+void host_x86_IMUL32_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
+void host_x86_IMUL64_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
+void host_x86_MOVSXD_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
+void host_x86_SHR64_IMM(codeblock_t *block, int dst_reg, int shift);
+void host_x86_BSF32_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
+void host_x86_BSR32_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
+void host_x86_CMOVNZ32_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 void host_x86_MOVZX_REG_32_16(codeblock_t *block, int dst_reg, int src_reg);
 
 void host_x86_MOVZX_REG_ABS_16_8(codeblock_t *block, int dst_reg, void *p);

@@ -43,9 +43,8 @@ enum {
 
     FLAGS_DEC8,
     FLAGS_DEC16,
-    FLAGS_DEC32
+    FLAGS_DEC32,
 #ifdef USE_NEW_DYNAREC
-    ,
 
     FLAGS_ADC8,
     FLAGS_ADC16,
@@ -54,10 +53,12 @@ enum {
     FLAGS_SBC8,
     FLAGS_SBC16,
     FLAGS_SBC32,
+#endif
 
+    /* SHRD: SHR's flags, but the bits shifted in come from the other
+       operand, so OF (the sign changing) looks at the result. */
     FLAGS_SHRD16,
     FLAGS_SHRD32
-#endif
 };
 
 static __inline int
@@ -78,7 +79,9 @@ ZF_SET(void)
         case FLAGS_SHL32:
         case FLAGS_SHR8:
         case FLAGS_SHR16:
+        case FLAGS_SHRD16:
         case FLAGS_SHR32:
+        case FLAGS_SHRD32:
         case FLAGS_SAR8:
         case FLAGS_SAR16:
         case FLAGS_SAR32:
@@ -95,8 +98,6 @@ ZF_SET(void)
         case FLAGS_SBC8:
         case FLAGS_SBC16:
         case FLAGS_SBC32:
-        case FLAGS_SHRD16:
-        case FLAGS_SHRD32:
 #endif
             return !cpu_state.flags_res;
 
@@ -144,13 +145,13 @@ NF_SET(void)
         case FLAGS_SUB16:
         case FLAGS_SHL16:
         case FLAGS_SHR16:
+        case FLAGS_SHRD16:
         case FLAGS_SAR16:
         case FLAGS_INC16:
         case FLAGS_DEC16:
 #ifdef USE_NEW_DYNAREC
         case FLAGS_ADC16:
         case FLAGS_SBC16:
-        case FLAGS_SHRD16:
 #endif
             return cpu_state.flags_res & 0x8000;
 
@@ -159,13 +160,13 @@ NF_SET(void)
         case FLAGS_SUB32:
         case FLAGS_SHL32:
         case FLAGS_SHR32:
+        case FLAGS_SHRD32:
         case FLAGS_SAR32:
         case FLAGS_INC32:
         case FLAGS_DEC32:
 #ifdef USE_NEW_DYNAREC
         case FLAGS_ADC32:
         case FLAGS_SBC32:
-        case FLAGS_SHRD32:
 #endif
             return cpu_state.flags_res & 0x80000000;
 
@@ -208,7 +209,9 @@ PF_SET(void)
         case FLAGS_SHL32:
         case FLAGS_SHR8:
         case FLAGS_SHR16:
+        case FLAGS_SHRD16:
         case FLAGS_SHR32:
+        case FLAGS_SHRD32:
         case FLAGS_SAR8:
         case FLAGS_SAR16:
         case FLAGS_SAR32:
@@ -225,8 +228,6 @@ PF_SET(void)
         case FLAGS_SBC8:
         case FLAGS_SBC16:
         case FLAGS_SBC32:
-        case FLAGS_SHRD16:
-        case FLAGS_SHRD32:
 #endif
             return znptable8[cpu_state.flags_res & 0xff] & P_FLAG;
 
@@ -314,6 +315,10 @@ VF_SET(void)
             return ((cpu_state.flags_op2 == 1) && (cpu_state.flags_op1 & 0x8000));
         case FLAGS_SHR32:
             return ((cpu_state.flags_op2 == 1) && (cpu_state.flags_op1 & 0x80000000));
+        case FLAGS_SHRD16:
+            return ((cpu_state.flags_res ^ cpu_state.flags_op1) & 0x8000) ? 1 : 0;
+        case FLAGS_SHRD32:
+            return ((cpu_state.flags_res ^ cpu_state.flags_op1) & 0x80000000) ? 1 : 0;
 
 #ifdef USE_NEW_DYNAREC
         case FLAGS_ROL8:
@@ -329,11 +334,6 @@ VF_SET(void)
             return (cpu_state.flags_res ^ (cpu_state.flags_res >> 1)) & 0x4000;
         case FLAGS_ROR32:
             return (cpu_state.flags_res ^ (cpu_state.flags_res >> 1)) & 0x40000000;
-
-        case FLAGS_SHRD16:
-            return ((cpu_state.flags_res ^ cpu_state.flags_op1) & 0x8000) ? 1 : 0;
-        case FLAGS_SHRD32:
-            return ((cpu_state.flags_res ^ cpu_state.flags_op1) & 0x80000000) ? 1 : 0;
 #endif
 
         case FLAGS_UNKNOWN:
@@ -361,14 +361,12 @@ AF_SET(void)
         case FLAGS_SHL32:
         case FLAGS_SHR8:
         case FLAGS_SHR16:
+        case FLAGS_SHRD16:
         case FLAGS_SHR32:
+        case FLAGS_SHRD32:
         case FLAGS_SAR8:
         case FLAGS_SAR16:
         case FLAGS_SAR32:
-#ifdef USE_NEW_DYNAREC
-        case FLAGS_SHRD16:
-        case FLAGS_SHRD32:
-#endif
             return 0;
 
         case FLAGS_ADD8:
@@ -381,11 +379,11 @@ AF_SET(void)
 
 #ifdef USE_NEW_DYNAREC
         case FLAGS_ADC8:
-            return ((cpu_state.flags_res & 0xf) < (cpu_state.flags_op1 & 0xf)) || ((cpu_state.flags_res & 0xf) == (cpu_state.flags_op1 & 0xf) && cpu_state.flags_op2 == 0xff);
+            return ((cpu_state.flags_res & 0xf) < (cpu_state.flags_op1 & 0xf)) || ((cpu_state.flags_res & 0xf) == (cpu_state.flags_op1 & 0xf) && (cpu_state.flags_op2 & 0xf) == 0xf);
         case FLAGS_ADC16:
-            return ((cpu_state.flags_res & 0xf) < (cpu_state.flags_op1 & 0xf)) || ((cpu_state.flags_res & 0xf) == (cpu_state.flags_op1 & 0xf) && cpu_state.flags_op2 == 0xffff);
+            return ((cpu_state.flags_res & 0xf) < (cpu_state.flags_op1 & 0xf)) || ((cpu_state.flags_res & 0xf) == (cpu_state.flags_op1 & 0xf) && (cpu_state.flags_op2 & 0xf) == 0xf);
         case FLAGS_ADC32:
-            return ((cpu_state.flags_res & 0xf) < (cpu_state.flags_op1 & 0xf)) || ((cpu_state.flags_res & 0xf) == (cpu_state.flags_op1 & 0xf) && cpu_state.flags_op2 == 0xffffffff);
+            return ((cpu_state.flags_res & 0xf) < (cpu_state.flags_op1 & 0xf)) || ((cpu_state.flags_res & 0xf) == (cpu_state.flags_op1 & 0xf) && (cpu_state.flags_op2 & 0xf) == 0xf);
 #endif
 
         case FLAGS_SUB8:
@@ -463,11 +461,9 @@ CF_SET(void)
 
         case FLAGS_SHR8:
         case FLAGS_SHR16:
-        case FLAGS_SHR32:
-#ifdef USE_NEW_DYNAREC
         case FLAGS_SHRD16:
+        case FLAGS_SHR32:
         case FLAGS_SHRD32:
-#endif
             return (cpu_state.flags_op1 >> (cpu_state.flags_op2 - 1)) & 1;
 
         case FLAGS_SAR8:

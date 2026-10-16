@@ -180,16 +180,20 @@ struct
     [IREG_fpu_pc] = { REG_DWORD,        &cpu_state.fpu_pc,                            REG_INTEGER, REG_PERMANENT},
     [IREG_sf_exc] = { REG_DWORD,        &cpu_state.sf_exc,                            REG_INTEGER, REG_PERMANENT},
 
+    [IREG_x87_operandx] = { REG_DOUBLE, &cpu_state.x87_operand,                       REG_FP,      REG_PERMANENT},
+
  /*Temporary registers are stored on the stack, and are not guaranteed to
   be preserved across uOPs. They will not be written back if they will
-  not be read again.*/
-    [IREG_temp0] = { REG_DWORD,         (void *) 16,                        REG_INTEGER, REG_VOLATILE },
-    [IREG_temp1] = { REG_DWORD,         (void *) 20,                        REG_INTEGER, REG_VOLATILE },
-    [IREG_temp2] = { REG_DWORD,         (void *) 24,                        REG_INTEGER, REG_VOLATILE },
-    [IREG_temp3] = { REG_DWORD,         (void *) 28,                        REG_INTEGER, REG_VOLATILE },
+  not be read again. On Windows x64 they sit above the 32 bytes of home
+  space a called function may store its arguments in.*/
+    [IREG_temp0] = { REG_DWORD,         (void *) (16 + CODEGEN_TEMP_BASE),  REG_INTEGER, REG_VOLATILE },
+    [IREG_temp1] = { REG_DWORD,         (void *) (20 + CODEGEN_TEMP_BASE),  REG_INTEGER, REG_VOLATILE },
+    [IREG_temp2] = { REG_DWORD,         (void *) (24 + CODEGEN_TEMP_BASE),  REG_INTEGER, REG_VOLATILE },
+    [IREG_temp3] = { REG_DWORD,         (void *) (28 + CODEGEN_TEMP_BASE),  REG_INTEGER, REG_VOLATILE },
 
-    [IREG_temp0d] = { REG_DOUBLE,        (void *) 40,                        REG_FP,      REG_VOLATILE },
-    [IREG_temp1d] = { REG_DOUBLE,        (void *) 48,                        REG_FP,      REG_VOLATILE },
+    [IREG_temp0d] = { REG_DOUBLE,        (void *) (40 + CODEGEN_TEMP_BASE),  REG_FP,      REG_VOLATILE },
+    [IREG_temp1d] = { REG_DOUBLE,        (void *) (48 + CODEGEN_TEMP_BASE),  REG_FP,      REG_VOLATILE },
+    [IREG_temp2d] = { REG_DOUBLE,        (void *) (56 + CODEGEN_TEMP_BASE),  REG_FP,      REG_VOLATILE },
 };
 
 static const uint8_t native_requested_sizes[9][8] = 
@@ -214,18 +218,61 @@ static const uint8_t native_requested_sizes[9][8] =
 #endif
 };
 
+/*The IR registers that hold state outside the block (REG_PERMANENT): a
+  version of one may be read by C code the IR does not see -- a helper, the
+  interpreter after the block -- so it is kept once such code may have run,
+  wherever it sits in the enumeration (IREG_x87_operandx and IREG_fpu_op..
+  IREG_sf_exc come after the temporaries)*/
+uint64_t ireg_permanent_mask[2];
+
 void
 codegen_reg_mark_as_required(void)
 {
     /* This used to start from IREG_EAX, now only starts from IREG_ESP since the first 4 registers are never optimized out. */
     /* It also no longer iterates through volatile registers unnecessarily. */
-    for (uint8_t reg = IREG_ESP; reg < IREG_temp0; reg++) {
+    for (uint8_t reg = IREG_ESP; reg < IREG_COUNT; reg++) {
+        if (!ireg_is_permanent(reg))
+            continue;
+
         int last_version = reg_last_version[reg];
 
         if (last_version > 0)
             reg_version[reg][last_version].flags |= REG_FLAGS_REQUIRED;
     }
     dirty_ir_regs[0] = dirty_ir_regs[1] = 0;
+}
+
+/*IR registers that some uOP reads or writes by byte: the guest's AL-BH,
+  the flags operands, the temporaries, the byte-sized state, and the
+  registers with a byte view defined (IREG_fpu_op_b, IREG_sf_exc_b).*/
+int
+ireg_is_byte_accessed(int ireg)
+{
+    switch (ireg) {
+        case IREG_EAX:
+        case IREG_ECX:
+        case IREG_EDX:
+        case IREG_EBX:
+        case IREG_flags_res:
+        case IREG_flags_op1:
+        case IREG_flags_op2:
+        case IREG_temp0:
+        case IREG_temp1:
+        case IREG_temp2:
+        case IREG_temp3:
+        case IREG_fpu_op:
+        case IREG_sf_exc:
+            return 1;
+
+        default:
+            return (ireg_data[ireg].native_size == REG_BYTE) || (ireg_data[ireg].native_size == REG_FPU_ST_BYTE);
+    }
+}
+
+static inline int
+host_reg_can_hold(const host_reg_set_t *reg_set, int c, ir_reg_t ir_reg)
+{
+    return !(reg_set->reg_list[c].flags & HOST_REG_FLAG_NO_BYTE) || !ireg_is_byte_accessed(IREG_GET_REG(ir_reg.reg));
 }
 
 int
@@ -255,6 +302,12 @@ void
 codegen_reg_reset(void)
 {
     int c;
+
+    ireg_permanent_mask[0] = ireg_permanent_mask[1] = 0;
+    for (c = 0; c < IREG_COUNT; c++) {
+        if (ireg_data[c].is_volatile == REG_PERMANENT)
+            ireg_permanent_mask[c >> 6] |= 1ull << (c & 0x3f);
+    }
 
     host_reg_set.regs        = _host_regs;
     host_reg_set.dirty       = _host_reg_dirty;
@@ -656,15 +709,22 @@ codegen_reg_alloc_read_reg(codeblock_t *block, ir_reg_t ir_reg, int *host_reg_id
     }
 
     if (c == reg_set->nr_regs) {
-        /*No unused registers. Search for an unlocked register with no pending reads*/
+        /*Search for unused registers*/
         for (c = 0; c < reg_set->nr_regs; c++) {
-            if (!(reg_set->locked & (1 << c)) && IREG_GET_REG(reg_set->regs[c].reg) != IREG_INVALID && !ir_get_refcount(reg_set->regs[c]))
+            if (ir_reg_is_invalid(reg_set->regs[c]) && host_reg_can_hold(reg_set, c, ir_reg))
                 break;
+        }
+        if (c == reg_set->nr_regs) {
+            /*No unused registers. Search for an unlocked register with no pending reads*/
+            for (c = 0; c < reg_set->nr_regs; c++) {
+                if (!(reg_set->locked & (1 << c)) && IREG_GET_REG(reg_set->regs[c].reg) != IREG_INVALID && !ir_get_refcount(reg_set->regs[c]) && host_reg_can_hold(reg_set, c, ir_reg))
+                    break;
+            }
         }
         if (c == reg_set->nr_regs) {
             /*Search for any unlocked register*/
             for (c = 0; c < reg_set->nr_regs; c++) {
-                if (!(reg_set->locked & (1 << c)))
+                if (!(reg_set->locked & (1 << c)) && host_reg_can_hold(reg_set, c, ir_reg))
                     break;
             }
 #ifndef RELEASE_BUILD
@@ -735,14 +795,14 @@ codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg)
     if (c == reg_set->nr_regs) {
         /*Search for unused registers*/
         for (c = 0; c < reg_set->nr_regs; c++) {
-            if (ir_reg_is_invalid(reg_set->regs[c]))
+            if (ir_reg_is_invalid(reg_set->regs[c]) && host_reg_can_hold(reg_set, c, ir_reg))
                 break;
         }
 
         if (c == reg_set->nr_regs) {
             /*No unused registers. Search for an unlocked register*/
             for (c = 0; c < reg_set->nr_regs; c++) {
-                if (!(reg_set->locked & (1 << c)))
+                if (!(reg_set->locked & (1 << c)) && host_reg_can_hold(reg_set, c, ir_reg))
                     break;
             }
 #ifndef RELEASE_BUILD
@@ -833,7 +893,11 @@ codegen_reg_flush(UNUSED(ir_data_t *ir), codeblock_t *block)
         if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->dirty[c]) {
             codegen_reg_writeback(reg_set, block, c, 0);
         }
-        if (reg_set->reg_list[c].flags & HOST_REG_FLAG_VOLATILE) {
+        /*The C code behind an ordered access (a memory access's slow path,
+          a device's handler) charges its own cycles to cpu_state._cycles: a
+          copy kept past it would be written back over them*/
+        if ((reg_set->reg_list[c].flags & HOST_REG_FLAG_VOLATILE) ||
+            (!ir_reg_is_invalid(reg_set->regs[c]) && (IREG_GET_REG(reg_set->regs[c].reg) == IREG_cycles))) {
             reg_set->regs[c]  = invalid_ir_reg;
             reg_set->dirty[c] = 0;
         }

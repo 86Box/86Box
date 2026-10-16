@@ -15,8 +15,7 @@ ropMOVQ_q_mm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t
 
         STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
 
-        CHECK_SEG_WRITE(target_seg);
-        CHECK_SEG_LIMITS(target_seg, 7);
+        CHECK_SEG_WRITE_EA(target_seg, 8);
 
         MEM_STORE_ADDR_EA_Q(target_seg, host_reg1, host_reg2);
     }
@@ -40,7 +39,7 @@ ropMOVQ_mm_q(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t
 
         STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
 
-        CHECK_SEG_READ(target_seg);
+        CHECK_SEG_READ_EA(target_seg, 8);
 
         MEM_LOAD_ADDR_EA_Q(target_seg);
         STORE_MMX_Q((fetchdat >> 3) & 7, LOAD_Q_REG_1, LOAD_Q_REG_2);
@@ -54,6 +53,10 @@ ropMOVD_l_mm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t
 {
     int host_reg;
 
+    /*0F 7E is SMINT on a Cyrix in SMM, and blocks aren't kept apart by SMM*/
+    if (cpu_iscyrix)
+        return 0;
+
     MMX_ENTER();
 
     host_reg = LOAD_MMX_D((fetchdat >> 3) & 7);
@@ -65,8 +68,7 @@ ropMOVD_l_mm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t
 
         STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
 
-        CHECK_SEG_WRITE(target_seg);
-        CHECK_SEG_LIMITS(target_seg, 3);
+        CHECK_SEG_WRITE_EA(target_seg, 4);
 
         MEM_STORE_ADDR_EA_L(target_seg, host_reg);
     }
@@ -86,7 +88,7 @@ ropMOVD_mm_l(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t
 
         STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
 
-        CHECK_SEG_READ(target_seg);
+        CHECK_SEG_READ_EA(target_seg, 4);
 
         MEM_LOAD_ADDR_EA_L(target_seg);
         STORE_MMX_LQ((fetchdat >> 3) & 7, 0);
@@ -117,7 +119,7 @@ ropMOVD_mm_l(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t
                                                                                          \
             STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);                   \
                                                                                          \
-            CHECK_SEG_READ(target_seg);                                                  \
+            CHECK_SEG_READ_EA(target_seg, 8);                                                  \
                                                                                          \
             MEM_LOAD_ADDR_EA_Q(target_seg);                                              \
             src_reg1 = LOAD_Q_REG_1;                                                     \
@@ -152,9 +154,25 @@ MMX_OP(ropPSUBSW, MMX_SUBSW)
 MMX_OP(ropPSUBUSB, MMX_SUBUSB)
 MMX_OP(ropPSUBUSW, MMX_SUBUSW)
 
-MMX_OP(ropPUNPCKLBW, MMX_PUNPCKLBW);
-MMX_OP(ropPUNPCKLWD, MMX_PUNPCKLWD);
-MMX_OP(ropPUNPCKLDQ, MMX_PUNPCKLDQ);
+/*PUNPCKLBW, PUNPCKLWD and PUNPCKLDQ read only a dword from memory, so the
+  memory forms run interpreted: an 8-byte load could fault past it*/
+#define MMX_OP_PUNPCKL(name, func)                                                      \
+    MMX_OP(name##_r, func)                                                              \
+    static uint32_t                                                                     \
+    name(uint8_t  opcode,                                                               \
+         uint32_t fetchdat,                                                             \
+         uint32_t op_32,                                                                \
+         uint32_t op_pc,                                                                \
+         codeblock_t *block)                                                            \
+    {                                                                                   \
+        if ((fetchdat & 0xc0) != 0xc0)                                                  \
+            return 0;                                                                   \
+        return name##_r(opcode, fetchdat, op_32, op_pc, block);                         \
+    }
+
+MMX_OP_PUNPCKL(ropPUNPCKLBW, MMX_PUNPCKLBW)
+MMX_OP_PUNPCKL(ropPUNPCKLWD, MMX_PUNPCKLWD)
+MMX_OP_PUNPCKL(ropPUNPCKLDQ, MMX_PUNPCKLDQ)
 MMX_OP(ropPACKSSWB, MMX_PACKSSWB);
 MMX_OP(ropPCMPGTB, MMX_PCMPGTB);
 MMX_OP(ropPCMPGTW, MMX_PCMPGTW);
@@ -245,7 +263,8 @@ ropPSxxQ_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), 
 
     if ((fetchdat & 0xc0) != 0xc0)
         return 0;
-    if ((fetchdat & 0x08) || !(fetchdat & 0x30))
+    /*Only PSRLQ and PSLLQ exist: /4 would be PSRAQ, which is #UD*/
+    if (((fetchdat & 0x38) != 0x10) && ((fetchdat & 0x38) != 0x30))
         return 0;
 
     MMX_ENTER();
@@ -254,9 +273,6 @@ ropPSxxQ_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), 
     switch (fetchdat & 0x38) {
         case 0x10: /*PSRLQ*/
             MMX_PSRLQ_imm(xmm_dst, (fetchdat >> 8) & 0xff);
-            break;
-        case 0x20: /*PSRAQ*/
-            MMX_PSRAQ_imm(xmm_dst, (fetchdat >> 8) & 0xff);
             break;
         case 0x30: /*PSLLQ*/
             MMX_PSLLQ_imm(xmm_dst, (fetchdat >> 8) & 0xff);

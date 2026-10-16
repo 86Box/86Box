@@ -133,6 +133,7 @@ enum {
 
     IREG_temp0d,
     IREG_temp1d,
+    IREG_temp2d,
 
     IREG_fpu_op,
     IREG_fpu_CS,
@@ -142,6 +143,8 @@ enum {
     IREG_fpu_ds,
     IREG_fpu_ea, */
     IREG_sf_exc,
+
+    IREG_x87_operandx,
 
     IREG_COUNT,
 
@@ -186,9 +189,11 @@ enum {
 
     IREG_temp0_D = IREG_temp0d + IREG_SIZE_D,
     IREG_temp1_D = IREG_temp1d + IREG_SIZE_D,
+    IREG_temp2_D = IREG_temp2d + IREG_SIZE_D,
 
     IREG_temp0_Q = IREG_temp0d + IREG_SIZE_Q,
     IREG_temp1_Q = IREG_temp1d + IREG_SIZE_Q,
+    IREG_temp2_Q = IREG_temp2d + IREG_SIZE_Q,
 
     IREG_eaaddr_W = IREG_eaaddr + IREG_SIZE_W,
 
@@ -198,6 +203,8 @@ enum {
     IREG_FS_seg_W = IREG_FS_seg + IREG_SIZE_W,
     IREG_GS_seg_W = IREG_GS_seg + IREG_SIZE_W,
     IREG_SS_seg_W = IREG_SS_seg + IREG_SIZE_W,
+
+    IREG_x87_operand = IREG_x87_operandx + IREG_SIZE_D,
 
     IREG_MM0 = IREG_MM0x + IREG_SIZE_Q,
     IREG_MM1 = IREG_MM1x + IREG_SIZE_Q,
@@ -234,7 +241,18 @@ enum {
 
 #define IREG_MM(reg)               ((reg) + IREG_MM0)
 
-#define IREG_TOP_diff_stack_offset 32
+/*Where the block temporaries start on the stack: above the 32 bytes of home
+  space on Windows x64, whose callees may store their arguments there (the
+  frame is CODEGEN_WIN64_FRAME, codegen_backend_x86-64.c). The FPU TOP
+  difference the block keeps between the integer and the double ones moves
+  with them: left at 32, it was temp0.*/
+#if defined(_WIN64) && (defined(__x86_64__) || defined(_M_X64))
+#    define CODEGEN_TEMP_BASE 0x10
+#else
+#    define CODEGEN_TEMP_BASE 0
+#endif
+
+#define IREG_TOP_diff_stack_offset (32 + CODEGEN_TEMP_BASE)
 
 static inline int
 ireg_seg_base(x86seg *seg)
@@ -294,6 +312,13 @@ ireg_seg_limit_high(x86seg *seg)
 
 extern uint8_t reg_last_version[IREG_COUNT];
 extern uint64_t dirty_ir_regs[2];
+extern uint64_t ireg_permanent_mask[2];
+
+static inline int
+ireg_is_permanent(int reg)
+{
+    return !!(ireg_permanent_mask[(reg >> 6) & 1] & (1ull << (reg & 0x3f)));
+}
 
 /*This version of the register must be calculated, regardless of whether it is
   apparently required or not. Do not optimise out.*/
@@ -370,6 +395,7 @@ codegen_reg_read(int reg)
 }
 
 int reg_is_native_size(ir_reg_t ir_reg);
+int ireg_is_byte_accessed(int ireg);
 
 static inline ir_reg_t
 codegen_reg_write(int reg, int uop_nr)
@@ -380,7 +406,7 @@ codegen_reg_write(int reg, int uop_nr)
 
     if (dirty_ir_regs[(IREG_GET_REG(reg) >> 6) & 3] & (1ull << ((uint64_t)IREG_GET_REG(reg) & 0x3full))) {
         dirty_ir_regs[(IREG_GET_REG(reg) >> 6) & 3] &= ~(1ull << ((uint64_t)IREG_GET_REG(reg) & 0x3full));
-        if ((IREG_GET_REG(reg) > IREG_EBX && IREG_GET_REG(reg) < IREG_temp0) && last_version > 0) {
+        if ((IREG_GET_REG(reg) > IREG_EBX && ireg_is_permanent(IREG_GET_REG(reg))) && last_version > 0) {
             reg_version[IREG_GET_REG(reg)][last_version].flags |= REG_FLAGS_REQUIRED;
         }
     }

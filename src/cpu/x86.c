@@ -233,10 +233,21 @@ makeznptable(void)
     }
 }
 
+extern void codegen_set_rounding_mode(int mode); /* x87.h */
+
+/* A soft reset on a processor with an INIT pin: what INIT keeps rather
+   than what RESET sets (Pentium Vol. 3, Table 16-1; 16.2: the INIT pin
+   resets "without altering the FPU state"). */
+static int reset_init;
+
 /* Common reset function. */
 static void
 reset_common(int hard)
 {
+    /* A soft reset is the INIT pin: on the P54C, the P55C and the P6 family
+       it leaves the FPU, the caches and the MSRs (cpu_init_keeps_state). */
+    reset_init = !hard && cpu_init_keeps_state();
+
 #ifdef ENABLE_X86_LOG
     if (hard)
         x86_log("x86 reset\n");
@@ -278,23 +289,54 @@ reset_common(int hard)
     use32          = 0;
     cpu_cur_status = 0;
     stack32        = 0;
-    msr.fcr        = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
+    if (!reset_init)
+        msr.fcr    = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
     msw            = 0;
     new_ne         = 0;
-    x87_op         = 0;
+    fpu_ignne      = 0;
+    fpu_ferr       = 0;
+    /* FOP: INIT leaves the FPU as it was (Pentium Vol. 3, 16.2). */
+    if (!reset_init)
+        x87_op = 0;
+    /* RESET's FPU, where the soft FPU (SF_FPU_reset) does not hold it:
+       control word 0040H, status 0, every tag "zero" -- 5555H -- with the
+       registers zero (Pentium Vol. 1, Table 3-2). */
+    if (hard && !fpu_softfloat && cpu_is_p5()) {
+        /* As x87_set_control_word leaves it: round to nearest, and a
+           precision control of 00 is the 24-bit key blocks compile under. */
+        cpu_state.npxc = 0x0040;
+        codegen_set_rounding_mode(0);
+        cpu_cur_status |= CPU_STATUS_FPU_PC24;
+        cpu_state.npxs = 0;
+        cpu_state.TOP  = 0;
+        for (int i = 0; i < 8; i++) {
+            cpu_state.ST[i]  = 0.0;
+            cpu_state.tag[i] = 1; /* TAG_VALID: a zero */
+        }
+    }
 
     ccr0 = ccr1 = ccr2 = ccr3 = ccr4 = ccr5 = ccr6 = ccr7 = 0;
     ccr4 = 0x85;
     cyrix.arr[3].base = 0x30000;
     cyrix.arr[3].size = 65536;
 
-    if (hascache)
-        cr0 = 1 << 30;
+    if (reset_init)
+        /* INIT leaves CD and NW, and sets ET (Pentium Vol. 3, Table 16-1,
+           note 2). */
+        cr0 = (cr0 & 0x60000000) | 0x10;
+    else if (hascache)
+        /* CD, NW and ET: "The state of control register CR0 is 60000010H"
+           after reset on the Intel486 and later (SDM 1999 vol. 3, 8.1.1) */
+        cr0 = 0x60000010;
     else
         cr0 = 0;
     if (is386 && !is486 && ((fpu_type == FPU_387) || (fpu_type == FPU_NONE)))
         cr0 |= 0x10;
-    cpu_cache_int_enabled = 0;  
+    if (is486 || isibm486)
+        cr0 |= 0x10; /* ET is hardwired to 1 */
+    /* The cache timing follows CD: INIT keeps it (above), and a CD of 0
+       kept is a cache still on. */
+    cpu_cache_int_enabled = hascache && !(cr0 & (1 << 30));
     cpu_update_waitstates();
     cr4              = 0;
     cpu_state.eflags = 0;
@@ -306,7 +348,17 @@ reset_common(int hard)
 #endif
         for (uint8_t i = 0; i < 4; i++)
             dr[i] = 0x00000000;
-        dr[6] = 0xffff1ff0;
+        dr[6] = is586 ? 0xffff0ff0 : 0xffff1ff0;
+        dr[7] = 0x00000400;
+    }
+    /* The Pentium's RESET and INIT columns alike: CR2 and CR3 0, DR0-3 0,
+       DR6 FFFF0FF0h, DR7 400h (Vol. 3, Table 16-1). */
+    if (cpu_is_p5()) {
+        cr2 = 0;
+        cr3 = 0;
+        for (uint8_t i = 0; i < 4; i++)
+            dr[i] = 0x00000000;
+        dr[6] = 0xffff0ff0;
         dr[7] = 0x00000400;
     }
     if (is286) {
@@ -327,6 +379,19 @@ reset_common(int hard)
     trap            = 0;
 
     idt.limit = is386 ? 0x03ff : 0xffff;
+    if (is586) {
+        /* Pentium on: GDTR and IDTR base 0 limit FFFFh; LDTR and TR
+           selector 0, base 0, limit FFFFh */
+        idt.limit = 0xffff;
+        gdt.base  = 0;
+        gdt.limit = 0xffff;
+        ldt.seg   = 0;
+        ldt.base  = 0;
+        ldt.limit = 0xffff;
+        tr.seg    = 0;
+        tr.base   = 0;
+        tr.limit  = 0xffff;
+    }
     if (is386 || hard)
         EAX = EBX = ECX = EDX = ESI = EDI = EBP = ESP = 0;
 
@@ -337,6 +402,11 @@ reset_common(int hard)
         cpu_set_edx();
     }
     x86seg_reset();
+#ifdef USE_DYNAREC
+    /* The data segments come out of reset with a 64K limit: not flat, so
+       the recompiler keeps their limit checks */
+    cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTFLATES;
+#endif
 #ifdef USE_DYNAREC
     /* A reset raised from inside a recompiled block (a timer run by RDTSC)
        must not free the block still running; the dynarec loop flushes once
@@ -351,9 +421,15 @@ reset_common(int hard)
     x86_was_reset = 1;
     cpu_alt_reset = 0;
 
-    cpu_ven_reset();
+    /* INIT keeps the model-specific registers (Pentium Vol. 1, 3.3): the
+       vendor reset, which clears every MSR, is RESET's. */
+    if (!reset_init)
+        cpu_ven_reset();
 
     in_smm = smi_latched = 0;
+    /* Out of any HLT: the block end must not step past the reset vector's
+       first byte (386_dynarec.c). */
+    cpu_halted = 0;
     smi_line = smm_in_hlt = 0;
     smi_block             = 0;
 

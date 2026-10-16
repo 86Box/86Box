@@ -663,7 +663,8 @@ codegen_FTST(codeblock_t *block, uop_t *uop)
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_W(dest_size) && REG_IS_D(src_size_a)) {
-        host_arm64_FSUB_D(block, REG_V_TEMP, REG_V_TEMP, REG_V_TEMP);
+        /* +0: x - x is NaN when the scratch register holds an infinity or a NaN */
+        host_arm64_EOR_REG_V(block, REG_V_TEMP, REG_V_TEMP, REG_V_TEMP);
         host_arm64_MOVZ_IMM(block, dest_reg, 0);
         host_arm64_FCMP_D(block, src_reg_a, REG_V_TEMP);
         host_arm64_ORR_IMM(block, REG_TEMP, dest_reg, FPU_SW_C3);
@@ -807,8 +808,7 @@ codegen_MMX_ENTER(codeblock_t *block, uop_t *uop)
 
     host_arm64_mov_imm(block, REG_TEMP, uop->imm_data);
     host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.oldpc - (uintptr_t) &cpu_state);
-    host_arm64_mov_imm(block, REG_ARG0, 7);
-    host_arm64_call(block, x86_int);
+    host_arm64_call(block, codegen_mmx_unavailable);
     host_arm64_B(block, codegen_exit_rout);
 
     /* Patch against the active write cursor; block->data can point at stale
@@ -1319,6 +1319,14 @@ codegen_MOV_INT_DOUBLE(codeblock_t *block, uop_t *uop)
     } else if (REG_IS_W(dest_size) && REG_IS_D(src_size)) {
         host_arm64_FMOV_D_D(block, REG_V_TEMP, src_reg);
         host_arm64_call(block, codegen_fp_round);
+        /* A word overflow stores the integer indefinite. ARM converts
+           NaN to zero, so unordered inputs need an explicit check. */
+        host_arm64_SBFX(block, REG_TEMP2, REG_TEMP, 0, 16);
+        host_arm64_CMP_REG(block, REG_TEMP2, REG_TEMP);
+        host_arm64_MOVZ_IMM(block, REG_TEMP2, 0x8000);
+        host_arm64_CSEL_EQ(block, REG_TEMP, REG_TEMP, REG_TEMP2);
+        host_arm64_FCMP_D(block, src_reg, src_reg);
+        host_arm64_CSEL_VS(block, REG_TEMP, REG_TEMP2, REG_TEMP);
         host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 16);
     } else
         fatal("MOV_INT_DOUBLE %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
@@ -1362,6 +1370,8 @@ codegen_MOV_REG_PTR(codeblock_t *block, uop_t *uop)
     host_arm64_MOVX_IMM(block, REG_TEMP, (uint64_t) uop->p);
     if (REG_IS_L(dest_size)) {
         host_arm64_LDR_IMM_W(block, dest_reg, REG_TEMP, 0);
+    } else if (REG_IS_Q(dest_size) || REG_IS_D(dest_size)) {
+        host_arm64_LDR_IMM_F64(block, dest_reg, REG_TEMP, 0);
     } else
         fatal("MOV_REG_PTR %02x\n", uop->dest_reg_a_real);
 
@@ -1856,7 +1866,12 @@ codegen_PFMAX(codeblock_t *block, uop_t *uop)
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a) && REG_IS_Q(src_size_b)) {
-        host_arm64_FMAX_V2S(block, dest_reg, src_reg_a, src_reg_b);
+        /* The destination unless the source is greater (a tie or a NaN keeps
+           it), as the interpreter does; FMAX has other rules for both. */
+        host_arm64_FCMGT_V2S(block, REG_V_TEMP, src_reg_b, src_reg_a);
+        if (dest_reg != src_reg_a)
+            host_arm64_FMOV_D_D(block, dest_reg, src_reg_a);
+        host_arm64_BIT_V(block, dest_reg, src_reg_b, REG_V_TEMP);
     } else
         fatal("PFMAX %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 
@@ -1873,7 +1888,11 @@ codegen_PFMIN(codeblock_t *block, uop_t *uop)
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a) && REG_IS_Q(src_size_b)) {
-        host_arm64_FMIN_V2S(block, dest_reg, src_reg_a, src_reg_b);
+        /* As PFMAX: the destination unless the source is smaller. */
+        host_arm64_FCMGT_V2S(block, REG_V_TEMP, src_reg_a, src_reg_b);
+        if (dest_reg != src_reg_a)
+            host_arm64_FMOV_D_D(block, dest_reg, src_reg_a);
+        host_arm64_BIT_V(block, dest_reg, src_reg_b, REG_V_TEMP);
     } else
         fatal("PFMIN %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 
@@ -2021,10 +2040,14 @@ codegen_PFRSQRT(codeblock_t *block, uop_t *uop)
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a)) {
-        /* Keep exact semantics while minimizing temporary FP register use. */
-        host_arm64_FSQRT_S(block, dest_reg, src_reg_a);
-        host_arm64_FMOV_S_ONE(block, REG_V_TEMP);
-        host_arm64_FDIV_S(block, dest_reg, REG_V_TEMP, dest_reg);
+        /* 1.0 / sqrt(x) in double precision, rounded to single once, as the
+           interpreter does it; in single precision it rounds twice. */
+        host_arm64_FCVT_D_S(block, REG_V_TEMP, src_reg_a);
+        host_arm64_FSQRT_D(block, REG_V_TEMP, REG_V_TEMP);
+        host_arm64_FMOV_S_ONE(block, dest_reg);
+        host_arm64_FCVT_D_S(block, dest_reg, dest_reg);
+        host_arm64_FDIV_D(block, dest_reg, dest_reg, REG_V_TEMP);
+        host_arm64_FCVT_S_D(block, dest_reg, dest_reg);
         host_arm64_DUP_V2S(block, dest_reg, dest_reg, 0);
     } else
         fatal("PFRSQRT %02x\n", uop->dest_reg_a_real);
@@ -2273,26 +2296,6 @@ codegen_PSRAD_IMM(codeblock_t *block, uop_t *uop)
             host_arm64_SSHR_V2S(block, dest_reg, src_reg, uop->imm_data);
     } else
         fatal("PSRAD_IMM %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
-
-    return 0;
-}
-static int
-codegen_PSRAQ_IMM(codeblock_t *block, uop_t *uop)
-{
-    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
-
-    if (REG_IS_Q(dest_size) && REG_IS_Q(src_size)) {
-        if (uop->imm_data == 0)
-            host_arm64_FMOV_D_D(block, dest_reg, src_reg);
-        else if (uop->imm_data > 63)
-            host_arm64_SSHR_V2D(block, dest_reg, src_reg, 63);
-        else
-            host_arm64_SSHR_V2D(block, dest_reg, src_reg, uop->imm_data);
-    } else
-        fatal("PSRAQ_IMM %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
 
     return 0;
 }
@@ -3061,6 +3064,190 @@ codegen_TEST_JS_DEST(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*ARM64 condition for each uop_cc_t, after a CMP of the operands shifted up
+  to bit 31*/
+static const int arm64_cc[16] = {
+    [UOP_CC_O] = 0x6 /*VS*/, [UOP_CC_NO] = 0x7 /*VC*/,
+    [UOP_CC_B] = 0x3 /*CC*/, [UOP_CC_NB] = 0x2 /*CS*/,
+    [UOP_CC_Z] = 0x0 /*EQ*/, [UOP_CC_NZ] = 0x1 /*NE*/,
+    [UOP_CC_BE] = 0x9 /*LS*/, [UOP_CC_NBE] = 0x8 /*HI*/,
+    [UOP_CC_S] = 0x4 /*MI*/, [UOP_CC_NS] = 0x5 /*PL*/,
+    [UOP_CC_L] = 0xb /*LT*/, [UOP_CC_NL] = 0xa /*GE*/,
+    [UOP_CC_LE] = 0xd /*LE*/, [UOP_CC_NLE] = 0xc /*GT*/
+};
+
+static int
+codegen_CMP_SET(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
+        host_arm64_CMP_REG(block, src_reg_a, src_reg_b);
+    } else if (REG_IS_W(src_size_a) && REG_IS_W(src_size_b)) {
+        host_arm64_MOV_REG(block, REG_TEMP, src_reg_a, 16);
+        host_arm64_CMP_REG_LSL(block, REG_TEMP, src_reg_b, 16);
+    } else if (REG_IS_B(src_size_a) && REG_IS_B(src_size_b)) {
+        host_arm64_MOV_REG(block, REG_TEMP, src_reg_a, 24);
+        host_arm64_CMP_REG_LSL(block, REG_TEMP, src_reg_b, 24);
+    } else
+        fatal("CMP_SET %02x %02x\n", uop->src_reg_a_real, uop->src_reg_b_real);
+    if (!REG_IS_L(dest_size))
+        fatal("CMP_SET dest %02x\n", uop->dest_reg_a_real);
+
+    host_arm64_CSET(block, dest_reg, arm64_cc[uop->imm_data & 0xf]);
+
+    return 0;
+}
+static int
+codegen_TEST_SET(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_L(src_size)) {
+        host_arm64_CMP_IMM(block, src_reg, 0);
+    } else if (REG_IS_W(src_size)) {
+        host_arm64_MOV_REG(block, REG_TEMP, src_reg, 16);
+        host_arm64_CMP_IMM(block, REG_TEMP, 0);
+    } else if (REG_IS_B(src_size)) {
+        host_arm64_MOV_REG(block, REG_TEMP, src_reg, 24);
+        host_arm64_CMP_IMM(block, REG_TEMP, 0);
+    } else
+        fatal("TEST_SET %02x\n", uop->src_reg_a_real);
+    if (!REG_IS_L(dest_size))
+        fatal("TEST_SET dest %02x\n", uop->dest_reg_a_real);
+
+    host_arm64_CSET(block, dest_reg, arm64_cc[uop->imm_data & 0xf]);
+
+    return 0;
+}
+static int
+codegen_BSWAP(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (!REG_IS_L(dest_size) || !REG_IS_L(src_size))
+        fatal("BSWAP %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
+
+    host_arm64_REV(block, dest_reg, src_reg);
+
+    return 0;
+}
+static int
+codegen_IMUL(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (!REG_IS_L(dest_size) || !REG_IS_L(src_size_a) || !REG_IS_L(src_size_b))
+        fatal("IMUL %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+
+    host_arm64_MUL(block, dest_reg, src_reg_a, src_reg_b);
+
+    return 0;
+}
+static int
+codegen_IMUL_OV(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (!REG_IS_L(dest_size) || !REG_IS_L(src_size_a) || !REG_IS_L(src_size_b))
+        fatal("IMUL_OV %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+
+    /*The full 64-bit product, and whether it equals its low word sign extended*/
+    host_arm64_SMULL(block, REG_TEMP, src_reg_a, src_reg_b);
+    host_arm64_CMP_X_W_SXTW(block, REG_TEMP, REG_TEMP);
+    host_arm64_CSET(block, dest_reg, 0x1 /*NE*/);
+
+    return 0;
+}
+static int
+codegen_MUL_HI_common(codeblock_t *block, uop_t *uop, int is_signed)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (!REG_IS_L(dest_size) || !REG_IS_L(src_size_a) || !REG_IS_L(src_size_b))
+        fatal("MUL_HI %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+
+    if (is_signed)
+        host_arm64_SMULL(block, REG_TEMP, src_reg_a, src_reg_b);
+    else
+        host_arm64_UMULL(block, REG_TEMP, src_reg_a, src_reg_b);
+    host_arm64_LSR64_32(block, dest_reg, REG_TEMP);
+
+    return 0;
+}
+static int
+codegen_MUL_HI(codeblock_t *block, uop_t *uop)
+{
+    return codegen_MUL_HI_common(block, uop, 0);
+}
+static int
+codegen_IMUL_HI(codeblock_t *block, uop_t *uop)
+{
+    return codegen_MUL_HI_common(block, uop, 1);
+}
+static int
+codegen_BS_common(codeblock_t *block, uop_t *uop, int reverse)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (!REG_IS_L(dest_size) || !REG_IS_L(src_size_a) || !REG_IS_L(src_size_b))
+        fatal("BSF/BSR %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+
+    if (reverse) {
+        /*31 - leading zeros; for 0-31 that is the same as XOR 31*/
+        host_arm64_CLZ(block, REG_TEMP, src_reg_a);
+        host_arm64_EOR_IMM(block, REG_TEMP, REG_TEMP, 31);
+    } else {
+        host_arm64_RBIT(block, REG_TEMP, src_reg_a);
+        host_arm64_CLZ(block, REG_TEMP, REG_TEMP);
+    }
+    host_arm64_CMP_IMM(block, src_reg_a, 0);
+    host_arm64_CSEL_EQ(block, dest_reg, src_reg_b, REG_TEMP);
+
+    return 0;
+}
+static int
+codegen_BSF(codeblock_t *block, uop_t *uop)
+{
+    return codegen_BS_common(block, uop, 0);
+}
+static int
+codegen_BSR(codeblock_t *block, uop_t *uop)
+{
+    return codegen_BS_common(block, uop, 1);
+}
+
 static int
 codegen_XOR(codeblock_t *block, uop_t *uop)
 {
@@ -3365,6 +3552,33 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_TEST_JS_DEST &
         UOP_MASK]
     = codegen_TEST_JS_DEST,
+    [UOP_CMP_SET &
+        UOP_MASK]
+    = codegen_CMP_SET,
+    [UOP_TEST_SET &
+        UOP_MASK]
+    = codegen_TEST_SET,
+    [UOP_BSWAP &
+        UOP_MASK]
+    = codegen_BSWAP,
+    [UOP_IMUL &
+        UOP_MASK]
+    = codegen_IMUL,
+    [UOP_IMUL_OV &
+        UOP_MASK]
+    = codegen_IMUL_OV,
+    [UOP_MUL_HI &
+        UOP_MASK]
+    = codegen_MUL_HI,
+    [UOP_IMUL_HI &
+        UOP_MASK]
+    = codegen_IMUL_HI,
+    [UOP_BSF &
+        UOP_MASK]
+    = codegen_BSF,
+    [UOP_BSR &
+        UOP_MASK]
+    = codegen_BSR,
 
     [UOP_FP_ENTER &
         UOP_MASK]
@@ -3542,9 +3756,6 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_PSRAD_IMM &
         UOP_MASK]
     = codegen_PSRAD_IMM,
-    [UOP_PSRAQ_IMM &
-        UOP_MASK]
-    = codegen_PSRAQ_IMM,
     [UOP_PSRLW_IMM &
         UOP_MASK]
     = codegen_PSRLW_IMM,

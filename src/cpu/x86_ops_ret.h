@@ -280,13 +280,13 @@ opIRETD(UNUSED(uint32_t fetchdat))
             cpu_state.pc     = readmeml(ss, ESP);
             new_cs           = readmemw(ss, ESP + 4);
             cpu_state.flags  = (readmemw(ss, ESP + 8) & 0xffd5) | 2;
-            cpu_state.eflags = readmemw(ss, ESP + 10);
+            cpu_state.eflags = readmemw(ss, ESP + 10) & cpu_eflags_implemented();
             ESP += 12;
         } else {
             cpu_state.pc     = readmeml(ss, SP);
             new_cs           = readmemw(ss, ((SP + 4) & 0xffff));
             cpu_state.flags  = (readmemw(ss, (SP + 8) & 0xffff) & 0xffd5) | 2;
-            cpu_state.eflags = readmemw(ss, (SP + 10) & 0xffff);
+            cpu_state.eflags = readmemw(ss, (SP + 10) & 0xffff) & cpu_eflags_implemented();
             SP += 12;
         }
         op_loadcs(new_cs);
