@@ -293,6 +293,8 @@ opPOPW_a16(uint32_t fetchdat)
 {
     uint16_t temp;
 
+    ILLEGAL_ON(fetchdat & 0x38); /*8F /1-/7*/
+
     temp = POP_W();
     if (cpu_state.abrt)
         return 1;
@@ -320,6 +322,8 @@ static int
 opPOPW_a32(uint32_t fetchdat)
 {
     uint16_t temp;
+
+    ILLEGAL_ON(fetchdat & 0x38); /*8F /1-/7*/
 
     temp = POP_W();
     if (cpu_state.abrt)
@@ -350,6 +354,8 @@ opPOPL_a16(uint32_t fetchdat)
 {
     uint32_t temp;
 
+    ILLEGAL_ON(fetchdat & 0x38); /*8F /1-/7*/
+
     temp = POP_L();
     if (cpu_state.abrt)
         return 1;
@@ -377,6 +383,8 @@ static int
 opPOPL_a32(uint32_t fetchdat)
 {
     uint32_t temp;
+
+    ILLEGAL_ON(fetchdat & 0x38); /*8F /1-/7*/
 
     temp = POP_L();
     if (cpu_state.abrt)
@@ -418,7 +426,7 @@ opENTER_w(uint32_t fetchdat)
     uint16_t tempw;
 
     offset = getwordf();
-    count  = (fetchdat >> 16) & 0xff;
+    count  = (fetchdat >> 16) & 0x1f; /* The level, mod 32 */
     cpu_state.pc++;
     tempEBP = EBP;
     tempESP = ESP;
@@ -426,12 +434,16 @@ opENTER_w(uint32_t fetchdat)
     PUSH_W(BP);
     if (cpu_state.abrt)
         return 1;
-    frame_ptr = ESP;
+    /* The stack size picks SP or ESP, BP or EBP; the operand size the pushes */
+    frame_ptr = stack32 ? ESP : SP;
 
     if (count > 0) {
         while (--count) {
-            BP -= 2;
-            tempw = readmemw(ss, BP);
+            if (stack32)
+                EBP -= 2;
+            else
+                BP -= 2;
+            tempw = readmemw(ss, stack32 ? EBP : BP);
             if (cpu_state.abrt) {
                 ESP = tempESP;
                 EBP = tempEBP;
@@ -462,7 +474,10 @@ opENTER_w(uint32_t fetchdat)
         instr_cycles += (is486) ? 3 : 5;
 #endif
     }
-    BP = frame_ptr;
+    if (stack32)
+        EBP = frame_ptr;
+    else
+        BP = frame_ptr;
 
     if (stack32)
         ESP -= offset;
@@ -491,7 +506,7 @@ opENTER_l(uint32_t fetchdat)
     uint32_t templ;
 
     offset = getwordf();
-    count  = (fetchdat >> 16) & 0xff;
+    count  = (fetchdat >> 16) & 0x1f; /* The level, mod 32 */
     cpu_state.pc++;
     tempEBP = EBP;
     tempESP = ESP;
@@ -499,12 +514,16 @@ opENTER_l(uint32_t fetchdat)
     PUSH_L(EBP);
     if (cpu_state.abrt)
         return 1;
-    frame_ptr = ESP;
+    /* The stack size picks SP or ESP, BP or EBP; the operand size the pushes */
+    frame_ptr = stack32 ? ESP : SP;
 
     if (count > 0) {
         while (--count) {
-            EBP -= 4;
-            templ = readmeml(ss, EBP);
+            if (stack32)
+                EBP -= 4;
+            else
+                BP -= 4;
+            templ = readmeml(ss, stack32 ? EBP : BP);
             if (cpu_state.abrt) {
                 ESP = tempESP;
                 EBP = tempEBP;
@@ -535,7 +554,10 @@ opENTER_l(uint32_t fetchdat)
         instr_cycles += (is486) ? 3 : 5;
 #endif
     }
-    EBP = frame_ptr;
+    if (stack32)
+        EBP = frame_ptr;
+    else
+        BP = frame_ptr;
 
     if (stack32)
         ESP -= offset;
@@ -555,7 +577,11 @@ opLEAVE_w(UNUSED(uint32_t fetchdat))
     uint32_t tempESP = ESP;
     uint16_t temp;
 
-    SP   = BP;
+    /* The stack size picks SP or ESP, the operand size the pop */
+    if (stack32)
+        ESP = EBP;
+    else
+        SP = BP;
     temp = POP_W();
     if (cpu_state.abrt) {
         ESP = tempESP;
@@ -573,7 +599,11 @@ opLEAVE_l(UNUSED(uint32_t fetchdat))
     uint32_t tempESP = ESP;
     uint32_t temp;
 
-    ESP  = EBP;
+    /* The stack size picks SP or ESP, the operand size the pop */
+    if (stack32)
+        ESP = EBP;
+    else
+        SP = BP;
     temp = POP_L();
     if (cpu_state.abrt) {
         ESP = tempESP;

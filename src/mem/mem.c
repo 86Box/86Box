@@ -308,6 +308,34 @@ static uint8_t mem_unbacked_pt_page[MEM_GRANULARITY_SIZE];
 #define rammap(x)                ((uint32_t *) rammap_backing(x))[((x) >> 2) & MEM_GRANULARITY_QMASK]
 #define rammap64(x)              ((uint64_t *) rammap_backing(x))[((x) >> 3) & MEM_GRANULARITY_PMASK]
 
+/* The PAE page-directory-pointer table entries, loaded with CR3 and kept
+   until CR3 is loaded again (Pentium Pro vol. 3, 3.8). */
+uint64_t pae_pdpte[4];
+
+/* A CR3 load with PAE on: #GP(0) for a present entry with reserved bits
+   set (answers 1), otherwise the four entries are loaded. */
+int
+pae_check_load(uint32_t cr3_val)
+{
+    uint64_t entries[4];
+
+    for (int i = 0; i < 4; i++) {
+        entries[i] = rammap64((cr3_val & ~0x1f) + (i << 3));
+        if ((entries[i] & 1) && (entries[i] & 0xfffffff0000001e6ULL))
+            return 1;
+    }
+    for (int i = 0; i < 4; i++)
+        pae_pdpte[i] = entries[i];
+    return 0;
+}
+
+void
+pae_load_pdptes(void)
+{
+    for (int i = 0; i < 4; i++)
+        pae_pdpte[i] = rammap64((cr3 & ~0x1f) + (i << 3));
+}
+
 static __inline uint64_t
 mmutranslatereal_normal(uint32_t addr, int rw)
 {
@@ -383,15 +411,13 @@ mmutranslatereal_pae(uint32_t addr, int rw)
     uint64_t temp2;
     uint64_t temp3;
     uint64_t temp4;
-    uint64_t addr2;
     uint64_t addr3;
     uint64_t addr4;
 
     if (cpu_state.abrt)
         return 0xffffffffffffffffULL;
 
-    addr2 = (cr3 & ~0x1f) + ((addr >> 27) & 0x18);
-    temp = temp2 = rammap64(addr2) & 0x000000ffffffffffULL;
+    temp = temp2 = pae_pdpte[(addr >> 30) & 3] & 0x000000ffffffffffULL;
     if (!(temp & 1)) {
         cr2 = addr;
         temp &= 1;
@@ -527,15 +553,13 @@ mmutranslate_noabrt_pae(uint32_t addr, int rw)
     uint64_t temp2;
     uint64_t temp3;
     uint64_t temp4;
-    uint64_t addr2;
     uint64_t addr3;
     uint64_t addr4;
 
     if (cpu_state.abrt)
         return 0xffffffffffffffffULL;
 
-    addr2 = (cr3 & ~0x1f) + ((addr >> 27) & 0x18);
-    temp = temp2 = rammap64(addr2) & 0x000000ffffffffffULL;
+    temp = temp2 = pae_pdpte[(addr >> 30) & 3] & 0x000000ffffffffffULL;
 
     if (!(temp & 1))
         return 0xffffffffffffffffULL;

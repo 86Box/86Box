@@ -933,144 +933,72 @@ opD3_l_a32(uint32_t fetchdat)
     return 0;
 }
 
-#ifdef USE_NEW_DYNAREC
 /* The flags are left lazy, as the recompiler leaves them: SHL's for SHLD,
    and for SHRD its own, since the bits it shifts in come from the other
-   operand. */
+   operand. The destination is read whatever the count: a count of 0
+   changes nothing, but a destination past the segment limit (or on a page
+   that isn't there) faults all the same. */
 #define SHLD_w()                                                          \
-    if (count) {                                                          \
-        uint32_t templ;                                                   \
+    {                                                                     \
         uint16_t orig = geteaw();                                         \
-        uint16_t tempw;                                                   \
         if (cpu_state.abrt)                                               \
             return 1;                                                     \
-        templ = (orig << 16) | cpu_state.regs[cpu_reg].w;                 \
-        if (count <= 16)                                                  \
-            tempw = templ >> (16 - count);                                \
-        else                                                              \
-            tempw = (templ << count) >> 16;                               \
-        seteaw(tempw);                                                    \
-        if (cpu_state.abrt)                                               \
-            return 1;                                                     \
-        set_flags_shift(FLAGS_SHL16, orig, count, tempw);                 \
+        if (count) {                                                      \
+            uint32_t templ = ((uint32_t) orig << 16) | cpu_state.regs[cpu_reg].w; \
+            uint16_t tempw;                                               \
+            if (count <= 16)                                              \
+                tempw = templ >> (16 - count);                            \
+            else                                                          \
+                tempw = (templ << count) >> 16;                           \
+            seteaw(tempw);                                                \
+            if (cpu_state.abrt)                                           \
+                return 1;                                                 \
+            set_flags_shift(FLAGS_SHL16, orig, count, tempw);             \
+        }                                                                 \
     }
 
-#define SHLD_l()                                                                \
-    if (count) {                                                                \
-        uint32_t orig = geteal();                                               \
-        uint32_t templ;                                                         \
-        if (cpu_state.abrt)                                                     \
-            return 1;                                                           \
-        templ = (orig << count) | (cpu_state.regs[cpu_reg].l >> (32 - count));  \
-        seteal(templ);                                                          \
-        if (cpu_state.abrt)                                                     \
-            return 1;                                                           \
-        set_flags_shift(FLAGS_SHL32, orig, count, templ);                       \
+#define SHLD_l()                                                                    \
+    {                                                                               \
+        uint32_t orig = geteal();                                                   \
+        if (cpu_state.abrt)                                                         \
+            return 1;                                                               \
+        if (count) {                                                                \
+            uint32_t templ = (orig << count) | (cpu_state.regs[cpu_reg].l >> (32 - count)); \
+            seteal(templ);                                                          \
+            if (cpu_state.abrt)                                                     \
+                return 1;                                                           \
+            set_flags_shift(FLAGS_SHL32, orig, count, templ);                       \
+        }                                                                           \
     }
 
-#define SHRD_w()                                           \
-    if (count) {                                           \
-        uint32_t templ;                                    \
-        uint16_t orig = geteaw();                          \
-        uint16_t tempw;                                    \
-        if (cpu_state.abrt)                                \
-            return 1;                                      \
-        templ = orig | (cpu_state.regs[cpu_reg].w << 16);  \
-        tempw = templ >> count;                            \
-        seteaw(tempw);                                     \
-        if (cpu_state.abrt)                                \
-            return 1;                                      \
-        set_flags_shift(FLAGS_SHRD16, orig, count, tempw); \
+#define SHRD_w()                                                         \
+    {                                                                    \
+        uint16_t orig = geteaw();                                        \
+        if (cpu_state.abrt)                                              \
+            return 1;                                                    \
+        if (count) {                                                     \
+            uint32_t templ = orig | ((uint32_t) cpu_state.regs[cpu_reg].w << 16); \
+            uint16_t tempw = templ >> count;                             \
+            seteaw(tempw);                                               \
+            if (cpu_state.abrt)                                          \
+                return 1;                                                \
+            set_flags_shift(FLAGS_SHRD16, orig, count, tempw);           \
+        }                                                                \
     }
 
-#define SHRD_l()                                                                \
-    if (count) {                                                                \
-        uint32_t orig = geteal();                                               \
-        uint32_t templ;                                                         \
-        if (cpu_state.abrt)                                                     \
-            return 1;                                                           \
-        templ = (orig >> count) | (cpu_state.regs[cpu_reg].l << (32 - count));  \
-        seteal(templ);                                                          \
-        if (cpu_state.abrt)                                                     \
-            return 1;                                                           \
-        set_flags_shift(FLAGS_SHRD32, orig, count, templ);                      \
+#define SHRD_l()                                                                    \
+    {                                                                               \
+        uint32_t orig = geteal();                                                   \
+        if (cpu_state.abrt)                                                         \
+            return 1;                                                               \
+        if (count) {                                                                \
+            uint32_t templ = (orig >> count) | (cpu_state.regs[cpu_reg].l << (32 - count)); \
+            seteal(templ);                                                          \
+            if (cpu_state.abrt)                                                     \
+                return 1;                                                           \
+            set_flags_shift(FLAGS_SHRD32, orig, count, templ);                      \
+        }                                                                           \
     }
-#else
-#define SHLD_w()                                              \
-    if (count) {                                              \
-        int      tempc;                                       \
-        uint32_t templ;                                       \
-        uint16_t tempw = geteaw();                            \
-        if (cpu_state.abrt)                                   \
-            return 1;                                         \
-        tempc = ((tempw << (count - 1)) & (1 << 15)) ? 1 : 0; \
-        templ = (tempw << 16) | cpu_state.regs[cpu_reg].w;    \
-        if (count <= 16)                                      \
-            tempw = templ >> (16 - count);                    \
-        else                                                  \
-            tempw = (templ << count) >> 16;                   \
-        seteaw(tempw);                                        \
-        if (cpu_state.abrt)                                   \
-            return 1;                                         \
-        setznp16(tempw);                                      \
-        flags_rebuild();                                      \
-        if (tempc)                                            \
-            cpu_state.flags |= C_FLAG;                        \
-    }
-
-#define SHLD_l()                                                                \
-    if (count) {                                                                \
-        int      tempc;                                                         \
-        uint32_t templ = geteal();                                              \
-        if (cpu_state.abrt)                                                     \
-            return 1;                                                           \
-        tempc = ((templ << (count - 1)) & (1 << 31)) ? 1 : 0;                   \
-        templ = (templ << count) | (cpu_state.regs[cpu_reg].l >> (32 - count)); \
-        seteal(templ);                                                          \
-        if (cpu_state.abrt)                                                     \
-            return 1;                                                           \
-        setznp32(templ);                                                        \
-        flags_rebuild();                                                        \
-        if (tempc)                                                              \
-            cpu_state.flags |= C_FLAG;                                          \
-    }
-
-#define SHRD_w()                                           \
-    if (count) {                                           \
-        int      tempc;                                    \
-        uint32_t templ;                                    \
-        uint16_t tempw = geteaw();                         \
-        if (cpu_state.abrt)                                \
-            return 1;                                      \
-        tempc = (tempw >> (count - 1)) & 1;                \
-        templ = tempw | (cpu_state.regs[cpu_reg].w << 16); \
-        tempw = templ >> count;                            \
-        seteaw(tempw);                                     \
-        if (cpu_state.abrt)                                \
-            return 1;                                      \
-        setznp16(tempw);                                   \
-        flags_rebuild();                                   \
-        if (tempc)                                         \
-            cpu_state.flags |= C_FLAG;                     \
-    }
-
-#define SHRD_l()                                                                \
-    if (count) {                                                                \
-        int      tempc;                                                         \
-        uint32_t templ = geteal();                                              \
-        if (cpu_state.abrt)                                                     \
-            return 1;                                                           \
-        tempc = (templ >> (count - 1)) & 1;                                     \
-        templ = (templ >> count) | (cpu_state.regs[cpu_reg].l << (32 - count)); \
-        seteal(templ);                                                          \
-        if (cpu_state.abrt)                                                     \
-            return 1;                                                           \
-        setznp32(templ);                                                        \
-        flags_rebuild();                                                        \
-        if (tempc)                                                              \
-            cpu_state.flags |= C_FLAG;                                          \
-    }
-#endif
 
 #define opSHxD(operation)                                                                   \
     static int op##operation##_i_a16(uint32_t fetchdat)                                     \
