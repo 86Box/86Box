@@ -245,6 +245,10 @@ fetch_ea_16_long(uint32_t rmdat)
 
 #include "386_ops.h"
 
+/* ES flat at the block's start, while no ES load has been compiled: its
+   limit checks are left out (both recompilers) */
+int codegen_flat_es;
+
 #ifdef USE_DEBUG_REGS_486
 /* Compiled blocks hold no debug-register checks. Data and I/O breakpoints can
    fire on any access, so they still disable the recompiler outright; an

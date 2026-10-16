@@ -27,7 +27,6 @@
 uint8_t *block_write_data = NULL;
 
 int      codegen_flat_ds;
-int      codegen_flat_es;
 int      codegen_flat_ss;
 int      mmx_ebx_ecx_loaded;
 int      codegen_flags_changed = 0;

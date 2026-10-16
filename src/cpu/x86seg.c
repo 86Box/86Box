@@ -573,10 +573,8 @@ loadseg(uint16_t seg, x86seg *s)
             codegen_flat_ds = 0;
         if (s == &cpu_state.seg_ss)
             codegen_flat_ss = 0;
-#    ifdef USE_NEW_DYNAREC
         if (s == &cpu_state.seg_es)
             codegen_flat_es = 0;
-#    endif
 #endif
     } else {
         s->access  = 0xe2;
@@ -594,10 +592,8 @@ loadseg(uint16_t seg, x86seg *s)
             codegen_flat_ds = 0;
         if (s == &cpu_state.seg_ss)
             codegen_flat_ss = 0;
-#    ifdef USE_NEW_DYNAREC
         if (s == &cpu_state.seg_es)
             codegen_flat_es = 0;
-#    endif
 #endif
         if (s == &cpu_state.seg_ss && (cpu_state.eflags & VM_FLAG))
             set_stack32(0);
@@ -2606,10 +2602,8 @@ task_load_seg(x86seg *s, uint16_t sel, const uint16_t *sd, uint32_t addr)
         codegen_flat_ds = 0;
     if (s == &cpu_state.seg_ss)
         codegen_flat_ss = 0;
-#    ifdef USE_NEW_DYNAREC
     if (s == &cpu_state.seg_es)
         codegen_flat_es = 0;
-#    endif
 #endif
     if (s == &cpu_state.seg_ds) {
         if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))

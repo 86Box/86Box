@@ -888,7 +888,7 @@ CHECK_SEG_READ(x86seg *seg)
     }
     if (seg->checked)
         return;
-    if (seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS))
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES)))
         return;
 
     CHECK_SEG_NULL(seg);
@@ -915,7 +915,7 @@ CHECK_SEG_WRITE(x86seg *seg)
     /*checked: 1 = null selector ruled out, 2 = writable too*/
     if (seg->checked == 2)
         return;
-    if (!seg->checked && !(seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)))
+    if (!seg->checked && !(seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) && !(seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES)))
         CHECK_SEG_NULL(seg);
 
     CHECK_SEG_ACCESS(seg, 0x02, 0);
@@ -929,7 +929,7 @@ CHECK_SEG_LIMITS(x86seg *seg, int end_offset)
 {
     const int fault = (seg == &cpu_state.seg_ss) ? BLOCK_SS_OFFSET : BLOCK_GPF_OFFSET;
 
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)))
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES)))
         return;
 
     if (IS_32_ADDR(&seg->base)) {
@@ -995,7 +995,7 @@ CHECK_SEG_WRITE_EA(x86seg *seg, int size)
 static __inline void
 MEM_LOAD_ADDR_EA_B(x86seg *seg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -1062,7 +1062,7 @@ MEM_LOAD_ADDR_EA_B(x86seg *seg)
 static __inline void
 MEM_LOAD_ADDR_EA_W(x86seg *seg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -1145,7 +1145,7 @@ MEM_LOAD_ADDR_EA_W_OFFSET(x86seg *seg, int offset, UNUSED(int op_32))
 static __inline void
 MEM_LOAD_ADDR_EA_L(x86seg *seg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -1217,7 +1217,7 @@ MEM_LOAD_ADDR_EA_L(x86seg *seg)
 static __inline void
 MEM_LOAD_ADDR_EA_Q(x86seg *seg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -1331,7 +1331,7 @@ MEM_STORE_ADDR_EA_B(x86seg *seg, int host_reg)
         addbyte(8);
         host_reg = 8;
     }
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -1410,7 +1410,7 @@ MEM_STORE_ADDR_EA_B(x86seg *seg, int host_reg)
 static __inline void
 MEM_STORE_ADDR_EA_W(x86seg *seg, int host_reg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -1496,7 +1496,7 @@ MEM_STORE_ADDR_EA_W(x86seg *seg, int host_reg)
 static __inline void
 MEM_STORE_ADDR_EA_L(x86seg *seg, int host_reg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -1580,7 +1580,7 @@ MEM_STORE_ADDR_EA_L(x86seg *seg, int host_reg)
 static __inline void
 MEM_STORE_ADDR_EA_Q(x86seg *seg, int host_reg, UNUSED(int host_reg2))
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5213,7 +5213,7 @@ MEM_CHECK_WRITE(x86seg *seg)
 
     CHECK_SEG_WRITE_EA(seg, 1);
 
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ESI, ESI*/
         addbyte(0xf6);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5318,7 +5318,7 @@ MEM_CHECK_WRITE_W(x86seg *seg)
 
     CHECK_SEG_WRITE_EA(seg, 2);
 
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ESI, ESI*/
         addbyte(0xf6);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5454,7 +5454,7 @@ MEM_CHECK_WRITE_L(x86seg *seg)
 
     CHECK_SEG_WRITE_EA(seg, 4);
 
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ESI, ESI*/
         addbyte(0xf6);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5582,7 +5582,7 @@ MEM_CHECK_WRITE_L(x86seg *seg)
 static __inline int
 MEM_LOAD_ADDR_EA_B_NO_ABRT(x86seg *seg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5648,7 +5648,7 @@ MEM_LOAD_ADDR_EA_B_NO_ABRT(x86seg *seg)
 static __inline int
 MEM_LOAD_ADDR_EA_W_NO_ABRT(x86seg *seg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5720,7 +5720,7 @@ MEM_LOAD_ADDR_EA_W_NO_ABRT(x86seg *seg)
 static __inline int
 MEM_LOAD_ADDR_EA_L_NO_ABRT(x86seg *seg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5810,7 +5810,7 @@ MEM_STORE_ADDR_EA_B_NO_ABRT(x86seg *seg, int host_reg)
         addbyte(8);
         host_reg = 8;
     }
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR EBX, EBX*/
         addbyte(0xdb);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5882,7 +5882,7 @@ MEM_STORE_ADDR_EA_B_NO_ABRT(x86seg *seg, int host_reg)
 static __inline void
 MEM_STORE_ADDR_EA_W_NO_ABRT(x86seg *seg, int host_reg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR EBX, EBX*/
         addbyte(0xdb);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5961,7 +5961,7 @@ MEM_STORE_ADDR_EA_W_NO_ABRT(x86seg *seg, int host_reg)
 static __inline void
 MEM_STORE_ADDR_EA_L_NO_ABRT(x86seg *seg, int host_reg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR EBX, EBX*/
         addbyte(0xdb);
     } else if (IS_32_ADDR(&seg->base)) {

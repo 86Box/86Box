@@ -32,6 +32,9 @@ int      codegen_flat_ds;
 int      codegen_flat_ss;
 int      codegen_flags_changed = 0;
 int      codegen_fpu_entered   = 0;
+/* An interpreted instruction may have loaded another control word since the
+   block's start or the last check (codegen_fpu_class_check) */
+static int codegen_fpu_class_dirty = 0;
 int      codegen_fpu_loaded_iq[8];
 int      codegen_reg_loaded[8];
 x86seg  *op_ea_seg;
@@ -404,6 +407,7 @@ codegen_block_start_recompile(codeblock_t *block)
 
     codegen_flags_changed = 0;
     codegen_fpu_entered   = 0;
+    codegen_fpu_class_dirty = 0;
     codegen_mmx_entered   = 0;
 
     codegen_fpu_loaded_iq[0] = codegen_fpu_loaded_iq[1] = codegen_fpu_loaded_iq[2] = codegen_fpu_loaded_iq[3] = codegen_fpu_loaded_iq[4] = codegen_fpu_loaded_iq[5] = codegen_fpu_loaded_iq[6] = codegen_fpu_loaded_iq[7] = 0;
@@ -416,6 +420,7 @@ codegen_block_start_recompile(codeblock_t *block)
 
     codegen_flat_ds = !(cpu_cur_status & CPU_STATUS_NOTFLATDS);
     codegen_flat_ss = !(cpu_cur_status & CPU_STATUS_NOTFLATSS);
+    codegen_flat_es = !(cpu_cur_status & CPU_STATUS_NOTFLATES);
 }
 
 void
@@ -949,6 +954,48 @@ codegen_x87_interpreted(void)
     return fpu_softfloat || !hasfpu || (fpu_type < FPU_287XL);
 }
 
+/* The compiled arithmetic is built for the control word's precision (PC24,
+   FP_ROUND_PC) and rounding (FADD with RC other than nearest is the
+   interpreter's) as they are when it is compiled: at the block's start by
+   the block key, and after an interpreted instruction that may have loaded
+   another control word by this check, before the first escape whose
+   compiled form depends on them. It leaves the block before the instruction
+   if they changed. FLDCW, FISTP, FLDCW (_ftol) needs none: FIST takes the
+   rounding when it runs. */
+static void
+codegen_fpu_class_check(codeblock_t *block, uint16_t op87, uint32_t old_pc)
+{
+    const int esc = (op87 >> 8) & 7;
+
+    if (!codegen_fpu_class_dirty)
+        return;
+    /* D8, DA, DC, DE: arithmetic and compares; D9 C0-FF: FCHS, FSQRT... */
+    if (!(esc & 1) || ((esc == 1) && ((op87 & 0xc0) == 0xc0))) {
+        codegen_fpu_class_dirty = 0;
+        addbyte(0xC7); /*MOVL $old_pc,(pc)*/
+        addbyte(0x45);
+        addbyte((uint8_t) cpu_state_offset(pc));
+        addlong(old_pc);
+        addbyte(0x0f); /*MOVZX EAX, [npxc]*/
+        addbyte(0xb7);
+        addbyte(0x45);
+        addbyte((uint8_t) cpu_state_offset(npxc));
+        addbyte(0x89); /*MOV ECX, EAX*/
+        addbyte(0xc1);
+        addbyte(0x25); /*AND EAX, 0x300*/
+        addlong(0x300);
+        addbyte(0x0f); /*JZ/JNZ end: PC 24 is 0*/
+        addbyte((cpu_state.npxc & 0x300) ? 0x84 : 0x85);
+        addlong(BLOCK_EXIT_OFFSET - (block_pos + 4));
+        addbyte(0x81); /*AND ECX, 0xc00*/
+        addbyte(0xe1);
+        addlong(0xc00);
+        addbyte(0x0f); /*JZ/JNZ end: RC nearest is 0*/
+        addbyte((cpu_state.npxc & 0xc00) ? 0x84 : 0x85);
+        addlong(BLOCK_EXIT_OFFSET - (block_pos + 4));
+    }
+}
+
 void
 codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_pc, uint32_t old_pc)
 {
@@ -1200,6 +1247,16 @@ generate_call:
             load_param_1_32(block, op87 & 0x7ff);
             call(block, (uintptr_t) x87_ferr_nowait);
         } else if (!fpu_softfloat && !codegen_fpu_entered) {
+            /* only with ES set: no error, nothing to take */
+            int skip;
+
+            addbyte(0xf6); /*TEST BYTE [npxs], 0x80*/
+            addbyte(0x45);
+            addbyte((uint8_t) cpu_state_offset(npxs));
+            addbyte(0x80);
+            addbyte(0x74); /*JZ skip*/
+            addbyte(0);
+            skip = block_pos;
             addbyte(0xC7); /*MOVL $old_pc,(oldpc)*/
             addbyte(0x45);
             addbyte((uint8_t) cpu_state_offset(oldpc));
@@ -1210,12 +1267,15 @@ generate_call:
             addbyte(0x0f); /*JNZ end*/
             addbyte(0x85);
             addlong(BLOCK_EXIT_OFFSET - (block_pos + 4));
+            block->data[skip - 1] = (uint8_t) (block_pos - skip);
         }
     }
 
     if (recomp_op_table && recomp_op_table[(opcode | op_32) & 0x1ff]) {
         uint32_t new_pc;
 
+        if (is_fpu)
+            codegen_fpu_class_check(block, op87, old_pc);
         codegen_ea_target_seg = NULL;
         codegen_x87_ea_record = is_fpu && cpu_dyn_accurate_fpu_env;
         new_pc                = recomp_op_table[(opcode | op_32) & 0x1ff](opcode, fetchdat, op_32, op_pc, block);
@@ -1346,31 +1406,13 @@ codegen_skip:
     /*An interpreted x87 or 0F instruction can undo what the block took as
       done (FNINIT, FRSTOR, FXRSTOR and FEMMS empty the tags and leave MMX
       mode, CLTS and LMSW change CR0): the next compiled FPU or MMX
-      instruction checks and enters again. And the block was compiled for its
-      entry precision (PC24) and rounding (RC != nearest) classes, which key
-      it: FLDCW, FLDENV, FRSTOR, FNINIT or FXRSTOR can change them, and the
-      block is left then, so the rest runs in one compiled for the new ones.*/
+      instruction checks and enters again. FLDCW, FLDENV, FRSTOR, FNINIT or
+      FXRSTOR can also change the control word's classes: the next compiled
+      arithmetic checks them (codegen_fpu_class_check).*/
     if (is_fpu || (op_table == x86_dynarec_opcodes_0f)) {
-        codegen_fpu_entered = 0;
-        codegen_mmx_entered = 0;
-
-        addbyte(0x0f); /*MOVZX EAX, [npxc]*/
-        addbyte(0xb7);
-        addbyte(0x45);
-        addbyte((uint8_t) cpu_state_offset(npxc));
-        addbyte(0x89); /*MOV ECX, EAX*/
-        addbyte(0xc1);
-        addbyte(0x25); /*AND EAX, 0x300*/
-        addlong(0x300);
-        addbyte(0x0f); /*JZ/JNZ end: PC 24 is 0*/
-        addbyte((block->status & CPU_STATUS_FPU_PC24) ? 0x85 : 0x84);
-        addlong(BLOCK_EXIT_OFFSET - (block_pos + 4));
-        addbyte(0x81); /*AND ECX, 0xc00*/
-        addbyte(0xe1);
-        addlong(0xc00);
-        addbyte(0x0f); /*JZ/JNZ end: RC nearest is 0*/
-        addbyte((block->status & CPU_STATUS_FPU_RC_NZ) ? 0x84 : 0x85);
-        addlong(BLOCK_EXIT_OFFSET - (block_pos + 4));
+        codegen_fpu_entered     = 0;
+        codegen_mmx_entered     = 0;
+        codegen_fpu_class_dirty = 1;
     }
 
     codegen_endpc = (cs + cpu_state.pc) + 14;
