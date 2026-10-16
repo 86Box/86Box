@@ -143,6 +143,20 @@ struct i8018x_pcb_t {
 static uint16_t i8018x_pcb_inw(uint16_t port, void *priv);
 static void     i8018x_pcb_outw(uint16_t port, uint16_t val, void *priv);
 
+/* Timer control register (270788-001 Figure 56). EN and INH work as a pair: a
+   write reaches the ENable bit only when it sets the INHibit bit alongside it,
+   and the INHibit bit itself is never stored (section 6.1). MC is the sticky
+   "maximum count reached" flag; RIU, read only, names the maximum count
+   register that is counting right now. */
+#define I8018X_TMR_CON_EN      0x8000u
+#define I8018X_TMR_CON_INH     0x4000u
+#define I8018X_TMR_CON_INT     0x2000u
+#define I8018X_TMR_CON_RIU     0x1000u
+#define I8018X_TMR_CON_MC      0x0020u
+#define I8018X_TMR_CON_P       0x0008u
+#define I8018X_TMR_CON_ALT     0x0002u
+#define I8018X_TMR_CON_CONT    0x0001u
+
 /* The three timers count at one fourth of the CPU clock (270788-001 section
    6.2). 86Box advances tsc three times per CPU cycle here: pit.c:1868 sets
    xt_cpu_multi = 3, pit.c:1893-1894 clocks this 12 MHz part at 36 MHz, and
@@ -174,7 +188,7 @@ i8018x_pcb_tmr_events(struct i8018x_pcb_t *dev, int i)
 {
     uint64_t src;
 
-    if ((i != 2) && (dev->regs[I8018X_TMR_CON(i) / 2] & 0x0008u))
+    if ((i != 2) && (dev->regs[I8018X_TMR_CON(i) / 2] & I8018X_TMR_CON_P))
         src = i8018x_pcb_tmr_events(dev, 2) / i8018x_pcb_tmr_max(dev, 2);
     else
         src = (tsc - dev->tmr_base[i]) / I8018X_TMR_TSC_PER_EVENT;
@@ -187,7 +201,7 @@ static void
 i8018x_pcb_tmr_restart(struct i8018x_pcb_t *dev, int i)
 {
     dev->tmr_base[i] = tsc;
-    dev->tmr_src[i]  = ((i != 2) && (dev->regs[I8018X_TMR_CON(i) / 2] & 0x0008u))
+    dev->tmr_src[i]  = ((i != 2) && (dev->regs[I8018X_TMR_CON(i) / 2] & I8018X_TMR_CON_P))
                            ? (i8018x_pcb_tmr_events(dev, 2) / i8018x_pcb_tmr_max(dev, 2))
                            : 0u;
     dev->tmr_done[i] = 0;
@@ -195,18 +209,21 @@ i8018x_pcb_tmr_restart(struct i8018x_pcb_t *dev, int i)
 }
 
 /* Advance the timers to the current tsc. A timer that reaches its maximum
-   count latches a request (when its interrupt is enabled) and, unless
-   CONT is set, stops counting until the program enables it again. */
+   count sets its sticky MC bit, latches a request (when its interrupt is
+   enabled) and, unless CONT is set, stops counting until the program
+   enables it again. */
 static void
 i8018x_pcb_tmr_update(struct i8018x_pcb_t *dev)
 {
     for (int i = 0; i < 3; i++) {
         uint16_t con = dev->regs[I8018X_TMR_CON(i) / 2];
 
-        if (!(con & 0x8000u))
+        if (!(con & I8018X_TMR_CON_EN))
             continue;
 
-        dev->tmr_alt[i] = (uint8_t) (((con & 0x0002u) && (i != 2)) ? (dev->tmr_done[i] & 1u) : 0u);
+        dev->tmr_alt[i] = (uint8_t) (((con & I8018X_TMR_CON_ALT) && (i != 2))
+                                         ? (dev->tmr_done[i] & 1u)
+                                         : 0u);
 
         uint64_t max = i8018x_pcb_tmr_max(dev, i);
         uint64_t cyc = i8018x_pcb_tmr_events(dev, i) / max;
@@ -216,11 +233,15 @@ i8018x_pcb_tmr_update(struct i8018x_pcb_t *dev)
 
         dev->tmr_done[i] = cyc;
 
-        if (con & 0x2000u) /* INT: the timer drives its interrupt request */
+        /* MC reports the maximum count being reached whether or not the timer
+           was asked to interrupt. */
+        dev->regs[I8018X_TMR_CON(i) / 2] |= I8018X_TMR_CON_MC;
+
+        if (con & I8018X_TMR_CON_INT)
             dev->tmr_req |= (uint16_t) (1u << i);
 
-        if (!(con & 0x0001u)) /* CONT = 0: the timer halts on maximum count */
-            dev->regs[I8018X_TMR_CON(i) / 2] &= (uint16_t) ~0x8000u;
+        if (!(con & I8018X_TMR_CON_CONT))
+            dev->regs[I8018X_TMR_CON(i) / 2] &= (uint16_t) ~I8018X_TMR_CON_EN;
     }
 }
 
@@ -417,10 +438,15 @@ i8018x_pcb_read_word(struct i8018x_pcb_t *dev, uint16_t off)
 
     for (int i = 0; i < 3; i++) {
         if (off == I8018X_TMR_COUNT(i)) {
-            if (dev->regs[I8018X_TMR_CON(i) / 2] & 0x8000u)
+            if (dev->regs[I8018X_TMR_CON(i) / 2] & I8018X_TMR_CON_EN)
                 return (uint16_t) (i8018x_pcb_tmr_events(dev, i) % i8018x_pcb_tmr_max(dev, i));
             return dev->regs[off / 2];
         }
+
+        /* RIU names the maximum count register counting right now; timer 2 has
+           neither a second one nor the bit (270788-001 Figure 56). */
+        if ((off == I8018X_TMR_CON(i)) && (i != 2) && dev->tmr_alt[i])
+            return (uint16_t) (dev->regs[off / 2] | I8018X_TMR_CON_RIU);
     }
 
     /* The request register shows every source that is asking, the in-service
@@ -466,6 +492,20 @@ i8018x_pcb_write_word(struct i8018x_pcb_t *dev, uint16_t off, uint16_t val)
        clear keeps the channel running as it was (270788-001 section 8.2). */
     if (((off == I8018X_DMA_CTRL(0)) || (off == I8018X_DMA_CTRL(1))) && !(val & I8018X_DMA_CHG))
         val = (uint16_t) ((val & ~I8018X_DMA_ST) | (dev->regs[off / 2] & I8018X_DMA_ST));
+
+    /* A timer control register keeps neither its INHibit bit, which is what
+       lets a write reach the ENable bit at all, nor its read-only RIU bit
+       (270788-001 section 6.1). */
+    for (int i = 0; i < 3; i++) {
+        if (off != I8018X_TMR_CON(i))
+            continue;
+
+        if (!(val & I8018X_TMR_CON_INH))
+            val = (uint16_t) ((val & ~I8018X_TMR_CON_EN) | (dev->regs[off / 2] & I8018X_TMR_CON_EN));
+
+        val &= (uint16_t) ~(I8018X_TMR_CON_INH | I8018X_TMR_CON_RIU);
+        break;
+    }
 
     dev->regs[off / 2] = val;
 
