@@ -46,7 +46,7 @@
 
 #define REG_XMM_TEMP         REG_XMM0
 
-#define CODEGEN_HOST_REGS    3
+#define CODEGEN_HOST_REGS    5
 #define CODEGEN_HOST_FP_REGS 7
 
 extern void *codegen_mem_load_byte;

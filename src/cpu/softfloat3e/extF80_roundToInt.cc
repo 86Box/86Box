@@ -72,7 +72,7 @@ extFloat80_t
     *------------------------------------------------------------------------*/
     if (exp <= 0x3FFE) {
         if (! exp) {
-            if ((sigA<<1) == 0) return a;
+            if (!sigA) return a;
             softfloat_raiseFlags(status, softfloat_flag_denormal);
         }
         if (exact) softfloat_raiseFlags(status, softfloat_flag_inexact);
