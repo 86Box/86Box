@@ -191,6 +191,10 @@ fdc_ctrl_reset(void *priv, int reset_power_down)
 
     fdc->stat             = 0x80;
     fdc->pnum = fdc->ptot = 0;
+    /* A reset aborts the command and its result phase with it, so the result
+       bytes the guest had not read are gone; fdc_write() refuses a command
+       while paramstogo is set. */
+    fdc->paramstogo       = 0;
     fdc->st0              = 0;
     fdc->head             = 0;
     fdc->step             = 0;
@@ -1106,8 +1110,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             case 5: /*Command register*/
                 if (fdc->flags & FDC_FLAG_5550)
                     picintc(1 << fdc->irq);
-                /* While result bytes are still pending, a write is not a command
-                   parameter; taking the parameter path would clobber the results. */
+                /* The uPD765 does not accept a command until every result byte
+                   has been read out, so writes arriving before that is neither
+                   a command byte nor one of its parameters. */
                 if (fdc->paramstogo)
                     return;
                 if (fdc->fifointest) {
