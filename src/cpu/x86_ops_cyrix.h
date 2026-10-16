@@ -410,12 +410,12 @@ opSMINT(UNUSED(uint32_t fetchdat))
                       (CCR1_USE_SMI | CCR1_SMAC)) &&
                       (cyrix.arr[3].size > 0);
 
-    if (in_smm)
-        fatal("opSMINT\n");
-    else if (ccr1_check) {
-        is_smint = 1;
-        enter_smm(0);
-    }
+    /* Invalid opcode unless SMM is set up for it, at CPL 0, outside SMM
+       (Cyrix SMM Programmer's Guide 2.5 and table C-1) */
+    ILLEGAL_ON(in_smm || CPL || !ccr1_check);
+
+    is_smint = 1;
+    enter_smm(0);
 
     return 1;
 }
