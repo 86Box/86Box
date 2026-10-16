@@ -8,8 +8,9 @@
  *
  *          8018x integrated peripheral control block: the on-chip peripherals
  *          of the 80186/80188 that the CPU core in 808x.c does not provide.
- *          Relocation, the timers and DMA work; the interrupt controller
- *          and the chip selects are stored only.
+ *          Relocation, the timers, DMA and the interrupt controller work;
+ *          the controller leaves raising the interrupt to the board, the
+ *          chip selects are stored only and the refresh unit is not modelled.
  *
  * Authors: WNT50
  *
@@ -77,9 +78,42 @@
 #define I8018X_DMA_CHG          0x0004u /* write only; always reads back as 0 */
 #define I8018X_DMA_ST           0x0002u
 
-/* Interrupt controller request/status (270788-001 section 9.6.2). */
+/* Interrupt controller, master mode (270788-001 section 9.5, Figures 80-87). */
+#define I8018X_ICU_EOI          0x22u /* End of Interrupt Register */
+#define I8018X_ICU_POLL         0x24u /* Poll Register, not modelled */
+#define I8018X_ICU_POLL_STATUS  0x26u /* Poll Status Register, not modelled */
+#define I8018X_ICU_MASK         0x28u /* Interrupt Mask Register */
+#define I8018X_ICU_PRIO_MASK    0x2Au /* Priority Mask Register */
+#define I8018X_ICU_INSERVICE    0x2Cu /* In-Service Register */
 #define I8018X_ICU_REQ          0x2Eu /* Interrupt Request Register */
 #define I8018X_ICU_STATUS       0x30u /* Interrupt Controller Status Register */
+#define I8018X_ICU_TMR_CON      0x32u /* control for all three timers at once */
+#define I8018X_ICU_DMA_CON(i)   (0x34u + ((i) * 2u)) /* DMA0 at 34h, DMA1 at 36h */
+#define I8018X_ICU_INT_CON(i)   (0x38u + ((i) * 2u)) /* INT0 at 38h .. INT3 at 3Eh */
+
+/* One bit per source in the request, mask and in-service registers. Unlike
+   slave mode these are not the interrupt types: the three timers share TMR
+   and the four external inputs have bits of their own. */
+#define I8018X_ICU_SRC_TMR      0x0001u
+#define I8018X_ICU_SRC_DMA(i)   (0x0004u << (i))
+#define I8018X_ICU_SRC_INT(i)   (0x0010u << (i))
+#define I8018X_ICU_SRC_ALL      0x00FDu /* everything but bit 1, which is unused */
+
+/* Control register (270788-001 Figure 81): PRL (bits 2-0) is the source's
+   priority level, stored but not arbitrated, and MSK (bit 3) gates it. Bit 4
+   is the LTM bit of the INT0-INT3 registers, which asks for level-triggered
+   operation -- the mode this model implements, the board driving a level
+   through i8018x_pcb_icu_int(); the SFNM and C bits above it (INT0 and
+   INT1 only) affect cascading and are stored but not acted on. */
+#define I8018X_ICU_CON_MSK      0x0008u
+#define I8018X_ICU_CON_PRL      0x0007u
+
+/* EOI register: bit 15 asks for a non-specific acknowledgement, the low
+   five bits name an interrupt type (Table 19) for a specific one. */
+#define I8018X_ICU_EOI_NSPEC    0x8000u
+#define I8018X_ICU_EOI_TYPE     0x001Fu
+
+#define I8018X_ICU_SOURCES      9
 
 struct i8018x_pcb_t {
     uint16_t base;        /* current PCB I/O base */
@@ -90,6 +124,8 @@ struct i8018x_pcb_t {
     uint64_t tmr_src[3];    /* clock-source events already counted at that moment */
     uint64_t tmr_done[3];   /* maximum-count cycles completed so far */
     uint16_t tmr_req;       /* sticky timer request latches: bit i = timer i */
+    uint16_t icu_ext;       /* external input levels, INT0-INT3 in bits 4-7 */
+    uint16_t icu_isr;       /* in-service register bits */
     uint8_t  tmr_alt[3];    /* MAX COUNT register in use: 0 = A, 1 = B (ALT) */
     int      dma_ch[2];       /* 86Box DMA channel the on-chip channel drives, -1 = unused */
     uint8_t  dma_drq[2];      /* request pin state, recorded only */
@@ -180,6 +216,94 @@ i8018x_pcb_tmr_update(struct i8018x_pcb_t *dev)
     }
 }
 
+/* A source's interrupt type (270788-001 Figure 80 / Table 19) and the bit it
+   owns in the request, mask and in-service registers. The order doubles as the
+   servicing order for a non-specific EOI: the manual's priority table is not
+   modelled, and the guest never has two sources in service at once here. */
+static const uint8_t i8018x_icu_type[I8018X_ICU_SOURCES] = {
+    8,  18, 19,          /* timers 0-2 */
+    10, 11,              /* DMA channels */
+    12, 13, 14, 15       /* INT0-INT3 */
+};
+
+static const uint16_t i8018x_icu_src[I8018X_ICU_SOURCES] = {
+    I8018X_ICU_SRC_TMR, I8018X_ICU_SRC_TMR, I8018X_ICU_SRC_TMR,
+    I8018X_ICU_SRC_DMA(0), I8018X_ICU_SRC_DMA(1),
+    I8018X_ICU_SRC_INT(0), I8018X_ICU_SRC_INT(1), I8018X_ICU_SRC_INT(2), I8018X_ICU_SRC_INT(3)
+};
+
+/* Control register holding a source's MSK bit; master mode merges the three
+   timers into one register, so they share theirs. */
+static uint16_t
+i8018x_pcb_icu_con(uint16_t bit)
+{
+    if (bit == I8018X_ICU_SRC_TMR)
+        return I8018X_ICU_TMR_CON;
+
+    for (int i = 0; i < 2; i++) {
+        if (bit == I8018X_ICU_SRC_DMA(i))
+            return I8018X_ICU_DMA_CON(i);
+    }
+
+    for (int i = 0; i < 4; i++) {
+        if (bit == I8018X_ICU_SRC_INT(i))
+            return I8018X_ICU_INT_CON(i);
+    }
+
+    return 0x00u;
+}
+
+/* Everything the sources are asking for right now: the timer latch, the
+   external input levels and whatever the guest forced through the request
+   register. */
+static uint16_t
+i8018x_pcb_icu_requests(struct i8018x_pcb_t *dev)
+{
+    return (uint16_t) (dev->regs[I8018X_ICU_REQ / 2] | dev->icu_ext |
+                       (dev->tmr_req ? I8018X_ICU_SRC_TMR : 0x0000u));
+}
+
+/* Interrupt type of the highest priority request that is neither masked nor
+   already in service, 0 when there is none. That source moves into service so
+   the guest's EOI has something to clear; delivering the interrupt itself is
+   the board's business, as this controller reaches the CPU through the
+   machine's own interrupt controller. */
+int
+i8018x_pcb_icu_acknowledge(struct i8018x_pcb_t *pcb)
+{
+    if (pcb == NULL)
+        return 0;
+
+    i8018x_pcb_tmr_update(pcb);
+
+    uint16_t pending = (uint16_t) (i8018x_pcb_icu_requests(pcb) &
+                                   (uint16_t) ~pcb->regs[I8018X_ICU_MASK / 2] & I8018X_ICU_SRC_ALL);
+
+    for (int i = 0; i < I8018X_ICU_SOURCES; i++) {
+        if (!(pending & i8018x_icu_src[i]) || (pcb->icu_isr & i8018x_icu_src[i]))
+            continue;
+
+        pcb->icu_isr |= i8018x_icu_src[i];
+
+        return i8018x_icu_type[i];
+    }
+
+    return 0;
+}
+
+/* Drive one of the external interrupt inputs from the board. */
+void
+i8018x_pcb_icu_int(struct i8018x_pcb_t *pcb, int line, int level)
+{
+    if ((pcb == NULL) || (line < 0) || (line > 3))
+        return;
+
+    if (level)
+        pcb->icu_ext |= I8018X_ICU_SRC_INT(line);
+    else
+        pcb->icu_ext &= (uint16_t) ~I8018X_ICU_SRC_INT(line);
+}
+
 static uint16_t
 i8018x_pcb_read_word(struct i8018x_pcb_t *dev, uint16_t off)
 {
@@ -198,10 +322,13 @@ i8018x_pcb_read_word(struct i8018x_pcb_t *dev, uint16_t off)
         }
     }
 
-    /* The request register's timer bit is the OR of the timer requests; the
-       status register holds them individually in bits 0-2. */
+    /* The request register shows every source that is asking, the in-service
+       register the ones being serviced, and the status register holds the
+       three timers individually in bits 0-2. */
     if (off == I8018X_ICU_REQ)
-        return (uint16_t) (dev->regs[off / 2] | (dev->tmr_req ? 0x0001u : 0x0000u));
+        return i8018x_pcb_icu_requests(dev);
+    if (off == I8018X_ICU_INSERVICE)
+        return dev->icu_isr;
     if (off == I8018X_ICU_STATUS)
         return (uint16_t) (dev->regs[off / 2] | (dev->tmr_req & 0x0007u));
 
@@ -255,6 +382,67 @@ i8018x_pcb_write_word(struct i8018x_pcb_t *dev, uint16_t off, uint16_t val)
     if (off == I8018X_ICU_STATUS) {
         dev->regs[off / 2] = (uint16_t) (val & ~0x0007u);
         dev->tmr_req       = (uint16_t) ((dev->tmr_req & ~0x0007u) | (val & 0x0007u));
+    }
+
+    /* The in-service register only holds source bits. */
+    if (off == I8018X_ICU_INSERVICE) {
+        dev->regs[off / 2] = 0x0000u;
+        dev->icu_isr       = (uint16_t) (val & I8018X_ICU_SRC_ALL);
+    }
+
+    /* An EOI clears the source it names: bit 15 acknowledges the source in
+       service with the highest priority, otherwise bits 4-0 carry its interrupt
+       type (270788-001 Figure 87, Table 19). The register itself is write only
+       (section 9.5.2.9), so a read hands back whatever the last write left
+       here, which the manual does not define. */
+    if (off == I8018X_ICU_EOI) {
+        uint16_t clear = 0x0000u;
+
+        if (val & I8018X_ICU_EOI_NSPEC) {
+            for (int i = 0; i < I8018X_ICU_SOURCES; i++) {
+                if (dev->icu_isr & i8018x_icu_src[i]) {
+                    clear = i8018x_icu_src[i];
+                    break;
+                }
+            }
+        } else {
+            for (int i = 0; i < I8018X_ICU_SOURCES; i++) {
+                if (i8018x_icu_type[i] == (val & I8018X_ICU_EOI_TYPE)) {
+                    clear = i8018x_icu_src[i];
+                    break;
+                }
+            }
+        }
+
+        dev->icu_isr &= (uint16_t) ~clear;
+    }
+
+    /* A source's mask bit sits in its control register as well as in the mask
+       register, and a write to either one updates the other (270788-001 section
+       9.5.2.5). The three timers share one control register, so their three
+       entries here write the same bit with the same value. */
+    if (off == I8018X_ICU_MASK) {
+        for (int i = 0; i < I8018X_ICU_SOURCES; i++) {
+            uint16_t con = i8018x_pcb_icu_con(i8018x_icu_src[i]);
+
+            if (con == 0x00u)
+                continue;
+
+            if (val & i8018x_icu_src[i])
+                dev->regs[con / 2] |= I8018X_ICU_CON_MSK;
+            else
+                dev->regs[con / 2] &= (uint16_t) ~I8018X_ICU_CON_MSK;
+        }
+    } else if ((off >= I8018X_ICU_TMR_CON) && (off <= I8018X_ICU_INT_CON(3))) {
+        for (int i = 0; i < I8018X_ICU_SOURCES; i++) {
+            if (i8018x_pcb_icu_con(i8018x_icu_src[i]) != off)
+                continue;
+
+            if (val & I8018X_ICU_CON_MSK)
+                dev->regs[I8018X_ICU_MASK / 2] |= i8018x_icu_src[i];
+            else
+                dev->regs[I8018X_ICU_MASK / 2] &= (uint16_t) ~i8018x_icu_src[i];
+        }
     }
 
     /* Writing a zero to the request register's timer bit clears it; the ROM
@@ -503,6 +691,8 @@ i8018x_pcb_reset(void *priv)
 
     memset(dev->regs, 0x00, sizeof(dev->regs));
     dev->tmr_req = 0;
+    dev->icu_ext = 0;
+    dev->icu_isr = 0;
 
     /* The 86Box channel numbers survive a reset: the controller keeps owning
        them until the device is closed. */
@@ -521,6 +711,15 @@ i8018x_pcb_reset(void *priv)
     dev->reloc                      = I8018X_RELOC_RESET;
     dev->regs[I8018X_RELOC_OFF / 2] = dev->reloc;
     dev->base                       = I8018X_PCB_BASE_DEFAULT;
+
+    /* Interrupt controller reset values (270788-001 section 5.3):
+       every source comes up masked, at priority level 111, and the priority
+       mask has all three of its bits set, which leaves no level masked. */
+    for (uint16_t off = I8018X_ICU_TMR_CON; off <= I8018X_ICU_INT_CON(3); off += 2)
+        dev->regs[off / 2] = I8018X_ICU_CON_PRL | I8018X_ICU_CON_MSK;
+
+    dev->regs[I8018X_ICU_MASK / 2]      = I8018X_ICU_SRC_ALL;
+    dev->regs[I8018X_ICU_PRIO_MASK / 2] = 0x0007u;
 
     io_sethandler(dev->base, I8018X_PCB_SIZE, NULL, i8018x_pcb_inw, NULL, NULL, i8018x_pcb_outw, NULL, dev);
     dev->handler_set = 1;
