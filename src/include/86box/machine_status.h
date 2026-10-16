@@ -25,7 +25,7 @@ typedef struct machine_status_t {
     dev_status_empty_active_t tape[TAPE_NUM];
     dev_status_empty_active_t cassette;
     dev_status_active_t       hdd[HDD_BUS_USB];
-    dev_status_empty_active_t net[NET_CARD_MAX];
+    dev_status_empty_active_t net[NET_CONF_MAX];
     dev_status_empty_t        cartridge[2];
 } machine_status_t;
 

@@ -18,6 +18,7 @@ class SettingsOtherPeripherals;
 class QProcess;
 class VFIODeviceModel;
 #endif
+class SettingsPcmcia;
 
 class SettingsOtherPeripherals : public QWidget {
     Q_OBJECT
@@ -27,6 +28,7 @@ public:
     ~SettingsOtherPeripherals();
 
     int  changed();
+    int  pcmciaCard(int s) const; /* the PC Card chosen for socket s now */
 
     void restore();
     void save(int soft);
@@ -68,6 +70,7 @@ private slots:
 private:
     Ui::SettingsOtherPeripherals *ui;
     int                           machineId { 0 };
+    SettingsPcmcia               *pcmcia; /* the PCMCIA tab */
 
     int                           memexp_cfg_changed[4]      = { 0, 0, 0, 0 };
     int                           isarom_cfg_changed[4]      = { 0, 0, 0, 0 };

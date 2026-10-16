@@ -7,8 +7,10 @@
  *          Definitions for the network module.
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Marcos Alves
  *
  *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2026 Marcos Alves.
  *
  *          Redistribution and  use  in source  and binary forms, with
  *          or  without modification, are permitted  provided that the
@@ -63,6 +65,9 @@
 #define NET_QUEUE_MASK     (NET_QUEUE_CAPACITY - 1)
 #define NET_QUEUE_COUNT    4
 #define NET_CARD_MAX       4
+/* After the four adapters of the Network settings, a link for each PC Card
+   socket (pcmcia.c), so a PC network card has its own. */
+#define NET_CONF_MAX       (NET_CARD_MAX + 2)
 #define NET_HOST_INTF_MAX  64
 
 #define NET_PERIOD_10M     0.8
@@ -105,7 +110,7 @@ typedef struct netcard_conf_t {
     char     nrs_hostname[128];
 } netcard_conf_t;
 
-extern netcard_conf_t net_cards_conf[NET_CARD_MAX];
+extern netcard_conf_t net_cards_conf[NET_CONF_MAX];
 extern uint16_t       net_card_current;
 extern int            slirp_card_num;
 

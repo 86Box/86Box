@@ -11,8 +11,10 @@
  *          Will be done later.
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Marcos Alves
  *
  *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2026 Marcos Alves.
  *
  *          Redistribution and  use  in source  and binary forms, with
  *          or  without modification, are permitted  provided that the
@@ -175,7 +177,7 @@ net_cards_migrate[] = {
   // clang-format on
 };
 
-netcard_conf_t net_cards_conf[NET_CARD_MAX];
+netcard_conf_t net_cards_conf[NET_CONF_MAX];
 uint16_t       net_card_current = 0;
 
 /* Global variables. */

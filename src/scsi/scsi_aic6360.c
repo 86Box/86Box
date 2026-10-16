@@ -7,6 +7,10 @@
  * use programmed I/O; the SB16 interface has neither DMA nor a boot ROM.
  * Targets remain connected and negotiate asynchronous, narrow transfers.
  *
+ * The chip on its own (aic6360_chip_init()) for a board that maps
+ * its registers and wires its interrupt itself -- the APA-1460 PC Card
+ * (src/pcmcia/scsi_apa1460.c).  That interface: Copyright 2026 Marcos Alves.
+ *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include <stdint.h>
@@ -107,6 +111,9 @@ typedef struct aic6360_t {
     uint32_t   data_pos, transfer_count;
     pc_timer_t timer;
     rom_t      bios;
+    /* A board that wires the interrupt itself (NULL: the ISA IRQ in irq). */
+    void     (*irq_out)(void *priv, int level);
+    void      *irq_priv;
 } aic6360_t;
 
 static void aic6360_service(aic6360_t *dev);
@@ -144,7 +151,9 @@ aic6360_irq(aic6360_t *dev)
     int asserted = aic6360_interrupt(dev) && (dev->regs[DMACNTRL0] & INTEN);
     if (asserted != dev->irq_state) {
         dev->irq_state = asserted;
-        if (asserted)
+        if (dev->irq_out)
+            dev->irq_out(dev->irq_priv, asserted);
+        else if (asserted)
             picint(1 << dev->irq);
         else
             picintc(1 << dev->irq);
@@ -412,7 +421,7 @@ aic6360_data_port(const aic6360_t *dev, unsigned reg)
     return (reg == DATAPORT || reg == DATAPORT + 1 || ((dev->regs[DMACNTRL0] & (DWORDPIO | ENDMA)) == (DWORDPIO | ENDMA) && reg >= 0x18 && reg <= 0x1b));
 }
 
-static uint8_t
+uint8_t
 aic6360_read(uint16_t port, void *priv)
 {
     aic6360_t *dev = priv;
@@ -487,7 +496,7 @@ aic6360_read(uint16_t port, void *priv)
     return ret;
 }
 
-static void
+void
 aic6360_write(uint16_t port, uint8_t val, void *priv)
 {
     aic6360_t *dev = priv;
@@ -601,7 +610,7 @@ aic6360_write(uint16_t port, uint8_t val, void *priv)
     aic6360_service(dev);
 }
 
-static uint16_t
+uint16_t
 aic6360_readw(uint16_t port, void *priv)
 {
     uint16_t val = aic6360_read(port, priv);
@@ -615,7 +624,7 @@ aic6360_readl(uint16_t port, void *priv)
     return val | ((uint32_t) aic6360_readw(port + 2, priv) << 16);
 }
 
-static void
+void
 aic6360_writew(uint16_t port, uint16_t val, void *priv)
 {
     aic6360_write(port, val, priv);
@@ -629,7 +638,7 @@ aic6360_writel(uint16_t port, uint32_t val, void *priv)
     aic6360_writew(port + 2, val >> 16, priv);
 }
 
-static void
+void
 aic6360_reset(void *priv)
 {
     aic6360_t *dev = priv;
@@ -645,29 +654,53 @@ aic6360_reset(void *priv)
     aic6360_irq(dev);
 }
 
+/* The chip on SCSI bus bus, its PORTA and PORTB inputs as the board wires
+   them, and its interrupt output to irq_out(irq_priv, level); the board
+   calls aic6360_read() and the others for its 32 registers. */
+void *
+aic6360_chip_init(uint8_t bus, uint8_t porta, uint8_t portb, void (*irq_out)(void *priv, int level), void *irq_priv)
+{
+    aic6360_t *dev = calloc(1, sizeof(*dev));
+    dev->bus       = bus;
+    dev->phase     = AIC_BUS_FREE;
+    dev->irq_out   = irq_out;
+    dev->irq_priv  = irq_priv;
+    timer_add(&dev->timer, aic6360_callback, dev, 0);
+    dev->regs[PORTA] = porta;
+    dev->regs[PORTB] = portb;
+    aic6360_reset(dev);
+    scsi_bus_set_speed(dev->bus, 5000000.0);
+    return dev;
+}
+
+/* What a board that goes while the machine runs (a PC Card) leaves behind:
+   no command in progress, no timer. */
+void
+aic6360_chip_close(void *priv)
+{
+    aic6360_t *dev = priv;
+    aic6360_abort(dev);
+    free(dev);
+}
+
 static void *
 aic6360_init(const device_t *info)
 {
     uint8_t bus = scsi_get_bus();
     if (bus == 0xff)
         return NULL;
-    aic6360_t *dev = calloc(1, sizeof(*dev));
-    dev->bus       = bus;
-    dev->base      = device_get_config_hex16("base");
-    dev->irq       = device_get_config_int("irq");
-    dev->phase     = AIC_BUS_FREE;
-    timer_add(&dev->timer, aic6360_callback, dev, 0);
+    uint16_t base      = device_get_config_hex16("base");
+    uint8_t  irq       = device_get_config_int("irq");
     unsigned bios_addr = info->local ? device_get_config_hex20("bios_addr") : 0;
-    if (bios_addr)
-        rom_init(&dev->bios, AIC6360_ROM, bios_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
     /* AHA-152x jumper encoding: parity, no DMA, IRQ, host ID 7;
        disconnect allowed, asynchronous startup, all message classes. */
-    dev->regs[PORTA] = 7 | ((dev->irq - 9) << 3);
-    dev->regs[PORTB] = 0x14 | (bios_addr ? 0x40 : 0);
-    aic6360_reset(dev);
+    aic6360_t *dev = aic6360_chip_init(bus, 7 | ((irq - 9) << 3), 0x14 | (bios_addr ? 0x40 : 0), NULL, NULL);
+    dev->base      = base;
+    dev->irq       = irq;
+    if (bios_addr)
+        rom_init(&dev->bios, AIC6360_ROM, bios_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
     io_sethandler(dev->base, 0x20, aic6360_read, aic6360_readw, aic6360_readl,
                   aic6360_write, aic6360_writew, aic6360_writel, dev);
-    scsi_bus_set_speed(dev->bus, 5000000.0);
     return dev;
 }
 

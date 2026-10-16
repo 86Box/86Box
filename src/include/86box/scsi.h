@@ -11,10 +11,12 @@
  * Authors: TheCollector1995, <mariogplayer@gmail.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Marcos Alves
  *
  *          Copyright 2016-2018 TheCollector1995.
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2017-2018 Fred N. van Kempen.
+ *          Copyright 2026      Marcos Alves.
  */
 #ifndef EMU_SCSI_H
 #define EMU_SCSI_H
@@ -36,10 +38,10 @@ extern int             scsi_card_available(int card);
 #ifdef EMU_DEVICE_H
 extern const device_t *scsi_card_getdevice(int card);
 
-/* The owner of each SCSI bus for a machine and its sound cards, SCSI
-   cards and USB mass storage device (msd, the usb_msd_type to plan for),
-   handed out as they start; the return is the number of buses. */
-extern int  scsi_plan(bus_owner_t owners[SCSI_BUS_MAX], int mach, const int snd[], const int net[], const int scsi[], int msd);
+/* The owner of each SCSI bus, in device startup order. msd is the USB
+   mass storage type and pccard holds the card types in each PCMCIA socket
+   (all zero without a controller). Returns the number of buses. */
+extern int  scsi_plan(bus_owner_t owners[SCSI_BUS_MAX], int mach, const int snd[], const int net[], const int scsi[], int msd, const int pccard[]);
 #endif
 extern void scsi_plan_check(void);
 extern int             scsi_card_has_config(int card);

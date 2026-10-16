@@ -187,6 +187,7 @@ private:
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
     QMenu                         *dynarecMenu = nullptr;
+    class PcCardMenu              *pcCardMenu  = nullptr;
 
     bool hasKanaLock();
     void updateShortcuts();

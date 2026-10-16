@@ -9,8 +9,10 @@
  *          Common storage devices module.
  *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
+ *          Marcos Alves
  *
  *          Copyright 2021 Joakim L. Gilje
+ *          Copyright 2026 Marcos Alves
  */
 #include <algorithm>
 #include <cstdint>
@@ -24,6 +26,7 @@ extern "C" {
 #include <86box/hdd.h>
 #include <86box/device.h>
 #include <86box/scsi.h>
+#include <86box/pcmcia.h>
 #include <86box/cdrom.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_tape.h>
@@ -417,6 +420,7 @@ Harddrives::scsiPlan(bus_owner_t *owners)
     int scsi[SCSI_CARD_MAX];
     int net[NET_CARD_MAX];
     int msd = usb_msd_type;
+    int pccard[PCMCIA_SOCKETS];
 
     for (int i = 0; i < SOUND_CARD_MAX; i++)
         snd[i] = sound_card_current[i];
@@ -424,6 +428,8 @@ Harddrives::scsiPlan(bus_owner_t *owners)
         scsi[i] = scsi_card_current[i];
     for (int i = 0; i < NET_CARD_MAX; i++)
         net[i] = net_cards_conf[i].device_num;
+    for (int s = 0; s < PCMCIA_SOCKETS; s++)
+        pccard[s] = pcmcia_enabled ? pcmcia_card_type[s] : 0;
 
     if (Settings::settings != nullptr) {
         mach = Settings::settings->currentMachine();
@@ -434,9 +440,11 @@ Harddrives::scsiPlan(bus_owner_t *owners)
         for (int i = 0; i < NET_CARD_MAX; i++)
             net[i] = Settings::settings->currentNetCard(i);
         msd = Settings::settings->currentUsbMsd();
+        for (int s = 0; s < PCMCIA_SOCKETS; s++)
+            pccard[s] = Settings::settings->currentPcmciaCard(s);
     }
 
-    return scsi_plan(owners, mach, snd, net, scsi, msd);
+    return scsi_plan(owners, mach, snd, net, scsi, msd, pccard);
 }
 
 /* A device's label: its short name, with "(Onboard)" for a chip on the
