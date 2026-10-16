@@ -31,6 +31,7 @@
 #include <86box/io.h>
 #include <86box/dma.h>
 #include <86box/mem.h>
+#include <86box/pic.h>
 #include <86box/i8018x.h>
 
 #define I8018X_PCB_BASE_DEFAULT 0xFF00u
@@ -128,6 +129,10 @@
 
 #define I8018X_ICU_SOURCES      9
 
+/* Board sources a machine routes into the controller by way of the 8259, one
+   entry per external input at most. */
+#define I8018X_ICU_IRQ_MAP      4
+
 struct i8018x_pcb_t {
     uint16_t base;        /* current PCB I/O base */
     uint16_t reloc;       /* Relocation Register value */
@@ -146,6 +151,9 @@ struct i8018x_pcb_t {
     int      dma_ch[2];       /* 86Box DMA channel the on-chip channel drives, -1 = unused */
     uint8_t  dma_drq[2];      /* request pin state, recorded only */
     uint8_t  dma_adv_pend[2]; /* pointer step owed to the read_only/advance pair */
+    int8_t   pic_irq[I8018X_ICU_IRQ_MAP];  /* 8259 line a board source sits on, -1 = none */
+    int8_t   pic_line[I8018X_ICU_IRQ_MAP]; /* controller input that line drives */
+    uint8_t  pic_hook;                     /* whether our 8259 line observer is in place */
 };
 
 static uint8_t  i8018x_pcb_inb(uint16_t port, void *priv);
@@ -507,6 +515,47 @@ i8018x_pcb_icu_int(struct i8018x_pcb_t *pcb, int line, int level)
             pcb->icu_latch |= bit;
         else if (!level)
             pcb->icu_latch &= (uint16_t) ~bit;
+    }
+}
+
+/* A board that hangs its sources on the machine's 8259 instead of on the
+   controller's own inputs declares which line stands for which input, and
+   this watches the 8259 for those lines. The observer is a single slot for
+   the whole emulator, so only one device may hold it. */
+static void
+i8018x_pcb_pic_irq(uint16_t num, int set, void *priv)
+{
+    struct i8018x_pcb_t *dev = (struct i8018x_pcb_t *) priv;
+
+    for (int i = 0; i < I8018X_ICU_IRQ_MAP; i++) {
+        if ((dev->pic_irq[i] >= 0) && (num & (1u << dev->pic_irq[i])))
+            i8018x_pcb_icu_int(dev, dev->pic_line[i], set);
+    }
+}
+
+/* Declare that a source the board raises on 8259 line `pic_irq` reaches the
+   controller as external input `line`, and take over the line observer for
+   the first one. The board is expected to keep that line masked in the
+   8259, so that this path is the only one delivering it. */
+void
+i8018x_pcb_set_irq_map(struct i8018x_pcb_t *pcb, int pic_irq, int line)
+{
+    if ((pcb == NULL) || (pic_irq < 0) || (line < 0) || (line > 3))
+        return;
+
+    for (int i = 0; i < I8018X_ICU_IRQ_MAP; i++) {
+        if (pcb->pic_irq[i] >= 0)
+            continue;
+
+        pcb->pic_irq[i]  = (int8_t) pic_irq;
+        pcb->pic_line[i] = (int8_t) line;
+
+        if (!pcb->pic_hook) {
+            pic_set_irq_callback(i8018x_pcb_pic_irq, pcb);
+            pcb->pic_hook = 1;
+        }
+
+        return;
     }
 }
 
@@ -1027,6 +1076,9 @@ i8018x_pcb_close(void *priv)
     if (dev->handler_set)
         io_removehandler(dev->base, I8018X_PCB_SIZE, i8018x_pcb_inb, i8018x_pcb_inw, NULL, i8018x_pcb_outb, i8018x_pcb_outw, NULL, dev);
 
+    if (dev->pic_hook)
+        pic_set_irq_callback(NULL, NULL);
+
     dma_set_controller(NULL, NULL);
 
     if (i8018x_pcb_current == dev)
@@ -1040,9 +1092,12 @@ i8018x_pcb_init(const device_t *info)
 {
     struct i8018x_pcb_t *dev = (struct i8018x_pcb_t *) calloc(1, sizeof(struct i8018x_pcb_t));
 
-    /* The board wires the channels up after this and a reset must not drop
-       them, so they only start unclaimed here. */
+    /* The board wires the channels and the interrupt lines up after this and a
+       reset must not drop them, so they only start unclaimed here. */
     dev->dma_ch[0] = dev->dma_ch[1] = -1;
+
+    for (int i = 0; i < I8018X_ICU_IRQ_MAP; i++)
+        dev->pic_irq[i] = dev->pic_line[i] = -1;
 
     i8018x_pcb_reset(dev);
 
