@@ -10,8 +10,12 @@
 #define BLOCK_EXIT_OFFSET 0x7e0
 #ifdef OLD_GPF
 #    define BLOCK_GPF_OFFSET (BLOCK_EXIT_OFFSET - 20)
+/*The old stub calls x86gpf itself: a limit fault through SS is #GP there too*/
+#    define BLOCK_SS_OFFSET BLOCK_GPF_OFFSET
 #else
 #    define BLOCK_GPF_OFFSET (BLOCK_EXIT_OFFSET - 12)
+/*#SS(0): its abort, then the #GP stub's error code and exit*/
+#    define BLOCK_SS_OFFSET (BLOCK_GPF_OFFSET - 6)
 #endif
 
 #define BLOCK_MAX 1620

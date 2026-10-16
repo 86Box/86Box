@@ -11,6 +11,7 @@
 #    include "codegen_backend.h"
 #    include "codegen_backend_x86-64_defs.h"
 #    include "codegen_backend_x86-64_ops_sse.h"
+#    include "codegen_backend_x86-64_ops.h"
 #    include "codegen_backend_x86-64_ops_helpers.h"
 
 void
@@ -56,15 +57,12 @@ host_x86_CVTPS2DQ_XREG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 void
 host_x86_CVTSD2SI_REG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 4);
-    codegen_addbyte4(block, 0xf2, 0x0f, 0x2d, 0xc0 | src_reg | (dst_reg << 3)); /*CVTSD2SI dst_reg, src_reg*/
+    emit_rr(block, 0xf2, 0, 0, 2, 0x0f2d, dst_reg, src_reg); /*CVTSD2SI dst_reg, src_reg*/
 }
 void
 host_x86_CVTSD2SI_REG64_XREG(codeblock_t *block, int dst_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 5);
-    codegen_addbyte4(block, 0xf2, 0x48, 0x0f, 0x2d); /*CVTSD2SI dst_reg, src_reg*/
-    codegen_addbyte(block, 0xc0 | src_reg | (dst_reg << 3));
+    emit_rr(block, 0xf2, 1, 0, 2, 0x0f2d, dst_reg, src_reg); /*CVTSD2SI dst_reg, src_reg*/
 }
 void
 host_x86_CVTSD2SS_XREG_XREG(codeblock_t *block, int dst_reg, int src_reg)
@@ -76,21 +74,17 @@ host_x86_CVTSD2SS_XREG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 void
 host_x86_CVTSI2SD_XREG_REG(codeblock_t *block, int dst_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 4);
-    codegen_addbyte4(block, 0xf2, 0x0f, 0x2a, 0xc0 | src_reg | (dst_reg << 3)); /*CVTSI2SD dst_reg, src_reg*/
+    emit_rr(block, 0xf2, 0, 0, 2, 0x0f2a, dst_reg, src_reg); /*CVTSI2SD dst_reg, src_reg*/
 }
 void
 host_x86_CVTSI2SS_XREG_REG(codeblock_t *block, int dst_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 4);
-    codegen_addbyte4(block, 0xf3, 0x0f, 0x2a, 0xc0 | src_reg | (dst_reg << 3)); /*CVTSI2SD dst_reg, src_reg*/
+    emit_rr(block, 0xf3, 0, 0, 2, 0x0f2a, dst_reg, src_reg); /*CVTSI2SS dst_reg, src_reg*/
 }
 void
 host_x86_CVTSI2SD_XREG_REG64(codeblock_t *block, int dst_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 5);
-    codegen_addbyte4(block, 0xf2, 0x48, 0x0f, 0x2a); /*CVTSI2SD dst_reg, src_reg*/
-    codegen_addbyte(block, 0xc0 | src_reg | (dst_reg << 3));
+    emit_rr(block, 0xf2, 1, 0, 2, 0x0f2a, dst_reg, src_reg); /*CVTSI2SD dst_reg, src_reg*/
 }
 
 void
@@ -102,9 +96,7 @@ host_x86_CVTSS2SD_XREG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 void
 host_x86_CVTSS2SD_XREG_BASE_INDEX(codeblock_t *block, int dst_reg, int base_reg, int idx_reg)
 {
-    codegen_alloc_bytes(block, 4);
-    codegen_addbyte4(block, 0xf3, 0x0f, 0x5a, 0x04 | (dst_reg << 3)); /*CVTSS2SD XMMx, [base_reg + idx_reg]*/
-    codegen_addbyte(block, base_reg | (idx_reg << 3));
+    emit_mem(block, 0xf3, 0, 0, 2, 0x0f5a, dst_reg, base_reg, idx_reg, 0, 0, DISP_AUTO, 0, 0); /*CVTSS2SD XMMx, [base_reg + idx_reg]*/
 }
 
 void
@@ -123,17 +115,13 @@ host_x86_DIVSS_XREG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 void
 host_x86_LDMXCSR(codeblock_t *block, void *p)
 {
-    int offset = (uintptr_t) p - (((uintptr_t) &cpu_state) + 128);
+    int64_t offset = (int64_t) (uintptr_t) p - ((int64_t) (uintptr_t) &cpu_state + 128);
 
-    if (offset >= -128 && offset < 127) {
-        codegen_alloc_bytes(block, 4);
-        codegen_addbyte4(block, 0x0f, 0xae, 0x50 | REG_EBP, offset); /*LDMXCSR offset[EBP]*/
-    } else if (offset < (1ULL << 32)) {
-        codegen_alloc_bytes(block, 7);
-        codegen_addbyte3(block, 0x0f, 0xae, 0x90 | REG_EBP); /*LDMXCSR offset[EBP]*/
-        codegen_addlong(block, offset);
-    } else {
-        fatal("host_x86_LDMXCSR - out of range %p\n", p);
+    if (offset >= INT32_MIN && offset <= INT32_MAX)
+        emit_mem(block, 0, 0, 0, 2, 0x0fae, 2, REG_RBP, NO_INDEX, 0, (int32_t) offset, DISP_AUTO, 0, 0);
+    else {
+        host_x86_MOV64_REG_IMM(block, REG_R9, (uintptr_t) p);
+        emit_mem(block, 0, 0, 0, 2, 0x0fae, 2, REG_R9, NO_INDEX, 0, 0, DISP_AUTO, 0, 0);
     }
 }
 
@@ -147,49 +135,45 @@ host_x86_MAXSD_XREG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 void
 host_x86_MOVD_BASE_INDEX_XREG(codeblock_t *block, int base_reg, int idx_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 5);
-    codegen_addbyte4(block, 0x66, 0x0f, 0x7e, 0x04 | (src_reg << 3)); /*MOVD XMMx, [base_reg + idx_reg]*/
-    codegen_addbyte(block, base_reg | (idx_reg << 3));
+    emit_mem(block, 0x66, 0, 0, 2, 0x0f7e, src_reg, base_reg, idx_reg, 0, 0, DISP_AUTO, 0, 0); /*MOVD [base_reg + idx_reg], XMMx*/
 }
 void
 host_x86_MOVD_REG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 4);
-    codegen_addbyte4(block, 0x66, 0x0f, 0x7e, 0xc0 | dst_reg | (src_reg << 3));
+    emit_rr(block, 0x66, 0, 0, 2, 0x0f7e, src_reg, dst_reg); /*MOVD dst_reg, XMMx*/
 }
 void
 host_x86_MOVD_XREG_BASE_INDEX(codeblock_t *block, int dst_reg, int base_reg, int idx_reg)
 {
-    codegen_alloc_bytes(block, 5);
-    codegen_addbyte4(block, 0x66, 0x0f, 0x6e, 0x04 | (dst_reg << 3)); /*MOVD XMMx, [base_reg + idx_reg]*/
-    codegen_addbyte(block, base_reg | (idx_reg << 3));
+    emit_mem(block, 0x66, 0, 0, 2, 0x0f6e, dst_reg, base_reg, idx_reg, 0, 0, DISP_AUTO, 0, 0); /*MOVD XMMx, [base_reg + idx_reg]*/
 }
 void
 host_x86_MOVD_XREG_REG(codeblock_t *block, int dst_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 4);
-    codegen_addbyte4(block, 0x66, 0x0f, 0x6e, 0xc0 | src_reg | (dst_reg << 3));
+    emit_rr(block, 0x66, 0, 0, 2, 0x0f6e, dst_reg, src_reg); /*MOVD XMMx, src_reg*/
 }
 
 void
 host_x86_MOVQ_ABS_XREG(codeblock_t *block, void *p, int src_reg)
 {
-    int offset = (uintptr_t) p - (((uintptr_t) &cpu_state) + 128);
+    int64_t offset = (int64_t) (uintptr_t) p - ((int64_t) (uintptr_t) &cpu_state + 128);
 
     if (src_reg & 8)
         fatal("host_x86_MOVQ_ABS_REG reg & 8\n");
 
-    if (offset >= -128 && offset < 127) {
+    if (offset >= -128 && offset <= 127) {
         codegen_alloc_bytes(block, 5);
         codegen_addbyte4(block, 0x66, 0x0f, 0xd6, 0x45 | (src_reg << 3)); /*MOVQ offset[EBP], src_reg*/
         codegen_addbyte(block, offset);
+    } else if (offset >= INT32_MIN && offset <= INT32_MAX) {
+        /* CPU state and temporaries can lie outside the short displacement. */
+        codegen_alloc_bytes(block, 8);
+        codegen_addbyte4(block, 0x66, 0x0f, 0xd6, 0x85 | (src_reg << 3));
+        codegen_addlong(block, (uint32_t) offset);
     } else {
         if ((uintptr_t) p >> 32)
-            fatal("host_x86_MOVQ_ABS_REG - out of range %p\n", p);
-        codegen_alloc_bytes(block, 9);
-        codegen_addbyte4(block, 0x66, 0x0f, 0xd6, 0x04 | (src_reg << 3)); /*MOVQ [p], src_reg*/
-        codegen_addbyte(block, 0x25);
-        codegen_addlong(block, (uint32_t) (uintptr_t) p);
+            fatal("host_x86_MOVQ_ABS_XREG - out of range %p\n", p);
+        emit_abs32(block, 0x66, 0, 0, 2, 0x0fd6, src_reg, (uint32_t) (uintptr_t) p, 0, 0);
     }
 }
 void
@@ -213,9 +197,7 @@ host_x86_MOVQ_ABS_REG_REG_SHIFT_XREG(codeblock_t *block, uint32_t addr, int src_
 void
 host_x86_MOVQ_BASE_INDEX_XREG(codeblock_t *block, int base_reg, int idx_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 5);
-    codegen_addbyte4(block, 0x66, 0x0f, 0xd6, 0x04 | (src_reg << 3)); /*MOVD XMMx, [base_reg + idx_reg]*/
-    codegen_addbyte(block, base_reg | (idx_reg << 3));
+    emit_mem(block, 0x66, 0, 0, 2, 0x0fd6, src_reg, base_reg, idx_reg, 0, 0, DISP_AUTO, 0, 0); /*MOVQ [base_reg + idx_reg], XMMx*/
 }
 void
 host_x86_MOVQ_BASE_OFFSET_XREG(codeblock_t *block, int base_reg, int offset, int src_reg)
@@ -237,22 +219,24 @@ host_x86_MOVQ_BASE_OFFSET_XREG(codeblock_t *block, int base_reg, int offset, int
 void
 host_x86_MOVQ_XREG_ABS(codeblock_t *block, int dst_reg, void *p)
 {
-    int offset = (uintptr_t) p - (((uintptr_t) &cpu_state) + 128);
+    int64_t offset = (int64_t) (uintptr_t) p - ((int64_t) (uintptr_t) &cpu_state + 128);
 
     if (dst_reg & 8)
         fatal("host_x86_MOVQ_REG_ABS reg & 8\n");
 
-    if (offset >= -128 && offset < 127) {
+    if (offset >= -128 && offset <= 127) {
         codegen_alloc_bytes(block, 5);
         codegen_addbyte4(block, 0xf3, 0x0f, 0x7e, 0x45 | (dst_reg << 3)); /*MOVQ offset[EBP], src_reg*/
         codegen_addbyte(block, offset);
+    } else if (offset >= INT32_MIN && offset <= INT32_MAX) {
+        /* CPU state and temporaries can lie outside the short displacement. */
+        codegen_alloc_bytes(block, 8);
+        codegen_addbyte4(block, 0xf3, 0x0f, 0x7e, 0x85 | (dst_reg << 3));
+        codegen_addlong(block, (uint32_t) offset);
     } else {
         if ((uintptr_t) p >> 32)
-            fatal("host_x86_MOVQ_REG_ABS - out of range %p\n", p);
-        codegen_alloc_bytes(block, 9);
-        codegen_addbyte4(block, 0xf3, 0x0f, 0x7e, 0x04 | (dst_reg << 3)); /*MOVQ [p], src_reg*/
-        codegen_addbyte(block, 0x25);
-        codegen_addlong(block, (uint32_t) (uintptr_t) p);
+            fatal("host_x86_MOVQ_XREG_ABS - out of range %p\n", p);
+        emit_abs32(block, 0xf3, 0, 0, 2, 0x0f7e, dst_reg, (uint32_t) (uintptr_t) p, 0, 0);
     }
 }
 void
@@ -275,9 +259,7 @@ host_x86_MOVQ_XREG_ABS_REG_REG_SHIFT(codeblock_t *block, int dst_reg, uint32_t a
 void
 host_x86_MOVQ_XREG_BASE_INDEX(codeblock_t *block, int dst_reg, int base_reg, int idx_reg)
 {
-    codegen_alloc_bytes(block, 5);
-    codegen_addbyte4(block, 0xf3, 0x0f, 0x7e, 0x04 | (dst_reg << 3)); /*MOVQ XMMx, [base_reg + idx_reg]*/
-    codegen_addbyte(block, base_reg | (idx_reg << 3));
+    emit_mem(block, 0xf3, 0, 0, 2, 0x0f7e, dst_reg, base_reg, idx_reg, 0, 0, DISP_AUTO, 0, 0); /*MOVQ XMMx, [base_reg + idx_reg]*/
 }
 void
 host_x86_MOVQ_XREG_BASE_OFFSET(codeblock_t *block, int dst_reg, int base_reg, int offset)
@@ -306,16 +288,12 @@ host_x86_MOVQ_XREG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 void
 host_x86_MOVQ_REG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 5);
-    codegen_addbyte4(block, 0x66, 0x48, 0x0f, 0x7e); /*MOVQ dst_reg, src_reg*/
-    codegen_addbyte(block, 0xc0 | dst_reg | (src_reg << 3));
+    emit_rr(block, 0x66, 1, 0, 2, 0x0f7e, src_reg, dst_reg); /*MOVQ dst_reg, src_reg*/
 }
 void
 host_x86_MOVQ_XREG_REG(codeblock_t *block, int dst_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 5);
-    codegen_addbyte4(block, 0x66, 0x48, 0x0f, 0x6e); /*MOVQ dst_reg, src_reg*/
-    codegen_addbyte(block, 0xc0 | src_reg | (dst_reg << 3));
+    emit_rr(block, 0x66, 1, 0, 2, 0x0f6e, dst_reg, src_reg); /*MOVQ dst_reg, src_reg*/
 }
 
 void
@@ -526,13 +504,6 @@ host_x86_PSRAD_XREG_IMM(codeblock_t *block, int dst_reg, int shift)
 {
     codegen_alloc_bytes(block, 5);
     codegen_addbyte4(block, 0x66, 0x0f, 0x72, 0xc0 | 0x20 | dst_reg); /*PSRAD dst_reg, imm*/
-    codegen_addbyte(block, shift);
-}
-void
-host_x86_PSRAQ_XREG_IMM(codeblock_t *block, int dst_reg, int shift)
-{
-    codegen_alloc_bytes(block, 5);
-    codegen_addbyte4(block, 0x66, 0x0f, 0x73, 0xc0 | 0x20 | dst_reg); /*PSRAD dst_reg, imm*/
     codegen_addbyte(block, shift);
 }
 void

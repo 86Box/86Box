@@ -40,6 +40,7 @@
 #define MITSUMI_1X_SECTOR_TIME_US (1000000 / 75)
 #define MITSUMI_2X_SECTOR_TIME_US (1000000 / 150)
 #define MITSUMI_DMA_COUNT_BIAS    7
+#define MITSUMI_TRAY_CLOSE_US     1000000
 
 enum {
     STAT_CMD_CHECK = 0x01,
@@ -85,15 +86,16 @@ enum {
     DRV_MODE_CDDA
 };
 enum {
-    FLAG_NODATA = 2,
-    FLAG_NOSTAT = 4,
-    FLAG_UNK  = 8,
-    FLAG_OPEN   = 16
+    FLAG_NODATA   = 2,
+    FLAG_NOSTAT   = 4,
+    FLAG_NOCHANGE = 8, /* Low while a status change interrupt is pending. */
+    FLAG_OPEN     = 16
 };
 enum {
     IRQ_DATAREADY = 1,
     IRQ_DATACOMP  = 2,
-    IRQ_ERROR     = 4
+    IRQ_ERROR     = 4,
+    IRQ_CHANGE    = 8
 };
 enum {
     STATE_IDLE = 0,
@@ -148,9 +150,12 @@ typedef struct mcd_t {
     int      drvmode;
     int      cur_toc_track;
     int      tray_open;
+    int      tray_close;
+    int      change_irq;
     uint32_t dma_retries;
     pc_timer_t read_timer;
     pc_timer_t dma_timeout_timer;
+    pc_timer_t tray_timer;
     uint8_t  last_flags;
 
     uint8_t  cur_control;
@@ -192,11 +197,17 @@ mitsumi_cdrom_log(const char *fmt, ...)
 #endif
 
 static int
-mitsumi_cdrom_is_ready(const mcd_t *dev)
+mitsumi_cdrom_has_disc(const mcd_t *dev)
 {
     return (dev->cdrom_dev != NULL) && (dev->cdrom_dev->ops != NULL) &&
            ((dev->cdrom_dev->cd_status & CD_STATUS_MASK) != CD_STATUS_EMPTY) &&
            ((dev->cdrom_dev->cd_status & CD_STATUS_MASK) != CD_STATUS_DVD_REJECTED);
+}
+
+static int
+mitsumi_cdrom_is_ready(const mcd_t *dev)
+{
+    return !dev->tray_open && mitsumi_cdrom_has_disc(dev);
 }
 
 static void
@@ -308,6 +319,18 @@ mitsumi_dma_length(const mcd_t *dev)
     return dev->dmalen & 0xfff8;
 }
 
+/* The drive interrupts the host when the disc or door status changes. The
+   Tandy VIS firmware stops polling once its initial disc check is over and
+   relies on this interrupt to notice a disc being inserted. */
+static void
+mitsumi_raise_change_irq(mcd_t *dev)
+{
+    if (dev->enable_irq & IRQ_CHANGE) {
+        dev->change_irq = 1;
+        mitsumi_set_irq(dev, IRQ_CHANGE);
+    }
+}
+
 static void
 mitsumi_cdrom_insert(void *priv)
 {
@@ -318,12 +341,32 @@ mitsumi_cdrom_insert(void *priv)
 
     mitsumi_abort_read(dev);
     cdrom_stop(dev->cdrom_dev);
-    dev->change    = (mitsumi_cdrom_is_ready(dev)) ? 2 : 1;
-    dev->tray_open = !mitsumi_cdrom_is_ready(dev);
-    dev->stat      = mitsumi_status(dev);
-    dev->change    = (mitsumi_cdrom_is_ready(dev)) ? 2 : 1;
+    if (timer_is_enabled(&dev->tray_timer))
+        timer_disable(&dev->tray_timer);
+
+    /* Changing the disc means opening the door. If a disc was loaded, the
+       door closes again once the host has seen it open, see
+       mitsumi_cdrom_out(). The Tandy VIS firmware ignores a new disc unless
+       it has seen the door open and then close again. */
+    dev->tray_open    = 1;
+    dev->tray_close   = mitsumi_cdrom_has_disc(dev);
+    dev->change       = 1;
+    dev->stat         = mitsumi_status(dev);
+    dev->change       = 1;
     dev->cmdbuf_count = 0;
     picintc(1 << dev->irq);
+    mitsumi_raise_change_irq(dev);
+}
+
+static void
+mitsumi_tray_callback(void *priv)
+{
+    mcd_t *dev = (mcd_t *) priv;
+
+    dev->tray_open  = 0;
+    dev->tray_close = 0;
+    dev->change     = mitsumi_cdrom_has_disc(dev) ? 2 : 1;
+    mitsumi_raise_change_irq(dev);
 }
 
 static void
@@ -384,12 +427,15 @@ mitsumi_cdrom_reset(mcd_t *dev)
     dev->dma_retries     = 0;
     dev->locked          = 0;
     dev->change          = 1;
+    dev->change_irq      = 0;
     dev->data            = 0;
     dev->smode           = 1;
     dev->cur_control     = 0x0c;
     dev->cur_sense       = 0;
     dev->last_flags      = 0xff;
-    dev->tray_open       = !mitsumi_cdrom_is_ready(dev);
+    /* A reset leaves the tray where it is. It powers up closed, so an empty
+       drive reads as no disc rather than door open, fixes the Tandy VIS
+       skipping its intro. */
 
     dev->cdrom_vols.att0 = 255;
     dev->cdrom_vols.att1 = 0;
@@ -951,10 +997,13 @@ mitsumi_cdrom_get_flags(mcd_t* dev)
     if (!dev->cmdbuf_count)
         ret |= FLAG_NOSTAT;
 
+    if (!dev->change_irq)
+        ret |= FLAG_NOCHANGE;
+
     if (dev->tray_open)
         ret |= FLAG_OPEN;
 
-    return ret | FLAG_UNK | 1;
+    return ret | 1;
 }
 
 #include "cpu.h"
@@ -1226,6 +1275,8 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     dev->stat = mitsumi_status(dev);
                 return;
             }
+            /* Any new command acknowledges a pending status change. */
+            dev->change_irq   = 0;
             dev->cmd          = val;
             dev->cmdbuf_idx   = 0;
             dev->cmdrd_count  = 0;
@@ -1233,6 +1284,9 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
             dev->stat         = mitsumi_status(dev);
             dev->cmdbuf[0]    = dev->stat;
             dev->data         = 0;
+            /* Close the door a moment after the host has seen it open. */
+            if (dev->tray_close && (dev->stat & STAT_OPEN) && !timer_is_enabled(&dev->tray_timer))
+                timer_set_delay_u64(&dev->tray_timer, MITSUMI_TRAY_CLOSE_US * TIMER_USEC);
             switch (val) {
                 case CMD_REQ_SENSE:
                     dev->cmdbuf[1]    = dev->cur_sense;
@@ -1317,8 +1371,13 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     break;
                 case CMD_CLOSE:
                     if (dev->tray_open) {
-                        dev->tray_open = 0;
+                        /* Reloading the image opens the door again through
+                           mitsumi_cdrom_insert(). */
                         cdrom_reload(dev->cdrom_dev->id);
+                        if (timer_is_enabled(&dev->tray_timer))
+                            timer_disable(&dev->tray_timer);
+                        dev->tray_open  = 0;
+                        dev->tray_close = 0;
                         dev->change = (mitsumi_cdrom_is_ready(dev)) ? 2 : 1;
                     }
                     dev->stat = mitsumi_status(dev);
@@ -1430,15 +1489,16 @@ mitsumi_cdrom_init(UNUSED(const device_t *info))
     dev->cdrom_dev->cached_sector = -1;
     dev->cdrom_dev->subc_sector = -1;
 
-    dev->base = device_get_config_hex16("base");
-    dev->irq  = device_get_config_int("irq");
-    dev->dma  = device_get_config_int("dma");
+    dev->base = (info->local & 1) ? 0x310 : device_get_config_hex16("base");
+    dev->irq  = (info->local & 1) ? 5 : device_get_config_int("irq");
+    dev->dma  = (info->local & 1) ? 5 : device_get_config_int("dma");
 
     io_sethandler(dev->base, 4,
                   mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
 
     timer_add(&dev->dma_timeout_timer, mitsumi_dma_timeout_callback, dev, 0);
     timer_add(&dev->read_timer, mitsumi_read_callback, dev, 0);
+    timer_add(&dev->tray_timer, mitsumi_tray_callback, dev, 0);
 
     mitsumi_cdrom_reset(dev);
 
@@ -1453,6 +1513,8 @@ mitsumi_cdrom_close(void *priv)
     if (dev) {
         dma_set_service_handler(dev->dma, NULL, NULL);
         mitsumi_abort_read(dev);
+        if (timer_is_enabled(&dev->tray_timer))
+            timer_disable(&dev->tray_timer);
         io_removehandler(dev->base, 4,
                          mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
         picintc(1 << dev->irq);
@@ -1545,4 +1607,18 @@ const device_t mitsumi_cdrom_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mitsumi_config
+};
+
+const device_t mitsumi_cdrom_vis_device = {
+    .name          = "Mitsumi interface (Tandy VIS)",
+    .internal_name = "mcd_vis",
+    .flags         = 0,
+    .local         = 1,
+    .init          = mitsumi_cdrom_init,
+    .close         = mitsumi_cdrom_close,
+    .reset         = mitsumi_cdrom_device_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };

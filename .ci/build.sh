@@ -992,7 +992,7 @@ else
 	for retry in 0 5 10 20 40
 	do
 		sleep $retry
-		git clone --recurse-submodules --no-shallow-submodules --remote-submodules "https://github.com/obattler/libaaruformat" "$prefix" && break
+		git clone --recurse-submodules --no-shallow-submodules --remote-submodules "https://github.com/aaru-dps/libaaruformat" "$prefix" && break
 	done
 fi
 cwd_root="$(pwd)"

@@ -201,9 +201,16 @@ ropLEAVE_16(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t o
     STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
     LOAD_EBP_TO_EA(0);
     MEM_LOAD_ADDR_EA_W(&cpu_state.seg_ss);
-    host_reg = LOAD_REG_W(REG_BP); /*SP = BP + 2*/
-    ADD_HOST_REG_IMM_W(host_reg, 2);
-    STORE_REG_TARGET_W_RELEASE(host_reg, REG_SP);
+    /*The stack's size, not the operand's, picks ESP or SP*/
+    if (stack32) {
+        host_reg = LOAD_REG_L(REG_EBP); /*ESP = EBP + 2*/
+        ADD_HOST_REG_IMM(host_reg, 2);
+        STORE_REG_TARGET_L_RELEASE(host_reg, REG_ESP);
+    } else {
+        host_reg = LOAD_REG_W(REG_BP); /*SP = BP + 2*/
+        ADD_HOST_REG_IMM_W(host_reg, 2);
+        STORE_REG_TARGET_W_RELEASE(host_reg, REG_SP);
+    }
     STORE_REG_TARGET_W_RELEASE(0, REG_BP); /*BP = POP_W()*/
 
     return op_pc;
@@ -216,9 +223,16 @@ ropLEAVE_32(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t o
     STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
     LOAD_EBP_TO_EA(0);
     MEM_LOAD_ADDR_EA_L(&cpu_state.seg_ss);
-    host_reg = LOAD_REG_L(REG_EBP); /*ESP = EBP + 4*/
-    ADD_HOST_REG_IMM(host_reg, 4);
-    STORE_REG_TARGET_L_RELEASE(host_reg, REG_ESP);
+    /*The stack's size, not the operand's, picks ESP or SP*/
+    if (stack32) {
+        host_reg = LOAD_REG_L(REG_EBP); /*ESP = EBP + 4*/
+        ADD_HOST_REG_IMM(host_reg, 4);
+        STORE_REG_TARGET_L_RELEASE(host_reg, REG_ESP);
+    } else {
+        host_reg = LOAD_REG_W(REG_BP); /*SP = BP + 4*/
+        ADD_HOST_REG_IMM_W(host_reg, 4);
+        STORE_REG_TARGET_W_RELEASE(host_reg, REG_SP);
+    }
     STORE_REG_TARGET_L_RELEASE(0, REG_EBP); /*EBP = POP_L()*/
 
     return op_pc;
@@ -292,7 +306,11 @@ ROP_PUSH_SEG(SS)
     {                                                              \
         STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc); \
         LOAD_STACK_TO_EA(0);                                       \
-        MEM_LOAD_ADDR_EA_W(&cpu_state.seg_ss);                     \
+        /*POP_L reads four bytes; the selector is the low two*/    \
+        MEM_LOAD_ADDR_EA_L(&cpu_state.seg_ss);                     \
+        addbyte(0x0f); /*MOVZX EAX, AX*/                           \
+        addbyte(0xb7);                                             \
+        addbyte(0xc0);                                             \
         LOAD_SEG(0, &rseg);                                        \
         SP_MODIFY(4);                                              \
                                                                    \

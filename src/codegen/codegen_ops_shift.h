@@ -5,12 +5,21 @@
             count = (fetchdat >> 8) & 0x1f;                                      \
     } else {                                                                     \
         target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);     \
+        if (immediate) {                                                         \
+            count = fastreadb(cs + op_pc + 1) & 0x1f;                            \
+            /*Shifted by 0, memory is only read (no write check): interpreted*/  \
+            if (!count)                                                          \
+                return 0;                                                        \
+        }                                                                        \
         STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);               \
         SAVE_EA();                                                               \
         MEM_CHECK_WRITE_##size(target_seg);                                      \
         reg = MEM_LOAD_ADDR_EA_##size##_NO_ABRT(target_seg);                     \
-        if (immediate)                                                           \
-            count = fastreadb(cs + op_pc + 1) & 0x1f;                            \
+    }                                                                            \
+    if (!count) {                                                                \
+        /*A count of 0 changes neither the register nor the flags*/              \
+        RELEASE_REG(reg);                                                        \
+        return op_pc + 2;                                                        \
     }                                                                            \
     STORE_IMM_ADDR_L((uintptr_t) &cpu_state.flags_op2, count);                   \
                                                                                  \

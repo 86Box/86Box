@@ -3353,7 +3353,7 @@ banshee_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             return;
 
         case 0x5f:
-            banshee->pci_regs[0x5e] = val;
+            banshee->pci_regs[0x5f] = val;
             return;
 
         case 0x64:

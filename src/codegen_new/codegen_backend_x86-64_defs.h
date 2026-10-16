@@ -46,7 +46,7 @@
 
 #define REG_XMM_TEMP         REG_XMM0
 
-#define CODEGEN_HOST_REGS    3
+#define CODEGEN_HOST_REGS    6
 #define CODEGEN_HOST_FP_REGS 7
 
 extern void *codegen_mem_load_byte;
@@ -64,4 +64,5 @@ extern void *codegen_mem_store_single;
 extern void *codegen_mem_store_double;
 
 extern void *codegen_gpf_rout;
+extern void *codegen_ss_rout;
 extern void *codegen_exit_rout;

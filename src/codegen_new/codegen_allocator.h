@@ -18,7 +18,13 @@
   +/- 2GB. It was 32 MB on ARMv7 before we removed it*/
 
 #ifndef MEM_BLOCK_NR
+#if defined(__amd64__) || defined(_M_X64)
+/* Two for each of BLOCK_SIZE's blocks: running out of these deletes every
+   block at once. */
+#define MEM_BLOCK_NR 262144
+#else
 #define MEM_BLOCK_NR 131072
+#endif
 #endif
 
 

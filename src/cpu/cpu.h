@@ -309,6 +309,8 @@ typedef struct {
     uint32_t sysenter_eip; /* 0x00000176 - Pentium II and later */
 
     uint64_t mcg_ctl;           /* 0x0000017b */
+    uint64_t mcg_status;        /* 0x0000017a - MCIP only */
+    uint32_t ebl_cr_poweron;    /* 0x0000002a - the read/write bits */
     uint64_t evntsel[2];        /* 0x00000186, 0x00000187 */
 
     uint32_t debug_ctl;         /* 0x000001d9 */
@@ -443,6 +445,11 @@ typedef struct {
     uint32_t dyn_ea; */
 
     int sf_exc;
+
+    /* The legacy FPU's compiled FDIV family: a memory operand, a
+       permanent register of the recompiler, for the division helper
+       (x87_dyn_fdiv, 386_dynarec.c) */
+    double x87_operand;
 #endif
 } cpu_state_t;
 
@@ -477,10 +484,12 @@ typedef struct {
 #ifdef USE_NEW_DYNAREC
 #    define CPU_STATUS_NOTFLATDS (1 << 8)
 #    define CPU_STATUS_NOTFLATSS (1 << 9)
+#    define CPU_STATUS_NOTFLATES (1 << 10)
 #    define CPU_STATUS_MASK      0xff00
 #else
 #    define CPU_STATUS_NOTFLATDS (1 << 16)
 #    define CPU_STATUS_NOTFLATSS (1 << 17)
+#    define CPU_STATUS_NOTFLATES (1 << 18)
 #    define CPU_STATUS_MASK      0xffff0000
 #endif
 
@@ -575,7 +584,7 @@ extern int hascache;
 extern int isibm486;
 extern int is_mazovia;
 extern int is_nec;
-extern int is_rapidcad;
+extern int israpidcad;
 extern int hasfpu;
 #define CPU_FEATURE_RDTSC   (1 << 0)
 #define CPU_FEATURE_MSR     (1 << 1)
@@ -593,6 +602,11 @@ extern uint32_t cpu_features;
 extern int smi_latched;
 extern int smm_in_hlt;
 extern int smi_block;
+/* The processor stopped in HLT, its PC on the HLT (opHLT): an interrupt
+   taken from there returns past it. */
+extern int cpu_halted;
+extern int cpu_is_p5(void);
+extern int cpu_init_keeps_state(void);
 
 #ifdef USE_NEW_DYNAREC
 extern uint16_t cpu_cur_status;
@@ -600,6 +614,7 @@ extern uint16_t cpu_cur_status;
 extern uint32_t cpu_cur_status;
 #endif
 extern uint64_t cpu_CR4_mask;
+extern uint64_t cpu_CR4_ignore;
 extern uint64_t tsc;
 extern msr_t    msr;
 extern uint8_t  opcode;
@@ -899,6 +914,18 @@ extern int lock_legal_f6[8];
 extern int lock_legal_fe[8];
 
 extern int new_ne;
+extern int fpu_ignne;
+
+/* When an unmasked x87 exception asserts FERR# with CR0.NE clear */
+enum {
+    FPU_FERR_DEFERRED = 0, /* at the next waiting instruction */
+    FPU_FERR_AT_FAULT,     /* at the end of the faulting instruction */
+    FPU_FERR_486,          /* by the instruction and the exception, the 486's lists */
+    FPU_FERR_P5            /* by the instruction and the exception, the Pentium's */
+};
+extern int fpu_ferr_timing;
+/* FERR#, up from an unmasked exception until a new one begins (x87.c) */
+extern int fpu_ferr;
 
 extern int in_lock;
 extern int cpu_override_interpreter;

@@ -117,9 +117,10 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
             codegen_reg_write_imm(block, uop->dest_reg_a, uop->imm_data);
         } else
 #endif
-            if ((uop->type & UOP_MASK) == (UOP_MOV & UOP_MASK) && reg_version[IREG_GET_REG(uop->src_reg_a.reg)][uop->src_reg_a.version].refcount <= 1 && reg_is_native_size(uop->src_reg_a) && reg_is_native_size(uop->dest_reg_a)) {
+            if ((uop->type & UOP_MASK) == (UOP_MOV & UOP_MASK) && reg_version[IREG_GET_REG(uop->src_reg_a.reg)][uop->src_reg_a.version].refcount <= 1 && reg_is_native_size(uop->src_reg_a) && reg_is_native_size(uop->dest_reg_a) && (ireg_is_byte_accessed(IREG_GET_REG(uop->src_reg_a.reg)) || !ireg_is_byte_accessed(IREG_GET_REG(uop->dest_reg_a.reg)))) {
             /*Special case for UOP_MOV - if source register won't be used again then
-              just rename it to dest register instead of moving*/
+              just rename it to dest register instead of moving. Not when that could
+              leave a register accessed by byte in a host register without byte forms*/
             codegen_reg_alloc_register(invalid_ir_reg, uop->src_reg_a, invalid_ir_reg, invalid_ir_reg);
             uop->src_reg_a_real = codegen_reg_alloc_read_reg(block, uop->src_reg_a, NULL);
             codegen_reg_rename(block, uop->src_reg_a, uop->dest_reg_a);

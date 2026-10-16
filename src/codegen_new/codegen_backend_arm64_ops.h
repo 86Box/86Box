@@ -62,6 +62,16 @@ void host_arm64_CMN_IMM(codeblock_t *block, int src_n_reg, uint32_t imm_data);
 void host_arm64_CMNX_IMM(codeblock_t *block, int src_n_reg, uint64_t imm_data);
 
 void host_arm64_CMP_IMM(codeblock_t *block, int src_n_reg, uint32_t imm_data);
+void host_arm64_CSET(codeblock_t *block, int dst_reg, int cond);
+void host_arm64_REV(codeblock_t *block, int dst_reg, int src_n_reg);
+void host_arm64_MUL(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_SMULL(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_CMP_X_W_SXTW(codeblock_t *block, int src_n_reg, int src_m_reg);
+void host_arm64_UMULL(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_LSR64_32(codeblock_t *block, int dst_reg, int src_n_reg);
+void host_arm64_RBIT(codeblock_t *block, int dst_reg, int src_n_reg);
+void host_arm64_BIT_V(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_CLZ(codeblock_t *block, int dst_reg, int src_n_reg);
 void host_arm64_CMPX_IMM(codeblock_t *block, int src_n_reg, uint64_t imm_data);
 
 #define host_arm64_CMP_REG(block, src_n_reg, src_m_reg) host_arm64_CMP_REG_LSL(block, src_n_reg, src_m_reg, 0)

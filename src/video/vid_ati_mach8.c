@@ -948,13 +948,12 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
             /* At the Graphics Ultra's 8514/A-compatible pitch the destination X wraps modulo 1024 (ATI guide
                pp. 8-21, 8-22; measured on a real card). */
             x_mask = (ATI_GRAPHICS_ULTRA && mach->accel.compat_pitch) ? 0x3ff : -1;
-            /* Graphics Ultra: whichever of DP_CONFIG and the 8514/A mix registers was
-               written last chooses the source (measured on a real card). */
-            if (ATI_GRAPHICS_ULTRA && mach->accel.dp_compat) {
+            /* Graphics Ultra: whichever of DP_CONFIG and FRGD_MIX was written last chooses the
+               foreground source (measured on a real card). The background and monochrome sources
+               stay with DP_CONFIG: ATI's ULTRA.DRV writes FRGD_MIX after DP_CONFIG and still
+               feeds host data. */
+            if (ATI_GRAPHICS_ULTRA && mach->accel.dp_compat)
                 frgd_sel = dev->accel.frgd_sel;
-                bkgd_sel = dev->accel.bkgd_sel;
-                mono_src = (dev->accel.multifunc[0x0a] >> 6) & 3;
-            }
             if (!cpu_input) {
                 mach->accel.stepx = 0;
                 mach->accel.stepy = 0;
@@ -4973,8 +4972,8 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
         case 0xb2e8:
         case 0xb6e8:
         case 0xbae8:
-            /* On the Graphics Ultra a FRGD_MIX write after DP_CONFIG hands the source
-               back to the 8514/A registers, as a CMD write does. The other registers in
+            /* On the Graphics Ultra a FRGD_MIX write after DP_CONFIG hands the foreground
+               source back to the 8514/A registers, as a CMD write does. The other registers in
                this group do not (measured on a real card). */
             if (ATI_GRAPHICS_ULTRA && (port == 0xbae8) && (len == 2))
                 mach->accel.dp_compat = 1;

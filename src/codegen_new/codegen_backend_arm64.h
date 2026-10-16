@@ -20,6 +20,11 @@
 
 /* Let generic uop emitters use backend-specific immediate store helpers. */
 #define CODEGEN_BACKEND_HAS_MOV_IMM
+/* The integer uops of the SETcc, BSWAP, BSF/BSR, CMPXCHG and multiply
+   handlers: CMP_SET, TEST_SET, BSF, BSR, BSWAP, IMUL, IMUL_HI, IMUL_OV and
+   MUL_HI. A backend without them leaves those instructions to the
+   interpreter. */
+#define CODEGEN_BACKEND_HAS_INT_UOPS
 
 void host_arm64_BLR(codeblock_t *block, int addr_reg);
 void host_arm64_CBNZ(codeblock_t *block, int reg, uintptr_t dest);

@@ -74,67 +74,72 @@ ropPOP_r32(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, UNUSED(uin
     return op_pc;
 }
 
+/*PUSH imm. In a block rewritten again and again (CODEBLOCK_NO_IMMEDIATES)
+  the immediate is read from RAM as the block runs, and not marked.*/
+static uint32_t
+push_imm_common(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int size32, int imm8)
+{
+    const int len = imm8 ? 1 : (size32 ? 4 : 2);
+    int       sp_reg;
+
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+        if (imm8) {
+            LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0, cs + op_pc);
+            uop_MOVSX(ir, size32 ? IREG_temp0 : IREG_temp0_W, IREG_temp0_B);
+        } else if (size32)
+            LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + op_pc);
+        else
+            LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp0, cs + op_pc);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, size32 ? -4 : -2);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, size32 ? IREG_temp0 : IREG_temp0_W);
+    } else {
+        uint32_t imm;
+
+        if (imm8)
+            imm = (uint32_t) (int32_t) (int8_t) fastreadb(cs + op_pc);
+        else
+            imm = size32 ? fastreadl(cs + op_pc) : fastreadw(cs + op_pc);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, size32 ? -4 : -2);
+        if (size32)
+            uop_MEM_STORE_IMM_32(ir, IREG_SS_base, sp_reg, imm);
+        else
+            uop_MEM_STORE_IMM_16(ir, IREG_SS_base, sp_reg, imm & 0xffff);
+        codegen_mark_code_present(block, cs + op_pc, len);
+    }
+    SUB_SP(ir, size32 ? 4 : 2);
+
+    return op_pc + len;
+}
+
 uint32_t
 ropPUSH_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint16_t imm = fastreadw(cs + op_pc);
-    int      sp_reg;
-
-    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
-    uop_MEM_STORE_IMM_16(ir, IREG_SS_base, sp_reg, imm);
-    SUB_SP(ir, 2);
-
-    codegen_mark_code_present(block, cs + op_pc, 2);
-    return op_pc + 2;
+    return push_imm_common(block, ir, op_pc, 0, 0);
 }
 uint32_t
 ropPUSH_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint32_t imm = fastreadl(cs + op_pc);
-    int      sp_reg;
-
-    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
-    uop_MEM_STORE_IMM_32(ir, IREG_SS_base, sp_reg, imm);
-    SUB_SP(ir, 4);
-
-    codegen_mark_code_present(block, cs + op_pc, 4);
-    return op_pc + 4;
+    return push_imm_common(block, ir, op_pc, 1, 0);
 }
 
 uint32_t
 ropPUSH_imm_16_8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint16_t imm = (int16_t) (int8_t) fastreadb(cs + op_pc);
-    int      sp_reg;
-
-    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
-    uop_MEM_STORE_IMM_16(ir, IREG_SS_base, sp_reg, imm);
-    SUB_SP(ir, 2);
-
-    codegen_mark_code_present(block, cs + op_pc, 1);
-    return op_pc + 1;
+    return push_imm_common(block, ir, op_pc, 0, 1);
 }
 uint32_t
 ropPUSH_imm_32_8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint32_t imm = (int32_t) (int8_t) fastreadb(cs + op_pc);
-    int      sp_reg;
-
-    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
-    uop_MEM_STORE_IMM_32(ir, IREG_SS_base, sp_reg, imm);
-    SUB_SP(ir, 4);
-
-    codegen_mark_code_present(block, cs + op_pc, 1);
-    return op_pc + 1;
+    return push_imm_common(block, ir, op_pc, 1, 1);
 }
 
 uint32_t
 ropPOP_W(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
+    if (fetchdat & 0x38) /*8F /1-/7 are #UD*/
+        return 0;
+
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
     codegen_mark_code_present(block, cs + op_pc, 1);
@@ -148,6 +153,7 @@ ropPOP_W(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     } else {
         x86seg *target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 2);
         codegen_check_seg_write(block, ir, target_seg);
+        CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
 
         if (stack32)
             uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);
@@ -167,6 +173,9 @@ ropPOP_W(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 uint32_t
 ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
+    if (fetchdat & 0x38) /*8F /1-/7 are #UD*/
+        return 0;
+
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
     codegen_mark_code_present(block, cs + op_pc, 1);
@@ -180,6 +189,7 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     } else {
         x86seg *target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 4);
         codegen_check_seg_write(block, ir, target_seg);
+        CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 3);
 
         if (stack32)
             uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_ESP);
@@ -282,7 +292,11 @@ ropLEAVE_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), U
         uop_MOVZX(ir, IREG_eaaddr, IREG_BP);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);
     }
-    uop_ADD_IMM(ir, IREG_SP, IREG_BP, 2);
+    /*The stack size picks SP or ESP, the operand size the pop*/
+    if (stack32)
+        uop_ADD_IMM(ir, IREG_ESP, IREG_EBP, 2);
+    else
+        uop_ADD_IMM(ir, IREG_SP, IREG_BP, 2);
     uop_MOV(ir, IREG_BP, IREG_temp0_W);
 
     return op_pc;
@@ -298,7 +312,11 @@ ropLEAVE_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), U
         uop_MOVZX(ir, IREG_eaaddr, IREG_BP);
         uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_eaaddr);
     }
-    uop_ADD_IMM(ir, IREG_ESP, IREG_EBP, 4);
+    /*The stack size picks SP or ESP, the operand size the pop*/
+    if (stack32)
+        uop_ADD_IMM(ir, IREG_ESP, IREG_EBP, 4);
+    else
+        uop_ADD_IMM(ir, IREG_SP, IREG_BP, 4);
     uop_MOV(ir, IREG_EBP, IREG_temp0);
 
     return op_pc;
@@ -310,17 +328,36 @@ ropPUSHA_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), U
     int sp_reg;
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    sp_reg = LOAD_SP_WITH_OFFSET(ir, -16);
-    uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 14, IREG_AX);
-    uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 12, IREG_CX);
-    uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 10, IREG_DX);
-    uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 8, IREG_BX);
-    uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 6, IREG_SP);
-    uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 4, IREG_BP);
-    uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 2, IREG_SI);
-    uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_DI);
+    if (stack32) {
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -16);
+        uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 14, IREG_AX);
+        uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 12, IREG_CX);
+        uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 10, IREG_DX);
+        uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 8, IREG_BX);
+        uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 6, IREG_SP);
+        uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 4, IREG_BP);
+        uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 2, IREG_SI);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_DI);
+    } else {
+        /*A 16-bit stack wraps each slot's address, not just the first*/
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_AX);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_CX);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -6);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_DX);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -8);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_BX);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -10);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_SP);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -12);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_BP);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -14);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_SI);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -16);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_DI);
+    }
     SUB_SP(ir, 16);
-
     return op_pc;
 }
 uint32_t
@@ -329,17 +366,36 @@ ropPUSHA_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), U
     int sp_reg;
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    sp_reg = LOAD_SP_WITH_OFFSET(ir, -32);
-    uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 28, IREG_EAX);
-    uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 24, IREG_ECX);
-    uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 20, IREG_EDX);
-    uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 16, IREG_EBX);
-    uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 12, IREG_ESP);
-    uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 8, IREG_EBP);
-    uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 4, IREG_ESI);
-    uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_EDI);
+    if (stack32) {
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -32);
+        uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 28, IREG_EAX);
+        uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 24, IREG_ECX);
+        uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 20, IREG_EDX);
+        uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 16, IREG_EBX);
+        uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 12, IREG_ESP);
+        uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 8, IREG_EBP);
+        uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 4, IREG_ESI);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_EDI);
+    } else {
+        /*A 16-bit stack wraps each slot's address, not just the first*/
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_EAX);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -8);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_ECX);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -12);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_EDX);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -16);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_EBX);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -20);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_ESP);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -24);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_EBP);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -28);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_ESI);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, -32);
+        uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_EDI);
+    }
     SUB_SP(ir, 32);
-
     return op_pc;
 }
 
@@ -349,16 +405,33 @@ ropPOPA_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UN
     int sp_reg;
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    sp_reg = LOAD_SP(ir);
-    uop_MEM_LOAD_REG(ir, IREG_DI, IREG_SS_base, sp_reg);
-    uop_MEM_LOAD_REG_OFFSET(ir, IREG_SI, IREG_SS_base, sp_reg, 2);
-    uop_MEM_LOAD_REG_OFFSET(ir, IREG_BP, IREG_SS_base, sp_reg, 4);
-    uop_MEM_LOAD_REG_OFFSET(ir, IREG_BX, IREG_SS_base, sp_reg, 8);
-    uop_MEM_LOAD_REG_OFFSET(ir, IREG_DX, IREG_SS_base, sp_reg, 10);
-    uop_MEM_LOAD_REG_OFFSET(ir, IREG_CX, IREG_SS_base, sp_reg, 12);
-    uop_MEM_LOAD_REG_OFFSET(ir, IREG_AX, IREG_SS_base, sp_reg, 14);
+    if (stack32) {
+        sp_reg = LOAD_SP(ir);
+        uop_MEM_LOAD_REG(ir, IREG_DI, IREG_SS_base, sp_reg);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_SI, IREG_SS_base, sp_reg, 2);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_BP, IREG_SS_base, sp_reg, 4);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_BX, IREG_SS_base, sp_reg, 8);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_DX, IREG_SS_base, sp_reg, 10);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_CX, IREG_SS_base, sp_reg, 12);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_AX, IREG_SS_base, sp_reg, 14);
+    } else {
+        /*A 16-bit stack wraps each slot's address, not just the first*/
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 0);
+        uop_MEM_LOAD_REG(ir, IREG_DI, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 2);
+        uop_MEM_LOAD_REG(ir, IREG_SI, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 4);
+        uop_MEM_LOAD_REG(ir, IREG_BP, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 8);
+        uop_MEM_LOAD_REG(ir, IREG_BX, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 10);
+        uop_MEM_LOAD_REG(ir, IREG_DX, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 12);
+        uop_MEM_LOAD_REG(ir, IREG_CX, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 14);
+        uop_MEM_LOAD_REG(ir, IREG_AX, IREG_SS_base, sp_reg);
+    }
     ADD_SP(ir, 16);
-
     return op_pc;
 }
 uint32_t
@@ -367,16 +440,33 @@ ropPOPA_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UN
     int sp_reg;
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    sp_reg = LOAD_SP(ir);
-    uop_MEM_LOAD_REG(ir, IREG_EDI, IREG_SS_base, sp_reg);
-    uop_MEM_LOAD_REG_OFFSET(ir, IREG_ESI, IREG_SS_base, sp_reg, 4);
-    uop_MEM_LOAD_REG_OFFSET(ir, IREG_EBP, IREG_SS_base, sp_reg, 8);
-    uop_MEM_LOAD_REG_OFFSET(ir, IREG_EBX, IREG_SS_base, sp_reg, 16);
-    uop_MEM_LOAD_REG_OFFSET(ir, IREG_EDX, IREG_SS_base, sp_reg, 20);
-    uop_MEM_LOAD_REG_OFFSET(ir, IREG_ECX, IREG_SS_base, sp_reg, 24);
-    uop_MEM_LOAD_REG_OFFSET(ir, IREG_EAX, IREG_SS_base, sp_reg, 28);
+    if (stack32) {
+        sp_reg = LOAD_SP(ir);
+        uop_MEM_LOAD_REG(ir, IREG_EDI, IREG_SS_base, sp_reg);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_ESI, IREG_SS_base, sp_reg, 4);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_EBP, IREG_SS_base, sp_reg, 8);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_EBX, IREG_SS_base, sp_reg, 16);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_EDX, IREG_SS_base, sp_reg, 20);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_ECX, IREG_SS_base, sp_reg, 24);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_EAX, IREG_SS_base, sp_reg, 28);
+    } else {
+        /*A 16-bit stack wraps each slot's address, not just the first*/
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 0);
+        uop_MEM_LOAD_REG(ir, IREG_EDI, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 4);
+        uop_MEM_LOAD_REG(ir, IREG_ESI, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 8);
+        uop_MEM_LOAD_REG(ir, IREG_EBP, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 16);
+        uop_MEM_LOAD_REG(ir, IREG_EBX, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 20);
+        uop_MEM_LOAD_REG(ir, IREG_EDX, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 24);
+        uop_MEM_LOAD_REG(ir, IREG_ECX, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 28);
+        uop_MEM_LOAD_REG(ir, IREG_EAX, IREG_SS_base, sp_reg);
+    }
     ADD_SP(ir, 32);
-
     return op_pc;
 }
 
@@ -385,7 +475,9 @@ ropPUSHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUS
 {
     int sp_reg;
 
-    if ((cpu_state.eflags & VM_FLAG) && (IOPL < 3))
+    /*In V86 mode the fault depends on IOPL, which blocks aren't keyed on:
+      the interpreter decides it at run time*/
+    if (cpu_state.eflags & VM_FLAG)
         return 0;
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
@@ -403,7 +495,9 @@ ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNU
 {
     int sp_reg;
 
-    if ((cpu_state.eflags & VM_FLAG) && (IOPL < 3))
+    /*In V86 mode the fault depends on IOPL, which blocks aren't keyed on:
+      the interpreter decides it at run time*/
+    if (cpu_state.eflags & VM_FLAG)
         return 0;
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
@@ -423,4 +517,45 @@ ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNU
     SUB_SP(ir, 4);
 
     return op_pc;
+}
+
+/*ENTER with nesting level 0, the form compilers emit. As the interpreter:
+  the operand size picks the push of BP or EBP and which of them the frame
+  goes to, the stack size whether SP or ESP is the frame and takes the frame
+  size off. Other levels go to the interpreter.*/
+static uint32_t
+enter_common(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int is32)
+{
+    uint16_t size  = fastreadw(cs + op_pc);
+    uint8_t  level = fastreadb(cs + op_pc + 2) & 0x1f;
+    int      sp_reg;
+
+    if (level)
+        return 0;
+
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    sp_reg = LOAD_SP_WITH_OFFSET(ir, is32 ? -4 : -2);
+    uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, is32 ? IREG_EBP : IREG_BP);
+    SUB_SP(ir, is32 ? 4 : 2);
+    if (!is32)
+        uop_MOV(ir, IREG_BP, IREG_SP);
+    else if (stack32)
+        uop_MOV(ir, IREG_EBP, IREG_ESP);
+    else
+        uop_MOVZX(ir, IREG_EBP, IREG_SP);
+    if (size)
+        SUB_SP(ir, size);
+
+    codegen_mark_code_present(block, cs + op_pc, 3);
+    return op_pc + 3;
+}
+uint32_t
+ropENTER_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
+{
+    return enter_common(block, ir, op_pc, 0);
+}
+uint32_t
+ropENTER_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
+{
+    return enter_common(block, ir, op_pc, 1);
 }

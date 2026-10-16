@@ -192,6 +192,27 @@
 #define UOP_TEST_JNS_DEST (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x70 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
 /*UOP_TEST_JS_DEST - if (src_reg_a positive) then jump to ptr*/
 #define UOP_TEST_JS_DEST (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x71 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
+/*UOP_CMP_SET - dest_reg = (src_reg_a CMP src_reg_b satisfies condition imm) ? 1 : 0.
+  imm is a uop_cc_t; sources are both B, both W or both L, dest is L*/
+#define UOP_CMP_SET (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0x72)
+/*UOP_TEST_SET - dest_reg = (src_reg_a TEST src_reg_a satisfies condition imm) ? 1 : 0.
+  imm is UOP_CC_Z, UOP_CC_NZ, UOP_CC_S or UOP_CC_NS; dest is L*/
+#define UOP_TEST_SET (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0x73)
+/*UOP_BSWAP - dest_reg = src_reg_a with its four bytes reversed; both L*/
+#define UOP_BSWAP (UOP_TYPE_PARAMS_REGS | 0x74)
+/*UOP_IMUL - dest_reg = low 32 bits of (signed)src_reg_a * (signed)src_reg_b; all L*/
+#define UOP_IMUL (UOP_TYPE_PARAMS_REGS | 0x75)
+/*UOP_IMUL_OV - dest_reg = 1 if (signed)src_reg_a * (signed)src_reg_b doesn't fit
+  in 32 bits, else 0; all L*/
+#define UOP_IMUL_OV (UOP_TYPE_PARAMS_REGS | 0x76)
+/*UOP_MUL_HI - dest_reg = high 32 bits of (unsigned)src_reg_a * (unsigned)src_reg_b; all L*/
+#define UOP_MUL_HI (UOP_TYPE_PARAMS_REGS | 0x77)
+/*UOP_IMUL_HI - dest_reg = high 32 bits of (signed)src_reg_a * (signed)src_reg_b; all L*/
+#define UOP_IMUL_HI (UOP_TYPE_PARAMS_REGS | 0x78)
+/*UOP_BSF - dest_reg = src_reg_a ? index of its lowest set bit : src_reg_b; all L*/
+#define UOP_BSF (UOP_TYPE_PARAMS_REGS | 0x79)
+/*UOP_BSR - dest_reg = src_reg_a ? index of its highest set bit : src_reg_b; all L*/
+#define UOP_BSR (UOP_TYPE_PARAMS_REGS | 0x7a)
 
 /*UOP_FP_ENTER - must be called before any FPU register accessed*/
 #define UOP_FP_ENTER (UOP_TYPE_PARAMS_IMM | 0x80 | UOP_TYPE_BARRIER)
@@ -256,8 +277,6 @@
 #define UOP_PSRAW_IMM (UOP_TYPE_PARAMS_REGS | 0xa2)
 /*UOP_PSRAD_IMM - (packed long) dest_reg = src_reg_a >> immediate*/
 #define UOP_PSRAD_IMM (UOP_TYPE_PARAMS_REGS | 0xa3)
-/*UOP_PSRAQ_IMM - (packed quad) dest_reg = src_reg_a >> immediate*/
-#define UOP_PSRAQ_IMM (UOP_TYPE_PARAMS_REGS | 0xa4)
 /*UOP_PSRLW_IMM - (packed word) dest_reg = src_reg_a >> immediate*/
 #define UOP_PSRLW_IMM (UOP_TYPE_PARAMS_REGS | 0xa5)
 /*UOP_PSRLD_IMM - (packed long) dest_reg = src_reg_a >> immediate*/
@@ -347,6 +366,25 @@
 #define UOP_INVALID 0xff
 
 #define UOP_MASK    0xffff
+
+/*Conditions for UOP_CMP_SET and UOP_TEST_SET, numbered as the x86 condition
+  codes, so that cc ^ 1 is the opposite condition*/
+typedef enum uop_cc_t {
+    UOP_CC_O   = 0x0,
+    UOP_CC_NO  = 0x1,
+    UOP_CC_B   = 0x2,
+    UOP_CC_NB  = 0x3,
+    UOP_CC_Z   = 0x4,
+    UOP_CC_NZ  = 0x5,
+    UOP_CC_BE  = 0x6,
+    UOP_CC_NBE = 0x7,
+    UOP_CC_S   = 0x8,
+    UOP_CC_NS  = 0x9,
+    UOP_CC_L   = 0xc,
+    UOP_CC_NL  = 0xd,
+    UOP_CC_LE  = 0xe,
+    UOP_CC_NLE = 0xf
+} uop_cc_t;
 
 typedef struct uop_t {
     uint32_t      type;
@@ -688,7 +726,22 @@ uop_gen_reg_src2_pointer(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int sr
 
 extern int codegen_mmx_enter(void);
 extern int codegen_femms(void);
+extern int codegen_mmx_fpu_pending(void);
 extern int codegen_fp_enter(void);
+extern int codegen_fp_pending(void);
+/* A pending exception of the legacy FPU (ES set by an unmasked one) is
+   taken before a waiting x87 or an MMX instruction, as the interpreter
+   takes it: ES tested inline, the helper called only when it is set
+   (codegen.c) */
+extern void codegen_fp_pending_check(ir_data_t *ir);
+extern int  codegen_fpu_rc_nearest(ir_data_t *ir);
+extern int  codegen_fpu_class_dirty;
+/* A store from an empty ST(0): the interpreter's version, then the block
+   ends (codegen.c) */
+extern void codegen_fpu_guard_empty(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg);
+/* FIST/FISTP of a value that may not fit: the interpreter's version */
+extern void codegen_fpu_guard_int_range(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg, const double *bounds);
+extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg, int src_reg, uint32_t indefinite);
 
 #define uop_LOAD_FUNC_ARG_REG(ir, arg, reg)                      uop_gen_reg_src1(UOP_LOAD_FUNC_ARG_0 + arg, ir, reg)
 
@@ -756,12 +809,22 @@ extern int codegen_fp_enter(void);
 #define uop_FTST(ir, dst_reg, src_reg)                           uop_gen_reg_dst_src1(UOP_FTST, ir, dst_reg, src_reg)
 
 #if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64 || defined __loongarch_lp64
+#define uop_FP_ENTER_NOWAIT(ir)                             \
+    do {                                                    \
+        if (!codegen_fpu_entered) {                         \
+            uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);           \
+            uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_fp_enter); \
+            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout); \
+        }                                                   \
+        codegen_mmx_entered = 0;                            \
+    } while (0)
 #define uop_FP_ENTER(ir)                                    \
     do {                                                    \
         if (!codegen_fpu_entered) {                         \
             uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);           \
             uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_fp_enter); \
             uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout); \
+            codegen_fp_pending_check(ir);                   \
         }                                                   \
         codegen_fpu_entered = 1;                            \
         codegen_mmx_entered = 0;                            \
@@ -777,19 +840,34 @@ extern int codegen_fp_enter(void);
         codegen_fpu_entered = 0;                             \
     } while (0)
 #else
-#define uop_FP_ENTER(ir)                                    \
+#define uop_FP_ENTER_NOWAIT(ir)                             \
     do {                                                    \
         if (!codegen_fpu_entered)                           \
             uop_gen_imm(UOP_FP_ENTER, ir, cpu_state.oldpc); \
+        codegen_mmx_entered = 0;                            \
+    } while (0)
+#define uop_FP_ENTER(ir)                                    \
+    do {                                                    \
+        if (!codegen_fpu_entered) {                         \
+            uop_gen_imm(UOP_FP_ENTER, ir, cpu_state.oldpc); \
+            codegen_fp_pending_check(ir);                   \
+        }                                                   \
         codegen_fpu_entered = 1;                            \
         codegen_mmx_entered = 0;                            \
     } while (0)
-#define uop_MMX_ENTER(ir)                                    \
-    do {                                                     \
-        if (!codegen_mmx_entered)                            \
-            uop_gen_imm(UOP_MMX_ENTER, ir, cpu_state.oldpc); \
-        codegen_mmx_entered = 1;                             \
-        codegen_fpu_entered = 0;                             \
+#define uop_MMX_ENTER(ir)                                                    \
+    do {                                                                     \
+        if (!codegen_mmx_entered) {                                          \
+            if (fpu_softfloat) {                                             \
+                uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                \
+                uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_mmx_fpu_pending); \
+                uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);        \
+            } else                                                           \
+                codegen_fp_pending_check(ir);                                \
+            uop_gen_imm(UOP_MMX_ENTER, ir, cpu_state.oldpc);                 \
+        }                                                                    \
+        codegen_mmx_entered = 1;                                             \
+        codegen_fpu_entered = 0;                                             \
     } while (0)
 #endif
 
@@ -875,7 +953,6 @@ extern int codegen_fp_enter(void);
 #define uop_PSLLQ_IMM(ir, dst_reg, src_reg, imm)                         uop_gen_reg_dst_src_imm(UOP_PSLLQ_IMM, ir, dst_reg, src_reg, imm)
 #define uop_PSRAW_IMM(ir, dst_reg, src_reg, imm)                         uop_gen_reg_dst_src_imm(UOP_PSRAW_IMM, ir, dst_reg, src_reg, imm)
 #define uop_PSRAD_IMM(ir, dst_reg, src_reg, imm)                         uop_gen_reg_dst_src_imm(UOP_PSRAD_IMM, ir, dst_reg, src_reg, imm)
-#define uop_PSRAQ_IMM(ir, dst_reg, src_reg, imm)                         uop_gen_reg_dst_src_imm(UOP_PSRAQ_IMM, ir, dst_reg, src_reg, imm)
 #define uop_PSRLW_IMM(ir, dst_reg, src_reg, imm)                         uop_gen_reg_dst_src_imm(UOP_PSRLW_IMM, ir, dst_reg, src_reg, imm)
 #define uop_PSRLD_IMM(ir, dst_reg, src_reg, imm)                         uop_gen_reg_dst_src_imm(UOP_PSRLD_IMM, ir, dst_reg, src_reg, imm)
 #define uop_PSRLQ_IMM(ir, dst_reg, src_reg, imm)                         uop_gen_reg_dst_src_imm(UOP_PSRLQ_IMM, ir, dst_reg, src_reg, imm)
@@ -901,6 +978,15 @@ extern int codegen_fp_enter(void);
 
 #define uop_TEST_JNS_DEST(ir, src_reg)                                   uop_gen_reg_src1(UOP_TEST_JNS_DEST, ir, src_reg)
 #define uop_TEST_JS_DEST(ir, src_reg)                                    uop_gen_reg_src1(UOP_TEST_JS_DEST, ir, src_reg)
+#define uop_CMP_SET(ir, dst_reg, src_reg_a, src_reg_b, cc)               uop_gen_reg_dst_src2_imm(UOP_CMP_SET, ir, dst_reg, src_reg_a, src_reg_b, cc)
+#define uop_TEST_SET(ir, dst_reg, src_reg, cc)                           uop_gen_reg_dst_src1_imm(UOP_TEST_SET, ir, dst_reg, src_reg, cc)
+#define uop_BSWAP(ir, dst_reg, src_reg)                                  uop_gen_reg_dst_src1(UOP_BSWAP, ir, dst_reg, src_reg)
+#define uop_IMUL(ir, dst_reg, src_reg_a, src_reg_b)                      uop_gen_reg_dst_src2(UOP_IMUL, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_IMUL_OV(ir, dst_reg, src_reg_a, src_reg_b)                   uop_gen_reg_dst_src2(UOP_IMUL_OV, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_MUL_HI(ir, dst_reg, src_reg_a, src_reg_b)                    uop_gen_reg_dst_src2(UOP_MUL_HI, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_IMUL_HI(ir, dst_reg, src_reg_a, src_reg_b)                   uop_gen_reg_dst_src2(UOP_IMUL_HI, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_BSF(ir, dst_reg, src_reg, old_reg)                           uop_gen_reg_dst_src2(UOP_BSF, ir, dst_reg, src_reg, old_reg)
+#define uop_BSR(ir, dst_reg, src_reg, old_reg)                           uop_gen_reg_dst_src2(UOP_BSR, ir, dst_reg, src_reg, old_reg)
 
 #ifdef DEBUG_EXTRA
 #    define uop_LOG_INSTR(ir, imm) uop_gen_imm(UOP_LOG_INSTR, ir, imm)

@@ -1970,7 +1970,12 @@ codegen_timing_p6_opcode(uint8_t opcode, UNUSED(uint32_t fetchdat), int op_32, U
             }
     }
 
-    if (ins_table[opcode])
+    /*The MMX rows (0F 60-7F, D0-FF) on a P6 without MMX, the Pentium Pro: the
+      instructions are #UD there, and its units have no MMX uop types to run
+      them on*/
+    if ((last_prefix == 0x0f) && !cpu_has_feature(CPU_FEATURE_MMX) && (((opcode & 0xe0) == 0x60) || (opcode >= 0xd0)))
+        decode_instruction(&complex_alu1_op, 0, fetchdat, op_32, bit8);
+    else if (ins_table[opcode])
         decode_instruction(ins_table[opcode], deps[opcode], fetchdat, op_32, bit8);
     else
         decode_instruction(&complex_alu1_op, 0, fetchdat, op_32, bit8);

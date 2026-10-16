@@ -42,23 +42,31 @@ void *codegen_mem_store_single;
 void *codegen_mem_store_double;
 
 void *codegen_gpf_rout;
+void *codegen_ss_rout;
 void *codegen_exit_rout;
 
 host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS] = {
+  /*R13-R15 are callee-saved and already saved by the block prologue. They
+  come first so that registers never accessed by byte settle there, leaving
+  the three with byte forms to the rest*/
+    {REG_R13,  HOST_REG_FLAG_NO_BYTE},
+    { REG_R14, HOST_REG_FLAG_NO_BYTE},
+    { REG_R15, HOST_REG_FLAG_NO_BYTE},
   /*Note: while EAX and EDX are normally volatile registers under x86
   calling conventions, the recompiler will explicitly save and restore
   them across funcion calls*/
-    {REG_EAX,  0},
+    { REG_EAX, 0},
     { REG_EBX, 0},
     { REG_EDX, 0}
 };
 
-/* The Windows x64 frame: 0x38 bytes of block temporaries as before, then
-   XMM6 and XMM7 as the caller left them. 0x58 keeps RSP 16-byte aligned
-   after the eight pushes and the return address. */
-#define CODEGEN_WIN64_FRAME 0x58
-#define CODEGEN_XMM6_SAVE   0x38
-#define CODEGEN_XMM7_SAVE   0x48
+/* The Windows x64 frame: the 32 bytes of home space a called function may
+   store its arguments in, the block temporaries above them (codegen_reg.c,
+   ending at 0x50), then XMM6 and XMM7 as the caller left them. 0x78 keeps
+   RSP 16-byte aligned after the eight pushes and the return address. */
+#define CODEGEN_WIN64_FRAME 0x78
+#define CODEGEN_XMM6_SAVE   0x50
+#define CODEGEN_XMM7_SAVE   0x60
 
 host_reg_def_t codegen_host_fp_reg_list[CODEGEN_HOST_FP_REGS] = {
 #    if _WIN64
@@ -307,9 +315,9 @@ codegen_backend_init(void)
     codeblock_hash = plat_mmap(HASH_SIZE * sizeof(codeblock_t *), 0, &large_hash);
 
     if (large_block)
-        pclog("Allocated %llu bytes of large pages for codeblock pointers\n", BLOCK_SIZE * sizeof(codeblock_t));
+        pclog("Allocated %llu bytes of large pages for codeblock pointers\n", (unsigned long long) (BLOCK_SIZE * sizeof(codeblock_t)));
     if (large_hash)
-        pclog("Allocated %llu bytes of large pages for codeblock hashes\n", HASH_SIZE * sizeof(codeblock_t *));
+        pclog("Allocated %llu bytes of large pages for codeblock hashes\n", (unsigned long long) (HASH_SIZE * sizeof(codeblock_t *)));
 
     for (c = 0; c < BLOCK_SIZE; c++)
         codeblock[c].valid = 0;
@@ -352,6 +360,18 @@ codegen_backend_init(void)
     host_x86_POP(block, REG_RBP);
     host_x86_POP(block, REG_RBX);
     host_x86_RET(block);
+
+    /*#SS(0): an operand through SS outside its limit (CHECK_SEG_LIMITS)*/
+    codegen_ss_rout = &codeblock[block_current].data[block_pos];
+#    if _WIN64
+    host_x86_XOR32_REG_REG(block, REG_ECX, REG_ECX);
+    host_x86_XOR32_REG_REG(block, REG_EDX, REG_EDX);
+#    else
+    host_x86_XOR32_REG_REG(block, REG_EDI, REG_EDI);
+    host_x86_XOR32_REG_REG(block, REG_ESI, REG_ESI);
+#    endif
+    host_x86_CALL(block, (void *) x86ss);
+    host_x86_JMP(block, codegen_exit_rout);
 
     block_write_data = NULL;
 

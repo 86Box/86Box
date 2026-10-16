@@ -78,7 +78,7 @@ typedef struct mem_block_t {
     uint32_t offset; /*Offset into mem_block_alloc*/
     uint32_t next;
     uint32_t tail;
-    uint16_t code_block;
+    uint32_t code_block;
 } mem_block_t;
 
 static mem_block_t mem_blocks[MEM_BLOCK_NR];

@@ -169,12 +169,14 @@ static void
 sis_5600_mask_bar(uint8_t *regs, void *agpgart)
 {
     uint32_t bar;
+    uint32_t size;
     uint32_t sizes[8] = { 0x00400000, 0x00800000, 0x01000000, 0x02000000, 0x04000000, 0x08000000,
                           0x10000000, 0x00000000 } ;
 
     /* Make sure the aperture's base is aligned to its size. */
     bar = (regs[0x13] << 24) | (regs[0x12] << 16);
-    bar &= (sizes[(regs[0x94] >> 4) & 0x07] | 0xf0000000);
+    size = sizes[(regs[0x94] >> 4) & 0x07];
+    bar &= size ? ~(size - 1) : 0xf0000000;
     regs[0x12] = (bar >> 16) & 0xff;
     regs[0x13] = (bar >> 24) & 0xff;
 
@@ -222,7 +224,6 @@ sis_5600_host_to_pci_write(int addr, uint8_t val, void *priv)
         case 0x77 ... 0x80:
         case 0x82 ... 0x8f:
         case 0x97 ... 0x9b:
-        case 0xc8 ... 0xcb:
         case 0xd4 ... 0xd8:
         case 0xda:
         case 0xe0:
@@ -257,6 +258,16 @@ sis_5600_host_to_pci_write(int addr, uint8_t val, void *priv)
         case 0x70 ... 0x73:
             dev->pci_conf[addr] = val;
             sis_5600_shadow_recalc(dev);
+            break;
+
+        /* AGP command: the data rate (1x/2x, as the status reports),
+           AGP_EN, SBA_EN and RQ_DEPTH. */
+        case 0xc8:
+        case 0xc9:
+            dev->pci_conf[addr] = val & 0x03;
+            break;
+        case 0xcb:
+            dev->pci_conf[addr] = val;
             break;
 
         case 0x91 ... 0x93:

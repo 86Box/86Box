@@ -1,6 +1,18 @@
 #ifdef USE_NEW_DYNAREC
+/* A push that faults after the new CS is loaded puts all of CS back:
+   selector, base, limits and the operand size, not the selector alone (a
+   V86 far call whose stack page is missing left the new base in place) */
+#    define CALL_FAR_RESTORE_CS()                                                                  \
+        do {                                                                                        \
+            cpu_state.seg_cs = old_cs_seg;                                                          \
+            use32            = old_use32;                                                           \
+            cpu_cur_status   = (cpu_cur_status & ~CPU_STATUS_USE32) | (old_status & CPU_STATUS_USE32); \
+        } while (0)
 #    define CALL_FAR_w(new_seg, new_pc)  \
         old_cs       = CS;               \
+        old_cs_seg   = cpu_state.seg_cs; \
+        old_use32    = use32;            \
+        old_status   = cpu_cur_status;   \
         old_pc       = cpu_state.pc;     \
         cpu_state.pc = new_pc;           \
         optype       = CALL;             \
@@ -23,13 +35,13 @@
             uint32_t old_esp = ESP;      \
             PUSH_L(old_cs);              \
             if (cpu_state.abrt) {        \
-                CS      = old_cs;        \
+                CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
                 return 1;                \
             }                            \
             PUSH_L(old_pc);              \
             if (cpu_state.abrt) {        \
-                CS  = old_cs;            \
+                CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
                 return 1;                \
             }                            \
@@ -37,13 +49,13 @@
             uint32_t old_esp = ESP;      \
             PUSH_W(old_cs);              \
             if (cpu_state.abrt) {        \
-                CS      = old_cs;        \
+                CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
                 return 1;                \
             }                            \
             PUSH_W(old_pc);              \
             if (cpu_state.abrt) {        \
-                CS  = old_cs;            \
+                CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
                 return 1;                \
             }                            \
@@ -51,6 +63,9 @@
 
 #    define CALL_FAR_l(new_seg, new_pc)  \
         old_cs       = CS;               \
+        old_cs_seg   = cpu_state.seg_cs; \
+        old_use32    = use32;            \
+        old_status   = cpu_cur_status;   \
         old_pc       = cpu_state.pc;     \
         cpu_state.pc = new_pc;           \
         optype       = CALL;             \
@@ -73,13 +88,13 @@
             uint32_t old_esp = ESP;      \
             PUSH_W(old_cs);              \
             if (cpu_state.abrt) {        \
-                CS      = old_cs;        \
+                CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
                 return 1;                \
             }                            \
             PUSH_W(old_pc);              \
             if (cpu_state.abrt) {        \
-                CS  = old_cs;            \
+                CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
                 return 1;                \
             }                            \
@@ -87,13 +102,13 @@
             uint32_t old_esp = ESP;      \
             PUSH_L(old_cs);              \
             if (cpu_state.abrt) {        \
-                CS      = old_cs;        \
+                CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
                 return 1;                \
             }                            \
             PUSH_L(old_pc);              \
             if (cpu_state.abrt) {        \
-                CS  = old_cs;            \
+                CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
                 return 1;                \
             }                            \
@@ -198,6 +213,11 @@ static int
 opCALL_far_w(uint32_t fetchdat)
 {
     uint32_t old_cs;
+#ifdef USE_NEW_DYNAREC
+    x86seg   old_cs_seg;
+    uint32_t old_use32;
+    uint32_t old_status;
+#endif
     uint32_t old_pc;
     uint16_t new_cs;
     uint16_t new_pc;
@@ -220,6 +240,11 @@ static int
 opCALL_far_l(UNUSED(uint32_t fetchdat))
 {
     uint32_t old_cs;
+#ifdef USE_NEW_DYNAREC
+    x86seg   old_cs_seg;
+    uint32_t old_use32;
+    uint32_t old_status;
+#endif
     uint32_t old_pc;
     uint32_t new_cs;
     uint32_t new_pc;
@@ -242,6 +267,11 @@ opCALL_far_l(UNUSED(uint32_t fetchdat))
 static int
 opFF_w_a16(uint32_t fetchdat)
 {
+#ifdef USE_NEW_DYNAREC
+    x86seg   old_cs_seg;
+    uint32_t old_use32;
+    uint32_t old_status;
+#endif
     uint16_t old_cs;
     uint16_t new_cs;
     uint32_t old_pc;
@@ -402,6 +432,11 @@ opFF_w_a16(uint32_t fetchdat)
 static int
 opFF_w_a32(uint32_t fetchdat)
 {
+#ifdef USE_NEW_DYNAREC
+    x86seg   old_cs_seg;
+    uint32_t old_use32;
+    uint32_t old_status;
+#endif
     uint16_t old_cs;
     uint16_t new_cs;
     uint32_t old_pc;
@@ -563,6 +598,11 @@ opFF_w_a32(uint32_t fetchdat)
 static int
 opFF_l_a16(uint32_t fetchdat)
 {
+#ifdef USE_NEW_DYNAREC
+    x86seg   old_cs_seg;
+    uint32_t old_use32;
+    uint32_t old_status;
+#endif
     uint16_t old_cs;
     uint16_t new_cs;
     uint32_t old_pc;
@@ -723,6 +763,11 @@ opFF_l_a16(uint32_t fetchdat)
 static int
 opFF_l_a32(uint32_t fetchdat)
 {
+#ifdef USE_NEW_DYNAREC
+    x86seg   old_cs_seg;
+    uint32_t old_use32;
+    uint32_t old_status;
+#endif
     uint16_t old_cs;
     uint16_t new_cs;
     uint32_t old_pc;
