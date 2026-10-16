@@ -103,12 +103,12 @@
 
 /* Control register (270788-001 Figure 81): PRL (bits 2-0) is the source's
    priority level, MSK (bit 3) gates it. Bit 4 is the LTM bit of the INT0-INT3
-   registers, which asks for level-triggered operation -- the mode this model
-   implements, the board driving a level through i8018x_pcb_icu_int(); the SFNM
-   and C bits above it (INT0 and INT1 only) affect cascading and are stored but
-   not acted on. */
+   registers: set, the input follows its level; clear, a LOW-to-HIGH transition
+   latches the request (section 9.5.2.2). The SFNM and C bits above it (INT0
+   and INT1 only) affect cascading and are stored but not acted on. */
 #define I8018X_ICU_CON_MSK      0x0008u
 #define I8018X_ICU_CON_PRL      0x0007u
+#define I8018X_ICU_CON_LTM      0x0010u
 
 /* Priority Mask Register (270788-001 Figure 84): the three PRM bits hold the
    lowest priority an interrupt may have and still be serviced, so all of them
@@ -132,6 +132,7 @@ struct i8018x_pcb_t {
     uint64_t tmr_done[3];   /* maximum-count cycles completed so far */
     uint16_t tmr_req;       /* sticky timer request latches: bit i = timer i */
     uint16_t icu_ext;       /* external input levels, INT0-INT3 in bits 4-7 */
+    uint16_t icu_latch;     /* edge-mode input requests, INT0-INT3 in bits 4-7 */
     uint16_t icu_dma;       /* DMA channel requests: DMA0 bit 2, DMA1 bit 3 */
     uint16_t icu_isr;       /* in-service register bits */
     uint8_t  tmr_alt[3];    /* MAX COUNT register in use: 0 = A, 1 = B (ALT) */
@@ -315,14 +316,32 @@ i8018x_pcb_icu_highest(struct i8018x_pcb_t *dev, uint16_t sources)
     return best;
 }
 
+/* What the external inputs are asking for: the level each one holds in
+   level-triggered mode, the arming transition in edge-triggered mode. */
+static uint16_t
+i8018x_pcb_icu_inputs(struct i8018x_pcb_t *dev)
+{
+    uint16_t req = 0x0000u;
+
+    for (int i = 0; i < 4; i++) {
+        uint16_t bit = I8018X_ICU_SRC_INT(i);
+
+        req |= (dev->regs[I8018X_ICU_INT_CON(i) / 2] & I8018X_ICU_CON_LTM)
+                   ? (uint16_t) (dev->icu_ext & bit)
+                   : (uint16_t) (dev->icu_latch & bit);
+    }
+
+    return req;
+}
+
 /* Everything the sources are asking for right now: the timer latch, the
-   external input levels and whatever the guest forced through the request
+   external inputs and whatever the guest forced through the request
    register. */
 static uint16_t
 i8018x_pcb_icu_requests(struct i8018x_pcb_t *dev)
 {
-    return (uint16_t) (dev->regs[I8018X_ICU_REQ / 2] | dev->icu_ext | dev->icu_dma |
-                       (dev->tmr_req ? I8018X_ICU_SRC_TMR : 0x0000u));
+    return (uint16_t) (dev->regs[I8018X_ICU_REQ / 2] | i8018x_pcb_icu_inputs(dev) |
+                       dev->icu_dma | (dev->tmr_req ? I8018X_ICU_SRC_TMR : 0x0000u));
 }
 
 /* Interrupt type of the highest priority request that is unmasked, above the
@@ -383,29 +402,49 @@ i8018x_pcb_icu_acknowledge(struct i8018x_pcb_t *pcb)
 
     /* A source's request clears with the acknowledgement itself (270788-001
        section 9.5.2.4), and a timer's status bit with it (section 9.5.2.10).
-       The DMA channels are entries 3 and 4; the external inputs keep no bit
-       of their own, the board drives their level. */
+       The DMA channels are entries 3 and 4 and the external inputs 5 to 8;
+       a level-triggered input is back to following its pin at once, while
+       an edge-triggered one waits for the next transition. */
     pcb->regs[I8018X_ICU_REQ / 2] &= (uint16_t) ~i8018x_icu_src[i];
 
     if (i < 3)
         pcb->tmr_req &= (uint16_t) ~(1u << i);
     else if (i < 5)
         pcb->icu_dma &= (uint16_t) ~I8018X_ICU_SRC_DMA(i - 3);
+    else
+        pcb->icu_latch &= (uint16_t) ~i8018x_icu_src[i];
 
     return i8018x_icu_type[i];
 }
 
-/* Drive one of the external interrupt inputs from the board. */
+/* Drive one of the external interrupt inputs from the board. In level-triggered
+   mode the input asks for service while it is high; in edge-triggered mode it
+   has to go low and high again first, but the request still follows the level
+   rather than a latch, so it drops as soon as the input goes inactive
+   (270788-001 sections 9.5.2.2 and 9.5.3.2). */
 void
 i8018x_pcb_icu_int(struct i8018x_pcb_t *pcb, int line, int level)
 {
     if ((pcb == NULL) || (line < 0) || (line > 3))
         return;
 
+    uint16_t bit    = I8018X_ICU_SRC_INT(line);
+    int      rising = level && !(pcb->icu_ext & bit);
+    int      edge   = !(pcb->regs[I8018X_ICU_INT_CON(line) / 2] & I8018X_ICU_CON_LTM);
+
     if (level)
-        pcb->icu_ext |= I8018X_ICU_SRC_INT(line);
+        pcb->icu_ext |= bit;
     else
-        pcb->icu_ext &= (uint16_t) ~I8018X_ICU_SRC_INT(line);
+        pcb->icu_ext &= (uint16_t) ~bit;
+
+    /* An edge arms the input; going low disarms it again, so the next
+       LOW-to-HIGH transition can ask for service a second time. */
+    if (edge) {
+        if (rising)
+            pcb->icu_latch |= bit;
+        else if (!level)
+            pcb->icu_latch &= (uint16_t) ~bit;
+    }
 }
 
 /* The offsets this block decodes. io.c ANDs the value of every handler on a
@@ -841,10 +880,11 @@ i8018x_pcb_reset(void *priv)
         io_removehandler(dev->base, I8018X_PCB_SIZE, NULL, i8018x_pcb_inw, NULL, NULL, i8018x_pcb_outw, NULL, dev);
 
     memset(dev->regs, 0x00, sizeof(dev->regs));
-    dev->tmr_req = 0;
     dev->icu_ext = 0;
     dev->icu_dma = 0;
     dev->icu_isr = 0;
+    dev->tmr_req = 0;
+    dev->icu_latch = 0;
 
     /* The 86Box channel numbers survive a reset: the controller keeps owning
        them until the device is closed. */
