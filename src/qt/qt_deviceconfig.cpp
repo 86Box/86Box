@@ -797,19 +797,6 @@ DeviceConfig::DeviceName(const _device_ *device, const char *internalName, const
     }
 }
 
-/* Hide a memory size box that has only one choice left, with its label. */
-static void
-set_row_shown(QFormLayout *layout, QWidget *field, bool shown)
-{
-#if QT_VERSION >= QT_VERSION_CHECK(6, 4, 0)
-    layout->setRowVisible(field, shown);
-#else
-    field->setVisible(shown);
-    if (QWidget *label = layout->labelForField(field))
-        label->setVisible(shown);
-#endif
-}
-
 void
 DeviceConfig::on_comboIndexChanged(int index)
 {
@@ -857,8 +844,10 @@ DeviceConfig::on_comboIndexChanged(int index)
 
         cbox_memory->setCurrentIndex(currentIndex);
 
-        cbox_memory->setEnabled(rows >= 2);
-        set_row_shown(this->ui->formLayout, cbox_memory, rows >= 2);
+        if (rows >= 2)
+            cbox_memory->setEnabled(true);
+        else
+            cbox_memory->setEnabled(false);
     }
 
     if ((cbox_memory_2 != nullptr) && (cbox_bios != nullptr) &&
@@ -902,8 +891,10 @@ DeviceConfig::on_comboIndexChanged(int index)
 
         cbox_memory_2->setCurrentIndex(currentIndex);
 
-        cbox_memory_2->setEnabled(rows >= 2);
-        set_row_shown(this->ui->formLayout, cbox_memory_2, rows >= 2);
+        if (rows >= 2)
+            cbox_memory_2->setEnabled(true);
+        else
+            cbox_memory_2->setEnabled(false);
     }
 
     if ((cbox_in530_bootlogo != nullptr) && (cbox_bios != nullptr) &&
