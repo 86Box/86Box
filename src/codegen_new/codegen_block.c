@@ -27,6 +27,7 @@
 uint8_t *block_write_data = NULL;
 
 int      codegen_flat_ds;
+int      codegen_flat_es;
 int      codegen_flat_ss;
 int      mmx_ebx_ecx_loaded;
 int      codegen_flags_changed = 0;
@@ -611,6 +612,7 @@ codegen_block_start_recompile(codeblock_t *block)
     codegen_flags_changed = 0;
     codegen_fpu_entered   = 0;
     codegen_mmx_entered   = 0;
+    codegen_fpu_class_dirty = 0;
 
     codegen_fpu_loaded_iq[0] = codegen_fpu_loaded_iq[1] = codegen_fpu_loaded_iq[2] = codegen_fpu_loaded_iq[3] = codegen_fpu_loaded_iq[4] = codegen_fpu_loaded_iq[5] = codegen_fpu_loaded_iq[6] = codegen_fpu_loaded_iq[7] = 0;
 
@@ -621,6 +623,7 @@ codegen_block_start_recompile(codeblock_t *block)
 
     codegen_flat_ds = !(cpu_cur_status & CPU_STATUS_NOTFLATDS);
     codegen_flat_ss = !(cpu_cur_status & CPU_STATUS_NOTFLATSS);
+    codegen_flat_es = !(cpu_cur_status & CPU_STATUS_NOTFLATES);
 
     if (block->flags & CODEBLOCK_BYTE_MASK) {
         block->dirty_mask  = &page->byte_dirty_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK];

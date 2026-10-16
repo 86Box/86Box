@@ -484,10 +484,12 @@ typedef struct {
 #ifdef USE_NEW_DYNAREC
 #    define CPU_STATUS_NOTFLATDS (1 << 8)
 #    define CPU_STATUS_NOTFLATSS (1 << 9)
+#    define CPU_STATUS_NOTFLATES (1 << 10)
 #    define CPU_STATUS_MASK      0xff00
 #else
 #    define CPU_STATUS_NOTFLATDS (1 << 16)
 #    define CPU_STATUS_NOTFLATSS (1 << 17)
+#    define CPU_STATUS_NOTFLATES (1 << 18)
 #    define CPU_STATUS_MASK      0xffff0000
 #endif
 

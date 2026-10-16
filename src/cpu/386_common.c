@@ -662,6 +662,12 @@ smm_seg_load(x86seg *s)
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATDS;
     }
+    if (s == &cpu_state.seg_es) {
+        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+            cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTFLATES;
+    }
 
     if (s == &cpu_state.seg_ss) {
         if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)

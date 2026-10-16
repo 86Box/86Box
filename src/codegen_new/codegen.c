@@ -116,6 +116,8 @@ codegen_check_seg_read(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg)
         return;
     if (seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS))
         return;
+    if (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))
+        return;
 
     uop_CMP_IMM_JZ(ir, ireg_seg_base(seg), (uint32_t) -1, codegen_gpf_rout);
 
@@ -153,7 +155,7 @@ codegen_check_seg_write(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg)
     /*checked: 1 = null selector ruled out, 2 = writable too*/
     if (seg->checked == 2)
         return;
-    if (!seg->checked && !(seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)))
+    if (!seg->checked && !(seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) && !(seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES)))
         uop_CMP_IMM_JZ(ir, ireg_seg_base(seg), (uint32_t) -1, codegen_gpf_rout);
 
     codegen_check_seg_writable(ir, seg);
@@ -515,6 +517,66 @@ static int
 codegen_x87_interpreted(void)
 {
     return fpu_softfloat || !hasfpu || (fpu_type < FPU_287XL);
+}
+
+/* FIST(P) of a word or doubleword on the x86-64 backend: its conversion
+   gives the integer indefinite (8000h, 80000000h) for a NaN or a value out
+   of range, as the chip stores with IM masked. Converted first, that value
+   hands over to the interpreter, which decides the exception; a true
+   -32768 or -2^31 gets there too, and stores the same. */
+void
+codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg, int src_reg, uint32_t indefinite)
+{
+    int jump_uop;
+
+    codegen_accumulate_flush(ir);
+    if (indefinite == 0x8000) {
+        uop_MOVZX(ir, IREG_temp1, src_reg);
+        jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp1, indefinite);
+    } else
+        jump_uop = uop_CMP_IMM_JNZ_DEST(ir, src_reg, indefinite);
+    codegen_fpu_handover(ir, fetchdat, op_32, interp_pc, target_seg);
+    uop_set_jump_dest(ir, jump_uop);
+}
+
+/* The compiled FPU arithmetic is built for the control word's precision
+   (PC24) and rounding (RC != nearest) classes as they are when it is
+   compiled: at the block's start by its key, and after an interpreted
+   instruction that may have loaded another control word by a check in the
+   first compiled instruction that depends on them, which leaves the block
+   before it if they changed. FLDCW, FISTP, FLDCW (_ftol) needs none: FIST
+   takes the rounding when it runs. Returns 0 for RC other than nearest,
+   left to the interpreter. */
+int             codegen_fpu_class_dirty;
+static uint32_t codegen_instr_pc;
+
+int
+codegen_fpu_rc_nearest(ir_data_t *ir)
+{
+    int jump_uop;
+
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
+    if (!codegen_fpu_class_dirty)
+        return 1;
+    codegen_fpu_class_dirty = 0;
+    codegen_accumulate_flush(ir);
+    uop_MOV_IMM(ir, IREG_pc, codegen_instr_pc);
+    uop_MOVZX_REG_PTR_16(ir, IREG_temp0, &cpu_state.npxc);
+    if (!(cpu_state.npxc & 0x300)) {
+        uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0xf00);
+        jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp0, 0);
+        uop_JMP(ir, codegen_exit_rout);
+        uop_set_jump_dest(ir, jump_uop);
+    } else {
+        uop_AND_IMM(ir, IREG_temp1, IREG_temp0, 0xc00);
+        jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp1, 0);
+        uop_JMP(ir, codegen_exit_rout);
+        uop_set_jump_dest(ir, jump_uop);
+        uop_AND_IMM(ir, IREG_temp1, IREG_temp0, 0x300);
+        uop_CMP_IMM_JZ(ir, IREG_temp1, 0, codegen_exit_rout);
+    }
+    return 1;
 }
 
 void
@@ -891,10 +953,17 @@ generate_call:
         uop_CALL_FUNC(ir, x87_ferr_nowait);
     }
 
+    /* A pending exception is taken only with ES set: the call only then */
     if (is_fpu && !fpu_softfloat && !x87_op_is_nowait(x87_op) && !codegen_fpu_entered) {
+        int jump_uop;
+
+        uop_MOVZX(ir, IREG_temp3, IREG_NPXS);
+        uop_AND_IMM(ir, IREG_temp3, IREG_temp3, FPU_SW_Summary);
+        jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp3, 0);
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         uop_CALL_FUNC_RESULT(ir, IREG_temp3, x87_legacy_pending_entry);
         uop_CMP_IMM_JZ(ir, IREG_temp3, 1, codegen_exit_rout);
+        uop_set_jump_dest(ir, jump_uop);
     }
 
     if (recomp_op_table && recomp_op_table[(opcode | op_32) & recomp_opcode_mask]) {
@@ -903,6 +972,7 @@ generate_call:
         if (is_fpu)
             codegen_fpu_handler = op_table[((opcode >> opcode_shift) | op_32) & opcode_mask];
         codegen_ea_target_seg = NULL;
+        codegen_instr_pc      = old_pc;
         new_pc = recomp_op_table[(opcode | op_32) & recomp_opcode_mask](block, ir, opcode, fetchdat, op_32, op_pc);
         /* The FPU's instruction and data pointers and opcode, for a compiled
            instruction: not for a control instruction (FNSTSW AX here), which
@@ -990,31 +1060,13 @@ codegen_skip:
       mode, CLTS changes CR0): the next compiled FPU or MMX instruction
       checks and enters again. EMMS then MOVQ read a stale tag word before.*/
     if (is_fpu || (op_table == x86_dynarec_opcodes_0f) || (op_table == x86_dynarec_opcodes_3DNOW)) {
-        int jump_uop;
-
         codegen_fpu_entered = 0;
         codegen_mmx_entered = 0;
 
-        /*The block was compiled for its entry precision (PC24) and rounding
-          (RC != nearest) classes, which key it. An interpreted FLDCW, FLDENV,
-          FRSTOR, FNINIT or FXRSTOR can change them: leave the block then, and
-          the next instruction runs in one compiled for the new control word.*/
-        uop_MOVZX_REG_PTR_16(ir, IREG_temp0, &cpu_state.npxc);
-        uop_AND_IMM(ir, IREG_temp1, IREG_temp0, 0x300);
-        if (block->status & CPU_STATUS_FPU_PC24) {
-            jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp1, 0);
-            uop_JMP(ir, codegen_exit_rout);
-            uop_set_jump_dest(ir, jump_uop);
-        } else
-            uop_CMP_IMM_JZ(ir, IREG_temp1, 0, codegen_exit_rout);
-        uop_AND_IMM(ir, IREG_temp1, IREG_temp0, 0xc00);
-        if (block->status & CPU_STATUS_FPU_RC_NZ)
-            uop_CMP_IMM_JZ(ir, IREG_temp1, 0, codegen_exit_rout);
-        else {
-            jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp1, 0);
-            uop_JMP(ir, codegen_exit_rout);
-            uop_set_jump_dest(ir, jump_uop);
-        }
+        /*It may have loaded another control word (FLDCW, FLDENV, FRSTOR,
+          FNINIT, FXRSTOR): the next compiled instruction built for the
+          control word's classes checks them (codegen_fpu_rc_nearest).*/
+        codegen_fpu_class_dirty = 1;
     }
     /*No softfloat exception check after the instruction: a pending #MF is
       raised by the next waiting FPU instruction (or WAIT), as the book says,

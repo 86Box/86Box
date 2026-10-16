@@ -403,6 +403,11 @@ reset_common(int hard)
     }
     x86seg_reset();
 #ifdef USE_DYNAREC
+    /* The data segments come out of reset with a 64K limit: not flat, so
+       the recompiler keeps their limit checks */
+    cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTFLATES;
+#endif
+#ifdef USE_DYNAREC
     /* A reset raised from inside a recompiled block (a timer run by RDTSC)
        must not free the block still running; the dynarec loop flushes once
        the block has returned. */

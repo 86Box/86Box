@@ -5,6 +5,7 @@
 #include <wchar.h>
 #define fplog 0
 #include <math.h>
+#include <float.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -579,6 +580,100 @@ x87_dumpregs(void)
 }
 #endif
 
+/* The common divide of x87_legacy_divide without the software arithmetic:
+   two operands well inside the double range, round to nearest. The host
+   quotient q is rounded once to 53 bits, and r = num - q * den is exact, so
+   x - q = r / den places the true quotient x against the grid of each
+   precision. An exact quotient is exact at every precision (its odd part is
+   no wider than the numerator's), so PE is r != 0 throughout. At 64 bits
+   the result is the software divide's double rounding, which differs from
+   q only when the 64-bit value lands on a 53-bit midpoint; at 24 bits, only
+   when q is a 24-bit midpoint. Those, near-ties and a power-of-two q (whose
+   lower neighbours are closer) go to the software divide: 0 is returned.
+   C1 is the round-up of the rounding at the control word's precision.*/
+static int
+x87_divide_fast(double num, double den, double *res, unsigned *flags)
+{
+#if defined(FLT_EVAL_METHOD) && (FLT_EVAL_METHOD != 0)
+    return 0;
+#else
+    union { double d; uint64_t u; } a = { .d = num }, b = { .d = den }, q, ulp;
+    const unsigned ea = (unsigned) (a.u >> 52) & 0x7ff;
+    const unsigned eb = (unsigned) (b.u >> 52) & 0x7ff;
+    double r;
+    int    up;
+
+    if ((cpu_state.npxc & 0xc00) || (ea < 553) || (ea > 1493) || (eb < 553) || (eb > 1493))
+        return 0;
+    q.d = num / den;
+    if (!(q.u & UINT64_C(0x000fffffffffffff)))
+        return 0;
+#    if defined(FP_FAST_FMA) || defined(__FP_FAST_FMA)
+    r = fma(-q.d, den, num);
+#    else
+    {
+        /* Dekker's exact product q * den = p + e, by halves of 26 bits */
+        const double split = 134217729.0;
+        double       t, qh, ql, bh, bl, p, e;
+
+        t  = split * q.d;
+        qh = t - (t - q.d);
+        ql = q.d - qh;
+        t  = split * den;
+        bh = t - (t - den);
+        bl = den - bh;
+        p  = q.d * den;
+        e  = ((qh * bh - p) + qh * bl + ql * bh) + ql * bl;
+        r  = (num - p) - e;
+    }
+#    endif
+    /* |x| > |q|: x - q has the quotient's sign */
+    up = (r != 0.0) && (signbit(r) != signbit(num));
+
+    switch (cpu_state.npxc & 0x300) {
+        case 0x000: /* 24 bits */
+            {
+                const float f = (float) q.d;
+
+                if ((r != 0.0) && ((q.u & 0x1fffffff) == 0x10000000))
+                    return 0;
+                if (!isnormal(f))
+                    return 0;
+                *res = (double) f;
+                if (*res != q.d) {
+                    *flags = FPU_SW_Precision | ((fabs(*res) > fabs(q.d)) ? FPU_SW_C1 : 0);
+                    return 1;
+                }
+                break;
+            }
+        case 0x200: /* 53 bits */
+            *res = q.d;
+            break;
+        case 0x300: /* 64 bits */
+            *res = q.d;
+            if (r != 0.0) {
+                /* x - q in units of the 64-bit grid, which q is on */
+                double t, n, d;
+
+                ulp.u = (q.u & UINT64_C(0x7ff0000000000000)) - (UINT64_C(63) << 52);
+                t     = (r / den) / ulp.d;
+                n     = nearbyint(t);
+                d     = fabs(t - n);
+                if ((fabs(n) >= 1024.0) || (d < 0x1p-20) || (d > (0.5 - 0x1p-20)))
+                    return 0;
+                /* the 64-bit rounding went up in magnitude: x and q + n * ulp
+                   on the same side of zero, x nearer */
+                up = (signbit(t - n) != signbit(q.d));
+            }
+            break;
+        default:
+            return 0;
+    }
+    *flags = (r != 0.0) ? (FPU_SW_Precision | (up ? FPU_SW_C1 : 0)) : 0;
+    return 1;
+#endif
+}
+
 /* The legacy register file is double based, but guest exception classes
    still follow x87 rules. Use the existing software arithmetic rather than
    treating every zero denominator as divide-by-zero. Unmasked exceptions
@@ -588,8 +683,11 @@ x87_legacy_divide(double *dest, double numerator, double denominator, int empty)
 {
     union { double d; uint64_t u; } a = { .d = numerator }, b = { .d = denominator }, result;
     struct softfloat_status_t status = i387cw_to_softfloat_status_word(cpu_state.npxc);
+    unsigned fast_flags = 0;
     cpu_state.npxs &= ~FPU_SW_C1;
-    if (empty & 1) {
+    if (!empty && x87_divide_fast(numerator, denominator, &result.d, &fast_flags))
+        status.softfloat_exceptionFlags = fast_flags;
+    else if (empty & 1) {
         cpu_state.npxs |= FPU_SW_Stack_Fault | FPU_SW_Invalid;
         result.u = UINT64_C(0xfff8000000000000);
         status.softfloat_exceptionFlags = FPU_SW_Invalid;

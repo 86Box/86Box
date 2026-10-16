@@ -613,6 +613,13 @@ exec386_dynarec_dyn(void)
         cpu_cur_status |= CPU_STATUS_FPU_RC_NZ;
     else
         cpu_cur_status &= ~CPU_STATUS_FPU_RC_NZ;
+    /* ES flat: its limit checks are left out (CHECK_SEG_LIMITS). It is
+       loaded by far more paths than DS and SS, which keep their bits as
+       they load; this is the one place it is read. */
+    if ((cpu_state.seg_es.base == 0) && (cpu_state.seg_es.limit_low == 0) && (cpu_state.seg_es.limit_high == 0xffffffff))
+        cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+    else
+        cpu_cur_status |= CPU_STATUS_NOTFLATES;
 
 #    ifdef USE_NEW_DYNAREC
     if (!cpu_state.abrt)

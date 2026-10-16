@@ -734,11 +734,14 @@ extern int codegen_fp_pending(void);
    takes it: ES tested inline, the helper called only when it is set
    (codegen.c) */
 extern void codegen_fp_pending_check(ir_data_t *ir);
+extern int  codegen_fpu_rc_nearest(ir_data_t *ir);
+extern int  codegen_fpu_class_dirty;
 /* A store from an empty ST(0): the interpreter's version, then the block
    ends (codegen.c) */
 extern void codegen_fpu_guard_empty(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg);
 /* FIST/FISTP of a value that may not fit: the interpreter's version */
 extern void codegen_fpu_guard_int_range(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg, const double *bounds);
+extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg, int src_reg, uint32_t indefinite);
 
 #define uop_LOAD_FUNC_ARG_REG(ir, arg, reg)                      uop_gen_reg_src1(UOP_LOAD_FUNC_ARG_0 + arg, ir, reg)
 

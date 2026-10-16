@@ -139,6 +139,8 @@ null_data_seg(x86seg *s)
     s->base    = -1;
     if (s == &cpu_state.seg_ds)
         cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+    if (s == &cpu_state.seg_es)
+        cpu_cur_status |= CPU_STATUS_NOTFLATES;
 }
 
 /* An exception's error code, sized by the gate it was delivered through, or
@@ -306,6 +308,12 @@ do_seg_load(x86seg *s, uint16_t *segdat)
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATDS;
     }
+    if (s == &cpu_state.seg_es) {
+        if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
+            cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTFLATES;
+    }
     if (s == &cpu_state.seg_ss) {
         if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
             cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
@@ -416,6 +424,8 @@ loadseg(uint16_t seg, x86seg *s)
             s->base    = -1;
             if (s == &cpu_state.seg_ds)
                 cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+            if (s == &cpu_state.seg_es)
+                cpu_cur_status |= CPU_STATUS_NOTFLATES;
 #ifdef USE_NEW_DYNAREC
             return 0;
 #else
@@ -563,6 +573,10 @@ loadseg(uint16_t seg, x86seg *s)
             codegen_flat_ds = 0;
         if (s == &cpu_state.seg_ss)
             codegen_flat_ss = 0;
+#    ifdef USE_NEW_DYNAREC
+        if (s == &cpu_state.seg_es)
+            codegen_flat_es = 0;
+#    endif
 #endif
     } else {
         s->access  = 0xe2;
@@ -580,6 +594,10 @@ loadseg(uint16_t seg, x86seg *s)
             codegen_flat_ds = 0;
         if (s == &cpu_state.seg_ss)
             codegen_flat_ss = 0;
+#    ifdef USE_NEW_DYNAREC
+        if (s == &cpu_state.seg_es)
+            codegen_flat_es = 0;
+#    endif
 #endif
         if (s == &cpu_state.seg_ss && (cpu_state.eflags & VM_FLAG))
             set_stack32(0);
@@ -590,6 +608,12 @@ loadseg(uint16_t seg, x86seg *s)
             cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+    }
+    if (s == &cpu_state.seg_es) {
+        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+            cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTFLATES;
     }
     if (s == &cpu_state.seg_ss) {
         if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
@@ -2213,7 +2237,7 @@ pmodeiret(int is32)
             do_seg_v86_init(&cpu_state.seg_es);
             op_loadseg(segs[1], &cpu_state.seg_ds);
             do_seg_v86_init(&cpu_state.seg_ds);
-            cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+            cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTFLATES;
             op_loadseg(segs[2], &cpu_state.seg_fs);
             do_seg_v86_init(&cpu_state.seg_fs);
             op_loadseg(segs[3], &cpu_state.seg_gs);
@@ -2582,12 +2606,22 @@ task_load_seg(x86seg *s, uint16_t sel, const uint16_t *sd, uint32_t addr)
         codegen_flat_ds = 0;
     if (s == &cpu_state.seg_ss)
         codegen_flat_ss = 0;
+#    ifdef USE_NEW_DYNAREC
+    if (s == &cpu_state.seg_es)
+        codegen_flat_es = 0;
+#    endif
 #endif
     if (s == &cpu_state.seg_ds) {
         if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
             cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+    }
+    if (s == &cpu_state.seg_es) {
+        if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
+            cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTFLATES;
     }
     if (s == &cpu_state.seg_ss) {
         if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
@@ -3071,6 +3105,12 @@ cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg)
                 cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
             else
                 cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+        }
+        if (seg == &cpu_state.seg_es) {
+            if (seg->base == 0 && seg->limit_low == 0 && seg->limit_high == 0xffffffff)
+                cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+            else
+                cpu_cur_status |= CPU_STATUS_NOTFLATES;
         }
 
         if (seg == &cpu_state.seg_cs)
