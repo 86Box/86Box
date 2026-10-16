@@ -67,15 +67,16 @@
 
 /* DMA control word (270788-001 Figure 67). The source and destination fields
    are three separate bits each: M/IO selects memory, INC/DEC move the pointer
-   after every transfer. SYN (bits 7-6), INT (bit 8) and W/B (bit 0) are not
-   modelled: transfers are always byte and the interrupt controller is still
-   unwired, so a channel never interrupts. */
+   after every transfer. INT raises the channel's interrupt request at the
+   terminal count; SYN (bits 7-6) and W/B (bit 0) are not modelled, so
+   every transfer is a byte. */
 #define I8018X_DMA_DST_MIO      0x8000u
 #define I8018X_DMA_DST_DEC      0x4000u
 #define I8018X_DMA_DST_INC      0x2000u
 #define I8018X_DMA_SRC_DEC      0x0800u
 #define I8018X_DMA_SRC_INC      0x0400u
 #define I8018X_DMA_TC           0x0200u
+#define I8018X_DMA_INT          0x0100u
 #define I8018X_DMA_CHG          0x0004u /* write only; always reads back as 0 */
 #define I8018X_DMA_ST           0x0002u
 
@@ -126,6 +127,7 @@ struct i8018x_pcb_t {
     uint64_t tmr_done[3];   /* maximum-count cycles completed so far */
     uint16_t tmr_req;       /* sticky timer request latches: bit i = timer i */
     uint16_t icu_ext;       /* external input levels, INT0-INT3 in bits 4-7 */
+    uint16_t icu_dma;       /* DMA channel requests: DMA0 bit 2, DMA1 bit 3 */
     uint16_t icu_isr;       /* in-service register bits */
     uint8_t  tmr_alt[3];    /* MAX COUNT register in use: 0 = A, 1 = B (ALT) */
     int      dma_ch[2];       /* 86Box DMA channel the on-chip channel drives, -1 = unused */
@@ -260,7 +262,7 @@ i8018x_pcb_icu_con(uint16_t bit)
 static uint16_t
 i8018x_pcb_icu_requests(struct i8018x_pcb_t *dev)
 {
-    return (uint16_t) (dev->regs[I8018X_ICU_REQ / 2] | dev->icu_ext |
+    return (uint16_t) (dev->regs[I8018X_ICU_REQ / 2] | dev->icu_ext | dev->icu_dma |
                        (dev->tmr_req ? I8018X_ICU_SRC_TMR : 0x0000u));
 }
 
@@ -285,6 +287,17 @@ i8018x_pcb_icu_acknowledge(struct i8018x_pcb_t *pcb)
             continue;
 
         pcb->icu_isr |= i8018x_icu_src[i];
+
+        /* A source's request clears with the acknowledgement itself (270788-001
+           section 9.5.2.4), and a timer's status bit with it (section 9.5.2.10).
+           The DMA channels are entries 3 and 4; the external inputs keep no
+           bit of their own, the board drives their level. */
+        pcb->regs[I8018X_ICU_REQ / 2] &= (uint16_t) ~i8018x_icu_src[i];
+
+        if (i < 3)
+            pcb->tmr_req &= (uint16_t) ~(1u << i);
+        else if (i < 5)
+            pcb->icu_dma &= (uint16_t) ~I8018X_ICU_SRC_DMA(i - 3);
 
         return i8018x_icu_type[i];
     }
@@ -464,10 +477,17 @@ i8018x_pcb_write_word(struct i8018x_pcb_t *dev, uint16_t off, uint16_t val)
         }
     }
 
-    /* Writing a zero to the request register's timer bit clears it; the ROM
-       does `in 0x2E / and 0xFFFE / out 0x2E` before its timer test. */
-    if ((off == I8018X_ICU_REQ) && !(val & 0x0001u))
-        dev->tmr_req = 0;
+    /* A zero written to a source's request bit cancels it (270788-001 section
+       9.5.2.4), and manual has the guest cancel a DMA channel the same way. */
+    if (off == I8018X_ICU_REQ) {
+        if (!(val & I8018X_ICU_SRC_TMR))
+            dev->tmr_req = 0;
+
+        for (int i = 0; i < 2; i++) {
+            if (!(val & I8018X_ICU_SRC_DMA(i)))
+                dev->icu_dma &= (uint16_t) ~I8018X_ICU_SRC_DMA(i);
+        }
+    }
 }
 
 static uint16_t
@@ -547,8 +567,9 @@ i8018x_pcb_dma_step_ptr(struct i8018x_pcb_t *dev, int slot, int dst)
 /* Drop the transfer count by one and answer whether this transfer ended the
    channel. A programmed count of zero means 65536 transfers, so the count may
    wrap; with TC clear it keeps going instead of stopping (270788-001 section
-   8.2). INT + TC would interrupt the CPU, but the interrupt controller is
-   still unwired, so a terminal count only reaches the slave as DMA_OVER. */
+   8.2). A terminal count raises the channel's request in the interrupt
+   controller when INT is set; taking that request to the CPU is the
+   board's business, the same as for the other sources. */
 static int
 i8018x_pcb_dma_count_down(struct i8018x_pcb_t *dev, int slot)
 {
@@ -559,6 +580,11 @@ i8018x_pcb_dma_count_down(struct i8018x_pcb_t *dev, int slot)
         return 0;
 
     dev->regs[I8018X_DMA_CTRL(slot)] &= (uint16_t) ~I8018X_DMA_ST;
+
+    /* A terminal count with INT set asks the interrupt controller
+       for service (270788-001 Figure 67, section 8.2). */
+    if (dev->regs[I8018X_DMA_CTRL(slot)] & I8018X_DMA_INT)
+        dev->icu_dma |= I8018X_ICU_SRC_DMA(slot);
 
     return 1;
 }
@@ -711,6 +737,7 @@ i8018x_pcb_reset(void *priv)
     memset(dev->regs, 0x00, sizeof(dev->regs));
     dev->tmr_req = 0;
     dev->icu_ext = 0;
+    dev->icu_dma = 0;
     dev->icu_isr = 0;
 
     /* The 86Box channel numbers survive a reset: the controller keeps owning
