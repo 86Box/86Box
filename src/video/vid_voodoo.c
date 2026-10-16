@@ -267,8 +267,15 @@ voodoo_readw(uint32_t addr, void *priv)
                        The relax flags only relax the unknown-target heuristic below; they
                        must not suppress writes aimed at this buffer, or a back-buffer read
                        races queued draw commands and returns stale data. */
+#ifdef SLOWER_CODE
                     pending_buf += voodoo->pending_fb_writes_buf[read_buf];
                     pending_buf += voodoo->pending_draw_cmds_buf[read_buf];
+#else
+                    if (!voodoo->lfb_relax_ignore_fb_writes)
+                        pending_buf += voodoo->pending_fb_writes_buf[read_buf];
+                    if (!voodoo->lfb_relax_ignore_draw)
+                        pending_buf += voodoo->pending_draw_cmds_buf[read_buf];
+#endif
                 }
 
                 if (!voodoo->lfb_relax_ignore_fb_writes)
@@ -367,12 +374,19 @@ voodoo_readl(uint32_t addr, void *priv)
                 int pending_unknown = 0;
 
                 if (read_buf >= 0 && read_buf < VOODOO_BUF_COUNT) {
+#ifdef SLOWER_CODE
                     /* Work queued for the buffer being read must always force a sync.
                        The relax flags only relax the unknown-target heuristic below; they
                        must not suppress writes aimed at this buffer, or a back-buffer read
                        races queued draw commands and returns stale data. */
                     pending_buf += voodoo->pending_fb_writes_buf[read_buf];
                     pending_buf += voodoo->pending_draw_cmds_buf[read_buf];
+#else
+                    if (!voodoo->lfb_relax_ignore_fb_writes)
+                        pending_buf += voodoo->pending_fb_writes_buf[read_buf];
+                    if (!voodoo->lfb_relax_ignore_draw)
+                        pending_buf += voodoo->pending_draw_cmds_buf[read_buf];
+#endif
                 }
 
                 if (!voodoo->lfb_relax_ignore_fb_writes)
