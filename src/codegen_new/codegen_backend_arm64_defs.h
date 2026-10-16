@@ -132,4 +132,5 @@ extern void *codegen_fp_round;
 extern void *codegen_fp_round_quad;
 
 extern void *codegen_gpf_rout;
+extern void *codegen_ss_rout;
 extern void *codegen_exit_rout;

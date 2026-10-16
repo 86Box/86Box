@@ -53,6 +53,7 @@ void *codegen_fp_round;
 void *codegen_fp_round_quad;
 
 void *codegen_gpf_rout;
+void *codegen_ss_rout;
 void *codegen_exit_rout;
 
 host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS] = {
@@ -386,6 +387,14 @@ codegen_backend_init(void)
     codegen_backend_restore_saves(block);
     host_loong64_ADDI_D(block, REG_R3, REG_R3, LOONG64_PROLOGUE_FRAME);
     host_loong64_RET(block);
+
+    /*#SS(0): an operand through SS outside its limit (CHECK_SEG_LIMITS)*/
+    codegen_alloc(block, 40);
+    codegen_ss_rout = &block_write_data[block_pos];
+    host_loong64_mov_imm(block, REG_ARG0, 0);
+    host_loong64_mov_imm(block, REG_ARG1, 0);
+    host_loong64_call(block, (void *) x86ss);
+    host_loong64_B(block, codegen_exit_rout);
 
     block_write_data = NULL;
 

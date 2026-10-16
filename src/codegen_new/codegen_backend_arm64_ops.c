@@ -817,6 +817,59 @@ host_arm64_CMP_REG_LSL(codeblock_t *block, int src_n_reg, int src_m_reg, int shi
     codegen_addlong(block, OPCODE_CMP_LSL | Rd(0x1f) | Rn(src_n_reg) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
 }
 
+/*CSET dst_reg, cond: CSINC dst_reg, WZR, WZR with the opposite condition*/
+void
+host_arm64_CSET(codeblock_t *block, int dst_reg, int cond)
+{
+    codegen_addlong(block, OPCODE_CSEL | (1 << 10) | CSEL_COND(cond ^ 1) | Rd(dst_reg) | Rn(REG_WZR) | Rm(REG_WZR));
+}
+void
+host_arm64_MUL(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, 0x1b007c00 | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg)); /*MUL Wd, Wn, Wm*/
+}
+void
+host_arm64_SMULL(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, 0x9b207c00 | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg)); /*SMULL Xd, Wn, Wm*/
+}
+void
+host_arm64_UMULL(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, 0x9ba07c00 | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg)); /*UMULL Xd, Wn, Wm*/
+}
+void
+host_arm64_LSR64_32(codeblock_t *block, int dst_reg, int src_n_reg)
+{
+    codegen_addlong(block, 0xd360fc00 | Rd(dst_reg) | Rn(src_n_reg)); /*LSR Xd, Xn, #32*/
+}
+/*BIT Vd.8B, Vn.8B, Vm.8B: the bits of Vn where Vm is set go into Vd*/
+void
+host_arm64_BIT_V(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, 0x2ea01c00 | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+void
+host_arm64_RBIT(codeblock_t *block, int dst_reg, int src_n_reg)
+{
+    codegen_addlong(block, 0x5ac00000 | Rd(dst_reg) | Rn(src_n_reg)); /*RBIT Wd, Wn*/
+}
+void
+host_arm64_CLZ(codeblock_t *block, int dst_reg, int src_n_reg)
+{
+    codegen_addlong(block, 0x5ac01000 | Rd(dst_reg) | Rn(src_n_reg)); /*CLZ Wd, Wn*/
+}
+/*CMP Xn, Wm, SXTW: whether a 64-bit value equals its low word sign extended*/
+void
+host_arm64_CMP_X_W_SXTW(codeblock_t *block, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, 0xeb20c000 | Rd(REG_WZR) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+void
+host_arm64_REV(codeblock_t *block, int dst_reg, int src_n_reg)
+{
+    codegen_addlong(block, 0x5ac00800 | Rd(dst_reg) | Rn(src_n_reg)); /*REV (32-bit)*/
+}
 void
 host_arm64_CSEL_CC(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {

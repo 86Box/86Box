@@ -133,6 +133,7 @@ enum {
 
     IREG_temp0d,
     IREG_temp1d,
+    IREG_temp2d,
 
     IREG_fpu_op,
     IREG_fpu_CS,
@@ -142,6 +143,8 @@ enum {
     IREG_fpu_ds,
     IREG_fpu_ea, */
     IREG_sf_exc,
+
+    IREG_x87_operandx,
 
     IREG_COUNT,
 
@@ -186,9 +189,11 @@ enum {
 
     IREG_temp0_D = IREG_temp0d + IREG_SIZE_D,
     IREG_temp1_D = IREG_temp1d + IREG_SIZE_D,
+    IREG_temp2_D = IREG_temp2d + IREG_SIZE_D,
 
     IREG_temp0_Q = IREG_temp0d + IREG_SIZE_Q,
     IREG_temp1_Q = IREG_temp1d + IREG_SIZE_Q,
+    IREG_temp2_Q = IREG_temp2d + IREG_SIZE_Q,
 
     IREG_eaaddr_W = IREG_eaaddr + IREG_SIZE_W,
 
@@ -198,6 +203,8 @@ enum {
     IREG_FS_seg_W = IREG_FS_seg + IREG_SIZE_W,
     IREG_GS_seg_W = IREG_GS_seg + IREG_SIZE_W,
     IREG_SS_seg_W = IREG_SS_seg + IREG_SIZE_W,
+
+    IREG_x87_operand = IREG_x87_operandx + IREG_SIZE_D,
 
     IREG_MM0 = IREG_MM0x + IREG_SIZE_Q,
     IREG_MM1 = IREG_MM1x + IREG_SIZE_Q,
@@ -370,6 +377,7 @@ codegen_reg_read(int reg)
 }
 
 int reg_is_native_size(ir_reg_t ir_reg);
+int ireg_is_byte_accessed(int ireg);
 
 static inline ir_reg_t
 codegen_reg_write(int reg, int uop_nr)
