@@ -60,12 +60,13 @@ host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS] = {
     { REG_EDX, 0}
 };
 
-/* The Windows x64 frame: 0x40 bytes of block temporaries (the IR's temps
-   end at 0x40), then XMM6 and XMM7 as the caller left them. 0x68 keeps RSP
-   16-byte aligned after the eight pushes and the return address. */
-#define CODEGEN_WIN64_FRAME 0x68
-#define CODEGEN_XMM6_SAVE   0x40
-#define CODEGEN_XMM7_SAVE   0x50
+/* The Windows x64 frame: the 32 bytes of home space a called function may
+   store its arguments in, the block temporaries above them (codegen_reg.c,
+   ending at 0x50), then XMM6 and XMM7 as the caller left them. 0x78 keeps
+   RSP 16-byte aligned after the eight pushes and the return address. */
+#define CODEGEN_WIN64_FRAME 0x78
+#define CODEGEN_XMM6_SAVE   0x50
+#define CODEGEN_XMM7_SAVE   0x60
 
 host_reg_def_t codegen_host_fp_reg_list[CODEGEN_HOST_FP_REGS] = {
 #    if _WIN64

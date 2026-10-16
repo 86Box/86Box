@@ -517,10 +517,10 @@ ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNU
     return op_pc;
 }
 
-/*ENTER with nesting level 0, the form compilers emit. As the interpreter
-  (and the book): the operand size picks the push of BP or EBP, the stack
-  size whether SP or ESP becomes BP or EBP and takes the frame size off.
-  Other levels go to the interpreter.*/
+/*ENTER with nesting level 0, the form compilers emit. As the interpreter:
+  the operand size picks the push of BP or EBP and which of them the frame
+  goes to, the stack size whether SP or ESP is the frame and takes the frame
+  size off. Other levels go to the interpreter.*/
 static uint32_t
 enter_common(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int is32)
 {
@@ -535,10 +535,12 @@ enter_common(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int is32)
     sp_reg = LOAD_SP_WITH_OFFSET(ir, is32 ? -4 : -2);
     uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, is32 ? IREG_EBP : IREG_BP);
     SUB_SP(ir, is32 ? 4 : 2);
-    if (stack32)
+    if (!is32)
+        uop_MOV(ir, IREG_BP, IREG_SP);
+    else if (stack32)
         uop_MOV(ir, IREG_EBP, IREG_ESP);
     else
-        uop_MOV(ir, IREG_BP, IREG_SP);
+        uop_MOVZX(ir, IREG_EBP, IREG_SP);
     if (size)
         SUB_SP(ir, size);
 

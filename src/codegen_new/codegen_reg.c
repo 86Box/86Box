@@ -9,6 +9,15 @@
 #include "codegen_ir_defs.h"
 #include "codegen_reg.h"
 
+/*Where the block temporaries start on the stack: above the 32 bytes of home
+  space on Windows x64, whose callees may store their arguments there (the
+  frame is CODEGEN_WIN64_FRAME, codegen_backend_x86-64.c)*/
+#if defined(_WIN64) && (defined(__x86_64__) || defined(_M_X64))
+#    define CODEGEN_TEMP_BASE 0x10
+#else
+#    define CODEGEN_TEMP_BASE 0
+#endif
+
 int      max_version_refcount;
 uint16_t reg_dead_list = 0;
 
@@ -184,15 +193,16 @@ struct
 
  /*Temporary registers are stored on the stack, and are not guaranteed to
   be preserved across uOPs. They will not be written back if they will
-  not be read again.*/
-    [IREG_temp0] = { REG_DWORD,         (void *) 16,                        REG_INTEGER, REG_VOLATILE },
-    [IREG_temp1] = { REG_DWORD,         (void *) 20,                        REG_INTEGER, REG_VOLATILE },
-    [IREG_temp2] = { REG_DWORD,         (void *) 24,                        REG_INTEGER, REG_VOLATILE },
-    [IREG_temp3] = { REG_DWORD,         (void *) 28,                        REG_INTEGER, REG_VOLATILE },
+  not be read again. On Windows x64 they sit above the 32 bytes of home
+  space a called function may store its arguments in.*/
+    [IREG_temp0] = { REG_DWORD,         (void *) (16 + CODEGEN_TEMP_BASE),  REG_INTEGER, REG_VOLATILE },
+    [IREG_temp1] = { REG_DWORD,         (void *) (20 + CODEGEN_TEMP_BASE),  REG_INTEGER, REG_VOLATILE },
+    [IREG_temp2] = { REG_DWORD,         (void *) (24 + CODEGEN_TEMP_BASE),  REG_INTEGER, REG_VOLATILE },
+    [IREG_temp3] = { REG_DWORD,         (void *) (28 + CODEGEN_TEMP_BASE),  REG_INTEGER, REG_VOLATILE },
 
-    [IREG_temp0d] = { REG_DOUBLE,        (void *) 40,                        REG_FP,      REG_VOLATILE },
-    [IREG_temp1d] = { REG_DOUBLE,        (void *) 48,                        REG_FP,      REG_VOLATILE },
-    [IREG_temp2d] = { REG_DOUBLE,        (void *) 56,                        REG_FP,      REG_VOLATILE },
+    [IREG_temp0d] = { REG_DOUBLE,        (void *) (40 + CODEGEN_TEMP_BASE),  REG_FP,      REG_VOLATILE },
+    [IREG_temp1d] = { REG_DOUBLE,        (void *) (48 + CODEGEN_TEMP_BASE),  REG_FP,      REG_VOLATILE },
+    [IREG_temp2d] = { REG_DOUBLE,        (void *) (56 + CODEGEN_TEMP_BASE),  REG_FP,      REG_VOLATILE },
 };
 
 static const uint8_t native_requested_sizes[9][8] = 
