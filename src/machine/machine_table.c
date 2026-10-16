@@ -5108,7 +5108,6 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* This has an AMIKey-2, which is 'H'. */
     {
         .name              = "[Tandy] Tandy VIS",
         .internal_name     = "tvis",
