@@ -125,6 +125,7 @@ typedef struct sensation_t {
     uint8_t visdac_regs[16];
     uint8_t visdac_iregs0[16];
     uint8_t visdac_iregs1[16];
+    uint8_t visdac_imute[2];
     uint8_t visdac_mode;
     uint8_t visdac_ctrl;
     uint8_t visdac_dma_ff;
@@ -382,23 +383,59 @@ sensation_getsamp_dma(sensation_t *dev, int channel)
     }
 }
 
-/* The mixer registers: set 0 is CD (0/1 mute, 4/5 volume) and MIDI (2/3 mute,
-   6/7 volume), set 1 is wave (0/1 mute, 4/5 volume) and mic/line/phone (2/3
-   mute, 6/7 volume). A mute register only mutes while it is non-zero: the VIS
-   firmware keeps the wave mute registers at 0 during normal playback and
-   ramps them around DAC rate changes, so 0 cannot mean muted. */
+/* The mixer registers: set 0 is CD (channels 0/1) and MIDI (2/3), set 1 is
+   wave (0/1) and mic/line/phone (2/3). Each channel has a single volume
+   register; bit 2 of the index selects whether a data write also unmutes the
+   channel (index 4-7) or mutes it (index 0-3), and both indexes read back the
+   same volume. Bit 2 of the index register reads back as the selected
+   channel's unmute state. VISBIOS and the VIS firmware mute or unmute a
+   channel by writing its current volume back through index 0-3 or 4-7, and
+   save and restore the mute state through the index register while ramping
+   the volume around DAC rate changes. */
 static void
 sensation_visdac_update_mixer(sensation_t *dev)
 {
     const uint8_t *r0 = dev->visdac_iregs0;
     const uint8_t *r1 = dev->visdac_iregs1;
+    const uint8_t  m0 = dev->visdac_imute[0];
+    const uint8_t  m1 = dev->visdac_imute[1];
 
-    dev->cd_vol_l   = (r0[0] || !r0[4]) ? 0 : visdac_vols_6bits[r0[4] & 0x3f];
-    dev->cd_vol_r   = (r0[1] || !r0[5]) ? 0 : visdac_vols_6bits[r0[5] & 0x3f];
-    dev->fm_vol_l   = (r0[2] || !r0[6]) ? 0 : visdac_vols_6bits[r0[6] & 0x3f];
-    dev->fm_vol_r   = (r0[3] || !r0[7]) ? 0 : visdac_vols_6bits[r0[7] & 0x3f];
-    dev->wave_vol_l = r1[0] ? 0 : visdac_vols_6bits[r1[4] & 0x3f];
-    dev->wave_vol_r = r1[1] ? 0 : visdac_vols_6bits[r1[5] & 0x3f];
+    dev->cd_vol_l   = ((m0 & 0x01) || !r0[4]) ? 0 : visdac_vols_6bits[r0[4] & 0x3f];
+    dev->cd_vol_r   = ((m0 & 0x02) || !r0[5]) ? 0 : visdac_vols_6bits[r0[5] & 0x3f];
+    dev->fm_vol_l   = ((m0 & 0x04) || !r0[6]) ? 0 : visdac_vols_6bits[r0[6] & 0x3f];
+    dev->fm_vol_r   = ((m0 & 0x08) || !r0[7]) ? 0 : visdac_vols_6bits[r0[7] & 0x3f];
+    dev->wave_vol_l = (m1 & 0x01) ? 0 : visdac_vols_6bits[r1[4] & 0x3f];
+    dev->wave_vol_r = (m1 & 0x02) ? 0 : visdac_vols_6bits[r1[5] & 0x3f];
+}
+
+static void
+sensation_visdac_iwrite(sensation_t *dev, int set, uint8_t index, uint8_t val)
+{
+    uint8_t *iregs = set ? dev->visdac_iregs1 : dev->visdac_iregs0;
+    uint8_t  chan  = index & 0x03;
+
+    index &= 0x0f;
+    if (index < 8) {
+        iregs[chan] = iregs[chan | 0x04] = val;
+        if (index & 0x04)
+            dev->visdac_imute[set] &= ~(1 << chan);
+        else
+            dev->visdac_imute[set] |= (1 << chan);
+        sensation_visdac_update_mixer(dev);
+    } else
+        iregs[index] = val;
+}
+
+static uint8_t
+sensation_visdac_iindex_read(sensation_t *dev, int set, uint8_t index)
+{
+    if ((index & 0x0f) < 8) {
+        index &= ~0x04;
+        if (!(dev->visdac_imute[set] & (1 << (index & 0x03))))
+            index |= 0x04;
+    }
+
+    return index;
 }
 
 void
@@ -434,16 +471,14 @@ sensation_visdac_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x02: /* Indirect register set 0 data */
             visdac->visdac_regs[0x02] = val;
-            visdac->visdac_iregs0[visdac->visdac_regs[0x03] & 0x0f] = val;
-            sensation_visdac_update_mixer(visdac);
+            sensation_visdac_iwrite(visdac, 0, visdac->visdac_regs[0x03], val);
             break;
         case 0x03: /* Indirect register set 0 index */
             visdac->visdac_regs[0x03] = val;
             break;
         case 0x04: /* Indirect register set 1 data */
             visdac->visdac_regs[0x04] = val;
-            visdac->visdac_iregs1[visdac->visdac_regs[0x05] & 0x0f] = val;
-            sensation_visdac_update_mixer(visdac);
+            sensation_visdac_iwrite(visdac, 1, visdac->visdac_regs[0x05], val);
             break;
         case 0x05: /* Indirect register set 1 index */
             visdac->visdac_regs[0x05] = val;
@@ -781,13 +816,13 @@ sensation_visdac_read(uint16_t port, void *priv)
             ret = visdac->visdac_iregs0[visdac->visdac_regs[0x03] & 0x0f];
             break;
         case 0x03:
-            ret = visdac->visdac_regs[0x03];
+            ret = sensation_visdac_iindex_read(visdac, 0, visdac->visdac_regs[0x03]);
             break;
         case 0x04:
             ret = visdac->visdac_iregs1[visdac->visdac_regs[0x05] & 0x0f];
             break;
         case 0x05:
-            ret = visdac->visdac_regs[0x05];
+            ret = sensation_visdac_iindex_read(visdac, 1, visdac->visdac_regs[0x05]);
             break;
         case 0x06:
             ret = visdac->visdac_regs[0x06];
@@ -1124,6 +1159,9 @@ sensation_init(const device_t *info)
     /* The VIS firmware unmasks and services IRQ 7 for the DAC. */
     dev->visdac_irq = (info->local & SENSATION_TANDY_VIS) ? 7 : 5;
     dev->visdac_dma = 7;
+
+    /* All mixer channels start out muted. */
+    dev->visdac_imute[0] = dev->visdac_imute[1] = 0x0f;
 
     dev->log = log_open("SensationAud");
 
