@@ -516,7 +516,7 @@ then
 								echo ">> Merged: [$merge_src] $link_dest"
 								echo ">> With: [$arch_universal] $other_link_dest"
 
-								# Point the diverging destinations back to the merged library.
+								# Point the diverging destinations back at the merged library.
 								for dest in "$link_dest" "$other_link_dest"
 								do
 									ln -s "$dest" "$link_path.tmp"
@@ -773,7 +773,7 @@ EOF
 	cmake_flags_extra="$cmake_flags_extra -D USE_QT6=ON"
 
 	# Set up the Rust environment.
-	[ ! -e "$HOME/.cargo/bin" ] && curl -sSf https://sh.rustup.rs | sh -s -- -y
+	[ ! -x "$HOME/.cargo/bin/cargo" ] && curl -sSf https://sh.rustup.rs | sh -s -- -y
 	export PATH="$HOME/.cargo/bin:$PATH"
 fi
 
@@ -788,7 +788,7 @@ then
 	git -C "$prefix" checkout f810cdf6e856e5a5215b1e84a21c978bc3367f23
 fi
 case $arch in
-	64 | x86_64)	arch_rust="x86_64";;
+	64)		arch_rust="x86_64";;
 	arm64 | ARM64)	arch_rust="aarch64";;
 	*)		arch_rust="$arch";;
 esac
@@ -796,7 +796,7 @@ if is_windows
 then
 	arch_rust="$arch_rust-pc-windows-gnu"
 	case $MSYSTEM in
-		CLANG*)	arch_rust="${arch_rust}llvm"
+		CLANG*)	arch_rust="${arch_rust}llvm";;
 	esac
 elif is_mac
 then
@@ -806,15 +806,15 @@ else
 	rustup target add "$arch_rust"
 	export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=x86_64-linux-gnu-gcc CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
 fi
-librashader_target="$prefix/target/$arch_rust/release"
 (cd "$prefix" && cargo build -p librashader-capi --target "$arch_rust" --profile release --no-default-features --features runtime-vulkan) || exit 99
+librashader_target="$prefix/target/$arch_rust/release"
 if is_windows
 then
 	export CMAKE_LIBRARY_PATH="$librashader_target"
 	cmake_flags_extra="$cmake_flags_extra -D LIBRASHADER_STATIC=ON -D LIBRASHADER_STATIC_FIND_LIB=ON"
 fi
 
-# Point CMake to the toolchain file.
+# Point CMake at the toolchain file.
 [ -e "$toolchain_file" ] && cmake_flags_extra="$cmake_flags_extra -D \"CMAKE_TOOLCHAIN_FILE=$toolchain_file\""
 
 # Clean workspace.
@@ -823,9 +823,9 @@ rm -rf build
 
 # Add ARCH to skip the arch_detect process.
 case $arch in
-	64 | x86_64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
-	ARM64 | arm64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64 -D NEW_DYNAREC=ON";;
-	*)		cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
+	64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
+	ARM64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64";;
+	*)	cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
 esac
 
 # Add git hash.
@@ -902,7 +902,7 @@ fi
 
 # Determine Discord Game SDK architecture.
 case $arch in
-	64 | x86_64)	arch_discord="x86_64";;
+	64)		arch_discord="x86_64";;
 	arm64 | ARM64)	arch_discord="aarch64";;
 	*)		arch_discord="$arch";;
 esac
