@@ -1494,19 +1494,24 @@ check_interrupts(void)
         if ((in_hlt || (cpu_state.flags & I_FLAG)) && pic.int_pending && !noint) {
             repeating = 0;
             completed = 1;
-            ovr_seg   = NULL;
-            do_cycles(4);
-            /* ACK to PIC */
-            biu_begin_eu();
-            temp = bus_pic_ack();
-            do_cycle();
-            /* ACK to PIC */
-            temp = bus_pic_ack();
-            in_lock    = 0;
-            clear_lock = 0;
-            /* Here is where temp should be filled, but we cheat. */
-            opcode = 0x00;
-            hw_int(temp);
+            if (is_nec && in_hlt && !(cpu_state.flags & I_FLAG)) {
+                biu_queue_flush();
+                do_cycles_i(3);
+            } else {
+                ovr_seg   = NULL;
+                do_cycles(4);
+                /* ACK to PIC */
+                biu_begin_eu();
+                temp = bus_pic_ack();
+                do_cycle();
+                /* ACK to PIC */
+                temp = bus_pic_ack();
+                in_lock    = 0;
+                clear_lock = 0;
+                /* Here is where temp should be filled, but we cheat. */
+                opcode = 0x00;
+                hw_int(temp);
+            }
         }
     }
 }
