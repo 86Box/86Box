@@ -88,7 +88,11 @@ AppDir:
     - usr/lib/m[!d]* # m* except mdsx.so
     - usr/lib/*/*.a # produced by library compilation
     - usr/lib/*/glib-2.0 # GLib helper executables
-    - usr/lib/*/libasound.so.* # using our own ALSA can cause issues, and the API is pretty stable anyway
+    - usr/lib/*/libasound.so* # using our own ALSA can cause issues, and the API is pretty stable anyway
+    - usr/lib/*/libEGL.so* # use host OpenGL stack
+    - usr/lib/*/libGLdispatch.so* # use host OpenGL stack
+    - usr/lib/*/libGLX.so* # use host OpenGL stack
+    - usr/lib/*/libOpenGL.so* # use host OpenGL stack
     - usr/lib/*/pkgconfig # produced by library compilation
     - usr/lib/*/security # PAM modules
     - usr/lib/*/systemd # systemd private libraries
