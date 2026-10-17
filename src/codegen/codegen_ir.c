@@ -84,6 +84,16 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
         }
     }
 
+#ifdef CODEGEN_CHAIN
+    /* The block ends in a link: after any unrolling, so the copies end
+       where the original did. */
+    if (codegen_end_link_pending == 1)
+        uop_JMP_LINK(ir);
+    else if (codegen_end_link_pending == 2)
+        uop_JMP_INDIRECT(ir);
+    codegen_end_link_pending = 0;
+#endif
+
     codegen_reg_mark_as_required();
     codegen_reg_process_dead_list(ir);
     block_write_data = codeblock_allocator_get_ptr(block->head_mem_block);

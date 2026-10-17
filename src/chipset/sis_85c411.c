@@ -354,6 +354,7 @@ sis_85c411_fail_safe(int new_out, int old_out, UNUSED(void *priv))
     sis_85c411_log("SiS406: the fail-safe timer ran out\n");
     dev->nmi_ext |= 0x80;
     nmi            = 1;
+    mem_chain_break(); /* the loop takes it */
     nmi_auto_clear = 1;
 }
 
@@ -419,6 +420,7 @@ sis_85c411_write(uint16_t port, uint8_t val, void *priv)
             if (dev->nmi_ext & 0x02) {
                 dev->nmi_ext |= 0x20;
                 nmi            = 1;
+                mem_chain_break(); /* the loop takes it */
                 nmi_auto_clear = 1;
             }
             break;

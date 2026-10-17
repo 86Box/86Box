@@ -789,9 +789,14 @@ ropCLI_STI(ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         uop_set_jump_dest(ir, jump_uop);
     }
 
-    if (set)
+    if (set) {
         uop_OR_IMM(ir, IREG_flags, IREG_flags, I_FLAG);
-    else
+#ifdef CODEGEN_CHAIN
+        /* An interrupt already pending: the chain leaves where STI's shadow
+           ends */
+        uop_CALL_FUNC(ir, codegen_chain_sti);
+#endif
+    } else
         uop_AND_IMM(ir, IREG_flags, IREG_flags, ~I_FLAG);
 
     return op_pc;

@@ -25,6 +25,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
+#include <86box/mem.h>
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/cassette.h>
@@ -443,8 +444,10 @@ pit_nmi_timer_ps2(int new_out, UNUSED(int old_out), UNUSED(void *priv))
 {
     nmi = new_out;
 
-    if (nmi)
+    if (nmi) {
         nmi_auto_clear = 1;
+        mem_chain_break(); /* the loop takes it */
+    }
 }
 
 static void
@@ -1558,8 +1561,10 @@ pit_nmi_timer_ps2(int new_out, UNUSED(int old_out), UNUSED(void *priv))
 {
     nmi = new_out;
 
-    if (nmi)
+    if (nmi) {
         nmi_auto_clear = 1;
+        mem_chain_break(); /* the loop takes it */
+    }
 }
 
 static void

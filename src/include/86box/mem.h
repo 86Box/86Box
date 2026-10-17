@@ -266,7 +266,7 @@ extern page_t *page_lookup[1048576];
 extern uintptr_t readlookup2[2097152];
 extern uintptr_t writelookup2[1048576];
 
-extern uint32_t get_phys_virt;
+extern uint64_t get_phys_virt; /* 64 bits: ~0 matches no linear page (mem_get_phys_forget) */
 extern uint32_t get_phys_phys;
 
 extern int shadowbios;
@@ -426,6 +426,50 @@ extern void     pae_load_pdptes(void);
 extern void flushmmucache_write(void);
 extern void flushmmucache_pc(void);
 extern void flushmmucache_nopc(void);
+/* The processor's own translation changes: CR0, CR3 and CR4 loads and task
+   switches (_cpu, _nopc_cpu), a privilege change (_cpl) and INVLPG. Linked
+   blocks are checked against the new translations, not dropped. */
+extern void flushmmucache_cpu(void);
+extern void flushmmucache_nopc_cpu(void);
+extern void flushmmucache_cpl(void);
+extern void flushmmucache_invlpg(uint32_t addr);
+
+/* Chains of linked blocks (the new recompiler on x86-64 hosts): a link stub
+   leaves for the dispatcher while this word is not 0. brk: something the
+   loop must look at (port I/O, an interrupt pending, NMI, SMI, a sooner
+   timer, a reset); code: compiled code of a linked block was written
+   (WRITTEN), every link must go (RELINK), or translations may have changed
+   (REVALIDATE). Set from anywhere; harmless when nothing is chained. */
+typedef union mem_chain_signal_t {
+    struct {
+        uint8_t brk;
+        uint8_t code;
+        uint8_t pad[2];
+    };
+    uint32_t pending;
+} mem_chain_signal_t;
+extern mem_chain_signal_t mem_chain_signal;
+#define MEM_CHAIN_CODE_WRITTEN    1
+#define MEM_CHAIN_CODE_RELINK     2
+#define MEM_CHAIN_CODE_REVALIDATE 4
+
+static __inline void
+mem_chain_break(void)
+{
+    __atomic_store_n(&mem_chain_signal.brk, 1, __ATOMIC_RELAXED);
+}
+
+static __inline void
+mem_chain_code(uint8_t why)
+{
+    __atomic_fetch_or(&mem_chain_signal.code, why, __ATOMIC_SEQ_CST);
+}
+
+/* The page entry a linear page translates to now, for checking linked
+   blocks: bit 0 present, bit 1 user (with every level's), the frame
+   above; 0 when not present. */
+extern uint64_t mmu_link_translate(uint32_t addr);
+extern void     mem_link_large_forget(void);
 
 extern void mem_debug_check_addr(uint32_t addr, int write);
 

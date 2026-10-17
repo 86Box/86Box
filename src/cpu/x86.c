@@ -421,6 +421,7 @@ reset_common(int hard)
     if (!hard)
         flushmmucache();
     x86_was_reset = 1;
+    mem_chain_break(); /* a chain running when a timer resets the processor ends */
     cpu_alt_reset = 0;
 
     /* INIT keeps the model-specific registers (Pentium Vol. 1, 3.3): the

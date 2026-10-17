@@ -74,8 +74,13 @@ opSTI(UNUSED(uint32_t fetchdat))
             x86gpf(NULL, 0);
             return 1;
         }
-    } else
+    } else {
         cpu_state.flags |= I_FLAG;
+        /* An interrupt waiting: a chain leaves, as for POPF. A compiled STI
+           does this itself; one with a REP prefix is not compiled. */
+        if (pic.int_pending)
+            mem_chain_break();
+    }
 
     /*First instruction after STI will always execute, regardless of whether
       there is a pending interrupt*/
@@ -181,6 +186,9 @@ opPOPF_186(UNUSED(uint32_t fetchdat))
     codegen_flags_changed = 0;
 #endif
 
+    /* TF turned on, or IF with an interrupt waiting: a chain leaves */
+    if (((cpu_state.flags & ~popf_old) & T_FLAG) || (((cpu_state.flags & ~popf_old) & I_FLAG) && pic.int_pending))
+        mem_chain_break();
     /* TF turned on: the trap comes after the instruction that follows
        (Pentium Vol. 3, 17.3.1.4). A compiled block ends here (a nonzero
        answer leaves it, the PC past POPF), and the loop, which steps
@@ -225,6 +233,9 @@ opPOPF_286(UNUSED(uint32_t fetchdat))
     codegen_flags_changed = 0;
 #endif
 
+    /* TF turned on, or IF with an interrupt waiting: a chain leaves */
+    if (((cpu_state.flags & ~popf_old) & T_FLAG) || (((cpu_state.flags & ~popf_old) & I_FLAG) && pic.int_pending))
+        mem_chain_break();
     /* TF turned on: the trap comes after the instruction that follows
        (Pentium Vol. 3, 17.3.1.4). A compiled block ends here (a nonzero
        answer leaves it, the PC past POPF), and the loop, which steps
@@ -289,6 +300,9 @@ opPOPF(UNUSED(uint32_t fetchdat))
     codegen_flags_changed = 0;
 #endif
 
+    /* TF turned on, or IF with an interrupt waiting: a chain leaves */
+    if (((cpu_state.flags & ~popf_old) & T_FLAG) || (((cpu_state.flags & ~popf_old) & I_FLAG) && pic.int_pending))
+        mem_chain_break();
     /* TF turned on: the trap comes after the instruction that follows
        (Pentium Vol. 3, 17.3.1.4). A compiled block ends here (a nonzero
        answer leaves it, the PC past POPF), and the loop, which steps
@@ -337,6 +351,9 @@ opPOPFD(UNUSED(uint32_t fetchdat))
     codegen_flags_changed = 0;
 #endif
 
+    /* TF turned on, or IF with an interrupt waiting: a chain leaves */
+    if (((cpu_state.flags & ~popf_old) & T_FLAG) || (((cpu_state.flags & ~popf_old) & I_FLAG) && pic.int_pending))
+        mem_chain_break();
     /* TF turned on: the trap comes after the instruction that follows
        (Pentium Vol. 3, 17.3.1.4). A compiled block ends here (a nonzero
        answer leaves it, the PC past POPF), and the loop, which steps

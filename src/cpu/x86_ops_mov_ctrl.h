@@ -198,12 +198,12 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
                 return 1;
             }
             if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x00000001)
-                flushmmucache();
+                flushmmucache_cpu();
             else if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000000) {
                 if (is_p6)
-                    flushmmucache();
+                    flushmmucache_cpu();
                 else {
-                    flushmmucache_nopc();
+                    flushmmucache_nopc_cpu();
                     cpu_flush_pending = 1;
                     /* The recompiler runs the next instruction through the
                        interpreter, which still fetches it with the old
@@ -225,6 +225,9 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
                 cpu_cache_int_enabled = 0;
             if (hascache && ((cr0 ^ old_cr0) & (1 << 30)))
                 cpu_update_waitstates();
+            /* The cache off or on: blocks run interpreted or compiled */
+            if ((cr0 ^ old_cr0) & (1 << 30))
+                mem_chain_break();
             if (cr0 & 1)
                 cpu_cur_status |= CPU_STATUS_PMODE;
             else
@@ -240,7 +243,7 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
                 return 1;
             }
             cr3 = cpu_state.regs[cpu_rm].l;
-            flushmmucache();
+            flushmmucache_cpu();
             break;
         case 4:
             if (cpu_has_feature(CPU_FEATURE_CR4)) {
@@ -255,7 +258,7 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
                     return 1;
                 }
                 if (((cpu_state.regs[cpu_rm].l ^ cr4) & cpu_CR4_mask) & (CR4_PSE | CR4_PAE | CR4_PGE))
-                    flushmmucache();
+                    flushmmucache_cpu();
                 cr4 = cpu_state.regs[cpu_rm].l & cpu_CR4_mask;
                 break;
             }
@@ -291,12 +294,12 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
                 return 1;
             }
             if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x00000001)
-                flushmmucache();
+                flushmmucache_cpu();
             else if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000000) {
                 if (is_p6)
-                    flushmmucache();
+                    flushmmucache_cpu();
                 else {
-                    flushmmucache_nopc();
+                    flushmmucache_nopc_cpu();
                     cpu_flush_pending = 1;
                     /* The recompiler runs the next instruction through the
                        interpreter, which still fetches it with the old
@@ -318,6 +321,9 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
                 cpu_cache_int_enabled = 0;
             if (hascache && ((cr0 ^ old_cr0) & (1 << 30)))
                 cpu_update_waitstates();
+            /* The cache off or on: blocks run interpreted or compiled */
+            if ((cr0 ^ old_cr0) & (1 << 30))
+                mem_chain_break();
             if (cr0 & 1)
                 cpu_cur_status |= CPU_STATUS_PMODE;
             else
@@ -333,7 +339,7 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
                 return 1;
             }
             cr3 = cpu_state.regs[cpu_rm].l;
-            flushmmucache();
+            flushmmucache_cpu();
             break;
         case 4:
             if (cpu_has_feature(CPU_FEATURE_CR4)) {
@@ -348,7 +354,7 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
                     return 1;
                 }
                 if (((cpu_state.regs[cpu_rm].l ^ cr4) & cpu_CR4_mask) & (CR4_PSE | CR4_PAE | CR4_PGE))
-                    flushmmucache();
+                    flushmmucache_cpu();
                 cr4 = cpu_state.regs[cpu_rm].l & cpu_CR4_mask;
                 break;
             }
@@ -382,6 +388,8 @@ opMOV_DRx_r_a16(uint32_t fetchdat)
     switch (cpu_reg) {
         case 0 ... 3:
             dr[cpu_reg] = cpu_state.regs[cpu_rm].l;
+            /* Breakpoints are checked where chains start: links go */
+            mem_chain_code(MEM_CHAIN_CODE_RELINK);
             break;
         case 4:
             if (cr4 & 0x8) {
@@ -400,6 +408,7 @@ opMOV_DRx_r_a16(uint32_t fetchdat)
             fallthrough;
         case 7:
             dr[7] = (cpu_state.regs[cpu_rm].l | 0x00000400) & (is586 ? ~0x0000d800 : ~0);
+            mem_chain_code(MEM_CHAIN_CODE_RELINK);
             break;
         default:
             x86illegal();
@@ -431,6 +440,8 @@ opMOV_DRx_r_a32(uint32_t fetchdat)
     switch (cpu_reg) {
         case 0 ... 3:
             dr[cpu_reg] = cpu_state.regs[cpu_rm].l;
+            /* Breakpoints are checked where chains start: links go */
+            mem_chain_code(MEM_CHAIN_CODE_RELINK);
             break;
         case 4:
             if (cr4 & 0x8) {
@@ -449,6 +460,7 @@ opMOV_DRx_r_a32(uint32_t fetchdat)
             fallthrough;
         case 7:
             dr[7] = (cpu_state.regs[cpu_rm].l | 0x00000400) & (is586 ? ~0x0000d800 : ~0);
+            mem_chain_code(MEM_CHAIN_CODE_RELINK);
             break;
         default:
             x86illegal();

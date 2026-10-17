@@ -41,6 +41,27 @@
 #define BLOCK_PC_INVALID 0xffffffff
 #define BLOCK_INVALID    0
 
+/*Chains of linked blocks: the recompiler on x86-64 hosts, not with the
+  GDB stub. A block ends in a link straight to the next instead of a return
+  to the dispatcher, while nothing needs the dispatcher (the signal word,
+  mem.h) and the next timer is not due.*/
+#if defined(USE_DYNAREC) && !defined(USE_GDBSTUB) && (defined(__x86_64__) || defined(_M_X64))
+#    define CODEGEN_CHAIN 1
+#endif
+
+#ifdef CODEGEN_CHAIN
+struct page_t;
+/* A write with these masks (mem.c) reached compiled code on the page: the
+   links into the blocks it reached go (codegen_block.c). */
+extern void codegen_page_code_hit(const struct page_t *p, uint64_t mask, int byte_offset, uint64_t bm0, uint64_t bm1);
+/* The whole page was written behind the processor's back. */
+extern void codegen_page_code_drop(const struct page_t *p);
+/* Every link goes (`owner`: from the dispatcher's side), or translations
+   may have changed (all, or the linear page `lin`). */
+extern void codegen_links_drop_all(int owner);
+extern void codegen_links_revalidate_request(int all, uint32_t lin);
+#endif
+
 extern void codegen_init(void);
 extern void codegen_flush(void);
 
