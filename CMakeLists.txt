@@ -184,6 +184,10 @@ if(WIN32 AND GDBSTUB)
     set(CMAKE_WIN32_EXECUTABLE OFF CACHE BOOL "Build a Windows GUI executable" FORCE)
 endif()
 
+if(WIN32 AND NOT CMAKE_WIN32_EXECUTABLE)
+    add_compile_definitions(WIN_CONSOLE_LOG=1)
+endif()
+
 if(GDBSTUB)
     if(NOT (ARCH STREQUAL "arm64"))
         set(NEW_DYNAREC OFF CACHE BOOL "Use the PCem v15 (\"new\") dynamic recompiler" OFF)

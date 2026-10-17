@@ -707,6 +707,18 @@ main(int argc, char *argv[])
 
     pc_init_modules();
 
+    for (int i = 0; i < argc; i++) {
+        if (!strcasecmp(argv[i], "--assume_copied_vm")) {
+            util::storeCurrentUuid();
+            util::generateNewMacAdresses();
+            break;
+        }
+        if (!strcasecmp(argv[i], "--assume_moved_vm")) {
+            util::storeCurrentUuid();
+            break;
+        }
+    }
+
     // UUID / copy / move detection
     if (!util::compareUuid()) {
         QMessageBox movewarnbox;

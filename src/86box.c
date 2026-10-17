@@ -814,9 +814,18 @@ pc_show_usage(void)
             "-Y or --donothing\t\t- do not show any UI or run the emulation\n"
 #endif
             "-Z or --lastvmpath\t\t- the last param. is VM path rather than config\n"
+            "\n"
+            "--window_x pos_x\t\t- Set window position in the horizontal direction\n"
+            "--window_y pos_y\t\t- Set window position in the vertical direction\n"
+            "--window_w width\t\t- Set window width\n"
+            "--window_h height\t\t- Set window height\n"
+#ifndef USE_SDL_UI
+            "--assume_copied_vm\t\t- Assume the VM is always copied on this run (regenerates UUID and MAC addresses)\n"
+            "--assume_moved_vm\t\t- Assume the VM is always moved on this run (regenerates UUID only)\n"
+#endif
             "\nA config file can be specified. If none is, the default file will be used.\n");
 
-#ifdef _WIN32
+#if defined _WIN32 && !(defined WIN_CONSOLE_LOG)
     ui_msgbox(MBX_INFO, p);
 #else
     always_log("%s", p);
@@ -841,6 +850,14 @@ pc_init(int argc, char *argv[])
     char            *p;
     char             temp[2048];
     char            *fn[FDD_NUM] = { NULL };
+    int              window_x_1 = 0;
+    int              window_y_1 = 0;
+    int              window_w_1 = 0;
+    int              window_h_1 = 0;
+    int              win_rem_set_x = 0;
+    int              win_rem_set_y = 0;
+    int              win_rem_set_w = 0;
+    int              win_rem_set_h = 0;
     char             drive = 0;
     char            *temp2 = NULL;
     char            *what;
@@ -1033,6 +1050,8 @@ usage:
             do_nothing = 1;
         } else if (!strcasecmp(argv[c], "--nohook") || !strcasecmp(argv[c], "-W")) {
             hook_enabled = 0;
+        } else if (!strcasecmp(argv[c], "--assume_moved_vm") || !strcasecmp(argv[c], "--assume_copied_vm")) {
+            // do nothing, handled in Qt only.
         } else if (!strcasecmp(argv[c], "--clear") || !strcasecmp(argv[c], "-X")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -1073,6 +1092,30 @@ usage:
 
             /* .. and then exit. */
             return 0;
+        } else if (!strcasecmp(argv[c], "--window_x")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            win_rem_set_x = 1;
+            window_x_1 = strtoull(&(argv[++c][0]), NULL, 10);
+        } else if (!strcasecmp(argv[c], "--window_y")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            win_rem_set_y = 1;
+            window_y_1 = strtoull(&(argv[++c][0]), NULL, 10);
+        } else if (!strcasecmp(argv[c], "--window_w")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            win_rem_set_w = 1;
+            window_w_1 = strtoull(&(argv[++c][0]), NULL, 10);
+        } else if (!strcasecmp(argv[c], "--window_h")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            win_rem_set_h = 1;
+            window_h_1 = strtoull(&(argv[++c][0]), NULL, 10);
 #ifdef USE_INSTRUMENT
         } else if (!strcasecmp(argv[c], "--instrument") || !strcasecmp(argv[c], "-J")) {
             if ((c + 1) == argc)
@@ -1444,6 +1487,16 @@ usage:
                 free(fn[i]);
                 fn[i] = NULL;
             }
+        }
+
+        if (win_rem_set_x || win_rem_set_y || win_rem_set_w || win_rem_set_h) {
+            int old_window_remember = window_remember;
+            window_remember = 1;
+            vid_resize = (win_rem_set_w || win_rem_set_h);
+            window_x = win_rem_set_x ? window_x_1 : (old_window_remember ? window_x : 0);
+            window_y = win_rem_set_y ? window_y_1 : (old_window_remember ? window_y : 0);
+            window_w = win_rem_set_w ? window_w_1 : (old_window_remember ? window_w : 640);
+            window_h = win_rem_set_h ? window_h_1 : (old_window_remember ? window_h : 480);
         }
     }
 
