@@ -1587,8 +1587,16 @@ rep_interrupt(void)
     do_cycles_i(4);
     biu_queue_flush();
 
+    int pc_sub = 2;
+    if (is_nec) {
+        if (ovr_seg != NULL)
+            pc_sub++;
+        if (in_lock)
+            pc_sub++;
+    }
+
     if (is_nec && (ovr_seg != NULL))
-        set_ip((cpu_state.pc - 3) & 0xffff);
+        set_ip((cpu_state.pc - pc_sub) & 0xffff);
     else
         set_ip((cpu_state.pc - 2) & 0xffff);
 
