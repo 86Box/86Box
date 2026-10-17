@@ -76,6 +76,7 @@ startup), `frames` (frames rendered) and `held`.
 | `fdd load <drive> <path>` / `fdd eject <drive>` | Change floppy media (drive 0 = A:). |
 | `cd load <drive> <path>` / `cd eject <drive>` | Change CD-ROM media. |
 | `reset hard` / `reset cad` | Hard reset, or send Ctrl+Alt+Del. |
+| `quit soft` | Soft power-off, like the GUI "Power off (soft)" button. Machine must not be held. |
 | `quit` | Power off and exit 86Box. |
 
 Numbers accept C syntax (`0x` hex, decimal).
