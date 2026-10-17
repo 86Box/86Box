@@ -2219,7 +2219,9 @@ gus_read(uint16_t addr, void *priv)
 
         case 0x209:
             gus->ad_status &= ~0x01;
+#ifdef OLD_NMI_BEHAVIOR
             nmi = 0;
+#endif /* OLD_NMI_BEHAVIOR */
             val = gus->ad_data;
             break;
         case 0x389:

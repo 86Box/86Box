@@ -1163,10 +1163,14 @@ exec386_dynarec(int32_t cycs)
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(2);
                 nmi_enable = 0;
+#    ifdef OLD_NMI_BEHAVIOR
                 if (nmi_auto_clear) {
                     nmi_auto_clear = 0;
                     nmi            = 0;
                 }
+#    else
+                nmi = 0;
+#    endif
             } else if ((cpu_state.flags & I_FLAG) && pic.int_pending) {
                 vector = picinterrupt();
                 if (vector != -1) {
@@ -1585,10 +1589,14 @@ block_ended:
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(2);
                 nmi_enable = 0;
+#ifdef OLD_NMI_BEHAVIOR
                 if (nmi_auto_clear) {
                     nmi_auto_clear = 0;
                     nmi            = 0;
                 }
+#else
+                nmi = 0;
+#endif
             } else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins) {
                 vector = picinterrupt();
                 if (vector != -1) {

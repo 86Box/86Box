@@ -1252,6 +1252,9 @@ check_interrupts(int nec_hlt)
                 custom_nmi();
             else
                 interrupt(2);
+#ifndef OLD_NMI_BEHAVIOR
+            nmi = 0;
+#endif
             return;
         }
         if (i_flag && pic.int_pending && (is80c88 ? !(noint & 1) : !noint)) {
