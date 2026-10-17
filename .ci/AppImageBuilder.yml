@@ -57,7 +57,9 @@ AppDir:
     - libpng16-16
     - libqt6core6t64 # if QT:BOOL=ON
     - libqt6gui6 # if QT:BOOL=ON
+    - libqt6waylandclient6 # if QT:BOOL=ON
     - libqt6widgets6 # if QT:BOOL=ON
+    - libserialport0
     - libsixel1 # if CLI:BOOL=ON
     - libslirp0
     - libsndfile1
@@ -75,9 +77,7 @@ AppDir:
     - libxi6 # if QT:BOOL=ON
     - libxkbcommon-x11-0 # if QT:BOOL=ON
     - qt6-wayland # if QT:BOOL=ON
-    - libqt6waylandclient6 # if QT:BOOL=ON
     - zlib1g
-    - libserialport0
   files:
     exclude:
     - etc
