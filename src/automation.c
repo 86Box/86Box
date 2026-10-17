@@ -25,6 +25,7 @@
 #endif
 #include <stdarg.h>
 #include <stdatomic.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -141,6 +142,7 @@ static strbuf_t   resp;
 
 /* CPU thread state. */
 static int      held;
+extern bool     fast_forward; /* the UI's (qt_main.cpp, sdl_main.c) */
 static int      cmd;          /* long-running command in progress */
 static int      cmd_was_held; /* hold again once the command finishes */
 static uint64_t cmd_deadline; /* emulated ms at which step/wait ends */
@@ -657,15 +659,28 @@ handle_request(char *line)
         resp.len = 0;
         sb_printf(&resp, "{\"ok\":true,\"protocol\":%d,\"version\":", AUTOMATION_PROTOCOL);
         sb_json_string(&resp, EMU_VERSION_FULL);
-        sb_printf(&resp, ",\"ms\":%llu,\"frames\":%llu,\"held\":%s,\"paused\":%s,\"w\":%d,\"h\":%d,\"bios_mode\":%d,\"quantum_ms\":%d}",
+        sb_printf(&resp, ",\"ms\":%llu,\"frames\":%llu,\"held\":%s,\"paused\":%s,\"ff\":%s,\"w\":%d,\"h\":%d,\"bios_mode\":%d,\"quantum_ms\":%d}",
                   (unsigned long long) emu_ms, (unsigned long long) frame_count, held ? "true" : "false",
-                  dopause ? "true" : "false", frame_w, frame_h, mode, force_10ms ? 10 : 1);
+                  dopause ? "true" : "false", fast_forward ? "true" : "false", frame_w, frame_h, mode, force_10ms ? 10 : 1);
     } else if (!strcmp(argv[0], "hold")) {
         held = 1;
         respond_ok_time();
     } else if (!strcmp(argv[0], "release")) {
         held = 0;
         respond_ok_time();
+    } else if (!strcmp(argv[0], "ff") && (argc <= 2)) {
+        /* ff [on|off]: fast forward, as the menu's; with no argument, what
+           it is. */
+        if ((argc == 2) && strcmp(argv[1], "on") && strcmp(argv[1], "off")) {
+            respond_error("ff takes on or off");
+        } else {
+            if (argc == 2)
+                plat_fast_forward(!strcmp(argv[1], "on"));
+            resp.len = 0;
+            sb_printf(&resp, "{\"ok\":true,\"ff\":%s,\"ms\":%llu,\"frames\":%llu,\"held\":%s}",
+                      fast_forward ? "true" : "false", (unsigned long long) emu_ms,
+                      (unsigned long long) frame_count, held ? "true" : "false");
+        }
     } else if (!strcmp(argv[0], "step") && (argc == 2)) {
         uint64_t ms = strtoull(argv[1], NULL, 0);
         if (!ms) {
