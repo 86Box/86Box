@@ -691,7 +691,7 @@ else
 	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl3-dev libpng-dev librtmidi-dev qt6-declarative-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev libsndfile1-dev libserialport-dev libvncserver-dev libzstd-dev
+	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype-dev libx11-dev libsdl3-dev libpng-dev librtmidi-dev qt6-declarative-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev libsndfile1-dev libserialport-dev libvncserver-dev libzstd-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
 		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/-declarative$//" | wc -c)
@@ -1087,12 +1087,13 @@ else
 
 	# Build FluidSynth without sound systems to remove the dependencies on libjack
 	# and other sound system libraries. We don't output audio through FluidSynth.
-	prefix="$cache_dir/fluidsynth-2.6.1"
+	prefix="$cache_dir/fluidsynth-2.6.1+"
 	if [ ! -d "$prefix" ]
 	then
 		rm -rf "$cache_dir/fluidsynth-"* # remove old versions
 		wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.6.1.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
+	sed -i -e 's/SndFile_WITH_EXTERNAL_LIBS/1/g' "$prefix/CMakeLists.txt" # patch to enable sf3 support with packaged libsndfile
 	prefix_build="$prefix/build-$arch_deb-$cmake_build_type"
 	cmake -G Ninja -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl3=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
 		-D SndFile_WITH_EXTERNAL_LIBS=ON -D enable-aufile=OFF -D enable-dbus=OFF -D enable-network=OFF -D enable-ipv6=OFF -D enable-readline=OFF \
@@ -1126,9 +1127,7 @@ else
 		\
 		-D SDL_JOYSTICK=ON -D SDL_HIDAPI_JOYSTICK=ON -D SDL_VIRTUAL_JOYSTICK=ON \
 		\
-		-D SDL_HAPTIC=OFF -D SDL_POWER=OFF -D SDL_SENSOR=OFF \
-		\
-		-D SDL_CAMERA=OFF \
+		-D SDL_CAMERA=OFF -D SDL_HAPTIC=OFF -D SDL_POWER=OFF -D SDL_SENSOR=OFF -D SDL_TRAY=OFF \
 		\
 		-D "CMAKE_BUILD_TYPE=$cmake_build_type" -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
 		-S "$prefix" -B "$prefix_build" || exit 99
