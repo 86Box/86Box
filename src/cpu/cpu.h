@@ -633,6 +633,17 @@ extern uint32_t cr4;
 extern uint32_t dr[8];
 extern uint32_t _tr[8];
 
+/* Debug register operation (breakpoints, single-step DR6 status, RF) on the
+   processors run by the 486 interpreter and the recompiler; the 386
+   interpreter always has it. Set from the configuration, a change takes
+   effect on a hard reset. */
+extern int cpu_debug_regs_486;
+/* cpu_debug_regs_486 and an enabled breakpoint in DR7: the per-access checks
+   are made only while this is set. Kept by cpu_dr7_update(), which must
+   follow every write to DR7. */
+extern int cpu_dr_armed;
+extern void cpu_dr7_update(void);
+
 /* For the Cyrix 6x86(MX) */
 extern uint8_t ccr0;
 extern uint8_t ccr1;

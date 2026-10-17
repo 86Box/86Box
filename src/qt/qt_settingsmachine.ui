@@ -507,6 +507,24 @@
       </item>
 
       <item>
+       <layout class="QHBoxLayout" name="debugRegs486Layout">
+        <item>
+        <widget class="QCheckBox" name="checkBoxDebugRegs486">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+          <horstretch>2</horstretch>
+           <verstretch>2</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Debug registers on 486 and later processors</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+
+      <item>
        <layout class="QHBoxLayout" name="groupBoxesLayout_2">
         <item>
          <layout class="QVBoxLayout" name="verticalLayoutCPUFrameSize">
@@ -606,6 +624,7 @@
   <tabstop>spinBoxRAM</tabstop>
   <tabstop>checkBoxDynamicRecompiler</tabstop>
   <tabstop>checkBoxAccurateFPUEnvironment</tabstop>
+  <tabstop>checkBoxDebugRegs486</tabstop>
   <tabstop>checkBoxFPUSoftfloat</tabstop>
   <tabstop>radioButtonDisabled</tabstop>
   <tabstop>radioButtonLocalTime</tabstop>
