@@ -299,19 +299,21 @@ pcmcia_card_get_device(int card)
 }
 
 netcard_t *
-pcmcia_network_attach(int socket, void *card_drv, uint8_t *mac, NETRXCB rx)
+pcmcia_network_attach(int socket, void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_link_state)
 {
     const int       slot  = NET_CARD_MAX + socket;
     netcard_conf_t *conf  = &net_cards_conf[slot];
     const uint16_t  saved = net_card_current;
+    const uint32_t  link  = conf->link_state;   /* the status bar's Connected */
     netcard_t      *card;
 
     memset(conf, 0, sizeof(netcard_conf_t));
-    conf->net_type = pcmcia_net_type[socket];
+    conf->link_state = link;
+    conf->net_type   = pcmcia_net_type[socket];
     snprintf(conf->host_dev_name, sizeof(conf->host_dev_name), "%s", pcmcia_net_host[socket]);
 
     net_card_current = slot;
-    card             = network_attach(card_drv, mac, rx, NULL);
+    card             = network_attach(card_drv, mac, rx, set_link_state);
     net_card_current = saved;
 
     /* A link that failed to come up was turned into none: so be it in the

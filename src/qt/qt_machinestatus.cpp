@@ -520,7 +520,7 @@ struct MachineStatus::States {
     std::array<StateEmptyActive, MO_NUM>       mo;
     std::array<StateEmptyActive, TAPE_NUM>     tape;
     std::array<StateActive, HDD_BUS_USB>       hdds;
-    std::array<StateEmptyActive, NET_CARD_MAX> net;
+    std::array<StateEmptyActive, NET_CONF_MAX> net; /* then a PC Card NIC per socket */
     std::unique_ptr<ClickableLabel>            usb;
     std::unique_ptr<QMenu>                     usbMenu;
     std::unique_ptr<ClickableLabel>            sound;
@@ -564,13 +564,11 @@ MachineStatus::setPcCardMenu(PcCardMenu *menu)
     if (pcCardMenu == menu)
         return;
     pcCardMenu = menu;
-    pcCardScsi = pcmciaHasSCSI();
     connect(menu, &PcCardMenu::changed, this, [this]() {
         updatePcCardIcon();
-        /* A SCSI card went in or came out: its drives come or go with it. */
-        if (pcmciaHasSCSI() != pcCardScsi)
-            ui_sb_update_panes();
-        pcCardScsi = pcmciaHasSCSI();
+        /* A card went in or came out: a network card's icon, or a SCSI card's
+           drives, come or go with it. */
+        ui_sb_update_panes();
     });
 }
 
@@ -741,6 +739,11 @@ MachineStatus::iterateNIC(const std::function<void(int)> &cb)
             cb(i);
         }
     }
+    /* A PC network card: its socket's link, after the Network settings' four. */
+    for (int s = 0; s < PCMCIA_SOCKETS; s++) {
+        if (pcmcia_enabled && pcmcia_card_is_network(pcmcia_card_type[s]))
+            cb(NET_CARD_MAX + s);
+    }
 }
 
 static int
@@ -786,7 +789,7 @@ MachineStatus::refreshEmptyIcons()
     d->cassette.setEmpty(machine_status.cassette.empty);
     d->cassette.setWriteProtected(machine_status.cassette.write_prot);
 
-    for (size_t i = 0; i < NET_CARD_MAX; i++)
+    for (size_t i = 0; i < NET_CONF_MAX; i++)
         d->net[i].setEmpty(machine_status.net[i].empty);
 
     for (int i = 0; i < 2; ++i)
@@ -909,7 +912,7 @@ MachineStatus::refreshIcons()
             ui_sb_update_icon_write(SB_HDD | i, 0);
     }
 
-    for (size_t i = 0; i < NET_CARD_MAX; i++) {
+    for (size_t i = 0; i < NET_CONF_MAX; i++) {
         d->net[i].setActive(machine_status.net[i].active);
         d->net[i].setWriteActive(machine_status.net[i].write_active);
     }
@@ -984,7 +987,7 @@ MachineStatus::refresh(QStatusBar *sbar)
     for (size_t i = 0; i < HDD_BUS_USB; i++) {
         sbar->removeWidget(d->hdds[i].label.get());
     }
-    for (size_t i = 0; i < NET_CARD_MAX; i++) {
+    for (size_t i = 0; i < NET_CONF_MAX; i++) {
         sbar->removeWidget(d->net[i].label.get());
     }
     sbar->removeWidget(d->usb.get());

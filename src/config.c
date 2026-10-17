@@ -2930,6 +2930,11 @@ load_other_peripherals(void)
             pcmcia_net_type[s] = !strcmp(t, "pcap") ? NET_TYPE_PCAP : (!strcmp(t, "none") ? NET_TYPE_NONE : NET_TYPE_SLIRP);
             sprintf(key, "socket_%c_net_host", 'a' + s);
             snprintf(pcmcia_net_host[s], sizeof(pcmcia_net_host[s]), "%s", ini_section_get_string(pc, key, ""));
+            sprintf(key, "socket_%c_net_link", 'a' + s);
+            net_cards_conf[NET_CARD_MAX + s].link_state = ini_section_get_int(pc, key,
+                                                                              (NET_LINK_10_HD | NET_LINK_10_FD |
+                                                                               NET_LINK_100_HD | NET_LINK_100_FD |
+                                                                               NET_LINK_1000_HD | NET_LINK_1000_FD));
         }
     }
 
@@ -4598,10 +4603,12 @@ save_other_peripherals(void)
         else
             ini_section_delete_var(pc, "controller");
         for (int s = 0; s < PCMCIA_SOCKETS; s++) {
-            char key[32], key_type[32], key_host[32];
+            char           key[32], key_type[32], key_host[32], key_link[32];
+            const uint32_t link = net_cards_conf[NET_CARD_MAX + s].link_state;
             sprintf(key, "socket_%c", 'a' + s);
             sprintf(key_type, "socket_%c_net_type", 'a' + s);
             sprintf(key_host, "socket_%c_net_host", 'a' + s);
+            sprintf(key_link, "socket_%c_net_link", 'a' + s);
             if (pcmcia_card_type[s] > 0)
                 ini_section_set_string(pc, key, (char *) pcmcia_card_get_internal_name(pcmcia_card_type[s]));
             else
@@ -4613,9 +4620,15 @@ save_other_peripherals(void)
                     ini_section_set_string(pc, key_host, pcmcia_net_host[s]);
                 else
                     ini_section_delete_var(pc, key_host);
+                if (link == (NET_LINK_10_HD | NET_LINK_10_FD | NET_LINK_100_HD | NET_LINK_100_FD |
+                             NET_LINK_1000_HD | NET_LINK_1000_FD))
+                    ini_section_delete_var(pc, key_link);
+                else
+                    ini_section_set_int(pc, key_link, link);
             } else {
                 ini_section_delete_var(pc, key_type);
                 ini_section_delete_var(pc, key_host);
+                ini_section_delete_var(pc, key_link);
             }
         }
         ini_delete_section_if_empty(config, pc);
