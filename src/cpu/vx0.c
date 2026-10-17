@@ -3115,8 +3115,7 @@ execute_instruction(void)
                     load_cs(tempw);
                 else
                     load_seg(tempw, _opseg[(rmdat & 0x18) >> 3]);
-                if (((rmdat & 0x18) >> 3) == 2)
-                    noint = 1;
+                noint = 1;
             }
             break;
 
@@ -3183,15 +3182,22 @@ execute_instruction(void)
             push(&tempw);
             break;
 
-        case 0x9d: /* POPF */
+        case 0x9d: { /* POPF */
             /* pop_flags() */
+
+            int old_i = cpu_state.flags & I_FLAG;
+
             if (is_nec && cpu_md_write_disable)
                 cpu_state.flags = pop() | 0x8002;
             else
                 cpu_state.flags = pop() | 0x0002;
+
+            if (!old_i && (cpu_state.flags & I_FLAG))
+                noint = 1;
+            
             sync_to_i8080();
             break;
-
+        }
         case 0x9e: /* SAHF */
             /* store_flags() */
             cpu_state.flags = (cpu_state.flags & 0xff02) | AH;
