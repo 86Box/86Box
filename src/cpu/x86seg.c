@@ -2849,12 +2849,10 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
     for (int i = 0; i < 8; i++)
         cpu_state.regs[i].l = is32 ? img.regs[i] : (img.regs[i] | 0xffff0000);
 
-#ifdef USE_DEBUG_REGS_486
-    dr[7] &= 0xFFFFFFAA;
-#else
-    if (!cpu_use_exec)
+    if (cpu_debug_regs_486 || !cpu_use_exec) {
         dr[7] &= 0xFFFFFFAA;
-#endif
+        cpu_dr7_update();
+    }
 
     /* "The processor first loads all the segment registers with segment
        selectors from the TSS, then checks their contents for validity"
@@ -2892,12 +2890,8 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
     if (is386 ? !task_checks_386(&img, cpl, ext) : !task_checks_286(&img, cpl, ext))
         return;
 
-#ifdef USE_DEBUG_REGS_486
-    rf_flag_no_clear = 1;
-#else
-    if (!cpu_use_exec)
+    if (cpu_debug_regs_486 || !cpu_use_exec)
         rf_flag_no_clear = 1;
-#endif
 
     /* An exception's error code goes on the new task's stack before its
        EIP is checked: x86_doabrt() makes that check after the push */
@@ -2910,14 +2904,10 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
     }
 
     if (img.t_bit) {
-#ifdef USE_DEBUG_REGS_486
-        trap |= 2;
-#else
-        if (cpu_use_exec)
+        if (cpu_use_exec && !cpu_debug_regs_486)
             trap = 2;
         else
             trap |= 2;
-#endif
 #ifdef USE_DYNAREC
         cpu_block_end = 1;
 #endif

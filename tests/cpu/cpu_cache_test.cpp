@@ -16,7 +16,12 @@ uint32_t cr2, cr3, cr4;
 uint32_t addr64;
 uint32_t addr64a[8];
 int      cpl_override;
+int      cpu_dr_armed;
 extern uint32_t abrt_error;
+void
+mem_debug_check_addr(uint32_t, int)
+{
+}
 void
 fatal(const char *, ...)
 {

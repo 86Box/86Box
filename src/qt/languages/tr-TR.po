@@ -432,6 +432,9 @@ msgstr "Dinamik derleyici"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Dinamik derleyicide hassas FPU ortamı"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "İşlemci kare boyutu"
 

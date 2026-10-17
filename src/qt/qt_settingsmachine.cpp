@@ -137,6 +137,7 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     ui->radioButtonSmallerFrames->setChecked(!force_10ms);
 
     ui->checkBoxOverrideInterpreter->setChecked(cpu_override_interpreter ? true : false);
+    ui->checkBoxDebugRegs486->setChecked(cpu_debug_regs_486 ? true : false);
 
 #ifndef USE_DYNAREC
     ui->checkBoxDynamicRecompiler->setEnabled(false);
@@ -163,6 +164,7 @@ SettingsMachine::changed()
     has_changed |= (cpu                        != ui->comboBoxSpeed->currentData().toInt());
     has_changed |= (fpu_type                   != ui->comboBoxFPU->currentData().toInt());
     has_changed |= (cpu_override_interpreter   != (ui->checkBoxOverrideInterpreter->isChecked() ? 1 : 0));
+    has_changed |= (cpu_debug_regs_486         != (ui->checkBoxDebugRegs486->isChecked() ? 1 : 0));
 #ifdef USE_DYNAREC
     has_changed |= (cpu_use_dynarec            != (ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0));
     has_changed |= (cpu_dyn_accurate_fpu_env   != (ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0));
@@ -226,6 +228,7 @@ SettingsMachine::save(int soft)
     cpu                      = ui->comboBoxSpeed->currentData().toInt();
     fpu_type                 = ui->comboBoxFPU->currentData().toInt();
     cpu_override_interpreter = ui->checkBoxOverrideInterpreter->isChecked() ? 1 : 0;
+    cpu_debug_regs_486       = ui->checkBoxDebugRegs486->isChecked() ? 1 : 0;
 #ifdef USE_DYNAREC
     cpu_use_dynarec          = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
     cpu_dyn_accurate_fpu_env = ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0;
