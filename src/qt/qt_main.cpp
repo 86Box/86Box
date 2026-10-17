@@ -99,6 +99,7 @@ extern "C" {
 #include "cpu.h"
 #include <86box/timer.h>
 #include <86box/nvr.h>
+#include <86box/automation.h>
 extern int  qt_nvr_save(void);
 #ifndef Q_OS_MACOS
 extern void exit_pause(void);
@@ -479,7 +480,9 @@ main_thread_fn()
         if (gdbstub_next_asap && (debt_ns < quantum_ns))
             debt_ns = quantum_ns;
 #endif
-        if (((debt_ns >= quantum_ns) || fast_forward) && !dopause) {
+        automation_poll();
+        const int automation = automation_run_state();
+        if (((debt_ns >= quantum_ns) || fast_forward || (automation == AUTOMATION_RUN)) && !dopause && (automation != AUTOMATION_HOLD)) {
             /*
              * Pace with one pc_run() per scheduler pass.
              * We intentionally avoid burst catch-up (multi-frame loop) because it can
@@ -489,6 +492,7 @@ main_thread_fn()
             uint64_t start_time = elapsed_timer.nsecsElapsed();
 #endif
             pc_run();
+            automation_quantum();
 
 #ifdef USE_INSTRUMENT
             if (instru_enabled) {
@@ -506,7 +510,9 @@ main_thread_fn()
                 frames     = 0;
             }
 
-            if (!fast_forward && debt_ns >= quantum_ns)
+            if (automation == AUTOMATION_RUN)
+                debt_ns = 0; /* unpaced automation steps must not cause catch-up later */
+            else if (!fast_forward && debt_ns >= quantum_ns)
                 debt_ns -= quantum_ns;
             else
                 debt_ns = 0;
