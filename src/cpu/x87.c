@@ -46,7 +46,6 @@ fpu_x87_log(const char *fmt, ...)
 #    define fpu_x87_log(fmt, ...)
 #endif
 
-#ifdef USE_NEW_DYNAREC
 uint16_t
 x87_gettag(void)
 {
@@ -80,36 +79,6 @@ x87_settag(uint16_t new_tag)
             cpu_state.tag[c] = TAG_VALID;
     }
 }
-#else
-uint16_t
-x87_gettag(void)
-{
-    uint16_t ret = 0;
-    int      c;
-
-    for (c = 0; c < 8; c++) {
-        if (cpu_state.tag[c] & TAG_UINT64)
-            ret |= 2 << (c * 2);
-        else
-            ret |= (cpu_state.tag[c] << (c * 2));
-    }
-
-    return ret;
-}
-
-void
-x87_settag(uint16_t new_tag)
-{
-    cpu_state.tag[0] = new_tag & 3;
-    cpu_state.tag[1] = (new_tag >> 2) & 3;
-    cpu_state.tag[2] = (new_tag >> 4) & 3;
-    cpu_state.tag[3] = (new_tag >> 6) & 3;
-    cpu_state.tag[4] = (new_tag >> 8) & 3;
-    cpu_state.tag[5] = (new_tag >> 10) & 3;
-    cpu_state.tag[6] = (new_tag >> 12) & 3;
-    cpu_state.tag[7] = (new_tag >> 14) & 3;
-}
-#endif
 
 static extFloat80_t
 FPU_handle_NaN32_Func(extFloat80_t a, int aIsNaN, float32 b32, int bIsNaN, struct softfloat_status_t *status)

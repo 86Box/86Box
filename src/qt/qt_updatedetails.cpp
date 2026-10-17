@@ -123,10 +123,10 @@ UpdateDetails::visitDownloadPage(const UpdateCheck::UpdateChannel &channel)
                                            "64"
 #endif
 
-#ifdef USE_NEW_DYNAREC
-                                           "ndr"
+#ifdef USE_DYNAREC
+                                           "dyn"
 #else
-                                           "odr"
+                                           "int"
 #endif
                                            ));
             break;

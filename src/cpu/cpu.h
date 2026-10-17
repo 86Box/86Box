@@ -385,7 +385,6 @@ typedef struct {
 
     MMX_REG MM[8];
 
-#ifdef USE_NEW_DYNAREC
 #    if (defined(__APPLE__) && defined(__aarch64__)) || defined(__aarch64__) || defined(__loongarch_lp64)
     uint64_t old_fp_control;
     uint64_t new_fp_control;
@@ -396,10 +395,6 @@ typedef struct {
 #    if defined __amd64__ || defined _M_X64
     uint32_t trunc_fp_control;
 #    endif
-#else
-    uint16_t old_npxc;
-    uint16_t new_npxc;
-#endif
 
     x86seg seg_cs;
     x86seg seg_ds;
@@ -473,25 +468,14 @@ typedef struct {
    bails to the interpreter for it (other FPU arith always rounds to
    nearest); such blocks must not be reused once RC changes. */
 #define CPU_STATUS_FPU_RC_NZ (1 << 6)
-#ifdef USE_NEW_DYNAREC
-#    define CPU_STATUS_FLAGS 0xff
-#else
-#    define CPU_STATUS_FLAGS 0xffff
-#endif
+#define CPU_STATUS_FLAGS 0xff
 
 /*If the cpu_state.flags below are set in cpu_cur_status, they must be set in block->status.
   Otherwise they are ignored*/
-#ifdef USE_NEW_DYNAREC
-#    define CPU_STATUS_NOTFLATDS (1 << 8)
-#    define CPU_STATUS_NOTFLATSS (1 << 9)
-#    define CPU_STATUS_NOTFLATES (1 << 10)
-#    define CPU_STATUS_MASK      0xff00
-#else
-#    define CPU_STATUS_NOTFLATDS (1 << 16)
-#    define CPU_STATUS_NOTFLATSS (1 << 17)
-#    define CPU_STATUS_NOTFLATES (1 << 18)
-#    define CPU_STATUS_MASK      0xffff0000
-#endif
+#define CPU_STATUS_NOTFLATDS (1 << 8)
+#define CPU_STATUS_NOTFLATSS (1 << 9)
+#define CPU_STATUS_NOTFLATES (1 << 10)
+#define CPU_STATUS_MASK      0xff00
 
 
 #ifdef EXTREME_DEBUG
@@ -608,11 +592,7 @@ extern int cpu_halted;
 extern int cpu_is_p5(void);
 extern int cpu_init_keeps_state(void);
 
-#ifdef USE_NEW_DYNAREC
 extern uint16_t cpu_cur_status;
-#else
-extern uint32_t cpu_cur_status;
-#endif
 extern uint64_t cpu_CR4_mask;
 extern uint64_t cpu_CR4_ignore;
 extern uint64_t tsc;

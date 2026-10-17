@@ -48,27 +48,24 @@ def archNamesMac = [
 ]
 
 def dynarecNames = [
-	'ODR': 'Old Recompiler (recommended)',
-	'NDR': 'New Recompiler (beta)',
+	'DR': 'Dynamic Recompiler',
 	'NoDR': 'No Dynamic Recompiler'
 ]
 
 def dynarecArchs = [
-	'64': ['ODR', 'NDR'],
-	'x86_64': ['ODR', 'NDR'],
-	'arm64': ['NDR'],
-	'x86_64+arm64': ['ODR', 'NDR']
+	'64': ['DR'],
+	'x86_64': ['DR'],
+	'arm64': ['DR'],
+	'x86_64+arm64': ['DR']
 ]
 
 def dynarecFlags = [
-	'ODR': '-D NEW_DYNAREC=OFF',
-	'NDR': '-D NEW_DYNAREC=ON',
+	'DR': '-D DYNAREC=ON',
 	'NoDR': '-D DYNAREC=OFF'
 ]
 
 def dynarecSlugs = [
-	'ODR': '',
-	'NDR': '-NDR',
+	'DR': '',
 	'NoDR': ''
 ]
 
