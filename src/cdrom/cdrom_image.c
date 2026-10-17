@@ -3726,7 +3726,10 @@ image_read_sector(const void *local, uint8_t *buffer,
             if ((ret > 0) && (trk->attr & 0x04) && ((idx->type < INDEX_NORMAL) || !track_is_raw)) {
                 uint32_t crc;
 
-                if ((trk->mode == 2) && (trk->form == 1)) {
+                if ((trk->mode == 1) && !img->data_tracks_scrambled) {
+                    /* cdrom.c adds EDC/ECC only when a read needs it. */
+                    ret = 2;
+                } else if ((trk->mode == 2) && (trk->form == 1)) {
                     crc = cdrom_crc32(0xffffffff, &(buf[16]), 2056) ^ 0xffffffff;
                     memcpy(&(buf[2072]), &crc, 4);
                 } else if ((trk->mode == 2) && (trk->form == 2)) {
@@ -3739,7 +3742,7 @@ image_read_sector(const void *local, uint8_t *buffer,
 
                 int m2f1 = (trk->mode == 2) && (trk->form == 1);
 
-                if ((trk->mode == 1) || m2f1) {
+                if (((trk->mode == 1) && (ret == 1)) || m2f1) {
                     /* Compute ECC P code. */
                     cdrom_compute_ecc_block(dev, &(buf[2076]), &(buf[12]), 86, 24, 2, 86, m2f1);
 
