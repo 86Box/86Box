@@ -27,7 +27,7 @@ extern "C" {
 #include <86box/plat.h>
 }
 
-#ifdef Q_OS_WINDOWS
+#ifdef USE_QDARKSTYLE
 #    include <dwmapi.h>
 #    ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #        define DWMWA_USE_IMMERSIVE_DARK_MODE 20
@@ -70,7 +70,8 @@ StyleOverride::polish(QWidget *widget)
             }
         }
         widget->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
-#ifdef Q_OS_WINDOWS
+#ifdef USE_QDARKSTYLE
+        /* Newer Qt handles the title bar color by itself */
         BOOL DarkMode = !util::isWindowsLightTheme();
         DwmSetWindowAttribute((HWND) widget->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID) &DarkMode, sizeof(DarkMode));
 #endif

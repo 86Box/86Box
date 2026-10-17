@@ -23,6 +23,7 @@
 #include <QImage>
 #include <QImageWriter>
 #include <QMimeData>
+#include <QStyleHints>
 #if QT_VERSION <= QT_VERSION_CHECK(5, 14, 0)
 #    include <QDesktopWidget>
 #endif
@@ -70,6 +71,11 @@ screenOfWidget(QWidget *widget)
 bool
 isWindowsLightTheme(void)
 {
+#    ifndef USE_QDARKSTYLE
+    /* Go by the palette in use, as the windowsvista style stays light even in dark mode */
+    const QPalette palette = QApplication::palette();
+    return palette.window().color().value() > palette.windowText().color().value();
+#    else
     if (color_scheme != 0) {
         return (color_scheme == 1);
     }
@@ -96,7 +102,27 @@ isWindowsLightTheme(void)
     auto i = int(buffer[3] << 24 | buffer[2] << 16 | buffer[1] << 8 | buffer[0]);
 
     return i == 1;
+#    endif
 }
+
+#    ifndef USE_QDARKSTYLE
+void
+applyColorScheme(void)
+{
+    switch (color_scheme) {
+        case 1:
+            QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Light);
+            break;
+        case 2:
+            QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
+            break;
+        default:
+            /* Follow the system */
+            QGuiApplication::styleHints()->unsetColorScheme();
+            break;
+    }
+}
+#    endif
 
 void
 setWin11RoundedCorners(WId hwnd, bool enable)
