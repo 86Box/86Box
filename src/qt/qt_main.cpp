@@ -43,7 +43,12 @@
 Q_IMPORT_PLUGIN(QICOPlugin)
 #    ifdef Q_OS_WINDOWS
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
+#        if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+/* Qt 6.7 renamed the windowsvista style plugin */
+Q_IMPORT_PLUGIN(QModernWindowsStylePlugin)
+#        else
 Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
+#        endif
 #    endif
 #endif
 
