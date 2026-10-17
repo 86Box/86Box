@@ -512,7 +512,7 @@ codegen_fpu_guard_empty(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32
     int jump_uop;
 
     codegen_accumulate_flush(ir);
-    uop_MOVZX(ir, IREG_temp0, IREG_tag(0));
+    uop_MOVZX(ir, IREG_temp0, IREG_tag_B(0));
     jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp0, TAG_EMPTY);
     codegen_fpu_handover(ir, fetchdat, op_32, interp_pc, target_seg);
     uop_set_jump_dest(ir, jump_uop);
