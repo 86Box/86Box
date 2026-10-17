@@ -2819,7 +2819,7 @@ el3_init(const device_t *info)
     dev->link_up = 1;
     if (dev->pccard) {
         dev->active = 1;
-        dev->card   = pcmcia_network_attach(dev->pc_socket, dev, dev->mac, el3_rx);
+        dev->card   = pcmcia_network_attach(dev->pc_socket, dev, dev->mac, el3_rx, el3_set_link_state);
         if (info->local == BOARD_PCCARD)
             el3_pccard_plug(dev);
     } else

@@ -112,7 +112,6 @@ private:
     QMenu                  *soundMenu;
     QMenu                  *dynarecMenu;
     class PcCardMenu       *pcCardMenu = nullptr;
-    bool                    pcCardScsi = false; /* a SCSI PC Card was in a socket */
 };
 
 #endif // QT_MACHINESTATUS_HPP

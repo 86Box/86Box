@@ -541,7 +541,7 @@ te100_init(UNUSED(const device_t *info))
     te100_cis_build(dev);
     te100_card_reset(dev);
 
-    dev->dp8390->card              = pcmcia_network_attach(dev->socket, dev->dp8390, dev->dp8390->physaddr, dp8390_rx);
+    dev->dp8390->card              = pcmcia_network_attach(dev->socket, dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL);
     dev->dp8390->card->byte_period = NET_PERIOD_100M;
 
     dev->pccard = (pccard_t) {

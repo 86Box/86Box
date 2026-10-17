@@ -95,9 +95,12 @@ extern const device_t *pcmcia_card_get_device(int card);
 #endif
 
 /* For a network card: attach to the network the way network_attach() does,
-   with the link chosen for its socket in the PCMCIA settings. */
+   with the link chosen for its socket in the PCMCIA settings.  Its link
+   state (net_cards_conf[NET_CARD_MAX + socket].link_state: the status bar's
+   Connected, saved as socket_x_net_link) is kept from one card to the next. */
 #ifdef EMU_NETWORK_H
-extern netcard_t *pcmcia_network_attach(int socket, void *card_drv, uint8_t *mac, NETRXCB rx);
+extern netcard_t *pcmcia_network_attach(int socket, void *card_drv, uint8_t *mac, NETRXCB rx,
+                                        NETSETLINKSTATE set_link_state);
 #endif
 
 /* ---------------------------------------------- multi-function cards --- */

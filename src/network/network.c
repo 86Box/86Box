@@ -828,7 +828,7 @@ network_rx_put_pkt(netcard_t *card, netpkt_t *pkt)
 void
 network_connect(int id, int connect)
 {
-    if (id >= NET_CARD_MAX)
+    if (id >= NET_CONF_MAX)
         return;
 
     if (connect) {
@@ -841,7 +841,7 @@ network_connect(int id, int connect)
 int
 network_is_connected(int id)
 {
-    if (id >= NET_CARD_MAX)
+    if (id >= NET_CONF_MAX)
         return 0;
 
     return !(net_cards_conf[id].link_state & NET_LINK_DOWN);
