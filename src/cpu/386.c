@@ -34,7 +34,9 @@
 #endif
 #include "x86seg.h"
 #include "386_common.h"
-#include "codegen.h"
+#ifdef USE_DYNAREC
+#    include "codegen.h"
+#endif
 
 #undef CPU_BLOCK_END
 #define CPU_BLOCK_END()
