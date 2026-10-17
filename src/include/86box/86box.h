@@ -100,17 +100,26 @@
 
 /* Platform-specific atomic handling */
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
-    /* On x86/x64, aligned int/uint32_t accesses are naturally atomic */
-    /* Use volatile for performance, as the original code did */
+    /* Aligned 32-bit integer loads/stores are atomic on x86 without locking;
+       read-modify-write ops are not (they lose updates across threads). */
     #define ATOMIC_INT volatile int
     #define ATOMIC_UINT volatile uint32_t
     #define ATOMIC_DOUBLE volatile double
     #define ATOMIC_LOAD(var) (var)
     #define ATOMIC_STORE(var, val) ((var) = (val))
-    #define ATOMIC_INC(var) (++(var))
-    #define ATOMIC_DEC(var) (--(var))
-    #define ATOMIC_ADD(var, val) ((var) += (val))
-    #define ATOMIC_SUB(var, val) ((var) -= (val))
+#ifdef _MSC_VER
+    #include <intrin.h>
+    #define ATOMIC_INC(var) (void)_InterlockedIncrement((long volatile *) &(var))
+    #define ATOMIC_DEC(var) (void)_InterlockedDecrement((long volatile *) &(var))
+    #define ATOMIC_ADD(var, val) (void)_InterlockedExchangeAdd((long volatile *) &(var), (long) (val))
+    #define ATOMIC_SUB(var, val) (void)_InterlockedExchangeAdd((long volatile *) &(var), (long) -(val))
+#else
+    #define ATOMIC_INC(var) (void)__atomic_add_fetch(&(var), 1, __ATOMIC_SEQ_CST)
+    #define ATOMIC_DEC(var) (void)__atomic_sub_fetch(&(var), 1, __ATOMIC_SEQ_CST)
+    #define ATOMIC_ADD(var, val) (void)__atomic_add_fetch(&(var), (val), __ATOMIC_SEQ_CST)
+    #define ATOMIC_SUB(var, val) (void)__atomic_sub_fetch(&(var), (val), __ATOMIC_SEQ_CST)
+#endif
+    /* Plain +=, not an atomic RMW on x86: cross-thread writers can lose updates. */
     #define ATOMIC_DOUBLE_ADD(var, val) ((var) += (val))
 #else
     /* On ARM and other architectures, use proper atomics */
@@ -133,11 +142,11 @@
     #define ATOMIC_DOUBLE _Atomic double
     #define ATOMIC_LOAD(var) atomic_load(&(var))
     #define ATOMIC_STORE(var, val) atomic_store(&(var), (val))
-    #define ATOMIC_INC(var) atomic_fetch_add(&(var), 1)
-    #define ATOMIC_DEC(var) atomic_fetch_sub(&(var), 1)
-    #define ATOMIC_ADD(var, val) atomic_fetch_add(&(var), val)
-    #define ATOMIC_SUB(var, val) atomic_fetch_sub(&(var), val)
-    #define ATOMIC_DOUBLE_ADD(var, val) atomic_double_add(&(var), val)
+    #define ATOMIC_INC(var) (void)atomic_fetch_add(&(var), 1)
+    #define ATOMIC_DEC(var) (void)atomic_fetch_sub(&(var), 1)
+    #define ATOMIC_ADD(var, val) (void)atomic_fetch_add(&(var), (val))
+    #define ATOMIC_SUB(var, val) (void)atomic_fetch_sub(&(var), (val))
+    #define ATOMIC_DOUBLE_ADD(var, val) (void)atomic_double_add(&(var), (val))
 #endif
 
 #ifdef __cplusplus
