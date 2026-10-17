@@ -3441,7 +3441,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_SOUND | MACHINE_KEYBOARD,
         .ram       = {
             .min  = 512,
             .max  = 768,
@@ -3463,7 +3463,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &tandy_1000sl_video_device,
-        .snd_device               = NULL,
+        .snd_device               = &pssj_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -6539,7 +6539,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_GAMEPORT,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT,
         .ram       = {
             .min  = 1024,
             .max  = 9216,
@@ -6561,7 +6561,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &gd5402_onboard_device,
-        .snd_device               = NULL,
+        .snd_device               = &pssj_1e0_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
