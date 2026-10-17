@@ -1595,10 +1595,7 @@ rep_interrupt(void)
             pc_sub++;
     }
 
-    if (is_nec && (ovr_seg != NULL))
-        set_ip((cpu_state.pc - pc_sub) & 0xffff);
-    else
-        set_ip((cpu_state.pc - 2) & 0xffff);
+    set_ip((cpu_state.pc - pc_sub) & 0xffff);
 
     rep_end();
 }
@@ -1913,6 +1910,11 @@ decode(void)
 
         opcode  = biu_pfq_fetchb_common();
     }
+
+    in_lock = 0;
+    in_rep  = 0;
+
+    ovr_seg = NULL;
 
     while (1) {
         prefix = 0;
@@ -3194,7 +3196,7 @@ execute_instruction(void)
 
             if (!old_i && (cpu_state.flags & I_FLAG))
                 noint = 1;
-            
+
             sync_to_i8080();
             break;
         }
