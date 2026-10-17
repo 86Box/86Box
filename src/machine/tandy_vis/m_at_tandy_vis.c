@@ -356,5 +356,7 @@ machine_at_tandy_vis_init(const machine_t *model)
     cpu_waitstates = 1;
     cpu_update_waitstates();
 
+    mem_remap_top_nomid(384);
+
     return ret;
 }

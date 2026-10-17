@@ -5131,8 +5131,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_BUS_PS2,
         .flags     = MACHINE_VIDEO | MACHINE_VIDEO_ONLY | MACHINE_SOUND | MACHINE_KEYBOARD,
         .ram       = {
-            .min  = 16384,
-            .max  = 16384,
+            .min  = 1024,
+            .max  = 1024,
             .step = 1
         },
         .nvrmask                  = 127,
