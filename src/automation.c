@@ -70,6 +70,8 @@ typedef int sock_t;
 #include <86box/ui.h>
 #include <86box/video.h>
 #include <86box/version.h>
+#include <86box/nvr.h>
+#include <86box/acpi.h>
 #include <86box/automation.h>
 
 #define AUTOMATION_PROTOCOL 1
@@ -849,10 +851,20 @@ handle_request(char *line)
     } else if (!strcmp(argv[0], "reset") && (argc == 2) && !strcmp(argv[1], "cad")) {
         pc_send_cad();
         respond_ok_time();
-    } else if (!strcmp(argv[0], "quit")) {
+    } else if (!strcmp(argv[0], "quit") && (argc == 1)) {
         respond_ok_time();
         complete();
         plat_power_off();
+        return;
+    } else if (!strcmp(argv[0], "quit") && (argc == 2) && !strcmp(argv[1], "soft")) {
+        respond_ok_time();
+        complete();
+        if (acpi_enabled)
+            acpi_pwrbut_pressed = 1;
+        else if (device_has_power_button())
+            device_power_button();
+        else
+            plat_power_off();
         return;
     } else {
         respond_error("unknown command or wrong arguments");
