@@ -988,7 +988,7 @@ else
 	done
 fi
 prefix_build="$prefix/build-$arch_discord" # hack
-cmake -G Ninja -D BUILD_TOOL=1 -D AARU_BUILD_PACKAGE=ON -D "CMAKE_BUILD_TYPE=$cmake_build_type" \
+cmake -G Ninja -D AARU_BUILD_PACKAGE=ON -D "CMAKE_BUILD_TYPE=$cmake_build_type" \
 	-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -B "$prefix_build" -S "$prefix" || exit 99
 cmake --build "$prefix_build" -j $build_threads || exit 99
 find "$prefix_build" -name '*.[oa]' -delete
@@ -1069,17 +1069,16 @@ then
 else
 	cwd_root="$(pwd)"
 
-	# Build SDL2 with video systems (and dependencies) only if the SDL interface is used.
+	# Build SDL with video systems (and dependencies) only if the SDL interface is used.
 	grep -qiE "^QT:[^=]+=ON" build/CMakeCache.txt && sdl_ui=OFF || sdl_ui=ON
 
 	# Build rtmidi without JACK support to remove the dependency on libjack, as
 	# the Debian libjack is very likely to be incompatible with the system jackd.
-	# Newer versions are ABI incompatible and require newer CMake.
-	prefix="$cache_dir/rtmidi-6.0.0"
+	prefix="$cache_dir/rtmidi-6.1.0"
 	if [ ! -d "$prefix" ]
 	then
 		rm -rf "$cache_dir/rtmidi-"* # remove old versions
-		wget -qO - https://github.com/thestk/rtmidi/archive/refs/tags/6.0.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+		wget -qO - https://github.com/thestk/rtmidi/archive/refs/tags/6.1.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
 	prefix_build="$prefix/build-$arch_deb-$cmake_build_type"
 	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_BUILD_TYPE=$cmake_build_type" -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
@@ -1088,50 +1087,46 @@ else
 
 	# Build FluidSynth without sound systems to remove the dependencies on libjack
 	# and other sound system libraries. We don't output audio through FluidSynth.
-	prefix="$cache_dir/fluidsynth-2.5.3"
+	prefix="$cache_dir/fluidsynth-2.6.1"
 	if [ ! -d "$prefix" ]
 	then
 		rm -rf "$cache_dir/fluidsynth-"* # remove old versions
-		wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.5.3.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+		wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.6.1.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
-	sed -i -e 's/SndFile_WITH_EXTERNAL_LIBS/1/g' "$prefix/CMakeLists.txt" # patch to enable sf3 support with old libsndfile
 	prefix_build="$prefix/build-$arch_deb-$cmake_build_type"
-	cmake -G Ninja -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl2=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
-		-D SndFile_WITH_EXTERNAL_LIBS=ON -D enable-aufile=OFF -D enable-dbus=OFF -D enable-network=OFF -D enable-ipv6=OFF \
-		-D "CMAKE_BUILD_TYPE=$cmake_build_type" -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
+	cmake -G Ninja -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl3=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
+		-D SndFile_WITH_EXTERNAL_LIBS=ON -D enable-aufile=OFF -D enable-dbus=OFF -D enable-network=OFF -D enable-ipv6=OFF -D enable-readline=OFF \
+		-D enable-systemd=OFF -D "CMAKE_BUILD_TYPE=$cmake_build_type" -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j $build_threads || exit 99
 	cmake --install "$prefix_build" || exit 99
 
-	# Build SDL3 for joystick support, with most components
+	# Build SDL for joystick support, with most components
 	# disabled to remove the dependencies on PulseAudio and libdrm.
-	prefix="$cache_dir/SDL3-3.4.14"
+	prefix="$cache_dir/SDL3-3.4.18"
 	if [ ! -d "$prefix" ]
 	then
-		rm -rf "$cache_dir/SDL2-"* "$cache_dir/SDL3-"* # remove old versions
-		wget -qO - https://www.libsdl.org/release/SDL3-3.4.14.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+		rm -rf "$cache_dir/SDL"[23]-* # remove old versions
+		wget -qO - https://www.libsdl.org/release/SDL3-3.4.18.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
-	prefix_build="$cache_dir/SDL3-3.4.14-build-$arch_deb-$cmake_build_type"
+	prefix_build="$prefix-build-$arch_deb-$cmake_build_type"
 	sdl_ui=OFF
 	cmake -G Ninja -D SDL_SHARED=ON -D SDL_STATIC=OFF \
 		\
-		-D SDL_AUDIO=OFF -D SDL_DUMMYAUDIO=OFF -D SDL_DISKAUDIO=OFF -D SDL_OSS=OFF -D SDL_ALSA=OFF -D SDL_ALSA_SHARED=OFF \
-		-D SDL_JACK=OFF -D SDL_JACK_SHARED=OFF -D SDL_ESD=OFF -D SDL_ESD_SHARED=OFF -D SDL_PIPEWIRE=OFF \
-		-D SDL_PIPEWIRE_SHARED=OFF -D SDL_PULSEAUDIO=OFF -D SDL_PULSEAUDIO_SHARED=OFF -D SDL_ARTS=OFF -D SDL_ARTS_SHARED=OFF \
-		-D SDL_NAS=OFF -D SDL_NAS_SHARED=OFF -D SDL_SNDIO=OFF -D SDL_SNDIO_SHARED=OFF -D SDL_FUSIONSOUND=OFF \
-		-D SDL_FUSIONSOUND_SHARED=OFF -D SDL_LIBSAMPLERATE=OFF -D SDL_LIBSAMPLERATE_SHARED=OFF \
+		-D SDL_AUDIO=OFF -D SDL_DUMMYAUDIO=OFF -D SDL_DISKAUDIO=OFF -D SDL_OSS=OFF -D SDL_ALSA=OFF \
+		-D SDL_ALSA_SHARED=OFF -D SDL_JACK=OFF -D SDL_JACK_SHARED=OFF -D SDL_PIPEWIRE=OFF -D SDL_PIPEWIRE_SHARED=OFF \
+		-D SDL_PULSEAUDIO=OFF -D SDL_PULSEAUDIO_SHARED=OFF -D SDL_SNDIO=OFF -D SDL_SNDIO_SHARED=OFF \
 		\
 		-D SDL_VIDEO=$sdl_ui -D SDL_X11=$sdl_ui -D SDL_X11_SHARED=$sdl_ui -D SDL_WAYLAND=$sdl_ui -D SDL_WAYLAND_SHARED=$sdl_ui \
-		-D SDL_WAYLAND_LIBDECOR=$sdl_ui -D SDL_WAYLAND_LIBDECOR_SHARED=$sdl_ui -D SDL_WAYLAND_QT_TOUCH=OFF -D SDL_RPI=OFF -D SDL_VIVANTE=OFF \
-		-D SDL_VULKAN=OFF -D SDL_KMSDRM=$sdl_ui -D SDL_KMSDRM_SHARED=$sdl_ui -D SDL_OFFSCREEN=$sdl_ui -D SDL_RENDER=$sdl_ui -D SDL_GPU=OFF \
-		-D SDL_DIALOG=OFF -D SDL_OPENGL=OFF -D SDL_OPENGLES=OFF \
+		-D SDL_WAYLAND_LIBDECOR=$sdl_ui -D SDL_WAYLAND_LIBDECOR_SHARED=$sdl_ui -D SDL_RPI=OFF -D SDL_VIVANTE=OFF \
+		-D SDL_VULKAN=OFF -D SDL_KMSDRM=$sdl_ui -D SDL_KMSDRM_SHARED=$sdl_ui -D SDL_OFFSCREEN=$sdl_ui -D SDL_RENDER=$sdl_ui \
+		-D SDL_GPU=OFF -D SDL_DIALOG=OFF -D SDL_OPENGL=$sdl_ui -D SDL_OPENGLES=OFF \
 		\
 		-D SDL_UNIX_CONSOLE_BUILD=ON -D SDL_TEST_LIBRARY=OFF -D SDL_TESTS=OFF \
 		\
 		-D SDL_JOYSTICK=ON -D SDL_HIDAPI_JOYSTICK=ON -D SDL_VIRTUAL_JOYSTICK=ON \
 		\
-		-D SDL_ATOMIC=OFF -D SDL_EVENTS=ON -D SDL_HAPTIC=OFF -D SDL_POWER=OFF -D SDL_THREADS=ON -D SDL_TIMERS=ON -D SDL_FILE=OFF \
-		-D SDL_LOADSO=ON -D SDL_CPUINFO=ON -D SDL_FILESYSTEM=$sdl_ui -D SDL_DLOPEN=OFF -D SDL_SENSOR=OFF -D SDL_LOCALE=OFF \
+		-D SDL_HAPTIC=OFF -D SDL_POWER=OFF -D SDL_SENSOR=OFF \
 		\
 		-D SDL_CAMERA=OFF \
 		\
@@ -1148,11 +1143,6 @@ else
 	relroot="../../../../../../../../../../../../../../../../../../../../../../../../../../../../.."
 	ln -s "$relroot/usr/lib/libvulkan.so.1" "archive_tmp/usr/lib/libvulkan.so"
 	ln -s "$relroot/usr/lib/$libdir/libvulkan.so.1" "archive_tmp/usr/lib/$libdir/libvulkan.so"
-
-	# The FluidSynth packaged by Debian bullseye is ABI incompatible with
-	# the newer version we compile, despite sharing a major version. Since we
-	# don't run into the one breaking ABI change they made, just symlink it.
-	ln -s "$(readlink "archive_tmp/usr/lib/libfluidsynth.so.3")" "archive_tmp/usr/lib/libfluidsynth.so.2"
 
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"
