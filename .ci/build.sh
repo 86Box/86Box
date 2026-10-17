@@ -331,7 +331,8 @@ then
 			# Call build with the correct MSYSTEM.
 			echo [-] Switching to MSYSTEM [$msys]
 			cd "$cwd"
-			[ $strip -ne 0 ] && args="-t" || args=
+			args=
+			[ $strip -ne 0 ] && args="-t $args"
 			[ $skip_archive -ne 0 ] && args="-n $args"
 			CHERE_INVOKING=yes MSYSTEM="$msys" bash -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
 			exit $?
@@ -410,7 +411,8 @@ then
 		for arch_universal in $(echo "$arch" | tr '+' ' ')
 		do
 			# Run build for the architecture.
-			[ $strip -ne 0 ] && args="-t" || args=
+			args=
+			[ $strip -ne 0 ] && args="-t $args"
 			zsh -lc 'exec "'"$0"'" -n -b "universal slice" "'"$arch_universal"'" '"$args""$cmake_flags"' '"$cmake_flags_extra"
 			status=$?
 
@@ -587,7 +589,8 @@ then
 		# Call build with the correct architecture.
 		echo [-] Switching to architecture [$arch]
 		cd "$cwd"
-		[ $strip -ne 0 ] && args="-t" || args=
+		args=
+		[ $strip -ne 0 ] && args="-t $args"
 		[ $skip_archive -ne 0 ] && args="-n $args"
 		arch -"$arch_cmd" zsh -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
 		exit $?
