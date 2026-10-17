@@ -231,6 +231,15 @@ and compares copied ISO files byte for byte. See the
 [Sony hardware guide](../doc/hardware/sony-cdrom.md) for prerequisites, resource
 settings, the five-version driver matrix, and validation limits.
 
+# IBM PC 730/750 power controller
+
+Build `ibm_pc700_power_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build --output-on-failure -R '^IbmPc700PowerTest\.'`.
+The tests drive the controller through ports 48h-49h the way the LQKT47A BIOS
+does: command framing, the power-off command, the BIOS's flag check, the wake
+reason reported at power-on, variable writes, and the status bit's busy time
+and heartbeat.
+
 # CPU cache and TLB diagnostics
 
 Build `cpu_tr_tests`, `cpu_cache_tests` and `vect486n_tests` with

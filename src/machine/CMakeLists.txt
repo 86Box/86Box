@@ -56,6 +56,7 @@ add_library(mch OBJECT
     m_at_socket5.c
     m_at_eisa_pci.c
     m_at_socket7_3v.c
+    m_at_ibm_pc700_power.c
     m_at_socket7.c
     m_at_sockets7.c
     m_at_socket8.c
