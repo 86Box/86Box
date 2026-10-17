@@ -40,6 +40,7 @@
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/gdbstub.h>
+#include <86box/automation.h>
 
 #include "sdl_monitor.h"
 #include "sdl_render.h"
@@ -225,14 +226,17 @@ main_thread(UNUSED(void *param))
 #endif
 
         old_time = new_time;
-        if ((drawits > 0 || fast_forward) && !dopause) {
+        automation_poll();
+        const int automation = automation_run_state();
+        if ((drawits > 0 || fast_forward || (automation == AUTOMATION_RUN)) && !dopause && (automation != AUTOMATION_HOLD)) {
             /* Yes, so do one frame now. */
             drawits -= force_10ms ? 10 : 1;
-            if (drawits > 50 || fast_forward)
+            if (drawits > 50 || fast_forward || (automation == AUTOMATION_RUN))
                 drawits = 0;
 
             /* Run a block of code. */
             pc_run();
+            automation_quantum();
 
             /* Every 200 frames we save the machine status. */
             if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {

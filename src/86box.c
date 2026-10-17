@@ -102,6 +102,7 @@
 #include <86box/plat_dir.h>
 #include <86box/version.h>
 #include <86box/gdbstub.h>
+#include <86box/automation.h>
 #include <86box/machine_status.h>
 #include <86box/acpi.h>
 #include <86box/nv/vid_nv_rivatimer.h>
@@ -760,6 +761,13 @@ pc_show_usage(void)
             "\nUsage: 86box [options] [cfg-file]\n\n"
             "Valid options are:\n\n"
             "-? or --help\t\t\t- show this information\n"
+#ifdef USE_AUTOMATION
+            "--automation endpoint\t\t- listen for automation commands: unix:path or\n"
+            "\t\t\t\t   tcp:[host:]port (bare value: a path, or a port on Windows)\n"
+            "--automation-hold\t\t- start with the machine held for automation\n"
+            "--automation-token-file path\t- TCP: write the access token to 'path'\n"
+            "--automation-allow-remote\t- TCP: allow a non-loopback listen address\n"
+#endif
             "-A or --assetpath path\t\t- set 'path' to be asset path\n"
 #ifdef SHOW_EXTRA_PARAMS
             "-C or --config path\t\t- set 'path' to be config file\n"
@@ -929,6 +937,22 @@ usage:
                 memcpy(vmm_path, vp, sizeof(vmm_path));
             else
                 memcpy(vmm_path, vp, strlen(vp) + 1);
+#endif
+#ifdef USE_AUTOMATION
+        } else if (!strcasecmp(argv[c], "--automation")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            snprintf(automation_path, sizeof(automation_path), "%s", argv[++c]);
+        } else if (!strcasecmp(argv[c], "--automation-hold")) {
+            automation_start_held = 1;
+        } else if (!strcasecmp(argv[c], "--automation-token-file")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            snprintf(automation_token_file, sizeof(automation_token_file), "%s", argv[++c]);
+        } else if (!strcasecmp(argv[c], "--automation-allow-remote")) {
+            automation_allow_remote = 1;
 #endif
         } else if (!strcasecmp(argv[c], "--fullscreen") || !strcasecmp(argv[c], "-F")) {
             start_in_fullscreen = 1;
@@ -1617,6 +1641,8 @@ pc_init_modules(void)
         exit(-1);
     }
 
+    automation_init();
+
     return 1;
 }
 
@@ -2034,6 +2060,7 @@ pc_close(UNUSED(thread_t *ptr))
 
     gdbstub_close();
 
+    automation_close();
 }
 
 #ifdef __APPLE__
