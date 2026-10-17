@@ -58,9 +58,10 @@ startup), `frames` (frames rendered) and `held`.
 
 | Request | Effect |
 |---|---|
-| `status` | Protocol and emulator version, `ms`, `frames`, `held`, `paused` (UI pause), last frame size `w`/`h`, `bios_mode` (BIOS data area 0x449), `quantum_ms`. |
+| `status` | Protocol and emulator version, `ms`, `frames`, `held`, `paused` (UI pause), `ff` (fast forward), last frame size `w`/`h`, `bios_mode` (BIOS data area 0x449), `quantum_ms`. |
 | `hold` | Stop running the CPU between requests. |
 | `release` | Resume normal real-time execution. |
+| `ff [on\|off]` | Fast forward on or off, as the UI's (no pacing to real time when the machine runs); with no argument, what it is. Reply has `ff`. |
 | `step <ms>` | Run exactly `ms` of emulated time, then reply. If held, runs without real-time pacing (as fast as the host allows), then holds again. |
 | `wait text <timeout_ms> <text>` | Run until `<text>` (rest of line, matched against raw screen bytes) appears in a single row of the text screen, or until the timeout. Reply has `matched`. |
 | `wait mem <timeout_ms> <addr> <hex>` | Run until physical memory at `addr` equals the hex bytes, or until the timeout. |
