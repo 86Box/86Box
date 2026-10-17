@@ -14,6 +14,10 @@
 void codegen_backend_init(void);
 void codegen_backend_prologue(codeblock_t *block);
 void codegen_backend_epilogue(codeblock_t *block);
+#ifdef CODEGEN_CHAIN
+void codegen_backend_link_stub(codeblock_t *block);
+void codegen_backend_indirect_stub(codeblock_t *block);
+#endif
 
 struct ir_data_t;
 struct uop_t;

@@ -446,6 +446,14 @@ typedef struct {
        (x87_dyn_fdiv, 386_dynarec.c) */
     double x87_operand;
 #endif
+
+    /* Chains of linked blocks (the new recompiler on x86-64 hosts): the
+       signal word a link stub tests (mem.h mem_chain_signal), the cycles
+       value a chain runs down to (the next timer), and the cycles it
+       entered with. */
+    void *chain_signal;
+    int   chain_floor;
+    int   chain_cycles;
 } cpu_state_t;
 
 #define in_smm   cpu_state._in_smm

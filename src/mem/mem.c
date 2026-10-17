@@ -104,7 +104,11 @@ int readlnum  = 0;
 int writelnum = 0;
 int cachesize = 256;
 
-uint32_t get_phys_virt;
+uint64_t get_phys_virt = ~0ULL;
+
+/* Chains of linked blocks: what a link stub tests (mem.h). Set by the
+   hooks in every build; only the new recompiler on x86-64 hosts reads it. */
+mem_chain_signal_t mem_chain_signal;
 uint32_t get_phys_phys;
 
 int mem_a20_key     = 0;
@@ -190,10 +194,27 @@ resetreadlookup(void)
     writelnext   = 0;
     pccache      = 0xffffffff;
     high_page    = 0;
+    get_phys_virt = ~0ULL; /* no translation cached (mem_get_phys_forget) */
 }
 
-void
-flushmmucache(void)
+#if defined(USE_DYNAREC) && defined(CODEGEN_CHAIN)
+#    define LINKS_DROP()      codegen_links_drop_all(0)
+#    define LINKS_REVAL(a, l) codegen_links_revalidate_request(a, l)
+#else
+#    define LINKS_DROP()
+#    define LINKS_REVAL(a, l)
+#endif
+
+/* get_phys()'s one translation cached: forgotten whenever translations
+   may change. */
+static __inline void
+mem_get_phys_forget(void)
+{
+    get_phys_virt = ~0ULL;
+}
+
+static void
+mem_tlb_empty(void)
 {
     for (uint16_t c = 0; c < 512; c++) {
         if (readlookup[c] != (int) 0xffffffff) {
@@ -207,6 +228,13 @@ flushmmucache(void)
             writelookup[c]               = 0xffffffff;
         }
     }
+    mem_get_phys_forget();
+}
+
+static void
+flushmmucache_common(void)
+{
+    mem_tlb_empty();
     mmuflush++;
 
     pccache  = (uint32_t) 0xffffffff;
@@ -215,6 +243,26 @@ flushmmucache(void)
 #ifdef USE_DYNAREC
     codegen_flush();
 #endif
+}
+
+/* Memory changed under the processor (a mapping, shadow RAM, SMRAM, A20, a
+   reset): every link goes. */
+void
+flushmmucache(void)
+{
+    LINKS_DROP();
+    flushmmucache_common();
+}
+
+/* The processor's own: CR0, CR3 and CR4 loads and task switches. Linked
+   blocks are checked against the new translations at the loop's next
+   look, and keep their links where nothing moved (an operating system's
+   kernel keeps its mappings in every address space). */
+void
+flushmmucache_cpu(void)
+{
+    LINKS_REVAL(1, 0);
+    flushmmucache_common();
 }
 
 void
@@ -246,18 +294,69 @@ flushmmucache_pc(void)
 void
 flushmmucache_nopc(void)
 {
-    for (uint16_t c = 0; c < 512; c++) {
-        if (readlookup[c] != (int) 0xffffffff) {
-            readlookup2[readlookup[c]] = LOOKUP_INV;
-            readlookup2[readlookup[c] | 1048576] = LOOKUP_INV;
-            readlookup[c]              = 0xffffffff;
-        }
-        if ((c < 256) && (writelookup[c] != (int) 0xffffffff)) {
-            page_lookup[writelookup[c]]  = NULL;
-            writelookup2[writelookup[c]] = LOOKUP_INV;
-            writelookup[c]               = 0xffffffff;
-        }
+    LINKS_DROP();
+    mem_tlb_empty();
+}
+
+void
+flushmmucache_nopc_cpu(void)
+{
+    LINKS_REVAL(1, 0);
+    mem_tlb_empty();
+}
+
+/* A change of privilege: the lookups made at the old one go. The links
+   hold, as their key carries the CPL (codegen.h CODEGEN_CHAIN_KEY). */
+void
+flushmmucache_cpl(void)
+{
+    mem_tlb_empty();
+}
+
+#if defined(USE_DYNAREC) && defined(CODEGEN_CHAIN)
+/* The 4 MB linear regions a link's translation went through a large page
+   in (a 2 MB PAE page lies inside one): an INVLPG there drops the whole
+   page's entry, so every link into the region is looked at again
+   (flushmmucache_invlpg). */
+static uint64_t mem_link_large_regions[1024 / 64];
+
+static __inline void
+mem_link_large_note(uint32_t addr)
+{
+    mem_link_large_regions[addr >> 28] |= 1ULL << ((addr >> 22) & 63);
+}
+#endif
+
+/* No link is left (the code cache reset): no region has one. */
+void
+mem_link_large_forget(void)
+{
+#if defined(USE_DYNAREC) && defined(CODEGEN_CHAIN)
+    memset(mem_link_large_regions, 0, sizeof(mem_link_large_regions));
+#endif
+}
+
+/* INVLPG: only the links into blocks on that linear page (or one running
+   onto it) are checked against the page tables -- every link, when one
+   went through a large page in that region. */
+void
+flushmmucache_invlpg(uint32_t addr)
+{
+    mem_tlb_empty();
+#if defined(USE_DYNAREC) && defined(CODEGEN_CHAIN)
+    {
+        uint64_t      *word = &mem_link_large_regions[addr >> 28];
+        const uint64_t bit  = 1ULL << ((addr >> 22) & 63);
+
+        if (*word & bit) {
+            *word &= ~bit;
+            LINKS_REVAL(1, 0);
+        } else
+            LINKS_REVAL(0, addr);
     }
+#else
+    (void) addr;
+#endif
 }
 
 void
@@ -594,6 +693,72 @@ mmutranslate_noabrt(uint32_t addr, int rw)
     else
         return mmutranslate_noabrt_normal(addr, rw);
 }
+
+#if defined(USE_DYNAREC) && defined(CODEGEN_CHAIN)
+/* Where a linear page translates for a link (codegen_block.c): the
+   physical page as get_phys() gives it, | 2 when user code may run there,
+   | 1 when present; 0 when not present or beyond the physical space. It
+   sets no accessed bit and raises no fault: an entry on the way whose
+   accessed bit is clear gives 0 as well, so the link misses and the
+   dispatcher's own walk sets the bit, as the processor's fetch would. */
+uint64_t
+mmu_link_translate(uint32_t addr)
+{
+    uint64_t page;
+    int      user;
+
+    addr &= ~0xfff;
+    if (!(cr0 >> 31))
+        return ((uint64_t) (addr & rammask) & ~0xfffULL) | 3;
+
+    if (cr4 & CR4_PAE) {
+        uint64_t pdpte = pae_pdpte[(addr >> 30) & 3] & 0x000000ffffffffffULL; /* as loaded with CR3 */
+        uint64_t pde;
+        uint64_t pte;
+
+        if (!(pdpte & 1))
+            return 0;
+        pde = rammap64((pdpte & ~0xfffULL) + ((addr >> 18) & 0xff8)) & 0x000000ffffffffffULL;
+        if ((pde & 0x21) != 0x21)
+            return 0;
+        if (pde & 0x80) {
+            page = (pde & ~0x1fffffULL) + (addr & 0x1fffff);
+            user = !!(pde & 4);
+            mem_link_large_note(addr);
+        } else {
+            pte = rammap64((pde & ~0xfffULL) + ((addr >> 9) & 0xff8)) & 0x000000ffffffffffULL;
+            if ((pte & 0x21) != 0x21)
+                return 0;
+            page = pte & ~0xfffULL;
+            user = !!(pte & pde & 4);
+        }
+    } else {
+        uint32_t pde = rammap((cr3 & ~0xfff) + ((addr >> 20) & 0xffc));
+        uint32_t pte;
+
+        if ((pde & 0x21) != 0x21)
+            return 0;
+        if ((pde & 0x80) && (cr4 & CR4_PSE)) {
+            page = (uint64_t) (pde & ~0x3fffff);
+            if (cpu_features & CPU_FEATURE_PSE36)
+                page |= (uint64_t) (pde & 0x1e000) << 19;
+            page += addr & 0x3fffff;
+            user = !!(pde & 4);
+            mem_link_large_note(addr);
+        } else {
+            pte = rammap((pde & ~0xfff) + ((addr >> 10) & 0xffc));
+            if ((pte & 0x21) != 0x21)
+                return 0;
+            page = pte & ~0xfff;
+            user = !!(pte & pde & 4);
+        }
+    }
+    /* Beyond 4 GB get_phys() gives FFFFFFFFh, as here. */
+    if (page > 0xffffffffULL)
+        page = 0xffffffffULL;
+    return ((uint64_t) ((uint32_t) page & rammask) & ~0xfffULL) | (user ? 2 : 0) | 1;
+}
+#endif
 
 uint8_t
 mem_addr_range_match(uint32_t addr, uint32_t start, uint32_t len)
@@ -1917,6 +2082,22 @@ page_remove_from_evict_list(page_t *page)
     purgeable_page_count--;
 }
 
+#    ifdef CODEGEN_CHAIN
+/* A write changed compiled code on the page: if it reached a linked block,
+   that block's links go (codegen_page_code_hit), as only a link skips the
+   dirty test a dispatch makes. */
+static __inline void
+mem_page_code_written(const page_t *p, uint64_t mask, int byte_offset, uint64_t bm0, uint64_t bm1)
+{
+    if (!p->block && !p->block_2)
+        return;
+    if (!((p->code_present_mask & mask) || (p->byte_code_present_mask[byte_offset] & bm0) ||
+          (bm1 && (p->byte_code_present_mask[byte_offset + 1] & bm1))))
+        return;
+    codegen_page_code_hit(p, mask, byte_offset, bm0, bm1);
+}
+#    endif
+
 void
 mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page)
 {
@@ -1939,6 +2120,9 @@ mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page)
         page->byte_dirty_mask[byte_offset] |= byte_mask;
         if ((page->byte_code_present_mask[byte_offset] & byte_mask) && !page_in_evict_list(page))
             page_add_to_evict_list(page);
+#    ifdef CODEGEN_CHAIN
+        mem_page_code_written(page, mask, byte_offset, byte_mask, 0);
+#    endif
     }
 }
 
@@ -1974,6 +2158,9 @@ mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page)
 
         if ((page->byte_code_present_mask[byte_offset] & byte_mask) && !page_in_evict_list(page))
             page_add_to_evict_list(page);
+#    ifdef CODEGEN_CHAIN
+        mem_page_code_written(page, mask, byte_offset, byte_mask, ((addr & PAGE_BYTE_MASK_MASK) == PAGE_BYTE_MASK_MASK) ? 1 : 0);
+#    endif
     }
 }
 
@@ -1999,13 +2186,17 @@ mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page)
         page->byte_dirty_mask[byte_offset] |= byte_mask;
         if (!page_in_evict_list(page) && ((page->code_present_mask & mask) || (page->byte_code_present_mask[byte_offset] & byte_mask)))
             page_add_to_evict_list(page);
+        uint64_t byte_mask_2 = 0;
         if ((addr & PAGE_BYTE_MASK_MASK) > (PAGE_BYTE_MASK_MASK - 3)) {
-            uint32_t byte_mask_2 = 0xf >> (4 - (addr & 3));
+            byte_mask_2 = 0xf >> (4 - (addr & 3));
 
             page->byte_dirty_mask[byte_offset + 1] |= byte_mask_2;
             if ((page->byte_code_present_mask[byte_offset + 1] & byte_mask_2) && !page_in_evict_list(page))
                 page_add_to_evict_list(page);
         }
+#    ifdef CODEGEN_CHAIN
+        mem_page_code_written(page, mask, byte_offset, byte_mask, byte_mask_2);
+#    endif
     }
 }
 
@@ -2201,6 +2392,10 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 
             if (!page_in_evict_list(page))
                 page_add_to_evict_list(page);
+#    ifdef CODEGEN_CHAIN
+            if (page->block || page->block_2)
+                codegen_page_code_drop(page);
+#    endif
         }
     }
 }

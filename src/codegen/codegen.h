@@ -2,6 +2,7 @@
 #define _CODEGEN_H_
 
 #include <86box/mem.h>
+#include "codegen_public.h"
 #include <stddef.h>
 #include "x86_ops.h"
 
@@ -73,7 +74,100 @@ typedef struct codeblock_t {
     /*Run since eviction's sweep last passed it: the sweep passes it over
       once (codegen_delete_random_block).*/
     uint8_t used;
+
+#ifdef CODEGEN_CHAIN
+    /*Where a linked block enters it (data[chain_entry]): past the part of
+      the prologue every block shares, so a chain keeps one frame.*/
+    uint16_t chain_entry;
+
+    /*Links into this block hold while this is the value they were made
+      under: anything that changes what they reach (its code written, the
+      block deleted, its page's translation changed) adds one. Never reset
+      while the block's number is in use again, so a stale link cannot
+      match a new block.*/
+    uint64_t link_gen;
+    /*The block's pages as translated when a link to it was last made
+      (mmu_link_translate): a translation flush compares them again.*/
+    uint64_t link_pte, link_pte2;
+    /*While it is a link target: its group (codegen_block.c), or the solo
+      list, and its neighbours there.*/
+    int32_t link_group;
+    int32_t link_gnext, link_gprev;
+    /*A link to it was made at CPL 3: its pages' user bit counts.*/
+    uint8_t link_cpl3;
+    /*The physical pages counted for it while it is a link target.*/
+    uint32_t link_phys, link_phys_2;
+    /*Its places in the lists of linked blocks on those pages (codegen_lp),
+      one per page: 0 for the first, 1 for the second.*/
+    int32_t lp_next[2], lp_prev[2];
+#endif
 } codeblock_t;
+
+#ifdef CODEGEN_CHAIN
+extern uint64_t codegen_chain_gen;
+extern uint8_t *codegen_chain_last_exit;
+extern int      codegen_end_link_ok;
+extern int      codegen_end_link_pending;
+extern int      codegen_block_full;
+/*A link stub found the signal word set: answers 0 for the chain to go on,
+  non-zero to leave it (386_dynarec.c).*/
+extern int codegen_chain_service(void);
+/*STI in a block: an interrupt already pending breaks the chain, at the end
+  of the block STI's shadow ends (386_dynarec.c).*/
+extern void codegen_chain_sti(void);
+/*What a link or an indirect entry was made under and holds only while it
+  matches: the status word, and the CPL (bits 17:16) -- a page's user or
+  supervisor check was made at the CPL a link was made at, so privilege
+  changes need not drop the links.*/
+#    define CODEGEN_CHAIN_KEY() ((cpu_cur_status & 0xffff) | ((uint32_t) (cpu_state.seg_cs.access & 0x60) << 11))
+/*A link generation no block has: where an unlinked stub or an empty
+  indirect entry points.*/
+extern uint64_t codegen_link_unlinked;
+/*The indirect link table: the blocks a near RET, CALL or indirect JMP last
+  reached, looked up by linear PC in the exit stub, each valid for the CS
+  base and key it was filled under and while its block's link generation
+  is the one it was filled under.*/
+#    define CODEGEN_IND_SIZE 32768
+typedef struct codegen_ind_t {
+    uint32_t  pc;
+    uint32_t  cs_base;
+    uint32_t  status; /* CODEGEN_CHAIN_KEY() */
+    uint32_t  pad;
+    uint64_t  gen;      /* the block's link_gen when filled */
+    uint8_t  *target;
+    uint64_t *link_gen; /* &block->link_gen, or &codegen_link_unlinked */
+    uint64_t *group_word; /* its group's word, as a link's (codegen_link_group_word) */
+    uint64_t  group_value;
+    uint64_t  spare;
+} codegen_ind_t; /* 64 bytes: the stub indexes it with SHL 6 */
+extern codegen_ind_t codegen_ind_cache[CODEGEN_IND_SIZE];
+extern uint32_t      codegen_ind_miss;
+extern void          codegen_ind_fill(codeblock_t *block, uint64_t gen);
+/*A link's second test: the word of the target's link group and the value
+  it must hold (codegen_block.c).*/
+extern uint64_t  codegen_lg_solo_word;
+extern uint64_t *codegen_link_group_word(const codeblock_t *block, uint64_t *value);
+/*Point a link stub at a block, under the block's link generation `gen`
+  (read before its code was found clean); answers whether it could.*/
+extern int codegen_chain_patch(uint8_t *stub, codeblock_t *target, uint64_t gen);
+
+/*Links into a block, kept exact (codegen_block.c):
+  - note: a link or indirect entry to `block` was just made;
+  - drop: every link into `block` goes (from anywhere);
+  - drop_all: every link goes (`owner`: from the dispatcher's side, which
+    also empties the link lists; else from anywhere, generations only);
+  - revalidate_request: translations may have changed (all of them, or the
+    linear page `lin` alone); the links are checked against the page
+    tables at the loop's next look (codegen_links_revalidate).*/
+extern void codegen_links_note(codeblock_t *block);
+extern void codegen_links_drop(codeblock_t *block);
+extern void codegen_links_drop_all(int owner);
+extern void codegen_links_revalidate_request(int all, uint32_t lin);
+extern void codegen_links_revalidate(void);
+/*Compiled code was written: the links into the written blocks go, at the
+  loop's next look.*/
+extern void codegen_links_written(void);
+#endif
 
 extern codeblock_t *codeblock;
 
