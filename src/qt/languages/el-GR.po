@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-02 16:32+0000\n"
+"PO-Revision-Date: 2026-10-17 12:43+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -3609,7 +3609,7 @@ msgid "VFIO %s: Invalid device location."
 msgstr ""
 
 msgid "VFIO %s: Device not found."
-msgstr ""
+msgstr "VFIO %s: Δεν βρέθηκε συσκευή."
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
