@@ -70,8 +70,7 @@ make_tar() {
 	fi
 
 	# Use MacPorts gnutar (if installed) on macOS.
-	local tar_cmd=tar
-	which gnutar > /dev/null 2>&1 && local tar_cmd=gnutar
+	which gnutar > /dev/null 2>&1 && local tar_cmd=gnutar || local tar_cmd=tar
 
 	# Determine the best supported compression type.
 	local compression_flag=
@@ -119,8 +118,7 @@ check_buildtag() {
 	return $?
 }
 save_buildtag() {
-	local contents="$BUILD_TAG"
-	[ -n "$2" ] && local contents="$2"
+	[ -n "$2" ] && local contents="$2" || local contents="$BUILD_TAG"
 	echo "$contents" > "$cache_dir/buildtag.$1"
 	return $?
 }
@@ -229,8 +227,7 @@ do
 			which lddtree > /dev/null || DEBIAN_FRONTEND=noninteractive sudo apt-get -y install pax-utils
 
 			# Default to main binary.
-			binary="$1"
-			[ -z "$binary" ] && binary="archive_tmp/usr/local/bin/$project"
+			[ -z "$binary" ] && binary="archive_tmp/usr/local/bin/$project" || binary="$1"
 
 			# Run lddtree with AppImage lib directories included in the search path.
 			LD_LIBRARY_PATH=$(find "$(pwd)/archive_tmp" -type d -name lib -o -name lib64 | while read dir; do find "$dir" -type d; done | tr '\n' ':') \
@@ -334,8 +331,7 @@ then
 			# Call build with the correct MSYSTEM.
 			echo [-] Switching to MSYSTEM [$msys]
 			cd "$cwd"
-			args=
-			[ $strip -ne 0 ] && args="-t $args"
+			[ $strip -ne 0 ] && args="-t" || args=
 			[ $skip_archive -ne 0 ] && args="-n $args"
 			CHERE_INVOKING=yes MSYSTEM="$msys" bash -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
 			exit $?
@@ -414,8 +410,7 @@ then
 		for arch_universal in $(echo "$arch" | tr '+' ' ')
 		do
 			# Run build for the architecture.
-			args=
-			[ $strip -ne 0 ] && args="-t $args"
+			[ $strip -ne 0 ] && args="-t" || args=
 			zsh -lc 'exec "'"$0"'" -n -b "universal slice" "'"$arch_universal"'" '"$args""$cmake_flags"' '"$cmake_flags_extra"
 			status=$?
 
@@ -575,8 +570,7 @@ then
 		fi
 
 		# Notarize the compressed app bundle.
-		status=0
-		mac_notarize "$zip_name" || status=50
+		mac_notarize "$zip_name" && status=0 || status=50
 
 		# All good.
 		echo [-] Universal build of [$package_name] for [$arch] with flags [$cmake_flags] successful
@@ -593,8 +587,7 @@ then
 		# Call build with the correct architecture.
 		echo [-] Switching to architecture [$arch]
 		cd "$cwd"
-		args=
-		[ $strip -ne 0 ] && args="-t $args"
+		[ $strip -ne 0 ] && args="-t" || args=
 		[ $skip_archive -ne 0 ] && args="-n $args"
 		arch -"$arch_cmd" zsh -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
 		exit $?
@@ -880,6 +873,7 @@ else
 		cp "$(which cp)" "build/src/$project"
 	fi
 fi
+grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=.*Debug.*" build/CMakeCache.txt && cmake_build_type=Debug || cmake_build_type=Release
 
 # Download Discord Game SDK from their CDN if we're in a new build.
 discord_version="3.2.1"
@@ -965,8 +959,7 @@ else
 		git clone --depth 1 "$(dirname "$git_repo")/mdsx.git" "$prefix" && break
 	done
 fi
-debug_args=
-grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && debug_args=DEBUG=y
+[ "$cmake_build_type" = "Debug" ] && debug_args=DEBUG=y || debug_args=
 make -C "$prefix/src" -j$(nproc) CC="$cc_binary" STRIP="$strip_binary" $debug_args || exit 99
 find "$prefix/src" -name '*.[oa]' -delete
 mv "$prefix/src/mdsx."* archive_tmp/ || exit 99
@@ -994,10 +987,8 @@ else
 		git clone --recurse-submodules --no-shallow-submodules --remote-submodules https://github.com/aaru-dps/libaaruformat.git "$prefix" && break
 	done
 fi
-build_type=Release
-grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && build_type=Debug
 prefix_build="$prefix/build-$arch_discord" # hack
-cmake -G Ninja -D CMAKE_BUILD_TYPE=$build_type -D BUILD_TOOL=1 -D AARU_BUILD_PACKAGE=ON \
+cmake -G Ninja -D BUILD_TOOL=1 -D AARU_BUILD_PACKAGE=ON -D "CMAKE_BUILD_TYPE=$cmake_build_type" \
 	-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -B "$prefix_build" -S "$prefix" || exit 99
 cmake --build "$prefix_build" -j$(nproc) || exit 99
 find "$prefix_build" -name '*.[oa]' -delete
@@ -1047,8 +1038,7 @@ elif is_mac
 then
 	cwd_root="$(pwd)"
 	# Archive app bundle with libraries.
-	cmake_flags_install=
-	[ $strip -ne 0 ] && cmake_flags_install="$cmake_flags_install --strip"
+	[ $strip -ne 0 ] && cmake_flags_install="--strip" || cmake_flags_install=
 	cmake --install build --prefix "$(pwd)/archive_tmp" $cmake_flags_install
 	status=$?
 
@@ -1080,8 +1070,7 @@ else
 	cwd_root="$(pwd)"
 
 	# Build SDL2 with video systems (and dependencies) only if the SDL interface is used.
-	sdl_ui=OFF
-	grep -qiE "^QT:BOOL=ON" build/CMakeCache.txt || sdl_ui=ON
+	grep -qiE "^QT:[^=]+=ON" build/CMakeCache.txt && sdl_ui=OFF || sdl_ui=ON
 
 	# Build rtmidi without JACK support to remove the dependency on libjack, as
 	# the Debian libjack is very likely to be incompatible with the system jackd.
@@ -1092,8 +1081,8 @@ else
 		rm -rf "$cache_dir/rtmidi-"* # remove old versions
 		wget -qO - https://github.com/thestk/rtmidi/archive/refs/tags/6.0.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
-	prefix_build="$prefix/build-$arch_deb"
-	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+	prefix_build="$prefix/build-$arch_deb-$cmake_build_type"
+	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_BUILD_TYPE=$cmake_build_type" -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
 
@@ -1106,10 +1095,10 @@ else
 		wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.5.3.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
 	sed -i -e 's/SndFile_WITH_EXTERNAL_LIBS/1/g' "$prefix/CMakeLists.txt" # patch to enable sf3 support with old libsndfile
-	prefix_build="$prefix/build-$arch_deb"
+	prefix_build="$prefix/build-$arch_deb-$cmake_build_type"
 	cmake -G Ninja -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl2=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
 		-D SndFile_WITH_EXTERNAL_LIBS=ON -D enable-aufile=OFF -D enable-dbus=OFF -D enable-network=OFF -D enable-ipv6=OFF \
-		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
+		-D "CMAKE_BUILD_TYPE=$cmake_build_type" -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
@@ -1119,11 +1108,10 @@ else
 	prefix="$cache_dir/SDL3-3.4.14"
 	if [ ! -d "$prefix" ]
 	then
-		rm -rf "$cache_dir/SDL2-"*
-		rm -rf "$cache_dir/SDL3-"* # remove old versions
+		rm -rf "$cache_dir/SDL2-"* "$cache_dir/SDL3-"* # remove old versions
 		wget -qO - https://www.libsdl.org/release/SDL3-3.4.14.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
-	prefix_build="$cache_dir/SDL3-3.4.14-build-$arch_deb"
+	prefix_build="$cache_dir/SDL3-3.4.14-build-$arch_deb-$cmake_build_type"
 	sdl_ui=OFF
 	cmake -G Ninja -D SDL_SHARED=ON -D SDL_STATIC=OFF \
 		\
@@ -1147,7 +1135,7 @@ else
 		\
 		-D SDL_CAMERA=OFF \
 		\
-		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
+		-D "CMAKE_BUILD_TYPE=$cmake_build_type" -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
@@ -1329,8 +1317,7 @@ then
 fi
 
 # Notarize the compressed app bundle if we're on macOS.
-status=0
-mac_notarize "$zip_name" || status=50
+mac_notarize "$zip_name" && status=0 || status=50
 
 # All good.
 echo [-] Build of [$package_name] for [$arch] with flags [$cmake_flags] successful
