@@ -2255,6 +2255,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CALL_INSTRUCTION_FUNC & UOP_MASK] = codegen_CALL_INSTRUCTION_FUNC,
 
     [UOP_JMP & UOP_MASK] = codegen_JMP,
+    /*No chains on these hosts: a link or an indirect exit is the exit*/
+    [UOP_JMP_LINK & UOP_MASK]     = codegen_JMP,
+    [UOP_JMP_INDIRECT & UOP_MASK] = codegen_JMP,
 
     [UOP_LOAD_SEG & UOP_MASK] = codegen_LOAD_SEG,
 

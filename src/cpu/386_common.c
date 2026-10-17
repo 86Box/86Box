@@ -1488,6 +1488,11 @@ enter_smm(int in_hlt)
     oldcpl = 0;
 
     cpu_cur_status &= ~(CPU_STATUS_PMODE | CPU_STATUS_V86);
+    /* CR0, CR3 and CR4 were loaded for SMM, with SMRAM mapped or not, and
+       the debug registers cleared: translations are looked at again, and
+       every link goes */
+    flushmmucache_cpu();
+    mem_chain_code(MEM_CHAIN_CODE_RELINK);
     CPU_BLOCK_END();
 }
 
@@ -1649,6 +1654,11 @@ leave_smm(void)
     x386_common_log("EAX = %08X, EBX = %08X, ECX = %08X, EDX = %08X, ESI = %08X, EDI = %08X, ESP = %08X, EBP = %08X\n",
                     EAX, EBX, ECX, EDX, ESI, EDI, ESP, EBP);
     x386_common_log("leave_smm()\n");
+
+    /* The state before SMM back, CR0, CR3, CR4 and the debug registers
+       with it: as on entry */
+    flushmmucache_cpu();
+    mem_chain_code(MEM_CHAIN_CODE_RELINK);
 }
 
 /* #NM delivered while a block was being recorded (an x87 or MMX
@@ -2094,7 +2104,7 @@ sysexit(UNUSED(uint32_t fetchdat))
 
     cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS /* | CPU_STATUS_V86*/);
     cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
-    flushmmucache_nopc();
+    flushmmucache_cpl();
     set_use32(1);
     set_stack32(1);
 
@@ -2211,7 +2221,7 @@ sysret(UNUSED(uint32_t fetchdat))
 
     cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS /* | CPU_STATUS_V86*/);
     cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
-    flushmmucache_nopc();
+    flushmmucache_cpl();
     set_use32(1);
     set_stack32(1);
 
@@ -2268,6 +2278,7 @@ smi_raise(void)
         cpu_fast_off_advance();
 
     smi_line = 1;
+    mem_chain_break(); /* the loop takes it: a chain leaves at its next link */
 }
 
 void
@@ -2282,6 +2293,7 @@ nmi_raise(void)
     }
 
     nmi = 1;
+    mem_chain_break(); /* the loop takes it: a chain leaves at its next link */
 }
 
 #ifndef USE_DYNAREC

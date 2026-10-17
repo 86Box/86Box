@@ -95,6 +95,16 @@ typedef union {
         codegen_set_rounding_mode((cpu_state.npxc >> 10) & 3);                                                                  \
         if (((!(old_npxc_ & 0x300)) != (!(cpu_state.npxc & 0x300))) || ((!(old_npxc_ & 0xc00)) != (!(cpu_state.npxc & 0xc00)))) \
             CPU_BLOCK_END();                                                                                                    \
+        /* Blocks are keyed on these, and a chain compares the key at  */                                                       \
+        /* every link without a dispatch to refresh them               */                                                       \
+        if (cpu_state.npxc & 0x300)                                                                                             \
+            cpu_cur_status &= ~CPU_STATUS_FPU_PC24;                                                                             \
+        else                                                                                                                    \
+            cpu_cur_status |= CPU_STATUS_FPU_PC24;                                                                              \
+        if ((cpu_state.npxc >> 10) & 3)                                                                                         \
+            cpu_cur_status |= CPU_STATUS_FPU_RC_NZ;                                                                             \
+        else                                                                                                                    \
+            cpu_cur_status &= ~CPU_STATUS_FPU_RC_NZ;                                                                            \
     } while (0)
 
 #ifdef FPU_8087

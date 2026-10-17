@@ -576,7 +576,7 @@ op0F01_common(UNUSED(uint32_t fetchdat), int is32, int is286, UNUSED(int ea32))
                     x86gpf(NULL, 0);
                     break;
                 }
-                flushmmucache_nopc();
+                flushmmucache_invlpg(cpu_state.ea_seg->base + cpu_state.eaaddr);
                 CLOCK_CYCLES(12);
                 PREFETCH_RUN(12, 2, rmdat, 0, 0, 0, 0, ea32);
                 break;

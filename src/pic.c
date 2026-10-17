@@ -30,6 +30,7 @@
 #include <86box/io.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include <86box/mem.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/device.h>
@@ -289,6 +290,8 @@ pic_update_pending_xt(void)
         pic.int_pending = (find_best_interrupt(&pic) != -1);
     if (pic.int_pending && (pic.flags & PIC_IBM5140) && ibm5140_wake)
         ibm5140_wake();
+    if (pic.int_pending)
+        mem_chain_break(); /* a chain leaves for the loop to take it */
 }
 
 /* Only check if PIC 1 frozen, because it should not happen
@@ -320,6 +323,8 @@ pic_update_pending_at(void)
         }
 
         pic.int_pending = (find_best_interrupt(&pic) != -1);
+        if (pic.int_pending)
+            mem_chain_break(); /* a chain leaves for the loop to take it */
     }
 }
 

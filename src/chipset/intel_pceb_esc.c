@@ -380,6 +380,7 @@ esc_fail_safe_timer(int new_out, int old_out, UNUSED(void *priv))
     esc_log("ESC: the fail-safe timer ran out\n");
     dev->nmi_esc |= 0x80;
     nmi            = 1;
+    mem_chain_break(); /* the loop takes it */
     nmi_auto_clear = 1;
     /* FNMIEN: and so is an NMI. */
     esc_system_event(dev, 29);
@@ -419,6 +420,7 @@ esc_serr(void)
     esc_log("ESC: SERR#\n");
     dev->serr_nmi  = 1;
     nmi            = 1;
+    mem_chain_break(); /* the loop takes it */
     nmi_auto_clear = 1;
     esc_system_event(dev, 29);
 }
