@@ -686,6 +686,7 @@ exec386_dynarec_dyn(void)
             block->dirty_list_recompile_hits = 0;
             block->dirty_list_last_epoch     = 0;
         }
+#        endif
 
         if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST)) {
             const int had_byte_mask     = !!(block->flags & CODEBLOCK_BYTE_MASK);
@@ -731,9 +732,6 @@ exec386_dynarec_dyn(void)
             }
         }
         if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED) && (block->flags & CODEBLOCK_STATIC_TOP) && block->TOP != (cpu_state.TOP & 7))
-#    else
-        if (valid_block && block->was_recompiled && (block->flags & CODEBLOCK_STATIC_TOP) && block->TOP != cpu_state.TOP)
-#    endif
         {
             /* FPU top-of-stack does not match the value this block was compiled
                with, re-compile using dynamic top-of-stack*/
