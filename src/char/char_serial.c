@@ -64,6 +64,14 @@ char_serial_log(void *priv, const char *fmt, ...)
 #    define char_serial_log(priv, fmt, ...)
 #endif
 
+#ifndef _WIN32
+enum { /* PARMRK escape parser state, see char_serial_unescape() */
+       CHAR_SERIAL_ESC_NONE = 0, /* plain data */
+       CHAR_SERIAL_ESC_FF,       /* got \377 */
+       CHAR_SERIAL_ESC_FF00      /* got \377 \0: the next byte is the errored one */
+};
+#endif
+
 typedef struct {
     void        *log;
     char_port_t *port;
@@ -76,12 +84,40 @@ typedef struct {
     unsigned int block_connect     : 1;
     unsigned int prev_config_valid : 1;
     uint32_t     last_connect_attempt;
+    uint32_t last_read_error;
 #ifdef _WIN32
-    HANDLE fd;
-    DCB    prev_config;
-    DCB    config;
+    HANDLE   fd;
+    DCB      prev_config;
+    DCB      config;
+    DCB      applied;       /* prev  DCB state of SetCommState*/
+    uint8_t  applied_valid; /* applied holds what the port is set to */
+    uint32_t escaped;       /* DTR/RTS/BREAK as last sent by EscapeCommFunction */
+    uint8_t  escaped_valid;
+    uint32_t control_flags; /* prev CHAR_COM_DTR/RTS state from char_serial_control() */
+
+    uint8_t  brk_held;     /* one non-errored 0x00 is held */
+    uint8_t  brk_open;     /* raise when break delivered, no character received since */
+    uint32_t brk_held_at;  /* plat_get_ticks() when the held 0x00 was read */
+    uint32_t brk_held_err; /* CHAR_COM_ERR_* reported while it was held */
+    uint8_t  lsrmst;         /* host driver inserts LSR escapes into the read stream */
+    uint8_t  lsrmst_state;   /* char_serial_lsrmst_unescape() parser state */
+    uint8_t  lsrmst_lsr;     /* LSR byte of an ESC, LSR_DATA, lsr, data sequence */
+    uint8_t  lsrmst_bi_seen; /* an in-band break arrived, not yet matched by CE_BREAK */
+    uint8_t  lsrmst_ce_brk;  /* ClearCommError said CE_BREAK, not yet matched in-band */
+    uint32_t lsrmst_ce_at;   /* plat_get_ticks() of that CE_BREAK */
+    /* split/plain0/pb are used by the in-band and the ClearCommError paths */
+    uint8_t  lsrmst_split;      /* driver sends a break's status late: hold an error-free 0x00 */
+    uint32_t lsrmst_split_ms;   /* hold time, learned from the lag seen */
+    uint8_t  lsrmst_held;       /* one non-errored 0x00 is held */
+    uint32_t lsrmst_held_at;    /* plat_get_ticks() when it was read */
+    uint8_t  lsrmst_plain0;     /* set when prev char was error-free 0x00 */
+    uint32_t lsrmst_plain0_at;  /* plat_get_ticks() when it was read */
+    uint8_t  lsrmst_pb_valid;   /* next character read after a held 0x00 */
+    uint8_t  lsrmst_pb;
+    uint32_t lsrmst_pb_err;
 #else
     int fd;
+    int esc_state; /* char_serial_unescape() PARMRK parser */
 #    ifdef TCGETS2
     struct termios2 config;
     struct termios2 prev_config;
@@ -183,6 +219,9 @@ static const struct {
 };
 
 static void char_serial_port_config(void *priv);
+#ifdef _WIN32
+static void char_serial_lsrmst_enable(char_serial_t *dev);
+#endif
 
 static void
 char_serial_disconnect(char_serial_t *dev)
@@ -197,6 +236,16 @@ char_serial_disconnect(char_serial_t *dev)
         /* Close serial port. */
         CloseHandle(dev->fd);
         dev->fd = INVALID_HANDLE_VALUE;
+
+        dev->brk_held       = 0;
+        dev->brk_open       = 0;
+        dev->lsrmst         = 0;
+        dev->lsrmst_state   = 0;
+        dev->lsrmst_bi_seen = 0;
+        dev->lsrmst_ce_brk  = 0;
+        dev->lsrmst_held    = 0;
+        dev->lsrmst_plain0  = 0;
+        dev->lsrmst_pb_valid = 0;
 #else
         /* Restore serial port configuration. */
         if (dev->prev_config_valid)
@@ -211,7 +260,12 @@ char_serial_disconnect(char_serial_t *dev)
         /* Close serial port. */
         close(dev->fd);
         dev->fd = -1;
+
+        /* A \377 sequence cut short by the close must not swallow or
+           mis-flag the first byte read after a reconnect. */
+        dev->esc_state = CHAR_SERIAL_ESC_NONE;
 #endif
+        dev->last_read_error = 0;
     }
 
     int prev           = dev->block_connect;
@@ -269,9 +323,12 @@ char_serial_connect(char_serial_t *dev, int startup)
     /* Set up serial port. */
     SetupComm(dev->fd, 2048, 2048);
     SetCommTimeouts(dev->fd, &timeouts);
+    dev->applied_valid = 0;
+    dev->escaped_valid = 0;
     DWORD   err;
     COMSTAT stats;
     ClearCommError(dev->fd, &err, &stats);
+    char_serial_lsrmst_enable(dev);
 #else
     /* Open serial port. */
     int err = 0;
@@ -305,9 +362,13 @@ char_serial_connect(char_serial_t *dev, int startup)
 
     /* Set up serial port. */
 #    ifdef USE_LINUX_TERMIOS /* cfmakeraw not available here, set manually according to the man page */
-    dev->config.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+    dev->config.c_iflag &= ~(IGNBRK | BRKINT | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+    dev->config.c_iflag |= INPCK | PARMRK;
     dev->config.c_oflag &= ~OPOST;
     dev->config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+    /* the guest drives RTS (char_serial_control), not the driver */
+    dev->config.c_cflag &= ~CRTSCTS;
+    dev->config.c_cflag |= CLOCAL | CREAD;
 #        ifdef TCSETS2
     if (ioctl(dev->fd, TCSETS2, &dev->config))
 #        else
@@ -315,6 +376,9 @@ char_serial_connect(char_serial_t *dev, int startup)
 #        endif
 #    else
     cfmakeraw(&dev->config);
+    dev->config.c_iflag |= INPCK | PARMRK;
+    dev->config.c_cflag &= ~CRTSCTS;
+    dev->config.c_cflag |= CLOCAL | CREAD;
     if (tcsetattr(dev->fd, TCSANOW, &dev->config))
 #    endif
         char_serial_log(dev->log, "Raw mode tcsetattr failed (%d)\n", errno);
@@ -337,42 +401,468 @@ errmsg:
     return 0;
 }
 
+#ifndef _WIN32
+static int
+char_serial_unescape(char_serial_t *dev, uint8_t b, uint8_t *out, uint32_t *out_error)
+{
+    switch (dev->esc_state) {
+        case CHAR_SERIAL_ESC_FF:
+            dev->esc_state = CHAR_SERIAL_ESC_NONE;
+            if (b == 0xff) {
+                *out       = 0xff;
+                *out_error = 0;
+                return 1;
+            }
+            if (b == 0x00) {
+                dev->esc_state = CHAR_SERIAL_ESC_FF00;
+                return 0;
+            }
+            /* Not a sequence termios(3) documents; don't lose the byte. */
+            *out       = b;
+            *out_error = 0;
+            return 1;
+
+        case CHAR_SERIAL_ESC_FF00:
+            dev->esc_state = CHAR_SERIAL_ESC_NONE;
+            *out = b;
+            /* \377 \0 \0 is how termios(3) marks a break condition; any
+               other trailing byte is a genuine parity/framing error. */
+            if (b == 0x00)
+                *out_error = CHAR_COM_ERR_BREAK;
+            else
+                *out_error = CHAR_COM_ERR_PARITY | CHAR_COM_ERR_FRAMING;
+            return 1;
+
+        default:
+            if (b == 0xff) {
+                dev->esc_state = CHAR_SERIAL_ESC_FF;
+                return 0;
+            }
+            *out       = b;
+            *out_error = 0;
+            return 1;
+    }
+}
+#endif
+
+#ifdef _WIN32
+static uint32_t
+char_serial_map_error(DWORD err)
+{
+    uint32_t mapped = 0;
+
+    if (err & CE_RXPARITY)
+        mapped |= CHAR_COM_ERR_PARITY;
+    if (err & CE_FRAME)
+        mapped |= CHAR_COM_ERR_FRAMING;
+    if (err & CE_BREAK)
+        mapped |= CHAR_COM_ERR_BREAK;
+    return mapped;
+}
+
+/* IOCTL_SERIAL_LSRMST_INSERT to couple PE/FE/BI errs to data frame */
+#    define CHAR_SERIAL_IOCTL_LSRMST_INSERT 0x001b007c /* CTL_CODE(FILE_DEVICE_SERIAL_PORT, 31, METHOD_BUFFERED, FILE_ANY_ACCESS) */
+#    define CHAR_SERIAL_LSRMST_ESCAPE       0x00       /* ESC, 0: one ESC data byte */
+#    define CHAR_SERIAL_LSRMST_LSR_DATA     0x01       /* ESC, 1, lsr, data */
+#    define CHAR_SERIAL_LSRMST_LSR_NODATA   0x02       /* ESC, 2, lsr */
+#    define CHAR_SERIAL_LSRMST_MST          0x03       /* ESC, 3, msr */
+#    define CHAR_SERIAL_LSRMST_ESC          0xfa       /* not 0x00/0xff/XON/XOFF, so it rarely needs escaping */
+#    define CHAR_SERIAL_LSRMST_CHECK_MS 250            /* time to wait on unmatched CE_BREAK may go unmatched*/
+#    define CHAR_SERIAL_LSRMST_SPLIT_MAX_MS 100        /* assume a 0x00 with BI this soon after a plain 0x00 is that 0x00's status arriving late*/
+#    define CHAR_SERIAL_LSRMST_SPLIT_MIN_MS 5          /* learned hold is 2x the lag seen plus this */
+
+enum {
+    CHAR_SERIAL_LSRMST_IDLE = 0, /* plain data */
+    CHAR_SERIAL_LSRMST_GOT_ESC,  /* got ESC, the marker is next */
+    CHAR_SERIAL_LSRMST_WANT_LSR, /* LSR_DATA: the LSR is next, then the data */
+    CHAR_SERIAL_LSRMST_WANT_DAT, /* LSR_DATA: the data byte is next */
+    CHAR_SERIAL_LSRMST_NODATA,   /* LSR_NODATA: the LSR is next */
+    CHAR_SERIAL_LSRMST_SKIP      /* MST: skip the MSR byte */
+};
+
+/* late arrival break status following a 0x00 belongs to it - usb serial adapter fix,
+   hold lone error-free 0x00s for twice the lag seen
+   Returns 1 when the status was taken as late. */
+static int
+char_serial_learn_split(char_serial_t *dev, uint32_t now)
+{
+    uint32_t lag = now - dev->lsrmst_plain0_at;
+    uint32_t ms;
+
+    if (!dev->lsrmst_plain0 || (lag >= CHAR_SERIAL_LSRMST_SPLIT_MAX_MS))
+        return 0;
+
+    dev->lsrmst_plain0 = 0;
+    ms                 = 2 * lag + CHAR_SERIAL_LSRMST_SPLIT_MIN_MS;
+    if (ms > CHAR_SERIAL_LSRMST_SPLIT_MAX_MS)
+        ms = CHAR_SERIAL_LSRMST_SPLIT_MAX_MS;
+    if (!dev->lsrmst_split || (ms > dev->lsrmst_split_ms))
+        dev->lsrmst_split_ms = ms;
+    dev->lsrmst_split = 1;
+    char_serial_log(dev->log, "Break status %u ms after its 0x00, holding 0x00 for %u ms\n", lag, dev->lsrmst_split_ms);
+    return 1;
+}
+
+static void
+char_serial_lsrmst_enable(char_serial_t *dev)
+{
+    uint8_t in      = CHAR_SERIAL_LSRMST_ESC;
+    DWORD   out_len = 0;
+
+    dev->lsrmst          = !!DeviceIoControl(dev->fd, CHAR_SERIAL_IOCTL_LSRMST_INSERT, &in, sizeof(in),
+                                             NULL, 0, &out_len, NULL);
+    dev->lsrmst_state    = CHAR_SERIAL_LSRMST_IDLE;
+    dev->lsrmst_bi_seen  = 0;
+    dev->lsrmst_ce_brk   = 0;
+    dev->lsrmst_held     = 0;
+    dev->lsrmst_plain0   = 0;
+    dev->lsrmst_pb_valid = 0;
+
+    /* No 0x00 hold until a break status with 0x00. usb serial adapter fix. */
+    if (dev->lsrmst)
+        char_serial_log(dev->log, "In-band line status on (escape %02X)%s\n", CHAR_SERIAL_LSRMST_ESC,
+                        dev->lsrmst_split ? ", holding 0x00 for a late status" : "");
+    else
+        char_serial_log(dev->log, "IOCTL_SERIAL_LSRMST_INSERT failed (%08X), matching ClearCommError\n", GetLastError());
+}
+
+static uint32_t
+char_serial_lsr_error(uint8_t lsr)
+{
+    uint32_t mapped = 0;
+
+    if (lsr & 0x04)
+        mapped |= CHAR_COM_ERR_PARITY;
+    if (lsr & 0x08)
+        mapped |= CHAR_COM_ERR_FRAMING;
+    if (lsr & 0x10)
+        mapped |= CHAR_COM_ERR_BREAK;
+    return mapped;
+}
+
+static int
+char_serial_lsrmst_unescape(char_serial_t *dev, uint8_t b, uint8_t *out, uint32_t *out_error)
+{
+    switch (dev->lsrmst_state) {
+        case CHAR_SERIAL_LSRMST_GOT_ESC:
+            switch (b) {
+                case CHAR_SERIAL_LSRMST_ESCAPE:
+                    dev->lsrmst_state = CHAR_SERIAL_LSRMST_IDLE;
+                    *out              = CHAR_SERIAL_LSRMST_ESC;
+                    *out_error        = 0;
+                    return 1;
+                case CHAR_SERIAL_LSRMST_LSR_DATA:
+                    dev->lsrmst_state = CHAR_SERIAL_LSRMST_WANT_LSR;
+                    return 0;
+                case CHAR_SERIAL_LSRMST_LSR_NODATA:
+                    dev->lsrmst_state = CHAR_SERIAL_LSRMST_NODATA;
+                    return 0;
+                case CHAR_SERIAL_LSRMST_MST:
+                    dev->lsrmst_state = CHAR_SERIAL_LSRMST_SKIP;
+                    return 0;
+                default:
+                    dev->lsrmst_state = CHAR_SERIAL_LSRMST_IDLE;
+                    *out              = b;
+                    *out_error        = 0;
+                    return 1;
+            }
+
+        case CHAR_SERIAL_LSRMST_WANT_LSR:
+            dev->lsrmst_lsr   = b;
+            dev->lsrmst_state = CHAR_SERIAL_LSRMST_WANT_DAT;
+            return 0;
+
+        case CHAR_SERIAL_LSRMST_WANT_DAT:
+            dev->lsrmst_state = CHAR_SERIAL_LSRMST_IDLE;
+            *out              = b;
+            *out_error        = char_serial_lsr_error(dev->lsrmst_lsr);
+            if (*out_error & CHAR_COM_ERR_BREAK)
+                dev->lsrmst_bi_seen = 1;
+            return 1;
+
+        case CHAR_SERIAL_LSRMST_NODATA:
+            dev->lsrmst_state = CHAR_SERIAL_LSRMST_IDLE;
+            if (!(b & 0x10))
+                return 0; /* overrun with no char  */
+            dev->lsrmst_bi_seen = 1;
+            *out                = 0x00;
+            *out_error          = char_serial_lsr_error(b);
+            return 1;
+
+        case CHAR_SERIAL_LSRMST_SKIP:
+            dev->lsrmst_state = CHAR_SERIAL_LSRMST_IDLE;
+            return 0;
+
+        default:
+            if (b == CHAR_SERIAL_LSRMST_ESC) {
+                dev->lsrmst_state = CHAR_SERIAL_LSRMST_GOT_ESC;
+                return 0;
+            }
+            *out       = b;
+            *out_error = 0;
+            return 1;
+    }
+}
+
 static size_t
 char_serial_read(uint8_t *buf, size_t len, void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
-    int connect = !CHAR_FD_VALID(dev->fd) && !dev->block_connect;
-#ifdef _WIN32
-    DWORD ret = 0;
+    int   connect = !CHAR_FD_VALID(dev->fd) && !dev->block_connect;
+    DWORD ret     = 0;
 retry:
     if (connect)
         char_serial_connect(dev, 0);
-    if (CHAR_FD_VALID(dev->fd)) {
-        DWORD   err;
-        COMSTAT stats;
+    if (CHAR_FD_VALID(dev->fd) && (len > 0)) {
+        DWORD    err;
+        COMSTAT  stats;
+        uint32_t mapped;
+        int      com = (dev->port->type == CHAR_PORT_COM);
+
         ClearCommError(dev->fd, &err, &stats);
-        if ((stats.cbInQue > 0) && !ReadFile(dev->fd, buf, len, &ret, NULL)) {
+        /* link err flag to char byte */
+        mapped = char_serial_map_error(err);
+
+        uint32_t now = plat_get_ticks();
+
+        /* A character read behind a held or late-status 0x00 goes next. */
+        if (dev->lsrmst_pb_valid) {
+            dev->lsrmst_pb_valid = 0;
+            buf[0]               = dev->lsrmst_pb;
+            dev->last_read_error = dev->lsrmst_pb_err;
+            dev->brk_open        = 0;
+            dev->lsrmst_plain0   = 0;
+            return 1;
+        }
+
+        if (dev->lsrmst) {
+            /* check if driver really inserted breaks */
+            int drained = 0;
+
+            if ((mapped & CHAR_COM_ERR_BREAK) && !dev->lsrmst_ce_brk) {
+                dev->lsrmst_ce_brk = 1;
+                dev->lsrmst_ce_at  = now;
+            }
+            /* One ESC, LSR_DATA sequence is 4 bytes*/
+            for (int iter = 0; iter < 16; iter++) {
+                uint8_t  raw, c;
+                DWORD    got = 0;
+                uint32_t cerr;
+
+                if (!ReadFile(dev->fd, &raw, 1, &got, NULL)) {
+                    char_serial_log(dev->log, "ReadFile failed (%08X)\n", GetLastError());
+                    char_serial_disconnect(dev);
+                    if (!dev->block_connect && !connect) {
+                        connect = 1;
+                        goto retry;
+                    }
+                    return 0;
+                }
+                if (!got) {
+                    drained = 1;
+                    break;
+                }
+                if (!char_serial_lsrmst_unescape(dev, raw, &c, &cerr))
+                    continue;
+
+                if ((c == 0x00) && (cerr & (CHAR_COM_ERR_BREAK | CHAR_COM_ERR_FRAMING))) {
+                    if (dev->lsrmst_held) {
+                        /* The held 0x00's status caught up, char seen*/
+                        dev->lsrmst_held = 0;
+                    } else if (dev->brk_open) {
+                        /* no character since the break, still the same break. */
+                        continue;
+                    } else {
+                        /* plain 0x00 has gone out. track lag for the next ones. */
+                        char_serial_learn_split(dev, now);
+                    }
+                    buf[0]               = c;
+                    dev->last_read_error = cerr;
+                    dev->brk_open        = !!(cerr & CHAR_COM_ERR_BREAK);
+                    dev->lsrmst_plain0   = 0;
+                    ret                  = 1;
+                    break;
+                }
+                if (dev->lsrmst_held) {
+                    /* char or data arrived, assume the held 0x00 was also data. */
+                    dev->lsrmst_held     = 0;
+                    dev->lsrmst_pb       = c;
+                    dev->lsrmst_pb_err   = cerr;
+                    dev->lsrmst_pb_valid = 1;
+                    buf[0]               = 0x00;
+                    dev->last_read_error = 0;
+                    dev->brk_open        = 0;
+                    dev->lsrmst_plain0   = 0;
+                    ret                  = 1;
+                    break;
+                }
+                if ((c == 0x00) && !cerr && dev->lsrmst_split) {
+                    dev->lsrmst_held    = 1;
+                    dev->lsrmst_held_at = now;
+                    continue;
+                }
+                buf[0]                 = c;
+                dev->last_read_error   = cerr;
+                dev->brk_open          = 0;
+                dev->lsrmst_plain0     = (c == 0x00) && !cerr;
+                dev->lsrmst_plain0_at  = now;
+                ret                    = 1;
+                break;
+            }
+            if (!ret && dev->lsrmst_held && ((now - dev->lsrmst_held_at) >= dev->lsrmst_split_ms)) {
+                /* no status followed, assume this was a 0x00 data byte */
+                dev->lsrmst_held       = 0;
+                buf[0]                 = 0x00;
+                dev->last_read_error   = 0;
+                dev->brk_open          = 0;
+                dev->lsrmst_plain0     = 1;
+                dev->lsrmst_plain0_at  = dev->lsrmst_held_at;
+                ret                    = 1;
+            }
+            /* a break reported through ClearCommError never showed up. Fall back to matching ClearCommError. */
+            if (drained && dev->lsrmst_ce_brk) {
+                if (dev->lsrmst_bi_seen) {
+                    dev->lsrmst_bi_seen = 0;
+                    dev->lsrmst_ce_brk  = 0;
+                } else if ((dev->lsrmst_state == CHAR_SERIAL_LSRMST_IDLE)
+                           && ((plat_get_ticks() - dev->lsrmst_ce_at) >= CHAR_SERIAL_LSRMST_CHECK_MS)) {
+                    char_serial_log(dev->log, "CE_BREAK with no in-band break, matching ClearCommError instead\n");
+                    dev->lsrmst = 0;
+                    /* a 0x00 still held carries over to that path's hold */
+                    if (dev->lsrmst_held) {
+                        dev->lsrmst_held  = 0;
+                        dev->brk_held     = 1;
+                        dev->brk_held_at  = dev->lsrmst_held_at;
+                        dev->brk_held_err = 0;
+                    }
+                }
+            }
+            return ret;
+        }
+
+        /* No in-band status: CE_* from ClearCommError are matched to the
+           byte read. No 0x00 is held until a CE_BREAK after its 0x00 */
+        int late = 0;
+
+        if (com && dev->brk_held) {
+            dev->brk_held_err |= mapped;
+            if (!(dev->brk_held_err & CHAR_COM_ERR_BREAK) && !stats.cbInQue
+                && ((now - dev->brk_held_at) < dev->lsrmst_split_ms))
+                return 0;
+
+            buf[0]               = 0x00;
+            dev->brk_held        = 0;
+            dev->last_read_error = dev->brk_held_err;
+            dev->brk_open        = !!(dev->brk_held_err & CHAR_COM_ERR_BREAK);
+            /* no status arrived, assume this is a 0x00 data byte */
+            dev->lsrmst_plain0    = !dev->brk_held_err;
+            dev->lsrmst_plain0_at = dev->brk_held_at;
+            return 1;
+        }
+
+        if (com && (mapped & CHAR_COM_ERR_BREAK))
+            late = char_serial_learn_split(dev, now);
+
+        if (!stats.cbInQue) {
+            if (com && (mapped & CHAR_COM_ERR_BREAK)) {
+                if (dev->brk_open)
+                    return 0;
+                buf[0]               = 0x00;
+                dev->last_read_error = mapped;
+                dev->brk_open        = 1;
+                dev->lsrmst_plain0   = 0;
+                return 1;
+            }
+            return 0;
+        }
+
+        if (!ReadFile(dev->fd, buf, len, &ret, NULL)) {
             char_serial_log(dev->log, "ReadFile failed (%08X)\n", GetLastError());
             ret = 0;
-#else
-    ssize_t ret = 0;
-retry:
-    if (connect)
-        char_serial_connect(dev, 0);
-    if (CHAR_FD_VALID(dev->fd) && ((ret = read(dev->fd, buf, len)) < 0)) {
-        ret = 0;
-        if ((errno != EAGAIN) && (errno != EWOULDBLOCK)) {
-            char_serial_log(dev->log, "read failed (%d)\n", errno);
-#endif
             char_serial_disconnect(dev);
             if (!dev->block_connect && !connect) {
                 connect = 1;
                 goto retry;
             }
+        } else if (ret > 0) {
+            dev->last_read_error = mapped;
+            if (late && (ret == 1) && (buf[0] != 0x00)) {
+                /* late break belongs to a 0x00 already delivered. this break goes as its own 0x00 first. */
+                dev->lsrmst_pb       = buf[0];
+                dev->lsrmst_pb_err   = 0;
+                dev->lsrmst_pb_valid = 1;
+                buf[0]               = 0x00;
+                dev->brk_open        = 1;
+            } else if (!com || (ret != 1) || (buf[0] != 0x00)) {
+                dev->brk_open      = 0;
+                dev->lsrmst_plain0 = 0;
+            } else if (dev->brk_open && (mapped & CHAR_COM_ERR_BREAK)) {
+                /* The 0x00 sent as the break ends. */
+                dev->brk_open = 0;
+                ret           = 0;
+            } else if (!mapped && (stats.cbInQue == 1) && dev->lsrmst_split) {
+                dev->brk_held     = 1;
+                dev->brk_held_at  = now;
+                dev->brk_held_err = 0;
+                ret               = 0;
+            } else {
+                dev->brk_open         = !!(mapped & CHAR_COM_ERR_BREAK);
+                dev->lsrmst_plain0    = !mapped;
+                dev->lsrmst_plain0_at = now;
+            }
         }
     }
     return ret;
+}
+#else
+static size_t
+char_serial_read(uint8_t *buf, size_t len, void *priv)
+{
+    char_serial_t *dev = (char_serial_t *) priv;
+
+    int     connect = !CHAR_FD_VALID(dev->fd) && !dev->block_connect;
+    ssize_t ret      = 0;
+retry:
+    if (connect)
+        char_serial_connect(dev, 0);
+    if (CHAR_FD_VALID(dev->fd)) {
+        for (int iter = 0; iter < 4; iter++) {
+            uint8_t raw_byte;
+            ssize_t r = read(dev->fd, &raw_byte, 1);
+            if (r <= 0) {
+                if ((r < 0) && (errno != EAGAIN) && (errno != EWOULDBLOCK)) {
+                    char_serial_log(dev->log, "read failed (%d)\n", errno);
+                    char_serial_disconnect(dev);
+                    if (!dev->block_connect && !connect) {
+                        connect = 1;
+                        goto retry;
+                    }
+                }
+                break;
+            }
+            uint8_t  out_byte;
+            uint32_t out_error;
+            if (char_serial_unescape(dev, raw_byte, &out_byte, &out_error)) {
+                if (len > 0) {
+                    buf[0]                = out_byte;
+                    dev->last_read_error  = out_error;
+                    ret                   = 1;
+                }
+                break;
+            }
+        }
+    }
+    return ret;
+}
+#endif
+
+static uint32_t
+char_serial_read_error(void *priv)
+{
+    char_serial_t *dev = (char_serial_t *) priv;
+
+    return dev->last_read_error;
 }
 
 static size_t
@@ -464,11 +954,13 @@ char_serial_port_config(void *priv)
 #ifdef _WIN32
     /* Modify configuration. */
     dev->config.BaudRate        = dev->port->com.baud; /* try actual baud rate first */
-    dev->config.fDtrControl     = DTR_CONTROL_ENABLE;
+    /* SetCommState applies fDtrControl/fRtsControl 
+    store last MCR state set via char_serial_control()*/
+    dev->config.fDtrControl     = (dev->control_flags & CHAR_COM_DTR) ? DTR_CONTROL_ENABLE : DTR_CONTROL_DISABLE;
     dev->config.fDsrSensitivity = FALSE;
     dev->config.fInX            = FALSE;
     dev->config.fOutX           = FALSE;
-    dev->config.fRtsControl     = RTS_CONTROL_ENABLE;
+    dev->config.fRtsControl     = (dev->control_flags & CHAR_COM_RTS) ? RTS_CONTROL_ENABLE : RTS_CONTROL_DISABLE;
     dev->config.fAbortOnError   = FALSE;
     dev->config.ByteSize        = dev->port->com.data_bits;
 
@@ -503,9 +995,18 @@ char_serial_port_config(void *priv)
             break;
     }
 
+    /* skip SetCommState when nothing changed. */
+    if (dev->applied_valid && !memcmp(&dev->applied, &dev->config, sizeof(DCB))) {
+        char_serial_log(dev->log, "Port settings unchanged, SetCommState skipped\n");
+        return;
+    }
+    dev->applied       = dev->config;
+    dev->applied_valid = 0;
+
     /* Set configuration. */
     if (SetCommState(dev->fd, &dev->config)) {
         char_serial_log(dev->log, "Specific baud configuration successful\n");
+        dev->applied_valid = 1;
         return;
     } else {
         char_serial_log(dev->log, "Specific baud SetCommState failed (%08X)\n", GetLastError());
@@ -513,9 +1014,10 @@ char_serial_port_config(void *priv)
 
     /* Failed, try using the closest common baud rate. */
     dev->config.BaudRate = char_serial_find_baud(dev->port->com.baud);
-    if (SetCommState(dev->fd, &dev->config))
+    if (SetCommState(dev->fd, &dev->config)) {
         char_serial_log(dev->log, "Approximate baud (%d) configuration successful\n", (unsigned int) dev->config.BaudRate);
-    else
+        dev->applied_valid = 1;
+    } else
         char_serial_log(dev->log, "Approximate baud (%d) SetCommState failed (%08X)\n", (unsigned int) dev->config.BaudRate, GetLastError());
 #else
     /* Modify configuration. */
@@ -688,6 +1190,10 @@ char_serial_control(uint32_t flags, void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
+#ifdef _WIN32
+    dev->control_flags = flags;
+#endif
+
     if (!CHAR_FD_VALID(dev->fd)) {
         if (!dev->block_connect) {
             char_serial_connect(dev, 0);
@@ -699,9 +1205,17 @@ char_serial_control(uint32_t flags, void *priv)
     }
 
 #ifdef _WIN32
-    EscapeCommFunction(dev->fd, (flags & CHAR_COM_DTR) ? SETDTR : CLRDTR);
-    EscapeCommFunction(dev->fd, (flags & CHAR_COM_RTS) ? SETRTS : CLRRTS);
-    EscapeCommFunction(dev->fd, (flags & CHAR_COM_BREAK) ? SETBREAK : CLRBREAK);
+    /* EscapeCommFunction, send only the lines that changed. */
+    uint32_t diff = dev->escaped_valid ? (dev->escaped ^ flags) : (CHAR_COM_DTR | CHAR_COM_RTS | CHAR_COM_BREAK);
+
+    if (diff & CHAR_COM_DTR)
+        EscapeCommFunction(dev->fd, (flags & CHAR_COM_DTR) ? SETDTR : CLRDTR);
+    if (diff & CHAR_COM_RTS)
+        EscapeCommFunction(dev->fd, (flags & CHAR_COM_RTS) ? SETRTS : CLRRTS);
+    if (diff & CHAR_COM_BREAK)
+        EscapeCommFunction(dev->fd, (flags & CHAR_COM_BREAK) ? SETBREAK : CLRBREAK);
+    dev->escaped       = flags;
+    dev->escaped_valid = 1;
 #else
     int set   = 0;
     int clear = 0;
@@ -757,7 +1271,8 @@ char_serial_init(const device_t *info)
     dev->reconnect = !!device_get_config_int("reconnect");
 
     /* Attach character device. */
-    dev->port = char_attach(0, char_serial_read, char_serial_write, char_serial_status, char_serial_control, char_serial_port_config, dev);
+    dev->port = char_attach(CHAR_COM_WIRE, char_serial_read, char_serial_write, char_serial_status, char_serial_control, char_serial_port_config, dev);
+    char_set_read_error(dev->port, char_serial_read_error);
     dev->log  = char_log_open(dev->port, "Serial Passthrough");
     char_serial_log(dev->log, "init(%s)\n", path);
 
