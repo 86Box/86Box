@@ -396,9 +396,6 @@ then
 	fi
 elif is_mac
 then
-	# macOS lacks nproc, but sysctl can do the same job.
-	alias nproc='sysctl -n hw.logicalcpu'
-
 	# Handle universal building.
 	if echo "$arch" | grep -q '+'
 	then
@@ -628,10 +625,6 @@ then
 		sudo sed -i -e 's/--enable-libproxy/--disable-libproxy/g' "$wget_portfile"
 		sudo sed -i -e 's/port:libproxy//g' "$wget_portfile"
 
-		# Work around openal-soft failing to build due to C++20. (MacPorts issue 73874)
-		alsoft_portfile="$macports/var/macports/sources/rsync.macports.org/macports/release/tarballs/ports/audio/openal-soft/Portfile"
-		wc -c "$alsoft_portfile" | grep -q ' 6722 ' && sudo sed -i -e 's/configure.args-append/configure.compiler macports-clang-19\nconfigure.args-append/' "$alsoft_portfile"
-
 		while :
 		do
 			# Attempt to install dependencies.
@@ -773,6 +766,10 @@ EOF
 	export PATH="$HOME/.cargo/bin:$PATH"
 fi
 
+# Set build thread count.
+build_threads=$(cat ~/86box-build-threads.txt 2> /dev/null)
+[ -z "$build_threads" ] && build_threads=$(is_mac && sysctl -n hw.logicalcpu || nproc)
+
 # Build librashader library.
 prefix="$cache_dir/librashader"
 if [ ! -d "$prefix/.git" ]
@@ -802,7 +799,7 @@ else
 	rustup target add "$arch_rust"
 	export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=x86_64-linux-gnu-gcc CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
 fi
-(cd "$prefix" && cargo build -p librashader-capi --target "$arch_rust" --profile release --no-default-features --features runtime-vulkan) || exit 99
+(cd "$prefix" && cargo build -j $build_threads -p librashader-capi --target "$arch_rust" --profile release --no-default-features --features runtime-vulkan) || exit 99
 librashader_target="$prefix/target/$arch_rust/release"
 if is_windows
 then
@@ -855,7 +852,7 @@ fi
 if [ "$BUILD_TAG" != "precondition" ]
 then
 	echo [-] Running build
-	cmake --build build -j$(nproc)
+	cmake --build build -j $build_threads
 	status=$?
 	if [ $status -ne 0 ]
 	then
@@ -963,7 +960,7 @@ else
 	done
 fi
 [ "$cmake_build_type" = "Debug" ] && debug_args=DEBUG=y || debug_args=
-make -C "$prefix/src" -j$(nproc) CC="$cc_binary" STRIP="$strip_binary" $debug_args || exit 99
+make -C "$prefix/src" -j $build_threads CC="$cc_binary" STRIP="$strip_binary" $debug_args || exit 99
 find "$prefix/src" -name '*.[oa]' -delete
 mv "$prefix/src/mdsx."* archive_tmp/ || exit 99
 
@@ -993,7 +990,7 @@ fi
 prefix_build="$prefix/build-$arch_discord" # hack
 cmake -G Ninja -D BUILD_TOOL=1 -D AARU_BUILD_PACKAGE=ON -D "CMAKE_BUILD_TYPE=$cmake_build_type" \
 	-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -B "$prefix_build" -S "$prefix" || exit 99
-cmake --build "$prefix_build" -j$(nproc) || exit 99
+cmake --build "$prefix_build" -j $build_threads || exit 99
 find "$prefix_build" -name '*.[oa]' -delete
 cp "$prefix_build/libaaruformat."* archive_tmp/ || exit 99
 
@@ -1086,7 +1083,7 @@ else
 	fi
 	prefix_build="$prefix/build-$arch_deb-$cmake_build_type"
 	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_BUILD_TYPE=$cmake_build_type" -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
-	cmake --build "$prefix_build" -j$(nproc) || exit 99
+	cmake --build "$prefix_build" -j $build_threads || exit 99
 	cmake --install "$prefix_build" || exit 99
 
 	# Build FluidSynth without sound systems to remove the dependencies on libjack
@@ -1103,7 +1100,7 @@ else
 		-D SndFile_WITH_EXTERNAL_LIBS=ON -D enable-aufile=OFF -D enable-dbus=OFF -D enable-network=OFF -D enable-ipv6=OFF \
 		-D "CMAKE_BUILD_TYPE=$cmake_build_type" -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
 		-S "$prefix" -B "$prefix_build" || exit 99
-	cmake --build "$prefix_build" -j$(nproc) || exit 99
+	cmake --build "$prefix_build" -j $build_threads || exit 99
 	cmake --install "$prefix_build" || exit 99
 
 	# Build SDL3 for joystick support, with most components
@@ -1140,7 +1137,7 @@ else
 		\
 		-D "CMAKE_BUILD_TYPE=$cmake_build_type" -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
 		-S "$prefix" -B "$prefix_build" || exit 99
-	cmake --build "$prefix_build" -j$(nproc) || exit 99
+	cmake --build "$prefix_build" -j $build_threads || exit 99
 	cmake --install "$prefix_build" || exit 99
 
 	# We rely on the host to provide Vulkan libs to sidestep any potential
