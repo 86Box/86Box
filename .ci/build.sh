@@ -397,32 +397,6 @@ then
 	else
 		echo [-] Not installing dependencies again
 	fi
-
-	cwd_root="$(pwd)"
-
-	# Librashader
-	export RUSTFLAGS="-C target-feature=+crt-static"
-	librashader_profile=release
-	librashader_profile_dir=release
-	# TODO: Handle librashader debug builds for Windows.
-	if [ ! -e "$cache_dir/librashader" ]
-	then
-		mkdir -p $cache_dir/librashader
-		cd $cache_dir/librashader
-		git init
-		git remote add origin https://github.com/SnowflakePowered/librashader/
-		git fetch origin --depth=1 f810cdf6e856e5a5215b1e84a21c978bc3367f23
-		git checkout f810cdf6e856e5a5215b1e84a21c978bc3367f23
-	else
-		cd $cache_dir/librashader
-		git fetch origin --depth=1 f810cdf6e856e5a5215b1e84a21c978bc3367f23
-		git checkout f810cdf6e856e5a5215b1e84a21c978bc3367f23
-	fi
-	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
-	cd $cwd_root
-
-	export CMAKE_LIBRARY_PATH="$cache_dir/librashader/target/$librashader_profile_dir/"
-	cmake_flags_extra="$cmake_flags_extra -D LIBRASHADER_STATIC=ON -D LIBRASHADER_STATIC_FIND_LIB=ON"
 elif is_mac
 then
 	# macOS lacks nproc, but sysctl can do the same job.
@@ -696,7 +670,6 @@ then
 		save_buildtag "$(basename "$macports")"
 	else
 		echo [-] Not installing dependencies again
-
 	fi
 else
 	# Determine Debian architecture.
@@ -704,7 +677,6 @@ else
 		x86_64)	arch_deb="amd64";;
 		*)	arch_deb="$arch";;
 	esac
-        grep -q " trixie " /etc/apt/sources.list.d/debian.sources || echo [!] WARNING: System not running the expected Debian version
 
 	# Establish general dependencies.
 	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools curl"
@@ -725,12 +697,12 @@ else
 	fi
 
 	# Establish architecture-specific dependencies we don't want listed on the readme...
-	pkgs="$pkgs linux-libc-dev:$arch_deb qttools5-dev:$arch_deb qtbase5-private-dev:$arch_deb"
+	pkgs="$pkgs linux-libc-dev:$arch_deb qt6-tools-dev:$arch_deb qt6-base-private-dev:$arch_deb"
 
 	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl3-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev libsndfile1-dev libserialport-dev libvncserver-dev libzstd-dev
+	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl3-dev libpng-dev librtmidi-dev qt6-declarative-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev libsndfile1-dev libserialport-dev libvncserver-dev libzstd-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
 		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/qtdeclarative/qt/" | wc -c)
@@ -797,19 +769,49 @@ EOF
 		echo [-] Not installing dependencies again
 	fi
 
-	# if dpkg -s rustc-web
-	# then
-		# sudo apt-get purge -y rustc-web cargo-web
-		# rm -rf "$HOME/.cargo/bin"
-	# fi
-	# if [ ! -e "$HOME/.cargo/bin" ]
-	# then
-		# curl -sSf https://sh.rustup.rs | sh -s -- -y
-	# fi
-	# cmake_flags_extra="$cmake_flags_extra -D Rust_RUSTUP_INSTALL_MISSING_TARGET=ON"
-	# export PATH="$HOME/.cargo/bin/:$PATH"
+	# Enable Qt 6.
+	cmake_flags_extra="$cmake_flags_extra -D USE_QT6=ON"
 
-  cmake_flags_extra="$cmake_flags_extra -D USE_QT6=ON"
+	# Set up the Rust environment.
+	[ ! -e "$HOME/.cargo/bin" ] && curl -sSf https://sh.rustup.rs | sh -s -- -y
+	export PATH="$HOME/.cargo/bin:$PATH"
+fi
+
+# Build librashader library.
+prefix="$cache_dir/librashader"
+if [ ! -d "$prefix/.git" ]
+then
+	mkdir -p "$prefix"
+	git -C "$prefix" init
+	git -C "$prefix" remote add origin https://github.com/SnowflakePowered/librashader.git
+	git -C "$prefix" fetch origin --depth=1 f810cdf6e856e5a5215b1e84a21c978bc3367f23
+	git -C "$prefix" checkout f810cdf6e856e5a5215b1e84a21c978bc3367f23
+fi
+case $arch in
+	64 | x86_64)	arch_rust="x86_64";;
+	arm64 | ARM64)	arch_rust="aarch64";;
+	*)		arch_rust="$arch";;
+esac
+if is_windows
+then
+	arch_rust="$arch_rust-pc-windows-gnu"
+	case $MSYSTEM in
+		CLANG*)	arch_rust="${arch_rust}llvm"
+	esac
+elif is_mac
+then
+	arch_rust="$arch_rust-apple-darwin"
+else
+	arch_rust="$arch_rust-unknown-linux-gnu"
+	rustup target add "$arch_rust"
+	export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=x86_64-linux-gnu-gcc CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+fi
+librashader_target="$prefix/target/$arch_rust/release"
+(cd "$prefix" && cargo build -p librashader-capi --target "$arch_rust" --profile release --no-default-features --features runtime-vulkan) || exit 99
+if is_windows
+then
+	export CMAKE_LIBRARY_PATH="$librashader_target"
+	cmake_flags_extra="$cmake_flags_extra -D LIBRASHADER_STATIC=ON -D LIBRASHADER_STATIC_FIND_LIB=ON"
 fi
 
 # Point CMake to the toolchain file.
@@ -900,7 +902,6 @@ fi
 
 # Determine Discord Game SDK architecture.
 case $arch in
-	32)		arch_discord="x86";;
 	64 | x86_64)	arch_discord="x86_64";;
 	arm64 | ARM64)	arch_discord="aarch64";;
 	*)		arch_discord="$arch";;
@@ -943,8 +944,6 @@ fi
 
 # Build mdsx library.
 prefix="$cache_dir/mdsx"
-debug_args=
-grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && debug_args=DEBUG=y
 if [ -e "$prefix/src/Makefile" ]
 then
 	if ! check_buildtag mdsx
@@ -966,14 +965,14 @@ else
 		git clone --depth 1 "$(dirname "$git_repo")/mdsx.git" "$prefix" && break
 	done
 fi
+debug_args=
+grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && debug_args=DEBUG=y
 make -C "$prefix/src" -j$(nproc) CC="$cc_binary" STRIP="$strip_binary" $debug_args || exit 99
 find "$prefix/src" -name '*.[oa]' -delete
 mv "$prefix/src/mdsx."* archive_tmp/ || exit 99
 
 # Build libaaruformat library.
 prefix="$cache_dir/libaaruformat"
-debug_args=
-grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && debug_args=DEBUG=y
 if [ -e "$prefix/src/close.c" ]
 then
 	if ! check_buildtag libaaruformat
@@ -992,31 +991,24 @@ else
 	for retry in 0 5 10 20 40
 	do
 		sleep $retry
-		git clone --recurse-submodules --no-shallow-submodules --remote-submodules "https://github.com/obattler/libaaruformat" "$prefix" && break
+		git clone --recurse-submodules --no-shallow-submodules --remote-submodules https://github.com/aaru-dps/libaaruformat.git "$prefix" && break
 	done
 fi
-cwd_root="$(pwd)"
-cd $prefix/src
-echo Now in $prefix/src
-cmake -B build -S .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TOOL=1 -DAARU_BUILD_PACKAGE=ON || exit 99
-cmake --build build -j$(nproc) || exit 99
-status=0
-if is_windows
+build_type=Release
+grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && build_type=Debug
+prefix_build="$prefix/build-$arch_discord" # hack
+cmake -G Ninja -D CMAKE_BUILD_TYPE=$build_type -D BUILD_TOOL=1 -D AARU_BUILD_PACKAGE=ON \
+	-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -B "$prefix_build" -S "$prefix" || exit 99
+cmake --build "$prefix_build" -j$(nproc) || exit 99
+find "$prefix_build" -name '*.[oa]' -delete
+cp "$prefix_build/libaaruformat."* archive_tmp/ || exit 99
+
+# Archive librashader library built earlier if applicable.
+if ! is_windows
 then
-  mv "build/libaaruformat.dll" $cwd_root/archive_tmp/ || status=1
-elif is_mac
-then
-  mv "build/libaaruformat.dylib" $cwd_root/archive_tmp/ || status=1
-else
-  mv "build/libaaruformat.so" $cwd_root/archive_tmp/ || status=1
+	src=$(echo "$librashader_target/liblibrashader_capi."??*)
+	cp "$src" "archive_tmp/librashader.${src##*.}" || exit 99
 fi
-rm -rf build
-if [ $status -eq 1 ]
-then
-  exit 99
-fi
-cd $cwd_root
-echo Now back in $cwd_root
 
 # Archive the executable and its dependencies.
 # The executable should always be archived last for the check after this block.
@@ -1066,44 +1058,8 @@ then
 		unzip -j "$discord_zip" "lib/$arch_discord/discord_game_sdk.dylib" -d "archive_tmp/"*".app/Contents/Frameworks"
 		[ ! -e "archive_tmp/"*".app/Contents/Frameworks/discord_game_sdk.dylib" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
-		# Archive mdsx library.
-		mv "archive_tmp/mdsx.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
-
-		# Archive libaaruformat library.
-		mv "archive_tmp/libaaruformat.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
-
-		# Librashader
-		librashader_profile=release
-		librashader_profile_dir=release
-		grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
-		if [ ! -e "$cache_dir/librashader" ]
-		then
-			mkdir -p $cache_dir/librashader
-			cd $cache_dir/librashader
-			git init
-			git remote add origin https://github.com/SnowflakePowered/librashader/
-			git fetch origin --depth=1 f810cdf6e856e5a5215b1e84a21c978bc3367f23
-			git checkout f810cdf6e856e5a5215b1e84a21c978bc3367f23
-		else
-			cd $cache_dir/librashader
-			git fetch origin --depth=1 f810cdf6e856e5a5215b1e84a21c978bc3367f23
-			git checkout f810cdf6e856e5a5215b1e84a21c978bc3367f23
-		fi
-		case $arch in
-			64 | x86_64)	cargo build -p librashader-capi --target=x86_64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
-			ARM64 | arm64)	cargo build -p librashader-capi --target=aarch64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
-			*)		cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
-		esac
-		case $arch in
-			64 | x86_64) cd target/x86_64-apple-darwin/$librashader_profile_dir/;;
-			ARM64 | arm64) cd target/aarch64-apple-darwin/$librashader_profile_dir/;;
-			*) cd target/$librashader_profile/;;
-		esac
-		cp liblibrashader_capi.dylib $cwd_root/archive_tmp/librashader.dylib
-		cd $cwd_root
-
-	  	# Archive librashader library.
-		mv "archive_tmp/librashader.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
+		# Archive self-built libraries.
+		mv "archive_tmp/mdsx.dylib" "archive_tmp/libaaruformat.dylib" "archive_tmp/librashader.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
 
 		# Archive assets.
 		if [ -d archive_tmp/assets ]
@@ -1214,11 +1170,8 @@ else
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"
 	[ ! -e "archive_tmp/usr/lib/discord_game_sdk.so" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
-	# Archive mdsx library.
-	mv "archive_tmp/mdsx.so" "archive_tmp/usr/lib/"
-
-	# Archive libaaruformat library.
-	mv "archive_tmp/libaaruformat.so" "archive_tmp/usr/lib/"
+	# Archive self-built libraries.
+	mv "archive_tmp/mdsx.so" "archive_tmp/libaaruformat.so" "archive_tmp/librashader.so" "archive_tmp/usr/lib/"
 
 	# Archive readme with library package versions.
 	echo Libraries used to compile this $arch build of $project: > archive_tmp/README
@@ -1257,31 +1210,6 @@ else
 		mkdir -p "$data_dir"
 		mv archive_tmp/assets "$data_dir/assets"
 	fi
-
-	# Librashader
-	librashader_profile=release
-	librashader_profile_dir=release
-	grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
-	if [ ! -e "$cache_dir/librashader" ]
-	then
-		mkdir -p $cache_dir/librashader
-		cd $cache_dir/librashader
-		git init
-		git remote add origin https://github.com/SnowflakePowered/librashader/
-		git fetch origin --depth=1 f810cdf6e856e5a5215b1e84a21c978bc3367f23
-		git checkout f810cdf6e856e5a5215b1e84a21c978bc3367f23
-	else
-		cd $cache_dir/librashader
-		git fetch origin --depth=1 f810cdf6e856e5a5215b1e84a21c978bc3367f23
-		git checkout f810cdf6e856e5a5215b1e84a21c978bc3367f23
-	fi
-	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
-	cd target/$librashader_profile_dir/
-	cp liblibrashader_capi.so $cwd_root/archive_tmp/librashader.so
-	cd $cwd_root
-
-	# Archive librashader library.
-	mv "archive_tmp/librashader.so" "archive_tmp/usr/lib/"
 
 	# Archive executable, while also stripping it if requested.
 	mkdir -p archive_tmp/usr/local/bin
@@ -1373,6 +1301,10 @@ EOF
 	rm -rf appimage-builder.AppImage appimage-builder-cache "$project-"*".AppImage" # also remove any dangling AppImages which may interfere with the renaming process
 	mkdir -p "$cache_dir/appimage-builder-cache"
 	ln -s "$cache_dir/appimage-builder-cache" appimage-builder-cache
+
+	# Work around appimage-builder issue in newer Debian.
+	touch "$HOME/.cargo/bin/apt-key"
+	chmod +x "$HOME/.cargo/bin/apt-key"
 
 	# Run appimage-builder from the virtual environment created above.
 	# --appdir is a workaround for appimage-builder issue 270 reported by us.

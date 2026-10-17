@@ -211,10 +211,10 @@ typedef struct page_t {
 
     uint8_t *mem;
 
-    uint16_t block, block_2;
+    uint32_t block, block_2;
 
     /*Head of codeblock tree associated with this page*/
-    uint16_t head;
+    uint32_t head;
 
     uint64_t code_present_mask;
     uint64_t dirty_mask;
@@ -426,7 +426,6 @@ extern void     mem_write_ramw(uint32_t addr, uint16_t val, void *priv);
 extern void     mem_write_raml(uint32_t addr, uint32_t val, void *priv);
 
 extern int mem_addr_is_ram(uint32_t addr);
-extern void mem_read_cache_line(uint32_t addr, uint32_t *data);
 
 extern uint64_t mmutranslate_noabrt(uint32_t addr, int rw);
 
@@ -440,6 +439,9 @@ extern void mem_flush_write_page(uint32_t addr, uint32_t virt);
 extern void mem_reset_page_blocks(void);
 
 extern void flushmmucache(void);
+extern uint64_t pae_pdpte[4];
+extern int      pae_check_load(uint32_t cr3_val);
+extern void     pae_load_pdptes(void);
 extern void flushmmucache_write(void);
 extern void flushmmucache_pc(void);
 extern void flushmmucache_nopc(void);

@@ -24,7 +24,7 @@ ropFFREE(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint
     int dest_reg = fetchdat & 7;
 
     uop_FP_ENTER(ir);
-    uop_MOV(ir, IREG_tag(dest_reg), TAG_EMPTY);
+    uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_EMPTY);
 
     return op_pc;
 }
@@ -49,7 +49,9 @@ ropFST(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32
     int dest_reg = fetchdat & 7;
 
     uop_FP_ENTER(ir);
+    codegen_fpu_guard_empty(ir, fetchdat, op_32, op_pc - 1, NULL); /* an empty ST(0) */
     uop_MOV(ir, IREG_ST(dest_reg), IREG_ST(0));
+    uop_AND_IMM(ir, IREG_NPXS, IREG_NPXS, ~FPU_SW_C1); /*no rounding to report*/
     uop_MOV(ir, IREG_ST_i64(dest_reg), IREG_ST_i64(0));
     uop_MOV(ir, IREG_tag(dest_reg), IREG_tag(0));
 
@@ -61,7 +63,9 @@ ropFSTP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
     int dest_reg = fetchdat & 7;
 
     uop_FP_ENTER(ir);
+    codegen_fpu_guard_empty(ir, fetchdat, op_32, op_pc - 1, NULL); /* an empty ST(0) */
     uop_MOV(ir, IREG_ST(dest_reg), IREG_ST(0));
+    uop_AND_IMM(ir, IREG_NPXS, IREG_NPXS, ~FPU_SW_C1); /*no rounding to report*/
     uop_MOV(ir, IREG_ST_i64(dest_reg), IREG_ST_i64(0));
     uop_MOV(ir, IREG_tag(dest_reg), IREG_tag(0));
     fpu_POP(block, ir);
@@ -74,11 +78,12 @@ ropFSTCW(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 {
     x86seg *target_seg;
 
-    uop_FP_ENTER(ir);
+    uop_FP_ENTER_NOWAIT(ir); /* FNSTCW/FNSTSW: no wait, no pending exception taken */
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     op_pc--;
     target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
     codegen_check_seg_write(block, ir, target_seg);
+    CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
     uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_NPXC);
 
     return op_pc + 1;
@@ -99,11 +104,12 @@ ropFSTSW(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 {
     x86seg *target_seg;
 
-    uop_FP_ENTER(ir);
+    uop_FP_ENTER_NOWAIT(ir); /* FNSTCW/FNSTSW: no wait, no pending exception taken */
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     op_pc--;
     target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
     codegen_check_seg_write(block, ir, target_seg);
+    CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
     fpu_status_word(ir, IREG_temp0_W);
     uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp0_W);
 
@@ -112,7 +118,7 @@ ropFSTSW(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 uint32_t
 ropFSTSW_AX(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uop_FP_ENTER(ir);
+    uop_FP_ENTER_NOWAIT(ir); /* FNSTCW/FNSTSW: no wait, no pending exception taken */
     fpu_status_word(ir, IREG_AX);
 
     return op_pc;

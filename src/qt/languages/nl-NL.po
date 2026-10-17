@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-02 16:32+0000\n"
+"PO-Revision-Date: 2026-10-16 10:37+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -712,7 +712,7 @@ msgid "3.5\" 2.88M 300/360 RPM"
 msgstr "3,5\" 2,88M 300/360 RPM"
 
 msgid "Turbo timings"
-msgstr "Turbo timings"
+msgstr "Turbo-timing"
 
 msgid "Check BPB"
 msgstr "Controleer BPB"
@@ -1969,7 +1969,7 @@ msgid "PS/2 Keyboard"
 msgstr "PS/2 Toetsenbord"
 
 msgid "PS/55 Keyboard"
-msgstr "PS/55Toetsenbord"
+msgstr "PS/55 Toetsenbord"
 
 msgid "Keys"
 msgstr "Toetsen"
@@ -1987,7 +1987,7 @@ msgid "Mouse Systems Bus Mouse"
 msgstr "Mouse Systems busmuis"
 
 msgid "Microsoft Serial Mouse"
-msgstr "Microsoft Seriële muis"
+msgstr "Microsoft seriële muis"
 
 msgid "Microsoft Serial BallPoint"
 msgstr "Microsoft seriële balmuis"
@@ -1996,7 +1996,7 @@ msgid "Logitech Serial Mouse"
 msgstr "Logitech seriële muis"
 
 msgid "PS/2 Mouse"
-msgstr "PS/2-muis"
+msgstr "PS/2 muis"
 
 msgid "PS/2 QuickPort Mouse"
 msgstr "PS/2 QuickPort muis"
@@ -2014,7 +2014,7 @@ msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32-emulatie"
 
 msgid "Roland MT-32 (New) Emulation"
-msgstr "Roland MT-32 (nieuwe) emulatie"
+msgstr "Roland MT-32-emulatie (nieuw)"
 
 msgid "Roland CM-32L Emulation"
 msgstr "Roland CM-32L-emulatie"
@@ -3342,7 +3342,7 @@ msgid "Use EDC/ECC emulation"
 msgstr "Gebruik EDC/ECC-emulatie"
 
 msgid "Audio output device:"
-msgstr "Audio-uitvoerapparaat:"
+msgstr "Audio uitvoerapparaat:"
 
 msgid "System Default"
 msgstr "Systeemstandaard"
@@ -3541,57 +3541,90 @@ msgstr "Luminantiegrenswaarde (%)"
 
 msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
 msgstr ""
+"VFIO: kon /dev/vfio/vfio niet openen: %s. Zorg dat de vfio-pci-module "
+"geladen is."
 
 msgid "VFIO %s: Invalid device location."
-msgstr ""
+msgstr "VFIO %s: Ongeldige apparaatlocatie."
 
 msgid "VFIO %s: Device not found."
-msgstr ""
+msgstr "VFIO %s: Apparaat niet gevonden."
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
+"VFIO %s: Apparaat heeft geen IOMMU-groep. Zorg dat VT-d of IOMMU "
+"ingeschakeld is op uw systeem."
 
 msgid "VFIO %s: Device is not bound to vfio-pci."
-msgstr ""
+msgstr "VFIO %s: Apparaat is niet gekoppeld aan vfio-pci."
 
 msgid "VFIO %s: Could not open IOMMU group %d: %s"
-msgstr ""
+msgstr "VFIO %s: Kon IOMMU-groep niet openen %d: %s"
 
 msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
 msgstr ""
+"VFIO %s: IOMMU-groep %d is niet geschikt voor gebruik. Alle apparaten in de "
+"groep moeten aan vfio-pci gekoppeld zijn."
 
 msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
 msgstr ""
+"VFIO: Kon het gastgeheugen niet toewijzen voor DMA: %s. De limiet voor "
+"vergrendeld geheugen (ulimit -l) is mogelijk te laag."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
 msgstr ""
+"VFIO %s: Kon het ROM-bestand \"%s\" niet lezen; de apparaat-eigen ROM wordt "
+"gebruikt."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
 msgstr ""
+"VFIO %s: Kon het ROM-bestand \"%s\" niet lezen; de ROM is uitgeschakeld."
 
 msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
 msgstr ""
+"VFIO %s: Het ROM-bestand lijkt ongeldig. Via de VFIO-instellingen kan een "
+"aangepast ROM-bestand geladen worden."
 
 msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
 msgstr ""
+"VFIO: Deze apparaten moeten aan vfio-pci worden gekoppeld. Hiervoor zijn "
+"beheerdersrechten vereist:\n"
+"\n"
+"%s\n"
+"Nu koppelen?"
 
 msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
 msgstr ""
+"VFIO: Beheerdersrechten zijn vereist om 86Box toegang te geven tot de "
+"doorgevoerde apparaten. Doorgaan?"
 
 msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
 msgstr ""
+"Deze niet geselecteerde apparaten delen een IOMMU-groep met een geselecteerd "
+"apparaat en worden daarom ook gekoppeld."
 
 msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
 msgstr ""
+"VFIO %s: IOMMU-groep %d bevat ook %s, welke de host nodig heeft. De groep "
+"wordt niet aan vfio-pci gekoppeld."
 
 msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
 msgstr ""
+"VFIO: Kon de apparaten niet voorbereiden op doorvoer:\n"
+"%s"
 
 msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
 msgstr ""
+"VFIO: Aanvraag beheersrechten mislukt. Voer de volgende opdracht uit om de "
+"apparaten voor doorvoer voor te bereiden en voer daarna een harde reset uit:"
+"\n"
+"\n"
+"%s"
 
 msgid "Prepare PCI devices for VFIO passthrough"
-msgstr ""
+msgstr "Bereid PCI-apparaten voor op VFIO-doorvoer"
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
 msgstr ""
+"Authenticatie is vereist om PCI-apparaten voor te bereiden op doorvoer naar "
+"86Box."

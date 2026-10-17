@@ -1059,6 +1059,8 @@ codegen_MOV_REG_PTR(codeblock_t *block, uop_t *uop)
     host_loong64_MOVX_IMM(block, REG_TEMP, (uint64_t) (uintptr_t) uop->p);
     if (REG_IS_L(dest_size)) {
         host_loong64_LDR_W_IMM(block, dest_reg, REG_TEMP, 0);
+    } else if (REG_IS_Q(dest_size) || REG_IS_D(dest_size)) {
+        host_loong64_FLD_D_IMM(block, dest_reg, REG_TEMP, 0);
     } else
         fatal("MOV_REG_PTR %02x\n", uop->dest_reg_a_real);
 
@@ -2122,7 +2124,6 @@ codegen_MMX_SHIFT(codeblock_t *block, uop_t *uop)
         case UOP_PSRLQ_IMM & UOP_MASK: width = 64; op = 0x73310000; break;
         case UOP_PSRAW_IMM & UOP_MASK: width = 16; op = 0x73344000; arithmetic = 1; break;
         case UOP_PSRAD_IMM & UOP_MASK: width = 32; op = 0x73348000; arithmetic = 1; break;
-        case UOP_PSRAQ_IMM & UOP_MASK: width = 64; op = 0x73350000; arithmetic = 1; break;
         default: fatal("MMX_SHIFT unknown %08x\n", uop->type); return 0;
     }
     if (!count)
@@ -2339,7 +2340,6 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_PSLLQ_IMM & UOP_MASK] = codegen_MMX_SHIFT,
     [UOP_PSRAW_IMM & UOP_MASK] = codegen_MMX_SHIFT,
     [UOP_PSRAD_IMM & UOP_MASK] = codegen_MMX_SHIFT,
-    [UOP_PSRAQ_IMM & UOP_MASK] = codegen_MMX_SHIFT,
     [UOP_PSRLW_IMM & UOP_MASK] = codegen_MMX_SHIFT,
     [UOP_PSRLD_IMM & UOP_MASK] = codegen_MMX_SHIFT,
     [UOP_PSRLQ_IMM & UOP_MASK] = codegen_MMX_SHIFT,

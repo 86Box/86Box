@@ -24,8 +24,14 @@ typedef int (*uOpFn)(codeblock_t *codeblock, struct uop_t *uop);
 
 extern const uOpFn uop_handlers[];
 
+/*MMX_ENTER's fault: #UD with CR0.EM set, #NM for CR0.TS*/
+void codegen_mmx_unavailable(void);
+
 /*Register will not be preserved across function calls*/
 #define HOST_REG_FLAG_VOLATILE (1 << 0)
+/*Register has no byte forms usable here (x86-64 R8-R15: AH-BH can't be
+  encoded next to them), so it never holds a register accessed by byte*/
+#define HOST_REG_FLAG_NO_BYTE (1 << 1)
 
 typedef struct host_reg_def_t {
     int reg;

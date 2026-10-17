@@ -816,6 +816,9 @@ DeviceConfig::on_comboIndexChanged(int index)
         if (bios_flags & BIOS_LIMIT_MAX_MEMORY)
             max_mem = ((bios_flags >> 8) & 0xff);
 
+        if (bios_flags & BIOS_FIXED_MEMORY)
+            min_mem = max_mem = cfg_memory->default_int;
+
         mem = MAX(mem, min_mem);    /* No less than minimum memory. */
         mem = MIN(mem, max_mem);    /* No more than maximum memory. */
 

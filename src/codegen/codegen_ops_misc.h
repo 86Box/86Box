@@ -106,6 +106,7 @@ ropFF_16(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_
         STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
 
         if ((fetchdat & 0x30) != 0x00) {
+            CHECK_SEG_READ_EA(target_seg, 2);
             MEM_LOAD_ADDR_EA_W(target_seg);
             host_reg = 0;
         } else {
@@ -193,6 +194,7 @@ ropFF_32(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_
         STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
 
         if ((fetchdat & 0x30) != 0x00) {
+            CHECK_SEG_READ_EA(target_seg, 4);
             MEM_LOAD_ADDR_EA_L(target_seg);
             host_reg = 0;
         } else {

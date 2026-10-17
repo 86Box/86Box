@@ -258,7 +258,6 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
-extern const device_t ps1midi_device;
 static void
 ps1_setup(int model)
 {
@@ -315,8 +314,8 @@ ps1_setup(int model)
 
         lpt_set_next_inst(255);
 
-        device_add(&ps1snd_device);
-        device_add(&ps1midi_device);
+        if (sound_card_current[0] == SOUND_INTERNAL)
+            machine_snd = device_add(machine_get_snd_device(machine));
 
         /* Enable the builtin HDC. */
         if (hdc_current[0] == HDC_INTERNAL) {
@@ -364,8 +363,8 @@ ps1_setup(int model)
 
         device_add(&ide_isa_device);
 
-        device_add(&ps1snd_device);
-        device_add(&ps1midi_device);
+        if (sound_card_current[0] == SOUND_INTERNAL)
+            machine_snd = device_add(machine_get_snd_device(machine));
     }
 }
 

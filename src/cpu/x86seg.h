@@ -20,6 +20,7 @@
 #ifdef OPS_286_386
 
 extern void x86_doabrt_2386(int x86_abrt);
+extern void x86_fault_in_delivery_2386(int first, int second);
 #ifdef USE_NEW_DYNAREC
 extern int  loadseg_2386(uint16_t seg, x86seg *s);
 #else
@@ -52,6 +53,7 @@ extern void taskswitch286_2386(uint16_t seg, uint16_t *segdat, int is32);
 #else
 
 extern void x86_doabrt(int x86_abrt);
+extern void x86_fault_in_delivery(int first, int second);
 #ifdef USE_NEW_DYNAREC
 extern int  loadseg(uint16_t seg, x86seg *s);
 #else

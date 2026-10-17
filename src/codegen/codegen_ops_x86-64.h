@@ -8,6 +8,11 @@
 
 #define IS_32_ADDR(x)      !(((uintptr_t) x) & 0xffffffff00000000)
 
+/*Helpers in the interpreter's files that compiled code calls*/
+extern void codegen_mmx_unavailable(void);
+extern int  codegen_mmx_fpu_pending(void);
+extern void codegen_x87_fst_empty(uint32_t arg);
+
 static __inline int
 find_host_xmm_reg(void)
 {
@@ -799,83 +804,132 @@ FETCH_EA_32(x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, uint32_t *op_pc,
 static __inline x86seg *
 FETCH_EA(x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, uint32_t *op_pc, uint32_t op_32)
 {
+    x86seg *seg;
+
     if (op_32 & 0x200)
-        return FETCH_EA_32(op_ea_seg, fetchdat, op_ssegs, op_pc, 0);
-    return FETCH_EA_16(op_ea_seg, fetchdat, op_ssegs, op_pc);
+        seg = FETCH_EA_32(op_ea_seg, fetchdat, op_ssegs, op_pc, 0);
+    else
+        seg = FETCH_EA_16(op_ea_seg, fetchdat, op_ssegs, op_pc);
+    if (codegen_x87_ea_record) {
+        addbyte(0x89); /*MOV [eaaddr], EAX*/
+        addbyte(0x45);
+        addbyte((uint8_t) cpu_state_offset(eaaddr));
+        codegen_ea_target_seg = seg;
+    }
+    return seg;
 }
 
+/*The type in a segment's access byte, at run time: (access & 0x0a) is
+  compared with want, and equal (je) or not (jne) goes to #GP(0). ESI is
+  used; EAX, holding the address, is not.*/
+static __inline void
+CHECK_SEG_ACCESS(x86seg *seg, uint8_t want, int fault_if_equal)
+{
+    if (IS_32_ADDR(&seg->access)) {
+        addbyte(0x0f); /*MOVZX ESI, seg->access*/
+        addbyte(0xb6);
+        addbyte(0x34);
+        addbyte(0x25);
+        addlong((uint32_t) (uintptr_t) &seg->access);
+    } else {
+        addbyte(0x48); /*MOV RSI, &seg->access*/
+        addbyte(0xb8 | REG_ESI);
+        addquad((uint64_t) &seg->access);
+        addbyte(0x0f); /*MOVZX ESI, [RSI]*/
+        addbyte(0xb6);
+        addbyte(0x36);
+    }
+    addbyte(0x83); /*AND ESI, 0x0a*/
+    addbyte(0xe6);
+    addbyte(0x0a);
+    addbyte(0x83); /*CMP ESI, want*/
+    addbyte(0xfe);
+    addbyte(want);
+    addbyte(0x0f); /*JE/JNE BLOCK_GPF_OFFSET*/
+    addbyte(fault_if_equal ? 0x84 : 0x85);
+    addlong(BLOCK_GPF_OFFSET - (block_pos + 4));
+}
+/*The null selector (base -1) is #GP(0)*/
+static __inline void
+CHECK_SEG_NULL(x86seg *seg)
+{
+    if (IS_32_ADDR(&seg->base)) {
+        addbyte(0x83); /*CMP seg->base, -1*/
+        addbyte(0x3c);
+        addbyte(0x25);
+        addlong((uint32_t) (uintptr_t) &seg->base);
+        addbyte(-1);
+    } else {
+        addbyte(0x48); /*MOV RSI, &addr*/
+        addbyte(0xb8 | REG_ESI);
+        addquad((uint64_t) &seg->base);
+        addbyte(0x83); /*CMP [RSI], -1*/
+        addbyte(0x3e);
+        addbyte(0xff);
+    }
+    addbyte(0x0f); /*JE GPF_BLOCK_OFFSET*/
+    addbyte(0x84);
+    addlong(BLOCK_GPF_OFFSET - (block_pos + 4));
+}
 static __inline void
 CHECK_SEG_READ(x86seg *seg)
 {
     /*Segments always valid in real/V86 mode*/
     if (!(cr0 & 1) || (cpu_state.eflags & VM_FLAG))
         return;
-    /*CS and SS must always be valid*/
-    if (seg == &cpu_state.seg_cs || seg == &cpu_state.seg_ss)
+    /*SS must always be valid*/
+    if (seg == &cpu_state.seg_ss)
         return;
+    /*CS is valid, but may be execute-only: #GP(0), as in the interpreter's
+      CHECK_READ. Its checked flag isn't reset per block, so no caching*/
+    if (seg == &cpu_state.seg_cs) {
+        CHECK_SEG_ACCESS(seg, 0x08, 1);
+        return;
+    }
     if (seg->checked)
         return;
-    if (seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS))
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES)))
         return;
 
-    if (IS_32_ADDR(&seg->base)) {
-        addbyte(0x83); /*CMP seg->base, -1*/
-        addbyte(0x3c);
-        addbyte(0x25);
-        addlong((uint32_t) (uintptr_t) &seg->base);
-        addbyte(-1);
-    } else {
-        addbyte(0x48); /*MOV RSI, &addr*/
-        addbyte(0xb8 | REG_ESI);
-        addquad((uint64_t) &seg->base);
-        addbyte(0x83); /*CMP [RSI], -1*/
-        addbyte(0x3e);
-        addbyte(0xff);
-    }
-    addbyte(0x0f); /*JE GPF_BLOCK_OFFSET*/
-    addbyte(0x84);
-    addlong(BLOCK_GPF_OFFSET - (block_pos + 4));
+    CHECK_SEG_NULL(seg);
 
     seg->checked = 1;
 }
+/*Writable data only: a code segment (CS above all) or read-only data is
+  #GP(0), as in the interpreter's CHECK_WRITE. The type is tested at run
+  time, since the segment can be reloaded without recompiling the block*/
 static __inline void
 CHECK_SEG_WRITE(x86seg *seg)
 {
     /*Segments always valid in real/V86 mode*/
     if (!(cr0 & 1) || (cpu_state.eflags & VM_FLAG))
         return;
-    /*CS and SS must always be valid*/
-    if (seg == &cpu_state.seg_cs || seg == &cpu_state.seg_ss)
+    /*SS only ever holds writable data*/
+    if (seg == &cpu_state.seg_ss)
         return;
-    if (seg->checked)
+    /*CS is never writable; its checked flag isn't reset per block, so no caching*/
+    if (seg == &cpu_state.seg_cs) {
+        CHECK_SEG_ACCESS(seg, 0x02, 0);
         return;
-    if (seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS))
-        return;
-
-    if (IS_32_ADDR(&seg->base)) {
-        addbyte(0x83); /*CMP seg->base, -1*/
-        addbyte(0x3c);
-        addbyte(0x25);
-        addlong((uint32_t) (uintptr_t) &seg->base);
-        addbyte(-1);
-    } else {
-        addbyte(0x48); /*MOV RSI, &addr*/
-        addbyte(0xb8 | REG_ESI);
-        addquad((uint64_t) &seg->base);
-        addbyte(0x83); /*CMP [RSI], -1*/
-        addbyte(0x3e);
-        addbyte(0xff);
     }
-    addbyte(0x0f); /*JE GPF_BLOCK_OFFSET*/
-    addbyte(0x84);
-    addlong(BLOCK_GPF_OFFSET - (block_pos + 4));
+    /*checked: 1 = null selector ruled out, 2 = writable too*/
+    if (seg->checked == 2)
+        return;
+    if (!seg->checked && !(seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) && !(seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES)))
+        CHECK_SEG_NULL(seg);
 
-    seg->checked = 1;
+    CHECK_SEG_ACCESS(seg, 0x02, 0);
+
+    seg->checked = 2;
 }
+/*The whole operand, from EAX, inside the segment's limits: #GP(0), or
+  #SS(0) through SS, as the interpreter's SEG_LIMIT_FAULT*/
 static __inline void
 CHECK_SEG_LIMITS(x86seg *seg, int end_offset)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)))
+    const int fault = (seg == &cpu_state.seg_ss) ? BLOCK_SS_OFFSET : BLOCK_GPF_OFFSET;
+
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES)))
         return;
 
     if (IS_32_ADDR(&seg->base)) {
@@ -889,9 +943,9 @@ CHECK_SEG_LIMITS(x86seg *seg, int end_offset)
     addbyte(0x3b); /*CMP EAX, seg->limit_low*/
     addbyte(0x46);
     addbyte((uintptr_t) &seg->limit_low - (uintptr_t) seg);
-    addbyte(0x0f); /*JB BLOCK_GPF_OFFSET*/
+    addbyte(0x0f); /*JB fault*/
     addbyte(0x82);
-    addlong(BLOCK_GPF_OFFSET - (block_pos + 4));
+    addlong(fault - (block_pos + 4));
     if (end_offset) {
         addbyte(0x83); /*ADD EAX, end_offset*/
         addbyte(0xc0);
@@ -899,19 +953,49 @@ CHECK_SEG_LIMITS(x86seg *seg, int end_offset)
         addbyte(0x3b); /*CMP EAX, seg->limit_high*/
         addbyte(0x46);
         addbyte((uintptr_t) &seg->limit_high - (uintptr_t) seg);
-        addbyte(0x0f); /*JNBE BLOCK_GPF_OFFSET*/
+        addbyte(0x0f); /*JNBE fault*/
         addbyte(0x87);
-        addlong(BLOCK_GPF_OFFSET - (block_pos + 4));
+        addlong(fault - (block_pos + 4));
         addbyte(0x83); /*SUB EAX, end_offset*/
         addbyte(0xe8);
         addbyte(end_offset);
+    } else {
+        addbyte(0x3b); /*CMP EAX, seg->limit_high*/
+        addbyte(0x46);
+        addbyte((uintptr_t) &seg->limit_high - (uintptr_t) seg);
+        addbyte(0x0f); /*JNBE fault*/
+        addbyte(0x87);
+        addlong(fault - (block_pos + 4));
     }
+}
+/*CHECK_SEG_LIMITS for an operand at a fixed address (MOV moffs)*/
+static __inline void
+CHECK_SEG_LIMITS_IMM(x86seg *seg, uint32_t addr, int size)
+{
+    addbyte(0xb8 | REG_EAX); /*MOV EAX, addr*/
+    addlong(addr);
+    CHECK_SEG_LIMITS(seg, size - 1);
+}
+/*A memory operand of size bytes at EAX, as the interpreter checks it
+  (CHECK_READ, CHECK_WRITE): a usable segment that allows the access, and
+  all of the operand inside its limits*/
+static __inline void
+CHECK_SEG_READ_EA(x86seg *seg, int size)
+{
+    CHECK_SEG_READ(seg);
+    CHECK_SEG_LIMITS(seg, size - 1);
+}
+static __inline void
+CHECK_SEG_WRITE_EA(x86seg *seg, int size)
+{
+    CHECK_SEG_WRITE(seg);
+    CHECK_SEG_LIMITS(seg, size - 1);
 }
 
 static __inline void
 MEM_LOAD_ADDR_EA_B(x86seg *seg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -978,7 +1062,7 @@ MEM_LOAD_ADDR_EA_B(x86seg *seg)
 static __inline void
 MEM_LOAD_ADDR_EA_W(x86seg *seg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -1049,24 +1133,19 @@ MEM_LOAD_ADDR_EA_W(x86seg *seg)
     /*done:*/
 }
 static __inline void
-MEM_LOAD_ADDR_EA_W_OFFSET(x86seg *seg, int offset, int op_32)
+MEM_LOAD_ADDR_EA_W_OFFSET(x86seg *seg, int offset, UNUSED(int op_32))
 {
+    /*The selector follows the offset without wrapping at 64K, as the
+      interpreter reads it, past the check of the whole pointer*/
     addbyte(0x83); /*ADD EAX, offset*/
     addbyte(0xc0);
     addbyte(offset);
-    if (!(op_32 & 0x200)) {
-        addbyte(0x25); /* AND EAX, ffffh */
-        addbyte(0xff);
-        addbyte(0xff);
-        addbyte(0x00);
-        addbyte(0x00);
-    }
     MEM_LOAD_ADDR_EA_W(seg);
 }
 static __inline void
 MEM_LOAD_ADDR_EA_L(x86seg *seg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -1138,7 +1217,7 @@ MEM_LOAD_ADDR_EA_L(x86seg *seg)
 static __inline void
 MEM_LOAD_ADDR_EA_Q(x86seg *seg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -1252,7 +1331,7 @@ MEM_STORE_ADDR_EA_B(x86seg *seg, int host_reg)
         addbyte(8);
         host_reg = 8;
     }
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -1331,7 +1410,7 @@ MEM_STORE_ADDR_EA_B(x86seg *seg, int host_reg)
 static __inline void
 MEM_STORE_ADDR_EA_W(x86seg *seg, int host_reg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -1417,7 +1496,7 @@ MEM_STORE_ADDR_EA_W(x86seg *seg, int host_reg)
 static __inline void
 MEM_STORE_ADDR_EA_L(x86seg *seg, int host_reg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -1501,7 +1580,7 @@ MEM_STORE_ADDR_EA_L(x86seg *seg, int host_reg)
 static __inline void
 MEM_STORE_ADDR_EA_Q(x86seg *seg, int host_reg, UNUSED(int host_reg2))
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -3648,15 +3727,105 @@ FP_POP2(void)
     addbyte(0x05);
     addbyte((uint8_t) cpu_state_offset(tag));
     addbyte(3);
-    addbyte(0x83); /*ADD AL, 2*/
+    addbyte(0x83); /*ADD AL, 1*/
     addbyte(0xc0);
-    addbyte(2);
+    addbyte(1);
+    addbyte(0x83); /*AND AL, 7*/
+    addbyte(0xe0);
+    addbyte(7);
+    addbyte(0xc6); /*MOVB tag[EAX], 3: ST(1) is popped too*/
+    addbyte(0x44);
+    addbyte(0x05);
+    addbyte((uint8_t) cpu_state_offset(tag));
+    addbyte(3);
+    addbyte(0x83); /*ADD AL, 1*/
+    addbyte(0xc0);
+    addbyte(1);
     addbyte(0x83); /*AND AL, 7*/
     addbyte(0xe0);
     addbyte(7);
     addbyte(0x89); /*MOV [TOP], EAX*/
     addbyte(0x45);
     addbyte((uint8_t) cpu_state_offset(TOP));
+}
+
+/*FST and FSTP when ST(0) may be empty at run time. Empty, the interpreter's
+  stack fault runs (codegen_x87_fst_empty, arg as it takes it), with a
+  memory operand's address from EAX and its segment, and the compiled store
+  after this is jumped over; FP_EMPTY_DONE ends that store. Returns where
+  the jump over it is patched.*/
+static __inline int
+FP_EMPTY_CHECK(uint32_t arg, x86seg *seg)
+{
+    int fast_pos;
+    int done_pos;
+
+    addbyte(0x8b); /*MOV ECX, [TOP]*/
+    addbyte(0x4d);
+    addbyte((uint8_t) cpu_state_offset(TOP));
+    addbyte(0x0f); /*MOVZX ECX, [tag+RCX]*/
+    addbyte(0xb6);
+    addbyte(0x4c);
+    addbyte(0x0d);
+    addbyte((uint8_t) cpu_state_offset(tag));
+    addbyte(0x83); /*AND ECX, 3*/
+    addbyte(0xe1);
+    addbyte(3);
+    addbyte(0x83); /*CMP ECX, 3*/
+    addbyte(0xf9);
+    addbyte(3);
+    addbyte(0x0f); /*JNE fast*/
+    addbyte(0x85);
+    fast_pos = block_pos;
+    addlong(0);
+
+    if (seg) {
+        addbyte(0x89); /*MOV [eaaddr], EAX*/
+        addbyte(0x45);
+        addbyte((uint8_t) cpu_state_offset(eaaddr));
+        addbyte(0x48); /*MOV RCX, seg*/
+        addbyte(0xb9);
+        addquad((uint64_t) (uintptr_t) seg);
+        addbyte(0x48); /*MOV [ea_seg], RCX*/
+        addbyte(0x89);
+        addbyte(0x4d);
+        addbyte((uint8_t) cpu_state_offset(ea_seg));
+    }
+    load_param_1_32(&codeblock[block_current], arg);
+    CALL_FUNC((uintptr_t) codegen_x87_fst_empty);
+    addbyte(0x80); /*CMP abrt, 0*/
+    addbyte(0x7d);
+    addbyte((uint8_t) cpu_state_offset(abrt));
+    addbyte(0);
+    addbyte(0x0f); /*JNE end*/
+    addbyte(0x85);
+    addlong(BLOCK_EXIT_OFFSET - (block_pos + 4));
+    addbyte(0xe9); /*JMP done*/
+    done_pos = block_pos;
+    addlong(0);
+
+    /*fast:*/
+    *(uint32_t *) &codeblock[block_current].data[fast_pos] = block_pos - (fast_pos + 4);
+
+    return done_pos;
+}
+static __inline void
+FP_EMPTY_DONE(int done_pos)
+{
+    addbyte(0x66); /*AND [npxs], ~C1: a store reports no rounding*/
+    addbyte(0x81);
+    addbyte(0x65);
+    addbyte((uint8_t) cpu_state_offset(npxs));
+    addword(0xfdff);
+
+    /*done:*/
+    *(uint32_t *) &codeblock[block_current].data[done_pos] = block_pos - (done_pos + 4);
+
+    /*The two paths join: a helper call may have left no guest register in
+      its host one, and the next FPU instruction checks for a pending error*/
+    codegen_reg_loaded[0] = codegen_reg_loaded[1] = codegen_reg_loaded[2] = codegen_reg_loaded[3] = 0;
+    codegen_reg_loaded[4] = codegen_reg_loaded[5] = codegen_reg_loaded[6] = codegen_reg_loaded[7] = 0;
+    codegen_fpu_entered = 0;
 }
 
 static __inline void
@@ -3679,8 +3848,8 @@ FP_LOAD_S(void)
     addbyte(0x83); /*AND EBX, 7*/
     addbyte(0xe3);
     addbyte(7);
-    addbyte(0x85); /*TEST EAX, EAX*/
-    addbyte(0xc0);
+    addbyte(0xa9); /*TEST EAX, 0x7fffffff: -0.0 is a zero too*/
+    addlong(0x7fffffff);
     addbyte(0x89); /*MOV TOP, EBX*/
     addbyte(0x5d);
     addbyte((uint8_t) cpu_state_offset(TOP));
@@ -3708,9 +3877,13 @@ FP_LOAD_D(void)
     addbyte(0x83); /*AND EBX, 7*/
     addbyte(0xe3);
     addbyte(7);
-    addbyte(0x48); /*TEST RAX, RAX*/
+    addbyte(0x48); /*LEA RCX, [RAX+RAX]: the value without its sign*/
+    addbyte(0x8d);
+    addbyte(0x0c);
+    addbyte(0x00);
+    addbyte(0x48); /*TEST RCX, RCX: -0.0 is a zero too*/
     addbyte(0x85);
-    addbyte(0xc0);
+    addbyte(0xc9);
     addbyte(0x89); /*MOV TOP, EBX*/
     addbyte(0x5d);
     addbyte((uint8_t) cpu_state_offset(TOP));
@@ -4397,38 +4570,9 @@ FP_OP_D(int op)
     addbyte(0x0f);
     addbyte(0x6e);
     addbyte(0xc8);
-    if (((cpu_state.npxc >> 10) & 3) && op == FPU_ADD) {
-        addbyte(0x0f); /*STMXCSR [ESP+8]*/
-        addbyte(0xae);
-        addbyte(0x5c);
-        addbyte(0x24);
-        addbyte(0x08);
-        addbyte(0x8b); /*MOV EAX, [ESP+8]*/
-        addbyte(0x44);
-        addbyte(0x24);
-        addbyte(0x08);
-        addbyte(0x25); /*AND EAX, ~(3 << 13)*/
-        addlong(~(3 << 10));
-        addbyte(0x0d); /*OR EAX, (npxc & (3 << 10)) << 3*/
-        addlong((cpu_state.npxc & (3 << 10)) << 3);
-        addbyte(0x89); /*MOV [RSP+12], EAX*/
-        addbyte(0x44);
-        addbyte(0x24);
-        addbyte(0x0c);
-        addbyte(0x0f); /*LDMXCSR [RSP+12]*/
-        addbyte(0xae);
-        addbyte(0x54);
-        addbyte(0x24);
-        addbyte(0x0c);
-    }
+    /*RC is nearest here: an FADD from memory under another RC is left to
+      the interpreter, which rounds it so*/
     FP_OP_MEM(op);
-    if (((cpu_state.npxc >> 10) & 3) && op == FPU_ADD) {
-        addbyte(0x0f); /*LDMXCSR [RSP+8]*/
-        addbyte(0xae);
-        addbyte(0x54);
-        addbyte(0x24);
-        addbyte(0x08);
-    }
 }
 static __inline void
 FP_OP_IW(int op)
@@ -4689,14 +4833,25 @@ MMX_ENTER(void)
         addbyte(0x0c);
     }
     addbyte(0x74); /*JZ +*/
-    addbyte(7 + 5 + 12 + 5);
+    addbyte(7 + 12 + 5);
     addbyte(0xC7); /*MOVL [oldpc],op_old_pc*/
     addbyte(0x45);
     addbyte((uint8_t) cpu_state_offset(oldpc));
     addlong(op_old_pc);
-    load_param_1_32(&codeblock[block_current], 7);
-    CALL_FUNC((uintptr_t) x86_int);
+    CALL_FUNC((uintptr_t) codegen_mmx_unavailable); /*#UD with CR0.EM, else #NM*/
     addbyte(0xe9); /*JMP end*/
+    addlong(BLOCK_EXIT_OFFSET - (block_pos + 4));
+
+    /*A pending x87 exception is taken before the MMX state changes*/
+    addbyte(0xC7); /*MOVL [oldpc],op_old_pc*/
+    addbyte(0x45);
+    addbyte((uint8_t) cpu_state_offset(oldpc));
+    addlong(op_old_pc);
+    CALL_FUNC((uintptr_t) codegen_mmx_fpu_pending);
+    addbyte(0x85); /*TEST EAX, EAX*/
+    addbyte(0xc0);
+    addbyte(0x0f); /*JNZ end*/
+    addbyte(0x85);
     addlong(BLOCK_EXIT_OFFSET - (block_pos + 4));
 
     addbyte(0x31); /*XOR EAX, EAX*/
@@ -4716,6 +4871,7 @@ MMX_ENTER(void)
     addbyte((uint8_t) cpu_state_offset(tag[4]));
 
     codegen_mmx_entered = 1;
+    codegen_fpu_entered = 0;
 }
 
 extern int mmx_ebx_ecx_loaded;
@@ -5020,15 +5176,6 @@ MMX_PSRLQ_imm(int dst_reg, int amount)
     addbyte(amount);
 }
 static __inline void
-MMX_PSRAQ_imm(int dst_reg, int amount)
-{
-    addbyte(0x66); /*PSRAQ dst_reg, amount*/
-    addbyte(0x0f);
-    addbyte(0x73);
-    addbyte(0xc0 | dst_reg | 0x20);
-    addbyte(amount);
-}
-static __inline void
 MMX_PSLLQ_imm(int dst_reg, int amount)
 {
     addbyte(0x66); /*PSLLQ dst_reg, amount*/
@@ -5064,9 +5211,9 @@ MEM_CHECK_WRITE(x86seg *seg)
     uint8_t *jump2 = NULL;
     uint8_t *jump3 = NULL;
 
-    CHECK_SEG_WRITE(seg);
+    CHECK_SEG_WRITE_EA(seg, 1);
 
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ESI, ESI*/
         addbyte(0xf6);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5169,9 +5316,9 @@ MEM_CHECK_WRITE_W(x86seg *seg)
     uint8_t *jump4 = NULL;
     int      jump_pos;
 
-    CHECK_SEG_WRITE(seg);
+    CHECK_SEG_WRITE_EA(seg, 2);
 
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ESI, ESI*/
         addbyte(0xf6);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5305,9 +5452,9 @@ MEM_CHECK_WRITE_L(x86seg *seg)
     uint8_t *jump4 = NULL;
     int      jump_pos;
 
-    CHECK_SEG_WRITE(seg);
+    CHECK_SEG_WRITE_EA(seg, 4);
 
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ESI, ESI*/
         addbyte(0xf6);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5435,7 +5582,7 @@ MEM_CHECK_WRITE_L(x86seg *seg)
 static __inline int
 MEM_LOAD_ADDR_EA_B_NO_ABRT(x86seg *seg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5501,7 +5648,7 @@ MEM_LOAD_ADDR_EA_B_NO_ABRT(x86seg *seg)
 static __inline int
 MEM_LOAD_ADDR_EA_W_NO_ABRT(x86seg *seg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5573,7 +5720,7 @@ MEM_LOAD_ADDR_EA_W_NO_ABRT(x86seg *seg)
 static __inline int
 MEM_LOAD_ADDR_EA_L_NO_ABRT(x86seg *seg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR ECX, ECX*/
         addbyte(0xc9);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5663,7 +5810,7 @@ MEM_STORE_ADDR_EA_B_NO_ABRT(x86seg *seg, int host_reg)
         addbyte(8);
         host_reg = 8;
     }
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR EBX, EBX*/
         addbyte(0xdb);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5735,7 +5882,7 @@ MEM_STORE_ADDR_EA_B_NO_ABRT(x86seg *seg, int host_reg)
 static __inline void
 MEM_STORE_ADDR_EA_W_NO_ABRT(x86seg *seg, int host_reg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR EBX, EBX*/
         addbyte(0xdb);
     } else if (IS_32_ADDR(&seg->base)) {
@@ -5814,7 +5961,7 @@ MEM_STORE_ADDR_EA_W_NO_ABRT(x86seg *seg, int host_reg)
 static __inline void
 MEM_STORE_ADDR_EA_L_NO_ABRT(x86seg *seg, int host_reg)
 {
-    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
+    if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) || (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))) {
         addbyte(0x31); /*XOR EBX, EBX*/
         addbyte(0xdb);
     } else if (IS_32_ADDR(&seg->base)) {

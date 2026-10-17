@@ -136,6 +136,7 @@ BRANCH_COND_E(uint32_t dest_addr, int not )
             break;
 
         case FLAGS_UNKNOWN:
+        default: /*any other (SHRD): the flag worked out in full*/
             CALL_FUNC((uintptr_t) ZF_SET);
             if (not )
                 TEST_ZERO_JUMP_L(0, dest_addr, timing_bt);
@@ -220,6 +221,7 @@ BRANCH_COND_S(uint32_t dest_addr, int not )
             break;
 
         case FLAGS_UNKNOWN:
+        default: /*any other (SHRD): the flag worked out in full*/
             CALL_FUNC((uintptr_t) NF_SET);
             if (not )
                 TEST_ZERO_JUMP_L(0, dest_addr, timing_bt);

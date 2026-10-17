@@ -109,6 +109,7 @@
         } else {                                                                                             \
             x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);                     \
             STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);                                       \
+            CHECK_SEG_READ_EA(target_seg, 1);                                                                \
             MEM_LOAD_ADDR_EA_B(target_seg);                                                                  \
             src_reg = 0;                                                                                     \
         }                                                                                                    \
@@ -136,6 +137,7 @@
         } else {                                                                                             \
             x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);                     \
             STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);                                       \
+            CHECK_SEG_READ_EA(target_seg, 2);                                                                \
             MEM_LOAD_ADDR_EA_W(target_seg);                                                                  \
             src_reg = 0;                                                                                     \
         }                                                                                                    \
@@ -163,6 +165,7 @@
         } else {                                                                                             \
             x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);                     \
             STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);                                       \
+            CHECK_SEG_READ_EA(target_seg, 4);                                                                \
             MEM_LOAD_ADDR_EA_L(target_seg);                                                                  \
             src_reg = 0;                                                                                     \
         }                                                                                                    \
@@ -195,6 +198,7 @@ ropTEST_b_rm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t
     } else {
         x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
         STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
+        CHECK_SEG_READ_EA(target_seg, 1);
         MEM_LOAD_ADDR_EA_B(target_seg);
         src_reg = 0;
     }
@@ -219,6 +223,7 @@ ropTEST_w_rm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t
     } else {
         x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
         STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
+        CHECK_SEG_READ_EA(target_seg, 2);
         MEM_LOAD_ADDR_EA_W(target_seg);
         src_reg = 0;
     }
@@ -243,6 +248,7 @@ ropTEST_l_rm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t
     } else {
         x86seg *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
         STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
+        CHECK_SEG_READ_EA(target_seg, 4);
         MEM_LOAD_ADDR_EA_L(target_seg);
         src_reg = 0;
     }
@@ -425,6 +431,7 @@ ropF6(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc,
                 target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
                 imm        = fastreadb(cs + op_pc + 1);
                 STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
+                CHECK_SEG_READ_EA(target_seg, 1);
                 MEM_LOAD_ADDR_EA_B(target_seg);
                 host_reg = 0;
             }
@@ -473,6 +480,7 @@ ropF7_w(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_p
                 target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
                 imm        = fastreadw(cs + op_pc + 1);
                 STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
+                CHECK_SEG_READ_EA(target_seg, 2);
                 MEM_LOAD_ADDR_EA_W(target_seg);
                 host_reg = 0;
             }
@@ -521,6 +529,7 @@ ropF7_l(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_p
                 target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
                 imm        = fastreadl(cs + op_pc + 1);
                 STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
+                CHECK_SEG_READ_EA(target_seg, 4);
                 MEM_LOAD_ADDR_EA_L(target_seg);
                 host_reg = 0;
             }

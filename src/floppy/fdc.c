@@ -191,6 +191,10 @@ fdc_ctrl_reset(void *priv, int reset_power_down)
 
     fdc->stat             = 0x80;
     fdc->pnum = fdc->ptot = 0;
+    /* A reset aborts the command and its result phase with it, so the result
+       bytes the guest had not read are gone; fdc_write() refuses a command
+       while paramstogo is set. */
+    fdc->paramstogo       = 0;
     fdc->st0              = 0;
     fdc->head             = 0;
     fdc->step             = 0;
@@ -690,9 +694,8 @@ static void
 fdc_rate(fdc_t *fdc, int drive)
 {
     if (fdc->flags & FDC_FLAG_5550) {
-        /* The density is the drive's media sense, not a guest choice: the
-           guest writes the same 3F1h value for 1.44M and 720K media, so
-           latching its bit 4 selects the wrong rate for one of them. */
+        /* Follow the inserted media: the rate also comes from a board-level
+           input (DR1), and the guest's bit 4 did not track the media here. */
         uint8_t dens = (uint8_t) fdd_hole(fdc->fdd[drive]);
 
         switch (dens) {
@@ -966,18 +969,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 return;
             case 1:
                 if (fdc->flags & FDC_FLAG_5550) {
-                    val = 0;
-                    if (!(val & 0x08)) { /* Drive 2 active */
-                        val = 0x42;
-                    }
-                    if (!(val & 0x04)) { /* Drive 1 active */
-                        val &= 0xf0;
-                        val |= 0x21;
-                    }
-                    if (!(val & 0x02)) { /* Drive 0 active */
-                        val &= 0xf0;
-                        val |= 0x10;
-                    }
+                    /* The guest's drive select bits are not decoded: enable
+                       every motor and let the loop below prune absent drives. */
+                    val = 0x70;
                     /* Update the DOR because this emulation module depend on it */
                     fdc->dor &= 0x0c;
                     fdc->dor |= val;
@@ -1116,6 +1110,11 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             case 5: /*Command register*/
                 if (fdc->flags & FDC_FLAG_5550)
                     picintc(1 << fdc->irq);
+                /* The uPD765 does not accept a command until every result byte
+                   has been read out, so writes arriving before that is neither
+                   a command byte nor one of its parameters. */
+                if (fdc->paramstogo)
+                    return;
                 if (fdc->fifointest) {
                     /* Write FIFO buffer in the test mode (PS/55) */
                     fdc_log("FIFO buffer position = %X\n", ((fifo_t *) fdc->fifo_p)->end);
@@ -1479,7 +1478,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     fdc_noidam(fdc);
                                     return;
                                 }
-                                if (!(fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) && fdc->dma && ((dma_mode(2) & 0x0C) == 0x00)) {
+                                if (!(fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) && fdc->dma && ((dma_mode(fdc->dma_ch) & 0x0C) == 0x00)) {
                                     /* DMA is in verify mode, treat this like a VERIFY command. */
                                     fdc_log("Verify-mode read!\n");
                                     fdc->deleted |= 2;
@@ -1759,7 +1758,10 @@ fdc_read(uint16_t addr, void *priv)
                     ret  |= (fdc->dor & 0x01) << 5;    /* Drive Select 0 */
                     ret  |= (fdc->dor & 0x30) >> 4;    /* Motor Select 1, 0 */
                 } else if (fdc->flags & FDC_FLAG_5550) {
-                    ret = 0;
+                    /* Register mode's digital out register status: the drive
+                       is always selected and its motor on, and IPL checks
+                       exactly that after it has set up the drive. */
+                    ret = 0x71;
                 } else {
                     if (is486 || !fdc->enable_3f1)
                         ret = 0xff;
@@ -2005,14 +2007,9 @@ fdc_callback(void *priv)
         case -3: /* End of command with interrupt */
         case -4: /* Recalibrate/seek completion (PCjr/JX polled status) */
             fdc_int(fdc, fdc->interrupt & 1);
-            /*
-               A completion can land while the CPU is still reading out a
-               result phase - the command's own timer and the result phase
-               are independent. Overwriting the status there would make the
-               FDC drop the result bytes it has not handed over yet, so only
-               take the status back to idle once the result phase is done;
-               The last byte read leaves the same 0x80 behind by itself.
-             */
+            /* The uPD765A/B main status register keeps CB (DB4, "a read or write
+               command is in process") set while a result phase is still being read
+               out, so a completion landing mid-transfer must not force idle here. */
             if (!fdc->paramstogo)
                 fdc->stat = (fdc->stat & 0xf) | 0x80;
             return;
@@ -2891,6 +2888,11 @@ fdc_reset(void *priv)
     fdc->lock          = 0;
 
     fdc_ctrl_reset(fdc, !(fdc->flags & FDC_FLAG_PNP));
+
+    /* The 5550's FDC reset port (3F2h) comes up asserted, so the MSR reads
+       0x00 rather than the uPD765's idle 0x80 until the guest pulses it. */
+    if (fdc->flags & FDC_FLAG_5550)
+        fdc->stat = 0x00;
 
     if (!(fdc->flags & FDC_FLAG_AT))
         fdc->rate = 2;

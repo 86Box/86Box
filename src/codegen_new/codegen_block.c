@@ -57,7 +57,7 @@ static int      last_ssegs;
 uint32_t instr_counts[256 * 256];
 #endif
 
-static uint16_t block_free_list;
+static uint32_t block_free_list;
 static void     delete_block(codeblock_t *block);
 static void     delete_dirty_block(codeblock_t *block);
 
@@ -67,8 +67,8 @@ static void     delete_dirty_block(codeblock_t *block);
 
   The size of this list is limited to DIRTY_LIST_MAX_SIZE blocks. When this is
   exceeded the oldest entry will be moved to the free list.*/
-static uint16_t block_dirty_list_head;
-static uint16_t block_dirty_list_tail;
+static uint32_t block_dirty_list_head;
+static uint32_t block_dirty_list_tail;
 static int      dirty_list_size = 0;
 #define DIRTY_LIST_MAX_SIZE 64
 
@@ -247,7 +247,7 @@ codegen_reset(void)
     }
 
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
-    memset(codeblock_hash, 0, HASH_SIZE * sizeof(uint16_t));
+    memset(codeblock_hash, 0, HASH_SIZE * sizeof(uint32_t));
     mem_reset_page_blocks();
 
     block_free_list = 0;
@@ -283,8 +283,8 @@ dump_block(void)
 static void
 add_to_block_list(codeblock_t *block)
 {
-    uint16_t block_prev_nr = pages[block->phys >> 12].block;
-    uint16_t block_nr      = get_block_nr(block);
+    uint32_t block_prev_nr = pages[block->phys >> 12].block;
+    uint32_t block_nr      = get_block_nr(block);
 
 #ifndef RELEASE_BUILD
     if (!block->page_mask)
@@ -437,11 +437,20 @@ codegen_delete_random_block(int required_mem_block)
 {
     static int evict_probe = 0;
     int block_nr = evict_probe & BLOCK_MASK;
+    int steps    = 0;
 
+    /* A second chance, as a clock: a block run since the sweep last came by
+       is passed over once; one full turn clears them all, so the sweep
+       ends. Evicting blindly threw out code about to run again. */
     while (1) {
         if (block_nr && block_nr != block_current) {
             codeblock_t *block = &codeblock[block_nr];
 
+            if (block->valid && block->used) {
+                block->used = 0;
+                block_nr    = (block_nr + 1) & BLOCK_MASK;
+                continue;
+            }
             if (block->valid && (!required_mem_block || block->head_mem_block)) {
                 evict_probe = (block_nr + 1) & BLOCK_MASK;
                 delete_block(block);
@@ -449,18 +458,22 @@ codegen_delete_random_block(int required_mem_block)
             }
         }
         block_nr = (block_nr + 1) & BLOCK_MASK;
+        /* Two turns take every second chance: a third finding nothing is
+           a cache with no block it may give up. */
+        if (++steps > (3 * BLOCK_SIZE))
+            fatal("codegen_delete_random_block: no block can be evicted\n");
     }
 }
 
 void
 codegen_check_flush(page_t *page, UNUSED(uint64_t mask), UNUSED(uint32_t phys_addr))
 {
-    uint16_t block_nr               = page->block;
+    uint32_t block_nr               = page->block;
     int      remove_from_evict_list = 0;
 
     while (block_nr) {
         codeblock_t *block      = &codeblock[block_nr];
-        uint16_t     next_block = block->next;
+        uint32_t     next_block = block->next;
 
         if (*block->dirty_mask & block->page_mask) {
             invalidate_block(block);
@@ -476,7 +489,7 @@ codegen_check_flush(page_t *page, UNUSED(uint64_t mask), UNUSED(uint32_t phys_ad
 
     while (block_nr) {
         codeblock_t *block      = &codeblock[block_nr];
-        uint16_t     next_block = block->next_2;
+        uint32_t     next_block = block->next_2;
 
         if (*block->dirty_mask2 & block->page_mask2) {
             invalidate_block(block);
@@ -576,6 +589,7 @@ codegen_block_start_recompile(codeblock_t *block)
     block->data           = codeblock_allocator_get_ptr(block->head_mem_block);
 
     block->status = cpu_cur_status;
+    block->used   = 1; /* new: not the next thing the eviction sweep takes */
 
     block->page_mask = block->page_mask2 = 0;
     block->ins                           = 0;
@@ -597,6 +611,7 @@ codegen_block_start_recompile(codeblock_t *block)
     codegen_flags_changed = 0;
     codegen_fpu_entered   = 0;
     codegen_mmx_entered   = 0;
+    codegen_fpu_class_dirty = 0;
 
     codegen_fpu_loaded_iq[0] = codegen_fpu_loaded_iq[1] = codegen_fpu_loaded_iq[2] = codegen_fpu_loaded_iq[3] = codegen_fpu_loaded_iq[4] = codegen_fpu_loaded_iq[5] = codegen_fpu_loaded_iq[6] = codegen_fpu_loaded_iq[7] = 0;
 
@@ -607,6 +622,7 @@ codegen_block_start_recompile(codeblock_t *block)
 
     codegen_flat_ds = !(cpu_cur_status & CPU_STATUS_NOTFLATDS);
     codegen_flat_ss = !(cpu_cur_status & CPU_STATUS_NOTFLATSS);
+    codegen_flat_es = !(cpu_cur_status & CPU_STATUS_NOTFLATES);
 
     if (block->flags & CODEBLOCK_BYTE_MASK) {
         block->dirty_mask  = &page->byte_dirty_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK];
@@ -650,7 +666,14 @@ codegen_block_generate_end_mask_recompile(void)
     block->phys_2 = -1;
     block->next_2 = block->prev_2 = BLOCK_INVALID;
     if (block->page_mask2) {
-        block->phys_2 = get_phys_noabrt(codegen_endpc);
+        /*The second chunk or page is the one the lookup checks
+          (386_dynarec.c): the next 64 bytes of a byte-mask block, else the
+          next page. Not codegen_endpc, which guesses where the last
+          instruction ends from where it starts: one of 11 bytes or more
+          marks bytes past the guess, in a chunk or page it doesn't name.*/
+        uint32_t pc_2 = block->pc + ((block->flags & CODEBLOCK_BYTE_MASK) ? 0x40 : 0x400);
+
+        block->phys_2 = get_phys_noabrt(pc_2);
         if (block->phys_2 != -1) {
             page_t *page_2 = &pages[block->phys_2 >> 12];
 
@@ -667,7 +690,7 @@ codegen_block_generate_end_mask_recompile(void)
                 page_add_to_evict_list(page_2);
 
             if (!pages[block->phys_2 >> 12].block_2)
-                mem_flush_write_page(block->phys_2, codegen_endpc);
+                mem_flush_write_page(block->phys_2, pc_2);
 
 #ifndef RELEASE_BUILD
             if (!block->page_mask2)
