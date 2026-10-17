@@ -227,7 +227,7 @@ voodoo_readw(uint32_t addr, void *priv)
     {
         if (SLI_ENABLED) {
             const voodoo_set_t *set = voodoo->set;
-            int                 y   = (addr >> 11) & 0x3ff;
+            int                 y   = voodoo_fb_read_y(voodoo, (addr >> 11) & 0x3ff);
 
             if (y & 1)
                 voodoo = set->voodoos[1];
@@ -339,7 +339,7 @@ voodoo_readl(uint32_t addr, void *priv)
 
         if (SLI_ENABLED) {
             const voodoo_set_t *set = voodoo->set;
-            int                 y   = (addr >> 11) & 0x3ff;
+            int                 y   = voodoo_fb_read_y(voodoo, (addr >> 11) & 0x3ff);
 
             if (y & 1)
                 voodoo = set->voodoos[1];

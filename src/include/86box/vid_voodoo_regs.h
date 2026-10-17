@@ -359,6 +359,14 @@ enum {
     LFB_RGBCHANNEL_MASK = (3 << 9)
 };
 
+/* lfbMode bits for reads: the Y origin (also for writes with the pixel
+   pipeline off), and the swaps applied to the 32 bits read. */
+enum {
+    LFB_Y_ORIGIN          = (1 << 13),
+    LFB_READ_WORD_SWAP    = (1 << 15),
+    LFB_READ_BYTE_SWIZZLE = (1 << 16)
+};
+
 enum {
     LFB_WRITE_COLOUR = 1,
     LFB_WRITE_DEPTH  = 2,
