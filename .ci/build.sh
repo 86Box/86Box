@@ -1087,7 +1087,7 @@ else
 
 	# Build FluidSynth without sound systems to remove the dependencies on libjack
 	# and other sound system libraries. We don't output audio through FluidSynth.
-	prefix="$cache_dir/fluidsynth-2.6.1+" # remove + after node switch
+	prefix="$cache_dir/fluidsynth-2.6.1"
 	if [ ! -d "$prefix" ]
 	then
 		rm -rf "$cache_dir/fluidsynth-"* # remove old versions
@@ -1104,7 +1104,7 @@ else
 
 	# Build SDL for joystick support, with most components
 	# disabled to remove the dependencies on PulseAudio and libdrm.
-	prefix="$cache_dir/SDL3-3.4.18+" # remove + after node switch
+	prefix="$cache_dir/SDL3-3.4.18"
 	if [ ! -d "$prefix" ]
 	then
 		rm -rf "$cache_dir/SDL"[23]-* # remove old versions
