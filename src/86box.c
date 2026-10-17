@@ -1464,12 +1464,13 @@ usage:
         }
 
         if (win_rem_set_x || win_rem_set_y || win_rem_set_w || win_rem_set_h) {
+            int old_window_remember = window_remember;
             window_remember = 1;
             vid_resize = (win_rem_set_w || win_rem_set_h);
-            window_x = win_rem_set_x ? window_x_1 : 0;
-            window_y = win_rem_set_y ? window_y_1 : 0;
-            window_w = win_rem_set_w ? window_w_1 : 640;
-            window_h = win_rem_set_h ? window_h_1 : 480;
+            window_x = win_rem_set_x ? window_x_1 : (old_window_remember ? window_x : 0);
+            window_y = win_rem_set_y ? window_y_1 : (old_window_remember ? window_y : 0);
+            window_w = win_rem_set_w ? window_w_1 : (old_window_remember ? window_w : 640);
+            window_h = win_rem_set_h ? window_h_1 : (old_window_remember ? window_h : 480);
         }
     }
 
