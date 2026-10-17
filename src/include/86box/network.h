@@ -195,6 +195,7 @@ extern void       network_tx(netcard_t *card, uint8_t *, int);
 
 extern int net_pcap_prepare(netdev_t *);
 extern int net_vde_prepare(void);
+extern int net_tap_prepare(void);
 
 
 extern void            network_connect(int id, int connect);

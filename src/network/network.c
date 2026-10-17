@@ -278,6 +278,11 @@ network_init(void)
         network_devmap.has_vde = 1;
 #endif
 
+#ifdef HAS_TAP
+    if (!net_tap_prepare())
+        network_devmap.has_tap = 1;
+#endif
+
 #ifdef ENABLE_NETWORK_LOG
     /* Start packet dump. */
     network_dump = fopen("network.pcap", "wb");
