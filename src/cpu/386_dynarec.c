@@ -138,7 +138,7 @@ fetch_ea_32_long(uint32_t rmdat)
             cpu_state.eaaddr = getlong();
         }
     }
-    if (easeg != 0xFFFFFFFF && EA_FASTPATH_OK() && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
+    if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
         uint32_t addr = easeg + cpu_state.eaaddr;
         if (readlookup2[addr >> 12] != (uintptr_t) -1)
             eal_r = (uint32_t *) (readlookup2[addr >> 12] + addr);
@@ -174,7 +174,7 @@ fetch_ea_16_long(uint32_t rmdat)
         }
         cpu_state.eaaddr &= 0xFFFF;
     }
-    if (easeg != 0xFFFFFFFF && EA_FASTPATH_OK() && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
+    if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
         uint32_t addr = easeg + cpu_state.eaaddr;
         if (readlookup2[addr >> 12] != (uintptr_t) -1)
             eal_r = (uint32_t *) (readlookup2[addr >> 12] + addr);
@@ -247,7 +247,6 @@ fetch_ea_16_long(uint32_t rmdat)
    limit checks are left out (both recompilers) */
 int codegen_flat_es;
 
-#ifdef USE_DEBUG_REGS_486
 /* Compiled blocks hold no debug-register checks. Data and I/O breakpoints can
    fire on any access, so they still disable the recompiler outright; an
    execution breakpoint only blocks the block covering it, and a block spans at
@@ -257,7 +256,7 @@ dr_blocks_cache(void)
 {
     uint32_t page;
 
-    if (!(dr[7] & 0xFF))
+    if (!cpu_dr_armed)
         return 0;
 
     page = (cs + cpu_state.pc) >> 12;
@@ -278,10 +277,7 @@ dr_blocks_cache(void)
     return 0;
 }
 
-#    define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !dr_blocks_cache())
-#else
-#    define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
-#endif
+#define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !dr_blocks_cache())
 
 #ifdef USE_DYNAREC
 int32_t         cycles_main = 0;
@@ -447,8 +443,11 @@ update_tsc(void)
     }
 }
 
-static __inline void
-exec386_dynarec_int(void)
+/* dbg is a constant, cpu_debug_regs_486 as the block starts: each caller below
+   gets a copy of the loop, and with the option off the debug register
+   handling is not compiled in at all. */
+__attribute__((always_inline)) static inline void
+exec386_dynarec_int_common(const int dbg)
 {
     cpu_block_end = 0;
     x86_was_reset = 0;
@@ -468,13 +467,12 @@ exec386_dynarec_int(void)
         cpu_state.ea_seg = &cpu_state.seg_ds;
         cpu_state.ssegs  = 0;
 
-#    ifdef USE_DEBUG_REGS_486
         /* Breakpoint fault has priority over other faults. x86gen() delivers
            #DB right away, so fold any still-pending trap into the same DR6
            image and clear it, otherwise the epilogue raises a second #DB. A
            pending BS is always stale here - trap's TF bit is only set further
            down, once an instruction is about to retire - so it is dropped. */
-        if ((cpu_state.abrt == 0) && is386 && cpu_386_check_instruction_fault()) {
+        if (dbg && cpu_dr_armed && (cpu_state.abrt == 0) && is386 && cpu_386_check_instruction_fault()) {
             if (trap & 2)
                 dr[6] |= 0x8000;
             if (trap & 16)
@@ -489,7 +487,6 @@ exec386_dynarec_int(void)
             /* No instructions executed at this point. */
             break;
         }
-#    endif
 
         fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
@@ -506,16 +503,14 @@ exec386_dynarec_int(void)
             opcode = fetchdat & 0xFF;
             fetchdat >>= 8;
 
-#    ifdef USE_DEBUG_REGS_486
-            trap = (trap & ~1) | (!!(cpu_state.flags & T_FLAG));
-#    else
-            trap = cpu_state.flags & T_FLAG;
-#    endif
+            if (dbg)
+                trap = (trap & ~1) | (!!(cpu_state.flags & T_FLAG));
+            else
+                trap = cpu_state.flags & T_FLAG;
 
             cpu_state.pc++;
-#    ifdef USE_DEBUG_REGS_486
-            cpu_state.eflags &= ~(RF_FLAG);
-#    endif
+            if (dbg)
+                cpu_state.eflags &= ~(RF_FLAG);
             x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
         }
 
@@ -527,15 +522,13 @@ exec386_dynarec_int(void)
             CPU_BLOCK_END();
         }
 
-#    ifdef USE_DEBUG_REGS_486
-        if (!cpu_state.abrt) {
+        if (dbg && !cpu_state.abrt) {
             if (!rf_flag_no_clear) {
                 cpu_state.eflags &= ~RF_FLAG;
             }
 
             rf_flag_no_clear = 0;
         }
-#    endif
 
         if (((cs + cpu_state.pc) >> 12) != pccache)
             CPU_BLOCK_END();
@@ -576,6 +569,15 @@ block_ended:
     }
 
     cpu_end_block_after_ins = 0;
+}
+
+static __inline void
+exec386_dynarec_int(void)
+{
+    if (cpu_debug_regs_486)
+        exec386_dynarec_int_common(1);
+    else
+        exec386_dynarec_int_common(0);
 }
 
 #if defined(__linux__) && !defined(__clang__)
@@ -1350,8 +1352,9 @@ inboard_post_fixups(void)
 
 }
 
-void
-exec386(int32_t cycs)
+/* As exec386_dynarec_int_common(): dbg is cpu_debug_regs_486, a constant. */
+__attribute__((always_inline)) static inline void
+exec386_common(int32_t cycs, const int dbg)
 {
     int      vector;
     int      tempi;
@@ -1370,9 +1373,7 @@ exec386(int32_t cycs)
         cycdiff       = 0;
         oldcyc        = cycles;
         while (cycdiff < cycle_period) {
-#ifdef USE_DEBUG_REGS_486
             int ins_fetch_fault = 0;
-#endif
             ins_cycles = cycles;
 
             oldcs  = CS;
@@ -1386,12 +1387,11 @@ exec386(int32_t cycs)
             if (inboard386_present)
                 inboard_post_fixups();
 
-#ifdef USE_DEBUG_REGS_486
-            if (is386)
+            if (dbg && cpu_dr_armed && is386)
                 ins_fetch_fault = cpu_386_check_instruction_fault();
 
             /* Breakpoint fault has priority over other faults. */
-            if ((cpu_state.abrt == 0) & ins_fetch_fault) {
+            if (dbg && (cpu_state.abrt == 0) & ins_fetch_fault) {
                 /* RF must be set in the EFLAGS image x86gen() pushes, so the
                    handler's IRET resumes the instruction instead of faulting on
                    it again; delivery leaves RF clear for the handler. */
@@ -1402,7 +1402,6 @@ exec386(int32_t cycs)
                 /* No instructions executed at this point. */
                 goto block_ended;
             }
-#endif
 
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 
@@ -1418,16 +1417,14 @@ exec386(int32_t cycs)
 #endif
                 opcode = fetchdat & 0xFF;
                 fetchdat >>= 8;
-#ifdef USE_DEBUG_REGS_486
-                trap = (trap & ~1) | (!!(cpu_state.flags & T_FLAG));
-#else
-                trap = cpu_state.flags & T_FLAG;
-#endif
+                if (dbg)
+                    trap = (trap & ~1) | (!!(cpu_state.flags & T_FLAG));
+                else
+                    trap = cpu_state.flags & T_FLAG;
 
                 cpu_state.pc++;
-#ifdef USE_DEBUG_REGS_486
-                cpu_state.eflags &= ~(RF_FLAG);
-#endif
+                if (dbg)
+                    cpu_state.eflags &= ~(RF_FLAG);
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
                 if (x86_was_reset)
                     break;
@@ -1447,9 +1444,7 @@ exec386(int32_t cycs)
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
-#ifdef USE_DEBUG_REGS_486
 block_ended:
-#endif
             if (cpu_state.abrt) {
 #ifdef ENABLE_386_LOG
                 uint8_t oop    = opcode;
@@ -1475,10 +1470,8 @@ block_ended:
                     }
                 }
 
-#ifdef USE_DEBUG_REGS_486
-                if (is386 && !x86_was_reset  && ins_fetch_fault)
+                if (dbg && is386 && !x86_was_reset && ins_fetch_fault)
                     x86gen();
-#endif
             } else if (new_ne) {
                 flags_rebuild();
 
@@ -1488,11 +1481,11 @@ block_ended:
                 x86_int(16);
             } else if (trap) {
                 flags_rebuild();
-#ifdef USE_DEBUG_REGS_486
-                if (trap & 2) dr[6] |= 0x8000;
-                if (trap & 1) dr[6] |= 0x4000;
-                if (trap & 16) dr[6] |= 0x2000;
-#endif
+                if (dbg) {
+                    if (trap & 2) dr[6] |= 0x8000;
+                    if (trap & 1) dr[6] |= 0x4000;
+                    if (trap & 16) dr[6] |= 0x2000;
+                }
                 trap = 0;
                 oldcs = CS;
                 cpu_state.oldpc = cpu_state.pc;
@@ -1566,4 +1559,13 @@ block_ended:
 #endif
         }
     }
+}
+
+void
+exec386(int32_t cycs)
+{
+    if (cpu_debug_regs_486)
+        exec386_common(cycs, 1);
+    else
+        exec386_common(cycs, 0);
 }
