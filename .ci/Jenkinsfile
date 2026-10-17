@@ -257,7 +257,7 @@ pipeline {
 														def archName = (os == 'macOS') ? archNamesMac[archLower] : archNames[archLower]
 														def thisDynarecFlags = dynarecFlags.containsKey(archLower) ? dynarecFlags[archLower] : dynarecFlags['']
 														dir("$os - $archName") {
-															ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${thisDynarecFlags} ${osFlags[os]} $buildFlags")
+															ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} $thisDynarecFlags ${osFlags[os]} $buildFlags")
 														}
 
 														if (ret == 0 || ret == 50) {
