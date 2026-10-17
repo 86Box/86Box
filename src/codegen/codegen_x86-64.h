@@ -7,7 +7,7 @@
 
 #define HASH(l)           ((l) &0x1ffff)
 
-#define BLOCK_EXIT_OFFSET 0x7e0
+#define BLOCK_EXIT_OFFSET 0xfe0
 #ifdef OLD_GPF
 #    define BLOCK_GPF_OFFSET (BLOCK_EXIT_OFFSET - 20)
 /*The old stub calls x86gpf itself: a limit fault through SS is #GP there too*/
@@ -18,7 +18,7 @@
 #    define BLOCK_SS_OFFSET (BLOCK_GPF_OFFSET - 6)
 #endif
 
-#define BLOCK_MAX 1620
+#define BLOCK_MAX 3240
 
 enum {
     OP_RET = 0xc3
