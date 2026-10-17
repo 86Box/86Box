@@ -65,6 +65,4 @@ add_library(mch OBJECT
     m_at_slot2.c
     m_at_socket370.c
     m_at_misc.c
-    tandy_vis/m_at_tandy_vis.c
-    tandy_vis/m_tandy_vis_memcard.c
 )

@@ -386,9 +386,8 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
         const auto *cpuFamily   = &cpu_families[cpuFamilyId];
         int         cpuId       = ui->comboBoxSpeed->currentData().toInt();
         uint        cpuType     = cpuFamily->cpus[cpuId].cpu_type;
-        int         machineId   = ui->comboBoxMachine->currentData().toInt();
-        /* The Tandy VIS has no wait states. */
-        if ((cpuType >= CPU_286) && (cpuType < CPU_386DX) && machines[machineId].init != machine_at_tandy_vis_init) {
+
+        if ((cpuType >= CPU_286) && (cpuType < CPU_386DX)) {
             ui->comboBoxWaitStates->setEnabled(true);
             ui->comboBoxWaitStates->setCurrentIndex(cpu_waitstates);
         } else {
