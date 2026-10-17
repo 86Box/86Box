@@ -34,7 +34,7 @@
 #endif
 #include "x86seg.h"
 #include "386_common.h"
-#ifdef DYNAREC
+#ifdef USE_DYNAREC
 #    include "codegen.h"
 #endif
 
