@@ -305,7 +305,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->centralWidget()->setStyleSheet("background-color: black;");
     ui->toolBar->setVisible(!hide_tool_bar);
 #ifdef _WIN32
-    ui->toolBar->setBackgroundRole(QPalette::Light);
+    ui->toolBar->setBackgroundRole(QPalette::Base);
 #endif
     renderers[0].reset(nullptr);
 
