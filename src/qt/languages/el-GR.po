@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-02 16:32+0000\n"
+"PO-Revision-Date: 2026-10-17 13:40+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -3609,7 +3609,7 @@ msgid "VFIO %s: Invalid device location."
 msgstr ""
 
 msgid "VFIO %s: Device not found."
-msgstr ""
+msgstr "VFIO %s: Δεν βρέθηκε συσκευή."
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
@@ -3654,7 +3654,9 @@ msgid "VFIO: Administrator rights could not be requested. To prepare the devices
 msgstr ""
 
 msgid "Prepare PCI devices for VFIO passthrough"
-msgstr ""
+msgstr "Προετοιμασία συσκευών PCI για διέλευση VFIO"
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
 msgstr ""
+"Απαιτείται έλεγχος ταυτότητας για την προετοιμασία συσκευών PCI για διέλευση "
+"στο 86Box."
