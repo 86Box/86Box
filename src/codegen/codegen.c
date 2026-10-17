@@ -1116,7 +1116,16 @@ codegen_skip:
        anything further from memory as it runs. Marking more than fetchdat
        covers would claim the data that often follows an instruction such as
        RET or IRET, and every write to it would throw the block away. */
-    codegen_mark_code_present(block, cs + fetchdat_pc, pc_off ? 4 : 3);
+    {
+        int fetch_len = pc_off ? 4 : 3;
+
+        /* A one-byte opcode that reads nothing after it (POPF, CLI, the
+           string ops) or only an imm8/rel8 uses no more of fetchdat. */
+        if (!pc_off && ((op_table == x86_dynarec_opcodes) || (op_table == x86_dynarec_opcodes_REPE) || (op_table == x86_dynarec_opcodes_REPNE)) &&
+            (opcode_length[opcode] < 3))
+            fetch_len = opcode_length[opcode] - 1;
+        codegen_mark_code_present(block, cs + fetchdat_pc, fetch_len);
+    }
 
     last_op_32     = op_32;
     last_op_ea_seg = op_ea_seg;
