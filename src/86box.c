@@ -1026,6 +1026,8 @@ usage:
             do_nothing = 1;
         } else if (!strcasecmp(argv[c], "--nohook") || !strcasecmp(argv[c], "-W")) {
             hook_enabled = 0;
+        } else if (!strcasecmp(argv[c], "--assume_moved_vm") || !strcasecmp(argv[c], "--assume_copied_vm")) {
+            // do nothing, handled in Qt only.
         } else if (!strcasecmp(argv[c], "--clear") || !strcasecmp(argv[c], "-X")) {
             if ((c + 1) == argc)
                 goto usage;
