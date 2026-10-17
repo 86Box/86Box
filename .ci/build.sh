@@ -668,7 +668,7 @@ else
 	esac
 
 	# Establish general dependencies.
-	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools curl"
+	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file appstream qt6-translations-l10n python3-pip python3-venv squashfs-tools curl"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -694,7 +694,7 @@ else
 	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl3-dev libpng-dev librtmidi-dev qt6-declarative-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev libsndfile1-dev libserialport-dev libvncserver-dev libzstd-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
-		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/qtdeclarative/qt/" | wc -c)
+		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/-declarative$//" | wc -c)
 		[ $length -gt $longest_libpkg ] && longest_libpkg=$length
 	done
 
@@ -1163,7 +1163,7 @@ else
 
 	# Archive readme with library package versions.
 	echo Libraries used to compile this $arch build of $project: > archive_tmp/README
-	dpkg-query -f '${Package} ${Version}\n' -W $libpkgs | sed "s/-dev / /" | sed "s/qtdeclarative/qt/" | while IFS=" " read pkg version
+	dpkg-query -f '${Package} ${Version}\n' -W $libpkgs | sed "s/-dev / /" | sed "s/-declarative//" | while IFS=" " read pkg version
 	do
 		for i in $(seq $(expr $longest_libpkg - $(echo -n $pkg | wc -c)))
 		do
