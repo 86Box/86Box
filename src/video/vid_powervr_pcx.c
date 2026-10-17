@@ -54,6 +54,7 @@
 #include <86box/plat.h>
 #include <86box/path.h>
 #include <86box/video.h>
+#include "vid_powervr_pcx_tables.h"
 
 /* PCI identity. */
 #define PCX_VENDOR_NEC      0x1033
@@ -109,11 +110,41 @@
 #define PCX_MEMTEST_MODE    0x07e
 #define PCX_MEMTEST_RES     0x07f
 #define PCX_FOG_TABLE       0x080 /* 128 entries */
-#define PCX_TLB             0x100 /* 256 entries */
-#define PCX_DIVIDER_TABLE   0x200 /* 512 entries, PCX1 */
+#define PCX_TLB             0x100 /* 256-dword window, 128 entries implemented */
+#define PCX_TLB_ENTRIES     128
+#define PCX_TLB_MASK        0x00000fff /* 12-bit page number; bits 31:24 from PAGE_CTRL */
+#define PCX_DIVIDER_TABLE   0x200 /* 512 entries; RAM on PCX1, ROM on PCX2 */
 #define PCX_REG_COUNT       0x400
 
 #define PCX_INT_EOR         0x00000002 /* INTSTATUS bit 1: end of render */
+
+/* Implemented bits of the plain registers, measured on a PCX2 (m3D) by
+   writing all ones and reading back. Registers not listed are stored as
+   written (not measured, or with side effects that kept them out of the
+   test). A zero mask means the register reads back 0 whatever is written. */
+static const struct {
+    uint8_t  idx;
+    uint32_t mask;
+} pcx2_write_masks[] = {
+    { 0x06, 0x0000001f }, /* FOGAMOUNT */
+    { 0x07, 0xfffffffd }, /* OBJECT_OFFSET (bit 1 not stored) */
+    { 0x08, 0x000003ff }, /* PAGE_CTRL: [7:0] address bits 31:24, [9:8] page size */
+    { 0x09, 0x00000000 },
+    { 0x0a, 0x000fffff }, /* ISP_BASE */
+    { 0x0b, 0x000fffff }, /* PREC_BASE */
+    { 0x0e, 0x01ffffff }, /* FOGCOL */
+    { 0x0f, 0x000007ff }, /* CAMERA */
+    { 0x10, 0x000000ff }, /* PACKMODE */
+    { 0x12, 0x00001ffc }, /* LSTRIDE */
+    { 0x13, 0xfffffffc }, /* SOFADDR */
+    { 0x14, 0x13ff13ff }, /* XCLIP: enable bits 28/12, right 25:16, left 9:0 */
+    { 0x15, 0x00000000 }, /* ABORTADDR (reads 0 when idle) */
+    { 0x17, 0x00000000 },
+    { 0x18, 0x0000000f }, /* IEEEFP */
+    { 0x19, 0x00000007 }, /* BILINEAR */
+    { 0x1a, 0x00000000 },
+    { 0x1d, 0x000001ff }, /* FASTFOG */
+};
 
 enum {
     PCX_CHIP_PCX1 = 1,
@@ -258,6 +289,20 @@ pcx_isp_page_bytes(const pcx_t *pcx)
     }
 }
 
+/* Host physical address of ISP page i. The driver writes phys >> 12 to
+   each TLB entry and phys[0] >> 24 to PAGE_CTRL[7:0]; the PCX2 keeps only
+   12 bits per entry, so all pages share address bits 31:24 (one 16 MB
+   window). On PCX1 the full entry is used until it is measured. */
+static uint32_t
+pcx_tlb_addr(const pcx_t *pcx, uint32_t i)
+{
+    uint32_t e = pcx->regs[PCX_TLB + i];
+
+    if (pcx->chip == PCX_CHIP_PCX2)
+        return ((pcx->regs[PCX_PAGE_CTRL] & 0xff) << 24) | ((e & PCX_TLB_MASK) << 12);
+    return e << 12;
+}
+
 static int
 pcx_bus_master_enabled(const pcx_t *pcx)
 {
@@ -347,8 +392,7 @@ pcx_dump_frame(pcx_t *pcx)
     buf = malloc(page_bytes > obj_bytes ? page_bytes : obj_bytes);
     if (buf != NULL) {
         for (uint32_t i = 0; i < hdr.tlb_entries; i++) {
-            /* TLB entry = physical page number (address >> 12). */
-            dma_bm_read(pcx->regs[PCX_TLB + i] << 12, buf, page_bytes, 4);
+            dma_bm_read(pcx_tlb_addr(pcx, i), buf, page_bytes, 4);
             fwrite(buf, 1, page_bytes, f);
         }
         if (obj_bytes) {
@@ -486,6 +530,20 @@ pcx_reg_write(pcx_t *pcx, uint32_t idx, uint32_t val)
 
     if ((pcx->chip == PCX_CHIP_PCX1) && (idx >= PCX_IEEEFP) && (idx < 0x20))
         pcx_log(pcx, PCX_LOG_EVENTS, "PowerVR: PCX2-only register %s written on PCX1\n", pcx_reg_name(idx));
+
+    if (pcx->chip == PCX_CHIP_PCX2) {
+        if ((idx >= PCX_FOG_TABLE) && (idx < PCX_TLB))
+            return; /* ROM */
+        if (idx >= PCX_DIVIDER_TABLE)
+            return; /* ROM */
+        if (idx >= PCX_TLB + PCX_TLB_ENTRIES && idx < PCX_DIVIDER_TABLE)
+            return; /* not implemented, reads 0 */
+        if ((idx >= PCX_TLB) && (idx < PCX_TLB + PCX_TLB_ENTRIES))
+            val &= PCX_TLB_MASK;
+        for (unsigned i = 0; i < sizeof(pcx2_write_masks) / sizeof(pcx2_write_masks[0]); i++)
+            if (pcx2_write_masks[i].idx == idx)
+                val &= pcx2_write_masks[i].mask;
+    }
 
     switch (idx) {
         case PCX_ID:
@@ -775,6 +833,12 @@ pcx_reg_defaults(pcx_t *pcx)
     pcx->regs[PCX_TMEM_SETUP]   = PCX_RESET_TMEM_SETUP;
     pcx->regs[PCX_TMEM_REFRESH] = PCX_RESET_TMEM_REFRESH;
     pcx->regs[PCX_GPPORT]       = PCX_RESET_GPPORT;
+    if (pcx->chip == PCX_CHIP_PCX2) {
+        /* Built-in tables (read-only on the measured card). The TLB powers
+           up with random 12-bit values; zero is used here. */
+        memcpy(&pcx->regs[PCX_FOG_TABLE], pcx2_fog_rom, sizeof(pcx2_fog_rom));
+        memcpy(&pcx->regs[PCX_DIVIDER_TABLE], pcx2_divider_rom, sizeof(pcx2_divider_rom));
+    }
 }
 
 static void
