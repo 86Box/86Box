@@ -97,6 +97,36 @@ codegen_ADD_LSHIFT(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/* The value of a byte or word register in the low bits of a host
+   register: AH-BH shifted down into tmp, the others as they are. */
+static int
+narrow_operand(codeblock_t *block, int tmp, int reg, int size)
+{
+    if (REG_IS_BH(size)) {
+        host_arm64_UBFX(block, tmp, reg, 8, 8);
+        return tmp;
+    }
+    return reg;
+}
+
+/* All words, or all bytes (low or high): what narrow_insert() takes. */
+static int
+narrow_sizes_match(int dest_size, int src_size_a, int src_size_b)
+{
+    if (REG_IS_W(dest_size))
+        return REG_IS_W(src_size_a) && REG_IS_W(src_size_b);
+    return (REG_IS_B(dest_size) || REG_IS_BH(dest_size)) && (REG_IS_B(src_size_a) || REG_IS_BH(src_size_a)) &&
+           (REG_IS_B(src_size_b) || REG_IS_BH(src_size_b));
+}
+
+/* A byte or word result (in REG_TEMP) into its place in the destination
+   register, the rest of which is kept. */
+static void
+narrow_insert(codeblock_t *block, int dest_reg, int dest_size)
+{
+    host_arm64_BFI(block, dest_reg, REG_TEMP, REG_IS_BH(dest_size) ? 8 : 0, REG_IS_W(dest_size) ? 16 : 8);
+}
+
 static int
 codegen_AND(codeblock_t *block, uop_t *uop)
 {
@@ -144,6 +174,13 @@ codegen_AND(codeblock_t *block, uop_t *uop)
         host_arm64_AND_REG(block, REG_TEMP, src_reg_a, src_reg_b, 0);
         host_arm64_MOV_REG_LSR(block, REG_TEMP, REG_TEMP, 8);
         host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 8);
+    } else if (narrow_sizes_match(dest_size, src_size_a, src_size_b)) {
+        /* Any other pairing of byte or word registers */
+        int a = narrow_operand(block, REG_TEMP, src_reg_a, src_size_a);
+        int b = narrow_operand(block, REG_TEMP2, src_reg_b, src_size_b);
+
+        host_arm64_AND_REG(block, REG_TEMP, a, b, 0);
+        narrow_insert(block, dest_reg, dest_size);
     } else
         fatal("AND %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 
@@ -157,18 +194,31 @@ codegen_AND_IMM(codeblock_t *block, uop_t *uop)
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
+    /* A part of a register into another register: the rest of the
+       destination is kept (AX from another register leaves EAX's top
+       half alone), so the result is inserted into it. */
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
         host_arm64_AND_IMM(block, dest_reg, src_reg, uop->imm_data);
-    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size)) {
+    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size) && dest_reg == src_reg) {
         host_arm64_AND_IMM(block, dest_reg, src_reg, uop->imm_data | 0xffff0000);
-    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size)) {
+    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size)) {
+        host_arm64_AND_IMM(block, REG_TEMP, src_reg, uop->imm_data & 0xffff);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 16);
+    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size) && dest_reg == src_reg) {
         host_arm64_AND_IMM(block, dest_reg, src_reg, uop->imm_data | 0xffffff00);
+    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size)) {
+        host_arm64_AND_IMM(block, REG_TEMP, src_reg, uop->imm_data & 0xff);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 8);
     } else if (REG_IS_B(dest_size) && REG_IS_BH(src_size)) {
         host_arm64_MOV_REG_LSR(block, REG_TEMP, src_reg, 8);
         host_arm64_AND_IMM(block, REG_TEMP, REG_TEMP, uop->imm_data);
         host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 8);
-    } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size)) {
+    } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size) && dest_reg == src_reg) {
         host_arm64_AND_IMM(block, dest_reg, src_reg, (uop->imm_data << 8) | 0xffff00ff);
+    } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size)) {
+        host_arm64_MOV_REG_LSR(block, REG_TEMP, src_reg, 8);
+        host_arm64_AND_IMM(block, REG_TEMP, REG_TEMP, uop->imm_data & 0xff);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 8, 8);
     } else
         fatal("AND_IMM %x %x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
 
@@ -1478,6 +1528,13 @@ codegen_OR(codeblock_t *block, uop_t *uop)
     } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size_a) && REG_IS_BH(src_size_b) && dest_reg == src_reg_a) {
         host_arm64_UBFX(block, REG_TEMP, src_reg_b, 8, 8);
         host_arm64_ORR_REG(block, dest_reg, src_reg_a, REG_TEMP, 8);
+    } else if (narrow_sizes_match(dest_size, src_size_a, src_size_b)) {
+        /* Any other pairing of byte or word registers */
+        int a = narrow_operand(block, REG_TEMP, src_reg_a, src_size_a);
+        int b = narrow_operand(block, REG_TEMP2, src_reg_b, src_size_b);
+
+        host_arm64_ORR_REG(block, REG_TEMP, a, b, 0);
+        narrow_insert(block, dest_reg, dest_size);
     } else
         fatal("OR %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 
@@ -1495,10 +1552,20 @@ codegen_OR_IMM(codeblock_t *block, uop_t *uop)
         host_arm64_ORR_IMM(block, dest_reg, src_reg, uop->imm_data);
     } else if (REG_IS_W(dest_size) && REG_IS_W(src_size) && dest_reg == src_reg) {
         host_arm64_ORR_IMM(block, dest_reg, src_reg, uop->imm_data);
+    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size)) {
+        host_arm64_ORR_IMM(block, REG_TEMP, src_reg, uop->imm_data & 0xffff);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 16);
     } else if (REG_IS_B(dest_size) && REG_IS_B(src_size) && dest_reg == src_reg) {
         host_arm64_ORR_IMM(block, dest_reg, src_reg, uop->imm_data);
+    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size)) {
+        host_arm64_ORR_IMM(block, REG_TEMP, src_reg, uop->imm_data & 0xff);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 8);
     } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size) && dest_reg == src_reg) {
         host_arm64_ORR_IMM(block, dest_reg, src_reg, uop->imm_data << 8);
+    } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size)) {
+        host_arm64_MOV_REG_LSR(block, REG_TEMP, src_reg, 8);
+        host_arm64_ORR_IMM(block, REG_TEMP, REG_TEMP, uop->imm_data & 0xff);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 8, 8);
     } else
         fatal("OR_IMM %x %x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
 
@@ -3305,6 +3372,13 @@ codegen_XOR(codeblock_t *block, uop_t *uop)
     } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size_a) && REG_IS_BH(src_size_b) && dest_reg == src_reg_a) {
         host_arm64_UBFX(block, REG_TEMP, src_reg_b, 8, 8);
         host_arm64_EOR_REG(block, dest_reg, src_reg_a, REG_TEMP, 8);
+    } else if (narrow_sizes_match(dest_size, src_size_a, src_size_b)) {
+        /* Any other pairing of byte or word registers */
+        int a = narrow_operand(block, REG_TEMP, src_reg_a, src_size_a);
+        int b = narrow_operand(block, REG_TEMP2, src_reg_b, src_size_b);
+
+        host_arm64_EOR_REG(block, REG_TEMP, a, b, 0);
+        narrow_insert(block, dest_reg, dest_size);
     } else
         fatal("XOR %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 
@@ -3322,10 +3396,20 @@ codegen_XOR_IMM(codeblock_t *block, uop_t *uop)
         host_arm64_EOR_IMM(block, dest_reg, src_reg, uop->imm_data);
     } else if (REG_IS_W(dest_size) && REG_IS_W(src_size) && dest_reg == src_reg) {
         host_arm64_EOR_IMM(block, dest_reg, src_reg, uop->imm_data);
+    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size)) {
+        host_arm64_EOR_IMM(block, REG_TEMP, src_reg, uop->imm_data & 0xffff);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 16);
     } else if (REG_IS_B(dest_size) && REG_IS_B(src_size) && dest_reg == src_reg) {
         host_arm64_EOR_IMM(block, dest_reg, src_reg, uop->imm_data);
+    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size)) {
+        host_arm64_EOR_IMM(block, REG_TEMP, src_reg, uop->imm_data & 0xff);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 8);
     } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size) && dest_reg == src_reg) {
         host_arm64_EOR_IMM(block, dest_reg, src_reg, uop->imm_data << 8);
+    } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size)) {
+        host_arm64_MOV_REG_LSR(block, REG_TEMP, src_reg, 8);
+        host_arm64_EOR_IMM(block, REG_TEMP, REG_TEMP, uop->imm_data & 0xff);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 8, 8);
     } else
         fatal("XOR_IMM %x %x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
 
