@@ -42,7 +42,8 @@
  *          texture memory), 32-bit arithmetic is made explicit for 64-bit
  *          hosts, the texture bank split is the PCX2's (pixel address bit
  *          20, i.e. 2 MB), fog uses the chip's FOG_TABLE, BILINEAR = 0
- *          selects point sampling, and the debug/statistics code is gone.
+ *          selects point sampling, the output dither is the one measured on the
+ *          card, and the debug/statistics code is gone.
  *
  * Authors: Zvi Rosen and contributors.
  *
@@ -768,10 +769,11 @@ x_visible(const ctx_t *c, int x)
     return 1;
 }
 
-/* Plane A and B coefficients as the PCX2 uses them, in units of 2^-39 of
-   the depth scale. The simulator packs them into the PCX1's 20-bit float
-   (15 significant bits); matching the m3D's own output pixel for pixel
-   needs 14 significant bits, truncated toward zero. */
+/* Plane A and B coefficients as the chip uses them, in units of 2^-39 of
+   the depth scale: 15 significant bits, truncated toward zero, as in the
+   simulator's PackTo20Bit() but without the 20-bit format's exponent
+   limits. With approx_recip() below this reproduces the m3D's own output
+   on every test frame (one pixel in 921,600 aside). */
 static int64_t
 plane_q(float v)
 {
@@ -784,7 +786,29 @@ plane_q(float v)
     if (d > 4.0e18 || d < -4.0e18) /* far outside any screen; keep the sign */
         return (d > 0) ? ((int64_t) 1 << 61) : -((int64_t) 1 << 61);
     m = frexp(d, &e);
-    return (int64_t) ldexp(trunc(ldexp(m, 14)), e - 14);
+    return (int64_t) ldexp(trunc(ldexp(m, 15)), e - 15);
+}
+
+/* The simulator's fast reciprocal (sgl_mat2.h ApproxRecip, SLOW_FDIV
+   form): negated exponent and one's-complemented mantissa. Used to bring
+   perpendicular planes into range; the exact 1/x leaves edge pixels
+   different from the card. */
+static float
+approx_recip(float v)
+{
+    union {
+        float    f;
+        uint32_t u;
+    } fl;
+    uint32_t exp;
+
+    fl.f = v;
+    exp  = fl.u & (0xffu << 23);
+    exp  = ((253u << 23) - exp) & (0xffu << 23);
+    fl.u &= 0x807fffffu;
+    fl.u ^= 0x007fffffu;
+    fl.u |= exp;
+    return fl.f;
 }
 
 /* One tile's decoded planes and object list, built once per tile. */
@@ -951,7 +975,7 @@ decode_plane(const ctx_t *c, uint32_t pa, plane_t *pl)
     if (pl->instr == forw_perp || pl->instr == test_shad_perp || pl->instr == forw_perp_fp || pl->instr == test_shad_perp_fp) {
         /* Perpendicular planes are rescaled into range. */
         max_val = fabsf(fc.f) + 2.0f * 1024.0f * (fabsf(fa.f) + fabsf(fb.f));
-        max_val = (max_val != 0.0f) ? 1.0f / max_val : 1.0f;
+        max_val = (max_val != 0.0f) ? approx_recip(max_val) : 1.0f;
     } else
         max_val = 1.0f;
     pl->a = plane_q(fa.f * max_val);
@@ -1152,13 +1176,30 @@ pcxr_render(const pcxr_frame_t *f, uint32_t *rgb, pcxr_result_t *res)
 
 /* ---- output ----------------------------------------------------------- */
 
+/* PACKMODE bit 4 dither, measured on the m3D: this offset is added to each
+   8-bit channel before it is cut to 5 bits (half of it for the 6-bit green
+   of 565), saturating at the top. Matches the card on every pixel in both
+   16-bit modes. */
+static const uint8_t dither4x4[4][4] = {
+    { 7, 3, 6, 2 },
+    { 1, 5, 0, 4 },
+    { 6, 2, 7, 3 },
+    { 0, 4, 1, 5 },
+};
+
+static uint32_t
+cut(uint32_t c, uint32_t d, int shift, uint32_t max)
+{
+    c = (c + d) >> shift;
+    return (c > max) ? max : c;
+}
+
 int
 pcxr_pack(uint32_t packmode, uint32_t rgb, int x, int y, uint32_t *out)
 {
     uint32_t r = (rgb >> 16) & 0xff, g = (rgb >> 8) & 0xff, b = rgb & 0xff;
+    uint32_t d = (packmode & 0x10) ? dither4x4[y & 3][x & 3] : 0;
 
-    (void) x;
-    (void) y;
     switch (packmode & 3) {
         case 0: /* 32 bpp */
             *out = rgb & 0xffffff;
@@ -1167,10 +1208,10 @@ pcxr_pack(uint32_t packmode, uint32_t rgb, int x, int y, uint32_t *out)
             *out = rgb & 0xffffff;
             return 3;
         case 2: /* 16 bpp 565 */
-            *out = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3);
+            *out = (cut(r, d, 3, 31) << 11) | (cut(g, d >> 1, 2, 63) << 5) | cut(b, d, 3, 31);
             return 2;
         default: /* 15 bpp 555 */
-            *out = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+            *out = (cut(r, d, 3, 31) << 10) | (cut(g, d, 3, 31) << 5) | cut(b, d, 3, 31);
             return 2;
     }
 }
