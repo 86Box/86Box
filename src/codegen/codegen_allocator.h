@@ -22,6 +22,11 @@
 /* Two for each of BLOCK_SIZE's blocks: running out of these deletes every
    block at once. */
 #define MEM_BLOCK_NR 262144
+#elif defined __aarch64__ || defined _M_ARM64
+/* 131072 for code plus the 128 that hold veneers (MEM_BLOCK_VENEER_STRIDE),
+   so the code memory runs out, and deletes every block, at the points it
+   does without them. */
+#define MEM_BLOCK_NR (131072 + 128)
 #else
 #define MEM_BLOCK_NR 131072
 #endif
@@ -30,6 +35,15 @@
 
 #define MEM_BLOCK_MASK (MEM_BLOCK_NR - 1)
 #define MEM_BLOCK_SIZE 0x3c0
+
+#if defined __aarch64__ || defined _M_ARM64
+/*Every 1024 blocks (under 1MB) one block of veneers to the backend's
+  routines, so a conditional branch (+/- 1MB) to one of them reaches it
+  directly instead of skipping over a B on its common path*/
+#    define MEM_BLOCK_VENEER_STRIDE 1024
+void  codegen_allocator_set_veneers(const void **targets, int nr);
+void *codegen_allocator_veneer(const void *src, const void *dst);
+#endif
 
 void codegen_allocator_init(void);
 /*Allocate a mem_block_t, and the associated backing memory.

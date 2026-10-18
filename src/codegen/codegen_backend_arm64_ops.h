@@ -47,6 +47,20 @@ uint32_t *host_arm64_BVS_(codeblock_t *block);
 
 void host_arm64_branch_set_offset(uint32_t *opcode, void *dest);
 
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+uint32_t *host_arm64_BEQ_SHORT_(codeblock_t *block);
+uint32_t *host_arm64_BNE_SHORT_(codeblock_t *block);
+uint32_t *host_arm64_BLE_SHORT_(codeblock_t *block);
+uint32_t *host_arm64_CBZ_SHORT_(codeblock_t *block, int reg);
+uint32_t *host_arm64_CBNZ_SHORT_(codeblock_t *block, int reg);
+uint32_t *host_arm64_TBZ_SHORT_(codeblock_t *block, int reg, int bit);
+uint32_t *host_arm64_TBNZ_SHORT_(codeblock_t *block, int reg, int bit);
+
+void host_arm64_short_branch_set_offset(uint32_t *opcode, void *dest);
+
+void host_arm64_TSTX_REG(codeblock_t *block, int src_n_reg, int src_m_reg);
+#endif
+
 void host_arm64_BR(codeblock_t *block, int addr_reg);
 
 void host_arm64_BIC_REG_V(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
@@ -141,6 +155,8 @@ void host_arm64_FRINTX_D(codeblock_t *block, int dst_reg, int src_reg);
 void host_arm64_FSQRT_D(codeblock_t *block, int dst_reg, int src_reg);
 void host_arm64_FSQRT_S(codeblock_t *block, int dst_reg, int src_reg);
 
+void host_arm64_LDP_IMM_W(codeblock_t *block, int dest_reg1, int dest_reg2, int base_reg, int offset);
+void host_arm64_LDP_IMM_X(codeblock_t *block, int dest_reg1, int dest_reg2, int base_reg, int offset);
 void host_arm64_LDP_POSTIDX_X(codeblock_t *block, int src_reg1, int src_reg2, int base_reg, int offset);
 
 void host_arm64_LDR_IMM_W(codeblock_t *block, int dest_reg, int base_reg, int offset);
@@ -291,6 +307,7 @@ void host_arm64_call(codeblock_t *block, void *dst_addr);
 void host_arm64_jump(codeblock_t *block, uintptr_t dst_addr);
 void host_arm64_mov_imm(codeblock_t *block, int reg, uint32_t imm_data);
 
+#define in_range7_w(offset)  (((offset) >= -0x100) && ((offset) < (0x100)) && !((offset) &3))
 #define in_range7_x(offset)  (((offset) >= -0x200) && ((offset) < (0x200)) && !((offset) &7))
 #define in_range12_b(offset) (((offset) >= 0) && ((offset) < 0x1000))
 #define in_range12_h(offset) (((offset) >= 0) && ((offset) < 0x2000) && !((offset) &1))

@@ -22,6 +22,7 @@
 #include "codegen_allocator.h"
 #include "codegen_backend.h"
 #include "codegen_ir.h"
+#include "codegen_link.h"
 #include "codegen_reg.h"
 
 uint8_t *block_write_data = NULL;
@@ -242,6 +243,95 @@ block_version_chunk_matches(uint32_t phys, const uint8_t *exec, uint64_t mask, c
     return 1;
 }
 
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+/*Last link_gen handed out. Values only grow between wraps, so a block never
+  gets back a value a slot may still hold for it.*/
+static uint32_t link_gen_last = 0;
+
+void
+codegen_link_reset(void)
+{
+    memset(codegen_link_slots, 0, sizeof(codegen_link_slots));
+}
+
+void
+codegen_link_block_changed(codeblock_t *block)
+{
+    link_gen_last++;
+    if (!link_gen_last) {
+        /*Wrapped. Empty every slot and renumber every block, so no value
+          given out before the wrap can come back to the same block.*/
+        codegen_link_reset();
+        for (int c = 0; c < BLOCK_SIZE; c++)
+            codeblock[c].link_gen = ++link_gen_last;
+        link_gen_last++;
+    }
+    block->link_gen = link_gen_last;
+}
+
+/*Empty the slots used by the block's own exits.*/
+static void
+link_slots_clear(codeblock_t *block)
+{
+    memset(codegen_link_slots[get_block_nr(block)], 0, sizeof(codegen_link_slots[0]));
+}
+
+void
+codegen_link_patch(codegen_link_slot_t *from, codeblock_t *block, uint32_t phys)
+{
+    const uint32_t       virt     = cs + cpu_state.pc;
+    uintptr_t           *xlat     = NULL;
+    uintptr_t            xlat_val = 0;
+    codegen_link_slot_t *slot;
+
+    /*Only a compiled block the hash already points to.*/
+    if ((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) != CODEBLOCK_WAS_RECOMPILED)
+        return;
+    if (codeblock_hash[HASH(phys)] != get_block_nr(block))
+        return;
+    if (cr0 >> 31) {
+        /*The routine can only redo the translation from readlookup2.*/
+        xlat = &readlookup2[virt >> 12];
+        if ((int) *xlat == -1)
+            return;
+        xlat_val = *xlat;
+    }
+    /*phys may have come from get_phys()'s one-entry cache, which can be
+      stale. Only fill if a fresh translation gives the same page.*/
+    if (cr0 >> 31) {
+        if ((((uint32_t) ((xlat_val + (virt & ~0xfff)) - (uintptr_t) ram)) & ~0xfff) != (phys & ~0xfff))
+            return;
+    } else if (((virt & rammask) & ~0xfff) != (phys & ~0xfff))
+        return;
+
+    /*The exit's own slot, whatever it held*/
+    slot = from;
+
+    slot->entry      = NULL;
+    slot->exit_pc    = cpu_state.pc;
+    slot->exit_cs    = cs;
+    slot->block      = block;
+    slot->gen        = block->link_gen;
+    slot->status     = cpu_cur_status;
+    slot->npxc       = cpu_state.npxc & 0x0f00;
+    slot->cr0_bits   = cr0 & 0xc0000000;
+    slot->virt       = virt;
+    slot->phys_page  = phys & ~0xfff;
+    slot->rammask    = rammask;
+    slot->xlat       = xlat;
+    slot->xlat_val   = xlat_val;
+    slot->mem_exec   = &_mem_exec[phys >> MEM_GRANULARITY_BITS];
+    slot->hash       = &codeblock_hash[HASH(phys)];
+    slot->block_nr   = get_block_nr(block);
+    slot->top_mask   = (block->flags & CODEBLOCK_STATIC_TOP) ? 7 : 0;
+    slot->top        = (block->flags & CODEBLOCK_STATIC_TOP) ? block->TOP : 0;
+    slot->two_page   = !!block->page_mask2;
+    slot->page_mask  = block->page_mask;
+    slot->dirty_mask = block->dirty_mask;
+    slot->entry      = &block->data[BLOCK_START + CODEGEN_LINK_ENTRY_OFFSET];
+}
+#endif
+
 static void
 block_free_list_add(codeblock_t *block)
 {
@@ -256,6 +346,10 @@ block_free_list_add(codeblock_t *block)
     block_free_list = get_block_nr(block);
     block->flags    = CODEBLOCK_IN_FREE_LIST;
     block_versions_free_all(get_block_nr(block));
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_block_changed(block);
+    link_slots_clear(block);
+#endif
 }
 
 static void
@@ -277,6 +371,9 @@ block_dirty_list_add(codeblock_t *block)
         block_dirty_list_head = block_dirty_list_tail = get_block_nr(block);
     }
     block->flags |= CODEBLOCK_IN_DIRTY_LIST;
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_block_changed(block);
+#endif
     dirty_list_size++;
     if (dirty_list_size > DIRTY_LIST_MAX_SIZE) {
         /*Evict oldest block to the free list*/
@@ -329,6 +426,9 @@ block_dirty_list_remove(codeblock_t *block)
         fatal("remove - dirty_list_size < 0!\n");
 #endif
     block->flags &= ~CODEBLOCK_IN_DIRTY_LIST;
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_block_changed(block);
+#endif
 }
 
 int
@@ -398,6 +498,9 @@ codegen_init(void)
         block_free_list_add(&codeblock[c]);
     block_dirty_list_head = block_dirty_list_tail = 0;
     dirty_list_size                               = 0;
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_reset();
+#endif
 #ifdef DEBUG_EXTRA
     memset(instr_counts, 0, sizeof(instr_counts));
 #endif
@@ -427,6 +530,9 @@ codegen_reset(void)
         codeblock[c].valid = 0;
         block_free_list_add(&codeblock[c]);
     }
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_reset();
+#endif
 }
 
 void
@@ -582,6 +688,9 @@ invalidate_block(codeblock_t *block)
         block_version_owner_sync(block_nr);
     }
     block->head_mem_block = NULL;
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    link_slots_clear(block);
+#endif
 }
 
 static void
@@ -746,6 +855,9 @@ codegen_block_init(uint32_t phys_addr)
     block->page_mask = block->page_mask2 = 0;
     block->flags                         = CODEBLOCK_STATIC_TOP;
     block->status                        = cpu_cur_status;
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_block_changed(block);
+#endif
 
     recomp_page = block->phys & ~0xfff;
     codeblock_tree_add(block);
@@ -838,6 +950,10 @@ codegen_block_start_recompile(codeblock_t *block)
         block->dirty_mask  = &page->byte_dirty_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK];
         block->dirty_mask2 = NULL;
     }
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_block_changed(block);
+    link_slots_clear(block);
+#endif
 
     ir_data        = codegen_ir_init();
     ir_data->block = block;
@@ -1025,6 +1141,9 @@ codegen_block_end_recompile(codeblock_t *block)
 
     codegen_accumulate_flush(ir_data);
     codegen_ir_compile(ir_data, block);
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_block_changed(block);
+#endif
 
     /*Record what this version was compiled from, so it can be kept when the
       guest rewrites the block: the bytes and mappings as at the start of the

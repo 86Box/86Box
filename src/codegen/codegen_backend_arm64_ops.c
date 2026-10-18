@@ -78,6 +78,8 @@
 #    define OPCODE_LDR_IMM_F64        (0x3f5 << 22)
 #    define OPCODE_LDRB_IMM_W         (0x0e5 << 22)
 #    define OPCODE_LDRH_IMM           (0x1e5 << 22)
+#    define OPCODE_LDP_IMM_W          (0x0a5 << 22)
+#    define OPCODE_LDP_IMM_X          (0x2a5 << 22)
 #    define OPCODE_LDP_POSTIDX_X      (0x2a3 << 22)
 #    define OPCODE_SBFX               (0x04c << 22)
 #    define OPCODE_STP_PREIDX_X       (0x2a6 << 22)
@@ -96,6 +98,7 @@
 #    define OPCODE_AND_LSL            (0x050 << 21)
 #    define OPCODE_AND_ROR            (0x056 << 21)
 #    define OPCODE_ANDS_LSL           (0x350 << 21)
+#    define OPCODE_ANDSX_LSL          (0x750 << 21)
 #    define OPCODE_CMP_LSL            (0x358 << 21)
 #    define OPCODE_CMPX_LSL           (0x758 << 21)
 #    define OPCODE_CSEL               (0x0d4 << 21)
@@ -172,6 +175,7 @@
 #    define OPCODE_FSUB_V2S           (0x0ea0d400)
 #    define OPCODE_LDR_REG            (0xb8606800)
 #    define OPCODE_LDRX_REG           (0xf8606800)
+#    define OPCODE_LDR_LITERAL_X      (0x58000000)
 #    define OPCODE_LDRB_REG           (0x38606800)
 #    define OPCODE_LDRH_REG           (0x78606800)
 #    define OPCODE_LDRX_REG_LSL3      (0xf8607800)
@@ -244,6 +248,7 @@
 #    define DATPROC_IMM_SHIFT(sh)     (sh << 22)
 #    define MOV_WIDE_HW(hw)           (hw << 21)
 
+#    define IMM7_W(imm_data)          (((imm_data >> 2) & 0x7f) << 15)
 #    define IMM7_X(imm_data)          (((imm_data >> 3) & 0x7f) << 15)
 #    define IMM9(imm_data)            (((imm_data) & 0x1ff) << 12)
 #    define IMM12(imm_data)           ((imm_data) << 10)
@@ -664,6 +669,17 @@ host_arm64_branch_set_offset(uint32_t *opcode, void *dest)
             *cond_opcode = OPCODE_BCOND | (cond & 0xfu) | OFFSET19(offset19);
             *opcode      = OPCODE_NOP;
             return;
+        } else {
+            void *veneer = codegen_allocator_veneer(cond_src, dest);
+
+            if (veneer && codegen_allocator_can_branch_imm19(cond_src, veneer)) {
+                uint32_t cond     = (cond_insn & 0xf) ^ 1u;
+                int      offset19 = (int) ((uintptr_t) veneer - (uintptr_t) cond_opcode);
+
+                *cond_opcode = OPCODE_BCOND | (cond & 0xfu) | OFFSET19(offset19);
+                *opcode      = OPCODE_NOP;
+                return;
+            }
         }
     }
 
@@ -689,6 +705,85 @@ host_arm64_branch_set_offset(uint32_t *opcode, void *dest)
     (void) is_bcond_template;
     (void) is_tbxz_template;
 }
+
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+/*Single-instruction forward branches, patched with
+  host_arm64_short_branch_set_offset(). The target must be within the range
+  of the branch's own immediate, so these are only for code that is known to
+  sit in one allocator block.*/
+uint32_t *
+host_arm64_BEQ_SHORT_(codeblock_t *block)
+{
+    codegen_addlong(block, OPCODE_BCOND | COND_EQ);
+    return (uint32_t *) &block_write_data[block_pos - 4];
+}
+uint32_t *
+host_arm64_BNE_SHORT_(codeblock_t *block)
+{
+    codegen_addlong(block, OPCODE_BCOND | COND_NE);
+    return (uint32_t *) &block_write_data[block_pos - 4];
+}
+uint32_t *
+host_arm64_BLE_SHORT_(codeblock_t *block)
+{
+    codegen_addlong(block, OPCODE_BCOND | COND_LE);
+    return (uint32_t *) &block_write_data[block_pos - 4];
+}
+uint32_t *
+host_arm64_CBZ_SHORT_(codeblock_t *block, int reg)
+{
+    codegen_addlong(block, OPCODE_CBZ | Rt(reg));
+    return (uint32_t *) &block_write_data[block_pos - 4];
+}
+uint32_t *
+host_arm64_CBNZ_SHORT_(codeblock_t *block, int reg)
+{
+    codegen_addlong(block, OPCODE_CBNZ | Rt(reg));
+    return (uint32_t *) &block_write_data[block_pos - 4];
+}
+uint32_t *
+host_arm64_TBZ_SHORT_(codeblock_t *block, int reg, int bit)
+{
+    codegen_addlong(block, OPCODE_TBZ | Rt(reg) | BIT_TBxZ(bit));
+    return (uint32_t *) &block_write_data[block_pos - 4];
+}
+uint32_t *
+host_arm64_TBNZ_SHORT_(codeblock_t *block, int reg, int bit)
+{
+    codegen_addlong(block, OPCODE_TBNZ | Rt(reg) | BIT_TBxZ(bit));
+    return (uint32_t *) &block_write_data[block_pos - 4];
+}
+
+void
+host_arm64_short_branch_set_offset(uint32_t *opcode, void *dest)
+{
+    intptr_t offset = (intptr_t) ((uint8_t *) dest - (uint8_t *) opcode);
+
+    if ((*opcode & 0x7e000000u) == OPCODE_TBZ) {
+        if (offset < -(1 << 15) || offset >= (1 << 15) || (offset & 3))
+            fatal("host_arm64_short_branch_set_offset - TBZ offset out of range %" PRIdPTR "\n", offset);
+        *opcode = (*opcode & ~0x0007ffe0u) | OFFSET14(offset);
+    } else {
+        if (offset < -(1 << 20) || offset >= (1 << 20) || (offset & 3))
+            fatal("host_arm64_short_branch_set_offset - offset out of range %" PRIdPTR "\n", offset);
+        *opcode = (*opcode & ~0x00ffffe0u) | OFFSET19(offset);
+    }
+}
+
+void
+host_arm64_LDR_LITERAL_X(codeblock_t *block, int dest_reg, int literal_offset)
+{
+    if (literal_offset < -(1 << 20) || literal_offset >= (1 << 20) || (literal_offset & 3))
+        fatal("host_arm64_LDR_LITERAL_X - offset out of range %i\n", literal_offset);
+    codegen_addlong(block, OPCODE_LDR_LITERAL_X | OFFSET19(literal_offset) | Rt(dest_reg));
+}
+
+void
+host_arm64_TSTX_REG(codeblock_t *block, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_ANDSX_LSL | Rd(REG_XZR) | Rn(src_n_reg) | Rm(src_m_reg) | DATPROC_SHIFT(0));
+}
+#    endif
 
 void
 host_arm64_BR(codeblock_t *block, int addr_reg)
@@ -751,6 +846,18 @@ host_arm64_CBNZ(codeblock_t *block, int reg, uintptr_t dest)
         offset = (intptr_t) ((uint8_t *) dst_ptr - cbnz_src);
         codegen_addlong(block, OPCODE_CBNZ | OFFSET19(offset) | Rt(reg));
         return;
+    }
+    {
+        void *veneer = codegen_allocator_veneer(cbnz_src, dst_ptr);
+
+        if (veneer && codegen_allocator_can_branch_imm19(cbnz_src, veneer)) {
+            offset = (intptr_t) ((uint8_t *) veneer - cbnz_src);
+            codegen_addlong(block, OPCODE_CBNZ | OFFSET19(offset) | Rt(reg));
+            /*The size of the CBZ/B pair it replaces: blocks fill the code
+              memory, and run it out, as they do without veneers*/
+            codegen_addlong(block, OPCODE_NOP);
+            return;
+        }
     }
 
     if (codegen_allocator_can_branch_imm26(cbnz_src + 4, dst_ptr)) {
@@ -1180,6 +1287,21 @@ host_arm64_FSQRT_S(codeblock_t *block, int dst_reg, int src_reg)
 }
 
 void
+host_arm64_LDP_IMM_W(codeblock_t *block, int dest_reg1, int dest_reg2, int base_reg, int offset)
+{
+    if (!in_range7_w(offset))
+        fatal("host_arm64_LDP_IMM_W out of range7 %i\n", offset);
+    codegen_addlong(block, OPCODE_LDP_IMM_W | IMM7_W(offset) | Rn(base_reg) | Rt(dest_reg1) | Rt2(dest_reg2));
+}
+void
+host_arm64_LDP_IMM_X(codeblock_t *block, int dest_reg1, int dest_reg2, int base_reg, int offset)
+{
+    if (!in_range7_x(offset))
+        fatal("host_arm64_LDP_IMM_X out of range7 %i\n", offset);
+    codegen_addlong(block, OPCODE_LDP_IMM_X | IMM7_X(offset) | Rn(base_reg) | Rt(dest_reg1) | Rt2(dest_reg2));
+}
+
+void
 host_arm64_LDP_POSTIDX_X(codeblock_t *block, int src_reg1, int src_reg2, int base_reg, int offset)
 {
     if (!in_range7_x(offset))
@@ -1477,7 +1599,6 @@ host_arm64_SMULL_V4S_4H(codeblock_t *block, int dst_reg, int src_n_reg, int src_
 {
     codegen_addlong(block, OPCODE_SMULL_V4S_4H | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
 }
-
 void
 host_arm64_SQADD_V8B(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {

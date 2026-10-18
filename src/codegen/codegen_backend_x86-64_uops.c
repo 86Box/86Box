@@ -1028,6 +1028,16 @@ codegen_MMX_ENTER(codeblock_t *block, uop_t *uop)
 static int
 codegen_JMP(codeblock_t *block, uop_t *uop)
 {
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    /*An unconditional jump out of the block is an ordinary hand-off (UOP_JMP
+      writes registers back), so it can link like the block's end. Fault
+      paths reach codegen_exit_rout by conditional branches or direct jumps
+      instead.*/
+    if (uop->p == codegen_exit_rout) {
+        codegen_link_exit(block);
+        return 0;
+    }
+#    endif
     host_x86_JMP(block, uop->p);
 
     return 0;
