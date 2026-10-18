@@ -84,7 +84,8 @@ Numbers accept C syntax (`0x` hex, decimal).
 
 `wait`, `memr` and `text` read memory through the normal physical memory map,
 so a read in a memory-mapped device range may have side effects (for example,
-VGA latches).
+VGA latches). They don't cost the emulated CPU time, though: a device's wait
+states are not charged for reads and writes made for a client.
 
 Try it by hand:
 
