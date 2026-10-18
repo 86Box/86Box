@@ -499,6 +499,11 @@ pcx_reg_read(pcx_t *pcx, uint32_t idx)
         case PCX_REVISION:
             val = pcx->revision_value;
             break;
+        case PCX_GPPORT:
+            /* Measured: reads 0xf616 even straight after the driver writes
+               0, so the read side is input pins, not the written latch. */
+            val = PCX_RESET_GPPORT;
+            break;
         case PCX_INTSTATUS:
             val = pcx->int_status;
             if (pcx->ack_mode == PCX_ACK_READ_CLEARS && val) {
