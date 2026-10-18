@@ -109,6 +109,13 @@ $ 86Box --automation tcp:7086 --automation-token-file /tmp/86box.token &
 $ (echo "auth $(cat /tmp/86box.token)"; echo status) | socat - TCP:127.0.0.1:7086
 ```
 
+## Warnings
+
+With automation on, 86Box writes warnings (such as a media image that can't
+be loaded) to its log and carries on, without the warning dialog it otherwise
+shows. A client with no window couldn't dismiss it, and the machine and the
+socket would be stuck until someone did.
+
 ## When 86Box stops
 
 On a fatal error, 86Box writes the message to its log and closes the
