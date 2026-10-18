@@ -722,9 +722,6 @@ extern int      unmask_a20_in_smm;
 extern int      cycles_main;
 extern uint32_t old_rammask;
 
-#ifdef USE_ACYCS
-extern int acycs;
-#endif
 extern int pic_pending;
 extern int is_vpc;
 extern int soft_reset_mask;

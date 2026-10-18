@@ -584,10 +584,6 @@ cpu_set(void)
     cpu_effective = cpu;
     cpu_s         = (CPU *) &cpu_f->cpus[cpu_effective];
 
-#ifdef USE_ACYCS
-    acycs = 0;
-#endif /* USE_ACYCS */
-
     soft_reset_pci    = 0;
     cpu_init          = 0;
 

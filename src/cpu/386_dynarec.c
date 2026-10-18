@@ -286,10 +286,6 @@ static uint64_t tsc_old     = 0;
 static codegen_link_slot_t *link_from = NULL;
 #    endif
 
-#    ifdef USE_ACYCS
-int32_t acycs = 0;
-#    endif
-
 extern int codegen_record_faulted; /* 386_common.c */
 
 int
@@ -424,10 +420,6 @@ update_tsc(void)
     uint64_t delta;
 
     cycdiff = cycles_old - cycles;
-#    ifdef USE_ACYCS
-    if (inrecomp)
-        cycdiff += acycs;
-#    endif
 
     delta = tsc - tsc_old;
     if (delta > 0) {
@@ -733,9 +725,6 @@ exec386_dynarec_dyn(void)
 #    else
         code();
 #    endif
-#    ifdef USE_ACYCS
-        acycs = 0;
-#    endif
         inrecomp = 0;
 
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
@@ -1000,9 +989,6 @@ exec386_dynarec(int32_t cycs)
 
     int32_t cyc_period = cycs / (force_10ms ? 2000 : 200); /*5us*/
 
-#    ifdef USE_ACYCS
-    acycs = 0;
-#    endif
     cycles_main += cycs;
     while (cycles_main > 0) {
         int32_t cycles_start;

@@ -19,12 +19,6 @@ void
 codegen_accumulate(UNUSED(ir_data_t *ir), int acc_reg, int delta)
 {
     acc_regs[acc_reg].count += delta;
-
-#ifdef USE_ACYCS
-    if ((acc_reg == ACCREG_cycles) && (delta != 0)) {
-        uop_ADD_IMM(ir, IREG_acycs, IREG_acycs, -delta);
-    }
-#endif
 }
 
 void
