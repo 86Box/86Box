@@ -84,7 +84,8 @@ Numbers accept C syntax (`0x` hex, decimal).
 
 `wait`, `memr` and `text` read memory through the normal physical memory map,
 so a read in a memory-mapped device range may have side effects (for example,
-VGA latches).
+VGA latches). They don't cost the emulated CPU time, though: a device's wait
+states are not charged for reads and writes made for a client.
 
 Try it by hand:
 
@@ -102,6 +103,26 @@ Over TCP, send the token first:
 $ 86Box --automation tcp:7086 --automation-token-file /tmp/86box.token &
 $ (echo "auth $(cat /tmp/86box.token)"; echo status) | socat - TCP:127.0.0.1:7086
 ```
+
+## When 86Box stops
+
+On a fatal error, 86Box writes the message to its log and closes the
+automation socket before it shows the error dialog, so a client sees its
+connection close rather than waiting for a reply.
+
+## With the GDB stub
+
+In a build with both `-D AUTOMATION=ON` and `-D GDBSTUB=ON`, a GDB client
+and an automation client can share a machine:
+
+- While the GDB stub has the CPU stopped (the stub starts it stopped, and a
+  breakpoint, a watchpoint or a GDB interrupt stops it), no emulated time
+  passes, and `ms` doesn't advance. A `step`, `wait` or `key` command ends
+  as soon as the CPU stops, with `"stopped":"debugger"` in its reply. A
+  `wait` that ends this way has `"matched":false`.
+- While the machine is held, the stub still answers GDB: registers, memory,
+  breakpoints and monitor commands work. A GDB `continue` or `step` takes
+  effect when the CPU next runs, for example during an automation `step`.
 
 ## Determinism notes
 

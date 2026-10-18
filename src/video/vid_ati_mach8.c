@@ -6022,7 +6022,9 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
                                     dev->data_available = 0;
                                 break;
                             default:
-                                if (!dev->accel.sy)
+                                /* A one-pixel line read starts with SY already 0: on the Graphics Ultra
+                                   the flag stays up until the host has taken that word. */
+                                if (!dev->accel.sy && (!ATI_GRAPHICS_ULTRA || dev->accel.cmd_back))
                                     dev->data_available = 0;
                                 break;
                         }
@@ -6071,7 +6073,7 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
                                     dev->data_available2 = 0;
                                 break;
                             default:
-                                if (!dev->accel.sy)
+                                if (!dev->accel.sy && (!ATI_GRAPHICS_ULTRA || dev->accel.cmd_back))
                                     dev->data_available2 = 0;
                                 break;
                         }
