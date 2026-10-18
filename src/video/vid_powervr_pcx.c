@@ -117,6 +117,10 @@
 #define PCX_REG_COUNT       0x400
 
 #define PCX_INT_EOR         0x00000002 /* INTSTATUS bit 1: end of render */
+/* Measured on the m3D (pcx2replay): after a frame INTSTATUS reads 0x7, the
+   interrupt line stays asserted until INTSTATUS is read, and that read
+   clears all three bits. Bits 0 and 2 are not named in any driver. */
+#define PCX_INT_FRAME_DONE  0x00000007
 
 /* Implemented bits of the plain registers, measured on a PCX2 (m3D) by
    writing all ones and reading back. Registers not listed are stored as
@@ -427,7 +431,7 @@ pcx_render_done(void *priv)
     pcx_t *pcx = (pcx_t *) priv;
 
     pcx->render_busy = 0;
-    pcx->int_status |= PCX_INT_EOR;
+    pcx->int_status |= PCX_INT_FRAME_DONE;
     pcx_update_irq(pcx);
 
     pcx_log(pcx, PCX_LOG_EVENTS, "PowerVR: frame %u end of render, IRQ %s\n",
@@ -990,7 +994,7 @@ static const device_config_t pcx_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "Reading INTSTATUS clears it", .value = PCX_ACK_READ_CLEARS   },
+            { .description = "Reading INTSTATUS clears it (measured)", .value = PCX_ACK_READ_CLEARS   },
             { .description = "Writing 1 to INTSTATUS",      .value = PCX_ACK_WRITE1_CLEARS },
             { .description = "SOFTRESET clears it",         .value = PCX_ACK_RESET_CLEARS  },
             { .description = ""                                                            }
@@ -1002,7 +1006,7 @@ static const device_config_t pcx_config[] = {
         .description    = "Render time (microseconds)",
         .type           = CONFIG_SPINNER,
         .default_string = NULL,
-        .default_int    = 2000,
+        .default_int    = 7600, /* 640x480 SGLTri frame on the m3D: 7.6 ms */
         .file_filter    = NULL,
         .spinner        = { .min = 10, .max = 30000, .step = 100 },
         .selection      = { { 0 } },
