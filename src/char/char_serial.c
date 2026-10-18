@@ -34,6 +34,13 @@
 #    endif
 #    include <unistd.h>
 #    include <sys/ioctl.h>
+#    include <time.h>
+#    ifdef __linux__
+#        include <linux/serial.h>
+#    endif
+#    if defined(__linux__) && defined(TIOCGICOUNT)
+#        define CHAR_SERIAL_ICOUNT 1
+#    endif
 #endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -72,9 +79,17 @@ enum { /* PARMRK escape parser state, see char_serial_unescape() */
 };
 #endif
 
+/* "Break handling": how Windows USB adapter driver quirks around a break are worked around (per-port setting) */
+enum {
+    CHAR_SERIAL_BRK_NONE = 0,   /* none: pass on exactly what the driver reports */
+    CHAR_SERIAL_BRK_DROP_TRAIL, /* FT232R: the driver follows a break with one stray plain 0x00: drop it */
+    CHAR_SERIAL_BRK_HOLD_ZERO   /* PL2303: hold a lone 0x00 for the break status that follows it */
+};
+
 typedef struct {
     void        *log;
     char_port_t *port;
+    uint8_t      brk_mode;  /* CHAR_SERIAL_BRK_*, "break_mode" */
 
 #ifndef _WIN32
     const
@@ -85,18 +100,29 @@ typedef struct {
     unsigned int prev_config_valid : 1;
     uint32_t     last_connect_attempt;
     uint32_t last_read_error;
+    uint32_t escaped;       /* DTR/RTS/BREAK as last sent to the host port */
+    uint8_t  escaped_valid;
+#ifdef CHAR_SERIAL_ICOUNT
+    uint8_t  st_valid; /* st_lines holds the last TIOCMGET result */
+    uint8_t  st_slow;  /* TIOCMGETs seen slower than CHAR_SERIAL_ST_SLOW_US */
+    uint8_t  st_gate;  /* TIOCMGET is slow here: skip it while the line counters stand still */
+    uint32_t st_lines; /* CHAR_COM_* from the last TIOCMGET */
+    uint32_t st_at;    /* plat_get_ticks() of the last TIOCMGET */
+    struct serial_icounter_struct st_ic; /* line change counters read just before it */
+#endif
 #ifdef _WIN32
     HANDLE   fd;
     DCB      prev_config;
     DCB      config;
     DCB      applied;       /* prev  DCB state of SetCommState*/
     uint8_t  applied_valid; /* applied holds what the port is set to */
-    uint32_t escaped;       /* DTR/RTS/BREAK as last sent by EscapeCommFunction */
-    uint8_t  escaped_valid;
     uint32_t control_flags; /* prev CHAR_COM_DTR/RTS state from char_serial_control() */
 
     uint8_t  brk_held;     /* one non-errored 0x00 is held */
     uint8_t  brk_open;     /* raise when break delivered, no character received since */
+    uint8_t  brk_trail;    /* drop-trail mode: a plain 0x00 trailing the break may still follow */
+    uint32_t brk_at;       /* plat_get_ticks() when the break was delivered */
+    uint32_t brk_last;     /* plat_get_ticks() when a break status was last read */
     uint32_t brk_held_at;  /* plat_get_ticks() when the held 0x00 was read */
     uint32_t brk_held_err; /* CHAR_COM_ERR_* reported while it was held */
     uint8_t  lsrmst;         /* host driver inserts LSR escapes into the read stream */
@@ -239,6 +265,7 @@ char_serial_disconnect(char_serial_t *dev)
 
         dev->brk_held       = 0;
         dev->brk_open       = 0;
+        dev->brk_trail      = 0;
         dev->lsrmst         = 0;
         dev->lsrmst_state   = 0;
         dev->lsrmst_bi_seen = 0;
@@ -382,6 +409,10 @@ char_serial_connect(char_serial_t *dev, int startup)
     if (tcsetattr(dev->fd, TCSANOW, &dev->config))
 #    endif
         char_serial_log(dev->log, "Raw mode tcsetattr failed (%d)\n", errno);
+    dev->escaped_valid = 0;
+#    ifdef CHAR_SERIAL_ICOUNT
+    dev->st_valid = 0;
+#    endif
 #endif
 
     char_serial_log(dev->log, "Connected: %s\n", path);
@@ -470,6 +501,9 @@ char_serial_map_error(DWORD err)
 #    define CHAR_SERIAL_LSRMST_CHECK_MS 250            /* time to wait on unmatched CE_BREAK may go unmatched*/
 #    define CHAR_SERIAL_LSRMST_SPLIT_MAX_MS 100        /* assume a 0x00 with BI this soon after a plain 0x00 is that 0x00's status arriving late*/
 #    define CHAR_SERIAL_LSRMST_SPLIT_MIN_MS 5          /* learned hold is 2x the lag seen plus this */
+#    define CHAR_SERIAL_BRK_SAME_MS         100        /* drop-trail mode: a break status this long after the last one is a new break */
+#    define CHAR_SERIAL_BRK_TRAIL_MS        500        /* drop-trail mode: a 0x00 this soon after a break is the break's tail */
+#    define CHAR_SERIAL_BRK_HOLD_MS         20         /* hold mode: starting hold, grows with the lag seen */
 
 enum {
     CHAR_SERIAL_LSRMST_IDLE = 0, /* plain data */
@@ -481,7 +515,7 @@ enum {
 };
 
 /* late arrival break status following a 0x00 belongs to it - usb serial adapter fix,
-   hold lone error-free 0x00s for twice the lag seen
+   hold lone error-free 0x00s for twice the lag seen (hold mode only)
    Returns 1 when the status was taken as late. */
 static int
 char_serial_learn_split(char_serial_t *dev, uint32_t now)
@@ -489,6 +523,8 @@ char_serial_learn_split(char_serial_t *dev, uint32_t now)
     uint32_t lag = now - dev->lsrmst_plain0_at;
     uint32_t ms;
 
+    if (dev->brk_mode != CHAR_SERIAL_BRK_HOLD_ZERO)
+        return 0;
     if (!dev->lsrmst_plain0 || (lag >= CHAR_SERIAL_LSRMST_SPLIT_MAX_MS))
         return 0;
 
@@ -666,12 +702,21 @@ retry:
                 if (!char_serial_lsrmst_unescape(dev, raw, &c, &cerr))
                     continue;
 
+                if (dev->brk_trail && dev->brk_open && (c == 0x00) && !cerr) {
+                    dev->brk_trail = 0;
+                    if ((now - dev->brk_at) < CHAR_SERIAL_BRK_TRAIL_MS) {
+                        char_serial_log(dev->log, "Dropping the 0x00 that trails a break (%u ms)\n", now - dev->brk_at);
+                        continue;
+                    }
+                }
                 if ((c == 0x00) && (cerr & (CHAR_COM_ERR_BREAK | CHAR_COM_ERR_FRAMING))) {
                     if (dev->lsrmst_held) {
                         /* The held 0x00's status caught up, char seen*/
                         dev->lsrmst_held = 0;
-                    } else if (dev->brk_open) {
+                    } else if (dev->brk_open
+                               && ((dev->brk_mode != CHAR_SERIAL_BRK_DROP_TRAIL) || ((now - dev->brk_last) < CHAR_SERIAL_BRK_SAME_MS))) {
                         /* no character since the break, still the same break. */
+                        dev->brk_last = now;
                         continue;
                     } else {
                         /* plain 0x00 has gone out. track lag for the next ones. */
@@ -680,6 +725,9 @@ retry:
                     buf[0]               = c;
                     dev->last_read_error = cerr;
                     dev->brk_open        = !!(cerr & CHAR_COM_ERR_BREAK);
+                    dev->brk_at          = now;
+                    dev->brk_last        = now;
+                    dev->brk_trail       = dev->brk_open && (dev->brk_mode == CHAR_SERIAL_BRK_DROP_TRAIL);
                     dev->lsrmst_plain0   = 0;
                     ret                  = 1;
                     break;
@@ -771,6 +819,8 @@ retry:
                 buf[0]               = 0x00;
                 dev->last_read_error = mapped;
                 dev->brk_open        = 1;
+                dev->brk_at          = now;
+                dev->brk_trail       = (dev->brk_mode == CHAR_SERIAL_BRK_DROP_TRAIL);
                 dev->lsrmst_plain0   = 0;
                 return 1;
             }
@@ -801,6 +851,11 @@ retry:
                 /* The 0x00 sent as the break ends. */
                 dev->brk_open = 0;
                 ret           = 0;
+            } else if (dev->brk_trail && dev->brk_open && !mapped && ((now - dev->brk_at) < CHAR_SERIAL_BRK_TRAIL_MS)) {
+                /* drop-trail mode: the stray plain 0x00 after the break. */
+                dev->brk_trail = 0;
+                char_serial_log(dev->log, "Dropping the 0x00 that trails a break (%u ms)\n", now - dev->brk_at);
+                ret = 0;
             } else if (!mapped && (stats.cbInQue == 1) && dev->lsrmst_split) {
                 dev->brk_held     = 1;
                 dev->brk_held_at  = now;
@@ -1140,6 +1195,12 @@ char_serial_port_config(void *priv)
 #endif
 }
 
+#ifdef CHAR_SERIAL_ICOUNT
+#    define CHAR_SERIAL_ST_SLOW_US     100 /* a TIOCMGET slower than this is a USB round trip */
+#    define CHAR_SERIAL_ST_SLOW_N      4   /* this many slow ones turn the counter gate on */
+#    define CHAR_SERIAL_ST_REFRESH_MS  50  /* real TIOCMGET at least this often anyway */
+#endif
+
 static uint32_t
 char_serial_status(void *priv)
 {
@@ -1170,6 +1231,21 @@ char_serial_status(void *priv)
     }
 #else
     int status;
+#    ifdef CHAR_SERIAL_ICOUNT
+    /* some USB adapters TIOCMGET blocks
+    once TIOCMGET is flagged as slow, skip polling while counters are unchanged */
+    struct serial_icounter_struct ic;
+    int                           ic_ok = !ioctl(dev->fd, TIOCGICOUNT, &ic);
+    uint32_t                      now   = plat_get_ticks();
+
+    if (ic_ok && dev->st_gate && dev->st_valid && ((now - dev->st_at) < CHAR_SERIAL_ST_REFRESH_MS)
+        && (ic.cts == dev->st_ic.cts) && (ic.dsr == dev->st_ic.dsr) && (ic.rng == dev->st_ic.rng) && (ic.dcd == dev->st_ic.dcd))
+        return dev->st_lines;
+
+    struct timespec t0;
+    struct timespec t1;
+    clock_gettime(CLOCK_MONOTONIC, &t0);
+#    endif
     if (!ioctl(dev->fd, TIOCMGET, &status)) {
         if (status & TIOCM_CTS)
             ret |= CHAR_COM_CTS;
@@ -1179,6 +1255,20 @@ char_serial_status(void *priv)
             ret |= CHAR_COM_RI;
         if (status & TIOCM_CAR)
             ret |= CHAR_COM_DCD;
+#    ifdef CHAR_SERIAL_ICOUNT
+        clock_gettime(CLOCK_MONOTONIC, &t1);
+        /* counters read before TIOCMGET: a change after them shows up next time */
+        dev->st_valid = ic_ok;
+        dev->st_ic    = ic;
+        dev->st_lines = ret;
+        dev->st_at    = now;
+        if (ic_ok && !dev->st_gate
+            && ((((int64_t) (t1.tv_sec - t0.tv_sec)) * 1000000 + (t1.tv_nsec - t0.tv_nsec) / 1000) > CHAR_SERIAL_ST_SLOW_US)
+            && (++dev->st_slow >= CHAR_SERIAL_ST_SLOW_N)) {
+            dev->st_gate = 1;
+            char_serial_log(dev->log, "TIOCMGET is slow on this port: polling the line counters instead\n");
+        }
+#    endif
     }
 #endif
 
@@ -1204,37 +1294,43 @@ char_serial_control(uint32_t flags, void *priv)
         }
     }
 
-#ifdef _WIN32
-    /* EscapeCommFunction, send only the lines that changed. */
+    /* send only the lines that changed: each call can be a blocking
+       USB control transfer on some USB adapters */
     uint32_t diff = dev->escaped_valid ? (dev->escaped ^ flags) : (CHAR_COM_DTR | CHAR_COM_RTS | CHAR_COM_BREAK);
 
+#ifdef _WIN32
     if (diff & CHAR_COM_DTR)
         EscapeCommFunction(dev->fd, (flags & CHAR_COM_DTR) ? SETDTR : CLRDTR);
     if (diff & CHAR_COM_RTS)
         EscapeCommFunction(dev->fd, (flags & CHAR_COM_RTS) ? SETRTS : CLRRTS);
     if (diff & CHAR_COM_BREAK)
         EscapeCommFunction(dev->fd, (flags & CHAR_COM_BREAK) ? SETBREAK : CLRBREAK);
-    dev->escaped       = flags;
-    dev->escaped_valid = 1;
 #else
     int set   = 0;
     int clear = 0;
 
-    if (flags & CHAR_COM_DTR)
-        set |= TIOCM_DTR;
-    else
-        clear |= TIOCM_DTR;
-    if (flags & CHAR_COM_RTS)
-        set |= TIOCM_RTS;
-    else
-        clear |= TIOCM_RTS;
+    if (diff & CHAR_COM_DTR) {
+        if (flags & CHAR_COM_DTR)
+            set |= TIOCM_DTR;
+        else
+            clear |= TIOCM_DTR;
+    }
+    if (diff & CHAR_COM_RTS) {
+        if (flags & CHAR_COM_RTS)
+            set |= TIOCM_RTS;
+        else
+            clear |= TIOCM_RTS;
+    }
 
     if (set)
         ioctl(dev->fd, TIOCMBIS, &set);
     if (clear)
         ioctl(dev->fd, TIOCMBIC, &clear);
-    ioctl(dev->fd, (flags & CHAR_COM_BREAK) ? TIOCSBRK : TIOCCBRK);
+    if (diff & CHAR_COM_BREAK)
+        ioctl(dev->fd, (flags & CHAR_COM_BREAK) ? TIOCSBRK : TIOCCBRK);
 #endif
+    dev->escaped       = flags;
+    dev->escaped_valid = 1;
 }
 
 static void
@@ -1269,6 +1365,13 @@ char_serial_init(const device_t *info)
     dev->path = path;
 #endif
     dev->reconnect = !!device_get_config_int("reconnect");
+#ifdef _WIN32
+    dev->brk_mode  = device_get_config_int("break_mode");
+    if (dev->brk_mode == CHAR_SERIAL_BRK_HOLD_ZERO) {
+        dev->lsrmst_split    = 1;
+        dev->lsrmst_split_ms = CHAR_SERIAL_BRK_HOLD_MS;
+    }
+#endif
 
     /* Attach character device. */
     dev->port = char_attach(CHAR_COM_WIRE, char_serial_read, char_serial_write, char_serial_status, char_serial_control, char_serial_port_config, dev);
@@ -1311,6 +1414,24 @@ static const device_config_t char_serial_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
+#ifdef _WIN32
+    {
+        .name           = "break_mode",
+        .description    = "Break handling",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = CHAR_SERIAL_BRK_NONE,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Passthrough",                   .value = CHAR_SERIAL_BRK_NONE       },
+            { .description = "FT232R (drop 0x00 after break)", .value = CHAR_SERIAL_BRK_DROP_TRAIL },
+            { .description = "PL2303 (hold 0x00 for late break)", .value = CHAR_SERIAL_BRK_HOLD_ZERO  },
+            { NULL }
+        },
+        .bios           = { { 0 } }
+    },
+#endif
     { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
