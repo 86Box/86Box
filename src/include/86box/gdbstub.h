@@ -57,6 +57,7 @@ extern uint64_t gdbstub_watch_pages[(((uint32_t) -1) >> (MEM_GRANULARITY_BITS + 
         (gdbstub_watch_pages[((addr) >> MEM_GRANULARITY_BITS) >> 6] & (1ULL << (((addr) >> MEM_GRANULARITY_BITS) & 63)))
 
 extern void gdbstub_cpu_init(void);
+extern void gdbstub_poll(void);
 extern int  gdbstub_instruction(void);
 extern int  gdbstub_int3(void);
 extern void gdbstub_mem_access(uint32_t *addrs, int access);
@@ -73,6 +74,7 @@ extern void gdbstub_close(void);
 #    define gdbstub_next_asap 0
 
 #    define gdbstub_cpu_init()
+#    define gdbstub_poll()
 #    define gdbstub_instruction() 0
 #    define gdbstub_int3()        0
 #    define gdbstub_init()

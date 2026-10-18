@@ -103,6 +103,20 @@ $ 86Box --automation tcp:7086 --automation-token-file /tmp/86box.token &
 $ (echo "auth $(cat /tmp/86box.token)"; echo status) | socat - TCP:127.0.0.1:7086
 ```
 
+## With the GDB stub
+
+In a build with both `-D AUTOMATION=ON` and `-D GDBSTUB=ON`, a GDB client
+and an automation client can share a machine:
+
+- While the GDB stub has the CPU stopped (the stub starts it stopped, and a
+  breakpoint, a watchpoint or a GDB interrupt stops it), no emulated time
+  passes, and `ms` doesn't advance. A `step`, `wait` or `key` command ends
+  as soon as the CPU stops, with `"stopped":"debugger"` in its reply. A
+  `wait` that ends this way has `"matched":false`.
+- While the machine is held, the stub still answers GDB: registers, memory,
+  breakpoints and monitor commands work. A GDB `continue` or `step` takes
+  effect when the CPU next runs, for example during an automation `step`.
+
 ## Determinism notes
 
 - While held, emulated time is fully under the client's control. Disable

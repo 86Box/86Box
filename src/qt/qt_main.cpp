@@ -534,6 +534,9 @@ main_thread_fn()
             if (dopause)
                 ack_pause();
 
+            /* Keep answering a GDB client while the machine isn't running. */
+            gdbstub_poll();
+
             plat_delay_ms(1);
         }
     }
