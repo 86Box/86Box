@@ -1,0 +1,104 @@
+name: CMake (macos)
+
+on:
+
+  push:
+    paths:
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - "!.github/workflows/**"
+      - .github/workflows/cmake_macos.yml
+      - vcpkg.json
+      - "!**/Makefile*"
+
+  pull_request:
+    paths:
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - "!.github/workflows/**"
+      - .github/workflows/cmake_macos.yml
+      - vcpkg.json
+      - "!**/Makefile*"
+
+jobs:
+
+  macos:
+
+    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.environment.arch }}"
+
+    runs-on: ${{ matrix.environment.runner }}
+
+    strategy:
+      fail-fast: true
+      matrix:
+        build:
+#          - name: Regular
+#            preset: regular
+          - name: Debug
+            preset: dev_debug
+            slug: -Debug
+          - name: Dev
+            preset: development
+            slug: -Dev
+        ui:
+          - name: SDL GUI
+            qt: off
+            slug: -SDL
+            static: on
+          - name: Qt 5 GUI
+            qt: on
+            slug: -Qt5
+            packages: >-
+              qt@5
+        environment:
+          - arch: x86_64
+            slug: -x86_64
+            runner: macos-15-intel
+          - arch: arm64
+            slug: -arm64
+            runner: macos-15
+
+    steps:
+      - name: Install dependencies
+        run: >-
+          brew install
+          sdl3
+          rtmidi
+          openal-soft
+          fluidsynth
+          libslirp
+          vde
+          libserialport
+          vulkan-headers
+          zstd
+          ${{ matrix.ui.packages }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Configure CMake
+        run: >-
+          cmake -S . -B build --preset ${{ matrix.build.preset }}
+          -D QT=${{ matrix.ui.qt }}
+          -D Qt5_ROOT=$(brew --prefix qt@5)
+          -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
+          -D OpenAL_ROOT=$(brew --prefix openal-soft)
+          -D LIBSERIALPORT_ROOT=$(brew --prefix libserialport)
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Generate package
+        run: cmake --install build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.build.slug }}-macOS${{ matrix.environment.slug }}-gha${{ github.run_number }}'
+          path: build/artifacts/**

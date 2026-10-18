@@ -3442,7 +3442,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_SOUND | MACHINE_KEYBOARD,
         .ram       = {
             .min  = 512,
             .max  = 768,
@@ -3464,7 +3464,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &tandy_1000sl_video_device,
-        .snd_device               = NULL,
+        .snd_device               = &pssj_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -5186,6 +5186,53 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    {
+        .name              = "[Tandy] Tandy VIS",
+        .internal_name     = "tvis",
+        .type              = MACHINE_TYPE_286,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_at_tandy_vis_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_286,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 0,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_BUS_PS2,
+        .flags     = MACHINE_VIDEO | MACHINE_VIDEO_ONLY | MACHINE_SOUND | MACHINE_KEYBOARD,
+        .ram       = {
+            .min  = 1024,
+            .max  = 1024,
+            .step = 1
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = 0,
+        .nvr_device               = NULL,
+        .nvr_params               = 0,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &tvis_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = &sensationaud_device,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
     /* This has an AMIKey-2, which is 'H'. */
     {
         .name              = "[NEAT] DataExpert 286",
@@ -6570,7 +6617,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_GAMEPORT,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT,
         .ram       = {
             .min  = 1024,
             .max  = 9216,
@@ -6592,7 +6639,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &gd5402_onboard_device,
-        .snd_device               = NULL,
+        .snd_device               = &pssj_1e0_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -22078,7 +22125,7 @@ const machine_t machines[] = {
             .max_multi   = 5.5
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: SiS 6306 (not yet implemented) */
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 1572864,
@@ -22099,7 +22146,7 @@ const machine_t machines[] = {
         .device                   = &ga5smm_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &sis6306_onboard_device,
         .snd_device               = &ess_solo1_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "Compaq Presario 5301", "Compaq Presario 5304", "Compaq Presario 54xx", "" }
@@ -22126,7 +22173,7 @@ const machine_t machines[] = {
             .max_multi   = 6.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: SiS 6306 (not yet implemented) */
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 1048576,
@@ -22147,7 +22194,7 @@ const machine_t machines[] = {
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &sis6306_onboard_device,
         .snd_device               = &ess_solo1_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "IBM Tupelo", "USI Pro-263", "" }

@@ -125,7 +125,6 @@ video_cards[] = {
     { .device = &inmos_isa_device,                              .flags = VIDEO_FLAG_TYPE_XGA       },
     { .device = &jvga_device,                                   .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &paradise_wd90c31_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &paradise_speedstar24x_device,                  .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_86c911_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_86c924_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_86c928_isa_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },

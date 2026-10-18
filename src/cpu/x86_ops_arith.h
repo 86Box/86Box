@@ -834,8 +834,12 @@ op80_a16(uint32_t fetchdat)
     uint8_t dst;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
-        SEG_CHECK_WRITE(cpu_state.ea_seg);
+    if (cpu_mod != 3) {
+        if ((rmdat & 0x38) == 0x38) /*CMP only reads*/
+            SEG_CHECK_READ(cpu_state.ea_seg);
+        else
+            SEG_CHECK_WRITE(cpu_state.ea_seg);
+    }
     src = getbyte();
     if (cpu_state.abrt)
         return 1;
@@ -855,8 +859,12 @@ op80_a32(uint32_t fetchdat)
     uint8_t dst;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
-        SEG_CHECK_WRITE(cpu_state.ea_seg);
+    if (cpu_mod != 3) {
+        if ((rmdat & 0x38) == 0x38) /*CMP only reads*/
+            SEG_CHECK_READ(cpu_state.ea_seg);
+        else
+            SEG_CHECK_WRITE(cpu_state.ea_seg);
+    }
     src = getbyte();
     if (cpu_state.abrt)
         return 1;
@@ -876,8 +884,12 @@ op81_w_a16(uint32_t fetchdat)
     uint16_t dst;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
-        SEG_CHECK_WRITE(cpu_state.ea_seg);
+    if (cpu_mod != 3) {
+        if ((rmdat & 0x38) == 0x38) /*CMP only reads*/
+            SEG_CHECK_READ(cpu_state.ea_seg);
+        else
+            SEG_CHECK_WRITE(cpu_state.ea_seg);
+    }
     src = getword();
     if (cpu_state.abrt)
         return 1;
@@ -897,8 +909,12 @@ op81_w_a32(uint32_t fetchdat)
     uint16_t dst;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
-        SEG_CHECK_WRITE(cpu_state.ea_seg);
+    if (cpu_mod != 3) {
+        if ((rmdat & 0x38) == 0x38) /*CMP only reads*/
+            SEG_CHECK_READ(cpu_state.ea_seg);
+        else
+            SEG_CHECK_WRITE(cpu_state.ea_seg);
+    }
     src = getword();
     if (cpu_state.abrt)
         return 1;
@@ -918,8 +934,12 @@ op81_l_a16(uint32_t fetchdat)
     uint32_t dst;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
-        SEG_CHECK_WRITE(cpu_state.ea_seg);
+    if (cpu_mod != 3) {
+        if ((rmdat & 0x38) == 0x38) /*CMP only reads*/
+            SEG_CHECK_READ(cpu_state.ea_seg);
+        else
+            SEG_CHECK_WRITE(cpu_state.ea_seg);
+    }
     src = getlong();
     if (cpu_state.abrt)
         return 1;
@@ -939,8 +959,12 @@ op81_l_a32(uint32_t fetchdat)
     uint32_t dst;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
-        SEG_CHECK_WRITE(cpu_state.ea_seg);
+    if (cpu_mod != 3) {
+        if ((rmdat & 0x38) == 0x38) /*CMP only reads*/
+            SEG_CHECK_READ(cpu_state.ea_seg);
+        else
+            SEG_CHECK_WRITE(cpu_state.ea_seg);
+    }
     src = getlong();
     if (cpu_state.abrt)
         return 1;
@@ -961,8 +985,12 @@ op83_w_a16(uint32_t fetchdat)
     uint16_t dst;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
-        SEG_CHECK_WRITE(cpu_state.ea_seg);
+    if (cpu_mod != 3) {
+        if ((rmdat & 0x38) == 0x38) /*CMP only reads*/
+            SEG_CHECK_READ(cpu_state.ea_seg);
+        else
+            SEG_CHECK_WRITE(cpu_state.ea_seg);
+    }
     src = getbyte();
     if (cpu_state.abrt)
         return 1;
@@ -984,8 +1012,12 @@ op83_w_a32(uint32_t fetchdat)
     uint16_t dst;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
-        SEG_CHECK_WRITE(cpu_state.ea_seg);
+    if (cpu_mod != 3) {
+        if ((rmdat & 0x38) == 0x38) /*CMP only reads*/
+            SEG_CHECK_READ(cpu_state.ea_seg);
+        else
+            SEG_CHECK_WRITE(cpu_state.ea_seg);
+    }
     src = getbyte();
     if (cpu_state.abrt)
         return 1;
@@ -1008,8 +1040,12 @@ op83_l_a16(uint32_t fetchdat)
     uint32_t dst;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
-        SEG_CHECK_WRITE(cpu_state.ea_seg);
+    if (cpu_mod != 3) {
+        if ((rmdat & 0x38) == 0x38) /*CMP only reads*/
+            SEG_CHECK_READ(cpu_state.ea_seg);
+        else
+            SEG_CHECK_WRITE(cpu_state.ea_seg);
+    }
     src = getbyte();
     if (cpu_state.abrt)
         return 1;
@@ -1031,8 +1067,12 @@ op83_l_a32(uint32_t fetchdat)
     uint32_t dst;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
-        SEG_CHECK_WRITE(cpu_state.ea_seg);
+    if (cpu_mod != 3) {
+        if ((rmdat & 0x38) == 0x38) /*CMP only reads*/
+            SEG_CHECK_READ(cpu_state.ea_seg);
+        else
+            SEG_CHECK_WRITE(cpu_state.ea_seg);
+    }
     src = getbyte();
     if (cpu_state.abrt)
         return 1;

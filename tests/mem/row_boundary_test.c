@@ -21,9 +21,7 @@ uint8_t *ram;
 uint8_t page_ff[4096];
 mem_mapping_t ram_low_mapping, ram_mid_mapping, ram_high_mapping;
 uint32_t mem_logical_addr;
-#ifdef USE_NEW_DYNAREC
 uint64_t *byte_dirty_mask, *byte_code_present_mask;
-#endif
 
 void addreadlookup(uint32_t virt, uint32_t phys) { (void)virt; (void)phys; }
 void addwritelookup(uint32_t virt, uint32_t phys) { (void)virt; (void)phys; }
@@ -88,11 +86,9 @@ int main(void)
     uint8_t *memory = calloc(4, mib);
     pages = calloc(4 * mib / 4096, sizeof(*pages));
     CHECK(memory && pages);
-#ifdef USE_NEW_DYNAREC
     byte_dirty_mask = calloc(4 * mib / 4096 * 64, sizeof(*byte_dirty_mask));
     byte_code_present_mask = calloc(4 * mib / 4096 * 64, sizeof(*byte_code_present_mask));
     CHECK(byte_dirty_mask && byte_code_present_mask);
-#endif
 
     row_t row = { 0 };
     row.buf = memory;
@@ -114,9 +110,7 @@ int main(void)
     CHECK(access_mode == (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL));
     free(pages);
     free(memory);
-#ifdef USE_NEW_DYNAREC
     free(byte_dirty_mask);
     free(byte_code_present_mask);
-#endif
     return 0;
 }

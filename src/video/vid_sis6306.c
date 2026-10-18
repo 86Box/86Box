@@ -289,6 +289,11 @@ typedef struct sis6306_t {
     uint8_t ext_seq[256];
     uint8_t ext_seq_unlocked;
 
+    /* SiS530 SR38[1:0] selects one of three banks at SR13/SR2A/SR2B.
+     * Bank 0: internal VCLK; bank 1: 25 MHz slot; bank 2: 28 MHz slot. */
+    uint8_t vclk_regs[3][3];        /* [bank][SR13, SR2A, SR2B] */
+    uint8_t vclk_written[3];        /* SR2A bit 0, SR2B bit 1 */
+
     uint8_t sis_crtc_index;
     uint8_t ext_crtc[256];
     uint8_t ext_crtc_unlocked;
@@ -1163,10 +1168,34 @@ sis6306_hwcursor_draw(svga_t *svga, int displine)
  * generic SVGA core presents one field at each refresh, which is correct at
  * the signal level but leaves moving objects visibly striped on a progressive
  * host display: the other parity still contains the previous field.
+ * Windows programs the extended CRTC registers in separate writes during a
+ * high-resolution mode switch.  Intermediate timing values can request
+ * scanlines outside the host bitmap.  Guard SiS packed-pixel scanout before
+ * invoking the generic SVGA renderers; other adapters are unaffected.
  */
+static int
+sis6306_packed_scanout_unsafe(svga_t *svga)
+{
+    bitmap_t *target = svga->monitor->target_buffer;
+    const int64_t y = (int64_t) svga->displine + svga->y_add;
+    const int64_t x = svga->x_add;
+    const int64_t end = x + (int64_t) svga->hdisp +
+                        (int64_t) svga->scrollcache + 32;
+    const int unsafe = !target || !target->dat || y < 0 ||
+                       y >= target->h || y >= 2112 ||
+                       x < 0 || x >= target->w ||
+                       svga->hdisp == 0 || end > target->w ||
+                       end <= x || !target->line[y];
+
+    return unsafe;
+}
+
 static void
 sis6306_render_packed_base(svga_t *svga)
 {
+    if (sis6306_packed_scanout_unsafe(svga))
+        return;
+
     switch (svga->bpp) {
         case 32:
             svga_render_32bpp_highres(svga);
@@ -1270,12 +1299,100 @@ sis6306_fast_page_flip_latch(sis6306_t *dev)
     dev->fast_page_flip_count++;
 }
 
+/*
+ * SR38.D2 disables the VGA line-compare function on the SiS530.  The
+ * standard VGA line-compare counter is only 10 bits wide, and its disabled
+ * (all-ones) programming still matches at line 1024.  In 1200-line modes,
+ * that would reset the scanout memory address and repeat the top of the
+ * desktop instead of displaying the final 176 lines.
+ */
+static int
+sis6306_line_compare(svga_t *svga)
+{
+    const sis6306_t *dev = (const sis6306_t *) svga->priv;
+    return !(dev->ext_seq[0x38] & 0x04);
+}
+
+/*
+ * SiS530 internal dual-clock synthesizer (datasheet 5.7.2.4 and
+ * SR13/SR2A/SR2B/SR38). The extended VCLK registers are banked for the
+ * original 25 MHz, 28 MHz and programmable internal video clock slots.
+ */
+static double
+sis6306_vclk_hz(const sis6306_t *dev, unsigned bank)
+{
+    const uint8_t *r = dev->vclk_regs[bank];
+    const unsigned int numer = (r[1] & 0x7f) + 1;
+    const unsigned int denom = (r[2] & 0x1f) + 1;
+    unsigned int postscale = ((r[2] >> 5) & 3) + 1;
+    const unsigned int divider = (r[1] & 0x80) ? 2 : 1;
+
+    if ((dev->vclk_written[bank] & 3) != 3)
+        return 0.0;
+
+    if (r[0] & 0x40) {
+        /* Extended post-scale codes 10 and 11 denote /6 and /8.
+         * Codes 00 and 01 are reserved. */
+        if (postscale < 3)
+            return 0.0;
+        postscale = (postscale == 3) ? 6 : 8;
+    }
+
+    return 14318180.0 * (double) numer / (double) denom /
+           (double) divider / (double) postscale;
+}
+
 static void
 sis6306_recalctimings(svga_t *svga)
 {
     sis6306_t *dev = (sis6306_t *) svga->priv;
     const uint8_t mode = dev->ext_seq[0x06];
     const int packed = !!(mode & 0x1e);
+    const unsigned int clk_sel = (svga->miscout >> 2) & 3;
+    const unsigned int bank = (clk_sel == 3) ? 0 : (clk_sel + 1);
+
+    if (bank < 3) {
+        const double hz = sis6306_vclk_hz(dev, bank);
+        if (hz > 0.0)
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / hz;
+    }
+
+    /* The generic VGA timing counters are limited to 10 vertical bits and
+     * 8 horizontal character-clock bits.  SiS530 extends these in SRA/SR0A
+     * and SR12.  Preserve the generic +1/+2 VGA register adjustments made
+     * by svga_recalctimings() and apply only the missing high bits here.
+     *
+     * Without SR0A[3:0], 1280x1024 has its retrace/blank/total counters
+     * truncated, and 1600x1200 also loses its display end.  At 1600x1200,
+     * SR12[0] is required for a horizontal total over 2047 pixels.
+     */
+    const uint8_t vext = dev->ext_seq[0x0a];
+    const uint8_t hext = dev->ext_seq[0x12];
+
+    svga->hoverride = packed && !!(hext & 0x01);
+
+    if (vext & 0x01)
+        svga->vtotal += 0x400;
+    if (vext & 0x02)
+        svga->dispend += 0x400;
+    if (vext & 0x04)
+        svga->vblankstart += 0x400;
+    if (vext & 0x08)
+        svga->vsyncstart += 0x400;
+
+    if (hext & 0x01)
+        svga->htotal += 0x100;
+    if (hext & 0x02) {
+        svga->hdisp_time += 0x100;
+        svga->hdisp += 0x100 * svga->dots_per_clock;
+    }
+    if (hext & 0x04)
+        svga->hblankstart += 0x100;
+    /* SR12[3] extends horizontal retrace start. */
+    if (hext & 0x10) {
+        svga->hblank_end_val |= 0x40;
+        svga->hblank_end_mask = 0x7f;
+    }
 
     /* SR06.D5 is the SiS interlace enable.  The generic SVGA core handles
        field stepping once this flag is exposed to it. */
@@ -1302,24 +1419,24 @@ sis6306_recalctimings(svga_t *svga)
      */
     if (packed && (dev->ext_seq[0x09] & 0x80)) {
         svga->bpp    = 32;
-        svga->render = svga->interlace ? sis6306_render_interlaced_weave : svga_render_32bpp_highres;
+        svga->render = svga->interlace ? sis6306_render_interlaced_weave : sis6306_render_packed_base;
         svga->rowcount = 0;
     } else if (mode & 0x10) {
         svga->bpp    = 24;
-        svga->render = svga->interlace ? sis6306_render_interlaced_weave : svga_render_24bpp_highres;
+        svga->render = svga->interlace ? sis6306_render_interlaced_weave : sis6306_render_packed_base;
         svga->rowcount = 0;
     } else if (mode & 0x08) {
         svga->bpp       = 16;
-        svga->render    = svga->interlace ? sis6306_render_interlaced_weave : svga_render_16bpp_highres;
+        svga->render    = svga->interlace ? sis6306_render_interlaced_weave : sis6306_render_packed_base;
         svga->rowcount  = 0;
     } else if (mode & 0x04) {
         svga->bpp       = 15;
-        svga->render    = svga->interlace ? sis6306_render_interlaced_weave : svga_render_15bpp_highres;
+        svga->render    = svga->interlace ? sis6306_render_interlaced_weave : sis6306_render_packed_base;
         svga->rowcount  = 0;
     } else if (mode & 0x02) {
         svga->bpp       = 8;
         svga->map8      = svga->pallook;
-        svga->render    = svga->interlace ? sis6306_render_interlaced_weave : svga_render_8bpp_highres;
+        svga->render    = svga->interlace ? sis6306_render_interlaced_weave : sis6306_render_packed_base;
         /* Enhanced packed 8-bpp bypasses the VGA AR12 planar mask. */
         svga->plane_mask = 0x0f;
         svga->rowcount   = 0;
@@ -1485,6 +1602,21 @@ sis6306_out(uint16_t addr, uint8_t val, void *priv)
                         sis6306_accel_sync(dev);
                     dev->ext_seq[index] = val;
 
+                    /* SR38.D1:0 selects which VCLK register bank is exposed
+                     * at SR13, SR2A and SR2B. Live clock select is still
+                     * VGA Misc Output[3:2]. */
+                    if ((index == 0x13) || (index == 0x2a) || (index == 0x2b)) {
+                        const unsigned int bank = dev->ext_seq[0x38] & 3;
+                        if (bank < 3) {
+                            const unsigned int slot = (index == 0x13) ? 0 :
+                                                      ((index == 0x2a) ? 1 : 2);
+                            dev->vclk_regs[bank][slot] = val;
+                            if (slot != 0)
+                                dev->vclk_written[bank] |= (uint8_t) (1U << (slot - 1));
+                            svga_recalctimings(svga);
+                        }
+                    }
+
                     /* SR11 bit 0=SCL, bit 1=SDA on the monitor DDC bus. */
                     if (index == 0x11) {
                         dev->ddc_writes++;
@@ -1629,6 +1761,16 @@ sis6306_in(uint16_t addr, void *priv)
                 }
                 if (svga->seqaddr == 0x0e) {
                     return 0x40;
+                }
+
+                if ((svga->seqaddr == 0x13) || (svga->seqaddr == 0x2a) ||
+                    (svga->seqaddr == 0x2b)) {
+                    const unsigned int bank = dev->ext_seq[0x38] & 3;
+                    if (bank < 3) {
+                        const unsigned int slot = (svga->seqaddr == 0x13) ? 0 :
+                                                  ((svga->seqaddr == 0x2a) ? 1 : 2);
+                        return dev->vclk_regs[bank][slot];
+                    }
                 }
 
                 if (svga->seqaddr == 0x11) {
@@ -2095,11 +2237,11 @@ sis6306_engine_color_expand(sis6306_t *dev, uint32_t command, int enhanced,
                         mono = !!(svga->vram[sa] & (0x80U >> (sx & 7)));
                 }
             } else {
-                uint32_t bit = yy * width + xx;
-                uint32_t byte = bit >> 3;
-                if (byte < 0x180)
-                    mono = !!(dev->accel_regs[0x8300 + byte] &
-                              (0x80U >> (bit & 7)));
+                const uint32_t row_bytes = ((uint32_t) width + 7U) >> 3;
+                const uint32_t byte = yy * row_bytes + (xx >> 3);
+                if (byte < 0x180U)
+                    mono = !!(dev->accel_regs[0x8300U + byte] &
+                              (0x80U >> (xx & 7U)));
             }
 
             if (transparent && !mono)
@@ -5586,6 +5728,8 @@ sis6306_init(const device_t *info)
               sis6306_recalctimings,
               sis6306_in, sis6306_out,
               sis6306_hwcursor_draw, NULL);
+
+    dev->svga.line_compare = sis6306_line_compare;
 
     /*
      * Replace only the legacy-memory callbacks.  Standard VGA modes still

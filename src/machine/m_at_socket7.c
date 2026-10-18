@@ -1516,13 +1516,13 @@ machine_at_txp4x_init(const machine_t *model)
     machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
+    /* Four slots, as in the BIOS's $PIR table: slot 1 is device 0Ch, slot 4 is 09h.
+       Devices 08h and 0Dh are not slots -- the 0112 BIOS gives them no IRQ. */
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4); /* unused? */
-    pci_register_slot(0x09, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4); /* unused? */
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
 
     device_add(&i430tx_device);

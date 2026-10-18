@@ -451,7 +451,8 @@ isFirstCdromAvailable(void)
         return false;
     if ((cdrom[0].bus_type == CDROM_BUS_SCSI) && !((machine_has_flags(machine, MACHINE_SCSI) > 0) || other_scsi_present) && (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) && (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
         return false;
-    if ((cdrom[0].bus_type == CDROM_BUS_SONY || cdrom[0].bus_type == CDROM_BUS_MITSUMI || cdrom[0].bus_type == CDROM_BUS_MKE || cdrom[0].bus_type == CDROM_BUS_PHILIPS) && (cdrom_interface_current == 0))
+    if ((cdrom[0].bus_type == CDROM_BUS_SONY || cdrom[0].bus_type == CDROM_BUS_MITSUMI || cdrom[0].bus_type == CDROM_BUS_MKE || cdrom[0].bus_type == CDROM_BUS_PHILIPS) && (cdrom_interface_current == 0) &&
+        !((cdrom[0].bus_type == CDROM_BUS_MITSUMI) && (machines[machine].init == machine_at_tandy_vis_init)))
         return false;
     if (cdrom[0].bus_type != 0) {
         return true;

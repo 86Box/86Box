@@ -8,7 +8,7 @@ opMOV_r_CRx_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     switch (cpu_reg) {
         case 0:
-            cpu_state.regs[cpu_rm].l = cr0;
+            cpu_state.regs[cpu_rm].l = cr0 | ((is486 || isibm486) ? 0x10 : 0); /* ET hardwired from the 486 on */
             if (cpu_flush_pending)
                 cpu_state.regs[cpu_rm].l ^= 0x80000000;
             if (is486 || isibm486)
@@ -50,7 +50,7 @@ opMOV_r_CRx_a32(uint32_t fetchdat)
     fetch_ea_32(fetchdat);
     switch (cpu_reg) {
         case 0:
-            cpu_state.regs[cpu_rm].l = cr0;
+            cpu_state.regs[cpu_rm].l = cr0 | ((is486 || isibm486) ? 0x10 : 0); /* ET hardwired from the 486 on */
             if (cpu_flush_pending)
                 cpu_state.regs[cpu_rm].l ^= 0x80000000;
             if (is486 || isibm486)
@@ -91,8 +91,10 @@ opMOV_r_DRx_a16(uint32_t fetchdat)
         return 1;
     }
 #ifdef USE_DEBUG_REGS_486
-    if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
-        trap |= 16;
+    /* General detect: a #DB fault before the instruction, with DR6.BD set */
+    if (dr[7] & 0x2000) {
+        dr[6] |= 0x2000;
+        x86gen();
         return 1;
     }
 #endif
@@ -135,8 +137,10 @@ opMOV_r_DRx_a32(uint32_t fetchdat)
         return 1;
     }
 #ifdef USE_DEBUG_REGS_486
-    if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
-        trap |= 16;
+    /* General detect: a #DB fault before the instruction, with DR6.BD set */
+    if (dr[7] & 0x2000) {
+        dr[6] |= 0x2000;
+        x86gen();
         return 1;
     }
 #endif
@@ -184,6 +188,15 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     switch (cpu_reg) {
         case 0:
+            if (cpu_cr0_invalid(cpu_state.regs[cpu_rm].l)) {
+                x86gpf(NULL, 0);
+                return 1;
+            }
+            /* Setting PG with PAE on loads the PDPTEs */
+            if ((cpu_state.regs[cpu_rm].l & 0x80000000) && !(cr0 & 0x80000000) && (cr4 & CR4_PAE) && pae_check_load(cr3)) {
+                x86gpf(NULL, 0);
+                return 1;
+            }
             if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x00000001)
                 flushmmucache();
             else if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000000) {
@@ -221,11 +234,26 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
             cr2 = cpu_state.regs[cpu_rm].l;
             break;
         case 3:
+            /* With PAE paging, the PDPTEs load with CR3 */
+            if ((cr4 & CR4_PAE) && (cr0 & 0x80000000) && pae_check_load(cpu_state.regs[cpu_rm].l)) {
+                x86gpf(NULL, 0);
+                return 1;
+            }
             cr3 = cpu_state.regs[cpu_rm].l;
             flushmmucache();
             break;
         case 4:
             if (cpu_has_feature(CPU_FEATURE_CR4)) {
+                /* A bit this model doesn't have is #GP(0), not dropped. */
+                if (cpu_state.regs[cpu_rm].l & ~(cpu_CR4_mask | cpu_CR4_ignore)) {
+                    x86gpf(NULL, 0);
+                    return 1;
+                }
+                /* Setting PAE with paging on loads the PDPTEs */
+                if ((cpu_state.regs[cpu_rm].l & CR4_PAE) && !(cr4 & CR4_PAE) && (cr0 & 0x80000000) && pae_check_load(cr3)) {
+                    x86gpf(NULL, 0);
+                    return 1;
+                }
                 if (((cpu_state.regs[cpu_rm].l ^ cr4) & cpu_CR4_mask) & (CR4_PSE | CR4_PAE | CR4_PGE))
                     flushmmucache();
                 cr4 = cpu_state.regs[cpu_rm].l & cpu_CR4_mask;
@@ -253,6 +281,15 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
     fetch_ea_32(fetchdat);
     switch (cpu_reg) {
         case 0:
+            if (cpu_cr0_invalid(cpu_state.regs[cpu_rm].l)) {
+                x86gpf(NULL, 0);
+                return 1;
+            }
+            /* Setting PG with PAE on loads the PDPTEs */
+            if ((cpu_state.regs[cpu_rm].l & 0x80000000) && !(cr0 & 0x80000000) && (cr4 & CR4_PAE) && pae_check_load(cr3)) {
+                x86gpf(NULL, 0);
+                return 1;
+            }
             if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x00000001)
                 flushmmucache();
             else if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000000) {
@@ -290,11 +327,26 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
             cr2 = cpu_state.regs[cpu_rm].l;
             break;
         case 3:
+            /* With PAE paging, the PDPTEs load with CR3 */
+            if ((cr4 & CR4_PAE) && (cr0 & 0x80000000) && pae_check_load(cpu_state.regs[cpu_rm].l)) {
+                x86gpf(NULL, 0);
+                return 1;
+            }
             cr3 = cpu_state.regs[cpu_rm].l;
             flushmmucache();
             break;
         case 4:
             if (cpu_has_feature(CPU_FEATURE_CR4)) {
+                /* A bit this model doesn't have is #GP(0), not dropped. */
+                if (cpu_state.regs[cpu_rm].l & ~(cpu_CR4_mask | cpu_CR4_ignore)) {
+                    x86gpf(NULL, 0);
+                    return 1;
+                }
+                /* Setting PAE with paging on loads the PDPTEs */
+                if ((cpu_state.regs[cpu_rm].l & CR4_PAE) && !(cr4 & CR4_PAE) && (cr0 & 0x80000000) && pae_check_load(cr3)) {
+                    x86gpf(NULL, 0);
+                    return 1;
+                }
                 if (((cpu_state.regs[cpu_rm].l ^ cr4) & cpu_CR4_mask) & (CR4_PSE | CR4_PAE | CR4_PGE))
                     flushmmucache();
                 cr4 = cpu_state.regs[cpu_rm].l & cpu_CR4_mask;
@@ -319,8 +371,9 @@ opMOV_DRx_r_a16(uint32_t fetchdat)
         return 1;
     }
 #ifdef USE_DEBUG_REGS_486
-    if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
-        trap |= 16;
+    /* General detect: a #DB fault before the instruction, with DR6.BD set */
+    if (dr[7] & 0x2000) {
+        dr[6] |= 0x2000;
         x86gen();
         return 1;
     }
@@ -337,7 +390,7 @@ opMOV_DRx_r_a16(uint32_t fetchdat)
             }
             fallthrough;
         case 6:
-            dr[6] = (dr[6] & 0xffff0ff0) | (cpu_state.regs[cpu_rm].l & 0x0000f00f);
+            dr[6] = (dr[6] & 0xffff0ff0) | (cpu_state.regs[cpu_rm].l & (is586 ? 0x0000e00f : 0x0000f00f)); /* bit 12 is 0 from the Pentium on */
             break;
         case 5:
             if (cr4 & 0x8) {
@@ -346,7 +399,7 @@ opMOV_DRx_r_a16(uint32_t fetchdat)
             }
             fallthrough;
         case 7:
-            dr[7] = cpu_state.regs[cpu_rm].l | 0x00000400;
+            dr[7] = (cpu_state.regs[cpu_rm].l | 0x00000400) & (is586 ? ~0x0000d800 : ~0);
             break;
         default:
             x86illegal();
@@ -367,12 +420,14 @@ opMOV_DRx_r_a32(uint32_t fetchdat)
         return 1;
     }
 #ifdef USE_DEBUG_REGS_486
-    if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
-        trap |= 16;
+    /* General detect: a #DB fault before the instruction, with DR6.BD set */
+    if (dr[7] & 0x2000) {
+        dr[6] |= 0x2000;
+        x86gen();
         return 1;
     }
 #endif
-    fetch_ea_16(fetchdat);
+    fetch_ea_32(fetchdat);
     switch (cpu_reg) {
         case 0 ... 3:
             dr[cpu_reg] = cpu_state.regs[cpu_rm].l;
@@ -384,7 +439,7 @@ opMOV_DRx_r_a32(uint32_t fetchdat)
             }
             fallthrough;
         case 6:
-            dr[6] = (dr[6] & 0xffff0ff0) | (cpu_state.regs[cpu_rm].l & 0x0000f00f);
+            dr[6] = (dr[6] & 0xffff0ff0) | (cpu_state.regs[cpu_rm].l & (is586 ? 0x0000e00f : 0x0000f00f)); /* bit 12 is 0 from the Pentium on */
             break;
         case 5:
             if (cr4 & 0x8) {
@@ -393,7 +448,7 @@ opMOV_DRx_r_a32(uint32_t fetchdat)
             }
             fallthrough;
         case 7:
-            dr[7] = cpu_state.regs[cpu_rm].l | 0x00000400;
+            dr[7] = (cpu_state.regs[cpu_rm].l | 0x00000400) & (is586 ? ~0x0000d800 : ~0);
             break;
         default:
             x86illegal();
@@ -416,7 +471,7 @@ opMOV_r_TRx(void)
 static int
 opMOV_r_TRx_a16(uint32_t fetchdat)
 {
-    if ((cpu_s->cpu_type == CPU_PENTIUM) || ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1))) {
+    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
         x86gpf(NULL, 0);
         return 1;
     }
@@ -428,7 +483,7 @@ opMOV_r_TRx_a16(uint32_t fetchdat)
 static int
 opMOV_r_TRx_a32(uint32_t fetchdat)
 {
-    if ((cpu_s->cpu_type == CPU_PENTIUM) || ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1))) {
+    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
         x86gpf(NULL, 0);
         return 1;
     }
@@ -447,7 +502,7 @@ opMOV_TRx_r(void)
 static int
 opMOV_TRx_r_a16(uint32_t fetchdat)
 {
-    if ((cpu_s->cpu_type == CPU_PENTIUM) || ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1))) {
+    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
         x86gpf(NULL, 0);
         return 1;
     }
@@ -459,7 +514,7 @@ opMOV_TRx_r_a16(uint32_t fetchdat)
 static int
 opMOV_TRx_r_a32(uint32_t fetchdat)
 {
-    if ((cpu_s->cpu_type == CPU_PENTIUM) || ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1))) {
+    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
         x86gpf(NULL, 0);
         return 1;
     }

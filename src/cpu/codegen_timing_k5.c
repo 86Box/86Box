@@ -1706,9 +1706,9 @@ uop_run(const risc86_uop_t *uop, int decode_time)
     if (units == k5_2_units) {
         if (uop->type == UOP_MEU_MUL && decode_time < mul_first_available_cycle)
             decode_time = mul_first_available_cycle;
-        else if (uop->type == UOP_MEU_SHIFT && decode_time < mul_first_available_cycle)
+        else if (uop->type == UOP_MEU_SHIFT && decode_time < shift_first_available_cycle)
             decode_time = shift_first_available_cycle;
-        else if (uop->type == UOP_MEU_3DN && decode_time < mul_first_available_cycle)
+        else if (uop->type == UOP_MEU_3DN && decode_time < m3dnow_first_available_cycle)
             decode_time = m3dnow_first_available_cycle;
     }
 
@@ -2055,6 +2055,15 @@ codegen_timing_k5_opcode(uint8_t opcode, UNUSED(uint32_t fetchdat), int op_32, u
     int                          mod3                        = ((fetchdat & 0xc0) == 0xc0);
     int                          old_last_complete_timestamp = last_complete_timestamp;
     int                          bit8                        = !(opcode & 1);
+
+    /*0F 0F is 3DNow! only on the processors that have it (no K5 does); there
+      the instruction is #UD, and the 3DNow! unit it would be timed on
+      doesn't exist*/
+    if ((last_prefix == 0x0f) && (opcode == 0x0f) && !cpu_has_feature(CPU_FEATURE_3DNOW)) {
+        decode_instruction(&vector_alu1_op, 0, fetchdat, op_32, bit8);
+        codegen_block_cycles += (last_complete_timestamp - old_last_complete_timestamp);
+        return;
+    }
 
     switch (last_prefix) {
         case 0x0f:

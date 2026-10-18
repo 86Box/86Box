@@ -200,6 +200,8 @@ extern uint64_t plat_timer_read(void);
 extern uint32_t plat_get_ticks(void);
 extern void     plat_delay_ms(uint32_t count);
 extern void     plat_pause(int p);
+/* Fast forward on or off from outside the UI (automation). */
+extern void     plat_fast_forward(int on);
 extern void     plat_mouse_capture(int on);
 extern int      plat_vidapi(const char *name);
 extern char    *plat_vidapi_name(int api);

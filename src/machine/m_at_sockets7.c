@@ -1079,7 +1079,7 @@ machine_at_ga5smm_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
-    pci_register_slot(0x02, PCI_CARD_VIDEO,           1, 2, 3, 4); /* guess */
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,       0, 0, 0, 0);
     pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,          2, 3, 4, 1);
     pci_register_slot(0x0F, PCI_CARD_NORMAL,          3, 4, 1, 2);
@@ -1089,6 +1089,9 @@ machine_at_ga5smm_init(const machine_t *model)
     device_add(&it8661f_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 512);
+
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
 
     if (sound_card_current[0] == SOUND_INTERNAL)
         device_add(machine_get_snd_device(machine));
@@ -1112,7 +1115,7 @@ machine_at_aptiva2187_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     1, 2, 3, 5);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
-    pci_register_slot(0x02, PCI_CARD_VIDEO,           1, 2, 3, 4); /* guess */
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,       0, 0, 0, 0);
     pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
     pci_register_slot(0x0A, PCI_CARD_NORMAL,          2, 3, 4, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,          3, 4, 1, 2);
@@ -1123,6 +1126,9 @@ machine_at_aptiva2187_init(const machine_t *model)
     device_add(&it8661f_device); /* guess */
     device_add(&sst_flash_29ee020_device); /* guess */
     spd_register(SPD_TYPE_SDRAM, 0x3, 512);
+
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
 
     if (sound_card_current[0] == SOUND_INTERNAL)
         device_add(machine_get_snd_device(machine));

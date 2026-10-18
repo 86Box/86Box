@@ -1,15 +1,8 @@
-#ifdef USE_NEW_DYNAREC
-#    define CPU_SET_OXPC
-#else
-#    define CPU_SET_OXPC oxpc = cpu_state.pc;
-#endif
-
 #define RETF_a16(stack_offset)                        \
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG)) { \
         op_pmoderetf(0, stack_offset);                \
         return 1;                                     \
     }                                                 \
-    CPU_SET_OXPC                                      \
     if (stack32) {                                    \
         cpu_state.pc = readmemw(ss, ESP);             \
         op_loadcs(readmemw(ss, ESP + 2));             \
@@ -30,7 +23,6 @@
         op_pmoderetf(1, stack_offset);                \
         return 1;                                     \
     }                                                 \
-    CPU_SET_OXPC                                      \
     if (stack32) {                                    \
         cpu_state.pc = readmeml(ss, ESP);             \
         op_loadcs(readmeml(ss, ESP + 4) & 0xffff);    \
@@ -118,7 +110,6 @@ opIRET_186(UNUSED(uint32_t fetchdat))
         optype = 0;
     } else {
         uint16_t new_cs;
-        CPU_SET_OXPC
         if (stack32) {
             cpu_state.pc    = readmemw(ss, ESP);
             new_cs          = readmemw(ss, ESP + 2);
@@ -159,7 +150,6 @@ opIRET_286(UNUSED(uint32_t fetchdat))
         optype = 0;
     } else {
         uint16_t new_cs;
-        CPU_SET_OXPC
         if (stack32) {
             cpu_state.pc    = readmemw(ss, ESP);
             new_cs          = readmemw(ss, ESP + 2);
@@ -227,7 +217,6 @@ opIRET(UNUSED(uint32_t fetchdat))
             optype = 0;
         } else {
             uint16_t new_cs;
-            CPU_SET_OXPC
             if (stack32) {
                 cpu_state.pc    = readmemw(ss, ESP);
                 new_cs          = readmemw(ss, ESP + 2);
@@ -269,7 +258,6 @@ opIRETD(UNUSED(uint32_t fetchdat))
         optype = 0;
     } else {
         uint16_t new_cs;
-        CPU_SET_OXPC
         if (stack32) {
             cpu_state.pc     = readmeml(ss, ESP);
             new_cs           = readmemw(ss, ESP + 4);

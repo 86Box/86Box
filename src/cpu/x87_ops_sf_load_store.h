@@ -196,6 +196,7 @@ sf_FBLD_PACKED_BCD_a16(uint32_t fetchdat)
     FPU_check_pending_exceptions();
     fetch_ea_16(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
+    CHECK_READ_EA(10);
     load_reg_hi = readmemw(easeg, (cpu_state.eaaddr + 8) & 0xffff);
     load_reg_lo = readmemq(easeg, cpu_state.eaaddr);
     if (cpu_state.abrt)
@@ -215,7 +216,7 @@ sf_FBLD_PACKED_BCD_a16(uint32_t fetchdat)
         result = (floatx80) i64_to_extF80(val64);
 
         if (load_reg_hi & 0x8000)
-            floatx80_chs(result);
+            result = floatx80_chs(result); /* chs returns the negated copy */
 
         FPU_push();
         FPU_save_regi(result, 0);
@@ -238,6 +239,7 @@ sf_FBLD_PACKED_BCD_a32(uint32_t fetchdat)
     FPU_check_pending_exceptions();
     fetch_ea_32(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
+    CHECK_READ_EA(10);
     load_reg_hi = readmemw(easeg, cpu_state.eaaddr + 8);
     load_reg_lo = readmemq(easeg, cpu_state.eaaddr);
     if (cpu_state.abrt)
@@ -257,7 +259,7 @@ sf_FBLD_PACKED_BCD_a32(uint32_t fetchdat)
         result = (floatx80) i64_to_extF80(val64);
 
         if (load_reg_hi & 0x8000)
-            floatx80_chs(result);
+            result = floatx80_chs(result); /* chs returns the negated copy */
 
         FPU_push();
         FPU_save_regi(result, 0);
@@ -415,6 +417,7 @@ sf_FLDe_a16(uint32_t fetchdat)
     FPU_check_pending_exceptions();
     fetch_ea_16(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
+    CHECK_READ_EA(10);
     result.signif  = readmemq(easeg, cpu_state.eaaddr);
     result.signExp = readmemw(easeg, cpu_state.eaaddr + 8);
     if (cpu_state.abrt)
@@ -441,6 +444,7 @@ sf_FLDe_a32(uint32_t fetchdat)
     FPU_check_pending_exceptions();
     fetch_ea_32(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
+    CHECK_READ_EA(10);
     result.signif  = readmemq(easeg, cpu_state.eaaddr);
     result.signExp = readmemw(easeg, cpu_state.eaaddr + 8);
     if (cpu_state.abrt)
@@ -517,7 +521,8 @@ sf_FISTiw_a16(uint32_t fetchdat)
     // store to the memory might generate an exception, in this case original FPU_SW must be kept
     swap_values16u(sw, fpu_state.swd);
     seteaw(save_reg);
-    fpu_state.swd = sw;
+    if (!cpu_state.abrt)
+        FPU_store_done(sw);
 
 next_ins:
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fist_16) : (x87_timings.fist_16 * cpu_multi));
@@ -550,7 +555,8 @@ sf_FISTiw_a32(uint32_t fetchdat)
     // store to the memory might generate an exception, in this case original FPU_SW must be kept
     swap_values16u(sw, fpu_state.swd);
     seteaw(save_reg);
-    fpu_state.swd = sw;
+    if (!cpu_state.abrt)
+        FPU_store_done(sw);
 
 next_ins:
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fist_16) : (x87_timings.fist_16 * cpu_multi));
@@ -587,7 +593,7 @@ sf_FISTPiw_a16(uint32_t fetchdat)
     seteaw(save_reg);
     if (cpu_state.abrt)
         return 1;
-    fpu_state.swd = sw;
+    FPU_store_done(sw);
     FPU_pop();
 
 next_ins:
@@ -623,7 +629,7 @@ sf_FISTPiw_a32(uint32_t fetchdat)
     seteaw(save_reg);
     if (cpu_state.abrt)
         return 1;
-    fpu_state.swd = sw;
+    FPU_store_done(sw);
     FPU_pop();
 
 next_ins:
@@ -659,7 +665,8 @@ sf_FISTil_a16(uint32_t fetchdat)
     // store to the memory might generate an exception, in this case original FPU_SW must be kept
     swap_values16u(sw, fpu_state.swd);
     seteal(save_reg);
-    fpu_state.swd = sw;
+    if (!cpu_state.abrt)
+        FPU_store_done(sw);
 
 next_ins:
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fist_32) : (x87_timings.fist_32 * cpu_multi));
@@ -692,7 +699,8 @@ sf_FISTil_a32(uint32_t fetchdat)
     // store to the memory might generate an exception, in this case original FPU_SW must be kept
     swap_values16u(sw, fpu_state.swd);
     seteal(save_reg);
-    fpu_state.swd = sw;
+    if (!cpu_state.abrt)
+        FPU_store_done(sw);
 
 next_ins:
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fist_32) : (x87_timings.fist_32 * cpu_multi));
@@ -729,7 +737,7 @@ sf_FISTPil_a16(uint32_t fetchdat)
     seteal(save_reg);
     if (cpu_state.abrt)
         return 1;
-    fpu_state.swd = sw;
+    FPU_store_done(sw);
     FPU_pop();
 
 next_ins:
@@ -765,7 +773,7 @@ sf_FISTPil_a32(uint32_t fetchdat)
     seteal(save_reg);
     if (cpu_state.abrt)
         return 1;
-    fpu_state.swd = sw;
+    FPU_store_done(sw);
     FPU_pop();
 
 next_ins:
@@ -803,7 +811,7 @@ sf_FISTPiq_a16(uint32_t fetchdat)
     seteaq(save_reg);
     if (cpu_state.abrt)
         return 1;
-    fpu_state.swd = sw;
+    FPU_store_done(sw);
     FPU_pop();
 
 next_ins:
@@ -839,7 +847,7 @@ sf_FISTPiq_a32(uint32_t fetchdat)
     seteaq(save_reg);
     if (cpu_state.abrt)
         return 1;
-    fpu_state.swd = sw;
+    FPU_store_done(sw);
     FPU_pop();
 
 next_ins:
@@ -864,6 +872,7 @@ sf_FBSTP_PACKED_BCD_a16(uint32_t fetchdat)
     FPU_check_pending_exceptions();
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE_EA(10);
     clear_C1();
     if (IS_TAG_EMPTY(0)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
@@ -904,7 +913,7 @@ sf_FBSTP_PACKED_BCD_a16(uint32_t fetchdat)
     writememw(easeg, cpu_state.eaaddr + 8, save_reg_hi);
     if (cpu_state.abrt)
         return 1;
-    fpu_state.swd = sw;
+    FPU_store_done(sw);
     FPU_pop();
 
 next_ins:
@@ -928,6 +937,7 @@ sf_FBSTP_PACKED_BCD_a32(uint32_t fetchdat)
     FPU_check_pending_exceptions();
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE_EA(10);
     clear_C1();
     if (IS_TAG_EMPTY(0)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
@@ -968,7 +978,7 @@ sf_FBSTP_PACKED_BCD_a32(uint32_t fetchdat)
     writememw(easeg, cpu_state.eaaddr + 8, save_reg_hi);
     if (cpu_state.abrt)
         return 1;
-    fpu_state.swd = sw;
+    FPU_store_done(sw);
     FPU_pop();
 
 next_ins:
@@ -1004,7 +1014,8 @@ sf_FSTs_a16(uint32_t fetchdat)
     // store to the memory might generate an exception, in this case original FPU_SW must be kept
     swap_values16u(sw, fpu_state.swd);
     seteal(save_reg);
-    fpu_state.swd = sw;
+    if (!cpu_state.abrt)
+        FPU_store_done(sw);
 
 next_ins:
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fst_32) : (x87_timings.fst_32 * cpu_multi));
@@ -1037,7 +1048,8 @@ sf_FSTs_a32(uint32_t fetchdat)
     // store to the memory might generate an exception, in this case original FPU_SW must be kept
     swap_values16u(sw, fpu_state.swd);
     seteal(save_reg);
-    fpu_state.swd = sw;
+    if (!cpu_state.abrt)
+        FPU_store_done(sw);
 
 next_ins:
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fst_32) : (x87_timings.fst_32 * cpu_multi));
@@ -1075,7 +1087,7 @@ sf_FSTPs_a16(uint32_t fetchdat)
     if (cpu_state.abrt)
         return 1;
 
-    fpu_state.swd = sw;
+    FPU_store_done(sw);
     FPU_pop();
 
 next_ins:
@@ -1112,7 +1124,7 @@ sf_FSTPs_a32(uint32_t fetchdat)
     if (cpu_state.abrt)
         return 1;
 
-    fpu_state.swd = sw;
+    FPU_store_done(sw);
     FPU_pop();
 
 next_ins:
@@ -1148,7 +1160,8 @@ sf_FSTd_a16(uint32_t fetchdat)
     // store to the memory might generate an exception, in this case original FPU_SW must be kept
     swap_values16u(sw, fpu_state.swd);
     seteaq(save_reg);
-    fpu_state.swd = sw;
+    if (!cpu_state.abrt)
+        FPU_store_done(sw);
 
 next_ins:
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fst_64) : (x87_timings.fst_64 * cpu_multi));
@@ -1181,7 +1194,8 @@ sf_FSTd_a32(uint32_t fetchdat)
     // store to the memory might generate an exception, in this case original FPU_SW must be kept
     swap_values16u(sw, fpu_state.swd);
     seteaq(save_reg);
-    fpu_state.swd = sw;
+    if (!cpu_state.abrt)
+        FPU_store_done(sw);
 
 next_ins:
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fst_64) : (x87_timings.fst_64 * cpu_multi));
@@ -1220,7 +1234,7 @@ sf_FSTPd_a16(uint32_t fetchdat)
     if (cpu_state.abrt)
         return 1;
 
-    fpu_state.swd = sw;
+    FPU_store_done(sw);
     FPU_pop();
 
 next_ins:
@@ -1257,7 +1271,7 @@ sf_FSTPd_a32(uint32_t fetchdat)
     if (cpu_state.abrt)
         return 1;
 
-    fpu_state.swd = sw;
+    FPU_store_done(sw);
     FPU_pop();
 
 next_ins:
@@ -1277,6 +1291,7 @@ sf_FSTPe_a16(uint32_t fetchdat)
     FPU_check_pending_exceptions();
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE_EA(10);
     if (cpu_state.abrt)
         return 1;
     save_reg = floatx80_default_nan;
@@ -1291,6 +1306,8 @@ sf_FSTPe_a16(uint32_t fetchdat)
     }
     writememq(easeg, cpu_state.eaaddr, save_reg.signif);
     writememw(easeg, cpu_state.eaaddr + 8, save_reg.signExp);
+    if (cpu_state.abrt)
+        return 1; /* a faulting store leaves the stack as it was */
     FPU_pop();
 
 next_ins:
@@ -1309,6 +1326,7 @@ sf_FSTPe_a32(uint32_t fetchdat)
     FPU_check_pending_exceptions();
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE_EA(10);
     if (cpu_state.abrt)
         return 1;
     save_reg = floatx80_default_nan;
@@ -1322,6 +1340,8 @@ sf_FSTPe_a32(uint32_t fetchdat)
     }
     writememq(easeg, cpu_state.eaaddr, save_reg.signif);
     writememw(easeg, cpu_state.eaaddr + 8, save_reg.signExp);
+    if (cpu_state.abrt)
+        return 1; /* a faulting store leaves the stack as it was */
     FPU_pop();
 
 next_ins:
@@ -1361,7 +1381,9 @@ sf_FSTP_sti(uint32_t fetchdat)
     cpu_state.pc++;
     clear_C1();
     if (IS_TAG_EMPTY(0)) {
-        FPU_pop();
+        /* Stack underflow: masked, the QNaN indefinite and the pop;
+           unmasked, nothing changes */
+        FPU_stack_underflow(fetchdat, fetchdat & 7, 1);
     } else {
         st0_reg = FPU_read_regi(0);
         FPU_save_regi(st0_reg, fetchdat & 7);

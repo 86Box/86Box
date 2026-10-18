@@ -31,6 +31,7 @@
 #include <86box/smram.h>
 #include <86box/spd.h>
 
+#include <86box/agpgart.h>
 #include <86box/chipset.h>
 
 typedef struct ali1541_t {
@@ -43,6 +44,8 @@ typedef struct ali1541_t {
 
     smram_t *smram;
     void    *agp_bridge;
+
+    agpgart_t *agpgart;
 
     int           row_decode;
     int           row_pop[8];
@@ -147,6 +150,7 @@ ali1541_mask_bar(ali1541_t *dev)
 {
     uint32_t bar;
     uint32_t mask;
+    uint32_t gart;
 
     switch (dev->pci_conf[0xbc] & 0x0f) {
         default:
@@ -185,6 +189,16 @@ ali1541_mask_bar(ali1541_t *dev)
     bar                 = ((dev->pci_conf[0x13] << 24) | (dev->pci_conf[0x12] << 16)) & mask;
     dev->pci_conf[0x12] = (bar >> 16) & 0xff;
     dev->pci_conf[0x13] = (bar >> 24) & 0xff;
+
+    if (!dev->agpgart)
+        return;
+
+    /* Map aperture and GART. ATTBASE (BCh-BFh) holds the aperture size in
+       bits 3-0 and the GART base in bits 31-12; the aperture is live once
+       both are set, as the ALi AGP drivers program them together. */
+    gart = (dev->pci_conf[0xbd] << 8) | (dev->pci_conf[0xbe] << 16) | (dev->pci_conf[0xbf] << 24);
+    agpgart_set_aperture(dev->agpgart, bar, ~mask + 1, !!mask && !!gart);
+    agpgart_set_gart(dev->agpgart, gart);
 }
 
 
@@ -593,10 +607,12 @@ ali1541_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *pr
             break;
         case 0xbd:
             dev->pci_conf[addr] = val & 0xf0;
+            ali1541_mask_bar(dev);
             break;
         case 0xbe:
         case 0xbf:
             dev->pci_conf[addr] = val;
+            ali1541_mask_bar(dev);
             break;
 
         case 0xc0:
@@ -771,6 +787,8 @@ ali1541_reset(void *priv)
         ali1541_write(0, 0x62 + i, 1, 0x00, dev);
         ali1541_write(0, 0x63 + i, 1, 0x00, dev);
     }
+
+    ali1541_mask_bar(dev);
 }
 
 static void
@@ -808,6 +826,8 @@ ali1541_init(const device_t *info)
         if ((mem_size << 10) < 0x20000000)
             mem_set_mem_state_both(mem_size << 10, 0x20000000 - (mem_size << 10), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
     }
+
+    dev->agpgart = device_add(&agpgart_device);
 
     ali1541_reset(dev);
 

@@ -60,6 +60,53 @@
 #define DPL2 ((segdat2[2] >> 13) & 3)
 #define DPL3 ((segdat3[2] >> 13) & 3)
 
+/* The EXT bit of the error codes a task switch raises: set while an IDT
+   task gate delivers a hardware interrupt or an exception, "an event
+   external to the program" (SDM Vol. 3, Interrupt 10, Exception Error
+   Code). */
+static int task_ext;
+/* Set while x86_doabrt() delivers an exception that pushes an error code:
+   a task gate's EIP check follows the push ("Push(error code); FI; IF EIP
+   not within code segment limit THEN #GP(0)", SDM Vol. 2, INT), so the
+   switch leaves it pending. */
+static int task_error_follows;
+static int task_eip_pending;
+
+static void task_eip_check(void);
+
+/* A descriptor's Accessed bit: "the processor will set the Accessed bit if
+   the bit is clear. During this operation, the processor asserts LOCK# so
+   the descriptor will not be modified by another processor while it is
+   being updated" (Pentium Vol. 3, 19.1.2); "the locked read and write
+   occur only if the bit is not already set" (23.2.16). Only the access
+   byte is written, never the base byte beside it from an old copy. addr
+   is the descriptor's linear address, word4 its third word as read. */
+static void
+x86seg_set_accessed(uint32_t addr, uint16_t word4)
+{
+    /* A 486 or later skips the write when the bit is already set; a 386
+       (and the RapidCAD) writes the descriptor back regardless. */
+    if ((word4 & 0x0100) && is486 && !israpidcad)
+        return;
+
+    writememb(0, addr + 5, (uint8_t) ((word4 >> 8) | 0x01));
+}
+
+/* A TSS descriptor's Busy bit (the access byte's bit 1), set or cleared by
+   a task switch (19.1.2). Answers 0 on a fault. */
+static int
+x86seg_tss_busy(uint32_t dt_base, uint16_t sel, int busy)
+{
+    uint32_t off = (sel & 0xfff8) + 5;
+    uint8_t  v;
+
+    v = readmemb(dt_base, off);
+    if (cpu_state.abrt)
+        return 0;
+    writememb(dt_base, off, busy ? (v | 0x02) : (v & ~0x02));
+    return !cpu_state.abrt;
+}
+
 #ifdef ENABLE_X86SEG_LOG
 int x86seg_do_log = ENABLE_X86SEG_LOG;
 
@@ -82,6 +129,44 @@ x86seg_log(const char *fmt, ...)
 extern int cpu_block_end;
 #endif
 
+/* A data segment register loaded with a null selector */
+static void
+null_data_seg(x86seg *s)
+{
+    s->seg     = 0;
+    s->access  = 0x80;
+    s->ar_high = 0x10;
+    s->base    = -1;
+    if (s == &cpu_state.seg_ds)
+        cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+    if (s == &cpu_state.seg_es)
+        cpu_cur_status |= CPU_STATUS_NOTFLATES;
+}
+
+/* An exception's error code, sized by the gate it was delivered through, or
+   for a task gate by the target TSS (pmodeint) */
+static void
+push_error_code(uint32_t error)
+{
+    if (intgatesize == 16) {
+        if (stack32) {
+            writememw(ss, ESP - 2, error);
+            ESP -= 2;
+        } else {
+            writememw(ss, ((SP - 2) & 0xffff), error);
+            SP -= 2;
+        }
+    } else {
+        if (stack32) {
+            writememl(ss, ESP - 4, error);
+            ESP -= 4;
+        } else {
+            writememl(ss, ((SP - 4) & 0xffff), error);
+            SP -= 4;
+        }
+    }
+}
+
 void
 #ifdef OPS_286_386
 x86_doabrt_2386(int x86_abrt)
@@ -89,16 +174,16 @@ x86_doabrt_2386(int x86_abrt)
 x86_doabrt(int x86_abrt)
 #endif
 {
-#ifndef USE_NEW_DYNAREC
-    CS = oldcs;
-#endif
     cpu_state.pc             = cpu_state.oldpc;
     cpu_state.seg_cs.access  = (oldcpl << 5) | 0x80;
     cpu_state.seg_cs.ar_high = 0x10;
 
-    if (msw & 1)
+    task_eip_pending = 0;
+    if (msw & 1) {
+        task_error_follows = 1;
         op_pmodeint(x86_abrt, 0);
-    else {
+        task_error_follows = 0;
+    } else {
         uint32_t addr = (x86_abrt << 2) + idt.base;
         if (stack32) {
             writememw(ss, ESP - 2, cpu_state.flags);
@@ -113,9 +198,6 @@ x86_doabrt(int x86_abrt)
         }
 
         cpu_state.flags &= ~(I_FLAG | T_FLAG);
-#ifndef USE_NEW_DYNAREC
-        oxpc = cpu_state.pc;
-#endif
         cpu_state.pc = readmemw(0, addr);
         op_loadcs(readmemw(0, addr + 2));
         return;
@@ -124,29 +206,50 @@ x86_doabrt(int x86_abrt)
     if (cpu_state.abrt || x86_was_reset)
         return;
 
-    if (intgatesize == 16) {
-        if (stack32) {
-            writememw(ss, ESP - 2, abrt_error);
-            ESP -= 2;
-        } else {
-            writememw(ss, ((SP - 2) & 0xffff), abrt_error);
-            SP -= 2;
-        }
-    } else {
-        if (stack32) {
-            writememl(ss, ESP - 4, abrt_error);
-            ESP -= 4;
-        } else {
-            writememl(ss, ((SP - 4) & 0xffff), abrt_error);
-            SP -= 4;
-        }
+    push_error_code(abrt_error);
+    if (task_eip_pending && !cpu_state.abrt) {
+        task_eip_pending = 0;
+        task_eip_check();
     }
 }
 
+/* A fault while delivering an exception: a #PF after a contributory
+   exception is taken on its own (Pentium Vol. 3, Table 14-4); any other
+   pair is a double fault, which always pushes an error code of 0. A
+   fault while delivering that is left in cpu_state.abrt: shutdown. */
+void
+#ifdef OPS_286_386
+x86_fault_in_delivery_2386(int first, int second)
+#else
+x86_fault_in_delivery(int first, int second)
+#endif
+{
+    if ((second == 14) && (first != 14)) {
+        op_doabrt(14);
+        if (!cpu_state.abrt)
+            return;
+        cpu_state.abrt = 0;
+        cpu_state.pc   = cpu_state.oldpc;
+    }
+    task_eip_pending   = 0;
+    task_error_follows = 1;
+    op_pmodeint(8, 0);
+    task_error_follows = 0;
+    if (cpu_state.abrt || x86_was_reset)
+        return;
+    push_error_code(0);
+    if (task_eip_pending && !cpu_state.abrt) {
+        task_eip_pending = 0;
+        task_eip_check();
+    }
+}
+
+/* The D and B bits come from the descriptor's last word, which the 80286
+   reserves: its code and stacks are always 16-bit */
 static inline void
 set_stack32(int s)
 {
-    stack32 = s;
+    stack32 = is386 && s;
 
     if (stack32)
         cpu_cur_status |= CPU_STATUS_STACK32;
@@ -157,6 +260,7 @@ set_stack32(int s)
 static inline void
 set_use32(int u)
 {
+    u     = is386 && u;
     use32 = u ? 0x300 : 0;
 
     if (u)
@@ -169,21 +273,26 @@ set_use32(int u)
 void
 do_seg_load(x86seg *s, uint16_t *segdat)
 {
-    s->limit = segdat[0] | ((segdat[3] & 0x000f) << 16);
-    if (segdat[3] & 0x0080)
+    /* The descriptor's last word is reserved on the 80286 ("The Intel
+       reserved bytes in the segment descriptor must be set to 0 for
+       compatibility with the 80386", 80286 PRM 7.4) and
+       ignored there: no limit[19:16], G, D/B or base[31:24]. */
+    const uint16_t word3 = is386 ? segdat[3] : 0;
+
+    s->limit = segdat[0] | ((word3 & 0x000f) << 16);
+    if (word3 & 0x0080)
         s->limit = (s->limit << 12) | 0xfff;
     s->base = segdat[1] | ((segdat[2] & 0x00ff) << 16);
-    if (is386)
-        s->base |= ((segdat[3] >> 8) << 24);
+    s->base |= ((word3 >> 8) << 24);
     s->access  = segdat[2] >> 8;
-    s->ar_high = segdat[3] & 0xff;
+    s->ar_high = word3 & 0xff;
 
     if (((segdat[2] & 0x1800) != 0x1000) || !(segdat[2] & (1 << 10))) {
         /* Expand-down */
         s->limit_high = s->limit;
         s->limit_low  = 0;
     } else {
-        s->limit_high = (segdat[3] & 0x40) ? 0xffffffff : 0xffff;
+        s->limit_high = (word3 & 0x40) ? 0xffffffff : 0xffff;
         s->limit_low  = s->limit + 1;
     }
 
@@ -192,6 +301,12 @@ do_seg_load(x86seg *s, uint16_t *segdat)
             cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+    }
+    if (s == &cpu_state.seg_es) {
+        if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
+            cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTFLATES;
     }
     if (s == &cpu_state.seg_ss) {
         if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
@@ -210,18 +325,6 @@ do_seg_v86_init(x86seg *s)
     s->limit      = 0xffff;
     s->limit_low  = 0;
     s->limit_high = 0xffff;
-}
-
-/* Load a null selector the way protected mode does, even while VM is still set. */
-static void
-load_null_seg(x86seg *s)
-{
-    s->seg     = 0;
-    s->access  = 0x80;
-    s->ar_high = 0x10;
-    s->base    = -1;
-    if (s == &cpu_state.seg_ds)
-        cpu_cur_status |= CPU_STATUS_NOTFLATDS;
 }
 
 static void
@@ -282,11 +385,7 @@ read_descriptor(uint32_t addr, uint16_t *segdat, uint32_t *segdat32, int overrid
         cpl_override = 0;
 }
 
-#ifdef USE_NEW_DYNAREC
 int
-#else
-void
-#endif
 #ifdef OPS_286_386
 loadseg_2386(uint16_t seg, x86seg *s)
 #else
@@ -302,12 +401,8 @@ loadseg(uint16_t seg, x86seg *s)
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG)) {
         if (!(seg & 0xfffc)) {
             if (s == &cpu_state.seg_ss) {
-                x86ss(NULL, 0);
-#ifdef USE_NEW_DYNAREC
+                x86gpf("loadseg(): Null stack segment", 0);
                 return 1;
-#else
-                return;
-#endif
             }
             s->seg     = seg;
             s->access  = 0x80;
@@ -315,55 +410,33 @@ loadseg(uint16_t seg, x86seg *s)
             s->base    = -1;
             if (s == &cpu_state.seg_ds)
                 cpu_cur_status |= CPU_STATUS_NOTFLATDS;
-#ifdef USE_NEW_DYNAREC
+            if (s == &cpu_state.seg_es)
+                cpu_cur_status |= CPU_STATUS_NOTFLATES;
             return 0;
-#else
-            return;
-#endif
         }
         addr = seg & 0xfff8;
         dt   = (seg & 0x0004) ? &ldt : &gdt;
         if ((addr + 7) > dt->limit) {
             x86gpf("loadseg(): Bigger than LDT limit", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
             return 1;
-#else
-            return;
-#endif
         }
         addr += dt->base;
         read_descriptor(addr, segdat, segdat32, 1);
         if (cpu_state.abrt)
-#ifdef USE_NEW_DYNAREC
             return 1;
-#else
-            return;
-#endif
         dpl = (segdat[2] >> 13) & 3;
         if (s == &cpu_state.seg_ss) {
             if (!(seg & 0xfffc)) {
                 x86gpf("loadseg(): Zero stack segment", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
                 return 1;
-#else
-                return;
-#endif
             }
             if ((seg & 0x0003) != CPL) {
                 x86gpf("loadseg(): Stack segment RPL != CPL", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
                 return 1;
-#else
-                return;
-#endif
             }
             if (dpl != CPL) {
                 x86gpf("loadseg(): Stack segment DPL != CPL", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
                 return 1;
-#else
-                return;
-#endif
             }
             switch ((segdat[2] >> 8) & 0x1f) {
                 case 0x12:
@@ -374,21 +447,12 @@ loadseg(uint16_t seg, x86seg *s)
                     break;
                 default:
                     x86gpf("loadseg(): Unknown stack segment type", seg & ~3);
-#ifdef USE_NEW_DYNAREC
                     return 1;
-#else
-                    return;
-#endif
             }
             if (!(segdat[2] & 0x8000)) {
                 x86ss(NULL, seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
                 return 1;
-#else
-                return;
-#endif
             }
-            set_stack32((segdat[3] & 0x40) ? 1 : 0);
         } else if (s != &cpu_state.seg_cs) {
             x86seg_log("Seg data %04X %04X %04X %04X\n", segdat[0], segdat[1], segdat[2], segdat[3]);
             x86seg_log("Seg type %03X\n", segdat[2] & 0x1f00);
@@ -405,19 +469,11 @@ loadseg(uint16_t seg, x86seg *s)
                 case 0x1b: /* Readable non-conforming code */
                     if ((seg & 0x0003) > dpl) {
                         x86gpf("loadseg(): Normal segment RPL > DPL", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
                         return 1;
-#else
-                        return;
-#endif
                     }
                     if ((CPL) > dpl) {
                         x86gpf("loadseg(): Normal segment DPL < CPL", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
                         return 1;
-#else
-                        return;
-#endif
                     }
                     break;
                 case 0x1e:
@@ -425,34 +481,34 @@ loadseg(uint16_t seg, x86seg *s)
                     break;
                 default:
                     x86gpf("loadseg(): Unknown normal segment type", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
                     return 1;
-#else
-                    return;
-#endif
             }
         }
 
         if (!(segdat[2] & 0x8000)) {
             x86np("Load data seg not present", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
             return 1;
-#else
-            return;
-#endif
+        }
+        /* A page fault setting A must leave the old visible selector and
+           descriptor cache intact, so complete that write before loading. */
+        cpl_override = 1;
+        x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
+        cpl_override = 0;
+        if (cpu_state.abrt) {
+            return 1;
         }
         s->seg = seg;
         do_seg_load(s, segdat);
-
-        cpl_override = 1;
-        writememw(0, addr + 4, segdat[2] | 0x100); /* Set accessed bit */
-        cpl_override = 0;
+        if (s == &cpu_state.seg_ss)
+            set_stack32((segdat[3] & 0x40) ? 1 : 0);
         s->checked   = 0;
 #ifdef USE_DYNAREC
         if (s == &cpu_state.seg_ds)
             codegen_flat_ds = 0;
         if (s == &cpu_state.seg_ss)
             codegen_flat_ss = 0;
+        if (s == &cpu_state.seg_es)
+            codegen_flat_es = 0;
 #endif
     } else {
         s->access  = 0xe2;
@@ -470,6 +526,8 @@ loadseg(uint16_t seg, x86seg *s)
             codegen_flat_ds = 0;
         if (s == &cpu_state.seg_ss)
             codegen_flat_ss = 0;
+        if (s == &cpu_state.seg_es)
+            codegen_flat_es = 0;
 #endif
         if (s == &cpu_state.seg_ss && (cpu_state.eflags & VM_FLAG))
             set_stack32(0);
@@ -481,6 +539,12 @@ loadseg(uint16_t seg, x86seg *s)
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATDS;
     }
+    if (s == &cpu_state.seg_es) {
+        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+            cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTFLATES;
+    }
     if (s == &cpu_state.seg_ss) {
         if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
             cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
@@ -488,9 +552,7 @@ loadseg(uint16_t seg, x86seg *s)
             cpu_cur_status |= CPU_STATUS_NOTFLATSS;
     }
 
-#ifdef USE_NEW_DYNAREC
     return cpu_state.abrt;
-#endif
 }
 
 void
@@ -551,12 +613,10 @@ loadcs(uint16_t seg)
             use32 = (segdat[3] & 0x40) ? 0x300 : 0;
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
-#endif
 
             cpl_override = 1;
-            writememw(0, addr + 4, segdat[2] | 0x0100); /* Set accessed bit */
+            x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
             cpl_override = 0;
         } else {
             /* System segment */
@@ -576,10 +636,58 @@ loadcs(uint16_t seg)
         cpu_state.seg_cs.ar_high    = 0x10;
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
-#endif
     }
+}
+
+/* JMP or CALL to a TSS, or through a task gate: the checks made before
+   the task switch. On return seg and segdat name the TSS; 0 means a fault
+   was raised. JMP raises #GP everywhere; CALL raises #TS on the 386,
+   Intel486 and Pentium books and #GP on the 80286 and P6 books, but the
+   386 PRM's CALL raises #GP(TSS selector) for a TSS descriptor called
+   directly that is not an available TSS. */
+static int
+task_target_check(uint16_t *seg, uint16_t *segdat, uint32_t *segdat32, int call)
+{
+    uint16_t sel  = *seg;
+    int      gate = 0;
+    uint32_t addr;
+
+#define TASK_FAULT(s, gp386)                                       \
+    do {                                                           \
+        if (call && is386 && !is_p6 && !((gp386) && !is486))       \
+            x86ts(NULL, (s) & 0xfffc);                             \
+        else                                                       \
+            x86gpf(NULL, (s) & 0xfffc);                            \
+        return 0;                                                  \
+    } while (0)
+
+    if ((DPL < CPL) || (DPL < (sel & 3)))
+        TASK_FAULT(sel, 0);
+    if ((segdat[2] & 0x1f00) == 0x0500) { /* Task gate */
+        if (!(segdat[2] & 0x8000)) {
+            x86np("Task gate not present", sel & 0xfffc);
+            return 0;
+        }
+        gate = 1;
+        sel  = segdat[1];
+        addr = sel & 0xfff8;
+        if (!(sel & 0xfffc) || (sel & 0x0004) || ((addr + 7) > gdt.limit))
+            TASK_FAULT(sel, 0);
+        read_descriptor(gdt.base + addr, segdat, segdat32, 1);
+        if (cpu_state.abrt)
+            return 0;
+    } else if (sel & 0x0004) /* TSS descriptors live only in the GDT */
+        TASK_FAULT(sel, 0);
+    if (((segdat[2] & 0x1f00) != 0x0100) && (!is386 || ((segdat[2] & 0x1f00) != 0x0900)))
+        TASK_FAULT(sel, !gate);
+    if (!(segdat[2] & 0x8000)) {
+        x86np("TSS not present", sel & 0xfffc);
+        return 0;
+    }
+#undef TASK_FAULT
+    *seg = sel;
+    return 1;
 }
 
 void
@@ -637,7 +745,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
             set_use32(segdat[3] & 0x0040);
 
             cpl_override = 1;
-            writememw(0, addr + 4, segdat[2] | 0x0100); /* Set accessed bit */
+            x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
             cpl_override = 0;
 
             CS        = (seg & 0xfffc) | CPL;
@@ -646,11 +754,11 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
             do_seg_load(&cpu_state.seg_cs, segdat);
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
-#endif
             cycles -= timing_jmp_pm;
         } else { /* System segment */
+            /* Each type tests P after its own checks: a not-present
+               descriptor of a type JMP can't use is #GP(selector) */
             type  = segdat[2] & 0x0f00;
             newpc = segdat[0];
             if (type & 0x0800)
@@ -661,7 +769,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                     cgate32 = (type & 0x0800);
                     cgate16 = !cgate32;
                     oldcs = CS;
-                    cpu_state.oldpc = cpu_state.pc;
+                    /* oldpc stays at the JMP: a fault from here reports it */
                     if (DPL < CPL) {
                         x86gpf("loadcsjmp(): Call gate DPL < CPL", seg & 0xfffc);
                         return;
@@ -705,8 +813,9 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                         case 0x1900:
                         case 0x1a00:
                         case 0x1b00: /* Non-conforming code */
-                            if (DPL > CPL) {
-                                x86gpf("loadcsjmp(): Non-conforming DPL > CPL", seg2 & 0xfffc);
+                            /* A JMP never changes privilege: the target must be at CPL */
+                            if (DPL != CPL) {
+                                x86gpf("loadcsjmp(): Non-conforming DPL != CPL", seg2 & 0xfffc);
                                 return;
                             }
                             fallthrough;
@@ -714,18 +823,22 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                         case 0x1d00:
                         case 0x1e00:
                         case 0x1f00: /* Conforming */
-                            CS = seg2;
-                            do_seg_load(&cpu_state.seg_cs, segdat);
+                            {
+                                int jmp_cpl = CPL;
+
+                                /* CPL stays, and CS.RPL is set to it */
+                                CS = (seg2 & 0xfffc) | jmp_cpl;
+                                do_seg_load(&cpu_state.seg_cs, segdat);
+                                cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (jmp_cpl << 5);
+                            }
                             if ((CPL == 3) && (oldcpl != 3))
                                 flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
                             oldcpl = CPL;
-#endif
                             set_use32(segdat[3] & 0x40);
                             cpu_state.pc = newpc;
 
                             cpl_override = 1;
-                            writememw(0, addr + 4, segdat[2] | 0x100); /* Set accessed bit */
+                            x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
                             cpl_override = 0;
                             break;
 
@@ -738,15 +851,14 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
 
                 case 0x100: /* 286 TSS */
                 case 0x900: /* 386 TSS */
-                    if (!(segdat[2] & 0x8000)) {
-                        x86np("Load CS JMP TSS not present", seg & 0xfffc);
+                case 0x500: /* Task gate */
+                    if (!task_target_check(&seg, segdat, segdat32, 0))
                         return;
-                    }
                     cpu_state.pc = old_pc;
                     optype       = JMP;
                     cpl_override = 1;
+                    /* NT comes from the new task's EFLAGS image */
                     op_taskswitch286(seg, segdat, segdat[2] & 0x800);
-                    cpu_state.flags &= ~NT_FLAG;
                     cpl_override = 0;
                     return;
 
@@ -765,9 +877,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
         cpu_state.seg_cs.ar_high    = 0x10;
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
-#endif
         cycles -= timing_jmp_rm;
     }
 }
@@ -874,21 +984,11 @@ POPL(void)
 }
 
 #ifdef OPS_286_386
-#ifdef USE_NEW_DYNAREC
 void
 loadcscall_2386(uint16_t seg, uint32_t old_pc)
 #else
 void
-loadcscall_2386(uint16_t seg)
-#endif
-#else
-#ifdef USE_NEW_DYNAREC
-void
 loadcscall(uint16_t seg, uint32_t old_pc)
-#else
-void
-loadcscall(uint16_t seg)
-#endif
 #endif
 {
     uint16_t      seg2;
@@ -954,7 +1054,7 @@ loadcscall(uint16_t seg)
             set_use32(segdat[3] & 0x0040);
 
             cpl_override = 1;
-            writememw(0, addr + 4, segdat[2] | 0x100); /* Set accessed bit */
+            x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
             cpl_override = 0;
 
             /* Conforming segments don't change CPL, so preserve existing CPL */
@@ -967,9 +1067,7 @@ loadcscall(uint16_t seg)
             do_seg_load(&cpu_state.seg_cs, segdat);
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
-#endif
 #ifdef ENABLE_X86SEG_LOG
             x86seg_log("Complete\n");
 #endif
@@ -1008,7 +1106,7 @@ loadcscall(uint16_t seg)
                     addr = seg2 & 0xfff8;
                     dt   = (seg2 & 0x0004) ? &ldt : &gdt;
                     if ((addr + 7) > dt->limit) {
-                        x86gpf("loadcscall(): ex Selector > DT limit", seg2 & 0xfff8);
+                        x86gpf("loadcscall(): ex Selector > DT limit", seg2 & 0xfffc);
                         return;
                     }
                     addr += dt->base;
@@ -1034,13 +1132,16 @@ loadcscall(uint16_t seg)
                         case 0x1a00:
                         case 0x1b00: /* Non-conforming code */
                             if (DPL < CPL) {
-#ifdef USE_NEW_DYNAREC
                                 uint16_t oldcs = CS;
-#endif
                                 oaddr = addr;
                                 /* Load new stack */
                                 oldss = SS;
                                 oldsp = oldsp2 = ESP;
+                                /* SS:ESP for the new level must lie inside the TSS */
+                                if ((tr.access & 8) ? ((4 + (DPL << 3) + 7) > tr.limit) : ((2 + (DPL << 2) + 3) > tr.limit)) {
+                                    x86ts("Call gate: new stack past the TSS limit", tr.seg & 0xfffc);
+                                    return;
+                                }
                                 cpl_override   = 1;
                                 if (tr.access & 8) {
                                     addr  = 4 + tr.base + (DPL << 3);
@@ -1066,8 +1167,7 @@ loadcscall(uint16_t seg)
                                 addr = newss & 0xfff8;
                                 dt   = (newss & 0x0004) ? &ldt : &gdt;
                                 if ((addr + 7) > dt->limit) {
-                                    fatal("Bigger than DT limit %04X %08X %04X CSC SS\n", newss, addr, dt->limit);
-                                    x86ts(NULL, newss & ~3);
+                                    x86ts("Call gate SS beyond DT limit", newss & 0xfffc);
                                     return;
                                 }
                                 addr += dt->base;
@@ -1101,23 +1201,21 @@ loadcscall(uint16_t seg)
 
                                 x86seg_log("Set access 1\n");
                                 cpl_override = 1;
-                                writememw(0, addr + 4, segdat2[2] | 0x100); /* Set accessed bit */
+                                x86seg_set_accessed(addr, segdat2[2]); /* Set accessed bit */
                                 cpl_override = 0;
 
                                 CS = (seg2 & ~3) | DPL;
                                 do_seg_load(&cpu_state.seg_cs, segdat);
                                 if ((CPL == 3) && (oldcpl != 3))
                                     flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
                                 oldcpl = CPL;
-#endif
                                 set_use32(segdat[3] & 0x0040);
                                 cpu_state.pc = newpc;
 
                                 x86seg_log("Set access 2\n");
 
                                 cpl_override = 1;
-                                writememw(0, oaddr + 4, segdat[2] | 0x100); /* Set accessed bit */
+                                x86seg_set_accessed(oaddr, segdat[2]); /* Set accessed bit */
                                 cpl_override = 0;
 
                                 x86seg_log("Type %04X\n", type);
@@ -1127,9 +1225,7 @@ loadcscall(uint16_t seg)
                                     if (cpu_state.abrt) {
                                         SS  = oldss;
                                         ESP = oldsp2;
-#ifdef USE_NEW_DYNAREC
                                         CS = oldcs;
-#endif
                                         return;
                                     }
                                     if (count) {
@@ -1162,9 +1258,7 @@ loadcscall(uint16_t seg)
                                             if (cpu_state.abrt) {
                                                 SS  = oldss;
                                                 ESP = oldsp2;
-#ifdef USE_NEW_DYNAREC
                                                 CS = oldcs;
-#endif
                                                 return;
                                             }
                                         }
@@ -1177,9 +1271,7 @@ loadcscall(uint16_t seg)
                                     if (cpu_state.abrt) {
                                         SS  = oldss;
                                         ESP = oldsp2;
-#ifdef USE_NEW_DYNAREC
                                         CS = oldcs;
-#endif
                                         return;
                                     }
                                     x86seg_log("Write SP to %04X:%04X\n", SS, SP);
@@ -1202,9 +1294,7 @@ loadcscall(uint16_t seg)
                                             if (cpu_state.abrt) {
                                                 SS  = oldss;
                                                 ESP = oldsp2;
-#ifdef USE_NEW_DYNAREC
                                                 CS = oldcs;
-#endif
                                                 return;
                                             }
                                         }
@@ -1221,18 +1311,23 @@ loadcscall(uint16_t seg)
                         case 0x1d00:
                         case 0x1e00:
                         case 0x1f00: /* Conforming */
-                            CS = (seg2 & ~3) | CPL;
-                            do_seg_load(&cpu_state.seg_cs, segdat);
+                            {
+                                int call_cpl = CPL;
+
+                                /* Same privilege: CPL stays (a conforming segment's
+                                   DPL doesn't raise it), CS.RPL is set to it */
+                                CS = (seg2 & ~3) | call_cpl;
+                                do_seg_load(&cpu_state.seg_cs, segdat);
+                                cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (call_cpl << 5);
+                            }
                             if ((CPL == 3) && (oldcpl != 3))
                                 flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
                             oldcpl = CPL;
-#endif
                             set_use32(segdat[3] & 0x0040);
                             cpu_state.pc = newpc;
 
                             cpl_override = 1;
-                            writememw(0, addr + 4, segdat[2] | 0x100); /* Set accessed bit */
+                            x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
                             cpl_override = 0;
                             cycles -= timing_call_pm_gate;
                             break;
@@ -1245,11 +1340,10 @@ loadcscall(uint16_t seg)
 
                 case 0x0100: /* 286 TSS */
                 case 0x0900: /* 386 TSS */
-#ifdef USE_NEW_DYNAREC
+                case 0x0500: /* Task gate */
+                    if (!task_target_check(&seg, segdat, segdat32, 1))
+                        return;
                     cpu_state.pc = old_pc;
-#else
-                    cpu_state.pc = oxpc;
-#endif
                     /* A task switch links the tasks through the TSS back-link and NT,
                        it does not push a return address on the new task's stack. */
                     cgate_task   = 1;
@@ -1273,9 +1367,7 @@ loadcscall(uint16_t seg)
         cpu_state.seg_cs.ar_high    = 0x10;
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
-#endif
     }
 }
 
@@ -1309,8 +1401,10 @@ pmoderetf(int is32, uint16_t off)
         x86seg_log("CS read from %04X:%04X\n", SS, SP);
         seg = POPW();
     }
-    if (cpu_state.abrt)
+    if (cpu_state.abrt) {
+        ESP = oldsp; /* a faulting pop leaves ESP as it was */
         return;
+    }
 
     x86seg_log("Return to %04X:%08X\n", seg, newpc);
     if ((seg & 0x0003) < CPL) {
@@ -1386,7 +1480,7 @@ pmoderetf(int is32, uint16_t off)
         }
 
         cpl_override = 1;
-        writememw(0, addr + 4, segdat[2] | 0x100); /* Set accessed bit */
+        x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
         cpl_override = 0;
 
         cpu_state.pc = newpc;
@@ -1397,9 +1491,7 @@ pmoderetf(int is32, uint16_t off)
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~(3 << 5)) | ((CS & 3) << 5);
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
-#endif
         set_use32(segdat[3] & 0x0040);
 
         cycles -= timing_retf_pm;
@@ -1446,15 +1538,19 @@ pmoderetf(int is32, uint16_t off)
         if (is32) {
             newsp = POPL();
             newss = POPL();
-            if (cpu_state.abrt)
+            if (cpu_state.abrt) {
+                ESP = oldsp; /* the imm16 and the pops undone */
                 return;
+            }
         } else {
             x86seg_log("SP read from %04X:%04X\n", SS, SP);
             newsp = POPW();
             x86seg_log("SS read from %04X:%04X\n", SS, SP);
             newss = POPW();
-            if (cpu_state.abrt)
+            if (cpu_state.abrt) {
+                ESP = oldsp; /* the imm16 and the pops undone */
                 return;
+            }
         }
         x86seg_log("Read new stack : %04X:%04X (%08X)\n", newss, newsp, ldt.base);
         if (!(newss & 0xfffc)) {
@@ -1486,14 +1582,16 @@ pmoderetf(int is32, uint16_t off)
             x86gpf("pmoderetf(): New SS unknown type", newss & 0xfffc);
             return;
         }
-        if (!(segdat2[2] & 0x8000)) {
-            ESP = oldsp;
-            x86np("RETF loading SS not present", newss & 0xfffc);
-            return;
-        }
         if (DPL2 != (seg & 3)) {
             ESP = oldsp;
             x86gpf("pmoderetf(): New SS DPL != CS RPL", newss & 0xfffc);
+            return;
+        }
+        /* A not-present stack segment is a stack fault (386 Table 6-2,
+           P6 RET pseudocode) */
+        if (!(segdat2[2] & 0x8000)) {
+            ESP = oldsp;
+            x86ss("RETF loading SS not present", newss & 0xfffc);
             return;
         }
         SS = newss;
@@ -1505,8 +1603,8 @@ pmoderetf(int is32, uint16_t off)
         do_seg_load(&cpu_state.seg_ss, segdat2);
 
         cpl_override = 1;
-        writememw(0, addr + 4, segdat2[2] | 0x100); /* Set accessed bit */
-        writememw(0, oaddr + 4, segdat[2] | 0x100); /* Set accessed bit */
+        x86seg_set_accessed(addr, segdat2[2]); /* Set accessed bit */
+        x86seg_set_accessed(oaddr, segdat[2]); /* Set accessed bit */
         cpl_override = 0;
         /* Conforming segments don't change CPL, so CPL = RPL */
         if (segdat[2] & 0x0400)
@@ -1516,9 +1614,7 @@ pmoderetf(int is32, uint16_t off)
         do_seg_load(&cpu_state.seg_cs, segdat);
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
-#endif
         set_use32(segdat[3] & 0x0040);
 
         if (stack32)
@@ -1558,7 +1654,7 @@ pmodeint(int num, int soft)
     uint32_t     *segdat332 = (uint32_t *) segdat3;
     const x86seg *dt;
 
-    if ((cpu_state.eflags & VM_FLAG) && (IOPL != 3) && soft) {
+    if ((cpu_state.eflags & VM_FLAG) && (IOPL != 3) && soft && !x86_int_sw_iopl_exempt) {
         x86seg_log("V86 banned int\n");
         x86gpf("pmodeint(): V86 banned int", 0);
         return;
@@ -1569,9 +1665,10 @@ pmodeint(int num, int soft)
             /* Triple fault - reset! */
             softresetx86();
             cpu_set_edx();
-        } else if (num == 0x0d)
+        } else if (num == 0x0d) {
             op_pmodeint(8, 0);
-        else
+            abrt_error = 0; /* the #DF's error code, pushed by x86_doabrt */
+        } else
             x86gpf("pmodeint(): Vector > IDT limit", (num << 3) + 2 + !soft);
         x86seg_log("addr >= IDT.limit\n");
         return;
@@ -1588,9 +1685,9 @@ pmodeint(int num, int soft)
     if (!(segdat[2] & 0x1f00)) {
         /* This fires on all V86 interrupts in EMM386. Mark as expected to prevent code churn */
         if (cpu_state.eflags & VM_FLAG)
-            x86gpf_expected("pmodeint(): Expected vector descriptor with bad type", (num << 3) + 2);
+            x86gpf_expected("pmodeint(): Expected vector descriptor with bad type", (num << 3) + 2 + !soft);
         else
-            x86gpf("pmodeint(): Vector descriptor with bad type", (num << 3) + 2);
+            x86gpf("pmodeint(): Vector descriptor with bad type", (num << 3) + 2 + !soft);
         return;
     }
     if ((DPL < CPL) && soft) {
@@ -1599,7 +1696,7 @@ pmodeint(int num, int soft)
     }
     type = segdat[2] & 0x1f00;
     if (((type == 0x0e00) || (type == 0x0f00)) && !is386) {
-        x86gpf("pmodeint(): Gate type illegal on 286", seg & 0xfffc);
+        x86gpf("pmodeint(): Gate type illegal on 286", (num << 3) + 2 + !soft);
         return;
     }
     switch (type) {
@@ -1609,7 +1706,7 @@ pmodeint(int num, int soft)
         case 0x0f00: /* Interrupt and trap gates */
             intgatesize = (type >= 0x0800) ? 32 : 16;
             if (!(segdat[2] & 0x8000)) {
-                x86np("Int gate not present", (num << 3) | 2);
+                x86np("Int gate not present", (num << 3) + 2 + !soft);
                 return;
             }
             seg     = segdat[1];
@@ -1618,7 +1715,7 @@ pmodeint(int num, int soft)
             addr = seg & 0xfff8;
             dt   = (seg & 0x0004) ? &ldt : &gdt;
             if ((addr + 7) > dt->limit) {
-                x86gpf("pmodeint(): Interrupt or trap gate selector > DT limit", seg & 0xfffc);
+                x86gpf("pmodeint(): Interrupt or trap gate selector > DT limit", (seg & 0xfffc) + !soft);
                 return;
             }
             addr += dt->base;
@@ -1626,9 +1723,12 @@ pmodeint(int num, int soft)
             if (cpu_state.abrt)
                 return;
             oaddr = addr;
+            /* The new CPL is the code segment's DPL (a same-level or conforming
+               target keeps CPL, below), never the gate selector's RPL */
+            new_cpl = DPL2;
 
             if (DPL2 > CPL) {
-                x86gpf("pmodeint(): Interrupt or trap gate DPL > CPL", seg & 0xfffc);
+                x86gpf("pmodeint(): Interrupt or trap gate DPL > CPL", (seg & 0xfffc) + !soft);
                 return;
             }
             switch (segdat2[2] & 0x1f00) {
@@ -1644,16 +1744,21 @@ pmodeint(int num, int soft)
                 case 0x1b00: /* Non-conforming */
                     if (DPL2 < CPL) {
                         if (!(segdat2[2] & 0x8000)) {
-                            x86np("Int gate CS not present", segdat[1] & 0xfffc);
+                            x86np("Int gate CS not present", (segdat[1] & 0xfffc) + !soft);
                             return;
                         }
                         if ((cpu_state.eflags & VM_FLAG) && DPL2) {
-                            x86gpf("pmodeint(): Interrupt or trap gate non-zero DPL in V86 mode", segdat[1] & 0xfffc);
+                            x86gpf("pmodeint(): Interrupt or trap gate non-zero DPL in V86 mode", (segdat[1] & 0xfffc) + !soft);
                             return;
                         }
                         /* Load new stack */
                         oldss        = SS;
                         oldsp        = ESP;
+                        /* SS:ESP for the new level must lie inside the TSS */
+                        if ((tr.access & 8) ? ((4 + (DPL2 << 3) + 7) > tr.limit) : ((2 + (DPL2 << 2) + 3) > tr.limit)) {
+                            x86ts("pmodeint(): new stack past the TSS limit", (tr.seg & 0xfffc) + !soft);
+                            return;
+                        }
                         cpl_override = 1;
                         if (tr.access & 8) {
                             addr  = 4 + tr.base + (DPL2 << 3);
@@ -1672,13 +1777,13 @@ pmodeint(int num, int soft)
                            interrupt). The null SS's error code is the EXT
                            bit alone, 0 for a software interrupt. */
                         if (!(newss & 0xfffc)) {
-                            x86ts("pmodeint(): Interrupt or trap gate stack segment is NULL", 0);
+                            x86ts("pmodeint(): Interrupt or trap gate stack segment is NULL", !soft);
                             return;
                         }
                         addr = newss & 0xfff8;
                         dt   = (newss & 0x0004) ? &ldt : &gdt;
                         if ((addr + 7) > dt->limit) {
-                            x86ts("pmodeint(): Interrupt or trap gate stack segment > DT", newss & 0xfffc);
+                            x86ts("pmodeint(): Interrupt or trap gate stack segment > DT", (newss & 0xfffc) + !soft);
                             return;
                         }
                         addr += dt->base;
@@ -1686,19 +1791,19 @@ pmodeint(int num, int soft)
                         if (cpu_state.abrt)
                             return;
                         if ((newss & 3) != DPL2) {
-                            x86ts("pmodeint(): Interrupt or trap gate stack segment RPL != DPL", newss & 0xfffc);
+                            x86ts("pmodeint(): Interrupt or trap gate stack segment RPL != DPL", (newss & 0xfffc) + !soft);
                             return;
                         }
                         if (DPL3 != DPL2) {
-                            x86ts("pmodeint(): Interrupt or trap gate stack segment DPL != DPL", newss & 0xfffc);
+                            x86ts("pmodeint(): Interrupt or trap gate stack segment DPL != DPL", (newss & 0xfffc) + !soft);
                             return;
                         }
                         if ((segdat3[2] & 0x1a00) != 0x1200) {
-                            x86ts("pmodeint(): Interrupt or trap gate stack segment bad type", newss & 0xfffc);
+                            x86ts("pmodeint(): Interrupt or trap gate stack segment bad type", (newss & 0xfffc) + !soft);
                             return;
                         }
                         if (!(segdat3[2] & 0x8000)) {
-                            x86ss("Int gate loading SS not present", newss & 0xfffc);
+                            x86ss("Int gate loading SS not present", (newss & 0xfffc) + !soft);
                             return;
                         }
                         SS = newss;
@@ -1710,7 +1815,7 @@ pmodeint(int num, int soft)
                         do_seg_load(&cpu_state.seg_ss, segdat3);
 
                         cpl_override = 1;
-                        writememw(0, addr + 4, segdat3[2] | 0x100); /* Set accessed bit */
+                        x86seg_set_accessed(addr, segdat3[2]); /* Set accessed bit */
                         cpl_override = 0;
 
                         x86seg_log("New stack %04X:%08X\n", SS, ESP);
@@ -1730,14 +1835,13 @@ pmodeint(int num, int soft)
                                 }
                                 if (cpu_state.abrt)
                                     return;
-                                /* The data segment registers are left holding null selectors,
-                                   unusable until protected mode code reloads them. VM is still
-                                   set at this point, so op_loadseg() would instead load them as
-                                   usable V86 segments with a base of 0. */
-                                load_null_seg(&cpu_state.seg_ds);
-                                load_null_seg(&cpu_state.seg_es);
-                                load_null_seg(&cpu_state.seg_fs);
-                                load_null_seg(&cpu_state.seg_gs);
+                                /* Null selectors, as protected mode loads them
+                                   (VM is still set, so loadseg would take its
+                                   real-mode path): a use before reload is #GP */
+                                null_data_seg(&cpu_state.seg_ds);
+                                null_data_seg(&cpu_state.seg_es);
+                                null_data_seg(&cpu_state.seg_fs);
+                                null_data_seg(&cpu_state.seg_gs);
                             }
                             is586 ? PUSHL(oldss) : PUSHL_SEL(oldss);
                             PUSHL(oldsp);
@@ -1760,7 +1864,7 @@ pmodeint(int num, int soft)
                         cycles -= timing_int_pm_outer - timing_int_pm;
                         break;
                     } else if (DPL2 != CPL) {
-                        x86gpf("pmodeint(): DPL != CPL", seg & 0xfffc);
+                        x86gpf("pmodeint(): DPL != CPL", (seg & 0xfffc) + !soft);
                         return;
                     }
                     fallthrough;
@@ -1769,11 +1873,14 @@ pmodeint(int num, int soft)
                 case 0x1e00:
                 case 0x1f00: /* Conforming */
                     if (!(segdat2[2] & 0x8000)) {
-                        x86np("Int gate CS not present", segdat[1] & 0xfffc);
+                        x86np("Int gate CS not present", (segdat[1] & 0xfffc) + !soft);
                         return;
                     }
-                    if ((cpu_state.eflags & VM_FLAG) && (DPL2 < CPL)) {
-                        x86gpf("pmodeint(): DPL < CPL in V86 mode", seg & ~0xfffc);
+                    /* From V86 mode the handler must be a non-conforming DPL 0
+                       segment (the stack-switch path above); a conforming or
+                       same-level (DPL 3) one is #GP(selector) */
+                    if (cpu_state.eflags & VM_FLAG) {
+                        x86gpf("pmodeint(): conforming or same-level CS in V86 mode", (seg & 0xfffc) + !soft);
                         return;
                     }
                     if (type > 0x0800) {
@@ -1792,7 +1899,7 @@ pmodeint(int num, int soft)
                     new_cpl = CS & 3;
                     break;
                 default:
-                    x86gpf("pmodeint(): Unknown type", seg & 0xfffc);
+                    x86gpf("pmodeint(): Unknown type", (seg & 0xfffc) + !soft);
                     return;
             }
             do_seg_load(&cpu_state.seg_cs, segdat2);
@@ -1800,9 +1907,7 @@ pmodeint(int num, int soft)
             cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (new_cpl << 5);
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
-#endif
             if (type > 0x0800)
                 cpu_state.pc = segdat[0] | (segdat[3] << 16);
             else
@@ -1810,7 +1915,7 @@ pmodeint(int num, int soft)
             set_use32(segdat2[3] & 0x40);
 
             cpl_override = 1;
-            writememw(0, oaddr + 4, segdat2[2] | 0x100); /* Set accessed bit */
+            x86seg_set_accessed(oaddr, segdat2[2]); /* Set accessed bit */
             cpl_override = 0;
 
             cpu_state.eflags &= ~VM_FLAG;
@@ -1822,32 +1927,50 @@ pmodeint(int num, int soft)
             break;
 
         case 0x500: /* Task gate */
-            seg  = segdat[1];
-            addr = seg & 0xfff8;
-            dt   = (seg & 0x0004) ? &ldt : &gdt;
-            if ((addr + 7) > dt->limit) {
-                x86gpf("pmodeint(): Task gate selector > DT limit", seg & 0xfffc);
+            if (!(segdat[2] & 0x8000)) {
+                x86np("Int task gate not present", (num << 3) + 2 + !soft);
                 return;
             }
-            addr += dt->base;
+            /* The TSS must be global, in the GDT, an available TSS and
+               present: #TS(TSS selector) on the 386/486/P5 books,
+               #GP(TSS selector) on the 80286 and P6 books */
+            seg  = segdat[1];
+            addr = seg & 0xfff8;
+            if (!(seg & 0xfffc) || (seg & 0x0004) || ((addr + 7) > gdt.limit)) {
+                if (is_p6 || !is386)
+                    x86gpf("pmodeint(): Task gate TSS selector null, local or > GDT limit", (seg & 0xfffc) + !soft);
+                else
+                    x86ts("pmodeint(): Task gate TSS selector null, local or > GDT limit", (seg & 0xfffc) + !soft);
+                return;
+            }
+            addr += gdt.base;
             read_descriptor(addr, segdat2, segdat232, 1);
             if (cpu_state.abrt)
                 return;
+            if (((segdat2[2] & 0x1f00) != 0x0100) && (!is386 || ((segdat2[2] & 0x1f00) != 0x0900))) {
+                if (is_p6 || !is386)
+                    x86gpf("pmodeint(): Task gate target not an available TSS", (seg & 0xfffc) + !soft);
+                else
+                    x86ts("pmodeint(): Task gate target not an available TSS", (seg & 0xfffc) + !soft);
+                return;
+            }
             if (!(segdat2[2] & 0x8000)) {
-                x86np("Int task gate not present", segdat[1] & 0xfffc);
+                x86np("Int task TSS not present", (seg & 0xfffc) + !soft);
                 return;
             }
             /* The error code, if any, is pushed onto the new task's stack with
                the size of the target TSS (word for a 286 TSS, dword for a 386 one). */
             intgatesize  = (segdat2[2] & 0x0800) ? 32 : 16;
             optype       = OPTYPE_INT;
+            task_ext     = !soft;
             cpl_override = 1;
             op_taskswitch286(seg, segdat2, segdat2[2] & 0x0800);
             cpl_override = 0;
+            task_ext     = 0;
             break;
 
         default:
-            x86gpf("Protected mode interrupt unknown type", seg & 0xfffc);
+            x86gpf("Protected mode interrupt unknown type", (num << 3) + 2 + !soft);
             return;
     }
 }
@@ -1881,9 +2004,6 @@ pmodeiret(int is32)
             x86gpf("Protected mode IRET: IOPL != 3", 0);
             return;
         }
-#ifndef USE_NEW_DYNAREC
-        oxpc = cpu_state.pc;
-#endif
         if (is32) {
             newpc     = POPL();
             seg       = POPL();
@@ -1893,8 +2013,10 @@ pmodeiret(int is32)
             seg       = POPW();
             tempflags = POPW();
         }
-        if (cpu_state.abrt)
+        if (cpu_state.abrt) {
+            ESP = oldsp; /* a faulting pop leaves ESP as it was */
             return;
+        }
 
         cpu_state.pc                = newpc;
         cpu_state.seg_cs.base       = seg << 4;
@@ -1905,36 +2027,51 @@ pmodeiret(int is32)
         cpu_state.seg_cs.ar_high = 0x10;
         CS                       = seg;
         cpu_state.flags          = (cpu_state.flags & 0x3000) | (tempflags & 0xcfd5) | 2;
+        /* IRETD in V86 mode loads all but VM, IOPL, VIP and VIF */
+        if (is32)
+            cpu_state.eflags = (cpu_state.eflags & (VM_FLAG | VIF_FLAG | VIP_FLAG)) |
+                               ((tempflags >> 16) & (RF_FLAG | AC_FLAG | VID_FLAG) & cpu_eflags_implemented());
         cycles -= timing_iret_rm;
         return;
     }
 
     if (cpu_state.flags & NT_FLAG) {
+        /* The back link must name a global, busy, present TSS: #TS(back
+           link) on the 80286, 386, Intel486 and Pentium books, #GP on the
+           P6 book; #NP(back link) when not present */
         cpl_override = 1;
         seg  = readmemw(tr.base, 0);
         cpl_override = 0;
-        addr = seg & 0xfff8;
-        if (seg & 0x0004) {
-            x86seg_log("TS LDT %04X %04X IRET\n", seg, gdt.limit);
-            x86ts("pmodeiret(): Selector points to LDT", seg & 0xfffc);
+        if (cpu_state.abrt)
             return;
-        } else {
-            if ((addr + 7) > gdt.limit) {
-                x86ts(NULL, seg & 0xfffc);
-                return;
-            }
-            addr += gdt.base;
+        addr = seg & 0xfff8;
+        if ((seg & 0x0004) || ((addr + 7) > gdt.limit)) {
+            if (is_p6)
+                x86gpf("pmodeiret(): back link local or past the GDT limit", seg & 0xfffc);
+            else
+                x86ts("pmodeiret(): back link local or past the GDT limit", seg & 0xfffc);
+            return;
         }
-        read_descriptor(addr, segdat, segdat32, 1);
+        read_descriptor(gdt.base + addr, segdat, segdat32, 1);
+        if (cpu_state.abrt)
+            return;
+        if (((segdat[2] & 0x1f00) != 0x0300) && (!is386 || ((segdat[2] & 0x1f00) != 0x0b00))) {
+            if (is_p6)
+                x86gpf("pmodeiret(): back link not a busy TSS", seg & 0xfffc);
+            else
+                x86ts("pmodeiret(): back link not a busy TSS", seg & 0xfffc);
+            return;
+        }
+        if (!(segdat[2] & 0x8000)) {
+            x86np("pmodeiret(): back link TSS not present", seg & 0xfffc);
+            return;
+        }
         cpl_override = 1;
         op_taskswitch286(seg, segdat, segdat[2] & 0x0800);
         cpl_override = 0;
         return;
     }
 
-#ifndef USE_NEW_DYNAREC
-    oxpc = cpu_state.pc;
-#endif
     flagmask = 0xffff;
     if (CPL != 0)
         flagmask &= ~0x3000;
@@ -1948,6 +2085,7 @@ pmodeiret(int is32)
     eflagmask = RF_FLAG | AC_FLAG | VID_FLAG;
     if (CPL == 0)
         eflagmask |= VIF_FLAG | VIP_FLAG;
+    eflagmask &= cpu_eflags_implemented();
     if (is32) {
         newpc     = POPL();
         seg       = POPL();
@@ -1967,13 +2105,13 @@ pmodeiret(int is32)
                 ESP = oldsp;
                 return;
             }
-            cpu_state.eflags = tempflags >> 16;
+            cpu_state.eflags = (tempflags >> 16) & cpu_eflags_implemented();
             cpu_cur_status |= CPU_STATUS_V86;
             op_loadseg(segs[0], &cpu_state.seg_es);
             do_seg_v86_init(&cpu_state.seg_es);
             op_loadseg(segs[1], &cpu_state.seg_ds);
             do_seg_v86_init(&cpu_state.seg_ds);
-            cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+            cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTFLATES;
             op_loadseg(segs[2], &cpu_state.seg_fs);
             do_seg_v86_init(&cpu_state.seg_fs);
             op_loadseg(segs[3], &cpu_state.seg_gs);
@@ -1989,9 +2127,7 @@ pmodeiret(int is32)
             cpu_state.seg_cs.ar_high    = 0x10;
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
-#endif
 
             ESP = newsp;
             op_loadseg(newss, &cpu_state.seg_ss);
@@ -2080,13 +2216,11 @@ pmodeiret(int is32)
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((CS & 0x0003) << 5);
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
-#endif
         set_use32(segdat[3] & 0x0040);
 
         cpl_override = 1;
-        writememw(0, addr + 4, segdat[2] | 0x100); /* Set accessed bit */
+        x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
         cpl_override = 0;
         cycles -= timing_iret_pm;
     } else { /* Return to outer level */
@@ -2129,7 +2263,7 @@ pmodeiret(int is32)
             return;
         }
         if ((newss & 3) != (seg & 3)) {
-            SP = oldsp;
+            ESP = oldsp;
             x86gpf("pmodeiret(): New SS RPL > CS RPL", newss & 0xfffc);
             return;
         }
@@ -2157,8 +2291,8 @@ pmodeiret(int is32)
         do_seg_load(&cpu_state.seg_ss, segdat2);
 
         cpl_override = 1;
-        writememw(0, addr + 4, segdat2[2] | 0x100); /* Set accessed bit */
-        writememw(0, oaddr + 4, segdat[2] | 0x100); /* Set accessed bit */
+        x86seg_set_accessed(addr, segdat2[2]); /* Set accessed bit */
+        x86seg_set_accessed(oaddr, segdat[2]); /* Set accessed bit */
         cpl_override = 0;
         /* Conforming segments don't change CPL, so CPL = RPL */
         if (segdat[2] & 0x0400)
@@ -2169,9 +2303,7 @@ pmodeiret(int is32)
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((CS & 3) << 5);
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
-#endif
         set_use32(segdat[3] & 0x40);
 
         check_seg_valid(&cpu_state.seg_ds);
@@ -2187,6 +2319,429 @@ pmodeiret(int is32)
                            ((tempflags >> 16) & eflagmask);
 }
 
+/* After a task switch, "IF EIP not within code segment limit THEN #GP(0)";
+   the 386, Intel486 and Pentium books raise #TS(0) for CALL instead. */
+static void
+task_eip_check(void)
+{
+    if (cpu_state.pc <= cpu_state.seg_cs.limit)
+        return;
+    if ((optype == CALL) && is386 && !is_p6)
+        x86ts("Task switch: EIP past the CS limit", 0);
+    else
+        x86gpf("Task switch: EIP past the CS limit", 0);
+}
+
+/* The dynamic part of a TSS, and the fields a task switch reads */
+typedef struct task_image_t {
+    uint32_t cr3;
+    uint32_t pc;
+    uint32_t flags;
+    uint32_t regs[8]; /* EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI */
+    uint16_t sel_es;
+    uint16_t sel_cs;
+    uint16_t sel_ss;
+    uint16_t sel_ds;
+    uint16_t sel_fs;
+    uint16_t sel_gs;
+    uint16_t sel_ldt;
+    int      t_bit;
+} task_image_t;
+
+static void
+task_read_image(uint32_t base, int is32, task_image_t *t)
+{
+    memset(t, 0, sizeof(task_image_t));
+    if (is32) {
+        t->cr3   = readmeml(base, 0x1c);
+        t->pc    = readmeml(base, 0x20);
+        t->flags = readmeml(base, 0x24);
+        for (int i = 0; i < 8; i++)
+            t->regs[i] = readmeml(base, 0x28 + (i << 2));
+        t->sel_es  = readmemw(base, 0x48);
+        t->sel_cs  = readmemw(base, 0x4c);
+        t->sel_ss  = readmemw(base, 0x50);
+        t->sel_ds  = readmemw(base, 0x54);
+        t->sel_fs  = readmemw(base, 0x58);
+        t->sel_gs  = readmemw(base, 0x5c);
+        t->sel_ldt = readmemw(base, 0x60);
+        t->t_bit   = readmemb(base, 0x64) & 1;
+    } else {
+        t->pc    = readmemw(base, 0x0e);
+        t->flags = readmemw(base, 0x10);
+        for (int i = 0; i < 8; i++)
+            t->regs[i] = readmemw(base, 0x12 + (i << 1));
+        t->sel_es  = readmemw(base, 0x22);
+        t->sel_cs  = readmemw(base, 0x24);
+        t->sel_ss  = readmemw(base, 0x26);
+        t->sel_ds  = readmemw(base, 0x28);
+        t->sel_ldt = readmemw(base, 0x2a);
+    }
+}
+
+/* The outgoing task's dynamic fields, in its own TSS's format. CR3 is a
+   static field the processor "reads, but does not change" (Pentium Vol. 3,
+   13.1), so it is not written. */
+static void
+task_save(uint32_t flags)
+{
+    if (tr.access & 8) {
+        writememl(tr.base, 0x20, cpu_state.pc);
+        writememl(tr.base, 0x24, flags);
+        for (int i = 0; i < 8; i++)
+            writememl(tr.base, 0x28 + (i << 2), cpu_state.regs[i].l);
+        writememl(tr.base, 0x48, ES);
+        writememl(tr.base, 0x4c, CS);
+        writememl(tr.base, 0x50, SS);
+        writememl(tr.base, 0x54, DS);
+        writememl(tr.base, 0x58, FS);
+        writememl(tr.base, 0x5c, GS);
+    } else {
+        writememw(tr.base, 0x0e, cpu_state.pc);
+        writememw(tr.base, 0x10, flags);
+        for (int i = 0; i < 8; i++)
+            writememw(tr.base, 0x12 + (i << 1), cpu_state.regs[i].w);
+        writememw(tr.base, 0x22, ES);
+        writememw(tr.base, 0x24, CS);
+        writememw(tr.base, 0x26, SS);
+        writememw(tr.base, 0x28, DS);
+    }
+}
+
+/* The descriptor a selector from the new TSS names: 0 for a null
+   selector, -1 past its table's limit, 1 read into sd (a fault reading it
+   is left in cpu_state.abrt) */
+static int
+task_desc(uint16_t sel, uint16_t *sd, uint32_t *addr)
+{
+    const x86seg *dt = (sel & 0x0004) ? &ldt : &gdt;
+
+    if (!(sel & 0xfffc))
+        return 0;
+    if (((sel & 0xfff8) + 7) > dt->limit)
+        return -1;
+    *addr = dt->base + (sel & 0xfff8);
+    read_descriptor(*addr, sd, (uint32_t *) sd, 1);
+    return 1;
+}
+
+/* LDTR from its descriptor; the G bit and base[31:24] only past the 80286 */
+static void
+task_load_ldt(const uint16_t *sd)
+{
+    ldt.limit = sd[0];
+    ldt.base  = sd[1] | ((sd[2] & 0x00ff) << 16);
+    if (is386) {
+        ldt.limit |= (sd[3] & 0x000f) << 16;
+        if (sd[3] & 0x0080)
+            ldt.limit = (ldt.limit << 12) | 0xfff;
+        ldt.base |= (sd[3] >> 8) << 24;
+    }
+}
+
+/* A data segment register (SS included) of the new task, its checks made:
+   an 8086 segment in V86 mode, else its descriptor, which is marked
+   accessed */
+static void
+task_load_seg(x86seg *s, uint16_t sel, const uint16_t *sd, uint32_t addr)
+{
+    if (cpu_state.eflags & VM_FLAG) {
+        s->seg  = sel;
+        s->base = sel << 4;
+        do_seg_v86_init(s);
+        s->checked = 1;
+        if (s == &cpu_state.seg_ss)
+            set_stack32(0);
+    } else if (!(sel & 0xfffc)) {
+        null_data_seg(s);
+        s->seg = sel;
+    } else {
+        uint16_t d[4] = { sd[0], sd[1], sd[2], sd[3] };
+
+        cpl_override = 1;
+        x86seg_set_accessed(addr, d[2]);
+        cpl_override = 0;
+        if (cpu_state.abrt)
+            return;
+        s->seg = sel;
+        do_seg_load(s, d);
+        if (s == &cpu_state.seg_ss)
+            set_stack32((d[3] & 0x40) ? 1 : 0);
+        s->checked = 0;
+    }
+#ifdef USE_DYNAREC
+    if (s == &cpu_state.seg_ds)
+        codegen_flat_ds = 0;
+    if (s == &cpu_state.seg_ss)
+        codegen_flat_ss = 0;
+    if (s == &cpu_state.seg_es)
+        codegen_flat_es = 0;
+#endif
+    if (s == &cpu_state.seg_ds) {
+        if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
+            cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+    }
+    if (s == &cpu_state.seg_es) {
+        if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
+            cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTFLATES;
+    }
+    if (s == &cpu_state.seg_ss) {
+        if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
+            cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTFLATSS;
+    }
+}
+
+/* CS of the new task, its checks made. CPL is the selector's RPL: "The new
+   task begins executing at the privilege level indicated by the RPL of the
+   new contents of the CS register" (386 PRM 7.5), which a conforming
+   segment's DPL need not equal. */
+static void
+task_load_cs(uint16_t sel, const uint16_t *sd, uint32_t addr, int cpl)
+{
+    if (cpu_state.eflags & VM_FLAG) {
+        CS                    = sel;
+        cpu_state.seg_cs.base = sel << 4;
+        do_seg_v86_init(&cpu_state.seg_cs);
+        set_use32(0);
+        return;
+    }
+
+    uint16_t d[4] = { sd[0], sd[1], sd[2], sd[3] };
+
+    cpl_override = 1;
+    x86seg_set_accessed(addr, d[2]);
+    cpl_override = 0;
+    if (cpu_state.abrt)
+        return;
+    CS = sel;
+    do_seg_load(&cpu_state.seg_cs, d);
+    cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (cpl << 5);
+    /* The D bit sets the operand size whatever the TSS's type */
+    set_use32(d[3] & 0x0040);
+}
+
+/* The 80286's checks and loads after the commit point, in the order of
+   SWITCH_TASKS (80286 PRM, Appendix B): LDT, SS, CS, then DS and ES */
+static int
+task_checks_286(const task_image_t *t, int cpl, int ext)
+{
+    uint16_t sd[4];
+    uint32_t addr = 0;
+    int      r;
+    int      dpl;
+
+    /* A null LDT selector leaves LDTR unusable, as LLDT does */
+    if (t->sel_ldt & 0xfffc) {
+        if ((t->sel_ldt & 0x0004) || (((t->sel_ldt & 0xfff8) + 7) > gdt.limit)) {
+            x86ts("taskswitch286(): LDT selector", (t->sel_ldt & 0xfffc) | ext);
+            return 0;
+        }
+        read_descriptor(gdt.base + (t->sel_ldt & 0xfff8), sd, (uint32_t *) sd, 1);
+        if (cpu_state.abrt)
+            return 0;
+        if ((sd[2] & 0x1f00) != 0x0200) {
+            x86ts("taskswitch286(): LDT descriptor", (t->sel_ldt & 0xfffc) | ext);
+            return 0;
+        }
+        if (!(sd[2] & 0x8000)) {
+            x86ts("taskswitch286(): LDT not present", (t->sel_ldt & 0xfffc) | ext);
+            return 0;
+        }
+        task_load_ldt(sd);
+    }
+
+    r = task_desc(t->sel_ss, sd, &addr);
+    if (cpu_state.abrt)
+        return 0;
+    dpl = (sd[2] >> 13) & 3;
+    if ((r <= 0) || ((t->sel_ss & 3) != cpl) || (dpl != cpl) || ((sd[2] & 0x1a00) != 0x1200)) {
+        x86ts("taskswitch286(): SS", (t->sel_ss & 0xfffc) | ext);
+        return 0;
+    }
+    if (!(sd[2] & 0x8000)) {
+        x86ss("taskswitch286(): SS not present", (t->sel_ss & 0xfffc) | ext);
+        return 0;
+    }
+    task_load_seg(&cpu_state.seg_ss, t->sel_ss, sd, addr);
+    if (cpu_state.abrt)
+        return 0;
+
+    r = task_desc(t->sel_cs, sd, &addr);
+    if (cpu_state.abrt)
+        return 0;
+    dpl = (sd[2] >> 13) & 3;
+    if ((r <= 0) || ((sd[2] & 0x1800) != 0x1800) || ((sd[2] & 0x0400) ? (dpl > cpl) : (dpl != cpl))) {
+        x86ts("taskswitch286(): CS", (t->sel_cs & 0xfffc) | ext);
+        return 0;
+    }
+    if (!(sd[2] & 0x8000)) {
+        x86np("taskswitch286(): CS not present", (t->sel_cs & 0xfffc) | ext);
+        return 0;
+    }
+    task_load_cs(t->sel_cs, sd, addr, cpl);
+    if (cpu_state.abrt)
+        return 0;
+
+    const uint16_t sel[2] = { t->sel_ds, t->sel_es };
+    x86seg *const  seg[2] = { &cpu_state.seg_ds, &cpu_state.seg_es };
+    for (int i = 0; i < 2; i++) {
+        r = task_desc(sel[i], sd, &addr);
+        if (cpu_state.abrt)
+            return 0;
+        if (r != 0) {
+            dpl = (sd[2] >> 13) & 3;
+            if ((r < 0) || !(sd[2] & 0x1000) || ((sd[2] & 0x0a00) == 0x0800) ||
+                (((sd[2] & 0x0c00) != 0x0c00) && ((dpl < cpl) || (dpl < (sel[i] & 3))))) {
+                x86ts("taskswitch286(): data segment", (sel[i] & 0xfffc) | ext);
+                return 0;
+            }
+            if (!(sd[2] & 0x8000)) {
+                x86np("taskswitch286(): data segment not present", (sel[i] & 0xfffc) | ext);
+                return 0;
+            }
+        }
+        task_load_seg(seg[i], sel[i], sd, addr);
+        if (cpu_state.abrt)
+            return 0;
+    }
+    return 1;
+}
+
+/* The 386 and later processors' checks after the commit point, in the
+   order of "Checks Made during a Task Switch" (386 PRM Table 7-1, Intel486
+   PRM Table 7-1, Pentium Vol. 3 Table 13-1; "the order used in the P6
+   family", SDM Vol. 3 Table 6-1), then the loads */
+static int
+task_checks_386(const task_image_t *t, int cpl, int ext)
+{
+    const int      vm     = !!(cpu_state.eflags & VM_FLAG);
+    const uint16_t sel[4] = { t->sel_ds, t->sel_es, t->sel_fs, t->sel_gs };
+    x86seg *const  seg[4] = { &cpu_state.seg_ds, &cpu_state.seg_es, &cpu_state.seg_fs, &cpu_state.seg_gs };
+    uint16_t       lsd[4] = { 0 };
+    uint16_t       csd[4] = { 0 };
+    uint16_t       ssd[4] = { 0 };
+    uint16_t       dsd[4][4];
+    uint32_t       cs_addr  = 0;
+    uint32_t       ss_addr  = 0;
+    uint32_t       d_addr[4] = { 0 };
+    int            cs_r     = 0;
+    int            ss_r     = 0;
+    int            r;
+    int            dpl;
+
+    /* LDT selector of the new task is valid: a GDT selector naming an LDT
+       descriptor (null leaves LDTR unusable, as LLDT does) */
+    if (t->sel_ldt & 0xfffc) {
+        if ((t->sel_ldt & 0x0004) || (((t->sel_ldt & 0xfff8) + 7) > gdt.limit)) {
+            x86ts("taskswitch286(): LDT selector", (t->sel_ldt & 0xfffc) | ext);
+            return 0;
+        }
+        read_descriptor(gdt.base + (t->sel_ldt & 0xfff8), lsd, (uint32_t *) lsd, 1);
+        if (cpu_state.abrt)
+            return 0;
+        if ((lsd[2] & 0x1f00) != 0x0200) {
+            x86ts("taskswitch286(): LDT descriptor", (t->sel_ldt & 0xfffc) | ext);
+            return 0;
+        }
+        task_load_ldt(lsd);
+    }
+
+    if (!vm) {
+        /* Code segment DPL matches selector RPL */
+        cs_r = task_desc(t->sel_cs, csd, &cs_addr);
+        if (cpu_state.abrt)
+            return 0;
+        if ((cs_r > 0) && ((csd[2] & 0x1800) == 0x1800)) {
+            dpl = (csd[2] >> 13) & 3;
+            if ((csd[2] & 0x0400) ? (dpl > cpl) : (dpl != cpl)) {
+                x86ts("taskswitch286(): CS DPL", (t->sel_cs & 0xfffc) | ext);
+                return 0;
+            }
+        }
+        /* SS selector is valid, the segment present, its DPL the CPL */
+        ss_r = task_desc(t->sel_ss, ssd, &ss_addr);
+        if (cpu_state.abrt)
+            return 0;
+        if ((ss_r <= 0) || ((ssd[2] & 0x1a00) != 0x1200)) {
+            x86ts("taskswitch286(): SS", (t->sel_ss & 0xfffc) | ext);
+            return 0;
+        }
+        if (!(ssd[2] & 0x8000)) {
+            x86ss("taskswitch286(): SS not present", (t->sel_ss & 0xfffc) | ext);
+            return 0;
+        }
+        if (((ssd[2] >> 13) & 3) != cpl) {
+            x86ts("taskswitch286(): SS DPL != CPL", (t->sel_ss & 0xfffc) | ext);
+            return 0;
+        }
+    }
+
+    /* LDT of the new task is present */
+    if ((t->sel_ldt & 0xfffc) && !(lsd[2] & 0x8000)) {
+        ldt.base  = 0;
+        ldt.limit = 0;
+        x86ts("taskswitch286(): LDT not present", (t->sel_ldt & 0xfffc) | ext);
+        return 0;
+    }
+
+    if (!vm) {
+        /* CS selector is valid, the segment present */
+        if ((cs_r <= 0) || ((csd[2] & 0x1800) != 0x1800)) {
+            x86ts("taskswitch286(): CS", (t->sel_cs & 0xfffc) | ext);
+            return 0;
+        }
+        if (!(csd[2] & 0x8000)) {
+            x86np("taskswitch286(): CS not present", (t->sel_cs & 0xfffc) | ext);
+            return 0;
+        }
+        /* Stack segment DPL matches selector RPL */
+        if (((ssd[2] >> 13) & 3) != (t->sel_ss & 3)) {
+            x86ts("taskswitch286(): SS DPL != RPL", (t->sel_ss & 0xfffc) | ext);
+            return 0;
+        }
+        /* DS, ES, FS and GS: valid, readable, present, DPL >= CPL and RPL
+           unless conforming */
+        for (int i = 0; i < 4; i++) {
+            r = task_desc(sel[i], dsd[i], &d_addr[i]);
+            if (cpu_state.abrt)
+                return 0;
+            if (r == 0)
+                continue;
+            if ((r < 0) || !(dsd[i][2] & 0x1000)) {
+                x86ts("taskswitch286(): data segment selector", (sel[i] & 0xfffc) | ext);
+                return 0;
+            }
+            if ((dsd[i][2] & 0x0a00) == 0x0800) {
+                x86ts("taskswitch286(): data segment not readable", (sel[i] & 0xfffc) | ext);
+                return 0;
+            }
+            if (!(dsd[i][2] & 0x8000)) {
+                x86np("taskswitch286(): data segment not present", (sel[i] & 0xfffc) | ext);
+                return 0;
+            }
+            dpl = (dsd[i][2] >> 13) & 3;
+            if (((dsd[i][2] & 0x0c00) != 0x0c00) && ((dpl < cpl) || (dpl < (sel[i] & 3)))) {
+                x86ts("taskswitch286(): data segment DPL", (sel[i] & 0xfffc) | ext);
+                return 0;
+            }
+        }
+    }
+
+    task_load_cs(t->sel_cs, csd, cs_addr, cpl);
+    if (cpu_state.abrt)
+        return 0;
+    task_load_seg(&cpu_state.seg_ss, t->sel_ss, ssd, ss_addr);
+    for (int i = 0; (i < 4) && !cpu_state.abrt; i++)
+        task_load_seg(seg[i], sel[i], dsd[i], d_addr[i]);
+    return !cpu_state.abrt;
+}
+
 void
 #ifdef OPS_286_386
 taskswitch286_2386(uint16_t seg, uint16_t *segdat, int is32)
@@ -2194,424 +2749,179 @@ taskswitch286_2386(uint16_t seg, uint16_t *segdat, int is32)
 taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
 #endif
 {
-    uint16_t      tempw;
-    uint16_t      new_ldt;
-    uint16_t      new_es;
-    uint16_t      new_cs;
-    uint16_t      new_ss;
-    uint16_t      new_ds;
-    uint16_t      new_fs;
-    uint16_t      new_gs;
-    uint16_t      segdat2[4];
-    uint32_t      base;
-    uint32_t      limit;
-    uint32_t      templ;
-    uint32_t      new_cr3 = 0;
-    uint32_t      new_eax;
-    uint32_t      new_ebx;
-    uint32_t      new_ecx;
-    uint32_t      new_edx;
-    uint32_t      new_esp;
-    uint32_t      new_ebp;
-    uint32_t      new_esi;
-    uint32_t      new_edi;
-    uint32_t      new_pc;
-    uint32_t      new_flags;
-    uint32_t      t_bit;
-    uint32_t      addr;
-    uint32_t     *segdat232 = (uint32_t *) segdat2;
-    const x86seg *dt;
+    const int    ext = task_ext;
+    task_image_t img;
+    uint32_t     base;
+    uint32_t     limit;
+    uint32_t     old_flags;
+    int          cpl;
 
     base  = segdat[1] | ((segdat[2] & 0x00ff) << 16);
     limit = segdat[0];
     if (is386) {
         base |= (segdat[3] >> 8) << 24;
         limit |= (segdat[3] & 0x000f) << 16;
+        if (segdat[3] & 0x0080)
+            limit = (limit << 12) | 0xfff;
     }
 
-    if (is32) {
-        if (limit < 103) {
-            x86ts("taskswitch286(): limit < 103", seg);
+    cpu_386_flags_rebuild();
+    old_flags = cpu_state.flags | (cpu_state.eflags << 16);
+    if (optype == IRET)
+        old_flags &= ~NT_FLAG; /* the saved image's NT is cleared */
+
+    if (!is386) {
+        /* SWITCH_TASKS (80286 PRM, Appendix B): the new task is marked
+           busy first; the current TSS must hold the state saved */
+        if ((optype != IRET) && !x86seg_tss_busy(gdt.base, seg, 1))
+            return;
+        if (tr.limit < 41) {
+            x86ts("taskswitch286(): current TSS limit < 41", (seg & 0xfffc) | ext);
             return;
         }
-
-        if ((optype == JMP) || (optype == CALL) || (optype == OPTYPE_INT)) {
-            if (tr.seg & 0x0004)
-                tempw = readmemw(ldt.base, (seg & 0xfff8) + 4);
-            else
-                tempw = readmemw(gdt.base, (seg & 0xfff8) + 4);
-            if (cpu_state.abrt)
-                return;
-            tempw |= 0x0200;
-            if (tr.seg & 0x0004)
-                writememw(ldt.base, (seg & 0xfff8) + 4, tempw);
-            else
-                writememw(gdt.base, (seg & 0xfff8) + 4, tempw);
-        }
+        task_save(old_flags);
         if (cpu_state.abrt)
             return;
-
-        if (optype == IRET)
-            cpu_state.flags &= ~NT_FLAG;
-
-        cpu_386_flags_rebuild();
-        writememl(tr.base, 0x1C, cr3);
-        writememl(tr.base, 0x20, cpu_state.pc);
-        writememl(tr.base, 0x24, cpu_state.flags | (cpu_state.eflags << 16));
-
-        writememl(tr.base, 0x28, EAX);
-        writememl(tr.base, 0x2C, ECX);
-        writememl(tr.base, 0x30, EDX);
-        writememl(tr.base, 0x34, EBX);
-        writememl(tr.base, 0x38, ESP);
-        writememl(tr.base, 0x3C, EBP);
-        writememl(tr.base, 0x40, ESI);
-        writememl(tr.base, 0x44, EDI);
-
-        writememl(tr.base, 0x48, ES);
-        writememl(tr.base, 0x4C, CS);
-        writememl(tr.base, 0x50, SS);
-        writememl(tr.base, 0x54, DS);
-        writememl(tr.base, 0x58, FS);
-        writememl(tr.base, 0x5C, GS);
-
-        if ((optype == JMP) || (optype == IRET)) {
-            if (tr.seg & 0x0004)
-                tempw = readmemw(ldt.base, (tr.seg & 0xfff8) + 4);
-            else
-                tempw = readmemw(gdt.base, (tr.seg & 0xfff8) + 4);
-            if (cpu_state.abrt)
-                return;
-            tempw &= ~0x0200;
-            if (tr.seg & 0x0004)
-                writememw(ldt.base, (tr.seg & 0xfff8) + 4, tempw);
-            else
-                writememw(gdt.base, (tr.seg & 0xfff8) + 4, tempw);
-        }
-        if (cpu_state.abrt)
-            return;
-
-        if ((optype == OPTYPE_INT) || (optype == CALL)) {
-            writememl(base, 0, tr.seg);
-            if (cpu_state.abrt)
-                return;
-        }
-
-        new_cr3   = readmeml(base, 0x1C);
-        new_pc    = readmeml(base, 0x20);
-        new_flags = readmeml(base, 0x24);
-        if ((optype == OPTYPE_INT) || (optype == CALL))
-            new_flags |= NT_FLAG;
-
-        new_eax = readmeml(base, 0x28);
-        new_ecx = readmeml(base, 0x2C);
-        new_edx = readmeml(base, 0x30);
-        new_ebx = readmeml(base, 0x34);
-        new_esp = readmeml(base, 0x38);
-        new_ebp = readmeml(base, 0x3C);
-        new_esi = readmeml(base, 0x40);
-        new_edi = readmeml(base, 0x44);
-
-        new_es  = readmemw(base, 0x48);
-        new_cs  = readmemw(base, 0x4C);
-        new_ss  = readmemw(base, 0x50);
-        new_ds  = readmemw(base, 0x54);
-        new_fs  = readmemw(base, 0x58);
-        new_gs  = readmemw(base, 0x5C);
-        new_ldt = readmemw(base, 0x60);
-        t_bit   = readmemb(base, 0x64) & 1;
-
-        cr0 |= 8;
-
-        cr3 = new_cr3;
-        flushmmucache();
-
-        cpu_state.pc     = new_pc;
-        cpu_state.flags  = new_flags;
-        cpu_state.eflags = new_flags >> 16;
-        cpu_386_flags_extract();
-
-        ldt.seg   = new_ldt;
-        templ     = (ldt.seg & ~7) + gdt.base;
-        ldt.limit = readmemw(0, templ);
-        if (readmemb(0, templ + 6) & 0x80) {
-            ldt.limit <<= 12;
-            ldt.limit |= 0xfff;
-        }
-        ldt.base = (readmemw(0, templ + 2)) | (readmemb(0, templ + 4) << 16) | (readmemb(0, templ + 7) << 24);
-
-        if (cpu_state.eflags & VM_FLAG) {
-            op_loadcs(new_cs);
-            set_use32(0);
-            cpu_cur_status |= CPU_STATUS_V86;
-        } else {
-            if (!(new_cs & 0xfffc)) {
-                x86ts("taskswitch286(): New CS selector is null", 0);
-                return;
-            }
-            addr = new_cs & 0xfff8;
-            dt   = (new_cs & 0x0004) ? &ldt : &gdt;
-            if ((addr + 7) > dt->limit) {
-                x86ts("taskswitch286(): New CS selector > DT limit", new_cs & 0xfffc);
-                return;
-            }
-            addr += dt->base;
-            read_descriptor(addr, segdat2, segdat232, 0);
-            if (!(segdat2[2] & 0x8000)) {
-                x86np("TS loading CS not present", new_cs & 0xfffc);
-                return;
-            }
-            switch (segdat2[2] & 0x1f00) {
-                case 0x1800:
-                case 0x1900:
-                case 0x1a00:
-                case 0x1b00: /* Non-conforming */
-                    if ((new_cs & 0x0003) != DPL2) {
-                        x86ts("TS loading CS RPL != DPL2", new_cs & 0xfffc);
-                        return;
-                    }
-                    break;
-                case 0x1c00:
-                case 0x1d00:
-                case 0x1e00:
-                case 0x1f00: /* Conforming */
-                    if ((new_cs & 0x0003) < DPL2) {
-                        x86ts("TS loading CS RPL < DPL2", new_cs & 0xfffc);
-                        return;
-                    }
-                    break;
-                default:
-                    x86ts("TS loading CS unknown type", new_cs & 0xfffc);
-                    return;
-            }
-
-            CS = new_cs;
-            do_seg_load(&cpu_state.seg_cs, segdat2);
-            if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
-            oldcpl = CPL;
-#endif
-            set_use32(segdat2[3] & 0x0040);
-            cpu_cur_status &= ~CPU_STATUS_V86;
-        }
-
-        EAX = new_eax;
-        ECX = new_ecx;
-        EDX = new_edx;
-        EBX = new_ebx;
-        ESP = new_esp;
-        EBP = new_ebp;
-        ESI = new_esi;
-        EDI = new_edi;
-
-        op_loadseg(new_es, &cpu_state.seg_es);
-        op_loadseg(new_ss, &cpu_state.seg_ss);
-        op_loadseg(new_ds, &cpu_state.seg_ds);
-        op_loadseg(new_fs, &cpu_state.seg_fs);
-        op_loadseg(new_gs, &cpu_state.seg_gs);
-
-#ifdef USE_DEBUG_REGS_486
-        rf_flag_no_clear = 1;
-#else
-        if (!cpu_use_exec)
-            rf_flag_no_clear = 1;
-#endif
-
-        if (t_bit) {
-#ifdef USE_DEBUG_REGS_486
-            trap |= 2;
-#else
-            if (cpu_use_exec)
-                trap = 2;
-            else
-                trap |= 2;
-#endif
-#ifdef USE_DYNAREC
-            cpu_block_end = 1;
-#endif
-        }
     } else {
-        if (limit < 43) {
-            x86ts(NULL, seg);
+        /* Checked in the old task's context: the new TSS's limit, and its
+           pages present ("Checks that the current (old) TSS, new TSS ... are
+           paged into system memory", SDM Vol. 3, 6.3 step 5) */
+        if (limit < (is32 ? 103 : 43)) {
+            x86ts("taskswitch286(): TSS limit too small", (seg & 0xfffc) | ext);
             return;
         }
-
-        if ((optype == JMP) || (optype == CALL) || (optype == OPTYPE_INT)) {
-            if (tr.seg & 0x0004)
-                tempw = readmemw(ldt.base, (seg & 0xfff8) + 4);
-            else
-                tempw = readmemw(gdt.base, (seg & 0xfff8) + 4);
-            if (cpu_state.abrt)
-                return;
-            tempw |= 0x200;
-            if (tr.seg & 0x0004)
-                writememw(ldt.base, (seg & 0xfff8) + 4, tempw);
-            else
-                writememw(gdt.base, (seg & 0xfff8) + 4, tempw);
-        }
+        task_read_image(base, is32, &img);
         if (cpu_state.abrt)
             return;
-
-        if (optype == IRET)
-            cpu_state.flags &= ~NT_FLAG;
-
-        cpu_386_flags_rebuild();
-        writememw(tr.base, 0x0e, cpu_state.pc);
-        writememw(tr.base, 0x10, cpu_state.flags);
-
-        writememw(tr.base, 0x12, AX);
-        writememw(tr.base, 0x14, CX);
-        writememw(tr.base, 0x16, DX);
-        writememw(tr.base, 0x18, BX);
-        writememw(tr.base, 0x1a, SP);
-        writememw(tr.base, 0x1c, BP);
-        writememw(tr.base, 0x1e, SI);
-        writememw(tr.base, 0x20, DI);
-
-        writememw(tr.base, 0x22, ES);
-        writememw(tr.base, 0x24, CS);
-        writememw(tr.base, 0x26, SS);
-        writememw(tr.base, 0x28, DS);
-
-        if ((optype == JMP) || (optype == IRET)) {
-            if (tr.seg & 0x0004)
-                tempw = readmemw(ldt.base, (tr.seg & 0xfff8) + 4);
-            else
-                tempw = readmemw(gdt.base, (tr.seg & 0xfff8) + 4);
-            if (cpu_state.abrt)
-                return;
-            tempw &= ~0x200;
-            if (tr.seg & 0x0004)
-                writememw(ldt.base, (tr.seg & 0xfff8) + 4, tempw);
-            else
-                writememw(gdt.base, (tr.seg & 0xfff8) + 4, tempw);
-        }
+        task_save(old_flags);
         if (cpu_state.abrt)
             return;
-
-        if ((optype == OPTYPE_INT) || (optype == CALL)) {
-            writememw(base, 0, tr.seg);
-            if (cpu_state.abrt)
-                return;
-        }
-
-        new_pc    = readmemw(base, 0x0e);
-        new_flags = readmemw(base, 0x10);
-        if ((optype == OPTYPE_INT) || (optype == CALL))
-            new_flags |= NT_FLAG;
-
-        new_eax = readmemw(base, 0x12);
-        new_ecx = readmemw(base, 0x14);
-        new_edx = readmemw(base, 0x16);
-        new_ebx = readmemw(base, 0x18);
-        new_esp = readmemw(base, 0x1a);
-        new_ebp = readmemw(base, 0x1c);
-        new_esi = readmemw(base, 0x1e);
-        new_edi = readmemw(base, 0x20);
-
-        new_es  = readmemw(base, 0x22);
-        new_cs  = readmemw(base, 0x24);
-        new_ss  = readmemw(base, 0x26);
-        new_ds  = readmemw(base, 0x28);
-        new_ldt = readmemw(base, 0x2a);
-
-        msw |= 8;
-
-        cpu_state.pc    = new_pc;
-        cpu_state.flags = new_flags;
-        cpu_386_flags_extract();
-
-        ldt.seg   = new_ldt;
-        templ     = (ldt.seg & 0xfff8) + gdt.base;
-        ldt.limit = readmemw(0, templ);
-        ldt.base  = (readmemw(0, templ + 2)) | (readmemb(0, templ + 4) << 16);
-        if (is386) {
-            if (readmemb(0, templ + 6) & 0x80) {
-                ldt.limit <<= 12;
-                ldt.limit |= 0xfff;
-            }
-            ldt.base |= (readmemb(0, templ + 7) << 24);
-        }
-
-        if (!(new_cs & 0xfff8) && !(new_cs & 0x0004)) {
-            x86ts(NULL, 0);
+        /* The Pentium sets the new Busy bit before the save and clears it
+           again if the save faults; "The end result of the instruction is
+           the same" (AMD-K5 TRM, A.6.2) */
+        if ((optype != IRET) && !x86seg_tss_busy(gdt.base, seg, 1))
             return;
-        }
-        addr = new_cs & 0xfff8;
-        dt   = (new_cs & 0x0004) ? &ldt : &gdt;
-        if ((addr + 7) > dt->limit) {
-            x86ts(NULL, new_cs & 0xfffc);
-            return;
-        }
-        addr += dt->base;
-        read_descriptor(addr, segdat2, segdat232, 0);
-        if (!(segdat2[2] & 0x8000)) {
-            x86np("TS loading CS not present", new_cs & 0xfffc);
-            return;
-        }
-        switch (segdat2[2] & 0x1f00) {
-            case 0x1800:
-            case 0x1900:
-            case 0x1a00:
-            case 0x1b00: /* Non-conforming */
-                if ((new_cs & 0x0003) != DPL2) {
-                    x86ts(NULL, new_cs & 0xfffc);
-                    return;
-                }
-                break;
-            case 0x1c00:
-            case 0x1d00:
-            case 0x1e00:
-            case 0x1f00: /* Conforming */
-                if ((new_cs & 0x0003) < DPL2) {
-                    x86ts(NULL, new_cs & 0xfffc);
-                    return;
-                }
-                break;
-            default:
-                x86ts(NULL, new_cs & 0xfffc);
-                return;
-        }
-
-        CS = new_cs;
-        do_seg_load(&cpu_state.seg_cs, segdat2);
-        if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
-        oldcpl = CPL;
-#endif
-        set_use32(0);
-
-        EAX = new_eax | 0xffff0000;
-        ECX = new_ecx | 0xffff0000;
-        EDX = new_edx | 0xffff0000;
-        EBX = new_ebx | 0xffff0000;
-        ESP = new_esp | 0xffff0000;
-        EBP = new_ebp | 0xffff0000;
-        ESI = new_esi | 0xffff0000;
-        EDI = new_edi | 0xffff0000;
-
-        op_loadseg(new_es, &cpu_state.seg_es);
-        op_loadseg(new_ss, &cpu_state.seg_ss);
-        op_loadseg(new_ds, &cpu_state.seg_ds);
-        if (is386) {
-            op_loadseg(0, &cpu_state.seg_fs);
-            op_loadseg(0, &cpu_state.seg_gs);
-        }
     }
 
+    /* Busy bits (TSS descriptors live only in the GDT) and the link */
+    if ((optype == JMP) || (optype == IRET)) {
+        if (!x86seg_tss_busy(gdt.base, tr.seg, 0))
+            return;
+    }
+    if ((optype == OPTYPE_INT) || (optype == CALL)) {
+        writememw(base, 0, tr.seg);
+        if (cpu_state.abrt)
+            return;
+    }
+
+    /* Commit: from here a fault is taken in the new task */
     tr.seg     = seg;
     tr.base    = base;
     tr.limit   = limit;
-    tr.access  = segdat[2] >> 8;
-    tr.ar_high = segdat[3] & 0xff;
+    tr.access  = (segdat[2] >> 8) | 0x02; /* now busy */
+    tr.ar_high = is386 ? (segdat[3] & 0xff) : 0;
+
+    if (!is386 && (limit < 43)) {
+        /* The 80286 checks the new TSS's limit after loading TR */
+        x86ts("taskswitch286(): TSS limit < 43", (seg & 0xfffc) | ext);
+        return;
+    }
+    /* The new state, read after the save: the two TSSs can overlap (an IRET
+       to the task the link names may be to the current one) */
+    task_read_image(base, is32, &img);
+    if (cpu_state.abrt)
+        return;
+    if ((optype == OPTYPE_INT) || (optype == CALL))
+        img.flags |= NT_FLAG;
+
+    msw |= 8; /* CR0.TS */
+
+    cpu_state.pc    = img.pc;
+    cpu_state.oldpc = img.pc;
+    if (is32) {
+        cpu_state.flags  = img.flags;
+        cpu_state.eflags = img.flags >> 16;
+    } else {
+        cpu_state.flags = img.flags;
+        cpu_state.eflags &= ~VM_FLAG; /* a 16-bit TSS has no VM */
+    }
+    cpu_386_flags_extract();
+    for (int i = 0; i < 8; i++)
+        cpu_state.regs[i].l = is32 ? img.regs[i] : (img.regs[i] | 0xffff0000);
+
 #ifdef USE_DEBUG_REGS_486
     dr[7] &= 0xFFFFFFAA;
 #else
     if (!cpu_use_exec)
         dr[7] &= 0xFFFFFFAA;
 #endif
+
+    /* "The processor first loads all the segment registers with segment
+       selectors from the TSS, then checks their contents for validity"
+       (SDM Vol. 3, Interrupt 10); a check that fails leaves the rest loaded
+       but unchecked. A fault from here is taken at the new task's CS:EIP
+       and CPL. */
+    cpl = (cpu_state.eflags & VM_FLAG) ? 3 : (img.sel_cs & 3);
+    if ((cpl == 3) && (CPL != 3))
+        flushmmucache_nopc();
+    cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (cpl << 5);
+    oldcpl                  = cpl;
+    oldcs                   = img.sel_cs;
+    CS                      = img.sel_cs;
+    ES                      = img.sel_es;
+    SS                      = img.sel_ss;
+    DS                      = img.sel_ds;
+    if (is386) {
+        FS = img.sel_fs;
+        GS = img.sel_gs;
+    }
+    ldt.seg   = img.sel_ldt;
+    ldt.base  = 0;
+    ldt.limit = 0;
+    if (cpu_state.eflags & VM_FLAG)
+        cpu_cur_status |= CPU_STATUS_V86;
+    else
+        cpu_cur_status &= ~CPU_STATUS_V86;
+
+    if (is32) {
+        cr3 = img.cr3;
+        pae_load_pdptes(); /* used only with PAE paging */
+        flushmmucache();
+    }
+
+    if (is386 ? !task_checks_386(&img, cpl, ext) : !task_checks_286(&img, cpl, ext))
+        return;
+
+#ifdef USE_DEBUG_REGS_486
+    rf_flag_no_clear = 1;
+#else
+    if (!cpu_use_exec)
+        rf_flag_no_clear = 1;
+#endif
+
+    /* An exception's error code goes on the new task's stack before its
+       EIP is checked: x86_doabrt() makes that check after the push */
+    if ((optype == OPTYPE_INT) && task_error_follows)
+        task_eip_pending = 1;
+    else {
+        task_eip_check();
+        if (cpu_state.abrt)
+            return;
+    }
+
+    if (img.t_bit) {
+#ifdef USE_DEBUG_REGS_486
+        trap |= 2;
+#else
+        if (cpu_use_exec)
+            trap = 2;
+        else
+            trap |= 2;
+#endif
+#ifdef USE_DYNAREC
+        cpu_block_end = 1;
+#endif
+    }
 }
 
 void
@@ -2661,6 +2971,12 @@ cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg)
                 cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
             else
                 cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+        }
+        if (seg == &cpu_state.seg_es) {
+            if (seg->base == 0 && seg->limit_low == 0 && seg->limit_high == 0xffffffff)
+                cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+            else
+                cpu_cur_status |= CPU_STATUS_NOTFLATES;
         }
 
         if (seg == &cpu_state.seg_cs)

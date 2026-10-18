@@ -47,29 +47,12 @@ def archNamesMac = [
 	'x86_64+arm64': 'Universal (Intel and Apple Silicon)'
 ]
 
-def dynarecNames = [
-	'ODR': 'Old Recompiler (recommended)',
-	'NDR': 'New Recompiler (beta)',
-	'NoDR': 'No Dynamic Recompiler'
-]
-
-def dynarecArchs = [
-	'64': ['ODR', 'NDR'],
-	'x86_64': ['ODR', 'NDR'],
-	'arm64': ['NDR'],
-	'x86_64+arm64': ['ODR', 'NDR']
-]
-
 def dynarecFlags = [
-	'ODR': '-D NEW_DYNAREC=OFF',
-	'NDR': '-D NEW_DYNAREC=ON',
-	'NoDR': '-D DYNAREC=OFF'
-]
-
-def dynarecSlugs = [
-	'ODR': '',
-	'NDR': '-NDR',
-	'NoDR': ''
+	'64': '-D DYNAREC=ON',
+	'x86_64': '-D DYNAREC=ON',
+	'arm64': '-D DYNAREC=ON',
+	'x86_64+arm64': '-D DYNAREC=ON',
+	'': '-D DYNAREC=OFF'
 ]
 
 def presets = [
@@ -255,53 +238,46 @@ pipeline {
 					osArchs.each { os, thisOsArchs ->
 						def combinations = [:]
 						thisOsArchs.each { arch ->
-							def thisArchDynarecs = dynarecArchs[arch.toLowerCase()]
-							if (!thisArchDynarecs)
-								thisArchDynarecs = ['NoDR']
-							thisArchDynarecs.each { dynarec ->
-								presets.each { preset ->
-									def combination = "$os $arch $dynarec $preset"
-									combinations[combination] = {
-										catchError(buildResult: 'FAILURE', stageResult: 'SUCCESS') {
-											retry(10) {
-												node("$os && ($arch || all)") {
-													stage(combination) {
-														/* Run git clone. */
-														gitClone(repository[buildBranch], branch[buildBranch])
+							presets.each { preset ->
+								def combination = "$os $arch $preset"
+								combinations[combination] = {
+									catchError(buildResult: 'FAILURE', stageResult: 'SUCCESS') {
+										retry(10) {
+											node("$os && ($arch || all)") {
+												stage(combination) {
+													/* Run git clone. */
+													gitClone(repository[buildBranch], branch[buildBranch])
 
-														/* Switch to output directory. */
-														dir("${env.WORKSPACE_TMP}/output") {
-															/* Run build process. */
-															def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch$buildSuffix"
-															def ret = -1
-															def archName = archNames[arch.toLowerCase()]
-															if (os == 'macOS')
-																archName = archNamesMac[arch.toLowerCase()]
-															dir(dynarecNames[dynarec]) {
-																dir("$os - $archName") {
-																	ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} $buildFlags")
-																}
-															}
-
-															if (ret == 0 || ret == 50) {
-																/* Archive resulting artifacts. */
-																archiveArtifacts artifacts: "**/$packageName*", defaultExcludes: false
-
-																/* Notify about macOS notarization failures. */
-																if (ret == 50) {
-																	catchError(message: 'macOS notarization failed', buildResult: currentBuild.currentResult, stageResult: 'UNSTABLE') {
-																		def x = 1 / 0
-																	}
-																}
-															} else {
-																/* Fail this stage. */
-																failStage()
-															}
+													/* Switch to output directory. */
+													dir("${env.WORKSPACE_TMP}/output") {
+														/* Run build process. */
+														def packageName = "${env.JOB_BASE_NAME}${presetSlugs[preset]}-$os-$arch$buildSuffix"
+														def ret = -1
+														def archLower = arch.toLowerCase()
+														def archName = (os == 'macOS') ? archNamesMac[archLower] : archNames[archLower]
+														def thisDynarecFlags = dynarecFlags.containsKey(archLower) ? dynarecFlags[archLower] : dynarecFlags['']
+														dir("$os - $archName") {
+															ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} $thisDynarecFlags ${osFlags[os]} $buildFlags")
 														}
 
-														/* Clean up. */
-														removeDir("${env.WORKSPACE_TMP}/output")
+														if (ret == 0 || ret == 50) {
+															/* Archive resulting artifacts. */
+															archiveArtifacts artifacts: "**/$packageName*", defaultExcludes: false
+
+															/* Notify about macOS notarization failures. */
+															if (ret == 50) {
+																catchError(message: 'macOS notarization failed', buildResult: currentBuild.currentResult, stageResult: 'UNSTABLE') {
+																	def x = 1 / 0
+																}
+															}
+														} else {
+															/* Fail this stage. */
+															failStage()
+														}
 													}
+
+													/* Clean up. */
+													removeDir("${env.WORKSPACE_TMP}/output")
 												}
 											}
 										}
@@ -334,7 +310,7 @@ pipeline {
 							    scmWebUrl: commitBrowser[buildBranch]
 
 						/* Notify IRC, which needs a node for whatever reason. */
-						node('citadel || rg || master') {
+						node('citadel || newkomi || master') {
 							ircNotify()
 						}
 					} catch (e) {

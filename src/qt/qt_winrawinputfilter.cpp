@@ -74,7 +74,9 @@ extern void win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 #include "ui_qt_mainwindow.h"
 #include "qt_osd.hpp"
 
+#ifdef USE_QDARKSTYLE
 bool NewDarkMode = FALSE;
+#endif
 
 extern MainWindow *main_window;
 
@@ -309,6 +311,9 @@ device_change(WPARAM wParam, LPARAM lParam)
 void
 selectDarkMode()
 {
+#ifndef USE_QDARKSTYLE
+    util::applyColorScheme();
+#else
     bool OldDarkMode = NewDarkMode;
 
     if (!util::isWindowsLightTheme()) {
@@ -356,6 +361,7 @@ selectDarkMode()
                                                        mon->mon_scrnsz_y, i);
             }
         });
+#endif
 }
 
 bool
@@ -378,6 +384,8 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
                         }
                     }
                     return true;
+#ifdef USE_QDARKSTYLE
+                /* Newer Qt follows system color scheme changes by itself */
                 case WM_SETTINGCHANGE:
                     if ((((void *) msg->lParam) != nullptr) && (wcscmp(L"ImmersiveColorSet", (wchar_t *) msg->lParam) == 0) && color_scheme == 0) {
 
@@ -443,6 +451,7 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
                             });
                     }
                     break;
+#endif
                 case WM_SYSKEYDOWN:
                     /* Stop processing of Alt-F4 */
                     if (msg->wParam == 0x73)

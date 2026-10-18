@@ -26,6 +26,7 @@
 
 #include <QCloseEvent>
 #include <QDesktopServices>
+#include <QStyleHints>
 
 extern "C" {
 extern void config_load_global();
@@ -33,7 +34,9 @@ extern void config_save_global();
 }
 
 VMManagerMainWindow          *vmm_main_window = nullptr;
+#ifdef USE_QDARKSTYLE
 extern WindowsDarkModeFilter *vmm_dark_mode_filter;
+#endif
 
 VMManagerMainWindow::
     VMManagerMainWindow(QWidget *parent)
@@ -84,10 +87,6 @@ VMManagerMainWindow::
     // Preferences
     connect(ui->actionPreferences, &QAction::triggered, this, &VMManagerMainWindow::preferencesTriggered);
 
-#ifdef Q_OS_WINDOWS
-    ui->toolBar->setBackgroundRole(QPalette::Light);
-#endif
-
     // Status bar widgets
     statusLeft->setAlignment(Qt::AlignLeft);
     statusRight->setAlignment(Qt::AlignRight);
@@ -101,7 +100,12 @@ VMManagerMainWindow::
     connect(this, &VMManagerMainWindow::languageUpdated, vmm, &VMManagerMain::onLanguageUpdated);
 #ifdef Q_OS_WINDOWS
     connect(this, &VMManagerMainWindow::darkModeUpdated, vmm, &VMManagerMain::onDarkModeUpdated);
+#    ifdef USE_QDARKSTYLE
     connect(this, &VMManagerMainWindow::preferencesUpdated, []() { vmm_dark_mode_filter->reselectDarkMode(); });
+#    else
+    connect(this, &VMManagerMainWindow::preferencesUpdated, []() { util::applyColorScheme(); });
+    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, &VMManagerMainWindow::updateDarkMode);
+#    endif
 #endif
 
     {

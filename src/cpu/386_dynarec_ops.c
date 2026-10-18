@@ -90,3 +90,12 @@ fetch_ea_16_long(UNUSED(uint32_t rmdat))
 #define CLOCK_CYCLES_ALWAYS(c) cycles -= (c)
 
 #include "386_ops.h"
+
+/*The handler every dynarec table uses for an opcode this CPU doesn't have,
+  so the recompiler can leave those to it instead of compiling them*/
+const OpFn dynarec_op_illegal = ILLEGAL;
+/*The handlers the FPU tables use for an escape this FPU doesn't have (FUCOM
+  and FUCOMPP before the 387, FNSTSW AX on the 8087): #UD on the 486 and
+  later, nothing before (x87_ops.h)*/
+const OpFn dynarec_fpu_illegal_a16 = FPU_ILLEGAL_a16;
+const OpFn dynarec_fpu_illegal_a32 = FPU_ILLEGAL_a32;

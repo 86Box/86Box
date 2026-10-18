@@ -34,9 +34,7 @@
 #include <86box/gdbstub.h>
 #ifdef USE_DYNAREC
 #    include "codegen.h"
-#    ifdef USE_NEW_DYNAREC
-#        include "codegen_backend.h"
-#    endif
+#    include "codegen_backend.h"
 #endif
 
 #ifdef IS_DYNAREC
@@ -245,6 +243,10 @@ fetch_ea_16_long(uint32_t rmdat)
 
 #include "386_ops.h"
 
+/* ES flat at the block's start, while no ES load has been compiled: its
+   limit checks are left out (both recompilers) */
+int codegen_flat_es;
+
 #ifdef USE_DEBUG_REGS_486
 /* Compiled blocks hold no debug-register checks. Data and I/O breakpoints can
    fire on any access, so they still disable the recompiler outright; an
@@ -290,6 +292,8 @@ static uint64_t tsc_old     = 0;
 int32_t acycs = 0;
 #    endif
 
+extern int codegen_record_faulted; /* 386_common.c */
+
 int
 codegen_mmx_enter(void)
 {
@@ -304,19 +308,114 @@ codegen_femms(void)
         x86illegal();
         return 1;
     }
-    if (cr0 & 0xc) {
+    /* As MMX_ENTER: CR0.EM makes it invalid, CR0.TS only unavailable */
+    if (cr0 & 0x4) {
+        x86illegal();
+        return 1;
+    }
+    if (cr0 & 0x8) {
         x86_int(7);
         return 1;
     }
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    } else if (x87_legacy_pending())
+        return 1;
 
     x87_emms();
     return 0;
 }
 
+/* The interpreter's MMX_ENTER, for both recompilers: CR0.EM makes an MMX
+   instruction invalid, CR0.TS only unavailable. */
+void
+codegen_mmx_unavailable(void)
+{
+    x86_int((cr0 & 0x4) ? 6 : 7);
+}
+
+/* Before the compiled MMX_ENTER: a pending x87 exception is taken ahead of
+   an MMX instruction (SDM 1999, 11.5.1). #UD and #NM come first, from
+   the MMX_ENTER uop. */
+int
+codegen_mmx_fpu_pending(void)
+{
+    if (cr0 & 0xc)
+        return 0;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    } else
+        return x87_legacy_pending();
+    return 0;
+}
+
+
 int
 codegen_fp_enter(void)
 {
     FP_ENTER();
+    return 0;
+}
+
+/* A waiting legacy x87 instruction, compiled: the pending exception the
+   interpreter takes before it (x87_legacy_pending_entry). Called only with
+   ES set (codegen_fp_pending_check). */
+int
+codegen_fp_pending(void)
+{
+    return x87_legacy_pending_entry();
+}
+
+/* The compiled FDIV family of the legacy FPU (codegen_ops_fpu_arith.c):
+   the quotient as the interpreter forms it, x87_legacy_divide's exceptions
+   and all, then rounded to the precision control and tagged. imm: bits 0-2
+   the destination, 3-5 the numerator, 6-8 the denominator (ST indices);
+   bit 9: the numerator is the memory operand (cpu_state.x87_operand), bit
+   10: the denominator is; bits 11-12: the memory operand was a single (1)
+   or a double (2), for its denormal check. Answers 1 on an unmasked
+   exception, which leaves the destination, its tag and TOP alone: the
+   block ends there, its PC past the instruction. */
+int
+x87_dyn_fdiv(uint32_t imm)
+{
+    const int dest = imm & 7;
+    const int n    = (imm >> 3) & 7;
+    const int q    = (imm >> 6) & 7;
+    const int kind = (imm >> 11) & 3;
+    double   *dst  = &cpu_state.ST[(cpu_state.TOP + dest) & 7];
+    double    num  = (imm & 0x200) ? cpu_state.x87_operand : cpu_state.ST[(cpu_state.TOP + n) & 7];
+    double    den  = (imm & 0x400) ? cpu_state.x87_operand : cpu_state.ST[(cpu_state.TOP + q) & 7];
+    int       flags;
+
+    if (imm & 0x600) {
+        const double m        = cpu_state.x87_operand;
+        const int    denormal = (kind != 0) && (m != 0.0) && (fabs(m) < ((kind == 1) ? 0x1p-126 : 0x1p-1022));
+
+        flags = X87_ST_EMPTY(0) | (denormal << 1);
+    } else
+        flags = X87_ST_EMPTY(n) || X87_ST_EMPTY(q);
+
+    if (x87_legacy_divide(dst, num, den, flags))
+        return 1;
+    if (!(cpu_state.npxc & 0x300))
+        *dst = (double) (float) *dst;
+    cpu_state.tag[(cpu_state.TOP + dest) & 7] = TAG_VALID;
+    return 0;
+}
+
+/* The compiled FTST of the legacy FPU found ST(0) unordered (a NaN): the
+   invalid operation the interpreter raises with it ("#IA ... operand is a
+   NaN", SDM 1999, FTST), ES with it when unmasked */
+int
+x87_dyn_ftst_nan(UNUSED(uint32_t imm))
+{
+    cpu_state.npxs |= FPU_SW_Invalid;
+    if (!(cpu_state.npxc & FPU_SW_Invalid)) {
+        const int was_es = cpu_state.npxs & FPU_SW_Summary;
+
+        cpu_state.npxs |= 0x8080;
+        x87_ferr_raised(was_es, FPU_SW_Invalid, x87_op);
+    }
     return 0;
 }
 
@@ -479,7 +578,7 @@ block_ended:
     cpu_end_block_after_ins = 0;
 }
 
-#if defined(__linux__) && !defined(__clang__) && defined(USE_NEW_DYNAREC)
+#if defined(__linux__) && !defined(__clang__)
 static inline void __attribute__((optimize("O2")))
 #else
 static __inline void
@@ -489,11 +588,7 @@ exec386_dynarec_dyn(void)
     uint32_t start_pc  = 0;
     uint32_t phys_addr = get_phys(cs + cpu_state.pc);
     int      hash      = HASH(phys_addr);
-#    ifdef USE_NEW_DYNAREC
     codeblock_t *block = &codeblock[codeblock_hash[hash]];
-#    else
-    codeblock_t *block = codeblock_hash[hash];
-#    endif
     int valid_block = 0;
 
     /* Code in device memory (a BIOS copying a routine into video memory) is
@@ -516,12 +611,15 @@ exec386_dynarec_dyn(void)
         cpu_cur_status |= CPU_STATUS_FPU_RC_NZ;
     else
         cpu_cur_status &= ~CPU_STATUS_FPU_RC_NZ;
+    /* ES flat: its limit checks are left out (CHECK_SEG_LIMITS). It is
+       loaded by far more paths than DS and SS, which keep their bits as
+       they load; this is the one place it is read. */
+    if ((cpu_state.seg_es.base == 0) && (cpu_state.seg_es.limit_low == 0) && (cpu_state.seg_es.limit_high == 0xffffffff))
+        cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+    else
+        cpu_cur_status |= CPU_STATUS_NOTFLATES;
 
-#    ifdef USE_NEW_DYNAREC
     if (!cpu_state.abrt)
-#    else
-    if (block && !cpu_state.abrt)
-#    endif
     {
         page_t *page = &pages[phys_addr >> 12];
 
@@ -531,15 +629,11 @@ exec386_dynarec_dyn(void)
         valid_block = (block->pc == cs + cpu_state.pc) && (block->_cs == cs) && (block->phys == phys_addr) && !((block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
         if (!valid_block) {
             uint64_t mask = (uint64_t) 1 << ((phys_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
-#    ifdef USE_NEW_DYNAREC
             int      byte_offset = (phys_addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
             uint64_t byte_mask   = 1ULL << (phys_addr & PAGE_BYTE_MASK_MASK);
 
             if ((page->code_present_mask & mask) ||
                 ((page->mem != page_ff) && (page->byte_code_present_mask[byte_offset] & byte_mask)))
-#    else
-            if (page->code_present_mask[(phys_addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] & mask)
-#    endif
             {
                 /* Walk page tree to see if we find the correct block */
                 codeblock_t *new_block = codeblock_tree_find(phys_addr, cs);
@@ -547,24 +641,17 @@ exec386_dynarec_dyn(void)
                     valid_block = (new_block->pc == cs + cpu_state.pc) && (new_block->_cs == cs) && (new_block->phys == phys_addr) && !((new_block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((new_block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
                     if (valid_block) {
                         block = new_block;
-#    ifdef USE_NEW_DYNAREC
                         codeblock_hash[hash] = get_block_nr(block);
-#    endif
                     }
                 }
             }
         }
 
         if (valid_block && (block->page_mask & *block->dirty_mask)) {
-#    ifdef USE_NEW_DYNAREC
             codegen_check_flush(page, page->dirty_mask, phys_addr);
             if (block->valid && (block->flags & CODEBLOCK_IN_DIRTY_LIST))
                 block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
             else
-#    else
-            codegen_check_flush(page, page->dirty_mask[(phys_addr >> 10) & 3], phys_addr);
-            page->dirty_mask[(phys_addr >> 10) & 3] = 0;
-#    endif
             if (!block->valid)
                 valid_block = 0;
         }
@@ -576,30 +663,20 @@ exec386_dynarec_dyn(void)
                allow the first page to be interpreted and for
                the page fault to occur when the page boundary
                is actually crossed.*/
-#    ifdef USE_NEW_DYNAREC
             uint32_t phys_addr_2 = get_phys_noabrt(block->pc + ((block->flags & CODEBLOCK_BYTE_MASK) ? 0x40 : 0x400));
-#    else
-            uint32_t phys_addr_2 = get_phys_noabrt(block->endpc);
-#    endif
             page_t *page_2 = &pages[phys_addr_2 >> 12];
 
             if ((block->phys_2 ^ phys_addr_2) & ~0xfff)
                 valid_block = 0;
             else if (block->page_mask2 & *block->dirty_mask2) {
-#    ifdef USE_NEW_DYNAREC
                 codegen_check_flush(page_2, page_2->dirty_mask, phys_addr_2);
                 if (block->valid && (block->flags & CODEBLOCK_IN_DIRTY_LIST))
                     block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
                 else
-#    else
-                codegen_check_flush(page_2, page_2->dirty_mask[(phys_addr_2 >> 10) & 3], phys_addr_2);
-                page_2->dirty_mask[(phys_addr_2 >> 10) & 3] = 0;
-#    endif
                 if (!block->valid)
                     valid_block = 0;
             }
         }
-#    ifdef USE_NEW_DYNAREC
         /* ARM64-only: if a BYTE_MASK block executes stably outside the dirty
            list, clear stale retry debt so a distant future dirty hit does not
            trigger premature NO_IMMEDIATES promotion. */
@@ -655,32 +732,18 @@ exec386_dynarec_dyn(void)
             }
         }
         if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED) && (block->flags & CODEBLOCK_STATIC_TOP) && block->TOP != (cpu_state.TOP & 7))
-#    else
-        if (valid_block && block->was_recompiled && (block->flags & CODEBLOCK_STATIC_TOP) && block->TOP != cpu_state.TOP)
-#    endif
         {
             /* FPU top-of-stack does not match the value this block was compiled
                with, re-compile using dynamic top-of-stack*/
-#    ifdef USE_NEW_DYNAREC
             block->flags &= ~(CODEBLOCK_STATIC_TOP | CODEBLOCK_WAS_RECOMPILED);
-#    else
-            block->flags &= ~CODEBLOCK_STATIC_TOP;
-            block->was_recompiled = 0;
-#    endif
         }
     }
 
-#    ifdef USE_NEW_DYNAREC
     if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED))
-#    else
-    if (valid_block && block->was_recompiled)
-#    endif
     {
         void (*code)(void) = (void *) &block->data[BLOCK_START];
 
-#    ifndef USE_NEW_DYNAREC
-        codeblock_hash[hash] = block;
-#    endif
+        block->used = 1; /* run: the eviction sweep passes it over once */
         inrecomp = 1;
         code();
 #    ifdef USE_ACYCS
@@ -691,21 +754,19 @@ exec386_dynarec_dyn(void)
         if (x86_was_reset)
             codegen_reset();
     } else if (valid_block && !cpu_state.abrt) {
-#    ifdef USE_NEW_DYNAREC
         start_pc                 = cs + cpu_state.pc;
         const int max_block_size = (block->flags & CODEBLOCK_BYTE_MASK) ? ((128 - 25) - (start_pc & 0x3f)) : 1000;
-#    else
-        start_pc = cpu_state.pc;
-#    endif
 
         cpu_block_end = 0;
         x86_was_reset = 0;
+        int record_discarded = 0;
 
 #    if defined(__APPLE__) && defined(__aarch64__)
         if (__builtin_available(macOS 11.0, *)) {
             pthread_jit_write_protect_np(0);
         }
 #    endif
+        codegen_record_faulted = 0;
         codegen_block_start_recompile(block);
         codegen_in_recompile = 1;
 
@@ -747,11 +808,7 @@ exec386_dynarec_dyn(void)
                    will prevent any block from spanning more than
                    2 pages. In practice this limit will never be
                    hit, as host block size is only 2kB*/
-#    ifdef USE_NEW_DYNAREC
             if (((cs + cpu_state.pc) - start_pc) >= max_block_size)
-#    else
-            if ((cpu_state.pc - start_pc) > 1000)
-#    endif
                 CPU_BLOCK_END();
 
             if (cpu_init)
@@ -774,15 +831,27 @@ exec386_dynarec_dyn(void)
                     CPU_BLOCK_END();
             }
 
-            /* An instruction ran on into device memory: interpreted, never kept. */
+            /* Cut short by an exception delivered as it was recorded: the
+               block would keep only the instructions before it for good.
+               Not kept; it is recorded afresh next time. */
+            if (codegen_record_faulted) {
+                codegen_record_faulted = 0;
+                codegen_block_remove();
+                record_discarded = 1;
+                CPU_BLOCK_END();
+            }
+
+            /* An instruction ran on into device memory: interpreted, never
+               kept. A block already removed above is not removed twice: that
+               would put it on the free list twice. */
             if (cpu_fetch_device) {
-                if (!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED))
+                if (!record_discarded && (!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)))
                     codegen_block_remove();
                 CPU_BLOCK_END();
             }
 
             if (cpu_state.abrt) {
-                if (!(cpu_state.abrt & ABRT_EXPECTED))
+                if (!record_discarded && !(cpu_state.abrt & ABRT_EXPECTED))
                     codegen_block_remove();
                 CPU_BLOCK_END();
             }
@@ -790,7 +859,13 @@ exec386_dynarec_dyn(void)
 
         cpu_end_block_after_ins = 0;
 
-        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset && !cpu_fetch_device)
+        /* #MF can interrupt the interpret-while-compiling pass. The block
+           was marked recompiled at entry, but its host code was never
+           finalized. Never publish that unfinished allocation. */
+        if (new_ne && (!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !x86_was_reset && !cpu_fetch_device && !record_discarded)
+            codegen_block_remove();
+        else if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset && !record_discarded &&
+                 !cpu_fetch_device)
             codegen_block_end_recompile(block);
 
         if (x86_was_reset)
@@ -804,16 +879,14 @@ exec386_dynarec_dyn(void)
 #    endif
     } else if (!cpu_state.abrt) {
         /* Mark block but do not recompile */
-#    ifdef USE_NEW_DYNAREC
         start_pc                 = cs + cpu_state.pc;
         const int max_block_size = (block->flags & CODEBLOCK_BYTE_MASK) ? ((128 - 25) - (start_pc & 0x3f)) : 1000;
-#    else
-        start_pc = cpu_state.pc;
-#    endif
 
         cpu_block_end = 0;
         x86_was_reset = 0;
+        int record_discarded = 0;
 
+        codegen_record_faulted = 0;
         codegen_block_init(phys_addr);
 
         while (!cpu_block_end) {
@@ -825,7 +898,10 @@ exec386_dynarec_dyn(void)
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
-            codegen_endpc = (cs + cpu_state.pc) + 8;
+            /* The furthest byte this instruction can take: 15 bytes long at
+               most (Intel SDM vol. 2, 2.3.11). The mark covers through it, so
+               a long last instruction's tail is marked, on whichever page. */
+            codegen_endpc = (cs + cpu_state.pc) + 14;
 
             fetchdat      = fastreadl_fetch(cs + cpu_state.pc);
 
@@ -855,11 +931,7 @@ exec386_dynarec_dyn(void)
                    will prevent any block from spanning more than
                    2 pages. In practice this limit will never be
                    hit, as host block size is only 2kB */
-#    ifdef USE_NEW_DYNAREC
             if (((cs + cpu_state.pc) - start_pc) >= max_block_size)
-#    else
-            if ((cpu_state.pc - start_pc) > 1000)
-#    endif
                 CPU_BLOCK_END();
 
             if (cpu_init)
@@ -882,15 +954,27 @@ exec386_dynarec_dyn(void)
                     CPU_BLOCK_END();
             }
 
-            /* An instruction ran on into device memory: interpreted, never kept. */
+            /* Cut short by an exception delivered as it was recorded: the
+               block would keep only the instructions before it for good.
+               Not kept; it is recorded afresh next time. */
+            if (codegen_record_faulted) {
+                codegen_record_faulted = 0;
+                codegen_block_remove();
+                record_discarded = 1;
+                CPU_BLOCK_END();
+            }
+
+            /* An instruction ran on into device memory: interpreted, never
+               kept. A block already removed above is not removed twice: that
+               would put it on the free list twice. */
             if (cpu_fetch_device) {
-                if (!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED))
+                if (!record_discarded && (!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)))
                     codegen_block_remove();
                 CPU_BLOCK_END();
             }
 
             if (cpu_state.abrt) {
-                if (!(cpu_state.abrt & ABRT_EXPECTED))
+                if (!record_discarded && !(cpu_state.abrt & ABRT_EXPECTED))
                     codegen_block_remove();
                 CPU_BLOCK_END();
             }
@@ -898,16 +982,16 @@ exec386_dynarec_dyn(void)
 
         cpu_end_block_after_ins = 0;
 
-        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset && !cpu_fetch_device)
+        if (new_ne && (!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !x86_was_reset && !cpu_fetch_device && !record_discarded)
+            codegen_block_remove();
+        else if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset && !record_discarded &&
+                 !cpu_fetch_device)
             codegen_block_end();
 
         if (x86_was_reset)
             codegen_reset();
-    }
-#    ifdef USE_NEW_DYNAREC
-    else
+    } else
         cpu_state.oldpc = cpu_state.pc;
-#    endif
 
 }
 
@@ -935,14 +1019,9 @@ exec386_dynarec(int32_t cycs)
         cycles_start = cycles;
 
         while (cycles > 0) {
+            cpu_halted      = 0;
             oldcs           = CS;
             oldcpl          = CPL;
-#    ifndef USE_NEW_DYNAREC
-            cpu_state.oldpc = cpu_state.pc;
-            cpu_state.op32  = use32;
-
-            cycdiff = 0;
-#    endif
             oldcyc = oldcyc2 = cycles;
             cycles_old       = cycles;
             oldtsc           = tsc;
@@ -969,12 +1048,10 @@ exec386_dynarec(int32_t cycs)
                 cpu_state.abrt = 0;
                 x86_doabrt(tempi);
                 if (cpu_state.abrt) {
+                    int second_abrt = cpu_state.abrt & ABRT_MASK;
                     cpu_state.abrt = 0;
                     cpu_state.pc   = cpu_state.oldpc;
-#    ifndef USE_NEW_DYNAREC
-                    CS = oldcs;
-#    endif
-                    pmodeint(8, 0);
+                    x86_fault_in_delivery(tempi, second_abrt);
                     if (cpu_state.abrt) {
                         cpu_state.abrt = 0;
                         softresetx86();
@@ -993,9 +1070,19 @@ exec386_dynarec(int32_t cycs)
                 x86_int(16);
             }
 
-            if (smi_line)
+            if (smi_line) {
+                const int before = in_smm;
+
                 enter_smm_check(0);
-            else if (nmi && nmi_enable && nmi_mask) {
+                if (in_smm != before)
+                    cpu_halted = 0;
+            } else if (nmi && nmi_enable && nmi_mask) {
+                /* Out of a HLT that left pc on itself: "the saved CS:IP (or
+                   CS:EIP) value points to the instruction following the HLT
+                   instruction" (Pentium Vol. 3, HLT), NMI included. */
+                if (cpu_halted)
+                    cpu_state.pc++;
+                cpu_halted = 0;
                 oldcs = CS;
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(2);
@@ -1011,9 +1098,14 @@ exec386_dynarec(int32_t cycs)
             } else if ((cpu_state.flags & I_FLAG) && pic.int_pending) {
                 vector = picinterrupt();
                 if (vector != -1) {
+                    /* An interrupt that came after the HLT looked: past the
+                       HLT, as above. */
+                    if (cpu_halted)
+                        cpu_state.pc++;
                     oldcs = CS;
                     cpu_state.oldpc = cpu_state.pc;
                     x86_int(vector);
+                    cpu_halted = 0; /* out of HLT, into the handler */
                 }
             }
 
@@ -1290,10 +1382,6 @@ exec386(int32_t cycs)
             cpu_state.oldpc = cpu_state.pc;
             cpu_state.op32  = use32;
 
-#ifndef USE_NEW_DYNAREC
-            x86_was_reset = 0;
-#endif
-
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
@@ -1373,14 +1461,12 @@ block_ended:
                 cpu_state.abrt = 0;
                 x86_doabrt(tempi);
                 if (cpu_state.abrt) {
+                    int second_abrt = cpu_state.abrt & ABRT_MASK;
                     x386_dynarec_log("Double fault - %02X\n", oop);
                     cpu_state.abrt = 0;
-#ifndef USE_NEW_DYNAREC
-                    CS = oldcs;
-#endif
                     cpu_state.pc = cpu_state.oldpc;
                     x386_dynarec_log("Double fault\n");
-                    pmodeint(8, 0);
+                    x86_fault_in_delivery(tempi, second_abrt);
                     if (cpu_state.abrt) {
                         cpu_state.abrt = 0;
                         softresetx86();
@@ -1436,11 +1522,23 @@ block_ended:
                     flags_rebuild();
                     if (msw & 1)
                         pmodeint(vector, 0);
-                    else {
-                        writememw(ss, (SP - 2) & 0xFFFF, cpu_state.flags);
-                        writememw(ss, (SP - 4) & 0xFFFF, CS);
-                        writememw(ss, (SP - 6) & 0xFFFF, cpu_state.pc);
-                        SP -= 6;
+                    else if ((vector << 2UL) + 3UL > idt.limit) {
+                        /* Beyond the IDT limit: double fault on the 386 to
+                           the P5, #GP on the P6 */
+                        cpu_state.oldpc = cpu_state.pc;
+                        x86_int(is_p6 ? 0x0d : 0x08);
+                    } else {
+                        if (stack32) {
+                            writememw(ss, ESP - 2, cpu_state.flags);
+                            writememw(ss, ESP - 4, CS);
+                            writememw(ss, ESP - 6, cpu_state.pc);
+                            ESP -= 6;
+                        } else {
+                            writememw(ss, (SP - 2) & 0xFFFF, cpu_state.flags);
+                            writememw(ss, (SP - 4) & 0xFFFF, CS);
+                            writememw(ss, (SP - 6) & 0xFFFF, cpu_state.pc);
+                            SP -= 6;
+                        }
                         addr = (vector << 2) + idt.base;
                         cpu_state.flags &= ~I_FLAG;
                         cpu_state.flags &= ~T_FLAG;

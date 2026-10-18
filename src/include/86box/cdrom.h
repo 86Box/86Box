@@ -543,6 +543,8 @@ typedef struct cdrom {
 
     int               audio_read;
     int               formed_mode2;
+    /* The cached sector is a Mode 1 sector built by us, EDC/ECC not filled in yet. */
+    int               edc_missing;
 } cdrom_t;
 
 extern cdrom_t cdrom[CDROM_NUM];

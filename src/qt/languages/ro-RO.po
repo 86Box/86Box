@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-04 17:08+0000\n"
+"PO-Revision-Date: 2026-10-16 19:50+0000\n"
 "Last-Translator: MayuriNanako <gordonkoopaplays@gmail.com>\n"
 "Language-Team: Romanian <https://weblate.86box.net/projects/86box/86box/ro/>"
 "\n"
@@ -2798,37 +2798,37 @@ msgid "Linear interpolation"
 msgstr "Interpolare liniară"
 
 msgid "Has secondary 8x8 character set"
-msgstr ""
+msgstr "Are set de caractere secundar 8x8"
 
 msgid "Has Quadcolor II daughter board"
-msgstr ""
+msgstr "Are placă fiică Quadcolor II"
 
 msgid "Alternate monochrome contrast"
-msgstr ""
+msgstr "Contrast monocrom alternativ"
 
 msgid "128 KB"
-msgstr ""
+msgstr "128 KB"
 
 msgid "Monochrome (5151/MDA) (white)"
-msgstr ""
+msgstr "Monocrom (5151/MDA) (alb)"
 
 msgid "Monochrome (5151/MDA) (green)"
-msgstr ""
+msgstr "Monocrom (5151/MDA) (verde)"
 
 msgid "Monochrome (5151/MDA) (amber)"
-msgstr ""
+msgstr "Monocrom (5151/MDA) (chihlimbar)"
 
 msgid "Color 40x25 (5153/CGA)"
-msgstr ""
+msgstr "Culoare 40x25 (5153/CGA)"
 
 msgid "Color 80x25 (5153/CGA)"
-msgstr ""
+msgstr "Culoare 80x25 (5153/CGA)"
 
 msgid "Enhanced Color - Normal Mode (5154/ECD)"
-msgstr ""
+msgstr "Culoare îmbunătățită - Mod normal (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
-msgstr ""
+msgstr "Culoare îmbunătățită - Modul îmbunătățit (5154/ECD)"
 
 msgid "IBM 8507 (1024x768, Monochrome)"
 msgstr ""

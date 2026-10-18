@@ -128,6 +128,7 @@ typedef struct _gdbstub_client_ {
     uint8_t first_packet_received : 1;
     uint8_t ida_mode : 1;
     uint8_t waiting_stop : 1;
+    uint8_t in_packet : 1;
     int     packet_pos;
     int     response_pos;
 
@@ -749,6 +750,7 @@ gdbstub_client_packet(gdbstub_client_t *client)
     int     j = 0;
     int     k = 0;
     int     l;
+    int     packet_len;
     uint8_t buf[10] = { 0 };
     char   *p;
 
@@ -761,6 +763,7 @@ gdbstub_client_packet(gdbstub_client_t *client)
     gdbstub_client_read_hex(client, &rcv_checksum, 1);
 #endif
     AS_U16(client->packet[--client->packet_pos]) = 0;
+    packet_len = client->packet_pos; /* binary data may contain NUL, so don't rely on strlen */
 #ifdef GDBSTUB_CHECK_CHECKSUM
     for (i = 0; i < client->packet_pos; i++)
         checksum += client->packet[i];
@@ -963,23 +966,24 @@ e22:
             if (!k)
                 goto e22;
 
-            /* Clamp length. */
-            if (k >= ((sizeof(client->response) >> 1) - client->packet_pos))
-                k = (sizeof(client->response) >> 1) - client->packet_pos - 1;
-
-            /* Decode the data. */
+            /* Decode the data, rejecting packets that hold less data than the requested length. */
             if (client->packet[0] == 'M') { /* hex encoded */
+                if (k > ((packet_len - client->packet_pos) >> 1))
+                    goto e22;
                 gdbstub_client_read_hex(client, (uint8_t *) client->packet, k);
             } else { /* binary encoded */
                 i = 0;
-                while (i < k) {
-                    if (client->packet[client->packet_pos] == '}') {
-                        client->packet_pos++;
+                while ((i < k) && (client->packet_pos < packet_len)) {
+                    if (client->packet[client->packet_pos] == '}') { /* escaped byte */
+                        if (++client->packet_pos >= packet_len)
+                            break;
                         client->packet[i++] = client->packet[client->packet_pos++] ^ 0x20;
                     } else {
                         client->packet[i++] = client->packet[client->packet_pos++];
                     }
                 }
+                if (i < k)
+                    goto e22;
             }
 
             /* Write by qwords, then by dwords, then by words, then by bytes. */
@@ -1452,6 +1456,10 @@ unknown:
                         l++;
                     }
                 }
+
+                /* Drop cached lookups, so that accesses to the watched
+                   pages go through the checked paths. */
+                flushmmucache();
             }
 
             /* Respond positively. */
@@ -1460,6 +1468,62 @@ unknown:
 end:
     /* Send response. */
     gdbstub_client_respond(client);
+}
+
+/* Report a stop to clients waiting for one, if report_stop is set, and
+   process their packets. Runs on the emulation thread. */
+static void
+gdbstub_process_clients(int report_stop)
+{
+    thread_wait_mutex(client_list_mutex);
+    gdbstub_client_t *client = first_client;
+    while (client) {
+        /* Report stop reason if the client is waiting for one. */
+        if (report_stop && client->waiting_stop && stop_reason_len) {
+            client->waiting_stop = 0;
+
+            /* Wait for any pending responses to be acknowledged. */
+            if (!thread_wait_event(client->response_event, -1)) {
+                /* Block other responses from being written while this one isn't acknowledged. */
+                thread_reset_event(client->response_event);
+
+                /* Write stop reason response. */
+                strcpy(client->response, stop_reason);
+                client->response_pos = stop_reason_len;
+                gdbstub_client_respond(client);
+            } else {
+                gdbstub_log("GDB Stub: Timed out waiting for client %s:%d\n", inet_ntoa(client->addr.sin_addr), client->addr.sin_port);
+            }
+        }
+
+        if (client->has_packet) {
+            gdbstub_client_packet(client);
+            client->has_packet = client->packet_pos = 0;
+            thread_set_event(client->processed_event);
+        }
+
+#ifdef GDBSTUB_ALLOW_MULTI_CLIENTS
+        client = client->next;
+#else
+        break;
+#endif
+    }
+    thread_release_mutex(client_list_mutex);
+}
+
+/* Serve clients while the CPU isn't being run, such as while an automation
+   client holds the machine: they can read and write registers and memory
+   and set breakpoints. A continue or step takes effect when the CPU runs
+   again. */
+void
+gdbstub_poll(void)
+{
+    if (gdbstub_socket == -1)
+        return;
+
+    in_gdbstub = 1;
+    gdbstub_process_clients(0);
+    in_gdbstub = 0;
 }
 
 static void
@@ -1550,41 +1614,7 @@ gdbstub_cpu_exec(int32_t cycs)
     /* Return the framerate to normal. */
     gdbstub_next_asap = 0;
 
-    /* Process client packets. */
-    thread_wait_mutex(client_list_mutex);
-    gdbstub_client_t *client = first_client;
-    while (client) {
-        /* Report stop reason if the client is waiting for one. */
-        if (client->waiting_stop && stop_reason_len) {
-            client->waiting_stop = 0;
-
-            /* Wait for any pending responses to be acknowledged. */
-            if (!thread_wait_event(client->response_event, -1)) {
-                /* Block other responses from being written while this one isn't acknowledged. */
-                thread_reset_event(client->response_event);
-
-                /* Write stop reason response. */
-                strcpy(client->response, stop_reason);
-                client->response_pos = stop_reason_len;
-                gdbstub_client_respond(client);
-            } else {
-                gdbstub_log("GDB Stub: Timed out waiting for client %s:%d\n", inet_ntoa(client->addr.sin_addr), client->addr.sin_port);
-            }
-        }
-
-        if (client->has_packet) {
-            gdbstub_client_packet(client);
-            client->has_packet = client->packet_pos = 0;
-            thread_set_event(client->processed_event);
-        }
-
-#ifdef GDBSTUB_ALLOW_MULTI_CLIENTS
-        client = client->next;
-#else
-        break;
-#endif
-    }
-    thread_release_mutex(client_list_mutex);
+    gdbstub_process_clients(1);
 
     /* Flag that we're now out of the debugger context. */
     in_gdbstub = 0;
@@ -1605,13 +1635,16 @@ gdbstub_client_thread(void *priv)
     /* Read data from client. */
     while ((bytes_read = recv(client->socket, (char *) buf, sizeof(buf), 0)) > 0) {
         for (ssize_t i = 0; i < bytes_read; i++) {
-            switch (buf[i]) {
+            /* Inside a packet, only '$' is special; binary data ('X' packets) may contain
+               raw '+', '-' and 0x03 bytes, such as the escaped form of '#' (0x7D 0x03). */
+            switch ((client->in_packet && (buf[i] != '$')) ? 0x100 : buf[i]) {
                 case '$': /* packet start */
                     /* Wait for any existing packets to be processed. */
                     thread_wait_event(client->processed_event, -1);
                     thread_set_event(client->processed_event);
 
                     client->packet_pos = 0;
+                    client->in_packet  = 1;
                     break;
 
                 case '-': /* negative acknowledgement */
@@ -1645,6 +1678,8 @@ gdbstub_client_thread(void *priv)
 
                         /* Check if we're at the end of a packet. */
                         if ((client->packet_pos >= 3) && (client->packet[client->packet_pos - 3] == '#')) { /* packet checksum start */
+                            client->in_packet = 0;
+
                             /* Small hack to speed up IDA instruction trace mode. */
                             if (*((uint32_t *) client->packet) == ('H' | ('c' << 8) | ('1' << 16) | ('#' << 24))) {
                                 /* Send pre-computed response. */

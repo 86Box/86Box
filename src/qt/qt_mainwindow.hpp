@@ -84,6 +84,7 @@ public slots:
     void destroyRendererMonitorSlot(int monitor_index);
     void updateStatusEmptyIcons();
     void updateUiPauseState();
+    void updateUiFastForwardState();
 private slots:
     void on_actionForce_interpretation_triggered();
     void on_actionFullscreen_triggered();

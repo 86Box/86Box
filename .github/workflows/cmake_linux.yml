@@ -1,0 +1,133 @@
+name: CMake (Linux)
+
+on:
+
+  push:
+    paths:
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - "!.github/workflows/**"
+      - .github/workflows/cmake_linux.yml
+      - vcpkg.json
+      - "!**/Makefile*"
+
+  pull_request:
+    paths:
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - "!.github/workflows/**"
+      - .github/workflows/cmake_linux.yml
+      - vcpkg.json
+      - "!**/Makefile*"
+
+jobs:
+
+  linux:
+
+    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.environment.arch }}"
+
+    runs-on: ${{ matrix.environment.runner }}
+
+    strategy:
+      fail-fast: true
+      matrix:
+        build:
+#          - name: Regular
+#            preset: regular
+          - name: Debug
+            preset: dev_debug
+            slug: -Debug
+          - name: Dev
+            preset: development
+            slug: -Dev
+        ui:
+          - name: SDL GUI
+            qt: off
+            qt6: off
+            sdl_shader: on
+            slug: -SDL
+            static: on
+          - name: Qt 5 GUI
+            qt: on
+            qt6: off
+            sdl_shader: off
+            slug: -Qt5
+            packages: >-
+              qtbase5-dev
+              qtbase5-private-dev
+              qttools5-dev
+              qttranslations5-l10n
+              libevdev-dev
+              libxkbcommon-x11-dev
+          - name: Qt 6 GUI
+            qt: on
+            qt6: on
+            sdl_shader: off
+            slug: -Qt6
+            packages: >-
+              qt6-base-dev
+              qt6-base-private-dev
+              qt6-tools-dev
+              qt6-tools-dev-tools
+              qt6-l10n-tools
+              qt6-translations-l10n
+              libevdev-dev
+              libxkbcommon-x11-dev
+              libvulkan-dev
+        environment:
+          - arch: x86_64
+            slug: "-x86_64"
+            runner: ubuntu-26.04
+          - arch: arm64
+            slug: -arm64
+            runner: ubuntu-26.04-arm
+
+    steps:
+      - name: Install dependencies
+        run: >-
+          sudo apt update && sudo apt install
+          build-essential
+          ninja-build
+          libfreetype-dev
+          libgles2-mesa-dev
+          libsdl3-dev
+          libpng-dev
+          libc6-dev
+          librtmidi-dev
+          libopenal-dev
+          libslirp-dev
+          libfluidsynth-dev
+          libvdeplug-dev
+          libserialport-dev
+          libzstd-dev
+          ${{ matrix.ui.packages }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Configure CMake
+        run: >-
+          cmake -S . -B build --preset ${{ matrix.build.preset }}
+          -D QT=${{ matrix.ui.qt }}
+          -D USE_QT6=${{ matrix.ui.qt6 }}
+          -D USE_SDL_SHADER=${{ matrix.ui.sdl_shader }}
+
+      - name: Build
+        run: |
+          cmake --build build
+
+      - name: Generate package
+        run: |
+          cmake --install build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.build.slug }}-UbuntuJammy${{ matrix.environment.slug }}-gha${{ github.run_number }}'
+          path: build/artifacts/**

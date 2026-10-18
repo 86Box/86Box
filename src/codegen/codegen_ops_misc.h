@@ -1,263 +1,67 @@
-static uint32_t
-ropNOP(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
-{
-    return op_pc;
-}
+uint32_t ropLEA_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropLEA_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
 
-static uint32_t
-ropCLD(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
-{
-    CLEAR_BITS((uintptr_t) &cpu_state.flags, D_FLAG);
-    return op_pc;
-}
-static uint32_t
-ropSTD(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
-{
-    SET_BITS((uintptr_t) &cpu_state.flags, D_FLAG);
-    return op_pc;
-}
+uint32_t ropF6(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropF7_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropF7_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
 
-static uint32_t
-ropCLI(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
-{
-    if (cpu_cur_status & CPU_STATUS_PMODE)
-        return 0;
-    CLEAR_BITS((uintptr_t) &cpu_state.flags, I_FLAG);
-#ifdef CHECK_INT
-    CLEAR_BITS((uintptr_t) &pic_pending, 0xffffffff);
-#endif
-    return op_pc;
-}
-static uint32_t
-ropSTI(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
-{
-    if (cpu_cur_status & CPU_STATUS_PMODE)
-        return 0;
-    SET_BITS((uintptr_t) &cpu_state.flags, I_FLAG);
-    return op_pc;
-}
+uint32_t ropFF_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropFF_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
 
-static uint32_t
-ropFE(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
-{
-    x86seg *target_seg = NULL;
-    int     host_reg;
+uint32_t ropNOP(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
 
-    if ((fetchdat & 0x30) != 0x00)
-        return 0;
+uint32_t ropCBW(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropCDQ(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropCWD(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropCWDE(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
 
-    CALL_FUNC((uintptr_t) flags_rebuild_c);
+uint32_t ropLDS_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropLDS_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropLES_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropLES_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropLFS_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropLFS_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropLGS_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropLGS_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropLSS_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropLSS_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
 
-    if ((fetchdat & 0xc0) == 0xc0)
-        host_reg = LOAD_REG_B(fetchdat & 7);
-    else {
-        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
-        STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
+uint32_t ropCLC(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropCMC(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropSTC(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
 
-        SAVE_EA();
-        MEM_CHECK_WRITE(target_seg);
-        host_reg = MEM_LOAD_ADDR_EA_B_NO_ABRT(target_seg);
-    }
+uint32_t ropCLD(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropSTD(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
 
-    switch (fetchdat & 0x38) {
-        case 0x00: /*INC*/
-            STORE_HOST_REG_ADDR_BL((uintptr_t) &cpu_state.flags_op1, host_reg);
-            ADD_HOST_REG_IMM_B(host_reg, 1);
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.flags_op2, 1);
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.flags_op, FLAGS_INC8);
-            STORE_HOST_REG_ADDR_BL((uintptr_t) &cpu_state.flags_res, host_reg);
-            break;
-        case 0x08: /*DEC*/
-            STORE_HOST_REG_ADDR_BL((uintptr_t) &cpu_state.flags_op1, host_reg);
-            SUB_HOST_REG_IMM_B(host_reg, 1);
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.flags_op2, 1);
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.flags_op, FLAGS_DEC8);
-            STORE_HOST_REG_ADDR_BL((uintptr_t) &cpu_state.flags_res, host_reg);
-            break;
-    }
+uint32_t ropPREFETCH(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropEMMS(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropFEMMS(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
 
-    if ((fetchdat & 0xc0) == 0xc0)
-        STORE_REG_B_RELEASE(host_reg);
-    else {
-        LOAD_EA();
-        MEM_STORE_ADDR_EA_B_NO_ABRT(target_seg, host_reg);
-    }
-    codegen_flags_changed = 1;
+uint32_t ropCLI(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropSTI(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
 
-    return op_pc + 1;
-}
-static uint32_t codegen_temp;
-static uint32_t
-ropFF_16(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
-{
-    x86seg *target_seg = NULL;
-    int     host_reg;
+uint32_t ropBSWAP(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropLAHF(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropSAHF(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropBSF_w(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropBSF_l(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropBSR_w(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropBSR_l(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
 
-    if ((fetchdat & 0x30) != 0x00 && (fetchdat & 0x08))
-        return 0;
-
-    if ((fetchdat & 0x30) == 0x00)
-        CALL_FUNC((uintptr_t) flags_rebuild_c);
-
-    if ((fetchdat & 0xc0) == 0xc0)
-        host_reg = LOAD_REG_W(fetchdat & 7);
-    else {
-        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
-        STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
-
-        if ((fetchdat & 0x30) != 0x00) {
-            MEM_LOAD_ADDR_EA_W(target_seg);
-            host_reg = 0;
-        } else {
-            SAVE_EA();
-            MEM_CHECK_WRITE_W(target_seg);
-            host_reg = MEM_LOAD_ADDR_EA_W_NO_ABRT(target_seg);
-        }
-    }
-
-    switch (fetchdat & 0x38) {
-        case 0x00: /*INC*/
-            STORE_HOST_REG_ADDR_WL((uintptr_t) &cpu_state.flags_op1, host_reg);
-            ADD_HOST_REG_IMM_W(host_reg, 1);
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.flags_op2, 1);
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.flags_op, FLAGS_INC16);
-            STORE_HOST_REG_ADDR_WL((uintptr_t) &cpu_state.flags_res, host_reg);
-            if ((fetchdat & 0xc0) == 0xc0)
-                STORE_REG_W_RELEASE(host_reg);
-            else {
-                LOAD_EA();
-                MEM_STORE_ADDR_EA_W_NO_ABRT(target_seg, host_reg);
-            }
-            codegen_flags_changed = 1;
-            return op_pc + 1;
-        case 0x08: /*DEC*/
-            STORE_HOST_REG_ADDR_WL((uintptr_t) &cpu_state.flags_op1, host_reg);
-            SUB_HOST_REG_IMM_W(host_reg, 1);
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.flags_op2, 1);
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.flags_op, FLAGS_DEC16);
-            STORE_HOST_REG_ADDR_WL((uintptr_t) &cpu_state.flags_res, host_reg);
-            if ((fetchdat & 0xc0) == 0xc0)
-                STORE_REG_W_RELEASE(host_reg);
-            else {
-                LOAD_EA();
-                MEM_STORE_ADDR_EA_W_NO_ABRT(target_seg, host_reg);
-            }
-            codegen_flags_changed = 1;
-            return op_pc + 1;
-
-        case 0x10: /*CALL*/
-            STORE_HOST_REG_ADDR_W((uintptr_t) &codegen_temp, host_reg);
-            RELEASE_REG(host_reg);
-
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
-            LOAD_STACK_TO_EA(-2);
-            host_reg = LOAD_REG_IMM(op_pc + 1);
-            MEM_STORE_ADDR_EA_W(&cpu_state.seg_ss, host_reg);
-            SP_MODIFY(-2);
-
-            host_reg = LOAD_VAR_W((uintptr_t) &codegen_temp);
-            STORE_HOST_REG_ADDR((uintptr_t) &cpu_state.pc, host_reg);
-            return -1;
-
-        case 0x20: /*JMP*/
-            STORE_HOST_REG_ADDR_WL((uintptr_t) &cpu_state.pc, host_reg);
-            return -1;
-
-        case 0x30: /*PUSH*/
-            if (!host_reg)
-                host_reg = LOAD_HOST_REG(host_reg);
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
-            LOAD_STACK_TO_EA(-2);
-            MEM_STORE_ADDR_EA_W(&cpu_state.seg_ss, host_reg);
-            SP_MODIFY(-2);
-            return op_pc + 1;
-    }
-    return 0;
-}
-static uint32_t
-ropFF_32(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
-{
-    x86seg *target_seg = NULL;
-    int     host_reg;
-
-    if ((fetchdat & 0x30) != 0x00 && (fetchdat & 0x08))
-        return 0;
-
-    if ((fetchdat & 0x30) == 0x00)
-        CALL_FUNC((uintptr_t) flags_rebuild_c);
-
-    if ((fetchdat & 0xc0) == 0xc0)
-        host_reg = LOAD_REG_L(fetchdat & 7);
-    else {
-        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
-        STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
-
-        if ((fetchdat & 0x30) != 0x00) {
-            MEM_LOAD_ADDR_EA_L(target_seg);
-            host_reg = 0;
-        } else {
-            SAVE_EA();
-            MEM_CHECK_WRITE_L(target_seg);
-            host_reg = MEM_LOAD_ADDR_EA_L_NO_ABRT(target_seg);
-        }
-    }
-
-    switch (fetchdat & 0x38) {
-        case 0x00: /*INC*/
-            STORE_HOST_REG_ADDR((uintptr_t) &cpu_state.flags_op1, host_reg);
-            ADD_HOST_REG_IMM(host_reg, 1);
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.flags_op2, 1);
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.flags_op, FLAGS_INC32);
-            STORE_HOST_REG_ADDR((uintptr_t) &cpu_state.flags_res, host_reg);
-            if ((fetchdat & 0xc0) == 0xc0)
-                STORE_REG_L_RELEASE(host_reg);
-            else {
-                LOAD_EA();
-                MEM_STORE_ADDR_EA_L_NO_ABRT(target_seg, host_reg);
-            }
-            codegen_flags_changed = 1;
-            return op_pc + 1;
-        case 0x08: /*DEC*/
-            STORE_HOST_REG_ADDR((uintptr_t) &cpu_state.flags_op1, host_reg);
-            SUB_HOST_REG_IMM(host_reg, 1);
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.flags_op2, 1);
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.flags_op, FLAGS_DEC32);
-            STORE_HOST_REG_ADDR((uintptr_t) &cpu_state.flags_res, host_reg);
-            if ((fetchdat & 0xc0) == 0xc0)
-                STORE_REG_L_RELEASE(host_reg);
-            else {
-                LOAD_EA();
-                MEM_STORE_ADDR_EA_L_NO_ABRT(target_seg, host_reg);
-            }
-            codegen_flags_changed = 1;
-            return op_pc + 1;
-
-        case 0x10: /*CALL*/
-            STORE_HOST_REG_ADDR((uintptr_t) &codegen_temp, host_reg);
-            RELEASE_REG(host_reg);
-
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
-            LOAD_STACK_TO_EA(-4);
-            host_reg = LOAD_REG_IMM(op_pc + 1);
-            MEM_STORE_ADDR_EA_L(&cpu_state.seg_ss, host_reg);
-            SP_MODIFY(-4);
-
-            host_reg = LOAD_VAR_L((uintptr_t) &codegen_temp);
-            STORE_HOST_REG_ADDR((uintptr_t) &cpu_state.pc, host_reg);
-            return -1;
-
-        case 0x20: /*JMP*/
-            STORE_HOST_REG_ADDR((uintptr_t) &cpu_state.pc, host_reg);
-            return -1;
-
-        case 0x30: /*PUSH*/
-            if (!host_reg)
-                host_reg = LOAD_HOST_REG(host_reg);
-            STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);
-            LOAD_STACK_TO_EA(-4);
-            MEM_STORE_ADDR_EA_L(&cpu_state.seg_ss, host_reg);
-            SP_MODIFY(-4);
-            return op_pc + 1;
-    }
-    return 0;
-}
+uint32_t ropBT_w_r(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropBT_l_r(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropBTS_w_r(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropBTS_l_r(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropBTR_w_r(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropBTR_l_r(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropBTC_w_r(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropBTC_l_r(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropBA_w(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropBA_l(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropXADD_b(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropXADD_w(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropXADD_l(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropCMPXCHG_b(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropCMPXCHG_w(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropCMPXCHG_l(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
+uint32_t ropWAIT(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);

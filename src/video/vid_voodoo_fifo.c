@@ -209,16 +209,6 @@ voodoo_queue_command(voodoo_t *voodoo, uint32_t addr_type, uint32_t val)
         voodoo->fifo_full_spin_checks += fifo_wait_spins;
     }
 
-#ifdef _WIN32
-    /* Reset only after an empty signal to avoid heavy ResetEvent churn on Windows. */
-    if (ATOMIC_LOAD(voodoo->fifo_empty_signaled)) {
-        ATOMIC_STORE(voodoo->fifo_empty_signaled, 0);
-        thread_reset_event(voodoo->fifo_empty_event);
-    }
-#else
-    thread_reset_event(voodoo->fifo_empty_event);
-#endif
-
     fifo->val        = val;
     fifo->addr_type  = addr_type;
     fifo->target_buf = VOODOO_BUF_NONE;
@@ -226,13 +216,13 @@ voodoo_queue_command(voodoo_t *voodoo, uint32_t addr_type, uint32_t val)
     if (((addr_type & FIFO_TYPE) == FIFO_WRITEW_FB) ||
         ((addr_type & FIFO_TYPE) == FIFO_WRITEL_FB)) {
         fifo->target_buf = voodoo_queue_color_buf_tag(voodoo, voodoo->queued_fb_write_buffer);
-        ATOMIC_INC(voodoo->pending_fb_writes_buf[fifo->target_buf]);
+        ATOMIC_INC(voodoo->queued_fb_writes_buf[fifo->target_buf]);
     } else if ((addr_type & FIFO_TYPE) == FIFO_WRITEL_REG) {
         uint8_t reg_buf = voodoo_queue_reg_target_buf(voodoo, addr_type & FIFO_ADDR);
 
         if (reg_buf != VOODOO_BUF_NONE) {
             fifo->target_buf = reg_buf;
-            ATOMIC_INC(voodoo->pending_draw_cmds_buf[fifo->target_buf]);
+            ATOMIC_INC(voodoo->queued_draw_cmds_buf[fifo->target_buf]);
         }
         voodoo_queue_apply_reg(voodoo, addr_type & FIFO_ADDR, val);
     }
@@ -244,13 +234,120 @@ voodoo_queue_command(voodoo_t *voodoo, uint32_t addr_type, uint32_t val)
         voodoo_wake_fifo_thread(voodoo);
 }
 
+/* Runs every queued FIFO entry. The caller holds fifo_mutex, so the entries
+   run one thread at a time and in order whichever thread runs them; the
+   read index moves only after an entry is done, so an empty FIFO means
+   every write has taken effect. */
+static void
+voodoo_fifo_run(voodoo_t *voodoo)
+{
+    while (!FIFO_EMPTY) {
+        uint64_t      start_time = plat_timer_read();
+        uint64_t      end_time;
+        fifo_entry_t *fifo = &voodoo->fifo[voodoo->fifo_read_idx & FIFO_MASK];
+
+        switch (fifo->addr_type & FIFO_TYPE) {
+            case FIFO_WRITEL_REG:
+                while ((fifo->addr_type & FIFO_TYPE) == FIFO_WRITEL_REG) {
+                    uint32_t reg_addr  = fifo->addr_type & FIFO_ADDR;
+                    uint8_t  target_buf = fifo->target_buf;
+
+                    voodoo_reg_writel(reg_addr, fifo->val, voodoo);
+                    fifo->addr_type = FIFO_INVALID;
+                    voodoo->fifo_read_idx++;
+                    if (target_buf < VOODOO_BUF_COUNT) {
+                        ATOMIC_INC(voodoo->done_draw_cmds_buf[target_buf]);
+                    }
+                    if (FIFO_EMPTY)
+                        break;
+                    fifo = &voodoo->fifo[voodoo->fifo_read_idx & FIFO_MASK];
+                }
+                break;
+            case FIFO_WRITEW_FB:
+                voodoo_wait_for_render_thread_idle(voodoo);
+                while ((fifo->addr_type & FIFO_TYPE) == FIFO_WRITEW_FB) {
+                    uint8_t target_buf = fifo->target_buf;
+
+                    voodoo_fb_writew(fifo->addr_type & FIFO_ADDR, fifo->val, voodoo);
+                    fifo->addr_type = FIFO_INVALID;
+                    voodoo->fifo_read_idx++;
+                    if (target_buf < VOODOO_BUF_COUNT) {
+                        ATOMIC_INC(voodoo->done_fb_writes_buf[target_buf]);
+                    }
+                    if (FIFO_EMPTY)
+                        break;
+                    fifo = &voodoo->fifo[voodoo->fifo_read_idx & FIFO_MASK];
+                }
+                break;
+            case FIFO_WRITEL_FB:
+                voodoo_wait_for_render_thread_idle(voodoo);
+                while ((fifo->addr_type & FIFO_TYPE) == FIFO_WRITEL_FB) {
+                    uint8_t target_buf = fifo->target_buf;
+
+                    voodoo_fb_writel(fifo->addr_type & FIFO_ADDR, fifo->val, voodoo);
+                    fifo->addr_type = FIFO_INVALID;
+                    voodoo->fifo_read_idx++;
+                    if (target_buf < VOODOO_BUF_COUNT) {
+                        ATOMIC_INC(voodoo->done_fb_writes_buf[target_buf]);
+                    }
+                    if (FIFO_EMPTY)
+                        break;
+                    fifo = &voodoo->fifo[voodoo->fifo_read_idx & FIFO_MASK];
+                }
+                break;
+            case FIFO_WRITEL_TEX:
+                while ((fifo->addr_type & FIFO_TYPE) == FIFO_WRITEL_TEX) {
+                    if (!(fifo->addr_type & 0x400000))
+                        voodoo_tex_writel(fifo->addr_type & FIFO_ADDR, fifo->val, voodoo);
+                    fifo->addr_type = FIFO_INVALID;
+                    voodoo->fifo_read_idx++;
+                    if (FIFO_EMPTY)
+                        break;
+                    fifo = &voodoo->fifo[voodoo->fifo_read_idx & FIFO_MASK];
+                }
+                break;
+            case FIFO_WRITEL_2DREG:
+                while ((fifo->addr_type & FIFO_TYPE) == FIFO_WRITEL_2DREG) {
+                    voodoo_2d_reg_writel(voodoo, fifo->addr_type & FIFO_ADDR, fifo->val);
+                    fifo->addr_type = FIFO_INVALID;
+                    voodoo->fifo_read_idx++;
+                    if (FIFO_EMPTY)
+                        break;
+                    fifo = &voodoo->fifo[voodoo->fifo_read_idx & FIFO_MASK];
+                }
+                break;
+
+            default:
+                fatal("Unknown fifo entry %08x\n", fifo->addr_type);
+        }
+
+        if (FIFO_ENTRIES > 0xe000)
+            thread_set_event(voodoo->fifo_not_full_event);
+
+        end_time = plat_timer_read();
+        voodoo->time += end_time - start_time;
+    }
+
+    voodoo->cmd_status |= (1 << 24);
+    voodoo->cmd_status_2 |= (1 << 24);
+}
+
+/* An access needs every queued write to have taken effect (a register read,
+   an LFB read of a buffer with work queued for it): the CPU thread runs the
+   queued entries itself rather than waking the FIFO thread and sleeping
+   until it has, which cost two thread hand-offs on every such read; menus
+   that read back what they have just written ran at a few percent.
+
+   flush is raised before the lock is taken: the FIFO thread may hold the
+   lock while waiting for a vsync swap, and flush makes it swap at once. */
 void
 voodoo_flush(voodoo_t *voodoo)
 {
     voodoo->flush = 1;
-    while (!FIFO_EMPTY) {
-        voodoo_wake_fifo_thread_now(voodoo);
-        thread_wait_event(voodoo->fifo_empty_event, -1);
+    if (!FIFO_EMPTY) {
+        thread_wait_mutex(voodoo->fifo_mutex);
+        voodoo_fifo_run(voodoo);
+        thread_release_mutex(voodoo->fifo_mutex);
     }
     voodoo_wait_for_render_thread_idle(voodoo);
     voodoo->flush = 0;
@@ -301,8 +398,12 @@ cmdfifo_get(voodoo_t *voodoo)
 
     if (!voodoo->cmdfifo_in_sub) {
         while (voodoo->fifo_thread_run && (voodoo->cmdfifo_depth_rd == voodoo->cmdfifo_depth_wr)) {
+            /* The CPU thread must be able to drain the FIFO while this
+               waits for it to write the rest of the packet. */
+            thread_release_mutex(voodoo->fifo_mutex);
             thread_wait_event(voodoo->wake_fifo_thread, -1);
             thread_reset_event(voodoo->wake_fifo_thread);
+            thread_wait_mutex(voodoo->fifo_mutex);
         }
 
         /* During card teardown, stop consuming an unpublished CMDFIFO tail. */
@@ -345,8 +446,12 @@ cmdfifo_get_2(voodoo_t *voodoo)
 
     if (!voodoo->cmdfifo_in_sub_2) {
         while (voodoo->fifo_thread_run && (voodoo->cmdfifo_depth_rd_2 == voodoo->cmdfifo_depth_wr_2)) {
+            /* The CPU thread must be able to drain the FIFO while this
+               waits for it to write the rest of the packet. */
+            thread_release_mutex(voodoo->fifo_mutex);
             thread_wait_event(voodoo->wake_fifo_thread, -1);
             thread_reset_event(voodoo->wake_fifo_thread);
+            thread_wait_mutex(voodoo->fifo_mutex);
         }
 
         /* During card teardown, stop consuming an unpublished CMDFIFO tail. */
@@ -402,98 +507,8 @@ voodoo_fifo_thread(void *param)
         thread_wait_event(voodoo->wake_fifo_thread, -1);
         thread_reset_event(voodoo->wake_fifo_thread);
         voodoo->voodoo_busy = 1;
-        while (!FIFO_EMPTY) {
-            uint64_t      start_time = plat_timer_read();
-            uint64_t      end_time;
-            fifo_entry_t *fifo = &voodoo->fifo[voodoo->fifo_read_idx & FIFO_MASK];
-
-            switch (fifo->addr_type & FIFO_TYPE) {
-                case FIFO_WRITEL_REG:
-                    while ((fifo->addr_type & FIFO_TYPE) == FIFO_WRITEL_REG) {
-                        uint32_t reg_addr  = fifo->addr_type & FIFO_ADDR;
-                        uint8_t  target_buf = fifo->target_buf;
-
-                        voodoo_reg_writel(reg_addr, fifo->val, voodoo);
-                        fifo->addr_type = FIFO_INVALID;
-                        voodoo->fifo_read_idx++;
-                        if (target_buf < VOODOO_BUF_COUNT) {
-                            ATOMIC_DEC(voodoo->pending_draw_cmds_buf[target_buf]);
-                        }
-                        if (FIFO_EMPTY)
-                            break;
-                        fifo = &voodoo->fifo[voodoo->fifo_read_idx & FIFO_MASK];
-                    }
-                    break;
-                case FIFO_WRITEW_FB:
-                    voodoo_wait_for_render_thread_idle(voodoo);
-                    while ((fifo->addr_type & FIFO_TYPE) == FIFO_WRITEW_FB) {
-                        uint8_t target_buf = fifo->target_buf;
-
-                        voodoo_fb_writew(fifo->addr_type & FIFO_ADDR, fifo->val, voodoo);
-                        fifo->addr_type = FIFO_INVALID;
-                        voodoo->fifo_read_idx++;
-                        if (target_buf < VOODOO_BUF_COUNT) {
-                            ATOMIC_DEC(voodoo->pending_fb_writes_buf[target_buf]);
-                        }
-                        if (FIFO_EMPTY)
-                            break;
-                        fifo = &voodoo->fifo[voodoo->fifo_read_idx & FIFO_MASK];
-                    }
-                    break;
-                case FIFO_WRITEL_FB:
-                    voodoo_wait_for_render_thread_idle(voodoo);
-                    while ((fifo->addr_type & FIFO_TYPE) == FIFO_WRITEL_FB) {
-                        uint8_t target_buf = fifo->target_buf;
-
-                        voodoo_fb_writel(fifo->addr_type & FIFO_ADDR, fifo->val, voodoo);
-                        fifo->addr_type = FIFO_INVALID;
-                        voodoo->fifo_read_idx++;
-                        if (target_buf < VOODOO_BUF_COUNT) {
-                            ATOMIC_DEC(voodoo->pending_fb_writes_buf[target_buf]);
-                        }
-                        if (FIFO_EMPTY)
-                            break;
-                        fifo = &voodoo->fifo[voodoo->fifo_read_idx & FIFO_MASK];
-                    }
-                    break;
-                case FIFO_WRITEL_TEX:
-                    while ((fifo->addr_type & FIFO_TYPE) == FIFO_WRITEL_TEX) {
-                        if (!(fifo->addr_type & 0x400000))
-                            voodoo_tex_writel(fifo->addr_type & FIFO_ADDR, fifo->val, voodoo);
-                        fifo->addr_type = FIFO_INVALID;
-                        voodoo->fifo_read_idx++;
-                        if (FIFO_EMPTY)
-                            break;
-                        fifo = &voodoo->fifo[voodoo->fifo_read_idx & FIFO_MASK];
-                    }
-                    break;
-                case FIFO_WRITEL_2DREG:
-                    while ((fifo->addr_type & FIFO_TYPE) == FIFO_WRITEL_2DREG) {
-                        voodoo_2d_reg_writel(voodoo, fifo->addr_type & FIFO_ADDR, fifo->val);
-                        fifo->addr_type = FIFO_INVALID;
-                        voodoo->fifo_read_idx++;
-                        if (FIFO_EMPTY)
-                            break;
-                        fifo = &voodoo->fifo[voodoo->fifo_read_idx & FIFO_MASK];
-                    }
-                    break;
-
-                default:
-                    fatal("Unknown fifo entry %08x\n", fifo->addr_type);
-            }
-
-            if (FIFO_ENTRIES > 0xe000)
-                thread_set_event(voodoo->fifo_not_full_event);
-
-            end_time = plat_timer_read();
-            voodoo->time += end_time - start_time;
-        }
-
-        voodoo->cmd_status |= (1 << 24);
-        voodoo->cmd_status_2 |= (1 << 24);
-        thread_set_event(voodoo->fifo_empty_event);
-        ATOMIC_STORE(voodoo->fifo_empty_signaled, 1);
-
+        thread_wait_mutex(voodoo->fifo_mutex);
+        voodoo_fifo_run(voodoo);
         while (voodoo->fifo_thread_run && voodoo->cmdfifo_enabled && (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr || voodoo->cmdfifo_in_sub)) {
             uint64_t start_time = plat_timer_read();
             uint64_t end_time;
@@ -1076,6 +1091,7 @@ voodoo_fifo_thread(void *param)
             voodoo->time += end_time - start_time;
         }
 
+        thread_release_mutex(voodoo->fifo_mutex);
         voodoo->voodoo_busy = 0;
     }
 }

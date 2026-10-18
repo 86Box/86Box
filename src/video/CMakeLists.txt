@@ -182,6 +182,7 @@ add_library(vid OBJECT
     # Generic
     vid_bochs_vbe.c
     vid_hd44780.c
+    vid_tandy_vis.c
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")

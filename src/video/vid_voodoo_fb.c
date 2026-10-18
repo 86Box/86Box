@@ -29,6 +29,7 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/plat.h>
+#include <86box/bswap.h>
 #include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
@@ -56,6 +57,29 @@ voodoo_fb_log(const char *fmt, ...)
 #    define voodoo_fb_log(fmt, ...)
 #endif
 
+/* The row an LFB read reaches: reads take the Y origin from lfbMode alone,
+   whatever the pixel pipeline setting (SST-1 and Voodoo2 specs, lfbMode
+   bit 13); writes flip in lfb_y_origin_flip. Negative when the row is
+   above the origin. */
+int
+voodoo_fb_read_y(const voodoo_t *voodoo, int y)
+{
+    if (voodoo->lfbMode & LFB_Y_ORIGIN)
+        return ((voodoo->type >= VOODOO_BANSHEE) ? voodoo->y_origin_swap : (voodoo->v_disp - 1)) - y;
+    return y;
+}
+
+/* lfbMode's read swaps, on the 32 bits read: words, then bytes. */
+static inline uint32_t
+lfb_read_swap(const voodoo_t *voodoo, uint32_t val)
+{
+    if (voodoo->lfbMode & LFB_READ_WORD_SWAP)
+        val = (val << 16) | (val >> 16);
+    if (voodoo->lfbMode & LFB_READ_BYTE_SWIZZLE)
+        val = bswap32(val);
+    return val;
+}
+
 uint16_t
 voodoo_fb_readw(uint32_t addr, void *priv)
 {
@@ -72,6 +96,10 @@ voodoo_fb_readw(uint32_t addr, void *priv)
         x = addr & 0x7fe;
         y = (addr >> 11) & 0x3ff;
     }
+
+    y = voodoo_fb_read_y(voodoo, y);
+    if (y < 0)
+        return 0xffff;
 
     if (SLI_ENABLED) {
         const voodoo_set_t *set = voodoo->set;
@@ -91,6 +119,13 @@ voodoo_fb_readw(uint32_t addr, void *priv)
 
     if (read_addr > voodoo->fb_mask)
         return 0xffff;
+
+    if (voodoo->lfbMode & (LFB_READ_WORD_SWAP | LFB_READ_BYTE_SWIZZLE)) {
+        /* The swaps work on the 32 bits holding the pixel; this is half */
+        uint32_t val = lfb_read_swap(voodoo, *(uint32_t *) (&voodoo->fb_mem[read_addr & ~3 & voodoo->fb_mask]));
+
+        return (read_addr & 2) ? (val >> 16) : (val & 0xffff);
+    }
 
     temp = *(uint16_t *) (&voodoo->fb_mem[read_addr & voodoo->fb_mask]);
 
@@ -114,6 +149,10 @@ voodoo_fb_readl(uint32_t addr, void *priv)
         y = (addr >> 11) & 0x3ff;
     }
 
+    y = voodoo_fb_read_y(voodoo, y);
+    if (y < 0)
+        return 0xffffffff;
+
     if (SLI_ENABLED) {
         const voodoo_set_t *set = voodoo->set;
 
@@ -133,7 +172,7 @@ voodoo_fb_readl(uint32_t addr, void *priv)
     if (read_addr > voodoo->fb_mask)
         return 0xffffffff;
 
-    temp = *(uint32_t *) (&voodoo->fb_mem[read_addr & voodoo->fb_mask]);
+    temp = lfb_read_swap(voodoo, *(uint32_t *) (&voodoo->fb_mem[read_addr & voodoo->fb_mask]));
 
     //        voodoo_fb_log("voodoo_fb_readl : %08X %08x %08X  x=%i y=%i  %08X %08X  %08x:%08x %i ro=%08x rw=%i\n", addr, read_addr, temp, x, y, read_addr, *(uint32_t *)(&voodoo->fb_mem[4]), cs, pc, fb_reads++, voodoo->fb_read_offset, voodoo->row_width);
     return temp;

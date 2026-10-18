@@ -227,7 +227,7 @@ voodoo_readw(uint32_t addr, void *priv)
     {
         if (SLI_ENABLED) {
             const voodoo_set_t *set = voodoo->set;
-            int                 y   = (addr >> 11) & 0x3ff;
+            int                 y   = voodoo_fb_read_y(voodoo, (addr >> 11) & 0x3ff);
 
             if (y & 1)
                 voodoo = set->voodoos[1];
@@ -267,14 +267,14 @@ voodoo_readw(uint32_t addr, void *priv)
                        The relax flags only relax the unknown-target heuristic below; they
                        must not suppress writes aimed at this buffer, or a back-buffer read
                        races queued draw commands and returns stale data. */
-                    pending_buf += voodoo->pending_fb_writes_buf[read_buf];
-                    pending_buf += voodoo->pending_draw_cmds_buf[read_buf];
+                    pending_buf += VOODOO_PENDING_FB_WRITES(voodoo, read_buf);
+                    pending_buf += VOODOO_PENDING_DRAW_CMDS(voodoo, read_buf);
                 }
 
                 if (!voodoo->lfb_relax_ignore_fb_writes)
-                    pending_unknown += voodoo->pending_fb_writes_buf[VOODOO_BUF_UNKNOWN];
+                    pending_unknown += VOODOO_PENDING_FB_WRITES(voodoo, VOODOO_BUF_UNKNOWN);
                 if (!voodoo->lfb_relax_ignore_draw)
-                    pending_unknown += voodoo->pending_draw_cmds_buf[VOODOO_BUF_UNKNOWN];
+                    pending_unknown += VOODOO_PENDING_DRAW_CMDS(voodoo, VOODOO_BUF_UNKNOWN);
                 if (!voodoo->lfb_relax_ignore_cmdfifo) {
                     if ((voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr) || voodoo->cmdfifo_in_sub)
                         pending_unknown++;
@@ -288,15 +288,9 @@ voodoo_readw(uint32_t addr, void *priv)
                     do_sync = (pending_buf || pending_unknown);
             }
 
-            if (do_sync) {
-                voodoo->flush = 1;
-                while (!FIFO_EMPTY) {
-                    voodoo_wake_fifo_thread_now(voodoo);
-                    thread_wait_event(voodoo->fifo_empty_event, -1);
-                }
-                voodoo_wait_for_render_thread_idle(voodoo);
-                voodoo->flush = 0;
-            } else if (voodoo->lfb_relax_enabled && !voodoo->lfb_relax_full) {
+            if (do_sync)
+                voodoo_flush(voodoo);
+            else if (voodoo->lfb_relax_enabled && !voodoo->lfb_relax_full) {
                 voodoo_wait_for_render_thread_idle(voodoo);
             }
         }
@@ -324,7 +318,6 @@ voodoo_readl(uint32_t addr, void *priv)
     } else if (addr & 0x400000) /*Framebuffer*/
     {
         uint64_t fifo_wait_start = 0;
-        uint64_t fifo_wait_spins = 0;
         int      fifo_wait_active = 0;
         int      need_sync = 0;
         int      do_sync = 0;
@@ -332,7 +325,7 @@ voodoo_readl(uint32_t addr, void *priv)
 
         if (SLI_ENABLED) {
             const voodoo_set_t *set = voodoo->set;
-            int                 y   = (addr >> 11) & 0x3ff;
+            int                 y   = voodoo_fb_read_y(voodoo, (addr >> 11) & 0x3ff);
 
             if (y & 1)
                 voodoo = set->voodoos[1];
@@ -371,14 +364,14 @@ voodoo_readl(uint32_t addr, void *priv)
                        The relax flags only relax the unknown-target heuristic below; they
                        must not suppress writes aimed at this buffer, or a back-buffer read
                        races queued draw commands and returns stale data. */
-                    pending_buf += voodoo->pending_fb_writes_buf[read_buf];
-                    pending_buf += voodoo->pending_draw_cmds_buf[read_buf];
+                    pending_buf += VOODOO_PENDING_FB_WRITES(voodoo, read_buf);
+                    pending_buf += VOODOO_PENDING_DRAW_CMDS(voodoo, read_buf);
                 }
 
                 if (!voodoo->lfb_relax_ignore_fb_writes)
-                    pending_unknown += voodoo->pending_fb_writes_buf[VOODOO_BUF_UNKNOWN];
+                    pending_unknown += VOODOO_PENDING_FB_WRITES(voodoo, VOODOO_BUF_UNKNOWN);
                 if (!voodoo->lfb_relax_ignore_draw)
-                    pending_unknown += voodoo->pending_draw_cmds_buf[VOODOO_BUF_UNKNOWN];
+                    pending_unknown += VOODOO_PENDING_DRAW_CMDS(voodoo, VOODOO_BUF_UNKNOWN);
                 if (!voodoo->lfb_relax_ignore_cmdfifo) {
                     if ((voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr) || voodoo->cmdfifo_in_sub)
                         pending_unknown++;
@@ -412,25 +405,16 @@ voodoo_readl(uint32_t addr, void *priv)
         }
 
         if (do_sync) {
-            voodoo->flush = 1;
-            while (!FIFO_EMPTY) {
-                if (voodoo->wait_stats_enabled) {
-                    if (!fifo_wait_active) {
-                        fifo_wait_active = 1;
-                        fifo_wait_start  = plat_timer_read();
-                        voodoo->fifo_empty_waits++;
-                    }
-                    fifo_wait_spins++;
-                }
-                voodoo_wake_fifo_thread_now(voodoo);
-                thread_wait_event(voodoo->fifo_empty_event, -1);
+            if (voodoo->wait_stats_enabled && !FIFO_EMPTY) {
+                fifo_wait_active = 1;
+                fifo_wait_start  = plat_timer_read();
+                voodoo->fifo_empty_waits++;
             }
+            voodoo_flush(voodoo);
             if (fifo_wait_active) {
                 voodoo->fifo_empty_wait_ticks += plat_timer_read() - fifo_wait_start;
-                voodoo->fifo_empty_spin_checks += fifo_wait_spins;
+                voodoo->fifo_empty_spin_checks++;
             }
-            voodoo_wait_for_render_thread_idle(voodoo);
-            voodoo->flush = 0;
         } else if (need_sync && voodoo->lfb_relax_enabled && !voodoo->lfb_relax_full) {
             voodoo_wait_for_render_thread_idle(voodoo);
         }
@@ -1319,9 +1303,7 @@ voodoo_card_init(const device_t *info)
     voodoo->wake_render_thread[3]    = thread_create_event();
     voodoo->wake_main_thread         = thread_create_event();
     voodoo->fifo_not_full_event      = thread_create_event();
-    voodoo->fifo_empty_event         = thread_create_event();
-    thread_set_event(voodoo->fifo_empty_event);
-    ATOMIC_STORE(voodoo->fifo_empty_signaled, 1);
+    voodoo->fifo_mutex               = thread_create_mutex();
     voodoo->render_not_full_event[0] = thread_create_event();
     voodoo->render_not_full_event[1] = thread_create_event();
     voodoo->render_not_full_event[2] = thread_create_event();
@@ -1483,9 +1465,7 @@ voodoo_2d3d_card_init(int type)
     voodoo->wake_render_thread[3]    = thread_create_event();
     voodoo->wake_main_thread         = thread_create_event();
     voodoo->fifo_not_full_event      = thread_create_event();
-    voodoo->fifo_empty_event         = thread_create_event();
-    thread_set_event(voodoo->fifo_empty_event);
-    ATOMIC_STORE(voodoo->fifo_empty_signaled, 1);
+    voodoo->fifo_mutex               = thread_create_mutex();
     voodoo->render_not_full_event[0] = thread_create_event();
     voodoo->render_not_full_event[1] = thread_create_event();
     voodoo->render_not_full_event[2] = thread_create_event();
@@ -1691,7 +1671,6 @@ voodoo_card_close(voodoo_t *voodoo)
         thread_wait(voodoo->render_thread[3]);
     }
     thread_destroy_event(voodoo->fifo_not_full_event);
-    thread_destroy_event(voodoo->fifo_empty_event);
     thread_destroy_event(voodoo->wake_main_thread);
     thread_destroy_event(voodoo->wake_fifo_thread);
     thread_destroy_event(voodoo->wake_render_thread[0]);
@@ -1757,6 +1736,8 @@ voodoo_card_close(voodoo_t *voodoo)
     }
 
     thread_close_mutex(voodoo->force_blit_mutex);
+    thread_close_mutex(voodoo->fifo_mutex);
+    thread_close_mutex(voodoo->swap_mutex);
 
     free(voodoo);
 }

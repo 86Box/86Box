@@ -32,6 +32,7 @@ add_library(cpu OBJECT
     x86seg.c
     x86seg_2386.c
     x87.c
+    x87_ferr.c
     x87_timings.c
     i8080.c
 )

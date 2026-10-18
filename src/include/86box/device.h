@@ -135,6 +135,7 @@ enum {
 #define BIOS_LIMIT_MAX_MEMORY            0x0200000000000000
 #define BIOS_LIMIT_MIN_MEMORY_2          0x0400000000000000
 #define BIOS_LIMIT_MAX_MEMORY_2          0x0800000000000000
+#define BIOS_FIXED_MEMORY                0x1000000000000000 /* Only the "memory" option's default. */
 
 typedef struct device_config_selection_t {
     const char *description;

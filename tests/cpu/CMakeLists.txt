@@ -9,9 +9,8 @@ if(BUILD_TESTING)
         ../../src/cpu/cpu.c
         ../../src/mem/mem.c
     )
-    add_executable(x87_fistp_tests x87_fistp_test.cpp)
-    add_executable(x87_fistp_new_tags_tests x87_fistp_test.cpp)
-    target_compile_definitions(x87_fistp_new_tags_tests PRIVATE X87_TEST_NEW_TAGS)
+    add_executable(x87_fistp_tests x87_fistp_test.cpp ../../src/cpu/x87_ferr.c)
+    add_executable(x87_fistp_new_tags_tests x87_fistp_test.cpp ../../src/cpu/x87_ferr.c)
     foreach(target cpu_tr_tests cpu_cache_tests x87_fistp_tests x87_fistp_new_tags_tests)
         target_include_directories(${target} PRIVATE
             ${PROJECT_SOURCE_DIR}/src/include

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-02 04:16+0000\n"
-"Last-Translator: Canadew <chun-awa@outlook.com>\n"
+"PO-Revision-Date: 2026-10-16 00:52+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -3537,19 +3537,19 @@ msgid "Luminance threshold (%)"
 msgstr "亮度阈值（%）"
 
 msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
-msgstr ""
+msgstr "VFIO：无法打开/dev/vfio/vfio：%s。请确保已加载vfio-pci模块。"
 
 msgid "VFIO %s: Invalid device location."
-msgstr ""
+msgstr "VFIO %s：设备位置无效。"
 
 msgid "VFIO %s: Device not found."
-msgstr ""
+msgstr "VFIO %s：未找到设备。"
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
 
 msgid "VFIO %s: Device is not bound to vfio-pci."
-msgstr ""
+msgstr "VFIO %s：设备未绑定到vfio-pci。"
 
 msgid "VFIO %s: Could not open IOMMU group %d: %s"
 msgstr ""

@@ -15,7 +15,7 @@
         clear_C1();                                                                                                                                \
         if (IS_TAG_EMPTY(0)) {                                                                                                                     \
             FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);                                                                                    \
-            setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);                                                                                              \
+            if (is_IA_masked()) /* unmasked #IA: flags kept */ setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);                                           \
             goto next_ins;                                                                                                                         \
         }                                                                                                                                          \
         status = i387cw_to_softfloat_status_word(i387_get_control_word());                                                                         \
@@ -26,7 +26,7 @@
         } else {                                                                                                                                   \
             rc = extF80_compare_normal(a, use_var, &status);                                                                                       \
         }                                                                                                                                          \
-        setcc(FPU_status_word_flags_fpu_compare(rc));                                                                                              \
+        if (!(status.softfloat_exceptionFlags & softfloat_flag_invalid) || is_IA_masked()) setcc(FPU_status_word_flags_fpu_compare(rc));           \
         FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);                                                                               \
                                                                                                                                                    \
 next_ins:                                                                                                                                          \
@@ -50,7 +50,7 @@ next_ins:                                                                       
         clear_C1();                                                                                                                                \
         if (IS_TAG_EMPTY(0)) {                                                                                                                     \
             FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);                                                                                    \
-            setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);                                                                                              \
+            if (is_IA_masked()) /* unmasked #IA: flags kept */ setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);                                           \
             if (is_IA_masked())                                                                                                                    \
                 FPU_pop();                                                                                                                         \
                                                                                                                                                    \
@@ -64,7 +64,7 @@ next_ins:                                                                       
         } else {                                                                                                                                   \
             rc = extF80_compare_normal(a, use_var, &status);                                                                                       \
         }                                                                                                                                          \
-        setcc(FPU_status_word_flags_fpu_compare(rc));                                                                                              \
+        if (!(status.softfloat_exceptionFlags & softfloat_flag_invalid) || is_IA_masked()) setcc(FPU_status_word_flags_fpu_compare(rc));           \
         if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0))                                                                          \
             FPU_pop();                                                                                                                             \
                                                                                                                                                    \
@@ -108,14 +108,14 @@ sf_FCOM_sti(uint32_t fetchdat)
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(fetchdat & 7)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
+        if (is_IA_masked()) /* unmasked #IA: flags kept */ setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         goto next_ins;
     }
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
     rc     = extF80_compare_normal(a, b, &status);
-    setcc(FPU_status_word_flags_fpu_compare(rc));
+    if (!(status.softfloat_exceptionFlags & softfloat_flag_invalid) || is_IA_masked()) setcc(FPU_status_word_flags_fpu_compare(rc));
     FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);
 
 next_ins:
@@ -138,7 +138,7 @@ sf_FCOMP_sti(uint32_t fetchdat)
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(fetchdat & 7)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
+        if (is_IA_masked()) /* unmasked #IA: flags kept */ setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         if (is_IA_masked()) {
             FPU_pop();
         }
@@ -148,7 +148,7 @@ sf_FCOMP_sti(uint32_t fetchdat)
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
     rc     = extF80_compare_normal(a, b, &status);
-    setcc(FPU_status_word_flags_fpu_compare(rc));
+    if (!(status.softfloat_exceptionFlags & softfloat_flag_invalid) || is_IA_masked()) setcc(FPU_status_word_flags_fpu_compare(rc));
     if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0)) {
         FPU_pop();
     }
@@ -173,7 +173,7 @@ sf_FCOMPP(uint32_t fetchdat)
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(1)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
+        if (is_IA_masked()) /* unmasked #IA: flags kept */ setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         if (is_IA_masked()) {
             FPU_pop();
             FPU_pop();
@@ -184,7 +184,7 @@ sf_FCOMPP(uint32_t fetchdat)
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(1);
     rc     = extF80_compare_normal(a, b, &status);
-    setcc(FPU_status_word_flags_fpu_compare(rc));
+    if (!(status.softfloat_exceptionFlags & softfloat_flag_invalid) || is_IA_masked()) setcc(FPU_status_word_flags_fpu_compare(rc));
     if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0)) {
         FPU_pop();
         FPU_pop();
@@ -211,7 +211,7 @@ sf_FUCOMPP(uint32_t fetchdat)
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(1)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
+        if (is_IA_masked()) /* unmasked #IA: flags kept */ setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         if (is_IA_masked()) {
             FPU_pop();
             FPU_pop();
@@ -222,7 +222,7 @@ sf_FUCOMPP(uint32_t fetchdat)
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(1);
     rc     = extF80_compare_quiet(a, b, &status);
-    setcc(FPU_status_word_flags_fpu_compare(rc));
+    if (!(status.softfloat_exceptionFlags & softfloat_flag_invalid) || is_IA_masked()) setcc(FPU_status_word_flags_fpu_compare(rc));
     if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0)) {
         FPU_pop();
         FPU_pop();
@@ -250,14 +250,17 @@ sf_FCOMI_st0_stj(uint32_t fetchdat)
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(fetchdat & 7)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
+        /* Unordered, but with #IA unmasked the flags are not set */
+        if (is_IA_masked())
+            cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
         goto next_ins;
     }
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
     rc     = extF80_compare_normal(a, b, &status);
-    FPU_write_eflags_fpu_compare(rc);
+    if (!(status.softfloat_exceptionFlags & softfloat_flag_invalid) || is_IA_masked())
+        FPU_write_eflags_fpu_compare(rc);
     FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);
 
 next_ins:
@@ -280,7 +283,9 @@ sf_FCOMIP_st0_stj(uint32_t fetchdat)
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(fetchdat & 7)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
+        /* Unordered, but with #IA unmasked the flags are not set */
+        if (is_IA_masked())
+            cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
         if (is_IA_masked()) {
             FPU_pop();
         }
@@ -290,7 +295,8 @@ sf_FCOMIP_st0_stj(uint32_t fetchdat)
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
     rc     = extF80_compare_normal(a, b, &status);
-    FPU_write_eflags_fpu_compare(rc);
+    if (!(status.softfloat_exceptionFlags & softfloat_flag_invalid) || is_IA_masked())
+        FPU_write_eflags_fpu_compare(rc);
     if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0)) {
         FPU_pop();
     }
@@ -316,14 +322,14 @@ sf_FUCOM_sti(uint32_t fetchdat)
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(fetchdat & 7)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
+        if (is_IA_masked()) /* unmasked #IA: flags kept */ setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         goto next_ins;
     }
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
     rc     = extF80_compare_quiet(a, b, &status);
-    setcc(FPU_status_word_flags_fpu_compare(rc));
+    if (!(status.softfloat_exceptionFlags & softfloat_flag_invalid) || is_IA_masked()) setcc(FPU_status_word_flags_fpu_compare(rc));
     FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);
 
 next_ins:
@@ -346,7 +352,7 @@ sf_FUCOMP_sti(uint32_t fetchdat)
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(fetchdat & 7)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
+        if (is_IA_masked()) /* unmasked #IA: flags kept */ setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         if (is_IA_masked())
             FPU_pop();
 
@@ -356,7 +362,7 @@ sf_FUCOMP_sti(uint32_t fetchdat)
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
     rc     = extF80_compare_quiet(a, b, &status);
-    setcc(FPU_status_word_flags_fpu_compare(rc));
+    if (!(status.softfloat_exceptionFlags & softfloat_flag_invalid) || is_IA_masked()) setcc(FPU_status_word_flags_fpu_compare(rc));
     if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0))
         FPU_pop();
 
@@ -382,14 +388,17 @@ sf_FUCOMI_st0_stj(uint32_t fetchdat)
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(fetchdat & 7)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
+        /* Unordered, but with #IA unmasked the flags are not set */
+        if (is_IA_masked())
+            cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
         goto next_ins;
     }
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
     rc     = extF80_compare_quiet(a, b, &status);
-    FPU_write_eflags_fpu_compare(rc);
+    if (!(status.softfloat_exceptionFlags & softfloat_flag_invalid) || is_IA_masked())
+        FPU_write_eflags_fpu_compare(rc);
     FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);
 
 next_ins:
@@ -412,7 +421,9 @@ sf_FUCOMIP_st0_stj(uint32_t fetchdat)
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(fetchdat & 7)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
+        /* Unordered, but with #IA unmasked the flags are not set */
+        if (is_IA_masked())
+            cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
         if (is_IA_masked())
             FPU_pop();
 
@@ -422,7 +433,8 @@ sf_FUCOMIP_st0_stj(uint32_t fetchdat)
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
     rc     = extF80_compare_quiet(a, b, &status);
-    FPU_write_eflags_fpu_compare(rc);
+    if (!(status.softfloat_exceptionFlags & softfloat_flag_invalid) || is_IA_masked())
+        FPU_write_eflags_fpu_compare(rc);
     if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0))
         FPU_pop();
 
@@ -447,11 +459,13 @@ sf_FTST(uint32_t fetchdat)
     clear_C1();
     if (IS_TAG_EMPTY(0)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
+        /* FTST sets "unordered" whether or not #IA is masked (SDM 1999, FTST),
+           unlike FCOM */
         setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     } else {
         status = i387cw_to_softfloat_status_word(i387_get_control_word());
         rc     = extF80_compare_normal(FPU_read_regi(0), Const_Z, &status);
-        setcc(FPU_status_word_flags_fpu_compare(rc));
+        setcc(FPU_status_word_flags_fpu_compare(rc)); /* unordered for a NaN, #IA masked or not */
         FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);
     }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.ftst) : (x87_timings.ftst * cpu_multi));
@@ -473,11 +487,13 @@ sf_FTSTP(uint32_t fetchdat)
     clear_C1();
     if (IS_TAG_EMPTY(0)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
+        /* FTST sets "unordered" whether or not #IA is masked (SDM 1999, FTST),
+           unlike FCOM */
         setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     } else {
         status = i387cw_to_softfloat_status_word(i387_get_control_word());
         rc     = extF80_compare_normal(FPU_read_regi(0), Const_Z, &status);
-        setcc(FPU_status_word_flags_fpu_compare(rc));
+        setcc(FPU_status_word_flags_fpu_compare(rc)); /* unordered for a NaN, #IA masked or not */
         FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);
         FPU_pop();
     }

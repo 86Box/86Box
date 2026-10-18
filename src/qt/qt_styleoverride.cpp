@@ -21,13 +21,15 @@
 #include <QIcon>
 #include <QStyleOption>
 #include <QMainWindow>
+#include <QPainter>
+#include <QToolBar>
 
 extern "C" {
 #include <86box/86box.h>
 #include <86box/plat.h>
 }
 
-#ifdef Q_OS_WINDOWS
+#ifdef USE_QDARKSTYLE
 #    include <dwmapi.h>
 #    ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #        define DWMWA_USE_IMMERSIVE_DARK_MODE 20
@@ -70,7 +72,8 @@ StyleOverride::polish(QWidget *widget)
             }
         }
         widget->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
-#ifdef Q_OS_WINDOWS
+#ifdef USE_QDARKSTYLE
+        /* Newer Qt handles the title bar color by itself */
         BOOL DarkMode = !util::isWindowsLightTheme();
         DwmSetWindowAttribute((HWND) widget->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID) &DarkMode, sizeof(DarkMode));
 #endif
@@ -79,6 +82,91 @@ StyleOverride::polish(QWidget *widget)
     if (qobject_cast<QComboBox *>(widget)) {
         qobject_cast<QComboBox *>(widget)->view()->setMinimumWidth(widget->minimumSizeHint().width());
     }
+
+#ifdef Q_OS_WINDOWS
+    /* Fill toolbars in the color of the menu bar, which the windows11 style
+       draws in the window color and the others in the base color. */
+    if (qobject_cast<QToolBar *>(widget))
+        widget->setBackgroundRole(isWindows11Style() ? QPalette::Window : QPalette::Base);
+#endif
+}
+
+void
+StyleOverride::drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter, const QWidget *widget) const
+{
+    /* The windows11 style draws hovered toolbar buttons as a framed control,
+       draw them with the filled highlight of menu bar items instead. */
+    if ((element == PE_PanelButtonTool) && widget && qobject_cast<QToolBar *>(widget->parentWidget()) && isWindows11Style()) {
+        QStyleOptionMenuItem menuItem;
+        menuItem.QStyleOption::operator=(*option);
+        /* Menu bar items keep 5px clear on either side of the highlight */
+        menuItem.rect.adjust(-5, 0, 5, 0);
+        if (option->state & State_On)
+            menuItem.state |= State_Sunken;
+
+        proxy()->drawControl(CE_MenuBarItem, &menuItem, painter, widget);
+        return;
+    }
+
+    QProxyStyle::drawPrimitive(element, option, painter, widget);
+}
+
+bool
+StyleOverride::isWindows11Style() const
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+    return !baseStyle()->name().compare("windows11", Qt::CaseInsensitive);
+#else
+    return false;
+#endif
+}
+
+void
+StyleOverride::drawControl(ControlElement element, const QStyleOption *option, QPainter *painter, const QWidget *widget) const
+{
+    /* The windows11 style draws menu bar items with a hardcoded 10pt font,
+       so mark them for drawItemText() to bring the text back to 9pt. */
+    if ((element == CE_MenuBarItem) && isWindows11Style()) {
+        drawingMenuBarItem = true;
+        QProxyStyle::drawControl(element, option, painter, widget);
+        drawingMenuBarItem = false;
+        return;
+    }
+
+    QProxyStyle::drawControl(element, option, painter, widget);
+}
+
+QSize
+StyleOverride::sizeFromContents(ContentsType type, const QStyleOption *option, const QSize &size, const QWidget *widget) const
+{
+    QSize ret = QProxyStyle::sizeFromContents(type, option, size, widget);
+
+    /* The windows11 style pads menu bar items by 17px on each side and makes
+       them 32px tall, tighten that up */
+    if ((type == CT_MenuBarItem) && option && !ret.isEmpty() && isWindows11Style()) {
+        ret.rwidth() -= 16;
+        ret.setHeight(option->fontMetrics.height() + 8);
+    }
+
+    return ret;
+}
+
+void
+StyleOverride::drawItemText(QPainter *painter, const QRect &rect, int flags, const QPalette &pal, bool enabled,
+                            const QString &text, QPalette::ColorRole textRole) const
+{
+    if (drawingMenuBarItem) {
+        QFont font = painter->font();
+        font.setPointSize(9);
+
+        painter->save();
+        painter->setFont(font);
+        QProxyStyle::drawItemText(painter, rect, flags, pal, enabled, text, textRole);
+        painter->restore();
+        return;
+    }
+
+    QProxyStyle::drawItemText(painter, rect, flags, pal, enabled, text, textRole);
 }
 
 QPixmap

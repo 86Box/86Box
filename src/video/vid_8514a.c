@@ -2183,8 +2183,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
             /* Graphics Ultra, command 3 (TEST.COM sequence 1 op 91 on the real card): the major axis runs DOWN
                each column (MAJ_AXIS_PCNT, less one with LAST_PIXEL off), then the next column, MIN_AXIS + 1
                columns. With CPU data each word carries two pixels in this mode. */
-            /* Graphics Ultra, command 4 (measured on a real card): the rectangle (MIN+1 wide, MAJ+1 tall,
-               LAST_PIXEL ignored) is cut into 4-pixel columns aligned to X mod 4. Each data byte fills one
+            /* Graphics Ultra, command 4 (measured on a real card): the rectangle (MAJ+1 wide and MIN+1 tall,
+               as Windows 3.1's 8514.DRV programs it; LAST_PIXEL ignored) is cut into 4-pixel columns aligned to X mod 4. Each data byte fills one
                row of one column; the first column runs one way in Y, the next the other way. CMD bit 9
                (16-bit data) set: two bytes per word, MSB first unless bit 12 (LSB first) is set;
                clear: the low byte only. */
@@ -2200,7 +2200,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         dev->accel.cy |= ~0x5ff;
                     dev->accel.dx = dev->accel.cx;                                  /*first pixel X*/
                     dev->accel.dy = dev->accel.cy;                                  /*first row*/
-                    dev->accel.cx = dev->accel.dx + xstep * (dev->accel.multifunc[0] & 0x7ff); /*last pixel X*/
+                    dev->accel.cx = dev->accel.dx + xstep * (dev->accel.maj_axis_pcnt & 0x7ff); /*last pixel X*/
                     dev->accel.sx = dev->accel.dx & ~3;                             /*current nibble column*/
                     if (xstep < 0)
                         dev->accel.sx = dev->accel.dx | 3;
@@ -2220,7 +2220,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                     nbytes = (dev->accel.cmd & 0x200) ? 2 : 1;
 
                 {
-                    int rows = (dev->accel.maj_axis_pcnt & 0x7ff) + 1;
+                    int rows = (dev->accel.multifunc[0] & 0x7ff) + 1;
                     int xlo  = (xstep > 0) ? dev->accel.dx : dev->accel.cx;
                     int xhi  = (xstep > 0) ? dev->accel.cx : dev->accel.dx;
                     int k    = 0;

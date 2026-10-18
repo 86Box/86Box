@@ -836,9 +836,11 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             case 0x63:
             case 0x64:
                 if ((addr & 0x7) <= dev->max_drb) {
-                    dev->drb_written[addr & 0x7] = val;
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
-                    i4x0_drb_row0_update(dev);
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        i4x0_drb_row0_update(dev);
                     break;
                 }
                 switch (dev->type) {
@@ -867,9 +869,11 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0x65:
                 if ((addr & 0x7) <= dev->max_drb) {
-                    dev->drb_written[addr & 0x7] = val;
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
-                    i4x0_drb_row0_update(dev);
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        i4x0_drb_row0_update(dev);
                     break;
                 }
                 switch (dev->type) {
@@ -898,9 +902,11 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0x66:
                 if ((addr & 0x7) <= dev->max_drb) {
-                    dev->drb_written[addr & 0x7] = val;
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
-                    i4x0_drb_row0_update(dev);
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        i4x0_drb_row0_update(dev);
                     break;
                 }
                 switch (dev->type) {
@@ -920,9 +926,11 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0x67:
                 if ((addr & 0x7) <= dev->max_drb) {
-                    dev->drb_written[addr & 0x7] = val;
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
-                    i4x0_drb_row0_update(dev);
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        i4x0_drb_row0_update(dev);
                     break;
                 }
                 switch (dev->type) {
@@ -1647,9 +1655,14 @@ i4x0_reset(void *priv)
     for (uint8_t i = 0; i < 6; i++)
         i4x0_write(0, 0x5a + i, 1, 0x00, priv);
 
-    for (uint8_t i = 0; i <= dev->max_drb; i++)
-        dev->regs[0x60 + i] = dev->drb_written[i] = dev->drb_default;
-    i4x0_drb_row0_update(dev);
+    for (uint8_t i = 0; i <= dev->max_drb; i++) {
+        if (machines[machine].init == machine_at_rc440bx_init)
+            dev->regs[0x60 + i] = dev->drb_written[i] = dev->drb_default;
+        else
+            dev->regs[0x60 + i] = dev->drb_default;
+    }
+    if (machines[machine].init == machine_at_rc440bx_init)
+        i4x0_drb_row0_update(dev);
 
     if (dev->type >= INTEL_430NX) {
         for (uint8_t i = 0; i < 4; i++)
@@ -2010,7 +2023,8 @@ i4x0_init(const device_t *info)
     else if (dev->type >= INTEL_440LX)
         cpu_set_agp_speed(cpu_busspeed);
 
-    memcpy(dev->drb_written, &regs[0x60], sizeof(dev->drb_written));
+    if (machines[machine].init == machine_at_rc440bx_init)
+        memcpy(dev->drb_written, &regs[0x60], sizeof(dev->drb_written));
 
     i4x0_write(regs[0x59], 0x59, 1, 0x00, dev);
     i4x0_write(regs[0x5a], 0x5a, 1, 0x00, dev);
