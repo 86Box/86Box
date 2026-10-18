@@ -20,7 +20,7 @@
 static inline void
 get_cf(ir_data_t *ir, int dest_reg)
 {
-    uop_CALL_FUNC_RESULT(ir, dest_reg, jit_CF_SET);
+    uop_CALL_FUNC_RESULT_ORDERED(ir, dest_reg, jit_CF_SET);
 }
 
 uint32_t
@@ -2152,8 +2152,15 @@ rebuild_c(ir_data_t *ir)
         }
     }
 
-    if (needs_rebuild) {
+    if (needs_rebuild && !codegen_flags_rebuild_known(ir, 1)) {
+#if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
+        /*flags_rebuild_c() writes only flags, so the cached registers are
+          written back but left loaded, and flags is reloaded after it.*/
+        uop_CALL_FUNC_ORDERED(ir, jit_flags_rebuild_c);
+        uop_MOVZX_REG_PTR_16(ir, IREG_flags, &cpu_state.flags);
+#else
         uop_CALL_FUNC(ir, jit_flags_rebuild_c);
+#endif
     }
 }
 
@@ -2278,10 +2285,11 @@ imul_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32
     return 0;
 #endif
     codegen_mark_code_present(block, cs + op_pc, 1);
-    uop_CALL_FUNC(ir, jit_flags_rebuild);
     /*As on the interpreter path, the cycles so far are charged before IMUL
       can fault*/
     codegen_accumulate_flush(ir);
+    if (!codegen_flags_rebuild_known(ir, 0))
+        uop_CALL_FUNC(ir, jit_flags_rebuild);
 
     if ((fetchdat & 0xc0) == 0xc0)
         src = size32 ? IREG_32(fetchdat & 7) : IREG_16(fetchdat & 7);

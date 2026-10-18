@@ -55,6 +55,9 @@
 #define UOP_JMP_DEST       (UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x17 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
 #define UOP_NOP_BARRIER    (UOP_TYPE_BARRIER | 0x18)
 #define UOP_STORE_P_IMM_16 (UOP_TYPE_PARAMS_IMM | 0x19)
+/*UOP_CALL_FUNC_RESULT_ORDERED - dest_reg = C function at p, with registers written back but left
+  loaded. The function must only read guest state*/
+#define UOP_CALL_FUNC_RESULT_ORDERED (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_POINTER | 0x1a | UOP_TYPE_ORDER_BARRIER)
 
 #ifdef DEBUG_EXTRA
 /*UOP_LOG_INSTR - log non-recompiled instruction in imm_data*/
@@ -111,6 +114,9 @@
 /*UOP_CALL_REP_STRING - call REP string routine at p with immediate, exit block if it returns non-zero.
   The routine reads and writes the guest registers in cpu_state, so the caller reloads them*/
 #define UOP_CALL_REP_STRING (UOP_TYPE_PARAMS_POINTER | UOP_TYPE_PARAMS_IMM | 0x3e | UOP_TYPE_ORDER_BARRIER)
+/*UOP_CALL_FUNC_ORDERED - call C function at p with registers written back but left loaded.
+  The function must not change anything the IR caches unless the caller reloads it*/
+#define UOP_CALL_FUNC_ORDERED (UOP_TYPE_PARAMS_POINTER | 0x3f | UOP_TYPE_ORDER_BARRIER)
 /*UOP_MEM_LOAD_ABS - dest_reg = src_reg_a:[immediate]*/
 #define UOP_MEM_LOAD_ABS (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0x40 | UOP_TYPE_ORDER_BARRIER)
 /*UOP_MEM_LOAD_REG - dest_reg = src_reg_a:[src_reg_b]*/
@@ -222,6 +228,10 @@
 
 /*UOP_FP_ENTER - must be called before any FPU register accessed*/
 #define UOP_FP_ENTER (UOP_TYPE_PARAMS_IMM | 0x80 | UOP_TYPE_BARRIER)
+/*UOP_FP_ENTER_ORDERED - UOP_FP_ENTER with registers written back but left loaded. The #NM path
+  raises the exception and leaves the block, so nothing the IR caches changes on the path that
+  continues*/
+#define UOP_FP_ENTER_ORDERED (UOP_TYPE_PARAMS_IMM | 0x8b | UOP_TYPE_ORDER_BARRIER)
 /*UOP_FADD - (floating point) dest_reg = src_reg_a + src_reg_b*/
 #define UOP_FADD (UOP_TYPE_PARAMS_REGS | 0x81)
 /*UOP_FSUB - (floating point) dest_reg = src_reg_a - src_reg_b*/
@@ -779,6 +789,13 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
 
 #define uop_CALL_FUNC(ir, p)                                     uop_gen_pointer(UOP_CALL_FUNC, ir, p)
 #define uop_CALL_FUNC_RESULT(ir, dst_reg, p)                     uop_gen_reg_dst_pointer(UOP_CALL_FUNC_RESULT, ir, dst_reg, p)
+#define uop_CALL_FUNC_ORDERED(ir, p)                             uop_gen_pointer(UOP_CALL_FUNC_ORDERED, ir, p)
+#if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
+#define uop_CALL_FUNC_RESULT_ORDERED(ir, dst_reg, p)             uop_gen_reg_dst_pointer(UOP_CALL_FUNC_RESULT_ORDERED, ir, dst_reg, p)
+#else
+/*Only the arm64 and x86-64 backends keep the cached registers across a C call*/
+#define uop_CALL_FUNC_RESULT_ORDERED(ir, dst_reg, p)             uop_CALL_FUNC_RESULT(ir, dst_reg, p)
+#endif
 #define uop_CALL_INSTRUCTION_FUNC(ir, p, imm)                    uop_gen_pointer_imm(UOP_CALL_INSTRUCTION_FUNC, ir, p, imm)
 #define uop_CALL_REP_STRING(ir, p, imm)                          uop_gen_pointer_imm(UOP_CALL_REP_STRING, ir, p, imm)
 
@@ -816,6 +833,26 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
 #define uop_FTST(ir, dst_reg, src_reg)                           uop_gen_reg_dst_src1(UOP_FTST, ir, dst_reg, src_reg)
 
 #if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64 || defined __loongarch_lp64
+#if defined __aarch64__ || defined _M_ARM64
+#define uop_FP_ENTER_NOWAIT(ir)                             \
+    do {                                                    \
+        if (!codegen_fpu_entered) {                         \
+            uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);   \
+            uop_gen_imm(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc); \
+        }                                                   \
+        codegen_mmx_entered = 0;                            \
+    } while (0)
+#define uop_FP_ENTER(ir)                                    \
+    do {                                                    \
+        if (!codegen_fpu_entered) {                         \
+            uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);   \
+            uop_gen_imm(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc); \
+            codegen_fp_pending_check(ir);                   \
+        }                                                   \
+        codegen_fpu_entered = 1;                            \
+        codegen_mmx_entered = 0;                            \
+    } while (0)
+#else
 #define uop_FP_ENTER_NOWAIT(ir)                             \
     do {                                                    \
         if (!codegen_fpu_entered) {                         \
@@ -836,6 +873,7 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
         codegen_fpu_entered = 1;                            \
         codegen_mmx_entered = 0;                            \
     } while (0)
+#endif
 #define uop_MMX_ENTER(ir)                                    \
     do {                                                     \
         if (!codegen_mmx_entered) {                         \
@@ -847,16 +885,18 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
         codegen_fpu_entered = 0;                             \
     } while (0)
 #else
+/*The inline check changes nothing the IR caches unless it raises #NM, which
+  leaves the block, so cached registers are written back but left loaded*/
 #define uop_FP_ENTER_NOWAIT(ir)                             \
     do {                                                    \
         if (!codegen_fpu_entered)                           \
-            uop_gen_imm(UOP_FP_ENTER, ir, cpu_state.oldpc); \
+            uop_gen_imm(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc); \
         codegen_mmx_entered = 0;                            \
     } while (0)
 #define uop_FP_ENTER(ir)                                    \
     do {                                                    \
         if (!codegen_fpu_entered) {                         \
-            uop_gen_imm(UOP_FP_ENTER, ir, cpu_state.oldpc); \
+            uop_gen_imm(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc); \
             codegen_fp_pending_check(ir);                   \
         }                                                   \
         codegen_fpu_entered = 1;                            \

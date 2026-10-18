@@ -140,6 +140,8 @@ LOAD_IMMEDIATE_FROM_RAM_32(codeblock_t *block, ir_data_t *ir, int dest_reg, uint
         uop_MOV_REG_PTR(ir, dest_reg, get_ram_ptr(addr));
 }
 
+int codegen_flags_rebuild_known(ir_data_t *ir, int carry_only);
+
 int codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, uint32_t next_pc, uint32_t dest_addr);
 static inline int
 codegen_can_unroll(codeblock_t *block, ir_data_t *ir, uint32_t next_pc, uint32_t dest_addr)

@@ -609,6 +609,7 @@ codegen_block_start_recompile(codeblock_t *block)
     recomp_page = block->phys & ~0xfff;
 
     codegen_flags_changed = 0;
+    codegen_flags_known_reset();
     codegen_fpu_entered   = 0;
     codegen_mmx_entered   = 0;
     codegen_fpu_class_dirty = 0;

@@ -228,6 +228,54 @@ codegen_CALL_FUNC(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*An order barrier leaves the cached registers loaded, and EAX and EDX are
+  not preserved by the callee, so they are saved around the call. Two pushes
+  keep RSP 16-byte aligned; Windows also needs the 32-byte home area below
+  them, so the callee does not overwrite the saved values.*/
+static int
+codegen_CALL_FUNC_ORDERED(codeblock_t *block, uop_t *uop)
+{
+    host_x86_PUSH(block, REG_RAX);
+    host_x86_PUSH(block, REG_RDX);
+#    if _WIN64
+    host_x86_SUB64_REG_IMM(block, REG_RSP, 0x20);
+#    endif
+    host_x86_CALL(block, uop->p);
+#    if _WIN64
+    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x20);
+#    endif
+    host_x86_POP(block, REG_RDX);
+    host_x86_POP(block, REG_RAX);
+
+    return 0;
+}
+
+/*As codegen_CALL_FUNC_ORDERED. The result goes through ESI, which is not
+  allocated, so that EAX and EDX can be put back before dest_reg is set; if
+  dest_reg is one of them, its old contents were written back before the
+  call and are not needed.*/
+static int
+codegen_CALL_FUNC_RESULT_ORDERED(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
+
+    host_x86_PUSH(block, REG_RAX);
+    host_x86_PUSH(block, REG_RDX);
+#    if _WIN64
+    host_x86_SUB64_REG_IMM(block, REG_RSP, 0x20);
+#    endif
+    host_x86_CALL(block, uop->p);
+#    if _WIN64
+    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x20);
+#    endif
+    host_x86_MOV32_REG_REG(block, REG_ESI, REG_EAX);
+    host_x86_POP(block, REG_RDX);
+    host_x86_POP(block, REG_RAX);
+    host_x86_MOV32_REG_REG(block, dest_reg, REG_ESI);
+
+    return 0;
+}
+
 static int
 codegen_CALL_FUNC_RESULT(codeblock_t *block, uop_t *uop)
 {
@@ -3301,6 +3349,12 @@ codegen_XOR_IMM(codeblock_t *block, uop_t *uop)
 
 const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CALL_FUNC & UOP_MASK] = codegen_CALL_FUNC,
+    [UOP_CALL_FUNC_ORDERED &
+        UOP_MASK]
+    = codegen_CALL_FUNC_ORDERED,
+    [UOP_CALL_FUNC_RESULT_ORDERED &
+        UOP_MASK]
+    = codegen_CALL_FUNC_RESULT_ORDERED,
     [UOP_CALL_REP_STRING &
         UOP_MASK]
     = codegen_CALL_REP_STRING,
@@ -3582,6 +3636,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     = codegen_BSR,
 
     [UOP_FP_ENTER &
+        UOP_MASK]
+    = codegen_FP_ENTER,
+    [UOP_FP_ENTER_ORDERED &
         UOP_MASK]
     = codegen_FP_ENTER,
     [UOP_MMX_ENTER &

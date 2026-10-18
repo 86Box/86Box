@@ -58,7 +58,8 @@ ropLEA_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fe
 static void
 mul_one_operand(ir_data_t *ir, int size, int is_signed, int src)
 {
-    uop_CALL_FUNC(ir, jit_flags_rebuild);
+    if (!codegen_flags_rebuild_known(ir, 0))
+        uop_CALL_FUNC(ir, jit_flags_rebuild);
 
     if (size == 32) {
         if (is_signed)
@@ -382,8 +383,15 @@ rebuild_c(ir_data_t *ir)
         }
     }
 
-    if (needs_rebuild) {
+    if (needs_rebuild && !codegen_flags_rebuild_known(ir, 1)) {
+#if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
+        /*flags_rebuild_c() writes only flags, so the cached registers are
+          written back but left loaded, and flags is reloaded after it.*/
+        uop_CALL_FUNC_ORDERED(ir, jit_flags_rebuild_c);
+        uop_MOVZX_REG_PTR_16(ir, IREG_flags, &cpu_state.flags);
+#else
         uop_CALL_FUNC(ir, jit_flags_rebuild_c);
+#endif
     }
 }
 
@@ -697,21 +705,21 @@ ropLxS(LSS, &cpu_state.seg_ss)
 uint32_t
 ropCLC(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uop_CALL_FUNC(ir, jit_flags_rebuild);
+    call_flags_rebuild(ir, jit_flags_rebuild);
     uop_AND_IMM(ir, IREG_flags, IREG_flags, ~C_FLAG);
     return op_pc;
 }
 uint32_t
 ropCMC(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uop_CALL_FUNC(ir, jit_flags_rebuild);
+    call_flags_rebuild(ir, jit_flags_rebuild);
     uop_XOR_IMM(ir, IREG_flags, IREG_flags, C_FLAG);
     return op_pc;
 }
 uint32_t
 ropSTC(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uop_CALL_FUNC(ir, jit_flags_rebuild);
+    call_flags_rebuild(ir, jit_flags_rebuild);
     uop_OR_IMM(ir, IREG_flags, IREG_flags, C_FLAG);
     return op_pc;
 }
@@ -825,7 +833,8 @@ ropBSWAP(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, UNUSED(uint3
 uint32_t
 ropLAHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uop_CALL_FUNC(ir, jit_flags_rebuild);
+    if (!codegen_flags_rebuild_known(ir, 0))
+        uop_CALL_FUNC(ir, jit_flags_rebuild);
     uop_MOVZX(ir, IREG_temp0, IREG_flags);
     uop_MOV(ir, IREG_AH, IREG_temp0_B);
     return op_pc;
@@ -833,7 +842,8 @@ ropLAHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
 uint32_t
 ropSAHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uop_CALL_FUNC(ir, jit_flags_rebuild);
+    if (!codegen_flags_rebuild_known(ir, 0))
+        uop_CALL_FUNC(ir, jit_flags_rebuild);
     uop_MOVZX(ir, IREG_temp0, IREG_AH);
     uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0xd5);
     uop_OR_IMM(ir, IREG_temp0, IREG_temp0, 0x02);
@@ -855,7 +865,8 @@ bs_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, 
     return 0;
 #endif
     codegen_mark_code_present(block, cs + op_pc, 1);
-    uop_CALL_FUNC(ir, jit_flags_rebuild);
+    if (!codegen_flags_rebuild_known(ir, 0))
+        uop_CALL_FUNC(ir, jit_flags_rebuild);
 
     if ((fetchdat & 0xc0) == 0xc0) {
         if (size32)
@@ -944,7 +955,8 @@ bit_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32,
     uint8_t imm        = 0;
 
     codegen_mark_code_present(block, cs + op_pc, 1);
-    uop_CALL_FUNC(ir, jit_flags_rebuild);
+    if (!codegen_flags_rebuild_known(ir, 0))
+        uop_CALL_FUNC(ir, jit_flags_rebuild);
     if (!is_reg) {
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);

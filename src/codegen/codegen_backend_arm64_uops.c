@@ -3334,12 +3334,18 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CALL_FUNC_RESULT &
         UOP_MASK]
     = codegen_CALL_FUNC_RESULT,
+    [UOP_CALL_FUNC_RESULT_ORDERED &
+        UOP_MASK]
+    = codegen_CALL_FUNC_RESULT,
     [UOP_CALL_INSTRUCTION_FUNC &
         UOP_MASK]
     = codegen_CALL_INSTRUCTION_FUNC,
     [UOP_CALL_REP_STRING &
         UOP_MASK]
     = codegen_CALL_INSTRUCTION_FUNC,
+    [UOP_CALL_FUNC_ORDERED &
+        UOP_MASK]
+    = codegen_CALL_FUNC,
 
     [UOP_JMP &
         UOP_MASK]
@@ -3612,6 +3618,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     = codegen_BSR,
 
     [UOP_FP_ENTER &
+        UOP_MASK]
+    = codegen_FP_ENTER,
+    [UOP_FP_ENTER_ORDERED &
         UOP_MASK]
     = codegen_FP_ENTER,
     [UOP_MMX_ENTER &

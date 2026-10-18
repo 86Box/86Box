@@ -380,6 +380,8 @@ extern uint32_t op_old_pc;
 /*Set to 1 if flags have been changed in the block being recompiled, and hence
   flags_op is known and can be relied on */
 extern int codegen_flags_changed;
+/*Forgets the block's inline flags rebuilds (codegen_ops_helpers.c)*/
+extern void codegen_flags_known_reset(void);
 
 extern int codegen_fpu_entered;
 extern int codegen_mmx_entered;
