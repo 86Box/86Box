@@ -77,6 +77,7 @@ void host_arm64_CLZ(codeblock_t *block, int dst_reg, int src_n_reg);
 void host_arm64_CMPX_IMM(codeblock_t *block, int src_n_reg, uint64_t imm_data);
 void host_arm64_CMPX_REG(codeblock_t *block, int src_n_reg, int src_m_reg);
 
+void host_arm64_CCMP_REG_CS(codeblock_t *block, int src_n_reg, int src_m_reg, int nzcv);
 #define host_arm64_CMP_REG(block, src_n_reg, src_m_reg) host_arm64_CMP_REG_LSL(block, src_n_reg, src_m_reg, 0)
 void host_arm64_CMP_REG_LSL(codeblock_t *block, int src_n_reg, int src_m_reg, int shift);
 
@@ -102,6 +103,7 @@ void host_arm64_FADDP_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int sr
 void host_arm64_FCMEQ_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_FCMGE_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_FCMGT_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_FCCMP_D_GT(codeblock_t *block, int src_n_reg, int src_m_reg, int nzcv);
 void host_arm64_FCMP_D(codeblock_t *block, int src_n_reg, int src_m_reg);
 void host_arm64_FDIV_D(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_FDIV_S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);

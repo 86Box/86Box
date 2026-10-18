@@ -454,9 +454,10 @@ static uint8_t opcode_0f_modrm[256] = {
 // clang-format on
 
 /* ES set: an unmasked exception of the legacy FPU is pending, taken before
-   a waiting x87 or an MMX instruction, as the interpreter takes it
+   an MMX instruction, as the interpreter takes it
    (x87_legacy_pending_entry). ES is tested inline; the helper is called
-   only when it is set. */
+   only when it is set. A waiting x87 instruction has the same test in
+   codegen_generate_call, so its entry does not repeat it. */
 void
 codegen_fp_pending_check(ir_data_t *ir)
 {
@@ -529,6 +530,12 @@ codegen_fpu_guard_int_range(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, ui
     int jump_uop;
 
     codegen_accumulate_flush(ir);
+#if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
+    uop_MOV_REG_PTR(ir, IREG_temp1_D, (void *) &bounds[0]);
+    uop_MOV_REG_PTR(ir, IREG_temp2_D, (void *) &bounds[1]);
+    jump_uop = uop_FCMP_JWITHIN_DEST(ir, IREG_ST(0), IREG_temp1_D, IREG_temp2_D);
+#else
+    /*Only the arm64 and x86-64 backends implement UOP_FCMP_JWITHIN_DEST*/
     uop_MOV_REG_PTR(ir, IREG_temp1_D, (void *) &bounds[1]);
     uop_FCOM(ir, IREG_temp1_W, IREG_ST(0), IREG_temp1_D); /* C0 alone: below hi */
     uop_MOV_REG_PTR(ir, IREG_temp2_D, (void *) &bounds[0]);
@@ -538,6 +545,7 @@ codegen_fpu_guard_int_range(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, ui
     uop_MOVZX(ir, IREG_temp2, IREG_temp2_W);
     uop_OR(ir, IREG_temp1, IREG_temp1, IREG_temp2);
     jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp1, 0);
+#endif
     codegen_fpu_handover(ir, fetchdat, op_32, interp_pc, target_seg);
     uop_set_jump_dest(ir, jump_uop);
 }

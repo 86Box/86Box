@@ -236,8 +236,12 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
             return 0;
     }
 
+    /*Not across an instruction the interpreter runs in the loop. One that
+      only a hand-over path runs, which leaves the block straight after it,
+      never returns into the loop*/
     for (int c = start; c < ir->wr_pos; c++) {
-        if ((ir->uops[c].type & UOP_MASK) == (UOP_CALL_INSTRUCTION_FUNC & UOP_MASK))
+        if ((ir->uops[c].type & UOP_MASK) == (UOP_CALL_INSTRUCTION_FUNC & UOP_MASK) &&
+            !((c + 1 < ir->wr_pos) && ((ir->uops[c + 1].type & UOP_MASK) == (UOP_JMP & UOP_MASK))))
             return 0;
     }
 

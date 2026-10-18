@@ -54,6 +54,7 @@
 #    define OPCODE_CBZ                (0xb4 << OPCODE_SHIFT)
 #    define OPCODE_CMN_IMM            (0x31 << OPCODE_SHIFT)
 #    define OPCODE_CMNX_IMM           (0xb1 << OPCODE_SHIFT)
+#    define OPCODE_CCMP_REG           (0x7a400000)
 #    define OPCODE_CMP_IMM            (0x71 << OPCODE_SHIFT)
 #    define OPCODE_CMPX_IMM           (0xf1 << OPCODE_SHIFT)
 #    define OPCODE_SUB_IMM            (0x51 << OPCODE_SHIFT)
@@ -138,6 +139,7 @@
 #    define OPCODE_FCMEQ_V2S          (0x0e20e400)
 #    define OPCODE_FCMGE_V2S          (0x2e20e400)
 #    define OPCODE_FCMGT_V2S          (0x2ea0e400)
+#    define OPCODE_FCCMP_D            (0x1e600400)
 #    define OPCODE_FCMP_D             (0x1e602000)
 #    define OPCODE_FCVT_D_S           (0x1e22c000)
 #    define OPCODE_FCVT_S_D           (0x1e624000)
@@ -849,6 +851,12 @@ host_arm64_CMP_REG_LSL(codeblock_t *block, int src_n_reg, int src_m_reg, int shi
 {
     codegen_addlong(block, OPCODE_CMP_LSL | Rd(0x1f) | Rn(src_n_reg) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
 }
+/*CCMP: the flags of src_n_reg compared with src_m_reg when CS holds, else nzcv*/
+void
+host_arm64_CCMP_REG_CS(codeblock_t *block, int src_n_reg, int src_m_reg, int nzcv)
+{
+    codegen_addlong(block, OPCODE_CCMP_REG | CSEL_COND(COND_CS) | Rn(src_n_reg) | Rm(src_m_reg) | nzcv);
+}
 
 /*CSET dst_reg, cond: CSINC dst_reg, WZR, WZR with the opposite condition*/
 void
@@ -1008,6 +1016,12 @@ void
 host_arm64_FCMP_D(codeblock_t *block, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_FCMP_D | Rn(src_n_reg) | Rm(src_m_reg));
+}
+/*FCCMP: the flags of src_n_reg compared with src_m_reg when GT holds, else nzcv*/
+void
+host_arm64_FCCMP_D_GT(codeblock_t *block, int src_n_reg, int src_m_reg, int nzcv)
+{
+    codegen_addlong(block, OPCODE_FCCMP_D | CSEL_COND(COND_GT) | Rn(src_n_reg) | Rm(src_m_reg) | nzcv);
 }
 
 void
