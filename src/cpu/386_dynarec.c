@@ -250,16 +250,11 @@ int codegen_flat_es;
 /* Compiled blocks hold no debug-register checks. Data and I/O breakpoints can
    fire on any access, so they still disable the recompiler outright; an
    execution breakpoint only blocks the block covering it, and a block spans at
-   most two pages. */
-static __inline int
+   most two pages. Out of line, as it only runs with a breakpoint armed. */
+static __attribute__((noinline)) int
 dr_blocks_cache(void)
 {
-    uint32_t page;
-
-    if (!cpu_dr_armed)
-        return 0;
-
-    page = (cs + cpu_state.pc) >> 12;
+    uint32_t page = (cs + cpu_state.pc) >> 12;
 
     for (uint8_t i = 0; i < 4; i++) {
         /* Neither Ln nor Gn set - slot is disabled. */
@@ -277,7 +272,10 @@ dr_blocks_cache(void)
     return 0;
 }
 
-#define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !dr_blocks_cache())
+/* dbg is a constant in the dispatch loop (exec386_dynarec_common()), so that
+   with the option off the per-block test is not compiled in. */
+#define CACHE_ON_DBG(dbg) (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !((dbg) && cpu_dr_armed && dr_blocks_cache()))
+#define CACHE_ON()        CACHE_ON_DBG(cpu_debug_regs_486)
 
 #ifdef USE_DYNAREC
 int32_t         cycles_main = 0;
@@ -571,11 +569,19 @@ block_ended:
     cpu_end_block_after_ins = 0;
 }
 
+/* The copy with the debug register handling is kept out of line, so that the
+   dispatch loop in exec386_dynarec() is laid out as it would be without it. */
+static __attribute__((noinline)) void
+exec386_dynarec_int_dbg(void)
+{
+    exec386_dynarec_int_common(1);
+}
+
 static __inline void
 exec386_dynarec_int(void)
 {
-    if (cpu_debug_regs_486)
-        exec386_dynarec_int_common(1);
+    if (UNLIKELY(cpu_debug_regs_486))
+        exec386_dynarec_int_dbg();
     else
         exec386_dynarec_int_common(0);
 }
@@ -583,7 +589,8 @@ exec386_dynarec_int(void)
 #if defined(__linux__) && !defined(__clang__)
 static inline void __attribute__((optimize("O2")))
 #else
-static __inline void
+/* Inlined into the dispatch loop, which now comes in two copies. */
+__attribute__((always_inline)) static inline void
 #endif
 exec386_dynarec_dyn(void)
 {
@@ -997,8 +1004,10 @@ exec386_dynarec_dyn(void)
 
 }
 
-void
-exec386_dynarec(int32_t cycs)
+/* As exec386_dynarec_int_common(): dbg is cpu_debug_regs_486, a constant, and
+   the copy without it carries no debug register test per block. */
+__attribute__((always_inline)) static inline void
+exec386_dynarec_common(int32_t cycs, const int dbg)
 {
     int      vector;
     int      tempi;
@@ -1028,7 +1037,7 @@ exec386_dynarec(int32_t cycs)
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
-            if (cpu_force_interpreter || cpu_override_dynarec || cpu_flush_pending || (!CACHE_ON())) /*Interpret block*/
+            if (cpu_force_interpreter || cpu_override_dynarec || cpu_flush_pending || (!CACHE_ON_DBG(dbg))) /*Interpret block*/
             {
                 exec386_dynarec_int();
             } else {
@@ -1137,6 +1146,21 @@ exec386_dynarec(int32_t cycs)
 
         cycles_main -= (cycles_start - cycles);
     }
+}
+
+static __attribute__((noinline)) void
+exec386_dynarec_dbg(int32_t cycs)
+{
+    exec386_dynarec_common(cycs, 1);
+}
+
+void
+exec386_dynarec(int32_t cycs)
+{
+    if (UNLIKELY(cpu_debug_regs_486))
+        exec386_dynarec_dbg(cycs);
+    else
+        exec386_dynarec_common(cycs, 0);
 }
 #endif
 
