@@ -103,6 +103,11 @@
 #include <86box/version.h>
 #include <86box/gdbstub.h>
 #include <86box/automation.h>
+#ifdef USE_AUTOMATION
+#    define AUTOMATION_ACTIVE (automation_path[0] != '\0')
+#else
+#    define AUTOMATION_ACTIVE 0
+#endif
 #include <86box/machine_status.h>
 #include <86box/acpi.h>
 #include <86box/nv/vid_nv_rivatimer.h>
@@ -623,7 +628,11 @@ warning(const char *fmt, ...)
 
     do_pause(2);
 
-    ui_msgbox(MBX_WARNING, temp);
+    /* With an automation client, nobody may be there to dismiss the dialog,
+       and while it's up the machine and the socket are stuck (headless, for
+       good). The message is in the log; carry on. */
+    if (!AUTOMATION_ACTIVE)
+        ui_msgbox(MBX_WARNING, temp);
 
     fflush(stdlog);
     free(temp);
@@ -659,7 +668,11 @@ warning_ex(const char *fmt, va_list ap)
 
     do_pause(2);
 
-    ui_msgbox(MBX_WARNING, temp);
+    /* With an automation client, nobody may be there to dismiss the dialog,
+       and while it's up the machine and the socket are stuck (headless, for
+       good). The message is in the log; carry on. */
+    if (!AUTOMATION_ACTIVE)
+        ui_msgbox(MBX_WARNING, temp);
 
     fflush(stdlog);
     free(temp);

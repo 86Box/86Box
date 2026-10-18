@@ -857,7 +857,10 @@ handle_request(char *line)
                     cdrom[id].insert(cdrom[id].priv);
             }
             ui_sb_update_icon_state(SB_CDROM | id, cdrom[id].image_path[0] ? 0 : 1);
-            respond_ok_time();
+            if (cdrom[id].image_path[0])
+                respond_ok_time();
+            else
+                respond_error("cannot load the image; the log says why");
         } else
             respond_error("usage: cd load <drive> <path> | cd eject <drive>");
     } else if (!strcmp(argv[0], "reset") && (argc == 2) && !strcmp(argv[1], "hard")) {
