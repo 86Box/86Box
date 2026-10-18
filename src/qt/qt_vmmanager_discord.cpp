@@ -293,13 +293,9 @@ VMManagerDiscord::buildActivity(VMManagerSystem *system, int others) const
     }
 
     if (others > 0) {
-        if (status.isEmpty()) {
-            status = tr("%n machine(s) active", "", others + 1);
-        } else {
-            // Keep the count visible even when the rest has to be cut short
-            const auto suffix = tr(" (+%n more)", "", others);
-            status            = fitText(status, kMaxTextLength - suffix.size()) + suffix;
-        }
+        // Keep the count visible even when the rest has to be cut short
+        const auto suffix = tr(" (+%n more)", "", others);
+        details           = (fitText(details, kMaxTextLength - suffix.size()) + suffix).trimmed();
     }
 
     QJsonObject activity;

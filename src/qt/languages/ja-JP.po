@@ -1292,10 +1292,6 @@ msgstr ""
 msgid "Using %1"
 msgstr ""
 
-msgid "%n machine(s) active"
-msgid_plural "%n machines active"
-msgstr[0] ""
-
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
 msgstr[0] ""
