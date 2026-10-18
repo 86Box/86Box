@@ -19,6 +19,9 @@
 #include "qt_vmmanager_model.hpp"
 #include "qt_vmmanager_details.hpp"
 #include "qt_vmmanager_listviewdelegate.hpp"
+#ifdef DISCORD
+#    include "qt_vmmanager_discord.hpp"
+#endif
 
 #include <QPushButton>
 
@@ -98,6 +101,9 @@ private:
     VMManagerSystem  *selected_sysconfig;
     // VMManagerConfig       *config;
     QSortFilterProxyModel *proxy_model;
+#ifdef DISCORD
+    VMManagerDiscord *discord;
+#endif
 #if EMU_BUILD_NUM != 0
     bool updateCheck = false;
 #endif

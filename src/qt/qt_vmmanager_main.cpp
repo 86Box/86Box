@@ -94,6 +94,11 @@ VMManagerMain::VMManagerMain(QWidget *parent)
     // Connect the model signal
     connect(vm_model, &VMManagerModel::systemDataChanged, this, &VMManagerMain::modelDataChange);
 
+#ifdef DISCORD
+    discord = new VMManagerDiscord(this);
+    discord->setModel(vm_model);
+#endif
+
     // Set up the context menu for the list view
     ui->listView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->listView, &QListView::customContextMenuRequested, [this, parent](const QPoint &pos) {
@@ -485,6 +490,9 @@ VMManagerMain::reload()
     connect(vm_model, &VMManagerModel::globalConfigurationChanged, this, []() {
         vmm_main_window->updateSettings();
     });
+#ifdef DISCORD
+    discord->setModel(vm_model);
+#endif
     const QItemSelectionModel *selection_model = ui->listView->selectionModel();
     connect(selection_model, &QItemSelectionModel::currentChanged, this, &VMManagerMain::currentSelectionChanged);
 
@@ -903,6 +911,10 @@ VMManagerMain::onPreferencesUpdated()
     if (oldRegexSearch != regexSearch)
         ui->searchBar->clear();
 
+#ifdef DISCORD
+    discord->loadSettings();
+#endif
+
     if (vm_model)
         vm_model->sendGlobalConfigurationChanged();
 }
@@ -912,6 +924,10 @@ VMManagerMain::onLanguageUpdated()
 {
     vm_model->refreshConfigs();
     modelDataChange();
+#ifdef DISCORD
+    // Retranslate the activity
+    discord->loadSettings();
+#endif
     ui->searchBar->setPlaceholderText(tr("Search"));
     /* Hack to work around details widgets not being re-translatable
        without going through layers of abstraction */
