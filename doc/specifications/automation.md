@@ -103,6 +103,12 @@ $ 86Box --automation tcp:7086 --automation-token-file /tmp/86box.token &
 $ (echo "auth $(cat /tmp/86box.token)"; echo status) | socat - TCP:127.0.0.1:7086
 ```
 
+## When 86Box stops
+
+On a fatal error, 86Box writes the message to its log and closes the
+automation socket before it shows the error dialog, so a client sees its
+connection close rather than waiting for a reply.
+
 ## With the GDB stub
 
 In a build with both `-D AUTOMATION=ON` and `-D GDBSTUB=ON`, a GDB client

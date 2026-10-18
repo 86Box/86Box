@@ -535,6 +535,11 @@ fatal(const char *fmt, ...)
 
     do_pause(2);
 
+    /* A connected automation client would wait forever on a machine that has
+       stopped, behind a dialog it can't answer: close its connection now, so
+       it knows. The message is in the log. */
+    automation_close();
+
     ui_msgbox(MBX_ERROR | MBX_FATAL, temp);
 
     /* Cleanly terminate all of the emulator's components so as
@@ -579,6 +584,11 @@ fatal_ex(const char *fmt, va_list ap)
 #endif
 
     do_pause(2);
+
+    /* A connected automation client would wait forever on a machine that has
+       stopped, behind a dialog it can't answer: close its connection now, so
+       it knows. The message is in the log. */
+    automation_close();
 
     ui_msgbox(MBX_ERROR | MBX_FATAL, temp);
 
