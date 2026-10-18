@@ -194,6 +194,9 @@ VMManagerServerSocket::jsonReceived(const QJsonObject &json)
             qDebug("Global configuration change received from client");
             emit globalConfigurationChanged();
             break;
+        case VMManagerProtocol::ClientMessage::WindowActivated:
+            emit windowActivated();
+            break;
         default:
             qDebug("Unknown client message type received:");
             qDebug() << json;

@@ -875,30 +875,11 @@ else
 fi
 grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=.*Debug.*" build/CMakeCache.txt && cmake_build_type=Debug || cmake_build_type=Release
 
-# Download Discord Game SDK from their CDN if we're in a new build.
-discord_version="3.2.1"
-discord_zip="$cache_dir/discord_game_sdk-$discord_version.zip"
-if [ ! -e "$discord_zip" ]
-then
-	# Download file.
-	echo [-] Downloading Discord Game SDK
-	rm -f "$cache_dir/discord_game_sdk"* # remove old versions
-	wget -qO "$discord_zip" "https://dl-game-sdk.discordapp.net/$discord_version/discord_game_sdk.zip"
-	status=$?
-	if [ $status -ne 0 ]
-	then
-		echo [!] Discord Game SDK download failed with status [$status]
-		rm -f "$discord_zip"
-	fi
-else
-	echo [-] Not downloading Discord Game SDK again
-fi
-
-# Determine Discord Game SDK architecture.
+# Determine architecture name for self-built library build directories.
 case $arch in
-	64)		arch_discord="x86_64";;
-	arm64 | ARM64)	arch_discord="aarch64";;
-	*)		arch_discord="$arch";;
+	64)		arch_build="x86_64";;
+	arm64 | ARM64)	arch_build="aarch64";;
+	*)		arch_build="$arch";;
 esac
 
 # Create temporary directory for archival.
@@ -987,7 +968,7 @@ else
 		git clone --recurse-submodules --no-shallow-submodules --remote-submodules https://github.com/aaru-dps/libaaruformat.git "$prefix" && break
 	done
 fi
-prefix_build="$prefix/build-$arch_discord" # hack
+prefix_build="$prefix/build-$arch_build" # hack
 cmake -G Ninja -D AARU_BUILD_PACKAGE=ON -D "CMAKE_BUILD_TYPE=$cmake_build_type" \
 	-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -B "$prefix_build" -S "$prefix" || exit 99
 cmake --build "$prefix_build" -j $build_threads || exit 99
@@ -1021,10 +1002,6 @@ then
 		done
 	fi
 
-	# Archive Discord Game SDK DLL.
-	"$sevenzip" e -y -o"archive_tmp" "$discord_zip" "lib/$arch_discord/discord_game_sdk.dll"
-	[ ! -e "archive_tmp/discord_game_sdk.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
-
 	# Archive executable, while also stripping it if requested.
 	if [ $strip -ne 0 ]
 	then
@@ -1044,10 +1021,6 @@ then
 
 	if [ $status -eq 0 ]
 	then
-		# Archive Discord Game SDK library.
-		unzip -j "$discord_zip" "lib/$arch_discord/discord_game_sdk.dylib" -d "archive_tmp/"*".app/Contents/Frameworks"
-		[ ! -e "archive_tmp/"*".app/Contents/Frameworks/discord_game_sdk.dylib" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
-
 		# Archive self-built libraries.
 		mv "archive_tmp/mdsx.dylib" "archive_tmp/libaaruformat.dylib" "archive_tmp/librashader.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
 
@@ -1152,10 +1125,6 @@ else
 	# host's GLVND libGL would then pick it up instead of the real libGLX.
 	echo | "$cc_binary" -shared -nostdlib -o "archive_tmp/usr/lib/libglshim.so" -Wl,-soname,libglshim.so \
 		-Wl,--auxiliary=libGLX.so.0 -Wl,--auxiliary=libOpenGL.so.0 -Wl,--auxiliary=libGL.so.1 -x c -
-
-	# Archive Discord Game SDK library.
-	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"
-	[ ! -e "archive_tmp/usr/lib/discord_game_sdk.so" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
 	# Archive self-built libraries.
 	mv "archive_tmp/mdsx.so" "archive_tmp/libaaruformat.so" "archive_tmp/librashader.so" "archive_tmp/usr/lib/"

@@ -156,6 +156,10 @@ load_global_emulator(void)
 
     vmm_disabled = ini_section_get_int(cat, "vmm_disabled", 0);
 
+    discord_presence = ini_section_get_int(cat, "discord_presence", 0);
+    if ((discord_presence < 0) || (discord_presence > 3))
+        discord_presence = 0;
+
     chd_precache_level = ini_section_get_int(cat, "chd_precache_level", 0);
 
     p = ini_section_get_string(cat, "vmm_path", NULL);
@@ -368,7 +372,8 @@ load_general(void)
     hide_tool_bar   = ini_section_get_int(cat, "hide_tool_bar", 0);
     sound_muted     = ini_section_get_int(cat, "sound_muted", 0);
 
-    enable_discord = !!ini_section_get_int(cat, "enable_discord", 0);
+    /* Discord integration has moved to the VM manager. */
+    ini_section_delete_var(cat, "enable_discord");
 
     video_vk_device = ini_section_get_int(cat, "video_vk_device", 0);
     video_framerate = ini_section_get_int(cat, "video_gl_framerate", -1);
@@ -3109,6 +3114,11 @@ save_global_emulator(void)
     else
         ini_section_delete_var(cat, "vmm_disabled");
 
+    if (discord_presence)
+        ini_section_set_int(cat, "discord_presence", discord_presence);
+    else
+        ini_section_delete_var(cat, "discord_presence");
+
     if (vmm_path_cfg[0] != 0) {
         /* Save path as relative to the EXE path in portable mode */
         if (portable_mode && path_abs(vmm_path_cfg) && !strnicmp(vmm_path_cfg, exe_path, strlen(exe_path))) {
@@ -3312,11 +3322,6 @@ save_general(void)
         ini_section_set_int(cat, "hide_tool_bar", hide_tool_bar);
     else
         ini_section_delete_var(cat, "hide_tool_bar");
-
-    if (enable_discord)
-        ini_section_set_int(cat, "enable_discord", enable_discord);
-    else
-        ini_section_delete_var(cat, "enable_discord");
 
     if (video_vk_device != 0)
         ini_section_set_int(cat, "video_vk_device", video_vk_device);
