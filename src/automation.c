@@ -280,24 +280,50 @@ typedef struct {
     uint32_t base;
 } text_info_t;
 
+/* Read guest memory for a client without charging the emulated CPU for it.
+   Device handlers bill the CPU for each access: VGA charges its wait states
+   (svga_read_common subtracts mon_video_timing_read_b from cycles). wait text
+   reads the whole text screen after every quantum, 2000 reads per emulated
+   millisecond, which on a 33 MHz 386 used up the cycles of the next quantum,
+   so the guest never ran while the wait went on. */
+static uint8_t
+peek_phys(uint32_t addr)
+{
+    int     saved = cycles;
+    uint8_t val   = mem_readb_phys(addr);
+
+    cycles = saved;
+    return val;
+}
+
+/* The same for a client's writes (memw). */
+static void
+poke_phys(uint32_t addr, uint8_t val)
+{
+    int saved = cycles;
+
+    mem_writeb_phys(addr, val);
+    cycles = saved;
+}
+
 static int
 text_info(text_info_t *ti)
 {
     int page;
 
-    ti->mode = mem_readb_phys(0x449) & 0x7f;
+    ti->mode = peek_phys(0x449) & 0x7f;
     if ((ti->mode > 3) && (ti->mode != 7))
         return 0;
-    ti->cols = mem_readb_phys(0x44a) | (mem_readb_phys(0x44b) << 8);
-    ti->rows = mem_readb_phys(0x484) + 1;
+    ti->cols = peek_phys(0x44a) | (peek_phys(0x44b) << 8);
+    ti->rows = peek_phys(0x484) + 1;
     if ((ti->cols < 40) || (ti->cols > 132))
         ti->cols = 80;
     if ((ti->rows < 25) || (ti->rows > 60))
         ti->rows = 25;
-    page        = mem_readb_phys(0x462) & 7;
-    ti->cur_col = mem_readb_phys(0x450 + (page * 2));
-    ti->cur_row = mem_readb_phys(0x451 + (page * 2));
-    ti->base    = ((ti->mode == 7) ? 0xb0000 : 0xb8000) + (mem_readb_phys(0x44e) | (mem_readb_phys(0x44f) << 8));
+    page        = peek_phys(0x462) & 7;
+    ti->cur_col = peek_phys(0x450 + (page * 2));
+    ti->cur_row = peek_phys(0x451 + (page * 2));
+    ti->base    = ((ti->mode == 7) ? 0xb0000 : 0xb8000) + (peek_phys(0x44e) | (peek_phys(0x44f) << 8));
     return 1;
 }
 
@@ -313,7 +339,7 @@ text_contains(const char *needle)
     /* Matches within a single row only. */
     for (int r = 0; r < ti.rows; r++) {
         for (int c = 0; c < ti.cols; c++)
-            line[c] = mem_readb_phys(ti.base + (((r * ti.cols) + c) * 2));
+            line[c] = peek_phys(ti.base + (((r * ti.cols) + c) * 2));
         line[ti.cols] = '\0';
         for (size_t c = 0; (c + nlen) <= (size_t) ti.cols; c++) {
             if (!memcmp(line + c, needle, nlen))
@@ -340,7 +366,7 @@ cmd_text(void)
               ti.mode, ti.cols, ti.rows, ti.cur_row, ti.cur_col);
     for (int r = 0; r < ti.rows; r++) {
         for (int c = 0; c < ti.cols; c++)
-            chars[c] = mem_readb_phys(ti.base + (((r * ti.cols) + c) * 2));
+            chars[c] = peek_phys(ti.base + (((r * ti.cols) + c) * 2));
         sb_printf(&resp, r ? ",\"" : "\"");
         sb_hex(&resp, chars, ti.cols);
         sb_printf(&resp, "\"");
@@ -348,7 +374,7 @@ cmd_text(void)
     sb_printf(&resp, "],\"attrs\":[");
     for (int r = 0; r < ti.rows; r++) {
         for (int c = 0; c < ti.cols; c++)
-            attrs[c] = mem_readb_phys(ti.base + (((r * ti.cols) + c) * 2) + 1);
+            attrs[c] = peek_phys(ti.base + (((r * ti.cols) + c) * 2) + 1);
         sb_printf(&resp, r ? ",\"" : "\"");
         sb_hex(&resp, attrs, ti.cols);
         sb_printf(&resp, "\"");
@@ -624,7 +650,7 @@ wait_satisfied(void)
 
     if (cmd == CMD_WAIT_MEM) {
         for (int i = 0; i < wait_len; i++) {
-            if (mem_readb_phys(wait_addr + i) != wait_bytes[i])
+            if (peek_phys(wait_addr + i) != wait_bytes[i])
                 return 0;
         }
         return 1;
@@ -666,7 +692,7 @@ handle_request(char *line)
     }
 
     if (!strcmp(argv[0], "status")) {
-        int mode = mem_readb_phys(0x449);
+        int mode = peek_phys(0x449);
         resp.len = 0;
         sb_printf(&resp, "{\"ok\":true,\"protocol\":%d,\"version\":", AUTOMATION_PROTOCOL);
         sb_json_string(&resp, EMU_VERSION_FULL);
@@ -801,7 +827,7 @@ handle_request(char *line)
         } else {
             buf = malloc(len);
             for (int i = 0; i < len; i++)
-                buf[i] = mem_readb_phys(addr + i);
+                buf[i] = peek_phys(addr + i);
             resp.len = 0;
             sb_printf(&resp, "{\"ok\":true,\"addr\":%u,\"data\":\"", addr);
             sb_hex(&resp, buf, len);
@@ -816,7 +842,7 @@ handle_request(char *line)
             respond_error("bad hex bytes");
         } else {
             for (int i = 0; i < len; i++)
-                mem_writeb_phys(addr + i, buf[i]);
+                poke_phys(addr + i, buf[i]);
             respond_ok_time();
         }
         free(buf);
