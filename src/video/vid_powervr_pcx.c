@@ -214,6 +214,16 @@ typedef struct pcx_t {
     thread_t      *render_thread;
     event_t       *render_go;
     event_t       *render_finished;
+    /* Helpers draw every n-th tile alongside the render thread. */
+#define PCX_MAX_HELPERS 15
+    int            n_helpers;
+    struct pcx_helper_t {
+        struct pcx_t *pcx;
+        int           index;
+        thread_t     *thread;
+        event_t      *go, *done;
+    } helper[PCX_MAX_HELPERS];
+    pcxr_job_t    *rjob;
     volatile int   render_quit;
     int            render_pending;
     int            render_discard;
@@ -235,6 +245,7 @@ typedef struct pcx_t {
     int      log_level;
     int      debug_tile;
     int      dump_limit;
+    int      dump_from;
     int      dump_object_kb;
 
     /* Statistics. */
@@ -432,6 +443,22 @@ pcx_dump_frame(pcx_t *pcx)
 }
 
 static void
+pcx_render_helper(void *priv)
+{
+    struct pcx_helper_t *h   = (struct pcx_helper_t *) priv;
+    pcx_t               *pcx = h->pcx;
+
+    for (;;) {
+        thread_wait_event(h->go, -1);
+        thread_reset_event(h->go);
+        if (pcx->render_quit)
+            break;
+        pcxr_render_tiles(pcx->rjob, pcx->rgb, h->index, pcx->n_helpers + 1);
+        thread_set_event(h->done);
+    }
+}
+
+static void
 pcx_render_thread(void *priv)
 {
     pcx_t *pcx = (pcx_t *) priv;
@@ -439,9 +466,20 @@ pcx_render_thread(void *priv)
     for (;;) {
         thread_wait_event(pcx->render_go, -1);
         thread_reset_event(pcx->render_go);
-        if (pcx->render_quit)
+        if (pcx->render_quit) {
+            for (int i = 0; i < pcx->n_helpers; i++)
+                thread_set_event(pcx->helper[i].go);
             break;
-        pcxr_render(&pcx->job, pcx->rgb, &pcx->job_res);
+        }
+        if (pcxr_prepare(pcx->rjob, &pcx->job, &pcx->job_res) > 0) {
+            for (int i = 0; i < pcx->n_helpers; i++)
+                thread_set_event(pcx->helper[i].go);
+            pcxr_render_tiles(pcx->rjob, pcx->rgb, 0, pcx->n_helpers + 1);
+            for (int i = 0; i < pcx->n_helpers; i++) {
+                thread_wait_event(pcx->helper[i].done, -1);
+                thread_reset_event(pcx->helper[i].done);
+            }
+        }
         thread_set_event(pcx->render_finished);
     }
 }
@@ -469,8 +507,16 @@ pcx_render_frame(pcx_t *pcx)
     pcx_render_wait(pcx);
 
     /* The ISP parameter store, through the TLB, in virtual order. */
-    for (uint32_t i = 0; i < PCX_TLB_ENTRIES; i++)
-        dma_bm_read(pcx_tlb_addr(pcx, i), (uint8_t *) pcx->isp_buf + i * page_bytes, page_bytes, 4);
+    for (uint32_t i = 0; i < PCX_TLB_ENTRIES; i++) {
+        uint32_t pa  = pcx_tlb_addr(pcx, i);
+        uint8_t *dst = (uint8_t *) pcx->isp_buf + i * page_bytes;
+        /* Pages in system RAM are copied directly (as the Rage 128's PM4
+           engine does); anything else goes through the bus. */
+        if ((uint64_t) pa + page_bytes <= ((uint64_t) mem_size << 10))
+            memcpy(dst, &ram[pa], page_bytes);
+        else
+            dma_bm_read(pa, dst, page_bytes, 4);
+    }
 
     memcpy(pcx->job_fog, &pcx->regs[PCX_FOG_TABLE], sizeof(pcx->job_fog));
     memset(&pcx->job, 0, sizeof(pcx->job));
@@ -574,7 +620,7 @@ pcx_start_render(pcx_t *pcx)
             pcx->tlb_hiwater, pcx->regs[PCX_FOGAMOUNT], pcx->regs[PCX_FOGCOL], pcx->regs[PCX_CAMERA],
             pcx->regs[PCX_BILINEAR]);
 
-    if (pcx->dumps < (uint32_t) pcx->dump_limit)
+    if ((pcx->frames >= (uint32_t) pcx->dump_from) && (pcx->dumps < (uint32_t) pcx->dump_limit))
         pcx_dump_frame(pcx);
 
     pcx_render_frame(pcx);
@@ -999,6 +1045,7 @@ pcx_init(const device_t *info)
     pcx->log_level      = device_get_config_int("log_level");
     pcx->debug_tile     = device_get_config_int("debug_tile");
     pcx->dump_limit     = device_get_config_int("dump_frames");
+    pcx->dump_from      = device_get_config_int("dump_from");
     pcx->dump_object_kb = 256;
     pcx->pci_revision   = device_get_config_int("pci_revision");
     pcx->subsys_vendor  = device_get_config_hex16("subsys_vendor");
@@ -1010,6 +1057,19 @@ pcx_init(const device_t *info)
         pcx->rgb             = calloc(PCXR_MAX_W * PCXR_MAX_H, sizeof(uint32_t));
         pcx->render_go       = thread_create_event();
         pcx->render_finished = thread_create_event();
+        pcx->rjob            = pcxr_job_create();
+        pcx->n_helpers       = device_get_config_int("render_threads") - 1;
+        if (pcx->n_helpers < 0)
+            pcx->n_helpers = 0;
+        if (pcx->n_helpers > PCX_MAX_HELPERS)
+            pcx->n_helpers = PCX_MAX_HELPERS;
+        for (int i = 0; i < pcx->n_helpers; i++) {
+            pcx->helper[i].pcx    = pcx;
+            pcx->helper[i].index  = i + 1;
+            pcx->helper[i].go     = thread_create_event();
+            pcx->helper[i].done   = thread_create_event();
+            pcx->helper[i].thread = thread_create(pcx_render_helper, &pcx->helper[i]);
+        }
         pcx->render_thread   = thread_create(pcx_render_thread, pcx);
     }
     pcx_reg_defaults(pcx);
@@ -1047,8 +1107,14 @@ pcx_close(void *priv)
         pcx->render_quit = 1;
         thread_set_event(pcx->render_go);
         thread_wait(pcx->render_thread);
+        for (int i = 0; i < pcx->n_helpers; i++) {
+            thread_wait(pcx->helper[i].thread);
+            thread_destroy_event(pcx->helper[i].go);
+            thread_destroy_event(pcx->helper[i].done);
+        }
         thread_destroy_event(pcx->render_go);
         thread_destroy_event(pcx->render_finished);
+        pcxr_job_destroy(pcx->rjob);
     }
     free(pcx->isp_buf);
     free(pcx->rgb);
@@ -1138,6 +1204,17 @@ static const device_config_t pcx_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { .min = 1, .max = PCX_MAX_HELPERS + 1, .step = 1 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "render_delay",
         .description    = "Render time (microseconds)",
         .type           = CONFIG_SPINNER,
@@ -1177,12 +1254,23 @@ static const device_config_t pcx_config[] = {
     },
     {
         .name           = "dump_frames",
-        .description    = "Dump first N frames to powervr_dumps",
+        .description    = "Dump N frames to powervr_dumps",
         .type           = CONFIG_SPINNER,
         .default_string = NULL,
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { .min = 0, .max = 999, .step = 1 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dump_from",
+        .description    = "Start dumping at frame",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { .min = 1, .max = 30000, .step = 100 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },

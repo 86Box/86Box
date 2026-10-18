@@ -51,6 +51,15 @@ typedef struct pcxr_result_t {
     int      error; /* non-zero if the tile list was malformed and rendering stopped */
 } pcxr_result_t;
 
+/* Multi-threaded use: pcxr_prepare() once (in order), then
+   pcxr_render_tiles(job, rgb, i, n) from n threads with i = 0..n-1. The
+   frame and its memory must stay unchanged until all have returned. */
+typedef struct pcxr_job pcxr_job_t;
+pcxr_job_t *pcxr_job_create(void);
+void        pcxr_job_destroy(pcxr_job_t *job);
+int         pcxr_prepare(pcxr_job_t *job, const pcxr_frame_t *f, pcxr_result_t *res);
+uint32_t    pcxr_render_tiles(pcxr_job_t *job, uint32_t *rgb, uint32_t first, uint32_t step);
+
 /* Render one frame into rgb (PCXR_MAX_W x PCXR_MAX_H, 0x00RRGGBB). Pixels
    outside the tiles are left untouched. */
 void pcxr_render(const pcxr_frame_t *f, uint32_t *rgb, pcxr_result_t *res);

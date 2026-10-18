@@ -824,11 +824,23 @@ typedef struct {
     int      very_last, last_in_region;
 } object_t;
 
+/* One tile: its place, its objects, and the instruction-decoder state it
+   starts with (that state runs on from tile to tile, so it is worked out
+   in order first; the tiles can then be drawn in any order). */
 typedef struct {
-    plane_t  *planes;
-    object_t *objects;
-    uint32_t  n_planes, n_objects, cap_planes, cap_objects;
-} tile_lists_t;
+    int      xpos, ypos, xsize, ysize;
+    uint32_t first_object, n_objects;
+    int      prev_intern_out, sec_obj, first_obj;
+} tile_t;
+
+struct pcxr_job {
+    const pcxr_frame_t *f;
+    plane_t            *planes;
+    object_t           *objects;
+    tile_t             *tiles;
+    uint32_t            n_planes, n_objects, n_tiles;
+    uint32_t            cap_planes, cap_objects, cap_tiles;
+};
 
 /* The 32 SABRE cells of one span, as arrays. */
 typedef struct {
@@ -983,40 +995,55 @@ decode_plane(const ctx_t *c, uint32_t pa, plane_t *pl)
     pl->c = to_int32((double) (2147483648.0f * fc.f * max_val));
 }
 
-void
-pcxr_render(const pcxr_frame_t *f, uint32_t *rgb, pcxr_result_t *res)
+pcxr_job_t *
+pcxr_job_create(void)
 {
-    static tile_lists_t tl; /* reused between frames */
-    ctx_t       c;
-    cells_t     cells;
-    int32_t     depth[NUM_CELLS];
-    uint32_t    start, cur_word = 0, obj_data;
-    int         done_all = 0;
-    int         sec_obj = 0, first_obj = 0;
-    uint32_t    region_count = 0;
+    return calloc(1, sizeof(pcxr_job_t));
+}
+
+void
+pcxr_job_destroy(pcxr_job_t *job)
+{
+    if (!job)
+        return;
+    free(job->planes);
+    free(job->objects);
+    free(job->tiles);
+    free(job);
+}
+
+/* Walk the tile list in order, decoding every tile's planes and noting the
+   decoder state each tile starts with. Cheap: no pixel work. */
+int
+pcxr_prepare(pcxr_job_t *job, const pcxr_frame_t *f, pcxr_result_t *res)
+{
+    ctx_t    c;
+    uint32_t start, cur_word = 0, obj_data;
+    int      done_all = 0;
+    int      sec_obj = 0, first_obj = 0;
+    uint32_t region_count = 0;
 
     memset(res, 0, sizeof(*res));
     res->min_x = res->min_y = PCXR_MAX_W;
     res->max_x = res->max_y = -1;
     memset(&c, 0, sizeof(c));
-    c.f     = f;
-    c.rgb   = rgb;
-    c.res   = res;
-    c.fog_r = (f->fog_colour >> 16) & 0xff;
-    c.fog_g = (f->fog_colour >> 8) & 0xff;
-    c.fog_b = f->fog_colour & 0xff;
+    c.f            = f;
+    job->f         = f;
+    job->n_planes  = 0;
+    job->n_objects = 0;
+    job->n_tiles   = 0;
 
     start = (f->object_offset & ~3u) >> 2;
 
     while (!done_all) {
         uint32_t xy, safety = 0;
-        int      xsize, ysize, xpos, ypos;
         uint32_t local_start, local_word, obj_off = 1;
         int      last_in_region = 0;
+        tile_t  *t;
 
         if (++region_count > 65536) {
             res->error = 1;
-            return;
+            return -1;
         }
 
         obj_data = strip_trans_bit(isp_word(&c, start + cur_word));
@@ -1028,34 +1055,41 @@ pcxr_render(const pcxr_frame_t *f, uint32_t *rgb, pcxr_result_t *res)
         }
         if (safety == 10) {
             res->error = 2;
-            return;
+            return -1;
         }
 
         xy = isp_word(&c, start + cur_word);
         if (!(xy & REG_COMPULSORY_BITS)) {
             res->error = 3;
-            return;
+            return -1;
         }
-        xsize = (int) ((xy & 0x1f) + 1) * NUM_CELLS;
-        ysize = (int) (((xy >> 5) & 0x3ff) + 1);
-        xpos  = (int) ((xy >> 15) & 0x1f) * NUM_CELLS;
-        ypos  = (int) ((xy >> 20) & 0x3ff);
+        if (grow((void **) &job->tiles, &job->cap_tiles, job->n_tiles + 1, sizeof(tile_t))) {
+            res->error = 5;
+            return -1;
+        }
+        t                  = &job->tiles[job->n_tiles++];
+        t->xsize           = (int) ((xy & 0x1f) + 1) * NUM_CELLS;
+        t->ysize           = (int) (((xy >> 5) & 0x3ff) + 1);
+        t->xpos            = (int) ((xy >> 15) & 0x1f) * NUM_CELLS;
+        t->ypos            = (int) ((xy >> 20) & 0x3ff);
+        t->first_object    = job->n_objects;
+        t->prev_intern_out = c.prev_intern_out;
+        t->sec_obj         = sec_obj;
+        t->first_obj       = first_obj;
         res->tiles++;
-        if (xpos < res->min_x)
-            res->min_x = xpos;
-        if (ypos < res->min_y)
-            res->min_y = ypos;
-        if (xpos + xsize - 1 > res->max_x)
-            res->max_x = xpos + xsize - 1;
-        if (ypos + ysize - 1 > res->max_y)
-            res->max_y = ypos + ysize - 1;
+        if (t->xpos < res->min_x)
+            res->min_x = t->xpos;
+        if (t->ypos < res->min_y)
+            res->min_y = t->ypos;
+        if (t->xpos + t->xsize - 1 > res->max_x)
+            res->max_x = t->xpos + t->xsize - 1;
+        if (t->ypos + t->ysize - 1 > res->max_y)
+            res->max_y = t->ypos + t->ysize - 1;
 
-        /* Walk this tile's objects once; every span of the tile uses the
-           same list. */
-        tl.n_planes = tl.n_objects = 0;
-        local_start                = start;
-        local_word                 = cur_word;
-        safety                     = 0;
+        /* This tile's objects. */
+        local_start = start;
+        local_word  = cur_word;
+        safety      = 0;
         while (!last_in_region) {
             object_t *ob;
             uint32_t  plane_off;
@@ -1070,22 +1104,22 @@ pcxr_render(const pcxr_frame_t *f, uint32_t *rgb, pcxr_result_t *res)
             }
             if (safety == 10) {
                 res->error = 2;
-                return;
+                return -1;
             }
-            if (grow((void **) &tl.objects, &tl.cap_objects, tl.n_objects + 1, sizeof(object_t))) {
+            if (grow((void **) &job->objects, &job->cap_objects, job->n_objects + 1, sizeof(object_t))) {
                 res->error = 5;
-                return;
+                return -1;
             }
-            ob        = &tl.objects[tl.n_objects++];
-            ob->first = tl.n_planes;
+            ob        = &job->objects[job->n_objects++];
+            ob->first = job->n_planes;
             ob->count = (obj_data >> 19) & 0x3ff;
             plane_off = obj_data & 0x0007ffff;
-            if (grow((void **) &tl.planes, &tl.cap_planes, tl.n_planes + ob->count, sizeof(plane_t))) {
+            if (grow((void **) &job->planes, &job->cap_planes, job->n_planes + ob->count, sizeof(plane_t))) {
                 res->error = 5;
-                return;
+                return -1;
             }
             for (uint32_t pl = 0; pl < ob->count; pl++)
-                decode_plane(&c, plane_off + pl * WORDS_PER_PLANE, &tl.planes[tl.n_planes++]);
+                decode_plane(&c, plane_off + pl * WORDS_PER_PLANE, &job->planes[job->n_planes++]);
 
             ob->very_last = (obj_data & OBJ_VERY_LAST_PTR) != 0;
             if (ob->very_last)
@@ -1100,32 +1134,96 @@ pcxr_render(const pcxr_frame_t *f, uint32_t *rgb, pcxr_result_t *res)
                     }
                     if (s2 >= 10) {
                         res->error = 2;
-                        return;
+                        return -1;
                     }
                 }
                 last_in_region = (next & REG_COMPULSORY_BITS) != 0;
             }
             ob->last_in_region = last_in_region;
+            if (ob->very_last)
+                done_all = 1;
             obj_off++;
             if (obj_off > 0x100000) {
                 res->error = 4;
-                return;
+                return -1;
+            }
+        }
+        t->n_objects = job->n_objects - t->first_object;
+
+        /* Run the instruction decoder over every span of the tile, without
+           pixels, to know the state the next tile starts with. */
+        for (int span = 0; span < t->ysize * (t->xsize / NUM_CELLS); span++) {
+            int no_object_yet = 1, instr = 0;
+            for (uint32_t o = t->first_object; o < job->n_objects; o++) {
+                const object_t *ob          = &job->objects[o];
+                int             translucent = 0;
+                for (uint32_t k = 0; k < ob->count; k++) {
+                    instr = job->planes[ob->first + k].instr;
+                    if (instr == forw_visib_fp || instr == forw_invis_fp || instr == test_shad_forw_fp) {
+                        if (no_object_yet) {
+                            sec_obj       = 0;
+                            first_obj     = 1;
+                            no_object_yet = 0;
+                        } else if (first_obj && !sec_obj) {
+                            first_obj = 0;
+                            sec_obj   = 1;
+                        } else
+                            sec_obj = 0;
+                    }
+                    if (!translucent)
+                        (void) expand_instruction(&c, instr, 0, sec_obj, 0);
+                    if (instr == begin_trans)
+                        translucent = 1;
+                }
             }
         }
 
-        for (int yline = ypos; yline < ypos + ysize; yline++) {
-            for (int xspan = xpos; xspan < xpos + xsize; xspan += NUM_CELLS) {
+        cur_word = local_word + obj_off;
+        start    = local_start;
+    }
+    return (int) job->n_tiles;
+}
+
+/* Draw tiles first, first + step, first + 2 * step, ... Tiles cover
+   separate pixels, so several threads can do this at once. */
+uint32_t
+pcxr_render_tiles(pcxr_job_t *job, uint32_t *rgb, uint32_t first, uint32_t step)
+{
+    ctx_t         c;
+    cells_t       cells;
+    int32_t       depth[NUM_CELLS];
+    pcxr_result_t res;
+    const pcxr_frame_t *f = job->f;
+
+    memset(&c, 0, sizeof(c));
+    memset(&res, 0, sizeof(res));
+    c.f     = f;
+    c.rgb   = rgb;
+    c.res   = &res;
+    c.fog_r = (f->fog_colour >> 16) & 0xff;
+    c.fog_g = (f->fog_colour >> 8) & 0xff;
+    c.fog_b = f->fog_colour & 0xff;
+
+    for (uint32_t ti = first; ti < job->n_tiles; ti += step) {
+        const tile_t *t        = &job->tiles[ti];
+        int           sec_obj   = t->sec_obj;
+        int           first_obj = t->first_obj;
+
+        c.prev_intern_out = t->prev_intern_out;
+
+        for (int yline = t->ypos; yline < t->ypos + t->ysize; yline++) {
+            for (int xspan = t->xpos; xspan < t->xpos + t->xsize; xspan += NUM_CELLS) {
                 int no_object_yet = 1;
                 int instr         = 0;
 
                 memset(&cells, 0, sizeof(cells));
 
-                for (uint32_t o = 0; o < tl.n_objects; o++) {
-                    const object_t *ob          = &tl.objects[o];
+                for (uint32_t o = t->first_object; o < t->first_object + t->n_objects; o++) {
+                    const object_t *ob          = &job->objects[o];
                     int             translucent = 0;
 
                     for (uint32_t k = 0; k < ob->count; k++) {
-                        const plane_t *pl = &tl.planes[ob->first + k];
+                        const plane_t *pl = &job->planes[ob->first + k];
 
                         instr = pl->instr;
                         if (instr == forw_visib_fp || instr == forw_invis_fp || instr == test_shad_forw_fp) {
@@ -1158,8 +1256,6 @@ pcxr_render(const pcxr_frame_t *f, uint32_t *rgb, pcxr_result_t *res)
                     if (translucent)
                         shade_span(&c, xspan, yline, &cells);
 
-                    if (ob->very_last)
-                        done_all = 1;
                     if (ob->last_in_region) {
                         cell_control wi = expand_instruction(&c, instr, 0, 0, 1);
                         memset(depth, 0, sizeof(depth));
@@ -1169,9 +1265,17 @@ pcxr_render(const pcxr_frame_t *f, uint32_t *rgb, pcxr_result_t *res)
                 }
             }
         }
-        cur_word = local_word + obj_off;
-        start    = local_start;
     }
+    return res.pixels_shaded;
+}
+
+void
+pcxr_render(const pcxr_frame_t *f, uint32_t *rgb, pcxr_result_t *res)
+{
+    static pcxr_job_t job; /* single-threaded convenience; reused */
+
+    if (pcxr_prepare(&job, f, res) > 0)
+        res->pixels_shaded = pcxr_render_tiles(&job, rgb, 0, 1);
 }
 
 /* ---- output ----------------------------------------------------------- */
