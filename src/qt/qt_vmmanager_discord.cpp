@@ -105,8 +105,9 @@ VMManagerDiscord::setModel(VMManagerModel *newModel)
 void
 VMManagerDiscord::loadSettings()
 {
-    enabled = discord_presence;
-    privacy = static_cast<Privacy>(discord_privacy);
+    // 0 is off, the rest map to the privacy levels
+    enabled = discord_presence != 0;
+    privacy = static_cast<Privacy>(qMax(discord_presence - 1, 0));
 
     if (enabled)
         client.start();

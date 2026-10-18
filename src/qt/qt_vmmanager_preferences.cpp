@@ -84,8 +84,8 @@ VMManagerPreferences::
     ui->deleteToTrashCheckBox->setVisible(false);
 #endif
 #ifdef DISCORD
-    ui->discordCheckBox->setChecked(discord_presence);
-    ui->comboBoxDiscordPrivacy->setCurrentIndex(discord_privacy);
+    ui->discordCheckBox->setChecked(discord_presence != 0);
+    ui->comboBoxDiscordPrivacy->setCurrentIndex(qMax(discord_presence - 1, 0));
     ui->comboBoxDiscordPrivacy->setEnabled(ui->discordCheckBox->isChecked());
     ui->labelDiscordPrivacy->setEnabled(ui->discordCheckBox->isChecked());
     connect(ui->discordCheckBox, &QCheckBox::toggled, ui->comboBoxDiscordPrivacy, &QWidget::setEnabled);
@@ -142,8 +142,7 @@ VMManagerPreferences::accept()
     lang_id      = ui->comboBoxLanguage->currentData().toInt();
     color_scheme = (ui->radioButtonSystem->isChecked()) ? 0 : (ui->radioButtonLight->isChecked() ? 1 : 2);
 #ifdef DISCORD
-    discord_presence = ui->discordCheckBox->isChecked();
-    discord_privacy  = ui->comboBoxDiscordPrivacy->currentIndex();
+    discord_presence = ui->discordCheckBox->isChecked() ? (ui->comboBoxDiscordPrivacy->currentIndex() + 1) : 0;
 #endif
     config_save_global();
 

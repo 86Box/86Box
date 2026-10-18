@@ -220,8 +220,7 @@ int      jumpered_internal_ecp_dma              = 0;              /* (C) Jumpere
 int      inhibit_multimedia_keys;                                 /* (G) Inhibit multimedia keys on Windows. */
 int      force_10ms;                                              /* (C) Force 10ms CPU frame intervals. */
 int      vmm_disabled                           = 0;              /* (G) disable built-in manager */
-int      discord_presence                       = 0;              /* (G) show running VMs in Discord status */
-int      discord_privacy                        = 0;              /* (G) details shown in Discord status */
+int      discord_presence                       = 0;              /* (G) Discord status: off, name and hardware, hardware only, no details */
 char     vmm_path_cfg[1024]                     = { '\0' };       /* (G) VMs path (unless -E is used)*/
 
 int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
