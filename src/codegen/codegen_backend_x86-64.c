@@ -208,11 +208,129 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
     host_x86_RET(block);
 }
 
+#    if !defined(USE_GDBSTUB) && !defined(USE_DEBUG_REGS_486)
+static void
+jump_long_here(uint32_t *jump_p)
+{
+    *jump_p = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) jump_p + 4);
+}
+
+/*An aligned dword store to a RAM page whose writes are tracked (page_lookup):
+  what writememll() and mem_write_raml_page() do, without the two calls. The
+  dword never reaches the next 64-byte chunk, so only one dirty bit and one
+  byte-mask word change. writememll()'s addr64a[] is left alone: every user
+  fills it before reading it. Anything else jumps through to_c[] to the C
+  path with EDI and ECX unchanged. All jumps are rel32, as this code may run
+  across code chunks.
+  In - EDI = address, ECX = data
+  Corrupts RSI, R8-R11, and RCX and RDI once the data is stored.
+  Returns the number of to_c[] jumps.*/
+static int
+build_store_long_tracked(codeblock_t *block, uint32_t **to_c)
+{
+    uint32_t *done[3];
+    uint32_t *add_evict;
+    int       nr_to_c = 0;
+
+    host_x86_MOV32_REG_ABS(block, REG_ESI, &codegen_in_recompile);
+    host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
+    to_c[nr_to_c++] = host_x86_JNZ_long(block);
+
+    /*RSI = page*/
+    host_x86_MOV32_REG_REG(block, REG_ESI, REG_EDI);
+    host_x86_SHR32_IMM(block, REG_ESI, 12);
+    host_x86_MOV64_REG_IMM(block, REG_R8, (uint64_t) (uintptr_t) page_lookup);
+    host_x86_MOV64_REG_BASE_INDEX_SHIFT(block, REG_RSI, REG_R8, REG_RSI, 3);
+    host_x86_CMP64_REG_IMM(block, REG_RSI, 0);
+    to_c[nr_to_c++] = host_x86_JZ_long(block);
+    host_x86_MOV64_REG_BASE_OFFSET(block, REG_R9, REG_RSI, offsetof(page_t, write_l));
+    host_x86_MOV64_REG_IMM(block, REG_R8, (uint64_t) (uintptr_t) mem_write_raml_page);
+    host_x86_CMP64_REG_REG(block, REG_R9, REG_R8);
+    to_c[nr_to_c++] = host_x86_JNZ_long(block);
+
+    /*R9 = page->mem*/
+    host_x86_MOV64_REG_BASE_OFFSET(block, REG_R9, REG_RSI, offsetof(page_t, mem));
+    host_x86_CMP64_REG_IMM(block, REG_R9, 0);
+    to_c[nr_to_c++] = host_x86_JZ_long(block);
+    host_x86_MOV64_REG_IMM(block, REG_R8, (uint64_t) (uintptr_t) page_ff);
+    host_x86_CMP64_REG_REG(block, REG_R9, REG_R8);
+    to_c[nr_to_c++] = host_x86_JZ_long(block);
+
+    host_x86_MOV32_ABS_REG(block, &mem_logical_addr, REG_EDI);
+    host_x86_MOV8_ABS_IMM(block, &high_page, 0);
+
+    /*Unchanged data: no store and no dirty bits*/
+    host_x86_MOV32_REG_REG(block, REG_R8, REG_EDI);
+    host_x86_AND32_REG_IMM(block, REG_R8, 0xfff);
+    host_x86_MOV32_REG_BASE_INDEX(block, REG_R10, REG_R9, REG_R8);
+    host_x86_CMP32_REG_REG(block, REG_R10, REG_ECX);
+    done[0] = host_x86_JZ_long(block);
+    host_x86_MOV32_BASE_INDEX_REG(block, REG_R9, REG_R8, REG_ECX);
+
+    /*R8 = 64-byte chunk, R10 = its dirty_mask bit*/
+    host_x86_MOV32_REG_REG(block, REG_ECX, REG_EDI);
+    host_x86_SHR32_IMM(block, REG_ECX, 6);
+    host_x86_AND32_REG_IMM(block, REG_ECX, 63);
+    host_x86_MOV32_REG_REG(block, REG_R8, REG_ECX);
+    host_x86_MOV32_REG_IMM(block, REG_R10, 1);
+    host_x86_SHL64_CL(block, REG_R10);
+    host_x86_OR64_BASE_OFFSET_REG(block, REG_RSI, offsetof(page_t, dirty_mask), REG_R10);
+
+    /*R11 = byte_mask*/
+    host_x86_MOV32_REG_REG(block, REG_ECX, REG_EDI);
+    host_x86_AND32_REG_IMM(block, REG_ECX, 63);
+    host_x86_MOV32_REG_IMM(block, REG_R11, 0xf);
+    host_x86_SHL64_CL(block, REG_R11);
+    host_x86_MOV64_REG_BASE_OFFSET(block, REG_R9, REG_RSI, offsetof(page_t, byte_dirty_mask));
+    host_x86_OR64_BASE_INDEX_SHIFT_REG(block, REG_R9, REG_R8, 3, REG_R11);
+
+    /*A page not yet on the evict list goes on it when the store hits code*/
+    host_x86_MOV32_REG_BASE_OFFSET(block, REG_EDI, REG_RSI, offsetof(page_t, evict_prev));
+    host_x86_CMP32_REG_IMM(block, REG_EDI, EVICT_NOT_IN_LIST);
+    done[1] = host_x86_JNZ_long(block);
+    host_x86_MOV64_REG_BASE_OFFSET(block, REG_RDI, REG_RSI, offsetof(page_t, code_present_mask));
+    host_x86_TEST64_REG(block, REG_RDI, REG_R10);
+    add_evict = host_x86_JNZ_long(block);
+    host_x86_MOV64_REG_BASE_OFFSET(block, REG_RDI, REG_RSI, offsetof(page_t, byte_code_present_mask));
+    host_x86_MOV64_REG_BASE_INDEX_SHIFT(block, REG_RDI, REG_RDI, REG_R8, 3);
+    host_x86_TEST64_REG(block, REG_RDI, REG_R11);
+    done[2] = host_x86_JZ_long(block);
+    jump_long_here(add_evict);
+    host_x86_PUSH(block, REG_RAX);
+    host_x86_PUSH(block, REG_RDX);
+#        if _WIN64
+    host_x86_SUB64_REG_IMM(block, REG_RSP, 0x28);
+    host_x86_MOV64_REG_REG(block, REG_RCX, REG_RSI);
+#        else
+    host_x86_SUB64_REG_IMM(block, REG_RSP, 0x8);
+    host_x86_MOV64_REG_REG(block, REG_RDI, REG_RSI);
+#        endif
+    host_x86_CALL(block, (void *) page_add_to_evict_list);
+#        if _WIN64
+    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x28);
+#        else
+    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x8);
+#        endif
+    host_x86_POP(block, REG_RDX);
+    host_x86_POP(block, REG_RAX);
+
+    for (int c = 0; c < 3; c++)
+        jump_long_here(done[c]);
+    host_x86_XOR32_REG_REG(block, REG_ESI, REG_ESI);
+    host_x86_RET(block);
+
+    return nr_to_c;
+}
+#    endif
+
 static void
 build_store_routine(codeblock_t *block, int size, int is_float)
 {
-    uint8_t *branch_offset;
-    uint8_t *misaligned_offset = NULL;
+    uint8_t  *branch_offset;
+    uint8_t  *misaligned_offset = NULL;
+#    if !defined(USE_GDBSTUB) && !defined(USE_DEBUG_REGS_486)
+    uint32_t *misaligned_long = NULL;
+#    endif
 
     /*In - ECX = data, ESI = address
       Out - ESI = abrt
@@ -241,7 +359,13 @@ build_store_routine(codeblock_t *block, int size, int is_float)
     host_x86_MOV64_REG_BASE_INDEX_SHIFT(block, REG_RSI, REG_R8, REG_RSI, 3);
     if (size != 1) {
         host_x86_TEST32_REG_IMM(block, REG_EDI, size - 1);
-        misaligned_offset = host_x86_JNZ_short(block);
+#    if !defined(USE_GDBSTUB) && !defined(USE_DEBUG_REGS_486)
+        /*The tracked path lies between this jump and the C path*/
+        if (size == 4 && !is_float)
+            misaligned_long = host_x86_JNZ_long(block);
+        else
+#    endif
+            misaligned_offset = host_x86_JNZ_short(block);
     }
     host_x86_CMP64_REG_IMM(block, REG_RSI, (uint32_t) -1);
     branch_offset = host_x86_JZ_short(block);
@@ -261,6 +385,16 @@ build_store_routine(codeblock_t *block, int size, int is_float)
     host_x86_RET(block);
 
     *branch_offset = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) branch_offset) - 1;
+#    if !defined(USE_GDBSTUB) && !defined(USE_DEBUG_REGS_486)
+    if (size == 4 && !is_float) {
+        uint32_t *to_c[5];
+        int       nr_to_c = build_store_long_tracked(block, to_c);
+
+        for (int c = 0; c < nr_to_c; c++)
+            jump_long_here(to_c[c]);
+        jump_long_here(misaligned_long);
+    } else
+#    endif
     if (size != 1)
         *misaligned_offset = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) misaligned_offset) - 1;
     host_x86_PUSH(block, REG_RAX);
@@ -304,9 +438,9 @@ build_store_routine(codeblock_t *block, int size, int is_float)
 }
 
 /*The routines span more than one code chunk. Each routine starts in a chunk
-  with room for all of it, since its short branches cannot cross the jump
-  that links two chunks, and its address is taken from the chunk being
-  written, not from the first one.*/
+  with room for its first 0x80 bytes, which hold all of its short branches,
+  since those cannot cross the jump that links two chunks, and its address
+  is taken from the chunk being written, not from the first one.*/
 static void *
 routine_start(codeblock_t *block)
 {
