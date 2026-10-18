@@ -234,9 +234,6 @@ msgstr "&Zvuk"
 msgid "&Preferences…"
 msgstr "&Předvolby…"
 
-msgid "Enable &Discord integration"
-msgstr "Povolit integraci se službou &Discord"
-
 msgid "Sound &gain…"
 msgstr "Ze&sílení zvuku…"
 
@@ -1326,6 +1323,35 @@ msgstr "Použít ve vyhledávacím poli regulární výrazy"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Přesouvat odstraněné virtuální počítače do koše"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"

@@ -235,9 +235,6 @@ msgstr "サウンド(&O)"
 msgid "&Preferences…"
 msgstr "環境設定(&P)…"
 
-msgid "Enable &Discord integration"
-msgstr "Discord連携機能(&D)"
-
 msgid "Sound &gain…"
 msgstr "音量調整(&G)…"
 
@@ -1273,6 +1270,35 @@ msgstr "検索ボックスで正規表現を使用する"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "仮想マシンをごみ箱へ移動"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"

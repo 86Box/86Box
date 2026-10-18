@@ -202,7 +202,6 @@ int      confirm_reset                          = 1;              /* (G) enable 
 int      confirm_exit                           = 1;              /* (G) enable exit confirmation */
 int      confirm_save                           = 1;              /* (G) enable save confirmation */
 int      chd_precache_level                     = 0;              /* (G) CHD precache level */
-int      enable_discord                         = 0;              /* (C) enable Discord integration */
 int      pit_mode                               = -1;             /* (C) force setting PIT mode */
 int      fm_driver                              = 0;              /* (C) select FM sound driver */
 int      open_dir_usr_path                      = 0;              /* (G) default file open dialog directory

@@ -368,7 +368,8 @@ load_general(void)
     hide_tool_bar   = ini_section_get_int(cat, "hide_tool_bar", 0);
     sound_muted     = ini_section_get_int(cat, "sound_muted", 0);
 
-    enable_discord = !!ini_section_get_int(cat, "enable_discord", 0);
+    /* Discord integration has moved to the VM manager. */
+    ini_section_delete_var(cat, "enable_discord");
 
     video_vk_device = ini_section_get_int(cat, "video_vk_device", 0);
     video_framerate = ini_section_get_int(cat, "video_gl_framerate", -1);
@@ -3310,11 +3311,6 @@ save_general(void)
         ini_section_set_int(cat, "hide_tool_bar", hide_tool_bar);
     else
         ini_section_delete_var(cat, "hide_tool_bar");
-
-    if (enable_discord)
-        ini_section_set_int(cat, "enable_discord", enable_discord);
-    else
-        ini_section_delete_var(cat, "enable_discord");
 
     if (video_vk_device != 0)
         ini_section_set_int(cat, "video_vk_device", video_vk_device);

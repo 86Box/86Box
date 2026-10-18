@@ -83,6 +83,16 @@ VMManagerPreferences::
 #else
     ui->deleteToTrashCheckBox->setVisible(false);
 #endif
+#ifdef DISCORD
+    ui->discordCheckBox->setChecked(config->getStringValue("discord_presence").toInt());
+    ui->comboBoxDiscordPrivacy->setCurrentIndex(qBound(0, config->getStringValue("discord_privacy").toInt(), ui->comboBoxDiscordPrivacy->count() - 1));
+    ui->comboBoxDiscordPrivacy->setEnabled(ui->discordCheckBox->isChecked());
+    ui->labelDiscordPrivacy->setEnabled(ui->discordCheckBox->isChecked());
+    connect(ui->discordCheckBox, &QCheckBox::toggled, ui->comboBoxDiscordPrivacy, &QWidget::setEnabled);
+    connect(ui->discordCheckBox, &QCheckBox::toggled, ui->labelDiscordPrivacy, &QWidget::setEnabled);
+#else
+    ui->groupBoxDiscord->setVisible(false);
+#endif
 
     ui->radioButtonSystem->setChecked(color_scheme == 0);
     ui->radioButtonLight->setChecked(color_scheme == 1);
@@ -140,6 +150,10 @@ VMManagerPreferences::accept()
     config->setStringValue("regex_search", ui->regexSearchCheckBox->isChecked() ? "1" : "0");
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
     config->setStringValue("delete_to_trash", ui->deleteToTrashCheckBox->isChecked() ? "1" : "0");
+#endif
+#ifdef DISCORD
+    config->setStringValue("discord_presence", ui->discordCheckBox->isChecked() ? "1" : "0");
+    config->setStringValue("discord_privacy", QString::number(ui->comboBoxDiscordPrivacy->currentIndex()));
 #endif
     QDialog::accept();
 }

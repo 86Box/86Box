@@ -236,9 +236,6 @@ msgstr "&Zvuk"
 msgid "&Preferences…"
 msgstr "&Postavke…"
 
-msgid "Enable &Discord integration"
-msgstr "Omogući integraciju sa programom &Discord"
-
 msgid "Sound &gain…"
 msgstr "&Pojačavanje zvuka…"
 
@@ -1282,6 +1279,35 @@ msgstr "U polju za pretraživanje koristite regularne izraze"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Izbrisate virtualne sisteme u Koš za smeće"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
