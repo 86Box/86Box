@@ -289,6 +289,7 @@ enum {
     MACHINE_CHIPSET_SIS_5571,
     MACHINE_CHIPSET_SIS_5581,
     MACHINE_CHIPSET_SIS_530,
+    MACHINE_CHIPSET_SIS_620,
     MACHINE_CHIPSET_SIS_5591,
     MACHINE_CHIPSET_SIS_5600,
     MACHINE_CHIPSET_SMSC_VICTORYBX_66,
@@ -1593,6 +1594,12 @@ extern int             machine_at_63a1_init(const machine_t *);
 
 /* SiS 600 */
 extern int             machine_at_7sbb_init(const machine_t *);
+
+/* SiS 620 */
+#ifdef EMU_DEVICE_H
+extern const device_t  me99_device;
+#endif
+extern int             machine_at_me99_init(const machine_t *);
 
 /* SMSC VictoryBX-66 */
 extern int             machine_at_atc7020bxii_init(const machine_t *);
