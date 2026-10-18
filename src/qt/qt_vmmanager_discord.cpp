@@ -13,7 +13,12 @@
  *          Copyright 2026 David Hrdlička.
  */
 #include <QDateTime>
+#include <QFileInfo>
+#include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QUrl>
+
+#include <limits>
 
 #include "qt_vmmanager_discord.hpp"
 
@@ -27,8 +32,9 @@ static const auto kClientId = QStringLiteral("906956844956782613");
 static constexpr int kDwellTime = 10000;
 // Discord rejects text fields longer than this
 static constexpr int kMaxTextLength = 128;
-
-static const auto kIconPrefix = QStringLiteral(":/systemicons/");
+// How long to wait before checking an icon again after a network error
+static constexpr qint64 kIconRetryDelay = 5 * 60 * 1000;
+static constexpr int    kIconCheckTimeout = 10000;
 
 static bool
 isRunning(VMManagerSystem::ProcessStatus status)
@@ -245,12 +251,10 @@ VMManagerDiscord::update()
     client.setActivity(buildActivity(best.key(), candidates - 1));
 }
 
-QString
-VMManagerDiscord::iconUrl(const QString &icon)
+// Where Discord fetches machine icons from; the icon's file name is appended
+static QString
+iconBaseUrl()
 {
-    if (!icon.startsWith(kIconPrefix))
-        return {};
-
 #ifdef EMU_GIT_HASH
     // Builds from a modified tree have a + appended to the hash
     auto ref = QString(EMU_GIT_HASH);
@@ -258,12 +262,65 @@ VMManagerDiscord::iconUrl(const QString &icon)
 #else
     const auto ref = QStringLiteral("master");
 #endif
-    const auto file = QString::fromLatin1(QUrl::toPercentEncoding(icon.mid(kIconPrefix.size())));
-    return QString("https://raw.githubusercontent.com/86Box/86Box/%1/src/qt/assets/systemicons/%2").arg(ref, file);
+    return QString("https://raw.githubusercontent.com/86Box/86Box/%1/src/qt/assets/systemicons/").arg(ref);
+}
+
+QString
+VMManagerDiscord::iconUrl(const QString &icon)
+{
+    // Only the file name matters, wherever the icon is loaded from locally
+    const auto file = QFileInfo(icon).fileName();
+    if (file.isEmpty())
+        return {};
+
+    return iconBaseUrl() + QString::fromLatin1(QUrl::toPercentEncoding(file));
+}
+
+QString
+VMManagerDiscord::verifiedIconUrl(const QString &icon)
+{
+    const auto url = iconUrl(icon);
+    if (url.isEmpty())
+        return {};
+
+    // Discord shows an empty image for a URL that doesn't resolve, so only
+    // use icons that are confirmed to exist and fall back to the logo until then
+    auto &check = icon_checks[url];
+    if (check.available)
+        return url;
+    if (check.pending || (clock.elapsed() < check.retry_at))
+        return {};
+
+    check.pending = true;
+    QNetworkRequest request { QUrl(url) };
+    request.setTransferTimeout(kIconCheckTimeout);
+    const auto reply = network.head(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, url] {
+        reply->deleteLater();
+
+        auto &check   = icon_checks[url];
+        check.pending = false;
+        if (reply->error() == QNetworkReply::NoError) {
+            check.available = true;
+            update();
+            return;
+        }
+
+        const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if ((status == 404) || (status == 410)) {
+            // Not published, so don't ask again
+            check.retry_at = std::numeric_limits<qint64>::max();
+        } else {
+            qDebug().noquote() << "Discord: couldn't check icon" << url << reply->errorString();
+            check.retry_at = clock.elapsed() + kIconRetryDelay;
+        }
+    });
+
+    return {};
 }
 
 QJsonObject
-VMManagerDiscord::buildActivity(VMManagerSystem *system, int others) const
+VMManagerDiscord::buildActivity(VMManagerSystem *system, int others)
 {
     const auto &state = tracked[system];
 
@@ -309,7 +366,7 @@ VMManagerDiscord::buildActivity(VMManagerSystem *system, int others) const
         activity["timestamps"] = QJsonObject { { "start", state.started_at } };
 
     QJsonObject assets;
-    auto        largeImage = (privacy != Privacy::Minimal) ? iconUrl(system->icon) : QString();
+    auto        largeImage = (privacy != Privacy::Minimal) ? verifiedIconUrl(system->icon) : QString();
     if (largeImage.isEmpty()) {
 #if defined(RELEASE_BUILD)
         largeImage = QStringLiteral("86box-green");

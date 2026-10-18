@@ -18,6 +18,7 @@
 #include <QElapsedTimer>
 #include <QHash>
 #include <QJsonObject>
+#include <QNetworkAccessManager>
 #include <QObject>
 #include <QPointer>
 #include <QTimer>
@@ -52,9 +53,18 @@ private:
         qint64 used_at = 0;
     };
 
+    struct IconCheck {
+        bool pending   = false;
+        bool available = false;
+        // Monotonic time before which the icon isn't checked again
+        qint64 retry_at = 0;
+    };
+
     VMManagerDiscordClient            client;
     QPointer<VMManagerModel>          model;
     QHash<VMManagerSystem *, Tracked> tracked;
+    QHash<QString, IconCheck>         icon_checks;
+    QNetworkAccessManager             network;
     QPointer<VMManagerSystem>         shown;
     QPointer<VMManagerSystem>         focused;
     QTimer                            dwell_timer;
@@ -69,7 +79,8 @@ private:
     void update();
 
     [[nodiscard]] bool           isCandidate(const VMManagerSystem *system) const;
-    [[nodiscard]] QJsonObject    buildActivity(VMManagerSystem *system, int others) const;
+    [[nodiscard]] QJsonObject    buildActivity(VMManagerSystem *system, int others);
+    [[nodiscard]] QString        verifiedIconUrl(const QString &icon);
     [[nodiscard]] static QString iconUrl(const QString &icon);
 };
 
