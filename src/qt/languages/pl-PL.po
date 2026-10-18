@@ -433,6 +433,9 @@ msgstr "Dynamiczny rekompilator"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Precyzyjne środowisko FPU w dynamicznym rekompilatorze"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Łączenie bloków w dynamicznym rekompilatorze"
+
 msgid "CPU frame size"
 msgstr "Rozmiar ramki CPU"
 

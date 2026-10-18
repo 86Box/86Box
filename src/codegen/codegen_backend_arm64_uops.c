@@ -886,7 +886,7 @@ codegen_JMP(codeblock_t *block, uop_t *uop)
     /*An unconditional jump out of the block is an ordinary hand-off (UOP_JMP
       writes registers back), so it can link like the block's end. Fault
       paths reach codegen_exit_rout by conditional branches instead.*/
-    if (uop->p == codegen_exit_rout) {
+    if (codegen_block_link && (uop->p == codegen_exit_rout)) {
         codegen_link_exit(block);
         return 0;
     }

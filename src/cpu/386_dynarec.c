@@ -720,7 +720,8 @@ exec386_dynarec_dyn(void)
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
         codegen_link_slot_t *(*code)(void) = (void *) &block->data[BLOCK_START];
 
-        if (from != NULL)
+        /* from may predate the reset that turned linking off. */
+        if ((from != NULL) && codegen_block_link)
             codegen_link_patch(from, block, phys_addr);
 #    else
         void (*code)(void) = (void *) &block->data[BLOCK_START];
@@ -729,7 +730,11 @@ exec386_dynarec_dyn(void)
         block->used = 1; /* run: the eviction sweep passes it over once */
         inrecomp = 1;
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
-        link_from = code();
+        /* A block compiled without links returns nothing. */
+        if (codegen_block_link)
+            link_from = code();
+        else
+            code();
 #    else
         code();
 #    endif

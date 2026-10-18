@@ -432,6 +432,9 @@ msgstr "Δυναμικός αναμεταγλωττιστής"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Ακριβές περιβάλλον FPU σε δυναμικό αναμεταγλωττιστή"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Σύνδεση μπλοκ σε δυναμικό αναμεταγλωττιστή"
+
 msgid "CPU frame size"
 msgstr "Μέγεθος πλαισίου CPU"
 

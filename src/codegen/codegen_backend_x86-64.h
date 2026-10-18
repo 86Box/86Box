@@ -32,4 +32,6 @@
 #if !defined(USE_GDBSTUB) && !defined(USE_ACYCS) && !defined(USE_DEBUG_REGS_486)
 #    define CODEGEN_BACKEND_HAS_BLOCK_LINK
 void codegen_link_exit(codeblock_t *block);
+/* 0: blocks end with the plain return and the loop never links them. */
+extern int codegen_block_link;
 #endif

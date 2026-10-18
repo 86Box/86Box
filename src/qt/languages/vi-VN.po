@@ -433,6 +433,9 @@ msgstr "Bộ tái biên dịch động (Dynamic recompiler)"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Môi trường FPU chính xác trên bộ tái biên dịch động"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Liên kết khối trên bộ tái biên dịch động"
+
 msgid "CPU frame size"
 msgstr "Cỡ khung CPU"
 
