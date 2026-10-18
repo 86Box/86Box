@@ -793,12 +793,14 @@ host_arm64_CMNX_IMM(codeblock_t *block, int src_n_reg, uint64_t imm_data)
 void
 host_arm64_CMP_IMM(codeblock_t *block, int src_n_reg, uint32_t imm_data)
 {
-    if ((int32_t) imm_data < 0 && imm_data != (1ull << 31)) {
+    if ((int32_t) imm_data < 0 && imm_data != (1ull << 31) && !(-(int32_t) imm_data & 0xfffff000)) {
         host_arm64_CMN_IMM(block, src_n_reg, -(int32_t) imm_data);
     } else if (!(imm_data & 0xfffff000)) {
         codegen_addlong(block, OPCODE_CMP_IMM | Rd(REG_WZR) | Rn(src_n_reg) | IMM12(imm_data & 0xfff) | DATPROC_IMM_SHIFT(0));
-    } else
-        fatal("CMP_IMM %08x\n", imm_data);
+    } else {
+        host_arm64_mov_imm(block, REG_W16, imm_data);
+        host_arm64_CMP_REG(block, src_n_reg, REG_W16);
+    }
 }
 void
 host_arm64_CMPX_IMM(codeblock_t *block, int src_n_reg, uint64_t imm_data)
