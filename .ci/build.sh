@@ -668,7 +668,7 @@ else
 	esac
 
 	# Establish general dependencies.
-	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file appstream qt6-translations-l10n python3-pip python3-venv squashfs-tools curl"
+	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file appstream qt6-translations-l10n python3-pip python3-venv squashfs-tools curl patchelf"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -1143,6 +1143,15 @@ else
 	relroot="../../../../../../../../../../../../../../../../../../../../../../../../../../../../.."
 	ln -s "$relroot/usr/lib/libvulkan.so.1" "archive_tmp/usr/lib/libvulkan.so"
 	ln -s "$relroot/usr/lib/$libdir/libvulkan.so.1" "archive_tmp/usr/lib/$libdir/libvulkan.so"
+
+	# Workaround for Qt 6 on ancient distros without GLVND: build a shim listing
+	# the two GLVND libs (and the compatibility libGL which may be absent on
+	# some environments) as auxiliary filtees, which the dynamic linker loads if
+	# present and skips if not. AppImageBuilder.yml then points the two GLVND
+	# dependencies to this shim, which cannot be named after any of them, as the
+	# host's GLVND libGL would then pick it up instead of the real libGLX.
+	echo | "$cc_binary" -shared -nostdlib -o "archive_tmp/usr/lib/libglshim.so" -Wl,-soname,libglshim.so \
+		-Wl,--auxiliary=libGLX.so.0 -Wl,--auxiliary=libOpenGL.so.0 -Wl,--auxiliary=libGL.so.1 -x c -
 
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"
