@@ -20,6 +20,7 @@ public:
 
     void    polish(QWidget *widget) override;
     QPixmap generatedIconPixmap(QIcon::Mode iconMode, const QPixmap &pixmap, const QStyleOption *option) const override;
+    void    drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter, const QWidget *widget = nullptr) const override;
     void    drawControl(ControlElement element, const QStyleOption *option, QPainter *painter, const QWidget *widget = nullptr) const override;
     void    drawItemText(QPainter *painter, const QRect &rect, int flags, const QPalette &pal, bool enabled,
                          const QString &text, QPalette::ColorRole textRole = QPalette::NoRole) const override;

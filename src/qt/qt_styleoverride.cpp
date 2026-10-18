@@ -22,6 +22,7 @@
 #include <QStyleOption>
 #include <QMainWindow>
 #include <QPainter>
+#include <QToolBar>
 
 extern "C" {
 #include <86box/86box.h>
@@ -81,6 +82,33 @@ StyleOverride::polish(QWidget *widget)
     if (qobject_cast<QComboBox *>(widget)) {
         qobject_cast<QComboBox *>(widget)->view()->setMinimumWidth(widget->minimumSizeHint().width());
     }
+
+#ifdef Q_OS_WINDOWS
+    /* Fill toolbars in the color of the menu bar, which the windows11 style
+       draws in the window color and the others in the base color. */
+    if (qobject_cast<QToolBar *>(widget))
+        widget->setBackgroundRole(isWindows11Style() ? QPalette::Window : QPalette::Base);
+#endif
+}
+
+void
+StyleOverride::drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter, const QWidget *widget) const
+{
+    /* The windows11 style draws hovered toolbar buttons as a framed control,
+       draw them with the filled highlight of menu bar items instead. */
+    if ((element == PE_PanelButtonTool) && widget && qobject_cast<QToolBar *>(widget->parentWidget()) && isWindows11Style()) {
+        QStyleOptionMenuItem menuItem;
+        menuItem.QStyleOption::operator=(*option);
+        /* Menu bar items keep 5px clear on either side of the highlight */
+        menuItem.rect.adjust(-5, 0, 5, 0);
+        if (option->state & State_On)
+            menuItem.state |= State_Sunken;
+
+        proxy()->drawControl(CE_MenuBarItem, &menuItem, painter, widget);
+        return;
+    }
+
+    QProxyStyle::drawPrimitive(element, option, painter, widget);
 }
 
 bool
