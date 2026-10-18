@@ -55,6 +55,21 @@
 #include <math.h>
 #include "vid_powervr_pcx_render.h"
 
+static inline int
+clz32(uint32_t v) /* v != 0 */
+{
+#if defined(__GNUC__) || defined(__clang__)
+    return __builtin_clz(v);
+#else
+    int n = 0;
+    while (!(v & 0x80000000u)) {
+        v <<= 1;
+        n++;
+    }
+    return n;
+#endif
+}
+
 #define NUM_CELLS 32
 
 /* Tile list words. */
@@ -156,13 +171,18 @@ strip_trans_bit(uint32_t w)
     return w;
 }
 
+/* Plane C into the chip's 32-bit fixed point. Out-of-range values saturate:
+   a perpendicular (edge) plane with A = B = 0 scales to a C a little above
+   1.0, and the m3D treats it as positive (inside). Wrapping it to a large
+   negative number instead blacked out whole regions of Moto Racer. */
 static int32_t
 to_int32(double v)
 {
-    /* The chip's 32-bit adder wraps; do the same on any host. */
-    if (v >= 9.2e18 || v <= -9.2e18)
-        return (v > 0) ? 0x7fffffff : (int32_t) 0x80000000u;
-    return (int32_t) (uint32_t) (int64_t) v;
+    if (v >= 2147483647.0)
+        return 0x7fffffff;
+    if (v <= -2147483648.0)
+        return (int32_t) 0x80000000u;
+    return (int32_t) v;
 }
 
 static cell_control
@@ -311,12 +331,10 @@ static pfloat
 to_pfloat(int32_t x)
 {
     pfloat   t;
-    int64_t  ax = (x < 0) ? -(int64_t) x : x;
+    uint32_t ax = (x < 0) ? (uint32_t) 0 - (uint32_t) x : (uint32_t) x;
 
-    t.e = 0;
-    if (x != 0)
-        while (t.e < 32 && ((int64_t) 1 << t.e) <= ax)
-            t.e++;
+    /* e = number of significant bits of |x| (0 for 0, 32 for INT32_MIN) */
+    t.e = ax ? 32 - clz32(ax) : 0;
     t.m = (int32_t) ((uint32_t) x << ((31 - t.e) & 31));
     if (t.e > 31)
         t.m = x >> 1; /* only reachable for INT32_MIN */
@@ -337,19 +355,26 @@ ashift(int32_t x, int shift)
     return (int32_t) ((uint32_t) x << shift);
 }
 
-static uint32_t
-spread8(uint32_t v)
+/* Morton (twiddled) order: bit i of x goes to bit 2i + 1, of y to bit 2i.
+   spread8[v] spreads the 8 bits of v to the even bit positions; filled by
+   pcxr_prepare() before any rendering. */
+static uint16_t spread8[256];
+
+static void
+init_spread8(void)
 {
-    uint32_t r = 0;
-    for (int i = 0; i < 8; i++)
-        r |= ((v >> i) & 1) << (2 * i);
-    return r;
+    for (uint32_t v = 0; v < 256; v++) {
+        uint32_t r = 0;
+        for (int i = 0; i < 8; i++)
+            r |= ((v >> i) & 1) << (2 * i);
+        spread8[v] = (uint16_t) r;
+    }
 }
 
-static uint32_t
+static inline uint32_t
 twid(uint32_t x, uint32_t y)
 {
-    return (spread8(x & 0xff) << 1) | spread8(y & 0xff);
+    return ((uint32_t) spread8[x & 0xff] << 1) | spread8[y & 0xff];
 }
 
 static uint32_t
@@ -822,6 +847,7 @@ typedef struct {
 typedef struct {
     uint32_t first, count;
     int      very_last, last_in_region;
+    int      simple; /* one forw_visib_fp plane followed only by forw_perp edges */
 } object_t;
 
 /* One tile: its place, its objects, and the instruction-decoder state it
@@ -831,6 +857,7 @@ typedef struct {
     int      xpos, ypos, xsize, ysize;
     uint32_t first_object, n_objects;
     int      prev_intern_out, sec_obj, first_obj;
+    int      plain; /* only forw_visib_fp, forw_perp and begin_trans planes */
 } tile_t;
 
 struct pcxr_job {
@@ -842,46 +869,62 @@ struct pcxr_job {
     uint32_t            cap_planes, cap_objects, cap_tiles;
 };
 
-/* The 32 SABRE cells of one span, as arrays. */
+/* The 32 SABRE cells of one span, as arrays. Flags are 0 or 1 and every
+   field is 32 bits wide so the loops below vectorise. */
 typedef struct {
     int32_t  I_depth[NUM_CELLS], U_depth[NUM_CELLS];
     uint32_t I_id[NUM_CELLS], U_id[NUM_CELLS];
-    uint8_t  I_visib[NUM_CELLS], I_forward[NUM_CELLS], shad_temp[NUM_CELLS], U_visib[NUM_CELLS], U_shadow[NUM_CELLS];
+    int32_t  I_visib[NUM_CELLS], I_forward[NUM_CELLS], shad_temp[NUM_CELLS], U_visib[NUM_CELLS], U_shadow[NUM_CELLS];
 } cells_t;
 
+/* One plane through the 32 cells. Masks are 0 or -1. */
 static void
-cells_process(cells_t *s, const cell_control *in, const int32_t *C, uint32_t index)
+cells_process(cells_t *restrict s, const cell_control *in, const int32_t *restrict C, uint32_t index)
 {
     const int32_t *mux = in->mux_sel ? s->U_depth : C;
-    uint8_t        gte[NUM_CELLS], lte[NUM_CELLS], ire[NUM_CELLS], ure[NUM_CELLS];
+    int32_t        gte[NUM_CELLS], lte[NUM_CELLS], ire[NUM_CELLS], ure[NUM_CELLS];
     int            i;
 
     if (in->delayed_clear_u_id)
         memset(s->U_id, 0, sizeof(s->U_id));
 
+    /* The common case, an edge plane: cells outside it (C < 0) are emptied. */
+    if (in->i_load == load_i_further && in->plane_perp && in->u_load == load_u_nop && in->test_shad == test_shad_nop) {
+        const int32_t pv = in->plane_visib;
+        for (i = 0; i < NUM_CELLS; i++) {
+            const int32_t m = C[i] >> 31;
+            s->I_visib[i]   = (pv & m) | (s->I_visib[i] & ~m);
+            s->I_forward[i] = (1 & m) | (s->I_forward[i] & ~m);
+            s->I_depth[i]   = (C[i] & m) | (s->I_depth[i] & ~m);
+            s->I_id[i]      = (index & (uint32_t) m) | (s->I_id[i] & ~(uint32_t) m);
+        }
+        return;
+    }
+
     for (i = 0; i < NUM_CELLS; i++) {
-        gte[i] = s->I_depth[i] >= mux[i];
-        lte[i] = s->I_depth[i] <= mux[i];
+        gte[i] = -(int32_t) (s->I_depth[i] >= mux[i]);
+        lte[i] = -(int32_t) (s->I_depth[i] <= mux[i]);
     }
 
     switch (in->i_load) {
         case load_i:
-            memset(ire, 1, sizeof(ire));
+            for (i = 0; i < NUM_CELLS; i++)
+                ire[i] = -1;
             break;
         case load_i_further:
             if (in->plane_perp)
                 for (i = 0; i < NUM_CELLS; i++)
-                    ire[i] = C[i] < 0;
+                    ire[i] = C[i] >> 31;
             else
                 memcpy(ire, gte, sizeof(ire));
             break;
         case load_i_closer:
             for (i = 0; i < NUM_CELLS; i++)
-                ire[i] = !gte[i];
+                ire[i] = ~gte[i];
             break;
         case load_i_invis_forw:
             for (i = 0; i < NUM_CELLS; i++)
-                ire[i] = (uint8_t) (!s->I_visib[i] && s->I_forward[i]);
+                ire[i] = -((s->I_visib[i] ^ 1) & s->I_forward[i]);
             break;
         default:
             memset(ire, 0, sizeof(ire));
@@ -890,11 +933,12 @@ cells_process(cells_t *s, const cell_control *in, const int32_t *C, uint32_t ind
 
     switch (in->u_load) {
         case load_u:
-            memset(ure, 1, sizeof(ure));
+            for (i = 0; i < NUM_CELLS; i++)
+                ure[i] = -1;
             break;
         case load_u_closer:
             for (i = 0; i < NUM_CELLS; i++)
-                ure[i] = (gte[i] & s->I_visib[i]) | !s->U_visib[i];
+                ure[i] = (gte[i] & -s->I_visib[i]) | (s->U_visib[i] - 1);
             break;
         default:
             memset(ure, 0, sizeof(ure));
@@ -905,8 +949,7 @@ cells_process(cells_t *s, const cell_control *in, const int32_t *C, uint32_t ind
     switch (in->test_shad) {
         case test_shad_closer:
             for (i = 0; i < NUM_CELLS; i++)
-                if (!ure[i])
-                    s->shad_temp[i] = !lte[i];
+                s->shad_temp[i] = (s->shad_temp[i] & ure[i]) | ((~lte[i] & 1) & ~ure[i]);
             break;
         case test_shadow_further:
             for (i = 0; i < NUM_CELLS; i++)
@@ -914,29 +957,31 @@ cells_process(cells_t *s, const cell_control *in, const int32_t *C, uint32_t ind
             break;
         case test_light_further:
             for (i = 0; i < NUM_CELLS; i++)
-                s->U_shadow[i] = !((lte[i] & s->shad_temp[i]) | !s->U_shadow[i]);
+                s->U_shadow[i] = ((lte[i] & s->shad_temp[i]) | (s->U_shadow[i] ^ 1)) ^ 1;
             break;
         default:
             break;
     }
 
-    {
-        const uint8_t fwd = (in->i_load == load_i || in->i_load == load_i_further);
-        const uint8_t pv  = (uint8_t) in->plane_visib;
+    if (in->u_load != load_u_nop) {
         for (i = 0; i < NUM_CELLS; i++) {
-            if (ure[i]) {
-                s->U_visib[i]   = s->I_visib[i];
-                s->U_shadow[i]  = 0;
-                s->shad_temp[i] = 0; /* as in the simulator: not carried over on a U load */
-                s->U_depth[i]  = s->I_depth[i];
-                s->U_id[i]     = s->I_id[i];
-            }
-            if (ire[i]) {
-                s->I_visib[i]   = pv;
-                s->I_forward[i] = fwd;
-                s->I_depth[i]   = C[i];
-                s->I_id[i]      = index;
-            }
+            const int32_t m = ure[i];
+            s->U_visib[i]   = (s->I_visib[i] & m) | (s->U_visib[i] & ~m);
+            s->U_shadow[i] &= ~m;
+            s->shad_temp[i] &= ~m; /* as in the simulator: not carried over on a U load */
+            s->U_depth[i] = (s->I_depth[i] & m) | (s->U_depth[i] & ~m);
+            s->U_id[i]    = (s->I_id[i] & (uint32_t) m) | (s->U_id[i] & ~(uint32_t) m);
+        }
+    }
+    if (in->i_load != load_i_nop) {
+        const int32_t fwd = (in->i_load == load_i || in->i_load == load_i_further);
+        const int32_t pv  = in->plane_visib;
+        for (i = 0; i < NUM_CELLS; i++) {
+            const int32_t m = ire[i];
+            s->I_visib[i]   = (pv & m) | (s->I_visib[i] & ~m);
+            s->I_forward[i] = (fwd & m) | (s->I_forward[i] & ~m);
+            s->I_depth[i]   = (C[i] & m) | (s->I_depth[i] & ~m);
+            s->I_id[i]      = (index & (uint32_t) m) | (s->I_id[i] & ~(uint32_t) m);
         }
     }
 }
@@ -1023,6 +1068,8 @@ pcxr_prepare(pcxr_job_t *job, const pcxr_frame_t *f, pcxr_result_t *res)
     int      sec_obj = 0, first_obj = 0;
     uint32_t region_count = 0;
 
+    if (!spread8[255])
+        init_spread8();
     memset(res, 0, sizeof(*res));
     res->min_x = res->min_y = PCXR_MAX_W;
     res->max_x = res->max_y = -1;
@@ -1121,6 +1168,10 @@ pcxr_prepare(pcxr_job_t *job, const pcxr_frame_t *f, pcxr_result_t *res)
             for (uint32_t pl = 0; pl < ob->count; pl++)
                 decode_plane(&c, plane_off + pl * WORDS_PER_PLANE, &job->planes[job->n_planes++]);
 
+            ob->simple = ob->count > 1 && job->planes[ob->first].instr == forw_visib_fp;
+            for (uint32_t pl = 1; pl < ob->count && ob->simple; pl++)
+                ob->simple = job->planes[ob->first + pl].instr == forw_perp && job->planes[ob->first + pl].index == 0;
+
             ob->very_last = (obj_data & OBJ_VERY_LAST_PTR) != 0;
             if (ob->very_last)
                 last_in_region = 1;
@@ -1149,6 +1200,10 @@ pcxr_prepare(pcxr_job_t *job, const pcxr_frame_t *f, pcxr_result_t *res)
             }
         }
         t->n_objects = job->n_objects - t->first_object;
+        t->plain     = (t->prev_intern_out == prev_none);
+        for (uint32_t p = job->objects[t->first_object].first; p < job->n_planes && t->plain; p++)
+            t->plain = job->planes[p].instr == forw_visib_fp || job->planes[p].instr == forw_perp
+                       || job->planes[p].instr == begin_trans;
 
         /* Run the instruction decoder over every span of the tile, without
            pixels, to know the state the next tile starts with. */
@@ -1222,6 +1277,59 @@ pcxr_render_tiles(pcxr_job_t *job, uint32_t *rgb, uint32_t first, uint32_t step)
                     const object_t *ob          = &job->objects[o];
                     int             translucent = 0;
 
+                    /* A plain convex object with an edge that is outside on
+                       every cell of the span adds nothing: its depth plane
+                       still runs (it commits the previous object), then the
+                       cells are marked empty as the edges would leave them.
+                       In a tile of only these instructions nothing reads the
+                       depth of an empty cell, so the result is the same. */
+                    if (t->plain && ob->simple) {
+                        const plane_t *dead = NULL;
+                        for (uint32_t k = 1; k < ob->count; k++) {
+                            const plane_t *pl  = &job->planes[ob->first + k];
+                            int64_t        v0  = pl->a * xspan + pl->b * yline + (int64_t) pl->c * 256;
+                            int64_t        v1  = v0 + (NUM_CELLS - 1) * pl->a;
+                            const int64_t  lim = -((int64_t) 1 << 39);
+                            if (v0 <= -256 && v1 <= -256 && v0 > lim && v1 > lim) {
+                                dead = pl;
+                                break;
+                            }
+                        }
+                        if (dead) {
+                            const plane_t *pl = &job->planes[ob->first];
+                            cell_control   wi;
+                            int64_t        creg;
+
+                            instr = forw_visib_fp;
+                            if (no_object_yet) {
+                                sec_obj       = 0;
+                                first_obj     = 1;
+                                no_object_yet = 0;
+                            } else if (first_obj && !sec_obj) {
+                                first_obj = 0;
+                                sec_obj   = 1;
+                            } else
+                                sec_obj = 0;
+                            wi   = expand_instruction(&c, instr, 0, sec_obj, 0);
+                            creg = pl->a * xspan + pl->b * yline + (int64_t) pl->c * 256;
+                            for (int cl = 0; cl < NUM_CELLS; cl++) {
+                                int64_t v = creg + (int64_t) cl * pl->a;
+                                depth[cl] = (int32_t) (uint32_t) ((v + ((v >> 63) & 255)) >> 8);
+                            }
+                            cells_process(&cells, &wi, depth, pl->index);
+                            creg = dead->a * xspan + dead->b * yline + (int64_t) dead->c * 256;
+                            for (int cl = 0; cl < NUM_CELLS; cl++) {
+                                int64_t v = creg + (int64_t) cl * dead->a;
+                                cells.I_depth[cl] = (int32_t) (uint32_t) ((v + ((v >> 63) & 255)) >> 8);
+                                cells.I_visib[cl] = 0;
+                                cells.I_id[cl]    = 0;
+                            }
+                            (void) expand_instruction(&c, forw_perp, 0, sec_obj, 0);
+                            instr = forw_perp;
+                            goto object_done;
+                        }
+                    }
+
                     for (uint32_t k = 0; k < ob->count; k++) {
                         const plane_t *pl = &job->planes[ob->first + k];
 
@@ -1242,6 +1350,16 @@ pcxr_render_tiles(pcxr_job_t *job, uint32_t *rgb, uint32_t first, uint32_t step)
                             cell_control wi = expand_instruction(&c, instr, 0, sec_obj, 0);
                             /* 40-bit adder: the comparator sees the top 32 bits. */
                             int64_t creg = pl->a * xspan + pl->b * yline + (int64_t) pl->c * 256;
+                            /* An edge plane that is inside (>= 0) on all 32
+                               cells changes nothing; the values are linear in
+                               the cell, so the two ends decide (and must not
+                               wrap past 32 bits). */
+                            if (wi.i_load == load_i_further && wi.plane_perp && wi.u_load == load_u_nop
+                                && wi.test_shad == test_shad_nop && !wi.delayed_clear_u_id) {
+                                int64_t end = creg + (NUM_CELLS - 1) * pl->a;
+                                if (creg >= 0 && end >= 0 && creg < ((int64_t) 1 << 39) && end < ((int64_t) 1 << 39))
+                                    goto next_plane;
+                            }
                             for (int cl = 0; cl < NUM_CELLS; cl++) {
                                 int64_t v = creg + (int64_t) cl * pl->a;
                                 /* v / 256, rounding toward zero like the simulator */
@@ -1249,12 +1367,14 @@ pcxr_render_tiles(pcxr_job_t *job, uint32_t *rgb, uint32_t first, uint32_t step)
                             }
                             cells_process(&cells, &wi, depth, pl->index);
                         }
+next_plane:
                         if (instr == begin_trans)
                             translucent = 1;
                     }
 
                     if (translucent)
                         shade_span(&c, xspan, yline, &cells);
+object_done:
 
                     if (ob->last_in_region) {
                         cell_control wi = expand_instruction(&c, instr, 0, 0, 1);
