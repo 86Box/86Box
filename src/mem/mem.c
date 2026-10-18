@@ -626,6 +626,9 @@ addreadlookup(uint32_t virt, uint32_t phys)
     if (virt == 0xffffffff)
         return;
 
+    if (GDBSTUB_WATCHED(virt))
+        return;
+
     if (readlookup2[index] != (uintptr_t) LOOKUP_INV)
         return;
 
@@ -644,6 +647,9 @@ void
 addwritelookup(uint32_t virt, uint32_t phys)
 {
     if (virt == 0xffffffff)
+        return;
+
+    if (GDBSTUB_WATCHED(virt))
         return;
 
     if (page_lookup[virt >> 12])

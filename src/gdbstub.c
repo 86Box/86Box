@@ -1456,6 +1456,10 @@ unknown:
                         l++;
                     }
                 }
+
+                /* Drop cached lookups, so that accesses to the watched
+                   pages go through the checked paths. */
+                flushmmucache();
             }
 
             /* Respond positively. */
