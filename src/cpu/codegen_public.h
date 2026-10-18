@@ -41,11 +41,11 @@
 #define BLOCK_PC_INVALID 0xffffffff
 #define BLOCK_INVALID    0
 
-/*Chains of linked blocks: the recompiler on x86-64 hosts, not with the
-  GDB stub. A block ends in a link straight to the next instead of a return
-  to the dispatcher, while nothing needs the dispatcher (the signal word,
-  mem.h) and the next timer is not due.*/
-#if defined(USE_DYNAREC) && !defined(USE_GDBSTUB) && (defined(__x86_64__) || defined(_M_X64))
+/*Chains of linked blocks: the recompiler on x86-64 and ARM64 hosts, not
+  with the GDB stub. A block ends in a link straight to the next instead of
+  a return to the dispatcher, while nothing needs the dispatcher (the signal
+  word, mem.h) and the next timer is not due.*/
+#if defined(USE_DYNAREC) && !defined(USE_GDBSTUB) && (defined(__x86_64__) || defined(_M_X64) || defined(__aarch64__) || defined(_M_ARM64))
 #    define CODEGEN_CHAIN 1
 #endif
 

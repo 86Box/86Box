@@ -833,6 +833,34 @@ codegen_JMP(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/* A block exit to a constant PC: a link stub (codegen_backend_arm64.c). */
+static int
+codegen_JMP_LINK(codeblock_t *block, uop_t *uop)
+{
+#    ifdef CODEGEN_CHAIN
+    (void) uop;
+    codegen_backend_link_stub(block);
+#    else
+    host_arm64_jump(block, (uintptr_t) uop->p);
+#    endif
+
+    return 0;
+}
+
+/* A block exit to a PC known only when it runs: the indirect link table. */
+static int
+codegen_JMP_INDIRECT(codeblock_t *block, uop_t *uop)
+{
+#    ifdef CODEGEN_CHAIN
+    (void) uop;
+    codegen_backend_indirect_stub(block);
+#    else
+    host_arm64_jump(block, (uintptr_t) uop->p);
+#    endif
+
+    return 0;
+}
+
 static int
 codegen_LOAD_FUNC_ARG0(codeblock_t *block, uop_t *uop)
 {
@@ -3316,13 +3344,12 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_JMP &
         UOP_MASK]
     = codegen_JMP,
-    /*No chains on these hosts: a link or an indirect exit is the exit*/
     [UOP_JMP_LINK &
         UOP_MASK]
-    = codegen_JMP,
+    = codegen_JMP_LINK,
     [UOP_JMP_INDIRECT &
         UOP_MASK]
-    = codegen_JMP,
+    = codegen_JMP_INDIRECT,
 
     [UOP_LOAD_SEG &
         UOP_MASK]
