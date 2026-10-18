@@ -1220,6 +1220,30 @@ codegen_MEM_LOAD_REG(codeblock_t *block, uop_t *uop)
     return 0;
 }
 static int
+codegen_MEM_LOAD_REG_EA(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int seg_reg   = HOST_REG_GET(uop->src_reg_a_real);
+    int addr_reg  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+
+    host_x86_LEA_REG_REG(block, REG_ESI, seg_reg, addr_reg);
+    if (REG_IS_W(dest_size))
+        host_x86_CALL(block, codegen_mem_load_word_ea);
+    else if (REG_IS_L(dest_size))
+        host_x86_CALL(block, codegen_mem_load_long_ea);
+    else
+        fatal("MEM_LOAD_REG_EA - %02x\n", uop->dest_reg_a_real);
+    host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
+    host_x86_JNZ(block, codegen_exit_rout);
+    if (REG_IS_W(dest_size))
+        host_x86_MOV16_REG_REG(block, dest_reg, REG_ECX);
+    else
+        host_x86_MOV32_REG_REG(block, dest_reg, REG_ECX);
+
+    return 0;
+}
+static int
 codegen_MEM_LOAD_SINGLE(codeblock_t *block, uop_t *uop)
 {
     int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
@@ -3219,18 +3243,33 @@ static int
 codegen_XOR(codeblock_t *block, uop_t *uop)
 {
     int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
     int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
+    /*dest == src_b: moving src_a into dest first would clobber src_b; the
+      operation commutes, so take the sources the other way round*/
+    if ((dest_reg == src_reg_b) && (dest_reg != src_reg_a)) {
+        int t     = src_reg_a;
+        src_reg_a = src_reg_b;
+        src_reg_b = t;
+    }
+
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
         host_x86_PXOR_XREG_XREG(block, dest_reg, src_reg_b);
-    } else if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
+    } else if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
+        if (dest_reg != src_reg_a)
+            host_x86_MOV32_REG_REG(block, dest_reg, src_reg_a);
         host_x86_XOR32_REG_REG(block, dest_reg, src_reg_b);
-    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size_a) && REG_IS_W(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
+    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size_a) && REG_IS_W(src_size_b)) {
+        if (dest_reg != src_reg_a)
+            host_x86_MOV16_REG_REG(block, dest_reg, src_reg_a);
         host_x86_XOR16_REG_REG(block, dest_reg, src_reg_b);
-    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size_a) && REG_IS_B(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
+    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size_a) && REG_IS_B(src_size_b)) {
+        if (dest_reg != src_reg_a)
+            host_x86_MOV8_REG_REG(block, dest_reg, src_reg_a);
         host_x86_XOR8_REG_REG(block, dest_reg, src_reg_b);
     }
 #    ifdef RECOMPILER_DEBUG
@@ -3319,6 +3358,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_MEM_LOAD_REG &
         UOP_MASK]
     = codegen_MEM_LOAD_REG,
+    [UOP_MEM_LOAD_REG_EA &
+        UOP_MASK]
+    = codegen_MEM_LOAD_REG_EA,
     [UOP_MEM_LOAD_SINGLE &
         UOP_MASK]
     = codegen_MEM_LOAD_SINGLE,

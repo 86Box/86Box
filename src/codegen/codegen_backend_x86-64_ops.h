@@ -32,6 +32,7 @@ void host_x86_JMP(codeblock_t *block, void *p);
 void host_x86_JNZ(codeblock_t *block, void *p);
 void host_x86_JZ(codeblock_t *block, void *p);
 
+uint8_t *host_x86_JNBE_short(codeblock_t *block);
 uint8_t *host_x86_JNZ_short(codeblock_t *block);
 uint8_t *host_x86_JS_short(codeblock_t *block);
 uint8_t *host_x86_JZ_short(codeblock_t *block);

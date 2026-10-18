@@ -941,6 +941,31 @@ codegen_MEM_LOAD_ABS(codeblock_t *block, uop_t *uop)
     return 0;
 }
 static int
+codegen_MEM_LOAD_REG_EA(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int seg_reg   = HOST_REG_GET(uop->src_reg_a_real);
+    int addr_reg  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+
+    host_arm64_ADD_REG(block, REG_X0, seg_reg, addr_reg, 0);
+    if (uop->is_a16)
+        host_arm64_AND_IMM(block, REG_X0, REG_X0, 0xffff);
+    if (REG_IS_W(dest_size))
+        host_arm64_call(block, codegen_mem_load_word_ea);
+    else if (REG_IS_L(dest_size))
+        host_arm64_call(block, codegen_mem_load_long_ea);
+    else
+        fatal("MEM_LOAD_REG_EA - %02x\n", uop->dest_reg_a_real);
+    host_arm64_CBNZ(block, REG_X1, (uintptr_t) codegen_exit_rout);
+    if (REG_IS_W(dest_size))
+        host_arm64_BFI(block, dest_reg, REG_X0, 0, 16);
+    else
+        host_arm64_MOV_REG(block, dest_reg, REG_X0, 0);
+
+    return 0;
+}
+static int
 codegen_MEM_LOAD_REG(codeblock_t *block, uop_t *uop)
 {
     int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
@@ -3363,6 +3388,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_MEM_LOAD_REG &
         UOP_MASK]
     = codegen_MEM_LOAD_REG,
+    [UOP_MEM_LOAD_REG_EA &
+        UOP_MASK]
+    = codegen_MEM_LOAD_REG_EA,
     [UOP_MEM_LOAD_SINGLE &
         UOP_MASK]
     = codegen_MEM_LOAD_SINGLE,

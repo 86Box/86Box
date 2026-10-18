@@ -10,6 +10,7 @@
 #include "x86seg.h"
 #include "386_common.h"
 #include "codegen.h"
+#include "codegen_accumulate.h"
 #include "codegen_ir.h"
 #include "codegen_ops.h"
 #include "codegen_ops_arith.h"
@@ -2278,6 +2279,9 @@ imul_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32
 #endif
     codegen_mark_code_present(block, cs + op_pc, 1);
     uop_CALL_FUNC(ir, jit_flags_rebuild);
+    /*As on the interpreter path, the cycles so far are charged before IMUL
+      can fault*/
+    codegen_accumulate_flush(ir);
 
     if ((fetchdat & 0xc0) == 0xc0)
         src = size32 ? IREG_32(fetchdat & 7) : IREG_16(fetchdat & 7);
@@ -2289,7 +2293,9 @@ imul_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32
         codegen_check_seg_read(block, ir, target_seg);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, size32 ? 3 : 1);
         src = size32 ? IREG_temp0 : IREG_temp0_W;
-        uop_MEM_LOAD_REG(ir, src, ireg_seg_base(target_seg), IREG_eaaddr);
+        /*As the interpreter's geteal(): a direct read with no misaligned
+          charge for an operand inside its page*/
+        uop_MEM_LOAD_REG_EA(ir, src, ireg_seg_base(target_seg), IREG_eaaddr);
     }
 
     if (imm_len) {

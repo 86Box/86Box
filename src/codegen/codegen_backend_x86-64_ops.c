@@ -254,6 +254,13 @@ host_x86_JZ(codeblock_t *block, void *p)
 }
 
 uint8_t *
+host_x86_JNBE_short(codeblock_t *block)
+{
+    codegen_alloc_bytes(block, 2);
+    codegen_addbyte2(block, 0x77, 0); /*JNBE*/
+    return &block_write_data[block_pos - 1];
+}
+uint8_t *
 host_x86_JNZ_short(codeblock_t *block)
 {
     codegen_alloc_bytes(block, 2);

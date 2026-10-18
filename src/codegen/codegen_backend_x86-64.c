@@ -41,6 +41,9 @@ void *codegen_mem_load_double;
 void *codegen_mem_store_byte;
 void *codegen_mem_store_word;
 void *codegen_mem_store_long;
+void *codegen_mem_load_word_ea;
+void *codegen_mem_load_long_ea;
+
 void *codegen_mem_store_quad;
 void *codegen_mem_store_single;
 void *codegen_mem_store_double;
@@ -90,8 +93,11 @@ host_reg_def_t codegen_host_fp_reg_list[CODEGEN_HOST_FP_REGS] = {
     { REG_XMM5, HOST_REG_FLAG_VOLATILE}
 };
 
+/*ea_rule: take the direct load whenever the address is at most 0xffc into
+  its page, aligned or not, as the interpreter's eal_r path does; readmemwl
+  and readmemll charge timing_misaligned only on the slow path.*/
 static void
-build_load_routine(codeblock_t *block, int size, int is_float)
+build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
 {
     uint8_t *branch_offset;
     uint8_t *misaligned_offset = NULL;
@@ -120,7 +126,12 @@ build_load_routine(codeblock_t *block, int size, int is_float)
     host_x86_SHR32_IMM(block, REG_ESI, 12);
     host_x86_MOV64_REG_IMM(block, REG_RDI, (uint64_t) (uintptr_t) readlookup2);
     host_x86_MOV64_REG_BASE_INDEX_SHIFT(block, REG_RSI, REG_RDI, REG_RSI, 3);
-    if (size != 1) {
+    if (ea_rule) {
+        host_x86_MOV32_REG_REG(block, REG_EDI, REG_ECX);
+        host_x86_AND32_REG_IMM(block, REG_EDI, 0xfff);
+        host_x86_CMP32_REG_IMM(block, REG_EDI, 0xffc);
+        misaligned_offset = host_x86_JNBE_short(block);
+    } else if (size != 1) {
         host_x86_TEST32_REG_IMM(block, REG_ECX, size - 1);
         misaligned_offset = host_x86_JNZ_short(block);
     }
@@ -142,7 +153,7 @@ build_load_routine(codeblock_t *block, int size, int is_float)
     host_x86_RET(block);
 
     *branch_offset = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) branch_offset) - 1;
-    if (size != 1)
+    if (ea_rule || size != 1)
         *misaligned_offset = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) misaligned_offset) - 1;
     host_x86_PUSH(block, REG_RAX);
     host_x86_PUSH(block, REG_RDX);
@@ -292,30 +303,34 @@ routine_start(codeblock_t *block)
 static void
 build_loadstore_routines(codeblock_t *block)
 {
-    codegen_mem_load_byte = &codeblock[block_current].data[block_pos];
-    build_load_routine(block, 1, 0);
-    codegen_mem_load_word = &codeblock[block_current].data[block_pos];
-    build_load_routine(block, 2, 0);
-    codegen_mem_load_long = &codeblock[block_current].data[block_pos];
-    build_load_routine(block, 4, 0);
-    codegen_mem_load_quad = &codeblock[block_current].data[block_pos];
-    build_load_routine(block, 8, 0);
-    codegen_mem_load_single = &codeblock[block_current].data[block_pos];
-    build_load_routine(block, 4, 1);
-    codegen_mem_load_double = &codeblock[block_current].data[block_pos];
-    build_load_routine(block, 8, 1);
 
-    codegen_mem_store_byte = &codeblock[block_current].data[block_pos];
+    codegen_mem_load_byte = routine_start(block);
+    build_load_routine(block, 1, 0, 0);
+    codegen_mem_load_word = routine_start(block);
+    build_load_routine(block, 2, 0, 0);
+    codegen_mem_load_long = routine_start(block);
+    build_load_routine(block, 4, 0, 0);
+    codegen_mem_load_quad = routine_start(block);
+    build_load_routine(block, 8, 0, 0);
+    codegen_mem_load_single = routine_start(block);
+    build_load_routine(block, 4, 1, 0);
+    codegen_mem_load_double = routine_start(block);
+    build_load_routine(block, 8, 1, 0);
+    codegen_mem_load_word_ea = routine_start(block);
+    build_load_routine(block, 2, 0, 1);
+    codegen_mem_load_long_ea = routine_start(block);
+    build_load_routine(block, 4, 0, 1);
+    codegen_mem_store_byte = routine_start(block);
     build_store_routine(block, 1, 0);
-    codegen_mem_store_word = &codeblock[block_current].data[block_pos];
+    codegen_mem_store_word = routine_start(block);
     build_store_routine(block, 2, 0);
-    codegen_mem_store_long = &codeblock[block_current].data[block_pos];
+    codegen_mem_store_long = routine_start(block);
     build_store_routine(block, 4, 0);
-    codegen_mem_store_quad = &codeblock[block_current].data[block_pos];
+    codegen_mem_store_quad = routine_start(block);
     build_store_routine(block, 8, 0);
-    codegen_mem_store_single = &codeblock[block_current].data[block_pos];
+    codegen_mem_store_single = routine_start(block);
     build_store_routine(block, 4, 1);
-    codegen_mem_store_double = &codeblock[block_current].data[block_pos];
+    codegen_mem_store_double = routine_start(block);
     build_store_routine(block, 8, 1);
 }
 
@@ -1043,7 +1058,7 @@ codegen_backend_init(void)
     block_write_data                        = codeblock[block_current].data;
     build_loadstore_routines(&codeblock[block_current]);
 
-    codegen_gpf_rout = &codeblock[block_current].data[block_pos];
+    codegen_gpf_rout = routine_start(block);
 #    if _WIN64
     host_x86_XOR32_REG_REG(block, REG_ECX, REG_ECX);
     host_x86_XOR32_REG_REG(block, REG_EDX, REG_EDX);
@@ -1052,7 +1067,7 @@ codegen_backend_init(void)
     host_x86_XOR32_REG_REG(block, REG_ESI, REG_ESI);
 #    endif
     host_x86_CALL(block, (void *) x86gpf);
-    codegen_exit_rout = &codeblock[block_current].data[block_pos];
+    codegen_exit_rout = &block_write_data[block_pos];
 #ifdef _WIN64
     /* XMM6 and XMM7 hold guest FPU/MMX values in blocks, and the Windows
        x64 ABI makes them the caller's: put back what the caller had. */
@@ -1075,7 +1090,7 @@ codegen_backend_init(void)
     host_x86_RET(block);
 
     /*#SS(0): an operand through SS outside its limit (CHECK_SEG_LIMITS)*/
-    codegen_ss_rout = &codeblock[block_current].data[block_pos];
+    codegen_ss_rout = routine_start(block);
 #    if _WIN64
     host_x86_XOR32_REG_REG(block, REG_ECX, REG_ECX);
     host_x86_XOR32_REG_REG(block, REG_EDX, REG_EDX);

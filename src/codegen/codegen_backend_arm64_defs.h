@@ -117,6 +117,8 @@
 extern void *codegen_mem_load_byte;
 extern void *codegen_mem_load_word;
 extern void *codegen_mem_load_long;
+extern void *codegen_mem_load_word_ea;
+extern void *codegen_mem_load_long_ea;
 extern void *codegen_mem_load_quad;
 extern void *codegen_mem_load_single;
 extern void *codegen_mem_load_double;

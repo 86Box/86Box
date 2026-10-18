@@ -10,6 +10,8 @@
 #include "x86seg_common.h"
 #include "x86seg.h"
 #include "386_common.h"
+#include "x87_sf.h"
+#include "x87.h"
 #include "codegen.h"
 #include "codegen_accumulate.h"
 #include "codegen_ir.h"
@@ -1257,6 +1259,9 @@ ropWAIT(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
     if (fpu_softfloat)
         return 0;
 
+    /*As on the interpreter path, the cycles so far are charged before WAIT
+      can fault*/
+    codegen_accumulate_flush(ir);
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     uop_MOV_REG_PTR(ir, IREG_temp0, &cr0);
     uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0xa);
@@ -1266,9 +1271,17 @@ ropWAIT(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
     uop_JMP(ir, codegen_exit_rout);
     uop_set_jump_dest(ir, jump_uop);
     /* WAIT is where a pending unmasked exception is reported, as the
-       interpreter's WAIT does it: #MF, or FERR# and the wait for IRQ 13 */
+       interpreter's WAIT does it: #MF, or FERR# and the wait for IRQ 13.
+       With ES clear the helper only clears fpu_ignne, so it is called when
+       either is set */
+    uop_MOVZX(ir, IREG_temp0, IREG_NPXS);
+    uop_AND_IMM(ir, IREG_temp0, IREG_temp0, FPU_SW_Summary);
+    uop_MOV_REG_PTR(ir, IREG_temp1, &fpu_ignne);
+    uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+    jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp0, 0);
     uop_CALL_FUNC_RESULT(ir, IREG_temp3, x87_legacy_pending);
     uop_CMP_IMM_JZ(ir, IREG_temp3, 1, codegen_exit_rout);
+    uop_set_jump_dest(ir, jump_uop);
 
     return op_pc;
 }

@@ -139,6 +139,9 @@
 #define UOP_CMP_JB (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_POINTER | 0x4c | UOP_TYPE_ORDER_BARRIER)
 /*UOP_CMP_JNBE - if (src_reg_a > src_reg_b) then jump to ptr*/
 #define UOP_CMP_JNBE (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_POINTER | 0x4d | UOP_TYPE_ORDER_BARRIER)
+/*UOP_MEM_LOAD_REG_EA - dest_reg = src_reg_a:[src_reg_b], 16 or 32 bits, loaded directly
+  whenever the interpreter's geteaw/geteal would read through eal_r*/
+#define UOP_MEM_LOAD_REG_EA (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0x4e | UOP_TYPE_ORDER_BARRIER)
 
 /*UOP_SAR - dest_reg = src_reg_a >> src_reg_b*/
 #define UOP_SAR (UOP_TYPE_PARAMS_REGS | 0x50)
@@ -883,6 +886,7 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
 #define uop_MEM_LOAD_ABS(ir, dst_reg, seg_reg, imm)                      uop_gen_reg_dst_src_imm(UOP_MEM_LOAD_ABS, ir, dst_reg, seg_reg, imm)
 #define uop_MEM_LOAD_REG(ir, dst_reg, seg_reg, addr_reg)                 uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG, ir, dst_reg, seg_reg, addr_reg, 0)
 #define uop_MEM_LOAD_REG_OFFSET(ir, dst_reg, seg_reg, addr_reg, offset)  uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG, ir, dst_reg, seg_reg, addr_reg, offset)
+#define uop_MEM_LOAD_REG_EA(ir, dst_reg, seg_reg, addr_reg)              uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG_EA, ir, dst_reg, seg_reg, addr_reg, 0)
 #define uop_MEM_LOAD_SINGLE(ir, dst_reg, seg_reg, addr_reg)              uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_SINGLE, ir, dst_reg, seg_reg, addr_reg, 0)
 #define uop_MEM_LOAD_DOUBLE(ir, dst_reg, seg_reg, addr_reg)              uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_DOUBLE, ir, dst_reg, seg_reg, addr_reg, 0)
 #define uop_MEM_STORE_ABS(ir, seg_reg, imm, src_reg)                     uop_gen_reg_src2_imm(UOP_MEM_STORE_ABS, ir, seg_reg, src_reg, imm)

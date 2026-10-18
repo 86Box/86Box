@@ -34,6 +34,8 @@
 void *codegen_mem_load_byte;
 void *codegen_mem_load_word;
 void *codegen_mem_load_long;
+void *codegen_mem_load_word_ea;
+void *codegen_mem_load_long_ea;
 void *codegen_mem_load_quad;
 void *codegen_mem_load_single;
 void *codegen_mem_load_double;
@@ -77,8 +79,11 @@ host_reg_def_t codegen_host_fp_reg_list[CODEGEN_HOST_FP_REGS] = {
     { REG_V15, 0}
 };
 
+/*ea_rule: take the direct load whenever the address is at most 0xffc into
+  its page, aligned or not, as the interpreter's eal_r path does; readmemwl
+  and readmemll charge timing_misaligned only on the slow path.*/
 static void
-build_load_routine(codeblock_t *block, int size, int is_float)
+build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
 {
     uint32_t *branch_offset;
     uint32_t *misaligned_offset;
@@ -103,7 +108,11 @@ build_load_routine(codeblock_t *block, int size, int is_float)
     host_arm64_MOV_REG_LSR(block, REG_W1, REG_W0, 12);
     host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) readlookup2);
     host_arm64_LDRX_REG_LSL3(block, REG_X1, REG_X2, REG_X1);
-    if (size != 1) {
+    if (ea_rule) {
+        host_arm64_AND_IMM(block, REG_W2, REG_W0, 0xfff);
+        host_arm64_CMP_IMM(block, REG_W2, 0xffc);
+        misaligned_offset = host_arm64_BHI_(block);
+    } else if (size != 1) {
         host_arm64_TST_IMM(block, REG_W0, size - 1);
         misaligned_offset = host_arm64_BNE_(block);
     }
@@ -217,17 +226,21 @@ static void
 build_loadstore_routines(codeblock_t *block)
 {
     codegen_mem_load_byte = &block_write_data[block_pos];
-    build_load_routine(block, 1, 0);
+    build_load_routine(block, 1, 0, 0);
     codegen_mem_load_word = &block_write_data[block_pos];
-    build_load_routine(block, 2, 0);
+    build_load_routine(block, 2, 0, 0);
     codegen_mem_load_long = &block_write_data[block_pos];
-    build_load_routine(block, 4, 0);
+    build_load_routine(block, 4, 0, 0);
     codegen_mem_load_quad = &block_write_data[block_pos];
-    build_load_routine(block, 8, 0);
+    build_load_routine(block, 8, 0, 0);
     codegen_mem_load_single = &block_write_data[block_pos];
-    build_load_routine(block, 4, 1);
+    build_load_routine(block, 4, 1, 0);
     codegen_mem_load_double = &block_write_data[block_pos];
-    build_load_routine(block, 8, 1);
+    build_load_routine(block, 8, 1, 0);
+    codegen_mem_load_word_ea = &block_write_data[block_pos];
+    build_load_routine(block, 2, 0, 1);
+    codegen_mem_load_long_ea = &block_write_data[block_pos];
+    build_load_routine(block, 4, 0, 1);
 
     codegen_mem_store_byte = &block_write_data[block_pos];
     build_store_routine(block, 1, 0);
@@ -840,7 +853,7 @@ codegen_backend_init(void)
     codegen_fp_round_quad = &block_write_data[block_pos];
     build_fp_round_routine(block, 1);
 
-    codegen_alloc(block, 80);
+    codegen_alloc(block, 128);
     codegen_gpf_rout = &block_write_data[block_pos];
     host_arm64_mov_imm(block, REG_ARG0, 0);
     host_arm64_mov_imm(block, REG_ARG1, 0);

@@ -882,6 +882,21 @@ codegen_reg_rename(codeblock_t *block, ir_reg_t src, ir_reg_t dst)
     }
 }
 
+/*The C code behind an order-barrier uop (a memory slow path charging
+  timing_misaligned or wait states, a helper) can change cycles in memory,
+  which a copy kept in a host register would then overwrite at the next
+  cycle flush.*/
+void
+codegen_reg_drop_cycles(void)
+{
+    host_reg_set_t *reg_set = &host_reg_set;
+
+    for (int c = 0; c < reg_set->nr_regs; c++) {
+        if (!ir_reg_is_invalid(reg_set->regs[c]) && IREG_GET_REG(reg_set->regs[c].reg) == IREG_cycles && !reg_set->dirty[c])
+            reg_set->regs[c] = invalid_ir_reg;
+    }
+}
+
 void
 codegen_reg_flush(UNUSED(ir_data_t *ir), codeblock_t *block)
 {
