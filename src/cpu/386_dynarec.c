@@ -35,6 +35,9 @@
 #ifdef USE_DYNAREC
 #    include "codegen.h"
 #    include "codegen_backend.h"
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+#        include "codegen_link.h"
+#    endif
 #endif
 
 #ifdef IS_DYNAREC
@@ -54,23 +57,6 @@ int cpu_override_dynarec    = 0;
 int inrecomp                = 0;
 int cpu_block_end           = 0;
 int cpu_end_block_after_ins = 0;
-
-#if defined(__aarch64__) || defined(_M_ARM64)
-/* ARM64-only epoch: monotonically advances on dirty-list transitions so
-   per-block retry state can distinguish dense bursts from stale retries. */
-static uint32_t dynarec_s03e_dirty_epoch             = 0;
-#endif
-
-#if defined(__aarch64__) || defined(_M_ARM64)
-/* ARM64-only policy: require repeated BYTE_MASK dirty-list hits before
-   NO_IMMEDIATES promotion to avoid premature slow-immediate escalation. */
-/* Tuning: raise threshold to 3 consecutive dirty-list retries so transient
-   churn is more likely to recover via retry-decay before forcing NO_IMMEDIATES. */
-#    define DYNAREC_S03B_NO_IMM_THRESHOLD 3
-/* Tuning: retry bursts must stay temporally dense; large gaps reset burst
-   accumulation instead of carrying stale debt into later promotions. */
-#    define DYNAREC_S03E_BURST_GAP_MAX 64
-#endif
 
 #ifdef ENABLE_386_DYNAREC_LOG
 int x386_dynarec_do_log = ENABLE_386_DYNAREC_LOG;
@@ -285,8 +271,20 @@ dr_blocks_cache(void)
 
 #ifdef USE_DYNAREC
 int32_t         cycles_main = 0;
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+/* The block link routine does the loop-top stores itself. */
+int32_t  cycles_old = 0;
+uint64_t tsc_old    = 0;
+#    else
 static int32_t  cycles_old  = 0;
 static uint64_t tsc_old     = 0;
+#    endif
+
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+/* Slot pair returned by the last compiled block, while the loop has run
+   nothing else since; NULL otherwise. */
+static codegen_link_slot_t *link_from = NULL;
+#    endif
 
 #    ifdef USE_ACYCS
 int32_t acycs = 0;
@@ -590,6 +588,12 @@ exec386_dynarec_dyn(void)
     int      hash      = HASH(phys_addr);
     codeblock_t *block = &codeblock[codeblock_hash[hash]];
     int valid_block = 0;
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    /* Only a path that ends in compiled code sets it again. */
+    codegen_link_slot_t *from = link_from;
+
+    link_from = NULL;
+#    endif
 
     /* Code in device memory (a BIOS copying a routine into video memory) is
        fetched through the device's read handlers, and nothing tracks writes
@@ -649,6 +653,10 @@ exec386_dynarec_dyn(void)
 
         if (valid_block && (block->page_mask & *block->dirty_mask)) {
             codegen_check_flush(page, page->dirty_mask, phys_addr);
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+            /* Covers the flag write just below. */
+            codegen_link_block_changed(block);
+#        endif
             if (block->valid && (block->flags & CODEBLOCK_IN_DIRTY_LIST))
                 block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
             else
@@ -670,6 +678,10 @@ exec386_dynarec_dyn(void)
                 valid_block = 0;
             else if (block->page_mask2 & *block->dirty_mask2) {
                 codegen_check_flush(page_2, page_2->dirty_mask, phys_addr_2);
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+                /* Covers the flag write just below. */
+                codegen_link_block_changed(block);
+#        endif
                 if (block->valid && (block->flags & CODEBLOCK_IN_DIRTY_LIST))
                     block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
                 else
@@ -677,80 +689,59 @@ exec386_dynarec_dyn(void)
                     valid_block = 0;
             }
         }
-        /* ARM64-only: if a BYTE_MASK block executes stably outside the dirty
-           list, clear stale retry debt so a distant future dirty hit does not
-           trigger premature NO_IMMEDIATES promotion. */
-#        if defined(__aarch64__) || defined(_M_ARM64)
-        if (valid_block && !(block->flags & CODEBLOCK_IN_DIRTY_LIST) && (block->flags & CODEBLOCK_BYTE_MASK)
-            && !(block->flags & CODEBLOCK_NO_IMMEDIATES) && block->dirty_list_recompile_hits) {
-            block->dirty_list_recompile_hits = 0;
-            block->dirty_list_last_epoch     = 0;
-        }
-#        endif
-
         if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST)) {
-            const int had_byte_mask     = !!(block->flags & CODEBLOCK_BYTE_MASK);
-            const int had_no_immediates = !!(block->flags & CODEBLOCK_NO_IMMEDIATES);
-#if defined(__aarch64__) || defined(_M_ARM64)
-            const uint16_t last_epoch_before = block->dirty_list_last_epoch;
-#endif
             block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
-            if (had_byte_mask) {
-                if (!had_no_immediates) {
-#if defined(__aarch64__) || defined(_M_ARM64)
-                    /* ARM64-only: wait for repeated dirty-list BYTE_MASK
-                       hits before NO_IMMEDIATES promotion. */
-                    /* Require retries to occur in a dense burst window;
-                       stale widely-spaced retries are reset. */
-                    dynarec_s03e_dirty_epoch++;
-                    {
-                        const uint16_t cur_epoch = (uint16_t) dynarec_s03e_dirty_epoch;
-
-                        if (last_epoch_before != 0) {
-                            const uint16_t epoch_gap = (uint16_t) (cur_epoch - last_epoch_before);
-                            if (epoch_gap > DYNAREC_S03E_BURST_GAP_MAX) {
-                                block->dirty_list_recompile_hits = 0;
-                            }
-                        }
-                        block->dirty_list_last_epoch = cur_epoch;
-                    }
-                    block->dirty_list_recompile_hits++;
-                    if (block->dirty_list_recompile_hits >= DYNAREC_S03B_NO_IMM_THRESHOLD) {
-                        block->flags |= CODEBLOCK_NO_IMMEDIATES;
-                        block->dirty_list_last_epoch = 0;
-                    }
-#else
-                    block->flags |= CODEBLOCK_NO_IMMEDIATES;
-#endif
-                }
-            } else {
-#if defined(__aarch64__) || defined(_M_ARM64)
-                block->dirty_list_recompile_hits = 0;
-                block->dirty_list_last_epoch     = 0;
-#endif
+            if (block->flags & CODEBLOCK_BYTE_MASK)
+                block->flags |= CODEBLOCK_NO_IMMEDIATES;
+            else
                 block->flags |= CODEBLOCK_BYTE_MASK;
-            }
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+            codegen_link_block_changed(block);
+#        endif
         }
         if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED) && (block->flags & CODEBLOCK_STATIC_TOP) && block->TOP != (cpu_state.TOP & 7))
         {
             /* FPU top-of-stack does not match the value this block was compiled
                with, re-compile using dynamic top-of-stack*/
             block->flags &= ~(CODEBLOCK_STATIC_TOP | CODEBLOCK_WAS_RECOMPILED);
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+            codegen_link_block_changed(block);
+#        endif
         }
+        /* A block whose code was rewritten may be back to bytes it was
+           compiled from before: put that version back rather than compile
+           them again. */
+        if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST) && (block->flags & CODEBLOCK_NO_IMMEDIATES))
+            codegen_block_restore_version(block);
     }
 
     if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED))
     {
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+        codegen_link_slot_t *(*code)(void) = (void *) &block->data[BLOCK_START];
+
+        if (from != NULL)
+            codegen_link_patch(from, block, phys_addr);
+#    else
         void (*code)(void) = (void *) &block->data[BLOCK_START];
+#    endif
 
         block->used = 1; /* run: the eviction sweep passes it over once */
         inrecomp = 1;
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+        link_from = code();
+#    else
         code();
+#    endif
 #    ifdef USE_ACYCS
         acycs = 0;
 #    endif
         inrecomp = 0;
 
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+        if (x86_was_reset)
+            link_from = NULL;
+#    endif
         if (x86_was_reset)
             codegen_reset();
     } else if (valid_block && !cpu_state.abrt) {
@@ -797,6 +788,7 @@ exec386_dynarec_dyn(void)
                 cpu_state.pc++;
 
                 codegen_generate_call(opcode, x86_opcodes[(opcode | cpu_state.op32) & 0x3ff], fetchdat, cpu_state.pc, cpu_state.pc - 1);
+                codegen_block_version_check_ins(cs + cpu_state.oldpc);
 
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
 
@@ -1028,9 +1020,18 @@ exec386_dynarec(int32_t cycs)
             tsc_old          = tsc;
             if (cpu_force_interpreter || cpu_override_dynarec || cpu_flush_pending || (!CACHE_ON())) /*Interpret block*/
             {
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+                link_from = NULL;
+#    endif
                 exec386_dynarec_int();
             } else {
                 exec386_dynarec_dyn();
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+                /* Linked blocks moved the loop-top state on; time is counted
+                   from the last link. */
+                oldcyc = cycles_old;
+                oldtsc = tsc_old;
+#    endif
                 /* A CR0 paging toggle ends the block it is in, so it was the
                    last instruction executed. */
                 if (cpu_flush_pending == 1)
