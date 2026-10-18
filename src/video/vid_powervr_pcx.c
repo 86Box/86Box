@@ -566,16 +566,27 @@ pcx_render_output(pcx_t *pcx)
     if (x0 > x1)
         return;
 
+    /* Only pixels the chip wrote go out; the masking plane leaves the frame
+       buffer as it was. Each run of written pixels is one bus-master write. */
     for (int y = r->min_y; y <= r->max_y && y < PCXR_MAX_H; y++) {
         const uint32_t *src = &pcx->rgb[y * PCXR_MAX_W];
-        uint32_t        n   = 0;
-        for (int x = x0; x <= x1; x++) {
-            uint32_t px;
-            bpp = pcxr_pack(pcx->job_packmode, src[x], x, y, &px);
-            memcpy(&line[n], &px, bpp);
-            n += bpp;
+        int             x   = x0;
+        while (x <= x1) {
+            uint32_t n = 0;
+            int      start;
+            while (x <= x1 && !(src[x] & PCXR_WRITTEN))
+                x++;
+            start = x;
+            while (x <= x1 && (src[x] & PCXR_WRITTEN)) {
+                uint32_t px;
+                bpp = pcxr_pack(pcx->job_packmode, src[x], x, y, &px);
+                memcpy(&line[n], &px, bpp);
+                n += bpp;
+                x++;
+            }
+            if (n)
+                dma_bm_write(pcx->job_sofaddr + y * pcx->job_stride + start * bpp, line, n, 4);
         }
-        dma_bm_write(pcx->job_sofaddr + y * pcx->job_stride + x0 * bpp, line, n, 4);
     }
 }
 

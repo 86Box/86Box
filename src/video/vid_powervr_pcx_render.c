@@ -101,6 +101,8 @@ clz32(uint32_t v) /* v != 0 */
 #define SHIFT_PMIP_M        24
 #define SHIFT_PMIP_E        18
 
+#define MASKING_PLANE_ADDR 2u /* TSP word address of the masking plane */
+
 #define BIG_BANK 0x100000u /* texture pixel address of the second bank (2 MB) */
 
 /* ISP plane instructions. */
@@ -633,6 +635,12 @@ texas(ctx_t *c, int x, int y, uint32_t address, int shadow, int fog)
 
     if ((unsigned) x >= PCXR_MAX_W || (unsigned) y >= PCXR_MAX_H)
         return;
+    /* TSP address 2 (tag 1) is the PCX2 masking plane: where it is the
+       visible surface the pixel is not written at all, so whatever is in
+       the frame buffer shows through. The D3D driver uses it as the
+       background; measured on the m3D. */
+    if (address == MASKING_PLANE_ADDR)
+        return;
     dst = &c->rgb[y * PCXR_MAX_W + x];
 
     if (w0 & MASK_SMOOTH_SHADE) {
@@ -777,7 +785,7 @@ texas(ctx_t *c, int x, int y, uint32_t address, int shadow, int fog)
         col.b = (uint8_t) blue;
     }
 
-    *dst = ((uint32_t) col.r << 16) | ((uint32_t) col.g << 8) | col.b;
+    *dst = PCXR_WRITTEN | ((uint32_t) col.r << 16) | ((uint32_t) col.g << 8) | col.b;
     c->res->pixels_shaded++;
 }
 
@@ -1360,10 +1368,21 @@ pcxr_render_tiles(pcxr_job_t *job, uint32_t *rgb, uint32_t first, uint32_t step)
                                 if (creg >= 0 && end >= 0 && creg < ((int64_t) 1 << 39) && end < ((int64_t) 1 << 39))
                                     goto next_plane;
                             }
-                            for (int cl = 0; cl < NUM_CELLS; cl++) {
-                                int64_t v = creg + (int64_t) cl * pl->a;
-                                /* v / 256, rounding toward zero like the simulator */
-                                depth[cl] = (int32_t) (uint32_t) ((v + ((v >> 63) & 255)) >> 8);
+                            if (wi.plane_perp) {
+                                /* Edge planes: the inside test sees the sign of
+                                   the full 40-bit sum, so a value just below
+                                   zero is outside (rounding toward zero would
+                                   make it 0, inside). Measured on the m3D. */
+                                for (int cl = 0; cl < NUM_CELLS; cl++) {
+                                    int64_t v = creg + (int64_t) cl * pl->a;
+                                    depth[cl] = (int32_t) (uint32_t) (v >> 8);
+                                }
+                            } else {
+                                for (int cl = 0; cl < NUM_CELLS; cl++) {
+                                    int64_t v = creg + (int64_t) cl * pl->a;
+                                    /* v / 256, rounding toward zero like the simulator */
+                                    depth[cl] = (int32_t) (uint32_t) ((v + ((v >> 63) & 255)) >> 8);
+                                }
                             }
                             cells_process(&cells, &wi, depth, pl->index);
                         }

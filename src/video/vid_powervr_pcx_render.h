@@ -60,8 +60,12 @@ void        pcxr_job_destroy(pcxr_job_t *job);
 int         pcxr_prepare(pcxr_job_t *job, const pcxr_frame_t *f, pcxr_result_t *res);
 uint32_t    pcxr_render_tiles(pcxr_job_t *job, uint32_t *rgb, uint32_t first, uint32_t step);
 
-/* Render one frame into rgb (PCXR_MAX_W x PCXR_MAX_H, 0x00RRGGBB). Pixels
-   outside the tiles are left untouched. */
+/* Render one frame into rgb (PCXR_MAX_W x PCXR_MAX_H, 0x00RRGGBB). Every
+   pixel the chip writes gets PCXR_WRITTEN set; the rest (outside the tiles,
+   or showing only the masking plane) are left untouched and must not be
+   written to the frame buffer. */
+#define PCXR_WRITTEN 0x01000000u
+
 void pcxr_render(const pcxr_frame_t *f, uint32_t *rgb, pcxr_result_t *res);
 
 /* Pack 0x00RRGGBB into the PACKMODE output format. bytes_per_pixel is
