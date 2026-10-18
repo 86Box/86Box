@@ -38,6 +38,8 @@ void codegen_allocator_init(void);
 struct mem_block_t *codegen_allocator_allocate(struct mem_block_t *parent, int code_block);
 /*Free a mem_block_t, and any subsequent blocks in the list at block->next*/
 void codegen_allocator_free(struct mem_block_t *block);
+void codegen_allocator_free_version(struct mem_block_t *block);
+void codegen_allocator_owner(int code_block, int owns);
 /*Get a pointer to the backing memory associated with block*/
 uint8_t *codeblock_allocator_get_ptr(struct mem_block_t *block);
 /*Cache clean memory block list*/

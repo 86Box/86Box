@@ -203,6 +203,43 @@ codegen_allocator_free(mem_block_t *block)
     }
 }
 
+/*Free the memory of a code block's kept earlier version. The code block keeps
+  its place in the list freed from when memory runs out: it may still own its
+  current code.*/
+void
+codegen_allocator_free_version(mem_block_t *block)
+{
+    int block_nr = (((uintptr_t) block - (uintptr_t) mem_blocks) / sizeof(mem_block_t)) + 1;
+
+    block->tail = 0;
+    while (1) {
+        int next_block_nr = block->next;
+        codegen_allocator_usage--;
+
+        block->next         = mem_block_free_list;
+        block->code_block   = BLOCK_INVALID;
+        mem_block_free_list = block_nr;
+        block_nr            = next_block_nr;
+
+        if (block_nr)
+            block = &mem_blocks[block_nr - 1];
+        else
+            break;
+    }
+}
+
+/*Keep a code block in the list freed from when memory runs out exactly while
+  it owns memory, its kept versions' included*/
+void
+codegen_allocator_owner(int code_block, int owns)
+{
+    if (owns && !valid_code_blocks[code_block]) {
+        valid_code_blocks[code_block] = 1;
+        add_to_block_list(code_block);
+    } else if (!owns && valid_code_blocks[code_block])
+        remove_from_block_list(&mem_code_blocks[code_block]);
+}
+
 uint8_t *
 codeblock_allocator_get_ptr(mem_block_t *block)
 {
