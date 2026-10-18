@@ -1074,11 +1074,12 @@ else
 
 	# Build rtmidi without JACK support to remove the dependency on libjack, as
 	# the Debian libjack is very likely to be incompatible with the system jackd.
-	prefix="$cache_dir/rtmidi-6.1.0"
+	# Newer versions are ABI incompatible (moved from .7 to .8)
+	prefix="$cache_dir/rtmidi-6.0.0"
 	if [ ! -d "$prefix" ]
 	then
 		rm -rf "$cache_dir/rtmidi-"* # remove old versions
-		wget -qO - https://github.com/thestk/rtmidi/archive/refs/tags/6.1.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+		wget -qO - https://github.com/thestk/rtmidi/archive/refs/tags/6.0.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
 	prefix_build="$prefix/build-$arch_deb-$cmake_build_type"
 	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_BUILD_TYPE=$cmake_build_type" -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
