@@ -13,6 +13,8 @@
 #    include "codegen_backend.h"
 #    include "codegen_backend_arm64_defs.h"
 #    include "codegen_backend_arm64_ops.h"
+#    include "codegen_ir_defs.h"
+#    include "codegen_ops_rep.h"
 #    include "codegen_reg.h"
 #    include "x86.h"
 #    include "x86seg_common.h"
@@ -49,6 +51,7 @@ void *codegen_fp_round_quad;
 void *codegen_gpf_rout;
 void *codegen_ss_rout;
 void *codegen_exit_rout;
+void *codegen_rep_rout[2][3][2];
 
 host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS] = {
     { REG_X19, 0},
@@ -283,6 +286,528 @@ build_fp_round_routine(codeblock_t *block, int is_quad)
     host_arm64_RET(block, REG_X30);
 }
 
+#    define REP_SEG     REG_X9
+#    define REP_CNT     REG_W10
+#    define REP_SRC     REG_W11
+#    define REP_VAL     REG_X11
+#    define REP_DST     REG_W12
+#    define REP_CYCLES  REG_W13
+#    define REP_END     REG_W14
+#    define REP_STEP    REG_W15
+#    define REP_ELEMCYC REG_W17
+#    define REP_SLOW    REG_W8
+#    define REP_RL      REG_X3
+#    define REP_WL      REG_X4
+
+#    define REP_MAX_PATCH 24
+
+static int
+rep_state_offset(void *p)
+{
+    return (int) ((uintptr_t) p - (uintptr_t) &cpu_state);
+}
+
+static void
+rep_patch_list(uint32_t **list, int nr, void *dest)
+{
+    for (int c = 0; c < nr; c++)
+        host_arm64_branch_set_offset(list[c], dest);
+}
+
+static void
+rep_writeback(codeblock_t *block, int is_stos, int a32)
+{
+    if (a32) {
+        host_arm64_STR_IMM_W(block, REP_CNT, REG_CPUSTATE, rep_state_offset(&ECX));
+        if (!is_stos)
+            host_arm64_STR_IMM_W(block, REP_SRC, REG_CPUSTATE, rep_state_offset(&ESI));
+        host_arm64_STR_IMM_W(block, REP_DST, REG_CPUSTATE, rep_state_offset(&EDI));
+    } else {
+        host_arm64_STRH_IMM(block, REP_CNT, REG_CPUSTATE, rep_state_offset(&CX));
+        if (!is_stos)
+            host_arm64_STRH_IMM(block, REP_SRC, REG_CPUSTATE, rep_state_offset(&SI));
+        host_arm64_STRH_IMM(block, REP_DST, REG_CPUSTATE, rep_state_offset(&DI));
+    }
+    host_arm64_STR_IMM_W(block, REP_CYCLES, REG_CPUSTATE, rep_state_offset(&cpu_state._cycles));
+}
+
+/*Sets W6 to 1 if the segment at base_reg + offset would fail the interpreter's
+  null selector or not-present check, using W2 = (msw & 1) && !(eflags & VM)*/
+static void
+rep_seg_check(codeblock_t *block, int base_reg, int offset)
+{
+    host_arm64_LDR_IMM_W(block, REG_W5, base_reg, offset + offsetof(x86seg, base));
+    host_arm64_CMN_IMM(block, REG_W5, 1);
+    host_arm64_CSET_NE(block, REG_W6);
+    host_arm64_EOR_IMM(block, REG_W6, REG_W6, 1);
+    host_arm64_ORR_REG(block, REP_SLOW, REP_SLOW, REG_W6, 0);
+    host_arm64_LDRB_IMM_W(block, REG_W5, base_reg, offset + offsetof(x86seg, access));
+    host_arm64_TST_IMM(block, REG_W5, 0x80);
+    host_arm64_CSEL_EQ(block, REG_W6, REG_W2, REG_WZR);
+    host_arm64_ORR_REG(block, REP_SLOW, REP_SLOW, REG_W6, 0);
+}
+
+/*Clamps W0 to W1 (unsigned)*/
+static void
+rep_min(codeblock_t *block)
+{
+    host_arm64_CMP_REG(block, REG_W0, REG_W1);
+    host_arm64_CSEL_CC(block, REG_W0, REG_W0, REG_W1);
+}
+
+/*Forward run: W1 = elements left in the page at lin_reg*/
+static void
+rep_page_room_fwd(codeblock_t *block, int lin_reg, int shift)
+{
+    host_arm64_EOR_IMM(block, REG_W1, lin_reg, 0xfff);
+    host_arm64_AND_IMM(block, REG_W1, REG_W1, 0xfff);
+    host_arm64_ADD_IMM(block, REG_W1, REG_W1, 1);
+    if (shift)
+        host_arm64_MOV_REG_LSR(block, REG_W1, REG_W1, shift);
+    rep_min(block);
+}
+
+/*Backward run: W1 = elements down to the start of the page at lin_reg*/
+static void
+rep_page_room_bwd(codeblock_t *block, int lin_reg, int shift)
+{
+    host_arm64_AND_IMM(block, REG_W1, lin_reg, 0xfff);
+    if (shift)
+        host_arm64_MOV_REG_LSR(block, REG_W1, REG_W1, shift);
+    host_arm64_ADD_IMM(block, REG_W1, REG_W1, 1);
+    rep_min(block);
+}
+
+/*Forward run: elements before the offset in off_reg wraps. Zero if the
+  first element already straddles the wrap.*/
+static void
+rep_offset_room_fwd(codeblock_t *block, int off_reg, int shift, int a32)
+{
+    if (a32) {
+        host_arm64_SUB_REG(block, REG_W1, REG_WZR, off_reg, 0);
+        if (shift)
+            host_arm64_MOV_REG_LSR(block, REG_W1, REG_W1, shift);
+        /*Offset 0 has the whole 4 GB ahead of it*/
+        host_arm64_CMP_IMM(block, off_reg, 0);
+        host_arm64_CSEL_EQ(block, REG_W1, REP_CNT, REG_W1);
+    } else {
+        host_arm64_mov_imm(block, REG_W1, 0x10000);
+        host_arm64_SUB_REG(block, REG_W1, REG_W1, off_reg, 0);
+        if (shift)
+            host_arm64_MOV_REG_LSR(block, REG_W1, REG_W1, shift);
+    }
+    rep_min(block);
+}
+
+/*Backward run: elements down to offset 0, and a branch to the slow path if
+  the first element straddles the top of the offset range*/
+static void
+rep_offset_room_bwd(codeblock_t *block, int off_reg, int shift, int a32, uint32_t **slow, int *nr_slow)
+{
+    int size = 1 << shift;
+
+    if (shift)
+        host_arm64_MOV_REG_LSR(block, REG_W1, off_reg, shift);
+    else
+        host_arm64_MOV_REG(block, REG_W1, off_reg, 0);
+    host_arm64_ADD_IMM(block, REG_W1, REG_W1, 1);
+    rep_min(block);
+    if (size > 1) {
+        if (a32) {
+            host_arm64_CMN_IMM(block, off_reg, size - 1);
+            slow[(*nr_slow)++] = host_arm64_BCS_(block);
+        } else {
+            host_arm64_ADD_IMM(block, REG_W1, off_reg, size - 1);
+            host_arm64_MOV_REG_LSR(block, REG_W1, REG_W1, 16);
+            host_arm64_CMP_IMM(block, REG_W1, 0);
+            slow[(*nr_slow)++] = host_arm64_BNE_(block);
+        }
+    }
+}
+
+/*Branches to the slow path unless every element of the run lies inside the
+  segment's limits. W1 = run length in bytes, W15 = step.*/
+static void
+rep_limit_check(codeblock_t *block, int off_reg, int base_reg, int seg_offset, int size, uint32_t **slow, int *nr_slow)
+{
+    uint32_t *bwd;
+    uint32_t *done;
+
+    bwd = host_arm64_TBNZ(block, REP_STEP, 31);
+    host_arm64_LDR_IMM_W(block, REG_W7, base_reg, seg_offset + offsetof(x86seg, limit_low));
+    host_arm64_CMP_REG(block, off_reg, REG_W7);
+    slow[(*nr_slow)++] = host_arm64_BCC_(block);
+    host_arm64_ADD_REG(block, REG_W2, off_reg, REG_W1, 0);
+    host_arm64_SUB_IMM(block, REG_W2, REG_W2, 1);
+    host_arm64_LDR_IMM_W(block, REG_W7, base_reg, seg_offset + offsetof(x86seg, limit_high));
+    host_arm64_CMP_REG(block, REG_W2, REG_W7);
+    slow[(*nr_slow)++] = host_arm64_BHI_(block);
+    done = host_arm64_B_(block);
+
+    host_arm64_branch_set_offset(bwd, &block_write_data[block_pos]);
+    host_arm64_SUB_REG(block, REG_W2, off_reg, REG_W1, 0);
+    host_arm64_ADD_IMM(block, REG_W2, REG_W2, size);
+    host_arm64_LDR_IMM_W(block, REG_W7, base_reg, seg_offset + offsetof(x86seg, limit_low));
+    host_arm64_CMP_REG(block, REG_W2, REG_W7);
+    slow[(*nr_slow)++] = host_arm64_BCC_(block);
+    host_arm64_ADD_IMM(block, REG_W2, off_reg, size - 1);
+    host_arm64_LDR_IMM_W(block, REG_W7, base_reg, seg_offset + offsetof(x86seg, limit_high));
+    host_arm64_CMP_REG(block, REG_W2, REG_W7);
+    slow[(*nr_slow)++] = host_arm64_BHI_(block);
+
+    host_arm64_branch_set_offset(done, &block_write_data[block_pos]);
+}
+
+static void
+rep_step_offset(codeblock_t *block, int off_reg, int delta_reg, int a32)
+{
+    host_arm64_ADD_REG(block, off_reg, off_reg, delta_reg, 0);
+    if (!a32)
+        host_arm64_AND_IMM(block, off_reg, off_reg, 0xffff);
+}
+
+/*REP MOVS and REP STOS.
+  In  - W0 = source segment offset in cpu_state (bits 0-11), cycle limit
+             (bits 12-23), cycles per element (bits 24-31)
+  Out - W0 = 0 to carry on with the block, non-zero to leave it with
+             cpu_state.pc set back to the instruction
+
+  Does what the interpreter's REP handlers in x86_ops_rep_dyn.h do: the same
+  cycles per element, and the block ends at the same element when the string
+  outlasts the cycle limit or the trap flag is set. Elements are copied in
+  runs that stay inside one source page and one destination page, both with
+  direct lookups, inside both segment limits and inside the cycle budget, so a
+  run does exactly what the interpreter's fast path does for each element.
+  Any other element goes through elem_func, which is the interpreter's loop
+  body for one element.*/
+static void
+build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*elem_func)(x86seg *seg))
+{
+    int       size = 1 << shift;
+    int       es_offset = rep_state_offset(&cpu_state.seg_es);
+    uint32_t *slow[REP_MAX_PATCH];
+    int       nr_slow = 0;
+    uint32_t *to_done;
+    uint32_t *to_break[2];
+    uint32_t *to_abort;
+    uint32_t *branch;
+    uint32_t *branch2;
+    uint8_t  *loop;
+    uint8_t  *target;
+    uint8_t  *done_ret;
+
+    /*Unpack the parameters*/
+    host_arm64_UBFX(block, REG_W1, REG_W0, 12, 12);
+    host_arm64_UBFX(block, REP_ELEMCYC, REG_W0, 24, 8);
+    if (!is_stos) {
+        host_arm64_AND_IMM(block, REG_W0, REG_W0, 0xfff);
+        host_arm64_ADDX_REG_UXTW(block, REP_SEG, REG_CPUSTATE, REG_W0);
+    }
+
+    /*Guest registers*/
+    if (a32) {
+        host_arm64_LDR_IMM_W(block, REP_CNT, REG_CPUSTATE, rep_state_offset(&ECX));
+        if (!is_stos)
+            host_arm64_LDR_IMM_W(block, REP_SRC, REG_CPUSTATE, rep_state_offset(&ESI));
+        host_arm64_LDR_IMM_W(block, REP_DST, REG_CPUSTATE, rep_state_offset(&EDI));
+    } else {
+        host_arm64_LDRH_IMM(block, REP_CNT, REG_CPUSTATE, rep_state_offset(&CX));
+        if (!is_stos)
+            host_arm64_LDRH_IMM(block, REP_SRC, REG_CPUSTATE, rep_state_offset(&SI));
+        host_arm64_LDRH_IMM(block, REP_DST, REG_CPUSTATE, rep_state_offset(&DI));
+    }
+    host_arm64_LDR_IMM_W(block, REP_CYCLES, REG_CPUSTATE, rep_state_offset(&cpu_state._cycles));
+
+    /*Cycle count at which the loop stops: one element only with the trap flag set*/
+    host_arm64_SUB_REG(block, REP_END, REP_CYCLES, REG_W1, 0);
+    host_arm64_ADD_IMM(block, REG_W5, REP_CYCLES, 1);
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &trap);
+    host_arm64_LDR_IMM_W(block, REG_W2, REG_X2, 0);
+    host_arm64_CMP_IMM(block, REG_W2, 0);
+    host_arm64_CSEL_EQ(block, REP_END, REP_END, REG_W5);
+
+    /*Direction*/
+    host_arm64_LDRH_IMM(block, REG_W2, REG_CPUSTATE, rep_state_offset(&cpu_state.flags));
+    host_arm64_mov_imm(block, REP_STEP, size);
+    host_arm64_mov_imm(block, REG_W5, -size);
+    host_arm64_TST_IMM(block, REG_W2, D_FLAG);
+    host_arm64_CSEL_EQ(block, REP_STEP, REP_STEP, REG_W5);
+
+    /*Conditions that send every element down the slow path: debug
+      breakpoints, which the interpreter's translate check looks at, and a
+      segment that would fault*/
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &dr[7]);
+    host_arm64_LDR_IMM_W(block, REP_SLOW, REG_X2, 0);
+    host_arm64_AND_IMM(block, REP_SLOW, REP_SLOW, 0xff);
+    host_arm64_LDRH_IMM(block, REG_W2, REG_CPUSTATE, rep_state_offset(&cpu_state.CR0.w));
+    host_arm64_AND_IMM(block, REG_W2, REG_W2, 1);
+    host_arm64_LDRH_IMM(block, REG_W5, REG_CPUSTATE, rep_state_offset(&cpu_state.eflags));
+    host_arm64_TST_IMM(block, REG_W5, VM_FLAG);
+    host_arm64_CSEL_EQ(block, REG_W2, REG_W2, REG_WZR);
+    rep_seg_check(block, REG_CPUSTATE, es_offset);
+    if (!is_stos)
+        rep_seg_check(block, REP_SEG, 0);
+
+    /*Lookup tables, and the value to store*/
+    if (!is_stos)
+        host_arm64_MOVX_IMM(block, REP_RL, (uint64_t) readlookup2);
+    host_arm64_MOVX_IMM(block, REP_WL, (uint64_t) writelookup2);
+    if (is_stos) {
+        if (size == 1) {
+            host_arm64_LDRB_IMM_W(block, REG_W11, REG_CPUSTATE, rep_state_offset(&AL));
+            host_arm64_ORR_REG(block, REG_W11, REG_W11, REG_W11, 8);
+            host_arm64_ORR_REG(block, REG_W11, REG_W11, REG_W11, 16);
+        } else if (size == 2) {
+            host_arm64_LDRH_IMM(block, REG_W11, REG_CPUSTATE, rep_state_offset(&AX));
+            host_arm64_ORR_REG(block, REG_W11, REG_W11, REG_W11, 16);
+        } else
+            host_arm64_LDR_IMM_W(block, REG_W11, REG_CPUSTATE, rep_state_offset(&EAX));
+        host_arm64_ORRX_REG(block, REP_VAL, REP_VAL, REP_VAL, 32);
+    }
+
+    /*Top of the loop*/
+    loop = &block_write_data[block_pos];
+    host_arm64_CMP_IMM(block, REP_CNT, 0);
+    to_done = host_arm64_BEQ_(block);
+    host_arm64_CMP_IMM(block, REP_SLOW, 0);
+    slow[nr_slow++] = host_arm64_BNE_(block);
+
+    /*Linear addresses, W2 = source, W7 = destination*/
+    if (!is_stos) {
+        host_arm64_LDR_IMM_W(block, REG_W5, REP_SEG, offsetof(x86seg, base));
+        host_arm64_ADD_REG(block, REG_W2, REG_W5, REP_SRC, 0);
+    }
+    host_arm64_LDR_IMM_W(block, REG_W6, REG_CPUSTATE, es_offset + offsetof(x86seg, base));
+    host_arm64_ADD_REG(block, REG_W7, REG_W6, REP_DST, 0);
+    if (size > 1) {
+        /*Misaligned elements take the interpreter's slow path*/
+        if (!is_stos) {
+            host_arm64_ORR_REG(block, REG_W5, REG_W2, REG_W7, 0);
+            host_arm64_TST_IMM(block, REG_W5, size - 1);
+        } else
+            host_arm64_TST_IMM(block, REG_W7, size - 1);
+        slow[nr_slow++] = host_arm64_BNE_(block);
+    }
+
+    /*W0 = run length, limited to what is left of each page*/
+    host_arm64_MOV_REG(block, REG_W0, REP_CNT, 0);
+    branch = host_arm64_TBNZ(block, REP_STEP, 31);
+    rep_page_room_fwd(block, REG_W7, shift);
+    if (!is_stos)
+        rep_page_room_fwd(block, REG_W2, shift);
+    branch2 = host_arm64_B_(block);
+    host_arm64_branch_set_offset(branch, &block_write_data[block_pos]);
+    rep_page_room_bwd(block, REG_W7, shift);
+    if (!is_stos)
+        rep_page_room_bwd(block, REG_W2, shift);
+    host_arm64_branch_set_offset(branch2, &block_write_data[block_pos]);
+
+    /*Direct lookups for both pages, X5 = source and X6 = destination host pointers*/
+    if (!is_stos) {
+        host_arm64_MOV_REG_LSR(block, REG_W5, REG_W2, 12);
+        host_arm64_LDRX_REG_LSL3(block, REG_X5, REP_RL, REG_X5);
+        host_arm64_CMPX_IMM(block, REG_X5, -1);
+        slow[nr_slow++] = host_arm64_BEQ_(block);
+        host_arm64_ADDX_REG_UXTW(block, REG_X5, REG_X5, REG_W2);
+    }
+    host_arm64_MOV_REG_LSR(block, REG_W6, REG_W7, 12);
+    host_arm64_LDRX_REG_LSL3(block, REG_X6, REP_WL, REG_X6);
+    host_arm64_CMPX_IMM(block, REG_X6, -1);
+    slow[nr_slow++] = host_arm64_BEQ_(block);
+    host_arm64_ADDX_REG_UXTW(block, REG_X6, REG_X6, REG_W7);
+
+    /*Limit the run to offsets that do not wrap*/
+    branch = host_arm64_TBNZ(block, REP_STEP, 31);
+    rep_offset_room_fwd(block, REP_DST, shift, a32);
+    if (!is_stos)
+        rep_offset_room_fwd(block, REP_SRC, shift, a32);
+    branch2 = host_arm64_B_(block);
+    host_arm64_branch_set_offset(branch, &block_write_data[block_pos]);
+    rep_offset_room_bwd(block, REP_DST, shift, a32, slow, &nr_slow);
+    if (!is_stos)
+        rep_offset_room_bwd(block, REP_SRC, shift, a32, slow, &nr_slow);
+    host_arm64_branch_set_offset(branch2, &block_write_data[block_pos]);
+
+    /*Limit the run to the cycle budget: the element that takes the count
+      below the end is the last one*/
+    host_arm64_SUB_REG(block, REG_W1, REP_CYCLES, REP_END, 0);
+    branch = host_arm64_TBNZ(block, REG_W1, 31);
+    host_arm64_UDIV(block, REG_W1, REG_W1, REP_ELEMCYC);
+    host_arm64_ADD_IMM(block, REG_W1, REG_W1, 1);
+    branch2 = host_arm64_B_(block);
+    host_arm64_branch_set_offset(branch, &block_write_data[block_pos]);
+    host_arm64_mov_imm(block, REG_W1, 1);
+    host_arm64_branch_set_offset(branch2, &block_write_data[block_pos]);
+    rep_min(block);
+    host_arm64_CMP_IMM(block, REG_W0, 0);
+    slow[nr_slow++] = host_arm64_BEQ_(block);
+
+    /*Segment limits for the whole run, W1 = run length in bytes*/
+    host_arm64_MOV_REG(block, REG_W1, REG_W0, shift);
+    rep_limit_check(block, REP_DST, REG_CPUSTATE, es_offset, size, slow, &nr_slow);
+    if (!is_stos)
+        rep_limit_check(block, REP_SRC, REP_SEG, 0, size, slow, &nr_slow);
+
+    /*Nothing in the run can fault now, so step the registers past it*/
+    host_arm64_SUB_REG(block, REP_CNT, REP_CNT, REG_W0, 0);
+    host_arm64_MUL_W(block, REG_W2, REP_STEP, REG_W0);
+    rep_step_offset(block, REP_DST, REG_W2, a32);
+    if (!is_stos)
+        rep_step_offset(block, REP_SRC, REG_W2, a32);
+    host_arm64_MUL_W(block, REG_W2, REP_ELEMCYC, REG_W0);
+    host_arm64_SUB_REG(block, REP_CYCLES, REP_CYCLES, REG_W2, 0);
+
+    /*Copy. Forward runs move 16 bytes at a time unless the destination
+      starts less than 16 bytes after the source, where a later element
+      reads what an earlier one wrote*/
+    branch = host_arm64_TBNZ(block, REP_STEP, 31);
+    if (!is_stos) {
+        uint32_t *wide;
+
+        host_arm64_SUBX_REG(block, REG_X2, REG_X6, REG_X5);
+        host_arm64_CMPX_IMM(block, REG_X2, 16);
+        wide = host_arm64_BCS_(block);
+        host_arm64_CMPX_IMM(block, REG_X2, 0);
+        branch2 = host_arm64_BNE_(block);
+        host_arm64_branch_set_offset(wide, &block_write_data[block_pos]);
+    } else
+        branch2 = NULL;
+    host_arm64_CMP_IMM(block, REG_W1, 16);
+    {
+        uint32_t *narrow = host_arm64_BCC_(block);
+        uint32_t *back;
+
+        target = &block_write_data[block_pos];
+        if (!is_stos) {
+            host_arm64_LDP_POSTIDX_X(block, REG_X2, REG_X7, REG_X5, 16);
+            host_arm64_STP_POSTIDX_X(block, REG_X2, REG_X7, REG_X6, 16);
+        } else
+            host_arm64_STP_POSTIDX_X(block, REP_VAL, REP_VAL, REG_X6, 16);
+        host_arm64_SUB_IMM(block, REG_W1, REG_W1, 16);
+        host_arm64_CMP_IMM(block, REG_W1, 16);
+        back = host_arm64_BCS_(block);
+        host_arm64_branch_set_offset(back, target);
+
+        host_arm64_branch_set_offset(narrow, &block_write_data[block_pos]);
+        if (branch2)
+            host_arm64_branch_set_offset(branch2, &block_write_data[block_pos]);
+    }
+    {
+        uint32_t *empty;
+        uint32_t *back;
+        uint32_t *copied;
+
+        host_arm64_CMP_IMM(block, REG_W1, 0);
+        empty = host_arm64_BEQ_(block);
+        target = &block_write_data[block_pos];
+        if (size == 1) {
+            if (!is_stos)
+                host_arm64_LDRB_POSTIDX(block, REG_W2, REG_X5, 1);
+            host_arm64_STRB_POSTIDX(block, is_stos ? REG_W11 : REG_W2, REG_X6, 1);
+        } else if (size == 2) {
+            if (!is_stos)
+                host_arm64_LDRH_POSTIDX(block, REG_W2, REG_X5, 2);
+            host_arm64_STRH_POSTIDX(block, is_stos ? REG_W11 : REG_W2, REG_X6, 2);
+        } else {
+            if (!is_stos)
+                host_arm64_LDR_POSTIDX_W(block, REG_W2, REG_X5, 4);
+            host_arm64_STR_POSTIDX_W(block, is_stos ? REG_W11 : REG_W2, REG_X6, 4);
+        }
+        host_arm64_SUB_IMM(block, REG_W1, REG_W1, size);
+        host_arm64_CMP_IMM(block, REG_W1, 0);
+        back = host_arm64_BNE_(block);
+        host_arm64_branch_set_offset(back, target);
+        host_arm64_branch_set_offset(empty, &block_write_data[block_pos]);
+        copied = host_arm64_B_(block);
+
+        /*Backward runs go one element at a time*/
+        host_arm64_branch_set_offset(branch, &block_write_data[block_pos]);
+        target = &block_write_data[block_pos];
+        if (size == 1) {
+            if (!is_stos)
+                host_arm64_LDRB_POSTIDX(block, REG_W2, REG_X5, -1);
+            host_arm64_STRB_POSTIDX(block, is_stos ? REG_W11 : REG_W2, REG_X6, -1);
+        } else if (size == 2) {
+            if (!is_stos)
+                host_arm64_LDRH_POSTIDX(block, REG_W2, REG_X5, -2);
+            host_arm64_STRH_POSTIDX(block, is_stos ? REG_W11 : REG_W2, REG_X6, -2);
+        } else {
+            if (!is_stos)
+                host_arm64_LDR_POSTIDX_W(block, REG_W2, REG_X5, -4);
+            host_arm64_STR_POSTIDX_W(block, is_stos ? REG_W11 : REG_W2, REG_X6, -4);
+        }
+        host_arm64_SUB_IMM(block, REG_W1, REG_W1, size);
+        host_arm64_CMP_IMM(block, REG_W1, 0);
+        back = host_arm64_BNE_(block);
+        host_arm64_branch_set_offset(back, target);
+        host_arm64_branch_set_offset(copied, &block_write_data[block_pos]);
+    }
+    host_arm64_CMP_REG(block, REP_CYCLES, REP_END);
+    to_break[0] = host_arm64_BLT_(block);
+    host_arm64_B(block, loop);
+
+    /*One element through the interpreter's loop body*/
+    rep_patch_list(slow, nr_slow, &block_write_data[block_pos]);
+    rep_writeback(block, is_stos, a32);
+    host_arm64_STP_PREIDX_X(block, REG_X29, REG_X30, REG_XSP, -16);
+    host_arm64_STP_PREIDX_X(block, REG_X3, REG_X4, REG_XSP, -16);
+    host_arm64_STP_PREIDX_X(block, REG_X8, REG_X9, REG_XSP, -16);
+    host_arm64_STP_PREIDX_X(block, REG_X10, REG_X11, REG_XSP, -16);
+    host_arm64_STP_PREIDX_X(block, REG_X12, REG_X13, REG_XSP, -16);
+    host_arm64_STP_PREIDX_X(block, REG_X14, REG_X15, REG_XSP, -16);
+    host_arm64_STP_PREIDX_X(block, REG_X17, REG_X1, REG_XSP, -16);
+    host_arm64_MOVX_REG(block, REG_X0, REP_SEG, 0);
+    host_arm64_call(block, (void *) elem_func);
+    host_arm64_LDP_POSTIDX_X(block, REG_X17, REG_X1, REG_XSP, 16);
+    host_arm64_LDP_POSTIDX_X(block, REG_X14, REG_X15, REG_XSP, 16);
+    host_arm64_LDP_POSTIDX_X(block, REG_X12, REG_X13, REG_XSP, 16);
+    host_arm64_LDP_POSTIDX_X(block, REG_X10, REG_X11, REG_XSP, 16);
+    host_arm64_LDP_POSTIDX_X(block, REG_X8, REG_X9, REG_XSP, 16);
+    host_arm64_LDP_POSTIDX_X(block, REG_X3, REG_X4, REG_XSP, 16);
+    host_arm64_LDP_POSTIDX_X(block, REG_X29, REG_X30, REG_XSP, 16);
+    /*A misaligned access charges extra cycles*/
+    host_arm64_LDR_IMM_W(block, REP_CYCLES, REG_CPUSTATE, rep_state_offset(&cpu_state._cycles));
+    host_arm64_CMP_IMM(block, REG_W0, 0);
+    to_abort = host_arm64_BNE_(block);
+    if (!is_stos)
+        rep_step_offset(block, REP_SRC, REP_STEP, a32);
+    rep_step_offset(block, REP_DST, REP_STEP, a32);
+    host_arm64_SUB_IMM(block, REP_CNT, REP_CNT, 1);
+    host_arm64_SUB_REG(block, REP_CYCLES, REP_CYCLES, REP_ELEMCYC, 0);
+    host_arm64_CMP_REG(block, REP_CYCLES, REP_END);
+    to_break[1] = host_arm64_BLT_(block);
+    host_arm64_B(block, loop);
+
+    /*Count ran out*/
+    host_arm64_branch_set_offset(to_done, &block_write_data[block_pos]);
+    rep_writeback(block, is_stos, a32);
+    done_ret = &block_write_data[block_pos];
+    host_arm64_mov_imm(block, REG_W0, 0);
+    host_arm64_RET(block, REG_X30);
+
+    /*Out of cycles: carry on if the count ran out on the same element,
+      otherwise leave the block to restart the instruction*/
+    rep_patch_list(to_break, 2, &block_write_data[block_pos]);
+    rep_writeback(block, is_stos, a32);
+    host_arm64_CMP_IMM(block, REP_CNT, 0);
+    branch = host_arm64_BEQ_(block);
+    host_arm64_branch_set_offset(branch, done_ret);
+    branch = host_arm64_B_(block);
+
+    /*Faulting element*/
+    host_arm64_branch_set_offset(to_abort, &block_write_data[block_pos]);
+    rep_writeback(block, is_stos, a32);
+
+    host_arm64_branch_set_offset(branch, &block_write_data[block_pos]);
+    host_arm64_LDR_IMM_W(block, REG_W1, REG_CPUSTATE, rep_state_offset(&cpu_state.oldpc));
+    host_arm64_STR_IMM_W(block, REG_W1, REG_CPUSTATE, rep_state_offset(&cpu_state.pc));
+    host_arm64_mov_imm(block, REG_W0, 1);
+    host_arm64_RET(block, REG_X30);
+
+    if (nr_slow > REP_MAX_PATCH)
+        fatal("build_rep_routine - too many slow path branches\n");
+}
+
 void
 codegen_backend_init(void)
 {
@@ -337,6 +862,15 @@ codegen_backend_init(void)
     host_arm64_mov_imm(block, REG_ARG1, 0);
     host_arm64_call(block, (void *) x86ss);
     host_arm64_B(block, codegen_exit_rout);
+
+    for (int is_stos = 0; is_stos < 2; is_stos++) {
+        for (int shift = 0; shift < 3; shift++) {
+            for (int a32 = 0; a32 < 2; a32++) {
+                codegen_rep_rout[is_stos][shift][a32] = &block_write_data[block_pos];
+                build_rep_routine(block, is_stos, shift, a32, codegen_rep_elem[is_stos][shift][a32]);
+            }
+        }
+    }
 
     block_write_data = NULL;
 

@@ -259,6 +259,33 @@ codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*The REP routine keeps RBX, RBP and R12-R15 but not the cached EAX and EDX,
+  which are saved around it as for an ordered call. Its result goes through
+  ESI, which is not allocated, so the saved registers can be put back first.*/
+static int
+codegen_CALL_REP_STRING(codeblock_t *block, uop_t *uop)
+{
+    host_x86_PUSH(block, REG_RAX);
+    host_x86_PUSH(block, REG_RDX);
+#    if _WIN64
+    host_x86_SUB64_REG_IMM(block, REG_RSP, 0x20);
+    host_x86_MOV32_REG_IMM(block, REG_ECX, uop->imm_data);
+#    else
+    host_x86_MOV32_REG_IMM(block, REG_EDI, uop->imm_data);
+#    endif
+    host_x86_CALL(block, uop->p);
+#    if _WIN64
+    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x20);
+#    endif
+    host_x86_MOV32_REG_REG(block, REG_ESI, REG_EAX);
+    host_x86_POP(block, REG_RDX);
+    host_x86_POP(block, REG_RAX);
+    host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
+    host_x86_JNZ(block, codegen_exit_rout);
+
+    return 0;
+}
+
 static int
 codegen_CMP_IMM_JZ(codeblock_t *block, uop_t *uop)
 {
@@ -3235,6 +3262,9 @@ codegen_XOR_IMM(codeblock_t *block, uop_t *uop)
 
 const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CALL_FUNC & UOP_MASK] = codegen_CALL_FUNC,
+    [UOP_CALL_REP_STRING &
+        UOP_MASK]
+    = codegen_CALL_REP_STRING,
     [UOP_CALL_FUNC_RESULT &
         UOP_MASK]
     = codegen_CALL_FUNC_RESULT,

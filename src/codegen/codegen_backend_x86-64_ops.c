@@ -27,6 +27,14 @@
 #    define RM_OP_SHR 0x28
 #    define RM_OP_SAR 0x38
 
+/*Move to a new code chunk now if size bytes might not fit in this one, so
+  code emitted next, up to size bytes, stays in one chunk.*/
+void
+codegen_alloc(codeblock_t *block, int size)
+{
+    codegen_alloc_bytes(block, size);
+}
+
 static inline void
 call(codeblock_t *block, uintptr_t func)
 {

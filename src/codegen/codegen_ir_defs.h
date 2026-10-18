@@ -108,6 +108,9 @@
 #define UOP_XOR_IMM (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0x3a)
 /*UOP_ANDN - dest_reg = ~src_reg_a & src_reg_b*/
 #define UOP_ANDN (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0x3b)
+/*UOP_CALL_REP_STRING - call REP string routine at p with immediate, exit block if it returns non-zero.
+  The routine reads and writes the guest registers in cpu_state, so the caller reloads them*/
+#define UOP_CALL_REP_STRING (UOP_TYPE_PARAMS_POINTER | UOP_TYPE_PARAMS_IMM | 0x3e | UOP_TYPE_ORDER_BARRIER)
 /*UOP_MEM_LOAD_ABS - dest_reg = src_reg_a:[immediate]*/
 #define UOP_MEM_LOAD_ABS (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0x40 | UOP_TYPE_ORDER_BARRIER)
 /*UOP_MEM_LOAD_REG - dest_reg = src_reg_a:[src_reg_b]*/
@@ -774,6 +777,7 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
 #define uop_CALL_FUNC(ir, p)                                     uop_gen_pointer(UOP_CALL_FUNC, ir, p)
 #define uop_CALL_FUNC_RESULT(ir, dst_reg, p)                     uop_gen_reg_dst_pointer(UOP_CALL_FUNC_RESULT, ir, dst_reg, p)
 #define uop_CALL_INSTRUCTION_FUNC(ir, p, imm)                    uop_gen_pointer_imm(UOP_CALL_INSTRUCTION_FUNC, ir, p, imm)
+#define uop_CALL_REP_STRING(ir, p, imm)                          uop_gen_pointer_imm(UOP_CALL_REP_STRING, ir, p, imm)
 
 #define uop_CMP_IMM_JZ(ir, src_reg, imm, p)                      uop_gen_reg_src_pointer_imm(UOP_CMP_IMM_JZ, ir, src_reg, p, imm)
 
