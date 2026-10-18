@@ -245,8 +245,13 @@ main_thread(UNUSED(void *param))
                 frames     = 0;
             }
         }
-        else /* Just so we dont overload the host OS. */
+        else {
+            /* Keep answering a GDB client while the machine isn't running. */
+            gdbstub_poll();
+
+            /* Just so we dont overload the host OS. */
             SDL_Delay(1);
+        }
 
         /* If needed, handle a screen resize. */
         if (atomic_load(&doresize_monitors[0]) && !video_fullscreen && !is_quit) {

@@ -74,6 +74,9 @@ typedef int sock_t;
 #include <86box/nvr.h>
 #include <86box/acpi.h>
 #include <86box/automation.h>
+#ifdef USE_GDBSTUB
+#    include <86box/gdbstub.h>
+#endif
 
 #define AUTOMATION_PROTOCOL 1
 #define REQ_MAX             4096
@@ -591,7 +594,7 @@ begin_timed(int which, uint64_t ms)
 }
 
 static void
-end_timed(int matched)
+end_timed_stopped(int matched, const char *stopped)
 {
     cmd      = CMD_NONE;
     held     = cmd_was_held;
@@ -600,8 +603,16 @@ end_timed(int matched)
               (unsigned long long) emu_ms, (unsigned long long) frame_count, held ? "true" : "false");
     if (matched >= 0)
         sb_printf(&resp, ",\"matched\":%s", matched ? "true" : "false");
+    if (stopped)
+        sb_printf(&resp, ",\"stopped\":\"%s\"", stopped);
     sb_printf(&resp, "}");
     complete();
+}
+
+static void
+end_timed(int matched)
+{
+    end_timed_stopped(matched, NULL);
 }
 
 /* Returns 1 when the condition of a wait command is satisfied. */
@@ -912,6 +923,18 @@ automation_quantum(void)
 {
     if (!enabled)
         return;
+
+#ifdef USE_GDBSTUB
+    /* While the GDB stub has the CPU stopped, no emulated time passes. A timed
+       command would never finish, so it ends here. */
+    static uint64_t last_tsc;
+    if ((gdbstub_step != GDBSTUB_EXEC) && (tsc == last_tsc)) {
+        if (cmd != CMD_NONE)
+            end_timed_stopped(((cmd == CMD_WAIT_TEXT) || (cmd == CMD_WAIT_MEM)) ? 0 : -1, "debugger");
+        return;
+    }
+    last_tsc = tsc;
+#endif
 
     emu_ms += force_10ms ? 10 : 1;
 

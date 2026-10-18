@@ -33,6 +33,19 @@ AppDir:
     version: !ENV '${project_version}'
     exec: !ENV 'usr/local/bin/${project}'
     exec_args: $@
+  after_bundle: |
+    # Point libGLX/libOpenGL dependencies to the shim library built by build.sh
+    find "$TARGET_APPDIR" -type f | while IFS= read -r file
+    do
+      needed=$(patchelf --print-needed "$file" 2> /dev/null) || continue
+      args=
+      for lib in libGLX.so.0 libOpenGL.so.0
+      do
+        echo "$needed" | grep -qFx "$lib" || continue
+        [ -z "$args" ] && args="--replace-needed $lib libglshim.so" || args="$args --remove-needed $lib"
+      done
+      [ -z "$args" ] || patchelf $args "$file"
+    done
   after_runtime: |
     mkdir -p "./archive_tmp/runtime/compat/lib64"
     ln -sf ../usr/lib64/ld-linux-x86-64.so.2 "./archive_tmp/runtime/compat/lib64/ld-linux-x86-64.so.2"
@@ -90,7 +103,9 @@ AppDir:
     - usr/lib/*/glib-2.0 # GLib helper executables
     - usr/lib/*/libasound.so* # using our own ALSA can cause issues, and the API is pretty stable anyway
     - usr/lib/*/libEGL.so* # use host OpenGL stack
+    - usr/lib/*/libGL.so* # use host OpenGL stack
     - usr/lib/*/libGLdispatch.so* # use host OpenGL stack
+    - usr/lib/*/libGLES* # use host OpenGL stack
     - usr/lib/*/libGLX.so* # use host OpenGL stack
     - usr/lib/*/libOpenGL.so* # use host OpenGL stack
     - usr/lib/*/pkgconfig # produced by library compilation
