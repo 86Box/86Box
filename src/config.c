@@ -156,6 +156,11 @@ load_global_emulator(void)
 
     vmm_disabled = ini_section_get_int(cat, "vmm_disabled", 0);
 
+    discord_presence = !!ini_section_get_int(cat, "discord_presence", 0);
+    discord_privacy  = ini_section_get_int(cat, "discord_privacy", 0);
+    if ((discord_privacy < 0) || (discord_privacy > 2))
+        discord_privacy = 0;
+
     chd_precache_level = ini_section_get_int(cat, "chd_precache_level", 0);
 
     p = ini_section_get_string(cat, "vmm_path", NULL);
@@ -3107,6 +3112,16 @@ save_global_emulator(void)
         ini_section_set_int(cat, "vmm_disabled", vmm_disabled);
     else
         ini_section_delete_var(cat, "vmm_disabled");
+
+    if (discord_presence)
+        ini_section_set_int(cat, "discord_presence", discord_presence);
+    else
+        ini_section_delete_var(cat, "discord_presence");
+
+    if (discord_privacy)
+        ini_section_set_int(cat, "discord_privacy", discord_privacy);
+    else
+        ini_section_delete_var(cat, "discord_privacy");
 
     if (vmm_path_cfg[0] != 0) {
         /* Save path as relative to the EXE path in portable mode */

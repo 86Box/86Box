@@ -252,6 +252,8 @@ extern int    fm_driver;                    /* (C) select FM sound driver */
 extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
 extern int    vmm_disabled;                 /* (G) disable built-in manager */
 extern char   vmm_path_cfg[1024];           /* (G) VMs path (unless -E is used) */
+extern int    discord_presence;             /* (G) show running VMs in Discord status */
+extern int    discord_privacy;              /* (G) details shown in Discord status */
 extern int    gdbstub_port;                 /* (C) The GDB stub port. */
 
 extern char exe_path[2048];        /* path (dir) of executable */

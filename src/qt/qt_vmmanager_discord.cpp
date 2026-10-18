@@ -16,9 +16,9 @@
 #include <QUrl>
 
 #include "qt_vmmanager_discord.hpp"
-#include "qt_vmmanager_config.hpp"
 
 extern "C" {
+#include <86box/86box.h>
 #include <86box/version.h>
 }
 
@@ -105,9 +105,8 @@ VMManagerDiscord::setModel(VMManagerModel *newModel)
 void
 VMManagerDiscord::loadSettings()
 {
-    const VMManagerConfig config(VMManagerConfig::ConfigType::General);
-    enabled = config.getStringValue("discord_presence").toInt();
-    privacy = static_cast<Privacy>(qBound(0, config.getStringValue("discord_privacy").toInt(), 2));
+    enabled = discord_presence;
+    privacy = static_cast<Privacy>(discord_privacy);
 
     if (enabled)
         client.start();
