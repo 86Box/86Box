@@ -205,6 +205,7 @@ extern const device_t kbc_xtclone_device;
 extern const device_t kbc_at_device;
 extern const device_t kbc_at_vectra_device;
 extern const device_t kbc_ps2_m25_device;
+extern const device_t kbc_tvis_device;
 
 extern const device_t keyboard_pc_xt_device;
 extern const device_t keyboard_at_device;

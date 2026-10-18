@@ -87,10 +87,6 @@ VMManagerMainWindow::
     // Preferences
     connect(ui->actionPreferences, &QAction::triggered, this, &VMManagerMainWindow::preferencesTriggered);
 
-#ifdef Q_OS_WINDOWS
-    ui->toolBar->setBackgroundRole(QPalette::Base);
-#endif
-
     // Status bar widgets
     statusLeft->setAlignment(Qt::AlignLeft);
     statusRight->setAlignment(Qt::AlignRight);

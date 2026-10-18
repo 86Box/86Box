@@ -89,6 +89,8 @@ extern void pic_handler(int set, uint16_t base, int size);
 extern void pic2_init(void);
 extern void pic_reset(void);
 
+extern uint8_t pic_read(uint16_t addr, void *priv);
+extern void    pic_write(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t pic_read_icw(uint8_t pic_id, uint8_t icw);
 extern uint8_t pic_read_ocw(uint8_t pic_id, uint8_t ocw);
 extern int     picint_is_level(int irq);

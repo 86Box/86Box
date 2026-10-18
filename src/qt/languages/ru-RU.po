@@ -235,9 +235,6 @@ msgstr "&Звук"
 msgid "&Preferences…"
 msgstr "&Параметры…"
 
-msgid "Enable &Discord integration"
-msgstr "Включить интеграцию с &Discord"
-
 msgid "Sound &gain…"
 msgstr "&Усиление звука…"
 
@@ -432,6 +429,9 @@ msgstr "Динамический рекомпилятор"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Точное окружение FPU в динамическом рекомпиляторе"
+
+msgid "Block linking on the dynamic recompiler"
+msgstr "Связывание блоков в динамическом рекомпиляторе"
 
 msgid "CPU frame size"
 msgstr "Размер кадра ЦП"
@@ -1293,6 +1293,35 @@ msgstr "Использовать регулярные выражения в по
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Удалять виртуальные машины в Корзину"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"

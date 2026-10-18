@@ -27,6 +27,14 @@
 #    define RM_OP_SHR 0x28
 #    define RM_OP_SAR 0x38
 
+/*Move to a new code chunk now if size bytes might not fit in this one, so
+  code emitted next, up to size bytes, stays in one chunk.*/
+void
+codegen_alloc(codeblock_t *block, int size)
+{
+    codegen_alloc_bytes(block, size);
+}
+
 static inline void
 call(codeblock_t *block, uintptr_t func)
 {
@@ -245,6 +253,13 @@ host_x86_JZ(codeblock_t *block, void *p)
     codegen_addlong(block, (uintptr_t) p - (uintptr_t) &block_write_data[block_pos + 4]);
 }
 
+uint8_t *
+host_x86_JNBE_short(codeblock_t *block)
+{
+    codegen_alloc_bytes(block, 2);
+    codegen_addbyte2(block, 0x77, 0); /*JNBE*/
+    return &block_write_data[block_pos - 1];
+}
 uint8_t *
 host_x86_JNZ_short(codeblock_t *block)
 {

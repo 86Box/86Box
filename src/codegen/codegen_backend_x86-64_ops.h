@@ -1,3 +1,5 @@
+void codegen_alloc(codeblock_t *block, int size);
+
 void host_x86_ADD8_REG_IMM(codeblock_t *block, int dst_reg, uint8_t imm_data);
 void host_x86_ADD16_REG_IMM(codeblock_t *block, int dst_reg, uint16_t imm_data);
 void host_x86_ADD32_REG_IMM(codeblock_t *block, int dst_reg, uint32_t imm_data);
@@ -30,6 +32,7 @@ void host_x86_JMP(codeblock_t *block, void *p);
 void host_x86_JNZ(codeblock_t *block, void *p);
 void host_x86_JZ(codeblock_t *block, void *p);
 
+uint8_t *host_x86_JNBE_short(codeblock_t *block);
 uint8_t *host_x86_JNZ_short(codeblock_t *block);
 uint8_t *host_x86_JS_short(codeblock_t *block);
 uint8_t *host_x86_JZ_short(codeblock_t *block);

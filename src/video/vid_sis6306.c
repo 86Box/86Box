@@ -276,6 +276,7 @@ typedef struct sis6306_t {
 
     uint8_t mmio_regs[0x10000];
     uint8_t io_regs[0x80];
+    uint8_t agp_cmd[4];
 
     void *i2c;
     void *ddc;
@@ -5515,7 +5516,7 @@ sis6306_pci_read(int func, int addr, int len, void *priv)
         /* Datasheet reset dword at 04h: 02200004h. */
         case 0x04: return (dev->pci_command & 0x03) | PCI_COMMAND_L_BM;
         case 0x05: return 0x00;
-        case 0x06: return 0x20;
+        case 0x06: return 0x30;
         case 0x07: return 0x02;
 
         case 0x08: return 0x2a;
@@ -5586,7 +5587,7 @@ sis6306_pci_read(int func, int addr, int len, void *priv)
         case 0x59:
         case 0x5a:
         case 0x5b:
-            return 0x00;
+            return dev->agp_cmd[addr & 3];
 
         default:
             return 0x00;
@@ -5646,6 +5647,16 @@ sis6306_pci_write(int func, int addr, int len, uint8_t val, void *priv)
 
         case 0x3c:
             dev->irq_line = val;
+            break;
+
+        case 0x58:
+            dev->agp_cmd[0] = val & 0x03;   /* 1X / 2X enable */
+            break;
+        case 0x59:
+            dev->agp_cmd[1] = val & 0x01;   /* AGP enable; sideband not supported */
+            break;
+        case 0x5b:
+            dev->agp_cmd[3] = val;          /* request queue depth */
             break;
 
         default:

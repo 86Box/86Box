@@ -235,9 +235,6 @@ msgstr "声音(&O)"
 msgid "&Preferences…"
 msgstr "首选项(&P)…"
 
-msgid "Enable &Discord integration"
-msgstr "启用 Discord 集成(&D)"
-
 msgid "Sound &gain…"
 msgstr "音量增益(&G)…"
 
@@ -432,6 +429,9 @@ msgstr "动态重编译器"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "动态重编译器下更准确的FPU模拟"
+
+msgid "Block linking on the dynamic recompiler"
+msgstr "动态重编译器下的块链接"
 
 msgid "CPU frame size"
 msgstr "CPU 执行帧大小"
@@ -1273,6 +1273,35 @@ msgstr "在搜索框中使用正则表达式"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "将虚拟机删除至回收站"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
