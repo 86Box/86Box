@@ -3,11 +3,14 @@
 
 #include "codegen.h"
 
-typedef uint32_t (*RecompOpFn)(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block);
+struct ir_data_t;
+
+typedef uint32_t (*RecompOpFn)(codeblock_t *block, struct ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
 
 extern RecompOpFn recomp_opcodes[512];
 extern RecompOpFn recomp_opcodes_0f[512];
 extern RecompOpFn recomp_opcodes_0f_no_mmx[512];
+extern RecompOpFn recomp_opcodes_3DNOW[256];
 extern RecompOpFn recomp_opcodes_d8[512];
 extern RecompOpFn recomp_opcodes_d9[512];
 extern RecompOpFn recomp_opcodes_da[512];
@@ -16,8 +19,10 @@ extern RecompOpFn recomp_opcodes_dc[512];
 extern RecompOpFn recomp_opcodes_dd[512];
 extern RecompOpFn recomp_opcodes_de[512];
 extern RecompOpFn recomp_opcodes_df[512];
+#if 0
 extern RecompOpFn recomp_opcodes_REPE[512];
 extern RecompOpFn recomp_opcodes_REPNE[512];
+#endif
 
 #define REG_EAX 0
 #define REG_ECX 1
