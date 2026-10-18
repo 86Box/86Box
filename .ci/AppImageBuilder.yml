@@ -44,7 +44,7 @@ AppDir:
         echo "$needed" | grep -qFx "$lib" || continue
         [ -z "$args" ] && args="--replace-needed $lib libglshim.so" || args="$args --remove-needed $lib"
       done
-      [ -n "$args" ] && patchelf $args "$file"
+      [ -z "$args" ] || patchelf $args "$file"
     done
   after_runtime: |
     mkdir -p "./archive_tmp/runtime/compat/lib64"
