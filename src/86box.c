@@ -777,6 +777,8 @@ pc_show_usage(void)
             "--automation-hold\t\t- start with the machine held for automation\n"
             "--automation-token-file path\t- TCP: write the access token to 'path'\n"
             "--automation-allow-remote\t- TCP: allow a non-loopback listen address\n"
+            "--automation-insecure\t\t- TCP: accept clients without a token (any local process,\n"
+            "\t\t\t\t  or with --automation-allow-remote anyone, controls the machine)\n"
 #endif
             "-A or --assetpath path\t\t- set 'path' to be asset path\n"
 #ifdef SHOW_EXTRA_PARAMS
@@ -980,6 +982,8 @@ usage:
             snprintf(automation_token_file, sizeof(automation_token_file), "%s", argv[++c]);
         } else if (!strcasecmp(argv[c], "--automation-allow-remote")) {
             automation_allow_remote = 1;
+        } else if (!strcasecmp(argv[c], "--automation-insecure")) {
+            automation_insecure = 1;
 #endif
         } else if (!strcasecmp(argv[c], "--fullscreen") || !strcasecmp(argv[c], "-F")) {
             start_in_fullscreen = 1;

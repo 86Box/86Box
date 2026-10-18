@@ -123,6 +123,7 @@ char automation_path[1024]       = "";
 char automation_token_file[1024] = "";
 int  automation_start_held       = 0;
 int  automation_allow_remote     = 0;
+int  automation_insecure         = 0;
 
 static int       enabled;
 static thread_t *listen_thread;
@@ -1047,7 +1048,7 @@ automation_thread(UNUSED(void *priv))
         }
         automation_log("Automation: client connected\n");
         inlen  = 0;
-        authed = !use_tcp;
+        authed = !use_tcp || automation_insecure;
 
         while (enabled) {
             char *nl;
@@ -1081,6 +1082,11 @@ automation_thread(UNUSED(void *priv))
                         write_all(client_fd, no, strlen(no));
                         goto disconnect;
                     }
+                } else if (automation_insecure && !strncmp(inbuf, "auth ", 5)) {
+                    /* No token to check: accept the clients that send one anyway. */
+                    static const char ok[] = "{\"ok\":true,\"auth\":true}\n";
+                    if (!write_all(client_fd, ok, strlen(ok)))
+                        goto disconnect;
                 } else {
                     strncpy(req_line, inbuf, sizeof(req_line) - 1);
                     req_line[sizeof(req_line) - 1] = '\0';
@@ -1244,9 +1250,9 @@ listen_tcp(void)
         return 0;
     }
     if (!is_loopback(res->ai_addr))
-        pclog("Automation: WARNING: listening on %s; anyone who can reach it and has the token "
+        pclog("Automation: WARNING: listening on %s; anyone who can reach it%s "
               "fully controls this machine, including its memory\n",
-              tcp_host);
+              tcp_host, automation_insecure ? "" : " and has the token");
 
     listen_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (listen_fd == SOCK_INVALID) {
@@ -1263,6 +1269,10 @@ listen_tcp(void)
     }
     freeaddrinfo(res);
 
+    if (automation_insecure) {
+        pclog("Automation: WARNING: insecure mode: TCP clients need no token\n");
+        return 1;
+    }
     if (!make_token() || !write_token_file()) {
         pclog("Automation: cannot create the token file %s\n", automation_token_file);
         sock_close(listen_fd);
@@ -1340,7 +1350,10 @@ automation_init(void)
     enabled     = 1;
 
     listen_thread = thread_create_named(automation_thread, NULL, "automation");
-    if (use_tcp)
+    if (use_tcp && automation_insecure)
+        pclog("Automation: listening on tcp:%s:%s (insecure: no token)%s\n", tcp_host, tcp_port,
+              held ? " (held)" : "");
+    else if (use_tcp)
         pclog("Automation: listening on tcp:%s:%s (token %.8s..., in %s)%s\n", tcp_host, tcp_port, token,
               automation_token_file, held ? " (held)" : "");
     else

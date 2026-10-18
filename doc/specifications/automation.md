@@ -35,8 +35,13 @@ token:
 - A client's first line must be `auth <token>`. Anything else, or a wrong
   token, gets `{"ok":false,"error":"authentication required"}` and the
   connection is closed. The comparison is constant-time, and the log shows
-  only the first 8 characters of the token. Authentication can't be turned
-  off.
+  only the first 8 characters of the token.
+- `--automation-insecure` turns the token off, for convenience on a machine
+  you trust, as with the GDB stub. TCP clients are then accepted without
+  one, no token file is written, and an `auth` line from a client that sends
+  one anyway gets `{"ok":true,"auth":true}`. Any local process can then
+  control the machine, and with `--automation-allow-remote` anyone who can
+  reach the port. It has no effect on a UNIX socket.
 - 86Box refuses to listen on a non-loopback address unless you also pass
   `--automation-allow-remote`, and then logs a warning. Think hard before
   using it. The protocol is unencrypted, and anyone who can reach the port
