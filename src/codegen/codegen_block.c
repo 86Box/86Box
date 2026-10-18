@@ -244,6 +244,13 @@ block_version_chunk_matches(uint32_t phys, const uint8_t *exec, uint64_t mask, c
 }
 
 #ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+const int codegen_has_block_link = 1;
+
+/*cpu_dyn_block_link as of the last codegen_init()/codegen_reset(). Both free
+  every block, so no block runs under a mode other than the one it was
+  compiled for: a block compiled without links returns garbage.*/
+int codegen_block_link = 1;
+
 /*Last link_gen handed out. Values only grow between wraps, so a block never
   gets back a value a slot may still hold for it.*/
 static uint32_t link_gen_last = 0;
@@ -257,6 +264,9 @@ codegen_link_reset(void)
 void
 codegen_link_block_changed(codeblock_t *block)
 {
+    if (!codegen_block_link)
+        return;
+
     link_gen_last++;
     if (!link_gen_last) {
         /*Wrapped. Empty every slot and renumber every block, so no value
@@ -330,6 +340,8 @@ codegen_link_patch(codegen_link_slot_t *from, codeblock_t *block, uint32_t phys)
     slot->dirty_mask = block->dirty_mask;
     slot->entry      = &block->data[BLOCK_START + CODEGEN_LINK_ENTRY_OFFSET];
 }
+#else
+const int codegen_has_block_link = 0;
 #endif
 
 static void
@@ -490,6 +502,9 @@ codegen_init(void)
 {
     codegen_check_regs();
     codegen_allocator_init();
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_block_link = cpu_dyn_block_link;
+#endif
 
     codegen_backend_init();
     block_versions_init();
@@ -532,6 +547,7 @@ codegen_reset(void)
     }
 #ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     codegen_link_reset();
+    codegen_block_link = cpu_dyn_block_link;
 #endif
 }
 

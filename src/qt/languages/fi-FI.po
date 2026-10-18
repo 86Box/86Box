@@ -432,6 +432,9 @@ msgstr "Dynaaminen uudelleenkääntäjä"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr ""
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Lohkojen linkitys dynaamisessa uudelleenkääntäjässä"
+
 msgid "CPU frame size"
 msgstr "CPU frame-koko"
 

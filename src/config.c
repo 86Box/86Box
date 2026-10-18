@@ -670,6 +670,7 @@ load_machine(void)
     pit_mode = ini_section_get_int(cat, "pit_mode", -1);
 
     cpu_dyn_accurate_fpu_env = ini_section_get_int(cat, "cpu_dyn_accurate_fpu_env", 0);
+    cpu_dyn_block_link = !!ini_section_get_int(cat, "cpu_dyn_block_link", 1);
 }
 
 /* Load "Video" section. */
@@ -2988,6 +2989,7 @@ config_load(void)
         cassette_ui_writeprot = 0;
 
         cpu_dyn_accurate_fpu_env = 0;
+        cpu_dyn_block_link       = 1;
 
         gdbstub_port          = 12345;
 
@@ -3469,6 +3471,11 @@ save_machine(void)
         ini_section_delete_var(cat, "cpu_dyn_accurate_fpu_env");
     else
         ini_section_set_int(cat, "cpu_dyn_accurate_fpu_env", cpu_dyn_accurate_fpu_env);
+
+    if (cpu_dyn_block_link)
+        ini_section_delete_var(cat, "cpu_dyn_block_link");
+    else
+        ini_section_set_int(cat, "cpu_dyn_block_link", 0);
 
     ini_delete_section_if_empty(config, cat);
 }

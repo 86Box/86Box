@@ -1033,7 +1033,7 @@ codegen_JMP(codeblock_t *block, uop_t *uop)
       writes registers back), so it can link like the block's end. Fault
       paths reach codegen_exit_rout by conditional branches or direct jumps
       instead.*/
-    if (uop->p == codegen_exit_rout) {
+    if (codegen_block_link && (uop->p == codegen_exit_rout)) {
         codegen_link_exit(block);
         return 0;
     }

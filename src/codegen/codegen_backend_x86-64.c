@@ -1525,8 +1525,11 @@ void
 codegen_backend_epilogue(codeblock_t *block)
 {
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
-    codegen_link_exit(block);
-#    else
+    if (codegen_block_link) {
+        codegen_link_exit(block);
+        return;
+    }
+#    endif
 #ifdef _WIN64
     /* XMM6 and XMM7 hold guest FPU/MMX values in blocks, and the Windows
        x64 ABI makes them the caller's: put back what the caller had. */
@@ -1547,6 +1550,5 @@ codegen_backend_epilogue(codeblock_t *block)
     host_x86_POP(block, REG_RBP);
     host_x86_POP(block, REG_RBX);
     host_x86_RET(block);
-#    endif
 }
 #endif
