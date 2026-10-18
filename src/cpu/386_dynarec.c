@@ -34,8 +34,9 @@
 #include <86box/gdbstub.h>
 #ifdef USE_DYNAREC
 #    include "codegen.h"
-#    ifdef USE_NEW_DYNAREC
-#        include "codegen_backend.h"
+#    include "codegen_backend.h"
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+#        include "codegen_link.h"
 #    endif
 #endif
 
@@ -56,23 +57,6 @@ int cpu_override_dynarec    = 0;
 int inrecomp                = 0;
 int cpu_block_end           = 0;
 int cpu_end_block_after_ins = 0;
-
-#if defined(__aarch64__) || defined(_M_ARM64)
-/* ARM64-only epoch: monotonically advances on dirty-list transitions so
-   per-block retry state can distinguish dense bursts from stale retries. */
-static uint32_t dynarec_s03e_dirty_epoch             = 0;
-#endif
-
-#if defined(__aarch64__) || defined(_M_ARM64)
-/* ARM64-only policy: require repeated BYTE_MASK dirty-list hits before
-   NO_IMMEDIATES promotion to avoid premature slow-immediate escalation. */
-/* Tuning: raise threshold to 3 consecutive dirty-list retries so transient
-   churn is more likely to recover via retry-decay before forcing NO_IMMEDIATES. */
-#    define DYNAREC_S03B_NO_IMM_THRESHOLD 3
-/* Tuning: retry bursts must stay temporally dense; large gaps reset burst
-   accumulation instead of carrying stale debt into later promotions. */
-#    define DYNAREC_S03E_BURST_GAP_MAX 64
-#endif
 
 #ifdef ENABLE_386_DYNAREC_LOG
 int x386_dynarec_do_log = ENABLE_386_DYNAREC_LOG;
@@ -287,11 +271,19 @@ dr_blocks_cache(void)
 
 #ifdef USE_DYNAREC
 int32_t         cycles_main = 0;
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+/* The block link routine does the loop-top stores itself. */
+int32_t  cycles_old = 0;
+uint64_t tsc_old    = 0;
+#    else
 static int32_t  cycles_old  = 0;
 static uint64_t tsc_old     = 0;
+#    endif
 
-#    ifdef USE_ACYCS
-int32_t acycs = 0;
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+/* Slot pair returned by the last compiled block, while the loop has run
+   nothing else since; NULL otherwise. */
+static codegen_link_slot_t *link_from = NULL;
 #    endif
 
 extern int codegen_record_faulted; /* 386_common.c */
@@ -428,10 +420,6 @@ update_tsc(void)
     uint64_t delta;
 
     cycdiff = cycles_old - cycles;
-#    ifdef USE_ACYCS
-    if (inrecomp)
-        cycdiff += acycs;
-#    endif
 
     delta = tsc - tsc_old;
     if (delta > 0) {
@@ -580,7 +568,7 @@ block_ended:
     cpu_end_block_after_ins = 0;
 }
 
-#if defined(__linux__) && !defined(__clang__) && defined(USE_NEW_DYNAREC)
+#if defined(__linux__) && !defined(__clang__)
 static inline void __attribute__((optimize("O2")))
 #else
 static __inline void
@@ -590,12 +578,14 @@ exec386_dynarec_dyn(void)
     uint32_t start_pc  = 0;
     uint32_t phys_addr = get_phys(cs + cpu_state.pc);
     int      hash      = HASH(phys_addr);
-#    ifdef USE_NEW_DYNAREC
     codeblock_t *block = &codeblock[codeblock_hash[hash]];
-#    else
-    codeblock_t *block = codeblock_hash[hash];
-#    endif
     int valid_block = 0;
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    /* Only a path that ends in compiled code sets it again. */
+    codegen_link_slot_t *from = link_from;
+
+    link_from = NULL;
+#    endif
 
     /* Code in device memory (a BIOS copying a routine into video memory) is
        fetched through the device's read handlers, and nothing tracks writes
@@ -625,11 +615,7 @@ exec386_dynarec_dyn(void)
     else
         cpu_cur_status |= CPU_STATUS_NOTFLATES;
 
-#    ifdef USE_NEW_DYNAREC
     if (!cpu_state.abrt)
-#    else
-    if (block && !cpu_state.abrt)
-#    endif
     {
         page_t *page = &pages[phys_addr >> 12];
 
@@ -639,15 +625,11 @@ exec386_dynarec_dyn(void)
         valid_block = (block->pc == cs + cpu_state.pc) && (block->_cs == cs) && (block->phys == phys_addr) && !((block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
         if (!valid_block) {
             uint64_t mask = (uint64_t) 1 << ((phys_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
-#    ifdef USE_NEW_DYNAREC
             int      byte_offset = (phys_addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
             uint64_t byte_mask   = 1ULL << (phys_addr & PAGE_BYTE_MASK_MASK);
 
             if ((page->code_present_mask & mask) ||
                 ((page->mem != page_ff) && (page->byte_code_present_mask[byte_offset] & byte_mask)))
-#    else
-            if (page->code_present_mask[(phys_addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] & mask)
-#    endif
             {
                 /* Walk page tree to see if we find the correct block */
                 codeblock_t *new_block = codeblock_tree_find(phys_addr, cs);
@@ -655,24 +637,21 @@ exec386_dynarec_dyn(void)
                     valid_block = (new_block->pc == cs + cpu_state.pc) && (new_block->_cs == cs) && (new_block->phys == phys_addr) && !((new_block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((new_block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
                     if (valid_block) {
                         block = new_block;
-#    ifdef USE_NEW_DYNAREC
                         codeblock_hash[hash] = get_block_nr(block);
-#    endif
                     }
                 }
             }
         }
 
         if (valid_block && (block->page_mask & *block->dirty_mask)) {
-#    ifdef USE_NEW_DYNAREC
             codegen_check_flush(page, page->dirty_mask, phys_addr);
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+            /* Covers the flag write just below. */
+            codegen_link_block_changed(block);
+#        endif
             if (block->valid && (block->flags & CODEBLOCK_IN_DIRTY_LIST))
                 block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
             else
-#    else
-            codegen_check_flush(page, page->dirty_mask[(phys_addr >> 10) & 3], phys_addr);
-            page->dirty_mask[(phys_addr >> 10) & 3] = 0;
-#    endif
             if (!block->valid)
                 valid_block = 0;
         }
@@ -684,130 +663,84 @@ exec386_dynarec_dyn(void)
                allow the first page to be interpreted and for
                the page fault to occur when the page boundary
                is actually crossed.*/
-#    ifdef USE_NEW_DYNAREC
             uint32_t phys_addr_2 = get_phys_noabrt(block->pc + ((block->flags & CODEBLOCK_BYTE_MASK) ? 0x40 : 0x400));
-#    else
-            uint32_t phys_addr_2 = get_phys_noabrt(block->endpc);
-#    endif
             page_t *page_2 = &pages[phys_addr_2 >> 12];
 
             if ((block->phys_2 ^ phys_addr_2) & ~0xfff)
                 valid_block = 0;
             else if (block->page_mask2 & *block->dirty_mask2) {
-#    ifdef USE_NEW_DYNAREC
                 codegen_check_flush(page_2, page_2->dirty_mask, phys_addr_2);
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+                /* Covers the flag write just below. */
+                codegen_link_block_changed(block);
+#        endif
                 if (block->valid && (block->flags & CODEBLOCK_IN_DIRTY_LIST))
                     block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
                 else
-#    else
-                codegen_check_flush(page_2, page_2->dirty_mask[(phys_addr_2 >> 10) & 3], phys_addr_2);
-                page_2->dirty_mask[(phys_addr_2 >> 10) & 3] = 0;
-#    endif
                 if (!block->valid)
                     valid_block = 0;
             }
         }
-#    ifdef USE_NEW_DYNAREC
-        /* ARM64-only: if a BYTE_MASK block executes stably outside the dirty
-           list, clear stale retry debt so a distant future dirty hit does not
-           trigger premature NO_IMMEDIATES promotion. */
-#        if defined(__aarch64__) || defined(_M_ARM64)
-        if (valid_block && !(block->flags & CODEBLOCK_IN_DIRTY_LIST) && (block->flags & CODEBLOCK_BYTE_MASK)
-            && !(block->flags & CODEBLOCK_NO_IMMEDIATES) && block->dirty_list_recompile_hits) {
-            block->dirty_list_recompile_hits = 0;
-            block->dirty_list_last_epoch     = 0;
-        }
-#        endif
-
         if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST)) {
-            const int had_byte_mask     = !!(block->flags & CODEBLOCK_BYTE_MASK);
-            const int had_no_immediates = !!(block->flags & CODEBLOCK_NO_IMMEDIATES);
-#if defined(__aarch64__) || defined(_M_ARM64)
-            const uint16_t last_epoch_before = block->dirty_list_last_epoch;
-#endif
             block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
-            if (had_byte_mask) {
-                if (!had_no_immediates) {
-#if defined(__aarch64__) || defined(_M_ARM64)
-                    /* ARM64-only: wait for repeated dirty-list BYTE_MASK
-                       hits before NO_IMMEDIATES promotion. */
-                    /* Require retries to occur in a dense burst window;
-                       stale widely-spaced retries are reset. */
-                    dynarec_s03e_dirty_epoch++;
-                    {
-                        const uint16_t cur_epoch = (uint16_t) dynarec_s03e_dirty_epoch;
-
-                        if (last_epoch_before != 0) {
-                            const uint16_t epoch_gap = (uint16_t) (cur_epoch - last_epoch_before);
-                            if (epoch_gap > DYNAREC_S03E_BURST_GAP_MAX) {
-                                block->dirty_list_recompile_hits = 0;
-                            }
-                        }
-                        block->dirty_list_last_epoch = cur_epoch;
-                    }
-                    block->dirty_list_recompile_hits++;
-                    if (block->dirty_list_recompile_hits >= DYNAREC_S03B_NO_IMM_THRESHOLD) {
-                        block->flags |= CODEBLOCK_NO_IMMEDIATES;
-                        block->dirty_list_last_epoch = 0;
-                    }
-#else
-                    block->flags |= CODEBLOCK_NO_IMMEDIATES;
-#endif
-                }
-            } else {
-#if defined(__aarch64__) || defined(_M_ARM64)
-                block->dirty_list_recompile_hits = 0;
-                block->dirty_list_last_epoch     = 0;
-#endif
+            if (block->flags & CODEBLOCK_BYTE_MASK)
+                block->flags |= CODEBLOCK_NO_IMMEDIATES;
+            else
                 block->flags |= CODEBLOCK_BYTE_MASK;
-            }
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+            codegen_link_block_changed(block);
+#        endif
         }
         if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED) && (block->flags & CODEBLOCK_STATIC_TOP) && block->TOP != (cpu_state.TOP & 7))
-#    else
-        if (valid_block && block->was_recompiled && (block->flags & CODEBLOCK_STATIC_TOP) && block->TOP != cpu_state.TOP)
-#    endif
         {
             /* FPU top-of-stack does not match the value this block was compiled
                with, re-compile using dynamic top-of-stack*/
-#    ifdef USE_NEW_DYNAREC
             block->flags &= ~(CODEBLOCK_STATIC_TOP | CODEBLOCK_WAS_RECOMPILED);
-#    else
-            block->flags &= ~CODEBLOCK_STATIC_TOP;
-            block->was_recompiled = 0;
-#    endif
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+            codegen_link_block_changed(block);
+#        endif
         }
+        /* A block whose code was rewritten may be back to bytes it was
+           compiled from before: put that version back rather than compile
+           them again. */
+        if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST) && (block->flags & CODEBLOCK_NO_IMMEDIATES))
+            codegen_block_restore_version(block);
     }
 
-#    ifdef USE_NEW_DYNAREC
     if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED))
-#    else
-    if (valid_block && block->was_recompiled)
-#    endif
     {
-        void (*code)(void) = (void *) &block->data[BLOCK_START];
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+        codegen_link_slot_t *(*code)(void) = (void *) &block->data[BLOCK_START];
 
-#    ifndef USE_NEW_DYNAREC
-        codeblock_hash[hash] = block;
+        /* from may predate the reset that turned linking off. */
+        if ((from != NULL) && codegen_block_link)
+            codegen_link_patch(from, block, phys_addr);
+#    else
+        void (*code)(void) = (void *) &block->data[BLOCK_START];
 #    endif
-#    ifdef USE_NEW_DYNAREC
+
         block->used = 1; /* run: the eviction sweep passes it over once */
-#    endif
         inrecomp = 1;
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+        /* A block compiled without links returns nothing. */
+        if (codegen_block_link)
+            link_from = code();
+        else
+            code();
+#    else
         code();
-#    ifdef USE_ACYCS
-        acycs = 0;
 #    endif
         inrecomp = 0;
 
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+        if (x86_was_reset)
+            link_from = NULL;
+#    endif
         if (x86_was_reset)
             codegen_reset();
     } else if (valid_block && !cpu_state.abrt) {
-#    ifdef USE_NEW_DYNAREC
         start_pc                 = cs + cpu_state.pc;
         const int max_block_size = (block->flags & CODEBLOCK_BYTE_MASK) ? ((128 - 25) - (start_pc & 0x3f)) : 1000;
-#    else
-        start_pc = cpu_state.pc;
-#    endif
 
         cpu_block_end = 0;
         x86_was_reset = 0;
@@ -849,6 +782,7 @@ exec386_dynarec_dyn(void)
                 cpu_state.pc++;
 
                 codegen_generate_call(opcode, x86_opcodes[(opcode | cpu_state.op32) & 0x3ff], fetchdat, cpu_state.pc, cpu_state.pc - 1);
+                codegen_block_version_check_ins(cs + cpu_state.oldpc);
 
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
 
@@ -860,11 +794,7 @@ exec386_dynarec_dyn(void)
                    will prevent any block from spanning more than
                    2 pages. In practice this limit will never be
                    hit, as host block size is only 2kB*/
-#    ifdef USE_NEW_DYNAREC
             if (((cs + cpu_state.pc) - start_pc) >= max_block_size)
-#    else
-            if ((cpu_state.pc - start_pc) > 1000)
-#    endif
                 CPU_BLOCK_END();
 
             if (cpu_init)
@@ -935,12 +865,8 @@ exec386_dynarec_dyn(void)
 #    endif
     } else if (!cpu_state.abrt) {
         /* Mark block but do not recompile */
-#    ifdef USE_NEW_DYNAREC
         start_pc                 = cs + cpu_state.pc;
         const int max_block_size = (block->flags & CODEBLOCK_BYTE_MASK) ? ((128 - 25) - (start_pc & 0x3f)) : 1000;
-#    else
-        start_pc = cpu_state.pc;
-#    endif
 
         cpu_block_end = 0;
         x86_was_reset = 0;
@@ -991,11 +917,7 @@ exec386_dynarec_dyn(void)
                    will prevent any block from spanning more than
                    2 pages. In practice this limit will never be
                    hit, as host block size is only 2kB */
-#    ifdef USE_NEW_DYNAREC
             if (((cs + cpu_state.pc) - start_pc) >= max_block_size)
-#    else
-            if ((cpu_state.pc - start_pc) > 1000)
-#    endif
                 CPU_BLOCK_END();
 
             if (cpu_init)
@@ -1054,11 +976,8 @@ exec386_dynarec_dyn(void)
 
         if (x86_was_reset)
             codegen_reset();
-    }
-#    ifdef USE_NEW_DYNAREC
-    else
+    } else
         cpu_state.oldpc = cpu_state.pc;
-#    endif
 
 }
 
@@ -1075,9 +994,6 @@ exec386_dynarec(int32_t cycs)
 
     int32_t cyc_period = cycs / (force_10ms ? 2000 : 200); /*5us*/
 
-#    ifdef USE_ACYCS
-    acycs = 0;
-#    endif
     cycles_main += cycs;
     while (cycles_main > 0) {
         int32_t cycles_start;
@@ -1089,21 +1005,24 @@ exec386_dynarec(int32_t cycs)
             cpu_halted      = 0;
             oldcs           = CS;
             oldcpl          = CPL;
-#    ifndef USE_NEW_DYNAREC
-            cpu_state.oldpc = cpu_state.pc;
-            cpu_state.op32  = use32;
-
-            cycdiff = 0;
-#    endif
             oldcyc = oldcyc2 = cycles;
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
             if (cpu_force_interpreter || cpu_override_dynarec || cpu_flush_pending || (!CACHE_ON())) /*Interpret block*/
             {
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+                link_from = NULL;
+#    endif
                 exec386_dynarec_int();
             } else {
                 exec386_dynarec_dyn();
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+                /* Linked blocks moved the loop-top state on; time is counted
+                   from the last link. */
+                oldcyc = cycles_old;
+                oldtsc = tsc_old;
+#    endif
                 /* A CR0 paging toggle ends the block it is in, so it was the
                    last instruction executed. */
                 if (cpu_flush_pending == 1)
@@ -1124,9 +1043,6 @@ exec386_dynarec(int32_t cycs)
                     int second_abrt = cpu_state.abrt & ABRT_MASK;
                     cpu_state.abrt = 0;
                     cpu_state.pc   = cpu_state.oldpc;
-#    ifndef USE_NEW_DYNAREC
-                    CS = oldcs;
-#    endif
                     x86_fault_in_delivery(tempi, second_abrt);
                     if (cpu_state.abrt) {
                         cpu_state.abrt = 0;
@@ -1456,10 +1372,6 @@ exec386(int32_t cycs)
             cpu_state.oldpc = cpu_state.pc;
             cpu_state.op32  = use32;
 
-#ifndef USE_NEW_DYNAREC
-            x86_was_reset = 0;
-#endif
-
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
@@ -1542,9 +1454,6 @@ block_ended:
                     int second_abrt = cpu_state.abrt & ABRT_MASK;
                     x386_dynarec_log("Double fault - %02X\n", oop);
                     cpu_state.abrt = 0;
-#ifndef USE_NEW_DYNAREC
-                    CS = oldcs;
-#endif
                     cpu_state.pc = cpu_state.oldpc;
                     x386_dynarec_log("Double fault\n");
                     x86_fault_in_delivery(tempi, second_abrt);

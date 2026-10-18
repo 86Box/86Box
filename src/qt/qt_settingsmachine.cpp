@@ -141,6 +141,9 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 #ifndef USE_DYNAREC
     ui->checkBoxDynamicRecompiler->setEnabled(false);
     ui->checkBoxDynamicRecompiler->setVisible(false);
+    ui->checkBoxBlockLinking->setVisible(false);
+#else
+    ui->checkBoxBlockLinking->setVisible(codegen_has_block_link);
 #endif
 }
 
@@ -166,6 +169,7 @@ SettingsMachine::changed()
 #ifdef USE_DYNAREC
     has_changed |= (cpu_use_dynarec            != (ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0));
     has_changed |= (cpu_dyn_accurate_fpu_env   != (ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0));
+    has_changed |= (cpu_dyn_block_link         != (ui->checkBoxBlockLinking->isChecked() ? 1 : 0));
 #endif
     has_changed |= (fpu_softfloat              != (ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0));
     has_changed |= (force_10ms                 != (ui->radioButtonLargerFrames->isChecked() ? 1 : 0));
@@ -229,6 +233,7 @@ SettingsMachine::save(int soft)
 #ifdef USE_DYNAREC
     cpu_use_dynarec          = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
     cpu_dyn_accurate_fpu_env = ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0;
+    cpu_dyn_block_link       = ui->checkBoxBlockLinking->isChecked() ? 1 : 0;
 #endif
     fpu_softfloat            = ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0;
     force_10ms               = ui->radioButtonLargerFrames->isChecked() ? 1 : 0;
@@ -402,18 +407,22 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
             ui->checkBoxDynamicRecompiler->setChecked(false);
             ui->checkBoxDynamicRecompiler->setEnabled(false);
             ui->checkBoxAccurateFPUEnvironment->setEnabled(false);
+            ui->checkBoxBlockLinking->setEnabled(false);
         } else if ((flags & CPU_REQUIRES_DYNAREC) && !cpu_override) {
             ui->checkBoxDynamicRecompiler->setChecked(true);
             ui->checkBoxDynamicRecompiler->setEnabled(false);
             ui->checkBoxAccurateFPUEnvironment->setEnabled(true);
+            ui->checkBoxBlockLinking->setEnabled(true);
         } else {
             ui->checkBoxDynamicRecompiler->setChecked(cpu_use_dynarec);
             ui->checkBoxDynamicRecompiler->setEnabled(true);
             ui->checkBoxAccurateFPUEnvironment->setEnabled(cpu_use_dynarec);
+            ui->checkBoxBlockLinking->setEnabled(cpu_use_dynarec);
         }
 #endif
 
         ui->checkBoxAccurateFPUEnvironment->setChecked(cpu_dyn_accurate_fpu_env);
+        ui->checkBoxBlockLinking->setChecked(cpu_dyn_block_link);
 
         if ((cpuType < CPU_286) || (cpuType == CPU_IBM486SLC) || (cpuType == CPU_IBM486BL) ||
             !strcmp(cpuFamily->manufacturer, "Cyrix") || !strcmp(cpuFamily->manufacturer, "ST") ||
@@ -490,6 +499,7 @@ SettingsMachine::on_checkBoxDynamicRecompiler_stateChanged(int state)
 {
 #ifdef USE_DYNAREC
     ui->checkBoxAccurateFPUEnvironment->setEnabled(state);
+    ui->checkBoxBlockLinking->setEnabled(state);
 #endif
 }
 

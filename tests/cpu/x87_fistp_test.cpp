@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // The legacy FPU's FISTP m64 (x87_ops_loadstore.h, x87_ops_fist.h) and the
 // FERR# its errors raise (x87_ferr.c): the production code, with the memory
-// write and IRQ 13 observed. Built twice, for the old recompiler's tags and,
-// with USE_NEW_DYNAREC, the new one's.
+// write and IRQ 13 observed.
 #include <cmath>
 #include <cstdint>
 #include <gtest/gtest.h>
@@ -88,20 +87,12 @@ static const uint16_t FISTP_M64  = 0x738; // DF /7
 static void
 set_empty()
 {
-#ifdef USE_NEW_DYNAREC
     cpu_state.tag[cpu_state.TOP & 7] = TAG_EMPTY;
-#else
-    cpu_state.tag[cpu_state.TOP & 7] = X87_TAG_EMPTY;
-#endif
 }
 static void
 set_valid(double value)
 {
-#ifdef USE_NEW_DYNAREC
     cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID;
-#else
-    cpu_state.tag[cpu_state.TOP & 7] = X87_TAG_VALID;
-#endif
     ST(0) = value;
 }
 static void

@@ -10,28 +10,67 @@
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #          Jasmine Iwanek, <jriwanek@gmail.com>
-#          Connor Hyde, <mario64crashed@gmail.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
 #          Copyright 2024      Jasmine Iwanek.
-#          Copyright 2025      Connor Hyde / starfrost
 #
 
 if(DYNAREC)
     add_library(dynarec OBJECT
         codegen.c
+        codegen_accumulate.c
+        codegen_allocator.c
+        codegen_block.c
+        codegen_ir.c
         codegen_ops.c
+        codegen_ops_3dnow.c
+        codegen_ops_branch.c
+        codegen_ops_arith.c
+        codegen_ops_fpu_arith.c
+        codegen_ops_fpu_constant.c
+        codegen_ops_fpu_loadstore.c
+        codegen_ops_fpu_misc.c
+        codegen_ops_helpers.c
+        codegen_ops_jump.c
+        codegen_ops_logic.c
+        codegen_ops_misc.c
+        codegen_ops_mmx_arith.c
+        codegen_ops_mmx_cmp.c
+        codegen_ops_mmx_loadstore.c
+        codegen_ops_mmx_logic.c
+        codegen_ops_mmx_pack.c
+        codegen_ops_mmx_shift.c
+        codegen_ops_mov.c
+        codegen_ops_rep.c
+        codegen_ops_shift.c
+        codegen_ops_stack.c
+        codegen_reg.c
     )
-
 
     if(ARCH STREQUAL "x86_64")
         target_sources(dynarec PRIVATE
-            codegen_x86-64.c
-            codegen_accumulate_x86-64.c
+            codegen_backend_x86-64.c
+            codegen_backend_x86-64_ops.c
+            codegen_backend_x86-64_ops_sse.c
+            codegen_backend_x86-64_uops.c
+        )
+    elseif(ARCH STREQUAL "arm64")
+        target_sources(dynarec PRIVATE
+            codegen_backend_arm64.c
+            codegen_backend_arm64_ops.c
+            codegen_backend_arm64_uops.c
+            codegen_backend_arm64_imm.c
+        )
+    elseif(ARCH STREQUAL "loongarch64")
+        target_sources(dynarec PRIVATE
+            codegen_backend_loongarch64.c
+            codegen_backend_loongarch64_ops.c
+            codegen_backend_loongarch64_uops.c
+            codegen_backend_loongarch64_imm.c
         )
     else()
         message(SEND_ERROR
-            "Old dynarec is incompatible with target platform ${ARCH}")
+            "Dynarec is incompatible with target platform ${ARCH}")
     endif()
 
     target_link_libraries(86Box dynarec cgt)

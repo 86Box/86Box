@@ -403,8 +403,9 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             typeRows.add("VDE", NET_TYPE_VDE);
 #endif
 
-#if defined(__unix__) || defined(__APPLE__)
-        typeRows.add("TAP", NET_TYPE_TAP);
+#ifdef HAS_TAP
+        if (network_devmap.has_tap)
+            typeRows.add("TAP", NET_TYPE_TAP);
 #endif
 
         typeRows.add(tr("Local Switch"), NET_TYPE_NLSWITCH);

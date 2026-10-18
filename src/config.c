@@ -670,6 +670,7 @@ load_machine(void)
     pit_mode = ini_section_get_int(cat, "pit_mode", -1);
 
     cpu_dyn_accurate_fpu_env = ini_section_get_int(cat, "cpu_dyn_accurate_fpu_env", 0);
+    cpu_dyn_block_link = !!ini_section_get_int(cat, "cpu_dyn_block_link", 1);
 }
 
 /* Load "Video" section. */
@@ -2988,6 +2989,7 @@ config_load(void)
         cassette_ui_writeprot = 0;
 
         cpu_dyn_accurate_fpu_env = 0;
+        cpu_dyn_block_link       = 1;
 
         gdbstub_port          = 12345;
 
@@ -3361,15 +3363,7 @@ save_general(void)
     else
         ini_section_delete_var(cat, "emu_build_num");
 
-#ifdef USE_DYNAREC
-#   ifdef USE_NEW_DYNAREC
-    ini_section_set_string(cat, "emu_build_dynarec_type", "new");
-#   else
-    ini_section_set_string(cat, "emu_build_dynarec_type", "old");
-#   endif
-#else
     ini_section_delete_var(cat, "emu_build_dynarec_type");
-#endif
 
     if (strnlen(uuid, sizeof(uuid) - 1) > 0)
         ini_section_set_string(cat, "uuid", uuid);
@@ -3477,6 +3471,11 @@ save_machine(void)
         ini_section_delete_var(cat, "cpu_dyn_accurate_fpu_env");
     else
         ini_section_set_int(cat, "cpu_dyn_accurate_fpu_env", cpu_dyn_accurate_fpu_env);
+
+    if (cpu_dyn_block_link)
+        ini_section_delete_var(cat, "cpu_dyn_block_link");
+    else
+        ini_section_set_int(cat, "cpu_dyn_block_link", 0);
 
     ini_delete_section_if_empty(config, cat);
 }

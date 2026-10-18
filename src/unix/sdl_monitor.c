@@ -182,11 +182,7 @@ monitor_execute_line(char *line)
 #endif
 
 #ifdef USE_DYNAREC
-#    ifdef USE_NEW_DYNAREC
-#        define DYNAREC_STR "new dynarec"
-#    else
-#        define DYNAREC_STR "old dynarec"
-#    endif
+#    define DYNAREC_STR "dynarec"
 #else
 #    define DYNAREC_STR "no dynarec"
 #endif

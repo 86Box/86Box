@@ -1456,6 +1456,10 @@ unknown:
                         l++;
                     }
                 }
+
+                /* Drop cached lookups, so that accesses to the watched
+                   pages go through the checked paths. */
+                flushmmucache();
             }
 
             /* Respond positively. */
@@ -1464,6 +1468,62 @@ unknown:
 end:
     /* Send response. */
     gdbstub_client_respond(client);
+}
+
+/* Report a stop to clients waiting for one, if report_stop is set, and
+   process their packets. Runs on the emulation thread. */
+static void
+gdbstub_process_clients(int report_stop)
+{
+    thread_wait_mutex(client_list_mutex);
+    gdbstub_client_t *client = first_client;
+    while (client) {
+        /* Report stop reason if the client is waiting for one. */
+        if (report_stop && client->waiting_stop && stop_reason_len) {
+            client->waiting_stop = 0;
+
+            /* Wait for any pending responses to be acknowledged. */
+            if (!thread_wait_event(client->response_event, -1)) {
+                /* Block other responses from being written while this one isn't acknowledged. */
+                thread_reset_event(client->response_event);
+
+                /* Write stop reason response. */
+                strcpy(client->response, stop_reason);
+                client->response_pos = stop_reason_len;
+                gdbstub_client_respond(client);
+            } else {
+                gdbstub_log("GDB Stub: Timed out waiting for client %s:%d\n", inet_ntoa(client->addr.sin_addr), client->addr.sin_port);
+            }
+        }
+
+        if (client->has_packet) {
+            gdbstub_client_packet(client);
+            client->has_packet = client->packet_pos = 0;
+            thread_set_event(client->processed_event);
+        }
+
+#ifdef GDBSTUB_ALLOW_MULTI_CLIENTS
+        client = client->next;
+#else
+        break;
+#endif
+    }
+    thread_release_mutex(client_list_mutex);
+}
+
+/* Serve clients while the CPU isn't being run, such as while an automation
+   client holds the machine: they can read and write registers and memory
+   and set breakpoints. A continue or step takes effect when the CPU runs
+   again. */
+void
+gdbstub_poll(void)
+{
+    if (gdbstub_socket == -1)
+        return;
+
+    in_gdbstub = 1;
+    gdbstub_process_clients(0);
+    in_gdbstub = 0;
 }
 
 static void
@@ -1554,41 +1614,7 @@ gdbstub_cpu_exec(int32_t cycs)
     /* Return the framerate to normal. */
     gdbstub_next_asap = 0;
 
-    /* Process client packets. */
-    thread_wait_mutex(client_list_mutex);
-    gdbstub_client_t *client = first_client;
-    while (client) {
-        /* Report stop reason if the client is waiting for one. */
-        if (client->waiting_stop && stop_reason_len) {
-            client->waiting_stop = 0;
-
-            /* Wait for any pending responses to be acknowledged. */
-            if (!thread_wait_event(client->response_event, -1)) {
-                /* Block other responses from being written while this one isn't acknowledged. */
-                thread_reset_event(client->response_event);
-
-                /* Write stop reason response. */
-                strcpy(client->response, stop_reason);
-                client->response_pos = stop_reason_len;
-                gdbstub_client_respond(client);
-            } else {
-                gdbstub_log("GDB Stub: Timed out waiting for client %s:%d\n", inet_ntoa(client->addr.sin_addr), client->addr.sin_port);
-            }
-        }
-
-        if (client->has_packet) {
-            gdbstub_client_packet(client);
-            client->has_packet = client->packet_pos = 0;
-            thread_set_event(client->processed_event);
-        }
-
-#ifdef GDBSTUB_ALLOW_MULTI_CLIENTS
-        client = client->next;
-#else
-        break;
-#endif
-    }
-    thread_release_mutex(client_list_mutex);
+    gdbstub_process_clients(1);
 
     /* Flag that we're now out of the debugger context. */
     in_gdbstub = 0;

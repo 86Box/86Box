@@ -1983,10 +1983,8 @@ mem_remap_top_ps2(int kb, uint32_t start, uint32_t phys_base)
             pages[c].write_w = mem_write_ramw_page;
             pages[c].write_l = mem_write_raml_page;
         }
-#ifdef USE_NEW_DYNAREC
         pages[c].byte_dirty_mask        = &byte_dirty_mask[(addr >> 12) * 64];
         pages[c].byte_code_present_mask = &byte_code_present_mask[(addr >> 12) * 64];
-#endif
     }
 
     flushmmucache();

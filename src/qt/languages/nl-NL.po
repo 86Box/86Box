@@ -432,6 +432,9 @@ msgstr "Dynamische recompiler"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Nauwkeurige FPU-omgeving voor de dynamische recompiler"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Blokkoppeling in de dynamische recompiler"
+
 msgid "CPU frame size"
 msgstr "CPU framegrootte"
 

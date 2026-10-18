@@ -34,7 +34,7 @@
 #endif
 #include "x86seg.h"
 #include "386_common.h"
-#ifdef USE_NEW_DYNAREC
+#ifdef USE_DYNAREC
 #    include "codegen.h"
 #endif
 
@@ -251,10 +251,6 @@ exec386_2386(int32_t cycs)
             cpu_state.oldpc = cpu_state.pc;
             cpu_state.op32  = use32;
 
-#ifndef USE_NEW_DYNAREC
-            x86_was_reset = 0;
-#endif
-
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
@@ -336,9 +332,6 @@ exec386_2386(int32_t cycs)
                 if (cpu_state.abrt) {
                     int second_abrt = cpu_state.abrt & ABRT_MASK;
                     cpu_state.abrt = 0;
-#ifndef USE_NEW_DYNAREC
-                    CS = oldcs;
-#endif
                     cpu_state.pc = cpu_state.oldpc;
                     x386_log("Double fault\n");
                     x86_fault_in_delivery_2386(tempi, second_abrt);

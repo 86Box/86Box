@@ -102,6 +102,7 @@
 #include <86box/plat_dir.h>
 #include <86box/version.h>
 #include <86box/gdbstub.h>
+#include <86box/automation.h>
 #include <86box/machine_status.h>
 #include <86box/acpi.h>
 #include <86box/nv/vid_nv_rivatimer.h>
@@ -534,6 +535,11 @@ fatal(const char *fmt, ...)
 
     do_pause(2);
 
+    /* A connected automation client would wait forever on a machine that has
+       stopped, behind a dialog it can't answer: close its connection now, so
+       it knows. The message is in the log. */
+    automation_close();
+
     ui_msgbox(MBX_ERROR | MBX_FATAL, temp);
 
     /* Cleanly terminate all of the emulator's components so as
@@ -578,6 +584,11 @@ fatal_ex(const char *fmt, va_list ap)
 #endif
 
     do_pause(2);
+
+    /* A connected automation client would wait forever on a machine that has
+       stopped, behind a dialog it can't answer: close its connection now, so
+       it knows. The message is in the log. */
+    automation_close();
 
     ui_msgbox(MBX_ERROR | MBX_FATAL, temp);
 
@@ -760,6 +771,15 @@ pc_show_usage(void)
             "\nUsage: 86box [options] [cfg-file]\n\n"
             "Valid options are:\n\n"
             "-? or --help\t\t\t- show this information\n"
+#ifdef USE_AUTOMATION
+            "--automation endpoint\t\t- listen for automation commands: unix:path or\n"
+            "\t\t\t\t   tcp:[host:]port (bare value: a path, or a port on Windows)\n"
+            "--automation-hold\t\t- start with the machine held for automation\n"
+            "--automation-token-file path\t- TCP: write the access token to 'path'\n"
+            "--automation-allow-remote\t- TCP: allow a non-loopback listen address\n"
+            "--automation-insecure\t\t- TCP: accept clients without a token (any local process,\n"
+            "\t\t\t\t  or with --automation-allow-remote anyone, controls the machine)\n"
+#endif
             "-A or --assetpath path\t\t- set 'path' to be asset path\n"
 #ifdef SHOW_EXTRA_PARAMS
             "-C or --config path\t\t- set 'path' to be config file\n"
@@ -806,9 +826,18 @@ pc_show_usage(void)
             "-Y or --donothing\t\t- do not show any UI or run the emulation\n"
 #endif
             "-Z or --lastvmpath\t\t- the last param. is VM path rather than config\n"
+            "\n"
+            "--window_x pos_x\t\t- Set window position in the horizontal direction\n"
+            "--window_y pos_y\t\t- Set window position in the vertical direction\n"
+            "--window_w width\t\t- Set window width\n"
+            "--window_h height\t\t- Set window height\n"
+#ifndef USE_SDL_UI
+            "--assume_copied_vm\t\t- Assume the VM is always copied on this run (regenerates UUID and MAC addresses)\n"
+            "--assume_moved_vm\t\t- Assume the VM is always moved on this run (regenerates UUID only)\n"
+#endif
             "\nA config file can be specified. If none is, the default file will be used.\n");
 
-#ifdef _WIN32
+#if defined _WIN32 && !(defined WIN_CONSOLE_LOG)
     ui_msgbox(MBX_INFO, p);
 #else
     always_log("%s", p);
@@ -833,6 +862,14 @@ pc_init(int argc, char *argv[])
     char            *p;
     char             temp[2048];
     char            *fn[FDD_NUM] = { NULL };
+    int              window_x_1 = 0;
+    int              window_y_1 = 0;
+    int              window_w_1 = 0;
+    int              window_h_1 = 0;
+    int              win_rem_set_x = 0;
+    int              win_rem_set_y = 0;
+    int              win_rem_set_w = 0;
+    int              win_rem_set_h = 0;
     char             drive = 0;
     char            *temp2 = NULL;
     char            *what;
@@ -930,6 +967,24 @@ usage:
             else
                 memcpy(vmm_path, vp, strlen(vp) + 1);
 #endif
+#ifdef USE_AUTOMATION
+        } else if (!strcasecmp(argv[c], "--automation")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            snprintf(automation_path, sizeof(automation_path), "%s", argv[++c]);
+        } else if (!strcasecmp(argv[c], "--automation-hold")) {
+            automation_start_held = 1;
+        } else if (!strcasecmp(argv[c], "--automation-token-file")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            snprintf(automation_token_file, sizeof(automation_token_file), "%s", argv[++c]);
+        } else if (!strcasecmp(argv[c], "--automation-allow-remote")) {
+            automation_allow_remote = 1;
+        } else if (!strcasecmp(argv[c], "--automation-insecure")) {
+            automation_insecure = 1;
+#endif
         } else if (!strcasecmp(argv[c], "--fullscreen") || !strcasecmp(argv[c], "-F")) {
             start_in_fullscreen = 1;
         } else if (!strcasecmp(argv[c], "--logfile") || !strcasecmp(argv[c], "-L")) {
@@ -1009,6 +1064,8 @@ usage:
             do_nothing = 1;
         } else if (!strcasecmp(argv[c], "--nohook") || !strcasecmp(argv[c], "-W")) {
             hook_enabled = 0;
+        } else if (!strcasecmp(argv[c], "--assume_moved_vm") || !strcasecmp(argv[c], "--assume_copied_vm")) {
+            // do nothing, handled in Qt only.
         } else if (!strcasecmp(argv[c], "--clear") || !strcasecmp(argv[c], "-X")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -1049,6 +1106,30 @@ usage:
 
             /* .. and then exit. */
             return 0;
+        } else if (!strcasecmp(argv[c], "--window_x")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            win_rem_set_x = 1;
+            window_x_1 = strtoull(&(argv[++c][0]), NULL, 10);
+        } else if (!strcasecmp(argv[c], "--window_y")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            win_rem_set_y = 1;
+            window_y_1 = strtoull(&(argv[++c][0]), NULL, 10);
+        } else if (!strcasecmp(argv[c], "--window_w")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            win_rem_set_w = 1;
+            window_w_1 = strtoull(&(argv[++c][0]), NULL, 10);
+        } else if (!strcasecmp(argv[c], "--window_h")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            win_rem_set_h = 1;
+            window_h_1 = strtoull(&(argv[++c][0]), NULL, 10);
 #ifdef USE_INSTRUMENT
         } else if (!strcasecmp(argv[c], "--instrument") || !strcasecmp(argv[c], "-J")) {
             if ((c + 1) == argc)
@@ -1421,6 +1502,16 @@ usage:
                 fn[i] = NULL;
             }
         }
+
+        if (win_rem_set_x || win_rem_set_y || win_rem_set_w || win_rem_set_h) {
+            int old_window_remember = window_remember;
+            window_remember = 1;
+            vid_resize = (win_rem_set_w || win_rem_set_h);
+            window_x = win_rem_set_x ? window_x_1 : (old_window_remember ? window_x : 0);
+            window_y = win_rem_set_y ? window_y_1 : (old_window_remember ? window_y : 0);
+            window_w = win_rem_set_w ? window_w_1 : (old_window_remember ? window_w : 640);
+            window_h = win_rem_set_h ? window_h_1 : (old_window_remember ? window_h : 480);
+        }
     }
 
     /* Load the desired language */
@@ -1616,6 +1707,8 @@ pc_init_modules(void)
         do_nothing = 0;
         exit(-1);
     }
+
+    automation_init();
 
     return 1;
 }
@@ -2034,6 +2127,7 @@ pc_close(UNUSED(thread_t *ptr))
 
     gdbstub_close();
 
+    automation_close();
 }
 
 #ifdef __APPLE__

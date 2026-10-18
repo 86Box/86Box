@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 #endif
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -441,6 +442,14 @@ plat_power_off(void)
     cycles -= 99999999;
 
     cpu_thread_run = 0;
+}
+
+extern bool fast_forward; /* sdl_main.c */
+
+void
+plat_fast_forward(int on)
+{
+    fast_forward = !!on;
 }
 
 void

@@ -426,6 +426,9 @@ msgstr ""
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr ""
 
+msgid "Block linking on the dynamic recompiler"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr ""
 

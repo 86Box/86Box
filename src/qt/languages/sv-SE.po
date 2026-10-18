@@ -432,6 +432,9 @@ msgstr "Dynamisk omkompilator"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Exakt flyttalsprocessor-miljö på dynamisk omkompilator"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Blocklänkning i dynamisk omkompilator"
+
 msgid "CPU frame size"
 msgstr "Ramstorlek för processor"
 

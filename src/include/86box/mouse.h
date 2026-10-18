@@ -60,6 +60,7 @@ extern int    tablet_type;
 extern int    mouse_input_mode_initial;
 extern int    mouse_input_mode; /* 2 = Absolute (Visible Crosshair), 1 = Absolute, 0 = Relative */
 extern int    mouse_timed; /* 1 = Timed, 0 = Constant */
+extern int    mouse_automation; /* input injected by the automation socket */
 extern int    mouse_tablet_in_proximity;
 extern double mouse_x_abs;
 extern double mouse_y_abs;

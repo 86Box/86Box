@@ -195,7 +195,6 @@ typedef struct _mem_mapping_ {
     void *priv; /* backpointer to device */
 } mem_mapping_t;
 
-#ifdef USE_NEW_DYNAREC
 extern uint64_t *byte_dirty_mask;
 extern uint64_t *byte_code_present_mask;
 
@@ -234,24 +233,6 @@ page_in_evict_list(page_t *page)
 }
 void page_remove_from_evict_list(page_t *page);
 void page_add_to_evict_list(page_t *page);
-#else
-typedef struct _page_ {
-    void (*write_b)(uint32_t addr, uint8_t val, struct _page_ *page);
-    void (*write_w)(uint32_t addr, uint16_t val, struct _page_ *page);
-    void (*write_l)(uint32_t addr, uint32_t val, struct _page_ *page);
-
-    uint8_t *mem;
-
-    uint64_t code_present_mask[4];
-    uint64_t dirty_mask[4];
-
-    struct codeblock_t *block[4];
-    struct codeblock_t *block_2[4];
-
-    /*Head of codeblock tree associated with this page*/
-    struct codeblock_t *head;
-} page_t;
-#endif
 
 extern uint8_t *ram;
 extern uint32_t rammask;

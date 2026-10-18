@@ -130,17 +130,9 @@ typedef union {
 static __inline void
 x87_push(double i)
 {
-#ifdef USE_NEW_DYNAREC
     cpu_state.TOP--;
-#else
-    cpu_state.TOP                    = (cpu_state.TOP - 1) & 7;
-#endif
     cpu_state.ST[cpu_state.TOP & 7] = i;
-#ifdef USE_NEW_DYNAREC
     cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID;
-#else
-    cpu_state.tag[cpu_state.TOP & 7] = (i == 0.0) ? TAG_VALID : 0;
-#endif
 }
 
 static __inline void
@@ -153,17 +145,9 @@ x87_push_u64(uint64_t i)
 
     td.ll = i;
 
-#ifdef USE_NEW_DYNAREC
     cpu_state.TOP--;
-#else
-    cpu_state.TOP                    = (cpu_state.TOP - 1) & 7;
-#endif
     cpu_state.ST[cpu_state.TOP & 7] = td.d;
-#ifdef USE_NEW_DYNAREC
     cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID;
-#else
-    cpu_state.tag[cpu_state.TOP & 7] = (td.d == 0.0) ? TAG_VALID : 0;
-#endif
 }
 
 static __inline double
@@ -171,17 +155,7 @@ x87_pop(void)
 {
     double t                         = cpu_state.ST[cpu_state.TOP & 7];
     cpu_state.tag[cpu_state.TOP & 7] = TAG_EMPTY;
-#ifdef USE_NEW_DYNAREC
     cpu_state.TOP++;
-#else
-    /* Old-dynarec "empty" is packed tag 3 (see FINIT's 0x0303... and the dynarec's
-       FP_POP, which writes 3). The previous `|= TAG_UINT64` left the vacated slot
-       tagged as a live 64-bit integer (x87_gettag maps TAG_UINT64 -> non-empty 2),
-       diverging from the dynarec and causing FXSAVE to serialize a stale MM.q with
-       the 0x5555 sentinel. Mark it empty like FP_POP/FINIT do. */
-    cpu_state.tag[cpu_state.TOP & 7] = 3;
-    cpu_state.TOP = (cpu_state.TOP + 1) & 7;
-#endif
     return t;
 }
 
@@ -236,16 +210,10 @@ x87_ld_frstor(int reg)
        way FNSAVE/FRSTOR does; the previous `tag == 2` condition depended on a
        correctly-reconstructed abridged tag, which FXRSTOR cannot guarantee. */
     if (cpu_state.MM_w4[reg] == 0x5555) {
-#ifdef USE_NEW_DYNAREC
         cpu_state.tag[reg] = TAG_VALID | TAG_UINT64;
-#else
-        cpu_state.tag[reg] = TAG_UINT64;
-#endif
         cpu_state.ST[reg] = (double) cpu_state.MM[reg].q;
     } else {
-#ifdef USE_NEW_DYNAREC
         cpu_state.tag[reg] &= ~TAG_UINT64;
-#endif
         cpu_state.ST[reg] = x87_ld80();
     }
 }
@@ -392,17 +360,10 @@ typedef union {
         } while (0)
 #endif
 
-#ifdef USE_NEW_DYNAREC
-#    define FP_TAG_VALID   cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID
-#    define FP_TAG_VALID_F cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID
-#    define FP_TAG_DEFAULT cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID | TAG_UINT64
-#    define FP_TAG_VALID_N cpu_state.tag[(cpu_state.TOP + 1) & 7] = TAG_VALID
-#else
-#    define FP_TAG_VALID   cpu_state.tag[cpu_state.TOP] &= ~TAG_UINT64
-#    define FP_TAG_VALID_F cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64
-#    define FP_TAG_DEFAULT cpu_state.tag[cpu_state.TOP] |= TAG_UINT64;
-#    define FP_TAG_VALID_N cpu_state.tag[(cpu_state.TOP + 1) & 7] &= ~TAG_UINT64
-#endif
+#define FP_TAG_VALID   cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID
+#define FP_TAG_VALID_F cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID
+#define FP_TAG_DEFAULT cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID | TAG_UINT64
+#define FP_TAG_VALID_N cpu_state.tag[(cpu_state.TOP + 1) & 7] = TAG_VALID
 
 #include "softfloat3e/softfloat-specialize.h"
 #include "softfloat3e/fpu_trans.h"

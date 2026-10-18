@@ -19,11 +19,7 @@ x87_set_mmx(void)
         cpu_state.TOP = 0;
         p             = (uint64_t *) cpu_state.tag;
         /* Every tag valid: TAG_VALID, or the old recompiler's raw 00b */
-#ifdef USE_NEW_DYNAREC
         *p = 0x0101010101010101ULL;
-#else
-        *p = 0;
-#endif
     }
     cpu_state.ismmx = 1;
 }
@@ -84,11 +80,7 @@ x87_emms(void)
     } else {
         p  = (uint64_t *) cpu_state.tag;
         /* Every tag empty: TAG_EMPTY, or the old recompiler's raw 11b */
-#ifdef USE_NEW_DYNAREC
         *p = 0;
-#else
-        *p = 0x0303030303030303ULL;
-#endif
         cpu_state.TOP = 0; /* as the softfloat path */
     }
     cpu_state.ismmx = 0;
@@ -100,11 +92,7 @@ void     x87_settag(uint16_t new_tag);
 #define TAG_EMPTY 0
 #define TAG_VALID (1 << 0)
 /*Hack for FPU copy. If set then MM[].q contains the 64-bit integer loaded by FILD*/
-#ifdef USE_NEW_DYNAREC
-#    define TAG_UINT64 (1 << 7)
-#else
-#    define TAG_UINT64 (1 << 2)
-#endif
+#define TAG_UINT64 (1 << 7)
 
 /*Old dynarec stuff.*/
 #define TAG_NOT_UINT64       0xfb
@@ -112,11 +100,7 @@ void     x87_settag(uint16_t new_tag);
 /* ST(i) empty: the new recompiler's tags are TAG_EMPTY for an empty
    register, the old one's the x87's own two-bit tag, 3 for empty (as FFREE,
    FXAM and the old recompiler's pop write it) */
-#ifdef USE_NEW_DYNAREC
-#    define X87_ST_EMPTY(i) (cpu_state.tag[(cpu_state.TOP + (i)) & 7] == TAG_EMPTY)
-#else
-#    define X87_ST_EMPTY(i) ((cpu_state.tag[(cpu_state.TOP + (i)) & 7] & 3) == 3)
-#endif
+#define X87_ST_EMPTY(i) (cpu_state.tag[(cpu_state.TOP + (i)) & 7] == TAG_EMPTY)
 
 #define X87_ROUNDING_NEAREST 0
 #define X87_ROUNDING_DOWN    1

@@ -1499,10 +1499,23 @@ piix_apm_out(UNUSED(uint16_t port), UNUSED(uint8_t val), void *priv)
 static void
 piix_fast_off_count(void *priv)
 {
-    piix_t *dev = (piix_t *) priv;
+    piix_t  *dev   = (piix_t *) priv;
+    uint8_t *fregs = dev->regs[0];
 
-    smi_raise();
-    dev->regs[0][0xaa] |= 0x20;
+    /*
+     * The timer reloads when it expires, and it only generates an SMI while
+     * SMIEN bit 5 enables it (82371FB/SB datasheet 290550-001, FTMR and
+     * SMIEN). Like the IRQ events in piix_irq(), only an enabled event sets
+     * its SMIREQ bit, and CSMIGATE gates SMI# but not the request. The IBM
+     * PC 7x0 BIOS clears the enable at its last power-saving level and
+     * expects no further timer SMIs.
+     */
+    cpu_fast_off_advance();
+    if (fregs[0xa2] & 0x20) {
+        fregs[0xaa] |= 0x20;
+        if (fregs[0xa0] & 0x01)
+            smi_raise();
+    }
 }
 
 static void

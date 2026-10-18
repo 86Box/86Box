@@ -174,9 +174,6 @@ x86_doabrt_2386(int x86_abrt)
 x86_doabrt(int x86_abrt)
 #endif
 {
-#ifndef USE_NEW_DYNAREC
-    CS = oldcs;
-#endif
     cpu_state.pc             = cpu_state.oldpc;
     cpu_state.seg_cs.access  = (oldcpl << 5) | 0x80;
     cpu_state.seg_cs.ar_high = 0x10;
@@ -201,9 +198,6 @@ x86_doabrt(int x86_abrt)
         }
 
         cpu_state.flags &= ~(I_FLAG | T_FLAG);
-#ifndef USE_NEW_DYNAREC
-        oxpc = cpu_state.pc;
-#endif
         cpu_state.pc = readmemw(0, addr);
         op_loadcs(readmemw(0, addr + 2));
         return;
@@ -391,11 +385,7 @@ read_descriptor(uint32_t addr, uint16_t *segdat, uint32_t *segdat32, int overrid
         cpl_override = 0;
 }
 
-#ifdef USE_NEW_DYNAREC
 int
-#else
-void
-#endif
 #ifdef OPS_286_386
 loadseg_2386(uint16_t seg, x86seg *s)
 #else
@@ -412,11 +402,7 @@ loadseg(uint16_t seg, x86seg *s)
         if (!(seg & 0xfffc)) {
             if (s == &cpu_state.seg_ss) {
                 x86gpf("loadseg(): Null stack segment", 0);
-#ifdef USE_NEW_DYNAREC
                 return 1;
-#else
-                return;
-#endif
             }
             s->seg     = seg;
             s->access  = 0x80;
@@ -426,55 +412,31 @@ loadseg(uint16_t seg, x86seg *s)
                 cpu_cur_status |= CPU_STATUS_NOTFLATDS;
             if (s == &cpu_state.seg_es)
                 cpu_cur_status |= CPU_STATUS_NOTFLATES;
-#ifdef USE_NEW_DYNAREC
             return 0;
-#else
-            return;
-#endif
         }
         addr = seg & 0xfff8;
         dt   = (seg & 0x0004) ? &ldt : &gdt;
         if ((addr + 7) > dt->limit) {
             x86gpf("loadseg(): Bigger than LDT limit", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
             return 1;
-#else
-            return;
-#endif
         }
         addr += dt->base;
         read_descriptor(addr, segdat, segdat32, 1);
         if (cpu_state.abrt)
-#ifdef USE_NEW_DYNAREC
             return 1;
-#else
-            return;
-#endif
         dpl = (segdat[2] >> 13) & 3;
         if (s == &cpu_state.seg_ss) {
             if (!(seg & 0xfffc)) {
                 x86gpf("loadseg(): Zero stack segment", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
                 return 1;
-#else
-                return;
-#endif
             }
             if ((seg & 0x0003) != CPL) {
                 x86gpf("loadseg(): Stack segment RPL != CPL", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
                 return 1;
-#else
-                return;
-#endif
             }
             if (dpl != CPL) {
                 x86gpf("loadseg(): Stack segment DPL != CPL", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
                 return 1;
-#else
-                return;
-#endif
             }
             switch ((segdat[2] >> 8) & 0x1f) {
                 case 0x12:
@@ -485,19 +447,11 @@ loadseg(uint16_t seg, x86seg *s)
                     break;
                 default:
                     x86gpf("loadseg(): Unknown stack segment type", seg & ~3);
-#ifdef USE_NEW_DYNAREC
                     return 1;
-#else
-                    return;
-#endif
             }
             if (!(segdat[2] & 0x8000)) {
                 x86ss(NULL, seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
                 return 1;
-#else
-                return;
-#endif
             }
         } else if (s != &cpu_state.seg_cs) {
             x86seg_log("Seg data %04X %04X %04X %04X\n", segdat[0], segdat[1], segdat[2], segdat[3]);
@@ -515,19 +469,11 @@ loadseg(uint16_t seg, x86seg *s)
                 case 0x1b: /* Readable non-conforming code */
                     if ((seg & 0x0003) > dpl) {
                         x86gpf("loadseg(): Normal segment RPL > DPL", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
                         return 1;
-#else
-                        return;
-#endif
                     }
                     if ((CPL) > dpl) {
                         x86gpf("loadseg(): Normal segment DPL < CPL", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
                         return 1;
-#else
-                        return;
-#endif
                     }
                     break;
                 case 0x1e:
@@ -535,21 +481,13 @@ loadseg(uint16_t seg, x86seg *s)
                     break;
                 default:
                     x86gpf("loadseg(): Unknown normal segment type", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
                     return 1;
-#else
-                    return;
-#endif
             }
         }
 
         if (!(segdat[2] & 0x8000)) {
             x86np("Load data seg not present", seg & 0xfffc);
-#ifdef USE_NEW_DYNAREC
             return 1;
-#else
-            return;
-#endif
         }
         /* A page fault setting A must leave the old visible selector and
            descriptor cache intact, so complete that write before loading. */
@@ -557,11 +495,7 @@ loadseg(uint16_t seg, x86seg *s)
         x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
         cpl_override = 0;
         if (cpu_state.abrt) {
-#ifdef USE_NEW_DYNAREC
             return 1;
-#else
-            return;
-#endif
         }
         s->seg = seg;
         do_seg_load(s, segdat);
@@ -618,9 +552,7 @@ loadseg(uint16_t seg, x86seg *s)
             cpu_cur_status |= CPU_STATUS_NOTFLATSS;
     }
 
-#ifdef USE_NEW_DYNAREC
     return cpu_state.abrt;
-#endif
 }
 
 void
@@ -681,9 +613,7 @@ loadcs(uint16_t seg)
             use32 = (segdat[3] & 0x40) ? 0x300 : 0;
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
-#endif
 
             cpl_override = 1;
             x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
@@ -706,9 +636,7 @@ loadcs(uint16_t seg)
         cpu_state.seg_cs.ar_high    = 0x10;
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
-#endif
     }
 }
 
@@ -826,9 +754,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
             do_seg_load(&cpu_state.seg_cs, segdat);
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
-#endif
             cycles -= timing_jmp_pm;
         } else { /* System segment */
             /* Each type tests P after its own checks: a not-present
@@ -907,9 +833,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                             }
                             if ((CPL == 3) && (oldcpl != 3))
                                 flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
                             oldcpl = CPL;
-#endif
                             set_use32(segdat[3] & 0x40);
                             cpu_state.pc = newpc;
 
@@ -953,9 +877,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
         cpu_state.seg_cs.ar_high    = 0x10;
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
-#endif
         cycles -= timing_jmp_rm;
     }
 }
@@ -1062,21 +984,11 @@ POPL(void)
 }
 
 #ifdef OPS_286_386
-#ifdef USE_NEW_DYNAREC
 void
 loadcscall_2386(uint16_t seg, uint32_t old_pc)
 #else
 void
-loadcscall_2386(uint16_t seg)
-#endif
-#else
-#ifdef USE_NEW_DYNAREC
-void
 loadcscall(uint16_t seg, uint32_t old_pc)
-#else
-void
-loadcscall(uint16_t seg)
-#endif
 #endif
 {
     uint16_t      seg2;
@@ -1155,9 +1067,7 @@ loadcscall(uint16_t seg)
             do_seg_load(&cpu_state.seg_cs, segdat);
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
-#endif
 #ifdef ENABLE_X86SEG_LOG
             x86seg_log("Complete\n");
 #endif
@@ -1222,9 +1132,7 @@ loadcscall(uint16_t seg)
                         case 0x1a00:
                         case 0x1b00: /* Non-conforming code */
                             if (DPL < CPL) {
-#ifdef USE_NEW_DYNAREC
                                 uint16_t oldcs = CS;
-#endif
                                 oaddr = addr;
                                 /* Load new stack */
                                 oldss = SS;
@@ -1300,9 +1208,7 @@ loadcscall(uint16_t seg)
                                 do_seg_load(&cpu_state.seg_cs, segdat);
                                 if ((CPL == 3) && (oldcpl != 3))
                                     flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
                                 oldcpl = CPL;
-#endif
                                 set_use32(segdat[3] & 0x0040);
                                 cpu_state.pc = newpc;
 
@@ -1319,9 +1225,7 @@ loadcscall(uint16_t seg)
                                     if (cpu_state.abrt) {
                                         SS  = oldss;
                                         ESP = oldsp2;
-#ifdef USE_NEW_DYNAREC
                                         CS = oldcs;
-#endif
                                         return;
                                     }
                                     if (count) {
@@ -1354,9 +1258,7 @@ loadcscall(uint16_t seg)
                                             if (cpu_state.abrt) {
                                                 SS  = oldss;
                                                 ESP = oldsp2;
-#ifdef USE_NEW_DYNAREC
                                                 CS = oldcs;
-#endif
                                                 return;
                                             }
                                         }
@@ -1369,9 +1271,7 @@ loadcscall(uint16_t seg)
                                     if (cpu_state.abrt) {
                                         SS  = oldss;
                                         ESP = oldsp2;
-#ifdef USE_NEW_DYNAREC
                                         CS = oldcs;
-#endif
                                         return;
                                     }
                                     x86seg_log("Write SP to %04X:%04X\n", SS, SP);
@@ -1394,9 +1294,7 @@ loadcscall(uint16_t seg)
                                             if (cpu_state.abrt) {
                                                 SS  = oldss;
                                                 ESP = oldsp2;
-#ifdef USE_NEW_DYNAREC
                                                 CS = oldcs;
-#endif
                                                 return;
                                             }
                                         }
@@ -1424,9 +1322,7 @@ loadcscall(uint16_t seg)
                             }
                             if ((CPL == 3) && (oldcpl != 3))
                                 flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
                             oldcpl = CPL;
-#endif
                             set_use32(segdat[3] & 0x0040);
                             cpu_state.pc = newpc;
 
@@ -1447,11 +1343,7 @@ loadcscall(uint16_t seg)
                 case 0x0500: /* Task gate */
                     if (!task_target_check(&seg, segdat, segdat32, 1))
                         return;
-#ifdef USE_NEW_DYNAREC
                     cpu_state.pc = old_pc;
-#else
-                    cpu_state.pc = oxpc;
-#endif
                     /* A task switch links the tasks through the TSS back-link and NT,
                        it does not push a return address on the new task's stack. */
                     cgate_task   = 1;
@@ -1475,9 +1367,7 @@ loadcscall(uint16_t seg)
         cpu_state.seg_cs.ar_high    = 0x10;
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
-#endif
     }
 }
 
@@ -1601,9 +1491,7 @@ pmoderetf(int is32, uint16_t off)
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~(3 << 5)) | ((CS & 3) << 5);
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
-#endif
         set_use32(segdat[3] & 0x0040);
 
         cycles -= timing_retf_pm;
@@ -1726,9 +1614,7 @@ pmoderetf(int is32, uint16_t off)
         do_seg_load(&cpu_state.seg_cs, segdat);
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
-#endif
         set_use32(segdat[3] & 0x0040);
 
         if (stack32)
@@ -2021,9 +1907,7 @@ pmodeint(int num, int soft)
             cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (new_cpl << 5);
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
-#endif
             if (type > 0x0800)
                 cpu_state.pc = segdat[0] | (segdat[3] << 16);
             else
@@ -2120,9 +2004,6 @@ pmodeiret(int is32)
             x86gpf("Protected mode IRET: IOPL != 3", 0);
             return;
         }
-#ifndef USE_NEW_DYNAREC
-        oxpc = cpu_state.pc;
-#endif
         if (is32) {
             newpc     = POPL();
             seg       = POPL();
@@ -2191,9 +2072,6 @@ pmodeiret(int is32)
         return;
     }
 
-#ifndef USE_NEW_DYNAREC
-    oxpc = cpu_state.pc;
-#endif
     flagmask = 0xffff;
     if (CPL != 0)
         flagmask &= ~0x3000;
@@ -2249,9 +2127,7 @@ pmodeiret(int is32)
             cpu_state.seg_cs.ar_high    = 0x10;
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
-#endif
 
             ESP = newsp;
             op_loadseg(newss, &cpu_state.seg_ss);
@@ -2340,9 +2216,7 @@ pmodeiret(int is32)
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((CS & 0x0003) << 5);
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
-#endif
         set_use32(segdat[3] & 0x0040);
 
         cpl_override = 1;
@@ -2429,9 +2303,7 @@ pmodeiret(int is32)
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((CS & 3) << 5);
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
-#ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
-#endif
         set_use32(segdat[3] & 0x40);
 
         check_seg_valid(&cpu_state.seg_ds);

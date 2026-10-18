@@ -41,16 +41,10 @@
 #ifdef USE_DYNAREC
 #    include "codegen_public.h"
 #else
-#    ifdef USE_NEW_DYNAREC
-#        define PAGE_MASK_SHIFT 6
-#    else
-#        define PAGE_MASK_INDEX_MASK  3
-#        define PAGE_MASK_INDEX_SHIFT 10
-#        define PAGE_MASK_SHIFT       4
-#    endif
+#    define PAGE_MASK_SHIFT 6
 #    define PAGE_MASK_MASK 63
 #endif
-#if (!defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
+#if (!defined(USE_DYNAREC))
 #    define BLOCK_PC_INVALID 0xffffffff
 #    define BLOCK_INVALID    0
 #endif
@@ -121,13 +115,11 @@ int mem_a20_state   = 0;
 int mmuflush        = 0;
 int is_compare      = 0;
 
-#ifdef USE_NEW_DYNAREC
 uint64_t *byte_dirty_mask;
 uint64_t *byte_code_present_mask;
 
 uint32_t purgable_page_list_head = 0;
 int      purgeable_page_count    = 0;
-#endif
 
 uint8_t high_page = 0; /* if a high (> 4 gb) page was detected */
 
@@ -634,6 +626,9 @@ addreadlookup(uint32_t virt, uint32_t phys)
     if (virt == 0xffffffff)
         return;
 
+    if (GDBSTUB_WATCHED(virt))
+        return;
+
     if (readlookup2[index] != (uintptr_t) LOOKUP_INV)
         return;
 
@@ -654,6 +649,9 @@ addwritelookup(uint32_t virt, uint32_t phys)
     if (virt == 0xffffffff)
         return;
 
+    if (GDBSTUB_WATCHED(virt))
+        return;
+
     if (page_lookup[virt >> 12])
         return;
 
@@ -666,24 +664,14 @@ addwritelookup(uint32_t virt, uint32_t phys)
        when a block crossing a page boundary ends in it (block_2). Writes to
        such a page must take the tracked page_lookup path, or self-modifying
        code in the second page never invalidates the spanning block. */
-#ifdef USE_NEW_DYNAREC
-#    ifdef USE_DYNAREC
+#ifdef USE_DYNAREC
     if (pages[phys >> 12].block || pages[phys >> 12].block_2 || (phys & ~0xfff) == recomp_page) {
-#    else
-    if (pages[phys >> 12].block || pages[phys >> 12].block_2) {
-#    endif
 #else
-#    ifdef USE_DYNAREC
-    if (pages[phys >> 12].block[0] || pages[phys >> 12].block[1] || pages[phys >> 12].block[2] || pages[phys >> 12].block[3] || (phys & ~0xfff) == recomp_page) {
-#    else
-    if (pages[phys >> 12].block[0] || pages[phys >> 12].block[1] || pages[phys >> 12].block[2] || pages[phys >> 12].block[3]) {
-#    endif
+    if (pages[phys >> 12].block || pages[phys >> 12].block_2) {
 #endif
         page_lookup[virt >> 12]  = &pages[phys >> 12];
-    } else {
-
+    } else
         writelookup2[virt >> 12] = (uintptr_t) &ram[(uintptr_t) (phys & ~0xFFF) - (uintptr_t) (virt & ~0xfff)];
-    }
 
     writelookup[writelnext++] = virt >> 12;
     writelnext &= (cachesize - 1);
@@ -1904,7 +1892,6 @@ mem_read_raml(uint32_t addr, UNUSED(void *priv))
     return *(uint32_t *) &ram[addr];
 }
 
-#ifdef USE_NEW_DYNAREC
 static inline int
 page_index(page_t *page)
 {
@@ -2027,62 +2014,6 @@ mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page)
         }
     }
 }
-#else
-void
-mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page)
-{
-    if (page == NULL)
-        return;
-
-#    ifdef USE_DYNAREC
-    if ((page->mem == NULL) || (page->mem == page_ff) || (val != page->mem[addr & 0xfff]) || codegen_in_recompile) {
-#    else
-    if ((page->mem == NULL) || (page->mem == page_ff) || (val != page->mem[addr & 0xfff])) {
-#    endif
-        uint64_t mask = (uint64_t) 1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
-        page->dirty_mask[(addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
-        page->mem[addr & 0xfff] = val;
-    }
-}
-
-void
-mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page)
-{
-    if (page == NULL)
-        return;
-
-#    ifdef USE_DYNAREC
-    if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint16_t *) &page->mem[addr & 0xfff]) || codegen_in_recompile) {
-#    else
-    if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint16_t *) &page->mem[addr & 0xfff])) {
-#    endif
-        uint64_t mask = (uint64_t) 1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
-        if ((addr & 0xf) == 0xf)
-            mask |= (mask << 1);
-        page->dirty_mask[(addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
-        *(uint16_t *) &page->mem[addr & 0xfff] = val;
-    }
-}
-
-void
-mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page)
-{
-    if (page == NULL)
-        return;
-
-#    ifdef USE_DYNAREC
-    if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint32_t *) &page->mem[addr & 0xfff]) || codegen_in_recompile) {
-#    else
-    if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint32_t *) &page->mem[addr & 0xfff])) {
-#    endif
-        uint64_t mask = (uint64_t) 1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
-        if ((addr & 0xf) >= 0xd)
-            mask |= (mask << 1);
-        page->dirty_mask[(addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
-        *(uint32_t *) &page->mem[addr & 0xfff] = val;
-    }
-}
-#endif
 
 void
 mem_write_ram(uint32_t addr, uint8_t val, UNUSED(void *priv))
@@ -2261,7 +2192,6 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
     start_addr &= 0xfffff000;
     end_addr &= 0xfffff000;
 
-#ifdef USE_NEW_DYNAREC
     page_t *page;
 
     for (; start_addr <= end_addr; start_addr += 0x1000) {
@@ -2279,17 +2209,6 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
                 page_add_to_evict_list(page);
         }
     }
-#else
-    uint32_t cur_addr;
-
-    for (; start_addr <= end_addr; start_addr += 0x1000) {
-        /* Do nothing if the pages array is empty or DMA reads/writes to/from PCI device memory addresses
-           may crash the emulator. */
-        cur_addr = (start_addr >> 12);
-        if (cur_addr < pages_sz)
-            memset(pages[cur_addr].dirty_mask, 0xff, sizeof(pages[cur_addr].dirty_mask));
-    }
-#endif
 }
 
 static __inline int
@@ -2904,7 +2823,6 @@ mem_reset(void)
 
     memset(page_ff, 0xff, sizeof(page_ff));
 
-#ifdef USE_NEW_DYNAREC
     if (byte_dirty_mask) {
         free(byte_dirty_mask);
         byte_dirty_mask = NULL;
@@ -2914,7 +2832,6 @@ mem_reset(void)
         free(byte_code_present_mask);
         byte_code_present_mask = NULL;
     }
-#endif
 
     /* Free the old pages array, if necessary. */
     if (pages) {
@@ -2972,11 +2889,9 @@ mem_reset(void)
 
     memset(page_lookup, 0x00, (1 << 20) * sizeof(page_t *));
 
-#ifdef USE_NEW_DYNAREC
     byte_dirty_mask = calloc(1, ((size_t) mem_size * 1024) / 8);
 
     byte_code_present_mask = calloc(1, ((size_t) mem_size * 1024) / 8);
-#endif
 
     for (uint32_t c = 0; c < pages_sz; c++) {
         if (((uint64_t) c << 12) >= ((uint64_t) mem_size << 10))
@@ -2990,11 +2905,9 @@ mem_reset(void)
             pages[c].write_w = mem_write_ramw_page;
             pages[c].write_l = mem_write_raml_page;
         }
-#ifdef USE_NEW_DYNAREC
         pages[c].evict_prev             = EVICT_NOT_IN_LIST;
         pages[c].byte_dirty_mask        = &byte_dirty_mask[c * 64];
         pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
-#endif
     }
 
     memset(_mem_exec, 0x00, sizeof(_mem_exec));
@@ -3046,10 +2959,8 @@ mem_reset(void)
 
     mem_a20_init();
 
-#ifdef USE_NEW_DYNAREC
     purgable_page_list_head = 0;
     purgeable_page_count    = 0;
-#endif
 }
 
 void
@@ -3113,10 +3024,8 @@ mem_remap_top_ex_common(int kb, uint32_t start, int mid)
         pages[c].write_b = set ? mem_write_ramb_page : NULL;
         pages[c].write_w = set ? mem_write_ramw_page : NULL;
         pages[c].write_l = set ? mem_write_raml_page : NULL;
-#ifdef USE_NEW_DYNAREC
         pages[c].byte_dirty_mask        = &byte_dirty_mask[(addr >> 12) * 64];
         pages[c].byte_code_present_mask = &byte_code_present_mask[(addr >> 12) * 64];
-#endif
     }
 
     mem_set_mem_state_both(start * 1024, size * 1024, set ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL));
@@ -3139,10 +3048,8 @@ mem_remap_top_ex_common(int kb, uint32_t start, int mid)
             pages[c].write_w = NULL;
             pages[c].write_l = NULL;
         }
-#ifdef USE_NEW_DYNAREC
         pages[c].byte_dirty_mask        = &byte_dirty_mask[c * 64];
         pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
-#endif
     }
 
     if (set) {
@@ -3217,15 +3124,9 @@ mem_reset_page_blocks(void)
         pages[c].write_b = mem_write_ramb_page;
         pages[c].write_w = mem_write_ramw_page;
         pages[c].write_l = mem_write_raml_page;
-#ifdef USE_NEW_DYNAREC
         pages[c].block   = BLOCK_INVALID;
         pages[c].block_2 = BLOCK_INVALID;
         pages[c].head    = BLOCK_INVALID;
-#else
-        pages[c].block[0] = pages[c].block[1] = pages[c].block[2] = pages[c].block[3] = NULL;
-        pages[c].block_2[0] = pages[c].block_2[1] = pages[c].block_2[2] = pages[c].block_2[3] = NULL;
-        pages[c].head                                                                         = NULL;
-#endif
     }
 }
 

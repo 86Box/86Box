@@ -801,6 +801,15 @@ plat_pause(int p)
 #endif
 }
 
+extern "C" bool fast_forward; /* qt_main.cpp */
+
+void
+plat_fast_forward(int on)
+{
+    fast_forward = !!on;
+    QTimer::singleShot(0, main_window, &MainWindow::updateUiFastForwardState);
+}
+
 void
 plat_power_off(void)
 {

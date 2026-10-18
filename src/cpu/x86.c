@@ -22,6 +22,7 @@
 #include <wchar.h>
 
 #define HAVE_STDARG_H
+#include <86box/automation.h>
 #include <86box/86box.h>
 #include "cpu.h"
 #include "x86.h"
@@ -244,6 +245,7 @@ static int reset_init;
 static void
 reset_common(int hard)
 {
+    automation_reset(hard);
     /* A soft reset is the INIT pin: on the P54C, the P55C and the P6 family
        it leaves the FPU, the caches and the MSRs (cpu_init_keeps_state). */
     reset_init = !hard && cpu_init_keeps_state();

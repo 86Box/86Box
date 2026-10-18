@@ -981,7 +981,8 @@ machine_tandy1k_init(const machine_t *model, int type)
             tandy_vid_init(dev);
             device_context_restore();
             device_add_ex(&tandy_1000sl_video_device, dev);
-            device_add(&pssj_device);
+            if (sound_card_current[0] == SOUND_INTERNAL)
+                machine_snd = device_add(machine_get_snd_device(machine));
             device_add(&eep_1000sl2_device);
             break;
 
