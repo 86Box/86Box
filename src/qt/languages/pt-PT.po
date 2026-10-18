@@ -433,6 +433,9 @@ msgstr "Recompilador dinâmico"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr ""
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Ligação de blocos no recompilador dinâmico"
+
 msgid "Debug registers on 486 and later processors"
 msgstr ""
 

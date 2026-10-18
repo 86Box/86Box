@@ -228,6 +228,54 @@ codegen_CALL_FUNC(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*An order barrier leaves the cached registers loaded, and EAX and EDX are
+  not preserved by the callee, so they are saved around the call. Two pushes
+  keep RSP 16-byte aligned; Windows also needs the 32-byte home area below
+  them, so the callee does not overwrite the saved values.*/
+static int
+codegen_CALL_FUNC_ORDERED(codeblock_t *block, uop_t *uop)
+{
+    host_x86_PUSH(block, REG_RAX);
+    host_x86_PUSH(block, REG_RDX);
+#    if _WIN64
+    host_x86_SUB64_REG_IMM(block, REG_RSP, 0x20);
+#    endif
+    host_x86_CALL(block, uop->p);
+#    if _WIN64
+    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x20);
+#    endif
+    host_x86_POP(block, REG_RDX);
+    host_x86_POP(block, REG_RAX);
+
+    return 0;
+}
+
+/*As codegen_CALL_FUNC_ORDERED. The result goes through ESI, which is not
+  allocated, so that EAX and EDX can be put back before dest_reg is set; if
+  dest_reg is one of them, its old contents were written back before the
+  call and are not needed.*/
+static int
+codegen_CALL_FUNC_RESULT_ORDERED(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
+
+    host_x86_PUSH(block, REG_RAX);
+    host_x86_PUSH(block, REG_RDX);
+#    if _WIN64
+    host_x86_SUB64_REG_IMM(block, REG_RSP, 0x20);
+#    endif
+    host_x86_CALL(block, uop->p);
+#    if _WIN64
+    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x20);
+#    endif
+    host_x86_MOV32_REG_REG(block, REG_ESI, REG_EAX);
+    host_x86_POP(block, REG_RDX);
+    host_x86_POP(block, REG_RAX);
+    host_x86_MOV32_REG_REG(block, dest_reg, REG_ESI);
+
+    return 0;
+}
+
 static int
 codegen_CALL_FUNC_RESULT(codeblock_t *block, uop_t *uop)
 {
@@ -254,6 +302,33 @@ codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
 #    endif
     host_x86_CALL(block, uop->p);
     host_x86_TEST32_REG(block, REG_EAX, REG_EAX);
+    host_x86_JNZ(block, codegen_exit_rout);
+
+    return 0;
+}
+
+/*The REP routine keeps RBX, RBP and R12-R15 but not the cached EAX and EDX,
+  which are saved around it as for an ordered call. Its result goes through
+  ESI, which is not allocated, so the saved registers can be put back first.*/
+static int
+codegen_CALL_REP_STRING(codeblock_t *block, uop_t *uop)
+{
+    host_x86_PUSH(block, REG_RAX);
+    host_x86_PUSH(block, REG_RDX);
+#    if _WIN64
+    host_x86_SUB64_REG_IMM(block, REG_RSP, 0x20);
+    host_x86_MOV32_REG_IMM(block, REG_ECX, uop->imm_data);
+#    else
+    host_x86_MOV32_REG_IMM(block, REG_EDI, uop->imm_data);
+#    endif
+    host_x86_CALL(block, uop->p);
+#    if _WIN64
+    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x20);
+#    endif
+    host_x86_MOV32_REG_REG(block, REG_ESI, REG_EAX);
+    host_x86_POP(block, REG_RDX);
+    host_x86_POP(block, REG_RAX);
+    host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
     host_x86_JNZ(block, codegen_exit_rout);
 
     return 0;
@@ -355,6 +430,65 @@ codegen_CMP_JNBE(codeblock_t *block, uop_t *uop)
 #    endif
     jump_p  = host_x86_JNBE_long(block);
     *jump_p = (uintptr_t) uop->p - ((uintptr_t) jump_p + 4);
+
+    return 0;
+}
+
+static int
+codegen_CMP_JNWITHIN(codeblock_t *block, uop_t *uop)
+{
+    int       src_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int       lo_reg   = HOST_REG_GET(uop->src_reg_b_real);
+    int       hi_reg   = HOST_REG_GET(uop->src_reg_c_real);
+    int       src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int       lo_size  = IREG_GET_SIZE(uop->src_reg_b_real);
+    int       hi_size  = IREG_GET_SIZE(uop->src_reg_c_real);
+    uint32_t *jump_p;
+
+    if (REG_IS_L(src_size) && REG_IS_L(lo_size) && REG_IS_L(hi_size)) {
+        host_x86_CMP32_REG_REG(block, src_reg, lo_reg);
+        jump_p  = host_x86_JB_long(block);
+        *jump_p = (uintptr_t) uop->p - ((uintptr_t) jump_p + 4);
+        if (uop->imm_data) {
+            host_x86_LEA_REG_IMM(block, REG_ECX, src_reg, uop->imm_data);
+            host_x86_CMP32_REG_REG(block, REG_ECX, hi_reg);
+        } else
+            host_x86_CMP32_REG_REG(block, src_reg, hi_reg);
+        jump_p  = host_x86_JNBE_long(block);
+        *jump_p = (uintptr_t) uop->p - ((uintptr_t) jump_p + 4);
+    }
+#    ifdef RECOMPILER_DEBUG
+    else
+        fatal("CMP_JNWITHIN %02x %02x %02x\n", uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
+#    endif
+
+    return 0;
+}
+
+/*COMISD sets CF, ZF and PF for an unordered pair, so JBE and JNBE take a NaN
+  as outside*/
+static int
+codegen_FCMP_JWITHIN_DEST(codeblock_t *block, uop_t *uop)
+{
+    int       src_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int       lo_reg   = HOST_REG_GET(uop->src_reg_b_real);
+    int       hi_reg   = HOST_REG_GET(uop->src_reg_c_real);
+    int       src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int       lo_size  = IREG_GET_SIZE(uop->src_reg_b_real);
+    int       hi_size  = IREG_GET_SIZE(uop->src_reg_c_real);
+    uint32_t *outside;
+
+    if (REG_IS_D(src_size) && REG_IS_D(lo_size) && REG_IS_D(hi_size)) {
+        host_x86_COMISD_XREG_XREG(block, hi_reg, src_reg);
+        outside = host_x86_JBE_long(block);
+        host_x86_COMISD_XREG_XREG(block, src_reg, lo_reg);
+        uop->p   = host_x86_JNBE_long(block);
+        *outside = (uint32_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) outside) - 4;
+    }
+#    ifdef RECOMPILER_DEBUG
+    else
+        fatal("FCMP_JWITHIN_DEST %02x %02x %02x\n", uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
+#    endif
 
     return 0;
 }
@@ -894,6 +1028,16 @@ codegen_MMX_ENTER(codeblock_t *block, uop_t *uop)
 static int
 codegen_JMP(codeblock_t *block, uop_t *uop)
 {
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    /*An unconditional jump out of the block is an ordinary hand-off (UOP_JMP
+      writes registers back), so it can link like the block's end. Fault
+      paths reach codegen_exit_rout by conditional branches or direct jumps
+      instead.*/
+    if (codegen_block_link && (uop->p == codegen_exit_rout)) {
+        codegen_link_exit(block);
+        return 0;
+    }
+#    endif
     host_x86_JMP(block, uop->p);
 
     return 0;
@@ -1189,6 +1333,30 @@ codegen_MEM_LOAD_REG(codeblock_t *block, uop_t *uop)
     else
         fatal("MEM_LOAD_REG - %02x\n", uop->dest_reg_a_real);
 #    endif
+
+    return 0;
+}
+static int
+codegen_MEM_LOAD_REG_EA(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int seg_reg   = HOST_REG_GET(uop->src_reg_a_real);
+    int addr_reg  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+
+    host_x86_LEA_REG_REG(block, REG_ESI, seg_reg, addr_reg);
+    if (REG_IS_W(dest_size))
+        host_x86_CALL(block, codegen_mem_load_word_ea);
+    else if (REG_IS_L(dest_size))
+        host_x86_CALL(block, codegen_mem_load_long_ea);
+    else
+        fatal("MEM_LOAD_REG_EA - %02x\n", uop->dest_reg_a_real);
+    host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
+    host_x86_JNZ(block, codegen_exit_rout);
+    if (REG_IS_W(dest_size))
+        host_x86_MOV16_REG_REG(block, dest_reg, REG_ECX);
+    else
+        host_x86_MOV32_REG_REG(block, dest_reg, REG_ECX);
 
     return 0;
 }
@@ -3192,18 +3360,33 @@ static int
 codegen_XOR(codeblock_t *block, uop_t *uop)
 {
     int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
     int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
+    /*dest == src_b: moving src_a into dest first would clobber src_b; the
+      operation commutes, so take the sources the other way round*/
+    if ((dest_reg == src_reg_b) && (dest_reg != src_reg_a)) {
+        int t     = src_reg_a;
+        src_reg_a = src_reg_b;
+        src_reg_b = t;
+    }
+
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
         host_x86_PXOR_XREG_XREG(block, dest_reg, src_reg_b);
-    } else if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
+    } else if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
+        if (dest_reg != src_reg_a)
+            host_x86_MOV32_REG_REG(block, dest_reg, src_reg_a);
         host_x86_XOR32_REG_REG(block, dest_reg, src_reg_b);
-    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size_a) && REG_IS_W(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
+    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size_a) && REG_IS_W(src_size_b)) {
+        if (dest_reg != src_reg_a)
+            host_x86_MOV16_REG_REG(block, dest_reg, src_reg_a);
         host_x86_XOR16_REG_REG(block, dest_reg, src_reg_b);
-    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size_a) && REG_IS_B(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
+    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size_a) && REG_IS_B(src_size_b)) {
+        if (dest_reg != src_reg_a)
+            host_x86_MOV8_REG_REG(block, dest_reg, src_reg_a);
         host_x86_XOR8_REG_REG(block, dest_reg, src_reg_b);
     }
 #    ifdef RECOMPILER_DEBUG
@@ -3235,6 +3418,15 @@ codegen_XOR_IMM(codeblock_t *block, uop_t *uop)
 
 const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CALL_FUNC & UOP_MASK] = codegen_CALL_FUNC,
+    [UOP_CALL_FUNC_ORDERED &
+        UOP_MASK]
+    = codegen_CALL_FUNC_ORDERED,
+    [UOP_CALL_FUNC_RESULT_ORDERED &
+        UOP_MASK]
+    = codegen_CALL_FUNC_RESULT_ORDERED,
+    [UOP_CALL_REP_STRING &
+        UOP_MASK]
+    = codegen_CALL_REP_STRING,
     [UOP_CALL_FUNC_RESULT &
         UOP_MASK]
     = codegen_CALL_FUNC_RESULT,
@@ -3289,6 +3481,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_MEM_LOAD_REG &
         UOP_MASK]
     = codegen_MEM_LOAD_REG,
+    [UOP_MEM_LOAD_REG_EA &
+        UOP_MASK]
+    = codegen_MEM_LOAD_REG_EA,
     [UOP_MEM_LOAD_SINGLE &
         UOP_MASK]
     = codegen_MEM_LOAD_SINGLE,
@@ -3430,6 +3625,12 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CMP_JNBE &
         UOP_MASK]
     = codegen_CMP_JNBE,
+    [UOP_FCMP_JWITHIN_DEST &
+        UOP_MASK]
+    = codegen_FCMP_JWITHIN_DEST,
+    [UOP_CMP_JNWITHIN &
+        UOP_MASK]
+    = codegen_CMP_JNWITHIN,
 
     [UOP_CMP_JNB_DEST &
         UOP_MASK]
@@ -3510,6 +3711,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     = codegen_BSR,
 
     [UOP_FP_ENTER &
+        UOP_MASK]
+    = codegen_FP_ENTER,
+    [UOP_FP_ENTER_ORDERED &
         UOP_MASK]
     = codegen_FP_ENTER,
     [UOP_MMX_ENTER &

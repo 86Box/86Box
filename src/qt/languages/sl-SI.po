@@ -434,6 +434,9 @@ msgstr "Dinamični prevajalnik"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr ""
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Povezovanje blokov v dinamičnem prevajalniku"
+
 msgid "Debug registers on 486 and later processors"
 msgstr ""
 

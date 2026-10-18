@@ -74,10 +74,12 @@ add_library(chipset OBJECT
     sis_5511.c
     sis_5571.c
     sis_530.c
-    sis_530_h2p.c
+    sis_620.c
     sis_5581.c
     sis_5591.c
     sis_5600.c
+    sis_530_h2p.c
+    sis_620_h2p.c
     sis_5511_h2p.c
     sis_5571_h2p.c
     sis_5581_h2p.c

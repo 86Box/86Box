@@ -84,12 +84,17 @@ CHECK_SEG_LIMITS(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg, int add
     /*#SS(0) through SS, #GP(0) through the others*/
     void *rout = (seg == &cpu_state.seg_ss) ? codegen_ss_rout : codegen_gpf_rout;
 
+#if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
+    uop_CMP_JNWITHIN(ir, addr_reg, ireg_seg_limit_low(seg), ireg_seg_limit_high(seg), end_offset, rout);
+#else
+    /*Only the arm64 and x86-64 backends implement UOP_CMP_JNWITHIN*/
     uop_CMP_JB(ir, addr_reg, ireg_seg_limit_low(seg), rout);
     if (end_offset) {
         uop_ADD_IMM(ir, IREG_temp3, addr_reg, end_offset);
         uop_CMP_JNBE(ir, IREG_temp3, ireg_seg_limit_high(seg), rout);
     } else
         uop_CMP_JNBE(ir, addr_reg, ireg_seg_limit_high(seg), rout);
+#endif
 }
 
 /*An operand read from RAM at run time (CODEBLOCK_NO_IMMEDIATES) goes
@@ -139,6 +144,8 @@ LOAD_IMMEDIATE_FROM_RAM_32(codeblock_t *block, ir_data_t *ir, int dest_reg, uint
     else
         uop_MOV_REG_PTR(ir, dest_reg, get_ram_ptr(addr));
 }
+
+int codegen_flags_rebuild_known(ir_data_t *ir, int carry_only);
 
 int codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, uint32_t next_pc, uint32_t dest_addr);
 static inline int

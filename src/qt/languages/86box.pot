@@ -426,6 +426,8 @@ msgstr ""
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr ""
 
+msgid "Block linking on the dynamic recompiler"
+
 msgid "Debug registers on 486 and later processors"
 msgstr ""
 

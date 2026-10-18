@@ -24,6 +24,7 @@
 #include "codegen_ops_mmx_pack.h"
 #include "codegen_ops_mmx_shift.h"
 #include "codegen_ops_mov.h"
+#include "codegen_ops_rep.h"
 #include "codegen_ops_shift.h"
 #include "codegen_ops_stack.h"
 
@@ -238,6 +239,28 @@ RecompOpFn recomp_opcodes_3DNOW[256] = {
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 #endif
     // clang-format on
+};
+
+RecompOpFn recomp_opcodes_REPE[512] = {
+    [0x0a4] = ropREP_MOVSB,
+    [0x0a5] = ropREP_MOVSW,
+    [0x0aa] = ropREP_STOSB,
+    [0x0ab] = ropREP_STOSW,
+    [0x1a4] = ropREP_MOVSB,
+    [0x1a5] = ropREP_MOVSL,
+    [0x1aa] = ropREP_STOSB,
+    [0x1ab] = ropREP_STOSL,
+};
+
+RecompOpFn recomp_opcodes_REPNE[512] = {
+    [0x0a4] = ropREP_MOVSB,
+    [0x0a5] = ropREP_MOVSW,
+    [0x0aa] = ropREP_STOSB,
+    [0x0ab] = ropREP_STOSW,
+    [0x1a4] = ropREP_MOVSB,
+    [0x1a5] = ropREP_MOVSL,
+    [0x1aa] = ropREP_STOSB,
+    [0x1ab] = ropREP_STOSL,
 };
 
 RecompOpFn recomp_opcodes_d8[512] = {

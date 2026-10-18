@@ -36,7 +36,7 @@ emit_flags_rebuild_zpna(ir_data_t *ir)
                 break;
         }
     }
-    uop_CALL_FUNC(ir, jit_flags_rebuild_zpna);
+    call_flags_rebuild(ir, jit_flags_rebuild_zpna);
 }
 
 /*
@@ -49,7 +49,8 @@ emit_flags_rebuild_mem(ir_data_t *ir)
 {
     if (codegen_flags_changed && (cpu_state.flags_op == FLAGS_UNKNOWN))
         return;
-    uop_CALL_FUNC(ir, jit_flags_rebuild);
+    if (!codegen_flags_rebuild_known(ir, 0))
+        uop_CALL_FUNC(ir, jit_flags_rebuild);
 }
 
 static uint32_t
@@ -482,7 +483,8 @@ rcx1_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32
     int     reg_sz     = (size == 8) ? IREG_8(dest) : ((size == 16) ? IREG_16(dest) : IREG_32(dest));
 
     codegen_mark_code_present(block, cs + op_pc, 1);
-    uop_CALL_FUNC(ir, jit_flags_rebuild);
+    if (!codegen_flags_rebuild_known(ir, 0))
+        uop_CALL_FUNC(ir, jit_flags_rebuild);
     if ((fetchdat & 0xc0) == 0xc0) {
         if (size == 32)
             uop_MOV(ir, IREG_temp0, reg_sz);
