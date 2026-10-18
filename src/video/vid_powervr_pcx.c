@@ -8,15 +8,15 @@
  *
  *          NEC / VideoLogic PowerVR PCX1 and PCX2 (Matrox m3D,
  *          VideoLogic Apocalypse 3D/3Dx/5D, NEC 3DEngine) PCI 3D
- *          accelerator - device skeleton.
+ *          accelerator.
  *
- *          This stage models the interface the Windows 9x drivers rely
- *          on (VSGL.VXD 4.x): PCI identity, the BAR0 register file with
- *          its fog / TLB / divider-table arrays, the BAR1 texture memory
+ *          Models the interface the Windows 9x drivers rely on
+ *          (VSGL.VXD 4.x): PCI identity, the BAR0 register file with its
+ *          fog / TLB / divider-table arrays, the BAR1 texture memory
  *          window, the STARTRENDER strobe and the end-of-render
- *          interrupt. Renders complete after a configurable delay
- *          without drawing anything; the hook for the rasteriser is
- *          pcx_render_frame().
+ *          interrupt. PCX2 frames are drawn by vid_powervr_pcx_render.c
+ *          on a worker thread and copied to SOFADDR when the render
+ *          completes; PCX1 frames complete without drawing.
  *
  *          Register names, offsets and defaults come from the PowerVR
  *          Series 1 driver source released by Imagination Technologies
@@ -54,7 +54,9 @@
 #include <86box/plat.h>
 #include <86box/path.h>
 #include <86box/video.h>
+#include <86box/thread.h>
 #include "vid_powervr_pcx_tables.h"
+#include "vid_powervr_pcx_render.h"
 
 /* PCI identity. */
 #define PCX_VENDOR_NEC      0x1033
@@ -205,6 +207,22 @@ typedef struct pcx_t {
     uint32_t tlb_hiwater;  /* highest TLB entry written since last start + 1 */
 
     pc_timer_t render_timer;
+
+    /* Renderer (PCX2): runs on its own thread between STARTRENDER and the
+       end-of-render interrupt; output is written to SOFADDR on the
+       emulation thread when the frame completes. */
+    thread_t      *render_thread;
+    event_t       *render_go;
+    event_t       *render_finished;
+    volatile int   render_quit;
+    int            render_pending;
+    int            render_discard;
+    uint32_t      *isp_buf;
+    uint32_t      *rgb;
+    uint32_t       job_fog[128];
+    pcxr_frame_t   job;
+    pcxr_result_t  job_res;
+    uint32_t       job_sofaddr, job_stride, job_packmode;
 
     /* Configuration. */
     uint32_t revision_value;
@@ -413,22 +431,120 @@ pcx_dump_frame(pcx_t *pcx)
             pcx->frames, fn, hdr.tlb_entries, page_bytes);
 }
 
-/* Rasteriser hook. The ISP (hidden surface removal) and TSP (texturing
-   and shading) models from the released simulator (simulat3/) belong
-   here: read planes and region lists through the TLB, TSP parameters
-   and textures from tex_mem, and write finished 32x32 tiles to SOFADDR
-   with dma_bm_write(). */
+static void
+pcx_render_thread(void *priv)
+{
+    pcx_t *pcx = (pcx_t *) priv;
+
+    for (;;) {
+        thread_wait_event(pcx->render_go, -1);
+        thread_reset_event(pcx->render_go);
+        if (pcx->render_quit)
+            break;
+        pcxr_render(&pcx->job, pcx->rgb, &pcx->job_res);
+        thread_set_event(pcx->render_finished);
+    }
+}
+
+/* Wait for a frame the renderer is still working on. */
+static void
+pcx_render_wait(pcx_t *pcx)
+{
+    if (!pcx->render_pending)
+        return;
+    thread_wait_event(pcx->render_finished, -1);
+    thread_reset_event(pcx->render_finished);
+    pcx->render_pending = 0;
+}
+
+/* STARTRENDER: gather the frame's inputs and hand them to the renderer. */
 static void
 pcx_render_frame(pcx_t *pcx)
 {
-    if (pcx->debug_tile && pcx_bus_master_enabled(pcx))
-        pcx_draw_debug_tile(pcx);
+    uint32_t page_bytes = pcx_isp_page_bytes(pcx);
+
+    if ((pcx->chip != PCX_CHIP_PCX2) || !pcx_bus_master_enabled(pcx) || !pcx->render_thread)
+        return; /* PCX1 parameter formats are not modelled yet */
+
+    pcx_render_wait(pcx);
+
+    /* The ISP parameter store, through the TLB, in virtual order. */
+    for (uint32_t i = 0; i < PCX_TLB_ENTRIES; i++)
+        dma_bm_read(pcx_tlb_addr(pcx, i), (uint8_t *) pcx->isp_buf + i * page_bytes, page_bytes, 4);
+
+    memcpy(pcx->job_fog, &pcx->regs[PCX_FOG_TABLE], sizeof(pcx->job_fog));
+    memset(&pcx->job, 0, sizeof(pcx->job));
+    pcx->job.isp           = pcx->isp_buf;
+    pcx->job.isp_words     = PCX_TLB_ENTRIES * page_bytes / 4;
+    pcx->job.tex           = (const uint32_t *) pcx->tex_mem;
+    pcx->job.tex_words     = PCX_TEXMEM_SIZE / 4;
+    pcx->job.object_offset = pcx->regs[PCX_OBJECT_OFFSET];
+    pcx->job.fog_shift     = pcx->regs[PCX_FOGAMOUNT];
+    pcx->job.fog_colour    = pcx->regs[PCX_FOGCOL];
+    pcx->job.camera        = pcx->regs[PCX_CAMERA];
+    pcx->job.xclip         = pcx->regs[PCX_XCLIP];
+    pcx->job.bilinear      = pcx->regs[PCX_BILINEAR];
+    pcx->job.fog_table     = pcx->job_fog;
+    pcx->job_sofaddr       = pcx->regs[PCX_SOFADDR];
+    pcx->job_stride        = pcx->regs[PCX_LSTRIDE];
+    pcx->job_packmode      = pcx->regs[PCX_PACKMODE];
+    memset(pcx->rgb, 0, PCXR_MAX_W * PCXR_MAX_H * sizeof(uint32_t));
+
+    pcx->render_pending = 1;
+    pcx->render_discard = 0;
+    thread_set_event(pcx->render_go);
+}
+
+/* End of render: copy the finished tiles into the frame buffer. */
+static void
+pcx_render_output(pcx_t *pcx)
+{
+    const pcxr_result_t *r = &pcx->job_res;
+    uint8_t              line[PCXR_MAX_W * 4];
+    int                  x0, x1, bpp = 2;
+    uint32_t             xc = pcx->job.xclip;
+
+    if (r->error)
+        pcx_log(pcx, PCX_LOG_EVENTS, "PowerVR: frame %u: malformed tile list (error %d)\n", pcx->frames, r->error);
+    if (r->max_x < 0 || r->max_y < 0)
+        return;
+
+    x0 = r->min_x;
+    x1 = r->max_x;
+    if ((xc & (1u << 12)) && x0 < (int) (xc & 0x3ff) - 1)
+        x0 = (int) (xc & 0x3ff) - 1;
+    if ((xc & (1u << 28)) && x1 > (int) ((xc >> 16) & 0x3ff) - 2)
+        x1 = (int) ((xc >> 16) & 0x3ff) - 2;
+    if (x1 >= PCXR_MAX_W)
+        x1 = PCXR_MAX_W - 1;
+    if (x0 > x1)
+        return;
+
+    for (int y = r->min_y; y <= r->max_y && y < PCXR_MAX_H; y++) {
+        const uint32_t *src = &pcx->rgb[y * PCXR_MAX_W];
+        uint32_t        n   = 0;
+        for (int x = x0; x <= x1; x++) {
+            uint32_t px;
+            bpp = pcxr_pack(pcx->job_packmode, src[x], x, y, &px);
+            memcpy(&line[n], &px, bpp);
+            n += bpp;
+        }
+        dma_bm_write(pcx->job_sofaddr + y * pcx->job_stride + x0 * bpp, line, n, 4);
+    }
 }
 
 static void
 pcx_render_done(void *priv)
 {
     pcx_t *pcx = (pcx_t *) priv;
+
+    if (pcx->render_pending) {
+        pcx_render_wait(pcx);
+        if (!pcx->render_discard)
+            pcx_render_output(pcx);
+    }
+    if (pcx->debug_tile && pcx_bus_master_enabled(pcx))
+        pcx_draw_debug_tile(pcx);
 
     pcx->render_busy = 0;
     pcx->int_status |= PCX_INT_FRAME_DONE;
@@ -476,7 +592,9 @@ pcx_soft_reset(pcx_t *pcx, int assert)
         if (pcx->render_busy) {
             /* The VxD's timeout handler resets a hung render this way. */
             timer_disable(&pcx->render_timer);
-            pcx->render_busy = 0;
+            pcx_render_wait(pcx);
+            pcx->render_discard = 1;
+            pcx->render_busy    = 0;
             pcx_log(pcx, PCX_LOG_EVENTS, "PowerVR: SOFTRESET aborted frame %u\n", pcx->frames);
         }
         if (pcx->ack_mode == PCX_ACK_RESET_CLEARS) {
@@ -856,6 +974,7 @@ pcx_reset(void *priv)
     pcx_t *pcx = (pcx_t *) priv;
 
     timer_disable(&pcx->render_timer);
+    pcx_render_wait(pcx);
     pcx_reg_defaults(pcx);
     pcx->int_status  = 0;
     pcx->in_reset    = 0;
@@ -886,6 +1005,13 @@ pcx_init(const device_t *info)
     pcx->subsys_id      = device_get_config_hex16("subsys_id");
 
     pcx->tex_mem = calloc(1, PCX_TEXMEM_SIZE);
+    if (pcx->chip == PCX_CHIP_PCX2) {
+        pcx->isp_buf         = calloc(PCX_TLB_ENTRIES, 0x4000);
+        pcx->rgb             = calloc(PCXR_MAX_W * PCXR_MAX_H, sizeof(uint32_t));
+        pcx->render_go       = thread_create_event();
+        pcx->render_finished = thread_create_event();
+        pcx->render_thread   = thread_create(pcx_render_thread, pcx);
+    }
     pcx_reg_defaults(pcx);
 
     pcx_pci_init_regs(pcx);
@@ -916,6 +1042,16 @@ pcx_close(void *priv)
     pcx_t *pcx = (pcx_t *) priv;
 
     pclog("PowerVR: %u frames rendered, %u dumped\n", pcx->frames, pcx->dumps);
+    if (pcx->render_thread) {
+        pcx_render_wait(pcx);
+        pcx->render_quit = 1;
+        thread_set_event(pcx->render_go);
+        thread_wait(pcx->render_thread);
+        thread_destroy_event(pcx->render_go);
+        thread_destroy_event(pcx->render_finished);
+    }
+    free(pcx->isp_buf);
+    free(pcx->rgb);
     free(pcx->tex_mem);
     free(pcx);
 }

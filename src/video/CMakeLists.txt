@@ -23,6 +23,7 @@ add_library(vid OBJECT
 
     # PowerVR PCX1/PCX2 add-on
     vid_powervr_pcx.c
+    vid_powervr_pcx_render.c
 
     # RAMDAC (Should this be its own library?)
     ramdac/vid_ramdac_ati68860.c
