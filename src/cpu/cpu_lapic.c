@@ -1623,8 +1623,8 @@ cpu_lapic_eoi_index(uint8_t lapic_index, int *level)
         if (level != NULL)
             *level = !!(cpu_lapic_tmrs[lapic_index][vector >> 5] &
                          (1u << (vector & 0x1f)));
+        /* Only acceptance changes the TMR (Pentium Vol. 3, 19.3.1.9). */
         cpu_lapic_clear_vector(cpu_lapic_isrs[lapic_index], vector);
-        cpu_lapic_clear_vector(cpu_lapic_tmrs[lapic_index], vector);
         cpu_lapic_ppr_update_index(lapic_index);
     }
 
