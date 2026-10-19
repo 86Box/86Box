@@ -920,6 +920,15 @@ lapic_arbitration_id(const lapic_state_t *lapic)
     return (lapic != NULL) ? (lapic->arb_id & 0x0f) : 0x0f;
 }
 
+/* A software-disabled local APIC would only reject what it won, leaving
+   the sender to retry while an enabled processor could have taken it; it
+   takes no part in lowest-priority arbitration. */
+static int
+lapic_lowest_priority_candidate(const lapic_state_t *lapic, int route_parked)
+{
+    return lapic_target_interruptible(lapic, route_parked) && lapic_enabled(lapic);
+}
+
 static int
 lapic_lowest_priority_best(const lapic_target_info_t *targets, int route_parked,
                            uint32_t *best_apr, uint8_t *best_arb)
@@ -930,7 +939,7 @@ lapic_lowest_priority_best(const lapic_target_info_t *targets, int route_parked,
         lapic_state_t *candidate = targets->lapics[i];
         uint32_t       apr;
 
-        if (!lapic_target_interruptible(candidate, route_parked))
+        if (!lapic_lowest_priority_candidate(candidate, route_parked))
             continue;
 
         /* The arbitration priority (Pentium Vol. 3, 19.3.2.1), not the
@@ -1023,7 +1032,7 @@ lapic_choose_lowest_priority_target(const lapic_target_info_t *targets,
             lapic_state_t *candidate = targets->lapics[i];
 
             if ((targets->indices[i] == index) &&
-                lapic_target_interruptible(candidate, route_parked) &&
+                lapic_lowest_priority_candidate(candidate, route_parked) &&
                 (cpu_lapic_apr_value_index(candidate->index) == best_apr) &&
                 (lapic_arbitration_id(candidate) == best_arb)) {
                 *lowest_priority_next = (index + 1) % APIC_MAX_LAPICS;
