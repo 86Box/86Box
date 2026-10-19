@@ -1476,11 +1476,16 @@ ioapic_init(UNUSED(const device_t *info))
     }
 
     dev->expose_mp_tables = !!device_get_config_int("expose_mp_tables");
+    /* The board's default: an APIC path, unless disabled or the processor
+       fitted has no local APIC to answer at FEE00000h (a K5, K6, 6x86 or
+       WinChip in a Pentium socket), which the board then treats as the
+       APIC disabled. */
     dev->uniprocessor_apic =
         !!device_get_config_int("uniprocessor_apic") ||
         (!!(local & IOAPIC_TOPOLOGY_UP_APIC_DEFAULT) &&
          !device_get_config_int("disable_apic") &&
-         !machine_get_config_int("disable_apic"));
+         !machine_get_config_int("disable_apic") &&
+         cpu_apic_model_capable());
     dev->multi_lapic = !!device_get_config_int("multi_lapic");
     dev->multi_lapic_mp_cpus = !!device_get_config_int("multi_lapic_mp_cpus");
     dev->ap_startup = !!device_get_config_int("ap_startup");

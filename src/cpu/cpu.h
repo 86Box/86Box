@@ -778,6 +778,7 @@ extern void leave_smm(void);
 /* The local APICs (cpu_lapic.c), as the processor core reaches them. */
 extern void     cpu_lapic_reset_all(void);
 extern void     cpu_lapic_ven_reset(void);
+extern int      cpu_apic_model_capable(void);
 extern int      cpu_apic_feature_enabled(void);
 extern uint8_t  cpu_lapic_index_source(void);
 extern uint8_t  cpu_ap_startup_request(uint8_t lapic_index, uint8_t vector);

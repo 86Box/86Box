@@ -170,7 +170,8 @@ static cpu_lapic_context_t cpu_lapic_contexts[IOAPIC_STATE_MAX_LAPICS] = {
      CPU_LAPIC_ICR_LEVEL | CPU_LAPIC_ICR_TRIGGER | CPU_LAPIC_ICR_DEST_SHORT)
 #define CPU_LAPIC_ICR_HI_DEST_MASK 0xff000000
 
-static int
+/* Whether the processor fitted has an on-chip local APIC. */
+int
 cpu_apic_model_capable(void)
 {
     if (cpu_s == NULL)
