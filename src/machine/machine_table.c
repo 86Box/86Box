@@ -19157,7 +19157,8 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        /* Table hook selects validated-UP APIC; init still owns IOAPIC topology. */
+        .device                   = &validated_up_apic_board_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
@@ -22812,7 +22813,8 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        /* Table hook selects validated-UP APIC; init still owns IOAPIC topology. */
+        .device                   = &validated_up_apic_board_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
