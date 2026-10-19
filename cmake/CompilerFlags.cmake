@@ -19,18 +19,37 @@ add_compile_options(
 )
 
 if(ARCH STREQUAL "x86_64")
-    add_compile_options(-m64 -march=x86-64 -msse2 -mfpmath=sse -mstackrealign)
+    add_compile_options(-m64 "$<$<NOT:$<CONFIG:Optimized>>:-march=x86-64>" -msse2 -mfpmath=sse -mstackrealign)
 elseif(ARCH STREQUAL "arm64")
     if(APPLE)
-        add_compile_options(-march=armv8.5-a+simd)
+        add_compile_options("$<$<NOT:$<CONFIG:Optimized>>:-march=armv8.5-a+simd>")
     else()
-        add_compile_options(-march=armv8-a)
+        add_compile_options("$<$<NOT:$<CONFIG:Optimized>>:-march=armv8-a>")
     endif()
 elseif(ARCH STREQUAL "loongarch64")
     # LSX is a hard requirement for the new dynarec on LoongArch64
     # (codegen_backend_loongarch64_defs.h gates on __loongarch_sx).
     # -march=la464 targets 3A5000-class cores; use la664 for 3A6000-class.
-    add_compile_options(-march=la464 -mabi=lp64d -mlsx)
+    add_compile_options("$<$<NOT:$<CONFIG:Optimized>>:-march=la464>" -mabi=lp64d -mlsx)
+endif()
+
+get_property(_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(CMAKE_BUILD_TYPE STREQUAL "Optimized" OR
+   (_multi_config AND "Optimized" IN_LIST CMAKE_CONFIGURATION_TYPES))
+    include(NativeCPU)
+    foreach(lang C CXX)
+        resolve_native_cpu_flags("${lang}" _native_flags)
+        list(JOIN _native_flags " " _native_flags)
+        # Configuration flags also reach the local LTO link.
+        string(APPEND CMAKE_${lang}_FLAGS_OPTIMIZED " ${_native_flags}")
+        if(lang STREQUAL "C")
+            string(APPEND CMAKE_ASM_FLAGS_OPTIMIZED " ${_native_flags}")
+        endif()
+        if(_native_flags_COMPILE_ONLY)
+            list(JOIN _native_flags_COMPILE_ONLY " " _native_compile_flags)
+            add_compile_options("$<$<AND:$<CONFIG:Optimized>,$<COMPILE_LANGUAGE:${lang}>>:SHELL:${_native_compile_flags}>")
+        endif()
+    endforeach()
 endif()
 
 # Configuration-specific flags.
@@ -42,8 +61,6 @@ add_compile_options(
     "$<$<CONFIG:UltraDebug>:-O0>"
     "$<$<CONFIG:UltraDebug>:-ggdb>"
     "$<$<CONFIG:UltraDebug>:-g3>"
-    "$<$<CONFIG:Optimized>:-march=native>"
-    "$<$<CONFIG:Optimized>:-mtune=native>"
     "$<$<CONFIG:Optimized>:-O3>"
     "$<$<CONFIG:Optimized>:-ffp-contract=fast>"
     "$<$<CONFIG:Optimized>:-flto=auto>"
