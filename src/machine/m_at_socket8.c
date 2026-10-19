@@ -249,7 +249,7 @@ machine_at_p6rp4_init(const machine_t *model)
     device_add(&i450kx_device); /* 450GX is a superset of the 450KX */
     {
         static const ioapic_legacy_irq_routing_t p6rp4_irq_routing = {
-            .irq_to_intin = IOAPIC_LEGACY_IRQ_ROUTE_P6RP4
+            .irq_to_intin = IOAPIC_LEGACY_IRQ_ROUTE_ISA
         };
         /* An AMI BIOS (AMIBIOS 0106 for SMC): its last POST code before
            booting is 00h (IOAPIC_POST_TRIGGER_AMI). */

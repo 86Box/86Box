@@ -349,6 +349,7 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
     uint8_t is_vfio       = 0;
     uint8_t intin;
     uint8_t direct_intin_route = 0;
+    uint8_t pirq_wired         = 0;
 
     /* The fast path out an invalid PCI card. */
     if (slot == PCI_CARD_INVALID)
@@ -388,6 +389,14 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
                     case 0x01 ... PCI_IRQS_NUM:
                         is_vfio     = pci_cards[slot].type & PCI_CARD_VFIO;
                         irq_routing = (irq_routing - PCI_INTA) & PCI_IRQ_MAX;
+
+                        /* A PIRQ line the board wires to an I/O APIC input
+                           reaches it there, whatever it is steered to. */
+                        if (ioapic_pirq_intin(irq_routing) != PCI_APIC_INTIN_INVALID) {
+                            intin              = ioapic_pirq_intin(irq_routing);
+                            direct_intin_route = 1;
+                            pirq_wired         = 1;
+                        }
 
                         irq_line = pci_irqs[irq_routing];
                         /* Ignore what was provided to us as a parameter and override it with whatever
@@ -452,14 +461,20 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
         return;
     }
 
-    /* A steered PIRQ drives the 8259 input and, through picint_common's
-       mirror, the I/O APIC pin for the same IRQ, at the same time: which
-       of the two the operating system listens to is its choice, made in
-       the redirection table and the 8259 masks, not ours. */
+    /* A steered PIRQ the board wires to the I/O APIC drives its own input
+       and the 8259's, and not the I/O APIC input of the IRQ it is steered
+       to (picint_steered); which of the two the operating system listens
+       to is its choice, made in the redirection table and the 8259 masks,
+       not ours. Where the I/O APIC's inputs are the IRQ lines themselves
+       (the ESC), or the board does not say how it is wired, the 8259 side
+       mirrors it there as well. */
     if (direct_intin_route)
         pci_apic_direct_intin(intin, irq_line, set, irq_state);
 
-    picint_common(1 << irq_line, level, set, irq_state);
+    if (pirq_wired)
+        picint_steered(1 << irq_line, level, set, irq_state);
+    else
+        picint_common(1 << irq_line, level, set, irq_state);
 }
 
 uint8_t

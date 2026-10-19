@@ -1,7 +1,8 @@
 /*
  * Board-supplied legacy IRQ -> I/O APIC INTIN routes.
  *
- * These are legacy IRQ routes, not direct PCI PIRQ pin wiring.
+ * The ISA IRQ lines' inputs, and the PCI PIRQ lines' where the board
+ * wires them to the I/O APIC.
  */
 
 #ifndef EMU_IOAPIC_ROUTES_H
@@ -12,23 +13,23 @@
 /* An IRQ with no pin on this I/O APIC. */
 #define IOAPIC_LEGACY_IRQ_NC 0xff
 
-/* IRQ0 is INTIN2 and IRQ2, the cascade, has no input (MP spec 1.1,
-   Table 5-2); an entry for it would share INTIN2 with the timer.
-   The P65UP5 and S2DGE wire IRQ 10 and 11 to INTIN 16-19 as each board's
-   own BIOS describes it in its MP table (Award on the P65UP5: IRQ10
-   INTIN19, IRQ11 INTIN18; AMI on the S2DGE: IRQ10 INTIN17, IRQ11
-   INTIN16), and IRQ 9 to INTIN9. These had IRQ 9 where IRQ 10 is, so a
-   PCI card steered to IRQ 10 raised an input the operating system had
-   masked. */
-#define IOAPIC_LEGACY_IRQ_ROUTE_P65UP5 \
-    { 2, 1, IOAPIC_LEGACY_IRQ_NC, 3, 4, 5, 6, 7, 8, 9, 19, 18, 12, 13, 14, 15 }
-
-#define IOAPIC_LEGACY_IRQ_ROUTE_S2DGE \
-    { 2, 1, IOAPIC_LEGACY_IRQ_NC, 3, 4, 5, 6, 7, 8, 9, 17, 16, 12, 13, 14, 15 }
-
-/* Experimental P/I-P6RP4 route until ROM/runtime MP IRQ entries are decoded. */
-#define IOAPIC_LEGACY_IRQ_ROUTE_P6RP4 \
+/* The 82093AA's ISA inputs: IRQ n on INTIN n, but IRQ0 on INTIN2 and
+   IRQ2, the cascade, on none -- "INTIN[3:11,14,15] ... Typically, these
+   signals are connected to the ISA interrupts IRQ[3:7,8#,9:11,14:15]
+   respectively", IRQ1 on INTIN1 and IRQ12 on INTIN12 (82093AA 2.0); MP
+   spec 1.1, Table 5-2. A PCI interrupt is not among them: the chipset
+   steers it to an IRQ inside the 8259 side only (picint_steered). */
+#define IOAPIC_LEGACY_IRQ_ROUTE_ISA \
     { 2, 1, IOAPIC_LEGACY_IRQ_NC, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }
+
+/* The PCI interrupts on inputs of their own: "INTIN[16:19] ... Typically,
+   these signals are connected to the PCI interrupts (PIRQ[0:3])"
+   (82093AA 2.0). "The steering of the PCI IRQs to the ISA IRQs is
+   accomplished in the IOAPIC by setting the PCI redirection table entry
+   to the correct ISA interrupt vector": the P65UP5's and S2DGE's BIOSes
+   list each IRQ they steered a PIRQ to on that PIRQ's input. */
+#define IOAPIC_PIRQ_ROUTE_82093AA \
+    { 16, 17, 18, 19 }
 
 /* The 82374 ESC, per its data book's Figure 25: pin 0 is the 8259's own
    INTR (or SMI), pin 2 is counter 0 of the timer, pin 1 and 3-15 are the

@@ -146,6 +146,9 @@ extern const device_t integrated_cpu_lapic_device;
 
 typedef struct ioapic_legacy_irq_routing_t {
     uint8_t irq_to_intin[IOAPIC_LEGACY_IRQ_COUNT];
+    /* The input PIRQ A-D are wired to, where the board wires them to the
+       I/O APIC; 0 where it does not (INTIN0 is the 8259's INTR). */
+    uint8_t pirq_to_intin[4];
 } ioapic_legacy_irq_routing_t;
 
 #define IOAPIC_TOPOLOGY_LAPIC_SLOTS_SHIFT 0
@@ -281,6 +284,7 @@ extern int            ioapic_lint1_raise(void);
 extern void           ioapic_retry_deliveries(void);
 extern void           ioapic_pic_intr(int active);
 extern int            ioapic_pci_intin_own_wire(uint8_t intin, uint8_t irq_line);
+extern uint8_t        ioapic_pirq_intin(uint8_t pirq);
 extern void           ioapic_set_pin0_smi(void *ioapic, int smi);
 extern void           ioapic_intin_irq(uint8_t pin, int level, int set);
 extern void           ioapic_legacy_irq(uint16_t mask, int level, int set);

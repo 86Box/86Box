@@ -93,6 +93,7 @@ typedef struct ioapic_t {
     uint8_t       ioapic_arb_id;
     uint8_t       legacy_irq_default_to_pin[IOAPIC_LEGACY_IRQ_COUNT];
     uint8_t       legacy_irq_to_pin[IOAPIC_LEGACY_IRQ_COUNT];
+    uint8_t       pirq_to_intin[4]; /* the board's PIRQ wiring, 0xff for none */
     uint8_t       ioapic_masked_irq_log_count[24];
     uint8_t       ioapic_irq_log_count[24];
     uint8_t       ioapic_deliver_log_count[24];
@@ -165,11 +166,8 @@ ioapic_legacy_irq_to_pin(ioapic_t *dev, uint8_t irq)
 static void
 ioapic_load_compat_legacy_irq_pins(uint8_t irq_to_pin[IOAPIC_LEGACY_IRQ_COUNT])
 {
-    /* IRQ2 is the cascade and reaches no pin (MP spec 1.1, 5.1). */
-    static const uint8_t compat_irq_to_pin[IOAPIC_LEGACY_IRQ_COUNT] = {
-        2, 1, IOAPIC_LEGACY_IRQ_NC, 3, 4, 5, 6, 7,
-        8, 19, 10, 18, 12, 13, 14, 15
-    };
+    /* Until the board says otherwise, the 82093AA's ISA inputs. */
+    static const uint8_t compat_irq_to_pin[IOAPIC_LEGACY_IRQ_COUNT] = IOAPIC_LEGACY_IRQ_ROUTE_ISA;
 
     memcpy(irq_to_pin, compat_irq_to_pin, IOAPIC_LEGACY_IRQ_COUNT);
 }
@@ -920,6 +918,19 @@ ioapic_pic_intr(int active)
     ioapic_wire_intr_update(dev);
 }
 
+/* The input PIRQ pirq (0-3, A-D) is wired to on this board, with the APIC
+   path on; 0xff where it is not wired here, or the path is off. */
+uint8_t
+ioapic_pirq_intin(uint8_t pirq)
+{
+    const ioapic_t *dev = ioapic_global;
+
+    if ((dev == NULL) || !dev->uniprocessor_apic || (pirq >= 4))
+        return IOAPIC_LEGACY_IRQ_NC;
+
+    return dev->pirq_to_intin[pirq];
+}
+
 /* Whether a PCI interrupt the MP table puts on intin reaches the I/O APIC
    on a wire of its own, apart from the IRQ line it is steered to
    (irq_line, 0xff for none). On the ESC the I/O APIC's inputs are the IRQ
@@ -1466,6 +1477,11 @@ ioapic_set_legacy_irq_routing(void *ioapic, const ioapic_legacy_irq_routing_t *r
             dev->legacy_irq_to_pin[irq]         = pin;
         }
     }
+    for (uint8_t pirq = 0; pirq < 4; pirq++) {
+        uint8_t pin = routing->pirq_to_intin[pirq];
+
+        dev->pirq_to_intin[pirq] = ((pin != 0) && (pin < dev->pins)) ? pin : IOAPIC_LEGACY_IRQ_NC;
+    }
     dev->legacy_routes_set   = 1;
     dev->legacy_routes_wired = 1;
 }
@@ -1608,6 +1624,7 @@ ioapic_init(UNUSED(const device_t *info))
         dev->mmio_size   = IOAPIC_MMIO_SIZE;
     }
     dev->mmio_base = IOAPIC_MMIO_BASE;
+    memset(dev->pirq_to_intin, IOAPIC_LEGACY_IRQ_NC, sizeof(dev->pirq_to_intin));
     dev->topology_lapic_slots_max = (local >> IOAPIC_TOPOLOGY_LAPIC_SLOTS_SHIFT) &
                                     IOAPIC_TOPOLOGY_LAPIC_SLOTS_MASK;
     apic_platform_set_lapic_count_config(dev->apic, device_get_config_int("lapic_count"));

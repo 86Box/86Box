@@ -175,7 +175,8 @@ machine_at_s2dge_init(const machine_t *model)
     {
         /* Keep S2DGE APIC wiring local: install IOAPIC, then bind board IRQ map. */
         static const ioapic_legacy_irq_routing_t s2dge_irq_routing = {
-            .irq_to_intin = IOAPIC_LEGACY_IRQ_ROUTE_S2DGE
+            .irq_to_intin  = IOAPIC_LEGACY_IRQ_ROUTE_ISA,
+            .pirq_to_intin = IOAPIC_PIRQ_ROUTE_82093AA
         };
         /* An AMI BIOS: its last POST code before booting is 00h, and its
            MP table is built by then (IOAPIC_POST_TRIGGER_AMI). */
