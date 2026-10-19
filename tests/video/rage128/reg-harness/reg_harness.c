@@ -16257,10 +16257,12 @@ cursor_rows(svga_t *svga, int x, int frame_h, int *top, int *bottom, int *index)
    r128_crtc_set_cursor_position doubles y under double scan and halves
    it under interlace; the device follows the register's frame-line
    definition, so that driver's cursor lands at half height under
-   interlace, as it does on the board. The
-   compositor restarts its image each field and steps the on-count by
-   two, so frame rows y..y+63 carry image rows 0,0,1,1,... . First and
-   last row witnesses check position separately from field cadence. */
+   interlace, as it does on the board. Cursor row n sits on frame line
+   y + n (RRG: CUR_HORZ_VERT_OFF, p. 3-82 / PDF 100), so each field
+   shows every other row: frame rows y..y+63 carry image rows
+   0,1,2,3,... . With double scan on as well, each row covers two frame
+   lines, one per field, giving 0,0,1,1,... (modeled). First and last
+   row witnesses check position separately from field cadence. */
 static void
 vectors_cursor_interlace(rage128_t *dev)
 {
@@ -16315,8 +16317,8 @@ vectors_cursor_interlace(rage128_t *dev)
     cursor_rows(svga, 512, 768, &top, &bottom, idx);
     ok = top == 300 && bottom == 363;
     for (int i = 0; i < 8; i++)
-        ok = ok && idx[i] == (i >> 1);
-    check_true("cursor: interlace cursor top row 300, bottom 363, image rows 0,0,1,1,2,2,3,3", ok);
+        ok = ok && idx[i] == i;
+    check_true("cursor: interlace cursor top row 300, bottom 363, image rows 0..7", ok);
 
     /* leg P (control): same mode progressive */
     wr(dev, RAGE128_CRTC_GEN_CNTL, gen_base);
@@ -16342,6 +16344,17 @@ vectors_cursor_interlace(rage128_t *dev)
     for (int i = 0; i < 8; i++)
         ok = ok && idx[i] == (i >> 1);
     check_true("cursor: DBL_SCAN control top row 600, bottom 663, image rows 0,0,1,1,2,2,3,3", ok);
+
+    /* leg ID: DBL_SCAN and INTERLACE_EN together, same frame-line
+       position -- each row stays on two frame lines, one in each field */
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_base | RAGE128_CRTC_DBL_SCAN_EN | RAGE128_CRTC_INTERLACE_EN);
+    wr(dev, RAGE128_CUR_OFFSET, 0x00400000);
+    memset(bm->dat, 0, (size_t) 2048 * 1024 * sizeof(uint32_t));
+    cursor_rows(svga, 512, 960, &top, &bottom, idx);
+    ok = svga->interlace == 1 && svga->rowcount == 1 && top == 600 && bottom == 663;
+    for (int i = 0; i < 8; i++)
+        ok = ok && idx[i] == (i >> 1);
+    check_true("cursor: DBL_SCAN + interlace top row 600, bottom 663, image rows 0,0,1,1,2,2,3,3", ok);
 
     wr(dev, RAGE128_CUR_HORZ_VERT_OFF, 0);
     wr(dev, RAGE128_CUR_HORZ_VERT_POSN, 0);
