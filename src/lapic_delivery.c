@@ -554,26 +554,66 @@ lapic_startup_mark_parked(lapic_state_t *lapic)
     lapic->parked = 1;
 }
 
+/* The I/O APIC is an agent on the same bus: its Arbitration ID moves with
+   the processors' (ioapic.c attaches it). */
+static uint8_t       *lapic_bus_ioapic_arb;
+static const uint8_t *lapic_bus_ioapic_id;
+
+void
+lapic_bus_ioapic_attach(uint8_t *arb_id, const uint8_t *id)
+{
+    lapic_bus_ioapic_arb = arb_id;
+    lapic_bus_ioapic_id  = id;
+}
+
+static uint8_t
+lapic_bus_arb_next(uint8_t arb, uint8_t winner)
+{
+    return (arb == 15) ? ((winner + 1) & 0x0f) : ((arb + 1) & 0x0f);
+}
+
+/* A message won the bus: "The winner of the arbitration becomes the lowest
+   priority agent and assumes an arbitration ID of 0. All other agents,
+   except the agent whose arbitration ID is 15, increment their arbitration
+   IDs by one. The agent whose ID was 15 takes the winner's arbitration ID
+   and increments it by one" (82093AA, 3.2.3; Pentium Vol. 3, 19.3.2.1).
+   The winner is one local APIC, or the I/O APIC when winner_lapic is
+   NULL. */
 static void
+lapic_bus_rotate(lapic_state_t *lapics, uint8_t count, lapic_state_t *winner_lapic)
+{
+    uint8_t winner;
+
+    if (winner_lapic != NULL)
+        winner = winner_lapic->arb_id & 0x0f;
+    else if (lapic_bus_ioapic_arb != NULL)
+        winner = *lapic_bus_ioapic_arb & 0x0f;
+    else
+        return;
+
+    for (uint8_t i = 0; (lapics != NULL) && (i < count); i++) {
+        lapic_state_t *lapic = lapic_at(lapics, count, i);
+
+        if ((lapic != NULL) && (lapic != winner_lapic))
+            lapic_arbitration_id_set(lapic, lapic_bus_arb_next(lapic->arb_id & 0x0f, winner));
+    }
+    if ((lapic_bus_ioapic_arb != NULL) && (winner_lapic != NULL))
+        *lapic_bus_ioapic_arb = lapic_bus_arb_next(*lapic_bus_ioapic_arb & 0x0f, winner);
+
+    if (winner_lapic != NULL)
+        lapic_arbitration_id_set(winner_lapic, 0);
+    else
+        *lapic_bus_ioapic_arb = 0;
+}
+
+void
 lapic_arbitration_rotate_after_lapic(lapic_state_t *lapics, uint8_t count,
                                      uint8_t winner_index)
 {
-    lapic_state_t *winner_lapic;
-    uint8_t        winner;
+    lapic_state_t *winner_lapic = lapic_at(lapics, count, winner_index);
 
-    winner_lapic = lapic_at(lapics, count, winner_index);
-    if (winner_lapic == NULL)
-        return;
-
-    winner = winner_lapic->arb_id & 0x0f;
-    for (uint8_t i = 0; i < count; i++) {
-        lapic_state_t *lapic = lapic_at(lapics, count, i);
-
-        if ((lapic != NULL) && (i != winner_index) && ((lapic->arb_id & 0x0f) < winner))
-            lapic_arbitration_id_set(lapic, lapic->arb_id + 1);
-    }
-
-    lapic_arbitration_id_set(winner_lapic, 0);
+    if (winner_lapic != NULL)
+        lapic_bus_rotate(lapics, count, winner_lapic);
 }
 
 static int
@@ -655,7 +695,12 @@ lapic_icr_write(lapic_state_t *lapic, lapic_state_t *lapics, uint8_t count,
 
     cpu_lapic_icr_delivery_complete_index(lapic->index);
 
-    if (delivered)
+    /* "Self interrupts do not generate bus messages" (19.3.1.8), so the
+       arbitration IDs stay where they are. They move for a message sent
+       successfully, and for a lowest priority one either way (82093AA,
+       3.2.3). */
+    if ((delivered || (icr.delivery == LAPIC_ICR_DELIV_LOWEST)) &&
+        (icr.shorthand != LAPIC_ICR_DEST_SELF))
         lapic_arbitration_rotate_after_lapic(lapics, count, current_index);
 
     if (lapic_log_first(&lapic->icr_log_count[icr.vector], 8))
@@ -828,21 +873,10 @@ void
 lapic_arbitration_rotate_with_ioapic(lapic_state_t *lapics, uint8_t count,
                                      uint8_t *ioapic_arb_id)
 {
-    uint8_t winner;
-
-    if (ioapic_arb_id == NULL)
+    if ((ioapic_arb_id == NULL) || (ioapic_arb_id != lapic_bus_ioapic_arb))
         return;
 
-    winner = *ioapic_arb_id & 0x0f;
-    if (lapics != NULL) {
-        for (uint8_t i = 0; i < count; i++) {
-            lapic_state_t *lapic = lapic_at(lapics, count, i);
-
-            if ((lapic != NULL) && ((lapic->arb_id & 0x0f) < winner))
-                lapic_arbitration_id_set(lapic, lapic->arb_id + 1);
-        }
-    }
-    *ioapic_arb_id = 0;
+    lapic_bus_rotate(lapics, count, NULL);
 }
 
 int

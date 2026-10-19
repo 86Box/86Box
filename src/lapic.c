@@ -1326,6 +1326,18 @@ lapic_init_signal(lapic_state_t *lapic, int assert)
     }
 }
 
+/* A message this local APIC put on the bus other than an IPI (an EOI to
+   the I/O APIC): the arbitration IDs move as for any. */
+void
+lapic_bus_sent_by(lapic_state_t *lapic)
+{
+    if ((lapic_active_device == NULL) || (lapic == NULL))
+        return;
+
+    lapic_arbitration_rotate_after_lapic(lapic_active_device->lapics, lapic_active_device->count,
+                                         lapic->index);
+}
+
 uint64_t
 lapic_reset_base_msr(uint8_t index)
 {

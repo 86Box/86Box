@@ -1516,6 +1516,7 @@ ioapic_close(void *priv)
     if (ioapic_global == dev) {
         ioapic_global          = NULL;
         ioapic_irq_path_active = 0;
+        lapic_bus_ioapic_attach(NULL, NULL);
     }
     apic_cpu_lapic_set_ioapic_policy(0);
     apic_platform_free(dev->apic);
@@ -1581,6 +1582,7 @@ ioapic_init(UNUSED(const device_t *info))
 
     ioapic_reset(dev);
     ioapic_global          = dev;
+    lapic_bus_ioapic_attach(&dev->ioapic_arb_id, &dev->ioapic_id);
     ioapic_irq_path_active = dev->uniprocessor_apic;
 
     if (dev->uniprocessor_apic) {

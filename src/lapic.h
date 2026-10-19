@@ -216,6 +216,7 @@ extern int                   local_apic_targets_deliver_init(
                                                 int assert);
 extern void                  local_apic_arbitration_id_reset_from_id(
                                                 local_apic_t *apic);
+extern void                  lapic_bus_ioapic_attach(uint8_t *arb_id, const uint8_t *id);
 extern void                  local_apic_arbitration_rotate_with_ioapic(
                                                 local_apic_t *apic,
                                                 uint8_t *ioapic_arb_id);

@@ -197,6 +197,10 @@ extern int                  lapic_targets_deliver_init(
                                                 int assert);
 extern void                 lapic_arbitration_id_reset_from_id(
                                                 lapic_state_t *lapic);
+extern void                 lapic_arbitration_rotate_after_lapic(lapic_state_t *lapics,
+                                                                 uint8_t count,
+                                                                 uint8_t winner_index);
+extern void                 lapic_bus_sent_by(lapic_state_t *lapic);
 extern void                 lapic_arbitration_rotate_with_ioapic(
                                                 lapic_state_t *lapics,
                                                 uint8_t count,

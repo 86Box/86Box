@@ -367,8 +367,10 @@ lapic_writel(uint32_t addr, uint32_t val, void *priv)
                     lapic_log(dev, "LAPIC: EOI vector=%02x count=%u\n",
                               vector, lapic->eoi_log_count[vector]);
                 /* Notify external IOAPIC only for level-triggered vectors. */
-                if (level)
+                if (level) {
                     lapic_mmio_device_external_eoi(dev, vector);
+                    lapic_bus_sent_by(lapic);
+                }
             } else {
                 lapic_log(dev, "LAPIC: EOI with empty ISR\n");
             }
