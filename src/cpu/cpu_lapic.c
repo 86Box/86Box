@@ -97,7 +97,6 @@ static cpu_lapic_context_t cpu_lapic_contexts[IOAPIC_STATE_MAX_LAPICS] = {
 #define CPU_APIC_BASE_ADDR_MASK 0x00000000fffff000ULL
 #define CPU_LAPIC_SVR_DEFAULT   0x000000ff
 #define CPU_LAPIC_SVR_ENABLE    0x00000100
-#define CPU_LAPIC_SVR_WRITE_MASK 0x000001f0
 #define CPU_LAPIC_SVR_READ_ONES 0x0000000f
 #define CPU_LAPIC_TPR_DEFAULT   0x00000000
 #define CPU_LAPIC_TPR_MASK      0x000000ff
@@ -314,21 +313,6 @@ cpu_lapic_svrs_sync(void)
         lapic_svr_sync_index(i, cpu_lapic_svrs[i]);
 }
 
-uint32_t
-cpu_lapic_svr_read_current(void)
-{
-    return cpu_lapic_svrs[cpu_current_lapic_index_clamped()];
-}
-
-void
-cpu_lapic_svr_write_current(uint32_t val)
-{
-    uint8_t lapic_index = cpu_current_lapic_index_clamped();
-
-    cpu_lapic_svrs[lapic_index] = cpu_lapic_svr_sanitize(val);
-    lapic_svr_sync_index(lapic_index, cpu_lapic_svrs[lapic_index]);
-}
-
 void
 cpu_lapic_svr_load_index(uint8_t lapic_index, uint32_t val)
 {
@@ -362,28 +346,12 @@ cpu_lapic_tprs_sync(void)
 }
 
 uint32_t
-cpu_lapic_tpr_read_current(void)
-{
-    return cpu_lapic_tprs[cpu_current_lapic_index_clamped()];
-}
-
-uint32_t
 cpu_lapic_tpr_read_index(uint8_t lapic_index)
 {
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return 0;
 
     return cpu_lapic_tprs[lapic_index];
-}
-
-void
-cpu_lapic_tpr_write_current(uint32_t val)
-{
-    uint8_t lapic_index = cpu_current_lapic_index_clamped();
-
-    cpu_lapic_tprs[lapic_index] = val & CPU_LAPIC_TPR_MASK;
-    lapic_tpr_sync_index(lapic_index, cpu_lapic_tprs[lapic_index]);
-    cpu_lapic_ppr_update_index(lapic_index);
 }
 
 void
@@ -419,27 +387,12 @@ cpu_lapic_ldrs_sync(void)
 }
 
 uint32_t
-cpu_lapic_ldr_read_current(void)
-{
-    return cpu_lapic_ldrs[cpu_current_lapic_index_clamped()];
-}
-
-uint32_t
 cpu_lapic_ldr_read_index(uint8_t lapic_index)
 {
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return 0;
 
     return cpu_lapic_ldrs[lapic_index];
-}
-
-void
-cpu_lapic_ldr_write_current(uint32_t val)
-{
-    uint8_t lapic_index = cpu_current_lapic_index_clamped();
-
-    cpu_lapic_ldrs[lapic_index] = lapic_ldr_sanitize(val);
-    lapic_ldr_sync_index(lapic_index, cpu_lapic_ldrs[lapic_index]);
 }
 
 void
@@ -474,27 +427,12 @@ cpu_lapic_dfrs_sync(void)
 }
 
 uint32_t
-cpu_lapic_dfr_read_current(void)
-{
-    return cpu_lapic_dfrs[cpu_current_lapic_index_clamped()];
-}
-
-uint32_t
 cpu_lapic_dfr_read_index(uint8_t lapic_index)
 {
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return CPU_LAPIC_DFR_DEFAULT;
 
     return cpu_lapic_dfrs[lapic_index];
-}
-
-void
-cpu_lapic_dfr_write_current(uint32_t val)
-{
-    uint8_t lapic_index = cpu_current_lapic_index_clamped();
-
-    cpu_lapic_dfrs[lapic_index] = lapic_dfr_sanitize(val);
-    lapic_dfr_sync_index(lapic_index, cpu_lapic_dfrs[lapic_index]);
 }
 
 void
@@ -561,12 +499,6 @@ cpu_lapic_arb_id_load_index(uint8_t lapic_index, uint32_t val)
     lapic_arb_id_sync_index(lapic_index, cpu_lapic_arb_ids[lapic_index]);
 }
 
-uint32_t
-cpu_lapic_version_read_current(void)
-{
-    return cpu_lapic_versions[cpu_current_lapic_index_clamped()];
-}
-
 void
 cpu_lapic_version_load_index(uint8_t lapic_index, uint32_t val)
 {
@@ -587,12 +519,6 @@ cpu_lapic_pprs_sync(void)
 {
     for (uint8_t i = 0; i < IOAPIC_STATE_MAX_LAPICS; i++)
         lapic_ppr_sync_index(i, cpu_lapic_pprs[i]);
-}
-
-uint32_t
-cpu_lapic_ppr_read_current(void)
-{
-    return cpu_lapic_ppr_update_index(cpu_current_lapic_index_clamped());
 }
 
 void
@@ -625,21 +551,6 @@ cpu_lapic_esrs_sync(void)
 {
     for (uint8_t i = 0; i < IOAPIC_STATE_MAX_LAPICS; i++)
         lapic_esr_sync_index(i, cpu_lapic_esrs[i]);
-}
-
-uint32_t
-cpu_lapic_esr_read_current(void)
-{
-    return cpu_lapic_esrs[cpu_current_lapic_index_clamped()];
-}
-
-void
-cpu_lapic_esr_clear_current(void)
-{
-    uint8_t lapic_index = cpu_current_lapic_index_clamped();
-
-    cpu_lapic_esrs[lapic_index] = 0;
-    lapic_esr_sync_index(lapic_index, cpu_lapic_esrs[lapic_index]);
 }
 
 void
@@ -691,28 +602,12 @@ cpu_lapic_icrs_sync(void)
 }
 
 uint32_t
-cpu_lapic_icr_lo_read_current(void)
-{
-    return cpu_lapic_icr_los[cpu_current_lapic_index_clamped()];
-}
-
-uint32_t
 cpu_lapic_icr_lo_read_index(uint8_t lapic_index)
 {
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return 0;
 
     return cpu_lapic_icr_los[lapic_index];
-}
-
-void
-cpu_lapic_icr_lo_write_index(uint8_t lapic_index, uint32_t val)
-{
-    if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
-        return;
-
-    cpu_lapic_icr_los[lapic_index] = val & CPU_LAPIC_ICR_LO_WRITE_MASK;
-    lapic_icr_lo_sync_index(lapic_index, cpu_lapic_icr_los[lapic_index]);
 }
 
 void
@@ -725,27 +620,12 @@ cpu_lapic_icr_lo_load_index(uint8_t lapic_index, uint32_t val)
 }
 
 uint32_t
-cpu_lapic_icr_hi_read_current(void)
-{
-    return cpu_lapic_icr_his[cpu_current_lapic_index_clamped()];
-}
-
-uint32_t
 cpu_lapic_icr_hi_read_index(uint8_t lapic_index)
 {
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return 0;
 
     return cpu_lapic_icr_his[lapic_index];
-}
-
-void
-cpu_lapic_icr_hi_write_current(uint32_t val)
-{
-    uint8_t lapic_index = cpu_current_lapic_index_clamped();
-
-    cpu_lapic_icr_his[lapic_index] = val & CPU_LAPIC_ICR_HI_DEST_MASK;
-    lapic_icr_hi_sync_index(lapic_index, cpu_lapic_icr_his[lapic_index]);
 }
 
 void
@@ -846,12 +726,6 @@ cpu_lapic_rrrs_sync(void)
         lapic_rrr_sync_index(i, cpu_lapic_rrrs[i]);
 }
 
-uint32_t
-cpu_lapic_rrr_read_current(void)
-{
-    return cpu_lapic_rrrs[cpu_current_lapic_index_clamped()];
-}
-
 void
 cpu_lapic_rrr_write_index(uint8_t lapic_index, uint32_t val)
 {
@@ -876,12 +750,6 @@ cpu_lapic_lvts_reset(uint32_t *lvts)
 {
     for (uint8_t i = 0; i < IOAPIC_STATE_MAX_LAPICS; i++)
         lvts[i] = CPU_LAPIC_LVT_DEFAULT;
-}
-
-static uint32_t
-cpu_lapic_lvt_read_current(const uint32_t *lvts)
-{
-    return lvts[cpu_current_lapic_index_clamped()];
 }
 
 static uint32_t
@@ -1121,28 +989,12 @@ cpu_lapic_lvt_perf_load_index(uint8_t lapic_index, uint32_t val)
 }
 
 uint32_t
-cpu_lapic_lvt_timer_read_current(void)
-{
-    return cpu_lapic_lvt_read_current(cpu_lapic_lvt_timers);
-}
-
-uint32_t
 cpu_lapic_lvt_timer_read_index(uint8_t lapic_index)
 {
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return CPU_LAPIC_LVT_DEFAULT;
 
     return cpu_lapic_lvt_timers[lapic_index];
-}
-
-void
-cpu_lapic_lvt_timer_write_current(uint32_t val)
-{
-    uint8_t lapic_index = cpu_current_lapic_index_clamped();
-
-    cpu_lapic_lvt_write_index(cpu_lapic_lvt_timers, lapic_index,
-                              CPU_LAPIC_REG_LVT_TIMER, val);
-    lapic_lvt_timer_sync_index(lapic_index, cpu_lapic_lvt_timers[lapic_index]);
 }
 
 void
@@ -1166,28 +1018,12 @@ cpu_lapic_lvt_lint0s_sync(void)
 }
 
 uint32_t
-cpu_lapic_lvt_lint0_read_current(void)
-{
-    return cpu_lapic_lvt_read_current(cpu_lapic_lvt_lint0s);
-}
-
-uint32_t
 cpu_lapic_lvt_lint0_read_index(uint8_t lapic_index)
 {
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return CPU_LAPIC_LVT_DEFAULT;
 
     return cpu_lapic_lvt_lint0s[lapic_index];
-}
-
-void
-cpu_lapic_lvt_lint0_write_current(uint32_t val)
-{
-    uint8_t lapic_index = cpu_current_lapic_index_clamped();
-
-    cpu_lapic_lvt_write_index(cpu_lapic_lvt_lint0s, lapic_index,
-                              CPU_LAPIC_REG_LVT_LINT0, val);
-    lapic_lvt_lint0_sync_index(lapic_index, cpu_lapic_lvt_lint0s[lapic_index]);
 }
 
 void
@@ -1214,22 +1050,6 @@ cpu_lapic_lvt_lint1s_sync(void)
         lapic_lvt_lint1_sync_index(i, cpu_lapic_lvt_lint1s[i]);
 }
 
-uint32_t
-cpu_lapic_lvt_lint1_read_current(void)
-{
-    return cpu_lapic_lvt_read_current(cpu_lapic_lvt_lint1s);
-}
-
-void
-cpu_lapic_lvt_lint1_write_current(uint32_t val)
-{
-    uint8_t lapic_index = cpu_current_lapic_index_clamped();
-
-    cpu_lapic_lvt_write_index(cpu_lapic_lvt_lint1s, lapic_index,
-                              CPU_LAPIC_REG_LVT_LINT1, val);
-    lapic_lvt_lint1_sync_index(lapic_index, cpu_lapic_lvt_lint1s[lapic_index]);
-}
-
 void
 cpu_lapic_lvt_lint1_load_index(uint8_t lapic_index, uint32_t val)
 {
@@ -1252,22 +1072,6 @@ cpu_lapic_lvt_errors_sync(void)
         lapic_lvt_error_sync_index(i, cpu_lapic_lvt_errors[i]);
 }
 
-uint32_t
-cpu_lapic_lvt_error_read_current(void)
-{
-    return cpu_lapic_lvt_read_current(cpu_lapic_lvt_errors);
-}
-
-void
-cpu_lapic_lvt_error_write_current(uint32_t val)
-{
-    uint8_t lapic_index = cpu_current_lapic_index_clamped();
-
-    cpu_lapic_lvt_write_index(cpu_lapic_lvt_errors, lapic_index,
-                              CPU_LAPIC_REG_LVT_ERROR, val);
-    lapic_lvt_error_sync_index(lapic_index, cpu_lapic_lvt_errors[lapic_index]);
-}
-
 void
 cpu_lapic_lvt_error_load_index(uint8_t lapic_index, uint32_t val)
 {
@@ -1287,7 +1091,7 @@ cpu_lapic_irrs_reset(void)
    bit n of cpu_lapic_irr_live is set while local APIC n's IRR holds any
    vector, cpu_lapic_extint_live[n] while it holds an ExtINT, and
    cpu_apic_int_fast_ok while the slow path has seen the current APIC
-   enable state (it has a side effect when that changes; ioapic.c). */
+   enable state (ioapic_external_interrupt_pending). */
 static void
 cpu_lapic_irr_live_set(uint8_t lapic_index, int any)
 {
@@ -1933,12 +1737,6 @@ cpu_lapic_timer_initial_read_index(uint8_t lapic_index)
     return cpu_lapic_timer_initials[lapic_index];
 }
 
-uint32_t
-cpu_lapic_timer_initial_read_current(void)
-{
-    return cpu_lapic_timer_initial_read_index(cpu_current_lapic_index_clamped());
-}
-
 void
 cpu_lapic_timer_initial_write_index(uint8_t lapic_index, uint32_t val)
 {
@@ -2319,12 +2117,6 @@ cpu_lapic_mmio_read_index(uint8_t lapic_index, uint32_t reg, uint32_t *val)
 }
 
 int
-cpu_lapic_mmio_read_current(uint32_t reg, uint32_t *val)
-{
-    return cpu_lapic_mmio_read_index(cpu_current_lapic_index_clamped(), reg, val);
-}
-
-int
 cpu_lapic_mmio_write_index(uint8_t lapic_index, uint32_t reg, uint32_t val)
 {
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
@@ -2422,13 +2214,6 @@ cpu_lapic_mmio_write_action_index(uint8_t lapic_index, uint32_t reg,
         *mirror_val = val;
 
     return CPU_LAPIC_MMIO_WRITE_MIRROR;
-}
-
-int
-cpu_lapic_mmio_write_action_current(uint32_t reg, uint32_t val, uint32_t *mirror_val)
-{
-    return cpu_lapic_mmio_write_action_index(cpu_current_lapic_index_clamped(),
-                                             reg, val, mirror_val);
 }
 
 int
