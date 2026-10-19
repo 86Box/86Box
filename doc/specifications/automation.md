@@ -72,6 +72,7 @@ startup), `frames` (frames rendered) and `held`.
 | `wait mem <timeout_ms> <addr> <hex>` | Run until physical memory at `addr` equals the hex bytes, or until the timeout. |
 | `key down\|up <scancode>...` | Press or release keys. Scancodes are set-1 make codes; add `0x100` for E0-prefixed keys (e.g. `0x148` = Up). Events are delivered 2 ms of emulated time apart (a burst would overflow the keyboard FIFO); the reply comes after the last event plus its 2 ms, so a request consumes 2 ms per key. |
 | `mouse <dx> <dy> <buttons>` | Relative motion; buttons bitmask 1=left, 2=right, 4=middle. |
+| `tablet <x> <y> <buttons>` / `tablet out` | For the configured tablet, touch screen or light pen: the pen at pixel `x`,`y` of the last frame (the coordinates of `screenshot`), with the buttons pressed (1 = tip or touch); `out` lifts it out of range. With a mouse configured too, `mouse` and `tablet` each switch input to their own device, so both can be used. Fails if no tablet is configured. |
 | `screenshot <path>` | Write the most recent frame of monitor 0 as a PNG file. Reply has `w`, `h`. |
 | `record start <interval_ms> <dir>` / `record stop` | Save the displayed frame as `<dir>/<emulated ms>.png` every `interval_ms` of emulated time, whatever advances the clock (steps, waits, real time). The directory must exist. `stop` replies with the number of frames written. |
 | `info` | Version, machine, CPU and clock, RAM, video and sound cards, mounted hard disk/floppy/CD images, `hard_resets`/`soft_resets` (every CPU reset, including a guest triple fault) and `last_reset_ms`, and `speed_percent` (100 = real time). |
@@ -108,6 +109,13 @@ Over TCP, send the token first:
 $ 86Box --automation tcp:7086 --automation-token-file /tmp/86box.token &
 $ (echo "auth $(cat /tmp/86box.token)"; echo status) | socat - TCP:127.0.0.1:7086
 ```
+
+## Warnings
+
+With automation on, 86Box writes warnings (such as a media image that can't
+be loaded) to its log and carries on, without the warning dialog it otherwise
+shows. A client with no window couldn't dismiss it, and the machine and the
+socket would be stuck until someone did.
 
 ## When 86Box stops
 
