@@ -32,8 +32,8 @@ x86_external_interrupt_pending(void)
 
     /* Nothing from the 8259, nothing in the processor's IRR (local APIC
        0's), no ExtINT: the full answer below would be no. The full path
-       still runs once after the APIC is enabled or disabled, for the PCI
-       level replay done there (ioapic_external_interrupt_pending). */
+       still runs once after the APIC is enabled or disabled, so the I/O
+       APIC sees the new enable state (ioapic_external_interrupt_pending). */
     if (!pic.int_pending && !cpu_lapic_extint_live[0] && cpu_apic_int_fast_ok) {
         if (!(cpu_lapic_irr_live & 1u))
             return 0;

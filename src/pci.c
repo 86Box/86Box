@@ -86,9 +86,6 @@ static uint8_t     pci_card_to_slot_mapping[256][PCI_CARDS_NUM];
 static uint8_t     pci_bus_number_to_index_mapping[256];
 static uint8_t     pci_irqs[PCI_IRQS_NUM];
 static uint8_t     pci_irq_level[PCI_IRQS_NUM];
-/* APIC mode shares PCI INTx by legacy IRQ line, not by PCI slot/pin. */
-static uint16_t    pci_apic_irq_level_count[PCI_DIRQS_NUM];
-static uint8_t     pci_apic_irq_level_asserted[PCI_DIRQS_NUM];
 static uint8_t     pci_apic_intin_route[256][PCI_CARDS_NUM][PCI_INT_PINS_NUM];
 static uint8_t     pci_apic_intin_route_log_seen[256][PCI_CARDS_NUM][PCI_INT_PINS_NUM];
 static uint8_t     pci_irq_route_log_seen[256][PCI_CARDS_NUM][PCI_INT_PINS_NUM];
@@ -319,46 +316,25 @@ pci_apic_intin_irq(uint8_t intin, int level, int set, uint8_t *irq_state)
     return 1;
 }
 
-static int
-pci_apic_legacy_level_track(uint8_t irq_line, int level, int set, int old_state)
+/* A PCI INTx on the I/O APIC input the MP table gives it, when that is a
+   wire of its own (ioapic_pci_intin_own_wire). Both this and the 8259
+   side see the line's state before this change: *irq_state is updated by
+   picint_common, so this side works on a copy of it. */
+static void
+pci_apic_direct_intin(uint8_t intin, uint8_t irq_line, int set, uint8_t *irq_state)
 {
-    uint16_t count;
-    int      asserted;
+    if (!ioapic_pci_intin_own_wire(intin, irq_line))
+        return;
 
-    if ((irq_line >= PCI_DIRQS_NUM) || !level)
-        return 0;
+    if (irq_state != NULL) {
+        uint8_t direct_state = *irq_state;
 
-    if (!!old_state == !!set)
-        return 0;
-
-    count = pci_apic_irq_level_count[irq_line];
-    if (set) {
-        if (count != UINT16_MAX)
-            count++;
-    } else if (count != 0)
-        count--;
-
-    pci_apic_irq_level_count[irq_line] = count;
-    asserted = (count != 0);
-    if (pci_apic_irq_level_asserted[irq_line] == asserted)
-        return 0;
-
-    pci_apic_irq_level_asserted[irq_line] = asserted;
-    return 1;
-}
-
-void
-pci_apic_replay_level_irqs(void)
-{
-    for (uint8_t irq_line = 0; irq_line < PCI_DIRQS_NUM; irq_line++) {
-        if (pci_apic_irq_level_asserted[irq_line])
-            ioapic_legacy_irq(1 << irq_line, 1, 1);
-    }
-
-    for (uint8_t intin = 0; intin < PCI_APIC_INTIN_NUM; intin++) {
-        if (pci_apic_intin_level_asserted[intin])
-            ioapic_intin_irq(intin, 1, 1);
-    }
+        (void) pci_apic_intin_irq(intin, 1, set, &direct_state);
+        /* Steered nowhere, nothing else keeps the line's state. */
+        if (irq_line == 0xff)
+            *irq_state = direct_state;
+    } else
+        (void) pci_apic_intin_irq(intin, 1, set, NULL);
 }
 
 /* PCI raise IRQ: the first parameter is slot if < PCI_MIRQ_BASE, MIRQ if >= PCI_MIRQ_BASE
@@ -390,19 +366,11 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
             if (pci_int_index >= PCI_INT_PINS_NUM)
                 return;
 
+            /* An I/O APIC input the MP table gives this INTx: driven at the
+               end, once the IRQ it is steered to is known (it may be the
+               same wire). */
             intin = pci_apic_intin_route[pci_cards[slot].bus][pci_cards[slot].id][pci_int_index];
-            if (intin != PCI_APIC_INTIN_INVALID) {
-                direct_intin_route = 1;
-                /* The pin wired straight to the I/O APIC; the same INTx
-                   still goes on through the PIRQ router to the 8259 below.
-                   Each side keeps its own copy of the line's state. */
-                if (irq_state != NULL) {
-                    uint8_t direct_state = *irq_state;
-
-                    (void) pci_apic_intin_irq(intin, 1, set, &direct_state);
-                } else
-                    (void) pci_apic_intin_irq(intin, 1, set, NULL);
-            }
+            direct_intin_route = (intin != PCI_APIC_INTIN_INVALID);
 
             if (pci_flags & FLAG_NO_IRQ_STEERING)
                 irq_line = pci_cards[slot].read(0, PCI_REG_INT_LINE, 1, pci_cards[slot].priv);
@@ -412,6 +380,9 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
                 switch (irq_routing) {
                     default:
                     case 0x00:
+                        /* Steered nowhere: an input of its own is all it reaches. */
+                        if (direct_intin_route)
+                            pci_apic_direct_intin(intin, 0xff, set, irq_state);
                         return;
 
                     case 0x01 ... PCI_IRQS_NUM:
@@ -473,15 +444,20 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
             break;
     }
 
-    if (irq_line > PCI_IRQ_MAX)
+    if (irq_line > PCI_IRQ_MAX) {
+        /* Steered to no IRQ (the router's PIRQ off): an input of its own
+           is still wired to the device. */
+        if (direct_intin_route)
+            pci_apic_direct_intin(intin, 0xff, set, irq_state);
         return;
+    }
 
     /* A steered PIRQ drives the 8259 input and, through picint_common's
        mirror, the I/O APIC pin for the same IRQ, at the same time: which
        of the two the operating system listens to is its choice, made in
        the redirection table and the 8259 masks, not ours. */
-    if (!direct_intin_route && (irq_state != NULL))
-        pci_apic_legacy_level_track(irq_line, level, set, !!*irq_state);
+    if (direct_intin_route)
+        pci_apic_direct_intin(intin, irq_line, set, irq_state);
 
     picint_common(1 << irq_line, level, set, irq_state);
 }
@@ -668,8 +644,6 @@ pci_reset_hard(void)
         }
     }
 
-    memset(pci_apic_irq_level_count, 0, sizeof(pci_apic_irq_level_count));
-    memset(pci_apic_irq_level_asserted, 0, sizeof(pci_apic_irq_level_asserted));
     memset(pci_apic_intin_level_count, 0, sizeof(pci_apic_intin_level_count));
     memset(pci_apic_intin_level_asserted, 0, sizeof(pci_apic_intin_level_asserted));
     memset(pci_irq_route_log_seen, 0, sizeof(pci_irq_route_log_seen));
@@ -1311,8 +1285,6 @@ pci_init(int flags)
         pci_irq_level[c] = (pci_flags & FLAG_NO_IRQ_STEERING) ? 0 : 1;
     }
 
-    memset(pci_apic_irq_level_count, 0, sizeof(pci_apic_irq_level_count));
-    memset(pci_apic_irq_level_asserted, 0, sizeof(pci_apic_irq_level_asserted));
     pci_apic_clear_intin_routes();
     memset(pci_apic_intin_level_count, 0, sizeof(pci_apic_intin_level_count));
     memset(pci_apic_intin_level_asserted, 0, sizeof(pci_apic_intin_level_asserted));

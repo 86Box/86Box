@@ -16,18 +16,6 @@ ioapic_82093aa_redir_level(uint32_t low)
 }
 
 int
-ioapic_82093aa_redir_treats_as_edge(uint32_t low)
-{
-    uint32_t delivery = low & IOAPIC_82093AA_REDIR_DELIV;
-
-    /* These model paths do not hold RemoteIRR state in src/ioapic.c. */
-    return (delivery == IOAPIC_82093AA_DELIVERY_SMI) ||
-           (delivery == IOAPIC_82093AA_DELIVERY_NMI) ||
-           (delivery == IOAPIC_82093AA_DELIVERY_INIT) ||
-           (delivery == IOAPIC_82093AA_DELIVERY_EXTINT);
-}
-
-int
 ioapic_82093aa_redir_remote_irr_valid(uint32_t low)
 {
     uint32_t delivery = low & IOAPIC_82093AA_REDIR_DELIV;

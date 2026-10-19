@@ -25,6 +25,7 @@
 #include <86box/machine.h>
 #include <86box/mem.h>
 #include <86box/chipset.h>
+#include <86box/ioapic_routes.h>
 #include <86box/pic.h>
 #include <86box/pci.h>
 #include <86box/plat_unused.h>
@@ -47,7 +48,6 @@ typedef struct ioapic_t {
     uint8_t topology_lapic_slots_max;
     uint8_t mp_table_logged;
     uint8_t mp_table_skip_logged;
-    uint8_t pci_level_replay_enabled;
     uint8_t post_trigger; /* the POST code that means "about to boot" */
 
     uint8_t       lowest_priority_next;
@@ -62,6 +62,14 @@ typedef struct ioapic_t {
     uint32_t      ioapic_pin_raw_lines;
     uint32_t      ioapic_pin_lines;
     uint32_t      ioapic_pin_level;
+    /* Each input is one wire, asserted while any of its sources drives it:
+       the ISA/EISA IRQ lines through the 8259 side, PCI interrupts wired
+       to their own inputs, and the 8259's INTR on INTIN0. */
+    uint32_t      wire_legacy;
+    uint32_t      wire_pci;
+    uint32_t      wire_intr;
+    uint8_t       pic_intr; /* the 8259's INTR output */
+    uint8_t       legacy_routes_set;
     /* Per entry, a message refused and still to send (DELIVS, 82093AA
        3.2.4 bit 12): "the IOAPIC continually polls the 24 interrupts in a
        rotating fashion" (1.0), so each is tried again, none blocking the
@@ -144,8 +152,9 @@ ioapic_legacy_irq_to_pin(ioapic_t *dev, uint8_t irq)
 static void
 ioapic_load_compat_legacy_irq_pins(uint8_t irq_to_pin[IOAPIC_LEGACY_IRQ_COUNT])
 {
+    /* IRQ2 is the cascade and reaches no pin (MP spec 1.1, 5.1). */
     static const uint8_t compat_irq_to_pin[IOAPIC_LEGACY_IRQ_COUNT] = {
-        2, 1, 2, 3, 4, 5, 6, 7,
+        2, 1, IOAPIC_LEGACY_IRQ_NC, 3, 4, 5, 6, 7,
         8, 19, 10, 18, 12, 13, 14, 15
     };
 
@@ -155,7 +164,7 @@ ioapic_load_compat_legacy_irq_pins(uint8_t irq_to_pin[IOAPIC_LEGACY_IRQ_COUNT])
 static void
 ioapic_init_legacy_irq_pins(ioapic_t *dev)
 {
-    if (!dev->legacy_irq_default_to_pin[0])
+    if (!dev->legacy_routes_set)
         ioapic_load_compat_legacy_irq_pins(dev->legacy_irq_default_to_pin);
 
     memcpy(dev->legacy_irq_to_pin, dev->legacy_irq_default_to_pin,
@@ -261,17 +270,8 @@ ioapic_external_interrupt_pending(void)
     if ((dev == NULL) || !dev->uniprocessor_apic)
         return 0;
 
-    if (apic_platform_current_base_enabled(dev->apic) &&
-        apic_platform_current_software_enabled(dev->apic)) {
-        if (!dev->pci_level_replay_enabled) {
-            pci_apic_replay_level_irqs();
-            dev->pci_level_replay_enabled = 1;
-        }
-    } else
-        dev->pci_level_replay_enabled = 0;
-
-    /* The replay has seen this enable state; until it changes the CPU's
-       check may answer "nothing pending" without coming here. */
+    /* This enable state has been seen; until it changes the CPU's check
+       may answer "nothing pending" without coming here. */
     cpu_apic_int_fast_ok = 1;
 
     return apic_platform_current_external_pending(dev->apic,
@@ -341,12 +341,6 @@ static int
 ioapic_pin_raw_high(const ioapic_t *dev, uint8_t pin)
 {
     return !!(dev->ioapic_pin_raw_lines & ioapic_82093aa_pin_bit(pin));
-}
-
-static int
-ioapic_pin_level_triggered(const ioapic_t *dev, uint8_t pin)
-{
-    return !!(dev->ioapic_pin_level & ioapic_82093aa_pin_bit(pin));
 }
 
 static int
@@ -524,25 +518,6 @@ ioapic_pin_pending_after_redir_write(const ioapic_t *dev, uint8_t pin)
 }
 
 static void
-ioapic_update_asserted_pin_after_polarity_rewrite(ioapic_t *dev, uint8_t pin,
-                                                  uint32_t old_low, uint32_t new_low)
-{
-    uint32_t pin_bit = ioapic_82093aa_pin_bit(pin);
-    int asserted;
-
-    if (!((old_low ^ new_low) & IOAPIC_REDIR_POLARITY) ||
-        !(ioapic_pin_asserted(dev, pin) || ioapic_pin_level_triggered(dev, pin)))
-        return;
-
-    /* Raw physical level is canonical; logical assertion follows current RTE polarity. */
-    asserted = ioapic_82093aa_redir_physical_asserted(new_low, ioapic_pin_raw_high(dev, pin));
-    if (asserted)
-        dev->ioapic_pin_lines |= pin_bit;
-    else
-        dev->ioapic_pin_lines &= ~pin_bit;
-}
-
-static void
 ioapic_log_redir_entry(ioapic_t *dev, uint8_t pin, const char *source)
 {
     uint32_t low  = dev->ioapic_redir[pin * 2];
@@ -561,7 +536,7 @@ ioapic_log_redir_entry(ioapic_t *dev, uint8_t pin, const char *source)
                ioapic_82093aa_redir_active_low(low) ? "low" : "high",
                ioapic_redir_remote_irr(low),
                ioapic_pin_raw_high(dev, pin),
-               ioapic_pin_asserted(dev, pin), ioapic_pin_level_triggered(dev, pin),
+               ioapic_pin_asserted(dev, pin), !!(dev->ioapic_pin_level & ioapic_82093aa_pin_bit(pin)),
                low, high);
 }
 
@@ -739,12 +714,16 @@ ioapic_deliver_pin(ioapic_t *dev, uint8_t pin, int asserted, int retry)
 }
 
 static void
-ioapic_raw_intin_device(ioapic_t *dev, uint8_t pin, int level, int physical_high)
+ioapic_raw_intin_device(ioapic_t *dev, uint8_t pin, int physical_high)
 {
     uint32_t pin_bit = ioapic_82093aa_pin_bit(pin);
     uint32_t was_asserted = dev->ioapic_pin_lines & pin_bit;
     uint32_t low = dev->ioapic_redir[pin * 2];
-    int effective_level = level && !ioapic_82093aa_redir_treats_as_edge(low);
+    /* "The trigger mode field indicates the type of signal on the
+       interrupt pin that triggers an interrupt" (82093AA 3.2.4 bit 15):
+       the entry decides, not the source. An edge entry sends once per
+       inactive-to-active transition. */
+    int effective_level = ioapic_82093aa_redir_remote_irr_valid(low);
     int asserted = ((pin == IOAPIC_SMI_PIN) && ioapic_82093aa_redir_smi(low)) ?
                        !physical_high :
                        ioapic_82093aa_redir_physical_asserted(low, physical_high);
@@ -782,49 +761,68 @@ ioapic_raw_intin_device(ioapic_t *dev, uint8_t pin, int level, int physical_high
         ioapic_update_intin23_smiout(dev);
 }
 
-void
-ioapic_raw_intin(uint8_t pin, int level, int physical_high)
+/* The pin's wire, the OR of its sources, as the input sees it through the
+   entry's polarity. */
+static void
+ioapic_wire_drive(ioapic_t *dev, uint8_t pin)
 {
-    ioapic_t *dev = ioapic_global;
+    int      asserted = !!((dev->wire_legacy | dev->wire_pci | dev->wire_intr) & ioapic_82093aa_pin_bit(pin));
+    uint32_t low      = dev->ioapic_redir[pin * 2];
 
-    if ((dev == NULL) || !dev->uniprocessor_apic || (pin >= IOAPIC_REDIR_ENTRIES))
+    /* INTIN23/SMI# has no source here: it stays at its idle level. */
+    if (pin == IOAPIC_SMI_PIN)
         return;
-
-    ioapic_raw_intin_device(dev, pin, level, physical_high);
+    ioapic_raw_intin_device(dev, pin, ioapic_82093aa_redir_active_low(low) ? !asserted : asserted);
 }
 
+/* One source of a pin: a level source holds its bit, an edge source
+   pulses it (the emulated edge devices raise and may never lower). */
+static void
+ioapic_wire_set(ioapic_t *dev, uint32_t *src, uint8_t pin, int level, int set)
+{
+    uint32_t bit = ioapic_82093aa_pin_bit(pin);
+
+    if (level) {
+        if (!!(*src & bit) == !!set)
+            return;
+        *src ^= bit;
+        ioapic_wire_drive(dev, pin);
+    } else if (set) {
+        *src |= bit;
+        ioapic_wire_drive(dev, pin);
+        *src &= ~bit;
+        ioapic_wire_drive(dev, pin);
+    } else if (*src & bit) {
+        *src &= ~bit;
+        ioapic_wire_drive(dev, pin);
+    }
+}
+
+/* A source wired to an input of its own: a PCI interrupt learned from the
+   MP table (counted in pci.c). The pin is sampled whatever any local APIC
+   is doing. */
 void
 ioapic_intin_irq(uint8_t pin, int level, int set)
 {
     ioapic_t *dev = ioapic_global;
     uint32_t  low;
-    int       effective_level;
-    int       physical_high;
 
     if ((dev == NULL) || !dev->uniprocessor_apic || (pin >= IOAPIC_REDIR_ENTRIES))
         return;
 
-    if (!apic_platform_current_base_enabled(dev->apic) ||
-        !apic_platform_current_software_enabled(dev->apic))
-        return;
+    low = dev->ioapic_redir[pin * 2];
+    (void) low;
+    if (ioapic_log_first(&dev->ioapic_irq_log_count[pin], 8))
+        ioapic_log("IOAPIC: intin pin=%u %s mode=%s redir_mask=%u vector=%02x delivery=%s\n",
+                   pin, set ? "raise" : "lower", level ? "level" : "edge",
+                   ioapic_redir_masked(low), low & IOAPIC_REDIR_VECTOR,
+                   ioapic_82093aa_redir_delivery_name(low));
 
-    low             = dev->ioapic_redir[pin * 2];
-    effective_level = level && !ioapic_82093aa_redir_treats_as_edge(low);
-    physical_high   = ioapic_82093aa_redir_active_low(low) ? !set : !!set;
-
-    if (effective_level || set) {
-        if (ioapic_log_first(&dev->ioapic_irq_log_count[pin], 8))
-            ioapic_log("IOAPIC: intin pin=%u %s mode=%s redir_mask=%u vector=%02x delivery=%s\n",
-                       pin, set ? "raise" : "lower", level ? "level" : "edge",
-                       ioapic_redir_masked(low), low & IOAPIC_REDIR_VECTOR,
-                       ioapic_82093aa_redir_delivery_name(low));
-    }
-
-    ioapic_raw_intin_device(dev, pin, level, physical_high);
-    if (!level && set)
-        ioapic_raw_intin_device(dev, pin, 0, !physical_high);
+    ioapic_wire_set(dev, &dev->wire_pci, pin, level, set);
 }
 
+/* An ISA/EISA IRQ line changed (picint_common: for a level source, the
+   wired-OR of every source on it). */
 void
 ioapic_legacy_irq(uint16_t mask, int level, int set)
 {
@@ -839,33 +837,62 @@ ioapic_legacy_irq(uint16_t mask, int level, int set)
 
         uint8_t pin = ioapic_legacy_irq_to_pin(dev, irq);
 
-        if ((irq == 0) && !(dev->ioapic_redir[0] & IOAPIC_REDIR_MASK) &&
-            ioapic_82093aa_redir_extint(dev->ioapic_redir[0]))
-            pin = 0;
-
         if (pin >= IOAPIC_REDIR_ENTRIES)
             continue;
 
-        uint32_t low          = dev->ioapic_redir[pin * 2];
-        int      effective_level = level && !ioapic_82093aa_redir_treats_as_edge(low);
-        int      physical_high = ioapic_82093aa_redir_active_low(low) ? !set : !!set;
+        uint32_t low = dev->ioapic_redir[pin * 2];
 
-        if (ioapic_redir_masked(low) && (effective_level || set))
+        if (ioapic_redir_masked(low) && set)
             ioapic_log_masked_irq(dev, irq, pin, level, set, low);
+        if (set && ioapic_log_first(&dev->ioapic_irq_log_count[pin], 8))
+            ioapic_log("IOAPIC: legacy irq=%u -> pin=%u raise mode=%s redir_mask=%u vector=%02x delivery=%s\n",
+                       irq, pin, level ? "level" : "edge",
+                       ioapic_redir_masked(low), low & IOAPIC_REDIR_VECTOR,
+                       ioapic_82093aa_redir_delivery_name(low));
 
-        if (effective_level || set) {
-            if (ioapic_log_first(&dev->ioapic_irq_log_count[pin], 8))
-                ioapic_log("IOAPIC: legacy irq=%u -> pin=%u %s mode=%s redir_mask=%u vector=%02x delivery=%s\n",
-                           irq, pin, set ? "raise" : "lower", level ? "level" : "edge",
-                           ioapic_redir_masked(low), low & IOAPIC_REDIR_VECTOR,
-                           ioapic_82093aa_redir_delivery_name(low));
-        }
-
-        ioapic_raw_intin_device(dev, pin, level, physical_high);
-        /* Legacy edge inputs pulse; do not leave synthetic raw line asserted. */
-        if (!level && set)
-            ioapic_raw_intin_device(dev, pin, 0, !physical_high);
+        ioapic_wire_set(dev, &dev->wire_legacy, pin, level, set);
     }
+}
+
+/* INTIN0 is the 8259's INTR (MP spec 1.1, Table 5-2; 82093AA 2.4). */
+static void
+ioapic_wire_intr_update(ioapic_t *dev)
+{
+    int active = dev->pic_intr;
+
+    if (!!(dev->wire_intr & 1) != active) {
+        dev->wire_intr = active ? 1 : 0;
+        ioapic_wire_drive(dev, 0);
+    }
+}
+
+void
+ioapic_pic_intr(int active)
+{
+    ioapic_t *dev = ioapic_global;
+
+    if ((dev == NULL) || !dev->uniprocessor_apic)
+        return;
+
+    dev->pic_intr = !!active;
+    ioapic_wire_intr_update(dev);
+}
+
+/* Whether a PCI interrupt the MP table puts on intin reaches the I/O APIC
+   on a wire of its own, apart from the IRQ line it is steered to
+   (irq_line, 0xff for none). A PCI interrupt learned onto the pin of the
+   IRQ it is steered to is that same wire, already driven through the 8259
+   side. */
+int
+ioapic_pci_intin_own_wire(uint8_t intin, uint8_t irq_line)
+{
+    ioapic_t *dev = ioapic_global;
+
+    if ((dev == NULL) || !dev->uniprocessor_apic)
+        return 0;
+    if ((irq_line < IOAPIC_LEGACY_IRQ_COUNT) && (ioapic_legacy_irq_to_pin(dev, irq_line) == intin))
+        return 0;
+    return 1;
 }
 
 int
@@ -873,14 +900,7 @@ ioapic_legacy_irq_enabled(void)
 {
     ioapic_t *dev = ioapic_global;
 
-    if ((dev == NULL) || !dev->uniprocessor_apic)
-        return 0;
-
-    if (!apic_platform_current_base_enabled(dev->apic) ||
-        !apic_platform_current_software_enabled(dev->apic))
-        return 0;
-
-    return 1;
+    return (dev != NULL) && dev->uniprocessor_apic;
 }
 
 int
@@ -1053,7 +1073,6 @@ ioapic_compat_state_load(ioapic_t *dev, const ioapic_state_t *state)
     if (state->version >= 13)
         pci_apic_load_intin_routes(state->pci_intin_routes, state->pci_intin_route_count);
 
-    dev->pci_level_replay_enabled = 0;
     apic_cpu_lapic_set_ioapic_policy(dev->uniprocessor_apic);
 
     if (dev->uniprocessor_apic) {
@@ -1173,9 +1192,10 @@ ioapic_window_write(ioapic_t *dev, uint32_t val)
         }
         dev->ioapic_redir[redir_index] = val;
         if (!(redir_index & 1)) {
-            /* Low-dword rewrites can change line interpretation. */
-            ioapic_update_asserted_pin_after_polarity_rewrite(dev, pin, old_low,
-                                                              dev->ioapic_redir[pin * 2]);
+            /* Polarity and trigger mode are the entry's: the wire is seen
+               through them afresh. */
+            (void) old_low;
+            ioapic_wire_drive(dev, pin);
         }
 
         ioapic_log_redir_entry(dev, pin, (redir_index & 1) ? "redir high" : "redir low");
@@ -1283,6 +1303,7 @@ ioapic_mp_legacy_irq_route(void *priv, uint8_t irq, uint8_t intin)
         dev->legacy_irq_default_to_pin[irq] = intin;
         dev->legacy_irq_to_pin[irq] = intin;
     }
+    dev->legacy_routes_set = 1;
 }
 
 static void
@@ -1328,7 +1349,11 @@ ioapic_reset(ioapic_t *dev)
     dev->ioapic_index   = 0;
     dev->ioapic_arb_id  = 0;
     dev->ioapic_pin_lines = 0;
-    dev->ioapic_pin_raw_lines = 0;
+    dev->wire_legacy = dev->wire_pci = dev->wire_intr = 0;
+    dev->pic_intr = 0;
+    /* Every input idle; INTIN23/SMI# is active low, so idle is high
+       (82093AA 4.1). */
+    dev->ioapic_pin_raw_lines = ioapic_82093aa_pin_bit(IOAPIC_SMI_PIN);
     dev->ioapic_pin_level = 0;
     ioapic_set_smiout_asserted(dev, 0);
     dev->lowest_priority_next = 0;
@@ -1357,11 +1382,17 @@ ioapic_set_legacy_irq_routing(void *ioapic, const ioapic_legacy_irq_routing_t *r
     if ((dev == NULL) || (routing == NULL))
         return;
 
-    for (uint8_t irq = 0; irq < IOAPIC_LEGACY_IRQ_COUNT; irq++)
-        if (routing->irq_to_intin[irq] < IOAPIC_REDIR_ENTRIES) {
-            dev->legacy_irq_default_to_pin[irq] = routing->irq_to_intin[irq];
-            dev->legacy_irq_to_pin[irq] = routing->irq_to_intin[irq];
+    /* A value past the last pin is kept as it is: that IRQ is not wired
+       to this I/O APIC at all (IRQ2, the cascade). */
+    for (uint8_t irq = 0; irq < IOAPIC_LEGACY_IRQ_COUNT; irq++) {
+        uint8_t pin = routing->irq_to_intin[irq];
+
+        if ((pin < IOAPIC_REDIR_ENTRIES) || (pin == IOAPIC_LEGACY_IRQ_NC)) {
+            dev->legacy_irq_default_to_pin[irq] = pin;
+            dev->legacy_irq_to_pin[irq]         = pin;
         }
+    }
+    dev->legacy_routes_set = 1;
 }
 
 void

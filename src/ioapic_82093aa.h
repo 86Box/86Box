@@ -45,7 +45,6 @@
 #define IOAPIC_82093AA_DELIVERY_EXTINT 0x00000700
 
 extern int      ioapic_82093aa_redir_level(uint32_t low);
-extern int      ioapic_82093aa_redir_treats_as_edge(uint32_t low);
 extern int      ioapic_82093aa_redir_remote_irr_valid(uint32_t low);
 extern int      ioapic_82093aa_redir_supported(uint32_t low);
 extern int      ioapic_82093aa_redir_active_low(uint32_t low);

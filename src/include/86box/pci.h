@@ -311,7 +311,6 @@ extern void        pci_apic_set_intin_route(uint8_t bus, uint8_t device, uint8_t
 extern void        pci_apic_clear_intin_routes(void);
 extern uint16_t    pci_apic_save_intin_routes(ioapic_pci_intin_route_state_t *routes, uint16_t capacity);
 extern void        pci_apic_load_intin_routes(const ioapic_pci_intin_route_state_t *routes, uint16_t count);
-extern void        pci_apic_replay_level_irqs(void);
 
 /* Add a PCI card. */
 extern void        pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, int len, void *priv),

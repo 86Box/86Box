@@ -284,6 +284,18 @@ find_best_interrupt(pic_t *dev)
     return ret;
 }
 
+/* The master 8259's INTR output, as INTIN0 of an I/O APIC sees it. */
+static int pic_intr_reported;
+
+static __inline void
+pic_intr_report(void)
+{
+    if (pic.int_pending != pic_intr_reported) {
+        pic_intr_reported = pic.int_pending;
+        ioapic_pic_intr(pic_intr_reported);
+    }
+}
+
 static __inline void
 pic_update_pending_xt(void)
 {
@@ -295,6 +307,7 @@ pic_update_pending_xt(void)
         pic.int_pending = (find_best_interrupt(&pic) != -1);
     if (pic.int_pending && (pic.flags & PIC_IBM5140) && ibm5140_wake)
         ibm5140_wake();
+    pic_intr_report();
 }
 
 /* Only check if PIC 1 frozen, because it should not happen
@@ -326,6 +339,7 @@ pic_update_pending_at(void)
         }
 
         pic.int_pending = (find_best_interrupt(&pic) != -1);
+        pic_intr_report();
     }
 }
 
@@ -344,6 +358,8 @@ pic_reset(void)
     const uint8_t board_flags = pic.flags & PIC_IBM5140;
 
     memset(&pic, 0, sizeof(pic_t));
+    pic_intr_reported = 0;
+    ioapic_pic_intr(0); /* INTR is inactive after reset, for INTIN0 too */
     memset(&pic2, 0, sizeof(pic_t));
     /* Controller reset preserves the integrated controller's hardware type. */
     pic.flags = board_flags;
@@ -987,6 +1003,10 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
     }
 
     uint16_t lines = level ? 0x0000 : num;
+    /* What the I/O APIC's inputs see: for a level source, the wired-OR of
+       every source on the line, so only its changes; an edge source's
+       every raise. */
+    uint16_t apic_lines = level ? 0x0000 : num;
 
     /* The Tandy VIS firmware leaves the master's ICW3 at 0 and never
        initializes the slave, but the slave is still wired to the master's
@@ -1018,6 +1038,8 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
                 if ((!!*irq_state) != !!set)
                     set ? dev->lines[b]++ : dev->lines[b]--;
 
+                if (((!!*irq_state) != !!set) && (dev->lines[b] == (!!set)))
+                    apic_lines |= w;
                 if (!pic_level_triggered(dev, b) ||
                     (((!!*irq_state) != !!set) && (dev->lines[b] == (!!set))))
                     lines |= w;
@@ -1032,6 +1054,8 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
 
    if (!slaves)
        num &= 0x00ff;
+   if (!slaves)
+       apic_lines &= 0x00ff;
 
    if (num & 0x0100)
        acpi_rtc_status = !!set;
@@ -1082,10 +1106,11 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
         }
 
         update_pending();
-
-        /* APIC mirror runs after PIC state/latches settle for this request. */
-        ioapic_legacy_irq(num, level, set);
     }
+
+    /* APIC mirror runs after PIC state/latches settle for this request. */
+    if (apic_lines)
+        ioapic_legacy_irq(apic_lines, level, set);
 }
 
 static uint8_t
@@ -1212,6 +1237,10 @@ picinterrupt(void)
             if (pic.interrupt & 0x40)
                 pic2.interrupt = 0x17;
             pic.interrupt = 0x17;
+            /* INTR falls with the acknowledge; another request raises it
+               again, a new edge. */
+            pic.int_pending = 0;
+            pic_intr_report();
             update_pending();
         }
     }
