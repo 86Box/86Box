@@ -946,6 +946,23 @@ cpu_lapic_lvt_sync_index(uint8_t lapic_index, uint32_t reg, uint32_t val)
     }
 }
 
+/* The APIC disabled in software: every LVT entry masked. */
+static void
+cpu_lapic_lvt_mask_all_index(uint8_t lapic_index)
+{
+    static const uint32_t regs[] = { CPU_LAPIC_REG_LVT_TIMER, CPU_LAPIC_REG_LVT_THERMAL, CPU_LAPIC_REG_LVT_PERF,
+                                     CPU_LAPIC_REG_LVT_LINT0, CPU_LAPIC_REG_LVT_LINT1, CPU_LAPIC_REG_LVT_ERROR };
+
+    for (unsigned i = 0; i < (sizeof(regs) / sizeof(regs[0])); i++) {
+        uint32_t *lvt = cpu_lapic_lvt_reg_index(lapic_index, regs[i]);
+
+        if ((lvt != NULL) && !(*lvt & CPU_LAPIC_LVT_MASK)) {
+            *lvt |= CPU_LAPIC_LVT_MASK;
+            cpu_lapic_lvt_sync_index(lapic_index, regs[i], *lvt);
+        }
+    }
+}
+
 static void
 cpu_lapic_lvt_load_index(uint32_t *lvts, uint8_t lapic_index, uint32_t reg,
                          uint32_t val)
@@ -964,6 +981,11 @@ cpu_lapic_lvt_write_index(uint32_t *lvts, uint8_t lapic_index, uint32_t reg,
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return;
 
+    /* "A disabled APIC automatically sets all mask bits in the LVT
+       entries. Trying to reset these bits in the local vector table will
+       be ignored." (Pentium Vol. 3, 19.3.1.11) */
+    if (!(cpu_lapic_svrs[lapic_index] & CPU_LAPIC_SVR_ENABLE))
+        val |= CPU_LAPIC_LVT_MASK;
     lvts[lapic_index] = cpu_lapic_lvt_sanitize(reg, val) |
                          (lvts[lapic_index] & CPU_LAPIC_LVT_STATUS);
 }
@@ -2222,6 +2244,8 @@ cpu_lapic_mmio_write_index(uint8_t lapic_index, uint32_t reg, uint32_t val)
             return 1;
         case CPU_LAPIC_REG_SVR:
             cpu_lapic_svrs[lapic_index] = cpu_lapic_svr_sanitize(val);
+            if (!(cpu_lapic_svrs[lapic_index] & CPU_LAPIC_SVR_ENABLE))
+                cpu_lapic_lvt_mask_all_index(lapic_index);
             cpu_apic_int_fast_ok = 0;
             lapic_svr_sync_index(lapic_index, cpu_lapic_svrs[lapic_index]);
             return 1;
