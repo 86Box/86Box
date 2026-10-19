@@ -79,7 +79,8 @@ startup), `frames` (frames rendered) and `held`.
 | `text` | Text-mode screen via the BIOS data area: `mode`, `cols`, `rows`, `cursor` [row, col], and `chars`/`attrs` as one hex string per row (CP437). Fails in graphics modes. |
 | `memr <addr> <len>` | Read up to 65536 bytes of physical memory; `data` is hex. |
 | `memw <addr> <hex>` | Write bytes to physical memory. |
-| `regs` | General registers, `eip`, `eflags`, segment selectors, `cs_base`, `cr0`. |
+| `regs` | General registers, `eip`, `eflags`, segment selectors, `cs_base`, `cr0`. From the 286: each segment's descriptor cache (`ds_base`, `ds_limit`, `ds_ar` and so on, `ar` being descriptor bytes 5 and 6: the access byte, then G, D/B, AVL and limit 19:16), `gdtr_base`/`gdtr_limit`, `idtr_base`/`idtr_limit`, `ldtr` and `tr` with their base, limit and `ar`, and `cpl`. From the 386: `cr2` (the last page-fault address), `cr3` (the page directory base), `dr0`–`dr3`, `dr6`, `dr7` and `smm`. `cr4` and `tsc` on CPUs that have them. No x86 CPU has a CR1 (`MOV` to or from it is an invalid opcode, see `src/cpu/x86_ops_mov_ctrl.h`), so there is none. |
+| `fpu` | The x87: `fcw`, `fsw` (with TOP), `ftw` (the full tag word, two bits per register), `top`, and `st0`–`st7` as 20 hex digits each (sign and exponent, then the significand), as FSAVE would store them. With MMX, `mm0`–`mm7` as 16 hex digits. Fails without an FPU. |
 | `fdd load <drive> <path>` / `fdd eject <drive>` | Change floppy media (drive 0 = A:). |
 | `cd load <drive> <path>` / `cd eject <drive>` | Change CD-ROM media. |
 | `reset hard` / `reset cad` | Hard reset, or send Ctrl+Alt+Del. |
