@@ -56,6 +56,9 @@ static uint32_t              cpu_lapic_versions[IOAPIC_STATE_MAX_LAPICS];
 static uint32_t              cpu_lapic_arb_ids[IOAPIC_STATE_MAX_LAPICS];
 static uint32_t              cpu_lapic_pprs[IOAPIC_STATE_MAX_LAPICS];
 static uint32_t              cpu_lapic_esrs[IOAPIC_STATE_MAX_LAPICS];
+/* The errors a P6's local APIC has detected since its ESR was last
+   written, which the next write makes readable. */
+static uint32_t              cpu_lapic_esr_errors[IOAPIC_STATE_MAX_LAPICS];
 static uint32_t              cpu_lapic_icr_los[IOAPIC_STATE_MAX_LAPICS];
 static uint32_t              cpu_lapic_icr_his[IOAPIC_STATE_MAX_LAPICS];
 static uint32_t              cpu_lapic_rrrs[IOAPIC_STATE_MAX_LAPICS];
@@ -544,6 +547,7 @@ static void
 cpu_lapic_esrs_reset(void)
 {
     memset(cpu_lapic_esrs, 0, sizeof(cpu_lapic_esrs));
+    memset(cpu_lapic_esr_errors, 0, sizeof(cpu_lapic_esr_errors));
 }
 
 static void
@@ -553,19 +557,31 @@ cpu_lapic_esrs_sync(void)
         lapic_esr_sync_index(i, cpu_lapic_esrs[i]);
 }
 
+/* An error the local APIC detected. The P54C's ESR shows it at once. The
+   P6's "is reset after being written to by the processor. A write to the
+   ESR must be done just prior to reading the ESR to allow the register to
+   be updated. ... Error bits are cumulative" (Pentium Pro Vol. 3,
+   7.4.14): it gathers its errors, and a write moves them into the
+   register (cpu_lapic_mmio_write_index), so software that wants the
+   errors logged so far writes and then reads it, and two writes in a row
+   clear it. */
 void
 cpu_lapic_esr_or_index(uint8_t lapic_index, uint32_t error)
 {
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return;
 
+    if (!cpu_is_p5()) {
+        cpu_lapic_esr_errors[lapic_index] |= error;
+        return;
+    }
     cpu_lapic_esrs[lapic_index] |= error;
     lapic_esr_sync_index(lapic_index, cpu_lapic_esrs[lapic_index]);
 }
 
 /* "The ESR is a read-only register and is reset after being read by
    either the CPU or through the Remote Read message" (Pentium Vol. 3,
-   19.3.3): the P54C's. The P6's is cleared by a write instead. */
+   19.3.3): the P54C's. The P6's is updated by a write instead. */
 void
 cpu_lapic_esr_read_clear_index(uint8_t lapic_index)
 {
@@ -582,7 +598,8 @@ cpu_lapic_esr_load_index(uint8_t lapic_index, uint32_t val)
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return;
 
-    cpu_lapic_esrs[lapic_index] = lapic_esr_sanitize(val);
+    cpu_lapic_esrs[lapic_index]       = lapic_esr_sanitize(val);
+    cpu_lapic_esr_errors[lapic_index] = 0;
 }
 
 static void
@@ -1322,8 +1339,7 @@ cpu_lapic_error_delivery_action_index(uint8_t lapic_index, int started,
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return CPU_LAPIC_FIXED_REJECT;
 
-    cpu_lapic_esrs[lapic_index] |= error;
-    lapic_esr_sync_index(lapic_index, cpu_lapic_esrs[lapic_index]);
+    cpu_lapic_esr_or_index(lapic_index, error);
 
     if (!cpu_lapic_enabled_index(lapic_index, started))
         return CPU_LAPIC_FIXED_REJECT;
@@ -1334,8 +1350,7 @@ cpu_lapic_error_delivery_action_index(uint8_t lapic_index, int started,
 
     error_vector = lvt & CPU_LAPIC_LVT_VECTOR;
     if (!cpu_lapic_vector_valid(error_vector)) {
-        cpu_lapic_esrs[lapic_index] |= CPU_LAPIC_ESR_RECV_ILLEGAL_VECTOR;
-        lapic_esr_sync_index(lapic_index, cpu_lapic_esrs[lapic_index]);
+        cpu_lapic_esr_or_index(lapic_index, CPU_LAPIC_ESR_RECV_ILLEGAL_VECTOR);
         return CPU_LAPIC_FIXED_REJECT;
     }
 
@@ -2127,10 +2142,12 @@ cpu_lapic_mmio_write_index(uint8_t lapic_index, uint32_t reg, uint32_t val)
             cpu_lapic_id_write_index(lapic_index, val);
             return 1;
         case CPU_LAPIC_REG_ESR:
-            /* The P6's clears it; the P54C's has no side effects
+            /* The P6's takes the errors gathered since the last write
+               (cpu_lapic_esr_or_index); the P54C's has no side effects
                (cpu_lapic_esr_read_clear_index). */
             if (!cpu_is_p5()) {
-                cpu_lapic_esrs[lapic_index] = 0;
+                cpu_lapic_esrs[lapic_index]       = cpu_lapic_esr_errors[lapic_index];
+                cpu_lapic_esr_errors[lapic_index] = 0;
                 lapic_esr_sync_index(lapic_index, cpu_lapic_esrs[lapic_index]);
             }
             return 1;
