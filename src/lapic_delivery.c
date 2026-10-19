@@ -939,6 +939,17 @@ lapic_targets_accept_lowest_priority(const lapic_target_info_t *targets,
     if ((message == NULL) || (targets == NULL))
         return apic_bus_result_no_target();
 
+    /* The focus processor takes it first, slot or no slot: "In lowest
+       priority mode, if a focus processor exists, it may accept the
+       interrupt, regardless of its priority. A processor is said to be the
+       focus of an interrupt if it is currently servicing that interrupt or
+       if it has a pending request for that interrupt" (Pentium Pro Vol. 3,
+       7.4.7); "Am I Focus? Yes -> Accept Message" comes before "Is
+       Interrupt Slot Available?" (Pentium Vol. 3, Figure 19-9). */
+    target = lapic_choose_focus_processor_target(targets, message->vector, route_parked);
+    if (target != NULL)
+        return lapic_accept_interrupt_target(target, message);
+
     /* "Only the local APICs having 'free interrupt slots' will participate
        in the lowest priority arbitration. If no such APIC exists, the
        message will be rejected, and will have to be tried later" (Pentium
@@ -949,12 +960,9 @@ lapic_targets_accept_lowest_priority(const lapic_target_info_t *targets,
             lapic_targets_add(&free_slots, targets->indices[i], targets->lapics[i]);
     if (targets->count && !free_slots.count)
         return apic_bus_result_retry();
-    targets = &free_slots;
 
-    target = lapic_choose_focus_processor_target(targets, message->vector, route_parked);
-    if (target == NULL)
-        target = lapic_choose_lowest_priority_target(targets, lowest_priority_next,
-                                                     route_parked);
+    target = lapic_choose_lowest_priority_target(&free_slots, lowest_priority_next,
+                                                 route_parked);
     if (target == NULL)
         return apic_bus_result_no_target();
 
