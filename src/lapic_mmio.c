@@ -379,7 +379,6 @@ lapic_writel(uint32_t addr, uint32_t val, void *priv)
             int vector = cpu_lapic_eoi_index(lapic->index, &level);
 
             if (vector >= 0) {
-                lapic_sync_int_regs(lapic);
                 /* A slot came free: what was refused for want of one goes
                    again (cpu_lapic_slot_free_index). */
                 lapic_slot_freed();
@@ -422,8 +421,6 @@ lapic_writel(uint32_t addr, uint32_t val, void *priv)
     } else if ((reg == LAPIC_REG_SVR) || (reg == LAPIC_REG_LDR) || (reg == LAPIC_REG_DFR)) {
         /* This APIC may now take what the I/O APIC could not send it. */
         ioapic_retry_deliveries();
-    } else if (reg == LAPIC_REG_LVT_TIMER) {
-        lapic_sync_int_regs(lapic);
     }
 }
 

@@ -155,7 +155,6 @@ lapic_promote_irr(lapic_state_t *lapic)
         return -1;
 
     cpu_lapic_promote_irr_index(lapic->index, vector);
-    lapic_sync_int_regs(lapic);
     /* The vector is no longer pending: one refused because it was goes
        again, into the IRR behind this one (lapic_slot_freed). */
     lapic_slot_freed();
@@ -386,7 +385,6 @@ lapic_icr_remote_read_write(lapic_state_t *lapic, const lapic_target_info_t *tar
      * Remote read returns one selected LAPIC register image. Mirror fallback
      * covers state owned outside the CPU LAPIC MMIO helper.
      */
-    lapic_sync_int_regs(target);
     if (!cpu_lapic_mmio_read_index(target->index, reg, &val))
         val = lapic_mirror_read_reg(target, reg);
     /* "reset after being read by either the CPU or through the Remote
