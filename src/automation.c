@@ -774,9 +774,39 @@ handle_request(char *line)
            pointer; mouse_automation lets ours through without touching the
            UI's capture state, so a visible window keeps working normally. */
         mouse_automation = 1;
+        /* With a tablet configured as well, input goes to one device at a
+           time: this one is for the mouse. */
+        if (mouse_both_enabled())
+            mouse_input_mode = 0;
         mouse_scale(atoi(argv[1]), atoi(argv[2]));
         mouse_set_buttons_ex(atoi(argv[3]));
         respond_ok_time();
+    } else if (!strcmp(argv[0], "tablet") && ((argc == 4) || ((argc == 2) && !strcmp(argv[1], "out")))) {
+        /* tablet <x> <y> <buttons>: the pen (or finger) at pixel x,y of the
+           last frame, as screenshots have it; tablet out: lifted away. For
+           the configured tablet, touch screen or light pen; a mouse, if one
+           is configured too, keeps getting the mouse command. */
+        if (!tablet_type)
+            respond_error("no tablet configured");
+        else if (argc == 2) {
+            mouse_set_buttons_ex(0);
+            mouse_tablet_in_proximity = 0;
+            respond_ok_time();
+        } else if (!frame_w || !frame_h)
+            respond_error("no frame rendered yet");
+        else {
+            double x = (atof(argv[1]) + 0.5) / frame_w;
+            double y = (atof(argv[2]) + 0.5) / frame_h;
+
+            mouse_automation = 1;
+            if (mouse_input_mode == 0)
+                mouse_input_mode = 1;
+            mouse_x_abs               = (x < 0.0) ? 0.0 : ((x > 1.0) ? 1.0 : x);
+            mouse_y_abs               = (y < 0.0) ? 0.0 : ((y > 1.0) ? 1.0 : y);
+            mouse_tablet_in_proximity = 1; /* over monitor 0 */
+            mouse_set_buttons_ex(atoi(argv[3]));
+            respond_ok_time();
+        }
     } else if (!strcmp(argv[0], "screenshot")) {
         /* screenshot <path>: write a PNG file on this machine.
            screenshot: return the PNG base64-encoded in the reply (works over TCP). */
