@@ -1821,7 +1821,7 @@ static const device_config_t p2bls_config[] = {
 
 const device_t p2bls_device = {
     .name          = "ASUS P2B-LS",
-    .internal_name = "p2bls_device",
+    .internal_name = "p2bls",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
