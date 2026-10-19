@@ -404,7 +404,8 @@ static int
 ioapic_delivery_failure_retryable(apic_bus_result_t result)
 {
     return (result.status == APIC_BUS_NO_TARGET) ||
-           (result.status == APIC_BUS_REJECTED);
+           (result.status == APIC_BUS_REJECTED) ||
+           (result.status == APIC_BUS_RETRY);
 }
 
 static int

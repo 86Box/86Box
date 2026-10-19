@@ -266,4 +266,11 @@ extern void                 lapic_icr_write(lapic_state_t *lapic,
                                             lapic_icr_startup_handler_t startup_handler,
                                             void *startup_priv);
 
+/* An IPI a target had no slot for, per sender (lapic_delivery.c). */
+extern uint32_t             lapic_icr_retry_val[APIC_MAX_LAPICS];
+extern uint8_t              lapic_icr_retry_pending[APIC_MAX_LAPICS];
+extern int                  lapic_icr_retry_route_parked[APIC_MAX_LAPICS];
+extern void                 lapic_icr_retry_all(void);
+extern void                 lapic_slot_freed(void);
+
 #endif /* EMU_LAPIC_INTERNAL_H */

@@ -156,6 +156,9 @@ lapic_promote_irr(lapic_state_t *lapic)
 
     cpu_lapic_promote_irr_index(lapic->index, vector);
     lapic_sync_int_regs(lapic);
+    /* The vector is no longer pending: one refused because it was goes
+       again, into the IRR behind this one (lapic_slot_freed). */
+    lapic_slot_freed();
 
     if (lapic_log_first(&lapic->promote_log_count[vector], 8))
         lapic_log(lapic->mmio, "LAPIC: vector=%02x promoted IRR->ISR count=%u\n",
@@ -390,6 +393,14 @@ lapic_icr_remote_read_write(lapic_state_t *lapic, const lapic_target_info_t *tar
     return 1;
 }
 
+/* An IPI a target had no slot for: sent again when a slot comes free
+   anywhere (lapic_slot_freed), with the sender's delivery status left
+   pending until then (Pentium Vol. 3, 19.3.1.8: "Send Pending"). */
+#define LAPIC_ICR_RETRY 2
+uint32_t lapic_icr_retry_val[APIC_MAX_LAPICS];
+uint8_t  lapic_icr_retry_pending[APIC_MAX_LAPICS];
+int      lapic_icr_retry_route_parked[APIC_MAX_LAPICS];
+
 static int
 lapic_icr_fixed_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
                       uint8_t vector, int route_parked, int self)
@@ -414,7 +425,10 @@ lapic_icr_fixed_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
         return 0;
     }
     if (self) {
-        /* It goes into the IRR, merging with one pending. */
+        /* No slot check: "Self interrupts do not generate bus messages"
+           (19.3.1.8), so there is no status cycle to answer retry on, and
+           the sender waiting on its own delivery status could never see
+           it clear. It goes into the IRR, merging with one pending. */
         cpu_lapic_accept_interrupt_index(lapic->index, vector, 0);
         lapic_sync_ppr(lapic);
         return 1;
@@ -426,6 +440,8 @@ lapic_icr_fixed_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
     filtered = *targets;
     lapic_targets_keep_interruptible(&filtered, route_parked);
     result = lapic_targets_accept_fixed(&filtered, &message);
+    if (result.status == APIC_BUS_RETRY)
+        return LAPIC_ICR_RETRY;
     if (result.source_esr)
         lapic_error(lapic, result.source_esr);
 
@@ -463,6 +479,8 @@ lapic_icr_lowest_priority_write(lapic_state_t *lapic, const lapic_target_info_t 
 
     if (apic_bus_result_accepted(result))
         return 1;
+    if (result.status == APIC_BUS_RETRY)
+        return LAPIC_ICR_RETRY;
 
     if (result.source_esr)
         lapic_error(lapic, result.source_esr);
@@ -684,6 +702,11 @@ lapic_icr_write(lapic_state_t *lapic, lapic_state_t *lapics, uint8_t count,
     if ((lapic == NULL) || (lapics == NULL))
         return;
 
+    /* The ICR holds one message: this one replaces any still waiting to be
+       sent again, before its delivery can free a slot and send that one. */
+    if (lapic->index < APIC_MAX_LAPICS)
+        lapic_icr_retry_pending[lapic->index] = 0;
+
     if (!cpu_lapic_icr_delivery_write_index(lapic->index, val, &icr))
         return;
 
@@ -721,6 +744,17 @@ lapic_icr_write(lapic_state_t *lapic, lapic_state_t *lapics, uint8_t count,
     } else if ((icr.delivery == LAPIC_ICR_DELIV_INIT) || (icr.delivery == LAPIC_ICR_DELIV_SIPI)) {
         delivered = lapic_icr_startup_write(lapic, &targets, icr.delivery, icr.vector,
                                             startup_handler, startup_priv);
+    }
+
+    /* No slot for it: the delivery status stays Send Pending and the
+       message goes again when a slot comes free (lapic_icr_retry_all). */
+    if (delivered == LAPIC_ICR_RETRY) {
+        if (lapic->index < APIC_MAX_LAPICS) {
+            lapic_icr_retry_val[lapic->index]          = val;
+            lapic_icr_retry_route_parked[lapic->index] = route_parked;
+            lapic_icr_retry_pending[lapic->index]      = 1;
+        }
+        return;
     }
 
     cpu_lapic_icr_delivery_complete_index(lapic->index);
@@ -839,6 +873,18 @@ lapic_targets_accept_fixed(const lapic_target_info_t *targets,
     if ((targets == NULL) || (message == NULL))
         return result;
 
+    /* One target with no slot for the class puts retry status on the bus,
+       and no agent accepts the message: the sender sends it again
+       (cpu_lapic_slot_free_index). */
+    for (uint8_t i = 0; i < targets->count; i++) {
+        const lapic_state_t *t = targets->lapics[i];
+
+        if ((t != NULL) &&
+            (cpu_lapic_fixed_delivery_action_index(t->index, t->started, message->vector, 0, NULL) == CPU_LAPIC_FIXED_ACCEPT) &&
+            !cpu_lapic_slot_free_index(t->index, message->vector))
+            return apic_bus_result_retry();
+    }
+
     uint32_t refused = 0;
 
     for (uint8_t i = 0; i < targets->count; i++) {
@@ -880,10 +926,23 @@ lapic_targets_accept_lowest_priority(const lapic_target_info_t *targets,
                                      int route_parked,
                                      const apic_bus_message_t *message)
 {
-    lapic_state_t *target;
+    lapic_state_t      *target;
+    lapic_target_info_t free_slots;
 
-    if (message == NULL)
+    if ((message == NULL) || (targets == NULL))
         return apic_bus_result_no_target();
+
+    /* "Only the local APICs having 'free interrupt slots' will participate
+       in the lowest priority arbitration. If no such APIC exists, the
+       message will be rejected, and will have to be tried later" (Pentium
+       Vol. 3, 19.3.2.2). */
+    lapic_targets_clear(&free_slots);
+    for (uint8_t i = 0; i < targets->count; i++)
+        if ((targets->lapics[i] != NULL) && cpu_lapic_slot_free_index(targets->lapics[i]->index, message->vector))
+            lapic_targets_add(&free_slots, targets->indices[i], targets->lapics[i]);
+    if (targets->count && !free_slots.count)
+        return apic_bus_result_retry();
+    targets = &free_slots;
 
     target = lapic_choose_focus_processor_target(targets, message->vector, route_parked);
     if (target == NULL)

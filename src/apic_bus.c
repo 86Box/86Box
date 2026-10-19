@@ -93,6 +93,12 @@ apic_bus_result_rejected(void)
 }
 
 apic_bus_result_t
+apic_bus_result_retry(void)
+{
+    return apic_bus_result(APIC_BUS_RETRY);
+}
+
+apic_bus_result_t
 apic_bus_result_rejected_recv_accept(void)
 {
     apic_bus_result_t result = apic_bus_result_rejected();

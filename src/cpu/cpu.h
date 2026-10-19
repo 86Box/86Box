@@ -997,6 +997,7 @@ extern void     cpu_lapic_tmr_load_index(uint8_t lapic_index,
 extern void     cpu_lapic_tmr_save_index(uint8_t lapic_index,
                                          uint32_t words[8]);
 extern int      cpu_lapic_eoi_index(uint8_t lapic_index, int *level);
+extern int      cpu_lapic_slot_free_index(uint8_t lapic_index, uint8_t vector);
 extern int      cpu_lapic_accept_interrupt_index(uint8_t lapic_index, uint8_t vector, int level);
 extern int      cpu_lapic_promote_irr_index(uint8_t lapic_index, uint8_t vector);
 extern int      cpu_lapic_highest_deliverable_irr_index(uint8_t lapic_index, int started);

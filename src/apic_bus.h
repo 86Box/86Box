@@ -34,7 +34,10 @@ typedef enum apic_bus_status_t {
     APIC_BUS_REJECTED,
     APIC_BUS_INVALID_VECTOR,
     APIC_BUS_INVALID_REGISTER,
-    APIC_BUS_INVALID_MODE
+    APIC_BUS_INVALID_MODE,
+    /* A target's interrupt slots for the class are full: the message is
+       not accepted by anyone and the sender sends it again. */
+    APIC_BUS_RETRY
 } apic_bus_status_t;
 
 /*
@@ -71,6 +74,7 @@ extern apic_bus_result_t apic_bus_result_invalid_register(void);
 extern apic_bus_result_t apic_bus_result_invalid_mode(void);
 extern apic_bus_result_t apic_bus_result_no_target(void);
 extern apic_bus_result_t apic_bus_result_rejected(void);
+extern apic_bus_result_t apic_bus_result_retry(void);
 extern apic_bus_result_t apic_bus_result_rejected_recv_accept(void);
 
 #endif /* EMU_APIC_BUS_H */

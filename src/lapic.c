@@ -763,6 +763,38 @@ lapic_device_current_lint0_extint_enabled(const lapic_device_t *dev)
     return lapic_lint0_extint_enabled(lapic_device_current_const(dev));
 }
 
+/* The IPIs a target had no slot for, sent again from their senders when a
+   slot comes free (lapic_slot_freed, lapic_icr_write). */
+void
+lapic_icr_retry_all(void)
+{
+    lapic_device_t *dev = lapic_active_device;
+
+    if (dev == NULL)
+        return;
+    for (uint8_t i = 0; (i < dev->count) && (i < APIC_MAX_LAPICS); i++) {
+        if (!lapic_icr_retry_pending[i])
+            continue;
+        lapic_icr_retry_pending[i] = 0;
+        lapic_icr_write(&dev->lapics[i], dev->lapics, dev->count, i, lapic_icr_retry_val[i],
+                        lapic_icr_retry_route_parked[i], NULL, NULL);
+    }
+}
+
+/* A local APIC has room again: an ISR bit retired (EOI), an IRR bit taken
+   into the ISR (a vector already pending finds no slot,
+   cpu_lapic_slot_free_index), or the APIC reset by an INIT. "All bus
+   messages failing during delivery are automatically retried" (Pentium
+   Pro Vol. 3, 7.4.4): the sender puts a refused message on the bus again
+   and again until it is taken, and these are the only moments one can
+   be. So what every local APIC and I/O APIC was refused goes again here. */
+void
+lapic_slot_freed(void)
+{
+    lapic_icr_retry_all();
+    ioapic_retry_deliveries();
+}
+
 static int
 lapic_device_current_lint_deliver(lapic_device_t *dev, uint32_t lint_reg)
 {
@@ -1298,6 +1330,9 @@ lapic_init_signal(lapic_state_t *lapic)
         lapic->sipi_vector   = 0;
         lapic->parked        = 0;
     }
+    /* Its IRR and ISR are empty now: what others were refused by it goes
+       again, and meets it as it stands after the INIT. */
+    lapic_slot_freed();
 }
 
 /* A message this local APIC put on the bus other than an IPI (an EOI to
@@ -1349,6 +1384,9 @@ static void
 lapic_reset_regs(lapic_state_t *lapic)
 {
     memset(lapic->regs, 0, sizeof(lapic->regs));
+    /* The ICR is cleared, and with it the message it was still sending. */
+    if (lapic->index < APIC_MAX_LAPICS)
+        lapic_icr_retry_pending[lapic->index] = 0;
     cpu_lapic_reset_index(lapic->index, lapic->id, lapic->base_msr);
     cpu_lapic_irr_reset_index(lapic->index);
     cpu_lapic_isr_reset_index(lapic->index);

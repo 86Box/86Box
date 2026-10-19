@@ -1660,6 +1660,32 @@ cpu_lapic_eoi_index(uint8_t lapic_index, int *level)
     return vector;
 }
 
+/* Whether a fixed interrupt with this vector finds a slot. The P5 and P6
+   local APIC holds two interrupts per priority class: "a 2-deep interrupt
+   FIFO for each priority level" (Pentium Vol. 3, 19.3.1.1); "each IAU only
+   keeps pending two interrupts in a given priority class ... if a slot is
+   not available, the IAU will put 'retry' status on the bus" (Intel, US
+   5,555,420); "the IRR and ISR registers can queue no more than two ...
+   and will reject other interrupts" (IA SDM 10.8.4, P6 family and
+   Pentium). Counted over IRR and ISR in the vector's class. The IRR holds
+   one of each vector, so a vector already pending finds no slot either:
+   it is retried rather than merged and lost. */
+int
+cpu_lapic_slot_free_index(uint8_t lapic_index, uint8_t vector)
+{
+    const unsigned cls  = vector >> 4;
+    const uint32_t mask = 0xffffu << ((cls & 1) * 16);
+    int            n;
+
+    if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
+        return 1;
+    if (cpu_lapic_irrs[lapic_index][vector >> 5] & (1u << (vector & 0x1f)))
+        return 0;
+    n = __builtin_popcount(cpu_lapic_irrs[lapic_index][cls >> 1] & mask) +
+        __builtin_popcount(cpu_lapic_isrs[lapic_index][cls >> 1] & mask);
+    return n < 2;
+}
+
 int
 cpu_lapic_accept_interrupt_index(uint8_t lapic_index, uint8_t vector, int level)
 {

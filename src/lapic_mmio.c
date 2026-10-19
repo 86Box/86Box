@@ -380,6 +380,9 @@ lapic_writel(uint32_t addr, uint32_t val, void *priv)
 
             if (vector >= 0) {
                 lapic_sync_int_regs(lapic);
+                /* A slot came free: what was refused for want of one goes
+                   again (cpu_lapic_slot_free_index). */
+                lapic_slot_freed();
                 if (lapic_log_first(&lapic->eoi_log_count[vector], 8))
                     lapic_log(dev, "LAPIC: EOI vector=%02x count=%u\n",
                               vector, lapic->eoi_log_count[vector]);
