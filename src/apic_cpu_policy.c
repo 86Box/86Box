@@ -15,18 +15,11 @@
 #include <86box/chipset.h>
 
 static uint8_t apic_cpu_lapic_ioapic_policy;
-static uint8_t apic_cpu_lapic_integrated_policy;
 
 void
 apic_cpu_lapic_set_ioapic_policy(int enabled)
 {
     apic_cpu_lapic_ioapic_policy = !!enabled;
-}
-
-void
-apic_cpu_lapic_set_integrated_policy(int enabled)
-{
-    apic_cpu_lapic_integrated_policy = !!enabled;
 }
 
 int
@@ -36,16 +29,9 @@ apic_cpu_lapic_ioapic_policy_enabled(void)
 }
 
 int
-apic_cpu_lapic_integrated_policy_enabled(void)
-{
-    return apic_cpu_lapic_integrated_policy;
-}
-
-int
 apic_cpu_lapic_enabled(void)
 {
-    return apic_cpu_lapic_ioapic_policy ||
-           apic_cpu_lapic_integrated_policy;
+    return apic_cpu_lapic_ioapic_policy;
 }
 
 int

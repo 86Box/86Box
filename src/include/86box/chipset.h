@@ -162,6 +162,9 @@ typedef struct ioapic_legacy_irq_routing_t {
    version 11h with MRE 0Fh, no SMI# input, and a window the ESC moves with
    its APICBASE register (ioapic_set_mmio_base). */
 #define IOAPIC_VARIANT_ESC                0x00000800
+/* No I/O APIC at all: the processor's own local APIC on a board without
+   one, with no inputs and no register window of its own. */
+#define IOAPIC_VARIANT_NONE               0x00002000
 /* Packed into device_t.local so boards can seed topology without new config keys. */
 #define IOAPIC_TOPOLOGY_LAPIC_SLOTS(slots) \
     (((uintptr_t) (slots) & IOAPIC_TOPOLOGY_LAPIC_SLOTS_MASK) << IOAPIC_TOPOLOGY_LAPIC_SLOTS_SHIFT)
@@ -247,9 +250,7 @@ typedef void (*ioapic_smiout_handler_t)(void *priv, int asserted);
 
 /* APIC facade APIs hide LAPIC storage from board/PIC callers. */
 extern void           apic_cpu_lapic_set_ioapic_policy(int enabled);
-extern void           apic_cpu_lapic_set_integrated_policy(int enabled);
 extern int            apic_cpu_lapic_ioapic_policy_enabled(void);
-extern int            apic_cpu_lapic_integrated_policy_enabled(void);
 extern int            apic_cpu_lapic_enabled(void);
 extern int            apic_cpu_feature_enabled_for_model(int model_capable);
 extern int            ioapic_uniprocessor_apic_enabled(void);

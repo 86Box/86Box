@@ -57,7 +57,6 @@ add_library(chipset OBJECT
     ../lapic_mmio.c
     ../lapic_state.c
     ../lapic_delivery.c
-    ../lapic_integrated.c
     ../ioapic_82093aa.c
     ../ioapic.c
     laserxt.c

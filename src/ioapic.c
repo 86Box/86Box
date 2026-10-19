@@ -56,6 +56,7 @@ typedef struct ioapic_t {
     uint8_t  pins;
     uint8_t  smi_pin; /* 0xff: none */
     uint8_t  is_esc;
+    uint8_t  lapic_only; /* no I/O APIC: the local APIC's path alone */
     uint8_t  intr_masked; /* the ESC's INTRC: the 8259's INTR held inactive */
     uint32_t version_reg;
     uint32_t mmio_base;
@@ -154,7 +155,8 @@ static void
 ioapic_disable_apic_mappings(ioapic_t *dev)
 {
     apic_platform_disable_lapic_mappings(dev->apic);
-    mem_mapping_disable(&dev->ioapic_mapping);
+    if (!dev->lapic_only)
+        mem_mapping_disable(&dev->ioapic_mapping);
 }
 
 static uint8_t
@@ -1490,7 +1492,7 @@ ioapic_set_legacy_irq_routing(void *ioapic, const ioapic_legacy_irq_routing_t *r
 static void
 ioapic_apply_mapping(ioapic_t *dev)
 {
-    if (dev->uniprocessor_apic)
+    if (dev->uniprocessor_apic && !dev->lapic_only)
         mem_mapping_set_addr(&dev->ioapic_mapping, dev->mmio_base, dev->mmio_size);
 }
 
@@ -1559,8 +1561,9 @@ ioapic_close(void *priv)
 {
     ioapic_t *dev = (ioapic_t *) priv;
 
-    io_removehandler(0x80, 1,
-                     NULL, NULL, NULL, ioapic_write, NULL, NULL, dev);
+    if (!dev->lapic_only)
+        io_removehandler(0x80, 1,
+                         NULL, NULL, NULL, ioapic_write, NULL, NULL, dev);
 
     if (dev->uniprocessor_apic)
         ioapic_disable_apic_mappings(dev);
@@ -1612,7 +1615,13 @@ ioapic_init(UNUSED(const device_t *info))
     dev->smp_probe = !!device_get_config_int("smp_probe");
     dev->post_trigger = (local & IOAPIC_POST_TRIGGER_AMI) ? 0x00 : 0xff;
     dev->is_esc       = !!(local & IOAPIC_VARIANT_ESC);
-    if (dev->is_esc) {
+    dev->lapic_only   = !!(local & IOAPIC_VARIANT_NONE);
+    if (dev->lapic_only) {
+        dev->pins        = 0;
+        dev->smi_pin     = 0xff;
+        dev->version_reg = 0;
+        dev->mmio_size   = 0;
+    } else if (dev->is_esc) {
         dev->pins        = 16;
         dev->smi_pin     = 0xff;
         dev->version_reg = 0x000f0011;
@@ -1653,24 +1662,29 @@ ioapic_init(UNUSED(const device_t *info))
 
     ioapic_reset(dev);
     ioapic_global          = dev;
-    lapic_bus_ioapic_attach(&dev->ioapic_arb_id, &dev->ioapic_id);
+    if (!dev->lapic_only)
+        lapic_bus_ioapic_attach(&dev->ioapic_arb_id, &dev->ioapic_id);
     ioapic_irq_path_active = dev->uniprocessor_apic;
 
     if (dev->uniprocessor_apic) {
-        apic_platform_set_external_ioapic(dev->apic, dev, ioapic_lapic_eoi_adapter);
         apic_platform_enable_lapic_mappings(dev->apic);
-        mem_mapping_add(&dev->ioapic_mapping, dev->mmio_base, dev->mmio_size,
-                        ioapic_mmio_readb, ioapic_mmio_readw, ioapic_mmio_readl,
-                        ioapic_mmio_writeb, ioapic_mmio_writew, ioapic_mmio_writel,
-                        NULL, MEM_MAPPING_EXTERNAL, dev);
-        ioapic_apply_mapping(dev);
+        if (!dev->lapic_only) {
+            apic_platform_set_external_ioapic(dev->apic, dev, ioapic_lapic_eoi_adapter);
+            mem_mapping_add(&dev->ioapic_mapping, dev->mmio_base, dev->mmio_size,
+                            ioapic_mmio_readb, ioapic_mmio_readw, ioapic_mmio_readl,
+                            ioapic_mmio_writeb, ioapic_mmio_writew, ioapic_mmio_writel,
+                            NULL, MEM_MAPPING_EXTERNAL, dev);
+            ioapic_apply_mapping(dev);
+        }
 
         apic_platform_update_lapic_mapping(dev->apic);
         ioapic_log("IOAPIC: uniprocessor APIC probe mode enabled\n");
     }
 
-    io_sethandler(0x80, 1,
-                  NULL, NULL, NULL, ioapic_write, NULL, NULL, dev);
+    /* The MP table hook: a board with no I/O APIC has no table to keep. */
+    if (!dev->lapic_only)
+        io_sethandler(0x80, 1,
+                      NULL, NULL, NULL, ioapic_write, NULL, NULL, dev);
 
     return dev;
 }
@@ -1869,6 +1883,23 @@ const device_t ioapic_validated_up_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ioapic_validated_up_config
+};
+
+/* The processor's own local APIC on a board with no I/O APIC (the
+   P6SBA): its timer, error and self interrupts, LINT0 the 8259's INTR and
+   LINT1 the board's NMI take the same path as on a board with one. */
+const device_t integrated_cpu_lapic_device = {
+    .name          = "Integrated CPU Local APIC",
+    .internal_name = "integrated_cpu_lapic",
+    .flags         = 0,
+    .local         = IOAPIC_VARIANT_NONE | IOAPIC_TOPOLOGY_UP_APIC_DEFAULT,
+    .init          = ioapic_init,
+    .close         = ioapic_close,
+    .reset         = ioapic_device_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t validated_up_apic_board_device = {
