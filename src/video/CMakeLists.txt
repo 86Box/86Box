@@ -193,6 +193,12 @@ if(G100)
     target_compile_definitions(vid PRIVATE USE_G100)
 endif()
 
+# PowerVR PCX: chip, revision, interrupt-ack, render-time and debug settings
+# for testing against hardware; ordinary builds use the measured m3D values.
+if(POWERVR_PCX_DEV)
+    target_compile_definitions(vid PRIVATE USE_POWERVR_PCX_DEV)
+endif()
+
 if(XL24)
     target_compile_definitions(vid PRIVATE USE_XL24)
 endif()
