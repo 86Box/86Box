@@ -925,13 +925,15 @@ lapic_arbitration_rotate_with_ioapic(lapic_state_t *lapics, uint8_t count,
 }
 
 int
-lapic_targets_mark_extint_first(const lapic_target_info_t *targets, uint8_t pin)
+lapic_targets_mark_extint(const lapic_target_info_t *targets, uint8_t pin)
 {
     if ((targets == NULL) || !targets->count)
         return 0;
 
-    /* Platform EXTINT routing has already ordered targets; LAPIC latches first. */
-    lapic_mark_extint_pending(targets->lapics[0], pin);
+    /* "Deliver the signal to the INTR signal of all processor cores
+       listed in the destination" (82093AA, delivery mode 111). */
+    for (uint8_t i = 0; i < targets->count; i++)
+        lapic_mark_extint_pending(targets->lapics[i], pin);
     return 1;
 }
 

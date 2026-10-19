@@ -217,7 +217,7 @@ extern void                  lapic_bus_ioapic_attach(uint8_t *arb_id, const uint
 extern void                  local_apic_arbitration_rotate_with_ioapic(
                                                 local_apic_t *apic,
                                                 uint8_t *ioapic_arb_id);
-extern int                   local_apic_targets_mark_extint_first(
+extern int                   local_apic_targets_mark_extint(
                                                 local_apic_t *apic,
                                                 const lapic_target_info_t *targets,
                                                 uint8_t pin);

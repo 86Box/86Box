@@ -613,13 +613,13 @@ local_apic_arbitration_rotate_with_ioapic(local_apic_t *apic,
 }
 
 int
-local_apic_targets_mark_extint_first(local_apic_t *apic,
+local_apic_targets_mark_extint(local_apic_t *apic,
                                      const lapic_target_info_t *targets,
                                      uint8_t pin)
 {
     (void) apic;
 
-    return lapic_targets_mark_extint_first(targets, pin);
+    return lapic_targets_mark_extint(targets, pin);
 }
 
 void

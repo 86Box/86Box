@@ -894,7 +894,7 @@ apic_platform_ioapic_mark_extint(apic_platform_t *platform,
                                  const lapic_target_info_t *targets,
                                  uint8_t pin)
 {
-    return local_apic_targets_mark_extint_first(platform->lapic, targets, pin);
+    return local_apic_targets_mark_extint(platform->lapic, targets, pin);
 }
 
 uint8_t

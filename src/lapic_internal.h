@@ -201,7 +201,7 @@ extern void                 lapic_arbitration_rotate_with_ioapic(
                                                 lapic_state_t *lapics,
                                                 uint8_t count,
                                                 uint8_t *ioapic_arb_id);
-extern int                  lapic_targets_mark_extint_first(
+extern int                  lapic_targets_mark_extint(
                                                 const lapic_target_info_t *targets,
                                                 uint8_t pin);
 extern int                  lapic_select_targets(lapic_state_t *lapics,

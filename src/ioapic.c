@@ -73,7 +73,6 @@ typedef struct ioapic_t {
     uint8_t       ioapic_irq_log_count[24];
     uint8_t       ioapic_deliver_log_count[24];
     uint8_t       ioapic_dest_mismatch_log_count[24];
-    uint8_t       ioapic_extint_defer_log_count[24];
     uint8_t       ioapic_extint_deliver_log_count[24];
     uint8_t       ioapic_smi_vector_log_count[24];
     uint8_t       ioapic_eoi_log_count[24];
@@ -216,54 +215,14 @@ ioapic_apic_bus_message_complete(ioapic_t *dev)
     apic_platform_ioapic_bus_message_complete(dev->apic, &dev->ioapic_arb_id);
 }
 
+/* LINT0 sees the 8259's INTR whatever the I/O APIC is programmed to do:
+   "it is the programmer's responsibility to make sure that the same
+   interrupt input signal is not handled by both interrupt controllers"
+   (82093AA 1.0). */
 static int
-ioapic_pic_pending_irq(void)
+ioapic_lint0_pic_fallback_pending(UNUSED(ioapic_t *dev))
 {
-    uint8_t irq;
-
-    if (!pic.int_pending)
-        return -1;
-
-    irq = pic.interrupt & 0x07;
-    if ((irq == 2) && pic2.int_pending)
-        return 8 + (pic2.interrupt & 0x07);
-
-    return irq;
-}
-
-static int
-ioapic_redir_claims_legacy_irq(ioapic_t *dev, uint8_t irq)
-{
-    lapic_target_info_t targets;
-    uint8_t  pin;
-    uint32_t low;
-    uint32_t high;
-
-    if (irq >= 16)
-        return 0;
-
-    /* IRQ0 can be claimed by an ExtINT RTE on INTIN0, independent of board IRQ map. */
-    low  = dev->ioapic_redir[0];
-    high = dev->ioapic_redir[1];
-    if ((irq == 0) && !(low & IOAPIC_REDIR_MASK) && ioapic_82093aa_redir_supported(low) &&
-        ioapic_82093aa_redir_extint(low) &&
-        ioapic_redir_select_targets(dev, low, high, &targets))
-        return 1;
-
-    pin  = ioapic_legacy_irq_to_pin(dev, irq);
-    low  = dev->ioapic_redir[pin * 2];
-    high = dev->ioapic_redir[(pin * 2) + 1];
-
-    return !(low & IOAPIC_REDIR_MASK) && ioapic_82093aa_redir_supported(low) &&
-           ioapic_redir_select_targets(dev, low, high, &targets);
-}
-
-static int
-ioapic_lint0_pic_fallback_pending(ioapic_t *dev)
-{
-    int irq = ioapic_pic_pending_irq();
-
-    return (irq >= 0) && !ioapic_redir_claims_legacy_irq(dev, irq);
+    return pic.int_pending;
 }
 
 static int
@@ -325,8 +284,11 @@ ioapic_pic_fallback_allowed(void)
     if ((dev == NULL) || !dev->uniprocessor_apic)
         return 1;
 
-    return !apic_platform_current_base_enabled(dev->apic) ||
-           !apic_platform_current_software_enabled(dev->apic);
+    /* Only an APIC that is off altogether (APIC_BASE bit 11) leaves the
+       pins as plain INTR and NMI. A software-disabled one "automatically
+       sets all mask bits in the LVT entries" (Pentium Vol. 3, 19.3.1.11),
+       LINT0 with the rest: no INTR, as LINT1 takes no NMI. */
+    return !apic_platform_current_base_enabled(dev->apic);
 }
 
 int
@@ -745,15 +707,10 @@ ioapic_deliver_pin(ioapic_t *dev, uint8_t pin, int asserted, int retry)
         return;
     }
 
-    /* ExtINT only latches once PIC has a pending IRQ; asserted pin can retry later. */
+    /* ExtINT goes out whatever the 8259 holds: the INTA that follows gets
+       its answer, the spurious vector if it has nothing (82093AA, delivery
+       mode 111). */
     if (ioapic_82093aa_redir_extint(low)) {
-        if (ioapic_pic_pending_irq() < 0) {
-            if (ioapic_log_first(&dev->ioapic_extint_defer_log_count[pin], 8))
-                ioapic_log("IOAPIC: deferred ExtINT pin=%u no PIC pending count=%u low=%08x high=%08x\n",
-                           pin, dev->ioapic_extint_defer_log_count[pin], low, high);
-            return;
-        }
-
         if (!apic_platform_ioapic_mark_extint(dev->apic, &targets, pin))
             return;
         ioapic_clear_pin_delivery_pending(dev, pin);
@@ -1394,7 +1351,6 @@ ioapic_reset(ioapic_t *dev)
     memset(dev->ioapic_irq_log_count, 0, sizeof(dev->ioapic_irq_log_count));
     memset(dev->ioapic_deliver_log_count, 0, sizeof(dev->ioapic_deliver_log_count));
     memset(dev->ioapic_dest_mismatch_log_count, 0, sizeof(dev->ioapic_dest_mismatch_log_count));
-    memset(dev->ioapic_extint_defer_log_count, 0, sizeof(dev->ioapic_extint_defer_log_count));
     memset(dev->ioapic_extint_deliver_log_count, 0, sizeof(dev->ioapic_extint_deliver_log_count));
     memset(dev->ioapic_smi_vector_log_count, 0, sizeof(dev->ioapic_smi_vector_log_count));
     memset(dev->ioapic_eoi_log_count, 0, sizeof(dev->ioapic_eoi_log_count));
