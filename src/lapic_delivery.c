@@ -182,6 +182,7 @@ lapic_mark_extint_pending(lapic_state_t *lapic, uint8_t pin)
 
     lapic->extint_pending = 1;
     lapic->extint_pin = pin;
+    cpu_lapic_extint_live_set(lapic->index, 1);
 }
 
 int
@@ -194,6 +195,7 @@ lapic_consume_extint(lapic_state_t *lapic, uint8_t *pin)
         *pin = lapic->extint_pin;
     /* Keep the pin visible until the LAPIC path actually accepts EXTINT. */
     lapic->extint_pending = 0;
+    cpu_lapic_extint_live_set(lapic->index, 0);
 
     return 1;
 }

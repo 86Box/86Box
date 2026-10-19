@@ -240,6 +240,7 @@ lapic_state_load_up(lapic_state_t *lapic, lapic_mmio_device_t *mmio,
     cpu_apic_base_msr_load_index(0, lapic->base_msr);
     lapic->extint_pending = state->lapic_extint_pending;
     lapic->extint_pin = state->lapic_extint_pin;
+    cpu_lapic_extint_live_set(0, lapic->extint_pending);
     memcpy(lapic->regs, state->lapic_regs, sizeof(lapic->regs));
     /* Sanitize savefile mirror before pushing it into CPU-owned storage. */
     lapic_state_sanitize_loaded_regs(lapic->regs);
@@ -299,6 +300,7 @@ lapic_state_load_slot(lapic_state_t *lapic, lapic_mmio_device_t *mmio,
     cpu_apic_base_msr_load_index(index, lapic->base_msr);
     lapic->extint_pending = state->lapic_extint_pending_arr[index];
     lapic->extint_pin = state->lapic_extint_pin_arr[index];
+    cpu_lapic_extint_live_set(index, lapic->extint_pending);
     lapic->is_bsp = (index == 0);
     lapic->started = state->lapic_started[index];
     lapic->init_asserted = state->lapic_init_asserted[index];

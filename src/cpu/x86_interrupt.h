@@ -16,11 +16,36 @@
 extern int ioapic_external_interrupt_pending(void);
 extern int ioapic_external_interrupt_vector(void);
 extern int ioapic_pic_fallback_allowed(void);
+extern uint8_t ioapic_irq_path_active;
+
+extern uint32_t cpu_lapic_irr_live;
+extern int      cpu_lapic_highest_deliverable_irr_index(uint8_t lapic_index, int started);
+extern uint8_t  cpu_lapic_extint_live[];
+extern uint8_t  cpu_apic_int_fast_ok;
 
 /* IOAPIC arbitrates first; PIC remains only while platform allows fallback. */
 static inline int
 x86_external_interrupt_pending(void)
 {
+    if (!ioapic_irq_path_active)
+        return pic.int_pending;
+
+    /* Nothing from the 8259, nothing in the processor's IRR (local APIC
+       0's), no ExtINT: the full answer below would be no. The full path
+       still runs once after the APIC is enabled or disabled, for the PCI
+       level replay done there (ioapic_external_interrupt_pending). */
+    if (!pic.int_pending && !cpu_lapic_extint_live[0] && cpu_apic_int_fast_ok) {
+        if (!(cpu_lapic_irr_live & 1u))
+            return 0;
+
+        /* Something is in IRR but may be held back by TPR/PPR, as it
+           often is at a raised IRQL: the one scan the full path would end
+           in answers it. Asking as if started can only find more, never
+           less, than the full path would. */
+        if (cpu_lapic_highest_deliverable_irr_index(0, 1) < 0)
+            return 0;
+    }
+
     if (ioapic_external_interrupt_pending())
         return 1;
 
@@ -33,6 +58,9 @@ x86_external_interrupt_pending(void)
 static inline int
 x86_external_interrupt_vector(void)
 {
+    if (!ioapic_irq_path_active)
+        return picinterrupt();
+
     if (ioapic_external_interrupt_pending())
         return ioapic_external_interrupt_vector();
 

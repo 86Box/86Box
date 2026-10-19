@@ -295,6 +295,11 @@ ioapic_pic_interrupt_adapter(void *priv)
     return picinterrupt();
 }
 
+/* Whether interrupts reach the CPU through an APIC at all on this machine.
+   The CPU's interrupt checks test this first and, when it is clear, read
+   the 8259 exactly as they did before any APIC existed. */
+uint8_t ioapic_irq_path_active = 0;
+
 int
 ioapic_uniprocessor_apic_enabled(void)
 {
@@ -317,6 +322,10 @@ ioapic_external_interrupt_pending(void)
         }
     } else
         dev->pci_level_replay_enabled = 0;
+
+    /* The replay has seen this enable state; until it changes the CPU's
+       check may answer "nothing pending" without coming here. */
+    cpu_apic_int_fast_ok = 1;
 
     return apic_platform_current_external_pending(dev->apic,
                                                   ioapic_pic_pending_adapter,
@@ -1504,8 +1513,10 @@ ioapic_close(void *priv)
     if (dev->uniprocessor_apic)
         ioapic_disable_apic_mappings(dev);
 
-    if (ioapic_global == dev)
-        ioapic_global = NULL;
+    if (ioapic_global == dev) {
+        ioapic_global          = NULL;
+        ioapic_irq_path_active = 0;
+    }
     apic_cpu_lapic_set_ioapic_policy(0);
     apic_platform_free(dev->apic);
 
@@ -1565,7 +1576,8 @@ ioapic_init(UNUSED(const device_t *info))
     apic_platform_set_icr_write_handler(dev->apic, ioapic_lapic_icr_write_adapter);
 
     ioapic_reset(dev);
-    ioapic_global = dev;
+    ioapic_global          = dev;
+    ioapic_irq_path_active = dev->uniprocessor_apic;
 
     if (dev->uniprocessor_apic) {
         apic_platform_set_external_ioapic(dev->apic, dev, ioapic_lapic_eoi_adapter);

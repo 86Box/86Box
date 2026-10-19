@@ -1309,6 +1309,7 @@ lapic_init_signal(lapic_state_t *lapic, int assert)
     lapic->init_asserted = !!assert;
     lapic->extint_pending = 0;
     lapic->extint_pin = 0;
+    cpu_lapic_extint_live_set(lapic->index, 0);
 
     /* BSP keeps running; AP startup state follows INIT assert/deassert edges. */
     if (!lapic->is_bsp) {
@@ -1385,6 +1386,7 @@ lapic_reset_slot(lapic_state_t *lapic, lapic_mmio_device_t *mmio, uint8_t index,
     lapic->base_msr = lapic_reset_base_msr(index);
     lapic->extint_pending = 0;
     lapic->extint_pin = 0;
+    cpu_lapic_extint_live_set(index, 0);
     lapic_reset_startup_state(lapic, index);
     lapic_reset_logs(lapic);
     lapic_reset_regs(lapic);
