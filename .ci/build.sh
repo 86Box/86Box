@@ -240,7 +240,7 @@ do
 				*.AppImage)
 					# Extract AppImage.
 					rm -rf squashfs-root
-					./"$1" --appimage-extract
+					"./$1" --appimage-extract
 					appdir=squashfs-root
 					binary=
 					;;
@@ -1132,15 +1132,6 @@ else
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j $build_threads || exit 99
 	cmake --install "$prefix_build" || exit 99
-
-	# We rely on the host to provide Vulkan libs to sidestep any potential
-	# dependency issues. While Qt expects libvulkan.so, at least Debian only
-	# ships libvulkan.so.1 without a symlink, so make our own as a workaround.
-	# The relative paths prevent appimage-builder from flattening the links.
-	mkdir -p "archive_tmp/usr/lib/$libdir"
-	relroot="../../../../../../../../../../../../../../../../../../../../../../../../../../../../.."
-	ln -s "$relroot/usr/lib/libvulkan.so.1" "archive_tmp/usr/lib/libvulkan.so"
-	ln -s "$relroot/usr/lib/$libdir/libvulkan.so.1" "archive_tmp/usr/lib/$libdir/libvulkan.so"
 
 	# Workaround for Qt 6 on ancient distros without GLVND: build a shim listing
 	# the two GLVND libs (and the compatibility libGL which may be absent on
