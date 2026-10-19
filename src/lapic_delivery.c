@@ -1001,14 +1001,24 @@ lapic_arbitration_rotate_with_ioapic(lapic_state_t *lapics, uint8_t count,
 int
 lapic_targets_mark_extint(const lapic_target_info_t *targets, uint8_t pin)
 {
+    int marked = 0;
+
     if ((targets == NULL) || !targets->count)
         return 0;
 
     /* "Deliver the signal to the INTR signal of all processor cores
-       listed in the destination" (82093AA, delivery mode 111). */
-    for (uint8_t i = 0; i < targets->count; i++)
+       listed in the destination" (82093AA, delivery mode 111), each that
+       takes it: "A software disabled Local APIC unit responds only to
+       self-interrupts and INIT, NMI, SMI, Remote Read and Start-Up
+       messages" (Pentium Vol. 3, 19.3.1.11). With none, the entry waits
+       in Send Pending, sent again when an APIC is enabled (SVR). */
+    for (uint8_t i = 0; i < targets->count; i++) {
+        if (!lapic_enabled(targets->lapics[i]))
+            continue;
         lapic_mark_extint_pending(targets->lapics[i], pin);
-    return 1;
+        marked = 1;
+    }
+    return marked;
 }
 
 int
