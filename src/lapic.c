@@ -1172,7 +1172,7 @@ lapic_version_sync_index(uint8_t lapic_index, uint32_t version)
 }
 
 void
-lapic_apr_sync_index(uint8_t lapic_index, uint32_t apr)
+lapic_arb_id_sync_index(uint8_t lapic_index, uint32_t apr)
 {
     lapic_reg_sync(lapic_active_at(lapic_index), LAPIC_REG_APR, apr);
 }

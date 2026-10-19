@@ -47,7 +47,10 @@ static uint32_t              cpu_lapic_tprs[IOAPIC_STATE_MAX_LAPICS];
 static uint32_t              cpu_lapic_ldrs[IOAPIC_STATE_MAX_LAPICS];
 static uint32_t              cpu_lapic_dfrs[IOAPIC_STATE_MAX_LAPICS];
 static uint32_t              cpu_lapic_versions[IOAPIC_STATE_MAX_LAPICS];
-static uint32_t              cpu_lapic_aprs[IOAPIC_STATE_MAX_LAPICS];
+/* The Arb ID, which INIT keeps and the bus model holds in lapic->arb_id;
+   not the APR, the arbitration priority register (Vol. 3 19.3.1.9.4),
+   which is worked out at each read (cpu_lapic_apr_value_index). */
+static uint32_t              cpu_lapic_arb_ids[IOAPIC_STATE_MAX_LAPICS];
 static uint32_t              cpu_lapic_pprs[IOAPIC_STATE_MAX_LAPICS];
 static uint32_t              cpu_lapic_esrs[IOAPIC_STATE_MAX_LAPICS];
 static uint32_t              cpu_lapic_icr_los[IOAPIC_STATE_MAX_LAPICS];
@@ -531,26 +534,26 @@ cpu_lapic_versions_sync(void)
 }
 
 static void
-cpu_lapic_aprs_reset(void)
+cpu_lapic_arb_ids_reset(void)
 {
-    memset(cpu_lapic_aprs, 0, sizeof(cpu_lapic_aprs));
+    memset(cpu_lapic_arb_ids, 0, sizeof(cpu_lapic_arb_ids));
 }
 
 static void
-cpu_lapic_aprs_sync(void)
+cpu_lapic_arb_ids_sync(void)
 {
     for (uint8_t i = 0; i < IOAPIC_STATE_MAX_LAPICS; i++)
-        cpu_lapic_apr_load_index(i, cpu_lapic_aprs[i]);
+        cpu_lapic_arb_id_load_index(i, cpu_lapic_arb_ids[i]);
 }
 
 void
-cpu_lapic_apr_load_index(uint8_t lapic_index, uint32_t val)
+cpu_lapic_arb_id_load_index(uint8_t lapic_index, uint32_t val)
 {
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return;
 
-    cpu_lapic_aprs[lapic_index] = val & 0x0f000000;
-    lapic_apr_sync_index(lapic_index, cpu_lapic_aprs[lapic_index]);
+    cpu_lapic_arb_ids[lapic_index] = val & 0x0f000000;
+    lapic_arb_id_sync_index(lapic_index, cpu_lapic_arb_ids[lapic_index]);
 }
 
 uint32_t
@@ -1491,6 +1494,8 @@ cpu_lapic_fixed_delivery_action_index(uint8_t lapic_index, int started,
     return CPU_LAPIC_FIXED_REJECT;
 }
 
+/* The processor priority from TPR and the highest ISR vector, as a read
+   of the register gives it. */
 static uint32_t
 cpu_lapic_ppr_value_index(uint8_t lapic_index)
 {
@@ -1498,6 +1503,40 @@ cpu_lapic_ppr_value_index(uint8_t lapic_index)
     int      isr = cpu_lapic_highest_vector(cpu_lapic_isrs[lapic_index]);
 
     return lapic_processor_priority(tpr, isr);
+}
+
+/* The arbitration priority, stored nowhere either (Pentium Vol. 3,
+   19.3.1.9.4): "If (TPR[7:4] >= IRRV[7:4]) and (TPR[7:4] > ISRV[7:4]) then
+   APR[7:0] = TPR[7:0], else APR[7:4] = max(TPR[7:4], ISRV[7:4],
+   IRRV[7:4]), APR[3:0] = 0", IRRV and ISRV zero with nothing set. Lowest-
+   priority delivery goes to the lowest (19.3.2.1: "All 8 bits of the APR
+   are used"), and it is what 0FEE0_0090 reads. */
+uint32_t
+cpu_lapic_apr_value_index(uint8_t lapic_index)
+{
+    uint32_t tpr;
+    int      irr;
+    int      isr;
+    uint32_t irrv;
+    uint32_t isrv;
+    uint32_t cls;
+
+    if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
+        return 0;
+    tpr  = cpu_lapic_tprs[lapic_index] & CPU_LAPIC_TPR_MASK;
+    irr  = cpu_lapic_highest_vector(cpu_lapic_irrs[lapic_index]);
+    isr  = cpu_lapic_highest_vector(cpu_lapic_isrs[lapic_index]);
+    irrv = (irr < 0) ? 0 : (uint32_t) irr;
+    isrv = (isr < 0) ? 0 : (uint32_t) isr;
+
+    if (((tpr & 0xf0) >= (irrv & 0xf0)) && ((tpr & 0xf0) > (isrv & 0xf0)))
+        return tpr & 0xff;
+    cls = tpr & 0xf0;
+    if ((isrv & 0xf0) > cls)
+        cls = isrv & 0xf0;
+    if ((irrv & 0xf0) > cls)
+        cls = irrv & 0xf0;
+    return cls;
 }
 
 uint32_t
@@ -1765,7 +1804,7 @@ cpu_lapic_reset_index(uint8_t lapic_index, uint8_t id, uint64_t base_msr)
     cpu_lapic_ldr_load_index(lapic_index, CPU_LAPIC_LDR_DEFAULT);
     cpu_lapic_dfr_load_index(lapic_index, CPU_LAPIC_DFR_DEFAULT);
     cpu_lapic_version_load_index(lapic_index, cpu_lapic_version_for_model());
-    cpu_lapic_apr_load_index(lapic_index, 0);
+    cpu_lapic_arb_id_load_index(lapic_index, 0);
     cpu_lapic_ppr_load_index(lapic_index, 0);
     cpu_lapic_esr_load_index(lapic_index, 0);
     cpu_lapic_icr_lo_load_index(lapic_index, 0);
@@ -2093,10 +2132,13 @@ cpu_lapic_mmio_read_index(uint8_t lapic_index, uint32_t reg, uint32_t *val)
             *val = cpu_lapic_versions[lapic_index];
             return 1;
         case CPU_LAPIC_REG_APR:
-            *val = cpu_lapic_aprs[lapic_index];
+            /* The architectural APR, worked out at the read (19.3.1.9.4). */
+            *val = cpu_lapic_apr_value_index(lapic_index);
             return 1;
         case CPU_LAPIC_REG_PPR:
-            *val = cpu_lapic_pprs[lapic_index];
+            /* Worked out from TPR and ISR at the read; the cached copy is
+               for the mirror. */
+            *val = cpu_lapic_ppr_value_index(lapic_index);
             return 1;
         case CPU_LAPIC_REG_RRR:
             *val = cpu_lapic_rrrs[lapic_index];
@@ -2288,7 +2330,7 @@ cpu_lapic_mmio_load_index(uint8_t lapic_index, uint32_t reg, uint32_t val)
             cpu_lapic_version_load_index(lapic_index, val);
             return 1;
         case CPU_LAPIC_REG_APR:
-            cpu_lapic_apr_load_index(lapic_index, val);
+            cpu_lapic_arb_id_load_index(lapic_index, val);
             return 1;
         case CPU_LAPIC_REG_PPR:
             cpu_lapic_ppr_load_index(lapic_index, val);
@@ -2499,7 +2541,7 @@ cpu_lapic_reset_all(void)
     cpu_lapic_ldrs_reset();
     cpu_lapic_dfrs_reset();
     cpu_lapic_versions_reset();
-    cpu_lapic_aprs_reset();
+    cpu_lapic_arb_ids_reset();
     cpu_lapic_pprs_reset();
     cpu_lapic_esrs_reset();
     cpu_lapic_icrs_reset();
@@ -2536,8 +2578,8 @@ cpu_lapic_ven_reset(void)
     cpu_lapic_dfrs_sync();
     cpu_lapic_versions_reset();
     cpu_lapic_versions_sync();
-    cpu_lapic_aprs_reset();
-    cpu_lapic_aprs_sync();
+    cpu_lapic_arb_ids_reset();
+    cpu_lapic_arb_ids_sync();
     cpu_lapic_pprs_reset();
     cpu_lapic_pprs_sync();
     cpu_lapic_esrs_reset();

@@ -807,7 +807,7 @@ lapic_arbitration_id_set(lapic_state_t *lapic, uint8_t arb_id)
         return;
 
     lapic->arb_id = arb_id & 0x0f;
-    cpu_lapic_apr_load_index(lapic->index, ((uint32_t) lapic->arb_id) << 24);
+    cpu_lapic_arb_id_load_index(lapic->index, ((uint32_t) lapic->arb_id) << 24);
 }
 
 void
@@ -922,22 +922,24 @@ lapic_arbitration_id(const lapic_state_t *lapic)
 
 static int
 lapic_lowest_priority_best(const lapic_target_info_t *targets, int route_parked,
-                           uint32_t *best_ppr, uint8_t *best_arb)
+                           uint32_t *best_apr, uint8_t *best_arb)
 {
     int found = 0;
 
     for (uint8_t i = 0; i < targets->count; i++) {
         lapic_state_t *candidate = targets->lapics[i];
-        uint32_t       ppr;
+        uint32_t       apr;
 
         if (!lapic_target_interruptible(candidate, route_parked))
             continue;
 
-        ppr = cpu_lapic_ppr_update_index(candidate->index);
+        /* The arbitration priority (Pentium Vol. 3, 19.3.2.1), not the
+           processor priority: it counts what waits in the IRR too. */
+        apr = cpu_lapic_apr_value_index(candidate->index);
 
-        if (!found || (ppr < *best_ppr) ||
-            ((ppr == *best_ppr) && (lapic_arbitration_id(candidate) > *best_arb))) {
-            *best_ppr = ppr;
+        if (!found || (apr < *best_apr) ||
+            ((apr == *best_apr) && (lapic_arbitration_id(candidate) > *best_arb))) {
+            *best_apr = apr;
             *best_arb = lapic_arbitration_id(candidate);
             found = 1;
         }
@@ -1000,15 +1002,15 @@ lapic_choose_lowest_priority_target(const lapic_target_info_t *targets,
                                     uint8_t *lowest_priority_next,
                                     int route_parked)
 {
-    uint32_t best_ppr = 0;
+    uint32_t best_apr = 0;
     uint8_t  best_arb = 0;
 
     if ((targets == NULL) || (lowest_priority_next == NULL) ||
-        !lapic_lowest_priority_best(targets, route_parked, &best_ppr, &best_arb))
+        !lapic_lowest_priority_best(targets, route_parked, &best_apr, &best_arb))
         return NULL;
 
     /*
-     * First pass picks best PPR/highest-arb tuple; this pass rotates only
+     * First pass picks best APR/highest-arb tuple; this pass rotates only
      * among targets still matching that tuple, preserving deterministic ties.
      */
     for (uint8_t offset = 0; offset < APIC_MAX_LAPICS; offset++) {
@@ -1022,7 +1024,7 @@ lapic_choose_lowest_priority_target(const lapic_target_info_t *targets,
 
             if ((targets->indices[i] == index) &&
                 lapic_target_interruptible(candidate, route_parked) &&
-                (cpu_lapic_ppr_update_index(candidate->index) == best_ppr) &&
+                (cpu_lapic_apr_value_index(candidate->index) == best_apr) &&
                 (lapic_arbitration_id(candidate) == best_arb)) {
                 *lowest_priority_next = (index + 1) % APIC_MAX_LAPICS;
                 return candidate;

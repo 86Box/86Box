@@ -117,11 +117,11 @@ lapic_processor_priority(uint32_t tpr, int isr_vector)
     uint32_t tpr_class = lapic_priority_class(tpr);
     uint32_t isr_class;
 
-    if (isr_vector < 0)
-        return tpr & LAPIC_TPR_WRITE_MASK;
-
-    isr_class = lapic_priority_class((uint32_t) isr_vector);
-    if (tpr_class >= isr_class)
+    /* Pentium Vol. 3, 19.3.1.9.3: "If TPR[7:4] > ISRV[7:4] then PPR[7:0] =
+       TPR[7:0], else PPR[7:4] = ISRV[7:4], PPR[3:0] = 0", ISRV "zero if no
+       ISR bit is set": with nothing in service a TPR of class 0 gives 0. */
+    isr_class = (isr_vector < 0) ? 0 : lapic_priority_class((uint32_t) isr_vector);
+    if (tpr_class > isr_class)
         return tpr & LAPIC_TPR_WRITE_MASK;
 
     return isr_class;

@@ -191,6 +191,9 @@ lapic_state_save_up(lapic_state_t *lapic, struct ioapic_state_t *state)
     /* regs[] is a mirror; pull CPU-owned regs before snapshot. */
     lapic_sync_cpu_owned_regs(lapic);
     memcpy(state->lapic_regs, lapic->regs, sizeof(state->lapic_regs));
+    /* The APR slot carries the Arb ID, which software never reads: the
+       register read gives the architectural APR (cpu_lapic_apr_value_index). */
+    state->lapic_regs[LAPIC_REG_APR >> 4] = ((uint32_t) lapic->arb_id) << 24;
     cpu_lapic_irr_save_index(lapic->index, state->lapic_irr);
     cpu_lapic_isr_save_index(lapic->index, state->lapic_isr);
     cpu_lapic_tmr_save_index(lapic->index, state->lapic_tmr);
@@ -245,7 +248,7 @@ lapic_state_load_up(lapic_state_t *lapic, lapic_mmio_device_t *mmio,
     /* Sanitize savefile mirror before pushing it into CPU-owned storage. */
     lapic_state_sanitize_loaded_regs(lapic->regs);
     lapic_load_cpu_owned_regs(lapic);
-    cpu_lapic_apr_load_index(lapic->index, ((uint32_t) lapic->arb_id) << 24);
+    cpu_lapic_arb_id_load_index(lapic->index, ((uint32_t) lapic->arb_id) << 24);
     {
         uint32_t irr[IOAPIC_STATE_LAPIC_BIT_WORDS];
         uint32_t isr[IOAPIC_STATE_LAPIC_BIT_WORDS];
@@ -277,6 +280,7 @@ lapic_state_save_slot(lapic_state_t *lapic, struct ioapic_state_t *state, uint8_
     state->lapic_base_msrs[index] = lapic->base_msr;
     lapic_sync_cpu_owned_regs(lapic);
     memcpy(state->lapic_regs_arr[index], lapic->regs, sizeof(lapic->regs));
+    state->lapic_regs_arr[index][LAPIC_REG_APR >> 4] = ((uint32_t) lapic->arb_id) << 24;
     cpu_lapic_irr_save_index(index, state->lapic_irr_arr[index]);
     cpu_lapic_isr_save_index(index, state->lapic_isr_arr[index]);
     cpu_lapic_tmr_save_index(index, state->lapic_tmr_arr[index]);
@@ -312,7 +316,7 @@ lapic_state_load_slot(lapic_state_t *lapic, lapic_mmio_device_t *mmio,
     /* Sanitize savefile mirror before pushing it into CPU-owned storage. */
     lapic_state_sanitize_loaded_regs(lapic->regs);
     lapic_load_cpu_owned_regs(lapic);
-    cpu_lapic_apr_load_index(lapic->index, ((uint32_t) lapic->arb_id) << 24);
+    cpu_lapic_arb_id_load_index(lapic->index, ((uint32_t) lapic->arb_id) << 24);
     {
         uint32_t irr[IOAPIC_STATE_LAPIC_BIT_WORDS];
         uint32_t isr[IOAPIC_STATE_LAPIC_BIT_WORDS];
