@@ -252,6 +252,7 @@ census_print(FILE *f, const census_ent_t *e)
     CF("texw1", d->texw1);
     CF("texh1", d->texh1);
     CI("sec_sel", d->sec_sel);
+    CI("sec_first", d->sec_first);
     for (int s = 0; s < 2; s++) {
         char nm[24];
 #define CS(fld)                                         \
