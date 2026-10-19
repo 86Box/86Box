@@ -2304,6 +2304,16 @@ cpu_nmi_raise_direct(void)
     nmi = 1;
 }
 
+/* An NMI raised in the processor; apic marks one from the local APIC,
+   which port 70h does not gate (NMI_TAKEABLE). */
+void
+cpu_nmi_raise_core(int apic)
+{
+    cpu_nmi_raise_direct();
+    if (apic)
+        nmi |= 2;
+}
+
 void
 smi_raise(void)
 {

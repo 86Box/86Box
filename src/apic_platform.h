@@ -69,6 +69,7 @@ extern int  apic_platform_current_external_vector(apic_platform_t *platform,
                                                   void *pic_priv);
 extern int  apic_platform_current_base_enabled(apic_platform_t *platform);
 extern int  apic_platform_current_software_enabled(apic_platform_t *platform);
+extern int  apic_platform_lint_deliver_all(apic_platform_t *platform, uint32_t lint_reg);
 extern int  apic_platform_current_lint_deliver(apic_platform_t *platform,
                                                uint32_t lint_reg);
 

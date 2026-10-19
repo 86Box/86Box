@@ -25,6 +25,7 @@
 #include "cpu.h"
 #include <86box/device.h>
 #include <86box/machine.h>
+#include <86box/nmi.h>
 #include <86box/chipset.h>
 #include <86box/timer.h>
 #include <86box/video.h> /* cpuclock */
@@ -1057,6 +1058,12 @@ cpu_lapic_lint_remote_irr_eoi(uint8_t lapic_index, int vector)
         if ((*lvt[i] & CPU_LAPIC_LVT_REMOTE_IRR) && ((int) cpu_lapic_lint_rirr_vector[lapic_index][i] == vector)) {
             *lvt[i] &= ~CPU_LAPIC_LVT_REMOTE_IRR;
             cpu_lapic_lvt_sync_index(lapic_index, reg[i], *lvt[i]);
+            /* Remote IRR held a level source off until this EOI; one
+               still asserted comes in again, as an I/O APIC input does
+               (82093AA 3.2.4). LINT1 is the NMI line, whose level the
+               board may know. */
+            if ((i == 1) && (*lvt[i] & CPU_LAPIC_LVT_TRIGGER) && (nmi_line_level != NULL) && nmi_line_level())
+                lapic_lint1_redeliver_index(lapic_index);
         }
 }
 

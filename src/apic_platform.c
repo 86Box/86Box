@@ -348,6 +348,12 @@ apic_platform_current_software_enabled(apic_platform_t *platform)
 }
 
 int
+apic_platform_lint_deliver_all(apic_platform_t *platform, uint32_t lint_reg)
+{
+    return local_apic_lint_deliver_all(platform->lapic, lint_reg);
+}
+
+int
 apic_platform_current_lint_deliver(apic_platform_t *platform, uint32_t lint_reg)
 {
     return local_apic_current_lint_deliver(platform->lapic, lint_reg);

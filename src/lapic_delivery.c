@@ -284,7 +284,7 @@ lapic_lint_deliver(lapic_state_t *lapic, uint32_t lint_reg)
             return 1;
 
         case CPU_LAPIC_LINT_ACTION_NMI:
-            cpu_nmi_raise_direct();
+            cpu_nmi_raise_core(1);
             return 1;
 
         case CPU_LAPIC_LINT_ACTION_INIT:
@@ -342,7 +342,7 @@ lapic_lvt_source_deliver(lapic_state_t *lapic, uint32_t lvt_reg)
             return 1;
 
         case CPU_LAPIC_LINT_ACTION_NMI:
-            cpu_nmi_raise_direct();
+            cpu_nmi_raise_core(1);
             return 1;
 
         default:
@@ -522,7 +522,7 @@ lapic_icr_nmi_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
     filtered = *targets;
     lapic_targets_keep_interruptible(&filtered, route_parked);
     for (uint8_t i = 0; i < filtered.count; i++) {
-        cpu_nmi_raise_direct();
+        cpu_nmi_raise_core(1);
         delivered = 1;
     }
     if (!delivered)

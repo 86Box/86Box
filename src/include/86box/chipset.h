@@ -265,6 +265,7 @@ extern void           lapic_lvt_lint1_sync_index(uint8_t lapic_index, uint32_t l
 extern void           lapic_lvt_error_sync_index(uint8_t lapic_index, uint32_t lvt);
 extern void           lapic_timer_initial_sync_index(uint8_t lapic_index, uint32_t initial);
 extern void           lapic_timer_divide_cfg_sync_index(uint8_t lapic_index, uint32_t divide_cfg);
+extern void           lapic_lint1_redeliver_index(uint8_t index);
 extern int            ioapic_external_interrupt_pending(void);
 extern int            ioapic_external_interrupt_vector(void);
 extern int            ioapic_pic_fallback_allowed(void);

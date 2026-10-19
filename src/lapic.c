@@ -524,6 +524,23 @@ local_apic_current_external_vector(local_apic_t *apic,
     return -1;
 }
 
+/* A board-wide line (the NMI pin) into the same LINT of every local
+   APIC. Claimed if any of them took it. */
+int
+local_apic_lint_deliver_all(local_apic_t *apic, uint32_t lint_reg)
+{
+    lapic_device_t *dev     = local_apic_device(apic);
+    int             claimed = 0;
+
+    if (dev == NULL)
+        return 0;
+
+    for (uint8_t i = 0; i < dev->count; i++)
+        claimed |= lapic_lint_deliver(lapic_at(dev->lapics, dev->count, i), lint_reg);
+
+    return claimed;
+}
+
 int
 local_apic_current_lint_deliver(local_apic_t *apic, uint32_t lint_reg)
 {
@@ -761,6 +778,15 @@ static int
 lapic_device_current_lint0_extint_enabled(const lapic_device_t *dev)
 {
     return lapic_lint0_extint_enabled(lapic_device_current_const(dev));
+}
+
+/* LINT1 on processor index sampled again: a level-triggered entry whose
+   EOI found the NMI line still up (cpu_lapic_lint_remote_irr_eoi). */
+void
+lapic_lint1_redeliver_index(uint8_t index)
+{
+    if (lapic_active_device != NULL)
+        (void) lapic_lint_deliver(lapic_device_at(lapic_active_device, index), LAPIC_REG_LVT_LINT1);
 }
 
 /* The IPIs a target had no slot for, sent again from their senders when a

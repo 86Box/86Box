@@ -1086,6 +1086,12 @@ extern void smi_raise(void);
 extern void nmi_raise(void);
 extern void cpu_smi_raise_direct(void);
 extern void cpu_nmi_raise_direct(void);
+extern void cpu_nmi_raise_core(int apic);
+/* An NMI the processor takes now: the board's NMI pin is gated by the
+   port 70h NMI enable (nmi_mask); one from the local APIC (bit 1, an NMI
+   IPI, LINT or I/O APIC entry) is not -- port 70h gates the pin, not the
+   APIC bus. */
+#define NMI_TAKEABLE() (nmi && nmi_enable && (nmi_mask || (nmi & 2)))
 
 extern MMX_REG  *MMP[8];
 extern uint16_t *MMEP[8];

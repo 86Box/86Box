@@ -303,7 +303,16 @@ ioapic_lint1_raise(void)
     if ((dev == NULL) || !dev->uniprocessor_apic)
         return 0;
 
-    return apic_platform_current_lint_deliver(dev->apic, LAPIC_REG_LVT_LINT1);
+    /* An APIC that is off altogether leaves the pin a plain NMI, as it
+       leaves LINT0 a plain INTR (ioapic_pic_fallback_allowed). */
+    if (!apic_platform_current_base_enabled(dev->apic))
+        return 0;
+
+    /* The NMI line reaches LINT1 on every socket, and only there: an APIC
+       with LINT1 masked (software disabled masks every LVT, Pentium Vol. 3,
+       19.3.1.11) takes nothing from it. */
+    (void) apic_platform_lint_deliver_all(dev->apic, LAPIC_REG_LVT_LINT1);
+    return 1;
 }
 
 int
@@ -370,6 +379,14 @@ ioapic_targets_include_current_lapic(const lapic_target_info_t *targets)
         return 0;
 
     return !!(targets->bitmap & (1u << current));
+}
+
+/* An NMI entry's message: from the APIC bus, so port 70h does not gate it
+   (NMI_TAKEABLE). */
+static void
+ioapic_nmi_apic(void)
+{
+    cpu_nmi_raise_core(1);
 }
 
 static apic_bus_result_t
@@ -639,7 +656,7 @@ ioapic_deliver_pin(ioapic_t *dev, uint8_t pin, int asserted, int retry)
 
     if (delivery == IOAPIC_DELIVERY_NMI) {
         apic_bus_result_t result =
-            ioapic_deliver_current_lapic_direct(&targets, cpu_nmi_raise_direct);
+            ioapic_deliver_current_lapic_direct(&targets, ioapic_nmi_apic);
 
         if (!apic_bus_result_accepted(result)) {
             ioapic_clear_pin_delivery_pending(dev, pin);

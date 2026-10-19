@@ -188,6 +188,7 @@ extern int                   local_apic_current_external_vector(
                                                 local_apic_pic_pending_handler_t pic_pending,
                                                 local_apic_pic_interrupt_handler_t pic_interrupt,
                                                 void *pic_priv);
+extern int                   local_apic_lint_deliver_all(local_apic_t *apic, uint32_t lint_reg);
 extern int                   local_apic_current_lint_deliver(local_apic_t *apic,
                                                              uint32_t lint_reg);
 extern int                   local_apic_current_thermal_deliver(local_apic_t *apic);
