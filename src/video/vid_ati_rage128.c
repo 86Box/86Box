@@ -79,8 +79,13 @@ rage128_log(const char *fmt, ...)
 /* Bus clocks per CPU access, which video_inform turns into CPU cycles.
    The framebuffer and register read handlers charge them: a read stalls
    the CPU for the whole bus transaction, and that cost is what limits
-   how fast a driver can poll a status register. */
-static video_timings_t timing_rage128 = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
+   how fast a driver can poll a status register. The counts are the same
+   on both boards; what differs is the clock they are counted in. The
+   PCI board runs at the PCI clock, while the AGP board's CPU accesses
+   cross the AGP bus at its own, faster clock, so the core scales its
+   counts by the AGP clock instead. */
+static video_timings_t timing_rage128     = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
+static video_timings_t timing_rage128_agp = { .type = VIDEO_AGP, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 
 static void rage128_vga_decode_update(rage128_t *dev);
 
@@ -2504,7 +2509,7 @@ rage128_chip_init(const device_t *info, const rage128_chip_cfg_t *cfg)
     }
     dev->vram_mask = dev->vram_size - 1;
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_rage128);
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, dev->is_agp ? &timing_rage128_agp : &timing_rage128);
 
     svga_init(info, svga, dev, dev->vram_size,
               rage128_recalctimings,
