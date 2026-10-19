@@ -70,6 +70,7 @@ typedef struct ioapic_t {
     uint32_t      wire_intr;
     uint8_t       pic_intr; /* the 8259's INTR output */
     uint8_t       legacy_routes_set;
+    uint8_t       legacy_routes_wired; /* the board's wiring, which a table cannot change */
     /* Per entry, a message refused and still to send (DELIVS, 82093AA
        3.2.4 bit 12): "the IOAPIC continually polls the 24 interrupts in a
        rotating fashion" (1.0), so each is tried again, none blocking the
@@ -1067,6 +1068,8 @@ ioapic_compat_state_load(ioapic_t *dev, const ioapic_state_t *state)
 
     if (!apic_platform_lapic_state_load(dev->apic, state))
         return 0;
+    /* Loaded routes are not the ones the remembered table taught. */
+    apic_platform_mp_forget(dev->apic);
 
     if (!ioapic_chip_state_load(dev, state))
         return 0;
@@ -1298,6 +1301,11 @@ ioapic_mp_legacy_irq_route(void *priv, uint8_t irq, uint8_t intin)
     if ((dev == NULL) || (irq >= IOAPIC_LEGACY_IRQ_COUNT) || (intin >= IOAPIC_REDIR_ENTRIES))
         return;
 
+    /* Where the inputs are the board's wiring, a table cannot re-wire
+       them: the software is told, the model keeps the wires. */
+    if (dev->legacy_routes_wired)
+        return;
+
     if (dev->legacy_irq_default_to_pin[irq] != intin) {
         ioapic_log("IOAPIC: MP learned legacy irq=%u -> pin=%u (old pin=%u)\n",
                    irq, intin, dev->legacy_irq_default_to_pin[irq]);
@@ -1326,7 +1334,15 @@ ioapic_write(UNUSED(uint16_t port), uint8_t val, void *priv)
     ioapic_t *dev = (ioapic_t *) priv;
     apic_platform_mp_table_policy_t policy;
 
-    if (dev == NULL)
+    /* The trigger is an ordinary POST value -- AMI's is 00h, which DOS and
+       Linux write to port 80h all the time as a delay -- so everything else
+       is turned away here, and the platform remembers where the table is. */
+    if ((dev == NULL) || (val != dev->post_trigger))
+        return;
+    /* The tables are built by the BIOS's POST, in real mode; an operating
+       system's port 80h delays come from protected mode, Windows 2000's by
+       the thousand a second, and each walked the whole MP table again. */
+    if (cr0 & 1)
         return;
 
     policy.expose_mp_tables = dev->expose_mp_tables;
@@ -1339,7 +1355,7 @@ ioapic_write(UNUSED(uint16_t port), uint8_t val, void *priv)
     policy.pci_irq_route_priv = dev;
     policy.pci_irq_route_handler = ioapic_mp_pci_irq_route;
     /* Port 0x80 hook triggers MP-table patch policy; platform owns BIOS table edits. */
-    apic_platform_mp_table_post(dev->apic, val, &policy);
+    (void) apic_platform_mp_table_post(dev->apic, val, &policy);
 }
 
 static void
@@ -1371,6 +1387,7 @@ ioapic_reset(ioapic_t *dev)
     memset(dev->ioapic_mmio_read_log_count, 0, sizeof(dev->ioapic_mmio_read_log_count));
     memset(dev->ioapic_mmio_write_log_count, 0, sizeof(dev->ioapic_mmio_write_log_count));
     ioapic_init_legacy_irq_pins(dev);
+    apic_platform_mp_forget(dev->apic);
 
     ioapic_reset_redir(dev);
 }
@@ -1393,7 +1410,8 @@ ioapic_set_legacy_irq_routing(void *ioapic, const ioapic_legacy_irq_routing_t *r
             dev->legacy_irq_to_pin[irq]         = pin;
         }
     }
-    dev->legacy_routes_set = 1;
+    dev->legacy_routes_set   = 1;
+    dev->legacy_routes_wired = 1;
 }
 
 void

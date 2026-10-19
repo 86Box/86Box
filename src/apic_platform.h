@@ -85,7 +85,8 @@ typedef struct apic_platform_mp_table_policy_t {
     apic_platform_pci_irq_route_handler_t pci_irq_route_handler;
 } apic_platform_mp_table_policy_t;
 
-extern void apic_platform_mp_table_post(apic_platform_t *platform, uint8_t val,
+extern void apic_platform_mp_forget(apic_platform_t *platform);
+extern int  apic_platform_mp_table_post(apic_platform_t *platform, uint8_t val,
                                         const apic_platform_mp_table_policy_t *policy);
 
 /* IOAPIC-facing bridge: select/deliver through LAPIC without exposing LAPIC internals. */

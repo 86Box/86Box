@@ -8,8 +8,11 @@
  *          Copyright 2026 skiretic.
  */
 #include <stdarg.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <86box/86box.h>
 
 #include <86box/mem.h>
 #include "apic_platform.h"
@@ -33,6 +36,36 @@ struct apic_platform_t {
     uint8_t       ap_safe_park;
     uint8_t       ap_route_parked;
     lapic_log_handler_t log;
+    /* Where the BIOS's floating pointer was found, once it has been. The
+       trigger POST code comes back again and again, and a warm reboot
+       rebuilds the table in the same place; a signature check there
+       costs four bytes where a search costs sixty-four kilobytes. */
+    uint32_t mp_fps;
+    /* The table as the last walk left it, fixups and all: the BIOS writes
+       the trigger around every INT 13h transfer, so a loader reading its
+       drivers through the BIOS sends it by the thousand a second, and a
+       table that has not changed since has nothing left to fix or teach.
+       Forgotten at every reset, after which POST builds the table again
+       (in the same bytes, as likely as not), and at a state load. */
+    uint8_t *mp_seen;
+    uint32_t mp_seen_fps;
+    uint32_t mp_seen_pcmp;
+    uint32_t mp_seen_len;
+    /* Where both are in plain memory, what they are read through, good
+       while mem_mapping_gen is mp_seen_gen: then a trigger costs two
+       compares and no lookups. NULL where they are not. */
+    const uint8_t *mp_seen_fps_ptr;
+    const uint8_t *mp_seen_pcmp_ptr;
+    uint32_t       mp_seen_gen;
+    /* Where the floating pointer was found gone (hidden, or overwritten
+       once the OS took the memory) or pointing at no table: its bytes then,
+       and the table's first four when it pointed at one, through the same
+       mapping. The same again answers the same, with no lookup. */
+    const uint8_t *mp_gone_fps_ptr;
+    const uint8_t *mp_gone_pcmp_ptr;
+    uint8_t        mp_gone_fps[16];
+    uint8_t        mp_gone_pcmp[4];
+    uint32_t       mp_gone_gen;
 };
 
 typedef struct apic_platform_mp_range_t {
@@ -144,6 +177,7 @@ apic_platform_free(apic_platform_t *platform)
         return;
 
     local_apic_free(platform->lapic);
+    free(platform->mp_seen);
     free(platform);
 }
 
@@ -319,6 +353,12 @@ apic_platform_current_lint_deliver(apic_platform_t *platform, uint32_t lint_reg)
     return local_apic_current_lint_deliver(platform->lapic, lint_reg);
 }
 
+/* Where a configuration table may lie: "within any unreported, hidden
+   system memory space or within the BIOS ROM region" (MP spec 1.1,
+   Appendix A) -- anywhere in the 32-bit space. The floating pointer stays
+   below 1 MB. */
+#define APIC_MP_TABLE_LIMIT 0x100000000ULL
+
 static uint8_t
 apic_platform_mp_checksum(uint32_t addr, uint32_t len)
 {
@@ -337,7 +377,7 @@ apic_platform_mp_range_valid(uint32_t base, uint32_t len)
 }
 
 static uint8_t
-apic_platform_mp_search_ranges(apic_platform_mp_range_t ranges[3])
+apic_platform_mp_search_ranges(apic_platform_mp_range_t ranges[4])
 {
     uint8_t  count = 0;
     uint16_t ebda_segment;
@@ -356,14 +396,27 @@ apic_platform_mp_search_ranges(apic_platform_mp_range_t ranges[3])
         count++;
     }
 
+    /* "Within the last kilobyte of system base memory" (MP spec 1.1, 4):
+       40:13h may count the kilobyte an EBDA would take, or not, so the
+       kilobyte below the size it gives and the one at it are both looked
+       at (clipped to 640K). */
     base_kb = mem_readw_phys(APIC_MP_BDA_BASE_KB);
     if (!ebda_valid && (base_kb != 0) && (base_kb <= 640)) {
         base_last_kb = (((uint32_t) base_kb) << 10) - APIC_MP_SCAN_1KB;
-        if (apic_platform_mp_range_valid(base_last_kb, APIC_MP_SCAN_1KB)) {
+        if (apic_platform_mp_range_valid(base_last_kb, (base_kb < 640) ? (2 * APIC_MP_SCAN_1KB) : APIC_MP_SCAN_1KB)) {
             ranges[count].base = base_last_kb;
-            ranges[count].len  = APIC_MP_SCAN_1KB;
+            ranges[count].len  = (base_kb < 640) ? (2 * APIC_MP_SCAN_1KB) : APIC_MP_SCAN_1KB;
             count++;
         }
+    }
+
+    /* And 639K-640K whatever the EBDA says: operating systems look there
+       anyway, so a pointer there is one they find -- and one to hide with
+       the APIC off. */
+    if (ebda_valid && (ebda_base != 0x9fc00)) {
+        ranges[count].base = 0x9fc00;
+        ranges[count].len  = APIC_MP_SCAN_1KB;
+        count++;
     }
 
     ranges[count].base = 0xf0000;
@@ -373,17 +426,29 @@ apic_platform_mp_search_ranges(apic_platform_mp_range_t ranges[3])
     return count;
 }
 
+/* A configuration table at pcmp: anywhere in memory, "within any
+   unreported, hidden system memory space or within the BIOS ROM region"
+   (MP spec 1.1, Appendix A). */
 static int
 apic_platform_mp_pcmp_present(uint32_t pcmp)
 {
-    return (pcmp <= 0xffffc) &&
+    return (pcmp != 0) && (pcmp <= 0xfffffffc) &&
            (mem_readl_phys(pcmp) == APIC_MP_PCMP_SIGNATURE);
+}
+
+/* A floating pointer at fps: LENGTH 1 (16 bytes), bytes summing to zero
+   (MP spec 1.1, Table 4-1). */
+static int
+apic_platform_mp_fps_valid(uint32_t fps)
+{
+    return (mem_readl_phys(fps) == APIC_MP_FP_SIGNATURE) && (mem_readb_phys(fps + 8) == 1) &&
+           (apic_platform_mp_checksum(fps, 16) == 0);
 }
 
 static int
 apic_platform_mp_find_table(uint32_t *fps_out, uint32_t *pcmp_out)
 {
-    apic_platform_mp_range_t ranges[3];
+    apic_platform_mp_range_t ranges[4];
     uint8_t                  range_count;
 
     range_count = apic_platform_mp_search_ranges(ranges);
@@ -391,10 +456,31 @@ apic_platform_mp_find_table(uint32_t *fps_out, uint32_t *pcmp_out)
         uint32_t end = ranges[range].base + ranges[range].len;
 
         for (uint32_t addr = ranges[range].base; (addr + 16) <= end; addr += 16) {
-            if (mem_readl_phys(addr) == APIC_MP_FP_SIGNATURE) {
+            /* A granule of plain memory is looked through directly: POST
+               writes the trigger by the hundred thousand before it builds
+               the table, and each searched these 64 KB a lookup at a time. */
+            const uint32_t gran_end = (addr | MEM_GRANULARITY_MASK) + 1;
+            const uint32_t stop     = (gran_end < end) ? gran_end : end;
+            const uint8_t *p        = ((stop - addr) >= 16) ? mem_phys_ptr(addr, stop - addr) : NULL;
+            uint32_t       sig;
+
+            if (p != NULL) {
+                const uint32_t last = addr + (((stop - addr) - 16) & ~15u);
+
+                for (;; addr += 16, p += 16) {
+                    memcpy(&sig, p, 4);
+                    if ((sig == APIC_MP_FP_SIGNATURE) || (addr == last))
+                        break;
+                }
+                if (sig != APIC_MP_FP_SIGNATURE)
+                    continue;
+            }
+            if (apic_platform_mp_fps_valid(addr)) {
                 uint32_t pcmp = mem_readl_phys(addr + 4);
 
-                if (apic_platform_mp_pcmp_present(pcmp)) {
+                /* A table, or a default configuration: no table, feature
+                   byte 1 naming it (Table 4-1). pcmp 0 then. */
+                if (apic_platform_mp_pcmp_present(pcmp) || ((pcmp == 0) && mem_readb_phys(addr + 11))) {
                     *fps_out  = addr;
                     *pcmp_out = pcmp;
                     return 1;
@@ -404,6 +490,47 @@ apic_platform_mp_find_table(uint32_t *fps_out, uint32_t *pcmp_out)
     }
 
     return 0;
+}
+
+/* Whether bytes of the table are in RAM (memory, or shadow RAM, even
+   write-protected), not the ROM or flash image itself: only then are they
+   fixed or hidden, so no chip image is ever edited. */
+static int
+apic_platform_mp_writable(uint32_t addr, uint32_t len)
+{
+    const uint32_t ends[2] = { addr, addr + (len ? len : 1) - 1 };
+
+    for (int i = 0; i < 2; i++) {
+        const uint8_t *p = mem_phys_ptr(ends[i], 1);
+
+        if ((p == NULL) || (p < ram) || (p >= (ram + mem_ram_size())))
+            return 0;
+    }
+    return 1;
+}
+
+/* Where a byte of the table is, as the processor reads it: the memory
+   behind that address in the map (shadow RAM, or the ROM image itself when
+   it is not shadowed), else RAM. The fixups write there, so what they write
+   is what the operating system reads. */
+static uint8_t *
+apic_platform_mp_at(uint32_t addr)
+{
+    static uint8_t nowhere; /* a byte nothing is behind: writes go nowhere */
+    const uint8_t *p = mem_phys_ptr(addr, 1);
+
+    if (p != NULL)
+        return (uint8_t *) p;
+    return (addr < mem_ram_size()) ? &ram[addr] : &nowhere;
+}
+
+/* The extended table's length, which a table of MP spec 1.4 carries at
+   offset 28h; in a 1.1 table (SPEC_REV 1) that word is reserved (MP spec
+   1.1, Table 4-2) and there is no extended table. */
+static uint16_t
+apic_platform_mp_ext_len(uint32_t pcmp)
+{
+    return (mem_readb_phys(pcmp + 6) >= 4) ? mem_readw_phys(pcmp + 40) : 0;
 }
 
 static void
@@ -425,6 +552,11 @@ apic_platform_mp_fixup_processor_lapic_ids(
     uint32_t first_cpu_entry = 0;
     uint32_t cpu_insert_addr = 0;
     int      patched = 0;
+    /* Processor entries the BIOS left disabled (EN clear): a processor
+       brought in takes one of these before a new entry is made, so no two
+       entries carry one APIC ID (MP spec 1.1, 4.3.1). */
+    uint32_t disabled_cpu[16];
+    int      disabled_cpus = 0;
 
     /* Compatibility fixups mutate guest MP tables only under UP APIC policy. */
     if (!platform->uniprocessor_apic)
@@ -438,12 +570,12 @@ apic_platform_mp_fixup_processor_lapic_ids(
     if (base_len < 44)
         return;
 
-    ext_len        = mem_readw_phys(pcmp + 40);
+    ext_len        = apic_platform_mp_ext_len(pcmp);
     entry_count    = mem_readw_phys(pcmp + 34);
     entry_addr     = pcmp + 44;
     table_end      = pcmp + base_len;
     full_table_end = table_end + ext_len;
-    if (((pcmp + base_len) > 0x100000) || (full_table_end > 0x100000) ||
+    if ((((uint64_t) pcmp + base_len) > APIC_MP_TABLE_LIMIT) || ((uint64_t) full_table_end > APIC_MP_TABLE_LIMIT) ||
         (full_table_end < table_end))
         return;
 
@@ -461,13 +593,15 @@ apic_platform_mp_fixup_processor_lapic_ids(
                     cpu_insert_addr = entry_addr + 20;
                 if (mem_readb_phys(entry_addr + 3) & 0x01)
                     enabled_cpu_count++;
+                else if (disabled_cpus < 16)
+                    disabled_cpu[disabled_cpus++] = entry_addr;
 
                 /* Keep existing BSP entry aligned with LAPIC policy before table use. */
                 if ((mem_readb_phys(entry_addr + 3) & 0x03) == 0x03) {
                     uint8_t old_id = mem_readb_phys(entry_addr + 1);
 
                     if (old_id != bsp_id) {
-                        ram[entry_addr + 1] = bsp_id;
+                        *apic_platform_mp_at(entry_addr + 1) = bsp_id;
                         patched = 1;
                         apic_platform_log(platform,
                                           "IOAPIC: MP CPU BSP LAPIC ID fixup %u -> %u\n",
@@ -483,7 +617,7 @@ apic_platform_mp_fixup_processor_lapic_ids(
                         uint8_t old_id = mem_readb_phys(entry_addr + 1);
 
                         if (old_id != ap_id) {
-                            ram[entry_addr + 1] = ap_id;
+                            *apic_platform_mp_at(entry_addr + 1) = ap_id;
                             patched = 1;
                             apic_platform_log(platform,
                                               "IOAPIC: MP CPU AP LAPIC ID fixup slot=%u %u -> %u\n",
@@ -513,19 +647,57 @@ apic_platform_mp_fixup_processor_lapic_ids(
     while (platform->second_cpu_card && platform->ap_safe_park &&
            policy->multi_lapic_mp_cpus && first_cpu_entry && cpu_insert_addr &&
            (enabled_cpu_count < active_count) &&
-           (entry_count < UINT16_MAX) && ((full_table_end + 20) <= 0x100000)) {
+           (entry_count < UINT16_MAX) && (((uint64_t) full_table_end + 20) <= APIC_MP_TABLE_LIMIT)) {
         uint8_t missing_index = enabled_cpu_count;
         uint8_t ap_id;
 
-        /* Synthesize missing AP rows by cloning CPU entry shape, then clearing BSP flag. */
-        if (!apic_platform_lapic_id_at(platform, missing_index, &ap_id) ||
-            (cpu_insert_addr < (pcmp + 44)) || (cpu_insert_addr > table_end))
+        if (!apic_platform_lapic_id_at(platform, missing_index, &ap_id))
             break;
 
-        memmove(&ram[cpu_insert_addr + 20], &ram[cpu_insert_addr], full_table_end - cpu_insert_addr);
-        memcpy(&ram[cpu_insert_addr], &ram[first_cpu_entry], 20);
-        ram[cpu_insert_addr + 1] = ap_id;
-        ram[cpu_insert_addr + 3] = (ram[cpu_insert_addr + 3] | 0x01) & ~0x02;
+        /* A disabled entry first: enabled, as this processor. */
+        if (disabled_cpus > 0) {
+            const uint32_t at = disabled_cpu[--disabled_cpus];
+
+            *apic_platform_mp_at(at + 1) = ap_id;
+            *apic_platform_mp_at(at + 3) = (mem_readb_phys(at + 3) | 0x01) & ~0x02;
+            enabled_cpu_count++;
+            patched = 1;
+            apic_platform_log(platform, "IOAPIC: MP CPU AP entry enabled slot=%u lapic_id=%u at=%08x\n",
+                              missing_index, ap_id, at);
+            continue;
+        }
+
+        /* Synthesize missing AP rows by cloning CPU entry shape, then clearing BSP flag. */
+        if ((cpu_insert_addr < (pcmp + 44)) || (cpu_insert_addr > table_end))
+            break;
+        /* The table grows by 20 bytes into what follows it: only into
+           free space, never over the floating pointer (often right after
+           the table). */
+        {
+            /* And only into RAM: past the top of memory, or into a ROM
+               image, what reads as free (FFh) is nothing to write to. */
+            int free_after = apic_platform_mp_writable(full_table_end, 20) &&
+                             !((platform->mp_fps < (full_table_end + 20)) && ((platform->mp_fps + 16) > full_table_end));
+
+            for (uint32_t k = 0; free_after && (k < 20); k++) {
+                const uint8_t b = mem_readb_phys(full_table_end + k);
+
+                free_after = (b == 0x00) || (b == 0xff);
+            }
+            if (!free_after) {
+                apic_platform_log(platform, "IOAPIC: MP CPU AP entry synth refused: no room after the table at %08x\n",
+                                  full_table_end);
+                break;
+            }
+        }
+
+        /* Moved up a byte at a time from the end, through the map. */
+        for (uint32_t a = full_table_end; a-- > cpu_insert_addr;)
+            *apic_platform_mp_at(a + 20) = mem_readb_phys(a);
+        for (uint32_t k = 0; k < 20; k++)
+            *apic_platform_mp_at(cpu_insert_addr + k) = mem_readb_phys(first_cpu_entry + k);
+        *apic_platform_mp_at(cpu_insert_addr + 1) = ap_id;
+        *apic_platform_mp_at(cpu_insert_addr + 3) = (mem_readb_phys(cpu_insert_addr + 3) | 0x01) & ~0x02;
         cpu_insert_addr += 20;
         table_end += 20;
         full_table_end += 20;
@@ -540,12 +712,12 @@ apic_platform_mp_fixup_processor_lapic_ids(
 
     if (patched) {
         /* Any byte edit invalidates MP checksums and table metadata; repair together. */
-        ram[pcmp + 4] = base_len & 0xff;
-        ram[pcmp + 5] = base_len >> 8;
-        ram[pcmp + 34] = entry_count & 0xff;
-        ram[pcmp + 35] = entry_count >> 8;
-        ram[pcmp + 7] = 0x00;
-        ram[pcmp + 7] = (uint8_t) (0x00 - apic_platform_mp_checksum(pcmp, base_len));
+        *apic_platform_mp_at(pcmp + 4)  = base_len & 0xff;
+        *apic_platform_mp_at(pcmp + 5)  = base_len >> 8;
+        *apic_platform_mp_at(pcmp + 34) = entry_count & 0xff;
+        *apic_platform_mp_at(pcmp + 35) = entry_count >> 8;
+        *apic_platform_mp_at(pcmp + 7)  = 0x00;
+        *apic_platform_mp_at(pcmp + 7)  = (uint8_t) (0x00 - apic_platform_mp_checksum(pcmp, base_len));
     }
 }
 
@@ -609,22 +781,22 @@ apic_platform_log_mp_table(apic_platform_t *platform, uint32_t fps, uint32_t pcm
     uint16_t oem_len      = mem_readw_phys(pcmp + 32);
     uint16_t entry_count  = mem_readw_phys(pcmp + 34);
     uint32_t lapic_addr   = mem_readl_phys(pcmp + 36);
-    uint16_t ext_len      = mem_readw_phys(pcmp + 40);
+    uint16_t ext_len      = apic_platform_mp_ext_len(pcmp);
     uint8_t  ext_checksum = mem_readb_phys(pcmp + 42);
     uint32_t entry_addr   = pcmp + 44;
     uint32_t table_end    = pcmp + base_len;
     uint32_t fps_bytes    = fps_len * 16;
     int      fps_valid    = fps_len && ((fps + fps_bytes) <= 0x100000);
-    int      pcmp_valid   = (base_len >= 44) && ((pcmp + base_len) <= 0x100000);
+    int      pcmp_valid   = (base_len >= 44) && (((uint64_t) pcmp + base_len) <= APIC_MP_TABLE_LIMIT);
 
     apic_platform_mp_string(oem_id, pcmp + 8, 8);
     apic_platform_mp_string(product_id, pcmp + 16, 12);
 
     apic_platform_log(platform,
-                      "IOAPIC: MP FPS addr=%08x len=%u spec=1.%u checksum=%s default_config=%02x features=%02x,%02x,%02x,%02x,%02x\n",
+                      "IOAPIC: MP FPS addr=%08x len=%u spec=1.%u checksum=%s default_config=%02x features=%02x,%02x,%02x,%02x\n",
                       fps, fps_bytes, mem_readb_phys(fps + 9),
                       fps_valid ? (apic_platform_mp_checksum(fps, fps_bytes) ? "bad" : "ok") : "skipped",
-                      mem_readb_phys(fps + 11), mem_readb_phys(fps + 11), mem_readb_phys(fps + 12),
+                      mem_readb_phys(fps + 11), mem_readb_phys(fps + 12),
                       mem_readb_phys(fps + 13), mem_readb_phys(fps + 14), mem_readb_phys(fps + 15));
 
     apic_platform_log(platform,
@@ -741,7 +913,7 @@ apic_platform_mp_learn_legacy_irq_routes(
         return;
 
     base_len = mem_readw_phys(pcmp + 4);
-    if ((base_len < 44) || ((pcmp + base_len) > 0x100000))
+    if ((base_len < 44) || (((uint64_t) pcmp + base_len) > APIC_MP_TABLE_LIMIT))
         return;
 
     entry_count = mem_readw_phys(pcmp + 34);
@@ -819,6 +991,126 @@ apic_platform_mp_learn_legacy_irq_routes(
 }
 
 void
+apic_platform_mp_forget(apic_platform_t *platform)
+{
+    if (platform == NULL)
+        return;
+
+    free(platform->mp_seen);
+    platform->mp_seen          = NULL;
+    platform->mp_seen_len      = 0;
+    /* A table rebuilt elsewhere after a reset is looked for afresh. */
+    platform->mp_fps           = 0;
+    platform->mp_seen_fps_ptr  = NULL;
+    platform->mp_seen_pcmp_ptr = NULL;
+    platform->mp_gone_fps_ptr  = NULL;
+    platform->mp_gone_pcmp_ptr = NULL;
+}
+
+/* The floating pointer at fps is not there, or (pcmp_ptr) points at no
+   table: remembered for the triggers after. */
+static void
+apic_platform_mp_gone(apic_platform_t *platform, uint32_t fps, uint32_t pcmp, int pcmp_known)
+{
+    const uint8_t *f = mem_phys_ptr(fps, 16);
+    const uint8_t *t = pcmp_known ? mem_phys_ptr(pcmp, 4) : NULL;
+
+    platform->mp_gone_fps_ptr  = NULL;
+    platform->mp_gone_pcmp_ptr = NULL;
+    if ((f == NULL) || (pcmp_known && (t == NULL)))
+        return;
+    memcpy(platform->mp_gone_fps, f, 16);
+    if (t != NULL)
+        memcpy(platform->mp_gone_pcmp, t, 4);
+    platform->mp_gone_pcmp_ptr = t;
+    platform->mp_gone_gen      = mem_mapping_gen;
+    platform->mp_gone_fps_ptr  = f;
+}
+
+/* The whole table, extended part included, wherever in the 32-bit space it
+   is. Read as the processor reads it, as the walks do: in the
+   F segment that may be ROM, not ram[]. */
+static uint32_t
+apic_platform_mp_table_len(uint32_t pcmp)
+{
+    uint32_t len;
+
+    if ((uint64_t) pcmp > (APIC_MP_TABLE_LIMIT - 44))
+        return 0;
+    len = (uint32_t) mem_readw_phys(pcmp + 4) + apic_platform_mp_ext_len(pcmp);
+    if ((len < 44) || (((uint64_t) pcmp + len) > APIC_MP_TABLE_LIMIT))
+        return 0;
+    return len;
+}
+
+/* Whether the len bytes at addr are (cmp) or become (!cmp) buf's: a
+   granule at a time straight from memory where it is plain memory, a byte
+   at a time through the bus where it is not. */
+static int
+apic_platform_mp_bytes(uint8_t *buf, uint32_t addr, uint32_t len, int cmp)
+{
+    while (len) {
+        uint32_t       span = MEM_GRANULARITY_SIZE - (addr & MEM_GRANULARITY_MASK);
+        const uint8_t *p;
+
+        if (span > len)
+            span = len;
+        p = mem_phys_ptr(addr, span);
+        if (p != NULL) {
+            if (!cmp)
+                memcpy(buf, p, span);
+            else if (memcmp(buf, p, span))
+                return 0;
+        } else {
+            for (uint32_t i = 0; i < span; i++) {
+                const uint8_t v = mem_readb_phys(addr + i);
+
+                if (!cmp)
+                    buf[i] = v;
+                else if (buf[i] != v)
+                    return 0;
+            }
+        }
+        buf += span;
+        addr += span;
+        len -= span;
+    }
+    return 1;
+}
+
+static int
+apic_platform_mp_unchanged(const apic_platform_t *platform, uint32_t fps, uint32_t pcmp)
+{
+    return (platform->mp_seen != NULL) && (platform->mp_seen_fps == fps) &&
+           (platform->mp_seen_pcmp == pcmp) &&
+           (apic_platform_mp_table_len(pcmp) == platform->mp_seen_len) &&
+           apic_platform_mp_bytes(platform->mp_seen, fps, 16, 1) &&
+           apic_platform_mp_bytes(platform->mp_seen + 16, pcmp, platform->mp_seen_len, 1);
+}
+
+static void
+apic_platform_mp_remember(apic_platform_t *platform, uint32_t fps, uint32_t pcmp)
+{
+    const uint32_t len = apic_platform_mp_table_len(pcmp);
+
+    apic_platform_mp_forget(platform);
+    platform->mp_fps = fps; /* forget clears it; this table is where it was */
+    if ((len == 0) || (fps > (0x100000 - 16)))
+        return;
+    platform->mp_seen = (uint8_t *) malloc(16 + len);
+    if (platform->mp_seen == NULL)
+        return;
+    (void) apic_platform_mp_bytes(platform->mp_seen, fps, 16, 0);
+    (void) apic_platform_mp_bytes(platform->mp_seen + 16, pcmp, len, 0);
+    platform->mp_seen_fps  = fps;
+    platform->mp_seen_pcmp = pcmp;
+    platform->mp_seen_len  = len;
+    platform->mp_seen_fps_ptr  = mem_phys_ptr(fps, 16);
+    platform->mp_seen_pcmp_ptr = mem_phys_ptr(pcmp, len);
+    platform->mp_seen_gen      = mem_mapping_gen;
+}
+
+int
 apic_platform_mp_table_post(apic_platform_t *platform, uint8_t val,
                             const apic_platform_mp_table_policy_t *policy)
 {
@@ -826,15 +1118,68 @@ apic_platform_mp_table_post(apic_platform_t *platform, uint8_t val,
     uint32_t pcmp;
 
     if ((platform == NULL) || (policy == NULL) || (val != policy->post_trigger))
-        return;
+        return 0;
 
-    apic_platform_log(platform, "IOAPIC: Caught POST %02X\n", val);
+    /* The table in plain memory, mapped as it was, and the same bytes. */
+    if ((platform->mp_seen_fps_ptr != NULL) && (platform->mp_seen_pcmp_ptr != NULL) &&
+        (platform->mp_seen_gen == mem_mapping_gen) &&
+        !memcmp(platform->mp_seen_fps_ptr, platform->mp_seen, 16) &&
+        !memcmp(platform->mp_seen_pcmp_ptr, platform->mp_seen + 16, platform->mp_seen_len))
+        return 1;
+    /* Gone, and still the same bytes where it was. */
+    if ((platform->mp_gone_fps_ptr != NULL) && (platform->mp_gone_gen == mem_mapping_gen) &&
+        !memcmp(platform->mp_gone_fps_ptr, platform->mp_gone_fps, 16) &&
+        ((platform->mp_gone_pcmp_ptr == NULL) || !memcmp(platform->mp_gone_pcmp_ptr, platform->mp_gone_pcmp, 4)))
+        return 1;
 
-    if (!apic_platform_mp_find_table(&fps, &pcmp))
-        return;
+    if (platform->mp_fps != 0) {
+        /* Hidden (or never rebuilt) since last time: nothing to do. */
+        if (mem_readl_phys(platform->mp_fps) != APIC_MP_FP_SIGNATURE) {
+            apic_platform_mp_gone(platform, platform->mp_fps, 0, 0);
+            return 1;
+        }
+        fps  = platform->mp_fps;
+        pcmp = mem_readl_phys(fps + 4);
+        if (!apic_platform_mp_pcmp_present(pcmp) && !((pcmp == 0) && mem_readb_phys(fps + 11))) {
+            if (pcmp <= 0xfffffffc)
+                apic_platform_mp_gone(platform, fps, pcmp, 1);
+            return 1;
+        }
+    } else if (!apic_platform_mp_find_table(&fps, &pcmp))
+        return 0;
+    platform->mp_fps = fps;
 
-    apic_platform_mp_fixup_processor_lapic_ids(platform, pcmp, policy);
-    apic_platform_mp_learn_legacy_irq_routes(platform, pcmp, policy);
+    /* A default configuration (MP spec 1.1, 5): no table to fix, only the
+       pointer to hide. */
+    if (pcmp == 0) {
+        if (!policy->expose_mp_tables && apic_platform_mp_writable(fps, 16)) {
+            apic_platform_log(platform, "IOAPIC: Patching _MP_ [%08x], default configuration %u\n", fps,
+                              mem_readb_phys(fps + 11));
+            for (int k = 0; k < 4; k++)
+                *apic_platform_mp_at(fps + k) = 0xff;
+        }
+        return 1;
+    }
+
+    /* A table in ROM or flash is read, not changed: fixing or hiding it
+       would edit the chip's image (and a flash's saved file). */
+    const int in_ram = apic_platform_mp_writable(fps, 16) &&
+                       apic_platform_mp_writable(pcmp, apic_platform_mp_table_len(pcmp));
+
+    if (apic_platform_mp_unchanged(platform, fps, pcmp)) {
+        /* The mappings moved and the table did not: look through the new. */
+        platform->mp_seen_fps_ptr  = mem_phys_ptr(fps, 16);
+        platform->mp_seen_pcmp_ptr = mem_phys_ptr(pcmp, platform->mp_seen_len);
+        platform->mp_seen_gen      = mem_mapping_gen;
+        return 1;
+    }
+
+    /* Learning is for the I/O APIC's routing, which nothing uses with the
+       APIC off. */
+    if (platform->uniprocessor_apic)
+        apic_platform_mp_learn_legacy_irq_routes(platform, pcmp, policy);
+    if (in_ram)
+        apic_platform_mp_fixup_processor_lapic_ids(platform, pcmp, policy);
 
     if ((policy->mp_table_logged != NULL) && !*policy->mp_table_logged) {
         apic_platform_log_mp_table(platform, fps, pcmp);
@@ -846,13 +1191,23 @@ apic_platform_mp_table_post(apic_platform_t *platform, uint8_t val,
     if (policy->expose_mp_tables) {
         if ((policy->mp_table_skip_logged != NULL) && !*policy->mp_table_skip_logged)
             apic_platform_log(platform, "IOAPIC: Leaving _MP_ [%08x] and PCMP [%08x] tables visible\n", fps, pcmp);
-        return;
+        apic_platform_mp_remember(platform, fps, pcmp);
+        return 1;
     }
 
-    /* Hide MP tables after optional logging by corrupting signatures, not contents. */
+    /* Hide MP tables after optional logging by corrupting signatures, not
+       contents. A table in ROM stays visible, and is remembered as the
+       exposed one is, so the next trigger finds it unchanged. */
+    if (!in_ram) {
+        apic_platform_mp_remember(platform, fps, pcmp);
+        return 1;
+    }
     apic_platform_log(platform, "IOAPIC: Patching _MP_ [%08x] and PCMP [%08x] tables\n", fps, pcmp);
-    ram[fps] = ram[fps + 1] = ram[fps + 2] = ram[fps + 3] = 0xff;
-    ram[pcmp] = ram[pcmp + 1] = ram[pcmp + 2] = ram[pcmp + 3] = 0xff;
+    for (int k = 0; k < 4; k++) {
+        *apic_platform_mp_at(fps + k)  = 0xff;
+        *apic_platform_mp_at(pcmp + k) = 0xff;
+    }
+    return 1;
 }
 
 int

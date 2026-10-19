@@ -397,6 +397,10 @@ extern void mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t siz
 extern void mem_set_cache_access(uint32_t base, uint32_t size, int cached);
 extern int  mem_bus_unbacked(uint32_t base, uint32_t size);
 
+extern const uint8_t *mem_phys_ptr(uint32_t addr, uint32_t len);
+extern uint32_t       mem_mapping_gen;
+extern size_t         mem_ram_size(void);
+
 extern uint8_t  mem_readb_phys(uint32_t addr);
 extern uint16_t mem_readw_phys(uint32_t addr);
 extern uint32_t mem_readl_phys(uint32_t addr);

@@ -131,6 +131,10 @@ mem_mapping_t        *write_mapping[MEM_MAPPINGS_NO];
 
 uint8_t              *_mem_exec[MEM_MAPPINGS_NO];
 
+/* Moves on whenever the map is rebuilt: a pointer mem_phys_ptr gave holds
+   while it is unchanged. */
+uint32_t mem_mapping_gen;
+
 static mem_mapping_t *base_mapping;
 static mem_mapping_t *last_mapping;
 static mem_mapping_t *read_mapping_bus[MEM_MAPPINGS_NO];
@@ -141,6 +145,13 @@ static mem_state_t    _mem_state[MEM_MAPPINGS_NO];
 static uint32_t       remap_start_addr;
 static uint32_t       remap_start_addr2;
 static size_t         ram_size = 0;
+
+/* The bytes of guest RAM behind ram[]. */
+size_t
+mem_ram_size(void)
+{
+    return ram_size;
+}
 
 #ifdef ENABLE_MEM_LOG
 int mem_do_log = ENABLE_MEM_LOG;
@@ -1705,6 +1716,24 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
     }
 }
 
+/* Where the len bytes at addr are, as the processor would read them, when
+   they lie in one granule of plain memory (RAM or ROM behind no handler);
+   NULL otherwise, for the caller to read them one at a time. */
+const uint8_t *
+mem_phys_ptr(uint32_t addr, uint32_t len)
+{
+    const mem_mapping_t *map = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
+    uint32_t             off;
+
+    if (!len || (len > MEM_GRANULARITY_SIZE) || !cpu_use_exec || (map == NULL) || (map->exec == NULL) ||
+        (((addr & MEM_GRANULARITY_MASK) + len) > MEM_GRANULARITY_SIZE))
+        return NULL;
+    off = (addr - map->base) & map->mask;
+    if ((((addr + len - 1) - map->base) & map->mask) != (off + len - 1))
+        return NULL; /* a small mirrored mapping wraps inside the granule */
+    return &map->exec[off];
+}
+
 uint8_t
 mem_readb_phys(uint32_t addr)
 {
@@ -2390,6 +2419,8 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
        and overwrites whatever follows them. */
     if ((base + size + (base_ignore & mask)) > MEM_ADDR_SPACE_END)
         mem_mapping_past_4g(base, size, base_ignore & (uint32_t) mask);
+
+    mem_mapping_gen++;
 
     map = base_mapping;
 
