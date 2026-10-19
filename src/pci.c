@@ -347,33 +347,6 @@ pci_apic_legacy_level_track(uint8_t irq_line, int level, int set, int old_state)
     return 1;
 }
 
-static int
-pci_apic_legacy_irq(uint8_t irq_line, int level, int set, uint8_t *irq_state)
-{
-    uint16_t mask = 1 << irq_line;
-    int      old_state = (irq_state != NULL) ? !!*irq_state : 0;
-
-    if (!ioapic_legacy_irq_enabled())
-        return 0;
-
-    /* Edge/stateless callers cannot safely join the shared level count. */
-    if (!level || (irq_state == NULL)) {
-        ioapic_legacy_irq(mask, level, set);
-        if (level && (irq_state != NULL))
-            *irq_state = !!set;
-        return 1;
-    }
-
-    if (old_state == !!set)
-        return 1;
-
-    /* Caller-owned irq_state filters duplicate source transitions per line. */
-    if (pci_apic_legacy_level_track(irq_line, level, set, old_state))
-        ioapic_legacy_irq(mask, level, pci_apic_irq_level_asserted[irq_line]);
-    *irq_state = !!set;
-    return 1;
-}
-
 void
 pci_apic_replay_level_irqs(void)
 {
@@ -420,17 +393,15 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
             intin = pci_apic_intin_route[pci_cards[slot].bus][pci_cards[slot].id][pci_int_index];
             if (intin != PCI_APIC_INTIN_INVALID) {
                 direct_intin_route = 1;
-                level = 1;
-                if (pci_apic_intin_irq(intin, level, set, irq_state)) {
-                    if (!pci_irq_route_log_seen[pci_cards[slot].bus][pci_cards[slot].id][pci_int_index]) {
-                        pci_log("PCI IRQ route first: slot=%u bus=%u dev=%u INT%c direct=hit INTIN%u PIRQ=%02X irq=direct level=%u set=%u\n",
-                              slot, pci_cards[slot].bus, pci_cards[slot].id,
-                              'A' + pci_int_index, intin, pci_cards[slot].irq_routing[pci_int_index],
-                              level, !!set);
-                        pci_irq_route_log_seen[pci_cards[slot].bus][pci_cards[slot].id][pci_int_index] = 1;
-                    }
-                    return;
-                }
+                /* The pin wired straight to the I/O APIC; the same INTx
+                   still goes on through the PIRQ router to the 8259 below.
+                   Each side keeps its own copy of the line's state. */
+                if (irq_state != NULL) {
+                    uint8_t direct_state = *irq_state;
+
+                    (void) pci_apic_intin_irq(intin, 1, set, &direct_state);
+                } else
+                    (void) pci_apic_intin_irq(intin, 1, set, NULL);
             }
 
             if (pci_flags & FLAG_NO_IRQ_STEERING)
@@ -505,10 +476,10 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
     if (irq_line > PCI_IRQ_MAX)
         return;
 
-    /* IOAPIC consumes legacy-routed PCI INTx when APIC delivery is active. */
-    if (pci_apic_legacy_irq(irq_line, level, set, irq_state))
-        return;
-
+    /* A steered PIRQ drives the 8259 input and, through picint_common's
+       mirror, the I/O APIC pin for the same IRQ, at the same time: which
+       of the two the operating system listens to is its choice, made in
+       the redirection table and the 8259 masks, not ours. */
     if (!direct_intin_route && (irq_state != NULL))
         pci_apic_legacy_level_track(irq_line, level, set, !!*irq_state);
 
