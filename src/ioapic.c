@@ -1461,6 +1461,17 @@ ioapic_reset(ioapic_t *dev)
     ioapic_reset_redir(dev);
 }
 
+/* The board reset its processor (RESET, or the INIT pin the keyboard
+   controller or port 92h pulses), not a device reset: the hook's
+   remembered MP table is forgotten as at a device reset, so the table the
+   BIOS builds next is looked for wherever it is. */
+void
+ioapic_processor_reset(void)
+{
+    if (ioapic_global != NULL)
+        apic_platform_mp_forget(ioapic_global->apic);
+}
+
 void
 ioapic_set_legacy_irq_routing(void *ioapic, const ioapic_legacy_irq_routing_t *routing)
 {

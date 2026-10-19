@@ -1138,12 +1138,14 @@ apic_platform_mp_table_post(apic_platform_t *platform, uint8_t val,
         ((platform->mp_gone_pcmp_ptr == NULL) || !memcmp(platform->mp_gone_pcmp_ptr, platform->mp_gone_pcmp, 4)))
         return 1;
 
-    if (platform->mp_fps != 0) {
-        /* Hidden (or never rebuilt) since last time: nothing to do. */
-        if (mem_readl_phys(platform->mp_fps) != APIC_MP_FP_SIGNATURE) {
+    if ((platform->mp_fps != 0) && (mem_readl_phys(platform->mp_fps) != APIC_MP_FP_SIGNATURE)) {
+        /* Hidden (or never rebuilt) since last time, unless the table is
+           now somewhere else: looked for once, then remembered as gone. */
+        if (!apic_platform_mp_find_table(&fps, &pcmp)) {
             apic_platform_mp_gone(platform, platform->mp_fps, 0, 0);
             return 1;
         }
+    } else if (platform->mp_fps != 0) {
         fps  = platform->mp_fps;
         pcmp = mem_readl_phys(fps + 4);
         if (!apic_platform_mp_pcmp_present(pcmp) && !((pcmp == 0) && mem_readb_phys(fps + 11))) {
