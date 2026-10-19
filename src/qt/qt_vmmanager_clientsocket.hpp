@@ -43,6 +43,7 @@ public slots:
     void clientRunningStateChanged(VMManagerProtocol::RunningState state) const;
     void configurationChanged() const;
     void globalConfigurationChanged() const;
+    void windowActivated() const;
 
 private:
     QString       server_name;

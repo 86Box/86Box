@@ -109,6 +109,23 @@ codegen_allocator_init(void)
     if (large)
         pclog("Allocated %u bytes of large pages of recompiled code memory\n", MEM_BLOCK_NR * MEM_BLOCK_SIZE);
 
+#ifdef MEM_BLOCK_VENEER_STRIDE
+    /*The first block of every stride after the first holds the veneers, and
+      is never handed out*/
+    uint32_t last_free = 0;
+
+    for (uint32_t c = 0; c < MEM_BLOCK_NR; c++) {
+        mem_blocks[c].offset     = c * MEM_BLOCK_SIZE;
+        mem_blocks[c].code_block = BLOCK_INVALID;
+        mem_blocks[c].tail       = 0;
+        mem_blocks[c].next       = 0;
+        if (c && !(c % MEM_BLOCK_VENEER_STRIDE))
+            continue;
+        if (last_free)
+            mem_blocks[last_free - 1].next = c + 1;
+        last_free = c + 1;
+    }
+#else
     for (uint32_t c = 0; c < MEM_BLOCK_NR; c++) {
         mem_blocks[c].offset     = c * MEM_BLOCK_SIZE;
         mem_blocks[c].code_block = BLOCK_INVALID;
@@ -118,6 +135,7 @@ codegen_allocator_init(void)
         else
             mem_blocks[c].next = 0;
     }
+#endif
     mem_block_free_list = 1;
 }
 
@@ -203,6 +221,43 @@ codegen_allocator_free(mem_block_t *block)
     }
 }
 
+/*Free the memory of a code block's kept earlier version. The code block keeps
+  its place in the list freed from when memory runs out: it may still own its
+  current code.*/
+void
+codegen_allocator_free_version(mem_block_t *block)
+{
+    int block_nr = (((uintptr_t) block - (uintptr_t) mem_blocks) / sizeof(mem_block_t)) + 1;
+
+    block->tail = 0;
+    while (1) {
+        int next_block_nr = block->next;
+        codegen_allocator_usage--;
+
+        block->next         = mem_block_free_list;
+        block->code_block   = BLOCK_INVALID;
+        mem_block_free_list = block_nr;
+        block_nr            = next_block_nr;
+
+        if (block_nr)
+            block = &mem_blocks[block_nr - 1];
+        else
+            break;
+    }
+}
+
+/*Keep a code block in the list freed from when memory runs out exactly while
+  it owns memory, its kept versions' included*/
+void
+codegen_allocator_owner(int code_block, int owns)
+{
+    if (owns && !valid_code_blocks[code_block]) {
+        valid_code_blocks[code_block] = 1;
+        add_to_block_list(code_block);
+    } else if (!owns && valid_code_blocks[code_block])
+        remove_from_block_list(&mem_code_blocks[code_block]);
+}
+
 uint8_t *
 codeblock_allocator_get_ptr(mem_block_t *block)
 {
@@ -230,6 +285,57 @@ codegen_allocator_clean_blocks(UNUSED(struct mem_block_t *block))
     }
 #endif
 }
+
+#ifdef MEM_BLOCK_VENEER_STRIDE
+#    define MEM_BLOCK_VENEER_REGION (MEM_BLOCK_VENEER_STRIDE * MEM_BLOCK_SIZE)
+
+static const void *veneer_targets[MEM_BLOCK_SIZE / 4];
+static int         nr_veneer_targets;
+
+/*Region r's veneer block holds, at i * 4, a B to targets[i]*/
+void
+codegen_allocator_set_veneers(const void **targets, int nr)
+{
+    if (nr > (int) (sizeof(veneer_targets) / sizeof(veneer_targets[0])))
+        fatal("codegen_allocator_set_veneers - too many targets\n");
+
+    /*Every reserved block, a last partial stride's included*/
+    for (uint32_t c = MEM_BLOCK_VENEER_STRIDE; c < MEM_BLOCK_NR; c += MEM_BLOCK_VENEER_STRIDE) {
+        uint32_t *veneer = (uint32_t *) &mem_block_alloc[c * MEM_BLOCK_SIZE];
+
+        for (int i = 0; i < nr; i++) {
+            intptr_t offset = (const uint8_t *) targets[i] - (uint8_t *) &veneer[i];
+
+            veneer[i] = 0x14000000 | ((uint32_t) (offset >> 2) & 0x3ffffff); /*B*/
+        }
+        CODEGEN_HOST_CLEAR_CACHE(veneer, &veneer[nr]);
+    }
+
+    for (int i = 0; i < nr; i++)
+        veneer_targets[i] = targets[i];
+    nr_veneer_targets = nr;
+}
+
+/*A B to dst within 1MB of src (in the first region the routines themselves
+  are), or NULL*/
+void *
+codegen_allocator_veneer(const void *src, const void *dst)
+{
+    const uint8_t *ptr = (const uint8_t *) src;
+    uint32_t       region;
+
+    if (!mem_block_alloc || (ptr < mem_block_alloc) || (ptr >= (mem_block_alloc + MEM_BLOCK_NR * MEM_BLOCK_SIZE)))
+        return NULL;
+    region = (ptr - mem_block_alloc) / MEM_BLOCK_VENEER_REGION;
+    if (!region)
+        return NULL;
+    for (int i = 0; i < nr_veneer_targets; i++) {
+        if (veneer_targets[i] == dst)
+            return &mem_block_alloc[(region * MEM_BLOCK_VENEER_REGION) + (i * 4)];
+    }
+    return NULL;
+}
+#endif
 
 bool
 codegen_allocator_contains_host_ptr(const void *p)

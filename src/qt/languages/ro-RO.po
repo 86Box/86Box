@@ -236,9 +236,6 @@ msgstr "S&unet"
 msgid "&Preferences…"
 msgstr "&Preferințe…"
 
-msgid "Enable &Discord integration"
-msgstr "Activează integrarea &Discord"
-
 msgid "Sound &gain…"
 msgstr "Câș&tig sunet…"
 
@@ -433,6 +430,9 @@ msgstr "Recompilator dinamic"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Mediu FPU precis pe recompilatorul dinamic"
+
+msgid "Block linking on the dynamic recompiler"
+msgstr "Legarea blocurilor pe recompilatorul dinamic"
 
 msgid "CPU frame size"
 msgstr "Dimensiunea cadre CPU"
@@ -1328,6 +1328,35 @@ msgstr "Utilizează expresii regulate în bara de căutare"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Șterge toate mașinile virtuale în Coșul de Reciclare"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"

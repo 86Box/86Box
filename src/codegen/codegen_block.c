@@ -22,6 +22,7 @@
 #include "codegen_allocator.h"
 #include "codegen_backend.h"
 #include "codegen_ir.h"
+#include "codegen_link.h"
 #include "codegen_reg.h"
 
 uint8_t *block_write_data = NULL;
@@ -72,6 +73,277 @@ static uint32_t block_dirty_list_tail;
 static int      dirty_list_size = 0;
 #define DIRTY_LIST_MAX_SIZE 64
 
+/*Earlier compiled versions of byte-mask blocks that read their immediates from
+  memory (CODEBLOCK_NO_IMMEDIATES). Code that flips one of its opcodes back and
+  forth, such as a clc/stc used as a switch, dirties its block on every flip,
+  and no compile mode covers a changed opcode. When such a block is
+  invalidated its compiled code is kept with the code bytes it was compiled
+  from; when the block is next run, a kept version whose bytes match guest
+  memory again is put back instead of compiling the same bytes again. It is
+  put back only on the terms any cached block is run on: the same code bytes,
+  status and FPU top-of-stack, and the same page for its second chunk. The
+  bytes are read where instructions are fetched from (_mem_exec), and that
+  mapping must be the one the version was compiled under: a version reads its
+  immediates through pointers into it, and ROM and shadow RAM at one address
+  can differ.*/
+#define BLOCK_VERSION_NR        8192
+#define BLOCK_VERSION_PER_BLOCK 16
+
+enum {
+    BLOCK_VERSION_FREE = 0,
+    BLOCK_VERSION_CURRENT,
+    BLOCK_VERSION_KEPT
+};
+
+typedef struct block_version_t {
+    struct mem_block_t *head_mem_block;
+    const uint8_t      *exec, *exec_2; /*_mem_exec[] of each chunk's page when compiled*/
+    uint64_t            page_mask, page_mask2;
+    uint32_t            phys_2;
+    uint32_t            owner; /*Number of the code block*/
+    uint16_t            cs_sel; /*CS selector: x87 code stores it as the FPU CS*/
+    uint16_t            status;
+    uint16_t            flags; /*CODEBLOCK_HAS_FPU and CODEBLOCK_STATIC_TOP of this version*/
+    uint16_t            next;  /*Next older kept version of the owner, or the next free one*/
+    uint8_t             TOP;
+    uint8_t             state;
+    uint8_t             code[128]; /*The first 64-byte chunk, then the second*/
+} block_version_t;
+
+/*Index 0 is not used: 0 means none*/
+static block_version_t block_versions[BLOCK_VERSION_NR + 1];
+static uint16_t        block_version_free_list;
+static uint16_t        block_version_hand = 1;
+/*Version of the code a block holds now, and its newest kept version*/
+static uint16_t block_version_cur[BLOCK_SIZE];
+static uint16_t block_version_kept[BLOCK_SIZE];
+/*The block's two chunks as fetched when its compile started. A version is
+  recorded only if they are unchanged at the end: the compile pass runs the
+  block, and not every change to code bytes or to the second chunk's mapping
+  marks them dirty (page table accessed bits, writes through a direct write
+  lookup, a CR3 load). Each instruction is also checked as it is compiled
+  (codegen_block_version_check_ins()), since a change can be undone again
+  before the end.*/
+static int            block_version_start_ok;
+static const uint8_t *block_version_start_exec, *block_version_start_exec_2;
+static uint32_t       block_version_start_phys_2;
+static uint16_t       block_version_start_cs;
+static uint8_t        block_version_start_code[128];
+
+static void
+block_version_owner_sync(uint32_t block_nr)
+{
+    codegen_allocator_owner(block_nr, codeblock[block_nr].head_mem_block || block_version_kept[block_nr]);
+}
+
+static void
+block_versions_init(void)
+{
+    memset(block_versions, 0, sizeof(block_versions));
+    memset(block_version_cur, 0, sizeof(block_version_cur));
+    memset(block_version_kept, 0, sizeof(block_version_kept));
+    for (int c = 1; c <= BLOCK_VERSION_NR; c++)
+        block_versions[c].next = (c < BLOCK_VERSION_NR) ? (c + 1) : 0;
+    block_version_free_list = 1;
+    block_version_hand      = 1;
+}
+
+static void
+block_version_free(uint16_t nr)
+{
+    block_version_t *v = &block_versions[nr];
+
+    if ((v->state == BLOCK_VERSION_KEPT) && v->head_mem_block)
+        codegen_allocator_free_version(v->head_mem_block);
+    v->head_mem_block       = NULL;
+    v->state                = BLOCK_VERSION_FREE;
+    v->next                 = block_version_free_list;
+    block_version_free_list = nr;
+}
+
+/*Unlink a kept version from its owner's list and free it*/
+static void
+block_version_drop_kept(uint16_t nr)
+{
+    uint16_t *link = &block_version_kept[block_versions[nr].owner];
+
+    while (*link && (*link != nr))
+        link = &block_versions[*link].next;
+    if (*link)
+        *link = block_versions[nr].next;
+    block_version_free(nr);
+    block_version_owner_sync(block_versions[nr].owner);
+}
+
+static uint16_t
+block_version_alloc(void)
+{
+    uint16_t nr;
+
+    if (!block_version_free_list) {
+        /*Every record in use: free the next kept version round the pool*/
+        for (int c = 0; c < BLOCK_VERSION_NR; c++) {
+            nr                 = block_version_hand;
+            block_version_hand = (block_version_hand % BLOCK_VERSION_NR) + 1;
+            if (block_versions[nr].state == BLOCK_VERSION_KEPT) {
+                block_version_drop_kept(nr);
+                break;
+            }
+        }
+        if (!block_version_free_list)
+            return 0;
+    }
+    nr                      = block_version_free_list;
+    block_version_free_list = block_versions[nr].next;
+    block_versions[nr].next = 0;
+    return nr;
+}
+
+/*The block is being freed: its current version's memory goes with the block,
+  its kept versions' memory goes here.*/
+static void
+block_versions_free_all(uint32_t block_nr)
+{
+    if (block_version_cur[block_nr]) {
+        block_version_free(block_version_cur[block_nr]);
+        block_version_cur[block_nr] = 0;
+    }
+    while (block_version_kept[block_nr]) {
+        uint16_t nr                  = block_version_kept[block_nr];
+        block_version_kept[block_nr] = block_versions[nr].next;
+        block_version_free(nr);
+    }
+    block_version_owner_sync(block_nr);
+}
+
+/*Copy the 64-byte chunk at phys, as fetched, into code and return the
+  mapping it came from; NULL if code there is not fetched from host memory.*/
+static const uint8_t *
+block_version_read_chunk(uint32_t phys, uint8_t *code)
+{
+    const uint8_t *exec = _mem_exec[phys >> MEM_GRANULARITY_BITS];
+
+    if (exec)
+        memcpy(code, &exec[(phys & MEM_GRANULARITY_MASK) & ~0x3f], 64);
+    return exec;
+}
+
+static int
+block_version_chunk_matches(uint32_t phys, const uint8_t *exec, uint64_t mask, const uint8_t *code)
+{
+    const uint8_t *fetch = _mem_exec[phys >> MEM_GRANULARITY_BITS];
+
+    if (!fetch || (fetch != exec))
+        return 0;
+    fetch = &fetch[(phys & MEM_GRANULARITY_MASK) & ~0x3f];
+    for (int c = 0; c < 64; c++) {
+        if ((mask & ((uint64_t) 1 << c)) && (fetch[c] != code[c]))
+            return 0;
+    }
+    return 1;
+}
+
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+const int codegen_has_block_link = 1;
+
+/*cpu_dyn_block_link as of the last codegen_init()/codegen_reset(). Both free
+  every block, so no block runs under a mode other than the one it was
+  compiled for: a block compiled without links returns garbage.*/
+int codegen_block_link = 1;
+
+/*Last link_gen handed out. Values only grow between wraps, so a block never
+  gets back a value a slot may still hold for it.*/
+static uint32_t link_gen_last = 0;
+
+void
+codegen_link_reset(void)
+{
+    memset(codegen_link_slots, 0, sizeof(codegen_link_slots));
+}
+
+void
+codegen_link_block_changed(codeblock_t *block)
+{
+    if (!codegen_block_link)
+        return;
+
+    link_gen_last++;
+    if (!link_gen_last) {
+        /*Wrapped. Empty every slot and renumber every block, so no value
+          given out before the wrap can come back to the same block.*/
+        codegen_link_reset();
+        for (int c = 0; c < BLOCK_SIZE; c++)
+            codeblock[c].link_gen = ++link_gen_last;
+        link_gen_last++;
+    }
+    block->link_gen = link_gen_last;
+}
+
+/*Empty the slots used by the block's own exits.*/
+static void
+link_slots_clear(codeblock_t *block)
+{
+    memset(codegen_link_slots[get_block_nr(block)], 0, sizeof(codegen_link_slots[0]));
+}
+
+void
+codegen_link_patch(codegen_link_slot_t *from, codeblock_t *block, uint32_t phys)
+{
+    const uint32_t       virt     = cs + cpu_state.pc;
+    uintptr_t           *xlat     = NULL;
+    uintptr_t            xlat_val = 0;
+    codegen_link_slot_t *slot;
+
+    /*Only a compiled block the hash already points to.*/
+    if ((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) != CODEBLOCK_WAS_RECOMPILED)
+        return;
+    if (codeblock_hash[HASH(phys)] != get_block_nr(block))
+        return;
+    if (cr0 >> 31) {
+        /*The routine can only redo the translation from readlookup2.*/
+        xlat = &readlookup2[virt >> 12];
+        if ((int) *xlat == -1)
+            return;
+        xlat_val = *xlat;
+    }
+    /*phys may have come from get_phys()'s one-entry cache, which can be
+      stale. Only fill if a fresh translation gives the same page.*/
+    if (cr0 >> 31) {
+        if ((((uint32_t) ((xlat_val + (virt & ~0xfff)) - (uintptr_t) ram)) & ~0xfff) != (phys & ~0xfff))
+            return;
+    } else if (((virt & rammask) & ~0xfff) != (phys & ~0xfff))
+        return;
+
+    /*The exit's own slot, whatever it held*/
+    slot = from;
+
+    slot->entry      = NULL;
+    slot->exit_pc    = cpu_state.pc;
+    slot->exit_cs    = cs;
+    slot->block      = block;
+    slot->gen        = block->link_gen;
+    slot->status     = cpu_cur_status;
+    slot->npxc       = cpu_state.npxc & 0x0f00;
+    slot->cr0_bits   = cr0 & 0xc0000000;
+    slot->virt       = virt;
+    slot->phys_page  = phys & ~0xfff;
+    slot->rammask    = rammask;
+    slot->xlat       = xlat;
+    slot->xlat_val   = xlat_val;
+    slot->mem_exec   = &_mem_exec[phys >> MEM_GRANULARITY_BITS];
+    slot->hash       = &codeblock_hash[HASH(phys)];
+    slot->block_nr   = get_block_nr(block);
+    slot->top_mask   = (block->flags & CODEBLOCK_STATIC_TOP) ? 7 : 0;
+    slot->top        = (block->flags & CODEBLOCK_STATIC_TOP) ? block->TOP : 0;
+    slot->two_page   = !!block->page_mask2;
+    slot->page_mask  = block->page_mask;
+    slot->dirty_mask = block->dirty_mask;
+    slot->entry      = &block->data[BLOCK_START + CODEGEN_LINK_ENTRY_OFFSET];
+}
+#else
+const int codegen_has_block_link = 0;
+#endif
+
 static void
 block_free_list_add(codeblock_t *block)
 {
@@ -85,6 +357,11 @@ block_free_list_add(codeblock_t *block)
         block->next = 0;
     block_free_list = get_block_nr(block);
     block->flags    = CODEBLOCK_IN_FREE_LIST;
+    block_versions_free_all(get_block_nr(block));
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_block_changed(block);
+    link_slots_clear(block);
+#endif
 }
 
 static void
@@ -106,6 +383,9 @@ block_dirty_list_add(codeblock_t *block)
         block_dirty_list_head = block_dirty_list_tail = get_block_nr(block);
     }
     block->flags |= CODEBLOCK_IN_DIRTY_LIST;
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_block_changed(block);
+#endif
     dirty_list_size++;
     if (dirty_list_size > DIRTY_LIST_MAX_SIZE) {
         /*Evict oldest block to the free list*/
@@ -158,6 +438,9 @@ block_dirty_list_remove(codeblock_t *block)
         fatal("remove - dirty_list_size < 0!\n");
 #endif
     block->flags &= ~CODEBLOCK_IN_DIRTY_LIST;
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_block_changed(block);
+#endif
 }
 
 int
@@ -219,13 +502,20 @@ codegen_init(void)
 {
     codegen_check_regs();
     codegen_allocator_init();
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_block_link = cpu_dyn_block_link;
+#endif
 
     codegen_backend_init();
+    block_versions_init();
     block_free_list = 0;
     for (uint32_t c = 0; c < BLOCK_SIZE; c++)
         block_free_list_add(&codeblock[c]);
     block_dirty_list_head = block_dirty_list_tail = 0;
     dirty_list_size                               = 0;
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_reset();
+#endif
 #ifdef DEBUG_EXTRA
     memset(instr_counts, 0, sizeof(instr_counts));
 #endif
@@ -255,6 +545,10 @@ codegen_reset(void)
         codeblock[c].valid = 0;
         block_free_list_add(&codeblock[c]);
     }
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_reset();
+    codegen_block_link = cpu_dyn_block_link;
+#endif
 }
 
 void
@@ -379,9 +673,40 @@ invalidate_block(codeblock_t *block)
 #endif
     remove_from_block_list(block, old_pc);
     block_dirty_list_add(block);
-    if (block->head_mem_block)
-        codegen_allocator_free(block->head_mem_block);
+    if (block->head_mem_block) {
+        uint32_t block_nr = get_block_nr(block);
+        uint16_t cur      = block_version_cur[block_nr];
+
+        if (cur && (block_versions[cur].head_mem_block == block->head_mem_block)) {
+            /*Keep it, newest first, and no more than BLOCK_VERSION_PER_BLOCK*/
+            uint16_t nr;
+            int      c = 1;
+
+            block_versions[cur].state    = BLOCK_VERSION_KEPT;
+            block_versions[cur].next     = block_version_kept[block_nr];
+            block_version_kept[block_nr] = cur;
+            for (nr = cur; block_versions[nr].next; nr = block_versions[nr].next) {
+                if (++c > BLOCK_VERSION_PER_BLOCK) {
+                    uint16_t oldest          = block_versions[nr].next;
+                    block_versions[nr].next  = 0;
+                    block_versions[oldest].next = 0;
+                    block_version_free(oldest);
+                    break;
+                }
+            }
+        } else {
+            if (cur)
+                block_version_free(cur);
+            codegen_allocator_free_version(block->head_mem_block);
+        }
+        block_version_cur[block_nr] = 0;
+        block->head_mem_block       = NULL;
+        block_version_owner_sync(block_nr);
+    }
     block->head_mem_block = NULL;
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    link_slots_clear(block);
+#endif
 }
 
 static void
@@ -539,12 +864,6 @@ codegen_block_init(uint32_t phys_addr)
     block->pc          = cs + cpu_state.pc;
     block->_cs         = cs;
     block->phys        = phys_addr;
-#if defined(__aarch64__) || defined(_M_ARM64) || defined(__loongarch_lp64)
-    /* ARM64/LoongArch64 state initialization for delayed NO_IMMEDIATES policy. */
-    block->dirty_list_recompile_hits = 0;
-    /* Zero epoch so the first dirty-list hit starts a new burst. */
-    block->dirty_list_last_epoch     = 0;
-#endif
     block->dirty_mask  = &page->dirty_mask;
     block->dirty_mask2 = NULL;
     block->next = block->prev = BLOCK_INVALID;
@@ -552,6 +871,9 @@ codegen_block_init(uint32_t phys_addr)
     block->page_mask = block->page_mask2 = 0;
     block->flags                         = CODEBLOCK_STATIC_TOP;
     block->status                        = cpu_cur_status;
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_block_changed(block);
+#endif
 
     recomp_page = block->phys & ~0xfff;
     codeblock_tree_add(block);
@@ -581,6 +903,21 @@ codegen_block_start_recompile(codeblock_t *block)
         fatal("Recompile to used block!\n");
 #endif
 
+    if (block_version_cur[block_current]) {
+        block_version_free(block_version_cur[block_current]);
+        block_version_cur[block_current] = 0;
+    }
+    /*Only blocks whose second chunk is in the same page get versions: writes
+      to the next page during the compile are not tracked (recomp_page covers
+      this page only), and a mapping change there can drop page_mask2.*/
+    block_version_start_ok = 0;
+    if ((block->flags & CODEBLOCK_BYTE_MASK) && (block->flags & CODEBLOCK_NO_IMMEDIATES) && ((block->pc & 0xfff) < 0xfc0)) {
+        block_version_start_exec   = block_version_read_chunk(block->phys, block_version_start_code);
+        block_version_start_phys_2 = block->phys + 0x40;
+        block_version_start_exec_2 = block_version_read_chunk(block_version_start_phys_2, &block_version_start_code[64]);
+        block_version_start_cs     = CS;
+        block_version_start_ok     = (block_version_start_exec != NULL);
+    }
     if (block->head_mem_block) {
         codegen_allocator_free(block->head_mem_block);
         block->head_mem_block = NULL;
@@ -609,6 +946,7 @@ codegen_block_start_recompile(codeblock_t *block)
     recomp_page = block->phys & ~0xfff;
 
     codegen_flags_changed = 0;
+    codegen_flags_known_reset();
     codegen_fpu_entered   = 0;
     codegen_mmx_entered   = 0;
     codegen_fpu_class_dirty = 0;
@@ -628,6 +966,10 @@ codegen_block_start_recompile(codeblock_t *block)
         block->dirty_mask  = &page->byte_dirty_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK];
         block->dirty_mask2 = NULL;
     }
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_block_changed(block);
+    link_slots_clear(block);
+#endif
 
     ir_data        = codegen_ir_init();
     ir_data->block = block;
@@ -796,6 +1138,8 @@ codegen_block_end(void)
 void
 codegen_block_end_recompile(codeblock_t *block)
 {
+    uint64_t page_mask2_compiled = block->page_mask2;
+
     codegen_timing_block_end();
     codegen_accumulate(ir_data, ACCREG_cycles, -codegen_block_cycles);
 
@@ -813,6 +1157,152 @@ codegen_block_end_recompile(codeblock_t *block)
 
     codegen_accumulate_flush(ir_data);
     codegen_ir_compile(ir_data, block);
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    codegen_link_block_changed(block);
+#endif
+
+    /*Record what this version was compiled from, so it can be kept when the
+      guest rewrites the block: the bytes and mappings as at the start of the
+      compile, if they are the same now and none of its code bytes is dirty
+      (the block may have rewritten them as it ran here).*/
+    if (block_version_start_ok && (block->page_mask2 == page_mask2_compiled) &&
+        (block->flags & CODEBLOCK_BYTE_MASK) && (block->flags & CODEBLOCK_NO_IMMEDIATES) &&
+        !(*block->dirty_mask & block->page_mask) &&
+        !(block->page_mask2 && (*block->dirty_mask2 & block->page_mask2))) {
+        uint16_t nr = block_version_alloc();
+
+        if (nr) {
+            block_version_t *v = &block_versions[nr];
+
+            v->exec   = block_version_start_exec;
+            v->exec_2 = block->page_mask2 ? block_version_start_exec_2 : NULL;
+            memcpy(v->code, block_version_start_code, sizeof(v->code));
+            if (block_version_chunk_matches(block->phys, v->exec, block->page_mask, v->code) &&
+                (!block->page_mask2 ||
+                 ((block->phys_2 == block_version_start_phys_2) &&
+                  block_version_chunk_matches(block->phys_2, v->exec_2, block->page_mask2, &v->code[64])))) {
+                v->cs_sel                             = block_version_start_cs;
+                v->head_mem_block                     = block->head_mem_block;
+                v->page_mask                          = block->page_mask;
+                v->page_mask2                         = block->page_mask2;
+                v->phys_2                             = block->phys_2;
+                v->owner                              = get_block_nr(block);
+                v->status                             = block->status;
+                v->flags                              = block->flags & (CODEBLOCK_HAS_FPU | CODEBLOCK_STATIC_TOP);
+                v->TOP                                = block->TOP;
+                v->state                              = BLOCK_VERSION_CURRENT;
+                block_version_cur[get_block_nr(block)] = nr;
+            } else
+                block_version_free(nr);
+        }
+    }
+}
+
+/*Put back a kept version of a block in the dirty list whose code bytes are in
+  guest memory again. Returns 1 if the block now holds compiled code.*/
+int
+codegen_block_restore_version(codeblock_t *block)
+{
+    uint32_t  block_nr = get_block_nr(block);
+    uint16_t *link     = &block_version_kept[block_nr];
+    page_t   *page     = &pages[block->phys >> 12];
+
+    while (*link) {
+        uint16_t         nr = *link;
+        block_version_t *v  = &block_versions[nr];
+
+        if ((v->cs_sel != CS) || ((v->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) ||
+            ((v->status & cpu_cur_status & CPU_STATUS_MASK) != (cpu_cur_status & CPU_STATUS_MASK)) ||
+            ((v->flags & CODEBLOCK_STATIC_TOP) && (v->TOP != (cpu_state.TOP & 7))) ||
+            !block_version_chunk_matches(block->phys, v->exec, v->page_mask, v->code)) {
+            link = &v->next;
+            continue;
+        }
+        if (v->page_mask2 && ((v->phys_2 != (block->phys + 0x40)) ||
+                              !block_version_chunk_matches(v->phys_2, v->exec_2, v->page_mask2, &v->code[64]))) {
+            link = &v->next;
+            continue;
+        }
+
+        /*Match: it becomes the block's current code, as a compile would*/
+        *link                       = v->next;
+        v->next                     = 0;
+        v->state                    = BLOCK_VERSION_CURRENT;
+        block_version_cur[block_nr] = nr;
+
+        if (!page->block)
+            mem_flush_write_page(block->phys, cs + cpu_state.pc);
+        block_current = block_nr;
+        block_dirty_list_remove(block);
+        block->next = block->prev = BLOCK_INVALID;
+        block->next_2 = block->prev_2 = BLOCK_INVALID;
+
+        block->head_mem_block = v->head_mem_block;
+        block->data           = codeblock_allocator_get_ptr(v->head_mem_block);
+        block->page_mask      = v->page_mask;
+        block->page_mask2     = v->page_mask2;
+        block->status         = v->status;
+        block->TOP            = v->TOP;
+        block->dirty_mask     = &page->byte_dirty_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK];
+        block->dirty_mask2    = NULL;
+        block->flags          = (block->flags & ~(CODEBLOCK_HAS_FPU | CODEBLOCK_STATIC_TOP)) | v->flags | CODEBLOCK_WAS_RECOMPILED;
+        codegen_block_generate_end_mask_recompile();
+        add_to_block_list(block);
+        block_version_owner_sync(block_nr);
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+        codegen_link_block_changed(block);
+#endif
+        return 1;
+    }
+    return 0;
+}
+
+/*Called in the compile pass after an instruction at linear addr is compiled
+  and before it runs. The bytes the compiler read must be the start snapshot,
+  fetched through the memory it was taken from; else the version is not
+  recorded. A write that leaves no dirty bits and is undone before the end of
+  the compile is only seen here.*/
+void
+codegen_block_version_check_ins(uint32_t addr)
+{
+    const codeblock_t *block = &codeblock[block_current];
+    const uint8_t     *fetch;
+    uint32_t           offset;
+    uint32_t           end;
+
+    if (!block_version_start_ok)
+        return;
+
+    offset = addr - (block->pc & ~0x3f);
+    if (((addr >> 12) != pccache) || (offset >= 128)) {
+        block_version_start_ok = 0;
+        return;
+    }
+    fetch = (const uint8_t *) ((((uintptr_t) &pccache2[addr]) & 0x00000000ffffffffULL) | (((uintptr_t) &pccache2[0]) & 0xffffffff00000000ULL));
+    if (fetch != &block_version_start_exec[((block->phys & MEM_GRANULARITY_MASK) & ~0x3f) + offset]) {
+        block_version_start_ok = 0;
+        return;
+    }
+    /*To the end of the snapshot: the decoders take any number of prefixes,
+      so an instruction is not bounded at 15 bytes here*/
+    if (memcmp(fetch, &block_version_start_code[offset], 128 - offset)) {
+        block_version_start_ok = 0;
+        return;
+    }
+    /*And it must end inside the snapshot: after its prefixes come at most 0F,
+      a second opcode byte, ModR/M, SIB, disp32 and imm32*/
+    for (end = offset; end < 128; end++) {
+        switch (block_version_start_code[end]) {
+            case 0x26: case 0x2e: case 0x36: case 0x3e: case 0x64: case 0x65:
+            case 0x66: case 0x67: case 0xf0: case 0xf2: case 0xf3:
+                continue;
+            default:
+                break;
+        }
+        break;
+    }
+    if ((end + 12) > 128)
+        block_version_start_ok = 0;
 }
 
 void

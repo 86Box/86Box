@@ -59,6 +59,10 @@ extern const device_t intel_flash_bxb_device;
 extern const device_t micron_flash_t_device;
 extern const device_t micron_flash_x00_t_device;
 
+#define SST_FORCE_128    0x80000000
+
+extern void sst_set_xor(int enable);
+
 extern const device_t sst_flash_29ee010_device;
 extern const device_t sst_flash_29ee020_device;
 

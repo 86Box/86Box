@@ -123,6 +123,7 @@ char automation_path[1024]       = "";
 char automation_token_file[1024] = "";
 int  automation_start_held       = 0;
 int  automation_allow_remote     = 0;
+int  automation_insecure         = 0;
 
 static int       enabled;
 static thread_t *listen_thread;
@@ -280,24 +281,50 @@ typedef struct {
     uint32_t base;
 } text_info_t;
 
+/* Read guest memory for a client without charging the emulated CPU for it.
+   Device handlers bill the CPU for each access: VGA charges its wait states
+   (svga_read_common subtracts mon_video_timing_read_b from cycles). wait text
+   reads the whole text screen after every quantum, 2000 reads per emulated
+   millisecond, which on a 33 MHz 386 used up the cycles of the next quantum,
+   so the guest never ran while the wait went on. */
+static uint8_t
+peek_phys(uint32_t addr)
+{
+    int     saved = cycles;
+    uint8_t val   = mem_readb_phys(addr);
+
+    cycles = saved;
+    return val;
+}
+
+/* The same for a client's writes (memw). */
+static void
+poke_phys(uint32_t addr, uint8_t val)
+{
+    int saved = cycles;
+
+    mem_writeb_phys(addr, val);
+    cycles = saved;
+}
+
 static int
 text_info(text_info_t *ti)
 {
     int page;
 
-    ti->mode = mem_readb_phys(0x449) & 0x7f;
+    ti->mode = peek_phys(0x449) & 0x7f;
     if ((ti->mode > 3) && (ti->mode != 7))
         return 0;
-    ti->cols = mem_readb_phys(0x44a) | (mem_readb_phys(0x44b) << 8);
-    ti->rows = mem_readb_phys(0x484) + 1;
+    ti->cols = peek_phys(0x44a) | (peek_phys(0x44b) << 8);
+    ti->rows = peek_phys(0x484) + 1;
     if ((ti->cols < 40) || (ti->cols > 132))
         ti->cols = 80;
     if ((ti->rows < 25) || (ti->rows > 60))
         ti->rows = 25;
-    page        = mem_readb_phys(0x462) & 7;
-    ti->cur_col = mem_readb_phys(0x450 + (page * 2));
-    ti->cur_row = mem_readb_phys(0x451 + (page * 2));
-    ti->base    = ((ti->mode == 7) ? 0xb0000 : 0xb8000) + (mem_readb_phys(0x44e) | (mem_readb_phys(0x44f) << 8));
+    page        = peek_phys(0x462) & 7;
+    ti->cur_col = peek_phys(0x450 + (page * 2));
+    ti->cur_row = peek_phys(0x451 + (page * 2));
+    ti->base    = ((ti->mode == 7) ? 0xb0000 : 0xb8000) + (peek_phys(0x44e) | (peek_phys(0x44f) << 8));
     return 1;
 }
 
@@ -313,7 +340,7 @@ text_contains(const char *needle)
     /* Matches within a single row only. */
     for (int r = 0; r < ti.rows; r++) {
         for (int c = 0; c < ti.cols; c++)
-            line[c] = mem_readb_phys(ti.base + (((r * ti.cols) + c) * 2));
+            line[c] = peek_phys(ti.base + (((r * ti.cols) + c) * 2));
         line[ti.cols] = '\0';
         for (size_t c = 0; (c + nlen) <= (size_t) ti.cols; c++) {
             if (!memcmp(line + c, needle, nlen))
@@ -340,7 +367,7 @@ cmd_text(void)
               ti.mode, ti.cols, ti.rows, ti.cur_row, ti.cur_col);
     for (int r = 0; r < ti.rows; r++) {
         for (int c = 0; c < ti.cols; c++)
-            chars[c] = mem_readb_phys(ti.base + (((r * ti.cols) + c) * 2));
+            chars[c] = peek_phys(ti.base + (((r * ti.cols) + c) * 2));
         sb_printf(&resp, r ? ",\"" : "\"");
         sb_hex(&resp, chars, ti.cols);
         sb_printf(&resp, "\"");
@@ -348,7 +375,7 @@ cmd_text(void)
     sb_printf(&resp, "],\"attrs\":[");
     for (int r = 0; r < ti.rows; r++) {
         for (int c = 0; c < ti.cols; c++)
-            attrs[c] = mem_readb_phys(ti.base + (((r * ti.cols) + c) * 2) + 1);
+            attrs[c] = peek_phys(ti.base + (((r * ti.cols) + c) * 2) + 1);
         sb_printf(&resp, r ? ",\"" : "\"");
         sb_hex(&resp, attrs, ti.cols);
         sb_printf(&resp, "\"");
@@ -624,7 +651,7 @@ wait_satisfied(void)
 
     if (cmd == CMD_WAIT_MEM) {
         for (int i = 0; i < wait_len; i++) {
-            if (mem_readb_phys(wait_addr + i) != wait_bytes[i])
+            if (peek_phys(wait_addr + i) != wait_bytes[i])
                 return 0;
         }
         return 1;
@@ -666,7 +693,7 @@ handle_request(char *line)
     }
 
     if (!strcmp(argv[0], "status")) {
-        int mode = mem_readb_phys(0x449);
+        int mode = peek_phys(0x449);
         resp.len = 0;
         sb_printf(&resp, "{\"ok\":true,\"protocol\":%d,\"version\":", AUTOMATION_PROTOCOL);
         sb_json_string(&resp, EMU_VERSION_FULL);
@@ -747,9 +774,39 @@ handle_request(char *line)
            pointer; mouse_automation lets ours through without touching the
            UI's capture state, so a visible window keeps working normally. */
         mouse_automation = 1;
+        /* With a tablet configured as well, input goes to one device at a
+           time: this one is for the mouse. */
+        if (mouse_both_enabled())
+            mouse_input_mode = 0;
         mouse_scale(atoi(argv[1]), atoi(argv[2]));
         mouse_set_buttons_ex(atoi(argv[3]));
         respond_ok_time();
+    } else if (!strcmp(argv[0], "tablet") && ((argc == 4) || ((argc == 2) && !strcmp(argv[1], "out")))) {
+        /* tablet <x> <y> <buttons>: the pen (or finger) at pixel x,y of the
+           last frame, as screenshots have it; tablet out: lifted away. For
+           the configured tablet, touch screen or light pen; a mouse, if one
+           is configured too, keeps getting the mouse command. */
+        if (!tablet_type)
+            respond_error("no tablet configured");
+        else if (argc == 2) {
+            mouse_set_buttons_ex(0);
+            mouse_tablet_in_proximity = 0;
+            respond_ok_time();
+        } else if (!frame_w || !frame_h)
+            respond_error("no frame rendered yet");
+        else {
+            double x = (atof(argv[1]) + 0.5) / frame_w;
+            double y = (atof(argv[2]) + 0.5) / frame_h;
+
+            mouse_automation = 1;
+            if (mouse_input_mode == 0)
+                mouse_input_mode = 1;
+            mouse_x_abs               = (x < 0.0) ? 0.0 : ((x > 1.0) ? 1.0 : x);
+            mouse_y_abs               = (y < 0.0) ? 0.0 : ((y > 1.0) ? 1.0 : y);
+            mouse_tablet_in_proximity = 1; /* over monitor 0 */
+            mouse_set_buttons_ex(atoi(argv[3]));
+            respond_ok_time();
+        }
     } else if (!strcmp(argv[0], "screenshot")) {
         /* screenshot <path>: write a PNG file on this machine.
            screenshot: return the PNG base64-encoded in the reply (works over TCP). */
@@ -801,7 +858,7 @@ handle_request(char *line)
         } else {
             buf = malloc(len);
             for (int i = 0; i < len; i++)
-                buf[i] = mem_readb_phys(addr + i);
+                buf[i] = peek_phys(addr + i);
             resp.len = 0;
             sb_printf(&resp, "{\"ok\":true,\"addr\":%u,\"data\":\"", addr);
             sb_hex(&resp, buf, len);
@@ -816,7 +873,7 @@ handle_request(char *line)
             respond_error("bad hex bytes");
         } else {
             for (int i = 0; i < len; i++)
-                mem_writeb_phys(addr + i, buf[i]);
+                poke_phys(addr + i, buf[i]);
             respond_ok_time();
         }
         free(buf);
@@ -868,7 +925,10 @@ handle_request(char *line)
                     cdrom[id].insert(cdrom[id].priv);
             }
             ui_sb_update_icon_state(SB_CDROM | id, cdrom[id].image_path[0] ? 0 : 1);
-            respond_ok_time();
+            if (cdrom[id].image_path[0])
+                respond_ok_time();
+            else
+                respond_error("cannot load the image; the log says why");
         } else
             respond_error("usage: cd load <drive> <path> | cd eject <drive>");
     } else if (!strcmp(argv[0], "reset") && (argc == 2) && !strcmp(argv[1], "hard")) {
@@ -1021,7 +1081,7 @@ automation_thread(UNUSED(void *priv))
         }
         automation_log("Automation: client connected\n");
         inlen  = 0;
-        authed = !use_tcp;
+        authed = !use_tcp || automation_insecure;
 
         while (enabled) {
             char *nl;
@@ -1055,6 +1115,11 @@ automation_thread(UNUSED(void *priv))
                         write_all(client_fd, no, strlen(no));
                         goto disconnect;
                     }
+                } else if (automation_insecure && !strncmp(inbuf, "auth ", 5)) {
+                    /* No token to check: accept the clients that send one anyway. */
+                    static const char ok[] = "{\"ok\":true,\"auth\":true}\n";
+                    if (!write_all(client_fd, ok, strlen(ok)))
+                        goto disconnect;
                 } else {
                     strncpy(req_line, inbuf, sizeof(req_line) - 1);
                     req_line[sizeof(req_line) - 1] = '\0';
@@ -1218,9 +1283,9 @@ listen_tcp(void)
         return 0;
     }
     if (!is_loopback(res->ai_addr))
-        pclog("Automation: WARNING: listening on %s; anyone who can reach it and has the token "
+        pclog("Automation: WARNING: listening on %s; anyone who can reach it%s "
               "fully controls this machine, including its memory\n",
-              tcp_host);
+              tcp_host, automation_insecure ? "" : " and has the token");
 
     listen_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (listen_fd == SOCK_INVALID) {
@@ -1237,6 +1302,10 @@ listen_tcp(void)
     }
     freeaddrinfo(res);
 
+    if (automation_insecure) {
+        pclog("Automation: WARNING: insecure mode: TCP clients need no token\n");
+        return 1;
+    }
     if (!make_token() || !write_token_file()) {
         pclog("Automation: cannot create the token file %s\n", automation_token_file);
         sock_close(listen_fd);
@@ -1314,7 +1383,10 @@ automation_init(void)
     enabled     = 1;
 
     listen_thread = thread_create_named(automation_thread, NULL, "automation");
-    if (use_tcp)
+    if (use_tcp && automation_insecure)
+        pclog("Automation: listening on tcp:%s:%s (insecure: no token)%s\n", tcp_host, tcp_port,
+              held ? " (held)" : "");
+    else if (use_tcp)
         pclog("Automation: listening on tcp:%s:%s (token %.8s..., in %s)%s\n", tcp_host, tcp_port, token,
               automation_token_file, held ? " (held)" : "");
     else

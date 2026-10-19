@@ -722,9 +722,6 @@ extern int      unmask_a20_in_smm;
 extern int      cycles_main;
 extern uint32_t old_rammask;
 
-#ifdef USE_ACYCS
-extern int acycs;
-#endif
 extern int pic_pending;
 extern int is_vpc;
 extern int soft_reset_mask;
@@ -911,6 +908,9 @@ extern int in_lock;
 extern int cpu_override_interpreter;
 
 extern int cpu_dyn_accurate_fpu_env;
+extern int cpu_dyn_block_link;
+/* 1 if this build's recompiler can link blocks (codegen_block.c). */
+extern const int codegen_has_block_link;
 
 extern int is_lock_legal(uint32_t fetchdat);
 

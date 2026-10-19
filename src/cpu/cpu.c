@@ -208,6 +208,7 @@ int cpu_agp_speed;
 int cpu_alt_reset;
 
 int cpu_dyn_accurate_fpu_env;
+int cpu_dyn_block_link = 1;
 int cpu_override;
 int cpu_effective;
 int cpu_multi;
@@ -583,10 +584,6 @@ cpu_set(void)
     cpu_inited = 1;
     cpu_effective = cpu;
     cpu_s         = (CPU *) &cpu_f->cpus[cpu_effective];
-
-#ifdef USE_ACYCS
-    acycs = 0;
-#endif /* USE_ACYCS */
 
     soft_reset_pci    = 0;
     cpu_init          = 0;

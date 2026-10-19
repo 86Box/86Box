@@ -8174,6 +8174,34 @@ vectors_cyl_wrap(rage128_t *dev)
     check_true("3d: control: no single outlier leaves the span alone (u 27)",
                CW_PX(3, 32) == 0xff00201bu && CW_PX(32, 3) == 0xff00200fu);
 
+    /* PRIM_TEX_PERSPECTIVE_DIS [14] with TEXTURE_ST_FORMAT clear and
+       rhw 2, the screen-space quads of a Direct3D application that turns
+       texture perspective off: S and T interpolate as stored, neither
+       multiplied by W nor divided. S runs 0 -> 0.5 across x at t 0.51:
+       pixel (32,2) has s = 0.5 (32.5/64) = 0.254 -> u 16 and (8,2)
+       s = 0.066 -> u 4, row 32. Multiplying by rhw without the divide
+       would double both: u 32 and v 1 (1.02 tiled). With perspective on
+       the multiply and the divide cancel and give the same texels. */
+    {
+        static const float s_half[3] = { 0.0f, 0.5f, 0.0f };
+
+        wr(dev, RAGE128_PRIM_TEX_CNTL_C, (6u << 16) | (1u << 14));
+        cw_draw(dev, s_half, mid, mid, mid, 2.0f, 0);
+        check_true("3d: PERSPECTIVE_DIS with rhw 2 samples S/T unscaled (u 16 / 4, v 32)",
+                   CW_PX(32, 2) == 0xff002010u && CW_PX(8, 2) == 0xff002004u);
+        wr(dev, RAGE128_PRIM_TEX_CNTL_C, 6u << 16);
+        cw_draw(dev, s_half, mid, mid, mid, 2.0f, 0);
+        check_true("3d: control: perspective on with rhw 2 gives the same texels",
+                   CW_PX(32, 2) == 0xff002010u && CW_PX(8, 2) == 0xff002004u);
+        /* Wrap with perspective off: one period is +1.0 on the stored
+           coordinate, so rhw 2 takes the same seam route as rhw 1. */
+        wr(dev, RAGE128_PRIM_TEX_CNTL_C, (6u << 16) | (1u << 10) | (1u << 14));
+        cw_draw(dev, s_seam, mid, mid, mid, 2.0f, 0);
+        check_true("3d: WRAP_S with PERSPECTIVE_DIS and rhw 2 takes the seam route (u 59 / 0 / 4)",
+                   CW_PX(8, 2) == 0xff00203bu && CW_PX(32, 2) == 0xff002000u
+                       && CW_PX(56, 2) == 0xff002004u);
+    }
+
     wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
     wr(dev, RAGE128_PRIM_TEX_CNTL_C, 0x00000000);
     wr(dev, RAGE128_SEC_TEX_CNTL_C, 0x00000000);
@@ -10356,6 +10384,279 @@ vectors_stage_arena(rage128_t *dev)
     wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
     wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), 0);
     wr(dev, RAGE128_PRIM_TEX_CNTL_C, 0x00000000);
+}
+
+/* ------------------------------------------------------------------ */
+/* With render workers, a primitive's textures are staged into the     */
+/* arena when its state is captured, and the enqueue path can then     */
+/* flush the batch before queuing it (here a render-target change).    */
+/* That flush must leave the arena alone: the primitive is not drawn   */
+/* yet, and a recycled arena lets the next draw stage its level at the */
+/* same offset. Draw 1 (target A) and draw 2 (target B) sample tiled   */
+/* texture 1, solid 0xff112233, and share its staged copy at offset    */
+/* zero; draw 2's target change flushes; draw 3 (target B, the other   */
+/* half of the quad) samples texture 2, solid 0xff445566. Draw 2's     */
+/* half must keep texture 1's color. Needs two or more render threads. */
+/* ------------------------------------------------------------------ */
+#define SE_TGT_B 0x00740000u /* second 64x64 ARGB8888 color target */
+
+/* One triangle with s = t = 0.5 at every vertex. capture 0 reuses rs as
+   captured for an earlier triangle, as the vertex walk does for the
+   triangles of one packet. */
+static void
+se_tri_cap(rage128_t *dev, rage128_raster_state_t *rs, int capture,
+           float x0, float y0, float x1, float y1, float x2, float y2)
+{
+    r3d_vtx_t v[3];
+
+    memset(v, 0, sizeof(v));
+    for (int k = 0; k < 3; k++) {
+        v[k].z       = 0.25f;
+        v[k].rhw     = 1.0f;
+        v[k].diffuse = 0xffffffff;
+        v[k].s       = 0.5f;
+        v[k].t       = 0.5f;
+    }
+    v[0].x = x0; v[0].y = y0;
+    v[1].x = x1; v[1].y = y1;
+    v[2].x = x2; v[2].y = y2;
+    if (capture)
+        rage128_raster_state_capture(dev, rs);
+    rage128_raster_submit_tri(dev, rs, &v[0], &v[1], &v[2]);
+}
+
+static void
+se_tri(rage128_t *dev, rage128_raster_state_t *rs, float x0, float y0,
+       float x1, float y1, float x2, float y2)
+{
+    se_tri_cap(dev, rs, 1, x0, y0, x1, y1, x2, y2);
+}
+
+static void
+vectors_stage_enqueue_flush(rage128_t *dev)
+{
+    static rage128_raster_state_t rs1, rs2, rs3;
+    int                           old_cce;
+
+    if (rage128_raster_nthreads(dev) <= 1) {
+        printf("SKIP stage enqueue flush (needs render workers)\n");
+        return;
+    }
+    flush_sync(dev);
+
+    for (uint32_t i = 0; i < 64u * 64u * 4u; i += 4) {
+        *(uint32_t *) &dev->svga.vram[TL_TEX + i]   = 0xff112233u;
+        *(uint32_t *) &dev->svga.vram[SA_TEX2 + i]  = 0xff445566u;
+        *(uint32_t *) &dev->svga.vram[HZ_A + i]     = HZ_MARK;
+        *(uint32_t *) &dev->svga.vram[SE_TGT_B + i] = HZ_MARK;
+    }
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x003f003f);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000606);         /* 64x64, 1 level  */
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, 6u << 16);            /* ARGB8888       */
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00184041u); /* COMB copy, TEX */
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000010);               /* TEX_EN         */
+
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), TL_TEX | (2u << 30));
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+    /* The register writes between the draws act as the command stream's
+       own: a CPU write would drain the engine and flush the batch first,
+       which hides the case. */
+    old_cce               = rage128_on_cce_thread;
+    rage128_on_cce_thread = 1;
+    se_tri(dev, &rs1, 0.0f, 0.0f, 64.0f, 0.0f, 0.0f, 64.0f);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (SE_TGT_B >> 5));
+    se_tri(dev, &rs2, 0.0f, 0.0f, 64.0f, 0.0f, 0.0f, 64.0f);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), SA_TEX2 | (2u << 30));
+    se_tri(dev, &rs3, 64.0f, 0.0f, 64.0f, 64.0f, 0.0f, 64.0f);
+    rage128_on_cce_thread = old_cce;
+    flush_sync(dev);
+
+    check32("stage enqueue flush: draw 1 sampled texture 1",
+            *(uint32_t *) &dev->svga.vram[HZ_A + (2 * 64 + 2) * 4], 0xff112233u);
+    check32("stage enqueue flush: draw 2, queued across the flush, keeps texture 1",
+            *(uint32_t *) &dev->svga.vram[SE_TGT_B + (2 * 64 + 2) * 4], 0xff112233u);
+    check32("stage enqueue flush: draw 3 sampled texture 2",
+            *(uint32_t *) &dev->svga.vram[SE_TGT_B + (61 * 64 + 61) * 4], 0xff445566u);
+
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), 0);
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000000);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+}
+
+/* ------------------------------------------------------------------ */
+/* The enqueue-path flush keeps the arena bytes for the primitive it   */
+/* is about to queue, but no later draw may find a staged copy taken   */
+/* before the flush drew the batch: the batch can have rendered into   */
+/* the texture since. Draw 1 (target A) samples tiled texture 1 (solid */
+/* 0xff112233) and stages it. Draw 2 renders texture 2 (0xff445566)    */
+/* over all of texture 1's bytes. Draw 3, untextured to target B,      */
+/* flushes for the target change, which draws draw 2. Draw 4 (target   */
+/* B) samples texture 1 again and must see 0xff445566, staged afresh.  */
+/* Needs two or more render threads.                                   */
+/* ------------------------------------------------------------------ */
+static void
+vectors_stage_enqueue_flush_restage(rage128_t *dev)
+{
+    static rage128_raster_state_t rs1, rs2a, rs2b, rs3, rs4;
+    int                           old_cce;
+
+    if (rage128_raster_nthreads(dev) <= 1) {
+        printf("SKIP stage enqueue flush restage (needs render workers)\n");
+        return;
+    }
+    flush_sync(dev);
+
+    for (uint32_t i = 0; i < 64u * 64u * 4u; i += 4) {
+        *(uint32_t *) &dev->svga.vram[TL_TEX + i]   = 0xff112233u;
+        *(uint32_t *) &dev->svga.vram[SA_TEX2 + i]  = 0xff445566u;
+        *(uint32_t *) &dev->svga.vram[HZ_A + i]     = HZ_MARK;
+        *(uint32_t *) &dev->svga.vram[SE_TGT_B + i] = HZ_MARK;
+    }
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x003f003f);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000606);         /* 64x64, 1 level  */
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, 6u << 16);            /* ARGB8888       */
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00184041u); /* COMB copy, TEX */
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000010);               /* TEX_EN         */
+
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), TL_TEX | (2u << 30));
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+    /* Register writes go in as the command stream's own, as in
+       vectors_stage_enqueue_flush. */
+    old_cce               = rage128_on_cce_thread;
+    rage128_on_cce_thread = 1;
+    se_tri(dev, &rs1, 0.0f, 0.0f, 64.0f, 0.0f, 0.0f, 64.0f);
+    /* Draw 2: texture 1's 16 KB as a 64x64 ARGB8888 target, filled with
+       texture 2's solid color, so every byte of the tiled image changes
+       whatever its tile order. */
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), SA_TEX2 | (2u << 30));
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (TL_TEX >> 5));
+    se_tri(dev, &rs2a, 0.0f, 0.0f, 64.0f, 0.0f, 0.0f, 64.0f);
+    se_tri(dev, &rs2b, 64.0f, 0.0f, 64.0f, 64.0f, 0.0f, 64.0f);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (SE_TGT_B >> 5));
+    se_tri(dev, &rs3, 0.0f, 0.0f, 64.0f, 0.0f, 0.0f, 64.0f);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000010);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), TL_TEX | (2u << 30));
+    se_tri(dev, &rs4, 64.0f, 0.0f, 64.0f, 64.0f, 0.0f, 64.0f);
+    rage128_on_cce_thread = old_cce;
+    flush_sync(dev);
+
+    check32("stage enqueue flush restage: draw 1 sampled texture 1 before the render",
+            *(uint32_t *) &dev->svga.vram[HZ_A + (2 * 64 + 2) * 4], 0xff112233u);
+    check32("stage enqueue flush restage: draw 2 rendered over texture 1",
+            *(uint32_t *) &dev->svga.vram[TL_TEX + (40 * 64 + 40) * 4], 0xff445566u);
+    check32("stage enqueue flush restage: draw 4 samples texture 1 as rendered",
+            *(uint32_t *) &dev->svga.vram[SE_TGT_B + (61 * 64 + 61) * 4], 0xff445566u);
+
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), 0);
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000000);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+}
+
+/* ------------------------------------------------------------------ */
+/* One state capture serves every triangle of a packet. A triangle     */
+/* that runs past the target pitch is drawn inline after a flush; the  */
+/* packet's later triangles are queued with the same staged offsets,   */
+/* so that flush must not recycle the arena under them. Packet 1       */
+/* samples tiled texture 1 (0xff112233): triangle P runs past the      */
+/* 64-pixel pitch (inline), triangle Q stays inside it (queued).       */
+/* Packet 2 samples texture 2 (0xff445566) in other rows of the same   */
+/* target, staging after Q is queued. Q must keep texture 1's color.   */
+/* Needs two or more render threads.                                   */
+/* ------------------------------------------------------------------ */
+static void
+vectors_stage_inline_fallback(rage128_t *dev)
+{
+    static rage128_raster_state_t rs1, rs2;
+    int                           old_cce, p_inline, q_queued;
+
+    if (rage128_raster_nthreads(dev) <= 1) {
+        printf("SKIP stage inline fallback (needs render workers)\n");
+        return;
+    }
+    flush_sync(dev);
+
+    for (uint32_t i = 0; i < 64u * 64u * 4u; i += 4) {
+        *(uint32_t *) &dev->svga.vram[TL_TEX + i]  = 0xff112233u;
+        *(uint32_t *) &dev->svga.vram[SA_TEX2 + i] = 0xff445566u;
+        *(uint32_t *) &dev->svga.vram[HZ_A + i]    = HZ_MARK;
+    }
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x003f007f); /* SC_RIGHT 127: P must reach past the pitch */
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000606);         /* 64x64, 1 level  */
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, 6u << 16);            /* ARGB8888       */
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00184041u); /* COMB copy, TEX */
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000010);               /* TEX_EN         */
+
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), TL_TEX | (2u << 30));
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+    /* Register writes go in as the command stream's own, as in
+       vectors_stage_enqueue_flush. */
+    old_cce               = rage128_on_cce_thread;
+    rage128_on_cce_thread = 1;
+    se_tri_cap(dev, &rs1, 1, 0.0f, 0.0f, 72.0f, 0.0f, 0.0f, 4.0f);   /* P */
+    p_inline = atomic_load(&dev->cce_batch_pending) == 0;
+    se_tri_cap(dev, &rs1, 0, 0.0f, 16.0f, 32.0f, 16.0f, 0.0f, 40.0f); /* Q */
+    q_queued = atomic_load(&dev->cce_batch_pending) != 0;
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), SA_TEX2 | (2u << 30));
+    se_tri_cap(dev, &rs2, 1, 32.0f, 44.0f, 64.0f, 44.0f, 64.0f, 64.0f);
+    rage128_on_cce_thread = old_cce;
+    flush_sync(dev);
+
+    check_true("stage inline fallback: P ran past the pitch and was drawn inline", p_inline);
+    check_true("stage inline fallback: Q was queued", q_queued);
+    check32("stage inline fallback: P, drawn inline, sampled texture 1",
+            *(uint32_t *) &dev->svga.vram[HZ_A + (1 * 64 + 2) * 4], 0xff112233u);
+    check32("stage inline fallback: Q, queued after the inline flush, keeps texture 1",
+            *(uint32_t *) &dev->svga.vram[HZ_A + (20 * 64 + 4) * 4], 0xff112233u);
+    check32("stage inline fallback: packet 2 sampled texture 2",
+            *(uint32_t *) &dev->svga.vram[HZ_A + (60 * 64 + 60) * 4], 0xff445566u);
+
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), 0);
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000000);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+    wr(dev, 0x16f0, 0x003f003f);
 }
 
 /* ------------------------------------------------------------------ */
@@ -14274,6 +14575,9 @@ run_agp_32mb_threaded(void)
     vectors_gpu_mirror_plan();
     vectors_gpu_mirror_fold_capture(dev);
     vectors_stage_arena(dev);
+    vectors_stage_enqueue_flush(dev);
+    vectors_stage_enqueue_flush_restage(dev);
+    vectors_stage_inline_fallback(dev);
     vectors_tiled_2d(dev);
     vectors_tiled_agp_tex(dev);
     vectors_tiled_2d_regpath(dev);
@@ -15953,10 +16257,12 @@ cursor_rows(svga_t *svga, int x, int frame_h, int *top, int *bottom, int *index)
    r128_crtc_set_cursor_position doubles y under double scan and halves
    it under interlace; the device follows the register's frame-line
    definition, so that driver's cursor lands at half height under
-   interlace, as it does on the board. The
-   compositor restarts its image each field and steps the on-count by
-   two, so frame rows y..y+63 carry image rows 0,0,1,1,... . First and
-   last row witnesses check position separately from field cadence. */
+   interlace, as it does on the board. Cursor row n sits on frame line
+   y + n (RRG: CUR_HORZ_VERT_OFF, p. 3-82 / PDF 100), so each field
+   shows every other row: frame rows y..y+63 carry image rows
+   0,1,2,3,... . With double scan on as well, each row covers two frame
+   lines, one per field, giving 0,0,1,1,... (modeled). First and last
+   row witnesses check position separately from field cadence. */
 static void
 vectors_cursor_interlace(rage128_t *dev)
 {
@@ -16011,8 +16317,8 @@ vectors_cursor_interlace(rage128_t *dev)
     cursor_rows(svga, 512, 768, &top, &bottom, idx);
     ok = top == 300 && bottom == 363;
     for (int i = 0; i < 8; i++)
-        ok = ok && idx[i] == (i >> 1);
-    check_true("cursor: interlace cursor top row 300, bottom 363, image rows 0,0,1,1,2,2,3,3", ok);
+        ok = ok && idx[i] == i;
+    check_true("cursor: interlace cursor top row 300, bottom 363, image rows 0..7", ok);
 
     /* leg P (control): same mode progressive */
     wr(dev, RAGE128_CRTC_GEN_CNTL, gen_base);
@@ -16038,6 +16344,17 @@ vectors_cursor_interlace(rage128_t *dev)
     for (int i = 0; i < 8; i++)
         ok = ok && idx[i] == (i >> 1);
     check_true("cursor: DBL_SCAN control top row 600, bottom 663, image rows 0,0,1,1,2,2,3,3", ok);
+
+    /* leg ID: DBL_SCAN and INTERLACE_EN together, same frame-line
+       position -- each row stays on two frame lines, one in each field */
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_base | RAGE128_CRTC_DBL_SCAN_EN | RAGE128_CRTC_INTERLACE_EN);
+    wr(dev, RAGE128_CUR_OFFSET, 0x00400000);
+    memset(bm->dat, 0, (size_t) 2048 * 1024 * sizeof(uint32_t));
+    cursor_rows(svga, 512, 960, &top, &bottom, idx);
+    ok = svga->interlace == 1 && svga->rowcount == 1 && top == 600 && bottom == 663;
+    for (int i = 0; i < 8; i++)
+        ok = ok && idx[i] == (i >> 1);
+    check_true("cursor: DBL_SCAN + interlace top row 600, bottom 663, image rows 0,0,1,1,2,2,3,3", ok);
 
     wr(dev, RAGE128_CUR_HORZ_VERT_OFF, 0);
     wr(dev, RAGE128_CUR_HORZ_VERT_POSN, 0);
@@ -22438,7 +22755,8 @@ run_dither_init(int verbose)
 #define SPW_PIX (*(uint32_t *) &dev->svga.vram[X64L_A + (0 * 64 + 44) * 4])
 
 static uint32_t
-sp_draw(rage128_t *dev, uint32_t sec_cntl, float rhw2_right)
+sp_draw(rage128_t *dev, uint32_t prim_cntl, uint32_t sec_cntl, float rhw2_right,
+        float s_right)
 {
     static rage128_raster_state_t rs;
     r3d_vtx_t                     v[3];
@@ -22449,15 +22767,18 @@ sp_draw(rage128_t *dev, uint32_t sec_cntl, float rhw2_right)
         v[k].rhw     = 1.0f;
         v[k].rhw2    = 1.0f;
         v[k].diffuse = 0xffffffffu;
-        v[k].t = v[k].t2 = 0.5f;
+        v[k].t       = 0.5f;  /* first set: map row 2  */
+        v[k].t2      = 0.25f; /* second set: map row 1 */
     }
     v[0].x = 0.0f;  v[0].y = 0.0f;
     v[1].x = 64.0f; v[1].y = 0.0f;
     v[2].x = 0.0f;  v[2].y = 4.0f;
-    v[1].s = v[1].s2 = 1.0f;
+    v[1].s  = s_right;
+    v[1].s2 = s_right * 0.5f;
     v[1].rhw  = 0.25f;
     v[1].rhw2 = rhw2_right;
     SPW_PIX = 0x11223344u;
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, prim_cntl);
     wr(dev, RAGE128_SEC_TEX_CNTL_C, sec_cntl);
     rage128_raster_state_capture(dev, &rs);
     rage128_raster_submit_tri(dev, &rs, &v[0], &v[1], &v[2]);
@@ -22472,36 +22793,65 @@ sp_col(float s)
     return 0xff000000u | ((uint32_t) (((int) floorf(s * 4.0f)) & 3) + 1u) << 20;
 }
 
+/* Texel of the 4x4 map at (s, t): the column in the red byte as sp_col,
+   the row in the green byte. */
+static uint32_t
+sp_px(float s, float t)
+{
+    return sp_col(s) | ((uint32_t) (((int) floorf(t * 4.0f)) & 3) + 1u) << 8;
+}
+
 /* tex_cntl is the TEX_CNTL_C value for the legs and tag prefixes the
-   row names. */
+   row names. Each leg's expected s follows the model in r3d_setup: the
+   secondary stage samples the raw s of the set it selects (s is equal in
+   both sets here), times its own W at each vertex when it divides,
+   divided by its interpolated W; with its perspective off it samples the
+   raw s as interpolated. What the primary stage does with the first set
+   does not change that. */
 static void
 sec_stage_legs(rage128_t *dev, uint32_t tex_cntl, const char *tag)
 {
     /* checked pixel center (44.5, 0.5) on the (0,0)-(64,0)-(0,4) triangle */
     const float w1 = 44.5f / 64.0f, w2 = 0.5f / 4.0f, w0 = 1.0f - w1 - w2;
-    /* s is 1 at vertex 1 and 0 elsewhere; rhw is 0.25 there and 1 elsewhere */
-    const float sp     = w1 * 1.0f * 0.25f;
-    const float rhw    = w0 + w1 * 0.25f + w2;
-    const float persp  = sp / rhw;        /* primary W, perspective */
-    const float affine = sp;              /* perspective disabled */
-    const float w2sel  = w1 * 1.0f * 1.0f; /* secondary W: rhw2 = 1 at every vertex */
+    /* s is s_right at vertex 1 and 0 elsewhere, s2 half that; t is 0.5
+       and t2 0.25 at every vertex, so the map row names the set sampled;
+       rhw is 0.25 at vertex 1 and 1 elsewhere; rhw2 is rhw2_right there
+       and 1 elsewhere. prim_dis sets PRIM_TEX_PERSPECTIVE_DIS. */
     static const struct {
         const char *name;
+        int         prim_dis;
         uint32_t    cntl;
         float       rhw2_right;
-        float       s;
+        float       s_right;
     } legs[] = {
-        { "primary W, perspective on",            0x00000000, 1.0f,  0 },
-        { "perspective disabled",                 0x00004000, 1.0f,  0 },
-        { "secondary W (rhw2 1), second ST set",  0x00008001, 1.0f,  0 },
-        { "secondary W (rhw2 = rhw), second ST",  0x00008001, 0.25f, 0 },
+        { "primary W, perspective on",                      0, 0x00000000, 1.0f,  1.0f },
+        { "perspective disabled",                           0, 0x00004000, 1.0f,  1.0f },
+        { "secondary W (rhw2 1), second ST set",            0, 0x00008001, 1.0f,  1.0f },
+        { "secondary W (rhw2 = rhw), second ST",            0, 0x00008001, 0.25f, 1.0f },
+        { "secondary W (rhw2 1), first ST set",             0, 0x00008000, 1.0f,  1.0f },
+        { "primary perspective off, secondary on, first",   1, 0x00000000, 1.0f,  0.5f },
+        { "primary perspective off, secondary on, second",  1, 0x00000001, 1.0f,  0.5f },
+        { "both perspective off, first ST set",             1, 0x00004000, 1.0f,  0.5f },
     };
-    const float want_s[4] = { persp, affine, w2sel, persp };
+    const int nlegs = (int) (sizeof(legs) / sizeof(legs[0]));
+    float     want_s[8], want_t[8];
     uint64_t jr0, jr1, jt, js, jm0, jm1;
     uint64_t gs0 = 0, gs1 = 0, gb0 = 0, gb1 = 0;
     int jv = rage128_jit_verify_mode(dev);
     char what[128];
     uint32_t *tex;
+
+    for (int l = 0; l < nlegs; l++) {
+        int   persp2 = !(legs[l].cntl & 0x00004000u);
+        int   set2   = (legs[l].cntl & 0x00000001u) != 0;
+        float sv1    = set2 ? legs[l].s_right * 0.5f : legs[l].s_right;
+        float wv1    = (legs[l].cntl & 0x00008000u) ? legs[l].rhw2_right : 0.25f;
+        float num    = w1 * sv1 * wv1;
+        float den    = w0 + w1 * wv1 + w2;
+
+        want_s[l] = persp2 ? num / den : w1 * sv1;
+        want_t[l] = set2 ? 0.25f : 0.5f; /* constant, so W cancels */
+    }
 
     harness_gpu_verify_stats(dev, &gs0, &gb0);
     /* The first accelerator register touch attaches the GPU backend,
@@ -22510,26 +22860,42 @@ sec_stage_legs(rage128_t *dev, uint32_t tex_cntl, const char *tag)
     x64l_context(dev);
     tex = (uint32_t *) &dev->svga.vram[X64L_TEX];
     for (int i = 0; i < 16; i++)
-        tex[i] = sp_col((float) (i & 3) / 4.0f);
+        tex[i] = sp_px((float) (i & 3) / 4.0f, (float) (i >> 2) / 4.0f);
     r128_texcache_dirty(dev, X64L_TEX, 64);
     wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x22222222u);
     wr(dev, RAGE128_SEC_TEX_COMBINE_CNTL_C, 0x04185041u);
     wr(dev, RAGE128_SEC_TEX_OFFSET_C(0), X64L_TEX);
     wr(dev, RAGE128_TEX_CNTL_C, tex_cntl);
     rage128_jit_verify_stats(dev, &jr0, &jt, &js, &jm0);
-    for (unsigned l = 0; l < sizeof(legs) / sizeof(legs[0]); l++) {
-        uint32_t cntl = (6u << 16) | (1u << 7) | legs[l].cntl;
-        uint32_t got  = sp_draw(dev, cntl, legs[l].rhw2_right);
+    for (int l = 0; l < nlegs; l++) {
+        uint32_t pcntl = (6u << 16) | (1u << 7) | (legs[l].prim_dis ? 0x00004000u : 0u);
+        uint32_t cntl  = (6u << 16) | (1u << 7) | legs[l].cntl;
+        uint32_t got   = sp_draw(dev, pcntl, cntl, legs[l].rhw2_right, legs[l].s_right);
 
-        printf("%s %s: s=%.6f want=%08x got=%08x\n", tag, legs[l].name,
-               want_s[l], sp_col(want_s[l]), got);
+        printf("%s %s: s=%.6f t=%.2f want=%08x got=%08x\n", tag, legs[l].name,
+               want_s[l], want_t[l], sp_px(want_s[l], want_t[l]), got);
         snprintf(what, sizeof(what), "%s %s", tag, legs[l].name);
-        check32(what, got, sp_col(want_s[l]));
+        check32(what, got, sp_px(want_s[l], want_t[l]));
     }
-    snprintf(what, sizeof(what), "%s: perspective and affine name different columns", tag);
-    check32(what, sp_col(persp) != sp_col(affine) && sp_col(persp) != sp_col(w2sel)
-                && sp_col(affine) != sp_col(w2sel), 1);
+    /* The legs only discriminate if the wrong answers name other
+       columns: perspective against the raw s (legs 0 and 1), and each
+       leg on the first set against the primary stage's interpolant of
+       that set, which is what a secondary stage reading it unchanged
+       would sample (raw s times rhw for legs 1 and 4, raw s divided by
+       rhw for leg 5). */
+    {
+        const float rhw  = w0 + w1 * 0.25f + w2;
+        const float sp1  = w1 * 1.0f * 0.25f;
+        const float bad5 = (w1 * 0.5f) / rhw;
+
+        snprintf(what, sizeof(what), "%s: the legs name different columns from the wrong answers", tag);
+        check32(what, sp_col(want_s[0]) != sp_col(want_s[1])
+                    && sp_col(want_s[1]) != sp_col(sp1)
+                    && sp_col(want_s[4]) != sp_col(sp1)
+                    && sp_col(want_s[5]) != sp_col(bad5), 1);
+    }
     wr(dev, RAGE128_TEX_CNTL_C, 0x00000010u);
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, (6u << 16) | (1u << 7));
     wr(dev, RAGE128_SEC_TEX_CNTL_C, (6u << 16) | (1u << 7));
     rage128_jit_verify_stats(dev, &jr1, &jt, &js, &jm1);
     if (jv) {

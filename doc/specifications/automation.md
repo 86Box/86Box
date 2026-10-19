@@ -35,8 +35,13 @@ token:
 - A client's first line must be `auth <token>`. Anything else, or a wrong
   token, gets `{"ok":false,"error":"authentication required"}` and the
   connection is closed. The comparison is constant-time, and the log shows
-  only the first 8 characters of the token. Authentication can't be turned
-  off.
+  only the first 8 characters of the token.
+- `--automation-insecure` turns the token off, for convenience on a machine
+  you trust, as with the GDB stub. TCP clients are then accepted without
+  one, no token file is written, and an `auth` line from a client that sends
+  one anyway gets `{"ok":true,"auth":true}`. Any local process can then
+  control the machine, and with `--automation-allow-remote` anyone who can
+  reach the port. It has no effect on a UNIX socket.
 - 86Box refuses to listen on a non-loopback address unless you also pass
   `--automation-allow-remote`, and then logs a warning. Think hard before
   using it. The protocol is unencrypted, and anyone who can reach the port
@@ -67,6 +72,7 @@ startup), `frames` (frames rendered) and `held`.
 | `wait mem <timeout_ms> <addr> <hex>` | Run until physical memory at `addr` equals the hex bytes, or until the timeout. |
 | `key down\|up <scancode>...` | Press or release keys. Scancodes are set-1 make codes; add `0x100` for E0-prefixed keys (e.g. `0x148` = Up). Events are delivered 2 ms of emulated time apart (a burst would overflow the keyboard FIFO); the reply comes after the last event plus its 2 ms, so a request consumes 2 ms per key. |
 | `mouse <dx> <dy> <buttons>` | Relative motion; buttons bitmask 1=left, 2=right, 4=middle. |
+| `tablet <x> <y> <buttons>` / `tablet out` | For the configured tablet, touch screen or light pen: the pen at pixel `x`,`y` of the last frame (the coordinates of `screenshot`), with the buttons pressed (1 = tip or touch); `out` lifts it out of range. With a mouse configured too, `mouse` and `tablet` each switch input to their own device, so both can be used. Fails if no tablet is configured. |
 | `screenshot <path>` | Write the most recent frame of monitor 0 as a PNG file. Reply has `w`, `h`. |
 | `record start <interval_ms> <dir>` / `record stop` | Save the displayed frame as `<dir>/<emulated ms>.png` every `interval_ms` of emulated time, whatever advances the clock (steps, waits, real time). The directory must exist. `stop` replies with the number of frames written. |
 | `info` | Version, machine, CPU and clock, RAM, video and sound cards, mounted hard disk/floppy/CD images, `hard_resets`/`soft_resets` (every CPU reset, including a guest triple fault) and `last_reset_ms`, and `speed_percent` (100 = real time). |
@@ -84,7 +90,8 @@ Numbers accept C syntax (`0x` hex, decimal).
 
 `wait`, `memr` and `text` read memory through the normal physical memory map,
 so a read in a memory-mapped device range may have side effects (for example,
-VGA latches).
+VGA latches). They don't cost the emulated CPU time, though: a device's wait
+states are not charged for reads and writes made for a client.
 
 Try it by hand:
 
@@ -102,6 +109,19 @@ Over TCP, send the token first:
 $ 86Box --automation tcp:7086 --automation-token-file /tmp/86box.token &
 $ (echo "auth $(cat /tmp/86box.token)"; echo status) | socat - TCP:127.0.0.1:7086
 ```
+
+## Warnings
+
+With automation on, 86Box writes warnings (such as a media image that can't
+be loaded) to its log and carries on, without the warning dialog it otherwise
+shows. A client with no window couldn't dismiss it, and the machine and the
+socket would be stuck until someone did.
+
+## When 86Box stops
+
+On a fatal error, 86Box writes the message to its log and closes the
+automation socket before it shows the error dialog, so a client sees its
+connection close rather than waiting for a reply.
 
 ## With the GDB stub
 

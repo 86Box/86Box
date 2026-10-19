@@ -153,6 +153,8 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
                 fatal("!uop_handlers[uop->type & UOP_MASK] %08x\n", uop->type);
 #endif
             uop_handlers[uop->type & UOP_MASK](block, uop);
+            if (uop->type & UOP_TYPE_ORDER_BARRIER)
+                codegen_reg_drop_cycles();
         }
 
         if (uop->type & UOP_TYPE_JUMP) {

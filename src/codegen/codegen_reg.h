@@ -448,6 +448,8 @@ void codegen_reg_reset(void);
 void codegen_reg_flush(struct ir_data_t *ir, codeblock_t *block);
 /*Write back and evict all registers*/
 void codegen_reg_flush_invalidate(struct ir_data_t *ir, codeblock_t *block);
+/*Evict IREG_cycles if it is cached and clean*/
+void codegen_reg_drop_cycles(void);
 
 /*Register ir_reg usage for this uOP. This ensures that required registers aren't evicted*/
 void codegen_reg_alloc_register(ir_reg_t dest_reg_a, ir_reg_t src_reg_a, ir_reg_t src_reg_b, ir_reg_t src_reg_c);
