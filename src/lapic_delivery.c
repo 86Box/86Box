@@ -403,7 +403,7 @@ lapic_icr_remote_read_write(lapic_state_t *lapic, const lapic_target_info_t *tar
 
 static int
 lapic_icr_fixed_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
-                      uint8_t vector, int route_parked)
+                      uint8_t vector, int route_parked, int self)
 {
     lapic_target_info_t filtered;
     apic_bus_message_t  message = {
@@ -416,9 +416,19 @@ lapic_icr_fixed_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
     if (lapic == NULL)
         return 0;
 
+    /* A self interrupt is no bus message: an illegal vector is found on
+       receipt (Pentium Vol. 3, 19.3.3), and it is taken even while the
+       APIC is software disabled (19.3.1.11), held in the IRR then. */
     if (!lapic_vector_valid(vector)) {
-        lapic_error(lapic, apic_bus_result_invalid_send_vector().source_esr);
+        lapic_error(lapic, self ? LAPIC_ESR_RECV_ILLEGAL_VECTOR :
+                                  apic_bus_result_invalid_send_vector().source_esr);
         return 0;
+    }
+    if (self) {
+        /* It goes into the IRR, merging with one pending. */
+        cpu_lapic_accept_interrupt_index(lapic->index, vector, 0);
+        lapic_sync_int_regs(lapic);
+        return 1;
     }
 
     if (targets == NULL)
@@ -703,7 +713,8 @@ lapic_icr_write(lapic_state_t *lapic, lapic_state_t *lapics, uint8_t count,
     }
 
     if (icr.delivery == LAPIC_ICR_DELIV_FIXED) {
-        delivered = lapic_icr_fixed_write(lapic, &targets, icr.vector, route_parked);
+        delivered = lapic_icr_fixed_write(lapic, &targets, icr.vector, route_parked,
+                                          icr.shorthand == LAPIC_ICR_DEST_SELF);
     } else if (icr.delivery == LAPIC_ICR_DELIV_LOWEST) {
         delivered = lapic_icr_lowest_priority_write(lapic, &targets, icr.vector,
                                                     route_parked);
