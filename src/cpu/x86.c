@@ -425,8 +425,11 @@ reset_common(int hard)
 
     /* INIT keeps the model-specific registers (Pentium Vol. 1, 3.3): the
        vendor reset, which clears every MSR, is RESET's. */
-    if (!reset_init)
+    if (!reset_init) {
         cpu_ven_reset();
+        /* RESET empties the caches too. */
+        cpu_car_invalidate();
+    }
 
     in_smm = smi_latched = 0;
     /* Out of any HLT: the block end must not step past the reset vector's
