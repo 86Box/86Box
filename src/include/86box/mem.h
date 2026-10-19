@@ -19,6 +19,8 @@
 #ifndef EMU_MEM_H
 #define EMU_MEM_H
 
+#include <stdint.h>
+
 #define MEM_MAP_TO_SHADOW_RAM_MASK 1
 #define MEM_MAP_TO_RAM_ADDR_MASK   2
 

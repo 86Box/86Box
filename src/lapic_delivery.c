@@ -1,0 +1,1021 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Copyright 2026 skiretic.
+ */
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+
+#include "cpu.h"
+#include "lapic.h"
+#include "lapic_internal.h"
+#include "lapic_policy.h"
+
+/* Model-only tie cursor for lowest-priority ICR delivery, not LAPIC register state. */
+static uint8_t lapic_icr_lowest_priority_next;
+
+#define LAPIC_PHYS_BROADCAST_4BIT 0x01
+#define LAPIC_PHYS_BROADCAST_8BIT 0x02
+
+static void lapic_arbitration_id_set(lapic_state_t *lapic, uint8_t arb_id);
+static lapic_state_t *lapic_choose_focus_processor_target(
+                                const lapic_target_info_t *targets,
+                                uint8_t vector, int route_parked);
+
+static apic_bus_result_t
+lapic_accept_fixed_interrupt(lapic_state_t *lapic,
+                             const apic_bus_message_t *message,
+                             uint32_t invalid_error)
+{
+    uint8_t error_vector;
+    int     action;
+
+    if ((lapic == NULL) || (message == NULL))
+        return apic_bus_result_no_target();
+
+    action = cpu_lapic_fixed_delivery_action_index(lapic->index, lapic->started,
+                                                   message->vector, invalid_error,
+                                                   &error_vector);
+    if (action == CPU_LAPIC_FIXED_REJECT) {
+        lapic_error(lapic, LAPIC_ESR_RECV_ACCEPT);
+        return apic_bus_result_rejected_recv_accept();
+    }
+
+    if (action == CPU_LAPIC_FIXED_ERROR) {
+        apic_bus_message_t error_message = *message;
+
+        /*
+         * CPU LAPIC code supplies the error-vector candidate. Retry through the
+         * fixed path with invalid_error clear so bad original vectors cannot
+         * recurse into another error-vector injection.
+         */
+        error_message.vector = error_vector;
+        error_message.level = 0;
+        lapic_accept_fixed_interrupt(lapic, &error_message, 0);
+        lapic_log(lapic->mmio, "APIC-WARN: LAPIC rejected invalid vector=%02x\n",
+                  message->vector);
+        return apic_bus_result_invalid_recv_vector();
+    }
+
+    cpu_lapic_accept_interrupt_index(lapic->index, message->vector, message->level);
+
+    lapic_sync_int_regs(lapic);
+    if (lapic_log_first(&lapic->accept_log_count[message->vector], 8))
+        lapic_log(lapic->mmio, "LAPIC: accepted vector=%02x trigger=%s count=%u\n",
+                  message->vector, message->level ? "level" : "edge",
+                  lapic->accept_log_count[message->vector]);
+
+    return apic_bus_result(APIC_BUS_ACCEPTED);
+}
+
+apic_bus_result_t
+lapic_accept_interrupt_target(lapic_state_t *lapic,
+                              const apic_bus_message_t *message)
+{
+    return lapic_accept_fixed_interrupt(lapic, message,
+                                        LAPIC_ESR_RECV_ILLEGAL_VECTOR);
+}
+
+int
+lapic_targets_deliver_init(const lapic_target_info_t *targets, int assert)
+{
+    int delivered = 0;
+
+    if (targets == NULL)
+        return 0;
+
+    for (uint8_t i = 0; i < targets->count; i++) {
+        lapic_state_t *target = targets->lapics[i];
+
+        if (target == NULL)
+            continue;
+
+        lapic_init_signal(target, assert);
+        delivered = 1;
+    }
+
+    return delivered;
+}
+
+void
+lapic_clear_interrupt_vector(lapic_state_t *lapic, uint8_t vector)
+{
+    if (lapic == NULL)
+        return;
+
+    cpu_lapic_clear_interrupt_vector_index(lapic->index, vector);
+    lapic_sync_int_regs(lapic);
+}
+
+int
+lapic_lint0_extint_enabled(const lapic_state_t *lapic)
+{
+    uint32_t lvt;
+
+    if (lapic == NULL)
+        return 0;
+
+    lvt = cpu_lapic_lvt_lint0_read_index(lapic->index);
+
+    return lapic_enabled(lapic) &&
+           !(lvt & LAPIC_LVT_MASK) &&
+           ((lvt & LAPIC_LVT_DELIV) == LAPIC_LVT_DELIV_EXTINT) &&
+           cpu_lapic_extint_deliverable_index(lapic->index, lapic->started, 1);
+}
+
+int
+lapic_interrupt_pending(const lapic_state_t *lapic)
+{
+    if (lapic == NULL)
+        return 0;
+
+    return (lapic_highest_deliverable_irr(lapic) >= 0) ||
+           lapic_extint_deliverable(lapic);
+}
+
+int
+lapic_highest_deliverable_irr(const lapic_state_t *lapic)
+{
+    return cpu_lapic_highest_deliverable_irr_index(lapic->index, lapic->started);
+}
+
+int
+lapic_promote_irr(lapic_state_t *lapic)
+{
+    int vector;
+
+    if (lapic == NULL)
+        return -1;
+
+    vector = lapic_highest_deliverable_irr(lapic);
+    if (vector < 0)
+        return -1;
+
+    cpu_lapic_promote_irr_index(lapic->index, vector);
+    lapic_sync_int_regs(lapic);
+
+    if (lapic_log_first(&lapic->promote_log_count[vector], 8))
+        lapic_log(lapic->mmio, "LAPIC: vector=%02x promoted IRR->ISR count=%u\n",
+                  vector, lapic->promote_log_count[vector]);
+
+    return vector;
+}
+
+int
+lapic_extint_deliverable(const lapic_state_t *lapic)
+{
+    return cpu_lapic_extint_deliverable_index(lapic->index, lapic->started,
+                                              lapic->extint_pending);
+}
+
+void
+lapic_mark_extint_pending(lapic_state_t *lapic, uint8_t pin)
+{
+    if (lapic == NULL)
+        return;
+
+    lapic->extint_pending = 1;
+    lapic->extint_pin = pin;
+}
+
+int
+lapic_consume_extint(lapic_state_t *lapic, uint8_t *pin)
+{
+    if ((lapic == NULL) || !lapic_extint_deliverable(lapic))
+        return 0;
+
+    if (pin != NULL)
+        *pin = lapic->extint_pin;
+    /* Keep the pin visible until the LAPIC path actually accepts EXTINT. */
+    lapic->extint_pending = 0;
+
+    return 1;
+}
+
+void
+lapic_error(lapic_state_t *lapic, uint32_t error)
+{
+    uint8_t vector;
+
+    if (lapic == NULL)
+        return;
+
+    if (cpu_lapic_error_delivery_action_index(lapic->index, lapic->started,
+                                              error, &vector) == CPU_LAPIC_FIXED_ACCEPT) {
+        apic_bus_message_t message = {
+            .source   = APIC_BUS_AGENT_LAPIC,
+            .delivery = APIC_BUS_DELIVERY_FIXED,
+            .vector   = vector
+        };
+
+        /* Reuse fixed delivery so error-vector acceptance obeys normal CPU gates. */
+        lapic_accept_fixed_interrupt(lapic, &message, 0);
+    }
+}
+
+static int
+lapic_lint_init_deliver(lapic_state_t *lapic, uint32_t lint_reg)
+{
+    if ((lapic == NULL) || (lint_reg != LAPIC_REG_LVT_LINT1))
+        return 1;
+
+    /*
+       LINT INIT has CPU reset/startup semantics. Keep the current UP APIC path
+       behavior-preserving and leave the real action to the later AP startup
+       ownership work.
+     */
+    if (lapic_log_first(&lapic->lint_init_log_count, 4))
+        lapic_log(lapic->mmio, "LAPIC: LINT INIT deferred id=%02x lint=%03x count=%u\n",
+                  lapic_current_id(lapic), lint_reg, lapic->lint_init_log_count);
+
+    return 1;
+}
+
+int
+lapic_lint_deliver(lapic_state_t *lapic, uint32_t lint_reg)
+{
+    uint8_t vector;
+    uint8_t lint;
+    int     level;
+    int     action;
+
+    if (lapic == NULL)
+        return 0;
+
+    lint   = (lint_reg == LAPIC_REG_LVT_LINT1) ? CPU_LAPIC_LINT1 : CPU_LAPIC_LINT0;
+    action = cpu_lapic_lint_delivery_index(lapic->index, lapic->started, lint, &vector, &level);
+
+    switch (action) {
+        case CPU_LAPIC_LINT_ACTION_NONE:
+            return 0;
+
+        case CPU_LAPIC_LINT_ACTION_HANDLED:
+            return 1;
+
+        case CPU_LAPIC_LINT_ACTION_FIXED:
+        {
+            apic_bus_message_t message = {
+                .source   = APIC_BUS_AGENT_LAPIC,
+                .delivery = APIC_BUS_DELIVERY_FIXED,
+                .vector   = vector,
+                .level    = !!level
+            };
+            apic_bus_result_t result =
+                lapic_accept_fixed_interrupt(lapic, &message, LAPIC_ESR_SEND_ILLEGAL_VECTOR);
+
+            if (apic_bus_result_accepted(result))
+                cpu_lapic_lvt_delivery_complete_index(lapic->index, lint_reg);
+            else
+                cpu_lapic_lvt_delivery_pending_index(lapic->index, lint_reg);
+            return 1;
+        }
+
+        case CPU_LAPIC_LINT_ACTION_SMI:
+            cpu_smi_raise_direct();
+            return 1;
+
+        case CPU_LAPIC_LINT_ACTION_NMI:
+            cpu_nmi_raise_direct();
+            return 1;
+
+        case CPU_LAPIC_LINT_ACTION_INIT:
+            return lapic_lint_init_deliver(lapic, lint_reg);
+
+        case CPU_LAPIC_LINT_ACTION_EXTINT:
+            return (lint_reg == LAPIC_REG_LVT_LINT0) ? 0 : 1;
+
+        default:
+            return 1;
+    }
+}
+
+int
+lapic_lvt_source_deliver(lapic_state_t *lapic, uint32_t lvt_reg)
+{
+    uint8_t vector;
+    uint8_t source;
+    int     action;
+
+    if (lapic == NULL)
+        return 0;
+
+    if (lvt_reg == LAPIC_REG_LVT_THERMAL)
+        source = CPU_LAPIC_LVT_SOURCE_THERMAL;
+    else if (lvt_reg == LAPIC_REG_LVT_PERF)
+        source = CPU_LAPIC_LVT_SOURCE_PERF;
+    else
+        return 0;
+
+    action = cpu_lapic_lvt_source_delivery_index(lapic->index, lapic->started,
+                                                 source, &vector);
+    switch (action) {
+        case CPU_LAPIC_LINT_ACTION_NONE:
+            return 0;
+
+        case CPU_LAPIC_LINT_ACTION_HANDLED:
+            return 1;
+
+        case CPU_LAPIC_LINT_ACTION_FIXED:
+        {
+            apic_bus_message_t message = {
+                .source   = APIC_BUS_AGENT_LAPIC,
+                .delivery = APIC_BUS_DELIVERY_FIXED,
+                .vector   = vector
+            };
+            apic_bus_result_t result =
+                lapic_accept_fixed_interrupt(lapic, &message, LAPIC_ESR_SEND_ILLEGAL_VECTOR);
+
+            if (apic_bus_result_accepted(result))
+                cpu_lapic_lvt_delivery_complete_index(lapic->index, lvt_reg);
+            else
+                cpu_lapic_lvt_delivery_pending_index(lapic->index, lvt_reg);
+            return 1;
+        }
+
+        case CPU_LAPIC_LINT_ACTION_SMI:
+            cpu_smi_raise_direct();
+            return 1;
+
+        case CPU_LAPIC_LINT_ACTION_NMI:
+            cpu_nmi_raise_direct();
+            return 1;
+
+        default:
+            return 1;
+    }
+}
+
+static int
+lapic_icr_remote_read_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
+                            uint8_t vector)
+{
+    lapic_state_t *target;
+    uint32_t       val;
+    uint32_t       reg = ((uint32_t) vector) << 4;
+
+    if ((lapic == NULL) || (targets == NULL))
+        return 0;
+
+    if (!targets->count) {
+        lapic_error(lapic, apic_bus_result_no_target().source_esr);
+        return 0;
+    }
+
+    if (!lapic_mmio_reg_defined(reg)) {
+        lapic_error(lapic, apic_bus_result_invalid_register().source_esr);
+        return 0;
+    }
+
+    target = targets->lapics[0];
+    if (target == NULL)
+        return 0;
+
+    /*
+     * Remote read returns one selected LAPIC register image. Mirror fallback
+     * covers state owned outside the CPU LAPIC MMIO helper.
+     */
+    lapic_sync_int_regs(target);
+    if (!cpu_lapic_mmio_read_index(target->index, reg, &val))
+        val = lapic_mirror_read_reg(target, reg);
+    cpu_lapic_icr_remote_read_complete_index(lapic->index, val);
+    lapic_log(lapic->mmio, "LAPIC: remote read slot=%u reg=%03x val=%08x\n",
+              targets->indices[0], reg, val);
+
+    return 1;
+}
+
+static int
+lapic_icr_fixed_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
+                      uint8_t vector, int route_parked)
+{
+    lapic_target_info_t filtered;
+    apic_bus_message_t  message = {
+        .source   = APIC_BUS_AGENT_LAPIC,
+        .delivery = APIC_BUS_DELIVERY_FIXED,
+        .vector   = vector
+    };
+    apic_bus_result_t   result;
+
+    if (lapic == NULL)
+        return 0;
+
+    if (!lapic_vector_valid(vector)) {
+        lapic_error(lapic, apic_bus_result_invalid_send_vector().source_esr);
+        return 0;
+    }
+
+    if (targets == NULL)
+        return 0;
+
+    filtered = *targets;
+    lapic_targets_keep_interruptible(&filtered, route_parked);
+    result = lapic_targets_accept_fixed(&filtered, &message);
+    if (result.source_esr)
+        lapic_error(lapic, result.source_esr);
+
+    return apic_bus_result_accepted(result);
+}
+
+static int
+lapic_icr_lowest_priority_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
+                                uint8_t vector, int route_parked)
+{
+    lapic_target_info_t filtered;
+
+    if (lapic == NULL)
+        return 0;
+
+    if (!lapic_vector_valid(vector)) {
+        lapic_error(lapic, apic_bus_result_invalid_send_vector().source_esr);
+        return 0;
+    }
+
+    if (targets == NULL)
+        return 0;
+
+    filtered = *targets;
+    lapic_targets_keep_interruptible(&filtered, route_parked);
+
+    apic_bus_message_t message = {
+        .source   = APIC_BUS_AGENT_LAPIC,
+        .delivery = APIC_BUS_DELIVERY_LOWEST,
+        .vector   = vector
+    };
+    apic_bus_result_t result =
+        lapic_targets_accept_lowest_priority(&filtered, &lapic_icr_lowest_priority_next,
+                                             route_parked, &message);
+
+    if (apic_bus_result_accepted(result))
+        return 1;
+
+    if (result.source_esr)
+        lapic_error(lapic, result.source_esr);
+    return 0;
+}
+
+static int
+lapic_icr_smi_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
+                    int route_parked)
+{
+    lapic_target_info_t filtered;
+    int                 delivered = 0;
+
+    if (targets == NULL)
+        return 0;
+
+    filtered = *targets;
+    lapic_targets_keep_interruptible(&filtered, route_parked);
+    for (uint8_t i = 0; i < filtered.count; i++) {
+        cpu_smi_raise_direct();
+        delivered = 1;
+    }
+    if (!delivered)
+        lapic_error(lapic, apic_bus_result_no_target().source_esr);
+
+    return delivered;
+}
+
+static int
+lapic_icr_nmi_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
+                    int route_parked)
+{
+    lapic_target_info_t filtered;
+    int                 delivered = 0;
+
+    if (targets == NULL)
+        return 0;
+
+    filtered = *targets;
+    lapic_targets_keep_interruptible(&filtered, route_parked);
+    for (uint8_t i = 0; i < filtered.count; i++) {
+        cpu_nmi_raise_direct();
+        delivered = 1;
+    }
+    if (!delivered)
+        lapic_error(lapic, apic_bus_result_no_target().source_esr);
+
+    return delivered;
+}
+
+static lapic_startup_action_t
+lapic_icr_startup_state_write(lapic_state_t *target, uint32_t delivery,
+                              uint8_t vector, int assert)
+{
+    if (target == NULL)
+        return LAPIC_STARTUP_ACTION_NONE;
+
+    if (delivery == LAPIC_ICR_DELIV_INIT) {
+        target->init_asserted = !!assert;
+        if (!target->is_bsp) {
+            /* INIT/SIPI state is model bookkeeping; startup itself is delegated. */
+            target->started = 0;
+            target->wait_for_sipi = !assert;
+            if (assert)
+                target->sipi_vector = 0;
+        }
+        return LAPIC_STARTUP_ACTION_INIT;
+    }
+
+    if (delivery == LAPIC_ICR_DELIV_SIPI) {
+        if (!target->is_bsp && target->wait_for_sipi) {
+            target->sipi_vector = vector;
+            return LAPIC_STARTUP_ACTION_SIPI;
+        }
+    }
+
+    return LAPIC_STARTUP_ACTION_NONE;
+}
+
+void
+lapic_startup_mark_parked(lapic_state_t *lapic)
+{
+    if (lapic == NULL)
+        return;
+
+    /*
+     * Parked APs have accepted SIPI and moved to startup ownership. Normal
+     * interrupt routing skips them unless the caller explicitly routes parked.
+     */
+    lapic->started = 1;
+    lapic->wait_for_sipi = 0;
+    lapic->init_asserted = 0;
+    lapic->parked = 1;
+}
+
+static void
+lapic_arbitration_rotate_after_lapic(lapic_state_t *lapics, uint8_t count,
+                                     uint8_t winner_index)
+{
+    lapic_state_t *winner_lapic;
+    uint8_t        winner;
+
+    winner_lapic = lapic_at(lapics, count, winner_index);
+    if (winner_lapic == NULL)
+        return;
+
+    winner = winner_lapic->arb_id & 0x0f;
+    for (uint8_t i = 0; i < count; i++) {
+        lapic_state_t *lapic = lapic_at(lapics, count, i);
+
+        if ((lapic != NULL) && (i != winner_index) && ((lapic->arb_id & 0x0f) < winner))
+            lapic_arbitration_id_set(lapic, lapic->arb_id + 1);
+    }
+
+    lapic_arbitration_id_set(winner_lapic, 0);
+}
+
+static int
+lapic_icr_startup_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
+                        uint32_t delivery, uint8_t vector, uint32_t val,
+                        lapic_icr_startup_handler_t startup_handler, void *startup_priv)
+{
+    int updated = 0;
+    int assert  = !!(val & LAPIC_ICR_LEVEL);
+
+    if (targets == NULL)
+        return 0;
+
+    if (!targets->count) {
+        lapic_error(lapic, apic_bus_result_no_target().source_esr);
+        return 0;
+    }
+
+    for (uint8_t i = 0; i < targets->count; i++) {
+        lapic_state_t *target = targets->lapics[i];
+        uint8_t        target_index = targets->indices[i];
+        lapic_startup_action_t action;
+
+        if (target == NULL)
+            continue;
+
+        action = lapic_icr_startup_state_write(target, delivery, vector, assert);
+        if (action == LAPIC_STARTUP_ACTION_INIT) {
+            updated = 1;
+        } else if (action == LAPIC_STARTUP_ACTION_SIPI) {
+            if ((startup_handler != NULL) &&
+                startup_handler(startup_priv, target_index, vector))
+                lapic_startup_mark_parked(target);
+            updated = 1;
+        }
+    }
+
+    return updated;
+}
+
+void
+lapic_icr_write(lapic_state_t *lapic, lapic_state_t *lapics, uint8_t count,
+                uint8_t current_index, uint32_t val, int route_parked,
+                lapic_icr_startup_handler_t startup_handler, void *startup_priv)
+{
+    cpu_lapic_icr_delivery_t icr;
+    lapic_target_info_t      targets;
+    int                      delivered = 0;
+
+    if ((lapic == NULL) || (lapics == NULL))
+        return;
+
+    if (!cpu_lapic_icr_delivery_write_index(lapic->index, val, &icr))
+        return;
+
+    lapic_select_icr_targets(lapics, count, current_index, icr.dest, icr.destmod,
+                             icr.shorthand, &targets);
+
+    if (icr.delivery == LAPIC_ICR_DELIV_FIXED) {
+        delivered = lapic_icr_fixed_write(lapic, &targets, icr.vector, route_parked);
+    } else if (icr.delivery == LAPIC_ICR_DELIV_LOWEST) {
+        delivered = lapic_icr_lowest_priority_write(lapic, &targets, icr.vector,
+                                                    route_parked);
+    } else if (icr.delivery == LAPIC_ICR_DELIV_SMI) {
+        delivered = lapic_icr_smi_write(lapic, &targets, route_parked);
+    } else if (icr.delivery == LAPIC_ICR_DELIV_REMOTE_READ) {
+        cpu_lapic_icr_remote_read_in_progress_index(lapic->index);
+        delivered = lapic_icr_remote_read_write(lapic, &targets, icr.vector);
+        if (!delivered)
+            cpu_lapic_icr_remote_read_clear_index(lapic->index);
+    } else if (icr.delivery == LAPIC_ICR_DELIV_NMI) {
+        delivered = lapic_icr_nmi_write(lapic, &targets, route_parked);
+    } else if ((icr.delivery == LAPIC_ICR_DELIV_INIT) || (icr.delivery == LAPIC_ICR_DELIV_SIPI)) {
+        delivered = lapic_icr_startup_write(lapic, &targets, icr.delivery, icr.vector, val,
+                                            startup_handler, startup_priv);
+    }
+
+    cpu_lapic_icr_delivery_complete_index(lapic->index);
+
+    if (delivered)
+        lapic_arbitration_rotate_after_lapic(lapics, count, current_index);
+
+    if (lapic_log_first(&lapic->icr_log_count[icr.vector], 8))
+        lapic_log(lapic->mmio,
+                  "LAPIC: ICR write vector=%02x delivery=%03x destmod=%u shorthand=%x dest=%02x level=%u trigger=%u deliver=%u count=%u\n",
+                  icr.vector, icr.delivery >> 8, icr.destmod, icr.shorthand >> 18,
+                  icr.dest, icr.level, icr.trigger, delivered,
+                  lapic->icr_log_count[icr.vector]);
+}
+
+static int
+lapic_logical_dest_match(const lapic_state_t *lapic, uint8_t dest)
+{
+    uint8_t  logical_id = cpu_lapic_ldr_read_index(lapic->index) >> 24;
+    uint32_t dfr        = cpu_lapic_dfr_read_index(lapic->index);
+
+    if (!dest)
+        return 0;
+
+    /*
+       Linux 2.2 uses logical destination broadcasts on uniprocessor APIC
+       systems before assigning a non-zero LAPIC LDR.
+     */
+    if (dest == 0xff)
+        return 1;
+
+    if (!logical_id)
+        return 0;
+
+    if ((dfr & 0xf0000000) == 0xf0000000)
+        return !!(dest & logical_id);
+
+    return ((dest & 0xf0) == (logical_id & 0xf0)) &&
+           !!(dest & logical_id & 0x0f);
+}
+
+static int
+lapic_dest_match(const lapic_state_t *lapic, uint8_t dest, int logical, int physical_broadcast)
+{
+    if (logical)
+        return lapic_logical_dest_match(lapic, dest);
+
+    return (dest == lapic_current_id(lapic)) ||
+           ((physical_broadcast & LAPIC_PHYS_BROADCAST_4BIT) && (dest == 0x0f)) ||
+           ((physical_broadcast & LAPIC_PHYS_BROADCAST_8BIT) && (dest == 0xff));
+}
+
+void
+lapic_targets_clear(lapic_target_info_t *targets)
+{
+    memset(targets, 0, sizeof(*targets));
+}
+
+static void
+lapic_targets_add(lapic_target_info_t *targets, uint8_t index, lapic_state_t *lapic)
+{
+    if ((lapic == NULL) || (index >= APIC_MAX_LAPICS) ||
+        (targets->count >= (sizeof(targets->lapics) / sizeof(targets->lapics[0]))))
+        return;
+
+    targets->bitmap |= 1u << index;
+    targets->indices[targets->count] = index;
+    targets->lapics[targets->count++] = lapic;
+}
+
+static int
+lapic_target_interruptible(const lapic_state_t *lapic, int route_parked)
+{
+    if ((lapic == NULL) || !lapic->started)
+        return 0;
+
+    /* Parked LAPICs are startup-owned; only explicit route_parked paths see them. */
+    return !lapic->parked || route_parked;
+}
+
+void
+lapic_targets_keep_interruptible(lapic_target_info_t *targets, int route_parked)
+{
+    lapic_target_info_t filtered;
+
+    lapic_targets_clear(&filtered);
+    for (uint8_t i = 0; i < targets->count; i++) {
+        if (lapic_target_interruptible(targets->lapics[i], route_parked))
+            lapic_targets_add(&filtered, targets->indices[i], targets->lapics[i]);
+    }
+
+    *targets = filtered;
+}
+
+apic_bus_result_t
+lapic_targets_accept_fixed(const lapic_target_info_t *targets,
+                           const apic_bus_message_t *message)
+{
+    apic_bus_result_t result = apic_bus_result_no_target();
+
+    if ((targets == NULL) || (message == NULL))
+        return result;
+
+    for (uint8_t i = 0; i < targets->count; i++) {
+        apic_bus_result_t target_result =
+            lapic_accept_interrupt_target(targets->lapics[i], message);
+
+        if (apic_bus_result_accepted(target_result)) {
+            result = target_result;
+            continue;
+        }
+        /*
+         * Multi-target delivery keeps trying every LAPIC. Preserve target ESR
+         * only when no LAPIC accepted, so one bad receiver cannot poison a
+         * successful send.
+         */
+        if (!apic_bus_result_accepted(result) && (target_result.target_esr != 0))
+            result = target_result;
+    }
+
+    return result;
+}
+
+apic_bus_result_t
+lapic_targets_accept_lowest_priority(const lapic_target_info_t *targets,
+                                     uint8_t *lowest_priority_next,
+                                     int route_parked,
+                                     const apic_bus_message_t *message)
+{
+    lapic_state_t *target;
+
+    if (message == NULL)
+        return apic_bus_result_no_target();
+
+    target = lapic_choose_focus_processor_target(targets, message->vector, route_parked);
+    if (target == NULL)
+        target = lapic_choose_lowest_priority_target(targets, lowest_priority_next,
+                                                     route_parked);
+    if (target == NULL)
+        return apic_bus_result_no_target();
+
+    return lapic_accept_interrupt_target(target, message);
+}
+
+static void
+lapic_arbitration_id_set(lapic_state_t *lapic, uint8_t arb_id)
+{
+    if (lapic == NULL)
+        return;
+
+    lapic->arb_id = arb_id & 0x0f;
+    cpu_lapic_apr_load_index(lapic->index, ((uint32_t) lapic->arb_id) << 24);
+}
+
+void
+lapic_arbitration_id_reset_from_id(lapic_state_t *lapic)
+{
+    if (lapic == NULL)
+        return;
+
+    lapic_arbitration_id_set(lapic, lapic->id);
+}
+
+void
+lapic_arbitration_rotate_with_ioapic(lapic_state_t *lapics, uint8_t count,
+                                     uint8_t *ioapic_arb_id)
+{
+    uint8_t winner;
+
+    if (ioapic_arb_id == NULL)
+        return;
+
+    winner = *ioapic_arb_id & 0x0f;
+    if (lapics != NULL) {
+        for (uint8_t i = 0; i < count; i++) {
+            lapic_state_t *lapic = lapic_at(lapics, count, i);
+
+            if ((lapic != NULL) && ((lapic->arb_id & 0x0f) < winner))
+                lapic_arbitration_id_set(lapic, lapic->arb_id + 1);
+        }
+    }
+    *ioapic_arb_id = 0;
+}
+
+int
+lapic_targets_mark_extint_first(const lapic_target_info_t *targets, uint8_t pin)
+{
+    if ((targets == NULL) || !targets->count)
+        return 0;
+
+    /* Platform EXTINT routing has already ordered targets; LAPIC latches first. */
+    lapic_mark_extint_pending(targets->lapics[0], pin);
+    return 1;
+}
+
+int
+lapic_select_targets(lapic_state_t *lapics, uint8_t count, uint8_t dest, int logical,
+                     int physical_broadcast, lapic_target_info_t *targets)
+{
+    lapic_targets_clear(targets);
+    for (uint8_t i = 0; i < count; i++) {
+        lapic_state_t *lapic = lapic_at(lapics, count, i);
+
+        if ((lapic != NULL) && lapic_dest_match(lapic, dest, logical, physical_broadcast))
+            lapic_targets_add(targets, i, lapic);
+    }
+
+    return targets->count;
+}
+
+static int
+lapic_icr_physical_broadcast_mode(lapic_state_t *lapics, uint8_t count,
+                                  uint8_t current_index)
+{
+    const lapic_state_t *source = lapic_at(lapics, count, current_index);
+    uint32_t             version;
+
+    if (source == NULL)
+        return LAPIC_PHYS_BROADCAST_4BIT;
+
+    version = lapic_mirror_read_reg(source, LAPIC_REG_VERSION);
+    return ((version & 0xff) >= 0x14) ?
+               LAPIC_PHYS_BROADCAST_8BIT :
+               LAPIC_PHYS_BROADCAST_4BIT;
+}
+
+int
+lapic_select_icr_targets(lapic_state_t *lapics, uint8_t count, uint8_t current_index,
+                         uint8_t dest, int logical, uint32_t shorthand,
+                         lapic_target_info_t *targets)
+{
+    lapic_targets_clear(targets);
+
+    switch (shorthand) {
+        case 0:
+            return lapic_select_targets(lapics, count, dest, logical,
+                                        lapic_icr_physical_broadcast_mode(lapics, count,
+                                                                         current_index),
+                                        targets);
+
+        case LAPIC_ICR_DEST_SELF:
+            lapic_targets_add(targets, current_index, lapic_at(lapics, count, current_index));
+            return targets->count;
+
+        case LAPIC_ICR_DEST_ALL_INCL:
+        case LAPIC_ICR_DEST_ALL_EXCL:
+            for (uint8_t i = 0; i < count; i++) {
+                if ((shorthand == LAPIC_ICR_DEST_ALL_EXCL) && (i == current_index))
+                    continue;
+
+                lapic_targets_add(targets, i, lapic_at(lapics, count, i));
+            }
+            return targets->count;
+    }
+
+    return 0;
+}
+
+static uint8_t
+lapic_arbitration_id(const lapic_state_t *lapic)
+{
+    return (lapic != NULL) ? (lapic->arb_id & 0x0f) : 0x0f;
+}
+
+static int
+lapic_lowest_priority_best(const lapic_target_info_t *targets, int route_parked,
+                           uint32_t *best_ppr, uint8_t *best_arb)
+{
+    int found = 0;
+
+    for (uint8_t i = 0; i < targets->count; i++) {
+        lapic_state_t *candidate = targets->lapics[i];
+        uint32_t       ppr;
+
+        if (!lapic_target_interruptible(candidate, route_parked))
+            continue;
+
+        ppr = cpu_lapic_ppr_update_index(candidate->index);
+
+        if (!found || (ppr < *best_ppr) ||
+            ((ppr == *best_ppr) && (lapic_arbitration_id(candidate) > *best_arb))) {
+            *best_ppr = ppr;
+            *best_arb = lapic_arbitration_id(candidate);
+            found = 1;
+        }
+    }
+
+    return found;
+}
+
+static int
+lapic_vector_word_has_bit(const uint32_t *words, uint8_t vector)
+{
+    return !!(words[vector >> 5] & (1u << (vector & 0x1f)));
+}
+
+static int
+lapic_target_focus_checking_enabled(const lapic_state_t *lapic)
+{
+    uint32_t svr = 0;
+
+    if (lapic == NULL)
+        return 0;
+
+    if (!cpu_lapic_mmio_read_index(lapic->index, LAPIC_REG_SVR, &svr))
+        svr = lapic_mirror_read_reg(lapic, LAPIC_REG_SVR);
+
+    return !lapic_svr_focus_processor_checking_disabled(svr);
+}
+
+static int
+lapic_target_has_focus_vector(const lapic_state_t *lapic, uint8_t vector,
+                              int route_parked)
+{
+    if (!lapic_target_interruptible(lapic, route_parked) ||
+        !lapic_enabled(lapic) ||
+        !lapic_vector_valid(vector) ||
+        !lapic_target_focus_checking_enabled(lapic))
+        return 0;
+
+    return lapic_vector_word_has_bit(cpu_lapic_isr_words_index(lapic->index), vector) ||
+           lapic_vector_word_has_bit(cpu_lapic_irr_words_index(lapic->index), vector);
+}
+
+static lapic_state_t *
+lapic_choose_focus_processor_target(const lapic_target_info_t *targets, uint8_t vector,
+                                    int route_parked)
+{
+    if (targets == NULL)
+        return NULL;
+
+    for (uint8_t i = 0; i < targets->count; i++) {
+        if (lapic_target_has_focus_vector(targets->lapics[i], vector, route_parked))
+            return targets->lapics[i];
+    }
+
+    return NULL;
+}
+
+lapic_state_t *
+lapic_choose_lowest_priority_target(const lapic_target_info_t *targets,
+                                    uint8_t *lowest_priority_next,
+                                    int route_parked)
+{
+    uint32_t best_ppr = 0;
+    uint8_t  best_arb = 0;
+
+    if ((targets == NULL) || (lowest_priority_next == NULL) ||
+        !lapic_lowest_priority_best(targets, route_parked, &best_ppr, &best_arb))
+        return NULL;
+
+    /*
+     * First pass picks best PPR/highest-arb tuple; this pass rotates only
+     * among targets still matching that tuple, preserving deterministic ties.
+     */
+    for (uint8_t offset = 0; offset < APIC_MAX_LAPICS; offset++) {
+        uint8_t index = (*lowest_priority_next + offset) % APIC_MAX_LAPICS;
+
+        if (!(targets->bitmap & (1u << index)))
+            continue;
+
+        for (uint8_t i = 0; i < targets->count; i++) {
+            lapic_state_t *candidate = targets->lapics[i];
+
+            if ((targets->indices[i] == index) &&
+                lapic_target_interruptible(candidate, route_parked) &&
+                (cpu_lapic_ppr_update_index(candidate->index) == best_ppr) &&
+                (lapic_arbitration_id(candidate) == best_arb)) {
+                *lowest_priority_next = (index + 1) % APIC_MAX_LAPICS;
+                return candidate;
+            }
+        }
+    }
+
+    return NULL;
+}

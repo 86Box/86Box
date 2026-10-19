@@ -15,6 +15,8 @@
 #ifndef EMU_CHIPSET_H
 #define EMU_CHIPSET_H
 
+#include <stdint.h>
+
 /* ACC */
 extern const device_t acc2036_device;
 extern const device_t acc2168_device;
@@ -129,8 +131,153 @@ extern const device_t piix4_device;
 extern const device_t piix4e_device;
 extern const device_t slc90e66_device;
 
+/* APIC devices are board-wiring entry points; chip/LAPIC internals stay opaque. */
 extern const device_t ioapic_device;
 extern const device_t ioapic_ami_device;
+extern const device_t ioapic_validated_up_device;
+extern const device_t validated_up_apic_board_device;
+extern const device_t integrated_cpu_lapic_device;
+
+#define IOAPIC_LEGACY_IRQ_COUNT 16
+
+typedef struct ioapic_legacy_irq_routing_t {
+    uint8_t irq_to_intin[IOAPIC_LEGACY_IRQ_COUNT];
+} ioapic_legacy_irq_routing_t;
+
+#define IOAPIC_TOPOLOGY_LAPIC_SLOTS_SHIFT 0
+#define IOAPIC_TOPOLOGY_LAPIC_SLOTS_MASK  0xff
+#define IOAPIC_TOPOLOGY_SECOND_CPU_CARD   0x00000100
+#define IOAPIC_TOPOLOGY_UP_APIC_DEFAULT   0x00000200
+/* The MP table hook fires on the firmware's last POST code before booting:
+   FFh on Award, 00h on AMI (checkpoint 00, "passing control to INT 19h"). */
+#define IOAPIC_POST_TRIGGER_AMI           0x00000400
+/* Packed into device_t.local so boards can seed topology without new config keys. */
+#define IOAPIC_TOPOLOGY_LAPIC_SLOTS(slots) \
+    (((uintptr_t) (slots) & IOAPIC_TOPOLOGY_LAPIC_SLOTS_MASK) << IOAPIC_TOPOLOGY_LAPIC_SLOTS_SHIFT)
+
+/* Append-only save ABI: loaders gate each later field by version. */
+#define IOAPIC_STATE_VERSION          13
+#define IOAPIC_STATE_VERSION_MIN      1
+#define IOAPIC_STATE_MAX_LAPICS       16
+#define IOAPIC_STATE_REDIR_ENTRIES    24
+#define IOAPIC_STATE_LAPIC_REG_COUNT  (0x400 >> 4)
+#define IOAPIC_STATE_LAPIC_BIT_WORDS  8
+#define IOAPIC_STATE_PCI_INTIN_ROUTES 256
+
+typedef struct ioapic_pci_intin_route_state_t {
+    uint8_t bus;
+    uint8_t device;
+    uint8_t intpin;
+    uint8_t intin;
+} ioapic_pci_intin_route_state_t;
+
+typedef struct ioapic_state_t {
+    uint32_t version;
+
+    uint8_t expose_mp_tables;
+    uint8_t uniprocessor_apic;
+    uint8_t mp_table_logged;
+    uint8_t mp_table_skip_logged;
+    uint8_t multi_lapic;
+    uint8_t multi_lapic_mp_cpus;
+    uint8_t ap_startup;
+    uint8_t second_cpu_card;
+    uint8_t ap_safe_park;
+    uint8_t ap_route_parked;
+    uint8_t lowest_priority_next;
+
+    uint8_t  lapic_count;
+    uint8_t  lapic_id;
+    uint8_t  lapic_extint_pending;
+    uint8_t  lapic_extint_pin;
+    uint8_t  lapic_timer_enabled;
+    uint64_t lapic_base_msr;
+    uint32_t lapic_regs[IOAPIC_STATE_LAPIC_REG_COUNT];
+    uint32_t lapic_irr[IOAPIC_STATE_LAPIC_BIT_WORDS];
+    uint32_t lapic_isr[IOAPIC_STATE_LAPIC_BIT_WORDS];
+    uint32_t lapic_tmr[IOAPIC_STATE_LAPIC_BIT_WORDS];
+    uint32_t lapic_timer_initial;
+    uint32_t lapic_timer_current;
+
+    /* Array fields carry current multi-LAPIC state; scalar fields preserve old saves. */
+    uint8_t  lapic_ids[IOAPIC_STATE_MAX_LAPICS];
+    uint8_t  lapic_extint_pending_arr[IOAPIC_STATE_MAX_LAPICS];
+    uint8_t  lapic_extint_pin_arr[IOAPIC_STATE_MAX_LAPICS];
+    uint8_t  lapic_timer_enabled_arr[IOAPIC_STATE_MAX_LAPICS];
+    uint8_t  lapic_started[IOAPIC_STATE_MAX_LAPICS];
+    uint8_t  lapic_init_asserted[IOAPIC_STATE_MAX_LAPICS];
+    uint8_t  lapic_wait_for_sipi[IOAPIC_STATE_MAX_LAPICS];
+    uint8_t  lapic_sipi_vector[IOAPIC_STATE_MAX_LAPICS];
+    uint8_t  lapic_parked[IOAPIC_STATE_MAX_LAPICS];
+    uint64_t lapic_base_msrs[IOAPIC_STATE_MAX_LAPICS];
+    uint32_t lapic_regs_arr[IOAPIC_STATE_MAX_LAPICS][IOAPIC_STATE_LAPIC_REG_COUNT];
+    uint32_t lapic_irr_arr[IOAPIC_STATE_MAX_LAPICS][IOAPIC_STATE_LAPIC_BIT_WORDS];
+    uint32_t lapic_isr_arr[IOAPIC_STATE_MAX_LAPICS][IOAPIC_STATE_LAPIC_BIT_WORDS];
+    uint32_t lapic_tmr_arr[IOAPIC_STATE_MAX_LAPICS][IOAPIC_STATE_LAPIC_BIT_WORDS];
+    uint32_t lapic_timer_initial_arr[IOAPIC_STATE_MAX_LAPICS];
+    uint32_t lapic_timer_current_arr[IOAPIC_STATE_MAX_LAPICS];
+
+    uint8_t  ioapic_id;
+    uint8_t  ioapic_index;
+    uint8_t  ioapic_arb_id;
+    uint32_t ioapic_redir[IOAPIC_STATE_REDIR_ENTRIES * 2];
+    uint32_t ioapic_pin_raw_lines;
+    uint32_t ioapic_pin_lines;
+    uint32_t ioapic_pin_level;
+    uint8_t  ioapic_smiout_asserted;
+    uint8_t  ioapic_pin_vector[IOAPIC_STATE_REDIR_ENTRIES];
+    uint16_t pci_intin_route_count;
+    ioapic_pci_intin_route_state_t pci_intin_routes[IOAPIC_STATE_PCI_INTIN_ROUTES];
+} ioapic_state_t;
+
+typedef uint8_t (*lapic_index_source_t)(void);
+typedef uint8_t (*lapic_ap_startup_handler_t)(uint8_t lapic_index, uint8_t vector);
+typedef void (*ioapic_smiout_handler_t)(void *priv, int asserted);
+
+/* APIC facade APIs hide LAPIC storage from board/PIC callers. */
+extern void           apic_cpu_lapic_set_ioapic_policy(int enabled);
+extern void           apic_cpu_lapic_set_integrated_policy(int enabled);
+extern int            apic_cpu_lapic_ioapic_policy_enabled(void);
+extern int            apic_cpu_lapic_integrated_policy_enabled(void);
+extern int            apic_cpu_lapic_enabled(void);
+extern int            apic_cpu_feature_enabled_for_model(int model_capable);
+extern int            ioapic_uniprocessor_apic_enabled(void);
+extern void           lapic_set_index_source(lapic_index_source_t source);
+extern void           lapic_set_ap_startup_handler(lapic_ap_startup_handler_t handler);
+extern void           lapic_id_sync_index(uint8_t lapic_index, uint8_t id);
+extern void           lapic_apic_base_msr_sync_index(uint8_t lapic_index, uint64_t val);
+extern void           lapic_svr_sync_index(uint8_t lapic_index, uint32_t svr);
+extern void           lapic_tpr_sync_index(uint8_t lapic_index, uint32_t tpr);
+extern void           lapic_ldr_sync_index(uint8_t lapic_index, uint32_t ldr);
+extern void           lapic_dfr_sync_index(uint8_t lapic_index, uint32_t dfr);
+extern void           lapic_version_sync_index(uint8_t lapic_index, uint32_t version);
+extern void           lapic_apr_sync_index(uint8_t lapic_index, uint32_t apr);
+extern void           lapic_ppr_sync_index(uint8_t lapic_index, uint32_t ppr);
+extern void           lapic_esr_sync_index(uint8_t lapic_index, uint32_t esr);
+extern void           lapic_icr_lo_sync_index(uint8_t lapic_index, uint32_t icr_lo);
+extern void           lapic_icr_hi_sync_index(uint8_t lapic_index, uint32_t icr_hi);
+extern void           lapic_rrr_sync_index(uint8_t lapic_index, uint32_t rrr);
+extern void           lapic_lvt_timer_sync_index(uint8_t lapic_index, uint32_t lvt);
+extern void           lapic_lvt_thermal_sync_index(uint8_t lapic_index, uint32_t lvt);
+extern void           lapic_lvt_perf_sync_index(uint8_t lapic_index, uint32_t lvt);
+extern void           lapic_lvt_lint0_sync_index(uint8_t lapic_index, uint32_t lvt);
+extern void           lapic_lvt_lint1_sync_index(uint8_t lapic_index, uint32_t lvt);
+extern void           lapic_lvt_error_sync_index(uint8_t lapic_index, uint32_t lvt);
+extern void           lapic_timer_initial_sync_index(uint8_t lapic_index, uint32_t initial);
+extern void           lapic_timer_divide_cfg_sync_index(uint8_t lapic_index, uint32_t divide_cfg);
+extern int            ioapic_external_interrupt_pending(void);
+extern int            ioapic_external_interrupt_vector(void);
+extern int            ioapic_pic_fallback_allowed(void);
+extern int            ioapic_lint1_raise(void);
+extern void           ioapic_raw_intin(uint8_t pin, int level, int physical_high);
+extern void           ioapic_intin_irq(uint8_t pin, int level, int set);
+extern void           ioapic_legacy_irq(uint16_t mask, int level, int set);
+extern int            ioapic_legacy_irq_enabled(void);
+extern int            ioapic_legacy_irq_active(uint16_t mask, int level, int set);
+extern void           ioapic_set_legacy_irq_routing(void *ioapic, const ioapic_legacy_irq_routing_t *routing);
+extern void           ioapic_set_smiout_handler(ioapic_smiout_handler_t handler, void *priv);
+extern int            ioapic_state_save(ioapic_state_t *state);
+extern int            ioapic_state_load(const ioapic_state_t *state);
 
 /* VTech */
 extern const device_t laserxt_device;

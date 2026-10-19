@@ -48,6 +48,17 @@ add_library(chipset OBJECT
     intel_sio.c
     intel_piix.c
     isa486c.c
+    # Board/chipset targets reference APIC devices, but the source lives one level up.
+    ../apic_bus.c
+    ../apic_cpu_policy.c
+    ../apic_platform.c
+    ../lapic_policy.c
+    ../lapic.c
+    ../lapic_mmio.c
+    ../lapic_state.c
+    ../lapic_delivery.c
+    ../lapic_integrated.c
+    ../ioapic_82093aa.c
     ../ioapic.c
     laserxt.c
     neat.c

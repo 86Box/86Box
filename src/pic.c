@@ -33,6 +33,7 @@
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/device.h>
+#include <86box/chipset.h>
 #include <86box/apm.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
@@ -1081,6 +1082,9 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
         }
 
         update_pending();
+
+        /* APIC mirror runs after PIC state/latches settle for this request. */
+        ioapic_legacy_irq(num, level, set);
     }
 }
 
