@@ -226,13 +226,38 @@ do
 			# Check for lddtree and install it if required.
 			which lddtree > /dev/null || DEBIAN_FRONTEND=noninteractive sudo apt-get -y install pax-utils
 
-			# Default to main binary.
-			[ -z "$binary" ] && binary="archive_tmp/usr/local/bin/$project" || binary="$1"
+			# Handle AppImages.
+			if echo "$1" | grep -q "://"
+			then
+				if ! wget -O treetemp.AppImage "$1" || ! chmod +x treetemp.AppImage
+				then
+					rm -f treetemp.AppImage
+					exit 1
+				fi
+				set -- treetemp.AppImage
+			fi
+			case "$1" in
+				*.AppImage)
+					# Extract AppImage.
+					rm -rf squashfs-root
+					./"$1" --appimage-extract
+					appdir=squashfs-root
+					binary=
+					;;
+
+				*)
+					appdir=archive_tmp
+					binary="$1"
+					;;
+			esac
+			[ -z "$binary" ] && binary="$appdir/usr/local/bin/$project" # default to main binary
 
 			# Run lddtree with AppImage lib directories included in the search path.
-			LD_LIBRARY_PATH=$(find "$(pwd)/archive_tmp" -type d -name lib -o -name lib64 | while read dir; do find "$dir" -type d; done | tr '\n' ':') \
+			LD_LIBRARY_PATH=$(find "$(readlink -f "$appdir")" -type d -name lib -o -name lib64 | while read dir; do find "$dir" -type d; done | tr '\n' ':') \
 				lddtree "$binary"
-			exit $?
+			status=$?
+			[ $appdir = "squashfs-root" ] && rm -rf treetemp.AppImage squashfs-root
+			exit $status
 			;;
 
 		-s)
