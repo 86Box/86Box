@@ -955,7 +955,6 @@ extern void     cpu_lapic_lvt_error_load_index(uint8_t lapic_index, uint32_t val
 extern uint32_t *cpu_lapic_irr_words_index(uint8_t lapic_index);
 extern void     cpu_lapic_irr_reset_index(uint8_t lapic_index);
 extern void     cpu_lapic_extint_live_set(uint8_t lapic_index, int pending);
-extern uint8_t  cpu_apic_int_fast_ok;
 extern void     cpu_lapic_irr_load_index(uint8_t lapic_index,
                                          const uint32_t words[8]);
 extern void     cpu_lapic_irr_save_index(uint8_t lapic_index,

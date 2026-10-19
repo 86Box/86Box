@@ -73,7 +73,6 @@ static uint32_t              cpu_lapic_irrs[IOAPIC_STATE_MAX_LAPICS][IOAPIC_STAT
    cpu_lapic_irr_live_sync(). */
 uint32_t                     cpu_lapic_irr_live;
 uint8_t                      cpu_lapic_extint_live[IOAPIC_STATE_MAX_LAPICS];
-uint8_t                      cpu_apic_int_fast_ok;
 static uint32_t              cpu_lapic_isrs[IOAPIC_STATE_MAX_LAPICS][IOAPIC_STATE_LAPIC_BIT_WORDS];
 static uint32_t              cpu_lapic_tmrs[IOAPIC_STATE_MAX_LAPICS][IOAPIC_STATE_LAPIC_BIT_WORDS];
 static uint32_t              cpu_lapic_timer_initials[IOAPIC_STATE_MAX_LAPICS];
@@ -306,7 +305,6 @@ cpu_lapic_svrs_reset(void)
 {
     for (uint8_t i = 0; i < IOAPIC_STATE_MAX_LAPICS; i++)
         cpu_lapic_svrs[i] = cpu_lapic_svr_reset_value(i);
-    cpu_apic_int_fast_ok = 0;
 }
 
 static void
@@ -323,7 +321,6 @@ cpu_lapic_svr_load_index(uint8_t lapic_index, uint32_t val)
         return;
 
     cpu_lapic_svrs[lapic_index] = cpu_lapic_svr_sanitize(val);
-    cpu_apic_int_fast_ok = 0;
 }
 
 static uint32_t
@@ -1106,9 +1103,7 @@ cpu_lapic_irrs_reset(void)
 /* The interrupt check runs after every block (x86_interrupt.h). These
    let it answer "nothing" from three loads while nothing is pending:
    bit n of cpu_lapic_irr_live is set while local APIC n's IRR holds any
-   vector, cpu_lapic_extint_live[n] while it holds an ExtINT, and
-   cpu_apic_int_fast_ok while the slow path has seen the current APIC
-   enable state (ioapic_external_interrupt_pending). */
+   vector, and cpu_lapic_extint_live[n] while it holds an ExtINT. */
 static void
 cpu_lapic_irr_live_set(uint8_t lapic_index, int any)
 {
@@ -2155,7 +2150,6 @@ cpu_lapic_mmio_write_index(uint8_t lapic_index, uint32_t reg, uint32_t val)
             cpu_lapic_svrs[lapic_index] = cpu_lapic_svr_sanitize(val);
             if (!(cpu_lapic_svrs[lapic_index] & CPU_LAPIC_SVR_ENABLE))
                 cpu_lapic_lvt_mask_all_index(lapic_index);
-            cpu_apic_int_fast_ok = 0;
             lapic_svr_sync_index(lapic_index, cpu_lapic_svrs[lapic_index]);
             return 1;
         case CPU_LAPIC_REG_TPR:
@@ -2359,7 +2353,6 @@ cpu_apic_base_msrs_reset(void)
 {
     for (uint8_t i = 0; i < IOAPIC_STATE_MAX_LAPICS; i++)
         cpu_apic_base_msrs[i] = cpu_apic_base_msr_reset_value(i);
-    cpu_apic_int_fast_ok = 0;
 }
 
 static void
@@ -2423,7 +2416,6 @@ cpu_apic_base_msr_write_current(uint64_t val)
 
     cur = cpu_apic_base_msrs[lapic_index];
     cpu_apic_base_msrs[lapic_index] = cpu_apic_base_msr_sanitize(lapic_index, val, cur);
-    cpu_apic_int_fast_ok = 0;
     lapic_apic_base_msr_sync_index(lapic_index, cpu_apic_base_msrs[lapic_index]);
 }
 
@@ -2435,7 +2427,6 @@ cpu_apic_base_msr_load_index(uint8_t lapic_index, uint64_t val)
 
     cpu_apic_base_msrs[lapic_index] = (val & CPU_APIC_BASE_ADDR_MASK) |
                                       (val & (CPU_APIC_BASE_BSP | CPU_APIC_BASE_ENABLE));
-    cpu_apic_int_fast_ok = 0;
 }
 
 uint8_t

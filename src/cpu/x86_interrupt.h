@@ -21,7 +21,6 @@ extern uint8_t ioapic_irq_path_active;
 extern uint32_t cpu_lapic_irr_live;
 extern int      cpu_lapic_highest_deliverable_irr_index(uint8_t lapic_index, int started);
 extern uint8_t  cpu_lapic_extint_live[];
-extern uint8_t  cpu_apic_int_fast_ok;
 
 /* IOAPIC arbitrates first; PIC remains only while platform allows fallback. */
 static inline int
@@ -31,10 +30,9 @@ x86_external_interrupt_pending(void)
         return pic.int_pending;
 
     /* Nothing from the 8259, nothing in the processor's IRR (local APIC
-       0's), no ExtINT: the full answer below would be no. The full path
-       still runs once after the APIC is enabled or disabled, so the I/O
-       APIC sees the new enable state (ioapic_external_interrupt_pending). */
-    if (!pic.int_pending && !cpu_lapic_extint_live[0] && cpu_apic_int_fast_ok) {
+       0's), no ExtINT: the full answer below would be no, whatever the
+       APIC's enable state. */
+    if (!pic.int_pending && !cpu_lapic_extint_live[0]) {
         if (!(cpu_lapic_irr_live & 1u))
             return 0;
 

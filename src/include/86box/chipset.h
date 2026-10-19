@@ -246,14 +246,12 @@ typedef struct ioapic_state_t {
 
 typedef uint8_t (*lapic_index_source_t)(void);
 typedef uint8_t (*lapic_ap_startup_handler_t)(uint8_t lapic_index, uint8_t vector);
-typedef void (*ioapic_smiout_handler_t)(void *priv, int asserted);
 
 /* APIC facade APIs hide LAPIC storage from board/PIC callers. */
 extern void           apic_cpu_lapic_set_ioapic_policy(int enabled);
 extern int            apic_cpu_lapic_ioapic_policy_enabled(void);
 extern int            apic_cpu_lapic_enabled(void);
 extern int            apic_cpu_feature_enabled_for_model(int model_capable);
-extern int            ioapic_uniprocessor_apic_enabled(void);
 extern void           lapic_set_index_source(lapic_index_source_t source);
 extern void           lapic_set_ap_startup_handler(lapic_ap_startup_handler_t handler);
 extern void           lapic_id_sync_index(uint8_t lapic_index, uint8_t id);
@@ -290,9 +288,7 @@ extern void           ioapic_set_pin0_smi(void *ioapic, int smi);
 extern void           ioapic_intin_irq(uint8_t pin, int level, int set);
 extern void           ioapic_legacy_irq(uint16_t mask, int level, int set);
 extern int            ioapic_legacy_irq_enabled(void);
-extern int            ioapic_legacy_irq_active(uint16_t mask, int level, int set);
 extern void           ioapic_set_legacy_irq_routing(void *ioapic, const ioapic_legacy_irq_routing_t *routing);
-extern void           ioapic_set_smiout_handler(ioapic_smiout_handler_t handler, void *priv);
 extern int            ioapic_state_save(ioapic_state_t *state);
 extern int            ioapic_state_load(const ioapic_state_t *state);
 
