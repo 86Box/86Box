@@ -1013,12 +1013,6 @@ cpu_lapic_lvt_delivery_status_index(uint8_t lapic_index, uint32_t reg, int pendi
 }
 
 void
-cpu_lapic_lvt_delivery_pending_index(uint8_t lapic_index, uint32_t reg)
-{
-    cpu_lapic_lvt_delivery_status_index(lapic_index, reg, 1);
-}
-
-void
 cpu_lapic_lvt_delivery_complete_index(uint8_t lapic_index, uint32_t reg)
 {
     cpu_lapic_lvt_delivery_status_index(lapic_index, reg, 0);

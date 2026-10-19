@@ -1030,7 +1030,6 @@ extern int      cpu_lapic_lint_delivery_index(uint8_t lapic_index, int started, 
 #define CPU_LAPIC_LVT_SOURCE_PERF 1
 extern int      cpu_lapic_lvt_source_delivery_index(uint8_t lapic_index, int started,
                                                     uint8_t source, uint8_t *vector);
-extern void     cpu_lapic_lvt_delivery_pending_index(uint8_t lapic_index, uint32_t reg);
 extern void     cpu_lapic_lvt_delivery_complete_index(uint8_t lapic_index, uint32_t reg);
 extern int      cpu_lapic_timer_fire_index(uint8_t lapic_index, int started, uint8_t *vector);
 

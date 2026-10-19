@@ -273,13 +273,10 @@ lapic_lint_deliver(lapic_state_t *lapic, uint32_t lint_reg)
                 .vector   = vector,
                 .level    = !!level
             };
-            apic_bus_result_t result =
-                lapic_accept_fixed_interrupt(lapic, &message, LAPIC_ESR_RECV_ILLEGAL_VECTOR);
-
-            if (apic_bus_result_accepted(result))
-                cpu_lapic_lvt_delivery_complete_index(lapic->index, lint_reg);
-            else
-                cpu_lapic_lvt_delivery_pending_index(lapic->index, lint_reg);
+            /* Refused (an illegal vector, reported in the ESR), it is
+               dropped: nothing sends it again, so it is not left pending. */
+            (void) lapic_accept_fixed_interrupt(lapic, &message, LAPIC_ESR_RECV_ILLEGAL_VECTOR);
+            cpu_lapic_lvt_delivery_complete_index(lapic->index, lint_reg);
             return 1;
         }
 
@@ -335,13 +332,9 @@ lapic_lvt_source_deliver(lapic_state_t *lapic, uint32_t lvt_reg)
                 .delivery = APIC_BUS_DELIVERY_FIXED,
                 .vector   = vector
             };
-            apic_bus_result_t result =
-                lapic_accept_fixed_interrupt(lapic, &message, LAPIC_ESR_RECV_ILLEGAL_VECTOR);
-
-            if (apic_bus_result_accepted(result))
-                cpu_lapic_lvt_delivery_complete_index(lapic->index, lvt_reg);
-            else
-                cpu_lapic_lvt_delivery_pending_index(lapic->index, lvt_reg);
+            /* Refused, it is dropped, as a LINT one is. */
+            (void) lapic_accept_fixed_interrupt(lapic, &message, LAPIC_ESR_RECV_ILLEGAL_VECTOR);
+            cpu_lapic_lvt_delivery_complete_index(lapic->index, lvt_reg);
             return 1;
         }
 
