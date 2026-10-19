@@ -192,8 +192,6 @@ extern int                   local_apic_current_lint_deliver(local_apic_t *apic,
                                                              uint32_t lint_reg);
 extern int                   local_apic_current_thermal_deliver(local_apic_t *apic);
 extern int                   local_apic_current_perf_deliver(local_apic_t *apic);
-extern int                   local_apic_current_clear_interrupt_vector(local_apic_t *apic,
-                                                                       uint8_t vector);
 extern int                   local_apic_select_interruptible_targets(
                                                 local_apic_t *apic, uint8_t dest,
                                                 int logical, int physical_broadcast,

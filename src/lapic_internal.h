@@ -173,8 +173,6 @@ extern void                 lapic_mark_extint_pending(lapic_state_t *lapic,
                                                       uint8_t pin);
 extern int                  lapic_consume_extint(lapic_state_t *lapic,
                                                  uint8_t *pin);
-extern void                 lapic_clear_interrupt_vector(lapic_state_t *lapic,
-                                                        uint8_t vector);
 extern apic_bus_result_t    lapic_accept_interrupt_target(lapic_state_t *lapic,
                                                           const apic_bus_message_t *message);
 extern void                 lapic_init_signal(lapic_state_t *lapic);

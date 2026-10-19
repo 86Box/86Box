@@ -897,12 +897,6 @@ apic_platform_ioapic_mark_extint(apic_platform_t *platform,
     return local_apic_targets_mark_extint_first(platform->lapic, targets, pin);
 }
 
-int
-apic_platform_ioapic_clear_current_vector(apic_platform_t *platform, uint8_t vector)
-{
-    return local_apic_current_clear_interrupt_vector(platform->lapic, vector);
-}
-
 uint8_t
 apic_platform_current_lapic_id(apic_platform_t *platform)
 {

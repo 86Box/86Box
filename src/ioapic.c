@@ -67,7 +67,6 @@ typedef struct ioapic_t {
     uint8_t       ioapic_intin_poll_next;
     uint8_t       ioapic_smiout_asserted;
     uint8_t       ioapic_arb_id;
-    uint8_t       ioapic_pin_vector[24];
     uint8_t       legacy_irq_default_to_pin[IOAPIC_LEGACY_IRQ_COUNT];
     uint8_t       legacy_irq_to_pin[IOAPIC_LEGACY_IRQ_COUNT];
     uint8_t       ioapic_masked_irq_log_count[24];
@@ -377,20 +376,6 @@ ioapic_redir_delivery_status_valid(uint32_t low)
 }
 
 static int
-ioapic_redir_vector_delivery_changed(uint32_t old_low, uint32_t new_low)
-{
-    return !!((old_low ^ new_low) & (IOAPIC_REDIR_VECTOR | IOAPIC_REDIR_DELIV));
-}
-
-static int
-ioapic_edge_vector_abandoned(uint32_t old_low, uint32_t new_low)
-{
-    return !ioapic_redir_remote_irr(old_low) &&
-           ioapic_redir_masked(new_low) &&
-           ioapic_redir_vector_delivery_changed(old_low, new_low);
-}
-
-static int
 ioapic_pin_asserted(const ioapic_t *dev, uint8_t pin)
 {
     return !!(dev->ioapic_pin_lines & ioapic_82093aa_pin_bit(pin));
@@ -612,25 +597,6 @@ ioapic_update_asserted_pin_after_polarity_rewrite(ioapic_t *dev, uint8_t pin,
 }
 
 static void
-ioapic_clear_pin_vector(ioapic_t *dev, uint8_t pin, uint32_t old_low, uint32_t new_low)
-{
-    uint8_t vector = dev->ioapic_pin_vector[pin];
-
-    if (!vector || !ioapic_edge_vector_abandoned(old_low, new_low))
-        return;
-
-    /* Edge delivery has no RemoteIRR owner, so rewritten vectors must be cleared in LAPIC too. */
-    if (!apic_platform_ioapic_clear_current_vector(dev->apic, vector))
-        return;
-
-    dev->ioapic_pin_vector[pin] = 0;
-
-    if (ioapic_log_first(&dev->ioapic_eoi_log_count[pin], 8))
-        ioapic_log("IOAPIC: cleared abandoned edge pin=%u vector=%02x old_low=%08x new_low=%08x\n",
-                   pin, vector, old_low, new_low);
-}
-
-static void
 ioapic_log_redir_entry(ioapic_t *dev, uint8_t pin, const char *source)
 {
     uint32_t low  = dev->ioapic_redir[pin * 2];
@@ -773,7 +739,6 @@ ioapic_deliver_pin(ioapic_t *dev, uint8_t pin, int asserted, int retry)
             return;
         ioapic_clear_pin_delivery_pending(dev, pin);
         ioapic_apic_bus_message_complete(dev);
-        dev->ioapic_pin_vector[pin] = 0;
         if (ioapic_log_first(&dev->ioapic_deliver_log_count[pin], 8))
             ioapic_log("IOAPIC: delivered INIT pin=%u count=%u low=%08x high=%08x\n",
                        pin, dev->ioapic_deliver_log_count[pin], low, high);
@@ -793,7 +758,6 @@ ioapic_deliver_pin(ioapic_t *dev, uint8_t pin, int asserted, int retry)
             return;
         ioapic_clear_pin_delivery_pending(dev, pin);
         ioapic_apic_bus_message_complete(dev);
-        dev->ioapic_pin_vector[pin] = 0;
         if (ioapic_log_first(&dev->ioapic_extint_deliver_log_count[pin], 8))
             ioapic_log("IOAPIC: delivered ExtINT pin=%u count=%u low=%08x high=%08x\n",
                        pin, dev->ioapic_extint_deliver_log_count[pin], low, high);
@@ -817,7 +781,6 @@ ioapic_deliver_pin(ioapic_t *dev, uint8_t pin, int asserted, int retry)
 
     ioapic_clear_pin_delivery_pending(dev, pin);
     ioapic_apic_bus_message_complete(dev);
-    dev->ioapic_pin_vector[pin] = vector;
     if (level) {
         /* RemoteIRR is owned here after accepted level delivery; EOI path clears/retries. */
         *lowp |= IOAPIC_REDIR_REMOTEIRR;
@@ -995,8 +958,6 @@ ioapic_sanitize_loaded_redir(ioapic_t *dev)
         /* Loaded RTEs pass through guest-writable-bit policy before delivery uses them. */
         *lowp = ioapic_82093aa_redir_sanitize_low(*lowp);
         *highp &= IOAPIC_REDIR_HIGH_WRITE_MASK;
-        if (!ioapic_82093aa_redir_remote_irr_valid(*lowp) || !ioapic_redir_remote_irr(*lowp))
-            dev->ioapic_pin_vector[pin] = 0;
         if (!ioapic_82093aa_redir_remote_irr_valid(*lowp))
             dev->ioapic_pin_level &= ~pin_bit;
     }
@@ -1027,7 +988,7 @@ ioapic_chip_state_save(ioapic_t *dev, ioapic_state_t *state)
     state->ioapic_pin_lines = dev->ioapic_pin_lines;
     state->ioapic_pin_level = dev->ioapic_pin_level;
     state->ioapic_smiout_asserted = dev->ioapic_smiout_asserted;
-    memcpy(state->ioapic_pin_vector, dev->ioapic_pin_vector, sizeof(state->ioapic_pin_vector));
+    memset(state->ioapic_pin_vector, 0, sizeof(state->ioapic_pin_vector));
 
     return 1;
 }
@@ -1104,7 +1065,6 @@ ioapic_chip_state_load(ioapic_t *dev, const ioapic_state_t *state)
     dev->ioapic_delivery_pending_pin = 0;
     dev->ioapic_intin_poll_next = 0;
     dev->ioapic_smiout_asserted = (state->version >= 12) ? !!state->ioapic_smiout_asserted : 0;
-    memcpy(dev->ioapic_pin_vector, state->ioapic_pin_vector, sizeof(dev->ioapic_pin_vector));
     ioapic_sanitize_loaded_redir(dev);
     ioapic_update_intin23_smiout(dev);
 
@@ -1168,13 +1128,13 @@ ioapic_eoi(ioapic_t *dev, uint8_t vector)
         uint32_t *lowp = &dev->ioapic_redir[pin * 2];
         uint32_t  low  = *lowp;
 
-        if ((dev->ioapic_pin_vector[pin] != vector) ||
-            !ioapic_redir_remote_irr(low))
+        /* "The Remote IRR bit is set to 0 when an EOI message with a
+           matching interrupt vector is received" (82093AA 3.2.4 bit 14):
+           the entry's vector as it stands now. */
+        if (((low & IOAPIC_REDIR_VECTOR) != vector) || !ioapic_redir_remote_irr(low))
             continue;
 
-        /* LAPIC reports vector completion; IOAPIC owns RemoteIRR clear and level retry. */
         *lowp &= ~IOAPIC_REDIR_REMOTEIRR;
-        dev->ioapic_pin_vector[pin] = 0;
         if (ioapic_log_first(&dev->ioapic_eoi_log_count[pin], 8))
             ioapic_log("IOAPIC: EOI pin=%u vector=%02x line=%u count=%u\n",
                        pin, vector, ioapic_pin_asserted(dev, pin),
@@ -1218,7 +1178,6 @@ ioapic_reset_redir(ioapic_t *dev)
     for (uint8_t i = 0; i < IOAPIC_REDIR_ENTRIES; i++) {
         dev->ioapic_redir[(i * 2) + 0] = IOAPIC_REDIR_LOW_RESET;
         dev->ioapic_redir[(i * 2) + 1] = IOAPIC_REDIR_HIGH_RESET;
-        dev->ioapic_pin_vector[i] = 0;
     }
 }
 
@@ -1270,13 +1229,9 @@ ioapic_window_write(ioapic_t *dev, uint32_t val)
         }
         dev->ioapic_redir[redir_index] = val;
         if (!(redir_index & 1)) {
-            /* Low-dword rewrites can change line interpretation and vector ownership. */
+            /* Low-dword rewrites can change line interpretation. */
             ioapic_update_asserted_pin_after_polarity_rewrite(dev, pin, old_low,
                                                               dev->ioapic_redir[pin * 2]);
-            ioapic_clear_pin_vector(dev, pin, old_low, dev->ioapic_redir[pin * 2]);
-            if (!ioapic_82093aa_redir_remote_irr_valid(dev->ioapic_redir[pin * 2]) ||
-                !ioapic_redir_remote_irr(dev->ioapic_redir[pin * 2]))
-                dev->ioapic_pin_vector[pin] = 0;
         }
 
         ioapic_log_redir_entry(dev, pin, (redir_index & 1) ? "redir high" : "redir low");

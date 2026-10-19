@@ -79,9 +79,6 @@ static int                  lapic_device_current_lvt_source_deliver(
 static int                  lapic_device_current_promote_irr(lapic_device_t *dev);
 static int                  lapic_device_current_consume_extint(lapic_device_t *dev,
                                                                uint8_t *pin);
-static int                  lapic_device_current_clear_interrupt_vector(
-                                                    lapic_device_t *dev,
-                                                    uint8_t vector);
 lapic_state_t              *lapic_device_bsp(lapic_device_t *dev);
 static const lapic_state_t *lapic_device_bsp_const(const lapic_device_t *dev);
 static int                  lapic_device_bsp_id(const lapic_device_t *dev, uint8_t *id);
@@ -162,8 +159,6 @@ int                          lapic_lint0_extint_enabled(const lapic_state_t *lap
 int                          lapic_lint_deliver(lapic_state_t *lapic, uint32_t lint_reg);
 int                          lapic_promote_irr(lapic_state_t *lapic);
 int                          lapic_consume_extint(lapic_state_t *lapic, uint8_t *pin);
-void                         lapic_clear_interrupt_vector(lapic_state_t *lapic,
-                                                          uint8_t vector);
 void                         lapic_timer_host_stop(lapic_state_t *lapic);
 void                         lapic_timer_stop(lapic_state_t *lapic);
 void                         lapic_timer_restore_target(lapic_state_t *lapic,
@@ -550,12 +545,6 @@ local_apic_current_perf_deliver(local_apic_t *apic)
 }
 
 int
-local_apic_current_clear_interrupt_vector(local_apic_t *apic, uint8_t vector)
-{
-    return lapic_device_current_clear_interrupt_vector(local_apic_device(apic), vector);
-}
-
-int
 local_apic_select_interruptible_targets(local_apic_t *apic, uint8_t dest,
                                         int logical, int physical_broadcast,
                                         int route_parked,
@@ -796,18 +785,6 @@ static int
 lapic_device_current_consume_extint(lapic_device_t *dev, uint8_t *pin)
 {
     return lapic_consume_extint(lapic_device_current(dev), pin);
-}
-
-static int
-lapic_device_current_clear_interrupt_vector(lapic_device_t *dev, uint8_t vector)
-{
-    lapic_state_t *lapic = lapic_device_current(dev);
-
-    if (lapic == NULL)
-        return 0;
-
-    lapic_clear_interrupt_vector(lapic, vector);
-    return 1;
 }
 
 lapic_state_t *

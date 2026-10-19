@@ -110,16 +110,6 @@ lapic_targets_deliver_init(const lapic_target_info_t *targets)
     return delivered;
 }
 
-void
-lapic_clear_interrupt_vector(lapic_state_t *lapic, uint8_t vector)
-{
-    if (lapic == NULL)
-        return;
-
-    cpu_lapic_clear_interrupt_vector_index(lapic->index, vector);
-    lapic_sync_ppr(lapic);
-}
-
 int
 lapic_lint0_extint_enabled(const lapic_state_t *lapic)
 {

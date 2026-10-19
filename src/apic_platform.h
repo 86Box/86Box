@@ -101,8 +101,6 @@ extern int  apic_platform_ioapic_deliver_init(apic_platform_t *platform,
 extern int  apic_platform_ioapic_mark_extint(apic_platform_t *platform,
                                              const lapic_target_info_t *targets,
                                              uint8_t pin);
-extern int  apic_platform_ioapic_clear_current_vector(apic_platform_t *platform,
-                                                      uint8_t vector);
 extern uint8_t apic_platform_current_lapic_id(apic_platform_t *platform);
 extern void apic_platform_ioapic_bus_message_complete(apic_platform_t *platform,
                                                       uint8_t *ioapic_arb_id);

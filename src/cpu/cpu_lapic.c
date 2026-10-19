@@ -1635,19 +1635,6 @@ cpu_lapic_set_vector(uint32_t bits[IOAPIC_STATE_LAPIC_BIT_WORDS], uint8_t vector
 }
 
 int
-cpu_lapic_clear_interrupt_vector_index(uint8_t lapic_index, uint8_t vector)
-{
-    if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
-        return 0;
-
-    cpu_lapic_clear_vector(cpu_lapic_irrs[lapic_index], vector);
-    cpu_lapic_clear_vector(cpu_lapic_isrs[lapic_index], vector);
-    cpu_lapic_clear_vector(cpu_lapic_tmrs[lapic_index], vector);
-
-    return 1;
-}
-
-int
 cpu_lapic_eoi_index(uint8_t lapic_index, int *level)
 {
     /* Return retired ISR vector and its pre-clear trigger mode. */
