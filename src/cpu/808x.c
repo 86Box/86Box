@@ -22,14 +22,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
-
-#include "i8080.h"
-
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 #include "cpu.h"
 #include "x86.h"
+#include "i8080.h"
+#include <86box/i8018x.h>
 #include <86box/machine.h>
 #include <86box/io.h>
 #include <86box/mem.h>
@@ -1237,8 +1236,11 @@ irq_pending(int nec_hlt)
     int     i_flag = (cpu_state.flags & I_FLAG) || nec_hlt;
 
     /* Isolate Convertible IRET compatibility; this is not a proven CMOS-only
-     * instruction difference. Other CPU models retain the upstream predicates. */
-    temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) || (i_flag && pic.int_pending && (is80c88 ? !(noint & 1) : !noint));
+     * instruction difference. Other CPU models retain the upstream predicates.
+     * And 8018x's on-chip controller asks for service through the same maskable
+     * path the 8259 does. */
+    temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) ||
+           (i_flag && (pic.int_pending || (i8018x_pcb_current != NULL && i8018x_pcb_icu_pending())) && (is80c88 ? !(noint & 1) : !noint));
 
     return temp;
 }
@@ -1268,17 +1270,24 @@ check_interrupts(int nec_hlt)
             cpu_dhlt_last_event = 1;
             return;
         }
-        if (i_flag && pic.int_pending && (is80c88 ? !(noint & 1) : !noint)) {
+        if (i_flag && (pic.int_pending || (i8018x_pcb_current != NULL && i8018x_pcb_icu_pending())) && (is80c88 ? !(noint & 1) : !noint)) {
+            int icu = (i8018x_pcb_current != NULL) && i8018x_pcb_icu_pending();
+
             repeating = 0;
             completed = 1;
             ovr_seg   = NULL;
             wait_cycs(3, 0);
-            /* ACK to PIC */
-            temp = pic_irq_ack();
+            /* The on-chip controller vectors internally, so it hands over the
+               type itself and the 8259 runs no acknowledge cycle for it. */
+            if (icu)
+                temp = i8018x_pcb_icu_int_type();
+            else /* ACK to PIC */
+                temp = pic_irq_ack();
             wait_cycs(4, 1);
             wait_cycs(1, 0);
             /* ACK to PIC */
-            temp = pic_irq_ack();
+            if (!icu)
+                temp = pic_irq_ack();
             wait_cycs(4, 1);
             wait_cycs(1, 0);
             in_lock    = 0;
