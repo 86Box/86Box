@@ -808,7 +808,9 @@ x_visible(const ctx_t *c, int x)
     uint32_t xc = c->f->xclip;
     if ((xc & (1u << 12)) && x < (int) (xc & 0x3ff) - 1)
         return 0;
-    if ((xc & (1u << 28)) && x >= (int) ((xc >> 16) & 0x3ff) - 1)
+    /* Measured on the m3D (MDK, XCLIP 0x12590000): column 600 is written,
+       601 is not. The left limit is not used by the drivers or measured. */
+    if ((xc & (1u << 28)) && x >= (int) ((xc >> 16) & 0x3ff))
         return 0;
     return 1;
 }

@@ -575,8 +575,8 @@ pcx_render_output(pcx_t *pcx)
     x1 = r->max_x;
     if ((xc & (1u << 12)) && x0 < (int) (xc & 0x3ff) - 1)
         x0 = (int) (xc & 0x3ff) - 1;
-    if ((xc & (1u << 28)) && x1 > (int) ((xc >> 16) & 0x3ff) - 2)
-        x1 = (int) ((xc >> 16) & 0x3ff) - 2;
+    if ((xc & (1u << 28)) && x1 > (int) ((xc >> 16) & 0x3ff) - 1)
+        x1 = (int) ((xc >> 16) & 0x3ff) - 1;
     if (x1 >= PCXR_MAX_W)
         x1 = PCXR_MAX_W - 1;
     if (x0 > x1)
