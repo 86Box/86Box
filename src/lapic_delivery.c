@@ -284,7 +284,14 @@ lapic_lint_deliver(lapic_state_t *lapic, uint32_t lint_reg)
             return 1;
 
         case CPU_LAPIC_LINT_ACTION_NMI:
-            cpu_nmi_raise_core(1);
+            /* LINT1 is the board's NMI line, which port 70h bit 7 gates
+               before it reaches the pin (in the model at the processor,
+               NMI_TAKEABLE); LINT0 carries INTR, which port 70h does not
+               gate. */
+            if (lint_reg == LAPIC_REG_LVT_LINT1)
+                cpu_nmi_raise_core(0);
+            else
+                cpu_nmi_raise_core(1);
             return 1;
 
         case CPU_LAPIC_LINT_ACTION_INIT:
