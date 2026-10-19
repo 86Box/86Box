@@ -300,7 +300,11 @@ lapic_readl(uint32_t addr, void *priv)
         update_tsc();
 #endif
 
-    lapic_sync_int_regs(lapic);
+    /* Every register is read from the CPU-owned state (cpu_lapic_mmio_read_index);
+       only PPR is derived and must be current. The whole mirror was once
+       rebuilt here, on every read -- the NT HAL reads TPR at every IRQL change. */
+    if (reg == LAPIC_REG_PPR)
+        lapic_sync_ppr(lapic);
     ret = lapic_mmio_read_reg(lapic, reg);
     if (reg == LAPIC_REG_ESR)
         cpu_lapic_esr_read_clear_index(lapic->index);
@@ -408,7 +412,9 @@ lapic_writel(uint32_t addr, uint32_t val, void *priv)
         cpu_lapic_timer_host_schedule_index(lapic->index, timer_current, 0);
     } else if ((reg == LAPIC_REG_ICR_LO) && (dev->icr_write != NULL)) {
         dev->icr_write(dev->owner, val);
-    } else if ((reg == LAPIC_REG_TPR) || (reg == LAPIC_REG_LVT_TIMER)) {
+    } else if (reg == LAPIC_REG_TPR) {
+        lapic_sync_ppr(lapic);
+    } else if (reg == LAPIC_REG_LVT_TIMER) {
         lapic_sync_int_regs(lapic);
     }
 }

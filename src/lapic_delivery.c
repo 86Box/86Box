@@ -65,7 +65,9 @@ lapic_accept_fixed_interrupt(lapic_state_t *lapic,
 
     cpu_lapic_accept_interrupt_index(lapic->index, message->vector, message->level);
 
-    lapic_sync_int_regs(lapic);
+    /* Register reads come from the CPU-owned state (cpu_lapic_mmio_read_index);
+       the mirror is brought up to date only for save states. */
+    lapic_sync_ppr(lapic);
     if (lapic_log_first(&lapic->accept_log_count[message->vector], 8))
         lapic_log(lapic->mmio, "LAPIC: accepted vector=%02x trigger=%s count=%u\n",
                   message->vector, message->level ? "level" : "edge",
@@ -115,7 +117,7 @@ lapic_clear_interrupt_vector(lapic_state_t *lapic, uint8_t vector)
         return;
 
     cpu_lapic_clear_interrupt_vector_index(lapic->index, vector);
-    lapic_sync_int_regs(lapic);
+    lapic_sync_ppr(lapic);
 }
 
 int
@@ -424,7 +426,7 @@ lapic_icr_fixed_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
     if (self) {
         /* It goes into the IRR, merging with one pending. */
         cpu_lapic_accept_interrupt_index(lapic->index, vector, 0);
-        lapic_sync_int_regs(lapic);
+        lapic_sync_ppr(lapic);
         return 1;
     }
 
