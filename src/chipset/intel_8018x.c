@@ -280,8 +280,10 @@ static const uint16_t i8018x_icu_src[I8018X_ICU_SOURCES] = {
 };
 
 /* The controller the CPU core asks, since it has no way to be handed one: a
-   board has at most one, and it is set up when the device comes up. */
-static struct i8018x_pcb_t *i8018x_pcb_current;
+   board has at most one, and it is set up when the device comes up. The core
+   tests this for null itself, so a machine without such a controller never
+   pays for the call. */
+struct i8018x_pcb_t *i8018x_pcb_current;
 
 /* Control register holding a source's MSK bit; master mode merges the three
    timers into one register, so they share theirs. */
@@ -535,8 +537,8 @@ i8018x_pcb_pic_irq(uint16_t num, int set, void *priv)
 
 /* Declare that a source the board raises on 8259 line `pic_irq` reaches the
    controller as external input `line`, and take over the line observer for
-   the first one. The board is expected to keep that line masked in the
-   8259, so that this path is the only one delivering it. */
+   the first one. The line is the controller's alone, so it is pinned out
+   of the 8259's delivery. */
 void
 i8018x_pcb_set_irq_map(struct i8018x_pcb_t *pcb, int pic_irq, int line)
 {
@@ -554,6 +556,10 @@ i8018x_pcb_set_irq_map(struct i8018x_pcb_t *pcb, int pic_irq, int line)
             pic_set_irq_callback(i8018x_pcb_pic_irq, pcb);
             pcb->pic_hook = 1;
         }
+
+        /* The line belongs to the on-chip controller, so the 8259 has to stay
+           out of it however the guest programs its mask register. */
+        pic_set_line_pinned(pic_irq, 1);
 
         return;
     }
@@ -1075,6 +1081,11 @@ i8018x_pcb_close(void *priv)
 
     if (dev->handler_set)
         io_removehandler(dev->base, I8018X_PCB_SIZE, i8018x_pcb_inb, i8018x_pcb_inw, NULL, i8018x_pcb_outb, i8018x_pcb_outw, NULL, dev);
+
+    for (int i = 0; i < I8018X_ICU_IRQ_MAP; i++) {
+        if (dev->pic_irq[i] >= 0)
+            pic_set_line_pinned(dev->pic_irq[i], 0);
+    }
 
     if (dev->pic_hook)
         pic_set_irq_callback(NULL, NULL);

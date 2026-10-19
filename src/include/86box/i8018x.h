@@ -17,8 +17,10 @@
 #define EMU_I8018X_H
 
 struct i8018x_pcb_t;
-
-extern const device_t i8018x_pcb_device;
+/* The controller a machine has brought up, NULL when there is none; the CPU
+   core asks through this instead of waiting to be handed one. */
+extern struct i8018x_pcb_t *i8018x_pcb_current;
+extern const  device_t i8018x_pcb_device;
 
 extern int  i8018x_pcb_icu_pending(void);
 extern int  i8018x_pcb_icu_int_type(void);
