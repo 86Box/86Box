@@ -385,6 +385,10 @@ lapic_icr_remote_read_write(lapic_state_t *lapic, const lapic_target_info_t *tar
     lapic_sync_int_regs(target);
     if (!cpu_lapic_mmio_read_index(target->index, reg, &val))
         val = lapic_mirror_read_reg(target, reg);
+    /* "reset after being read by either the CPU or through the Remote
+       Read message" (Pentium Vol. 3, 19.3.3). */
+    if (reg == LAPIC_REG_ESR)
+        cpu_lapic_esr_read_clear_index(target->index);
     cpu_lapic_icr_remote_read_complete_index(lapic->index, val);
     lapic_log(lapic->mmio, "LAPIC: remote read slot=%u reg=%03x val=%08x\n",
               targets->indices[0], reg, val);
@@ -635,7 +639,9 @@ lapic_icr_write(lapic_state_t *lapic, lapic_state_t *lapics, uint8_t count,
                                                     route_parked);
     } else if (icr.delivery == LAPIC_ICR_DELIV_SMI) {
         delivered = lapic_icr_smi_write(lapic, &targets, route_parked);
-    } else if (icr.delivery == LAPIC_ICR_DELIV_REMOTE_READ) {
+    } else if ((icr.delivery == LAPIC_ICR_DELIV_REMOTE_READ) && cpu_is_p5()) {
+        /* The P6 has no Remote Read: delivery mode "011 (Reserved)"
+           (Pentium Pro Vol. 3, 7.4.9). */
         cpu_lapic_icr_remote_read_in_progress_index(lapic->index);
         delivered = lapic_icr_remote_read_write(lapic, &targets, icr.vector);
         if (!delivered)
@@ -692,8 +698,13 @@ lapic_dest_match(const lapic_state_t *lapic, uint8_t dest, int logical, int phys
     if (logical)
         return lapic_logical_dest_match(lapic, dest);
 
+    /* The P54C's APIC ID is four bits, "bits 56-59 contain the APIC ID"
+       (Pentium Vol. 3, 19.3.1.8, 19.3.6), and the P6's: the destination's
+       high nibble is not looked at. */
+    if (physical_broadcast & LAPIC_PHYS_BROADCAST_4BIT)
+        return ((dest & 0x0f) == (lapic_current_id(lapic) & 0x0f)) || ((dest & 0x0f) == 0x0f);
+
     return (dest == lapic_current_id(lapic)) ||
-           ((physical_broadcast & LAPIC_PHYS_BROADCAST_4BIT) && (dest == 0x0f)) ||
            ((physical_broadcast & LAPIC_PHYS_BROADCAST_8BIT) && (dest == 0xff));
 }
 

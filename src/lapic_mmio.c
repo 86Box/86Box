@@ -297,6 +297,8 @@ lapic_readl(uint32_t addr, void *priv)
 
     lapic_sync_int_regs(lapic);
     ret = lapic_mmio_read_reg(lapic, reg);
+    if (reg == LAPIC_REG_ESR)
+        cpu_lapic_esr_read_clear_index(lapic->index);
 
     if ((reg < 0x400) && lapic_log_first(&lapic->read_log_count[reg >> 4], 8))
         lapic_log(dev, "LAPIC: read reg=%03x val=%08x count=%u\n",
@@ -398,11 +400,24 @@ lapic_writel(uint32_t addr, uint32_t val, void *priv)
     }
 }
 
+/* What a narrow write merges into: the register as stored, not a read of
+   it. A read has effects of its own -- the P5's ESR clears -- and "a write
+   to the ESR has no side effects" (Pentium Vol. 3, 19.3.3). */
+static uint32_t
+lapic_narrow_base(uint32_t addr, void *priv)
+{
+    lapic_mmio_device_t *dev = (lapic_mmio_device_t *) priv;
+    uint32_t             reg;
+    lapic_state_t       *lapic = lapic_mmio_current_target(dev, addr, &reg);
+
+    return (lapic != NULL) ? lapic_mmio_read_reg(lapic, reg) : 0;
+}
+
 void
 lapic_writew(uint32_t addr, uint16_t val, void *priv)
 {
     uint32_t shift = (addr & 0x02) * 8;
-    uint32_t cur   = lapic_readl(addr & ~0x03, priv);
+    uint32_t cur   = lapic_narrow_base(addr & ~0x03, priv);
 
     /* Narrow writes reuse dword policy/sanitizers by merging through the aligned register. */
     cur &= ~(0xffffu << shift);
@@ -414,7 +429,7 @@ void
 lapic_writeb(uint32_t addr, uint8_t val, void *priv)
 {
     uint32_t shift = (addr & 0x03) * 8;
-    uint32_t cur   = lapic_readl(addr & ~0x03, priv);
+    uint32_t cur   = lapic_narrow_base(addr & ~0x03, priv);
 
     cur &= ~(0xffu << shift);
     cur |= ((uint32_t) val) << shift;

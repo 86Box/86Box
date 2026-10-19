@@ -925,6 +925,7 @@ extern uint32_t cpu_lapic_esr_read_current(void);
 extern void     cpu_lapic_esr_clear_current(void);
 extern void     cpu_lapic_esr_or_index(uint8_t lapic_index, uint32_t error);
 extern void     cpu_lapic_esr_load_index(uint8_t lapic_index, uint32_t val);
+extern void     cpu_lapic_esr_read_clear_index(uint8_t lapic_index);
 extern uint32_t cpu_lapic_icr_lo_read_current(void);
 extern uint32_t cpu_lapic_icr_lo_read_index(uint8_t lapic_index);
 extern void     cpu_lapic_icr_lo_write_index(uint8_t lapic_index, uint32_t val);

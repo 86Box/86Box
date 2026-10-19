@@ -237,12 +237,6 @@ cpu_lapic_ids_sync(void)
         lapic_id_sync_index(i, cpu_lapic_ids[i]);
 }
 
-static uint8_t
-cpu_lapic_id_current(void)
-{
-    return cpu_lapic_ids[cpu_current_lapic_index_clamped()];
-}
-
 uint8_t
 cpu_lapic_id_read_index(uint8_t lapic_index)
 {
@@ -268,14 +262,19 @@ cpu_lapic_id_write_index(uint8_t lapic_index, uint32_t val)
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return;
 
-    cpu_lapic_ids[lapic_index] = val >> 24;
+    /* Four bits, 27:24; 31:28 are reserved (Pentium Vol. 3, Fig. 19-3; the
+       P6's APIC ID is four bits too). */
+    cpu_lapic_ids[lapic_index] = (val >> 24) & 0x0f;
     lapic_id_sync_index(lapic_index, cpu_lapic_ids[lapic_index]);
 }
 
+/* CPUID 1's EBX. On the Pentium Pro and Pentium II, its only callers, it
+   is "EBX <- Reserved" (Pentium Pro Vol. 2, 242691-001, CPUID): the initial
+   APIC ID in bits 31:24 came with later processors, none modelled here. */
 uint32_t
 cpu_cpuid_apic_id_ebx(void)
 {
-    return ((uint32_t) cpu_lapic_id_current()) << 24;
+    return 0;
 }
 
 static uint32_t
@@ -645,6 +644,19 @@ cpu_lapic_esr_or_index(uint8_t lapic_index, uint32_t error)
     lapic_esr_sync_index(lapic_index, cpu_lapic_esrs[lapic_index]);
 }
 
+/* "The ESR is a read-only register and is reset after being read by
+   either the CPU or through the Remote Read message" (Pentium Vol. 3,
+   19.3.3): the P54C's. The P6's is cleared by a write instead. */
+void
+cpu_lapic_esr_read_clear_index(uint8_t lapic_index)
+{
+    if ((lapic_index >= IOAPIC_STATE_MAX_LAPICS) || !cpu_is_p5())
+        return;
+
+    cpu_lapic_esrs[lapic_index] = 0;
+    lapic_esr_sync_index(lapic_index, 0);
+}
+
 void
 cpu_lapic_esr_load_index(uint8_t lapic_index, uint32_t val)
 {
@@ -867,7 +879,17 @@ cpu_lapic_lvt_read_current(const uint32_t *lvts)
 static uint32_t
 cpu_lapic_lvt_sanitize(uint32_t reg, uint32_t val)
 {
-    return lapic_lvt_sanitize(reg, val);
+    uint32_t v = lapic_lvt_sanitize(reg, val);
+
+    /* The P54C's LINT entries know "000 Fixed, 100 NMI, 111 ExtINT, All
+       other combinations are <Reserved>" (Pentium Vol. 3, Fig. 19-6); SMI
+       and INIT there are the P6's. A reserved encoding is masked, as the
+       other reserved ones are (lapic_lvt_sanitize). */
+    if (((reg == CPU_LAPIC_REG_LVT_LINT0) || (reg == CPU_LAPIC_REG_LVT_LINT1)) && cpu_is_p5() &&
+        (((v & CPU_LAPIC_LVT_DELIV) == CPU_LAPIC_LVT_DELIV_SMI) ||
+         ((v & CPU_LAPIC_LVT_DELIV) == CPU_LAPIC_LVT_DELIV_INIT)))
+        v = (v & ~CPU_LAPIC_LVT_DELIV) | CPU_LAPIC_LVT_MASK;
+    return v;
 }
 
 static uint32_t *
@@ -2149,8 +2171,12 @@ cpu_lapic_mmio_write_index(uint8_t lapic_index, uint32_t reg, uint32_t val)
             cpu_lapic_id_write_index(lapic_index, val);
             return 1;
         case CPU_LAPIC_REG_ESR:
-            cpu_lapic_esrs[lapic_index] = 0;
-            lapic_esr_sync_index(lapic_index, cpu_lapic_esrs[lapic_index]);
+            /* The P6's clears it; the P54C's has no side effects
+               (cpu_lapic_esr_read_clear_index). */
+            if (!cpu_is_p5()) {
+                cpu_lapic_esrs[lapic_index] = 0;
+                lapic_esr_sync_index(lapic_index, cpu_lapic_esrs[lapic_index]);
+            }
             return 1;
         case CPU_LAPIC_REG_SVR:
             cpu_lapic_svrs[lapic_index] = cpu_lapic_svr_sanitize(val);
