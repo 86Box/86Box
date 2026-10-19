@@ -42,10 +42,10 @@ lapic_accept_fixed_interrupt(lapic_state_t *lapic,
     action = cpu_lapic_fixed_delivery_action_index(lapic->index, lapic->started,
                                                    message->vector, invalid_error,
                                                    &error_vector);
-    if (action == CPU_LAPIC_FIXED_REJECT) {
-        lapic_error(lapic, LAPIC_ESR_RECV_ACCEPT);
+    /* The Receive Accept Error is the bus's verdict, not this APIC's: its
+       callers decide (lapic_targets_accept_fixed). */
+    if (action == CPU_LAPIC_FIXED_REJECT)
         return apic_bus_result_rejected_recv_accept();
-    }
 
     if (action == CPU_LAPIC_FIXED_ERROR) {
         apic_bus_message_t error_message = *message;
@@ -74,12 +74,17 @@ lapic_accept_fixed_interrupt(lapic_state_t *lapic,
     return apic_bus_result(APIC_BUS_ACCEPTED);
 }
 
+/* A message on the bus to this APIC alone: refused, nobody took it. */
 apic_bus_result_t
 lapic_accept_interrupt_target(lapic_state_t *lapic,
                               const apic_bus_message_t *message)
 {
-    return lapic_accept_fixed_interrupt(lapic, message,
-                                        LAPIC_ESR_RECV_ILLEGAL_VECTOR);
+    apic_bus_result_t result = lapic_accept_fixed_interrupt(lapic, message,
+                                                            LAPIC_ESR_RECV_ILLEGAL_VECTOR);
+
+    if (result.target_esr == LAPIC_ESR_RECV_ACCEPT)
+        lapic_error(lapic, LAPIC_ESR_RECV_ACCEPT);
+    return result;
 }
 
 int
@@ -269,7 +274,7 @@ lapic_lint_deliver(lapic_state_t *lapic, uint32_t lint_reg)
                 .level    = !!level
             };
             apic_bus_result_t result =
-                lapic_accept_fixed_interrupt(lapic, &message, LAPIC_ESR_SEND_ILLEGAL_VECTOR);
+                lapic_accept_fixed_interrupt(lapic, &message, LAPIC_ESR_RECV_ILLEGAL_VECTOR);
 
             if (apic_bus_result_accepted(result))
                 cpu_lapic_lvt_delivery_complete_index(lapic->index, lint_reg);
@@ -331,7 +336,7 @@ lapic_lvt_source_deliver(lapic_state_t *lapic, uint32_t lvt_reg)
                 .vector   = vector
             };
             apic_bus_result_t result =
-                lapic_accept_fixed_interrupt(lapic, &message, LAPIC_ESR_SEND_ILLEGAL_VECTOR);
+                lapic_accept_fixed_interrupt(lapic, &message, LAPIC_ESR_RECV_ILLEGAL_VECTOR);
 
             if (apic_bus_result_accepted(result))
                 cpu_lapic_lvt_delivery_complete_index(lapic->index, lvt_reg);
@@ -834,14 +839,19 @@ lapic_targets_accept_fixed(const lapic_target_info_t *targets,
     if ((targets == NULL) || (message == NULL))
         return result;
 
+    uint32_t refused = 0;
+
     for (uint8_t i = 0; i < targets->count; i++) {
         apic_bus_result_t target_result =
-            lapic_accept_interrupt_target(targets->lapics[i], message);
+            lapic_accept_fixed_interrupt(targets->lapics[i], message,
+                                         LAPIC_ESR_RECV_ILLEGAL_VECTOR);
 
         if (apic_bus_result_accepted(target_result)) {
             result = target_result;
             continue;
         }
+        if (target_result.target_esr == LAPIC_ESR_RECV_ACCEPT)
+            refused |= 1u << (i & 31);
         /*
          * Multi-target delivery keeps trying every LAPIC. Preserve target ESR
          * only when no LAPIC accepted, so one bad receiver cannot poison a
@@ -849,6 +859,16 @@ lapic_targets_accept_fixed(const lapic_target_info_t *targets,
          */
         if (!apic_bus_result_accepted(result) && (target_result.target_esr != 0))
             result = target_result;
+    }
+
+    /* "Receive Accept Error: ... the message which was received by it was
+       not accepted by any agent on the bus, including itself" (Pentium
+       Vol. 3, 19.3.3): the status cycle is wired-OR, so a refusal is an
+       error only when every agent refused. */
+    if (!apic_bus_result_accepted(result)) {
+        for (uint8_t i = 0; i < targets->count; i++)
+            if (refused & (1u << (i & 31)))
+                lapic_error(targets->lapics[i], LAPIC_ESR_RECV_ACCEPT);
     }
 
     return result;

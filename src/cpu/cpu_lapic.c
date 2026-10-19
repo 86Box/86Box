@@ -150,7 +150,7 @@ static cpu_lapic_context_t cpu_lapic_contexts[IOAPIC_STATE_MAX_LAPICS] = {
 #define CPU_LAPIC_ESR_RECV_CHECKSUM       0x00000002
 #define CPU_LAPIC_ESR_SEND_ACCEPT         0x00000004
 #define CPU_LAPIC_ESR_RECV_ACCEPT         0x00000008
-#define CPU_LAPIC_ESR_SEND_ILLEGAL_VECTOR 0x00000020
+#define CPU_LAPIC_ESR_RECV_ILLEGAL_VECTOR 0x00000040
 
 #define CPU_LAPIC_ICR_VECTOR       0x000000ff
 #define CPU_LAPIC_ICR_DELIV        0x00000700
@@ -1481,7 +1481,7 @@ cpu_lapic_error_delivery_action_index(uint8_t lapic_index, int started,
 
     error_vector = lvt & CPU_LAPIC_LVT_VECTOR;
     if (!cpu_lapic_vector_valid(error_vector)) {
-        cpu_lapic_esrs[lapic_index] |= CPU_LAPIC_ESR_SEND_ILLEGAL_VECTOR;
+        cpu_lapic_esrs[lapic_index] |= CPU_LAPIC_ESR_RECV_ILLEGAL_VECTOR;
         lapic_esr_sync_index(lapic_index, cpu_lapic_esrs[lapic_index]);
         return CPU_LAPIC_FIXED_REJECT;
     }

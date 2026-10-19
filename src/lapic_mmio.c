@@ -260,12 +260,9 @@ lapic_mmio_current_target(lapic_mmio_device_t *dev, uint32_t addr, uint32_t *reg
 static void
 lapic_mmio_illegal_reg(lapic_state_t *lapic)
 {
-    uint32_t esr = 0;
-
-    /* Let CPU backend own ESR side effects, then mirror the visible ESR value. */
-    cpu_lapic_esr_or_index(lapic->index, LAPIC_ESR_ILLEGAL_REG_ADDR);
-    cpu_lapic_mmio_read_index(lapic->index, LAPIC_REG_ESR, &esr);
-    lapic_mirror_write_reg(lapic, LAPIC_REG_ESR, esr);
+    /* "An Error interrupt is generated when one of the error bits is set"
+       (Pentium Vol. 3, 19.3.3). */
+    lapic_error(lapic, LAPIC_ESR_ILLEGAL_REG_ADDR);
 }
 
 static uint32_t

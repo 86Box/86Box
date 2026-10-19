@@ -1491,7 +1491,7 @@ lapic_timer_callback(void *priv)
 
     accepted = cpu_lapic_timer_fire_index(lapic->index, lapic->started, &vector);
     if (accepted < 0) {
-        lapic_error(lapic, LAPIC_ESR_SEND_ILLEGAL_VECTOR);
+        lapic_error(lapic, LAPIC_ESR_RECV_ILLEGAL_VECTOR);
         lapic_log(lapic->mmio, "APIC-WARN: LAPIC rejected invalid vector=%02x\n", vector);
     } else if (accepted && lapic_log_first(&lapic->accept_log_count[vector], 8)) {
         lapic_log(lapic->mmio, "LAPIC: accepted vector=%02x trigger=edge count=%u\n",
