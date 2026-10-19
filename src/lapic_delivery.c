@@ -675,20 +675,25 @@ lapic_logical_dest_match(const lapic_state_t *lapic, uint8_t dest)
     if (!dest)
         return 0;
 
-    /*
-       Linux 2.2 uses logical destination broadcasts on uniprocessor APIC
-       systems before assigning a non-zero LAPIC LDR.
-     */
+    /* All ones is the broadcast in either model, not a decoded address:
+       flat, "Broadcast to all units is achieved by setting all 8 bits of
+       the MDA to ones"; cluster, "setting all destination bits to one ...
+       guarantees a match on all clusters, and selects all APICs in each
+       cluster" (Pentium Vol. 3, 19.3.1.5; Pentium Pro Vol. 3, 7.4.6.3 and
+       7.4.6.4). The LDR plays no part: Linux 2.2 clears every LDR to 0 and
+       sends each I/O APIC interrupt, lowest priority, to logical FFh. */
     if (dest == 0xff)
         return 1;
 
-    if (!logical_id)
-        return 0;
-
+    /* Flat: the MDA "is interpreted as a decoded address", each APIC
+       selected by "setting the member's bit to one in the corresponding
+       LDR" -- short of the broadcast, an LDR of 0 is selected by nothing. */
     if ((dfr & 0xf0000000) == 0xf0000000)
         return !!(dest & logical_id);
 
-    return ((dest & 0xf0) == (logical_id & 0xf0)) &&
+    /* Cluster: clusters 0 through 14 are addressed, cluster 15 is every
+       one. */
+    return (((dest & 0xf0) == 0xf0) || ((dest & 0xf0) == (logical_id & 0xf0))) &&
            !!(dest & logical_id & 0x0f);
 }
 
