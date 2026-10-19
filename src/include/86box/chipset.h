@@ -108,6 +108,7 @@ extern const device_t i440bx_no_agp_device;
 extern const device_t i440gx_device;
 extern const device_t i440zx_device;
 extern const device_t i450kx_device;
+extern const device_t i450gx_device;
 
 extern const device_t pceb_device;
 extern const device_t esc_device;

@@ -6,9 +6,12 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Implementation of the Intel 450KX Mars Chipset.
- *
- *          i450GX is way more popular of an option but needs more stuff.
+ *          Implementation of the Intel 450KX Mars and 450GX Orion
+ *          chipsets: the 82454KX/GX PCI bridge (PB) and the 82453KX/GX
+ *          memory controller (MC, the GX's DC). Register defaults are the
+ *          data sheet's (Intel 290523-001) as corrected by the
+ *          specification update (Intel 243109-015, Documentation
+ *          Changes 1).
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Tiseno100,
@@ -53,6 +56,10 @@ i450kx_log(const char *fmt, ...)
 #    define i450kx_log(fmt, ...)
 #endif
 
+/* Which chip set. */
+#define I450_KX 0
+#define I450_GX 1
+
 /* TODO: Finish the bus index stuff. */
 typedef struct i450kx_t {
     smram_t *smram[2];
@@ -60,7 +67,7 @@ typedef struct i450kx_t {
     uint8_t bus_index;
     uint8_t pb_slot;
     uint8_t mc_slot;
-    uint8_t pad;
+    uint8_t gx;
 
     uint8_t pb_pci_conf[256];
     uint8_t mc_pci_conf[256];
@@ -149,20 +156,21 @@ static void
 pb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     i450kx_t *dev = (i450kx_t *) priv;
+    const int gx  = (dev->gx != I450_KX);
 
     if (func == 0) {
         i450kx_log("[%04X:%08X] i450KX-PB: [W] dev->pb_pci_conf[%02X] = %02X\n", CS, cpu_state.pc,
                    addr, val);
 
         switch (addr) {
-            case 0x04:
+            case 0x04: /* PCICMD: bus master (2) hardwired to 1 */
                 dev->pb_pci_conf[addr] = (dev->pb_pci_conf[addr] & 0x04) | (val & 0x53);
                 break;
             case 0x05:
                 dev->pb_pci_conf[addr] = val & 0x01;
                 break;
 
-            case 0x07:
+            case 0x07: /* PCISTS: R/WC */
                 dev->pb_pci_conf[addr] &= ~(val & 0xf9);
                 break;
 
@@ -170,9 +178,7 @@ pb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 dev->pb_pci_conf[addr] = val;
                 break;
 
-            case 0x0f:
-                dev->pb_pci_conf[addr] = val & 0xcf;
-                break;
+            /* BIST (0Fh): "Writes to this register have no effect". */
 
             case 0x40:
             case 0x41:
@@ -196,7 +202,12 @@ pb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
 
             case 0x4c:
-                dev->pb_pci_conf[addr] = (dev->pb_pci_conf[addr] & 0x01) | (val & 0xd8);
+                /* PBC. Bits 1:0 are the 82454GX's arbitration mode, and "must
+                   be set to 01" on the 82454KX. */
+                if (gx)
+                    dev->pb_pci_conf[addr] = val & 0xdb;
+                else
+                    dev->pb_pci_conf[addr] = (dev->pb_pci_conf[addr] & 0x01) | (val & 0xd8);
                 break;
 
             case 0x51:
@@ -280,8 +291,8 @@ pb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 dev->pb_pci_conf[addr] = val & 0xf8;
                 break;
 
-            case 0x71:
-                dev->pb_pci_conf[addr] = val & 0x71;
+            case 0x71: /* ERRSTS: R/WC */
+                dev->pb_pci_conf[addr] &= ~(val & 0x71);
                 break;
 
             case 0x78:
@@ -322,12 +333,35 @@ pb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 dev->pb_pci_conf[addr] = val;
                 break;
 
+            /* IOSR1 (98h-9Bh) and IOSR2 (A0h-A3h), the 82454GX's: the start
+               address in bits 15:4, the end in bits 31:20, the enable in bit
+               0. Reserved on the 82454KX. */
+            case 0x98:
+            case 0xa0:
+                if (gx)
+                    dev->pb_pci_conf[addr] = val & 0xf1;
+                break;
+            case 0x99:
+            case 0xa1:
+            case 0x9b:
+            case 0xa3:
+                if (gx)
+                    dev->pb_pci_conf[addr] = val;
+                break;
+            case 0x9a:
+            case 0xa2:
+                if (gx)
+                    dev->pb_pci_conf[addr] = val & 0xf0;
+                break;
+
             case 0x9c:
                 dev->pb_pci_conf[addr] = val & 0x01;
                 break;
 
+            /* APICR: the enable in bit 0, the highest unit ID in bits 7:4,
+               the starting unit ID in bits 11:8, the base in bits 27:12. */
             case 0xa4:
-                dev->pb_pci_conf[addr] = val & 0xf8;
+                dev->pb_pci_conf[addr] = val & 0xf1;
                 i450kx_apicr_log("PB", dev->pb_pci_conf);
                 break;
             case 0xa5:
@@ -343,8 +377,8 @@ pb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             case 0xb0:
                 dev->pb_pci_conf[addr] = val & 0xe0;
                 break;
-            case 0xb1:
-                dev->pb_pci_conf[addr] = val & /*0x1a*/ 0x1f;
+            case 0xb1: /* CONFVR: bits 10 and 8 the 82454GX's */
+                dev->pb_pci_conf[addr] = val & (gx ? 0x1f : 0x1a);
                 break;
 
             case 0xb8:
@@ -361,21 +395,23 @@ pb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 dev->pb_pci_conf[addr] = val & 0x11;
                 break;
 
+            /* EXERRCMD: bits 1 and 5 reserved; 11:10 the 82454GX's. */
             case 0xc0:
-                dev->pb_pci_conf[addr] = val & 0xdf;
+                dev->pb_pci_conf[addr] = val & 0xdd;
                 break;
             case 0xc1:
-                dev->pb_pci_conf[addr] = val & 0x3f;
+                dev->pb_pci_conf[addr] = val & (gx ? 0x3f : 0x33);
                 break;
 
+            /* EXERRSTS: R/WC; bits 11 and 17 the 82454GX's. */
             case 0xc4:
-                dev->pb_pci_conf[addr] &= ~(val & 0x0f);
+                dev->pb_pci_conf[addr] &= ~(val & 0x0d);
                 break;
             case 0xc5:
-                dev->pb_pci_conf[addr] &= ~(val & 0x0a);
+                dev->pb_pci_conf[addr] &= ~(val & (gx ? 0x0a : 0x02));
                 break;
             case 0xc6:
-                dev->pb_pci_conf[addr] &= ~(val & 0x1f);
+                dev->pb_pci_conf[addr] &= ~(val & (gx ? 0x1f : 0x1d));
                 break;
 
             case 0xc8:
@@ -699,6 +735,13 @@ i450kx_reset(void *priv)
     dev->pb_pci_conf[0x8d] = 0x00;
     dev->pb_pci_conf[0x8e] = 0x00;
     dev->pb_pci_conf[0x8f] = 0x00;
+    if (dev->gx != I450_KX) {
+        /* IOSR1 and IOSR2: FFF0 0001h, the compatibility PB's. */
+        dev->pb_pci_conf[0x98] = dev->pb_pci_conf[0xa0] = 0x01;
+        dev->pb_pci_conf[0x99] = dev->pb_pci_conf[0xa1] = 0x00;
+        dev->pb_pci_conf[0x9a] = dev->pb_pci_conf[0xa2] = 0xf0;
+        dev->pb_pci_conf[0x9b] = dev->pb_pci_conf[0xa3] = 0xff;
+    }
     dev->pb_pci_conf[0x9c] = 0x00;
     dev->pb_pci_conf[0xa4] = 0x01;
     dev->pb_pci_conf[0xa5] = 0xc0;
@@ -718,7 +761,7 @@ i450kx_reset(void *priv)
     dev->pb_pci_conf[0xba] = 0x00;
     dev->pb_pci_conf[0xbb] = 0x00;
     dev->pb_pci_conf[0xbc] = 0x01;
-    dev->pb_pci_conf[0xc0] = 0x02;
+    dev->pb_pci_conf[0xc0] = 0x10; /* EXERRCMD: 0000 0010h */
     dev->pb_pci_conf[0xc1] = 0x00;
     dev->pb_pci_conf[0xc2] = 0x00;
     dev->pb_pci_conf[0xc3] = 0x00;
@@ -826,9 +869,11 @@ i450kx_close(void *priv)
 }
 
 static void *
-i450kx_init(UNUSED(const device_t *info))
+i450kx_init(const device_t *info)
 {
     i450kx_t *dev = (i450kx_t *) calloc(1, sizeof(i450kx_t));
+
+    dev->gx = info->local;
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, pb_read, pb_write, dev, &dev->pb_slot);        /* Device 19h: Intel 450KX PCI Bridge PB */
     pci_add_card(PCI_ADD_NORTHBRIDGE_SEC, mc_read, mc_write, dev, &dev->mc_slot);    /* Device 14h: Intel 450KX Memory Controller MC */
@@ -849,7 +894,21 @@ const device_t i450kx_device = {
     .name          = "Intel 450KX (Mars)",
     .internal_name = "i450kx",
     .flags         = DEVICE_PCI,
-    .local         = 0,
+    .local         = I450_KX,
+    .init          = i450kx_init,
+    .close         = i450kx_close,
+    .reset         = i450kx_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t i450gx_device = {
+    .name          = "Intel 450GX (Orion)",
+    .internal_name = "i450gx",
+    .flags         = DEVICE_PCI,
+    .local         = I450_GX,
     .init          = i450kx_init,
     .close         = i450kx_close,
     .reset         = i450kx_reset,
