@@ -2496,7 +2496,7 @@ acpi_reset(void *priv)
 
     if (acpi_power_on) {
         /* Power on always generates a resume event. */
-        dev->regs.pmsts |= 0x8100;
+        // dev->regs.pmsts |= 0x8100;
         acpi_power_on = 0;
     }
 
@@ -2525,6 +2525,14 @@ acpi_reset(void *priv)
         /* Fix for the IN530 CMOS reset jumper */
         if (machines[machine].init == machine_at_in530_init)
             dev->regs.gpe_pin = 0x0003ffff;
+    }
+
+    if (dev->vendor == VEN_SIS_5582) {
+        /* SiS Proprietary Bit, must be 1 */
+        dev->regs.pmcntrl |= 0x0200;
+
+        if (machines[machine].init == machine_at_sp97xv_init)
+            dev->regs.reg_18  |= 0x0480;
     }
 }
 
