@@ -40,6 +40,8 @@ lapic_reg_valid(uint32_t reg)
     return reg < 0x400;
 }
 
+extern int cpu_is_p5(void);
+
 int
 lapic_mmio_reg_defined(uint32_t reg)
 {
@@ -59,16 +61,26 @@ lapic_mmio_reg_defined(uint32_t reg)
         case LAPIC_REG_APR:
         case LAPIC_REG_PPR:
         case LAPIC_REG_EOI:
-        case LAPIC_REG_RRR:
         case LAPIC_REG_LDR:
         case LAPIC_REG_DFR:
         case LAPIC_REG_SVR:
         case LAPIC_REG_ESR:
         case LAPIC_REG_ICR_LO:
         case LAPIC_REG_ICR_HI:
-        case LAPIC_REG_LVT_TIMER:
+            return 1;
+        case LAPIC_REG_RRR:
+            /* The Remote Read register is the P54C's; the P6 lists FEE0
+               00C0H as Reserved (Pentium Pro Vol. 3, Table 7-1). */
+            return cpu_is_p5();
         case LAPIC_REG_LVT_THERMAL:
+            /* FEE0 0330H is Reserved on the P54C and on the P6 family
+               (Pentium Pro Vol. 3, Table 7-1; IA SDM Vol. 3, 243192-002):
+               the thermal LVT came later. */
+            return 0;
         case LAPIC_REG_LVT_PERF:
+            /* P6 and later; reserved on the Pentium's on-chip APIC. */
+            return !cpu_is_p5();
+        case LAPIC_REG_LVT_TIMER:
         case LAPIC_REG_LVT_LINT0:
         case LAPIC_REG_LVT_LINT1:
         case LAPIC_REG_LVT_ERROR:

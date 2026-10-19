@@ -499,11 +499,29 @@ cpu_lapic_dfr_load_index(uint8_t lapic_index, uint32_t val)
     cpu_lapic_dfrs[lapic_index] = lapic_dfr_sanitize(val);
 }
 
+/* The on-chip APIC of the P54C and P55C is the first of its line: version
+   1xh, four LVT entries (timer, LINT0, LINT1, error -- MaxLVT 3), and no
+   thermal or performance-counter entries (Pentium Vol. 3, Fig. 19-14 and
+   Table 19-6). 10h is the P54C's; 11h is what the P55C is reported to
+   answer. Later parts keep the P6 value. */
+static uint32_t
+cpu_lapic_version_for_model(void)
+{
+    if (cpu_s != NULL) {
+        if (cpu_s->cpu_type == CPU_PENTIUM)
+            return 0x00030010;
+        if (cpu_s->cpu_type == CPU_PENTIUMMMX)
+            return 0x00030011;
+    }
+
+    return CPU_LAPIC_VERSION_DEFAULT;
+}
+
 static void
 cpu_lapic_versions_reset(void)
 {
     for (uint8_t i = 0; i < IOAPIC_STATE_MAX_LAPICS; i++)
-        cpu_lapic_versions[i] = CPU_LAPIC_VERSION_DEFAULT;
+        cpu_lapic_versions[i] = cpu_lapic_version_for_model();
 }
 
 static void
@@ -1724,7 +1742,7 @@ cpu_lapic_reset_index(uint8_t lapic_index, uint8_t id, uint64_t base_msr)
     cpu_lapic_tpr_load_index(lapic_index, CPU_LAPIC_TPR_DEFAULT);
     cpu_lapic_ldr_load_index(lapic_index, CPU_LAPIC_LDR_DEFAULT);
     cpu_lapic_dfr_load_index(lapic_index, CPU_LAPIC_DFR_DEFAULT);
-    cpu_lapic_version_load_index(lapic_index, CPU_LAPIC_VERSION_DEFAULT);
+    cpu_lapic_version_load_index(lapic_index, cpu_lapic_version_for_model());
     cpu_lapic_apr_load_index(lapic_index, 0);
     cpu_lapic_ppr_load_index(lapic_index, 0);
     cpu_lapic_esr_load_index(lapic_index, 0);
