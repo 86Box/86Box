@@ -19,7 +19,7 @@ extern int      lapic_mmio_reg_defined(uint32_t reg);
 extern int      lapic_vector_valid(uint8_t vector);
 extern uint32_t lapic_priority_class(uint32_t priority);
 extern int      lapic_priority_deliverable(uint8_t vector, uint32_t ppr);
-extern uint32_t lapic_processor_priority(uint32_t tpr, int isr_vector);
+extern uint32_t lapic_processor_priority(uint32_t tpr, int isr_vector, int p6);
 extern uint32_t lapic_tpr_sanitize(uint32_t val);
 extern uint32_t lapic_ldr_sanitize(uint32_t val);
 extern uint32_t lapic_dfr_sanitize(uint32_t val);

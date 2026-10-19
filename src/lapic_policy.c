@@ -112,16 +112,19 @@ lapic_priority_deliverable(uint8_t vector, uint32_t ppr)
 }
 
 uint32_t
-lapic_processor_priority(uint32_t tpr, int isr_vector)
+lapic_processor_priority(uint32_t tpr, int isr_vector, int p6)
 {
     uint32_t tpr_class = lapic_priority_class(tpr);
     uint32_t isr_class;
 
     /* Pentium Vol. 3, 19.3.1.9.3: "If TPR[7:4] > ISRV[7:4] then PPR[7:0] =
        TPR[7:0], else PPR[7:4] = ISRV[7:4], PPR[3:0] = 0", ISRV "zero if no
-       ISR bit is set": with nothing in service a TPR of class 0 gives 0. */
+       ISR bit is set": with nothing in service a TPR of class 0 gives 0.
+       The P6's is "IF TPR[7:4] >= ISRV[7:4] THEN PPR[7:0] = TPR[7:0]"
+       (Pentium Pro Vol. 3, 7.4.10.3): with the classes equal it is the
+       TPR. Either way the class, which decides delivery, is the same. */
     isr_class = (isr_vector < 0) ? 0 : lapic_priority_class((uint32_t) isr_vector);
-    if (tpr_class > isr_class)
+    if ((tpr_class > isr_class) || (p6 && (tpr_class == isr_class)))
         return tpr & LAPIC_TPR_WRITE_MASK;
 
     return isr_class;

@@ -1377,7 +1377,7 @@ cpu_lapic_ppr_value_index(uint8_t lapic_index)
     uint32_t tpr = cpu_lapic_tprs[lapic_index] & CPU_LAPIC_TPR_MASK;
     int      isr = cpu_lapic_highest_vector(cpu_lapic_isrs[lapic_index]);
 
-    return lapic_processor_priority(tpr, isr);
+    return lapic_processor_priority(tpr, isr, !cpu_is_p5());
 }
 
 /* The arbitration priority, stored nowhere either (Pentium Vol. 3,
