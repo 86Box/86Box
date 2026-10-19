@@ -445,15 +445,18 @@ pb_read(int func, int addr, UNUSED(int len), void *priv)
     return ret;
 }
 
-/* A way to use spd_write_drbs_interlaved() and convert the output to what we need. */
+/* The DRAM row limits (DRL, 16 bits each at 60h-6Fh, in 4 Mbyte units)
+   from the memory fitted: 7 bits on the 450KX, 11 on the 450GX (2.3.13). */
 static void
 mc_fill_drbs(i450kx_t *dev)
 {
+    const int gx = (dev->gx != I450_KX);
+
     spd_write_drbs_interleaved(dev->mc_pci_conf, 0x60, 0x6f, 4);
     for (uint8_t i = 0x60; i <= 0x6f; i++) {
         if (i & 0x01)
-            dev->mc_pci_conf[i] = 0x00;
-        else
+            dev->mc_pci_conf[i] &= gx ? 0x07 : 0x00;
+        else if (!gx)
             dev->mc_pci_conf[i] &= 0x7f;
     }
 }
@@ -468,11 +471,19 @@ mc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                    addr, val);
 
         switch (addr) {
+            /* BASEADD, the 450GX's: the MC's base in 1 Mbyte units. */
+            case 0x40:
+            case 0x41:
+                if (dev->gx != I450_KX)
+                    dev->mc_pci_conf[addr] = val;
+                break;
+
             case 0x4c:
                 dev->mc_pci_conf[addr] = val & 0xdf;
                 break;
             case 0x4d:
-                dev->mc_pci_conf[addr] = val & 0xff;
+                /* CMD bits 14:13 are the 450GX's interleaves 3 and 2. */
+                dev->mc_pci_conf[addr] = val & ((dev->gx != I450_KX) ? 0xff : 0x9f);
                 break;
 
             case 0x57:
@@ -538,7 +549,10 @@ mc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
 
             case 0x60 ... 0x6f:
-                dev->mc_pci_conf[addr] = ((addr & 0x0f) & 0x01) ? 0x00 : (val & 0x7f);
+                if (dev->gx != I450_KX)
+                    dev->mc_pci_conf[addr] = (addr & 0x01) ? (val & 0x07) : val;
+                else
+                    dev->mc_pci_conf[addr] = (addr & 0x01) ? 0x00 : (val & 0x7f);
                 mc_fill_drbs(dev);
                 break;
 
@@ -577,7 +591,9 @@ mc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 dev->mc_pci_conf[addr] = val;
                 break;
             case 0x8b:
-                dev->mc_pci_conf[addr] = val & 0x80;
+                /* HMGSA: bit 31 the enable, bit 30 Reclaim Enable (specification
+                   update, Documentation Changes 1). */
+                dev->mc_pci_conf[addr] = val & 0xc0;
                 break;
 
             case 0x8c:
@@ -602,12 +618,7 @@ mc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 i450kx_apicr_log("MC", dev->mc_pci_conf);
                 break;
 
-            case 0xa8:
-                dev->mc_pci_conf[addr] = val & 0xfe;
-                break;
-            case 0xa9 ... 0xab:
-                dev->mc_pci_conf[addr] = val;
-                break;
+            /* UERRADD (A8h-ABh) is read-only (2.3.21). */
 
             case 0xac ... 0xae:
                 dev->mc_pci_conf[addr] = val;
@@ -641,12 +652,12 @@ mc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             case 0xc4:
                 dev->mc_pci_conf[addr] = val & 0xbf;
                 break;
-            case 0xc5:
-                dev->mc_pci_conf[addr] = val & 0x03;
+            case 0xc5: /* SERRCMD bits 9:8, the 450GX's */
+                dev->mc_pci_conf[addr] = val & ((dev->gx != I450_KX) ? 0x03 : 0x00);
                 break;
 
-            case 0xc6:
-                dev->mc_pci_conf[addr] &= ~(val & 0x19);
+            case 0xc6: /* SERRSTS: bits 2:1 the 450GX's */
+                dev->mc_pci_conf[addr] &= ~(val & ((dev->gx != I450_KX) ? 0x1f : 0x19));
                 break;
 
             case 0xc8:
@@ -796,6 +807,10 @@ i450kx_reset(void *priv)
     dev->mc_pci_conf[0x09] = 0x00;
     dev->mc_pci_conf[0x0a] = 0x00;
     dev->mc_pci_conf[0x0b] = 0x05;
+    dev->mc_pci_conf[0x40] = 0x00; /* BASEADD (450GX): MC #0 at 0 */
+    dev->mc_pci_conf[0x41] = 0x00;
+    dev->mc_pci_conf[0x42] = 0x00;
+    dev->mc_pci_conf[0x43] = 0x00;
     dev->mc_pci_conf[0x49] = 0x14;
     dev->mc_pci_conf[0x4c] = 0x0b;
     dev->mc_pci_conf[0x4d] = 0x08;
@@ -854,8 +869,9 @@ i450kx_reset(void *priv)
     mc_write(0, 0x59, 1, 0x03, dev);
     for (i = 0x5a; i <= 0x5f; i++)
         mc_write(0, i, 1, 0x00, dev);
+    /* DRL[0:7] 0001h: every row limit at 4 Mbytes until POST sizes them. */
     for (i = 0x60; i <= 0x6f; i++)
-        dev->mc_pci_conf[i] = 0x01;
+        dev->mc_pci_conf[i] = (i & 0x01) ? 0x00 : 0x01;
 }
 
 static void
