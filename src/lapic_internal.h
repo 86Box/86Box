@@ -177,8 +177,7 @@ extern void                 lapic_clear_interrupt_vector(lapic_state_t *lapic,
                                                         uint8_t vector);
 extern apic_bus_result_t    lapic_accept_interrupt_target(lapic_state_t *lapic,
                                                           const apic_bus_message_t *message);
-extern void                 lapic_init_signal(lapic_state_t *lapic,
-                                              int assert);
+extern void                 lapic_init_signal(lapic_state_t *lapic);
 extern void                 lapic_error(lapic_state_t *lapic, uint32_t error);
 extern void                 lapic_targets_clear(lapic_target_info_t *targets);
 extern void                 lapic_targets_keep_interruptible(
@@ -193,8 +192,7 @@ extern apic_bus_result_t    lapic_targets_accept_lowest_priority(
                                                 int route_parked,
                                                 const apic_bus_message_t *message);
 extern int                  lapic_targets_deliver_init(
-                                                const lapic_target_info_t *targets,
-                                                int assert);
+                                                const lapic_target_info_t *targets);
 extern void                 lapic_arbitration_id_reset_from_id(
                                                 lapic_state_t *lapic);
 extern void                 lapic_arbitration_rotate_after_lapic(lapic_state_t *lapics,

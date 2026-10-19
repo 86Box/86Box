@@ -884,12 +884,9 @@ int
 apic_platform_ioapic_deliver_init(apic_platform_t *platform,
                                   const lapic_target_info_t *targets)
 {
-    /* This model emits INIT assert then deassert; first pass also reports any target hit. */
-    if (!local_apic_targets_deliver_init(platform->lapic, targets, 1))
-        return 0;
-
-    local_apic_targets_deliver_init(platform->lapic, targets, 0);
-    return 1;
+    /* "INIT is always treated as an edge triggered interrupt, even if
+       programmed otherwise" (82093AA, delivery mode 101): no de-assert. */
+    return local_apic_targets_deliver_init(platform->lapic, targets);
 }
 
 int

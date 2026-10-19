@@ -591,12 +591,11 @@ local_apic_targets_accept_lowest_priority(local_apic_t *apic,
 
 int
 local_apic_targets_deliver_init(local_apic_t *apic,
-                                const lapic_target_info_t *targets,
-                                int assert)
+                                const lapic_target_info_t *targets)
 {
     (void) apic;
 
-    return lapic_targets_deliver_init(targets, assert);
+    return lapic_targets_deliver_init(targets);
 }
 
 void
@@ -1300,29 +1299,27 @@ lapic_enabled(const lapic_state_t *lapic)
     return (lapic != NULL) && cpu_lapic_enabled_index(lapic->index, lapic->started);
 }
 
+/* An INIT message accepted (an IPI, or an I/O APIC entry): "INIT has the
+   same effect on the Local APIC as the power-up Reset, except that the
+   APIC ID and Arb ID registers are not affected" (Pentium Vol. 3,
+   19.3.1.11.3). A processor other than the first goes to wait for a
+   STARTUP. */
 void
-lapic_init_signal(lapic_state_t *lapic, int assert)
+lapic_init_signal(lapic_state_t *lapic)
 {
     if (lapic == NULL)
         return;
 
-    lapic->init_asserted = !!assert;
+    lapic->init_asserted  = 0;
     lapic->extint_pending = 0;
-    lapic->extint_pin = 0;
+    lapic->extint_pin     = 0;
     cpu_lapic_extint_live_set(lapic->index, 0);
-
-    /* BSP keeps running; AP startup state follows INIT assert/deassert edges. */
+    lapic_reset_regs(lapic);
     if (!lapic->is_bsp) {
-        lapic->started = 0;
-        lapic->wait_for_sipi = !assert;
-        if (assert)
-            lapic->sipi_vector = 0;
-        lapic->parked = 0;
-    }
-
-    if (assert) {
-        lapic_reset_regs(lapic);
-        lapic_arbitration_id_reset_from_id(lapic);
+        lapic->started       = 0;
+        lapic->wait_for_sipi = 1;
+        lapic->sipi_vector   = 0;
+        lapic->parked        = 0;
     }
 }
 

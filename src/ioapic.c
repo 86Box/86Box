@@ -217,16 +217,6 @@ ioapic_apic_bus_message_complete(ioapic_t *dev)
     apic_platform_ioapic_bus_message_complete(dev->apic, &dev->ioapic_arb_id);
 }
 
-static void
-ioapic_init_deassert_reload_arb(ioapic_t *dev, uint32_t low, int level, int set)
-{
-    /* Only modeled INIT deassert reloads arbitration ID; other deasserts keep rotation state. */
-    if (level && !set &&
-        ((low & IOAPIC_REDIR_DELIV) == IOAPIC_DELIVERY_INIT) &&
-        (low & IOAPIC_REDIR_TRIGGER))
-        dev->ioapic_arb_id = dev->ioapic_id;
-}
-
 static int
 ioapic_pic_pending_irq(void)
 {
@@ -851,8 +841,6 @@ ioapic_raw_intin_device(ioapic_t *dev, uint8_t pin, int level, int physical_high
                        ioapic_82093aa_redir_physical_asserted(low, physical_high);
 
     /* Keep raw physical state separate from polarity-adjusted line state. */
-    ioapic_init_deassert_reload_arb(dev, low, level, asserted);
-
     if (physical_high)
         dev->ioapic_pin_raw_lines |= pin_bit;
     else

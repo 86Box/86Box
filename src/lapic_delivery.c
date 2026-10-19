@@ -83,7 +83,7 @@ lapic_accept_interrupt_target(lapic_state_t *lapic,
 }
 
 int
-lapic_targets_deliver_init(const lapic_target_info_t *targets, int assert)
+lapic_targets_deliver_init(const lapic_target_info_t *targets)
 {
     int delivered = 0;
 
@@ -96,7 +96,7 @@ lapic_targets_deliver_init(const lapic_target_info_t *targets, int assert)
         if (target == NULL)
             continue;
 
-        lapic_init_signal(target, assert);
+        lapic_init_signal(target);
         delivered = 1;
     }
 
@@ -510,21 +510,16 @@ lapic_icr_nmi_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
 }
 
 static lapic_startup_action_t
-lapic_icr_startup_state_write(lapic_state_t *target, uint32_t delivery,
-                              uint8_t vector, int assert)
+lapic_icr_startup_state_write(lapic_state_t *target, uint32_t delivery, uint8_t vector)
 {
     if (target == NULL)
         return LAPIC_STARTUP_ACTION_NONE;
 
+    /* "In the APIC, NMI and INIT (except for INIT Deassert) are always
+       treated as edge triggered interrupts" (Pentium Vol. 3, 19.3.6): an
+       INIT is over as soon as it is sent. */
     if (delivery == LAPIC_ICR_DELIV_INIT) {
-        target->init_asserted = !!assert;
-        if (!target->is_bsp) {
-            /* INIT/SIPI state is model bookkeeping; startup itself is delegated. */
-            target->started = 0;
-            target->wait_for_sipi = !assert;
-            if (assert)
-                target->sipi_vector = 0;
-        }
+        lapic_init_signal(target);
         return LAPIC_STARTUP_ACTION_INIT;
     }
 
@@ -618,11 +613,10 @@ lapic_arbitration_rotate_after_lapic(lapic_state_t *lapics, uint8_t count,
 
 static int
 lapic_icr_startup_write(lapic_state_t *lapic, const lapic_target_info_t *targets,
-                        uint32_t delivery, uint8_t vector, uint32_t val,
+                        uint32_t delivery, uint8_t vector,
                         lapic_icr_startup_handler_t startup_handler, void *startup_priv)
 {
     int updated = 0;
-    int assert  = !!(val & LAPIC_ICR_LEVEL);
 
     if (targets == NULL)
         return 0;
@@ -640,7 +634,7 @@ lapic_icr_startup_write(lapic_state_t *lapic, const lapic_target_info_t *targets
         if (target == NULL)
             continue;
 
-        action = lapic_icr_startup_state_write(target, delivery, vector, assert);
+        action = lapic_icr_startup_state_write(target, delivery, vector);
         if (action == LAPIC_STARTUP_ACTION_INIT) {
             updated = 1;
         } else if (action == LAPIC_STARTUP_ACTION_SIPI) {
@@ -652,6 +646,26 @@ lapic_icr_startup_write(lapic_state_t *lapic, const lapic_target_info_t *targets
     }
 
     return updated;
+}
+
+/* The INIT Level De-assert: "All Local APICs, whether they are targeted
+   or not, load their Arbitration ID register with values from their APIC
+   ID registers" (Pentium Vol. 3, 19.3.1.11.3). It resets nothing. */
+static void
+lapic_init_deassert_all(lapic_state_t *lapics, uint8_t count)
+{
+    for (uint8_t i = 0; i < count; i++) {
+        lapic_state_t *l = lapic_at(lapics, count, i);
+
+        if (l == NULL)
+            continue;
+        l->init_asserted = 0;
+        lapic_arbitration_id_reset_from_id(l);
+    }
+    /* "The APICARB Register is always loaded with IOAPIC ID during a 'level
+       triggered INIT with de-assert' message" (82093AA, 3.2.3). */
+    if ((lapic_bus_ioapic_arb != NULL) && (lapic_bus_ioapic_id != NULL))
+        *lapic_bus_ioapic_arb = *lapic_bus_ioapic_id & 0x0f;
 }
 
 void
@@ -672,6 +686,17 @@ lapic_icr_write(lapic_state_t *lapic, lapic_state_t *lapics, uint8_t count,
     lapic_select_icr_targets(lapics, count, current_index, icr.dest, icr.destmod,
                              icr.shorthand, &targets);
 
+    /* A level-triggered message with the level clear (Pentium Vol. 3,
+       Table 19-7): an INIT is the INIT Level De-assert, "sent to all
+       agents, regardless of the destination field value" (19.3.1.8), and
+       every other is ignored. */
+    if (icr.trigger && !icr.level) {
+        if (icr.delivery == LAPIC_ICR_DELIV_INIT)
+            lapic_init_deassert_all(lapics, count);
+        cpu_lapic_icr_delivery_complete_index(lapic->index);
+        return;
+    }
+
     if (icr.delivery == LAPIC_ICR_DELIV_FIXED) {
         delivered = lapic_icr_fixed_write(lapic, &targets, icr.vector, route_parked);
     } else if (icr.delivery == LAPIC_ICR_DELIV_LOWEST) {
@@ -689,7 +714,7 @@ lapic_icr_write(lapic_state_t *lapic, lapic_state_t *lapics, uint8_t count,
     } else if (icr.delivery == LAPIC_ICR_DELIV_NMI) {
         delivered = lapic_icr_nmi_write(lapic, &targets, route_parked);
     } else if ((icr.delivery == LAPIC_ICR_DELIV_INIT) || (icr.delivery == LAPIC_ICR_DELIV_SIPI)) {
-        delivered = lapic_icr_startup_write(lapic, &targets, icr.delivery, icr.vector, val,
+        delivered = lapic_icr_startup_write(lapic, &targets, icr.delivery, icr.vector,
                                             startup_handler, startup_priv);
     }
 
