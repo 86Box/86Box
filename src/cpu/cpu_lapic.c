@@ -142,6 +142,7 @@ static cpu_lapic_context_t cpu_lapic_contexts[IOAPIC_STATE_MAX_LAPICS] = {
 #define CPU_LAPIC_LVT_DELIV_INIT   0x00000500
 #define CPU_LAPIC_LVT_DELIV_EXTINT 0x00000700
 #define CPU_LAPIC_LVT_STATUS       0x00001000
+#define CPU_LAPIC_LVT_REMOTE_IRR   0x00004000
 #define CPU_LAPIC_LVT_POLARITY     0x00002000
 #define CPU_LAPIC_LVT_TRIGGER      0x00008000
 #define CPU_LAPIC_LVT_MASK         0x00010000
@@ -971,7 +972,7 @@ cpu_lapic_lvt_load_index(uint32_t *lvts, uint8_t lapic_index, uint32_t reg,
         return;
 
     lvts[lapic_index] = cpu_lapic_lvt_sanitize(reg, val) |
-                         (val & CPU_LAPIC_LVT_STATUS);
+                         (val & (CPU_LAPIC_LVT_STATUS | CPU_LAPIC_LVT_REMOTE_IRR));
 }
 
 static void
@@ -987,7 +988,7 @@ cpu_lapic_lvt_write_index(uint32_t *lvts, uint8_t lapic_index, uint32_t reg,
     if (!(cpu_lapic_svrs[lapic_index] & CPU_LAPIC_SVR_ENABLE))
         val |= CPU_LAPIC_LVT_MASK;
     lvts[lapic_index] = cpu_lapic_lvt_sanitize(reg, val) |
-                         (lvts[lapic_index] & CPU_LAPIC_LVT_STATUS);
+                         (lvts[lapic_index] & (CPU_LAPIC_LVT_STATUS | CPU_LAPIC_LVT_REMOTE_IRR));
 }
 
 int
@@ -1016,6 +1017,44 @@ void
 cpu_lapic_lvt_delivery_complete_index(uint8_t lapic_index, uint32_t reg)
 {
     cpu_lapic_lvt_delivery_status_index(lapic_index, reg, 0);
+}
+
+/* The vector each LINT's Remote IRR was set for: its EOI is the one that
+   clears it, whatever the entry holds by then. */
+static uint8_t cpu_lapic_lint_rirr_vector[IOAPIC_STATE_MAX_LAPICS][2];
+
+/* A level-triggered LINT interrupt accepted: "For level triggered
+   interrupts, the bit is set when the logic of the Local APIC accepts the
+   interrupt. The remote IRR bit is reset when an EOI command is received"
+   (Pentium Vol. 3, p. 19-13). */
+void
+cpu_lapic_lint_remote_irr_set_index(uint8_t lapic_index, uint32_t reg, uint8_t vector)
+{
+    if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
+        return;
+    if (reg == CPU_LAPIC_REG_LVT_LINT0) {
+        cpu_lapic_lvt_lint0s[lapic_index] |= CPU_LAPIC_LVT_REMOTE_IRR;
+        cpu_lapic_lint_rirr_vector[lapic_index][0] = vector;
+        cpu_lapic_lvt_sync_index(lapic_index, reg, cpu_lapic_lvt_lint0s[lapic_index]);
+    } else if (reg == CPU_LAPIC_REG_LVT_LINT1) {
+        cpu_lapic_lvt_lint1s[lapic_index] |= CPU_LAPIC_LVT_REMOTE_IRR;
+        cpu_lapic_lint_rirr_vector[lapic_index][1] = vector;
+        cpu_lapic_lvt_sync_index(lapic_index, reg, cpu_lapic_lvt_lint1s[lapic_index]);
+    }
+}
+
+/* The EOI for vector: the LINT entries it retires. */
+static void
+cpu_lapic_lint_remote_irr_eoi(uint8_t lapic_index, int vector)
+{
+    uint32_t      *lvt[2] = { &cpu_lapic_lvt_lint0s[lapic_index], &cpu_lapic_lvt_lint1s[lapic_index] };
+    const uint32_t reg[2] = { CPU_LAPIC_REG_LVT_LINT0, CPU_LAPIC_REG_LVT_LINT1 };
+
+    for (int i = 0; i < 2; i++)
+        if ((*lvt[i] & CPU_LAPIC_LVT_REMOTE_IRR) && ((int) cpu_lapic_lint_rirr_vector[lapic_index][i] == vector)) {
+            *lvt[i] &= ~CPU_LAPIC_LVT_REMOTE_IRR;
+            cpu_lapic_lvt_sync_index(lapic_index, reg[i], *lvt[i]);
+        }
 }
 
 static void
@@ -1146,6 +1185,10 @@ cpu_lapic_lvt_lint0_load_index(uint8_t lapic_index, uint32_t val)
 {
     cpu_lapic_lvt_load_index(cpu_lapic_lvt_lint0s, lapic_index,
                              CPU_LAPIC_REG_LVT_LINT0, val);
+    /* A save state holds no vector for Remote IRR: the entry's own is the
+       one it delivered. */
+    if ((lapic_index < IOAPIC_STATE_MAX_LAPICS) && (val & CPU_LAPIC_LVT_REMOTE_IRR))
+        cpu_lapic_lint_rirr_vector[lapic_index][0] = val & 0xff;
 }
 
 static void
@@ -1182,6 +1225,8 @@ cpu_lapic_lvt_lint1_load_index(uint8_t lapic_index, uint32_t val)
 {
     cpu_lapic_lvt_load_index(cpu_lapic_lvt_lint1s, lapic_index,
                              CPU_LAPIC_REG_LVT_LINT1, val);
+    if ((lapic_index < IOAPIC_STATE_MAX_LAPICS) && (val & CPU_LAPIC_LVT_REMOTE_IRR))
+        cpu_lapic_lint_rirr_vector[lapic_index][1] = val & 0xff;
 }
 
 static void
@@ -1619,6 +1664,7 @@ cpu_lapic_eoi_index(uint8_t lapic_index, int *level)
                          (1u << (vector & 0x1f)));
         /* Only acceptance changes the TMR (Pentium Vol. 3, 19.3.1.9). */
         cpu_lapic_clear_vector(cpu_lapic_isrs[lapic_index], vector);
+        cpu_lapic_lint_remote_irr_eoi(lapic_index, vector);
         cpu_lapic_ppr_update_index(lapic_index);
     }
 
@@ -1718,6 +1764,10 @@ cpu_lapic_lint_delivery_index(uint8_t lapic_index, int started, uint8_t lint,
 
     switch (lvt & CPU_LAPIC_LVT_DELIV) {
         case CPU_LAPIC_LVT_DELIV_FIXED:
+            /* A level interrupt accepted and not yet EOIed holds the line
+               off (Remote IRR, Pentium Vol. 3, p. 19-13). */
+            if ((lvt & CPU_LAPIC_LVT_TRIGGER) && (lvt & CPU_LAPIC_LVT_REMOTE_IRR))
+                return CPU_LAPIC_LINT_ACTION_HANDLED;
             if (vector != NULL)
                 *vector = lvt & CPU_LAPIC_LVT_VECTOR;
             if (level != NULL)

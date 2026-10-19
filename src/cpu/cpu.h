@@ -1031,6 +1031,7 @@ extern int      cpu_lapic_lint_delivery_index(uint8_t lapic_index, int started, 
 extern int      cpu_lapic_lvt_source_delivery_index(uint8_t lapic_index, int started,
                                                     uint8_t source, uint8_t *vector);
 extern void     cpu_lapic_lvt_delivery_complete_index(uint8_t lapic_index, uint32_t reg);
+extern void     cpu_lapic_lint_remote_irr_set_index(uint8_t lapic_index, uint32_t reg, uint8_t vector);
 extern int      cpu_lapic_timer_fire_index(uint8_t lapic_index, int started, uint8_t *vector);
 
 extern void     cpu_lapic_reset_index(uint8_t lapic_index, uint8_t id, uint64_t base_msr);

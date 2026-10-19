@@ -273,10 +273,14 @@ lapic_lint_deliver(lapic_state_t *lapic, uint32_t lint_reg)
                 .vector   = vector,
                 .level    = !!level
             };
+            apic_bus_result_t result =
+                lapic_accept_fixed_interrupt(lapic, &message, LAPIC_ESR_RECV_ILLEGAL_VECTOR);
+
             /* Refused (an illegal vector, reported in the ESR), it is
                dropped: nothing sends it again, so it is not left pending. */
-            (void) lapic_accept_fixed_interrupt(lapic, &message, LAPIC_ESR_RECV_ILLEGAL_VECTOR);
             cpu_lapic_lvt_delivery_complete_index(lapic->index, lint_reg);
+            if (apic_bus_result_accepted(result) && level)
+                cpu_lapic_lint_remote_irr_set_index(lapic->index, lint_reg, vector);
             return 1;
         }
 

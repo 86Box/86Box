@@ -71,10 +71,13 @@ lapic_state_sanitize_loaded_regs(uint32_t regs[0x400 >> 4])
         lapic_lvt_sanitize(LAPIC_REG_LVT_THERMAL, regs[LAPIC_REG_LVT_THERMAL >> 4]);
     regs[LAPIC_REG_LVT_PERF >> 4] =
         lapic_lvt_sanitize(LAPIC_REG_LVT_PERF, regs[LAPIC_REG_LVT_PERF >> 4]);
+    /* Delivery status (bit 12) and Remote IRR (bit 14) are state, kept. */
     regs[LAPIC_REG_LVT_LINT0 >> 4] =
-        lapic_lvt_sanitize(LAPIC_REG_LVT_LINT0, regs[LAPIC_REG_LVT_LINT0 >> 4]);
+        lapic_lvt_sanitize(LAPIC_REG_LVT_LINT0, regs[LAPIC_REG_LVT_LINT0 >> 4]) |
+        (regs[LAPIC_REG_LVT_LINT0 >> 4] & 0x00005000);
     regs[LAPIC_REG_LVT_LINT1 >> 4] =
-        lapic_lvt_sanitize(LAPIC_REG_LVT_LINT1, regs[LAPIC_REG_LVT_LINT1 >> 4]);
+        lapic_lvt_sanitize(LAPIC_REG_LVT_LINT1, regs[LAPIC_REG_LVT_LINT1 >> 4]) |
+        (regs[LAPIC_REG_LVT_LINT1 >> 4] & 0x00005000);
     regs[LAPIC_REG_LVT_ERROR >> 4] =
         lapic_lvt_sanitize(LAPIC_REG_LVT_ERROR, regs[LAPIC_REG_LVT_ERROR >> 4]);
     regs[LAPIC_REG_DIVIDE_CFG >> 4] =
