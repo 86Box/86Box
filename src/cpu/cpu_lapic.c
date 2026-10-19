@@ -14,6 +14,7 @@
  *
  *          Copyright 2026 skiretic.
  */
+#include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -26,6 +27,7 @@
 #include <86box/machine.h>
 #include <86box/chipset.h>
 #include <86box/timer.h>
+#include <86box/video.h> /* cpuclock */
 #include "../lapic_policy.h"
 
 /* Startup slots record AP requests without creating runnable CPU state. */
@@ -104,7 +106,7 @@ static cpu_lapic_context_t cpu_lapic_contexts[IOAPIC_STATE_MAX_LAPICS] = {
 #define CPU_LAPIC_DFR_MASK      0xffffffff
 #define CPU_LAPIC_VERSION_DEFAULT 0x00040010
 #define CPU_LAPIC_LVT_DEFAULT   0x00010000
-#define CPU_LAPIC_TIMER_DIVIDE_CFG_DEFAULT 0x00000003
+#define CPU_LAPIC_TIMER_DIVIDE_CFG_DEFAULT 0x00000000 /* divide by 2: reset to 0 (Pentium Vol. 3, 19.3.1.11.3) */
 #define CPU_LAPIC_TIMER_DIVIDE_CFG_MASK    0x0000000b
 #define CPU_LAPIC_TIMER_MAX_DELAY          0x7fffffffULL
 
@@ -2007,14 +2009,32 @@ cpu_lapic_timer_unschedule_index(uint8_t lapic_index)
     cpu_lapic_timer_enableds[lapic_index] = 0;
 }
 
+/* Processor clocks (the emulator's timer unit) per count of the timer:
+   "The time base is derived from the CPU bus clock, divided by the
+   'divide' value" (Pentium Vol. 3, 19.3.4.1). */
+static double
+cpu_lapic_timer_clocks_per_count(uint8_t lapic_index)
+{
+    double ratio = ((cpu_busspeed > 0.0) && (cpuclock > cpu_busspeed)) ? (cpuclock / cpu_busspeed) : 1.0;
+
+    return ratio * (double) cpu_lapic_timer_divisor_read_index(lapic_index);
+}
+
+/* The delay for count timer counts, in processor clocks, 32.32. */
 uint64_t
 cpu_lapic_timer_schedule_delay_index(uint8_t lapic_index, uint32_t count)
 {
+    double delay;
+
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return 0;
 
     cpu_lapic_timer_enableds[lapic_index] = 1;
-    return ((uint64_t) count) * cpu_lapic_timer_divisor_read_index(lapic_index);
+    delay = (double) count * cpu_lapic_timer_clocks_per_count(lapic_index);
+    if (delay > (double) CPU_LAPIC_TIMER_MAX_DELAY)
+        return CPU_LAPIC_TIMER_MAX_DELAY << 32;
+    /* Whole clocks, rounded up: the count reads zero when it fires. */
+    return ((uint64_t) ceil(delay)) << 32;
 }
 
 void
@@ -2056,12 +2076,29 @@ cpu_lapic_timer_rebase_current_index(uint8_t lapic_index, uint32_t current)
 uint32_t
 cpu_lapic_timer_periodic_restart_index(uint8_t lapic_index)
 {
+    uint64_t old_start;
+    uint32_t old_count;
+    uint32_t count;
+
     if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
         return 0;
 
-    return lapic_timer_periodic_restart_state(cpu_lapic_timer_initials[lapic_index], tsc,
-                                              &cpu_lapic_timer_reload_counts[lapic_index],
-                                              &cpu_lapic_timer_start_tscs[lapic_index]);
+    old_start = cpu_lapic_timer_start_tscs[lapic_index];
+    old_count = cpu_lapic_timer_reload_counts[lapic_index];
+
+    count = lapic_timer_periodic_restart_state(cpu_lapic_timer_initials[lapic_index], tsc,
+                                               &cpu_lapic_timer_reload_counts[lapic_index],
+                                               &cpu_lapic_timer_start_tscs[lapic_index]);
+    /* The new period starts at the old one's end, not when the callback
+       ran: the count reads, and the next deadline falls, where a free
+       running timer's would. */
+    if (count && old_count && old_start && (old_start <= tsc)) {
+        const uint64_t end = old_start + (uint64_t) ceil((double) old_count * cpu_lapic_timer_clocks_per_count(lapic_index));
+
+        if (end <= tsc)
+            cpu_lapic_timer_start_tscs[lapic_index] = end;
+    }
+    return count;
 }
 
 void
@@ -2114,13 +2151,11 @@ cpu_lapic_timer_host_schedule_index(uint8_t lapic_index, uint32_t count, int in_
         return;
 
     delay = cpu_lapic_timer_schedule_delay_index(lapic_index, count);
-    if (delay > CPU_LAPIC_TIMER_MAX_DELAY)
-        delay = CPU_LAPIC_TIMER_MAX_DELAY;
 
     if (in_callback)
-        timer_advance_u64(&cpu_lapic_timer_hosts[lapic_index], delay << 32);
+        timer_advance_u64(&cpu_lapic_timer_hosts[lapic_index], delay);
     else
-        timer_set_delay_u64(&cpu_lapic_timer_hosts[lapic_index], delay << 32);
+        timer_set_delay_u64(&cpu_lapic_timer_hosts[lapic_index], delay);
 }
 
 uint32_t
@@ -2133,7 +2168,7 @@ cpu_lapic_timer_current_read_index(uint8_t lapic_index)
 
     count = cpu_lapic_timer_reload_counts[lapic_index];
     return lapic_timer_current_from_state(count, cpu_lapic_timer_start_tscs[lapic_index],
-                                          tsc, cpu_lapic_timer_divisor_read_index(lapic_index));
+                                          tsc, cpu_lapic_timer_clocks_per_count(lapic_index));
 }
 
 uint32_t

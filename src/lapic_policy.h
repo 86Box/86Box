@@ -35,7 +35,7 @@ extern int      lapic_mmio_reg_read_only(uint32_t reg);
 extern uint32_t lapic_timer_current_from_state(uint32_t active_count,
                                                uint64_t start_tsc,
                                                uint64_t now_tsc,
-                                               uint32_t divisor);
+                                               double clocks_per_count);
 extern void     lapic_timer_rebase_state(uint32_t initial, uint32_t current,
                                          uint64_t now_tsc,
                                          uint32_t *active_count,

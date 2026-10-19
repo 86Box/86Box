@@ -261,21 +261,22 @@ lapic_mmio_reg_read_only(uint32_t reg)
 
 uint32_t
 lapic_timer_current_from_state(uint32_t active_count, uint64_t start_tsc,
-                               uint64_t now_tsc, uint32_t divisor)
+                               uint64_t now_tsc, double clocks_per_count)
 {
     uint64_t elapsed;
 
     if (!active_count)
         return 0;
 
-    if (!divisor)
-        divisor = 1;
+    if (clocks_per_count < 1.0)
+        clocks_per_count = 1.0;
 
     /* Backward time means no elapsed ticks; avoid unsigned underflow after restore/rebase. */
     if (now_tsc < start_tsc)
         return active_count;
 
-    elapsed = (now_tsc - start_tsc) / divisor;
+    /* The tolerance keeps the delay's rounding from leaving a count of 1. */
+    elapsed = (uint64_t) (((double) (now_tsc - start_tsc) / clocks_per_count) + 1e-6);
     if (elapsed >= active_count)
         return 0;
 

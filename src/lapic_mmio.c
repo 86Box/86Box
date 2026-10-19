@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <86box/86box.h> /* cpu_use_dynarec */
 #include <86box/mem.h>
 
 #include "cpu.h"
@@ -292,6 +293,13 @@ lapic_readl(uint32_t addr, void *priv)
     if (lapic == NULL)
         return 0xffffffff;
 
+    /* The timer's current count is worked out from the machine's clock,
+       which only moves between blocks unless brought up to date. */
+#ifdef USE_DYNAREC
+    if ((reg == LAPIC_REG_CURRENT_CNT) && cpu_use_dynarec)
+        update_tsc();
+#endif
+
     lapic_sync_int_regs(lapic);
     ret = lapic_mmio_read_reg(lapic, reg);
     if (reg == LAPIC_REG_ESR)
@@ -344,6 +352,12 @@ lapic_writel(uint32_t addr, uint32_t val, void *priv)
 
     if ((reg == LAPIC_REG_DIVIDE_CFG) &&
         cpu_lapic_timer_reload_read_index(lapic->index)) {
+        /* The count so far, from a clock brought up to date (as a read of
+           the current count does). */
+#ifdef USE_DYNAREC
+        if (cpu_use_dynarec)
+            update_tsc();
+#endif
         timer_current = lapic_timer_current(lapic);
         timer_divide_active = !!timer_current;
         /* Preserve elapsed timer state across divisor writes before backend mutates config. */
