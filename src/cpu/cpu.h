@@ -774,6 +774,17 @@ extern void execvx0(int32_t cycs);
 extern void enter_smm(int in_hlt);
 extern void enter_smm_check(int in_hlt);
 extern void leave_smm(void);
+
+/* The local APICs (cpu_lapic.c), as the processor core reaches them. */
+extern void     cpu_lapic_reset_all(void);
+extern void     cpu_lapic_ven_reset(void);
+extern int      cpu_apic_feature_enabled(void);
+extern uint8_t  cpu_lapic_index_source(void);
+extern uint8_t  cpu_ap_startup_request(uint8_t lapic_index, uint8_t vector);
+extern uint32_t cpu_cpuid_apic_id_ebx(void);
+extern uint64_t cpu_apic_base_msr_read_current(void);
+extern void     cpu_apic_base_msr_write_current(uint64_t val);
+
 extern void exec386_2386(int32_t cycs);
 /* Intel Inboard 386/PC POST fix-ups - shared by both interpreter loops, and gated
    on the card actually being present (inboard386.c). */
