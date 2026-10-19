@@ -512,7 +512,7 @@ machine_at_me99_init(const machine_t *model)
     pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&sis_620_device);
-    device_add_params(&w83877_device, (void *) (W83877F | W83877_3F0));
+    device_add_params(&w83877_device, (void *) (W83877TF | W83877_3F0));
     device_add(&sst_flash_29ee020_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 512);
 
