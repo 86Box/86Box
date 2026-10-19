@@ -993,7 +993,7 @@ else
 		git clone --recurse-submodules --no-shallow-submodules --remote-submodules https://github.com/aaru-dps/libaaruformat.git "$prefix" && break
 	done
 fi
-prefix_build="$prefix/build-$arch_build" # hack
+prefix_build="$prefix/build-$arch_build"
 cmake -G Ninja -D AARU_BUILD_PACKAGE=ON -D "CMAKE_BUILD_TYPE=$cmake_build_type" \
 	-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -B "$prefix_build" -S "$prefix" || exit 99
 cmake --build "$prefix_build" -j $build_threads || exit 99
