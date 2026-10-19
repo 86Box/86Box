@@ -62,8 +62,11 @@ typedef struct ioapic_t {
     uint32_t      ioapic_pin_raw_lines;
     uint32_t      ioapic_pin_lines;
     uint32_t      ioapic_pin_level;
-    uint8_t       ioapic_delivery_pending_valid;
-    uint8_t       ioapic_delivery_pending_pin;
+    /* Per entry, a message refused and still to send (DELIVS, 82093AA
+       3.2.4 bit 12): "the IOAPIC continually polls the 24 interrupts in a
+       rotating fashion" (1.0), so each is tried again, none blocking the
+       others. */
+    uint32_t      ioapic_send_pending;
     uint8_t       ioapic_intin_poll_next;
     uint8_t       ioapic_smiout_asserted;
     uint8_t       ioapic_arb_id;
@@ -329,15 +332,6 @@ ioapic_redir_masked(uint32_t low)
 }
 
 static int
-ioapic_redir_delivery_status_valid(uint32_t low)
-{
-    uint32_t delivery = low & IOAPIC_REDIR_DELIV;
-
-    return (delivery == IOAPIC_DELIVERY_FIXED) ||
-           (delivery == IOAPIC_DELIVERY_LOWEST);
-}
-
-static int
 ioapic_pin_asserted(const ioapic_t *dev, uint8_t pin)
 {
     return !!(dev->ioapic_pin_lines & ioapic_82093aa_pin_bit(pin));
@@ -397,36 +391,19 @@ ioapic_deliver_current_lapic_direct(const lapic_target_info_t *targets,
 static int
 ioapic_pin_delivery_pending(const ioapic_t *dev, uint8_t pin)
 {
-    return dev->ioapic_delivery_pending_valid &&
-           (dev->ioapic_delivery_pending_pin == pin);
+    return !!(dev->ioapic_send_pending & ioapic_82093aa_pin_bit(pin));
 }
 
 static void
 ioapic_latch_pin_delivery_pending(ioapic_t *dev, uint8_t pin)
 {
-    if (dev->ioapic_delivery_pending_valid &&
-        (dev->ioapic_delivery_pending_pin != pin))
-        return;
-
-    dev->ioapic_delivery_pending_valid = 1;
-    dev->ioapic_delivery_pending_pin = pin;
-    dev->ioapic_intin_poll_next = (pin + 1) % IOAPIC_REDIR_ENTRIES;
+    dev->ioapic_send_pending |= ioapic_82093aa_pin_bit(pin);
 }
 
 static void
 ioapic_clear_pin_delivery_pending(ioapic_t *dev, uint8_t pin)
 {
-    if (!ioapic_pin_delivery_pending(dev, pin))
-        return;
-
-    dev->ioapic_delivery_pending_valid = 0;
-    dev->ioapic_delivery_pending_pin = 0;
-}
-
-static int
-ioapic_delivery_pending_active(const ioapic_t *dev)
-{
-    return !!dev->ioapic_delivery_pending_valid;
+    dev->ioapic_send_pending &= ~ioapic_82093aa_pin_bit(pin);
 }
 
 static int
@@ -444,6 +421,9 @@ ioapic_pin_poll_candidate(const ioapic_t *dev, uint8_t pin)
     if (ioapic_redir_masked(low) || !ioapic_82093aa_redir_supported(low))
         return 0;
 
+    if (ioapic_pin_delivery_pending(dev, pin))
+        return 1;
+
     return ioapic_pin_pending_after_redir_write(dev, pin);
 }
 
@@ -456,8 +436,7 @@ ioapic_retry_pending_pin(ioapic_t *dev, uint8_t pin)
     if (!ioapic_pin_delivery_pending(dev, pin))
         return;
 
-    if (ioapic_redir_masked(low) || !ioapic_82093aa_redir_supported(low) ||
-        !ioapic_redir_delivery_status_valid(low)) {
+    if (ioapic_redir_masked(low) || !ioapic_82093aa_redir_supported(low)) {
         ioapic_clear_pin_delivery_pending(dev, pin);
         return;
     }
@@ -474,33 +453,38 @@ ioapic_retry_pending_pin(ioapic_t *dev, uint8_t pin)
     ioapic_deliver_pin(dev, pin, 1, 1);
 }
 
+/* One round of the rotating poll: every entry with a message to send (a
+   refused one, or a level input asserted with no Remote IRR) tries once,
+   starting after the last one sent. */
 static void
-ioapic_poll_next_intin(ioapic_t *dev)
+ioapic_retry_pending_transaction(ioapic_t *dev)
 {
-    if (ioapic_delivery_pending_active(dev))
-        return;
+    uint8_t start = dev->ioapic_intin_poll_next;
 
     for (uint8_t i = 0; i < IOAPIC_REDIR_ENTRIES; i++) {
-        uint8_t pin = (dev->ioapic_intin_poll_next + i) % IOAPIC_REDIR_ENTRIES;
+        uint8_t pin = (start + i) % IOAPIC_REDIR_ENTRIES;
 
         if (!ioapic_pin_poll_candidate(dev, pin))
             continue;
 
-        dev->ioapic_intin_poll_next = (pin + 1) % IOAPIC_REDIR_ENTRIES;
-        ioapic_deliver_pin(dev, pin, 1, 0);
-        return;
+        if (ioapic_pin_delivery_pending(dev, pin))
+            ioapic_retry_pending_pin(dev, pin);
+        else
+            ioapic_deliver_pin(dev, pin, 1, 1);
+        if (!ioapic_pin_delivery_pending(dev, pin))
+            dev->ioapic_intin_poll_next = (pin + 1) % IOAPIC_REDIR_ENTRIES;
     }
 }
 
-static void
-ioapic_retry_pending_transaction(ioapic_t *dev)
+/* A local APIC became able to take what it refused (enabled, addressed
+   anew): the I/O APIC's refused messages go again. */
+void
+ioapic_retry_deliveries(void)
 {
-    if (ioapic_delivery_pending_active(dev)) {
-        ioapic_retry_pending_pin(dev, dev->ioapic_delivery_pending_pin);
-        return;
-    }
+    ioapic_t *dev = ioapic_global;
 
-    ioapic_poll_next_intin(dev);
+    if ((dev != NULL) && dev->uniprocessor_apic && dev->ioapic_send_pending)
+        ioapic_retry_pending_transaction(dev);
 }
 
 static void
@@ -606,8 +590,11 @@ ioapic_deliver_pin(ioapic_t *dev, uint8_t pin, int asserted, int retry)
     int       level  = ioapic_82093aa_redir_remote_irr_valid(low);
     lapic_target_info_t targets;
 
-    if (!retry && ioapic_delivery_pending_active(dev))
-        return;
+    /* An edge on an entry whose message is still to send is that same
+       message: "a new edge on that Interrupt input pin will not be
+       recognized until" it is accepted (82093AA 3.2.4 bit 12). Trying now
+       is its retry. */
+    (void) retry;
 
     if (ioapic_redir_masked(low)) {
         ioapic_clear_pin_delivery_pending(dev, pin);
@@ -624,9 +611,6 @@ ioapic_deliver_pin(ioapic_t *dev, uint8_t pin, int asserted, int retry)
         return;
     }
 
-    if (!ioapic_redir_delivery_status_valid(low))
-        ioapic_clear_pin_delivery_pending(dev, pin);
-
     if (level) {
         if (!asserted) {
             ioapic_clear_pin_delivery_pending(dev, pin);
@@ -641,9 +625,9 @@ ioapic_deliver_pin(ioapic_t *dev, uint8_t pin, int asserted, int retry)
     if (!ioapic_redir_select_targets(dev, low, high, &targets)) {
         apic_bus_result_t result = apic_bus_result_no_target();
 
-        if (ioapic_redir_delivery_status_valid(low) &&
-            ioapic_delivery_failure_retryable(result))
-            ioapic_latch_pin_delivery_pending(dev, pin);
+        (void) result; /* the log's */
+        /* Nobody to take it: held Send Pending (82093AA 3.2.4 bit 12). */
+        ioapic_latch_pin_delivery_pending(dev, pin);
         if (!ioapic_log_first(&dev->ioapic_dest_mismatch_log_count[pin], 8))
             return;
         ioapic_log("IOAPIC: pin=%u dest mismatch status=%u source_esr=%08x dest=%02x lapic=%02x low=%08x high=%08x\n",
@@ -697,8 +681,10 @@ ioapic_deliver_pin(ioapic_t *dev, uint8_t pin, int asserted, int retry)
     }
 
     if (delivery == IOAPIC_DELIVERY_INIT) {
-        if (!apic_platform_ioapic_deliver_init(dev->apic, &targets))
+        if (!apic_platform_ioapic_deliver_init(dev->apic, &targets)) {
+            ioapic_latch_pin_delivery_pending(dev, pin);
             return;
+        }
         ioapic_clear_pin_delivery_pending(dev, pin);
         ioapic_apic_bus_message_complete(dev);
         if (ioapic_log_first(&dev->ioapic_deliver_log_count[pin], 8))
@@ -711,8 +697,10 @@ ioapic_deliver_pin(ioapic_t *dev, uint8_t pin, int asserted, int retry)
        its answer, the spurious vector if it has nothing (82093AA, delivery
        mode 111). */
     if (ioapic_82093aa_redir_extint(low)) {
-        if (!apic_platform_ioapic_mark_extint(dev->apic, &targets, pin))
+        if (!apic_platform_ioapic_mark_extint(dev->apic, &targets, pin)) {
+            ioapic_latch_pin_delivery_pending(dev, pin);
             return;
+        }
         ioapic_clear_pin_delivery_pending(dev, pin);
         ioapic_apic_bus_message_complete(dev);
         if (ioapic_log_first(&dev->ioapic_extint_deliver_log_count[pin], 8))
@@ -724,8 +712,9 @@ ioapic_deliver_pin(ioapic_t *dev, uint8_t pin, int asserted, int retry)
     apic_bus_result_t result = apic_deliver_targets(dev, &targets, delivery,
                                                     vector, level);
     if (!apic_bus_result_accepted(result)) {
-        if (ioapic_redir_delivery_status_valid(low) &&
-            ioapic_delivery_failure_retryable(result))
+        /* Every entry's message waits in Send Pending until a processor
+           takes it (82093AA 3.2.4 bit 12), whatever its delivery mode. */
+        if (ioapic_delivery_failure_retryable(result))
             ioapic_latch_pin_delivery_pending(dev, pin);
         else
             ioapic_clear_pin_delivery_pending(dev, pin);
@@ -1018,8 +1007,7 @@ ioapic_chip_state_load(ioapic_t *dev, const ioapic_state_t *state)
                                                                           dev->ioapic_pin_lines)) &
                                 IOAPIC_PIN_MASK;
     dev->ioapic_pin_level = state->ioapic_pin_level & IOAPIC_PIN_MASK;
-    dev->ioapic_delivery_pending_valid = 0;
-    dev->ioapic_delivery_pending_pin = 0;
+    dev->ioapic_send_pending = 0;
     dev->ioapic_intin_poll_next = 0;
     dev->ioapic_smiout_asserted = (state->version >= 12) ? !!state->ioapic_smiout_asserted : 0;
     ioapic_sanitize_loaded_redir(dev);
@@ -1129,8 +1117,7 @@ ioapic_lapic_reset(ioapic_t *dev)
 static void
 ioapic_reset_redir(ioapic_t *dev)
 {
-    dev->ioapic_delivery_pending_valid = 0;
-    dev->ioapic_delivery_pending_pin = 0;
+    dev->ioapic_send_pending = 0;
     dev->ioapic_intin_poll_next = 0;
     for (uint8_t i = 0; i < IOAPIC_REDIR_ENTRIES; i++) {
         dev->ioapic_redir[(i * 2) + 0] = IOAPIC_REDIR_LOW_RESET;

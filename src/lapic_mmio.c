@@ -14,6 +14,8 @@
 
 #include <86box/86box.h> /* cpu_use_dynarec */
 #include <86box/mem.h>
+#include <86box/device.h>
+#include <86box/chipset.h> /* ioapic_retry_deliveries */
 
 #include "cpu.h"
 #include "lapic.h"
@@ -414,6 +416,9 @@ lapic_writel(uint32_t addr, uint32_t val, void *priv)
         dev->icr_write(dev->owner, val);
     } else if (reg == LAPIC_REG_TPR) {
         lapic_sync_ppr(lapic);
+    } else if ((reg == LAPIC_REG_SVR) || (reg == LAPIC_REG_LDR) || (reg == LAPIC_REG_DFR)) {
+        /* This APIC may now take what the I/O APIC could not send it. */
+        ioapic_retry_deliveries();
     } else if (reg == LAPIC_REG_LVT_TIMER) {
         lapic_sync_int_regs(lapic);
     }

@@ -269,6 +269,7 @@ extern int            ioapic_external_interrupt_pending(void);
 extern int            ioapic_external_interrupt_vector(void);
 extern int            ioapic_pic_fallback_allowed(void);
 extern int            ioapic_lint1_raise(void);
+extern void           ioapic_retry_deliveries(void);
 extern void           ioapic_raw_intin(uint8_t pin, int level, int physical_high);
 extern void           ioapic_intin_irq(uint8_t pin, int level, int set);
 extern void           ioapic_legacy_irq(uint16_t mask, int level, int set);
