@@ -161,10 +161,6 @@ ioapic_init_legacy_irq_pins(ioapic_t *dev)
            sizeof(dev->legacy_irq_to_pin));
 }
 
-#ifndef ENABLE_IOAPIC_LOG
-#    define ENABLE_IOAPIC_LOG 1
-#endif
-
 #ifdef ENABLE_IOAPIC_LOG
 uint8_t ioapic_do_log = ENABLE_IOAPIC_LOG;
 
@@ -650,6 +646,9 @@ ioapic_log_redir_entry(ioapic_t *dev, uint8_t pin, const char *source)
     uint32_t low  = dev->ioapic_redir[pin * 2];
     uint32_t high = dev->ioapic_redir[(pin * 2) + 1];
 
+    (void) low;
+    (void) high;
+    (void) source;
     if (!ioapic_log_first(&dev->ioapic_redir_log_count[pin], 8))
         return;
 
@@ -700,6 +699,7 @@ ioapic_deliver_pin(ioapic_t *dev, uint8_t pin, int asserted, int retry)
     if (!ioapic_82093aa_redir_supported(low)) {
         apic_bus_result_t result = apic_bus_result_invalid_mode();
 
+        (void) result;
         ioapic_log("APIC-WARN: IOAPIC pin=%u unsupported delivery mode status=%u low=%08x\n",
                    pin, result.status, low);
         ioapic_clear_pin_delivery_pending(dev, pin);
@@ -1572,7 +1572,11 @@ ioapic_init(UNUSED(const device_t *info))
 
     ioapic_update_apic_platform_policy(dev);
 
+#ifdef ENABLE_IOAPIC_LOG
     apic_platform_set_log_handler(dev->apic, ioapic_log_ex);
+#else
+    apic_platform_set_log_handler(dev->apic, NULL);
+#endif
     apic_platform_set_icr_write_handler(dev->apic, ioapic_lapic_icr_write_adapter);
 
     ioapic_reset(dev);

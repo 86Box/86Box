@@ -68,6 +68,7 @@ typedef struct i450kx_t {
     uint8_t mem_state[2][256];
 } i450kx_t;
 
+#ifdef ENABLE_450KX_LOG
 static uint32_t
 i450kx_apicr_base(const uint8_t *regs)
 {
@@ -79,10 +80,13 @@ i450kx_apicr_base(const uint8_t *regs)
 static void
 i450kx_apicr_log(const char *unit, const uint8_t *regs)
 {
-    pclog("i450KX-%s: APICR enable=%u base=%08x raw=%02x %02x %02x %02x\n",
-          unit, regs[0xa4] & 0x01, i450kx_apicr_base(regs),
-          regs[0xa4], regs[0xa5], regs[0xa6], regs[0xa7]);
+    i450kx_log("i450KX-%s: APICR enable=%u base=%08x raw=%02x %02x %02x %02x\n",
+               unit, regs[0xa4] & 0x01, i450kx_apicr_base(regs),
+               regs[0xa4], regs[0xa5], regs[0xa6], regs[0xa7]);
 }
+#else
+#    define i450kx_apicr_log(unit, regs)
+#endif
 
 static void
 i450kx_map(i450kx_t *dev, int bus, uint32_t addr, uint32_t size, int state)

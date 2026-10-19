@@ -598,23 +598,14 @@ piix_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             case 0x60:
             case 0x61:
             case 0x62:
-            case 0x63: {
-                const int routed_irq = (val & 0x80) ? PCI_IRQ_DISABLED : (val & 0x0f);
-                char      irq_name[4];
-
+            case 0x63:
                 piix_log("Set IRQ routing: INT %c -> %02X\n", 0x41 + (addr & 0x03), val);
                 fregs[addr] = val & 0x8f;
                 if (val & 0x80)
                     pci_set_irq_routing(PCI_INTA + (addr & 0x03), PCI_IRQ_DISABLED);
                 else
                     pci_set_irq_routing(PCI_INTA + (addr & 0x03), val & 0xf);
-                if (routed_irq != PCI_IRQ_DISABLED)
-                    snprintf(irq_name, sizeof(irq_name), "%d", routed_irq);
-                pclog("PIIX PIRQ write: reg=%02X INT%c raw=%02X irq=%s\n",
-                      addr, 0x41 + (addr & 0x03), val,
-                      (routed_irq == PCI_IRQ_DISABLED) ? "off" : irq_name);
                 break;
-            }
             case 0x64:
                 if (dev->type > 3)
                     fregs[0x64] = val;
