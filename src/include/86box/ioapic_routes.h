@@ -30,4 +30,11 @@
 #define IOAPIC_LEGACY_IRQ_ROUTE_P6RP4 \
     { 2, 1, IOAPIC_LEGACY_IRQ_NC, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }
 
+/* The 82374 ESC, per its data book's Figure 25: pin 0 is the 8259's own
+   INTR (or SMI), pin 2 is counter 0 of the timer, pin 1 and 3-15 are the
+   IRQ of the same number, and IRQ2, the cascade, has no pin. The 54TDP's
+   BIOS describes exactly this in its MP table. */
+#define IOAPIC_LEGACY_IRQ_ROUTE_ESC \
+    { 2, 1, IOAPIC_LEGACY_IRQ_NC, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }
+
 #endif

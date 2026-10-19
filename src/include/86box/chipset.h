@@ -134,6 +134,10 @@ extern const device_t slc90e66_device;
 /* APIC devices are board-wiring entry points; chip/LAPIC internals stay opaque. */
 extern const device_t ioapic_device;
 extern const device_t ioapic_ami_device;
+extern const device_t ioapic_esc_device;
+extern void           ioapic_set_mmio_base(void *ioapic, uint32_t base);
+extern int            ioapic_apic_path_active(const void *ioapic);
+extern void           ioapic_set_intr_masked(void *ioapic, int masked);
 extern const device_t ioapic_validated_up_device;
 extern const device_t validated_up_apic_board_device;
 extern const device_t integrated_cpu_lapic_device;
@@ -151,6 +155,10 @@ typedef struct ioapic_legacy_irq_routing_t {
 /* The MP table hook fires on the firmware's last POST code before booting:
    FFh on Award, 00h on AMI (checkpoint 00, "passing control to INT 19h"). */
 #define IOAPIC_POST_TRIGGER_AMI           0x00000400
+/* The I/O APIC inside the 82374 ESC rather than an 82093AA: sixteen pins,
+   version 11h with MRE 0Fh, no SMI# input, and a window the ESC moves with
+   its APICBASE register (ioapic_set_mmio_base). */
+#define IOAPIC_VARIANT_ESC                0x00000800
 /* Packed into device_t.local so boards can seed topology without new config keys. */
 #define IOAPIC_TOPOLOGY_LAPIC_SLOTS(slots) \
     (((uintptr_t) (slots) & IOAPIC_TOPOLOGY_LAPIC_SLOTS_MASK) << IOAPIC_TOPOLOGY_LAPIC_SLOTS_SHIFT)
@@ -273,6 +281,7 @@ extern int            ioapic_lint1_raise(void);
 extern void           ioapic_retry_deliveries(void);
 extern void           ioapic_pic_intr(int active);
 extern int            ioapic_pci_intin_own_wire(uint8_t intin, uint8_t irq_line);
+extern void           ioapic_set_pin0_smi(void *ioapic, int smi);
 extern void           ioapic_intin_irq(uint8_t pin, int level, int set);
 extern void           ioapic_legacy_irq(uint16_t mask, int level, int set);
 extern int            ioapic_legacy_irq_enabled(void);

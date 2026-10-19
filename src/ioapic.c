@@ -50,6 +50,17 @@ typedef struct ioapic_t {
     uint8_t mp_table_skip_logged;
     uint8_t post_trigger; /* the POST code that means "about to boot" */
 
+    /* What kind of I/O APIC this is. An 82093AA unless the board says
+       otherwise; the 82374 ESC's has sixteen pins, reports version
+       000F0011h, has no SMI# input and sits wherever APICBASE puts it. */
+    uint8_t  pins;
+    uint8_t  smi_pin; /* 0xff: none */
+    uint8_t  is_esc;
+    uint8_t  intr_masked; /* the ESC's INTRC: the 8259's INTR held inactive */
+    uint32_t version_reg;
+    uint32_t mmio_base;
+    uint32_t mmio_size;
+
     uint8_t       lowest_priority_next;
     apic_platform_t *apic;
     ioapic_smiout_handler_t smiout_handler;
@@ -69,6 +80,7 @@ typedef struct ioapic_t {
     uint32_t      wire_pci;
     uint32_t      wire_intr;
     uint8_t       pic_intr; /* the 8259's INTR output */
+    uint8_t       pin0_smi; /* ESC PAC SMIRC: INTIN0 carries SMI, not INTR */
     uint8_t       legacy_routes_set;
     uint8_t       legacy_routes_wired; /* the board's wiring, which a table cannot change */
     /* Per entry, a message refused and still to send (DELIVS, 82093AA
@@ -231,10 +243,13 @@ ioapic_apic_bus_message_complete(ioapic_t *dev)
 /* LINT0 sees the 8259's INTR whatever the I/O APIC is programmed to do:
    "it is the programmer's responsibility to make sure that the same
    interrupt input signal is not handled by both interrupt controllers"
-   (82093AA 1.0). */
+   (82093AA 1.0). Only the ESC's INTRC holds it off. */
 static int
-ioapic_lint0_pic_fallback_pending(UNUSED(ioapic_t *dev))
+ioapic_lint0_pic_fallback_pending(ioapic_t *dev)
 {
+    if (dev->intr_masked)
+        return 0;
+
     return pic.int_pending;
 }
 
@@ -287,6 +302,11 @@ ioapic_pic_fallback_allowed(void)
 
     if ((dev == NULL) || !dev->uniprocessor_apic)
         return 1;
+
+    /* INTRC "forces INTR to the inactive state" (ESC 3.1.17), on this
+       path as on LINT0. */
+    if (dev->intr_masked)
+        return 0;
 
     /* Only an APIC that is off altogether (APIC_BASE bit 11) leaves the
        pins as plain INTR and NMI. A software-disabled one "automatically
@@ -474,8 +494,8 @@ ioapic_retry_pending_transaction(ioapic_t *dev)
 {
     uint8_t start = dev->ioapic_intin_poll_next;
 
-    for (uint8_t i = 0; i < IOAPIC_REDIR_ENTRIES; i++) {
-        uint8_t pin = (start + i) % IOAPIC_REDIR_ENTRIES;
+    for (uint8_t i = 0; i < dev->pins; i++) {
+        uint8_t pin = (start + i) % dev->pins;
 
         if (!ioapic_pin_poll_candidate(dev, pin))
             continue;
@@ -485,7 +505,7 @@ ioapic_retry_pending_transaction(ioapic_t *dev)
         else
             ioapic_deliver_pin(dev, pin, 1, 1);
         if (!ioapic_pin_delivery_pending(dev, pin))
-            dev->ioapic_intin_poll_next = (pin + 1) % IOAPIC_REDIR_ENTRIES;
+            dev->ioapic_intin_poll_next = (pin + 1) % dev->pins;
     }
 }
 
@@ -515,11 +535,11 @@ ioapic_set_smiout_asserted(ioapic_t *dev, int asserted)
 static void
 ioapic_update_intin23_smiout(ioapic_t *dev)
 {
-    uint32_t low = dev->ioapic_redir[IOAPIC_SMI_PIN * 2];
+    uint32_t low = dev->ioapic_redir[dev->smi_pin * 2];
 
     /* INTIN23/SMI# mask routes the active-low input to SMIOUT# instead of APIC bus. */
     if (ioapic_redir_masked(low)) {
-        ioapic_set_smiout_asserted(dev, !ioapic_pin_raw_high(dev, IOAPIC_SMI_PIN));
+        ioapic_set_smiout_asserted(dev, !ioapic_pin_raw_high(dev, dev->smi_pin));
         return;
     }
 
@@ -532,7 +552,7 @@ ioapic_pin_pending_after_redir_write(const ioapic_t *dev, uint8_t pin)
     uint32_t low = dev->ioapic_redir[pin * 2];
 
     return (ioapic_82093aa_redir_remote_irr_valid(low) && ioapic_pin_asserted(dev, pin)) ||
-           ((pin == IOAPIC_SMI_PIN) && ioapic_82093aa_redir_smi(low) &&
+           ((pin == dev->smi_pin) && ioapic_82093aa_redir_smi(low) &&
             !ioapic_redir_masked(low) && ioapic_pin_asserted(dev, pin));
 }
 
@@ -743,7 +763,7 @@ ioapic_raw_intin_device(ioapic_t *dev, uint8_t pin, int physical_high)
        the entry decides, not the source. An edge entry sends once per
        inactive-to-active transition. */
     int effective_level = ioapic_82093aa_redir_remote_irr_valid(low);
-    int asserted = ((pin == IOAPIC_SMI_PIN) && ioapic_82093aa_redir_smi(low)) ?
+    int asserted = ((pin == dev->smi_pin) && ioapic_82093aa_redir_smi(low)) ?
                        !physical_high :
                        ioapic_82093aa_redir_physical_asserted(low, physical_high);
 
@@ -768,7 +788,7 @@ ioapic_raw_intin_device(ioapic_t *dev, uint8_t pin, int physical_high)
 
     if (ioapic_redir_masked(low)) {
         ioapic_clear_pin_delivery_pending(dev, pin);
-        if (pin == IOAPIC_SMI_PIN)
+        if (pin == dev->smi_pin)
             ioapic_update_intin23_smiout(dev);
         return;
     }
@@ -776,7 +796,7 @@ ioapic_raw_intin_device(ioapic_t *dev, uint8_t pin, int physical_high)
     if (effective_level || (asserted && !was_asserted))
         ioapic_deliver_pin(dev, pin, asserted, 0);
 
-    if (pin == IOAPIC_SMI_PIN)
+    if (pin == dev->smi_pin)
         ioapic_update_intin23_smiout(dev);
 }
 
@@ -789,7 +809,7 @@ ioapic_wire_drive(ioapic_t *dev, uint8_t pin)
     uint32_t low      = dev->ioapic_redir[pin * 2];
 
     /* INTIN23/SMI# has no source here: it stays at its idle level. */
-    if (pin == IOAPIC_SMI_PIN)
+    if (pin == dev->smi_pin)
         return;
     ioapic_raw_intin_device(dev, pin, ioapic_82093aa_redir_active_low(low) ? !asserted : asserted);
 }
@@ -818,15 +838,15 @@ ioapic_wire_set(ioapic_t *dev, uint32_t *src, uint8_t pin, int level, int set)
 }
 
 /* A source wired to an input of its own: a PCI interrupt learned from the
-   MP table (counted in pci.c). The pin is sampled whatever any local APIC
-   is doing. */
+   MP table (counted in pci.c), or the ESC's SMI on INTIN0. The pin is
+   sampled whatever any local APIC is doing. */
 void
 ioapic_intin_irq(uint8_t pin, int level, int set)
 {
     ioapic_t *dev = ioapic_global;
     uint32_t  low;
 
-    if ((dev == NULL) || !dev->uniprocessor_apic || (pin >= IOAPIC_REDIR_ENTRIES))
+    if ((dev == NULL) || !dev->uniprocessor_apic || (pin >= dev->pins))
         return;
 
     low = dev->ioapic_redir[pin * 2];
@@ -856,7 +876,7 @@ ioapic_legacy_irq(uint16_t mask, int level, int set)
 
         uint8_t pin = ioapic_legacy_irq_to_pin(dev, irq);
 
-        if (pin >= IOAPIC_REDIR_ENTRIES)
+        if (pin >= dev->pins)
             continue;
 
         uint32_t low = dev->ioapic_redir[pin * 2];
@@ -873,13 +893,16 @@ ioapic_legacy_irq(uint16_t mask, int level, int set)
     }
 }
 
-/* INTIN0 is the 8259's INTR (MP spec 1.1, Table 5-2; 82093AA 2.4). */
+/* INTIN0 is the 8259's INTR (MP spec 1.1, Table 5-2; 82093AA 2.4; ESC
+   Fig. 25: the internal 8259's output), replaced by SMI while the ESC's
+   SMIRC routes SMI there. INTRC masks the ESC's external INTR pin only
+   (ESC 3.1.17), not this input. */
 static void
 ioapic_wire_intr_update(ioapic_t *dev)
 {
-    int active = dev->pic_intr;
+    int active = dev->pic_intr && !dev->pin0_smi;
 
-    if (!!(dev->wire_intr & 1) != active) {
+    if (dev->pins && (!!(dev->wire_intr & 1) != active)) {
         dev->wire_intr = active ? 1 : 0;
         ioapic_wire_drive(dev, 0);
     }
@@ -899,19 +922,33 @@ ioapic_pic_intr(int active)
 
 /* Whether a PCI interrupt the MP table puts on intin reaches the I/O APIC
    on a wire of its own, apart from the IRQ line it is steered to
-   (irq_line, 0xff for none). A PCI interrupt learned onto the pin of the
-   IRQ it is steered to is that same wire, already driven through the 8259
-   side. */
+   (irq_line, 0xff for none). On the ESC the I/O APIC's inputs are the IRQ
+   lines themselves (ESC 10.0: devices "inject interrupts into the system
+   by asserting one of the interrupt lines to the I/O APIC"), and a PCI
+   interrupt learned onto the pin of the IRQ it is steered to is that
+   same wire, already driven through the 8259 side. */
 int
 ioapic_pci_intin_own_wire(uint8_t intin, uint8_t irq_line)
 {
     ioapic_t *dev = ioapic_global;
 
-    if ((dev == NULL) || !dev->uniprocessor_apic)
+    if ((dev == NULL) || !dev->uniprocessor_apic || dev->is_esc)
         return 0;
     if ((irq_line < IOAPIC_LEGACY_IRQ_COUNT) && (ioapic_legacy_irq_to_pin(dev, irq_line) == intin))
         return 0;
     return 1;
+}
+
+void
+ioapic_set_pin0_smi(void *ioapic, int smi)
+{
+    ioapic_t *dev = (ioapic_t *) ioapic;
+
+    if (dev == NULL)
+        return;
+
+    dev->pin0_smi = !!smi;
+    ioapic_wire_intr_update(dev);
 }
 
 int
@@ -935,7 +972,7 @@ ioapic_legacy_irq_active(uint16_t mask, int level, int set)
 static void
 ioapic_sanitize_loaded_redir(ioapic_t *dev)
 {
-    for (uint8_t pin = 0; pin < IOAPIC_REDIR_ENTRIES; pin++) {
+    for (uint8_t pin = 0; pin < dev->pins; pin++) {
         uint32_t *lowp = &dev->ioapic_redir[pin * 2];
         uint32_t *highp = &dev->ioapic_redir[(pin * 2) + 1];
         uint32_t  pin_bit = ioapic_82093aa_pin_bit(pin);
@@ -1050,7 +1087,8 @@ ioapic_chip_state_load(ioapic_t *dev, const ioapic_state_t *state)
     dev->ioapic_intin_poll_next = 0;
     dev->ioapic_smiout_asserted = (state->version >= 12) ? !!state->ioapic_smiout_asserted : 0;
     ioapic_sanitize_loaded_redir(dev);
-    ioapic_update_intin23_smiout(dev);
+    if (dev->smi_pin < dev->pins)
+        ioapic_update_intin23_smiout(dev);
 
     return 1;
 }
@@ -1109,7 +1147,7 @@ ioapic_compat_state_load(ioapic_t *dev, const ioapic_state_t *state)
 static void
 ioapic_eoi(ioapic_t *dev, uint8_t vector)
 {
-    for (uint8_t pin = 0; pin < IOAPIC_REDIR_ENTRIES; pin++) {
+    for (uint8_t pin = 0; pin < dev->pins; pin++) {
         uint32_t *lowp = &dev->ioapic_redir[pin * 2];
         uint32_t  low  = *lowp;
 
@@ -1173,10 +1211,10 @@ ioapic_window_read(ioapic_t *dev)
     if (index == 0x00)
         return ((uint32_t) dev->ioapic_id) << 24;
     if (index == 0x01)
-        return IOAPIC_VERSION_REG;
+        return dev->version_reg;
     if (index == 0x02)
         return ((uint32_t) dev->ioapic_arb_id) << 24;
-    if ((index >= 0x10) && (index < (0x10 + (IOAPIC_REDIR_ENTRIES * 2)))) {
+    if ((index >= 0x10) && (index < (0x10 + (dev->pins * 2)))) {
         uint8_t  redir_index = index - 0x10;
         uint32_t val = dev->ioapic_redir[redir_index];
 
@@ -1200,7 +1238,7 @@ ioapic_window_write(ioapic_t *dev, uint32_t val)
         return;
     }
 
-    if ((index >= 0x10) && (index < (0x10 + (IOAPIC_REDIR_ENTRIES * 2)))) {
+    if ((index >= 0x10) && (index < (0x10 + (dev->pins * 2)))) {
         uint8_t redir_index = index - 0x10;
         uint8_t pin         = redir_index >> 1;
         uint32_t old_low    = dev->ioapic_redir[pin * 2];
@@ -1221,7 +1259,7 @@ ioapic_window_write(ioapic_t *dev, uint32_t val)
 
         ioapic_log_redir_entry(dev, pin, (redir_index & 1) ? "redir high" : "redir low");
 
-        if (pin == IOAPIC_SMI_PIN)
+        if (pin == dev->smi_pin)
             ioapic_update_intin23_smiout(dev);
 
         if (ioapic_pin_delivery_pending(dev, pin)) {
@@ -1241,7 +1279,7 @@ static uint32_t
 ioapic_mmio_readl(uint32_t addr, void *priv)
 {
     ioapic_t *dev = (ioapic_t *) priv;
-    uint32_t  reg = (addr - IOAPIC_MMIO_BASE) & 0xff;
+    uint32_t  reg = (addr - dev->mmio_base) & 0xff;
     uint32_t  ret = 0;
 
     if (reg == 0x00)
@@ -1276,7 +1314,7 @@ static void
 ioapic_mmio_writel(uint32_t addr, uint32_t val, void *priv)
 {
     ioapic_t *dev = (ioapic_t *) priv;
-    uint32_t  reg = (addr - IOAPIC_MMIO_BASE) & 0xff;
+    uint32_t  reg = (addr - dev->mmio_base) & 0xff;
 
     if (ioapic_log_first(&dev->ioapic_mmio_write_log_count[reg >> 2], 8))
         ioapic_log("IOAPIC: write mmio=%02x index=%02x val=%08x count=%u\n",
@@ -1315,7 +1353,7 @@ ioapic_mp_legacy_irq_route(void *priv, uint8_t irq, uint8_t intin)
 {
     ioapic_t *dev = (ioapic_t *) priv;
 
-    if ((dev == NULL) || (irq >= IOAPIC_LEGACY_IRQ_COUNT) || (intin >= IOAPIC_REDIR_ENTRIES))
+    if ((dev == NULL) || (irq >= IOAPIC_LEGACY_IRQ_COUNT) || (intin >= dev->pins))
         return;
 
     /* Where the inputs are the board's wiring, a table cannot re-wire
@@ -1337,7 +1375,7 @@ ioapic_mp_pci_irq_route(void *priv, uint8_t bus, uint8_t device, uint8_t intpin,
 {
     ioapic_t *dev = (ioapic_t *) priv;
 
-    if ((dev == NULL) || (intpin >= PCI_INT_PINS_NUM) || (intin >= IOAPIC_REDIR_ENTRIES))
+    if ((dev == NULL) || (intpin >= PCI_INT_PINS_NUM) || (intin >= dev->pins))
         return;
 
     ioapic_log("IOAPIC: MP learned PCI bus=%u dev=%u INT%c -> pin=%u\n",
@@ -1379,15 +1417,16 @@ static void
 ioapic_reset(ioapic_t *dev)
 {
     ioapic_lapic_reset(dev);
+    dev->intr_masked = 0; /* the ESC's PAC comes up 00h too */
     dev->ioapic_id      = IOAPIC_ID_RESET;
     dev->ioapic_index   = 0;
     dev->ioapic_arb_id  = 0;
     dev->ioapic_pin_lines = 0;
     dev->wire_legacy = dev->wire_pci = dev->wire_intr = 0;
-    dev->pic_intr = 0;
+    dev->pic_intr = dev->pin0_smi = 0;
     /* Every input idle; INTIN23/SMI# is active low, so idle is high
        (82093AA 4.1). */
-    dev->ioapic_pin_raw_lines = ioapic_82093aa_pin_bit(IOAPIC_SMI_PIN);
+    dev->ioapic_pin_raw_lines = (dev->smi_pin < dev->pins) ? ioapic_82093aa_pin_bit(dev->smi_pin) : 0;
     dev->ioapic_pin_level = 0;
     ioapic_set_smiout_asserted(dev, 0);
     dev->lowest_priority_next = 0;
@@ -1418,17 +1457,61 @@ ioapic_set_legacy_irq_routing(void *ioapic, const ioapic_legacy_irq_routing_t *r
         return;
 
     /* A value past the last pin is kept as it is: that IRQ is not wired
-       to this I/O APIC at all (IRQ2, the cascade). */
+       to this I/O APIC at all (IRQ2, the cascade, has no pin). */
     for (uint8_t irq = 0; irq < IOAPIC_LEGACY_IRQ_COUNT; irq++) {
         uint8_t pin = routing->irq_to_intin[irq];
 
-        if ((pin < IOAPIC_REDIR_ENTRIES) || (pin == IOAPIC_LEGACY_IRQ_NC)) {
+        if ((pin < dev->pins) || (pin == IOAPIC_LEGACY_IRQ_NC)) {
             dev->legacy_irq_default_to_pin[irq] = pin;
             dev->legacy_irq_to_pin[irq]         = pin;
         }
     }
     dev->legacy_routes_set   = 1;
     dev->legacy_routes_wired = 1;
+}
+
+/* The window where it is, while the APIC path is on. */
+static void
+ioapic_apply_mapping(ioapic_t *dev)
+{
+    if (dev->uniprocessor_apic)
+        mem_mapping_set_addr(&dev->ioapic_mapping, dev->mmio_base, dev->mmio_size);
+}
+
+/* The ESC moves its I/O APIC with APICBASE; this is where it says so. The
+   window is only mapped while the APIC path is on, but the address is
+   kept either way. */
+void
+ioapic_set_mmio_base(void *ioapic, uint32_t base)
+{
+    ioapic_t *dev = (ioapic_t *) ioapic;
+
+    if (dev == NULL)
+        return;
+
+    dev->mmio_base = base;
+    ioapic_apply_mapping(dev);
+}
+
+/* The chipset holding the 8259's INTR output inactive (the ESC's INTRC). */
+void
+ioapic_set_intr_masked(void *ioapic, int masked)
+{
+    ioapic_t *dev = (ioapic_t *) ioapic;
+
+    if (dev == NULL)
+        return;
+
+    dev->intr_masked = !!masked;
+    ioapic_wire_intr_update(dev);
+}
+
+int
+ioapic_apic_path_active(const void *ioapic)
+{
+    const ioapic_t *dev = (const ioapic_t *) ioapic;
+
+    return (dev != NULL) && dev->uniprocessor_apic;
 }
 
 void
@@ -1512,6 +1595,19 @@ ioapic_init(UNUSED(const device_t *info))
     dev->ap_route_parked = !!device_get_config_int("ap_route_parked");
     dev->smp_probe = !!device_get_config_int("smp_probe");
     dev->post_trigger = (local & IOAPIC_POST_TRIGGER_AMI) ? 0x00 : 0xff;
+    dev->is_esc       = !!(local & IOAPIC_VARIANT_ESC);
+    if (dev->is_esc) {
+        dev->pins        = 16;
+        dev->smi_pin     = 0xff;
+        dev->version_reg = 0x000f0011;
+        dev->mmio_size   = 0x400;
+    } else {
+        dev->pins        = IOAPIC_REDIR_ENTRIES;
+        dev->smi_pin     = IOAPIC_SMI_PIN;
+        dev->version_reg = IOAPIC_VERSION_REG;
+        dev->mmio_size   = IOAPIC_MMIO_SIZE;
+    }
+    dev->mmio_base = IOAPIC_MMIO_BASE;
     dev->topology_lapic_slots_max = (local >> IOAPIC_TOPOLOGY_LAPIC_SLOTS_SHIFT) &
                                     IOAPIC_TOPOLOGY_LAPIC_SLOTS_MASK;
     apic_platform_set_lapic_count_config(dev->apic, device_get_config_int("lapic_count"));
@@ -1546,10 +1642,11 @@ ioapic_init(UNUSED(const device_t *info))
     if (dev->uniprocessor_apic) {
         apic_platform_set_external_ioapic(dev->apic, dev, ioapic_lapic_eoi_adapter);
         apic_platform_enable_lapic_mappings(dev->apic);
-        mem_mapping_add(&dev->ioapic_mapping, IOAPIC_MMIO_BASE, IOAPIC_MMIO_SIZE,
+        mem_mapping_add(&dev->ioapic_mapping, dev->mmio_base, dev->mmio_size,
                         ioapic_mmio_readb, ioapic_mmio_readw, ioapic_mmio_readl,
                         ioapic_mmio_writeb, ioapic_mmio_writew, ioapic_mmio_writel,
                         NULL, MEM_MAPPING_EXTERNAL, dev);
+        ioapic_apply_mapping(dev);
 
         apic_platform_update_lapic_mapping(dev->apic);
         ioapic_log("IOAPIC: uniprocessor APIC probe mode enabled\n");
@@ -1717,6 +1814,23 @@ const device_t ioapic_ami_device = {
     .internal_name = "ioapic_ami",
     .flags         = DEVICE_ISA16,
     .local         = IOAPIC_POST_TRIGGER_AMI,
+    .init          = ioapic_init,
+    .close         = ioapic_close,
+    .reset         = ioapic_device_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ioapic_config
+};
+
+/* The I/O APIC inside the 82374 ESC. The ESC keeps the configuration side
+   (APICBASE, PAC) and hands the register window over while the APIC path
+   is on. */
+const device_t ioapic_esc_device = {
+    .name          = "I/O Advanced Programmable Interrupt Controller (82374 ESC)",
+    .internal_name = "ioapic_esc",
+    .flags         = DEVICE_ISA16,
+    .local         = IOAPIC_VARIANT_ESC,
     .init          = ioapic_init,
     .close         = ioapic_close,
     .reset         = ioapic_device_reset,
