@@ -37,7 +37,7 @@ typedef struct pcxr_frame_t {
     /* Register values used by the renderer. */
     uint32_t object_offset; /* OBJECT_OFFSET: byte offset of the tile list, bit 0 flag */
     uint32_t fog_shift;     /* FOGAMOUNT */
-    uint32_t fog_colour;    /* FOGCOL, 0x00RRGGBB in bits 23:0 */
+    uint32_t fog_colour;    /* FOGCOL: 0x00RRGGBB in bits 23:0, bit 24 fog on */
     uint32_t camera;        /* CAMERA: texture c/f/r scale */
     uint32_t xclip;         /* XCLIP */
     uint32_t bilinear;      /* BILINEAR */

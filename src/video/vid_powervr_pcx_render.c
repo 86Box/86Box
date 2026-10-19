@@ -154,6 +154,7 @@ typedef struct {
     pcxr_result_t      *res;
     int                 prev_intern_out;
     uint8_t             fog_r, fog_g, fog_b;
+    int                 fog_on;
 } ctx_t;
 
 /* ---- ISP (SABRE) ------------------------------------------------------ */
@@ -406,7 +407,11 @@ address_calc(int32_t u, int32_t v, uint32_t address, int map_size, int which_map
         address ^= BIG_BANK;
     if (map_size + which_map > 8)
         return address;
-    return address + mmc[map_size + which_map] + twid(u >> which_map, v >> which_map);
+    /* The mip chain starts one pixel in: the 1x1 level takes the second
+       pixel of the first word, and every larger level follows it (the
+       simulator has no such offset). Measured on the m3D with Ultim@te
+       Race, where it makes every mip-mapped pixel match. */
+    return address + 1 + mmc[map_size + which_map] + twid(u >> which_map, v >> which_map);
 }
 
 static uint16_t
@@ -492,8 +497,8 @@ texture_pixel(const ctx_t *c, int x, int y, int a, int b, int cc, int d, int e, 
     int      shift, power_two;
     pfloat   top, bot;
     int32_t  scale  = (int32_t) (c->f->camera & 0xffff);
-    /* BILINEAR[1:0]: 0 bilinear, 1 adaptive bilinear, 3 linear mip-mapping
-       (no bilinear filter). */
+    /* BILINEAR[1:0]: 0 bilinear, 1 adaptive bilinear (see below), 3 linear
+       mip-mapping (no bilinear filter). */
     int      bilin  = ((c->f->bilinear & 3) != 3);
 
     abc = (int32_t) ((uint32_t) a * x + (uint32_t) b * y + (uint32_t) cc * scale);
@@ -550,6 +555,12 @@ texture_pixel(const ctx_t *c, int x, int y, int a, int b, int cc, int d, int e, 
         bot.e = 15;
 
     map_size = 3 - map_size; /* 0 = 256x256 from here on */
+
+    /* Adaptive bilinear (BILINEAR = 1): the filter is used on the two
+       finest mip steps only; further away the chip blends between mip
+       levels instead, as in mode 3. Measured on the m3D. */
+    if ((c->f->bilinear & 3) == 1 && mip_mapped && bot.e >= 2)
+        bilin = 0;
 
     if (bot.e < 1 || !mip_mapped || colour_depth == 0) {
         tcol = colour_convert(fetch_pixel(c, address_calc(u, v, address, map_size, 0, colour_depth, mip_mapped, flip_uv)),
@@ -765,7 +776,7 @@ texas(ctx_t *c, int x, int y, uint32_t address, int shadow, int fog)
         col.b = (uint8_t) clip255(col.b + (hb << 3));
     }
 
-    if (!(w0 & MASK_DISABLE_FOG)) {
+    if (c->fog_on && !(w0 & MASK_DISABLE_FOG)) {
         red   = ((int) c->fog_r - col.r) * fog;
         green = ((int) c->fog_g - col.g) * fog;
         blue  = ((int) c->fog_b - col.b) * fog;
@@ -1266,6 +1277,7 @@ pcxr_render_tiles(pcxr_job_t *job, uint32_t *rgb, uint32_t first, uint32_t step)
     c.fog_r = (f->fog_colour >> 16) & 0xff;
     c.fog_g = (f->fog_colour >> 8) & 0xff;
     c.fog_b = f->fog_colour & 0xff;
+    c.fog_on = (f->fog_colour >> 24) & 1; /* FOGCOL bit 24 enables fog (measured) */
 
     for (uint32_t ti = first; ti < job->n_tiles; ti += step) {
         const tile_t *t        = &job->tiles[ti];
