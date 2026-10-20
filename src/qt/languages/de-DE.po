@@ -3635,6 +3635,8 @@ msgstr ""
 
 msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
 msgstr ""
+"VFIO: Es sind Administratorrechte erforderlich, um 86Box Zugriff auf die "
+"durchgeleiteten Geräte zu gewähren. Fortfahren?"
 
 msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
 msgstr ""
