@@ -433,6 +433,9 @@ msgstr ""
 msgid "Block linking on the dynamic recompiler"
 msgstr "動的再コンパイルでのブロックリンク"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPUフレームサイズ"
 

@@ -432,6 +432,9 @@ msgstr ""
 msgid "Block linking on the dynamic recompiler"
 msgstr "Lohkojen linkitys dynaamisessa uudelleenkääntäjässä"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPU frame-koko"
 

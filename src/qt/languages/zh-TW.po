@@ -433,6 +433,9 @@ msgstr "動態重編譯時精確的浮點運算器模擬"
 msgid "Block linking on the dynamic recompiler"
 msgstr "動態重編譯時的區塊連結"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPU 執行期框架大小"
 

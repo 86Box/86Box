@@ -433,6 +433,9 @@ msgstr "Точное окружение FPU в динамическом реко
 msgid "Block linking on the dynamic recompiler"
 msgstr "Связывание блоков в динамическом рекомпиляторе"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Размер кадра ЦП"
 

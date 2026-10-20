@@ -583,6 +583,7 @@ load_machine(void)
 
     cpu_override             = ini_section_get_int(cat, "cpu_override", 0);
     cpu_override_interpreter = ini_section_get_int(cat, "cpu_override_interpreter", 0);
+    cpu_debug_regs_486       = !!ini_section_get_int(cat, "cpu_debug_regs_486", 0);
     cpu_f                    = NULL;
     p                        = ini_section_get_string(cat, "cpu_family", NULL);
     if (p) {
@@ -2938,6 +2939,7 @@ config_load(void)
         force_constant_mouse = 0;
 
         cpu_override_interpreter = 0;
+        cpu_debug_regs_486       = 0;
 
         fpu_type               = fpu_get_type(cpu_f, cpu, "none");
         gfxcard[0]             = video_get_video_from_internal_name("cga");
@@ -3433,6 +3435,10 @@ save_machine(void)
         ini_section_set_int(cat, "cpu_override_interpreter", cpu_override_interpreter);
     else
         ini_section_delete_var(cat, "cpu_override_interpreter");
+    if (cpu_debug_regs_486)
+        ini_section_set_int(cat, "cpu_debug_regs_486", cpu_debug_regs_486);
+    else
+        ini_section_delete_var(cat, "cpu_debug_regs_486");
 
     /* Downgrade compatibility with the previous CPU model system. */
     ini_section_delete_var(cat, "cpu_manufacturer");
