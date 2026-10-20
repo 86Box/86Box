@@ -3627,6 +3627,11 @@ msgstr ""
 
 msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
 msgstr ""
+"VFIO: Diese Geräte müssen an vfio-pci gebunden werden, wofür "
+"Administratorrechte erforderlich sind:\n"
+"\n"
+"%s\n"
+"Sollen sie jetzt gebunden werden?"
 
 msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
 msgstr ""
