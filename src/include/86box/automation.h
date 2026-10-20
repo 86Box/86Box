@@ -33,6 +33,8 @@ extern "C" {
 extern char automation_path[1024];       /* unix:<path>, tcp:[host:]port, or bare (see doc) */
 extern char automation_token_file[1024]; /* TCP: where the per-run token is written */
 extern int  automation_start_held;
+extern int  automation_seed_set;    /* --automation-seed given */
+extern uint32_t automation_seed;
 extern int  automation_allow_remote; /* TCP: permit a non-loopback bind address */
 extern int  automation_insecure;     /* TCP: accept clients without a token */
 

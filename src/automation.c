@@ -129,6 +129,8 @@ typedef struct {
 char automation_path[1024]       = "";
 char automation_token_file[1024] = "";
 int  automation_start_held       = 0;
+int  automation_seed_set         = 0;
+uint32_t automation_seed         = 0;
 int  automation_allow_remote     = 0;
 int  automation_insecure         = 0;
 
