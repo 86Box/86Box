@@ -3587,7 +3587,7 @@ msgid "VFIO %s: Invalid device location."
 msgstr "VFIO %s: Ungültiger Gerätestandort."
 
 msgid "VFIO %s: Device not found."
-msgstr ""
+msgstr "VFIO %s: Gerät nicht gefunden."
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
