@@ -115,6 +115,7 @@ typedef struct fdc_t {
     uint8_t step;
     uint8_t noprec;
     uint8_t data_ready;
+    uint16_t xfer_count;
 
     uint8_t paramstogo;
     uint8_t enh_mode;

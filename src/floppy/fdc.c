@@ -729,14 +729,19 @@ real_drive(fdc_t *fdc, int drive)
         return drive;
 }
 
+/* IBM 5550 family: the board's DMA transfer latch holds the bytes still left to move. */
+static void
+fdc_xfer_count_down(fdc_t *fdc)
+{
+    if ((fdc->flags & FDC_FLAG_5550) && fdc->xfer_count)
+        fdc->xfer_count--;
+}
+
+/* IBM 5550 family: detect a disk change through the drive's Ready line, and uPD765A will
+   raise an interrupt whenever the state changes. Other PCs do not use the Ready line. */
 void
 fdc_diskchange_interrupt(fdc_t *fdc, int drive)
 {
-    /*
-    For the IBM 5550 machine to detect the disk in the drive has been changed.
-    A hardware interrupt is caused by the FDC (NEC uPD765A) when the Ready line from the drive changes its state.
-    Other PCs never use the Ready line.
-    */
     if (fdc->flags & FDC_FLAG_5550) {
         fdc->st0 = 0xc0 | (drive & 3);
         fdc_int(fdc, 1);
@@ -1652,7 +1657,15 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         fdc->stat = 0x90 | (fdc->stat & 0xf);
                 }
                 return;
+            case 6:
+                if (fdc->flags & FDC_FLAG_5550)
+                    fdc->xfer_count = (fdc->xfer_count & 0xff00) | val;
+                return;
             case 7:
+                if (fdc->flags & FDC_FLAG_5550) {
+                    fdc->xfer_count = (fdc->xfer_count & 0x00ff) | (val << 8);
+                    return;
+                }
                 if (!(fdc->flags & FDC_FLAG_TOSHIBA) && !(fdc->flags & FDC_FLAG_AT) && !(fdc->flags & FDC_FLAG_UMC))
                     return;
                 if (fdc->flags & FDC_FLAG_PS2) {
@@ -1866,7 +1879,22 @@ fdc_read(uint16_t addr, void *priv)
                 }
                 fdc->stat &= 0xf0;
                 break;
+            case 6:
+                if (fdc->flags & FDC_FLAG_5550) {
+                    /* No media: nothing will move, so the board's counter is
+                       already idle and the ROS must not wait out its timeout. */
+                    drive = real_drive(fdc, fdc->dor & 3);
+                    drv = (fdd_drive_t *) fdc->fdd[drive];
+                    ret = drv->empty ? 0 : (fdc->xfer_count & 0xff);
+                }
+                break;
             case 7: {
+                if (fdc->flags & FDC_FLAG_5550) {
+                    drive = real_drive(fdc, fdc->dor & 3);
+                    drv = (fdd_drive_t *) fdc->fdd[drive];
+                    ret = drv->empty ? 0 : (fdc->xfer_count >> 8);
+                    break;
+                }
                 /*Disk change*/
                 drive = real_drive(fdc, fdc->dor & 3);
                 drv = (fdd_drive_t *) fdc->fdd[drive];
@@ -2464,6 +2492,7 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
             dma_set_drq(fdc->dma_ch, 1);
 
             fdc->dat = data;
+            fdc_xfer_count_down(fdc);
             result = dma_channel_write(fdc->dma_ch, data);
 
             if (result & DMA_OVER) {
@@ -2486,6 +2515,7 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
 
                 while (!fifo_get_empty(fdc->fifo_p)) {
                     result = dma_channel_write(fdc->dma_ch, fifo_read(fdc->fifo_p));
+                    fdc_xfer_count_down(fdc);
 
                     if (result & DMA_OVER) {
                         fdc_log("FDC command %02X: Lower DRQ on data read from drive with FIFO #1\n", fdc->processed_cmd);
@@ -2618,6 +2648,9 @@ fdc_getdata(fdc_t *fdc, int last)
             fdc_log("FDC command %02X: Lower DRQ on data write to drive without FIFO\n", fdc->processed_cmd);
             dma_set_drq(fdc->dma_ch, 0);
 
+            if (data != DMA_NODATA)
+                fdc_xfer_count_down(fdc);
+
             if (data & DMA_OVER)
                 fdc->tc = 1;
 
@@ -2631,6 +2664,9 @@ fdc_getdata(fdc_t *fdc, int last)
                 while (!fifo_get_full(fdc->fifo_p)) {
                     data            = dma_channel_read(fdc->dma_ch);
                     fifo_write(data, fdc->fifo_p);
+
+                    if (data != DMA_NODATA)
+                        fdc_xfer_count_down(fdc);
 
                     if (data == DMA_NODATA) {
                         fdc_log("FDC command %02X: DMA read with no data!\n", fdc->processed_cmd);
@@ -2758,7 +2794,7 @@ fdc_set_base(fdc_t *fdc, int base)
     } else if (fdc->flags & FDC_FLAG_5550) {
         io_sethandler(base, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
         io_sethandler(base + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
-        io_sethandler(base + 0x0005, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        io_sethandler(base + 0x0005, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else {
         if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
             io_sethandler(base + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -2802,7 +2838,7 @@ fdc_remove(fdc_t *fdc)
     } else if (fdc->flags & FDC_FLAG_5550) {
         io_removehandler(fdc->base_address, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
         io_removehandler(fdc->base_address + 4, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
-        io_removehandler(fdc->base_address + 5, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        io_removehandler(fdc->base_address + 5, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else {
         if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
             io_removehandler(fdc->base_address + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -2871,6 +2907,8 @@ fdc_reset(void *priv)
     fdc->fifo  = 0;
     fdc->tfifo = 1;
     fdc->fifointest = 0;
+
+    fdc->xfer_count = 0;
 
     if (fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) {
         fdc->dma        = 0;

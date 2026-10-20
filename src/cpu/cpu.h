@@ -866,6 +866,11 @@ extern int cpu_use_exec;
 extern uint8_t  use_custom_nmi_vector;
 extern uint32_t custom_nmi_vector;
 
+/* Bumped whenever an NMI is taken or an IRET completes, which is what the
+   80186 peripheral control block turns into its DMA halt bit. */
+extern uint32_t cpu_dhlt_events;
+extern uint8_t  cpu_dhlt_last_event;
+
 extern void (*cpu_exec)(int32_t cycs);
 extern uint8_t do_translate;
 extern uint8_t do_translate2;
