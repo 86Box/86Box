@@ -3622,6 +3622,8 @@ msgstr ""
 
 msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
 msgstr ""
+"VFIO %s: Das ROM scheint ungültig zu sein. Über die VFIO-Einstellungen kann "
+"ein benutzerdefiniertes ROM geladen werden."
 
 msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
 msgstr ""
