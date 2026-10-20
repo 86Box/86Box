@@ -55,6 +55,7 @@ public:
         ConfigurationChanged,
         WinIdMessage,
         GlobalConfigurationChanged,
+        WindowActivated,
         UnknownMessage,
     };
     Q_ENUM(ClientMessage);

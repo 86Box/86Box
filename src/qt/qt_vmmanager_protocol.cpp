@@ -97,6 +97,8 @@ VMManagerProtocol::getClientMessageType(const QJsonObject &json_document)
         return VMManagerProtocol::ClientMessage::WinIdMessage;
     else if (message_type == "GlobalConfigurationChanged")
         return VMManagerProtocol::ClientMessage::GlobalConfigurationChanged;
+    else if (message_type == "WindowActivated")
+        return VMManagerProtocol::ClientMessage::WindowActivated;
 
     return VMManagerProtocol::ClientMessage::UnknownMessage;
 }

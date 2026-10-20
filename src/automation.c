@@ -56,6 +56,9 @@ typedef int sock_t;
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
+#include "x87_sf.h"
+#include "x87.h"
+#include "x87_ops_conv.h"
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/fdd.h>
@@ -660,6 +663,54 @@ wait_satisfied(void)
     return 0;
 }
 
+/* A segment register or descriptor table register: the selector (when it
+   has one) and what the CPU holds of its descriptor. "ar" is the access
+   byte and, above it, the flags byte (G, D/B, AVL and limit 19:16), as
+   bytes 5 and 6 of the descriptor. */
+static void
+sb_seg(strbuf_t *sb, const char *name, const x86seg *s, int sel, int ar)
+{
+    if (sel)
+        sb_printf(sb, ",\"%s\":%u", name, s->seg);
+    sb_printf(sb, ",\"%s_base\":%u,\"%s_limit\":%u", name, s->base, name, s->limit);
+    if (ar)
+        sb_printf(sb, ",\"%s_ar\":%u", name, s->access | (s->ar_high << 8));
+}
+
+/* Physical x87 register r as the 80-bit value FSAVE would store: sign and
+   exponent, then the 64-bit significand. */
+static void
+fpu_reg80(int r, uint16_t *se, uint64_t *signif)
+{
+    if (fpu_softfloat) {
+        *se     = fpu_state.st_space[r].signExp;
+        *signif = fpu_state.st_space[r].signif;
+    } else if (cpu_state.ismmx) {
+        *se     = *MMEP[r];
+        *signif = MMP[r]->q;
+    } else if (cpu_state.tag[r] & TAG_UINT64) {
+        /* An integer FILD loaded, kept exactly beside its double. */
+        int64_t  i = (int64_t) cpu_state.MM[r].q;
+        uint64_t m = (i < 0) ? (0 - (uint64_t) i) : (uint64_t) i;
+        int      e = 16383 + 63;
+
+        if (m == 0)
+            e = 0;
+        while (m && !(m & 0x8000000000000000ULL)) {
+            m <<= 1;
+            e--;
+        }
+        *se     = ((i < 0) ? 0x8000 : 0) | e;
+        *signif = m;
+    } else {
+        x87_conv_t c;
+
+        x87_to80(cpu_state.ST[r], &c);
+        *se     = (uint16_t) c.begin;
+        *signif = c.eind.ll;
+    }
+}
+
 static void
 handle_request(char *line)
 {
@@ -774,9 +825,39 @@ handle_request(char *line)
            pointer; mouse_automation lets ours through without touching the
            UI's capture state, so a visible window keeps working normally. */
         mouse_automation = 1;
+        /* With a tablet configured as well, input goes to one device at a
+           time: this one is for the mouse. */
+        if (mouse_both_enabled())
+            mouse_input_mode = 0;
         mouse_scale(atoi(argv[1]), atoi(argv[2]));
         mouse_set_buttons_ex(atoi(argv[3]));
         respond_ok_time();
+    } else if (!strcmp(argv[0], "tablet") && ((argc == 4) || ((argc == 2) && !strcmp(argv[1], "out")))) {
+        /* tablet <x> <y> <buttons>: the pen (or finger) at pixel x,y of the
+           last frame, as screenshots have it; tablet out: lifted away. For
+           the configured tablet, touch screen or light pen; a mouse, if one
+           is configured too, keeps getting the mouse command. */
+        if (!tablet_type)
+            respond_error("no tablet configured");
+        else if (argc == 2) {
+            mouse_set_buttons_ex(0);
+            mouse_tablet_in_proximity = 0;
+            respond_ok_time();
+        } else if (!frame_w || !frame_h)
+            respond_error("no frame rendered yet");
+        else {
+            double x = (atof(argv[1]) + 0.5) / frame_w;
+            double y = (atof(argv[2]) + 0.5) / frame_h;
+
+            mouse_automation = 1;
+            if (mouse_input_mode == 0)
+                mouse_input_mode = 1;
+            mouse_x_abs               = (x < 0.0) ? 0.0 : ((x > 1.0) ? 1.0 : x);
+            mouse_y_abs               = (y < 0.0) ? 0.0 : ((y > 1.0) ? 1.0 : y);
+            mouse_tablet_in_proximity = 1; /* over monitor 0 */
+            mouse_set_buttons_ex(atoi(argv[3]));
+            respond_ok_time();
+        }
     } else if (!strcmp(argv[0], "screenshot")) {
         /* screenshot <path>: write a PNG file on this machine.
            screenshot: return the PNG base64-encoded in the reply (works over TCP). */
@@ -853,11 +934,80 @@ handle_request(char *line)
         sb_printf(&resp, "{\"ok\":true");
         for (int i = 0; i < 8; i++)
             sb_printf(&resp, ",\"%s\":%u", names[i], cpu_state.regs[i].l);
-        sb_printf(&resp, ",\"eip\":%u,\"eflags\":%u,\"cs\":%u,\"ds\":%u,\"es\":%u,\"ss\":%u,\"fs\":%u,\"gs\":%u,\"cs_base\":%u,\"cr0\":%u}",
+        sb_printf(&resp, ",\"eip\":%u,\"eflags\":%u,\"cs\":%u,\"ds\":%u,\"es\":%u,\"ss\":%u,\"fs\":%u,\"gs\":%u,\"cs_base\":%u,\"cr0\":%u",
                   cpu_state.pc, ((uint32_t) cpu_state.eflags << 16) | cpu_state.flags,
                   cpu_state.seg_cs.seg, cpu_state.seg_ds.seg, cpu_state.seg_es.seg,
                   cpu_state.seg_ss.seg, cpu_state.seg_fs.seg, cpu_state.seg_gs.seg,
                   cpu_state.seg_cs.base, cr0);
+        if (is286) {
+            /* The descriptor caches: what the CPU uses, which may no longer
+               match the descriptor tables (unreal mode, say). */
+            sb_printf(&resp, ",\"cs_limit\":%u,\"cs_ar\":%u", cpu_state.seg_cs.limit,
+                      cpu_state.seg_cs.access | (cpu_state.seg_cs.ar_high << 8));
+            sb_seg(&resp, "ds", &cpu_state.seg_ds, 0, 1);
+            sb_seg(&resp, "es", &cpu_state.seg_es, 0, 1);
+            sb_seg(&resp, "ss", &cpu_state.seg_ss, 0, 1);
+            if (is386) {
+                sb_seg(&resp, "fs", &cpu_state.seg_fs, 0, 1);
+                sb_seg(&resp, "gs", &cpu_state.seg_gs, 0, 1);
+            }
+            sb_seg(&resp, "gdtr", &gdt, 0, 0);
+            sb_seg(&resp, "idtr", &idt, 0, 0);
+            sb_seg(&resp, "ldtr", &ldt, 1, 1);
+            sb_seg(&resp, "tr", &tr, 1, 1);
+            sb_printf(&resp, ",\"cpl\":%u", (cr0 & 1) ? ((cpu_state.eflags & VM_FLAG) ? 3 : CPL) : 0);
+        }
+        if (is386) {
+            sb_printf(&resp, ",\"cr2\":%u,\"cr3\":%u", cr2, cr3);
+            for (int i = 0; i < 8; i++) {
+                if ((i != 4) && (i != 5))
+                    sb_printf(&resp, ",\"dr%d\":%u", i, dr[i]);
+            }
+            sb_printf(&resp, ",\"smm\":%d", !!in_smm);
+        }
+        if (cpu_has_feature(CPU_FEATURE_CR4))
+            sb_printf(&resp, ",\"cr4\":%u", cr4);
+        if (cpu_has_feature(CPU_FEATURE_RDTSC))
+            sb_printf(&resp, ",\"tsc\":%llu", (unsigned long long) tsc);
+        sb_printf(&resp, "}");
+    } else if (!strcmp(argv[0], "fpu")) {
+        if (!hasfpu) {
+            respond_error("no FPU");
+        } else {
+            uint16_t cw, sw, tw;
+            int      top;
+
+            if (fpu_softfloat) {
+                cw  = i387_get_control_word();
+                sw  = i387_get_status_word();
+                tw  = fpu_state.tag;
+                top = fpu_state.tos & 7;
+            } else {
+                cw  = cpu_state.npxc;
+                sw  = (cpu_state.npxs & 0xc7ff) | ((cpu_state.TOP & 7) << 11);
+                tw  = x87_gettag();
+                top = cpu_state.TOP & 7;
+            }
+            resp.len = 0;
+            sb_printf(&resp, "{\"ok\":true,\"fcw\":%u,\"fsw\":%u,\"ftw\":%u,\"top\":%d", cw, sw, tw, top);
+            for (int i = 0; i < 8; i++) {
+                uint16_t se;
+                uint64_t signif;
+
+                fpu_reg80((top + i) & 7, &se, &signif);
+                sb_printf(&resp, ",\"st%d\":\"%04x%016llx\"", i, se, (unsigned long long) signif);
+            }
+            if (cpu_has_feature(CPU_FEATURE_MMX)) {
+                for (int i = 0; i < 8; i++) {
+                    uint16_t se;
+                    uint64_t signif;
+
+                    fpu_reg80(i, &se, &signif);
+                    sb_printf(&resp, ",\"mm%d\":\"%016llx\"", i, (unsigned long long) signif);
+                }
+            }
+            sb_printf(&resp, "}");
+        }
     } else if (!strcmp(argv[0], "fdd") && (argc >= 3)) {
         /* fdd load <drive> <path> | fdd eject <drive> */
         int id = atoi(argv[2]);
@@ -895,7 +1045,10 @@ handle_request(char *line)
                     cdrom[id].insert(cdrom[id].priv);
             }
             ui_sb_update_icon_state(SB_CDROM | id, cdrom[id].image_path[0] ? 0 : 1);
-            respond_ok_time();
+            if (cdrom[id].image_path[0])
+                respond_ok_time();
+            else
+                respond_error("cannot load the image; the log says why");
         } else
             respond_error("usage: cd load <drive> <path> | cd eject <drive>");
     } else if (!strcmp(argv[0], "reset") && (argc == 2) && !strcmp(argv[1], "hard")) {

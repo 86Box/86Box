@@ -125,7 +125,7 @@ sis_5513_apc_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
     sis_5513_pci_to_isa_t *dev = (sis_5513_pci_to_isa_t *) priv;
     uint8_t nvr_index = nvr_get_index(dev->nvr, 0);
 
-    sis_5513_pci_to_isa_log("SiS 5595 APC: [W] %04X = %02X\n", addr, val);
+    sis_5513_pci_to_isa_log("SiS 5595 APC: [W] %04X:%02X = %02X\n", addr, nvr_index, val);
 
     switch (nvr_index) {
         case 0x02 ... 0x04:
@@ -151,7 +151,7 @@ sis_5513_apc_read(UNUSED(uint16_t addr), void *priv)
     if (nvr_index == 0x06)
         dev->apc_regs[nvr_index] = 0x00;
 
-    sis_5513_pci_to_isa_log("SiS 5595 APC: [R] %04X = %02X\n", addr, ret);
+    sis_5513_pci_to_isa_log("SiS 5595 APC: [R] %04X:%02X = %02X\n", addr, nvr_index, ret);
 
     return ret;
 }
