@@ -642,7 +642,9 @@ voodoo_fifo_thread(void *param)
                     while (num_verticies--) {
                         voodoo->verts[3].sVx = cmdfifo_get_f(voodoo);
                         voodoo->verts[3].sVy = cmdfifo_get_f(voodoo);
-                        if (mask & CMDFIFO3_PC_MASK_RGB) {
+                        /* Packed alpha-only vertices still carry one ARGB word. */
+                        if ((mask & CMDFIFO3_PC_MASK_RGB) ||
+                            ((header & CMDFIFO3_PC) && (mask & CMDFIFO3_PC_MASK_ALPHA))) {
                             if (header & CMDFIFO3_PC) {
                                 uint32_t val            = cmdfifo_get(voodoo);
                                 voodoo->verts[3].sBlue  = (float) (val & 0xff);
@@ -933,7 +935,8 @@ voodoo_fifo_thread(void *param)
                     while (num_verticies--) {
                         voodoo->verts[3].sVx = cmdfifo_get_f_2(voodoo);
                         voodoo->verts[3].sVy = cmdfifo_get_f_2(voodoo);
-                        if (mask & CMDFIFO3_PC_MASK_RGB) {
+                        if ((mask & CMDFIFO3_PC_MASK_RGB) ||
+                            ((header & CMDFIFO3_PC) && (mask & CMDFIFO3_PC_MASK_ALPHA))) {
                             if (header & CMDFIFO3_PC) {
                                 uint32_t val            = cmdfifo_get_2(voodoo);
                                 voodoo->verts[3].sBlue  = (float) (val & 0xff);
