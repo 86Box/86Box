@@ -3655,6 +3655,11 @@ msgstr ""
 
 msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
 msgstr ""
+"VFIO: Administratorrechte konnten nicht angefordert werden. Um die Geräte "
+"für die Durchleitung vorzubereiten, diesen Befehl ausführen mit "
+"anschließendem Hard-Reset :\n"
+"\n"
+"%s"
 
 msgid "Prepare PCI devices for VFIO passthrough"
 msgstr ""
