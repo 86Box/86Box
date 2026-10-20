@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-10-20 09:09+0000\n"
-"Last-Translator: dob205 <dominik.babic0@gmail.com>\n"
+"Last-Translator: creopard <support@creopard.de>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
 "MIME-Version: 1.0\n"
@@ -3598,7 +3598,7 @@ msgid "VFIO %s: Device is not bound to vfio-pci."
 msgstr "VFIO %s: Das Gerät ist nicht an vfio-pci gebunden."
 
 msgid "VFIO %s: Could not open IOMMU group %d: %s"
-msgstr ""
+msgstr "VFIO %s: Die IOMMU-Gruppe %d konnte nicht geöffnet werden: %s"
 
 msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
 msgstr ""
