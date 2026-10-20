@@ -2328,6 +2328,12 @@ acpi_ali_soft_smi_status_write(acpi_t *dev, uint8_t soft_smi)
 }
 
 void
+acpi_pwrbut_press(void)
+{
+    acpi_pwrbut_pressed = 1;
+}
+
+void
 acpi_pwrbtn_timer(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;

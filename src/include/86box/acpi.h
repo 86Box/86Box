@@ -16,8 +16,6 @@
 #define ACPI_H
 
 #ifdef __cplusplus
-#include <atomic>
-using atomic_int = std::atomic_int;
 extern "C" {
 #else
 #include <stdatomic.h>
@@ -179,7 +177,10 @@ typedef struct acpi_t {
 
 /* Global variables. */
 extern int        acpi_rtc_status;
+#ifndef __cplusplus
+/* std::atomic_int is a different type from C's atomic_int, so C++ uses acpi_pwrbut_press(). */
 extern atomic_int acpi_pwrbut_pressed;
+#endif
 extern int        acpi_enabled;
 
 extern const device_t acpi_ali_device;
@@ -192,6 +193,7 @@ extern const device_t acpi_sis_5595_1997_device;
 extern const device_t acpi_sis_5595_device;
 
 /* Functions */
+extern void    acpi_pwrbut_press(void);
 extern void    acpi_update_irq(acpi_t *dev);
 extern void    acpi_raise_smi(void *priv, int do_smi);
 extern void    acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
