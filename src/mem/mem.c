@@ -89,6 +89,9 @@ int        readlookup[512];
 uintptr_t  old_rl2;
 int        writelnext;
 int        writelookup[256];
+/* Slots filled since the last flush; the rings restart at 0 after a flush. */
+static int readl_used[2];
+static int writel_used;
 
 /* The lookup tables. */
 page_t *page_lookup[1048576] = { 0 };
@@ -185,28 +188,51 @@ resetreadlookup(void)
 
     memset(writelookup2, 0xff, (1 << 20) * sizeof(uintptr_t));
 
-    readlnext[0] = 0;
-    readlnext[1] = 0;
-    writelnext   = 0;
-    pccache      = 0xffffffff;
-    high_page    = 0;
+    readlnext[0]  = 0;
+    readlnext[1]  = 0;
+    writelnext    = 0;
+    readl_used[0] = 0;
+    readl_used[1] = 0;
+    writel_used   = 0;
+    pccache       = 0xffffffff;
+    high_page     = 0;
 }
 
-void
-flushmmucache(void)
+static void
+flush_read_lookup(void)
 {
-    for (uint16_t c = 0; c < 512; c++) {
-        if (readlookup[c] != (int) 0xffffffff) {
-            readlookup2[readlookup[c]] = LOOKUP_INV;
-            readlookup2[readlookup[c] | 1048576] = LOOKUP_INV;
-            readlookup[c]              = 0xffffffff;
+    for (int set = 0; set < 2; set++) {
+        for (int c = set << 8; c < ((set << 8) + readl_used[set]); c++) {
+            if (readlookup[c] != (int) 0xffffffff) {
+                readlookup2[readlookup[c]]           = LOOKUP_INV;
+                readlookup2[readlookup[c] | 1048576] = LOOKUP_INV;
+                readlookup[c]                        = 0xffffffff;
+            }
         }
-        if ((c < 256) && (writelookup[c] != (int) 0xffffffff)) {
+        readl_used[set] = 0;
+        readlnext[set]  = 0;
+    }
+}
+
+static void
+flush_write_lookup(void)
+{
+    for (int c = 0; c < writel_used; c++) {
+        if (writelookup[c] != (int) 0xffffffff) {
             page_lookup[writelookup[c]]  = NULL;
             writelookup2[writelookup[c]] = LOOKUP_INV;
             writelookup[c]               = 0xffffffff;
         }
     }
+    writel_used = 0;
+    writelnext  = 0;
+}
+
+void
+flushmmucache(void)
+{
+    flush_read_lookup();
+    flush_write_lookup();
     mmuflush++;
 
     pccache  = (uint32_t) 0xffffffff;
@@ -220,13 +246,7 @@ flushmmucache(void)
 void
 flushmmucache_write(void)
 {
-    for (uint16_t c = 0; c < 256; c++) {
-        if (writelookup[c] != (int) 0xffffffff) {
-            page_lookup[writelookup[c]]  = NULL;
-            writelookup2[writelookup[c]] = LOOKUP_INV;
-            writelookup[c]               = 0xffffffff;
-        }
-    }
+    flush_write_lookup();
     mmuflush++;
 }
 
@@ -246,18 +266,8 @@ flushmmucache_pc(void)
 void
 flushmmucache_nopc(void)
 {
-    for (uint16_t c = 0; c < 512; c++) {
-        if (readlookup[c] != (int) 0xffffffff) {
-            readlookup2[readlookup[c]] = LOOKUP_INV;
-            readlookup2[readlookup[c] | 1048576] = LOOKUP_INV;
-            readlookup[c]              = 0xffffffff;
-        }
-        if ((c < 256) && (writelookup[c] != (int) 0xffffffff)) {
-            page_lookup[writelookup[c]]  = NULL;
-            writelookup2[writelookup[c]] = LOOKUP_INV;
-            writelookup[c]               = 0xffffffff;
-        }
-    }
+    flush_read_lookup();
+    flush_write_lookup();
 }
 
 void
@@ -639,6 +649,8 @@ addreadlookup(uint32_t virt, uint32_t phys)
 
     readlookup[cur_rln] = virt >> 12;
     *rln                = (*rln + 1) & (cachesize - 1);
+    if (readl_used[is_compare] < cachesize)
+        readl_used[is_compare]++;
 
     cycles -= 9;
 }
@@ -675,6 +687,8 @@ addwritelookup(uint32_t virt, uint32_t phys)
 
     writelookup[writelnext++] = virt >> 12;
     writelnext &= (cachesize - 1);
+    if (writel_used < cachesize)
+        writel_used++;
 
     cycles -= 9;
 }
