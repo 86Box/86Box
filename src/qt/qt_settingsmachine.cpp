@@ -90,6 +90,9 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     ui->softFloatWarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
     ui->softFloatWarningIcon->setVisible(false);
     ui->softFloatWarningText->setVisible(false);
+    ui->debugRegs486WarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
+    ui->debugRegs486WarningIcon->setVisible(false);
+    ui->debugRegs486WarningText->setVisible(false);
 
     auto *waitStatesModel = ui->comboBoxWaitStates->model();
     waitStatesModel->insertRows(0, 9);
@@ -495,6 +498,13 @@ SettingsMachine::on_checkBoxFPUSoftfloat_stateChanged(int state)
         ui->softFloatWarningIcon->setVisible(false);
         ui->softFloatWarningText->setVisible(false);
     }
+}
+
+void
+SettingsMachine::on_checkBoxDebugRegs486_stateChanged(int state)
+{
+    ui->debugRegs486WarningIcon->setVisible(state == Qt::Checked);
+    ui->debugRegs486WarningText->setVisible(state == Qt::Checked);
 }
 
 void

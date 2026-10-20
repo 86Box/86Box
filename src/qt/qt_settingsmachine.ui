@@ -529,7 +529,7 @@
         <item>
         <widget class="QCheckBox" name="checkBoxDebugRegs486">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
           <horstretch>2</horstretch>
            <verstretch>2</verstretch>
            </sizepolicy>
@@ -538,6 +538,33 @@
            <string>Debug registers on 486 and later processors</string>
           </property>
          </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="debugRegs486WarningIcon">
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="debugRegs486WarningText">
+          <property name="text">
+           <string>High performance impact</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="debugRegs486HorizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
         </item>
        </layout>
       </item>
