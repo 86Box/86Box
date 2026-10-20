@@ -78,6 +78,7 @@ typedef int sock_t;
 #include <86box/nvr.h>
 #include <86box/acpi.h>
 #include <86box/automation.h>
+#include <zstd.h>
 #ifdef USE_GDBSTUB
 #    include <86box/gdbstub.h>
 #endif
@@ -195,6 +196,34 @@ static uint32_t rec_interval;
 static uint64_t rec_next_ms;
 static FILE    *rec_log;  /* <dir>/frames.jsonl: one line per frame saved */
 static uint64_t rec_tsc0; /* the CPU cycle count when recording started */
+
+/* Recording without a directory: frames wait here with their stamps, for a
+   client to fetch with record pull (over TCP, from another machine). Each is
+   the frame as RGB24, XORed with the frame queued before it unless it is a
+   key frame (the first, after a size change, after a gap), compressed with
+   zstd: an unchanged screen costs almost nothing, and zstd encodes several
+   times faster than PNG. Past REC_QUEUE_MAX bytes new frames are skipped and
+   counted as lost (queued ones are kept: the next frame is XORed with them),
+   and the next one queued is a key frame. */
+#define REC_QUEUE_MAX (256u << 20)
+typedef struct {
+    char    *stamp; /* the frame's frames.jsonl fields, without the braces */
+    uint8_t *data;  /* zstd */
+    size_t   len;
+    int      w;
+    int      h;
+    int      key;
+} rec_item_t;
+static rec_item_t *rec_q;
+static size_t      rec_q_head;
+static size_t      rec_q_len;
+static size_t      rec_q_cap;
+static size_t      rec_q_bytes;
+static uint64_t    rec_lost;
+static uint8_t    *rec_prev; /* RGB24 of the last frame queued */
+static int         rec_prev_w;
+static int         rec_prev_h;
+static int         rec_need_key;
 static uint32_t rec_frames;
 
 static void
@@ -961,42 +990,159 @@ aud_wait_end(void)
 
 static int write_png(const char *fn);
 
+static int encode_png(strbuf_t *out);
+static strbuf_t png_out;
+
+/* A frame's stamp: when it was captured, in the CPU's own cycles (the time
+   base every timer runs on), and where each recorded sound stream was then,
+   in samples since the recording started. The fields, without braces. */
+static void
+rec_stamp(strbuf_t *sb)
+{
+    uint64_t ran   = (uint64_t) tsc - rec_tsc0;
+    int      first = 1;
+
+    sb_printf(sb, "\"ms\":%llu,\"cycles\":%llu,\"us\":%.3f,\"frame\":%llu,\"audio\":{",
+              (unsigned long long) emu_ms, (unsigned long long) ran,
+              cpuclock ? (double) ran * 1000000.0 / cpuclock : 0.0, (unsigned long long) frame_count);
+    thread_wait_mutex(aud_mutex);
+    for (int i = 0; aud_recording && (i < I_MAX); i++) {
+        const aud_t *a = &aud[i];
+
+        if (!a->rec || !aud_exact(i) || a->nsegs)
+            continue;
+        sb_printf(sb, "%s\"%s\":%lld", first ? "" : ",", aud_names[i],
+                  (long long) a->frames + sound_pending_frames(i) - (long long) a->skip);
+        first = 0;
+    }
+    thread_release_mutex(aud_mutex);
+    sb_printf(sb, "}");
+}
+
+static void
+rec_q_drop_oldest(void)
+{
+    rec_item_t *it = &rec_q[rec_q_head];
+
+    rec_q_bytes -= it->len;
+    free(it->stamp);
+    free(it->data);
+    rec_q_head = (rec_q_head + 1) % rec_q_cap;
+    rec_q_len--;
+}
+
+static void
+rec_q_clear(void)
+{
+    while (rec_q_len)
+        rec_q_drop_oldest();
+    rec_q_head   = 0;
+    rec_lost     = 0;
+    rec_need_key = 1;
+}
+
+static void
+rec_q_push(rec_item_t item)
+{
+    if (rec_q_len == rec_q_cap) {
+        size_t      cap = rec_q_cap ? rec_q_cap * 2 : 256;
+        rec_item_t *q   = calloc(cap, sizeof(rec_item_t));
+
+        for (size_t i = 0; i < rec_q_len; i++)
+            q[i] = rec_q[(rec_q_head + i) % rec_q_cap];
+        free(rec_q);
+        rec_q      = q;
+        rec_q_cap  = cap;
+        rec_q_head = 0;
+    }
+    rec_q[(rec_q_head + rec_q_len) % rec_q_cap] = item;
+    rec_q_len++;
+    rec_q_bytes += item.len;
+}
+
+/* Queue the current frame (frame_mutex held). */
+static void
+rec_q_frame(void)
+{
+    const size_t n     = (size_t) frame_w * frame_h * 3;
+    uint8_t     *rgb   = malloc(n);
+    uint8_t     *x     = malloc(n);
+    size_t       bound = ZSTD_compressBound(n);
+    rec_item_t   item  = { 0 };
+    strbuf_t     stamp = { 0 };
+
+    if (rec_q_bytes > REC_QUEUE_MAX) {
+        /* The client is behind: skip this frame, start again with a key frame. */
+        rec_lost++;
+        rec_need_key = 1;
+        free(rgb);
+        free(x);
+        return;
+    }
+    for (int y = 0; y < frame_h; y++) {
+        const uint32_t *src = &frame_buf[y * frame_w];
+        uint8_t        *row = &rgb[(size_t) y * frame_w * 3];
+
+        for (int i = 0; i < frame_w; i++) {
+            row[i * 3]     = (src[i] >> 16) & 0xff;
+            row[i * 3 + 1] = (src[i] >> 8) & 0xff;
+            row[i * 3 + 2] = src[i] & 0xff;
+        }
+    }
+    item.key = rec_need_key || !rec_prev || (rec_prev_w != frame_w) || (rec_prev_h != frame_h);
+    for (size_t i = 0; i < n; i++)
+        x[i] = item.key ? rgb[i] : (rgb[i] ^ rec_prev[i]);
+    item.data = malloc(bound);
+    item.len  = ZSTD_compress(item.data, bound, x, n, 1);
+    free(x);
+    if (ZSTD_isError(item.len)) {
+        free(item.data);
+        free(rgb);
+        rec_lost++;
+        rec_need_key = 1;
+        return;
+    }
+    item.w = frame_w;
+    item.h = frame_h;
+    rec_stamp(&stamp);
+    item.stamp = stamp.buf;
+    rec_q_push(item);
+    free(rec_prev);
+    rec_prev     = rgb;
+    rec_prev_w   = frame_w;
+    rec_prev_h   = frame_h;
+    rec_need_key = 0;
+    rec_frames++;
+}
+
 /* Called with frame_mutex held, right after a new frame was captured. */
 static void
 record_frame(void)
 {
-    char fn[1100];
+    strbuf_t stamp = { 0 };
 
     if (!rec_interval || (emu_ms < rec_next_ms))
         return;
-    snprintf(fn, sizeof(fn), "%s/%010llu.png", rec_dir, (unsigned long long) emu_ms);
-    if (write_png(fn)) {
-        rec_frames++;
-        if (rec_log) {
-            /* When the frame was captured, in the CPU's own cycles (the time
-               base every timer runs on), and where each recorded sound stream
-               was then, in samples since the recording started. */
-            uint64_t ran    = (uint64_t) tsc - rec_tsc0;
-            int      first  = 1;
-
-            fprintf(rec_log, "{\"ms\":%llu,\"cycles\":%llu,\"us\":%.3f,\"frame\":%llu,\"audio\":{",
-                    (unsigned long long) emu_ms, (unsigned long long) ran,
-                    cpuclock ? (double) ran * 1000000.0 / cpuclock : 0.0, (unsigned long long) frame_count);
-            thread_wait_mutex(aud_mutex);
-            for (int i = 0; aud_recording && (i < I_MAX); i++) {
-                const aud_t *a = &aud[i];
-
-                if (!a->rec || !aud_exact(i) || a->nsegs)
-                    continue;
-                fprintf(rec_log, "%s\"%s\":%lld", first ? "" : ",", aud_names[i],
-                        (long long) a->frames + sound_pending_frames(i) - (long long) a->skip);
-                first = 0;
-            }
-            thread_release_mutex(aud_mutex);
-            fprintf(rec_log, "}}\n");
-        }
-    }
     rec_next_ms = emu_ms + rec_interval;
+    if (!rec_dir[0]) {
+        /* In memory, for record pull. */
+        if (frame_buf && frame_w && frame_h)
+            rec_q_frame();
+        return;
+    }
+    {
+        char fn[1100];
+
+        snprintf(fn, sizeof(fn), "%s/%010llu.png", rec_dir, (unsigned long long) emu_ms);
+        if (!write_png(fn))
+            return;
+    }
+    rec_frames++;
+    if (rec_log) {
+        rec_stamp(&stamp);
+        fprintf(rec_log, "{%.*s}\n", (int) stamp.len, stamp.buf);
+        free(stamp.buf);
+    }
 }
 
 static void
@@ -1059,8 +1205,6 @@ encode_png(strbuf_t *out)
     png_destroy_write_struct(&png, &info);
     return 1;
 }
-
-static strbuf_t png_out;
 
 static int
 write_png(const char *fn)
@@ -1420,7 +1564,7 @@ handle_request(char *line)
         if (!ok)
             respond_error(frame_buf ? "could not write file" : "no frame rendered yet");
     } else if (!strcmp(argv[0], "record") && (argc >= 2)) {
-        /* record start <interval_ms> <dir> | record stop */
+        /* record start <interval_ms> [<dir>] | record stop | record pull [<max_frames>] */
         if (!strcmp(argv[1], "stop")) {
             thread_wait_mutex(frame_mutex);
             rec_interval = 0;
@@ -1431,25 +1575,55 @@ handle_request(char *line)
             resp.len     = 0;
             sb_printf(&resp, "{\"ok\":true,\"frames\":%u}", rec_frames);
             thread_release_mutex(frame_mutex);
-        } else if (!strcmp(argv[1], "start") && (argc >= 4) && (atoi(argv[2]) > 0)) {
+        } else if (!strcmp(argv[1], "start") && (argc >= 3) && (atoi(argv[2]) > 0)) {
+            /* With a directory, frames are written there; without one, they
+               wait in memory for record pull. */
             thread_wait_mutex(frame_mutex);
-            snprintf(rec_dir, sizeof(rec_dir), "%s", rest[3]);
+            snprintf(rec_dir, sizeof(rec_dir), "%s", (argc >= 4) ? rest[3] : "");
             rec_interval = atoi(argv[2]);
             rec_next_ms  = emu_ms;
             rec_frames   = 0;
-            if (rec_log)
+            rec_tsc0     = (uint64_t) tsc;
+            rec_q_clear();
+            if (rec_log) {
                 fclose(rec_log);
-            {
+                rec_log = NULL;
+            }
+            if (rec_dir[0]) {
                 char fn[1100];
 
                 snprintf(fn, sizeof(fn), "%s/frames.jsonl", rec_dir);
-                rec_log  = plat_fopen(fn, "w");
-                rec_tsc0 = (uint64_t) tsc;
+                rec_log = plat_fopen(fn, "w");
             }
             thread_release_mutex(frame_mutex);
             respond_ok_time();
+        } else if (!strcmp(argv[1], "pull") && (argc <= 3)) {
+            /* The frames recorded in memory since the last pull, oldest first,
+               each with its stamps, size, key flag and zstd data (RGB24, XORed
+               with the frame before unless key); lost counts frames skipped
+               because the queue was full. Works after record stop. */
+            size_t n = (argc == 3) ? strtoul(argv[2], NULL, 0) : 32;
+
+            thread_wait_mutex(frame_mutex);
+            if (n > rec_q_len)
+                n = rec_q_len;
+            resp.len = 0;
+            sb_printf(&resp, "{\"ok\":true,\"ms\":%llu,\"recording\":%s,\"lost\":%llu,\"pending\":%llu,\"frames\":[",
+                      (unsigned long long) emu_ms, rec_interval ? "true" : "false", (unsigned long long) rec_lost,
+                      (unsigned long long) (rec_q_len - n));
+            for (size_t i = 0; i < n; i++) {
+                rec_item_t *it = &rec_q[rec_q_head];
+
+                sb_printf(&resp, "%s{%s,\"w\":%d,\"h\":%d,\"key\":%s,\"zstd\":\"", i ? "," : "", it->stamp, it->w,
+                          it->h, it->key ? "true" : "false");
+                sb_base64(&resp, it->data, it->len);
+                sb_printf(&resp, "\"}");
+                rec_q_drop_oldest();
+            }
+            sb_printf(&resp, "]}");
+            thread_release_mutex(frame_mutex);
         } else
-            respond_error("usage: record start <interval_ms> <dir> | record stop");
+            respond_error("usage: record start <interval_ms> [<dir>] | record stop | record pull [<max_frames>]");
     } else if (!strcmp(argv[0], "info")) {
         cmd_info();
     } else if (!strcmp(argv[0], "text")) {
