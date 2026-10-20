@@ -193,6 +193,8 @@ static uint64_t  frame_count;
 static char     rec_dir[1024];
 static uint32_t rec_interval;
 static uint64_t rec_next_ms;
+static FILE    *rec_log;  /* <dir>/frames.jsonl: one line per frame saved */
+static uint64_t rec_tsc0; /* the CPU cycle count when recording started */
 static uint32_t rec_frames;
 
 static void
@@ -885,8 +887,32 @@ record_frame(void)
     if (!rec_interval || (emu_ms < rec_next_ms))
         return;
     snprintf(fn, sizeof(fn), "%s/%010llu.png", rec_dir, (unsigned long long) emu_ms);
-    if (write_png(fn))
+    if (write_png(fn)) {
         rec_frames++;
+        if (rec_log) {
+            /* When the frame was captured, in the CPU's own cycles (the time
+               base every timer runs on), and where each recorded sound stream
+               was then, in samples since the recording started. */
+            uint64_t ran    = (uint64_t) tsc - rec_tsc0;
+            int      first  = 1;
+
+            fprintf(rec_log, "{\"ms\":%llu,\"cycles\":%llu,\"us\":%.3f,\"frame\":%llu,\"audio\":{",
+                    (unsigned long long) emu_ms, (unsigned long long) ran,
+                    cpuclock ? (double) ran * 1000000.0 / cpuclock : 0.0, (unsigned long long) frame_count);
+            thread_wait_mutex(aud_mutex);
+            for (int i = 0; aud_recording && (i < I_MAX); i++) {
+                const aud_t *a = &aud[i];
+
+                if (!a->rec || !aud_exact(i) || a->nsegs)
+                    continue;
+                fprintf(rec_log, "%s\"%s\":%lld", first ? "" : ",", aud_names[i],
+                        (long long) a->frames + sound_pending_frames(i) - (long long) a->skip);
+                first = 0;
+            }
+            thread_release_mutex(aud_mutex);
+            fprintf(rec_log, "}}\n");
+        }
+    }
     rec_next_ms = emu_ms + rec_interval;
 }
 
@@ -1315,6 +1341,10 @@ handle_request(char *line)
         if (!strcmp(argv[1], "stop")) {
             thread_wait_mutex(frame_mutex);
             rec_interval = 0;
+            if (rec_log) {
+                fclose(rec_log);
+                rec_log = NULL;
+            }
             resp.len     = 0;
             sb_printf(&resp, "{\"ok\":true,\"frames\":%u}", rec_frames);
             thread_release_mutex(frame_mutex);
@@ -1324,6 +1354,15 @@ handle_request(char *line)
             rec_interval = atoi(argv[2]);
             rec_next_ms  = emu_ms;
             rec_frames   = 0;
+            if (rec_log)
+                fclose(rec_log);
+            {
+                char fn[1100];
+
+                snprintf(fn, sizeof(fn), "%s/frames.jsonl", rec_dir);
+                rec_log  = plat_fopen(fn, "w");
+                rec_tsc0 = (uint64_t) tsc;
+            }
             thread_release_mutex(frame_mutex);
             respond_ok_time();
         } else
