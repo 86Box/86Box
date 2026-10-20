@@ -47,6 +47,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/device.h>
 #include <86box/dma.h>
 #include <86box/mem.h>
@@ -236,6 +237,13 @@ typedef struct pcx_t {
     pcxr_result_t  job_res;
     uint32_t       job_sofaddr, job_stride, job_packmode;
     double         job_start_ms, job_ms; /* host time spent on the frame (render thread) */
+    /* Output prepared by the render thread: the frame packed to PACKMODE,
+       and the runs of written pixels to bus-master to SOFADDR. */
+    uint8_t       *out_buf;
+    struct pcx_span_t {
+        uint32_t addr, off, len;
+    }             *spans;
+    uint32_t       n_spans;
 
     /* Configuration. */
     uint32_t revision_value;
@@ -252,7 +260,7 @@ typedef struct pcx_t {
     int      dump_object_kb;
 
     /* Statistics. */
-    double   stat_render_ms, stat_render_max_ms, stat_wait_ms;
+    double   stat_render_ms, stat_render_max_ms, stat_wait_ms, stat_output_ms;
     uint32_t stat_frames;
     uint32_t frames;
     uint32_t dumps;
@@ -472,6 +480,65 @@ pcx_render_helper(void *priv)
     }
 }
 
+/* Worst case for the run list: every other pixel written on every row. */
+#define PCX_MAX_SPANS (PCXR_MAX_H * ((PCXR_MAX_W + 1) / 2))
+
+/* Render thread, after the tiles: pack the pixels the chip wrote into the
+   PACKMODE format and list the runs that go out to the frame buffer, so
+   the emulation thread only has to issue the bus-master writes. */
+static void
+pcx_render_pack(pcx_t *pcx)
+{
+    const pcxr_result_t *r  = &pcx->job_res;
+    uint32_t             xc = pcx->job.xclip;
+    uint32_t             off = 0;
+    int                  x0, x1;
+
+    pcx->n_spans = 0;
+
+    if (r->max_x < 0 || r->max_y < 0)
+        return;
+
+    x0 = r->min_x;
+    x1 = r->max_x;
+    if ((xc & (1u << 12)) && x0 < (int) (xc & 0x3ff) - 1)
+        x0 = (int) (xc & 0x3ff) - 1;
+    if ((xc & (1u << 28)) && x1 > (int) ((xc >> 16) & 0x3ff) - 1)
+        x1 = (int) ((xc >> 16) & 0x3ff) - 1;
+    if (x1 >= PCXR_MAX_W)
+        x1 = PCXR_MAX_W - 1;
+    if (x0 > x1)
+        return;
+
+    /* Only pixels the chip wrote go out; the masking plane leaves the frame
+       buffer as it was. Each run of written pixels is one bus-master write. */
+    for (int y = r->min_y; y <= r->max_y && y < PCXR_MAX_H; y++) {
+        const uint32_t *src = &pcx->rgb[y * PCXR_MAX_W];
+        int             x   = x0;
+        while (x <= x1) {
+            uint32_t start_off;
+            int      start, bpp = 2;
+            while (x <= x1 && !(src[x] & PCXR_WRITTEN))
+                x++;
+            if (x > x1)
+                break;
+            start     = x;
+            start_off = off;
+            while (x <= x1 && (src[x] & PCXR_WRITTEN)) {
+                uint32_t px;
+                bpp = pcxr_pack(pcx->job_packmode, src[x], x, y, &px);
+                memcpy(&pcx->out_buf[off], &px, bpp);
+                off += bpp;
+                x++;
+            }
+            pcx->spans[pcx->n_spans].addr = pcx->job_sofaddr + y * pcx->job_stride + start * bpp;
+            pcx->spans[pcx->n_spans].off  = start_off;
+            pcx->spans[pcx->n_spans].len  = off - start_off;
+            pcx->n_spans++;
+        }
+    }
+}
+
 static void
 pcx_render_thread(void *priv)
 {
@@ -486,6 +553,7 @@ pcx_render_thread(void *priv)
             break;
         }
         pcx->job_start_ms = pcx_now_ms();
+        memset(pcx->rgb, 0, PCXR_MAX_W * PCXR_MAX_H * sizeof(uint32_t));
         if (pcxr_prepare(pcx->rjob, &pcx->job, &pcx->job_res) > 0) {
             for (int i = 0; i < pcx->n_helpers; i++)
                 thread_set_event(pcx->helper[i].go);
@@ -495,6 +563,7 @@ pcx_render_thread(void *priv)
                 thread_reset_event(pcx->helper[i].done);
             }
         }
+        pcx_render_pack(pcx);
         pcx->job_ms = pcx_now_ms() - pcx->job_start_ms;
         thread_set_event(pcx->render_finished);
     }
@@ -550,60 +619,36 @@ pcx_render_frame(pcx_t *pcx)
     pcx->job_sofaddr       = pcx->regs[PCX_SOFADDR];
     pcx->job_stride        = pcx->regs[PCX_LSTRIDE];
     pcx->job_packmode      = pcx->regs[PCX_PACKMODE];
-    memset(pcx->rgb, 0, PCXR_MAX_W * PCXR_MAX_H * sizeof(uint32_t));
 
     pcx->render_pending = 1;
     pcx->render_discard = 0;
     thread_set_event(pcx->render_go);
 }
 
-/* End of render: copy the finished tiles into the frame buffer. */
+/* End of render: write the finished frame into the frame buffer.
+
+   The runs were packed on the render thread; only the bus-master writes
+   happen here. They go through the 2D card's linear frame buffer handlers,
+   which charge the emulated CPU for each access (video timings). On the
+   real board these writes are the PCX2 mastering the PCI bus while the CPU
+   keeps running, so the CPU's cycle count is put back afterwards rather
+   than billing it for transfers it never made (as vid_chips_69000.c does
+   for its blitter's own frame buffer accesses). */
 static void
 pcx_render_output(pcx_t *pcx)
 {
-    const pcxr_result_t *r = &pcx->job_res;
-    uint8_t              line[PCXR_MAX_W * 4];
-    int                  x0, x1, bpp = 2;
-    uint32_t             xc = pcx->job.xclip;
+    int orig_cycles = cycles;
 
-    if (r->error)
-        pcx_log(pcx, PCX_LOG_SUMMARY, "PowerVR: frame %u: malformed tile list (error %d)\n", pcx->frames, r->error);
-    if (r->max_x < 0 || r->max_y < 0)
-        return;
+    if (pcx->job_res.error)
+        pcx_log(pcx, PCX_LOG_SUMMARY, "PowerVR: frame %u: malformed tile list (error %d)\n",
+                pcx->frames, pcx->job_res.error);
 
-    x0 = r->min_x;
-    x1 = r->max_x;
-    if ((xc & (1u << 12)) && x0 < (int) (xc & 0x3ff) - 1)
-        x0 = (int) (xc & 0x3ff) - 1;
-    if ((xc & (1u << 28)) && x1 > (int) ((xc >> 16) & 0x3ff) - 1)
-        x1 = (int) ((xc >> 16) & 0x3ff) - 1;
-    if (x1 >= PCXR_MAX_W)
-        x1 = PCXR_MAX_W - 1;
-    if (x0 > x1)
-        return;
-
-    /* Only pixels the chip wrote go out; the masking plane leaves the frame
-       buffer as it was. Each run of written pixels is one bus-master write. */
-    for (int y = r->min_y; y <= r->max_y && y < PCXR_MAX_H; y++) {
-        const uint32_t *src = &pcx->rgb[y * PCXR_MAX_W];
-        int             x   = x0;
-        while (x <= x1) {
-            uint32_t n = 0;
-            int      start;
-            while (x <= x1 && !(src[x] & PCXR_WRITTEN))
-                x++;
-            start = x;
-            while (x <= x1 && (src[x] & PCXR_WRITTEN)) {
-                uint32_t px;
-                bpp = pcxr_pack(pcx->job_packmode, src[x], x, y, &px);
-                memcpy(&line[n], &px, bpp);
-                n += bpp;
-                x++;
-            }
-            if (n)
-                dma_bm_write(pcx->job_sofaddr + y * pcx->job_stride + start * bpp, line, n, 4);
-        }
+    for (uint32_t i = 0; i < pcx->n_spans; i++) {
+        const struct pcx_span_t *s = &pcx->spans[i];
+        dma_bm_write(s->addr, &pcx->out_buf[s->off], s->len, 4);
     }
+
+    cycles = orig_cycles;
 }
 
 static void
@@ -612,28 +657,36 @@ pcx_render_done(void *priv)
     pcx_t *pcx = (pcx_t *) priv;
 
     if (pcx->render_pending) {
-        double t0 = pcx_now_ms();
+        double t0 = pcx_now_ms(), t1;
         pcx_render_wait(pcx);
+        t1 = pcx_now_ms();
         if (!pcx->render_discard)
             pcx_render_output(pcx);
-        /* Speed summary: how long the renderer took, and how long emulation
-           stalled waiting for it (0 when the host keeps up). */
-        pcx->stat_wait_ms += pcx_now_ms() - t0;
+        /* Speed summary: how long the renderer took, how long emulation
+           stalled waiting for it (0 when the host keeps up), and how long
+           the frame buffer writes held up the emulation thread. */
+        pcx->stat_wait_ms += t1 - t0;
+        pcx->stat_output_ms += pcx_now_ms() - t1;
         pcx->stat_render_ms += pcx->job_ms;
         if (pcx->job_ms > pcx->stat_render_max_ms)
             pcx->stat_render_max_ms = pcx->job_ms;
         if (++pcx->stat_frames == 100) {
             pcx_log(pcx, PCX_LOG_SUMMARY,
                     "PowerVR: frames %u-%u: render %.1f ms average (%.1f max) on %d thread(s), "
-                    "emulation waited %.1f ms per frame; emulated render time %.1f ms\n",
+                    "emulation waited %.1f ms and wrote output %.2f ms per frame; "
+                    "emulated render time %.1f ms\n",
                     pcx->frames - 99, pcx->frames, pcx->stat_render_ms / 100.0, pcx->stat_render_max_ms,
-                    pcx->n_helpers + 1, pcx->stat_wait_ms / 100.0, pcx->render_delay_us / 1000.0);
+                    pcx->n_helpers + 1, pcx->stat_wait_ms / 100.0, pcx->stat_output_ms / 100.0,
+                    pcx->render_delay_us / 1000.0);
             pcx->stat_frames = 0;
-            pcx->stat_render_ms = pcx->stat_render_max_ms = pcx->stat_wait_ms = 0.0;
+            pcx->stat_render_ms = pcx->stat_render_max_ms = pcx->stat_wait_ms = pcx->stat_output_ms = 0.0;
         }
     }
-    if (pcx->debug_tile && pcx_bus_master_enabled(pcx))
+    if (pcx->debug_tile && pcx_bus_master_enabled(pcx)) {
+        int orig_cycles = cycles;
         pcx_draw_debug_tile(pcx);
+        cycles = orig_cycles;
+    }
 
     pcx->render_busy = 0;
     pcx->int_status |= PCX_INT_FRAME_DONE;
@@ -1111,6 +1164,8 @@ pcx_init(const device_t *info)
     if (pcx->chip == PCX_CHIP_PCX2) {
         pcx->isp_buf         = calloc(PCX_TLB_ENTRIES, 0x4000);
         pcx->rgb             = calloc(PCXR_MAX_W * PCXR_MAX_H, sizeof(uint32_t));
+        pcx->out_buf         = malloc(PCXR_MAX_W * PCXR_MAX_H * 4);
+        pcx->spans           = malloc(PCX_MAX_SPANS * sizeof(struct pcx_span_t));
         pcx->render_go       = thread_create_event();
         pcx->render_finished = thread_create_event();
         pcx->rjob            = pcxr_job_create();
@@ -1174,6 +1229,8 @@ pcx_close(void *priv)
     }
     free(pcx->isp_buf);
     free(pcx->rgb);
+    free(pcx->out_buf);
+    free(pcx->spans);
     free(pcx->tex_mem);
     free(pcx);
 }
