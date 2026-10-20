@@ -3591,6 +3591,8 @@ msgstr "VFIO %s: Gerät nicht gefunden."
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
+"VFIO %s: Das Gerät verfügt über keine IOMMU-Gruppe. Stellen Sie sicher, dass "
+"VT-d oder IOMMU auf Ihrem System aktiviert ist."
 
 msgid "VFIO %s: Device is not bound to vfio-pci."
 msgstr ""
