@@ -917,7 +917,6 @@ opINVD(UNUSED(uint32_t fetchdat))
         x86gpf(NULL, 0);
         return 1;
     }
-    cpu_car_invalidate();
     CLOCK_CYCLES(1000);
     CPU_BLOCK_END();
     return 0;
@@ -929,7 +928,6 @@ opWBINVD(UNUSED(uint32_t fetchdat))
         x86gpf(NULL, 0);
         return 1;
     }
-    cpu_car_invalidate();
     CLOCK_CYCLES(10000);
     CPU_BLOCK_END();
     return 0;
