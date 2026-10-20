@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-20 09:08+0000\n"
+"PO-Revision-Date: 2026-10-20 09:09+0000\n"
 "Last-Translator: creopard <support@creopard.de>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
@@ -3595,7 +3595,7 @@ msgstr ""
 "VT-d oder IOMMU auf Ihrem System aktiviert ist."
 
 msgid "VFIO %s: Device is not bound to vfio-pci."
-msgstr ""
+msgstr "VFIO %s: Das Gerät ist nicht an vfio-pci gebunden."
 
 msgid "VFIO %s: Could not open IOMMU group %d: %s"
 msgstr ""
