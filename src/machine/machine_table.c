@@ -18908,7 +18908,7 @@ const machine_t machines[] = {
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
-        .name              = "[i430HX] Acer AcerPower Ultima",
+        .name              = "[i430HX] Acer M3A",
         .internal_name     = "acerm3a",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430HX,
@@ -18952,7 +18952,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "Acer M3A", "" }
+        .aliases                  = { "Acer AcerPower Ultima", "" }
     },
     /* The AIR 54TDP: a 430HX board with four EISA slots, four PCI slots,
        no ISA at all, and an AIC-7880 on board. It has no PIIX -- the
@@ -26101,7 +26101,7 @@ const machine_t machines[] = {
     /* Has a SM(S)C FDC37M707 Super I/O chip with on-chip Phoenix MultiKey/42i
        KBC firmware. */
     {
-        .name              = "[i440ZX] Acer AcerPower 6200",
+        .name              = "[i440ZX] Acer V66MA",
         .internal_name     = "acerv66ma",
         .type              = MACHINE_TYPE_SOCKET370,
         .chipset           = MACHINE_CHIPSET_INTEL_440ZX,
@@ -26120,11 +26120,11 @@ const machine_t machines[] = {
             .min_multi   = 1.5,
             .max_multi   = 8.0
         },
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_SOUND,
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_SOUND, /* Machine has internal video: ATI Rage Pro Turbo AGP (not yet implemented) */
         .ram       = {
             .min  = 8192,
-            .max  = 262144,
+            .max  = 524288,
             .step = 8192
         },
         .nvrmask                  = 255,
@@ -26145,7 +26145,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &ess_solo1_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "Acer V66MA", "" }
+        .aliases                  = { "Acer AcerPower 6200", "" }
     },
     /* Has a SM(S)C FDC37B807 Super I/O chip with on-chip Phoenix MultiKey/42i
        KBC firmware. */

@@ -1795,7 +1795,7 @@ static const device_config_t p2bls_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1014 Beta 003",
+                .name          = "AwardBIOS v4.51PG - Revision 1014 Beta 003",
                 .internal_name = "p2bls",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1804,7 +1804,7 @@ static const device_config_t p2bls_config[] = {
                 .files         = { "roms/machines/p2bls/1014ls.003", "" }
             },
             {
-                .name          = "coreboot",
+                .name          = "coreboot 26.09",
                 .internal_name = "p2bls_coreboot",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
