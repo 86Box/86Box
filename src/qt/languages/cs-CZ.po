@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-16 00:52+0000\n"
+"PO-Revision-Date: 2026-10-21 08:46+0000\n"
 "Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
@@ -1328,33 +1328,37 @@ msgid "Delete virtual machines to Recycle Bin"
 msgstr "Přesouvat odstraněné virtuální počítače do koše"
 
 msgid "Discord"
-msgstr ""
+msgstr "Discord"
 
 msgid "Show running machines in my Discord status"
-msgstr ""
+msgstr "Zobrazit běžící počítače ve stavu na službě Discord"
 
 msgid "Details shown:"
-msgstr ""
+msgstr "Zobrazené informace:"
 
 msgid "Machine name and hardware"
-msgstr ""
+msgstr "Název počítače a hardware"
 
 msgid "Hardware only"
-msgstr ""
+msgstr "Pouze hardware"
 
 msgid "No details"
-msgstr ""
+msgstr "Žádné detaily"
 
 msgid "Using %1"
-msgstr ""
+msgstr "Aktivní: %1"
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] ""
+msgstr[0] "%n spuštěný počítač"
+msgstr[1] "%n spuštěné počítače"
+msgstr[2] "%n spuštěných počítačů"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
-msgstr[0] ""
+msgstr[0] " (+%n další)"
+msgstr[1] " (+%n další)"
+msgstr[2] " (+%n dalších)"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
