@@ -77,6 +77,8 @@ typedef int sock_t;
 #include <86box/version.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
+#include <86box/char.h>
+#include <86box/serial.h>
 #include <86box/automation.h>
 #include <zstd.h>
 #ifdef USE_GDBSTUB
@@ -115,6 +117,7 @@ enum {
     CMD_STEP,
     CMD_WAIT_TEXT,
     CMD_WAIT_MEM,
+    CMD_WAIT_SERIAL,
     CMD_KEYS,
     CMD_WAIT_SOUND,
     CMD_WAIT_SILENCE
@@ -227,6 +230,31 @@ static int         rec_prev_w;
 static int         rec_prev_h;
 static int         rec_need_key;
 static uint32_t rec_frames;
+
+/* COM ports with the "automation" backend. Positions count every byte since
+   startup, so a client can read on from where it left off; the oldest bytes
+   are dropped once more than SERIAL_OUT_MAX are waiting. */
+#define SERIAL_OUT_MAX 65536 /* a power of two */
+#define SERIAL_IN_MAX  65536
+
+typedef struct {
+    int      attached;
+    uint8_t  out[SERIAL_OUT_MAX]; /* guest to client */
+    uint64_t out_pos;             /* bytes the guest has sent */
+    uint64_t out_last_ms;         /* emulated ms of the last one */
+    uint8_t  in[SERIAL_IN_MAX];   /* client to guest */
+    int      in_head;
+    int      in_count;
+    uint64_t in_pos;  /* bytes the guest has taken */
+    uint64_t in_tsc;  /* CPU timestamp when it took the last one */
+    uint32_t lines;  /* CTS, DSR, DCD and RI, as the guest sees them */
+    uint32_t control; /* DTR, RTS and break, as the guest sets them */
+} serial_port_state_t;
+
+static serial_port_state_t *serial_ports[SERIAL_MAX];
+static int                  wait_port;
+static uint64_t             wait_scan;  /* where the next search starts */
+static uint64_t             wait_found; /* where the text was found */
 
 static void
 sb_printf(strbuf_t *sb, const char *fmt, ...)
@@ -423,6 +451,234 @@ cmd_text(void)
     sb_printf(&resp, "]}");
 }
 
+/* ---- Serial ports (CPU thread) ---- */
+
+static serial_port_state_t *
+serial_state(int port)
+{
+    return ((port >= 1) && (port <= SERIAL_MAX)) ? serial_ports[port - 1] : NULL;
+}
+
+void
+automation_serial_attach(int port, int attached)
+{
+    serial_port_state_t *s;
+
+    if ((port < 1) || (port > SERIAL_MAX))
+        return;
+    s = serial_ports[port - 1];
+    if (!s) {
+        if (!attached)
+            return;
+        s        = (serial_port_state_t *) calloc(1, sizeof(serial_port_state_t));
+        s->lines = CHAR_COM_CTS | CHAR_COM_DSR | CHAR_COM_DCD;
+        serial_ports[port - 1] = s;
+    }
+    s->attached = attached;
+}
+
+void
+automation_serial_out(int port, uint8_t val)
+{
+    serial_port_state_t *s = serial_state(port);
+
+    if (!s)
+        return;
+    s->out[s->out_pos & (SERIAL_OUT_MAX - 1)] = val;
+    s->out_pos++;
+    s->out_last_ms = emu_ms;
+}
+
+int
+automation_serial_in(int port, uint8_t *val, double byte_us)
+{
+    serial_port_state_t *s = serial_state(port);
+
+    if (!s || !s->in_count)
+        return 0;
+    if (byte_us > 0.0) {
+        /* TIMER_USEC is CPU cycles per microsecond, in 32.32 fixed point. A
+           timestamp that went backwards (the guest wrote the TSC) restarts. */
+        uint64_t gap = (uint64_t) (byte_us * ((double) TIMER_USEC / 4294967296.0));
+        if ((tsc >= s->in_tsc) && ((tsc - s->in_tsc) < gap))
+            return 0;
+        s->in_tsc = tsc;
+    }
+    *val       = s->in[s->in_head];
+    s->in_head = (s->in_head + 1) % SERIAL_IN_MAX;
+    s->in_count--;
+    s->in_pos++;
+    return 1;
+}
+
+uint32_t
+automation_serial_lines(int port)
+{
+    serial_port_state_t *s = serial_state(port);
+
+    return s ? s->lines : 0;
+}
+
+void
+automation_serial_control(int port, uint32_t control)
+{
+    serial_port_state_t *s = serial_state(port);
+
+    if (s)
+        s->control = control;
+}
+
+static uint64_t
+serial_oldest(const serial_port_state_t *s)
+{
+    return (s->out_pos > SERIAL_OUT_MAX) ? (s->out_pos - SERIAL_OUT_MAX) : 0;
+}
+
+/* The port named in a request, or NULL after replying with an error. */
+static serial_port_state_t *
+serial_arg(const char *arg, int *port)
+{
+    serial_port_state_t *s;
+    char                 msg[64];
+
+    *port = atoi(arg);
+    s     = serial_state(*port);
+    if (!s) {
+        snprintf(msg, sizeof(msg), "COM%d has no automation backend", *port);
+        respond_error(msg);
+    }
+    return s;
+}
+
+/* Search what the guest sent, from wait_scan on, for wait_text. */
+static int
+serial_contains(void)
+{
+    serial_port_state_t *s    = serial_state(wait_port);
+    size_t               nlen = strlen(wait_text);
+    uint64_t             p;
+
+    if (!s)
+        return 0;
+    if (wait_scan < serial_oldest(s))
+        wait_scan = serial_oldest(s);
+    for (p = wait_scan; (p + nlen) <= s->out_pos; p++) {
+        size_t i;
+        for (i = 0; i < nlen; i++) {
+            if (s->out[(p + i) & (SERIAL_OUT_MAX - 1)] != (uint8_t) wait_text[i])
+                break;
+        }
+        if (i == nlen) {
+            wait_found = p;
+            return 1;
+        }
+    }
+    /* A match could still start in the last nlen - 1 bytes. */
+    wait_scan = p;
+    return 0;
+}
+
+static void
+sb_serial_lines(strbuf_t *sb, const serial_port_state_t *s)
+{
+    sb_printf(sb, ",\"dtr\":%d,\"rts\":%d,\"break\":%d,\"cts\":%d,\"dsr\":%d,\"dcd\":%d,\"ri\":%d",
+              !!(s->control & CHAR_COM_DTR), !!(s->control & CHAR_COM_RTS), !!(s->control & CHAR_COM_BREAK),
+              !!(s->lines & CHAR_COM_CTS), !!(s->lines & CHAR_COM_DSR), !!(s->lines & CHAR_COM_DCD),
+              !!(s->lines & CHAR_COM_RI));
+}
+
+/* serial read <port> [<from> [<max>]]: what the guest sent from position
+   <from> on (default: the oldest byte still kept). */
+static void
+cmd_serial_read(int argc, char **argv)
+{
+    serial_port_state_t *s;
+    int                  port;
+    uint64_t             from, lost = 0, oldest;
+    uint64_t             max = SERIAL_OUT_MAX;
+    uint8_t             *buf;
+    int                  n;
+
+    if (!(s = serial_arg(argv[2], &port)))
+        return;
+    from = (argc >= 4) ? strtoull(argv[3], NULL, 0) : 0;
+    if (argc >= 5) {
+        max = strtoull(argv[4], NULL, 0);
+        if (!max || (max > SERIAL_OUT_MAX)) {
+            respond_error("max out of range");
+            return;
+        }
+    }
+    oldest = serial_oldest(s);
+    if (from < oldest) {
+        lost = oldest - from;
+        from = oldest;
+    }
+    if (from > s->out_pos)
+        from = s->out_pos;
+    n   = (int) (((s->out_pos - from) < max) ? (s->out_pos - from) : max);
+    buf = malloc(n ? n : 1);
+    for (int i = 0; i < n; i++)
+        buf[i] = s->out[(from + i) & (SERIAL_OUT_MAX - 1)];
+    resp.len = 0;
+    sb_printf(&resp, "{\"ok\":true,\"port\":%d,\"attached\":%s,\"from\":%llu,\"next\":%llu,\"pos\":%llu,\"lost\":%llu,"
+                     "\"last_ms\":%llu,\"pending\":%d,\"taken\":%llu,\"ms\":%llu",
+              port, s->attached ? "true" : "false", (unsigned long long) from, (unsigned long long) (from + n),
+              (unsigned long long) s->out_pos, (unsigned long long) lost, (unsigned long long) s->out_last_ms,
+              s->in_count, (unsigned long long) s->in_pos, (unsigned long long) emu_ms);
+    sb_serial_lines(&resp, s);
+    sb_printf(&resp, ",\"data\":\"");
+    sb_hex(&resp, buf, n);
+    sb_printf(&resp, "\"}");
+    free(buf);
+}
+
+/* serial write <port> <hex>: bytes for the guest, delivered at the rate
+   the guest's UART is set to as emulated time passes. */
+static void
+cmd_serial_write(char **argv)
+{
+    serial_port_state_t *s;
+    int                  port, len;
+    uint8_t             *buf;
+
+    if (!(s = serial_arg(argv[2], &port)))
+        return;
+    buf = malloc(strlen(argv[3]) / 2 + 1);
+    len = parse_hex_bytes(argv[3], buf, strlen(argv[3]) / 2 + 1);
+    if (len <= 0)
+        respond_error("bad hex bytes");
+    else if ((s->in_count + len) > SERIAL_IN_MAX)
+        respond_error("input queue full");
+    else {
+        for (int i = 0; i < len; i++)
+            s->in[(s->in_head + s->in_count + i) % SERIAL_IN_MAX] = buf[i];
+        s->in_count += len;
+        resp.len = 0;
+        sb_printf(&resp, "{\"ok\":true,\"port\":%d,\"queued\":%d,\"pending\":%d,\"ms\":%llu}",
+                  port, len, s->in_count, (unsigned long long) emu_ms);
+    }
+    free(buf);
+}
+
+/* serial lines <port> <cts> <dsr> <dcd> <ri>: the modem status lines the
+   guest sees, each 0 or 1. */
+static void
+cmd_serial_lines(char **argv)
+{
+    serial_port_state_t *s;
+    int                  port;
+
+    if (!(s = serial_arg(argv[2], &port)))
+        return;
+    s->lines = (atoi(argv[3]) ? CHAR_COM_CTS : 0) | (atoi(argv[4]) ? CHAR_COM_DSR : 0) |
+               (atoi(argv[5]) ? CHAR_COM_DCD : 0) | (atoi(argv[6]) ? CHAR_COM_RI : 0);
+    resp.len = 0;
+    sb_printf(&resp, "{\"ok\":true,\"port\":%d,\"ms\":%llu", port, (unsigned long long) emu_ms);
+    sb_serial_lines(&resp, s);
+    sb_printf(&resp, "}");
+}
+
 /* ---- Machine information ---- */
 
 static void
@@ -473,6 +729,27 @@ cmd_info(void)
             continue;
         sb_printf(&resp, "%s{\"drive\":%d,\"file\":", first ? "" : ",", i);
         sb_json_string(&resp, cdrom[i].image_path);
+        sb_printf(&resp, "}");
+        first = 0;
+    }
+    sb_printf(&resp, "],\"serial\":[");
+    first = 1;
+    for (int i = 0; i < SERIAL_MAX; i++) {
+        serial_port_state_t *s = serial_ports[i];
+        if (!com_ports[i].enabled)
+            continue;
+        sb_printf(&resp, "%s{\"port\":%d,\"device\":", first ? "" : ",", i + 1);
+        sb_json_string(&resp, com_ports[i].device ? char_get_device(com_ports[i].device)->internal_name : "none");
+        if (com_ports[i].serial && com_ports[i].serial->char_port.attached)
+            sb_printf(&resp, ",\"baud\":%u,\"data_bits\":%u,\"parity\":%u,\"stop_bits\":%u",
+                      com_ports[i].serial->char_port.com.baud, com_ports[i].serial->char_port.com.data_bits,
+                      com_ports[i].serial->char_port.com.parity, com_ports[i].serial->char_port.com.stop_bits);
+        if (s) {
+            sb_printf(&resp, ",\"pos\":%llu,\"oldest\":%llu,\"last_ms\":%llu,\"pending\":%d",
+                      (unsigned long long) s->out_pos, (unsigned long long) serial_oldest(s),
+                      (unsigned long long) s->out_last_ms, s->in_count);
+            sb_serial_lines(&resp, s);
+        }
         sb_printf(&resp, "}");
         first = 0;
     }
@@ -1297,6 +1574,8 @@ begin_timed(int which, uint64_t ms)
 static void
 end_timed_stopped(int matched, const char *stopped)
 {
+    int which = cmd;
+
     cmd      = CMD_NONE;
     held     = cmd_was_held;
     resp.len = 0;
@@ -1306,6 +1585,11 @@ end_timed_stopped(int matched, const char *stopped)
         sb_printf(&resp, ",\"matched\":%s", matched ? "true" : "false");
     if (stopped)
         sb_printf(&resp, ",\"stopped\":\"%s\"", stopped);
+    if ((which == CMD_WAIT_SERIAL) && serial_state(wait_port)) {
+        if (matched > 0)
+            sb_printf(&resp, ",\"at\":%llu", (unsigned long long) wait_found);
+        sb_printf(&resp, ",\"next\":%llu", (unsigned long long) serial_state(wait_port)->out_pos);
+    }
     sb_printf(&resp, "%s}", timed_extra);
     timed_extra[0] = '\0';
     if (aud_wait)
@@ -1325,6 +1609,9 @@ wait_satisfied(void)
 {
     if (cmd == CMD_WAIT_TEXT)
         return text_contains(wait_text);
+
+    if (cmd == CMD_WAIT_SERIAL)
+        return serial_contains();
 
     if (cmd == CMD_WAIT_MEM) {
         for (int i = 0; i < wait_len; i++) {
@@ -1484,6 +1771,24 @@ handle_request(char *line)
         return;
     } else if (!strcmp(argv[0], "audio") && (argc >= 2)) {
         handle_audio(argc, argv, rest);
+    } else if (!strcmp(argv[0], "wait") && (argc >= 6) && !strcmp(argv[1], "serial")) {
+        /* wait serial <timeout_ms> <port> <from> <text...>: run until <text>
+           is in what the guest sent on the port, from position <from> on. */
+        serial_port_state_t *s = serial_arg(argv[3], &wait_port);
+        if (s) {
+            strncpy(wait_text, rest[5], sizeof(wait_text) - 1);
+            wait_scan = strtoull(argv[4], NULL, 0);
+            begin_timed(CMD_WAIT_SERIAL, strtoull(argv[2], NULL, 0));
+            if (wait_satisfied())
+                end_timed(1);
+            return;
+        }
+    } else if (!strcmp(argv[0], "serial") && (argc >= 3) && (argc <= 5) && !strcmp(argv[1], "read")) {
+        cmd_serial_read(argc, argv);
+    } else if (!strcmp(argv[0], "serial") && (argc == 4) && !strcmp(argv[1], "write")) {
+        cmd_serial_write(argv);
+    } else if (!strcmp(argv[0], "serial") && (argc == 7) && !strcmp(argv[1], "lines")) {
+        cmd_serial_lines(argv);
     } else if (!strcmp(argv[0], "key") && (argc >= 3)) {
         /* key down|up <scancode>... ; scancodes in 86Box form, 0x1xx = E0 prefix.
            Events are delivered KEY_GAP_MS apart; the reply comes once the last
@@ -1841,7 +2146,7 @@ automation_quantum(void)
     if ((gdbstub_step != GDBSTUB_EXEC) && (tsc == last_tsc)) {
         if (cmd != CMD_NONE)
             end_timed_stopped(((cmd == CMD_WAIT_TEXT) || (cmd == CMD_WAIT_MEM) || (cmd == CMD_WAIT_SOUND) ||
-                               (cmd == CMD_WAIT_SILENCE)) ? 0 : -1, "debugger");
+                               (cmd == CMD_WAIT_SILENCE) || (cmd == CMD_WAIT_SERIAL)) ? 0 : -1, "debugger");
         return;
     }
     last_tsc = tsc;
@@ -1873,7 +2178,7 @@ automation_quantum(void)
         keyboard_input(key_queue[key_head].down, key_queue[key_head].scan);
         key_head++;
         key_next_ms = emu_ms + KEY_GAP_MS;
-    } else if ((cmd == CMD_WAIT_TEXT) || (cmd == CMD_WAIT_MEM)) {
+    } else if ((cmd == CMD_WAIT_TEXT) || (cmd == CMD_WAIT_MEM) || (cmd == CMD_WAIT_SERIAL)) {
         if (wait_satisfied())
             end_timed(1);
         else if (emu_ms >= cmd_deadline)
