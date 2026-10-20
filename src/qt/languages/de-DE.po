@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-20 09:09+0000\n"
+"PO-Revision-Date: 2026-10-20 09:10+0000\n"
 "Last-Translator: creopard <support@creopard.de>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
@@ -3617,6 +3617,8 @@ msgstr ""
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
 msgstr ""
+"VFIO %s: Die ROM-Datei \"%s\" konnte nicht gelesen werden; das ROM ist "
+"deaktiviert."
 
 msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
 msgstr ""
