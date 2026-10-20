@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-20 09:10+0000\n"
+"PO-Revision-Date: 2026-10-20 09:11+0000\n"
 "Last-Translator: creopard <support@creopard.de>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
@@ -3645,6 +3645,8 @@ msgstr ""
 
 msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
 msgstr ""
+"VFIO %s: Die IOMMU-Gruppe %d enthält auch %s, das der Host benötigt. Die "
+"Gruppe wird nicht an vfio-pci gebunden."
 
 msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
 msgstr ""
