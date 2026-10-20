@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-10-20 09:09+0000\n"
-"Last-Translator: dob205 <dominik.babic0@gmail.com>\n"
+"Last-Translator: creopard <support@creopard.de>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
 "MIME-Version: 1.0\n"
@@ -3607,6 +3607,8 @@ msgstr ""
 
 msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
 msgstr ""
+"VFIO: Der Gastspeicher für DMA konnte nicht zugeordnet werden: %s . Der "
+"Grenzwert für gesperrten Speicher (ulimit -l) ist möglicherweise zu niedrig."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
 msgstr ""
