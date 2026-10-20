@@ -103,6 +103,7 @@
 #include <86box/version.h>
 #include <86box/gdbstub.h>
 #include <86box/automation.h>
+#include <86box/pc_block.h>
 #ifdef USE_AUTOMATION
 #    define AUTOMATION_ACTIVE (automation_path[0] != '\0')
 #else
@@ -374,6 +375,7 @@ int   scrnsz_y = SCREEN_RES_Y; /* current screen size, Y */
 int config_changed; /* config has changed */
 int title_update;
 int framecountx        = 0;
+static pc_block_t pc_block; /* pc_run()'s carry from block to block */
 int hard_reset_pending = 0;
 
 #if 0
@@ -1891,6 +1893,9 @@ pc_reset_hard_close(void)
 void
 pc_reset_hard_init(void)
 {
+    /* Blocks of emulated time fall as after a fresh start. */
+    pc_block_reset(&pc_block);
+
     /*
      * First, we reset the modules that are not part of
      * the actual machine, but which support some of the
@@ -2174,9 +2179,10 @@ pc_run(void)
     /* Update the guest-CPU independent timer for devices with independent clock speed */
     rivatimer_update_all();
 
-    /* Run a block of code. */
+    /* Run a block of code: a millisecond (or ten) of the CPU's cycles, the
+       remainder carried over (pc_block.h). */
     startblit();
-    cpu_exec((int32_t) cpu_s->rspeed / (force_10ms ? 100 : 1000));
+    cpu_exec(pc_block_cycles(&pc_block, cpu_s->rspeed, force_10ms ? 100 : 1000));
     ack_pause();
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     if (gdbstub_step == GDBSTUB_EXEC) {
