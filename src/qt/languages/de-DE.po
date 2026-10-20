@@ -3602,6 +3602,8 @@ msgstr "VFIO %s: Die IOMMU-Gruppe %d konnte nicht geöffnet werden: %s"
 
 msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
 msgstr ""
+"VFIO %s: Die IOMMU-Gruppe %d ist nicht funktionsfähig. Alle Geräte in der "
+"Gruppe müssen an vfio-pci gebunden sein."
 
 msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
 msgstr ""
