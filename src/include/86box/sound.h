@@ -207,15 +207,20 @@ extern bool        fast_forward;
 extern unsigned long long src_freqs[I_MAX];
 
 extern void        givealbuffer_common(const void *buf, const uint8_t src, const int size);
+/* Hands a block to the host backend, and first to the automation socket's
+   audio capture when it is built in. size counts values (2 per frame). */
+extern void        sound_give(const void *buf, const uint8_t src, const int size);
+extern int         sound_pending_frames(const uint8_t src);
+extern int         sound_stream_rate(const uint8_t src);
 
-#define givealbuffer(b)         givealbuffer_common(b, I_NORMAL, (sound_sample_rate / 50) << 1)
-#define givealbuffer_music(b)   givealbuffer_common(b, I_MUSIC, MUSICBUFLEN << 1)
-#define givealbuffer_ym2151(b)  givealbuffer_common(b, I_YM2151, YM2151BUFLEN << 1)
-#define givealbuffer_wt(b)      givealbuffer_common(b, I_WT, WTBUFLEN << 1)
-#define givealbuffer_cd(b)      givealbuffer_common(b, I_CD, CD_BUFLEN << 1)
-#define givealbuffer_fdd(b, s)  givealbuffer_common(b, I_FDD, s)
-#define givealbuffer_hdd(b, s)  givealbuffer_common(b, I_HDD, s)
-#define givealbuffer_midi(b, s) givealbuffer_common(b, I_MIDI, s)
+#define givealbuffer(b)         sound_give(b, I_NORMAL, (sound_sample_rate / 50) << 1)
+#define givealbuffer_music(b)   sound_give(b, I_MUSIC, MUSICBUFLEN << 1)
+#define givealbuffer_ym2151(b)  sound_give(b, I_YM2151, YM2151BUFLEN << 1)
+#define givealbuffer_wt(b)      sound_give(b, I_WT, WTBUFLEN << 1)
+#define givealbuffer_cd(b)      sound_give(b, I_CD, CD_BUFLEN << 1)
+#define givealbuffer_fdd(b, s)  sound_give(b, I_FDD, s)
+#define givealbuffer_hdd(b, s)  sound_give(b, I_HDD, s)
+#define givealbuffer_midi(b, s) sound_give(b, I_MIDI, s)
 
 #define sb_vibra16c_onboard_relocate_base sb_vibra16s_onboard_relocate_base
 #define sb_vibra16cl_onboard_relocate_base sb_vibra16s_onboard_relocate_base
