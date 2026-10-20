@@ -644,7 +644,7 @@ ropCWDE(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
     return op_pc;
 }
 
-#define ropLxS(name, seg)                                                                      \
+#define ropLxS(name, seg, end_block)                                                           \
     uint32_t rop##name##_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode),         \
                             uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)                 \
     {                                                                                          \
@@ -664,7 +664,7 @@ ropCWDE(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
         uop_LOAD_SEG(ir, seg, IREG_temp1_W);                                                   \
         uop_MOV(ir, IREG_16(dest_reg), IREG_temp0_W);                                          \
                                                                                                \
-        if (seg == &cpu_state.seg_ss)                                                          \
+        if (end_block)                                                                         \
             CPU_BLOCK_END();                                                                   \
                                                                                                \
         return op_pc + 1;                                                                      \
@@ -688,18 +688,18 @@ ropCWDE(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
         uop_LOAD_SEG(ir, seg, IREG_temp1_W);                                                   \
         uop_MOV(ir, IREG_32(dest_reg), IREG_temp0);                                            \
                                                                                                \
-        if (seg == &cpu_state.seg_ss)                                                          \
+        if (end_block)                                                                         \
             CPU_BLOCK_END();                                                                   \
                                                                                                \
         return op_pc + 1;                                                                      \
     }
 
 // clang-format off
-ropLxS(LDS, &cpu_state.seg_ds)
-ropLxS(LES, &cpu_state.seg_es)
-ropLxS(LFS, &cpu_state.seg_fs)
-ropLxS(LGS, &cpu_state.seg_gs)
-ropLxS(LSS, &cpu_state.seg_ss)
+ropLxS(LDS, &cpu_state.seg_ds, 0)
+ropLxS(LES, &cpu_state.seg_es, 0)
+ropLxS(LFS, &cpu_state.seg_fs, 0)
+ropLxS(LGS, &cpu_state.seg_gs, 0)
+ropLxS(LSS, &cpu_state.seg_ss, 1)
 // clang-format on
 
 uint32_t
