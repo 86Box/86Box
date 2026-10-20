@@ -3612,6 +3612,8 @@ msgstr ""
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
 msgstr ""
+"VFIO %s: Die ROM-Datei \"%s\" konnte nicht gelesen werden; es wird das "
+"geräteeigene ROM verwendet."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
 msgstr ""
