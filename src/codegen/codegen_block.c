@@ -503,8 +503,7 @@ codegen_init(void)
     codegen_check_regs();
     codegen_allocator_init();
 #ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
-    /* A linked block skips the loop's per-block debug register checks. */
-    codegen_block_link = cpu_dyn_block_link && !cpu_debug_regs_486;
+    codegen_block_link = cpu_dyn_block_link;
 #endif
 
     codegen_backend_init();
@@ -548,7 +547,7 @@ codegen_reset(void)
     }
 #ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     codegen_link_reset();
-    codegen_block_link = cpu_dyn_block_link && !cpu_debug_regs_486;
+    codegen_block_link = cpu_dyn_block_link;
 #endif
 }
 

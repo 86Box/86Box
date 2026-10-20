@@ -1132,7 +1132,9 @@ build_link_routine(codeblock_t *block)
     rx_rm(block, 0, 0, 0x3b, REG_R9, REG_RBX, LINK_SLOT(gen));
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
 
-    /*Nothing pending for the loop, and the loop would pick the recompiler*/
+    /*Nothing pending for the loop, and the loop would pick the recompiler.
+      An armed debug breakpoint is a miss, so the loop makes its per-block
+      check (dr_blocks_cache())*/
     rx_rm(block, 0, 0, 0x0fb7, REG_R9, REG_RBP, rx_state(&cpu_state.abrt)); /*abrt and smi_line*/
     lx_abs(block, 0, 0, 0x0b, REG_R9, &x86_was_reset);
     lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_flush_pending);
@@ -1140,6 +1142,7 @@ build_link_routine(codeblock_t *block)
     lx_abs(block, 0, 0, 0x0b, REG_R9, &new_ne);
     lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_force_interpreter);
     lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_override_dynarec);
+    lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_dr_armed);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
 
     /*nmi && nmi_enable && nmi_mask; the rest is out of line*/
