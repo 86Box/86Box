@@ -5888,7 +5888,7 @@ static const device_config_t sis6306_config[] = {
 };
 
 const device_t sis6306_onboard_device = {
-    .name          = "SiS 530/620 (6306) Onboard AGP",
+    .name          = "SiS 6306 (5598/530/620) On-Board AGP",
     .internal_name = "sis6306_onboard",
     .flags         = DEVICE_AGP,
     .local         = 1,
