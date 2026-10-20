@@ -27,6 +27,7 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -113,7 +114,9 @@ enum {
     CMD_STEP,
     CMD_WAIT_TEXT,
     CMD_WAIT_MEM,
-    CMD_KEYS
+    CMD_KEYS,
+    CMD_WAIT_SOUND,
+    CMD_WAIT_SILENCE
 };
 
 typedef struct {
@@ -158,6 +161,7 @@ static uint32_t wait_addr;
 static uint8_t  wait_bytes[256];
 static int      wait_len;
 static uint64_t emu_ms; /* emulated ms executed since startup */
+static char     timed_extra[256]; /* more fields for the reply that ends a timed command */
 
 static struct {
     uint16_t scan;
@@ -456,6 +460,418 @@ automation_reset(int hard)
     last_reset_ms = emu_ms;
 }
 
+/* ---- Audio ---- */
+
+/* Every block each sound stream hands to the host backend comes here first,
+   on whichever thread made it. The streams the sound core polls on emulated
+   timers (main, music, wavetable, ym2151) are sample-exact: frame n of a
+   recording is at start_ms + n / rate. The CD, floppy, hard disk and MIDI
+   synth streams are rendered on their own threads, so their timing is only
+   as good as the moment each block arrives. */
+
+static void sb_base64(strbuf_t *sb, const uint8_t *data, size_t len);
+
+#define AUD_RING_SECONDS 10
+#define AUD_MAX_SEGS     16
+
+static const char *aud_names[I_MAX] = { "main", "music", "wavetable", "cd", "fdd", "hdd", "ym2151", "midi" };
+
+typedef struct {
+    int16_t *ring; /* stereo frames, the last AUD_RING_SECONDS */
+    uint32_t ring_frames;
+    uint32_t ring_pos;
+    uint64_t total; /* frames received */
+    int      rate;
+    uint64_t last_ms; /* emu_ms when the last block arrived */
+
+    int      rec;  /* recording this stream */
+    FILE    *wav;
+    uint32_t skip; /* frames of the next blocks that precede the start */
+    uint64_t frames;
+    double   first_ms; /* emulated time of the first frame written */
+    int      exact;    /* first_ms is sample-exact */
+    char     file[32];
+    /* A rate change (another MIDI synth, a new sample rate setting) closes
+       the file and starts another: each segment has one rate and start. */
+    struct {
+        char     file[32];
+        int      rate;
+        uint64_t frames;
+        double   start_ms;
+        int      exact;
+    } segs[AUD_MAX_SEGS];
+    int nsegs;
+
+    uint64_t loud_ms; /* wait silence: time of the last frame above the level */
+} aud_t;
+
+static aud_t    aud[I_MAX];
+static mutex_t *aud_mutex;
+static int16_t *aud_scratch;
+static int      aud_scratch_len;
+static int      aud_recording;
+static uint64_t aud_start_ms;
+static char     aud_dir[1024];
+
+static int      aud_wait;       /* CMD_WAIT_SOUND or CMD_WAIT_SILENCE while one runs */
+static int      aud_wait_level; /* threshold, in 16-bit sample units */
+static uint64_t aud_wait_for;   /* wait silence: ms that must stay below it */
+static int      aud_hit = -1;   /* wait sound: the stream that crossed it */
+static double   aud_onset_ms;
+
+static int
+aud_exact(int src)
+{
+    return (src == I_NORMAL) || (src == I_MUSIC) || (src == I_WT) || (src == I_YM2151);
+}
+
+static void
+wav_header(FILE *f, int rate, uint64_t frames)
+{
+    uint32_t data = (uint32_t) (frames * 4);
+    uint8_t  h[44];
+
+    memcpy(h, "RIFF", 4);
+    h[4]  = (36 + data) & 0xff;
+    h[5]  = ((36 + data) >> 8) & 0xff;
+    h[6]  = ((36 + data) >> 16) & 0xff;
+    h[7]  = ((36 + data) >> 24) & 0xff;
+    memcpy(h + 8, "WAVEfmt ", 8);
+    h[16] = 16, h[17] = h[18] = h[19] = 0;
+    h[20] = 1, h[21] = 0; /* PCM */
+    h[22] = 2, h[23] = 0; /* stereo */
+    for (int i = 0; i < 4; i++) {
+        h[24 + i] = (rate >> (8 * i)) & 0xff;
+        h[28 + i] = ((rate * 4) >> (8 * i)) & 0xff;
+        h[40 + i] = (data >> (8 * i)) & 0xff;
+    }
+    h[32] = 4, h[33] = 0;  /* block align */
+    h[34] = 16, h[35] = 0; /* bits */
+    memcpy(h + 36, "data", 4);
+    fseek(f, 0, SEEK_SET);
+    fwrite(h, 1, 44, f);
+}
+
+/* Close the stream's current file and remember it as a segment. */
+static void
+aud_close_seg(aud_t *a)
+{
+    if (!a->wav)
+        return;
+    wav_header(a->wav, a->rate, a->frames);
+    fclose(a->wav);
+    a->wav = NULL;
+    if (a->nsegs < AUD_MAX_SEGS) {
+        memcpy(a->segs[a->nsegs].file, a->file, sizeof(a->file));
+        a->segs[a->nsegs].rate     = a->rate;
+        a->segs[a->nsegs].frames   = a->frames;
+        a->segs[a->nsegs].start_ms = a->first_ms;
+        a->segs[a->nsegs].exact    = a->exact;
+        a->nsegs++;
+    }
+    a->frames = 0;
+}
+
+void
+automation_audio(int src, const void *buf, int size, int is_float)
+{
+    aud_t *a;
+    int    n = size / 2;
+    int    rate;
+    int    first = -1;
+    int    last  = -1;
+
+    if (!enabled || (src < 0) || (src >= I_MAX) || (n <= 0) || !aud_mutex)
+        return;
+    rate = sound_stream_rate(src);
+    if (rate <= 0)
+        return;
+
+    thread_wait_mutex(aud_mutex);
+    a = &aud[src];
+    if (aud_scratch_len < size) {
+        aud_scratch     = realloc(aud_scratch, size * sizeof(int16_t));
+        aud_scratch_len = size;
+    }
+    if (is_float) {
+        const float *f = (const float *) buf;
+        for (int i = 0; i < size; i++) {
+            float v = f[i] * 32768.0f;
+            aud_scratch[i] = (v >= 32767.0f) ? 32767 : ((v <= -32768.0f) ? -32768 : (int16_t) v);
+        }
+    } else
+        memcpy(aud_scratch, buf, size * sizeof(int16_t));
+
+    if (!a->ring || (a->rate != rate)) {
+        if (a->wav) {
+            aud_close_seg(a);
+            a->skip = 0;
+        }
+        free(a->ring);
+        a->rate        = rate;
+        a->ring_frames = (uint32_t) rate * AUD_RING_SECONDS;
+        a->ring        = calloc(a->ring_frames, 2 * sizeof(int16_t));
+        a->ring_pos    = 0;
+    }
+    for (int i = 0; i < n; i++) {
+        a->ring[a->ring_pos * 2]     = aud_scratch[i * 2];
+        a->ring[a->ring_pos * 2 + 1] = aud_scratch[i * 2 + 1];
+        if (++a->ring_pos == a->ring_frames)
+            a->ring_pos = 0;
+    }
+    a->total += n;
+    a->last_ms = emu_ms;
+
+    if (a->rec && aud_recording) {
+        int from = (a->skip >= (uint32_t) n) ? n : (int) a->skip;
+
+        a->skip -= from;
+        if (!a->wav && (from < n) && (a->nsegs < AUD_MAX_SEGS)) {
+            char fn[1100];
+
+            if (a->nsegs)
+                snprintf(a->file, sizeof(a->file), "%s-%d.wav", aud_names[src], a->nsegs + 1);
+            else
+                snprintf(a->file, sizeof(a->file), "%s.wav", aud_names[src]);
+            snprintf(fn, sizeof(fn), "%s/%s", aud_dir, a->file);
+            a->wav = plat_fopen(fn, "wb");
+            if (a->wav)
+                wav_header(a->wav, rate, 0);
+            /* The polled streams' first segment starts exactly at the start;
+               otherwise a block covers the time just before it arrived. */
+            a->exact    = aud_exact(src) && !a->nsegs;
+            a->first_ms = a->exact ? (double) aud_start_ms : (double) emu_ms - (n * 1000.0 / rate);
+        }
+        if (a->wav && (from < n)) {
+            fwrite(aud_scratch + from * 2, 2 * sizeof(int16_t), n - from, a->wav);
+            a->frames += n - from;
+        }
+    }
+
+    if (aud_wait) {
+        for (int i = 0; i < size; i++) {
+            if (abs(aud_scratch[i]) >= aud_wait_level) {
+                if (first < 0)
+                    first = i / 2;
+                last = i / 2;
+            }
+        }
+        /* The block ends at about emu_ms: date frames back from there. */
+        if ((aud_wait == CMD_WAIT_SOUND) && (first >= 0) && (aud_hit < 0)) {
+            aud_hit      = src;
+            aud_onset_ms = (double) emu_ms - ((n - first) * 1000.0 / rate);
+        }
+        if ((aud_wait == CMD_WAIT_SILENCE) && (last >= 0))
+            a->loud_ms = emu_ms - (uint64_t) (((n - 1 - last) * 1000LL) / rate);
+    }
+    thread_release_mutex(aud_mutex);
+}
+
+static double
+aud_db(double v)
+{
+    return (v > 0.0) ? 20.0 * log10(v / 32768.0) : -120.0;
+}
+
+static int
+aud_level_from_db(double db)
+{
+    double v = 32768.0 * pow(10.0, db / 20.0);
+
+    return (v < 1.0) ? 1 : ((v > 32767.0) ? 32767 : (int) v);
+}
+
+/* Stop recording: finish the WAV headers and describe the segments. */
+static void
+aud_stop(strbuf_t *sb)
+{
+    int first = 1;
+
+    thread_wait_mutex(aud_mutex);
+    if (sb)
+        sb_printf(sb, "{\"ok\":true,\"start_ms\":%llu,\"ms\":%llu,\"streams\":[",
+                  (unsigned long long) aud_start_ms, (unsigned long long) emu_ms);
+    for (int i = 0; i < I_MAX; i++) {
+        aud_t *a = &aud[i];
+
+        aud_close_seg(a);
+        for (int k = 0; sb && (k < a->nsegs); k++) {
+            sb_printf(sb, "%s{\"name\":\"%s\",\"file\":\"%s\",\"rate\":%d,\"frames\":%llu,\"start_ms\":%.3f,\"exact\":%s",
+                      first ? "" : ",", aud_names[i], a->segs[k].file, a->segs[k].rate,
+                      (unsigned long long) a->segs[k].frames, a->segs[k].start_ms, a->segs[k].exact ? "true" : "false");
+            if (a->segs[k].exact && (a->nsegs == 1)) {
+                /* Frames written plus frames ticked but not yet handed over,
+                   against the emulated time elapsed: 0 means no gap. */
+                double want = (double) (emu_ms - aud_start_ms) * a->segs[k].rate / 1000.0;
+                sb_printf(sb, ",\"drift_frames\":%.1f",
+                          (double) (a->segs[k].frames + sound_pending_frames(i)) - want);
+            }
+            sb_printf(sb, "}");
+            first = 0;
+        }
+        a->nsegs = 0;
+        a->rec   = 0;
+    }
+    aud_recording = 0;
+    thread_release_mutex(aud_mutex);
+    if (sb)
+        sb_printf(sb, "]}");
+}
+
+/* audio start <dir> | audio stop | audio level <ms> | audio read <stream> <ms> */
+static void
+handle_audio(int argc, char **argv, char **rest)
+{
+    if ((argc >= 3) && !strcmp(argv[1], "start")) {
+        if (aud_recording) {
+            respond_error("already recording audio");
+            return;
+        }
+        snprintf(aud_dir, sizeof(aud_dir), "%s", rest[2]);
+        thread_wait_mutex(aud_mutex);
+        for (int i = 0; i < I_MAX; i++) {
+            aud[i].rec    = 1;
+            aud[i].frames = 0;
+            aud[i].nsegs  = 0;
+            aud[i].skip   = (uint32_t) sound_pending_frames(i);
+        }
+        aud_start_ms  = emu_ms;
+        aud_recording = 1;
+        thread_release_mutex(aud_mutex);
+        resp.len = 0;
+        sb_printf(&resp, "{\"ok\":true,\"start_ms\":%llu}", (unsigned long long) emu_ms);
+    } else if ((argc == 2) && !strcmp(argv[1], "stop")) {
+        if (!aud_recording) {
+            respond_error("not recording audio");
+            return;
+        }
+        resp.len = 0;
+        aud_stop(&resp);
+    } else if ((argc == 3) && !strcmp(argv[1], "level")) {
+        uint64_t ms    = strtoull(argv[2], NULL, 0);
+        int      first = 1;
+
+        resp.len = 0;
+        sb_printf(&resp, "{\"ok\":true,\"ms\":%llu,\"streams\":{", (unsigned long long) emu_ms);
+        thread_wait_mutex(aud_mutex);
+        for (int i = 0; i < I_MAX; i++) {
+            aud_t   *a = &aud[i];
+            uint64_t n;
+            double   peak = 0.0;
+            double   sum  = 0.0;
+
+            if (!a->ring || !a->total)
+                continue;
+            n = (ms * a->rate) / 1000;
+            if (n > a->total)
+                n = a->total;
+            if (n > a->ring_frames)
+                n = a->ring_frames;
+            for (uint64_t k = 0; k < n; k++) {
+                uint32_t f = (a->ring_pos + a->ring_frames - 1 - (uint32_t) k) % a->ring_frames;
+                for (int c = 0; c < 2; c++) {
+                    double v = abs(a->ring[f * 2 + c]);
+                    if (v > peak)
+                        peak = v;
+                    sum += v * v;
+                }
+            }
+            sb_printf(&resp, "%s\"%s\":{\"peak_db\":%.1f,\"rms_db\":%.1f,\"frames\":%llu,\"rate\":%d,\"last_ms\":%llu}",
+                      first ? "" : ",", aud_names[i], aud_db(peak), aud_db(n ? sqrt(sum / (2.0 * n)) : 0.0),
+                      (unsigned long long) n, a->rate, (unsigned long long) a->last_ms);
+            first = 0;
+        }
+        thread_release_mutex(aud_mutex);
+        sb_printf(&resp, "}}");
+    } else if ((argc == 4) && !strcmp(argv[1], "read")) {
+        int      src = -1;
+        uint64_t ms  = strtoull(argv[3], NULL, 0);
+
+        for (int i = 0; i < I_MAX; i++) {
+            if (!strcmp(argv[2], aud_names[i]))
+                src = i;
+        }
+        if (src < 0) {
+            respond_error("unknown stream");
+            return;
+        }
+        thread_wait_mutex(aud_mutex);
+        aud_t *a = &aud[src];
+        if (!a->ring || !a->total) {
+            thread_release_mutex(aud_mutex);
+            respond_error("no audio from that stream yet");
+            return;
+        }
+        uint64_t n = (ms * a->rate) / 1000;
+        if (n > a->total)
+            n = a->total;
+        if (n > a->ring_frames)
+            n = a->ring_frames;
+        int16_t *out = malloc(n * 2 * sizeof(int16_t) + 4);
+        for (uint64_t k = 0; k < n; k++) {
+            uint32_t f = (a->ring_pos + a->ring_frames - (uint32_t) n + (uint32_t) k) % a->ring_frames;
+            out[k * 2]     = a->ring[f * 2];
+            out[k * 2 + 1] = a->ring[f * 2 + 1];
+        }
+        resp.len = 0;
+        sb_printf(&resp, "{\"ok\":true,\"ms\":%llu,\"stream\":\"%s\",\"rate\":%d,\"frames\":%llu,\"end_ms\":%llu,\"data\":\"",
+                  (unsigned long long) emu_ms, aud_names[src], a->rate, (unsigned long long) n,
+                  (unsigned long long) a->last_ms);
+        thread_release_mutex(aud_mutex);
+        sb_base64(&resp, (const uint8_t *) out, n * 2 * sizeof(int16_t));
+        sb_printf(&resp, "\"}");
+        free(out);
+    } else
+        respond_error("usage: audio start <dir> | audio stop | audio level <ms> | audio read <stream> <ms>");
+}
+
+/* wait sound / wait silence: arm the tap, or check it each quantum. */
+static void
+aud_wait_begin(int which, double db, uint64_t for_ms, uint64_t since_ms)
+{
+    thread_wait_mutex(aud_mutex);
+    aud_wait       = which;
+    aud_wait_level = aud_level_from_db(db);
+    aud_wait_for   = for_ms;
+    aud_hit        = -1;
+    for (int i = 0; i < I_MAX; i++)
+        aud[i].loud_ms = since_ms;
+    thread_release_mutex(aud_mutex);
+}
+
+static int
+aud_wait_done(void)
+{
+    int done = 0;
+
+    thread_wait_mutex(aud_mutex);
+    if (aud_wait == CMD_WAIT_SOUND) {
+        done = (aud_hit >= 0);
+        if (done)
+            snprintf(timed_extra, sizeof(timed_extra), ",\"stream\":\"%s\",\"onset_ms\":%.1f",
+                     aud_names[aud_hit], aud_onset_ms);
+    } else {
+        uint64_t loud = 0;
+        for (int i = 0; i < I_MAX; i++) {
+            if (aud[i].loud_ms > loud)
+                loud = aud[i].loud_ms;
+        }
+        done = (emu_ms >= loud + aud_wait_for);
+        /* Reported on a timeout too, so a client can go on waiting from there. */
+        snprintf(timed_extra, sizeof(timed_extra), ",\"quiet_since_ms\":%llu", (unsigned long long) loud);
+    }
+    thread_release_mutex(aud_mutex);
+    return done;
+}
+
+static void
+aud_wait_end(void)
+{
+    thread_wait_mutex(aud_mutex);
+    aud_wait = 0;
+    thread_release_mutex(aud_mutex);
+}
+
 /* ---- Screenshots ---- */
 
 static int write_png(const char *fn);
@@ -635,7 +1051,10 @@ end_timed_stopped(int matched, const char *stopped)
         sb_printf(&resp, ",\"matched\":%s", matched ? "true" : "false");
     if (stopped)
         sb_printf(&resp, ",\"stopped\":\"%s\"", stopped);
-    sb_printf(&resp, "}");
+    sb_printf(&resp, "%s}", timed_extra);
+    timed_extra[0] = '\0';
+    if (aud_wait)
+        aud_wait_end();
     complete();
 }
 
@@ -797,6 +1216,19 @@ handle_request(char *line)
                 end_timed(1);
             return;
         }
+    } else if (!strcmp(argv[0], "wait") && (argc == 4) && !strcmp(argv[1], "sound")) {
+        /* wait sound <timeout_ms> <dBFS> */
+        aud_wait_begin(CMD_WAIT_SOUND, strtod(argv[3], NULL), 0, emu_ms);
+        begin_timed(CMD_WAIT_SOUND, strtoull(argv[2], NULL, 0));
+        return;
+    } else if (!strcmp(argv[0], "wait") && ((argc == 5) || (argc == 6)) && !strcmp(argv[1], "silence")) {
+        /* wait silence <timeout_ms> <dBFS> <for_ms> [quiet_since_ms] */
+        aud_wait_begin(CMD_WAIT_SILENCE, strtod(argv[3], NULL), strtoull(argv[4], NULL, 0),
+                       (argc == 6) ? strtoull(argv[5], NULL, 0) : emu_ms);
+        begin_timed(CMD_WAIT_SILENCE, strtoull(argv[2], NULL, 0));
+        return;
+    } else if (!strcmp(argv[0], "audio") && (argc >= 2)) {
+        handle_audio(argc, argv, rest);
     } else if (!strcmp(argv[0], "key") && (argc >= 3)) {
         /* key down|up <scancode>... ; scancodes in 86Box form, 0x1xx = E0 prefix.
            Events are delivered KEY_GAP_MS apart; the reply comes once the last
@@ -1110,7 +1542,8 @@ automation_quantum(void)
     static uint64_t last_tsc;
     if ((gdbstub_step != GDBSTUB_EXEC) && (tsc == last_tsc)) {
         if (cmd != CMD_NONE)
-            end_timed_stopped(((cmd == CMD_WAIT_TEXT) || (cmd == CMD_WAIT_MEM)) ? 0 : -1, "debugger");
+            end_timed_stopped(((cmd == CMD_WAIT_TEXT) || (cmd == CMD_WAIT_MEM) || (cmd == CMD_WAIT_SOUND) ||
+                               (cmd == CMD_WAIT_SILENCE)) ? 0 : -1, "debugger");
         return;
     }
     last_tsc = tsc;
@@ -1147,6 +1580,13 @@ automation_quantum(void)
             end_timed(1);
         else if (emu_ms >= cmd_deadline)
             end_timed(0);
+    } else if ((cmd == CMD_WAIT_SOUND) || (cmd == CMD_WAIT_SILENCE)) {
+        if (aud_wait_done())
+            end_timed(1);
+        else if (emu_ms >= cmd_deadline)
+            end_timed(0);
+        else
+            timed_extra[0] = '\0';
     } else if (emu_ms >= cmd_deadline)
         end_timed(-1);
 }
@@ -1499,6 +1939,7 @@ automation_init(void)
     resp.len    = 0;
     req_done    = thread_create_event();
     frame_mutex = thread_create_mutex();
+    aud_mutex   = thread_create_mutex();
     held        = automation_start_held;
     enabled     = 1;
 
@@ -1519,6 +1960,8 @@ automation_close(void)
     if (!enabled)
         return;
 
+    if (aud_recording)
+        aud_stop(NULL);
     enabled = 0;
     shutdown(listen_fd, SOCK_SHUT_RW);
     sock_close(listen_fd);
