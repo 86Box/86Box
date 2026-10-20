@@ -529,6 +529,18 @@ texture_pixel(const ctx_t *c, int x, int y, int a, int b, int cc, int d, int e, 
     vf    = ashift(v, shift + 5) & 8191;
     v     = ashift(v, shift) & 255;
 
+    /* A texture mirrored in u (flip bit 12) on a mirrored repeat also
+       mirrors the bilinear weight: the fraction is inverted while each
+       sample's address is mirrored as usual. Measured on the m3D with
+       edited frames, where it makes every u-mirrored pixel match. The v
+       direction does not follow the same rule and is not yet modelled. */
+    if (flip_uv & 2) {
+        static const int32_t raw_mask[] = { 0x1f, 0x3f, 0x7f, 0xff };
+        int32_t              bit        = (map_size == 3) ? 128 : raw_mask[map_size] + 1;
+        if (u & bit)
+            uf = ~uf & 8191;
+    }
+
     /* Mip-map level from the squared 1/w. */
     bot.m >>= 6;
     bot.m = bot.m * bot.m;
