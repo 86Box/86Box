@@ -957,6 +957,15 @@ loadall_load_segment(uint32_t addr, x86seg *s)
     s->access        = segdat2 >> 24;
     s->ar_high       = 0x00;
     s->limit         = readmemw(0, addr + 4);
+    s->checked       = 0;
+#ifdef USE_DYNAREC
+    if (s == &cpu_state.seg_ds)
+        codegen_flat_ds = 0;
+    if (s == &cpu_state.seg_ss)
+        codegen_flat_ss = 0;
+    if (s == &cpu_state.seg_es)
+        codegen_flat_es = 0;
+#endif
 
     set_segment_limit(s, 0x00);
 
@@ -1027,6 +1036,15 @@ loadall386_load_segment(uint32_t addr, x86seg *s)
     s->ar_high       = segdat3;
     s->base          = readmeml(0, addr + 4);
     s->limit         = readmeml(0, addr + 8);
+    s->checked       = 0;
+#ifdef USE_DYNAREC
+    if (s == &cpu_state.seg_ds)
+        codegen_flat_ds = 0;
+    if (s == &cpu_state.seg_ss)
+        codegen_flat_ss = 0;
+    if (s == &cpu_state.seg_es)
+        codegen_flat_es = 0;
+#endif
 
     if (s == &cpu_state.seg_cs)
         use32 = (segdat3 & 0x40) ? 0x300 : 0;
