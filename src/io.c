@@ -281,13 +281,17 @@ io_handler_interleaved(uint8_t set, uint16_t base, uint16_t size,
     io_handler_common(set, base, size, inb, inw, inl, outb, outw, outl, priv, 2);
 }
 
+#ifdef USE_DEBUG_REGS_486
 extern int trap;
 /* Set trap for I/O address breakpoints. */
-static void
+void
 io_debug_check_addr(uint16_t port)
 {
     uint8_t set_trap = 0;
 
+    if (!(dr[7] & 0xFF))
+        return;
+    
     if (!(cr4 & 0x8))
         return; /* No I/O debug trap. */
 
@@ -325,6 +329,7 @@ io_debug_check_addr(uint16_t port)
     if (set_trap)
         trap |= 4;
 }
+#endif
 
 uint8_t
 inb(uint16_t port)
@@ -339,8 +344,9 @@ inb(uint16_t port)
 
     io_port = port;
 
-    if (cpu_dr_armed)
-        io_debug_check_addr(port);
+#ifdef USE_DEBUG_REGS_486
+    io_debug_check_addr(port);
+#endif
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
         ret = pci_read(port, NULL);
@@ -408,8 +414,9 @@ outb(uint16_t port, uint8_t val)
     io_port = port;
     io_val  = val;
 
-    if (cpu_dr_armed)
-        io_debug_check_addr(port);
+#ifdef USE_DEBUG_REGS_486
+    io_debug_check_addr(port);
+#endif
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
         pci_write(port, val, NULL);
@@ -466,8 +473,9 @@ inw(uint16_t port)
 
     io_port = port;
 
-    if (cpu_dr_armed)
-        io_debug_check_addr(port);
+#ifdef USE_DEBUG_REGS_486
+    io_debug_check_addr(port);
+#endif
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
         ret = pci_readw(port, NULL);
@@ -547,8 +555,9 @@ outw(uint16_t port, uint16_t val)
     io_port = port;
     io_val  = val;
 
-    if (cpu_dr_armed)
-        io_debug_check_addr(port);
+#ifdef USE_DEBUG_REGS_486
+    io_debug_check_addr(port);
+#endif
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
         pci_writew(port, val, NULL);
@@ -621,8 +630,9 @@ inl(uint16_t port)
 
     io_port = port;
 
-    if (cpu_dr_armed)
-        io_debug_check_addr(port);
+#ifdef USE_DEBUG_REGS_486
+    io_debug_check_addr(port);
+#endif
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
         ret = pci_readl(port, NULL);
@@ -733,8 +743,9 @@ outl(uint16_t port, uint32_t val)
     io_port = port;
     io_val  = val;
 
-    if (cpu_dr_armed)
-        io_debug_check_addr(port);
+#ifdef USE_DEBUG_REGS_486
+    io_debug_check_addr(port);
+#endif
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
         pci_writel(port, val, NULL);

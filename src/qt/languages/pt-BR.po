@@ -434,7 +434,7 @@ msgid "Block linking on the dynamic recompiler"
 msgstr "Encadeamento de blocos no recompilador dinâmico"
 
 msgid "Debug registers on 486 and later processors"
-msgstr "Registradores de depuração em processadores 486 e superiores"
+msgstr "Registros de depuração em processadores 486 e superiores"
 
 msgid "CPU frame size"
 msgstr "Tamanho do quadro da CPU"
