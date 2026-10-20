@@ -4301,7 +4301,7 @@ static const scancode scancode_set82[512] = {
     { .mk = {      0x4A, 0 }, .brk = {       0xF0, 0x4A, 0 } }, /* 035 */
     { .mk = {      0x59, 0 }, .brk = {       0xF0, 0x59, 0 } }, /* 036 */
     { .mk = {      0x7C, 0 }, .brk = {       0xF0, 0x7C, 0 } }, /* 037 */
-    { .mk = {      0x13, 0 }, .brk = {       0xF0, 0x13, 0 } }, /* 038 0x3A LALT = Kanji */
+    { .mk = {      0x13, 0 }, .brk = {       0xF0, 0x13, 0 } }, /* 038 L-Alt = 13h */
     { .mk = {      0x29, 0 }, .brk = {       0xF0, 0x29, 0 } }, /* 039 */
     { .mk = {      0x58, 0 }, .brk = {       0xF0, 0x58, 0 } }, /* 03a */
     { .mk = {      0x05, 0 }, .brk = {       0xF0, 0x05, 0 } }, /* 03b */
@@ -4370,7 +4370,7 @@ static const scancode scancode_set82[512] = {
     { .mk = {      0x65, 0 }, .brk = {       0xF0, 0x65, 0 } }, /* 07a */
     { .mk = {      0x67, 0 }, .brk = {       0xF0, 0x67, 0 } }, /* 07b 0x33 Muhenkan */
     { .mk = {      0x68, 0 }, .brk = {       0xF0, 0x68, 0 } }, /* 07c */
-    { .mk = {      0x5d, 0 }, .brk = {       0xf0, 0x5d, 0 } }, /* 07d 0x30 Yen, Vertical line */
+    { .mk = {      0x50, 0 }, .brk = {       0xf0, 0x50, 0 } }, /* 07d 0x30 Yen, Vertical line */
     { .mk = {      0x6D, 0 }, .brk = {       0xF0, 0x6D, 0 } }, /* 07e */
     { .mk = {      0x6E, 0 }, .brk = {       0xF0, 0x6E, 0 } }, /* 07f */
     { .mk = {      0x80, 0 }, .brk = {       0xf0, 0x80, 0 } }, /* 080 */
@@ -4557,7 +4557,7 @@ static const scancode scancode_set82[512] = {
     { .mk = {0xe0, 0x4A, 0 }, .brk = { 0xe0, 0xF0, 0x4A, 0 } }, /* 135 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 136 */
     { .mk = {0xe0, 0x7C, 0 }, .brk = { 0xe0, 0xF0, 0x7C, 0 } }, /* 137 */
-    { .mk = {0xe0, 0x11, 0 }, .brk = { 0xe0, 0xF0, 0x11, 0 } }, /* 138* 0x31 R-Alt */
+    { .mk = {      0x11, 0 }, .brk = {       0xF0, 0x11, 0 } }, /* 138 R-Alt = 11h */
     { .mk = {            0 }, .brk = {                   0 } }, /* 139 */
     { .mk = {0xe0, 0x58, 0 }, .brk = { 0xe0, 0xF0, 0x58, 0 } }, /* 13a */
     { .mk = {0xe0, 0x05, 0 }, .brk = { 0xe0, 0xF0, 0x05, 0 } }, /* 13b */
