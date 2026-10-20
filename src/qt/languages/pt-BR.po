@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-20 14:40+0000\n"
+"PO-Revision-Date: 2026-10-20 20:06+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -432,6 +432,9 @@ msgstr "Ambiente FPU preciso no recompilador dinâmico"
 
 msgid "Block linking on the dynamic recompiler"
 msgstr "Encadeamento de blocos no recompilador dinâmico"
+
+msgid "Debug registers on 486 and later processors"
+msgstr "Registros de depuração em processadores 486 e superiores"
 
 msgid "CPU frame size"
 msgstr "Tamanho do quadro da CPU"
@@ -1278,7 +1281,6 @@ msgstr "Usar expressões regulares na caixa de pesquisa"
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Excluir máquinas virtuais para a Lixeira"
 
-#, fuzzy
 msgid "Discord"
 msgstr "Discord"
 
