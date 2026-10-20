@@ -3662,7 +3662,7 @@ msgstr ""
 "%s"
 
 msgid "Prepare PCI devices for VFIO passthrough"
-msgstr ""
+msgstr "PCI-Geräte für VFIO-Durchleitung vorbereiten"
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
 msgstr ""
