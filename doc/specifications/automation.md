@@ -3,7 +3,7 @@
 Build with `-D AUTOMATION=ON`, then start 86Box with:
 
 ```
-86Box --automation <endpoint> [--automation-hold] ...
+86Box --automation <endpoint> [--automation-hold] [--automation-seed <n>] ...
 ```
 
 86Box listens on the endpoint and accepts one client at a time.
@@ -152,3 +152,12 @@ and an automation client can share a machine:
   not follow the host clock.
 - Devices that run their own host threads or use host timers (some sound
   devices, networking, passthrough) can still introduce variation.
+- 86Box's random numbers mix in the host CPU's timestamp counter on every
+  call. They give a network card its MAC when the configuration has none,
+  and the weak bits and unformatted areas of 86F floppy images, among other
+  things. Software can depend on these: Warcraft II's game setup changes with
+  the NE2000's MAC, for example. Pass `--automation-seed <n>` to draw them
+  from a fixed seed instead (decimal, or hex with `0x`), so the same seed
+  gives the same numbers. Copies of one VM that are networked together then
+  need different seeds or their own `mac` lines, or they get the same
+  generated MAC.

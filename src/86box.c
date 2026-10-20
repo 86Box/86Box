@@ -790,6 +790,8 @@ pc_show_usage(void)
             "--automation endpoint\t\t- listen for automation commands: unix:path or\n"
             "\t\t\t\t   tcp:[host:]port (bare value: a path, or a port on Windows)\n"
             "--automation-hold\t\t- start with the machine held for automation\n"
+            "--automation-seed n\t\t- make the emulator's random numbers repeatable\n"
+            "\t\t\t\t  (generated MACs, floppy weak bits) from seed 'n'\n"
             "--automation-token-file path\t- TCP: write the access token to 'path'\n"
             "--automation-allow-remote\t- TCP: allow a non-loopback listen address\n"
             "--automation-insecure\t\t- TCP: accept clients without a token (any local process,\n"
@@ -990,6 +992,12 @@ usage:
             snprintf(automation_path, sizeof(automation_path), "%s", argv[++c]);
         } else if (!strcasecmp(argv[c], "--automation-hold")) {
             automation_start_held = 1;
+        } else if (!strcasecmp(argv[c], "--automation-seed")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            automation_seed     = (uint32_t) strtoul(argv[++c], NULL, 0);
+            automation_seed_set = 1;
         } else if (!strcasecmp(argv[c], "--automation-token-file")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -1668,6 +1676,10 @@ pc_init_modules(void)
     atfullspeed = 0;
 
     random_init();
+#ifdef USE_AUTOMATION
+    if (automation_seed_set)
+        random_seed(automation_seed);
+#endif
 
     mem_init();
 
