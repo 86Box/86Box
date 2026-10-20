@@ -5756,6 +5756,16 @@ keyboard_at_write(void *priv)
                     case 0x81:
                     case 0x82:
                     case 0x8a:
+                        /* Sets 81h/82h/8Ah only exist on the Japanese 5576
+                           keyboards; other keyboards answer resend and keep
+                           their current set (J-DOS then reports BIOS-102). */
+                        if ((val >= 0x81) && !dev->ps55) {
+                            kbc_at_dev_queue_add(dev, 0xfe, 0); /* Resend */
+                            keyboard_at_log("%s: Set scan code set [%02X] not supported - resend\n", dev->name, val);
+                            dev->flags |= FLAG_CTRLDAT;
+                            dev->state = DEV_STATE_MAIN_WANT_IN;
+                            break;
+                        }
                         kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK */
                         keyboard_mode = val;
                         is_special = 0;
@@ -6022,7 +6032,8 @@ keyboard_at_init(const device_t *info)
        Key 63  = Japanese key between right Ctrl and right Alt, scan code: 86 (Henkan/Zenkouho 79);
        Key 65? = Japanese key between right Ctrl and right Alt, scan code: 87 (Hiragana/Katakana 70).
      */
-    dev->type = info->local | device_get_config_int("keys");
+    dev->type = (info->local & ~FLAG_PS55_KBD) | device_get_config_int("keys");
+    dev->ps55 = !!(info->local & FLAG_PS55_KBD);
 
     /*
         We assume that the IBM PS/55 machine uses the 5576-002 keyboard (JP/CN layout) here.
@@ -6306,7 +6317,7 @@ const device_t keyboard_ps55_device = {
     .name          = "PS/55 Keyboard",
     .internal_name = "keyboard_ps55",
     .flags         = DEVICE_AT_KBC | DEVICE_PS2_KBC,
-    .local         = FLAG_PS2_KBD | KBD_JIS,
+    .local         = FLAG_PS2_KBD | FLAG_PS55_KBD | KBD_JIS,
     .init          = keyboard_at_init,
     .close         = keyboard_at_close,
     .reset         = NULL,
