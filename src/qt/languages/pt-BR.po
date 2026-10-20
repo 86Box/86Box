@@ -433,9 +433,6 @@ msgstr "Ambiente FPU preciso no recompilador dinâmico"
 msgid "Block linking on the dynamic recompiler"
 msgstr "Encadeamento de blocos no recompilador dinâmico"
 
-msgid "Debug registers on 486 and later processors"
-msgstr ""
-
 msgid "CPU frame size"
 msgstr "Tamanho do quadro da CPU"
 

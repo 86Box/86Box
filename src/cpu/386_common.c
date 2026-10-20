@@ -49,9 +49,6 @@ uint32_t cr3;
 uint32_t cr4;
 uint32_t dr[8];
 
-int cpu_debug_regs_486 = 0;
-int cpu_dr_armed       = 0;
-
 uint32_t use32;
 int      stack32;
 
@@ -789,7 +786,6 @@ smram_restore_state_p5(uint32_t *saved_state)
     cr4   = saved_state[SMRAM_FIELD_P5_CR4];
     dr[6] = saved_state[SMRAM_FIELD_P5_DR6];
     dr[7] = saved_state[SMRAM_FIELD_P5_DR7];
-    cpu_dr7_update();
 
     /* TR */
     tr.seg     = saved_state[SMRAM_FIELD_P5_TR_SELECTOR];
@@ -987,7 +983,6 @@ smram_restore_state_p6(uint32_t *saved_state)
     cr4   = saved_state[SMRAM_FIELD_P6_CR4];
     dr[6] = saved_state[SMRAM_FIELD_P6_DR6];
     dr[7] = saved_state[SMRAM_FIELD_P6_DR7];
-    cpu_dr7_update();
 
     /* TR */
     tr.seg     = saved_state[SMRAM_FIELD_P6_TR_SELECTOR];
@@ -1183,7 +1178,6 @@ smram_restore_state_amd_k(uint32_t *saved_state)
     cr4   = saved_state[SMRAM_FIELD_AMD_K_CR4];
     dr[6] = saved_state[SMRAM_FIELD_AMD_K_DR6];
     dr[7] = saved_state[SMRAM_FIELD_AMD_K_DR7];
-    cpu_dr7_update();
 
     /* TR */
     tr.seg     = saved_state[SMRAM_FIELD_AMD_K_TR_SELECTOR];
@@ -1312,7 +1306,6 @@ static void
 smram_restore_state_cyrix(uint32_t *saved_state)
 {
     dr[7]            = saved_state[0];
-    cpu_dr7_update();
     cpu_state.flags  = saved_state[1] & 0xffff;
     cpu_state.eflags = saved_state[1] >> 16;
     cr0              = saved_state[2];
@@ -1403,7 +1396,6 @@ enter_smm(int in_hlt)
     cr4 = 0;
 
     dr[7] = 0x400;
-    cpu_dr7_update();
 
     if (is_cxsmm) {
         cpu_state.pc = 0x0000;
@@ -1771,10 +1763,14 @@ x86_int_sw(int num)
         }
     }
 
-    if (cpu_use_exec && !cpu_debug_regs_486)
+#ifdef USE_DEBUG_REGS_486
+    trap &= ~1;
+#else
+    if (cpu_use_exec)
         trap = 0;
     else
         trap &= ~1;
+#endif
     CPU_BLOCK_END();
 }
 
@@ -1814,10 +1810,14 @@ x86_int_sw_rm(int num)
     cpu_use_exec ? loadcs(new_cs) : loadcs_2386(new_cs);
 
     cycles -= timing_int_rm;
-    if (cpu_use_exec && !cpu_debug_regs_486)
+#ifdef USE_DEBUG_REGS_486
+    trap &= ~1;
+#else
+    if (cpu_use_exec)
         trap = 0;
     else
         trap &= ~1;
+#endif
     CPU_BLOCK_END();
 
     return 0;
@@ -1915,23 +1915,6 @@ void
 cpu_386_flags_rebuild(void)
 {
     flags_rebuild();
-}
-
-/* While a breakpoint is armed no page is entered into the read and write
-   lookup tables, so every data access takes the slow path, which makes the
-   check. The memory access macros and the effective-address fast path then
-   need no test of their own, and cost nothing with the option off. The tables
-   are flushed as a breakpoint gets armed. */
-void
-cpu_dr7_update(void)
-{
-    int armed = cpu_debug_regs_486 && is386 && (dr[7] & 0xff);
-
-    if (armed && !cpu_dr_armed) {
-        cpu_dr_armed = 1;
-        flushmmucache_nopc();
-    } else
-        cpu_dr_armed = armed;
 }
 
 extern uint64_t mmutranslate_noabrt_2386(uint32_t addr, int rw);
