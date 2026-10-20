@@ -3183,7 +3183,9 @@ da2_code_readw(uint32_t addr, void *priv)
 static void
 da2_doblit(int wx, int wy, da2_t *da2)
 {
-    if (wx != xsize || wy != ysize) {
+    /* The OSD can reset the screen size behind the driver's back; honour
+       its resize request even when the mode itself has not changed. */
+    if ((wx != xsize) || (wy != ysize) || video_force_resize_get()) {
         xsize = wx;
         ysize = wy;
         set_screen_size(xsize, ysize);
