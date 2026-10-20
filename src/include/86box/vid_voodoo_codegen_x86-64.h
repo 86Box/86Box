@@ -115,6 +115,15 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
         addbyte(0xf7);
         addbyte(0xbf);
         addlong(tmu ? offsetof(voodoo_state_t, tmu1_w) : offsetof(voodoo_state_t, tmu0_w));
+        /*Round both shifts like the interpreter, or texels land one off at texel edges*/
+        addbyte(0x48); /*ADD RBX, 1 << 13*/
+        addbyte(0x81);
+        addbyte(0xc3);
+        addlong(1 << 13);
+        addbyte(0x48); /*ADD RCX, 1 << 13*/
+        addbyte(0x81);
+        addbyte(0xc1);
+        addlong(1 << 13);
         addbyte(0x48); /*SAR RBX, 14*/
         addbyte(0xc1);
         addbyte(0xfb);
@@ -131,6 +140,14 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
         addbyte(0x0f);
         addbyte(0xaf);
         addbyte(0xc8);
+        addbyte(0x48); /*ADD RBX, 1 << 29*/
+        addbyte(0x81);
+        addbyte(0xc3);
+        addlong(1 << 29);
+        addbyte(0x48); /*ADD RCX, 1 << 29*/
+        addbyte(0x81);
+        addbyte(0xc1);
+        addlong(1 << 29);
         addbyte(0x48); /*SAR RBX, 30*/
         addbyte(0xc1);
         addbyte(0xfb);
