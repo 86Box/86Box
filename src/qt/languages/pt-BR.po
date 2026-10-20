@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-20 11:23+0000\n"
+"PO-Revision-Date: 2026-10-16 16:24+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -1281,32 +1281,30 @@ msgstr "Usar expressões regulares na caixa de pesquisa"
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Excluir máquinas virtuais para a Lixeira"
 
-#, fuzzy
 msgid "Discord"
-msgstr "Discord"
+msgstr ""
 
 msgid "Show running machines in my Discord status"
-msgstr "Mostrar máquinas em execução no meu status do Discord"
+msgstr ""
 
 msgid "Details shown:"
-msgstr "Detalhes exibidos:"
+msgstr ""
 
 msgid "Machine name and hardware"
-msgstr "Nome da máquina e hardware"
+msgstr ""
 
 msgid "Hardware only"
-msgstr "Apenas Hardware"
+msgstr ""
 
 msgid "No details"
-msgstr "Sem detalhes"
+msgstr ""
 
 msgid "Using %1"
-msgstr "Usando %1"
+msgstr ""
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] "%n máquina(s) ativa(s)"
-msgstr[1] "%n máquinas ativas"
+msgstr[0] ""
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
