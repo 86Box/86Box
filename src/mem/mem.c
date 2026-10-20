@@ -1789,6 +1789,40 @@ mem_read_phys(void *dest, uint32_t addr, int transfer_size)
     }
 }
 
+/* Copy straight from memory, stopping at the first page that cannot be read
+   directly. Returns the number of bytes copied. */
+uint32_t
+mem_read_phys_block(void *dest, uint32_t addr, uint32_t len)
+{
+    uint8_t *p    = (uint8_t *) dest;
+    uint32_t done = 0;
+
+    mem_logical_addr = 0xffffffff;
+
+    if (!cpu_use_exec)
+        return 0;
+
+    while (done < len) {
+        const mem_mapping_t *map   = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
+        uint32_t             chunk = MEM_GRANULARITY_SIZE - (addr & MEM_GRANULARITY_MASK);
+        uint32_t             off;
+
+        if (chunk > (len - done))
+            chunk = len - done;
+        if (!map || !map->exec)
+            break;
+        off = (addr - map->base) & map->mask;
+        if ((map->mask - off) < (chunk - 1))
+            break;
+
+        memcpy(p + done, &(map->exec[off]), chunk);
+        addr += chunk;
+        done += chunk;
+    }
+
+    return done;
+}
+
 void
 mem_writeb_phys(uint32_t addr, uint8_t val)
 {
@@ -1859,6 +1893,40 @@ mem_write_phys(void *src, uint32_t addr, int transfer_size)
         pb = (uint8_t *) src;
         mem_writeb_phys(addr, *pb);
     }
+}
+
+/* Copy straight to memory, stopping at the first page that cannot be written
+   directly. Returns the number of bytes copied. */
+uint32_t
+mem_write_phys_block(const void *src, uint32_t addr, uint32_t len)
+{
+    const uint8_t *p    = (const uint8_t *) src;
+    uint32_t       done = 0;
+
+    mem_logical_addr = 0xffffffff;
+
+    if (!cpu_use_exec)
+        return 0;
+
+    while (done < len) {
+        const mem_mapping_t *map   = write_mapping_bus[addr >> MEM_GRANULARITY_BITS];
+        uint32_t             chunk = MEM_GRANULARITY_SIZE - (addr & MEM_GRANULARITY_MASK);
+        uint32_t             off;
+
+        if (chunk > (len - done))
+            chunk = len - done;
+        if (!map || !map->exec)
+            break;
+        off = (addr - map->base) & map->mask;
+        if ((map->mask - off) < (chunk - 1))
+            break;
+
+        memcpy(&(map->exec[off]), p + done, chunk);
+        addr += chunk;
+        done += chunk;
+    }
+
+    return done;
 }
 
 uint8_t
