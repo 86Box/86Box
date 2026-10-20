@@ -3640,6 +3640,8 @@ msgstr ""
 
 msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
 msgstr ""
+"Diese Geräte wurden zwar nicht ausgewählt, gehören jedoch zur selben IOMMU-"
+"Gruppe wie ein ausgewähltes Gerät, sodass sie ebenfalls gebunden werden:"
 
 msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
 msgstr ""
