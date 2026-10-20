@@ -473,7 +473,7 @@ automation_reset(int hard)
 
 static void sb_base64(strbuf_t *sb, const uint8_t *data, size_t len);
 
-#define AUD_RING_SECONDS 10
+#define AUD_RING_SECONDS 30
 #define AUD_MAX_SEGS     16
 
 static const char *aud_names[I_MAX] = { "main", "music", "wavetable", "cd", "fdd", "hdd", "ym2151", "midi" };
@@ -482,11 +482,13 @@ typedef struct {
     int16_t *ring; /* stereo frames, the last AUD_RING_SECONDS */
     uint32_t ring_frames;
     uint32_t ring_pos;
-    uint64_t total; /* frames received */
+    uint64_t total;     /* frames received */
+    uint64_t ring_base; /* total when the ring was (re)made: nothing older is in it */
     int      rate;
     uint64_t last_ms; /* emu_ms when the last block arrived */
 
     int      rec;  /* recording this stream */
+    int      open; /* a segment is being recorded (to a file, or in memory) */
     FILE    *wav;
     uint32_t skip; /* frames of the next blocks that precede the start */
     uint64_t frames;
@@ -503,6 +505,11 @@ typedef struct {
         int      exact;
     } segs[AUD_MAX_SEGS];
     int nsegs;
+    /* The current (or last) segment in received frames (total), for audio
+       pull: position 0 is seg_origin; it ends at seg_end once closed. */
+    uint64_t seg_origin;
+    uint64_t seg_end;
+    int      seg_no;
 
     uint64_t loud_ms; /* wait silence: time of the last frame above the level */
 } aud_t;
@@ -513,7 +520,7 @@ static int16_t *aud_scratch;
 static int      aud_scratch_len;
 static int      aud_recording;
 static uint64_t aud_start_ms;
-static char     aud_dir[1024];
+static char     aud_dir[1024]; /* empty: record in memory only (audio pull) */
 
 static int      aud_wait;       /* CMD_WAIT_SOUND or CMD_WAIT_SILENCE while one runs */
 static int      aud_wait_level; /* threshold, in 16-bit sample units */
@@ -558,11 +565,15 @@ wav_header(FILE *f, int rate, uint64_t frames)
 static void
 aud_close_seg(aud_t *a)
 {
-    if (!a->wav)
+    if (!a->open)
         return;
-    wav_header(a->wav, a->rate, a->frames);
-    fclose(a->wav);
-    a->wav = NULL;
+    if (a->wav) {
+        wav_header(a->wav, a->rate, a->frames);
+        fclose(a->wav);
+        a->wav = NULL;
+    }
+    a->open    = 0;
+    a->seg_end = a->seg_origin + a->frames;
     if (a->nsegs < AUD_MAX_SEGS) {
         memcpy(a->segs[a->nsegs].file, a->file, sizeof(a->file));
         a->segs[a->nsegs].rate     = a->rate;
@@ -605,7 +616,7 @@ automation_audio(int src, const void *buf, int size, int is_float)
         memcpy(aud_scratch, buf, size * sizeof(int16_t));
 
     if (!a->ring || (a->rate != rate)) {
-        if (a->wav) {
+        if (a->open) {
             aud_close_seg(a);
             a->skip = 0;
         }
@@ -614,6 +625,7 @@ automation_audio(int src, const void *buf, int size, int is_float)
         a->ring_frames = (uint32_t) rate * AUD_RING_SECONDS;
         a->ring        = calloc(a->ring_frames, 2 * sizeof(int16_t));
         a->ring_pos    = 0;
+        a->ring_base   = a->total;
     }
     for (int i = 0; i < n; i++) {
         a->ring[a->ring_pos * 2]     = aud_scratch[i * 2];
@@ -628,24 +640,31 @@ automation_audio(int src, const void *buf, int size, int is_float)
         int from = (a->skip >= (uint32_t) n) ? n : (int) a->skip;
 
         a->skip -= from;
-        if (!a->wav && (from < n) && (a->nsegs < AUD_MAX_SEGS)) {
-            char fn[1100];
+        if (!a->open && (from < n) && (a->nsegs < AUD_MAX_SEGS)) {
+            a->open       = 1;
+            a->seg_no     = a->nsegs;
+            a->seg_origin = a->total - n + from;
+            a->file[0]    = '\0';
+            if (aud_dir[0]) {
+                char fn[1100];
 
-            if (a->nsegs)
-                snprintf(a->file, sizeof(a->file), "%s-%d.wav", aud_names[src], a->nsegs + 1);
-            else
-                snprintf(a->file, sizeof(a->file), "%s.wav", aud_names[src]);
-            snprintf(fn, sizeof(fn), "%s/%s", aud_dir, a->file);
-            a->wav = plat_fopen(fn, "wb");
-            if (a->wav)
-                wav_header(a->wav, rate, 0);
+                if (a->nsegs)
+                    snprintf(a->file, sizeof(a->file), "%s-%d.wav", aud_names[src], a->nsegs + 1);
+                else
+                    snprintf(a->file, sizeof(a->file), "%s.wav", aud_names[src]);
+                snprintf(fn, sizeof(fn), "%s/%s", aud_dir, a->file);
+                a->wav = plat_fopen(fn, "wb");
+                if (a->wav)
+                    wav_header(a->wav, rate, 0);
+            }
             /* The polled streams' first segment starts exactly at the start;
                otherwise a block covers the time just before it arrived. */
             a->exact    = aud_exact(src) && !a->nsegs;
             a->first_ms = a->exact ? (double) aud_start_ms : (double) emu_ms - (n * 1000.0 / rate);
         }
-        if (a->wav && (from < n)) {
-            fwrite(aud_scratch + from * 2, 2 * sizeof(int16_t), n - from, a->wav);
+        if (a->open && (from < n)) {
+            if (a->wav)
+                fwrite(aud_scratch + from * 2, 2 * sizeof(int16_t), n - from, a->wav);
             a->frames += n - from;
         }
     }
@@ -698,9 +717,11 @@ aud_stop(strbuf_t *sb)
 
         aud_close_seg(a);
         for (int k = 0; sb && (k < a->nsegs); k++) {
-            sb_printf(sb, "%s{\"name\":\"%s\",\"file\":\"%s\",\"rate\":%d,\"frames\":%llu,\"start_ms\":%.3f,\"exact\":%s",
-                      first ? "" : ",", aud_names[i], a->segs[k].file, a->segs[k].rate,
+            sb_printf(sb, "%s{\"name\":\"%s\",\"segment\":%d,\"rate\":%d,\"frames\":%llu,\"start_ms\":%.3f,\"exact\":%s",
+                      first ? "" : ",", aud_names[i], k, a->segs[k].rate,
                       (unsigned long long) a->segs[k].frames, a->segs[k].start_ms, a->segs[k].exact ? "true" : "false");
+            if (a->segs[k].file[0])
+                sb_printf(sb, ",\"file\":\"%s\"", a->segs[k].file);
             if (a->segs[k].exact && (a->nsegs == 1)) {
                 /* Frames written plus frames ticked but not yet handed over,
                    against the emulated time elapsed: 0 means no gap. */
@@ -724,12 +745,14 @@ aud_stop(strbuf_t *sb)
 static void
 handle_audio(int argc, char **argv, char **rest)
 {
-    if ((argc >= 3) && !strcmp(argv[1], "start")) {
+    if ((argc >= 2) && !strcmp(argv[1], "start")) {
         if (aud_recording) {
             respond_error("already recording audio");
             return;
         }
-        snprintf(aud_dir, sizeof(aud_dir), "%s", rest[2]);
+        /* With a directory, each stream is also written there as WAV files;
+           without one, it is kept for audio pull only (a client elsewhere). */
+        snprintf(aud_dir, sizeof(aud_dir), "%s", (argc >= 3) ? rest[2] : "");
         thread_wait_mutex(aud_mutex);
         for (int i = 0; i < I_MAX; i++) {
             aud[i].rec    = 1;
@@ -823,8 +846,68 @@ handle_audio(int argc, char **argv, char **rest)
         sb_base64(&resp, (const uint8_t *) out, n * 2 * sizeof(int16_t));
         sb_printf(&resp, "\"}");
         free(out);
+    } else if (((argc == 4) || (argc == 5)) && !strcmp(argv[1], "pull")) {
+        /* audio pull <stream> <from> [max_frames]: the recording's samples from
+           position <from> (frames since its start), up to now or to where it
+           stopped. Successive pulls from each reply's next join exactly; lost
+           counts frames that left the ring before they were pulled. */
+        int      src  = -1;
+        uint64_t from = strtoull(argv[3], NULL, 0);
+        uint64_t max  = (argc == 5) ? strtoull(argv[4], NULL, 0) : (uint64_t) 1 << 20;
+
+        for (int i = 0; i < I_MAX; i++) {
+            if (!strcmp(argv[2], aud_names[i]))
+                src = i;
+        }
+        if (src < 0) {
+            respond_error("unknown stream");
+            return;
+        }
+        thread_wait_mutex(aud_mutex);
+        aud_t *a = &aud[src];
+        if (!a->ring || (!a->open && (a->seg_end == a->seg_origin))) {
+            thread_release_mutex(aud_mutex);
+            respond_error("nothing recorded from that stream");
+            return;
+        }
+        uint64_t hi     = a->open ? a->total : a->seg_end;
+        uint64_t oldest = (a->total > a->ring_frames) ? (a->total - a->ring_frames) : 0;
+        uint64_t lo     = a->seg_origin;
+        uint64_t at     = a->seg_origin + from;
+        uint64_t lost   = 0;
+
+        if (oldest > lo)
+            lo = oldest;
+        if (a->ring_base > lo)
+            lo = a->ring_base;
+        if (at < lo) {
+            lost = lo - at;
+            at   = lo;
+        }
+        if (at > hi)
+            at = hi;
+        uint64_t n = hi - at;
+        if (n > max)
+            n = max;
+        int16_t *out = malloc(n * 2 * sizeof(int16_t) + 4);
+        for (uint64_t k = 0; k < n; k++) {
+            uint32_t f     = (uint32_t) ((a->ring_pos + a->ring_frames - ((a->total - (at + k)) % a->ring_frames)) % a->ring_frames);
+            out[k * 2]     = a->ring[f * 2];
+            out[k * 2 + 1] = a->ring[f * 2 + 1];
+        }
+        resp.len = 0;
+        sb_printf(&resp, "{\"ok\":true,\"ms\":%llu,\"stream\":\"%s\",\"segment\":%d,\"rate\":%d,\"from\":%llu,"
+                  "\"frames\":%llu,\"next\":%llu,\"lost\":%llu,\"recording\":%s,\"data\":\"",
+                  (unsigned long long) emu_ms, aud_names[src], a->seg_no, a->rate,
+                  (unsigned long long) (at - a->seg_origin), (unsigned long long) n,
+                  (unsigned long long) (at - a->seg_origin + n), (unsigned long long) lost, a->open ? "true" : "false");
+        thread_release_mutex(aud_mutex);
+        sb_base64(&resp, (const uint8_t *) out, n * 2 * sizeof(int16_t));
+        sb_printf(&resp, "\"}");
+        free(out);
     } else
-        respond_error("usage: audio start <dir> | audio stop | audio level <ms> | audio read <stream> <ms>");
+        respond_error("usage: audio start [<dir>] | audio stop | audio level <ms> | audio read <stream> <ms> | "
+                      "audio pull <stream> <from> [max_frames]");
 }
 
 /* wait sound / wait silence: arm the tap, or check it each quantum. */
