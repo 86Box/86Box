@@ -1081,6 +1081,7 @@ opLOADALL386(UNUSED(uint32_t fetchdat))
     EAX          = readmeml(0, la_addr + 0x28);
     dr[6]        = readmeml(0, la_addr + 0x2C);
     dr[7]        = readmeml(0, la_addr + 0x30);
+    cpu_dr7_update();
     tr.seg       = readmemw(0, la_addr + 0x34);
     ldt.seg      = readmemw(0, la_addr + 0x38);
     GS           = readmemw(0, la_addr + 0x3C);

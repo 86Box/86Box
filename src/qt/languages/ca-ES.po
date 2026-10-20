@@ -432,6 +432,9 @@ msgstr ""
 msgid "Block linking on the dynamic recompiler"
 msgstr "Enllaç de blocs al recompilador dinàmic"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Mida de blocs de la CPU"
 

@@ -432,6 +432,9 @@ msgstr "Ακριβές περιβάλλον FPU σε δυναμικό αναμε
 msgid "Block linking on the dynamic recompiler"
 msgstr "Σύνδεση μπλοκ σε δυναμικό αναμεταγλωττιστή"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Μέγεθος πλαισίου CPU"
 

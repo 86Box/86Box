@@ -432,6 +432,9 @@ msgstr "Genaue FPU-Umgebung für den dynamischen Recompiler"
 msgid "Block linking on the dynamic recompiler"
 msgstr "Block-Verkettung im dynamischen Recompiler"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPU-Framegröße"
 

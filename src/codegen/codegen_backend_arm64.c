@@ -564,10 +564,10 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     host_arm64_TST_IMM(block, REG_W2, D_FLAG);
     host_arm64_CSEL_EQ(block, REP_STEP, REP_STEP, REG_W5);
 
-    /*Conditions that send every element down the slow path: debug
-      breakpoints, which the interpreter's translate check looks at, and a
+    /*Conditions that send every element down the slow path: an armed debug
+      breakpoint, which the interpreter's translate check looks at, and a
       segment that would fault*/
-    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &dr[7]);
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &cpu_dr_armed);
     host_arm64_LDR_IMM_W(block, REP_SLOW, REG_X2, 0);
     host_arm64_AND_IMM(block, REP_SLOW, REP_SLOW, 0xff);
     host_arm64_LDRH_IMM(block, REG_W2, REG_CPUSTATE, rep_state_offset(&cpu_state.CR0.w));
@@ -866,6 +866,7 @@ enum {
     LINK_LIT_RAMMASK,
     LINK_LIT_READLOOKUP2,
     LINK_LIT_RAM,
+    LINK_LIT_DR_ARMED,
 
     LINK_LIT_COUNT
 };
@@ -972,6 +973,7 @@ build_link_routine(codeblock_t *block)
     lit[LINK_LIT_RAMMASK]           = (uint64_t) (uintptr_t) &rammask;
     lit[LINK_LIT_READLOOKUP2]       = (uint64_t) (uintptr_t) readlookup2;
     lit[LINK_LIT_RAM]               = (uint64_t) (uintptr_t) &ram;
+    lit[LINK_LIT_DR_ARMED]          = (uint64_t) (uintptr_t) &cpu_dr_armed;
 
     codegen_link_rout = &block_write_data[block_pos];
 
@@ -998,8 +1000,11 @@ build_link_routine(codeblock_t *block)
     miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
 
     /*Nothing pending for the loop, and the loop would pick the recompiler.
-      W7 = abrt and smi_line in its top half, W14 = cycles, X12 = &nmi*/
+      An armed debug breakpoint is a miss, so the loop makes its per-block
+      check (dr_blocks_cache()). W7 = abrt and smi_line in its top half,
+      W14 = cycles, X12 = &nmi*/
     host_arm64_LDP_IMM_W(block, REG_W7, REG_W14, REG_CPUSTATE, rep_state_offset(&cpu_state.abrt) - 2);
+    host_arm64_LDR_IMM_X(block, REG_X13, REG_X17, LINK_LIT(LINK_LIT_DR_ARMED));
     host_arm64_LDP_IMM_X(block, REG_X3, REG_X4, REG_X17, LINK_LIT(LINK_LIT_WAS_RESET));
     host_arm64_LDP_IMM_X(block, REG_X5, REG_X8, REG_X17, LINK_LIT(LINK_LIT_CPU_INIT));
     /*X9 = &nmi_enable, loaded only as the pair of the next entry*/
@@ -1011,12 +1016,14 @@ build_link_routine(codeblock_t *block)
     host_arm64_LDR_IMM_W(block, REG_W8, REG_X8, 0);
     host_arm64_LDR_IMM_W(block, REG_W10, REG_X10, 0);
     host_arm64_LDR_IMM_W(block, REG_W11, REG_X11, 0);
+    host_arm64_LDR_IMM_W(block, REG_W13, REG_X13, 0);
     host_arm64_AND_IMM(block, REG_W7, REG_W7, 0xffff0000);
     host_arm64_ORR_REG(block, REG_W3, REG_W3, REG_W4, 0);
     host_arm64_ORR_REG(block, REG_W5, REG_W5, REG_W8, 0);
     host_arm64_ORR_REG(block, REG_W7, REG_W7, REG_W11, 0);
     host_arm64_ORR_REG(block, REG_W3, REG_W3, REG_W5, 0);
     host_arm64_ORR_REG(block, REG_W7, REG_W7, REG_W10, 0);
+    host_arm64_ORR_REG(block, REG_W5, REG_W5, REG_W13, 0);
     host_arm64_ORR_REG(block, REG_W3, REG_W3, REG_W7, 0);
     miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W3);
 

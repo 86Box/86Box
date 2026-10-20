@@ -433,6 +433,9 @@ msgstr "Môi trường FPU chính xác trên bộ tái biên dịch động"
 msgid "Block linking on the dynamic recompiler"
 msgstr "Liên kết khối trên bộ tái biên dịch động"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Cỡ khung CPU"
 

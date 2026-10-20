@@ -434,6 +434,9 @@ msgstr "Precizno FPU okruženje za dinamički rekompilator"
 msgid "Block linking on the dynamic recompiler"
 msgstr "Povezivanje blokova u dinamičkom rekompilatoru"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Veličina blokova procesora"
 

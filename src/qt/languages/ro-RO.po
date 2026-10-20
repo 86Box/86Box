@@ -434,6 +434,9 @@ msgstr "Mediu FPU precis pe recompilatorul dinamic"
 msgid "Block linking on the dynamic recompiler"
 msgstr "Legarea blocurilor pe recompilatorul dinamic"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Dimensiunea cadre CPU"
 
