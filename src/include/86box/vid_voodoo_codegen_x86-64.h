@@ -1082,7 +1082,11 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         } else
             fatal("Bad depth_op\n");
     } else if ((params->fbzMode & FBZ_DEPTH_ENABLE) && (depthop == DEPTHOP_NEVER)) {
-        addbyte(0xC3); /*RET*/
+        /*Every pixel fails. A bare RET here would skip the epilogue and
+          return with the saved registers still on the stack.*/
+        addbyte(0xe9); /*JMP skip*/
+        z_skip_pos = block_pos;
+        addlong(0);
     }
 
     /*XMM0 = colour*/
@@ -2556,7 +2560,10 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 break;
         }
     } else if ((params->alphaMode & 1) && (alpha_func == AFUNC_NEVER)) {
-        addbyte(0xC3); /*RET*/
+        /*Every pixel fails; see DEPTHOP_NEVER above.*/
+        addbyte(0xe9); /*JMP skip*/
+        a_skip_pos = block_pos;
+        addlong(0);
     }
 
     if (params->alphaMode & (1 << 4)) {
