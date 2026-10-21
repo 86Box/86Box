@@ -34,6 +34,7 @@
 #include <86box/pit.h>
 #include <86box/device.h>
 #include <86box/chipset.h>
+#include <86box/i8018x.h>
 #include <86box/apm.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
@@ -138,6 +139,19 @@ pic_log(const char *fmt, ...)
 #else
 #    define pic_log(fmt, ...)
 #endif
+
+void
+pic_set_output_callback(pic_t *dev, void (*callback)(void *priv, int level), void *priv)
+{
+    if (dev == NULL)
+        return;
+
+    dev->out_cb   = callback;
+    dev->out_priv = priv;
+
+    if (callback != NULL)
+        callback(priv, dev->int_pending);
+}
 
 void
 pic_set_irq_callback(void (*callback)(uint16_t, int, void *), void *priv)
@@ -365,6 +379,11 @@ pic_update_pending_dual(void)
         pic.int_pending = (find_best_interrupt(&pic) != -1);
     if (!(pic2.interrupt & 0x20))
         pic2.int_pending = (find_best_interrupt(&pic2) != -1);
+
+    if (pic.out_cb != NULL)
+        pic.out_cb(pic.out_priv, pic.int_pending);
+    if (pic2.out_cb != NULL)
+        pic2.out_cb(pic2.out_priv, pic2.int_pending);
 }
 
 static __inline void
@@ -391,7 +410,11 @@ pic_reset(void)
     int is_at     = IS_AT(machine);
     int is_zenith = !!machine_has_flags_64(machine, MACHINE_ZENITH);
     is_at         = is_at || (machines[machine].init == machine_xt_xi8088_init);
-    const uint8_t board_flags = pic.flags & PIC_IBM5140;
+    const uint8_t board_flags    = pic.flags & PIC_IBM5140;
+    void (*out_cb)(void *, int)  = pic.out_cb;
+    void (*out_cb2)(void *, int) = pic2.out_cb;
+    void *out_priv               = pic.out_priv;
+    void *out_priv2              = pic2.out_priv;
 
     memset(&pic, 0, sizeof(pic_t));
     memset(pic_ioapic_lines, 0, sizeof(pic_ioapic_lines));
@@ -399,7 +422,11 @@ pic_reset(void)
     ioapic_pic_intr(0); /* INTR is inactive after reset, for INTIN0 too */
     memset(&pic2, 0, sizeof(pic_t));
     /* Controller reset preserves the integrated controller's hardware type. */
-    pic.flags = board_flags;
+    pic.flags     = board_flags;
+    pic.out_cb    = out_cb;
+    pic2.out_cb   = out_cb2;
+    pic.out_priv  = out_priv;
+    pic2.out_priv = out_priv2;
 
     pic.is_master = 1;
     pic.interrupt = pic2.interrupt = 0x17;
@@ -939,9 +966,20 @@ pic_toggle_latch(int is_ps2)
     }
 }
 
+/* Machine init must not inherit the previous board's PIC output hooks. */
+static void
+pic_clear_output_callback(void)
+{
+    pic.out_cb = pic2.out_cb = NULL;
+    pic.out_priv = pic2.out_priv = NULL;
+}
+
 uint8_t
 pic_any_pending(void)
 {
+    if (!cascade && i8018x_pcb_cascade)
+        return 0;
+
     return pic.int_pending || (!cascade && pic2.int_pending);
 }
 
@@ -950,6 +988,8 @@ pic_init(void)
 {
     for (uint8_t irq = 0; irq < 8; irq++)
         irq_vector_override[irq] = -1;
+
+    pic_clear_output_callback();
 
     shadow = 0;
     cascade = 1;
@@ -1017,10 +1057,11 @@ pic_handler(int set, uint16_t base, int size)
 void
 pic_init_pcjr(void)
 {
-    cascade = 1;
-    pic_reset_hard();
+    pic_clear_output_callback();
 
     shadow = 0;
+    cascade = 1;
+    pic_reset_hard();
     pic_handler(1, 0x0020, 0x0008);
 }
 
@@ -1056,6 +1097,8 @@ pic_init_tandy2k(void)
 {
     for (uint8_t irq = 0; irq < 8; irq++)
         irq_vector_override[irq] = -1;
+
+    pic_clear_output_callback();
 
     shadow = 0;
     cascade = 0;

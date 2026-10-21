@@ -54,6 +54,8 @@ typedef struct pic {
     uint32_t    at;
     uint32_t    zenith;
     struct pic *slaves[8];
+    void       *out_priv;
+    void      (*out_cb)(void *priv, int level);
 } pic_t;
 
 extern pic_t pic;
@@ -65,6 +67,7 @@ extern void     pic_set_smi_irq_mask(int irq, int set);
 extern uint16_t pic_get_smi_irq_status(void);
 extern void     pic_clear_smi_irq_status(int irq);
 extern void     pic_set_irq_callback(void (*callback)(uint16_t, int, void *), void *priv);
+extern void     pic_set_output_callback(pic_t *dev, void (*callback)(void *priv, int level), void *priv);
 
 extern int     pic_elcr_get_enabled(void);
 extern void    pic_elcr_set_enabled(int enabled);
