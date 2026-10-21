@@ -1217,7 +1217,7 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 #ifdef Q_OS_MACOS
     glw.glViewport(
         destination.x(),
-        destination.y(),
+        destinationGLY(),
         destination.width(),
         destination.height());
 #endif
@@ -1273,7 +1273,7 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
 
     glw.glViewport(
         destination.x(),
-        destination.y(),
+        destinationGLY(),
         destination.width(),
         destination.height());
 
@@ -1471,6 +1471,13 @@ OpenGLRenderer::getOptions(QWidget *parent)
 
 extern void standalone_scale(QRect &destination, int width, int height, QRect source, int scalemode);
 
+/* The destination is measured from the top of the window, but GL measures viewports from the bottom. */
+int
+OpenGLRenderer::destinationGLY() const
+{
+    return output_size.height() - destination.y() - destination.height();
+}
+
 QRect
 OpenGLRenderer::sceneRenderRect() const
 {
@@ -1507,7 +1514,7 @@ OpenGLRenderer::render()
     } window_rect;
 
     window_rect.x = destination.x();
-    window_rect.y = destination.y();
+    window_rect.y = destinationGLY();
     window_rect.w = destination.width();
     window_rect.h = destination.height();
 

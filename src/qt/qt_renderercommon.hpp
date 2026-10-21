@@ -5,6 +5,7 @@
 #include <QImage>
 #include <QRect>
 #include <QRectF>
+#include <QSize>
 #include <QWidget>
 
 #include <atomic>
@@ -50,6 +51,7 @@ protected:
 
     QRect    source { 0, 0, 0, 0 };
     QRect    destination;
+    QSize    output_size;
     QWidget *parentWidget { nullptr };
 
     double pixelRatio = 1.0;

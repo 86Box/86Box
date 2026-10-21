@@ -131,6 +131,8 @@ RendererCommon::onResize(int width, int height)
     width  = round(pixelRatio * width);
     height = round(pixelRatio * height);
 
+    output_size = QSize(width, height);
+
     const auto &monitor = monitors[r_monitor_index];
     if (!force_43 && force_device_aspect && monitor.mon_device_aspect_x > 0 && monitor.mon_device_aspect_y > 0) {
         int dw = width;
