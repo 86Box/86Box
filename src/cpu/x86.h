@@ -50,6 +50,8 @@ extern int x86_was_reset;
 extern int trap;
 extern int codegen_flat_ss;
 extern int codegen_flat_ds;
+extern int codegen_wide_ss;
+extern int codegen_wide_ds;
 extern int codegen_flat_es;
 extern int timetolive;
 extern int keyboardtimer;

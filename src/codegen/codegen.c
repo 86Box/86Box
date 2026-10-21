@@ -115,6 +115,9 @@ codegen_check_seg_read(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg)
         return;
     if (seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS))
         return;
+    /*A wide DS is never null (CPU_STATUS_NOTWIDEDS)*/
+    if (seg == &cpu_state.seg_ds && codegen_wide_ds && !(cpu_cur_status & CPU_STATUS_NOTWIDEDS))
+        return;
     if (seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES))
         return;
 
@@ -153,6 +156,10 @@ codegen_check_seg_write(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg)
     }
     /*checked: 1 = null selector ruled out, 2 = writable too*/
     if (seg->checked == 2)
+        return;
+    /*A wide DS is writable data, so neither null nor read-only
+      (CPU_STATUS_NOTWIDEDS)*/
+    if (seg == &cpu_state.seg_ds && codegen_wide_ds && !(cpu_cur_status & CPU_STATUS_NOTWIDEDS))
         return;
     if (!seg->checked && !(seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) && !(seg == &cpu_state.seg_es && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES)))
         uop_CMP_IMM_JZ(ir, ireg_seg_base(seg), (uint32_t) -1, codegen_gpf_rout);

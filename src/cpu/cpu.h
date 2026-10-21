@@ -480,6 +480,13 @@ typedef struct {
 #define CPU_STATUS_NOTFLATDS (1 << 8)
 #define CPU_STATUS_NOTFLATSS (1 << 9)
 #define CPU_STATUS_NOTFLATES (1 << 10)
+/* DS (SS) not "wide": wide is a limit_high of 0xffffffff, which an
+   expand-down segment with B set has (Win9x's Win32 DS and SS), and for DS
+   a writable data segment that is not null as well. The compiled limit check of a wide
+   segment needs only its low bound, and a wide DS needs no null or
+   writable check (CHECK_SEG_LIMITS, codegen_check_seg_read/write). */
+#define CPU_STATUS_NOTWIDEDS (1 << 11)
+#define CPU_STATUS_NOTWIDESS (1 << 12)
 #define CPU_STATUS_MASK      0xff00
 
 
@@ -599,6 +606,27 @@ extern int cpu_is_p5(void);
 extern int cpu_init_keeps_state(void);
 
 extern uint16_t cpu_cur_status;
+
+/* The NOTWIDEDS/NOTWIDESS bit of a segment just loaded, set wherever its
+   NOTFLAT bit is */
+static inline void
+cpu_set_wide_status(const x86seg *s)
+{
+    if (s == &cpu_state.seg_ds) {
+        /*A base of 0xffffffff is the null selector's mark, faulted on
+          every access (SEG_CHECK_READ/WRITE) whatever the descriptor*/
+        if ((s->limit_high == 0xffffffff) && ((s->access & 0x0a) == 0x02) && (s->base != 0xffffffff))
+            cpu_cur_status &= ~CPU_STATUS_NOTWIDEDS;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTWIDEDS;
+    } else if (s == &cpu_state.seg_ss) {
+        if (s->limit_high == 0xffffffff)
+            cpu_cur_status &= ~CPU_STATUS_NOTWIDESS;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTWIDESS;
+    }
+}
+
 extern uint64_t cpu_CR4_mask;
 extern uint64_t cpu_CR4_ignore;
 extern uint64_t tsc;

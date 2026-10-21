@@ -968,14 +968,15 @@ loadall_load_segment(uint32_t addr, x86seg *s)
     s->checked       = 0;
 #ifdef USE_DYNAREC
     if (s == &cpu_state.seg_ds)
-        codegen_flat_ds = 0;
+        codegen_flat_ds = codegen_wide_ds = 0;
     if (s == &cpu_state.seg_ss)
-        codegen_flat_ss = 0;
+        codegen_flat_ss = codegen_wide_ss = 0;
     if (s == &cpu_state.seg_es)
         codegen_flat_es = 0;
 #endif
 
     set_segment_limit(s, 0x00);
+    cpu_set_wide_status(s);
 
     if (s == &cpu_state.seg_ds) {
         if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
@@ -1047,9 +1048,9 @@ loadall386_load_segment(uint32_t addr, x86seg *s)
     s->checked       = 0;
 #ifdef USE_DYNAREC
     if (s == &cpu_state.seg_ds)
-        codegen_flat_ds = 0;
+        codegen_flat_ds = codegen_wide_ds = 0;
     if (s == &cpu_state.seg_ss)
-        codegen_flat_ss = 0;
+        codegen_flat_ss = codegen_wide_ss = 0;
     if (s == &cpu_state.seg_es)
         codegen_flat_es = 0;
 #endif
@@ -1066,6 +1067,7 @@ loadall386_load_segment(uint32_t addr, x86seg *s)
         cpu_cur_status |= CPU_STATUS_STACK32;
 
     set_segment_limit(s, segdat3);
+    cpu_set_wide_status(s);
 
     if (s == &cpu_state.seg_ds) {
         if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)

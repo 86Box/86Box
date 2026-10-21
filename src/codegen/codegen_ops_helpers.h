@@ -84,6 +84,13 @@ CHECK_SEG_LIMITS(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg, int add
     /*#SS(0) through SS, #GP(0) through the others*/
     void *rout = (seg == &cpu_state.seg_ss) ? codegen_ss_rout : codegen_gpf_rout;
 
+    /*A wide DS or SS has limit_high 0xffffffff, which the 32-bit end of the
+      access can't exceed: only the low bound is tested*/
+    if ((seg == &cpu_state.seg_ds && codegen_wide_ds && !(cpu_cur_status & CPU_STATUS_NOTWIDEDS)) || (seg == &cpu_state.seg_ss && codegen_wide_ss && !(cpu_cur_status & CPU_STATUS_NOTWIDESS))) {
+        uop_CMP_JB(ir, addr_reg, ireg_seg_limit_low(seg), rout);
+        return;
+    }
+
 #if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
     uop_CMP_JNWITHIN(ir, addr_reg, ireg_seg_limit_low(seg), ireg_seg_limit_high(seg), end_offset, rout);
 #else
