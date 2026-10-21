@@ -624,6 +624,12 @@ msgstr "Contrôleur 4 :"
 msgid "Cassette"
 msgstr "Cassette"
 
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
+
 msgid "Hard disks:"
 msgstr "Disques durs :"
 
