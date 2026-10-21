@@ -152,7 +152,7 @@ msgstr "&Цілісночисленне масштабування"
 msgid "4:&3 Integer scale"
 msgstr "Цілісночисленне масштабування 4:&3"
 
-msgid "&Center (no stretching)"
+msgid "&Center"
 msgstr ""
 
 msgid "4:3 Cen&ter"

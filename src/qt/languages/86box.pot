@@ -144,7 +144,7 @@ msgstr ""
 msgid "4:&3 Integer scale"
 msgstr ""
 
-msgid "&Center (no stretching)"
+msgid "&Center"
 msgstr ""
 
 msgid "4:3 Cen&ter"

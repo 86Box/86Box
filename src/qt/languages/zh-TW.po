@@ -151,7 +151,7 @@ msgstr "整數比例(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整數比例(&3)"
 
-msgid "&Center (no stretching)"
+msgid "&Center"
 msgstr ""
 
 msgid "4:3 Cen&ter"

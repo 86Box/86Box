@@ -150,7 +150,7 @@ msgstr "정수 배율(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 정수배 확대(&3)"
 
-msgid "&Center (no stretching)"
+msgid "&Center"
 msgstr ""
 
 msgid "4:3 Cen&ter"

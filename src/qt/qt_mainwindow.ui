@@ -622,7 +622,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>&amp;Center (no stretching)</string>
+    <string>&amp;Center</string>
    </property>
   </action>
   <action name="actionFullScreen_center43">

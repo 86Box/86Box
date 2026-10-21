@@ -150,7 +150,7 @@ msgstr "Éch&elle entière"
 msgid "4:&3 Integer scale"
 msgstr "Échelle entière 4:&3"
 
-msgid "&Center (no stretching)"
+msgid "&Center"
 msgstr ""
 
 msgid "4:3 Cen&ter"

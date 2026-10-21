@@ -150,7 +150,7 @@ msgstr "&Escalado valor entero"
 msgid "4:&3 Integer scale"
 msgstr "Escalado valor entero 4:&3"
 
-msgid "&Center (no stretching)"
+msgid "&Center"
 msgstr ""
 
 msgid "4:3 Cen&ter"

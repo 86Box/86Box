@@ -152,7 +152,7 @@ msgstr "&Celoštevilsko raztezanje"
 msgid "4:&3 Integer scale"
 msgstr "Celoštevilsko raztezanje 4:&3"
 
-msgid "&Center (no stretching)"
+msgid "&Center"
 msgstr ""
 
 msgid "4:3 Cen&ter"

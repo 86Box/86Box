@@ -150,7 +150,7 @@ msgstr "Tam &sayı ölçeklemesi"
 msgid "4:&3 Integer scale"
 msgstr "Tam sayı ölçeklemesi (4:&3)"
 
-msgid "&Center (no stretching)"
+msgid "&Center"
 msgstr ""
 
 msgid "4:3 Cen&ter"
