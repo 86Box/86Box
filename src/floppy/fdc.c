@@ -1775,6 +1775,15 @@ fdc_read(uint16_t addr, void *priv)
                        is always selected and its motor on, and IPL checks
                        exactly that after it has set up the drive. */
                     ret = 0x71;
+                } else if (fdc->flags & FDC_FLAG_COMPAQ) {
+                    /* Compaq 386 drive type sense: the BIOS takes bit 7
+                       clear on an 80-track drive as a 3.5" 1.44 MB one, and
+                       set as a 1.2 MB or 720 kB one. */
+                    drive = real_drive(fdc, fdc->dor & 3);
+                    drv   = (fdd_drive_t *) fdc->fdd[drive];
+                    ret   = 0xff;
+                    if (fdd_is_hd(drv) && !fdd_is_525(drv))
+                        ret &= ~0x80;
                 } else {
                     if (is486 || !fdc->enable_3f1)
                         ret = 0xff;
@@ -3207,6 +3216,20 @@ const device_t fdc_at_device = {
     .internal_name = "fdc_at",
     .flags         = DEVICE_ISA,
     .local         = FDC_FLAG_AT,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_at_compaq_device = {
+    .name          = "PC/AT FDC (Compaq)",
+    .internal_name = "fdc_at_compaq",
+    .flags         = DEVICE_ISA,
+    .local         = FDC_FLAG_AT | FDC_FLAG_COMPAQ,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
