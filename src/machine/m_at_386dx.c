@@ -51,10 +51,11 @@
 #include <86box/sound.h>
 
 /* ISA */
+/* Bit 3 clear means a Weitek coprocessor is installed, which we do not emulate. */
 uint8_t
 machine_compaq_p1_handler(void)
 {
-    return machine_generic_p1_handler() | (hasfpu ? 0x00 : 0x04);
+    return machine_generic_p1_handler() | 0x08 | (hasfpu ? 0x00 : 0x04);
 }
 
 static const device_config_t deskpro386_config[] = {
