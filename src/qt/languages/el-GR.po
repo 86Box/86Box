@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-19 01:57+0000\n"
+"PO-Revision-Date: 2026-10-20 20:07+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -431,6 +431,9 @@ msgstr "Ακριβές περιβάλλον FPU σε δυναμικό αναμε
 
 msgid "Block linking on the dynamic recompiler"
 msgstr "Σύνδεση μπλοκ σε δυναμικό αναμεταγλωττιστή"
+
+msgid "Debug registers on 486 and later processors"
+msgstr "Εντοπισμός σφαλμάτων καταχωρίσεων σε επεξεργαστές 486 και νεότερους"
 
 msgid "CPU frame size"
 msgstr "Μέγεθος πλαισίου CPU"

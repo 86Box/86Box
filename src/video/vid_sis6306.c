@@ -1339,7 +1339,7 @@ sis6306_vclk_hz(const sis6306_t *dev, unsigned bank)
         postscale = (postscale == 3) ? 6 : 8;
     }
 
-    return 14318180.0 * (double) numer / (double) denom /
+    return 14318180.0 * (double) numer / (double) denom *
            (double) divider / (double) postscale;
 }
 
@@ -1541,6 +1541,9 @@ sis6306_out(uint16_t addr, uint8_t val, void *priv)
                     if (!dev->panel_ddc_seen) {
                         dev->panel_ddc_seen = 1;
                     }
+                    if (dev->i2c)
+                        i2c_gpio_set(dev->i2c,
+                                     !!(val & 0x20), !!(val & 0x10));
                 }
                 return;
             }
@@ -1716,11 +1719,24 @@ sis6306_in(uint16_t addr, void *priv)
             }
 
             if (dev->sis_crtc_index == 0xcb) {
-                uint8_t ret = dev->ext_crtc_unlocked ?
-                              ((dev->ext_crtc[0xcb] & 0x30) | 0x0c) : 0x00;
+                uint8_t ret = 0x00;
                 dev->panel_ddc_reads++;
                 if (!dev->panel_ddc_seen) {
                     dev->panel_ddc_seen = 1;
+                }
+                if (!dev->ext_crtc_unlocked)
+                    return ret;
+
+                ret = dev->ext_crtc[0xcb] & 0x30;
+                /* Bits 3 and 2 report the SCL and SDA bus levels.
+                 * Both lines are pulled high when no bus is available. */
+                if (dev->i2c) {
+                    if (i2c_gpio_get_scl(dev->i2c))
+                        ret |= 0x08;
+                    if (i2c_gpio_get_sda(dev->i2c))
+                        ret |= 0x04;
+                } else {
+                    ret |= 0x0c;
                 }
                 return ret;
             }
@@ -5888,7 +5904,7 @@ static const device_config_t sis6306_config[] = {
 };
 
 const device_t sis6306_onboard_device = {
-    .name          = "SiS 530/620 (6306) Onboard AGP",
+    .name          = "SiS 6306 (5598/530/620) On-Board AGP",
     .internal_name = "sis6306_onboard",
     .flags         = DEVICE_AGP,
     .local         = 1,

@@ -226,13 +226,38 @@ do
 			# Check for lddtree and install it if required.
 			which lddtree > /dev/null || DEBIAN_FRONTEND=noninteractive sudo apt-get -y install pax-utils
 
-			# Default to main binary.
-			[ -z "$binary" ] && binary="archive_tmp/usr/local/bin/$project" || binary="$1"
+			# Handle AppImages.
+			if echo "$1" | grep -q "://"
+			then
+				if ! wget -O treetemp.AppImage "$1" || ! chmod +x treetemp.AppImage
+				then
+					rm -f treetemp.AppImage
+					exit 1
+				fi
+				set -- treetemp.AppImage
+			fi
+			case "$1" in
+				*.AppImage)
+					# Extract AppImage.
+					rm -rf squashfs-root
+					"./$1" --appimage-extract
+					appdir=squashfs-root
+					binary=
+					;;
+
+				*)
+					appdir=archive_tmp
+					binary="$1"
+					;;
+			esac
+			[ -z "$binary" ] && binary="$appdir/usr/local/bin/$project" # default to main binary
 
 			# Run lddtree with AppImage lib directories included in the search path.
-			LD_LIBRARY_PATH=$(find "$(pwd)/archive_tmp" -type d -name lib -o -name lib64 | while read dir; do find "$dir" -type d; done | tr '\n' ':') \
+			LD_LIBRARY_PATH=$(find "$(readlink -f "$appdir")" -type d -name lib -o -name lib64 | while read dir; do find "$dir" -type d; done | tr '\n' ':') \
 				lddtree "$binary"
-			exit $?
+			status=$?
+			[ $appdir = "squashfs-root" ] && rm -rf treetemp.AppImage squashfs-root
+			exit $status
 			;;
 
 		-s)
@@ -968,7 +993,7 @@ else
 		git clone --recurse-submodules --no-shallow-submodules --remote-submodules https://github.com/aaru-dps/libaaruformat.git "$prefix" && break
 	done
 fi
-prefix_build="$prefix/build-$arch_build" # hack
+prefix_build="$prefix/build-$arch_build"
 cmake -G Ninja -D AARU_BUILD_PACKAGE=ON -D "CMAKE_BUILD_TYPE=$cmake_build_type" \
 	-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -B "$prefix_build" -S "$prefix" || exit 99
 cmake --build "$prefix_build" -j $build_threads || exit 99
@@ -1107,15 +1132,6 @@ else
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j $build_threads || exit 99
 	cmake --install "$prefix_build" || exit 99
-
-	# We rely on the host to provide Vulkan libs to sidestep any potential
-	# dependency issues. While Qt expects libvulkan.so, at least Debian only
-	# ships libvulkan.so.1 without a symlink, so make our own as a workaround.
-	# The relative paths prevent appimage-builder from flattening the links.
-	mkdir -p "archive_tmp/usr/lib/$libdir"
-	relroot="../../../../../../../../../../../../../../../../../../../../../../../../../../../../.."
-	ln -s "$relroot/usr/lib/libvulkan.so.1" "archive_tmp/usr/lib/libvulkan.so"
-	ln -s "$relroot/usr/lib/$libdir/libvulkan.so.1" "archive_tmp/usr/lib/$libdir/libvulkan.so"
 
 	# Workaround for Qt 6 on ancient distros without GLVND: build a shim listing
 	# the two GLVND libs (and the compatibility libGL which may be absent on

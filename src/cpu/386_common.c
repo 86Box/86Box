@@ -1593,6 +1593,8 @@ leave_smm(void)
         smram_restore_state_p6(saved_state);
         restart = saved_state[SMRAM_FIELD_P6_AUTOHALT_RESTART] & 0xffff;
     }
+    /* RSM reloads CR0, CD with it. */
+    cpu_car_update();
 
     /* An auto HALT restart re-enters the HALT state, EIP past the HLT again
        (Intel SDM vol. 3, 34.10). A latched SMI is taken there, at once, so

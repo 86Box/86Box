@@ -283,6 +283,40 @@ machine_at_em440_init(const machine_t *model)
 
 /* i440ZX */
 int
+machine_at_acerv66ma_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/acerv66ma/acerv66ma.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_SOUND,       3, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 1, 2);
+
+    device_add(&i440zx_device);
+    device_add(&piix4e_device);
+    device_add_params(&fdc37mx0x_device, (void *) (FDC37M70X | FDC37XXX7 | FDC37C93X_NO_NVR));
+    device_add_params(&winbond_flash_w29c020_device, (void *) SST_FORCE_128);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+int
 machine_at_bl440zx_init(const machine_t *model)
 {
     int ret;
@@ -478,7 +512,7 @@ machine_at_me99_init(const machine_t *model)
     pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&sis_620_device);
-    device_add_params(&w83877_device, (void *) (W83877F | W83877_3F0));
+    device_add_params(&w83877_device, (void *) (W83877TF | W83877_3F0));
     device_add(&sst_flash_29ee020_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 512);
 

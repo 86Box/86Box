@@ -11480,7 +11480,6 @@ static const device_config_t s3_trio_onboard_config[] = {
         .selection      = {
              { .description = "1 MB", .value = 1 },
              { .description = "2 MB", .value = 2 },
-             /* Trio64 also supports 4 MB, however the Number Nine BIOS does not */
              { .description = ""                 }
         },
         .bios           = { { 0 } }

@@ -27,6 +27,7 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,6 +57,9 @@ typedef int sock_t;
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
+#include "x87_sf.h"
+#include "x87.h"
+#include "x87_ops_conv.h"
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/fdd.h>
@@ -73,7 +77,10 @@ typedef int sock_t;
 #include <86box/version.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
+#include <86box/char.h>
+#include <86box/serial.h>
 #include <86box/automation.h>
+#include <zstd.h>
 #ifdef USE_GDBSTUB
 #    include <86box/gdbstub.h>
 #endif
@@ -110,7 +117,10 @@ enum {
     CMD_STEP,
     CMD_WAIT_TEXT,
     CMD_WAIT_MEM,
-    CMD_KEYS
+    CMD_WAIT_SERIAL,
+    CMD_KEYS,
+    CMD_WAIT_SOUND,
+    CMD_WAIT_SILENCE
 };
 
 typedef struct {
@@ -122,6 +132,8 @@ typedef struct {
 char automation_path[1024]       = "";
 char automation_token_file[1024] = "";
 int  automation_start_held       = 0;
+int  automation_seed_set         = 0;
+uint32_t automation_seed         = 0;
 int  automation_allow_remote     = 0;
 int  automation_insecure         = 0;
 
@@ -155,6 +167,7 @@ static uint32_t wait_addr;
 static uint8_t  wait_bytes[256];
 static int      wait_len;
 static uint64_t emu_ms; /* emulated ms executed since startup */
+static char     timed_extra[256]; /* more fields for the reply that ends a timed command */
 
 static struct {
     uint16_t scan;
@@ -186,7 +199,62 @@ static uint64_t  frame_count;
 static char     rec_dir[1024];
 static uint32_t rec_interval;
 static uint64_t rec_next_ms;
+static FILE    *rec_log;  /* <dir>/frames.jsonl: one line per frame saved */
+static uint64_t rec_tsc0; /* the CPU cycle count when recording started */
+
+/* Recording without a directory: frames wait here with their stamps, for a
+   client to fetch with record pull (over TCP, from another machine). Each is
+   the frame as RGB24, XORed with the frame queued before it unless it is a
+   key frame (the first, after a size change, after a gap), compressed with
+   zstd: an unchanged screen costs almost nothing, and zstd encodes several
+   times faster than PNG. Past REC_QUEUE_MAX bytes new frames are skipped and
+   counted as lost (queued ones are kept: the next frame is XORed with them),
+   and the next one queued is a key frame. */
+#define REC_QUEUE_MAX (256u << 20)
+typedef struct {
+    char    *stamp; /* the frame's frames.jsonl fields, without the braces */
+    uint8_t *data;  /* zstd */
+    size_t   len;
+    int      w;
+    int      h;
+    int      key;
+} rec_item_t;
+static rec_item_t *rec_q;
+static size_t      rec_q_head;
+static size_t      rec_q_len;
+static size_t      rec_q_cap;
+static size_t      rec_q_bytes;
+static uint64_t    rec_lost;
+static uint8_t    *rec_prev; /* RGB24 of the last frame queued */
+static int         rec_prev_w;
+static int         rec_prev_h;
+static int         rec_need_key;
 static uint32_t rec_frames;
+
+/* COM ports with the "automation" backend. Positions count every byte since
+   startup, so a client can read on from where it left off; the oldest bytes
+   are dropped once more than SERIAL_OUT_MAX are waiting. */
+#define SERIAL_OUT_MAX 65536 /* a power of two */
+#define SERIAL_IN_MAX  65536
+
+typedef struct {
+    int      attached;
+    uint8_t  out[SERIAL_OUT_MAX]; /* guest to client */
+    uint64_t out_pos;             /* bytes the guest has sent */
+    uint64_t out_last_ms;         /* emulated ms of the last one */
+    uint8_t  in[SERIAL_IN_MAX];   /* client to guest */
+    int      in_head;
+    int      in_count;
+    uint64_t in_pos;  /* bytes the guest has taken */
+    uint64_t in_tsc;  /* CPU timestamp when it took the last one */
+    uint32_t lines;  /* CTS, DSR, DCD and RI, as the guest sees them */
+    uint32_t control; /* DTR, RTS and break, as the guest sets them */
+} serial_port_state_t;
+
+static serial_port_state_t *serial_ports[SERIAL_MAX];
+static int                  wait_port;
+static uint64_t             wait_scan;  /* where the next search starts */
+static uint64_t             wait_found; /* where the text was found */
 
 static void
 sb_printf(strbuf_t *sb, const char *fmt, ...)
@@ -383,6 +451,234 @@ cmd_text(void)
     sb_printf(&resp, "]}");
 }
 
+/* ---- Serial ports (CPU thread) ---- */
+
+static serial_port_state_t *
+serial_state(int port)
+{
+    return ((port >= 1) && (port <= SERIAL_MAX)) ? serial_ports[port - 1] : NULL;
+}
+
+void
+automation_serial_attach(int port, int attached)
+{
+    serial_port_state_t *s;
+
+    if ((port < 1) || (port > SERIAL_MAX))
+        return;
+    s = serial_ports[port - 1];
+    if (!s) {
+        if (!attached)
+            return;
+        s        = (serial_port_state_t *) calloc(1, sizeof(serial_port_state_t));
+        s->lines = CHAR_COM_CTS | CHAR_COM_DSR | CHAR_COM_DCD;
+        serial_ports[port - 1] = s;
+    }
+    s->attached = attached;
+}
+
+void
+automation_serial_out(int port, uint8_t val)
+{
+    serial_port_state_t *s = serial_state(port);
+
+    if (!s)
+        return;
+    s->out[s->out_pos & (SERIAL_OUT_MAX - 1)] = val;
+    s->out_pos++;
+    s->out_last_ms = emu_ms;
+}
+
+int
+automation_serial_in(int port, uint8_t *val, double byte_us)
+{
+    serial_port_state_t *s = serial_state(port);
+
+    if (!s || !s->in_count)
+        return 0;
+    if (byte_us > 0.0) {
+        /* TIMER_USEC is CPU cycles per microsecond, in 32.32 fixed point. A
+           timestamp that went backwards (the guest wrote the TSC) restarts. */
+        uint64_t gap = (uint64_t) (byte_us * ((double) TIMER_USEC / 4294967296.0));
+        if ((tsc >= s->in_tsc) && ((tsc - s->in_tsc) < gap))
+            return 0;
+        s->in_tsc = tsc;
+    }
+    *val       = s->in[s->in_head];
+    s->in_head = (s->in_head + 1) % SERIAL_IN_MAX;
+    s->in_count--;
+    s->in_pos++;
+    return 1;
+}
+
+uint32_t
+automation_serial_lines(int port)
+{
+    serial_port_state_t *s = serial_state(port);
+
+    return s ? s->lines : 0;
+}
+
+void
+automation_serial_control(int port, uint32_t control)
+{
+    serial_port_state_t *s = serial_state(port);
+
+    if (s)
+        s->control = control;
+}
+
+static uint64_t
+serial_oldest(const serial_port_state_t *s)
+{
+    return (s->out_pos > SERIAL_OUT_MAX) ? (s->out_pos - SERIAL_OUT_MAX) : 0;
+}
+
+/* The port named in a request, or NULL after replying with an error. */
+static serial_port_state_t *
+serial_arg(const char *arg, int *port)
+{
+    serial_port_state_t *s;
+    char                 msg[64];
+
+    *port = atoi(arg);
+    s     = serial_state(*port);
+    if (!s) {
+        snprintf(msg, sizeof(msg), "COM%d has no automation backend", *port);
+        respond_error(msg);
+    }
+    return s;
+}
+
+/* Search what the guest sent, from wait_scan on, for wait_text. */
+static int
+serial_contains(void)
+{
+    serial_port_state_t *s    = serial_state(wait_port);
+    size_t               nlen = strlen(wait_text);
+    uint64_t             p;
+
+    if (!s)
+        return 0;
+    if (wait_scan < serial_oldest(s))
+        wait_scan = serial_oldest(s);
+    for (p = wait_scan; (p + nlen) <= s->out_pos; p++) {
+        size_t i;
+        for (i = 0; i < nlen; i++) {
+            if (s->out[(p + i) & (SERIAL_OUT_MAX - 1)] != (uint8_t) wait_text[i])
+                break;
+        }
+        if (i == nlen) {
+            wait_found = p;
+            return 1;
+        }
+    }
+    /* A match could still start in the last nlen - 1 bytes. */
+    wait_scan = p;
+    return 0;
+}
+
+static void
+sb_serial_lines(strbuf_t *sb, const serial_port_state_t *s)
+{
+    sb_printf(sb, ",\"dtr\":%d,\"rts\":%d,\"break\":%d,\"cts\":%d,\"dsr\":%d,\"dcd\":%d,\"ri\":%d",
+              !!(s->control & CHAR_COM_DTR), !!(s->control & CHAR_COM_RTS), !!(s->control & CHAR_COM_BREAK),
+              !!(s->lines & CHAR_COM_CTS), !!(s->lines & CHAR_COM_DSR), !!(s->lines & CHAR_COM_DCD),
+              !!(s->lines & CHAR_COM_RI));
+}
+
+/* serial read <port> [<from> [<max>]]: what the guest sent from position
+   <from> on (default: the oldest byte still kept). */
+static void
+cmd_serial_read(int argc, char **argv)
+{
+    serial_port_state_t *s;
+    int                  port;
+    uint64_t             from, lost = 0, oldest;
+    uint64_t             max = SERIAL_OUT_MAX;
+    uint8_t             *buf;
+    int                  n;
+
+    if (!(s = serial_arg(argv[2], &port)))
+        return;
+    from = (argc >= 4) ? strtoull(argv[3], NULL, 0) : 0;
+    if (argc >= 5) {
+        max = strtoull(argv[4], NULL, 0);
+        if (!max || (max > SERIAL_OUT_MAX)) {
+            respond_error("max out of range");
+            return;
+        }
+    }
+    oldest = serial_oldest(s);
+    if (from < oldest) {
+        lost = oldest - from;
+        from = oldest;
+    }
+    if (from > s->out_pos)
+        from = s->out_pos;
+    n   = (int) (((s->out_pos - from) < max) ? (s->out_pos - from) : max);
+    buf = malloc(n ? n : 1);
+    for (int i = 0; i < n; i++)
+        buf[i] = s->out[(from + i) & (SERIAL_OUT_MAX - 1)];
+    resp.len = 0;
+    sb_printf(&resp, "{\"ok\":true,\"port\":%d,\"attached\":%s,\"from\":%llu,\"next\":%llu,\"pos\":%llu,\"lost\":%llu,"
+                     "\"last_ms\":%llu,\"pending\":%d,\"taken\":%llu,\"ms\":%llu",
+              port, s->attached ? "true" : "false", (unsigned long long) from, (unsigned long long) (from + n),
+              (unsigned long long) s->out_pos, (unsigned long long) lost, (unsigned long long) s->out_last_ms,
+              s->in_count, (unsigned long long) s->in_pos, (unsigned long long) emu_ms);
+    sb_serial_lines(&resp, s);
+    sb_printf(&resp, ",\"data\":\"");
+    sb_hex(&resp, buf, n);
+    sb_printf(&resp, "\"}");
+    free(buf);
+}
+
+/* serial write <port> <hex>: bytes for the guest, delivered at the rate
+   the guest's UART is set to as emulated time passes. */
+static void
+cmd_serial_write(char **argv)
+{
+    serial_port_state_t *s;
+    int                  port, len;
+    uint8_t             *buf;
+
+    if (!(s = serial_arg(argv[2], &port)))
+        return;
+    buf = malloc(strlen(argv[3]) / 2 + 1);
+    len = parse_hex_bytes(argv[3], buf, strlen(argv[3]) / 2 + 1);
+    if (len <= 0)
+        respond_error("bad hex bytes");
+    else if ((s->in_count + len) > SERIAL_IN_MAX)
+        respond_error("input queue full");
+    else {
+        for (int i = 0; i < len; i++)
+            s->in[(s->in_head + s->in_count + i) % SERIAL_IN_MAX] = buf[i];
+        s->in_count += len;
+        resp.len = 0;
+        sb_printf(&resp, "{\"ok\":true,\"port\":%d,\"queued\":%d,\"pending\":%d,\"ms\":%llu}",
+                  port, len, s->in_count, (unsigned long long) emu_ms);
+    }
+    free(buf);
+}
+
+/* serial lines <port> <cts> <dsr> <dcd> <ri>: the modem status lines the
+   guest sees, each 0 or 1. */
+static void
+cmd_serial_lines(char **argv)
+{
+    serial_port_state_t *s;
+    int                  port;
+
+    if (!(s = serial_arg(argv[2], &port)))
+        return;
+    s->lines = (atoi(argv[3]) ? CHAR_COM_CTS : 0) | (atoi(argv[4]) ? CHAR_COM_DSR : 0) |
+               (atoi(argv[5]) ? CHAR_COM_DCD : 0) | (atoi(argv[6]) ? CHAR_COM_RI : 0);
+    resp.len = 0;
+    sb_printf(&resp, "{\"ok\":true,\"port\":%d,\"ms\":%llu", port, (unsigned long long) emu_ms);
+    sb_serial_lines(&resp, s);
+    sb_printf(&resp, "}");
+}
+
 /* ---- Machine information ---- */
 
 static void
@@ -436,6 +732,27 @@ cmd_info(void)
         sb_printf(&resp, "}");
         first = 0;
     }
+    sb_printf(&resp, "],\"serial\":[");
+    first = 1;
+    for (int i = 0; i < SERIAL_MAX; i++) {
+        serial_port_state_t *s = serial_ports[i];
+        if (!com_ports[i].enabled)
+            continue;
+        sb_printf(&resp, "%s{\"port\":%d,\"device\":", first ? "" : ",", i + 1);
+        sb_json_string(&resp, com_ports[i].device ? char_get_device(com_ports[i].device)->internal_name : "none");
+        if (com_ports[i].serial && com_ports[i].serial->char_port.attached)
+            sb_printf(&resp, ",\"baud\":%u,\"data_bits\":%u,\"parity\":%u,\"stop_bits\":%u",
+                      com_ports[i].serial->char_port.com.baud, com_ports[i].serial->char_port.com.data_bits,
+                      com_ports[i].serial->char_port.com.parity, com_ports[i].serial->char_port.com.stop_bits);
+        if (s) {
+            sb_printf(&resp, ",\"pos\":%llu,\"oldest\":%llu,\"last_ms\":%llu,\"pending\":%d",
+                      (unsigned long long) s->out_pos, (unsigned long long) serial_oldest(s),
+                      (unsigned long long) s->out_last_ms, s->in_count);
+            sb_serial_lines(&resp, s);
+        }
+        sb_printf(&resp, "}");
+        first = 0;
+    }
     sb_printf(&resp, "],\"hard_resets\":%u,\"soft_resets\":%u,\"last_reset_ms\":%llu,\"speed_percent\":%d,"
                      "\"ms\":%llu,\"frames\":%llu,\"held\":%s,\"paused\":%s,\"w\":%d,\"h\":%d}",
               hard_resets, soft_resets, (unsigned long long) last_reset_ms, speed_percent,
@@ -453,22 +770,658 @@ automation_reset(int hard)
     last_reset_ms = emu_ms;
 }
 
+/* ---- Audio ---- */
+
+/* Every block each sound stream hands to the host backend comes here first,
+   on whichever thread made it. The streams the sound core polls on emulated
+   timers (main, music, wavetable, ym2151) are sample-exact: frame n of a
+   recording is at start_ms + n / rate. The CD, floppy, hard disk and MIDI
+   synth streams are rendered on their own threads, so their timing is only
+   as good as the moment each block arrives. */
+
+static void sb_base64(strbuf_t *sb, const uint8_t *data, size_t len);
+
+#define AUD_RING_SECONDS 30
+#define AUD_MAX_SEGS     16
+
+static const char *aud_names[I_MAX] = { "main", "music", "wavetable", "cd", "fdd", "hdd", "ym2151", "midi" };
+
+typedef struct {
+    int16_t *ring; /* stereo frames, the last AUD_RING_SECONDS */
+    uint32_t ring_frames;
+    uint32_t ring_pos;
+    uint64_t total;     /* frames received */
+    uint64_t ring_base; /* total when the ring was (re)made: nothing older is in it */
+    int      rate;
+    uint64_t last_ms; /* emu_ms when the last block arrived */
+
+    int      rec;  /* recording this stream */
+    int      open; /* a segment is being recorded (to a file, or in memory) */
+    FILE    *wav;
+    uint32_t skip; /* frames of the next blocks that precede the start */
+    uint64_t frames;
+    double   first_ms; /* emulated time of the first frame written */
+    int      exact;    /* first_ms is sample-exact */
+    char     file[32];
+    /* A rate change (another MIDI synth, a new sample rate setting) closes
+       the file and starts another: each segment has one rate and start. */
+    struct {
+        char     file[32];
+        int      rate;
+        uint64_t frames;
+        double   start_ms;
+        int      exact;
+    } segs[AUD_MAX_SEGS];
+    int nsegs;
+    /* The current (or last) segment in received frames (total), for audio
+       pull: position 0 is seg_origin; it ends at seg_end once closed. */
+    uint64_t seg_origin;
+    uint64_t seg_end;
+    int      seg_no;
+
+    uint64_t loud_ms; /* wait silence: time of the last frame above the level */
+} aud_t;
+
+static aud_t    aud[I_MAX];
+static mutex_t *aud_mutex;
+static int16_t *aud_scratch;
+static int      aud_scratch_len;
+static int      aud_recording;
+static uint64_t aud_start_ms;
+static char     aud_dir[1024]; /* empty: record in memory only (audio pull) */
+
+static int      aud_wait;       /* CMD_WAIT_SOUND or CMD_WAIT_SILENCE while one runs */
+static int      aud_wait_level; /* threshold, in 16-bit sample units */
+static uint64_t aud_wait_for;   /* wait silence: ms that must stay below it */
+static int      aud_hit = -1;   /* wait sound: the stream that crossed it */
+static double   aud_onset_ms;
+
+static int
+aud_exact(int src)
+{
+    return (src == I_NORMAL) || (src == I_MUSIC) || (src == I_WT) || (src == I_YM2151);
+}
+
+static void
+wav_header(FILE *f, int rate, uint64_t frames)
+{
+    uint32_t data = (uint32_t) (frames * 4);
+    uint8_t  h[44];
+
+    memcpy(h, "RIFF", 4);
+    h[4]  = (36 + data) & 0xff;
+    h[5]  = ((36 + data) >> 8) & 0xff;
+    h[6]  = ((36 + data) >> 16) & 0xff;
+    h[7]  = ((36 + data) >> 24) & 0xff;
+    memcpy(h + 8, "WAVEfmt ", 8);
+    h[16] = 16, h[17] = h[18] = h[19] = 0;
+    h[20] = 1, h[21] = 0; /* PCM */
+    h[22] = 2, h[23] = 0; /* stereo */
+    for (int i = 0; i < 4; i++) {
+        h[24 + i] = (rate >> (8 * i)) & 0xff;
+        h[28 + i] = ((rate * 4) >> (8 * i)) & 0xff;
+        h[40 + i] = (data >> (8 * i)) & 0xff;
+    }
+    h[32] = 4, h[33] = 0;  /* block align */
+    h[34] = 16, h[35] = 0; /* bits */
+    memcpy(h + 36, "data", 4);
+    fseek(f, 0, SEEK_SET);
+    fwrite(h, 1, 44, f);
+}
+
+/* Close the stream's current file and remember it as a segment. */
+static void
+aud_close_seg(aud_t *a)
+{
+    if (!a->open)
+        return;
+    if (a->wav) {
+        wav_header(a->wav, a->rate, a->frames);
+        fclose(a->wav);
+        a->wav = NULL;
+    }
+    a->open    = 0;
+    a->seg_end = a->seg_origin + a->frames;
+    if (a->nsegs < AUD_MAX_SEGS) {
+        memcpy(a->segs[a->nsegs].file, a->file, sizeof(a->file));
+        a->segs[a->nsegs].rate     = a->rate;
+        a->segs[a->nsegs].frames   = a->frames;
+        a->segs[a->nsegs].start_ms = a->first_ms;
+        a->segs[a->nsegs].exact    = a->exact;
+        a->nsegs++;
+    }
+    a->frames = 0;
+}
+
+void
+automation_audio(int src, const void *buf, int size, int is_float)
+{
+    aud_t *a;
+    int    n = size / 2;
+    int    rate;
+    int    first = -1;
+    int    last  = -1;
+
+    if (!enabled || (src < 0) || (src >= I_MAX) || (n <= 0) || !aud_mutex)
+        return;
+    rate = sound_stream_rate(src);
+    if (rate <= 0)
+        return;
+
+    thread_wait_mutex(aud_mutex);
+    a = &aud[src];
+    if (aud_scratch_len < size) {
+        aud_scratch     = realloc(aud_scratch, size * sizeof(int16_t));
+        aud_scratch_len = size;
+    }
+    if (is_float) {
+        const float *f = (const float *) buf;
+        for (int i = 0; i < size; i++) {
+            float v = f[i] * 32768.0f;
+            aud_scratch[i] = (v >= 32767.0f) ? 32767 : ((v <= -32768.0f) ? -32768 : (int16_t) v);
+        }
+    } else
+        memcpy(aud_scratch, buf, size * sizeof(int16_t));
+
+    if (!a->ring || (a->rate != rate)) {
+        if (a->open) {
+            aud_close_seg(a);
+            a->skip = 0;
+        }
+        free(a->ring);
+        a->rate        = rate;
+        a->ring_frames = (uint32_t) rate * AUD_RING_SECONDS;
+        a->ring        = calloc(a->ring_frames, 2 * sizeof(int16_t));
+        a->ring_pos    = 0;
+        a->ring_base   = a->total;
+    }
+    for (int i = 0; i < n; i++) {
+        a->ring[a->ring_pos * 2]     = aud_scratch[i * 2];
+        a->ring[a->ring_pos * 2 + 1] = aud_scratch[i * 2 + 1];
+        if (++a->ring_pos == a->ring_frames)
+            a->ring_pos = 0;
+    }
+    a->total += n;
+    a->last_ms = emu_ms;
+
+    if (a->rec && aud_recording) {
+        int from = (a->skip >= (uint32_t) n) ? n : (int) a->skip;
+
+        a->skip -= from;
+        if (!a->open && (from < n) && (a->nsegs < AUD_MAX_SEGS)) {
+            a->open       = 1;
+            a->seg_no     = a->nsegs;
+            a->seg_origin = a->total - n + from;
+            a->file[0]    = '\0';
+            if (aud_dir[0]) {
+                char fn[1100];
+
+                if (a->nsegs)
+                    snprintf(a->file, sizeof(a->file), "%s-%d.wav", aud_names[src], a->nsegs + 1);
+                else
+                    snprintf(a->file, sizeof(a->file), "%s.wav", aud_names[src]);
+                snprintf(fn, sizeof(fn), "%s/%s", aud_dir, a->file);
+                a->wav = plat_fopen(fn, "wb");
+                if (a->wav)
+                    wav_header(a->wav, rate, 0);
+            }
+            /* The polled streams' first segment starts exactly at the start;
+               otherwise a block covers the time just before it arrived. */
+            a->exact    = aud_exact(src) && !a->nsegs;
+            a->first_ms = a->exact ? (double) aud_start_ms : (double) emu_ms - (n * 1000.0 / rate);
+        }
+        if (a->open && (from < n)) {
+            if (a->wav)
+                fwrite(aud_scratch + from * 2, 2 * sizeof(int16_t), n - from, a->wav);
+            a->frames += n - from;
+        }
+    }
+
+    if (aud_wait) {
+        for (int i = 0; i < size; i++) {
+            if (abs(aud_scratch[i]) >= aud_wait_level) {
+                if (first < 0)
+                    first = i / 2;
+                last = i / 2;
+            }
+        }
+        /* The block ends at about emu_ms: date frames back from there. */
+        if ((aud_wait == CMD_WAIT_SOUND) && (first >= 0) && (aud_hit < 0)) {
+            aud_hit      = src;
+            aud_onset_ms = (double) emu_ms - ((n - first) * 1000.0 / rate);
+        }
+        if ((aud_wait == CMD_WAIT_SILENCE) && (last >= 0))
+            a->loud_ms = emu_ms - (uint64_t) (((n - 1 - last) * 1000LL) / rate);
+    }
+    thread_release_mutex(aud_mutex);
+}
+
+static double
+aud_db(double v)
+{
+    return (v > 0.0) ? 20.0 * log10(v / 32768.0) : -120.0;
+}
+
+static int
+aud_level_from_db(double db)
+{
+    double v = 32768.0 * pow(10.0, db / 20.0);
+
+    return (v < 1.0) ? 1 : ((v > 32767.0) ? 32767 : (int) v);
+}
+
+/* Stop recording: finish the WAV headers and describe the segments. */
+static void
+aud_stop(strbuf_t *sb)
+{
+    int first = 1;
+
+    thread_wait_mutex(aud_mutex);
+    if (sb)
+        sb_printf(sb, "{\"ok\":true,\"start_ms\":%llu,\"ms\":%llu,\"streams\":[",
+                  (unsigned long long) aud_start_ms, (unsigned long long) emu_ms);
+    for (int i = 0; i < I_MAX; i++) {
+        aud_t *a = &aud[i];
+
+        aud_close_seg(a);
+        for (int k = 0; sb && (k < a->nsegs); k++) {
+            sb_printf(sb, "%s{\"name\":\"%s\",\"segment\":%d,\"rate\":%d,\"frames\":%llu,\"start_ms\":%.3f,\"exact\":%s",
+                      first ? "" : ",", aud_names[i], k, a->segs[k].rate,
+                      (unsigned long long) a->segs[k].frames, a->segs[k].start_ms, a->segs[k].exact ? "true" : "false");
+            if (a->segs[k].file[0])
+                sb_printf(sb, ",\"file\":\"%s\"", a->segs[k].file);
+            if (a->segs[k].exact && (a->nsegs == 1)) {
+                /* Frames written plus frames ticked but not yet handed over,
+                   against the emulated time elapsed: 0 means no gap. */
+                double want = (double) (emu_ms - aud_start_ms) * a->segs[k].rate / 1000.0;
+                sb_printf(sb, ",\"drift_frames\":%.1f",
+                          (double) (a->segs[k].frames + sound_pending_frames(i)) - want);
+            }
+            sb_printf(sb, "}");
+            first = 0;
+        }
+        a->nsegs = 0;
+        a->rec   = 0;
+    }
+    aud_recording = 0;
+    thread_release_mutex(aud_mutex);
+    if (sb)
+        sb_printf(sb, "]}");
+}
+
+/* audio start <dir> | audio stop | audio level <ms> | audio read <stream> <ms> */
+static void
+handle_audio(int argc, char **argv, char **rest)
+{
+    if ((argc >= 2) && !strcmp(argv[1], "start")) {
+        if (aud_recording) {
+            respond_error("already recording audio");
+            return;
+        }
+        /* With a directory, each stream is also written there as WAV files;
+           without one, it is kept for audio pull only (a client elsewhere). */
+        snprintf(aud_dir, sizeof(aud_dir), "%s", (argc >= 3) ? rest[2] : "");
+        thread_wait_mutex(aud_mutex);
+        for (int i = 0; i < I_MAX; i++) {
+            aud[i].rec    = 1;
+            aud[i].frames = 0;
+            aud[i].nsegs  = 0;
+            aud[i].skip   = (uint32_t) sound_pending_frames(i);
+        }
+        aud_start_ms  = emu_ms;
+        aud_recording = 1;
+        thread_release_mutex(aud_mutex);
+        resp.len = 0;
+        sb_printf(&resp, "{\"ok\":true,\"start_ms\":%llu}", (unsigned long long) emu_ms);
+    } else if ((argc == 2) && !strcmp(argv[1], "stop")) {
+        if (!aud_recording) {
+            respond_error("not recording audio");
+            return;
+        }
+        resp.len = 0;
+        aud_stop(&resp);
+    } else if ((argc == 3) && !strcmp(argv[1], "level")) {
+        uint64_t ms    = strtoull(argv[2], NULL, 0);
+        int      first = 1;
+
+        resp.len = 0;
+        sb_printf(&resp, "{\"ok\":true,\"ms\":%llu,\"streams\":{", (unsigned long long) emu_ms);
+        thread_wait_mutex(aud_mutex);
+        for (int i = 0; i < I_MAX; i++) {
+            aud_t   *a = &aud[i];
+            uint64_t n;
+            double   peak = 0.0;
+            double   sum  = 0.0;
+
+            if (!a->ring || !a->total)
+                continue;
+            n = (ms * a->rate) / 1000;
+            if (n > a->total)
+                n = a->total;
+            if (n > a->ring_frames)
+                n = a->ring_frames;
+            for (uint64_t k = 0; k < n; k++) {
+                uint32_t f = (a->ring_pos + a->ring_frames - 1 - (uint32_t) k) % a->ring_frames;
+                for (int c = 0; c < 2; c++) {
+                    double v = abs(a->ring[f * 2 + c]);
+                    if (v > peak)
+                        peak = v;
+                    sum += v * v;
+                }
+            }
+            sb_printf(&resp, "%s\"%s\":{\"peak_db\":%.1f,\"rms_db\":%.1f,\"frames\":%llu,\"rate\":%d,\"last_ms\":%llu}",
+                      first ? "" : ",", aud_names[i], aud_db(peak), aud_db(n ? sqrt(sum / (2.0 * n)) : 0.0),
+                      (unsigned long long) n, a->rate, (unsigned long long) a->last_ms);
+            first = 0;
+        }
+        thread_release_mutex(aud_mutex);
+        sb_printf(&resp, "}}");
+    } else if ((argc == 4) && !strcmp(argv[1], "read")) {
+        int      src = -1;
+        uint64_t ms  = strtoull(argv[3], NULL, 0);
+
+        for (int i = 0; i < I_MAX; i++) {
+            if (!strcmp(argv[2], aud_names[i]))
+                src = i;
+        }
+        if (src < 0) {
+            respond_error("unknown stream");
+            return;
+        }
+        thread_wait_mutex(aud_mutex);
+        aud_t *a = &aud[src];
+        if (!a->ring || !a->total) {
+            thread_release_mutex(aud_mutex);
+            respond_error("no audio from that stream yet");
+            return;
+        }
+        uint64_t n = (ms * a->rate) / 1000;
+        if (n > a->total)
+            n = a->total;
+        if (n > a->ring_frames)
+            n = a->ring_frames;
+        int16_t *out = malloc(n * 2 * sizeof(int16_t) + 4);
+        for (uint64_t k = 0; k < n; k++) {
+            uint32_t f = (a->ring_pos + a->ring_frames - (uint32_t) n + (uint32_t) k) % a->ring_frames;
+            out[k * 2]     = a->ring[f * 2];
+            out[k * 2 + 1] = a->ring[f * 2 + 1];
+        }
+        resp.len = 0;
+        sb_printf(&resp, "{\"ok\":true,\"ms\":%llu,\"stream\":\"%s\",\"rate\":%d,\"frames\":%llu,\"end_ms\":%llu,\"data\":\"",
+                  (unsigned long long) emu_ms, aud_names[src], a->rate, (unsigned long long) n,
+                  (unsigned long long) a->last_ms);
+        thread_release_mutex(aud_mutex);
+        sb_base64(&resp, (const uint8_t *) out, n * 2 * sizeof(int16_t));
+        sb_printf(&resp, "\"}");
+        free(out);
+    } else if (((argc == 4) || (argc == 5)) && !strcmp(argv[1], "pull")) {
+        /* audio pull <stream> <from> [max_frames]: the recording's samples from
+           position <from> (frames since its start), up to now or to where it
+           stopped. Successive pulls from each reply's next join exactly; lost
+           counts frames that left the ring before they were pulled. */
+        int      src  = -1;
+        uint64_t from = strtoull(argv[3], NULL, 0);
+        uint64_t max  = (argc == 5) ? strtoull(argv[4], NULL, 0) : (uint64_t) 1 << 20;
+
+        for (int i = 0; i < I_MAX; i++) {
+            if (!strcmp(argv[2], aud_names[i]))
+                src = i;
+        }
+        if (src < 0) {
+            respond_error("unknown stream");
+            return;
+        }
+        thread_wait_mutex(aud_mutex);
+        aud_t *a = &aud[src];
+        if (!a->ring || (!a->open && (a->seg_end == a->seg_origin))) {
+            thread_release_mutex(aud_mutex);
+            respond_error("nothing recorded from that stream");
+            return;
+        }
+        uint64_t hi     = a->open ? a->total : a->seg_end;
+        uint64_t oldest = (a->total > a->ring_frames) ? (a->total - a->ring_frames) : 0;
+        uint64_t lo     = a->seg_origin;
+        uint64_t at     = a->seg_origin + from;
+        uint64_t lost   = 0;
+
+        if (oldest > lo)
+            lo = oldest;
+        if (a->ring_base > lo)
+            lo = a->ring_base;
+        if (at < lo) {
+            lost = lo - at;
+            at   = lo;
+        }
+        if (at > hi)
+            at = hi;
+        uint64_t n = hi - at;
+        if (n > max)
+            n = max;
+        int16_t *out = malloc(n * 2 * sizeof(int16_t) + 4);
+        for (uint64_t k = 0; k < n; k++) {
+            uint32_t f     = (uint32_t) ((a->ring_pos + a->ring_frames - ((a->total - (at + k)) % a->ring_frames)) % a->ring_frames);
+            out[k * 2]     = a->ring[f * 2];
+            out[k * 2 + 1] = a->ring[f * 2 + 1];
+        }
+        resp.len = 0;
+        sb_printf(&resp, "{\"ok\":true,\"ms\":%llu,\"stream\":\"%s\",\"segment\":%d,\"rate\":%d,\"from\":%llu,"
+                  "\"frames\":%llu,\"next\":%llu,\"lost\":%llu,\"recording\":%s,\"data\":\"",
+                  (unsigned long long) emu_ms, aud_names[src], a->seg_no, a->rate,
+                  (unsigned long long) (at - a->seg_origin), (unsigned long long) n,
+                  (unsigned long long) (at - a->seg_origin + n), (unsigned long long) lost, a->open ? "true" : "false");
+        thread_release_mutex(aud_mutex);
+        sb_base64(&resp, (const uint8_t *) out, n * 2 * sizeof(int16_t));
+        sb_printf(&resp, "\"}");
+        free(out);
+    } else
+        respond_error("usage: audio start [<dir>] | audio stop | audio level <ms> | audio read <stream> <ms> | "
+                      "audio pull <stream> <from> [max_frames]");
+}
+
+/* wait sound / wait silence: arm the tap, or check it each quantum. */
+static void
+aud_wait_begin(int which, double db, uint64_t for_ms, uint64_t since_ms)
+{
+    thread_wait_mutex(aud_mutex);
+    aud_wait       = which;
+    aud_wait_level = aud_level_from_db(db);
+    aud_wait_for   = for_ms;
+    aud_hit        = -1;
+    for (int i = 0; i < I_MAX; i++)
+        aud[i].loud_ms = since_ms;
+    thread_release_mutex(aud_mutex);
+}
+
+static int
+aud_wait_done(void)
+{
+    int done = 0;
+
+    thread_wait_mutex(aud_mutex);
+    if (aud_wait == CMD_WAIT_SOUND) {
+        done = (aud_hit >= 0);
+        if (done)
+            snprintf(timed_extra, sizeof(timed_extra), ",\"stream\":\"%s\",\"onset_ms\":%.1f",
+                     aud_names[aud_hit], aud_onset_ms);
+    } else {
+        uint64_t loud = 0;
+        for (int i = 0; i < I_MAX; i++) {
+            if (aud[i].loud_ms > loud)
+                loud = aud[i].loud_ms;
+        }
+        done = (emu_ms >= loud + aud_wait_for);
+        /* Reported on a timeout too, so a client can go on waiting from there. */
+        snprintf(timed_extra, sizeof(timed_extra), ",\"quiet_since_ms\":%llu", (unsigned long long) loud);
+    }
+    thread_release_mutex(aud_mutex);
+    return done;
+}
+
+static void
+aud_wait_end(void)
+{
+    thread_wait_mutex(aud_mutex);
+    aud_wait = 0;
+    thread_release_mutex(aud_mutex);
+}
+
 /* ---- Screenshots ---- */
 
 static int write_png(const char *fn);
+
+static int encode_png(strbuf_t *out);
+static strbuf_t png_out;
+
+/* A frame's stamp: when it was captured, in the CPU's own cycles (the time
+   base every timer runs on), and where each recorded sound stream was then,
+   in samples since the recording started. The fields, without braces. */
+static void
+rec_stamp(strbuf_t *sb)
+{
+    uint64_t ran   = (uint64_t) tsc - rec_tsc0;
+    int      first = 1;
+
+    sb_printf(sb, "\"ms\":%llu,\"cycles\":%llu,\"us\":%.3f,\"frame\":%llu,\"audio\":{",
+              (unsigned long long) emu_ms, (unsigned long long) ran,
+              cpuclock ? (double) ran * 1000000.0 / cpuclock : 0.0, (unsigned long long) frame_count);
+    thread_wait_mutex(aud_mutex);
+    for (int i = 0; aud_recording && (i < I_MAX); i++) {
+        const aud_t *a = &aud[i];
+
+        if (!a->rec || !aud_exact(i) || a->nsegs)
+            continue;
+        sb_printf(sb, "%s\"%s\":%lld", first ? "" : ",", aud_names[i],
+                  (long long) a->frames + sound_pending_frames(i) - (long long) a->skip);
+        first = 0;
+    }
+    thread_release_mutex(aud_mutex);
+    sb_printf(sb, "}");
+}
+
+static void
+rec_q_drop_oldest(void)
+{
+    rec_item_t *it = &rec_q[rec_q_head];
+
+    rec_q_bytes -= it->len;
+    free(it->stamp);
+    free(it->data);
+    rec_q_head = (rec_q_head + 1) % rec_q_cap;
+    rec_q_len--;
+}
+
+static void
+rec_q_clear(void)
+{
+    while (rec_q_len)
+        rec_q_drop_oldest();
+    rec_q_head   = 0;
+    rec_lost     = 0;
+    rec_need_key = 1;
+}
+
+static void
+rec_q_push(rec_item_t item)
+{
+    if (rec_q_len == rec_q_cap) {
+        size_t      cap = rec_q_cap ? rec_q_cap * 2 : 256;
+        rec_item_t *q   = calloc(cap, sizeof(rec_item_t));
+
+        for (size_t i = 0; i < rec_q_len; i++)
+            q[i] = rec_q[(rec_q_head + i) % rec_q_cap];
+        free(rec_q);
+        rec_q      = q;
+        rec_q_cap  = cap;
+        rec_q_head = 0;
+    }
+    rec_q[(rec_q_head + rec_q_len) % rec_q_cap] = item;
+    rec_q_len++;
+    rec_q_bytes += item.len;
+}
+
+/* Queue the current frame (frame_mutex held). */
+static void
+rec_q_frame(void)
+{
+    const size_t n     = (size_t) frame_w * frame_h * 3;
+    uint8_t     *rgb   = malloc(n);
+    uint8_t     *x     = malloc(n);
+    size_t       bound = ZSTD_compressBound(n);
+    rec_item_t   item  = { 0 };
+    strbuf_t     stamp = { 0 };
+
+    if (rec_q_bytes > REC_QUEUE_MAX) {
+        /* The client is behind: skip this frame, start again with a key frame. */
+        rec_lost++;
+        rec_need_key = 1;
+        free(rgb);
+        free(x);
+        return;
+    }
+    for (int y = 0; y < frame_h; y++) {
+        const uint32_t *src = &frame_buf[y * frame_w];
+        uint8_t        *row = &rgb[(size_t) y * frame_w * 3];
+
+        for (int i = 0; i < frame_w; i++) {
+            row[i * 3]     = (src[i] >> 16) & 0xff;
+            row[i * 3 + 1] = (src[i] >> 8) & 0xff;
+            row[i * 3 + 2] = src[i] & 0xff;
+        }
+    }
+    item.key = rec_need_key || !rec_prev || (rec_prev_w != frame_w) || (rec_prev_h != frame_h);
+    for (size_t i = 0; i < n; i++)
+        x[i] = item.key ? rgb[i] : (rgb[i] ^ rec_prev[i]);
+    item.data = malloc(bound);
+    item.len  = ZSTD_compress(item.data, bound, x, n, 1);
+    free(x);
+    if (ZSTD_isError(item.len)) {
+        free(item.data);
+        free(rgb);
+        rec_lost++;
+        rec_need_key = 1;
+        return;
+    }
+    item.w = frame_w;
+    item.h = frame_h;
+    rec_stamp(&stamp);
+    item.stamp = stamp.buf;
+    rec_q_push(item);
+    free(rec_prev);
+    rec_prev     = rgb;
+    rec_prev_w   = frame_w;
+    rec_prev_h   = frame_h;
+    rec_need_key = 0;
+    rec_frames++;
+}
 
 /* Called with frame_mutex held, right after a new frame was captured. */
 static void
 record_frame(void)
 {
-    char fn[1100];
+    strbuf_t stamp = { 0 };
 
     if (!rec_interval || (emu_ms < rec_next_ms))
         return;
-    snprintf(fn, sizeof(fn), "%s/%010llu.png", rec_dir, (unsigned long long) emu_ms);
-    if (write_png(fn))
-        rec_frames++;
     rec_next_ms = emu_ms + rec_interval;
+    if (!rec_dir[0]) {
+        /* In memory, for record pull. */
+        if (frame_buf && frame_w && frame_h)
+            rec_q_frame();
+        return;
+    }
+    {
+        char fn[1100];
+
+        snprintf(fn, sizeof(fn), "%s/%010llu.png", rec_dir, (unsigned long long) emu_ms);
+        if (!write_png(fn))
+            return;
+    }
+    rec_frames++;
+    if (rec_log) {
+        rec_stamp(&stamp);
+        fprintf(rec_log, "{%.*s}\n", (int) stamp.len, stamp.buf);
+        free(stamp.buf);
+    }
 }
 
 static void
@@ -531,8 +1484,6 @@ encode_png(strbuf_t *out)
     png_destroy_write_struct(&png, &info);
     return 1;
 }
-
-static strbuf_t png_out;
 
 static int
 write_png(const char *fn)
@@ -623,6 +1574,8 @@ begin_timed(int which, uint64_t ms)
 static void
 end_timed_stopped(int matched, const char *stopped)
 {
+    int which = cmd;
+
     cmd      = CMD_NONE;
     held     = cmd_was_held;
     resp.len = 0;
@@ -632,7 +1585,15 @@ end_timed_stopped(int matched, const char *stopped)
         sb_printf(&resp, ",\"matched\":%s", matched ? "true" : "false");
     if (stopped)
         sb_printf(&resp, ",\"stopped\":\"%s\"", stopped);
-    sb_printf(&resp, "}");
+    if ((which == CMD_WAIT_SERIAL) && serial_state(wait_port)) {
+        if (matched > 0)
+            sb_printf(&resp, ",\"at\":%llu", (unsigned long long) wait_found);
+        sb_printf(&resp, ",\"next\":%llu", (unsigned long long) serial_state(wait_port)->out_pos);
+    }
+    sb_printf(&resp, "%s}", timed_extra);
+    timed_extra[0] = '\0';
+    if (aud_wait)
+        aud_wait_end();
     complete();
 }
 
@@ -649,6 +1610,9 @@ wait_satisfied(void)
     if (cmd == CMD_WAIT_TEXT)
         return text_contains(wait_text);
 
+    if (cmd == CMD_WAIT_SERIAL)
+        return serial_contains();
+
     if (cmd == CMD_WAIT_MEM) {
         for (int i = 0; i < wait_len; i++) {
             if (peek_phys(wait_addr + i) != wait_bytes[i])
@@ -658,6 +1622,54 @@ wait_satisfied(void)
     }
 
     return 0;
+}
+
+/* A segment register or descriptor table register: the selector (when it
+   has one) and what the CPU holds of its descriptor. "ar" is the access
+   byte and, above it, the flags byte (G, D/B, AVL and limit 19:16), as
+   bytes 5 and 6 of the descriptor. */
+static void
+sb_seg(strbuf_t *sb, const char *name, const x86seg *s, int sel, int ar)
+{
+    if (sel)
+        sb_printf(sb, ",\"%s\":%u", name, s->seg);
+    sb_printf(sb, ",\"%s_base\":%u,\"%s_limit\":%u", name, s->base, name, s->limit);
+    if (ar)
+        sb_printf(sb, ",\"%s_ar\":%u", name, s->access | (s->ar_high << 8));
+}
+
+/* Physical x87 register r as the 80-bit value FSAVE would store: sign and
+   exponent, then the 64-bit significand. */
+static void
+fpu_reg80(int r, uint16_t *se, uint64_t *signif)
+{
+    if (fpu_softfloat) {
+        *se     = fpu_state.st_space[r].signExp;
+        *signif = fpu_state.st_space[r].signif;
+    } else if (cpu_state.ismmx) {
+        *se     = *MMEP[r];
+        *signif = MMP[r]->q;
+    } else if (cpu_state.tag[r] & TAG_UINT64) {
+        /* An integer FILD loaded, kept exactly beside its double. */
+        int64_t  i = (int64_t) cpu_state.MM[r].q;
+        uint64_t m = (i < 0) ? (0 - (uint64_t) i) : (uint64_t) i;
+        int      e = 16383 + 63;
+
+        if (m == 0)
+            e = 0;
+        while (m && !(m & 0x8000000000000000ULL)) {
+            m <<= 1;
+            e--;
+        }
+        *se     = ((i < 0) ? 0x8000 : 0) | e;
+        *signif = m;
+    } else {
+        x87_conv_t c;
+
+        x87_to80(cpu_state.ST[r], &c);
+        *se     = (uint16_t) c.begin;
+        *signif = c.eind.ll;
+    }
 }
 
 static void
@@ -746,6 +1758,37 @@ handle_request(char *line)
                 end_timed(1);
             return;
         }
+    } else if (!strcmp(argv[0], "wait") && (argc == 4) && !strcmp(argv[1], "sound")) {
+        /* wait sound <timeout_ms> <dBFS> */
+        aud_wait_begin(CMD_WAIT_SOUND, strtod(argv[3], NULL), 0, emu_ms);
+        begin_timed(CMD_WAIT_SOUND, strtoull(argv[2], NULL, 0));
+        return;
+    } else if (!strcmp(argv[0], "wait") && ((argc == 5) || (argc == 6)) && !strcmp(argv[1], "silence")) {
+        /* wait silence <timeout_ms> <dBFS> <for_ms> [quiet_since_ms] */
+        aud_wait_begin(CMD_WAIT_SILENCE, strtod(argv[3], NULL), strtoull(argv[4], NULL, 0),
+                       (argc == 6) ? strtoull(argv[5], NULL, 0) : emu_ms);
+        begin_timed(CMD_WAIT_SILENCE, strtoull(argv[2], NULL, 0));
+        return;
+    } else if (!strcmp(argv[0], "audio") && (argc >= 2)) {
+        handle_audio(argc, argv, rest);
+    } else if (!strcmp(argv[0], "wait") && (argc >= 6) && !strcmp(argv[1], "serial")) {
+        /* wait serial <timeout_ms> <port> <from> <text...>: run until <text>
+           is in what the guest sent on the port, from position <from> on. */
+        serial_port_state_t *s = serial_arg(argv[3], &wait_port);
+        if (s) {
+            strncpy(wait_text, rest[5], sizeof(wait_text) - 1);
+            wait_scan = strtoull(argv[4], NULL, 0);
+            begin_timed(CMD_WAIT_SERIAL, strtoull(argv[2], NULL, 0));
+            if (wait_satisfied())
+                end_timed(1);
+            return;
+        }
+    } else if (!strcmp(argv[0], "serial") && (argc >= 3) && (argc <= 5) && !strcmp(argv[1], "read")) {
+        cmd_serial_read(argc, argv);
+    } else if (!strcmp(argv[0], "serial") && (argc == 4) && !strcmp(argv[1], "write")) {
+        cmd_serial_write(argv);
+    } else if (!strcmp(argv[0], "serial") && (argc == 7) && !strcmp(argv[1], "lines")) {
+        cmd_serial_lines(argv);
     } else if (!strcmp(argv[0], "key") && (argc >= 3)) {
         /* key down|up <scancode>... ; scancodes in 86Box form, 0x1xx = E0 prefix.
            Events are delivered KEY_GAP_MS apart; the reply comes once the last
@@ -828,23 +1871,66 @@ handle_request(char *line)
         if (!ok)
             respond_error(frame_buf ? "could not write file" : "no frame rendered yet");
     } else if (!strcmp(argv[0], "record") && (argc >= 2)) {
-        /* record start <interval_ms> <dir> | record stop */
+        /* record start <interval_ms> [<dir>] | record stop | record pull [<max_frames>] */
         if (!strcmp(argv[1], "stop")) {
             thread_wait_mutex(frame_mutex);
             rec_interval = 0;
+            if (rec_log) {
+                fclose(rec_log);
+                rec_log = NULL;
+            }
             resp.len     = 0;
             sb_printf(&resp, "{\"ok\":true,\"frames\":%u}", rec_frames);
             thread_release_mutex(frame_mutex);
-        } else if (!strcmp(argv[1], "start") && (argc >= 4) && (atoi(argv[2]) > 0)) {
+        } else if (!strcmp(argv[1], "start") && (argc >= 3) && (atoi(argv[2]) > 0)) {
+            /* With a directory, frames are written there; without one, they
+               wait in memory for record pull. */
             thread_wait_mutex(frame_mutex);
-            snprintf(rec_dir, sizeof(rec_dir), "%s", rest[3]);
+            snprintf(rec_dir, sizeof(rec_dir), "%s", (argc >= 4) ? rest[3] : "");
             rec_interval = atoi(argv[2]);
             rec_next_ms  = emu_ms;
             rec_frames   = 0;
+            rec_tsc0     = (uint64_t) tsc;
+            rec_q_clear();
+            if (rec_log) {
+                fclose(rec_log);
+                rec_log = NULL;
+            }
+            if (rec_dir[0]) {
+                char fn[1100];
+
+                snprintf(fn, sizeof(fn), "%s/frames.jsonl", rec_dir);
+                rec_log = plat_fopen(fn, "w");
+            }
             thread_release_mutex(frame_mutex);
             respond_ok_time();
+        } else if (!strcmp(argv[1], "pull") && (argc <= 3)) {
+            /* The frames recorded in memory since the last pull, oldest first,
+               each with its stamps, size, key flag and zstd data (RGB24, XORed
+               with the frame before unless key); lost counts frames skipped
+               because the queue was full. Works after record stop. */
+            size_t n = (argc == 3) ? strtoul(argv[2], NULL, 0) : 32;
+
+            thread_wait_mutex(frame_mutex);
+            if (n > rec_q_len)
+                n = rec_q_len;
+            resp.len = 0;
+            sb_printf(&resp, "{\"ok\":true,\"ms\":%llu,\"recording\":%s,\"lost\":%llu,\"pending\":%llu,\"frames\":[",
+                      (unsigned long long) emu_ms, rec_interval ? "true" : "false", (unsigned long long) rec_lost,
+                      (unsigned long long) (rec_q_len - n));
+            for (size_t i = 0; i < n; i++) {
+                rec_item_t *it = &rec_q[rec_q_head];
+
+                sb_printf(&resp, "%s{%s,\"w\":%d,\"h\":%d,\"key\":%s,\"zstd\":\"", i ? "," : "", it->stamp, it->w,
+                          it->h, it->key ? "true" : "false");
+                sb_base64(&resp, it->data, it->len);
+                sb_printf(&resp, "\"}");
+                rec_q_drop_oldest();
+            }
+            sb_printf(&resp, "]}");
+            thread_release_mutex(frame_mutex);
         } else
-            respond_error("usage: record start <interval_ms> <dir> | record stop");
+            respond_error("usage: record start <interval_ms> [<dir>] | record stop | record pull [<max_frames>]");
     } else if (!strcmp(argv[0], "info")) {
         cmd_info();
     } else if (!strcmp(argv[0], "text")) {
@@ -883,11 +1969,80 @@ handle_request(char *line)
         sb_printf(&resp, "{\"ok\":true");
         for (int i = 0; i < 8; i++)
             sb_printf(&resp, ",\"%s\":%u", names[i], cpu_state.regs[i].l);
-        sb_printf(&resp, ",\"eip\":%u,\"eflags\":%u,\"cs\":%u,\"ds\":%u,\"es\":%u,\"ss\":%u,\"fs\":%u,\"gs\":%u,\"cs_base\":%u,\"cr0\":%u}",
+        sb_printf(&resp, ",\"eip\":%u,\"eflags\":%u,\"cs\":%u,\"ds\":%u,\"es\":%u,\"ss\":%u,\"fs\":%u,\"gs\":%u,\"cs_base\":%u,\"cr0\":%u",
                   cpu_state.pc, ((uint32_t) cpu_state.eflags << 16) | cpu_state.flags,
                   cpu_state.seg_cs.seg, cpu_state.seg_ds.seg, cpu_state.seg_es.seg,
                   cpu_state.seg_ss.seg, cpu_state.seg_fs.seg, cpu_state.seg_gs.seg,
                   cpu_state.seg_cs.base, cr0);
+        if (is286) {
+            /* The descriptor caches: what the CPU uses, which may no longer
+               match the descriptor tables (unreal mode, say). */
+            sb_printf(&resp, ",\"cs_limit\":%u,\"cs_ar\":%u", cpu_state.seg_cs.limit,
+                      cpu_state.seg_cs.access | (cpu_state.seg_cs.ar_high << 8));
+            sb_seg(&resp, "ds", &cpu_state.seg_ds, 0, 1);
+            sb_seg(&resp, "es", &cpu_state.seg_es, 0, 1);
+            sb_seg(&resp, "ss", &cpu_state.seg_ss, 0, 1);
+            if (is386) {
+                sb_seg(&resp, "fs", &cpu_state.seg_fs, 0, 1);
+                sb_seg(&resp, "gs", &cpu_state.seg_gs, 0, 1);
+            }
+            sb_seg(&resp, "gdtr", &gdt, 0, 0);
+            sb_seg(&resp, "idtr", &idt, 0, 0);
+            sb_seg(&resp, "ldtr", &ldt, 1, 1);
+            sb_seg(&resp, "tr", &tr, 1, 1);
+            sb_printf(&resp, ",\"cpl\":%u", (cr0 & 1) ? ((cpu_state.eflags & VM_FLAG) ? 3 : CPL) : 0);
+        }
+        if (is386) {
+            sb_printf(&resp, ",\"cr2\":%u,\"cr3\":%u", cr2, cr3);
+            for (int i = 0; i < 8; i++) {
+                if ((i != 4) && (i != 5))
+                    sb_printf(&resp, ",\"dr%d\":%u", i, dr[i]);
+            }
+            sb_printf(&resp, ",\"smm\":%d", !!in_smm);
+        }
+        if (cpu_has_feature(CPU_FEATURE_CR4))
+            sb_printf(&resp, ",\"cr4\":%u", cr4);
+        if (cpu_has_feature(CPU_FEATURE_RDTSC))
+            sb_printf(&resp, ",\"tsc\":%llu", (unsigned long long) tsc);
+        sb_printf(&resp, "}");
+    } else if (!strcmp(argv[0], "fpu")) {
+        if (!hasfpu) {
+            respond_error("no FPU");
+        } else {
+            uint16_t cw, sw, tw;
+            int      top;
+
+            if (fpu_softfloat) {
+                cw  = i387_get_control_word();
+                sw  = i387_get_status_word();
+                tw  = fpu_state.tag;
+                top = fpu_state.tos & 7;
+            } else {
+                cw  = cpu_state.npxc;
+                sw  = (cpu_state.npxs & 0xc7ff) | ((cpu_state.TOP & 7) << 11);
+                tw  = x87_gettag();
+                top = cpu_state.TOP & 7;
+            }
+            resp.len = 0;
+            sb_printf(&resp, "{\"ok\":true,\"fcw\":%u,\"fsw\":%u,\"ftw\":%u,\"top\":%d", cw, sw, tw, top);
+            for (int i = 0; i < 8; i++) {
+                uint16_t se;
+                uint64_t signif;
+
+                fpu_reg80((top + i) & 7, &se, &signif);
+                sb_printf(&resp, ",\"st%d\":\"%04x%016llx\"", i, se, (unsigned long long) signif);
+            }
+            if (cpu_has_feature(CPU_FEATURE_MMX)) {
+                for (int i = 0; i < 8; i++) {
+                    uint16_t se;
+                    uint64_t signif;
+
+                    fpu_reg80(i, &se, &signif);
+                    sb_printf(&resp, ",\"mm%d\":\"%016llx\"", i, (unsigned long long) signif);
+                }
+            }
+            sb_printf(&resp, "}");
+        }
     } else if (!strcmp(argv[0], "fdd") && (argc >= 3)) {
         /* fdd load <drive> <path> | fdd eject <drive> */
         int id = atoi(argv[2]);
@@ -990,7 +2145,8 @@ automation_quantum(void)
     static uint64_t last_tsc;
     if ((gdbstub_step != GDBSTUB_EXEC) && (tsc == last_tsc)) {
         if (cmd != CMD_NONE)
-            end_timed_stopped(((cmd == CMD_WAIT_TEXT) || (cmd == CMD_WAIT_MEM)) ? 0 : -1, "debugger");
+            end_timed_stopped(((cmd == CMD_WAIT_TEXT) || (cmd == CMD_WAIT_MEM) || (cmd == CMD_WAIT_SOUND) ||
+                               (cmd == CMD_WAIT_SILENCE) || (cmd == CMD_WAIT_SERIAL)) ? 0 : -1, "debugger");
         return;
     }
     last_tsc = tsc;
@@ -1022,11 +2178,18 @@ automation_quantum(void)
         keyboard_input(key_queue[key_head].down, key_queue[key_head].scan);
         key_head++;
         key_next_ms = emu_ms + KEY_GAP_MS;
-    } else if ((cmd == CMD_WAIT_TEXT) || (cmd == CMD_WAIT_MEM)) {
+    } else if ((cmd == CMD_WAIT_TEXT) || (cmd == CMD_WAIT_MEM) || (cmd == CMD_WAIT_SERIAL)) {
         if (wait_satisfied())
             end_timed(1);
         else if (emu_ms >= cmd_deadline)
             end_timed(0);
+    } else if ((cmd == CMD_WAIT_SOUND) || (cmd == CMD_WAIT_SILENCE)) {
+        if (aud_wait_done())
+            end_timed(1);
+        else if (emu_ms >= cmd_deadline)
+            end_timed(0);
+        else
+            timed_extra[0] = '\0';
     } else if (emu_ms >= cmd_deadline)
         end_timed(-1);
 }
@@ -1379,6 +2542,7 @@ automation_init(void)
     resp.len    = 0;
     req_done    = thread_create_event();
     frame_mutex = thread_create_mutex();
+    aud_mutex   = thread_create_mutex();
     held        = automation_start_held;
     enabled     = 1;
 
@@ -1399,6 +2563,8 @@ automation_close(void)
     if (!enabled)
         return;
 
+    if (aud_recording)
+        aud_stop(NULL);
     enabled = 0;
     shutdown(listen_fd, SOCK_SHUT_RW);
     sock_close(listen_fd);

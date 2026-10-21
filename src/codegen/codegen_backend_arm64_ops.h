@@ -182,7 +182,9 @@ void host_arm64_LDRB_POSTIDX(codeblock_t *block, int dest_reg, int base_reg, int
 void host_arm64_LDRH_POSTIDX(codeblock_t *block, int dest_reg, int base_reg, int offset);
 
 void host_arm64_LSL(codeblock_t *block, int dst_reg, int src_n_reg, int shift_reg);
+void host_arm64_LSLX(codeblock_t *block, int dst_reg, int src_n_reg, int shift_reg);
 void host_arm64_LSR(codeblock_t *block, int dst_reg, int src_n_reg, int shift_reg);
+void host_arm64_LSRX(codeblock_t *block, int dst_reg, int src_n_reg, int shift_reg);
 
 void host_arm64_MOV_REG_ASR(codeblock_t *block, int dst_reg, int src_m_reg, int shift);
 void host_arm64_MOV_REG(codeblock_t *block, int dst_reg, int src_m_reg, int shift);

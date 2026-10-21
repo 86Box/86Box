@@ -210,6 +210,16 @@ pci_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                                definition of the bits is identical to the other vendors' AGP bridges. */
             break;
 
+        case 0x38:
+        case 0x39:
+        case 0x3a:
+        case 0x3b:
+            /* The Intel AGP bridges have no expansion ROM base address:
+               38-3Bh are reserved and read 0. */
+            if (AGP_BRIDGE_INTEL(dev->local))
+                return;
+            break;
+
         case 0x3c:
             if (!(dev->ctl & 0x80))
                 return;

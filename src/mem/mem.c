@@ -2216,6 +2216,9 @@ mem_mapping_access_allowed(uint32_t flags, uint16_t access)
 {
     int ret = 0;
 
+    if (flags & MEM_MAPPING_CACHE_ONLY)
+        return !!(access & ACCESS_CACHE);
+
     if (!(access & ACCESS_DISABLED)) {
         if (access & ACCESS_CACHE)
             ret = (flags & MEM_MAPPING_CACHE);
@@ -2757,6 +2760,39 @@ mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t 
     mem_mapping_recalc(base, size, 0x00000000);
 }
 
+/* The processor's cache holding base..base+size: the CPU's accesses there, in
+   SMM or not, go to the mappings flagged MEM_MAPPING_CACHE_ONLY, and the bus's
+   still go to the bus. The other state bits are left as the chipset set them. */
+void
+mem_set_cache_access(uint32_t base, uint32_t size, int cached)
+{
+    const uint16_t bits = ACCESS_X_CACHE | ACCESS_W_CACHE | ACCESS_R_CACHE;
+
+    for (uint32_t c = 0; c < size; c += MEM_GRANULARITY_SIZE) {
+        for (uint8_t i = 0; i < 2; i++) {
+            if (cached)
+                _mem_state[(c + base) >> MEM_GRANULARITY_BITS].vals[i] |= bits;
+            else
+                _mem_state[(c + base) >> MEM_GRANULARITY_BITS].vals[i] &= ~bits;
+        }
+    }
+
+    mem_mapping_recalc(base, size, 0x00000000);
+}
+
+/* Whether nothing answers on the bus anywhere in base..base+size: no RAM, ROM
+   or device to read from or write back to. */
+int
+mem_bus_unbacked(uint32_t base, uint32_t size)
+{
+    for (uint64_t c = base; c < ((uint64_t) base + size); c += MEM_GRANULARITY_SIZE) {
+        if (read_mapping_bus[c >> MEM_GRANULARITY_BITS] || write_mapping_bus[c >> MEM_GRANULARITY_BITS])
+            return 0;
+    }
+
+    return 1;
+}
+
 void
 mem_a20_init(void)
 {
@@ -2956,6 +2992,8 @@ mem_reset(void)
                     mem_write_remapped2, mem_write_remappedw2, mem_write_remappedl2,
                     ram + 0xd0000, MEM_MAPPING_INTERNAL, NULL);
     mem_mapping_disable(&ram_remapped_mapping2);
+
+    cpu_car_reset();
 
     mem_a20_init();
 

@@ -794,6 +794,13 @@ extern int  cpu_alt_reset;
 extern void cpu_dynamic_switch(int new_cpu);
 
 extern void cpu_ven_reset(void);
+
+/* Cache-as-RAM (cache_as_ram.c). */
+extern void cpu_car_update(void);
+extern void cpu_car_invalidate(void);
+extern void cpu_car_reset(void);
+extern void cpu_car_enable(void);
+
 extern void update_tsc(void);
 
 extern int sysenter(uint32_t fetchdat);
@@ -847,6 +854,11 @@ extern int cpu_use_exec;
 
 extern uint8_t  use_custom_nmi_vector;
 extern uint32_t custom_nmi_vector;
+
+/* Bumped whenever an NMI is taken or an IRET completes, which is what the
+   80186 peripheral control block turns into its DMA halt bit. */
+extern uint32_t cpu_dhlt_events;
+extern uint8_t  cpu_dhlt_last_event;
 
 extern void (*cpu_exec)(int32_t cycs);
 extern uint8_t do_translate;

@@ -18,5 +18,6 @@
 
 extern uint8_t random_generate(void);
 extern void    random_init(void);
+extern void    random_seed(uint32_t seed);
 
 #endif /*EMU_RANDOM_H*/

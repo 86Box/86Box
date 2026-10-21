@@ -116,6 +116,9 @@
 #define MEM_MAPPING_SMRAM     32 /* On internal bus (RAM) but SMRAM. */
 #define MEM_MAPPING_CACHE     64 /* Cache or MTRR - please avoid such mappings unless \
                                     stricly necessary (eg. for CoreBoot). */
+#define MEM_MAPPING_CACHE_ONLY 128 /* Lines held in the processor's cache: seen only where
+                                     the CPU's access state has ACCESS_CACHE, and never
+                                     by the bus (mem_set_cache_access). */
 
 /* #define's for memory granularity, currently 4k, less does
    not work because of internal 4k pages. */
@@ -389,6 +392,8 @@ extern void mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignor
 
 extern void mem_set_wp(uint64_t base, uint64_t size, uint8_t flags, uint8_t wp);
 extern void mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t access);
+extern void mem_set_cache_access(uint32_t base, uint32_t size, int cached);
+extern int  mem_bus_unbacked(uint32_t base, uint32_t size);
 
 extern uint8_t  mem_readb_phys(uint32_t addr);
 extern uint16_t mem_readw_phys(uint32_t addr);
