@@ -42,7 +42,7 @@
 #include <86box/video.h>
 #include <86box/vid_cga_comp.h>
 #include <86box/machine.h>
-#include <86box/m_tandy.h>
+#include <86box/m_tandy1k.h>
 #include <86box/plat_unused.h>
 
 enum {

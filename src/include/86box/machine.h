@@ -1723,7 +1723,7 @@ extern int             machine_ps55_model_5540t_init(const machine_t *);
 extern int             machine_ps55_model_5550t_init(const machine_t *);
 extern int             machine_ps55_model_5550v_init(const machine_t *);
 
-/* m_tandy.c */
+/* m_tandy1k.c */
 extern int tandy1k_eeprom_read(void);
 #ifdef EMU_DEVICE_H
 extern const device_t  tandy_1000sx_video_device;
