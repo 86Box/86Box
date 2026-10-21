@@ -382,6 +382,20 @@ pit_read(uint16_t addr, void *priv)
     return value;
 }
 
+/* The 8253 sits on the 16-bit bus, so its A0/A1 come from CPU A1/A2
+   and the four registers appear on even addresses. */
+uint8_t
+pit_read_even(uint16_t addr, void *priv)
+{
+    return pit_read((uint16_t) ((addr & 0x0006u) >> 1), priv);
+}
+
+void
+pit_write_even(uint16_t addr, uint8_t val, void *priv)
+{
+    pit_write((uint16_t) ((addr & 0x0006u) >> 1), val, priv);
+}
+
 
 void
 pit_irq0_timer_ps2(int new_out, int old_out, UNUSED(void *priv))
@@ -1498,6 +1512,20 @@ pit_read(uint16_t addr, void *priv)
     }
 
     return ret;
+}
+
+/* The 8253 sits on the 16-bit bus, so its A0/A1 come from CPU A1/A2
+   and the four registers appear on even addresses. */
+uint8_t
+pit_read_even(uint16_t addr, void *priv)
+{
+    return pit_read((uint16_t) ((addr & 0x0006u) >> 1), priv);
+}
+
+void
+pit_write_even(uint16_t addr, uint8_t val, void *priv)
+{
+    pit_write((uint16_t) ((addr & 0x0006u) >> 1), val, priv);
 }
 
 void
