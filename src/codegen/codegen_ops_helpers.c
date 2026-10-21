@@ -240,6 +240,10 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
       only a hand-over path runs, which leaves the block straight after it,
       never returns into the loop*/
     for (int c = start; c < ir->wr_pos; c++) {
+        /*Segment checks were built for the segments at compile time. A copy
+          after a segment load would use those checks with the new segment*/
+        if ((ir->uops[c].type & UOP_MASK) == (UOP_LOAD_SEG & UOP_MASK))
+            return 0;
         if ((ir->uops[c].type & UOP_MASK) == (UOP_CALL_INSTRUCTION_FUNC & UOP_MASK) &&
             !((c + 1 < ir->wr_pos) && ((ir->uops[c + 1].type & UOP_MASK) == (UOP_JMP & UOP_MASK))))
             return 0;
