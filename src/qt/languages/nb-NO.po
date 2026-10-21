@@ -154,6 +154,9 @@ msgstr "4:&3 Heltallsskala"
 msgid "&Center (no stretching)"
 msgstr ""
 
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Invertert VGA-skjerm"
 

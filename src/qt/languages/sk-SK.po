@@ -153,6 +153,9 @@ msgstr "4:&3 Celočíselné škálovanie"
 msgid "&Center (no stretching)"
 msgstr ""
 
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Obrátiť farby"
 

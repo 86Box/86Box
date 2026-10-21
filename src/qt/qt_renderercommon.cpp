@@ -206,6 +206,11 @@ RendererCommon::onResize(int width, int height)
                 destination.setRect((int) dx, (int) dy, (int) dw, (int) dh);
                 break;
             case FULLSCR_SCALE_CENTER:
+            case FULLSCR_SCALE_CENTER43:
+                /* Like 4:3 integer scale, keep the width and make the height match it. */
+                if (temp_fullscreen_scale == FULLSCR_SCALE_CENTER43)
+                    gh = std::round(gw / r43);
+
                 /* An image larger than the window extends past its edges and gets cut off. */
                 dx = std::floor((hw - gw) / 2.0);
                 dy = std::floor((hh - gh) / 2.0);
