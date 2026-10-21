@@ -1,15 +1,16 @@
 #include "codegen_backend_arm64_defs.h"
 
 /*
-   Raised from 0x4000 (halves recompile thrash, measured on x86-64 - see
-   codegen_backend_x86-64.h, raised further there to 0x10000). Kept lower
-   here not for memory reasons - codeblock[] below is a plain data mmap
-   (see codegen_backend_arm64.c), not executable, so it doesn't compete
-   with ARM64's 128MB branch-range-limited code pool in codegen_allocator.c,
-   so an untested value would ship to every user by default.
+   A Windows 2000 boot and 3DMark2001 overran 0x8000, evicting and
+   recompiling thousands of blocks a second. codeblock[] below is a plain
+   data mmap (see codegen_backend_arm64.c), not part of ARM64's 128MB
+   branch-range-limited code pool in codegen_allocator.c, but every live
+   block holds at least one pool chunk; at 0x10000 those runs kept the pool
+   under two-thirds full. Not above 0x10000: the link routine compares block
+   numbers as 16 bits (codegen_link_slot_t.block_nr).
  */
-#define BLOCK_SIZE  0x8000
-#define BLOCK_MASK  0x7fff
+#define BLOCK_SIZE  0x10000
+#define BLOCK_MASK  0xffff
 #define BLOCK_START 0
 
 #define HASH_SIZE   0x20000

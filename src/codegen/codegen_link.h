@@ -37,7 +37,7 @@ typedef struct codegen_link_slot_t {
     uint8_t    **mem_exec;    /*&_mem_exec[phys >> MEM_GRANULARITY_BITS]*/
     uint32_t    *hash;        /*&codeblock_hash[HASH(phys)]*/
 #if defined(__aarch64__) || defined(_M_ARM64)
-    /*Fits 16 bits there (BLOCK_SIZE 0x8000); the arm64 routine loads it with
+    /*Fits 16 bits there (BLOCK_SIZE 0x10000); the arm64 routine loads it with
       the three fields after it as one word*/
     uint16_t     block_nr;    /*get_block_nr(block)*/
 #else
