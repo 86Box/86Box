@@ -1561,6 +1561,8 @@ load_storage_controllers(void)
     if (p != NULL)
         cdrom_interface_current = config_known(cdrom_interface_get_from_internal_name(p), STRING_UNSUPPORTED_CDROM_INTERFACE, p);
 
+    ide_turbo = !!ini_section_get_int(cat, "ide_turbo", 0);
+
     /* The floppy tape is configured from the Tape drives tab now; the old
        keys are stale and get cleaned up. */
     ini_section_delete_var(cat, "floppy_tape_enabled");
@@ -2995,6 +2997,8 @@ config_load(void)
         cassette_pcm          = 0;
         cassette_ui_writeprot = 0;
 
+        ide_turbo = 0;
+
         cpu_dyn_accurate_fpu_env = 0;
         cpu_dyn_block_link       = 1;
 
@@ -4067,6 +4071,11 @@ save_storage_controllers(void)
     else
         ini_section_set_string(cat, "cdrom_interface",
                                cdrom_interface_get_internal_name(cdrom_interface_current));
+
+    if (ide_turbo == 0)
+        ini_section_delete_var(cat, "ide_turbo");
+    else
+        ini_section_set_int(cat, "ide_turbo", ide_turbo);
 
     /* The floppy tape is configured from the Tape drives tab now. */
     ini_section_delete_var(cat, "floppy_tape_enabled");

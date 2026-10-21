@@ -231,6 +231,16 @@
             </property>
            </widget>
           </item>
+          <item row="4" column="0" colspan="4">
+           <widget class="QCheckBox" name="checkBoxIDETurbo">
+            <property name="toolTip">
+             <string>Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply.</string>
+            </property>
+            <property name="text">
+             <string>Turbo IDE</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>

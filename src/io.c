@@ -60,6 +60,7 @@ typedef struct io_trap_s {
 uint8_t initialized = 0;
 io_t   *io[NPORTS];
 io_t   *io_last[NPORTS];
+uint8_t io_turbo_map[NPORTS >> 3];
 
 #ifdef ENABLE_IO_LOG
 uint8_t io_do_log = ENABLE_IO_LOG;
@@ -90,6 +91,8 @@ io_init(void)
             io[c] = io_last[c] = NULL;
         initialized = 1;
     }
+
+    memset(io_turbo_map, 0, sizeof(io_turbo_map));
 
     for (uint32_t c = 0; c < NPORTS; c++) {
         if (io_last[c]) {
@@ -227,6 +230,15 @@ io_removehandler(uint16_t base, uint16_t size,
                  void *priv)
 {
     io_removehandler_common(base, size, inb, inw, inl, outb, outw, outl, priv, 1);
+}
+
+void
+io_set_turbo(uint16_t port, int turbo)
+{
+    if (turbo)
+        io_turbo_map[port >> 3] |= (1 << (port & 7));
+    else
+        io_turbo_map[port >> 3] &= ~(1 << (port & 7));
 }
 
 void

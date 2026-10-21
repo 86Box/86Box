@@ -56,7 +56,7 @@
             else                                                                                                  \
                 DEST_REG += 2;                                                                                    \
             CNT_REG--;                                                                                            \
-            cycles -= 15;                                                                                         \
+            cycles -= IO_STR_CYCLES(DX, 15);                                                                      \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
             CPU_BLOCK_END();                                                                                      \
@@ -89,7 +89,7 @@
             else                                                                                                  \
                 DEST_REG += 4;                                                                                    \
             CNT_REG--;                                                                                            \
-            cycles -= 15;                                                                                         \
+            cycles -= IO_STR_CYCLES(DX, 15);                                                                      \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
             CPU_BLOCK_END();                                                                                      \
@@ -154,7 +154,7 @@
             else                                                                                                  \
                 SRC_REG += 2;                                                                                     \
             CNT_REG--;                                                                                            \
-            cycles -= 14;                                                                                         \
+            cycles -= IO_STR_CYCLES(DX, 14);                                                                      \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
             CPU_BLOCK_END();                                                                                      \
@@ -186,7 +186,7 @@
             else                                                                                                  \
                 SRC_REG += 4;                                                                                     \
             CNT_REG--;                                                                                            \
-            cycles -= 14;                                                                                         \
+            cycles -= IO_STR_CYCLES(DX, 14);                                                                      \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
             CPU_BLOCK_END();                                                                                      \
