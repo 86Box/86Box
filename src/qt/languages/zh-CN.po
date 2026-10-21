@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-16 00:52+0000\n"
+"PO-Revision-Date: 2026-10-21 08:46+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -1275,10 +1275,10 @@ msgid "Delete virtual machines to Recycle Bin"
 msgstr "将虚拟机删除至回收站"
 
 msgid "Discord"
-msgstr ""
+msgstr "Discord"
 
 msgid "Show running machines in my Discord status"
-msgstr ""
+msgstr "在我的Discord动态中展示当前在运行的虚拟机"
 
 msgid "Details shown:"
 msgstr ""
@@ -1287,21 +1287,21 @@ msgid "Machine name and hardware"
 msgstr ""
 
 msgid "Hardware only"
-msgstr ""
+msgstr "仅限硬件"
 
 msgid "No details"
-msgstr ""
+msgstr "无详细信息"
 
 msgid "Using %1"
-msgstr ""
+msgstr "正在使用%1"
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] ""
+msgstr[0] "%n个机器正在活跃"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
-msgstr[0] ""
+msgstr[0] " （+%n以上）"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
