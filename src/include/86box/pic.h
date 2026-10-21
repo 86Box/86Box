@@ -58,6 +58,7 @@ typedef struct pic {
 
 extern pic_t pic;
 extern pic_t pic2;
+extern int   cascade;
 
 extern void     pic_reset_smi_irq_mask(void);
 extern void     pic_set_smi_irq_mask(int irq, int set);
@@ -80,13 +81,16 @@ extern void pic_set_vector_override(uint8_t irq, int vector);
 extern void pic_set_line_pinned(int irq, int pinned);
 extern void pic_kbd_latch(int enable);
 extern void pic_mouse_latch(int enable);
+extern void pic_handler(int set, uint16_t base, int size);
+extern uint8_t pic_any_pending(void);
 extern void pic_init(void);
 extern void pic_init_pcjr(void);
 extern void pic_init_ibm5140(void (*wake)(void));
 extern uint8_t pic_ibm5140_diag_read(uint8_t selector);
 extern void pic_ibm5140_diag_write(uint8_t value);
 extern void pic_ibm5140_diag_enable(int enabled);
-extern void pic_handler(int set, uint16_t base, int size);
+extern uint8_t pic_irq_ack_instance(pic_t *dev);
+extern void pic_init_tandy2k(void);
 extern void pic2_init(void);
 extern void pic_reset(void);
 

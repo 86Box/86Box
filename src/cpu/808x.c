@@ -1282,12 +1282,14 @@ check_interrupts(int nec_hlt)
                type itself and the 8259 runs no acknowledge cycle for it. */
             if (icu)
                 temp = i8018x_pcb_icu_int_type();
+            else if (!cascade)
+                temp = pic_irq_ack_instance(pic.int_pending ? &pic : &pic2);
             else /* ACK to PIC */
                 temp = pic_irq_ack();
             wait_cycs(4, 1);
             wait_cycs(1, 0);
             /* ACK to PIC */
-            if (!icu)
+            if (!icu && cascade)
                 temp = pic_irq_ack();
             wait_cycs(4, 1);
             wait_cycs(1, 0);
