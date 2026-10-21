@@ -231,6 +231,11 @@ host_x86_CMP32_REG_REG(codeblock_t *block, int src_reg_a, int src_reg_b)
 {
     emit_rr(block, 0, 0, 0, 1, 0x39, src_reg_b, src_reg_a); /*CMP src_reg_a, src_reg_b*/
 }
+void
+host_x86_CMP64_REG_REG(codeblock_t *block, int src_reg_a, int src_reg_b)
+{
+    emit_rr(block, 0, 1, 0, 1, 0x39, src_reg_b, src_reg_a); /*CMP src_reg_a, src_reg_b (64-bit)*/
+}
 
 void
 host_x86_JMP(codeblock_t *block, void *p)
@@ -748,6 +753,11 @@ host_x86_MOV32_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
 {
     emit_rr(block, 0, 0, 0, 1, 0x89, src_reg, dst_reg); /*MOV dst_reg, src_reg*/
 }
+void
+host_x86_MOV64_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
+{
+    emit_rr(block, 0, 1, 0, 1, 0x89, src_reg, dst_reg); /*MOV dst_reg, src_reg (64-bit)*/
+}
 
 void
 host_x86_MOV32_STACK_IMM(codeblock_t *block, int32_t offset, uint32_t imm_data)
@@ -965,6 +975,20 @@ host_x86_OR32_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
 }
 
 void
+host_x86_OR64_BASE_OFFSET_REG(codeblock_t *block, int base_reg, int offset, int src_reg)
+{
+    if (offset >= -128 && offset <= 127)
+        emit_mem(block, 0, 1, 0, 1, 0x09, src_reg, base_reg, NO_INDEX, 0, offset, DISP_8, 0, 0); /*OR Q[base_reg + offset], src_reg*/
+    else
+        fatal("OR64_BASE_OFFSET_REG - offset %i\n", offset);
+}
+void
+host_x86_OR64_BASE_INDEX_SHIFT_REG(codeblock_t *block, int base_reg, int index_reg, int scale, int src_reg)
+{
+    emit_mem(block, 0, 1, 0, 1, 0x09, src_reg, base_reg, index_reg, scale, 0, DISP_AUTO, 0, 0); /*OR Q[base_reg + index_reg << scale], src_reg*/
+}
+
+void
 host_x86_POP(codeblock_t *block, int dst_reg)
 {
     emit_opreg(block, 0, 0, 0, 0x58, dst_reg, 0, 0); /*POP reg*/
@@ -1112,6 +1136,11 @@ host_x86_SHL32_CL(codeblock_t *block, int dst_reg)
 {
     emit_shift_cl(block, 32, RM_OP_SHL, dst_reg); /*SHL dst_reg, CL*/
 }
+void
+host_x86_SHL64_CL(codeblock_t *block, int dst_reg)
+{
+    emit_ext(block, 0, 1, 0, 1, 0xd3, RM_OP_SHL, dst_reg, 0, 0); /*SHL dst_reg, CL (64-bit)*/
+}
 
 void
 host_x86_SHL8_IMM(codeblock_t *block, int dst_reg, int shift)
@@ -1214,6 +1243,11 @@ void
 host_x86_TEST32_REG(codeblock_t *block, int src_reg, int dst_reg)
 {
     emit_rr(block, 0, 0, 0, 1, 0x85, dst_reg, src_reg); /*TEST dst_host_reg, src_host_reg*/
+}
+void
+host_x86_TEST64_REG(codeblock_t *block, int src_reg, int dst_reg)
+{
+    emit_rr(block, 0, 1, 0, 1, 0x85, dst_reg, src_reg); /*TEST dst_reg, src_reg (64-bit)*/
 }
 void
 host_x86_TEST32_REG_IMM(codeblock_t *block, int dst_reg, uint32_t imm_data)

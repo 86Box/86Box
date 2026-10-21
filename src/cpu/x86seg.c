@@ -137,6 +137,7 @@ null_data_seg(x86seg *s)
     s->access  = 0x80;
     s->ar_high = 0x10;
     s->base    = -1;
+    s->checked = 0;
     if (s == &cpu_state.seg_ds)
         cpu_cur_status |= CPU_STATUS_NOTFLATDS;
     if (s == &cpu_state.seg_es)
@@ -286,6 +287,7 @@ do_seg_load(x86seg *s, uint16_t *segdat)
     s->base |= ((word3 >> 8) << 24);
     s->access  = segdat[2] >> 8;
     s->ar_high = word3 & 0xff;
+    s->checked = 0;
 
     if (((segdat[2] & 0x1800) != 0x1000) || !(segdat[2] & (1 << 10))) {
         /* Expand-down */
@@ -325,6 +327,7 @@ do_seg_v86_init(x86seg *s)
     s->limit      = 0xffff;
     s->limit_low  = 0;
     s->limit_high = 0xffff;
+    s->checked    = 1;
 }
 
 static void
@@ -408,6 +411,7 @@ loadseg(uint16_t seg, x86seg *s)
             s->access  = 0x80;
             s->ar_high = 0x10;
             s->base    = -1;
+            s->checked = 0;
             if (s == &cpu_state.seg_ds)
                 cpu_cur_status |= CPU_STATUS_NOTFLATDS;
             if (s == &cpu_state.seg_es)
@@ -634,6 +638,7 @@ loadcs(uint16_t seg)
         cpu_state.seg_cs.seg        = seg & 0xffff;
         cpu_state.seg_cs.access     = (cpu_state.eflags & VM_FLAG) ? 0xe2 : 0x82;
         cpu_state.seg_cs.ar_high    = 0x10;
+        cpu_state.seg_cs.checked    = 1;
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
         oldcpl = CPL;
@@ -875,6 +880,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
         cpu_state.seg_cs.seg        = seg;
         cpu_state.seg_cs.access     = (cpu_state.eflags & VM_FLAG) ? 0xe2 : 0x82;
         cpu_state.seg_cs.ar_high    = 0x10;
+        cpu_state.seg_cs.checked    = 1;
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
         oldcpl = CPL;
@@ -1365,6 +1371,7 @@ loadcscall(uint16_t seg, uint32_t old_pc)
         cpu_state.seg_cs.seg        = seg;
         cpu_state.seg_cs.access     = (cpu_state.eflags & VM_FLAG) ? 0xe2 : 0x82;
         cpu_state.seg_cs.ar_high    = 0x10;
+        cpu_state.seg_cs.checked    = 1;
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
         oldcpl = CPL;
@@ -2025,6 +2032,7 @@ pmodeiret(int is32)
         cpu_state.seg_cs.limit_high = 0xffff;
         cpu_state.seg_cs.access |= 0x80;
         cpu_state.seg_cs.ar_high = 0x10;
+        cpu_state.seg_cs.checked = 1;
         CS                       = seg;
         cpu_state.flags          = (cpu_state.flags & 0x3000) | (tempflags & 0xcfd5) | 2;
         /* IRETD in V86 mode loads all but VM, IOPL, VIP and VIF */
@@ -2125,6 +2133,7 @@ pmodeiret(int is32)
             CS                          = seg;
             cpu_state.seg_cs.access     = 0xe2;
             cpu_state.seg_cs.ar_high    = 0x10;
+            cpu_state.seg_cs.checked    = 1;
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_nopc();
             oldcpl = CPL;
@@ -2966,6 +2975,14 @@ cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg)
         do_seg_load(seg, segdat);
         seg->seg     = selector;
         seg->checked = 0;
+#ifdef USE_DYNAREC
+        if (seg == &cpu_state.seg_ds)
+            codegen_flat_ds = 0;
+        if (seg == &cpu_state.seg_ss)
+            codegen_flat_ss = 0;
+        if (seg == &cpu_state.seg_es)
+            codegen_flat_es = 0;
+#endif
         if (seg == &cpu_state.seg_ds) {
             if (seg->base == 0 && seg->limit_low == 0 && seg->limit_high == 0xffffffff)
                 cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
