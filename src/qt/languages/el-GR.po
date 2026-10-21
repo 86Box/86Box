@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-20 20:07+0000\n"
+"PO-Revision-Date: 2026-10-21 16:19+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -628,10 +628,12 @@ msgid "Cassette"
 msgstr "Κασέτα"
 
 msgid "Turbo IDE"
-msgstr ""
+msgstr "Turbo IDE"
 
 msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
 msgstr ""
+"Καταργεί το όριο ταχύτητας λειτουργίας μεταφοράς IDE. Οι χρονισμοί του "
+"σκληρού δίσκου και της μονάδας CD-ROM εξακολουθούν να ισχύουν."
 
 msgid "Hard disks:"
 msgstr "Σκληροί δίσκοι:"
