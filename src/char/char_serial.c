@@ -86,6 +86,12 @@ enum {
     CHAR_SERIAL_BRK_HOLD_ZERO   /* PL2303: hold a lone 0x00 for the break status that follows it */
 };
 
+#ifdef _WIN32
+/* perf fix : batch writes to a worker thread */
+#    define CHAR_SERIAL_TXQ 4096
+#    define CHAR_SERIAL_RXQ 256
+#endif
+
 typedef struct {
     void        *log;
     char_port_t *port;
@@ -131,6 +137,7 @@ typedef struct {
     uint8_t  lsrmst_bi_seen; /* an in-band break arrived, not yet matched by CE_BREAK */
     uint8_t  lsrmst_ce_brk;  /* ClearCommError said CE_BREAK, not yet matched in-band */
     uint32_t lsrmst_ce_at;   /* plat_get_ticks() of that CE_BREAK */
+    uint32_t lsrmst_ce_poll; /* plat_get_ticks() of the last in-band mode ClearCommError */
     /* split/plain0/pb are used by the in-band and the ClearCommError paths */
     uint8_t  lsrmst_split;      /* driver sends a break's status late: hold an error-free 0x00 */
     uint32_t lsrmst_split_ms;   /* hold time, learned from the lag seen */
@@ -141,6 +148,18 @@ typedef struct {
     uint8_t  lsrmst_pb_valid;   /* next character read after a held 0x00 */
     uint8_t  lsrmst_pb;
     uint32_t lsrmst_pb_err;
+
+    HANDLE           tx_thread;
+    HANDLE           tx_event;           /* auto-reset: bytes queued, or quit */
+    CRITICAL_SECTION tx_cs;              /* guards tx_buf, tx_len, tx_busy */
+    uint8_t          tx_buf[CHAR_SERIAL_TXQ];
+    uint32_t         tx_len;             /* queued, not yet handed to WriteFile */
+    uint8_t          tx_busy;            /* the worker is inside WriteFile */
+    volatile LONG    tx_quit;
+    volatile LONG    tx_failed;          /* WriteFile failed: disconnect from the emulation thread */
+    uint8_t          rx_buf[CHAR_SERIAL_RXQ]; /* read ahead of the in-band parser */
+    uint16_t         rx_pos;
+    uint16_t         rx_len;
 #else
     int fd;
     int esc_state; /* char_serial_unescape() PARMRK parser */
@@ -247,6 +266,92 @@ static const struct {
 static void char_serial_port_config(void *priv);
 #ifdef _WIN32
 static void char_serial_lsrmst_enable(char_serial_t *dev);
+
+static DWORD WINAPI
+char_serial_tx_thread(LPVOID priv)
+{
+    char_serial_t *dev = (char_serial_t *) priv;
+    uint8_t        chunk[CHAR_SERIAL_TXQ];
+
+    for (;;) {
+        WaitForSingleObject(dev->tx_event, INFINITE);
+        for (;;) {
+            uint32_t n, off = 0;
+
+            EnterCriticalSection(&dev->tx_cs);
+            n = dev->tx_len;
+            memcpy(chunk, dev->tx_buf, n);
+            dev->tx_len  = 0;
+            dev->tx_busy = !!n;
+            LeaveCriticalSection(&dev->tx_cs);
+            if (!n)
+                break;
+
+            while (off < n) {
+                DWORD wrote = 0;
+
+                if (!WriteFile(dev->fd, chunk + off, n - off, &wrote, NULL) || !wrote) {
+                    char_serial_log(dev->log, "WriteFile failed (%08X)\n", GetLastError());
+                    InterlockedExchange(&dev->tx_failed, 1);
+                    break;
+                }
+                off += wrote;
+            }
+            EnterCriticalSection(&dev->tx_cs);
+            dev->tx_busy = 0;
+            LeaveCriticalSection(&dev->tx_cs);
+        }
+        if (dev->tx_quit)
+            break;
+    }
+    return 0;
+}
+
+static void
+char_serial_tx_flush(char_serial_t *dev)
+{
+    if (!dev->tx_thread)
+        return;
+    for (int i = 0; i < 200; i++) {
+        int idle;
+
+        EnterCriticalSection(&dev->tx_cs);
+        idle = !dev->tx_len && !dev->tx_busy;
+        LeaveCriticalSection(&dev->tx_cs);
+        if (idle || dev->tx_failed)
+            return;
+        Sleep(1);
+    }
+}
+
+static void
+char_serial_tx_stop(char_serial_t *dev)
+{
+    if (!dev->tx_thread)
+        return;
+    InterlockedExchange(&dev->tx_quit, 1);
+    SetEvent(dev->tx_event);
+    /* cancel the write instead of abandoning the thread. */
+    while (WaitForSingleObject(dev->tx_thread, 3000) == WAIT_TIMEOUT) {
+        char_serial_log(dev->log, "TX thread stuck in WriteFile, cancelling\n");
+        PurgeComm(dev->fd, PURGE_TXABORT | PURGE_TXCLEAR);
+        CancelSynchronousIo(dev->tx_thread);
+    }
+    CloseHandle(dev->tx_thread);
+    dev->tx_thread = NULL;
+    dev->tx_len    = 0;
+    dev->tx_busy   = 0;
+}
+
+static void
+char_serial_tx_start(char_serial_t *dev)
+{
+    dev->tx_len  = 0;
+    dev->tx_busy = 0;
+    InterlockedExchange(&dev->tx_quit, 0);
+    InterlockedExchange(&dev->tx_failed, 0);
+    dev->tx_thread = CreateThread(NULL, 0, char_serial_tx_thread, dev, 0, NULL);
+}
 #endif
 
 static void
@@ -255,6 +360,8 @@ char_serial_disconnect(char_serial_t *dev)
     if (CHAR_FD_VALID(dev->fd)) {
 #ifdef _WIN32
         /* Restore serial port configuration. */
+        char_serial_tx_stop(dev);
+        dev->rx_pos = dev->rx_len = 0;
         FlushFileBuffers(dev->fd);
         if (dev->prev_config_valid)
             SetCommState(dev->fd, &dev->prev_config);
@@ -356,6 +463,8 @@ char_serial_connect(char_serial_t *dev, int startup)
     COMSTAT stats;
     ClearCommError(dev->fd, &err, &stats);
     char_serial_lsrmst_enable(dev);
+    dev->rx_pos = dev->rx_len = 0;
+    char_serial_tx_start(dev);
 #else
     /* Open serial port. */
     int err = 0;
@@ -499,6 +608,7 @@ char_serial_map_error(DWORD err)
 #    define CHAR_SERIAL_LSRMST_MST          0x03       /* ESC, 3, msr */
 #    define CHAR_SERIAL_LSRMST_ESC          0xfa       /* not 0x00/0xff/XON/XOFF, so it rarely needs escaping */
 #    define CHAR_SERIAL_LSRMST_CHECK_MS 250            /* time to wait on unmatched CE_BREAK may go unmatched*/
+#    define CHAR_SERIAL_LSRMST_CE_POLL_MS 10           /* ClearCommError interval in in-band mode */
 #    define CHAR_SERIAL_LSRMST_SPLIT_MAX_MS 100        /* assume a 0x00 with BI this soon after a plain 0x00 is that 0x00's status arriving late*/
 #    define CHAR_SERIAL_LSRMST_SPLIT_MIN_MS 5          /* learned hold is 2x the lag seen plus this */
 #    define CHAR_SERIAL_BRK_SAME_MS         100        /* drop-trail mode: a break status this long after the last one is a new break */
@@ -656,11 +766,18 @@ retry:
         uint32_t mapped;
         int      com = (dev->port->type == CHAR_PORT_COM);
 
-        ClearCommError(dev->fd, &err, &stats);
+        uint32_t now = plat_get_ticks();
+
+        /* check for driver break insert once per CHAR_SERIAL_LSRMST_CE_POLL_MS */
+        if (dev->lsrmst && ((dev->rx_pos < dev->rx_len) || ((now - dev->lsrmst_ce_poll) < CHAR_SERIAL_LSRMST_CE_POLL_MS))) {
+            err = 0;
+            memset(&stats, 0, sizeof(stats));
+        } else {
+            ClearCommError(dev->fd, &err, &stats);
+            dev->lsrmst_ce_poll = now;
+        }
         /* link err flag to char byte */
         mapped = char_serial_map_error(err);
-
-        uint32_t now = plat_get_ticks();
 
         /* A character read behind a held or late-status 0x00 goes next. */
         if (dev->lsrmst_pb_valid) {
@@ -686,19 +803,24 @@ retry:
                 DWORD    got = 0;
                 uint32_t cerr;
 
-                if (!ReadFile(dev->fd, &raw, 1, &got, NULL)) {
-                    char_serial_log(dev->log, "ReadFile failed (%08X)\n", GetLastError());
-                    char_serial_disconnect(dev);
-                    if (!dev->block_connect && !connect) {
-                        connect = 1;
-                        goto retry;
+                if (dev->rx_pos >= dev->rx_len) {
+                    dev->rx_pos = dev->rx_len = 0;
+                    if (!ReadFile(dev->fd, dev->rx_buf, sizeof(dev->rx_buf), &got, NULL)) {
+                        char_serial_log(dev->log, "ReadFile failed (%08X)\n", GetLastError());
+                        char_serial_disconnect(dev);
+                        if (!dev->block_connect && !connect) {
+                            connect = 1;
+                            goto retry;
+                        }
+                        return 0;
                     }
-                    return 0;
+                    dev->rx_len = (uint16_t) got;
                 }
-                if (!got) {
+                if (dev->rx_pos >= dev->rx_len) {
                     drained = 1;
                     break;
                 }
+                raw = dev->rx_buf[dev->rx_pos++];
                 if (!char_serial_lsrmst_unescape(dev, raw, &c, &cerr))
                     continue;
 
@@ -929,10 +1051,30 @@ char_serial_write(uint8_t *buf, size_t len, void *priv)
 #ifdef _WIN32
     DWORD ret = 0;
 retry:
+    if (CHAR_FD_VALID(dev->fd) && dev->tx_failed) {
+        char_serial_disconnect(dev);
+        connect = !dev->block_connect;
+    }
     if (connect)
         char_serial_connect(dev, 0);
-    if (CHAR_FD_VALID(dev->fd) && !WriteFile(dev->fd, buf, len, &ret, NULL)) {
-        char_serial_log(dev->log, "WriteFile failed (%08X)\n", GetLastError());
+    if (CHAR_FD_VALID(dev->fd) && dev->tx_thread) {
+        /* queued for the worker; wait for room rather than lose characters */
+        for (int i = 0; i < 1000; i++) {
+            EnterCriticalSection(&dev->tx_cs);
+            if ((dev->tx_len + len) <= CHAR_SERIAL_TXQ) {
+                memcpy(dev->tx_buf + dev->tx_len, buf, len);
+                dev->tx_len += len;
+                ret = len;
+            }
+            LeaveCriticalSection(&dev->tx_cs);
+            if (ret || dev->tx_failed)
+                break;
+            Sleep(1);
+        }
+        if (ret)
+            SetEvent(dev->tx_event);
+    }
+    if (CHAR_FD_VALID(dev->fd) && !ret) {
 #else
     ssize_t ret = 0;
 retry:
@@ -1055,6 +1197,7 @@ char_serial_port_config(void *priv)
         char_serial_log(dev->log, "Port settings unchanged, SetCommState skipped\n");
         return;
     }
+    char_serial_tx_flush(dev);
     dev->applied       = dev->config;
     dev->applied_valid = 0;
 
@@ -1299,6 +1442,8 @@ char_serial_control(uint32_t flags, void *priv)
     uint32_t diff = dev->escaped_valid ? (dev->escaped ^ flags) : (CHAR_COM_DTR | CHAR_COM_RTS | CHAR_COM_BREAK);
 
 #ifdef _WIN32
+    if (diff & CHAR_COM_BREAK)
+        char_serial_tx_flush(dev);
     if (diff & CHAR_COM_DTR)
         EscapeCommFunction(dev->fd, (flags & CHAR_COM_DTR) ? SETDTR : CLRDTR);
     if (diff & CHAR_COM_RTS)
@@ -1344,6 +1489,8 @@ char_serial_close(void *priv)
     char_serial_disconnect(dev);
 
 #ifdef _WIN32
+    CloseHandle(dev->tx_event);
+    DeleteCriticalSection(&dev->tx_cs);
     free(dev->path);
 #endif
 
@@ -1366,6 +1513,8 @@ char_serial_init(const device_t *info)
 #endif
     dev->reconnect = !!device_get_config_int("reconnect");
 #ifdef _WIN32
+    InitializeCriticalSection(&dev->tx_cs);
+    dev->tx_event = CreateEvent(NULL, FALSE, FALSE, NULL);
     dev->brk_mode  = device_get_config_int("break_mode");
     if (dev->brk_mode == CHAR_SERIAL_BRK_HOLD_ZERO) {
         dev->lsrmst_split    = 1;

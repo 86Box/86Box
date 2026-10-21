@@ -143,25 +143,31 @@ serial_port_config(serial_t *dev)
         dev->char_port.chardev.port_config(dev->char_port.chardev.priv);
 }
 
-void
-serial_transmit_period(serial_t *dev)
+static double
+serial_divisor(serial_t *dev)
 {
-    double ddlab;
+    return (dev->dlab != 0x0000) ? (double) dev->dlab : 65536.0;
+}
 
-    if (dev->dlab != 0x0000)
-        ddlab = (double) dev->dlab;
-    else
-        ddlab = 65536.0;
-
-    /* Bit period based on DLAB. */
-    dev->transmit_period = (16000000.0 * ddlab) / dev->clock_src;
-    if (dev->sd && dev->sd->transmit_period_callback)
-        dev->sd->transmit_period_callback(dev, dev->sd->priv, dev->transmit_period);
-
-    dev->char_port.com.baud      = dev->clock_src / (16.0 * ddlab);
+/* calc host line settings from UART's divisor and LCR */
+static void
+serial_update_com(serial_t *dev)
+{
+    dev->char_port.com.baud      = dev->clock_src / (16.0 * serial_divisor(dev));
     dev->char_port.com.data_bits = (dev->lcr & 0x03) + 5;
     dev->char_port.com.parity    = (dev->lcr >> 3) & 0x7;
     dev->char_port.com.stop_bits = !!(dev->lcr & 0x04) + 1;
+}
+
+void
+serial_transmit_period(serial_t *dev)
+{
+    /* Bit period based on DLAB. */
+    dev->transmit_period = (16000000.0 * serial_divisor(dev)) / dev->clock_src;
+    if (dev->sd && dev->sd->transmit_period_callback)
+        dev->sd->transmit_period_callback(dev, dev->sd->priv, dev->transmit_period);
+
+    serial_update_com(dev);
     serial_port_config(dev);
 }
 
@@ -246,18 +252,27 @@ serial_char_period(const serial_t *dev)
 
 /* microseconds interval between host reads while nothing is arriving */
 #define SERIAL_RX_POLL_MIN_US 50.0
+#define SERIAL_RX_POLL_WIRE_MIN_US 1000.0
 
+/* Host polls are capped at one character time 
+Emulated devices without a host read keep the per bit timer */
 static double
 serial_receive_poll_period(const serial_t *dev)
 {
     double period = dev->transmit_period;
 
-    if (!dev->char_port.chardev.read || (dev->char_port.chardev.flags & CHAR_COM_SYNC_RX) || (dev->mctrl & 0x10))
+    if (!dev->char_port.chardev.read)
         return serial_receive_period(dev);
+    if ((dev->char_port.chardev.flags & CHAR_COM_SYNC_RX) || (dev->mctrl & 0x10))
+        return serial_char_period(dev);
     if (period < SERIAL_RX_POLL_MIN_US)
         period = SERIAL_RX_POLL_MIN_US;
-    if (period > serial_receive_period(dev))
-        period = serial_receive_period(dev);
+#ifdef _WIN32
+    if ((dev->char_port.chardev.flags & CHAR_COM_WIRE) && (period < SERIAL_RX_POLL_WIRE_MIN_US))
+        period = SERIAL_RX_POLL_WIRE_MIN_US;
+#endif
+    if (period > serial_char_period(dev))
+        period = serial_char_period(dev);
     return period;
 }
 
@@ -1273,8 +1288,14 @@ serial_devices_init(void)
         if (com_ports[i].device) {
             serial->char_port.type = CHAR_PORT_COM;
             snprintf(serial->char_port.name, sizeof(serial->char_port.name), "COM%i", i + 1);
+            /* preserve port settings on output device swap */
+            if (serial->clock_src > 0.0)
+                serial_update_com(serial);
             const device_t *device = char_get_device(com_ports[i].device);
             char_init(&serial->char_port, device, i + 1);
+
+            if (serial->clock_src > 0.0)
+                serial_port_config(serial);
 
             if (serial->char_port.chardev.control)
                 serial->char_port.chardev.control((serial->mctrl & 0x03) | (serial->lcr & 0x40), serial->char_port.chardev.priv);
