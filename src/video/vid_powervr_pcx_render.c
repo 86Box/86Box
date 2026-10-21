@@ -185,12 +185,14 @@ to_int32(double v)
         return 0x7fffffff;
     if (v <= -2147483648.0)
         return (int32_t) 0x80000000u;
-    /* A negative C too small for the fixed point (between -1 and 0) does
-       not become 0: the m3D turns it into the most negative value, so an
-       edge plane with such a C is outside everywhere and its object
-       vanishes. Measured with Shadows of the Empire 1.1 at 320x240, where
-       a menu triangle with C = -0.94 is missing on the card. */
-    if (v < 0.0 && v > -1.0)
+    /* A small negative C (between -2 and 0) does not truncate toward 0:
+       the m3D turns it into the most negative value, so an edge plane with
+       such a C is outside everywhere and its object vanishes. Small
+       positive values are unaffected. Measured with Shadows of the Empire
+       1.1 at 320x240 and 320x200, where menu triangles with C of -0.25,
+       -0.56, -0.57, -0.94, -1.55 and -1.63 are missing on the card while
+       those with -2.46 and below, or +0.14 and +0.75, are drawn. */
+    if (v < 0.0 && v > -2.0)
         return (int32_t) 0x80000000u;
     return (int32_t) v;
 }
