@@ -1,0 +1,316 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Tandy 2000 video emulation ported from MAME.
+ *
+ * Authors: Curt Coder
+ *          WNT50
+ *
+ *          Copyright 2010-2026 Curt Coder.
+ *          Copyright 2026 WNT50.
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdarg.h>
+#define HAVE_STDARG_H
+#include <86box/86box.h>
+#include <86box/timer.h>
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/video.h>
+#include <86box/device.h>
+#include <86box/plat_unused.h>
+
+/* The character RAM only uses the low byte lane, so the BIOS
+   stores the n-th glyph byte at address 2n. */
+#define TANDY2K_CHRAM_BASE  0xF8000
+#define TANDY2K_CHRAM_SIZE  0x04000
+
+/* Window the CPU sees the frame buffer through; port 101h selects it. */
+#define TANDY2K_FB_WINDOW   0x08000
+#define TANDY2K_FB_TEXT     0x06C00  /* last 5 KB of the window */
+
+#define TANDY2K_COLS        80
+#define TANDY2K_ROWS        25
+#define TANDY2K_XSIZE       (TANDY2K_COLS * 8)
+#define TANDY2K_YSIZE       (TANDY2K_ROWS * 16)
+
+/* VPAC timing as programmed by the BIOS: 106 characters of 8 dots per
+   horizontal period, 440 scan lines per frame, 22.4 MHz dot clock. */
+#define TANDY2K_FRAME_HZ    ((16000000.0 * 28.0 / 20.0) / ((106 * 8) * 440))
+
+/* The standard VAC divides VSYNC by 32 for character blink (25% duty) and
+   by 16 for the cursor (50% duty). */
+#define TANDY2K_BLINK_FRAMES  32
+#define TANDY2K_CURSOR_FRAMES 16
+
+typedef struct t2kvid_t {
+    uint8_t       chram[TANDY2K_CHRAM_SIZE];
+    uint8_t       vpac[0x20];
+    uint8_t       pal[8];
+    uint8_t       vbase;
+    uint64_t      frames;
+    mem_mapping_t chram_map;
+    pc_timer_t    timer;
+    uint64_t      frame_time;
+} t2kvid_t;
+
+/* Video memory sits on the main board, so CPU accesses add no bus cycles. */
+static video_timings_t timing_tandy2k = { .type = VIDEO_BUS, .write_b = 0, .write_w = 0, .write_l = 0, .read_b = 0, .read_w = 0, .read_l = 0 };
+
+static uint8_t
+chram_read(uint32_t addr, void *priv)
+{
+    return ((uint8_t *) priv)[addr & (TANDY2K_CHRAM_SIZE - 1)];
+}
+
+static uint16_t
+chram_readw(uint32_t addr, void *priv)
+{
+    const uint8_t *chram = (const uint8_t *) priv;
+    uint32_t       off   = addr & (TANDY2K_CHRAM_SIZE - 1);
+
+    return (uint16_t) (chram[off] | (chram[(off + 1) & (TANDY2K_CHRAM_SIZE - 1)] << 8));
+}
+
+static void
+chram_write(uint32_t addr, uint8_t val, void *priv)
+{
+    ((uint8_t *) priv)[addr & (TANDY2K_CHRAM_SIZE - 1)] = val;
+}
+
+static void
+chram_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    uint8_t *chram = (uint8_t *) priv;
+    uint32_t off   = addr & (TANDY2K_CHRAM_SIZE - 1);
+
+    chram[off]                                     = (uint8_t) (val & 0x00ff);
+    chram[(off + 1) & (TANDY2K_CHRAM_SIZE - 1)]    = (uint8_t) (val >> 8);
+}
+
+static uint8_t
+vpac_read(uint16_t addr, void *priv)
+{
+    t2kvid_t *vid = (t2kvid_t *) priv;
+
+    if (addr == 0x0101)
+        return vid->vbase;
+
+    if (addr & 0x0001)
+        return 0xff;
+
+    return vid->vpac[(addr & 0x003f) >> 1];
+}
+
+static void
+vpac_write(uint16_t addr, uint8_t val, void *priv)
+{
+    t2kvid_t *vid = (t2kvid_t *) priv;
+
+    if (addr == 0x0101) {
+        /* The controller fetches from main RAM at this base. */
+        vid->vbase = val;
+        return;
+    }
+
+    if (addr & 0x0001)
+        return;
+
+    vid->vpac[(addr & 0x003f) >> 1] = val;
+}
+
+static uint8_t
+attr_read(uint16_t addr, void *priv)
+{
+    t2kvid_t *vid = (t2kvid_t *) priv;
+
+    /* No high resolution graphics option installed. */
+    if (addr == 0x0180)
+        return 0xff;
+
+    if (addr & 0x0001)
+        return 0xff;
+
+    return vid->pal[((addr - 0x0180) & 0x0f) >> 1];
+}
+
+static void
+attr_write(uint16_t addr, uint8_t val, void *priv)
+{
+    t2kvid_t *vid = (t2kvid_t *) priv;
+
+    if (addr & 0x0001)
+        return;
+
+    /* 180h-18Fh hold pens 0-7; 190h-19Fh mirror the same eight. */
+    vid->pal[((addr - 0x0180) & 0x0f) >> 1] = val & 0x0f;
+}
+
+static uint32_t
+pen_green(uint8_t level)
+{
+    /* The palette decoder expands each colour to two bits,
+       so the green gun only ever sees 0x00, 0x55, 0xAA or 0xFF. */
+    const uint8_t idx = ((level & 0x07) ? 2 : 0) | ((level >> 3) & 1);
+
+    return (uint32_t) (idx * 0x55) << 8;
+}
+
+static void
+vid_render(t2kvid_t *vid)
+{
+    /* Port 101h holds A19-A15 of the 32 KB window; the text buffer is its last 5 KB. */
+    uint32_t fb    = ((uint32_t) (vid->vbase & 0x1f) << 15) + TANDY2K_FB_TEXT;
+    uint32_t limit = (uint32_t) mem_size << 10;
+    int      blink_off = (int) ((vid->frames % TANDY2K_BLINK_FRAMES) < (TANDY2K_BLINK_FRAMES / 4));
+    int      cursor_on = (int) ((vid->frames % TANDY2K_CURSOR_FRAMES) < (TANDY2K_CURSOR_FRAMES / 2));
+
+    for (int row = 0; row < TANDY2K_ROWS; row++) {
+        for (int line = 0; line < 16; line++) {
+            uint32_t *p = buffer32->line[(row * 16) + line];
+
+            for (int col = 0; col < TANDY2K_COLS; col++) {
+                uint32_t cell = (uint32_t) ((row * TANDY2K_COLS) + col) * 2;
+                uint8_t  code = 0x00;
+                uint8_t  attr = 0x00;
+                uint8_t  bits = 0x00;
+                uint8_t  pen  = 4;
+                uint32_t fg   = pen_green(0x0f);
+                uint32_t bg   = pen_green(0x00);
+
+                if ((fb + cell + 1) < limit) {
+                    code = ram[fb + cell];
+                    attr = ram[fb + cell + 1];
+                    bits = vid->chram[((code & 0x80) ? 0x1000 : 0x0000) +
+                                      ((code & 0x7f) * 32) + (line * 2)];
+                    /* Attribute bits follow the CRT 9021 wiring: 7 = REVID,
+                       6 = INT, 5 = BLINK, 2 = CHABL. INT set means full
+                       intensity, so it picks the high pens 4/5. */
+                    pen = (uint8_t) (4 | ((attr & 0x40) ? 0 : 2));
+                    fg  = pen_green(vid->pal[pen | 1]);
+                    bg  = pen_green(vid->pal[pen]);
+
+                    if (attr & 0x04)
+                        bits = 0x00;
+                    if (attr & 0x80)
+                        bits = (uint8_t) ~bits;
+                    if ((attr & 0x20) && blink_off)
+                        bits = 0x00;
+                }
+
+                /* CURSOR stays active for the whole data row and the VAC
+                   inverts the character, so every scan line is covered. */
+                if (cursor_on && (row == vid->vpac[0x18]) && (col == vid->vpac[0x19]))
+                    bits = (uint8_t) ~bits;
+
+                for (int dot = 0; dot < 8; dot++)
+                    p[(col * 8) + dot] = (bits & (0x80 >> dot)) ? fg : bg;
+            }
+        }
+    }
+}
+
+static void
+vid_poll(void *priv)
+{
+    t2kvid_t *vid = (t2kvid_t *) priv;
+
+    timer_advance_u64(&vid->timer, vid->frame_time);
+
+    /* The OSD can reset the screen size behind the driver's back; honour
+       its resize request even when the mode itself has not changed. */
+    if ((TANDY2K_XSIZE != xsize) || (TANDY2K_YSIZE != ysize) ||
+        video_force_resize_get()) {
+        xsize = TANDY2K_XSIZE;
+        ysize = TANDY2K_YSIZE;
+        set_screen_size(xsize, ysize);
+
+        if (video_force_resize_get())
+            video_force_resize_set(0);
+    }
+
+    video_wait_for_buffer();
+
+    vid_render(vid);
+
+    video_blit_memtoscreen(0, 0, xsize, ysize);
+
+    vid->frames++;
+    frames++;
+
+    video_res_x = xsize / 8;
+    video_res_y = ysize / 16;
+    video_bpp   = 0;
+}
+
+static void *
+tandy2k_vid_init(UNUSED(const device_t *info))
+{
+    t2kvid_t *vid = (t2kvid_t *) calloc(1, sizeof(t2kvid_t));
+
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tandy2k);
+
+    overscan_x = overscan_y = 0;
+
+    /* The BIOS only programs the palette when the high resolution board is
+       reported present, so the on-board colours it relies on must be there
+       from the start: background 0, character 15 and 7 for the two
+       intensities. */
+    vid->pal[4] = 0x00;
+    vid->pal[5] = 0x0f;
+    vid->pal[6] = 0x00;
+    vid->pal[7] = 0x07;
+
+    mem_mapping_add(&vid->chram_map, TANDY2K_CHRAM_BASE, TANDY2K_CHRAM_SIZE,
+                    chram_read, chram_readw, NULL,
+                    chram_write, chram_writew, NULL,
+                    NULL, MEM_MAPPING_EXTERNAL, vid->chram);
+
+    io_sethandler(0x0100, 0x0040, vpac_read, NULL, NULL, vpac_write, NULL, NULL, vid);
+    io_sethandler(0x0180, 0x0020, attr_read, NULL, NULL, attr_write, NULL, NULL, vid);
+
+    vid->frame_time = (uint64_t) ((cpuclock * (double) (1ULL << 32)) / TANDY2K_FRAME_HZ);
+
+    timer_add(&vid->timer, vid_poll, vid, 0);
+    timer_set_delay_u64(&vid->timer, vid->frame_time);
+
+    return vid;
+}
+
+static void
+tandy2k_vid_close(void *priv)
+{
+    t2kvid_t *vid = (t2kvid_t *) priv;
+
+    free(vid);
+}
+
+static void
+tandy2k_vid_speed_changed(void *priv)
+{
+    t2kvid_t *vid = (t2kvid_t *) priv;
+
+    vid->frame_time = (uint64_t) ((cpuclock * (double) (1ULL << 32)) / TANDY2K_FRAME_HZ);
+}
+
+const device_t tandy_2000_video_device = {
+    .name          = "Tandy 2000 (Video)",
+    .internal_name = "tandy2000_video",
+    .flags         = 0,
+    .local         = 0,
+    .init          = tandy2k_vid_init,
+    .close         = tandy2k_vid_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = tandy2k_vid_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
