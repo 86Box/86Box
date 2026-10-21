@@ -99,6 +99,7 @@
 #define WIN_SETIDLE1                   0xe3
 #define WIN_CHECKPOWERMODE1            0xe5
 #define WIN_SLEEP1                     0xe6
+#define WIN_FLUSH_CACHE                0xe7
 #define WIN_IDENTIFY                   0xec /* Ask drive to identify itself */
 #define WIN_SET_FEATURES               0xef
 #define WIN_READ_NATIVE_MAX            0xf8
@@ -800,6 +801,12 @@ ide_hd_identify(const ide_t *ide)
     ide->buffer[83] = ide->buffer[84] = 0x4000;
     ide->buffer[86] = 0x0000;
     ide->buffer[87] = 0x4000;
+
+    /* FLUSH CACHE supported and enabled (ATA-6). */
+    if (ata4) {
+        ide->buffer[83] |= 0x1000;
+        ide->buffer[86] |= 0x1000;
+    }
 }
 
 static void
@@ -2186,6 +2193,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                 case WIN_SETIDLE1:          /* Idle */
                 case WIN_CHECKPOWERMODE1:
                 case WIN_SLEEP1:
+                case WIN_FLUSH_CACHE:
                     ide->tf->atastat = BSY_STAT;
                     ide_callback(ide);
                     break;
@@ -2628,6 +2636,15 @@ ide_callback(void *priv)
         case WIN_SETIDLE1:
             ide->tf->atastat = DRDY_STAT | DSC_STAT;
             ide_irq_raise(ide);
+            break;
+
+        case WIN_FLUSH_CACHE:
+            if (ide->type == IDE_ATAPI)
+                err = ABRT_ERR;
+            else {
+                ide->tf->atastat = DRDY_STAT | DSC_STAT;
+                ide_irq_raise(ide);
+            }
             break;
 
         case WIN_CHECKPOWERMODE1:

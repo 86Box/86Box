@@ -3540,6 +3540,16 @@ dma_bm_read(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize, int Tra
     uint32_t n2;
     uint8_t  bytes[4] = { 0, 0, 0, 0 };
 
+    n = mem_read_phys_block(DataRead, PhysAddress, TotalSize);
+    if (n == TotalSize)
+        return;
+
+    /* Do the rest the slow way, keeping the transfer alignment. */
+    n &= ~(TransferSize - 1);
+    PhysAddress += n;
+    DataRead += n;
+    TotalSize -= n;
+
     n  = TotalSize & ~(TransferSize - 1);
     n2 = TotalSize - n;
 
@@ -3559,26 +3569,37 @@ dma_bm_read(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize, int Tra
 void
 dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize, int TransferSize)
 {
-    uint32_t n;
-    uint32_t n2;
-    uint8_t  bytes[4] = { 0, 0, 0, 0 };
+    const uint32_t start = PhysAddress;
+    const uint32_t total = TotalSize;
+    uint32_t       n;
+    uint32_t       n2;
+    uint8_t        bytes[4] = { 0, 0, 0, 0 };
 
-    n  = TotalSize & ~(TransferSize - 1);
-    n2 = TotalSize - n;
+    n = mem_write_phys_block(DataWrite, PhysAddress, TotalSize);
+    if (n != TotalSize) {
+        /* Do the rest the slow way, keeping the transfer alignment. */
+        n &= ~(TransferSize - 1);
+        PhysAddress += n;
+        DataWrite += n;
+        TotalSize -= n;
 
-    /* Do the divisible block, if there is one. */
-    if (n) {
-        for (uint32_t i = 0; i < n; i += TransferSize)
-            mem_write_phys((void *) &(DataWrite[i]), PhysAddress + i, TransferSize);
-    }
+        n  = TotalSize & ~(TransferSize - 1);
+        n2 = TotalSize - n;
 
-    /* Do the non-divisible block, if there is one. */
-    if (n2) {
-        mem_read_phys((void *) bytes, PhysAddress + n, TransferSize);
-        memcpy(bytes, (void *) &(DataWrite[n]), n2);
-        mem_write_phys((void *) bytes, PhysAddress + n, TransferSize);
+        /* Do the divisible block, if there is one. */
+        if (n) {
+            for (uint32_t i = 0; i < n; i += TransferSize)
+                mem_write_phys((void *) &(DataWrite[i]), PhysAddress + i, TransferSize);
+        }
+
+        /* Do the non-divisible block, if there is one. */
+        if (n2) {
+            mem_read_phys((void *) bytes, PhysAddress + n, TransferSize);
+            memcpy(bytes, (void *) &(DataWrite[n]), n2);
+            mem_write_phys((void *) bytes, PhysAddress + n, TransferSize);
+        }
     }
 
     if (dma_at)
-        mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
+        mem_invalidate_range(start, start + total - 1);
 }

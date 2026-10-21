@@ -149,10 +149,13 @@ typedef struct ide_s {
     void *  get_timings;
     void *  identify;
     void *  stop;
+    void *  packet_command;
     void *  device_reset;
     void *  phase_data_out;
     void *  command_stop;
     void *  bus_master_error;
+    void *  read;
+    void *  write;
 #endif
 } ide_t;
 

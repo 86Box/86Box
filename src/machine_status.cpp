@@ -1,9 +1,10 @@
-#include <inttypes.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
+#include <atomic>
+#include <cinttypes>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 
+extern "C" {
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
@@ -23,6 +24,7 @@
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/machine_status.h>
+}
 
 machine_status_t machine_status;
 
