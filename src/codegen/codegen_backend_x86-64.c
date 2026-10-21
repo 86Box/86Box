@@ -208,7 +208,7 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
     host_x86_RET(block);
 }
 
-#    if !defined(USE_GDBSTUB) && !defined(USE_DEBUG_REGS_486)
+#    if !defined(USE_GDBSTUB)
 static void
 jump_long_here(uint32_t *jump_p)
 {
@@ -233,6 +233,10 @@ build_store_long_tracked(codeblock_t *block, uint32_t **to_c)
     int       nr_to_c = 0;
 
     host_x86_MOV32_REG_ABS(block, REG_ESI, &codegen_in_recompile);
+    host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
+    to_c[nr_to_c++] = host_x86_JNZ_long(block);
+    /*An armed debug breakpoint needs writememll()'s check*/
+    host_x86_MOV32_REG_ABS(block, REG_ESI, &cpu_dr_armed);
     host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
     to_c[nr_to_c++] = host_x86_JNZ_long(block);
 
@@ -328,7 +332,7 @@ build_store_routine(codeblock_t *block, int size, int is_float)
 {
     uint8_t  *branch_offset;
     uint8_t  *misaligned_offset = NULL;
-#    if !defined(USE_GDBSTUB) && !defined(USE_DEBUG_REGS_486)
+#    if !defined(USE_GDBSTUB)
     uint32_t *misaligned_long = NULL;
 #    endif
 
@@ -359,7 +363,7 @@ build_store_routine(codeblock_t *block, int size, int is_float)
     host_x86_MOV64_REG_BASE_INDEX_SHIFT(block, REG_RSI, REG_R8, REG_RSI, 3);
     if (size != 1) {
         host_x86_TEST32_REG_IMM(block, REG_EDI, size - 1);
-#    if !defined(USE_GDBSTUB) && !defined(USE_DEBUG_REGS_486)
+#    if !defined(USE_GDBSTUB)
         /*The tracked path lies between this jump and the C path*/
         if (size == 4 && !is_float)
             misaligned_long = host_x86_JNZ_long(block);
@@ -385,9 +389,9 @@ build_store_routine(codeblock_t *block, int size, int is_float)
     host_x86_RET(block);
 
     *branch_offset = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) branch_offset) - 1;
-#    if !defined(USE_GDBSTUB) && !defined(USE_DEBUG_REGS_486)
+#    if !defined(USE_GDBSTUB)
     if (size == 4 && !is_float) {
-        uint32_t *to_c[5];
+        uint32_t *to_c[6];
         int       nr_to_c = build_store_long_tracked(block, to_c);
 
         for (int c = 0; c < nr_to_c; c++)
@@ -987,10 +991,10 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     rx_mov_ri(block, RX_STEP, -size);
     rx_patch(branch, rx_here());
 
-    /*Conditions that send every element down the slow path: debug
-      breakpoints, which the interpreter's translate check looks at, and a
+    /*Conditions that send every element down the slow path: an armed debug
+      breakpoint, which the interpreter's translate check looks at, and a
       segment that would fault*/
-    rx_mov_ri64(block, REG_RAX, (uint64_t) (uintptr_t) &dr[7]);
+    rx_mov_ri64(block, REG_RAX, (uint64_t) (uintptr_t) &cpu_dr_armed);
     rx_rm(block, 0, 0, 0x8b, RX_SLOW, REG_RAX, 0);
     rx_alu_ri(block, 0, 4, RX_SLOW, 0xff);
     rx_rm(block, 0, 0, 0x0fb7, REG_RDX, REG_RBP, rx_state(&cpu_state.CR0.w));
@@ -1266,7 +1270,9 @@ build_link_routine(codeblock_t *block)
     rx_rm(block, 0, 0, 0x3b, REG_R9, REG_RBX, LINK_SLOT(gen));
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
 
-    /*Nothing pending for the loop, and the loop would pick the recompiler*/
+    /*Nothing pending for the loop, and the loop would pick the recompiler.
+      An armed debug breakpoint is a miss, so the loop makes its per-block
+      check (dr_blocks_cache())*/
     rx_rm(block, 0, 0, 0x0fb7, REG_R9, REG_RBP, rx_state(&cpu_state.abrt)); /*abrt and smi_line*/
     lx_abs(block, 0, 0, 0x0b, REG_R9, &x86_was_reset);
     lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_flush_pending);
@@ -1274,6 +1280,7 @@ build_link_routine(codeblock_t *block)
     lx_abs(block, 0, 0, 0x0b, REG_R9, &new_ne);
     lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_force_interpreter);
     lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_override_dynarec);
+    lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_dr_armed);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
 
     /*nmi && nmi_enable && nmi_mask; the rest is out of line*/

@@ -90,14 +90,12 @@ opMOV_r_DRx_a16(uint32_t fetchdat)
         x86gpf(NULL, 0);
         return 1;
     }
-#ifdef USE_DEBUG_REGS_486
     /* General detect: a #DB fault before the instruction, with DR6.BD set */
-    if (dr[7] & 0x2000) {
+    if (cpu_debug_regs_486 && (dr[7] & 0x2000)) {
         dr[6] |= 0x2000;
         x86gen();
         return 1;
     }
-#endif
     fetch_ea_16(fetchdat);
     switch (cpu_reg) {
         case 0 ... 3:
@@ -136,14 +134,12 @@ opMOV_r_DRx_a32(uint32_t fetchdat)
         x86gpf(NULL, 0);
         return 1;
     }
-#ifdef USE_DEBUG_REGS_486
     /* General detect: a #DB fault before the instruction, with DR6.BD set */
-    if (dr[7] & 0x2000) {
+    if (cpu_debug_regs_486 && (dr[7] & 0x2000)) {
         dr[6] |= 0x2000;
         x86gen();
         return 1;
     }
-#endif
     fetch_ea_32(fetchdat);
     switch (cpu_reg) {
         case 0 ... 3:
@@ -374,14 +370,12 @@ opMOV_DRx_r_a16(uint32_t fetchdat)
         x86gpf(NULL, 0);
         return 1;
     }
-#ifdef USE_DEBUG_REGS_486
     /* General detect: a #DB fault before the instruction, with DR6.BD set */
-    if (dr[7] & 0x2000) {
+    if (cpu_debug_regs_486 && (dr[7] & 0x2000)) {
         dr[6] |= 0x2000;
         x86gen();
         return 1;
     }
-#endif
     fetch_ea_16(fetchdat);
     switch (cpu_reg) {
         case 0 ... 3:
@@ -404,6 +398,7 @@ opMOV_DRx_r_a16(uint32_t fetchdat)
             fallthrough;
         case 7:
             dr[7] = (cpu_state.regs[cpu_rm].l | 0x00000400) & (is586 ? ~0x0000d800 : ~0);
+            cpu_dr7_update();
             break;
         default:
             x86illegal();
@@ -411,9 +406,8 @@ opMOV_DRx_r_a16(uint32_t fetchdat)
     }
     CLOCK_CYCLES(6);
     PREFETCH_RUN(6, 2, rmdat, 0, 0, 0, 0, 0);
-#ifdef USE_DEBUG_REGS_486
-    CPU_BLOCK_END();
-#endif
+    if (cpu_debug_regs_486)
+        CPU_BLOCK_END();
     return 0;
 }
 static int
@@ -423,14 +417,12 @@ opMOV_DRx_r_a32(uint32_t fetchdat)
         x86gpf(NULL, 0);
         return 1;
     }
-#ifdef USE_DEBUG_REGS_486
     /* General detect: a #DB fault before the instruction, with DR6.BD set */
-    if (dr[7] & 0x2000) {
+    if (cpu_debug_regs_486 && (dr[7] & 0x2000)) {
         dr[6] |= 0x2000;
         x86gen();
         return 1;
     }
-#endif
     fetch_ea_32(fetchdat);
     switch (cpu_reg) {
         case 0 ... 3:
@@ -453,6 +445,7 @@ opMOV_DRx_r_a32(uint32_t fetchdat)
             fallthrough;
         case 7:
             dr[7] = (cpu_state.regs[cpu_rm].l | 0x00000400) & (is586 ? ~0x0000d800 : ~0);
+            cpu_dr7_update();
             break;
         default:
             x86illegal();
@@ -460,9 +453,8 @@ opMOV_DRx_r_a32(uint32_t fetchdat)
     }
     CLOCK_CYCLES(6);
     PREFETCH_RUN(6, 2, rmdat, 0, 0, 0, 0, 1);
-#ifdef USE_DEBUG_REGS_486
-    CPU_BLOCK_END();
-#endif
+    if (cpu_debug_regs_486)
+        CPU_BLOCK_END();
     return 0;
 }
 

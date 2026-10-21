@@ -79,11 +79,9 @@ enum {
 #define CPUID_3DNOWE (1UL << 30UL) /* Extended 3DNow! instructions */
 #define CPUID_3DNOW  (1UL << 31UL) /* 3DNow! instructions */
 
-/* Remove the Debugging Extensions CPUID flag if not compiled
-   with debug register support for 486 and later CPUs. */
-#ifndef USE_DEBUG_REGS_486
-#    define CPUID_DE 0
-#endif
+/* Report the Debugging Extensions CPUID flag only with debug register
+   operation on 486 and later CPUs enabled. */
+#define CPUID_DE (cpu_debug_regs_486 ? (1 << 2) : 0)
 
 /* Make sure this is as low as possible. */
 cpu_state_t cpu_state;

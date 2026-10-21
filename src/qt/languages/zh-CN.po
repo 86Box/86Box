@@ -433,6 +433,9 @@ msgstr "动态重编译器下更准确的FPU模拟"
 msgid "Block linking on the dynamic recompiler"
 msgstr "动态重编译器下的块链接"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPU 执行帧大小"
 

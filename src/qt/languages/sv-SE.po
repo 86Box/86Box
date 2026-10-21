@@ -432,6 +432,9 @@ msgstr "Exakt flyttalsprocessor-miljö på dynamisk omkompilator"
 msgid "Block linking on the dynamic recompiler"
 msgstr "Blocklänkning i dynamisk omkompilator"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Ramstorlek för processor"
 

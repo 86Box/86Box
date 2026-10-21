@@ -432,6 +432,9 @@ msgstr "Přesné prostředí FPU při dynamickém překladu"
 msgid "Block linking on the dynamic recompiler"
 msgstr "Propojování bloků při dynamickém překladu"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Velikost rámců procesoru"
 

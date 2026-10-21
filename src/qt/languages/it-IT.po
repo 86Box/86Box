@@ -434,6 +434,9 @@ msgstr "Ambiente FPU accurato con il ricompilatore dinamico"
 msgid "Block linking on the dynamic recompiler"
 msgstr "Collegamento dei blocchi con il ricompilatore dinamico"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Dimensione blocchi CPU"
 

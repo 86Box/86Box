@@ -432,6 +432,9 @@ msgstr "동적 리컴파일러에서 정확한 FPU 환경 사용"
 msgid "Block linking on the dynamic recompiler"
 msgstr "동적 리컴파일러에서 블록 링크 사용"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPU 프레임 크기"
 
