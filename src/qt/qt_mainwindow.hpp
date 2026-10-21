@@ -112,6 +112,8 @@ private slots:
     void on_actionNearest_triggered();
     void on_actionFullScreen_int_triggered();
     void on_actionFullScreen_int43_triggered();
+    void on_actionFullScreen_center_triggered();
+    void on_actionFullScreen_center43_triggered();
     void on_actionFullScreen_keepRatio_triggered();
     void on_actionFullScreen_43_triggered();
     void on_actionFullScreen_stretch_triggered();

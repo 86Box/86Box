@@ -151,6 +151,12 @@ msgstr "Heltallsskala"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Heltallsskala"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Invertert VGA-skjerm"
 

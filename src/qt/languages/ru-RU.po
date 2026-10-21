@@ -151,6 +151,12 @@ msgstr "&Целочисленное масштабирование"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 целочисленное масштабирование"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Инвертировать цвета VGA"
 

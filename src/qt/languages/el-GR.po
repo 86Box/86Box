@@ -150,6 +150,12 @@ msgstr "&Aκέραια κλίμακα"
 msgid "4:&3 Integer scale"
 msgstr "Aκέραια κλίμακα 4:&3"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Αντεστραμμένο VGA monitor"
 
