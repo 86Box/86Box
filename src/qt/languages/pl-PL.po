@@ -151,6 +151,9 @@ msgstr "&Skalowanie całkowite"
 msgid "4:&3 Integer scale"
 msgstr "Skalowanie całkowite 4:&3"
 
+msgid "&Center (no stretching)"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Odwrócony monitor VGA"
 

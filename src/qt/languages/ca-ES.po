@@ -150,6 +150,9 @@ msgstr "&Escalat de valor enter"
 msgid "4:&3 Integer scale"
 msgstr "Escalat de valor enter 4:&3"
 
+msgid "&Center (no stretching)"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Monitor VGA invertit"
 

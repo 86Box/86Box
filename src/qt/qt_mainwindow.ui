@@ -176,6 +176,7 @@
      <addaction name="actionFullScreen_keepRatio"/>
      <addaction name="actionFullScreen_int"/>
      <addaction name="actionFullScreen_int43"/>
+     <addaction name="actionFullScreen_center"/>
     </widget>
     <widget class="QMenu" name="menuOpenGL_input_stretch_mode">
      <property name="title">
@@ -613,6 +614,14 @@
    </property>
    <property name="text">
     <string>4:&amp;3 Integer scale</string>
+   </property>
+  </action>
+  <action name="actionFullScreen_center">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Center (no stretching)</string>
    </property>
   </action>
   <action name="actionAbout_Qt">

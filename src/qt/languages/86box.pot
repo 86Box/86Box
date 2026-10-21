@@ -144,6 +144,9 @@ msgstr ""
 msgid "4:&3 Integer scale"
 msgstr ""
 
+msgid "&Center (no stretching)"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr ""
 

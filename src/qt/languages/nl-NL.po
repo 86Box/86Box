@@ -150,6 +150,9 @@ msgstr "&Integerschaal"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 integerschaal"
 
+msgid "&Center (no stretching)"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Geïnverteerde VGA-monitor"
 

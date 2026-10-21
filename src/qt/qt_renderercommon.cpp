@@ -209,6 +209,12 @@ RendererCommon::onResize(int width, int height)
                 dy = (hh - dh) / 2.0;
                 destination.setRect((int) dx, (int) dy, (int) dw, (int) dh);
                 break;
+            case FULLSCR_SCALE_CENTER:
+                /* An image larger than the window extends past its edges and gets cut off. */
+                dx = std::floor((hw - gw) / 2.0);
+                dy = std::floor((hh - gh) / 2.0);
+                destination.setRect((int) dx, (int) dy, (int) gw, (int) gh);
+                break;
             case FULLSCR_SCALE_FULL:
             default:
                 destination.setRect(0, 0, (int) hw, (int) hh);
@@ -226,12 +232,40 @@ RendererCommon::onResize(int width, int height)
                          (double) destination.width() / (double) width, (double) destination.height() / (double) height);
 }
 
+void
+RendererCommon::visibleRects(int out_w, int out_h, QRect &visible_source, QRect &visible_destination) const
+{
+    visible_destination = destination.intersected(QRect(0, 0, out_w, out_h));
+
+    if (visible_destination == destination) {
+        visible_source = source;
+        return;
+    }
+
+    if (visible_destination.isEmpty() || destination.isEmpty()) {
+        visible_source = QRect(source.x(), source.y(), 0, 0);
+        return;
+    }
+
+    /* Crop the source by the same fraction the destination was cut by. */
+    const double sx = (double) source.width() / (double) destination.width();
+    const double sy = (double) source.height() / (double) destination.height();
+
+    const int x0 = source.x() + (int) std::lround((visible_destination.left() - destination.left()) * sx);
+    const int y0 = source.y() + (int) std::lround((visible_destination.top() - destination.top()) * sy);
+    const int x1 = source.x() + (int) std::lround((visible_destination.left() + visible_destination.width() - destination.left()) * sx);
+    const int y1 = source.y() + (int) std::lround((visible_destination.top() + visible_destination.height() - destination.top()) * sy);
+
+    visible_source.setRect(x0, y0, x1 - x0, y1 - y0);
+}
+
 float
 RendererCommon::osdLayoutScaleHint() const
 {
     const double dpr = std::max(1.0, pixelRatio);
-    const int logical_w = std::max(1, (int) std::lround((double) destination.width() / dpr));
-    const int logical_h = std::max(1, (int) std::lround((double) destination.height() / dpr));
+    const QRect  visible   = destination.intersected(QRect(QPoint(0, 0), output_size));
+    const int    logical_w = std::max(1, (int) std::lround((double) visible.width() / dpr));
+    const int    logical_h = std::max(1, (int) std::lround((double) visible.height() / dpr));
     return osd_core_layout_scale_for_output(logical_w, logical_h);
 }
 

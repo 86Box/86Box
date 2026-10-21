@@ -150,6 +150,9 @@ msgstr "&Kokonaislukuskaalaus"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Kokonaislukuskaalaus"
 
+msgid "&Center (no stretching)"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "VGA-näyttö käänteisillä väreillä"
 

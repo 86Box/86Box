@@ -151,6 +151,9 @@ msgstr "整数比例(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整数比例(&3)"
 
+msgid "&Center (no stretching)"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "VGA 显示器反色显示"
 

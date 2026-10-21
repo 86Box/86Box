@@ -150,6 +150,9 @@ msgstr "정수 배율(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 정수배 확대(&3)"
 
+msgid "&Center (no stretching)"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "색상 반전된 VGA 모니터"
 
