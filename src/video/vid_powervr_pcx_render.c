@@ -185,6 +185,13 @@ to_int32(double v)
         return 0x7fffffff;
     if (v <= -2147483648.0)
         return (int32_t) 0x80000000u;
+    /* A negative C too small for the fixed point (between -1 and 0) does
+       not become 0: the m3D turns it into the most negative value, so an
+       edge plane with such a C is outside everywhere and its object
+       vanishes. Measured with Shadows of the Empire 1.1 at 320x240, where
+       a menu triangle with C = -0.94 is missing on the card. */
+    if (v < 0.0 && v > -1.0)
+        return (int32_t) 0x80000000u;
     return (int32_t) v;
 }
 
