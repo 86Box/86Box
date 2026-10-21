@@ -3578,3 +3578,111 @@ machine_at_m747_init(const machine_t *model)
 
     return ret;
 }
+
+/* SiS 620 */
+static const device_config_t m748mr_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "m748mr",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 01/25/1999S",
+                .internal_name = "m748mr_0125",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/m748mr/01251999s.bin", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 02/23/1999S",
+                .internal_name = "m748mr_0223",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/m748mr/990223s.rom", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 07/02/1999S",
+                .internal_name = "m748mr",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/m748mr/990702s.rom", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t m748mr_device = {
+    .name          = "PC Chips M748MR",
+    .internal_name = "m748mr",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = m748mr_config
+};
+
+int
+machine_at_m748mr_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0F, PCI_CARD_SOUND,       2, 0, 0, 0);
+    pci_register_slot(0x10, PCI_CARD_MODEM,       3, 0, 0, 0);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   0, 0, 0, 0);
+
+    device_add(&sis_620_device);
+    device_add(&it8661f_device); /* functionally identical to the IT8670F */
+    device_add(&winbond_flash_w29c020_device);
+
+    /* Voltage values for the SiS 5595 DAM */
+    hwm_values.voltages[0]  = 2800; /* 5V */
+    hwm_values.voltages[1]  = 3300; /* 3.3V */
+    hwm_values.voltages[2]  = 2450; /* 2.5V */
+    hwm_values.voltages[3] -= 1000; /* Vcore */
+    hwm_values.voltages[4]  = -835; /* CPU temperature */
+
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    return ret;
+}

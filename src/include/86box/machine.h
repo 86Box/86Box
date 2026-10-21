@@ -1550,6 +1550,12 @@ extern int             machine_at_gt694va_init(const machine_t *);
 extern int             machine_at_p6f99_init(const machine_t *);
 extern int             machine_at_m747_init(const machine_t *);
 
+/* SiS 620 */
+#ifdef EMU_DEVICE_H
+extern const device_t  m748mr_device;
+#endif
+extern int             machine_at_m748mr_init(const machine_t *);
+
 /* m_at_slot1_2.c */
 /* i440GX */
 extern int             machine_at_fw6400gx_init(const machine_t *);
