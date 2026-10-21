@@ -2595,6 +2595,13 @@ MainWindow::changeEvent(QEvent *event)
         monitor_settings[0].mon_window_maximized = isMaximized();
         config_save();
     }
+    /* The renderer can get its resize event before the window reports being
+       maximized, so redo the stretch mode once the state is known. */
+    if (event->type() == QEvent::WindowStateChange) {
+        const auto widget = ui->stackedWidget->currentWidget();
+        if (widget)
+            ui->stackedWidget->onResize(widget->width(), widget->height());
+    }
 }
 
 void

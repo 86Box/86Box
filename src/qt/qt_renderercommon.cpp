@@ -121,12 +121,10 @@ standalone_scale(QRect &destination, int width, int height, QRect source, int sc
 void
 RendererCommon::onResize(int width, int height)
 {
-    /* This is needed so that the if below does not take like, 5 lines. */
-    bool is_fs            = (video_fullscreen == 0);
-    bool parent_max       = (parentWidget->isMaximized() == false);
-    bool main_is_ancestor = main_window->isAncestorOf(parentWidget);
-    bool main_max         = main_window->isMaximized();
-    bool main_is_max      = (main_is_ancestor && main_max == false);
+    /* The stretch mode applies in fullscreen and, if enabled, when the window
+       holding this renderer (the main window or a monitor window) is maximized. */
+    bool apply_scale = video_fullscreen ||
+                       (video_fullscreen_scale_maximized && parentWidget->window()->isMaximized());
 
     width  = round(pixelRatio * width);
     height = round(pixelRatio * height);
@@ -142,7 +140,7 @@ RendererCommon::onResize(int width, int height)
             dw = qRound((double) height * monitor.mon_device_aspect_x / monitor.mon_device_aspect_y);
         }
         destination.setRect((width - dw) / 2, (height - dh) / 2, dw, dh);
-    } else if (is_fs && (video_fullscreen_scale_maximized ? (parent_max && main_is_max) : 1) && !(force_43 && vid_resize))
+    } else if (!apply_scale && !(force_43 && vid_resize))
         destination.setRect(0, 0, width, height);
     else {
         auto   temp_fullscreen_scale = video_fullscreen_scale;
@@ -159,10 +157,8 @@ RendererCommon::onResize(int width, int height)
         double hsr = hw / hh;
         double r43 = 4.0 / 3.0;
 
-        if (force_43 && is_fs && vid_resize) {
-            if (!video_fullscreen_scale_maximized || (video_fullscreen_scale_maximized && parent_max && main_is_max))
-                temp_fullscreen_scale = FULLSCR_SCALE_43;
-        }
+        if (force_43 && vid_resize && !apply_scale)
+            temp_fullscreen_scale = FULLSCR_SCALE_43;
 
         switch (temp_fullscreen_scale) {
             case FULLSCR_SCALE_INT:
