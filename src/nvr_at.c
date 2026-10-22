@@ -996,7 +996,8 @@ nvr_start(nvr_t *nvr)
            century byte alone unless the NVR is new or uninitialized: it is
            ordinary RAM maintained by the firmware, and some firmware checksums
            it. A new NVR's century comes from nvr_reset(), not the firmware. */
-        const int     seed_cent = (local->cent == 0xff) || nvr->is_new || (default_found == nvr->size);
+        const int     seed_cent = (local->cent == 0xff) || nvr->is_new || (default_found == nvr->size)
+                                  || (time_offset_years != 0); /* force century update on year offset */
         const uint8_t old_cent  = seed_cent ? 0x00 : nvr->regs[local->cent];
 
         nvr_time_get(&tm);

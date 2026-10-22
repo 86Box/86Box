@@ -330,6 +330,15 @@ nvr_time_sync(void)
         localtime_r(&now, &tm);
 #endif
 
+    /* Apply configured year offset.  Feb 29 is clamped to Feb 28 when
+       the target year is not a leap year. */
+    if (time_offset_years != 0) {
+        int target_year = (tm.tm_year + 1900) + time_offset_years;
+        tm.tm_year += time_offset_years;
+        if (tm.tm_mon == 1 && tm.tm_mday == 29 && !nvr_is_leap(target_year))
+            tm.tm_mday = 28;
+    }
+
     nvr_time_set(&tm);
 }
 
