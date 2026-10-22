@@ -1,0 +1,107 @@
+name: PowerVR PCX build (Windows)
+
+# Release builds of the powervr-pcx branch for testers: the regular preset
+# (optimised, no development-branch devices) with the new dynamic
+# recompiler. Pushing a tag named pcx-*, or publishing a release with such a
+# tag on GitHub, attaches the zips to that release.
+
+on:
+  push:
+    branches:
+      - powervr-pcx
+    tags:
+      - 'pcx-*'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    name: "Windows x64, Release, NDR${{ matrix.dev.slug }}"
+    runs-on: windows-2022
+    permissions:
+      contents: write
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        dev:
+          - slug: ''
+            flag: 'OFF'
+          - slug: '-devsettings'
+            flag: 'ON'
+
+    steps:
+      - name: Prepare MSYS2 environment
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 #v2.32.0
+        with:
+          release: true
+          update: true
+          msystem: UCRT64
+          pacboy: >-
+            ninja:p
+            cmake:p
+            gcc:p
+            pkgconf:p
+            freetype:p
+            sdl3:p
+            zlib:p
+            libpng:p
+            openal:p
+            rtmidi:p
+            libslirp:p
+            fluidsynth:p
+            libserialport:p
+            qt5-static:p
+            vulkan-headers:p
+            llvm-openmp:p
+            zstd:p
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Configure CMake
+        run: >-
+          cmake -S . -B build --preset regular
+          -D NEW_DYNAREC=ON
+          -D QT=ON
+          -D POWERVR_PCX_DEV=${{ matrix.dev.flag }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Generate package
+        run: cmake --install build
+
+      - name: Zip
+        shell: pwsh
+        run: |
+          $sha = "${{ github.sha }}".Substring(0, 7)
+          Compress-Archive -Path build/artifacts/* -DestinationPath "86Box-PowerVR${{ matrix.dev.slug }}-Windows-64-$sha.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: '86Box-PowerVR${{ matrix.dev.slug }}-Windows-64-gha${{ github.run_number }}'
+          path: build/artifacts/**
+
+      - name: Publish release (tags only)
+        if: startsWith(github.ref, 'refs/tags/pcx-')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $zip = (Get-ChildItem 86Box-PowerVR*.zip).Name
+          gh release view "$env:GITHUB_REF_NAME" -R "$env:GITHUB_REPOSITORY" *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create "$env:GITHUB_REF_NAME" -R "$env:GITHUB_REPOSITORY" --prerelease `
+              --title "86Box with PowerVR PCX2 ($env:GITHUB_REF_NAME)" `
+              --notes "Test build of the powervr-pcx branch. See https://github.com/z2k-retro/powervr-pcx2-tools/blob/main/docs/using-86box.md"
+          }
+          gh release upload "$env:GITHUB_REF_NAME" $zip -R "$env:GITHUB_REPOSITORY" --clobber
