@@ -29,12 +29,15 @@
 #include <86box/i8018x.h>
 #include <86box/machine.h>
 #include <86box/keyboard.h>
+#include <86box/mouse.h>
 #include <86box/fdc.h>
 #include <86box/fdd.h>
 #include <86box/hdc.h>
 #include <86box/rom.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
+#include <86box/serial.h>
+#include <86box/tandy_clkmouse.h>
 
 /* The keyboard hangs off the second 8259's IR0. */
 #define TANDY2K_KBD_IRQ  (1 << 8)
@@ -576,6 +579,24 @@ static const scancode scancode_tandy2k[512] = {
   // clang-format on
 };
 
+#ifdef ENABLE_TANDY2K_LOG
+int tandy2k_do_log = ENABLE_TANDY2K_LOG;
+
+static void
+tandy2k_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (tandy2k_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define tandy2k_log(fmt, ...)
+#endif
+
 /* A scan code from the encoder is held in the latch and raises the
    keyboard interrupt until the BIOS reads it back through port B. */
 static void
@@ -818,6 +839,10 @@ machine_tandy2000_init(const machine_t *model)
 
     pic_init_tandy2k();
 
+    /* There are no ISA slots, and a standalone COM2 would sit at 2F8h-2FFh,
+       on top of the option board's chip select. */
+    serial_set_next_inst(SERIAL_MAX - 1);
+
     /* The state block is static, so a hard reset has to put the registers the
        guest can see back to their power-on values; a stale FDCRESET* level
        would otherwise pulse the controller during POST. */
@@ -850,6 +875,11 @@ machine_tandy2000_init(const machine_t *model)
 
     if (hdc_current[0] == HDC_INTERNAL)
         device_add(&st506_tandy2k_wd1010_device);
+
+    /* The board is an option: no internal mouse means it is not installed,
+       and its clock goes with it. */
+    if (mouse_type == MOUSE_TYPE_INTERNAL)
+        device_add(&tandy_clkmouse_device);
 
     /* The board clocks the 8253 at 2 MHz and decodes its registers on
        even addresses, so replace the default 40h-43h mapping. */
