@@ -299,7 +299,7 @@ ropFMULr(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint
         return 0;
     uop_FP_ENTER(ir);
     codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc - 1, NULL, FPU_GUARD_ST(0) | FPU_GUARD_ST(dest_reg));
-    uop_FMUL(ir, IREG_ST(dest_reg), IREG_ST(dest_reg), IREG_ST(0));
+    uop_FMUL(ir, IREG_ST(dest_reg), IREG_ST(0), IREG_ST(dest_reg));
     uop_FROUND_PC(ir, IREG_ST(dest_reg));
     uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
 
@@ -314,7 +314,7 @@ ropFMULP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
         return 0;
     uop_FP_ENTER(ir);
     codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc - 1, NULL, FPU_GUARD_ST(0) | FPU_GUARD_ST(dest_reg));
-    uop_FMUL(ir, IREG_ST(dest_reg), IREG_ST(dest_reg), IREG_ST(0));
+    uop_FMUL(ir, IREG_ST(dest_reg), IREG_ST(0), IREG_ST(dest_reg));
     uop_FROUND_PC(ir, IREG_ST(dest_reg));
     uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
     fpu_POP(block, ir);

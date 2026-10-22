@@ -988,6 +988,10 @@ codegen_FMUL(codeblock_t *block, uop_t *uop)
 
     if (REG_IS_D(dest_size) && REG_IS_D(src_size_a) && REG_IS_D(src_size_b) && dest_reg == src_reg_a) {
         host_x86_MULSD_XREG_XREG(block, dest_reg, src_reg_b);
+    } else if (REG_IS_D(dest_size) && REG_IS_D(src_size_a) && REG_IS_D(src_size_b)) {
+        host_x86_MOVQ_XREG_XREG(block, REG_XMM_TEMP, src_reg_a);
+        host_x86_MULSD_XREG_XREG(block, REG_XMM_TEMP, src_reg_b);
+        host_x86_MOVQ_XREG_XREG(block, dest_reg, REG_XMM_TEMP);
     }
 #    ifdef RECOMPILER_DEBUG
     else
