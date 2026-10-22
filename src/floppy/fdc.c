@@ -2101,10 +2101,20 @@ fdc_callback(void *priv)
             return;
         case 0x04: { /* Sense drive status */
             fdd_drive_t *drv = (fdd_drive_t *) fdc->fdd[real_drive(fdc, fdc->drive)];
-            /* ST3 carries the drive's pins, so an empty position has no ready signal to report. */
-            fdc->res[10] = (fdc->params[0] & 7) | (fdd_get_flags(drv) ? 0x20 : 0x00);
-            if (fdd_is_double_sided(drv))
-                fdc->res[10] |= 0x08;
+
+            fdc->res[10] = fdc->params[0] & 7;
+            if (fdc->flags & FDC_FLAG_AT) {
+                /* The AT-class controllers (82077AA and the Super I/O ones)
+                   report the two-side and ready bits as always set. */
+                fdc->res[10] |= 0x28;
+            } else {
+                /* The XT-class controllers passes the drive's pins through, so
+                   a position with no drive has no ready signal to report. */
+                if (fdd_is_double_sided(drv))
+                    fdc->res[10] |= 0x08;
+                if (fdd_get_flags(drv))
+                    fdc->res[10] |= 0x20;
+            }
             if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en) {
                 if (fdc_track0(fdc, real_drive(fdc, fdc->drive)))
                     fdc->res[10] |= 0x10;
