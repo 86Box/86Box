@@ -6,6 +6,7 @@
 #include <86box/plat_unused.h>
 
 #include "x86.h"
+#include "x86_ops.h"
 #include "x86seg_common.h"
 #include "x86seg.h"
 #include "x86_flags.h"
@@ -472,15 +473,86 @@ ropPOPA_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UN
     return op_pc;
 }
 
+/*PUSHF in V86 mode, as the interpreter's opPUSHF: at IOPL 3 the flags
+  themselves, masked in place as outside V86; below 3 with CR4.VME the
+  word has IF from VIF and IOPL reading 3 and the flags stay as they are;
+  below 3 without VME it is #GP(0). Blocks are keyed on V86 but not on
+  IOPL or CR4, so both are read as the block runs: the #GP case takes the
+  interpreter and leaves the block, the other two are one select with no
+  branch (Windows runs its V86 code below IOPL 3 with VME on).*/
+static uint32_t
+pushf_v86(ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    int sp_reg;
+    int jump_uop;
+
+#ifndef CODEGEN_BACKEND_HAS_INT_UOPS
+    return 0;
+#endif
+    /*Room for the register versions below (at most 5 of temp0, 11 of temp1,
+      6 of temp2, 4 of temp3, 2 of the flags) and for the flags rebuild
+      call_flags_rebuild() may emit in the block first (at most 22 of temp1,
+      4 of temp3, 8 of flags) without passing REG_VERSION_MAX, which only
+      ends the block after the current instruction*/
+    if ((reg_last_version[IREG_GET_REG(IREG_temp0)] + 16 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp1)] + 40 > REG_VERSION_MAX) ||
+        (reg_last_version[IREG_GET_REG(IREG_temp2)] + 16 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp3)] + 16 > REG_VERSION_MAX) ||
+        (reg_last_version[IREG_GET_REG(IREG_flags)] + 12 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_pc)] + 4 > REG_VERSION_MAX))
+        return 0;
+
+    codegen_accumulate_flush(ir);
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    call_flags_rebuild(ir, jit_flags_rebuild);
+    uop_MOVZX(ir, IREG_temp0, IREG_flags);
+    uop_SHR_IMM(ir, IREG_temp1, IREG_temp0, 12);
+    uop_AND_IMM(ir, IREG_temp1, IREG_temp1, 3);
+    uop_MOV_IMM(ir, IREG_temp3, 3);
+    uop_CMP_SET(ir, IREG_temp3, IREG_temp1, IREG_temp3, UOP_CC_Z);
+    uop_MOV_REG_PTR(ir, IREG_temp2, &cr4);
+    uop_AND_IMM(ir, IREG_temp2, IREG_temp2, CR4_VME);
+    uop_TEST_SET(ir, IREG_temp2, IREG_temp2, UOP_CC_NZ);
+    uop_OR(ir, IREG_temp2, IREG_temp2, IREG_temp3);
+    jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp2, 0);
+
+    uop_MOV_IMM(ir, IREG_pc, op_pc);
+    uop_CALL_INSTRUCTION_FUNC(ir, x86_dynarec_opcodes[(opcode | op_32) & 0x3ff], fetchdat);
+    uop_JMP(ir, codegen_exit_rout);
+    uop_set_jump_dest(ir, jump_uop);
+
+    /*temp3 all ones at IOPL 3; the flags in place first, as the
+      interpreter has them before the push can fault*/
+    uop_SHL_IMM(ir, IREG_temp3, IREG_temp3, 31);
+    uop_SAR_IMM(ir, IREG_temp3, IREG_temp3, 31);
+    uop_AND_IMM(ir, IREG_temp2, IREG_temp0, 0x7fd5);
+    uop_OR_IMM(ir, IREG_temp2, IREG_temp2, 0x0002);
+    uop_XOR(ir, IREG_temp1, IREG_temp0, IREG_temp2);
+    uop_AND(ir, IREG_temp1, IREG_temp1, IREG_temp3);
+    uop_XOR(ir, IREG_temp1, IREG_temp1, IREG_temp0);
+    uop_MOV(ir, IREG_flags, IREG_temp1_W);
+    /*The VME word: IF from VIF, IOPL 3*/
+    uop_MOVZX(ir, IREG_temp1, IREG_eflags);
+    uop_AND_IMM(ir, IREG_temp1, IREG_temp1, VIF_FLAG);
+    uop_SHL_IMM(ir, IREG_temp1, IREG_temp1, 6);
+    uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0x7dd5);
+    uop_OR_IMM(ir, IREG_temp0, IREG_temp0, 0x3002);
+    uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+    /*The word pushed: the masked flags at IOPL 3, the VME word below*/
+    uop_XOR(ir, IREG_temp1, IREG_temp0, IREG_temp2);
+    uop_AND(ir, IREG_temp1, IREG_temp1, IREG_temp3);
+    uop_XOR(ir, IREG_temp1, IREG_temp1, IREG_temp0);
+    sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
+    uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_temp1_W);
+    SUB_SP(ir, 2);
+
+    return op_pc;
+}
+
 uint32_t
-ropPUSHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPUSHF(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int sp_reg;
 
-    /*In V86 mode the fault depends on IOPL, which blocks aren't keyed on:
-      the interpreter decides it at run time*/
     if (cpu_state.eflags & VM_FLAG)
-        return 0;
+        return pushf_v86(ir, opcode, fetchdat, op_32, op_pc);
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     call_flags_rebuild(ir, jit_flags_rebuild);
@@ -493,14 +565,26 @@ ropPUSHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUS
     return op_pc;
 }
 uint32_t
-ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int sp_reg;
 
-    /*In V86 mode the fault depends on IOPL, which blocks aren't keyed on:
-      the interpreter decides it at run time*/
-    if (cpu_state.eflags & VM_FLAG)
-        return 0;
+    /*In V86 mode PUSHFD below IOPL 3 is #GP(0), with no VME form: IOPL is
+      read as the block runs (blocks aren't keyed on it) and the fault
+      takes the interpreter and leaves the block*/
+    if (cpu_state.eflags & VM_FLAG) {
+        int jump_uop;
+
+        codegen_accumulate_flush(ir);
+        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+        uop_MOVZX(ir, IREG_temp0, IREG_flags);
+        uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0x3000);
+        jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp0, 0x3000);
+        uop_MOV_IMM(ir, IREG_pc, op_pc);
+        uop_CALL_INSTRUCTION_FUNC(ir, x86_dynarec_opcodes[(opcode | op_32) & 0x3ff], fetchdat);
+        uop_JMP(ir, codegen_exit_rout);
+        uop_set_jump_dest(ir, jump_uop);
+    }
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     call_flags_rebuild(ir, jit_flags_rebuild);
