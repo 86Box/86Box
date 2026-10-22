@@ -31,19 +31,7 @@
 #include <86box/video.h> /* cpuclock */
 #include "../lapic_policy.h"
 
-/* Startup slots record AP requests without creating runnable CPU state. */
-typedef struct cpu_ap_startup_slot_t {
-    uint8_t requested;
-    uint8_t vector;
-    uint8_t accepted;
-    uint8_t parked;
-    uint16_t startup_cs;
-    uint16_t startup_ip;
-    uint32_t linear;
-} cpu_ap_startup_slot_t;
-
 /* CPU owns LAPIC state that drives priority, delivery, timers, and save/load. */
-static cpu_ap_startup_slot_t cpu_ap_startup_slots[IOAPIC_STATE_MAX_LAPICS];
 static uint8_t               cpu_lapic_ids[IOAPIC_STATE_MAX_LAPICS];
 static uint32_t              cpu_lapic_svrs[IOAPIC_STATE_MAX_LAPICS];
 static uint32_t              cpu_lapic_tprs[IOAPIC_STATE_MAX_LAPICS];
@@ -2429,29 +2417,10 @@ cpu_apic_base_msr_load_index(uint8_t lapic_index, uint64_t val)
                                       (val & (CPU_APIC_BASE_BSP | CPU_APIC_BASE_ENABLE));
 }
 
-uint8_t
-cpu_ap_startup_request(uint8_t lapic_index, uint8_t vector)
-{
-    /* Park accepted AP startups; no secondary CPU loop is created here. */
-    if (lapic_index >= IOAPIC_STATE_MAX_LAPICS)
-        return 0;
-
-    cpu_ap_startup_slots[lapic_index].requested = 1;
-    cpu_ap_startup_slots[lapic_index].vector = vector;
-    cpu_ap_startup_slots[lapic_index].accepted = (lapic_index != 0);
-    cpu_ap_startup_slots[lapic_index].parked = cpu_ap_startup_slots[lapic_index].accepted;
-    cpu_ap_startup_slots[lapic_index].startup_cs = ((uint16_t) vector) << 8;
-    cpu_ap_startup_slots[lapic_index].startup_ip = 0x0000;
-    cpu_ap_startup_slots[lapic_index].linear = ((uint32_t) vector) << 12;
-
-    return cpu_ap_startup_slots[lapic_index].accepted;
-}
-
 /* The processor core's resets reach the local APICs through these. */
 void
 cpu_lapic_reset_all(void)
 {
-    memset(cpu_ap_startup_slots, 0, sizeof(cpu_ap_startup_slots));
     cpu_lapic_ids_reset();
     cpu_lapic_svrs_reset();
     cpu_lapic_tprs_reset();

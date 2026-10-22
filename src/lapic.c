@@ -44,7 +44,6 @@ typedef struct local_apic_state_load_adapter_t {
  */
 static lapic_device_t *lapic_active_device;
 static lapic_index_source_t lapic_index_source;
-static lapic_ap_startup_handler_t lapic_ap_startup_handler;
 
 static void                 lapic_device_init(lapic_device_t *dev, void *owner);
 void                        lapic_device_set_count(lapic_device_t *dev, uint8_t count);
@@ -279,19 +278,6 @@ lapic_index_source_read(void *priv)
     (void) priv;
 
     return (lapic_index_source != NULL) ? lapic_index_source() : 0;
-}
-
-void
-lapic_set_ap_startup_handler(lapic_ap_startup_handler_t handler)
-{
-    lapic_ap_startup_handler = handler;
-}
-
-int
-lapic_ap_startup_request(uint8_t lapic_index, uint8_t vector)
-{
-    return (lapic_ap_startup_handler != NULL) ?
-           lapic_ap_startup_handler(lapic_index, vector) : 0;
 }
 
 static lapic_device_t *

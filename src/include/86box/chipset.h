@@ -151,9 +151,6 @@ typedef struct ioapic_legacy_irq_routing_t {
     uint8_t pirq_to_intin[4];
 } ioapic_legacy_irq_routing_t;
 
-#define IOAPIC_TOPOLOGY_LAPIC_SLOTS_SHIFT 0
-#define IOAPIC_TOPOLOGY_LAPIC_SLOTS_MASK  0xff
-#define IOAPIC_TOPOLOGY_SECOND_CPU_CARD   0x00000100
 #define IOAPIC_TOPOLOGY_UP_APIC_DEFAULT   0x00000200
 /* The MP table hook fires on the firmware's last POST code before booting:
    FFh on Award, 00h on AMI (checkpoint 00, "passing control to INT 19h"). */
@@ -165,9 +162,6 @@ typedef struct ioapic_legacy_irq_routing_t {
 /* No I/O APIC at all: the processor's own local APIC on a board without
    one, with no inputs and no register window of its own. */
 #define IOAPIC_VARIANT_NONE               0x00002000
-/* Packed into device_t.local so boards can seed topology without new config keys. */
-#define IOAPIC_TOPOLOGY_LAPIC_SLOTS(slots) \
-    (((uintptr_t) (slots) & IOAPIC_TOPOLOGY_LAPIC_SLOTS_MASK) << IOAPIC_TOPOLOGY_LAPIC_SLOTS_SHIFT)
 
 /* Append-only save ABI: loaders gate each later field by version. */
 #define IOAPIC_STATE_VERSION          13
@@ -192,12 +186,6 @@ typedef struct ioapic_state_t {
     uint8_t uniprocessor_apic;
     uint8_t mp_table_logged;
     uint8_t mp_table_skip_logged;
-    uint8_t multi_lapic;
-    uint8_t multi_lapic_mp_cpus;
-    uint8_t ap_startup;
-    uint8_t second_cpu_card;
-    uint8_t ap_safe_park;
-    uint8_t ap_route_parked;
     uint8_t lowest_priority_next;
 
     uint8_t  lapic_count;
@@ -245,7 +233,6 @@ typedef struct ioapic_state_t {
 } ioapic_state_t;
 
 typedef uint8_t (*lapic_index_source_t)(void);
-typedef uint8_t (*lapic_ap_startup_handler_t)(uint8_t lapic_index, uint8_t vector);
 
 /* APIC facade APIs hide LAPIC storage from board/PIC callers. */
 extern void           apic_cpu_lapic_set_ioapic_policy(int enabled);
@@ -253,7 +240,6 @@ extern int            apic_cpu_lapic_ioapic_policy_enabled(void);
 extern int            apic_cpu_lapic_enabled(void);
 extern int            apic_cpu_feature_enabled_for_model(int model_capable);
 extern void           lapic_set_index_source(lapic_index_source_t source);
-extern void           lapic_set_ap_startup_handler(lapic_ap_startup_handler_t handler);
 extern void           lapic_id_sync_index(uint8_t lapic_index, uint8_t id);
 extern void           lapic_apic_base_msr_sync_index(uint8_t lapic_index, uint64_t val);
 extern void           lapic_svr_sync_index(uint8_t lapic_index, uint32_t svr);

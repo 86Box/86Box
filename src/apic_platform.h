@@ -30,18 +30,8 @@ extern void apic_platform_set_log_handler(apic_platform_t *platform,
                                           lapic_log_handler_t log);
 extern void apic_platform_set_icr_write_handler(apic_platform_t *platform,
                                                 lapic_mmio_icr_write_handler_t icr_write);
-extern void apic_platform_set_lapic_count_config(apic_platform_t *platform,
-                                                 uint8_t count);
-extern void apic_platform_ensure_lapic_count_min(apic_platform_t *platform,
-                                                 uint8_t count);
 extern void apic_platform_set_lapic_policy(apic_platform_t *platform,
-                                           int uniprocessor_apic,
-                                           int multi_lapic,
-                                           int second_cpu_card,
-                                           uint8_t topology_lapic_slots_max,
-                                           int ap_startup,
-                                           int ap_safe_park,
-                                           int ap_route_parked);
+                                           int uniprocessor_apic);
 extern uint8_t apic_platform_requested_lapic_count(apic_platform_t *platform);
 extern void apic_platform_reset_lapics(apic_platform_t *platform);
 extern int  apic_platform_lapic_state_save(apic_platform_t *platform,
@@ -76,7 +66,6 @@ extern int  apic_platform_current_lint_deliver(apic_platform_t *platform,
 /* Caller owns policy storage; platform may set logged flags to make POST logs one-shot. */
 typedef struct apic_platform_mp_table_policy_t {
     uint8_t  expose_mp_tables;
-    uint8_t  multi_lapic_mp_cpus;
     uint8_t  post_trigger;
     uint8_t *mp_table_logged;
     uint8_t *mp_table_skip_logged;

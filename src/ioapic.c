@@ -38,14 +38,6 @@ typedef struct ioapic_t {
     /* Config/state gates stay here; apic_platform owns LAPIC topology effects. */
     uint8_t expose_mp_tables;
     uint8_t uniprocessor_apic;
-    uint8_t multi_lapic;
-    uint8_t multi_lapic_mp_cpus;
-    uint8_t ap_startup;
-    uint8_t second_cpu_card;
-    uint8_t ap_safe_park;
-    uint8_t ap_route_parked;
-    uint8_t smp_probe;
-    uint8_t topology_lapic_slots_max;
     uint8_t mp_table_logged;
     uint8_t mp_table_skip_logged;
     uint8_t post_trigger; /* the POST code that means "about to boot" */
@@ -1013,12 +1005,6 @@ ioapic_compat_state_save(ioapic_t *dev, ioapic_state_t *state)
     state->uniprocessor_apic = dev->uniprocessor_apic;
     state->mp_table_logged = dev->mp_table_logged;
     state->mp_table_skip_logged = dev->mp_table_skip_logged;
-    state->multi_lapic = dev->multi_lapic;
-    state->multi_lapic_mp_cpus = dev->multi_lapic_mp_cpus;
-    state->ap_startup = dev->ap_startup;
-    state->second_cpu_card = dev->second_cpu_card;
-    state->ap_safe_park = dev->ap_safe_park;
-    state->ap_route_parked = dev->ap_route_parked;
     state->lowest_priority_next = dev->lowest_priority_next;
 
     if (!apic_platform_lapic_state_save(dev->apic, state))
@@ -1033,11 +1019,7 @@ ioapic_compat_state_save(ioapic_t *dev, ioapic_state_t *state)
 static void
 ioapic_update_apic_platform_policy(ioapic_t *dev)
 {
-    apic_platform_set_lapic_policy(dev->apic, dev->uniprocessor_apic,
-                                   dev->multi_lapic, dev->second_cpu_card,
-                                   dev->topology_lapic_slots_max,
-                                   dev->ap_startup, dev->ap_safe_park,
-                                   dev->ap_route_parked);
+    apic_platform_set_lapic_policy(dev->apic, dev->uniprocessor_apic);
 }
 
 int
@@ -1087,24 +1069,7 @@ ioapic_compat_state_load(ioapic_t *dev, const ioapic_state_t *state)
     dev->uniprocessor_apic = state->uniprocessor_apic;
     dev->mp_table_logged = state->mp_table_logged;
     dev->mp_table_skip_logged = state->mp_table_skip_logged;
-    if (state->version >= 4) {
-        /* Version gates keep old saves from enabling later guarded APIC features. */
-        dev->multi_lapic = state->multi_lapic;
-        dev->multi_lapic_mp_cpus = state->multi_lapic_mp_cpus;
-        dev->ap_startup = (state->version >= 5) ? state->ap_startup : 0;
-        dev->second_cpu_card = (state->version >= 6) ? state->second_cpu_card : 0;
-        dev->ap_safe_park = (state->version >= 7) ? state->ap_safe_park : 0;
-        dev->ap_route_parked = (state->version >= 8) ? state->ap_route_parked : 0;
-        dev->lowest_priority_next = state->lowest_priority_next % APIC_MAX_LAPICS;
-    } else {
-        dev->multi_lapic = 0;
-        dev->multi_lapic_mp_cpus = 0;
-        dev->ap_startup = 0;
-        dev->second_cpu_card = 0;
-        dev->ap_safe_park = 0;
-        dev->ap_route_parked = 0;
-        dev->lowest_priority_next = 0;
-    }
+    dev->lowest_priority_next = (state->version >= 4) ? (state->lowest_priority_next % APIC_MAX_LAPICS) : 0;
 
     ioapic_update_apic_platform_policy(dev);
 
@@ -1386,7 +1351,6 @@ ioapic_write(UNUSED(uint16_t port), uint8_t val, void *priv)
         return;
 
     policy.expose_mp_tables = dev->expose_mp_tables;
-    policy.multi_lapic_mp_cpus = dev->multi_lapic_mp_cpus;
     policy.post_trigger = dev->post_trigger;
     policy.mp_table_logged = &dev->mp_table_logged;
     policy.mp_table_skip_logged = &dev->mp_table_skip_logged;
@@ -1574,14 +1538,6 @@ ioapic_init(UNUSED(const device_t *info))
          !device_get_config_int("disable_apic") &&
          !machine_get_config_int("disable_apic") &&
          cpu_apic_model_capable());
-    dev->multi_lapic = !!device_get_config_int("multi_lapic");
-    dev->multi_lapic_mp_cpus = !!device_get_config_int("multi_lapic_mp_cpus");
-    dev->ap_startup = !!device_get_config_int("ap_startup");
-    dev->second_cpu_card = !!device_get_config_int("second_cpu_card") ||
-                           !!(local & IOAPIC_TOPOLOGY_SECOND_CPU_CARD);
-    dev->ap_safe_park = !!device_get_config_int("ap_safe_park");
-    dev->ap_route_parked = !!device_get_config_int("ap_route_parked");
-    dev->smp_probe = !!device_get_config_int("smp_probe");
     dev->post_trigger = (local & IOAPIC_POST_TRIGGER_AMI) ? 0x00 : 0xff;
     dev->is_esc       = !!(local & IOAPIC_VARIANT_ESC);
     dev->lapic_only   = !!(local & IOAPIC_VARIANT_NONE);
@@ -1603,19 +1559,6 @@ ioapic_init(UNUSED(const device_t *info))
     }
     dev->mmio_base = IOAPIC_MMIO_BASE;
     memset(dev->pirq_to_intin, IOAPIC_LEGACY_IRQ_NC, sizeof(dev->pirq_to_intin));
-    dev->topology_lapic_slots_max = (local >> IOAPIC_TOPOLOGY_LAPIC_SLOTS_SHIFT) &
-                                    IOAPIC_TOPOLOGY_LAPIC_SLOTS_MASK;
-    apic_platform_set_lapic_count_config(dev->apic, device_get_config_int("lapic_count"));
-    if (dev->smp_probe) {
-        /* Probe preset enables the guarded two-LAPIC path from one config switch. */
-        dev->uniprocessor_apic = 1;
-        dev->second_cpu_card = 1;
-        dev->multi_lapic = 1;
-        dev->multi_lapic_mp_cpus = 1;
-        dev->ap_startup = 1;
-        dev->ap_safe_park = 1;
-        apic_platform_ensure_lapic_count_min(dev->apic, 2);
-    }
     if (dev->uniprocessor_apic)
         dev->expose_mp_tables = 1;
     apic_cpu_lapic_set_ioapic_policy(dev->uniprocessor_apic);
@@ -1679,98 +1622,6 @@ static const device_config_t ioapic_config[] = {
         .default_string = NULL,
         .file_filter    = NULL,
         .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "multi_lapic",
-        .description    = "Enable guarded multi-LAPIC active count",
-        .type           = CONFIG_BINARY,
-        .default_int    = 0,
-        .default_string = NULL,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "multi_lapic_mp_cpus",
-        .description    = "Enable guarded MP-table AP CPU fixups",
-        .type           = CONFIG_BINARY,
-        .default_int    = 0,
-        .default_string = NULL,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "ap_startup",
-        .description    = "Enable guarded AP startup requests",
-        .type           = CONFIG_BINARY,
-        .default_int    = 0,
-        .default_string = NULL,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "second_cpu_card",
-        .description    = "Install second P65UP5 CPU card",
-        .type           = CONFIG_BINARY,
-        .default_int    = 0,
-        .default_string = NULL,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "ap_safe_park",
-        .description    = "Enable guarded AP safe-park after SIPI",
-        .type           = CONFIG_BINARY,
-        .default_int    = 0,
-        .default_string = NULL,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "ap_route_parked",
-        .description    = "Allow interrupts to guarded parked APs",
-        .type           = CONFIG_BINARY,
-        .default_int    = 0,
-        .default_string = NULL,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "smp_probe",
-        .description    = "Enable guarded two-CPU APIC probe preset",
-        .type           = CONFIG_BINARY,
-        .default_int    = 0,
-        .default_string = NULL,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "lapic_count",
-        .description    = "Local APIC count",
-        .type           = CONFIG_SPINNER,
-        .default_int    = APIC_UP_LAPIC_COUNT,
-        .default_string = NULL,
-        .file_filter    = NULL,
-        .spinner = {
-            .min  = APIC_UP_LAPIC_COUNT,
-            .max  = APIC_MAX_LAPICS,
-            .step = 1
-        },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },

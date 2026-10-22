@@ -254,8 +254,7 @@ machine_at_p6rp4_init(const machine_t *model)
         /* An AMI BIOS (AMIBIOS 0106 for SMC): its last POST code before
            booting is 00h (IOAPIC_POST_TRIGGER_AMI). */
         void *ioapic = device_add_params(&ioapic_validated_up_device,
-                                         (void *) (IOAPIC_TOPOLOGY_LAPIC_SLOTS(2) |
-                                                   IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_POST_TRIGGER_AMI));
+                                         (void *) (IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_POST_TRIGGER_AMI));
 
         ioapic_set_legacy_irq_routing(ioapic, &p6rp4_irq_routing);
     }

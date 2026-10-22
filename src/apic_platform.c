@@ -15,6 +15,7 @@
 #include <86box/86box.h>
 
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 #include "apic_platform.h"
 
 #define APIC_MP_FP_SIGNATURE   0x5f504d5f
@@ -29,12 +30,6 @@ struct apic_platform_t {
     local_apic_t *lapic;
     void         *owner;
     uint8_t       uniprocessor_apic;
-    uint8_t       multi_lapic;
-    uint8_t       second_cpu_card;
-    uint8_t       topology_lapic_slots_max;
-    uint8_t       ap_startup;
-    uint8_t       ap_safe_park;
-    uint8_t       ap_route_parked;
     lapic_log_handler_t log;
     /* Where the BIOS's floating pointer was found, once it has been. The
        trigger POST code comes back again and again, and a warm reboot
@@ -87,40 +82,6 @@ apic_platform_log(apic_platform_t *platform, const char *fmt, ...)
 }
 
 static uint8_t
-apic_platform_topology_lapic_slots(const apic_platform_t *platform)
-{
-    /* Extra slots are a board policy input; LAPIC core sees only the clamped result. */
-    if ((platform == NULL) || !platform->second_cpu_card)
-        return APIC_UP_LAPIC_COUNT;
-
-    return platform->topology_lapic_slots_max ?
-           platform->topology_lapic_slots_max : APIC_UP_LAPIC_COUNT;
-}
-
-static uint8_t
-apic_platform_lapic_count_limit(const apic_platform_t *platform)
-{
-    uint8_t limit;
-
-    if ((platform == NULL) || !platform->multi_lapic)
-        return APIC_UP_LAPIC_COUNT;
-
-    limit = apic_platform_topology_lapic_slots(platform);
-    if (limit > APIC_MAX_ACTIVE_LAPICS)
-        limit = APIC_MAX_ACTIVE_LAPICS;
-
-    return limit;
-}
-
-static uint8_t
-apic_platform_lapic_count_limit_or_up(apic_platform_t *platform)
-{
-    uint8_t limit = apic_platform_lapic_count_limit(platform);
-
-    return limit ? limit : APIC_UP_LAPIC_COUNT;
-}
-
-static uint8_t
 apic_platform_reset_lapic_id(void *priv, uint8_t index)
 {
     apic_platform_t *platform = (apic_platform_t *) priv;
@@ -130,26 +91,6 @@ apic_platform_reset_lapic_id(void *priv, uint8_t index)
         return ((platform != NULL) && platform->uniprocessor_apic) ? 0 : 15;
 
     return index;
-}
-
-static int
-apic_platform_lapic_icr_startup(void *priv, uint8_t target_index,
-                                uint8_t vector)
-{
-    apic_platform_t *platform = (apic_platform_t *) priv;
-
-    if ((platform == NULL) || !platform->ap_startup)
-        return 0;
-
-    /* Startup side effect stays platform-owned; LAPIC need not know AP parking. */
-    if (lapic_ap_startup_request(target_index, vector) && platform->ap_safe_park) {
-        apic_platform_log(platform,
-                          "LAPIC: AP safe-park start slot=%u vector=%02x\n",
-                          target_index, vector);
-        return 1;
-    }
-
-    return 0;
 }
 
 apic_platform_t *
@@ -196,41 +137,16 @@ apic_platform_set_icr_write_handler(apic_platform_t *platform,
 }
 
 void
-apic_platform_set_lapic_count_config(apic_platform_t *platform, uint8_t count)
-{
-    local_apic_set_count_config(platform->lapic, count);
-}
-
-void
-apic_platform_ensure_lapic_count_min(apic_platform_t *platform, uint8_t count)
-{
-    local_apic_ensure_count_config_min(platform->lapic, count);
-}
-
-void
-apic_platform_set_lapic_policy(apic_platform_t *platform,
-                               int uniprocessor_apic,
-                               int multi_lapic,
-                               int second_cpu_card,
-                               uint8_t topology_lapic_slots_max,
-                               int ap_startup,
-                               int ap_safe_park,
-                               int ap_route_parked)
+apic_platform_set_lapic_policy(apic_platform_t *platform, int uniprocessor_apic)
 {
     platform->uniprocessor_apic = !!uniprocessor_apic;
-    platform->multi_lapic = !!multi_lapic;
-    platform->second_cpu_card = !!second_cpu_card;
-    platform->topology_lapic_slots_max = topology_lapic_slots_max;
-    platform->ap_startup = !!ap_startup;
-    platform->ap_safe_park = !!ap_safe_park;
-    platform->ap_route_parked = !!ap_route_parked;
 }
 
+/* One processor, and its local APIC. */
 uint8_t
-apic_platform_requested_lapic_count(apic_platform_t *platform)
+apic_platform_requested_lapic_count(UNUSED(apic_platform_t *platform))
 {
-    return local_apic_configured_count(platform->lapic,
-                                       apic_platform_lapic_count_limit_or_up(platform));
+    return APIC_UP_LAPIC_COUNT;
 }
 
 void
@@ -254,7 +170,7 @@ apic_platform_lapic_state_load(apic_platform_t *platform,
 {
     /* Load through current machine policy so saved LAPIC IDs/counts stay bounded. */
     return local_apic_state_load(platform->lapic, state,
-                                 apic_platform_lapic_count_limit_or_up(platform),
+                                 APIC_UP_LAPIC_COUNT,
                                  apic_platform_reset_lapic_id, platform);
 }
 
@@ -294,8 +210,8 @@ apic_platform_set_external_ioapic(apic_platform_t *platform,
 void
 apic_platform_lapic_icr_write(apic_platform_t *platform, uint32_t val)
 {
-    local_apic_icr_write(platform->lapic, val, platform->ap_route_parked,
-                         apic_platform_lapic_icr_startup, platform);
+    /* A STARTUP has no processor to start: there is only the one. */
+    local_apic_icr_write(platform->lapic, val, 0, NULL, NULL);
 }
 
 uint8_t
@@ -551,18 +467,8 @@ apic_platform_mp_fixup_processor_lapic_ids(
     uint32_t entry_addr;
     uint32_t table_end;
     uint32_t full_table_end;
-    uint8_t  active_count;
     uint8_t  bsp_id;
-    uint8_t  next_ap_index = 1;
-    uint8_t  enabled_cpu_count = 0;
-    uint32_t first_cpu_entry = 0;
-    uint32_t cpu_insert_addr = 0;
     int      patched = 0;
-    /* Processor entries the BIOS left disabled (EN clear): a processor
-       brought in takes one of these before a new entry is made, so no two
-       entries carry one APIC ID (MP spec 1.1, 4.3.1). */
-    uint32_t disabled_cpu[16];
-    int      disabled_cpus = 0;
 
     /* Compatibility fixups mutate guest MP tables only under UP APIC policy. */
     if (!platform->uniprocessor_apic)
@@ -570,7 +476,6 @@ apic_platform_mp_fixup_processor_lapic_ids(
 
     if (!apic_platform_bsp_lapic_id(platform, &bsp_id))
         return;
-    active_count = apic_platform_lapic_count(platform);
 
     base_len = mem_readw_phys(pcmp + 4);
     if (base_len < 44)
@@ -593,15 +498,6 @@ apic_platform_mp_fixup_processor_lapic_ids(
                 if ((entry_addr + 20) > table_end)
                     return;
 
-                if (!first_cpu_entry)
-                    first_cpu_entry = entry_addr;
-                if (entry_addr == first_cpu_entry)
-                    cpu_insert_addr = entry_addr + 20;
-                if (mem_readb_phys(entry_addr + 3) & 0x01)
-                    enabled_cpu_count++;
-                else if (disabled_cpus < 16)
-                    disabled_cpu[disabled_cpus++] = entry_addr;
-
                 /* Keep existing BSP entry aligned with LAPIC policy before table use. */
                 if ((mem_readb_phys(entry_addr + 3) & 0x03) == 0x03) {
                     uint8_t old_id = mem_readb_phys(entry_addr + 1);
@@ -613,24 +509,6 @@ apic_platform_mp_fixup_processor_lapic_ids(
                                           "IOAPIC: MP CPU BSP LAPIC ID fixup %u -> %u\n",
                                           old_id, bsp_id);
                     }
-                } else if (platform->second_cpu_card && platform->ap_safe_park &&
-                           policy->multi_lapic_mp_cpus &&
-                           (mem_readb_phys(entry_addr + 3) & 0x01) &&
-                           (next_ap_index < active_count)) {
-                    uint8_t ap_id;
-
-                    if (apic_platform_lapic_id_at(platform, next_ap_index, &ap_id)) {
-                        uint8_t old_id = mem_readb_phys(entry_addr + 1);
-
-                        if (old_id != ap_id) {
-                            *apic_platform_mp_at(entry_addr + 1) = ap_id;
-                            patched = 1;
-                            apic_platform_log(platform,
-                                              "IOAPIC: MP CPU AP LAPIC ID fixup slot=%u %u -> %u\n",
-                                              next_ap_index, old_id, ap_id);
-                        }
-                    }
-                    next_ap_index++;
                 }
                 entry_addr += 20;
                 break;
@@ -648,72 +526,6 @@ apic_platform_mp_fixup_processor_lapic_ids(
             default:
                 return;
         }
-    }
-
-    while (platform->second_cpu_card && platform->ap_safe_park &&
-           policy->multi_lapic_mp_cpus && first_cpu_entry && cpu_insert_addr &&
-           (enabled_cpu_count < active_count) &&
-           (entry_count < UINT16_MAX) && (((uint64_t) full_table_end + 20) <= APIC_MP_TABLE_LIMIT)) {
-        uint8_t missing_index = enabled_cpu_count;
-        uint8_t ap_id;
-
-        if (!apic_platform_lapic_id_at(platform, missing_index, &ap_id))
-            break;
-
-        /* A disabled entry first: enabled, as this processor. */
-        if (disabled_cpus > 0) {
-            const uint32_t at = disabled_cpu[--disabled_cpus];
-
-            *apic_platform_mp_at(at + 1) = ap_id;
-            *apic_platform_mp_at(at + 3) = (mem_readb_phys(at + 3) | 0x01) & ~0x02;
-            enabled_cpu_count++;
-            patched = 1;
-            apic_platform_log(platform, "IOAPIC: MP CPU AP entry enabled slot=%u lapic_id=%u at=%08x\n",
-                              missing_index, ap_id, at);
-            continue;
-        }
-
-        /* Synthesize missing AP rows by cloning CPU entry shape, then clearing BSP flag. */
-        if ((cpu_insert_addr < (pcmp + 44)) || (cpu_insert_addr > table_end))
-            break;
-        /* The table grows by 20 bytes into what follows it: only into
-           free space, never over the floating pointer (often right after
-           the table). */
-        {
-            /* And only into RAM: past the top of memory, or into a ROM
-               image, what reads as free (FFh) is nothing to write to. */
-            int free_after = apic_platform_mp_writable(full_table_end, 20) &&
-                             !((platform->mp_fps < (full_table_end + 20)) && ((platform->mp_fps + 16) > full_table_end));
-
-            for (uint32_t k = 0; free_after && (k < 20); k++) {
-                const uint8_t b = mem_readb_phys(full_table_end + k);
-
-                free_after = (b == 0x00) || (b == 0xff);
-            }
-            if (!free_after) {
-                apic_platform_log(platform, "IOAPIC: MP CPU AP entry synth refused: no room after the table at %08x\n",
-                                  full_table_end);
-                break;
-            }
-        }
-
-        /* Moved up a byte at a time from the end, through the map. */
-        for (uint32_t a = full_table_end; a-- > cpu_insert_addr;)
-            *apic_platform_mp_at(a + 20) = mem_readb_phys(a);
-        for (uint32_t k = 0; k < 20; k++)
-            *apic_platform_mp_at(cpu_insert_addr + k) = mem_readb_phys(first_cpu_entry + k);
-        *apic_platform_mp_at(cpu_insert_addr + 1) = ap_id;
-        *apic_platform_mp_at(cpu_insert_addr + 3) = (mem_readb_phys(cpu_insert_addr + 3) | 0x01) & ~0x02;
-        cpu_insert_addr += 20;
-        table_end += 20;
-        full_table_end += 20;
-        base_len += 20;
-        entry_count++;
-        enabled_cpu_count++;
-        patched = 1;
-        apic_platform_log(platform,
-                          "IOAPIC: MP CPU AP entry synth slot=%u lapic_id=%u insert=%08x\n",
-                          missing_index, ap_id, cpu_insert_addr - 20);
     }
 
     if (patched) {
@@ -1225,7 +1037,7 @@ apic_platform_ioapic_select_targets(apic_platform_t *platform, uint8_t dest,
 {
     return local_apic_select_interruptible_targets(platform->lapic, dest, logical,
                                                    APIC_IOAPIC_PHYS_BROADCAST_4BIT,
-                                                   platform->ap_route_parked, targets);
+                                                   0, targets);
 }
 
 apic_bus_result_t
@@ -1237,7 +1049,7 @@ apic_platform_ioapic_deliver(apic_platform_t *platform, const lapic_target_info_
     if ((message != NULL) && (message->delivery == APIC_BUS_DELIVERY_LOWEST))
         return local_apic_targets_accept_lowest_priority(platform->lapic, targets,
                                                          lowest_priority_next,
-                                                         platform->ap_route_parked,
+                                                         0,
                                                          message);
 
     return local_apic_targets_accept_fixed(platform->lapic, targets, message);

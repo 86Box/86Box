@@ -181,8 +181,7 @@ machine_at_s2dge_init(const machine_t *model)
         /* An AMI BIOS: its last POST code before booting is 00h, and its
            MP table is built by then (IOAPIC_POST_TRIGGER_AMI). */
         void *ioapic = device_add_params(&ioapic_validated_up_device,
-                                         (void *) (IOAPIC_TOPOLOGY_LAPIC_SLOTS(2) |
-                                                   IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_POST_TRIGGER_AMI));
+                                         (void *) (IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_POST_TRIGGER_AMI));
 
         ioapic_set_legacy_irq_routing(ioapic, &s2dge_irq_routing);
     }

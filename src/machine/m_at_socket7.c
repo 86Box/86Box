@@ -142,15 +142,13 @@ machine_at_p65up5_common_init_local(const machine_t *model, const device_t *nort
 void
 machine_at_p65up5_common_init(const machine_t *model, const device_t *northbridge)
 {
-    machine_at_p65up5_common_init_local(model, northbridge, &ioapic_device,
-                                        IOAPIC_TOPOLOGY_LAPIC_SLOTS(2));
+    machine_at_p65up5_common_init_local(model, northbridge, &ioapic_device, 0);
 }
 
 void
 machine_at_p65up5_validated_up_init(const machine_t *model, const device_t *northbridge)
 {
     machine_at_p65up5_common_init_local(model, northbridge, &ioapic_validated_up_device,
-                                        IOAPIC_TOPOLOGY_LAPIC_SLOTS(2) |
                                         IOAPIC_TOPOLOGY_UP_APIC_DEFAULT);
 }
 

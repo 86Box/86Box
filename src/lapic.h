@@ -111,7 +111,6 @@ typedef struct lapic_target_info_t {
 typedef void (*lapic_external_eoi_handler_t)(void *priv, uint8_t vector);
 typedef uint8_t (*lapic_current_index_source_t)(void *priv);
 typedef uint8_t (*lapic_index_source_t)(void);
-typedef uint8_t (*lapic_ap_startup_handler_t)(uint8_t lapic_index, uint8_t vector);
 typedef uint8_t (*lapic_reset_id_source_t)(void *priv, uint8_t index);
 typedef void (*lapic_log_handler_t)(void *priv, const char *fmt, va_list ap);
 typedef void (*lapic_mmio_icr_write_handler_t)(void *priv, uint32_t val);
@@ -130,8 +129,6 @@ typedef enum local_apic_attachment_type_t {
 
 extern void    lapic_set_index_source(lapic_index_source_t source);
 extern uint8_t lapic_index_source_read(void *priv);
-extern void    lapic_set_ap_startup_handler(lapic_ap_startup_handler_t handler);
-extern int     lapic_ap_startup_request(uint8_t lapic_index, uint8_t vector);
 
 extern local_apic_t         *local_apic_create(void *owner);
 extern void                  local_apic_free(local_apic_t *apic);
