@@ -1444,6 +1444,30 @@ lapic_reset_slot(lapic_state_t *lapic, lapic_mmio_device_t *mmio, uint8_t index,
     lapic_arbitration_id_reset_from_id(lapic);
 }
 
+/* The processor's RESET or INIT pin: its local APIC goes through INIT --
+   its ID kept, the Arb ID from it, nothing pending. The vendor reset sets
+   the registers on RESET, but not what the APIC holds beside them: an
+   ExtINT marked, an IPI it was still sending. */
+void
+lapic_index_board_reset(uint8_t index)
+{
+    lapic_state_t *lapic;
+
+    if (lapic_active_device == NULL)
+        return;
+
+    lapic = lapic_device_at(lapic_active_device, index);
+    if (lapic == NULL)
+        return;
+
+    lapic->extint_pending = 0;
+    lapic->extint_pin     = 0;
+    cpu_lapic_extint_live_set(index, 0);
+    lapic_reset_regs(lapic);
+    lapic_arbitration_id_reset_from_id(lapic);
+    lapic_reset_startup_state(lapic, index);
+}
+
 void
 lapic_timer_host_stop(lapic_state_t *lapic)
 {
