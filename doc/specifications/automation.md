@@ -47,9 +47,20 @@ token:
   using it. The protocol is unencrypted, and anyone who can reach the port
   and has the token fully controls the machine, including reading and writing
   its memory and changing its media, and can write files into the VM
-  directory's `automation-media` folder (`media put`).
+  directory's `automation-media` folder (`media put`). Loading media also
+  lets a client read, through the guest, any file 86Box can open.
 
 The token file is deleted when 86Box exits.
+
+> [!CAUTION]
+> **Never connect a machine running 86Box with `--automation-allow-remote` to
+> the internet**, nor to any network you don't fully trust, and never forward
+> the automation port (or the GDB stub's) through a router. The protocol is
+> unencrypted, so the token can be read by anyone on the path, and with
+> `--automation-insecure` there is no token at all. Whoever gets in can read
+> files on the host through the guest and fill its disk with `media put`. To
+> reach 86Box from another machine, keep it on `127.0.0.1` and use an SSH
+> tunnel or a VPN instead.
 
 ## Protocol (version 1)
 
