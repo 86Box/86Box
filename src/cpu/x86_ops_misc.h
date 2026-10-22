@@ -1157,6 +1157,12 @@ opRDMSR(UNUSED(uint32_t fetchdat))
 {
     if (cpu_has_feature(CPU_FEATURE_MSR)) {
         cpu_RDMSR();
+#ifdef USE_DYNAREC
+        /* The TSC MSR's update_tsc() can run a due timer that resets the
+           CPU: the nonzero return ends the recompiled block, as RDTSC */
+        if (cpu_use_dynarec && x86_was_reset)
+            return 1;
+#endif
         CLOCK_CYCLES(9);
         return 0;
     }

@@ -42,6 +42,14 @@ opRDPMC(UNUSED(uint32_t fetchdat))
        the VIA Cyrix III (whose counter 0 is the TSC), CTR0/1 (MSR
        12h/13h) on the others */
     if (cpu_s->cpu_type == CPU_CYRIX3S) {
+#ifdef USE_DYNAREC
+        /* Counter 0 is the TSC: the block's cycles so far first, as RDTSC */
+        if (cpu_use_dynarec && !ECX) {
+            update_tsc();
+            if (x86_was_reset)
+                return 1;
+        }
+#endif
         uint64_t v = ECX ? msr.perfctr[1] : tsc;
         EAX = v & 0xffffffff;
         EDX = (v >> 32) & 0xff;

@@ -813,11 +813,11 @@ acpi_reg_read_sis_5582(int size, uint16_t addr, void *priv)
             ret = dev->regs.reg_12;
             break;
         case 0x13:
-            ret = acpi_gp_timer_get((acpi_t *) dev) & 0xff;
 #ifdef USE_DYNAREC
             if (cpu_use_dynarec)
                 update_tsc();
 #endif
+            ret = acpi_gp_timer_get((acpi_t *) dev) & 0xff;
             break;
         case 0x14:
         case 0x15:
@@ -924,11 +924,11 @@ acpi_reg_read_sis_5595(int size, uint16_t addr, void *priv)
             ret = (dev->regs.gpe_pin >> shift32) & 0xff;
             break;
         case 0x1f:
-            ret = acpi_gp_timer_get((acpi_t *) dev) & 0xff;
 #ifdef USE_DYNAREC
             if (cpu_use_dynarec)
                 update_tsc();
 #endif
+            ret = acpi_gp_timer_get((acpi_t *) dev) & 0xff;
             break;
         case 0x20:
         case 0x21:
@@ -2142,6 +2142,12 @@ acpi_aux_reg_write_common(int size, uint16_t addr, uint8_t val, void *priv)
 static void
 acpi_latch_pmtmr(acpi_t *dev)
 {
+#ifdef USE_DYNAREC
+    /* The compiled block's cycles so far reach the TSC only through
+       update_tsc(): before the read, as RDTSC does. */
+    if (cpu_use_dynarec)
+        update_tsc();
+#endif
     dev->pmtmr_latch = acpi_timer_get(dev);
 
     /* On real hardware, reading the timer takes longer than one of its ticks, so
@@ -2150,11 +2156,6 @@ acpi_latch_pmtmr(acpi_t *dev)
        value plus one when it has not changed: that made the timer go backwards, on
        a third read within the same tick. */
     cycles -= acpi_pmtmr_read_cycles;
-
-#ifdef USE_DYNAREC
-    if (cpu_use_dynarec)
-        update_tsc();
-#endif
 }
 
 static uint32_t
