@@ -3681,7 +3681,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_MFM,
         .ram       = {
             .min  = 128,
             .max  = 768,
@@ -3705,7 +3705,7 @@ const machine_t machines[] = {
         .vid_device               = &tandy_2000_video_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Tandy 2000 HD", "" }
     },
 
     /* 286 AT machines */

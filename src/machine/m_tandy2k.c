@@ -31,6 +31,7 @@
 #include <86box/keyboard.h>
 #include <86box/fdc.h>
 #include <86box/fdd.h>
+#include <86box/hdc.h>
 #include <86box/rom.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
@@ -846,6 +847,9 @@ machine_tandy2000_init(const machine_t *model)
         fdd_set_turbo(fdc->fdd[i], 0);
 
     device_add(&tandy_2000_video_device);
+
+    if (hdc_current[0] == HDC_INTERNAL)
+        device_add(&st506_tandy2k_wd1010_device);
 
     /* The board clocks the 8253 at 2 MHz and decodes its registers on
        even addresses, so replace the default 40h-43h mapping. */
