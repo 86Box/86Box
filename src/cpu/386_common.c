@@ -50,12 +50,12 @@ uint32_t cr4;
 uint32_t dr[8];
 
 int cpu_debug_regs_486 = 0;
-int cpu_dr_armed       = 0;
+
+/* One cache line, read as two words by the block-to-block transfer */
+cpu_events_t cpu_events __attribute__((aligned(64)));
 
 uint32_t use32;
 int      stack32;
-
-int      cpu_init = 0;
 
 uint32_t *eal_r;
 uint32_t *eal_w;
@@ -73,7 +73,6 @@ extern int      optype;
 extern uint32_t pccache;
 extern int      ioapic_lint1_raise(void);
 
-int      new_ne            = 0;
 int      in_sys            = 0;
 int      unmask_a20_in_smm = 0;
 uint32_t old_rammask       = 0xffffffff;
@@ -83,7 +82,6 @@ int soft_reset_mask = 0;
 int smi_latched = 0;
 int smm_in_hlt  = 0;
 int smi_block   = 0;
-int cpu_halted  = 0;
 
 /* RSM restarted a HLT and a latched SMI is about to be entered. */
 static int smm_rsm_restart = 0;

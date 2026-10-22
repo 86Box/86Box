@@ -47,6 +47,7 @@
 #    define OPCODE_ADD_IMM            (0x11 << OPCODE_SHIFT)
 #    define OPCODE_ADDX_IMM           (0x91 << OPCODE_SHIFT)
 #    define OPCODE_ADR                (0x10 << OPCODE_SHIFT)
+#    define OPCODE_ADRP               (0x90 << OPCODE_SHIFT)
 #    define OPCODE_B                  (0x14 << OPCODE_SHIFT)
 #    define OPCODE_BL                 (0x94 << OPCODE_SHIFT)
 #    define OPCODE_BCOND              (0x54 << OPCODE_SHIFT)
@@ -446,6 +447,24 @@ void
 host_arm64_ADR(codeblock_t *block, int dst_reg, int offset)
 {
     codegen_addlong(block, OPCODE_ADR | Rd(dst_reg) | OFFSET20(offset));
+}
+/*The code runs at the address it is written to, so the page offset is taken
+  from the write position*/
+int
+host_arm64_ADRP_in_range(uintptr_t target)
+{
+    int64_t pages = (int64_t) (target >> 12) - (int64_t) ((uintptr_t) &block_write_data[block_pos] >> 12);
+
+    return pages >= -(1 << 20) && pages < (1 << 20);
+}
+void
+host_arm64_ADRP(codeblock_t *block, int dst_reg, uintptr_t target)
+{
+    int64_t pages = (int64_t) (target >> 12) - (int64_t) ((uintptr_t) &block_write_data[block_pos] >> 12);
+
+    if (pages < -(1 << 20) || pages >= (1 << 20))
+        fatal("host_arm64_ADRP out of range %llx\n", (unsigned long long) target);
+    codegen_addlong(block, OPCODE_ADRP | Rd(dst_reg) | ((pages & 3) << 29) | (((pages >> 2) & 0x7ffff) << 5));
 }
 
 void

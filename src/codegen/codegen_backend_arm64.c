@@ -985,43 +985,50 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
 }
 
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
-/*Literal pool entries, in the pairs the routine loads together with LDP*/
-enum {
-    LINK_LIT_WAS_RESET,
-    LINK_LIT_FLUSH_PENDING,
-    LINK_LIT_CPU_INIT,
-    LINK_LIT_NEW_NE,
-    LINK_LIT_NMI_ENABLE,
-    LINK_LIT_FORCE_INTERPRETER,
-    LINK_LIT_OVERRIDE_DYNAREC,
-    LINK_LIT_NMI,
-    LINK_LIT_PIC,
-    LINK_LIT_CUR_STATUS,
-    LINK_LIT_TSC,
-    LINK_LIT_TSC_OLD,
-    LINK_LIT_CYCLES_OLD,
-    LINK_LIT_TIMER_TARGET,
-    LINK_LIT_GET_PHYS_VIRT,
-    LINK_LIT_GET_PHYS_PHYS,
-    LINK_LIT_OLDCS,
-    LINK_LIT_OLDCPL,
-    LINK_LIT_FETCH_DEVICE,
-    LINK_LIT_CPU_HALTED,
-    LINK_LIT_NMI_MASK,
-    LINK_LIT_RAMMASK,
-    LINK_LIT_READLOOKUP2,
-    LINK_LIT_RAM,
-    LINK_LIT_DR_ARMED,
-    LINK_LIT_IOAPIC_PATH,
-    LINK_LIT_LAPIC_EXTINT,
-    LINK_LIT_LAPIC_IRR,
-
-    LINK_LIT_COUNT
-};
-
 #        define LINK_SLOT(field) ((int) offsetof(codegen_link_slot_t, field))
-#        define LINK_LIT(nr)     ((nr) * 8)
 #        define LINK_MAX_MISS    32
+
+/*The globals the link routine reads and writes, addressed from the PC when
+  they are within ADRP's reach of the routine (every global in one page
+  window, decided once when the routine is built), else by a four-instruction
+  immediate. Either way no load is spent on the address.*/
+static const void *const link_globals[] = {
+    &cpu_events, &nmi, &nmi_enable, &nmi_mask, &pic, &cpu_cur_status, &tsc, &tsc_old, &cycles_old,
+    &timer_target, &get_phys_virt, &get_phys_phys, &oldcs, &oldcpl, &cpu_fetch_device, &rammask,
+    readlookup2, &ram
+};
+static int link_adrp;
+
+/*X<reg> = the page of ptr (ADRP) or ptr itself; returns the offset the load
+  or store adds to it*/
+static int
+link_addr(codeblock_t *block, int reg, const void *ptr)
+{
+    if (link_adrp) {
+        host_arm64_ADRP(block, reg, (uintptr_t) ptr);
+        return (int) ((uintptr_t) ptr & 0xfff);
+    }
+    host_arm64_MOVX_IMM(block, reg, (uintptr_t) ptr);
+    return 0;
+}
+
+/*X<reg> = ptr itself*/
+static void
+link_addr_exact(codeblock_t *block, int reg, const void *ptr)
+{
+    int offset = link_addr(block, reg, ptr);
+
+    if (offset)
+        host_arm64_ADDX_IMM(block, reg, reg, offset);
+}
+
+/*The event flags are read as two 64-bit words and OR-ed into one test;
+  halted is the top half of the last word and is shifted out of it*/
+_Static_assert(offsetof(cpu_events_t, flush_pending) == 4 && offsetof(cpu_events_t, init) == 8
+                   && offsetof(cpu_events_t, ne) == 12 && offsetof(cpu_events_t, force_interpreter) == 16
+                   && offsetof(cpu_events_t, override_dynarec) == 20 && offsetof(cpu_events_t, dr_armed) == 24
+                   && offsetof(cpu_events_t, halted) == 28 && sizeof(cpu_events_t) == 32,
+               "cpu_events is loaded as two pairs of 64-bit words");
 
 /*Fields the routine loads together, with LDP or one wider load*/
 _Static_assert(offsetof(codegen_link_slot_t, exit_cs) == offsetof(codegen_link_slot_t, exit_pc) + 4
@@ -1061,21 +1068,18 @@ _Static_assert(BLOCK_SIZE <= 0x10000, "block numbers and codeblock_hash entries 
   it does the stores the C loop would have done and jumps to the next
   block's link entry, which runs on the frame this block's prologue built.
 
-  Global addresses come from a static literal pool, leaving the allocator
-  block for executable code. Loads are paired wherever the layout allows,
-  since on a hit the routine is limited by how many loads it issues rather
-  than by its length.*/
+  Globals are addressed from the PC (link_addr), so no load is spent on an
+  address. Loads are paired wherever the layout allows, since on a hit the
+  routine is limited by how many loads it issues rather than by its length.*/
 static void
 build_link_routine(codeblock_t *block)
 {
-    static uint64_t lit[LINK_LIT_COUNT];
     uint8_t  *start_data;
     uint32_t *miss[LINK_MAX_MISS];
     int       nr_miss = 0;
     uint32_t *nmi_set;
     uint32_t *nmi_ok;
     uint32_t *irq_ok;
-    uint32_t *irq_ok_2;
     uint32_t *es_flat;
     uint32_t *uncached;
     uint32_t *no_paging;
@@ -1089,46 +1093,29 @@ build_link_routine(codeblock_t *block)
     uint8_t  *two_page_done;
     uint8_t  *xlat_2_done;
     uint8_t  *miss_dest;
+    int       off_tsc;
+    int       off_tsc_old;
+    int       off_cycles_old;
+    int       off_virt;
+    int       off_phys;
+    int       offset;
 
     /*Start a fresh allocator block, so nothing below is split across two*/
     codegen_alloc(block, BLOCK_MAX - 4);
     start_data = block_write_data;
 
-    lit[LINK_LIT_WAS_RESET]         = (uint64_t) (uintptr_t) &x86_was_reset;
-    lit[LINK_LIT_FLUSH_PENDING]     = (uint64_t) (uintptr_t) &cpu_flush_pending;
-    lit[LINK_LIT_CPU_INIT]          = (uint64_t) (uintptr_t) &cpu_init;
-    lit[LINK_LIT_NEW_NE]            = (uint64_t) (uintptr_t) &new_ne;
-    lit[LINK_LIT_CPU_HALTED]        = (uint64_t) (uintptr_t) &cpu_halted;
-    lit[LINK_LIT_FORCE_INTERPRETER] = (uint64_t) (uintptr_t) &cpu_force_interpreter;
-    lit[LINK_LIT_OVERRIDE_DYNAREC]  = (uint64_t) (uintptr_t) &cpu_override_dynarec;
-    lit[LINK_LIT_NMI]               = (uint64_t) (uintptr_t) &nmi;
-    lit[LINK_LIT_PIC]               = (uint64_t) (uintptr_t) &pic;
-    lit[LINK_LIT_CUR_STATUS]        = (uint64_t) (uintptr_t) &cpu_cur_status;
-    lit[LINK_LIT_TSC]               = (uint64_t) (uintptr_t) &tsc;
-    lit[LINK_LIT_TSC_OLD]           = (uint64_t) (uintptr_t) &tsc_old;
-    lit[LINK_LIT_CYCLES_OLD]        = (uint64_t) (uintptr_t) &cycles_old;
-    lit[LINK_LIT_TIMER_TARGET]      = (uint64_t) (uintptr_t) &timer_target;
-    lit[LINK_LIT_GET_PHYS_VIRT]     = (uint64_t) (uintptr_t) &get_phys_virt;
-    lit[LINK_LIT_GET_PHYS_PHYS]     = (uint64_t) (uintptr_t) &get_phys_phys;
-    lit[LINK_LIT_OLDCS]             = (uint64_t) (uintptr_t) &oldcs;
-    lit[LINK_LIT_OLDCPL]            = (uint64_t) (uintptr_t) &oldcpl;
-    lit[LINK_LIT_FETCH_DEVICE]      = (uint64_t) (uintptr_t) &cpu_fetch_device;
-    lit[LINK_LIT_NMI_ENABLE]        = (uint64_t) (uintptr_t) &nmi_enable;
-    lit[LINK_LIT_NMI_MASK]          = (uint64_t) (uintptr_t) &nmi_mask;
-    lit[LINK_LIT_RAMMASK]           = (uint64_t) (uintptr_t) &rammask;
-    lit[LINK_LIT_READLOOKUP2]       = (uint64_t) (uintptr_t) readlookup2;
-    lit[LINK_LIT_RAM]               = (uint64_t) (uintptr_t) &ram;
-    lit[LINK_LIT_DR_ARMED]          = (uint64_t) (uintptr_t) &cpu_dr_armed;
-    lit[LINK_LIT_IOAPIC_PATH]       = (uint64_t) (uintptr_t) &ioapic_irq_path_active;
-    lit[LINK_LIT_LAPIC_EXTINT]      = (uint64_t) (uintptr_t) &cpu_lapic_extint_live[0];
-    lit[LINK_LIT_LAPIC_IRR]         = (uint64_t) (uintptr_t) &cpu_lapic_irr_live;
+    link_adrp = 1;
+    for (size_t c = 0; c < sizeof(link_globals) / sizeof(link_globals[0]); c++) {
+        if (!host_arm64_ADRP_in_range((uintptr_t) link_globals[c] - 0x1000)
+            || !host_arm64_ADRP_in_range((uintptr_t) link_globals[c] + 0x1000))
+            link_adrp = 0;
+    }
 
     codegen_link_rout = &block_write_data[block_pos];
 
-    /*X17 = the literal pool. X1 = the exit's slot, whose exit_pc and exit_cs
-      must match cpu_state.pc and the CS base and whose entry must be set;
-      X15 = its entry; W2 = cs + pc*/
-    host_arm64_MOVX_IMM(block, REG_X17, (uint64_t) (uintptr_t) lit);
+    /*X1 = the exit's slot, whose exit_pc and exit_cs must match cpu_state.pc
+      and the CS base and whose entry must be set; X15 = its entry;
+      W2 = cs + pc*/
     host_arm64_LDR_IMM_W(block, REG_W2, REG_CPUSTATE, rep_state_offset(&cpu_state.pc));
     host_arm64_LDR_IMM_W(block, REG_W3, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_cs.base));
     host_arm64_LDP_IMM_X(block, REG_X5, REG_X15, REG_X0, LINK_SLOT(exit_pc));
@@ -1149,59 +1136,34 @@ build_link_routine(codeblock_t *block)
 
     /*Nothing pending for the loop, and the loop would pick the recompiler.
       An armed debug breakpoint is a miss, so the loop makes its per-block
-      check (dr_blocks_cache()). W7 = abrt and smi_line in its top half,
-      W14 = cycles, X12 = &nmi*/
+      check (dr_blocks_cache()). The seven event flags are the two pairs
+      loaded from cpu_events, with halted shifted out of the last word;
+      W7 = abrt and smi_line in its top half, W14 = cycles*/
     host_arm64_LDP_IMM_W(block, REG_W7, REG_W14, REG_CPUSTATE, rep_state_offset(&cpu_state.abrt) - 2);
-    host_arm64_LDR_IMM_X(block, REG_X13, REG_X17, LINK_LIT(LINK_LIT_DR_ARMED));
-    host_arm64_LDP_IMM_X(block, REG_X3, REG_X4, REG_X17, LINK_LIT(LINK_LIT_WAS_RESET));
-    host_arm64_LDP_IMM_X(block, REG_X5, REG_X8, REG_X17, LINK_LIT(LINK_LIT_CPU_INIT));
-    /*X9 = &nmi_enable, loaded only as the pair of the next entry*/
-    host_arm64_LDP_IMM_X(block, REG_X9, REG_X10, REG_X17, LINK_LIT(LINK_LIT_NMI_ENABLE));
-    host_arm64_LDP_IMM_X(block, REG_X11, REG_X12, REG_X17, LINK_LIT(LINK_LIT_OVERRIDE_DYNAREC));
-    host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, 0);
-    host_arm64_LDR_IMM_W(block, REG_W4, REG_X4, 0);
-    host_arm64_LDR_IMM_W(block, REG_W5, REG_X5, 0);
-    host_arm64_LDR_IMM_W(block, REG_W8, REG_X8, 0);
-    host_arm64_LDR_IMM_W(block, REG_W10, REG_X10, 0);
-    host_arm64_LDR_IMM_W(block, REG_W11, REG_X11, 0);
-    host_arm64_LDR_IMM_W(block, REG_W13, REG_X13, 0);
+    link_addr_exact(block, REG_X9, &cpu_events);
+    host_arm64_LDP_IMM_X(block, REG_X3, REG_X4, REG_X9, 0);
+    host_arm64_LDP_IMM_X(block, REG_X5, REG_X8, REG_X9, 16);
+    offset = link_addr(block, REG_X12, &nmi);
+    host_arm64_LDR_IMM_W(block, REG_W12, REG_X12, offset);
     host_arm64_AND_IMM(block, REG_W7, REG_W7, 0xffff0000);
-    host_arm64_ORR_REG(block, REG_W3, REG_W3, REG_W4, 0);
-    host_arm64_ORR_REG(block, REG_W5, REG_W5, REG_W8, 0);
-    host_arm64_ORR_REG(block, REG_W7, REG_W7, REG_W11, 0);
-    host_arm64_ORR_REG(block, REG_W3, REG_W3, REG_W5, 0);
-    host_arm64_ORR_REG(block, REG_W7, REG_W7, REG_W10, 0);
-    host_arm64_ORR_REG(block, REG_W5, REG_W5, REG_W13, 0);
-    host_arm64_ORR_REG(block, REG_W3, REG_W3, REG_W7, 0);
-    miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W3);
+    host_arm64_ORRX_REG(block, REG_X3, REG_X3, REG_X4, 0);
+    host_arm64_ORRX_REG(block, REG_X5, REG_X5, REG_X7, 0);
+    host_arm64_ORRX_REG(block, REG_X3, REG_X3, REG_X8, 32);
+    host_arm64_ORRX_REG(block, REG_X3, REG_X3, REG_X5, 0);
+    miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_X3);
 
-    /*NMI_TAKEABLE(): nmi && nmi_enable && (nmi_mask || (nmi & 2)); the
-      rest is out of line, with W12 = nmi*/
-    host_arm64_LDR_IMM_W(block, REG_W12, REG_X12, 0);
+    /*nmi && nmi_enable && nmi_mask; the rest is out of line*/
     nmi_set  = host_arm64_CBNZ_SHORT_(block, REG_W12);
     nmi_done = &block_write_data[block_pos];
 
     /*Trap flag, and an interrupt the loop would take. X13 = CR0 | flags << 32*/
     host_arm64_LDR_IMM_X(block, REG_X13, REG_CPUSTATE, rep_state_offset(&cpu_state.CR0.l));
-    host_arm64_LDP_IMM_X(block, REG_X3, REG_X4, REG_X17, LINK_LIT(LINK_LIT_PIC));
     miss[nr_miss++] = host_arm64_TBNZ_SHORT_(block, REG_X13, 32 + 8);
     irq_ok          = host_arm64_TBZ_SHORT_(block, REG_X13, 32 + 9);
-    host_arm64_LDRB_IMM_W(block, REG_W5, REG_X3, offsetof(pic_t, int_pending));
+    offset          = link_addr(block, REG_X3, &pic.int_pending);
+    host_arm64_LDRB_IMM_W(block, REG_W5, REG_X3, offset);
     miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W5);
-    /*With the IOAPIC routing interrupts, x86_external_interrupt_pending()
-      also looks at local APIC 0: an ExtINT or anything in its IRR is a
-      miss, and the C loop works out whether it is deliverable*/
-    host_arm64_LDR_IMM_X(block, REG_X5, REG_X17, LINK_LIT(LINK_LIT_IOAPIC_PATH));
-    host_arm64_LDRB_IMM_W(block, REG_W5, REG_X5, 0);
-    irq_ok_2 = host_arm64_CBZ_SHORT_(block, REG_W5);
-    host_arm64_LDR_IMM_X(block, REG_X5, REG_X17, LINK_LIT(LINK_LIT_LAPIC_EXTINT));
-    host_arm64_LDRB_IMM_W(block, REG_W5, REG_X5, 0);
-    miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W5);
-    host_arm64_LDR_IMM_X(block, REG_X5, REG_X17, LINK_LIT(LINK_LIT_LAPIC_IRR));
-    host_arm64_LDR_IMM_W(block, REG_W5, REG_X5, 0);
-    miss[nr_miss++] = host_arm64_TBNZ_SHORT_(block, REG_W5, 0);
     host_arm64_short_branch_set_offset(irq_ok, &block_write_data[block_pos]);
-    host_arm64_short_branch_set_offset(irq_ok_2, &block_write_data[block_pos]);
 
     /*Status and FPU rounding as when the slot was filled, compared as one
       word against W6. Only the C loop refreshes the PC24 and RC_NZ status
@@ -1210,7 +1172,8 @@ build_link_routine(codeblock_t *block)
       those two bits runs after that refresh. The C loop also sets NOTFLATES
       from ES before each lookup, and not every ES load keeps it current, so
       it is worked out again here from ES itself: W8 = 0 if ES is flat.*/
-    host_arm64_LDRH_IMM(block, REG_W4, REG_X4, 0);
+    offset = link_addr(block, REG_X4, &cpu_cur_status);
+    host_arm64_LDRH_IMM(block, REG_W4, REG_X4, offset);
     host_arm64_AND_IMM(block, REG_W4, REG_W4, ~(uint32_t) CPU_STATUS_NOTFLATES);
     host_arm64_LDR_IMM_W(block, REG_W8, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_es.base));
     host_arm64_LDR_IMM_W(block, REG_W9, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_es.limit_low));
@@ -1229,21 +1192,23 @@ build_link_routine(codeblock_t *block)
     miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
 
     /*The TSC. If it moved, update_tsc() ran inside the block and the C loop
-      does the rest of that arithmetic. X3 = &tsc, X11 = new tsc,
-      X4 = &tsc_old, X5 = &cycles_old*/
-    host_arm64_LDP_IMM_X(block, REG_X3, REG_X4, REG_X17, LINK_LIT(LINK_LIT_TSC));
-    host_arm64_LDP_IMM_X(block, REG_X5, REG_X6, REG_X17, LINK_LIT(LINK_LIT_CYCLES_OLD));
-    host_arm64_LDR_IMM_X(block, REG_X11, REG_X3, 0);
-    host_arm64_LDR_IMM_X(block, REG_X7, REG_X4, 0);
+      does the rest of that arithmetic. X3 = tsc's page, X11 = new tsc,
+      X4 = tsc_old's page, X5 = cycles_old's page (kept for the stores)*/
+    off_tsc        = link_addr(block, REG_X3, &tsc);
+    off_tsc_old    = link_addr(block, REG_X4, &tsc_old);
+    off_cycles_old = link_addr(block, REG_X5, &cycles_old);
+    host_arm64_LDR_IMM_X(block, REG_X11, REG_X3, off_tsc);
+    host_arm64_LDR_IMM_X(block, REG_X7, REG_X4, off_tsc_old);
     host_arm64_CMPX_REG(block, REG_X11, REG_X7);
     miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
-    host_arm64_LDR_IMM_W(block, REG_W7, REG_X5, 0);
+    host_arm64_LDR_IMM_W(block, REG_W7, REG_X5, off_cycles_old);
     host_arm64_SUB_REG(block, REG_W7, REG_W7, REG_W14, 0);
     host_arm64_CMP_IMM(block, REG_W7, 0);
     miss[nr_miss++] = host_arm64_BLE_SHORT_(block);
     host_arm64_ADDX_REG_UXTW(block, REG_X11, REG_X11, REG_W7);
     /*No timer due at the new TSC*/
-    host_arm64_LDR_IMM_X(block, REG_X7, REG_X6, 0);
+    offset = link_addr(block, REG_X6, &timer_target);
+    host_arm64_LDR_IMM_X(block, REG_X7, REG_X6, offset);
     host_arm64_SUBX_REG(block, REG_X7, REG_X7, REG_X11);
     host_arm64_CMPX_IMM(block, REG_X7, 0);
     miss[nr_miss++] = host_arm64_BLE_SHORT_(block);
@@ -1258,14 +1223,16 @@ build_link_routine(codeblock_t *block)
     host_arm64_CMP_REG(block, REG_W10, REG_W9);
     miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
 
-    /*get_phys(cs + pc) gives phys_page. X6 = &get_phys_virt,
-      X7 = &get_phys_phys, W8 = nonzero if get_phys() would miss its cache*/
-    host_arm64_LDP_IMM_X(block, REG_X6, REG_X7, REG_X17, LINK_LIT(LINK_LIT_GET_PHYS_VIRT));
-    host_arm64_LDR_IMM_W(block, REG_W8, REG_X6, 0);
+    /*get_phys(cs + pc) gives phys_page. X6 = get_phys_virt's page,
+      X7 = get_phys_phys's page (kept for the stores), W8 = nonzero if
+      get_phys() would miss its cache*/
+    off_virt = link_addr(block, REG_X6, &get_phys_virt);
+    off_phys = link_addr(block, REG_X7, &get_phys_phys);
+    host_arm64_LDR_IMM_W(block, REG_W8, REG_X6, off_virt);
     host_arm64_EOR_REG(block, REG_W8, REG_W8, REG_W2, 0);
     host_arm64_ANDS_IMM(block, REG_W8, REG_W8, 0xfffff000);
     uncached = host_arm64_BNE_SHORT_(block);
-    host_arm64_LDR_IMM_W(block, REG_W10, REG_X7, 0);
+    host_arm64_LDR_IMM_W(block, REG_W10, REG_X7, off_phys);
     host_arm64_CMP_REG(block, REG_W10, REG_W12);
     miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
     xlat_done = &block_write_data[block_pos];
@@ -1295,24 +1262,26 @@ build_link_routine(codeblock_t *block)
 
     /*Every check passed: the C loop's stores, then the next block. W10 =
       CS access | selector << 16*/
-    host_arm64_STR_IMM_Q(block, REG_X11, REG_X3, 0);
-    host_arm64_STR_IMM_Q(block, REG_X11, REG_X4, 0);
-    host_arm64_STR_IMM_W(block, REG_W14, REG_X5, 0);
+    host_arm64_STR_IMM_Q(block, REG_X11, REG_X3, off_tsc);
+    host_arm64_STR_IMM_Q(block, REG_X11, REG_X4, off_tsc_old);
+    host_arm64_STR_IMM_W(block, REG_W14, REG_X5, off_cycles_old);
     host_arm64_LDR_IMM_W(block, REG_W10, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_cs.access));
-    host_arm64_LDP_IMM_X(block, REG_X3, REG_X4, REG_X17, LINK_LIT(LINK_LIT_OLDCS));
+    offset = link_addr(block, REG_X3, &oldcs);
     host_arm64_UBFX(block, REG_W13, REG_W10, 16, 16);
-    host_arm64_STRH_IMM(block, REG_W13, REG_X3, 0);
+    host_arm64_STRH_IMM(block, REG_W13, REG_X3, offset);
+    offset = link_addr(block, REG_X4, &oldcpl);
     host_arm64_UBFX(block, REG_W10, REG_W10, 5, 2);
-    host_arm64_STR_IMM_W(block, REG_W10, REG_X4, 0);
+    host_arm64_STR_IMM_W(block, REG_W10, REG_X4, offset);
     /*get_phys() only writes its cache when it misses*/
     cached = host_arm64_CBZ_SHORT_(block, REG_W8);
-    host_arm64_STR_IMM_W(block, REG_W2, REG_X6, 0);
-    host_arm64_STR_IMM_W(block, REG_W12, REG_X7, 0);
+    host_arm64_STR_IMM_W(block, REG_W2, REG_X6, off_virt);
+    host_arm64_STR_IMM_W(block, REG_W12, REG_X7, off_phys);
     host_arm64_short_branch_set_offset(cached, &block_write_data[block_pos]);
     /*cpu_fetch_device and cpu_halted, cleared as the C loop does*/
-    host_arm64_LDP_IMM_X(block, REG_X3, REG_X4, REG_X17, LINK_LIT(LINK_LIT_FETCH_DEVICE));
-    host_arm64_STR_IMM_W(block, REG_WZR, REG_X3, 0);
-    host_arm64_STR_IMM_W(block, REG_WZR, REG_X4, 0);
+    offset = link_addr(block, REG_X3, &cpu_fetch_device);
+    host_arm64_STR_IMM_W(block, REG_WZR, REG_X3, offset);
+    offset = link_addr(block, REG_X4, &cpu_events);
+    host_arm64_STR_IMM_W(block, REG_WZR, REG_X4, offset + offsetof(cpu_events_t, halted));
     /*The block is about to run: the eviction sweep passes it over once*/
     host_arm64_LDR_IMM_X(block, REG_X3, REG_X1, LINK_SLOT(block));
     host_arm64_MOVZ_IMM(block, REG_W4, 1);
@@ -1328,17 +1297,15 @@ build_link_routine(codeblock_t *block)
     miss_dest = &block_write_data[block_pos];
     host_arm64_B(block, codegen_link_miss_rout);
 
-    /*nmi set: miss only if nmi_enable is too, and nmi_mask or an NMI from
-      the local APIC (nmi bit 1, which port 70h does not gate)*/
+    /*nmi set: miss only if nmi_enable and nmi_mask are too*/
     host_arm64_short_branch_set_offset(nmi_set, &block_write_data[block_pos]);
-    host_arm64_LDR_IMM_X(block, REG_X3, REG_X17, LINK_LIT(LINK_LIT_NMI_ENABLE));
-    host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, 0);
+    offset = link_addr(block, REG_X3, &nmi_enable);
+    host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, offset);
     nmi_ok = host_arm64_CBZ_SHORT_(block, REG_W3);
     host_arm64_short_branch_set_offset(nmi_ok, nmi_done);
-    host_arm64_LDR_IMM_X(block, REG_X3, REG_X17, LINK_LIT(LINK_LIT_NMI_MASK));
-    host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, 0);
+    offset = link_addr(block, REG_X3, &nmi_mask);
+    host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, offset);
     miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W3);
-    miss[nr_miss++] = host_arm64_TBNZ_SHORT_(block, REG_W12, 1);
     host_arm64_B(block, nmi_done);
 
     /*get_phys() cache miss: it would store the full address in
@@ -1352,8 +1319,8 @@ build_link_routine(codeblock_t *block)
     miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
     host_arm64_B(block, xlat_done);
     host_arm64_short_branch_set_offset(no_paging, &block_write_data[block_pos]);
-    host_arm64_LDR_IMM_X(block, REG_X10, REG_X17, LINK_LIT(LINK_LIT_RAMMASK));
-    host_arm64_LDR_IMM_W(block, REG_W10, REG_X10, 0);
+    offset = link_addr(block, REG_X10, &rammask);
+    host_arm64_LDR_IMM_W(block, REG_W10, REG_X10, offset);
     host_arm64_LDR_IMM_W(block, REG_W13, REG_X1, LINK_SLOT(rammask));
     host_arm64_CMP_REG(block, REG_W10, REG_W13);
     miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
@@ -1382,13 +1349,13 @@ build_link_routine(codeblock_t *block)
     host_arm64_short_branch_set_offset(byte_mask, &block_write_data[block_pos]);
     host_arm64_LDR_IMM_W(block, REG_W13, REG_X1, LINK_SLOT(cr0_bits));
     no_paging_2 = host_arm64_TBZ_SHORT_(block, REG_W13, 31);
-    host_arm64_LDR_IMM_X(block, REG_X13, REG_X17, LINK_LIT(LINK_LIT_READLOOKUP2));
+    link_addr_exact(block, REG_X13, readlookup2);
     host_arm64_UBFX(block, REG_W16, REG_W10, 12, 20);
     host_arm64_LDRX_REG_LSL3(block, REG_X13, REG_X13, REG_X16);
     host_arm64_CMN_IMM(block, REG_W13, 1);
     miss[nr_miss++] = host_arm64_BEQ_SHORT_(block);
-    host_arm64_LDR_IMM_X(block, REG_X16, REG_X17, LINK_LIT(LINK_LIT_RAM));
-    host_arm64_LDR_IMM_X(block, REG_X16, REG_X16, 0);
+    offset = link_addr(block, REG_X16, &ram);
+    host_arm64_LDR_IMM_X(block, REG_X16, REG_X16, offset);
     host_arm64_ADDX_REG_UXTW(block, REG_X13, REG_X13, REG_W10);
     host_arm64_SUBX_REG(block, REG_X13, REG_X13, REG_X16);
     xlat_2_done = &block_write_data[block_pos];
@@ -1398,8 +1365,8 @@ build_link_routine(codeblock_t *block)
     miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
     host_arm64_B(block, two_page_done);
     host_arm64_short_branch_set_offset(no_paging_2, &block_write_data[block_pos]);
-    host_arm64_LDR_IMM_X(block, REG_X16, REG_X17, LINK_LIT(LINK_LIT_RAMMASK));
-    host_arm64_LDR_IMM_W(block, REG_W16, REG_X16, 0);
+    offset = link_addr(block, REG_X16, &rammask);
+    host_arm64_LDR_IMM_W(block, REG_W16, REG_X16, offset);
     host_arm64_AND_REG(block, REG_W13, REG_W10, REG_W16, 0);
     host_arm64_B(block, xlat_2_done);
 

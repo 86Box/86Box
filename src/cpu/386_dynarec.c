@@ -54,8 +54,6 @@
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
-int cpu_force_interpreter   = 0;
-int cpu_override_dynarec    = 0;
 int inrecomp                = 0;
 int cpu_block_end           = 0;
 int cpu_end_block_after_ins = 0;

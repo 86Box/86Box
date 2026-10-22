@@ -65,8 +65,6 @@ uint64_t xt_cpu_multi;
 int nmi            = 0;
 int nmi_auto_clear = 0;
 
-/* Was the CPU ever reset? */
-int x86_was_reset  = 0;
 int soft_reset_pci = 0;
 
 /* Is the TRAP flag on? */

@@ -599,9 +599,11 @@ extern uint32_t cpu_features;
 extern int smi_latched;
 extern int smm_in_hlt;
 extern int smi_block;
-/* The processor stopped in HLT, its PC on the HLT (opHLT): an interrupt
-   taken from there returns past it. */
-extern int cpu_halted;
+/* cpu_halted, cpu_init, new_ne, x86_was_reset, cpu_flush_pending,
+   cpu_force_interpreter, cpu_override_dynarec and cpu_dr_armed: the flags
+   the loop tests between two blocks, kept together in cpu_events */
+#include <86box/cpu_events.h>
+
 extern int cpu_is_p5(void);
 extern int cpu_init_keeps_state(void);
 
@@ -673,9 +675,7 @@ extern uint32_t _tr[8];
    effect on a hard reset. */
 extern int cpu_debug_regs_486;
 /* cpu_debug_regs_486 and an enabled breakpoint in DR7: the per-access checks
-   are made only while this is set. Kept by cpu_dr7_update(), which must
-   follow every write to DR7. */
-extern int cpu_dr_armed;
+   are made only while cpu_dr_armed (cpu_events) is set. */
 extern void cpu_dr7_update(void);
 
 /* For the Cyrix 6x86(MX) */
@@ -724,7 +724,6 @@ extern int cpu_rom_prefetch_cycles;
 extern int cpu_waitstates;
 extern int io_waitstates;
 extern int reg_op_waitstates;
-extern int cpu_flush_pending;
 extern int cpu_old_paging;
 extern int cpu_cache_int_enabled;
 extern int cpu_cache_ext_enabled;
@@ -1167,9 +1166,6 @@ extern uint16_t *MMEP[8];
 
 extern int  cpu_block_end;
 
-extern int  cpu_force_interpreter;
-extern int  cpu_override_dynarec;
-
 extern int  inrecomp;
 
 extern void mmx_init(void);
@@ -1185,7 +1181,6 @@ extern int lock_legal_80[8];
 extern int lock_legal_f6[8];
 extern int lock_legal_fe[8];
 
-extern int new_ne;
 extern int fpu_ignne;
 
 /* When an unmasked x87 exception asserts FERR# with CR0.NE clear */

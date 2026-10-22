@@ -10,6 +10,8 @@ void host_arm64_ADDX_REG_UXTW(codeblock_t *block, int dst_reg, int src_n_reg, in
 void host_arm64_ADDP_V4S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 
 void host_arm64_ADR(codeblock_t *block, int dst_reg, int offset);
+int  host_arm64_ADRP_in_range(uintptr_t target);
+void host_arm64_ADRP(codeblock_t *block, int dst_reg, uintptr_t target);
 
 void host_arm64_AND_IMM(codeblock_t *block, int dst_reg, int src_n_reg, uint32_t imm_data);
 void host_arm64_AND_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift);

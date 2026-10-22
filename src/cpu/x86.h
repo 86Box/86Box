@@ -46,7 +46,6 @@ extern uint16_t *mod1add[2][8];
 extern uint16_t  znptable16[65536];
 
 extern int pfq_pos;
-extern int x86_was_reset;
 extern int trap;
 extern int codegen_flat_ss;
 extern int codegen_flat_ds;
@@ -63,8 +62,6 @@ extern int cpl_override;
 extern int nmi_enable;
 extern int oddeven;
 extern int inttype;
-
-extern int cpu_init;
 
 extern uint32_t  use32;
 extern uint32_t  rmdat;
