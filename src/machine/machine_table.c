@@ -5958,8 +5958,7 @@ const machine_t machines[] = {
         },
         .bus_flags = MACHINE_BUS_PS2,
         .flags     = MACHINE_VIDEO_FIXED | MACHINE_SOUND | MACHINE_KEYBOARD,
-        /* 1 MB of memory soldered and non-upgradable(?) */
-        .ram       = {
+        .ram       = { /* 1 MB of memory soldered and non-upgradable(?) */
             .min  = 1024,
             .max  = 1024,
             .step = 1024
@@ -5982,7 +5981,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &sensationaud_device,
         .net_device               = NULL,
-        .aliases                  = { "Tandy Video Information System", "" }
+        .aliases                  = { "Tandy Memorex Video Information System", "" }
     },
     /* 286 machines that utilize the MCA bus */
     /* Has IBM PS/2 Type 1 KBC firmware. */
