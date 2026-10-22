@@ -720,7 +720,10 @@ getpccache(uint32_t a)
 
     if (_mem_exec[a64 >> MEM_GRANULARITY_BITS]) {
         if (is286) {
-            if (read_mapping[a64 >> MEM_GRANULARITY_BITS] && (read_mapping[a64 >> MEM_GRANULARITY_BITS]->flags & MEM_MAPPING_ROM_WS))
+            int pc98_cycles = cpu_pc98_prefetch_cycles((uint32_t) a64);
+            if (pc98_cycles)
+                cpu_prefetch_cycles = pc98_cycles;
+            else if (read_mapping[a64 >> MEM_GRANULARITY_BITS] && (read_mapping[a64 >> MEM_GRANULARITY_BITS]->flags & MEM_MAPPING_ROM_WS))
                 cpu_prefetch_cycles = cpu_rom_prefetch_cycles;
             else
                 cpu_prefetch_cycles = cpu_mem_prefetch_cycles;

@@ -508,7 +508,7 @@ test_gdc_clock_domains(void)
 }
 
 static void
-test_vram_without_extra_waits(void)
+test_vram_stock_waits_and_upgrades(void)
 {
     const uint64_t saved_tsc = tsc, saved_usec = TIMER_USEC;
     map_count          = 0;
@@ -517,14 +517,44 @@ test_vram_without_extra_waits(void)
     CHECK(d != NULL);
     if (!d)
         return;
-    /* Stock and upgraded CPUs retain normal opcode/memory accounting.
-     * VRAM callbacks must not add unmeasured GDC-clock WAITs on top. */
-    const unsigned speeds[] = { 8, 10, 20, 32 };
-    for (unsigned n = 0; n < sizeof(speeds) / sizeof(speeds[0]); n++) {
-        is286      = 1;
-        TIMER_USEC = (uint64_t) speeds[n] << 32;
-        tsc        = 1000;
+    CPU           selected      = { .multi = 1.0 };
+    cpu_family_t  family        = { .package = CPU_PKG_286, .internal_name = "286" };
+    CPU          *saved_cpu     = cpu_s;
+    cpu_family_t *saved_family  = cpu_f;
+    const int     saved_machine = machine;
+    cpu_s                       = &selected;
+    cpu_f                       = &family;
+    const struct {
+        uint64_t     type;
+        unsigned     mhz;
+        int          model;
+        pc98_model_t video_model;
+        int          waits;
+    } variants[] = {
+        { CPU_286,    8,  0, PC98_MODEL_VX,  1 },
+        { CPU_286,    10, 0, PC98_MODEL_VX,  1 },
+        { CPU_286,    16, 0, PC98_MODEL_VX,  0 },
+        { CPU_386SX,  8,  0, PC98_MODEL_VX,  0 },
+        { CPU_386SX,  20, 0, PC98_MODEL_VX,  0 },
+        { CPU_386DX,  10, 0, PC98_MODEL_VX,  0 },
+        { CPU_386DX,  32, 0, PC98_MODEL_VX,  0 },
+        { CPU_i486DX, 8,  0, PC98_MODEL_VX,  0 },
+        { CPU_i486DX, 33, 0, PC98_MODEL_VX,  0 },
+        { CPU_286,    8,  1, PC98_MODEL_BX4, 0 },
+        { CPU_286,    8,  0, PC98_MODEL_BX4, 0 },
+        { CPU_286,    10, 2, PC98_MODEL_VX,  0 }
+    };
+    for (unsigned n = 0; n < sizeof(variants) / sizeof(variants[0]); n++) {
+        selected.cpu_type      = variants[n].type;
+        selected.rspeed        = variants[n].mhz * 1000000u;
+        machine                = variants[n].model;
+        const int expect_waits = variants[n].waits;
+        is286                  = 1;
+        TIMER_USEC             = (uint64_t) variants[n].mhz << 32;
+        tsc                    = 1000;
+        d->model               = PC98_MODEL_VX;
         pc98_reset(d);
+        d->model             = variants[n].video_model;
         vram_stall_clocks    = 0;
         const uint64_t start = tsc;
         tvram_wb(0xa0000, 0x35, d);
@@ -538,7 +568,9 @@ test_vram_without_extra_waits(void)
         CHECK(gvram_rw(0xa8000, &d->plane_map[0]) == 0xa123);
         gvram_ww(0xa8001, 0x4567, &d->plane_map[0]);
         CHECK(gvram_rw(0xa8001, &d->plane_map[0]) == 0x4567);
-        CHECK(tsc == start && !vram_stall_clocks);
+        CHECK((tsc > start) == expect_waits);
+        CHECK((vram_stall_clocks > 0) == expect_waits);
+        CHECK(!d->core.text_gdc.host_bus_requested && !d->core.graph_gdc.host_bus_requested);
 
         pc98_outb(0x7c, 0x80, d); /* GRCG TDW still writes parallel planes. */
         for (unsigned i = 0; i < 4; i++)
@@ -553,7 +585,9 @@ test_vram_without_extra_waits(void)
         gvram_ww(0xa8000, 0x00ff, &d->plane_map[0]);
         pc98_outb(0x7c, 0, d);
         CHECK(gvram_rw(0xa8000, &d->plane_map[0]) == 0xff00);
-        CHECK(tsc == start && !vram_stall_clocks);
+        CHECK((tsc > start) == expect_waits);
+        CHECK((vram_stall_clocks > 0) == expect_waits);
+        CHECK(!d->core.text_gdc.host_bus_requested && !d->core.graph_gdc.host_bus_requested);
 
         pc98_outb(0x6a, 7, d);
         pc98_outb(0x6a, 5, d);
@@ -566,14 +600,16 @@ test_vram_without_extra_waits(void)
         gvram_rw(0xa8000, &d->plane_map[0]);
         pc98_outb(0x7c, 0, d);
 
-        pc98_outb(0xa6, 1, d); /* Page selection is immediate again. */
+        pc98_outb(0xa6, 1, d); /* Subsequent stock VRAM access includes page settling. */
         gvram_ww(0xa8000, 0x789a, &d->plane_map[0]);
         CHECK(d->core.cpu_page == 1 && gvram_rw(0xa8000, &d->plane_map[0]) == 0x789a);
         pc98_outw(0xa4, 1, d);
         CHECK(d->core.display_page == 1);
-        CHECK(tsc == start && !vram_stall_clocks);
+        CHECK((tsc > start) == expect_waits);
+        CHECK((vram_stall_clocks > 0) == expect_waits);
+        CHECK(!d->core.text_gdc.host_bus_requested && !d->core.graph_gdc.host_bus_requested);
 
-        /* Refresh/GDC activity must not inject a CPU transaction penalty. */
+        /* Refresh/GDC arbitration adds waits only for the stock CPU. */
         upd7220_t *g = &d->core.graph_gdc;
         g->aw        = 80;
         g->hfp       = 8;
@@ -587,9 +623,35 @@ test_vram_without_extra_waits(void)
         g->de        = 0;
         upd7220_set_bus_position(g, 176, 25);
         gvram_rb(0xa8000, &d->plane_map[0]);
-        CHECK(tsc == start && !vram_stall_clocks);
+        CHECK((tsc > start) == expect_waits);
+        CHECK((vram_stall_clocks > 0) == expect_waits);
+        CHECK(!d->core.text_gdc.host_bus_requested && !d->core.graph_gdc.host_bus_requested);
     }
+    /* A pending stock page delay follows a valid clock change, then is
+     * discarded when the CPU is replaced by an upgrade. */
+    d->model          = PC98_MODEL_VX;
+    selected.cpu_type = CPU_286;
+    selected.rspeed   = 8000000;
+    machine           = 0;
+    TIMER_USEC        = 8ULL << 32;
+    tsc               = 1000;
+    pc98_reset(d);
+    pc98_outb(0xa6, 1, d);
+    CHECK(d->vram_page_deadline == 1007);
+    selected.rspeed = 10000000;
+    TIMER_USEC      = 10ULL << 32;
+    pc98_speed_changed(d);
+    CHECK(d->vram_page_deadline == 1009);
+    selected.cpu_type = CPU_386SX;
+    pc98_speed_changed(d);
+    CHECK(!d->vram_page_deadline);
+    vram_stall_clocks = 0;
+    gvram_rw(0xa8000, &d->plane_map[0]);
+    CHECK(tsc == 1000 && !vram_stall_clocks);
     pc9801_video_device.close(d);
+    cpu_s      = saved_cpu;
+    cpu_f      = saved_family;
+    machine    = saved_machine;
     map_count  = 0;
     is286      = 0;
     tsc        = saved_tsc;
@@ -626,13 +688,17 @@ main(void)
     test_text_partitions();
     test_raster_page_switch();
     test_gdc_clock_domains();
-    test_vram_without_extra_waits();
+    test_vram_stock_waits_and_upgrades();
     printf("PC-98 video mappings and rendering: %u checks, %u failures\n", checks, failures);
     return failures ? 1 : 0;
 }
 
 int             machine;
-const machine_t machines[] = { { .bus_flags = MACHINE_PC98 } };
+const machine_t machines[] = {
+    { .internal_name = "pc9801vx",  .bus_flags = MACHINE_PC98 },
+    { .internal_name = "pc9801bx4", .bus_flags = MACHINE_PC98 },
+    { .internal_name = "ibmat",     .bus_flags = MACHINE_AT   }
+};
 
 int
 machine_at_tandy_vis_init(const machine_t *model)
@@ -640,3 +706,6 @@ machine_at_tandy_vis_init(const machine_t *model)
     (void) model;
     abort();
 }
+
+CPU          *cpu_s;
+cpu_family_t *cpu_f;

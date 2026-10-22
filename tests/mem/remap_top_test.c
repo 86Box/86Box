@@ -5,7 +5,12 @@ uint32_t    mem_size;
 cpu_state_t cpu_state;
 int         cpu_16bitbus, is286 = 1, is6117, cpu_use_exec;
 int         is_pcjr, is_cxsmm;
-uint8_t     ccr1;
+int         cpu_dr_armed;
+void
+cpu_car_reset(void)
+{
+}
+uint8_t ccr1;
 void
 pcjr_waitstates(void *priv)
 {
@@ -119,4 +124,11 @@ main(void)
     mem_close();
     printf("RAM relocation: %u checks, %u failures\n", checks, failures);
     return failures != 0;
+}
+
+int
+cpu_pc98_prefetch_cycles(uint32_t addr)
+{
+    (void) addr;
+    return 0;
 }

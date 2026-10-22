@@ -405,6 +405,7 @@ exec386_2386(int32_t cycs)
                 nmi = 0;
 #endif
             } else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins) {
+                cpu_pc98_interrupt_wait();
                 vector = picinterrupt();
                 if (vector != -1) {
                     flags_rebuild();

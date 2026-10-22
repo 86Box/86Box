@@ -349,6 +349,7 @@ inb(uint16_t port)
     uint8_t qfound = 0;
 #endif
 
+    cpu_pc98_io_wait(port, 1);
     io_port = port;
 
     if (cpu_dr_armed)
@@ -390,7 +391,7 @@ inb(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found || (machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init))
+    if (!cpu_pc98_vx_bus_active() && (!found || (machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init)))
         cycles -= io_delay;
 
     /* TriGem 486-BIOS MHz output. */
@@ -417,6 +418,7 @@ outb(uint16_t port, uint8_t val)
     uint8_t qfound = 0;
 #endif
 
+    cpu_pc98_io_wait(port, 1);
     io_port = port;
     io_val  = val;
 
@@ -450,7 +452,7 @@ outb(uint16_t port, uint8_t val)
         }
     }
 
-    if (!found || (port == 0x84)) {
+    if (!cpu_pc98_vx_bus_active() && (!found || (port == 0x84))) {
         cycles -= io_delay;
 #ifdef USE_DYNAREC
         if (cpu_use_dynarec && ((port == 0x84) || (port == 0xeb) || (port == 0xed)))
@@ -476,6 +478,7 @@ inw(uint16_t port)
 #endif
     uint8_t  ret8[2];
 
+    cpu_pc98_io_wait(port, 2);
     io_port = port;
 
     if (cpu_dr_armed)
@@ -535,7 +538,7 @@ inw(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found || (machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init))
+    if (!cpu_pc98_vx_bus_active() && (!found || (machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init)))
         cycles -= io_delay;
 
     io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
@@ -556,6 +559,7 @@ outw(uint16_t port, uint16_t val)
     uint8_t qfound = 0;
 #endif
 
+    cpu_pc98_io_wait(port, 2);
     io_port = port;
     io_val  = val;
 
@@ -604,7 +608,7 @@ outw(uint16_t port, uint16_t val)
         }
     }
 
-    if (!found) {
+    if (!cpu_pc98_vx_bus_active() && !found) {
         cycles -= io_delay;
 #ifdef USE_DYNAREC
         if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
@@ -631,6 +635,7 @@ inl(uint16_t port)
     uint8_t  qfound = 0;
 #endif
 
+    cpu_pc98_io_wait(port, 4);
     io_port = port;
 
     if (cpu_dr_armed)
@@ -721,7 +726,7 @@ inl(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found || (machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init))
+    if (!cpu_pc98_vx_bus_active() && (!found || (machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init)))
         cycles -= io_delay;
 
     io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
@@ -742,6 +747,7 @@ outl(uint16_t port, uint32_t val)
     uint8_t qfound = 0;
 #endif
 
+    cpu_pc98_io_wait(port, 4);
     io_port = port;
     io_val  = val;
 
@@ -807,7 +813,7 @@ outl(uint16_t port, uint32_t val)
         }
     }
 
-    if (!found) {
+    if (!cpu_pc98_vx_bus_active() && !found) {
         cycles -= io_delay;
 #ifdef USE_DYNAREC
         if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))

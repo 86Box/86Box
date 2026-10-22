@@ -118,6 +118,13 @@ void     pc98_gvram_write8(pc98_video_t *v, unsigned plane, uint16_t byte_off, u
 
 /* Helpers exposed for unit testing and a future 86Box memory-map wrapper. */
 uint16_t pc98_egc_rop(uint8_t truth, uint16_t src, uint16_t pat, uint16_t dst);
+enum { PC98_VRAM_READ  = 1,
+       PC98_VRAM_WRITE = 2 };
+unsigned pc98_gvram_access_phases(const pc98_video_t *v, int write);
+void     pc98_gvram_capture(const pc98_video_t *v, uint16_t off, uint16_t before[4]);
+void     pc98_gvram_write16_latched(pc98_video_t *v, unsigned plane, uint16_t off,
+                                    uint16_t data, uint16_t mem_mask,
+                                    const uint16_t before[4]);
 uint32_t pc98_font_window_offset(const pc98_video_t *v);
 /* Decode an A4000h CG-window offset. Ordinary Kanji use the CPU byte
  * lane for L/R; 56xx/57xx programmable characters use the A5h LR latch. */

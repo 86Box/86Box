@@ -776,6 +776,11 @@ extern void enter_smm_check(int in_hlt);
 extern void leave_smm(void);
 extern void exec386_2386(int32_t cycs);
 extern void cpu_bus_stall(int clocks);
+extern int  cpu_pc98_vx_bus_active(void);
+extern void cpu_pc98_memory_wait(uint32_t addr, unsigned size);
+extern void cpu_pc98_io_wait(uint16_t port, unsigned size);
+extern void cpu_pc98_interrupt_wait(void);
+extern int  cpu_pc98_prefetch_cycles(uint32_t addr);
 static inline void
 cpu_bus_retire(int clocks, uint64_t instruction_tsc)
 {

@@ -36,7 +36,7 @@ gdc_plane(uint32_t addr)
 
 static void charger_write(pc98_video_t *v, unsigned page, unsigned plane,
                           uint16_t off, uint16_t data, uint16_t mem_mask,
-                          bool gdc);
+                          bool gdc, const uint16_t captured[4]);
 
 static uint16_t
 gvram_gdc_read(void *opaque, uint32_t addr)
@@ -58,7 +58,7 @@ gvram_gdc_write(void *opaque, uint32_t addr, uint16_t data)
     pc98_video_t *v    = (pc98_video_t *) opaque;
     unsigned      page = (addr >> 16) & 1;
     charger_write(v, page, gdc_plane(addr), (uint16_t) (addr & 0x3fff),
-                  data, 0xffff, true);
+                  data, 0xffff, true, NULL);
 }
 
 static uint8_t
@@ -327,7 +327,8 @@ end_mask_bits(bool forward, unsigned count)
 
 static void
 egc_write_vram(pc98_video_t *v, unsigned page, uint16_t off,
-               uint16_t data, uint16_t mem_mask, bool gdc)
+               uint16_t data, uint16_t mem_mask, bool gdc,
+               const uint16_t captured[4])
 {
     pc98_egc_t *e       = &v->egc;
     uint16_t    mask    = (uint16_t) (e->mask & mem_mask);
@@ -338,7 +339,7 @@ egc_write_vram(pc98_video_t *v, unsigned page, uint16_t off,
     if ((e->regs[2] & 0x0300) == 0x0200) {
         uint16_t before[4];
         for (unsigned i = 0; i < 4; i++)
-            before[i] = direct_word(v, page, i, off);
+            before[i] = captured ? captured[i] : direct_word(v, page, i, off);
         egc_load_pattern(e, before, mem_mask, true);
     } else if (!gdc && (e->regs[2] & 0x0700) == 0x0500) {
         /* PS=source and SD=CPU loads the CPU data on a write, including
@@ -390,7 +391,7 @@ egc_write_vram(pc98_video_t *v, unsigned page, uint16_t off,
         if (e->regs[0] & (1u << i))
             continue; /* 1 = plane inhibited */
 
-        uint16_t dst = direct_word(v, page, i, off);
+        uint16_t dst = captured ? captured[i] : direct_word(v, page, i, off);
         uint16_t src = e->src[i];
         uint16_t pat = color_pattern(v, i);
         uint16_t out;
@@ -794,10 +795,33 @@ pc98_gvram_read16(pc98_video_t *v, unsigned plane, uint16_t off, uint16_t mem_ma
     return (uint16_t) (egc_bus_mask(native) & mem_mask);
 }
 
+unsigned
+pc98_gvram_access_phases(const pc98_video_t *v, int write)
+{
+    if (!(v->grcg.mode & 0x80))
+        return write ? PC98_VRAM_WRITE : PC98_VRAM_READ;
+    if (!v->egc_enabled)
+        return write ? ((v->grcg.mode & 0x40) ? PC98_VRAM_READ | PC98_VRAM_WRITE : PC98_VRAM_WRITE) : ((v->grcg.mode & 0x40) ? 0 : PC98_VRAM_READ);
+    const pc98_egc_t *e = &v->egc;
+    if (!write)
+        return e->regs[2] & 0x0400 ? 0 : PC98_VRAM_READ;
+    unsigned phases = (e->regs[2] & 0x0300) == 0x0200 ? PC98_VRAM_READ : 0;
+    if ((!e->start && (e->regs[6] & 15) > ((e->regs[6] >> 4) & 15)) || ((e->regs[2] >> 11) & 3) == 3)
+        return phases; /* Priming/reserved writes do not store in VRAM. */
+    return PC98_VRAM_READ | PC98_VRAM_WRITE;
+}
+
+void
+pc98_gvram_capture(const pc98_video_t *v, uint16_t off, uint16_t before[4])
+{
+    for (unsigned plane = 0; plane < 4; plane++)
+        before[plane] = direct_word(v, v->cpu_page, plane, off);
+}
+
 static void
 charger_write(pc98_video_t *v, unsigned page, unsigned plane,
               uint16_t off, uint16_t data, uint16_t mem_mask,
-              bool gdc)
+              bool gdc, const uint16_t captured[4])
 {
     if (!gdc)
         v->egc.cpu_data = (uint16_t) (data & mem_mask);
@@ -808,7 +832,7 @@ charger_write(pc98_video_t *v, unsigned page, unsigned plane,
     }
 
     if (v->egc_enabled) {
-        egc_write_vram(v, page, off, data, mem_mask, gdc);
+        egc_write_vram(v, page, off, data, mem_mask, gdc, captured);
         return;
     }
 
@@ -825,7 +849,7 @@ charger_write(pc98_video_t *v, unsigned page, unsigned plane,
             continue;
         uint16_t tile = (uint16_t) (v->grcg.tile[i] | ((uint16_t) v->grcg.tile[i] << 8));
         if (v->grcg.mode & 0x40) {
-            uint16_t old       = direct_word(v, page, i, off);
+            uint16_t old       = captured ? captured[i] : direct_word(v, page, i, off);
             uint16_t effective = (uint16_t) (data & mem_mask);
             uint16_t out       = (uint16_t) ((old & ~effective) | (tile & effective));
             direct_word_write(v, page, i, off, out, mem_mask);
@@ -842,7 +866,16 @@ pc98_gvram_write16(pc98_video_t *v, unsigned plane, uint16_t off,
     /* The GDC and CPU see different bit numbering, but share the charger
      * and its latches. Page selection is independent for the two masters. */
     charger_write(v, v->cpu_page, plane, off, egc_bus_mask(data),
-                  egc_bus_mask(mem_mask), false);
+                  egc_bus_mask(mem_mask), false, NULL);
+}
+
+void
+pc98_gvram_write16_latched(pc98_video_t *v, unsigned plane, uint16_t off,
+                           uint16_t data, uint16_t mem_mask,
+                           const uint16_t before[4])
+{
+    charger_write(v, v->cpu_page, plane, off, egc_bus_mask(data),
+                  egc_bus_mask(mem_mask), false, before);
 }
 
 uint8_t

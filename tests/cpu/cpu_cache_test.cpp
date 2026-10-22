@@ -31,6 +31,11 @@ void
 pclog(const char *, ...)
 {
 }
+int
+cpu_pc98_prefetch_cycles(uint32_t)
+{
+    return 0;
+}
 int test_vl82c486_cache_policy(uint32_t addr, const uint8_t *regs);
 }
 

@@ -4,7 +4,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     enable_testing()
 endif()
 add_executable(pc98_cpu_bus_tests ../pc98_bus_test.c
-    ../../../src/timer.c)
+    ../../../src/timer.c ../../../src/cpu/pc98_wait.c)
 target_include_directories(pc98_cpu_bus_tests PRIVATE ../../../src/include ../../../src/cpu)
 target_compile_features(pc98_cpu_bus_tests PRIVATE c_std_11)
 set_property(TARGET pc98_cpu_bus_tests PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)

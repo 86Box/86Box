@@ -56,6 +56,7 @@ target_link_options(pc98_machine_tests PRIVATE
 add_test(NAME pc98_machine COMMAND pc98_machine_tests)
 
 add_executable(pc98_video_mapping_tests ../pc98_video_mapping_test.c
+    ../../../src/cpu/pc98_wait.c
     ../../../src/machine/pc98_rom.c
     ../../../src/machine/pc98_bios_patch.c
     ../../../src/video/vid_pc98.c ../../../src/video/vid_upd7220.c)

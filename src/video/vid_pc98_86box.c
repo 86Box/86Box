@@ -26,6 +26,7 @@
 #include <86box/video.h>
 #include <86box/ui.h>
 #include "cpu.h"
+#include <limits.h>
 
 #define PC98_FONT_PATH            "roms/machines/pc9801/font.rom"
 #define PC98_KANJI_X01_PATH       "roms/machines/pc9801/24256c-x01.bin"
@@ -60,6 +61,8 @@ struct pc98_86box_t {
     uint128_t        gdc_clock_remainder[2];
     uint128_t        gdc_clock_denominator[2];
     uint32_t         raster_clock_remainder;
+    uint64_t         vram_page_deadline;
+    uint8_t          vram_write_read;
     uint8_t          in_vsync;
     uint8_t          vrtc_armed;
     uint8_t          raster_phase;
@@ -82,6 +85,33 @@ struct pc98_86box_t {
 
 static void pc98_gdc_sync(pc98_86box_t *d);
 static void pc98_gdc_schedule(pc98_86box_t *d);
+static void pc98_vram_begin(pc98_86box_t *d, unsigned index, int write);
+static void pc98_vram_stall(pc98_86box_t *d, unsigned index, uint32_t clocks);
+
+static void
+pc98_graph_write(pc98_plane_map_t *m, uint16_t off,
+                 uint16_t val, uint16_t mask)
+{
+    uint16_t        before[4];
+    const uint16_t *captured = NULL;
+    if (m->dev->vram_write_read) {
+        pc98_gvram_capture(&m->dev->core, off, before);
+        captured = before;
+        pc98_vram_stall(m->dev, 1, 2); /* Write follows the captured read. */
+    }
+    pc98_gvram_write16_latched(&m->dev->core, m->plane, off, val, mask, captured);
+}
+
+static void
+pc98_vram_end(pc98_86box_t *d, unsigned index)
+{
+    upd7220_t *g = index ? &d->core.graph_gdc : &d->core.text_gdc;
+    if (g->host_bus_requested) {
+        upd7220_host_bus_end(g);
+        pc98_gdc_schedule(d);
+    }
+}
+
 static uint8_t
 tvram_read_lane(uint32_t addr, pc98_86box_t *d)
 {
@@ -108,8 +138,9 @@ static uint8_t
 tvram_rb(uint32_t addr, void *priv)
 {
     pc98_86box_t *d = priv;
-    pc98_gdc_sync(d);
+    pc98_vram_begin(d, 0, 0);
     uint8_t value = tvram_read_lane(addr, d);
+    pc98_vram_end(d, 0);
     return value;
 }
 
@@ -121,8 +152,9 @@ tvram_rw(uint32_t addr, void *priv)
         uint8_t lo = tvram_rb(addr, priv);
         return (uint16_t) (lo | ((uint16_t) mem_readb_phys(addr + 1u) << 8));
     }
-    pc98_gdc_sync(d);
+    pc98_vram_begin(d, 0, 0);
     uint16_t value = tvram_read_lane(addr, d) | ((uint16_t) tvram_read_lane(addr + 1u, d) << 8);
+    pc98_vram_end(d, 0);
     return value;
 }
 
@@ -149,8 +181,9 @@ static void
 tvram_wb(uint32_t addr, uint8_t val, void *priv)
 {
     pc98_86box_t *d = priv;
-    pc98_gdc_sync(d);
+    pc98_vram_begin(d, 0, 1);
     tvram_write_lane(addr, val, d);
+    pc98_vram_end(d, 0);
 }
 
 static void
@@ -162,9 +195,10 @@ tvram_ww(uint32_t addr, uint16_t val, void *priv)
         mem_writeb_phys(addr + 1u, (uint8_t) (val >> 8));
         return;
     }
-    pc98_gdc_sync(d);
+    pc98_vram_begin(d, 0, 1);
     tvram_write_lane(addr, (uint8_t) val, d);
     tvram_write_lane(addr + 1u, (uint8_t) (val >> 8), d);
+    pc98_vram_end(d, 0);
 }
 
 /*
@@ -240,9 +274,10 @@ static uint8_t
 gvram_rb(uint32_t addr, void *priv)
 {
     pc98_plane_map_t *m = (pc98_plane_map_t *) priv;
-    pc98_gdc_sync(m->dev);
+    pc98_vram_begin(m->dev, 1, 0);
     uint16_t off   = (uint16_t) (addr & 0x7fffu);
     uint8_t  value = pc98_gvram_read8(&m->dev->core, m->plane, off);
+    pc98_vram_end(m->dev, 1);
     return value;
 }
 
@@ -258,9 +293,10 @@ gvram_rw(uint32_t addr, void *priv)
         uint8_t hi = mem_readb_phys(addr + 1u);
         return (uint16_t) (lo | ((uint16_t) hi << 8));
     }
-    pc98_gdc_sync(m->dev);
+    pc98_vram_begin(m->dev, 1, 0);
     uint16_t off   = (uint16_t) ((addr & 0x7fffu) >> 1);
     uint16_t value = pc98_gvram_read16(&m->dev->core, m->plane, off, 0xffff);
+    pc98_vram_end(m->dev, 1);
     return value;
 }
 
@@ -268,9 +304,11 @@ static void
 gvram_wb(uint32_t addr, uint8_t val, void *priv)
 {
     pc98_plane_map_t *m = (pc98_plane_map_t *) priv;
-    pc98_gdc_sync(m->dev);
+    pc98_vram_begin(m->dev, 1, 1);
     uint16_t off = (uint16_t) (addr & 0x7fffu);
-    pc98_gvram_write8(&m->dev->core, m->plane, off, val);
+    pc98_graph_write(m, off >> 1, (off & 1) ? (uint16_t) val << 8 : val,
+                     (off & 1) ? 0xff00 : 0x00ff);
+    pc98_vram_end(m->dev, 1);
 }
 
 static void
@@ -282,9 +320,10 @@ gvram_ww(uint32_t addr, uint16_t val, void *priv)
         mem_writeb_phys(addr + 1u, (uint8_t) (val >> 8));
         return;
     }
-    pc98_gdc_sync(m->dev);
+    pc98_vram_begin(m->dev, 1, 1);
     uint16_t off = (uint16_t) ((addr & 0x7fffu) >> 1);
-    pc98_gvram_write16(&m->dev->core, m->plane, off, val, 0xffff);
+    pc98_graph_write(m, off, val, 0xffff);
+    pc98_vram_end(m->dev, 1);
 }
 
 static uint8_t
@@ -298,11 +337,26 @@ pc98_inb(uint16_t port, void *priv)
 }
 
 static void
+pc98_page_changed(pc98_86box_t *d, uint8_t display, uint8_t cpu)
+{
+    if (d->model != PC98_MODEL_VX || !cpu_pc98_vx_bus_active() || !TIMER_USEC || (display == d->core.display_page && cpu == d->core.cpu_page))
+        return;
+    /* NEC Hardware p.188: 700-800 ns after a page switch on the dedicated
+     * CRT used by this raster model. Round the upper bound to a CPU edge.
+     * Standard-CRT mode's 1.2 us requires a separate raster/clock profile. */
+    uint128_t clocks      = (uint128_t) TIMER_USEC * 800u;
+    uint64_t  divisor     = 1000ULL << 32;
+    d->vram_page_deadline = tsc + (uint64_t) ((clocks + divisor - 1) / divisor);
+}
+
+static void
 pc98_outb(uint16_t port, uint8_t val, void *priv)
 {
     pc98_86box_t *d = (pc98_86box_t *) priv;
     pc98_gdc_sync(d);
+    uint8_t display = d->core.display_page, cpu = d->core.cpu_page;
     pc98_video_out8(&d->core, port, val);
+    pc98_page_changed(d, display, cpu);
     pc98_gdc_schedule(d);
 }
 
@@ -321,7 +375,9 @@ pc98_outw(uint16_t port, uint16_t val, void *priv)
 {
     pc98_86box_t *d = (pc98_86box_t *) priv;
     pc98_gdc_sync(d);
+    uint8_t display = d->core.display_page, cpu = d->core.cpu_page;
     pc98_video_out16(&d->core, port, val);
+    pc98_page_changed(d, display, cpu);
     pc98_gdc_schedule(d);
 }
 
@@ -955,6 +1011,59 @@ pc98_gdc_sync(pc98_86box_t *d)
 }
 
 static void
+pc98_vram_stall(pc98_86box_t *d, unsigned index, uint32_t clocks)
+{
+    if (!clocks)
+        return;
+    uint64_t remaining = pc98_gdc_deadline(d, index, clocks);
+    while (remaining) {
+        int step = remaining > INT_MAX ? INT_MAX : (int) remaining;
+        cpu_bus_stall(step);
+        remaining -= step;
+        pc98_gdc_sync(d);
+    }
+}
+
+static void
+pc98_vram_begin(pc98_86box_t *d, unsigned index, int write)
+{
+    pc98_gdc_sync(d);
+    d->vram_write_read = 0;
+    /* This host interface applies only to the stock VX 8/10 MHz 286.
+     * Upgraded CPUs and later boards keep the pre-existing access path. */
+    if (d->model != PC98_MODEL_VX || !cpu_pc98_vx_bus_active() || !TIMER_USEC)
+        return;
+    if (index) {
+        while (d->vram_page_deadline > tsc) {
+            uint64_t remaining = d->vram_page_deadline - tsc;
+            cpu_bus_stall(remaining > INT_MAX ? INT_MAX : (int) remaining);
+            pc98_gdc_sync(d);
+        }
+    }
+    upd7220_t *g      = index ? &d->core.graph_gdc : &d->core.text_gdc;
+    unsigned   phases = index ? pc98_gvram_access_phases(&d->core, write) : write ? PC98_VRAM_WRITE
+                                                                                  : PC98_VRAM_READ;
+    if (!phases) {
+        /* CPU-source readback and shifter priming clock internal latches,
+         * leaving the GDC memory bus available throughout. */
+        pc98_vram_stall(d, index, 2);
+        return;
+    }
+    uint32_t finish = upd7220_host_bus_begin(g);
+    pc98_vram_stall(d, index, finish);
+
+    /* The GDC manual defines two clocks per normal memory cycle, four for
+     * RMW. Charger planes operate in parallel, not as four CPU accesses.
+     * Using these costs for the external CPU glue is a model assumption;
+     * CPU/display fetch slots and EGC-specific READY traces remain unverified. */
+    d->vram_write_read = write && phases == (PC98_VRAM_READ | PC98_VRAM_WRITE);
+    uint32_t cost      = d->vram_write_read ? 4 : 2;
+    uint32_t wait      = upd7220_host_bus_wait(g, cost);
+    pc98_vram_stall(d, index, wait);
+    pc98_vram_stall(d, index, 2); /* Read or single write; RMW write follows. */
+}
+
+static void
 pc98_gdc_tick(void *priv)
 {
     pc98_86box_t *d = (pc98_86box_t *) priv;
@@ -966,6 +1075,12 @@ static void
 pc98_speed_changed(void *priv)
 {
     pc98_86box_t *d = (pc98_86box_t *) priv;
+    if (!cpu_pc98_vx_bus_active())
+        d->vram_page_deadline = 0;
+    else if (d->gdc_timer_usec && d->gdc_timer_usec != TIMER_USEC && d->vram_page_deadline > tsc) {
+        uint128_t remaining   = (uint128_t) (d->vram_page_deadline - tsc) * TIMER_USEC;
+        d->vram_page_deadline = tsc + (uint64_t) ((remaining + d->gdc_timer_usec - 1) / d->gdc_timer_usec);
+    }
     pc98_gdc_sync(d);
 }
 
@@ -1341,6 +1456,8 @@ pc98_reset(void *priv)
     d->need_resize  = 1;
     d->logged_state = 0;
     pc98_video_reset(&d->core);
+    d->vram_page_deadline = 0;
+    d->vram_write_read    = 0;
     pc9801_video_vrtc_reset(d);
     pc98_arm_raster(d, 1000u);
     video_force_resize_set(1);
