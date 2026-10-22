@@ -1188,6 +1188,7 @@ rage128_render_16bpp_fast(svga_t *svga)
                 else if (pw)
                     dev->conv_transient++;
                 else if (dev->conv_mismatch++ < 8) {
+#ifndef RELEASE_BUILD
                     uint32_t nd = 0, x0 = count, x1 = 0;
 
                     for (uint32_t x = 0; x < count; x++)
@@ -1199,6 +1200,7 @@ rage128_render_16bpp_fast(svga_t *svga)
                         }
                     pclog("RAGE128 conv16: MISMATCH row=%d base=%08x diff=%u x=%u..%u\n",
                           svga->displine, base, nd, x0, x1);
+#endif
                 }
             } else
                 dev->conv_rows_win++;

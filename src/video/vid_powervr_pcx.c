@@ -44,6 +44,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifdef _WIN32
+#    include <windows.h>
+#endif
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -309,9 +312,18 @@ pcx_log(pcx_t *pcx, int level, const char *fmt, ...)
 static double
 pcx_now_ms(void)
 {
+#ifdef _WIN32
+    /* MSVCRT toolchains do not provide C11 timespec_get. Use the native
+       monotonic performance counter for the host rendering statistics. */
+    LARGE_INTEGER counter, frequency;
+    QueryPerformanceCounter(&counter);
+    QueryPerformanceFrequency(&frequency);
+    return counter.QuadPart * 1000.0 / frequency.QuadPart;
+#else
     struct timespec ts;
     timespec_get(&ts, TIME_UTC);
     return ts.tv_sec * 1000.0 + ts.tv_nsec / 1.0e6;
+#endif
 }
 
 /* ---------------------------------------------------------------------- */
