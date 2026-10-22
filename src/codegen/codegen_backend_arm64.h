@@ -27,6 +27,9 @@
    MUL_HI. A backend without them leaves those instructions to the
    interpreter. */
 #define CODEGEN_BACKEND_HAS_INT_UOPS
+/* FCOM_SIGNED_ZERO, the FCOMPP compare that tells -0 from +0. A backend
+   without it leaves FCOMPP to the interpreter on a 287XL or later. */
+#define CODEGEN_BACKEND_HAS_FCOM_SIGNED_ZERO
 
 /* Blocks jump straight to their successor when nothing between them needs
    the C loop (codegen_link.h). The option below adds work to every loop

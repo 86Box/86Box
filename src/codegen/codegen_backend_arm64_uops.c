@@ -950,6 +950,39 @@ codegen_FCOM(codeblock_t *block, uop_t *uop)
     return 0;
 }
 static int
+codegen_FCOM_SIGNED_ZERO(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_W(dest_size) && REG_IS_D(src_size_a) && REG_IS_D(src_size_b)) {
+        host_arm64_MOVZ_IMM(block, dest_reg, 0);
+        host_arm64_FCMP_D(block, src_reg_a, src_reg_b);
+        host_arm64_ORR_IMM(block, REG_TEMP, dest_reg, FPU_SW_C3);
+        host_arm64_ORR_IMM(block, REG_TEMP2, dest_reg, FPU_SW_C0);
+        host_arm64_CSEL_EQ(block, dest_reg, REG_TEMP, dest_reg);
+        host_arm64_ORR_IMM(block, REG_TEMP, dest_reg, FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
+        host_arm64_CSEL_CC(block, dest_reg, REG_TEMP2, dest_reg);
+        host_arm64_CSEL_VS(block, dest_reg, REG_TEMP, dest_reg);
+        /* On the images, b | (a << 1) is zero only when b is +0 and a is a
+           zero of either sign; a nonzero a is then -0. */
+        host_arm64_FMOV_Q_D(block, REG_TEMP, src_reg_a);
+        host_arm64_FMOV_Q_D(block, REG_TEMP2, src_reg_b);
+        host_arm64_ORRX_REG(block, REG_TEMP2, REG_TEMP2, REG_TEMP, 1);
+        host_arm64_CMPX_REG(block, REG_TEMP2, REG_XZR);
+        host_arm64_CCMPX_REG_EQ(block, REG_TEMP, REG_XZR, 4);
+        host_arm64_MOVZ_IMM(block, REG_TEMP, FPU_SW_C0);
+        host_arm64_CSEL_NE(block, dest_reg, REG_TEMP, dest_reg);
+    } else
+        fatal("codegen_FCOM_SIGNED_ZERO %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+
+    return 0;
+}
+static int
 codegen_FDIV(codeblock_t *block, uop_t *uop)
 {
     int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
@@ -3925,6 +3958,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FCOM &
         UOP_MASK]
     = codegen_FCOM,
+    [UOP_FCOM_SIGNED_ZERO &
+        UOP_MASK]
+    = codegen_FCOM_SIGNED_ZERO,
     [UOP_FDIV &
         UOP_MASK]
     = codegen_FDIV,

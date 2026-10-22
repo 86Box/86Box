@@ -968,6 +968,12 @@ host_arm64_CCMP_REG_CS(codeblock_t *block, int src_n_reg, int src_m_reg, int nzc
 {
     codegen_addlong(block, OPCODE_CCMP_REG | CSEL_COND(COND_CS) | Rn(src_n_reg) | Rm(src_m_reg) | nzcv);
 }
+/*64-bit CCMP: the flags of src_n_reg compared with src_m_reg when EQ holds, else nzcv*/
+void
+host_arm64_CCMPX_REG_EQ(codeblock_t *block, int src_n_reg, int src_m_reg, int nzcv)
+{
+    codegen_addlong(block, OPCODE_CCMP_REG | (1u << 31) | CSEL_COND(COND_EQ) | Rn(src_n_reg) | Rm(src_m_reg) | nzcv);
+}
 
 /*CSET dst_reg, cond: CSINC dst_reg, WZR, WZR with the opposite condition*/
 void

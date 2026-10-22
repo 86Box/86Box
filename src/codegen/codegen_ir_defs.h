@@ -405,8 +405,13 @@
   divide does. The control word is read from cpu_state: the uop is an order
   barrier, so a loaded copy has been written back.*/
 #define UOP_FDIV_FLAGS_JSLOW_DEST (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0xd2 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
+/*UOP_FCOM_SIGNED_ZERO - as UOP_FCOM, except that src_reg_a = -0 against
+  src_reg_b = +0 (the double images 0x8000000000000000 and 0) reports less
+  (C0), the interpreter's FCOMPP answer on a 287XL or later (opFCOMPP, the
+  80387 detection case)*/
+#define UOP_FCOM_SIGNED_ZERO (UOP_TYPE_PARAMS_REGS | 0xd3)
 
-#define UOP_MAX     0xd3
+#define UOP_MAX     0xd4
 
 #define UOP_INVALID 0xff
 
@@ -900,6 +905,7 @@ extern void codegen_fpu_guard_cw_unmasks(ir_data_t *ir, uint32_t next_pc, int cw
 
 #define uop_FADD(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FADD, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_FCOM(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FCOM, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_FCOM_SIGNED_ZERO(ir, dst_reg, src_reg_a, src_reg_b)  uop_gen_reg_dst_src2(UOP_FCOM_SIGNED_ZERO, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_FDIV(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FDIV, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_FMUL(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FMUL, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_FSUB(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FSUB, ir, dst_reg, src_reg_a, src_reg_b)

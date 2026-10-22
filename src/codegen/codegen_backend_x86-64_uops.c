@@ -1215,6 +1215,48 @@ jump_here(uint32_t *jump_p)
     *jump_p = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) jump_p + 4);
 }
 
+static int
+codegen_FCOM_SIGNED_ZERO(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_W(dest_size) && REG_IS_D(src_size_a) && REG_IS_D(src_size_b)) {
+        uint32_t *not_neg_zero_p;
+        uint32_t *not_pos_zero_p;
+
+        if (dest_reg != REG_EAX)
+            host_x86_MOV32_REG_REG(block, REG_ECX, REG_EAX);
+        host_x86_XOR32_REG_REG(block, REG_EAX, REG_EAX);
+        host_x86_COMISD_XREG_XREG(block, src_reg_a, src_reg_b);
+        host_x86_LAHF(block);
+        host_x86_AND16_REG_IMM(block, REG_EAX, FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
+        host_x86_MOVQ_REG_XREG(block, REG_RSI, src_reg_a);
+        host_x86_MOV64_REG_IMM(block, REG_RDI, 0x8000000000000000ULL);
+        host_x86_CMP64_REG_REG(block, REG_RSI, REG_RDI);
+        not_neg_zero_p = host_x86_JNZ_long(block);
+        host_x86_MOVQ_REG_XREG(block, REG_RSI, src_reg_b);
+        host_x86_TEST64_REG(block, REG_RSI, REG_RSI);
+        not_pos_zero_p = host_x86_JNZ_long(block);
+        host_x86_MOV32_REG_IMM(block, REG_EAX, FPU_SW_C0);
+        jump_here(not_neg_zero_p);
+        jump_here(not_pos_zero_p);
+        if (dest_reg != REG_EAX) {
+            host_x86_MOV16_REG_REG(block, dest_reg, REG_EAX);
+            host_x86_MOV32_REG_REG(block, REG_EAX, REG_ECX);
+        }
+    }
+#    ifdef RECOMPILER_DEBUG
+    else
+        fatal("codegen_FCOM_SIGNED_ZERO %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+#    endif
+    return 0;
+}
+
 static void
 codegen_mem_load(codeblock_t *block, int kind, int dest_reg, void *rout)
 {
@@ -3770,6 +3812,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FCOM &
         UOP_MASK]
     = codegen_FCOM,
+    [UOP_FCOM_SIGNED_ZERO &
+        UOP_MASK]
+    = codegen_FCOM_SIGNED_ZERO,
     [UOP_FDIV &
         UOP_MASK]
     = codegen_FDIV,

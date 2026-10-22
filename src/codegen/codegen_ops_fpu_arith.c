@@ -190,9 +190,20 @@ ropFCOMP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 uint32_t
 ropFCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
+    /* The interpreter's FCOMPP reports -0 less than +0 on a 287XL or later
+       (its 80387 detection case); the fpu type is fixed for the machine. */
+#ifndef CODEGEN_BACKEND_HAS_FCOM_SIGNED_ZERO
+    if (fpu_type >= FPU_287XL)
+        return 0;
+#endif
     uop_FP_ENTER(ir);
     codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc - 1, NULL, FPU_GUARD_ST(0) | FPU_GUARD_ST(1));
-    uop_FCOM(ir, IREG_temp0_W, IREG_ST(0), IREG_ST(1));
+#ifdef CODEGEN_BACKEND_HAS_FCOM_SIGNED_ZERO
+    if (fpu_type >= FPU_287XL)
+        uop_FCOM_SIGNED_ZERO(ir, IREG_temp0_W, IREG_ST(0), IREG_ST(1));
+    else
+#endif
+        uop_FCOM(ir, IREG_temp0_W, IREG_ST(0), IREG_ST(1));
     uop_AND_IMM(ir, IREG_NPXS, IREG_NPXS, ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3));
     uop_OR(ir, IREG_NPXS, IREG_NPXS, IREG_temp0_W);
     fpu_POP2(block, ir);
