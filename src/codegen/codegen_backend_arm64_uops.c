@@ -404,6 +404,147 @@ codegen_FCMP_JWITHIN_DEST(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*The exponent window of x87_divide_fast, 553 <= e <= 1493 for both operands,
+  a memory operand of the single kind held to the single's normal range
+  (e >= 897: a denormal single raises DE, which the software divide does);
+  a quotient with a zero fraction, a power of two, goes there as well*/
+static int
+codegen_FDIV_JSLOW_DEST(codeblock_t *block, uop_t *uop)
+{
+    int       num_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int       den_reg  = HOST_REG_GET(uop->src_reg_b_real);
+    int       q_reg    = HOST_REG_GET(uop->src_reg_c_real);
+    int       num_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int       den_size = IREG_GET_SIZE(uop->src_reg_b_real);
+    int       q_size   = IREG_GET_SIZE(uop->src_reg_c_real);
+    int       kind     = (uop->imm_data >> 11) & 3;
+    int       lo_num   = ((uop->imm_data & 0x200) && (kind == 1)) ? 897 : 553;
+    int       lo_den   = ((uop->imm_data & 0x400) && (kind == 1)) ? 897 : 553;
+    uint32_t *fail_num;
+    uint32_t *fail_den;
+    uint32_t *fail_q;
+    uint32_t *ok;
+
+    if (!(REG_IS_D(num_size) && REG_IS_D(den_size) && REG_IS_D(q_size)))
+        fatal("FDIV_JSLOW_DEST %02x %02x %02x\n", uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
+
+    host_arm64_FMOV_Q_D(block, REG_TEMP, num_reg);
+    host_arm64_UBFX_X(block, REG_TEMP, REG_TEMP, 52, 11);
+    host_arm64_SUB_IMM(block, REG_TEMP, REG_TEMP, lo_num);
+    host_arm64_CMP_IMM(block, REG_TEMP, 1493 - lo_num);
+    fail_num = host_arm64_BHI_(block);
+    host_arm64_FMOV_Q_D(block, REG_TEMP, den_reg);
+    host_arm64_UBFX_X(block, REG_TEMP, REG_TEMP, 52, 11);
+    host_arm64_SUB_IMM(block, REG_TEMP, REG_TEMP, lo_den);
+    host_arm64_CMP_IMM(block, REG_TEMP, 1493 - lo_den);
+    fail_den = host_arm64_BHI_(block);
+    /* the fraction: its upper 20 bits from the X view, the lower 32 from the S view */
+    host_arm64_FMOV_Q_D(block, REG_TEMP, q_reg);
+    host_arm64_UBFX_X(block, REG_TEMP, REG_TEMP, 32, 20);
+    host_arm64_FMOV_W_S(block, REG_TEMP2, q_reg);
+    host_arm64_ORR_REG(block, REG_TEMP, REG_TEMP, REG_TEMP2, 0);
+    host_arm64_CMP_IMM(block, REG_TEMP, 0);
+    fail_q = host_arm64_BEQ_(block);
+    ok = host_arm64_B_(block);
+
+    host_arm64_branch_set_offset(fail_num, &block_write_data[block_pos]);
+    host_arm64_branch_set_offset(fail_den, &block_write_data[block_pos]);
+    host_arm64_branch_set_offset(fail_q, &block_write_data[block_pos]);
+    uop->p = host_arm64_B_(block);
+    host_arm64_branch_set_offset(ok, &block_write_data[block_pos]);
+
+    return 0;
+}
+
+/*The status bits of a divide finished from the host quotient
+  (x87_divide_fast): r = num - q * den is exact inside the window, PE is
+  r != 0 and C1 a rounding up in magnitude, r and num of opposite signs. At
+  24 bits the quotient rounds once more, to single: a single-precision
+  midpoint with r != 0, or a single that is not normal, is the software
+  divide's; when the single differs from the quotient the flags are that
+  rounding's, C1 for the larger magnitude. PE raised while unmasked is the
+  software divide's too, which raises it as the interpreter does.*/
+static int
+codegen_FDIV_FLAGS_JSLOW_DEST(codeblock_t *block, uop_t *uop)
+{
+    int       dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int       q_reg     = HOST_REG_GET(uop->src_reg_a_real);
+    int       num_reg   = HOST_REG_GET(uop->src_reg_b_real);
+    int       den_reg   = HOST_REG_GET(uop->src_reg_c_real);
+    int       dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int       q_size    = IREG_GET_SIZE(uop->src_reg_a_real);
+    int       num_size  = IREG_GET_SIZE(uop->src_reg_b_real);
+    int       den_size  = IREG_GET_SIZE(uop->src_reg_c_real);
+    int       pc24      = uop->imm_data & 0x2000;
+    uint32_t *fail_mid  = NULL;
+    uint32_t *fail_sub  = NULL;
+    uint32_t *fail_pe;
+    uint32_t *same;
+    uint32_t *ok;
+
+    if (!(REG_IS_L(dest_size) && REG_IS_D(q_size) && REG_IS_D(num_size) && REG_IS_D(den_size)))
+        fatal("FDIV_FLAGS_JSLOW_DEST %02x %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
+
+    host_arm64_FMSUB_D(block, REG_V_TEMP, q_reg, den_reg, num_reg);
+    host_arm64_FMOV_Q_D(block, REG_TEMP, REG_V_TEMP);
+    host_arm64_UBFX_X(block, REG_TEMP, REG_TEMP, 63, 1);
+    host_arm64_FMOV_Q_D(block, REG_TEMP2, num_reg);
+    host_arm64_UBFX_X(block, REG_TEMP2, REG_TEMP2, 63, 1);
+    host_arm64_EOR_REG(block, REG_TEMP, REG_TEMP, REG_TEMP2, 0);
+    host_arm64_MOV_REG(block, REG_TEMP, REG_TEMP, 9);
+    host_arm64_ORR_IMM(block, REG_TEMP, REG_TEMP, FPU_SW_Precision);
+    if (pc24) {
+        /* zero below the single's midpoint bit: fraction bits 28..0 = 1 0...0 */
+        host_arm64_FMOV_W_S(block, REG_TEMP2, q_reg);
+        host_arm64_AND_IMM(block, REG_TEMP2, REG_TEMP2, 0x1fffffff);
+        host_arm64_EOR_IMM(block, REG_TEMP2, REG_TEMP2, 0x10000000);
+    }
+    host_arm64_FCMP_D_ZERO(block, REG_V_TEMP);
+    host_arm64_MOVZ_IMM(block, dest_reg, 0);
+    host_arm64_CSEL_NE(block, dest_reg, REG_TEMP, dest_reg);
+    if (pc24) {
+        /* with r == 0 the midpoint is no concern: REG_TEMP is not zero */
+        host_arm64_CSEL_NE(block, REG_TEMP2, REG_TEMP2, REG_TEMP);
+        host_arm64_CMP_IMM(block, REG_TEMP2, 0);
+        fail_mid = host_arm64_BEQ_(block);
+        host_arm64_FCVT_S_D(block, REG_V_TEMP, q_reg);
+        host_arm64_FMOV_W_S(block, REG_TEMP2, REG_V_TEMP);
+        host_arm64_UBFX(block, REG_TEMP2, REG_TEMP2, 23, 8);
+        host_arm64_SUB_IMM(block, REG_TEMP2, REG_TEMP2, 1);
+        host_arm64_CMP_IMM(block, REG_TEMP2, 253);
+        fail_sub = host_arm64_BHI_(block);
+        host_arm64_FCVT_D_S(block, REG_V_TEMP, REG_V_TEMP);
+        host_arm64_FCMP_D(block, REG_V_TEMP, q_reg);
+        same = host_arm64_BEQ_(block);
+        host_arm64_MOVZ_IMM(block, REG_TEMP2, FPU_SW_Precision);
+        host_arm64_ORR_IMM(block, REG_TEMP, REG_TEMP2, FPU_SW_C1);
+        host_arm64_CSEL_GT(block, dest_reg, REG_TEMP, REG_TEMP2);
+        host_arm64_CSEL_LT(block, REG_TEMP2, REG_TEMP, REG_TEMP2);
+        host_arm64_FMOV_Q_D(block, REG_TEMP, q_reg);
+        host_arm64_UBFX_X(block, REG_TEMP, REG_TEMP, 63, 1);
+        host_arm64_CMP_IMM(block, REG_TEMP, 0);
+        host_arm64_CSEL_NE(block, dest_reg, REG_TEMP2, dest_reg);
+        host_arm64_branch_set_offset(same, &block_write_data[block_pos]);
+    }
+    host_arm64_LDRH_IMM(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.npxc - (uintptr_t) &cpu_state);
+    host_arm64_EOR_IMM(block, REG_TEMP, REG_TEMP, FPU_SW_Precision);
+    host_arm64_AND_REG(block, REG_TEMP, REG_TEMP, dest_reg, 0);
+    host_arm64_AND_IMM(block, REG_TEMP, REG_TEMP, FPU_SW_Precision);
+    host_arm64_CMP_IMM(block, REG_TEMP, 0);
+    fail_pe = host_arm64_BNE_(block);
+    ok      = host_arm64_B_(block);
+
+    if (fail_mid)
+        host_arm64_branch_set_offset(fail_mid, &block_write_data[block_pos]);
+    if (fail_sub)
+        host_arm64_branch_set_offset(fail_sub, &block_write_data[block_pos]);
+    host_arm64_branch_set_offset(fail_pe, &block_write_data[block_pos]);
+    uop->p = host_arm64_B_(block);
+    host_arm64_branch_set_offset(ok, &block_write_data[block_pos]);
+
+    return 0;
+}
+
 static int
 codegen_CMP_JNB_DEST(codeblock_t *block, uop_t *uop)
 {
@@ -909,6 +1050,16 @@ codegen_MMX_ENTER(codeblock_t *block, uop_t *uop)
     host_arm64_STR_IMM_W(block, REG_WZR, REG_CPUSTATE, (uintptr_t) &cpu_state.TOP - (uintptr_t) &cpu_state);
     host_arm64_AND_IMM(block, REG_TEMP, REG_TEMP, 1);
     host_arm64_STRB_IMM(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.ismmx - (uintptr_t) &cpu_state);
+
+    return 0;
+}
+
+/*A jump within the block, to a uop: the branch is patched when the IR
+  reaches its destination (codegen_set_jump_dest)*/
+static int
+codegen_JMP_DEST(codeblock_t *block, uop_t *uop)
+{
+    uop->p = host_arm64_B_(block);
 
     return 0;
 }
@@ -3473,6 +3624,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_JMP &
         UOP_MASK]
     = codegen_JMP,
+    [UOP_JMP_DEST &
+        UOP_MASK]
+    = codegen_JMP_DEST,
 
     [UOP_LOAD_SEG &
         UOP_MASK]
@@ -3667,6 +3821,12 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FCMP_JWITHIN_DEST &
         UOP_MASK]
     = codegen_FCMP_JWITHIN_DEST,
+    [UOP_FDIV_JSLOW_DEST &
+        UOP_MASK]
+    = codegen_FDIV_JSLOW_DEST,
+    [UOP_FDIV_FLAGS_JSLOW_DEST &
+        UOP_MASK]
+    = codegen_FDIV_FLAGS_JSLOW_DEST,
     [UOP_CMP_JNWITHIN &
         UOP_MASK]
     = codegen_CMP_JNWITHIN,

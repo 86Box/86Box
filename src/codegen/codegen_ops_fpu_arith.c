@@ -41,6 +41,7 @@ extern int x87_dyn_ftst_nan(uint32_t imm);
 #define FDIV_MEM_NUM       0x200
 #define FDIV_MEM_DEN       0x400
 #define FDIV_KIND(k)       ((k) << 11)
+#define FDIV_PC24          0x2000
 
 static void
 fdiv_call(ir_data_t *ir, uint32_t next_pc, uint32_t imm)
@@ -48,6 +49,68 @@ fdiv_call(ir_data_t *ir, uint32_t next_pc, uint32_t imm)
     codegen_accumulate_flush(ir);
     uop_MOV_IMM(ir, IREG_pc, next_pc);
     uop_CALL_INSTRUCTION_FUNC(ir, x87_dyn_fdiv, imm);
+}
+
+/* The divide itself. On arm64 the common case runs in the block, as
+   x87_divide_fast finishes it: both operands loaded, the precision 24 bits
+   (the block's class) or 53 bits (checked here: 64 bits keeps the software
+   divide's double rounding), the host quotient inside the window and not a
+   power of two (UOP_FDIV_JSLOW_DEST), its PE and C1 formed from the exact
+   remainder and PE masked (UOP_FDIV_FLAGS_JSLOW_DEST); the status word and
+   the tag are set as x87_dyn_fdiv sets them. Anything else goes to the
+   call, which joins the block after the fast path's writes have been
+   written back (the jumps are order barriers). */
+static void
+fdiv_divide(ir_data_t *ir, uint32_t next_pc, uint32_t imm)
+{
+#if defined __aarch64__ || defined _M_ARM64
+    const int dest       = imm & 7;
+    const int num        = (imm & FDIV_MEM_NUM) ? IREG_x87_operand : IREG_ST((imm >> 3) & 7);
+    const int den        = (imm & FDIV_MEM_DEN) ? IREG_x87_operand : IREG_ST((imm >> 6) & 7);
+    int       jump_pc    = -1;
+    int       jump_num   = -1;
+    int       jump_den   = -1;
+    int       jump_slow;
+    int       jump_flags;
+    int       jump_end;
+
+    codegen_accumulate_flush(ir);
+    if (cpu_state.npxc & 0x300) {
+        uop_MOVZX(ir, IREG_temp2, IREG_NPXC);
+        uop_AND_IMM(ir, IREG_temp2, IREG_temp2, 0x300);
+        jump_pc = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp2, 0x200);
+    }
+    if (!(imm & FDIV_MEM_NUM)) {
+        uop_MOVZX(ir, IREG_temp2, IREG_tag_B((imm >> 3) & 7));
+        jump_num = uop_CMP_IMM_JZ_DEST(ir, IREG_temp2, TAG_EMPTY);
+    }
+    if (!(imm & FDIV_MEM_DEN)) {
+        uop_MOVZX(ir, IREG_temp2, IREG_tag_B((imm >> 6) & 7));
+        jump_den = uop_CMP_IMM_JZ_DEST(ir, IREG_temp2, TAG_EMPTY);
+    }
+    uop_FDIV(ir, IREG_temp0_D, num, den);
+    jump_slow  = uop_FDIV_JSLOW_DEST(ir, num, den, IREG_temp0_D, imm);
+    jump_flags = uop_FDIV_FLAGS_JSLOW_DEST(ir, IREG_temp1, IREG_temp0_D, num, den, imm | ((cpu_state.npxc & 0x300) ? 0 : FDIV_PC24));
+    uop_FROUND_PC(ir, IREG_temp0_D);
+    uop_MOV(ir, IREG_ST(dest), IREG_temp0_D);
+    uop_AND_IMM(ir, IREG_NPXS, IREG_NPXS, ~FPU_SW_C1);
+    uop_OR(ir, IREG_NPXS, IREG_NPXS, IREG_temp1_W);
+    uop_MOV_IMM(ir, IREG_tag(dest), TAG_VALID);
+    jump_end = uop_JMP_DEST(ir);
+
+    if (jump_pc != -1)
+        uop_set_jump_dest(ir, jump_pc);
+    if (jump_num != -1)
+        uop_set_jump_dest(ir, jump_num);
+    if (jump_den != -1)
+        uop_set_jump_dest(ir, jump_den);
+    uop_set_jump_dest(ir, jump_slow);
+    uop_set_jump_dest(ir, jump_flags);
+    fdiv_call(ir, next_pc, imm);
+    uop_set_jump_dest(ir, jump_end);
+#else
+    fdiv_call(ir, next_pc, imm);
+#endif
 }
 
 uint32_t
@@ -145,7 +208,7 @@ ropFDIV(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint3
     if (!codegen_fpu_rc_nearest(ir))
         return 0;
     uop_FP_ENTER(ir);
-    fdiv_call(ir, op_pc, FDIV_REGS(0, 0, src_reg));
+    fdiv_divide(ir, op_pc, FDIV_REGS(0, 0, src_reg));
 
     return op_pc;
 }
@@ -157,7 +220,7 @@ ropFDIVR(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint
     if (!codegen_fpu_rc_nearest(ir))
         return 0;
     uop_FP_ENTER(ir);
-    fdiv_call(ir, op_pc, FDIV_REGS(0, src_reg, 0));
+    fdiv_divide(ir, op_pc, FDIV_REGS(0, src_reg, 0));
 
     return op_pc;
 }
@@ -169,7 +232,7 @@ ropFDIVr(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint
     if (!codegen_fpu_rc_nearest(ir))
         return 0;
     uop_FP_ENTER(ir);
-    fdiv_call(ir, op_pc, FDIV_REGS(dest_reg, dest_reg, 0));
+    fdiv_divide(ir, op_pc, FDIV_REGS(dest_reg, dest_reg, 0));
 
     return op_pc;
 }
@@ -181,7 +244,7 @@ ropFDIVRr(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uin
     if (!codegen_fpu_rc_nearest(ir))
         return 0;
     uop_FP_ENTER(ir);
-    fdiv_call(ir, op_pc, FDIV_REGS(dest_reg, 0, dest_reg));
+    fdiv_divide(ir, op_pc, FDIV_REGS(dest_reg, 0, dest_reg));
 
     return op_pc;
 }
@@ -193,7 +256,7 @@ ropFDIVP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     if (!codegen_fpu_rc_nearest(ir))
         return 0;
     uop_FP_ENTER(ir);
-    fdiv_call(ir, op_pc, FDIV_REGS(dest_reg, dest_reg, 0));
+    fdiv_divide(ir, op_pc, FDIV_REGS(dest_reg, dest_reg, 0));
     fpu_POP(block, ir);
 
     return op_pc;
@@ -206,7 +269,7 @@ ropFDIVRP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fe
     if (!codegen_fpu_rc_nearest(ir))
         return 0;
     uop_FP_ENTER(ir);
-    fdiv_call(ir, op_pc, FDIV_REGS(dest_reg, 0, dest_reg));
+    fdiv_divide(ir, op_pc, FDIV_REGS(dest_reg, 0, dest_reg));
     fpu_POP(block, ir);
 
     return op_pc;
@@ -468,7 +531,7 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, (size) - 1);                      \
         load_uop(ir, IREG_temp0_D, ireg_seg_base(target_seg), IREG_eaaddr);                    \
         uop_MOV(ir, IREG_x87_operand, IREG_temp0_D);                                           \
-        fdiv_call(ir, op_pc + 1, FDIV_MEM_DEN | FDIV_KIND((#name[0] == 's') ? 1 : 2));         \
+        fdiv_divide(ir, op_pc + 1, FDIV_MEM_DEN | FDIV_KIND((#name[0] == 's') ? 1 : 2));       \
                                                                                                \
         return op_pc + 1;                                                                      \
     }                                                                                          \
@@ -487,7 +550,7 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, (size) - 1);                      \
         load_uop(ir, IREG_temp0_D, ireg_seg_base(target_seg), IREG_eaaddr);                    \
         uop_MOV(ir, IREG_x87_operand, IREG_temp0_D);                                           \
-        fdiv_call(ir, op_pc + 1, FDIV_MEM_NUM | FDIV_KIND((#name[0] == 's') ? 1 : 2));         \
+        fdiv_divide(ir, op_pc + 1, FDIV_MEM_NUM | FDIV_KIND((#name[0] == 's') ? 1 : 2));       \
                                                                                                \
         return op_pc + 1;                                                                      \
     }                                                                                          \

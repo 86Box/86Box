@@ -90,6 +90,7 @@
 #    define OPCODE_STRB_IMM           (0x0e4 << 22)
 #    define OPCODE_STRH_IMM           (0x1e4 << 22)
 #    define OPCODE_UBFX               (0x14c << 22)
+#    define OPCODE_UBFX_X             (0xd3400000)
 
 #    define OPCODE_ADD_LSL            (0x058 << 21)
 #    define OPCODE_ADD_LSR            (0x05a << 21)
@@ -165,6 +166,7 @@
 #    define OPCODE_FMOV_S_W           (0x1e270000)
 #    define OPCODE_FMOV_W_S           (0x1e260000)
 #    define OPCODE_FMOV_S_ONE         (0x1e2e1000)
+#    define OPCODE_FMSUB_D            (0x1f408000)
 #    define OPCODE_FMUL_D             (0x1e600800)
 #    define OPCODE_FMUL_V2S           (0x2e20dc00)
 #    define OPCODE_FNEG_D             (0x1e614000)
@@ -1031,6 +1033,21 @@ host_arm64_CSEL_EQ(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg
     codegen_addlong(block, OPCODE_CSEL | CSEL_COND(COND_EQ) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
 }
 void
+host_arm64_CSEL_NE(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_CSEL | CSEL_COND(COND_NE) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+void
+host_arm64_CSEL_GT(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_CSEL | CSEL_COND(COND_GT) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+void
+host_arm64_CSEL_LT(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_CSEL | CSEL_COND(COND_LT) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+void
 host_arm64_CSEL_VS(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_CSEL | CSEL_COND(COND_VS) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
@@ -1126,6 +1143,12 @@ host_arm64_FCMP_D(codeblock_t *block, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_FCMP_D | Rn(src_n_reg) | Rm(src_m_reg));
 }
+/*FCMP against +0.0: Z for a zero of either sign, V for a NaN*/
+void
+host_arm64_FCMP_D_ZERO(codeblock_t *block, int src_n_reg)
+{
+    codegen_addlong(block, OPCODE_FCMP_D | Rn(src_n_reg) | (1 << 3));
+}
 /*FCCMP: the flags of src_n_reg compared with src_m_reg when GT holds, else nzcv*/
 void
 host_arm64_FCCMP_D_GT(codeblock_t *block, int src_n_reg, int src_m_reg, int nzcv)
@@ -1216,6 +1239,12 @@ void
 host_arm64_FMUL_D(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_FMUL_D | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+/*dst = src_a - src_n * src_m, rounded once*/
+void
+host_arm64_FMSUB_D(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int src_a_reg)
+{
+    codegen_addlong(block, OPCODE_FMSUB_D | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg) | Rt2(src_a_reg));
 }
 void
 host_arm64_FMUL_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
@@ -1875,6 +1904,12 @@ void
 host_arm64_UBFX(codeblock_t *block, int dst_reg, int src_reg, int lsb, int width)
 {
     codegen_addlong(block, OPCODE_UBFX | Rd(dst_reg) | Rn(src_reg) | IMMN(0) | IMMR(lsb) | IMMS((lsb + width - 1) & 31));
+}
+/*64-bit UBFX: lsb and width within the X register*/
+void
+host_arm64_UBFX_X(codeblock_t *block, int dst_reg, int src_reg, int lsb, int width)
+{
+    codegen_addlong(block, OPCODE_UBFX_X | Rd(dst_reg) | Rn(src_reg) | IMMR(lsb & 63) | IMMS((lsb + width - 1) & 63));
 }
 
 void

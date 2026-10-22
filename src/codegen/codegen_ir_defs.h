@@ -390,8 +390,23 @@
   unmasks no set flag: the host rounding state follows its RC field (as
   codegen_set_rounding_mode) and FERR# goes low (as x87_ferr_clear)*/
 #define UOP_FP_CONTROL_SET (UOP_TYPE_PARAMS_REGS | 0xd0)
+/*UOP_FDIV_JSLOW_DEST - src_reg_c = src_reg_a / src_reg_b as the host rounded it
+  (UOP_FDIV); jump to ptr when the x87 divide cannot be finished from that
+  quotient: an operand outside the exponent window of x87_divide_fast (a
+  memory operand of the single kind in imm is held to the single's normal
+  range as well) or a power-of-two quotient. imm is x87_dyn_fdiv's layout.*/
+#define UOP_FDIV_JSLOW_DEST (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0xd1 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
+/*UOP_FDIV_FLAGS_JSLOW_DEST - dest_reg = the status word bits the divide
+  src_reg_b / src_reg_c with the quotient src_reg_a (UOP_FDIV) raises at the
+  precision control: PE from the exact remainder, C1 when the result rounded
+  up in magnitude (x87_divide_fast). Jump to ptr when the precision is 24 bits
+  (imm) and the quotient is a single-precision midpoint or its single is not
+  normal, or when PE is raised and unmasked: those finish as the software
+  divide does. The control word is read from cpu_state: the uop is an order
+  barrier, so a loaded copy has been written back.*/
+#define UOP_FDIV_FLAGS_JSLOW_DEST (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0xd2 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
 
-#define UOP_MAX     0xd1
+#define UOP_MAX     0xd3
 
 #define UOP_INVALID 0xff
 
@@ -680,7 +695,7 @@ uop_gen_reg_src3(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int src_reg_b,
     return ir->wr_pos - 1;
 }
 
-static inline void
+static inline int
 uop_gen_reg_src3_imm(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int src_reg_b, int src_reg_c, uint32_t imm)
 {
     uop_t *uop = uop_alloc(ir, uop_type);
@@ -690,6 +705,23 @@ uop_gen_reg_src3_imm(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int src_re
     uop->src_reg_b = codegen_reg_read(src_reg_b);
     uop->src_reg_c = codegen_reg_read(src_reg_c);
     uop->imm_data  = imm;
+
+    return ir->wr_pos - 1;
+}
+
+static inline int
+uop_gen_reg_dst_src3_imm(uint32_t uop_type, ir_data_t *ir, int dest_reg, int src_reg_a, int src_reg_b, int src_reg_c, uint32_t imm)
+{
+    uop_t *uop = uop_alloc(ir, uop_type);
+
+    uop->type       = uop_type;
+    uop->src_reg_a  = codegen_reg_read(src_reg_a);
+    uop->src_reg_b  = codegen_reg_read(src_reg_b);
+    uop->src_reg_c  = codegen_reg_read(src_reg_c);
+    uop->dest_reg_a = codegen_reg_write(dest_reg, ir->wr_pos - 1);
+    uop->imm_data   = imm;
+
+    return ir->wr_pos - 1;
 }
 
 static inline void
@@ -851,6 +883,8 @@ extern void codegen_fpu_guard_cw_unmasks(ir_data_t *ir, uint32_t next_pc, int cw
 
 #define uop_FCMP_JWITHIN_DEST(ir, src_reg, lo_reg, hi_reg)      uop_gen_reg_src3(UOP_FCMP_JWITHIN_DEST, ir, src_reg, lo_reg, hi_reg)
 #define uop_FP_CONTROL_SET(ir, src_reg)                         uop_gen_reg_src1(UOP_FP_CONTROL_SET, ir, src_reg)
+#define uop_FDIV_JSLOW_DEST(ir, num_reg, den_reg, q_reg, imm)   uop_gen_reg_src3_imm(UOP_FDIV_JSLOW_DEST, ir, num_reg, den_reg, q_reg, imm)
+#define uop_FDIV_FLAGS_JSLOW_DEST(ir, dst_reg, q_reg, num_reg, den_reg, imm) uop_gen_reg_dst_src3_imm(UOP_FDIV_FLAGS_JSLOW_DEST, ir, dst_reg, q_reg, num_reg, den_reg, imm)
 #define uop_CMP_JNB_DEST(ir, src_reg_a, src_reg_b)               uop_gen_reg_src2(UOP_CMP_JNB_DEST, ir, src_reg_a, src_reg_b)
 #define uop_CMP_JNBE_DEST(ir, src_reg_a, src_reg_b)              uop_gen_reg_src2(UOP_CMP_JNBE_DEST, ir, src_reg_a, src_reg_b)
 #define uop_CMP_JNL_DEST(ir, src_reg_a, src_reg_b)               uop_gen_reg_src2(UOP_CMP_JNL_DEST, ir, src_reg_a, src_reg_b)
