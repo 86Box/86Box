@@ -3,12 +3,21 @@
 #include "../../src/qt/qt_ui.cpp"
 #include <cstdio>
 
-extern "C" { machine_status_t machine_status; }
+extern "C" {
+machine_status_t machine_status;
+}
 static unsigned checks, failures;
-#define CHECK(e) do { checks++; if (!(e)) { \
-    std::fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #e); failures++; } } while (0)
+#define CHECK(e)                                                         \
+    do {                                                                 \
+        checks++;                                                        \
+        if (!(e)) {                                                      \
+            std::fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #e); \
+            failures++;                                                  \
+        }                                                                \
+    } while (0)
 
-int main()
+int
+main()
 {
     /* Both the C status array and Qt's HDD icon array use this bound. */
     static_assert(HDD_BUS_SASI < HDD_BUS_MAX, "SASI icon must fit in the HDD arrays");

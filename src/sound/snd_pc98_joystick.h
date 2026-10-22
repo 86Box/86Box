@@ -10,12 +10,18 @@ pc98_sound_joystick(uint8_t select, uint8_t irq_bits)
     uint8_t value = 0x3fu;
     if (!(select & 0x40u) && JOYSTICK_PRESENT(0, 0)) {
         const joystick_state_t *js = &joystick_state[0][0];
-        if (js->axis[1] < -16384) value &= ~0x01u;
-        if (js->axis[1] > 16384) value &= ~0x02u;
-        if (js->axis[0] < -16384) value &= ~0x04u;
-        if (js->axis[0] > 16384) value &= ~0x08u;
-        if (js->button[0]) value &= ~0x10u;
-        if (js->button[1]) value &= ~0x20u;
+        if (js->axis[1] < -16384)
+            value &= ~0x01u;
+        if (js->axis[1] > 16384)
+            value &= ~0x02u;
+        if (js->axis[0] < -16384)
+            value &= ~0x04u;
+        if (js->axis[0] > 16384)
+            value &= ~0x08u;
+        if (js->button[0])
+            value &= ~0x10u;
+        if (js->button[1])
+            value &= ~0x20u;
     }
     return value | irq_bits;
 }

@@ -206,8 +206,8 @@ extern const device_t kbc_xtclone_device;
 
 extern const device_t kbc_at_device;
 extern const device_t kbc_rom_device;
-extern void kbc_rom_handler(int set, uint16_t base, void *priv);
-extern void kbc_rom_set_krr(void *priv, uint8_t value);
+extern void           kbc_rom_handler(int set, uint16_t base, void *priv);
+extern void           kbc_rom_set_krr(void *priv, uint8_t value);
 extern const device_t kbc_at_vectra_device;
 extern const device_t kbc_ps2_m25_device;
 extern const device_t kbc_tvis_device;

@@ -16,9 +16,9 @@ typedef struct pc98_mouse_t {
     uint8_t divider;
 } pc98_mouse_t;
 
-void pc98_mouse_reset(pc98_mouse_t *mouse);
-void pc98_mouse_motion(pc98_mouse_t *mouse, int x, int y, unsigned buttons);
-void pc98_mouse_control(pc98_mouse_t *mouse, uint8_t control);
+void    pc98_mouse_reset(pc98_mouse_t *mouse);
+void    pc98_mouse_motion(pc98_mouse_t *mouse, int x, int y, unsigned buttons);
+void    pc98_mouse_control(pc98_mouse_t *mouse, uint8_t control);
 uint8_t pc98_mouse_data(const pc98_mouse_t *mouse);
 
 #ifdef __cplusplus

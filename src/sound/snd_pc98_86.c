@@ -37,7 +37,7 @@
 #include <86box/sound.h>
 #include <86box/timer.h>
 
-#define PC98_86_CLOCK 7987000u /* YM2608B, 7.987 MHz */
+#define PC98_86_CLOCK    7987000u /* YM2608B, 7.987 MHz */
 
 #define PC98_86_ROM_SIZE 0x4000
 #define PC98_86_ROM_ADDR 0x000cc000u /* hardwired on this board */
@@ -163,8 +163,7 @@ static const int pc98_86_dac_div[8] = { 36, 48, 72, 96, 144, 192, 288, 384 };
 static void
 pc98_86_update_irq(pc98_86_t *dev)
 {
-    const int level = (dev->fm_irq ||
-                       (dev->pcm_irq && (dev->pcm_ctrl & PC98_86_CTL_IRQE))) ? 1 : 0;
+    const int level = (dev->fm_irq || (dev->pcm_irq && (dev->pcm_ctrl & PC98_86_CTL_IRQE))) ? 1 : 0;
 
     if (level == dev->irq_state)
         return;
@@ -201,11 +200,11 @@ pc98_86_pcm_update(pc98_86_t *dev, uint32_t position)
     /* Preserve the DAC output over time. The mixer runs once per output
      * buffer, whereas the FIFO can advance hundreds of times within it.
      * Flush before changing the DACs, attenuation or mute state. */
-    const int volume = (dev->pcm_mute & 1u) ? 0 : dev->vol[5];
-    const int32_t left = (dev->dac_l * volume) / 15;
-    const int32_t right = (dev->dac_r * volume) / 15;
+    const int     volume = (dev->pcm_mute & 1u) ? 0 : dev->vol[5];
+    const int32_t left   = (dev->dac_l * volume) / 15;
+    const int32_t right  = (dev->dac_r * volume) / 15;
     for (; dev->pcm_buffer_pos < position; dev->pcm_buffer_pos++) {
-        dev->pcm_buffer[dev->pcm_buffer_pos * 2] = left;
+        dev->pcm_buffer[dev->pcm_buffer_pos * 2]     = left;
         dev->pcm_buffer[dev->pcm_buffer_pos * 2 + 1] = right;
     }
 }
@@ -218,8 +217,8 @@ pc98_86_fifo_pop(pc98_86_t *dev)
     if (!dev->count)
         return 0u;
 
-    v          = dev->fifo[dev->tail];
-    dev->tail  = (dev->tail + 1u) % PC98_86_FIFO_SIZE;
+    v         = dev->fifo[dev->tail];
+    dev->tail = (dev->tail + 1u) % PC98_86_FIFO_SIZE;
     dev->count--;
     return v;
 }
@@ -250,27 +249,30 @@ pc98_86_dac_transfer(pc98_86_t *dev)
         case 0x50u: /* 8-bit right */
             dev->dac_r = pc98_86_pcm8_to_s16(pc98_86_fifo_pop(dev));
             break;
-        case 0x30u: { /* 16-bit stereo, high byte first */
-            int16_t l = (int16_t) (pc98_86_fifo_pop(dev) << 8);
-            l |= (int16_t) pc98_86_fifo_pop(dev);
-            int16_t r = (int16_t) (pc98_86_fifo_pop(dev) << 8);
-            r |= (int16_t) pc98_86_fifo_pop(dev);
-            dev->dac_l = l;
-            dev->dac_r = r;
-            break;
-        }
-        case 0x20u: { /* 16-bit left */
-            int16_t l = (int16_t) (pc98_86_fifo_pop(dev) << 8);
-            l |= (int16_t) pc98_86_fifo_pop(dev);
-            dev->dac_l = l;
-            break;
-        }
-        case 0x10u: { /* 16-bit right */
-            int16_t r = (int16_t) (pc98_86_fifo_pop(dev) << 8);
-            r |= (int16_t) pc98_86_fifo_pop(dev);
-            dev->dac_r = r;
-            break;
-        }
+        case 0x30u:
+            { /* 16-bit stereo, high byte first */
+                int16_t l = (int16_t) (pc98_86_fifo_pop(dev) << 8);
+                l |= (int16_t) pc98_86_fifo_pop(dev);
+                int16_t r = (int16_t) (pc98_86_fifo_pop(dev) << 8);
+                r |= (int16_t) pc98_86_fifo_pop(dev);
+                dev->dac_l = l;
+                dev->dac_r = r;
+                break;
+            }
+        case 0x20u:
+            { /* 16-bit left */
+                int16_t l = (int16_t) (pc98_86_fifo_pop(dev) << 8);
+                l |= (int16_t) pc98_86_fifo_pop(dev);
+                dev->dac_l = l;
+                break;
+            }
+        case 0x10u:
+            { /* 16-bit right */
+                int16_t r = (int16_t) (pc98_86_fifo_pop(dev) << 8);
+                r |= (int16_t) pc98_86_fifo_pop(dev);
+                dev->dac_r = r;
+                break;
+            }
         default:
             break;
     }
@@ -299,8 +301,7 @@ pc98_86_dac_tick(void *priv)
 
     /* Keep the request latched until acknowledged. Repeated DAC ticks
      * below the threshold must not manufacture new interrupt edges. */
-    if (!dev->pcm_irq && (dev->count < dev->irq_rate) &&
-        (dev->pcm_ctrl & PC98_86_CTL_IRQE)) {
+    if (!dev->pcm_irq && (dev->count < dev->irq_rate) && (dev->pcm_ctrl & PC98_86_CTL_IRQE)) {
         dev->pcm_irq = 1;
         pc98_86_update_irq(dev);
     }
@@ -309,8 +310,7 @@ pc98_86_dac_tick(void *priv)
 static void
 pc98_86_set_rate(pc98_86_t *dev, uint8_t ctrl)
 {
-    const double hz = PC98_86_DAC_BASE_HZ /
-                      (double) pc98_86_dac_div[ctrl & PC98_86_CTL_RATE];
+    const double hz = PC98_86_DAC_BASE_HZ / (double) pc98_86_dac_div[ctrl & PC98_86_CTL_RATE];
 
     dev->dac_period_us = 1000000.0 / hz;
     timer_stop(&dev->dac_timer);
@@ -358,9 +358,9 @@ pc98_86_joystick_axis(int value, uint8_t old, uint8_t negative, uint8_t positive
 static uint8_t
 pc98_86_joystick_read(pc98_86_t *dev, uint8_t select)
 {
-    const joystick_state_t *js = &joystick_state[0][0];
-    uint8_t value = 0x3fu;
-    uint8_t axis_state = 0;
+    const joystick_state_t *js         = &joystick_state[0][0];
+    uint8_t                 value      = 0x3fu;
+    uint8_t                 axis_state = 0;
 
     /* The -86 exposes connector 1 only, selected by Port B bits 7:6 = 10b. */
     if ((select & 0xc0u) != 0x80u) {
@@ -392,14 +392,16 @@ pc98_86_joystick_read(pc98_86_t *dev, uint8_t select)
         /* POV hats often have no useful X/Y axes; use the first mapped hat
          * as another digital source, with the same octants as 86Box's other
          * joystick devices. */
-        if ((joystick_type[0] != JS_TYPE_NONE) &&
-            (joystick_get_pov_count(joystick_type[0]) > 0) &&
-            (js->pov[0] >= 0)) {
+        if ((joystick_type[0] != JS_TYPE_NONE) && (joystick_get_pov_count(joystick_type[0]) > 0) && (js->pov[0] >= 0)) {
             const int pov = js->pov[0];
-            if (pov > 315 || pov < 45) value &= (uint8_t) ~0x01u;
-            if (pov >= 45 && pov < 135) value &= (uint8_t) ~0x08u;
-            if (pov >= 135 && pov < 225) value &= (uint8_t) ~0x02u;
-            if (pov >= 225 && pov < 315) value &= (uint8_t) ~0x04u;
+            if (pov > 315 || pov < 45)
+                value &= (uint8_t) ~0x01u;
+            if (pov >= 45 && pov < 135)
+                value &= (uint8_t) ~0x08u;
+            if (pov >= 135 && pov < 225)
+                value &= (uint8_t) ~0x02u;
+            if (pov >= 225 && pov < 315)
+                value &= (uint8_t) ~0x04u;
         }
     }
     dev->joy_axis_state = axis_state;
@@ -429,7 +431,7 @@ pc98_86_joystick_read(pc98_86_t *dev, uint8_t select)
 static uint8_t
 pc98_86_joystick_alias_in(uint16_t port, void *priv)
 {
-    pc98_86_t *dev = (pc98_86_t *) priv;
+    pc98_86_t     *dev   = (pc98_86_t *) priv;
     const uint32_t index = (uint32_t) ((port - 0x0188u) >> 1);
 
     if (port & 1u)
@@ -447,7 +449,7 @@ pc98_86_joystick_alias_in(uint16_t port, void *priv)
 static void
 pc98_86_joystick_alias_out(uint16_t port, uint8_t val, void *priv)
 {
-    pc98_86_t *dev = (pc98_86_t *) priv;
+    pc98_86_t     *dev   = (pc98_86_t *) priv;
     const uint32_t index = (uint32_t) ((port - 0x0188u) >> 1);
 
     if (port & 1u)
@@ -466,8 +468,8 @@ pc98_86_joystick_alias_out(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 pc98_86_opna_in(uint16_t port, void *priv)
 {
-    pc98_86_t *dev = (pc98_86_t *) priv;
-    uint8_t val = 0xFF;
+    pc98_86_t     *dev   = (pc98_86_t *) priv;
+    uint8_t        val   = 0xFF;
     const uint32_t index = (uint32_t) ((port - dev->base) >> 1);
     if (port & 1u)
         return 0xffu;
@@ -493,7 +495,7 @@ pc98_86_opna_in(uint16_t port, void *priv)
 static void
 pc98_86_opna_out(uint16_t port, uint8_t val, void *priv)
 {
-    pc98_86_t *dev = (pc98_86_t *) priv;
+    pc98_86_t     *dev   = (pc98_86_t *) priv;
     const uint32_t index = (uint32_t) ((port - dev->base) >> 1);
     if (port & 1u)
         return;
@@ -522,18 +524,18 @@ pc98_86_pcm_in(uint16_t port, void *priv)
              * read back the OPNA mask register.  4x means "PC-9801-86 at
              * 188h", which is what drivers look for.
              */
-            return (uint8_t) (0x40u | ((dev->base == 0x0288u) ? 0x10u : 0x00u) |
-                              dev->id_mask);
+            return (uint8_t) (0x40u | ((dev->base == 0x0288u) ? 0x10u : 0x00u) | dev->id_mask);
 
-        case 0xa466u: {
-            uint8_t v = 0u;
-            if (dev->count >= PC98_86_FIFO_SIZE)
-                v |= 0x80u; /* full  */
-            if (!dev->count)
-                v |= 0x40u; /* empty */
-            v |= (uint8_t) (dev->pcm_clk & 1u);
-            return v;
-        }
+        case 0xa466u:
+            {
+                uint8_t v = 0u;
+                if (dev->count >= PC98_86_FIFO_SIZE)
+                    v |= 0x80u; /* full  */
+                if (!dev->count)
+                    v |= 0x40u; /* empty */
+                v |= (uint8_t) (dev->pcm_clk & 1u);
+                return v;
+            }
 
         case 0xa468u:
             return (uint8_t) (dev->pcm_ctrl | (dev->pcm_irq ? 0x10u : 0x00u));
@@ -578,8 +580,7 @@ pc98_86_pcm_out(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0xa468u:
-            if (((val & PC98_86_CTL_RATE) != (dev->pcm_ctrl & PC98_86_CTL_RATE)) ||
-                !dev->initialised)
+            if (((val & PC98_86_CTL_RATE) != (dev->pcm_ctrl & PC98_86_CTL_RATE)) || !dev->initialised)
                 pc98_86_set_rate(dev, val);
 
             if ((val & PC98_86_CTL_RST) && !(dev->pcm_ctrl & PC98_86_CTL_RST))
@@ -635,7 +636,7 @@ pc98_86_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 
     const uint32_t frames = (len < SOUNDBUFLEN) ? len : SOUNDBUFLEN;
     for (uint32_t i = 0; i < frames; i++) {
-        buffer[i * 2]     += dev->pcm_buffer[i * 2];
+        buffer[i * 2] += dev->pcm_buffer[i * 2];
         buffer[i * 2 + 1] += dev->pcm_buffer[i * 2 + 1];
     }
     dev->pcm_buffer_pos = 0;
@@ -690,11 +691,11 @@ pc98_86_reset(void *priv)
     dev->dac_l = dev->dac_r = 0;
     dev->initialised        = 0;
     dev->id_mask            = 0u;
-    dev->joy_select = 0u;
-    dev->joy_axis_state = 0u;
-    dev->joy_alias_addr = 0u;
-    dev->joy_alias_dir = 0u;
-    dev->joy_alias_select = 0u;
+    dev->joy_select         = 0u;
+    dev->joy_axis_state     = 0u;
+    dev->joy_alias_addr     = 0u;
+    dev->joy_alias_dir      = 0u;
+    dev->joy_alias_select   = 0u;
     dev->fm_irq = dev->pcm_irq = 0;
     memset(dev->vol, 0x0f, sizeof(dev->vol));
 
@@ -712,11 +713,11 @@ pc98_86_init(UNUSED(const device_t *info))
     if (!dev)
         return NULL;
 
-    dev->base = device_get_config_int("base") ? 0x0288u : 0x0188u;
-    dev->irq_sel  = device_get_config_int("irq") & 3;
-    dev->irq  = pc98_86_int_irq[dev->irq_sel];
-    dev->opn = pc98_opn_create(PC98_OPN_YM2608, PC98_86_CLOCK, pc98_86_fm_irq,
-                               dev);
+    dev->base    = device_get_config_int("base") ? 0x0288u : 0x0188u;
+    dev->irq_sel = device_get_config_int("irq") & 3;
+    dev->irq     = pc98_86_int_irq[dev->irq_sel];
+    dev->opn     = pc98_opn_create(PC98_OPN_YM2608, PC98_86_CLOCK, pc98_86_fm_irq,
+                                   dev);
     if (!dev->opn) {
         free(dev);
         return NULL;
@@ -737,8 +738,8 @@ pc98_86_init(UNUSED(const device_t *info))
             dev->bios = (rom_t *) calloc(1, sizeof(rom_t));
             if (dev->bios)
                 dev->has_rom = !rom_init(dev->bios, bios_path, PC98_86_ROM_ADDR,
-                                     PC98_86_ROM_SIZE, PC98_86_ROM_SIZE - 1, 0,
-                                     MEM_MAPPING_EXTERNAL);
+                                         PC98_86_ROM_SIZE, PC98_86_ROM_SIZE - 1, 0,
+                                         MEM_MAPPING_EXTERNAL);
             if (!dev->has_rom) {
                 free(dev->bios);
                 dev->bios = NULL;
@@ -825,7 +826,7 @@ pc98_86_available(void)
 }
 
 static const device_config_t pc98_86_config[] = {
-  // clang-format off
+    // clang-format off
     {
         .name           = "base",
         .description    = "Port base (SW1)",
@@ -881,7 +882,7 @@ static const device_config_t pc98_86_config[] = {
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t pc98_86_device = {

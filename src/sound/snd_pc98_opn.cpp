@@ -40,15 +40,15 @@ class pc98_opn_base {
 public:
     virtual ~pc98_opn_base() = default;
 
-    virtual void    reset()                            = 0;
-    virtual uint8_t read(uint32_t addr)                = 0;
-    virtual void    write(uint32_t addr, uint8_t data) = 0;
+    virtual void    reset()                                 = 0;
+    virtual uint8_t read(uint32_t addr)                     = 0;
+    virtual void    write(uint32_t addr, uint8_t data)      = 0;
     virtual void    generate(int32_t *buf, uint32_t frames) = 0;
 
     virtual void set_adpcm_rom(const uint8_t *rom, uint32_t len) = 0;
-    virtual void set_extended(bool enabled) = 0;
-    virtual void set_output_enabled(bool enabled) = 0;
-    virtual bool set_adpcm_ram(bool enabled) = 0;
+    virtual void set_extended(bool enabled)                      = 0;
+    virtual void set_output_enabled(bool enabled)                = 0;
+    virtual bool set_adpcm_ram(bool enabled)                     = 0;
 
     uint8_t port_a = 0xffu;
     uint8_t port_b = 0x00u;
@@ -63,7 +63,7 @@ public:
         , m_irq(irq)
         , m_priv(priv)
     {
-        m_clock_us  = 1000000.0 / (double) m_clock;
+        m_clock_us = 1000000.0 / (double) m_clock;
         update_rateratio();
         std::memset(m_samples, 0, sizeof(m_samples));
         std::memset(m_oldsamples, 0, sizeof(m_oldsamples));
@@ -99,16 +99,16 @@ public:
         timer_disable(&m_timers[1]);
         timer_disable(&m_busy_timer);
         m_buffer_pos = 0;
-        m_samplecnt = 0;
+        m_samplecnt  = 0;
         std::memset(m_samples, 0, sizeof(m_samples));
         std::memset(m_oldsamples, 0, sizeof(m_oldsamples));
         std::memset(m_buffer, 0, sizeof(m_buffer));
         update_rateratio();
-        m_extended = false;
+        m_extended       = false;
         m_output_enabled = true;
-        m_address_port = 0;
-        m_address_data = 0;
-        m_irq_enable = 0x1f;
+        m_address_port   = 0;
+        m_address_data   = 0;
+        m_irq_enable     = 0x1f;
         m_chip.reset();
         if constexpr (ChipType::OUTPUTS == 2) {
             /* ymfm's YM2612/YM3438 reset only resets the FM engine. The
@@ -142,7 +142,7 @@ public:
         } else if constexpr (ChipType::OUTPUTS == 3) {
             if ((addr == 1u) && (m_address_port == 0u) && (m_address_data == 0x29u)) {
                 m_irq_enable = data;
-                data = (data & 0x7fu) | (m_extended ? 0x80u : 0u);
+                data         = (data & 0x7fu) | (m_extended ? 0x80u : 0u);
             }
         }
         m_chip.write(addr, data);
@@ -207,7 +207,7 @@ public:
         update_to(frames);
         const uint32_t mix_frames = (frames < SOUNDBUFLEN) ? frames : SOUNDBUFLEN;
         for (uint32_t i = 0; i < mix_frames; i++) {
-            buf[i * 2]     += m_buffer[i * 2];
+            buf[i * 2] += m_buffer[i * 2];
             buf[i * 2 + 1] += m_buffer[i * 2 + 1];
         }
 
@@ -219,13 +219,13 @@ public:
     update_rateratio()
     {
         const uint32_t output_rate = (sound_sample_rate > 0)
-                                   ? (uint32_t)sound_sample_rate
-                                   : SOUND_FREQ;
-        const uint32_t chip_rate = m_chip.sample_rate(m_clock);
+            ? (uint32_t) sound_sample_rate
+            : SOUND_FREQ;
+        const uint32_t chip_rate   = m_chip.sample_rate(m_clock);
 
         m_rateratio = (chip_rate != 0)
-                    ? (uint32_t)(((uint64_t)output_rate << RSM_FRAC) / chip_rate)
-                    : (1u << RSM_FRAC);
+            ? (uint32_t) (((uint64_t) output_rate << RSM_FRAC) / chip_rate)
+            : (1u << RSM_FRAC);
         if (!m_rateratio)
             m_rateratio = 1;
     }
@@ -260,12 +260,8 @@ public:
                 m_samplecnt -= m_rateratio;
             }
 
-            const int32_t l = (int32_t) ((m_oldsamples[0] * (int64_t) (m_rateratio - m_samplecnt) +
-                                          m_samples[0] * (int64_t) m_samplecnt) /
-                                         m_rateratio);
-            const int32_t r = (int32_t) ((m_oldsamples[1] * (int64_t) (m_rateratio - m_samplecnt) +
-                                          m_samples[1] * (int64_t) m_samplecnt) /
-                                         m_rateratio);
+            const int32_t l = (int32_t) ((m_oldsamples[0] * (int64_t) (m_rateratio - m_samplecnt) + m_samples[0] * (int64_t) m_samplecnt) / m_rateratio);
+            const int32_t r = (int32_t) ((m_oldsamples[1] * (int64_t) (m_rateratio - m_samplecnt) + m_samples[1] * (int64_t) m_samplecnt) / m_rateratio);
 
             buf[i * 2]     = m_output_enabled ? l : 0;
             buf[i * 2 + 1] = m_output_enabled ? r : 0;
@@ -419,34 +415,34 @@ private:
     busy_timer_expired(void *priv)
     {
         pc98_opn_chip *self = (pc98_opn_chip *) priv;
-        self->m_busy = false;
+        self->m_busy        = false;
     }
 
     ChipType m_chip;
     uint32_t m_clock;
-    double   m_clock_us    = 0.0;
-    bool     m_busy        = false;
-    uint32_t m_rateratio   = 1u << RSM_FRAC;
-    uint32_t m_samplecnt   = 0u;
-    int32_t  m_samples[2]  = { 0, 0 };
+    double   m_clock_us      = 0.0;
+    bool     m_busy          = false;
+    uint32_t m_rateratio     = 1u << RSM_FRAC;
+    uint32_t m_samplecnt     = 0u;
+    int32_t  m_samples[2]    = { 0, 0 };
     int32_t  m_oldsamples[2] = { 0, 0 };
-    int32_t  m_buffer[SOUNDBUFLEN * 2] {};
+    int32_t  m_buffer[SOUNDBUFLEN * 2] { };
     uint32_t m_buffer_pos = 0;
 
     void (*m_irq)(void *, int) = nullptr;
     void *m_priv               = nullptr;
 
-    const uint8_t *m_adpcm_rom     = nullptr;
-    uint32_t       m_adpcm_rom_len = 0u;
-    uint8_t       *m_ram = nullptr;
-    bool           m_extended = false;
+    const uint8_t *m_adpcm_rom      = nullptr;
+    uint32_t       m_adpcm_rom_len  = 0u;
+    uint8_t       *m_ram            = nullptr;
+    bool           m_extended       = false;
     bool           m_output_enabled = true;
-    uint32_t       m_address_port = 0u;
-    uint8_t        m_address_data = 0u;
-    uint8_t        m_irq_enable = 0x1fu;
+    uint32_t       m_address_port   = 0u;
+    uint8_t        m_address_data   = 0u;
+    uint8_t        m_irq_enable     = 0x1fu;
 
-    pc_timer_t m_timers[2] {};
-    pc_timer_t m_busy_timer {};
+    pc_timer_t m_timers[2] { };
+    pc_timer_t m_busy_timer { };
 };
 
 } /* namespace */
@@ -458,7 +454,7 @@ struct pc98_opn_t {
 extern "C" {
 
 pc98_opn_t *
-pc98_opn_create(pc98_opn_type_t type, uint32_t clock,
+pc98_opn_create(pc98_opn_type_t type, uint32_t            clock,
                 void (*irq)(void *priv, int level), void *priv)
 {
     pc98_opn_t *handle = (pc98_opn_t *) std::calloc(1, sizeof(pc98_opn_t));

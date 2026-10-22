@@ -224,22 +224,24 @@ fetch_ea_16_long(uint32_t rmdat)
 void
 cpu_bus_stall(int clocks)
 {
-    if (clocks <= 0) return;
+    if (clocks <= 0)
+        return;
     cycles -= clocks;
     /* A memory grant advances device time immediately, including inside an
      * opcode. Interpreter retirement and dynarec accounting subtract this
      * interim TSC delta instead of charging it a second time. */
-    tsc += (uint32_t)clocks;
+    tsc += (uint32_t) clocks;
 }
 
-static int32_t cpu_bus_period(void)
+static int32_t
+cpu_bus_period(void)
 {
     /* RESET can leave the instruction loop before its timer epilogue.
      * A synchronous bus wait may already have crossed the deadline: dispatch
      * it before computing a period, otherwise a negative period spins forever. */
     if (TIMER_VAL_LESS_THAN_VAL(timer_target, tsc))
         timer_process();
-    return (int32_t)(timer_target - tsc) + 1;
+    return (int32_t) (timer_target - tsc) + 1;
 }
 
 void
@@ -267,7 +269,7 @@ exec386_2386(int32_t cycs)
         while (cycdiff < cycle_period) {
             int ins_fetch_fault = 0;
             ins_cycles = cycles;
-            ins_tsc = tsc;
+            ins_tsc             = tsc;
 
             oldcs  = CS;
             oldcpl = CPL;

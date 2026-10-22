@@ -27,28 +27,28 @@ typedef enum {
 
 typedef struct {
     ps2_direction_t direction;
-    uint8_t        byte;
-    uint8_t        bits[12];
-    uint8_t        bit_index;
-    uint8_t        phase;
-    uint8_t        clock;
-    uint8_t        data;
-    uint8_t        gap;
+    uint8_t         byte;
+    uint8_t         bits[12];
+    uint8_t         bit_index;
+    uint8_t         phase;
+    uint8_t         clock;
+    uint8_t         data;
+    uint8_t         gap;
 } kbc_rom_line_t;
 
 typedef struct {
-    void           *core;
-    uint8_t         rom[KBC_ROM_SIZE];
-    uint8_t         old_p2;
-    uint8_t         irq_state;
-    uint8_t         enabled[2];
-    uint8_t         krr;
-    uint8_t         ps2_period;
-    uint64_t        cycle_delay;
-    uint32_t        core_cycles;
-    pc_timer_t      cycle_timer;
-    kbc_at_port_t  *ports[2];
-    kbc_rom_line_t  lines[2];
+    void          *core;
+    uint8_t        rom[KBC_ROM_SIZE];
+    uint8_t        old_p2;
+    uint8_t        irq_state;
+    uint8_t        enabled[2];
+    uint8_t        krr;
+    uint8_t        ps2_period;
+    uint64_t       cycle_delay;
+    uint32_t       core_cycles;
+    pc_timer_t     cycle_timer;
+    kbc_at_port_t *ports[2];
+    kbc_rom_line_t lines[2];
 } kbc_rom_t;
 
 static uint8_t
@@ -82,12 +82,12 @@ kbc_rom_line_start_receive(kbc_rom_line_t *line, kbc_at_port_t *port)
 static void
 kbc_rom_line_step(kbc_rom_t *dev, int channel, uint8_t p2)
 {
-    kbc_rom_line_t *line = &dev->lines[channel];
-    kbc_at_port_t  *port = dev->ports[channel];
-    const uint8_t clock_mask = channel ? 0x08 : 0x40;
-    const uint8_t data_mask  = channel ? 0x04 : 0x80;
-    const int clock_released = !(p2 & clock_mask);
-    const int data_low       = !!(p2 & data_mask);
+    kbc_rom_line_t *line           = &dev->lines[channel];
+    kbc_at_port_t  *port           = dev->ports[channel];
+    const uint8_t   clock_mask     = channel ? 0x08 : 0x40;
+    const uint8_t   data_mask      = channel ? 0x04 : 0x80;
+    const int       clock_released = !(p2 & clock_mask);
+    const int       data_low       = !!(p2 & data_mask);
 
     if (line->gap) {
         line->gap--;
@@ -120,20 +120,19 @@ kbc_rom_line_step(kbc_rom_t *dev, int channel, uint8_t p2)
         if (++line->phase == dev->ps2_period) {
             line->phase = 0;
             if (++line->bit_index == 12) {
-                uint8_t byte = 0;
+                uint8_t byte   = 0;
                 uint8_t parity = 1;
                 for (int i = 0; i < 8; i++) {
                     byte |= line->bits[i + 1] << i;
                     parity ^= line->bits[i + 1];
                 }
-                if (port && (line->bits[0] == 0) &&
-                    (line->bits[9] == parity) && (line->bits[10] == 1)) {
-                    port->dat = byte;
+                if (port && (line->bits[0] == 0) && (line->bits[9] == parity) && (line->bits[10] == 1)) {
+                    port->dat     = byte;
                     port->wantcmd = 1;
                 }
                 line->direction = PS2_IDLE;
                 line->clock = line->data = 1;
-                line->gap = 64;
+                line->gap                = 64;
             }
         }
     } else if (line->direction == PS2_DEVICE_TO_HOST) {
@@ -141,15 +140,14 @@ kbc_rom_line_step(kbc_rom_t *dev, int channel, uint8_t p2)
             line->clock = 0;
             return;
         }
-        line->data = kbc_rom_frame_bit(line->byte, line->bit_index);
-        line->clock = line->phase >= dev->ps2_period / 4 &&
-                      line->phase < (3 * dev->ps2_period) / 4 ? 0 : 1;
+        line->data  = kbc_rom_frame_bit(line->byte, line->bit_index);
+        line->clock = line->phase >= dev->ps2_period / 4 && line->phase < (3 * dev->ps2_period) / 4 ? 0 : 1;
         if (++line->phase == dev->ps2_period) {
             line->phase = 0;
             if (++line->bit_index == 11) {
                 line->direction = PS2_IDLE;
                 line->clock = line->data = 1;
-                line->gap = 64;
+                line->gap                = 64;
             }
         }
     }
@@ -159,9 +157,9 @@ static void
 kbc_rom_update_irqs(kbc_rom_t *dev, uint8_t p2)
 {
     for (int channel = 0; channel < 2; channel++) {
-        const uint8_t bit = (uint8_t) (1 << channel);
-        const int active = !!(p2 & (0x10 << channel));
-        const int irq = channel ? 12 : 1;
+        const uint8_t bit    = (uint8_t) (1 << channel);
+        const int     active = !!(p2 & (0x10 << channel));
+        const int     irq    = channel ? 12 : 1;
         if (active && !(dev->irq_state & bit)) {
             picint(1 << irq);
             dev->irq_state |= bit;
@@ -181,7 +179,7 @@ kbc_rom_cycle(void *priv)
         return;
     }
     const uint8_t p2 = upi42_port_output(dev->core, 2);
-    uint8_t p1 = 0xff;
+    uint8_t       p1 = 0xff;
 
     if ((dev->core_cycles++ % 80) == 0) {
         for (int channel = 0; channel < 2; channel++)
@@ -224,9 +222,9 @@ kbc_rom_set_krr(void *priv, uint8_t value)
         return;
     dev->krr = value;
     /* PC87306 X1 runs at 24 MHz; KRR1 selects divide by 3 or by 2. */
-    const int mhz = (value & 0x02) ? 12 : 8;
+    const int mhz    = (value & 0x02) ? 12 : 8;
     dev->cycle_delay = (15ULL * TIMER_USEC) / mhz;
-    dev->ps2_period = mhz == 8 ? 48 : 64;
+    dev->ps2_period  = mhz == 8 ? 48 : 64;
 }
 
 static uint8_t
@@ -275,7 +273,7 @@ kbc_rom_reset(void *priv)
     memset(dev->lines, 0, sizeof(dev->lines));
     for (int i = 0; i < 2; i++) {
         dev->lines[i].clock = 1;
-        dev->lines[i].data = 1;
+        dev->lines[i].data  = 1;
     }
     dev->old_p2 = upi42_port_output(dev->core, 2);
 }
@@ -316,7 +314,7 @@ kbc_rom_init(const device_t *info)
             return NULL;
         }
         kbc_at_ports[i]->out_new = -1;
-        dev->ports[i] = kbc_at_ports[i];
+        dev->ports[i]            = kbc_at_ports[i];
     }
     if (keyboard_type == KEYBOARD_TYPE_INTERNAL)
         device_add_params(&keyboard_at_generic_device, (void *) (uintptr_t) FLAG_PS2_KBD);
@@ -351,11 +349,11 @@ kbc_rom_available(void)
 }
 
 const device_t kbc_rom_device = {
-    .name = "ROM-backed PC87306 keyboard controller",
+    .name          = "ROM-backed PC87306 keyboard controller",
     .internal_name = "kbc_rom_pc87306",
-    .flags = DEVICE_KBC,
-    .init = kbc_rom_init,
-    .close = kbc_rom_close,
-    .reset = kbc_rom_reset,
-    .available = kbc_rom_available
+    .flags         = DEVICE_KBC,
+    .init          = kbc_rom_init,
+    .close         = kbc_rom_close,
+    .reset         = kbc_rom_reset,
+    .available     = kbc_rom_available
 };

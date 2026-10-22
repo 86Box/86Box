@@ -5,7 +5,7 @@
 #include <string.h>
 #include <86box/pc98_bios_patch.h>
 
-#define VX_ITF_SIZE 0x8000u
+#define VX_ITF_SIZE          0x8000u
 #define VX_ITF_ORIGINAL_HASH UINT64_C(0x40ec270e008f53e9)
 #define VX_ITF_PATCHED_HASH  UINT64_C(0xc9958255f5a6e707)
 
@@ -23,9 +23,9 @@ itf_fingerprint(const uint8_t *itf)
 pc98_bios_patch_result_t
 pc98_bios_patch_vx_timer(uint8_t *itf, size_t size)
 {
-    static const size_t branches[] = { 0x0900, 0x096c, 0x0980, 0x09ac };
+    static const size_t  branches[]          = { 0x0900, 0x096c, 0x0980, 0x09ac };
     static const uint8_t original_branches[] = { 0x75, 0x74, 0x74, 0x74 };
-    static const uint8_t timeout_original[] = {
+    static const uint8_t timeout_original[]  = {
         0xbe, 0xcc, 0x17, 0xbc, 0xdd, 0x09, 0xe9, 0x86, 0x0e, 0xf4
     };
     static const uint8_t timeout_replacement[] = {
@@ -48,12 +48,10 @@ pc98_bios_patch_vx_timer(uint8_t *itf, size_t size)
     /* Check every patch site before the first mutation. The full fingerprint
      * also validates the zero-filled padding used for checksum compensation. */
     for (size_t i = 0; i < sizeof(branches) / sizeof(branches[0]); i++) {
-        if (itf[branches[i]] != original_branches[i] ||
-            itf[branches[i] + 1] != 0x0a)
+        if (itf[branches[i]] != original_branches[i] || itf[branches[i] + 1] != 0x0a)
             return PC98_BIOS_PATCH_UNSUPPORTED;
     }
-    if (memcmp(itf + 0x09d4, timeout_original, sizeof(timeout_original)) ||
-        itf[0x7fec] || itf[0x7fed])
+    if (memcmp(itf + 0x09d4, timeout_original, sizeof(timeout_original)) || itf[0x7fec] || itf[0x7fed])
         return PC98_BIOS_PATCH_UNSUPPORTED;
 
     for (size_t i = 0; i < sizeof(branches) / sizeof(branches[0]); i++)
@@ -65,8 +63,8 @@ pc98_bios_patch_vx_timer(uint8_t *itf, size_t size)
     uint8_t lane_sum[2] = { 0, 0 };
     for (size_t i = 0; i < VX_ITF_SIZE; i++)
         lane_sum[i & 1u] += itf[i];
-    itf[0x7fec] = (uint8_t)-lane_sum[0];
-    itf[0x7fed] = (uint8_t)-lane_sum[1];
+    itf[0x7fec] = (uint8_t) -lane_sum[0];
+    itf[0x7fed] = (uint8_t) -lane_sum[1];
 
     return PC98_BIOS_PATCH_APPLIED;
 }

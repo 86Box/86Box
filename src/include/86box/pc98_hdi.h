@@ -32,8 +32,8 @@ extern "C" {
 
 typedef enum pc98_hdi_format_t {
     PC98_HDI_NONE = 0,
-    PC98_HDI_ANEX86,   /* .hdi - Anex86                      */
-    PC98_HDI_T98NEXT   /* .nhd - T98-Next                    */
+    PC98_HDI_ANEX86, /* .hdi - Anex86                      */
+    PC98_HDI_T98NEXT /* .nhd - T98-Next                    */
 } pc98_hdi_format_t;
 
 typedef struct pc98_hdi_t {
@@ -44,7 +44,7 @@ typedef struct pc98_hdi_t {
     uint32_t          spt;         /* sectors per track                  */
     uint32_t          hpc;         /* heads per cylinder                 */
     uint32_t          cylinders;
-    uint32_t          blocks;      /* total capacity in native sectors  */
+    uint32_t          blocks; /* total capacity in native sectors  */
     int               read_only;
     int               sasi_imported; /* open_sasi selected a separate copy */
 } pc98_hdi_t;
@@ -55,7 +55,7 @@ typedef struct pc98_hdi_t {
  * Only 0 permits falling back to the generic image layer: treating a bad
  * native container as raw exposes its header as disk sectors.
  */
-int pc98_hdi_open(pc98_hdi_t *img, const char *path);
+int  pc98_hdi_open(pc98_hdi_t *img, const char *path);
 void pc98_hdi_close(pc98_hdi_t *img);
 
 /* Open for the PC-9801-27. Compatible media is opened directly; supported
@@ -85,11 +85,11 @@ int pc98_hdi_write_256(pc98_hdi_t *img, uint32_t lba, uint32_t count,
 /* PC-9801-27 logical access uses 256-byte blocks and 33 blocks per track.
  * A 512-byte container with 17 physical sectors per track stores 33 logical
  * blocks per track; the upper half of its last sector is padding. */
-int pc98_hdi_sasi_read(pc98_hdi_t *img, uint32_t lba, uint32_t count,
-                       uint32_t bios_spt, uint32_t bios_heads, uint8_t *buf);
-int pc98_hdi_sasi_write(pc98_hdi_t *img, uint32_t lba, uint32_t count,
-                        uint32_t bios_spt, uint32_t bios_heads,
-                        const uint8_t *buf);
+int      pc98_hdi_sasi_read(pc98_hdi_t *img, uint32_t lba, uint32_t count,
+                            uint32_t bios_spt, uint32_t bios_heads, uint8_t *buf);
+int      pc98_hdi_sasi_write(pc98_hdi_t *img, uint32_t lba, uint32_t count,
+                             uint32_t bios_spt, uint32_t bios_heads,
+                             const uint8_t *buf);
 uint32_t pc98_hdi_sasi_blocks(const pc98_hdi_t *img, uint32_t bios_spt);
 
 /*

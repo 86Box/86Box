@@ -240,7 +240,7 @@ fdc_pc98_abort(fdc_t *fdc)
 
     fdc_ctrl_reset(fdc, 1);
     fifo_reset(fdc->fifo_p);
-    fdc->stat = 0;
+    fdc->stat      = 0;
     fdc->interrupt = 0;
     fdc->command = fdc->processed_cmd = 0;
     fdc->fintr = fdc->data_ready = fdc->paramstogo = 0;
@@ -251,8 +251,17 @@ static int
 fdc_command_uses_media(uint8_t command)
 {
     switch (command) {
-        case 0x02: case 0x05: case 0x06: case 0x09: case 0x0a:
-        case 0x0c: case 0x0d: case 0x11: case 0x16: case 0x19: case 0x1d:
+        case 0x02:
+        case 0x05:
+        case 0x06:
+        case 0x09:
+        case 0x0a:
+        case 0x0c:
+        case 0x0d:
+        case 0x11:
+        case 0x16:
+        case 0x19:
+        case 0x1d:
             return 1;
         default:
             return 0;
@@ -1461,12 +1470,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         /* Unlike IBM PC adapters, PC-98 exposes READY. An
                          * absent mechanism has no poll timer to expire an ID
                          * search, so reject media access before starting it. */
-                        if ((fdc->flags & FDC_FLAG_PC98) &&
-                            fdc_command_uses_media(fdc->processed_cmd) &&
-                            !fdd_is_ready(fdc->fdd[real_drive(fdc, fdc->drive)])) {
+                        if ((fdc->flags & FDC_FLAG_PC98) && fdc_command_uses_media(fdc->processed_cmd) && !fdd_is_ready(fdc->fdd[real_drive(fdc, fdc->drive)])) {
                             fdc->rw_track = fdc->params[1];
-                            fdc->head = (fdc->params[0] & 4) ? 1 : 0;
-                            fdc->sector = fdc->params[3];
+                            fdc->head     = (fdc->params[0] & 4) ? 1 : 0;
+                            fdc->sector   = fdc->params[3];
                             fdc_error(fdc, 0, 0);
                             fdc->st0 = fdc->res[4] = 0x48 | (fdc->params[0] & 7);
                             return;
@@ -2536,10 +2543,7 @@ fdc_media_removed(fdc_t *fdc, int drive)
 {
     /* PC-98 wires the mechanism's READY input to the 765. IBM PC adapters
      * tie it active and still detect absent media by searching for IDs. */
-    if (!(fdc->flags & FDC_FLAG_PC98) ||
-        real_drive(fdc, fdc->drive) != drive || fdc->pnum != fdc->ptot ||
-        !(fdc->stat & 0x10) || (fdc->stat & 0xf0) == 0xd0 ||
-        (fdc->stat & 0xf0) == 0x90)
+    if (!(fdc->flags & FDC_FLAG_PC98) || real_drive(fdc, fdc->drive) != drive || fdc->pnum != fdc->ptot || !(fdc->stat & 0x10) || (fdc->stat & 0xf0) == 0xd0 || (fdc->stat & 0xf0) == 0x90)
         return;
 
     if (fdc_command_uses_media(fdc->processed_cmd)) {
@@ -3202,7 +3206,6 @@ const device_t fdc_ibm5140_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
-
 
 /* Native PC-98 on-board uPD765.  The motherboard owns its native decoders;
  * this device never installs a generic 3F0h decoder. */

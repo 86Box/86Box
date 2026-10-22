@@ -34,13 +34,13 @@ extern "C" {
 #define PC98_ROM_PATH_MAX 512
 
 typedef enum pc98_model_t {
-    PC98_MODEL_VX = 0,
+    PC98_MODEL_VX  = 0,
     PC98_MODEL_BX4 = 1
 } pc98_model_t;
 
-#define PC98_BX4_BANK_SIZE 0x8000u
+#define PC98_BX4_BANK_SIZE  0x8000u
 #define PC98_BX4_BANKS_SIZE (8u * PC98_BX4_BANK_SIZE)
-int pc98_ipl_available_for_model(pc98_model_t model);
+int      pc98_ipl_available_for_model(pc98_model_t model);
 uint8_t *pc98_ipl_load_for_model(pc98_model_t model);
 uint32_t pc98_ipl_window_offset_for_model(uint32_t addr, pc98_model_t model);
 /* Exact, complete getitf98 dump; never falls back to VX firmware. */
@@ -48,9 +48,9 @@ uint8_t *pc98_bx4_banks_load(void);
 
 /* Load VX firmware. Returned IPL is heap owned.
  * Availability and loading use the same exact sizes; partial sets fail closed. */
-int pc98_rom_read_exact(const char *path, uint8_t *dst, size_t bytes);
-int pc98_rom_has_size(const char *path, size_t bytes);
-int pc98_ipl_available(void);
+int      pc98_rom_read_exact(const char *path, uint8_t *dst, size_t bytes);
+int      pc98_rom_has_size(const char *path, size_t bytes);
+int      pc98_ipl_available(void);
 uint8_t *pc98_ipl_load(void);
 uint32_t pc98_ipl_window_offset(uint32_t addr);
 

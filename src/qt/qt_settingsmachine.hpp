@@ -42,7 +42,7 @@ private slots:
     void on_radioButtonLargerFrames_clicked();
 
 private:
-    void refreshCpuChoices(int machineId, int preferredFamily, int preferredSpeed);
+    void                 refreshCpuChoices(int machineId, int preferredFamily, int preferredSpeed);
     Ui::SettingsMachine *ui;
 
     int                  machine_cfg_changed;

@@ -3234,7 +3234,7 @@ void
 mem_remap_top_extended(int kb)
 {
     mem_remap_top_ex_common(kb, (mem_size >= 1024) ? mem_size : 1024,
-                           1, !cpu_16bitbus);
+                            1, !cpu_16bitbus);
 }
 
 void

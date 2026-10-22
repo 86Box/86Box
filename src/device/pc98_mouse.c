@@ -20,8 +20,8 @@ void
 pc98_mouse_motion(pc98_mouse_t *m, int x, int y, unsigned buttons)
 {
     /* The physical quadrature counters are eight bits and wrap at 256. */
-    m->x = (uint8_t)(m->x + (uint8_t)x);
-    m->y = (uint8_t)(m->y + (uint8_t)y);
+    m->x       = (uint8_t) (m->x + (uint8_t) x);
+    m->y       = (uint8_t) (m->y + (uint8_t) y);
     m->buttons = buttons & 3u;
 }
 
@@ -42,12 +42,15 @@ pc98_mouse_data(const pc98_mouse_t *m)
     uint8_t counter;
     uint8_t buttons = 0xe0;
 
-    if (m->buttons & 1u) buttons &= (uint8_t)~0x80u;
-    if (m->buttons & 2u) buttons &= (uint8_t)~0x20u;
+    if (m->buttons & 1u)
+        buttons &= (uint8_t) ~0x80u;
+    if (m->buttons & 2u)
+        buttons &= (uint8_t) ~0x20u;
     if (m->control & 0x40u)
         counter = (m->control & 0x80u) ? m->latched_y : m->y;
     else
         counter = (m->control & 0x80u) ? m->latched_x : m->x;
-    if (m->control & 0x20u) counter >>= 4;
+    if (m->control & 0x20u)
+        counter >>= 4;
     return buttons | (counter & 0x0fu);
 }

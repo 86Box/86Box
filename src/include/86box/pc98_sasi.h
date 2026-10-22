@@ -33,24 +33,24 @@ extern "C" {
 /* The PC-9801-27 SASI interface uses 256-byte logical blocks.  Port 82h
  * bits 7:6 are the *controller type* (CT1:CT0), not per-drive sector-size
  * flags.  NEC documents 00 specifically for PC-9801-27. */
-#define PC98_SASI_BLOCK_SIZE_256 256u
-#define PC98_SASI_BLOCK_SIZE_512 512u /* container compatibility only */
-#define PC98_SASI_BLOCK_SIZE PC98_SASI_BLOCK_SIZE_256
-#define PC98_SASI_LONG_ECC_SIZE 4u
-#define PC98_SASI_LONG_BLOCK_SIZE (PC98_SASI_BLOCK_SIZE_256 + PC98_SASI_LONG_ECC_SIZE)
-#define PC98_SASI_MAX_BLOCK_SIZE PC98_SASI_BLOCK_SIZE_256
+#define PC98_SASI_BLOCK_SIZE_256      256u
+#define PC98_SASI_BLOCK_SIZE_512      512u /* container compatibility only */
+#define PC98_SASI_BLOCK_SIZE          PC98_SASI_BLOCK_SIZE_256
+#define PC98_SASI_LONG_ECC_SIZE       4u
+#define PC98_SASI_LONG_BLOCK_SIZE     (PC98_SASI_BLOCK_SIZE_256 + PC98_SASI_LONG_ECC_SIZE)
+#define PC98_SASI_MAX_BLOCK_SIZE      PC98_SASI_BLOCK_SIZE_256
 #define PC98_SASI_MAX_LONG_BLOCK_SIZE PC98_SASI_LONG_BLOCK_SIZE
-#define PC98_SASI_TRACK_BLOCKS_256 33u
+#define PC98_SASI_TRACK_BLOCKS_256    33u
 
-#define PC98_SASI_MAX_UNITS  2u
-#define PC98_SASI_CDB_LEN    6u
+#define PC98_SASI_MAX_UNITS           2u
+#define PC98_SASI_CDB_LEN             6u
 
-#define PC98_SASI_BUF_BLOCKS 256u
+#define PC98_SASI_BUF_BLOCKS          256u
 /* READ/WRITE LONG append four ECC bytes to every transferred sector. */
-#define PC98_SASI_BUF_SIZE   (PC98_SASI_BUF_BLOCKS * PC98_SASI_MAX_LONG_BLOCK_SIZE)
+#define PC98_SASI_BUF_SIZE (PC98_SASI_BUF_BLOCKS * PC98_SASI_MAX_LONG_BLOCK_SIZE)
 
 /* Largest physical track count in the PC-9801-27 ROM geometry table. */
-#define PC98_SASI_MAX_TRACKS 5312u
+#define PC98_SASI_MAX_TRACKS        5312u
 #define PC98_SASI_ECC_CACHE_ENTRIES 256u
 
 /*
@@ -61,11 +61,11 @@ extern "C" {
  * compares against are 0A0h, 0A4h, 0A8h, 0ACh and 0BCh, which decode
  * exactly as REQ|BSY plus the usual MSG/CD/IO triple.
  */
-#define PC98_SASI_ST_REQ 0x80u /* target requests a byte                   */
-#define PC98_SASI_ST_ACK 0x40u /* handshake in progress; BIOS spins on it  */
-#define PC98_SASI_ST_BSY 0x20u /* a target is on the bus                   */
-#define PC98_SASI_ST_MSG 0x10u
-#define PC98_SASI_ST_CD  0x08u /* command/data                             */
+#define PC98_SASI_ST_REQ  0x80u /* target requests a byte                   */
+#define PC98_SASI_ST_ACK  0x40u /* handshake in progress; BIOS spins on it  */
+#define PC98_SASI_ST_BSY  0x20u /* a target is on the bus                   */
+#define PC98_SASI_ST_MSG  0x10u
+#define PC98_SASI_ST_CD   0x08u /* command/data                             */
 #define PC98_SASI_ST_IO   0x04u /* 1 = to initiator                        */
 #define PC98_SASI_ST_DMAE 0x02u /* DMA-related board state; BIOS masks it */
 #define PC98_SASI_ST_INT  0x01u /* INT3 request from the interface        */
@@ -87,7 +87,7 @@ extern "C" {
 #define PC98_SASI_CTL_STS 0x40u /* 1: status readback, 0: DIP readback    */
 /* Bit 7 is set in the ROM's C0/C1/C3 active values, but the available
  * evidence does not require it to gate either IRQ or DMA. */
-#define PC98_SASI_CTL_B7  0x80u
+#define PC98_SASI_CTL_B7 0x80u
 
 typedef enum pc98_sasi_phase_t {
     PC98_SASI_BUSFREE = 0,
@@ -157,16 +157,16 @@ typedef struct pc98_sasi_ops_t {
      */
     uint32_t (*dma_write)(void *priv, const uint8_t *buf, uint32_t len);
     uint32_t (*dma_read)(void *priv, uint8_t *buf, uint32_t len);
-    void     *priv;
+    void *priv;
 } pc98_sasi_ops_t;
 
 typedef struct pc98_sasi_t {
     pc98_sasi_ops_t ops;
 
-    uint8_t ctrl;    /* last value written to 82h                          */
-    uint8_t dip;     /* configuration byte reported when CTL_STS is clear  */
-    uint8_t data;    /* the 80h latch                                      */
-    uint8_t int_pending;
+    uint8_t           ctrl; /* last value written to 82h                          */
+    uint8_t           dip;  /* configuration byte reported when CTL_STS is clear  */
+    uint8_t           data; /* the 80h latch                                      */
+    uint8_t           int_pending;
     pc98_sasi_lines_t lines;
 
     pc98_sasi_phase_t phase;
@@ -184,7 +184,7 @@ typedef struct pc98_sasi_t {
     uint32_t sense_lba[PC98_SASI_MAX_UNITS];
 
     /* Xebec sector buffer.  PC-9801-27 exposes a 256-byte SASI block. */
-    uint8_t  sector_buf[PC98_SASI_BLOCK_SIZE];
+    uint8_t sector_buf[PC98_SASI_BLOCK_SIZE];
 
     /* S1410 Initialize Drive Characteristics state.  The -27 vendor C2h
      * setup remains separate because the option ROM sends both protocols. */
@@ -235,8 +235,8 @@ typedef struct pc98_sasi_geometry_t {
     uint16_t user_cylinders;  /* usable area                               */
     uint16_t total_cylinders; /* including the alternate-track area        */
     uint8_t  heads;
-    uint8_t  sectors;         /* 256-byte format sectors/track             */
-    uint32_t total_blocks;    /* total_cylinders * heads * sectors         */
+    uint8_t  sectors;      /* 256-byte format sectors/track             */
+    uint32_t total_blocks; /* total_cylinders * heads * sectors         */
 } pc98_sasi_geometry_t;
 
 #define PC98_SASI_DIP_COUNT        8u
@@ -245,16 +245,16 @@ typedef struct pc98_sasi_geometry_t {
 /* Port 82h configuration readback.  CT1:CT0 is one controller-type field.
  * NEC PC-9800 Technical Databook: PC-9801-27 = 00; XA/XL/XL2 internal = 11.
  * Bits 5:3 are drive 0 type (DT1x), bits 2:0 drive 1 type (DT0x). */
-#define PC98_SASI_DIP_CT_MASK       0xc0u
+#define PC98_SASI_DIP_CT_MASK      0xc0u
 #define PC98_SASI_DIP_CT_PC9801_27 0x00u
-#define PC98_SASI_DIP_CT_INTERNAL   0xc0u
+#define PC98_SASI_DIP_CT_INTERNAL  0xc0u
 
 extern const pc98_sasi_geometry_t pc98_sasi_geometry[PC98_SASI_DIP_COUNT];
 
 /* Largest *valid connected* DIP entry whose usable LBA range the image can
  * back, or -1 if the image is smaller than the 5 MB setting. */
 int      pc98_sasi_dip_for_blocks(uint32_t blocks); /* legacy 256-byte helper */
-uint32_t pc98_sasi_dip_capacity(unsigned dip);        /* legacy 256-byte helper */
+uint32_t pc98_sasi_dip_capacity(unsigned dip);      /* legacy 256-byte helper */
 int      pc98_sasi_dip_for_media(uint32_t blocks, unsigned sector_size);
 uint32_t pc98_sasi_dip_capacity_for_sector(unsigned dip, unsigned sector_size);
 unsigned pc98_sasi_unit_sector_size(const pc98_sasi_t *s, unsigned unit);
@@ -282,9 +282,9 @@ extern const device_t pc98_sasi_device;
 extern int            pc98_sasi_available(void);
 #endif
 
-uint8_t pc98_sasi_status_in(pc98_sasi_t *s);  /* port 82h read  */
+uint8_t pc98_sasi_status_in(pc98_sasi_t *s);             /* port 82h read  */
 void    pc98_sasi_ctrl_out(pc98_sasi_t *s, uint8_t val); /* 82h write */
-uint8_t pc98_sasi_data_in(pc98_sasi_t *s);    /* port 80h read  */
+uint8_t pc98_sasi_data_in(pc98_sasi_t *s);               /* port 80h read  */
 void    pc98_sasi_data_out(pc98_sasi_t *s, uint8_t val); /* 80h write */
 
 #ifdef __cplusplus

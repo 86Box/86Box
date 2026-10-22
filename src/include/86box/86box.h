@@ -295,8 +295,8 @@ extern void warning(const char *fmt, ...) __attribute__ ((format (printf, 1, 2))
 /* Keep the callable logging ABI, but omit diagnostic argument evaluation in
    release callers. The logger implementation still supplies the no-op symbols. */
 #if defined(RELEASE_BUILD) && !defined(PCLOG_IMPLEMENTATION) && !defined(pclog) && !defined(pclog_ex)
-#    define pclog(...) ((void)0)
-#    define pclog_ex(...) ((void)0)
+#    define pclog(...)    ((void) 0)
+#    define pclog_ex(...) ((void) 0)
 #endif
 extern void set_screen_size(int x, int y);
 extern void set_screen_size_monitor(int x, int y, int monitor_index);

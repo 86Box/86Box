@@ -25,7 +25,7 @@
 #include <86box/sound.h>
 #include "snd_pc98_joystick.h"
 
-#define PC98_SPB_CLOCK 7987200u
+#define PC98_SPB_CLOCK    7987200u
 #define PC98_SPB_ROM_SIZE 0x4000u
 
 static const char *const pc98_spb_bios_paths[] = {
@@ -42,7 +42,7 @@ static const char *const pc98_spb_rhythm_paths[] = {
     "roms/sound/ym2608/ym2608_adpcm_rom.bin",
     NULL
 };
-static const int pc98_spb_irqs[4] = { 3, 13, 10, 12 };
+static const int      pc98_spb_irqs[4]      = { 3, 13, 10, 12 };
 static const uint32_t pc98_spb_rom_addrs[5] = {
     0xc8000u, 0xcc000u, 0xd0000u, 0xd4000u, 0u
 };
@@ -50,12 +50,12 @@ static const uint32_t pc98_spb_rom_addrs[5] = {
 typedef struct pc98_spb_t {
     pc98_opn_t *opna;
     pc98_opn_t *extra_fm;
-    rom_t *bios;
-    uint8_t *rhythm;
-    uint16_t base;
-    uint8_t address;
-    uint8_t irq_select;
-    int irq_state;
+    rom_t      *bios;
+    uint8_t    *rhythm;
+    uint16_t    base;
+    uint8_t     address;
+    uint8_t     irq_select;
+    int         irq_state;
 } pc98_spb_t;
 
 static void
@@ -74,7 +74,7 @@ pc98_spb_irq(void *priv, int level)
 static uint8_t
 pc98_spb_in(uint16_t port, void *priv)
 {
-    pc98_spb_t *dev = priv;
+    pc98_spb_t    *dev    = priv;
     const uint16_t offset = port - dev->base;
     if (offset & 1u)
         return 0xffu;
@@ -90,14 +90,14 @@ pc98_spb_in(uint16_t port, void *priv)
         return pc98_opn_read(dev->opna, 2u);
     if ((index == 1u) && (dev->address == 0x0eu))
         pc98_opn_set_port_a(dev->opna,
-            pc98_sound_joystick(pc98_opn_get_port_b(dev->opna), dev->irq_select << 6));
+                            pc98_sound_joystick(pc98_opn_get_port_b(dev->opna), dev->irq_select << 6));
     return pc98_opn_read(dev->opna, index);
 }
 
 static void
 pc98_spb_out(uint16_t port, uint8_t value, void *priv)
 {
-    pc98_spb_t *dev = priv;
+    pc98_spb_t    *dev    = priv;
     const uint16_t offset = port - dev->base;
     if (offset & 1u)
         return;
@@ -138,9 +138,9 @@ pc98_spb_init(const device_t *info)
     pc98_spb_t *dev = calloc(1, sizeof(*dev));
     if (!dev)
         return NULL;
-    dev->base = device_get_config_int("base") ? 0x188u : 0x88u;
+    dev->base       = device_get_config_int("base") ? 0x188u : 0x88u;
     dev->irq_select = device_get_config_int("irq") & 3;
-    dev->opna = pc98_opn_create(PC98_OPN_YM2608, PC98_SPB_CLOCK, pc98_spb_irq, dev);
+    dev->opna       = pc98_opn_create(PC98_OPN_YM2608, PC98_SPB_CLOCK, pc98_spb_irq, dev);
     if (!dev->opna || !pc98_opn_set_adpcm_ram(dev->opna, 1))
         goto fail;
     if (info->local) {
@@ -165,9 +165,7 @@ pc98_spb_init(const device_t *info)
     unsigned rom_select = device_get_config_int("rom_addr");
     if (rom_select < 4 && pc98_rom_find_quiet(pc98_spb_bios_paths, path, sizeof(path))) {
         dev->bios = calloc(1, sizeof(*dev->bios));
-        if (dev->bios && rom_init(dev->bios, path, pc98_spb_rom_addrs[rom_select],
-                                  PC98_SPB_ROM_SIZE, PC98_SPB_ROM_SIZE - 1, 0,
-                                  MEM_MAPPING_EXTERNAL)) {
+        if (dev->bios && rom_init(dev->bios, path, pc98_spb_rom_addrs[rom_select], PC98_SPB_ROM_SIZE, PC98_SPB_ROM_SIZE - 1, 0, MEM_MAPPING_EXTERNAL)) {
             free(dev->bios);
             dev->bios = NULL;
         }
@@ -214,24 +212,15 @@ pc98_spb_close(void *priv)
 }
 
 static const device_config_t pc98_spb_config[] = {
-    { .name = "base", .description = "Port base", .type = CONFIG_SELECTION, .default_int = 1,
-      .selection = { { "188H", 1 }, { "088H", 0 }, { "" } } },
-    { .name = "irq", .description = "Interrupt level", .type = CONFIG_SELECTION, .default_int = 3,
-      .selection = { { "INT5 (IRQ 12)", 3 }, { "INT0 (IRQ 3)", 0 },
-                     { "INT41 (IRQ 10)", 2 }, { "INT6 (IRQ 13)", 1 }, { "" } } },
-    { .name = "rom_addr", .description = "Sound BIOS address", .type = CONFIG_SELECTION, .default_int = 1,
-      .selection = { { "CC000H", 1 }, { "C8000H", 0 }, { "D0000H", 2 },
-                     { "D4000H", 3 }, { "Disabled", 4 }, { "" } } },
+    { .name = "base", .description = "Port base", .type = CONFIG_SELECTION, .default_int = 1, .selection = { { "188H", 1 }, { "088H", 0 }, { "" } } },
+    { .name = "irq", .description = "Interrupt level", .type = CONFIG_SELECTION, .default_int = 3, .selection = { { "INT5 (IRQ 12)", 3 }, { "INT0 (IRQ 3)", 0 }, { "INT41 (IRQ 10)", 2 }, { "INT6 (IRQ 13)", 1 }, { "" } } },
+    { .name = "rom_addr", .description = "Sound BIOS address", .type = CONFIG_SELECTION, .default_int = 1, .selection = { { "CC000H", 1 }, { "C8000H", 0 }, { "D0000H", 2 }, { "D4000H", 3 }, { "Disabled", 4 }, { "" } } },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 const device_t pc98_speakboard_device = {
-    .name = "Speak Board", .internal_name = "pc98_speakboard", .flags = DEVICE_CBUS,
-    .local = 0, .init = pc98_spb_init, .close = pc98_spb_close, .reset = pc98_spb_reset,
-    .config = pc98_spb_config
+    .name = "Speak Board", .internal_name = "pc98_speakboard", .flags = DEVICE_CBUS, .local = 0, .init = pc98_spb_init, .close = pc98_spb_close, .reset = pc98_spb_reset, .config = pc98_spb_config
 };
 const device_t pc98_sparkboard_device = {
-    .name = "Spark Board", .internal_name = "pc98_sparkboard", .flags = DEVICE_CBUS,
-    .local = 1, .init = pc98_spb_init, .close = pc98_spb_close, .reset = pc98_spb_reset,
-    .config = pc98_spb_config
+    .name = "Spark Board", .internal_name = "pc98_sparkboard", .flags = DEVICE_CBUS, .local = 1, .init = pc98_spb_init, .close = pc98_spb_close, .reset = pc98_spb_reset, .config = pc98_spb_config
 };

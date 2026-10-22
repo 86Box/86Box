@@ -19,9 +19,9 @@ typedef void (*pc98_ppi_out_cb)(void *opaque, unsigned port, uint8_t value);
 typedef void (*pc98_ppi_intr_cb)(void *opaque, unsigned group, int level);
 
 typedef struct pc98_ppi8255_t {
-    void *opaque;
-    pc98_ppi_in_cb in_cb;
-    pc98_ppi_out_cb out_cb;
+    void            *opaque;
+    pc98_ppi_in_cb   in_cb;
+    pc98_ppi_out_cb  out_cb;
     pc98_ppi_intr_cb intr_cb;
 
     uint8_t latch[3];
@@ -47,32 +47,33 @@ typedef struct pc98_ppi8255_t {
  * are read back through port C at 35h, and neither a mode-set command nor an
  * 80286 software reset clears them.  `mask` selects the pins that are latched
  * externally; everything else is left to the chip. */
-static inline uint8_t pc98_ppi8255_bsr_latch(uint8_t latch, uint8_t bsr,
-                                             uint8_t mask)
+static inline uint8_t
+pc98_ppi8255_bsr_latch(uint8_t latch, uint8_t bsr,
+                       uint8_t mask)
 {
     uint8_t bit;
 
     if (bsr & 0x80u) /* mode-set command, not a BSR command */
         return latch;
 
-    bit = (uint8_t)(1u << ((bsr >> 1) & 7u));
+    bit = (uint8_t) (1u << ((bsr >> 1) & 7u));
     if (!(bit & mask))
         return latch;
 
-    return (uint8_t)((bsr & 1u) ? (latch | bit) : (latch & (uint8_t)~bit));
+    return (uint8_t) ((bsr & 1u) ? (latch | bit) : (latch & (uint8_t) ~bit));
 }
 
-void pc98_ppi8255_init(pc98_ppi8255_t *ppi, void *opaque,
-                       pc98_ppi_in_cb in_cb, pc98_ppi_out_cb out_cb,
-                       pc98_ppi_intr_cb intr_cb);
-void pc98_ppi8255_reset(pc98_ppi8255_t *ppi);
+void    pc98_ppi8255_init(pc98_ppi8255_t *ppi, void *opaque,
+                          pc98_ppi_in_cb in_cb, pc98_ppi_out_cb out_cb,
+                          pc98_ppi_intr_cb intr_cb);
+void    pc98_ppi8255_reset(pc98_ppi8255_t *ppi);
 uint8_t pc98_ppi8255_read(pc98_ppi8255_t *ppi, unsigned reg);
-void pc98_ppi8255_write(pc98_ppi8255_t *ppi, unsigned reg, uint8_t value);
-void pc98_ppi8255_set_input(pc98_ppi8255_t *ppi, unsigned port, uint8_t value);
-void pc98_ppi8255_strobe_a(pc98_ppi8255_t *ppi, int level);
-void pc98_ppi8255_ack_a(pc98_ppi8255_t *ppi, int level);
-void pc98_ppi8255_strobe_b(pc98_ppi8255_t *ppi, int level);
-void pc98_ppi8255_ack_b(pc98_ppi8255_t *ppi, int level);
+void    pc98_ppi8255_write(pc98_ppi8255_t *ppi, unsigned reg, uint8_t value);
+void    pc98_ppi8255_set_input(pc98_ppi8255_t *ppi, unsigned port, uint8_t value);
+void    pc98_ppi8255_strobe_a(pc98_ppi8255_t *ppi, int level);
+void    pc98_ppi8255_ack_a(pc98_ppi8255_t *ppi, int level);
+void    pc98_ppi8255_strobe_b(pc98_ppi8255_t *ppi, int level);
+void    pc98_ppi8255_ack_b(pc98_ppi8255_t *ppi, int level);
 
 #ifdef __cplusplus
 }

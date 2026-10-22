@@ -201,6 +201,6 @@ extern void                lpt_ports_reset(void);
 extern const device_t      lpt_port_device;
 /* Host backend without an IBM parallel-port I/O decoder; motherboard owns
  * the guest registers and forwards pin state through lpt_write/read_status. */
-extern const device_t      lpt_port_native_device;
+extern const device_t lpt_port_native_device;
 
 #endif /*EMU_LPT_H*/

@@ -311,8 +311,7 @@ ui_sb_update_icon_state(int, int)
 {
 }
 
-void
-(pclog_ex)(const char *format, va_list args)
+void(pclog_ex)(const char *format, va_list args)
 {
     std::vfprintf(stderr, format, args);
 }

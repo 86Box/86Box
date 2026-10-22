@@ -65,7 +65,7 @@
 #define FDC_FLAG_IRQ_ON_NOOP_SEEK 0x1000000 /* Interrupt on zero-step SEEK completion */
 #define FDC_FLAG_IBM5140        0x2000000 /* Convertible motherboard adapter */
 #define FDC_FLAG_COMPAQ         0x4000000 /* Compaq 386, drive type sense at 3F1 */
-#define FDC_FLAG_PC98           0x8000000 /* PC-98 selects drives in command bytes */
+#define FDC_FLAG_PC98             0x8000000 /* PC-98 selects drives in command bytes */
 #define FDC_FLAG_PNP            0x80000000 /* FDC is PnP */
 
 typedef struct sector_id_fields_t {

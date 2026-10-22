@@ -92,7 +92,7 @@ fdd_drive_t drives[FDD_NUM];
 static void
 fdd_ready_spinup_complete(void *priv)
 {
-    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    fdd_drive_t *drv  = (fdd_drive_t *) priv;
     drv->ready_spinup = 0;
 }
 
@@ -110,9 +110,9 @@ fdd_ready_start_spinup(fdd_drive_t *drv)
         fdd_ready_cancel(drv);
         return;
     }
-    const int rpm = fdd_getrpm(drv);
+    const int      rpm       = fdd_getrpm(drv);
     const uint64_t spinup_us = rpm > 0 ? 120000000ULL / (uint64_t) rpm : 400000ULL;
-    drv->ready_spinup = 1;
+    drv->ready_spinup        = 1;
     timer_set_delay_u64(&drv->ready_timer, spinup_us * TIMER_USEC);
 }
 
@@ -918,8 +918,7 @@ fdd_close(void *priv)
     /* A mechanical SEEK does not depend on the medium. Its delayed completion
      * still belongs to the FDC after eject, but a deferred data command cannot
      * retain a callback into the image being released. */
-    const int keep_seek = drv->fdc && (((fdc_t *) drv->fdc)->flags & FDC_FLAG_PC98) &&
-                          drv->seek_in_progress && !drv->pending.pending;
+    const int keep_seek = drv->fdc && (((fdc_t *) drv->fdc)->flags & FDC_FLAG_PC98) && drv->seek_in_progress && !drv->pending.pending;
     timer_disable(&drv->poll_time);
     if (!keep_seek)
         timer_disable(&drv->seek_timer);
@@ -1028,11 +1027,11 @@ fdd_set_motor_enable(void *priv, int motor_enable)
 static void
 fdd_poll(void *priv)
 {
-    fdd_drive_t *drv   = (fdd_drive_t *) priv;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
 
     if (drv == NULL)
         return;
-    fdc_t       *fdc   = (fdc_t *) drv->fdc;
+    fdc_t *fdc = (fdc_t *) drv->fdc;
 
     timer_advance_u64(&drv->poll_time, fdd_byteperiod((void *) drv));
 
@@ -1092,7 +1091,7 @@ fdd_reset(void)
         memset(&drv->pending, 0, sizeof(drv->pending));
         if (drv->stop)
             drv->stop(drv);
-        drv->motoron = 0;
+        drv->motoron      = 0;
         drv->ready_spinup = 0;
         timer_add(&drv->poll_time, fdd_poll, drv, 0);
         timer_add(&drv->ready_timer, fdd_ready_spinup_complete, drv, 0);
@@ -1265,7 +1264,7 @@ fdd_stop(void *priv)
 
     if (drv == NULL)
         return;
-    fdc_t *      fdc = (fdc_t *) drv->fdc;
+    fdc_t *fdc = (fdc_t *) drv->fdc;
 
     drv->notfound = 0;
 
@@ -1276,7 +1275,7 @@ fdd_stop(void *priv)
         drv->seek_in_progress = 0;
         drv->pending.pending = 0;
         drv->pending.op = FDD_OP_NONE;
-        drv->notfound = 0;
+        drv->notfound         = 0;
         if (was_seeking)
             fdd_do_seek(drv, drv->track);
     }

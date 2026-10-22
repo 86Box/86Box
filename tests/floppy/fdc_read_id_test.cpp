@@ -342,12 +342,10 @@ path_get_extension(char *path)
     char *dot = std::strrchr(path, '.');
     return dot ? dot + 1 : path + std::strlen(path);
 }
-void
-(pclog)(const char *, ...)
+void(pclog)(const char *, ...)
 {
 }
-void
-(pclog_ex)(const char *, va_list)
+void(pclog_ex)(const char *, va_list)
 {
 }
 void

@@ -455,8 +455,7 @@ midi_in_handler(int set,
                 break;
 
             next = temp->next;
-            if ((temp->msg == msg) && (temp->sysex == sysex) &&
-                (temp->remain == remain) && (temp->priv == priv)) {
+            if ((temp->msg == msg) && (temp->sysex == sysex) && (temp->remain == remain) && (temp->priv == priv)) {
                 if (temp->prev != NULL)
                     temp->prev->next = temp->next;
                 else

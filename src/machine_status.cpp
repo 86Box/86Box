@@ -77,7 +77,6 @@ machine_status_init(void)
         machine_status.hdd[i].write_active = false;
     }
 
-
     for (size_t i = 0; i < NET_CARD_MAX; i++) {
         machine_status.net[i].active       = false;
         machine_status.net[i].write_active = false;

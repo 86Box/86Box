@@ -2,13 +2,20 @@
  * cold reloads. Host file/path services and optional drive audio are adapted. */
 #include "../../src/config.c"
 
-char usr_path[1024] = "C:/config-test/vm/";
-char exe_path[2048] = "C:/config-test/bin/";
+char            usr_path[1024] = "C:/config-test/vm/";
+char            exe_path[2048] = "C:/config-test/bin/";
 static unsigned checks, failures;
-#define CHECK(e) do { checks++; if (!(e)) { \
-    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #e); failures++; } } while (0)
+#define CHECK(e)                                                    \
+    do {                                                            \
+        checks++;                                                   \
+        if (!(e)) {                                                 \
+            fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #e); \
+            failures++;                                             \
+        }                                                           \
+    } while (0)
 
-void fatal(const char *fmt, ...)
+void
+fatal(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
@@ -18,47 +25,80 @@ void fatal(const char *fmt, ...)
 }
 
 #ifdef _WIN32
-size_t mbstoc16s(uint16_t dst[], const char src[], int len)
+size_t
+mbstoc16s(uint16_t dst[], const char src[], int len)
 {
     return MultiByteToWideChar(CP_UTF8, 0, src, -1, (LPWSTR) dst, len);
 }
-size_t c16stombs(char dst[], const uint16_t src[], int len)
+size_t
+c16stombs(char dst[], const uint16_t src[], int len)
 {
     return WideCharToMultiByte(CP_UTF8, 0, (LPCWCH) src, -1, dst, len, NULL, NULL);
 }
 #else
-#include <strings.h>
-int strnicmp(const char *a, const char *b, size_t len) { return strncasecmp(a, b, len); }
+#    include <strings.h>
+int
+strnicmp(const char *a, const char *b, size_t len)
+{
+    return strncasecmp(a, b, len);
+}
 #endif
 
-FILE *plat_fopen(const char *path, const char *mode) { return fopen(path, mode); }
-FILE *rom_fopen(const char *path, char *mode) { return fopen(path, mode); }
-void hdd_audio_load_profiles(void) { }
-int hdd_audio_get_profile_by_internal_name(const char *name) { return 0; }
-const char *hdd_audio_get_profile_internal_name(int id) { return "none"; }
-int path_abs(char *path) { return path[0] == '/' || path[1] == ':'; }
-void path_normalize(char *path)
+FILE *
+plat_fopen(const char *path, const char *mode)
+{
+    return fopen(path, mode);
+}
+FILE *
+rom_fopen(const char *path, char *mode)
+{
+    return fopen(path, mode);
+}
+void
+hdd_audio_load_profiles(void)
+{
+}
+int
+hdd_audio_get_profile_by_internal_name(const char *name)
+{
+    return 0;
+}
+const char *
+hdd_audio_get_profile_internal_name(int id)
+{
+    return "none";
+}
+int
+path_abs(char *path)
+{
+    return path[0] == '/' || path[1] == ':';
+}
+void
+path_normalize(char *path)
 {
     for (; *path; ++path)
         if (*path == '\\')
             *path = '/';
 }
-const char *path_get_slash(char *path)
+const char *
+path_get_slash(char *path)
 {
     return path[strlen(path) - 1] == '/' ? "" : "/";
 }
 
-static void set_disk(int slot, int bus, int unit)
+static void
+set_disk(int slot, int bus, int unit)
 {
     hdd[slot].bus_type = bus;
-    hdd[slot].channel = unit;
-    hdd[slot].spt = 17;
-    hdd[slot].hpc = 4;
-    hdd[slot].tracks = 615;
+    hdd[slot].channel  = unit;
+    hdd[slot].spt      = 17;
+    hdd[slot].hpc      = 4;
+    hdd[slot].tracks   = 615;
     snprintf(hdd[slot].fn, sizeof(hdd[slot].fn), "%sdisk%d.hdi", usr_path, slot);
 }
 
-static void reload(const char *filename)
+static void
+reload(const char *filename)
 {
     ini_write(config, filename);
     ini_close(config);
@@ -69,7 +109,8 @@ static void reload(const char *filename)
     load_hard_disks();
 }
 
-static void round_trip(const char *filename, int a, int b, int first_unit)
+static void
+round_trip(const char *filename, int a, int b, int first_unit)
 {
     config = ini_new();
     hdd_init();
@@ -88,7 +129,8 @@ static void round_trip(const char *filename, int a, int b, int first_unit)
     ini_close(config);
 }
 
-static void legacy_and_cleanup(const char *filename)
+static void
+legacy_and_cleanup(const char *filename)
 {
     config = ini_new();
     hdd_init();
@@ -125,7 +167,8 @@ static void legacy_and_cleanup(const char *filename)
     ini_close(config);
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
     if (argc != 2)
         fatal("Usage: %s <temporary-config-file>\n", argv[0]);

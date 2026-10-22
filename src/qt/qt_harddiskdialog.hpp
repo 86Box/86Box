@@ -43,12 +43,12 @@ private slots:
 
 private:
     Ui::HarddiskDialog *ui;
-    bool existingImageDialog;
-    uint32_t sectorSize_ = 512;
+    bool                existingImageDialog;
+    uint32_t            sectorSize_ = 512;
 
     uint32_t cylinders_ = 0;
-    uint32_t heads_ = 0;
-    uint32_t sectors_ = 0;
+    uint32_t heads_     = 0;
+    uint32_t sectors_   = 0;
 
     uint32_t max_sectors   = 0;
     uint32_t max_heads     = 0;

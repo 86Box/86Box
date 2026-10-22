@@ -2444,7 +2444,6 @@ dma_reset(void)
         dma_m = (dma_m & 0xf0) | 0x0f;
 }
 
-
 /* PC-98 puts the 8237 on the odd byte lane at 01h,03h,...,1fh.  CPU A1
  * becomes the controller's A0, so physical port N maps to register N>>1. */
 static uint8_t
@@ -2463,9 +2462,9 @@ void
 dma_init_pc98(void)
 {
     dma_ibm5140 = dma_ibm5140_diag = 0;
-    dma_ps2.is_ps2 = 0;
-    dma_eisa = 0;
-    dma_sg_count_mask = 0x0000fffe;
+    dma_ps2.is_ps2                 = 0;
+    dma_eisa                       = 0;
+    dma_sg_count_mask              = 0x0000fffe;
     dma_reset();
 
     /* VX-class machines latch all eight page bits, but normally mask A23-A20.
@@ -2476,7 +2475,6 @@ dma_init_pc98(void)
         io_sethandler(port, 0x0001, dma_pc98_read, NULL, NULL,
                       dma_pc98_write, NULL, NULL, NULL);
 }
-
 
 /* PC-9801VM/VX port 29h extends the 8237 page register on 286-class
  * machines.  At a 64 KiB address wrap it can increment either nibble (or the
@@ -2495,11 +2493,11 @@ dma_set_pc98_autoinc(uint8_t channel, uint8_t mode)
 static void
 dma_pc98_adjust_page(int channel, uint32_t old_ac)
 {
-    dma_t *dev;
+    dma_t  *dev;
     uint8_t mask;
     uint8_t page;
     uint8_t add;
-    int wrapped;
+    int     wrapped;
 
     if (channel < 0 || channel >= 4)
         return;
@@ -2507,16 +2505,16 @@ dma_pc98_adjust_page(int channel, uint32_t old_ac)
     if (!mask)
         return;
 
-    dev = &dma[channel];
+    dev     = &dma[channel];
     wrapped = (dev->mode & 0x20)
-            ? ((old_ac & 0xffff) == 0x0000 && (dev->ac & 0xffff) == 0xffff)
-            : ((old_ac & 0xffff) == 0xffff && (dev->ac & 0xffff) == 0x0000);
+        ? ((old_ac & 0xffff) == 0x0000 && (dev->ac & 0xffff) == 0xffff)
+        : ((old_ac & 0xffff) == 0xffff && (dev->ac & 0xffff) == 0x0000);
     if (!wrapped)
         return;
 
-    page = dev->page_l;
-    add = (dev->mode & 0x20) ? 0xff : 0x01;
-    page = (uint8_t)((page & (uint8_t)~mask) + ((page + add) & mask));
+    page      = dev->page_l;
+    add       = (dev->mode & 0x20) ? 0xff : 0x01;
+    page      = (uint8_t) ((page & (uint8_t) ~mask) + ((page + add) & mask));
     dev->page = dev->page_l = page;
 
     /* The page register is an external latch.  Keep its complete read-back
@@ -2526,9 +2524,9 @@ dma_pc98_adjust_page(int channel, uint32_t old_ac)
      * carries the page latch in 86Box's combined-address representation, so it
      * must follow the latch as well (notably for 8237 auto-init reloads). */
     {
-        const uint32_t page_addr = (((uint32_t)page << 16) & dma_mask);
-        dev->ab = (dev->ab & 0x0000ffffu) | page_addr;
-        dev->ac = (dev->ac & 0x0000ffffu) | page_addr;
+        const uint32_t page_addr = (((uint32_t) page << 16) & dma_mask);
+        dev->ab                  = (dev->ab & 0x0000ffffu) | page_addr;
+        dev->ac                  = (dev->ac & 0x0000ffffu) | page_addr;
     }
 }
 
@@ -2795,18 +2793,19 @@ dma_pc98_bus_occupancy(int channel)
      * block/demand omit S1 until A8-A15 changes; compressed omits S3;
      * verify ignores READY, so has no SW. Acquisition S0/HOLD/HLDA still
      * needs a deferred CPU bus interface. */
-    if (!IS_ARCH(machine, MACHINE_PC98)) return;
-    uint8_t high = (uint8_t)(dma[channel].ac >> 8);
-    int s1 = !dma_xt8237.pc98_address_valid ||
-             dma_xt8237.pc98_bus_channel != channel ||
-             dma_xt8237.pc98_address_high != high;
-    int states = (dma_command[0] & 8) ? 2 : 3; /* S2/S3/S4 or S2/S4. */
+    if (!IS_ARCH(machine, MACHINE_PC98))
+        return;
+    uint8_t high   = (uint8_t) (dma[channel].ac >> 8);
+    int     s1     = !dma_xt8237.pc98_address_valid || dma_xt8237.pc98_bus_channel != channel || dma_xt8237.pc98_address_high != high;
+    int     states = (dma_command[0] & 8) ? 2 : 3; /* S2/S3/S4 or S2/S4. */
     states += s1;
-    if (dma[channel].mode & 0x0c) states++; /* Board READY wait for data. */
+    if (dma[channel].mode & 0x0c)
+        states++; /* Board READY wait for data. */
     dma_xt8237.pc98_address_valid = 1;
-    dma_xt8237.pc98_bus_channel = (uint8_t)channel;
-    dma_xt8237.pc98_address_high = high;
-    if (is286 && !is386) cpu_bus_stall(states * 2);
+    dma_xt8237.pc98_bus_channel   = (uint8_t) channel;
+    dma_xt8237.pc98_address_high  = high;
+    if (is286 && !is386)
+        cpu_bus_stall(states * 2);
 }
 
 static int

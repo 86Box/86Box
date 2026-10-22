@@ -38,7 +38,7 @@
 
 /* 15.9744 MHz / 4.  The -26 drew this from the C-BUS clock instead, which
  * is the only documented difference between the two revisions. */
-#define PC98_26K_CLOCK 3993600u
+#define PC98_26K_CLOCK    3993600u
 
 #define PC98_26K_ROM_SIZE 0x4000
 
@@ -140,17 +140,17 @@ pc98_26k_irq(void *priv, int level)
 static uint8_t
 pc98_26k_in(uint16_t port, void *priv)
 {
-    pc98_26k_t *dev = (pc98_26k_t *) priv;
+    pc98_26k_t    *dev   = (pc98_26k_t *) priv;
     const uint32_t index = (uint32_t) ((port - dev->base) >> 1);
-    uint8_t val = 0xFF;
+    uint8_t        val   = 0xFF;
     /* Only the even byte lane is decoded: 188h and 18Ah. */
     if (port & 1u)
         return 0xffu;
 
     if ((index == 1) && (dev->opn_addr == 0x0e))
         pc98_opn_set_port_a(dev->opn,
-            pc98_sound_joystick(pc98_opn_get_port_b(dev->opn),
-                                pc98_26k_irq_pa_bits[dev->int_level]));
+                            pc98_sound_joystick(pc98_opn_get_port_b(dev->opn),
+                                                pc98_26k_irq_pa_bits[dev->int_level]));
     val = pc98_opn_read(dev->opn, index);
     if ((index == 1) && (dev->opn_addr == 0x0e)) {
         /* The same jumpers drive Port A and the physical interrupt line. */
@@ -163,7 +163,7 @@ pc98_26k_in(uint16_t port, void *priv)
 static void
 pc98_26k_out(uint16_t port, uint8_t val, void *priv)
 {
-    pc98_26k_t *dev = (pc98_26k_t *) priv;
+    pc98_26k_t    *dev   = (pc98_26k_t *) priv;
     const uint32_t index = (uint32_t) ((port - dev->base) >> 1);
     if (port & 1u)
         return;
@@ -221,8 +221,7 @@ pc98_26k_load_rom(pc98_26k_t *dev, uint32_t addr)
     }
 
     /* The physical -26K pair: 01 carries the even bytes, 02 the odd ones. */
-    if (pc98_rom_find_quiet(pc98_26k_rom_even, p1, sizeof(p1)) &&
-        pc98_rom_find_quiet(pc98_26k_rom_odd, p2, sizeof(p2))) {
+    if (pc98_rom_find_quiet(pc98_26k_rom_even, p1, sizeof(p1)) && pc98_rom_find_quiet(pc98_26k_rom_odd, p2, sizeof(p2))) {
         if (!rom_init_interleaved(dev->bios, p1, p2, addr,
                                   PC98_26K_ROM_SIZE, PC98_26K_ROM_SIZE - 1, 0,
                                   MEM_MAPPING_EXTERNAL)) {
@@ -326,7 +325,7 @@ pc98_26k_available(void)
 }
 
 static const device_config_t pc98_26k_config[] = {
-  // clang-format off
+    // clang-format off
     {
         .name           = "base",
         .description    = "Port base (JP6A4)",
@@ -378,7 +377,7 @@ static const device_config_t pc98_26k_config[] = {
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t pc98_26k_device = {

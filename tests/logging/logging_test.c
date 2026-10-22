@@ -10,16 +10,28 @@
 extern FILE *stdlog;
 
 static unsigned checks, failures, hooks;
-static char last_line[8192];
-#define CHECK(expr) do { checks++; if (!(expr)) { \
-    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #expr); failures++; } } while (0)
-FILE *plat_fopen(const char *path, const char *mode) { return fopen(path, mode); }
-static void hook(const char *line)
+static char     last_line[8192];
+#define CHECK(expr)                                                    \
+    do {                                                               \
+        checks++;                                                      \
+        if (!(expr)) {                                                 \
+            fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #expr); \
+            failures++;                                                \
+        }                                                              \
+    } while (0)
+FILE *
+plat_fopen(const char *path, const char *mode)
+{
+    return fopen(path, mode);
+}
+static void
+hook(const char *line)
 {
     hooks++;
     snprintf(last_line, sizeof(last_line), "%s", line);
 }
-static void legacy_va(const char *fmt, ...)
+static void
+legacy_va(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
@@ -27,32 +39,36 @@ static void legacy_va(const char *fmt, ...)
     (pclog_ex)(fmt, ap);
     va_end(ap);
 }
-static void device_va(void *log, const char *fmt, ...)
+static void
+device_va(void *log, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
     log_out(log, fmt, ap);
     va_end(ap);
 }
-static void cyclic_va(void *log, const char *fmt, ...)
+static void
+cyclic_va(void *log, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
     log_out_cyclic(log, fmt, ap);
     va_end(ap);
 }
-int main(void)
+int
+main(void)
 {
     FILE *fp = tmpfile();
     CHECK(fp != NULL);
-    if (!fp) return 1;
-    stdlog = fp;
-    pclog_hook = hook;
+    if (!fp)
+        return 1;
+    stdlog          = fp;
+    pclog_hook      = hook;
     int side_effect = 0;
     pclog("macro %d\n", ++side_effect);
     (pclog)("ABI %d\n", 7);
     legacy_va("VA %d\n", 8);
-    void *log = log_open("device");
+    void *log    = log_open("device");
     void *cyclic = log_open_cyclic("cyclic");
     log_set_suppr_seen(log, 0);
     device_va(log, "device line %d\n", 9);
@@ -77,7 +93,7 @@ int main(void)
     log_close(log);
     log_close(cyclic);
     pclog_hook = NULL;
-    stdlog = NULL;
+    stdlog     = NULL;
     fclose(fp);
     /* A release diagnostic must not create or open the configured log file. */
 #ifdef RELEASE_BUILD

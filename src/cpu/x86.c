@@ -391,7 +391,7 @@ reset_common(int hard)
                existing one-shot bypass; F2h later opens the full 24-bit bus. */
             if (IS_ARCH(machine, MACHINE_PC98)) {
                 mem_a20_chipset = 0;
-                rammask = 0x000fffffU;
+                rammask         = 0x000fffffU;
                 mem_a20_reset_vector_bypass_once();
             }
         } else if (IS_ARCH(machine, MACHINE_PC98)) {
@@ -399,7 +399,7 @@ reset_common(int hard)
                address state too.  This includes the emulator/UI reset path;
                the F0h protected-mode escape also calls softresetx86(). */
             mem_a20_key = mem_a20_alt = mem_a20_state = mem_a20_chipset = 0;
-            rammask = 0x000fffffU;
+            rammask                                                     = 0x000fffffU;
             mem_a20_reset_vector_bypass_once();
             flushmmucache();
         }

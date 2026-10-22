@@ -48,8 +48,7 @@
 static uint32_t
 rd32(const uint8_t *p)
 {
-    return (uint32_t) p[0] | ((uint32_t) p[1] << 8) | ((uint32_t) p[2] << 16) |
-           ((uint32_t) p[3] << 24);
+    return (uint32_t) p[0] | ((uint32_t) p[1] << 8) | ((uint32_t) p[2] << 16) | ((uint32_t) p[3] << 24);
 }
 
 static uint16_t
@@ -94,8 +93,7 @@ int
 pc98_hdi_header_is_sane(const pc98_hdi_t *img, uint64_t file_size)
 {
     /* PC-98 container sectors need not match the controller's transfer size. */
-    if (img->sector_size < 256u || img->sector_size > 4096u ||
-        (img->sector_size & (img->sector_size - 1u)))
+    if (img->sector_size < 256u || img->sector_size > 4096u || (img->sector_size & (img->sector_size - 1u)))
         return 0;
 
     if (!img->spt || !img->hpc || !img->cylinders)
@@ -116,9 +114,8 @@ pc98_hdi_header_is_sane(const pc98_hdi_t *img, uint64_t file_size)
     if (file_size <= (uint64_t) img->base)
         return 0;
 
-    const uint64_t geometry = (uint64_t) img->spt * img->hpc * img->cylinders *
-                              img->sector_size;
-    const uint64_t payload = file_size - (uint64_t) img->base;
+    const uint64_t geometry = (uint64_t) img->spt * img->hpc * img->cylinders * img->sector_size;
+    const uint64_t payload  = file_size - (uint64_t) img->base;
 
     /*
      * The geometry has to fit in the file.  A trailing slack of less than
@@ -238,8 +235,7 @@ seek_to_block(pc98_hdi_t *img, uint32_t lba, uint32_t count)
     if (count == 0u || lba >= img->blocks || count > img->blocks - lba)
         return 0;
 
-    const uint64_t off = (uint64_t) img->base +
-                         ((uint64_t) lba * img->sector_size);
+    const uint64_t off = (uint64_t) img->base + ((uint64_t) lba * img->sector_size);
 
     return fseeko64(img->f, (int64_t) off, SEEK_SET) == 0;
 }
@@ -273,12 +269,10 @@ seek_to_256_block(pc98_hdi_t *img, uint32_t lba, uint32_t count)
 {
     if (!img->f || !count)
         return 0;
-    const uint64_t blocks256 = ((uint64_t) img->blocks * img->sector_size) /
-                               PC98_HDI_BLOCK_SIZE;
+    const uint64_t blocks256 = ((uint64_t) img->blocks * img->sector_size) / PC98_HDI_BLOCK_SIZE;
     if (lba >= blocks256 || count > blocks256 - lba)
         return 0;
-    const uint64_t off = (uint64_t) img->base +
-                         (uint64_t) lba * PC98_HDI_BLOCK_SIZE;
+    const uint64_t off = (uint64_t) img->base + (uint64_t) lba * PC98_HDI_BLOCK_SIZE;
     return fseeko64(img->f, (int64_t) off, SEEK_SET) == 0;
 }
 
@@ -292,7 +286,7 @@ pc98_hdi_read_256(pc98_hdi_t *img, uint32_t lba, uint32_t count, uint8_t *buf)
 
 int
 pc98_hdi_write_256(pc98_hdi_t *img, uint32_t lba, uint32_t count,
-                    const uint8_t *buf)
+                   const uint8_t *buf)
 {
     if (img->read_only || !seek_to_256_block(img, lba, count))
         return 0;
@@ -300,7 +294,6 @@ pc98_hdi_write_256(pc98_hdi_t *img, uint32_t lba, uint32_t count,
         return 0;
     return fflush(img->f) == 0;
 }
-
 
 uint32_t
 pc98_hdi_sasi_blocks(const pc98_hdi_t *img, uint32_t bios_spt)
@@ -310,10 +303,7 @@ pc98_hdi_sasi_blocks(const pc98_hdi_t *img, uint32_t bios_spt)
 
     if (img->sector_size == PC98_HDI_BLOCK_SIZE)
         return img->blocks;
-    if (img->sector_size != 512u ||
-        (img->blocks % img->spt) != 0u ||
-        ((uint64_t) img->spt * img->sector_size) <
-            ((uint64_t) bios_spt * PC98_HDI_BLOCK_SIZE))
+    if (img->sector_size != 512u || (img->blocks % img->spt) != 0u || ((uint64_t) img->spt * img->sector_size) < ((uint64_t) bios_spt * PC98_HDI_BLOCK_SIZE))
         return 0u;
 
     /* The board ROM converts CHS with 33 logical sectors per track.  On a
@@ -341,16 +331,13 @@ pc98_hdi_sasi_read(pc98_hdi_t *img, uint32_t lba, uint32_t count,
 
     while (count) {
         const uint32_t track = lba / bios_spt;
-        const uint32_t slot = lba % bios_spt;
-        uint32_t chunk = bios_spt - slot;
+        const uint32_t slot  = lba % bios_spt;
+        uint32_t       chunk = bios_spt - slot;
         if (chunk > count)
             chunk = count;
 
-        const uint64_t off = (uint64_t) img->base +
-                             (uint64_t) track * img->spt * img->sector_size +
-                             (uint64_t) slot * PC98_HDI_BLOCK_SIZE;
-        if (fseeko64(img->f, (int64_t) off, SEEK_SET) != 0 ||
-            fread(buf, PC98_HDI_BLOCK_SIZE, chunk, img->f) != chunk)
+        const uint64_t off = (uint64_t) img->base + (uint64_t) track * img->spt * img->sector_size + (uint64_t) slot * PC98_HDI_BLOCK_SIZE;
+        if (fseeko64(img->f, (int64_t) off, SEEK_SET) != 0 || fread(buf, PC98_HDI_BLOCK_SIZE, chunk, img->f) != chunk)
             return 0;
 
         lba += chunk;
@@ -379,16 +366,13 @@ pc98_hdi_sasi_write(pc98_hdi_t *img, uint32_t lba, uint32_t count,
 
     while (count) {
         const uint32_t track = lba / bios_spt;
-        const uint32_t slot = lba % bios_spt;
-        uint32_t chunk = bios_spt - slot;
+        const uint32_t slot  = lba % bios_spt;
+        uint32_t       chunk = bios_spt - slot;
         if (chunk > count)
             chunk = count;
 
-        const uint64_t off = (uint64_t) img->base +
-                             (uint64_t) track * img->spt * img->sector_size +
-                             (uint64_t) slot * PC98_HDI_BLOCK_SIZE;
-        if (fseeko64(img->f, (int64_t) off, SEEK_SET) != 0 ||
-            fwrite(buf, PC98_HDI_BLOCK_SIZE, chunk, img->f) != chunk)
+        const uint64_t off = (uint64_t) img->base + (uint64_t) track * img->spt * img->sector_size + (uint64_t) slot * PC98_HDI_BLOCK_SIZE;
+        if (fseeko64(img->f, (int64_t) off, SEEK_SET) != 0 || fwrite(buf, PC98_HDI_BLOCK_SIZE, chunk, img->f) != chunk)
             return 0;
 
         lba += chunk;

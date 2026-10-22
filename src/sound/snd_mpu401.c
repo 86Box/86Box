@@ -1880,50 +1880,14 @@ mpu401_pc98_close(void *priv)
 }
 
 static const device_config_t mpu401_pc98_config[] = {
-    {
-        .name = "base", .description = "MPU-401 Address", .type = CONFIG_HEX16,
-        .default_int = 0xe0d0,
-        .selection = {
-            { .description = "0xC0D0", .value = 0xc0d0 },
-            { .description = "0xC4D0", .value = 0xc4d0 },
-            { .description = "0xC8D0", .value = 0xc8d0 },
-            { .description = "0xCCD0", .value = 0xccd0 },
-            { .description = "0xD0D0", .value = 0xd0d0 },
-            { .description = "0xD4D0", .value = 0xd4d0 },
-            { .description = "0xD8D0", .value = 0xd8d0 },
-            { .description = "0xDCD0", .value = 0xdcd0 },
-            { .description = "0xE0D0", .value = 0xe0d0 },
-            { .description = "0xE4D0", .value = 0xe4d0 },
-            { .description = "0xE8D0", .value = 0xe8d0 },
-            { .description = "0xECD0", .value = 0xecd0 },
-            { .description = "0xF0D0", .value = 0xf0d0 },
-            { .description = "0xF4D0", .value = 0xf4d0 },
-            { .description = "0xF8D0", .value = 0xf8d0 },
-            { .description = "0xFCD0", .value = 0xfcd0 }, { .description = "" }
-        }
-    },
-    {
-        .name = "irq", .description = "MPU-401 IRQ", .type = CONFIG_SELECTION,
-        .default_int = 6,
-        .selection = {
-            { .description = "INT0 (IRQ 3)", .value = 3 },
-            { .description = "INT1 (IRQ 5)", .value = 5 },
-            { .description = "INT2 (IRQ 6)", .value = 6 },
-            { .description = "INT5 (IRQ 12)", .value = 12 }, { .description = "" }
-        }
-    },
-    {
-        .name = "receive_input", .description = "Receive MIDI input",
-        .type = CONFIG_BINARY, .default_int = 1
-    },
+    { .name = "base", .description = "MPU-401 Address", .type = CONFIG_HEX16, .default_int = 0xe0d0, .selection = { { .description = "0xC0D0", .value = 0xc0d0 }, { .description = "0xC4D0", .value = 0xc4d0 }, { .description = "0xC8D0", .value = 0xc8d0 }, { .description = "0xCCD0", .value = 0xccd0 }, { .description = "0xD0D0", .value = 0xd0d0 }, { .description = "0xD4D0", .value = 0xd4d0 }, { .description = "0xD8D0", .value = 0xd8d0 }, { .description = "0xDCD0", .value = 0xdcd0 }, { .description = "0xE0D0", .value = 0xe0d0 }, { .description = "0xE4D0", .value = 0xe4d0 }, { .description = "0xE8D0", .value = 0xe8d0 }, { .description = "0xECD0", .value = 0xecd0 }, { .description = "0xF0D0", .value = 0xf0d0 }, { .description = "0xF4D0", .value = 0xf4d0 }, { .description = "0xF8D0", .value = 0xf8d0 }, { .description = "0xFCD0", .value = 0xfcd0 }, { .description = "" } } },
+    { .name = "irq", .description = "MPU-401 IRQ", .type = CONFIG_SELECTION, .default_int = 6, .selection = { { .description = "INT0 (IRQ 3)", .value = 3 }, { .description = "INT1 (IRQ 5)", .value = 5 }, { .description = "INT2 (IRQ 6)", .value = 6 }, { .description = "INT5 (IRQ 12)", .value = 12 }, { .description = "" } } },
+    { .name = "receive_input", .description = "Receive MIDI input", .type = CONFIG_BINARY, .default_int = 1 },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 const device_t mpu401_pc98_device = {
-    .name = "Roland MPU-PC98", .internal_name = "mpu401_pc98",
-    .flags = DEVICE_CBUS,
-    .init = mpu401_pc98_init, .close = mpu401_pc98_close,
-    .reset = mpu401_pc98_reset, .config = mpu401_pc98_config
+    .name = "Roland MPU-PC98", .internal_name = "mpu401_pc98", .flags = DEVICE_CBUS, .init = mpu401_pc98_init, .close = mpu401_pc98_close, .reset = mpu401_pc98_reset, .config = mpu401_pc98_config
 };
 
 static const device_config_t mpu401_standalone_config[] = {

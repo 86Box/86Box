@@ -35,7 +35,7 @@ static uint8_t  postcard_written[POSTCARDS_NUM];
 static uint8_t  postcard_ports_num = 1;
 static uint8_t  postcard_prev_codes[POSTCARDS_NUM];
 static uint8_t  postcard_dell_mode = 0;
-static uint8_t  postcard_pc98_mode = 0;
+static uint8_t  postcard_pc98_mode     = 0;
 static char     postcard_prev_diags[5] = { 0 };
 #define UISTR_LEN 32
 static char postcard_str[UISTR_LEN]; /* UI output string */
@@ -184,7 +184,7 @@ postcard_pc98_diag_write(uint8_t val)
         return;
 
     postcard_prev_codes[0] = postcard_codes[0];
-    postcard_codes[0] = val;
+    postcard_codes[0]      = val;
     if (postcard_written[0] < 2)
         postcard_written[0]++;
     postcard_setui();
@@ -231,7 +231,7 @@ postcard_init(UNUSED(const device_t *info))
          * calls postcard_pc98_diag_write() when its system-PPI C diagnostic/
          * control latch changes, so no I/O handler is installed here. */
         postcard_pc98_mode = 1;
-        postcard_port = 0;
+        postcard_port      = 0;
     } else if (machine_has_bus(machine, MACHINE_BUS_MCA))
         postcard_port = 0x680; /* MCA machines */
     else if (strstr(machines[machine].name, " PS/2 ") ||

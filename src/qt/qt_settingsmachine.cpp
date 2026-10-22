@@ -338,13 +338,13 @@ SettingsMachine::on_comboBoxMachine_currentIndexChanged(int index)
 void
 SettingsMachine::refreshCpuChoices(int machineId, int preferredFamily, int preferredSpeed)
 {
-    auto *modelCpu = ui->comboBoxCPU->model();
-    const int removeRows = modelCpu->rowCount();
-    int eligibleRows = 0;
-    int selectedRow = 0;
+    auto     *modelCpu     = ui->comboBoxCPU->model();
+    const int removeRows   = modelCpu->rowCount();
+    int       eligibleRows = 0;
+    int       selectedRow  = 0;
     {
         const QSignalBlocker blocker(ui->comboBoxCPU);
-        Models::Batch cpuRows(modelCpu);
+        Models::Batch        cpuRows(modelCpu);
         for (int i = 0; cpu_families[i].package; ++i) {
             if (cpu_family_is_eligible(&cpu_families[i], machineId)) {
                 cpuRows.add(QString("%1 %2").arg(cpu_families[i].manufacturer, cpu_families[i].name), i);
@@ -497,14 +497,14 @@ SettingsMachine::on_pushButtonConfigure_clicked()
     // deviceconfig_inst_open
     int         machineId = ui->comboBoxMachine->currentData().toInt();
     const auto *device    = machine_get_device(machineId);
-    const int family = ui->comboBoxCPU->currentData().toInt();
-    const int speed = ui->comboBoxSpeed->currentData().toInt();
-    const int waitStates = ui->comboBoxWaitStates->currentIndex();
-    const int fpu = ui->comboBoxFPU->currentData().toInt();
-    const bool softfloat = ui->checkBoxFPUSoftfloat->isChecked();
-    const bool interpreter = ui->checkBoxOverrideInterpreter->isChecked();
+    const int   family      = ui->comboBoxCPU->currentData().toInt();
+    const int   speed       = ui->comboBoxSpeed->currentData().toInt();
+    const int   waitStates  = ui->comboBoxWaitStates->currentIndex();
+    const int   fpu         = ui->comboBoxFPU->currentData().toInt();
+    const bool  softfloat   = ui->checkBoxFPUSoftfloat->isChecked();
+    const bool  interpreter = ui->checkBoxOverrideInterpreter->isChecked();
 #ifdef USE_DYNAREC
-    const bool dynarec = ui->checkBoxDynamicRecompiler->isChecked();
+    const bool dynarec     = ui->checkBoxDynamicRecompiler->isChecked();
     const bool accurateFpu = ui->checkBoxAccurateFPUEnvironment->isChecked();
 #endif
     const int changed = DeviceConfig::ConfigureDevice(device);
@@ -513,8 +513,7 @@ SettingsMachine::on_pushButtonConfigure_clicked()
         refreshCpuChoices(machineId, family, speed);
         if (ui->comboBoxWaitStates->isEnabled())
             ui->comboBoxWaitStates->setCurrentIndex(waitStates);
-        if (ui->comboBoxCPU->currentData().toInt() == family &&
-            ui->comboBoxSpeed->currentData().toInt() == speed) {
+        if (ui->comboBoxCPU->currentData().toInt() == family && ui->comboBoxSpeed->currentData().toInt() == speed) {
             const int fpuRow = ui->comboBoxFPU->findData(fpu);
             if (fpuRow >= 0)
                 ui->comboBoxFPU->setCurrentIndex(fpuRow);

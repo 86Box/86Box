@@ -38,7 +38,7 @@ typedef enum pc98_opn_type_t {
  * irq is called whenever the chip's own interrupt line changes.  The board
  * decides which C-BUS INT level that becomes.
  */
-pc98_opn_t *pc98_opn_create(pc98_opn_type_t type, uint32_t clock,
+pc98_opn_t *pc98_opn_create(pc98_opn_type_t type, uint32_t            clock,
                             void (*irq)(void *priv, int level), void *priv);
 void        pc98_opn_destroy(pc98_opn_t *chip);
 void        pc98_opn_reset(pc98_opn_t *chip);
@@ -63,7 +63,7 @@ int  pc98_opn_set_adpcm_ram(pc98_opn_t *chip, int enabled);
 void pc98_opn_generate(pc98_opn_t *chip, int32_t *buf, uint32_t frames);
 
 /* OPN port A/B, the joystick and jumper lines on both boards. */
-void pc98_opn_set_port_a(pc98_opn_t *chip, uint8_t value);
+void    pc98_opn_set_port_a(pc98_opn_t *chip, uint8_t value);
 uint8_t pc98_opn_get_port_b(const pc98_opn_t *chip);
 
 #ifdef __cplusplus

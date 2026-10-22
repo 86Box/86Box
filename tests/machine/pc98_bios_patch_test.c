@@ -5,8 +5,14 @@
 #include <86box/pc98_bios_patch.h>
 
 static unsigned checks, failures;
-#define CHECK(expr) do { checks++; if (!(expr)) { failures++; \
-    fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #expr); } } while (0)
+#define CHECK(expr)                                                    \
+    do {                                                               \
+        checks++;                                                      \
+        if (!(expr)) {                                                 \
+            failures++;                                                \
+            fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #expr); \
+        }                                                              \
+    } while (0)
 
 static void
 check_lanes(const uint8_t *itf)
@@ -45,10 +51,11 @@ main(int argc, char **argv)
     CHECK(pc98_bios_patch_vx_timer(image, sizeof(image)) == PC98_BIOS_PATCH_UNSUPPORTED);
     CHECK(!memcmp(image, snapshot, sizeof(image)));
     /* Matching local patch signatures alone must never admit unknown ROMs. */
-    image[0x900] = 0x75; image[0x901] = 0x0a;
+    image[0x900] = 0x75;
+    image[0x901] = 0x0a;
     image[0x96c] = image[0x980] = image[0x9ac] = 0x74;
     image[0x96d] = image[0x981] = image[0x9ad] = 0x0a;
-    static const uint8_t original_timeout[] = {
+    static const uint8_t original_timeout[]    = {
         0xbe, 0xcc, 0x17, 0xbc, 0xdd, 0x09, 0xe9, 0x86, 0x0e, 0xf4
     };
     memcpy(image + 0x9d4, original_timeout, sizeof(original_timeout));
@@ -65,14 +72,13 @@ main(int argc, char **argv)
     /* User-supplied physical ROMs are read-only and never checked into tests.
      * Synthetic rejection tests above also run when these files are absent. */
     uint8_t even[0x8000], odd[0x8000];
-    if (!read_rom(argv[1], "nec_d27c256d-15_cpu_extboard_yll02.bin", even) ||
-        !read_rom(argv[1], "nec_d27c256d-15_cpu_extboard_yll04.bin", odd)) {
+    if (!read_rom(argv[1], "nec_d27c256d-15_cpu_extboard_yll02.bin", even) || !read_rom(argv[1], "nec_d27c256d-15_cpu_extboard_yll04.bin", odd)) {
         printf("%u synthetic checks, %u failures; supplied VX ROM tests unavailable\n",
                checks, failures);
         return failures ? 1 : 77;
     }
     for (size_t i = 0; i < 0x4000; i++) {
-        original[i * 2] = even[0x4000 + i];
+        original[i * 2]     = even[0x4000 + i];
         original[i * 2 + 1] = odd[0x4000 + i];
     }
     check_lanes(original);
@@ -90,8 +96,7 @@ main(int argc, char **argv)
     CHECK(image[0x7fec] == 0x2d && image[0x7fed] == 0xe6);
     unsigned unexpected = 0;
     for (size_t i = 0; i < sizeof(image); i++) {
-        if (i == 0x900 || i == 0x96c || i == 0x980 || i == 0x9ac ||
-            (i >= 0x9d4 && i < 0x9de) || i == 0x7fec || i == 0x7fed)
+        if (i == 0x900 || i == 0x96c || i == 0x980 || i == 0x9ac || (i >= 0x9d4 && i < 0x9de) || i == 0x7fec || i == 0x7fed)
             continue;
         unexpected += image[i] != original[i];
     }

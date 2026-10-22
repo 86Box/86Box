@@ -12,11 +12,11 @@
 extern "C" {
 #endif
 
-#define PC98_GVRAM_PAGES       2u
-#define PC98_GVRAM_PLANES      4u
-#define PC98_GVRAM_WORDS       0x4000u
-#define PC98_IPL_WINDOW_SIZE   0x18000u
-#define PC98_IPL_REGION_SIZE   0x30000u
+#define PC98_GVRAM_PAGES     2u
+#define PC98_GVRAM_PLANES    4u
+#define PC98_GVRAM_WORDS     0x4000u
+#define PC98_IPL_WINDOW_SIZE 0x18000u
+#define PC98_IPL_REGION_SIZE 0x30000u
 /* Backward source compatibility: the visible CPU IPL window is 96 KiB. */
 #define PC98_IPL_ROM_SIZE      PC98_IPL_WINDOW_SIZE
 #define PC98_FONT_DUMP_SIZE    0x46800u
@@ -37,18 +37,18 @@ typedef struct pc98_grcg_t {
 } pc98_grcg_t;
 
 typedef struct pc98_egc_t {
-    uint16_t regs[8];      /* 4A0,4A2,...4AE */
+    uint16_t regs[8]; /* 4A0,4A2,...4AE */
     uint16_t pat[4];
-    uint16_t fg[4];       /* physical foreground latches, also GRCG tiles */
+    uint16_t fg[4]; /* physical foreground latches, also GRCG tiles */
     uint16_t bg[4];
     uint16_t src[4];
     uint16_t leftover[4];
     uint16_t mask;
-    uint16_t cpu_data;    /* NEC CPU-source readback latch */
-    int32_t count;
-    uint8_t first;
-    uint8_t start;
-    uint8_t loaded;
+    uint16_t cpu_data; /* NEC CPU-source readback latch */
+    int32_t  count;
+    uint8_t  first;
+    uint8_t  start;
+    uint8_t  loaded;
 } pc98_egc_t;
 
 typedef struct pc98_video_t {
@@ -59,33 +59,33 @@ typedef struct pc98_video_t {
     uint16_t tvram[0x2000];
 
     pc98_grcg_t grcg;
-    pc98_egc_t egc;
-    uint8_t egc_enabled;
+    pc98_egc_t  egc;
+    uint8_t     egc_enabled;
 
     uint8_t cpu_page;
     uint8_t display_page;
     uint8_t graph_clock_fast; /* Board SW2-8 clock latch, retained on reset. */
 
     uint16_t font_addr;
-    uint8_t font_line;
-    uint8_t font_lr;
-    uint8_t kac;
+    uint8_t  font_line;
+    uint8_t  font_lr;
+    uint8_t  kac;
 
-    uint8_t palette[4];      /* digital palette register readback */
+    uint8_t palette[4]; /* digital palette register readback */
     uint8_t palette_index;
     uint8_t analog_palette[16][3]; /* indexed RGB, 4 bits per component */
     uint8_t txt_scroll[6];
-    uint8_t memsw[16];      /* A3FE2-A3FFF memory-switch bytes */
+    uint8_t memsw[16]; /* A3FE2-A3FFF memory-switch bytes */
     uint8_t video_ff[8];
     uint8_t ex_video_ff[4];
     uint8_t gfx_ff;
 
-    uint8_t *ipl_rom;      /* optional, owned by caller unless load helper used */
-    size_t ipl_size;
-    uint8_t *font_rom;     /* allocated as 0x100000 Kanji/CG address space */
-    size_t font_dump_size;
-    uint8_t owns_ipl;
-    uint8_t owns_font;
+    uint8_t *ipl_rom; /* optional, owned by caller unless load helper used */
+    size_t   ipl_size;
+    uint8_t *font_rom; /* allocated as 0x100000 Kanji/CG address space */
+    size_t   font_dump_size;
+    uint8_t  owns_ipl;
+    uint8_t  owns_font;
 } pc98_video_t;
 
 void pc98_video_init(pc98_video_t *v);
@@ -131,10 +131,10 @@ uint32_t pc98_cg_offset(const pc98_video_t *v, uint32_t line, uint32_t lr,
 #ifdef EMU_DEVICE_H
 extern const device_t pc9801_video_device;
 extern const device_t pc9801bx4_video_device;
-extern int pc9801_video_firmware_available(void);
-extern int pc9801_video_firmware_available_for_model(pc98_model_t model);
-pc98_video_t *pc9801_video_get_core(void *priv);
-pc98_model_t pc9801_video_get_model(void *priv);
+extern int            pc9801_video_firmware_available(void);
+extern int            pc9801_video_firmware_available_for_model(pc98_model_t model);
+pc98_video_t         *pc9801_video_get_core(void *priv);
+pc98_model_t          pc9801_video_get_model(void *priv);
 /* Any write at motherboard port 64h rearms the next CRTV interrupt. */
 void pc9801_video_vrtc_reset(void *priv);
 #endif

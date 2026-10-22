@@ -307,8 +307,7 @@ device_get_config_hex16(const char *)
 {
     return 0x300;
 }
-void
-(pclog)(const char *, ...)
+void(pclog)(const char *, ...)
 {
 }
 void

@@ -736,7 +736,7 @@ MachineStatus::refresh(QStatusBar *sbar)
     bool has_esdi = machine_has_flags(machine, MACHINE_ESDI) > 0;
 
     int c_mfm   = hdd_count(HDD_BUS_MFM);
-    int c_sasi  = hdd_count(HDD_BUS_SASI);
+    int  c_sasi       = hdd_count(HDD_BUS_SASI);
     bool has_sasi_hdc = false;
     for (int i = 0; i < HDC_MAX; i++) {
         if (QString(hdc_get_internal_name(hdc_current[i])) == QStringLiteral("pc9801_27")) {

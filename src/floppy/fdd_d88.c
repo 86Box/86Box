@@ -22,19 +22,19 @@
 #include <86box/fdd_86f.h>
 #include <86box/fdd_d88.h>
 
-#define D88_TRACKS       164
-#define D88_HEADER_SIZE  0x2b0u
-#define D88_SECTOR_HDR   16u
-#define D88_MAX_SECTORS  256u
-#define D88_MAX_SECSIZE  32768u
+#define D88_TRACKS      164
+#define D88_HEADER_SIZE 0x2b0u
+#define D88_SECTOR_HDR  16u
+#define D88_MAX_SECTORS 256u
+#define D88_MAX_SECSIZE 32768u
 
 /* Header media byte.  The low nibble is used by some NP2-derived images to
  * distinguish 1.44 MB 2HD media, so classify by the high nibble. */
-#define D88_MEDIA_2D     0x00u
-#define D88_MEDIA_2DD    0x10u
-#define D88_MEDIA_2HD    0x20u
-#define D88_MEDIA_1D     0x30u
-#define D88_MEDIA_1DD    0x40u
+#define D88_MEDIA_2D  0x00u
+#define D88_MEDIA_2DD 0x10u
+#define D88_MEDIA_2HD 0x20u
+#define D88_MEDIA_1D  0x30u
+#define D88_MEDIA_1DD 0x40u
 
 typedef struct d88_sector_t {
     uint8_t  c, h, r, n;
@@ -79,7 +79,6 @@ typedef struct d88_t {
     d88_track_t   tracks[D88_TRACKS];
 } d88_t;
 
-
 static uint16_t
 rd16(const uint8_t *p)
 {
@@ -89,8 +88,7 @@ rd16(const uint8_t *p)
 static uint32_t
 rd32(const uint8_t *p)
 {
-    return (uint32_t) p[0] | ((uint32_t) p[1] << 8) |
-           ((uint32_t) p[2] << 16) | ((uint32_t) p[3] << 24);
+    return (uint32_t) p[0] | ((uint32_t) p[1] << 8) | ((uint32_t) p[2] << 16) | ((uint32_t) p[3] << 24);
 }
 
 static uint32_t
@@ -124,16 +122,16 @@ d88_free_tracks(d88_t *dev)
 static int
 d88_parse(d88_t *dev)
 {
-    const uint8_t *h = dev->image;
+    const uint8_t *h             = dev->image;
     uint32_t       highest_track = 0;
-    int            any_track = 0;
-    int            saw_side1 = 0;
+    int            any_track     = 0;
+    int            saw_side1     = 0;
 
     if (dev->file_size < D88_HEADER_SIZE)
         return 0;
 
-    dev->protect  = h[0x1a];
-    dev->media    = h[0x1b];
+    dev->protect   = h[0x1a];
+    dev->media     = h[0x1b];
     dev->disk_size = rd32(h + 0x1c);
 
     if ((dev->disk_size < D88_HEADER_SIZE) || (dev->disk_size > dev->file_size))
@@ -155,10 +153,10 @@ d88_parse(d88_t *dev)
 
     for (int ti = 0; ti < D88_TRACKS; ti++) {
         d88_track_t *trk = &dev->tracks[ti];
-        uint32_t off = dev->track_offset[ti];
-        uint32_t end;
-        uint32_t pos;
-        uint16_t count;
+        uint32_t     off = dev->track_offset[ti];
+        uint32_t     end;
+        uint32_t     pos;
+        uint16_t     count;
 
         if (off == 0)
             continue;
@@ -181,16 +179,16 @@ d88_parse(d88_t *dev)
         trk->end     = end;
         trk->count   = count;
         trk->present = 1;
-        pos = off;
+        pos          = off;
 
         for (uint16_t si = 0; si < count; si++) {
-            d88_sector_t *sec = &trk->sectors[si];
+            d88_sector_t  *sec = &trk->sectors[si];
             const uint8_t *sh;
-            uint16_t ssize;
+            uint16_t       ssize;
 
             if ((pos > end) || ((end - pos) < D88_SECTOR_HDR))
                 return 0;
-            sh = dev->image + pos;
+            sh    = dev->image + pos;
             ssize = rd16(sh + 14);
             if (ssize > D88_MAX_SECSIZE)
                 return 0;
@@ -222,7 +220,7 @@ d88_parse(d88_t *dev)
             pos += D88_SECTOR_HDR + ssize;
         }
 
-        any_track = 1;
+        any_track     = 1;
         highest_track = (uint32_t) ti;
     }
 
@@ -268,7 +266,7 @@ static uint16_t
 d88_flags_for_track(const d88_t *dev, int logical_track)
 {
     const d88_track_t *trk;
-    uint16_t flags = d88_default_side_flags(dev);
+    uint16_t           flags = d88_default_side_flags(dev);
 
     if ((logical_track < 0) || (logical_track >= D88_TRACKS))
         return flags;
@@ -287,7 +285,7 @@ d88_flags_for_track(const d88_t *dev, int logical_track)
         if (trk->sectors[0].rpm)
             flags &= ~0x20u; /* 1.44 MB / 300 rpm */
         else
-            flags |= 0x20u;  /* 1.2/1.23 MB / 360 rpm */
+            flags |= 0x20u; /* 1.2/1.23 MB / 360 rpm */
     }
 
     return flags;
@@ -306,7 +304,7 @@ side_flags(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
     const d88_t *dev = drv->local;
-    int side;
+    int          side;
 
     if (dev == NULL)
         return 0x0a;
@@ -349,18 +347,18 @@ static int
 d88_gap3_for_track(void *priv, int side, const d88_track_t *trk, uint16_t sflags)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    uint32_t raw_bytes;
-    uint32_t used;
-    uint32_t remaining;
-    int      mfm;
-    int      gap;
+    uint32_t     raw_bytes;
+    uint32_t     used;
+    uint32_t     remaining;
+    int          mfm;
+    int          gap;
 
     if (!trk->count)
         return 24;
 
     raw_bytes = common_get_raw_size(drv, side) >> 4;
-    mfm = (sflags & 0x08) != 0;
-    used = mfm ? 146u : 73u; /* GAP0 + sync/IAM + GAP1 */
+    mfm       = (sflags & 0x08) != 0;
+    used      = mfm ? 146u : 73u; /* GAP0 + sync/IAM + GAP1 */
 
     for (uint16_t i = 0; i < trk->count; i++) {
         /* Matches the byte count emitted by d86f_prepare_sector(), excluding
@@ -373,7 +371,7 @@ d88_gap3_for_track(void *priv, int side, const d88_track_t *trk, uint16_t sflags
         return 8;
 
     remaining = raw_bytes - used;
-    gap = (int) (remaining / trk->count);
+    gap       = (int) (remaining / trk->count);
     /* Leave a modest GAP4 before index and avoid absurd gaps in sparse or
      * partially imaged tracks. */
     if (gap > 16)
@@ -388,13 +386,13 @@ d88_gap3_for_track(void *priv, int side, const d88_track_t *trk, uint16_t sflags
 static void
 d88_build_side(void *priv, int side)
 {
-    fdd_drive_t *drv = (fdd_drive_t *) priv;
-    d88_t *dev = drv->local;
-    int logical = (dev->track << 1) | side;
+    fdd_drive_t *drv     = (fdd_drive_t *) priv;
+    d88_t       *dev     = drv->local;
+    int          logical = (dev->track << 1) | side;
     d88_track_t *trk;
-    uint16_t pos;
-    int gap2;
-    int gap3;
+    uint16_t     pos;
+    int          gap2;
+    int          gap3;
 
     if ((logical < 0) || (logical >= D88_TRACKS))
         return;
@@ -405,16 +403,16 @@ d88_build_side(void *priv, int side)
     dev->building   = 1;
     dev->build_side = (uint8_t) side;
 
-    pos = d86f_prepare_pretrack(drv, side, 0);
+    pos  = d86f_prepare_pretrack(drv, side, 0);
     gap2 = (dev->current_side_flags[side] & 0x08) ? 22 : 11;
     gap3 = d88_gap3_for_track(drv, side, trk, dev->current_side_flags[side]);
 
     for (uint16_t i = 0; i < trk->count; i++) {
-        d88_sector_t *sec = &trk->sectors[i];
-        uint8_t id[4] = { sec->c, sec->h, sec->r, sec->n };
-        pos = d86f_prepare_sector(drv, side, pos, id, sec->data,
-                                  sec->data_size, gap2, gap3,
-                                  sector_flags(sec));
+        d88_sector_t *sec   = &trk->sectors[i];
+        uint8_t       id[4] = { sec->c, sec->h, sec->r, sec->n };
+        pos                 = d86f_prepare_sector(drv, side, pos, id, sec->data,
+                                                  sec->data_size, gap2, gap3,
+                                                  sector_flags(sec));
     }
 
     dev->building = 0;
@@ -424,7 +422,7 @@ static void
 d88_seek(void *priv, int track)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    d88_t *dev = drv->local;
+    d88_t       *dev = drv->local;
 
     if (dev == NULL)
         return;
@@ -446,7 +444,7 @@ d88_seek(void *priv, int track)
     for (int side = 0; side < dev->sides; side++)
         d88_build_side(drv, side);
 
-    dev->building = 0;
+    dev->building          = 0;
     dev->current_sector[0] = dev->current_sector[1] = NULL;
 }
 
@@ -454,14 +452,14 @@ static void
 d88_set_sector(void *priv, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    d88_t *dev = drv->local;
-    int logical;
+    d88_t       *dev = drv->local;
+    int          logical;
     d88_track_t *trk;
 
     if ((dev == NULL) || (side < 0) || (side > 1))
         return;
     dev->current_sector[side] = NULL;
-    logical = (dev->track << 1) | side;
+    logical                   = (dev->track << 1) | side;
     if ((logical < 0) || (logical >= D88_TRACKS))
         return;
     trk = &dev->tracks[logical];
@@ -480,8 +478,8 @@ d88_set_sector(void *priv, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 static uint8_t
 d88_read_data(void *priv, int side, uint16_t pos)
 {
-    fdd_drive_t *drv = (fdd_drive_t *) priv;
-    const d88_t *dev = drv->local;
+    fdd_drive_t        *drv = (fdd_drive_t *) priv;
+    const d88_t        *dev = drv->local;
     const d88_sector_t *sec;
 
     if ((dev == NULL) || (side < 0) || (side > 1))
@@ -495,32 +493,29 @@ d88_read_data(void *priv, int side, uint16_t pos)
 static void
 d88_write_data(void *priv, int side, uint16_t pos, uint8_t data)
 {
-    fdd_drive_t *drv = (fdd_drive_t *) priv;
-    d88_t *dev = drv->local;
+    fdd_drive_t  *drv = (fdd_drive_t *) priv;
+    d88_t        *dev = drv->local;
     d88_sector_t *sec;
 
-    if ((dev == NULL) || !dev->writable || drv->writeprot ||
-        (side < 0) || (side > 1))
+    if ((dev == NULL) || !dev->writable || drv->writeprot || (side < 0) || (side > 1))
         return;
     sec = dev->current_sector[side];
     if ((sec == NULL) || (pos >= sec->data_size))
         return;
     sec->data[pos] = data;
-    dev->dirty = 1;
+    dev->dirty     = 1;
 }
 
 static void
 d88_writeback(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    d88_t *dev = drv->local;
+    d88_t       *dev = drv->local;
 
     if ((dev == NULL) || !dev->dirty || !dev->writable || (dev->fp == NULL) || drv->writeprot)
         return;
 
-    if ((fseek(dev->fp, 0, SEEK_SET) == 0) &&
-        (fwrite(dev->image, 1, dev->file_size, dev->fp) == dev->file_size) &&
-        (fflush(dev->fp) == 0)) {
+    if ((fseek(dev->fp, 0, SEEK_SET) == 0) && (fwrite(dev->image, 1, dev->file_size, dev->fp) == dev->file_size) && (fflush(dev->fp) == 0)) {
         dev->dirty = 0;
     } else {
         pclog("[PC98-D88] Failed to save floppy image; retaining dirty state\n");
@@ -559,7 +554,7 @@ d88_open_image(d88_t *dev, const char *fn)
     if (dev->fp != NULL)
         dev->writable = 1;
     else {
-        dev->fp = plat_fopen(fn, "rb");
+        dev->fp       = plat_fopen(fn, "rb");
         dev->writable = 0;
     }
     if (dev->fp == NULL)
@@ -574,7 +569,7 @@ d88_open_image(d88_t *dev, const char *fn)
         return 0;
 
     dev->file_size = (size_t) size;
-    dev->image = (uint8_t *) malloc(dev->file_size ? dev->file_size : 1);
+    dev->image     = (uint8_t *) malloc(dev->file_size ? dev->file_size : 1);
     if (dev->image == NULL)
         return 0;
     if (fread(dev->image, 1, dev->file_size, dev->fp) != dev->file_size)
@@ -586,8 +581,8 @@ void
 d88_load(void *priv, char *fn)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    d88_t *dev;
-    uint8_t media_class;
+    d88_t       *dev;
+    uint8_t      media_class;
 
     d86f_unregister(drv);
 
@@ -603,7 +598,7 @@ d88_load(void *priv, char *fn)
         dev->writable = 0;
     drv->writeprot = dev->writable ? 0 : 1;
 
-    media_class = dev->media & 0xf0u;
+    media_class     = dev->media & 0xf0u;
     dev->disk_flags = (dev->sides == 2) ? 0x08 : 0x00;
     if (media_class == D88_MEDIA_2HD)
         dev->disk_flags |= 0x02; /* HD density hole. */
@@ -655,7 +650,7 @@ void
 d88_close(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    d88_t *dev = drv->local;
+    d88_t       *dev = drv->local;
 
     if (dev == NULL)
         return;

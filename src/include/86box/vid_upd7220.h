@@ -17,20 +17,20 @@ extern "C" {
 #endif
 
 enum {
-    UPD7220_SR_DRDY  = 0x01,
-    UPD7220_SR_FULL  = 0x02,
-    UPD7220_SR_EMPTY = 0x04,
-    UPD7220_SR_DRAW  = 0x08,
-    UPD7220_SR_DMA   = 0x10,
-    UPD7220_SR_VSYNC = 0x20,
-    UPD7220_SR_HBLANK= 0x40,
-    UPD7220_SR_LPEN  = 0x80
+    UPD7220_SR_DRDY   = 0x01,
+    UPD7220_SR_FULL   = 0x02,
+    UPD7220_SR_EMPTY  = 0x04,
+    UPD7220_SR_DRAW   = 0x08,
+    UPD7220_SR_DMA    = 0x10,
+    UPD7220_SR_VSYNC  = 0x20,
+    UPD7220_SR_HBLANK = 0x40,
+    UPD7220_SR_LPEN   = 0x80
 };
 
 typedef uint16_t (*upd7220_vram_read_cb)(void *opaque, uint32_t word_addr);
-typedef void     (*upd7220_vram_write_cb)(void *opaque, uint32_t word_addr, uint16_t value);
-typedef void     (*upd7220_timing_changed_cb)(void *opaque);
-typedef void     (*upd7220_signal_cb)(void *opaque, int level);
+typedef void (*upd7220_vram_write_cb)(void *opaque, uint32_t word_addr, uint16_t value);
+typedef void (*upd7220_timing_changed_cb)(void *opaque);
+typedef void (*upd7220_signal_cb)(void *opaque, int level);
 
 typedef struct upd7220_partition_t {
     uint32_t sad;
@@ -51,11 +51,11 @@ typedef struct upd7220_figs_t {
 } upd7220_figs_t;
 
 typedef struct upd7220_t {
-    void *opaque;
-    upd7220_vram_read_cb vram_read;
-    upd7220_vram_write_cb vram_write;
+    void                     *opaque;
+    upd7220_vram_read_cb      vram_read;
+    upd7220_vram_write_cb     vram_write;
     upd7220_timing_changed_cb timing_changed;
-    upd7220_signal_cb drq_changed;
+    upd7220_signal_cb         drq_changed;
 
     /* command/status path */
     uint8_t sr;
@@ -73,19 +73,19 @@ typedef struct upd7220_t {
     uint8_t fifo_dir;
 
     /* parameter RAM and execution registers */
-    uint8_t  ra[16];
-    uint8_t  ra_addr;
-    uint16_t pattern;
-    uint16_t mask;
-    uint16_t pitch;
-    uint32_t ead;
-    uint32_t lad;
+    uint8_t        ra[16];
+    uint8_t        ra_addr;
+    uint16_t       pattern;
+    uint16_t       mask;
+    uint16_t       pitch;
+    uint32_t       ead;
+    uint32_t       lad;
     upd7220_figs_t figs;
 
     /* display/timing state decoded from RESET/SYNC */
-    uint8_t mode;
-    uint8_t de;
-    uint8_t master;
+    uint8_t  mode;
+    uint8_t  de;
+    uint8_t  master;
     uint16_t aw;
     uint16_t al;
     uint16_t hs;
@@ -108,16 +108,16 @@ typedef struct upd7220_t {
     uint8_t gchr;
 
     /* current data-transfer mode */
-    uint8_t bitmap_mod;
-    uint8_t wg;
-    uint8_t transfer_type;
+    uint8_t  bitmap_mod;
+    uint8_t  wg;
+    uint8_t  transfer_type;
     uint32_t transfer_words_left;
 
     /* DMA */
-    uint8_t dma_type;
-    uint8_t dma_mod;
-    uint8_t dma_phase;
-    uint8_t dma_drq;
+    uint8_t  dma_type;
+    uint8_t  dma_mod;
+    uint8_t  dma_phase;
+    uint8_t  dma_drq;
     uint16_t dma_data;
     uint32_t dma_bytes_left;
 
@@ -126,30 +126,30 @@ typedef struct upd7220_t {
 
     /* command processor busy time in 2xWCLK periods */
     uint32_t busy_clocks;
-    uint8_t pending_valid;
-    uint8_t pending_byte;
-    uint8_t pending_command;
+    uint8_t  pending_valid;
+    uint8_t  pending_byte;
+    uint8_t  pending_command;
 
     /* Display-memory arbiter clocked by the same 2xWCLK as execution.
      * Horizontal position starts at AW; vertical position starts at VBP.
      * Glue opts in after providing the board's sync source. */
-    uint8_t bus_timing_enabled;
-    uint8_t bus_waiting;
-    uint8_t row_waiting;
-    uint8_t host_bus_requested;
+    uint8_t  bus_timing_enabled;
+    uint8_t  bus_waiting;
+    uint8_t  row_waiting;
+    uint8_t  host_bus_requested;
     uint32_t bus_hclock;
     uint16_t bus_line;
 
     /* Incremental memory execution. The command processor waits while this
      * engine runs, leaving the input FIFO available to the host. */
-    uint8_t work_kind;
-    uint8_t work_dir;
-    uint8_t work_side;
+    uint8_t  work_kind;
+    uint8_t  work_dir;
+    uint8_t  work_side;
     uint16_t work_data;
     uint32_t work_index;
     uint32_t work_row;
-    int32_t work_error;
-    int32_t work_arc_d;
+    int32_t  work_error;
+    int32_t  work_arc_d;
 } upd7220_t;
 
 void upd7220_init(upd7220_t *gdc, void *opaque,
@@ -170,15 +170,15 @@ void upd7220_advance(upd7220_t *gdc, uint32_t two_x_wclk_periods);
 /* Zero when idle or waiting for the host to drain a full read FIFO;
  * an active DMA also schedules its next DREQ gating edge. */
 uint32_t upd7220_next_event(const upd7220_t *gdc);
-void upd7220_enable_bus_timing(upd7220_t *gdc, int enabled);
-void upd7220_set_bus_position(upd7220_t *gdc, uint32_t hclock,
-                              uint16_t line);
+void     upd7220_enable_bus_timing(upd7220_t *gdc, int enabled);
+void     upd7220_set_bus_position(upd7220_t *gdc, uint32_t hclock,
+                                  uint16_t line);
 /* External memory arbiter: finish a granted GDC RMW, hold subsequent
  * memory work, then find a host cycle outside refresh. The board, rather
  * than the GDC's flashless bit, owns CPU/display fetch arbitration. */
 uint32_t upd7220_host_bus_begin(upd7220_t *gdc);
 uint32_t upd7220_host_bus_wait(const upd7220_t *gdc, uint32_t clocks);
-void upd7220_host_bus_end(upd7220_t *gdc);
+void     upd7220_host_bus_end(upd7220_t *gdc);
 
 void upd7220_get_graphics_partition(const upd7220_t *gdc, unsigned index,
                                     upd7220_partition_t *out);

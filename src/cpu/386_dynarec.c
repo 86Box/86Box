@@ -1393,7 +1393,7 @@ exec386_common(int32_t cycs, const int dbg)
         while (cycdiff < cycle_period) {
             int ins_fetch_fault = 0;
             ins_cycles = cycles;
-            ins_tsc = tsc;
+            ins_tsc             = tsc;
 
             oldcs  = CS;
             oldcpl = CPL;

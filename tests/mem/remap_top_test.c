@@ -1,29 +1,40 @@
 /* Exercise relocated RAM through the production memory bus and page table. */
 #include "../../src/mem/mem.c"
 
-uint32_t mem_size;
+uint32_t    mem_size;
 cpu_state_t cpu_state;
-int cpu_16bitbus, is286 = 1, is6117, cpu_use_exec;
-int is_pcjr, is_cxsmm;
-uint8_t ccr1;
-void pcjr_waitstates(void *priv) { (void) priv; }
+int         cpu_16bitbus, is286 = 1, is6117, cpu_use_exec;
+int         is_pcjr, is_cxsmm;
+uint8_t     ccr1;
+void
+pcjr_waitstates(void *priv)
+{
+    (void) priv;
+}
 
-void *plat_mmap(size_t size, uint8_t executable, uint8_t *large)
+void *
+plat_mmap(size_t size, uint8_t executable, uint8_t *large)
 {
     (void) executable;
     *large = 0;
     return calloc(1, size);
 }
 
-void plat_munmap(void *ptr, size_t size)
+void
+plat_munmap(void *ptr, size_t size)
 {
     (void) size;
     free(ptr);
 }
 
-void (pclog)(const char *fmt, ...) { (void) fmt; }
-void (pclog_ex)(const char *fmt, va_list ap) { (void) fmt; (void) ap; }
-void fatal(const char *fmt, ...)
+void(pclog)(const char *fmt, ...) { (void) fmt; }
+void(pclog_ex)(const char *fmt, va_list ap)
+{
+    (void) fmt;
+    (void) ap;
+}
+void
+fatal(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
@@ -33,22 +44,24 @@ void fatal(const char *fmt, ...)
 }
 
 static unsigned checks, failures;
-#define CHECK(condition) do { \
-    checks++; \
-    if (!(condition)) { \
-        fprintf(stderr, "%s:%d: %s failed\n", __FILE__, __LINE__, #condition); \
-        failures++; \
-    } \
-} while (0)
+#define CHECK(condition)                                                           \
+    do {                                                                           \
+        checks++;                                                                  \
+        if (!(condition)) {                                                        \
+            fprintf(stderr, "%s:%d: %s failed\n", __FILE__, __LINE__, #condition); \
+            failures++;                                                            \
+        }                                                                          \
+    } while (0)
 
-static void check_relocated_ram(uint32_t kb)
+static void
+check_relocated_ram(uint32_t kb)
 {
-    mem_size = kb;
+    mem_size     = kb;
     cpu_16bitbus = 0;
     mem_reset();
     mem_remap_top_extended(384);
     const uint32_t base = kb << 10;
-    const uint32_t end = base + 384 * 1024;
+    const uint32_t end  = base + 384 * 1024;
     CHECK(ram_remapped_mapping.enable);
     CHECK(ram_remapped_mapping.base == base);
     CHECK(ram_remapped_mapping.size == 384 * 1024);
@@ -75,7 +88,8 @@ static void check_relocated_ram(uint32_t kb)
     CHECK(mem_readb_phys(base) == 0xff);
 }
 
-int main(void)
+int
+main(void)
 {
     mem_init();
     check_relocated_ram(8832);

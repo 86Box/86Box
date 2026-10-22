@@ -37,85 +37,86 @@
  * thousands of log lines.  Initialization errors remain unconditional. */
 #ifndef RELEASE_BUILD
 static void pc98_55_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
-static void pc98_55_log(const char *fmt, ...)
+static void
+pc98_55_log(const char *fmt, ...)
 {
-#if defined(ENABLE_PC98_SCSI_LOG) && ENABLE_PC98_SCSI_LOG
+#    if defined(ENABLE_PC98_SCSI_LOG) && ENABLE_PC98_SCSI_LOG
     va_list ap;
     va_start(ap, fmt);
     pclog_ex(fmt, ap);
     va_end(ap);
-#else
-    (void)fmt;
-#endif
+#    else
+    (void) fmt;
+#    endif
 }
 
 #else
-#define pc98_55_log(...) ((void)0)
+#    define pc98_55_log(...) ((void) 0)
 #endif
 
-#define PC98_55L_ROM_LOW              "roms/scsi/nec/pc9801_55l/eta1b_00.bin"
-#define PC98_55L_ROM_HIGH             "roms/scsi/nec/pc9801_55l/eta3b_00.bin"
-#define PC98_55U_ROM_LOW              "roms/scsi/nec/pc9801_55u/eta1b_00.bin"
-#define PC98_55U_ROM_HIGH             "roms/scsi/nec/pc9801_55u/eta3b_00.bin"
-#define PC98_55_ROM_SIZE              0x2000
-#define PC98_55_ROM_WINDOW_SIZE       0x1000
+#define PC98_55L_ROM_LOW             "roms/scsi/nec/pc9801_55l/eta1b_00.bin"
+#define PC98_55L_ROM_HIGH            "roms/scsi/nec/pc9801_55l/eta3b_00.bin"
+#define PC98_55U_ROM_LOW             "roms/scsi/nec/pc9801_55u/eta1b_00.bin"
+#define PC98_55U_ROM_HIGH            "roms/scsi/nec/pc9801_55u/eta3b_00.bin"
+#define PC98_55_ROM_SIZE             0x2000
+#define PC98_55_ROM_WINDOW_SIZE      0x1000
 
-#define PC98_55_REG_OWN_ID             0x00
-#define PC98_55_REG_CDB1               0x03
-#define PC98_55_REG_TARGET_LUN         0x0f
-#define PC98_55_REG_COMMAND_PHASE      0x10
-#define PC98_55_REG_TRANSFER_MSB       0x12
-#define PC98_55_REG_DESTINATION_ID     0x15
-#define PC98_55_REG_SOURCE_ID          0x16
-#define PC98_55_REG_SCSI_STATUS        0x17
-#define PC98_55_REG_COMMAND            0x18
-#define PC98_55_REG_DATA               0x19
-#define PC98_55_REG_AUX_STATUS         0x1f
-#define PC98_55_REG_MEMORY_BANK        0x30
-#define PC98_55_REG_RESET_IRQ          0x33
+#define PC98_55_REG_OWN_ID           0x00
+#define PC98_55_REG_CDB1             0x03
+#define PC98_55_REG_TARGET_LUN       0x0f
+#define PC98_55_REG_COMMAND_PHASE    0x10
+#define PC98_55_REG_TRANSFER_MSB     0x12
+#define PC98_55_REG_DESTINATION_ID   0x15
+#define PC98_55_REG_SOURCE_ID        0x16
+#define PC98_55_REG_SCSI_STATUS      0x17
+#define PC98_55_REG_COMMAND          0x18
+#define PC98_55_REG_DATA             0x19
+#define PC98_55_REG_AUX_STATUS       0x1f
+#define PC98_55_REG_MEMORY_BANK      0x30
+#define PC98_55_REG_RESET_IRQ        0x33
 
-#define PC98_55_CMD_RESET              0x00
-#define PC98_55_CMD_ABORT              0x01
-#define PC98_55_CMD_ASSERT_ATN         0x02
-#define PC98_55_CMD_NEGATE_ACK         0x03
-#define PC98_55_CMD_DISCONNECT         0x04
-#define PC98_55_CMD_SELECT_ATN         0x06
-#define PC98_55_CMD_SELECT             0x07
-#define PC98_55_CMD_SELECT_ATN_XFER    0x08
-#define PC98_55_CMD_SELECT_XFER        0x09
-#define PC98_55_CMD_TRANSFER_INFO      0x20
-#define PC98_55_CMD_TRANSFER_PAD       0x21
+#define PC98_55_CMD_RESET            0x00
+#define PC98_55_CMD_ABORT            0x01
+#define PC98_55_CMD_ASSERT_ATN       0x02
+#define PC98_55_CMD_NEGATE_ACK       0x03
+#define PC98_55_CMD_DISCONNECT       0x04
+#define PC98_55_CMD_SELECT_ATN       0x06
+#define PC98_55_CMD_SELECT           0x07
+#define PC98_55_CMD_SELECT_ATN_XFER  0x08
+#define PC98_55_CMD_SELECT_XFER      0x09
+#define PC98_55_CMD_TRANSFER_INFO    0x20
+#define PC98_55_CMD_TRANSFER_PAD     0x21
 
-#define PC98_55_ASR_INT                0x80
-#define PC98_55_ASR_BSY                0x20
-#define PC98_55_ASR_CIP                0x10
-#define PC98_55_ASR_DBR                0x01
+#define PC98_55_ASR_INT              0x80
+#define PC98_55_ASR_BSY              0x20
+#define PC98_55_ASR_CIP              0x10
+#define PC98_55_ASR_DBR              0x01
 
-#define PC98_55_CSR_RESET              0x00
-#define PC98_55_CSR_SELECT             0x11
-#define PC98_55_CSR_SELECT_XFER_DONE   0x16
-#define PC98_55_CSR_XFER_DONE          0x18
-#define PC98_55_CSR_ABORT              0x28
-#define PC98_55_CSR_INVALID            0x40
-#define PC98_55_CSR_TIMEOUT            0x42
-#define PC98_55_CSR_SEL_ABORT          0x22
-#define PC98_55_CSR_SERVICE_REQ        0x88
-#define PC98_55_CSR_MSG_ACK            0x20
-#define PC98_55_CSR_DISCONNECT         0x85
+#define PC98_55_CSR_RESET            0x00
+#define PC98_55_CSR_SELECT           0x11
+#define PC98_55_CSR_SELECT_XFER_DONE 0x16
+#define PC98_55_CSR_XFER_DONE        0x18
+#define PC98_55_CSR_ABORT            0x28
+#define PC98_55_CSR_INVALID          0x40
+#define PC98_55_CSR_TIMEOUT          0x42
+#define PC98_55_CSR_SEL_ABORT        0x22
+#define PC98_55_CSR_SERVICE_REQ      0x88
+#define PC98_55_CSR_MSG_ACK          0x20
+#define PC98_55_CSR_DISCONNECT       0x85
 
-#define PC98_55_PHASE_DATA_OUT         0x00
-#define PC98_55_PHASE_DATA_IN          0x01
-#define PC98_55_PHASE_COMMAND          0x02
-#define PC98_55_PHASE_STATUS           0x03
-#define PC98_55_PHASE_MESSAGE_OUT      0x06
-#define PC98_55_PHASE_MESSAGE_IN       0x07
-#define PC98_55_PHASE_COMPLETE         0x60
+#define PC98_55_PHASE_DATA_OUT       0x00
+#define PC98_55_PHASE_DATA_IN        0x01
+#define PC98_55_PHASE_COMMAND        0x02
+#define PC98_55_PHASE_STATUS         0x03
+#define PC98_55_PHASE_MESSAGE_OUT    0x06
+#define PC98_55_PHASE_MESSAGE_IN     0x07
+#define PC98_55_PHASE_COMPLETE       0x60
 
-#define PC98_55_IRQ_ENABLE             0x04
-#define PC98_55_BUS_RESET              0x02
-#define PC98_55_ROM_BANK               0x40
-#define PC98_55_DMA_OUT_TO_MEMORY      0x01
-#define PC98_55_DMA_IN_FROM_MEMORY     0x02
+#define PC98_55_IRQ_ENABLE           0x04
+#define PC98_55_BUS_RESET            0x02
+#define PC98_55_ROM_BANK             0x40
+#define PC98_55_DMA_OUT_TO_MEMORY    0x01
+#define PC98_55_DMA_IN_FROM_MEMORY   0x02
 
 typedef struct pc98_55_t {
     uint8_t  regs[0x34];
@@ -159,9 +160,10 @@ static void     pc98_55_finish_data(pc98_55_t *dev);
 static uint32_t pc98_55_get_count(const pc98_55_t *dev);
 static int      pc98_55_missing_rom_reported;
 
-static void pc98_55_irq(pc98_55_t *dev, int set)
+static void
+pc98_55_irq(pc98_55_t *dev, int set)
 {
-    const int line = set && (dev->memory_bank & PC98_55_IRQ_ENABLE);
+    const int line             = set && (dev->memory_bank & PC98_55_IRQ_ENABLE);
     const int previous_pending = dev->irq_pending;
     const int previous_line    = dev->irq_line;
 
@@ -175,36 +177,38 @@ static void pc98_55_irq(pc98_55_t *dev, int set)
     dev->irq_pending = set ? 1 : 0;
     if ((previous_pending != dev->irq_pending) || (previous_line != dev->irq_line))
         pc98_55_log("[PC98-55] IRQ%d pending=%u line=%u enable=%u\n", dev->irq,
-                   dev->irq_pending, dev->irq_line,
-                   !!(dev->memory_bank & PC98_55_IRQ_ENABLE));
+                    dev->irq_pending, dev->irq_line,
+                    !!(dev->memory_bank & PC98_55_IRQ_ENABLE));
 }
 
-static void pc98_55_raise(pc98_55_t *dev, uint8_t csr)
+static void
+pc98_55_raise(pc98_55_t *dev, uint8_t csr)
 {
-    dev->scsi_status = csr;
-    dev->regs[PC98_55_REG_SCSI_STATUS] = csr;
+    dev->scsi_status                     = csr;
+    dev->regs[PC98_55_REG_SCSI_STATUS]   = csr;
     dev->regs[PC98_55_REG_COMMAND_PHASE] = dev->phase;
-    dev->transfer_active = 0;
+    dev->transfer_active                 = 0;
     pc98_55_log("[PC98-55] controller status=%02X phase=%02X target=%u selected=%u count=%06X\n",
-               csr, dev->phase, dev->target_id, dev->selected, pc98_55_get_count(dev));
+                csr, dev->phase, dev->target_id, dev->selected, pc98_55_get_count(dev));
     pc98_55_irq(dev, 1);
 }
 
-static uint32_t pc98_55_get_count(const pc98_55_t *dev)
+static uint32_t
+pc98_55_get_count(const pc98_55_t *dev)
 {
-    return ((uint32_t) dev->regs[PC98_55_REG_TRANSFER_MSB] << 16) |
-           ((uint32_t) dev->regs[PC98_55_REG_TRANSFER_MSB + 1] << 8) |
-           dev->regs[PC98_55_REG_TRANSFER_MSB + 2];
+    return ((uint32_t) dev->regs[PC98_55_REG_TRANSFER_MSB] << 16) | ((uint32_t) dev->regs[PC98_55_REG_TRANSFER_MSB + 1] << 8) | dev->regs[PC98_55_REG_TRANSFER_MSB + 2];
 }
 
-static void pc98_55_set_count(pc98_55_t *dev, uint32_t count)
+static void
+pc98_55_set_count(pc98_55_t *dev, uint32_t count)
 {
     dev->regs[PC98_55_REG_TRANSFER_MSB]     = (uint8_t) (count >> 16);
     dev->regs[PC98_55_REG_TRANSFER_MSB + 1] = (uint8_t) (count >> 8);
     dev->regs[PC98_55_REG_TRANSFER_MSB + 2] = (uint8_t) count;
 }
 
-static void pc98_55_count_byte(pc98_55_t *dev)
+static void
+pc98_55_count_byte(pc98_55_t *dev)
 {
     if (dev->transfer_special)
         pc98_55_set_count(dev, 0);
@@ -212,7 +216,8 @@ static void pc98_55_count_byte(pc98_55_t *dev)
         pc98_55_set_count(dev, pc98_55_get_count(dev) - 1);
 }
 
-static scsi_device_t *pc98_55_target(pc98_55_t *dev)
+static scsi_device_t *
+pc98_55_target(pc98_55_t *dev)
 {
     if (!dev->selected || (dev->target_id >= SCSI_ID_MAX))
         return NULL;
@@ -220,7 +225,8 @@ static scsi_device_t *pc98_55_target(pc98_55_t *dev)
     return &scsi_devices[dev->bus][dev->target_id];
 }
 
-static void pc98_55_disconnect(pc98_55_t *dev)
+static void
+pc98_55_disconnect(pc98_55_t *dev)
 {
     scsi_device_t *target = pc98_55_target(dev);
 
@@ -228,16 +234,17 @@ static void pc98_55_disconnect(pc98_55_t *dev)
     if (target)
         dev->regs[PC98_55_REG_TARGET_LUN] = target->status;
 
-    dev->selected = 0;
+    dev->selected        = 0;
     dev->transfer_active = 0;
-    dev->pending_phase = 0;
-    dev->phase = PC98_55_PHASE_COMPLETE;
+    dev->pending_phase   = 0;
+    dev->phase           = PC98_55_PHASE_COMPLETE;
     pc98_55_log("[PC98-55] disconnect target=%u target_status=%02X\n", dev->target_id,
-               target ? target->status : 0xff);
+                target ? target->status : 0xff);
     pc98_55_raise(dev, dev->level2 ? PC98_55_CSR_SELECT_XFER_DONE : PC98_55_CSR_DISCONNECT);
 }
 
-static void pc98_55_advance_pending(pc98_55_t *dev)
+static void
+pc98_55_advance_pending(pc98_55_t *dev)
 {
     const uint8_t next_phase = dev->pending_phase;
     const uint8_t next_csr   = dev->pending_csr;
@@ -256,23 +263,25 @@ static void pc98_55_advance_pending(pc98_55_t *dev)
     pc98_55_raise(dev, next_csr);
 }
 
-static int pc98_55_cdb_length(const pc98_55_t *dev, uint8_t opcode)
+static int
+pc98_55_cdb_length(const pc98_55_t *dev, uint8_t opcode)
 {
     static const uint8_t group_length[8] = { 6, 10, 10, 6, 16, 12, 10, 6 };
-    const uint8_t         length     = group_length[(opcode >> 5) & 7];
+    const uint8_t        length          = group_length[(opcode >> 5) & 7];
 
     /* OWN ID bits 7:6 select the input-clock divisor, not a maximum CDB
      * size.  The common target API currently accepts at most 12 bytes. */
     return (length <= sizeof(dev->cdb)) && (length <= 12) ? length : -1;
 }
 
-static void pc98_55_command_complete(pc98_55_t *dev, int auto_dma)
+static void
+pc98_55_command_complete(pc98_55_t *dev, int auto_dma)
 {
     scsi_device_t *target = pc98_55_target(dev);
 #ifndef RELEASE_BUILD
-    char           cdb_text[12 * 3 + 1] = { 0 };
-    size_t         cdb_used = 0;
-    int            cdb_len;
+    char   cdb_text[12 * 3 + 1] = { 0 };
+    size_t cdb_used             = 0;
+    int    cdb_len;
 #endif
 
     if (!target) {
@@ -290,7 +299,7 @@ static void pc98_55_command_complete(pc98_55_t *dev, int auto_dma)
                                           (i == 0) ? "%02X" : " %02X", dev->cdb[i]);
     }
     pc98_55_log("[PC98-55] SCSI command target=%u lun=%u CDB=[%s] auto_dma=%d\n",
-               dev->target_id, dev->regs[PC98_55_REG_TARGET_LUN] & 7, cdb_text, auto_dma);
+                dev->target_id, dev->regs[PC98_55_REG_TARGET_LUN] & 7, cdb_text, auto_dma);
 
 #endif
 
@@ -298,26 +307,23 @@ static void pc98_55_command_complete(pc98_55_t *dev, int auto_dma)
      * command's length makes, e.g., INQUIRY truncate a subsequent READ. */
     target->buffer_length = -1;
     scsi_device_command_phase0(target, dev->cdb);
-    dev->transfer_active    = 0;
-    dev->transfer_position  = 0;
-    dev->transfer_remaining = 0;
+    dev->transfer_active      = 0;
+    dev->transfer_position    = 0;
+    dev->transfer_remaining   = 0;
     dev->target_data_finished = 0;
 
-    if ((target->status == 0) && target->sc &&
-        ((target->phase == SCSI_PHASE_DATA_IN) || (target->phase == SCSI_PHASE_DATA_OUT)) &&
-        target->sc->temp_buffer && (target->buffer_length > 0)) {
+    if ((target->status == 0) && target->sc && ((target->phase == SCSI_PHASE_DATA_IN) || (target->phase == SCSI_PHASE_DATA_OUT)) && target->sc->temp_buffer && (target->buffer_length > 0)) {
         dev->phase = (target->phase == SCSI_PHASE_DATA_IN) ? PC98_55_PHASE_DATA_IN : PC98_55_PHASE_DATA_OUT;
     } else
         dev->phase = PC98_55_PHASE_STATUS;
 
     pc98_55_log("[PC98-55] target result=%02X phase=%02X buffer=%d\n", target->status,
-               dev->phase, target->buffer_length);
+                dev->phase, target->buffer_length);
 
     if (dev->phase == PC98_55_PHASE_STATUS)
         pc98_55_finish_data(dev);
 
-    if (auto_dma && (dev->phase != PC98_55_PHASE_STATUS) &&
-        (dev->regs[0x01] & 0x80) && (dev->board_dma_status & 1)) {
+    if (auto_dma && (dev->phase != PC98_55_PHASE_STATUS) && (dev->regs[0x01] & 0x80) && (dev->board_dma_status & 1)) {
         const uint32_t count = pc98_55_get_count(dev);
         const uint32_t moved = pc98_55_transfer_data(dev, count, 1);
         pc98_55_set_count(dev, count - moved);
@@ -327,24 +333,23 @@ static void pc98_55_command_complete(pc98_55_t *dev, int auto_dma)
     pc98_55_raise(dev, PC98_55_CSR_XFER_DONE | dev->phase);
 }
 
-static uint32_t pc98_55_transfer_data(pc98_55_t *dev, uint32_t requested, int use_dma)
+static uint32_t
+pc98_55_transfer_data(pc98_55_t *dev, uint32_t requested, int use_dma)
 {
     scsi_device_t *target = pc98_55_target(dev);
     uint8_t       *buffer;
     uint32_t       moved = 0;
 
-    if (!target || !target->sc || !target->sc->temp_buffer ||
-        (target->buffer_length <= 0) ||
-        ((dev->phase != PC98_55_PHASE_DATA_IN) && (dev->phase != PC98_55_PHASE_DATA_OUT))) {
+    if (!target || !target->sc || !target->sc->temp_buffer || (target->buffer_length <= 0) || ((dev->phase != PC98_55_PHASE_DATA_IN) && (dev->phase != PC98_55_PHASE_DATA_OUT))) {
         pc98_55_log("[PC98-55] transfer unavailable: target=%u phase=%02X buffer=%d\n",
-                   dev->target_id, dev->phase, target ? target->buffer_length : 0);
+                    dev->target_id, dev->phase, target ? target->buffer_length : 0);
         return 0;
     }
 
     buffer = target->sc->temp_buffer;
     if (dev->transfer_position >= (uint32_t) target->buffer_length) {
         pc98_55_log("[PC98-55] transfer already at end: position=%u length=%d\n",
-                   dev->transfer_position, target->buffer_length);
+                    dev->transfer_position, target->buffer_length);
         return 0;
     }
 
@@ -353,19 +358,19 @@ static uint32_t pc98_55_transfer_data(pc98_55_t *dev, uint32_t requested, int us
 
     if (!use_dma) {
         dev->transfer_remaining = requested;
-        dev->transfer_direction  = (dev->phase == PC98_55_PHASE_DATA_IN);
-        dev->transfer_active     = (requested != 0);
+        dev->transfer_direction = (dev->phase == PC98_55_PHASE_DATA_IN);
+        dev->transfer_active    = (requested != 0);
         pc98_55_log("[PC98-55] PIO transfer begin direction=%s requested=%u position=%u\n",
-                   dev->transfer_direction ? "device-to-host" : "host-to-device",
-                   requested, dev->transfer_position);
+                    dev->transfer_direction ? "device-to-host" : "host-to-device",
+                    requested, dev->transfer_position);
         if (dev->transfer_active && dev->transfer_direction)
             dev->data_reg = buffer[dev->transfer_position];
         return 0;
     }
 
     pc98_55_log("[PC98-55] DMA transfer begin direction=%s channel=%u requested=%u position=%u\n",
-               (dev->phase == PC98_55_PHASE_DATA_IN) ? "device-to-host" : "host-to-device",
-               dev->dma_channel, requested, dev->transfer_position);
+                (dev->phase == PC98_55_PHASE_DATA_IN) ? "device-to-host" : "host-to-device",
+                dev->dma_channel, requested, dev->transfer_position);
     dma_set_drq(dev->dma_channel, 1);
     while (moved < requested) {
         int result;
@@ -388,11 +393,12 @@ static uint32_t pc98_55_transfer_data(pc98_55_t *dev, uint32_t requested, int us
     }
     dma_set_drq(dev->dma_channel, 0);
     pc98_55_log("[PC98-55] DMA transfer end moved=%u requested=%u position=%u remaining=%u\n",
-               moved, requested, dev->transfer_position, requested - moved);
+                moved, requested, dev->transfer_position, requested - moved);
     return moved;
 }
 
-static void pc98_55_finish_data(pc98_55_t *dev)
+static void
+pc98_55_finish_data(pc98_55_t *dev)
 {
     scsi_device_t *target = pc98_55_target(dev);
 
@@ -410,7 +416,7 @@ static void pc98_55_finish_data(pc98_55_t *dev)
         return;
 
     if (dev->transfer_position >= (uint32_t) target->buffer_length) {
-        dev->transfer_active = 0;
+        dev->transfer_active    = 0;
         dev->transfer_remaining = 0;
         scsi_device_command_phase1(target);
         dev->target_data_finished = 1;
@@ -418,11 +424,12 @@ static void pc98_55_finish_data(pc98_55_t *dev)
          * target in CSR's low bits, using one completion interrupt. */
         dev->phase = PC98_55_PHASE_STATUS;
         pc98_55_log("[PC98-55] target data phase complete: transferred=%u status=%02X\n",
-                   dev->transfer_position, target->status);
+                    dev->transfer_position, target->status);
     }
 }
 
-static void pc98_55_start_transfer(pc98_55_t *dev, uint8_t command)
+static void
+pc98_55_start_transfer(pc98_55_t *dev, uint8_t command)
 {
     scsi_device_t *target = pc98_55_target(dev);
     uint32_t       count  = pc98_55_get_count(dev);
@@ -432,14 +439,14 @@ static void pc98_55_start_transfer(pc98_55_t *dev, uint8_t command)
      * and transfers exactly one byte.  This applies to every INFO phase. */
     dev->transfer_special = ((command & 0x80) || !count) ? 1 : 0;
     pc98_55_log("[PC98-55] transfer command=%02X phase=%02X count=%06X dma=%d special=%u\n",
-               command, dev->phase, count, dma, dev->transfer_special);
+                command, dev->phase, count, dma, dev->transfer_special);
 
     if (dev->transfer_special)
         count = 1;
 
     if ((dev->phase == PC98_55_PHASE_STATUS) || (dev->phase == PC98_55_PHASE_MESSAGE_IN)) {
         dev->transfer_remaining = 1;
-        dev->transfer_active = 1;
+        dev->transfer_active    = 1;
         if (dev->phase == PC98_55_PHASE_STATUS)
             dev->data_reg = target ? target->status : 0x02;
         else
@@ -473,8 +480,8 @@ static void pc98_55_start_transfer(pc98_55_t *dev, uint8_t command)
 
     if (dev->phase == PC98_55_PHASE_MESSAGE_OUT) {
         dev->transfer_remaining = count;
-        dev->transfer_active = (count != 0);
-        dev->message_out_pos = 0;
+        dev->transfer_active    = (count != 0);
+        dev->message_out_pos    = 0;
         if (!count)
             pc98_55_raise(dev, PC98_55_CSR_XFER_DONE | PC98_55_PHASE_MESSAGE_OUT);
         return;
@@ -482,7 +489,7 @@ static void pc98_55_start_transfer(pc98_55_t *dev, uint8_t command)
 
     if (dev->phase == PC98_55_PHASE_COMMAND) {
         dev->transfer_remaining = count;
-        dev->transfer_active = (count != 0);
+        dev->transfer_active    = (count != 0);
         if (!count)
             pc98_55_raise(dev, PC98_55_CSR_INVALID);
         return;
@@ -491,7 +498,8 @@ static void pc98_55_start_transfer(pc98_55_t *dev, uint8_t command)
     pc98_55_raise(dev, PC98_55_CSR_INVALID);
 }
 
-static void pc98_55_transfer_byte_done(pc98_55_t *dev)
+static void
+pc98_55_transfer_byte_done(pc98_55_t *dev)
 {
     scsi_device_t *target = pc98_55_target(dev);
 
@@ -499,11 +507,9 @@ static void pc98_55_transfer_byte_done(pc98_55_t *dev)
         dev->transfer_remaining--;
     pc98_55_count_byte(dev);
 
-    if (((dev->phase == PC98_55_PHASE_DATA_IN) || (dev->phase == PC98_55_PHASE_DATA_OUT)) &&
-        target && (target->buffer_length > 0) &&
-        (dev->transfer_position >= (uint32_t) target->buffer_length)) {
+    if (((dev->phase == PC98_55_PHASE_DATA_IN) || (dev->phase == PC98_55_PHASE_DATA_OUT)) && target && (target->buffer_length > 0) && (dev->transfer_position >= (uint32_t) target->buffer_length)) {
         pc98_55_log("[PC98-55] PIO transfer reached target buffer end at %u bytes\n",
-                   dev->transfer_position);
+                    dev->transfer_position);
         pc98_55_finish_data(dev);
         pc98_55_raise(dev, PC98_55_CSR_XFER_DONE | dev->phase);
         return;
@@ -513,7 +519,7 @@ static void pc98_55_transfer_byte_done(pc98_55_t *dev)
         return;
 
     pc98_55_log("[PC98-55] PIO transfer command completed: phase=%02X position=%u\n",
-               dev->phase, dev->transfer_position);
+                dev->phase, dev->transfer_position);
     dev->transfer_active = 0;
     switch (dev->phase) {
         case PC98_55_PHASE_DATA_IN:
@@ -534,21 +540,21 @@ static void pc98_55_transfer_byte_done(pc98_55_t *dev)
     }
 }
 
-static void pc98_55_data_write(pc98_55_t *dev, uint8_t value)
+static void
+pc98_55_data_write(pc98_55_t *dev, uint8_t value)
 {
     scsi_device_t *target = pc98_55_target(dev);
 
     dev->data_reg = value;
     if (!dev->transfer_active) {
         pc98_55_log("[PC98-55] ignored data write=%02X without active transfer (phase=%02X)\n",
-                   value, dev->phase);
+                    value, dev->phase);
         return;
     }
 
     switch (dev->phase) {
         case PC98_55_PHASE_DATA_OUT:
-            if (target && target->sc && target->sc->temp_buffer &&
-                (dev->transfer_position < (uint32_t) target->buffer_length))
+            if (target && target->sc && target->sc->temp_buffer && (dev->transfer_position < (uint32_t) target->buffer_length))
                 target->sc->temp_buffer[dev->transfer_position++] = value;
             pc98_55_transfer_byte_done(dev);
             break;
@@ -571,36 +577,37 @@ static void pc98_55_data_write(pc98_55_t *dev, uint8_t value)
                         break;
                     }
                 }
-                dev->phase = (dev->message_in == 0x07) ?
-                    PC98_55_PHASE_MESSAGE_IN : PC98_55_PHASE_COMMAND;
+                dev->phase = (dev->message_in == 0x07) ? PC98_55_PHASE_MESSAGE_IN : PC98_55_PHASE_COMMAND;
                 pc98_55_raise(dev, PC98_55_CSR_XFER_DONE | dev->phase);
             }
             break;
-        case PC98_55_PHASE_COMMAND: {
-            int expected;
-            pc98_55_log("[PC98-55] CDB byte[%u]=%02X\n", dev->cdb_pos, value);
-            if (dev->cdb_pos < sizeof(dev->cdb))
-                dev->cdb[dev->cdb_pos++] = value;
-            if (dev->transfer_remaining)
-                dev->transfer_remaining--;
-            pc98_55_count_byte(dev);
-            expected = dev->cdb_pos ? pc98_55_cdb_length(dev, dev->cdb[0]) : -1;
-            if (expected < 0)
-                pc98_55_raise(dev, PC98_55_CSR_INVALID);
-            else if (dev->cdb_pos >= (uint8_t) expected)
-                pc98_55_command_complete(dev, 0);
-            else if (!dev->transfer_remaining)
-                /* A CDB may arrive through several single-byte INFO
-                 * commands.  Keep the accumulated bytes for the next one. */
-                pc98_55_raise(dev, PC98_55_CSR_XFER_DONE | PC98_55_PHASE_COMMAND);
-            break;
-        }
+        case PC98_55_PHASE_COMMAND:
+            {
+                int expected;
+                pc98_55_log("[PC98-55] CDB byte[%u]=%02X\n", dev->cdb_pos, value);
+                if (dev->cdb_pos < sizeof(dev->cdb))
+                    dev->cdb[dev->cdb_pos++] = value;
+                if (dev->transfer_remaining)
+                    dev->transfer_remaining--;
+                pc98_55_count_byte(dev);
+                expected = dev->cdb_pos ? pc98_55_cdb_length(dev, dev->cdb[0]) : -1;
+                if (expected < 0)
+                    pc98_55_raise(dev, PC98_55_CSR_INVALID);
+                else if (dev->cdb_pos >= (uint8_t) expected)
+                    pc98_55_command_complete(dev, 0);
+                else if (!dev->transfer_remaining)
+                    /* A CDB may arrive through several single-byte INFO
+                     * commands.  Keep the accumulated bytes for the next one. */
+                    pc98_55_raise(dev, PC98_55_CSR_XFER_DONE | PC98_55_PHASE_COMMAND);
+                break;
+            }
         default:
             break;
     }
 }
 
-static uint8_t pc98_55_data_read(pc98_55_t *dev)
+static uint8_t
+pc98_55_data_read(pc98_55_t *dev)
 {
     scsi_device_t *target = pc98_55_target(dev);
     uint8_t        value  = dev->data_reg;
@@ -610,20 +617,18 @@ static uint8_t pc98_55_data_read(pc98_55_t *dev)
 
     switch (dev->phase) {
         case PC98_55_PHASE_DATA_IN:
-            if (target && target->sc && target->sc->temp_buffer &&
-                (dev->transfer_position < (uint32_t) target->buffer_length)) {
-                value = target->sc->temp_buffer[dev->transfer_position++];
+            if (target && target->sc && target->sc->temp_buffer && (dev->transfer_position < (uint32_t) target->buffer_length)) {
+                value         = target->sc->temp_buffer[dev->transfer_position++];
                 dev->data_reg = value;
             }
             pc98_55_transfer_byte_done(dev);
-            if (dev->transfer_active && target && target->sc && target->sc->temp_buffer &&
-                (dev->transfer_position < (uint32_t) target->buffer_length))
+            if (dev->transfer_active && target && target->sc && target->sc->temp_buffer && (dev->transfer_position < (uint32_t) target->buffer_length))
                 dev->data_reg = target->sc->temp_buffer[dev->transfer_position];
             break;
         case PC98_55_PHASE_STATUS:
         case PC98_55_PHASE_MESSAGE_IN:
             pc98_55_log("[PC98-55] PIO control byte read phase=%02X value=%02X\n",
-                       dev->phase, value);
+                        dev->phase, value);
             pc98_55_transfer_byte_done(dev);
             break;
         default:
@@ -633,7 +638,8 @@ static uint8_t pc98_55_data_read(pc98_55_t *dev)
     return value;
 }
 
-static void pc98_55_reset_controller(pc98_55_t *dev, int reset_targets)
+static void
+pc98_55_reset_controller(pc98_55_t *dev, int reset_targets)
 {
     scsi_device_t *target = pc98_55_target(dev);
     if (target && target->sc && !dev->target_data_finished)
@@ -641,20 +647,20 @@ static void pc98_55_reset_controller(pc98_55_t *dev, int reset_targets)
     pc98_55_log("[PC98-55] controller reset reset_targets=%d bus=%u\n", reset_targets, dev->bus);
     pc98_55_irq(dev, 0);
     dma_set_drq(dev->dma_channel, 0);
-    dev->selected = 0;
-    dev->level2 = 0;
-    dev->transfer_active = 0;
-    dev->transfer_remaining = 0;
-    dev->transfer_position = 0;
-    dev->target_data_finished = 0;
-    dev->cdb_pos = 0;
-    dev->message_out_pos = 0;
-    dev->pending_phase = 0;
-    dev->pending_csr = 0;
-    dev->phase = PC98_55_PHASE_COMPLETE;
-    dev->scsi_status = PC98_55_CSR_RESET;
+    dev->selected                        = 0;
+    dev->level2                          = 0;
+    dev->transfer_active                 = 0;
+    dev->transfer_remaining              = 0;
+    dev->transfer_position               = 0;
+    dev->target_data_finished            = 0;
+    dev->cdb_pos                         = 0;
+    dev->message_out_pos                 = 0;
+    dev->pending_phase                   = 0;
+    dev->pending_csr                     = 0;
+    dev->phase                           = PC98_55_PHASE_COMPLETE;
+    dev->scsi_status                     = PC98_55_CSR_RESET;
     dev->regs[PC98_55_REG_COMMAND_PHASE] = dev->phase;
-    dev->regs[PC98_55_REG_SCSI_STATUS] = dev->scsi_status;
+    dev->regs[PC98_55_REG_SCSI_STATUS]   = dev->scsi_status;
     if (reset_targets) {
         for (uint8_t id = 0; id < SCSI_ID_MAX; id++)
             scsi_device_reset(&scsi_devices[dev->bus][id]);
@@ -662,68 +668,66 @@ static void pc98_55_reset_controller(pc98_55_t *dev, int reset_targets)
     }
 }
 
-static void pc98_55_reset(void *priv)
+static void
+pc98_55_reset(void *priv)
 {
     pc98_55_t *dev = (pc98_55_t *) priv;
 
     pc98_55_reset_controller(dev, 1);
     memset(dev->regs, 0, sizeof(dev->regs));
-    dev->regs[PC98_55_REG_OWN_ID] = (uint8_t) (0x40 | dev->source_id);
-    dev->regs[PC98_55_REG_SOURCE_ID] = dev->source_id;
+    dev->regs[PC98_55_REG_OWN_ID]        = (uint8_t) (0x40 | dev->source_id);
+    dev->regs[PC98_55_REG_SOURCE_ID]     = dev->source_id;
     dev->regs[PC98_55_REG_COMMAND_PHASE] = dev->phase;
-    dev->regs[PC98_55_REG_SCSI_STATUS] = dev->scsi_status;
-    dev->address = 0;
-    dev->memory_bank = 0;
-    dev->board_dma_status = 0;
-    dev->data_reg = 0;
-    dev->message_in = 0;
-    dev->aux_status_valid = 0;
+    dev->regs[PC98_55_REG_SCSI_STATUS]   = dev->scsi_status;
+    dev->address                         = 0;
+    dev->memory_bank                     = 0;
+    dev->board_dma_status                = 0;
+    dev->data_reg                        = 0;
+    dev->message_in                      = 0;
+    dev->aux_status_valid                = 0;
     mem_mapping_set_exec(&dev->bios->mapping, dev->bios->rom);
 }
 
-static void pc98_55_select(pc98_55_t *dev, uint8_t command)
+static void
+pc98_55_select(pc98_55_t *dev, uint8_t command)
 {
     scsi_device_t *target;
     const uint8_t  destination = dev->regs[PC98_55_REG_DESTINATION_ID];
     int            cdb_len;
 
     pc98_55_log("[PC98-55] select command=%02X host_id=%u target_id=%u lun=%u\n",
-               command, dev->source_id, destination & 7,
-               dev->regs[PC98_55_REG_TARGET_LUN] & 7);
+                command, dev->source_id, destination & 7,
+                dev->regs[PC98_55_REG_TARGET_LUN] & 7);
     pc98_55_irq(dev, 0);
-    dev->target_id = destination & 7;
-    dev->selected = 0;
-    dev->pending_phase = 0;
-    dev->pending_csr = 0;
-    dev->transfer_active = 0;
-    dev->cdb_pos = 0;
-    dev->transfer_position = 0;
-    dev->transfer_remaining = 0;
+    dev->target_id            = destination & 7;
+    dev->selected             = 0;
+    dev->pending_phase        = 0;
+    dev->pending_csr          = 0;
+    dev->transfer_active      = 0;
+    dev->cdb_pos              = 0;
+    dev->transfer_position    = 0;
+    dev->transfer_remaining   = 0;
     dev->target_data_finished = 0;
-    target = (dev->target_id == dev->source_id) ? NULL :
-             &scsi_devices[dev->bus][dev->target_id];
+    target                    = (dev->target_id == dev->source_id) ? NULL : &scsi_devices[dev->bus][dev->target_id];
 
     if (!target || !scsi_device_present(target)) {
         pc98_55_log("[PC98-55] target %u absent on bus %u\n", dev->target_id, dev->bus);
         dev->phase = PC98_55_PHASE_COMPLETE;
-        pc98_55_raise(dev, (command == PC98_55_CMD_SELECT_ATN || command == PC98_55_CMD_SELECT) ?
-                      PC98_55_CSR_TIMEOUT : PC98_55_CSR_SEL_ABORT);
+        pc98_55_raise(dev, (command == PC98_55_CMD_SELECT_ATN || command == PC98_55_CMD_SELECT) ? PC98_55_CSR_TIMEOUT : PC98_55_CSR_SEL_ABORT);
         return;
     }
 
     dev->selected = 1;
-    dev->level2 = (command == PC98_55_CMD_SELECT_ATN_XFER) ||
-                  (command == PC98_55_CMD_SELECT_XFER);
+    dev->level2   = (command == PC98_55_CMD_SELECT_ATN_XFER) || (command == PC98_55_CMD_SELECT_XFER);
     scsi_device_identify(target, dev->regs[PC98_55_REG_TARGET_LUN] & 7);
 
     if ((command == PC98_55_CMD_SELECT_ATN) || (command == PC98_55_CMD_SELECT)) {
-        dev->phase = (command == PC98_55_CMD_SELECT_ATN) ?
-                     PC98_55_PHASE_MESSAGE_OUT : PC98_55_PHASE_COMMAND;
+        dev->phase = (command == PC98_55_CMD_SELECT_ATN) ? PC98_55_PHASE_MESSAGE_OUT : PC98_55_PHASE_COMMAND;
         /* Selection completion and the target's first REQ are separate
          * interrupts. The 55L BIOS acknowledges 11h, then waits for the
          * command/message phase service request before issuing INFO. */
         dev->pending_phase = dev->phase;
-        dev->pending_csr = PC98_55_CSR_SERVICE_REQ | dev->phase;
+        dev->pending_csr   = PC98_55_CSR_SERVICE_REQ | dev->phase;
         pc98_55_raise(dev, PC98_55_CSR_SELECT);
         return;
     }
@@ -739,10 +743,11 @@ static void pc98_55_select(pc98_55_t *dev, uint8_t command)
     pc98_55_command_complete(dev, 1);
 }
 
-static void pc98_55_command_write(pc98_55_t *dev, uint8_t command)
+static void
+pc98_55_command_write(pc98_55_t *dev, uint8_t command)
 {
     pc98_55_log("[PC98-55] WD command=%02X phase=%02X target=%u count=%06X\n",
-               command, dev->phase, dev->target_id, pc98_55_get_count(dev));
+                command, dev->phase, dev->target_id, pc98_55_get_count(dev));
     switch (command & 0x7f) {
         case PC98_55_CMD_RESET:
             /* WD chip reset does not assert the board's separate SCSI bus reset. */
@@ -795,7 +800,8 @@ static void pc98_55_command_write(pc98_55_t *dev, uint8_t command)
     }
 }
 
-static uint8_t pc98_55_read_reg(pc98_55_t *dev, uint8_t reg)
+static uint8_t
+pc98_55_read_reg(pc98_55_t *dev, uint8_t reg)
 {
     if (reg == PC98_55_REG_AUX_STATUS) {
         uint8_t status = 0;
@@ -807,8 +813,8 @@ static uint8_t pc98_55_read_reg(pc98_55_t *dev, uint8_t reg)
             status |= PC98_55_ASR_BSY | PC98_55_ASR_DBR;
         if (!dev->aux_status_valid || (dev->last_aux_status != status)) {
             pc98_55_log("[PC98-55] AUX status=%02X (IRQ pending=%u, data ready=%u)\n",
-                       status, !!(status & PC98_55_ASR_INT), !!(status & PC98_55_ASR_DBR));
-            dev->last_aux_status = status;
+                        status, !!(status & PC98_55_ASR_INT), !!(status & PC98_55_ASR_DBR));
+            dev->last_aux_status  = status;
             dev->aux_status_valid = 1;
         }
         return status;
@@ -817,7 +823,7 @@ static uint8_t pc98_55_read_reg(pc98_55_t *dev, uint8_t reg)
     if (reg == PC98_55_REG_SCSI_STATUS) {
         const uint8_t value = dev->scsi_status;
         pc98_55_log("[PC98-55] SCSI status read/ack=%02X pending_phase=%02X\n",
-                   value, dev->pending_phase);
+                    value, dev->pending_phase);
         pc98_55_irq(dev, 0);
         pc98_55_advance_pending(dev);
         return value;
@@ -830,9 +836,11 @@ static uint8_t pc98_55_read_reg(pc98_55_t *dev, uint8_t reg)
         return dev->memory_bank;
 
     if (reg == PC98_55_REG_RESET_IRQ)
-        return (dev->source_id & 7) | ((dev->irq == 3) ? 0x00 :
-               (dev->irq == 5) ? 0x08 : (dev->irq == 6) ? 0x10 :
-               (dev->irq == 9) ? 0x18 : (dev->irq == 12) ? 0x20 : 0x28);
+        return (dev->source_id & 7) | ((dev->irq == 3) ? 0x00 : (dev->irq == 5) ? 0x08
+                                           : (dev->irq == 6)                    ? 0x10
+                                           : (dev->irq == 9)                    ? 0x18
+                                           : (dev->irq == 12)                   ? 0x20
+                                                                                : 0x28);
 
     if (reg < sizeof(dev->regs)) {
         const uint8_t value = dev->regs[reg];
@@ -847,7 +855,8 @@ static uint8_t pc98_55_read_reg(pc98_55_t *dev, uint8_t reg)
     return 0xff;
 }
 
-static void pc98_55_write_reg(pc98_55_t *dev, uint8_t reg, uint8_t value)
+static void
+pc98_55_write_reg(pc98_55_t *dev, uint8_t reg, uint8_t value)
 {
     if (reg == PC98_55_REG_DATA) {
         pc98_55_data_write(dev, value);
@@ -862,10 +871,10 @@ static void pc98_55_write_reg(pc98_55_t *dev, uint8_t reg, uint8_t value)
 
     if (reg == PC98_55_REG_MEMORY_BANK) {
         const uint8_t previous = dev->memory_bank;
-        dev->memory_bank = value;
+        dev->memory_bank       = value;
         pc98_55_log("[PC98-55] board control=%02X (ROM bank=%u IRQ enable=%u bus reset=%u)\n",
-                   value, !!(value & PC98_55_ROM_BANK),
-                   !!(value & PC98_55_IRQ_ENABLE), !!(value & PC98_55_BUS_RESET));
+                    value, !!(value & PC98_55_ROM_BANK),
+                    !!(value & PC98_55_IRQ_ENABLE), !!(value & PC98_55_BUS_RESET));
         pc98_55_irq(dev, dev->irq_pending);
         if ((previous ^ value) & PC98_55_ROM_BANK)
             mem_mapping_set_exec(&dev->bios->mapping,
@@ -879,28 +888,30 @@ static void pc98_55_write_reg(pc98_55_t *dev, uint8_t reg, uint8_t value)
         dev->regs[reg] = value;
 }
 
-static uint8_t pc98_55_in(uint16_t port, void *priv)
+static uint8_t
+pc98_55_in(uint16_t port, void *priv)
 {
     pc98_55_t *dev = (pc98_55_t *) priv;
 
     switch ((port - dev->io_base) & 0x07) {
-        case 0: {
-            const uint8_t value = pc98_55_read_reg(dev, PC98_55_REG_AUX_STATUS);
-            return value;
-        }
-        case 2: {
-            const uint8_t reg = dev->address;
-            const int     bulk_data = (reg == PC98_55_REG_DATA) && dev->transfer_active &&
-                                      (dev->phase == PC98_55_PHASE_DATA_IN);
-            const uint8_t value = pc98_55_read_reg(dev, reg);
-            if (!bulk_data && (reg != PC98_55_REG_AUX_STATUS))
-                pc98_55_log("[PC98-55] I/O read port=%04X reg=%02X value=%02X phase=%02X\n",
-                           port, reg, value, dev->phase);
-            return value;
-        }
+        case 0:
+            {
+                const uint8_t value = pc98_55_read_reg(dev, PC98_55_REG_AUX_STATUS);
+                return value;
+            }
+        case 2:
+            {
+                const uint8_t reg       = dev->address;
+                const int     bulk_data = (reg == PC98_55_REG_DATA) && dev->transfer_active && (dev->phase == PC98_55_PHASE_DATA_IN);
+                const uint8_t value     = pc98_55_read_reg(dev, reg);
+                if (!bulk_data && (reg != PC98_55_REG_AUX_STATUS))
+                    pc98_55_log("[PC98-55] I/O read port=%04X reg=%02X value=%02X phase=%02X\n",
+                                port, reg, value, dev->phase);
+                return value;
+            }
         case 4:
             pc98_55_log("[PC98-55] DMA gate read port=%04X value=%02X\n", port,
-                       dev->board_dma_status);
+                        dev->board_dma_status);
             return dev->board_dma_status;
         default:
             pc98_55_log("[PC98-55] unmapped I/O read port=%04X\n", port);
@@ -908,7 +919,8 @@ static uint8_t pc98_55_in(uint16_t port, void *priv)
     }
 }
 
-static void pc98_55_out(uint16_t port, uint8_t value, void *priv)
+static void
+pc98_55_out(uint16_t port, uint8_t value, void *priv)
 {
     pc98_55_t *dev = (pc98_55_t *) priv;
 
@@ -916,19 +928,14 @@ static void pc98_55_out(uint16_t port, uint8_t value, void *priv)
         case 0:
             dev->address = value & 0x3f;
             pc98_55_log("[PC98-55] I/O register select port=%04X address=%02X\n", port,
-                       dev->address);
+                        dev->address);
             break;
         case 2:
-            if ((dev->address != PC98_55_REG_DATA) &&
-                (dev->address != PC98_55_REG_AUX_STATUS))
+            if ((dev->address != PC98_55_REG_DATA) && (dev->address != PC98_55_REG_AUX_STATUS))
                 pc98_55_log("[PC98-55] I/O write port=%04X reg=%02X value=%02X phase=%02X\n",
-                           port, dev->address, value, dev->phase);
+                            port, dev->address, value, dev->phase);
             pc98_55_write_reg(dev, dev->address, value);
-            if ((dev->address != PC98_55_REG_COMMAND) &&
-                (dev->address != PC98_55_REG_DATA) &&
-                (dev->address != PC98_55_REG_MEMORY_BANK) &&
-                (dev->address != PC98_55_REG_RESET_IRQ) &&
-                (dev->address != PC98_55_REG_AUX_STATUS))
+            if ((dev->address != PC98_55_REG_COMMAND) && (dev->address != PC98_55_REG_DATA) && (dev->address != PC98_55_REG_MEMORY_BANK) && (dev->address != PC98_55_REG_RESET_IRQ) && (dev->address != PC98_55_REG_AUX_STATUS))
                 dev->address = (dev->address + 1) & 0x3f;
             break;
         case 4:
@@ -938,7 +945,7 @@ static void pc98_55_out(uint16_t port, uint8_t value, void *priv)
             else if (value == 0x02)
                 dev->board_dma_status = 0;
             pc98_55_log("[PC98-55] DMA gate write port=%04X value=%02X enabled=%u\n",
-                       port, value, dev->board_dma_status);
+                        port, value, dev->board_dma_status);
             break;
         default:
             pc98_55_log("[PC98-55] unmapped I/O write port=%04X value=%02X\n", port, value);
@@ -946,38 +953,38 @@ static void pc98_55_out(uint16_t port, uint8_t value, void *priv)
     }
 }
 
-static uint8_t pc98_55_rom_readb(uint32_t addr, void *priv)
+static uint8_t
+pc98_55_rom_readb(uint32_t addr, void *priv)
 {
-    const pc98_55_t *dev = (const pc98_55_t *) priv;
-    const uint32_t   bank = (dev->memory_bank & PC98_55_ROM_BANK) ? PC98_55_ROM_WINDOW_SIZE : 0;
+    const pc98_55_t *dev    = (const pc98_55_t *) priv;
+    const uint32_t   bank   = (dev->memory_bank & PC98_55_ROM_BANK) ? PC98_55_ROM_WINDOW_SIZE : 0;
     const uint32_t   offset = (addr - dev->rom_addr) & (PC98_55_ROM_WINDOW_SIZE - 1);
 
     return dev->bios->rom[bank + offset];
 }
 
-static uint16_t pc98_55_rom_readw(uint32_t addr, void *priv)
+static uint16_t
+pc98_55_rom_readw(uint32_t addr, void *priv)
 {
-    return (uint16_t) (pc98_55_rom_readb(addr, priv) |
-                       ((uint16_t) pc98_55_rom_readb(addr + 1, priv) << 8));
+    return (uint16_t) (pc98_55_rom_readb(addr, priv) | ((uint16_t) pc98_55_rom_readb(addr + 1, priv) << 8));
 }
 
-static uint32_t pc98_55_rom_readl(uint32_t addr, void *priv)
+static uint32_t
+pc98_55_rom_readl(uint32_t addr, void *priv)
 {
-    return (uint32_t) pc98_55_rom_readb(addr, priv) |
-           ((uint32_t) pc98_55_rom_readb(addr + 1, priv) << 8) |
-           ((uint32_t) pc98_55_rom_readb(addr + 2, priv) << 16) |
-           ((uint32_t) pc98_55_rom_readb(addr + 3, priv) << 24);
+    return (uint32_t) pc98_55_rom_readb(addr, priv) | ((uint32_t) pc98_55_rom_readb(addr + 1, priv) << 8) | ((uint32_t) pc98_55_rom_readb(addr + 2, priv) << 16) | ((uint32_t) pc98_55_rom_readb(addr + 3, priv) << 24);
 }
 
-static int pc98_55_rom_pair_present(const char *low, const char *high)
+static int
+pc98_55_rom_pair_present(const char *low, const char *high)
 {
     return low && high && rom_present(low) && rom_present(high);
 }
 
-static int pc98_55_available(void)
+static int
+pc98_55_available(void)
 {
-    const int available = pc98_55_rom_pair_present(PC98_55L_ROM_LOW, PC98_55L_ROM_HIGH) ||
-                          pc98_55_rom_pair_present(PC98_55U_ROM_LOW, PC98_55U_ROM_HIGH);
+    const int available = pc98_55_rom_pair_present(PC98_55L_ROM_LOW, PC98_55L_ROM_HIGH) || pc98_55_rom_pair_present(PC98_55U_ROM_LOW, PC98_55U_ROM_HIGH);
 
     if (available) {
         if (pc98_55_missing_rom_reported)
@@ -991,9 +998,10 @@ static int pc98_55_available(void)
     return available;
 }
 
-static void *pc98_55_init(const device_t *info)
+static void *
+pc98_55_init(const device_t *info)
 {
-    pc98_55_t *dev = (pc98_55_t *) calloc(1, sizeof(pc98_55_t));
+    pc98_55_t  *dev = (pc98_55_t *) calloc(1, sizeof(pc98_55_t));
     const char *bios_ver;
     const char *bios_low;
     const char *bios_high;
@@ -1002,15 +1010,15 @@ static void *pc98_55_init(const device_t *info)
     if (!dev)
         return NULL;
 
-    base            = (uint16_t) device_get_config_int("base");
-    dev->irq        = (uint8_t) device_get_config_int("irq");
-    dev->source_id  = (uint8_t) device_get_config_int("scsi_id");
+    base             = (uint16_t) device_get_config_int("base");
+    dev->irq         = (uint8_t) device_get_config_int("irq");
+    dev->source_id   = (uint8_t) device_get_config_int("scsi_id");
     dev->dma_channel = (uint8_t) device_get_config_int("dma");
     dev->io_base     = base;
     dev->rom_addr    = device_get_config_hex20("bios_addr");
     if ((dev->irq >= 16) || (dev->source_id >= 8) || (dev->dma_channel >= 8)) {
         pclog("[PC98-55] init rejected invalid config: IRQ=%u host_id=%u DMA=%u\n",
-                   dev->irq, dev->source_id, dev->dma_channel);
+              dev->irq, dev->source_id, dev->dma_channel);
         free(dev);
         return NULL;
     }
@@ -1036,19 +1044,16 @@ static void *pc98_55_init(const device_t *info)
     }
     /* Each 32 KiB dump repeats a 4 KiB lane. Interleave eta1b on even bytes
        and eta3b on odd bytes to form the board's 8 KiB banked ROM image. */
-    if (!pc98_55_rom_pair_present(bios_low, bios_high) ||
-        (rom_init_interleaved(dev->bios, bios_low, bios_high, dev->rom_addr,
-                              PC98_55_ROM_SIZE, PC98_55_ROM_SIZE - 1, 0,
-                              MEM_MAPPING_EXTERNAL) != 0)) {
+    if (!pc98_55_rom_pair_present(bios_low, bios_high) || (rom_init_interleaved(dev->bios, bios_low, bios_high, dev->rom_addr, PC98_55_ROM_SIZE, PC98_55_ROM_SIZE - 1, 0, MEM_MAPPING_EXTERNAL) != 0)) {
         pclog("[PC98-55] init failed to load ROM pair: low=%s high=%s\n",
-                   bios_low ? bios_low : "(missing)", bios_high ? bios_high : "(missing)");
+              bios_low ? bios_low : "(missing)", bios_high ? bios_high : "(missing)");
         free(dev->bios);
         free(dev);
         return NULL;
     }
     pclog("[PC98-55] ROM pair loaded: low=%s high=%s map=%05X size=%04X window=%04X\n",
-               bios_low, bios_high, dev->rom_addr, PC98_55_ROM_SIZE,
-               PC98_55_ROM_WINDOW_SIZE);
+          bios_low, bios_high, dev->rom_addr, PC98_55_ROM_SIZE,
+          PC98_55_ROM_WINDOW_SIZE);
 
     /* The board exposes one 4 KiB bank at a time from its 8 KiB ROM. */
     mem_mapping_set_addr(&dev->bios->mapping, dev->rom_addr, PC98_55_ROM_WINDOW_SIZE);
@@ -1071,25 +1076,26 @@ static void *pc98_55_init(const device_t *info)
         return NULL;
     }
 
-    dev->regs[PC98_55_REG_OWN_ID] = (uint8_t) (0x40 | dev->source_id); /* 12-15 MHz clock range */
-    dev->regs[PC98_55_REG_SOURCE_ID] = dev->source_id;
-    dev->phase = PC98_55_PHASE_COMPLETE;
-    dev->scsi_status = PC98_55_CSR_RESET;
+    dev->regs[PC98_55_REG_OWN_ID]        = (uint8_t) (0x40 | dev->source_id); /* 12-15 MHz clock range */
+    dev->regs[PC98_55_REG_SOURCE_ID]     = dev->source_id;
+    dev->phase                           = PC98_55_PHASE_COMPLETE;
+    dev->scsi_status                     = PC98_55_CSR_RESET;
     dev->regs[PC98_55_REG_COMMAND_PHASE] = dev->phase;
-    dev->regs[PC98_55_REG_SCSI_STATUS] = dev->scsi_status;
+    dev->regs[PC98_55_REG_SCSI_STATUS]   = dev->scsi_status;
     io_sethandler(base, 6, pc98_55_in, NULL, NULL, pc98_55_out, NULL, NULL, dev);
     scsi_bus_set_speed(dev->bus, 5000000.0);
     for (uint8_t id = 0; id < SCSI_ID_MAX; id++)
         scsi_device_reset(&scsi_devices[dev->bus][id]);
 
     pclog("[PC98-55] initialized: bus=%u I/O=%04X IRQ=%u DMA=%u host_id=%u ROM=%05X\n",
-               dev->bus, dev->io_base, dev->irq, dev->dma_channel, dev->source_id,
-               dev->rom_addr);
+          dev->bus, dev->io_base, dev->irq, dev->dma_channel, dev->source_id,
+          dev->rom_addr);
 
     return dev;
 }
 
-static void pc98_55_close(void *priv)
+static void
+pc98_55_close(void *priv)
 {
     pc98_55_t *dev = (pc98_55_t *) priv;
 

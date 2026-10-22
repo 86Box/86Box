@@ -42,14 +42,14 @@
  */
 const pc98_sasi_geometry_t pc98_sasi_geometry[PC98_SASI_DIP_COUNT] = {
     /* user, total, heads, sectors, blocks */
-    { 153, 340, 4, 33,  44880u },
-    { 310, 340, 4, 33,  44880u },
-    { 310, 340, 6, 33,  67320u },
-    { 310, 340, 8, 33,  89760u },
-    { 615, 664, 4, 33,  87648u },
+    { 153, 340, 4, 33, 44880u  },
+    { 310, 340, 4, 33, 44880u  },
+    { 310, 340, 6, 33, 67320u  },
+    { 310, 340, 8, 33, 89760u  },
+    { 615, 664, 4, 33, 87648u  },
     { 615, 664, 6, 33, 131472u },
     { 615, 664, 8, 33, 175296u },
-    { 310, 332, 4, 33,  43824u }
+    { 310, 332, 4, 33, 43824u  }
 };
 
 static int
@@ -73,9 +73,8 @@ pc98_sasi_dip_capacity_for_sector(unsigned dip, unsigned sector_size)
     if (sector_size != 256u && sector_size != 512u)
         return 0u;
 
-    const pc98_sasi_geometry_t *g = &pc98_sasi_geometry[dip];
-    const uint32_t blocks256 = (uint32_t) g->user_cylinders *
-                               (uint32_t) g->heads * (uint32_t) g->sectors;
+    const pc98_sasi_geometry_t *g         = &pc98_sasi_geometry[dip];
+    const uint32_t              blocks256 = (uint32_t) g->user_cylinders * (uint32_t) g->heads * (uint32_t) g->sectors;
     /* This helper describes host-container sectors only.  It must never
      * change the PC-9801-27 controller type or insert per-track padding. */
     return sector_size == 512u ? blocks256 / 2u : blocks256;
@@ -99,8 +98,7 @@ pc98_sasi_dip_for_media(uint32_t blocks, unsigned sector_size)
     /* Convert the host container's sector count to the board's fixed
      * 256-byte logical LBA space.  A 512-byte HDI sector is two consecutive
      * SASI blocks; there is no synthetic 33->17 track hole. */
-    const uint64_t logical = (uint64_t) blocks * (uint64_t) sector_size /
-                             PC98_SASI_BLOCK_SIZE;
+    const uint64_t logical = (uint64_t) blocks * (uint64_t) sector_size / PC98_SASI_BLOCK_SIZE;
     if (logical > 0xffffffffu)
         return -1;
     return pc98_sasi_dip_for_blocks((uint32_t) logical);
@@ -120,7 +118,7 @@ pc98_sasi_dip_for_blocks(uint32_t blocks)
         if (cap > blocks)
             continue;
         if (best < 0 || cap > best_size) {
-            best = (int) i;
+            best      = (int) i;
             best_size = cap;
         }
     }
@@ -172,16 +170,12 @@ sasi_clear_irq(pc98_sasi_t *s)
 static void
 sasi_set_phase(pc98_sasi_t *s, pc98_sasi_phase_t phase)
 {
-    s->phase = phase;
+    s->phase     = phase;
     s->lines.bsy = phase != PC98_SASI_BUSFREE;
-    s->lines.req = phase == PC98_SASI_COMMAND || phase == PC98_SASI_DATAIN ||
-                   phase == PC98_SASI_DATAOUT || phase == PC98_SASI_STATUS ||
-                   phase == PC98_SASI_MSGIN;
+    s->lines.req = phase == PC98_SASI_COMMAND || phase == PC98_SASI_DATAIN || phase == PC98_SASI_DATAOUT || phase == PC98_SASI_STATUS || phase == PC98_SASI_MSGIN;
     s->lines.msg = phase == PC98_SASI_MSGIN;
-    s->lines.cd  = phase == PC98_SASI_COMMAND || phase == PC98_SASI_STATUS ||
-                   phase == PC98_SASI_MSGIN;
-    s->lines.io  = phase == PC98_SASI_DATAIN || phase == PC98_SASI_STATUS ||
-                   phase == PC98_SASI_MSGIN;
+    s->lines.cd  = phase == PC98_SASI_COMMAND || phase == PC98_SASI_STATUS || phase == PC98_SASI_MSGIN;
+    s->lines.io  = phase == PC98_SASI_DATAIN || phase == PC98_SASI_STATUS || phase == PC98_SASI_MSGIN;
 }
 
 static void
@@ -216,40 +210,39 @@ pc98_sasi_init(pc98_sasi_t *s, const pc98_sasi_ops_t *ops)
      * Both selectors power up as "not connected".  The 86Box wrapper changes
      * only the selector for each image it actually attaches.
      */
-    s->dip = (uint8_t) ((PC98_SASI_DIP_DISCONNECTED << 3) |
-                        PC98_SASI_DIP_DISCONNECTED);
+    s->dip = (uint8_t) ((PC98_SASI_DIP_DISCONNECTED << 3) | PC98_SASI_DIP_DISCONNECTED);
     pc98_sasi_reset(s);
 }
 
 void
 pc98_sasi_reset(pc98_sasi_t *s)
 {
-    s->ctrl    = 0u;
-    s->data    = 0u;
+    s->ctrl        = 0u;
+    s->data        = 0u;
     s->int_pending = 0u;
     memset(&s->lines, 0, sizeof(s->lines));
     sasi_set_phase(s, PC98_SASI_BUSFREE);
     s->cdb_pos = 0u;
     memset(s->cdb, 0, sizeof(s->cdb));
     s->buf_len = s->buf_pos = 0u;
-    s->status  = PC98_SASI_GOOD;
-    s->message = 0u;
-    s->dataout_action = PC98_SASI_DATAOUT_NONE;
-    s->sel_id  = 0u;
-    s->unit    = 0u;
+    s->status               = PC98_SASI_GOOD;
+    s->message              = 0u;
+    s->dataout_action       = PC98_SASI_DATAOUT_NONE;
+    s->sel_id               = 0u;
+    s->unit                 = 0u;
     s->xfer_lba = s->xfer_blocks = 0u;
     /* S1410 power-up/reset defaults, Owner's Manual section 4.5.15. */
-    s->drive_cylinders         = 153u;
-    s->drive_heads             = 4u;
-    s->reduced_write_cylinder  = 128u;
-    s->precomp_cylinder        = 64u;
-    s->max_ecc_burst           = 11u;
-    s->last_ecc_burst          = 0u;
+    s->drive_cylinders        = 153u;
+    s->drive_heads            = 4u;
+    s->reduced_write_cylinder = 128u;
+    s->precomp_cylinder       = 64u;
+    s->max_ecc_burst          = 11u;
+    s->last_ecc_burst         = 0u;
     memset(s->assign_params, 0, sizeof(s->assign_params));
     for (unsigned i = 0; i < PC98_SASI_MAX_UNITS; i++) {
-        s->sense[i]     = PC98_SASI_SENSE_NONE;
+        s->sense[i]       = PC98_SASI_SENSE_NONE;
         s->sense_valid[i] = 0u;
-        s->sense_lba[i] = 0u;
+        s->sense_lba[i]   = 0u;
     }
     sasi_clear_irq(s);
 }
@@ -259,8 +252,7 @@ pc98_sasi_set_dip(pc98_sasi_t *s, uint8_t dip)
 {
     /* CT1:CT0 is a controller-type field.  This device is specifically the
      * PC-9801-27, whose documented value is 00. */
-    s->dip = (uint8_t) ((dip & ~PC98_SASI_DIP_CT_MASK) |
-                        PC98_SASI_DIP_CT_PC9801_27);
+    s->dip = (uint8_t) ((dip & ~PC98_SASI_DIP_CT_MASK) | PC98_SASI_DIP_CT_PC9801_27);
 }
 
 void
@@ -318,8 +310,7 @@ pc98_sasi_unit_track_blocks(const pc98_sasi_t *s, unsigned unit)
 static uint32_t
 cdb_lba(const uint8_t *cdb)
 {
-    return (((uint32_t) (cdb[1] & 0x1fu)) << 16) |
-           (((uint32_t) cdb[2]) << 8) | (uint32_t) cdb[3];
+    return (((uint32_t) (cdb[1] & 0x1fu)) << 16) | (((uint32_t) cdb[2]) << 8) | (uint32_t) cdb[3];
 }
 
 static uint32_t
@@ -333,8 +324,7 @@ static uint8_t
 sasi_completion_status(const pc98_sasi_t *s, int error)
 {
     /* Xebec completion status byte: bit 5 is the LUN, bit 1 is ERR. */
-    return (uint8_t) (((s->unit & 1u) << 5) |
-                     (error ? PC98_SASI_CHECK : PC98_SASI_GOOD));
+    return (uint8_t) (((s->unit & 1u) << 5) | (error ? PC98_SASI_CHECK : PC98_SASI_GOOD));
 }
 
 static void
@@ -356,11 +346,11 @@ sasi_set_success_address(pc98_sasi_t *s, uint32_t lba)
 static void
 sasi_fail(pc98_sasi_t *s, uint8_t sense, uint32_t lba, int address_valid)
 {
-    s->status                 = sasi_completion_status(s, 1);
-    s->sense[s->unit]         = sense;
-    s->sense_valid[s->unit]   = address_valid ? 1u : 0u;
-    s->sense_lba[s->unit]     = lba;
-    s->dataout_action         = PC98_SASI_DATAOUT_NONE;
+    s->status               = sasi_completion_status(s, 1);
+    s->sense[s->unit]       = sense;
+    s->sense_valid[s->unit] = address_valid ? 1u : 0u;
+    s->sense_lba[s->unit]   = lba;
+    s->dataout_action       = PC98_SASI_DATAOUT_NONE;
     sasi_enter_status(s);
 }
 
@@ -392,7 +382,7 @@ static int
 sasi_validate_interleave(pc98_sasi_t *s)
 {
     const unsigned max_interleave = PC98_SASI_TRACK_BLOCKS_256 - 2u;
-    const unsigned interleave = s->cdb[4];
+    const unsigned interleave     = s->cdb[4];
 
     /* Rev-E firmware explicitly accepts zero and converts it to an
      * interleave of one.  Only values above sectors-per-track minus one
@@ -444,7 +434,7 @@ sasi_ecc_invalidate_range(pc98_sasi_t *s, uint32_t lba, uint32_t count)
 static void
 sasi_ecc_store(pc98_sasi_t *s, uint32_t lba, const uint8_t *ecc)
 {
-    const unsigned slot = (unsigned) (lba & (PC98_SASI_ECC_CACHE_ENTRIES - 1u));
+    const unsigned slot         = (unsigned) (lba & (PC98_SASI_ECC_CACHE_ENTRIES - 1u));
     s->ecc_lba[s->unit][slot]   = lba;
     s->ecc_valid[s->unit][slot] = 1u;
     memcpy(s->ecc_data[s->unit][slot], ecc, PC98_SASI_LONG_ECC_SIZE);
@@ -469,10 +459,10 @@ static int
 sasi_translate_lba(pc98_sasi_t *s, uint32_t lba, uint32_t *physical,
                    uint8_t *sense)
 {
-    const uint32_t cap = sasi_capacity(s, s->unit);
+    const uint32_t cap          = sasi_capacity(s, s->unit);
     const uint32_t track_blocks = pc98_sasi_unit_track_blocks(s, s->unit);
-    const unsigned track = sasi_track_of(s, lba);
-    const uint32_t offset = lba % track_blocks;
+    const unsigned track        = sasi_track_of(s, lba);
+    const uint32_t offset       = lba % track_blocks;
 
     if (lba >= cap) {
         *sense = PC98_SASI_SENSE_BAD_LBA;
@@ -497,8 +487,7 @@ sasi_translate_lba(pc98_sasi_t *s, uint32_t lba, uint32_t *physical,
         }
 
         const unsigned alt = s->alt_track[s->unit][track];
-        if (alt >= PC98_SASI_MAX_TRACKS ||
-            !(s->track_flags[s->unit][alt] & SASI_TRACK_ALT)) {
+        if (alt >= PC98_SASI_MAX_TRACKS || !(s->track_flags[s->unit][alt] & SASI_TRACK_ALT)) {
             *sense = PC98_SASI_SENSE_ALT_BROKEN;
             return 0;
         }
@@ -522,7 +511,7 @@ sasi_media_read(pc98_sasi_t *s, uint32_t lba, uint32_t count, uint8_t *buf,
 {
     if (!s->ops.read_blocks) {
         *failed_lba = lba;
-        *sense = PC98_SASI_SENSE_NOT_READY;
+        *sense      = PC98_SASI_SENSE_NOT_READY;
         return 0;
     }
 
@@ -535,7 +524,7 @@ sasi_media_read(pc98_sasi_t *s, uint32_t lba, uint32_t count, uint8_t *buf,
         if (!s->ops.read_blocks(s->ops.priv, s->unit, physical, 1u,
                                 buf + (size_t) i * PC98_SASI_BLOCK_SIZE)) {
             *failed_lba = lba + i;
-            *sense = PC98_SASI_SENSE_NOT_READY;
+            *sense      = PC98_SASI_SENSE_NOT_READY;
             return 0;
         }
     }
@@ -548,7 +537,7 @@ sasi_media_write(pc98_sasi_t *s, uint32_t lba, uint32_t count,
 {
     if (!s->ops.write_blocks) {
         *failed_lba = lba;
-        *sense = PC98_SASI_SENSE_NOT_READY;
+        *sense      = PC98_SASI_SENSE_NOT_READY;
         return 0;
     }
 
@@ -561,7 +550,7 @@ sasi_media_write(pc98_sasi_t *s, uint32_t lba, uint32_t count,
         if (!s->ops.write_blocks(s->ops.priv, s->unit, physical, 1u,
                                  buf + (size_t) i * PC98_SASI_BLOCK_SIZE)) {
             *failed_lba = lba + i;
-            *sense = PC98_SASI_SENSE_NOT_READY;
+            *sense      = PC98_SASI_SENSE_NOT_READY;
             return 0;
         }
         sasi_ecc_invalidate(s, lba + i);
@@ -594,7 +583,7 @@ sasi_format_raw_range(pc98_sasi_t *s, uint32_t start, uint32_t blocks,
         return 0;
     }
 
-    uint32_t pos = start;
+    uint32_t pos  = start;
     uint32_t left = blocks;
     while (left) {
         uint32_t n = left;
@@ -617,7 +606,7 @@ sasi_track_length(const pc98_sasi_t *s, uint32_t start, uint32_t cap)
 {
     if (start >= cap)
         return 0u;
-    uint32_t n = cap - start;
+    uint32_t       n            = cap - start;
     const uint32_t track_blocks = pc98_sasi_unit_track_blocks(s, s->unit);
     if (n > track_blocks)
         n = track_blocks;
@@ -654,9 +643,7 @@ sasi_begin_dataout(pc98_sasi_t *s, uint32_t len,
 {
     if (len > sizeof(s->buf)) {
         sasi_fail(s, PC98_SASI_SENSE_BAD_CDB, cdb_lba(s->cdb),
-                  action == PC98_SASI_DATAOUT_WRITE ||
-                  action == PC98_SASI_DATAOUT_WRITE_LONG ||
-                  action == PC98_SASI_DATAOUT_FORMAT_ALT);
+                  action == PC98_SASI_DATAOUT_WRITE || action == PC98_SASI_DATAOUT_WRITE_LONG || action == PC98_SASI_DATAOUT_FORMAT_ALT);
         return;
     }
 
@@ -679,121 +666,115 @@ static void
 sasi_complete_dataout(pc98_sasi_t *s)
 {
     const pc98_sasi_dataout_action_t action = s->dataout_action;
-    const uint32_t cap = sasi_capacity(s, s->unit);
+    const uint32_t                   cap    = sasi_capacity(s, s->unit);
 
     switch (action) {
-        case PC98_SASI_DATAOUT_WRITE: {
-            uint32_t failed;
-            uint8_t sense;
-            if (!sasi_media_write(s, s->xfer_lba, s->xfer_blocks, s->buf,
-                                  &failed, &sense))
-                sasi_fail(s, sense, failed, 1);
-            else {
-                sasi_set_success_address(s,
-                                         s->xfer_lba + s->xfer_blocks - 1u);
+        case PC98_SASI_DATAOUT_WRITE:
+            {
+                uint32_t failed;
+                uint8_t  sense;
+                if (!sasi_media_write(s, s->xfer_lba, s->xfer_blocks, s->buf,
+                                      &failed, &sense))
+                    sasi_fail(s, sense, failed, 1);
+                else {
+                    sasi_set_success_address(s,
+                                             s->xfer_lba + s->xfer_blocks - 1u);
+                    sasi_ok(s);
+                }
+                break;
+            }
+
+        case PC98_SASI_DATAOUT_INIT_DRIVE:
+            {
+                const uint16_t cylinders = (uint16_t) (((uint16_t) s->buf[0] << 8) | (uint16_t) s->buf[1]);
+                const uint8_t  heads     = s->buf[2];
+                const uint16_t reduced   = (uint16_t) (((uint16_t) s->buf[3] << 8) | (uint16_t) s->buf[4]);
+                const uint16_t precomp   = (uint16_t) (((uint16_t) s->buf[5] << 8) | (uint16_t) s->buf[6]);
+                const uint8_t  ecc       = s->buf[7];
+
+                if (!cylinders || !heads || heads > 8u || ecc > 11u) {
+                    sasi_fail(s, PC98_SASI_SENSE_BAD_CDB, 0u, 0);
+                    break;
+                }
+                s->drive_cylinders        = cylinders;
+                s->drive_heads            = heads;
+                s->reduced_write_cylinder = reduced;
+                s->precomp_cylinder       = precomp;
+                s->max_ecc_burst          = ecc;
                 sasi_ok(s);
-            }
-            break;
-        }
-
-        case PC98_SASI_DATAOUT_INIT_DRIVE: {
-            const uint16_t cylinders = (uint16_t) (((uint16_t) s->buf[0] << 8) |
-                                                   (uint16_t) s->buf[1]);
-            const uint8_t heads = s->buf[2];
-            const uint16_t reduced = (uint16_t) (((uint16_t) s->buf[3] << 8) |
-                                                 (uint16_t) s->buf[4]);
-            const uint16_t precomp = (uint16_t) (((uint16_t) s->buf[5] << 8) |
-                                                 (uint16_t) s->buf[6]);
-            const uint8_t ecc = s->buf[7];
-
-            if (!cylinders || !heads || heads > 8u || ecc > 11u) {
-                sasi_fail(s, PC98_SASI_SENSE_BAD_CDB, 0u, 0);
-                break;
-            }
-            s->drive_cylinders        = cylinders;
-            s->drive_heads            = heads;
-            s->reduced_write_cylinder = reduced;
-            s->precomp_cylinder       = precomp;
-            s->max_ecc_burst          = ecc;
-            sasi_ok(s);
-            break;
-        }
-
-        case PC98_SASI_DATAOUT_FORMAT_ALT: {
-            const uint32_t bad_start = sasi_track_start(s, cdb_lba(s->cdb));
-            const uint32_t alt_lba = (((uint32_t) (s->buf[0] & 0x1fu)) << 16) |
-                                     ((uint32_t) s->buf[1] << 8) |
-                                     (uint32_t) s->buf[2];
-            const uint32_t alt_start = sasi_track_start(s, alt_lba);
-            const unsigned bad_track = sasi_track_of(s, bad_start);
-            const unsigned alt_track = sasi_track_of(s, alt_start);
-            uint32_t failed;
-
-            if (!cap) {
-                sasi_fail(s, PC98_SASI_SENSE_NOT_READY, bad_start, 1);
-                break;
-            }
-            if (bad_start >= cap || alt_start >= cap ||
-                bad_track >= PC98_SASI_MAX_TRACKS ||
-                alt_track >= PC98_SASI_MAX_TRACKS) {
-                sasi_fail(s, PC98_SASI_SENSE_BAD_LBA,
-                          bad_start >= cap ? bad_start : alt_start, 1);
-                break;
-            }
-            if (bad_track == alt_track) {
-                sasi_fail(s, PC98_SASI_SENSE_ALT_SAME, bad_start, 1);
-                break;
-            }
-            if (s->track_flags[s->unit][bad_track] & SASI_TRACK_ALT) {
-                sasi_fail(s, PC98_SASI_SENSE_DIRECT_ALT, bad_start, 1);
-                break;
-            }
-            if (s->track_flags[s->unit][alt_track] &
-                (SASI_TRACK_BAD | SASI_TRACK_ALT)) {
-                sasi_fail(s, PC98_SASI_SENSE_ALT_USED, alt_start, 1);
                 break;
             }
 
-            const uint32_t alt_n = sasi_track_length(s, alt_start, cap);
-            const uint32_t bad_n = sasi_track_length(s, bad_start, cap);
-            if (!sasi_format_raw_range(s, alt_start, alt_n, 0x6cu, &failed) ||
-                !sasi_format_raw_range(s, bad_start, bad_n, 0x6cu, &failed)) {
-                sasi_fail(s, PC98_SASI_SENSE_NOT_READY, failed, 1);
+        case PC98_SASI_DATAOUT_FORMAT_ALT:
+            {
+                const uint32_t bad_start = sasi_track_start(s, cdb_lba(s->cdb));
+                const uint32_t alt_lba   = (((uint32_t) (s->buf[0] & 0x1fu)) << 16) | ((uint32_t) s->buf[1] << 8) | (uint32_t) s->buf[2];
+                const uint32_t alt_start = sasi_track_start(s, alt_lba);
+                const unsigned bad_track = sasi_track_of(s, bad_start);
+                const unsigned alt_track = sasi_track_of(s, alt_start);
+                uint32_t       failed;
+
+                if (!cap) {
+                    sasi_fail(s, PC98_SASI_SENSE_NOT_READY, bad_start, 1);
+                    break;
+                }
+                if (bad_start >= cap || alt_start >= cap || bad_track >= PC98_SASI_MAX_TRACKS || alt_track >= PC98_SASI_MAX_TRACKS) {
+                    sasi_fail(s, PC98_SASI_SENSE_BAD_LBA,
+                              bad_start >= cap ? bad_start : alt_start, 1);
+                    break;
+                }
+                if (bad_track == alt_track) {
+                    sasi_fail(s, PC98_SASI_SENSE_ALT_SAME, bad_start, 1);
+                    break;
+                }
+                if (s->track_flags[s->unit][bad_track] & SASI_TRACK_ALT) {
+                    sasi_fail(s, PC98_SASI_SENSE_DIRECT_ALT, bad_start, 1);
+                    break;
+                }
+                if (s->track_flags[s->unit][alt_track] & (SASI_TRACK_BAD | SASI_TRACK_ALT)) {
+                    sasi_fail(s, PC98_SASI_SENSE_ALT_USED, alt_start, 1);
+                    break;
+                }
+
+                const uint32_t alt_n = sasi_track_length(s, alt_start, cap);
+                const uint32_t bad_n = sasi_track_length(s, bad_start, cap);
+                if (!sasi_format_raw_range(s, alt_start, alt_n, 0x6cu, &failed) || !sasi_format_raw_range(s, bad_start, bad_n, 0x6cu, &failed)) {
+                    sasi_fail(s, PC98_SASI_SENSE_NOT_READY, failed, 1);
+                    break;
+                }
+
+                s->track_flags[s->unit][alt_track] = SASI_TRACK_ALT;
+                s->track_flags[s->unit][bad_track] = SASI_TRACK_BAD | SASI_TRACK_REDIRECT;
+                s->alt_track[s->unit][bad_track]   = (uint16_t) alt_track;
+                sasi_set_success_address(s, bad_start + bad_n);
+                sasi_ok(s);
                 break;
             }
-
-            s->track_flags[s->unit][alt_track] = SASI_TRACK_ALT;
-            s->track_flags[s->unit][bad_track] =
-                SASI_TRACK_BAD | SASI_TRACK_REDIRECT;
-            s->alt_track[s->unit][bad_track] = (uint16_t) alt_track;
-            sasi_set_success_address(s, bad_start + bad_n);
-            sasi_ok(s);
-            break;
-        }
 
         case PC98_SASI_DATAOUT_WRITE_BUFFER:
             memcpy(s->sector_buf, s->buf, PC98_SASI_BLOCK_SIZE);
             sasi_ok(s);
             break;
 
-        case PC98_SASI_DATAOUT_WRITE_LONG: {
-            uint32_t failed;
-            uint8_t sense;
-            for (uint32_t i = 0; i < s->xfer_blocks; i++) {
-                const uint8_t *entry = s->buf + (size_t) i * PC98_SASI_LONG_BLOCK_SIZE;
-                if (!sasi_media_write(s, s->xfer_lba + i, 1u, entry,
-                                      &failed, &sense)) {
-                    sasi_fail(s, sense, failed, 1);
-                    return;
+        case PC98_SASI_DATAOUT_WRITE_LONG:
+            {
+                uint32_t failed;
+                uint8_t  sense;
+                for (uint32_t i = 0; i < s->xfer_blocks; i++) {
+                    const uint8_t *entry = s->buf + (size_t) i * PC98_SASI_LONG_BLOCK_SIZE;
+                    if (!sasi_media_write(s, s->xfer_lba + i, 1u, entry,
+                                          &failed, &sense)) {
+                        sasi_fail(s, sense, failed, 1);
+                        return;
+                    }
+                    sasi_ecc_store(s, s->xfer_lba + i,
+                                   entry + PC98_SASI_BLOCK_SIZE);
                 }
-                sasi_ecc_store(s, s->xfer_lba + i,
-                               entry + PC98_SASI_BLOCK_SIZE);
+                sasi_set_success_address(s,
+                                         s->xfer_lba + s->xfer_blocks - 1u);
+                sasi_ok(s);
+                break;
             }
-            sasi_set_success_address(s,
-                                     s->xfer_lba + s->xfer_blocks - 1u);
-            sasi_ok(s);
-            break;
-        }
 
         case PC98_SASI_DATAOUT_ASSIGN_DRIVE:
             memcpy(s->assign_params[s->unit], s->buf,
@@ -811,12 +792,12 @@ sasi_complete_dataout(pc98_sasi_t *s)
 static void
 sasi_execute(pc98_sasi_t *s)
 {
-    const uint8_t op = s->cdb[0];
-    const uint32_t lba = cdb_lba(s->cdb);
+    const uint8_t  op    = s->cdb[0];
+    const uint32_t lba   = cdb_lba(s->cdb);
     const uint32_t count = cdb_count(s->cdb);
-    const uint32_t cap = sasi_capacity(s, s->unit);
+    const uint32_t cap   = sasi_capacity(s, s->unit);
 
-    s->message = 0u;
+    s->message        = 0u;
     s->dataout_action = PC98_SASI_DATAOUT_NONE;
 
     /* S1410 sense is for the immediately preceding command only.  REQUEST
@@ -843,165 +824,171 @@ sasi_execute(pc98_sasi_t *s)
             sasi_fail(s, PC98_SASI_SENSE_BAD_CMD, 0u, 0);
             break;
 
-        case 0x03u: { /* REQUEST SENSE STATUS */
-            const uint8_t sense = s->sense[s->unit];
-            const uint8_t valid = s->sense_valid[s->unit];
-            const uint32_t sense_lba = s->sense_lba[s->unit];
-            s->buf[0] = (uint8_t) (sense | (valid ? 0x80u : 0u));
-            s->buf[1] = (uint8_t) (((s->unit & 1u) << 5) |
-                                   ((sense_lba >> 16) & 0x1fu));
-            s->buf[2] = (uint8_t) (sense_lba >> 8);
-            s->buf[3] = (uint8_t) sense_lba;
-            s->buf_len = 4u;
-            sasi_clear_sense(s);
-            s->status = sasi_completion_status(s, 0);
-            sasi_begin_datain(s);
-            break;
-        }
-
-        case 0x04u: { /* FORMAT DRIVE */
-            const uint32_t start = sasi_track_start(s, lba);
-            uint32_t failed;
-
-            if (!cap) {
-                sasi_fail(s, PC98_SASI_SENSE_NOT_READY, start, 1);
-                break;
-            }
-            if (start >= cap) {
-                sasi_fail(s, PC98_SASI_SENSE_BAD_LBA, start, 1);
-                break;
-            }
-            if (!sasi_validate_interleave(s))
-                break;
-            if (!sasi_format_raw_range(s, start, cap - start, 0x6cu, &failed)) {
-                sasi_fail(s, PC98_SASI_SENSE_NOT_READY, failed, 1);
+        case 0x03u:
+            { /* REQUEST SENSE STATUS */
+                const uint8_t  sense     = s->sense[s->unit];
+                const uint8_t  valid     = s->sense_valid[s->unit];
+                const uint32_t sense_lba = s->sense_lba[s->unit];
+                s->buf[0]                = (uint8_t) (sense | (valid ? 0x80u : 0u));
+                s->buf[1]                = (uint8_t) (((s->unit & 1u) << 5) | ((sense_lba >> 16) & 0x1fu));
+                s->buf[2]                = (uint8_t) (sense_lba >> 8);
+                s->buf[3]                = (uint8_t) sense_lba;
+                s->buf_len               = 4u;
+                sasi_clear_sense(s);
+                s->status = sasi_completion_status(s, 0);
+                sasi_begin_datain(s);
                 break;
             }
 
-            const unsigned first_track = sasi_track_of(s, start);
-            const unsigned end_track = sasi_track_of(s, cap - 1u);
-            for (unsigned t = first_track;
-                 t <= end_track && t < PC98_SASI_MAX_TRACKS; t++)
-                sasi_clear_track_metadata(s, t);
+        case 0x04u:
+            { /* FORMAT DRIVE */
+                const uint32_t start = sasi_track_start(s, lba);
+                uint32_t       failed;
 
-            sasi_set_success_address(s, cap);
-            sasi_ok(s);
-            break;
-        }
-
-        case 0x05u: { /* CHECK TRACK FORMAT */
-            const uint32_t start = sasi_track_start(s, lba);
-            if (!cap) {
-                sasi_fail(s, PC98_SASI_SENSE_NOT_READY, start, 1);
-                break;
-            }
-            if (start >= cap) {
-                sasi_fail(s, PC98_SASI_SENSE_BAD_LBA, start, 1);
-                break;
-            }
-            if (!sasi_validate_interleave(s))
-                break;
-
-            const unsigned track = sasi_track_of(s, start);
-            if (track < PC98_SASI_MAX_TRACKS) {
-                const uint8_t flags = s->track_flags[s->unit][track];
-                if (flags & SASI_TRACK_ALT) {
-                    sasi_fail(s, PC98_SASI_SENSE_DIRECT_ALT, start, 1);
+                if (!cap) {
+                    sasi_fail(s, PC98_SASI_SENSE_NOT_READY, start, 1);
                     break;
                 }
-                if ((flags & SASI_TRACK_BAD) && !(flags & SASI_TRACK_REDIRECT)) {
-                    sasi_fail(s, PC98_SASI_SENSE_BAD_TRACK, start, 1);
+                if (start >= cap) {
+                    sasi_fail(s, PC98_SASI_SENSE_BAD_LBA, start, 1);
                     break;
                 }
-            }
-            sasi_set_success_address(s, start + sasi_track_length(s, start, cap));
-            sasi_ok(s);
-            break;
-        }
+                if (!sasi_validate_interleave(s))
+                    break;
+                if (!sasi_format_raw_range(s, start, cap - start, 0x6cu, &failed)) {
+                    sasi_fail(s, PC98_SASI_SENSE_NOT_READY, failed, 1);
+                    break;
+                }
 
-        case 0x06u: { /* FORMAT TRACK */
-            const uint32_t start = sasi_track_start(s, lba);
-            uint32_t failed;
-            if (!cap) {
-                sasi_fail(s, PC98_SASI_SENSE_NOT_READY, start, 1);
-                break;
-            }
-            if (start >= cap) {
-                sasi_fail(s, PC98_SASI_SENSE_BAD_LBA, start, 1);
-                break;
-            }
-            if (!sasi_validate_interleave(s))
-                break;
-            const uint32_t n = sasi_track_length(s, start, cap);
-            /* NEC's PC-98 "standard format" path depends on FORMAT TRACK
-             * (06h) leaving an E5h-filled data field.  FORMAT DRIVE (04h)
-             * retains the controller-family 6Ch default; only 06h gets this
-             * PC-98 compatibility behavior.  A control-bit-5 sector-buffer
-             * pattern still overrides the default in either case. */
-            if (!sasi_format_raw_range(s, start, n, 0xe5u, &failed)) {
-                sasi_fail(s, PC98_SASI_SENSE_NOT_READY, failed, 1);
-                break;
-            }
-            sasi_clear_track_metadata(s, sasi_track_of(s, start));
-            sasi_set_success_address(s, start + n);
-            sasi_ok(s);
-            break;
-        }
+                const unsigned first_track = sasi_track_of(s, start);
+                const unsigned end_track   = sasi_track_of(s, cap - 1u);
+                for (unsigned t = first_track;
+                     t <= end_track && t < PC98_SASI_MAX_TRACKS; t++)
+                    sasi_clear_track_metadata(s, t);
 
-        case 0x07u: { /* FORMAT BAD TRACK */
-            const uint32_t start = sasi_track_start(s, lba);
-            if (!cap) {
-                sasi_fail(s, PC98_SASI_SENSE_NOT_READY, start, 1);
+                sasi_set_success_address(s, cap);
+                sasi_ok(s);
                 break;
             }
-            if (start >= cap) {
-                sasi_fail(s, PC98_SASI_SENSE_BAD_LBA, start, 1);
-                break;
-            }
-            if (!sasi_validate_interleave(s))
-                break;
-            const unsigned track = sasi_track_of(s, start);
-            if (track < PC98_SASI_MAX_TRACKS) {
-                s->track_flags[s->unit][track] = SASI_TRACK_BAD;
-                s->alt_track[s->unit][track] = 0u;
-            }
-            /* FORMAT BAD TRACK writes ID fields only; preserve data bytes. */
-            sasi_set_success_address(s, start + sasi_track_length(s, start, cap));
-            sasi_ok(s);
-            break;
-        }
 
-        case 0x08u: { /* READ */
-            uint32_t failed;
-            uint8_t sense;
-            if (!sasi_validate_range(s, lba, count))
-                break;
-            if (!sasi_media_read(s, lba, count, s->buf, &failed, &sense)) {
-                sasi_fail(s, sense, failed, 1);
-                break;
-            }
-            s->xfer_lba    = lba;
-            s->xfer_blocks = count;
-            s->buf_len     = count * PC98_SASI_BLOCK_SIZE;
-            s->status      = sasi_completion_status(s, 0);
-            sasi_set_success_address(s, lba + count - 1u);
-            sasi_begin_datain(s);
-            break;
-        }
+        case 0x05u:
+            { /* CHECK TRACK FORMAT */
+                const uint32_t start = sasi_track_start(s, lba);
+                if (!cap) {
+                    sasi_fail(s, PC98_SASI_SENSE_NOT_READY, start, 1);
+                    break;
+                }
+                if (start >= cap) {
+                    sasi_fail(s, PC98_SASI_SENSE_BAD_LBA, start, 1);
+                    break;
+                }
+                if (!sasi_validate_interleave(s))
+                    break;
 
-        case 0x09u: { /* READ VERIFY - S1410A; reserved on early S1410 */
-            uint32_t failed;
-            uint8_t sense;
-            if (!sasi_validate_range(s, lba, count))
-                break;
-            if (!sasi_media_read(s, lba, count, s->buf, &failed, &sense)) {
-                sasi_fail(s, sense, failed, 1);
+                const unsigned track = sasi_track_of(s, start);
+                if (track < PC98_SASI_MAX_TRACKS) {
+                    const uint8_t flags = s->track_flags[s->unit][track];
+                    if (flags & SASI_TRACK_ALT) {
+                        sasi_fail(s, PC98_SASI_SENSE_DIRECT_ALT, start, 1);
+                        break;
+                    }
+                    if ((flags & SASI_TRACK_BAD) && !(flags & SASI_TRACK_REDIRECT)) {
+                        sasi_fail(s, PC98_SASI_SENSE_BAD_TRACK, start, 1);
+                        break;
+                    }
+                }
+                sasi_set_success_address(s, start + sasi_track_length(s, start, cap));
+                sasi_ok(s);
                 break;
             }
-            sasi_set_success_address(s, lba + count - 1u);
-            sasi_ok(s);
-            break;
-        }
+
+        case 0x06u:
+            { /* FORMAT TRACK */
+                const uint32_t start = sasi_track_start(s, lba);
+                uint32_t       failed;
+                if (!cap) {
+                    sasi_fail(s, PC98_SASI_SENSE_NOT_READY, start, 1);
+                    break;
+                }
+                if (start >= cap) {
+                    sasi_fail(s, PC98_SASI_SENSE_BAD_LBA, start, 1);
+                    break;
+                }
+                if (!sasi_validate_interleave(s))
+                    break;
+                const uint32_t n = sasi_track_length(s, start, cap);
+                /* NEC's PC-98 "standard format" path depends on FORMAT TRACK
+                 * (06h) leaving an E5h-filled data field.  FORMAT DRIVE (04h)
+                 * retains the controller-family 6Ch default; only 06h gets this
+                 * PC-98 compatibility behavior.  A control-bit-5 sector-buffer
+                 * pattern still overrides the default in either case. */
+                if (!sasi_format_raw_range(s, start, n, 0xe5u, &failed)) {
+                    sasi_fail(s, PC98_SASI_SENSE_NOT_READY, failed, 1);
+                    break;
+                }
+                sasi_clear_track_metadata(s, sasi_track_of(s, start));
+                sasi_set_success_address(s, start + n);
+                sasi_ok(s);
+                break;
+            }
+
+        case 0x07u:
+            { /* FORMAT BAD TRACK */
+                const uint32_t start = sasi_track_start(s, lba);
+                if (!cap) {
+                    sasi_fail(s, PC98_SASI_SENSE_NOT_READY, start, 1);
+                    break;
+                }
+                if (start >= cap) {
+                    sasi_fail(s, PC98_SASI_SENSE_BAD_LBA, start, 1);
+                    break;
+                }
+                if (!sasi_validate_interleave(s))
+                    break;
+                const unsigned track = sasi_track_of(s, start);
+                if (track < PC98_SASI_MAX_TRACKS) {
+                    s->track_flags[s->unit][track] = SASI_TRACK_BAD;
+                    s->alt_track[s->unit][track]   = 0u;
+                }
+                /* FORMAT BAD TRACK writes ID fields only; preserve data bytes. */
+                sasi_set_success_address(s, start + sasi_track_length(s, start, cap));
+                sasi_ok(s);
+                break;
+            }
+
+        case 0x08u:
+            { /* READ */
+                uint32_t failed;
+                uint8_t  sense;
+                if (!sasi_validate_range(s, lba, count))
+                    break;
+                if (!sasi_media_read(s, lba, count, s->buf, &failed, &sense)) {
+                    sasi_fail(s, sense, failed, 1);
+                    break;
+                }
+                s->xfer_lba    = lba;
+                s->xfer_blocks = count;
+                s->buf_len     = count * PC98_SASI_BLOCK_SIZE;
+                s->status      = sasi_completion_status(s, 0);
+                sasi_set_success_address(s, lba + count - 1u);
+                sasi_begin_datain(s);
+                break;
+            }
+
+        case 0x09u:
+            { /* READ VERIFY - S1410A; reserved on early S1410 */
+                uint32_t failed;
+                uint8_t  sense;
+                if (!sasi_validate_range(s, lba, count))
+                    break;
+                if (!sasi_media_read(s, lba, count, s->buf, &failed, &sense)) {
+                    sasi_fail(s, sense, failed, 1);
+                    break;
+                }
+                sasi_set_success_address(s, lba + count - 1u);
+                sasi_ok(s);
+                break;
+            }
 
         case 0x0au: /* WRITE */
             if (!sasi_validate_range(s, lba, count))
@@ -1013,29 +1000,30 @@ sasi_execute(pc98_sasi_t *s)
                                PC98_SASI_DATAOUT_WRITE);
             break;
 
-        case 0x0bu: { /* SEEK */
-            uint32_t physical;
-            uint8_t sense;
-            if (!sasi_validate_range(s, lba, 1u))
-                break;
-            if (!sasi_translate_lba(s, lba, &physical, &sense)) {
-                sasi_fail(s, sense, lba, 1);
+        case 0x0bu:
+            { /* SEEK */
+                uint32_t physical;
+                uint8_t  sense;
+                if (!sasi_validate_range(s, lba, 1u))
+                    break;
+                if (!sasi_translate_lba(s, lba, &physical, &sense)) {
+                    sasi_fail(s, sense, lba, 1);
+                    break;
+                }
+                (void) physical; /* image target has no mechanical seek latency */
+                sasi_set_success_address(s, lba);
+                sasi_ok(s);
                 break;
             }
-            (void) physical; /* image target has no mechanical seek latency */
-            sasi_set_success_address(s, lba);
-            sasi_ok(s);
-            break;
-        }
 
         case 0x0cu: /* INITIALIZE DRIVE CHARACTERISTICS - eight parameter bytes */
             sasi_begin_dataout(s, 8u, PC98_SASI_DATAOUT_INIT_DRIVE);
             break;
 
         case 0x0du: /* READ ECC BURST ERROR LENGTH */
-            s->buf[0] = s->last_ecc_burst;
+            s->buf[0]  = s->last_ecc_burst;
             s->buf_len = 1u;
-            s->status = sasi_completion_status(s, 0);
+            s->status  = sasi_completion_status(s, 0);
             sasi_begin_datain(s);
             break;
 
@@ -1061,7 +1049,7 @@ sasi_execute(pc98_sasi_t *s)
         case 0x10u: /* READ SECTOR BUFFER - Rev E/S1410A */
             memcpy(s->buf, s->sector_buf, PC98_SASI_BLOCK_SIZE);
             s->buf_len = PC98_SASI_BLOCK_SIZE;
-            s->status = sasi_completion_status(s, 0);
+            s->status  = sasi_completion_status(s, 0);
             sasi_begin_datain(s);
             break;
 
@@ -1076,58 +1064,60 @@ sasi_execute(pc98_sasi_t *s)
             sasi_fail(s, PC98_SASI_SENSE_BAD_CMD, 0u, 0);
             break;
 
-        case 0xe3u: { /* DRIVE DIAGNOSTIC */
-            if (!cap) {
-                sasi_fail(s, PC98_SASI_SENSE_NOT_READY, 0u, 0);
-                break;
-            }
-            if (!s->ops.read_blocks) {
-                sasi_fail(s, PC98_SASI_SENSE_NOT_READY, 0u, 0);
-                break;
-            }
-            /* The real diagnostic verifies sector 0 on every track.  There
-             * are no separately represented ID/ECC fields in the image, but
-             * reading every track start still validates the complete datapath. */
-            const uint32_t track_blocks = pc98_sasi_unit_track_blocks(s, s->unit);
-            for (uint32_t pos = 0u; pos < cap; pos += track_blocks) {
-                if (!s->ops.read_blocks(s->ops.priv, s->unit, pos, 1u, s->buf)) {
-                    sasi_fail(s, PC98_SASI_SENSE_NOT_READY, pos, 0);
-                    return;
+        case 0xe3u:
+            { /* DRIVE DIAGNOSTIC */
+                if (!cap) {
+                    sasi_fail(s, PC98_SASI_SENSE_NOT_READY, 0u, 0);
+                    break;
                 }
+                if (!s->ops.read_blocks) {
+                    sasi_fail(s, PC98_SASI_SENSE_NOT_READY, 0u, 0);
+                    break;
+                }
+                /* The real diagnostic verifies sector 0 on every track.  There
+                 * are no separately represented ID/ECC fields in the image, but
+                 * reading every track start still validates the complete datapath. */
+                const uint32_t track_blocks = pc98_sasi_unit_track_blocks(s, s->unit);
+                for (uint32_t pos = 0u; pos < cap; pos += track_blocks) {
+                    if (!s->ops.read_blocks(s->ops.priv, s->unit, pos, 1u, s->buf)) {
+                        sasi_fail(s, PC98_SASI_SENSE_NOT_READY, pos, 0);
+                        return;
+                    }
+                }
+                sasi_ok(s);
+                break;
             }
-            sasi_ok(s);
-            break;
-        }
 
         case 0xe4u: /* CONTROLLER INTERNAL DIAGNOSTICS */
             sasi_ok(s);
             break;
 
-        case 0xe5u: { /* READ LONG */
-            uint32_t failed;
-            uint8_t sense;
-            if (!sasi_validate_range(s, lba, count))
-                break;
-            if (!sasi_media_read(s, lba, count, s->buf, &failed, &sense)) {
-                sasi_fail(s, sense, failed, 1);
+        case 0xe5u:
+            { /* READ LONG */
+                uint32_t failed;
+                uint8_t  sense;
+                if (!sasi_validate_range(s, lba, count))
+                    break;
+                if (!sasi_media_read(s, lba, count, s->buf, &failed, &sense)) {
+                    sasi_fail(s, sense, failed, 1);
+                    break;
+                }
+                /* Expand from the end so the 256-byte input blocks can be turned
+                 * into 260-byte data+ECC records in-place without clobbering. */
+                for (uint32_t i = count; i-- > 0u;) {
+                    uint8_t *dst = s->buf + (size_t) i * PC98_SASI_LONG_BLOCK_SIZE;
+                    uint8_t *src = s->buf + (size_t) i * PC98_SASI_BLOCK_SIZE;
+                    memmove(dst, src, PC98_SASI_BLOCK_SIZE);
+                    sasi_ecc_load(s, lba + i, dst + PC98_SASI_BLOCK_SIZE);
+                }
+                s->xfer_lba    = lba;
+                s->xfer_blocks = count;
+                s->buf_len     = count * PC98_SASI_LONG_BLOCK_SIZE;
+                s->status      = sasi_completion_status(s, 0);
+                sasi_set_success_address(s, lba + count - 1u);
+                sasi_begin_datain(s);
                 break;
             }
-            /* Expand from the end so the 256-byte input blocks can be turned
-             * into 260-byte data+ECC records in-place without clobbering. */
-            for (uint32_t i = count; i-- > 0u;) {
-                uint8_t *dst = s->buf + (size_t) i * PC98_SASI_LONG_BLOCK_SIZE;
-                uint8_t *src = s->buf + (size_t) i * PC98_SASI_BLOCK_SIZE;
-                memmove(dst, src, PC98_SASI_BLOCK_SIZE);
-                sasi_ecc_load(s, lba + i, dst + PC98_SASI_BLOCK_SIZE);
-            }
-            s->xfer_lba    = lba;
-            s->xfer_blocks = count;
-            s->buf_len     = count * PC98_SASI_LONG_BLOCK_SIZE;
-            s->status      = sasi_completion_status(s, 0);
-            sasi_set_success_address(s, lba + count - 1u);
-            sasi_begin_datain(s);
-            break;
-        }
 
         case 0xe6u: /* WRITE LONG */
             if (!sasi_validate_range(s, lba, count))
@@ -1147,7 +1137,7 @@ sasi_execute(pc98_sasi_t *s)
             /* This ideal image target never performs physical retries. */
             memset(s->buf, 0, 8u);
             s->buf_len = 8u;
-            s->status = sasi_completion_status(s, 0);
+            s->status  = sasi_completion_status(s, 0);
             sasi_begin_datain(s);
             break;
 
@@ -1177,12 +1167,7 @@ pc98_sasi_status_in(pc98_sasi_t *s)
     if (!(s->ctrl & PC98_SASI_CTL_STS))
         return s->dip;
 
-    v = (s->lines.req ? PC98_SASI_ST_REQ : 0u) |
-        (s->lines.ack ? PC98_SASI_ST_ACK : 0u) |
-        (s->lines.bsy ? PC98_SASI_ST_BSY : 0u) |
-        (s->lines.msg ? PC98_SASI_ST_MSG : 0u) |
-        (s->lines.cd  ? PC98_SASI_ST_CD  : 0u) |
-        (s->lines.io  ? PC98_SASI_ST_IO  : 0u);
+    v = (s->lines.req ? PC98_SASI_ST_REQ : 0u) | (s->lines.ack ? PC98_SASI_ST_ACK : 0u) | (s->lines.bsy ? PC98_SASI_ST_BSY : 0u) | (s->lines.msg ? PC98_SASI_ST_MSG : 0u) | (s->lines.cd ? PC98_SASI_ST_CD : 0u) | (s->lines.io ? PC98_SASI_ST_IO : 0u);
     /* Bit 0 reports the actual gated INT3 output, not merely a latched
      * command-complete flag.  With C1h in status phase the ROM therefore
      * reads 0ADh; after its ISR writes C0h it reads plain 0ACh. */
@@ -1211,16 +1196,16 @@ pc98_sasi_ctrl_out(pc98_sasi_t *s, uint8_t val)
          * asserted, nor accept bytes into the interrupted command. */
         sasi_set_phase(s, PC98_SASI_BUSFREE);
         s->lines.ack = 0u;
-        s->cdb_pos = 0u;
+        s->cdb_pos   = 0u;
         s->buf_len = s->buf_pos = 0u;
-        s->dataout_action = PC98_SASI_DATAOUT_NONE;
+        s->dataout_action       = PC98_SASI_DATAOUT_NONE;
         sasi_clear_irq(s);
         return;
     }
     if ((prev & PC98_SASI_CTL_RST) && !(val & PC98_SASI_CTL_RST)) {
         pc98_sasi_reset(s);
         /* Reset the target while retaining the adapter's new gate levels. */
-        s->ctrl = val;
+        s->ctrl      = val;
         s->lines.sel = (val & PC98_SASI_CTL_SEL) != 0u;
         return;
     }
@@ -1255,8 +1240,7 @@ pc98_sasi_ctrl_out(pc98_sasi_t *s, uint8_t val)
      * Falling SEL after a successful selection moves the target into the
      * command phase.  The ROM does this with `out 82h,0C0h`.
      */
-    if (!(val & PC98_SASI_CTL_SEL) && (prev & PC98_SASI_CTL_SEL) &&
-        s->phase == PC98_SASI_SELECT) {
+    if (!(val & PC98_SASI_CTL_SEL) && (prev & PC98_SASI_CTL_SEL) && s->phase == PC98_SASI_SELECT) {
         sasi_set_phase(s, PC98_SASI_COMMAND);
         s->cdb_pos = 0u;
         return;
@@ -1282,13 +1266,13 @@ pc98_sasi_data_in(pc98_sasi_t *s)
             break;
 
         case PC98_SASI_STATUS:
-            v        = s->status;
+            v = s->status;
             sasi_set_phase(s, PC98_SASI_MSGIN);
             sasi_clear_irq(s);
             break;
 
         case PC98_SASI_MSGIN:
-            v        = s->message;
+            v = s->message;
             sasi_set_phase(s, PC98_SASI_BUSFREE);
             break;
 
