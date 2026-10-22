@@ -75,6 +75,7 @@ signals:
     void configurationChanged();
     void globalConfigurationChanged();
     void winIdReceived(WId id);
+    void windowActivated();
 };
 
 #endif // QT_VMMANAGER_SERVERSOCKET_H

@@ -1456,14 +1456,19 @@ el3_global_reset(el3_t *dev, uint8_t mask)
             el3_isa_prom_update(dev);
         }
         /* "Plug and Play configuration is also placed in a reset state"
-           (6-3), and the reset has "the same effect as a power-up reset":
-           Wait for Key and CSN 0, and the Plug and Play registers -- the
-           same registers as Address and Resource Configuration (Table 7-2)
-           -- hold what the EEPROM just loaded into those. */
+           (6-3): the Plug and Play registers -- the same registers as
+           Address and Resource Configuration (Table 7-2) -- hold what the
+           EEPROM just loaded into those, the card inactive. That is the
+           Plug and Play Reset command's reset, which keeps the CSN (Plug
+           and Play ISA 1.0a, 4.4.2), not RESETDRV's, which clears it: the
+           book names the configuration, and drivers rely on the CSN
+           surviving. Solaris 2.6's real-mode elx.bef sends the ID Global
+           Reset, then wakes the card by the CSN its configuration
+           assistant gave it to set the card's resources. */
         if (dev->pnp_card != NULL) {
             el3_pnp_load_rom(dev);
             el3_pnp_load_power_up(dev);
-            isapnp_power_up_card(dev->pnp_card);
+            isapnp_reset_card(dev->pnp_card);
             el3_pnp_update(dev);
         }
         dev->ids_state = IDS_WAIT;

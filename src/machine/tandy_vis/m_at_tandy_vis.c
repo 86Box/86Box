@@ -42,12 +42,6 @@ static rom_t tandy_vis_rom_struct_2;
 static rom_t tandy_vis_rom_struct_3;
 static rom_t tandy_vis_rom_struct_4;
 
-static uint8_t
-tvis_unk2_read(uint16_t addr, void* priv)
-{
-    return 0x40;
-}
-
 static uint8_t tvis_chipset_regs[0x100];
 static uint8_t tvis_chipset_index;
 
@@ -66,16 +60,30 @@ tvis_unk_write(uint16_t addr, uint8_t val, void* priv)
         tvis_chipset_index = val & 0xf;
 }
 
+/* Placeholder Microsoft InPort mouse at 0x23C-0x23F, IRQ 9. MOUSE.DRV in ROM
+   probes for an InPort before anything else, and Modular Windows reboots if it
+   finds no pointing device at all. It never reports movement, so it gets out
+   of the way when a mouse is plugged into the PS/2 port, letting MOUSE.DRV use
+   that instead. */
+static int
+tvis_inport_present(void)
+{
+    return (kbc_at_ports[DEV_AUX] == NULL) || (kbc_at_ports[DEV_AUX]->priv == NULL);
+}
+
 static uint8_t
 tvis_unk1_read(uint16_t addr, void* priv)
 {
+    if (!tvis_inport_present())
+        return 0xff;
+
     return ((addr & 3) == 2) ? 0xde : 0x00;
 }
 
 static void
 tvis_unk1_write(uint16_t addr, uint8_t val, void* priv)
 {
-    if ((addr & 3) == 1) {
+    if (((addr & 3) == 1) && tvis_inport_present()) {
         if (val == 0x10)
             picintc(1 << 9);
         else if (val == 0x16)
@@ -346,7 +354,6 @@ machine_at_tandy_vis_init(const machine_t *model)
 
     memset(tvis_chipset_regs, 0, sizeof(tvis_chipset_regs));
     io_sethandler(0x26, 2, tvis_unk_read, NULL, NULL, tvis_unk_write, NULL, NULL, (void*)1);
-    io_sethandler(0x6a, 1, tvis_unk2_read, NULL, NULL, NULL, NULL, NULL, (void*)1);
     io_sethandler(0x23c, 4, tvis_unk1_read, NULL, NULL, tvis_unk1_write, NULL, NULL, (void*)1);
     device_add(&tvis_device);
     device_add(&tvis_memcard_device);

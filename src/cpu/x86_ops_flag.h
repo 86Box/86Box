@@ -170,9 +170,7 @@ opPOPF_186(UNUSED(uint32_t fetchdat))
 
     cpu_state.flags = (cpu_state.flags & 0x7000) | (tempw & 0x0fd5) | 2;
     flags_extract();
-#ifdef USE_DEBUG_REGS_486
     rf_flag_no_clear = 1;
-#endif
 
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 1, 0, 0, 0, 0);
@@ -214,9 +212,7 @@ opPOPF_286(UNUSED(uint32_t fetchdat))
     else
         cpu_state.flags = (cpu_state.flags & 0x3200) | (tempw & 0x4dd5) | 2;
     flags_extract();
-#ifdef USE_DEBUG_REGS_486
     rf_flag_no_clear = 1;
-#endif
 
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 1, 0, 0, 0, 0);
@@ -278,9 +274,7 @@ opPOPF(UNUSED(uint32_t fetchdat))
             cpu_state.flags = (cpu_state.flags & 0x3200) | (tempw & 0x4dd5) | 2;
     }
     flags_extract();
-#ifdef USE_DEBUG_REGS_486
     rf_flag_no_clear = 1;
-#endif
 
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 1, 0, 0, 0, 0);
@@ -326,9 +320,7 @@ opPOPFD(UNUSED(uint32_t fetchdat))
                        ((templ >> 16) & (AC_FLAG | VID_FLAG) & cpu_eflags_implemented());
 
     flags_extract();
-#ifdef USE_DEBUG_REGS_486
     rf_flag_no_clear = 1;
-#endif
 
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 0, 1, 0, 0, 0);

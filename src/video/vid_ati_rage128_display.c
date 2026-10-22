@@ -2473,6 +2473,24 @@ rage128_hwcursor_draw(svga_t *svga, int displine)
     if (dev->dac_const_on || dev->dac_blank_frame)
         return;
 
+    /* Cursor row n sits on display line CUR_VERT_POSN + n: the guide moves
+       the cursor up by n lines by adding n rows (16 bytes each) to
+       CUR_OFFSET (RRG: CUR_HORZ_VERT_OFF, p. 3-82 / PDF 100). In an
+       interlaced mode those are lines of the whole frame, as the vertical
+       CRTC registers count them, and the svga core draws each field on
+       every other frame line. So a field shows every other cursor row,
+       and the field that does not hold line CUR_VERT_POSN starts at row 1.
+       The skip here and the extra step at the end of this function give
+       the even field rows 0, 2, 4... and the odd field rows 1, 3, 5....
+       With double scan on as well, each row covers two frame lines, one
+       in each field, so both fields walk rows 0, 1, 2... and neither
+       adjustment applies (modeled; the guide does not cover the pair). */
+    const int cur_field_step = svga->interlace
+        && !(dev->crtc_gen_cntl & RAGE128_CRTC_DBL_SCAN_EN);
+
+    if (cur_field_step && svga->hwcursor_oddeven)
+        svga->hwcursor_latch.addr += 16;
+
     /* 16 bytes per 64-pixel row: 8 bytes of AND bits, then 8 bytes of
        XOR bits, pixel 0 in bit 7 of the first byte (SDK: Hardware
        Cursor, p. 4-20 / PDF 94). AND = 0 draws CUR_CLR0 or CUR_CLR1 as
@@ -2503,12 +2521,14 @@ rage128_hwcursor_draw(svga_t *svga, int displine)
     }
     /* Double scan: the cursor pitch is added only at the end of odd scan
        lines, so each image row shows twice and the 64-line cursor shows
-       32 rows (RRG: CRTC_GEN_CNTL, p. 3-61 / PDF 79). Under interlace the
-       core already walks the image at half rate in each field, which
-       gives the same picture, so the repeat applies to progressive
-       double scan only. */
+       32 rows (RRG: CRTC_GEN_CNTL, p. 3-61 / PDF 79). Under interlace a
+       field draws every other frame line, so every drawn line advances a
+       row here; without double scan the second step also passes over the
+       row the other field shows. */
     if (!(dev->crtc_gen_cntl & RAGE128_CRTC_DBL_SCAN_EN) || svga->interlace
         || (svga->displine & 1))
+        svga->hwcursor_latch.addr += 16;
+    if (cur_field_step && !svga->hwcursor_oddeven)
         svga->hwcursor_latch.addr += 16;
 }
 

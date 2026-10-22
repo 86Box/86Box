@@ -121,15 +121,15 @@ standalone_scale(QRect &destination, int width, int height, QRect source, int sc
 void
 RendererCommon::onResize(int width, int height)
 {
-    /* This is needed so that the if below does not take like, 5 lines. */
-    bool is_fs            = (video_fullscreen == 0);
-    bool parent_max       = (parentWidget->isMaximized() == false);
-    bool main_is_ancestor = main_window->isAncestorOf(parentWidget);
-    bool main_max         = main_window->isMaximized();
-    bool main_is_max      = (main_is_ancestor && main_max == false);
+    /* The stretch mode applies in fullscreen and, if enabled, when the window
+       holding this renderer (the main window or a monitor window) is maximized. */
+    bool apply_scale = video_fullscreen ||
+                       (video_fullscreen_scale_maximized && parentWidget->window()->isMaximized());
 
     width  = round(pixelRatio * width);
     height = round(pixelRatio * height);
+
+    output_size = QSize(width, height);
 
     const auto &monitor = monitors[r_monitor_index];
     if (!force_43 && force_device_aspect && monitor.mon_device_aspect_x > 0 && monitor.mon_device_aspect_y > 0) {
@@ -140,7 +140,7 @@ RendererCommon::onResize(int width, int height)
             dw = qRound((double) height * monitor.mon_device_aspect_x / monitor.mon_device_aspect_y);
         }
         destination.setRect((width - dw) / 2, (height - dh) / 2, dw, dh);
-    } else if (is_fs && (video_fullscreen_scale_maximized ? (parent_max && main_is_max) : 1) && !(force_43 && vid_resize))
+    } else if (!apply_scale && !(force_43 && vid_resize))
         destination.setRect(0, 0, width, height);
     else {
         auto   temp_fullscreen_scale = video_fullscreen_scale;
@@ -157,10 +157,8 @@ RendererCommon::onResize(int width, int height)
         double hsr = hw / hh;
         double r43 = 4.0 / 3.0;
 
-        if (force_43 && is_fs && vid_resize) {
-            if (!video_fullscreen_scale_maximized || (video_fullscreen_scale_maximized && parent_max && main_is_max))
-                temp_fullscreen_scale = FULLSCR_SCALE_43;
-        }
+        if (force_43 && vid_resize && !apply_scale)
+            temp_fullscreen_scale = FULLSCR_SCALE_43;
 
         switch (temp_fullscreen_scale) {
             case FULLSCR_SCALE_INT:
@@ -207,6 +205,17 @@ RendererCommon::onResize(int width, int height)
                 dy = (hh - dh) / 2.0;
                 destination.setRect((int) dx, (int) dy, (int) dw, (int) dh);
                 break;
+            case FULLSCR_SCALE_CENTER:
+            case FULLSCR_SCALE_CENTER43:
+                /* Like 4:3 integer scale, keep the width and make the height match it. */
+                if (temp_fullscreen_scale == FULLSCR_SCALE_CENTER43)
+                    gh = std::round(gw / r43);
+
+                /* An image larger than the window extends past its edges and gets cut off. */
+                dx = std::floor((hw - gw) / 2.0);
+                dy = std::floor((hh - gh) / 2.0);
+                destination.setRect((int) dx, (int) dy, (int) gw, (int) gh);
+                break;
             case FULLSCR_SCALE_FULL:
             default:
                 destination.setRect(0, 0, (int) hw, (int) hh);
@@ -224,12 +233,40 @@ RendererCommon::onResize(int width, int height)
                          (double) destination.width() / (double) width, (double) destination.height() / (double) height);
 }
 
+void
+RendererCommon::visibleRects(int out_w, int out_h, QRect &visible_source, QRect &visible_destination) const
+{
+    visible_destination = destination.intersected(QRect(0, 0, out_w, out_h));
+
+    if (visible_destination == destination) {
+        visible_source = source;
+        return;
+    }
+
+    if (visible_destination.isEmpty() || destination.isEmpty()) {
+        visible_source = QRect(source.x(), source.y(), 0, 0);
+        return;
+    }
+
+    /* Crop the source by the same fraction the destination was cut by. */
+    const double sx = (double) source.width() / (double) destination.width();
+    const double sy = (double) source.height() / (double) destination.height();
+
+    const int x0 = source.x() + (int) std::lround((visible_destination.left() - destination.left()) * sx);
+    const int y0 = source.y() + (int) std::lround((visible_destination.top() - destination.top()) * sy);
+    const int x1 = source.x() + (int) std::lround((visible_destination.left() + visible_destination.width() - destination.left()) * sx);
+    const int y1 = source.y() + (int) std::lround((visible_destination.top() + visible_destination.height() - destination.top()) * sy);
+
+    visible_source.setRect(x0, y0, x1 - x0, y1 - y0);
+}
+
 float
 RendererCommon::osdLayoutScaleHint() const
 {
     const double dpr = std::max(1.0, pixelRatio);
-    const int logical_w = std::max(1, (int) std::lround((double) destination.width() / dpr));
-    const int logical_h = std::max(1, (int) std::lround((double) destination.height() / dpr));
+    const QRect  visible   = destination.intersected(QRect(QPoint(0, 0), output_size));
+    const int    logical_w = std::max(1, (int) std::lround((double) visible.width() / dpr));
+    const int    logical_h = std::max(1, (int) std::lround((double) visible.height() / dpr));
     return osd_core_layout_scale_for_output(logical_w, logical_h);
 }
 

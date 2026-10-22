@@ -50,7 +50,7 @@ add_executable(86Box
     nvr.c
     nvr_at.c
     nvr_ps2.c
-    machine_status.c
+    machine_status.cpp
 )
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -86,11 +86,6 @@ endif()
 
 if(DISCORD)
     add_compile_definitions(DISCORD)
-    target_sources(86Box PRIVATE discord.c)
-endif()
-
-if(DEBUGREGS486)
-    add_compile_definitions(USE_DEBUG_REGS_486)
 endif()
 
 if(SCREENSHOT_MODE)
@@ -341,4 +336,14 @@ endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "NetBSD")
     add_custom_command(TARGET 86Box POST_BUILD COMMAND paxctl ARGS +m $<TARGET_FILE:86Box> COMMENT "Disable PaX MPROTECT")
+endif()
+
+if(AUTOMATION)
+    # Frames sent over the automation connection are zstd-compressed. libchdr
+    # (CD images) already needs the system zstd, found by the same module.
+    if(NOT TARGET zstd::zstd)
+        list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cdrom/libchdr/cmake")
+        find_package(zstd MODULE REQUIRED)
+    endif()
+    target_link_libraries(86Box zstd::zstd)
 endif()

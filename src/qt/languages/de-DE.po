@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-02 19:23+0000\n"
-"Last-Translator: dob205 <dominik.babic0@gmail.com>\n"
+"PO-Revision-Date: 2026-10-20 09:11+0000\n"
+"Last-Translator: creopard <support@creopard.de>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
 "MIME-Version: 1.0\n"
@@ -150,6 +150,12 @@ msgstr "&Integer-Skalierung"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Integer-Skalierung"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Invertierte VGA-Anzeige"
 
@@ -233,9 +239,6 @@ msgstr "&Ton"
 
 msgid "&Preferences…"
 msgstr "&Preferenzen…"
-
-msgid "Enable &Discord integration"
-msgstr "&Discord-Integration einschalten"
 
 msgid "Sound &gain…"
 msgstr "&Klangverstärkung…"
@@ -432,6 +435,12 @@ msgstr "Dynamischer Recompiler"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Genaue FPU-Umgebung für den dynamischen Recompiler"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Block-Verkettung im dynamischen Recompiler"
+
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPU-Framegröße"
 
@@ -623,6 +632,12 @@ msgstr "Controller 4:"
 
 msgid "Cassette"
 msgstr "Kassette"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Festplatten:"
@@ -1276,6 +1291,37 @@ msgstr "Benutze reguläre Ausdrücke in der Suche"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Virtuelle Maschinen in den Papierkorb verschieben"
+
+msgid "Discord"
+msgstr "Discord"
+
+msgid "Show running machines in my Discord status"
+msgstr "Zeige laufende Maschinen in meinem Discord-Status an"
+
+msgid "Details shown:"
+msgstr "Angezeigte Details:"
+
+msgid "Machine name and hardware"
+msgstr "Maschinenname und Hardware"
+
+msgid "Hardware only"
+msgstr "Nur Hardware"
+
+msgid "No details"
+msgstr "Keine Details"
+
+msgid "Using %1"
+msgstr "Nutze %1"
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] "% Maschine aktiv"
+msgstr[1] "%n Maschinen aktiv"
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] " (+%n mehr)"
+msgstr[1] " (+%n mehrere)"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -3549,57 +3595,91 @@ msgstr "Luminanzschwelle (%)"
 
 msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
 msgstr ""
+"VFIO: /dev/vfio/vfio: %s konnte nicht geöffnet werden. Stellen Sie bitte "
+"sicher, dass das Modul \"vfio-pci\" geladen ist."
 
 msgid "VFIO %s: Invalid device location."
-msgstr ""
+msgstr "VFIO %s: Ungültiger Gerätestandort."
 
 msgid "VFIO %s: Device not found."
-msgstr ""
+msgstr "VFIO %s: Gerät nicht gefunden."
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
+"VFIO %s: Das Gerät verfügt über keine IOMMU-Gruppe. Stellen Sie bitte "
+"sicher, dass VT-d oder IOMMU auf Ihrem System aktiviert ist."
 
 msgid "VFIO %s: Device is not bound to vfio-pci."
-msgstr ""
+msgstr "VFIO %s: Das Gerät ist nicht an vfio-pci gebunden."
 
 msgid "VFIO %s: Could not open IOMMU group %d: %s"
-msgstr ""
+msgstr "VFIO %s: Die IOMMU-Gruppe %d konnte nicht geöffnet werden: %s"
 
 msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
 msgstr ""
+"VFIO %s: Die IOMMU-Gruppe %d ist nicht funktionsfähig. Sämtliche Geräte in "
+"der Gruppe müssen an vfio-pci gebunden sein."
 
 msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
 msgstr ""
+"VFIO: Der Gastspeicher für DMA konnte nicht zugeordnet werden: %s . Der "
+"Grenzwert für gesperrten Speicher (ulimit -l) ist möglicherweise zu niedrig."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
 msgstr ""
+"VFIO %s: Die ROM-Datei \"%s\" konnte nicht gelesen werden; es wird das "
+"geräteeigene ROM verwendet."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
 msgstr ""
+"VFIO %s: Die ROM-Datei \"%s\" konnte nicht gelesen werden; das ROM ist "
+"deaktiviert."
 
 msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
 msgstr ""
+"VFIO %s: Das ROM scheint ungültig zu sein. Über die VFIO-Einstellungen kann "
+"ein benutzerdefiniertes ROM geladen werden."
 
 msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
 msgstr ""
+"VFIO: Diese Geräte müssen an vfio-pci gebunden werden, wofür "
+"Administratorrechte erforderlich sind:\n"
+"\n"
+"%s\n"
+"Sollen sie jetzt gebunden werden?"
 
 msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
 msgstr ""
+"VFIO: Es sind Administratorrechte erforderlich, um 86Box Zugriff auf die "
+"durchgeleiteten Geräte zu gewähren. Fortfahren?"
 
 msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
 msgstr ""
+"Diese Geräte wurden zwar nicht ausgewählt, gehören jedoch zur selben IOMMU-"
+"Gruppe wie ein ausgewähltes Gerät, sodass sie ebenfalls gebunden werden:"
 
 msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
 msgstr ""
+"VFIO %s: Die IOMMU-Gruppe %d enthält auch %s, was vom Host benötigt wird. "
+"Die Gruppe wird nicht an vfio-pci gebunden."
 
 msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
 msgstr ""
+"VFIO: Die Geräte konnten nicht für die Durchleitung vorbereitet werden:\n"
+"%s"
 
 msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
 msgstr ""
+"VFIO: Die Administratorrechte konnten nicht angefordert werden. Um die "
+"Geräte für die Durchleitung vorzubereiten, diesen Befehl ausführen mit "
+"anschließendem Hard-Reset :\n"
+"\n"
+"%s"
 
 msgid "Prepare PCI devices for VFIO passthrough"
-msgstr ""
+msgstr "PCI-Geräte für VFIO-Durchleitung vorbereiten"
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
 msgstr ""
+"Authentifizierung erforderlich, um PCI-Geräte für die Durchleitung an 86Box "
+"vorzubereiten."

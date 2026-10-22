@@ -15,8 +15,6 @@
 
 #include "qt_vmmanager_protocol.hpp"
 
-extern QTimer discordupdate;
-
 class MediaMenu;
 class RendererStack;
 
@@ -114,6 +112,8 @@ private slots:
     void on_actionNearest_triggered();
     void on_actionFullScreen_int_triggered();
     void on_actionFullScreen_int43_triggered();
+    void on_actionFullScreen_center_triggered();
+    void on_actionFullScreen_center43_triggered();
     void on_actionFullScreen_keepRatio_triggered();
     void on_actionFullScreen_43_triggered();
     void on_actionFullScreen_stretch_triggered();
@@ -136,7 +136,6 @@ private slots:
     void on_actionMute_Unmute_triggered();
     void on_actionSound_gain_triggered();
     void on_actionPreferences_triggered();
-    void on_actionEnable_Discord_integration_triggered(bool checked);
     void on_actionRenderer_options_triggered();
     void on_actionFast_forward_triggered();
 

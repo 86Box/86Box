@@ -116,6 +116,9 @@
 #define MEM_MAPPING_SMRAM     32 /* On internal bus (RAM) but SMRAM. */
 #define MEM_MAPPING_CACHE     64 /* Cache or MTRR - please avoid such mappings unless \
                                     stricly necessary (eg. for CoreBoot). */
+#define MEM_MAPPING_CACHE_ONLY 128 /* Lines held in the processor's cache: seen only where
+                                     the CPU's access state has ACCESS_CACHE, and never
+                                     by the bus (mem_set_cache_access). */
 
 /* #define's for memory granularity, currently 4k, less does
    not work because of internal 4k pages. */
@@ -389,15 +392,19 @@ extern void mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignor
 
 extern void mem_set_wp(uint64_t base, uint64_t size, uint8_t flags, uint8_t wp);
 extern void mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t access);
+extern void mem_set_cache_access(uint32_t base, uint32_t size, int cached);
+extern int  mem_bus_unbacked(uint32_t base, uint32_t size);
 
 extern uint8_t  mem_readb_phys(uint32_t addr);
 extern uint16_t mem_readw_phys(uint32_t addr);
 extern uint32_t mem_readl_phys(uint32_t addr);
 extern void     mem_read_phys(void *dest, uint32_t addr, int tranfer_size);
+extern uint32_t mem_read_phys_block(void *dest, uint32_t addr, uint32_t len);
 extern void     mem_writeb_phys(uint32_t addr, uint8_t val);
 extern void     mem_writew_phys(uint32_t addr, uint16_t val);
 extern void     mem_writel_phys(uint32_t addr, uint32_t val);
 extern void     mem_write_phys(void *src, uint32_t addr, int tranfer_size);
+extern uint32_t mem_write_phys_block(const void *src, uint32_t addr, uint32_t len);
 
 extern uint8_t  mem_read_ram(uint32_t addr, void *priv);
 extern uint16_t mem_read_ramw(uint32_t addr, void *priv);

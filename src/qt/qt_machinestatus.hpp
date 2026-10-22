@@ -22,6 +22,15 @@ public:
     }
     ~ClickableLabel() {};
 
+    /* QLabel repaints on every setPixmap, even with the same pixmap. */
+    void setPixmapIfChanged(const QPixmap &pixmap)
+    {
+        if (pixmap.cacheKey() == pixmapKey)
+            return;
+        pixmapKey = pixmap.cacheKey();
+        setPixmap(pixmap);
+    }
+
 signals:
     void clicked(QPoint);
     void doubleClicked(QPoint);
@@ -58,6 +67,9 @@ protected:
         } else
             event->ignore();
     }
+
+private:
+    qint64 pixmapKey = 0;
 };
 
 class MachineStatus : public QObject {

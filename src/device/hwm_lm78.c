@@ -38,6 +38,7 @@
 #define LM78_W83782D            0x100000
 #define LM78_P5A                0x200000
 #define LM78_AL440LX            0x400000
+#define LM78_SIS5595            0x800000
 #define LM78_AS99127F           (LM78_AS99127F_REV1 | LM78_AS99127F_REV2)     /* mask covering both _REV1 and _REV2 */
 #define LM78_WINBOND            (LM78_W83781D | LM78_AS99127F | LM78_W83782D) /* mask covering all Winbond variants */
 #define LM78_WINBOND_VENDOR_ID  ((dev->local & LM78_AS99127F_REV1) ? 0x12c3 : 0x5ca3)
@@ -76,6 +77,8 @@ typedef struct lm78_t {
     uint8_t i2c_addr : 7;
     uint8_t i2c_state : 1;
     uint8_t i2c_enabled : 1;
+
+    uint8_t dxp;
 } lm78_t;
 
 static void lm78_remap(lm78_t *dev, uint8_t addr);
@@ -249,6 +252,13 @@ lm78_reset(void *priv)
     lm78_t *dev            = (lm78_t *) priv;
     uint8_t initialization = dev->regs[0x40] & 0x80;
 
+    if (dev->local & LM78_SIS5595) {
+        memset(dev->regs, 0, 256);
+        dev->regs[0x40] = 0x08;
+        dev->regs[0x47] = 0x50;
+        return;
+    }
+
     memset(dev->regs, 0, 256);
     memset(dev->regs + 0xc0, 0xff, 32); /* C0-DF are 0xFF on a real AS99127F */
 
@@ -334,11 +344,54 @@ lm78_i2c_start(UNUSED(void *bus), UNUSED(uint8_t addr), UNUSED(uint8_t read), vo
 }
 
 static uint8_t
+sis5595_dam_read(lm78_t *dev, uint8_t reg)
+{
+    uint8_t ret = 0;
+
+    if (reg >= 0x60)              /* 60h-7Fh mirror 20h-3Fh */
+        reg &= 0x3f;
+
+    switch (reg) {
+        case 0x20 ... 0x23:       /* VIN0-VIN3 */
+            ret = LM78_VOLTAGE_TO_REG(dev->values->voltages[reg & 0x07]);
+            break;
+
+        case 0x24:                /* VIN4, or temperature in DXP mode */
+            if (dev->dxp)
+                ret = dev->values->temperatures[0];
+            else
+                ret = LM78_VOLTAGE_TO_REG(dev->values->voltages[4]);
+            break;
+
+        case 0x28 ... 0x29:       /* FAN1, FAN2 */
+            ret = (dev->regs[0x47] >> ((reg & 0x01) ? 6 : 4)) & 0x03;
+            ret = LM78_RPM_TO_REG(dev->values->fans[reg & 0x01], 1 << ret);
+            break;
+
+        case 0x2b ... 0x34:       /* limits, config, status, masks, divisor */
+        case 0x3b ... 0x3c:
+        case 0x40 ... 0x47:
+            ret = dev->regs[reg];
+            break;
+
+        default:                  /* reserved: reads as 0 */
+            break;
+    }
+
+    return ret;
+}
+
+static uint8_t
 lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
 {
     uint8_t ret = 0;
     uint8_t masked_reg = reg;
     uint8_t bankswitched = ((reg & 0xf8) == 0x50);
+
+    if (dev->local & LM78_SIS5595) {
+        ret = sis5595_dam_read(dev, reg);
+        return ret;
+    }
 
     if ((dev->local & LM78_AS99127F) && (bank == 3) && (reg != 0x4e)) {
         /* AS99127F additional registers */
@@ -383,7 +436,7 @@ lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
     return ret;
 }
 
-static uint8_t
+uint8_t
 lm78_isa_read(uint16_t port, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
@@ -396,6 +449,8 @@ lm78_isa_read(uint16_t port, void *priv)
 
         case 0x6:
             ret = lm78_read(dev, dev->addr_register, LM78_WINBOND_BANK);
+
+            lm78_log("LM78: isa read(index %02X) = %02X\n", dev->addr_register, ret);
 
             if (((LM78_WINBOND_BANK == 0) && ((dev->addr_register == 0x41) || (dev->addr_register == 0x43) || (dev->addr_register == 0x45) || (dev->addr_register == 0x56) || ((dev->addr_register >= 0x60) && (dev->addr_register < 0x94)))) || ((dev->local & LM78_W83782D) && (LM78_WINBOND_BANK == 5) && (dev->addr_register >= 0x50) && (dev->addr_register < 0x58))) {
                 /* auto-increment registers */
@@ -431,9 +486,38 @@ lm78_as99127f_read(void *priv, uint8_t reg)
 }
 
 static uint8_t
+sis5595_dam_write(lm78_t *dev, uint8_t reg, uint8_t val)
+{
+    if (reg >= 0x60)
+        reg &= 0x3f;
+
+    switch (reg) {
+        case 0x40:
+            dev->regs[0x40] = val & 0xef;
+            if (val & 0x80)       /* INITIALIZATION */
+                lm78_reset(dev);
+            break;
+
+        case 0x2b ... 0x34:
+        case 0x3b ... 0x3c:
+        case 0x43 ... 0x47:
+            dev->regs[reg] = val;
+            break;
+
+        default:
+            return 0;
+    }
+
+    return 1;
+}
+
+static uint8_t
 lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 {
     lm78_log("LM78: write(%02X, %d, %02X)\n", reg, bank, val);
+
+    if (dev->local & LM78_SIS5595)
+        return sis5595_dam_write(dev, reg, val);
 
     if ((dev->local & LM78_AS99127F) && (bank == 3) && (reg != 0x4e)) {
         /* AS99127F additional registers */
@@ -634,7 +718,7 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
     return 1;
 }
 
-static void
+void
 lm78_isa_write(uint16_t port, uint8_t val, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
@@ -835,6 +919,14 @@ lm78_init(const device_t *info)
     return dev;
 }
 
+void
+sis5595_dam_set_dxp(void *priv, uint8_t dxp)
+{
+    lm78_t *dev = (lm78_t *) priv;
+
+    dev->dxp = dxp;
+}
+
 /* National Semiconductor LM78 on ISA and SMBus. */
 const device_t lm78_device = {
     .name          = "National Semiconductor LM78 Hardware Monitor",
@@ -859,6 +951,22 @@ const device_t lm78_al440lx_device = {
     .internal_name = "lm78_al440lx",
     .flags         = DEVICE_ISA,
     .local         = 0x290 | LM78_I2C | LM78_AL440LX,
+    .init          = lm78_init,
+    .close         = lm78_close,
+    .reset         = lm78_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+/* The SiS 5595 Data Acquisition Module (DAM), basically a cut-down
+   LM78 integrated into the SiS 5595 southbridge. */
+const device_t sis5595_dam_device = {
+    .name          = "SiS 5595 Data Acquisition Module",
+    .internal_name = "sis5595_dam",
+    .flags         = DEVICE_ISA,
+    .local         = LM78_SIS5595,
     .init          = lm78_init,
     .close         = lm78_close,
     .reset         = lm78_reset,

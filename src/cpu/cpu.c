@@ -81,11 +81,9 @@ enum {
 #define CPUID_3DNOWE (1UL << 30UL) /* Extended 3DNow! instructions */
 #define CPUID_3DNOW  (1UL << 31UL) /* 3DNow! instructions */
 
-/* Remove the Debugging Extensions CPUID flag if not compiled
-   with debug register support for 486 and later CPUs. */
-#ifndef USE_DEBUG_REGS_486
-#    define CPUID_DE 0
-#endif
+/* Report the Debugging Extensions CPUID flag only with debug register
+   operation on 486 and later CPUs enabled. */
+#define CPUID_DE (cpu_debug_regs_486 ? (1 << 2) : 0)
 
 /* Make sure this is as low as possible. */
 cpu_state_t cpu_state;
@@ -210,6 +208,7 @@ int cpu_agp_speed;
 int cpu_alt_reset;
 
 int cpu_dyn_accurate_fpu_env;
+int cpu_dyn_block_link = 1;
 int cpu_override;
 int cpu_effective;
 int cpu_multi;
@@ -649,10 +648,6 @@ cpu_set(void)
     cpu_inited = 1;
     cpu_effective = cpu;
     cpu_s         = (CPU *) &cpu_f->cpus[cpu_effective];
-
-#ifdef USE_ACYCS
-    acycs = 0;
-#endif /* USE_ACYCS */
 
     soft_reset_pci    = 0;
     cpu_init          = 0;
@@ -3996,6 +3991,7 @@ cpu_WRMSR(void)
                         msr.mtrr_physmask[(ECX - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
                     else
                         msr.mtrr_physbase[(ECX - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
+                    cpu_car_update();
                     break;
                 /* MTRRfix64K_00000 */
                 case 0x250:
@@ -4016,6 +4012,7 @@ cpu_WRMSR(void)
                 /* MTRRdefType */
                 case 0x2ff:
                     msr.mtrr_deftype = EAX | ((uint64_t) EDX << 32);
+                    cpu_car_update();
                     break;
             }
             break;
@@ -4498,6 +4495,7 @@ pentium_invalid_wrmsr:
                             goto i686_invalid_wrmsr;
                         msr.mtrr_physbase[(p6_msr - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
                     }
+                    cpu_car_update();
                     break;
                 /* MTRRfix64K_00000 */
                 case 0x250:
@@ -4539,6 +4537,7 @@ pentium_invalid_wrmsr:
                     if ((EAX & ~0x00000cff) || EDX || !mtrr_type_valid(EAX & 0xff))
                         goto i686_invalid_wrmsr;
                     msr.mtrr_deftype = EAX | ((uint64_t) EDX << 32);
+                    cpu_car_update();
                     break;
                 /* MC0_CTL - Machine Check 0 Control */
                 case 0x400:

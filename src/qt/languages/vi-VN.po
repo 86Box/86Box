@@ -151,6 +151,12 @@ msgstr "Căn tỷ lệ số nguyên"
 msgid "4:&3 Integer scale"
 msgstr "Căn tỷ lệ 4:3 số nguyên"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Đảo màu VGA"
 
@@ -234,9 +240,6 @@ msgstr "&Âm thanh"
 
 msgid "&Preferences…"
 msgstr "&Tùy biến…"
-
-msgid "Enable &Discord integration"
-msgstr "Bật trình trạng thái cho Discord"
 
 msgid "Sound &gain…"
 msgstr "Bộ &tăng âm…"
@@ -433,6 +436,12 @@ msgstr "Bộ tái biên dịch động (Dynamic recompiler)"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Môi trường FPU chính xác trên bộ tái biên dịch động"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Liên kết khối trên bộ tái biên dịch động"
+
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Cỡ khung CPU"
 
@@ -624,6 +633,12 @@ msgstr "Bộ điều khiển 4:"
 
 msgid "Cassette"
 msgstr "Cassette"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Đĩa cứng:"
@@ -1273,6 +1288,35 @@ msgstr "Dùng regex trong hộp tìm kiếm"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Xóa máy ảo vào Thùng rác"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"

@@ -2470,8 +2470,21 @@ r3d_setup(rage128_t *dev, const rage128_raster_state_t *rs,
            per-triangle interpolants and sampler descriptors that
            rage128_texstage_run uses per pixel, called from here or from a
            compiled span through jt->texctx. */
-        int premult = ds->premult;
-        int dither  = ds->dither;
+        /* The S*W multiply of SETUP_CNTL TEXTURE_ST_FORMAT 0 is the first
+           half of perspective correction, and the per-pixel divide by the
+           interpolated W is the second. A stage with perspective correction
+           off (PRIM_TEX_PERSPECTIVE_DIS, and for the secondary stage its
+           own SEC_TEX_PERSPECTIVE_DIS; CCE 3D supplement, PRIM_TEX_CNTL_C
+           and SEC_TEX_CNTL_C) skips the divide, so it also skips the
+           multiply and interpolates S and T as stored. The guide does not
+           spell this pairing out; it is modeled on the Windows Direct3D
+           driver, which sends screen-space quads with perspective off,
+           TEXTURE_ST_FORMAT 0, raw coordinates and a W other than 1, and
+           expects them sampled unscaled. Multiplying without the divide
+           would scale every such coordinate by W. */
+        int premult  = ds->premult && ds->do_persp;
+        int premult2 = ds->premult && (ds->do_persp ^ ds->sec_persp_diff);
+        int dither   = ds->dither;
 
         {
             const r3d_vtx_t *vv[3]   = { a, b, c };
@@ -2520,35 +2533,53 @@ r3d_setup(rage128_t *dev, const rage128_raster_state_t *rs,
         /* The secondary stage's W: rhw2 under SEC_SRC_SEL_W, else the
            vertex rhw (see sel_w in r3d_draw_state_derive). Under
            premult the second coordinate set is multiplied by it, as
-           the first set is by rhw. */
+           the first set is by rhw. Under sec_first the second set's
+           interpolants are built from the first set's raw coordinates
+           instead (see sec_first in r3d_draw_state_derive). */
+        const float rs2a = ds->sec_first ? a->s : a->s2;
+        const float rs2b = ds->sec_first ? b->s : b->s2;
+        const float rs2c = ds->sec_first ? c->s : c->s2;
+        const float rt2a = ds->sec_first ? a->t : a->t2;
+        const float rt2b = ds->sec_first ? b->t : b->t2;
+        const float rt2c = ds->sec_first ? c->t : c->t2;
+
         tctx->a2rhw = ds->sel_w ? a->rhw2 : a->rhw;
         tctx->b2rhw = ds->sel_w ? b->rhw2 : b->rhw;
         tctx->c2rhw = ds->sel_w ? c->rhw2 : c->rhw;
-        tctx->s2a = premult ? a->s2 * tctx->a2rhw : a->s2;
-        tctx->s2b = premult ? b->s2 * tctx->b2rhw : b->s2;
-        tctx->s2c = premult ? c->s2 * tctx->c2rhw : c->s2;
-        tctx->t2a = premult ? a->t2 * tctx->a2rhw : a->t2;
-        tctx->t2b = premult ? b->t2 * tctx->b2rhw : b->t2;
-        tctx->t2c = premult ? c->t2 * tctx->c2rhw : c->t2;
-        if (premult && (ds->wrap_s0 | ds->wrap_t0 | ds->wrap_s1 | ds->wrap_t1)) {
+        tctx->s2a = premult2 ? rs2a * tctx->a2rhw : rs2a;
+        tctx->s2b = premult2 ? rs2b * tctx->b2rhw : rs2b;
+        tctx->s2c = premult2 ? rs2c * tctx->c2rhw : rs2c;
+        tctx->t2a = premult2 ? rt2a * tctx->a2rhw : rt2a;
+        tctx->t2b = premult2 ? rt2b * tctx->b2rhw : rt2b;
+        tctx->t2c = premult2 ? rt2c * tctx->c2rhw : rt2c;
+        if (ds->premult && (ds->wrap_s0 | ds->wrap_t0 | ds->wrap_s1 | ds->wrap_t1)) {
             /* Cylindrical wrap works on the raw coordinate, the stored value
-               when SETUP_CNTL TEXTURE_ST_FORMAT is 0 and the setup engine
-               multiplies by w; one period is +1.0 raw, which is +rhw on the
-               s/w interpolant. With TEXTURE_ST_FORMAT set (coordinates
-               already multiplied by w) "texture wrapping is not available"
-               (CCE 3D supplement, SETUP_CNTL), so the wrap enables are left
-               unapplied and the stored coordinates interpolate as they are. */
+               when SETUP_CNTL TEXTURE_ST_FORMAT is 0; one period is +1.0
+               raw. On a stage the setup engine multiplies by w that is +rhw
+               on the s/w interpolant, and on a stage with perspective
+               correction off (no multiply, see above) it is +1.0. With
+               TEXTURE_ST_FORMAT set (coordinates already multiplied by w)
+               "texture wrapping is not available" (CCE 3D supplement,
+               SETUP_CNTL), so the wrap enables are left unapplied and the
+               stored coordinates interpolate as they are. */
+            float pa  = premult ? a->rhw : 1.0f;
+            float pb  = premult ? b->rhw : 1.0f;
+            float pc  = premult ? c->rhw : 1.0f;
+            float pa2 = premult2 ? tctx->a2rhw : 1.0f;
+            float pb2 = premult2 ? tctx->b2rhw : 1.0f;
+            float pc2 = premult2 ? tctx->c2rhw : 1.0f;
+
             if (ds->wrap_s0)
-                r3d_cyl_wrap(a->s, b->s, c->s, a->rhw, b->rhw, c->rhw,
+                r3d_cyl_wrap(a->s, b->s, c->s, pa, pb, pc,
                              &tctx->sta, &tctx->stb, &tctx->stc);
             if (ds->wrap_t0)
-                r3d_cyl_wrap(a->t, b->t, c->t, a->rhw, b->rhw, c->rhw,
+                r3d_cyl_wrap(a->t, b->t, c->t, pa, pb, pc,
                              &tctx->tta, &tctx->ttb, &tctx->ttc);
             if (ds->wrap_s1)
-                r3d_cyl_wrap(a->s2, b->s2, c->s2, tctx->a2rhw, tctx->b2rhw, tctx->c2rhw,
+                r3d_cyl_wrap(rs2a, rs2b, rs2c, pa2, pb2, pc2,
                              &tctx->s2a, &tctx->s2b, &tctx->s2c);
             if (ds->wrap_t1)
-                r3d_cyl_wrap(a->t2, b->t2, c->t2, tctx->a2rhw, tctx->b2rhw, tctx->c2rhw,
+                r3d_cyl_wrap(rt2a, rt2b, rt2c, pa2, pb2, pc2,
                              &tctx->t2a, &tctx->t2b, &tctx->t2c);
         }
         tctx->arhw = a->rhw;
@@ -4208,6 +4239,9 @@ r3d_draw_state_derive(rage128_raster_state_t *rs)
                     coordinates are raw and are multiplied by rhw to form
                     the s/w interpolant. 1 means they are "already
                     pre-multiplied by W" (CCE 3D supplement, SETUP_CNTL).
+                    The triangle setup applies the multiply only on a
+                    stage that also divides (the next control), since the
+                    two halves of perspective correction go together.
          do_persp = the divide by the interpolated rhw, turned off by
                     PRIM_TEX_CNTL_C PRIM_TEX_PERSPECTIVE_DIS (bit 14) (CCE
                     3D supplement, PRIM_TEX_CNTL_C); it changes nothing
@@ -4276,18 +4310,35 @@ r3d_draw_state_derive(rage128_raster_state_t *rs)
     if (!ds->light_on)
         memset(&ds->lcomb, 0, sizeof(ds->lcomb)); /* keeps equal states equal */
     ds->sec_sel = rs->t3d.sec_tex_cntl & 1;       /* SEC_SRC_SEL_ST */
+    /* With SEC_SRC_SEL_ST clear the secondary stage samples the first
+       coordinate set, but under premult its interpolants are the raw
+       coordinates times the stage's own W when the stage divides, and
+       times nothing when it does not (see r3d_setup). When the stage's W
+       (sel_w) or perspective setting (sec_persp_diff) differs from the
+       primary's, the primary's interpolants of that set are scaled wrong
+       for it, so the setup fills the second set's interpolants from the
+       first set's raw coordinates and the stage samples those. Without
+       premult no stage multiplies, so the primary's interpolants serve
+       both stages. */
+    ds->sec_first = ds->sec_en && !ds->sec_sel && ds->premult
+        && (ds->sec_persp_diff || ds->sel_w);
+    if (ds->sec_first)
+        ds->sec_sel = 1;
     /* Cylindrical wrap enables per coordinate set: PRIM_TEX_WRAP_S and
        SEC_TEX_WRAP_S (bit 10), PRIM_TEX_WRAP_T and SEC_TEX_WRAP_T (bit 13)
        (CCE 3D supplement, PRIM_TEX_CNTL_C and SEC_TEX_CNTL_C). The primary
        stage always samples the first set; the secondary samples the
        second set only when SEC_SRC_SEL_ST is set, and otherwise its
        enables are ORed into the first set's. What the chip does when the
-       two stages disagree about one set is not documented. */
+       two stages disagree about one set is not documented. Under
+       sec_first the second set's interpolants hold the first set, so
+       they take the first set's enables. */
     {
         uint32_t pc = rs->t3d.prim_tex_cntl;
         uint32_t sc = ds->sec_en ? rs->t3d.sec_tex_cntl : 0;
-        uint32_t c1 = ds->sec_sel ? pc : (pc | sc);
-        uint32_t c2 = ds->sec_sel ? sc : 0;
+        int      s2 = ds->sec_sel && !ds->sec_first;
+        uint32_t c1 = s2 ? pc : (pc | sc);
+        uint32_t c2 = s2 ? sc : ds->sec_first ? (pc | sc) : 0;
 
         ds->wrap_s0 = (c1 >> 10) & 1;
         ds->wrap_t0 = (c1 >> 13) & 1;

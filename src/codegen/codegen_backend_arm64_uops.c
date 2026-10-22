@@ -316,6 +316,60 @@ codegen_CMP_JNBE(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*The compare with the low limit sets the flags; the conditional compare of
+  the operand's last byte with the high limit runs only when that passed
+  (CS), and otherwise sets C alone, which fails as HI does*/
+static int
+codegen_CMP_JNWITHIN(codeblock_t *block, uop_t *uop)
+{
+    int       src_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int       lo_reg   = HOST_REG_GET(uop->src_reg_b_real);
+    int       hi_reg   = HOST_REG_GET(uop->src_reg_c_real);
+    int       src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int       lo_size  = IREG_GET_SIZE(uop->src_reg_b_real);
+    int       hi_size  = IREG_GET_SIZE(uop->src_reg_c_real);
+    uint32_t *jump_p;
+
+    if (REG_IS_L(src_size) && REG_IS_L(lo_size) && REG_IS_L(hi_size)) {
+        host_arm64_CMP_REG(block, src_reg, lo_reg);
+        if (uop->imm_data) {
+            host_arm64_ADD_IMM(block, REG_TEMP, src_reg, uop->imm_data);
+            host_arm64_CCMP_REG_CS(block, REG_TEMP, hi_reg, 2);
+        } else
+            host_arm64_CCMP_REG_CS(block, src_reg, hi_reg, 2);
+    } else
+        fatal("CMP_JNWITHIN %02x %02x %02x\n", uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
+
+    jump_p = host_arm64_BHI_(block);
+    host_arm64_branch_set_offset(jump_p, uop->p);
+
+    return 0;
+}
+
+/*The compare with the low bound sets the flags; the conditional compare
+  with the high bound runs only when the value is above it (GT, which a NaN
+  fails), and otherwise sets V alone, which fails GT as well*/
+static int
+codegen_FCMP_JWITHIN_DEST(codeblock_t *block, uop_t *uop)
+{
+    int src_reg    = HOST_REG_GET(uop->src_reg_a_real);
+    int lo_reg     = HOST_REG_GET(uop->src_reg_b_real);
+    int hi_reg     = HOST_REG_GET(uop->src_reg_c_real);
+    int src_size   = IREG_GET_SIZE(uop->src_reg_a_real);
+    int lo_size    = IREG_GET_SIZE(uop->src_reg_b_real);
+    int hi_size    = IREG_GET_SIZE(uop->src_reg_c_real);
+
+    if (REG_IS_D(src_size) && REG_IS_D(lo_size) && REG_IS_D(hi_size)) {
+        host_arm64_FCMP_D(block, src_reg, lo_reg);
+        host_arm64_FCCMP_D_GT(block, hi_reg, src_reg, 1);
+    } else
+        fatal("FCMP_JWITHIN_DEST %02x %02x %02x\n", uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
+
+    uop->p = host_arm64_BGT_(block);
+
+    return 0;
+}
+
 static int
 codegen_CMP_JNB_DEST(codeblock_t *block, uop_t *uop)
 {
@@ -828,6 +882,15 @@ codegen_MMX_ENTER(codeblock_t *block, uop_t *uop)
 static int
 codegen_JMP(codeblock_t *block, uop_t *uop)
 {
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    /*An unconditional jump out of the block is an ordinary hand-off (UOP_JMP
+      writes registers back), so it can link like the block's end. Fault
+      paths reach codegen_exit_rout by conditional branches instead.*/
+    if (codegen_block_link && (uop->p == codegen_exit_rout)) {
+        codegen_link_exit(block);
+        return 0;
+    }
+#    endif
     host_arm64_jump(block, (uintptr_t) uop->p);
 
     return 0;
@@ -937,6 +1000,31 @@ codegen_MEM_LOAD_ABS(codeblock_t *block, uop_t *uop)
     } else if (REG_IS_L(dest_size)) {
         host_arm64_MOV_REG(block, dest_reg, REG_X0, 0);
     }
+
+    return 0;
+}
+static int
+codegen_MEM_LOAD_REG_EA(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int seg_reg   = HOST_REG_GET(uop->src_reg_a_real);
+    int addr_reg  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+
+    host_arm64_ADD_REG(block, REG_X0, seg_reg, addr_reg, 0);
+    if (uop->is_a16)
+        host_arm64_AND_IMM(block, REG_X0, REG_X0, 0xffff);
+    if (REG_IS_W(dest_size))
+        host_arm64_call(block, codegen_mem_load_word_ea);
+    else if (REG_IS_L(dest_size))
+        host_arm64_call(block, codegen_mem_load_long_ea);
+    else
+        fatal("MEM_LOAD_REG_EA - %02x\n", uop->dest_reg_a_real);
+    host_arm64_CBNZ(block, REG_X1, (uintptr_t) codegen_exit_rout);
+    if (REG_IS_W(dest_size))
+        host_arm64_BFI(block, dest_reg, REG_X0, 0, 16);
+    else
+        host_arm64_MOV_REG(block, dest_reg, REG_X0, 0);
 
     return 0;
 }
@@ -3309,9 +3397,18 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CALL_FUNC_RESULT &
         UOP_MASK]
     = codegen_CALL_FUNC_RESULT,
+    [UOP_CALL_FUNC_RESULT_ORDERED &
+        UOP_MASK]
+    = codegen_CALL_FUNC_RESULT,
     [UOP_CALL_INSTRUCTION_FUNC &
         UOP_MASK]
     = codegen_CALL_INSTRUCTION_FUNC,
+    [UOP_CALL_REP_STRING &
+        UOP_MASK]
+    = codegen_CALL_INSTRUCTION_FUNC,
+    [UOP_CALL_FUNC_ORDERED &
+        UOP_MASK]
+    = codegen_CALL_FUNC,
 
     [UOP_JMP &
         UOP_MASK]
@@ -3360,6 +3457,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_MEM_LOAD_REG &
         UOP_MASK]
     = codegen_MEM_LOAD_REG,
+    [UOP_MEM_LOAD_REG_EA &
+        UOP_MASK]
+    = codegen_MEM_LOAD_REG_EA,
     [UOP_MEM_LOAD_SINGLE &
         UOP_MASK]
     = codegen_MEM_LOAD_SINGLE,
@@ -3501,6 +3601,12 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CMP_JNBE &
         UOP_MASK]
     = codegen_CMP_JNBE,
+    [UOP_FCMP_JWITHIN_DEST &
+        UOP_MASK]
+    = codegen_FCMP_JWITHIN_DEST,
+    [UOP_CMP_JNWITHIN &
+        UOP_MASK]
+    = codegen_CMP_JNWITHIN,
 
     [UOP_CMP_JNB_DEST &
         UOP_MASK]
@@ -3581,6 +3687,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     = codegen_BSR,
 
     [UOP_FP_ENTER &
+        UOP_MASK]
+    = codegen_FP_ENTER,
+    [UOP_FP_ENTER_ORDERED &
         UOP_MASK]
     = codegen_FP_ENTER,
     [UOP_MMX_ENTER &

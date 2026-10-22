@@ -150,6 +150,12 @@ msgstr "&Skala till heltal"
 msgid "4:&3 Integer scale"
 msgstr "Skala till heltal i 4:&3"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Inverterad VGA-skärm"
 
@@ -233,9 +239,6 @@ msgstr "L&jud"
 
 msgid "&Preferences…"
 msgstr "&Preferenser…"
-
-msgid "Enable &Discord integration"
-msgstr "Aktivera &integration med Discord"
 
 msgid "Sound &gain…"
 msgstr "Ljud&förstärkning…"
@@ -432,6 +435,12 @@ msgstr "Dynamisk omkompilator"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Exakt flyttalsprocessor-miljö på dynamisk omkompilator"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Blocklänkning i dynamisk omkompilator"
+
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Ramstorlek för processor"
 
@@ -623,6 +632,12 @@ msgstr "Styrenhet 4:"
 
 msgid "Cassette"
 msgstr "Kassettband"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Hårddiskar:"
@@ -1276,6 +1291,35 @@ msgstr "Använd vanliga uttryck i sökfältet"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Ta bort virtuella maskiner till Papperskorgen"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"

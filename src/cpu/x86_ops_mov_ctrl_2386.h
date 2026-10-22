@@ -346,6 +346,7 @@ opMOV_DRx_r_a16(uint32_t fetchdat)
             fallthrough;
         case 7:
             dr[7] = (cpu_state.regs[cpu_rm].l | 0x00000400) & (is586 ? ~0x0000d800 : ~0); /* bits 11, 12, 14, 15 are 0 from the Pentium on */
+            cpu_dr7_update();
             break;
         default:
             x86illegal();
@@ -391,6 +392,7 @@ opMOV_DRx_r_a32(uint32_t fetchdat)
             fallthrough;
         case 7:
             dr[7] = (cpu_state.regs[cpu_rm].l | 0x00000400) & (is586 ? ~0x0000d800 : ~0); /* bits 11, 12, 14, 15 are 0 from the Pentium on */
+            cpu_dr7_update();
             break;
         default:
             x86illegal();

@@ -101,6 +101,14 @@ extern void io_handler_interleaved(uint8_t set, uint16_t base, uint16_t size,
                                    void (*outl)(uint16_t port, uint32_t val, void *priv),
                                    void *priv);
 
+/* Ports where word and dword REP INS/OUTS cost one cycle per transfer. */
+extern uint8_t io_turbo_map[];
+
+#define IO_TURBO(port)              (io_turbo_map[(port) >> 3] & (1 << ((port) & 7)))
+#define IO_STR_CYCLES(port, cycles) (IO_TURBO(port) ? 1 : (cycles))
+
+extern void io_set_turbo(uint16_t port, int turbo);
+
 extern uint8_t  inb(uint16_t port);
 extern void     outb(uint16_t port, uint8_t val);
 extern uint16_t inw(uint16_t port);

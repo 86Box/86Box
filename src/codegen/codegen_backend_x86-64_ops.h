@@ -1,3 +1,5 @@
+void codegen_alloc(codeblock_t *block, int size);
+
 void host_x86_ADD8_REG_IMM(codeblock_t *block, int dst_reg, uint8_t imm_data);
 void host_x86_ADD16_REG_IMM(codeblock_t *block, int dst_reg, uint16_t imm_data);
 void host_x86_ADD32_REG_IMM(codeblock_t *block, int dst_reg, uint32_t imm_data);
@@ -24,12 +26,14 @@ void host_x86_CMP64_REG_IMM(codeblock_t *block, int dst_reg, uint64_t imm_data);
 void host_x86_CMP8_REG_REG(codeblock_t *block, int src_reg_a, int src_reg_b);
 void host_x86_CMP16_REG_REG(codeblock_t *block, int src_reg_a, int src_reg_b);
 void host_x86_CMP32_REG_REG(codeblock_t *block, int src_reg_a, int src_reg_b);
+void host_x86_CMP64_REG_REG(codeblock_t *block, int src_reg_a, int src_reg_b);
 
 void host_x86_JMP(codeblock_t *block, void *p);
 
 void host_x86_JNZ(codeblock_t *block, void *p);
 void host_x86_JZ(codeblock_t *block, void *p);
 
+uint8_t *host_x86_JNBE_short(codeblock_t *block);
 uint8_t *host_x86_JNZ_short(codeblock_t *block);
 uint8_t *host_x86_JS_short(codeblock_t *block);
 uint8_t *host_x86_JZ_short(codeblock_t *block);
@@ -103,6 +107,7 @@ void host_x86_MOV64_REG_IMM(codeblock_t *block, int reg, uint64_t imm_data);
 void host_x86_MOV8_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 void host_x86_MOV16_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 void host_x86_MOV32_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
+void host_x86_MOV64_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 
 void host_x86_MOV32_STACK_IMM(codeblock_t *block, int32_t offset, uint32_t imm_data);
 
@@ -140,6 +145,9 @@ void host_x86_OR8_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 void host_x86_OR16_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 void host_x86_OR32_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 
+void host_x86_OR64_BASE_OFFSET_REG(codeblock_t *block, int base_reg, int offset, int src_reg);
+void host_x86_OR64_BASE_INDEX_SHIFT_REG(codeblock_t *block, int base_reg, int index_reg, int scale, int src_reg);
+
 void host_x86_POP(codeblock_t *block, int src_reg);
 
 void host_x86_PUSH(codeblock_t *block, int src_reg);
@@ -173,6 +181,7 @@ void host_x86_SAR32_IMM(codeblock_t *block, int dst_reg, int shift);
 void host_x86_SHL8_CL(codeblock_t *block, int dst_reg);
 void host_x86_SHL16_CL(codeblock_t *block, int dst_reg);
 void host_x86_SHL32_CL(codeblock_t *block, int dst_reg);
+void host_x86_SHL64_CL(codeblock_t *block, int dst_reg);
 
 void host_x86_SHL8_IMM(codeblock_t *block, int dst_reg, int shift);
 void host_x86_SHL16_IMM(codeblock_t *block, int dst_reg, int shift);
@@ -198,6 +207,7 @@ void host_x86_SUB32_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 void host_x86_TEST8_REG(codeblock_t *block, int src_host_reg, int dst_host_reg);
 void host_x86_TEST16_REG(codeblock_t *block, int src_host_reg, int dst_host_reg);
 void host_x86_TEST32_REG(codeblock_t *block, int src_reg, int dst_reg);
+void host_x86_TEST64_REG(codeblock_t *block, int src_reg, int dst_reg);
 void host_x86_TEST32_REG_IMM(codeblock_t *block, int dst_reg, uint32_t imm_data);
 
 void host_x86_XOR8_REG_IMM(codeblock_t *block, int dst_reg, uint8_t imm_data);

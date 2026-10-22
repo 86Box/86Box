@@ -917,6 +917,7 @@ opINVD(UNUSED(uint32_t fetchdat))
         x86gpf(NULL, 0);
         return 1;
     }
+    cpu_car_invalidate();
     CLOCK_CYCLES(1000);
     CPU_BLOCK_END();
     return 0;
@@ -928,6 +929,7 @@ opWBINVD(UNUSED(uint32_t fetchdat))
         x86gpf(NULL, 0);
         return 1;
     }
+    cpu_car_invalidate();
     CLOCK_CYCLES(10000);
     CPU_BLOCK_END();
     return 0;
@@ -955,6 +957,15 @@ loadall_load_segment(uint32_t addr, x86seg *s)
     s->access        = segdat2 >> 24;
     s->ar_high       = 0x00;
     s->limit         = readmemw(0, addr + 4);
+    s->checked       = 0;
+#ifdef USE_DYNAREC
+    if (s == &cpu_state.seg_ds)
+        codegen_flat_ds = 0;
+    if (s == &cpu_state.seg_ss)
+        codegen_flat_ss = 0;
+    if (s == &cpu_state.seg_es)
+        codegen_flat_es = 0;
+#endif
 
     set_segment_limit(s, 0x00);
 
@@ -1025,6 +1036,15 @@ loadall386_load_segment(uint32_t addr, x86seg *s)
     s->ar_high       = segdat3;
     s->base          = readmeml(0, addr + 4);
     s->limit         = readmeml(0, addr + 8);
+    s->checked       = 0;
+#ifdef USE_DYNAREC
+    if (s == &cpu_state.seg_ds)
+        codegen_flat_ds = 0;
+    if (s == &cpu_state.seg_ss)
+        codegen_flat_ss = 0;
+    if (s == &cpu_state.seg_es)
+        codegen_flat_es = 0;
+#endif
 
     if (s == &cpu_state.seg_cs)
         use32 = (segdat3 & 0x40) ? 0x300 : 0;
@@ -1079,6 +1099,7 @@ opLOADALL386(UNUSED(uint32_t fetchdat))
     EAX          = readmeml(0, la_addr + 0x28);
     dr[6]        = readmeml(0, la_addr + 0x2C);
     dr[7]        = readmeml(0, la_addr + 0x30);
+    cpu_dr7_update();
     tr.seg       = readmemw(0, la_addr + 0x34);
     ldt.seg      = readmemw(0, la_addr + 0x38);
     GS           = readmemw(0, la_addr + 0x3C);

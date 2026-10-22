@@ -600,6 +600,9 @@ RendererStack::changeEvent(QEvent *event)
         monitor_settings[m_monitor_index].mon_window_maximized = isMaximized();
         config_save();
     }
+    /* See MainWindow::changeEvent(). */
+    if (m_monitor_index != 0 && event->type() == QEvent::WindowStateChange)
+        onResize(width(), height());
 }
 
 bool

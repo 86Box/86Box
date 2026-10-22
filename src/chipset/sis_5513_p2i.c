@@ -49,6 +49,7 @@
 #include <86box/sis_55xx.h>
 #include <86box/chipset.h>
 #include <86box/sio.h>
+#include <86box/hwm.h>
 
 #ifdef ENABLE_SIS_5513_PCI_TO_ISA_LOG
 int sis_5513_pci_to_isa_do_log = ENABLE_SIS_5513_PCI_TO_ISA_LOG;
@@ -93,6 +94,7 @@ typedef struct sis_5513_pci_to_isa_t {
     ddma_t            *ddma;
     acpi_t            *acpi;
     void              *smbus;
+    void              *hwm;
 
     uint8_t          (*pit_read_reg)(void *priv, uint8_t reg);
 } sis_5513_pci_to_isa_t;
@@ -123,7 +125,7 @@ sis_5513_apc_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
     sis_5513_pci_to_isa_t *dev = (sis_5513_pci_to_isa_t *) priv;
     uint8_t nvr_index = nvr_get_index(dev->nvr, 0);
 
-    sis_5513_pci_to_isa_log("SiS 5595 APC: [W] %04X = %02X\n", addr, val);
+    sis_5513_pci_to_isa_log("SiS 5595 APC: [W] %04X:%02X = %02X\n", addr, nvr_index, val);
 
     switch (nvr_index) {
         case 0x02 ... 0x04:
@@ -149,7 +151,7 @@ sis_5513_apc_read(UNUSED(uint16_t addr), void *priv)
     if (nvr_index == 0x06)
         dev->apc_regs[nvr_index] = 0x00;
 
-    sis_5513_pci_to_isa_log("SiS 5595 APC: [R] %04X = %02X\n", addr, ret);
+    sis_5513_pci_to_isa_log("SiS 5595 APC: [R] %04X:%02X = %02X\n", addr, nvr_index, ret);
 
     return ret;
 }
@@ -167,126 +169,18 @@ sis_5513_apc_recalc(sis_5513_pci_to_isa_t *dev, uint8_t apc_on)
 }
 
 static void
-sis_5595_do_nmi(sis_5513_pci_to_isa_t *dev, int set)
-{
-    if (set)
-        nmi_raise();
-
-    dev->irq_state = set;
-}
-
-static void
-sis_5595_dam_reset(sis_5513_pci_to_isa_t *dev)
-{
-    if (dev->irq_state) {
-        if (dev->dam_regs[0x40] & 0x20)
-            sis_5595_do_nmi(dev, 0);
-        else if (dev->dam_irq_enable)
-            pci_clear_mirq(6, 1, &dev->irq_state);
-    }
-
-    memset(dev->dam_regs, 0x00, sizeof(dev->dam_regs));
-
-    dev->dam_regs[0x40] = 0x08;
-    dev->dam_regs[0x47] = 0x50;
-}
-
-static void
-sis_5595_dam_write(uint16_t addr, uint8_t val, void *priv)
-{
-    sis_5513_pci_to_isa_t *dev = (sis_5513_pci_to_isa_t *) priv;
-    uint16_t reg = addr - dev->dam_base;
-    uint8_t old;
-
-    sis_5513_pci_to_isa_log("SiS 5595 DAM: [W] %04X = %02X\n", addr, val);
-
-    switch (reg) {
-        case 0x05:
-            dev->dam_index = (dev->index & 0x80) | (val & 0x7f);
-            break;
-        case 0x06:
-            switch (dev->dam_index) {
-                case 0x40:
-                    old = dev->dam_regs[0x40];
-                    dev->dam_regs[0x40] = val & 0xef;
-                    if (val & 0x80) {
-                        sis_5595_dam_reset(dev);
-                        return;
-                    }
-                    if (dev->irq_state) {
-                        if (!(old & 0x20) && (val & 0x20)) {
-                            if (dev->dam_irq_enable)
-                                pci_clear_mirq(6, 1, &dev->irq_state);
-                            sis_5595_do_nmi(dev, 1);
-                        } else if ((old & 0x20) && !(val & 0x20)) {
-                            sis_5595_do_nmi(dev, 0);
-                            if (dev->dam_irq_enable)
-                                pci_set_mirq(6, 1, &dev->irq_state);
-                        }
-                    }
-                    if ((val & 0x08) && dev->dam_irq_enable)
-                        pci_clear_mirq(6, 1, &dev->irq_state);
-                    break;
-                case 0x43 ... 0x47:
-                    dev->dam_regs[dev->dam_index] = val;
-                    break;
-                case 0x2b ... 0x34:
-                case 0x6b ... 0x74:
-                case 0x3b ... 0x3c:
-                case 0x7b ... 0x7c:
-                    dev->dam_regs[dev->dam_index & 0x3f] = val;
-                    break;
-            }
-            break;
-    }
-}
-
-static uint8_t
-sis_5595_dam_read(uint16_t addr, void *priv)
-{
-    sis_5513_pci_to_isa_t *dev = (sis_5513_pci_to_isa_t *) priv;
-    uint16_t reg = addr - dev->dam_base;
-    uint8_t ret = 0xff;
-
-    switch (reg) {
-        case 0x05:
-            ret = dev->dam_index;
-            break;
-        case 0x06:
-            switch (dev->dam_index) {
-                default:
-                    ret = dev->dam_regs[dev->dam_index];
-                    break;
-                case 0x20 ... 0x29:
-                case 0x2b ... 0x3f:
-                    ret = dev->dam_regs[dev->dam_index & 0x3f];
-                    break;
-                case 0x2a:
-                case 0x6a:
-                    ret = dev->pci_conf[0x78];
-                    break;
-            }
-            break;
-    }
-
-    sis_5513_pci_to_isa_log("SiS 5595 DAM: [R] %04X = %02X\n", addr, ret);
-
-    return ret;
-}
-
-static void
 sis_5595_dam_recalc(sis_5513_pci_to_isa_t *dev)
 {
     if (dev->dam_enable && (dev->dam_base != 0x0000))
         io_removehandler(dev->dam_base, 0x0008,
-                         sis_5595_dam_read, NULL, NULL, sis_5595_dam_write, NULL, NULL, dev);
+                         lm78_isa_read, NULL, NULL, lm78_isa_write, NULL, NULL, dev->hwm);
 
-    dev->dam_base = dev->pci_conf[0x68] | (dev->pci_conf[0x69] << 16);
+    dev->dam_base   = (dev->pci_conf[0x68] & 0xf8) | (dev->pci_conf[0x69] << 8);
     dev->dam_enable = !!(dev->pci_conf[0x7b] & 0x80);
 
     if (dev->dam_enable && (dev->dam_base != 0x0000))
         io_sethandler(dev->dam_base, 0x0008,
-                      sis_5595_dam_read, NULL, NULL, sis_5595_dam_write, NULL, NULL, dev);
+                      lm78_isa_read, NULL, NULL, lm78_isa_write, NULL, NULL, dev->hwm);
 }
 
 static void
@@ -294,7 +188,7 @@ sis_5595_ddma_recalc(sis_5513_pci_to_isa_t *dev)
 {
     uint16_t ch_base;
 
-    dev->ddma_base = (dev->pci_conf[0x80] & 0xf0) | (dev->pci_conf[0x81] << 16);
+    dev->ddma_base = (dev->pci_conf[0x80] & 0xf0) | (dev->pci_conf[0x81] << 8);
     dev->ddma_enable = !!(dev->pci_conf[0x80] & 0x01);
 
     for (uint8_t i = 0; i < 8; i++) {
@@ -721,6 +615,11 @@ sis_5513_b0_pci_to_isa_write(int addr, uint8_t val, sis_5513_pci_to_isa_t *dev)
             sis_5595_dam_recalc(dev);
             break;
 
+        case 0x69:
+            dev->pci_conf[addr] = val;
+            sis_5595_dam_recalc(dev);
+            break;
+
         case 0x6a: /* ACPI/SCI IRQ Remapping Control Register */
             sis_5513_pci_to_isa_log("Set MIRQ routing: ACPI/SCI IRQ -> %02X\n", val);
             dev->pci_conf[addr] = val & 0x8f;
@@ -763,8 +662,10 @@ sis_5513_b0_pci_to_isa_write(int addr, uint8_t val, sis_5513_pci_to_isa_t *dev)
         case 0x7a: /* Data Acquisition Module Function Selection Register */
             if (dev->rev == 0x81)
                 dev->pci_conf[addr] = val;
-            else
-                dev->pci_conf[addr] = val & 0x90;
+            else {
+                dev->pci_conf[addr] = val & 0x80;
+                sis5595_dam_set_dxp(dev->hwm, !!(val & 0x80));
+            }
             break;
 
         case 0x7b: /* Data Acquisition Module Control Register */
@@ -1182,7 +1083,6 @@ sis_5513_b0_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
 
     /* SiS 5595 Data Acquisition Module */
     sis_5595_dam_recalc(dev);
-    sis_5595_dam_reset(dev);
 
     dev->dam_irq_enable = 0;
 
@@ -1194,6 +1094,8 @@ sis_5513_b0_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
 
     if (dev->rev == 0x81)
         dev->dam_irq_enable = 1;
+
+    sis5595_dam_set_dxp(dev->hwm, 0);
 }
 
 static void
@@ -1326,6 +1228,9 @@ sis_5513_pci_to_isa_init(UNUSED(const device_t *info))
             }
   
             dev->ddma = device_add(&ddma_device);
+
+            if (dev->rev != 0x11)
+                dev->hwm = device_add(&sis5595_dam_device);
 
             switch (dev->rev) {
                 case 0x11:

@@ -39,3 +39,13 @@ msgid "%n disk(s)"
 msgid_plural "%n disks"
 msgstr[0] "%n disk"
 msgstr[1] "%n disks"
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] "%n machine active"
+msgstr[1] "%n machines active"
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] " (+%n more)"
+msgstr[1] " (+%n more)"

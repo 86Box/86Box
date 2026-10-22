@@ -27,6 +27,12 @@ codegen_ir_init(void)
     return &ir_block;
 }
 
+int
+codegen_ir_unrolling(void)
+{
+    return codegen_unroll_count;
+}
+
 void
 codegen_ir_set_unroll(int count, int start, int first_instruction)
 {
@@ -153,6 +159,8 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
                 fatal("!uop_handlers[uop->type & UOP_MASK] %08x\n", uop->type);
 #endif
             uop_handlers[uop->type & UOP_MASK](block, uop);
+            if (uop->type & UOP_TYPE_ORDER_BARRIER)
+                codegen_reg_drop_cycles();
         }
 
         if (uop->type & UOP_TYPE_JUMP) {

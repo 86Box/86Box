@@ -152,6 +152,12 @@ msgstr "&Cijelobrojno skaliranje"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Cijelobrojno skaliranje"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Obrni boje zaslona VGA"
 
@@ -235,9 +241,6 @@ msgstr "&Zvuk"
 
 msgid "&Preferences…"
 msgstr "&Postavke…"
-
-msgid "Enable &Discord integration"
-msgstr "Omogući integraciju sa programom &Discord"
 
 msgid "Sound &gain…"
 msgstr "&Pojačavanje zvuka…"
@@ -434,6 +437,12 @@ msgstr "Dinamički rekompilator"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Precizno FPU okruženje za dinamički rekompilator"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Povezivanje blokova u dinamičkom rekompilatoru"
+
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Veličina blokova procesora"
 
@@ -625,6 +634,12 @@ msgstr "Kontroler 4:"
 
 msgid "Cassette"
 msgstr "Audio kaseta"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Tvrdi diskovi:"
@@ -1282,6 +1297,35 @@ msgstr "U polju za pretraživanje koristite regularne izraze"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Izbrisate virtualne sisteme u Koš za smeće"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"

@@ -142,7 +142,7 @@ sis_5595_read(int func, int addr, UNUSED(int len), void *priv)
             break;
     }
 
-    sis_5600_log("SiS 5602: [R] dev->pci_conf[%02X] = %02X\n", addr, ret);
+    sis_5600_log("SiS 5600: [R] dev->pci_conf[%02X] = %02X\n", addr, ret);
 
     return ret;
 }

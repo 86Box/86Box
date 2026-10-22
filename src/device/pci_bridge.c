@@ -210,6 +210,16 @@ pci_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                                definition of the bits is identical to the other vendors' AGP bridges. */
             break;
 
+        case 0x38:
+        case 0x39:
+        case 0x3a:
+        case 0x3b:
+            /* The Intel AGP bridges have no expansion ROM base address:
+               38-3Bh are reserved and read 0. */
+            if (AGP_BRIDGE_INTEL(dev->local))
+                return;
+            break;
+
         case 0x3c:
             if (!(dev->ctl & 0x80))
                 return;
@@ -732,7 +742,7 @@ const device_t via_vt8601_agp_device = {
 
 const device_t sis_5xxx_agp_device = {
     .name          = "SiS 5591/(5)600 AGP Bridge",
-    .internal_name = "via_5xxx_agp",
+    .internal_name = "sis_5xxx_agp",
     .flags         = DEVICE_PCI,
     .local         = AGP_BRIDGE_SIS_5XXX,
     .init          = pci_bridge_init,

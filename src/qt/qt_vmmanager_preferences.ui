@@ -151,6 +151,61 @@
     </widget>
    </item>
    <item>
+    <widget class="QGroupBox" name="groupBoxDiscord">
+     <property name="title">
+      <string>Discord</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <item>
+       <widget class="QCheckBox" name="discordCheckBox">
+        <property name="text">
+         <string>Show running machines in my Discord status</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QLabel" name="labelDiscordPrivacy">
+          <property name="text">
+           <string>Details shown:</string>
+          </property>
+          <property name="buddy">
+           <cstring>comboBoxDiscordPrivacy</cstring>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="comboBoxDiscordPrivacy">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <item>
+           <property name="text">
+            <string>Machine name and hardware</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Hardware only</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>No details</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="groupBoxColorScheme">
      <property name="title">
       <string>Color scheme</string>

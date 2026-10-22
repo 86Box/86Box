@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-15 02:27+0000\n"
+"PO-Revision-Date: 2026-10-22 05:58+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -151,6 +151,12 @@ msgstr "整數比例(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整數比例(&3)"
 
+msgid "&Center"
+msgstr "置中(&C)"
+
+msgid "4:3 Cen&ter"
+msgstr "4:3 置中(&T)"
+
 msgid "Inverted VGA monitor"
 msgstr "VGA 監視器反色顯示"
 
@@ -234,9 +240,6 @@ msgstr "聲音(&O)"
 
 msgid "&Preferences…"
 msgstr "偏好設定(&P)…"
-
-msgid "Enable &Discord integration"
-msgstr "啟用 Discord 整合(&D)"
 
 msgid "Sound &gain…"
 msgstr "音量增益(&G)…"
@@ -433,6 +436,12 @@ msgstr "動態重編譯器"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "動態重編譯時精確的浮點運算器模擬"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "動態重編譯時的區塊連結"
+
+msgid "Debug registers on 486 and later processors"
+msgstr "486 及之後處理器的除錯暫存器"
+
 msgid "CPU frame size"
 msgstr "CPU 執行期框架大小"
 
@@ -624,6 +633,12 @@ msgstr "控制器 4:"
 
 msgid "Cassette"
 msgstr "卡帶"
+
+msgid "Turbo IDE"
+msgstr "加速 IDE"
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr "移除 IDE 傳輸模式速度限制。硬碟及光碟機時序仍然套用。"
 
 msgid "Hard disks:"
 msgstr "硬碟:"
@@ -1289,9 +1304,38 @@ msgstr "在搜尋欄中使用正規表示式"
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "刪除虛擬機至回收筒"
 
+msgid "Discord"
+msgstr "Discord"
+
+msgid "Show running machines in my Discord status"
+msgstr "顯示在我的 Discord 執行中機器的狀態"
+
+msgid "Details shown:"
+msgstr "顯示細節:"
+
+msgid "Machine name and hardware"
+msgstr "機器名稱及硬體"
+
+msgid "Hardware only"
+msgstr "僅硬體"
+
+msgid "No details"
+msgstr "無細節"
+
+msgid "Using %1"
+msgstr "使用 %1"
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] "%n 部機器啟用中"
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] " (+%n 以上)"
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr[0] "%n 台機器目前處於活動狀態。您確定要退出虛擬機器管理員嗎？"
+msgstr[0] "%n 部機器目前處於啟用狀態。您確定要退出虛擬機器管理員嗎？"
 
 msgid "Add new system wizard"
 msgstr "新增系統精靈"
@@ -1917,16 +1961,19 @@ msgstr ""
 "上有所影響。</p></body></html>"
 
 msgid "This machine might have been moved or copied."
-msgstr "這台機器可能已被移動或複製。"
+msgstr "這部機器可能已被移動或複製。"
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "為了確保正常的網路功能，86Box 需要知道這台機器是否被移動或複製。\n\n如果您不確定，請選擇「我已複製這台機器」。"
+msgstr ""
+"為了確保正常的網路功能，86Box 需要知道這部機器是否被移動或複製。\n"
+"\n"
+"如果您不確定，請選擇「我已複製這部機器」。"
 
 msgid "I Moved It"
-msgstr "我已移動這台機器"
+msgstr "我已移動這部機器"
 
 msgid "I Copied It"
-msgstr "我已複製這台機器"
+msgstr "我已複製這部機器"
 
 msgid "86Box Monitor #%1"
 msgstr "86Box 監視器 #%1"

@@ -1408,15 +1408,22 @@ dp83815_init(UNUSED(const device_t *info))
 
     dev->inst = device_get_instance();
 
-    int card_model = (info->local & 0x8000) ? 0 : device_get_config_int("model");
+    int card_model = (info->local & 0x8000) ? (info->local & 0x7fff) : device_get_config_int("model");
 
     int mac = device_get_config_mac("mac", -1);
 
-    if (card_model > 0) {
+    if (info->local >> 16) {
+        /* Custom OUI. */
+        dev->mac[0] = info->local >> 32;
+        dev->mac[1] = info->local >> 24;
+        dev->mac[2] = info->local >> 16;
+    } else if (card_model > 0) {
+        /* Lite-On OUI. */
         dev->mac[0] = 0x00;
         dev->mac[1] = 0x02;
         dev->mac[2] = 0xE3;
     } else {
+        /* NSC OUI. */
         dev->mac[0] = 0x08;
         dev->mac[1] = 0x00;
         dev->mac[2] = 0x17;
@@ -1577,14 +1584,14 @@ const device_t dp83815_device = {
     .name          = "National Semiconductor DP83815/16",
     .internal_name = "dp83815",
     .flags         = DEVICE_PCI,
-    .local         = 0x0001,
+    .local         = 0x0000,
     .init          = dp83815_init,
     .close         = dp83815_close,
     .reset         = dp83815_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .alias         = "National Semiconductor DP83815/16",
+    .alias         = "National Semiconductor MacPhyter",
     .config        = dp83815_config
 };
 
@@ -1592,14 +1599,13 @@ const device_t dp83815_onboard_device = {
     .name          = "National Semiconductor DP83815/16 (Onboard)",
     .internal_name = "dp83815_onboard",
     .flags         = DEVICE_PCI,
-    .local         = 0x8001,
+    .local         = 0x8000,
     .init          = dp83815_init,
     .close         = dp83815_close,
     .reset         = dp83815_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .alias         = "National Semiconductor DP83815/16",
     .config        = &dp83815_config[1]
 };
 

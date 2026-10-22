@@ -54,6 +54,7 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
     for (uint8_t i = 0; i < GFXCARD_MAX; i++)
         gfxcard_cfg_changed[i]         = 0;
     voodoo_cfg_changed             = 0;
+    powervr_cfg_changed            = 0;
     ibm8514_cfg_changed            = 0;
     xga_cfg_changed                = 0;
     ps55da2_cfg_changed            = 0;
@@ -111,6 +112,7 @@ SettingsDisplay::changed()
         has_changed  |= (gfxcard[1]                 != ui->comboBoxVideoSecondary->currentData().toInt());
 
     has_changed  |= (voodoo_enabled             != (ui->checkBoxVoodoo->isChecked() ? 1 : 0));
+    has_changed  |= (powervr_enabled            != (ui->checkBoxPowerVR->isChecked() ? 1 : 0));
     has_changed  |= (ibm8514_standalone_enabled != (ui->checkBox8514->isChecked() ? 1 : 0));
     has_changed  |= (xga_standalone_enabled     != (ui->checkBoxXga->isChecked() ? 1 : 0));
     has_changed  |= (da2_standalone_enabled     != (ui->checkBoxDa2->isChecked() ? 1 : 0));
@@ -121,6 +123,7 @@ SettingsDisplay::changed()
     for (uint8_t i = 0; i < GFXCARD_MAX; i++)
         has_changed  |= gfxcard_cfg_changed[i];
     has_changed  |= voodoo_cfg_changed;
+    has_changed  |= powervr_cfg_changed;
     has_changed  |= ibm8514_cfg_changed;
     has_changed  |= xga_cfg_changed;
     has_changed  |= ps55da2_cfg_changed;
@@ -166,6 +169,7 @@ SettingsDisplay::save(int soft)
 #endif
 
     voodoo_enabled             = ui->checkBoxVoodoo->isChecked() ? 1 : 0;
+    powervr_enabled            = ui->checkBoxPowerVR->isChecked() ? 1 : 0;
     ibm8514_standalone_enabled = ui->checkBox8514->isChecked() ? 1 : 0;
     xga_standalone_enabled     = ui->checkBoxXga->isChecked() ? 1 : 0;
     da2_standalone_enabled     = ui->checkBoxDa2->isChecked() ? 1 : 0;
@@ -266,6 +270,18 @@ SettingsDisplay::on_pushButtonConfigureVoodoo_clicked()
 }
 
 void
+SettingsDisplay::on_pushButtonConfigurePowerVR_clicked()
+{
+    powervr_cfg_changed |= DeviceConfig::ConfigureDevice(&powervr_pcx_device);
+}
+
+void
+SettingsDisplay::on_checkBoxPowerVR_stateChanged(int state)
+{
+    ui->pushButtonConfigurePowerVR->setEnabled(state == Qt::Checked);
+}
+
+void
 SettingsDisplay::on_pushButtonConfigure8514_clicked()
 {
     if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0) {
@@ -303,6 +319,9 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         ui->pushButtonConfigureVideo->setEnabled(video_card_has_config(videoCard[0]) > 0);
     bool machineHasPci = machine_has_bus(machineId, MACHINE_BUS_PCI) > 0;
     ui->pushButtonConfigureVoodoo->setEnabled(machineHasPci && ui->checkBoxVoodoo->isChecked());
+    ui->checkBoxPowerVR->setEnabled(machineHasPci);
+    ui->checkBoxPowerVR->setChecked(powervr_enabled && machineHasPci);
+    ui->pushButtonConfigurePowerVR->setEnabled(machineHasPci && ui->checkBoxPowerVR->isChecked());
 
     bool machineHasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA16) > 0;
     bool machineHasMca   = machine_has_bus(machineId, MACHINE_BUS_MCA) > 0;

@@ -1555,8 +1555,16 @@ typedef struct rage128_draw_state_t {
     int   need_lod, need_lod2;
     float lod_bias;
     float texw0, texh0, texw1, texh1;
-    int   sec_sel;                    /* SEC_SRC_SEL_ST (SEC_TEX_CNTL_C bit 0):
-                                         stage 1 samples the second ST set */
+    int   sec_sel;                    /* stage 1 samples the second set's
+                                         interpolants: SEC_SRC_SEL_ST
+                                         (SEC_TEX_CNTL_C bit 0), or
+                                         sec_first */
+    int   sec_first;                  /* SEC_SRC_SEL_ST clear, but stage 1
+                                         treats the first ST set unlike
+                                         stage 0 (its own W or perspective
+                                         setting), so the triangle setup
+                                         fills the second set's
+                                         interpolants from the first set */
     int             wrap_s0, wrap_t0; /* cylindrical wrap of ST set 1 / set 2 */
     int             wrap_s1, wrap_t1;
     r3d_stage_hdr_t sh[2];

@@ -137,6 +137,7 @@ null_data_seg(x86seg *s)
     s->access  = 0x80;
     s->ar_high = 0x10;
     s->base    = -1;
+    s->checked = 0;
     if (s == &cpu_state.seg_ds)
         cpu_cur_status |= CPU_STATUS_NOTFLATDS;
     if (s == &cpu_state.seg_es)
@@ -286,6 +287,7 @@ do_seg_load(x86seg *s, uint16_t *segdat)
     s->base |= ((word3 >> 8) << 24);
     s->access  = segdat[2] >> 8;
     s->ar_high = word3 & 0xff;
+    s->checked = 0;
 
     if (((segdat[2] & 0x1800) != 0x1000) || !(segdat[2] & (1 << 10))) {
         /* Expand-down */
@@ -325,6 +327,7 @@ do_seg_v86_init(x86seg *s)
     s->limit      = 0xffff;
     s->limit_low  = 0;
     s->limit_high = 0xffff;
+    s->checked    = 1;
 }
 
 static void
@@ -408,6 +411,7 @@ loadseg(uint16_t seg, x86seg *s)
             s->access  = 0x80;
             s->ar_high = 0x10;
             s->base    = -1;
+            s->checked = 0;
             if (s == &cpu_state.seg_ds)
                 cpu_cur_status |= CPU_STATUS_NOTFLATDS;
             if (s == &cpu_state.seg_es)
@@ -634,6 +638,7 @@ loadcs(uint16_t seg)
         cpu_state.seg_cs.seg        = seg & 0xffff;
         cpu_state.seg_cs.access     = (cpu_state.eflags & VM_FLAG) ? 0xe2 : 0x82;
         cpu_state.seg_cs.ar_high    = 0x10;
+        cpu_state.seg_cs.checked    = 1;
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
         oldcpl = CPL;
@@ -875,6 +880,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
         cpu_state.seg_cs.seg        = seg;
         cpu_state.seg_cs.access     = (cpu_state.eflags & VM_FLAG) ? 0xe2 : 0x82;
         cpu_state.seg_cs.ar_high    = 0x10;
+        cpu_state.seg_cs.checked    = 1;
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
         oldcpl = CPL;
@@ -1365,6 +1371,7 @@ loadcscall(uint16_t seg, uint32_t old_pc)
         cpu_state.seg_cs.seg        = seg;
         cpu_state.seg_cs.access     = (cpu_state.eflags & VM_FLAG) ? 0xe2 : 0x82;
         cpu_state.seg_cs.ar_high    = 0x10;
+        cpu_state.seg_cs.checked    = 1;
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_nopc();
         oldcpl = CPL;
@@ -2025,6 +2032,7 @@ pmodeiret(int is32)
         cpu_state.seg_cs.limit_high = 0xffff;
         cpu_state.seg_cs.access |= 0x80;
         cpu_state.seg_cs.ar_high = 0x10;
+        cpu_state.seg_cs.checked = 1;
         CS                       = seg;
         cpu_state.flags          = (cpu_state.flags & 0x3000) | (tempflags & 0xcfd5) | 2;
         /* IRETD in V86 mode loads all but VM, IOPL, VIP and VIF */
@@ -2125,6 +2133,7 @@ pmodeiret(int is32)
             CS                          = seg;
             cpu_state.seg_cs.access     = 0xe2;
             cpu_state.seg_cs.ar_high    = 0x10;
+            cpu_state.seg_cs.checked    = 1;
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_nopc();
             oldcpl = CPL;
@@ -2849,12 +2858,10 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
     for (int i = 0; i < 8; i++)
         cpu_state.regs[i].l = is32 ? img.regs[i] : (img.regs[i] | 0xffff0000);
 
-#ifdef USE_DEBUG_REGS_486
-    dr[7] &= 0xFFFFFFAA;
-#else
-    if (!cpu_use_exec)
+    if (cpu_debug_regs_486 || !cpu_use_exec) {
         dr[7] &= 0xFFFFFFAA;
-#endif
+        cpu_dr7_update();
+    }
 
     /* "The processor first loads all the segment registers with segment
        selectors from the TSS, then checks their contents for validity"
@@ -2892,12 +2899,8 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
     if (is386 ? !task_checks_386(&img, cpl, ext) : !task_checks_286(&img, cpl, ext))
         return;
 
-#ifdef USE_DEBUG_REGS_486
-    rf_flag_no_clear = 1;
-#else
-    if (!cpu_use_exec)
+    if (cpu_debug_regs_486 || !cpu_use_exec)
         rf_flag_no_clear = 1;
-#endif
 
     /* An exception's error code goes on the new task's stack before its
        EIP is checked: x86_doabrt() makes that check after the push */
@@ -2910,14 +2913,10 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
     }
 
     if (img.t_bit) {
-#ifdef USE_DEBUG_REGS_486
-        trap |= 2;
-#else
-        if (cpu_use_exec)
+        if (cpu_use_exec && !cpu_debug_regs_486)
             trap = 2;
         else
             trap |= 2;
-#endif
 #ifdef USE_DYNAREC
         cpu_block_end = 1;
 #endif
@@ -2966,6 +2965,14 @@ cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg)
         do_seg_load(seg, segdat);
         seg->seg     = selector;
         seg->checked = 0;
+#ifdef USE_DYNAREC
+        if (seg == &cpu_state.seg_ds)
+            codegen_flat_ds = 0;
+        if (seg == &cpu_state.seg_ss)
+            codegen_flat_ss = 0;
+        if (seg == &cpu_state.seg_es)
+            codegen_flat_es = 0;
+#endif
         if (seg == &cpu_state.seg_ds) {
             if (seg->base == 0 && seg->limit_low == 0 && seg->limit_high == 0xffffffff)
                 cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;

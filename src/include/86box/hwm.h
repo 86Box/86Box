@@ -45,8 +45,11 @@ extern uint8_t lm75_read(lm75_t *dev, uint8_t reg);
 extern uint8_t lm75_write(lm75_t *dev, uint8_t reg, uint8_t val);
 
 /* hwm_lm78.c */
+extern uint8_t lm78_isa_read(uint16_t port, void *priv);
 extern uint8_t lm78_as99127f_read(void *priv, uint8_t reg);
 extern uint8_t lm78_as99127f_write(void *priv, uint8_t reg, uint8_t val);
+extern void    lm78_isa_write(uint16_t port, uint8_t val, void *priv);
+extern void    sis5595_dam_set_dxp(void *priv, uint8_t dxp);
 
 /* hwm_vt82c686.c */
 extern void vt82c686_hwm_write(uint8_t addr, uint8_t val, void *priv);
@@ -60,6 +63,7 @@ extern const device_t lm77_0_48_device;
 
 extern const device_t lm78_device;
 extern const device_t lm78_al440lx_device;
+extern const device_t sis5595_dam_device;
 extern const device_t w83781d_device;
 extern const device_t w83781d_p5a_device;
 extern const device_t as99127f_device;

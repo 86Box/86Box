@@ -51,10 +51,11 @@
 #include <86box/sound.h>
 
 /* ISA */
+/* Bit 3 clear means a Weitek coprocessor is installed, which we do not emulate. */
 uint8_t
 machine_compaq_p1_handler(void)
 {
-    return machine_generic_p1_handler() | (hasfpu ? 0x00 : 0x04);
+    return machine_generic_p1_handler() | 0x08 | (hasfpu ? 0x00 : 0x04);
 }
 
 static const device_config_t deskpro386_config[] = {
@@ -141,14 +142,15 @@ machine_at_portableiii386_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linearr("roms/machines/portableiii/P.2 Combined.bin",
-                            0x000f0000, 131072, 0);
+    ret = bios_load_interleavedr("roms/machines/portableiii/copq_porti_386_typ1_even_210mb_6abc.bin",
+                                 "roms/machines/portableiii/copq_porti_386_typ1_odd_210mb_aa94.bin",
+                                 0x000f0000, 131072, 0);
 
     if (bios_only || !ret)
         return ret;
 
     if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
+        device_add(&fdc_at_compaq_device);
 
     video_reset(gfxcard[0]);
 

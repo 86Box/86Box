@@ -151,6 +151,12 @@ msgstr "&Skalowanie całkowite"
 msgid "4:&3 Integer scale"
 msgstr "Skalowanie całkowite 4:&3"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Odwrócony monitor VGA"
 
@@ -234,9 +240,6 @@ msgstr "Dź&więk"
 
 msgid "&Preferences…"
 msgstr "&Preferencje…"
-
-msgid "Enable &Discord integration"
-msgstr "Włącz integrację z &Discordem"
 
 msgid "Sound &gain…"
 msgstr "Wzmocnienie &dźwięku…"
@@ -433,6 +436,12 @@ msgstr "Dynamiczny rekompilator"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Precyzyjne środowisko FPU w dynamicznym rekompilatorze"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Łączenie bloków w dynamicznym rekompilatorze"
+
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Rozmiar ramki CPU"
 
@@ -624,6 +633,12 @@ msgstr "Kontroler 4:"
 
 msgid "Cassette"
 msgstr "Kaseta"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Dyski twarde:"
@@ -1281,6 +1296,35 @@ msgstr "Użyj wyrażeń regularnych w polu wyszukiwania"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Usuń maszyny wirtualne do Kosza"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"

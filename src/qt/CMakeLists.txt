@@ -355,6 +355,15 @@ if(EMU_BUILD_NUM)
     )
 endif()
 
+if(DISCORD)
+    target_sources(ui PRIVATE
+        qt_vmmanager_discord.cpp
+        qt_vmmanager_discord.hpp
+        qt_vmmanager_discordclient.cpp
+        qt_vmmanager_discordclient.hpp
+    )
+endif()
+
 if(RTMIDI)
     target_compile_definitions(ui PRIVATE USE_RTMIDI)
 endif()

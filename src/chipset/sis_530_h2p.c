@@ -243,26 +243,27 @@ sis_530_mask_bar(uint8_t *regs, void *agpgart)
 {
     uint32_t bar;
     uint32_t size;
-    uint32_t sizes[8] = { 0x00400000, 0x00800000, 0x01000000, 0x02000000, 0x04000000, 0x08000000,
-                          0x10000000, 0x00000000 } ;
+    static const uint32_t sizes[8] = { 0x00400000, 0x00800000, 0x01000000, 0x02000000,
+                                       0x04000000, 0x08000000, 0x10000000, 0x00000000 };
 
-    /* Make sure the aperture's base is aligned to its size. */
-    bar = (regs[0x13] << 24) | (regs[0x12] << 16);
+    /* Make sure the aperture's base is aligned to its size; selector 7 is reserved. */
+    bar = ((uint32_t) regs[0x13] << 24) | ((uint32_t) regs[0x12] << 16);
     size = sizes[(regs[0x94] >> 4) & 0x07];
-    bar &= size ? ~(size - 1) : 0xf0000000;
+
+    if (size)
+        bar &= ~(size - 1U);
     regs[0x12] = (bar >> 16) & 0xff;
     regs[0x13] = (bar >> 24) & 0xff;
 
     if (!agpgart)
         return;
 
-    /* Map aperture and GART. */
-    agpgart_set_aperture(agpgart,
-                         bar,
-                         sizes[(regs[0x94] >> 4) & 0x07],
-                         !!(regs[0x94] & 0x02));
+    /* Reserved selector 7 must never enable an aperture mapping. */
+    agpgart_set_aperture(agpgart, bar, size, (size != 0) && !!(regs[0x94] & 0x02));
     if (regs[0x94] & 0x01)
-        agpgart_set_gart(agpgart, (regs[0x91] << 8) | (regs[0x92] << 16) | (regs[0x93] << 24));
+        agpgart_set_gart(agpgart, ((uint32_t) regs[0x91] << 8) |
+                                 ((uint32_t) regs[0x92] << 16) |
+                                 ((uint32_t) regs[0x93] << 24));
     else
         agpgart_set_gart(agpgart, 0x00000000);
 }

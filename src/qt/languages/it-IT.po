@@ -152,6 +152,12 @@ msgstr "&Scala intera"
 msgid "4:&3 Integer scale"
 msgstr "Scala intera 4:&3"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Monitor VGA invertito"
 
@@ -235,9 +241,6 @@ msgstr "A&udio"
 
 msgid "&Preferences…"
 msgstr "&Preferenze…"
-
-msgid "Enable &Discord integration"
-msgstr "Abilita integrazione &Discord"
 
 msgid "Sound &gain…"
 msgstr "Guadagno &suono…"
@@ -434,6 +437,12 @@ msgstr "Ricompilatore dinamico"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Ambiente FPU accurato con il ricompilatore dinamico"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Collegamento dei blocchi con il ricompilatore dinamico"
+
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Dimensione blocchi CPU"
 
@@ -625,6 +634,12 @@ msgstr "Controller 4:"
 
 msgid "Cassette"
 msgstr "Cassetta"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Dischi rigidi:"
@@ -1320,6 +1335,35 @@ msgstr "Utilizza espressioni regolari nella casella di ricerca"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Usa il cestino per eliminare le macchine virtuali"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"

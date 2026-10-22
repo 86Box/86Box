@@ -108,6 +108,7 @@ typedef struct lpt_port_s {
     int           device;
 
     lpt_t        *lpt;
+    lpt_t        *lpt_init;
 } lpt_port_t;
 
 extern lpt_port_t lpt_ports[PARALLEL_MAX];

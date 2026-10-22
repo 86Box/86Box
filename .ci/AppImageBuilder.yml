@@ -95,8 +95,7 @@ AppDir:
     exclude:
     - etc
     - usr/[!ls]* # * except lib, local, share
-    - usr/lib/[!adlmx]* # * except aarch64-linux-gnu, discord_game_sdk.so, lib*, mdsx.so, x86_64-linux-gnu
-    - usr/lib/d[!i]* # d* except discord_game_sdk.so
+    - usr/lib/[!almx]* # * except aarch64-linux-gnu, lib*, mdsx.so, x86_64-linux-gnu
     - usr/lib/l[!i]* # l* except lib*
     - usr/lib/m[!d]* # m* except mdsx.so
     - usr/lib/*/*.a # produced by library compilation

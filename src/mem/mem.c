@@ -89,6 +89,9 @@ int        readlookup[512];
 uintptr_t  old_rl2;
 int        writelnext;
 int        writelookup[256];
+/* Slots filled since the last flush; the rings restart at 0 after a flush. */
+static int readl_used[2];
+static int writel_used;
 
 /* The lookup tables. */
 page_t *page_lookup[1048576] = { 0 };
@@ -185,28 +188,51 @@ resetreadlookup(void)
 
     memset(writelookup2, 0xff, (1 << 20) * sizeof(uintptr_t));
 
-    readlnext[0] = 0;
-    readlnext[1] = 0;
-    writelnext   = 0;
-    pccache      = 0xffffffff;
-    high_page    = 0;
+    readlnext[0]  = 0;
+    readlnext[1]  = 0;
+    writelnext    = 0;
+    readl_used[0] = 0;
+    readl_used[1] = 0;
+    writel_used   = 0;
+    pccache       = 0xffffffff;
+    high_page     = 0;
 }
 
-void
-flushmmucache(void)
+static void
+flush_read_lookup(void)
 {
-    for (uint16_t c = 0; c < 512; c++) {
-        if (readlookup[c] != (int) 0xffffffff) {
-            readlookup2[readlookup[c]] = LOOKUP_INV;
-            readlookup2[readlookup[c] | 1048576] = LOOKUP_INV;
-            readlookup[c]              = 0xffffffff;
+    for (int set = 0; set < 2; set++) {
+        for (int c = set << 8; c < ((set << 8) + readl_used[set]); c++) {
+            if (readlookup[c] != (int) 0xffffffff) {
+                readlookup2[readlookup[c]]           = LOOKUP_INV;
+                readlookup2[readlookup[c] | 1048576] = LOOKUP_INV;
+                readlookup[c]                        = 0xffffffff;
+            }
         }
-        if ((c < 256) && (writelookup[c] != (int) 0xffffffff)) {
+        readl_used[set] = 0;
+        readlnext[set]  = 0;
+    }
+}
+
+static void
+flush_write_lookup(void)
+{
+    for (int c = 0; c < writel_used; c++) {
+        if (writelookup[c] != (int) 0xffffffff) {
             page_lookup[writelookup[c]]  = NULL;
             writelookup2[writelookup[c]] = LOOKUP_INV;
             writelookup[c]               = 0xffffffff;
         }
     }
+    writel_used = 0;
+    writelnext  = 0;
+}
+
+void
+flushmmucache(void)
+{
+    flush_read_lookup();
+    flush_write_lookup();
     mmuflush++;
 
     pccache  = (uint32_t) 0xffffffff;
@@ -220,13 +246,7 @@ flushmmucache(void)
 void
 flushmmucache_write(void)
 {
-    for (uint16_t c = 0; c < 256; c++) {
-        if (writelookup[c] != (int) 0xffffffff) {
-            page_lookup[writelookup[c]]  = NULL;
-            writelookup2[writelookup[c]] = LOOKUP_INV;
-            writelookup[c]               = 0xffffffff;
-        }
-    }
+    flush_write_lookup();
     mmuflush++;
 }
 
@@ -246,18 +266,8 @@ flushmmucache_pc(void)
 void
 flushmmucache_nopc(void)
 {
-    for (uint16_t c = 0; c < 512; c++) {
-        if (readlookup[c] != (int) 0xffffffff) {
-            readlookup2[readlookup[c]] = LOOKUP_INV;
-            readlookup2[readlookup[c] | 1048576] = LOOKUP_INV;
-            readlookup[c]              = 0xffffffff;
-        }
-        if ((c < 256) && (writelookup[c] != (int) 0xffffffff)) {
-            page_lookup[writelookup[c]]  = NULL;
-            writelookup2[writelookup[c]] = LOOKUP_INV;
-            writelookup[c]               = 0xffffffff;
-        }
-    }
+    flush_read_lookup();
+    flush_write_lookup();
 }
 
 void
@@ -623,7 +633,9 @@ addreadlookup(uint32_t virt, uint32_t phys)
     int *    rln          = &(readlnext[is_compare]);
     int      cur_rln      = *rln | (int) small_offset;
 
-    if (virt == 0xffffffff)
+    /* Nothing goes in while a debug register breakpoint is armed, so that
+       every access is checked (cpu_dr7_update()). */
+    if ((virt == 0xffffffff) || cpu_dr_armed)
         return;
 
     if (GDBSTUB_WATCHED(virt))
@@ -639,6 +651,8 @@ addreadlookup(uint32_t virt, uint32_t phys)
 
     readlookup[cur_rln] = virt >> 12;
     *rln                = (*rln + 1) & (cachesize - 1);
+    if (readl_used[is_compare] < cachesize)
+        readl_used[is_compare]++;
 
     cycles -= 9;
 }
@@ -646,7 +660,9 @@ addreadlookup(uint32_t virt, uint32_t phys)
 void
 addwritelookup(uint32_t virt, uint32_t phys)
 {
-    if (virt == 0xffffffff)
+    /* As in addreadlookup(). The RAM write handlers mark code pages dirty
+       themselves, so page_lookup is not needed for that meanwhile. */
+    if ((virt == 0xffffffff) || cpu_dr_armed)
         return;
 
     if (GDBSTUB_WATCHED(virt))
@@ -675,6 +691,8 @@ addwritelookup(uint32_t virt, uint32_t phys)
 
     writelookup[writelnext++] = virt >> 12;
     writelnext &= (cachesize - 1);
+    if (writel_used < cachesize)
+        writel_used++;
 
     cycles -= 9;
 }
@@ -804,9 +822,8 @@ readmembl(uint32_t addr)
     uint64_t       a;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 1);
-#ifdef USE_DEBUG_REGS_486
-    mem_debug_check_addr(addr, read_type);
-#endif
+    if (cpu_dr_armed)
+        mem_debug_check_addr(addr, read_type);
 
     addr64           = (uint64_t) addr;
     mem_logical_addr = addr;
@@ -836,9 +853,8 @@ writemembl(uint32_t addr, uint8_t val)
     uint64_t       a;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 1);
-#ifdef USE_DEBUG_REGS_486
-    mem_debug_check_addr(addr, 2);
-#endif
+    if (cpu_dr_armed)
+        mem_debug_check_addr(addr, 2);
 
     addr64           = (uint64_t) addr;
     mem_logical_addr = addr;
@@ -925,10 +941,10 @@ readmemwl(uint32_t addr)
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
-#ifdef USE_DEBUG_REGS_486
-    mem_debug_check_addr(addr, read_type);
-    mem_debug_check_addr(addr + 1, read_type);
-#endif
+    if (cpu_dr_armed) {
+        mem_debug_check_addr(addr, read_type);
+        mem_debug_check_addr(addr + 1, read_type);
+    }
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 2);
 
     mem_logical_addr = addr;
@@ -988,10 +1004,10 @@ writememwl(uint32_t addr, uint16_t val)
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
-#ifdef USE_DEBUG_REGS_486
-    mem_debug_check_addr(addr, 2);
-    mem_debug_check_addr(addr + 1, 2);
-#endif
+    if (cpu_dr_armed) {
+        mem_debug_check_addr(addr, 2);
+        mem_debug_check_addr(addr + 1, 2);
+    }
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 2);
 
     mem_logical_addr = addr;
@@ -1169,12 +1185,11 @@ readmemll(uint32_t addr)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < 4; i++)
         addr64a[i] = (uint64_t) (addr + i);
-#ifdef USE_DEBUG_REGS_486
-        mem_debug_check_addr(addr + i, read_type);
-#endif
-    }
+    if (cpu_dr_armed)
+        for (i = 0; i < 4; i++)
+            mem_debug_check_addr(addr + i, read_type);
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 4);
 
     mem_logical_addr = addr;
@@ -1248,12 +1263,11 @@ writememll(uint32_t addr, uint32_t val)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < 4; i++)
         addr64a[i] = (uint64_t) (addr + i);
-#ifdef USE_DEBUG_REGS_486
-        mem_debug_check_addr(addr + i, 2);
-#endif
-    }
+    if (cpu_dr_armed)
+        for (i = 0; i < 4; i++)
+            mem_debug_check_addr(addr + i, 2);
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 4);
 
     mem_logical_addr = addr;
@@ -1457,12 +1471,11 @@ readmemql(uint32_t addr)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 8; i++) {
+    for (i = 0; i < 8; i++)
         addr64a[i] = (uint64_t) (addr + i);
-#ifdef USE_DEBUG_REGS_486
-        mem_debug_check_addr(addr + i, read_type);
-#endif
-    }
+    if (cpu_dr_armed)
+        for (i = 0; i < 8; i++)
+            mem_debug_check_addr(addr + i, read_type);
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 8);
 
     mem_logical_addr = addr;
@@ -1546,12 +1559,11 @@ writememql(uint32_t addr, uint64_t val)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 8; i++) {
+    for (i = 0; i < 8; i++)
         addr64a[i] = (uint64_t) (addr + i);
-#ifdef USE_DEBUG_REGS_486
-        mem_debug_check_addr(addr + i, 2);
-#endif
-    }
+    if (cpu_dr_armed)
+        for (i = 0; i < 8; i++)
+            mem_debug_check_addr(addr + i, 2);
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 8);
 
     mem_logical_addr = addr;
@@ -1651,12 +1663,11 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
     uint32_t last_addr = addr + (num - 1);
     uint64_t a         = 0x0000000000000000ULL;
 
-    for (i = 0; i < num; i++) {
+    for (i = 0; i < num; i++)
         a64[i] = (uint64_t) (addr + i);
-#ifdef USE_DEBUG_REGS_486
-        mem_debug_check_addr(addr + i, write ? 2 : read_type);
-#endif
-    }
+    if (cpu_dr_armed)
+        for (i = 0; i < num; i++)
+            mem_debug_check_addr(addr + i, write ? 2 : read_type);
 
     if (cr0 >> 31)  for (i = 0; i < num; i++) {
         if (write && ((i == 0) || !(addr & 0xfff)))
@@ -1775,6 +1786,40 @@ mem_read_phys(void *dest, uint32_t addr, int transfer_size)
     }
 }
 
+/* Copy straight from memory, stopping at the first page that cannot be read
+   directly. Returns the number of bytes copied. */
+uint32_t
+mem_read_phys_block(void *dest, uint32_t addr, uint32_t len)
+{
+    uint8_t *p    = (uint8_t *) dest;
+    uint32_t done = 0;
+
+    mem_logical_addr = 0xffffffff;
+
+    if (!cpu_use_exec)
+        return 0;
+
+    while (done < len) {
+        const mem_mapping_t *map   = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
+        uint32_t             chunk = MEM_GRANULARITY_SIZE - (addr & MEM_GRANULARITY_MASK);
+        uint32_t             off;
+
+        if (chunk > (len - done))
+            chunk = len - done;
+        if (!map || !map->exec)
+            break;
+        off = (addr - map->base) & map->mask;
+        if ((map->mask - off) < (chunk - 1))
+            break;
+
+        memcpy(p + done, &(map->exec[off]), chunk);
+        addr += chunk;
+        done += chunk;
+    }
+
+    return done;
+}
+
 void
 mem_writeb_phys(uint32_t addr, uint8_t val)
 {
@@ -1845,6 +1890,40 @@ mem_write_phys(void *src, uint32_t addr, int transfer_size)
         pb = (uint8_t *) src;
         mem_writeb_phys(addr, *pb);
     }
+}
+
+/* Copy straight to memory, stopping at the first page that cannot be written
+   directly. Returns the number of bytes copied. */
+uint32_t
+mem_write_phys_block(const void *src, uint32_t addr, uint32_t len)
+{
+    const uint8_t *p    = (const uint8_t *) src;
+    uint32_t       done = 0;
+
+    mem_logical_addr = 0xffffffff;
+
+    if (!cpu_use_exec)
+        return 0;
+
+    while (done < len) {
+        const mem_mapping_t *map   = write_mapping_bus[addr >> MEM_GRANULARITY_BITS];
+        uint32_t             chunk = MEM_GRANULARITY_SIZE - (addr & MEM_GRANULARITY_MASK);
+        uint32_t             off;
+
+        if (chunk > (len - done))
+            chunk = len - done;
+        if (!map || !map->exec)
+            break;
+        off = (addr - map->base) & map->mask;
+        if ((map->mask - off) < (chunk - 1))
+            break;
+
+        memcpy(&(map->exec[off]), p + done, chunk);
+        addr += chunk;
+        done += chunk;
+    }
+
+    return done;
 }
 
 uint8_t
@@ -2215,6 +2294,9 @@ static __inline int
 mem_mapping_access_allowed(uint32_t flags, uint16_t access)
 {
     int ret = 0;
+
+    if (flags & MEM_MAPPING_CACHE_ONLY)
+        return !!(access & ACCESS_CACHE);
 
     if (!(access & ACCESS_DISABLED)) {
         if (access & ACCESS_CACHE)
@@ -2757,6 +2839,39 @@ mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t 
     mem_mapping_recalc(base, size, 0x00000000);
 }
 
+/* The processor's cache holding base..base+size: the CPU's accesses there, in
+   SMM or not, go to the mappings flagged MEM_MAPPING_CACHE_ONLY, and the bus's
+   still go to the bus. The other state bits are left as the chipset set them. */
+void
+mem_set_cache_access(uint32_t base, uint32_t size, int cached)
+{
+    const uint16_t bits = ACCESS_X_CACHE | ACCESS_W_CACHE | ACCESS_R_CACHE;
+
+    for (uint32_t c = 0; c < size; c += MEM_GRANULARITY_SIZE) {
+        for (uint8_t i = 0; i < 2; i++) {
+            if (cached)
+                _mem_state[(c + base) >> MEM_GRANULARITY_BITS].vals[i] |= bits;
+            else
+                _mem_state[(c + base) >> MEM_GRANULARITY_BITS].vals[i] &= ~bits;
+        }
+    }
+
+    mem_mapping_recalc(base, size, 0x00000000);
+}
+
+/* Whether nothing answers on the bus anywhere in base..base+size: no RAM, ROM
+   or device to read from or write back to. */
+int
+mem_bus_unbacked(uint32_t base, uint32_t size)
+{
+    for (uint64_t c = base; c < ((uint64_t) base + size); c += MEM_GRANULARITY_SIZE) {
+        if (read_mapping_bus[c >> MEM_GRANULARITY_BITS] || write_mapping_bus[c >> MEM_GRANULARITY_BITS])
+            return 0;
+    }
+
+    return 1;
+}
+
 void
 mem_a20_init(void)
 {
@@ -2956,6 +3071,8 @@ mem_reset(void)
                     mem_write_remapped2, mem_write_remappedw2, mem_write_remappedl2,
                     ram + 0xd0000, MEM_MAPPING_INTERNAL, NULL);
     mem_mapping_disable(&ram_remapped_mapping2);
+
+    cpu_car_reset();
 
     mem_a20_init();
 

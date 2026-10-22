@@ -99,6 +99,7 @@
 #define WIN_SETIDLE1                   0xe3
 #define WIN_CHECKPOWERMODE1            0xe5
 #define WIN_SLEEP1                     0xe6
+#define WIN_FLUSH_CACHE                0xe7
 #define WIN_IDENTIFY                   0xec /* Ask drive to identify itself */
 #define WIN_SET_FEATURES               0xef
 #define WIN_READ_NATIVE_MAX            0xf8
@@ -113,6 +114,8 @@
 #define FEATURE_DISABLE_IRQ_SERVICE    0xde
 
 #define IDE_TIME                       10.0
+#define IDE_TURBO_SPEED                10000.0
+#define IDE_TURBO_DMA_MIN              10.0
 
 #define IDE_ATAPI_IS_EARLY             ide->sc->pad0
 
@@ -134,6 +137,7 @@ typedef struct ide_board_t {
     int        inited;
     int        diag;
     int        force_ata3;
+    int        turbo_mapped;
 
     pc_timer_t timer;
 
@@ -237,6 +241,7 @@ static uint8_t ide_qua_pnp_rom[] = {
 };
 
 ide_t *ide_drives[IDE_NUM] = { 0 };
+int    ide_turbo           = 0;
 
 /*
  * Host image reads are independent of guest-visible IDE state until the
@@ -510,8 +515,43 @@ ide_get_xfer_time(ide_t *ide, int size)
             break;
     }
 
+    /* Turbo ignores the transfer mode, but keeps the time non-zero. */
+    if (ide_turbo)
+        period = IDE_TURBO_SPEED;
+
     period = (1.0 / period);         /* get us for 1 byte */
     return period * ((double) size); /* multiply by bytes to get period for the entire transfer */
+}
+
+/* Turbo drops the fixed RAM Disk overhead. */
+static double
+ide_timing_read(hard_disk_t *hdd, uint32_t addr, uint32_t len)
+{
+    if (ide_turbo && !hdd->speed_preset)
+        return 0.0;
+
+    return hdd_timing_read(hdd, addr, len);
+}
+
+static double
+ide_timing_write(hard_disk_t *hdd, uint32_t addr, uint32_t len)
+{
+    if (ide_turbo && !hdd->speed_preset)
+        return 0.0;
+
+    return hdd_timing_write(hdd, addr, len);
+}
+
+static double
+ide_dma_wait_time(double seek_time, double xfer_time)
+{
+    double wait_time = (seek_time > xfer_time) ? seek_time : xfer_time;
+
+    /* Leaves the guest some idle time, otherwise back-to-back commands slow down emulation. */
+    if (ide_turbo && (wait_time < IDE_TURBO_DMA_MIN))
+        wait_time = IDE_TURBO_DMA_MIN;
+
+    return wait_time;
 }
 
 double
@@ -800,6 +840,12 @@ ide_hd_identify(const ide_t *ide)
     ide->buffer[83] = ide->buffer[84] = 0x4000;
     ide->buffer[86] = 0x0000;
     ide->buffer[87] = 0x4000;
+
+    /* FLUSH CACHE supported and enabled (ATA-6). */
+    if (ata4) {
+        ide->buffer[83] |= 0x1000;
+        ide->buffer[86] |= 0x1000;
+    }
 }
 
 static void
@@ -1607,7 +1653,7 @@ ide_write_data(ide_t *ide, const uint16_t val)
             if (ide->tf->pos >= 512) {
                 ide->tf->pos     = 0;
                 ide->tf->atastat = BSY_STAT;
-                const double seek_time = hdd_timing_write(&hdd[ide->hdd_num], ide_get_sector(ide), 1);
+                const double seek_time = ide_timing_write(&hdd[ide->hdd_num], ide_get_sector(ide), 1);
                 const double xfer_time = ide_get_xfer_time(ide, 512);
                 const double wait_time = seek_time + xfer_time;
                 if (ide->command == WIN_WRITE_MULTIPLE) {
@@ -2050,18 +2096,18 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                         double   wait_time;
                         if ((val == WIN_READ) && (prev == WIN_SETIDLE1)) {
                             /* Do the callback instantly - this happens on the Intel Monsoon. */
-                            (void) hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), 1);
+                            (void) ide_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), 1);
                             ide->do_initial_read = 1;
                             ide_callback(ide);
                             break;
                         } else if ((val == WIN_READ_DMA) || (val == WIN_READ_DMA_ALT)) {
                             /* TODO: Make DMA timing more accurate. */
                             sec_count        = ide->tf->secount ? ide->tf->secount : 256;
-                            double seek_time = hdd_timing_read(&hdd[ide->hdd_num],
+                            double seek_time = ide_timing_read(&hdd[ide->hdd_num],
                                                                ide_get_sector(ide), sec_count);
                             double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
-                            wait_time        = seek_time > xfer_time ? seek_time : xfer_time;
-                        } else if ((val == WIN_READ_MULTIPLE) && (hdd[ide->hdd_num].speed_preset == 0)) {
+                            wait_time        = ide_dma_wait_time(seek_time, xfer_time);
+                        } else if ((val == WIN_READ_MULTIPLE) && (hdd[ide->hdd_num].speed_preset == 0) && !ide_turbo) {
                             ide_set_callback(ide, 200.0 * IDE_TIME);
                             ide->do_initial_read = 1;
                             ide_async_read_start_current(ide);
@@ -2070,7 +2116,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                             sec_count = ide->tf->secount ? ide->tf->secount : 256;
                             if (sec_count > ide->blocksize)
                                 sec_count = ide->blocksize;
-                            double seek_time = hdd_timing_read(&hdd[ide->hdd_num],
+                            double seek_time = ide_timing_read(&hdd[ide->hdd_num],
                                                                ide_get_sector(ide), sec_count);
                             double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
                             wait_time        = seek_time + xfer_time;
@@ -2078,7 +2124,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                             wait_time = 200.0;
                         else {
                             sec_count        = 1;
-                            double seek_time = hdd_timing_read(&hdd[ide->hdd_num],
+                            double seek_time = ide_timing_read(&hdd[ide->hdd_num],
                                                                ide_get_sector(ide), sec_count);
                             double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
                             wait_time        = seek_time + xfer_time;
@@ -2118,15 +2164,14 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
                     if ((ide->type == IDE_HDD) && ((val == WIN_WRITE_DMA) || (val == WIN_WRITE_DMA_ALT))) {
                         uint32_t sec_count = ide->tf->secount ? ide->tf->secount : 256;
-                        double   seek_time = hdd_timing_read(&hdd[ide->hdd_num],
+                        double   seek_time = ide_timing_read(&hdd[ide->hdd_num],
                                                              ide_get_sector(ide), sec_count);
                         double   xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
-                        double   wait_time = seek_time > xfer_time ? seek_time : xfer_time;
-                        ide_set_callback(ide, wait_time);
+                        ide_set_callback(ide, ide_dma_wait_time(seek_time, xfer_time));
                     } else if ((ide->type == IDE_HDD) && ((val == WIN_VERIFY) ||
                                (val == WIN_VERIFY_ONCE))) {
                         uint32_t sec_count = ide->tf->secount ? ide->tf->secount : 256;
-                        double   seek_time = hdd_timing_read(&hdd[ide->hdd_num],
+                        double   seek_time = ide_timing_read(&hdd[ide->hdd_num],
                                                              ide_get_sector(ide), sec_count);
                         ide_set_callback(ide, seek_time + ide_get_xfer_time(ide, 2));
                     } else if ((val == WIN_IDENTIFY) || (val == WIN_SET_FEATURES))
@@ -2186,6 +2231,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                 case WIN_SETIDLE1:          /* Idle */
                 case WIN_CHECKPOWERMODE1:
                 case WIN_SLEEP1:
+                case WIN_FLUSH_CACHE:
                     ide->tf->atastat = BSY_STAT;
                     ide_callback(ide);
                     break;
@@ -2272,14 +2318,14 @@ ide_read_data(ide_t *ide)
                                            ide->tf->secount : 256;
                             if (cnt > ide->blocksize)
                                 cnt = ide->blocksize;
-                            const double seek_us = hdd_timing_read(&hdd[ide->hdd_num],
-                                                   ide_get_sector(ide), cnt);
+                            const double seek_us = ide_timing_read(&hdd[ide->hdd_num],
+                                                                   ide_get_sector(ide), cnt);
                             const double xfer_us = ide_get_xfer_time(ide, 512 * cnt);
                             ide_set_callback(ide, seek_us + xfer_us);
                         } else
                             ide_callback(ide);
                     } else {
-                        const double seek_us = hdd_timing_read(&hdd[ide->hdd_num],
+                        const double seek_us = ide_timing_read(&hdd[ide->hdd_num],
                                                                ide_get_sector(ide), 1);
                         const double xfer_us = ide_get_xfer_time(ide, 512);
                         ide_set_callback(ide, seek_us + xfer_us);
@@ -2628,6 +2674,15 @@ ide_callback(void *priv)
         case WIN_SETIDLE1:
             ide->tf->atastat = DRDY_STAT | DSC_STAT;
             ide_irq_raise(ide);
+            break;
+
+        case WIN_FLUSH_CACHE:
+            if (ide->type == IDE_ATAPI)
+                err = ABRT_ERR;
+            else {
+                ide->tf->atastat = DRDY_STAT | DSC_STAT;
+                ide_irq_raise(ide);
+            }
             break;
 
         case WIN_CHECKPOWERMODE1:
@@ -3084,6 +3139,8 @@ ide_handlers(uint8_t board, int set)
                        ide_readb, ide_readw, ide_readl,
                        ide_writeb, ide_writew, ide_writel,
                        ide_boards[board]);
+            ide_boards[board]->turbo_mapped = set;
+            io_set_turbo(ide_boards[board]->base[0], set && ide_turbo);
         }
 
         if (ide_boards[board]->base[1]) {
@@ -3092,6 +3149,15 @@ ide_handlers(uint8_t board, int set)
                        ide_write_devctl, NULL, NULL,
                        ide_boards[board]);
        }
+    }
+}
+
+void
+ide_turbo_update(void)
+{
+    for (uint8_t board = 0; board < IDE_BUS_MAX; board++) {
+        if ((ide_boards[board] != NULL) && ide_boards[board]->base[0] && ide_boards[board]->turbo_mapped)
+            io_set_turbo(ide_boards[board]->base[0], ide_turbo);
     }
 }
 

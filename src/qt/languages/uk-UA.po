@@ -152,6 +152,12 @@ msgstr "&Цілісночисленне масштабування"
 msgid "4:&3 Integer scale"
 msgstr "Цілісночисленне масштабування 4:&3"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Інвертувати кольори VGA"
 
@@ -235,9 +241,6 @@ msgstr "&Звук"
 
 msgid "&Preferences…"
 msgstr "&Параметри…"
-
-msgid "Enable &Discord integration"
-msgstr "Увімкнути інтеграцію &Discord"
 
 msgid "Sound &gain…"
 msgstr "&Посилення звуку…"
@@ -434,6 +437,12 @@ msgstr "Динамічний рекомпілятор"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Точне середовище FPU у динамічному рекомпіляторі"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Зв'язування блоків у динамічному рекомпіляторі"
+
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Розмір кадру ЦП"
 
@@ -625,6 +634,12 @@ msgstr "Контролер 4:"
 
 msgid "Cassette"
 msgstr "Касета"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Жорсткі диски:"
@@ -1282,6 +1297,35 @@ msgstr "Використовувати регулярні вирази в пол
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Видалити віртуальні машини у кошик"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"

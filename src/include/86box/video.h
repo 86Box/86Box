@@ -48,7 +48,9 @@ enum {
     FULLSCR_SCALE_43,
     FULLSCR_SCALE_KEEPRATIO,
     FULLSCR_SCALE_INT,
-    FULLSCR_SCALE_INT43
+    FULLSCR_SCALE_INT43,
+    FULLSCR_SCALE_CENTER,
+    FULLSCR_SCALE_CENTER43
 };
 
 enum {
@@ -637,6 +639,9 @@ extern const device_t ps1vga_mca_device;
 
 /* 3DFX Voodoo Graphics */
 extern const device_t voodoo_device;
+
+/* PowerVR PCX1/PCX2 */
+extern const device_t powervr_pcx_device;
 extern const device_t voodoo_banshee_pci_device;
 extern const device_t voodoo_banshee_agp_device;
 extern const device_t voodoo_3_1000_device;

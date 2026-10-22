@@ -38,16 +38,10 @@ typedef struct codeblock_t {
     uint16_t flags;
     uint8_t  ins;
     uint8_t  TOP;
-#if defined(__aarch64__) || defined(_M_ARM64) || defined(__loongarch_lp64)
-    /* ARM64/LoongArch64: per-block retry counter used to delay
-       NO_IMMEDIATES promotion until churn repeats, reducing premature
-       slow-immediate mode. (The 386_dynarec.c policy consuming these
-       fields is currently ARM64-only; LoongArch64 wires it up in M5.) */
-    uint8_t  dirty_list_recompile_hits;
-    /* ARM64/LoongArch64: tracks the most recent dirty-list epoch seen by
-       this block so promotion can require a dense burst, not stale
-       spaced-out hits. */
-    uint16_t dirty_list_last_epoch;
+#if defined(__aarch64__) || defined(_M_ARM64) || defined(__amd64__) || defined(_M_X64)
+    /*Changes whenever the block is freed, recompiled or has a field a link
+      slot relies on changed; never 0. See codegen_link.h.*/
+    uint32_t link_gen;
 #endif
     int      valid;
 
@@ -312,6 +306,8 @@ extern void codegen_block_init(uint32_t phys_addr);
 extern void codegen_block_remove(void);
 extern void codegen_block_start_recompile(codeblock_t *block);
 extern void codegen_block_end_recompile(codeblock_t *block);
+extern int  codegen_block_restore_version(codeblock_t *block);
+extern void codegen_block_version_check_ins(uint32_t addr);
 extern void codegen_block_end(void);
 extern void codegen_delete_block(codeblock_t *block);
 extern void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_pc, uint32_t old_pc);
@@ -380,6 +376,8 @@ extern uint32_t op_old_pc;
 /*Set to 1 if flags have been changed in the block being recompiled, and hence
   flags_op is known and can be relied on */
 extern int codegen_flags_changed;
+/*Forgets the block's inline flags rebuilds (codegen_ops_helpers.c)*/
+extern void codegen_flags_known_reset(void);
 
 extern int codegen_fpu_entered;
 extern int codegen_mmx_entered;

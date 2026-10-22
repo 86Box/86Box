@@ -266,3 +266,9 @@ VMManagerClientSocket::configurationChanged() const
 {
     sendMessage(VMManagerProtocol::ClientMessage::ConfigurationChanged);
 }
+
+void
+VMManagerClientSocket::windowActivated() const
+{
+    sendMessage(VMManagerProtocol::ClientMessage::WindowActivated);
+}

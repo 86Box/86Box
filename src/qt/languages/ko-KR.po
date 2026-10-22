@@ -150,6 +150,12 @@ msgstr "정수 배율(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 정수배 확대(&3)"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "색상 반전된 VGA 모니터"
 
@@ -233,9 +239,6 @@ msgstr "사운드(&O)"
 
 msgid "&Preferences…"
 msgstr "환경설정(&P)…"
-
-msgid "Enable &Discord integration"
-msgstr "Discord 연동 활성화(&D)"
 
 msgid "Sound &gain…"
 msgstr "음량 증폭(&G)…"
@@ -432,6 +435,12 @@ msgstr "동적 리컴파일러"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "동적 리컴파일러에서 정확한 FPU 환경 사용"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "동적 리컴파일러에서 블록 링크 사용"
+
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPU 프레임 크기"
 
@@ -623,6 +632,12 @@ msgstr "컨트롤러 4:"
 
 msgid "Cassette"
 msgstr "카세트 테이프"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "하드 디스크:"
@@ -1310,6 +1325,35 @@ msgstr "검색 상자에 정규 표현식 사용"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "가상 머신 삭제 시 휴지통으로 이동"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"

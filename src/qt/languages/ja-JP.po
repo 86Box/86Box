@@ -151,6 +151,12 @@ msgstr "整数倍(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整数倍(&3)"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "色反転"
 
@@ -234,9 +240,6 @@ msgstr "サウンド(&O)"
 
 msgid "&Preferences…"
 msgstr "環境設定(&P)…"
-
-msgid "Enable &Discord integration"
-msgstr "Discord連携機能(&D)"
 
 msgid "Sound &gain…"
 msgstr "音量調整(&G)…"
@@ -433,6 +436,12 @@ msgstr "動的再コンパイル"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr ""
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "動的再コンパイルでのブロックリンク"
+
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPUフレームサイズ"
 
@@ -624,6 +633,12 @@ msgstr "コントローラー4:"
 
 msgid "Cassette"
 msgstr "カセット"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "ハード ディスク:"
@@ -1273,6 +1288,35 @@ msgstr "検索ボックスで正規表現を使用する"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "仮想マシンをごみ箱へ移動"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"

@@ -1417,13 +1417,13 @@ svga_do_render(svga_t *svga)
     if (svga->dpms) {
         if (svga->dpms_render != NULL)
             svga->dpms_render(svga);
-        else
+        else if (svga->crtc[0x17] & 0x80)
             svga_render_blank(svga);
 
         return;
     }
 
-    if (!svga->override) {
+    if (!svga->override && (svga->crtc[0x17] & 0x80)) {
         svga->render_line_offset = svga->start_retrace_latch - svga->crtc[0x4];
         svga->render(svga);
     }
@@ -1453,7 +1453,7 @@ svga_do_render(svga_t *svga)
             svga->hwcursor_on--;
     }
 
-    if (!svga->override) {
+    if (!svga->override && (svga->crtc[0x17] & 0x80)) {
         svga->x_add = svga->left_overscan;
         svga_render_overscan_left(svga);
         svga_render_overscan_right(svga);

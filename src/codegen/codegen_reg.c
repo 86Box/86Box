@@ -94,9 +94,6 @@ struct
 
     [IREG_rm_mod_reg] = { REG_DWORD,         &cpu_state.rm_data.rm_mod_reg_data, REG_INTEGER, REG_PERMANENT},
 
-#ifdef USE_ACYCS
-    [IREG_acycs] = { REG_DWORD,         &acycs,                             REG_INTEGER, REG_PERMANENT},
-#endif
     [IREG_cycles] = { REG_DWORD,         &cpu_state._cycles,                 REG_INTEGER, REG_PERMANENT},
 
     [IREG_CS_base] = { REG_DWORD,         &cpu_state.seg_cs.base,             REG_INTEGER, REG_PERMANENT},
@@ -879,6 +876,21 @@ codegen_reg_rename(codeblock_t *block, ir_reg_t src, ir_reg_t dst)
             reg_set->regs[c]  = invalid_ir_reg;
             reg_set->dirty[c] = 0;
         }
+    }
+}
+
+/*The C code behind an order-barrier uop (a memory slow path charging
+  timing_misaligned or wait states, a helper) can change cycles in memory,
+  which a copy kept in a host register would then overwrite at the next
+  cycle flush.*/
+void
+codegen_reg_drop_cycles(void)
+{
+    host_reg_set_t *reg_set = &host_reg_set;
+
+    for (int c = 0; c < reg_set->nr_regs; c++) {
+        if (!ir_reg_is_invalid(reg_set->regs[c]) && IREG_GET_REG(reg_set->regs[c].reg) == IREG_cycles && !reg_set->dirty[c])
+            reg_set->regs[c] = invalid_ir_reg;
     }
 }
 

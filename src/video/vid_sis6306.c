@@ -276,6 +276,7 @@ typedef struct sis6306_t {
 
     uint8_t mmio_regs[0x10000];
     uint8_t io_regs[0x80];
+    uint8_t agp_cmd[4];
 
     void *i2c;
     void *ddc;
@@ -1338,7 +1339,7 @@ sis6306_vclk_hz(const sis6306_t *dev, unsigned bank)
         postscale = (postscale == 3) ? 6 : 8;
     }
 
-    return 14318180.0 * (double) numer / (double) denom /
+    return 14318180.0 * (double) numer / (double) denom *
            (double) divider / (double) postscale;
 }
 
@@ -1540,6 +1541,9 @@ sis6306_out(uint16_t addr, uint8_t val, void *priv)
                     if (!dev->panel_ddc_seen) {
                         dev->panel_ddc_seen = 1;
                     }
+                    if (dev->i2c)
+                        i2c_gpio_set(dev->i2c,
+                                     !!(val & 0x20), !!(val & 0x10));
                 }
                 return;
             }
@@ -1715,11 +1719,24 @@ sis6306_in(uint16_t addr, void *priv)
             }
 
             if (dev->sis_crtc_index == 0xcb) {
-                uint8_t ret = dev->ext_crtc_unlocked ?
-                              ((dev->ext_crtc[0xcb] & 0x30) | 0x0c) : 0x00;
+                uint8_t ret = 0x00;
                 dev->panel_ddc_reads++;
                 if (!dev->panel_ddc_seen) {
                     dev->panel_ddc_seen = 1;
+                }
+                if (!dev->ext_crtc_unlocked)
+                    return ret;
+
+                ret = dev->ext_crtc[0xcb] & 0x30;
+                /* Bits 3 and 2 report the SCL and SDA bus levels.
+                 * Both lines are pulled high when no bus is available. */
+                if (dev->i2c) {
+                    if (i2c_gpio_get_scl(dev->i2c))
+                        ret |= 0x08;
+                    if (i2c_gpio_get_sda(dev->i2c))
+                        ret |= 0x04;
+                } else {
+                    ret |= 0x0c;
                 }
                 return ret;
             }
@@ -5515,7 +5532,7 @@ sis6306_pci_read(int func, int addr, int len, void *priv)
         /* Datasheet reset dword at 04h: 02200004h. */
         case 0x04: return (dev->pci_command & 0x03) | PCI_COMMAND_L_BM;
         case 0x05: return 0x00;
-        case 0x06: return 0x20;
+        case 0x06: return 0x30;
         case 0x07: return 0x02;
 
         case 0x08: return 0x2a;
@@ -5586,7 +5603,7 @@ sis6306_pci_read(int func, int addr, int len, void *priv)
         case 0x59:
         case 0x5a:
         case 0x5b:
-            return 0x00;
+            return dev->agp_cmd[addr & 3];
 
         default:
             return 0x00;
@@ -5646,6 +5663,16 @@ sis6306_pci_write(int func, int addr, int len, uint8_t val, void *priv)
 
         case 0x3c:
             dev->irq_line = val;
+            break;
+
+        case 0x58:
+            dev->agp_cmd[0] = val & 0x03;   /* 1X / 2X enable */
+            break;
+        case 0x59:
+            dev->agp_cmd[1] = val & 0x01;   /* AGP enable; sideband not supported */
+            break;
+        case 0x5b:
+            dev->agp_cmd[3] = val;          /* request queue depth */
             break;
 
         default:
@@ -5877,7 +5904,7 @@ static const device_config_t sis6306_config[] = {
 };
 
 const device_t sis6306_onboard_device = {
-    .name          = "SiS 530/620 (6306) Onboard AGP",
+    .name          = "SiS 6306 (5598/530/620) On-Board AGP",
     .internal_name = "sis6306_onboard",
     .flags         = DEVICE_AGP,
     .local         = 1,

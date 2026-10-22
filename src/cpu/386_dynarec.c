@@ -35,6 +35,9 @@
 #ifdef USE_DYNAREC
 #    include "codegen.h"
 #    include "codegen_backend.h"
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+#        include "codegen_link.h"
+#    endif
 #endif
 
 #ifdef IS_DYNAREC
@@ -54,23 +57,6 @@ int cpu_override_dynarec    = 0;
 int inrecomp                = 0;
 int cpu_block_end           = 0;
 int cpu_end_block_after_ins = 0;
-
-#if defined(__aarch64__) || defined(_M_ARM64)
-/* ARM64-only epoch: monotonically advances on dirty-list transitions so
-   per-block retry state can distinguish dense bursts from stale retries. */
-static uint32_t dynarec_s03e_dirty_epoch             = 0;
-#endif
-
-#if defined(__aarch64__) || defined(_M_ARM64)
-/* ARM64-only policy: require repeated BYTE_MASK dirty-list hits before
-   NO_IMMEDIATES promotion to avoid premature slow-immediate escalation. */
-/* Tuning: raise threshold to 3 consecutive dirty-list retries so transient
-   churn is more likely to recover via retry-decay before forcing NO_IMMEDIATES. */
-#    define DYNAREC_S03B_NO_IMM_THRESHOLD 3
-/* Tuning: retry bursts must stay temporally dense; large gaps reset burst
-   accumulation instead of carrying stale debt into later promotions. */
-#    define DYNAREC_S03E_BURST_GAP_MAX 64
-#endif
 
 #ifdef ENABLE_386_DYNAREC_LOG
 int x386_dynarec_do_log = ENABLE_386_DYNAREC_LOG;
@@ -138,7 +124,7 @@ fetch_ea_32_long(uint32_t rmdat)
             cpu_state.eaaddr = getlong();
         }
     }
-    if (easeg != 0xFFFFFFFF && EA_FASTPATH_OK() && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
+    if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
         uint32_t addr = easeg + cpu_state.eaaddr;
         if (readlookup2[addr >> 12] != (uintptr_t) -1)
             eal_r = (uint32_t *) (readlookup2[addr >> 12] + addr);
@@ -174,7 +160,7 @@ fetch_ea_16_long(uint32_t rmdat)
         }
         cpu_state.eaaddr &= 0xFFFF;
     }
-    if (easeg != 0xFFFFFFFF && EA_FASTPATH_OK() && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
+    if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
         uint32_t addr = easeg + cpu_state.eaaddr;
         if (readlookup2[addr >> 12] != (uintptr_t) -1)
             eal_r = (uint32_t *) (readlookup2[addr >> 12] + addr);
@@ -247,20 +233,14 @@ fetch_ea_16_long(uint32_t rmdat)
    limit checks are left out (both recompilers) */
 int codegen_flat_es;
 
-#ifdef USE_DEBUG_REGS_486
 /* Compiled blocks hold no debug-register checks. Data and I/O breakpoints can
    fire on any access, so they still disable the recompiler outright; an
    execution breakpoint only blocks the block covering it, and a block spans at
-   most two pages. */
-static __inline int
+   most two pages. Out of line, as it only runs with a breakpoint armed. */
+static __attribute__((noinline)) int
 dr_blocks_cache(void)
 {
-    uint32_t page;
-
-    if (!(dr[7] & 0xFF))
-        return 0;
-
-    page = (cs + cpu_state.pc) >> 12;
+    uint32_t page = (cs + cpu_state.pc) >> 12;
 
     for (uint8_t i = 0; i < 4; i++) {
         /* Neither Ln nor Gn set - slot is disabled. */
@@ -278,18 +258,26 @@ dr_blocks_cache(void)
     return 0;
 }
 
-#    define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !dr_blocks_cache())
-#else
-#    define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
-#endif
+/* dbg is a constant in the dispatch loop (exec386_dynarec_common()), so that
+   with the option off the per-block test is not compiled in. */
+#define CACHE_ON_DBG(dbg) (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !((dbg) && cpu_dr_armed && dr_blocks_cache()))
+#define CACHE_ON()        CACHE_ON_DBG(cpu_debug_regs_486)
 
 #ifdef USE_DYNAREC
 int32_t         cycles_main = 0;
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+/* The block link routine does the loop-top stores itself. */
+int32_t  cycles_old = 0;
+uint64_t tsc_old    = 0;
+#    else
 static int32_t  cycles_old  = 0;
 static uint64_t tsc_old     = 0;
+#    endif
 
-#    ifdef USE_ACYCS
-int32_t acycs = 0;
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+/* Slot pair returned by the last compiled block, while the loop has run
+   nothing else since; NULL otherwise. */
+static codegen_link_slot_t *link_from = NULL;
 #    endif
 
 extern int codegen_record_faulted; /* 386_common.c */
@@ -426,10 +414,6 @@ update_tsc(void)
     uint64_t delta;
 
     cycdiff = cycles_old - cycles;
-#    ifdef USE_ACYCS
-    if (inrecomp)
-        cycdiff += acycs;
-#    endif
 
     delta = tsc - tsc_old;
     if (delta > 0) {
@@ -447,8 +431,11 @@ update_tsc(void)
     }
 }
 
-static __inline void
-exec386_dynarec_int(void)
+/* dbg is a constant, cpu_debug_regs_486 as the block starts: each caller below
+   gets a copy of the loop, and with the option off the debug register
+   handling is not compiled in at all. */
+__attribute__((always_inline)) static inline void
+exec386_dynarec_int_common(const int dbg)
 {
     cpu_block_end = 0;
     x86_was_reset = 0;
@@ -468,13 +455,12 @@ exec386_dynarec_int(void)
         cpu_state.ea_seg = &cpu_state.seg_ds;
         cpu_state.ssegs  = 0;
 
-#    ifdef USE_DEBUG_REGS_486
         /* Breakpoint fault has priority over other faults. x86gen() delivers
            #DB right away, so fold any still-pending trap into the same DR6
            image and clear it, otherwise the epilogue raises a second #DB. A
            pending BS is always stale here - trap's TF bit is only set further
            down, once an instruction is about to retire - so it is dropped. */
-        if ((cpu_state.abrt == 0) && is386 && cpu_386_check_instruction_fault()) {
+        if (dbg && cpu_dr_armed && (cpu_state.abrt == 0) && is386 && cpu_386_check_instruction_fault()) {
             if (trap & 2)
                 dr[6] |= 0x8000;
             if (trap & 16)
@@ -489,7 +475,6 @@ exec386_dynarec_int(void)
             /* No instructions executed at this point. */
             break;
         }
-#    endif
 
         fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
@@ -506,16 +491,14 @@ exec386_dynarec_int(void)
             opcode = fetchdat & 0xFF;
             fetchdat >>= 8;
 
-#    ifdef USE_DEBUG_REGS_486
-            trap = (trap & ~1) | (!!(cpu_state.flags & T_FLAG));
-#    else
-            trap = cpu_state.flags & T_FLAG;
-#    endif
+            if (dbg)
+                trap = (trap & ~1) | (!!(cpu_state.flags & T_FLAG));
+            else
+                trap = cpu_state.flags & T_FLAG;
 
             cpu_state.pc++;
-#    ifdef USE_DEBUG_REGS_486
-            cpu_state.eflags &= ~(RF_FLAG);
-#    endif
+            if (dbg)
+                cpu_state.eflags &= ~(RF_FLAG);
             x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
         }
 
@@ -527,15 +510,13 @@ exec386_dynarec_int(void)
             CPU_BLOCK_END();
         }
 
-#    ifdef USE_DEBUG_REGS_486
-        if (!cpu_state.abrt) {
+        if (dbg && !cpu_state.abrt) {
             if (!rf_flag_no_clear) {
                 cpu_state.eflags &= ~RF_FLAG;
             }
 
             rf_flag_no_clear = 0;
         }
-#    endif
 
         if (((cs + cpu_state.pc) >> 12) != pccache)
             CPU_BLOCK_END();
@@ -578,10 +559,28 @@ block_ended:
     cpu_end_block_after_ins = 0;
 }
 
+/* The copy with the debug register handling is kept out of line, so that the
+   dispatch loop in exec386_dynarec() is laid out as it would be without it. */
+static __attribute__((noinline)) void
+exec386_dynarec_int_dbg(void)
+{
+    exec386_dynarec_int_common(1);
+}
+
+static __inline void
+exec386_dynarec_int(void)
+{
+    if (UNLIKELY(cpu_debug_regs_486))
+        exec386_dynarec_int_dbg();
+    else
+        exec386_dynarec_int_common(0);
+}
+
 #if defined(__linux__) && !defined(__clang__)
 static inline void __attribute__((optimize("O2")))
 #else
-static __inline void
+/* Inlined into the dispatch loop, which now comes in two copies. */
+__attribute__((always_inline)) static inline void
 #endif
 exec386_dynarec_dyn(void)
 {
@@ -590,6 +589,12 @@ exec386_dynarec_dyn(void)
     int      hash      = HASH(phys_addr);
     codeblock_t *block = &codeblock[codeblock_hash[hash]];
     int valid_block = 0;
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    /* Only a path that ends in compiled code sets it again. */
+    codegen_link_slot_t *from = link_from;
+
+    link_from = NULL;
+#    endif
 
     /* Code in device memory (a BIOS copying a routine into video memory) is
        fetched through the device's read handlers, and nothing tracks writes
@@ -649,6 +654,10 @@ exec386_dynarec_dyn(void)
 
         if (valid_block && (block->page_mask & *block->dirty_mask)) {
             codegen_check_flush(page, page->dirty_mask, phys_addr);
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+            /* Covers the flag write just below. */
+            codegen_link_block_changed(block);
+#        endif
             if (block->valid && (block->flags & CODEBLOCK_IN_DIRTY_LIST))
                 block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
             else
@@ -670,6 +679,10 @@ exec386_dynarec_dyn(void)
                 valid_block = 0;
             else if (block->page_mask2 & *block->dirty_mask2) {
                 codegen_check_flush(page_2, page_2->dirty_mask, phys_addr_2);
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+                /* Covers the flag write just below. */
+                codegen_link_block_changed(block);
+#        endif
                 if (block->valid && (block->flags & CODEBLOCK_IN_DIRTY_LIST))
                     block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
                 else
@@ -677,80 +690,62 @@ exec386_dynarec_dyn(void)
                     valid_block = 0;
             }
         }
-        /* ARM64-only: if a BYTE_MASK block executes stably outside the dirty
-           list, clear stale retry debt so a distant future dirty hit does not
-           trigger premature NO_IMMEDIATES promotion. */
-#        if defined(__aarch64__) || defined(_M_ARM64)
-        if (valid_block && !(block->flags & CODEBLOCK_IN_DIRTY_LIST) && (block->flags & CODEBLOCK_BYTE_MASK)
-            && !(block->flags & CODEBLOCK_NO_IMMEDIATES) && block->dirty_list_recompile_hits) {
-            block->dirty_list_recompile_hits = 0;
-            block->dirty_list_last_epoch     = 0;
-        }
-#        endif
-
         if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST)) {
-            const int had_byte_mask     = !!(block->flags & CODEBLOCK_BYTE_MASK);
-            const int had_no_immediates = !!(block->flags & CODEBLOCK_NO_IMMEDIATES);
-#if defined(__aarch64__) || defined(_M_ARM64)
-            const uint16_t last_epoch_before = block->dirty_list_last_epoch;
-#endif
             block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
-            if (had_byte_mask) {
-                if (!had_no_immediates) {
-#if defined(__aarch64__) || defined(_M_ARM64)
-                    /* ARM64-only: wait for repeated dirty-list BYTE_MASK
-                       hits before NO_IMMEDIATES promotion. */
-                    /* Require retries to occur in a dense burst window;
-                       stale widely-spaced retries are reset. */
-                    dynarec_s03e_dirty_epoch++;
-                    {
-                        const uint16_t cur_epoch = (uint16_t) dynarec_s03e_dirty_epoch;
-
-                        if (last_epoch_before != 0) {
-                            const uint16_t epoch_gap = (uint16_t) (cur_epoch - last_epoch_before);
-                            if (epoch_gap > DYNAREC_S03E_BURST_GAP_MAX) {
-                                block->dirty_list_recompile_hits = 0;
-                            }
-                        }
-                        block->dirty_list_last_epoch = cur_epoch;
-                    }
-                    block->dirty_list_recompile_hits++;
-                    if (block->dirty_list_recompile_hits >= DYNAREC_S03B_NO_IMM_THRESHOLD) {
-                        block->flags |= CODEBLOCK_NO_IMMEDIATES;
-                        block->dirty_list_last_epoch = 0;
-                    }
-#else
-                    block->flags |= CODEBLOCK_NO_IMMEDIATES;
-#endif
-                }
-            } else {
-#if defined(__aarch64__) || defined(_M_ARM64)
-                block->dirty_list_recompile_hits = 0;
-                block->dirty_list_last_epoch     = 0;
-#endif
+            if (block->flags & CODEBLOCK_BYTE_MASK)
+                block->flags |= CODEBLOCK_NO_IMMEDIATES;
+            else
                 block->flags |= CODEBLOCK_BYTE_MASK;
-            }
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+            codegen_link_block_changed(block);
+#        endif
         }
         if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED) && (block->flags & CODEBLOCK_STATIC_TOP) && block->TOP != (cpu_state.TOP & 7))
         {
             /* FPU top-of-stack does not match the value this block was compiled
                with, re-compile using dynamic top-of-stack*/
             block->flags &= ~(CODEBLOCK_STATIC_TOP | CODEBLOCK_WAS_RECOMPILED);
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+            codegen_link_block_changed(block);
+#        endif
         }
+        /* A block whose code was rewritten may be back to bytes it was
+           compiled from before: put that version back rather than compile
+           them again. */
+        if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST) && (block->flags & CODEBLOCK_NO_IMMEDIATES))
+            codegen_block_restore_version(block);
     }
 
     if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED))
     {
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+        codegen_link_slot_t *(*code)(void) = (void *) &block->data[BLOCK_START];
+
+        /* from may predate the reset that turned linking off. */
+        if ((from != NULL) && codegen_block_link)
+            codegen_link_patch(from, block, phys_addr);
+#    else
         void (*code)(void) = (void *) &block->data[BLOCK_START];
+#    endif
 
         block->used = 1; /* run: the eviction sweep passes it over once */
         inrecomp = 1;
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+        /* A block compiled without links returns nothing. */
+        if (codegen_block_link)
+            link_from = code();
+        else
+            code();
+#    else
         code();
-#    ifdef USE_ACYCS
-        acycs = 0;
 #    endif
         inrecomp = 0;
+        x86_reset_deferred();
 
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+        if (x86_was_reset)
+            link_from = NULL;
+#    endif
         if (x86_was_reset)
             codegen_reset();
     } else if (valid_block && !cpu_state.abrt) {
@@ -797,6 +792,7 @@ exec386_dynarec_dyn(void)
                 cpu_state.pc++;
 
                 codegen_generate_call(opcode, x86_opcodes[(opcode | cpu_state.op32) & 0x3ff], fetchdat, cpu_state.pc, cpu_state.pc - 1);
+                codegen_block_version_check_ins(cs + cpu_state.oldpc);
 
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
 
@@ -995,8 +991,10 @@ exec386_dynarec_dyn(void)
 
 }
 
-void
-exec386_dynarec(int32_t cycs)
+/* As exec386_dynarec_int_common(): dbg is cpu_debug_regs_486, a constant, and
+   the copy without it carries no debug register test per block. */
+__attribute__((always_inline)) static inline void
+exec386_dynarec_common(int32_t cycs, const int dbg)
 {
     int      vector;
     int      tempi;
@@ -1008,9 +1006,6 @@ exec386_dynarec(int32_t cycs)
 
     int32_t cyc_period = cycs / (force_10ms ? 2000 : 200); /*5us*/
 
-#    ifdef USE_ACYCS
-    acycs = 0;
-#    endif
     cycles_main += cycs;
     while (cycles_main > 0) {
         int32_t cycles_start;
@@ -1026,11 +1021,20 @@ exec386_dynarec(int32_t cycs)
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
-            if (cpu_force_interpreter || cpu_override_dynarec || cpu_flush_pending || (!CACHE_ON())) /*Interpret block*/
+            if (cpu_force_interpreter || cpu_override_dynarec || cpu_flush_pending || (!CACHE_ON_DBG(dbg))) /*Interpret block*/
             {
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+                link_from = NULL;
+#    endif
                 exec386_dynarec_int();
             } else {
                 exec386_dynarec_dyn();
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+                /* Linked blocks moved the loop-top state on; time is counted
+                   from the last link. */
+                oldcyc = cycles_old;
+                oldtsc = tsc_old;
+#    endif
                 /* A CR0 paging toggle ends the block it is in, so it was the
                    last instruction executed. */
                 if (cpu_flush_pending == 1)
@@ -1135,6 +1139,21 @@ exec386_dynarec(int32_t cycs)
 
         cycles_main -= (cycles_start - cycles);
     }
+}
+
+static __attribute__((noinline)) void
+exec386_dynarec_dbg(int32_t cycs)
+{
+    exec386_dynarec_common(cycs, 1);
+}
+
+void
+exec386_dynarec(int32_t cycs)
+{
+    if (UNLIKELY(cpu_debug_regs_486))
+        exec386_dynarec_dbg(cycs);
+    else
+        exec386_dynarec_common(cycs, 0);
 }
 #endif
 
@@ -1350,8 +1369,9 @@ inboard_post_fixups(void)
 
 }
 
-void
-exec386(int32_t cycs)
+/* As exec386_dynarec_int_common(): dbg is cpu_debug_regs_486, a constant. */
+__attribute__((always_inline)) static inline void
+exec386_common(int32_t cycs, const int dbg)
 {
     int      vector;
     int      tempi;
@@ -1371,9 +1391,7 @@ exec386(int32_t cycs)
         cycdiff       = 0;
         oldcyc        = cycles;
         while (cycdiff < cycle_period) {
-#ifdef USE_DEBUG_REGS_486
             int ins_fetch_fault = 0;
-#endif
             ins_cycles = cycles;
             ins_tsc = tsc;
 
@@ -1388,12 +1406,11 @@ exec386(int32_t cycs)
             if (inboard386_present)
                 inboard_post_fixups();
 
-#ifdef USE_DEBUG_REGS_486
-            if (is386)
+            if (dbg && cpu_dr_armed && is386)
                 ins_fetch_fault = cpu_386_check_instruction_fault();
 
             /* Breakpoint fault has priority over other faults. */
-            if ((cpu_state.abrt == 0) & ins_fetch_fault) {
+            if (dbg && (cpu_state.abrt == 0) & ins_fetch_fault) {
                 /* RF must be set in the EFLAGS image x86gen() pushes, so the
                    handler's IRET resumes the instruction instead of faulting on
                    it again; delivery leaves RF clear for the handler. */
@@ -1404,7 +1421,6 @@ exec386(int32_t cycs)
                 /* No instructions executed at this point. */
                 goto block_ended;
             }
-#endif
 
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 
@@ -1420,16 +1436,14 @@ exec386(int32_t cycs)
 #endif
                 opcode = fetchdat & 0xFF;
                 fetchdat >>= 8;
-#ifdef USE_DEBUG_REGS_486
-                trap = (trap & ~1) | (!!(cpu_state.flags & T_FLAG));
-#else
-                trap = cpu_state.flags & T_FLAG;
-#endif
+                if (dbg)
+                    trap = (trap & ~1) | (!!(cpu_state.flags & T_FLAG));
+                else
+                    trap = cpu_state.flags & T_FLAG;
 
                 cpu_state.pc++;
-#ifdef USE_DEBUG_REGS_486
-                cpu_state.eflags &= ~(RF_FLAG);
-#endif
+                if (dbg)
+                    cpu_state.eflags &= ~(RF_FLAG);
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
                 if (x86_was_reset)
                     break;
@@ -1449,9 +1463,7 @@ exec386(int32_t cycs)
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
-#ifdef USE_DEBUG_REGS_486
 block_ended:
-#endif
             if (cpu_state.abrt) {
 #ifdef ENABLE_386_LOG
                 uint8_t oop    = opcode;
@@ -1477,10 +1489,8 @@ block_ended:
                     }
                 }
 
-#ifdef USE_DEBUG_REGS_486
-                if (is386 && !x86_was_reset  && ins_fetch_fault)
+                if (dbg && is386 && !x86_was_reset && ins_fetch_fault)
                     x86gen();
-#endif
             } else if (new_ne) {
                 flags_rebuild();
 
@@ -1490,11 +1500,11 @@ block_ended:
                 x86_int(16);
             } else if (trap) {
                 flags_rebuild();
-#ifdef USE_DEBUG_REGS_486
-                if (trap & 2) dr[6] |= 0x8000;
-                if (trap & 1) dr[6] |= 0x4000;
-                if (trap & 16) dr[6] |= 0x2000;
-#endif
+                if (dbg) {
+                    if (trap & 2) dr[6] |= 0x8000;
+                    if (trap & 1) dr[6] |= 0x4000;
+                    if (trap & 16) dr[6] |= 0x2000;
+                }
                 trap = 0;
                 oldcs = CS;
                 cpu_state.oldpc = cpu_state.pc;
@@ -1568,4 +1578,13 @@ block_ended:
 #endif
         }
     }
+}
+
+void
+exec386(int32_t cycs)
+{
+    if (cpu_debug_regs_486)
+        exec386_common(cycs, 1);
+    else
+        exec386_common(cycs, 0);
 }

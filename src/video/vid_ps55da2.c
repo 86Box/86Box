@@ -3183,7 +3183,9 @@ da2_code_readw(uint32_t addr, void *priv)
 static void
 da2_doblit(int wx, int wy, da2_t *da2)
 {
-    if (wx != xsize || wy != ysize) {
+    /* The OSD can reset the screen size behind the driver's back; honour
+       its resize request even when the mode itself has not changed. */
+    if ((wx != xsize) || (wy != ysize) || video_force_resize_get()) {
         xsize = wx;
         ysize = wy;
         set_screen_size(xsize, ysize);
@@ -3359,7 +3361,6 @@ static void
 da2_video_load_font(char *fname, void *priv, uint32_t offset, uint32_t maxsize)
 {
     da2_t  *da2 = (da2_t *) priv;
-    uint8_t buf;
     uint64_t fsize;
     if (!fname)
         return;
@@ -3373,18 +3374,12 @@ da2_video_load_font(char *fname, void *priv, uint32_t offset, uint32_t maxsize)
     fseek(mfile, 0, SEEK_END);
     fsize = ftell(mfile); /* get filesize */
     fseek(mfile, 0, SEEK_SET);
-    if (fsize > maxsize) {
+    if (fsize > maxsize)
         fsize = maxsize; /* truncate read data */
-        // da2_log("MSG: The binary ROM font is truncated: %s\n", fname);
-        // fclose(mfile);
-        // return 1;
-    }
-    uint32_t j = 0;
-    while (ftell(mfile) < fsize) {
-        (void) !fread(&buf, sizeof(uint8_t), 1, mfile);
-        da2->mmio.font[offset + j] = buf;
-        j++;
-    }
+    if ((fsize > da2->mmio.font_size) || (offset > (da2->mmio.font_size - fsize)))
+        fsize = (offset < da2->mmio.font_size) ? (da2->mmio.font_size - offset) : 0;
+    if (fsize != 0)
+        (void) !fread(da2->mmio.font + offset, 1, (size_t) fsize, mfile);
     fclose(mfile);
     return;
 }

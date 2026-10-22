@@ -454,9 +454,10 @@ static uint8_t opcode_0f_modrm[256] = {
 // clang-format on
 
 /* ES set: an unmasked exception of the legacy FPU is pending, taken before
-   a waiting x87 or an MMX instruction, as the interpreter takes it
+   an MMX instruction, as the interpreter takes it
    (x87_legacy_pending_entry). ES is tested inline; the helper is called
-   only when it is set. */
+   only when it is set. A waiting x87 instruction has the same test in
+   codegen_generate_call, so its entry does not repeat it. */
 void
 codegen_fp_pending_check(ir_data_t *ir)
 {
@@ -529,6 +530,12 @@ codegen_fpu_guard_int_range(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, ui
     int jump_uop;
 
     codegen_accumulate_flush(ir);
+#if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
+    uop_MOV_REG_PTR(ir, IREG_temp1_D, (void *) &bounds[0]);
+    uop_MOV_REG_PTR(ir, IREG_temp2_D, (void *) &bounds[1]);
+    jump_uop = uop_FCMP_JWITHIN_DEST(ir, IREG_ST(0), IREG_temp1_D, IREG_temp2_D);
+#else
+    /*Only the arm64 and x86-64 backends implement UOP_FCMP_JWITHIN_DEST*/
     uop_MOV_REG_PTR(ir, IREG_temp1_D, (void *) &bounds[1]);
     uop_FCOM(ir, IREG_temp1_W, IREG_ST(0), IREG_temp1_D); /* C0 alone: below hi */
     uop_MOV_REG_PTR(ir, IREG_temp2_D, (void *) &bounds[0]);
@@ -538,6 +545,7 @@ codegen_fpu_guard_int_range(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, ui
     uop_MOVZX(ir, IREG_temp2, IREG_temp2_W);
     uop_OR(ir, IREG_temp1, IREG_temp1, IREG_temp2);
     jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp1, 0);
+#endif
     codegen_fpu_handover(ir, fetchdat, op_32, interp_pc, target_seg);
     uop_set_jump_dest(ir, jump_uop);
 }
@@ -632,6 +640,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     uint32_t     next_pc            = 0;
     uint16_t     op87               = 0x0000;
     uint32_t     fetchdat_pc;
+    int          jump_cycles        = 0;
 #ifdef DEBUG_EXTRA
     uint8_t last_prefix = 0;
 #endif
@@ -816,7 +825,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 last_prefix = 0xf2;
 #endif
                 op_table        = x86_dynarec_opcodes_REPNE;
-                recomp_op_table = NULL; // recomp_opcodes_REPNE;
+                recomp_op_table = recomp_opcodes_REPNE;
                 is_fpu          = 0;
                 break;
             case 0xf3: /*REPE*/
@@ -824,7 +833,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 last_prefix = 0xf3;
 #endif
                 op_table        = x86_dynarec_opcodes_REPE;
-                recomp_op_table = NULL; // recomp_opcodes_REPE;
+                recomp_op_table = recomp_opcodes_REPE;
                 is_fpu          = 0;
                 break;
 
@@ -871,10 +880,10 @@ generate_call:
           To prevent having zero cycle blocks (eg with a jump instruction pointing
           to itself), apply the cycles that would be taken if this jump is taken,
           then reverse it for subsequent instructions if the jump is not taken*/
-        int jump_cycles = 0;
-
         if (codegen_timing_jump_cycles)
             jump_cycles = codegen_timing_jump_cycles();
+        else if (((op_table == x86_dynarec_opcodes) && ((opcode & 0xf0) == 0x70)) || ((op_table == x86_dynarec_opcodes_0f) && ((opcode & 0xf0) == 0x80)))
+            jump_cycles = timing_bt; /*A Jcc taken: timing_bt more than the timing_bnt charged, as the interpreter (opJ*)*/
 
         if (jump_cycles)
             codegen_accumulate(ir, ACCREG_cycles, -jump_cycles);
@@ -1005,7 +1014,13 @@ generate_call:
             codegen_fpu_handler = op_table[((opcode >> opcode_shift) | op_32) & opcode_mask];
         codegen_ea_target_seg = NULL;
         codegen_instr_pc      = old_pc;
+        const int unrolled = codegen_ir_unrolling();
+
         new_pc = recomp_op_table[(opcode | op_32) & recomp_opcode_mask](block, ir, opcode, fetchdat, op_32, op_pc);
+        /*A loop this jump unrolled goes on through the taken path, so the
+          refund for the jump not taken above does not apply*/
+        if (jump_cycles && !unrolled && codegen_ir_unrolling())
+            codegen_accumulate(ir, ACCREG_cycles, -jump_cycles);
         /* The FPU's instruction and data pointers and opcode, for a compiled
            instruction: not for a control instruction (FNSTSW AX here), which
            leaves the last one's, and not for one the recompiler left alone,

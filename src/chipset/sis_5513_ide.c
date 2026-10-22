@@ -67,6 +67,7 @@ sis_5513_ide_log(const char *fmt, ...)
 
 typedef struct sis_5513_ide_t {
     uint8_t            rev;
+    uint8_t            udma66;
 
     uint8_t            pci_conf[256];
 
@@ -262,12 +263,12 @@ sis_5513_ide_write(int addr, uint8_t val, void *priv)
             dev->pci_conf[addr] = val & 0x0f;
             break;
 
-        case 0x41: /* IDE Primary Channel/Master Drive DataActive Time Control */
+        case 0x41: /* IDE Primary Channel/Master Drive Data Active Time Control */
         case 0x43: /* IDE Primary Channel/Slave Drive Data Active Time Control */
         case 0x45: /* IDE Secondary Channel/Master Drive Data Active Time Control */
         case 0x47: /* IDE Secondary Channel/Slave Drive Data Active Time Control */
-            if (dev->rev >= 0xd0)
-                dev->pci_conf[addr] = val & 0xe7;
+            if (dev->rev >= 0xd0) 
+                dev->pci_conf[addr] = val & (dev->udma66 ? 0xf7 : 0xe7);
             else
                 dev->pci_conf[addr] = val & 0x07;
             break;
@@ -317,7 +318,7 @@ sis_5513_ide_write(int addr, uint8_t val, void *priv)
 
         case 0x52:
             if (dev->rev >= 0xd0)
-                dev->pci_conf[addr] = val & 0x0f;
+                dev->pci_conf[addr] = val & (dev->udma66 ? 0x1f : 0x0f);
             break;
 
         default:
@@ -440,7 +441,8 @@ sis_5513_ide_init(UNUSED(const device_t *info))
 {
     sis_5513_ide_t *dev = (sis_5513_ide_t *) calloc(1, sizeof(sis_5513_ide_t));
 
-    dev->rev = info->local;
+    dev->rev    = info->local & 0xff;
+    dev->udma66 = !!(info->local & 0x100);
 
     dev->sis = device_get_common_priv();
 
@@ -499,7 +501,21 @@ const device_t sis_5591_5600_ide_device = {
     .name          = "SiS 5591/(5)600 IDE controller",
     .internal_name = "sis_5591_5600_ide",
     .flags         = DEVICE_PCI,
-    .local         = 0xd1,    /* D0, but we need to distinguish them. */
+    .local         = 0xd1,         /* D0, but we need to distinguish them. */
+    .init          = sis_5513_ide_init,
+    .close         = sis_5513_ide_close,
+    .reset         = sis_5513_ide_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sis_620_ide_device = {
+    .name          = "SiS 620 IDE controller",
+    .internal_name = "sis_620_ide",
+    .flags         = DEVICE_PCI,
+    .local         = 0xd1 | 0x100, /* D0, but we need to distinguish them. */
     .init          = sis_5513_ide_init,
     .close         = sis_5513_ide_close,
     .reset         = sis_5513_ide_reset,

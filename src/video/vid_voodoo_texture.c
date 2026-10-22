@@ -72,12 +72,13 @@ voodoo_texture_in_use(const voodoo_t *voodoo, const texture_t *tex)
 uint32_t
 voodoo_tmu_texture_size_bytes(const voodoo_t *voodoo, int tmu)
 {
-    uint32_t texture_size = (uint32_t) voodoo->texture_size << 20;
-
+    /*Banshee and Voodoo3 texture from the frame buffer: texture_size is never set
+      for them, and texture_mask is the frame buffer's.*/
     if (voodoo->type >= VOODOO_BANSHEE)
-        return texture_size;
+        return voodoo->texture_mask + 1;
 
-    uint32_t tmu_limit = 2u << 20;
+    uint32_t texture_size = (uint32_t) voodoo->texture_size << 20;
+    uint32_t tmu_limit    = 2u << 20;
     if ((voodoo->trexInit0[tmu] & TREXINIT0_TEXTURE_MEMORY_SECOND_RAS_ENABLE) &&
         (voodoo->trexInit0[tmu] & TREXINIT0_TEXTURE_MEMORY_SECOND_RAS_ADDRESS_18))
         tmu_limit = 4u << 20;

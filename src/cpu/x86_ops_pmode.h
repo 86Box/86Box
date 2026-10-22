@@ -576,6 +576,12 @@ op0F01_common(UNUSED(uint32_t fetchdat), int is32, int is286, UNUSED(int ea32))
                     x86gpf(NULL, 0);
                     break;
                 }
+                /* The fetch cache too: it may hold the page being invalidated.
+                   Under the recompiler it isn't the page of this INVLPG, which
+                   runs from a block; it is whatever page the interpreter last
+                   fetched from, so it can be a page the guest has since mapped
+                   elsewhere. */
+                flushmmucache_pc();
                 flushmmucache_nopc();
                 CLOCK_CYCLES(12);
                 PREFETCH_RUN(12, 2, rmdat, 0, 0, 0, 0, ea32);
