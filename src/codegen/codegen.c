@@ -507,6 +507,16 @@ codegen_fpu_handover(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t 
     if (target_seg)
         uop_MOV_PTR(ir, IREG_ea_seg, (void *) target_seg);
     uop_CALL_INSTRUCTION_FUNC(ir, codegen_fpu_handler, fetchdat);
+    /* The handler is the interpreter's function, not its escape wrapper,
+       which records the instruction and data pointers after it. */
+    if (cpu_dyn_accurate_fpu_env && !x87_op_is_control(x87_op)) {
+        uop_MOV_IMM(ir, IREG_fpu_op, x87_op);
+        uop_MOV_IMM(ir, IREG_fpu_CS, cpu_state.temp_CS);
+        uop_MOV_IMM(ir, IREG_fpu_cs, cpu_state.temp_cs);
+        uop_MOV_IMM(ir, IREG_fpu_pc, cpu_state.temp_pc);
+        if ((x87_op & 0xff) < 0xc0)
+            uop_CALL_FUNC(ir, fpu_postamble);
+    }
     uop_JMP(ir, codegen_exit_rout);
 }
 
