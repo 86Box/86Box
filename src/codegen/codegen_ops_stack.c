@@ -2,6 +2,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/pic.h>
 #include <86box/plat_unused.h>
 
 #include "x86.h"
@@ -10,6 +11,7 @@
 #include "x86_flags.h"
 #include "386_common.h"
 #include "codegen.h"
+#include "codegen_accumulate.h"
 #include "codegen_ir.h"
 #include "codegen_ops.h"
 #include "codegen_ops_helpers.h"
@@ -517,6 +519,114 @@ ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNU
     SUB_SP(ir, 4);
 
     return op_pc;
+}
+
+/*POPF and POPFD, as the interpreter's opPOPF and opPOPFD: the popped word
+  gives the flags, with the IOPL bits kept outside CPL 0 and IF kept as well
+  when CPL is above IOPL. Blocks are keyed on protected mode but not on CPL
+  or IOPL, so both are read as the block runs and the three cases are one
+  mask, with no branch. POPFD takes AC and ID from the upper word where the
+  CPU has them; VM, RF, VIF and VIP keep their values. The block ends after
+  the instruction when TF turned on (the trap comes after the next
+  instruction, which the loop runs interpreted) or when IF is set with an
+  interrupt pending, where the loop ends an interpreted block too. In V86
+  mode the fault depends on IOPL, which blocks aren't keyed on: the
+  interpreter decides it at run time.*/
+static uint32_t
+popf_common(ir_data_t *ir, uint32_t op_pc, int is32)
+{
+    int sp_reg;
+
+#ifndef CODEGEN_BACKEND_HAS_INT_UOPS
+    return 0;
+#endif
+    if (cpu_state.eflags & VM_FLAG)
+        return 0;
+    /*Room for the register versions below (at most 5 of temp0, 6 of temp1,
+      13 of temp2, 10 of temp3, 2 of the flags registers) without passing
+      REG_VERSION_MAX, which only ends the block after the current
+      instruction*/
+    if ((reg_last_version[IREG_GET_REG(IREG_temp0)] + 16 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp1)] + 16 > REG_VERSION_MAX) ||
+        (reg_last_version[IREG_GET_REG(IREG_temp2)] + 16 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp3)] + 16 > REG_VERSION_MAX) ||
+        (reg_last_version[IREG_GET_REG(IREG_flags)] + 4 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_eflags)] + 4 > REG_VERSION_MAX) ||
+        (reg_last_version[IREG_GET_REG(IREG_flags_op)] + 4 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_pc)] + 4 > REG_VERSION_MAX))
+        return 0;
+
+    /*The cycles so far are charged before the pop can fault, as they are
+      before an interpreter call*/
+    codegen_accumulate_flush(ir);
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    sp_reg = LOAD_SP(ir);
+    if (is32) {
+        uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, sp_reg);
+        ADD_SP(ir, 4);
+        /*AC where the CPU has it; ID when CPUID is on, which a Cyrix CCR4
+          write can change under a compiled block, so it is read here*/
+        uop_SHR_IMM(ir, IREG_temp2, IREG_temp0, 16);
+        uop_MOV_REG_PTR(ir, IREG_temp3, &CPUID);
+        uop_TEST_SET(ir, IREG_temp3, IREG_temp3, UOP_CC_NZ);
+        uop_SHL_IMM(ir, IREG_temp3, IREG_temp3, 5);
+        uop_OR_IMM(ir, IREG_temp3, IREG_temp3, AC_FLAG & cpu_eflags_implemented());
+        uop_AND(ir, IREG_temp2, IREG_temp2, IREG_temp3);
+        uop_AND_IMM(ir, IREG_eflags, IREG_eflags, VM_FLAG | RF_FLAG | VIF_FLAG | VIP_FLAG);
+        uop_OR(ir, IREG_eflags, IREG_eflags, IREG_temp2_W);
+    } else {
+        uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, sp_reg);
+        ADD_SP(ir, 2);
+        uop_MOVZX(ir, IREG_temp0, IREG_temp0_W);
+    }
+
+    uop_MOVZX(ir, IREG_temp1, IREG_flags);
+    uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0x7fd5);
+    if (cpu_cur_status & CPU_STATUS_PMODE) {
+        /*The kept bits: IOPL when CPL is not 0, IF too when CPL is above
+          IOPL*/
+        uop_MOVZX_REG_PTR_8(ir, IREG_temp2, &cpu_state.seg_cs.access);
+        uop_SHR_IMM(ir, IREG_temp2, IREG_temp2, 5);
+        uop_AND_IMM(ir, IREG_temp2, IREG_temp2, 3);
+        uop_SHR_IMM(ir, IREG_temp3, IREG_temp1, 12);
+        uop_AND_IMM(ir, IREG_temp3, IREG_temp3, 3);
+        uop_CMP_SET(ir, IREG_temp3, IREG_temp2, IREG_temp3, UOP_CC_NBE);
+        uop_SHL_IMM(ir, IREG_temp3, IREG_temp3, 9);
+        uop_TEST_SET(ir, IREG_temp2, IREG_temp2, UOP_CC_NZ);
+        uop_SHL_IMM(ir, IREG_temp2, IREG_temp2, 12);
+        uop_OR(ir, IREG_temp3, IREG_temp3, IREG_temp2);
+        uop_SHL_IMM(ir, IREG_temp2, IREG_temp2, 1);
+        uop_OR(ir, IREG_temp3, IREG_temp3, IREG_temp2);
+        /*Those bits from the old flags, the rest from the popped word*/
+        uop_XOR(ir, IREG_temp2, IREG_temp0, IREG_temp1);
+        uop_AND(ir, IREG_temp2, IREG_temp2, IREG_temp3);
+        uop_XOR(ir, IREG_temp0, IREG_temp0, IREG_temp2);
+    }
+    uop_OR_IMM(ir, IREG_temp0, IREG_temp0, 2);
+    uop_MOV(ir, IREG_flags, IREG_temp0_W);
+    uop_MOV_IMM(ir, IREG_flags_op, FLAGS_UNKNOWN);
+
+    /*TF turned on, or IF set with an interrupt pending: the block ends with
+      the PC past the instruction*/
+    uop_XOR(ir, IREG_temp1, IREG_temp1, IREG_temp0);
+    uop_AND(ir, IREG_temp1, IREG_temp1, IREG_temp0);
+    uop_AND_IMM(ir, IREG_temp1, IREG_temp1, T_FLAG);
+    uop_MOVZX_REG_PTR_8(ir, IREG_temp2, &pic.int_pending);
+    uop_SHL_IMM(ir, IREG_temp2, IREG_temp2, 9);
+    uop_AND(ir, IREG_temp2, IREG_temp2, IREG_temp0);
+    uop_OR(ir, IREG_temp1, IREG_temp1, IREG_temp2);
+    uop_MOV_IMM(ir, IREG_pc, op_pc);
+    uop_TEST_SET(ir, IREG_temp1, IREG_temp1, UOP_CC_NZ);
+    uop_CMP_IMM_JZ(ir, IREG_temp1, 1, codegen_exit_rout);
+
+    return op_pc;
+}
+
+uint32_t
+ropPOPF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
+{
+    return popf_common(ir, op_pc, 0);
+}
+uint32_t
+ropPOPFD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
+{
+    return popf_common(ir, op_pc, 1);
 }
 
 /*ENTER with nesting level 0, the form compilers emit. As the interpreter:
