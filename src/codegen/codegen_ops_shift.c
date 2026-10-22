@@ -31,6 +31,9 @@ emit_flags_rebuild_zpna(ir_data_t *ir)
             case FLAGS_ROL8:  case FLAGS_ROL16: case FLAGS_ROL32:
             case FLAGS_ROR8:  case FLAGS_ROR16: case FLAGS_ROR32:
             case FLAGS_UNKNOWN:
+                /*Left out for this op: an unrolled copy after another
+                  flags op would still leave it out*/
+                codegen_flags_known_use(ir, 0);
                 return;
             default:
                 break;
@@ -47,8 +50,10 @@ emit_flags_rebuild_zpna(ir_data_t *ir)
 static inline void
 emit_flags_rebuild_mem(ir_data_t *ir)
 {
-    if (codegen_flags_changed && (cpu_state.flags_op == FLAGS_UNKNOWN))
+    if (codegen_flags_changed && (cpu_state.flags_op == FLAGS_UNKNOWN)) {
+        codegen_flags_known_use(ir, 0);
         return;
+    }
     if (!codegen_flags_rebuild_known(ir, 0))
         uop_CALL_FUNC(ir, jit_flags_rebuild);
 }

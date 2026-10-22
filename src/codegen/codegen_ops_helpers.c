@@ -42,11 +42,76 @@ LOAD_IMMEDIATE_FROM_RAM_32_unaligned(UNUSED(codeblock_t *block), ir_data_t *ir, 
 static int flags_known_nr;
 static int flags_known_site[FLAGS_KNOWN_MAX];
 static int flags_known_producer[FLAGS_KNOWN_MAX];
+/*1 = an INC or DEC that left CF in the flags register as it was: still
+  right after any number of INCs and DECs, wrong after any other flags op*/
+static int flags_known_cf_kept[FLAGS_KNOWN_MAX];
+/*A use that could not be recorded: no loop of the block unrolls*/
+static int flags_known_full;
 
 void
 codegen_flags_known_reset(void)
 {
-    flags_known_nr = 0;
+    flags_known_nr   = 0;
+    flags_known_full = 0;
+}
+
+/*Records the use at ir->wr_pos with the uop that set the flags op; 0 when
+  that uop is not in this block or the table is full*/
+static int
+flags_known_record(ir_data_t *ir, int cf_kept)
+{
+    int producer;
+
+    for (producer = ir->wr_pos - 1; producer >= 0; producer--) {
+        if (IREG_GET_REG(ir->uops[producer].dest_reg_a.reg) == IREG_GET_REG(IREG_flags_op))
+            break;
+    }
+    if ((producer < 0) || (flags_known_nr == FLAGS_KNOWN_MAX))
+        return 0;
+    flags_known_site[flags_known_nr]     = ir->wr_pos;
+    flags_known_producer[flags_known_nr] = producer;
+    flags_known_cf_kept[flags_known_nr]  = cf_kept;
+    flags_known_nr++;
+    return 1;
+}
+
+/*A compile-time use of the known flags op other than an inline rebuild: a
+  Jcc, SETcc or LOOPcc compiled for that op, a rebuild left out because the
+  op needs none, or (cf_kept) an INC or DEC that keeps the flags register's
+  CF because the op left it there. An unrolled loop must not repeat it after
+  its own flag changes, so it is recorded for codegen_can_unroll_full()*/
+void
+codegen_flags_known_use(ir_data_t *ir, int cf_kept)
+{
+    if (!flags_known_record(ir, cf_kept))
+        flags_known_full = 1;
+}
+
+/*Whether the uops from start on set a flags op (other than INC and DEC with
+  incdec_too clear): the loop body changes the flags a copied use reads. A C
+  call may set it without a uop writing flags_op (a rebuild the inline
+  sequences cannot do, for SAHF, BT, MUL, RCL and the like), so with
+  incdec_too any call counts; with it clear a call cannot leave CF stale*/
+static int
+flags_op_set_from(ir_data_t *ir, int start, int incdec_too)
+{
+    for (int c = start; c < ir->wr_pos; c++) {
+        uint32_t type = ir->uops[c].type & UOP_MASK;
+        uint32_t op;
+
+        if (incdec_too && ((type == (UOP_CALL_FUNC & UOP_MASK)) || (type == (UOP_CALL_FUNC_ORDERED & UOP_MASK)) ||
+                           (type == (UOP_CALL_FUNC_RESULT & UOP_MASK)) || (type == (UOP_CALL_FUNC_RESULT_ORDERED & UOP_MASK))))
+            return 1;
+        if (IREG_GET_REG(ir->uops[c].dest_reg_a.reg) != IREG_GET_REG(IREG_flags_op))
+            continue;
+        if (incdec_too)
+            return 1;
+        op = ir->uops[c].imm_data;
+        if (((ir->uops[c].type & UOP_MASK) != (UOP_MOV_IMM & UOP_MASK)) ||
+            !((op == FLAGS_INC8) || (op == FLAGS_INC16) || (op == FLAGS_INC32) || (op == FLAGS_DEC8) || (op == FLAGS_DEC16) || (op == FLAGS_DEC32)))
+            return 1;
+    }
+    return 0;
 }
 
 /*flags_rebuild(), or flags_rebuild_c() if carry_only, as uops when the flags
@@ -63,7 +128,6 @@ codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
     int      is_add;
     int      is_sub;
     int      is_incdec;
-    int      producer;
     uint32_t msb;
 
     switch (op) {
@@ -96,8 +160,10 @@ codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
     is_incdec = (op == FLAGS_INC8) || (op == FLAGS_INC16) || (op == FLAGS_INC32) || (op == FLAGS_DEC8) || (op == FLAGS_DEC16) || (op == FLAGS_DEC32);
 
     /*flags_rebuild_c() leaves CF as it is after INC and DEC*/
-    if (is_incdec && carry_only)
+    if (is_incdec && carry_only) {
+        codegen_flags_known_use(ir, 1);
         return 1;
+    }
 
     /*Room for this sequence's register versions (at most 20 of temp1, 4 of
       temp3, 8 of flags) without passing REG_VERSION_MAX, which only ends the
@@ -106,16 +172,9 @@ codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
         (reg_last_version[IREG_GET_REG(IREG_flags)] + 8 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_flags_op)] + 1 > REG_VERSION_MAX))
         return 0;
 
-    /*The uop that set the flags op, for codegen_can_unroll_full()*/
-    for (producer = ir->wr_pos - 1; producer >= 0; producer--) {
-        if (IREG_GET_REG(ir->uops[producer].dest_reg_a.reg) == IREG_GET_REG(IREG_flags_op))
-            break;
-    }
-    if ((producer < 0) || (flags_known_nr == FLAGS_KNOWN_MAX))
+    /*With the uop that set the flags op, for codegen_can_unroll_full()*/
+    if (!flags_known_record(ir, 0))
         return 0;
-    flags_known_site[flags_known_nr]     = ir->wr_pos;
-    flags_known_producer[flags_known_nr] = producer;
-    flags_known_nr++;
 
     /*CF into temp1; INC and DEC keep the one in flags*/
     if (op == FLAGS_ADD8 || op == FLAGS_ADD16) {
@@ -229,10 +288,13 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
     if (TOP != cpu_state.TOP)
         return 0;
 
-    /*Not across a flags rebuild worked out from a flags op set before the
-      loop: the copies would repeat it after the loop's own flag changes*/
+    /*Not across a flags rebuild or flag reader worked out from a flags op
+      set before the loop when the loop sets one itself: the copies would
+      repeat it after the loop's own flag changes*/
+    if (flags_known_full)
+        return 0;
     for (int c = 0; c < flags_known_nr; c++) {
-        if ((flags_known_site[c] >= start) && (flags_known_producer[c] < start))
+        if ((flags_known_site[c] >= start) && (flags_known_producer[c] < start) && flags_op_set_from(ir, start, !flags_known_cf_kept[c]))
             return 0;
     }
 

@@ -2144,6 +2144,9 @@ rebuild_c(ir_data_t *ir)
             case FLAGS_DEC8:
             case FLAGS_DEC16:
             case FLAGS_DEC32:
+                /*CF is already in the flags register: a copy of this
+                  instruction after another flags op would read it stale*/
+                codegen_flags_known_use(ir, 1);
                 needs_rebuild = 0;
                 break;
 

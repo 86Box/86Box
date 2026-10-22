@@ -153,6 +153,7 @@ LOAD_IMMEDIATE_FROM_RAM_32(codeblock_t *block, ir_data_t *ir, int dest_reg, uint
 }
 
 int codegen_flags_rebuild_known(ir_data_t *ir, int carry_only);
+void codegen_flags_known_use(ir_data_t *ir, int cf_kept);
 
 int codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, uint32_t next_pc, uint32_t dest_addr);
 static inline int
