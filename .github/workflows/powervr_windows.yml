@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - powervr-pcx
+      - pcx-perf
     tags:
       - 'pcx-*'
   release:
