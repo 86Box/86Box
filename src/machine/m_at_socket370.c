@@ -945,7 +945,15 @@ machine_at_ms6318_init(const machine_t *model)
 int
 machine_at_cairo5_init(const machine_t *model)
 {
-    int ret;
+    /* The 686B's I/O APIC has the ISA IRQs on their own inputs and PIRQA-D#
+       on 16-19. */
+    static const ioapic_legacy_irq_routing_t cairo5_irq_routing = {
+        .irq_to_intin  = IOAPIC_LEGACY_IRQ_ROUTE_ISA,
+        .pirq_to_intin = IOAPIC_PIRQ_ROUTE_82093AA
+    };
+    void *pipc;
+    void *ioapic;
+    int   ret;
 
     ret = bios_load_linear("roms/machines/cairo5/08BV.BIN",
                            0x000c0000, 262144, 0);
@@ -966,9 +974,16 @@ machine_at_cairo5_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&via_apro133a_device);
-    device_add(&via_vt82c686b_device);
+    pipc = device_add(&via_vt82c686b_device);
     device_add(&winbond_flash_w29c020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
+
+    /* The 686B's internal I/O APIC. The board's BIOSes build no MP table
+       and turn the APIC off through Rx77[4] late in POST. */
+    ioapic = device_add_params(&ioapic_validated_up_device,
+                               (void *) (IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_VARIANT_VIA));
+    ioapic_set_legacy_irq_routing(ioapic, &cairo5_irq_routing);
+    via_pipc_set_ioapic(pipc, ioapic);
 
     return ret;
 }
