@@ -620,6 +620,44 @@ codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, uint32_t op_3
     uop_set_jump_dest(ir, jump_uop);
 }
 
+/* FLDCW of a word that leaves a set flag unmasked: the control word goes
+   in as the interpreter's does (x87_set_control_word, with the rounding
+   mode, then x87_legacy_status_es, which sets ES and B and raises FERR# as
+   the model says). The word is the one the block read: the instruction is
+   not run again. */
+static void
+codegen_fldcw_unmasks(uint32_t cw)
+{
+    const int was_es = cpu_state.npxs & FPU_SW_Summary;
+
+    cpu_state.npxc = cw;
+    codegen_set_rounding_mode((cpu_state.npxc >> 10) & 3);
+    x87_legacy_status_es(was_es, x87_op);
+}
+
+/* FLDCW: a flag the new word (cw_reg, 16-bit) leaves unmasked that is set
+   in the status word is an error condition. codegen_fldcw_unmasks raises
+   it and the block ends at next_pc: the compiled instructions after this
+   one take no pending error (codegen_fpu_entered). */
+void
+codegen_fpu_guard_cw_unmasks(ir_data_t *ir, uint32_t next_pc, int cw_reg)
+{
+    int jump_uop;
+
+    codegen_accumulate_flush(ir);
+    uop_MOVZX(ir, IREG_temp1, cw_reg);
+    uop_XOR_IMM(ir, IREG_temp1, IREG_temp1, 0x3f);
+    uop_MOVZX(ir, IREG_temp2, IREG_NPXS);
+    uop_AND(ir, IREG_temp1, IREG_temp1, IREG_temp2);
+    uop_AND_IMM(ir, IREG_temp1, IREG_temp1, 0x3f);
+    jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp1, 0);
+    uop_MOV_IMM(ir, IREG_pc, next_pc);
+    uop_LOAD_FUNC_ARG_REG(ir, 0, cw_reg);
+    uop_CALL_FUNC(ir, codegen_fldcw_unmasks);
+    uop_JMP(ir, codegen_exit_rout);
+    uop_set_jump_dest(ir, jump_uop);
+}
+
 /* The compiled FPU arithmetic is built for the control word's precision
    (PC24) and rounding (RC != nearest) classes as they are when it is
    compiled: at the block's start by its key, and after an interpreted
@@ -643,7 +681,7 @@ codegen_fpu_rc_nearest(ir_data_t *ir)
     codegen_fpu_class_dirty = 0;
     codegen_accumulate_flush(ir);
     uop_MOV_IMM(ir, IREG_pc, codegen_instr_pc);
-    uop_MOVZX_REG_PTR_16(ir, IREG_temp0, &cpu_state.npxc);
+    uop_MOVZX(ir, IREG_temp0, IREG_NPXC);
     if (!(cpu_state.npxc & 0x300)) {
         uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0xf00);
         jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp0, 0);

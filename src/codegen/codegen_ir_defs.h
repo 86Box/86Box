@@ -386,8 +386,12 @@
 /*UOP_CMP_JNWITHIN - if (src_reg_a < src_reg_b || src_reg_a + imm > src_reg_c), unsigned,
   then jump to ptr*/
 #define UOP_CMP_JNWITHIN (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0xcf | UOP_TYPE_ORDER_BARRIER)
+/*UOP_FP_CONTROL_SET - src_reg_a is the x87 control word just loaded, one that
+  unmasks no set flag: the host rounding state follows its RC field (as
+  codegen_set_rounding_mode) and FERR# goes low (as x87_ferr_clear)*/
+#define UOP_FP_CONTROL_SET (UOP_TYPE_PARAMS_REGS | 0xd0)
 
-#define UOP_MAX     0xd0
+#define UOP_MAX     0xd1
 
 #define UOP_INVALID 0xff
 
@@ -790,6 +794,9 @@ extern void codegen_fpu_guard_stack(ir_data_t *ir, uint32_t fetchdat, uint32_t o
 /* FIST/FISTP of a value that may not fit: the interpreter's version */
 extern void codegen_fpu_guard_int_range(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg, const double *bounds);
 extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg, int src_reg, uint32_t indefinite);
+/* FLDCW of a word (cw_reg) that unmasks a set flag: the error is raised and
+   the block ends at next_pc */
+extern void codegen_fpu_guard_cw_unmasks(ir_data_t *ir, uint32_t next_pc, int cw_reg);
 
 #define uop_LOAD_FUNC_ARG_REG(ir, arg, reg)                      uop_gen_reg_src1(UOP_LOAD_FUNC_ARG_0 + arg, ir, reg)
 
@@ -843,6 +850,7 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
 #define uop_CMP_JNWITHIN(ir, src_reg, lo_reg, hi_reg, imm, p)    uop_gen_reg_src3_imm_pointer(UOP_CMP_JNWITHIN, ir, src_reg, lo_reg, hi_reg, imm, p)
 
 #define uop_FCMP_JWITHIN_DEST(ir, src_reg, lo_reg, hi_reg)      uop_gen_reg_src3(UOP_FCMP_JWITHIN_DEST, ir, src_reg, lo_reg, hi_reg)
+#define uop_FP_CONTROL_SET(ir, src_reg)                         uop_gen_reg_src1(UOP_FP_CONTROL_SET, ir, src_reg)
 #define uop_CMP_JNB_DEST(ir, src_reg_a, src_reg_b)               uop_gen_reg_src2(UOP_CMP_JNB_DEST, ir, src_reg_a, src_reg_b)
 #define uop_CMP_JNBE_DEST(ir, src_reg_a, src_reg_b)              uop_gen_reg_src2(UOP_CMP_JNBE_DEST, ir, src_reg_a, src_reg_b)
 #define uop_CMP_JNL_DEST(ir, src_reg_a, src_reg_b)               uop_gen_reg_src2(UOP_CMP_JNL_DEST, ir, src_reg_a, src_reg_b)

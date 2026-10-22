@@ -1471,6 +1471,26 @@ codegen_MOV_INT_DOUBLE_64(codeblock_t *block, uop_t *uop)
     return 0;
 }
 static int
+codegen_FP_CONTROL_SET(codeblock_t *block, uop_t *uop)
+{
+    int src_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_W(src_size)) {
+        /*new_fp_control = RC << 3, the index codegen_fp_round branches on*/
+        host_arm64_UBFX(block, REG_TEMP, src_reg, 10, 2);
+        host_arm64_ORR_REG(block, REG_TEMP, REG_WZR, REG_TEMP, 3);
+        host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.new_fp_control - (uintptr_t) &cpu_state);
+        host_arm64_MOVX_IMM(block, REG_TEMP2, (uint64_t) (uintptr_t) &fpu_ferr);
+        host_arm64_STR_IMM_W(block, REG_WZR, REG_TEMP2, 0);
+        host_arm64_MOVX_IMM(block, REG_TEMP2, (uint64_t) (uintptr_t) &fpu_ignne);
+        host_arm64_STR_IMM_W(block, REG_WZR, REG_TEMP2, 0);
+    } else
+        fatal("FP_CONTROL_SET %02x\n", uop->src_reg_a_real);
+
+    return 0;
+}
+static int
 codegen_MOV_REG_PTR(codeblock_t *block, uop_t *uop)
 {
     int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
@@ -3540,6 +3560,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_MOV_INT_DOUBLE_64 &
         UOP_MASK]
     = codegen_MOV_INT_DOUBLE_64,
+    [UOP_FP_CONTROL_SET &
+        UOP_MASK]
+    = codegen_FP_CONTROL_SET,
     [UOP_MOV_REG_PTR &
         UOP_MASK]
     = codegen_MOV_REG_PTR,
