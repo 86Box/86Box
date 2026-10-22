@@ -740,6 +740,7 @@ exec386_dynarec_dyn(void)
         code();
 #    endif
         inrecomp = 0;
+        x86_reset_deferred();
 
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
         if (x86_was_reset)
