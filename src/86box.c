@@ -448,6 +448,7 @@ pclog_ex(UNUSED(const char *fmt), UNUSED(va_list ap))
         seen = 0;
         strcpy(buff, temp);
         fprintf(stdlog, "%s", temp);
+        automation_log_text(temp, 0);
         if (pclog_hook)
             pclog_hook(temp);
     }
@@ -499,6 +500,7 @@ always_log(const char *fmt, ...)
 
     vsprintf(temp, fmt, ap);
     fprintf(stdlog, "%s", temp);
+    automation_log_text(temp, 0);
     if (pclog_hook)
         pclog_hook(temp);
     fflush(stdlog);
@@ -532,6 +534,7 @@ fatal(const char *fmt, ...)
 
     /* Re-add the newline into the log. */
     fprintf(stdlog, "%s\n", temp);
+    automation_log_text(temp, 1);
     fflush(stdlog);
     va_end(ap);
 
@@ -544,9 +547,9 @@ fatal(const char *fmt, ...)
     do_pause(2);
 
     /* A connected automation client would wait forever on a machine that has
-       stopped, behind a dialog it can't answer: close its connection now, so
-       it knows. The message is in the log. */
-    automation_close();
+       stopped, behind a dialog it can't answer: send it the message and close
+       its connection now, so it knows. */
+    automation_fatal(temp);
 
     ui_msgbox(MBX_ERROR | MBX_FATAL, temp);
 
@@ -583,6 +586,7 @@ fatal_ex(const char *fmt, va_list ap)
 
     /* Re-add the newline into the log. */
     fprintf(stdlog, "%s\n", temp);
+    automation_log_text(temp, 1);
     fflush(stdlog);
 
     nvr_save();
@@ -594,9 +598,9 @@ fatal_ex(const char *fmt, va_list ap)
     do_pause(2);
 
     /* A connected automation client would wait forever on a machine that has
-       stopped, behind a dialog it can't answer: close its connection now, so
-       it knows. The message is in the log. */
-    automation_close();
+       stopped, behind a dialog it can't answer: send it the message and close
+       its connection now, so it knows. */
+    automation_fatal(temp);
 
     ui_msgbox(MBX_ERROR | MBX_FATAL, temp);
 
@@ -634,6 +638,7 @@ warning(const char *fmt, ...)
 
     /* Re-add the newline into the log. */
     fprintf(stdlog, "%s\n", temp);
+    automation_log_text(temp, 1);
     if (pclog_hook)
         pclog_hook(temp);
     fflush(stdlog);
@@ -677,6 +682,7 @@ warning_ex(const char *fmt, va_list ap)
 
     /* Re-add the newline into the log. */
     fprintf(stdlog, "%s\n", temp);
+    automation_log_text(temp, 1);
     fflush(stdlog);
 
     do_pause(2);

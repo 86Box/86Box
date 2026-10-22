@@ -41,6 +41,7 @@ typedef SOCKET sock_t;
 #    define SOCK_INVALID INVALID_SOCKET
 #    define sock_close   closesocket
 #    define SOCK_SHUT_RW SD_BOTH
+#    define SOCK_SHUT_RD SD_RECEIVE
 #else
 #    include <fcntl.h>
 #    include <netdb.h>
@@ -53,6 +54,7 @@ typedef int sock_t;
 #    define SOCK_INVALID (-1)
 #    define sock_close   close
 #    define SOCK_SHUT_RW SHUT_RDWR
+#    define SOCK_SHUT_RD SHUT_RD
 #endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -70,6 +72,7 @@ typedef int sock_t;
 #include <86box/keyboard.h>
 #include <86box/mem.h>
 #include <86box/mouse.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
 #include <86box/ui.h>
@@ -89,6 +92,9 @@ typedef int sock_t;
 #define REQ_MAX             4096
 #define MEM_MAX             65536
 #define KEY_QUEUE_MAX       64
+#define LOG_RING            65536              /* the log's last bytes, for log */
+#define MEDIA_DIR           "automation-media" /* in the VM directory, for media put */
+#define MEDIA_NAME_MAX      (REQ_MAX - 1) /* any name the request line can hold */
 /* Emulated ms between injected key events. One event can be up to six bytes
    in scan code set 2 (fake shifts around extended keys); delivering many at
    the same instant overflows the keyboard's 16-byte FIFO and loses keys. */
@@ -142,6 +148,7 @@ static thread_t *listen_thread;
 static sock_t    listen_fd = SOCK_INVALID;
 static sock_t    client_fd = SOCK_INVALID;
 static event_t  *req_done;
+static char      fatal_msg[1024]; /* for the client, on a fatal error */
 
 /* Transport: a UNIX domain socket (owner-only file permissions) or TCP,
    which any local process can reach, so TCP clients must present a token. */
@@ -753,7 +760,11 @@ cmd_info(void)
         sb_printf(&resp, "}");
         first = 0;
     }
-    sb_printf(&resp, "],\"hard_resets\":%u,\"soft_resets\":%u,\"last_reset_ms\":%llu,\"speed_percent\":%d,"
+    sb_printf(&resp, "]");
+#ifdef USE_GDBSTUB
+    sb_printf(&resp, ",\"gdbstub_port\":%d", gdbstub_port);
+#endif
+    sb_printf(&resp, ",\"hard_resets\":%u,\"soft_resets\":%u,\"last_reset_ms\":%llu,\"speed_percent\":%d,"
                      "\"ms\":%llu,\"frames\":%llu,\"held\":%s,\"paused\":%s,\"w\":%d,\"h\":%d}",
               hard_resets, soft_resets, (unsigned long long) last_reset_ms, speed_percent,
               (unsigned long long) emu_ms, (unsigned long long) frame_count, held ? "true" : "false",
@@ -1672,6 +1683,223 @@ fpu_reg80(int r, uint16_t *se, uint64_t *signif)
     }
 }
 
+/* The log's last LOG_RING bytes, for a client that can't read the log file
+   (log). 86Box logs from any thread, and before automation_init(). */
+static char        log_ring[LOG_RING];
+static uint64_t    log_pos; /* bytes logged since startup */
+static atomic_flag log_lock = ATOMIC_FLAG_INIT;
+
+static void
+log_ring_add(const char *text, size_t len)
+{
+    for (size_t i = 0; i < len; i++)
+        log_ring[(log_pos + i) % LOG_RING] = text[i];
+    log_pos += len;
+}
+
+void
+automation_log_text(const char *text, int newline)
+{
+    while (atomic_flag_test_and_set_explicit(&log_lock, memory_order_acquire))
+        ;
+    log_ring_add(text, strlen(text));
+    if (newline)
+        log_ring_add("\n", 1);
+    atomic_flag_clear_explicit(&log_lock, memory_order_release);
+}
+
+/* log [<from> [<max>]]: what 86Box has logged from position `from` on. */
+static void
+cmd_log(int argc, char **argv)
+{
+    static char text[LOG_RING + 1];
+    uint64_t    from = (argc >= 2) ? strtoull(argv[1], NULL, 0) : 0;
+    uint64_t    max  = (argc >= 3) ? strtoull(argv[2], NULL, 0) : LOG_RING;
+    uint64_t    end;
+    uint64_t    lost = 0;
+    size_t      n;
+
+    while (atomic_flag_test_and_set_explicit(&log_lock, memory_order_acquire))
+        ;
+    end = log_pos;
+    if ((end > LOG_RING) && (from < (end - LOG_RING))) {
+        lost = end - LOG_RING - from;
+        from = end - LOG_RING;
+    }
+    if (from > end)
+        from = end;
+    n = (size_t) (((end - from) < max) ? (end - from) : max);
+    if (n > LOG_RING)
+        n = LOG_RING;
+    for (size_t i = 0; i < n; i++)
+        text[i] = log_ring[(from + i) % LOG_RING];
+    atomic_flag_clear_explicit(&log_lock, memory_order_release);
+    text[n] = '\0';
+
+    resp.len = 0;
+    sb_printf(&resp, "{\"ok\":true,\"from\":%llu,\"next\":%llu,\"pos\":%llu,\"lost\":%llu,\"text\":",
+              (unsigned long long) from, (unsigned long long) (from + n), (unsigned long long) end,
+              (unsigned long long) lost);
+    sb_json_string(&resp, text);
+    sb_printf(&resp, "}");
+}
+
+/* Files a client sends (media put) go in MEDIA_DIR. The name only has to
+   stay in it, which the OS doesn't see to; anything else it refuses (too
+   long, characters it doesn't allow) comes back as its error. */
+static int
+media_name_ok(const char *name)
+{
+    return name[0] && strcmp(name, ".") && strcmp(name, "..") && !strpbrk(name, "/\\:");
+}
+
+static void
+media_path(char *out, const char *name)
+{
+    path_append_filename(out, usr_path, MEDIA_DIR);
+    if (name) {
+        path_slash(out);
+        strcat(out, name);
+    }
+}
+
+/* media remove <name> */
+static void
+cmd_media_remove(const char *name)
+{
+    char path[1024 + MEDIA_NAME_MAX + 2];
+
+    if (!media_name_ok(name)) {
+        respond_error("bad name");
+        return;
+    }
+    media_path(path, name);
+    if (remove(path))
+        respond_error(strerror(errno));
+    else
+        respond_ok_time();
+}
+
+static int write_all(sock_t fd, const char *buf, size_t len);
+
+static const char *
+media_why(char *why, const char *what)
+{
+    snprintf(why, 256, "%s: %s", what, strerror(errno));
+    return why;
+}
+
+/* media put <name> <bytes>, then the bytes: runs on the listener thread,
+   which takes them off the connection itself, while the machine runs on.
+   `buf` holds the `have` bytes that arrived with the request line; *used
+   is set to how many of them were the file's. Returns 0 if the connection
+   must close: it ended early, or the size was unreadable, so the bytes
+   that follow can't be told apart from the next request. */
+static int
+media_put(const char *args, const char *buf, size_t have, size_t *used)
+{
+    static char        chunk[65536];
+    char               name[MEDIA_NAME_MAX + 1];
+    char               path[1024 + MEDIA_NAME_MAX + 2];
+    char               part[sizeof(path) + 5];
+    const char        *sp = strchr(args, ' ');
+    const char        *err = NULL;
+    char              *end;
+    unsigned long long size;
+    unsigned long long left;
+    size_t             n;
+    FILE              *fp = NULL;
+    strbuf_t           sb  = { 0 };
+    int                ret = 1;
+    char               why[256]; /* err, with the system's reason */
+
+    *used = 0;
+    if (!sp || ((size_t) (sp - args) > MEDIA_NAME_MAX) || (sp[1] < '0') || (sp[1] > '9')) {
+        static const char usage[] = "{\"ok\":false,\"error\":\"usage: media put <name> <bytes>, then the bytes\"}\n";
+        write_all(client_fd, usage, strlen(usage));
+        return 0;
+    }
+    size = strtoull(sp + 1, &end, 0);
+    if (*end) {
+        static const char usage[] = "{\"ok\":false,\"error\":\"usage: media put <name> <bytes>, then the bytes\"}\n";
+        write_all(client_fd, usage, strlen(usage));
+        return 0;
+    }
+    memcpy(name, args, sp - args);
+    name[sp - args] = '\0';
+
+    if (!media_name_ok(name))
+        err = "bad name: it must not hold '/', '\\' or ':', nor be '.' or '..'";
+    else {
+        media_path(path, NULL);
+        if (!plat_dir_check(path) && plat_dir_create(path))
+            err = "cannot create the " MEDIA_DIR " directory";
+        else {
+            media_path(path, name);
+            snprintf(part, sizeof(part), "%s.part", path);
+            if (!(fp = plat_fopen(part, "wb")))
+                err = media_why(why, "cannot create the file");
+        }
+    }
+
+    /* Take all the bytes, even when they can't be kept, so the next request
+       is read from the right place. */
+    left = size;
+    n    = (have < left) ? have : (size_t) left;
+    if (fp && n && (fwrite(buf, 1, n, fp) != n))
+        err = media_why(why, "cannot write the file");
+    *used = n;
+    left -= n;
+    while (left) {
+        int r = recv(client_fd, chunk, (int) ((left < sizeof(chunk)) ? left : sizeof(chunk)), 0);
+        if (r <= 0) {
+#ifndef _WIN32
+            if ((r < 0) && (errno == EINTR))
+                continue;
+#endif
+            ret = 0;
+            err = "the connection closed";
+            break;
+        }
+        if (fp && !err && (fwrite(chunk, 1, r, fp) != (size_t) r))
+            err = media_why(why, "cannot write the file");
+        left -= r;
+    }
+
+    if (fp) {
+        if (fclose(fp) && !err)
+            err = media_why(why, "cannot write the file");
+        if (err)
+            remove(part);
+        else {
+            /* Replace the old file only when the new one is complete. POSIX
+               rename() replaces it in one step; Windows' won't replace. */
+#ifdef _WIN32
+            remove(path);
+#endif
+            if (rename(part, path)) {
+                err = media_why(why, "cannot replace the file");
+                remove(part);
+            }
+        }
+    }
+    if (!ret)
+        return 0;
+
+    if (err) {
+        sb_printf(&sb, "{\"ok\":false,\"error\":");
+        sb_json_string(&sb, err);
+    } else {
+        automation_log("Automation: received %llu bytes as %s\n", size, path);
+        sb_printf(&sb, "{\"ok\":true,\"bytes\":%llu,\"path\":", size);
+        sb_json_string(&sb, path);
+    }
+    sb_printf(&sb, "}\n");
+    ret = write_all(client_fd, sb.buf, sb.len);
+    free(sb.buf);
+    return ret;
+}
+
 static void
 handle_request(char *line)
 {
@@ -2043,6 +2271,10 @@ handle_request(char *line)
             }
             sb_printf(&resp, "}");
         }
+    } else if (!strcmp(argv[0], "log") && (argc <= 3)) {
+        cmd_log(argc, argv);
+    } else if (!strcmp(argv[0], "media") && (argc == 3) && !strcmp(argv[1], "remove")) {
+        cmd_media_remove(argv[2]);
     } else if (!strcmp(argv[0], "fdd") && (argc >= 3)) {
         /* fdd load <drive> <path> | fdd eject <drive> */
         int id = atoi(argv[2]);
@@ -2283,19 +2515,28 @@ automation_thread(UNUSED(void *priv))
                     static const char ok[] = "{\"ok\":true,\"auth\":true}\n";
                     if (!write_all(client_fd, ok, strlen(ok)))
                         goto disconnect;
+                } else if (!strncmp(inbuf, "media put ", 10)) {
+                    /* The file's bytes follow the line. */
+                    size_t used;
+                    if (!media_put(inbuf + 10, nl + 1, inlen - linelen - 1, &used))
+                        goto disconnect;
+                    linelen += used;
                 } else {
+                    if (!enabled)
+                        goto disconnect;
                     strncpy(req_line, inbuf, sizeof(req_line) - 1);
                     req_line[sizeof(req_line) - 1] = '\0';
                     thread_reset_event(req_done);
                     atomic_store(&req_pending, 1);
                     thread_wait_event(req_done, -1);
 
-                    if (!write_all(client_fd, resp.buf, resp.len) || !write_all(client_fd, "\n", 1))
+                    /* Closing (on a fatal error, say) wakes us without a reply. */
+                    if (!enabled || !write_all(client_fd, resp.buf, resp.len) || !write_all(client_fd, "\n", 1))
                         goto disconnect;
                 }
 
                 inlen -= linelen + 1;
-                memmove(inbuf, nl + 1, inlen);
+                memmove(inbuf, inbuf + linelen + 1, inlen);
             }
 
             if (inlen >= (sizeof(inbuf) - 1)) {
@@ -2304,6 +2545,15 @@ automation_thread(UNUSED(void *priv))
             }
         }
 disconnect:
+        if (fatal_msg[0]) {
+            /* The reply to a request still waiting, or news for an idle client. */
+            strbuf_t sb = { 0 };
+            sb_printf(&sb, "{\"ok\":false,\"fatal\":true,\"error\":");
+            sb_json_string(&sb, fatal_msg);
+            sb_printf(&sb, "}\n");
+            write_all(client_fd, sb.buf, sb.len);
+            free(sb.buf);
+        }
         automation_log("Automation: client disconnected\n");
         sock_close(client_fd);
         client_fd = SOCK_INVALID;
@@ -2570,7 +2820,8 @@ automation_close(void)
     sock_close(listen_fd);
     listen_fd = SOCK_INVALID;
     if (client_fd != SOCK_INVALID)
-        shutdown(client_fd, SOCK_SHUT_RW);
+        /* After a fatal error, leave the listener the way out, to send it. */
+        shutdown(client_fd, fatal_msg[0] ? SOCK_SHUT_RD : SOCK_SHUT_RW);
     /* Release a listener that is waiting on the CPU thread, then let it finish. */
     thread_set_event(req_done);
     thread_wait(listen_thread);
@@ -2581,4 +2832,14 @@ automation_close(void)
 #endif
     if (use_tcp)
         remove(automation_token_file);
+}
+
+void
+automation_fatal(const char *msg)
+{
+    if (!enabled)
+        return;
+
+    snprintf(fatal_msg, sizeof(fatal_msg), "%s", msg);
+    automation_close();
 }
