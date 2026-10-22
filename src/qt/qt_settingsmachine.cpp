@@ -134,15 +134,18 @@ SettingsMachine::SettingsMachine(QWidget *parent)
             break;
     }
 
-    /* Clamp spinner so the resulting year cannot be before 1980.
-       Config file may still contain a wider range; the spinner displays
-       the clamped value, but the original is preserved on save unless
-       the user actually changes the spinner. */
+    /* Clamp spinner so the resulting year must be between 1980 and
+     * 2099 inclusive.  The configuration file may still contain a
+     * wider range; the spinner displays the clamped value, but the
+     * original is preserved on save unless the user actually changes
+     * the spinner. */
     original_years_offset = time_offset_years;
     years_offset_manipulated = false;
-    const int min_offset = 1980 - QDate::currentDate().year();
+    const int host_year = QDate::currentDate().year();
+    const int min_offset = 1980 - host_year;
+    const int max_offset = 2099 - host_year;
     ui->spinBoxYearsOffset->setMinimum(min_offset);
-    ui->spinBoxYearsOffset->setMaximum(100);
+    ui->spinBoxYearsOffset->setMaximum(max_offset);
     {
         const QSignalBlocker blocker(ui->spinBoxYearsOffset);
         ui->spinBoxYearsOffset->setValue(time_offset_years);
