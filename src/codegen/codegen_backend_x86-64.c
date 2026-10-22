@@ -745,9 +745,11 @@ rx_min(codeblock_t *block)
 }
 
 /*Sets RX_SLOW if the segment at [base + disp] would fail the interpreter's
-  null selector or not-present check, using EDX = (msw & 1) && !(eflags & VM)*/
+  null selector or not-present check, and for the segment written its
+  writability check (SEG_NOT_WRITABLE: writable bit clear, or a code segment
+  in protected mode), using EDX = (msw & 1) && !(eflags & VM)*/
 static void
-rx_seg_check(codeblock_t *block, int base, int32_t disp)
+rx_seg_check(codeblock_t *block, int base, int32_t disp, int write)
 {
     int32_t *skip;
 
@@ -759,6 +761,16 @@ rx_seg_check(codeblock_t *block, int base, int32_t disp)
     skip = rx_jcc(block, RX_CC_NZ);
     rx_rr(block, 0, 0, 0x09, REG_RDX, RX_SLOW); /*OR EBX, EDX*/
     rx_patch(skip, rx_here());
+    if (write) {
+        rx_testb_mi(block, base, disp + (int32_t) offsetof(x86seg, access), 0x02);
+        skip = rx_jcc(block, RX_CC_NZ);
+        rx_alu_ri(block, 0, 1, RX_SLOW, 1);
+        rx_patch(skip, rx_here());
+        rx_testb_mi(block, base, disp + (int32_t) offsetof(x86seg, access), 0x08);
+        skip = rx_jcc(block, RX_CC_Z);
+        rx_rr(block, 0, 0, 0x09, REG_RDX, RX_SLOW); /*OR EBX, EDX*/
+        rx_patch(skip, rx_here());
+    }
 }
 
 /*Forward run: clamp EAX to the elements left in the page at lin_reg*/
@@ -1008,9 +1020,9 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     branch = rx_jcc(block, RX_CC_Z);
     rx_rr(block, 0, 0, 0x31, REG_RDX, REG_RDX);
     rx_patch(branch, rx_here());
-    rx_seg_check(block, REG_RBP, es_disp);
+    rx_seg_check(block, REG_RBP, es_disp, 1);
     if (!is_stos)
-        rx_seg_check(block, RX_SEG, 0);
+        rx_seg_check(block, RX_SEG, 0, 0);
 
     /*Top of the loop*/
     loop = rx_here();

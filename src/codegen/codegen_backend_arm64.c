@@ -476,10 +476,12 @@ rep_writeback(codeblock_t *block, int is_stos, int a32)
     host_arm64_STR_IMM_W(block, REP_CYCLES, REG_CPUSTATE, rep_state_offset(&cpu_state._cycles));
 }
 
-/*Sets W6 to 1 if the segment at base_reg + offset would fail the interpreter's
-  null selector or not-present check, using W2 = (msw & 1) && !(eflags & VM)*/
+/*Sets the slow flag if the segment at base_reg + offset would fail the
+  interpreter's null selector or not-present check, and for the segment written
+  its writability check (SEG_NOT_WRITABLE: writable bit clear, or a code segment
+  in protected mode), using W2 = (msw & 1) && !(eflags & VM)*/
 static void
-rep_seg_check(codeblock_t *block, int base_reg, int offset)
+rep_seg_check(codeblock_t *block, int base_reg, int offset, int write)
 {
     host_arm64_LDR_IMM_W(block, REG_W5, base_reg, offset + offsetof(x86seg, base));
     host_arm64_CMN_IMM(block, REG_W5, 1);
@@ -490,6 +492,15 @@ rep_seg_check(codeblock_t *block, int base_reg, int offset)
     host_arm64_TST_IMM(block, REG_W5, 0x80);
     host_arm64_CSEL_EQ(block, REG_W6, REG_W2, REG_WZR);
     host_arm64_ORR_REG(block, REP_SLOW, REP_SLOW, REG_W6, 0);
+    if (write) {
+        host_arm64_TST_IMM(block, REG_W5, 0x02);
+        host_arm64_CSET_NE(block, REG_W6);
+        host_arm64_EOR_IMM(block, REG_W6, REG_W6, 1);
+        host_arm64_ORR_REG(block, REP_SLOW, REP_SLOW, REG_W6, 0);
+        host_arm64_TST_IMM(block, REG_W5, 0x08);
+        host_arm64_CSEL_EQ(block, REG_W6, REG_WZR, REG_W2);
+        host_arm64_ORR_REG(block, REP_SLOW, REP_SLOW, REG_W6, 0);
+    }
 }
 
 /*Clamps W0 to W1 (unsigned)*/
@@ -692,9 +703,9 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     host_arm64_LDRH_IMM(block, REG_W5, REG_CPUSTATE, rep_state_offset(&cpu_state.eflags));
     host_arm64_TST_IMM(block, REG_W5, VM_FLAG);
     host_arm64_CSEL_EQ(block, REG_W2, REG_W2, REG_WZR);
-    rep_seg_check(block, REG_CPUSTATE, es_offset);
+    rep_seg_check(block, REG_CPUSTATE, es_offset, 1);
     if (!is_stos)
-        rep_seg_check(block, REP_SEG, 0);
+        rep_seg_check(block, REP_SEG, 0, 0);
 
     /*Lookup tables, and the value to store*/
     if (!is_stos)
