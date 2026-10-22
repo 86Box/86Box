@@ -1764,14 +1764,8 @@ acpi_reg_write_sis_5595(int size, uint16_t addr, uint8_t val, void *priv)
             dev->regs.gpe_pin = ((dev->regs.gpe_pin & ~(0x0f << shift32)) | ((val & 0x0f) << shift32));
             if ((machines[machine].init == machine_at_m748mr_init) && (val & 0x02) &&
                 !(dev->regs.gpe_io & 0x00000200)) {
-                dma_reset();
-                dma_set_at(1);
-                device_reset_all(DEVICE_PCI | DEVICE_AGP);
-                pci_reset();
-                mem_a20_alt = 0;
-                mem_a20_recalc();
-                flushmmucache();
-                resetx86();
+                acpi_log("ACPI: GPIO9 driven high, resetting the machine\n");
+                pci_write(0xcf9, 0x06, NULL);
                 }
             break;
         case 0x1e:
