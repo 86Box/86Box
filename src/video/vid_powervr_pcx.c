@@ -207,7 +207,9 @@ typedef struct pcx_t {
     uint32_t int_status;
     int      in_reset;
     int      render_busy;
-    uint32_t tlb_hiwater;  /* highest TLB entry written since last start + 1 */
+    uint32_t tlb_hiwater;  /* highest TLB entry ever written + 1. The Windows
+                              drivers rewrite the TLB every frame; the DOS
+                              SGL driver (Tomb Raider) writes it once. */
 
     pc_timer_t render_timer;
 
@@ -722,7 +724,6 @@ pcx_start_render(pcx_t *pcx)
     pcx_render_frame(pcx);
 
     pcx->render_busy = 1;
-    pcx->tlb_hiwater = 0;
     timer_on_auto(&pcx->render_timer, (double) pcx->render_delay_us);
 }
 

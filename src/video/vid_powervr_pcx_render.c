@@ -75,6 +75,10 @@ clz32(uint32_t v) /* v != 0 */
 /* Tile list words. */
 #define REG_COMPULSORY_BITS 0x40000000u
 #define LINK_LIST_BIT       0x20000000u
+/* A link word has bit 29 set and bit 30 clear. A region word always has
+   bit 30 set, and bit 29 is then the top bit of its Y position (tiles at
+   Y 512 and below, reached at 800x600), not a link. */
+#define IS_LINK(w)          (((w) & (LINK_LIST_BIT | REG_COMPULSORY_BITS)) == LINK_LIST_BIT)
 #define OBJ_VERY_LAST_PTR   0x80000000u
 #define WORDS_PER_PLANE     4
 
@@ -184,6 +188,15 @@ to_int32(double v)
     if (v >= 2147483647.0)
         return 0x7fffffff;
     if (v <= -2147483648.0)
+        return (int32_t) 0x80000000u;
+    /* A small negative C (between -2 and 0) does not truncate toward 0:
+       the m3D turns it into the most negative value, so an edge plane with
+       such a C is outside everywhere and its object vanishes. Small
+       positive values are unaffected. Measured with Shadows of the Empire
+       1.1 at 320x240 and 320x200, where menu triangles with C of -0.25,
+       -0.56, -0.57, -0.94, -1.55 and -1.63 are missing on the card while
+       those with -2.46 and below, or +0.14 and +0.75, are drawn. */
+    if (v < 0.0 && v > -2.0)
         return (int32_t) 0x80000000u;
     return (int32_t) v;
 }
@@ -528,6 +541,18 @@ texture_pixel(const ctx_t *c, int x, int y, int a, int b, int cc, int d, int e, 
     shift = power_two ? top.e - (bot.e + 13) : top.e - (bot.e + 14);
     vf    = ashift(v, shift + 5) & 8191;
     v     = ashift(v, shift) & 255;
+
+    /* A texture mirrored in u (flip bit 12) on a mirrored repeat also
+       mirrors the bilinear weight: the fraction is inverted while each
+       sample's address is mirrored as usual. Measured on the m3D with
+       edited frames, where it makes every u-mirrored pixel match. The v
+       direction does not follow the same rule and is not yet modelled. */
+    if (flip_uv & 2) {
+        static const int32_t raw_mask[] = { 0x1f, 0x3f, 0x7f, 0xff };
+        int32_t              bit        = (map_size == 3) ? 128 : raw_mask[map_size] + 1;
+        if (u & bit)
+            uf = ~uf & 8191;
+    }
 
     /* Mip-map level from the squared 1/w. */
     bot.m >>= 6;
@@ -1115,7 +1140,7 @@ pcxr_prepare(pcxr_job_t *job, const pcxr_frame_t *f, pcxr_result_t *res)
         }
 
         obj_data = strip_trans_bit(isp_word(&c, start + cur_word));
-        while ((obj_data & LINK_LIST_BIT) && safety < 10) {
+        while (IS_LINK(obj_data) && safety < 10) {
             start    = obj_data & 0x00ffffff;
             cur_word = 0;
             obj_data = isp_word(&c, start);
@@ -1163,7 +1188,7 @@ pcxr_prepare(pcxr_job_t *job, const pcxr_frame_t *f, pcxr_result_t *res)
             uint32_t  plane_off;
 
             obj_data = strip_trans_bit(isp_word(&c, local_start + local_word + obj_off));
-            while ((obj_data & LINK_LIST_BIT) && safety < 10) {
+            while (IS_LINK(obj_data) && safety < 10) {
                 local_start = obj_data & 0x00ffffff;
                 local_word  = 0;
                 obj_off     = 0;
@@ -1198,9 +1223,9 @@ pcxr_prepare(pcxr_job_t *job, const pcxr_frame_t *f, pcxr_result_t *res)
                 last_in_region = 1;
             else {
                 uint32_t next = strip_trans_bit(isp_word(&c, local_start + local_word + obj_off + 1));
-                if (next & LINK_LIST_BIT) {
+                if (IS_LINK(next)) {
                     uint32_t s2 = 0;
-                    while ((next & LINK_LIST_BIT) && s2 < 10) {
+                    while (IS_LINK(next) && s2 < 10) {
                         next = isp_word(&c, next & 0x00ffffff);
                         s2++;
                     }
