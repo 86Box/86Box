@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-21 17:55+0000\n"
+"PO-Revision-Date: 2026-10-22 12:02+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -152,10 +152,10 @@ msgid "4:&3 Integer scale"
 msgstr "Redimensionamento com valores inteiros 4:&3"
 
 msgid "&Center"
-msgstr ""
+msgstr "&Centralizado"
 
 msgid "4:3 Cen&ter"
-msgstr ""
+msgstr "4:3 Centrali&zado"
 
 msgid "Inverted VGA monitor"
 msgstr "Monitor VGA invertido"
