@@ -246,9 +246,24 @@ extern void lapic_index_board_reset(uint8_t index);
 static int reset_init;
 
 /* Common reset function. */
+/* 1 soft, 2 hard: a reset raised inside a recompiled block, done once the
+   block has returned (x86_reset_deferred) */
+static int reset_deferred;
+
 static void
 reset_common(int hard)
 {
+#ifdef USE_DYNAREC
+    /* A port or memory access in the block may have run a timer that resets
+       the CPU (the keyboard controller's reset pulse): the rest of the block
+       would overwrite the reset state. x86_was_reset ends the block at its
+       next I/O instruction or block link. */
+    if (inrecomp) {
+        reset_deferred = MAX(reset_deferred, hard + 1);
+        x86_was_reset  = 1;
+        return;
+    }
+#endif
     automation_reset(hard);
     /* A soft reset is the INIT pin: on the P54C, the P55C and the P6 family
        it leaves the FPU, the caches and the MSRs (cpu_init_keeps_state). */
@@ -415,10 +430,7 @@ reset_common(int hard)
     cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTFLATES;
 #endif
 #ifdef USE_DYNAREC
-    /* A reset raised from inside a recompiled block (a timer run by RDTSC)
-       must not free the block still running; the dynarec loop flushes once
-       the block has returned. */
-    if (hard && !inrecomp)
+    if (hard)
         codegen_reset();
 #endif
     cpu_flush_pending = 0;
@@ -491,6 +503,20 @@ resetx86(void)
 }
 
 /* Soft reset. */
+#ifdef USE_DYNAREC
+void
+x86_reset_deferred(void)
+{
+    if (reset_deferred) {
+        const int hard = reset_deferred - 1;
+
+        reset_deferred = 0;
+        cpu_state.abrt = 0; /* a fault later in the block came after the reset */
+        reset_common(hard);
+    }
+}
+#endif
+
 void
 softresetx86(void)
 {

@@ -774,6 +774,7 @@ load_video(void)
         ini_section_delete_var(cat, "da2");
 
     voodoo_enabled                   = !!ini_section_get_int(cat, "voodoo", 0);
+    powervr_enabled                  = !!ini_section_get_int(cat, "powervr", 0);
     ibm8514_standalone_enabled       = !!ini_section_get_int(cat, "8514a", 0);
     ibm8514_active                   = ibm8514_standalone_enabled;
     xga_standalone_enabled           = !!ini_section_get_int(cat, "xga", 0);
@@ -3538,6 +3539,11 @@ save_video(void)
         ini_section_set_int(cat, "vid_cga_comp_saturation", vid_cga_comp_saturation);
     else
         ini_section_delete_var(cat, "vid_cga_comp_saturation");
+
+    if (powervr_enabled == 0)
+        ini_section_delete_var(cat, "powervr");
+    else
+        ini_section_set_int(cat, "powervr", powervr_enabled);
 
     if (voodoo_enabled == 0)
         ini_section_delete_var(cat, "voodoo");

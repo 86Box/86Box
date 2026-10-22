@@ -200,6 +200,20 @@
             </property>
            </widget>
           </item>
+          <item row="6" column="0" colspan="2">
+           <widget class="QCheckBox" name="checkBoxPowerVR">
+            <property name="text">
+             <string>PowerVR PCX1/PCX2 Graphics</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="2">
+           <widget class="QPushButton" name="pushButtonConfigurePowerVR">
+            <property name="text">
+             <string>Configure</string>
+            </property>
+           </widget>
+          </item>
 
          </layout>
         </widget>
@@ -437,6 +451,8 @@
   <tabstop>radioButtonCustom</tabstop>
   <tabstop>checkBoxVoodoo</tabstop>
   <tabstop>pushButtonConfigureVoodoo</tabstop>
+  <tabstop>checkBoxPowerVR</tabstop>
+  <tabstop>pushButtonConfigurePowerVR</tabstop>
   <tabstop>checkBox8514</tabstop>
   <tabstop>pushButtonConfigure8514</tabstop>
   <tabstop>checkBoxXga</tabstop>

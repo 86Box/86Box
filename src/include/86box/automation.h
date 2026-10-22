@@ -60,6 +60,12 @@ extern void     automation_serial_out(int port, uint8_t val);
 extern int      automation_serial_in(int port, uint8_t *val, double byte_us);
 extern uint32_t automation_serial_lines(int port);
 extern void     automation_serial_control(int port, uint32_t control);
+/* Called with everything 86Box logs (any thread, also before
+   automation_init()); newline: append one. */
+extern void automation_log_text(const char *text, int newline);
+/* Called on a fatal error, instead of automation_close(): the client gets
+   the message before the connection closes. */
+extern void automation_fatal(const char *msg);
 #else
 #    define automation_init()
 #    define automation_close()
@@ -69,6 +75,8 @@ extern void     automation_serial_control(int port, uint32_t control);
 #    define automation_frame(x, y, w, h, monitor_index)
 #    define automation_reset(hard)
 #    define automation_audio(src, buf, size, is_float)
+#    define automation_log_text(text, newline)
+#    define automation_fatal(msg)
 #endif
 
 #ifdef __cplusplus

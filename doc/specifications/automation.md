@@ -46,9 +46,21 @@ token:
   `--automation-allow-remote`, and then logs a warning. Think hard before
   using it. The protocol is unencrypted, and anyone who can reach the port
   and has the token fully controls the machine, including reading and writing
-  its memory and changing its media.
+  its memory and changing its media, and can write files into the VM
+  directory's `automation-media` folder (`media put`). Loading media also
+  lets a client read, through the guest, any file 86Box can open.
 
 The token file is deleted when 86Box exits.
+
+> [!CAUTION]
+> **Never connect a machine running 86Box with `--automation-allow-remote` to
+> the internet**, nor to any network you don't fully trust, and never forward
+> the automation port (or the GDB stub's) through a router. The protocol is
+> unencrypted, so the token can be read by anyone on the path, and with
+> `--automation-insecure` there is no token at all. Whoever gets in can read
+> files on the host through the guest and fill its disk with `media put`. To
+> reach 86Box from another machine, keep it on `127.0.0.1` and use an SSH
+> tunnel or a VPN instead.
 
 ## Protocol (version 1)
 
@@ -86,7 +98,7 @@ startup), `frames` (frames rendered) and `held`.
 | `serial read <port> [<from> [<max>]]` | What the guest has sent on COM`<port>` from position `from` (default 0) on, at most `max` bytes (default and limit 65536), as hex `data`. With `from` and `next` (the `from` for the next read), `pos` (bytes sent so far), `lost` (bytes asked for that were no longer kept), `last_ms` (emulated time of the last byte), `pending` (bytes queued for the guest that it hasn't taken), `taken` (bytes it has taken), `attached`, and the lines: `dtr`, `rts`, `break` (set by the guest), `cts`, `dsr`, `dcd`, `ri` (seen by it). Fails if the port doesn't have the `automation` backend. |
 | `serial write <port> <hex>` | Queue bytes for the guest to receive on COM`<port>` (up to 65536 waiting). Reply has `queued` and `pending`; fails with `input queue full`, queueing nothing, if they don't fit. |
 | `serial lines <port> <cts> <dsr> <dcd> <ri>` | Set the modem status lines the guest sees, each 0 or 1 (CTS, DSR and DCD start on). Reply has the lines, as for `serial read`. |
-| `info` | Version, machine, CPU and clock, RAM, video and sound cards, mounted hard disk/floppy/CD images, `hard_resets`/`soft_resets` (every CPU reset, including a guest triple fault) and `last_reset_ms`, `speed_percent` (100 = real time), and `serial`: each enabled COM port's `port` and `device` (the backend's internal name, or `none`), the line settings the guest has programmed when a backend is attached (`baud`, `data_bits`, `parity`, `stop_bits`), and for an `automation` port `pos`, `oldest` (the first position still kept), `last_ms`, `pending` and the lines. |
+| `info` | Version, machine, CPU and clock, RAM, video and sound cards, mounted hard disk/floppy/CD images, `hard_resets`/`soft_resets` (every CPU reset, including a guest triple fault) and `last_reset_ms`, `speed_percent` (100 = real time), and `serial`: each enabled COM port's `port` and `device` (the backend's internal name, or `none`), the line settings the guest has programmed when a backend is attached (`baud`, `data_bits`, `parity`, `stop_bits`), and for an `automation` port `pos`, `oldest` (the first position still kept), `last_ms`, `pending` and the lines. In a build with the GDB stub, `gdbstub_port`. |
 | `text` | Text-mode screen via the BIOS data area: `mode`, `cols`, `rows`, `cursor` [row, col], and `chars`/`attrs` as one hex string per row (CP437). Fails in graphics modes. |
 | `memr <addr> <len>` | Read up to 65536 bytes of physical memory; `data` is hex. |
 | `memw <addr> <hex>` | Write bytes to physical memory. |
@@ -94,6 +106,9 @@ startup), `frames` (frames rendered) and `held`.
 | `fpu` | The x87: `fcw`, `fsw` (with TOP), `ftw` (the full tag word, two bits per register), `top`, and `st0`–`st7` as 20 hex digits each (sign and exponent, then the significand), as FSAVE would store them. With MMX, `mm0`–`mm7` as 16 hex digits. Fails without an FPU. |
 | `fdd load <drive> <path>` / `fdd eject <drive>` | Change floppy media (drive 0 = A:). |
 | `cd load <drive> <path>` / `cd eject <drive>` | Change CD-ROM media. |
+| `media put <name> <bytes>`, then the bytes | Receive a file from the client, for a client on another machine: the line is followed on the connection by exactly `<bytes>` raw bytes, saved as `automation-media/<name>` in the VM directory (created if needed), replacing a file of that name once all of it has arrived. `<name>` must stay in that folder: no `/`, `\` or `:`, and not `.` or `..`; any other name the OS refuses gets its error. Reply has `path`, to use with `fdd load` or `cd load`, and `bytes`. The machine runs on (or stays held) while the bytes arrive. If the name is bad or the file can't be written, the bytes are still read, and the reply is an error with the OS's reason; if `<bytes>` isn't a number, the connection is closed, since what follows can't be told from the next request. See [Media from a client](#media-from-a-client). |
+| `media remove <name>` | Delete a file received with `media put`. |
+| `log [<from> [<max>]]` | What 86Box has written to its log, from position `from` (bytes logged since startup; default 0) on, at most `max` bytes (default and limit 65536), as `text`: the last 64 KB are kept. With `from`, `next` (the `from` for the next read), `pos` (bytes logged so far) and `lost` (bytes asked for that were no longer kept). Includes warnings, which 86Box logs instead of showing them (see [Warnings](#warnings)); a release build logs little else. |
 | `reset hard` / `reset cad` | Hard reset, or send Ctrl+Alt+Del. |
 | `quit soft` | Soft power-off, like the GUI "Power off (soft)" button. Machine must not be held. |
 | `quit` | Power off and exit 86Box. |
@@ -158,6 +173,25 @@ emulated times gives the same bytes at the same positions and `last_ms`.
 
 The backend is only built with `-D AUTOMATION=ON`.
 
+## Media from a client
+
+`fdd load` and `cd load` take a path on the machine running 86Box. A client
+on another machine sends the image first, then loads it from the path in the
+reply:
+
+```
+media put game.img 1474560
+<1474560 bytes>
+{"ok":true,"bytes":1474560,"path":"/vms/dos/automation-media/game.img"}
+fdd load 0 /vms/dos/automation-media/game.img
+```
+
+A CD image in several files (a `.cue` and its `.bin`) goes as several files
+under the names the `.cue` uses. The files stay in the VM directory, where
+the configuration may refer to them, until `media remove` deletes them.
+Replacing a file that a drive has open works on Linux and macOS (the drive
+reads the old one until the next load); on Windows, eject it first.
+
 ## Warnings
 
 With automation on, 86Box writes warnings (such as a media image that can't
@@ -169,7 +203,9 @@ socket would be stuck until someone did.
 
 On a fatal error, 86Box writes the message to its log and closes the
 automation socket before it shows the error dialog, so a client sees its
-connection close rather than waiting for a reply.
+connection close rather than waiting for a reply. Before it closes, a
+connected client gets `{"ok":false,"fatal":true,"error":"<message>"}`: the
+reply to its request, if one was waiting, or a line of its own.
 
 ## With the GDB stub
 

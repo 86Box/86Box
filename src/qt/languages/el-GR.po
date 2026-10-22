@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-21 16:19+0000\n"
+"PO-Revision-Date: 2026-10-22 13:10+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -151,10 +151,10 @@ msgid "4:&3 Integer scale"
 msgstr "Aκέραια κλίμακα 4:&3"
 
 msgid "&Center"
-msgstr ""
+msgstr "&Κέντρο"
 
 msgid "4:3 Cen&ter"
-msgstr ""
+msgstr "4:3 Κέν&τρο"
 
 msgid "Inverted VGA monitor"
 msgstr "Αντεστραμμένο VGA monitor"

@@ -21,6 +21,10 @@ add_library(vid OBJECT
     video.c
     vid_table.c
 
+    # PowerVR PCX1/PCX2 add-on
+    vid_powervr_pcx.c
+    vid_powervr_pcx_render.c
+
     # RAMDAC (Should this be its own library?)
     ramdac/vid_ramdac_ati68860.c
     ramdac/vid_ramdac_ati68875.c 
@@ -187,6 +191,12 @@ endif()
 
 if(G100)
     target_compile_definitions(vid PRIVATE USE_G100)
+endif()
+
+# PowerVR PCX: chip, revision, interrupt-ack, render-time and debug settings
+# for testing against hardware; ordinary builds use the measured m3D values.
+if(POWERVR_PCX_DEV)
+    target_compile_definitions(vid PRIVATE USE_POWERVR_PCX_DEV)
 endif()
 
 if(XL24)
