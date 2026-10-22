@@ -2099,15 +2099,26 @@ fdc_callback(void *priv)
                 }
             }
             return;
-        case 0x04: /* Sense drive status */
-            fdc->res[10] = (fdc->params[0] & 7) | 0x20;
-            if (fdd_is_double_sided(fdc->fdd[real_drive(fdc, fdc->drive)]))
-                fdc->res[10] |= 0x08;
+        case 0x04: { /* Sense drive status */
+            fdd_drive_t *drv = (fdd_drive_t *) fdc->fdd[real_drive(fdc, fdc->drive)];
+
+            fdc->res[10] = fdc->params[0] & 7;
+            if (fdc->flags & FDC_FLAG_AT) {
+                /* The AT-class controllers (82077AA and the Super I/O ones)
+                   report the two-side and ready bits as always set. */
+                fdc->res[10] |= 0x28;
+            } else {
+                /* The XT-class controllers passes the drive's pins through, so
+                   a position with no drive has no ready signal to report. */
+                if (fdd_is_double_sided(drv))
+                    fdc->res[10] |= 0x08;
+                if (fdd_get_flags(drv))
+                    fdc->res[10] |= 0x20;
+            }
             if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en) {
                 if (fdc_track0(fdc, real_drive(fdc, fdc->drive)))
                     fdc->res[10] |= 0x10;
             }
-            fdd_drive_t *drv = (fdd_drive_t *) fdc->fdd[fdc->drive];
             if (drv->writeprot)
                 fdc->res[10] |= 0x40;
             /* IBM 5550 */
@@ -2120,6 +2131,7 @@ fdc_callback(void *priv)
             fdc->paramstogo = 1;
             fdc->interrupt  = 0;
             return;
+        }
         case 0x05: /* Write data */
         case 0x09: /* Write deleted data */
         case 0x06: /* Read data */
@@ -2929,10 +2941,10 @@ fdc_reset(void *priv)
     fdc->config = 0x20;
     fdc->pretrk = 0;
 
+    fdc->lock          = 0;
+
     fdc->swwp          = 0;
     fdc->disable_write = 0;
-
-    fdc->lock          = 0;
 
     fdc_ctrl_reset(fdc, !(fdc->flags & FDC_FLAG_PNP));
 
