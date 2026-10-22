@@ -49,6 +49,8 @@ typedef struct ioapic_t {
     uint8_t  smi_pin; /* 0xff: none */
     uint8_t  is_esc;
     uint8_t  lapic_only; /* no I/O APIC: the local APIC's path alone */
+    uint8_t  is_via;     /* the VT82C686B's own (IOAPIC_VARIANT_VIA) */
+    uint8_t  window_off; /* the chipset decodes no window (ioapic_set_window_enabled) */
     uint8_t  intr_masked; /* the ESC's INTRC: the 8259's INTR held inactive */
     uint32_t version_reg;
     uint32_t mmio_base;
@@ -1164,8 +1166,10 @@ ioapic_window_read(ioapic_t *dev)
         return ((uint32_t) dev->ioapic_id) << 24;
     if (index == 0x01)
         return dev->version_reg;
+    /* The VT82C686B's "APIC Arbitration ID ... always reads 00h" (data
+       sheet 1.8, p. 116). */
     if (index == 0x02)
-        return ((uint32_t) dev->ioapic_arb_id) << 24;
+        return dev->is_via ? 0 : (((uint32_t) dev->ioapic_arb_id) << 24);
     if ((index >= 0x10) && (index < (0x10 + (dev->pins * 2)))) {
         uint8_t  redir_index = index - 0x10;
         uint32_t val = dev->ioapic_redir[redir_index];
@@ -1274,6 +1278,20 @@ ioapic_mmio_writel(uint32_t addr, uint32_t val, void *priv)
         dev->ioapic_index = val & 0xff;
     else if (reg == 0x10)
         ioapic_window_write(dev, val);
+    else if (dev->is_via && (reg == 0x20)) {
+        /* "APIC IRQ Pin Assertion ... IRQ # for this interrupt. Valid
+           values are 0-23 only" (VT82C686B data sheet 1.8, p. 116): an
+           interrupt on that pin, sent as its entry says. */
+        if ((val & 0x1f) < dev->pins)
+            ioapic_deliver_pin(dev, val & 0x1f, 1);
+    } else if (dev->is_via && (reg == 0x40)) {
+        /* "When a write is issued to this register, the APIC will check this
+           field and compare it with the vector field for each entry ...
+           When a match is found, the Remote_IRR bit for that I/O
+           Redirection Entry will be cleared" (p. 116): an EOI, as a local
+           APIC's would be. */
+        ioapic_eoi(dev, val & 0xff);
+    }
 }
 
 static void
@@ -1439,7 +1457,11 @@ ioapic_set_legacy_irq_routing(void *ioapic, const ioapic_legacy_irq_routing_t *r
 static void
 ioapic_apply_mapping(ioapic_t *dev)
 {
-    if (dev->uniprocessor_apic && !dev->lapic_only)
+    if (!dev->uniprocessor_apic || dev->lapic_only)
+        return;
+    if (dev->window_off)
+        mem_mapping_disable(&dev->ioapic_mapping);
+    else
         mem_mapping_set_addr(&dev->ioapic_mapping, dev->mmio_base, dev->mmio_size);
 }
 
@@ -1469,6 +1491,20 @@ ioapic_set_intr_masked(void *ioapic, int masked)
 
     dev->intr_masked = !!masked;
     ioapic_wire_intr_update(dev);
+}
+
+/* Whether the chipset decodes the window at all (the VT82C686B's Internal
+   APIC Enable, Rx77[4]). The I/O APIC keeps its state either way. */
+void
+ioapic_set_window_enabled(void *ioapic, int enabled)
+{
+    ioapic_t *dev = (ioapic_t *) ioapic;
+
+    if (dev == NULL)
+        return;
+
+    dev->window_off = !enabled;
+    ioapic_apply_mapping(dev);
 }
 
 int
@@ -1541,6 +1577,7 @@ ioapic_init(UNUSED(const device_t *info))
     dev->post_trigger = (local & IOAPIC_POST_TRIGGER_AMI) ? 0x00 : 0xff;
     dev->is_esc       = !!(local & IOAPIC_VARIANT_ESC);
     dev->lapic_only   = !!(local & IOAPIC_VARIANT_NONE);
+    dev->is_via       = !!(local & IOAPIC_VARIANT_VIA);
     if (dev->lapic_only) {
         dev->pins        = 0;
         dev->smi_pin     = 0xff;
@@ -1551,6 +1588,13 @@ ioapic_init(UNUSED(const device_t *info))
         dev->smi_pin     = 0xff;
         dev->version_reg = 0x000f0011;
         dev->mmio_size   = 0x400;
+    } else if (dev->is_via) {
+        /* Twenty-four inputs, IRQ0-IRQ23 all of them interrupts, and
+           version 00170011h (VT82C686B data sheet 1.8, p. 116). */
+        dev->pins        = IOAPIC_REDIR_ENTRIES;
+        dev->smi_pin     = 0xff;
+        dev->version_reg = IOAPIC_VERSION_REG;
+        dev->mmio_size   = IOAPIC_MMIO_SIZE;
     } else {
         dev->pins        = IOAPIC_REDIR_ENTRIES;
         dev->smi_pin     = IOAPIC_SMI_PIN;
