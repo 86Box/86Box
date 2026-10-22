@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-21 14:45+0000\n"
-"Last-Translator: Canadew <chun-awa@outlook.com>\n"
+"PO-Revision-Date: 2026-10-22 12:02+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -152,7 +152,7 @@ msgid "4:&3 Integer scale"
 msgstr "4:3 整数比例(&3)"
 
 msgid "&Center"
-msgstr ""
+msgstr "居中(&C)"
 
 msgid "4:3 Cen&ter"
 msgstr ""
