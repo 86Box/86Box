@@ -27,6 +27,7 @@
 #include <QCompleter>
 #include <QSignalBlocker>
 #include <QTimer>
+#include <QDate>
 
 #include <algorithm>
 
@@ -133,6 +134,22 @@ SettingsMachine::SettingsMachine(QWidget *parent)
             break;
     }
 
+    /* Clamp spinner so the resulting year cannot be before 1980.
+       Config file may still contain a wider range; the spinner displays
+       the clamped value, but the original is preserved on save unless
+       the user actually changes the spinner. */
+    original_years_offset = time_offset_years;
+    years_offset_manipulated = false;
+    const int min_offset = 1980 - QDate::currentDate().year();
+    ui->spinBoxYearsOffset->setMinimum(min_offset);
+    ui->spinBoxYearsOffset->setMaximum(100);
+    {
+        const QSignalBlocker blocker(ui->spinBoxYearsOffset);
+        ui->spinBoxYearsOffset->setValue(time_offset_years);
+    }
+    updateYearsOffsetEnabled();
+    updateGuestYearLabel();
+
     ui->comboBoxMachineType->setCurrentIndex(-1);
     ui->comboBoxMachineType->setCurrentIndex(selectedMachineType);
 
@@ -209,6 +226,12 @@ SettingsMachine::changed()
     if (ui->radioButtonUTC->isChecked())
         temp = TIME_SYNC_ENABLED | TIME_SYNC_UTC;
     has_changed |= (time_sync                  != temp);
+    {
+        const int effective = years_offset_manipulated
+                                  ? ui->spinBoxYearsOffset->value()
+                                  : original_years_offset;
+        has_changed |= (time_offset_years != effective);
+    }
 
     return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
 }
@@ -272,6 +295,9 @@ SettingsMachine::save(int soft)
         time_sync = TIME_SYNC_ENABLED;
     if (ui->radioButtonUTC->isChecked())
         time_sync = TIME_SYNC_ENABLED | TIME_SYNC_UTC;
+
+    if (years_offset_manipulated)
+        time_offset_years = ui->spinBoxYearsOffset->value();
 }
 
 void
@@ -526,4 +552,50 @@ void
 SettingsMachine::on_radioButtonLargerFrames_clicked()
 {
     ui->radioButtonSmallerFrames->setChecked(false);
+}
+
+void
+SettingsMachine::updateGuestYearLabel()
+{
+    const int host_year = QDate::currentDate().year();
+    const int guest_year = host_year + ui->spinBoxYearsOffset->value();
+    ui->labelGuestYear->setText(tr("Guest startup year: %1").arg(guest_year));
+}
+
+void
+SettingsMachine::updateYearsOffsetEnabled()
+{
+    const bool enabled = !ui->radioButtonDisabled->isChecked();
+    ui->spinBoxYearsOffset->setEnabled(enabled);
+    ui->labelYearsOffset->setEnabled(enabled);
+    ui->labelGuestYear->setEnabled(enabled);
+}
+
+void
+SettingsMachine::on_spinBoxYearsOffset_valueChanged(int value)
+{
+    Q_UNUSED(value);
+    years_offset_manipulated = true;
+    updateGuestYearLabel();
+}
+
+void
+SettingsMachine::on_radioButtonDisabled_toggled(bool checked)
+{
+    Q_UNUSED(checked);
+    updateYearsOffsetEnabled();
+}
+
+void
+SettingsMachine::on_radioButtonLocalTime_toggled(bool checked)
+{
+    Q_UNUSED(checked);
+    updateYearsOffsetEnabled();
+}
+
+void
+SettingsMachine::on_radioButtonUTC_toggled(bool checked)
+{
+    Q_UNUSED(checked);
+    updateYearsOffsetEnabled();
 }

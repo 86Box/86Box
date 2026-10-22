@@ -41,10 +41,19 @@ private slots:
 
     void on_radioButtonLargerFrames_clicked();
 
+    void on_spinBoxYearsOffset_valueChanged(int value);
+    void on_radioButtonDisabled_toggled(bool checked);
+    void on_radioButtonLocalTime_toggled(bool checked);
+    void on_radioButtonUTC_toggled(bool checked);
+
 private:
+    void updateGuestYearLabel();
+    void updateYearsOffsetEnabled();
     Ui::SettingsMachine *ui;
 
     int                  machine_cfg_changed;
+    int                  original_years_offset = 0;
+    bool                 years_offset_manipulated = false;
 
     SettingsCompleter *  sc;
 };
