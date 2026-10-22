@@ -159,16 +159,29 @@ codegen_AND_IMM(codeblock_t *block, uop_t *uop)
 
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
         host_arm64_AND_IMM(block, dest_reg, src_reg, uop->imm_data);
-    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size)) {
+    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size) && dest_reg == src_reg) {
+        /*The widened mask keeps the other bits of the destination only when
+          it is also the source; with another source they would come from
+          that register, so the general case below inserts the result.*/
         host_arm64_AND_IMM(block, dest_reg, src_reg, uop->imm_data | 0xffff0000);
-    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size)) {
+    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size) && dest_reg == src_reg) {
         host_arm64_AND_IMM(block, dest_reg, src_reg, uop->imm_data | 0xffffff00);
+    } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size) && dest_reg == src_reg) {
+        host_arm64_AND_IMM(block, dest_reg, src_reg, (uop->imm_data << 8) | 0xffff00ff);
+    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size)) {
+        host_arm64_AND_IMM(block, REG_TEMP, src_reg, uop->imm_data);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 16);
+    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size)) {
+        host_arm64_AND_IMM(block, REG_TEMP, src_reg, uop->imm_data);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 8);
     } else if (REG_IS_B(dest_size) && REG_IS_BH(src_size)) {
         host_arm64_MOV_REG_LSR(block, REG_TEMP, src_reg, 8);
         host_arm64_AND_IMM(block, REG_TEMP, REG_TEMP, uop->imm_data);
         host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 8);
     } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size)) {
-        host_arm64_AND_IMM(block, dest_reg, src_reg, (uop->imm_data << 8) | 0xffff00ff);
+        host_arm64_MOV_REG_LSR(block, REG_TEMP, src_reg, 8);
+        host_arm64_AND_IMM(block, REG_TEMP, REG_TEMP, uop->imm_data);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 8, 8);
     } else
         fatal("AND_IMM %x %x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
 
