@@ -10,7 +10,7 @@ file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/machine/machine_table.c" tab
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/machine/machine_table.c")
 string(FIND "${table}" "/* NEC PC-9801VX:" profile_start)
-string(FIND "${table}" "/* 286 AT machines */" profile_end)
+string(FIND "${table}" "/* End of native PC-98 machine registrations. */" profile_end)
 if(profile_start LESS 0 OR profile_end LESS profile_start)
     message(FATAL_ERROR "Cannot find native PC-98 machine registrations")
 endif()
@@ -40,7 +40,9 @@ add_executable(pc98_machine_tests
 target_include_directories(pc98_machine_tests PRIVATE
     ../../../src/include ../../../src/cpu "${CMAKE_CURRENT_BINARY_DIR}")
 target_compile_features(pc98_machine_tests PRIVATE c_std_11)
-target_compile_definitions(pc98_machine_tests PRIVATE "$<$<CONFIG:Release>:RELEASE_BUILD>")
+target_compile_definitions(pc98_machine_tests PRIVATE
+    "$<$<CONFIG:Release>:RELEASE_BUILD>"
+    "$<$<BOOL:${DEV_BRANCH}>:PC98_EXPERIMENTAL>")
 set_property(TARGET pc98_machine_tests PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 target_compile_options(pc98_machine_tests PRIVATE
     $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-ffunction-sections;-fdata-sections>

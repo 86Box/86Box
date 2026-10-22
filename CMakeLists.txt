@@ -134,6 +134,10 @@ option(SDL2         "Use SDL2 instead of SDL3"                                  
 option(BUILD_TESTING "Build the unit test suite"                                  OFF)
 option(BUILD_BENCHMARKS "Build performance benchmarks"                            OFF)
 
+if(DEV_BRANCH)
+    add_compile_definitions(PC98_EXPERIMENTAL)
+endif()
+
 if(BUILD_TESTING)
     enable_testing()
     find_package(GTest CONFIG REQUIRED)

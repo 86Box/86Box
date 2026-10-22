@@ -3662,6 +3662,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "PC-9801VX", "PC98VX", "" }
     },
+#ifdef PC98_EXPERIMENTAL
     /* Supplied getitf98 BX4 firmware; legacy devices only until the later
        model's GD5430/full configuration/PMC/onboard IDE are validated. */
     {
@@ -3690,6 +3691,9 @@ const machine_t machines[] = {
         .vid_device = &pc9801bx4_video_device,
         .aliases = { "PC-9801BX4", "PC98BX4", "" }
     },
+#endif
+    /* End of native PC-98 machine registrations. */
+
     /* 80186 Machines */
     {
         .name              = "[80186] IBM Multistation 3477-S",

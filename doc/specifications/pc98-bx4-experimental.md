@@ -6,6 +6,10 @@ a separate model with its existing firmware paths, CPU upgrades and RAM limits.
 The requested true 386SX model still needs its own identified firmware and
 hardware profile; this BX4 entry does not stand in for that model.
 
+The profile is disabled in normal builds. Configure with `-DDEV_BRANCH=ON`
+to expose it for development. Standalone machine tests accept the same
+option; the default test configuration verifies that BX4 is absent.
+
 ## Hardware and implemented scope
 
 [NEC's BX4/U2 specification](https://support.nec-lavie.jp/support/product/data/spec/cpu/95070039-1.html)
