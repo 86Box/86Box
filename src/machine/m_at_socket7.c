@@ -23,6 +23,7 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/chipset.h>
+#include <86box/ioapic_routes.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/keyboard.h>
@@ -105,9 +106,17 @@ machine_at_p55t2p4_init(const machine_t *model)
     return ret;
 }
 
-void
-machine_at_p65up5_common_init(const machine_t *model, const device_t *northbridge)
+/* Shared P65UP5 path: caller chooses APIC policy; PCI/chipset wiring stays common. */
+static void
+machine_at_p65up5_common_init_local(const machine_t *model, const device_t *northbridge,
+                                    const device_t *ioapic_dev, uintptr_t ioapic_params)
 {
+    static const ioapic_legacy_irq_routing_t p65up5_irq_routing = {
+        .irq_to_intin  = IOAPIC_LEGACY_IRQ_ROUTE_ISA,
+        .pirq_to_intin = IOAPIC_PIRQ_ROUTE_82093AA
+    };
+    void *ioapic;
+
     machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
@@ -124,7 +133,23 @@ machine_at_p65up5_common_init(const machine_t *model, const device_t *northbridg
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&w83877_device, (void *) (W83877F | W83877_3F0));
     device_add(&sst_flash_29ee010_device);
-    device_add(&ioapic_device);
+
+    /* Legacy IRQ map is board-local; generic PIIX3 setup must not own it. */
+    ioapic = device_add_params(ioapic_dev, (void *) ioapic_params);
+    ioapic_set_legacy_irq_routing(ioapic, &p65up5_irq_routing);
+}
+
+void
+machine_at_p65up5_common_init(const machine_t *model, const device_t *northbridge)
+{
+    machine_at_p65up5_common_init_local(model, northbridge, &ioapic_device, 0);
+}
+
+void
+machine_at_p65up5_validated_up_init(const machine_t *model, const device_t *northbridge)
+{
+    machine_at_p65up5_common_init_local(model, northbridge, &ioapic_validated_up_device,
+                                        IOAPIC_TOPOLOGY_UP_APIC_DEFAULT);
 }
 
 int
@@ -138,7 +163,8 @@ machine_at_p65up5_cp55t2d_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_p65up5_common_init(model, &i430hx_device);
+    /* Validated-UP board hook wants the APIC-default wrapper, not raw common init. */
+    machine_at_p65up5_validated_up_init(model, &i430hx_device);
 
     return ret;
 }

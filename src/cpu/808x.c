@@ -40,6 +40,7 @@
 #include <86box/gdbstub.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include "x86_interrupt.h"
 #include "vx0_biu.h"
 #include "808x_marty_86box.h"
 
@@ -1240,7 +1241,7 @@ irq_pending(int nec_hlt)
      * And 8018x's on-chip controller asks for service through the same maskable
      * path the 8259 does. */
     temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) ||
-           (i_flag && (pic.int_pending || (i8018x_pcb_current != NULL && i8018x_pcb_icu_pending())) && (is80c88 ? !(noint & 1) : !noint));
+           (i_flag && (x86_external_interrupt_pending() || (i8018x_pcb_current != NULL && i8018x_pcb_icu_pending())) && (is80c88 ? !(noint & 1) : !noint));
 
     return temp;
 }
@@ -1270,7 +1271,7 @@ check_interrupts(int nec_hlt)
             cpu_dhlt_last_event = 1;
             return;
         }
-        if (i_flag && (pic.int_pending || (i8018x_pcb_current != NULL && i8018x_pcb_icu_pending())) && (is80c88 ? !(noint & 1) : !noint)) {
+        if (i_flag && (x86_external_interrupt_pending() || (i8018x_pcb_current != NULL && i8018x_pcb_icu_pending())) && (is80c88 ? !(noint & 1) : !noint)) {
             int icu = (i8018x_pcb_current != NULL) && i8018x_pcb_icu_pending();
 
             repeating = 0;

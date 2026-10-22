@@ -68,6 +68,26 @@ typedef struct i450kx_t {
     uint8_t mem_state[2][256];
 } i450kx_t;
 
+#ifdef ENABLE_450KX_LOG
+static uint32_t
+i450kx_apicr_base(const uint8_t *regs)
+{
+    return ((uint32_t) regs[0xa6] << 24) |
+           ((uint32_t) regs[0xa5] << 16) |
+           ((uint32_t) (regs[0xa4] & 0xfe) << 8);
+}
+
+static void
+i450kx_apicr_log(const char *unit, const uint8_t *regs)
+{
+    i450kx_log("i450KX-%s: APICR enable=%u base=%08x raw=%02x %02x %02x %02x\n",
+               unit, regs[0xa4] & 0x01, i450kx_apicr_base(regs),
+               regs[0xa4], regs[0xa5], regs[0xa6], regs[0xa7]);
+}
+#else
+#    define i450kx_apicr_log(unit, regs)
+#endif
+
 static void
 i450kx_map(i450kx_t *dev, int bus, uint32_t addr, uint32_t size, int state)
 {
@@ -308,13 +328,16 @@ pb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 
             case 0xa4:
                 dev->pb_pci_conf[addr] = val & 0xf8;
+                i450kx_apicr_log("PB", dev->pb_pci_conf);
                 break;
             case 0xa5:
             case 0xa6:
                 dev->pb_pci_conf[addr] = val;
+                i450kx_apicr_log("PB", dev->pb_pci_conf);
                 break;
             case 0xa7:
                 dev->pb_pci_conf[addr] = val & 0x0f;
+                i450kx_apicr_log("PB", dev->pb_pci_conf);
                 break;
 
             case 0xb0:
@@ -528,15 +551,19 @@ mc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 
             case 0xa4:
                 dev->mc_pci_conf[addr] = val & 0x01;
+                i450kx_apicr_log("MC", dev->mc_pci_conf);
                 break;
             case 0xa5:
-                dev->pb_pci_conf[addr] = val & 0xf0;
+                dev->mc_pci_conf[addr] = val & 0xf0;
+                i450kx_apicr_log("MC", dev->mc_pci_conf);
                 break;
             case 0xa6:
                 dev->mc_pci_conf[addr] = val;
+                i450kx_apicr_log("MC", dev->mc_pci_conf);
                 break;
             case 0xa7:
                 dev->mc_pci_conf[addr] = val & 0x0f;
+                i450kx_apicr_log("MC", dev->mc_pci_conf);
                 break;
 
             case 0xa8:

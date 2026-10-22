@@ -235,6 +235,10 @@ makeznptable(void)
 }
 
 extern void codegen_set_rounding_mode(int mode); /* x87.h */
+/* The board's processor reset: the MP table hook looks afresh (ioapic.c). */
+extern void ioapic_processor_reset(void);
+/* The processor's RESET or INIT pin resets its local APIC (lapic.c). */
+extern void lapic_index_board_reset(uint8_t index);
 
 /* A soft reset on a processor with an INIT pin: what INIT keeps rather
    than what RESET sets (Pentium Vol. 3, Table 16-1; 16.2: the INIT pin
@@ -277,6 +281,10 @@ reset_common(int hard)
         else
             return;
     }
+
+    /* The BIOS's POST runs again, and builds its MP table again, perhaps
+       elsewhere. */
+    ioapic_processor_reset();
 
     /* Make sure to gracefully leave SMM. */
     if (in_smm)
@@ -439,6 +447,10 @@ reset_common(int hard)
         /* RESET empties the caches too. */
         cpu_car_invalidate();
     }
+    /* The local APIC goes through INIT at the INIT pin, and after RESET's
+       vendor reset as well, which sets its registers but not what it holds
+       beside them. */
+    lapic_index_board_reset(0);
 
     in_smm = smi_latched = 0;
     /* Out of any HLT: the block end must not step past the reset vector's

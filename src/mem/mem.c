@@ -131,6 +131,10 @@ mem_mapping_t        *write_mapping[MEM_MAPPINGS_NO];
 
 uint8_t              *_mem_exec[MEM_MAPPINGS_NO];
 
+/* Moves on whenever the map is rebuilt: a pointer mem_phys_ptr gave holds
+   while it is unchanged. */
+uint32_t mem_mapping_gen;
+
 static mem_mapping_t *base_mapping;
 static mem_mapping_t *last_mapping;
 static mem_mapping_t *read_mapping_bus[MEM_MAPPINGS_NO];
@@ -141,6 +145,13 @@ static mem_state_t    _mem_state[MEM_MAPPINGS_NO];
 static uint32_t       remap_start_addr;
 static uint32_t       remap_start_addr2;
 static size_t         ram_size = 0;
+
+/* The bytes of guest RAM behind ram[]. */
+size_t
+mem_ram_size(void)
+{
+    return ram_size;
+}
 
 #ifdef ENABLE_MEM_LOG
 int mem_do_log = ENABLE_MEM_LOG;
@@ -1705,6 +1716,24 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
     }
 }
 
+/* Where the len bytes at addr are, as the processor would read them, when
+   they lie in one granule of plain memory (RAM or ROM behind no handler);
+   NULL otherwise, for the caller to read them one at a time. */
+const uint8_t *
+mem_phys_ptr(uint32_t addr, uint32_t len)
+{
+    const mem_mapping_t *map = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
+    uint32_t             off;
+
+    if (!len || (len > MEM_GRANULARITY_SIZE) || !cpu_use_exec || (map == NULL) || (map->exec == NULL) ||
+        (((addr & MEM_GRANULARITY_MASK) + len) > MEM_GRANULARITY_SIZE))
+        return NULL;
+    off = (addr - map->base) & map->mask;
+    if ((((addr + len - 1) - map->base) & map->mask) != (off + len - 1))
+        return NULL; /* a small mirrored mapping wraps inside the granule */
+    return &map->exec[off];
+}
+
 uint8_t
 mem_readb_phys(uint32_t addr)
 {
@@ -2326,6 +2355,13 @@ mem_mapping_access_allowed(uint32_t flags, uint16_t access)
     return ret;
 }
 
+/* The bus's view: a mapping that is the processor's own is not on it. */
+static __inline int
+mem_mapping_bus_access_allowed(uint32_t flags, uint16_t access)
+{
+    return !(flags & MEM_MAPPING_CPU_ONLY) && mem_mapping_access_allowed(flags, access);
+}
+
 /* One granule of one mapping, put where an access of each kind will find it. */
 static void
 mem_mapping_apply_granule(mem_mapping_t *map, uint64_t c, int n)
@@ -2342,9 +2378,9 @@ mem_mapping_apply_granule(mem_mapping_t *map, uint64_t c, int n)
     n |= STATE_BUS;
     wp = _mem_wp_bus[c >> MEM_GRANULARITY_BITS];
 
-    if (!wp && (map->write_b || map->write_w || map->write_l) && mem_mapping_access_allowed(map->flags, _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
+    if (!wp && (map->write_b || map->write_w || map->write_l) && mem_mapping_bus_access_allowed(map->flags, _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
         write_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
-    if ((map->read_b || map->read_w || map->read_l) && mem_mapping_access_allowed(map->flags, _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
+    if ((map->read_b || map->read_w || map->read_l) && mem_mapping_bus_access_allowed(map->flags, _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
         read_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
 }
 
@@ -2390,6 +2426,8 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
        and overwrites whatever follows them. */
     if ((base + size + (base_ignore & mask)) > MEM_ADDR_SPACE_END)
         mem_mapping_past_4g(base, size, base_ignore & (uint32_t) mask);
+
+    mem_mapping_gen++;
 
     map = base_mapping;
 
@@ -2456,12 +2494,12 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
                     wp = _mem_wp_bus[c >> MEM_GRANULARITY_BITS];
 
                     if (!wp && (map->write_b || map->write_w || map->write_l) &&
-                        mem_mapping_access_allowed(map->flags,
-                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
+                        mem_mapping_bus_access_allowed(map->flags,
+                                                       _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
                         write_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
                     if ((map->read_b || map->read_w || map->read_l) &&
-                        mem_mapping_access_allowed(map->flags,
-                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
+                        mem_mapping_bus_access_allowed(map->flags,
+                                                       _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
                         read_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
                 }
             } else  for (i_c = i_s; i_c <= i_e; i_c += i_a) {
@@ -2487,12 +2525,12 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
                     wp = _mem_wp_bus[c >> MEM_GRANULARITY_BITS];
 
                     if (!wp && (map->write_b || map->write_w || map->write_l) &&
-                        mem_mapping_access_allowed(map->flags,
-                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
+                        mem_mapping_bus_access_allowed(map->flags,
+                                                       _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
                         write_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
                     if ((map->read_b || map->read_w || map->read_l) &&
-                        mem_mapping_access_allowed(map->flags,
-                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
+                        mem_mapping_bus_access_allowed(map->flags,
+                                                       _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
                         read_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
                 }
             }

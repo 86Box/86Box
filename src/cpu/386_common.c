@@ -71,6 +71,7 @@ extern uint8_t *pccache2;
 
 extern int      optype;
 extern uint32_t pccache;
+extern int      ioapic_lint1_raise(void);
 
 int      new_ne            = 0;
 int      in_sys            = 0;
@@ -2269,7 +2270,7 @@ cpu_fast_off_reset(void)
 }
 
 void
-smi_raise(void)
+cpu_smi_raise_direct(void)
 {
     uint8_t ccr1_check;
 
@@ -2290,7 +2291,7 @@ smi_raise(void)
 }
 
 void
-nmi_raise(void)
+cpu_nmi_raise_direct(void)
 {
     if (is486 && (cpu_fast_off_flags & 0x20000000)) {
         if (!is_cpu_thread)
@@ -2301,6 +2302,32 @@ nmi_raise(void)
     }
 
     nmi = 1;
+}
+
+/* An NMI raised in the processor; apic marks one from the local APIC,
+   which port 70h does not gate (NMI_TAKEABLE). */
+void
+cpu_nmi_raise_core(int apic)
+{
+    cpu_nmi_raise_direct();
+    if (apic)
+        nmi |= 2;
+}
+
+void
+smi_raise(void)
+{
+    cpu_smi_raise_direct();
+}
+
+/* Public NMI wrapper gives IOAPIC LINT1 first claim before legacy NMI line. */
+void
+nmi_raise(void)
+{
+    if (ioapic_lint1_raise())
+        return;
+
+    cpu_nmi_raise_direct();
 }
 
 #ifndef USE_DYNAREC

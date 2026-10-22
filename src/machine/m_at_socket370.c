@@ -24,6 +24,7 @@
 #include <86box/pci.h>
 #include <86box/device.h>
 #include <86box/chipset.h>
+#include <86box/ioapic_routes.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/keyboard.h>
@@ -790,6 +791,24 @@ static const device_config_t ms6318_config[] = {
                 .files         = { "roms/machines/ms6318/w6318vms.120", "" }
             },
             {
+                .name          = "AwardBIOS v6.00PG - Revision 7.1B5E (Elonex OEM)",
+                .internal_name = "ms6318_715",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6318/w6318ve1.715", "" }
+            },
+            {
+                .name          = "AwardBIOS v6.00PG - Revision 1.0B9 (Fujitsu-Siemens OEM)",
+                .internal_name = "ms6318_109",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6318/ms-6318-ver5.bin", "" }
+            },
+            {
                 .name          = "AwardBIOS v6.00PG - Revision 1.8 (HP Pavilion A7xx)",
                 .internal_name = "ms6318_180",
                 .bios_type     = BIOS_NORMAL,
@@ -825,8 +844,28 @@ static const device_config_t ms6318_config[] = {
                 .size          = 262144,
                 .files         = { "roms/machines/ms6318/ms6318.bin", "" }
             },
+            {
+                .name          = "AwardBIOS v6.00PG - Revision 7.51 (Medion MD6318)",
+                .internal_name = "ms6318_751",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6318/bios.rom", "" }
+            },
             { .files_no = 0 }
         }
+    },
+    {
+        .name           = "disable_apic",
+        .description    = "Disable APIC",
+        .type           = CONFIG_BINARY,
+        .default_int    = 0,
+        .default_string = NULL,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -849,8 +888,16 @@ const device_t ms6318_device = {
 int
 machine_at_ms6318_init(const machine_t *model)
 {
+    /* The 686B's I/O APIC has the ISA IRQs on their own inputs and PIRQA-D#
+       on 16-19. */
+    static const ioapic_legacy_irq_routing_t ms6318_irq_routing = {
+        .irq_to_intin  = IOAPIC_LEGACY_IRQ_ROUTE_ISA,
+        .pirq_to_intin = IOAPIC_PIRQ_ROUTE_82093AA
+    };
     int         ret = 0;
     const char *fn;
+    void       *pipc;
+    void       *ioapic;
 
     /* No ROMs available */
     if (!device_available(model->device))
@@ -873,9 +920,17 @@ machine_at_ms6318_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&via_apro133a_device);
-    device_add(&via_vt82c686b_device); /* fans: CPU1, CPU2; temperatures: CPU, System, unused */
+    pipc = device_add(&via_vt82c686b_device); /* fans: CPU1, CPU2; temperatures: CPU, System, unused */
     device_add(&sst_flash_39sf020_device); /* assumed */
     spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
+
+    /* The 686B's internal I/O APIC, which the Elonex, Fujitsu-Siemens and
+       Medion 7.51 BIOSes describe in their MP table. */
+    ioapic = device_add_params(&ioapic_validated_up_device,
+                               (void *) (IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_VARIANT_VIA));
+    ioapic_set_legacy_irq_routing(ioapic, &ms6318_irq_routing);
+    via_pipc_set_ioapic(pipc, ioapic);
+
     hwm_values.temperatures[0] += 2; /* CPU offset */
     hwm_values.temperatures[1] += 2; /* System offset */
     hwm_values.temperatures[2] = 0;  /* unused */
@@ -890,7 +945,15 @@ machine_at_ms6318_init(const machine_t *model)
 int
 machine_at_cairo5_init(const machine_t *model)
 {
-    int ret;
+    /* The 686B's I/O APIC has the ISA IRQs on their own inputs and PIRQA-D#
+       on 16-19. */
+    static const ioapic_legacy_irq_routing_t cairo5_irq_routing = {
+        .irq_to_intin  = IOAPIC_LEGACY_IRQ_ROUTE_ISA,
+        .pirq_to_intin = IOAPIC_PIRQ_ROUTE_82093AA
+    };
+    void *pipc;
+    void *ioapic;
+    int   ret;
 
     ret = bios_load_linear("roms/machines/cairo5/08BV.BIN",
                            0x000c0000, 262144, 0);
@@ -911,9 +974,16 @@ machine_at_cairo5_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&via_apro133a_device);
-    device_add(&via_vt82c686b_device);
+    pipc = device_add(&via_vt82c686b_device);
     device_add(&winbond_flash_w29c020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
+
+    /* The 686B's internal I/O APIC. The board's BIOSes build no MP table
+       and turn the APIC off through Rx77[4] late in POST. */
+    ioapic = device_add_params(&ioapic_validated_up_device,
+                               (void *) (IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_VARIANT_VIA));
+    ioapic_set_legacy_irq_routing(ioapic, &cairo5_irq_routing);
+    via_pipc_set_ioapic(pipc, ioapic);
 
     return ret;
 }

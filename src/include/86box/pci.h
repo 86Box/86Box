@@ -165,6 +165,8 @@
 #define PCI_IRQS_NUM              16
 #define PCI_IRQ_MAX               (PCI_IRQS_NUM - 1)
 
+typedef struct ioapic_pci_intin_route_state_t ioapic_pci_intin_route_state_t;
+
 /* Legacy flags. */
 #define PCI_REG_COMMAND           PCI_REG_COMMAND_L
 
@@ -200,7 +202,7 @@
 #define pci_clear_iirq(pci_int, irq_state) \
         pci_irq(PCI_IIRQ_BASE | (pci_int), 0, 0, 0, irq_state)
 #define pci_clear_dirq(dirq, irq_state) \
-        pci_irq(PCI_DIRQ_BASE | (irq), 0, 1, 0, irq_state)
+        pci_irq(PCI_DIRQ_BASE | (dirq), 0, 1, 0, irq_state)
 #define pci_clear_irq(slot, pci_int, irq_state) \
         pci_irq(slot, pci_int, 0, 0, irq_state)
 
@@ -305,6 +307,10 @@ extern void        pci_register_bus_slot(int bus, int card, int type, int inta, 
 /* One more slot on the bus a slot of this type sits on, next device
    number, INTA-D rotated (a two-IDSEL card such as the Rage Fury MAXX). */
 extern int         pci_register_sibling_slot(int type);
+extern void        pci_apic_set_intin_route(uint8_t bus, uint8_t device, uint8_t intpin, uint8_t intin);
+extern void        pci_apic_clear_intin_routes(void);
+extern uint16_t    pci_apic_save_intin_routes(ioapic_pci_intin_route_state_t *routes, uint16_t capacity);
+extern void        pci_apic_load_intin_routes(const ioapic_pci_intin_route_state_t *routes, uint16_t count);
 
 /* Add a PCI card. */
 extern void        pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, int len, void *priv),

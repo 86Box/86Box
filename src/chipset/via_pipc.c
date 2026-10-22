@@ -143,6 +143,7 @@ typedef struct _pipc_ {
     void    *ac97;
     void    *sio;
     void    *hwm;
+    void    *ioapic; /* the 686B's internal I/O APIC, where the board uses it */
     sb_t    *sb;
     uint16_t midigame_base;
     uint16_t sb_base;
@@ -312,6 +313,12 @@ pipc_reset_hard(void *priv)
     dev->pci_isa_regs[0x59] = 0x04;
     if (dev->local >= VIA_PIPC_686A)
         dev->pci_isa_regs[0x5a] = dev->pci_isa_regs[0x5f] = 0x04;
+    /* "Offset 77 - GPIO Control 4 Control (10h)": the Internal APIC Enable
+       is set out of reset (VT82C686B data sheet 1.8, p. 62). */
+    if (dev->local == VIA_PIPC_686B) {
+        dev->pci_isa_regs[0x77] = 0x10;
+        ioapic_set_window_enabled(dev->ioapic, 1);
+    }
 
     dma_e = 0x00;
     for (i = 0; i < 8; i++) {
@@ -1204,6 +1211,10 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 dev->pci_isa_regs[0x57] = val;
                 break;
             case 0x58:
+                /* On the 686B, External APIC IRQ Output Control: bits 7-5
+                   always read 0 (VT82C686B data sheet 1.8, p. 58). */
+                if (dev->local == VIA_PIPC_686B)
+                    val &= 0x1f;
                 if (dev->local == VIA_PIPC_586B) {
                     pipc_log("PIPC: Steering MIRQ2 to IRQ %d\n", val & 0x0f);
                     pci_set_mirq_routing(PCI_MIRQ2, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
@@ -1260,8 +1271,12 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
 
             case 0x77:
-                if ((dev->local >= VIA_PIPC_686A) && (val & 0x10))
+                if ((dev->local >= VIA_PIPC_686A) && (val & 0x10) && (dev->ioapic == NULL))
                     warning("PIPC: Warning: Internal I/O APIC enabled.\n");
+                dev->pci_isa_regs[0x77] = val;
+                /* Internal APIC Enable: the I/O APIC's window decoded
+                   (VT82C686B data sheet 1.8, p. 62). */
+                ioapic_set_window_enabled(dev->ioapic, !!(val & 0x10));
                 nvr_via_wp_set(!!(val & 0x04), 0x32, dev->nvr);
                 nvr_via_wp_set(!!(val & 0x02), 0x0d, dev->nvr);
                 break;
@@ -1740,6 +1755,12 @@ pipc_reset(void *priv)
         pipc_write(0, 0x44, 1, 0x00, priv);
 
     pipc_write(0, 0x77, 1, 0x00, priv);
+    /* The 686B's Internal APIC Enable is set out of reset (VT82C686B data
+       sheet 1.8, p. 62). */
+    if (dev->local == VIA_PIPC_686B) {
+        dev->pci_isa_regs[0x77] = 0x10;
+        ioapic_set_window_enabled(dev->ioapic, 1);
+    }
 
     for (int i = 0; i <= (dev->local >= VIA_PIPC_686A); i++) {
         pipc_usb_reset_regs(dev, i);
@@ -1932,6 +1953,17 @@ const device_t via_vt82c686a_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+/* The board wires the 686B's internal I/O APIC (IOAPIC_VARIANT_VIA) and
+   hands it over here: Rx77[4] decodes its window from then on. */
+void
+via_pipc_set_ioapic(void *priv, void *ioapic)
+{
+    pipc_t *dev = (pipc_t *) priv;
+
+    dev->ioapic = ioapic;
+    ioapic_set_window_enabled(ioapic, !!(dev->pci_isa_regs[0x77] & 0x10));
+}
 
 const device_t via_vt82c686b_device = {
     .name          = "VIA VT82C686B",
