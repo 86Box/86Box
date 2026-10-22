@@ -915,11 +915,16 @@ lapic_device_add_mmio_mapping(lapic_device_t *dev)
         /*
          * Add each possible MMIO window once, then leave exposure to
          * lapic_update_mapping() so APIC_BASE and enable state stay authoritative.
+         * The window is the processor's own: on a P6 "the APIC handles all
+         * memory accesses to addresses within the 4-KByte APIC register
+         * space and no external bus cycles are produced" (Intel
+         * Architecture Vol. 3, 243192, 7.5.7). A bus master's access at
+         * that address reaches no APIC (MEM_MAPPING_CPU_ONLY).
          */
         mem_mapping_add(&lapic->mapping, lapic_mmio_base(lapic), LAPIC_MMIO_SIZE,
                         lapic_readb, lapic_readw, lapic_readl,
                         lapic_writeb, lapic_writew, lapic_writel,
-                        NULL, MEM_MAPPING_EXTERNAL, &dev->mmio);
+                        NULL, MEM_MAPPING_EXTERNAL | MEM_MAPPING_CPU_ONLY, &dev->mmio);
         lapic->mapping_added = 1;
         mem_mapping_disable(&lapic->mapping);
     }

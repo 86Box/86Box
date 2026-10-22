@@ -121,6 +121,8 @@
 #define MEM_MAPPING_CACHE_ONLY 128 /* Lines held in the processor's cache: seen only where
                                      the CPU's access state has ACCESS_CACHE, and never
                                      by the bus (mem_set_cache_access). */
+#define MEM_MAPPING_CPU_ONLY  256 /* The processor's own: seen by its accesses and never
+                                     by a bus master's (mem_*_phys). */
 
 /* #define's for memory granularity, currently 4k, less does
    not work because of internal 4k pages. */
