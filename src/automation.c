@@ -94,7 +94,7 @@ typedef int sock_t;
 #define KEY_QUEUE_MAX       64
 #define LOG_RING            65536              /* the log's last bytes, for log */
 #define MEDIA_DIR           "automation-media" /* in the VM directory, for media put */
-#define MEDIA_NAME_MAX      128
+#define MEDIA_NAME_MAX      (REQ_MAX - 1) /* any name the request line can hold */
 /* Emulated ms between injected key events. One event can be up to six bytes
    in scan code set 2 (fake shifts around extended keys); delivering many at
    the same instant overflows the keyboard's 16-byte FIFO and loses keys. */
@@ -1744,21 +1744,13 @@ cmd_log(int argc, char **argv)
     sb_printf(&resp, "}");
 }
 
-/* Files a client sends (media put) go in MEDIA_DIR, under names that can't
-   leave it. */
+/* Files a client sends (media put) go in MEDIA_DIR. The name only has to
+   stay in it, which the OS doesn't see to; anything else it refuses (too
+   long, characters it doesn't allow) comes back as its error. */
 static int
 media_name_ok(const char *name)
 {
-    size_t len = strlen(name);
-
-    if (!len || (len > MEDIA_NAME_MAX) || (name[0] == '.'))
-        return 0;
-    for (const char *c = name; *c; c++) {
-        if (!(((*c >= 'a') && (*c <= 'z')) || ((*c >= 'A') && (*c <= 'Z')) || ((*c >= '0') && (*c <= '9')) ||
-              (*c == '.') || (*c == '-') || (*c == '_')))
-            return 0;
-    }
-    return 1;
+    return name[0] && strcmp(name, ".") && strcmp(name, "..") && !strpbrk(name, "/\\:");
 }
 
 static void
@@ -1783,12 +1775,19 @@ cmd_media_remove(const char *name)
     }
     media_path(path, name);
     if (remove(path))
-        respond_error("cannot remove the file");
+        respond_error(strerror(errno));
     else
         respond_ok_time();
 }
 
 static int write_all(sock_t fd, const char *buf, size_t len);
+
+static const char *
+media_why(char *why, const char *what)
+{
+    snprintf(why, 256, "%s: %s", what, strerror(errno));
+    return why;
+}
 
 /* media put <name> <bytes>, then the bytes: runs on the listener thread,
    which takes them off the connection itself, while the machine runs on.
@@ -1812,6 +1811,7 @@ media_put(const char *args, const char *buf, size_t have, size_t *used)
     FILE              *fp = NULL;
     strbuf_t           sb  = { 0 };
     int                ret = 1;
+    char               why[256]; /* err, with the system's reason */
 
     *used = 0;
     if (!sp || ((size_t) (sp - args) > MEDIA_NAME_MAX) || (sp[1] < '0') || (sp[1] > '9')) {
@@ -1829,7 +1829,7 @@ media_put(const char *args, const char *buf, size_t have, size_t *used)
     name[sp - args] = '\0';
 
     if (!media_name_ok(name))
-        err = "bad name: up to 128 letters, digits, '.', '-' and '_', not starting with '.'";
+        err = "bad name: it must not hold '/', '\\' or ':', nor be '.' or '..'";
     else {
         media_path(path, NULL);
         if (!plat_dir_check(path) && plat_dir_create(path))
@@ -1838,7 +1838,7 @@ media_put(const char *args, const char *buf, size_t have, size_t *used)
             media_path(path, name);
             snprintf(part, sizeof(part), "%s.part", path);
             if (!(fp = plat_fopen(part, "wb")))
-                err = "cannot create the file";
+                err = media_why(why, "cannot create the file");
         }
     }
 
@@ -1847,7 +1847,7 @@ media_put(const char *args, const char *buf, size_t have, size_t *used)
     left = size;
     n    = (have < left) ? have : (size_t) left;
     if (fp && n && (fwrite(buf, 1, n, fp) != n))
-        err = "cannot write the file";
+        err = media_why(why, "cannot write the file");
     *used = n;
     left -= n;
     while (left) {
@@ -1862,20 +1862,23 @@ media_put(const char *args, const char *buf, size_t have, size_t *used)
             break;
         }
         if (fp && !err && (fwrite(chunk, 1, r, fp) != (size_t) r))
-            err = "cannot write the file";
+            err = media_why(why, "cannot write the file");
         left -= r;
     }
 
     if (fp) {
         if (fclose(fp) && !err)
-            err = "cannot write the file";
+            err = media_why(why, "cannot write the file");
         if (err)
             remove(part);
         else {
-            /* Replace the old file only when the new one is complete. */
+            /* Replace the old file only when the new one is complete. POSIX
+               rename() replaces it in one step; Windows' won't replace. */
+#ifdef _WIN32
             remove(path);
+#endif
             if (rename(part, path)) {
-                err = "cannot replace the file (is it open?)";
+                err = media_why(why, "cannot replace the file");
                 remove(part);
             }
         }
