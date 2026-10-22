@@ -640,6 +640,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     uint32_t     next_pc            = 0;
     uint16_t     op87               = 0x0000;
     uint32_t     fetchdat_pc;
+    int          jump_cycles        = 0;
 #ifdef DEBUG_EXTRA
     uint8_t last_prefix = 0;
 #endif
@@ -879,10 +880,10 @@ generate_call:
           To prevent having zero cycle blocks (eg with a jump instruction pointing
           to itself), apply the cycles that would be taken if this jump is taken,
           then reverse it for subsequent instructions if the jump is not taken*/
-        int jump_cycles = 0;
-
         if (codegen_timing_jump_cycles)
             jump_cycles = codegen_timing_jump_cycles();
+        else if (((op_table == x86_dynarec_opcodes) && ((opcode & 0xf0) == 0x70)) || ((op_table == x86_dynarec_opcodes_0f) && ((opcode & 0xf0) == 0x80)))
+            jump_cycles = timing_bt; /*A Jcc taken: timing_bt more than the timing_bnt charged, as the interpreter (opJ*)*/
 
         if (jump_cycles)
             codegen_accumulate(ir, ACCREG_cycles, -jump_cycles);
@@ -1013,7 +1014,13 @@ generate_call:
             codegen_fpu_handler = op_table[((opcode >> opcode_shift) | op_32) & opcode_mask];
         codegen_ea_target_seg = NULL;
         codegen_instr_pc      = old_pc;
+        const int unrolled = codegen_ir_unrolling();
+
         new_pc = recomp_op_table[(opcode | op_32) & recomp_opcode_mask](block, ir, opcode, fetchdat, op_32, op_pc);
+        /*A loop this jump unrolled goes on through the taken path, so the
+          refund for the jump not taken above does not apply*/
+        if (jump_cycles && !unrolled && codegen_ir_unrolling())
+            codegen_accumulate(ir, ACCREG_cycles, -jump_cycles);
         /* The FPU's instruction and data pointers and opcode, for a compiled
            instruction: not for a control instruction (FNSTSW AX here), which
            leaves the last one's, and not for one the recompiler left alone,
