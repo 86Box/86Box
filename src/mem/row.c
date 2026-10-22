@@ -129,15 +129,13 @@ row_allocate(uint8_t row_id, uint8_t set)
         pages[c].write_b = set ? mem_write_ramb_page : NULL;
         pages[c].write_w = set ? mem_write_ramw_page : NULL;
         pages[c].write_l = set ? mem_write_raml_page : NULL;
-#ifdef USE_NEW_DYNAREC
         pages[c].evict_prev = EVICT_NOT_IN_LIST;
         pages[c].byte_dirty_mask = &byte_dirty_mask[offset * 64];
         pages[c].byte_code_present_mask = &byte_code_present_mask[offset * 64];
-#endif
     }
 
     if (rows[row_id].host_base >= 0x00100000) {
-        mem_set_mem_state_both(rows[row_id].host_base, rows[row_id].host_base + rows[row_id].host_size,
+        mem_set_mem_state_both(rows[row_id].host_base, rows[row_id].host_size,
                                set ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL));
     } else {
         if (0x000a0000 > rows[row_id].host_base) {
@@ -265,11 +263,9 @@ row_init(const device_t *info)
         pages[c].write_b = NULL;
         pages[c].write_w = NULL;
         pages[c].write_l = NULL;
-#ifdef USE_NEW_DYNAREC
-    pages[c].evict_prev = EVICT_NOT_IN_LIST;
-    pages[c].byte_dirty_mask = &byte_dirty_mask[c * 64];
-    pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
-#endif
+        pages[c].evict_prev = EVICT_NOT_IN_LIST;
+        pages[c].byte_dirty_mask = &byte_dirty_mask[c * 64];
+        pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
     }
 
     /* Set all memory space above the default allocated area to external. */

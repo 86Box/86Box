@@ -1,9 +1,3 @@
-#ifdef USE_DEBUG_REGS_486
-#    define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !dr_blocks_cache())
-#else
-#    define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
-#endif
-
 static uint32_t
 fpu_save_environment(void)
 {
@@ -21,7 +15,8 @@ fpu_save_environment(void)
 
     fpu_state.swd = (fpu_state.swd & ~(7 << 11)) | ((fpu_state.tos & 7) << 11);
 
-    switch ((cr0 & 1) | (cpu_state.op32 & 0x100)) {
+    /* V86 mode stores the real-mode (linear pointer) layout */
+    switch (((cr0 & 1) && !(cpu_state.eflags & VM_FLAG)) | (cpu_state.op32 & 0x100)) {
         case 0x000:
             { /*16-bit real mode*/
                 uint16_t tmp;
@@ -100,9 +95,11 @@ fpu_save_environment(void)
 static uint32_t
 fpu_load_environment(void)
 {
-    unsigned offset = 0;
+    const int was_es = fpu_state.swd & FPU_SW_Summary;
+    unsigned  offset = 0;
 
-    switch ((cr0 & 1) | (cpu_state.op32 & 0x100)) {
+    /* V86 mode stores the real-mode (linear pointer) layout */
+    switch (((cr0 & 1) && !(cpu_state.eflags & VM_FLAG)) | (cpu_state.op32 & 0x100)) {
         case 0x000:
             { /*16-bit real mode*/
                 uint16_t tmp;
@@ -115,6 +112,7 @@ fpu_load_environment(void)
                 fpu_state.fdp = fp_dp | tmp;
                 fpu_state.fds = 0;
                 tmp           = readmemw(easeg, cpu_state.eaaddr + 0x08);
+                fpu_state.foo = tmp & 0x07ff;
                 fp_ip         = (tmp & 0xf000) << 4;
                 tmp           = readmemw(easeg, cpu_state.eaaddr + 0x06);
                 fpu_state.fip = fp_ip | tmp;
@@ -138,6 +136,7 @@ fpu_load_environment(void)
                 fpu_state.fdp = tmp;
                 tmp           = readmemw(easeg, cpu_state.eaaddr + 0x08);
                 fpu_state.fcs = tmp;
+                fpu_state.foo = 0; /* the 16-bit protected image has no opcode */
                 tmp           = readmemw(easeg, cpu_state.eaaddr + 0x06);
                 fpu_state.fip = tmp;
                 tmp           = readmemw(easeg, cpu_state.eaaddr + 0x04);
@@ -203,9 +202,11 @@ fpu_load_environment(void)
             break;
     }
 
+    /* The pointers the saves report come from the image */
+    cpu_state.fpu_op = fpu_state.foo;
     cpu_state.fpu_CS = fpu_state.fcs;
     cpu_state.fpu_cs = 0x00000000;
-    cpu_state.fpu_pc = fpu_state.fcs;
+    cpu_state.fpu_pc = fpu_state.fip;
     cpu_state.fpu_DS = fpu_state.fds;
     cpu_state.fpu_ds = 0x00000000;
     cpu_state.fpu_ea = fpu_state.fdp;
@@ -213,14 +214,9 @@ fpu_load_environment(void)
     /* always set bit 6 as '1 */
     fpu_state.cwd = (fpu_state.cwd & ~FPU_CW_Reserved_Bits) | 0x0040;
 
-    /* check for unmasked exceptions */
-    if (fpu_state.swd & ~fpu_state.cwd & FPU_CW_Exceptions_Mask) {
-        /* set the B and ES bits in the status-word */
-        fpu_state.swd |= (FPU_SW_Summary | FPU_SW_Backward);
-    } else {
-        /* clear the B and ES bits in the status-word */
-        fpu_state.swd &= ~(FPU_SW_Summary | FPU_SW_Backward);
-    }
+    /* ES and B from the unmasked flags, and FERR# for an error they begin */
+    if (!cpu_state.abrt)
+        x87_sf_status_es(was_es, x87_op);
 
     return (cpu_state.eaaddr + offset);
 }
@@ -237,14 +233,12 @@ sf_FLDCW_a16(UNUSED(uint32_t fetchdat))
     tempw = geteaw();
     if (cpu_state.abrt)
         return 1;
-    fpu_state.cwd = (tempw & ~FPU_CW_Reserved_Bits) | 0x0040; // bit 6 is reserved as '1
-    /* check for unmasked exceptions */
-    if (fpu_state.swd & (~fpu_state.cwd & FPU_CW_Exceptions_Mask)) {
-        /* set the B and ES bits in the status-word */
-        fpu_state.swd |= (FPU_SW_Summary | FPU_SW_Backward);
-    } else {
-        /* clear the B and ES bits in the status-word */
-        fpu_state.swd &= ~(FPU_SW_Summary | FPU_SW_Backward);
+    {
+        const int was_es = fpu_state.swd & FPU_SW_Summary;
+
+        fpu_state.cwd = (tempw & ~FPU_CW_Reserved_Bits) | 0x0040; // bit 6 is reserved as '1
+        /* ES and B from the unmasked flags, and FERR# for an error they begin */
+        x87_sf_status_es(was_es, x87_op);
     }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fldcw) : (x87_timings.fldcw * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fldcw) : (x87_concurrency.fldcw * cpu_multi));
@@ -263,14 +257,12 @@ sf_FLDCW_a32(uint32_t fetchdat)
     tempw = geteaw();
     if (cpu_state.abrt)
         return 1;
-    fpu_state.cwd = (tempw & ~FPU_CW_Reserved_Bits) | 0x0040; // bit 6 is reserved as '1
-    /* check for unmasked exceptions */
-    if (fpu_state.swd & (~fpu_state.cwd & FPU_CW_Exceptions_Mask)) {
-        /* set the B and ES bits in the status-word */
-        fpu_state.swd |= (FPU_SW_Summary | FPU_SW_Backward);
-    } else {
-        /* clear the B and ES bits in the status-word */
-        fpu_state.swd &= ~(FPU_SW_Summary | FPU_SW_Backward);
+    {
+        const int was_es = fpu_state.swd & FPU_SW_Summary;
+
+        fpu_state.cwd = (tempw & ~FPU_CW_Reserved_Bits) | 0x0040; // bit 6 is reserved as '1
+        /* ES and B from the unmasked flags, and FERR# for an error they begin */
+        x87_sf_status_es(was_es, x87_op);
     }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fldcw) : (x87_timings.fldcw * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fldcw) : (x87_concurrency.fldcw * cpu_multi));
@@ -375,6 +367,8 @@ sf_FRSTOR_a16(UNUSED(uint32_t fetchdat))
     FPU_check_pending_exceptions();
     fetch_ea_16(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
+    CHECK_READ_EA((cpu_state.op32 & 0x100) ? 108 : 94);
+    PROBE_READ_EA((cpu_state.op32 & 0x100) ? 108 : 94);
     offset = fpu_load_environment();
     for (int n = 0; n < 8; n++) {
         tmp.signif  = readmemq(easeg, offset + (n * 10));
@@ -396,6 +390,8 @@ sf_FRSTOR_a32(uint32_t fetchdat)
     FPU_check_pending_exceptions();
     fetch_ea_32(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
+    CHECK_READ_EA((cpu_state.op32 & 0x100) ? 108 : 94);
+    PROBE_READ_EA((cpu_state.op32 & 0x100) ? 108 : 94);
     offset = fpu_load_environment();
     for (int n = 0; n < 8; n++) {
         tmp.signif   = readmemq(easeg, offset + (n * 10));
@@ -417,6 +413,7 @@ sf_FNSAVE_a16(UNUSED(uint32_t fetchdat))
     FP_ENTER();
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE_EA((cpu_state.op32 & 0x100) ? 108 : 94);
     offset = fpu_save_environment();
     /* save all registers in stack order. */
     for (int m = 0; m < 8; m++) {
@@ -424,6 +421,8 @@ sf_FNSAVE_a16(UNUSED(uint32_t fetchdat))
         writememq(easeg, offset + (m * 10), stn.signif);
         writememw(easeg, offset + (m * 10) + 8, stn.signExp);
     }
+    if (cpu_state.abrt)
+        return 1; /* a faulting save leaves the FPU as it was */
 
 #ifdef FPU_8087
     fpu_state.cwd = 0x3FF;
@@ -431,6 +430,7 @@ sf_FNSAVE_a16(UNUSED(uint32_t fetchdat))
 #else
     fpu_state.cwd = 0x37F;
     fpu_state.swd   = 0;
+    x87_ferr_clear();
 #endif
     fpu_state.tos   = 0;
     fpu_state.tag   = 0xffff;
@@ -440,6 +440,7 @@ sf_FNSAVE_a16(UNUSED(uint32_t fetchdat))
     fpu_state.fdp   = 0;
     fpu_state.fcs   = 0;
     fpu_state.fip   = 0;
+    x87_clear_pointers();
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fsave) : (x87_timings.fsave * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fsave) : (x87_concurrency.fsave * cpu_multi));
     return cpu_state.abrt;
@@ -454,6 +455,7 @@ sf_FNSAVE_a32(uint32_t fetchdat)
     FP_ENTER();
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE_EA((cpu_state.op32 & 0x100) ? 108 : 94);
     offset = fpu_save_environment();
     /* save all registers in stack order. */
     for (int m = 0; m < 8; m++) {
@@ -461,6 +463,8 @@ sf_FNSAVE_a32(uint32_t fetchdat)
         writememq(easeg, offset + (m * 10), stn.signif);
         writememw(easeg, offset + (m * 10) + 8, stn.signExp);
     }
+    if (cpu_state.abrt)
+        return 1; /* a faulting save leaves the FPU as it was */
 
 #    ifdef FPU_8087
     fpu_state.cwd = 0x3FF;
@@ -468,6 +472,7 @@ sf_FNSAVE_a32(uint32_t fetchdat)
     fpu_state.cwd = 0x37F;
 #    endif
     fpu_state.swd   = 0;
+    x87_ferr_clear();
     fpu_state.tos   = 0;
     fpu_state.tag   = 0xffff;
     cpu_state.ismmx = 0;
@@ -476,6 +481,7 @@ sf_FNSAVE_a32(uint32_t fetchdat)
     fpu_state.fdp   = 0;
     fpu_state.fcs   = 0;
     fpu_state.fip   = 0;
+    x87_clear_pointers();
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fsave) : (x87_timings.fsave * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fsave) : (x87_concurrency.fsave * cpu_multi));
     return cpu_state.abrt;
@@ -488,6 +494,7 @@ sf_FNCLEX(UNUSED(uint32_t fetchdat))
     FP_ENTER();
     cpu_state.pc++;
     fpu_state.swd &= ~(FPU_SW_Backward | FPU_SW_Summary | FPU_SW_Stack_Fault | FPU_SW_Precision | FPU_SW_Underflow | FPU_SW_Overflow | FPU_SW_Zero_Div | FPU_SW_Denormal_Op | FPU_SW_Invalid);
+    x87_ferr_clear();
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fnop) : (x87_timings.fnop * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fnop) : (x87_concurrency.fnop * cpu_multi));
     return 0;
@@ -504,6 +511,7 @@ sf_FNINIT(UNUSED(uint32_t fetchdat))
 #else
     fpu_state.cwd = 0x37F;
     fpu_state.swd   = 0;
+    x87_ferr_clear();
 #endif
     fpu_state.tos   = 0;
     fpu_state.tag   = 0xffff;
@@ -512,6 +520,7 @@ sf_FNINIT(UNUSED(uint32_t fetchdat))
     fpu_state.fdp   = 0;
     fpu_state.fcs   = 0;
     fpu_state.fip   = 0;
+    x87_clear_pointers();
     cpu_state.ismmx = 0;
     new_ne          = 0;
     if (is286)
@@ -533,6 +542,8 @@ sf_FLDENV_a16(UNUSED(uint32_t fetchdat))
     FPU_check_pending_exceptions();
     fetch_ea_16(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
+    CHECK_READ_EA((cpu_state.op32 & 0x100) ? 28 : 14);
+    PROBE_READ_EA((cpu_state.op32 & 0x100) ? 28 : 14);
     fpu_load_environment();
     /* read all registers in stack order and update x87 tag word */
     for (int n = 0; n < 8; n++) {
@@ -556,6 +567,8 @@ sf_FLDENV_a32(uint32_t fetchdat)
     FPU_check_pending_exceptions();
     fetch_ea_32(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
+    CHECK_READ_EA((cpu_state.op32 & 0x100) ? 28 : 14);
+    PROBE_READ_EA((cpu_state.op32 & 0x100) ? 28 : 14);
     fpu_load_environment();
     /* read all registers in stack order and update x87 tag word */
     for (int n = 0; n < 8; n++) {
@@ -577,7 +590,10 @@ sf_FNSTENV_a16(UNUSED(uint32_t fetchdat))
     FP_ENTER();
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE_EA((cpu_state.op32 & 0x100) ? 28 : 14);
     fpu_save_environment();
+    if (cpu_state.abrt)
+        return 1; /* a faulting save leaves the FPU as it was */
     /* mask all floating point exceptions */
     fpu_state.cwd |= FPU_CW_Exceptions_Mask;
     /* clear the B and ES bits in the status word */
@@ -593,7 +609,10 @@ sf_FNSTENV_a32(uint32_t fetchdat)
     FP_ENTER();
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE_EA((cpu_state.op32 & 0x100) ? 28 : 14);
     fpu_save_environment();
+    if (cpu_state.abrt)
+        return 1; /* a faulting save leaves the FPU as it was */
     /* mask all floating point exceptions */
     fpu_state.cwd |= FPU_CW_Exceptions_Mask;
     /* clear the B and ES bits in the status word */

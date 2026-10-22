@@ -645,10 +645,12 @@ compaq_plasma_poll(void *priv)
 
             if (self->cga.displine == 400) {
                 video_lightpen_vsync();
+                const int size_changed = (xsize != 640) || (ysize != 400);
                 xsize = 640;
                 ysize = 400;
 
-                if ((self->cga.cgamode & 0x08) || video_force_resize_get()) {
+                /* Only resize on an actual change: doing it every frame floods the UI. */
+                if (((self->cga.cgamode & 0x08) && size_changed) || video_force_resize_get()) {
                     set_screen_size(xsize, ysize);
 
                     if (video_force_resize_get())

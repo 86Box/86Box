@@ -17,5 +17,8 @@
 
 #ifdef EMU_DEVICE_H
 extern const device_t ps55da2_device;
+extern const device_t ps55db2_device;
 #endif
+
+void *da2_get_vga(void *priv);
 #endif /*VIDEO_DA2_DEVICE_H*/

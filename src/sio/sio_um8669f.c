@@ -298,6 +298,7 @@ um8669f_reset(um8669f_t *dev)
     um8669f_log("UM8669F: reset()\n");
 
     fdc_reset(dev->fdc);
+    fdc_remove(dev->fdc);
 
     serial_remove(dev->uart[0]);
 
@@ -339,7 +340,7 @@ um8669f_init(const device_t *info)
     for (uint8_t i = 0; i < (sizeof(um8669f_pnp_defaults) / sizeof(isapnp_device_config_t)); i++)
         isapnp_set_device_defaults(dev->pnp_card, i, &um8669f_pnp_defaults[i]);
 
-    dev->fdc = device_add(&fdc_at_smc_device);
+    dev->fdc = device_add_params(&fdc_at_smc_device, (void *) FDC_FLAG_PNP);
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);

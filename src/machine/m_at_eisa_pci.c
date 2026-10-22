@@ -52,6 +52,9 @@
 #include <86box/machine.h>
 #include <86box/rom.h>
 #include <86box/keyboard.h>
+#include <86box/thread.h>
+#include <86box/network.h>
+#include "cpu.h"
 
 static const device_config_t at_54tdp_config[] = {
     // clang-format off
@@ -148,7 +151,7 @@ machine_at_54tdp_init(const machine_t *model)
 
     /* The Adaptec is not optional on this board: it is soldered to it,
        and the system BIOS carries its option ROM. */
-    device_add(&aic7880_pci_device);
+    device_add(machine_get_scsi_device(machine));
 
     /* This board takes two processors and its firmware says so, but the
        APIC in the ESC has nowhere to deliver a message: there is no local
@@ -163,6 +166,231 @@ machine_at_54tdp_init(const machine_t *model)
        stores goes back into it rather than into CMOS. Without a flash part
        here those writes land on read-only memory and are lost. */
     device_add(&winbond_flash_w29c011a_device);
+
+    return ret;
+}
+
+static const device_config_t d823_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "d823_112",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "PhoenixBIOS 4.0 - Revision 1.12.823",
+                .internal_name = "d823_112",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/d823/d823_112.bin", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t d823_device = {
+    .name          = "Siemens-Nixdorf D823",
+    .internal_name = "d823_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = d823_config
+};
+
+/* The Siemens-Nixdorf D823: a 430NX board with the PCEB and ESC, two
+   Socket 5s, four EISA slots, three PCI and one ISA, and a PC Technology
+   RZ1000 for its IDE. Everything below is what the technical manual
+   (A26361-D823-Z120-1-7619) and the v1.12 firmware say:
+
+   - The firmware reaches PCI configuration space by mechanism #2 (ports
+     C000h up) and names three on-board functions there: the PCMC at 0,
+     the PCEB at 1 and the IDE chip at 2, whose table (F000:24F9) sets its
+     BARs to the compatibility addresses, 1F0h, 3F4h, 170h and 374h, and its
+     timing registers at 40h-4Fh -- the RZ1000's layout.
+   - It runs empty initialisation tables against devices 0Dh, 0Eh and 0Fh,
+     the three slots, with INTA, INTB and INTC the primary pin of slots 1,
+     2 and 3 (manual, PCI Device Configuration).
+   - It writes the ESC's EISA identifier itself (table at F000:2445,
+     50h-53h = 4D C9 EE 11, "SNI" EE1 revision 1), and points general
+     purpose chip select 0 at 0C90h, where the board's switch block S500
+     answers: bit 0 of 0C91h is switch 1, recovery mode, and an open
+     switch reads as one. */
+int
+machine_at_d823_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_2);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_IDE,         0, 0, 0, 0); /* Onboard RZ1000 */
+    /* The BIOS's routing table (F000:346E) and the SNI configuration file's
+       slot list put PCI slot 1 at device 0Fh and slot 3 at device 0Dh. */
+    pci_register_slot(0x0f, PCI_CARD_NORMAL,      1, 2, 3, 4); /* Slot 1 */
+    pci_register_slot(0x0e, PCI_CARD_NORMAL,      2, 3, 4, 1); /* Slot 2 */
+    pci_register_slot(0x0d, PCI_CARD_NORMAL,      3, 4, 1, 2); /* Slot 3 */
+
+    /* Four EISA slots, and the one ISA slot beside them. */
+    eisa_init(4);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    device_add(&i430nx_device);
+    device_add(&pceb_device);
+    device_add(&esc_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
+    device_add(machine_get_ide_device(machine));
+
+    /* What the firmware writes into the ESC's identifier registers anyway,
+       so that anything reading the slots before it has run sees the board. */
+    esc_set_board_id("SNI", 0xee11, 0);
+
+    /* 128 KB of flash with a boot block at the top: switch 1 of S500 runs
+       a "second, non-erasable rudimentary BIOS" from it. The part is the
+       28F001BX-T, the first of the devices Siemens's FLASHBIO knows. It is
+       also where the EISA configuration lives: the firmware keeps it in the
+       second 4 KB parameter block, at FFFFD000h, erasing and programming it
+       itself with the BIOS write enable in ESC register 43h bit 3. It never
+       touches the ESC's configuration RAM (no access to 0C00h), so this
+       board has no EISA configuration store option; the CMOS is the plain
+       128-byte AT one, with the EISA status in byte 33h. */
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+static const device_config_t td3_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "td3",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMI WinBIOS (081594) - Revision 5890G",
+                .internal_name = "td3_g",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/td3/5890G.ROM", "" }
+            },
+            {
+                .name          = "AMI WinBIOS (081594) - Revision 5890H",
+                .internal_name = "td3",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/td3/5890H.ROM", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t td3_device = {
+    .name          = "Intergraph TD-3",
+    .internal_name = "td3_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = td3_config
+};
+
+int
+machine_at_td3_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_2);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x06, PCI_CARD_SCSI,        4, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_NETWORK,     1, 0, 0, 0);
+
+    eisa_init(1);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    device_add(&i430nx_device);
+    device_add(&pceb_device);
+    device_add(&esc_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
+    device_add(&intel_flash_bxt_device);
+
+    /* For some odd reason, the 90 and 100 MHz CPU board variants use different identifiers. 
+       Perhaps they use different variants of the same board with different supported bus
+       speeds. Although, for the sake of simplicity, it is probably a better idea to support
+       both variants under a single TD-3 entry, with the statement below to ensure the
+       identifiers are accurate for the selected CPU. */
+    if (cpu_busspeed <= 60000000) /* for 60 MHz and lower bus speeds (90 MHz CPU) */
+        esc_set_board_id("ING", 0x2850, 0);
+    else /* for 66 MHz and all other bus speeds (100 MHz CPU) */
+        esc_set_board_id("ING", 0x2920, 0);   
+
+    device_add(machine_get_scsi_device(machine));
+
+    if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
+        device_add(machine_get_net_device(machine));
 
     return ret;
 }

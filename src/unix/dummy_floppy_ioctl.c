@@ -24,35 +24,35 @@
 #include <86box/plat_floppy_ioctl.h>
 
 void
-fdd_set_host_device(int drive, const char *path)
+fdd_set_host_device(void *priv, const char *path)
 {
 }
 
 const char *
-fdd_get_host_device(int drive)
+fdd_get_host_device(void *priv)
 {
     return "";
 }
 
 int
-floppy_ioctl_open(int drive, int *out_tracks, int *out_sides, int *out_sectors, int *out_rate)
+floppy_ioctl_open(void *priv, int *out_tracks, int *out_sides, int *out_sectors, int *out_rate)
 {
     return 0;
 }
 
 void
-floppy_ioctl_close(int drive)
+floppy_ioctl_close(void *priv)
 {
 }
 
 int
-floppy_ioctl_read_sector(int drive, int track, int side, int sector, uint8_t *buffer)
+floppy_ioctl_read_sector(void *priv, int track, int side, int sector, uint8_t *buffer)
 {
     return 0;
 }
 
 int
-floppy_ioctl_write_sector(int drive, int track, int side, int sector, const uint8_t *buffer)
+floppy_ioctl_write_sector(void *priv, int track, int side, int sector, const uint8_t *buffer)
 {
     return 0;
 }

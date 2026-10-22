@@ -52,6 +52,53 @@ enum {
     STRING_CHARDEV_ATTACHED,          /* "%s: Attached to %s" */
     STRING_CHARDEV_VCON_IN_USE,       /* "%s: Virtual console already in use by %s" */
     STRING_CHARDEV_TERMINAL_ERROR,    /* "%s: Could not create terminal: %s" */
+#ifdef USE_VFIO
+    STRING_VFIO_NO_CONTAINER,         /* "VFIO: Could not open /dev/vfio/vfio: %s..." */
+    STRING_VFIO_INVALID_LOCATION,     /* "VFIO %s: Invalid device location." */
+    STRING_VFIO_DEVICE_NOT_FOUND,     /* "VFIO %s: Device not found." */
+    STRING_VFIO_NO_IOMMU_GROUP,       /* "VFIO %s: Device has no IOMMU group..." */
+    STRING_VFIO_NOT_BOUND,            /* "VFIO %s: Device is not bound to vfio-pci." */
+    STRING_VFIO_GROUP_OPEN_ERROR,     /* "VFIO %s: Could not open IOMMU group %d: %s" */
+    STRING_VFIO_GROUP_NOT_VIABLE,     /* "VFIO %s: IOMMU group %d is not viable..." */
+    STRING_VFIO_DMA_ERROR,            /* "VFIO: Could not map guest memory for DMA: %s..." */
+    STRING_VFIO_ROM_FILE_FALLBACK,    /* "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM." */
+    STRING_VFIO_ROM_FILE_DISABLED,    /* "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled." */
+    STRING_VFIO_ROM_INVALID,          /* "VFIO %s: The ROM looks invalid..." */
+    STRING_VFIO_SETUP_QUESTION,       /* "VFIO: These devices must be bound to vfio-pci..." */
+    STRING_VFIO_SETUP_ACCESS,         /* "VFIO: Administrator rights are required..." */
+    STRING_VFIO_SETUP_GROUP,          /* "These devices were not selected, but share an IOMMU group..." */
+    STRING_VFIO_SETUP_REFUSED,        /* "VFIO %s: IOMMU group %d also contains %s..." */
+    STRING_VFIO_SETUP_FAILED,         /* "VFIO: Could not prepare the devices for passthrough:\n%s" */
+    STRING_VFIO_SETUP_MANUAL,         /* "VFIO: Administrator rights could not be requested..." */
+#endif
+    /* A configuration naming hardware this build does not have. */
+    STRING_UNSUPPORTED_TITLE,
+    STRING_UNSUPPORTED_TEXT,
+    STRING_UNSUPPORTED_OTHERS,
+    STRING_UNSUPPORTED_REPLACE,
+    STRING_UNSUPPORTED_REMOVE,
+    STRING_UNSUPPORTED_REPLACE_REMOVE,
+    STRING_UNSUPPORTED_CONTINUE,
+    STRING_UNSUPPORTED_MACHINE,
+    STRING_UNSUPPORTED_VIDEO,
+    STRING_UNSUPPORTED_KEYBOARD,
+    STRING_UNSUPPORTED_MOUSE,
+    STRING_UNSUPPORTED_TABLET,
+    STRING_UNSUPPORTED_JOYSTICK,
+    STRING_UNSUPPORTED_SOUND,
+    STRING_UNSUPPORTED_MIDI_OUT,
+    STRING_UNSUPPORTED_MIDI_IN,
+    STRING_UNSUPPORTED_NETWORK,
+    STRING_UNSUPPORTED_SERIAL,
+    STRING_UNSUPPORTED_PARALLEL,
+    STRING_UNSUPPORTED_GAMEPORT,
+    STRING_UNSUPPORTED_SCSI,
+    STRING_UNSUPPORTED_FDC,
+    STRING_UNSUPPORTED_HDC,
+    STRING_UNSUPPORTED_CDROM_INTERFACE,
+    STRING_UNSUPPORTED_MEMORY,
+    STRING_UNSUPPORTED_ROM,
+    STRING_UNSUPPORTED_RTC,
 };
 
 struct plat_device_vol_locked_t
@@ -153,6 +200,8 @@ extern uint64_t plat_timer_read(void);
 extern uint32_t plat_get_ticks(void);
 extern void     plat_delay_ms(uint32_t count);
 extern void     plat_pause(int p);
+/* Fast forward on or off from outside the UI (automation). */
+extern void     plat_fast_forward(int on);
 extern void     plat_mouse_capture(int on);
 extern int      plat_vidapi(const char *name);
 extern char    *plat_vidapi_name(int api);

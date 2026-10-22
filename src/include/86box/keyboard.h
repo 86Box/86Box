@@ -19,10 +19,11 @@
 #ifndef EMU_KEYBOARD_H
 #define EMU_KEYBOARD_H
 
-#define FLAG_AT        0x00  /* dev is AT         */
-#define FLAG_PS2_KBD   0x10  /* dev is AT or PS/2 */
-#define FLAG_AX        0x08  /* dev is AX         */
-#define FLAG_TYPE_MASK 0x07  /* mask for type     */
+#define FLAG_AT        0x00  /* dev is AT     */
+#define FLAG_AX        0x08  /* dev is AX     */
+#define FLAG_PS2_KBD   0x10  /* dev is PS/2   */
+#define FLAG_PS55_KBD  0x20  /* dev is PS/55  */
+#define FLAG_TYPE_MASK 0x07  /* mask for type */
 
 enum {
     KBD_83_KEY = 0,
@@ -76,6 +77,7 @@ typedef struct atkbc_dev_t {
     const char *name; /* name of this device */
 
     uint8_t     type;
+    uint8_t     ps55;
     uint8_t     command;
     uint8_t     last_scan_code;
     uint8_t     state;
@@ -145,6 +147,7 @@ typedef struct scancode {
 #define KBC_VEN_VIA              0x10
 #define KBC_VEN_UMC              0x11
 #define KBC_VEN_SIS              0x12
+#define KBC_VEN_HP_VECTRA        0x13
 #define KBC_VEN_MASK             0x1f
 
 #define KBC_FLAG_IS_ASIC   0x80000000
@@ -202,7 +205,9 @@ extern const device_t kbc_xt_jukost_device;
 extern const device_t kbc_xtclone_device;
 
 extern const device_t kbc_at_device;
+extern const device_t kbc_at_vectra_device;
 extern const device_t kbc_ps2_m25_device;
+extern const device_t kbc_tvis_device;
 
 extern const device_t keyboard_pc_xt_device;
 extern const device_t keyboard_at_device;

@@ -141,7 +141,7 @@ const device_t cobalt3k_carmel_device = {
     .name          = "Cobalt Qube 3",
     .internal_name = "cobalt3k_carmel",
     .flags         = 0,
-    .local         = 2 << 8, /* unbacklit LCD */
+    .local         = HD44780_COLOR_NONE << 8, /* unbacklit LCD */
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
@@ -155,7 +155,7 @@ const device_t cobalt3k_pacifica_device = {
     .name          = "Cobalt RaQ 3/4",
     .internal_name = "cobalt3k_pacifica",
     .flags         = 0,
-    .local         = 0, /* green LCD */
+    .local         = HD44780_COLOR_GREEN << 8, /* green LCD */
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
@@ -198,7 +198,7 @@ machine_at_cobalt3k_init(const machine_t *model)
     device_add(&ali1541_device);
     device_add(&ali1543c_device); /* +0 */
     device_add(&intel_flash_e28f0xx_cobalt3k_device);
-    device_add(&ncr53c875_onboard_pci_device);
+    device_add(machine_get_scsi_device(machine));
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
     device_add(&lm77_0_48_device);
     device_add_params(&hd44780_cobalt3k_device, (void *) (uintptr_t) model->device->local);
@@ -438,13 +438,13 @@ static const device_config_t ms5169_config[] = {
                 .files         = { "roms/machines/ms5169/A569MS14.ROM", "" }
             },
             {
-                .name          = "AMIBIOS 6 (071595) - Revision 2.0",
-                .internal_name = "ms5169v20",
+                .name          = "AMIBIOS 6 (071595) - Revision 2.1",
+                .internal_name = "ms5169v21",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 131072,
-                .files         = { "roms/machines/ms5169/A569MS20.ROM", "" }
+                .files         = { "roms/machines/ms5169/A569MS21.ROM", "" }
             },
             {
                 .name          = "AMIBIOS 6 (071595) - Revision 2.7",
@@ -790,7 +790,6 @@ machine_at_k6bv3p_a_init(const machine_t *model)
 }
 
 /* SiS 530 / 5595 */
-
 static int in530_boot_logo = 1;
 
 static const device_config_t in530_config[] = {
@@ -906,6 +905,38 @@ machine_in530_boot_logo(void)
     return in530_boot_logo;
 }
 
+/* Physical JP1 (MD62) enables/disables VGA, specific to IN530 */
+static uint8_t in530_md62_seq_stage;
+
+static void
+in530_md62_seq_out(uint16_t port, uint8_t val, void *priv)
+{
+    (void) priv;
+
+    if ((port == 0x03c4) && (val == 0x05))
+        in530_md62_seq_stage = 1;
+    else if ((port == 0x03c5) && (val == 0x86) && (in530_md62_seq_stage == 1))
+        in530_md62_seq_stage = 2;
+    else if ((port == 0x03c4) && (val == 0x0d) && (in530_md62_seq_stage == 2))
+        in530_md62_seq_stage = 3;
+    else
+        in530_md62_seq_stage = 0;
+}
+
+static uint8_t
+in530_md62_seq_in(uint16_t port, void *priv)
+{
+    (void) priv;
+
+    if ((port == 0x03c5) && (in530_md62_seq_stage == 3)) {
+        in530_md62_seq_stage = 0;
+        return 0xfe;
+    }
+
+    in530_md62_seq_stage = 0;
+    return 0xff;
+}
+
 int
 machine_at_in530_init(const machine_t *model)
 {
@@ -927,6 +958,7 @@ machine_at_in530_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,       0, 0, 0, 0);
     /* Physical FR520 / IN530 PCI topology verified with PCITool:
          device 09h - PCI slot 1
          device 0Ah - PCI slot 2
@@ -942,6 +974,124 @@ machine_at_in530_init(const machine_t *model)
     device_add_params(&w83877_device, (void *) (W83877TF | (W83877_3F0 & ~0x04)));
     device_add(&amd_flash_29f002nbt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 512);
+
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine)) {
+        device_add(machine_get_vid_device(machine));
+    } else if (gfxcard[0] != VID_INTERNAL) {
+        /* Prevent false onboard VGA detection with JP1/MD62 closed. */
+        in530_md62_seq_stage = 0;
+        io_sethandler(0x03c4, 2, in530_md62_seq_in, NULL, NULL,
+                      in530_md62_seq_out, NULL, NULL, NULL);
+    }
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+static const device_config_t ga5smm_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "5smm",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.0",
+                .internal_name = "5smm_10",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/5smm/5SMM.10", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.2b (Compaq OEM)",
+                .internal_name = "5smm_12bcq",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/5smm/chip30.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision F1",
+                .internal_name = "5smm_f1",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/5smm/5smm.f1", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision F5",
+                .internal_name = "5smm",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/5smm/5SMM.F5", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ga5smm_device = {
+    .name          = "Gigabyte GA-5SMM",
+    .internal_name = "5smm",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ga5smm_config
+};
+
+int
+machine_at_ga5smm_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,       0, 0, 0, 0);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_SOUND,           4, 1, 2, 3); /* guess */
+
+    device_add(&sis_530_device);
+    device_add(&it8661f_device);
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 512);
+
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
 
     if (sound_card_current[0] == SOUND_INTERNAL)
         device_add(machine_get_snd_device(machine));
@@ -965,7 +1115,7 @@ machine_at_aptiva2187_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     1, 2, 3, 5);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
-    pci_register_slot(0x02, PCI_CARD_VIDEO,           1, 2, 3, 4); /* guess */
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,       0, 0, 0, 0);
     pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
     pci_register_slot(0x0A, PCI_CARD_NORMAL,          2, 3, 4, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,          3, 4, 1, 2);
@@ -976,6 +1126,9 @@ machine_at_aptiva2187_init(const machine_t *model)
     device_add(&it8661f_device); /* guess */
     device_add(&sst_flash_29ee020_device); /* guess */
     spd_register(SPD_TYPE_SDRAM, 0x3, 512);
+
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
 
     if (sound_card_current[0] == SOUND_INTERNAL)
         device_add(machine_get_snd_device(machine));

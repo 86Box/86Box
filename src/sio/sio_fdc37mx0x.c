@@ -6,8 +6,8 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Implementation of the SMC FDC37M60x and FDC37M70x Super I/O
- *          Chips.
+ *          Implementation of the SMC FDC37M60x, FDC37M70x and FDC37B80x
+ *          Super I/O Chips.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
@@ -123,7 +123,7 @@ fdc37mx0x_watchdog_reset(fdc37mx0x_t *dev)
     if (timer_is_on(&dev->watchdog_timer))
         timer_stop(&dev->watchdog_timer);
 
-    if (dev->ld_regs[0x08][0xf2] == 0x00)
+    if (dev->ld_regs[0x08][0xf2] != 0x00)
         timer_on_auto(&dev->watchdog_timer, period);
 
     fdc37mx0x_watchdog_irq_reset(dev);
@@ -207,22 +207,16 @@ fdc37mx0x_superio_handler(fdc37mx0x_t *dev)
 static void
 fdc37mx0x_fdc_handler(fdc37mx0x_t *dev)
 {
-    const uint8_t  global_enable = !!(dev->regs[0x22] & (1 << 0));
-    const uint8_t  local_enable  = !!dev->ld_regs[0][0x30];
-    const uint16_t old_base      = dev->fdc_base;
+    const uint8_t enable = !!dev->ld_regs[0][0x30];
 
-    dev->fdc_base = 0x0000;
+    dev->fdc_base = make_port(dev, 0) & 0xfff8;
 
-    if (global_enable && local_enable)
-        dev->fdc_base = make_port(dev, 0) & 0xfff8;
+    fdc_remove(dev->fdc);
 
-    if (dev->fdc_base != old_base) {
-        if ((old_base >= 0x0100) && (old_base <= 0x0ff8))
-            fdc_remove(dev->fdc);
+    if ((dev->fdc_base >= 0x0100) && (dev->fdc_base <= 0x0ff8))
+        fdc_set_base(dev->fdc, dev->fdc_base);
 
-        if ((dev->fdc_base >= 0x0100) && (dev->fdc_base <= 0x0ff8))
-            fdc_set_base(dev->fdc, dev->fdc_base);
-    }
+    fdc_set_power_down(dev->fdc, !enable);
 }
 
 static void
@@ -230,8 +224,7 @@ fdc37mx0x_lpt_handler(fdc37mx0x_t *dev)
 {
     uint16_t ld_port         = 0x0000;
     uint16_t mask            = 0xfffc;
-    uint8_t  global_enable   = !!(dev->regs[0x22] & (1 << 3));
-    uint8_t  local_enable    = !!dev->ld_regs[3][0x30];
+    uint8_t  enable         = !!dev->ld_regs[3][0x30];
     uint8_t  lpt_irq         = dev->ld_regs[3][0x70];
     uint8_t  lpt_dma         = dev->ld_regs[3][0x74];
     uint8_t  lpt_mode        = dev->ld_regs[3][0xf0] & 0x07;
@@ -276,7 +269,7 @@ fdc37mx0x_lpt_handler(fdc37mx0x_t *dev)
             lpt_set_ext(dev->lpt, 0);
             break;
     }
-    if (global_enable && local_enable) {
+    if (enable) {
         ld_port = (make_port(dev, 3) & 0xfffc) & mask;
         if ((ld_port >= 0x0100) && (ld_port <= (0x0ffc & mask)))
             lpt_port_setup(dev->lpt, ld_port);
@@ -291,15 +284,14 @@ fdc37mx0x_lpt_handler(fdc37mx0x_t *dev)
 static void
 fdc37mx0x_serial_handler(fdc37mx0x_t *dev, const int uart)
 {
-    const uint8_t  uart_no       = 4 + uart;
-    const uint8_t  global_enable = !!(dev->regs[0x22] & (1 << uart_no));
-    const uint8_t  local_enable  = !!dev->ld_regs[uart_no][0x30];
-    const uint16_t old_base      = dev->uart_base[uart];
-    double         clock_src     = 24000000.0 / 13.0;
+    const uint8_t  uart_no   = 4 + uart;
+    const uint8_t  enable    = !!dev->ld_regs[uart_no][0x30];
+    const uint16_t old_base  = dev->uart_base[uart];
+    double         clock_src = 24000000.0 / 13.0;
 
     dev->uart_base[uart] = 0x0000;
 
-    if (global_enable && local_enable)
+    if (enable)
         dev->uart_base[uart] = make_port(dev, uart_no) & 0xfff8;
 
     if (dev->uart_base[uart] != old_base) {
@@ -401,6 +393,67 @@ fdc37mx0x_state_change(fdc37mx0x_t *dev, const uint8_t locked)
 }
 
 static void
+fdc37mx0x_soft_reset(fdc37mx0x_t *dev)
+{
+    fdc37mx0x_state_change(dev, 0);
+
+    dev->regs[0x07] = 0x00;
+    dev->regs[0x20] = dev->chip_id;
+    dev->regs[0x22] = 0x00;
+    dev->regs[0x23] = 0x00;
+
+    /* Logical device 0: FDD */
+    dev->ld_regs[0x00][0x30] = 0x00;
+    dev->ld_regs[0x00][0x60] = 0x03;
+    dev->ld_regs[0x00][0x61] = 0xf0;
+    dev->ld_regs[0x00][0x70] = 0x06;
+    dev->ld_regs[0x00][0x74] = 0x02;
+
+    /* Logical device 3: Parallel Port */
+    dev->ld_regs[0x03][0x30] = 0x00;
+    dev->ld_regs[0x03][0x60] = 0x03;
+    dev->ld_regs[0x03][0x61] = 0x78;
+    dev->ld_regs[0x03][0x70] = 0x07;
+    dev->ld_regs[0x03][0x74] = 0x04;
+
+    /* Logical device 4: Serial Port 1 */
+    dev->ld_regs[0x04][0x30] = 0x00;
+    dev->ld_regs[0x04][0x60] = 0x03;
+    dev->ld_regs[0x04][0x61] = 0xf8;
+    dev->ld_regs[0x04][0x70] = 0x04;
+    serial_irq(dev->uart[0], dev->ld_regs[4][0x70]);
+
+    /* Logical device 5: Serial Port 2 */
+    dev->ld_regs[0x05][0x30] = 0x00;
+    dev->ld_regs[0x05][0x60] = 0x02;
+    dev->ld_regs[0x05][0x61] = 0xf8;
+    dev->ld_regs[0x05][0x70] = 0x03;
+    dev->ld_regs[0x05][0x74] = 0x04;
+    serial_irq(dev->uart[1], dev->ld_regs[5][0x70]);
+
+    /* Logical device 7: Keyboard */
+    dev->ld_regs[0x07][0x30] = 0x00;
+    dev->ld_regs[0x07][0x61] = 0x60;
+    dev->ld_regs[0x07][0x70] = 0x01;
+    dev->ld_regs[0x07][0x72] = 0x00;
+
+    /* Logical device 8: Auxiliary I/O */
+    dev->ld_regs[0x08][0x30] = 0x00;
+
+    if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X))
+        fdc37mx0x_gpio_handler(dev);
+    fdc37mx0x_lpt_handler(dev);
+    fdc37mx0x_serial_handler(dev, 0);
+    fdc37mx0x_serial_handler(dev, 1);
+
+    fdc37mx0x_fdc_handler(dev);
+
+    fdc37mx0x_kbc_handler(dev);
+
+    fdc37mx0x_superio_handler(dev);
+}
+
+static void
 fdc37mx0x_write(uint16_t port, uint8_t val, void *priv)
 {
     fdc37mx0x_t *dev    = (fdc37mx0x_t *) priv;
@@ -429,12 +482,12 @@ fdc37mx0x_write(uint16_t port, uint8_t val, void *priv)
 
             switch (dev->cur_reg) {
                 case 0x02:
-                    dev->regs[dev->cur_reg] = val;
-                    if (val == 0x02)
-                        fdc37mx0x_state_change(dev, 0);
+                    dev->regs[dev->cur_reg] = val & 0xfd;
+                    if (val & 0x02)
+                        fdc37mx0x_soft_reset(dev);
                     break;
                 case 0x03:
-                    if (dev->chip_id == FDC37M70X) {
+                    if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X)) {
                         dev->regs[dev->cur_reg] = val & 0x83;
                         fdc37mx0x_gpio_handler(dev);
                     }
@@ -445,6 +498,11 @@ fdc37mx0x_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case 0x22:
                     dev->regs[dev->cur_reg] = val & 0x39;
+
+                    dev->ld_regs[0x00][0x30] = !!(val & 0x01);
+                    dev->ld_regs[0x03][0x30] = !!(val & 0x08);
+                    dev->ld_regs[0x04][0x30] = !!(val & 0x10);
+                    dev->ld_regs[0x05][0x30] = !!(val & 0x20);
 
                     if (valxor & 0x01)
                         fdc37mx0x_fdc_handler(dev);
@@ -482,10 +540,15 @@ fdc37mx0x_write(uint16_t port, uint8_t val, void *priv)
                         case 0x60: case 0x61:
                         case 0x70:
                         case 0x74:
-                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+                            if (dev->cur_reg == 0x30) {
+                                dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x01;
 
-                            if ((dev->cur_reg == 0x30) && (val & 0x01))
-                                dev->regs[0x22] |= 0x01;
+                                if (dev->cur_reg == 0x30)
+                                    dev->regs[0x22] = (dev->regs[0x22] & ~(1 << dev->regs[7])) |
+                                                      ((val & 0x01) << dev->regs[7]);
+                            } else
+                                dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+
                             if (valxor)
                                 fdc37mx0x_fdc_handler(dev);
                             break;
@@ -511,14 +574,14 @@ fdc37mx0x_write(uint16_t port, uint8_t val, void *priv)
                                 fdc_set_swap(dev->fdc, (val & 0x10) >> 4);
                             break;
                         case 0xf1:
-                            if (dev->chip_id == FDC37M70X)
+                            if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X))
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x0d;
                             else
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0xfc;
 
                             if (valxor & 0x0c)
                                 fdc_update_densel_force(dev->fdc, (val & 0xc) >> 2);
-                            if ((dev->chip_id == FDC37M70X) & (valxor & 0x01))
+                            if (((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X)) & (valxor & 0x01))
                                 fdc_set_swwp(dev->fdc, val & 0x01);
                             break;
                         case 0xf2:
@@ -550,10 +613,15 @@ fdc37mx0x_write(uint16_t port, uint8_t val, void *priv)
                         case 0x60: case 0x61:
                         case 0x70:
                         case 0x74:
-                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+                            if (dev->cur_reg == 0x30) {
+                                dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x01;
 
-                            if ((dev->cur_reg == 0x30) && (val & 0x01))
-                                dev->regs[0x22] |= 0x08;
+                                if (dev->cur_reg == 0x30)
+                                    dev->regs[0x22] = (dev->regs[0x22] & ~(1 << dev->regs[7])) |
+                                                      ((val & 0x01) << dev->regs[7]);
+                            } else
+                                dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+
                             if (valxor)
                                 fdc37mx0x_lpt_handler(dev);
                             break;
@@ -563,7 +631,7 @@ fdc37mx0x_write(uint16_t port, uint8_t val, void *priv)
                                 fdc37mx0x_lpt_handler(dev);
                             break;
                         case 0xf1:
-                            if (dev->chip_id == FDC37M70X)
+                            if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X))
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x03;
                             break;
                     }
@@ -575,10 +643,15 @@ fdc37mx0x_write(uint16_t port, uint8_t val, void *priv)
                         case 0x30:
                         case 0x60: case 0x61:
                         case 0x70:
-                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+                            if (dev->cur_reg == 0x30) {
+                                dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x01;
 
-                            if ((dev->cur_reg == 0x30) && (val & 0x01))
-                                dev->regs[0x22] |= 0x10;
+                                if (dev->cur_reg == 0x30)
+                                    dev->regs[0x22] = (dev->regs[0x22] & ~(1 << dev->regs[7])) |
+                                                      ((val & 0x01) << dev->regs[7]);
+                            } else
+                                dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+
                             if (valxor)
                                 fdc37mx0x_serial_handler(dev, 0);
                             break;
@@ -601,10 +674,15 @@ fdc37mx0x_write(uint16_t port, uint8_t val, void *priv)
                         case 0x62: case 0x63:
                         case 0x70:
                         case 0x74:
-                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+                            if (dev->cur_reg == 0x30) {
+                                dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x01;
 
-                            if ((dev->cur_reg == 0x30) && (val & 0x01))
-                                dev->regs[0x22] |= 0x20;
+                                if (dev->cur_reg == 0x30)
+                                    dev->regs[0x22] = (dev->regs[0x22] & ~(1 << dev->regs[7])) |
+                                                      ((val & 0x01) << dev->regs[7]);
+                            } else
+                                dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+
                             if (valxor)
                                 fdc37mx0x_serial_handler(dev, 1);
                             break;
@@ -649,11 +727,11 @@ fdc37mx0x_write(uint16_t port, uint8_t val, void *priv)
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
                             break;
                         case 0xb4:
-                            if (dev->chip_id == FDC37M70X)
+                            if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X))
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x9e;
                             break;
                         case 0xb5:
-                            if (dev->chip_id == FDC37M70X)
+                            if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X))
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x57;
                             break;
                         case 0xc0:
@@ -662,47 +740,47 @@ fdc37mx0x_write(uint16_t port, uint8_t val, void *priv)
                         case 0xc1:
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x0f;
                             for (int i = 0; i < 4; i++)
-                                fdc_set_fdd_changed(i, !!(val & (1 << i)));
+                                fdc_set_fdd_changed(dev->fdc, i, !!(val & (1 << i)));
                             break;
                         case 0xc5:
-                            if (dev->chip_id == FDC37M70X)
+                            if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X))
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x01;
                             break;
                         case 0xc6:
-                            if (dev->chip_id == FDC37M70X)
+                            if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X))
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] &= ~(val & 0x01);
                             break;
                         case 0xc7:
-                            if (dev->chip_id == FDC37M70X)
+                            if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X))
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] &= ~(val & 0x1e);
                             break;
                         case 0xc8:
-                            if (dev->chip_id == FDC37M70X)
+                            if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X))
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x1e;
                             break;
                         case 0xf1:
-                            if (dev->chip_id == FDC37M70X) {
+                            if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X)) {
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x80;
                                 if (valxor & 0x80)
                                     fdc37mx0x_watchdog_reset(dev);
                             }
                             break;
                         case 0xf2:
-                            if (dev->chip_id == FDC37M70X) {
+                            if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X)) {
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
                                 if (valxor)
                                     fdc37mx0x_watchdog_reset(dev);
                             }
                             break;
                         case 0xf3:
-                            if (dev->chip_id == FDC37M70X) {
+                            if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X)) {
                                 if (valxor & 0xf0)
                                     fdc37mx0x_watchdog_irq_reset(dev);
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0xf7;
                             }
                             break;
                         case 0xf4:
-                            if (dev->chip_id == FDC37M70X) {
+                            if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X)) {
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x09;
                                 if (val & 0x04)
                                     fdc37mx0x_watchdog_timeout(dev);
@@ -734,7 +812,7 @@ fdc37mx0x_read(uint16_t port, void *priv)
         else {
             if (dev->cur_reg < 0x30) {
                 if (dev->cur_reg == 0x20)
-                    ret = 0x47;
+                    ret = dev->chip_id;
                 else
                     ret = dev->regs[dev->cur_reg];
             } else if (dev->regs[7] <= dev->max_ld) {
@@ -744,8 +822,8 @@ fdc37mx0x_read(uint16_t port, void *priv)
                 else if ((dev->regs[7] == 0x08) && (dev->cur_reg == 0xc1)) {
                     ret = dev->ld_regs[dev->regs[7]][dev->cur_reg] & 0xf0;
                     for (int i = 0; i < 4; i++)
-                        ret |= (fdc_get_fdd_changed(i) << i);
-                } else if (((dev->chip_id == FDC37M70X) && dev->regs[7] == 0x08) && (dev->cur_reg == 0xb7)) {
+                        ret |= (fdc_get_fdd_changed(dev->fdc, i) << i);
+                } else if ((((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X)) && dev->regs[7] == 0x08) && (dev->cur_reg == 0xb7)) {
                     ret = dev->ld_regs[dev->regs[7]][dev->cur_reg];
                     dev->ld_regs[dev->regs[7]][dev->cur_reg] &= 0xfb;
                 } else if ((dev->regs[7] == 0x08) && (dev->cur_reg == 0xc2))
@@ -768,17 +846,19 @@ fdc37mx0x_reset(void *priv)
 {
     fdc37mx0x_t *dev = (fdc37mx0x_t *) priv;
 
+    fdc37mx0x_state_change(dev, 0);
+
     memset(dev->regs, 0x00, sizeof(dev->regs));
 
-    if (dev->chip_id == FDC37M70X)
+    if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X))
         dev->regs[0x03] = 0x03;
     dev->regs[0x20] = dev->chip_id;
-    dev->regs[0x22] = 0x39;
+    dev->regs[0x22] = 0x00;
     dev->regs[0x24] = 0x04;
     dev->regs[0x26] = dev->port_370 ? 0x70 : 0xf0;
     dev->regs[0x27] = 0x03;
 
-    if (dev->chip_id == FDC37M70X)
+    if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X))
         fdc37mx0x_watchdog_irq_reset(dev);
 
     for (uint8_t i = 0; i <= 0x0a; i++)
@@ -830,7 +910,7 @@ fdc37mx0x_reset(void *priv)
     dev->ld_regs[0x08][0xc0] = 0x06;
     dev->ld_regs[0x08][0xc1] = 0x03;
 
-    if (dev->chip_id == FDC37M70X)
+    if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X))
         fdc37mx0x_gpio_handler(dev);
     fdc37mx0x_lpt_handler(dev);
     fdc37mx0x_serial_handler(dev, 0);
@@ -842,16 +922,14 @@ fdc37mx0x_reset(void *priv)
     fdc37mx0x_fdc_handler(dev);
 
     for (int i = 0; i < 4; i++)
-        fdc_set_fdd_changed(i, 1);
+        fdc_set_fdd_changed(dev->fdc, i, 1);
 
     fdc37mx0x_kbc_handler(dev);
 
     fdc37mx0x_superio_handler(dev);
 
-    if (dev->chip_id == FDC37M70X)
+    if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X))
         fdc37mx0x_watchdog_reset(dev);
-
-    dev->locked = 0;
 }
 
 static void
@@ -869,22 +947,22 @@ fdc37mx0x_init(const device_t *info)
 {
     fdc37mx0x_t *dev = (fdc37mx0x_t *) calloc(1, sizeof(fdc37mx0x_t));
 
-    dev->fdc = device_add(&fdc_at_smc_device);
+    dev->fdc         = device_add_params(&fdc_at_smc_device, (void *) FDC_FLAG_PNP);
 
-    dev->uart[0]   = device_add_inst(&ns16550_device, 1);
-    dev->uart[1]   = device_add_inst(&ns16550_device, 2);
+    dev->uart[0]     = device_add_inst(&ns16550_device, 1);
+    dev->uart[1]     = device_add_inst(&ns16550_device, 2);
 
-    dev->lpt       = device_add_inst(&lpt_port_device, 1);
+    dev->lpt         = device_add_inst(&lpt_port_device, 1);
 
-    dev->kbc_type  = info->local & FDC37XXXX_KBC;
+    dev->kbc_type    = info->local & FDC37XXXX_KBC;
 
-    dev->is_compaq = (dev->kbc_type == FDC37XXX1);
+    dev->is_compaq   = (dev->kbc_type == FDC37XXX1);
 
-    dev->port_370  = !!(info->local & FDC37XXXX_370);
+    dev->port_370    = !!(info->local & FDC37XXXX_370);
 
-    dev->max_ld    = 8;
+    dev->max_ld      = 8;
 
-    dev->chip_id   = info->local & FDC37XXXX_CHIP_ID;
+    dev->chip_id     = info->local & FDC37XXXX_CHIP_ID;
 
     if (dev->is_compaq) {
         io_sethandler(0x0f9, 0x0001,
@@ -919,7 +997,7 @@ fdc37mx0x_init(const device_t *info)
     dev->uart_base[1] = 0x02f8;
     dev->kbc_base     = 0x0060;
 
-    if (dev->chip_id == FDC37M70X) {
+    if ((dev->chip_id == FDC37M70X) || (dev->chip_id == FDC37B80X)) {
         timer_add(&dev->watchdog_timer, fdc37mx0x_watchdog_timeout, dev, 0);
 
         if (dev->kbc != NULL)

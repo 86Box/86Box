@@ -61,9 +61,9 @@ static const struct {
     uint32_t off;
     uint32_t on;
 } hd44780_palettes[] = {
-    { .panel = 0x66f26a, .off = 0x5ee562, .on = 0x000000 }, /* black on green */
-    { .panel = 0x102f96, .off = 0x1a3ea8, .on = 0xeef4ff }, /* white on blue */
-    { .panel = 0xa0a0a0, .off = 0x909090, .on = 0x000000 }  /* unbacklit */
+    [HD44780_COLOR_GREEN] = { .panel = 0x66f26a, .off = 0x5ee562, .on = 0x000000 }, /* black on green */
+    [HD44780_COLOR_BLUE]  = { .panel = 0x102f96, .off = 0x1a3ea8, .on = 0xeef4ff }, /* white on blue */
+    [HD44780_COLOR_NONE]  = { .panel = 0xa0a0a0, .off = 0x909090, .on = 0x000000 }  /* unbacklit */
 };
 
 typedef struct hd44780_lcd_t {
@@ -1147,10 +1147,10 @@ static const device_config_t hd44780_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "Green", .value = 0 },
-            { .description = "Blue",  .value = 1 },
-            { .description = "None",  .value = 2 },
-            { .description = ""                  }
+            { .description = "Green", .value = HD44780_COLOR_GREEN },
+            { .description = "Blue",  .value = HD44780_COLOR_BLUE  },
+            { .description = "None",  .value = HD44780_COLOR_NONE  },
+            { .description = ""                                    }
         },
         .bios           = { { 0 } }
     },

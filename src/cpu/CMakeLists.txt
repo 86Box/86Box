@@ -27,11 +27,13 @@ add_library(cpu OBJECT
     386.c
     386_common.c
     386_dynarec.c
+    cache_as_ram.c
     x86_ops_mmx.c
     x86seg_common.c
     x86seg.c
     x86seg_2386.c
     x87.c
+    x87_ferr.c
     x87_timings.c
     i8080.c
 )

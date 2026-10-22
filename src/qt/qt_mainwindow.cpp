@@ -41,9 +41,6 @@ extern "C" {
 #include <86box/keyboard.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
-#ifdef DISCORD
-#    include <86box/discord.h>
-#endif
 #include <86box/device.h>
 #include <86box/video.h>
 #include <86box/mouse.h>
@@ -304,9 +301,6 @@ MainWindow::MainWindow(QWidget *parent)
     statusBar()->setStyleSheet("QStatusBar::item {border: None; } QStatusBar QLabel { margin-right: 2px; margin-bottom: 1px; }");
     this->centralWidget()->setStyleSheet("background-color: black;");
     ui->toolBar->setVisible(!hide_tool_bar);
-#ifdef _WIN32
-    ui->toolBar->setBackgroundRole(QPalette::Light);
-#endif
     renderers[0].reset(nullptr);
 
     auto toolbar_label_widget = new QWidget();
@@ -354,7 +348,7 @@ MainWindow::MainWindow(QWidget *parent)
         scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
-        int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
+        int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_AX) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
         kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
 
         ui->actionMouse->setEnabled(true);
@@ -547,17 +541,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionHide_tool_bar->setChecked(hide_tool_bar);
     ui->actionShow_non_primary_monitors->setChecked(show_second_monitors);
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
-    ui->actionEnable_Discord_integration->setChecked(enable_discord);
     ui->actionApply_fullscreen_stretch_mode_when_maximized->setChecked(video_fullscreen_scale_maximized);
 
 #ifdef Q_OS_MACOS
     ui->actionApply_fullscreen_stretch_mode_when_maximized->setVisible(false);
-#endif
-
-#ifndef DISCORD
-    ui->actionEnable_Discord_integration->setVisible(false);
-#else
-    ui->actionEnable_Discord_integration->setEnabled(discord_loaded);
 #endif
 
     if ((QApplication::platformName().contains("eglfs") || QApplication::platformName() == "haiku")) {
@@ -780,6 +767,12 @@ MainWindow::MainWindow(QWidget *parent)
         case FULLSCR_SCALE_INT43:
             ui->actionFullScreen_int43->setChecked(true);
             break;
+        case FULLSCR_SCALE_CENTER:
+            ui->actionFullScreen_center->setChecked(true);
+            break;
+        case FULLSCR_SCALE_CENTER43:
+            ui->actionFullScreen_center43->setChecked(true);
+            break;
     }
 
     actGroup = new QActionGroup(this);
@@ -816,6 +809,8 @@ MainWindow::MainWindow(QWidget *parent)
     actGroup->addAction(ui->actionFullScreen_keepRatio);
     actGroup->addAction(ui->actionFullScreen_int);
     actGroup->addAction(ui->actionFullScreen_int43);
+    actGroup->addAction(ui->actionFullScreen_center);
+    actGroup->addAction(ui->actionFullScreen_center43);
     switch (video_gl_input_scale_mode) {
         default:
             break;
@@ -1163,7 +1158,7 @@ MainWindow::updateMouseStrings()
     if (release_buttons & MOUSE_RELEASE_MIDDLE)
         mouseStringCaptured = tr("Press %1 or middle button to release mouse").arg(seq);
     else if (release_buttons & MOUSE_RELEASE_THUMB)
-        mouseStringCaptured = tr("Press %1 or thumb button to release mouse").arg(seq);
+        mouseStringCaptured = tr("Press %1 or side button to release mouse").arg(seq);
     else
         mouseStringCaptured = tr("Press %1 to release mouse").arg(seq);
 
@@ -1210,6 +1205,8 @@ MainWindow::initRendererMonitorSlot(int monitor_index)
             this->renderers[monitor_index]->show();
         });
         secondaryRenderer->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
+        /* Without a maximize button, Windows maximizes the window over the taskbar. */
+        secondaryRenderer->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
         secondaryRenderer->setWindowTitle(QObject::tr("86Box Monitor #%1").arg(monitor_index + 1));
         secondaryRenderer->setContextMenuPolicy(Qt::PreventContextMenu);
 
@@ -1669,6 +1666,22 @@ MainWindow::FindAcceleratorSeq(const char *name)
     return (QKeySequence::fromString(acc_keys[accID].seq));
 }
 
+// Check whether a key event triggers an accelerator
+bool
+MainWindow::keyMatchesAccelerator(const QKeyEvent *ke, const char *name)
+{
+    const QKeySequence seq = FindAcceleratorSeq(name);
+
+    /* An unbound accelerator never matches. Some key events carry no key code
+       (such as the second character from a doubled dead key on Windows), and
+       those would otherwise compare equal to every empty sequence. */
+    if (seq.isEmpty())
+        return false;
+
+    return ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == seq)
+        || ((QKeySequence) (ke->key() | ke->modifiers()) == seq);
+}
+
 #include <iostream>
 
 bool
@@ -1705,8 +1718,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         // because it's not a menu accelerator.
         QKeyEvent *ke = (QKeyEvent *) event;
         if (mouse_capture) {
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("release_mouse")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("release_mouse")) {
+            if (keyMatchesAccelerator(ke, "release_mouse")) {
                 /* Prevent an Alt-based shortcut from looking like a standalone
                  * Alt press to the guest when the held modifiers are released. */
                 this->keyReleaseEvent(ke);
@@ -1720,64 +1732,49 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         this->keyPressEvent(ke);
 
         if (event->type() == QEvent::KeyPress && video_fullscreen != 0) {
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("screenshot")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("screenshot")) {
+            if (keyMatchesAccelerator(ke, "screenshot")) {
                 ui->actionTake_screenshot->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("raw_screenshot")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("raw_screenshot")) {
+            if (keyMatchesAccelerator(ke, "raw_screenshot")) {
                 ui->actionTake_raw_screenshot->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("copy_screenshot")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("copy_screenshot")) {
+            if (keyMatchesAccelerator(ke, "copy_screenshot")) {
                 ui->actionCopy_screenshot->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("copy_raw_screenshot")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("copy_raw_screenshot")) {
+            if (keyMatchesAccelerator(ke, "copy_raw_screenshot")) {
                 ui->actionCopy_raw_screenshot->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("fullscreen")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("fullscreen")) {
+            if (keyMatchesAccelerator(ke, "fullscreen")) {
                 ui->actionFullscreen->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("toggle_osd")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("toggle_osd")) {
+            if (keyMatchesAccelerator(ke, "toggle_osd")) {
                 ui->actionToggle_OSD->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("hard_reset")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset")) {
+            if (keyMatchesAccelerator(ke, "hard_reset")) {
                 ui->actionHard_Reset->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("fast_forward")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("fast_forward")) {
+            if (keyMatchesAccelerator(ke, "fast_forward")) {
                 ui->actionFast_forward->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("send_ctrl_alt_del")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_del")) {
+            if (keyMatchesAccelerator(ke, "send_ctrl_alt_del")) {
                 ui->actionCtrl_Alt_Del->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("send_ctrl_alt_esc")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_esc")) {
+            if (keyMatchesAccelerator(ke, "send_ctrl_alt_esc")) {
                 ui->actionCtrl_Alt_Esc->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("nmi")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("nmi")) {
+            if (keyMatchesAccelerator(ke, "nmi")) {
                 ui->actionNon_maskable_interrupt->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("pause")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("pause")) {
+            if (keyMatchesAccelerator(ke, "pause")) {
                 ui->actionPause->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("mute")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("mute")) {
+            if (keyMatchesAccelerator(ke, "mute")) {
                 ui->actionMute_Unmute->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("exit")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("exit")) {
+            if (keyMatchesAccelerator(ke, "exit")) {
                 ui->actionExit->trigger();
             }
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("toggle_ui_fullscreen")
-                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("toggle_ui_fullscreen")) {
+            if (keyMatchesAccelerator(ke, "toggle_ui_fullscreen")) {
                 toggleFullscreenUI();
             }
 
@@ -1866,7 +1863,7 @@ MainWindow::refreshMediaMenu()
     caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
     kana_label->setToolTip(QShortcut::tr("Kana Lock"));
     int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
-    int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
+    int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_AX) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
     kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
 
     bool enable_comp_option = false;
@@ -2191,6 +2188,8 @@ update_fullscreen_scale_checkboxes(Ui::MainWindow *ui, QAction *selected)
     ui->actionFullScreen_keepRatio->setChecked(selected == ui->actionFullScreen_keepRatio);
     ui->actionFullScreen_int->setChecked(selected == ui->actionFullScreen_int);
     ui->actionFullScreen_int43->setChecked(selected == ui->actionFullScreen_int43);
+    ui->actionFullScreen_center->setChecked(selected == ui->actionFullScreen_center);
+    ui->actionFullScreen_center43->setChecked(selected == ui->actionFullScreen_center43);
 
     {
         auto widget = ui->stackedWidget->currentWidget();
@@ -2240,6 +2239,20 @@ MainWindow::on_actionFullScreen_int43_triggered()
 {
     video_fullscreen_scale = FULLSCR_SCALE_INT43;
     update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_int43);
+}
+
+void
+MainWindow::on_actionFullScreen_center_triggered()
+{
+    video_fullscreen_scale = FULLSCR_SCALE_CENTER;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_center);
+}
+
+void
+MainWindow::on_actionFullScreen_center43_triggered()
+{
+    video_fullscreen_scale = FULLSCR_SCALE_CENTER43;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_center43);
 }
 
 void
@@ -2520,6 +2533,13 @@ MainWindow::updateUiPauseState()
     emit vmmRunningStateChanged(static_cast<VMManagerProtocol::RunningState>(window_blocked ? (dopause ? VMManagerProtocol::RunningState::PausedWaiting : VMManagerProtocol::RunningState::RunningWaiting) : (VMManagerProtocol::RunningState) dopause));
 }
 
+/* The menu's check follows fast forward set from elsewhere (automation). */
+void
+MainWindow::updateUiFastForwardState()
+{
+    ui->actionFast_forward->setChecked(fast_forward);
+}
+
 void
 MainWindow::updateStatusEmptyIcons()
 {
@@ -2548,23 +2568,6 @@ MainWindow::on_actionPreferences_triggered()
         case QDialog::Rejected:
             break;
     }
-}
-
-void
-MainWindow::on_actionEnable_Discord_integration_triggered(bool checked)
-{
-    enable_discord = checked;
-#ifdef DISCORD
-    if (enable_discord) {
-        discord_init();
-        discord_update_activity(dopause);
-        discordupdate.start(1000);
-    } else {
-        discord_close();
-        discordupdate.stop();
-    }
-#endif
-    config_save();
 }
 
 void
@@ -2605,6 +2608,13 @@ MainWindow::changeEvent(QEvent *event)
     if (isVisible()) {
         monitor_settings[0].mon_window_maximized = isMaximized();
         config_save();
+    }
+    /* The renderer can get its resize event before the window reports being
+       maximized, so redo the stretch mode once the state is known. */
+    if (event->type() == QEvent::WindowStateChange) {
+        const auto widget = ui->stackedWidget->currentWidget();
+        if (widget)
+            ui->stackedWidget->onResize(widget->width(), widget->height());
     }
 }
 
@@ -2766,7 +2776,7 @@ void
 MainWindow::on_actionACPI_Shutdown_triggered()
 {
     if (acpi_enabled) {
-        acpi_pwrbut_pressed = 1;
+        acpi_pwrbut_press();
         return;
     }
 

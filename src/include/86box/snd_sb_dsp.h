@@ -116,6 +116,7 @@ typedef struct sb_dsp_t {
 
     int sbleftright;
     int sbleftright_default;
+    int sbleftrighti;
 
     int     sbreset;
     uint8_t sbreaddat;
@@ -156,6 +157,7 @@ typedef struct sb_dsp_t {
     uint16_t sb_addr;
 
     int stereo;
+    int stereoi;
 
     int asp_data_len;
 
@@ -196,6 +198,8 @@ typedef struct sb_dsp_t {
     uint8_t  ess_reload_len;
     uint32_t ess_dma_counter;
     uint8_t  ess_input_gain;
+    uint8_t  ess_input_gain_l;
+    uint8_t  ess_input_gain_r;
 
     /* IRQ status flags (0x22C) */
     uint8_t  ess_irq_generic;

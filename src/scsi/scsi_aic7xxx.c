@@ -68,6 +68,8 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/ini.h>
+#include <86box/config.h>
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -243,6 +245,9 @@ aic_log(const char *tag, const char *fmt, ...)
 #define BOARD_2742W       11 /* one wide channel, floppy controller */
 #define BOARD_2744W       12 /* one wide differential channel */
 #define AIC_BOARD_EISA(b) ((b) >= BOARD_2740)
+/* A card entry that covers several models takes the board from its Model
+   option (and, for the 274x, its floppy jumper) instead of from .local. */
+#define BOARD_FROM_CONFIG 0xff
 #define AIC_BOARD_TWIN(b) (((b) == BOARD_2740T) || ((b) == BOARD_2742T))
 #define AIC_BOARD_WIDE(b) (((b) == BOARD_2740W) || ((b) == BOARD_2742W) || ((b) == BOARD_2744W))
 #define AIC_BOARD_DIFF(b) (((b) == BOARD_2744W) || ((b) == BOARD_2944UW))
@@ -394,6 +399,12 @@ aic_log(const char *tag, const char *fmt, ...)
    which none of these has, gets 255 of eight. */
 #define QUEUE_SIZE 16
 
+/* A polling loop's pass (aic_loop_edge): the most distinct places it may
+   read or write, and the longest it may be. */
+#define AIC_LOOP_NONE  0xffff
+#define AIC_LOOP_MAX   24
+#define AIC_LOOP_INSNS 1024
+
 /* What one of these parts is, as against what a board makes of it. The
    AIC-7870 and AIC-7880 are the AIC-7770 grown up: same sequencer and the
    same instruction set, the same register addresses, the same SCB and
@@ -421,14 +432,15 @@ typedef struct aic_chip_t {
     uint8_t     aux_regs;       /* 1Ah to 1Eh: SCAM, PIO capability, the
                                    board GAL and the serial EEPROM */
     uint8_t fifo_addr_hi;       /* a second byte of data FIFO address */
+    uint8_t fifo_word;          /* bytes in one FIFO location: DWORDEMP
+                                   on the 7770 is the two dword pointers
+                                   equal, FIFOQWDEMP on the later parts
+                                   the two quadword pointers */
     uint8_t selid_writable;     /* SELID is read only on the older part */
     uint8_t twin_capable;       /* a second SCSI channel to strap */
     uint8_t seqctl_reset;       /* what SEQCTL comes up holding */
     uint8_t sblkctl_reset;      /* and SBLKCTL, before the board's straps */
     uint8_t own_reset_seen;     /* the part reports the bus reset it drives */
-    uint8_t faildis_honoured;   /* FAILDIS suppresses the hard-error
-                                   interrupt, and the interrupt takes
-                                   PAUSEDIS away with it */
     uint8_t bad_addr_err;       /* what an address that decodes to nothing
                                    records in ERROR */
     uint8_t host_pause_checked; /* the host reaching a register that
@@ -455,6 +467,7 @@ static const aic_chip_t aic_chip_7770 = {
     .clrint_mask    = CLRBRKADRINT | CLRCMDINT | CLRSEQINT,
     .aux_regs       = 0,
     .fifo_addr_hi   = 0,
+    .fifo_word      = 4,
     .selid_writable = 0,
     .twin_capable   = 1,
     /* PERRORDIS is the one bit here whose reset value the data book gives
@@ -471,10 +484,8 @@ static const aic_chip_t aic_chip_7770 = {
        finishes it. The card's own BIOS settles it -- it enables
        ENSCSIRST, asserts SCSIRSTO, starts the sequencer and waits. */
     .own_reset_seen = 0,
-    /* "If set, disables the Illegal Opcode or Address interrupt feature."
-       And an address that decodes to no register is ILLSADDR, not a bad
+    /* An address that decodes to no register is ILLSADDR, not a bad
        opcode. */
-    .faildis_honoured   = 1,
     .host_pause_checked = 1,
     .bad_addr_err       = ILLSADDR,
 };
@@ -494,6 +505,7 @@ static const aic_chip_t aic_chip_788x = {
     .clrint_mask    = CLRPARERR | CLRBRKADRINT | CLRSCSIINT | CLRCMDINT | CLRSEQINT,
     .aux_regs       = 1,
     .fifo_addr_hi   = 1,
+    .fifo_word      = 8,
     .selid_writable = 1,
     .twin_capable   = 0,
     .seqctl_reset   = PERRORDIS | FASTMODE,
@@ -502,7 +514,6 @@ static const aic_chip_t aic_chip_788x = {
        itself, and everything waiting on that data stops. */
     .sblkctl_reset    = DIAGLEDEN | DIAGLEDON,
     .own_reset_seen   = 1,
-    .faildis_honoured = 0,
     .bad_addr_err     = ILLOPCODE,
     /* Off, for the same reason bad_addr_err differs: ILLHADDR's rule is
        the AIC-7770 book's, and this part's is not to hand. */
@@ -515,6 +526,35 @@ static const aic_chip_t aic_chip_788x = {
    takes the two for one family and goes by the device ID for the rest:
    Linux's feature table makes the AIC-7880 the AIC-7870 plus AHC_ULTRA
    and nothing else. */
+static const aic_chip_t aic_chip_7870;
+
+/* The part a board is built on. */
+static const aic_chip_t *
+aic_board_chip(int board)
+{
+    if (AIC_BOARD_EISA(board))
+        return &aic_chip_7770;
+    else if ((board == BOARD_2940) || (board == BOARD_2940W))
+        return &aic_chip_7870;
+
+    return &aic_chip_788x;
+}
+
+/* A part with SELBUSB has channel B, a bus of its own whether or not the
+   board brings it out (see aic_init()). */
+static uint32_t
+aic_scsi_buses(const device_t *dev)
+{
+    int board = dev->local & 0xff;
+
+    /* An entry covering several models has the model in its options, the
+       current configuration context here. */
+    if (board == BOARD_FROM_CONFIG)
+        board = device_get_config_int("model");
+
+    return (aic_board_chip(board)->sblkctl_mask & SELBUSB) ? 2 : 1;
+}
+
 static const aic_chip_t aic_chip_7870 = {
     .name          = "AIC-7870",
     .scb_pages     = SCB_COUNT,
@@ -528,12 +568,12 @@ static const aic_chip_t aic_chip_7870 = {
     .clrint_mask   = CLRPARERR | CLRBRKADRINT | CLRSCSIINT | CLRCMDINT | CLRSEQINT,
     .aux_regs      = 1,
     .fifo_addr_hi  = 1,
+    .fifo_word     = 8,
     .selid_writable = 1,
     .twin_capable  = 0,
     .seqctl_reset  = PERRORDIS | FASTMODE,
     .sblkctl_reset = DIAGLEDEN | DIAGLEDON,
     .own_reset_seen = 1,
-    .faildis_honoured = 0,
     .bad_addr_err  = ILLOPCODE,
     .host_pause_checked = 0,
 };
@@ -723,6 +763,23 @@ typedef struct aic7xxx_t {
     uint8_t  asleep;    /* it is spinning on something only an event changes */
     uint16_t last_park; /* where it was last reported spinning */
 
+    /* A polling loop being proved to change nothing, or parked on
+       (aic_loop_edge): where it starts, the state it started in, and what
+       one pass read and wrote. */
+    uint16_t loop_head;   /* AIC_LOOP_NONE: no pass being watched */
+    uint16_t loop_failed; /* the last head that did not hold: another is tried first */
+    uint8_t  loop_skips;  /* how many edges back to it have been passed over since */
+    uint8_t  loop_parked;
+    uint16_t loop_insns;
+    uint8_t  loop_accum, loop_sindex, loop_dindex, loop_flags, loop_function1, loop_scbptr, loop_sp, loop_intstat;
+    uint16_t loop_stack[4];
+    uint8_t  loop_nrd, loop_nwr;
+    struct {
+        uint8_t addr;
+        uint8_t scbptr;
+        uint8_t val;
+    } loop_rd[AIC_LOOP_MAX], loop_wr[AIC_LOOP_MAX];
+
     /* host side */
     uint8_t  dscommand0;
     uint8_t  dscommand1;
@@ -762,9 +819,11 @@ typedef struct aic7xxx_t {
     uint8_t  qin[QUEUE_SIZE];
     uint8_t  qin_rd;
     uint16_t qin_cnt;
+    uint8_t  qin_last; /* what QINFIFO last gave: an empty read gives it again */
     uint8_t  qout[QUEUE_SIZE];
     uint8_t  qout_rd;
     uint16_t qout_cnt;
+    uint8_t  qout_last; /* what QOUTFIFO last gave, likewise */
 
     uint8_t sram[0x40];
     uint8_t scb[SCB_COUNT][SCB_SIZE];
@@ -822,6 +881,7 @@ static void    aic_update_irq(aic7xxx_t *dev);
 static void    aic_scsi_int(aic7xxx_t *dev);
 static uint8_t aic_tgt_byte(const aic7xxx_t *dev);
 static void    aic_seq_kick(aic7xxx_t *dev);
+static void    aic_loop_wake(aic7xxx_t *dev);
 static void    aic_seq_run(aic7xxx_t *dev);
 static void    aic_pump(aic7xxx_t *dev);
 static void    aic_bus_free(aic7xxx_t *dev);
@@ -1021,9 +1081,32 @@ aic_raise(aic7xxx_t *dev, uint8_t bits)
 
 /* The faults the book gathers behind BRKADRINT: "This register reports
    errors that are catastrophic in nature. These errors will cause
-   BRKADRINT to be set and the sequencer to be paused." Whether FAILDIS
-   may suppress the interrupt is the AIC-7770's rule and comes from the
-   chip descriptor, the later parts not being documented to share it. */
+   BRKADRINT to be set and the sequencer to be paused."
+
+   ERROR records what was detected whatever FAILDIS says; FAILDIS turns off
+   only the interrupt. The AIC-7770 book: "If set, disables the Illegal
+   Opcode or Address interrupt feature", and its interrupt summary makes
+   FAILDIS=0 the enable condition of every one of those rows. The AIC-7870
+   book says the same of its own list: BRKADRINT is set "When ILLOPCODE
+   becomes active (FAILDIS=0)", and "This feature may be disabled by
+   setting FAILDIS". So the later parts honour it too.
+
+   PAUSEDIS goes with the interrupt, not with the detection: "SCSI
+   interrupts, an Illegal Opcode interrupt, a Sequencer RAM Parity Error
+   interrupt, and an Illegal Address interrupt, reset this bit" (the 7870:
+   "an illegal opcode interrupt ... resets this bit"). Taking it away for a
+   fault FAILDIS had silenced let a host PAUSE land inside the sequencer's
+   critical section. */
+static void
+aic_fail(aic7xxx_t *dev, uint8_t bits)
+{
+    dev->error |= bits;
+    if (dev->seqctl & FAILDIS)
+        return;
+    dev->seqctl &= ~PAUSEDIS;
+    aic_raise(dev, BRKADRINT);
+}
+
 /* Which registers the host may reach while the sequencer is running.
    The register summary states the rule once for the whole map -- "When
    the host must access these registers the Sequencer must be paused,
@@ -1093,13 +1176,7 @@ aic_hard_error(aic7xxx_t *dev, uint8_t bits, uint8_t addr, int write)
                 (dev->err_logs >= 256) ? " [1 in 100000]" : "");
     }
     dev->err_logs++;
-    dev->error |= bits;
-    if (dev->chip->faildis_honoured) {
-        dev->seqctl &= ~PAUSEDIS;
-        if (dev->seqctl & FAILDIS)
-            return;
-    }
-    aic_raise(dev, BRKADRINT);
+    aic_fail(dev, bits);
 }
 
 /* SCSIINT is the one interrupt the sequencer does not raise itself: the
@@ -1119,7 +1196,10 @@ aic_scsi_int(aic7xxx_t *dev)
            asks for cannot be refused. */
         dev->seqctl &= ~PAUSEDIS;
         aic_raise(dev, SCSIINT);
-    } else if (dev->intstat & SCSIINT) {
+    } else if ((dev->intstat & SCSIINT) && !(dev->chip->clrint_mask & CLRSCSIINT)) {
+        /* The PCI parts latch SCSIINT until CLRSCSIINT is written
+           (AIC-7870 data book, INTSTAT). Only the AIC-7770 follows the
+           underlying SCSI status without a separate interrupt latch. */
         /* And it goes away again on its own. SCSIINT is not a latch the
            host clears: the data book gives it as set "if the corresponding
            interrupt is enabled in SIMODE0 or SIMODE1", which is why the
@@ -1286,6 +1366,14 @@ aic_set_sstat0(aic7xxx_t *dev, uint8_t bits)
     aic_scsi_int(dev);
 }
 
+/* DMA owns the SCSI handshake while either SCSI-side enable is set,
+   even if firmware leaves SPIOEN enabled (SXFRCTL0, both data books). */
+static int
+aic_pio_enabled(const aic7xxx_t *dev)
+{
+    return (dev->sxfrctl0 & SPIOEN) && !(dev->dfcntrl & (SCSIEN | SDMAEN));
+}
+
 /* ---- the SCSI bus ------------------------------------------------------- */
 
 /* REQINIT follows REQ, and PHASECHG latches a phase that is not the one
@@ -1331,7 +1419,7 @@ aic_bus_changed(aic7xxx_t *dev)
        ARROW.MPD -- starts its command DMA, reads SSTAT0, finds SDONE
        standing on a SPIORDY left over from the last message byte, and
        cancels the transfer it just started. */
-    if (req && !dev->req_seen && (dev->sxfrctl0 & SPIOEN) && !(dev->dfcntrl & (SCSIEN | SDMAEN)))
+    if (req && !dev->req_seen && aic_pio_enabled(dev))
         aic_set_sstat0(dev, SPIORDY);
     dev->req_seen = req;
 
@@ -1652,9 +1740,12 @@ aic_tgt_next(aic7xxx_t *dev)
 
     if (!c->executed) {
         aic_cmd_execute(dev, c);
-        /* A target with work to do and permission to go away takes it,
-           once, so that reselection gets exercised. */
-        if (c->disc_ok && !c->waited && (c->data_len > 0)) {
+        /* Reads have already completed in the backend and their data is
+           private to this command. Keep data-out commands connected until
+           phase1 completes: the backend has only one current CDB, transfer
+           buffer and sector position per target. Disconnecting here lets
+           another queued command overwrite that state before the write. */
+        if (c->data_in && c->disc_ok && !c->waited && (c->data_len > 0)) {
             /* SAVE DATA POINTERS, then DISCONNECT. A target sends both,
                in that order, and the sequencer needs the first: it is
                what tells the program to write the transfer's address and
@@ -2133,6 +2224,8 @@ aic_reselect_try(aic7xxx_t *dev)
 static void
 aic_scsi_reset_bus(aic7xxx_t *dev)
 {
+    uint8_t bus = aic_cur_bus(dev);
+
     aic_log(dev->tag, "[%.3f ms] scsi bus reset\n", aic_now_us() / 1000.0);
     /* A bus reset is where a driver starts over, and where the trace
        should too: the bounded traces above were spent on the option
@@ -2140,37 +2233,40 @@ aic_scsi_reset_bus(aic7xxx_t *dev)
        driver's own first command went unrecorded. */
     dev->busl_reads = dev->sig_logs = dev->scb_dumps = 0;
     for (uint8_t i = 0; i < AIC_CMDS; i++) {
-        if (dev->cmds[i].used)
+        if (dev->cmds[i].used && (!dev->twin || (dev->cmds[i].bus == bus)))
             aic_cmd_free(dev, &dev->cmds[i]);
     }
-    dev->cur       = NULL;
-    dev->bus_state = BUS_FREE;
-    dev->tgt_req   = 0;
-    dev->selecting = 0;
-    dev->req_wait  = 0;
-    dev->atn       = 0;
-    dev->datl_full = 0;
+    /* A twin-channel AIC-7770 has independent reset signals. A reset on
+       the selected bus must not cancel work on the other physical bus. */
+    if (!dev->twin || (dev->cur_ch == dev->cell_live)) {
+        dev->cur       = NULL;
+        dev->bus_state = BUS_FREE;
+        dev->tgt_req   = 0;
+        dev->req_wait  = 0;
+        dev->atn       = 0;
+        dev->datl_full = 0;
+        timer_stop(&dev->tgt_timer);
+        timer_stop(&dev->req_timer);
+    }
+    if (!dev->twin || (dev->sel_ch == dev->cell_live)) {
+        dev->selecting = 0;
+        timer_stop(&dev->sel_timer);
+    }
     /* A reset clears SCSISIGO and everything in SCSISEQ but the bit that
        is causing it. */
     dev->scsisigo = 0;
-    /* "All bits except SCSIRSTO are cleared by SCSI Bus Reset" -- on
-       both cells, not only the one the file is looking at. Leaving the
-       other bank's ENSELO standing had the next bus-free restart a
-       selection from it with whatever SCSIID it last held. */
+    /* Without a second physical bus, clear the unused bank as well so
+       an old probe there cannot restart a selection after reset. */
     dev->scsiseq &= SCSIRSTO;
     dev->sstat0 &= ~(SELDO | SELDI | SELINGO);
     for (uint8_t ch = 0; ch < 2; ch++) {
-        if (ch != dev->cell_live) {
+        if (!dev->twin && (ch != dev->cell_live)) {
             dev->cell_save[ch].scsiseq &= SCSIRSTO;
             dev->cell_save[ch].sstat0 &= (uint8_t) ~(SELDO | SELDI | SELINGO);
         }
     }
-    timer_stop(&dev->sel_timer);
-    timer_stop(&dev->tgt_timer);
-    timer_stop(&dev->req_timer);
-
     for (uint8_t i = 0; i < (dev->wide ? 16 : 8); i++)
-        scsi_device_reset(&scsi_devices[aic_cur_bus(dev)][i]);
+        scsi_device_reset(&scsi_devices[bus][i]);
 
     if (dev->chip->own_reset_seen)
         aic_set_sstat1(dev, SCSIRSTI);
@@ -2213,7 +2309,9 @@ aic_fifo_pop(aic7xxx_t *dev)
 static uint32_t
 aic_fifo_threshold(const aic7xxx_t *dev)
 {
-    static const uint16_t level[4] = { 24, FIFO_SIZE / 2, (FIFO_SIZE * 3) / 4, FIFO_SIZE };
+    /* Sixteen bytes at the lowest setting: "4 double words" in the
+       AIC-7770 book, "16 Bytes" in the AIC-7870's table. */
+    static const uint16_t level[4] = { 16, FIFO_SIZE / 2, (FIFO_SIZE * 3) / 4, FIFO_SIZE };
 
     /* Register 86h, whichever part this is. On the AIC-7770 it is BUSSPD,
        and the data book is explicit that "in EISA mode, STBON(3:0) and
@@ -2460,7 +2558,7 @@ aic_pio_counted(aic7xxx_t *dev)
 static void
 aic_pio_out(aic7xxx_t *dev)
 {
-    if (!dev->datl_full || !(dev->sxfrctl0 & SPIOEN))
+    if (!dev->datl_full || !aic_pio_enabled(dev))
         return;
     if ((dev->bus_state != BUS_BUSY) || !dev->tgt_req || (dev->tgt_phase & IOI))
         return;
@@ -2509,16 +2607,31 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
 {
     uint8_t ret = 0;
 
-    if (!seq)
+    if (!seq) {
+        aic_loop_wake(dev);
         aic_host_catch_up(dev);
+    }
 
     /* "Illegal Host Address. This bit is set when the Host accesses a
        register, which is unavailable to the Host, while the Sequencer is
-       not paused." Setting it pauses the sequencer, which makes the next
-       access legal -- so this reports the first one and then stops, which
-       is what wanted to be reported anyway. */
-    if (!seq && dev->chip->host_pause_checked && !aic_paused(dev) && !aic_host_no_pause(addr, 0))
+       not paused." Unavailable is the word: the register file is the
+       sequencer's while it runs -- "All registers are available to the
+       Host computer and to the Sequencer ... but not at the same time" --
+       and the host gets nothing back, as it does from any location that
+       decodes to no register. The error is recorded, and with FAILDIS
+       clear it pauses the sequencer, so the next access is legal.
+
+       Software depends on the nothing. ASPI7DOS and Windows 98's AIC-7770
+       driver both probe a running chip by reading SCSISEQ, SXFRCTL0 and
+       SXFRCTL1 unpaused: three zeros mean the BIOS's firmware has the
+       part, and only then do they look at SCB 0 for the BIOS's mark and
+       leave that SCB to it. Answered with the live values, ASPI7DOS took
+       the BIOS's every completion as its own, and the BIOS's INT 13h
+       waited fifteen seconds for each one. */
+    if (!seq && dev->chip->host_pause_checked && !aic_paused(dev) && !aic_host_no_pause(addr, 0)) {
         aic_hard_error(dev, ILLHADDR, addr, 0);
+        return 0x00;
+    }
 
     if ((addr >= SRAM_BASE) && (addr < 0x60))
         return dev->sram[addr - SRAM_BASE];
@@ -2593,7 +2706,7 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
                             seq ? "seq" : "host", ret,
                             aic_phase_name(dev->tgt_phase), dev->msgin_pos, dev->msgin_len,
                             !!(dev->sxfrctl0 & SPIOEN),
-                            (dev->sxfrctl0 & SPIOEN) ? "acked" : "NOT acked");
+                            aic_pio_enabled(dev) ? "acked" : "NOT acked");
                 }
                 /* The handshake is automatic PIO's, and SPIOEN is what
                    turns that on: "The individual PIO transfers are
@@ -2608,7 +2721,7 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
                    An earlier pass removed this gate on the strength of
                    the SCSIDATL description alone; the SPIOEN text is the
                    more specific and it puts the gate back. */
-                if (dev->sxfrctl0 & SPIOEN) {
+                if (aic_pio_enabled(dev)) {
                     /* "During a transfer from SCSI, it is cleared on a
                        read from SCSIDATL." */
                     dev->sstat0 &= ~SPIORDY;
@@ -2824,13 +2937,16 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
                hardware's way of turning a target ID into a bit mask. */
             return (uint8_t) (1 << ((dev->function1 >> 4) & 0x07));
         case STACK:
-            /* Two reads per entry, low byte first. */
+            /* Two reads per entry, low byte first, "starting from the
+               last location pushed on the stack": that is the slot below
+               the pointer, which names the next free one. Eight reads
+               bring the pointer back round to where it was. */
             if (dev->stack_rd == 0) {
                 dev->stack_rd = 1;
-                return dev->stack[dev->sp & 3] & 0xff;
+                return dev->stack[(dev->sp - 1) & 3] & 0xff;
             }
             dev->stack_rd = 0;
-            ret           = (dev->stack[dev->sp & 3] >> 8) & 0xff;
+            ret           = (dev->stack[(dev->sp - 1) & 3] >> 8) & 0xff;
             dev->sp       = (dev->sp - 1) & 3;
             return ret;
 
@@ -2903,8 +3019,9 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
             ret = 0;
             if (dev->fifo_cnt == 0)
                 ret |= FIFOEMP;
-            /* Not one whole quadword: one to seven bytes do not count. */
-            if (dev->fifo_cnt < 8)
+            /* Not one whole word: the read and write pointers are on
+               the same location, whatever bytes are in it. */
+            if (dev->fifo_cnt < dev->chip->fifo_word)
                 ret |= FIFOQWDEMP;
             if (dev->fifo_cnt >= FIFO_SIZE)
                 ret |= FIFOFULL;
@@ -2937,29 +3054,40 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
         case SCBCNT:
             return dev->scbcnt;
         case QINFIFO:
-            /* The sequencer takes the next queued SCB. An empty one does
-               not shift -- "reads when QINCNT=0 are ignored" -- and what
-               comes back instead the book does not say, so neither queue
-               is wrong here. They differ on purpose: an SCB number is
-               what these carry, and FFh is the one a driver reads as no
-               SCB at all, which is the useful answer on the queue a
-               driver reads and a meaningless one on the queue only the
-               sequencer reads. */
+            /* The sequencer takes the next queued SCB. "Reads when
+               QINCNT=0 are ignored": an ignored read does not shift the
+               queue, and what it shows is what its output already holds --
+               the SCB it gave last, or 00h, the reset value, before it has
+               given any. */
             if (dev->qin_cnt == 0)
-                return 0;
-            ret         = dev->qin[dev->qin_rd];
-            dev->qin_rd = (dev->qin_rd + 1) % dev->chip->q_depth;
+                return dev->qin_last;
+            ret           = dev->qin[dev->qin_rd];
+            dev->qin_rd   = (dev->qin_rd + 1) % dev->chip->q_depth;
             dev->qin_cnt--;
+            dev->qin_last = ret;
             return ret;
         case QINCNT:
             return (uint8_t) dev->qin_cnt;
         case QOUTFIFO:
-            /* The host takes the next completion. */
+            /* The host takes the next completion. "Reads when QOUTCNT=0
+               are ignored", the same as the inbound queue: the read shows
+               the SCB it gave last and does not shift. It used to answer
+               FFh -- bits the AIC-7770 has as reserved, and no value the
+               part holds -- and the AHA-2740 BIOS depends on the real
+               answer. With ASPI7DOS loaded both field IRQ 11, and
+               ASPI7DOS's handler runs first: it pops every completion,
+               and for the BIOS's own SCB 0 it chains on to the BIOS. The
+               BIOS's handler then reads QOUTFIFO, now empty, expecting
+               its own 0; given anything else it writes the value back for
+               its owner and leaves the command pending. Every INT 13h to
+               the disk sat out the BIOS's fifteen second timeout and
+               failed, and Windows 98 Setup found no hard disk. */
             if (dev->qout_cnt == 0)
-                return 0xff;
-            ret          = dev->qout[dev->qout_rd];
-            dev->qout_rd = (dev->qout_rd + 1) % dev->chip->q_depth;
+                return dev->qout_last;
+            ret            = dev->qout[dev->qout_rd];
+            dev->qout_rd   = (dev->qout_rd + 1) % dev->chip->q_depth;
             dev->qout_cnt--;
+            dev->qout_last = ret;
             return ret;
         case QOUTCNT:
             return (uint8_t) dev->qout_cnt;
@@ -2972,16 +3100,31 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
     return 0;
 }
 
+/* What a write to SBLKCTL leaves there: the part's bits, and SELBUSB
+   cleared whenever SELWIDE is set (see aic_write). */
+static uint8_t
+aic_sblkctl_value(const aic7xxx_t *dev, uint8_t val)
+{
+    uint8_t forced = (val & SELWIDE) ? SELBUSB : 0;
+
+    return val & dev->chip->sblkctl_mask & ~forced;
+}
+
 static void
 aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
 {
     uint8_t was;
 
-    if (!seq)
+    if (!seq) {
+        aic_loop_wake(dev);
         aic_host_catch_up(dev);
+    }
 
-    if (!seq && dev->chip->host_pause_checked && !aic_paused(dev) && !aic_host_no_pause(addr, 1))
+    /* And a write to an unavailable register goes nowhere; see aic_read. */
+    if (!seq && dev->chip->host_pause_checked && !aic_paused(dev) && !aic_host_no_pause(addr, 1)) {
         aic_hard_error(dev, ILLHADDR, addr, 1);
+        return;
+    }
 
     if ((addr >= SRAM_BASE) && (addr < 0x60)) {
         dev->sram[addr - SRAM_BASE] = val;
@@ -3040,7 +3183,7 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                 aic_scsi_reset_bus(dev);
             if (val & ENSELO)
                 aic_select_start(dev);
-            else if (!(val & ENSELO) && dev->selecting) {
+            else if (!(val & ENSELO) && dev->selecting && (dev->sel_ch == dev->cell_live)) {
                 dev->selecting = 0;
                 dev->sstat0 &= ~SELINGO;
                 timer_stop(&dev->sel_timer);
@@ -3254,9 +3397,7 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                took the 2742W for a twin channel card, and the driver
                failed to start. */
             {
-                uint8_t forced = (val & SELWIDE) ? SELBUSB : 0;
-
-                dev->sblkctl = val & dev->chip->sblkctl_mask & ~forced;
+                dev->sblkctl = aic_sblkctl_value(dev, val);
                 aic_cell_swap(dev, (dev->sblkctl & SELBUSB) ? 1 : 0);
                 if (!seq && (dev->sig_logs < 64)) {
                     dev->sig_logs++;
@@ -3353,6 +3494,7 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
         case DSCOMMAND0:
             if (dev->eisa) {
                 dev->bctl = val & 0x09;
+                aic_update_irq(dev); /* ENABLE also gates the EISA IRQ output. */
                 break;
             }
             dev->dscommand0 = val & 0xf0;
@@ -3423,9 +3565,9 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                interrupt and must not look like one in INTSTAT, or the
                handler will think the firmware stopped in mid-transfer. */
             aic_update_irq(dev);
-            /* Any write that leaves PAUSE clear ends a sleep. */
-            if (!(val & PAUSE))
-                dev->sleepctl &= ~(SLP1 | SLP0);
+            /* Every HCNTRL write wakes the sequencer, including a write
+               that keeps it paused (AIC-7870 HCNTRL description). */
+            dev->sleepctl &= ~(SLP1 | SLP0);
             if (!(val & PAUSE) && (was & PAUSE)) {
                 /* Releasing PAUSE always gets one instruction executed,
                    whatever else wants the sequencer stopped. Single step
@@ -3517,7 +3659,20 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                 aic_log(dev->tag, "host: CLRINT %02x (intstat %02x) at pc %03x\n", val,
                         dev->intstat, dev->pc);
             }
-            if (val & CLRBRKADRINT)
+            /* Clear parity causes before handling CLRBRKADRINT so a
+               single write can clear both the cause and its interrupt.
+               ILLOPCODE still requires a chip reset; the AIC-7770 has
+               no CLRPARERR bit. */
+            if (val & CLRPARERR & dev->chip->clrint_mask)
+                dev->error &= ILLOPCODE;
+            /* A breakpoint's BRKADRINT clears here; a hard error's does
+               not. "If this condition occurs BRKADRINT may only be
+               cleared by setting CHIPRST" (the AIC-7770 book, Hardware
+               Failure Detect), and the AIC-7870's CLRBRKADRINT points at
+               "causes of BRKADRINT being active which may have to be
+               cleared prior to clearing the BRKADRINT bit". So it stays
+               for as long as ERROR holds a cause. */
+            if ((val & CLRBRKADRINT) && (dev->error == 0))
                 dev->intstat &= ~BRKADRINT;
             /* There is no CLRSCSIINT on an AIC-7770: the data book has
                bit 2 of CLRINT not used, and the SCSI interrupt goes away
@@ -3530,11 +3685,6 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                 dev->intstat &= ~CMDCMPLT;
             if (val & CLRSEQINT)
                 dev->intstat &= ~SEQINT;
-            /* Not ILLOPCODE: only a chip reset gets rid of that. And not
-               on an AIC-7770 at all -- bit 4 of CLRINT is not used there,
-               the parity error being a later part's. */
-            if (val & CLRPARERR & dev->chip->clrint_mask)
-                dev->error &= ILLOPCODE;
             aic_update_irq(dev);
             /* SCSIINT reads clear only once its cause has been dealt with;
                with the cause still standing it comes straight back. */
@@ -3544,6 +3694,11 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
             break;
         case DFCNTRL:
             was = dev->dfcntrl;
+            /* DIRECTIONACK cannot change while a transfer stays enabled
+               (DFCNTRL, both data books). A direction may be selected
+               when starting from idle or when clearing all enables. */
+            if ((was & (SCSIEN | SDMAEN | HDMAEN)) && (val & (SCSIEN | SDMAEN | HDMAEN)))
+                val = (val & ~DIRECTION) | (was & DIRECTION);
             /* FIFORESET is a strobe and reads back clear. Firmware turns
                the engine off with a read-modify-write, and a reset bit
                that stuck would empty the FIFO it is about to read. */
@@ -3730,7 +3885,7 @@ aic_seq_flags(aic7xxx_t *dev, uint8_t result, int carry)
         dev->flags |= CARRY;
 }
 
-/* The logical operations and the rotate set ZERO and LEAVE CARRY ALONE.
+/* The logical operations and conditional tests set ZERO and leave carry alone.
    Adaptec's own firmware proves it: the routine that turns an SCB number
    into a host address puts a mov between an add and its adc, and an and
    between two adcs, and the twenty-four bit sum it builds is only right if
@@ -3789,6 +3944,328 @@ aic_rotate(uint8_t src, uint8_t ctl)
     return ret & mask;
 }
 
+/* ---- polling loops ------------------------------------------------------ */
+
+/* Firmware waits for work in loops that look at a few status bits and
+   scratch bytes and change nothing. Windows 2000's reads SSTAT0 twice,
+   SCSISEQ, sixteen scratch bytes through SINDIR and two queue positions:
+   forty-one instructions a pass, some ten million instructions a second
+   of nothing for as long as the bus is quiet.
+
+   One pass that leaves every register it wrote as it found it, and reads
+   nothing that a read changes, proves that the next pass will be the same
+   for as long as what it read stays the same. So the sequencer parks at
+   the top of such a loop and, at each of its timer's ticks, looks at what
+   the pass read instead of running it again; the first difference, any
+   host access, or anything that kicks it, and it runs again, owed the
+   instructions of the time it was parked for. The one thing parking shows
+   is where in the loop it stopped, which the host could only see with the
+   sequencer paused, and there it is somewhere in the loop either way. */
+
+/* A read with no side effect, of something the part holds. */
+static int
+aic_loop_plain_read(uint8_t addr)
+{
+    if ((addr >= SRAM_BASE) && (addr < 0x60))
+        return 1;
+    if ((addr >= SCB_BASE) && (addr < (SCB_BASE + SCB_SIZE)))
+        return 1;
+    switch (addr) {
+        case SCSISEQ:
+        case SXFRCTL0:
+        case SXFRCTL1:
+        case SCSISIG:
+        case SCSIID:
+        case SSTAT0:
+        case SSTAT1:
+        case SSTAT2:
+        case SSTAT3:
+        case SIMODE0:
+        case SIMODE1:
+        case SBLKCTL:
+        case SEQCTL:
+        case ACCUM:
+        case SINDEX:
+        case DINDEX:
+        case ALLONES:
+        case ALLZEROS:
+        case FLAGS:
+        case FUNCTION1:
+        case SCBPTR:
+        case INTSTAT:
+        case ERROR:
+        case DFCNTRL:
+        case DFSTATUS:
+        case QINCNT:
+        case QOUTCNT:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+/* A write that only stores. */
+static int
+aic_loop_plain_write(uint8_t addr)
+{
+    if ((addr >= SRAM_BASE) && (addr < 0x60))
+        return 1;
+    if ((addr >= SCB_BASE) && (addr < (SCB_BASE + SCB_SIZE)))
+        return 1;
+    switch (addr) {
+        case ACCUM:
+        case SINDEX:
+        case DINDEX:
+        case ALLZEROS:
+        case FUNCTION1:
+        case SCBPTR:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+/* The sequencer's own registers: a pass is compared on them whole. */
+static int
+aic_loop_own(uint8_t addr)
+{
+    switch (addr) {
+        case ACCUM:
+        case SINDEX:
+        case DINDEX:
+        case ALLONES:
+        case ALLZEROS:
+        case FLAGS:
+        case FUNCTION1:
+        case SCBPTR:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+/* The same place: an SCB byte is one per SCB page. */
+static int
+aic_loop_same_place(uint8_t addr, uint8_t scbptr, uint8_t e_addr, uint8_t e_scbptr)
+{
+    if (addr != e_addr)
+        return 0;
+    return (addr < SCB_BASE) || (addr >= (SCB_BASE + SCB_SIZE)) || (scbptr == e_scbptr);
+}
+
+static uint8_t
+aic_loop_peek(aic7xxx_t *dev, uint8_t addr, uint8_t scbptr)
+{
+    uint8_t save = dev->scbptr;
+    uint8_t v;
+
+    dev->scbptr = scbptr;
+    v           = aic_read(dev, addr, 1);
+    dev->scbptr = save;
+    return v;
+}
+
+static void
+aic_loop_forget(aic7xxx_t *dev)
+{
+    dev->loop_head = AIC_LOOP_NONE;
+}
+
+/* A read by the pass: through SINDIR it is of what SINDEX pointed at.
+   The first access to each place is what the pass depends on; a place it
+   wrote before reading is its own. */
+static void
+aic_loop_read(aic7xxx_t *dev, uint8_t addr, uint8_t sindex, uint8_t v)
+{
+    uint8_t eff;
+
+    if (dev->loop_head == AIC_LOOP_NONE)
+        return;
+    eff = (addr == SINDIR) ? sindex : addr;
+    if (!aic_loop_plain_read(eff)) {
+        aic_loop_forget(dev);
+        return;
+    }
+    if (aic_loop_own(eff))
+        return;
+    for (uint8_t i = 0; i < dev->loop_nwr; i++) {
+        if (aic_loop_same_place(eff, dev->scbptr, dev->loop_wr[i].addr, dev->loop_wr[i].scbptr))
+            return;
+    }
+    for (uint8_t i = 0; i < dev->loop_nrd; i++) {
+        if (aic_loop_same_place(eff, dev->scbptr, dev->loop_rd[i].addr, dev->loop_rd[i].scbptr))
+            return;
+    }
+    if (dev->loop_nrd == AIC_LOOP_MAX) {
+        aic_loop_forget(dev);
+        return;
+    }
+    dev->loop_rd[dev->loop_nrd].addr   = eff;
+    dev->loop_rd[dev->loop_nrd].scbptr = dev->scbptr;
+    dev->loop_rd[dev->loop_nrd].val    = v;
+    dev->loop_nrd++;
+}
+
+/* A write by the pass, before it lands: what was there, to compare with
+   when the pass comes round. Through DINDIR it is to what DINDEX points at. */
+static void
+aic_loop_write(aic7xxx_t *dev, uint8_t addr, uint8_t val)
+{
+    uint8_t eff;
+
+    if (dev->loop_head == AIC_LOOP_NONE)
+        return;
+    eff = (addr == DINDIR) ? dev->dindex : addr;
+    /* SBLKCTL puts the other channel's registers in front, which the pass
+       could not be compared across; a write that leaves it as it is does
+       nothing at all. The AIC-7770's idle loop sets SELBUSB every pass,
+       and on a wide board SELWIDE clears it again: without this that loop,
+       eight million instructions a second, never parks. */
+    if ((eff == SBLKCTL) && (aic_sblkctl_value(dev, val) == dev->sblkctl))
+        return;
+    if (!aic_loop_plain_write(eff)) {
+        aic_loop_forget(dev);
+        return;
+    }
+    if (aic_loop_own(eff))
+        return;
+    for (uint8_t i = 0; i < dev->loop_nwr; i++) {
+        if (aic_loop_same_place(eff, dev->scbptr, dev->loop_wr[i].addr, dev->loop_wr[i].scbptr))
+            return;
+    }
+    if (dev->loop_nwr == AIC_LOOP_MAX) {
+        aic_loop_forget(dev);
+        return;
+    }
+    dev->loop_wr[dev->loop_nwr].addr   = eff;
+    dev->loop_wr[dev->loop_nwr].scbptr = dev->scbptr;
+    dev->loop_wr[dev->loop_nwr].val    = aic_loop_peek(dev, eff, dev->scbptr);
+    dev->loop_nwr++;
+}
+
+/* Everything the pass read still reads the same. */
+static int
+aic_loop_reads_hold(aic7xxx_t *dev)
+{
+    for (uint8_t i = 0; i < dev->loop_nrd; i++) {
+        if (aic_loop_peek(dev, dev->loop_rd[i].addr, dev->loop_rd[i].scbptr) != dev->loop_rd[i].val)
+            return 0;
+    }
+    return 1;
+}
+
+/* Nothing the sequencer counts or waits on by instruction is running. */
+static int
+aic_loop_quiet(aic7xxx_t *dev)
+{
+    return !dev->req_wait && !dev->host_wait && !dev->must_step && !(dev->sleepctl & (SLP1 | SLP0)) && !(dev->seqctl & STEP);
+}
+
+/* The pass came back to where it started: the state it began in, every
+   place it wrote as it was, and everything it read unchanged. */
+static int
+aic_loop_same(aic7xxx_t *dev)
+{
+    if ((dev->accum != dev->loop_accum) || (dev->sindex != dev->loop_sindex) || (dev->dindex != dev->loop_dindex) ||
+        (dev->flags != dev->loop_flags) || (dev->function1 != dev->loop_function1) || (dev->scbptr != dev->loop_scbptr) ||
+        (dev->sp != dev->loop_sp) || (dev->intstat != dev->loop_intstat) ||
+        memcmp(dev->stack, dev->loop_stack, sizeof(dev->stack)))
+        return 0;
+    for (uint8_t i = 0; i < dev->loop_nwr; i++) {
+        if (aic_loop_peek(dev, dev->loop_wr[i].addr, dev->loop_wr[i].scbptr) != dev->loop_wr[i].val)
+            return 0;
+    }
+    return aic_loop_reads_hold(dev) && aic_loop_quiet(dev);
+}
+
+/* A branch went backwards, to dev->pc: the top of a loop, perhaps. The
+   pass being watched ends there if it began there -- parked, if it proved
+   to change nothing -- and one begins there if none is being watched. A
+   loop inside the pass is part of the pass. Answers whether it parked. */
+static int
+aic_loop_edge(aic7xxx_t *dev)
+{
+    if (dev->loop_head == dev->pc) {
+        if (aic_loop_same(dev)) {
+            dev->loop_parked = 1;
+            dev->loop_failed = AIC_LOOP_NONE;
+            return 1;
+        }
+        dev->loop_failed = dev->pc;
+        dev->loop_skips  = 0;
+        aic_loop_forget(dev);
+        return 0;
+    }
+    if (dev->loop_head != AIC_LOOP_NONE)
+        return 0;
+    /* A loop inside a bigger one fails every time (it counts); the one
+       round it gets its turn once the edge back to the other has been
+       seen, and the one that failed gets another in time. */
+    if ((dev->pc == dev->loop_failed) && (++dev->loop_skips < 64))
+        return 0;
+
+    dev->loop_failed    = AIC_LOOP_NONE;
+    dev->loop_head      = dev->pc;
+    dev->loop_insns     = 0;
+    dev->loop_nrd       = 0;
+    dev->loop_nwr       = 0;
+    dev->loop_accum     = dev->accum;
+    dev->loop_sindex    = dev->sindex;
+    dev->loop_dindex    = dev->dindex;
+    dev->loop_flags     = dev->flags;
+    dev->loop_function1 = dev->function1;
+    dev->loop_scbptr    = dev->scbptr;
+    dev->loop_sp        = dev->sp;
+    dev->loop_intstat   = dev->intstat;
+    memcpy(dev->loop_stack, dev->stack, sizeof(dev->stack));
+    return 0;
+}
+
+/* Something changed that the parked loop might see: it runs again. A
+   pass being watched proves nothing either, once the host has reached in. */
+static void
+aic_loop_wake(aic7xxx_t *dev)
+{
+    aic_loop_forget(dev);
+    if (!dev->loop_parked)
+        return;
+    dev->loop_parked = 0;
+    /* The time it was parked went on passes of the loop: what it is owed
+       starts now, as a spinning sequencer would come to the change within
+       a pass of it. */
+    dev->seq_idle   = 0;
+    dev->seq_credit = 0.0;
+    dev->seq_last   = aic_now_us();
+    /* From inside its own tick (a REQ edge seen there kicks it), the tick
+       runs it and sets the next one: stopping the timer here would clear
+       timer_process()'s in_callback and cost both that reschedule and this
+       one their place on the old period. From anywhere else: soon, not a
+       period from now, stopped first so the start is a start. */
+    if (dev->seq_timer.in_callback)
+        return;
+    timer_stop(&dev->seq_timer);
+    timer_on_auto(&dev->seq_timer, 1.0);
+}
+
+/* The sequencer's own register accesses, watched for a polling loop's
+   pass. */
+static uint8_t
+aic_seq_rd(aic7xxx_t *dev, uint8_t addr)
+{
+    uint8_t sindex = dev->sindex;
+    uint8_t v      = aic_read(dev, addr, 1);
+
+    aic_loop_read(dev, addr, sindex, v);
+    return v;
+}
+
+static void
+aic_seq_wr(aic7xxx_t *dev, uint8_t addr, uint8_t val)
+{
+    aic_loop_write(dev, addr, val);
+    aic_write(dev, addr, val, 1);
+}
+
 static void
 aic_seq_step(aic7xxx_t *dev)
 {
@@ -3807,16 +4284,8 @@ aic_seq_step(aic7xxx_t *dev)
 
     if (dev->pc >= SEQ_INSNS) {
         /* An address that decodes to nothing. What the part records for
-           it, whether the interrupt takes PAUSEDIS with it and whether
-           FAILDIS can turn it off are all the AIC-7770 data book's, and
-           are not evidence about the later parts. */
-        dev->error |= dev->chip->bad_addr_err;
-        if (dev->chip->faildis_honoured) {
-            dev->seqctl &= ~PAUSEDIS;
-            if (dev->seqctl & FAILDIS)
-                return;
-        }
-        aic_raise(dev, BRKADRINT);
+           it is the descriptor's; the rest is every part's. */
+        aic_fail(dev, dev->chip->bad_addr_err);
         return;
     }
 
@@ -3862,7 +4331,7 @@ aic_seq_step(aic7xxx_t *dev)
         case OP_XOR:
         case OP_ADD:
         case OP_ADC:
-            a = aic_read(dev, src, 1);
+            a = aic_seq_rd(dev, src);
             b = (imm == 0) ? dev->accum : imm;
             switch (opcode) {
                 case OP_OR:
@@ -3920,11 +4389,11 @@ aic_seq_step(aic7xxx_t *dev)
                 aic_seq_flags(dev, res, carry);
             else
                 aic_seq_flags_logic(dev, res);
-            aic_write(dev, dest, res, 1);
+            aic_seq_wr(dev, dest, res);
             break;
 
         case OP_ROL:
-            a   = aic_read(dev, src, 1);
+            a   = aic_seq_rd(dev, src);
             res = aic_rotate(a, imm);
             /* The rotate is the one non-arithmetic operation that touches
                the carry: "For both rotates and shifts, the carry flag is
@@ -3949,7 +4418,7 @@ aic_seq_step(aic7xxx_t *dev)
                 }
             }
             aic_seq_flags(dev, res, carry);
-            aic_write(dev, dest, res, 1);
+            aic_seq_wr(dev, dest, res);
             break;
 
         case OP_BMOV:
@@ -3959,8 +4428,8 @@ aic_seq_step(aic7xxx_t *dev)
                    for a plain mov. */
                 uint8_t n = imm ? imm : 1;
                 for (uint8_t i = 0; i < n; i++) {
-                    res = aic_read(dev, (uint8_t) (src + i), 1);
-                    aic_write(dev, (uint8_t) (dest + i), res, 1);
+                    res = aic_seq_rd(dev, (uint8_t) (src + i));
+                    aic_seq_wr(dev, (uint8_t) (dest + i), res);
                 }
                 break;
             }
@@ -3994,8 +4463,12 @@ aic_seq_step(aic7xxx_t *dev)
                chains, and the branching around it is verified, by every
                other jump in the 2740's program. That the two of them put
                those together correctly is inference, not evidence. */
-            a = aic_read(dev, src, 1);
-            aic_write(dev, SINDEX, (uint8_t) (a | imm), 1);
+            a = aic_seq_rd(dev, src);
+            aic_seq_wr(dev, SINDEX, (uint8_t) (a | imm));
+            /* "Flags affected: Z" for every one of the four, from the OR
+               that loads SINDEX; JC and JNC "do not alter the carry
+               flag", and neither do the others. */
+            aic_seq_flags_logic(dev, (uint8_t) (a | imm));
             taken = 1;
             if (opcode == OP_JC)
                 taken = !!(dev->flags & CARRY);
@@ -4011,10 +4484,10 @@ aic_seq_step(aic7xxx_t *dev)
 
         case OP_JE:
         case OP_JNE:
-            a   = aic_read(dev, src, 1);
+            a   = aic_seq_rd(dev, src);
             b   = (imm == 0) ? dev->accum : imm;
             res = a ^ b; /* a compare is an exclusive-or, not a subtract */
-            aic_seq_flags(dev, res, 0);
+            aic_seq_flags_logic(dev, res);
             taken = (opcode == OP_JE) ? (res == 0) : (res != 0);
             if (taken) {
                 dev->pc = addr;
@@ -4024,10 +4497,10 @@ aic_seq_step(aic7xxx_t *dev)
 
         case OP_JZ:
         case OP_JNZ:
-            a   = aic_read(dev, src, 1);
+            a   = aic_seq_rd(dev, src);
             b   = (imm == 0) ? dev->accum : imm;
             res = a & b;
-            aic_seq_flags(dev, res, 0);
+            aic_seq_flags_logic(dev, res);
             taken = (opcode == OP_JZ) ? (res == 0) : (res != 0);
             if (taken) {
                 dev->pc = addr;
@@ -4041,11 +4514,7 @@ aic_seq_step(aic7xxx_t *dev)
                register, an Illegal Opcode is detected, ...". It is the
                AIC-7770's book, so take it from the descriptor -- the part
                whose bad address is ILLSADDR is the part it describes. */
-            dev->error |= ILLOPCODE | (dev->chip->bad_addr_err & ILLSADDR);
-            dev->seqctl &= ~PAUSEDIS;
-            if (dev->chip->faildis_honoured && (dev->seqctl & FAILDIS))
-                return;
-            aic_raise(dev, BRKADRINT);
+            aic_fail(dev, ILLOPCODE | (dev->chip->bad_addr_err & ILLSADDR));
             return;
     }
 
@@ -4088,6 +4557,21 @@ aic_seq_run(aic7xxx_t *dev)
     if (dev->in_seq)
         return;
     dev->in_seq = 1;
+
+    /* Parked on a loop that changes nothing: it goes on doing nothing for
+       as long as what it read reads the same (aic_loop_edge). */
+    if (dev->loop_parked) {
+        if (aic_loop_quiet(dev) && aic_loop_reads_hold(dev)) {
+            dev->seq_last   = aic_now_us();
+            dev->seq_credit = 0.0;
+            dev->seq_idle   = 1;
+            dev->in_seq     = 0;
+            return;
+        }
+        dev->loop_parked = 0;
+        aic_loop_forget(dev);
+        dev->seq_idle = 0; /* owed the time since its last tick, as if it had run */
+    }
 
     /* The sequencer's clock is the 40 MHz input divided by four, or by
        five without FASTMODE, and an instruction takes one cycle: ten or
@@ -4157,6 +4641,22 @@ aic_seq_run(aic7xxx_t *dev)
 
         aic_seq_step(dev);
 
+        /* A pass being watched ends at a pause, an interrupt, or at its
+           length; a backward branch may end it, or start one. */
+        if (dev->loop_head != AIC_LOOP_NONE) {
+            /* The breakpoint too: raised again on a bit already set, with
+               PAUSEDIS, it changes nothing a pass could see, but a parked
+               loop would never reach it. */
+            if ((++dev->loop_insns > AIC_LOOP_INSNS) || aic_paused(dev) || (dev->intstat != dev->loop_intstat) ||
+                (!(dev->brkaddr & 0x8000) && (dev->pc == (dev->brkaddr & 0x1ff))))
+                aic_loop_forget(dev);
+        }
+        if ((dev->pc <= last_pc) && aic_loop_edge(dev)) {
+            stopped = 1;
+            n++;
+            break;
+        }
+
         if (dev->seqctl & STEP) {
             /* Single step: one instruction, and PAUSE sets itself again. */
             dev->hcntrl |= PAUSE;
@@ -4195,8 +4695,11 @@ aic_seq_timer(void *priv)
         aic_seq_run(dev);
 
     /* Keep the clock running while there is anything the sequencer could
-       still be woken by. */
-    if (!aic_paused(dev) || (dev->bus_state == BUS_BUSY) || dev->selecting || dev->qin_cnt || (dev->dfcntrl & (SCSIEN | HDMAEN)) || aic_any_disconnected(dev))
+       still be woken by. Parked on a loop with none of that under way,
+       only the host can change what it reads, and every host access wakes
+       it (aic_loop_wake). */
+    if ((!aic_paused(dev) && !dev->loop_parked) || (dev->bus_state == BUS_BUSY) || dev->selecting || dev->qin_cnt ||
+        (dev->dfcntrl & (SCSIEN | HDMAEN)) || aic_any_disconnected(dev))
         timer_on_auto(&dev->seq_timer, dev->asleep ? 50.0 : 10.0);
     else {
         /* Not re-arming is not the same as stopping. timer_on_auto() picks
@@ -4214,6 +4717,10 @@ static void
 aic_seq_kick(aic7xxx_t *dev)
 {
     dev->asleep = 0;
+    if (dev->loop_parked) {
+        aic_loop_wake(dev);
+        return;
+    }
     /* timer_is_on() asks whether a long period has been split, not whether
        the timer is running; a ten microsecond one never is. */
     if (!timer_is_enabled(&dev->seq_timer))
@@ -4221,6 +4728,23 @@ aic_seq_kick(aic7xxx_t *dev)
 }
 
 /* ---- reset -------------------------------------------------------------- */
+
+/* Scratch, the SCB array and the registers kept with them are RAM, and a
+   chip reset does not touch RAM: CHIPRST "put[s] the device in a reset
+   state for a maximum of 3 input clocks", and the scratch area is where
+   the firmware keeps "configuration data which describes the system
+   setup". What an option ROM leaves there is still there when a driver
+   resets the part and reads it -- ASPI7DOS learns from it which disks the
+   AHA-2740 BIOS already owns, and with it cleared took the BIOS's SCB for
+   its own and swallowed every one of the BIOS's completions. Power-on and
+   the machine's reset are what start RAM from nothing here. */
+static void
+aic_ram_clear(aic7xxx_t *dev)
+{
+    memset(dev->sram, 0, sizeof(dev->sram));
+    memset(dev->scb, 0, sizeof(dev->scb));
+    memset(dev->misc, 0, sizeof(dev->misc));
+}
 
 static void
 aic_chip_reset(aic7xxx_t *dev)
@@ -4275,6 +4799,9 @@ aic_chip_reset(aic7xxx_t *dev)
     dev->must_step            = 0;
     dev->seq_idle             = 1;
     dev->seq_credit           = 0.0;
+    dev->loop_head            = AIC_LOOP_NONE;
+    dev->loop_failed          = AIC_LOOP_NONE;
+    dev->loop_parked          = 0;
 
     dev->seqctl   = dev->chip->seqctl_reset;
     dev->pc       = 0;
@@ -4288,6 +4815,9 @@ aic_chip_reset(aic7xxx_t *dev)
     dev->dscommand0  = 0;
     dev->dscommand1  = 0;
     dev->dspcistatus = 0;
+    /* "This signal is cleared by RESDRV or CHIPRESET": the board comes
+       out of a chip reset disabled, and the driver enables it again. */
+    dev->bctl        = 0;
     /* HCNTRL comes up with PAUSE and CHIPRESETACK both set -- the data
        book gives (1) as the reset value of each -- and the acknowledgement
        "will remain set until explicitly cleared by a write to this
@@ -4306,19 +4836,16 @@ aic_chip_reset(aic7xxx_t *dev)
     aic_fifo_reset(dev);
     dev->qin_rd = dev->qout_rd = 0;
     dev->qin_cnt = dev->qout_cnt = 0;
-
-    memset(dev->sram, 0, sizeof(dev->sram));
+    dev->qin_last = dev->qout_last = 0;
 
     /* The configuration chip is mapped over the top of scratch on an EISA
-       board, so what it holds outlives a chip reset. */
+       board, so what it holds is there after a chip reset whatever scratch
+       held. */
     if (dev->eisa) {
         memcpy(&dev->sram[SCSICONF - SRAM_BASE], dev->eisa_conf,
                sizeof(dev->eisa_conf));
         dev->sram[HA_274_BIOSGLOBAL - SRAM_BASE] = dev->eisa_global;
     }
-
-    memset(dev->scb, 0, sizeof(dev->scb));
-    memset(dev->misc, 0, sizeof(dev->misc));
 
     dev->bus_state = BUS_FREE;
     dev->atn = dev->selecting = 0;
@@ -4961,7 +5488,24 @@ aic_reset(void *priv)
 {
     aic7xxx_t *dev = (aic7xxx_t *) priv;
 
+    aic_ram_clear(dev);
     aic_chip_reset(dev);
+    /* PCI RST# also initializes configuration space. HCNTRL.CHIPRST
+       deliberately leaves it intact (AIC-7870 data book, pp. 2-15,
+       4-69), so this belongs only in the machine-reset callback. */
+    if (!dev->eisa) {
+        dev->pci_regs[0x04] = dev->pci_regs[0x05] = 0;
+        dev->pci_regs[0x07] = 0x02; /* medium DEVSEL, errors cleared */
+        dev->pci_regs[0x0c] = dev->pci_regs[0x0d] = 0;
+        memset(&dev->pci_regs[0x10], 0, 8);
+        dev->pci_regs[0x10] = 0x01; /* I/O BAR type */
+        memset(&dev->pci_regs[0x30], 0, 4);
+        dev->pci_regs[0x3c] = 0;
+        memset(&dev->pci_regs[DEVCONFIG], 0, 4);
+        aic_io_update(dev);
+        aic_mem_update(dev);
+        aic_bios_update(dev);
+    }
 }
 
 static void *
@@ -4973,7 +5517,32 @@ aic_init(const device_t *info)
     char                     fn[1024] = { 0 };
     uint16_t                 devid;
 
+    /* A SCSI controller however it got here -- the board's own, an EISA
+       card or a PCI one: the status bar's disk and CD-ROM icons look for it. */
+    other_scsi_present++;
+
     dev->board = info->local & 0xff;
+    if (dev->board == BOARD_FROM_CONFIG) {
+        dev->board = device_get_config_int("model");
+        /* A 274x with its floppy controller fitted and jumpered on is the
+           2742 of its kind: the same board, the same EISA ID and option
+           ROM, and an N82077 beside the chip. The 2744W has none. */
+        if (AIC_BOARD_EISA(dev->board) && device_get_config_int("floppy")) {
+            switch (dev->board) {
+                case BOARD_2740:
+                    dev->board = BOARD_2742;
+                    break;
+                case BOARD_2740T:
+                    dev->board = BOARD_2742T;
+                    break;
+                case BOARD_2740W:
+                    dev->board = BOARD_2742W;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
     dev->wide  = (dev->board == BOARD_2940UW) || (dev->board == BOARD_2944UW) || (dev->board == BOARD_7880) || (dev->board == BOARD_2940W) || AIC_BOARD_WIDE(dev->board);
     /* An AHA-2740 is one narrow bus. Other members of the family strap the
        same chip for two buses or for one wide one, and on the AIC-7770
@@ -5011,12 +5580,7 @@ aic_init(const device_t *info)
 
     dev->eisa = AIC_BOARD_EISA(dev->board);
     /* Which part this board is built on, before anything asks. */
-    if (dev->eisa)
-        dev->chip = &aic_chip_7770;
-    else if ((dev->board == BOARD_2940) || (dev->board == BOARD_2940W))
-        dev->chip = &aic_chip_7870;
-    else
-        dev->chip = &aic_chip_788x;
+    dev->chip = aic_board_chip(dev->board);
     dev->bus  = scsi_get_bus();
     /* What every line of this board's log will say it is. Set before
        anything else can log, and before the slot is known, so it names
@@ -5224,6 +5788,7 @@ aic_init(const device_t *info)
     timer_add(&dev->tgt_timer, aic_tgt_timer, dev, 0);
     timer_add(&dev->req_timer, aic_tgt_req_timer, dev, 0);
 
+    aic_ram_clear(dev);
     aic_chip_reset(dev);
 
     /* The on-board part takes the slot the machine reserves for it: on
@@ -5282,67 +5847,22 @@ aic_close(void *priv)
 static const device_config_t aic7770_config[] = {
     // clang-format off
     {
-        .name           = "bios_rev",
-        .description    = "BIOS Revision",
-        .type           = CONFIG_BIOS,
-        .default_string = "v2_11_edd",
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .bios           = {
-            {
-                .name          = "Version 2.10",
-                .internal_name = "v2_10",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 16384,
-                .files         = { AHA2740_V210_ROM, "" }
-            },
-            {
-                .name          = "Version 2.11 EDD 1.1",
-                .internal_name = "v2_11_edd",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 32768,
-                .files         = { AHA2742A_V211_ROM, "" }
-            },
-            {
-                .name          = "Version 2.11 EDD 1.1 (2740W dump)",
-                .internal_name = "v2_11_edd_w",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 32768,
-                .files         = { AHA2740W_V211_ROM, "" }
-            },
-            { .files_no = 0 }
-        }
-    },
-    {
-        .name           = "slot",
-        .description    = "EISA slot",
+        .name           = "model",
+        .description    = "Model",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 1,
+        .default_int    = BOARD_2740,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "Slot 1", .value = 1 },
-            { .description = "Slot 2", .value = 2 },
-            { .description = "Slot 3", .value = 3 },
-            { .description = "Slot 4", .value = 4 },
-            { .description = ""                   }
+            { .description = "AHA-274x",                       .value = BOARD_2740  },
+            { .description = "AHA-274xT (twin channel)",       .value = BOARD_2740T },
+            { .description = "AHA-274xW (Wide)",               .value = BOARD_2740W },
+            { .description = "AHA-2744W (Wide, differential)", .value = BOARD_2744W },
+            { .description = ""                                                     }
         },
         .bios           = { { 0 } }
     },
-    { .name = "", .description = "", .type = CONFIG_END }
-    // clang-format on
-};
-
-static const device_config_t aic7770_fdc_config[] = {
-    // clang-format off
     {
         .name           = "bios_rev",
         .description    = "BIOS Revision",
@@ -5414,8 +5934,23 @@ static const device_config_t aic7770_fdc_config[] = {
     // clang-format on
 };
 
-static const device_config_t aic_card_config[] = {
+static const device_config_t aha2940u_config[] = {
     // clang-format off
+    {
+        .name           = "model",
+        .description    = "Model",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = BOARD_2940U,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "AHA-2940U (Ultra)",       .value = BOARD_2940U  },
+            { .description = "AHA-2940UW (Ultra Wide)", .value = BOARD_2940UW },
+            { .description = ""                                               }
+        },
+        .bios           = { { 0 } }
+    },
     {
         .name           = "bios",
         .description    = "Enable BIOS",
@@ -5490,6 +6025,21 @@ static const device_config_t aic_card_config[] = {
 
 static const device_config_t aha2940_config[] = {
     // clang-format off
+    {
+        .name           = "model",
+        .description    = "Model",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = BOARD_2940,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "AHA-2940",         .value = BOARD_2940  },
+            { .description = "AHA-2940W (Wide)", .value = BOARD_2940W },
+            { .description = ""                                       }
+        },
+        .bios           = { { 0 } }
+    },
     {
         .name           = "bios",
         .description    = "Enable BIOS",
@@ -5598,7 +6148,7 @@ static const device_config_t aha2944uw_config[] = {
 /* The bare chip, as found on a motherboard. It is not in the card list:
    a machine that has one adds it itself. */
 const device_t aic7880_pci_device = {
-    .name          = "Adaptec AIC-7880 Ultra SCSI (on-board)",
+    .name          = "Adaptec AIC-7880 (on-board)",
     .internal_name = "aic7880_onboard",
     .flags         = DEVICE_PCI | DEVICE_ONBOARD,
     .local         = BOARD_7880,
@@ -5608,165 +6158,131 @@ const device_t aic7880_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "AIC-7880",
+    .scsi_buses    = aic_scsi_buses
 };
 
-const device_t aha2740_device = {
-    .name          = "Adaptec AHA-2740",
-    .internal_name = "aha2740",
+/* Until the models became options each board had an entry of its own. A
+   configuration naming one of those becomes the entry that covers it, with
+   the model it was; its section (under whichever name the old entry carried)
+   moves to the new name, so the BIOS revision, slot and floppy jumper come
+   along. A 2742's floppy jumper defaulted off as the 274x's does, so the
+   model is all that has to be written. */
+static const struct {
+    const char *old_internal;
+    const char *old_names[2];
+    const char *new_internal;
+    int         model;
+} aic_migrations[] = {
+    { "aha2740",   { "Adaptec AHA-2740"                              }, "aha274x",  BOARD_2740   },
+    { "aha2742",   { "Adaptec AHA-2742"                              }, "aha274x",  BOARD_2740   },
+    { "aha2740t",  { "Adaptec AHA-2740T"                             }, "aha274x",  BOARD_2740T  },
+    { "aha2742t",  { "Adaptec AHA-2742T"                             }, "aha274x",  BOARD_2740T  },
+    { "aha2740w",  { "Adaptec AHA-2740W"                             }, "aha274x",  BOARD_2740W  },
+    { "aha2742w",  { "Adaptec AHA-2742W"                             }, "aha274x",  BOARD_2740W  },
+    { "aha2744w",  { "Adaptec AHA-2744W"                             }, "aha274x",  BOARD_2744W  },
+    { "aha2940w",  { "Adaptec AHA-2940W"                             }, "aha2940",  BOARD_2940W  },
+    { "aha2940uw", { "Adaptec AHA-2940UW", "Adaptec AHA-2940 Ultra Wide" }, "aha2940u", BOARD_2940UW },
+};
+
+const char *
+aic_config_migrate(const char *internal_name, int slot)
+{
+    const device_t *dev = NULL;
+    char            new_sec[512];
+    char            old_sec[512];
+
+    for (size_t i = 0; i < (sizeof(aic_migrations) / sizeof(aic_migrations[0])); i++) {
+        if (strcmp(internal_name, aic_migrations[i].old_internal))
+            continue;
+
+        if (!strcmp(aic_migrations[i].new_internal, "aha274x"))
+            dev = &aha274x_device;
+        else if (!strcmp(aic_migrations[i].new_internal, "aha2940"))
+            dev = &aha2940_pci_device;
+        else
+            dev = &aha2940u_pci_device;
+
+        /* Sections are the entry's name and its instance, the card's slot. */
+        snprintf(new_sec, sizeof(new_sec), "%s #%i", dev->name, slot);
+        if (config_find_section(new_sec) == NULL) {
+            for (int n = 0; (n < 2) && (aic_migrations[i].old_names[n] != NULL); n++) {
+                void *sec;
+
+                snprintf(old_sec, sizeof(old_sec), "%s #%i", aic_migrations[i].old_names[n], slot);
+                sec = config_find_section(old_sec);
+                if (sec == NULL)
+                    sec = config_find_section((char *) aic_migrations[i].old_names[n]);
+                if (sec != NULL) {
+                    config_rename_section(sec, new_sec);
+                    break;
+                }
+            }
+        }
+        config_set_int(new_sec, "model", aic_migrations[i].model);
+
+        return aic_migrations[i].new_internal;
+    }
+
+    return NULL;
+}
+
+/* The AIC-7770 boards: one EISA ID (ADP7771) and one option ROM, told apart
+   by the chip's straps -- one narrow channel, two, one wide, one wide
+   differential -- and by whether a floppy controller is fitted. */
+const device_t aha274x_device = {
+    .name          = "Adaptec AHA-274x (EISA)",
+    .internal_name = "aha274x",
     .flags         = DEVICE_EISA,
-    .local         = BOARD_2740,
+    .local         = BOARD_FROM_CONFIG,
     .init          = aic_init,
     .close         = aic_close,
     .reset         = aic_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aic7770_config
+    .config        = aic7770_config,
+    .short_name    = "AHA-274x",
+    .scsi_buses    = aic_scsi_buses
 };
 
-const device_t aha2742_device = {
-    .name          = "Adaptec AHA-2742",
-    .internal_name = "aha2742",
-    .flags         = DEVICE_EISA,
-    .local         = BOARD_2742,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aic7770_fdc_config
-};
-
-const device_t aha2740t_device = {
-    .name          = "Adaptec AHA-2740T",
-    .internal_name = "aha2740t",
-    .flags         = DEVICE_EISA,
-    .local         = BOARD_2740T,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aic7770_config
-};
-
-const device_t aha2742t_device = {
-    .name          = "Adaptec AHA-2742T",
-    .internal_name = "aha2742t",
-    .flags         = DEVICE_EISA,
-    .local         = BOARD_2742T,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aic7770_fdc_config
-};
-
-const device_t aha2740w_device = {
-    .name          = "Adaptec AHA-2740W",
-    .internal_name = "aha2740w",
-    .flags         = DEVICE_EISA,
-    .local         = BOARD_2740W,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aic7770_config
-};
-
-const device_t aha2742w_device = {
-    .name          = "Adaptec AHA-2742W",
-    .internal_name = "aha2742w",
-    .flags         = DEVICE_EISA,
-    .local         = BOARD_2742W,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aic7770_fdc_config
-};
-
-const device_t aha2744w_device = {
-    .name          = "Adaptec AHA-2744W",
-    .internal_name = "aha2744w",
-    .flags         = DEVICE_EISA,
-    .local         = BOARD_2744W,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aic7770_config
-};
-
+/* The AIC-7870 card, strapped narrow (AHA-2940) or wide (AHA-2940W). */
 const device_t aha2940_pci_device = {
-    .name          = "Adaptec AHA-2940",
+    .name          = "Adaptec AHA-2940 (AIC-7870)",
     .internal_name = "aha2940",
     .flags         = DEVICE_PCI,
-    .local         = BOARD_2940,
+    .local         = BOARD_FROM_CONFIG,
     .init          = aic_init,
     .close         = aic_close,
     .reset         = aic_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha2940_config
+    .config        = aha2940_config,
+    .short_name    = "AHA-2940",
+    .scsi_buses    = aic_scsi_buses
 };
 
-const device_t aha2940w_pci_device = {
-    .name          = "Adaptec AHA-2940W",
-    .internal_name = "aha2940w",
-    .flags         = DEVICE_PCI,
-    .local         = BOARD_2940W,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aha2940_config
-};
-
+/* The AIC-7880 card, narrow (AHA-2940U) or wide (AHA-2940UW). */
 const device_t aha2940u_pci_device = {
-    .name          = "Adaptec AHA-2940 Ultra",
+    .name          = "Adaptec AHA-2940 Ultra (AIC-7880)",
     .internal_name = "aha2940u",
     .flags         = DEVICE_PCI,
-    .local         = BOARD_2940U,
+    .local         = BOARD_FROM_CONFIG,
     .init          = aic_init,
     .close         = aic_close,
     .reset         = aic_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aic_card_config
-};
-
-const device_t aha2940uw_pci_device = {
-    .name          = "Adaptec AHA-2940 Ultra Wide",
-    .internal_name = "aha2940uw",
-    .flags         = DEVICE_PCI,
-    .local         = BOARD_2940UW,
-    .init          = aic_init,
-    .close         = aic_close,
-    .reset         = aic_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = aic_card_config
+    .config        = aha2940u_config,
+    .short_name    = "AHA-2940U",
+    .scsi_buses    = aic_scsi_buses
 };
 
 const device_t aha2944uw_pci_device = {
-    .name          = "Adaptec AHA-2944 Ultra Wide (differential)",
+    .name          = "Adaptec AHA-2944UW",
     .internal_name = "aha2944uw",
     .flags         = DEVICE_PCI,
     .local         = BOARD_2944UW,
@@ -5776,5 +6292,7 @@ const device_t aha2944uw_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha2944uw_config
+    .config        = aha2944uw_config,
+    .short_name    = "AHA-2944UW",
+    .scsi_buses    = aic_scsi_buses
 };

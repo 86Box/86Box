@@ -309,6 +309,8 @@ typedef struct {
     uint32_t sysenter_eip; /* 0x00000176 - Pentium II and later */
 
     uint64_t mcg_ctl;           /* 0x0000017b */
+    uint64_t mcg_status;        /* 0x0000017a - MCIP only */
+    uint32_t ebl_cr_poweron;    /* 0x0000002a - the read/write bits */
     uint64_t evntsel[2];        /* 0x00000186, 0x00000187 */
 
     uint32_t debug_ctl;         /* 0x000001d9 */
@@ -383,8 +385,7 @@ typedef struct {
 
     MMX_REG MM[8];
 
-#ifdef USE_NEW_DYNAREC
-#    if (defined(__APPLE__) && defined(__aarch64__)) || defined(__aarch64__)
+#    if (defined(__APPLE__) && defined(__aarch64__)) || defined(__aarch64__) || defined(__loongarch_lp64)
     uint64_t old_fp_control;
     uint64_t new_fp_control;
 #    else
@@ -394,10 +395,6 @@ typedef struct {
 #    if defined __amd64__ || defined _M_X64
     uint32_t trunc_fp_control;
 #    endif
-#else
-    uint16_t old_npxc;
-    uint16_t new_npxc;
-#endif
 
     x86seg seg_cs;
     x86seg seg_ds;
@@ -443,6 +440,11 @@ typedef struct {
     uint32_t dyn_ea; */
 
     int sf_exc;
+
+    /* The legacy FPU's compiled FDIV family: a memory operand, a
+       permanent register of the recompiler, for the division helper
+       (x87_dyn_fdiv, 386_dynarec.c) */
+    double x87_operand;
 #endif
 } cpu_state_t;
 
@@ -466,23 +468,14 @@ typedef struct {
    bails to the interpreter for it (other FPU arith always rounds to
    nearest); such blocks must not be reused once RC changes. */
 #define CPU_STATUS_FPU_RC_NZ (1 << 6)
-#ifdef USE_NEW_DYNAREC
-#    define CPU_STATUS_FLAGS 0xff
-#else
-#    define CPU_STATUS_FLAGS 0xffff
-#endif
+#define CPU_STATUS_FLAGS 0xff
 
 /*If the cpu_state.flags below are set in cpu_cur_status, they must be set in block->status.
   Otherwise they are ignored*/
-#ifdef USE_NEW_DYNAREC
-#    define CPU_STATUS_NOTFLATDS (1 << 8)
-#    define CPU_STATUS_NOTFLATSS (1 << 9)
-#    define CPU_STATUS_MASK      0xff00
-#else
-#    define CPU_STATUS_NOTFLATDS (1 << 16)
-#    define CPU_STATUS_NOTFLATSS (1 << 17)
-#    define CPU_STATUS_MASK      0xffff0000
-#endif
+#define CPU_STATUS_NOTFLATDS (1 << 8)
+#define CPU_STATUS_NOTFLATSS (1 << 9)
+#define CPU_STATUS_NOTFLATES (1 << 10)
+#define CPU_STATUS_MASK      0xff00
 
 
 #ifdef EXTREME_DEBUG
@@ -575,7 +568,7 @@ extern int hascache;
 extern int isibm486;
 extern int is_mazovia;
 extern int is_nec;
-extern int is_rapidcad;
+extern int israpidcad;
 extern int hasfpu;
 #define CPU_FEATURE_RDTSC   (1 << 0)
 #define CPU_FEATURE_MSR     (1 << 1)
@@ -593,13 +586,15 @@ extern uint32_t cpu_features;
 extern int smi_latched;
 extern int smm_in_hlt;
 extern int smi_block;
+/* The processor stopped in HLT, its PC on the HLT (opHLT): an interrupt
+   taken from there returns past it. */
+extern int cpu_halted;
+extern int cpu_is_p5(void);
+extern int cpu_init_keeps_state(void);
 
-#ifdef USE_NEW_DYNAREC
 extern uint16_t cpu_cur_status;
-#else
-extern uint32_t cpu_cur_status;
-#endif
 extern uint64_t cpu_CR4_mask;
+extern uint64_t cpu_CR4_ignore;
 extern uint64_t tsc;
 extern msr_t    msr;
 extern uint8_t  opcode;
@@ -637,8 +632,17 @@ extern uint32_t cr3;
 extern uint32_t cr4;
 extern uint32_t dr[8];
 extern uint32_t _tr[8];
-extern uint32_t cache_index;
-extern uint8_t  _cache[2048];
+
+/* Debug register operation (breakpoints, single-step DR6 status, RF) on the
+   processors run by the 486 interpreter and the recompiler; the 386
+   interpreter always has it. Set from the configuration, a change takes
+   effect on a hard reset. */
+extern int cpu_debug_regs_486;
+/* cpu_debug_regs_486 and an enabled breakpoint in DR7: the per-access checks
+   are made only while this is set. Kept by cpu_dr7_update(), which must
+   follow every write to DR7. */
+extern int cpu_dr_armed;
+extern void cpu_dr7_update(void);
 
 /* For the Cyrix 6x86(MX) */
 extern uint8_t ccr0;
@@ -729,9 +733,6 @@ extern int      unmask_a20_in_smm;
 extern int      cycles_main;
 extern uint32_t old_rammask;
 
-#ifdef USE_ACYCS
-extern int acycs;
-#endif
 extern int pic_pending;
 extern int is_vpc;
 extern int soft_reset_mask;
@@ -749,6 +750,9 @@ extern char *cpu_current_pc(char *bufp);
 
 extern void cpu_update_waitstates(void);
 extern void cpu_set(void);
+extern void cpu_tr_reset(void);
+extern uint32_t cpu_tr_read(int reg);
+extern void cpu_tr_write(int reg, uint32_t val);
 extern void cpu_close(void);
 extern void cpu_set_isa_speed(int speed);
 extern void cpu_set_pci_speed(int speed);
@@ -801,6 +805,13 @@ extern int  cpu_alt_reset;
 extern void cpu_dynamic_switch(int new_cpu);
 
 extern void cpu_ven_reset(void);
+
+/* Cache-as-RAM (cache_as_ram.c). */
+extern void cpu_car_update(void);
+extern void cpu_car_invalidate(void);
+extern void cpu_car_reset(void);
+extern void cpu_car_enable(void);
+
 extern void update_tsc(void);
 
 extern int sysenter(uint32_t fetchdat);
@@ -855,6 +866,11 @@ extern int cpu_use_exec;
 extern uint8_t  use_custom_nmi_vector;
 extern uint32_t custom_nmi_vector;
 
+/* Bumped whenever an NMI is taken or an IRET completes, which is what the
+   80186 peripheral control block turns into its DMA halt bit. */
+extern uint32_t cpu_dhlt_events;
+extern uint8_t  cpu_dhlt_last_event;
+
 extern void (*cpu_exec)(int32_t cycs);
 extern uint8_t do_translate;
 extern uint8_t do_translate2;
@@ -882,6 +898,8 @@ extern int  cpu_block_end;
 extern int  cpu_force_interpreter;
 extern int  cpu_override_dynarec;
 
+extern int  inrecomp;
+
 extern void mmx_init(void);
 extern void prefetch_flush(void);
 
@@ -890,16 +908,32 @@ extern void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int 
 extern int lock_legal[256];
 extern int lock_legal_0f[256];
 extern int lock_legal_ba[8];
+extern int lock_legal_c7[8];
 extern int lock_legal_80[8];
 extern int lock_legal_f6[8];
 extern int lock_legal_fe[8];
 
 extern int new_ne;
+extern int fpu_ignne;
+
+/* When an unmasked x87 exception asserts FERR# with CR0.NE clear */
+enum {
+    FPU_FERR_DEFERRED = 0, /* at the next waiting instruction */
+    FPU_FERR_AT_FAULT,     /* at the end of the faulting instruction */
+    FPU_FERR_486,          /* by the instruction and the exception, the 486's lists */
+    FPU_FERR_P5            /* by the instruction and the exception, the Pentium's */
+};
+extern int fpu_ferr_timing;
+/* FERR#, up from an unmasked exception until a new one begins (x87.c) */
+extern int fpu_ferr;
 
 extern int in_lock;
 extern int cpu_override_interpreter;
 
 extern int cpu_dyn_accurate_fpu_env;
+extern int cpu_dyn_block_link;
+/* 1 if this build's recompiler can link blocks (codegen_block.c). */
+extern const int codegen_has_block_link;
 
 extern int is_lock_legal(uint32_t fetchdat);
 

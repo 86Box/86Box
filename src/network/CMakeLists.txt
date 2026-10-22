@@ -23,6 +23,7 @@ list(APPEND net_sources
     net_dp8390.c
     net_3c501.c
     net_3c503.c
+    net_3c509b.c
     net_3c59x_eisa.c
     net_ne2000.c
     net_pcnet.c
@@ -34,6 +35,7 @@ list(APPEND net_sources
     net_tulip.c
     net_smc_epic100.c
     net_rtl8139.c
+    net_dp83815.c
     net_i8255x.c
     net_l80225.c
     net_modem.c

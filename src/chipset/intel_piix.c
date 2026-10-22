@@ -49,6 +49,7 @@
 #include <86box/machine.h>
 #include <86box/smbus.h>
 #include <86box/chipset.h>
+#include <86box/flash.h>
 
 typedef struct piix_io_trap_t {
     struct _piix_ *dev;
@@ -64,6 +65,7 @@ typedef struct _piix_ {
     uint8_t        max_func;
     uint8_t        pci_slot;
     uint8_t        no_mirq0;
+    uint8_t        no_usb;
     uint8_t        regs[4][256];
     uint16_t       func0_id;
     uint16_t       nvr_io_base;
@@ -536,6 +538,10 @@ piix_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         if (func > 1)
             return;
     }
+
+    /* A machine without the USB function: function 2 does not decode. */
+    if (dev->no_usb && (func == 2))
+        return;
 
     /* Ignore the new IDE BAR's on the Intel chips. */
     if ((dev->type < 5) && (func == 1) && (addr >= 0x10) && (addr <= 0x1f))
@@ -1046,14 +1052,14 @@ piix_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             case 0x11:
                 if (dev->type > 4) {
                     fregs[addr] = val & 0xf0;
-                    ohci_update_mem_mapping(dev->usb, fregs[0x11], fregs[0x12], fregs[0x13], 1 /*fregs[PCI_REG_COMMAND] & PCI_COMMAND_MEM*/);
+                    ohci_update_mem_mapping(dev->usb, fregs[0x11], fregs[0x12], fregs[0x13], fregs[PCI_REG_COMMAND] & PCI_COMMAND_MEM);
                 }
                 break;
             case 0x12:
             case 0x13:
                 if (dev->type > 4) {
                     fregs[addr] = val;
-                    ohci_update_mem_mapping(dev->usb, fregs[0x11], fregs[0x12], fregs[0x13], 1 /*fregs[PCI_REG_COMMAND] & PCI_COMMAND_MEM*/);
+                    ohci_update_mem_mapping(dev->usb, fregs[0x11], fregs[0x12], fregs[0x13], fregs[PCI_REG_COMMAND] & PCI_COMMAND_MEM);
                 }
                 break;
             case 0x20:
@@ -1098,7 +1104,7 @@ piix_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0xc1:
                 if (dev->type <= 4)
-                    fregs[0xc1] = (fregs[0xc0] & ~(val & 0x8f)) | (val & 0x20);
+                    fregs[0xc1] = (fregs[0xc1] & 0x9f & ~(val & 0x8f)) | (val & 0x20);
                 break;
             case 0xff:
                 if (dev->type == 4) {
@@ -1261,7 +1267,8 @@ piix_read(int func, int addr, UNUSED(int len), void *priv)
         ret = 0x00;
 
     /* Return on unsupported function. */
-    if ((func <= dev->max_func) || ((func == 1) && (dev->max_func == 0))) {
+    if (((func <= dev->max_func) || ((func == 1) && (dev->max_func == 0))) &&
+                                    !(dev->no_usb && (func == 2))) {
         fregs = (uint8_t *) dev->regs[func];
         ret   = fregs[addr];
 
@@ -1376,6 +1383,8 @@ piix_reset_hard(piix_t *dev)
     fregs[0x07] = 0x02;
     if (dev->type == 4)
         fregs[0x08] = dev->rev & 0x07;
+    else if (dev->type == 3)
+        fregs[0x08] = 0x00;
     else
         fregs[0x08] = dev->rev;
     if (dev->type == 5)
@@ -1490,10 +1499,23 @@ piix_apm_out(UNUSED(uint16_t port), UNUSED(uint8_t val), void *priv)
 static void
 piix_fast_off_count(void *priv)
 {
-    piix_t *dev = (piix_t *) priv;
+    piix_t  *dev   = (piix_t *) priv;
+    uint8_t *fregs = dev->regs[0];
 
-    smi_raise();
-    dev->regs[0][0xaa] |= 0x20;
+    /*
+     * The timer reloads when it expires, and it only generates an SMI while
+     * SMIEN bit 5 enables it (82371FB/SB datasheet 290550-001, FTMR and
+     * SMIEN). Like the IRQ events in piix_irq(), only an enabled event sets
+     * its SMIREQ bit, and CSMIGATE gates SMI# but not the request. The IBM
+     * PC 7x0 BIOS clears the enable at its last power-saving level and
+     * expects no further timer SMIs.
+     */
+    cpu_fast_off_advance();
+    if (fregs[0xa2] & 0x20) {
+        fregs[0xaa] |= 0x20;
+        if (fregs[0xa0] & 0x01)
+            smi_raise();
+    }
 }
 
 static void
@@ -1579,10 +1601,45 @@ piix_reset(void *priv)
         sff_set_irq_mode(dev->bm[1], IRQ_MODE_MIRQ_0);
 }
 
+/* BIOSCS# for a write: the PIIX4 asserts it only while XBCS bit 2, BIOSCS#
+   Write Protect Enable, is set, and only in the BIOS space the XBCS decodes
+   -- the top 64K always, the lower 64K with bit 6, the extended 384K with
+   bit 7 and the 1-Meg extended 512K with bit 9 (82371AB 4.1.9, 8.1.3). The
+   flash never sees any other write cycle. */
+static int
+piix4_bios_write_gate(uint32_t addr, void *priv)
+{
+    const piix_t  *dev  = (const piix_t *) priv;
+    const uint16_t xbcs = dev->regs[0][0x4e] | (dev->regs[0][0x4f] << 8);
+
+    if (!(xbcs & 0x0004))
+        return 0;
+
+    /* The top 64K: 0F0000h-0FFFFFh and FFFF0000h-FFFFFFFFh. */
+    if (((addr >= 0x000f0000) && (addr <= 0x000fffff)) || (addr >= 0xffff0000))
+        return 1;
+    /* The lower 64K: 0E0000h-0EFFFFh and FFFE0000h-FFFEFFFFh. */
+    if ((xbcs & 0x0040) && (((addr >= 0x000e0000) && (addr <= 0x000effff)) || ((addr >= 0xfffe0000) && (addr <= 0xfffeffff))))
+        return 1;
+    /* Extended BIOS: FFF80000h-FFFDFFFFh. */
+    if ((xbcs & 0x0080) && (addr >= 0xfff80000) && (addr <= 0xfffdffff))
+        return 1;
+    /* 1-Meg Extended BIOS: FFF00000h-FFF7FFFFh. */
+    if ((xbcs & 0x0200) && (addr >= 0xfff00000) && (addr <= 0xfff7ffff))
+        return 1;
+
+    return 0;
+}
+
 static void
 piix_close(void *priv)
 {
     piix_t *dev = (piix_t *) priv;
+
+    if (flash_bios_write_gate_priv == dev) {
+        flash_bios_write_gate      = NULL;
+        flash_bios_write_gate_priv = NULL;
+    }
 
     if (dev->type < 4)
         pic_set_irq_callback(NULL, NULL);
@@ -1624,10 +1681,17 @@ piix_init(const device_t *info)
     dev->func_shift = (info->local >> 8) & 0x0f;
     dev->no_mirq0   = (info->local >> 12) & 0x0f;
     dev->func0_id   = (info->local >> 16) & 0xffff;
+    dev->no_usb     = !!(info->local & PIIX4_NO_USB);
 
     pci_add_card(PCI_ADD_SOUTHBRIDGE, piix_read, piix_write, dev, &dev->pci_slot);
     piix_log("PIIX%i: Added to slot: %02X\n", dev->type, dev->pci_slot);
     piix_log("PIIX%i: Added to slot: %02X\n", dev->type, dev->pci_slot);
+
+    /* The BIOS flash's chip select is the PIIX4's; see piix4_bios_write_gate. */
+    if (dev->type == 4) {
+        flash_bios_write_gate      = piix4_bios_write_gate;
+        flash_bios_write_gate_priv = dev;
+    }
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
     dev->bm[1] = device_add_inst(&sff8038i_device, 2);
@@ -1645,7 +1709,7 @@ piix_init(const device_t *info)
     else
         sff_set_irq_mode(dev->bm[1], IRQ_MODE_MIRQ_0);
 
-    if (dev->type >= 3)
+    if ((dev->type >= 3) && !dev->no_usb)
         dev->usb   = device_add(&usb_device);
 
     if (dev->type > 3) {
@@ -1763,7 +1827,7 @@ const device_t piix3_device = {
     .name          = "Intel 82371SB (PIIX3)",
     .internal_name = "piix3",
     .flags         = DEVICE_PCI,
-    .local         = 0x70000403,
+    .local         = 0x70000413,
     .init          = piix_init,
     .close         = piix_close,
     .reset         = piix_reset,
@@ -1777,7 +1841,7 @@ const device_t piix3_ioapic_device = {
     .name          = "Intel 82371SB (PIIX3) (Boards with I/O APIC)",
     .internal_name = "piix3_ioapic",
     .flags         = DEVICE_PCI,
-    .local         = 0x70001403,
+    .local         = 0x70001413,
     .init          = piix_init,
     .close         = piix_close,
     .reset         = piix_reset,

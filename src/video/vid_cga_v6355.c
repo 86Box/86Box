@@ -75,10 +75,9 @@
  * > MDA monitor support
  * > LCD panel support 
  * > Horizontal / vertical position adjustments
- * > 160x200x16 and 640x200x16 video modes. Documentation suggests that these 
- *   should be selected by setting bit 6 of the CGA control register, but 
- *   that doesn't work on my real hardware, so I can't test and therefore
- *   can't replicate
+ * > 640x200x16 video mode. Documentation suggests that this should be
+ *   selected by setting bit 6 of the CGA control register, but the original
+ *   author could not activate it on his hardware, so it remains untested.
  * > Palette support on composite output. Composite_Process() does not 
  *   appear to have any support for an arbitrary palette.
  */
@@ -483,6 +482,35 @@ v6355_line_graphics320(v6355_t *v6355, uint8_t *pixel)
     }
 }
 
+/* Render packed 4-bit pixels from CGA-interlaced VRAM. Each of the 160
+ * logical pixels is expanded to four pixels in the 640-pixel output line. */
+static void
+v6355_line_graphics160(v6355_t *v6355, uint8_t *pixel)
+{
+    int32_t  x;
+    int32_t  c;
+    uint16_t dat;
+    uint8_t  col;
+    uint32_t width = v6355_width(v6355) / 16;
+
+    for (x = 0; x < width; x++) {
+        if (v6355->cgamode & 8)
+            dat = (v6355->vram[((v6355->ma << 1) & 0x1fff) + ((v6355->sc & 1) * 0x2000)] << 8) |
+                   v6355->vram[((v6355->ma << 1) & 0x1fff) + ((v6355->sc & 1) * 0x2000) + 1];
+        else
+            dat = 0;
+
+        v6355->ma++;
+
+        for (c = 0; c < 4; c++) {
+            col = (dat >> 12) | 16;
+            pixel[(x << 4) + (c << 2)] = pixel[(x << 4) + (c << 2) + 1] =
+                pixel[(x << 4) + (c << 2) + 2] = pixel[(x << 4) + (c << 2) + 3] = col;
+            dat <<= 4;
+        }
+    }
+}
+
 /* Render a line as 640 pixels in 640-pixel graphics mode */
 static void
 v6355_line_graphics640(v6355_t *v6355, uint8_t *pixel)
@@ -567,9 +595,11 @@ v6355_render(v6355_t *v6355, int line)
             v6355->ma++;
         }
     } else if (!(v6355->cgamode & 16)) {
-        /* Low-res graphics 
-         * XXX There should be a branch for 160x200x16 graphics somewhere around here */
-        v6355_line_graphics320(v6355, pixel);
+        /* Low-res graphics: bit 6 selects packed 160x200x16. */
+        if (v6355->cgamode & 0x40)
+            v6355_line_graphics160(v6355, pixel);
+        else
+            v6355_line_graphics320(v6355, pixel);
         v6355_pointer(v6355, pixel);
 
         for (x = 0; x < (width / 16); x++) {
@@ -835,8 +865,13 @@ v6355_poll(void *priv)
                         video_res_y /= crtc9 + 1;
                         video_bpp = 0;
                     } else if (!(v6355->cgamode & 16)) {
-                        video_res_x /= 2;
-                        video_bpp = 2;
+                        if (v6355->cgamode & 0x40) {
+                            video_res_x = width / 4;
+                            video_bpp = 4;
+                        } else {
+                            video_res_x /= 2;
+                            video_bpp = 2;
+                        }
                     } else
                         video_bpp = 1;
                 }

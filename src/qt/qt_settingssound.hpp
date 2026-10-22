@@ -18,6 +18,7 @@ public:
 
     void restore();
     void save(int soft);
+    int  soundCard(int i) const;
 
 public slots:
     void onCurrentMachineChanged(int machineId);

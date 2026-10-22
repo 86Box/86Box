@@ -1190,8 +1190,8 @@ const OpFn OP_TABLE(winchip_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*32-bit data, 16-bit addr*/
@@ -1212,8 +1212,8 @@ const OpFn OP_TABLE(winchip_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_l_a16,opLSS_l_a16,    opBTR_l_r_a16,  opLFS_l_a16,    opLGS_l_a16,    opMOVZX_l_b_a16,opMOVZX_l_w_a16,ILLEGAL,        ILLEGAL,        opBA_l_a16,     opBTC_l_r_a16,  opBSF_l_a16,    opBSR_l_a16,    opMOVSX_l_b_a16,opMOVSX_l_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_l_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*16-bit data, 32-bit addr*/
@@ -1234,8 +1234,8 @@ const OpFn OP_TABLE(winchip_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 
         /*32-bit data, 32-bit addr*/
@@ -1256,8 +1256,8 @@ const OpFn OP_TABLE(winchip_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_l_a32,opLSS_l_a32,    opBTR_l_r_a32,  opLFS_l_a32,    opLGS_l_a32,    opMOVZX_l_b_a32,opMOVZX_l_w_a32,ILLEGAL,        ILLEGAL,        opBA_l_a32,     opBTC_l_r_a32,  opBSF_l_a32,    opBSR_l_a32,    opMOVSX_l_b_a32,opMOVSX_l_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_l_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
     // clang-format on
 };
@@ -1282,8 +1282,8 @@ const OpFn OP_TABLE(winchip2_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*32-bit data, 16-bit addr*/
@@ -1304,8 +1304,8 @@ const OpFn OP_TABLE(winchip2_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_l_a16,opLSS_l_a16,    opBTR_l_r_a16,  opLFS_l_a16,    opLGS_l_a16,    opMOVZX_l_b_a16,opMOVZX_l_w_a16,ILLEGAL,        ILLEGAL,        opBA_l_a16,     opBTC_l_r_a16,  opBSF_l_a16,    opBSR_l_a16,    opMOVSX_l_b_a16,opMOVSX_l_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_l_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*16-bit data, 32-bit addr*/
@@ -1326,8 +1326,8 @@ const OpFn OP_TABLE(winchip2_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 
         /*32-bit data, 32-bit addr*/
@@ -1348,8 +1348,8 @@ const OpFn OP_TABLE(winchip2_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_l_a32,opLSS_l_a32,    opBTR_l_r_a32,  opLFS_l_a32,    opLGS_l_a32,    opMOVZX_l_b_a32,opMOVZX_l_w_a32,ILLEGAL,        ILLEGAL,        opBA_l_a32,     opBTC_l_r_a32,  opBSF_l_a32,    opBSR_l_a32,    opMOVSX_l_b_a32,opMOVSX_l_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_l_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
     // clang-format on
 };
@@ -1360,7 +1360,7 @@ const OpFn OP_TABLE(pentium_0f)[1024] = {
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a16,     op0F01_w_a16,   opLAR_w_a16,    opLSL_w_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*10*/  opMOV_b_r_a16,  opMOV_w_r_a16,  opMOV_r_b_a16,  opMOV_r_w_a16,  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
-/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1382,7 +1382,7 @@ const OpFn OP_TABLE(pentium_0f)[1024] = {
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a16,     op0F01_l_a16,   opLAR_l_a16,    opLSL_l_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*10*/  opMOV_b_r_a16,  opMOV_l_r_a16,  opMOV_r_b_a16,  opMOV_r_l_a16,  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
-/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1404,7 +1404,7 @@ const OpFn OP_TABLE(pentium_0f)[1024] = {
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a32,     op0F01_w_a32,   opLAR_w_a32,    opLSL_w_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*10*/  opMOV_b_r_a32,  opMOV_w_r_a32,  opMOV_r_b_a32,  opMOV_r_w_a32,  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
-/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1426,7 +1426,7 @@ const OpFn OP_TABLE(pentium_0f)[1024] = {
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a32,     op0F01_l_a32,   opLAR_l_a32,    opLSL_l_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*10*/  opMOV_b_r_a32,  opMOV_l_r_a32,  opMOV_r_b_a32,  opMOV_r_l_a32,  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
-/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1636,7 +1636,7 @@ const OpFn OP_TABLE(pentiummmx_0f)[1024] = {
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a16,     op0F01_w_a16,   opLAR_w_a16,    opLSL_w_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
-/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1650,15 +1650,15 @@ const OpFn OP_TABLE(pentiummmx_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*32-bit data, 16-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a16,     op0F01_l_a16,   opLAR_l_a16,    opLSL_l_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
-/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1672,15 +1672,15 @@ const OpFn OP_TABLE(pentiummmx_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_l_a16,opLSS_l_a16,    opBTR_l_r_a16,  opLFS_l_a16,    opLGS_l_a16,    opMOVZX_l_b_a16,opMOVZX_l_w_a16,ILLEGAL,        ILLEGAL,        opBA_l_a16,     opBTC_l_r_a16,  opBSF_l_a16,    opBSR_l_a16,    opMOVSX_l_b_a16,opMOVSX_l_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_l_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*16-bit data, 32-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a32,     op0F01_w_a32,   opLAR_w_a32,    opLSL_w_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
-/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1694,15 +1694,15 @@ const OpFn OP_TABLE(pentiummmx_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 
         /*32-bit data, 32-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a32,     op0F01_l_a32,   opLAR_l_a32,    opLSL_l_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
-/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1716,8 +1716,8 @@ const OpFn OP_TABLE(pentiummmx_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_l_a32,opLSS_l_a32,    opBTR_l_r_a32,  opLFS_l_a32,    opLGS_l_a32,    opMOVZX_l_b_a32,opMOVZX_l_w_a32,ILLEGAL,        ILLEGAL,        opBA_l_a32,     opBTC_l_r_a32,  opBSF_l_a32,    opBSR_l_a32,    opMOVSX_l_b_a32,opMOVSX_l_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_l_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
     // clang-format on
 };
@@ -1742,8 +1742,8 @@ const OpFn OP_TABLE(k6_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*32-bit data, 16-bit addr*/
@@ -1764,8 +1764,8 @@ const OpFn OP_TABLE(k6_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_l_a16,opLSS_l_a16,    opBTR_l_r_a16,  opLFS_l_a16,    opLGS_l_a16,    opMOVZX_l_b_a16,opMOVZX_l_w_a16,ILLEGAL,        ILLEGAL,        opBA_l_a16,     opBTC_l_r_a16,  opBSF_l_a16,    opBSR_l_a16,    opMOVSX_l_b_a16,opMOVSX_l_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_l_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*16-bit data, 32-bit addr*/
@@ -1786,8 +1786,8 @@ const OpFn OP_TABLE(k6_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 
         /*32-bit data, 32-bit addr*/
@@ -1808,8 +1808,8 @@ const OpFn OP_TABLE(k6_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_l_a32,opLSS_l_a32,    opBTR_l_r_a32,  opLFS_l_a32,    opLGS_l_a32,    opMOVZX_l_b_a32,opMOVZX_l_w_a32,ILLEGAL,        ILLEGAL,        opBA_l_a32,     opBTC_l_r_a32,  opBSF_l_a32,    opBSR_l_a32,    opMOVSX_l_b_a32,opMOVSX_l_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_l_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
     // clang-format on
 };
@@ -1834,8 +1834,8 @@ const OpFn OP_TABLE(k62_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*32-bit data, 16-bit addr*/
@@ -1856,8 +1856,8 @@ const OpFn OP_TABLE(k62_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_l_a16,opLSS_l_a16,    opBTR_l_r_a16,  opLFS_l_a16,    opLGS_l_a16,    opMOVZX_l_b_a16,opMOVZX_l_w_a16,ILLEGAL,        ILLEGAL,        opBA_l_a16,     opBTC_l_r_a16,  opBSF_l_a16,    opBSR_l_a16,    opMOVSX_l_b_a16,opMOVSX_l_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_l_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*16-bit data, 32-bit addr*/
@@ -1878,8 +1878,8 @@ const OpFn OP_TABLE(k62_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 
         /*32-bit data, 32-bit addr*/
@@ -1900,8 +1900,8 @@ const OpFn OP_TABLE(k62_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_l_a32,opLSS_l_a32,    opBTR_l_r_a32,  opLFS_l_a32,    opLGS_l_a32,    opMOVZX_l_b_a32,opMOVZX_l_w_a32,ILLEGAL,        ILLEGAL,        opBA_l_a32,     opBTC_l_r_a32,  opBSF_l_a32,    opBSR_l_a32,    opMOVSX_l_b_a32,opMOVSX_l_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_l_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
     // clang-format on
 };
@@ -1926,8 +1926,8 @@ const OpFn OP_TABLE(c6x86mx_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*32-bit data, 16-bit addr*/
@@ -1948,8 +1948,8 @@ const OpFn OP_TABLE(c6x86mx_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_l_a16,opLSS_l_a16,    opBTR_l_r_a16,  opLFS_l_a16,    opLGS_l_a16,    opMOVZX_l_b_a16,opMOVZX_l_w_a16,ILLEGAL,        ILLEGAL,        opBA_l_a16,     opBTC_l_r_a16,  opBSF_l_a16,    opBSR_l_a16,    opMOVSX_l_b_a16,opMOVSX_l_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_l_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*16-bit data, 32-bit addr*/
@@ -1970,8 +1970,8 @@ const OpFn OP_TABLE(c6x86mx_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 
         /*32-bit data, 32-bit addr*/
@@ -1992,8 +1992,8 @@ const OpFn OP_TABLE(c6x86mx_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_l_a32,opLSS_l_a32,    opBTR_l_r_a32,  opLFS_l_a32,    opLGS_l_a32,    opMOVZX_l_b_a32,opMOVZX_l_w_a32,ILLEGAL,        ILLEGAL,        opBA_l_a32,     opBTC_l_r_a32,  opBSF_l_a32,    opBSR_l_a32,    opMOVSX_l_b_a32,opMOVSX_l_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_l_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
     // clang-format on
 };
@@ -2002,9 +2002,9 @@ const OpFn OP_TABLE(pentiumpro_0f)[1024] = {
     // clang-format off
         /*16-bit data, 16-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a16,     op0F01_w_a16,   opLAR_w_a16,    opLSL_w_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
+/*00*/  op0F00_a16,     op0F01_w_a16,   opLAR_w_a16,    opLSL_w_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a16, ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16,
-/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  opCMOVO_w_a16,  opCMOVNO_w_a16, opCMOVB_w_a16,  opCMOVNB_w_a16, opCMOVE_w_a16,  opCMOVNE_w_a16, opCMOVBE_w_a16, opCMOVNBE_w_a16,opCMOVS_w_a16,  opCMOVNS_w_a16, opCMOVP_w_a16,  opCMOVNP_w_a16, opCMOVL_w_a16,  opCMOVNL_w_a16, opCMOVLE_w_a16, opCMOVNLE_w_a16,
@@ -2024,9 +2024,9 @@ const OpFn OP_TABLE(pentiumpro_0f)[1024] = {
 
         /*32-bit data, 16-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a16,     op0F01_l_a16,   opLAR_l_a16,    opLSL_l_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
+/*00*/  op0F00_a16,     op0F01_l_a16,   opLAR_l_a16,    opLSL_l_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a16, ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16,
-/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  opCMOVO_l_a16,  opCMOVNO_l_a16, opCMOVB_l_a16,  opCMOVNB_l_a16, opCMOVE_l_a16,  opCMOVNE_l_a16, opCMOVBE_l_a16, opCMOVNBE_l_a16,opCMOVS_l_a16,  opCMOVNS_l_a16, opCMOVP_l_a16,  opCMOVNP_l_a16, opCMOVL_l_a16,  opCMOVNL_l_a16, opCMOVLE_l_a16, opCMOVNLE_l_a16,
@@ -2046,9 +2046,9 @@ const OpFn OP_TABLE(pentiumpro_0f)[1024] = {
 
         /*16-bit data, 32-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a32,     op0F01_w_a32,   opLAR_w_a32,    opLSL_w_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
+/*00*/  op0F00_a32,     op0F01_w_a32,   opLAR_w_a32,    opLSL_w_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a32, ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32,
-/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  opCMOVO_w_a32,  opCMOVNO_w_a32, opCMOVB_w_a32,  opCMOVNB_w_a32, opCMOVE_w_a32,  opCMOVNE_w_a32, opCMOVBE_w_a32, opCMOVNBE_w_a32,opCMOVS_w_a32,  opCMOVNS_w_a32, opCMOVP_w_a32,  opCMOVNP_w_a32, opCMOVL_w_a32,  opCMOVNL_w_a32, opCMOVLE_w_a32, opCMOVNLE_w_a32,
@@ -2068,9 +2068,9 @@ const OpFn OP_TABLE(pentiumpro_0f)[1024] = {
 
         /*32-bit data, 32-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a32,     op0F01_l_a32,   opLAR_l_a32,    opLSL_l_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
+/*00*/  op0F00_a32,     op0F01_l_a32,   opLAR_l_a32,    opLSL_l_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a32, ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32,
-/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  opCMOVO_l_a32,  opCMOVNO_l_a32, opCMOVB_l_a32,  opCMOVNB_l_a32, opCMOVE_l_a32,  opCMOVNE_l_a32, opCMOVBE_l_a32, opCMOVNBE_l_a32,opCMOVS_l_a32,  opCMOVNS_l_a32, opCMOVP_l_a32,  opCMOVNP_l_a32, opCMOVL_l_a32,  opCMOVNL_l_a32, opCMOVLE_l_a32, opCMOVNLE_l_a32,
@@ -2094,9 +2094,9 @@ const OpFn OP_TABLE(pentium2_0f)[1024] = {
     // clang-format off
         /*16-bit data, 16-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a16,     op0F01_w_a16,   opLAR_w_a16,    opLSL_w_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
+/*00*/  op0F00_a16,     op0F01_w_a16,   opLAR_w_a16,    opLSL_w_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a16, ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16,
-/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        opSYSENTER,     opSYSEXIT,      ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  opCMOVO_w_a16,  opCMOVNO_w_a16, opCMOVB_w_a16,  opCMOVNB_w_a16, opCMOVE_w_a16,  opCMOVNE_w_a16, opCMOVBE_w_a16, opCMOVNBE_w_a16,opCMOVS_w_a16,  opCMOVNS_w_a16, opCMOVP_w_a16,  opCMOVNP_w_a16, opCMOVL_w_a16,  opCMOVNL_w_a16, opCMOVLE_w_a16, opCMOVNLE_w_a16,
@@ -2110,15 +2110,15 @@ const OpFn OP_TABLE(pentium2_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*32-bit data, 16-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a16,     op0F01_l_a16,   opLAR_l_a16,    opLSL_l_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
+/*00*/  op0F00_a16,     op0F01_l_a16,   opLAR_l_a16,    opLSL_l_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a16, ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16,
-/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        opSYSENTER,     opSYSEXIT,      ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  opCMOVO_l_a16,  opCMOVNO_l_a16, opCMOVB_l_a16,  opCMOVNB_l_a16, opCMOVE_l_a16,  opCMOVNE_l_a16, opCMOVBE_l_a16, opCMOVNBE_l_a16,opCMOVS_l_a16,  opCMOVNS_l_a16, opCMOVP_l_a16,  opCMOVNP_l_a16, opCMOVL_l_a16,  opCMOVNL_l_a16, opCMOVLE_l_a16, opCMOVNLE_l_a16,
@@ -2132,15 +2132,15 @@ const OpFn OP_TABLE(pentium2_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_l_a16,opLSS_l_a16,    opBTR_l_r_a16,  opLFS_l_a16,    opLGS_l_a16,    opMOVZX_l_b_a16,opMOVZX_l_w_a16,ILLEGAL,        ILLEGAL,        opBA_l_a16,     opBTC_l_r_a16,  opBSF_l_a16,    opBSR_l_a16,    opMOVSX_l_b_a16,opMOVSX_l_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_l_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*16-bit data, 32-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a32,     op0F01_w_a32,   opLAR_w_a32,    opLSL_w_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
+/*00*/  op0F00_a32,     op0F01_w_a32,   opLAR_w_a32,    opLSL_w_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a32, ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32,
-/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        opSYSENTER,     opSYSEXIT,      ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  opCMOVO_w_a32,  opCMOVNO_w_a32, opCMOVB_w_a32,  opCMOVNB_w_a32, opCMOVE_w_a32,  opCMOVNE_w_a32, opCMOVBE_w_a32, opCMOVNBE_w_a32,opCMOVS_w_a32,  opCMOVNS_w_a32, opCMOVP_w_a32,  opCMOVNP_w_a32, opCMOVL_w_a32,  opCMOVNL_w_a32, opCMOVLE_w_a32, opCMOVNLE_w_a32,
@@ -2154,15 +2154,15 @@ const OpFn OP_TABLE(pentium2_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 
         /*32-bit data, 32-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a32,     op0F01_l_a32,   opLAR_l_a32,    opLSL_l_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
+/*00*/  op0F00_a32,     op0F01_l_a32,   opLAR_l_a32,    opLSL_l_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a32, ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32,
-/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        opSYSENTER,     opSYSEXIT,      ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 
 /*40*/  opCMOVO_l_a32,  opCMOVNO_l_a32, opCMOVB_l_a32,  opCMOVNB_l_a32, opCMOVE_l_a32,  opCMOVNE_l_a32, opCMOVBE_l_a32, opCMOVNBE_l_a32,opCMOVS_l_a32,  opCMOVNS_l_a32, opCMOVP_l_a32,  opCMOVNP_l_a32, opCMOVL_l_a32,  opCMOVNL_l_a32, opCMOVLE_l_a32, opCMOVNLE_l_a32,
@@ -2176,8 +2176,8 @@ const OpFn OP_TABLE(pentium2_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_l_a32,opLSS_l_a32,    opBTR_l_r_a32,  opLFS_l_a32,    opLGS_l_a32,    opMOVZX_l_b_a32,opMOVZX_l_w_a32,ILLEGAL,        ILLEGAL,        opBA_l_a32,     opBTC_l_r_a32,  opBSF_l_a32,    opBSR_l_a32,    opMOVSX_l_b_a32,opMOVSX_l_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_l_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
     // clang-format on
 };
@@ -2186,9 +2186,9 @@ const OpFn OP_TABLE(pentium2d_0f)[1024] = {
     // clang-format off
         /*16-bit data, 16-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a16,     op0F01_w_a16,   opLAR_w_a16,    opLSL_w_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
+/*00*/  op0F00_a16,     op0F01_w_a16,   opLAR_w_a16,    opLSL_w_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a16, ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16,
-/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        opSYSENTER,     opSYSEXIT,      ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opVPCEXT,
 
 /*40*/  opCMOVO_w_a16,  opCMOVNO_w_a16, opCMOVB_w_a16,  opCMOVNB_w_a16, opCMOVE_w_a16,  opCMOVNE_w_a16, opCMOVBE_w_a16, opCMOVNBE_w_a16,opCMOVS_w_a16,  opCMOVNS_w_a16, opCMOVP_w_a16,  opCMOVNP_w_a16, opCMOVL_w_a16,  opCMOVNL_w_a16, opCMOVLE_w_a16, opCMOVNLE_w_a16,
@@ -2202,15 +2202,15 @@ const OpFn OP_TABLE(pentium2d_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*32-bit data, 16-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a16,     op0F01_l_a16,   opLAR_l_a16,    opLSL_l_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
+/*00*/  op0F00_a16,     op0F01_l_a16,   opLAR_l_a16,    opLSL_l_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a16, ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16,
-/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        opSYSENTER,     opSYSEXIT,      ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opVPCEXT,
 
 /*40*/  opCMOVO_l_a16,  opCMOVNO_l_a16, opCMOVB_l_a16,  opCMOVNB_l_a16, opCMOVE_l_a16,  opCMOVNE_l_a16, opCMOVBE_l_a16, opCMOVNBE_l_a16,opCMOVS_l_a16,  opCMOVNS_l_a16, opCMOVP_l_a16,  opCMOVNP_l_a16, opCMOVL_l_a16,  opCMOVNL_l_a16, opCMOVLE_l_a16, opCMOVNLE_l_a16,
@@ -2224,15 +2224,15 @@ const OpFn OP_TABLE(pentium2d_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a16,opCMPXCHG_l_a16,opLSS_l_a16,    opBTR_l_r_a16,  opLFS_l_a16,    opLGS_l_a16,    opMOVZX_l_b_a16,opMOVZX_l_w_a16,ILLEGAL,        ILLEGAL,        opBA_l_a16,     opBTC_l_r_a16,  opBSF_l_a16,    opBSR_l_a16,    opMOVSX_l_b_a16,opMOVSX_l_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_l_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
-/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   NULL,           opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   NULL,           opPXOR_a16,
+/*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  ILLEGAL,        opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  ILLEGAL,        opPANDN_a16,
+/*e0*/  ILLEGAL,        opPSRAW_a16,    opPSRAD_a16,    ILLEGAL,        ILLEGAL,        opPMULHW_a16,   ILLEGAL,        ILLEGAL,        opPSUBSB_a16,   opPSUBSW_a16,   ILLEGAL,        opPOR_a16,      opPADDSB_a16,   opPADDSW_a16,   ILLEGAL,        opPXOR_a16,
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  ILLEGAL,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*16-bit data, 32-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a32,     op0F01_w_a32,   opLAR_w_a32,    opLSL_w_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
+/*00*/  op0F00_a32,     op0F01_w_a32,   opLAR_w_a32,    opLSL_w_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a32, ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32,
-/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        opSYSENTER,     opSYSEXIT,      ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opVPCEXT,
 
 /*40*/  opCMOVO_w_a32,  opCMOVNO_w_a32, opCMOVB_w_a32,  opCMOVNB_w_a32, opCMOVE_w_a32,  opCMOVNE_w_a32, opCMOVBE_w_a32, opCMOVNBE_w_a32,opCMOVS_w_a32,  opCMOVNS_w_a32, opCMOVP_w_a32,  opCMOVNP_w_a32, opCMOVL_w_a32,  opCMOVNL_w_a32, opCMOVLE_w_a32, opCMOVNLE_w_a32,
@@ -2246,15 +2246,15 @@ const OpFn OP_TABLE(pentium2d_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 
         /*32-bit data, 32-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a32,     op0F01_l_a32,   opLAR_l_a32,    opLSL_l_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
+/*00*/  op0F00_a32,     op0F01_l_a32,   opLAR_l_a32,    opLSL_l_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a32, ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32,
-/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  opWRMSR,        opRDTSC,        opRDMSR,        opRDPMC,        opSYSENTER,     opSYSEXIT,      ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opVPCEXT,
 
 /*40*/  opCMOVO_l_a32,  opCMOVNO_l_a32, opCMOVB_l_a32,  opCMOVNB_l_a32, opCMOVE_l_a32,  opCMOVNE_l_a32, opCMOVBE_l_a32, opCMOVNBE_l_a32,opCMOVS_l_a32,  opCMOVNS_l_a32, opCMOVP_l_a32,  opCMOVNP_l_a32, opCMOVL_l_a32,  opCMOVNL_l_a32, opCMOVLE_l_a32, opCMOVNLE_l_a32,
@@ -2268,8 +2268,8 @@ const OpFn OP_TABLE(pentium2d_0f)[1024] = {
 /*b0*/  opCMPXCHG_b_a32,opCMPXCHG_l_a32,opLSS_l_a32,    opBTR_l_r_a32,  opLFS_l_a32,    opLGS_l_a32,    opMOVZX_l_b_a32,opMOVZX_l_w_a32,ILLEGAL,        ILLEGAL,        opBA_l_a32,     opBTC_l_r_a32,  opBSF_l_a32,    opBSR_l_a32,    opMOVSX_l_b_a32,opMOVSX_l_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_l_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
-/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
-/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   NULL,           opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   NULL,           opPXOR_a32,
+/*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  ILLEGAL,        opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  ILLEGAL,        opPANDN_a32,
+/*e0*/  ILLEGAL,        opPSRAW_a32,    opPSRAD_a32,    ILLEGAL,        ILLEGAL,        opPMULHW_a32,   ILLEGAL,        ILLEGAL,        opPSUBSB_a32,   opPSUBSW_a32,   ILLEGAL,        opPOR_a32,      opPADDSB_a32,   opPADDSW_a32,   ILLEGAL,        opPXOR_a32,
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
     // clang-format on
 };

@@ -32,6 +32,8 @@
 #include "cpu.h"
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/device.h>
+#include <86box/flash.h>
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/machine.h>
@@ -1078,9 +1080,14 @@ bios_load_intel(const char *fn1, const char *fn2, const int sz, const int invert
         rom_log("BIOS: File \"%s\" found\n", fn2);
 
         fseek(f, 0, SEEK_END);
-        const uint32_t bb_size = ftell(f);
+        uint32_t bb_size = ftell(f);
 
         fclose(f);
+
+        /* Some boot block files (.BBO) carry the same header as the rest of the
+           split image, while the data itself is always a multiple of 4 KB. */
+        const uint32_t bb_offs = bb_size & 0x00000fff;
+        bb_size -= bb_offs;
 
         if (!bios_only && (bb_size > 0)) {
             /* Move all the other blocks to make space for the boot block if needed. */
@@ -1088,7 +1095,7 @@ bios_load_intel(const char *fn1, const char *fn2, const int sz, const int invert
                 memmove(&(rom[(i << 16) - bb_size]), &(rom[i << 16]), 0x00010000);
 
             const uint32_t xor = invert ? 0x00010000 : 0x00000000;
-            ret = ret && bios_load_aux_linear(fn2, (0x00100000 - bb_size) ^ xor, bb_size, 0x00000000);
+            ret = ret && bios_load_aux_linear(fn2, (0x00100000 - bb_size) ^ xor, bb_size, bb_offs);
             if (ret == 0) {
                 rom_log("BIOS: Failed to load boot block file \"%s\"\n", fn2);
                 return 0;
@@ -1188,4 +1195,64 @@ rom_init_interleaved(rom_t *rom, const char *fnl, const char *fnh, uint32_t addr
                     rom->rom, flags | MEM_MAPPING_ROM_WS, rom);
 
     return 0;
+}
+
+int  (*flash_bios_write_gate)(uint32_t addr, void *priv) = NULL;
+void  *flash_bios_write_gate_priv                        = NULL;
+
+/* Whether a write at addr reaches the BIOS flash. */
+int
+flash_bios_write_selected(uint32_t addr)
+{
+    if ((flash_bios_write_gate == NULL) || flash_bios_write_gate(addr, flash_bios_write_gate_priv))
+        return 1;
+
+    return 0;
+}
+
+int  (*flash_bios_read_gate)(uint32_t addr, void *priv) = NULL;
+void  *flash_bios_read_gate_priv                        = NULL;
+
+static void (*flash_bios_decode_hook)(void *priv) = NULL;
+static void  *flash_bios_decode_hook_priv         = NULL;
+
+/* Whether a read at addr reaches the BIOS flash. */
+int
+flash_bios_read_selected(uint32_t addr)
+{
+    if ((flash_bios_read_gate == NULL) || flash_bios_read_gate(addr, flash_bios_read_gate_priv))
+        return 1;
+
+    return 0;
+}
+
+void
+flash_bios_set_decode_hook(void (*hook)(void *priv), void *priv)
+{
+    flash_bios_decode_hook      = hook;
+    flash_bios_decode_hook_priv = priv;
+}
+
+void
+flash_bios_decode_changed(void)
+{
+    if (flash_bios_decode_hook != NULL)
+        flash_bios_decode_hook(flash_bios_decode_hook_priv);
+}
+
+/* The chip select decides in 16 KB pieces; a mapping any piece of which is
+   not selected loses its exec pointer, so that code fetched from it goes
+   through the read handlers, which answer FFh for the part not selected. */
+void
+flash_bios_mapping_update(mem_mapping_t *map, uint8_t *exec)
+{
+    for (uint32_t addr = map->base; (addr - map->base) < map->size; addr += 0x4000) {
+        if (!flash_bios_read_selected(addr)) {
+            exec = NULL;
+            break;
+        }
+    }
+
+    if (map->exec != exec)
+        mem_mapping_set_exec(map, exec);
 }

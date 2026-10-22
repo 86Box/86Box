@@ -246,6 +246,39 @@ pci_get_int(uint8_t slot, uint8_t pci_int)
     return pci_cards[slot].irq_routing[pci_int - PCI_INTA];
 }
 
+/* Get the IRQ line a PCI card's interrupt pin currently reaches, or 0xff if none.
+   This follows the PCI card path of pci_irq(). */
+uint8_t
+pci_get_irq_line(uint8_t slot, uint8_t pci_int)
+{
+    uint8_t irq_routing;
+    uint8_t irq_line;
+
+    if ((slot > PCI_CARD_MAX) || !last_pci_card || (pci_int < PCI_INTA) || (pci_int > PCI_INTD))
+        return 0xff;
+
+    if (pci_flags & FLAG_NO_IRQ_STEERING)
+        irq_line = pci_cards[slot].read(0, 0x3c, 1, pci_cards[slot].priv);
+    else {
+        irq_routing = pci_cards[slot].irq_routing[pci_int - PCI_INTA];
+
+        switch (irq_routing) {
+            default:
+                return 0xff;
+
+            case 0x01 ... PCI_IRQS_NUM:
+                irq_line = pci_irqs[(irq_routing - PCI_INTA) & PCI_IRQ_MAX];
+                break;
+
+            case (PCI_DIRQ_BASE | 0x00) ... (PCI_DIRQ_BASE | PCI_DIRQ_MAX):
+                irq_line = slot & PCI_IRQ_MAX;
+                break;
+        }
+    }
+
+    return (irq_line > PCI_IRQ_MAX) ? 0xff : irq_line;
+}
+
 static void
 pci_clear_slot(int card)
 {
@@ -420,9 +453,6 @@ pci_trc_reset(uint8_t val)
         mem_a20_recalc();
 
         flushmmucache();
-
-        if (is_p6)
-            mem_zero();
     }
 
 #ifdef USE_DYNAREC
@@ -759,6 +789,31 @@ pci_register_bus_slot(int bus, int card, int type, int inta, int intb, int intc,
     }
 
     last_pci_card++;
+}
+
+/* Register one more slot on the bus a slot of the given type already
+   sits on, as the next device number, with the bus's INTA-D rotated by
+   one as a bridge does for its downstream devices. For a card that
+   presents two IDSELs on one connector (the Rage Fury MAXX: two chips
+   as AGP-bus devices 0 and 1). 1 on success, 0 when no such slot exists
+   or the table is full. */
+int
+pci_register_sibling_slot(int type)
+{
+    for (uint8_t i = 0; i < last_pci_card; i++) {
+        const pci_card_t *dev = &pci_cards[i];
+
+        if ((dev->type != type) || (last_pci_card >= PCI_CARDS_NUM)
+            || (dev->id + 1 >= PCI_CARDS_NUM)
+            || (pci_card_to_slot_mapping[dev->bus][dev->id + 1] != PCI_CARD_INVALID))
+            continue;
+        pci_register_bus_slot(dev->bus, dev->id + 1, type,
+                              dev->irq_routing[1], dev->irq_routing[2],
+                              dev->irq_routing[3], dev->irq_routing[0]);
+        return 1;
+    }
+
+    return 0;
 }
 
 static uint8_t

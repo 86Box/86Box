@@ -102,7 +102,7 @@ sff_bus_master_next_addr(sff8038i_t *dev)
     dev->count &= 0xfffe;
     if (!dev->count)
         dev->count = 65536;
-    dev->addr &= 0xfffffffe;
+    dev->addr &= dev->addr_mask;
     dev->ptr_cur += 8;
 }
 
@@ -149,20 +149,20 @@ sff_bus_master_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 4:
             dev->ptr = (dev->ptr & 0xffffff00) | (val & 0xfc);
-            dev->ptr %= (mem_size * 1024);
+            dev->ptr %= ((uint64_t) mem_size << 10);
             dev->ptr0 = val;
             break;
         case 5:
             dev->ptr = (dev->ptr & 0xffff00fc) | (val << 8);
-            dev->ptr %= (mem_size * 1024);
+            dev->ptr %= ((uint64_t) mem_size << 10);
             break;
         case 6:
             dev->ptr = (dev->ptr & 0xff00fffc) | (val << 16);
-            dev->ptr %= (mem_size * 1024);
+            dev->ptr %= ((uint64_t) mem_size << 10);
             break;
         case 7:
             dev->ptr = (dev->ptr & 0x00fffffc) | (val << 24);
-            dev->ptr %= (mem_size * 1024);
+            dev->ptr %= ((uint64_t) mem_size << 10);
             break;
 
         default:
@@ -185,12 +185,12 @@ sff_bus_master_writew(uint16_t port, uint16_t val, void *priv)
             break;
         case 4:
             dev->ptr = (dev->ptr & 0xffff0000) | (val & 0xfffc);
-            dev->ptr %= (mem_size * 1024);
+            dev->ptr %= ((uint64_t) mem_size << 10);
             dev->ptr0 = val & 0xff;
             break;
         case 6:
             dev->ptr = (dev->ptr & 0x0000fffc) | (val << 16);
-            dev->ptr %= (mem_size * 1024);
+            dev->ptr %= ((uint64_t) mem_size << 10);
             break;
 
         default:
@@ -213,7 +213,7 @@ sff_bus_master_writel(uint16_t port, uint32_t val, void *priv)
             break;
         case 4:
             dev->ptr = (val & 0xfffffffc);
-            dev->ptr %= (mem_size * 1024);
+            dev->ptr %= ((uint64_t) mem_size << 10);
             dev->ptr0 = val & 0xff;
             break;
 
@@ -505,7 +505,6 @@ sff_reset(void *priv)
     }
 
     sff_bus_master_set_irq(0x00, priv);
-    sff_bus_master_set_irq(0x01, priv);
 }
 
 void
@@ -573,6 +572,14 @@ sff_set_mirq(sff8038i_t *dev, uint8_t mirq)
     dev->mirq = mirq;
 }
 
+/* For a controller whose engine starts at the exact byte a PRD entry names,
+   where SFF-8038i would drop bit 0. */
+void
+sff_set_byte_addresses(sff8038i_t *dev, int byte_addresses)
+{
+    dev->addr_mask = byte_addresses ? 0xffffffff : 0xfffffffe;
+}
+
 void
 sff_set_ven_handlers(sff8038i_t *dev, uint8_t (*ven_write)(uint16_t port, uint8_t val, void *priv),
                      uint8_t (*ven_read)(uint16_t port, uint8_t val, void *priv), void *priv)
@@ -604,7 +611,10 @@ sff_init(UNUSED(const device_t *info))
     if ((device_get_instance() < 3) && (next_id == 0))
         device_add(&ide_pci_2ch_device);
 
-    ide_set_bus_master(next_id, sff_bus_master_dma, sff_bus_master_set_irq, dev);
+    /* Every controller adds its bus masters as instances board + 1: the
+       board the counter would give is not the one it claimed where boards
+       are not claimed in order, as a card on a pair above others' is. */
+    ide_set_bus_master(device_get_instance() - 1, sff_bus_master_dma, sff_bus_master_set_irq, dev);
 
     dev->slot         = 7;
     /* Channel 0 goes to IRQ 14, channel 1 goes to MIRQ0. */
@@ -615,6 +625,9 @@ sff_init(UNUSED(const device_t *info))
     dev->irq_level    = 0;
     dev->irq_state    = 0;
     dev->mirq         = 2;
+    /* SFF-8038i reserves bit 0 of a PRD entry's address: transfers are word
+       aligned. */
+    dev->addr_mask    = 0xfffffffe;
 
     dev->channel      = next_id;
     next_id++;

@@ -104,10 +104,6 @@ if(NOT NO_STATIC_OPTION)
     endif()
 endif()
 
-if(NOT (WIN32 OR APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
-    set(DISCORD OFF)
-endif()
-
 if(HAIKU)
     set(OPENAL ON)
 endif()
@@ -129,9 +125,9 @@ option(SOUNDCANVAS  "Sound Canvas (CLAP)"                                       
 option(VNC          "VNC renderer"                                               OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library" OFF)
 option(GDBSTUB      "Enable GDB stub server for debugging"                       OFF)
+option(AUTOMATION   "Enable the automation control socket"                       OFF)
 option(DEV_BRANCH   "Development branch"                                         OFF)
 option(DISCORD      "Discord Rich Presence support"                              ON)
-option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
 option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
 option(QT           "Use the Qt-based user interface"                            ON)
 option(SDL2         "Use SDL2 instead of SDL3"                                   OFF)
@@ -147,12 +143,6 @@ if(BUILD_BENCHMARKS)
 endif()
 if(BUILD_TESTING OR BUILD_BENCHMARKS)
     add_subdirectory(tests)
-endif()
-
-if((ARCH STREQUAL "arm64"))
-    set(NEW_DYNAREC ON)
-else()
-    option(NEW_DYNAREC "Use the PCem v15 (\"new\") dynamic recompiler" OFF)
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
@@ -183,10 +173,11 @@ if(WIN32 AND GDBSTUB)
     set(CMAKE_WIN32_EXECUTABLE OFF CACHE BOOL "Build a Windows GUI executable" FORCE)
 endif()
 
+if(WIN32 AND NOT CMAKE_WIN32_EXECUTABLE)
+    add_compile_definitions(WIN_CONSOLE_LOG=1)
+endif()
+
 if(GDBSTUB)
-    if(NOT (ARCH STREQUAL "arm64"))
-        set(NEW_DYNAREC OFF CACHE BOOL "Use the PCem v15 (\"new\") dynamic recompiler" OFF)
-    endif()
     set(DYNAREC OFF CACHE BOOL "Dynamic Recompiler" FORCE)
 endif()
 
@@ -209,6 +200,9 @@ cmake_dependent_option(WACOM          "Wacom Input Devices"                     
 cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"        ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(VFIO           "Virtual Function I/O"                     ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(SOFTMODEM      "AC'97 Softmodem"                          ON    "DEV_BRANCH"  OFF)
+
+# Defaults to DEV_BRANCH like the options above, but can also be enabled on its own
+option(RAGE128_MAXX "ATI Rage Fury MAXX" ${DEV_BRANCH})
 
 # Ditto but for Qt
 if(QT)

@@ -1710,7 +1710,7 @@ scsi_disk_get_max(UNUSED(const ide_t *ide), int ide_has_dma, const int type)
             ret = ide_has_dma ? 2 : -1;
             break;
         case TYPE_UDMA:
-            ret = ide_has_dma ? 5 : -1;
+            ret = ide_has_dma ? 6 : -1;
             break;
         default:
             ret = -1;

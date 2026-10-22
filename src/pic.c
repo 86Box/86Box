@@ -37,6 +37,9 @@
 #include <86box/nvr.h>
 #include <86box/acpi.h>
 #include <86box/plat_unused.h>
+#ifdef USE_VFIO
+#    include <86box/vfio.h>
+#endif
 
 enum {
     STATE_NONE = 0,
@@ -76,7 +79,37 @@ static int16_t  irq_vector_override[8] = {
     -1, -1, -1, -1, -1, -1, -1, -1
 };
 
+/* Lines a device has taken over for a controller of its own: the interrupt
+   controller must not deliver them, whatever the guest writes to its mask
+   register, so those bits are held set here. */
+static uint16_t pic_pinned_irqs = 0x0000;
+
 static void (*update_pending)(void);
+
+#ifdef USE_VFIO
+/* IRQs delivered since their level was last known to be current. VFIO cannot report
+   a passed-through device deasserting INTx, so such a level is resampled before use. */
+static uint16_t pic_acked      = 0x0000;
+static int      pic_resampling = 0;
+
+static uint8_t pic_level_triggered(pic_t *dev, int irq);
+
+/* Have a level resampled before it is delivered. */
+void
+pic_resample_mark(int irq)
+{
+    pic_acked |= 1 << irq;
+}
+
+static void
+pic_resample(int irq)
+{
+    /* Lines dropped by the resample must not re-enter the priority resolver. */
+    pic_resampling++;
+    vfio_irq_intx_resample(irq);
+    pic_resampling--;
+}
+#endif
 
 #ifdef ENABLE_PIC_LOG
 int pic_do_log = ENABLE_PIC_LOG;
@@ -222,6 +255,16 @@ find_best_interrupt(pic_t *dev)
             !((dev->flags & PIC_IBM5140) && dev->special_mask_mode && (dev->imr & b)))
             break;
         else if ((dev->state == 0) && ((dev->irr & ~dev->imr) & b)) {
+#ifdef USE_VFIO
+            /* Resample a level that was already delivered before raising it again. */
+            const int irq = j + ((dev == &pic2) ? 8 : 0);
+            if ((pic_acked & (1 << irq)) && pic_level_triggered(dev, j)) {
+                pic_acked &= ~(1 << irq);
+                pic_resample(irq);
+                if (!((dev->irr & ~dev->imr) & b))
+                    continue;
+            }
+#endif
             ret = j;
             break;
         }
@@ -243,6 +286,10 @@ find_best_interrupt(pic_t *dev)
 static __inline void
 pic_update_pending_xt(void)
 {
+#ifdef USE_VFIO
+    if (pic_resampling)
+        return;
+#endif
     if (!(pic.interrupt & 0x20))
         pic.int_pending = (find_best_interrupt(&pic) != -1);
     if (pic.int_pending && (pic.flags & PIC_IBM5140) && ibm5140_wake)
@@ -254,13 +301,28 @@ pic_update_pending_xt(void)
 static __inline void
 pic_update_pending_at(void)
 {
+#ifdef USE_VFIO
+    if (pic_resampling)
+        return;
+#endif
     if (!(pic.interrupt & 0x20)) {
         pic2.int_pending = (find_best_interrupt(&pic2) != -1);
- 
-        if (pic2.int_pending)
-            pic.irr |= (1 << pic2.icw3);
-        else
-            pic.irr &= ~(1 << pic2.icw3);
+
+        /* The slave's INT output is hard-wired to the master's IR2 (see
+           pic.slaves[2]), regardless of the cascade ID programmed into the
+           slave's ICW3 - firmware that never initializes the slave (eg. the
+           Tandy VIS) would otherwise have its IRQ 0 cleared here. */
+        if (machines[machine].init == machine_at_tandy_vis_init) {
+            if (pic2.int_pending)
+                pic.irr |= 0x04;
+            else
+                pic.irr &= ~0x04;
+        } else {
+            if (pic2.int_pending)
+                pic.irr |= (1 << pic2.icw3);
+            else
+                pic.irr &= ~(1 << pic2.icw3);
+        }
 
         pic.int_pending = (find_best_interrupt(&pic) != -1);
     }
@@ -276,7 +338,7 @@ void
 pic_reset(void)
 {
     int is_at     = IS_AT(machine);
-    int is_zenith = machine_has_flags(machine, MACHINE_ZENITH);
+    int is_zenith = !!machine_has_flags_64(machine, MACHINE_ZENITH);
     is_at         = is_at || (machines[machine].init == machine_xt_xi8088_init);
     const uint8_t board_flags = pic.flags & PIC_IBM5140;
 
@@ -305,6 +367,14 @@ pic_reset(void)
 
     shadow  = 0;
     pic_pci = 0;
+
+#ifdef USE_VFIO
+    pic_acked = 0x0000;
+#endif
+
+    /* A line a device has taken over stays out of delivery across a reset. */
+    pic.imr  = (uint8_t) pic_pinned_irqs;
+    pic2.imr = (uint8_t) (pic_pinned_irqs >> 8);
 }
 
 void
@@ -338,6 +408,37 @@ pic_set_vector_override(uint8_t irq, int vector)
         irq_vector_override[irq] = (vector >= 0) ? (vector & 0xff) : -1;
 }
 
+/* Keep a line out of the controller's delivery for good, or hand it back when
+   the device that claimed it goes away. The line is still reported to whoever
+   watches the controller, it is only the delivery that is held off. */
+void
+pic_set_line_pinned(int irq, int pinned)
+{
+    uint16_t bit;
+    uint8_t  b;
+    pic_t   *dev;
+
+    if ((irq < 0) || (irq > 15))
+        return;
+
+    dev = (irq < 8) ? &pic : &pic2;
+    bit = (uint16_t) (1u << irq);
+    b   = (uint8_t) (1u << (irq & 7));
+
+    if (pinned)
+        pic_pinned_irqs |= bit;
+    else
+        pic_pinned_irqs &= (uint16_t) ~bit;
+
+    if (pic_pinned_irqs & bit)
+        dev->imr |= b;
+    else
+        dev->imr &= (uint8_t) ~b;
+
+    if (update_pending != NULL)
+        update_pending();
+}
+
 static uint8_t
 pic_level_triggered(pic_t *dev, int irq)
 {
@@ -362,7 +463,32 @@ pic_acknowledge(pic_t *dev)
     dev->isr |= pic_int_num;
     if (!pic_level_triggered(dev, pic_int) || (dev->lines[pic_int] == 0))
         dev->irr &= ~pic_int_num;
+
+#ifdef USE_VFIO
+    pic_acked |= 1 << (pic_int + ((dev == &pic2) ? 8 : 0));
+#endif
 }
+
+#ifdef USE_VFIO
+/* Resample the delivered levels of one PIC before they become visible. */
+static void
+pic_resample_delivered(pic_t *dev)
+{
+    const int base      = (dev == &pic2) ? 8 : 0;
+    int       resampled = 0;
+
+    for (uint8_t i = 0; i < 8; i++) {
+        if ((pic_acked & (1 << (base + i))) && (dev->irr & (1 << i)) && pic_level_triggered(dev, i)) {
+            pic_acked &= ~(1 << (base + i));
+            pic_resample(base + i);
+            resampled = 1;
+        }
+    }
+
+    if (resampled)
+        update_pending();
+}
+#endif
 
 /* Find IRQ for non-specific EOI (either by command or automatic) by finding the highest IRQ
    priority with ISR bit set, that is also not masked if the PIC is in special mask mode. */
@@ -393,8 +519,15 @@ pic_action(pic_t *dev, uint8_t irq, uint8_t eoi, uint8_t rotate)
     uint8_t b = (1 << irq);
 
     if (irq != 0xff) {
-        if (eoi)
+        if (eoi) {
             dev->isr &= ~b;
+#ifdef USE_VFIO
+            /* Nothing samples an edge-triggered input's level, so let VFIO
+               rearm a passed-through device once its interrupt was serviced. */
+            if (!pic_level_triggered(dev, irq))
+                pic_resample(irq + ((dev == &pic2) ? 8 : 0));
+#endif
+        }
         if (rotate && !(dev->flags & PIC_IBM5140))
             dev->priority = (irq + 1) & 7;
 
@@ -533,10 +666,17 @@ pic_read(uint16_t addr, void *priv)
         else if (dev->ocw3 & 0x02) {
             if (dev->ocw3 & 0x01)
                 dev->data_bus = dev->isr;
-#ifdef UNDEFINED_READ
-            else
-                dev->data_bus = 0x00;
+            else {
+#ifdef USE_VFIO
+                /* The IRR shows level-triggered line levels, which must be current. */
+                pic_resample_delivered(dev);
 #endif
+#ifdef UNDEFINED_READ
+                dev->data_bus = 0x00;
+#else
+                dev->data_bus = dev->irr;
+#endif
+            }
         }
         /* If A0 = 0, VIA shadow is disabled, and poll mode is disabled,
            simply read whatever is currently on the data bus. */
@@ -547,7 +687,7 @@ pic_read(uint16_t addr, void *priv)
     return dev->data_bus;
 }
 
-static void
+void
 pic_write(uint16_t addr, uint8_t val, void *priv)
 {
     pic_t *dev = (pic_t *) priv;
@@ -578,7 +718,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
                     update_pending();
                 break;
             case STATE_NONE:
-                dev->imr = val;
+                dev->imr = (uint8_t) (val | (uint8_t) ((dev == &pic2) ? (pic_pinned_irqs >> 8) : pic_pinned_irqs));
                 if ((dev->flags & PIC_IBM5140) || (is286 && !force_xt_imr_timing) || dev->zenith)
                     update_pending();
                 else if (force_xt_imr_timing)
@@ -615,6 +755,10 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
                     dev->irr              |= (1 << i);
             }
             dev->imr = dev->isr = 0x00;
+#ifdef USE_VFIO
+            /* The rebuilt IRR comes from line levels which may be stale. */
+            pic_acked |= 0xff << ((dev == &pic2) ? 8 : 0);
+#endif
             dev->ack_bytes = dev->priority = 0x00;
             dev->auto_eoi_rotate = dev->special_mask_mode = 0x00;
             dev->interrupt                                = 0x17;
@@ -843,6 +987,14 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
 
     uint16_t lines = level ? 0x0000 : num;
 
+    /* The Tandy VIS firmware leaves the master's ICW3 at 0 and never
+       initializes the slave, but the slave is still wired to the master's
+       IR2 and its IRQ's still reach its IRR - Modular Windows probes IRQ 9
+       through the IRR's at startup, and the VIS reboots in a loop if the
+       probe fails. */
+    if (!slaves && (machines[machine].init == machine_at_tandy_vis_init))
+        slaves = 1;
+
     if (!slaves)
         max = 8;
 
@@ -1038,7 +1190,13 @@ picinterrupt(void)
         pic.interrupt = 0x07;
     }
 
-    if ((pic.interrupt == 0) && (pit_devs[1].data != NULL))
+    /* The PS/2 watchdog's gate falls when IRQ 0 is acknowledged. Only the
+       watchdog's: on an EISA board the second timer is the ESC's (or the
+       SiS 85C411's) fail-safe timer, whose gate is tied high, and dropping
+       it on every tick of the system timer stopped the fail-safe counter
+       from ever reaching terminal count -- no fail-safe NMI, and every
+       EISA BIOS that tests for one said so at POST. */
+    if ((pic.interrupt == 0) && (pit_ps2_watchdog != NULL) && (pit_devs[1].data == pit_ps2_watchdog))
         pit_devs[1].set_gate(pit_devs[1].data, 0, 0);
 
     /* Two ACK's - do them in a loop to avoid potential compiler misoptimizations. */
