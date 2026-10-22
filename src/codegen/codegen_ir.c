@@ -27,6 +27,12 @@ codegen_ir_init(void)
     return &ir_block;
 }
 
+int
+codegen_ir_unrolling(void)
+{
+    return codegen_unroll_count;
+}
+
 void
 codegen_ir_set_unroll(int count, int start, int first_instruction)
 {
