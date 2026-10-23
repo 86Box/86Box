@@ -427,4 +427,9 @@ void codegen_set_loop_start(struct ir_data_t *ir, int first_instruction);
 extern uint32_t instr_counts[256 * 256];
 #endif
 
+/*Compiled far transfers: the x86seg routine and the globals around it
+  (386_dynarec_ops.c)*/
+extern void dynarec_iret_pm(int is32);
+extern void dynarec_iret_cs(uint16_t seg);
+
 #endif

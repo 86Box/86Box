@@ -7,6 +7,7 @@
 #include "x86.h"
 #include "x86seg_common.h"
 #include "x86seg.h"
+#include "x86_flags.h"
 #include "386_common.h"
 #include "codegen.h"
 #include "codegen_accumulate.h"
@@ -314,4 +315,174 @@ ropRETF_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
 
     codegen_mark_code_present(block, cs + op_pc, 2);
     return -1;
+}
+
+/*IRET and IRETD, as the interpreter's opIRET and opIRETD. In protected
+  mode, and in V86 mode at IOPL 3, pmodeiret does the work (dynarec_iret_pm):
+  the descriptor checks, the stack and task switches and every fault are its
+  own. Below IOPL 3 in V86 mode IRETD is #GP(0), and so is IRET without
+  CR4.VME; with VME IRET pops IP, CS and FLAGS itself, is #GP(0) with SP as
+  it was when the popped word has TF set or IF while VIP is set, keeps IOPL,
+  IF and TF and takes VIF from the popped IF. Blocks are keyed on V86 but not
+  on IOPL or CR4, so both are read as the block runs. In real mode the pops
+  and the flags are compiled and the CS load is dynarec_iret_cs's. The
+  instruction ends the block, after the routine.*/
+static void
+iret_pm(ir_data_t *ir, int is32)
+{
+    uop_LOAD_FUNC_ARG_IMM(ir, 0, is32);
+    uop_CALL_FUNC(ir, dynarec_iret_pm);
+}
+
+static void
+iret_v86(ir_data_t *ir, int is32)
+{
+    int jump_vme;
+    int jump_end;
+
+    uop_MOVZX(ir, IREG_temp0, IREG_flags);
+    uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0x3000);
+    if (is32) {
+        uop_MOV_IMM(ir, IREG_temp1, 0x3000);
+        uop_CMP_JB(ir, IREG_temp0, IREG_temp1, codegen_gpf_rout);
+        iret_pm(ir, 1);
+        return;
+    }
+
+    jump_vme = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp0, 0x3000);
+    iret_pm(ir, 0);
+    /*Both ways end in a C call, which leaves no register cached: the join
+      below is safe*/
+    jump_end = uop_JMP_DEST(ir);
+
+    uop_set_jump_dest(ir, jump_vme);
+    uop_MOV_REG_PTR(ir, IREG_temp1, &cr4);
+    uop_AND_IMM(ir, IREG_temp1, IREG_temp1, CR4_VME);
+    uop_CMP_IMM_JZ(ir, IREG_temp1, 0, codegen_gpf_rout);
+    /*IP, CS and FLAGS at SP, SP + 2 and SP + 4, each wrapping at 64 KB*/
+    uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
+    uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);
+    uop_ADD_IMM(ir, IREG_eaaddr_W, IREG_SP, 2);
+    uop_MOVZX(ir, IREG_eaaddr, IREG_eaaddr_W);
+    uop_MEM_LOAD_REG(ir, IREG_temp1_W, IREG_SS_base, IREG_eaaddr);
+    uop_ADD_IMM(ir, IREG_eaaddr_W, IREG_SP, 4);
+    uop_MOVZX(ir, IREG_eaaddr, IREG_eaaddr_W);
+    uop_MEM_LOAD_REG(ir, IREG_temp2_W, IREG_SS_base, IREG_eaaddr);
+    uop_MOVZX(ir, IREG_temp2, IREG_temp2_W);
+    uop_MOVZX(ir, IREG_temp3, IREG_eflags);
+    uop_AND_IMM(ir, IREG_temp3, IREG_temp3, VIP_FLAG);
+    uop_SHL_IMM(ir, IREG_temp3, IREG_temp3, 5);
+    uop_OR_IMM(ir, IREG_temp3, IREG_temp3, T_FLAG);
+    uop_AND(ir, IREG_temp3, IREG_temp3, IREG_temp2);
+    uop_TEST_SET(ir, IREG_temp3, IREG_temp3, UOP_CC_NZ);
+    uop_CMP_IMM_JZ(ir, IREG_temp3, 1, codegen_gpf_rout);
+    uop_ADD_IMM(ir, IREG_SP, IREG_SP, 6);
+    uop_AND_IMM(ir, IREG_temp3, IREG_temp2, I_FLAG);
+    uop_SHR_IMM(ir, IREG_temp3, IREG_temp3, 6);
+    uop_AND_IMM(ir, IREG_eflags, IREG_eflags, (uint16_t) ~VIF_FLAG);
+    uop_OR(ir, IREG_eflags, IREG_eflags, IREG_temp3_W);
+    uop_MOVZX(ir, IREG_temp3, IREG_flags);
+    uop_AND_IMM(ir, IREG_temp3, IREG_temp3, 0x3300);
+    uop_AND_IMM(ir, IREG_temp2, IREG_temp2, 0x4cd5);
+    uop_OR(ir, IREG_temp2, IREG_temp2, IREG_temp3);
+    uop_OR_IMM(ir, IREG_temp2, IREG_temp2, 2);
+    uop_MOV(ir, IREG_flags, IREG_temp2_W);
+    uop_MOV_IMM(ir, IREG_flags_op, FLAGS_UNKNOWN);
+    uop_MOVZX(ir, IREG_pc, IREG_temp0_W);
+    uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
+    uop_CALL_FUNC(ir, dynarec_iret_cs);
+    uop_NOP_BARRIER(ir);
+    uop_set_jump_dest(ir, jump_end);
+}
+
+/*Real mode: the pops cannot fault (no paging, no limit check in the op)*/
+static void
+iret_real(ir_data_t *ir, int is32)
+{
+    int sp_reg;
+
+    sp_reg = LOAD_SP(ir);
+    if (is32) {
+        uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 4);
+        uop_MEM_LOAD_REG(ir, IREG_temp1_W, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 8);
+        uop_MEM_LOAD_REG(ir, IREG_temp2_W, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 10);
+        uop_MEM_LOAD_REG(ir, IREG_temp3_W, IREG_SS_base, sp_reg);
+    } else {
+        uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 2);
+        uop_MEM_LOAD_REG(ir, IREG_temp1_W, IREG_SS_base, sp_reg);
+        sp_reg = LOAD_SP_WITH_OFFSET(ir, 4);
+        uop_MEM_LOAD_REG(ir, IREG_temp2_W, IREG_SS_base, sp_reg);
+    }
+    uop_AND_IMM(ir, IREG_temp2_W, IREG_temp2_W, 0xffd5);
+    uop_OR_IMM(ir, IREG_temp2_W, IREG_temp2_W, 2);
+    uop_MOV(ir, IREG_flags, IREG_temp2_W);
+    uop_MOV_IMM(ir, IREG_flags_op, FLAGS_UNKNOWN);
+    if (is32) {
+        /*The upper word where the CPU has the bits; ID when CPUID is on,
+          which a Cyrix CCR4 write can change under a compiled block, so it
+          is read here*/
+        uop_MOV_REG_PTR(ir, IREG_temp2, &CPUID);
+        uop_TEST_SET(ir, IREG_temp2, IREG_temp2, UOP_CC_NZ);
+        uop_SHL_IMM(ir, IREG_temp2, IREG_temp2, 5);
+        uop_OR_IMM(ir, IREG_temp2, IREG_temp2, cpu_eflags_implemented() & ~VID_FLAG);
+        uop_AND(ir, IREG_eflags, IREG_temp3_W, IREG_temp2_W);
+        ADD_SP(ir, 12);
+        uop_MOV(ir, IREG_pc, IREG_temp0);
+    } else {
+        ADD_SP(ir, 6);
+        uop_MOVZX(ir, IREG_pc, IREG_temp0_W);
+    }
+    uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
+    uop_CALL_FUNC(ir, dynarec_iret_cs);
+}
+
+static uint32_t
+iret_common(ir_data_t *ir, int is32)
+{
+    const int pmode = !!(msw & 1);
+    const int v86   = !!(cpu_state.eflags & VM_FLAG);
+
+    if (v86 || !pmode) {
+#ifndef CODEGEN_BACKEND_HAS_INT_UOPS
+        return 0;
+#endif
+        /*Room for the register versions below (at most 3 of temp0 and of
+          temp1, 7 of temp2, 10 of temp3, 7 of eaaddr) without passing
+          REG_VERSION_MAX, which only ends the block after the current
+          instruction*/
+        if ((reg_last_version[IREG_GET_REG(IREG_temp0)] + 4 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp1)] + 4 > REG_VERSION_MAX) ||
+            (reg_last_version[IREG_GET_REG(IREG_temp2)] + 8 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp3)] + 12 > REG_VERSION_MAX) ||
+            (reg_last_version[IREG_GET_REG(IREG_eaaddr)] + 8 > REG_VERSION_MAX))
+            return 0;
+    }
+
+    /*The cycles so far are charged before anything can fault, as they are
+      before an interpreter call*/
+    codegen_accumulate_flush(ir);
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+
+    if (v86)
+        iret_v86(ir, is32);
+    else if (pmode)
+        iret_pm(ir, is32);
+    else
+        iret_real(ir, is32);
+
+    codegen_flags_changed = 0;
+    return -1;
+}
+
+uint32_t
+ropIRET_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
+{
+    return iret_common(ir, 0);
+}
+uint32_t
+ropIRET_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
+{
+    return iret_common(ir, 1);
 }

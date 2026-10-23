@@ -99,3 +99,28 @@ const OpFn dynarec_op_illegal = ILLEGAL;
   later, nothing before (x87_ops.h)*/
 const OpFn dynarec_fpu_illegal_a16 = FPU_ILLEGAL_a16;
 const OpFn dynarec_fpu_illegal_a32 = FPU_ILLEGAL_a32;
+
+/*The compiled IRET and IRETD in protected mode, V86 mode at IOPL 3
+  included: opIRET's and opIRETD's pmodeiret call and their tail, which
+  write globals the compiled code cannot*/
+void
+dynarec_iret_pm(int is32)
+{
+    optype = IRET;
+    op_pmodeiret(is32);
+    optype = 0;
+    flags_extract();
+    nmi_enable       = 1;
+    rf_flag_no_clear = 1;
+}
+
+/*The CS load and the tail of the compiled IRET's real-mode and CR4.VME
+  forms, which pop and merge the flags themselves*/
+void
+dynarec_iret_cs(uint16_t seg)
+{
+    op_loadcs(seg);
+    cycles -= timing_iret_rm;
+    nmi_enable       = 1;
+    rf_flag_no_clear = 1;
+}
