@@ -155,9 +155,12 @@ add_library(ui STATIC
     qt_about.cpp
     qt_about.hpp
 
+    qt_pageddialog.cpp
+    qt_pageddialog.hpp
+    qt_pageddialog.ui
+
     qt_preferences.cpp
     qt_preferences.hpp
-    qt_preferences.ui
 
     qt_preferencesemulator.cpp
     qt_preferencesemulator.hpp
@@ -171,7 +174,6 @@ add_library(ui STATIC
 
     qt_settings.cpp
     qt_settings.hpp
-    qt_settings.ui
 
     qt_settingsmachine.cpp
     qt_settingsmachine.hpp

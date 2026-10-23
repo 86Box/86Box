@@ -1,30 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Settings</class>
- <widget class="QDialog" name="Settings">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>720</width>
-    <height>472</height>
-   </rect>
-  </property>
-  <property name="minimumSize">
-   <size>
-    <width>720</width>
-    <height>472</height>
-   </size>
-  </property>
-  <property name="maximumSize">
-   <size>
-    <width>720</width>
-    <height>472</height>
-   </size>
-  </property>
-  <property name="windowTitle">
-   <string>Settings</string>
-  </property>
+ <class>PagedDialog</class>
+ <widget class="QDialog" name="PagedDialog">
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QWidget" name="widget" native="true">
@@ -167,7 +144,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>Settings</receiver>
+   <receiver>PagedDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -183,7 +160,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>Settings</receiver>
+   <receiver>PagedDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
