@@ -3126,7 +3126,7 @@ msgstr "Syöte"
 msgid "Key bindings"
 msgstr "Pikanäppäimet"
 
-msgid "Manager"
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

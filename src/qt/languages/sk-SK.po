@@ -3128,7 +3128,7 @@ msgstr "Vstup"
 msgid "Key bindings"
 msgstr "Nastavenie klávesov"
 
-msgid "Manager"
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

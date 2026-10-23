@@ -3130,7 +3130,7 @@ msgstr "Wejście"
 msgid "Key bindings"
 msgstr "Przypisania klawiszy"
 
-msgid "Manager"
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

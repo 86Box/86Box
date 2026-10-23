@@ -70,7 +70,7 @@ static const QVector<PagedDialog::Page> preferencesPages = {
     { "Key bindings", "key_bindings"  },
 };
 
-static const PagedDialog::Page managerPage = { "Manager", "86Box-gray" };
+static const PagedDialog::Page managerPage = { "VM Manager", "86Box-gray" };
 
 static QVector<PagedDialog::Page>
 pageList(bool showManager)

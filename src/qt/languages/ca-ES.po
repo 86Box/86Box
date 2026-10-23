@@ -3122,7 +3122,7 @@ msgstr "Entrada"
 msgid "Key bindings"
 msgstr "Dreceres de teclat"
 
-msgid "Manager"
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

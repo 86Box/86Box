@@ -3188,7 +3188,7 @@ msgstr "입력"
 msgid "Key bindings"
 msgstr "키 바인딩"
 
-msgid "Manager"
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

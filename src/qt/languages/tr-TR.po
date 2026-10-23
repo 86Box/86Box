@@ -3180,7 +3180,7 @@ msgstr "Giriş"
 msgid "Key bindings"
 msgstr "Tuş atamaları"
 
-msgid "Manager"
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

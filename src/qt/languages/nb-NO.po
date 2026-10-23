@@ -3123,7 +3123,7 @@ msgstr "Inntasting"
 msgid "Key bindings"
 msgstr "Tastebindinger"
 
-msgid "Manager"
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

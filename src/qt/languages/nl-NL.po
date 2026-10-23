@@ -3119,7 +3119,7 @@ msgstr "Invoer"
 msgid "Key bindings"
 msgstr "Toetskoppelingen"
 
-msgid "Manager"
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

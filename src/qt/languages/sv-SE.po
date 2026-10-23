@@ -3124,7 +3124,7 @@ msgstr "Inmatning"
 msgid "Key bindings"
 msgstr "Tangentbindningar"
 
-msgid "Manager"
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

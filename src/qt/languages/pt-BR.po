@@ -3128,7 +3128,7 @@ msgstr "Entrada"
 msgid "Key bindings"
 msgstr "Atalhos"
 
-msgid "Manager"
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

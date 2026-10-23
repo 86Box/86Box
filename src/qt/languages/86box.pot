@@ -3106,7 +3106,7 @@ msgstr ""
 msgid "Key bindings"
 msgstr ""
 
-msgid "Manager"
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

@@ -3140,7 +3140,7 @@ msgstr "Entrée"
 msgid "Key bindings"
 msgstr "Raccourcis clavier"
 
-msgid "Manager"
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

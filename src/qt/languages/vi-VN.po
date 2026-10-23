@@ -3120,7 +3120,7 @@ msgstr "Đầu vào"
 msgid "Key bindings"
 msgstr "Phím nóng"
 
-msgid "Manager"
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

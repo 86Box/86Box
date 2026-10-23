@@ -3168,7 +3168,7 @@ msgstr "Είσοδος"
 msgid "Key bindings"
 msgstr "Αντιστοιχίσεις πλήκτρων"
 
-msgid "Manager"
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"
