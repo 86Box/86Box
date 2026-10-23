@@ -1328,6 +1328,13 @@ codegen_skip:
     if (block->ins >= MAX_INSTRUCTION_COUNT)
         CPU_BLOCK_END();
 
+    /*MOV CR0 can switch protected mode, which the block is keyed on, change
+      the address translation, or set CD, which the loop tests before it runs
+      a block. The write a later run makes can differ from the one this pass
+      made, so the block ends after every MOV CR0, whatever this one changed*/
+    if ((op_table == x86_dynarec_opcodes_0f) && (opcode == 0x22) && !(fetchdat & 0x38))
+        CPU_BLOCK_END();
+
     codegen_endpc = (cs + cpu_state.pc) + 8;
 
 #if 0
