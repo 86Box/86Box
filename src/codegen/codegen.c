@@ -46,6 +46,19 @@ codegen_get_instruction_uop(codeblock_t *block, uint32_t pc, int *first_instruct
     return -1;
 }
 
+/*Set with the address of a MOV SS whose handler compiled it as the first of
+  a pair: its op compiles the next instruction into the block before running
+  it (x86_ops_mov_seg.h). Good only until the next instruction is compiled*/
+int      codegen_mov_ss_pair_valid = 0;
+uint32_t codegen_mov_ss_pair_pc    = 0;
+
+/*Room in the block for the instruction being compiled and the one after*/
+int
+codegen_instruction_room(void)
+{
+    return (codeblock[block_current].ins + 1) < MAX_INSTRUCTION_COUNT;
+}
+
 
 void
 codegen_set_loop_start(ir_data_t *ir, int first_instruction)
@@ -790,6 +803,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
 #ifdef DEBUG_EXTRA
     uint8_t last_prefix = 0;
 #endif
+    codegen_mov_ss_pair_valid = 0;
     op_ea_seg = &cpu_state.seg_ds;
     op_ssegs  = 0;
 

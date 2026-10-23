@@ -10,6 +10,7 @@
 #include "x86_flags.h"
 #include "386_common.h"
 #include "codegen.h"
+#include "codegen_accumulate.h"
 #include "codegen_ir.h"
 #include "codegen_ops.h"
 #include "codegen_ops_helpers.h"
@@ -510,6 +511,166 @@ ropMOV_l_seg(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
     return op_pc + 1;
 }
 
+/*The bytes of a ModR/M operand: the ModR/M byte, a SIB byte and the
+  displacement*/
+static uint32_t
+modrm_length(uint32_t fetchdat, uint32_t op_32)
+{
+    uint8_t  modrm = fetchdat & 0xff;
+    uint8_t  sib   = (fetchdat >> 8) & 0xff;
+    uint32_t len   = 1;
+
+    if ((modrm & 0xc0) == 0xc0)
+        return len;
+    if (op_32 & 0x200) {
+        if ((modrm & 7) == 4) {
+            len++;
+            if (((modrm & 0xc0) == 0x00) && ((sib & 7) == 5))
+                len += 4;
+        } else if ((modrm & 0xc7) == 0x05)
+            len += 4;
+        if ((modrm & 0xc0) == 0x40)
+            len++;
+        else if ((modrm & 0xc0) == 0x80)
+            len += 4;
+    } else {
+        if ((modrm & 0xc7) == 0x06)
+            len += 2;
+        else if ((modrm & 0xc0) == 0x40)
+            len++;
+        else if ((modrm & 0xc0) == 0x80)
+            len += 2;
+    }
+    return len;
+}
+
+/*1 when the instruction at addr cannot be compiled as the second of a MOV SS
+  pair. In every mode: one whose bytes are not all on the page the MOV SS
+  starts on, as reading them here could fault before the MOV SS has run; and
+  an x87 escape, WAIT, or any 0F instruction, whose compiled forms can leave
+  the block before the instruction runs (the FPU and MMX entry, class and
+  pending exception checks), which would let an interrupt in between the two.
+  In protected mode also one compiled with the stack size the block was
+  compiled for, which the new SS can change: a push or a pop, a near or far
+  call or return, ENTER, LEAVE, INT, IRET, or another SS load. Prefixes are
+  stepped over; an instruction that is all prefixes counts too*/
+static int
+mov_ss_next_denied(uint32_t page, uint32_t addr, int pmode)
+{
+    uint8_t opcode = 0;
+    uint8_t modrm;
+    int     n;
+
+    for (n = 0; n < 15; n++) {
+        if (((addr + n) & ~0xfff) != page)
+            return 1;
+        opcode = fastreadb(addr + n);
+        if ((opcode != 0x26) && (opcode != 0x2e) && (opcode != 0x36) && (opcode != 0x3e) && (opcode != 0x64) && (opcode != 0x65) &&
+            (opcode != 0x66) && (opcode != 0x67) && (opcode != 0xf0) && (opcode != 0xf2) && (opcode != 0xf3))
+            break;
+    }
+    if (n == 15)
+        return 1;
+    if (((opcode & 0xf8) == 0xd8) || (opcode == 0x9b) || (opcode == 0x0f))
+        return 1;
+    if (!pmode)
+        return 0;
+    if ((opcode & 0xf0) == 0x50)
+        return 1;
+    switch (opcode) {
+        case 0x06: /*PUSH and POP of a segment register*/
+        case 0x07:
+        case 0x0e:
+        case 0x16:
+        case 0x17:
+        case 0x1e:
+        case 0x1f:
+        case 0x60: /*PUSHA, POPA*/
+        case 0x61:
+        case 0x68: /*PUSH imm*/
+        case 0x6a:
+        case 0x8f: /*POP r/m*/
+        case 0x9a: /*CALL far*/
+        case 0x9c: /*PUSHF, POPF*/
+        case 0x9d:
+        case 0xc2: /*RET, RETF*/
+        case 0xc3:
+        case 0xca:
+        case 0xcb:
+        case 0xc8: /*ENTER, LEAVE*/
+        case 0xc9:
+        case 0xcc: /*INT, IRET*/
+        case 0xcd:
+        case 0xce:
+        case 0xcf:
+        case 0xe8: /*CALL*/
+            return 1;
+        case 0x8e: /*MOV SS*/
+        case 0xff: /*CALL, CALL far, PUSH*/
+            if (((addr + n + 1) & ~0xfff) != page)
+                return 1;
+            modrm = fastreadb(addr + n + 1) & 0x38;
+            if (opcode == 0x8e)
+                return modrm == 0x10;
+            return (modrm == 0x10) || (modrm == 0x18) || (modrm == 0x30);
+        default:
+            return 0;
+    }
+}
+
+/*MOV SS, as the interpreter's opMOV_seg_w: the load, then the next
+  instruction with no interrupt, NMI or trap check between the two, which
+  the op does by running that instruction itself. In the compile pass the op
+  first compiles that instruction into the block (codegen_mov_ss_pair_valid,
+  codegen_mov_ss_pair_pc), and in a compiled block nothing is checked between
+  instructions. In protected mode the new SS can change the stack size, which
+  the block is keyed on: the block ends after the pair. The pair is left to
+  the op when the next instruction cannot be its second
+  (mov_ss_next_denied), and when the block has no room for both or the
+  register versions no room for this one: the loop would end the block
+  between the two.*/
+static uint32_t
+mov_ss(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    const int pmode = (msw & 1) && !(cpu_state.eflags & VM_FLAG);
+
+    if (!codegen_instruction_room())
+        return 0;
+    /*The versions this instruction writes (at most 5 of temp0, 6 of eaaddr,
+      3 of temp3, 1 of the cycles and of oldpc) stay at or below
+      REG_VERSION_MAX, where the next instruction expects them*/
+    if ((reg_last_version[IREG_GET_REG(IREG_temp0)] + 6 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_eaaddr)] + 8 > REG_VERSION_MAX) ||
+        (reg_last_version[IREG_GET_REG(IREG_temp3)] + 4 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_cycles)] + 2 > REG_VERSION_MAX) ||
+        (reg_last_version[IREG_GET_REG(IREG_oldpc)] + 2 > REG_VERSION_MAX))
+        return 0;
+    if (mov_ss_next_denied((cs + cpu_state.oldpc) & ~0xfff, cs + op_pc + modrm_length(fetchdat, op_32), pmode))
+        return 0;
+
+    /*The cycles so far are charged before the load can fault, as they are
+      before an interpreter call*/
+    codegen_accumulate_flush(ir);
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    if ((fetchdat & 0xc0) == 0xc0)
+        uop_MOV(ir, IREG_temp0_W, IREG_16(fetchdat & 7));
+    else {
+        x86seg *target_seg;
+
+        target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+        if (target_seg != &cpu_state.seg_cs) /*the op tests for the null selector only: an execute-only CS is read*/
+            codegen_check_seg_read(block, ir, target_seg);
+        CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
+        uop_MEM_LOAD_REG(ir, IREG_temp0_W, ireg_seg_base(target_seg), IREG_eaaddr);
+    }
+    uop_LOAD_SEG(ir, &cpu_state.seg_ss, IREG_temp0_W);
+
+    codegen_mov_ss_pair_valid = 1;
+    codegen_mov_ss_pair_pc    = cs + cpu_state.oldpc;
+    if (pmode)
+        CPU_BLOCK_END();
+
+    return op_pc + 1;
+}
+
 uint32_t
 ropMOV_seg_w(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
@@ -524,6 +685,8 @@ ropMOV_seg_w(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
         case 0x18: /*DS*/
             rseg = &cpu_state.seg_ds;
             break;
+        case 0x10: /*SS*/
+            return mov_ss(block, ir, fetchdat, op_32, op_pc);
         case 0x20: /*FS*/
             rseg = &cpu_state.seg_fs;
             break;

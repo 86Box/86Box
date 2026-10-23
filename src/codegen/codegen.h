@@ -435,4 +435,9 @@ extern int  dynarec_dtr(uint32_t op);
 extern int  dynarec_call_far_w(uint16_t new_cs, uint32_t ret_pc);
 extern int  dynarec_call_far_l(uint16_t new_cs, uint32_t ret_pc);
 
+/*A compiled MOV SS and the instruction after it (codegen.c)*/
+extern int      codegen_mov_ss_pair_valid;
+extern uint32_t codegen_mov_ss_pair_pc;
+extern int      codegen_instruction_room(void);
+
 #endif
