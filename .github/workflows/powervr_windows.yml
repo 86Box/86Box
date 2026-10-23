@@ -1,8 +1,8 @@
 name: PowerVR PCX build (Windows)
 
 # Release builds of the powervr-pcx branch for testers: the regular preset
-# (optimised, no development-branch devices) with the new dynamic
-# recompiler. Pushing a tag named pcx-*, or publishing a release with such a
+# (optimised, no development-branch devices) with 86Box's default dynamic
+# recompiler, plus a build with the new one (-NDR) for comparison. Pushing a tag named pcx-*, or publishing a release with such a
 # tag on GitHub, attaches the zips to that release.
 
 on:
@@ -18,7 +18,7 @@ on:
 
 jobs:
   windows:
-    name: "Windows x64, Release, NDR${{ matrix.dev.slug }}"
+    name: "Windows x64, Release${{ matrix.dev.slug }}"
     runs-on: windows-2022
     permissions:
       contents: write
@@ -30,11 +30,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # The default recompiler, as in upstream x64 builds; the new one
+        # (NDR) as a second download for comparison; developer settings.
         dev:
           - slug: ''
             flag: 'OFF'
+            ndr: 'OFF'
+          - slug: '-NDR'
+            flag: 'OFF'
+            ndr: 'ON'
           - slug: '-devsettings'
             flag: 'ON'
+            ndr: 'OFF'
 
     steps:
       - name: Prepare MSYS2 environment
@@ -70,7 +77,7 @@ jobs:
       - name: Configure CMake
         run: >-
           cmake -S . -B build --preset regular
-          -D NEW_DYNAREC=ON
+          -D NEW_DYNAREC=${{ matrix.dev.ndr }}
           -D QT=ON
           -D POWERVR_PCX_DEV=${{ matrix.dev.flag }}
 
