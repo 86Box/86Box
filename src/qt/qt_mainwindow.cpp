@@ -205,8 +205,6 @@ MainWindow::MainWindow(QWidget *parent)
     MediaMenu::ptr = mm;
     status         = std::make_unique<MachineStatus>(this);
 
-    translated_lang_id = lang_id;
-
 #ifdef __HAIKU__
     filter = new BMessageFilter(B_PROGRAMMED_DELIVERY, B_ANY_SOURCE, keyb_filter);
     ((BWindow *) this->winId())->AddFilter(filter);
@@ -2605,36 +2603,30 @@ MainWindow::applyGlobalPreferences()
     selectDarkMode();
 #endif
 
-    if (lang_id != translated_lang_id) {
-        auto size = centralWidget()->size();
+    auto size = centralWidget()->size();
 
-        Preferences::loadTranslators(QCoreApplication::instance());
-        Preferences::reloadStrings();
-        ui->retranslateUi(this);
-        QString vmname(vm_name);
-        if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'')
-            vmname.truncate(vmname.size() - 1);
-        setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
-        QString msg = status->getMessage();
-        status.reset(new MachineStatus(this));
-        refreshMediaMenu();
-        status->message(msg);
-        connect(this, &MainWindow::updateStatusBarTip, status.get(), &MachineStatus::updateTip);
-        connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message, Qt::QueuedConnection);
-        translated_lang_id = lang_id;
+    Preferences::loadTranslators(QCoreApplication::instance());
+    Preferences::reloadStrings();
+    ui->retranslateUi(this);
+    QString vmname(vm_name);
+    if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'')
+        vmname.truncate(vmname.size() - 1);
+    setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
+    QString msg = status->getMessage();
+    status.reset(new MachineStatus(this));
+    refreshMediaMenu();
+    status->message(msg);
+    connect(this, &MainWindow::updateStatusBarTip, status.get(), &MachineStatus::updateTip);
+    connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message, Qt::QueuedConnection);
 
-        /* Keep the size of the screen while the menus and the status bar change. */
-        QTimer::singleShot(200, this, [this, size] () {
-            centralWidget()->setFixedSize(size);
-            QApplication::processEvents();
-            if (vid_resize == 1) {
-                centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-            }
-        });
-    } else {
-        Preferences::reloadStrings();
-        updatePowerOffAction();
-    }
+    /* Keep the size of the screen while the menus and the status bar change. */
+    QTimer::singleShot(200, this, [this, size] () {
+        centralWidget()->setFixedSize(size);
+        QApplication::processEvents();
+        if (vid_resize == 1) {
+            centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        }
+    });
 
     updateShortcuts();
     updateMouseStrings();

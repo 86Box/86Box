@@ -214,9 +214,6 @@ private:
        opposed to another manager or none */
     bool vmm_supervised = false;
 
-    /* The language the UI was last translated to */
-    int translated_lang_id;
-
     friend class SpecifyDimensions;
     friend class RendererCommon;
     friend class RendererStack;         // For UI variable access by non-primary renderer windows.
