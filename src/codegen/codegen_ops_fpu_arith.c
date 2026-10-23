@@ -35,7 +35,8 @@ extern int x87_dyn_ftst_nan(uint32_t imm);
    interpreter's divide (x87_dyn_fdiv, 386_dynarec.c), so a compiled
    division raises the x87 exceptions and rounds exactly as an interpreted
    one. An unmasked exception that suppresses the result ends the block past
-   the instruction, with the destination and the stack left alone; an
+   the instruction, with the destination and the stack left alone and the
+   FPU pointers recorded (codegen_fpu_record_pointers, ahead of it); an
    unmasked precision exception alone stores the rounded result and the
    block goes on with ES set. A memory operand goes in the permanent
    IREG_x87_operand. */
@@ -50,6 +51,9 @@ fdiv_call(ir_data_t *ir, uint32_t next_pc, uint32_t imm)
 {
     codegen_accumulate_flush(ir);
     uop_MOV_IMM(ir, IREG_pc, next_pc);
+    /* The instruction's pointers whatever the divide does: the call can
+       end the block */
+    codegen_fpu_record_pointers(ir);
     uop_CALL_INSTRUCTION_FUNC(ir, x87_dyn_fdiv, imm);
     /* ES may be set now with the block going on: the next waiting
        instruction checks for it before it runs */
@@ -62,9 +66,10 @@ fdiv_call(ir_data_t *ir, uint32_t next_pc, uint32_t imm)
    divide's double rounding), the host quotient inside the window and not a
    power of two (UOP_FDIV_JSLOW_DEST), its PE and C1 formed from the exact
    remainder and PE masked (UOP_FDIV_FLAGS_JSLOW_DEST); the status word and
-   the tag are set as x87_dyn_fdiv sets them. Anything else goes to the
-   call, which joins the block after the fast path's writes have been
-   written back (the jumps are order barriers). */
+   the tag are set as x87_dyn_fdiv sets them, and each path records the
+   FPU pointers itself. Anything else goes to the call, which joins the
+   block after the fast path's writes have been written back (the jumps are
+   order barriers). */
 static void
 fdiv_divide(ir_data_t *ir, uint32_t next_pc, uint32_t imm)
 {
@@ -101,6 +106,7 @@ fdiv_divide(ir_data_t *ir, uint32_t next_pc, uint32_t imm)
     uop_AND_IMM(ir, IREG_NPXS, IREG_NPXS, ~FPU_SW_C1);
     uop_OR(ir, IREG_NPXS, IREG_NPXS, IREG_temp1_W);
     uop_MOV_IMM(ir, IREG_tag(dest), TAG_VALID);
+    codegen_fpu_record_pointers(ir);
     jump_end = uop_JMP_DEST(ir);
 
     if (jump_pc != -1)

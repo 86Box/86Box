@@ -439,6 +439,35 @@ codegen_generate_ea(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat, int op_
     return codegen_ea_target_seg;
 }
 
+/* Set when the compiled x87 instruction's handler recorded its pointers
+   itself (codegen_fpu_record_pointers): codegen_generate_call leaves its
+   own record out */
+static int codegen_fpu_pointers_recorded;
+
+/* The FPU's instruction and data pointers and opcode, for a compiled
+   instruction: not for a control instruction (FNSTSW AX here), which
+   leaves the last one's. The data pointer's segment is the operand's own,
+   which the block need not have set for a handler. A handler whose code can
+   leave the block before its end emits this ahead of that exit. */
+void
+codegen_fpu_record_pointers(ir_data_t *ir)
+{
+    codegen_fpu_pointers_recorded = 1;
+    if (!cpu_dyn_accurate_fpu_env || x87_op_is_control(x87_op))
+        return;
+    uop_MOV_IMM(ir, IREG_fpu_op, x87_op);
+    uop_MOV_IMM(ir, IREG_fpu_CS, cpu_state.temp_CS);
+    uop_MOV_IMM(ir, IREG_fpu_cs, cpu_state.temp_cs);
+    uop_MOV_IMM(ir, IREG_fpu_pc, cpu_state.temp_pc);
+    if ((x87_op & 0xff) < 0xc0) {
+        if (codegen_ea_target_seg != NULL) {
+            uop_MOV_PTR(ir, IREG_ea_seg, (void *) codegen_ea_target_seg);
+            last_op_ea_seg = codegen_ea_target_seg;
+        }
+        uop_CALL_FUNC(ir, fpu_postamble);
+    }
+}
+
 // clang-format off
 static uint8_t opcode_modrm[256] = {
     1, 1, 1, 1,  0, 0, 0, 0,  1, 1, 1, 1,  0, 0, 0, 0, /*00*/
@@ -1191,37 +1220,22 @@ generate_call:
 
         if (is_fpu)
             codegen_fpu_handler = op_table[((opcode >> opcode_shift) | op_32) & opcode_mask];
-        codegen_ea_target_seg = NULL;
-        codegen_instr_pc      = old_pc;
-        const int unrolled  = codegen_ir_unrolling();
-        const int first_uop = ir->wr_pos;
+        codegen_ea_target_seg         = NULL;
+        codegen_fpu_pointers_recorded = 0;
+        codegen_instr_pc              = old_pc;
+        const int unrolled            = codegen_ir_unrolling();
+        const int first_uop           = ir->wr_pos;
 
         new_pc = recomp_op_table[(opcode | op_32) & recomp_opcode_mask](block, ir, opcode, fetchdat, op_32, op_pc);
         /*A loop this jump unrolled goes on through the taken path, so the
           refund for the jump not taken above does not apply*/
         if (jump_cycles && !unrolled && codegen_ir_unrolling())
             codegen_accumulate(ir, ACCREG_cycles, -jump_cycles);
-        /* The FPU's instruction and data pointers and opcode, for a compiled
-           instruction: not for a control instruction (FNSTSW AX here), which
-           leaves the last one's, and not for one the recompiler left alone,
-           whose handler call below does them after it runs. The data
-           pointer's segment is the operand's own, which the block need not
-           have set for a handler. */
-        if (new_pc && cpu_dyn_accurate_fpu_env && is_fpu) {
-            if (!x87_op_is_control(x87_op)) {
-                uop_MOV_IMM(ir, IREG_fpu_op, x87_op);
-                uop_MOV_IMM(ir, IREG_fpu_CS, cpu_state.temp_CS);
-                uop_MOV_IMM(ir, IREG_fpu_cs, cpu_state.temp_cs);
-                uop_MOV_IMM(ir, IREG_fpu_pc, cpu_state.temp_pc);
-                if ((x87_op & 0xff) < 0xc0) {
-                    if (codegen_ea_target_seg != NULL) {
-                        uop_MOV_PTR(ir, IREG_ea_seg, (void *) codegen_ea_target_seg);
-                        last_op_ea_seg = codegen_ea_target_seg;
-                    }
-                    uop_CALL_FUNC(ir, fpu_postamble);
-                }
-            }
-        }
+        /* The FPU's pointers for a compiled instruction, unless its handler
+           recorded them; one the recompiler left alone has them done by its
+           handler call below, after it runs */
+        if (new_pc && is_fpu && !codegen_fpu_pointers_recorded)
+            codegen_fpu_record_pointers(ir);
         if (new_pc) {
             /*An instruction that sets pc itself (-1) is a jump or call,
               whose only store is to the stack, which nothing traps*/

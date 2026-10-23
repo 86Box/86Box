@@ -834,6 +834,10 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
 /* FLDCW of a word (cw_reg) that unmasks a set flag: the error is raised and
    the block ends at next_pc */
 extern void codegen_fpu_guard_cw_unmasks(ir_data_t *ir, uint32_t next_pc, int cw_reg);
+/* The compiled x87 instruction's FPU pointers, for a handler that can
+   leave the block before its end: emitted ahead of that exit, in place of
+   codegen_generate_call's record after the handler (codegen.c) */
+extern void codegen_fpu_record_pointers(ir_data_t *ir);
 
 #define uop_LOAD_FUNC_ARG_REG(ir, arg, reg)                      uop_gen_reg_src1(UOP_LOAD_FUNC_ARG_0 + arg, ir, reg)
 
