@@ -164,6 +164,54 @@
                 </property>
                </widget>
               </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayoutYearsOffset">
+                <item>
+                 <widget class="QLabel" name="labelYearsOffset">
+                  <property name="text">
+                   <string>Years offset:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QSpinBox" name="spinBoxYearsOffset">
+                  <property name="minimum">
+                   <number>-100</number>
+                  </property>
+                  <!-- Actual min/max set at runtime so guest year is 1980..2099 -->
+                  <property name="maximum">
+                   <number>100</number>
+                  </property>
+                  <property name="value">
+                   <number>0</number>
+                  </property>
+                  <property name="accelerated">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="labelGuestYear">
+                  <property name="text">
+                   <string>(guest: %1)</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacerYearsOffset">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
              </layout>
             </widget>
            </item>
