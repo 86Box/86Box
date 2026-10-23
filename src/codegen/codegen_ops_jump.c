@@ -266,7 +266,10 @@ ropRETF_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UN
     } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);
-        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, IREG_SS_base, IREG_eaaddr, 2);
+        /*CS at SP + 2 wrapping at 64 KB, as the op reads it*/
+        uop_ADD_IMM(ir, IREG_eaaddr_W, IREG_SP, 2);
+        uop_MOVZX(ir, IREG_eaaddr, IREG_eaaddr_W);
+        uop_MEM_LOAD_REG(ir, IREG_temp1_W, IREG_SS_base, IREG_eaaddr);
     }
     uop_MOVZX(ir, IREG_pc, IREG_temp0_W);
     uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
@@ -320,7 +323,10 @@ ropRETF_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
     } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);
-        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, IREG_SS_base, IREG_eaaddr, 2);
+        /*CS at SP + 2 wrapping at 64 KB, as the op reads it*/
+        uop_ADD_IMM(ir, IREG_eaaddr_W, IREG_SP, 2);
+        uop_MOVZX(ir, IREG_eaaddr, IREG_eaaddr_W);
+        uop_MEM_LOAD_REG(ir, IREG_temp1_W, IREG_SS_base, IREG_eaaddr);
     }
     uop_MOVZX(ir, IREG_pc, IREG_temp0_W);
     uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
