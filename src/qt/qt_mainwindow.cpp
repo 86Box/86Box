@@ -2572,7 +2572,8 @@ MainWindow::on_actionPreferences_triggered()
     /* Another instance may have changed the preferences since they were loaded. */
     config_load_global();
 
-    /* This machine is running, so the manager's system directory cannot be changed. */
+    /* The manager page is only shown under the built-in VM manager. This machine
+       is running, so the manager's system directory cannot be changed. */
     Preferences preferences(vmm_supervised && !vmm_disabled, true, this);
     preferences.setModal(true);
     preferences.setWindowModality(Qt::WindowModal);

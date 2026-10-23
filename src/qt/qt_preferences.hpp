@@ -18,8 +18,9 @@ class Preferences : public PagedDialog {
     Q_OBJECT
 
 public:
-    /* The manager page is shown in the manager, and in a machine supervised by
-       it; while machines are running, it cannot change the system directory. */
+    /* The manager page is shown in the built-in VM manager, and in a machine
+       it supervises; while machines are running, it cannot change the system
+       directory. */
     Preferences(bool showManager, bool machinesRunning, QWidget *parent = nullptr);
     ~Preferences();
     void save();

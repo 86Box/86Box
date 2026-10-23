@@ -904,7 +904,7 @@ main(int argc, char *argv[])
     VMManagerClientSocket manager_socket;
     if (qgetenv("VMM_86BOX_SOCKET").size()) {
         manager_socket.IPCConnect(qgetenv("VMM_86BOX_SOCKET"));
-        QObject::connect(&manager_socket, &VMManagerClientSocket::supervisedChanged, main_window, &MainWindow::setVmmSupervised);
+        QObject::connect(&manager_socket, &VMManagerClientSocket::vmmSupervisedChanged, main_window, &MainWindow::setVmmSupervised);
         QObject::connect(&manager_socket, &VMManagerClientSocket::globalConfigurationReloaded, main_window, &MainWindow::applyGlobalPreferences);
         QObject::connect(&manager_socket, &VMManagerClientSocket::pause, main_window, &MainWindow::togglePause);
         QObject::connect(&manager_socket, &VMManagerClientSocket::resetVM, main_window, &MainWindow::hardReset);

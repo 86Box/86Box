@@ -97,17 +97,17 @@ VMManagerClientSocket::disconnected()
 {
     // TODO: signal
     qDebug("Disconnected from %s", qPrintable(server_name));
-    setSupervised(false);
+    setVmmSupervised(false);
 }
 
 void
-VMManagerClientSocket::setSupervised(const bool new_supervised)
+VMManagerClientSocket::setVmmSupervised(const bool new_vmm_supervised)
 {
-    if (supervised == new_supervised)
+    if (vmm_supervised == new_vmm_supervised)
         return;
 
-    supervised = new_supervised;
-    emit supervisedChanged(supervised);
+    vmm_supervised = new_vmm_supervised;
+    emit vmmSupervisedChanged(vmm_supervised);
 }
 
 void
@@ -193,7 +193,7 @@ VMManagerClientSocket::jsonReceived(const QJsonObject &json)
             break;
         case VMManagerProtocol::ManagerMessage::ManagerIdentity:
             qDebug("Identity received from manager");
-            setSupervised(VMManagerProtocol::getParams(json) == VMManagerProtocol::managerIdentity());
+            setVmmSupervised(VMManagerProtocol::getParams(json) == VMManagerProtocol::managerIdentity());
             break;
         case VMManagerProtocol::ManagerMessage::GlobalConfigurationChanged:
             {

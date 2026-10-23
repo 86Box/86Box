@@ -38,7 +38,8 @@ signals:
     void request_shutdown();
     void force_shutdown();
     void dialogstatus(bool open);
-    void supervisedChanged(bool supervised);
+    // Whether the built-in 86Box VM manager supervises this machine changed
+    void vmmSupervisedChanged(bool vmm_supervised);
     // The manager changed the global configuration, which was reloaded
     void globalConfigurationReloaded();
 
@@ -53,11 +54,12 @@ private:
     QLocalSocket *socket;
     bool          server_connected;
     bool          window_blocked = false;
-    // Whether the server identified itself as the 86Box VM manager
-    bool          supervised     = false;
+    // Whether the server identified itself as the built-in 86Box VM manager,
+    // as opposed to another manager speaking the same protocol
+    bool          vmm_supervised = false;
     void          connected() const;
     void          disconnected();
-    void          setSupervised(bool new_supervised);
+    void          setVmmSupervised(bool new_vmm_supervised);
     static void   connectionError(QLocalSocket::LocalSocketError socketError);
 
     // Main convenience send function

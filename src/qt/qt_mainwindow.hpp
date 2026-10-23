@@ -210,7 +210,8 @@ private:
     /* Mouse capture state before showing fullscreen UI */
     bool mouse_was_captured = false;
 
-    /* Whether the 86Box VM manager supervises this machine */
+    /* Whether the built-in 86Box VM manager supervises this machine, as
+       opposed to another manager or none */
     bool vmm_supervised = false;
 
     /* The language the UI was last translated to */
