@@ -1347,6 +1347,7 @@ extern const device_t  in530_device;
 #endif
 extern int             machine_at_in530_init(const machine_t *);
 extern int             machine_in530_boot_logo(void);
+extern int             machine_at_compaqms_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  ga5smm_device;
 #endif
