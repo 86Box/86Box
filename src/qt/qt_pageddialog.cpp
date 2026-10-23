@@ -22,6 +22,7 @@
 #include <QApplication>
 #include <QFontMetrics>
 #include <QIcon>
+#include <QLayout>
 
 class PageListModel : public QAbstractListModel {
 public:
@@ -68,14 +69,14 @@ PageListModel::rowCount(const QModelIndex &parent) const
     return pages.size();
 }
 
-PagedDialog::PagedDialog(const QString &title, const QSize &size, const QVector<Page> &pages,
+PagedDialog::PagedDialog(const QString &title, const QSize &defaultSize, const QVector<Page> &pages,
                          QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::PagedDialog)
+    , defaultSize(defaultSize)
 {
     ui->setupUi(this);
     setWindowTitle(title);
-    setFixedSize(size);
 
     ui->listView->setModel(new PageListModel(pages, this));
 
@@ -109,4 +110,28 @@ void
 PagedDialog::aboutToShowPage(int index)
 {
     (void) index;
+}
+
+/* The size is taken once, on the first show, when the pages are in place:
+   the page stack needs as much room as its largest page, so the dialog fits
+   all of them, with the text of the language in use. */
+void
+PagedDialog::showEvent(QShowEvent *event)
+{
+    if (!sized) {
+        resize(minimumSizeHint().expandedTo(defaultSize));
+        sized = true;
+    }
+    QDialog::showEvent(event);
+}
+
+void
+PagedDialog::growToFitPages()
+{
+    if (!sized)
+        return;
+
+    /* The new page is not counted until the layout is brought up to date. */
+    layout()->activate();
+    resize(size().expandedTo(minimumSizeHint()));
 }

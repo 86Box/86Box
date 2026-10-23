@@ -24,9 +24,9 @@ public:
     };
 
 protected:
-    /* The dialog takes the fixed size given; a height of 0 leaves the
-       height to the layout. */
-    PagedDialog(const QString &title, const QSize &size, const QVector<Page> &pages,
+    /* The dialog opens at the size its pages need, but no smaller than the
+       size given, and can be resized. */
+    PagedDialog(const QString &title, const QSize &defaultSize, const QVector<Page> &pages,
                 QWidget *parent = nullptr);
     ~PagedDialog() override;
 
@@ -35,9 +35,15 @@ protected:
     void showFirstPage();
     /* Called before the page at a list index is shown. */
     virtual void aboutToShowPage(int index);
+    /* Grows the dialog if a page added after it was shown needs more room. */
+    void growToFitPages();
+
+    void showEvent(QShowEvent *event) override;
 
 private:
     Ui::PagedDialog *ui;
+    QSize            defaultSize;
+    bool             sized = false;
 };
 
 #endif // QT_PAGEDDIALOG_HPP

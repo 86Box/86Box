@@ -141,6 +141,7 @@ Settings::placePage(int index, QWidget *page)
     pageStack()->insertWidget(index, page);
     pageStack()->removeWidget(placeholder);
     delete placeholder;
+    growToFitPages();
 }
 
 /* Build the page at a list index if it is not built yet, with the pages it
