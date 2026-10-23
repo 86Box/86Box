@@ -1040,6 +1040,7 @@ extern int             machine_at_celebris5xx_init(const machine_t *);
 /* m_at_socket5.c */
 /* i430NX */
 extern int             machine_at_p54np4_init(const machine_t *);
+extern int             machine_at_p54np4d_init(const machine_t *);
 extern int             machine_at_586ip_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  plato_device;

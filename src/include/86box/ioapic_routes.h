@@ -38,4 +38,11 @@
 #define IOAPIC_LEGACY_IRQ_ROUTE_ESC \
     { 2, 1, IOAPIC_LEGACY_IRQ_NC, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }
 
+/* The 82379AB SIO.A, per its data sheet's Figure 8: the same as the ESC,
+   the internal 8259's output on pin 0, counter 0 on pin 2 and no pin for
+   IRQ2. The PIRQs have no inputs of their own; they reach the I/O APIC on
+   the IRQ the SIO.A steers them to. The P54NP4D's BIOS describes exactly
+   this in its MP table. */
+#define IOAPIC_LEGACY_IRQ_ROUTE_SIOA IOAPIC_LEGACY_IRQ_ROUTE_ESC
+
 #endif
