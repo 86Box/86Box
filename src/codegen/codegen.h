@@ -431,5 +431,6 @@ extern uint32_t instr_counts[256 * 256];
   (386_dynarec_ops.c)*/
 extern void dynarec_iret_pm(int is32);
 extern void dynarec_iret_cs(uint16_t seg);
+extern int  dynarec_dtr(uint32_t op);
 
 #endif

@@ -124,3 +124,59 @@ dynarec_iret_cs(uint16_t seg)
     nmi_enable       = 1;
     rf_flag_no_clear = 1;
 }
+
+/*The compiled SGDT, SIDT, LGDT and LIDT memory forms, the operand at
+  cpu_state.eaaddr: op0F01_common's operand accesses and register writes in
+  its order, the base still read after the limit word faulted. The privilege
+  and null-selector tests are the compiled code's. 1 when a fault was raised*/
+static int
+dynarec_dtr_access(uint32_t op)
+{
+    uint32_t base;
+    uint16_t limit;
+
+    fetch_ea_32_long(0);
+    switch (op & 0x38) {
+        case 0x00: /*SGDT*/
+        case 0x08: /*SIDT*/
+            CHECK_WRITE_EA(6);
+            CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1);
+            seteaw_mem((op & 0x08) ? idt.limit : gdt.limit);
+            writememl(easeg, cpu_state.eaaddr + 2, (op & 0x08) ? idt.base : gdt.base);
+            break;
+        default: /*LGDT, LIDT*/
+            limit = geteaw_mem();
+            base  = readmeml(0, easeg + cpu_state.eaaddr + 2);
+            if (cpu_state.abrt)
+                return 1;
+            if (!(op & 0x100))
+                base &= 0xffffff;
+            if (op & 0x08) {
+                idt.limit = limit;
+                idt.base  = base;
+            } else {
+                gdt.limit = limit;
+                gdt.base  = base;
+            }
+            break;
+    }
+    return !!cpu_state.abrt;
+}
+
+/*op: the reg field, the operand size at 0x100 and the operand's segment
+  register number (ES CS SS DS FS GS) from bit 9. The interpreter's checks
+  read ea_seg; it is put back after, as the recompiler takes it to be what
+  the block last set for its own interpreter calls*/
+int
+dynarec_dtr(uint32_t op)
+{
+    x86seg *const segs[6] = { &cpu_state.seg_es, &cpu_state.seg_cs, &cpu_state.seg_ss,
+                              &cpu_state.seg_ds, &cpu_state.seg_fs, &cpu_state.seg_gs };
+    x86seg       *ea_seg  = cpu_state.ea_seg;
+    int           ret;
+
+    cpu_state.ea_seg = segs[(op >> 9) % 6];
+    ret              = dynarec_dtr_access(op);
+    cpu_state.ea_seg = ea_seg;
+    return ret;
+}
