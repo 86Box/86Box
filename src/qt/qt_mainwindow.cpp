@@ -1017,6 +1017,8 @@ MainWindow::closeEvent(QCloseEvent *event)
             event->ignore();
             return;
         }
+        if (!confirm_exit)
+            config_save_global_setting("Emulator", "confirm_exit");
     }
     if (window_remember && !video_fullscreen) {
         window_w = ui->stackedWidget->width();
@@ -1332,6 +1334,8 @@ MainWindow::on_actionHard_Reset_triggered()
             confirm_reset = true;
             return;
         }
+        if (!confirm_reset)
+            config_save_global_setting("Emulator", "confirm_reset");
     }
     config_changed = 2;
     pc_reset_hard();

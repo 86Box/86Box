@@ -286,62 +286,6 @@ create_entry(section_t *section, const char *name)
     return ne;
 }
 
-static void
-delete_entries(section_t *section)
-{
-    entry_t *ent = (entry_t *) section->entry_head.next;
-
-    while (ent != NULL) {
-        entry_t *nent = (entry_t *) ent->list.next;
-
-        free(ent);
-        ent = nent;
-    }
-
-    section->entry_head.next = NULL;
-}
-
-/* Replaces the section of the given name with a copy of the one in src, or
-   deletes it if src has none. A section kept stays where it is. */
-void
-ini_replace_section(ini_t ini, ini_t src, const char *name)
-{
-    list_t    *head = (list_t *) ini;
-    section_t *section;
-    section_t *src_section;
-    entry_t   *ent;
-
-    if ((ini == NULL) || (src == NULL))
-        return;
-
-    section     = find_section(head, name);
-    src_section = find_section((list_t *) src, name);
-
-    if (section != NULL)
-        delete_entries(section);
-
-    if (src_section == NULL) {
-        if (section != NULL) {
-            list_delete(&section->list, head);
-            free(section);
-        }
-        return;
-    }
-
-    if (section == NULL)
-        section = create_section(head, name);
-
-    ent = (entry_t *) src_section->entry_head.next;
-    while (ent != NULL) {
-        entry_t *ne = create_entry(section, ent->name);
-
-        memcpy(ne->data, ent->data, sizeof(ne->data));
-        memcpy(ne->wdata, ent->wdata, sizeof(ne->wdata));
-
-        ent = (entry_t *) ent->list.next;
-    }
-}
-
 void
 ini_close(ini_t ini)
 {

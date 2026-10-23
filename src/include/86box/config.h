@@ -29,6 +29,7 @@ extern "C" {
 extern void config_load_global(void);
 extern int  config_load(void);
 extern void config_save_global(void);
+extern void config_save_global_setting(const char *head, const char *name);
 extern void config_save(void);
 
 #ifdef EMU_INI_H

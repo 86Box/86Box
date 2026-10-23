@@ -408,6 +408,8 @@ Settings::accept()
             confirm_save = true;
             return;
         }
+        if (!confirm_save)
+            config_save_global_setting("Emulator", "confirm_save");
     } else if (changed && !(changed & SETTINGS_REQUIRE_HARD_RESET) && !settings_only) {
         save(1);
         config_changed = 2;
