@@ -289,13 +289,15 @@ ropRETF_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UN
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
+    /*CS is read as the dword the op reads, its low word kept: a fault on
+      the upper half is taken*/
     if (stack32) {
         uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_ESP);
-        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, IREG_SS_base, IREG_ESP, 4);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1, IREG_SS_base, IREG_ESP, 4);
     } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
         uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_eaaddr);
-        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, IREG_SS_base, IREG_eaaddr, 4);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1, IREG_SS_base, IREG_eaaddr, 4);
     }
     uop_MOV(ir, IREG_pc, IREG_temp0);
     uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
@@ -348,13 +350,15 @@ ropRETF_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
     offset = fastreadw(cs + op_pc);
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
+    /*CS is read as the dword the op reads, its low word kept: a fault on
+      the upper half is taken*/
     if (stack32) {
         uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_ESP);
-        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, IREG_SS_base, IREG_ESP, 4);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1, IREG_SS_base, IREG_ESP, 4);
     } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
         uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_eaaddr);
-        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, IREG_SS_base, IREG_eaaddr, 4);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1, IREG_SS_base, IREG_eaaddr, 4);
     }
     uop_MOV(ir, IREG_pc, IREG_temp0);
     uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
