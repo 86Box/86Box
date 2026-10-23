@@ -221,7 +221,8 @@ load_global_keybinds(void)
                However, to improve the user experience, we should validate keys
                and erase any bad combos from config on mainwindow load.
              */
-            strcpy(acc_keys[x].seq, p);
+            strncpy(acc_keys[x].seq, p, sizeof(acc_keys[x].seq) - 1);
+            acc_keys[x].seq[sizeof(acc_keys[x].seq) - 1] = '\0';
         }
     }
 }
@@ -2921,7 +2922,8 @@ load_keybinds(void)
                 However, to improve the user experience, we should validate keys
                 and erase any bad combos from config on mainwindow load.
               */
-             strcpy(acc_keys[x].seq, p);
+             strncpy(acc_keys[x].seq, p, sizeof(acc_keys[x].seq) - 1);
+             acc_keys[x].seq[sizeof(acc_keys[x].seq) - 1] = '\0';
         }
 
         ini_section_delete_var(cat, acc_keys[x].name);
