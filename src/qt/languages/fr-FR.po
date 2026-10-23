@@ -3140,6 +3140,9 @@ msgstr "Entrée"
 msgid "Key bindings"
 msgstr "Raccourcis clavier"
 
+msgid "Manager"
+msgstr ""
+
 msgid "Action"
 msgstr "Action"
 

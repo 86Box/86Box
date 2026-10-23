@@ -3134,6 +3134,9 @@ msgstr "Vnos"
 msgid "Key bindings"
 msgstr "Kombinacije tipk"
 
+msgid "Manager"
+msgstr ""
+
 msgid "Action"
 msgstr "Dejanje"
 

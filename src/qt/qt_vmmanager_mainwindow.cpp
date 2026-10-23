@@ -14,7 +14,6 @@
  */
 #include "qt_vmmanager_mainwindow.hpp"
 #include "qt_vmmanager_main.hpp"
-#include "qt_vmmanager_preferences.hpp"
 #include "qt_vmmanager_windarkmodefilter.hpp"
 #include "ui_qt_vmmanager_mainwindow.h"
 #ifdef UPDATE_CHECK
@@ -207,9 +206,11 @@ void
 VMManagerMainWindow::preferencesTriggered()
 {
     bool machinesRunning = (vmm->getActiveMachineCount() > 0);
+    /* Another instance may have changed the preferences since they were loaded. */
+    config_load_global();
     auto old_vmm_path = QString(vmm_path_cfg);
-    const auto prefs = new VMManagerPreferences(this, machinesRunning);
-    if (prefs->exec() == QDialog::Accepted) {
+    Preferences prefs(true, machinesRunning, this);
+    if (prefs.exec() == QDialog::Accepted) {
         emit preferencesUpdated();
         updateLanguage();
 

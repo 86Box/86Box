@@ -6,40 +6,35 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          86Box VM manager preferences module
+ *          VM manager preferences UI module.
  *
  * Authors: cold-brewed
+ *          David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *          Copyright 2024 cold-brewed
+ *          Copyright 2026 David Hrdlička
  */
+#include <QApplication>
+#include <QDir>
 #include <QFileDialog>
 #include <QStyle>
 #include <cstring>
 
-#include "qt_preferences.hpp"
-#include "qt_vmmanager_preferences.hpp"
-#include "qt_vmmanager_config.hpp"
-#include "ui_qt_vmmanager_preferences.h"
-
-#ifdef Q_OS_WINDOWS
-#    include "qt_vmmanager_windarkmodefilter.hpp"
-extern WindowsDarkModeFilter *vmm_dark_mode_filter;
-#endif
+#include "qt_preferencesmanager.hpp"
+#include "ui_qt_preferencesmanager.h"
 
 extern "C" {
 #include <86box/86box.h>
-#include <86box/config.h>
 #include <86box/plat.h>
-#include <86box/version.h>
 }
 
-VMManagerPreferences::
-    VMManagerPreferences(QWidget *parent, bool machinesRunning)
-    : ui(new Ui::VMManagerPreferences)
+PreferencesManager::PreferencesManager(bool machinesRunning, QWidget *parent)
+    : QWidget(parent)
+    , ui(new Ui::PreferencesManager)
 {
     ui->setupUi(this);
     ui->dirSelectButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_DirIcon));
-    connect(ui->dirSelectButton, &QPushButton::clicked, this, &VMManagerPreferences::chooseDirectoryLocation);
+    connect(ui->dirSelectButton, &QPushButton::clicked, this, &PreferencesManager::chooseDirectoryLocation);
 
     const auto configSystemDir = QString(vmm_path_cfg);
     if (!configSystemDir.isEmpty()) {
@@ -56,15 +51,6 @@ VMManagerPreferences::
         ui->pushButtonDefaultSystemDir->setEnabled(false);
         ui->dirSelectButton->setToolTip(tr("To change the system directory, stop all running machines."));
     }
-
-    ui->comboBoxLanguage->setItemData(0, 0);
-    for (int i = 1; i < Preferences::languages.length(); i++) {
-        ui->comboBoxLanguage->addItem(Preferences::languages[i].second, i);
-        if (i == lang_id) {
-            ui->comboBoxLanguage->setCurrentIndex(ui->comboBoxLanguage->findData(i));
-        }
-    }
-    ui->comboBoxLanguage->model()->sort(Qt::AscendingOrder);
 
     ui->updateCheckBox->setChecked(vmm_update_check);
     ui->regexSearchCheckBox->setChecked(vmm_regex_search);
@@ -84,22 +70,31 @@ VMManagerPreferences::
 #else
     ui->groupBoxDiscord->setVisible(false);
 #endif
+}
 
-    ui->radioButtonSystem->setChecked(color_scheme == 0);
-    ui->radioButtonLight->setChecked(color_scheme == 1);
-    ui->radioButtonDark->setChecked(color_scheme == 2);
+PreferencesManager::~PreferencesManager()
+{
+    delete ui;
+}
 
-#ifndef Q_OS_WINDOWS
-    ui->groupBoxColorScheme->setHidden(true);
+void
+PreferencesManager::save()
+{
+    strncpy(vmm_path_cfg, QDir::cleanPath(ui->systemDirectory->text()).toUtf8().constData(), sizeof(vmm_path_cfg) - 1);
+#ifdef DISCORD
+    discord_presence = ui->discordCheckBox->isChecked() ? (ui->comboBoxDiscordPrivacy->currentIndex() + 1) : 0;
+#endif
+    vmm_update_check    = ui->updateCheckBox->isChecked() ? 1 : 0;
+    vmm_window_remember = ui->rememberSizePositionCheckBox->isChecked() ? 1 : 0;
+    vmm_regex_search    = ui->regexSearchCheckBox->isChecked() ? 1 : 0;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    vmm_delete_to_trash = ui->deleteToTrashCheckBox->isChecked() ? 1 : 0;
 #endif
 }
 
-VMManagerPreferences::~VMManagerPreferences()
-    = default;
-
 // Bad copy pasta from machine add
 void
-VMManagerPreferences::chooseDirectoryLocation()
+PreferencesManager::chooseDirectoryLocation()
 {
     QFileDialog::Options options = QFileDialog::ShowDirsOnly;
 #ifdef Q_OS_LINUX
@@ -111,41 +106,9 @@ VMManagerPreferences::chooseDirectoryLocation()
 }
 
 void
-VMManagerPreferences::on_pushButtonDefaultSystemDir_released()
+PreferencesManager::on_pushButtonDefaultSystemDir_released()
 {
     char temp[1024];
     plat_get_vmm_dir(temp, sizeof(temp));
     ui->systemDirectory->setText(QDir::toNativeSeparators(QDir(temp).path()));
-}
-
-void
-VMManagerPreferences::on_pushButtonLanguage_released()
-{
-    ui->comboBoxLanguage->setCurrentIndex(0);
-}
-
-void
-VMManagerPreferences::accept()
-{
-    strncpy(vmm_path_cfg, QDir::cleanPath(ui->systemDirectory->text()).toUtf8().constData(), sizeof(vmm_path_cfg) - 1);
-    lang_id      = ui->comboBoxLanguage->currentData().toInt();
-    color_scheme = (ui->radioButtonSystem->isChecked()) ? 0 : (ui->radioButtonLight->isChecked() ? 1 : 2);
-#ifdef DISCORD
-    discord_presence = ui->discordCheckBox->isChecked() ? (ui->comboBoxDiscordPrivacy->currentIndex() + 1) : 0;
-#endif
-    vmm_update_check    = ui->updateCheckBox->isChecked() ? 1 : 0;
-    vmm_window_remember = ui->rememberSizePositionCheckBox->isChecked() ? 1 : 0;
-    vmm_regex_search    = ui->regexSearchCheckBox->isChecked() ? 1 : 0;
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-    vmm_delete_to_trash = ui->deleteToTrashCheckBox->isChecked() ? 1 : 0;
-#endif
-    config_save_global();
-
-    QDialog::accept();
-}
-
-void
-VMManagerPreferences::reject()
-{
-    QDialog::reject();
 }

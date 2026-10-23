@@ -3119,6 +3119,9 @@ msgstr "Invoer"
 msgid "Key bindings"
 msgstr "Toetskoppelingen"
 
+msgid "Manager"
+msgstr ""
+
 msgid "Action"
 msgstr "Actie"
 

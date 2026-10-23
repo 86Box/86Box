@@ -3120,6 +3120,9 @@ msgstr "Đầu vào"
 msgid "Key bindings"
 msgstr "Phím nóng"
 
+msgid "Manager"
+msgstr ""
+
 msgid "Action"
 msgstr "Thực hiện"
 

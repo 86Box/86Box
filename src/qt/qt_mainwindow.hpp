@@ -75,6 +75,7 @@ signals:
     void vmmGlobalConfigurationChanged();
 public slots:
     void emitVmmSignal();
+    void setVmmSupervised(bool supervised);
     void showSettings();
     void hardReset();
     void togglePause();
@@ -184,6 +185,7 @@ private:
     QMenu                         *dynarecMenu = nullptr;
 
     void updateShortcuts();
+    void applyGlobalPreferences();
     void refreshDisplayRatioActions();
     void processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
@@ -207,9 +209,13 @@ private:
     /* Mouse capture state before showing fullscreen UI */
     bool mouse_was_captured = false;
 
+    /* Whether the 86Box VM manager supervises this machine */
+    bool vmm_supervised = false;
+
+    /* The language the UI was last translated to */
+    int translated_lang_id;
+
     friend class SpecifyDimensions;
-    friend class Preferences;
-    friend class PreferencesEmulator;
     friend class RendererCommon;
     friend class RendererStack;         // For UI variable access by non-primary renderer windows.
     friend class WindowsRawInputFilter; // Needed to reload renderers on style sheet changes.

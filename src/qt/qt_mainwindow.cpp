@@ -205,6 +205,8 @@ MainWindow::MainWindow(QWidget *parent)
     MediaMenu::ptr = mm;
     status         = std::make_unique<MachineStatus>(this);
 
+    translated_lang_id = lang_id;
+
 #ifdef __HAIKU__
     filter = new BMessageFilter(B_PROGRAMMED_DELIVERY, B_ANY_SOURCE, keyb_filter);
     ((BWindow *) this->winId())->AddFilter(filter);
@@ -1379,6 +1381,12 @@ MainWindow::emitVmmSignal()
 }
 
 void
+MainWindow::setVmmSupervised(bool supervised)
+{
+    vmm_supervised = supervised;
+}
+
+void
 MainWindow::on_actionSettings_triggered()
 {
     const int currentPause = dopause;
@@ -2550,7 +2558,11 @@ MainWindow::updateStatusEmptyIcons()
 void
 MainWindow::on_actionPreferences_triggered()
 {
-    Preferences preferences(this);
+    /* Another instance may have changed the preferences since they were loaded. */
+    config_load_global();
+
+    /* This machine is running, so the manager's system directory cannot be changed. */
+    Preferences preferences(vmm_supervised && !vmm_disabled, true, this);
     preferences.setModal(true);
     preferences.setWindowModality(Qt::WindowModal);
     preferences.setWindowFlag(Qt::CustomizeWindowHint, true);
@@ -2562,12 +2574,54 @@ MainWindow::on_actionPreferences_triggered()
         default:
             break;
         case QDialog::Accepted:
-            updateShortcuts();
+            applyGlobalPreferences();
             emit vmmGlobalConfigurationChanged();
             break;
         case QDialog::Rejected:
             break;
     }
+}
+
+/* Applies the global preferences once they were saved or reloaded. */
+void
+MainWindow::applyGlobalPreferences()
+{
+#ifdef Q_OS_WINDOWS
+    extern void selectDarkMode();
+    selectDarkMode();
+#endif
+
+    if (lang_id != translated_lang_id) {
+        auto size = centralWidget()->size();
+
+        Preferences::loadTranslators(QCoreApplication::instance());
+        Preferences::reloadStrings();
+        ui->retranslateUi(this);
+        QString vmname(vm_name);
+        if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'')
+            vmname.truncate(vmname.size() - 1);
+        setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
+        QString msg = status->getMessage();
+        status.reset(new MachineStatus(this));
+        refreshMediaMenu();
+        status->message(msg);
+        connect(this, &MainWindow::updateStatusBarTip, status.get(), &MachineStatus::updateTip);
+        connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message, Qt::QueuedConnection);
+        translated_lang_id = lang_id;
+
+        /* Keep the size of the screen while the menus and the status bar change. */
+        QTimer::singleShot(200, this, [this, size] () {
+            centralWidget()->setFixedSize(size);
+            QApplication::processEvents();
+            if (vid_resize == 1) {
+                centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+            }
+        });
+    } else
+        Preferences::reloadStrings();
+
+    updateShortcuts();
+    updateMouseStrings();
 }
 
 void
