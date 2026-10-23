@@ -22713,8 +22713,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        /* The board's Disable APIC option (ioapic_validated_up_device). */
-        .device                   = &validated_up_apic_board_device,
+        .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
