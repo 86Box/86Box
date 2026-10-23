@@ -114,6 +114,8 @@ extern const device_t esc_device;
 
 extern const device_t sio_device;
 extern const device_t sio_zb_device;
+extern const device_t sio_a_device;
+extern void           sio_a_set_ioapic(void *priv, void *ioapic);
 
 #define PIIX4_NVR_AMI_1995  0x0000000100000000
 #define PIIX4_NVR_AMI_1995J 0x0000000200000000
@@ -158,7 +160,9 @@ typedef struct ioapic_legacy_irq_routing_t {
 #define IOAPIC_POST_TRIGGER_AMI           0x00000400
 /* The I/O APIC inside the 82374 ESC rather than an 82093AA: sixteen pins,
    version 11h with MRE 0Fh, no SMI# input, and a window the ESC moves with
-   its APICBASE register (ioapic_set_mmio_base). */
+   its APICBASE register (ioapic_set_mmio_base). The 82379AB SIO.A's is the
+   same: version 000F0011h, the same sixteen inputs, and an APICBASE of its
+   own (82378ZB/82379AB data sheet 3.1.27, 3.7.4, Figure 8). */
 #define IOAPIC_VARIANT_ESC                0x00000800
 /* No I/O APIC at all: the processor's own local APIC on a board without
    one, with no inputs and no register window of its own. */
