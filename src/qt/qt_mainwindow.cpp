@@ -205,7 +205,7 @@ MainWindow::MainWindow(QWidget *parent)
     MediaMenu::ptr = mm;
     status         = std::make_unique<MachineStatus>(this);
 
-    translated_lang_id = lang_id;
+    translated_lang_id = lang_id_cfg;
 
 #ifdef __HAIKU__
     filter = new BMessageFilter(B_PROGRAMMED_DELIVERY, B_ANY_SOURCE, keyb_filter);
@@ -1856,15 +1856,7 @@ MainWindow::refreshMediaMenu()
     status->setDynarecMenu(dynarecMenu);
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
-    const bool has_power_button = device_has_power_button();
-    if (acpi_enabled || has_power_button) {
-        ui->actionACPI_Shutdown->setText(tr("Power &off (soft)"));
-        ui->actionACPI_Shutdown->setToolTip(tr("Power off (soft)"));
-    } else {
-        ui->actionACPI_Shutdown->setText((confirm_exit && confirm_exit_cmdl) ? tr("Power &off…") : tr("Power &off"));
-        ui->actionACPI_Shutdown->setToolTip(tr("Power off"));
-    }
-    ui->actionACPI_Shutdown->setEnabled(true);
+    updatePowerOffAction();
     ui_update_force_interpreter();
 
     num_label->setToolTip(QShortcut::tr("Num Lock"));
@@ -1888,6 +1880,21 @@ MainWindow::refreshMediaMenu()
 
     ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
     refreshDisplayRatioActions();
+}
+
+/* Labels the power off action, which only asks for confirmation without ACPI. */
+void
+MainWindow::updatePowerOffAction()
+{
+    const bool has_power_button = device_has_power_button();
+    if (acpi_enabled || has_power_button) {
+        ui->actionACPI_Shutdown->setText(tr("Power &off (soft)"));
+        ui->actionACPI_Shutdown->setToolTip(tr("Power off (soft)"));
+    } else {
+        ui->actionACPI_Shutdown->setText((confirm_exit && confirm_exit_cmdl) ? tr("Power &off…") : tr("Power &off"));
+        ui->actionACPI_Shutdown->setToolTip(tr("Power off"));
+    }
+    ui->actionACPI_Shutdown->setEnabled(true);
 }
 
 void
@@ -2582,6 +2589,8 @@ MainWindow::on_actionPreferences_triggered()
             emit vmmGlobalConfigurationChanged();
             break;
         case QDialog::Rejected:
+            /* They were still reloaded. */
+            applyGlobalPreferences();
             break;
     }
 }
@@ -2595,6 +2604,7 @@ MainWindow::applyGlobalPreferences()
     selectDarkMode();
 #endif
 
+    /* Only retranslate when the saved language changed, to keep the one from -G. */
     if (lang_id != translated_lang_id) {
         auto size = centralWidget()->size();
 
@@ -2621,8 +2631,10 @@ MainWindow::applyGlobalPreferences()
                 centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
             }
         });
-    } else
+    } else {
         Preferences::reloadStrings();
+        updatePowerOffAction();
+    }
 
     updateShortcuts();
     updateMouseStrings();

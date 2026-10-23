@@ -198,10 +198,6 @@ VMManagerClientSocket::jsonReceived(const QJsonObject &json)
         case VMManagerProtocol::ManagerMessage::GlobalConfigurationChanged:
             {
                 config_load_global();
-#ifdef Q_OS_WINDOWS
-                void selectDarkMode();
-                selectDarkMode();
-#endif
                 emit globalConfigurationReloaded();
                 break;
             }

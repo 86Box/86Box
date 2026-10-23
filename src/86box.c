@@ -160,6 +160,7 @@ int      vid_resize;                                              /* (C) allow r
 int      invert_display                         = 0;              /* (C) invert the display */
 int      suppress_overscan                      = 0;              /* (C) suppress overscans */
 int      lang_id                                = 0;              /* (G) language id */
+int      lang_id_cfg                            = 0;              /* language id last loaded, which -G does not override */
 int      scale                                  = 0;              /* (C) screen scale factor */
 int      dpi_scale                              = 0;              /* (C) DPI scaling of the emulated
                                                                          screen */
@@ -1510,9 +1511,6 @@ usage:
          */
         if (!config_load())
             return 0;
-
-        /* To save the global key binds. */
-        config_save_global();
 
         /*
            Clear the CMOS and/or BIOS flash file, if we were started with

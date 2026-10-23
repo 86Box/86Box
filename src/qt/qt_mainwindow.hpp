@@ -186,6 +186,7 @@ private:
     QMenu                         *dynarecMenu = nullptr;
 
     void updateShortcuts();
+    void updatePowerOffAction();
     void refreshDisplayRatioActions();
     void processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
@@ -212,7 +213,7 @@ private:
     /* Whether the 86Box VM manager supervises this machine */
     bool vmm_supervised = false;
 
-    /* The language the UI was last translated to */
+    /* The saved language the UI was last translated to, unless -G overrode it */
     int translated_lang_id;
 
     friend class SpecifyDimensions;

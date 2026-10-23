@@ -210,10 +210,13 @@ VMManagerMainWindow::preferencesTriggered()
     config_load_global();
     auto old_vmm_path = QString(vmm_path_cfg);
     Preferences prefs(true, machinesRunning, this);
-    if (prefs.exec() == QDialog::Accepted) {
-        emit preferencesUpdated();
-        updateLanguage();
+    const bool accepted = (prefs.exec() == QDialog::Accepted);
 
+    /* Applied even when cancelled, as they were still reloaded. */
+    emit preferencesUpdated();
+    updateLanguage();
+
+    if (accepted) {
         auto new_vmm_path = QString(vmm_path_cfg);
         if (!machinesRunning && (new_vmm_path != old_vmm_path)) {
             qDebug() << "Machine path changed: old path " << old_vmm_path << ", new path " << new_vmm_path;

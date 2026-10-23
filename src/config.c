@@ -207,8 +207,11 @@ load_global_keybinds(void)
         /* Check if the binding was marked as cleared */
         if (strcmp(p, "none") == 0)
             acc_keys[x].seq[0] = '\0';
-        /* If there's no binding in the file, leave it alone. */
-        else if (strcmp(p, "default") != 0) {
+        /* If there's no binding in the file, use the default one: the file may
+           be reloaded after another instance reset the binding. */
+        else if (strcmp(p, "default") == 0)
+            strcpy(acc_keys[x].seq, def_acc_keys[x].seq);
+        else {
             /*
                It would be ideal to validate whether the user entered a
                valid combo at this point, but the Qt method for testing that is
@@ -315,6 +318,8 @@ load_global(void)
 
     if (!new_loaded)
         load_global_legacy();
+
+    lang_id_cfg = lang_id;
 }
 
 /* Load scan code mappings. */
@@ -2929,6 +2934,8 @@ config_load_global(void)
 {
     config_log("Loading global config file '%s'...\n", global_cfg_path);
 
+    /* The file may be reloaded, as another instance may have changed it. */
+    ini_close(global);
     global = ini_read(global_cfg_path);
 
     if (global == NULL) {
@@ -3097,7 +3104,21 @@ config_load(void)
 
     video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
 
-    return config_ask_unsupported();
+    if (!config_ask_unsupported())
+        return 0;
+
+    /* Move the key bindings taken from this configuration to the global one,
+       one at a time, as another instance may have changed it since it was
+       loaded. Without bindings in the global configuration, all were at their
+       defaults, so the ones that are not came from here. */
+    if (!kb_loaded) {
+        for (int x = 0; x < NUM_ACCELS; x++) {
+            if (strcmp(acc_keys[x].seq, def_acc_keys[x].seq) != 0)
+                config_save_global_setting("Keybinds", acc_keys[x].name);
+        }
+    }
+
+    return 1;
 }
 
 static void
