@@ -202,6 +202,7 @@ VMManagerClientSocket::jsonReceived(const QJsonObject &json)
                 void selectDarkMode();
                 selectDarkMode();
 #endif
+                emit globalConfigurationReloaded();
                 break;
             }
         default:

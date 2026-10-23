@@ -39,6 +39,8 @@ signals:
     void force_shutdown();
     void dialogstatus(bool open);
     void supervisedChanged(bool supervised);
+    // The manager changed the global configuration, which was reloaded
+    void globalConfigurationReloaded();
 
 public slots:
     void clientRunningStateChanged(VMManagerProtocol::RunningState state) const;

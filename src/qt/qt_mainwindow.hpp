@@ -76,6 +76,7 @@ signals:
 public slots:
     void emitVmmSignal();
     void setVmmSupervised(bool supervised);
+    void applyGlobalPreferences();
     void showSettings();
     void hardReset();
     void togglePause();
@@ -185,7 +186,6 @@ private:
     QMenu                         *dynarecMenu = nullptr;
 
     void updateShortcuts();
-    void applyGlobalPreferences();
     void refreshDisplayRatioActions();
     void processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
