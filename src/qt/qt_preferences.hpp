@@ -1,18 +1,15 @@
 #ifndef QT_PREFERENCES_HPP
 #define QT_PREFERENCES_HPP
 
-#include <QDialog>
 #include <QTranslator>
 
-namespace Ui {
-class Preferences;
-}
+#include "qt_pageddialog.hpp"
 
 class PreferencesEmulator;
 class PreferencesInput;
 class PreferencesKeyBindings;
 
-class Preferences : public QDialog {
+class Preferences : public PagedDialog {
     Q_OBJECT
 
 public:
@@ -52,7 +49,6 @@ protected slots:
     void accept() override;
 
 private:
-    Ui::Preferences            *ui;
     static bool       loadQtTranslations(const QString name);
 
     PreferencesEmulator        *emulator;
