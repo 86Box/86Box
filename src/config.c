@@ -129,20 +129,40 @@ config_log(const char *fmt, ...)
 int new_loaded = 0;
 int kb_loaded  = 0;
 
+/* Returns the section to load a setting moved out of the "Emulator" section
+   from: the old section is only used when the new one does not have it. */
+static ini_section_t
+moved_setting_section(ini_section_t cat, const char *name)
+{
+    if (ini_has_entry(cat, name))
+        return cat;
+
+    return ini_find_section(global, "Emulator");
+}
+
 /* Load global configuration */
+static void
+load_global_general(void)
+{
+    ini_section_t cat = ini_find_section(global, "General");
+    new_loaded |= (cat != NULL);
+
+    char         *p;
+
+    p = ini_section_get_string(moved_setting_section(cat, "language"), "language", NULL);
+    if (p != NULL)
+        lang_id = plat_language_code(p);
+    else
+        lang_id = plat_language_code(DEFAULT_LANGUAGE);
+
+    color_scheme = ini_section_get_int(moved_setting_section(cat, "color_scheme"), "color_scheme", 0);
+}
+
 static void
 load_global_emulator(void)
 {
     ini_section_t cat = ini_find_section(global, "Emulator");
     new_loaded |= (cat != NULL);
-
-    char         *p;
-
-    p = ini_section_get_string(cat, "language", NULL);
-    if (p != NULL)
-        lang_id = plat_language_code(p);
-    else
-        lang_id = plat_language_code(DEFAULT_LANGUAGE);
 
     open_dir_usr_path = ini_section_get_int(cat, "open_dir_usr_path", 0);
 
@@ -152,28 +172,8 @@ load_global_emulator(void)
     confirm_reset = ini_section_get_int(cat, "confirm_reset", 1);
     confirm_exit  = ini_section_get_int(cat, "confirm_exit", 1);
     confirm_save  = ini_section_get_int(cat, "confirm_save", 1);
-    color_scheme  = ini_section_get_int(cat, "color_scheme", 0);
-
-    vmm_disabled = ini_section_get_int(cat, "vmm_disabled", 0);
-
-    discord_presence = ini_section_get_int(cat, "discord_presence", 0);
-    if ((discord_presence < 0) || (discord_presence > 3))
-        discord_presence = 0;
 
     chd_precache_level = ini_section_get_int(cat, "chd_precache_level", 0);
-
-    p = ini_section_get_string(cat, "vmm_path", NULL);
-    if (p != NULL) {
-        /* Convert relative paths to absolute in portable mode */
-        if (portable_mode && !path_abs(p)) {
-            path_append_filename(vmm_path_cfg, exe_path, p);
-            path_normalize(vmm_path_cfg);
-        } else {
-            strncpy(vmm_path_cfg, p, sizeof(vmm_path_cfg) - 1);
-        }
-    } else {
-        plat_get_vmm_dir(vmm_path_cfg, sizeof(vmm_path_cfg));
-    }
 }
 
 static void
@@ -220,6 +220,39 @@ load_global_keybinds(void)
             strcpy(acc_keys[x].seq, p);
         }
     }
+}
+
+static void
+load_global_manager(void)
+{
+    ini_section_t cat = ini_find_section(global, "Manager");
+    new_loaded |= (cat != NULL);
+
+    char         *p;
+
+    vmm_disabled = ini_section_get_int(moved_setting_section(cat, "vmm_disabled"), "vmm_disabled", 0);
+
+    p = ini_section_get_string(moved_setting_section(cat, "vmm_path"), "vmm_path", NULL);
+    if (p != NULL) {
+        /* Convert relative paths to absolute in portable mode */
+        if (portable_mode && !path_abs(p)) {
+            path_append_filename(vmm_path_cfg, exe_path, p);
+            path_normalize(vmm_path_cfg);
+        } else {
+            strncpy(vmm_path_cfg, p, sizeof(vmm_path_cfg) - 1);
+        }
+    } else {
+        plat_get_vmm_dir(vmm_path_cfg, sizeof(vmm_path_cfg));
+    }
+
+    discord_presence = ini_section_get_int(cat, "discord_presence", 0);
+    if ((discord_presence < 0) || (discord_presence > 3))
+        discord_presence = 0;
+
+    vmm_update_check    = ini_section_get_int(cat, "update_check", 1);
+    vmm_regex_search    = ini_section_get_int(cat, "regex_search", 0);
+    vmm_window_remember = ini_section_get_int(cat, "window_remember", 0);
+    vmm_delete_to_trash = ini_section_get_int(cat, "delete_to_trash", 0);
 }
 
 static void
@@ -272,10 +305,13 @@ load_global(void)
     new_loaded = 0;
     kb_loaded  = 0;
 
+    load_global_general();
     load_global_emulator();
     load_global_input();
 
     load_global_keybinds();            /* Load shortcut keybinds */
+
+    load_global_manager();
 
     if (!new_loaded)
         load_global_legacy();
@@ -3065,9 +3101,9 @@ config_load(void)
 }
 
 static void
-save_global_emulator(void)
+save_global_general(void)
 {
-    ini_section_t cat = ini_find_or_create_section(global, "Emulator");
+    ini_section_t cat = ini_find_or_create_section(global, "General");
     char          buffer[512] = { 0 };
 
     if (lang_id == plat_language_code(DEFAULT_LANGUAGE))
@@ -3081,6 +3117,20 @@ save_global_emulator(void)
         ini_section_set_int(cat, "color_scheme", color_scheme);
     else
         ini_section_delete_var(cat, "color_scheme");
+
+    ini_delete_section_if_empty(global, cat);
+}
+
+static void
+save_global_emulator(void)
+{
+    ini_section_t cat = ini_find_or_create_section(global, "Emulator");
+
+    /* These were moved to the "General" and "Manager" sections. */
+    ini_section_delete_var(cat, "language");
+    ini_section_delete_var(cat, "color_scheme");
+    ini_section_delete_var(cat, "vmm_disabled");
+    ini_section_delete_var(cat, "vmm_path");
 
     if (open_dir_usr_path)
         ini_section_set_int(cat, "open_dir_usr_path", open_dir_usr_path);
@@ -3117,27 +3167,6 @@ save_global_emulator(void)
         ini_section_set_int(cat, "chd_precache_level", chd_precache_level);
     else
         ini_section_delete_var(cat, "chd_precache_level");
-
-    if (vmm_disabled != 0)
-        ini_section_set_int(cat, "vmm_disabled", vmm_disabled);
-    else
-        ini_section_delete_var(cat, "vmm_disabled");
-
-    if (discord_presence)
-        ini_section_set_int(cat, "discord_presence", discord_presence);
-    else
-        ini_section_delete_var(cat, "discord_presence");
-
-    if (vmm_path_cfg[0] != 0) {
-        /* Save path as relative to the EXE path in portable mode */
-        if (portable_mode && path_abs(vmm_path_cfg) && !strnicmp(vmm_path_cfg, exe_path, strlen(exe_path))) {
-            ini_section_set_string(cat, "vmm_path", &vmm_path_cfg[strlen(exe_path)]);
-        } else {
-            ini_section_set_string(cat, "vmm_path", vmm_path_cfg);
-        }
-    } else {
-        ini_section_delete_var(cat, "vmm_path");
-    }
 
     ini_delete_section_if_empty(global, cat);
 }
@@ -3180,14 +3209,66 @@ save_global_keybinds(void)
     ini_delete_section_if_empty(global, cat);
 }
 
+static void
+save_global_manager(void)
+{
+    ini_section_t cat = ini_find_or_create_section(global, "Manager");
+
+    if (vmm_disabled != 0)
+        ini_section_set_int(cat, "vmm_disabled", vmm_disabled);
+    else
+        ini_section_delete_var(cat, "vmm_disabled");
+
+    if (vmm_path_cfg[0] != 0) {
+        /* Save path as relative to the EXE path in portable mode */
+        if (portable_mode && path_abs(vmm_path_cfg) && !strnicmp(vmm_path_cfg, exe_path, strlen(exe_path))) {
+            ini_section_set_string(cat, "vmm_path", &vmm_path_cfg[strlen(exe_path)]);
+        } else {
+            ini_section_set_string(cat, "vmm_path", vmm_path_cfg);
+        }
+    } else {
+        ini_section_delete_var(cat, "vmm_path");
+    }
+
+    if (discord_presence)
+        ini_section_set_int(cat, "discord_presence", discord_presence);
+    else
+        ini_section_delete_var(cat, "discord_presence");
+
+    if (vmm_update_check != 1)
+        ini_section_set_int(cat, "update_check", vmm_update_check);
+    else
+        ini_section_delete_var(cat, "update_check");
+
+    if (vmm_regex_search)
+        ini_section_set_int(cat, "regex_search", vmm_regex_search);
+    else
+        ini_section_delete_var(cat, "regex_search");
+
+    if (vmm_window_remember)
+        ini_section_set_int(cat, "window_remember", vmm_window_remember);
+    else
+        ini_section_delete_var(cat, "window_remember");
+
+    if (vmm_delete_to_trash)
+        ini_section_set_int(cat, "delete_to_trash", vmm_delete_to_trash);
+    else
+        ini_section_delete_var(cat, "delete_to_trash");
+
+    ini_delete_section_if_empty(global, cat);
+}
+
 /* Save global configuration */
 static void
 save_global(void)
 {
+    save_global_general();
     save_global_emulator();
     save_global_input();
 
     save_global_keybinds();
+
+    save_global_manager();
 }
 
 /* Save scan code mappings. */
