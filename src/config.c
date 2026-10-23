@@ -4956,7 +4956,7 @@ void
 config_save_global_setting(const char *head, const char *name)
 {
     ini_t file = ini_read(global_cfg_path);
-    char *p;
+    const char *p;
 
     if (file == NULL)
         file = ini_new();
