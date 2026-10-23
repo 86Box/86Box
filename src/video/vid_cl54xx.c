@@ -4659,6 +4659,10 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
         }
     }
 
+    /* The address registers advance with the blit and end up past it. */
+    gd54xx->blt.dst_addr = dst_addr;
+    gd54xx->blt.src_addr = src_addr;
+
     /* Count exhausted, stuff still left to blit. */
     gd54xx_reset_blit(gd54xx);
 
