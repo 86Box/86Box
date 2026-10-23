@@ -246,19 +246,56 @@ machine_at_p6rp4_init(const machine_t *model)
     pci_register_slot(0x05, PCI_CARD_NORMAL,          3, 4, 1, 2);
     pci_register_slot(0x04, PCI_CARD_NORMAL,          4, 1, 2, 3);
 
-    device_add(&i450kx_device); /* 450GX is a superset of the 450KX */
-    {
-        static const ioapic_legacy_irq_routing_t p6rp4_irq_routing = {
-            .irq_to_intin = IOAPIC_LEGACY_IRQ_ROUTE_ISA
-        };
-        /* An AMI BIOS (AMIBIOS 0106 for SMC): its last POST code before
-           booting is 00h (IOAPIC_POST_TRIGGER_AMI). */
-        void *ioapic = device_add_params(&ioapic_validated_up_device,
-                                         (void *) (IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_POST_TRIGGER_AMI));
-
-        ioapic_set_legacy_irq_routing(ioapic, &p6rp4_irq_routing);
-    }
+    device_add(&i450gx_device);
     device_add(&sio_zb_device);
+    device_add(machine_get_ide_device(machine));
+    /* Input port bit 2 must be 1 or CMOS Setup is disabled. */
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+/* i450GX, with the 82379AB SIO.A and its I/O APIC in place of the P6RP4's
+   82378ZB */
+int
+machine_at_p6rsp4_init(const machine_t *model)
+{
+    static const ioapic_legacy_irq_routing_t p6rsp4_irq_routing = {
+        .irq_to_intin = IOAPIC_LEGACY_IRQ_ROUTE_SIOA
+    };
+    void *sio;
+    void *ioapic;
+    int   ret;
+
+    ret = bios_load_linear("roms/machines/p6rp4/OR6I0106.SMC",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x19, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x14, PCI_CARD_NORTHBRIDGE_SEC, 0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_IDE,             0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x06, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x05, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x04, PCI_CARD_NORMAL,          4, 1, 2, 3);
+
+    device_add(&i450gx_device);
+    sio = device_add(&sio_a_device);
+    /* The SIO.A's I/O APIC, at its default FEC00000h. An AMI BIOS: its last
+       POST code before booting is 00h (IOAPIC_POST_TRIGGER_AMI). */
+    ioapic = device_add_params(&ioapic_validated_up_device,
+                               (void *) (IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_VARIANT_ESC |
+                                         IOAPIC_POST_TRIGGER_AMI));
+    ioapic_set_legacy_irq_routing(ioapic, &p6rsp4_irq_routing);
+    sio_a_set_ioapic(sio, ioapic);
     device_add(machine_get_ide_device(machine));
     /* Input port bit 2 must be 1 or CMOS Setup is disabled. */
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
@@ -346,7 +383,7 @@ machine_at_ficpo6000_init(const machine_t *model)
     pci_register_slot(0x06, PCI_CARD_NORMAL,          4, 1, 2, 3);
     pci_register_slot(0x0c, PCI_CARD_IDE,             0, 0, 0, 0);
 
-    device_add(&i450kx_device);
+    device_add(&i450gx_device);
     device_add(&sio_zb_device);
     device_add(machine_get_ide_device(machine));
     /* Input port bit 2 must be 1 or CMOS Setup is disabled. */
