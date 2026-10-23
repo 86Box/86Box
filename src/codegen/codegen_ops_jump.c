@@ -9,6 +9,7 @@
 #include "x86seg.h"
 #include "386_common.h"
 #include "codegen.h"
+#include "codegen_accumulate.h"
 #include "codegen_ir.h"
 #include "codegen_ops.h"
 #include "codegen_ops_helpers.h"
@@ -191,11 +192,33 @@ ropRET_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
     return -1;
 }
 
+/*Protected mode outside V86: pmoderetf pops CS:EIP and, on a privilege
+  change, SS:ESP itself, and puts ESP back on every fault it raises, so
+  nothing is popped here and nothing follows the call but the block's end*/
+static uint32_t
+retf_pm(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int is32, int has_imm)
+{
+    uint16_t offset = 0;
+
+    if (has_imm) {
+        offset = fastreadw(cs + op_pc);
+        codegen_mark_code_present(block, cs + op_pc, 2);
+    }
+
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    codegen_accumulate_flush(ir);
+    uop_LOAD_FUNC_ARG_IMM(ir, 0, is32);
+    uop_LOAD_FUNC_ARG_IMM(ir, 1, offset);
+    uop_CALL_FUNC(ir, pmoderetf);
+
+    return -1;
+}
+
 uint32_t
 ropRETF_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
 {
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG))
-        return 0;
+        return retf_pm(block, ir, op_pc, 0, 0);
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
@@ -218,7 +241,7 @@ uint32_t
 ropRETF_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
 {
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG))
-        return 0;
+        return retf_pm(block, ir, op_pc, 1, 0);
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
@@ -244,7 +267,7 @@ ropRETF_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
     uint16_t offset;
 
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG))
-        return 0;
+        return retf_pm(block, ir, op_pc, 0, 1);
 
     offset = fastreadw(cs + op_pc);
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
@@ -271,7 +294,7 @@ ropRETF_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
     uint16_t offset;
 
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG))
-        return 0;
+        return retf_pm(block, ir, op_pc, 1, 1);
 
     offset = fastreadw(cs + op_pc);
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
