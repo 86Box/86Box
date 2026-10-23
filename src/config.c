@@ -3258,17 +3258,32 @@ save_global_manager(void)
     ini_delete_section_if_empty(global, cat);
 }
 
-/* Save global configuration */
+/*
+   Save global configuration. The "General" and "Manager" sections are only
+   changed by the preferences, so unless they are being saved, they are taken
+   from the file: another instance may have changed them since this one read
+   it.
+ */
 static void
-save_global(void)
+save_global(int preferences)
 {
-    save_global_general();
+    ini_t file;
+
+    if (preferences)
+        save_global_general();
+    else if ((file = ini_read(global_cfg_path)) != NULL) {
+        ini_replace_section(global, file, "General");
+        ini_replace_section(global, file, "Manager");
+        ini_close(file);
+    }
+
     save_global_emulator();
     save_global_input();
 
     save_global_keybinds();
 
-    save_global_manager();
+    if (preferences)
+        save_global_manager();
 }
 
 /* Save scan code mappings. */
@@ -4912,10 +4927,12 @@ save_other_removable_devices(void)
     ini_delete_section_if_empty(config, cat);
 }
 
+/* Save the global configuration with the "General" and "Manager" sections,
+   for the preferences and when the file was just loaded. */
 void
 config_save_global(void)
 {
-    save_global();                  /* Global */
+    save_global(1);                 /* Global */
 
     ini_write(global, global_cfg_path);
 }
@@ -4948,7 +4965,8 @@ config_save(void)
 
     ini_write(config, cfg_path);
 
-    config_save_global();
+    save_global(0);                 /* Global */
+    ini_write(global, global_cfg_path);
 
     if (config_mutex)
         thread_release_mutex(config_mutex);

@@ -62,6 +62,7 @@ extern void     ini_section_set_mac(ini_section_t section, const char *name, int
 extern void     ini_section_set_string(ini_section_t section, const char *name, const char *val);
 extern void     ini_section_set_wstring(ini_section_t section, const char *name, wchar_t *val);
 extern int      ini_has_entry(ini_section_t self, const char *name);
+extern void     ini_replace_section(ini_t ini, ini_t src, const char *name);
 
 #define ini_delete_var(ini, head, name)       ini_section_delete_var(ini_find_section(ini, head), name)
 
