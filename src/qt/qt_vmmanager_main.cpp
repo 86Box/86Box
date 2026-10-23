@@ -778,7 +778,7 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
 void
 VMManagerMain::deleteSystem(VMManagerSystem *sysconfig)
 {
-    auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
+    const VMManagerConfig config(VMManagerConfig::ConfigType::General);
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
     int trash = vmm_delete_to_trash;
 #endif
@@ -806,7 +806,7 @@ VMManagerMain::deleteSystem(VMManagerSystem *sysconfig)
             QMessageBox::critical(this, tr("Remove directory failed"), tr("Some files in the machine's directory were unable to be deleted. Please delete them manually."));
             return;
         }
-        config->remove(sysconfig->uuid);
+        config.remove(sysconfig->uuid);
         vm_model->removeConfigFromModel(sysconfig);
         delete sysconfig;
 
