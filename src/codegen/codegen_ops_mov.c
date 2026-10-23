@@ -697,6 +697,9 @@ ropMOV_seg_w(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
             return 0;
     }
 
+    /*The cycles so far are charged before the operand or the load can
+      fault, as they are before an interpreter call*/
+    codegen_accumulate_flush(ir);
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
     if ((fetchdat & 0xc0) == 0xc0) {
