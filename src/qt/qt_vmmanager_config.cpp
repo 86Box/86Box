@@ -114,8 +114,7 @@ VMManagerConfig::migratePreferences()
 
         if (*preference.value == preference.defaultValue)
             *preference.value = config.getStringValue(preference.key).toInt();
-        /* Only this preference is saved: the rest may have been overridden
-           on the command line, such as the language. */
+        /* Only this preference is saved, keeping the rest of the file. */
         config_save_global_setting("Manager", preference.key);
         migrated.append(preference.key);
     }

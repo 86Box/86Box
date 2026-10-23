@@ -320,8 +320,6 @@ load_global(void)
 
     if (!new_loaded)
         load_global_legacy();
-
-    lang_id_cfg = lang_id;
 }
 
 /* Load scan code mappings. */

@@ -213,7 +213,7 @@ private:
     /* Whether the 86Box VM manager supervises this machine */
     bool vmm_supervised = false;
 
-    /* The saved language the UI was last translated to, unless -G overrode it */
+    /* The language the UI was last translated to */
     int translated_lang_id;
 
     friend class SpecifyDimensions;

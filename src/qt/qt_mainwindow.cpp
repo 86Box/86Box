@@ -205,7 +205,7 @@ MainWindow::MainWindow(QWidget *parent)
     MediaMenu::ptr = mm;
     status         = std::make_unique<MachineStatus>(this);
 
-    translated_lang_id = lang_id_cfg;
+    translated_lang_id = lang_id;
 
 #ifdef __HAIKU__
     filter = new BMessageFilter(B_PROGRAMMED_DELIVERY, B_ANY_SOURCE, keyb_filter);
@@ -2604,7 +2604,6 @@ MainWindow::applyGlobalPreferences()
     selectDarkMode();
 #endif
 
-    /* Only retranslate when the saved language changed, to keep the one from -G. */
     if (lang_id != translated_lang_id) {
         auto size = centralWidget()->size();
 
