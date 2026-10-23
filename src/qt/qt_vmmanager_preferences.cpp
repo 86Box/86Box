@@ -41,7 +41,6 @@ VMManagerPreferences::
     ui->dirSelectButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_DirIcon));
     connect(ui->dirSelectButton, &QPushButton::clicked, this, &VMManagerPreferences::chooseDirectoryLocation);
 
-    const auto config          = new VMManagerConfig(VMManagerConfig::ConfigType::General);
     const auto configSystemDir = QString(vmm_path_cfg);
     if (!configSystemDir.isEmpty()) {
         // Prefer this one
@@ -67,19 +66,11 @@ VMManagerPreferences::
     }
     ui->comboBoxLanguage->model()->sort(Qt::AscendingOrder);
 
-#if EMU_BUILD_NUM != 0
-    const auto configUpdateCheck = config->getStringValue("update_check").toInt();
-    ui->updateCheckBox->setChecked(configUpdateCheck);
-#else
-    ui->updateCheckBox->setVisible(false);
-#endif
-    const auto useRegexSearch = config->getStringValue("regex_search").toInt();
-    ui->regexSearchCheckBox->setChecked(useRegexSearch);
-    const auto rememberSizePosition = config->getStringValue("window_remember").toInt();
-    ui->rememberSizePositionCheckBox->setChecked(rememberSizePosition);
+    ui->updateCheckBox->setChecked(vmm_update_check);
+    ui->regexSearchCheckBox->setChecked(vmm_regex_search);
+    ui->rememberSizePositionCheckBox->setChecked(vmm_window_remember);
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-    const auto deleteToTrash = config->getStringValue("delete_to_trash").toInt();
-    ui->deleteToTrashCheckBox->setChecked(deleteToTrash);
+    ui->deleteToTrashCheckBox->setChecked(vmm_delete_to_trash);
 #else
     ui->deleteToTrashCheckBox->setVisible(false);
 #endif
@@ -136,24 +127,20 @@ VMManagerPreferences::on_pushButtonLanguage_released()
 void
 VMManagerPreferences::accept()
 {
-    const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
-
     strncpy(vmm_path_cfg, QDir::cleanPath(ui->systemDirectory->text()).toUtf8().constData(), sizeof(vmm_path_cfg) - 1);
     lang_id      = ui->comboBoxLanguage->currentData().toInt();
     color_scheme = (ui->radioButtonSystem->isChecked()) ? 0 : (ui->radioButtonLight->isChecked() ? 1 : 2);
 #ifdef DISCORD
     discord_presence = ui->discordCheckBox->isChecked() ? (ui->comboBoxDiscordPrivacy->currentIndex() + 1) : 0;
 #endif
+    vmm_update_check    = ui->updateCheckBox->isChecked() ? 1 : 0;
+    vmm_window_remember = ui->rememberSizePositionCheckBox->isChecked() ? 1 : 0;
+    vmm_regex_search    = ui->regexSearchCheckBox->isChecked() ? 1 : 0;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    vmm_delete_to_trash = ui->deleteToTrashCheckBox->isChecked() ? 1 : 0;
+#endif
     config_save_global();
 
-#if EMU_BUILD_NUM != 0
-    config->setStringValue("update_check", ui->updateCheckBox->isChecked() ? "1" : "0");
-#endif
-    config->setStringValue("window_remember", ui->rememberSizePositionCheckBox->isChecked() ? "1" : "0");
-    config->setStringValue("regex_search", ui->regexSearchCheckBox->isChecked() ? "1" : "0");
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-    config->setStringValue("delete_to_trash", ui->deleteToTrashCheckBox->isChecked() ? "1" : "0");
-#endif
     QDialog::accept();
 }
 

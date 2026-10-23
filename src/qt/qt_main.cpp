@@ -86,6 +86,7 @@ extern "C" {
 #include "qt_unixmanagerfilter.hpp"
 #include "qt_util.hpp"
 #include "qt_vmmanager_clientsocket.hpp"
+#include "qt_vmmanager_config.hpp"
 #include "qt_vmmanager_mainwindow.hpp"
 
 #include "qt_osd.hpp"
@@ -694,6 +695,7 @@ main(int argc, char *argv[])
         // QApplication::setApplicationDisplayName("86Box VM Manager");
         // vmm.show();
         // vmm.exec();
+        VMManagerConfig::migratePreferences();
 #ifdef USE_QDARKSTYLE
         auto darkModeFilter = std::unique_ptr<WindowsDarkModeFilter>(new WindowsDarkModeFilter());
         if (darkModeFilter) {

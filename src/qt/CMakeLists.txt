@@ -345,6 +345,7 @@ target_sources(ui PRIVATE qt_osd.cpp qt_osd.hpp qt_osd_raster.cpp qt_osd_raster.
 target_include_directories(ui PRIVATE ${OSD_DIR} ${OSD_DIR}/imgui)
 
 if(EMU_BUILD_NUM)
+    add_compile_definitions(UPDATE_CHECK)
     target_sources(ui PRIVATE
         qt_updatecheck.cpp
         qt_updatecheck.hpp
