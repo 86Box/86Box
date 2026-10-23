@@ -241,6 +241,7 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     uint32_t ropPOP_##seg##_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), \
                                UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc) \
     {                                                                                             \
+        codegen_accumulate_flush(ir); /*the cycles so far, before a load can fault*/              \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                             \
                                                                                                   \
         if (stack32)                                                                              \
@@ -257,6 +258,7 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     uint32_t ropPOP_##seg##_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), \
                                UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc) \
     {                                                                                             \
+        codegen_accumulate_flush(ir); /*the cycles so far, before a load can fault*/              \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                             \
                                                                                                   \
         if (stack32)                                                                              \

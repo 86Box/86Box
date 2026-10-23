@@ -682,6 +682,7 @@ ropCWDE(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
             return 0;                                                                          \
                                                                                                \
         codegen_mark_code_present(block, cs + op_pc, 1);                                       \
+        codegen_accumulate_flush(ir); /*the cycles so far, before a load can fault*/           \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0); \
         codegen_check_seg_read(block, ir, target_seg);                                         \
@@ -706,6 +707,7 @@ ropCWDE(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
             return 0;                                                                          \
                                                                                                \
         codegen_mark_code_present(block, cs + op_pc, 1);                                       \
+        codegen_accumulate_flush(ir); /*the cycles so far, before a load can fault*/           \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0); \
         codegen_check_seg_read(block, ir, target_seg);                                         \
