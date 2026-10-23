@@ -1208,17 +1208,29 @@ lpt_speed_changed(void *priv)
     }
 }
 
+/* Copy the state that belongs to the emulator rather than to the port registers: the FIFO,
+   the timers (which can be on the active timer list) and the attached character device,
+   whose timer keeps calling into it. */
+static void
+lpt_copy_host_state(lpt_t *dst, const lpt_t *src)
+{
+    dst->id             = src->id;
+    dst->dt             = src->dt;
+    dst->fifo           = src->fifo;
+    dst->char_read      = src->char_read;
+    dst->char_control   = src->char_control;
+    dst->char_port      = src->char_port;
+    dst->fifo_out_timer = src->fifo_out_timer;
+    dst->char_timer     = src->char_timer;
+}
+
 void
 lpt_port_zero(lpt_t *dev)
 {
     lpt_t temp = { 0 };
 
-    temp.irq            = dev->irq;
-    temp.id             = dev->id;
-    temp.dt             = dev->dt;
-    temp.fifo           = dev->fifo;
-    temp.fifo_out_timer = dev->fifo_out_timer;
-    temp.char_timer     = dev->char_timer;
+    temp.irq = dev->irq;
+    lpt_copy_host_state(&temp, dev);
 
     if (lpt_ports[dev->id].enabled)
         lpt_port_remove(dev);
@@ -1228,11 +1240,7 @@ lpt_port_zero(lpt_t *dev)
     dev->addr           = 0xffff;
     dev->output_enabled = 1;
     dev->irq            = temp.irq;
-    dev->id             = temp.id;
-    dev->dt             = temp.dt;
-    dev->fifo           = temp.fifo;
-    dev->fifo_out_timer = temp.fifo_out_timer;
-    dev->char_timer     = temp.char_timer;
+    lpt_copy_host_state(dev, &temp);
 
     if (machine_has_bus(machine, MACHINE_BUS_MCA))
         dev->ext = 1;
@@ -1300,8 +1308,18 @@ lpt_reset(void *priv)
         }
     }
 
-    if (lpt_ports[dev->id].lpt_init != NULL)
-        memcpy(dev, lpt_ports[dev->id].lpt_init, sizeof(lpt_t));
+    const lpt_t *init = lpt_ports[dev->id].lpt_init;
+    if (init != NULL) {
+        /* Go back to the registers the port had after init, and to its I/O handlers,
+           which lpt_port_zero() removed. */
+        lpt_t temp = *dev;
+
+        memcpy(dev, init, sizeof(lpt_t));
+        lpt_copy_host_state(dev, &temp);
+
+        dev->addr = 0xffff;
+        lpt_port_setup(dev, init->addr);
+    }
 }
 
 static void *
