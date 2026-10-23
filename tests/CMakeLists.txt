@@ -11,6 +11,11 @@ add_subdirectory(utils)
 add_subdirectory(network)
 
 if(BUILD_TESTING)
+    add_test(NAME cmake_qt_selection
+        COMMAND ${CMAKE_COMMAND}
+            -DTEST_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/qt-selection
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/qt-selection.cmake)
+
     add_library(pcjx_floppy_engine OBJECT
         ../src/floppy/fdd_86f.c
         ../src/floppy/fdd_img.c

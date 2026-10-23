@@ -75,9 +75,6 @@ if(VCPKG_TOOLCHAIN)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
         set(STATIC_BUILD OFF)
     endif()
-
-    # `vcpkg.json` defaults to Qt6
-    set(USE_QT6 ON)
 endif()
 
 if(WIN32)
@@ -207,10 +204,12 @@ option(POWERVR_PCX_DEV "PowerVR PCX: developer/test settings in the device" ${DE
 
 # Ditto but for Qt
 if(QT)
-    option(USE_QT6 "Use Qt6 instead of Qt5" OFF)
+    option(USE_QT6 "Force Qt6 even if Qt5 is found" OFF)
     if(APPLE)
         option(MOLTENVK "Use MoltenVK libraries for Vulkan support on macOS. Requires a Vulkan-enabled QT." OFF)
     endif()
+
+    include(FindQt)
 
     option(LIBRASHADER "Build with librashader support" ON)
 

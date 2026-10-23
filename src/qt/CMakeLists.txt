@@ -23,35 +23,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if (USE_QT6)
-    set(QT_MAJOR 6)
-else()
-    set(QT_MAJOR 5)
-endif()
-
-if (QT6_FORCE_DYNAMIC)
-    set(QT_STATIC OFF)
-else()
-    set(QT_STATIC ${STATIC_BUILD})
-endif()
-
 if(QT_STATIC AND MINGW)
     set(CMAKE_PREFIX_PATH "$ENV{MSYSTEM_PREFIX}/qt${QT_MAJOR}-static")
-endif()
-
-if(VCPKG_TOOLCHAIN AND VCPKG_USE_HOST_TOOLS)
-    set(QT_HOST_PATH "${VCPKG_INSTALLED_DIR}/${VCPKG_HOST_TRIPLET}/tools/Qt${QT_MAJOR}")
-    set(QT_HOST_PATH_CMAKE_DIR ${VCPKG_INSTALLED_DIR}/${VCPKG_HOST_TRIPLET})
-    set(Qt${QT_MAJOR}LinguistTools_ROOT ${QT_HOST_PATH_CMAKE_DIR})
 endif()
 
 # CMake is a bitch and calls the Harfbuzz config twice on MinGW + Qt6
 # if config mode is preferred :)
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG OFF)
-
-find_package(Threads REQUIRED)
-find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets Network OpenGL Gui REQUIRED)
-find_package(Qt${QT_MAJOR}LinguistTools REQUIRED NO_CMAKE_FIND_ROOT_PATH)
 
 if(APPLE AND MOLTENVK)
     include(CheckCXXSourceCompiles)
