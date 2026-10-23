@@ -1259,8 +1259,10 @@ lpt_close(void *priv)
         timer_disable(&dev->char_timer);
     }
 
-    if (lpt_ports[dev->id].lpt_init != NULL)
+    if (lpt_ports[dev->id].lpt_init != NULL) {
         free(lpt_ports[dev->id].lpt_init);
+        lpt_ports[dev->id].lpt_init = NULL;
+    }
 
     if (lpt1 == dev)
         lpt1 = NULL;
@@ -1397,10 +1399,10 @@ lpt_init(const device_t *info)
             timer_add(&dev->char_timer, lpt_char_callback, dev, 0);
         }
 
-        lpt_ports[next_inst].lpt_init = (lpt_t *) calloc(1, sizeof(lpt_t));
-        memcpy(lpt_ports[next_inst].lpt_init, dev, sizeof(lpt_t));
+        lpt_ports[dev->id].lpt_init = (lpt_t *) calloc(1, sizeof(lpt_t));
+        memcpy(lpt_ports[dev->id].lpt_init, dev, sizeof(lpt_t));
     } else
-        lpt_ports[next_inst].lpt_init = NULL;
+        lpt_ports[dev->id].lpt_init = NULL;
 
     if (!(info->local & 0xfff00000))
         next_inst++;
