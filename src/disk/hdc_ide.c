@@ -115,7 +115,7 @@
 
 #define IDE_TIME                       10.0
 #define IDE_TURBO_SPEED                10000.0
-#define IDE_TURBO_DMA_MIN              10.0
+#define IDE_TURBO_MIN_TIME             10.0
 
 #define IDE_ATAPI_IS_EARLY             ide->sc->pad0
 
@@ -548,8 +548,8 @@ ide_dma_wait_time(double seek_time, double xfer_time)
     double wait_time = (seek_time > xfer_time) ? seek_time : xfer_time;
 
     /* Leaves the guest some idle time, otherwise back-to-back commands slow down emulation. */
-    if (ide_turbo && (wait_time < IDE_TURBO_DMA_MIN))
-        wait_time = IDE_TURBO_DMA_MIN;
+    if (ide_turbo && (wait_time < IDE_TURBO_MIN_TIME))
+        wait_time = IDE_TURBO_MIN_TIME;
 
     return wait_time;
 }
@@ -1262,8 +1262,13 @@ ide_set_callback(ide_t *ide, double callback)
 
     if (callback == 0.0)
         timer_stop(&ide->timer);
-    else
+    else {
+        /* Turbo can shrink delays to a fraction of a microsecond, which raises the
+           IRQ before the guest has finished issuing the command or its handler. */
+        if (ide_turbo && (callback < IDE_TURBO_MIN_TIME))
+            callback = IDE_TURBO_MIN_TIME;
         timer_on_auto(&ide->timer, callback);
+    }
 }
 
 void
