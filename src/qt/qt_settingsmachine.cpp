@@ -562,7 +562,7 @@ SettingsMachine::updateGuestYearLabel()
 {
     const int host_year = QDate::currentDate().year();
     const int guest_year = host_year + ui->spinBoxYearsOffset->value();
-    ui->labelGuestYear->setText(tr("Guest startup year: %1").arg(guest_year));
+    ui->labelGuestYear->setText(tr("(guest: %1)").arg(guest_year));
 }
 
 void

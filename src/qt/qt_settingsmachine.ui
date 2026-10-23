@@ -178,7 +178,7 @@
                   <property name="minimum">
                    <number>-100</number>
                   </property>
-                  <!-- Actual minimum is set at runtime to 1980 - current year -->
+                  <!-- Actual min/max set at runtime so guest year is 1980..2099 -->
                   <property name="maximum">
                    <number>100</number>
                   </property>
@@ -187,6 +187,13 @@
                   </property>
                   <property name="accelerated">
                    <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="labelGuestYear">
+                  <property name="text">
+                   <string>(guest: %1)</string>
                   </property>
                  </widget>
                 </item>
@@ -204,13 +211,6 @@
                  </spacer>
                 </item>
                </layout>
-              </item>
-              <item>
-               <widget class="QLabel" name="labelGuestYear">
-                <property name="text">
-                 <string>Guest startup year: %1</string>
-                </property>
-               </widget>
               </item>
              </layout>
             </widget>
