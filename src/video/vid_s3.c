@@ -8469,14 +8469,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_data, vo
     else
         dstbase = 0x100000 * ((s3->accel.multifunc[0xe] >> 0) & 3);
 
-    if (s3->bpp == 1) {
-        srcbase >>= 1;
-        dstbase >>= 1;
-    } else if (s3->bpp >= 2) {
-        srcbase >>= 2;
-        dstbase >>= 2;
-    }
-
     if ((s3->accel.cmd & 0x100) && (s3_cpu_src(s3) || (s3_cpu_dest(s3))) && (!cpu_input || (s3_enable_fifo(s3) == 0)))
         s3->force_busy = 1;
 
