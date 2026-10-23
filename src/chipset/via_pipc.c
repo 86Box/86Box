@@ -1228,8 +1228,14 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
 
             case 0x47:
+                /* "Software PCI Reset ... write 1 to generate PCI reset"
+                   (VT82C686A data sheet 1.82, p. 57): PCIRST# resets every
+                   device, the keyboard controller with them, whichever of
+                   CPURST and INIT bit 7 picks for the processor. A CPU-only
+                   reset leaves the 8042's system flag set and the BIOS on
+                   its warm path with SMBASE back at 30000h. */
                 if (val & 0x01)
-                    pci_write(0x0cf9, (val & 0x80) ? 0x06 : 0x04, NULL);
+                    pci_write(0x0cf9, 0x06, NULL);
                 pic_set_shadow(!!(val & 0x10));
                 pic_elcr_io_handler(!!(val & 0x20));
                 dev->pci_isa_regs[0x47] = val & 0xfe;
