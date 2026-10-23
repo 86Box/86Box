@@ -137,6 +137,7 @@
 #define CIRRUS_BLT_BUSY      0x01
 #define CIRRUS_BLT_START     0x02
 #define CIRRUS_BLT_RESET     0x04
+#define CIRRUS_BLT_PROGRESS  0x08
 #define CIRRUS_BLT_FIFOUSED  0x10
 #define CIRRUS_BLT_PAUSED    0x20
 #define CIRRUS_BLT_APERTURE2 0x40
@@ -3474,7 +3475,8 @@ gd543x_mmio_write(uint32_t addr, uint8_t val, void *priv)
 
             case 0x40:
                 old                = gd54xx->blt.status;
-                gd54xx->blt.status = val;
+                /* The progress bit is read-only. */
+                gd54xx->blt.status = val & ~CIRRUS_BLT_PROGRESS;
                 gd543x_recalc_mapping(gd54xx);
                 if (!(old & CIRRUS_BLT_RESET) && (gd54xx->blt.status & CIRRUS_BLT_RESET))
                     gd54xx_reset_blit(gd54xx);
