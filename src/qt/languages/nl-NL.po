@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-16 10:37+0000\n"
+"PO-Revision-Date: 2026-10-24 02:49+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -151,10 +151,10 @@ msgid "4:&3 Integer scale"
 msgstr "4:&3 integerschaal"
 
 msgid "&Center"
-msgstr ""
+msgstr "&Centreren"
 
 msgid "4:3 Cen&ter"
-msgstr ""
+msgstr "4:3 Cen&treren"
 
 msgid "Inverted VGA monitor"
 msgstr "Geïnverteerde VGA-monitor"
@@ -439,7 +439,7 @@ msgid "Block linking on the dynamic recompiler"
 msgstr "Blokkoppeling in de dynamische recompiler"
 
 msgid "Debug registers on 486 and later processors"
-msgstr ""
+msgstr "Debug registers op 486 and latere processoren"
 
 msgid "CPU frame size"
 msgstr "CPU framegrootte"
@@ -634,10 +634,13 @@ msgid "Cassette"
 msgstr "Cassette"
 
 msgid "Turbo IDE"
-msgstr ""
+msgstr "Turbo IDE"
 
 msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
 msgstr ""
+"Verwijdert de snelheidslimiet voor de IDE-overdrachtsmodus. De "
+"timingbeperkingen van de harde schijf en het cd-romstation blijven wel van "
+"kracht."
 
 msgid "Hard disks:"
 msgstr "Harde schijven:"
@@ -1293,33 +1296,35 @@ msgid "Delete virtual machines to Recycle Bin"
 msgstr "Verwijder virtuele machine naar Prullenbak"
 
 msgid "Discord"
-msgstr ""
+msgstr "Discord"
 
 msgid "Show running machines in my Discord status"
-msgstr ""
+msgstr "Toon actieve machines in mijn Discord-status"
 
 msgid "Details shown:"
-msgstr ""
+msgstr "Getoonde details:"
 
 msgid "Machine name and hardware"
-msgstr ""
+msgstr "Machinenaam en hardware"
 
 msgid "Hardware only"
-msgstr ""
+msgstr "Alleen hardware"
 
 msgid "No details"
-msgstr ""
+msgstr "Geen details"
 
 msgid "Using %1"
-msgstr ""
+msgstr "Gebruikt %1"
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] ""
+msgstr[0] "%n machine actief"
+msgstr[1] "%n machines actief"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
-msgstr[0] ""
+msgstr[0] " (+%n meer)"
+msgstr[1] " (+%n meer)"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -3648,7 +3653,7 @@ msgstr ""
 msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
 msgstr ""
 "Deze niet geselecteerde apparaten delen een IOMMU-groep met een geselecteerd "
-"apparaat en worden daarom ook gekoppeld."
+"apparaat en worden daarom ook gekoppeld:"
 
 msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
 msgstr ""
