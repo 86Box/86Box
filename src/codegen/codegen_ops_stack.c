@@ -602,21 +602,23 @@ ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNU
   CPU has them; VM, RF, VIF and VIP keep their values. The block ends after
   the instruction when TF turned on (the trap comes after the next
   instruction, which the loop runs interpreted) or when IF is set with an
-  interrupt pending, where the loop ends an interpreted block too. In V86
-  mode the fault depends on IOPL, which blocks aren't keyed on: the
-  interpreter decides it at run time.*/
+  interrupt pending, where the loop ends an interpreted block too. V86 mode
+  is in the block key, IOPL and CR4 are not: at IOPL 3 V86 code takes the
+  form above; below 3 POPFD is #GP(0) before the pop, and so is POPF without
+  CR4.VME. With VME POPF is #GP(0) with SP as it was when the word has TF
+  set, or IF while VIP is set; otherwise IOPL and IF stay and VIF takes the
+  word's IF.*/
 static uint32_t
 popf_common(ir_data_t *ir, uint32_t op_pc, int is32)
 {
-    int sp_reg;
+    const int v86 = !!(cpu_state.eflags & VM_FLAG);
+    int       sp_reg;
 
 #ifndef CODEGEN_BACKEND_HAS_INT_UOPS
     return 0;
 #endif
-    if (cpu_state.eflags & VM_FLAG)
-        return 0;
-    /*Room for the register versions below (at most 5 of temp0, 6 of temp1,
-      13 of temp2, 10 of temp3, 2 of the flags registers) without passing
+    /*Room for the register versions below (at most 9 of temp0, 15 of temp1,
+      16 of temp2, 11 of temp3, 2 of the flags registers) without passing
       REG_VERSION_MAX, which only ends the block after the current
       instruction*/
     if ((reg_last_version[IREG_GET_REG(IREG_temp0)] + 16 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp1)] + 16 > REG_VERSION_MAX) ||
@@ -629,6 +631,25 @@ popf_common(ir_data_t *ir, uint32_t op_pc, int is32)
       before an interpreter call*/
     codegen_accumulate_flush(ir);
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    if (v86) {
+        /*Below IOPL 3, #GP(0) before the pop: POPFD always, POPF without
+          CR4.VME*/
+        uop_MOVZX(ir, IREG_temp1, IREG_flags);
+        uop_AND_IMM(ir, IREG_temp1, IREG_temp1, 0x3000);
+        uop_MOV_IMM(ir, IREG_temp3, 0x3000);
+        if (is32)
+            uop_CMP_JB(ir, IREG_temp1, IREG_temp3, codegen_gpf_rout);
+        else {
+            uop_CMP_SET(ir, IREG_temp3, IREG_temp1, IREG_temp3, UOP_CC_Z);
+            uop_MOV_REG_PTR(ir, IREG_temp0, &cr4);
+            uop_AND_IMM(ir, IREG_temp0, IREG_temp0, CR4_VME);
+            uop_TEST_SET(ir, IREG_temp0, IREG_temp0, UOP_CC_NZ);
+            uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp3);
+            uop_CMP_IMM_JZ(ir, IREG_temp0, 0, codegen_gpf_rout);
+            /*temp3 all ones below IOPL 3 (the VME form), 0 at 3*/
+            uop_SUB_IMM(ir, IREG_temp3, IREG_temp3, 1);
+        }
+    }
     sp_reg = LOAD_SP(ir);
     if (is32) {
         uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, sp_reg);
@@ -645,8 +666,28 @@ popf_common(ir_data_t *ir, uint32_t op_pc, int is32)
         uop_OR(ir, IREG_eflags, IREG_eflags, IREG_temp2_W);
     } else {
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, sp_reg);
-        ADD_SP(ir, 2);
         uop_MOVZX(ir, IREG_temp0, IREG_temp0_W);
+        if (v86) {
+            /*The VME form: #GP(0) before SP moves when the word has TF set,
+              or IF while VIP is set*/
+            uop_MOVZX(ir, IREG_temp1, IREG_eflags);
+            uop_AND_IMM(ir, IREG_temp1, IREG_temp1, VIP_FLAG);
+            uop_SHL_IMM(ir, IREG_temp1, IREG_temp1, 5);
+            uop_OR_IMM(ir, IREG_temp1, IREG_temp1, T_FLAG);
+            uop_AND(ir, IREG_temp1, IREG_temp1, IREG_temp0);
+            uop_AND(ir, IREG_temp1, IREG_temp1, IREG_temp3);
+            uop_TEST_SET(ir, IREG_temp1, IREG_temp1, UOP_CC_NZ);
+            uop_CMP_IMM_JZ(ir, IREG_temp1, 1, codegen_gpf_rout);
+        }
+        ADD_SP(ir, 2);
+        if (v86) {
+            /*VIF from the word's IF in the VME form*/
+            uop_SHR_IMM(ir, IREG_temp2, IREG_temp0, 6);
+            uop_XOR(ir, IREG_temp2_W, IREG_temp2_W, IREG_eflags);
+            uop_AND_IMM(ir, IREG_temp2_W, IREG_temp2_W, VIF_FLAG);
+            uop_AND(ir, IREG_temp2_W, IREG_temp2_W, IREG_temp3_W);
+            uop_XOR(ir, IREG_eflags, IREG_eflags, IREG_temp2_W);
+        }
     }
 
     uop_MOVZX(ir, IREG_temp1, IREG_flags);
@@ -657,6 +698,12 @@ popf_common(ir_data_t *ir, uint32_t op_pc, int is32)
         uop_MOVZX_REG_PTR_8(ir, IREG_temp2, &cpu_state.seg_cs.access);
         uop_SHR_IMM(ir, IREG_temp2, IREG_temp2, 5);
         uop_AND_IMM(ir, IREG_temp2, IREG_temp2, 3);
+        if (v86 && !is32) {
+            /*The VME form keeps IOPL and IF whatever CPL is: CPL taken as
+              3*/
+            uop_AND_IMM(ir, IREG_temp3, IREG_temp3, 3);
+            uop_OR(ir, IREG_temp2, IREG_temp2, IREG_temp3);
+        }
         uop_SHR_IMM(ir, IREG_temp3, IREG_temp1, 12);
         uop_AND_IMM(ir, IREG_temp3, IREG_temp3, 3);
         uop_CMP_SET(ir, IREG_temp3, IREG_temp2, IREG_temp3, UOP_CC_NBE);
