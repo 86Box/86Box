@@ -29,8 +29,9 @@ static struct {
     uint32_t op_32;
     int      first_uop;
     int      TOP;
-    int      fpu_entered; /*codegen_fpu_entered as the instruction was compiled*/
-    int      mmx_entered; /*codegen_mmx_entered as the instruction was compiled*/
+    int      fpu_entered;  /*codegen_fpu_entered as the instruction was compiled*/
+    int      fpu_es_check; /*codegen_fpu_es_check as the instruction was compiled*/
+    int      mmx_entered;  /*codegen_mmx_entered as the instruction was compiled*/
 } codegen_instructions[MAX_INSTRUCTION_COUNT];
 
 int
@@ -51,10 +52,11 @@ codegen_get_instruction_uop(codeblock_t *block, uint32_t pc, int *first_instruct
 /*The x87 and MMX entry state instruction number ins of the block was
   compiled with*/
 void
-codegen_get_instruction_entered(int ins, int *fpu_entered, int *mmx_entered)
+codegen_get_instruction_entered(int ins, int *fpu_entered, int *fpu_es_check, int *mmx_entered)
 {
-    *fpu_entered = codegen_instructions[ins].fpu_entered;
-    *mmx_entered = codegen_instructions[ins].mmx_entered;
+    *fpu_entered  = codegen_instructions[ins].fpu_entered;
+    *fpu_es_check = codegen_instructions[ins].fpu_es_check;
+    *mmx_entered  = codegen_instructions[ins].mmx_entered;
 }
 
 /*Set with the address of a MOV SS whose handler compiled it as the first of
@@ -1039,8 +1041,9 @@ generate_call:
     codegen_instructions[block->ins].op_32     = last_op_32;
     codegen_instructions[block->ins].TOP       = cpu_state.TOP;
     codegen_instructions[block->ins].first_uop = ir->wr_pos;
-    codegen_instructions[block->ins].fpu_entered = codegen_fpu_entered;
-    codegen_instructions[block->ins].mmx_entered = codegen_mmx_entered;
+    codegen_instructions[block->ins].fpu_entered  = codegen_fpu_entered;
+    codegen_instructions[block->ins].fpu_es_check = codegen_fpu_es_check;
+    codegen_instructions[block->ins].mmx_entered  = codegen_mmx_entered;
 
     codegen_timing_opcode(opcode, fetchdat, op_32, op_pc);
 
@@ -1167,10 +1170,13 @@ generate_call:
         uop_CALL_FUNC(ir, x87_ferr_nowait);
     }
 
-    /* A pending exception is taken only with ES set: the call only then */
-    if (is_fpu && !fpu_softfloat && !x87_op_is_nowait(x87_op) && !codegen_fpu_entered) {
+    /* A pending exception is taken only with ES set: the call only then. Once
+       the block has entered the FPU it is left out, unless a compiled
+       instruction since the last check can have set ES and gone on */
+    if (is_fpu && !fpu_softfloat && !x87_op_is_nowait(x87_op) && (!codegen_fpu_entered || codegen_fpu_es_check)) {
         int jump_uop;
 
+        codegen_fpu_es_check = 0;
         uop_MOVZX(ir, IREG_temp3, IREG_NPXS);
         uop_AND_IMM(ir, IREG_temp3, IREG_temp3, FPU_SW_Summary);
         jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp3, 0);

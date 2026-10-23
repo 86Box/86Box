@@ -272,6 +272,7 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
     int first_instruction;
     int TOP = -1;
     int head_fpu_entered;
+    int head_fpu_es_check;
     int head_mmx_entered;
 
     /*Check that dest instruction was actually compiled into block*/
@@ -297,10 +298,14 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
       last. So an entry in force when the loop's first instruction was
       compiled must still be in force at the branch: an x87 instruction ends
       the MMX one, an MMX instruction the x87 one, and EMMS, FEMMS, LMSW and an
-      interpreted x87 or 0F instruction both. Not found, first_instruction is
-      this instruction, whose state is the current one*/
-    codegen_get_instruction_entered(first_instruction, &head_fpu_entered, &head_mmx_entered);
+      interpreted x87 or 0F instruction both. A pending exception check left
+      out there must be one the branch can leave out too: not after a compiled
+      instruction that can set ES and go on (codegen_fpu_es_check). Not found,
+      first_instruction is this instruction, whose state is the current one*/
+    codegen_get_instruction_entered(first_instruction, &head_fpu_entered, &head_fpu_es_check, &head_mmx_entered);
     if ((head_mmx_entered && !codegen_mmx_entered) || (head_fpu_entered && !codegen_fpu_entered))
+        return 0;
+    if (head_fpu_entered && !head_fpu_es_check && codegen_fpu_es_check)
         return 0;
 
     /*Not across a flags rebuild or flag reader worked out from a flags op

@@ -34,9 +34,11 @@ extern int x87_dyn_ftst_nan(uint32_t imm);
 /* The FDIV family of the legacy FPU: the quotient comes from the
    interpreter's divide (x87_dyn_fdiv, 386_dynarec.c), so a compiled
    division raises the x87 exceptions and rounds exactly as an interpreted
-   one; an unmasked exception ends the block past the instruction, with the
-   destination and the stack left alone. A memory operand goes in the
-   permanent IREG_x87_operand. */
+   one. An unmasked exception that suppresses the result ends the block past
+   the instruction, with the destination and the stack left alone; an
+   unmasked precision exception alone stores the rounded result and the
+   block goes on with ES set. A memory operand goes in the permanent
+   IREG_x87_operand. */
 #define FDIV_REGS(d, n, q) ((d) | ((n) << 3) | ((q) << 6))
 #define FDIV_MEM_NUM       0x200
 #define FDIV_MEM_DEN       0x400
@@ -49,6 +51,9 @@ fdiv_call(ir_data_t *ir, uint32_t next_pc, uint32_t imm)
     codegen_accumulate_flush(ir);
     uop_MOV_IMM(ir, IREG_pc, next_pc);
     uop_CALL_INSTRUCTION_FUNC(ir, x87_dyn_fdiv, imm);
+    /* ES may be set now with the block going on: the next waiting
+       instruction checks for it before it runs */
+    codegen_fpu_es_check = 1;
 }
 
 /* The divide itself. On arm64 the common case runs in the block, as

@@ -35,6 +35,7 @@ int      codegen_wide_ss;
 int      mmx_ebx_ecx_loaded;
 int      codegen_flags_changed = 0;
 int      codegen_fpu_entered   = 0;
+int      codegen_fpu_es_check  = 0;
 int      codegen_mmx_entered   = 0;
 int      codegen_fpu_loaded_iq[8];
 x86seg  *op_ea_seg;
@@ -972,6 +973,7 @@ codegen_block_start_recompile(codeblock_t *block)
     codegen_flags_changed = 0;
     codegen_flags_known_reset();
     codegen_fpu_entered   = 0;
+    codegen_fpu_es_check  = 0;
     codegen_mmx_entered   = 0;
     codegen_fpu_class_dirty = 0;
 
