@@ -432,6 +432,7 @@ extern uint32_t instr_counts[256 * 256];
 extern void dynarec_iret_pm(int is32);
 extern void dynarec_iret_cs(uint16_t seg);
 extern int  dynarec_dtr(uint32_t op);
+extern void dynarec_lmsw(uint16_t tempw);
 extern int  dynarec_call_far_w(uint16_t new_cs, uint32_t ret_pc);
 extern int  dynarec_call_far_l(uint16_t new_cs, uint32_t ret_pc);
 

@@ -214,3 +214,18 @@ dynarec_call_far_l(uint16_t new_cs, uint32_t ret_pc)
     CALL_FAR_l(new_cs, new_pc);
     return 0;
 }
+
+/*The compiled LMSW's register write, op0F01_common's: PE, MP, EM and TS
+  load, PE cannot be cleared, and the status follows PE. cpu_cur_status is
+  not in cpu_state, where the compiled code stores*/
+void
+dynarec_lmsw(uint16_t tempw)
+{
+    if (msw & 1)
+        tempw |= 1;
+    msw = (msw & ~0xF) | (tempw & 0xF);
+    if (msw & 1)
+        cpu_cur_status |= CPU_STATUS_PMODE;
+    else
+        cpu_cur_status &= ~CPU_STATUS_PMODE;
+}

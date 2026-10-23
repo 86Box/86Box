@@ -307,6 +307,12 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
           after a segment load would use those checks with the new segment*/
         if ((ir->uops[c].type & UOP_MASK) == (UOP_LOAD_SEG & UOP_MASK))
             return 0;
+        /*An x87 or MMX instruction after the block has entered leaves out its
+          entry check, and LMSW can set EM or TS: a copy after it would run
+          such an instruction unchecked. Found by its call, as the segment
+          loads are by their uop, so nothing has to mark it*/
+        if (((ir->uops[c].type & UOP_MASK) == (UOP_CALL_FUNC & UOP_MASK)) && (ir->uops[c].p == (void *) dynarec_lmsw))
+            return 0;
         if ((ir->uops[c].type & UOP_MASK) == (UOP_CALL_INSTRUCTION_FUNC & UOP_MASK) &&
             !((c + 1 < ir->wr_pos) && ((ir->uops[c + 1].type & UOP_MASK) == (UOP_JMP & UOP_MASK))))
             return 0;

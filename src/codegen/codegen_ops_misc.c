@@ -1331,9 +1331,11 @@ ropWAIT(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
   register in the op's order; the descriptor-table registers are not in the
   block key, so the block goes on. SMSW and INVLPG are compiled. The register
   forms of SGDT, SIDT, LGDT, LIDT and INVLPG, reg 5, and INVLPG before the 486
-  are #UD, raised before any operand access. LMSW can set PE, which is in the
-  block key, and EM and TS, which the compiled FPU entry state assumes: it
-  stays with the interpreter.*/
+  are #UD, raised before any operand access. LMSW, with the privilege test of
+  LGDT, writes the MSW through dynarec_lmsw. In real mode it can set PE, which
+  is in the block key, so the block ends after it; it can change EM and TS,
+  which the compiled FPU entry state assumes, so the next x87 or MMX
+  instruction checks them again.*/
 static uint32_t
 rop0F01_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
@@ -1341,11 +1343,8 @@ rop0F01_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op
     x86seg        *target_seg;
     int            seg_nr;
 
-    if (reg == 0x30)
-        return 0;
-
     codegen_mark_code_present(block, cs + op_pc, 1);
-    if ((reg == 0x28) || ((reg == 0x38) && !is486 && !isibm486) || (((fetchdat & 0xc0) == 0xc0) && (reg != 0x20)))
+    if ((reg == 0x28) || ((reg == 0x38) && !is486 && !isibm486) || (((fetchdat & 0xc0) == 0xc0) && (reg != 0x20) && (reg != 0x30)))
         return codegen_ud(ir);
 
     codegen_accumulate_flush(ir);
@@ -1368,9 +1367,9 @@ rop0F01_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op
     }
 
     if (reg >= 0x10) {
-        /*LGDT, LIDT and INVLPG are #GP(0) in V86 mode, where no such block is
-          kept (the compile pass faults too), and outside CPL 0 in protected
-          mode, read as the block runs*/
+        /*LGDT, LIDT, LMSW and INVLPG are #GP(0) in V86 mode, where no such
+          block is kept (the compile pass faults too), and outside CPL 0 in
+          protected mode, read as the block runs*/
         if (cpu_state.eflags & VM_FLAG) {
             uop_JMP(ir, codegen_gpf_rout);
             return -1;
@@ -1381,6 +1380,25 @@ rop0F01_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op
             uop_MOV_IMM(ir, IREG_temp1, 0);
             uop_CMP_JNBE(ir, IREG_temp0, IREG_temp1, codegen_gpf_rout);
         }
+    }
+
+    if (reg == 0x30) {
+        if ((fetchdat & 0xc0) == 0xc0)
+            uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_16(fetchdat & 7));
+        else {
+            target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+            if (target_seg != &cpu_state.seg_cs) /*the op tests for the null selector only: an execute-only CS is read*/
+                codegen_check_seg_read(block, ir, target_seg);
+            CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
+            uop_MEM_LOAD_REG(ir, IREG_temp0_W, ireg_seg_base(target_seg), IREG_eaaddr);
+            uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp0_W);
+        }
+        uop_CALL_FUNC(ir, dynarec_lmsw);
+        codegen_fpu_entered = 0;
+        codegen_mmx_entered = 0;
+        if (!(cr0 & 1))
+            CPU_BLOCK_END();
+        return op_pc + 1;
     }
 
     target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
