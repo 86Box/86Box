@@ -805,7 +805,7 @@ static const device_config_t in530_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "AMIBIOS 6 (071595) - Revision 1.11J (Packard Bell)",
+                .name          = "AMIBIOS 6 (071595) - Revision 1.11J (Various)",
                 .internal_name = "in530_pb_111j",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -829,7 +829,7 @@ static const device_config_t in530_config[] = {
                 }
             },
             {
-                .name          = "AMIBIOS 6 (071595) - Revision 1.29 (Packard Bell)",
+                .name          = "AMIBIOS 6 (071595) - Revision 1.29 (Various)",
                 .internal_name = "in530_pb_129",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
