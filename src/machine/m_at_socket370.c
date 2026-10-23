@@ -943,6 +943,59 @@ machine_at_ms6318_init(const machine_t *model)
 }
 
 int
+machine_at_m790mr_init(const machine_t *model)
+{
+    /* The 686A's I/O APIC has the ISA IRQs on their own inputs. The BIOS's
+       MP table puts each PCI interrupt on the input of the IRQ it steered
+       that PIRQ to (00:0A INTA# on INTIN5 with PIRQC# at IRQ5), level and
+       active low, so the steered PIRQs reach the I/O APIC there. */
+    static const ioapic_legacy_irq_routing_t m790mr_irq_routing = {
+        .irq_to_intin = IOAPIC_LEGACY_IRQ_ROUTE_ISA
+    };
+    void *pipc;
+    void *ioapic;
+    int   ret;
+
+    ret = bios_load_linear("roms/machines/m790mr/010914s.rom",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&via_apro133a_device);
+    pipc = device_add(&via_vt82c686a_device);
+    device_add(&sst_flash_39sf020_device); /* assumed */
+    spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
+
+    /* The 686A's internal I/O APIC. The BIOS is AMI, so the MP table is in
+       place by POST code 00h (IOAPIC_POST_TRIGGER_AMI). */
+    ioapic = device_add_params(&ioapic_validated_up_device,
+                               (void *) (IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_POST_TRIGGER_AMI | IOAPIC_VARIANT_VIA));
+    ioapic_set_legacy_irq_routing(ioapic, &m790mr_irq_routing);
+    via_pipc_set_ioapic(pipc, ioapic);
+
+    hwm_values.temperatures[0] += 2; /* CPU offset */
+    hwm_values.temperatures[1] += 2; /* System offset */
+    hwm_values.temperatures[2] = 0;  /* unused */
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+int
 machine_at_cairo5_init(const machine_t *model)
 {
     /* The 686B's I/O APIC has the ISA IRQs on their own inputs and PIRQA-D#

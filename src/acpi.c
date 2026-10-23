@@ -212,6 +212,11 @@ acpi_update_irq(acpi_t *dev)
             break;
     }
 
+    /* The southbridge's view of SCI, apart from the line it is steered to
+       (acpi_set_sci_hook). */
+    if (dev->sci_hook)
+        dev->sci_hook(dev->sci_hook_priv, (dev->regs.pmcntrl & 0x01) && sci_level);
+
     if ((dev->regs.pmcntrl & 0x01) && sci_level)  switch (dev->irq_mode) {
         default:
             if (dev->irq_line != 0)
@@ -2318,6 +2323,13 @@ acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv)
 {
     dev->trap_update = update;
     dev->trap_priv   = priv;
+}
+
+void
+acpi_set_sci_hook(acpi_t *dev, void (*hook)(void *priv, int set), void *priv)
+{
+    dev->sci_hook      = hook;
+    dev->sci_hook_priv = priv;
 }
 
 uint8_t

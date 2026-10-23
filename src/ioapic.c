@@ -49,7 +49,7 @@ typedef struct ioapic_t {
     uint8_t  smi_pin; /* 0xff: none */
     uint8_t  is_esc;
     uint8_t  lapic_only; /* no I/O APIC: the local APIC's path alone */
-    uint8_t  is_via;     /* the VT82C686B's own (IOAPIC_VARIANT_VIA) */
+    uint8_t  is_via;     /* the VT82C686A/B's own (IOAPIC_VARIANT_VIA) */
     uint8_t  window_off; /* the chipset decodes no window (ioapic_set_window_enabled) */
     uint8_t  intr_masked; /* the ESC's INTRC: the 8259's INTR held inactive */
     uint32_t version_reg;
@@ -72,6 +72,9 @@ typedef struct ioapic_t {
     uint32_t      wire_legacy;
     uint32_t      wire_pci;
     uint32_t      wire_intr;
+    /* The southbridge's own interrupt outputs on inputs of their own (the
+       VIA 686A/B's Rx58, ioapic_chip_irq). */
+    uint32_t      wire_chip;
     uint8_t       pic_intr; /* the 8259's INTR output */
     uint8_t       pin0_smi; /* ESC PAC SMIRC: INTIN0 carries SMI, not INTR */
     uint8_t       legacy_routes_set;
@@ -783,7 +786,7 @@ ioapic_raw_intin_device(ioapic_t *dev, uint8_t pin, int physical_high)
 static void
 ioapic_wire_drive(ioapic_t *dev, uint8_t pin)
 {
-    int      asserted = !!((dev->wire_legacy | dev->wire_pci | dev->wire_intr) & ioapic_82093aa_pin_bit(pin));
+    int      asserted = !!((dev->wire_legacy | dev->wire_pci | dev->wire_intr | dev->wire_chip) & ioapic_82093aa_pin_bit(pin));
     uint32_t low      = dev->ioapic_redir[pin * 2];
 
     /* INTIN23/SMI# has no source here: it stays at its idle level. */
@@ -1389,7 +1392,7 @@ ioapic_reset(ioapic_t *dev)
     dev->ioapic_index   = 0;
     dev->ioapic_arb_id  = 0;
     dev->ioapic_pin_lines = 0;
-    dev->wire_legacy = dev->wire_pci = dev->wire_intr = 0;
+    dev->wire_legacy = dev->wire_pci = dev->wire_intr = dev->wire_chip = 0;
     dev->pic_intr = dev->pin0_smi = 0;
     /* Every input idle; INTIN23/SMI# is active low, so idle is high
        (82093AA 4.1). */
@@ -1493,7 +1496,7 @@ ioapic_set_intr_masked(void *ioapic, int masked)
     ioapic_wire_intr_update(dev);
 }
 
-/* Whether the chipset decodes the window at all (the VT82C686B's Internal
+/* Whether the chipset decodes the window at all (the VT82C686A/B's Internal
    APIC Enable, Rx77[4]). The I/O APIC keeps its state either way. */
 void
 ioapic_set_window_enabled(void *ioapic, int enabled)
@@ -1505,6 +1508,21 @@ ioapic_set_window_enabled(void *ioapic, int enabled)
 
     dev->window_off = !enabled;
     ioapic_apply_mapping(dev);
+}
+
+/* A level output of the southbridge itself onto an input of its own: the
+   VIA 686A/B steer their on-chip interrupts to APIC[23:16] through Rx58.
+   It is one more source of that input's wire, apart from whatever PCI or
+   ISA line also drives it. */
+void
+ioapic_chip_irq(void *ioapic, uint8_t pin, int set)
+{
+    ioapic_t *dev = (ioapic_t *) ioapic;
+
+    if ((dev == NULL) || !dev->uniprocessor_apic || (pin >= dev->pins))
+        return;
+
+    ioapic_wire_set(dev, &dev->wire_chip, pin, 1, set);
 }
 
 int
