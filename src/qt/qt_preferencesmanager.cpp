@@ -61,8 +61,8 @@ PreferencesManager::PreferencesManager(bool machinesRunning, QWidget *parent)
     ui->deleteToTrashCheckBox->setVisible(false);
 #endif
 #ifdef DISCORD
-    ui->discordCheckBox->setChecked(discord_presence != 0);
-    ui->comboBoxDiscordPrivacy->setCurrentIndex(qMax(discord_presence - 1, 0));
+    ui->discordCheckBox->setChecked(vmm_discord_presence != 0);
+    ui->comboBoxDiscordPrivacy->setCurrentIndex(qMax(vmm_discord_presence - 1, 0));
     ui->comboBoxDiscordPrivacy->setEnabled(ui->discordCheckBox->isChecked());
     ui->labelDiscordPrivacy->setEnabled(ui->discordCheckBox->isChecked());
     connect(ui->discordCheckBox, &QCheckBox::toggled, ui->comboBoxDiscordPrivacy, &QWidget::setEnabled);
@@ -83,7 +83,7 @@ PreferencesManager::save()
     strncpy(vmm_path_cfg, QDir::cleanPath(ui->systemDirectory->text()).toUtf8().constData(), sizeof(vmm_path_cfg) - 1);
     vmm_path_cfg[sizeof(vmm_path_cfg) - 1] = '\0';
 #ifdef DISCORD
-    discord_presence = ui->discordCheckBox->isChecked() ? (ui->comboBoxDiscordPrivacy->currentIndex() + 1) : 0;
+    vmm_discord_presence = ui->discordCheckBox->isChecked() ? (ui->comboBoxDiscordPrivacy->currentIndex() + 1) : 0;
 #endif
     vmm_update_check    = ui->updateCheckBox->isChecked() ? 1 : 0;
     vmm_window_remember = ui->rememberSizePositionCheckBox->isChecked() ? 1 : 0;

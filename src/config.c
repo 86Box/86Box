@@ -250,9 +250,9 @@ load_global_manager(void)
         plat_get_vmm_dir(vmm_path_cfg, sizeof(vmm_path_cfg));
     }
 
-    discord_presence = ini_section_get_int(cat, "discord_presence", 0);
-    if ((discord_presence < 0) || (discord_presence > 3))
-        discord_presence = 0;
+    vmm_discord_presence = ini_section_get_int(cat, "discord_presence", 0);
+    if ((vmm_discord_presence < 0) || (vmm_discord_presence > 3))
+        vmm_discord_presence = 0;
 
     vmm_update_check    = ini_section_get_int(cat, "update_check", 1);
     vmm_regex_search    = ini_section_get_int(cat, "regex_search", 0);
@@ -3252,8 +3252,8 @@ save_global_manager(void)
         ini_section_delete_var(cat, "vmm_path");
     }
 
-    if (discord_presence)
-        ini_section_set_int(cat, "discord_presence", discord_presence);
+    if (vmm_discord_presence)
+        ini_section_set_int(cat, "discord_presence", vmm_discord_presence);
     else
         ini_section_delete_var(cat, "discord_presence");
 

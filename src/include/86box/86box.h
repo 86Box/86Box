@@ -256,7 +256,7 @@ extern int    fm_driver;                    /* (C) select FM sound driver */
 extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
 extern int    vmm_disabled;                 /* (G) disable built-in manager */
 extern char   vmm_path_cfg[1024];           /* (G) VMs path (unless -E is used) */
-extern int    discord_presence;             /* (G) Discord status: off, name and hardware, hardware only, no details */
+extern int    vmm_discord_presence;         /* (G) Discord status: off, name and hardware, hardware only, no details */
 extern int    vmm_update_check;             /* (G) check for updates when the manager starts */
 extern int    vmm_regex_search;             /* (G) search the manager with regular expressions */
 extern int    vmm_window_remember;          /* (G) remember the manager's window size and position */
