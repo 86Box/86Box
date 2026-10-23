@@ -477,14 +477,13 @@ ropPOPA_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UN
   themselves, masked in place as outside V86; below 3 with CR4.VME the
   word has IF from VIF and IOPL reading 3 and the flags stay as they are;
   below 3 without VME it is #GP(0). Blocks are keyed on V86 but not on
-  IOPL or CR4, so both are read as the block runs: the #GP case takes the
-  interpreter and leaves the block, the other two are one select with no
-  branch (Windows runs its V86 code below IOPL 3 with VME on).*/
+  IOPL or CR4, so both are read as the block runs: the #GP case faults
+  there, before anything is pushed, and the other two are one select with
+  no branch (Windows runs its V86 code below IOPL 3 with VME on).*/
 static uint32_t
-pushf_v86(ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+pushf_v86(ir_data_t *ir, uint32_t op_pc)
 {
     int sp_reg;
-    int jump_uop;
 
 #ifndef CODEGEN_BACKEND_HAS_INT_UOPS
     return 0;
@@ -496,7 +495,7 @@ pushf_v86(ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
       ends the block after the current instruction*/
     if ((reg_last_version[IREG_GET_REG(IREG_temp0)] + 16 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp1)] + 40 > REG_VERSION_MAX) ||
         (reg_last_version[IREG_GET_REG(IREG_temp2)] + 16 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp3)] + 16 > REG_VERSION_MAX) ||
-        (reg_last_version[IREG_GET_REG(IREG_flags)] + 12 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_pc)] + 4 > REG_VERSION_MAX))
+        (reg_last_version[IREG_GET_REG(IREG_flags)] + 12 > REG_VERSION_MAX))
         return 0;
 
     codegen_accumulate_flush(ir);
@@ -511,12 +510,7 @@ pushf_v86(ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
     uop_AND_IMM(ir, IREG_temp2, IREG_temp2, CR4_VME);
     uop_TEST_SET(ir, IREG_temp2, IREG_temp2, UOP_CC_NZ);
     uop_OR(ir, IREG_temp2, IREG_temp2, IREG_temp3);
-    jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp2, 0);
-
-    uop_MOV_IMM(ir, IREG_pc, op_pc);
-    uop_CALL_INSTRUCTION_FUNC(ir, x86_dynarec_opcodes[(opcode | op_32) & 0x3ff], fetchdat);
-    uop_JMP(ir, codegen_exit_rout);
-    uop_set_jump_dest(ir, jump_uop);
+    uop_CMP_IMM_JZ(ir, IREG_temp2, 0, codegen_gpf_rout);
 
     /*temp3 all ones at IOPL 3; the flags in place first, as the
       interpreter has them before the push can fault*/
@@ -547,12 +541,12 @@ pushf_v86(ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint
 }
 
 uint32_t
-ropPUSHF(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPUSHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int sp_reg;
 
     if (cpu_state.eflags & VM_FLAG)
-        return pushf_v86(ir, opcode, fetchdat, op_32, op_pc);
+        return pushf_v86(ir, op_pc);
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     call_flags_rebuild(ir, jit_flags_rebuild);
@@ -565,25 +559,20 @@ ropPUSHF(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t fet
     return op_pc;
 }
 uint32_t
-ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int sp_reg;
 
     /*In V86 mode PUSHFD below IOPL 3 is #GP(0), with no VME form: IOPL is
-      read as the block runs (blocks aren't keyed on it) and the fault
-      takes the interpreter and leaves the block*/
+      read as the block runs (blocks aren't keyed on it) and the fault comes
+      before anything is pushed*/
     if (cpu_state.eflags & VM_FLAG) {
-        int jump_uop;
-
         codegen_accumulate_flush(ir);
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         uop_MOVZX(ir, IREG_temp0, IREG_flags);
         uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0x3000);
-        jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp0, 0x3000);
-        uop_MOV_IMM(ir, IREG_pc, op_pc);
-        uop_CALL_INSTRUCTION_FUNC(ir, x86_dynarec_opcodes[(opcode | op_32) & 0x3ff], fetchdat);
-        uop_JMP(ir, codegen_exit_rout);
-        uop_set_jump_dest(ir, jump_uop);
+        uop_MOV_IMM(ir, IREG_temp1, 0x3000);
+        uop_CMP_JB(ir, IREG_temp0, IREG_temp1, codegen_gpf_rout);
     }
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
