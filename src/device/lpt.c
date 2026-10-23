@@ -414,7 +414,13 @@ lpt_devices_close(int hotplug)
 void
 lpt_devices_reset(void)
 {
-    device_close_by_flags(DEVICE_LPT | DEVICE_HOTPLUG_OUT);
+    /* Only close the dropdown devices of the ports that lpt_devices_close() and lpt_devices_init()
+       will go through. A port where another device also asked for the port, such as a tape drive's
+       Ditto, is left alone by them, and closing its device would leave the port calling into it. */
+    for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
+        if (lpt_ports[i].hotunplug < CHAR_PORT_NOHOTUNPLUG)
+            device_close_by_flags_inst(DEVICE_LPT | DEVICE_HOTPLUG_OUT, i + 1);
+    }
 
     lpt_devices_close(1);
 
