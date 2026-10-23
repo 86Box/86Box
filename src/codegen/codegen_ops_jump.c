@@ -272,6 +272,9 @@ ropRETF_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UN
     uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
     uop_CALL_FUNC(ir, loadcs);
     ADD_SP(ir, 4);
+    /*The op's own charge, on top of the timing model's, once nothing can
+      fault; the block's end flushes it*/
+    codegen_accumulate(ir, ACCREG_cycles, -timing_retf_rm);
 
     return -1;
 }
@@ -295,6 +298,7 @@ ropRETF_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UN
     uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
     uop_CALL_FUNC(ir, loadcs);
     ADD_SP(ir, 8);
+    codegen_accumulate(ir, ACCREG_cycles, -timing_retf_rm);
 
     return -1;
 }
@@ -322,6 +326,7 @@ ropRETF_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
     uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
     uop_CALL_FUNC(ir, loadcs);
     ADD_SP(ir, 4 + offset);
+    codegen_accumulate(ir, ACCREG_cycles, -timing_retf_rm);
 
     codegen_mark_code_present(block, cs + op_pc, 2);
     return -1;
@@ -349,6 +354,7 @@ ropRETF_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
     uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
     uop_CALL_FUNC(ir, loadcs);
     ADD_SP(ir, 8 + offset);
+    codegen_accumulate(ir, ACCREG_cycles, -timing_retf_rm);
 
     codegen_mark_code_present(block, cs + op_pc, 2);
     return -1;
