@@ -405,22 +405,28 @@ ropFF_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     int     src_reg;
     int     sp_reg;
 
-    if ((fetchdat & 0x38) != 0x00 && (fetchdat & 0x38) != 0x08 && (fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x20 && (fetchdat & 0x38) != 0x28 && (fetchdat & 0x38) != 0x30)
+    if ((fetchdat & 0x38) != 0x00 && (fetchdat & 0x38) != 0x08 && (fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x18 && (fetchdat & 0x38) != 0x20 && (fetchdat & 0x38) != 0x28 && (fetchdat & 0x38) != 0x30)
         return 0;
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
+        if ((fetchdat & 0x38) == 0x18) /*CALL far*/
+            return codegen_ud(ir);
         if ((fetchdat & 0x38) == 0x28)
             return 0;
         src_reg = IREG_16(fetchdat & 7);
     } else {
+        /*CALL far: the cycles so far are charged before anything can fault,
+          as they are before an interpreter call*/
+        if ((fetchdat & 0x38) == 0x18)
+            codegen_accumulate_flush(ir);
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         if (!(fetchdat & 0x30)) /*INC/DEC*/
             codegen_check_seg_write(block, ir, target_seg);
         else
             codegen_check_seg_read(block, ir, target_seg);
-        CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, ((fetchdat & 0x38) == 0x28) ? 3 : 1); /*JMP far: the whole pointer*/
+        CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, (((fetchdat & 0x38) == 0x18) || ((fetchdat & 0x38) == 0x28)) ? 3 : 1); /*CALL and JMP far: the whole pointer*/
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, ireg_seg_base(target_seg), IREG_eaaddr);
         src_reg = IREG_temp0_W;
     }
@@ -479,6 +485,14 @@ ropFF_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             uop_MOVZX(ir, IREG_pc, src_reg);
             return -1;
 
+        case 0x18: /*CALL far*/
+            uop_MOVZX(ir, IREG_pc, src_reg);
+            uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 2);
+            uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
+            uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
+            uop_CALL_FUNC(ir, dynarec_call_far_w);
+            return -1;
+
         case 0x20: /*JMP*/
             uop_MOVZX(ir, IREG_pc, src_reg);
             return -1;
@@ -512,22 +526,28 @@ ropFF_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     int     src_reg;
     int     sp_reg;
 
-    if ((fetchdat & 0x38) != 0x00 && (fetchdat & 0x38) != 0x08 && (fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x20 && (fetchdat & 0x38) != 0x28 && (fetchdat & 0x38) != 0x30)
+    if ((fetchdat & 0x38) != 0x00 && (fetchdat & 0x38) != 0x08 && (fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x18 && (fetchdat & 0x38) != 0x20 && (fetchdat & 0x38) != 0x28 && (fetchdat & 0x38) != 0x30)
         return 0;
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
+        if ((fetchdat & 0x38) == 0x18) /*CALL far*/
+            return codegen_ud(ir);
         if ((fetchdat & 0x38) == 0x28)
             return 0;
         src_reg = IREG_32(fetchdat & 7);
     } else {
+        /*CALL far: the cycles so far are charged before anything can fault,
+          as they are before an interpreter call*/
+        if ((fetchdat & 0x38) == 0x18)
+            codegen_accumulate_flush(ir);
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         if (!(fetchdat & 0x30)) /*INC/DEC*/
             codegen_check_seg_write(block, ir, target_seg);
         else
             codegen_check_seg_read(block, ir, target_seg);
-        CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, ((fetchdat & 0x38) == 0x28) ? 5 : 3); /*JMP far: the whole pointer*/
+        CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, (((fetchdat & 0x38) == 0x18) || ((fetchdat & 0x38) == 0x28)) ? 5 : 3); /*CALL and JMP far: the whole pointer*/
         uop_MEM_LOAD_REG(ir, IREG_temp0, ireg_seg_base(target_seg), IREG_eaaddr);
         src_reg = IREG_temp0;
     }
@@ -584,6 +604,14 @@ ropFF_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             uop_MEM_STORE_IMM_32(ir, IREG_SS_base, sp_reg, op_pc + 1);
             SUB_SP(ir, 4);
             uop_MOV(ir, IREG_pc, src_reg);
+            return -1;
+
+        case 0x18: /*CALL far*/
+            uop_MOV(ir, IREG_pc, src_reg);
+            uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 4);
+            uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
+            uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
+            uop_CALL_FUNC(ir, dynarec_call_far_l);
             return -1;
 
         case 0x20: /*JMP*/

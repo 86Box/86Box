@@ -180,3 +180,37 @@ dynarec_dtr(uint32_t op)
     cpu_state.ea_seg = ea_seg;
     return ret;
 }
+
+/*The compiled CALL far, direct and indirect: the interpreter's CALL_FAR
+  macro, so the pushes in the call gate's size and the CS put back after a
+  faulting push are the op's. The target offset comes in cpu_state.pc;
+  ret_pc is the address after the instruction*/
+int
+dynarec_call_far_w(uint16_t new_cs, uint32_t ret_pc)
+{
+    uint32_t old_cs;
+    x86seg   old_cs_seg;
+    uint32_t old_use32;
+    uint32_t old_status;
+    uint32_t old_pc;
+    uint16_t new_pc = cpu_state.pc;
+
+    cpu_state.pc = ret_pc;
+    CALL_FAR_w(new_cs, new_pc);
+    return 0;
+}
+
+int
+dynarec_call_far_l(uint16_t new_cs, uint32_t ret_pc)
+{
+    uint32_t old_cs;
+    x86seg   old_cs_seg;
+    uint32_t old_use32;
+    uint32_t old_status;
+    uint32_t old_pc;
+    uint32_t new_pc = cpu_state.pc;
+
+    cpu_state.pc = ret_pc;
+    CALL_FAR_l(new_cs, new_pc);
+    return 0;
+}

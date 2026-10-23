@@ -86,6 +86,43 @@ ropJMP_far_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
     return -1;
 }
 
+/*CALL far ptr16:16 and ptr16:32 in every mode: dynarec_call_far_w/l run the
+  interpreter's CALL_FAR (loadcscall or loadcs, the call and task gates, the
+  pushes), with the target offset in the PC. The instruction ends the block,
+  after the routine*/
+uint32_t
+ropCALL_far_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
+{
+    uint16_t new_pc = fastreadw(cs + op_pc);
+    uint16_t new_cs = fastreadw(cs + op_pc + 2);
+
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    codegen_accumulate_flush(ir);
+    uop_MOV_IMM(ir, IREG_pc, new_pc);
+    uop_LOAD_FUNC_ARG_IMM(ir, 0, new_cs);
+    uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 4);
+    uop_CALL_FUNC(ir, dynarec_call_far_w);
+
+    codegen_mark_code_present(block, cs + op_pc, 4);
+    return -1;
+}
+uint32_t
+ropCALL_far_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
+{
+    uint32_t new_pc = fastreadl(cs + op_pc);
+    uint16_t new_cs = fastreadw(cs + op_pc + 4);
+
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    codegen_accumulate_flush(ir);
+    uop_MOV_IMM(ir, IREG_pc, new_pc);
+    uop_LOAD_FUNC_ARG_IMM(ir, 0, new_cs);
+    uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 6);
+    uop_CALL_FUNC(ir, dynarec_call_far_l);
+
+    codegen_mark_code_present(block, cs + op_pc, 6);
+    return -1;
+}
+
 uint32_t
 ropCALL_r16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
