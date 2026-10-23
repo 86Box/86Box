@@ -410,10 +410,8 @@ ropFF_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
-        if ((fetchdat & 0x38) == 0x18) /*CALL far*/
+        if (((fetchdat & 0x38) == 0x18) || ((fetchdat & 0x38) == 0x28)) /*CALL and JMP far*/
             return codegen_ud(ir);
-        if ((fetchdat & 0x38) == 0x28)
-            return 0;
         src_reg = IREG_16(fetchdat & 7);
     } else {
         /*CALL far: the cycles so far are charged before anything can fault,
@@ -531,10 +529,8 @@ ropFF_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
-        if ((fetchdat & 0x38) == 0x18) /*CALL far*/
+        if (((fetchdat & 0x38) == 0x18) || ((fetchdat & 0x38) == 0x28)) /*CALL and JMP far*/
             return codegen_ud(ir);
-        if ((fetchdat & 0x38) == 0x28)
-            return 0;
         src_reg = IREG_32(fetchdat & 7);
     } else {
         /*CALL far: the cycles so far are charged before anything can fault,
