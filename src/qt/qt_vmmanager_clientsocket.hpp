@@ -38,6 +38,7 @@ signals:
     void request_shutdown();
     void force_shutdown();
     void dialogstatus(bool open);
+    void supervisedChanged(bool supervised);
 
 public slots:
     void clientRunningStateChanged(VMManagerProtocol::RunningState state) const;
@@ -50,8 +51,11 @@ private:
     QLocalSocket *socket;
     bool          server_connected;
     bool          window_blocked = false;
+    // Whether the server identified itself as the 86Box VM manager
+    bool          supervised     = false;
     void          connected() const;
-    void          disconnected() const;
+    void          disconnected();
+    void          setSupervised(bool new_supervised);
     static void   connectionError(QLocalSocket::LocalSocketError socketError);
 
     // Main convenience send function

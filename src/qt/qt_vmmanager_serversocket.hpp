@@ -59,7 +59,7 @@ public:
     bool        startServer();
     void        serverConnectionReceived();
     void        serverReceivedMessage();
-    void        serverSendMessage(VMManagerProtocol::ManagerMessage protocol_message, const QStringList &arguments = QStringList()) const;
+    void        serverSendMessage(VMManagerProtocol::ManagerMessage protocol_message, const QJsonObject &params = QJsonObject()) const;
     static void serverDisconnected();
     void        jsonReceived(const QJsonObject &json);
     QString     getSocketPath() const;
