@@ -50,6 +50,7 @@
 #include <86box/chipset.h>
 #include <86box/sio.h>
 #include <86box/hwm.h>
+#include <86box/flash.h>
 
 #ifdef ENABLE_SIS_5513_PCI_TO_ISA_LOG
 int sis_5513_pci_to_isa_do_log = ENABLE_SIS_5513_PCI_TO_ISA_LOG;
@@ -97,7 +98,37 @@ typedef struct sis_5513_pci_to_isa_t {
     void              *hwm;
 
     uint8_t          (*pit_read_reg)(void *priv, uint8_t reg);
+
+    /* SiS 5595 flash write-protect latch for the Mustang-S to boot correctly. */
+    uint8_t            compaqms_flash_gate_active;
+    uint8_t            flash_protect_latched;
+    int               (*previous_flash_write_gate)(uint32_t addr, void *priv);
+    void               *previous_flash_write_gate_priv;
 } sis_5513_pci_to_isa_t;
+
+/* On the SiS 5595, setting either PCI 45h[5] or 45h[2] activates the
+   write-protection latch until CPU reset. Before activation, programming
+   is permitted. Once active, bit 5 must be clear and bit 2 set to allow writes. */
+static int
+sis_5595_flash_write_allowed(const sis_5513_pci_to_isa_t *dev)
+{
+    return !dev->flash_protect_latched ||
+           (dev->pci_conf[0x45] & 0x24) == 0x04;
+}
+
+static int
+sis_5595_compaqms_flash_write_gate(uint32_t addr, void *priv)
+{
+    sis_5513_pci_to_isa_t *dev = (sis_5513_pci_to_isa_t *) priv;
+
+    /* Preserve a gate already registered by another device. */
+    if (dev->previous_flash_write_gate &&
+        !dev->previous_flash_write_gate(addr, dev->previous_flash_write_gate_priv))
+        return 0;
+
+    return sis_5595_flash_write_allowed(dev);
+}
+
 
 static void
 sis_5595_acpi_recalc(sis_5513_pci_to_isa_t *dev)
@@ -753,6 +784,10 @@ sis_5513_pci_to_isa_write(int addr, uint8_t val, void *priv)
             /* The onboard Solo-1 on the IN530 uses this for INTA for IRQ5 */
             if (!strcmp(machine_get_internal_name(), "in530") && !(val & 0x80))
                 val = (val & 0xf0) | 0x05;
+            /* Similar workaround for the Compaq Mustang-S */
+            if ((dev->rev == 0xb0) &&
+                !strcmp(machine_get_internal_name(), "compaqms"))
+                val = 0x05;
             if (dev->rev == 0x11) {
                 dev->pci_conf[addr] = val & 0xcf;
                 sis_5513_apc_recalc(dev, val & 0x10);
@@ -784,6 +819,10 @@ sis_5513_pci_to_isa_write(int addr, uint8_t val, void *priv)
                 nvr_bank_set(0, !!(val & 0x08), dev->nvr);
                 if ((dev->rev == 0x81) || (dev->rev == 0xb0))
                     sis_5513_apc_recalc(dev, val & 0x02);
+
+                if (dev->compaqms_flash_gate_active &&
+                    (dev->pci_conf[0x45] & 0x24))
+                    dev->flash_protect_latched = 1;
             }
             break;
         case 0x46: /* ISA Bus Control Register II */
@@ -1149,6 +1188,9 @@ sis_5513_pci_to_isa_reset(void *priv)
 
     cpu_set_isa_speed(7159091);
     nvr_bank_set(0, 0, dev->nvr);
+
+    if (dev->compaqms_flash_gate_active)
+        dev->flash_protect_latched = 0;
 }
 
 static void
@@ -1167,6 +1209,13 @@ sis_5513_pci_to_isa_close(void *priv)
 
     if (dev->fn != NULL)
         free(dev->fn);
+
+    if (dev->compaqms_flash_gate_active &&
+        flash_bios_write_gate == sis_5595_compaqms_flash_write_gate &&
+        flash_bios_write_gate_priv == dev) {
+        flash_bios_write_gate = dev->previous_flash_write_gate;
+        flash_bios_write_gate_priv = dev->previous_flash_write_gate_priv;
+    }
 
     free(dev);
 }
@@ -1269,6 +1318,16 @@ sis_5513_pci_to_isa_init(UNUSED(const device_t *info))
     }
 
     sis_5513_pci_to_isa_reset(dev);
+
+    /* Only for the Mustang-S. */
+    if ((dev->rev == 0xb0) &&
+        !strcmp(machine_get_internal_name(), "compaqms")) {
+        dev->compaqms_flash_gate_active = 1;
+        dev->previous_flash_write_gate = flash_bios_write_gate;
+        dev->previous_flash_write_gate_priv = flash_bios_write_gate_priv;
+        flash_bios_write_gate = sis_5595_compaqms_flash_write_gate;
+        flash_bios_write_gate_priv = dev;
+    }
 
     return dev;
 }

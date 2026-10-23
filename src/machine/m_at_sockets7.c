@@ -805,7 +805,7 @@ static const device_config_t in530_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "AMIBIOS 6 (071595) - Revision 1.11J (Packard Bell)",
+                .name          = "AMIBIOS 6 (071595) - Revision 1.11J (Various)",
                 .internal_name = "in530_pb_111j",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -829,7 +829,7 @@ static const device_config_t in530_config[] = {
                 }
             },
             {
-                .name          = "AMIBIOS 6 (071595) - Revision 1.29 (Packard Bell)",
+                .name          = "AMIBIOS 6 (071595) - Revision 1.29 (Various)",
                 .internal_name = "in530_pb_129",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -983,6 +983,42 @@ machine_at_in530_init(const machine_t *model)
         io_sethandler(0x03c4, 2, in530_md62_seq_in, NULL, NULL,
                       in530_md62_seq_out, NULL, NULL, NULL);
     }
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+int
+machine_at_compaqms_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/compaqms/CARS6U20.EB9.BIN",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,       0, 0, 0, 0);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_SOUND,           4, 1, 2, 3); /* guess */
+
+    device_add(&sis_530_device);
+    device_add(&it8661f_device); /* Compatible with the real SiS 6801 */
+    device_add(&winbond_flash_w29c020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
+
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
 
     if (sound_card_current[0] == SOUND_INTERNAL)
         device_add(machine_get_snd_device(machine));
