@@ -3189,6 +3189,13 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
             if ((s3->chip <= S3_86C924) && (svga->crtcreg >= 0x50))
                 return;
 
+            /* The accelerator runs from the FIFO thread, let it finish the
+               queued writes before a register it depends on changes. The
+               hardware cursor registers are excluded, they change with every
+               mouse move. */
+            if ((svga->crtcreg >= 0x30) && ((svga->crtcreg < 0x45) || (svga->crtcreg > 0x4f)) && s3_enable_fifo(s3))
+                s3_wait_fifo_idle(s3);
+
             old                       = svga->crtc[svga->crtcreg];
             svga->crtc[svga->crtcreg] = val;
 
@@ -5258,6 +5265,9 @@ s3_accel_out(uint16_t port, uint8_t val, void *priv)
                 break;
             case 0x4948:
             case 0x4ae8:
+                if (s3_enable_fifo(s3))
+                    s3_wait_fifo_idle(s3);
+
                 s3->accel.advfunc_cntl = val;
                 if ((s3->chip <= S3_86C805I) ||
                     ((s3->chip > S3_86C805I) && ((svga->crtc[0x50] & 0xc1) == 0x80))) {
