@@ -48,7 +48,6 @@
 #define ROM_ORCHID_86C911              "roms/video/s3/BIOS.BIN"
 #define ROM_DIAMOND_STEALTH_VRAM_911   "roms/video/s3/Diamond Stealth VRAM BIOS v2.31 U14.BIN"
 #define ROM_AMI_86C924                 "roms/video/s3/S3924AMI.BIN"
-#define ROM_HP_86C924                  "roms/machines/vect486n/c0202.rom"
 #define ROM_DIAMOND_STEALTH_VRAM_924   "roms/video/s3/STEALTH.BIN"
 #define ROM_METHEUS_86C928             "roms/video/s3/928.VBI"
 #define ROM_ELSAWIN1KVL_86C928         "roms/video/s3/ELSA_Winner_XHR_1000VL.BIN"
@@ -165,7 +164,6 @@ enum {
     S3_MIRO_TRIO64V,
     S3_ACER_TRIO64V2,
     S3_ASUS_TRIO64V2,
-    S3_HP_86C924,
     S3_USE_CONFIG_BIOS
 };
 
@@ -3191,6 +3189,13 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
             if ((s3->chip <= S3_86C924) && (svga->crtcreg >= 0x50))
                 return;
 
+            /* The accelerator runs from the FIFO thread, let it finish the
+               queued writes before a register it depends on changes. The
+               hardware cursor registers are excluded, they change with every
+               mouse move. */
+            if ((svga->crtcreg >= 0x30) && ((svga->crtcreg < 0x45) || (svga->crtcreg > 0x4f)) && s3_enable_fifo(s3))
+                s3_wait_fifo_idle(s3);
+
             old                       = svga->crtc[svga->crtcreg];
             svga->crtc[svga->crtcreg] = val;
 
@@ -3826,6 +3831,9 @@ s3_recalctimings(svga_t *svga)
     }
 
     svga->hdisp = svga->hdisp_old;
+    /* CR43 bit 7 doubles all the horizontal parameters, the display width too. */
+    if (!(svga->crtc[0x33] & 0x20) && !svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80))
+        svga->hdisp <<= 1;
     svga->memaddr_latch |= (s3->ma_ext << 16);
 
     svga->lowres = (!!(svga->attrregs[0x10] & 0x40) && !(svga->crtc[0x3a] & 0x10));
@@ -5260,6 +5268,9 @@ s3_accel_out(uint16_t port, uint8_t val, void *priv)
                 break;
             case 0x4948:
             case 0x4ae8:
+                if (s3_enable_fifo(s3))
+                    s3_wait_fifo_idle(s3);
+
                 s3->accel.advfunc_cntl = val;
                 if ((s3->chip <= S3_86C805I) ||
                     ((s3->chip > S3_86C805I) && ((svga->crtc[0x50] & 0xc1) == 0x80))) {
@@ -8461,14 +8472,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_data, vo
     else
         dstbase = 0x100000 * ((s3->accel.multifunc[0xe] >> 0) & 3);
 
-    if (s3->bpp == 1) {
-        srcbase >>= 1;
-        dstbase >>= 1;
-    } else if (s3->bpp >= 2) {
-        srcbase >>= 2;
-        dstbase >>= 2;
-    }
-
     if ((s3->accel.cmd & 0x100) && (s3_cpu_src(s3) || (s3_cpu_dest(s3))) && (!cpu_input || (s3_enable_fifo(s3) == 0)))
         s3->force_busy = 1;
 
@@ -10400,11 +10403,6 @@ s3_init(const device_t *info)
             chip    = S3_86C924;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c911);
             break;
-        case S3_HP_86C924:
-            bios_fn = ROM_HP_86C924;
-            chip    = S3_86C924;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c911);
-            break;
         case S3_ORCHID_86C801:
             bios_fn = ROM_ORCHID_86C801;
             chip    = S3_86C801;
@@ -10952,7 +10950,6 @@ s3_init(const device_t *info)
             }
             break;
 
-        case S3_HP_86C924:
         case S3_AMI_86C924:
         case S3_DIAMOND_STEALTH_VRAM_924:
             svga->decode_mask = (1 << 20) - 1;
@@ -10962,7 +10959,6 @@ s3_init(const device_t *info)
             s3->id_ext_pci    = 0;
             s3->packed_mmio   = 0;
 
-            /* HP's INMOS IMS G176 uses the standard VGA palette interface. */
             if (s3->card_type == S3_DIAMOND_STEALTH_VRAM_924) {
                 svga->ramdac    = device_add(&mu9c1880_ramdac_device);
                 s3->ramdac_type = MU9C1880;
@@ -10971,10 +10967,8 @@ s3_init(const device_t *info)
                 icd2061_set_clocks(svga->clock_gen, 14318184.0f, 25175000.0f, 28322000.0f, 28322000.0f);
                 svga_recalctimings(svga);
             } else {
-            	if (s3->card_type != S3_HP_86C924) {
-                	svga->ramdac    = device_add(&sc11483_ramdac_device);
-                	s3->ramdac_type = SC1148X;
-            	}
+                svga->ramdac    = device_add(&sc11483_ramdac_device);
+                s3->ramdac_type = SC1148X;
                 svga->clock_gen = device_add(&ics2494an_305_device);
                 svga->getclock  = ics2494_getclock;
             }
@@ -11491,7 +11485,6 @@ static const device_config_t s3_trio_onboard_config[] = {
         .selection      = {
              { .description = "1 MB", .value = 1 },
              { .description = "2 MB", .value = 2 },
-             /* Trio64 also supports 4 MB, however the Number Nine BIOS does not */
              { .description = ""                 }
         },
         .bios           = { { 0 } }
@@ -11695,16 +11688,6 @@ static const device_config_t s3_86c924_isa_config[] = {
                 .size          = 32768,
                 .flags         = 0,
                 .files         = { ROM_DIAMOND_STEALTH_VRAM_924, "" }
-            },
-            {
-                .name          = "HP Ultra VGA 924",
-                .internal_name = "hp_vectra_486n_c0202",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = S3_HP_86C924,
-                .size          = 32768,
-                .flags         = 0,
-                .files         = { ROM_HP_86C924, "" }
             },
             { .files_no = 0 }
         },

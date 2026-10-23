@@ -77,6 +77,7 @@ extern int  pic_get_pci_flag(void);
 extern void pic_set_pci_flag(int pci);
 extern void pic_set_pci(void);
 extern void pic_set_vector_override(uint8_t irq, int vector);
+extern void pic_set_line_pinned(int irq, int pinned);
 extern void pic_kbd_latch(int enable);
 extern void pic_mouse_latch(int enable);
 extern void pic_init(void);
@@ -89,6 +90,8 @@ extern void pic_handler(int set, uint16_t base, int size);
 extern void pic2_init(void);
 extern void pic_reset(void);
 
+extern uint8_t pic_read(uint16_t addr, void *priv);
+extern void    pic_write(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t pic_read_icw(uint8_t pic_id, uint8_t icw);
 extern uint8_t pic_read_ocw(uint8_t pic_id, uint8_t ocw);
 extern int     picint_is_level(int irq);
@@ -96,6 +99,7 @@ extern int     picint_is_level(int irq);
 extern void    pic_resample_mark(int irq);
 #endif
 extern void    picint_common(uint16_t num, int level, int set, uint8_t *irq_state);
+extern void    picint_steered(uint16_t num, int level, int set, uint8_t *irq_state);
 extern int     picinterrupt(void);
 
 #define PIC_IRQ_EDGE                    0

@@ -18,8 +18,16 @@ QScreen *screenOfWidget(QWidget *widget);
 /* Puts an image on the clipboard, offering PNG ahead of the other formats */
 void     copyImageToClipboard(const QImage &image);
 #ifdef Q_OS_WINDOWS
+#    if QT_VERSION < QT_VERSION_CHECK(6, 8, 0)
+/* Qt can't switch color schemes on its own before 6.8, so dark mode is emulated with QDarkStyle */
+#        define USE_QDARKSTYLE
+#    endif
 bool isWindowsLightTheme(void);
 void setWin11RoundedCorners(WId hwnd, bool enable);
+#    ifndef USE_QDARKSTYLE
+/* Applies the configured color scheme to the built-in Windows theme */
+void applyColorScheme(void);
+#    endif
 #endif
 QString currentUuid();
 QString generateUuid(const QString &path);

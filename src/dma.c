@@ -474,9 +474,57 @@ dma_ps2_arb_write(UNUSED(uint16_t addr), uint8_t val, UNUSED(void *priv))
 }
 
 
+/* A controller takes over channels one at a time; the 8237 below stays the
+   default owner and answers every entry point a controller leaves out. */
+static struct {
+    const dma_ctrl_t *ops;
+    void             *priv;
+} dma_owner[8];
+
+/* owner = NULL hands the channel back to the 8237. */
+void
+dma_set_channel_controller(int channel, const dma_ctrl_t *ops, void *priv)
+{
+    if ((channel < 0) || (channel > 7))
+        return;
+
+    dma_owner[channel].ops  = ops;
+    dma_owner[channel].priv = priv;
+}
+
+/* Hand every channel to one controller, for a machine whose DMA controller is
+   part of the CPU or the chipset: there is no 8237 for the rest to fall back
+   to. NULL hands them all back to the 8237. */
+void
+dma_set_controller(const dma_ctrl_t *ops, void *priv)
+{
+    for (int channel = 0; channel < 8; channel++)
+        dma_set_channel_controller(channel, ops, priv);
+}
+
+/* Owning controller of a channel, NULL while the 8237 has it. The channel
+   comes from a device configuration, so it can be out of range. */
+static const dma_ctrl_t *
+dma_owner_ops(int channel, void **priv)
+{
+    if ((channel < 0) || (channel > 7))
+        return NULL;
+
+    *priv = dma_owner[channel].priv;
+
+    return dma_owner[channel].ops;
+}
+
 int
 dma_get_drq(int channel)
 {
+    const dma_ctrl_t *ops;
+    void             *priv;
+
+    ops = dma_owner_ops(channel, &priv);
+    if ((ops != NULL) && (ops->get_drq != NULL))
+        return ops->get_drq(channel, priv);
+
     if ((channel < 0) || (channel > 7))
         return 0;
     return !!(dma_stat_rq_pc & (1 << channel));
@@ -486,7 +534,15 @@ dma_get_drq(int channel)
 void
 dma_set_drq(int channel, int set)
 {
-    uint8_t bit;
+    const dma_ctrl_t *ops;
+    uint8_t           bit;
+    void             *priv;
+
+    ops = dma_owner_ops(channel, &priv);
+    if ((ops != NULL) && (ops->set_drq != NULL)) {
+        ops->set_drq(channel, set, priv);
+        return;
+    }
 
     if ((channel < 0) || (channel > 7))
         return;
@@ -515,6 +571,15 @@ static void  *dma_service_priv[8];
 void
 dma_set_service_handler(int channel, void (*handler)(void *), void *priv)
 {
+    const dma_ctrl_t *ops;
+    void             *opriv;
+
+    ops = dma_owner_ops(channel, &opriv);
+    if ((ops != NULL) && (ops->set_service_handler != NULL)) {
+        ops->set_service_handler(channel, handler, priv, opriv);
+        return;
+    }
+
     if ((channel < 0) || (channel > 7))
         return;
 
@@ -2352,6 +2417,10 @@ dma_reset(void)
 void
 dma_init(void)
 {
+    /* Only a new machine drops the channel owners; a reset must keep them,
+       because the controller registered them for the life of the device. */
+    memset(dma_owner, 0x00, sizeof(dma_owner));
+
     dma_ibm5140 = dma_ibm5140_diag = 0;
     dma_ps2.is_ps2 = 0;
     /* What kind of controller this is, which only a new machine changes; an
@@ -2657,7 +2726,13 @@ dma_xt8237_mem_to_mem(void)
 int
 dma_channel_readable(int channel)
 {
-    int type;
+    const dma_ctrl_t *ops;
+    void             *priv;
+    int               type;
+
+    ops = dma_owner_ops(channel, &priv);
+    if ((ops != NULL) && (ops->channel_readable != NULL))
+        return ops->channel_readable(channel, priv);
 
     if (!dma_xt8237_active())
         return dma_channel_readable_legacy(channel);
@@ -2672,7 +2747,13 @@ dma_channel_readable(int channel)
 int
 dma_channel_writable(int channel)
 {
-    int type;
+    const dma_ctrl_t *ops;
+    void             *priv;
+    int               type;
+
+    ops = dma_owner_ops(channel, &priv);
+    if ((ops != NULL) && (ops->channel_writable != NULL))
+        return ops->channel_writable(channel, priv);
 
     if (!dma_xt8237_active())
         return dma_channel_writable_legacy(channel);
@@ -2766,9 +2847,15 @@ dma_xt_refresh_request(void)
 int
 dma_channel_read_only(int channel)
 {
-    dma_t *dma_c;
-    int temp;
-    int type;
+    const dma_ctrl_t *ops;
+    dma_t            *dma_c;
+    void             *priv;
+    int               temp;
+    int               type;
+
+    ops = dma_owner_ops(channel, &priv);
+    if ((ops != NULL) && (ops->channel_read_only != NULL))
+        return ops->channel_read_only(channel, priv);
 
     if (!dma_xt8237_active())
         return dma_channel_read_only_legacy(channel);
@@ -2802,7 +2889,13 @@ dma_channel_read_only(int channel)
 int
 dma_channel_advance(int channel)
 {
-    int tc = 0;
+    const dma_ctrl_t *ops;
+    void             *priv;
+    int               tc = 0;
+
+    ops = dma_owner_ops(channel, &priv);
+    if ((ops != NULL) && (ops->channel_advance != NULL))
+        return ops->channel_advance(channel, priv);
 
     if (!dma_xt8237_active())
         return dma_channel_advance_legacy(channel);
@@ -2824,10 +2917,16 @@ dma_channel_advance(int channel)
 int
 dma_channel_read(int channel)
 {
-    dma_t *dma_c;
-    int temp;
-    int type;
-    int tc;
+    const dma_ctrl_t *ops;
+    dma_t            *dma_c;
+    void             *priv;
+    int               temp;
+    int               type;
+    int               tc;
+
+    ops = dma_owner_ops(channel, &priv);
+    if ((ops != NULL) && (ops->channel_read != NULL))
+        return ops->channel_read(channel, priv);
 
     if (!dma_xt8237_active())
         return dma_channel_read_legacy(channel);
@@ -2869,9 +2968,15 @@ dma_channel_read(int channel)
 int
 dma_channel_write(int channel, uint16_t val)
 {
-    dma_t *dma_c;
-    int type;
-    int tc;
+    const dma_ctrl_t *ops;
+    dma_t            *dma_c;
+    void             *priv;
+    int               type;
+    int               tc;
+
+    ops = dma_owner_ops(channel, &priv);
+    if ((ops != NULL) && (ops->channel_write != NULL))
+        return ops->channel_write(channel, val, priv);
 
     if (!dma_xt8237_active())
         return dma_channel_write_legacy(channel, val);
@@ -3413,6 +3518,17 @@ dma_ps2_run(int channel)
 int
 dma_mode(int channel)
 {
+    const dma_ctrl_t *ops;
+    void             *priv;
+
+    ops = dma_owner_ops(channel, &priv);
+    if ((ops != NULL) && (ops->mode != NULL))
+        return ops->mode(channel, priv);
+
+    /* Callers pass a configured channel number, which can be out of range. */
+    if ((channel < 0) || (channel > 7))
+        return 0;
+
     return (dma[channel].mode);
 }
 
@@ -3423,6 +3539,16 @@ dma_bm_read(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize, int Tra
     uint32_t n;
     uint32_t n2;
     uint8_t  bytes[4] = { 0, 0, 0, 0 };
+
+    n = mem_read_phys_block(DataRead, PhysAddress, TotalSize);
+    if (n == TotalSize)
+        return;
+
+    /* Do the rest the slow way, keeping the transfer alignment. */
+    n &= ~(TransferSize - 1);
+    PhysAddress += n;
+    DataRead += n;
+    TotalSize -= n;
 
     n  = TotalSize & ~(TransferSize - 1);
     n2 = TotalSize - n;
@@ -3443,26 +3569,37 @@ dma_bm_read(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize, int Tra
 void
 dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize, int TransferSize)
 {
-    uint32_t n;
-    uint32_t n2;
-    uint8_t  bytes[4] = { 0, 0, 0, 0 };
+    const uint32_t start = PhysAddress;
+    const uint32_t total = TotalSize;
+    uint32_t       n;
+    uint32_t       n2;
+    uint8_t        bytes[4] = { 0, 0, 0, 0 };
 
-    n  = TotalSize & ~(TransferSize - 1);
-    n2 = TotalSize - n;
+    n = mem_write_phys_block(DataWrite, PhysAddress, TotalSize);
+    if (n != TotalSize) {
+        /* Do the rest the slow way, keeping the transfer alignment. */
+        n &= ~(TransferSize - 1);
+        PhysAddress += n;
+        DataWrite += n;
+        TotalSize -= n;
 
-    /* Do the divisible block, if there is one. */
-    if (n) {
-        for (uint32_t i = 0; i < n; i += TransferSize)
-            mem_write_phys((void *) &(DataWrite[i]), PhysAddress + i, TransferSize);
-    }
+        n  = TotalSize & ~(TransferSize - 1);
+        n2 = TotalSize - n;
 
-    /* Do the non-divisible block, if there is one. */
-    if (n2) {
-        mem_read_phys((void *) bytes, PhysAddress + n, TransferSize);
-        memcpy(bytes, (void *) &(DataWrite[n]), n2);
-        mem_write_phys((void *) bytes, PhysAddress + n, TransferSize);
+        /* Do the divisible block, if there is one. */
+        if (n) {
+            for (uint32_t i = 0; i < n; i += TransferSize)
+                mem_write_phys((void *) &(DataWrite[i]), PhysAddress + i, TransferSize);
+        }
+
+        /* Do the non-divisible block, if there is one. */
+        if (n2) {
+            mem_read_phys((void *) bytes, PhysAddress + n, TransferSize);
+            memcpy(bytes, (void *) &(DataWrite[n]), n2);
+            mem_write_phys((void *) bytes, PhysAddress + n, TransferSize);
+        }
     }
 
     if (dma_at)
-        mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
+        mem_invalidate_range(start, start + total - 1);
 }

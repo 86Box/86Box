@@ -5,6 +5,7 @@
 #include <wchar.h>
 #define fplog 0
 #include <math.h>
+#include <float.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -45,7 +46,6 @@ fpu_x87_log(const char *fmt, ...)
 #    define fpu_x87_log(fmt, ...)
 #endif
 
-#ifdef USE_NEW_DYNAREC
 uint16_t
 x87_gettag(void)
 {
@@ -79,36 +79,6 @@ x87_settag(uint16_t new_tag)
             cpu_state.tag[c] = TAG_VALID;
     }
 }
-#else
-uint16_t
-x87_gettag(void)
-{
-    uint16_t ret = 0;
-    int      c;
-
-    for (c = 0; c < 8; c++) {
-        if (cpu_state.tag[c] & TAG_UINT64)
-            ret |= 2 << (c * 2);
-        else
-            ret |= (cpu_state.tag[c] << (c * 2));
-    }
-
-    return ret;
-}
-
-void
-x87_settag(uint16_t new_tag)
-{
-    cpu_state.tag[0] = new_tag & 3;
-    cpu_state.tag[1] = (new_tag >> 2) & 3;
-    cpu_state.tag[2] = (new_tag >> 4) & 3;
-    cpu_state.tag[3] = (new_tag >> 6) & 3;
-    cpu_state.tag[4] = (new_tag >> 8) & 3;
-    cpu_state.tag[5] = (new_tag >> 10) & 3;
-    cpu_state.tag[6] = (new_tag >> 12) & 3;
-    cpu_state.tag[7] = (new_tag >> 14) & 3;
-}
-#endif
 
 static extFloat80_t
 FPU_handle_NaN32_Func(extFloat80_t a, int aIsNaN, float32 b32, int bIsNaN, struct softfloat_status_t *status)
@@ -291,6 +261,8 @@ FPU_status_word_flags_fpu_compare(int float_relation)
 void
 FPU_write_eflags_fpu_compare(int float_relation)
 {
+    /* ZF, PF and CF are written, not ORed in */
+    cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
     switch (float_relation) {
         case softfloat_relation_unordered:
             cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
@@ -312,8 +284,8 @@ FPU_write_eflags_fpu_compare(int float_relation)
     }
 }
 
-uint16_t
-FPU_exception(UNUSED(uint32_t fetchdat), uint16_t exceptions, int store)
+static uint16_t
+FPU_exception_record(uint16_t exceptions, int store)
 {
     uint16_t status;
     uint16_t unmasked;
@@ -390,6 +362,31 @@ FPU_exception(UNUSED(uint32_t fetchdat), uint16_t exceptions, int store)
         }
     }
     return unmasked;
+}
+
+/* An exception the instruction raised: its flags, ES and B with an
+   unmasked one, and FERR# for it as the processor asserts it
+   (x87_ferr_raised). A store whose result is still written (its
+   exceptions masked, or only precision unmasked) raises it once the write
+   is done (FPU_store_done): a faulting write leaves the status as it was. */
+uint16_t
+FPU_exception(UNUSED(uint32_t fetchdat), uint16_t exceptions, int store)
+{
+    const int was_es = fpu_state.swd & FPU_SW_Summary;
+    uint16_t  raised = (exceptions & FPU_SW_Exceptions_Mask) & ~fpu_state.cwd & FPU_CW_Exceptions_Mask;
+    uint16_t  ret;
+
+    if (exceptions & (FPU_EX_Invalid | FPU_EX_Zero_Div))
+        raised &= (FPU_EX_Invalid | FPU_EX_Zero_Div);
+    x87_ferr_store_hold(0, 0);
+    ret = FPU_exception_record(exceptions, store);
+    if (raised) {
+        if (store && !ret)
+            x87_ferr_store_hold(was_es, raised);
+        else
+            x87_ferr_raised(was_es, raised, x87_op);
+    }
+    return ret;
 }
 
 void
@@ -551,3 +548,179 @@ x87_dumpregs(void)
     fpu_x87_log("Status = %04X  Control = %04X  Tag = %04X\n", cpu_state.npxs, cpu_state.npxc, x87_gettag());
 }
 #endif
+
+/* The common divide of x87_legacy_divide without the software arithmetic:
+   two operands well inside the double range, round to nearest. The host
+   quotient q is rounded once to 53 bits, and r = num - q * den is exact, so
+   x - q = r / den places the true quotient x against the grid of each
+   precision. An exact quotient is exact at every precision (its odd part is
+   no wider than the numerator's), so PE is r != 0 throughout. At 64 bits
+   the result is the software divide's double rounding, which differs from
+   q only when the 64-bit value lands on a 53-bit midpoint; at 24 bits, only
+   when q is a 24-bit midpoint. Those, near-ties and a power-of-two q (whose
+   lower neighbours are closer) go to the software divide: 0 is returned.
+   C1 is the round-up of the rounding at the control word's precision.*/
+static int
+x87_divide_fast(double num, double den, double *res, unsigned *flags)
+{
+#if defined(FLT_EVAL_METHOD) && (FLT_EVAL_METHOD != 0)
+    return 0;
+#else
+    union { double d; uint64_t u; } a = { .d = num }, b = { .d = den }, q, ulp;
+    const unsigned ea = (unsigned) (a.u >> 52) & 0x7ff;
+    const unsigned eb = (unsigned) (b.u >> 52) & 0x7ff;
+    double r;
+    int    up;
+
+    if ((cpu_state.npxc & 0xc00) || (ea < 553) || (ea > 1493) || (eb < 553) || (eb > 1493))
+        return 0;
+    q.d = num / den;
+    if (!(q.u & UINT64_C(0x000fffffffffffff)))
+        return 0;
+#    if defined(FP_FAST_FMA) || defined(__FP_FAST_FMA)
+    r = fma(-q.d, den, num);
+#    else
+    {
+        /* Dekker's exact product q * den = p + e, by halves of 26 bits */
+        const double split = 134217729.0;
+        double       t, qh, ql, bh, bl, p, e;
+
+        t  = split * q.d;
+        qh = t - (t - q.d);
+        ql = q.d - qh;
+        t  = split * den;
+        bh = t - (t - den);
+        bl = den - bh;
+        p  = q.d * den;
+        e  = ((qh * bh - p) + qh * bl + ql * bh) + ql * bl;
+        r  = (num - p) - e;
+    }
+#    endif
+    /* |x| > |q|: x - q has the quotient's sign */
+    up = (r != 0.0) && (signbit(r) != signbit(num));
+
+    switch (cpu_state.npxc & 0x300) {
+        case 0x000: /* 24 bits */
+            {
+                const float f = (float) q.d;
+
+                if ((r != 0.0) && ((q.u & 0x1fffffff) == 0x10000000))
+                    return 0;
+                if (!isnormal(f))
+                    return 0;
+                *res = (double) f;
+                if (*res != q.d) {
+                    *flags = FPU_SW_Precision | ((fabs(*res) > fabs(q.d)) ? FPU_SW_C1 : 0);
+                    return 1;
+                }
+                break;
+            }
+        case 0x200: /* 53 bits */
+            *res = q.d;
+            break;
+        case 0x300: /* 64 bits */
+            *res = q.d;
+            if (r != 0.0) {
+                /* x - q in units of the 64-bit grid, which q is on */
+                double t, n, d;
+
+                ulp.u = (q.u & UINT64_C(0x7ff0000000000000)) - (UINT64_C(63) << 52);
+                t     = (r / den) / ulp.d;
+                n     = nearbyint(t);
+                d     = fabs(t - n);
+                if ((fabs(n) >= 1024.0) || (d < 0x1p-20) || (d > (0.5 - 0x1p-20)))
+                    return 0;
+                /* the 64-bit rounding went up in magnitude: x and q + n * ulp
+                   on the same side of zero, x nearer */
+                up = (signbit(t - n) != signbit(q.d));
+            }
+            break;
+        default:
+            return 0;
+    }
+    *flags = (r != 0.0) ? (FPU_SW_Precision | (up ? FPU_SW_C1 : 0)) : 0;
+    return 1;
+#endif
+}
+
+/* The legacy register file is double based, but guest exception classes
+   still follow x87 rules. Use the existing software arithmetic rather than
+   treating every zero denominator as divide-by-zero. Unmasked exceptions
+   suppress the result; delivery waits for the next waiting instruction. */
+int
+x87_legacy_divide(double *dest, double numerator, double denominator, int empty)
+{
+    union { double d; uint64_t u; } a = { .d = numerator }, b = { .d = denominator }, result;
+    struct softfloat_status_t status = i387cw_to_softfloat_status_word(cpu_state.npxc);
+    unsigned fast_flags = 0;
+    cpu_state.npxs &= ~FPU_SW_C1;
+    if (!empty && x87_divide_fast(numerator, denominator, &result.d, &fast_flags))
+        status.softfloat_exceptionFlags = fast_flags;
+    else if (empty & 1) {
+        cpu_state.npxs |= FPU_SW_Stack_Fault | FPU_SW_Invalid;
+        result.u = UINT64_C(0xfff8000000000000);
+        status.softfloat_exceptionFlags = FPU_SW_Invalid;
+    } else {
+        extFloat80_t x = f64_to_extF80(a.u, &status);
+        extFloat80_t y = f64_to_extF80(b.u, &status);
+        /* A subnormal double is normal in the x87 extended register
+           format. DE applies to a denormal memory operand, not to the
+           legacy host representation of a register. Preserve SNaN IE. */
+        status.softfloat_exceptionFlags &= FPU_SW_Invalid;
+        if (empty & 2)
+            status.softfloat_exceptionFlags |= FPU_SW_Denormal_Op;
+        extFloat80_t q = extF80_div(x, y, &status);
+        /* Converting the representation back must not invent guest x87
+           exceptions caused solely by the legacy double register file. */
+        struct softfloat_status_t conversion = i387cw_to_softfloat_status_word(cpu_state.npxc);
+        result.u = extF80_to_f64(q, &conversion);
+    }
+    unsigned exceptions = status.softfloat_exceptionFlags & (0x3f | FPU_SW_C1);
+    if (exceptions & FPU_SW_Invalid)
+        exceptions &= FPU_SW_Invalid;
+    else if (exceptions & FPU_SW_Zero_Div)
+        exceptions = FPU_SW_Zero_Div;
+    else if ((exceptions & FPU_SW_Denormal_Op) && !(cpu_state.npxc & FPU_SW_Denormal_Op))
+        exceptions = FPU_SW_Denormal_Op;
+    cpu_state.npxs |= exceptions;
+    unsigned unmasked = exceptions & ~cpu_state.npxc & 0x3f;
+    if (unmasked) {
+        const int was_es = cpu_state.npxs & FPU_SW_Summary;
+
+        cpu_state.npxs |= 0x8080;
+        x87_ferr_raised(was_es, unmasked, x87_op);
+        /* Unlike pre-computation faults, unmasked precision still commits
+           the rounded arithmetic result (Intel Vol. 1, inexact result). */
+        if (unmasked & ~FPU_SW_Precision)
+            return 1;
+    }
+    *dest = result.d;
+    return 0;
+}
+
+int
+x87_legacy_pending(void)
+{
+    if (!(cpu_state.npxs & FPU_SW_Summary)) {
+        fpu_ignne = 0;
+        return 0;
+    }
+    if (cr0 & 0x20) {
+        cpu_state.pc = cpu_state.oldpc;
+        new_ne = 1;
+        return 1;
+    }
+    if (!fpu_ignne) {
+        cpu_state.pc = cpu_state.oldpc;
+        x87_ferr_assert();
+        return 1;
+    }
+    return 0;
+}
+
+int
+x87_legacy_pending_entry(void)
+{
+    /* The ordinary entry check gives #NM priority over pending #MF. */
+    return (cr0 & 0xc) ? 0 : x87_legacy_pending();
+}

@@ -437,6 +437,22 @@ cdrom_is_sector_good(cdrom_t *dev, const uint8_t *b, const uint8_t mode2, const 
     return ret;
 }
 
+static void
+add_edc_ecc(cdrom_t *dev)
+{
+    uint8_t *b = dev->raw_buffer[dev->cur_buf];
+
+    if (dev->edc_missing) {
+        const uint32_t crc = cdrom_crc32(0xffffffff, b, 2064) ^ 0xffffffff;
+
+        memcpy(&(b[2064]), &crc, 4);
+        cdrom_generate_ecc_data(dev, &(b[12]), 0);
+        memcpy(&(b[2076]), dev->p_parity, 172);
+        memcpy(&(b[2248]), dev->q_parity, 104);
+        dev->edc_missing = 0;
+    }
+}
+
 static int
 read_data(cdrom_t *dev, const uint32_t lba, int check)
 {
@@ -452,7 +468,11 @@ read_data(cdrom_t *dev, const uint32_t lba, int check)
         ret = dev->ops->read_sector(dev->local,
                                     dev->raw_buffer[dev->cur_buf ^ 1], lba);
 
-        cdrom_check_for_formed_mode2(dev, dev->raw_buffer[dev->cur_buf ^ 1]);
+        /* Sectors built by us are always good. */
+        dev->edc_missing = (ret == 2);
+
+        if (!dev->edc_missing)
+            cdrom_check_for_formed_mode2(dev, dev->raw_buffer[dev->cur_buf ^ 1]);
 
         if ((ret > 0) && check) {
             if (dev->mode2) {
@@ -475,7 +495,8 @@ read_data(cdrom_t *dev, const uint32_t lba, int check)
                             0x20) >> 5) + 1;
             }
 
-            if (!cdrom_is_sector_good(dev, dev->raw_buffer[dev->cur_buf ^ 1], dev->mode2, form))
+            if (!dev->edc_missing &&
+                !cdrom_is_sector_good(dev, dev->raw_buffer[dev->cur_buf ^ 1], dev->mode2, form))
                 ret = -1;
         }
 
@@ -936,6 +957,7 @@ process_mode1(cdrom_t *dev, const int cdrom_sector_flags, uint8_t *b)
     if (cdrom_sector_flags & 0x08) {
         /* EDC/ECC */
         cdrom_log(dev->log, "[Mode 1] EDC/ECC\n");
+        add_edc_ecc(dev);
         memcpy(b, dev->raw_buffer[dev->cur_buf] + 2064, (288 - ecc_diff));
         dev->cdrom_sector_size += (288 - ecc_diff);
     }
@@ -1198,6 +1220,13 @@ cdrom_toc_dump(cdrom_t *dev)
 void
 cdrom_interface_reset(void)
 {
+    /* On a Tandy VIS machine, add the Mitsumi controller; it has no ISA slots
+       for another one, and that one would clash with it at 0x310. */
+    if (machines[machine].init == machine_at_tandy_vis_init) {
+        device_add(&mitsumi_cdrom_vis_device);
+        return;
+    }
+
     /* If we have a valid controller, add its device. */
     if ((cdrom_interface_current > 0) &&
         controllers[cdrom_interface_current].device)
@@ -1633,6 +1662,7 @@ cdrom_audio_callback(cdrom_t *dev, int16_t *output, const int len)
             ret = dev->ops->read_sector(dev->local,
                                         dev->raw_buffer[dev->cur_buf ^ 1],
                                         dev->seek_pos);
+            dev->edc_missing = (ret == 2);
             if (!dev->sound_on)
                 memset(dev->raw_buffer[dev->cur_buf ^ 1], 0x00, 2352);
             dev->cur_buf ^= 1;
@@ -2061,6 +2091,7 @@ cdrom_get_current_status(const cdrom_t *dev)
 void
 cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
 {
+    const uint8_t       format    = b[0];
     const subchannel_t *subc      = &dev->cached_subc;
     int                 base      = 0;
     int                 diff      = 4;
@@ -2076,7 +2107,7 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
               dev->seek_pos, dev->cd_end);
 
     /* Format code. */
-    switch (b[0]) {
+    switch (format) {
         /*
            Mode 0 = Q subchannel mode, first 16 bytes are identical to mode 1 (current
                     position), the rest are stuff like ISRC etc., which can be all zeroes.
@@ -2130,21 +2161,25 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
                 b[10] = (dat >> 8) & 0xff;
                 b[11] = dat & 0xff;
             }
-            if (b[0] != 0x00)
+            if (format != 0x00)
                 break;
             base += 12;
             fallthrough;
         case 0x02:
-            /* UPC  - TODO: Finding and reporting the actual UPC data. */
+            /* Media Catalog Number, as ASCII digits (MMC format 2). */
             memset(&(b[base]), 0x00, 20 - diff);
             base += diff;
             memset(&(b[base + 1]), 0x30, 13);
+            b[base + 14] = 0x00;
+            if ((dev->ops != NULL) && (dev->ops->get_mcn != NULL) &&
+                dev->ops->get_mcn(dev->local, &(b[base + 1])))
+                b[base] = 0x80; /* MCVAL */
             /* NEC CDR-260 speaks BCD. */
             if (dev->is_bcd)
                 b[base + 15] = bin2bcd(subc->abs_f);
             else
                 b[base + 15] = subc->abs_f;
-            if (b[0] != 0x00)
+            if (format != 0x00)
                 break;
             base += 16;
             fallthrough;
@@ -2838,6 +2873,7 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
         } else {
             if (cdrom_sector_flags & CD_SECTOR_FLAG_SCRAMBLED) {
                 ret = read_data(dev, lba, 0);
+                add_edc_ecc(dev);
                 if (ret > 0 && !audio) {
                     for (int i = 0; i < 2352; i++) {
                         dev->raw_buffer[dev->cur_buf][i] ^= cdrom_scramble_table[i];
@@ -3448,6 +3484,40 @@ void
 cdrom_hard_reset(void)
 {
     cdrom_assigned_letters = 0;
+
+    if (machines[machine].init == machine_at_tandy_vis_init) {
+        bool mitsumi_bus_found = false;
+        /* Ensure there's at least one Mitsumi bus type used. */
+        for (uint8_t i = 0; i < CDROM_NUM; i++) {
+            if (cdrom[i].bus_type == CDROM_BUS_MITSUMI) {
+                mitsumi_bus_found = true;
+                break;
+            }
+        }
+        if (!mitsumi_bus_found) {
+            bool mitsumi_bus_enabled = false;
+            for (uint8_t i = 0; i < CDROM_NUM; i++) {
+                if (!cdrom[i].bus_type) {
+                    mitsumi_bus_enabled = true;
+                    cdrom[i].bus_type = CDROM_BUS_MITSUMI;
+                    break;
+                }
+            }
+            if (!mitsumi_bus_enabled) {                
+                cdrom[0].priv        = NULL;
+                cdrom[0].ops         = NULL;
+                cdrom[0].local       = NULL;
+                cdrom[0].insert      = NULL;
+                cdrom[0].close       = NULL;
+                cdrom[0].get_volume  = NULL;
+                cdrom[0].get_channel = NULL;
+                cdrom[0].bus_type    = CDROM_BUS_MITSUMI;
+                cdrom[0].res         = 0;
+                cdrom[0].speed       = 2;
+                cdrom[0].type        = 0;
+            }
+        }
+    }
 
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom_t *dev = &cdrom[i];

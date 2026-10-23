@@ -40,6 +40,7 @@
 #include <86box/i2c.h>
 #include <86box/video.h>
 #include <86box/smbus.h>
+#include <86box/flash.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
@@ -50,6 +51,7 @@ atomic_int acpi_pwrbut_pressed = 0;
 int        acpi_enabled        = 0;
 
 static double cpu_to_acpi;
+static int    acpi_pmtmr_read_cycles;
 
 static int      acpi_power_on    = 0;
 static uint64_t acpi_last_clock  = 0ULL;
@@ -209,6 +211,11 @@ acpi_update_irq(acpi_t *dev)
             }
             break;
     }
+
+    /* The southbridge's view of SCI, apart from the line it is steered to
+       (acpi_set_sci_hook). */
+    if (dev->sci_hook)
+        dev->sci_hook(dev->sci_hook_priv, (dev->regs.pmcntrl & 0x01) && sci_level);
 
     if ((dev->regs.pmcntrl & 0x01) && sci_level)  switch (dev->irq_mode) {
         default:
@@ -1228,6 +1235,8 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
             dev->regs.gporeg[addr & 3] = val;
             if ((addr == 0x34) && (machines[machine].init == machine_at_cubx_init))
                 hdc_onboard_enabled = (val & 0x01);
+            else if ((addr == 0x37) && (machines[machine].init == machine_at_acerv66ma_init))
+                sst_set_xor(!(val & 0x20));
             break;
         default:
             acpi_reg_write_common_regs(size, addr, val, priv);
@@ -1758,6 +1767,11 @@ acpi_reg_write_sis_5595(int size, uint16_t addr, uint8_t val, void *priv)
             break;
         case 0x1d:
             dev->regs.gpe_pin = ((dev->regs.gpe_pin & ~(0x0f << shift32)) | ((val & 0x0f) << shift32));
+            if ((machines[machine].init == machine_at_m748mr_init) && (val & 0x02) &&
+                !(dev->regs.gpe_io & 0x00000200)) {
+                acpi_log("ACPI: GPIO9 driven high, resetting the machine\n");
+                pci_write(0xcf9, 0x06, NULL);
+                }
             break;
         case 0x1e:
             dev->regs.gpe_pin = ((dev->regs.gpe_pin & ~(0x03 << shift32)) | ((val & 0x03) << shift32));
@@ -1990,16 +2004,14 @@ acpi_aux_reg_write_common(int size, uint16_t addr, uint8_t val, void *priv)
 static void
 acpi_latch_pmtmr(acpi_t *dev)
 {
-    uint32_t new_latch = acpi_timer_get(dev);
+    dev->pmtmr_latch = acpi_timer_get(dev);
 
-    if (new_latch == dev->pmtmr_latch) {
-        /* Windows Vista and 7 division by zero mitigation measure. */
-        if (dev->regs.timer32)
-            dev->pmtmr_latch = (new_latch + 1) & 0xffffffff;
-        else
-            dev->pmtmr_latch = (new_latch + 1) & 0x00ffffff;
-    } else
-        dev->pmtmr_latch = new_latch;
+    /* On real hardware, reading the timer takes longer than one of its ticks, so
+       two reads never return the same value, which Windows Vista and 7 rely on to
+       avoid a division by zero. Charge the read one tick, rather than returning the
+       value plus one when it has not changed: that made the timer go backwards, on
+       a third read within the same tick. */
+    cycles -= acpi_pmtmr_read_cycles;
 
 #ifdef USE_DYNAREC
     if (cpu_use_dynarec)
@@ -2313,6 +2325,13 @@ acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv)
     dev->trap_priv   = priv;
 }
 
+void
+acpi_set_sci_hook(acpi_t *dev, void (*hook)(void *priv, int set), void *priv)
+{
+    dev->sci_hook      = hook;
+    dev->sci_hook_priv = priv;
+}
+
 uint8_t
 acpi_ali_soft_smi_status_read(acpi_t *dev)
 {
@@ -2323,6 +2342,12 @@ void
 acpi_ali_soft_smi_status_write(acpi_t *dev, uint8_t soft_smi)
 {
     dev->regs.ali_soft_smi = soft_smi;
+}
+
+void
+acpi_pwrbut_press(void)
+{
+    acpi_pwrbut_pressed = 1;
 }
 
 void
@@ -2437,7 +2462,8 @@ acpi_reset(void *priv)
         (machines[machine].init == machine_at_bl440zx_init))
         /* ED = Normal, DD (2-3) - Maintenance, BD, FD (none) - Recovery. */
         dev->regs.gpireg[2] = 0xed;
-    else if ((machines[machine].init == machine_at_in440ex_init) || (machines[machine].init == machine_at_in440exd_init))
+    else if ((machines[machine].init == machine_at_in440ex_init) ||
+             (machines[machine].init == machine_at_in440exd_init))
         /* Bit 5: CMOS clear jumper(?) - must be set as otherwise CMOS is not saved */
         dev->regs.gpireg[2] = 0xfd;
     else if (machines[machine].init == machine_at_em440_init)
@@ -2447,6 +2473,12 @@ acpi_reset(void *priv)
         dev->regs.gpireg[2] = dev->gpireg2_default;
     for (uint8_t i = 0; i < 4; i++)
         dev->regs.gporeg[i] = dev->gporeg_default[i];
+    if (machines[machine].init == machine_at_acerv66ma_init) {
+        /* Bit 4 must be cleared to avoid the password violated error. */
+        dev->regs.gpireg[2] = 0xcd;
+        /* Bit 5 must be set at reset to disable the A17 xor for the Flash. */
+        dev->regs.gporeg[3] |= 0x20;
+    }
     if (dev->vendor == VEN_VIA_596B) {
         dev->regs.gpo_val = 0x7fffffff;
         /*
@@ -2487,7 +2519,7 @@ acpi_reset(void *priv)
 
     if (acpi_power_on) {
         /* Power on always generates a resume event. */
-        dev->regs.pmsts |= 0x8100;
+        // dev->regs.pmsts |= 0x8100;
         acpi_power_on = 0;
     }
 
@@ -2517,14 +2549,23 @@ acpi_reset(void *priv)
         if (machines[machine].init == machine_at_in530_init)
             dev->regs.gpe_pin = 0x0003ffff;
     }
+
+    if (dev->vendor == VEN_SIS_5582) {
+        /* SiS Proprietary Bit, must be 1 */
+        dev->regs.pmcntrl |= 0x0200;
+
+        if (machines[machine].init == machine_at_sp97xv_init)
+            dev->regs.reg_18  |= 0x0480;
+    }
 }
 
 static void
 acpi_speed_changed(void *priv)
 {
-    acpi_t *dev        = (acpi_t *) priv;
-    cpu_to_acpi        = ACPI_TIMER_FREQ / cpuclock;
-    bool timer_enabled = timer_is_enabled(&dev->timer);
+    acpi_t *dev            = (acpi_t *) priv;
+    cpu_to_acpi            = ACPI_TIMER_FREQ / cpuclock;
+    acpi_pmtmr_read_cycles = (int) (cpuclock / ACPI_TIMER_FREQ) + 1;
+    bool timer_enabled     = timer_is_enabled(&dev->timer);
     timer_stop(&dev->timer);
 
     if (timer_enabled)
@@ -2583,8 +2624,9 @@ acpi_init(const device_t *info)
     if (dev == NULL)
         return NULL;
 
-    cpu_to_acpi = ACPI_TIMER_FREQ / cpuclock;
-    dev->vendor = info->local;
+    cpu_to_acpi            = ACPI_TIMER_FREQ / cpuclock;
+    acpi_pmtmr_read_cycles = (int) (cpuclock / ACPI_TIMER_FREQ) + 1;
+    dev->vendor            = info->local;
 
     dev->irq_line = 9;
 

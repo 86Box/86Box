@@ -89,7 +89,7 @@ enum {
     DEVICE_ISA16      = 0x20,       /* requires an AT-compatible system */
     DEVICE_AT_KBC     = 0x40,       /* requires an AT-compatible keyboard controller */
     DEVICE_MCA        = 0x80,       /* requires the MCA bus */
-    DEVICE_MCA32      = 0x100,      /* requires the MCA bus */
+    DEVICE_MCA32      = 0x100,      /* requires the 32-bit MCA bus */
     DEVICE_PS2_KBC    = 0x200,      /* requires a PS/1 or PS/2 system */
     DEVICE_PCMCIA     = 0x400,      /* requires the PCMCIA bus */
     DEVICE_HIL        = 0x800,      /* requires the HP HIL bus */
@@ -135,6 +135,7 @@ enum {
 #define BIOS_LIMIT_MAX_MEMORY            0x0200000000000000
 #define BIOS_LIMIT_MIN_MEMORY_2          0x0400000000000000
 #define BIOS_LIMIT_MAX_MEMORY_2          0x0800000000000000
+#define BIOS_FIXED_MEMORY                0x1000000000000000 /* Only the "memory" option's default. */
 
 typedef struct device_config_selection_t {
     const char *description;

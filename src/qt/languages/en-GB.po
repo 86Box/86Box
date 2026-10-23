@@ -141,3 +141,9 @@ msgstr "Colour scheme"
 
 msgid "PC-CM (Color)"
 msgstr "PC-CM (Colour)"
+
+msgid "&Center"
+msgstr "&Centre"
+
+msgid "4:3 Cen&ter"
+msgstr "4:3 Cen&tre"

@@ -451,6 +451,8 @@ typedef struct cdrom_ops_t {
     int      (*is_empty)(const void *local);
     void     (*close)(void *local);
     void     (*load)(const void *local);
+    /* Return 13 ASCII MCN digits and nonzero if a catalog number is present. */
+    int      (*get_mcn)(const void *local, uint8_t *mcn);
 } cdrom_ops_t;
 
 typedef struct cdrom {
@@ -543,6 +545,8 @@ typedef struct cdrom {
 
     int               audio_read;
     int               formed_mode2;
+    /* The cached sector is a Mode 1 sector built by us, EDC/ECC not filled in yet. */
+    int               edc_missing;
 } cdrom_t;
 
 extern cdrom_t cdrom[CDROM_NUM];

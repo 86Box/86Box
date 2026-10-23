@@ -21,6 +21,10 @@ add_library(vid OBJECT
     video.c
     vid_table.c
 
+    # PowerVR PCX1/PCX2 add-on
+    vid_powervr_pcx.c
+    vid_powervr_pcx_render.c
+
     # RAMDAC (Should this be its own library?)
     ramdac/vid_ramdac_ati68860.c
     ramdac/vid_ramdac_ati68875.c 
@@ -166,6 +170,9 @@ add_library(vid OBJECT
     vid_s3.c 
     vid_s3_virge.c
 
+    # SiS
+    vid_sis6306.c
+
     # Matrox
     vid_mga.c
 
@@ -175,6 +182,7 @@ add_library(vid OBJECT
     # Generic
     vid_bochs_vbe.c
     vid_hd44780.c
+    vid_tandy_vis.c
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
@@ -185,11 +193,21 @@ if(G100)
     target_compile_definitions(vid PRIVATE USE_G100)
 endif()
 
+# PowerVR PCX: chip, revision, interrupt-ack, render-time and debug settings
+# for testing against hardware; ordinary builds use the measured m3D values.
+if(POWERVR_PCX_DEV)
+    target_compile_definitions(vid PRIVATE USE_POWERVR_PCX_DEV)
+endif()
+
 if(XL24)
     target_compile_definitions(vid PRIVATE USE_XL24)
 endif()
 
-option(ENABLE_RAGE128_LOG "Enable ATI Rage 128 debug logging" OFF)
+if(RAGE128_MAXX)
+    target_compile_definitions(vid PRIVATE USE_RAGE128_MAXX)
+endif()
+
+option(ENABLE_RAGE128_LOG "Turn ATI Rage 128 logging on by default (RAGE128_LOG overrides it at run time)" OFF)
 if(ENABLE_RAGE128_LOG)
     set_property(SOURCE
         vid_ati_rage128.c

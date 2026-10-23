@@ -33,7 +33,7 @@ jobs:
 
   analyze-windows:
 
-    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }}"
+    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.environment.msystem }}"
 
     runs-on: ${{ matrix.environment.runner }}
 
@@ -62,13 +62,6 @@ jobs:
 #          - name: Dev
 #            preset: development
 #            slug: -Dev
-        dynarec:
-          - name: ODR
-            new: off
-            slug: -ODR
-          - name: NDR
-            new: on
-            slug: -NDR
         ui:
           - name: Qt 5 GUI
             qt: on
@@ -97,11 +90,6 @@ jobs:
 #          - msystem: CLANGARM64
 #            slug: -arm64
 #            runner: windows-11-arm
-        exclude:
-          - dynarec:
-              new: off
-            environment:
-              msystem: CLANGARM64
 
     steps:
       - name: Prepare MSYS2 environment
@@ -145,7 +133,6 @@ jobs:
       - name: Configure CMake
         run: >-
           cmake -S . -B build --preset ${{ matrix.build.preset }}
-          -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D QT=${{ matrix.ui.qt }}
           -D STATIC_BUILD=${{ matrix.ui.static }}
 
@@ -162,7 +149,7 @@ jobs:
           category: "/language:${{matrix.language}}"
 
       - name: SonarQube Scan
-#        if: matrix.build.preset == 'dev_debug' && matrix.dynarec.new == 'on' && matrix.ui.qt == 'on' && env.SONAR_TOKEN != ''
+#        if: matrix.build.preset == 'dev_debug' && matrix.ui.qt == 'on' && env.SONAR_TOKEN != ''
         if: 0
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f #v8.2.1
         env:

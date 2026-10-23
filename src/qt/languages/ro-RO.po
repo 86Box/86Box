@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-04 17:08+0000\n"
+"PO-Revision-Date: 2026-10-16 19:50+0000\n"
 "Last-Translator: MayuriNanako <gordonkoopaplays@gmail.com>\n"
 "Language-Team: Romanian <https://weblate.86box.net/projects/86box/86box/ro/>"
 "\n"
@@ -152,6 +152,12 @@ msgstr "Scalare &întreagă"
 msgid "4:&3 Integer scale"
 msgstr "Scalare întreagă la &4:3"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Monitor VGA inversat"
 
@@ -235,9 +241,6 @@ msgstr "S&unet"
 
 msgid "&Preferences…"
 msgstr "&Preferințe…"
-
-msgid "Enable &Discord integration"
-msgstr "Activează integrarea &Discord"
 
 msgid "Sound &gain…"
 msgstr "Câș&tig sunet…"
@@ -434,6 +437,12 @@ msgstr "Recompilator dinamic"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Mediu FPU precis pe recompilatorul dinamic"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "Legarea blocurilor pe recompilatorul dinamic"
+
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Dimensiunea cadre CPU"
 
@@ -625,6 +634,12 @@ msgstr "Controler 4:"
 
 msgid "Cassette"
 msgstr "Casetă"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Discuri dure:"
@@ -1328,6 +1343,35 @@ msgstr "Utilizează expresii regulate în bara de căutare"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Șterge toate mașinile virtuale în Coșul de Reciclare"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -2798,37 +2842,37 @@ msgid "Linear interpolation"
 msgstr "Interpolare liniară"
 
 msgid "Has secondary 8x8 character set"
-msgstr ""
+msgstr "Are set de caractere secundar 8x8"
 
 msgid "Has Quadcolor II daughter board"
-msgstr ""
+msgstr "Are placă fiică Quadcolor II"
 
 msgid "Alternate monochrome contrast"
-msgstr ""
+msgstr "Contrast monocrom alternativ"
 
 msgid "128 KB"
-msgstr ""
+msgstr "128 KB"
 
 msgid "Monochrome (5151/MDA) (white)"
-msgstr ""
+msgstr "Monocrom (5151/MDA) (alb)"
 
 msgid "Monochrome (5151/MDA) (green)"
-msgstr ""
+msgstr "Monocrom (5151/MDA) (verde)"
 
 msgid "Monochrome (5151/MDA) (amber)"
-msgstr ""
+msgstr "Monocrom (5151/MDA) (chihlimbar)"
 
 msgid "Color 40x25 (5153/CGA)"
-msgstr ""
+msgstr "Culoare 40x25 (5153/CGA)"
 
 msgid "Color 80x25 (5153/CGA)"
-msgstr ""
+msgstr "Culoare 80x25 (5153/CGA)"
 
 msgid "Enhanced Color - Normal Mode (5154/ECD)"
-msgstr ""
+msgstr "Culoare îmbunătățită - Mod normal (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
-msgstr ""
+msgstr "Culoare îmbunătățită - Modul îmbunătățit (5154/ECD)"
 
 msgid "IBM 8507 (1024x768, Monochrome)"
 msgstr ""
@@ -3642,4 +3686,61 @@ msgid "CGA lightpen"
 msgstr ""
 
 msgid "Luminance threshold (%)"
+msgstr ""
+
+msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
+msgstr ""
+
+msgid "VFIO %s: Invalid device location."
+msgstr ""
+
+msgid "VFIO %s: Device not found."
+msgstr ""
+
+msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
+msgstr ""
+
+msgid "VFIO %s: Device is not bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO %s: Could not open IOMMU group %d: %s"
+msgstr ""
+
+msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
+msgstr ""
+
+msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
+msgstr ""
+
+msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
+msgstr ""
+
+msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
+msgstr ""
+
+msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
+msgstr ""
+
+msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
+msgstr ""
+
+msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
+msgstr ""
+
+msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
+msgstr ""
+
+msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
+msgstr ""
+
+msgid "Prepare PCI devices for VFIO passthrough"
+msgstr ""
+
+msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
 msgstr ""

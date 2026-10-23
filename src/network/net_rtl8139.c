@@ -28,8 +28,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
-#ifdef _MVC_VER
-#include <stddef.h>
+#ifdef _MSC_VER
+#    include <stddef.h>
 #endif
 #include <time.h>
 #define HAVE_STDARG_H
@@ -48,8 +48,6 @@
 #include "cpu.h"
 #include <86box/plat_unused.h>
 #include <86box/bswap.h>
-
-#define PCI_PERIOD 30 /* 30 ns period = 33.333333 Mhz frequency */
 
 #define SET_MASKED(input, mask, curr) \
     (((input) & ~(mask)) | ((curr) & (mask)))
@@ -448,7 +446,10 @@ struct RTL8139State {
 
     uint32_t TCTR;
     uint32_t TimerInt;
-    int64_t  TCTR_base;
+    uint64_t  TCTR_period;
+    uint64_t  TCTR_fraction;
+    uint64_t  TCTR_interval;
+    uint128_t TCTR_elapsed;
 
     /* Tally counters */
     RTL8139TallyCounters tally_counters;
@@ -474,6 +475,7 @@ struct RTL8139State {
 
 /* Writes tally counters to memory via DMA */
 static void RTL8139TallyCounters_dma_write(RTL8139State *s, uint32_t tc_addr);
+static void rtl8139_timer(void *priv);
 
 static void
 rtl8139_update_irq(RTL8139State *s)
@@ -490,6 +492,96 @@ rtl8139_update_irq(RTL8139State *s)
         pci_set_irq(d, PCI_INTA, &s->irq_state);
     else
         pci_clear_irq(d, PCI_INTA, &s->irq_state);
+}
+
+static void
+rtl8139_sync_tctr(RTL8139State *s)
+{
+    if (!s->TCTR_period)
+        return;
+
+    /* Relative to the timer deadline, so guest TSC rewrites are handled */
+    int128_t  elapsed = (int128_t) s->TCTR_interval + (int128_t) ((int64_t) (tsc - s->timer.ts_integer)) * (1ULL << 32) - s->timer.ts_frac;
+    uint128_t delta   = elapsed - s->TCTR_elapsed + s->TCTR_fraction;
+    uint128_t ticks   = delta / s->TCTR_period;
+
+    s->TCTR_elapsed  = elapsed;
+    s->TCTR_fraction = delta % s->TCTR_period;
+
+    if (s->clock_enabled) {
+        uint64_t distance = (uint32_t) (s->TimerInt - s->TCTR);
+        if (!distance)
+            distance = 1ULL << 32;
+        if (s->TimerInt && ticks >= distance) {
+            s->IntrStatus |= PCSTimeout;
+            rtl8139_update_irq(s);
+        }
+        s->TCTR += (uint32_t) ticks;
+    }
+}
+
+static void
+rtl8139_schedule_tctr(RTL8139State *s)
+{
+    /* Limit the delay to what the timer API accepts */
+    uint128_t max_delay = (uint128_t) MAX_USEC64 * TIMER_USEC;
+    uint64_t  delay     = max_delay < (0x7fffffffULL << 32) ? max_delay : (0x7fffffffULL << 32);
+
+    if (s->clock_enabled && s->TimerInt) {
+        uint64_t distance = (uint32_t) (s->TimerInt - s->TCTR);
+        if (!distance)
+            distance = 1ULL << 32;
+        uint128_t irq_delay = (uint128_t) distance * s->TCTR_period - s->TCTR_fraction;
+        if (irq_delay < delay)
+            delay = irq_delay;
+    }
+
+    /* Round up to a whole cycle so we never fire early */
+    delay = ((delay >> 32) + !!(delay & 0xffffffff)) << 32;
+    timer_stop(&s->timer);
+    s->TCTR_interval = delay;
+    s->TCTR_elapsed  = 0;
+    timer_set_delay_u64(&s->timer, delay);
+}
+
+static void
+rtl8139_speed_changed(void *priv)
+{
+    RTL8139State *s      = priv;
+    uint64_t      period = (uint64_t) ((1000000.0 / cpu_pci_speed) * (double) TIMER_USEC);
+
+    rtl8139_sync_tctr(s);
+    if (s->TCTR_period)
+        s->TCTR_fraction = (uint128_t) s->TCTR_fraction * period / s->TCTR_period;
+    s->TCTR_period = period;
+    rtl8139_schedule_tctr(s);
+}
+
+static void
+rtl8139_tctr_reset(RTL8139State *s)
+{
+    rtl8139_sync_tctr(s);
+    s->TCTR = 0;
+    rtl8139_schedule_tctr(s);
+}
+
+static void
+rtl8139_timerint_write(RTL8139State *s, uint32_t val)
+{
+    rtl8139_sync_tctr(s);
+    s->TimerInt = val;
+    rtl8139_schedule_tctr(s);
+}
+
+static void
+rtl8139_set_clock(RTL8139State *s, uint8_t val)
+{
+    rtl8139_sync_tctr(s);
+    if (val == 'R')
+        s->clock_enabled = 1;
+    else if (val == 'H')
+        s->clock_enabled = 0;
+    rtl8139_schedule_tctr(s);
 }
 
 static int
@@ -584,9 +676,12 @@ rtl8139_can_receive(RTL8139State *s)
     }
 
     if (rtl8139_cp_receiver_enabled(s) && rtl8139_cp_rx_valid(s)) {
-        /* ??? Flow control not implemented in c+ mode.
-           This is a hack to work around slirp deficiencies anyway.  */
-        return true;
+        /* Wait until the guest returns the next descriptor */
+        uint32_t desc = rtl8139_addr64(s->RxRingAddrLO, s->RxRingAddrHI) + 16 * s->currCPlusRxDesc;
+        uint32_t rxdw0;
+
+        dma_bm_read(desc, (uint8_t *) &rxdw0, 4, 4);
+        return !!(rxdw0 & (1U << 31));
     }
 
     avail = MOD2(s->RxBufferSize + s->RxBufPtr - s->RxBufAddr,
@@ -1041,6 +1136,8 @@ rtl8139_reset(void *priv)
 {
     RTL8139State *s = (RTL8139State *) priv;
 
+    rtl8139_sync_tctr(s);
+
     /* reset interrupt mask */
     s->IntrStatus = 0;
     s->IntrMask   = 0;
@@ -1095,12 +1192,9 @@ rtl8139_reset(void *priv)
     rtl8139_reset_phy(s);
 
     /* also reset timer and disable timer interrupt */
-    s->TCTR      = 0;
-    s->TimerInt  = 0;
-    s->TCTR_base = 0;
-#if 0
-    rtl8139_set_next_tctr_time(s);
-#endif
+    s->TCTR     = 0;
+    s->TimerInt = 0;
+    rtl8139_schedule_tctr(s);
 
     /* reset tally counters */
     RTL8139TallyCounters_clear(&s->tally_counters);
@@ -2527,11 +2621,7 @@ rtl8139_io_writeb(uint32_t addr, uint8_t val, void *priv)
 
         case HltClk:
             rtl8139_log("HltClk write val=0x%08x\n", val);
-            if (val == 'R') {
-                s->clock_enabled = 1;
-            } else if (val == 'H') {
-                s->clock_enabled = 0;
-            }
+            rtl8139_set_clock(s, val);
             break;
 
         case TxThresh:
@@ -2672,17 +2762,12 @@ rtl8139_io_writel(uint32_t addr, uint32_t val, void *priv)
 
         case Timer:
             rtl8139_log("TCTR Timer reset on write\n");
-            s->TCTR = 0;
-#if 0
-            s->TCTR_base = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
-            rtl8139_set_next_tctr_time(s);
-#endif
+            rtl8139_tctr_reset(s);
             break;
 
         case FlashReg:
             rtl8139_log("FlashReg TimerInt write val=0x%08x\n", val);
-            if (s->TimerInt != val)
-                s->TimerInt = val;
+            rtl8139_timerint_write(s, val);
             break;
 
         default:
@@ -2906,10 +2991,7 @@ rtl8139_io_readl(uint32_t addr, void *priv)
             break;
 
         case Timer:
-#if 0
-            ret = (qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) - s->TCTR_base) /
-                  PCI_PERIOD;
-#endif
+            rtl8139_sync_tctr(s);
             ret = s->TCTR;
             rtl8139_log("TCTR Timer read val=0x%08x\n", ret);
             break;
@@ -3090,19 +3172,8 @@ rtl8139_timer(void *priv)
 {
     RTL8139State *s = priv;
 
-    timer_on_auto(&s->timer, 1000000.0 / ((double) cpu_pci_speed));
-
-    if (!s->clock_enabled) {
-        rtl8139_log(">>> timer: clock is not running\n");
-        return;
-    }
-
-    s->TCTR++;
-
-    if (s->TCTR == s->TimerInt && s->TimerInt != 0) {
-        s->IntrStatus |= PCSTimeout;
-        rtl8139_update_irq(s);
-    }
+    rtl8139_sync_tctr(s);
+    rtl8139_schedule_tctr(s);
 }
 
 static uint8_t
@@ -3313,8 +3384,9 @@ nic_init(const device_t *info)
     s->eeprom = device_add_inst_params(&nmc93cxx_device, s->inst, &params);
 
     s->nic = network_attach(s, (uint8_t *) &s->phys[MAC0], rtl8139_do_receive, rtl8139_set_link_status);
+    s->nic->byte_period = NET_PERIOD_100M;
     timer_add(&s->timer, rtl8139_timer, s, 0);
-    timer_on_auto(&s->timer, 1000000.0 / cpu_pci_speed);
+    rtl8139_speed_changed(s);
 
     s->cplus_txbuffer        = NULL;
     s->cplus_txbuffer_len    = 0;
@@ -3326,6 +3398,12 @@ nic_init(const device_t *info)
 static void
 nic_close(void *priv)
 {
+    RTL8139State *s = (RTL8139State *) priv;
+
+    netcard_close(s->nic);
+    free(s->cplus_txbuffer);
+    s->cplus_txbuffer = NULL;
+
     free(priv);
 }
 
@@ -3355,7 +3433,7 @@ const device_t rtl8139c_plus_device = {
     .close         = nic_close,
     .reset         = rtl8139_reset,
     .available     = NULL,
-    .speed_changed = NULL,
+    .speed_changed = rtl8139_speed_changed,
     .force_redraw  = NULL,
     .config        = rtl8139c_config
 };

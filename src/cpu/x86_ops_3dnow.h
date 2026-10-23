@@ -22,11 +22,17 @@ opPREFETCH_a32(uint32_t fetchdat)
 static int
 opFEMMS(UNUSED(uint32_t fetchdat))
 {
-    ILLEGAL_ON(!cpu_has_feature(CPU_FEATURE_MMX));
-    if (cr0 & 0xc) {
+    /* As MMX_ENTER: CR0.EM makes it invalid, CR0.TS only unavailable */
+    ILLEGAL_ON(!cpu_has_feature(CPU_FEATURE_MMX) || (cr0 & 0x4));
+    if (cr0 & 0x8) {
         x86_int(7);
         return 1;
     }
+    /* A pending x87 exception is taken first (3DNow! manual) */
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    } else if (x87_legacy_pending())
+        return 1;
     x87_emms();
     CLOCK_CYCLES(1);
     return 0;
@@ -222,10 +228,23 @@ opPFMAX(UNUSED(uint32_t fetchdat))
 
     MMX_GETSRC();
 
+    /* AMD 21928 table 1 treats every exponent-zero operand as zero. */
+    for (int lane = 0; lane < 2; lane++) {
+        if (!(src.l[lane] & 0x7f800000))
+            src.l[lane] = 0;
+        if (!(dst->l[lane] & 0x7f800000))
+            dst->l[lane] = 0;
+    }
+
     if (src.f[0] > dst->f[0])
         dst->f[0] = src.f[0];
     if (src.f[1] > dst->f[1])
         dst->f[1] = src.f[1];
+
+    /* AMD 21928: a zero minimum/maximum is positive zero. */
+    for (int lane = 0; lane < 2; lane++)
+        if (dst->f[lane] == 0.0f)
+            dst->l[lane] = 0;
 
     MMX_SETEXP(cpu_reg);
 
@@ -239,10 +258,23 @@ opPFMIN(UNUSED(uint32_t fetchdat))
 
     MMX_GETSRC();
 
+    /* AMD 21928 table 1 treats every exponent-zero operand as zero. */
+    for (int lane = 0; lane < 2; lane++) {
+        if (!(src.l[lane] & 0x7f800000))
+            src.l[lane] = 0;
+        if (!(dst->l[lane] & 0x7f800000))
+            dst->l[lane] = 0;
+    }
+
     if (src.f[0] < dst->f[0])
         dst->f[0] = src.f[0];
     if (src.f[1] < dst->f[1])
         dst->f[1] = src.f[1];
+
+    /* AMD 21928: a zero minimum/maximum is positive zero. */
+    for (int lane = 0; lane < 2; lane++)
+        if (dst->f[lane] == 0.0f)
+            dst->l[lane] = 0;
 
     MMX_SETEXP(cpu_reg);
 
@@ -266,26 +298,27 @@ opPFMUL(UNUSED(uint32_t fetchdat))
 static int
 opPFRCP(UNUSED(uint32_t fetchdat))
 {
+    MMX_REG  src;
     MMX_REG *dst = MMX_GETREGP(cpu_reg);
+    uint32_t x;
 
-    union {
-        uint32_t i;
-        float    f;
-    } src;
+    /* The operand is mem64 (AMD 21928; AMD64 APM Vol. 5); only its low
+       lane is used */
+    MMX_GETSRC();
+    x = src.l[0];
 
-    if (cpu_mod == 3) {
-        src.f = (MMX_GETREG(cpu_rm)).f[0];
-        CLOCK_CYCLES(1);
-    } else {
-        SEG_CHECK_READ(cpu_state.ea_seg);
-        src.i = readmeml(easeg, cpu_state.eaaddr);
-        if (cpu_state.abrt)
-            return 1;
-        CLOCK_CYCLES(2);
+    /* AMD 21928 PFRCP, Table 14: a zero exponent gives the maximum normal,
+       a reciprocal below the smallest normal is held to zero, and the
+       result has the source's sign. */
+    if (!(x & 0x7f800000))
+        dst->l[0] = (x & 0x80000000) | 0x7f7fffff;
+    else {
+        dst->f[0] = (float) (1.0 / fabs((double) src.f[0]));
+        if (!(dst->l[0] & 0x7f800000))
+            dst->l[0] = 0;
+        dst->l[0] |= x & 0x80000000;
     }
-
-    dst->f[0] = 1.0 / src.f;
-    dst->f[1] = dst->f[0];
+    dst->l[1] = dst->l[0];
 
     MMX_SETEXP(cpu_reg);
 
@@ -327,24 +360,19 @@ opPFRSQRT(UNUSED(uint32_t fetchdat))
 {
     MMX_REG *dst = MMX_GETREGP(cpu_reg);
 
-    union {
-        uint32_t i;
-        float    f;
-    } src;
+    MMX_REG src;
 
-    if (cpu_mod == 3) {
-        src.f = (MMX_GETREG(cpu_rm)).f[0];
-        CLOCK_CYCLES(1);
-    } else {
-        SEG_CHECK_READ(cpu_state.ea_seg);
-        src.i = readmeml(easeg, cpu_state.eaaddr);
-        if (cpu_state.abrt)
-            return 1;
-        CLOCK_CYCLES(2);
-    }
+    /* The operand is mem64 (AMD 21928; AMD64 APM Vol. 5); only its low
+       lane is used */
+    MMX_GETSRC();
 
-    dst->f[0] = 1.0 / sqrt(src.f);
-    dst->f[1] = dst->f[0];
+    /* AMD 21928 PFRSQRT: magnitude sqrt for negative inputs, original
+       sign retained; zero maps to maximum normal, never infinity. */
+    if ((src.l[0] & 0x7f800000) == 0)
+        dst->l[0] = (src.l[0] & 0x80000000) | 0x7f7fffff;
+    else
+        dst->f[0] = copysign(1.0 / sqrt(fabs((double) src.f[0])), src.f[0]);
+    dst->l[1] = dst->l[0];
 
     MMX_SETEXP(cpu_reg);
 
@@ -437,6 +465,7 @@ opPMULHRW(UNUSED(uint32_t fetchdat))
         CLOCK_CYCLES(1);
     } else {
         SEG_CHECK_READ(cpu_state.ea_seg);
+        CHECK_READ_EA(8);
         src.l[0] = readmeml(easeg, cpu_state.eaaddr);
         src.l[1] = readmeml(easeg, cpu_state.eaaddr + 4);
         if (cpu_state.abrt)

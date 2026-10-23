@@ -683,6 +683,7 @@ static const cdrom_ops_t aaru_image_ops = {
     aaru_image_has_data,
     NULL,
     aaru_image_close,
+    NULL,
     NULL
 };
 

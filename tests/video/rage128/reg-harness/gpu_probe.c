@@ -28,10 +28,75 @@
 
 #ifdef R128_GPU_HAVE_VULKAN
 
+#    include <fcntl.h>
+#    ifdef _WIN32
+#        include <io.h>
+#        include <share.h>
+#        include <sys/stat.h>
+#    else
+#        include <unistd.h>
+#    endif
+
+static FILE *
+harness_gpu_open_output(const char *path)
+{
+    FILE *f  = NULL;
+    int   fd = -1;
+
+#ifdef _WIN32
+    if (_sopen_s(&fd, path, _O_WRONLY | _O_CREAT | _O_TRUNC | _O_TEXT,
+                 _SH_DENYNO, _S_IREAD | _S_IWRITE) == 0) {
+        f = _fdopen(fd, "w");
+        if (!f)
+            _close(fd);
+    }
+#else
+    fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd >= 0) {
+        f = fdopen(fd, "w");
+        if (!f)
+            close(fd);
+    }
+#endif
+    return f;
+}
+
 int
 harness_gpu_available(void)
 {
     return 1;
+}
+
+/* Runs the backend's own bring-up steps up to a logical device (load the
+   Vulkan library, create an instance, choose a physical device, check its
+   limits, compute queue, extensions and features, create the device),
+   then destroys what it made. Using the same steps keeps the answer equal
+   to what device init will find, so a host that passes here and then
+   fails at device init is a real failure. */
+const char *
+harness_gpu_runtime_missing(void)
+{
+    r128_gpu_t *g = (r128_gpu_t *) calloc(1, sizeof(*g));
+    const char *why;
+    int         ifn_ok = 0;
+
+    if (!g)
+        return "out of memory";
+    if (!gpu_vk_open())
+        why = "no Vulkan library";
+    else if (!(why = gpu_instance_create(g))) {
+        ifn_ok = 1;
+        if (!(why = gpu_device_pick(g)) && !(why = gpu_device_query(g))
+            && !(why = gpu_queue_pick(g)))
+            why = gpu_device_create(g);
+    }
+    if (ifn_ok) {
+        if (g->dev)
+            vkDestroyDevice(g->dev, NULL);
+        vkDestroyInstance(g->inst, NULL);
+    }
+    free(g);
+    return why;
 }
 
 /* A backend with no Vulkan objects: both arena imports reported live (so
@@ -99,11 +164,38 @@ harness_gpu_gate(rage128_t *dev, const rage128_raster_state_t *rs)
     return k;
 }
 
+static int
+harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
+                        const r3d_vtx_t *a, const r3d_vtx_t *b,
+                        const r3d_vtx_t *c, const r3d_vtx_t *v, uint32_t ntri,
+                        harness_gpu_span_t *out, uint32_t max,
+                        harness_gpu_cap_t *res);
+
 int
 harness_gpu_capture_tri(rage128_t *dev, const rage128_raster_state_t *rs,
                         const r3d_vtx_t *a, const r3d_vtx_t *b,
                         const r3d_vtx_t *c, harness_gpu_span_t *out,
                         uint32_t max, harness_gpu_cap_t *res)
+{
+    return harness_gpu_capture_any(dev, rs, a, b, c, NULL, 0, out, max, res);
+}
+
+int
+harness_gpu_capture_tris(rage128_t *dev, const rage128_raster_state_t *rs,
+                         const r3d_vtx_t *v, uint32_t ntri,
+                         harness_gpu_span_t *out, uint32_t max,
+                         harness_gpu_cap_t *res)
+{
+    return harness_gpu_capture_any(dev, rs, NULL, NULL, NULL, v, ntri, out,
+                                   max, res);
+}
+
+static int
+harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
+                        const r3d_vtx_t *a, const r3d_vtx_t *b,
+                        const r3d_vtx_t *c, const r3d_vtx_t *v, uint32_t ntri,
+                        harness_gpu_span_t *out, uint32_t max,
+                        harness_gpu_cap_t *res)
 {
     r128_gpu_t       *g   = harness_gpu_alloc();
     void             *old = dev->gpu;
@@ -126,17 +218,80 @@ harness_gpu_capture_tri(rage128_t *dev, const rage128_raster_state_t *rs,
         return 0;
     }
 
-    gpu_tri_need(rs, a, b, c, &res->need_spans, &res->need_px);
-    prim_ranges(rs, dev->vram_mask, a, b, c, &res->clo, &res->chi, &res->zlo,
-                &res->zhi);
+    /* one triangle, or ntri of them (v[3k..3k+2]) captured into one
+       segment in order, as consecutive submits of one state are: the
+       bounds are the union of the triangles' own */
+    res->clo = res->zlo = 0xffffffffu;
+    for (uint32_t t = 0; t < (v ? ntri : 1u); t++) {
+        const r3d_vtx_t *ta = v ? &v[3 * t] : a;
+        const r3d_vtx_t *tb = v ? &v[3 * t + 1] : b;
+        const r3d_vtx_t *tc = v ? &v[3 * t + 2] : c;
+        uint64_t         ns, np;
+        uint32_t         clo, chi, zlo, zhi;
 
-    dev->gpu = g;
-    rage128_3d_tri(dev, rs, 0, 0, a, b, c, rage128_gpu_capture_span);
-    dev->gpu = old;
+        gpu_tri_need(rs, ta, tb, tc, &ns, &np);
+        res->need_spans += ns;
+        res->need_px += np;
+        prim_ranges(rs, dev->vram_mask, ta, tb, tc, &clo, &chi, &zlo, &zhi);
+        if (clo < res->clo)
+            res->clo = clo;
+        if (chi > res->chi)
+            res->chi = chi;
+        if (zlo < res->zlo)
+            res->zlo = zlo;
+        if (zhi > res->zhi)
+            res->zhi = zhi;
+        dev->gpu   = g;
+        g->cur_tri = -1;
+        rage128_3d_tri(dev, rs, 0, 0, ta, tb, tc, rage128_gpu_capture_span);
+        dev->gpu = old;
+    }
 
     sp          = (const seg_span_t *) g->slot[0].b_spans.map;
     res->nspans = g->nspans;
     res->got    = g->nspans < max ? g->nspans : max;
+    /* the flush's grouping and leveling, run by run, as gpu_flush_body
+       calls them; group numbers continue across runs. The batch slots
+       gpu_batch_row writes are scratch here: a group never needs more
+       batches than it has spans. */
+    {
+        uint32_t *slots = (uint32_t *) calloc((size_t) g->nspans + 1u,
+                                              GPU_BATCH_SLOTS * sizeof(uint32_t));
+
+        for (uint32_t r = 0; slots && r < g->nruns; r++) {
+            uint32_t s0 = g->runs[r].span0;
+            uint32_t s1 = (r + 1 < g->nruns) ? g->runs[r + 1].span0 : g->nspans;
+            int      ng;
+
+            if (s1 <= s0)
+                continue;
+            res->rowalias |= (int) g->runs[r].rowalias;
+            ng = gpu_run_groups(g, r, s0, s1, g->cnt);
+            for (int k = 0; k < ng; k++) {
+                uint32_t c = g->cnt[k] - g->beg[k];
+
+                if (!c)
+                    continue;
+                (void) gpu_batch_row(g, slots, 0, &g->ord[g->beg[k]], c);
+                for (uint32_t j = 0; j < c; j++) {
+                    uint32_t si = g->ord[g->beg[k] + j];
+
+                    if (si < res->got) {
+                        out[si].group = res->ngroups + (uint32_t) k;
+                        out[si].rank  = j;
+                        out[si].level = g->lvl[j];
+                    }
+                }
+            }
+            res->ngroups += (uint32_t) ng;
+        }
+        res->leveled = slots != NULL;
+        free(slots);
+    }
+    if (g->nspans > 0) {
+        res->sctl = g->sctl_of[0];
+        res->srm  = g->srm_of[0];
+    }
     for (uint32_t i = 0; i < res->got; i++) {
         out[i].x0   = sp[i].x0;
         out[i].x1   = sp[i].x1;
@@ -625,7 +780,7 @@ harness_gpu_tuple_reload(uint32_t fmt0, uint32_t fmt1,
         goto done;
     cache_active = 1;
     gpu_cache_path(path, sizeof(path), "r128gpu.tuples");
-    f = fopen(path, "w");
+    f = harness_gpu_open_output(path);
     if (!f)
         goto done;
     fprintf(f, GPU_TUPLES_HDR "\n%u", kern);
@@ -692,7 +847,7 @@ harness_gpu_tuple_pair(const uint32_t a[7], const uint32_t b[7],
         goto done;
     cache_active = 1;
     gpu_cache_path(path, sizeof(path), "r128gpu.tuples");
-    f = fopen(path, "w");
+    f = harness_gpu_open_output(path);
     if (!f)
         goto done;
     fprintf(f, GPU_TUPLES_HDR "\n");
@@ -948,6 +1103,12 @@ harness_gpu_available(void)
     return 0;
 }
 
+const char *
+harness_gpu_runtime_missing(void)
+{
+    return NULL;
+}
+
 int
 harness_gpu_gate(rage128_t *dev, const rage128_raster_state_t *rs)
 {
@@ -964,6 +1125,17 @@ harness_gpu_capture_tri(rage128_t *dev, const rage128_raster_state_t *rs,
 {
     (void) dev; (void) rs; (void) a; (void) b; (void) c; (void) out;
     (void) max;
+    memset(res, 0, sizeof(*res));
+    return 0;
+}
+
+int
+harness_gpu_capture_tris(rage128_t *dev, const rage128_raster_state_t *rs,
+                         const r3d_vtx_t *v, uint32_t ntri,
+                         harness_gpu_span_t *out, uint32_t max,
+                         harness_gpu_cap_t *res)
+{
+    (void) dev; (void) rs; (void) v; (void) ntri; (void) out; (void) max;
     memset(res, 0, sizeof(*res));
     return 0;
 }

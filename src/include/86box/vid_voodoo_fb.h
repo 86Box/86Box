@@ -16,6 +16,7 @@
 #ifndef VIDEO_VOODOO_FB_H
 #define VIDEO_VOODOO_FB_H
 
+int      voodoo_fb_read_y(const voodoo_t *voodoo, int y);
 uint16_t voodoo_fb_readw(uint32_t addr, void *priv);
 uint32_t voodoo_fb_readl(uint32_t addr, void *priv);
 void     voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv);

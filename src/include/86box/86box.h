@@ -20,6 +20,8 @@
 #ifndef EMU_86BOX_H
 #define EMU_86BOX_H
 
+#include <stdio.h>
+
 #if defined(__NetBSD__) || defined(__OpenBSD__)
 /* Doesn't compile on NetBSD/OpenBSD without this include */
 #include <stdarg.h>
@@ -212,6 +214,7 @@ extern int      sound_input_enabled;        /* (C) enable sound input */
 extern int      sound_sample_rate;          /* (C) sound output sample rate */
 extern int      sb_input_rate;              /* (C) SB16/AWE32 hardware sample rate */
 extern int      voodoo_enabled;             /* (C) video option */
+extern int      powervr_enabled;            /* (C) video option */
 extern int      ibm8514_standalone_enabled; /* (C) video option */
 extern int      xga_standalone_enabled;     /* (C) video option */
 extern int      da2_standalone_enabled;     /* (C) video option */
@@ -222,12 +225,12 @@ extern int      cpu_use_dynarec;            /* (C) cpu uses/needs Dyna */
 extern int      fpu_type;                   /* (C) fpu type */
 extern int      fpu_softfloat;              /* (C) fpu uses softfloat */
 extern int      time_sync;                  /* (C) enable time sync */
+extern int      time_offset_years;          /* (C) year offset for time sync */
 extern int      hdd_format_type;            /* (C) hard disk file format */
 extern int      confirm_reset;              /* (G) enable reset confirmation */
 extern int      confirm_exit;               /* (G) enable exit confirmation */
 extern int      confirm_save;               /* (G) enable save confirmation */
 extern int      chd_precache_level;         /* (G) CHD precache level */
-extern int      enable_discord;             /* (C) enable Discord integration */
 extern int      force_10ms;                 /* (C) force 10ms CPU frame interval */
 extern int      jumpered_internal_ecp_dma;  /* (C) Jumpered internal EPC DMA */
 extern int      other_ide_present;          /* IDE controllers from non-IDE cards are present */
@@ -253,6 +256,7 @@ extern int    fm_driver;                    /* (C) select FM sound driver */
 extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
 extern int    vmm_disabled;                 /* (G) disable built-in manager */
 extern char   vmm_path_cfg[1024];           /* (G) VMs path (unless -E is used) */
+extern int    discord_presence;             /* (G) Discord status: off, name and hardware, hardware only, no details */
 extern int    gdbstub_port;                 /* (C) The GDB stub port. */
 
 extern char exe_path[2048];        /* path (dir) of executable */
@@ -273,9 +277,6 @@ extern char monitor_edid_path[1024];        /* (C) Path to custom EDID */
 extern int color_scheme;                    /* (C) Color scheme of UI (Windows-only) */
 extern int fdd_sounds_enabled;              /* (C) Enable floppy drive sounds */
 
-#if !defined(USE_NEW_DYNAREC) && defined(FILE)
-extern FILE *stdlog; /* file to log output to */
-#endif
 extern int config_changed; /* config has changed */
 
 extern __thread int is_cpu_thread; /* Is this the CPU thread? */

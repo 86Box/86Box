@@ -191,6 +191,10 @@ fdc_ctrl_reset(void *priv, int reset_power_down)
 
     fdc->stat             = 0x80;
     fdc->pnum = fdc->ptot = 0;
+    /* A reset aborts the command and its result phase with it, so the result
+       bytes the guest had not read are gone; fdc_write() refuses a command
+       while paramstogo is set. */
+    fdc->paramstogo       = 0;
     fdc->st0              = 0;
     fdc->head             = 0;
     fdc->step             = 0;
@@ -690,9 +694,8 @@ static void
 fdc_rate(fdc_t *fdc, int drive)
 {
     if (fdc->flags & FDC_FLAG_5550) {
-        /* The density is the drive's media sense, not a guest choice: the
-           guest writes the same 3F1h value for 1.44M and 720K media, so
-           latching its bit 4 selects the wrong rate for one of them. */
+        /* Follow the inserted media: the rate also comes from a board-level
+           input (DR1), and the guest's bit 4 did not track the media here. */
         uint8_t dens = (uint8_t) fdd_hole(fdc->fdd[drive]);
 
         switch (dens) {
@@ -726,14 +729,19 @@ real_drive(fdc_t *fdc, int drive)
         return drive;
 }
 
+/* IBM 5550 family: the board's DMA transfer latch holds the bytes still left to move. */
+static void
+fdc_xfer_count_down(fdc_t *fdc)
+{
+    if ((fdc->flags & FDC_FLAG_5550) && fdc->xfer_count)
+        fdc->xfer_count--;
+}
+
+/* IBM 5550 family: detect a disk change through the drive's Ready line, and uPD765A will
+   raise an interrupt whenever the state changes. Other PCs do not use the Ready line. */
 void
 fdc_diskchange_interrupt(fdc_t *fdc, int drive)
 {
-    /*
-    For the IBM 5550 machine to detect the disk in the drive has been changed.
-    A hardware interrupt is caused by the FDC (NEC uPD765A) when the Ready line from the drive changes its state.
-    Other PCs never use the Ready line.
-    */
     if (fdc->flags & FDC_FLAG_5550) {
         fdc->st0 = 0xc0 | (drive & 3);
         fdc_int(fdc, 1);
@@ -966,18 +974,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 return;
             case 1:
                 if (fdc->flags & FDC_FLAG_5550) {
-                    val = 0;
-                    if (!(val & 0x08)) { /* Drive 2 active */
-                        val = 0x42;
-                    }
-                    if (!(val & 0x04)) { /* Drive 1 active */
-                        val &= 0xf0;
-                        val |= 0x21;
-                    }
-                    if (!(val & 0x02)) { /* Drive 0 active */
-                        val &= 0xf0;
-                        val |= 0x10;
-                    }
+                    /* The guest's drive select bits are not decoded: enable
+                       every motor and let the loop below prune absent drives. */
+                    val = 0x70;
                     /* Update the DOR because this emulation module depend on it */
                     fdc->dor &= 0x0c;
                     fdc->dor |= val;
@@ -1116,6 +1115,11 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             case 5: /*Command register*/
                 if (fdc->flags & FDC_FLAG_5550)
                     picintc(1 << fdc->irq);
+                /* The uPD765 does not accept a command until every result byte
+                   has been read out, so writes arriving before that is neither
+                   a command byte nor one of its parameters. */
+                if (fdc->paramstogo)
+                    return;
                 if (fdc->fifointest) {
                     /* Write FIFO buffer in the test mode (PS/55) */
                     fdc_log("FIFO buffer position = %X\n", ((fifo_t *) fdc->fifo_p)->end);
@@ -1479,7 +1483,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     fdc_noidam(fdc);
                                     return;
                                 }
-                                if (!(fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) && fdc->dma && ((dma_mode(2) & 0x0C) == 0x00)) {
+                                if (!(fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) && fdc->dma && ((dma_mode(fdc->dma_ch) & 0x0C) == 0x00)) {
                                     /* DMA is in verify mode, treat this like a VERIFY command. */
                                     fdc_log("Verify-mode read!\n");
                                     fdc->deleted |= 2;
@@ -1653,7 +1657,15 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         fdc->stat = 0x90 | (fdc->stat & 0xf);
                 }
                 return;
+            case 6:
+                if (fdc->flags & FDC_FLAG_5550)
+                    fdc->xfer_count = (fdc->xfer_count & 0xff00) | val;
+                return;
             case 7:
+                if (fdc->flags & FDC_FLAG_5550) {
+                    fdc->xfer_count = (fdc->xfer_count & 0x00ff) | (val << 8);
+                    return;
+                }
                 if (!(fdc->flags & FDC_FLAG_TOSHIBA) && !(fdc->flags & FDC_FLAG_AT) && !(fdc->flags & FDC_FLAG_UMC))
                     return;
                 if (fdc->flags & FDC_FLAG_PS2) {
@@ -1759,7 +1771,19 @@ fdc_read(uint16_t addr, void *priv)
                     ret  |= (fdc->dor & 0x01) << 5;    /* Drive Select 0 */
                     ret  |= (fdc->dor & 0x30) >> 4;    /* Motor Select 1, 0 */
                 } else if (fdc->flags & FDC_FLAG_5550) {
-                    ret = 0;
+                    /* Register mode's digital out register status: the drive
+                       is always selected and its motor on, and IPL checks
+                       exactly that after it has set up the drive. */
+                    ret = 0x71;
+                } else if (fdc->flags & FDC_FLAG_COMPAQ) {
+                    /* Compaq 386 drive type sense: the BIOS takes bit 7
+                       clear on an 80-track drive as a 3.5" 1.44 MB one, and
+                       set as a 1.2 MB or 720 kB one. */
+                    drive = real_drive(fdc, fdc->dor & 3);
+                    drv   = (fdd_drive_t *) fdc->fdd[drive];
+                    ret   = 0xff;
+                    if (fdd_is_hd(drv) && !fdd_is_525(drv))
+                        ret &= ~0x80;
                 } else {
                     if (is486 || !fdc->enable_3f1)
                         ret = 0xff;
@@ -1864,7 +1888,22 @@ fdc_read(uint16_t addr, void *priv)
                 }
                 fdc->stat &= 0xf0;
                 break;
+            case 6:
+                if (fdc->flags & FDC_FLAG_5550) {
+                    /* No media: nothing will move, so the board's counter is
+                       already idle and the ROS must not wait out its timeout. */
+                    drive = real_drive(fdc, fdc->dor & 3);
+                    drv = (fdd_drive_t *) fdc->fdd[drive];
+                    ret = drv->empty ? 0 : (fdc->xfer_count & 0xff);
+                }
+                break;
             case 7: {
+                if (fdc->flags & FDC_FLAG_5550) {
+                    drive = real_drive(fdc, fdc->dor & 3);
+                    drv = (fdd_drive_t *) fdc->fdd[drive];
+                    ret = drv->empty ? 0 : (fdc->xfer_count >> 8);
+                    break;
+                }
                 /*Disk change*/
                 drive = real_drive(fdc, fdc->dor & 3);
                 drv = (fdd_drive_t *) fdc->fdd[drive];
@@ -2005,14 +2044,9 @@ fdc_callback(void *priv)
         case -3: /* End of command with interrupt */
         case -4: /* Recalibrate/seek completion (PCjr/JX polled status) */
             fdc_int(fdc, fdc->interrupt & 1);
-            /*
-               A completion can land while the CPU is still reading out a
-               result phase - the command's own timer and the result phase
-               are independent. Overwriting the status there would make the
-               FDC drop the result bytes it has not handed over yet, so only
-               take the status back to idle once the result phase is done;
-               The last byte read leaves the same 0x80 behind by itself.
-             */
+            /* The uPD765A/B main status register keeps CB (DB4, "a read or write
+               command is in process") set while a result phase is still being read
+               out, so a completion landing mid-transfer must not force idle here. */
             if (!fdc->paramstogo)
                 fdc->stat = (fdc->stat & 0xf) | 0x80;
             return;
@@ -2065,15 +2099,26 @@ fdc_callback(void *priv)
                 }
             }
             return;
-        case 0x04: /* Sense drive status */
-            fdc->res[10] = (fdc->params[0] & 7) | 0x20;
-            if (fdd_is_double_sided(fdc->fdd[real_drive(fdc, fdc->drive)]))
-                fdc->res[10] |= 0x08;
+        case 0x04: { /* Sense drive status */
+            fdd_drive_t *drv = (fdd_drive_t *) fdc->fdd[real_drive(fdc, fdc->drive)];
+
+            fdc->res[10] = fdc->params[0] & 7;
+            if (fdc->flags & FDC_FLAG_AT) {
+                /* The AT-class controllers (82077AA and the Super I/O ones)
+                   report the two-side and ready bits as always set. */
+                fdc->res[10] |= 0x28;
+            } else {
+                /* The XT-class controllers passes the drive's pins through, so
+                   a position with no drive has no ready signal to report. */
+                if (fdd_is_double_sided(drv))
+                    fdc->res[10] |= 0x08;
+                if (fdd_get_flags(drv))
+                    fdc->res[10] |= 0x20;
+            }
             if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en) {
                 if (fdc_track0(fdc, real_drive(fdc, fdc->drive)))
                     fdc->res[10] |= 0x10;
             }
-            fdd_drive_t *drv = (fdd_drive_t *) fdc->fdd[fdc->drive];
             if (drv->writeprot)
                 fdc->res[10] |= 0x40;
             /* IBM 5550 */
@@ -2086,6 +2131,7 @@ fdc_callback(void *priv)
             fdc->paramstogo = 1;
             fdc->interrupt  = 0;
             return;
+        }
         case 0x05: /* Write data */
         case 0x09: /* Write deleted data */
         case 0x06: /* Read data */
@@ -2467,6 +2513,7 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
             dma_set_drq(fdc->dma_ch, 1);
 
             fdc->dat = data;
+            fdc_xfer_count_down(fdc);
             result = dma_channel_write(fdc->dma_ch, data);
 
             if (result & DMA_OVER) {
@@ -2489,6 +2536,7 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
 
                 while (!fifo_get_empty(fdc->fifo_p)) {
                     result = dma_channel_write(fdc->dma_ch, fifo_read(fdc->fifo_p));
+                    fdc_xfer_count_down(fdc);
 
                     if (result & DMA_OVER) {
                         fdc_log("FDC command %02X: Lower DRQ on data read from drive with FIFO #1\n", fdc->processed_cmd);
@@ -2621,6 +2669,9 @@ fdc_getdata(fdc_t *fdc, int last)
             fdc_log("FDC command %02X: Lower DRQ on data write to drive without FIFO\n", fdc->processed_cmd);
             dma_set_drq(fdc->dma_ch, 0);
 
+            if (data != DMA_NODATA)
+                fdc_xfer_count_down(fdc);
+
             if (data & DMA_OVER)
                 fdc->tc = 1;
 
@@ -2634,6 +2685,9 @@ fdc_getdata(fdc_t *fdc, int last)
                 while (!fifo_get_full(fdc->fifo_p)) {
                     data            = dma_channel_read(fdc->dma_ch);
                     fifo_write(data, fdc->fifo_p);
+
+                    if (data != DMA_NODATA)
+                        fdc_xfer_count_down(fdc);
 
                     if (data == DMA_NODATA) {
                         fdc_log("FDC command %02X: DMA read with no data!\n", fdc->processed_cmd);
@@ -2761,7 +2815,7 @@ fdc_set_base(fdc_t *fdc, int base)
     } else if (fdc->flags & FDC_FLAG_5550) {
         io_sethandler(base, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
         io_sethandler(base + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
-        io_sethandler(base + 0x0005, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        io_sethandler(base + 0x0005, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else {
         if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
             io_sethandler(base + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -2805,7 +2859,7 @@ fdc_remove(fdc_t *fdc)
     } else if (fdc->flags & FDC_FLAG_5550) {
         io_removehandler(fdc->base_address, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
         io_removehandler(fdc->base_address + 4, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
-        io_removehandler(fdc->base_address + 5, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        io_removehandler(fdc->base_address + 5, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else {
         if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
             io_removehandler(fdc->base_address + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -2875,6 +2929,8 @@ fdc_reset(void *priv)
     fdc->tfifo = 1;
     fdc->fifointest = 0;
 
+    fdc->xfer_count = 0;
+
     if (fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) {
         fdc->dma        = 0;
         fdc->specify[1] = 1;
@@ -2885,12 +2941,17 @@ fdc_reset(void *priv)
     fdc->config = 0x20;
     fdc->pretrk = 0;
 
+    fdc->lock          = 0;
+
     fdc->swwp          = 0;
     fdc->disable_write = 0;
 
-    fdc->lock          = 0;
-
     fdc_ctrl_reset(fdc, !(fdc->flags & FDC_FLAG_PNP));
+
+    /* The 5550's FDC reset port (3F2h) comes up asserted, so the MSR reads
+       0x00 rather than the uPD765's idle 0x80 until the guest pulses it. */
+    if (fdc->flags & FDC_FLAG_5550)
+        fdc->stat = 0x00;
 
     if (!(fdc->flags & FDC_FLAG_AT))
         fdc->rate = 2;
@@ -3167,6 +3228,20 @@ const device_t fdc_at_device = {
     .internal_name = "fdc_at",
     .flags         = DEVICE_ISA,
     .local         = FDC_FLAG_AT,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_at_compaq_device = {
+    .name          = "PC/AT FDC (Compaq)",
+    .internal_name = "fdc_at_compaq",
+    .flags         = DEVICE_ISA,
+    .local         = FDC_FLAG_AT | FDC_FLAG_COMPAQ,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,

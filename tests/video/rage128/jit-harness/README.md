@@ -7,8 +7,8 @@ output byte-for-byte against a C reference. The reference mirrors the
 interpreter's pixel loop (`ref_span`) and sampler (`rr_*`). Helper-call states
 also exercise call glue with a synthetic texture helper that clobbers
 registers and rejects some pixels. Hosts without a matching native backend
-run reference-only checks and print ordered checksums. Exit zero means the
-selected checks pass.
+run reference-only checks and print ordered checksums. Exit zero from the
+fuzz gate means the selected checks pass.
 
 The harness includes the device and emitter headers directly from
 `../../../../src/include/86box/`, including `vid_ati_rage128.h`,
@@ -51,7 +51,7 @@ false mismatches against both the interpreter and the JIT.
 Invoke probes directly, for example:
 
     ./jit_host_test bench [npx]  # per-shape time per pixel
-    ./jit_host_test dump         # emit a block for disassembly
+    ./jit_host_test dump         # emit matrix blocks for disassembly
     ./jit_host_test branchpatch  # skip patcher's branch classifier
     JHT_BIGPX_REPRO=1 JHT_BIGPX_REPRO_ITERS=20 ./jit_host_test
 
@@ -60,6 +60,15 @@ Other standalone modes are `sizes`, `benchdump`, `contend`, `rttone`,
 The shard runner accepts only the fuzz gate and an optional seed. With
 `JHT_SHARD` set, standalone modes run once in shard zero with row selection
 disabled; other shards exit without running the probe.
+
+All output files, including the matrix `dump` mode, `benchdump`,
+`persp-dump`, `weights-dump`, and the mismatch probe dump, use explicit
+creation permissions: `open` with mode 0644 (subject to umask) and
+`fdopen` on POSIX, or `_sopen_s` with CRT read/write permissions and
+`_fdopen` on Windows. Matrix dump and `benchdump` open, write, and close
+errors are reported on stderr. Matrix dump errors let the run continue
+and do not set its exit status; `benchdump` exits 2 on a dump error.
+A `dumped` line prints only after a successful matrix dump.
 
 ### Environment switches
 

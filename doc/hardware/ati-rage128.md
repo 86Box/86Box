@@ -1,6 +1,8 @@
 # ATI Rage 128 graphics cards
 
-Three devices are available in the Display settings:
+Three devices are available in the Display settings. The Rage Fury MAXX
+is listed only in builds configured with `DEV_BRANCH` or `RAGE128_MAXX`
+on:
 
 | Device | Configuration name | Bus | Chip | Video memory |
 | --- | --- | --- | --- | --- |
@@ -9,13 +11,14 @@ Three devices are available in the Display settings:
 | ATI Rage Fury MAXX AGP | `ati_rage128_maxx` | AGP | two Rage 128 Pro chips, each 1002:5046 | 16 MB or 32 MB per chip |
 
 The three boards share one option table: memory size (default 32 MB),
-render threads (1, 2, 3, 4, 6 or 8, default 2), realtime pacing (off by
-default), the span recompiler (on by default, offered only on arm64 and
-x86-64 hosts) and the GPU raster backend (off by default, offered only on
-builds with the Vulkan headers). A Rage Fury Pro or Xpert 128 added as a
-second video card is strapped as "not the system VGA controller": it
-decodes no legacy VGA I/O or memory and the driver reaches it through its
-PCI apertures only. The MAXX's first chip always decodes VGA.
+render threads (1, 2, 3 or 4, default 2; a saved value above 4 is migrated
+to 4 in the configuration and logged), the span recompiler (on by default,
+offered only on arm64 and x86-64 hosts) and the GPU raster backend (off by
+default, offered only on builds with the Vulkan headers). A Rage Fury Pro
+or Xpert 128 added as a second video card is strapped as "not the system
+VGA controller": it decodes no legacy VGA I/O or memory and the driver
+reaches it through its PCI apertures only. The MAXX's first chip always
+decodes VGA.
 
 ## Supplied ROMs
 
@@ -105,20 +108,22 @@ Extended overscan in VGA modes is not modeled.
 and clocks (the reference oscillator and dividers come from the PLL
 information block of each board's BIOS image, 27 MHz on the AGP boards
 and 29.5 MHz on the PCI board), the extended CRTC, the DAC and palette,
-the hardware cursor, page flips, scanout and the realtime pacer. In VGA
-mode the core's own timings drive the display; in extended mode this
-file derives the core's timings, pixel format and scan address from the
-chip's CRTC registers, including interlaced and double-scanned modes and
-tiled scanout. The 256-entry palette stays in the pixel path at every
-depth, which is how gamma ramps reach 15 and 16 bpp modes. The 64x64
-hardware cursor uses the image format the Software Development Guide
-gives. A page flip through the CRTC offset register is latched at the
-flip point, with the offset lock honored. The monitor
-DDC channel is bit-banged through the monitor id GPIO register and
-serves 86Box's shared monitor EDID, so the driver reads the monitor's
-mode list. The video input port is not emulated: its field counters read
-zero and automatic snapshots never fire, while a manual snapshot works.
-The memory checkerboarding controls are stored and read back only.
+the hardware cursor, page flips, scanout and the emulation speed window
+that measures the emulation speed at a vertical sync once at least 250 ms
+of wall time has passed, and logs it when `RAGE128_LOG` is on. In VGA mode the core's own timings drive the
+display; in extended mode this file derives the core's timings, pixel
+format and scan address from the chip's CRTC registers, including
+interlaced and double-scanned modes and tiled scanout. The 256-entry
+palette stays in the pixel path at every depth, which is how gamma ramps
+reach 15 and 16 bpp modes. The 64x64 hardware cursor uses the image
+format the Software Development Guide gives. A page flip through the
+CRTC offset register is latched at the flip point, with the offset lock
+honored. The monitor DDC channel is bit-banged through the monitor id
+GPIO register and serves 86Box's shared monitor EDID, so the driver
+reads the monitor's mode list. The video input port is not emulated: its
+field counters read zero and automatic snapshots never fire, while a
+manual snapshot works. The memory checkerboarding controls are stored
+and read back only.
 
 `vid_ati_rage128_mem.c` and the bus helpers in `vid_ati_rage128_pm4.c`
 give the engines one 64 MB card address space: the lower 32 MB is the
@@ -160,25 +165,39 @@ where the Software Development Guide leaves it open. The packed YUV
 byte order, the YUV to RGB equations and the effect of the destination
 tile bits are taken from the RAGE PRO Programmer's Guide, which the
 Rage 128 guides leave out, and the source says so at each spot.
+PAINT packets read each corner coordinate as signed 16-bit, so a right
+edge of 0x7fff clips to the scissor, as ATI's Windows 95 driver expects.
+The SDK's sign-extended -8192 to 8191 coordinates retain their values;
+the wider decode is modeled.
 
 `vid_ati_rage128_pm4.c` is the CCE command processor. The drivers submit
 2D and 3D work as PM4 packets in a ring buffer in system memory; the
 device reads the ring by bus mastering, parses type 0, 1, 2 and 3
 packets, follows indirect buffers, and writes its read pointer back to
 the host address the driver polls. The written-back pointer is the
-retire pointer, where execution is, not the fetch pointer, so a driver
-that recycles a command buffer once the pointer has passed it does not
-overwrite work not yet drawn. Execution is split across two threads, as
-the Voodoo command FIFO is: on every write to the ring's write pointer
-the CPU thread copies the new ring dwords into a FIFO inside the device,
-and a CCE thread pops, parses and runs them; engine idle and reset, the
-busy bits the drivers poll and the engine-idle interrupt come from that
-FIFO's state. An indirect-buffer chain that submits itself again is
-treated as a hung engine until the driver resets it. The CCE microcode
-RAM is not modeled: the drivers' microcode loads are accepted and read
-back as zero, and packets run as C code. The write-pointer delay
-register is stored but the delay is not modeled, since the fetch happens
-at the write itself.
+retire pointer, held before the oldest deferred draw until its raster
+batch is flushed, so a driver that recycles a command buffer once the
+pointer has passed it does not overwrite work not yet drawn. The pointer
+catches up after the idle flush, on starvation inside a packet and in a
+WAIT_UNTIL stall; a draw that resumes after starvation starts its hold
+at the released position. Command-stream GUI_SCRATCH_REG0-5 fences,
+including writes through MM_INDEX / MM_DATA, become visible after the
+batch flush and its AGP color and depth write-back. GUI reset, full PM4
+reset and read-pointer writes clear the retirement hold atomically. Full
+PM4 reset clears pending scratch fences under the raster flush lock; GUI
+reset drops them with the abandoned batch while the executor is parked.
+Execution is split across two threads, as the Voodoo command FIFO is: on
+every write to the ring's write pointer the CPU thread copies the new
+ring dwords into a FIFO inside the device, and a CCE thread pops, parses
+and runs them. The busy bits the drivers poll account for FIFO,
+executing, hung and deferred raster work, plus unfetched ring work; the
+engine-idle interrupt follows FIFO exhaustion and the deferred-batch
+flush. An indirect-buffer chain that submits itself again is treated as
+a hung engine until the driver resets it. The CCE microcode RAM is not
+modeled: the drivers' microcode loads are accepted and read back as
+zero, and packets run as C code. The write-pointer delay register is
+stored but the delay is not modeled, since the fetch happens at the
+write itself.
 
 `vid_ati_rage128_3d.c` is the 3D engine: the CCE 3D state registers and
 the 3D type-3 packets, the register latch, the vertex walks of the draw
@@ -306,11 +325,20 @@ recover from, the backend logs why and turns itself off and the CPU
 lanes carry on, still on the one render thread the GPU request set.
 Some steps are optional: without the device-local VRAM mirror the
 kernels address the host import instead.
+If instance entry-point resolution fails, the backend looks up
+vkDestroyInstance directly, destroys the instance when that lookup
+succeeds and clears the instance handle.
 
 ## Environment switches
 
 Every Rage 128 environment switch the device reads, taken from the
 source. All are development switches; none is needed to use the device.
+
+Logging:
+
+| Variable | Values | Effect |
+| --- | --- | --- |
+| `RAGE128_LOG` | `1`, `0` | Turns the device's routine log lines on or off for the session: mode changes, the emulation speed window line, startup and close summaries, and the lines the profiling switches below produce. Off by default; a build configured with `ENABLE_RAGE128_LOG` defaults to on. Failures (no Vulkan, a stuck fence, a verify mismatch, an unhandled packet) are logged either way. |
 
 Lane selection:
 
@@ -337,7 +365,6 @@ Performance tuning:
 | `R128_GPU_PRECOMP_THREADS` | integer | Number of compile threads, taken verbatim and clamped to 1 to 16. The default is the processor count minus two, bounded by free memory and by six. |
 | `R128_GPU_DEVICE` | index | Forces the physical device at that index in enumeration order; an index out of range is logged and ignored. |
 | `R128_GPU_LOADER` | nonzero | On macOS, uses the Vulkan loader instead of opening MoltenVK directly, to diagnose or work around a problem with the direct open. |
-| `R128_PACE_BAND` | percent, 0 to 100 | How far emulated time may fall behind real time before the realtime pacer acts; default 0.5. |
 
 Profiling and telemetry:
 
@@ -347,8 +374,8 @@ Profiling and telemetry:
 | `R128_GPU_PROF` | nonzero | Collects the backend's timing profile (wall time and the capture, sort, record, wait and drain phases) and logs it at close. Also on whenever telemetry is on. |
 | `R128_GPU_TELEMETRY` | nonzero | Writes every line the backend logs to `r128-gpu-telemetry.log` in the machine's folder as well, flushed per line, starting with the 86Box version, the host platform and the guest CPU and including the Vulkan device choice, so a report needs no log launch and a hang still leaves everything up to its last line. |
 | `R128_GPU_SYNC_TELEMETRY` | nonzero; a value containing `/` is the CSV path | Counts, on the CPU renderer paths, how often a segment-batched GPU backend would have to wait, by class, with one CSV row per vertical blank that counted anything (`r128_synctel.csv` in the working directory by default) and a summary at close. With the GPU backend also on it turns off asynchronous present, present snapshots and the GPU 2D queue, so that run does not behave like a normal one. |
-| `R128_MMIO_PROF` | nonzero | Times register reads and writes into the register fields of the pacer's per-window log line. |
-| `R128_SLICE_PROF` | nonzero | Times scanout rendering, the SVGA poll and the ring pump into the matching fields of the pacer's per-window log line. |
+| `R128_MMIO_PROF` | nonzero | Times register reads and writes into the register fields of the emulation speed window's log line. |
+| `R128_SLICE_PROF` | nonzero | Times scanout rendering, the SVGA poll and the ring pump into the matching fields of the emulation speed window's log line. |
 | `R128_STATE_CENSUS` | nonzero; a value containing `/` is the output path | Records up to 16384 distinct 3D draw states the guest uses (states past that are only counted), how many primitives used it and which lane would take it (the recompiler's verdict and the GPU kernel id), and writes one line per state at close, to `r128_census.txt` in the machine's folder by default; a relative path is taken from the machine's folder too. |
 | `R128_MAXX_LOG` | nonzero | On the MAXX, logs the pad writes, connector switches, raster-lock changes and the BIOS scratch register of both chips. |
 
@@ -398,7 +425,9 @@ Known limits:
 
 ## Verification
 
-With `BUILD_TESTING=ON`, `tests/README.md` describes the six CTest rows:
+With `BUILD_TESTING=ON` and GCC or Clang, `tests/README.md` describes up
+to six CTest rows (GpuKernels needs the Vulkan loader and glslc, and
+ReplaySynth needs Python 3):
 `Rage128.Registers.Stock`, `Rage128.Registers.JitVerify` and
 `Rage128.Registers.GpuVerify` run the host-side register harness, which
 instantiates the device on the host and checks register readback, reset

@@ -16,8 +16,6 @@
 #define ACPI_H
 
 #ifdef __cplusplus
-#include <atomic>
-using atomic_int = std::atomic_int;
 extern "C" {
 #else
 #include <stdatomic.h>
@@ -173,13 +171,18 @@ typedef struct acpi_t {
     void       *i2c;
     void      (*trap_update)(void *priv);
     void       *trap_priv;
+    void      (*sci_hook)(void *priv, int set);
+    void       *sci_hook_priv;
     void       *smbus;
     void       *priv;
 } acpi_t;
 
 /* Global variables. */
 extern int        acpi_rtc_status;
+#ifndef __cplusplus
+/* std::atomic_int is a different type from C's atomic_int, so C++ uses acpi_pwrbut_press(). */
 extern atomic_int acpi_pwrbut_pressed;
+#endif
 extern int        acpi_enabled;
 
 extern const device_t acpi_ali_device;
@@ -192,6 +195,7 @@ extern const device_t acpi_sis_5595_1997_device;
 extern const device_t acpi_sis_5595_device;
 
 /* Functions */
+extern void    acpi_pwrbut_press(void);
 extern void    acpi_update_irq(acpi_t *dev);
 extern void    acpi_raise_smi(void *priv, int do_smi);
 extern void    acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
@@ -206,6 +210,7 @@ extern void    acpi_set_mirq_is_level(acpi_t *dev, int mirq_is_level);
 extern void    acpi_set_gpireg2_default(acpi_t *dev, uint8_t gpireg2_default);
 extern void    acpi_set_nvr(acpi_t *dev, nvr_t *nvr);
 extern void    acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv);
+extern void    acpi_set_sci_hook(acpi_t *dev, void (*hook)(void *priv, int set), void *priv);
 extern uint8_t acpi_ali_soft_smi_status_read(acpi_t *dev);
 extern void    acpi_ali_soft_smi_status_write(acpi_t *dev, uint8_t soft_smi);
 extern void *  acpi_get_smbus(void *priv);

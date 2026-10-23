@@ -94,7 +94,7 @@ opSAHF(UNUSED(uint32_t fetchdat))
     CLOCK_CYCLES(3);
     PREFETCH_RUN(3, 1, -1, 0, 0, 0, 0, 0);
 
-#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
+#if (defined(USE_DYNAREC))
     codegen_flags_changed = 0;
 #endif
 
@@ -161,6 +161,7 @@ opPUSHFD(UNUSED(uint32_t fetchdat))
 static int
 opPOPF_186(UNUSED(uint32_t fetchdat))
 {
+    uint16_t popf_old = cpu_state.flags;
     uint16_t tempw;
 
     tempw = POP_W();
@@ -169,22 +170,28 @@ opPOPF_186(UNUSED(uint32_t fetchdat))
 
     cpu_state.flags = (cpu_state.flags & 0x7000) | (tempw & 0x0fd5) | 2;
     flags_extract();
-#ifdef USE_DEBUG_REGS_486
     rf_flag_no_clear = 1;
-#endif
 
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 1, 0, 0, 0, 0);
 
-#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
+#if (defined(USE_DYNAREC))
     codegen_flags_changed = 0;
 #endif
 
+    /* TF turned on: the trap comes after the instruction that follows
+       (Pentium Vol. 3, 17.3.1.4). A compiled block ends here (a nonzero
+       answer leaves it, the PC past POPF), and the loop, which steps
+       single instructions while TF is set, runs that one; the interpreter
+       ignores the answer. */
+    if ((cpu_state.flags & ~popf_old) & T_FLAG)
+        return 1;
     return 0;
 }
 static int
 opPOPF_286(UNUSED(uint32_t fetchdat))
 {
+    uint16_t popf_old = cpu_state.flags;
     uint16_t tempw;
 
     if ((cpu_state.eflags & VM_FLAG) && (IOPL < 3)) {
@@ -205,22 +212,28 @@ opPOPF_286(UNUSED(uint32_t fetchdat))
     else
         cpu_state.flags = (cpu_state.flags & 0x3200) | (tempw & 0x4dd5) | 2;
     flags_extract();
-#ifdef USE_DEBUG_REGS_486
     rf_flag_no_clear = 1;
-#endif
 
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 1, 0, 0, 0, 0);
 
-#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
+#if (defined(USE_DYNAREC))
     codegen_flags_changed = 0;
 #endif
 
+    /* TF turned on: the trap comes after the instruction that follows
+       (Pentium Vol. 3, 17.3.1.4). A compiled block ends here (a nonzero
+       answer leaves it, the PC past POPF), and the loop, which steps
+       single instructions while TF is set, runs that one; the interpreter
+       ignores the answer. */
+    if ((cpu_state.flags & ~popf_old) & T_FLAG)
+        return 1;
     return 0;
 }
 static int
 opPOPF(UNUSED(uint32_t fetchdat))
 {
+    uint16_t popf_old = cpu_state.flags;
     uint16_t tempw;
 
     if ((cpu_state.eflags & VM_FLAG) && (IOPL < 3)) {
@@ -261,22 +274,28 @@ opPOPF(UNUSED(uint32_t fetchdat))
             cpu_state.flags = (cpu_state.flags & 0x3200) | (tempw & 0x4dd5) | 2;
     }
     flags_extract();
-#ifdef USE_DEBUG_REGS_486
     rf_flag_no_clear = 1;
-#endif
 
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 1, 0, 0, 0, 0);
 
-#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
+#if (defined(USE_DYNAREC))
     codegen_flags_changed = 0;
 #endif
 
+    /* TF turned on: the trap comes after the instruction that follows
+       (Pentium Vol. 3, 17.3.1.4). A compiled block ends here (a nonzero
+       answer leaves it, the PC past POPF), and the loop, which steps
+       single instructions while TF is set, runs that one; the interpreter
+       ignores the answer. */
+    if ((cpu_state.flags & ~popf_old) & T_FLAG)
+        return 1;
     return 0;
 }
 static int
 opPOPFD(UNUSED(uint32_t fetchdat))
 {
+    uint16_t popf_old = cpu_state.flags;
     uint32_t templ;
 
     if ((cpu_state.eflags & VM_FLAG) && (IOPL < 3)) {
@@ -295,28 +314,27 @@ opPOPFD(UNUSED(uint32_t fetchdat))
     else
         cpu_state.flags = (cpu_state.flags & 0x3200) | (templ & 0x4dd5) | 2;
 
-    templ &= (is486 || isibm486) ? 0x3c0000 : 0;
-    templ |= ((cpu_state.eflags & 3) << 16);
-    if (cpu_CR4_mask & CR4_VME)
-        cpu_state.eflags = (templ >> 16) & 0x3f;
-    else if (CPUID)
-        cpu_state.eflags = (templ >> 16) & 0x27;
-    else if (is486 || isibm486)
-        cpu_state.eflags = (templ >> 16) & 7;
-    else
-        cpu_state.eflags = (templ >> 16) & 3;
+    /* AC and ID where the CPU has them; VM, RF, VIF and VIP keep their values
+       (Pentium Developer's Manual vol. 3, POPF/POPFD) */
+    cpu_state.eflags = (cpu_state.eflags & (VM_FLAG | RF_FLAG | VIF_FLAG | VIP_FLAG)) |
+                       ((templ >> 16) & (AC_FLAG | VID_FLAG) & cpu_eflags_implemented());
 
     flags_extract();
-#ifdef USE_DEBUG_REGS_486
     rf_flag_no_clear = 1;
-#endif
 
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 0, 1, 0, 0, 0);
 
-#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
+#if (defined(USE_DYNAREC))
     codegen_flags_changed = 0;
 #endif
 
+    /* TF turned on: the trap comes after the instruction that follows
+       (Pentium Vol. 3, 17.3.1.4). A compiled block ends here (a nonzero
+       answer leaves it, the PC past POPF), and the loop, which steps
+       single instructions while TF is set, runs that one; the interpreter
+       ignores the answer. */
+    if ((cpu_state.flags & ~popf_old) & T_FLAG)
+        return 1;
     return 0;
 }

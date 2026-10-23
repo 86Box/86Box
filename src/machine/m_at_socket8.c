@@ -24,6 +24,7 @@
 #include <86box/pci.h>
 #include <86box/device.h>
 #include <86box/chipset.h>
+#include <86box/ioapic_routes.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/keyboard.h>
@@ -246,6 +247,17 @@ machine_at_p6rp4_init(const machine_t *model)
     pci_register_slot(0x04, PCI_CARD_NORMAL,          4, 1, 2, 3);
 
     device_add(&i450kx_device); /* 450GX is a superset of the 450KX */
+    {
+        static const ioapic_legacy_irq_routing_t p6rp4_irq_routing = {
+            .irq_to_intin = IOAPIC_LEGACY_IRQ_ROUTE_ISA
+        };
+        /* An AMI BIOS (AMIBIOS 0106 for SMC): its last POST code before
+           booting is 00h (IOAPIC_POST_TRIGGER_AMI). */
+        void *ioapic = device_add_params(&ioapic_validated_up_device,
+                                         (void *) (IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_POST_TRIGGER_AMI));
+
+        ioapic_set_legacy_irq_routing(ioapic, &p6rp4_irq_routing);
+    }
     device_add(&sio_zb_device);
     device_add(machine_get_ide_device(machine));
     /* Input port bit 2 must be 1 or CMOS Setup is disabled. */
@@ -387,7 +399,8 @@ machine_at_p65up5_cp6nd_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_p65up5_common_init(model, &i440fx_device);
+    /* Socket 8 CPU-card variant reuses the P65UP5 APIC policy with i440FX. */
+    machine_at_p65up5_validated_up_init(model, &i440fx_device);
 
     return ret;
 }

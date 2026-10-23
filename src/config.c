@@ -156,6 +156,10 @@ load_global_emulator(void)
 
     vmm_disabled = ini_section_get_int(cat, "vmm_disabled", 0);
 
+    discord_presence = ini_section_get_int(cat, "discord_presence", 0);
+    if ((discord_presence < 0) || (discord_presence > 3))
+        discord_presence = 0;
+
     chd_precache_level = ini_section_get_int(cat, "chd_precache_level", 0);
 
     p = ini_section_get_string(cat, "vmm_path", NULL);
@@ -368,7 +372,8 @@ load_general(void)
     hide_tool_bar   = ini_section_get_int(cat, "hide_tool_bar", 0);
     sound_muted     = ini_section_get_int(cat, "sound_muted", 0);
 
-    enable_discord = !!ini_section_get_int(cat, "enable_discord", 0);
+    /* Discord integration has moved to the VM manager. */
+    ini_section_delete_var(cat, "enable_discord");
 
     video_vk_device = ini_section_get_int(cat, "video_vk_device", 0);
     video_framerate = ini_section_get_int(cat, "video_gl_framerate", -1);
@@ -578,6 +583,7 @@ load_machine(void)
 
     cpu_override             = ini_section_get_int(cat, "cpu_override", 0);
     cpu_override_interpreter = ini_section_get_int(cat, "cpu_override_interpreter", 0);
+    cpu_debug_regs_486       = !!ini_section_get_int(cat, "cpu_debug_regs_486", 0);
     cpu_f                    = NULL;
     p                        = ini_section_get_string(cat, "cpu_family", NULL);
     if (p) {
@@ -667,9 +673,12 @@ load_machine(void)
     } else
         time_sync = TIME_SYNC_ENABLED;
 
+    time_offset_years = ini_section_get_int(cat, "time_offset_years", 0);
+
     pit_mode = ini_section_get_int(cat, "pit_mode", -1);
 
     cpu_dyn_accurate_fpu_env = ini_section_get_int(cat, "cpu_dyn_accurate_fpu_env", 0);
+    cpu_dyn_block_link = !!ini_section_get_int(cat, "cpu_dyn_block_link", 1);
 }
 
 /* Load "Video" section. */
@@ -767,6 +776,7 @@ load_video(void)
         ini_section_delete_var(cat, "da2");
 
     voodoo_enabled                   = !!ini_section_get_int(cat, "voodoo", 0);
+    powervr_enabled                  = !!ini_section_get_int(cat, "powervr", 0);
     ibm8514_standalone_enabled       = !!ini_section_get_int(cat, "8514a", 0);
     ibm8514_active                   = ibm8514_standalone_enabled;
     xga_standalone_enabled           = !!ini_section_get_int(cat, "xga", 0);
@@ -1553,6 +1563,8 @@ load_storage_controllers(void)
     p = ini_section_get_string(cat, "cdrom_interface", NULL);
     if (p != NULL)
         cdrom_interface_current = config_known(cdrom_interface_get_from_internal_name(p), STRING_UNSUPPORTED_CDROM_INTERFACE, p);
+
+    ide_turbo = !!ini_section_get_int(cat, "ide_turbo", 0);
 
     /* The floppy tape is configured from the Tape drives tab now; the old
        keys are stale and get cleaned up. */
@@ -2932,6 +2944,7 @@ config_load(void)
         force_constant_mouse = 0;
 
         cpu_override_interpreter = 0;
+        cpu_debug_regs_486       = 0;
 
         fpu_type               = fpu_get_type(cpu_f, cpu, "none");
         gfxcard[0]             = video_get_video_from_internal_name("cga");
@@ -2987,7 +3000,10 @@ config_load(void)
         cassette_pcm          = 0;
         cassette_ui_writeprot = 0;
 
+        ide_turbo = 0;
+
         cpu_dyn_accurate_fpu_env = 0;
+        cpu_dyn_block_link       = 1;
 
         gdbstub_port          = 12345;
 
@@ -3106,6 +3122,11 @@ save_global_emulator(void)
         ini_section_set_int(cat, "vmm_disabled", vmm_disabled);
     else
         ini_section_delete_var(cat, "vmm_disabled");
+
+    if (discord_presence)
+        ini_section_set_int(cat, "discord_presence", discord_presence);
+    else
+        ini_section_delete_var(cat, "discord_presence");
 
     if (vmm_path_cfg[0] != 0) {
         /* Save path as relative to the EXE path in portable mode */
@@ -3311,11 +3332,6 @@ save_general(void)
     else
         ini_section_delete_var(cat, "hide_tool_bar");
 
-    if (enable_discord)
-        ini_section_set_int(cat, "enable_discord", enable_discord);
-    else
-        ini_section_delete_var(cat, "enable_discord");
-
     if (video_vk_device != 0)
         ini_section_set_int(cat, "video_vk_device", video_vk_device);
     else
@@ -3361,15 +3377,7 @@ save_general(void)
     else
         ini_section_delete_var(cat, "emu_build_num");
 
-#ifdef USE_DYNAREC
-#   ifdef USE_NEW_DYNAREC
-    ini_section_set_string(cat, "emu_build_dynarec_type", "new");
-#   else
-    ini_section_set_string(cat, "emu_build_dynarec_type", "old");
-#   endif
-#else
     ini_section_delete_var(cat, "emu_build_dynarec_type");
-#endif
 
     if (strnlen(uuid, sizeof(uuid) - 1) > 0)
         ini_section_set_string(cat, "uuid", uuid);
@@ -3434,6 +3442,10 @@ save_machine(void)
         ini_section_set_int(cat, "cpu_override_interpreter", cpu_override_interpreter);
     else
         ini_section_delete_var(cat, "cpu_override_interpreter");
+    if (cpu_debug_regs_486)
+        ini_section_set_int(cat, "cpu_debug_regs_486", cpu_debug_regs_486);
+    else
+        ini_section_delete_var(cat, "cpu_debug_regs_486");
 
     /* Downgrade compatibility with the previous CPU model system. */
     ini_section_delete_var(cat, "cpu_manufacturer");
@@ -3468,6 +3480,11 @@ save_machine(void)
     else
         ini_section_set_string(cat, "time_sync", "disabled");
 
+    if (time_offset_years != 0)
+        ini_section_set_int(cat, "time_offset_years", time_offset_years);
+    else
+        ini_section_delete_var(cat, "time_offset_years");
+
     if (pit_mode == -1)
         ini_section_delete_var(cat, "pit_mode");
     else
@@ -3477,6 +3494,11 @@ save_machine(void)
         ini_section_delete_var(cat, "cpu_dyn_accurate_fpu_env");
     else
         ini_section_set_int(cat, "cpu_dyn_accurate_fpu_env", cpu_dyn_accurate_fpu_env);
+
+    if (cpu_dyn_block_link)
+        ini_section_delete_var(cat, "cpu_dyn_block_link");
+    else
+        ini_section_set_int(cat, "cpu_dyn_block_link", 0);
 
     ini_delete_section_if_empty(config, cat);
 }
@@ -3524,6 +3546,11 @@ save_video(void)
         ini_section_set_int(cat, "vid_cga_comp_saturation", vid_cga_comp_saturation);
     else
         ini_section_delete_var(cat, "vid_cga_comp_saturation");
+
+    if (powervr_enabled == 0)
+        ini_section_delete_var(cat, "powervr");
+    else
+        ini_section_set_int(cat, "powervr", powervr_enabled);
 
     if (voodoo_enabled == 0)
         ini_section_delete_var(cat, "voodoo");
@@ -4057,6 +4084,11 @@ save_storage_controllers(void)
     else
         ini_section_set_string(cat, "cdrom_interface",
                                cdrom_interface_get_internal_name(cdrom_interface_current));
+
+    if (ide_turbo == 0)
+        ini_section_delete_var(cat, "ide_turbo");
+    else
+        ini_section_set_int(cat, "ide_turbo", ide_turbo);
 
     /* The floppy tape is configured from the Tape drives tab now. */
     ini_section_delete_var(cat, "floppy_tape_enabled");

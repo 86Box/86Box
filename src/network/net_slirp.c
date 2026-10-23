@@ -201,7 +201,7 @@ net_slirp_send_packet(const void *qp, size_t pkt_len, void *opaque)
     slirp->pkt.len = pkt_len;
 
     if (!(net_cards_conf[slirp->card->card_num].link_state & NET_LINK_DOWN)) {
-        if (slirp->during_tx) {
+        if (slirp->during_tx || slirp->recv_on_tx) {
             network_rx_on_tx_put_pkt(slirp->card, &slirp->pkt);
             slirp->recv_on_tx = 1;
         } else
@@ -383,18 +383,17 @@ net_slirp_in_available(void *priv)
 static void
 net_slirp_rx_deferred_packets(net_slirp_t *slirp)
 {
-    int packets = 0;
+    if (!slirp->recv_on_tx)
+        return;
 
-    if (slirp->recv_on_tx) {
+    if (net_cards_conf[slirp->card->card_num].link_state & NET_LINK_DOWN) {
+        int packets;
+
         do {
             packets = network_rx_on_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
-            if (!(net_cards_conf[slirp->card->card_num].link_state & NET_LINK_DOWN)) {
-                for (int i = 0; i < packets; i++)
-                     network_rx_put_pkt(slirp->card, &(slirp->pkt_tx_v[i]));
-            }
         } while (packets > 0);
-        slirp->recv_on_tx = 0;
     }
+    slirp->recv_on_tx = network_rx_on_tx_flush(slirp->card);
 }
 
 #ifdef _WIN32
@@ -438,8 +437,6 @@ net_slirp_thread(void *priv)
                             net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
                     }
                     slirp->during_tx = 0;
-
-                    net_slirp_rx_deferred_packets(slirp);
                 }
                 break;
 
@@ -447,6 +444,8 @@ net_slirp_thread(void *priv)
                 slirp_pollfds_poll(slirp->slirp, ret == WAIT_FAILED, net_slirp_get_revents, slirp);
                 break;
         }
+        if (run)
+            net_slirp_rx_deferred_packets(slirp);
     }
 
     slirp_log("SLiRP: polling stopped.\n");
@@ -493,9 +492,8 @@ net_slirp_thread(void *priv)
                     net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
             }
             slirp->during_tx = 0;
-
-            net_slirp_rx_deferred_packets(slirp);
         }
+        net_slirp_rx_deferred_packets(slirp);
     }
 
     slirp_log("SLiRP: polling stopped.\n");

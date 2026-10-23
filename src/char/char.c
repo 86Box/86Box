@@ -75,6 +75,9 @@ static const struct {
     { &char_stdio_com_device },
     { &char_loopback_com_device },
     { &char_fujinet_com_device },
+#ifdef USE_AUTOMATION
+    { &char_automation_com_device },
+#endif
 
     { 0 }
     // clang-format on

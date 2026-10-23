@@ -111,6 +111,21 @@ static void ali5229_write(int func, int addr, int len, uint8_t val, void *priv);
 static void    ali7101_write(int func, int addr, int len, uint8_t val, void *priv);
 static uint8_t ali7101_read(int func, int addr, int len, void *priv);
 
+/*
+   53h bit 6 makes the M5237 invisible (ALi-C p64): no window, no bus
+   master, no interrupt. Its registers are kept for when it comes back.
+ */
+static void
+ali5237_set_enable(ali1543_t *dev, int enable)
+{
+    if (enable == dev->usb_dev_enable)
+        return;
+
+    dev->usb_dev_enable = enable;
+    ohci_update_mem_mapping(dev->usb, dev->usb_conf[0x11], dev->usb_conf[0x12], dev->usb_conf[0x13],
+                            enable && (dev->usb_conf[0x04] & 2));
+}
+
 static void
 ali1533_write(int func, int addr, int len, uint8_t val, void *priv)
 {
@@ -257,7 +272,7 @@ ali1533_write(int func, int addr, int len, uint8_t val, void *priv)
             else
                 dev->pci_conf[addr] = val & 0xcf;
             /* This actually enables/disables the USB *device* rather than the interface itself. */
-            dev->usb_dev_enable = !(val & 0x40);
+            ali5237_set_enable(dev, !(val & 0x40));
             if (dev->type == 1) {
                 nvr_at_index_read_handler(0, 0x0070, dev->nvr);
                 nvr_at_index_read_handler(0, 0x0072, dev->nvr);
@@ -916,7 +931,8 @@ ali5237_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
     switch (addr) {
         case 0x04: /* USB Enable */
             dev->usb_conf[addr] = val & 0x5f;
-            ohci_update_mem_mapping(dev->usb, dev->usb_conf[0x11], dev->usb_conf[0x12], dev->usb_conf[0x13], dev->usb_conf[0x04] & 1);
+            /* Memory Space is bit 1, PCI Master bit 2 (ALi-C p117). */
+            ohci_update_mem_mapping(dev->usb, dev->usb_conf[0x11], dev->usb_conf[0x12], dev->usb_conf[0x13], dev->usb_conf[0x04] & 2);
             break;
 
         case 0x05:
@@ -947,12 +963,12 @@ ali5237_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         /* USB Base I/O */
         case 0x11:
             dev->usb_conf[addr] = val & 0xf0;
-            ohci_update_mem_mapping(dev->usb, dev->usb_conf[0x11], dev->usb_conf[0x12], dev->usb_conf[0x13], dev->usb_conf[0x04] & 1);
+            ohci_update_mem_mapping(dev->usb, dev->usb_conf[0x11], dev->usb_conf[0x12], dev->usb_conf[0x13], dev->usb_conf[0x04] & 2);
             break;
         case 0x12:
         case 0x13:
             dev->usb_conf[addr] = val;
-            ohci_update_mem_mapping(dev->usb, dev->usb_conf[0x11], dev->usb_conf[0x12], dev->usb_conf[0x13], dev->usb_conf[0x04] & 1);
+            ohci_update_mem_mapping(dev->usb, dev->usb_conf[0x11], dev->usb_conf[0x12], dev->usb_conf[0x13], dev->usb_conf[0x04] & 2);
             break;
 
         case 0x2c: /* Subsystem Vendor ID */
@@ -1545,6 +1561,7 @@ ali1543_reset(void *priv)
     ali5237_write(0, 0x11, 1, 0x00, dev);
     ali5237_write(0, 0x12, 1, 0x00, dev);
     ali5237_write(0, 0x13, 1, 0x00, dev);
+    ali5237_write(0, 0x43, 1, 0x00, dev);
 
     /* M7101 */
     memset(dev->pmu_conf, 0x00, sizeof(dev->pmu_conf));

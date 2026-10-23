@@ -107,7 +107,12 @@ rage128_pm4_reset(rage128_t *dev)
     dev->pm4_rptr_addr      = 0;
     atomic_store(&dev->cce_retire_rptr, 0);
     dev->cce_retire_pending = 0;
-    dev->cce_shadow_last    = 0xffffffffu;
+    atomic_store(&dev->cce_retire_done, 0);
+    atomic_store(&dev->cce_retire_held, 0);
+    thread_wait_mutex(dev->raster_flush_mtx);
+    dev->cce_scratch_pend_mask = 0;
+    thread_release_mutex(dev->raster_flush_mtx);
+    dev->cce_shadow_last       = 0xffffffffu;
     dev->pm4_iw_indoff      = 0;
     dev->pm4_iw_indsize     = 0;
     dev->pm4_fifo_data[0]   = 0;
@@ -518,10 +523,8 @@ rage128_cce_fifo_reserve(rage128_t *dev, uint32_t wr, uint32_t need)
     if (rage128_cce_fifo_space(dev, wr) >= need)
         return 0;
     /* A drain wait in progress (it pumps) has already broken any flip
-       stall. Outside one, only the pacer hold gives way to this wait
-       (cce_room_req). */
+       stall. */
     draining = atomic_load(&dev->cce_drain_req);
-    atomic_store(&dev->cce_room_req, 1);
     while (dev->cce_thread_run && rage128_cce_fifo_space(dev, wr) < need
            && waited < 250) {
         if (!draining && atomic_load(&dev->cce_flip_stalled)) {
@@ -535,7 +538,6 @@ rage128_cce_fifo_reserve(rage128_t *dev, uint32_t wr, uint32_t need)
         thread_wait_event(dev->cce_idle_event, 1);
         waited++;
     }
-    atomic_store(&dev->cce_room_req, 0);
     if (rage128_cce_fifo_space(dev, wr) < need && waited >= 250)
         pclog("[r128 pm4] IB splice gave up waiting for FIFO space: need=%u\n", need);
     return stalled;
@@ -852,9 +854,12 @@ rage128_pm4_gui_reset(rage128_t *dev)
     dev->pump_ib_state   = 0;
     /* The executor is parked, so its own cce_retire_pending is reset
        too; otherwise the next packet would publish the abandoned
-       position over the new read pointer. */
+       position over the new read pointer. A pointer held behind a
+       deferred batch is dropped with the batch. */
     atomic_store(&dev->cce_retire_rptr, dev->pm4_rptr);
     dev->cce_retire_pending = dev->pm4_rptr;
+    atomic_store(&dev->cce_retire_done, dev->pm4_rptr);
+    atomic_store(&dev->cce_retire_held, 0);
     /* Dropped here, before the abort is released, rather than by the
        caller: once released, the executor wakes into its idle-path
        rage128_raster_flush, which would draw the batch being dropped.
@@ -903,35 +908,6 @@ rage128_pm4_reg_in_fetch_block(uint32_t reg, uint32_t nregs)
     return 0;
 }
 
-/* Realtime pacer (pace_hold_us in vid_ati_rage128.h): sleep off the
-   current per-flip hold in 1 ms steps, so a drain request, a request
-   for FIFO room, an abort or shutdown ends it within 1 ms. It runs at
-   each flip, a CRTC_OFFSET write executed on the CCE thread
-   (vid_ati_rage128_display.c). Short holds spread over packets only add
-   latency that the driver's queued work hides, so the guest never waits
-   and its rate does not drop; a hold of frame size uses up what the
-   driver has queued and makes it wait. CCE thread only. */
-void
-rage128_pace_consume(rage128_t *dev)
-{
-    int      hold = atomic_load(&dev->pace_hold_us);
-    int      held = 0;
-    uint64_t t0   = rage128_now_ns();
-
-    while (dev->cce_thread_run
-           && held < hold
-           && !atomic_load(&dev->cce_drain_req)
-           && !atomic_load(&dev->cce_room_req)
-           && !atomic_load(&dev->cce_abort)) {
-        plat_delay_ms(1);
-        held += 1000;
-    }
-    if (held) {
-        atomic_fetch_add(&dev->pace_sleep_ns, rage128_now_ns() - t0);
-        atomic_fetch_add(&dev->pace_sleep_ask_ns, (uint64_t) held * 1000u);
-    }
-}
-
 /* Wait until the engine is idle: ring fetched, FIFO drained, executor
    between packets. CPU thread only; called before the CPU touches
    engine state directly. Drivers wait for idle themselves by polling
@@ -940,6 +916,7 @@ rage128_pace_consume(rage128_t *dev)
    sets cce_drain_req so a WAIT_UNTIL flip stall on the CCE thread gives
    way; the flip itself still latches at the next vblank. */
 int (*rage128_harness_drain_hook)(rage128_t *dev);
+_Atomic(void (*)(rage128_t *dev)) rage128_harness_idle_hook;
 
 void
 rage128_pm4_drain_wait(rage128_t *dev)
@@ -1153,6 +1130,8 @@ rage128_pm4_fifo_data_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t
    is the ring's. */
 /* ------------------------------------------------------------------ */
 
+static void rage128_cce_retire_release(rage128_t *dev);
+
 /* Blocking dword pop: a packet can run ahead of the pump in the middle
    of its body, and the FIFO is then refilled from the pump timer or the
    drain loop. Returns 0 only on shutdown or an abort; a drain in
@@ -1178,6 +1157,15 @@ rage128_cce_get(rage128_t *dev, uint32_t *val)
             return 0;
         if (atomic_load(&dev->cce_abort))
             return 0;
+        /* Waiting for the rest of a packet: draw the deferred batch and
+           retire the packets before this one, so a guest that waits on
+           the host's read-pointer copy for that finished work before it
+           writes the rest of this packet does not wait forever. Done
+           before cce_starved is set, so a reader that sees the flag also
+           sees the release. */
+        if (atomic_load(&dev->cce_batch_pending))
+            rage128_raster_flush(dev);
+        rage128_cce_retire_release(dev);
         atomic_store(&dev->cce_starved, 1);
         /* Waiting for the rest of a packet can last as long as the guest
            takes to write it; scanout's submit request is answered here
@@ -1247,6 +1235,89 @@ rage128_2d_op_flushes(uint32_t hdr)
     uint32_t op = RAGE128_PM4_T3_OPCODE(hdr);
 
     return op != 0x1e && op != RAGE128_PM4_OP_NOP;
+}
+
+/* A write to GUI_SCRATCH_REG0-5 from the command stream. The scratch
+   registers are a fence a driver writes through the ring and polls from
+   the CPU: the Windows 95 Direct3D driver is observed writing a rising
+   count to GUI_SCRATCH_REG0 behind the draws of a game's start-up
+   self-test, which reads the surface back once the count is visible,
+   and the Windows 98 driver and the Linux DRM write one per draw. On the
+   chip GUI register writes pass through the command FIFO in order behind
+   earlier commands (RRG: Memory Mapping, Figure 2-1, p. 2-4 / PDF 14),
+   so the fence lands after the draw's pixels. With render workers the
+   draw may still be queued in the raster batch, so the value is held and
+   stored when the batch is flushed (rage128_pm4_scratch_apply, from
+   rage128_raster_flush). A flush here instead would draw the batch at
+   every fence, one draw at a time for those drivers.
+
+   It is called from the scratch store itself, so a write that reaches
+   the register through MM_INDEX / MM_DATA is held the same way as a
+   direct one. Only command-stream writes are held: the CCE thread, or an
+   indirect buffer parsed on the CPU thread. A direct CPU write drains
+   the engine first, so no batch is pending by the time it stores. The
+   pending test and the stash are made under raster_flush_mtx, so a flush
+   on another thread either applies the value or has finished before it
+   is stashed and leaves the batch empty. Returns 1 when the value is
+   held, 0 when the caller stores it. */
+int
+rage128_pm4_scratch_hold(rage128_t *dev, uint32_t n, uint32_t val, uint32_t mask)
+{
+    int held = 0;
+
+    if (!rage128_on_cce_thread && !rage128_in_indirect)
+        return 0;
+    thread_wait_mutex(dev->raster_flush_mtx);
+    if (atomic_load(&dev->cce_batch_pending)) {
+        uint32_t base = (dev->cce_scratch_pend_mask & (1u << n))
+            ? dev->cce_scratch_pend[n]
+            : dev->gui_scratch[n];
+
+        dev->cce_scratch_pend[n] = (base & ~mask) | (val & mask);
+        dev->cce_scratch_pend_mask |= 1u << n;
+        held = 1;
+    }
+    thread_release_mutex(dev->raster_flush_mtx);
+    return held;
+}
+
+/* Store the held scratch values. Called by rage128_raster_flush with
+   raster_flush_mtx held, so it writes the registers directly: the full
+   register-write path would drain the engine on a CPU thread, and that
+   drain flushes and takes the same lock again. */
+void
+rage128_pm4_scratch_apply(rage128_t *dev)
+{
+    uint32_t m = dev->cce_scratch_pend_mask;
+
+    if (!m)
+        return;
+    dev->cce_scratch_pend_mask = 0;
+    for (uint32_t n = 0; n < 6; n++)
+        if (m & (1u << n))
+            dev->gui_scratch[n] = dev->cce_scratch_pend[n];
+}
+
+void
+rage128_pm4_scratch_drop(rage128_t *dev)
+{
+    dev->cce_scratch_pend_mask = 0;
+}
+
+/* Publish the end of the last finished packet as the retire pointer once
+   no deferred batch holds it back. Called where the executor draws the
+   batch and then waits: at the idle flush, when it starves in the middle
+   of a packet, and inside a WAIT_UNTIL stall. Without it a guest waiting
+   on the host's read-pointer copy for work that is already drawn would
+   wait for as long as the executor does. CCE thread. */
+static void
+rage128_cce_retire_release(rage128_t *dev)
+{
+    if (atomic_load(&dev->cce_retire_held) && !atomic_load(&dev->cce_batch_pending)
+        && !atomic_load(&dev->cce_hung)) {
+        atomic_store(&dev->cce_retire_held, 0);
+        atomic_store(&dev->cce_retire_rptr, atomic_load(&dev->cce_retire_done));
+    }
 }
 
 /* Execute one packet whose header has been popped. */
@@ -1395,11 +1466,19 @@ rage128_cce_thread(void *priv)
         if (dev->gpu)
             rage128_gpu_scan_serve(dev);
         if (atomic_load(&dev->cce_fifo_rd) == atomic_load(&dev->cce_fifo_wr)) {
+            void (*idle_hook)(rage128_t *dev) = atomic_load(&rage128_harness_idle_hook);
+
             /* Out of submitted work: draw any deferred 3D batch now, so
                the finished frame is in VRAM before scanout shows it. This
                covers clients that flip without a WAIT_UNTIL. It runs on
-               the CCE thread, so it cannot race a submit. */
+               the CCE thread, so it cannot race a submit. The retire
+               pointer held behind the batch catches up once the pixels
+               are in memory; the pump timer, armed while the published
+               pointer lags the fetch pointer, carries it to the host. */
+            if (idle_hook)
+                idle_hook(dev);
             rage128_raster_flush(dev);
+            rage128_cce_retire_release(dev);
             /* GUI_IDLE_INT event, GEN_INT_STATUS bit 19 (RRG:
                GEN_INT_STATUS, p. 3-196 / PDF 214): set only when
                the engine goes from busy to idle, so a spurious wake does
@@ -1449,9 +1528,42 @@ rage128_cce_thread(void *priv)
            so a retire pointer advanced at each pop would report the
            buffer done while the draw is still pending, and the Windows
            2000 driver has been observed reusing and presenting such a
-           buffer early. */
-        if (!atomic_load(&dev->cce_hung)) /* a hung submit never retires */
-            atomic_store(&dev->cce_retire_rptr, dev->cce_retire_pending);
+           buffer early.
+
+           With render workers a draw is queued in the raster batch and
+           its pixels reach memory only when the batch is flushed. The
+           chip's read pointer never passes a draw before the engine has
+           written it, and drivers rely on that: the Windows 95 Direct3D
+           driver's lock waits on the read pointer the pump writes back
+           to host memory, then the game reads or writes the surface.
+           So while a batch is pending the published pointer holds at the
+           position before the packet that queued the oldest draw not yet
+           drawn, and catches up after the flush: here, when a later
+           packet finds no batch pending, or through
+           rage128_cce_retire_release at the idle flush above, when the
+           executor starves inside a packet, or in a WAIT_UNTIL stall.
+           Holding the pointer is modeled; the chip's read pointer simply
+           never runs ahead of its engine. */
+        if (!atomic_load(&dev->cce_hung)) { /* a hung submit never retires */
+            atomic_store(&dev->cce_retire_done, dev->cce_retire_pending);
+            if (atomic_load(&dev->cce_batch_pending)) {
+                /* A new hold starts at the published pointer, which is
+                   the start of this packet: either the previous packet
+                   published its end, or this packet starved, drew the
+                   earlier batch and published the end of the packets
+                   before it. A position read before the packet ran would
+                   be older than that after a starve and would step the
+                   pointer backward. */
+                if (!atomic_load(&dev->cce_retire_held)) {
+                    atomic_store(&dev->cce_retire_held, 1);
+                    dev->cce_retire_hold = atomic_load(&dev->cce_retire_rptr);
+                }
+                atomic_store(&dev->cce_retire_rptr, dev->cce_retire_hold);
+            } else {
+                atomic_store(&dev->cce_retire_held, 0);
+                atomic_store(&dev->cce_retire_rptr, dev->cce_retire_pending);
+            }
+        }
         atomic_store(&dev->cce_executing, 0);
     }
     rage128_cap_run_flush(dev); /* this thread's pending capture run */
@@ -1479,16 +1591,13 @@ rage128_pm4_thread_init(rage128_t *dev)
     atomic_store(&dev->cce_fifo_wr, 0);
     atomic_store(&dev->cce_executing, 0);
     atomic_store(&dev->cce_drain_req, 0);
-    atomic_store(&dev->cce_room_req, 0);
     atomic_store(&dev->cce_flip_stalled, 0);
     atomic_store(&dev->cce_abort, 0);
     atomic_store(&dev->cce_parked, 0);
     atomic_store(&dev->cce_starved, 0);
     atomic_store(&dev->cce_hung, 0);
     atomic_store(&dev->gui_idle_event, 0);
-    atomic_store(&dev->pace_hold_us, 0);
     dev->pace_wall_ms_last = 0;
-    atomic_store(&dev->pace_3d_seen, 0);
     /* Command-stream capture for offline replay: one file for the whole
        session, opened before any packet can flow, so no dump of the
        register state is needed at its start. */
@@ -2024,6 +2133,8 @@ rage128_pm4_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
                retire point over the value just written. */
             atomic_store(&dev->cce_retire_rptr, dev->pm4_rptr);
             dev->cce_retire_pending = dev->pm4_rptr;
+            atomic_store(&dev->cce_retire_done, dev->pm4_rptr);
+            atomic_store(&dev->cce_retire_held, 0);
             dev->pump_frame_rem     = 0;
             dev->pump_ib_state      = 0;
             return 1;
@@ -2145,8 +2256,10 @@ rage128_pm4_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
                vblank. */
             if (rage128_on_cce_thread && (val & mask & 1)) {
                 /* Present: draw the deferred batch into the back buffer
-                   before scanout takes the flip. */
+                   before scanout takes the flip, and retire the packets
+                   before this one, since the stall can last a frame. */
                 rage128_raster_flush(dev);
+                rage128_cce_retire_release(dev);
                 if (dev->gpu)
                     rage128_gpu_present(dev);
                 thread_reset_event(dev->cce_flip_event);
@@ -2175,6 +2288,7 @@ rage128_pm4_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
                 unsigned fall0 = atomic_load(&dev->vline_fall_seq);
 
                 rage128_raster_flush(dev);
+                rage128_cce_retire_release(dev);
                 if (dev->gpu)
                     rage128_gpu_present(dev);
                 thread_reset_event(dev->cce_flip_event);
