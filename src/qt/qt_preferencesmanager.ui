@@ -36,15 +36,15 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayoutSystemDir">
      <item>
-      <widget class="QLabel" name="systemDirectory">
+      <widget class="QLineEdit" name="systemDirectory">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
-       <property name="text">
-        <string/>
+       <property name="readOnly">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
