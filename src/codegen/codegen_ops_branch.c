@@ -442,11 +442,14 @@ ropJBE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
         case FLAGS_DEC8:
         case FLAGS_DEC16:
         case FLAGS_DEC32:
-            /*INC/DEC preserve CF in cpu_state.flags; test CF then ZF from res*/
+            /*INC/DEC preserve CF in cpu_state.flags: CF from there, ZF from res*/
             uop_AND_IMM(ir, IREG_temp0_W, IREG_flags, C_FLAG);
             if (do_unroll) {
-                jump_uop2 = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp0_W, 0);
+                /*Both go on to the next copy: ZF first, so that flags_res is
+                  read before either branch (registers are allocated in uOP
+                  order)*/
                 jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_flags_res, 0);
+                jump_uop2 = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp0_W, 0);
             } else {
                 jump_uop2 = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp0_W, 0);
                 jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_flags_res, 0);
@@ -528,14 +531,18 @@ ropJNBE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t n
         case FLAGS_DEC8:
         case FLAGS_DEC16:
         case FLAGS_DEC32:
-            /*INC/DEC preserve CF in cpu_state.flags; test CF then ZF from res*/
+            /*INC/DEC preserve CF in cpu_state.flags: CF from there, ZF from res*/
             uop_AND_IMM(ir, IREG_temp0_W, IREG_flags, C_FLAG);
             if (do_unroll) {
                 jump_uop2 = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp0_W, 0);
                 jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_flags_res, 0);
             } else {
-                jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp0_W, 0);
+                /*ZF first, so that flags_res is read before either branch:
+                  registers are allocated in uOP order, and one first loaded
+                  between the two would be taken as loaded at the join on
+                  the path that skipped the load*/
                 jump_uop2 = uop_CMP_IMM_JZ_DEST(ir, IREG_flags_res, 0);
+                jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp0_W, 0);
             }
             break;
 
