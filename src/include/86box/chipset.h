@@ -141,6 +141,7 @@ extern void           ioapic_set_mmio_base(void *ioapic, uint32_t base);
 extern int            ioapic_apic_path_active(const void *ioapic);
 extern void           ioapic_set_intr_masked(void *ioapic, int masked);
 extern void           ioapic_set_window_enabled(void *ioapic, int enabled);
+extern void           ioapic_chip_irq(void *ioapic, uint8_t pin, int set);
 extern const device_t ioapic_validated_up_device;
 extern const device_t validated_up_apic_board_device;
 extern const device_t integrated_cpu_lapic_device;
@@ -167,12 +168,13 @@ typedef struct ioapic_legacy_irq_routing_t {
 /* No I/O APIC at all: the processor's own local APIC on a board without
    one, with no inputs and no register window of its own. */
 #define IOAPIC_VARIANT_NONE               0x00002000
-/* The I/O APIC inside the VIA VT82C686B: twenty-four pins with no SMI#
-   input, an Arbitration ID that always reads 0, and two registers past
-   the 82093AA's window, the IRQ Pin Assertion register at FEC00020h and the
-   EOI register at FEC00040h (VT82C686B data sheet 1.8, p. 116). Its window
-   is decoded while the southbridge's Internal APIC Enable says so
-   (ioapic_set_window_enabled). */
+/* The I/O APIC inside the VIA VT82C686B, and in the VT82C686A's CG silicon
+   with the same registers (VT82C686A data sheet 1.82, p. 116): twenty-four
+   pins with no SMI# input, an Arbitration ID that always reads 0, and two
+   registers past the 82093AA's window, the IRQ Pin Assertion register at
+   FEC00020h and the EOI register at FEC00040h (VT82C686B data sheet 1.8,
+   p. 116). Its window is decoded while the southbridge's Internal APIC
+   Enable says so (ioapic_set_window_enabled). */
 #define IOAPIC_VARIANT_VIA                0x00004000
 
 /* Append-only save ABI: loaders gate each later field by version. */

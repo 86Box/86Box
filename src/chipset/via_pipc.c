@@ -143,7 +143,9 @@ typedef struct _pipc_ {
     void    *ac97;
     void    *sio;
     void    *hwm;
-    void    *ioapic; /* the 686B's internal I/O APIC, where the board uses it */
+    void    *ioapic; /* the 686A/B's internal I/O APIC, where the board uses it */
+    uint8_t  apic_irq_state; /* Rx58's sources asserted, in its bit order */
+    uint32_t apic_irq_pins;  /* the APIC[23:16] inputs they drive */
     sb_t    *sb;
     uint16_t midigame_base;
     uint16_t sb_base;
@@ -218,6 +220,80 @@ pipc_usb_disabled(const pipc_t *dev, int n)
    One UHCI function's configuration space at its defaults, as at power-on
    and on PCIRST#; LEGSUP back at 2000h disarms the keyboard traps.
  */
+/* The 686A (CG silicon) and the 686B have an I/O APIC of their own
+   (VT82C686A data sheet 1.82 and VT82C686B data sheet 1.8, p. 116). */
+static int
+pipc_has_ioapic(const pipc_t *dev)
+{
+    return (dev->local == VIA_PIPC_686A) || (dev->local == VIA_PIPC_686B);
+}
+
+/* Rx58, External APIC IRQ Output Control: each bit sends an on-chip
+   interrupt to APIC[23:16], the input picked by the low three bits of its
+   function's Interrupt Line, or for ACPI of F4 Rx42 (VT82C686A data sheet
+   1.82, p. 58; the 686B's is the same). Bit 0 is USB ports 0-1 (function
+   2), bit 1 USB ports 2-3 (function 3), bit 2 AC97, bit 3 MC97, bit 4
+   ACPI. The interrupt still goes where its function's own steering sends
+   it, too. */
+static uint8_t
+pipc_apic_irq_line(const pipc_t *dev, int src)
+{
+    switch (src) {
+        case 0:
+        case 1:
+            return dev->usb_regs[src][0x3c];
+        case 2:
+        case 3:
+            return dev->ac97_regs[src - 2][0x3c];
+        default:
+            return dev->power_regs[0x42];
+    }
+}
+
+static void
+pipc_apic_irq_update(pipc_t *dev)
+{
+    uint32_t pins = 0;
+    uint32_t changed;
+
+    if (!pipc_has_ioapic(dev) || (dev->ioapic == NULL))
+        return;
+
+    for (int src = 0; src < 5; src++) {
+        if ((dev->pci_isa_regs[0x58] & dev->apic_irq_state) & (1 << src))
+            pins |= 1u << (16 + (pipc_apic_irq_line(dev, src) & 0x07));
+    }
+
+    changed = pins ^ dev->apic_irq_pins;
+    dev->apic_irq_pins = pins;
+    for (uint8_t pin = 16; pin < 24; pin++) {
+        if (changed & (1u << pin))
+            ioapic_chip_irq(dev->ioapic, pin, !!(pins & (1u << pin)));
+    }
+}
+
+static void
+pipc_apic_irq_set(pipc_t *dev, int src, int set)
+{
+    if (set)
+        dev->apic_irq_state |= (1 << src);
+    else
+        dev->apic_irq_state &= ~(1 << src);
+    pipc_apic_irq_update(dev);
+}
+
+static void
+pipc_ac97_irq(void *priv, int modem, int set)
+{
+    pipc_apic_irq_set((pipc_t *) priv, 2 + !!modem, set);
+}
+
+static void
+pipc_acpi_sci(void *priv, int set)
+{
+    pipc_apic_irq_set((pipc_t *) priv, 4, set);
+}
+
 static void
 pipc_usb_reset_regs(pipc_t *dev, int i)
 {
@@ -314,8 +390,9 @@ pipc_reset_hard(void *priv)
     if (dev->local >= VIA_PIPC_686A)
         dev->pci_isa_regs[0x5a] = dev->pci_isa_regs[0x5f] = 0x04;
     /* "Offset 77 - GPIO Control 4 Control (10h)": the Internal APIC Enable
-       is set out of reset (VT82C686B data sheet 1.8, p. 62). */
-    if (dev->local == VIA_PIPC_686B) {
+       is set out of reset (VT82C686A data sheet 1.82 and VT82C686B data
+       sheet 1.8, p. 62). */
+    if (pipc_has_ioapic(dev)) {
         dev->pci_isa_regs[0x77] = 0x10;
         ioapic_set_window_enabled(dev->ioapic, 1);
     }
@@ -1211,15 +1288,17 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 dev->pci_isa_regs[0x57] = val;
                 break;
             case 0x58:
-                /* On the 686B, External APIC IRQ Output Control: bits 7-5
-                   always read 0 (VT82C686B data sheet 1.8, p. 58). */
-                if (dev->local == VIA_PIPC_686B)
+                /* On the 686A/B, External APIC IRQ Output Control: bits 7-5
+                   always read 0 (VT82C686A data sheet 1.82 and VT82C686B
+                   data sheet 1.8, p. 58). */
+                if (pipc_has_ioapic(dev))
                     val &= 0x1f;
                 if (dev->local == VIA_PIPC_586B) {
                     pipc_log("PIPC: Steering MIRQ2 to IRQ %d\n", val & 0x0f);
                     pci_set_mirq_routing(PCI_MIRQ2, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
                 }
                 dev->pci_isa_regs[0x58] = val;
+                pipc_apic_irq_update(dev);
                 break;
             case 0x5b:
                 dev->pci_isa_regs[0x5b] = val;
@@ -1475,6 +1554,7 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 
             case 0x3c:
                 dev->usb_regs[func - 2][0x3c] = val & 0x0f;
+                pipc_apic_irq_update(dev);
                 break;
 
             default:
@@ -1518,6 +1598,7 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             case 0x42:
                 dev->power_regs[addr] = (dev->power_regs[addr] & 0xf0) | (val & 0x0f);
                 acpi_set_irq_line(dev->acpi, dev->power_regs[addr] & 0x0f);
+                pipc_apic_irq_update(dev);
                 break;
 
             case 0x54:
@@ -1645,6 +1726,7 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 
             case 0x3c:
                 dev->ac97_regs[func][addr] = val & 0x0f;
+                pipc_apic_irq_update(dev);
                 break;
 
             case 0x41:
@@ -1755,11 +1837,15 @@ pipc_reset(void *priv)
         pipc_write(0, 0x44, 1, 0x00, priv);
 
     pipc_write(0, 0x77, 1, 0x00, priv);
-    /* The 686B's Internal APIC Enable is set out of reset (VT82C686B data
-       sheet 1.8, p. 62). */
-    if (dev->local == VIA_PIPC_686B) {
+    /* The 686A/B's Internal APIC Enable is set out of reset (VT82C686A data
+       sheet 1.82 and VT82C686B data sheet 1.8, p. 62). */
+    if (pipc_has_ioapic(dev)) {
         dev->pci_isa_regs[0x77] = 0x10;
         ioapic_set_window_enabled(dev->ioapic, 1);
+
+        /* Rx58 comes up 00h: no on-chip interrupt on APIC[23:16]. */
+        dev->apic_irq_state = 0;
+        pipc_write(0, 0x58, 1, 0x00, priv);
     }
 
     for (int i = 0; i <= (dev->local >= VIA_PIPC_686A); i++) {
@@ -1804,6 +1890,8 @@ pipc_init(const device_t *info)
     if (dev->local >= VIA_PIPC_596A) {
         dev->acpi = device_add(&acpi_via_596b_device);
         acpi_set_trap_update(dev->acpi, pipc_trap_update_596, dev);
+        if (pipc_has_ioapic(dev))
+            acpi_set_sci_hook(dev->acpi, pipc_acpi_sci, dev);
     } else if (dev->local >= VIA_PIPC_586B) {
         dev->acpi = device_add(&acpi_via_device);
         acpi_set_trap_update(dev->acpi, pipc_trap_update_586, dev);
@@ -1814,6 +1902,7 @@ pipc_init(const device_t *info)
         dev->usb[1] = device_add_inst(&usb_device, 2);
 
         dev->ac97 = device_add(&ac97_via_device);
+        ac97_via_set_irq_hook(dev->ac97, pipc_ac97_irq, dev);
 
         dev->sb = device_add_inst(&sb_pro_compat_device, 2);
         sound_add_handler(pipc_sb_get_buffer, dev);
@@ -1954,8 +2043,9 @@ const device_t via_vt82c686a_device = {
     .config        = NULL
 };
 
-/* The board wires the 686B's internal I/O APIC (IOAPIC_VARIANT_VIA) and
-   hands it over here: Rx77[4] decodes its window from then on. */
+/* The board wires the 686A/B's internal I/O APIC (IOAPIC_VARIANT_VIA) and
+   hands it over here: Rx77[4] decodes its window from then on, and Rx58
+   sends the on-chip interrupts to its inputs 16-23. */
 void
 via_pipc_set_ioapic(void *priv, void *ioapic)
 {
