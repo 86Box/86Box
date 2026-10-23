@@ -209,9 +209,10 @@ load_global_keybinds(void)
             acc_keys[x].seq[0] = '\0';
         /* If there's no binding in the file, use the default one: the file may
            be reloaded after another instance reset the binding. */
-        else if (strcmp(p, "default") == 0)
-            strcpy(acc_keys[x].seq, def_acc_keys[x].seq);
-        else {
+        else if (strcmp(p, "default") == 0) {
+            strncpy(acc_keys[x].seq, def_acc_keys[x].seq, sizeof(acc_keys[x].seq) - 1);
+            acc_keys[x].seq[sizeof(acc_keys[x].seq) - 1] = '\0';
+        } else {
             /*
                It would be ideal to validate whether the user entered a
                valid combo at this point, but the Qt method for testing that is
