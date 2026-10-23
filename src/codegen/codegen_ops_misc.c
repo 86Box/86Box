@@ -1428,3 +1428,74 @@ rop0F01_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
 {
     return rop0F01_common(block, ir, fetchdat, op_32, op_pc);
 }
+
+/*ARPL, as the interpreter's opARPL: #UD in real and V86 mode, before the
+  operand is touched. In protected mode the flags are rebuilt; when the
+  destination's RPL is below the source's it takes the source's RPL and ZF
+  is set, else ZF is clear and the destination is not written (a memory
+  operand is stored only then, as the op stores it, and ZF changes only after
+  the store). Always a 16-bit operand.*/
+uint32_t
+ropARPL(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    x86seg *target_seg = NULL;
+    int     jump_uop;
+
+    if (!(msw & 1) || (cpu_state.eflags & VM_FLAG))
+        return codegen_ud(ir);
+
+#ifndef CODEGEN_BACKEND_HAS_INT_UOPS
+    return 0;
+#endif
+    /*Room for the register versions below (at most 1 of temp0, 6 of temp1,
+      4 of temp2, 2 of temp3, 2 of the flags) and for the flags rebuild
+      call_flags_rebuild() may emit (at most 22 of temp1, 4 of temp3, 9 of
+      the flags) without passing REG_VERSION_MAX, which only ends the block
+      after the current instruction*/
+    if ((reg_last_version[IREG_GET_REG(IREG_temp0)] + 4 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp1)] + 30 > REG_VERSION_MAX) ||
+        (reg_last_version[IREG_GET_REG(IREG_temp2)] + 6 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp3)] + 8 > REG_VERSION_MAX) ||
+        (reg_last_version[IREG_GET_REG(IREG_flags)] + 12 > REG_VERSION_MAX))
+        return 0;
+
+    codegen_mark_code_present(block, cs + op_pc, 1);
+    codegen_accumulate_flush(ir);
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    if ((fetchdat & 0xc0) == 0xc0)
+        uop_MOV(ir, IREG_temp0_W, IREG_16(fetchdat & 7));
+    else {
+        target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+        codegen_check_seg_write(block, ir, target_seg);
+        CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
+        uop_MEM_LOAD_REG(ir, IREG_temp0_W, ireg_seg_base(target_seg), IREG_eaaddr);
+    }
+    call_flags_rebuild(ir, jit_flags_rebuild);
+
+    /*temp3 1 when the destination's RPL is below the source's, temp1 the
+      destination with the source's RPL*/
+    uop_MOVZX(ir, IREG_temp1, IREG_temp0_W);
+    uop_AND_IMM(ir, IREG_temp1, IREG_temp1, 3);
+    uop_MOVZX(ir, IREG_temp2, IREG_16((fetchdat >> 3) & 7));
+    uop_AND_IMM(ir, IREG_temp2, IREG_temp2, 3);
+    uop_CMP_SET(ir, IREG_temp3, IREG_temp1, IREG_temp2, UOP_CC_B);
+    uop_AND_IMM(ir, IREG_temp1_W, IREG_temp0_W, 0xfffc);
+    uop_OR(ir, IREG_temp1_W, IREG_temp1_W, IREG_temp2_W);
+    if ((fetchdat & 0xc0) == 0xc0) {
+        /*The register either way: m all ones when it is raised*/
+        uop_SHL_IMM(ir, IREG_temp2, IREG_temp3, 31);
+        uop_SAR_IMM(ir, IREG_temp2, IREG_temp2, 31);
+        uop_XOR(ir, IREG_temp1_W, IREG_temp1_W, IREG_temp0_W);
+        uop_AND(ir, IREG_temp1_W, IREG_temp1_W, IREG_temp2_W);
+        uop_XOR(ir, IREG_16(fetchdat & 7), IREG_16(fetchdat & 7), IREG_temp1_W);
+    } else {
+        jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp3, 0);
+        uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp1_W);
+        uop_NOP_BARRIER(ir);
+        uop_set_jump_dest(ir, jump_uop);
+    }
+    uop_AND_IMM(ir, IREG_flags, IREG_flags, ~Z_FLAG);
+    uop_SHL_IMM(ir, IREG_temp3, IREG_temp3, 6);
+    uop_OR(ir, IREG_flags, IREG_flags, IREG_temp3_W);
+    codegen_flags_changed = 0;
+
+    return op_pc + 1;
+}
