@@ -3831,6 +3831,9 @@ s3_recalctimings(svga_t *svga)
     }
 
     svga->hdisp = svga->hdisp_old;
+    /* CR43 bit 7 doubles all the horizontal parameters, the display width too. */
+    if (!(svga->crtc[0x33] & 0x20) && !svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80))
+        svga->hdisp <<= 1;
     svga->memaddr_latch |= (s3->ma_ext << 16);
 
     svga->lowres = (!!(svga->attrregs[0x10] & 0x40) && !(svga->crtc[0x3a] & 0x10));
