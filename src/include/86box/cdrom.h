@@ -451,6 +451,8 @@ typedef struct cdrom_ops_t {
     int      (*is_empty)(const void *local);
     void     (*close)(void *local);
     void     (*load)(const void *local);
+    /* Return 13 ASCII MCN digits and nonzero if a catalog number is present. */
+    int      (*get_mcn)(const void *local, uint8_t *mcn);
 } cdrom_ops_t;
 
 typedef struct cdrom {

@@ -2091,6 +2091,7 @@ cdrom_get_current_status(const cdrom_t *dev)
 void
 cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
 {
+    const uint8_t       format    = b[0];
     const subchannel_t *subc      = &dev->cached_subc;
     int                 base      = 0;
     int                 diff      = 4;
@@ -2106,7 +2107,7 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
               dev->seek_pos, dev->cd_end);
 
     /* Format code. */
-    switch (b[0]) {
+    switch (format) {
         /*
            Mode 0 = Q subchannel mode, first 16 bytes are identical to mode 1 (current
                     position), the rest are stuff like ISRC etc., which can be all zeroes.
@@ -2160,21 +2161,25 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
                 b[10] = (dat >> 8) & 0xff;
                 b[11] = dat & 0xff;
             }
-            if (b[0] != 0x00)
+            if (format != 0x00)
                 break;
             base += 12;
             fallthrough;
         case 0x02:
-            /* UPC  - TODO: Finding and reporting the actual UPC data. */
+            /* Media Catalog Number, as ASCII digits (MMC format 2). */
             memset(&(b[base]), 0x00, 20 - diff);
             base += diff;
             memset(&(b[base + 1]), 0x30, 13);
+            b[base + 14] = 0x00;
+            if ((dev->ops != NULL) && (dev->ops->get_mcn != NULL) &&
+                dev->ops->get_mcn(dev->local, &(b[base + 1])))
+                b[base] = 0x80; /* MCVAL */
             /* NEC CDR-260 speaks BCD. */
             if (dev->is_bcd)
                 b[base + 15] = bin2bcd(subc->abs_f);
             else
                 b[base + 15] = subc->abs_f;
-            if (b[0] != 0x00)
+            if (format != 0x00)
                 break;
             base += 16;
             fallthrough;

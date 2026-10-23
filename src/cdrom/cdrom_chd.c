@@ -737,6 +737,7 @@ static const cdrom_ops_t chd_image_ops = {
     chd_image_has_data,
     NULL,
     chd_image_close,
+    NULL,
     NULL
 };
 
@@ -752,6 +753,7 @@ static const cdrom_ops_t chd_image_dvd_ops = {
     chd_image_has_data,
     NULL,
     chd_image_close,
+    NULL,
     NULL
 };
 
