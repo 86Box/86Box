@@ -28,6 +28,15 @@
             uop_FROUND_S(ir, reg, reg);       \
     } while (0)
 
+/* The compare of FCOM, FCOMP and FCOMPP, x87_compare() in the interpreter.
+   A double from an m32 operand can't be CHKCOP's second image (its low 29
+   mantissa bits are zero), so the m32 forms keep FCOM. */
+#ifdef CODEGEN_BACKEND_HAS_FCOM_CHKCOP
+#    define uop_FCOM_X87(ir, dst_reg, src_reg_a, src_reg_b) uop_FCOM_CHKCOP(ir, dst_reg, src_reg_a, src_reg_b, 0)
+#else
+#    define uop_FCOM_X87(ir, dst_reg, src_reg_a, src_reg_b) uop_FCOM(ir, dst_reg, src_reg_a, src_reg_b)
+#endif
+
 extern int x87_dyn_fdiv(uint32_t imm);
 extern int x87_dyn_ftst_nan(uint32_t imm);
 
@@ -178,7 +187,7 @@ ropFCOM(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint3
 
     uop_FP_ENTER(ir);
     codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc - 1, NULL, FPU_GUARD_ST(0) | FPU_GUARD_ST(src_reg));
-    uop_FCOM(ir, IREG_temp0_W, IREG_ST(0), IREG_ST(src_reg));
+    uop_FCOM_X87(ir, IREG_temp0_W, IREG_ST(0), IREG_ST(src_reg));
     uop_AND_IMM(ir, IREG_NPXS, IREG_NPXS, ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3));
     uop_OR(ir, IREG_NPXS, IREG_NPXS, IREG_temp0_W);
 
@@ -191,7 +200,7 @@ ropFCOMP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 
     uop_FP_ENTER(ir);
     codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc - 1, NULL, FPU_GUARD_ST(0) | FPU_GUARD_ST(src_reg));
-    uop_FCOM(ir, IREG_temp0_W, IREG_ST(0), IREG_ST(src_reg));
+    uop_FCOM_X87(ir, IREG_temp0_W, IREG_ST(0), IREG_ST(src_reg));
     uop_AND_IMM(ir, IREG_NPXS, IREG_NPXS, ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3));
     uop_OR(ir, IREG_NPXS, IREG_NPXS, IREG_temp0_W);
     fpu_POP(block, ir);
@@ -209,12 +218,16 @@ ropFCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fe
 #endif
     uop_FP_ENTER(ir);
     codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc - 1, NULL, FPU_GUARD_ST(0) | FPU_GUARD_ST(1));
+#if defined(CODEGEN_BACKEND_HAS_FCOM_CHKCOP)
+    uop_FCOM_CHKCOP(ir, IREG_temp0_W, IREG_ST(0), IREG_ST(1), fpu_type >= FPU_287XL);
+#else
 #ifdef CODEGEN_BACKEND_HAS_FCOM_SIGNED_ZERO
     if (fpu_type >= FPU_287XL)
         uop_FCOM_SIGNED_ZERO(ir, IREG_temp0_W, IREG_ST(0), IREG_ST(1));
     else
 #endif
         uop_FCOM(ir, IREG_temp0_W, IREG_ST(0), IREG_ST(1));
+#endif
     uop_AND_IMM(ir, IREG_NPXS, IREG_NPXS, ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3));
     uop_OR(ir, IREG_NPXS, IREG_NPXS, IREG_temp0_W);
     fpu_POP2(block, ir);
@@ -512,7 +525,10 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
         codegen_check_seg_read(block, ir, target_seg);                                         \
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, (size) - 1);                      \
         load_uop(ir, IREG_temp0_D, ireg_seg_base(target_seg), IREG_eaaddr);                    \
-        uop_FCOM(ir, IREG_temp1_W, IREG_ST(0), IREG_temp0_D);                                  \
+        if ((size) == 8)                                                                       \
+            uop_FCOM_X87(ir, IREG_temp1_W, IREG_ST(0), IREG_temp0_D);                          \
+        else                                                                                   \
+            uop_FCOM(ir, IREG_temp1_W, IREG_ST(0), IREG_temp0_D);                              \
         uop_AND_IMM(ir, IREG_NPXS, IREG_NPXS, ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3));           \
         uop_OR(ir, IREG_NPXS, IREG_NPXS, IREG_temp1_W);                                        \
                                                                                                \
@@ -531,7 +547,10 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
         codegen_check_seg_read(block, ir, target_seg);                                         \
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, (size) - 1);                      \
         load_uop(ir, IREG_temp0_D, ireg_seg_base(target_seg), IREG_eaaddr);                    \
-        uop_FCOM(ir, IREG_temp1_W, IREG_ST(0), IREG_temp0_D);                                  \
+        if ((size) == 8)                                                                       \
+            uop_FCOM_X87(ir, IREG_temp1_W, IREG_ST(0), IREG_temp0_D);                          \
+        else                                                                                   \
+            uop_FCOM(ir, IREG_temp1_W, IREG_ST(0), IREG_temp0_D);                              \
         uop_AND_IMM(ir, IREG_NPXS, IREG_NPXS, ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3));           \
         uop_OR(ir, IREG_NPXS, IREG_NPXS, IREG_temp1_W);                                        \
         fpu_POP(block, ir);                                                                    \

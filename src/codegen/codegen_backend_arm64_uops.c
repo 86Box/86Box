@@ -1065,6 +1065,30 @@ codegen_FCOM_SIGNED_ZERO(codeblock_t *block, uop_t *uop)
     return 0;
 }
 static int
+codegen_FCOM_CHKCOP(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+
+    if (uop->imm_data)
+        codegen_FCOM_SIGNED_ZERO(block, uop);
+    else
+        codegen_FCOM(block, uop);
+    /* C3 when a is the first image and b the first plus 2; the flags are
+       NE after the CCMP otherwise. */
+    host_arm64_FMOV_Q_D(block, REG_TEMP, src_reg_a);
+    host_arm64_MOVX_IMM(block, REG_TEMP2, 0x3fec1a6ff866a936ULL);
+    host_arm64_CMPX_REG(block, REG_TEMP, REG_TEMP2);
+    host_arm64_FMOV_Q_D(block, REG_TEMP, src_reg_b);
+    host_arm64_ADDX_IMM(block, REG_TEMP2, REG_TEMP2, 2);
+    host_arm64_CCMPX_REG_EQ(block, REG_TEMP, REG_TEMP2, 0);
+    host_arm64_MOVZ_IMM(block, REG_TEMP, FPU_SW_C3);
+    host_arm64_CSEL_EQ(block, dest_reg, REG_TEMP, dest_reg);
+
+    return 0;
+}
+static int
 codegen_FDIV(codeblock_t *block, uop_t *uop)
 {
     int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
@@ -4059,6 +4083,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FCOM_SIGNED_ZERO &
         UOP_MASK]
     = codegen_FCOM_SIGNED_ZERO,
+    [UOP_FCOM_CHKCOP &
+        UOP_MASK]
+    = codegen_FCOM_CHKCOP,
     [UOP_FDIV &
         UOP_MASK]
     = codegen_FDIV,

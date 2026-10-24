@@ -410,8 +410,14 @@
   (C0), the interpreter's FCOMPP answer on a 287XL or later (opFCOMPP, the
   80387 detection case)*/
 #define UOP_FCOM_SIGNED_ZERO (UOP_TYPE_PARAMS_REGS | 0xd3)
+/*UOP_FCOM_CHKCOP - as UOP_FCOM, except that src_reg_a 0x3fec1a6ff866a936
+  against src_reg_b 0x3fec1a6ff866a938 (double images) reports equal (C3),
+  the interpreter's x87_compare() case for CHKCOP; with imm_data 1, also
+  src_reg_a -0 against src_reg_b +0 reports less (C0), as
+  UOP_FCOM_SIGNED_ZERO*/
+#define UOP_FCOM_CHKCOP (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0xd4)
 
-#define UOP_MAX     0xd4
+#define UOP_MAX     0xd5
 
 #define UOP_INVALID 0xff
 
@@ -974,6 +980,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 #define uop_FADD(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FADD, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_FCOM(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FCOM, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_FCOM_SIGNED_ZERO(ir, dst_reg, src_reg_a, src_reg_b)  uop_gen_reg_dst_src2(UOP_FCOM_SIGNED_ZERO, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_FCOM_CHKCOP(ir, dst_reg, src_reg_a, src_reg_b, signed_zero) uop_gen_reg_dst_src2_imm(UOP_FCOM_CHKCOP, ir, dst_reg, src_reg_a, src_reg_b, signed_zero)
 #define uop_FDIV(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FDIV, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_FMUL(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FMUL, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_FSUB(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FSUB, ir, dst_reg, src_reg_a, src_reg_b)

@@ -30,6 +30,10 @@
 /* FCOM_SIGNED_ZERO, the FCOMPP compare that tells -0 from +0. A backend
    without it leaves FCOMPP to the interpreter on a 287XL or later. */
 #define CODEGEN_BACKEND_HAS_FCOM_SIGNED_ZERO
+/* FCOM_CHKCOP, the FCOM, FCOMP and FCOMPP compare with x87_compare()'s
+   CHKCOP case. A backend without it compiles them with FCOM (FCOMPP with
+   FCOM_SIGNED_ZERO), which leave that case out. */
+#define CODEGEN_BACKEND_HAS_FCOM_CHKCOP
 /* The exits of the uops that can leave the block charge what imm_data2 adds
    to cycles on their exit path (codegen_exit_cycles). A backend without it
    leaves those cycles uncharged there, but for codegen_exit_on_one's, which
