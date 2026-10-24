@@ -198,6 +198,7 @@ extern const device_t acpi_sis_5595_device;
 extern void    acpi_pwrbut_press(void);
 extern void    acpi_update_irq(acpi_t *dev);
 extern void    acpi_raise_smi(void *priv, int do_smi);
+extern void    acpi_gp_timer_timeout(void *priv, int n);
 extern void    acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
 extern void    acpi_update_aux_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
 extern void    acpi_init_gporeg(acpi_t *dev, uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3);
