@@ -388,7 +388,7 @@ codegen_CALL_REP_STRING(codeblock_t *block, uop_t *uop)
     host_x86_POP(block, REG_RDX);
     host_x86_POP(block, REG_RAX);
     host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
-    host_x86_JNZ(block, codegen_exit_rout);
+    codegen_exit_Jcc(block, uop, codegen_exit_rout, host_x86_JNZ_long, host_x86_JZ_long);
 
     return 0;
 }
