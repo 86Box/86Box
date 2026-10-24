@@ -9,8 +9,10 @@
  *          Fast, high-frequency, CPU-independent timer.
  *
  * Authors: Connor Hyde, <mario64crashed@gmail.com> I need a better email address ;^)
+ *          Marcos Alves, <xeon4d@gmail.com>
  *
  *          Copyright 2024-2025 starfrost
+ *          Copyright 2026 Marcos Alves
  */
 
 /* See vid_nv_rivatimer.h comments for rationale behind not using the regular timer system 
@@ -37,22 +39,48 @@ void rivatimer_init(void)
     // Destroy all the rivatimers.
     rivatimer_t* rivatimer_ptr = rivatimer_head;
 
-    if (!rivatimer_ptr)
-        return;
+    #ifdef _WIN32
+    // Query the performance frequency (first: at start-up there are no timers yet, and an early
+    // return here left it zero)
+    QueryPerformanceFrequency(&performance_frequency);
+    #endif
 
     while (rivatimer_ptr)
     {
         // since we are destroing it
         rivatimer_t* old_next = rivatimer_ptr->next;
         rivatimer_destroy(rivatimer_ptr);
-        
+
         rivatimer_ptr = old_next;
     }
-        
+}
 
+/* Microseconds of host time since a timer's starting_time */
+static double rivatimer_elapsed_us(const rivatimer_t* rivatimer_ptr)
+{
     #ifdef _WIN32
-    // Query the performance frequency.
-    QueryPerformanceFrequency(&performance_frequency);
+    LARGE_INTEGER current_time;
+
+    QueryPerformanceCounter(&current_time);
+    if (!performance_frequency.QuadPart)
+        QueryPerformanceFrequency(&performance_frequency);
+    return (double) (current_time.QuadPart - rivatimer_ptr->starting_time.QuadPart) * 1000000.0
+        / (double) performance_frequency.QuadPart;
+    #else
+    struct timespec current_time;
+
+    clock_gettime(CLOCK_MONOTONIC, &current_time);
+    return ((double) (current_time.tv_sec - rivatimer_ptr->starting_time.tv_sec) * 1000000.0)
+        + ((double) (current_time.tv_nsec - rivatimer_ptr->starting_time.tv_nsec) / 1000.0);
+    #endif
+}
+
+static void rivatimer_mark_start(rivatimer_t* rivatimer_ptr)
+{
+    #ifdef _WIN32
+    QueryPerformanceCounter(&rivatimer_ptr->starting_time);
+    #else
+    clock_gettime(CLOCK_MONOTONIC, &rivatimer_ptr->starting_time);
     #endif
 }
 
@@ -78,8 +106,9 @@ rivatimer_t* rivatimer_create(double period, void (*callback)(double real_time))
     }
     else // Otherwise add a new one to the list
     {
-        rivatimer_tail->next = calloc(1, sizeof(rivatimer_t));
-        rivatimer_tail = rivatimer_tail->next;
+        rivatimer_tail->next       = calloc(1, sizeof(rivatimer_t));
+        rivatimer_tail->next->prev = rivatimer_tail; // destroying the tail goes back through prev
+        rivatimer_tail             = rivatimer_tail->next;
         new_rivatimer = rivatimer_tail;
     }
     
@@ -149,11 +178,9 @@ void rivatimer_destroy(rivatimer_t* rivatimer_ptr)
     // Case: This is not the first or last rivatimer, so we don't need to set the head or tail
     else
     {
-        // Fix the break in the chain that this 
-        if (rivatimer_ptr->next)
-            rivatimer_ptr->prev->next = rivatimer_ptr->next;
-        if (rivatimer_ptr->prev)
-            rivatimer_ptr->next->prev = rivatimer_ptr->prev;
+        // Fix the break in the chain: a middle node has both neighbours
+        rivatimer_ptr->prev->next = rivatimer_ptr->next;
+        rivatimer_ptr->next->prev = rivatimer_ptr->prev;
     }
 
     free(rivatimer_ptr);
@@ -169,49 +196,30 @@ void rivatimer_update_all(void)
 
     while (rivatimer_ptr)
     {
+        rivatimer_t* next = rivatimer_ptr->next;
+
         // if it's not running skip it
         if (!rivatimer_ptr->running)
         {
-            rivatimer_ptr = rivatimer_ptr->next;
+            rivatimer_ptr = next;
             continue;
         }
 
-        #ifdef _WIN32
-            LARGE_INTEGER current_time;
+        /* Host microseconds since it last fired (the old code divided raw performance-counter
+           ticks by a million, and off Windows took the absolute time since 1970) */
+        double microseconds = rivatimer_elapsed_us(rivatimer_ptr);
 
-            QueryPerformanceCounter(&current_time);
-
-            double microseconds = ((double)current_time.QuadPart / 1000000.0) - (rivatimer_ptr->starting_time.QuadPart / 1000000.0);
-        #else
-            struct timespec current_time; 
-
-            clock_gettime(CLOCK_REALTIME, &current_time);
-
-            double microseconds = ((double)current_time.tv_sec * 1000000.0) + ((double)current_time.tv_nsec / 1000.0);
-        #endif
-
-        rivatimer_ptr->time += microseconds; 
-
-        // Reset the current time so we can actually restart
-        #ifdef _WIN32
-            QueryPerformanceCounter(&rivatimer_ptr->starting_time);
-        #else
-            clock_gettime(CLOCK_REALTIME, &rivatimer_ptr->starting_time);
-        #endif 
-
-        // Time to fire
-        if (microseconds > rivatimer_ptr->period)
+        // Time to fire: hand the callback all the time since the last firing
+        if (microseconds >= rivatimer_ptr->period)
         {
-            if (!rivatimer_ptr->callback)
-            {
-                pclog("Eh? No callback in RivaTimer?");
-                continue;
-            }
-                    
-            rivatimer_ptr->callback(microseconds);
+            rivatimer_ptr->time += microseconds;
+            rivatimer_mark_start(rivatimer_ptr);
+
+            if (rivatimer_ptr->callback)
+                rivatimer_ptr->callback(microseconds);
         }
 
-        rivatimer_ptr = rivatimer_ptr->next;
+        rivatimer_ptr = next;
     }
 
 }
@@ -227,11 +235,7 @@ void rivatimer_start(rivatimer_t* rivatimer_ptr)
     rivatimer_ptr->running = true;
 
     // Start off so rivatimer_update_all can actually update.
-    #ifdef _WIN32
-        QueryPerformanceCounter(&rivatimer_ptr->starting_time);
-    #else
-        clock_gettime(CLOCK_REALTIME, &rivatimer_ptr->starting_time);
-    #endif 
+    rivatimer_mark_start(rivatimer_ptr);
 }
 
 void rivatimer_stop(rivatimer_t* rivatimer_ptr)
