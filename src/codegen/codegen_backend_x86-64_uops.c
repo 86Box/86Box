@@ -812,10 +812,11 @@ codegen_FABS(codeblock_t *block, uop_t *uop)
     int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
 
-    if (REG_IS_D(dest_size) && REG_IS_D(src_size_a) && dest_reg == src_reg_a) {
-        host_x86_PXOR_XREG_XREG(block, REG_XMM_TEMP, REG_XMM_TEMP);
-        host_x86_SUBSD_XREG_XREG(block, REG_XMM_TEMP, dest_reg);
-        host_x86_MAXSD_XREG_XREG(block, dest_reg, REG_XMM_TEMP);
+    if (REG_IS_D(dest_size) && REG_IS_D(src_size_a)) {
+        host_x86_MOVQ_XREG_XREG(block, dest_reg, src_reg_a);
+        host_x86_MOV64_REG_IMM(block, REG_RCX, 0x7fffffffffffffff);
+        host_x86_MOVQ_XREG_REG(block, REG_XMM_TEMP, REG_RCX);
+        host_x86_PAND_XREG_XREG(block, dest_reg, REG_XMM_TEMP);
     }
 #    ifdef RECOMPILER_DEBUG
     else
