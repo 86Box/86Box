@@ -3221,6 +3221,9 @@ msgstr "Ingresso"
 msgid "Key bindings"
 msgstr "Associazione dei tasti"
 
+msgid "VM Manager"
+msgstr ""
+
 msgid "Action"
 msgstr "Azione"
 

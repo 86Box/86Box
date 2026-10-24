@@ -162,6 +162,9 @@ add_library(ui STATIC
     qt_preferences.cpp
     qt_preferences.hpp
 
+    qt_preferencesgeneral.cpp
+    qt_preferencesgeneral.hpp
+    qt_preferencesgeneral.ui
     qt_preferencesemulator.cpp
     qt_preferencesemulator.hpp
     qt_preferencesemulator.ui
@@ -171,6 +174,9 @@ add_library(ui STATIC
     qt_preferenceskeybindings.cpp
     qt_preferenceskeybindings.hpp
     qt_preferenceskeybindings.ui
+    qt_preferencesmanager.cpp
+    qt_preferencesmanager.hpp
+    qt_preferencesmanager.ui
 
     qt_settings.cpp
     qt_settings.hpp
@@ -284,9 +290,6 @@ add_library(ui STATIC
     qt_vmmanager_detailsection.ui
     qt_vmmanager_listviewdelegate.hpp
     qt_vmmanager_listviewdelegate.cpp
-    qt_vmmanager_preferences.cpp
-    qt_vmmanager_preferences.hpp
-    qt_vmmanager_preferences.ui
     qt_vmmanager_main.hpp
     qt_vmmanager_main.cpp
     qt_vmmanager_main.ui
@@ -345,6 +348,7 @@ target_sources(ui PRIVATE qt_osd.cpp qt_osd.hpp qt_osd_raster.cpp qt_osd_raster.
 target_include_directories(ui PRIVATE ${OSD_DIR} ${OSD_DIR}/imgui)
 
 if(EMU_BUILD_NUM)
+    add_compile_definitions(UPDATE_CHECK)
     target_sources(ui PRIVATE
         qt_updatecheck.cpp
         qt_updatecheck.hpp

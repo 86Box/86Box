@@ -3131,6 +3131,9 @@ msgstr "Upad"
 msgid "Key bindings"
 msgstr "Veze tipki"
 
+msgid "VM Manager"
+msgstr ""
+
 msgid "Action"
 msgstr "Akcija"
 

@@ -3144,6 +3144,9 @@ msgstr "輸入"
 msgid "Key bindings"
 msgstr "按鍵組合"
 
+msgid "VM Manager"
+msgstr ""
+
 msgid "Action"
 msgstr "動作"
 

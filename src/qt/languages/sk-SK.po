@@ -3128,6 +3128,9 @@ msgstr "Vstup"
 msgid "Key bindings"
 msgstr "Nastavenie klávesov"
 
+msgid "VM Manager"
+msgstr ""
+
 msgid "Action"
 msgstr "Akcia"
 

@@ -3234,6 +3234,9 @@ msgstr ""
 msgid "Key bindings"
 msgstr ""
 
+msgid "VM Manager"
+msgstr ""
+
 msgid "Action"
 msgstr ""
 

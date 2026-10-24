@@ -228,8 +228,12 @@ int      jumpered_internal_ecp_dma              = 0;              /* (C) Jumpere
 int      inhibit_multimedia_keys;                                 /* (G) Inhibit multimedia keys on Windows. */
 int      force_10ms;                                              /* (C) Force 10ms CPU frame intervals. */
 int      vmm_disabled                           = 0;              /* (G) disable built-in manager */
-int      discord_presence                       = 0;              /* (G) Discord status: off, name and hardware, hardware only, no details */
+int      vmm_discord_presence                   = 0;              /* (G) Discord status: off, name and hardware, hardware only, no details */
 char     vmm_path_cfg[1024]                     = { '\0' };       /* (G) VMs path (unless -E is used)*/
+int      vmm_update_check                       = 1;              /* (G) check for updates when the manager starts */
+int      vmm_regex_search                       = 0;              /* (G) search the manager with regular expressions */
+int      vmm_window_remember                    = 0;              /* (G) remember the manager's window size and position */
+int      vmm_delete_to_trash                    = 0;              /* (G) delete machines to the trash */
 
 int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
                                                                      present */
@@ -1506,9 +1510,6 @@ usage:
          */
         if (!config_load())
             return 0;
-
-        /* To save the global key binds. */
-        config_save_global();
 
         /*
            Clear the CMOS and/or BIOS flash file, if we were started with

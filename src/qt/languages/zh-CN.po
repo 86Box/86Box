@@ -3122,6 +3122,9 @@ msgstr "输入"
 msgid "Key bindings"
 msgstr "按键绑定"
 
+msgid "VM Manager"
+msgstr ""
+
 msgid "Action"
 msgstr "动作"
 

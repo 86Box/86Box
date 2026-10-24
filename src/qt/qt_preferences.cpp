@@ -29,9 +29,6 @@ extern "C" {
 
 #include "qt_settings_completer.hpp"
 #include "qt_preferences.hpp"
-#include "qt_mainwindow.hpp"
-#include "ui_qt_mainwindow.h"
-#include "qt_machinestatus.hpp"
 
 #include <QStackedWidget>
 #include <QStandardItemModel>
@@ -41,9 +38,11 @@ extern "C" {
 
 #include <QPushButton>
 
+#include "qt_preferencesgeneral.hpp"
 #include "qt_preferencesemulator.hpp"
 #include "qt_preferencesinput.hpp"
 #include "qt_preferenceskeybindings.hpp"
+#include "qt_preferencesmanager.hpp"
 #include "qt_defs.hpp"
 
 #include <QDebug>
@@ -64,13 +63,25 @@ extern "C" {
 #    include <windows.h>
 #endif
 
-extern MainWindow *main_window;
-
 static const QVector<PagedDialog::Page> preferencesPages = {
+    { "General",      "settings"      },
     { "Emulator",     "emulator"      },
     { "Input",        "input_devices" },
     { "Key bindings", "key_bindings"  },
 };
+
+static const PagedDialog::Page managerPage = { "VM Manager", "86Box-gray" };
+
+static QVector<PagedDialog::Page>
+pageList(bool showManager)
+{
+    QVector<PagedDialog::Page> pages = preferencesPages;
+
+    if (showManager)
+        pages.append(managerPage);
+
+    return pages;
+}
 
 Preferences *Preferences::preferences = nullptr;
 
@@ -111,16 +122,23 @@ QVector<QPair<QString, QString>> Preferences::languages = {
     { "zh-TW",  "繁體中文"                  },
 };
 
-Preferences::Preferences(QWidget *parent)
-    : PagedDialog(tr("Preferences"), QSize(600, 0), preferencesPages, parent)
+Preferences::Preferences(bool showManager, bool machinesRunning, QWidget *parent)
+    : PagedDialog(tr("Preferences"), QSize(600, 0), pageList(showManager), parent)
 {
+    general                   = new PreferencesGeneral(this);
     emulator                  = new PreferencesEmulator(this);
     input                     = new PreferencesInput(this);
     key_bindings              = new PreferencesKeyBindings(this);
 
+    pageStack()->addWidget(general);
     pageStack()->addWidget(emulator);
     pageStack()->addWidget(input);
     pageStack()->addWidget(key_bindings);
+
+    if (showManager) {
+        manager = new PreferencesManager(machinesRunning, this);
+        pageStack()->addWidget(manager);
+    }
 
     showFirstPage();
 
@@ -135,30 +153,19 @@ Preferences::~Preferences()
 void
 Preferences::save()
 {
+    general->save();
     emulator->save();
     input->save();
     key_bindings->save();
-
-    main_window->updateMouseStrings();
+    if (manager)
+        manager->save();
 }
 
 void
 Preferences::accept()
 {
-    int lang_changed = emulator->changed();
-
     save();
     config_save_global();
-    if (!video_fullscreen && lang_changed) {
-        auto size = main_window->centralWidget()->size();
-        QTimer::singleShot(200, [size] () {
-            main_window->centralWidget()->setFixedSize(size);
-            QApplication::processEvents();
-            if (vid_resize == 1) {
-                main_window->centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-            }
-        });
-    }
     QDialog::accept();
 }
 
