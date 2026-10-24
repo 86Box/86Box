@@ -17,6 +17,7 @@
 
 add_library(cpu OBJECT
     cpu.c
+    cpu_lapic.c
     cpu_table.c
     fpu.c x86.c
     808x.c
@@ -27,6 +28,7 @@ add_library(cpu OBJECT
     386.c
     386_common.c
     386_dynarec.c
+    cache_as_ram.c
     x86_ops_mmx.c
     x86seg_common.c
     x86seg.c

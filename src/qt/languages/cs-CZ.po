@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-16 00:52+0000\n"
+"PO-Revision-Date: 2026-10-21 08:46+0000\n"
 "Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
@@ -149,6 +149,12 @@ msgstr "&Celočíselné škálování"
 
 msgid "4:&3 Integer scale"
 msgstr "Celočíselné škálování 4:&3"
+
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
 
 msgid "Inverted VGA monitor"
 msgstr "Monitor VGA s převrácenými barvami"
@@ -432,6 +438,9 @@ msgstr "Přesné prostředí FPU při dynamickém překladu"
 msgid "Block linking on the dynamic recompiler"
 msgstr "Propojování bloků při dynamickém překladu"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Velikost rámců procesoru"
 
@@ -623,6 +632,12 @@ msgstr "Řadič 4:"
 
 msgid "Cassette"
 msgstr "Kazeta"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Pevné disky:"
@@ -1328,33 +1343,37 @@ msgid "Delete virtual machines to Recycle Bin"
 msgstr "Přesouvat odstraněné virtuální počítače do koše"
 
 msgid "Discord"
-msgstr ""
+msgstr "Discord"
 
 msgid "Show running machines in my Discord status"
-msgstr ""
+msgstr "Zobrazit běžící počítače ve stavu na službě Discord"
 
 msgid "Details shown:"
-msgstr ""
+msgstr "Zobrazené informace:"
 
 msgid "Machine name and hardware"
-msgstr ""
+msgstr "Název počítače a hardware"
 
 msgid "Hardware only"
-msgstr ""
+msgstr "Pouze hardware"
 
 msgid "No details"
-msgstr ""
+msgstr "Žádné detaily"
 
 msgid "Using %1"
-msgstr ""
+msgstr "Aktivní: %1"
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] ""
+msgstr[0] "%n spuštěný počítač"
+msgstr[1] "%n spuštěné počítače"
+msgstr[2] "%n spuštěných počítačů"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
-msgstr[0] ""
+msgstr[0] " (+%n další)"
+msgstr[1] " (+%n další)"
+msgstr[2] " (+%n dalších)"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -3216,6 +3235,9 @@ msgstr "Vstup"
 
 msgid "Key bindings"
 msgstr "Klávesové zkratky"
+
+msgid "VM Manager"
+msgstr ""
 
 msgid "Action"
 msgstr "Akce"

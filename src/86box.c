@@ -103,6 +103,7 @@
 #include <86box/version.h>
 #include <86box/gdbstub.h>
 #include <86box/automation.h>
+#include <86box/pc_block.h>
 #ifdef USE_AUTOMATION
 #    define AUTOMATION_ACTIVE (automation_path[0] != '\0')
 #else
@@ -192,6 +193,7 @@ int      sound_input_enabled                    = 0;              /* (C) enable 
 int      sound_sample_rate                      = FREQ_48000;     /* (C) sound output sample rate */
 int      sb_input_rate                          = FREQ_44100;     /* (C) SB16/AWE32 hardware sample rate */
 int      voodoo_enabled                         = 0;              /* (C) video option */
+int      powervr_enabled                        = 0;              /* (C) video option */
 int      ibm8514_standalone_enabled             = 0;              /* (C) video option */
 int      xga_standalone_enabled                 = 0;              /* (C) video option */
 int      da2_standalone_enabled                 = 0;              /* (C) video option */
@@ -203,6 +205,7 @@ int      cpu                                    = 0;              /* (C) cpu typ
 int      fpu_type                               = 0;              /* (C) fpu type */
 int      fpu_softfloat                          = 0;              /* (C) fpu uses softfloat */
 int      time_sync                              = 0;              /* (C) enable time sync */
+int      time_offset_years                      = 0;              /* (C) year offset for time sync */
 int      confirm_reset                          = 1;              /* (G) enable reset confirmation */
 int      confirm_exit                           = 1;              /* (G) enable exit confirmation */
 int      confirm_save                           = 1;              /* (G) enable save confirmation */
@@ -225,8 +228,12 @@ int      jumpered_internal_ecp_dma              = 0;              /* (C) Jumpere
 int      inhibit_multimedia_keys;                                 /* (G) Inhibit multimedia keys on Windows. */
 int      force_10ms;                                              /* (C) Force 10ms CPU frame intervals. */
 int      vmm_disabled                           = 0;              /* (G) disable built-in manager */
-int      discord_presence                       = 0;              /* (G) Discord status: off, name and hardware, hardware only, no details */
+int      vmm_discord_presence                   = 0;              /* (G) Discord status: off, name and hardware, hardware only, no details */
 char     vmm_path_cfg[1024]                     = { '\0' };       /* (G) VMs path (unless -E is used)*/
+int      vmm_update_check                       = 1;              /* (G) check for updates when the manager starts */
+int      vmm_regex_search                       = 0;              /* (G) search the manager with regular expressions */
+int      vmm_window_remember                    = 0;              /* (G) remember the manager's window size and position */
+int      vmm_delete_to_trash                    = 0;              /* (G) delete machines to the trash */
 
 int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
                                                                      present */
@@ -374,6 +381,7 @@ int   scrnsz_y = SCREEN_RES_Y; /* current screen size, Y */
 int config_changed; /* config has changed */
 int title_update;
 int framecountx        = 0;
+static pc_block_t pc_block; /* pc_run()'s carry from block to block */
 int hard_reset_pending = 0;
 
 #if 0
@@ -445,6 +453,7 @@ pclog_ex(UNUSED(const char *fmt), UNUSED(va_list ap))
         seen = 0;
         strcpy(buff, temp);
         fprintf(stdlog, "%s", temp);
+        automation_log_text(temp, 0);
         if (pclog_hook)
             pclog_hook(temp);
     }
@@ -496,6 +505,7 @@ always_log(const char *fmt, ...)
 
     vsprintf(temp, fmt, ap);
     fprintf(stdlog, "%s", temp);
+    automation_log_text(temp, 0);
     if (pclog_hook)
         pclog_hook(temp);
     fflush(stdlog);
@@ -529,6 +539,7 @@ fatal(const char *fmt, ...)
 
     /* Re-add the newline into the log. */
     fprintf(stdlog, "%s\n", temp);
+    automation_log_text(temp, 1);
     fflush(stdlog);
     va_end(ap);
 
@@ -541,9 +552,9 @@ fatal(const char *fmt, ...)
     do_pause(2);
 
     /* A connected automation client would wait forever on a machine that has
-       stopped, behind a dialog it can't answer: close its connection now, so
-       it knows. The message is in the log. */
-    automation_close();
+       stopped, behind a dialog it can't answer: send it the message and close
+       its connection now, so it knows. */
+    automation_fatal(temp);
 
     ui_msgbox(MBX_ERROR | MBX_FATAL, temp);
 
@@ -580,6 +591,7 @@ fatal_ex(const char *fmt, va_list ap)
 
     /* Re-add the newline into the log. */
     fprintf(stdlog, "%s\n", temp);
+    automation_log_text(temp, 1);
     fflush(stdlog);
 
     nvr_save();
@@ -591,9 +603,9 @@ fatal_ex(const char *fmt, va_list ap)
     do_pause(2);
 
     /* A connected automation client would wait forever on a machine that has
-       stopped, behind a dialog it can't answer: close its connection now, so
-       it knows. The message is in the log. */
-    automation_close();
+       stopped, behind a dialog it can't answer: send it the message and close
+       its connection now, so it knows. */
+    automation_fatal(temp);
 
     ui_msgbox(MBX_ERROR | MBX_FATAL, temp);
 
@@ -631,6 +643,7 @@ warning(const char *fmt, ...)
 
     /* Re-add the newline into the log. */
     fprintf(stdlog, "%s\n", temp);
+    automation_log_text(temp, 1);
     if (pclog_hook)
         pclog_hook(temp);
     fflush(stdlog);
@@ -674,6 +687,7 @@ warning_ex(const char *fmt, va_list ap)
 
     /* Re-add the newline into the log. */
     fprintf(stdlog, "%s\n", temp);
+    automation_log_text(temp, 1);
     fflush(stdlog);
 
     do_pause(2);
@@ -788,6 +802,8 @@ pc_show_usage(void)
             "--automation endpoint\t\t- listen for automation commands: unix:path or\n"
             "\t\t\t\t   tcp:[host:]port (bare value: a path, or a port on Windows)\n"
             "--automation-hold\t\t- start with the machine held for automation\n"
+            "--automation-seed n\t\t- make the emulator's random numbers repeatable\n"
+            "\t\t\t\t  (generated MACs, floppy weak bits) from seed 'n'\n"
             "--automation-token-file path\t- TCP: write the access token to 'path'\n"
             "--automation-allow-remote\t- TCP: allow a non-loopback listen address\n"
             "--automation-insecure\t\t- TCP: accept clients without a token (any local process,\n"
@@ -988,6 +1004,12 @@ usage:
             snprintf(automation_path, sizeof(automation_path), "%s", argv[++c]);
         } else if (!strcasecmp(argv[c], "--automation-hold")) {
             automation_start_held = 1;
+        } else if (!strcasecmp(argv[c], "--automation-seed")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            automation_seed     = (uint32_t) strtoul(argv[++c], NULL, 0);
+            automation_seed_set = 1;
         } else if (!strcasecmp(argv[c], "--automation-token-file")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -1489,9 +1511,6 @@ usage:
         if (!config_load())
             return 0;
 
-        /* To save the global key binds. */
-        config_save_global();
-
         /*
            Clear the CMOS and/or BIOS flash file, if we were started with
            the relevant parameter(s).
@@ -1666,6 +1685,10 @@ pc_init_modules(void)
     atfullspeed = 0;
 
     random_init();
+#ifdef USE_AUTOMATION
+    if (automation_seed_set)
+        random_seed(automation_seed);
+#endif
 
     mem_init();
 
@@ -1891,6 +1914,9 @@ pc_reset_hard_close(void)
 void
 pc_reset_hard_init(void)
 {
+    /* Blocks of emulated time fall as after a fresh start. */
+    pc_block_reset(&pc_block);
+
     /*
      * First, we reset the modules that are not part of
      * the actual machine, but which support some of the
@@ -2174,9 +2200,10 @@ pc_run(void)
     /* Update the guest-CPU independent timer for devices with independent clock speed */
     rivatimer_update_all();
 
-    /* Run a block of code. */
+    /* Run a block of code: a millisecond (or ten) of the CPU's cycles, the
+       remainder carried over (pc_block.h). */
     startblit();
-    cpu_exec((int32_t) cpu_s->rspeed / (force_10ms ? 100 : 1000));
+    cpu_exec(pc_block_cycles(&pc_block, cpu_s->rspeed, force_10ms ? 100 : 1000));
     ack_pause();
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     if (gdbstub_step == GDBSTUB_EXEC) {

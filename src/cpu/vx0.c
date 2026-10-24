@@ -40,6 +40,7 @@
 #include <86box/gdbstub.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include "x86_interrupt.h"
 #include "vx0_biu.h"
 
 #define do_cycle()           wait_vx0(1, 0)
@@ -1428,7 +1429,7 @@ irq_pending(void)
     uint8_t temp;
 
     temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) ||
-           ((in_hlt || (cpu_state.flags & I_FLAG)) && pic.int_pending && !noint);
+           ((in_hlt || (cpu_state.flags & I_FLAG)) && x86_external_interrupt_pending() && !noint);
 
     return temp;
 }
@@ -1491,7 +1492,7 @@ check_interrupts(void)
                 int2();
             return;
         }
-        if ((in_hlt || (cpu_state.flags & I_FLAG)) && pic.int_pending && !noint) {
+        if ((in_hlt || (cpu_state.flags & I_FLAG)) && x86_external_interrupt_pending() && !noint) {
             repeating = 0;
             completed = 1;
             if (is_nec && in_hlt && !(cpu_state.flags & I_FLAG)) {

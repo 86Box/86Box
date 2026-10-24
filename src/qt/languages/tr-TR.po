@@ -150,6 +150,12 @@ msgstr "Tam &sayı ölçeklemesi"
 msgid "4:&3 Integer scale"
 msgstr "Tam sayı ölçeklemesi (4:&3)"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Ters renkli VGA monitör"
 
@@ -432,6 +438,9 @@ msgstr "Dinamik derleyicide hassas FPU ortamı"
 msgid "Block linking on the dynamic recompiler"
 msgstr "Dinamik derleyicide blok bağlama"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "İşlemci kare boyutu"
 
@@ -623,6 +632,12 @@ msgstr "4. Denetleyici:"
 
 msgid "Cassette"
 msgstr "Kaset"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Sabit diskler:"
@@ -3164,6 +3179,9 @@ msgstr "Giriş"
 
 msgid "Key bindings"
 msgstr "Tuş atamaları"
+
+msgid "VM Manager"
+msgstr ""
 
 msgid "Action"
 msgstr "Eylem"

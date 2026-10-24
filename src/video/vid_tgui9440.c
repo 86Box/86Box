@@ -163,6 +163,15 @@ typedef struct tgui_t {
 
     uint16_t vclk;
 
+    uint8_t ext_idx;       /*TGUI9680 extended register index (port 83C8h)*/
+    uint8_t ext_regs[256]; /*TGUI9680 extended registers (port 83C6h)*/
+
+    struct {
+        int      x, y, w, h;
+        uint32_t addr, pitch;
+        uint32_t hstep, vstep; /*source step per destination pixel/line, 16.16*/
+    } ovl;
+
     uint32_t vram_size, vram_mask;
 
     volatile int write_blitter;
@@ -178,6 +187,7 @@ static void    tgui_out(uint16_t addr, uint8_t val, void *priv);
 static uint8_t tgui_in(uint16_t addr, void *priv);
 
 static void tgui_recalcmapping(tgui_t *tgui);
+static void tgui_overlay_update(tgui_t *tgui);
 
 static void     tgui_accel_out(uint16_t addr, uint8_t val, void *priv);
 static void     tgui_accel_out_w(uint16_t addr, uint16_t val, void *priv);
@@ -536,6 +546,11 @@ tgui_out(uint16_t addr, uint8_t val, void *priv)
                     }
                     break;
 
+                case 0x80 ... 0x96:
+                    if (tgui->type == TGUI_9680)
+                        tgui_overlay_update(tgui);
+                    break;
+
                 default:
                     break;
             }
@@ -581,6 +596,19 @@ tgui_out(uint16_t addr, uint8_t val, void *priv)
             tgui->vclk = (tgui->vclk & 0x00ff) | (val << 8);
             svga_recalctimings(svga);
             return;
+
+        case 0x83c6:
+            if (tgui->type == TGUI_9680) {
+                tgui->ext_regs[tgui->ext_idx] = val;
+                return;
+            }
+            break;
+        case 0x83c8:
+            if (tgui->type == TGUI_9680) {
+                tgui->ext_idx = val;
+                return;
+            }
+            break;
 
         default:
             break;
@@ -682,6 +710,15 @@ tgui_in(uint16_t addr, void *priv)
             return tgui->tgui_3d9;
         case 0x3db:
             return tgui->alt_clock;
+
+        case 0x83c6:
+            if (tgui->type == TGUI_9680)
+                return tgui->ext_regs[tgui->ext_idx];
+            break;
+        case 0x83c8:
+            if (tgui->type == TGUI_9680)
+                return tgui->ext_idx;
+            break;
 
         default:
             break;
@@ -934,6 +971,9 @@ tgui_recalctimings(svga_t *svga)
                 break;
         }
     }
+
+    if (tgui->type == TGUI_9680)
+        tgui_overlay_update((tgui_t *) tgui);
 }
 
 static void
@@ -1058,6 +1098,211 @@ tgui_recalcmapping(tgui_t *tgui)
             mem_mapping_set_addr(&tgui->mmio_mapping, tgui->mmio_base, 0x10000);
         else
             mem_mapping_disable(&tgui->mmio_mapping);
+    }
+}
+
+/*TGUI9680 video overlay, as programmed by the Windows 9x DirectDraw driver (TRIDDD32.DLL):
+    CR80-81 - horizontal zoom, CR82-83 - vertical zoom: ((destination - source) << 10) / source,
+              0 = 1:1 (the overlay does not shrink)
+    CR86-87 - window start X, CR88-89 - window start Y
+    CR8A-8B - window end X, CR8C-8D - window end Y (exclusive)
+    CR8E    - bit 4 = overlay enable
+    CR8F    - bit 0 = RGB16 source, otherwise YUY2;
+              bits 3-5 select the filtering, bit 7 is set for sources over 370 pixels wide
+    CR90-91 - source pitch in bytes
+    CR92-94 - source start address in qwords
+    83C6h index 30h-32h - colour key, 34h-36h - colour key mask, 37h bit 0 = colour key enable*/
+static uint32_t
+tgui_overlay_step(uint16_t zoom)
+{
+    return (uint32_t) ((1024ULL << 16) / (1024 + (zoom & 0x3fff)));
+}
+
+static void
+tgui_overlay_update(tgui_t *tgui)
+{
+    svga_t *svga = &tgui->svga;
+    int     hss  = svga->crtc[4];
+    int     hse  = (hss & ~0x1f) | (svga->crtc[5] & 0x1f);
+    int     vt   = (svga->crtc[6] | ((svga->crtc[7] & 0x01) << 8) | ((svga->crtc[7] & 0x20) << 4)) + 2;
+    int     vss  = svga->crtc[0x10] | ((svga->crtc[7] & 0x04) << 6) | ((svga->crtc[7] & 0x80) << 2);
+    int     vse  = (vss & ~0x0f) | (svga->crtc[0x11] & 0x0f);
+    int     hoff;
+    int     voff;
+    int     x1;
+    int     x2;
+    int     y1;
+    int     y2;
+
+    /*The window is counted from the end of sync. These are the offsets the driver adds to the
+      screen coordinates of the window.*/
+    if ((hss & 0x1f) > (svga->crtc[5] & 0x1f))
+        hse += 0x20;
+    hoff = (svga->crtc[0] + 5) - hse;
+    if ((svga->crtc[5] & 0x60) == 0x20)
+        hoff--;
+    hoff = (hoff << 3) - 6;
+    if (svga->crtc[0x1e] & 0x04) {
+        if ((svga->crtc[0x38] & 0x0d) == 0x01)
+            hoff--;
+        hoff--;
+    }
+
+    if ((vss & 0x0f) > (svga->crtc[0x11] & 0x0f))
+        vse += 0x10;
+    voff = vt - vse;
+    if (svga->crtc[0x17] & 0x04)
+        voff <<= 1;
+    voff--;
+
+    x1 = svga->crtc[0x86] | ((svga->crtc[0x87] & 0x0f) << 8);
+    y1 = svga->crtc[0x88] | ((svga->crtc[0x89] & 0x0f) << 8);
+    x2 = svga->crtc[0x8a] | ((svga->crtc[0x8b] & 0x0f) << 8);
+    y2 = svga->crtc[0x8c] | ((svga->crtc[0x8d] & 0x0f) << 8);
+
+    tgui->ovl.x     = x1 - hoff;
+    tgui->ovl.y     = y1 - voff;
+    tgui->ovl.w     = x2 - x1;
+    tgui->ovl.h     = y2 - y1;
+    tgui->ovl.pitch = svga->crtc[0x90] | (svga->crtc[0x91] << 8);
+    tgui->ovl.addr  = (svga->crtc[0x92] | (svga->crtc[0x93] << 8) | ((svga->crtc[0x94] & 0x07) << 16)) << 3;
+    tgui->ovl.hstep = tgui_overlay_step(svga->crtc[0x80] | (svga->crtc[0x81] << 8));
+    tgui->ovl.vstep = tgui_overlay_step(svga->crtc[0x82] | (svga->crtc[0x83] << 8));
+
+    if (tgui->ovl.y < 0) {
+        tgui->ovl.addr += tgui->ovl.pitch * (((uint32_t) -tgui->ovl.y * tgui->ovl.vstep) >> 16);
+        tgui->ovl.h += tgui->ovl.y;
+        tgui->ovl.y = 0;
+    }
+
+    svga->overlay.ena       = (svga->crtc[0x8e] & 0x10) && (tgui->ovl.w > 0) && (tgui->ovl.h > 0);
+    svga->overlay.x         = tgui->ovl.x;
+    svga->overlay.y         = tgui->ovl.y;
+    svga->overlay.cur_xsize = tgui->ovl.w;
+    svga->overlay.cur_ysize = tgui->ovl.h;
+    svga->overlay.xoff      = 0;
+    svga->overlay.yoff      = 0;
+    svga->overlay.addr      = tgui->ovl.addr;
+    svga->overlay.pitch     = tgui->ovl.pitch;
+    svga->overlay.v_acc     = 0;
+}
+
+static __inline int
+tgui_overlay_key(const tgui_t *tgui, uint32_t col)
+{
+    const svga_t *svga = &tgui->svga;
+    uint32_t      key  = tgui->ext_regs[0x30] | (tgui->ext_regs[0x31] << 8) | (tgui->ext_regs[0x32] << 16);
+    uint32_t      mask = tgui->ext_regs[0x34] | (tgui->ext_regs[0x35] << 8) | (tgui->ext_regs[0x36] << 16);
+
+    if (!(tgui->ext_regs[0x37] & 0x01))
+        return 1;
+
+    /*The key holds raw frame buffer bytes; compare against the rendered colour.*/
+    switch (svga->bpp) {
+        case 8:
+            return (col & 0xffffff) == (svga->pallook[key & 0xff] & 0xffffff);
+        case 15:
+            return (col & 0xffffff) == (video_15to32[key & 0x7fff] & 0xffffff);
+        case 16:
+            return (col & 0xffffff) == (video_16to32[key & 0xffff] & 0xffffff);
+        default:
+            return !((col ^ key) & mask & 0xffffff);
+    }
+}
+
+#define CLAMP(x) (((x) < 0) ? 0 : (((x) > 0xff) ? 0xff : (x)))
+
+/*Fetch source pixel sx of the line at addr as Y/U/V, or as R/G/B for an RGB16 source.*/
+static __inline void
+tgui_overlay_fetch(const svga_t *svga, uint32_t addr, uint32_t sx, int rgb, int *c)
+{
+    if (rgb) {
+        uint16_t col = *(uint16_t *) &svga->vram[(addr + (sx << 1)) & svga->vram_mask];
+
+        c[0] = ((col >> 11) & 0x1f) << 3;
+        c[1] = ((col >> 5) & 0x3f) << 2;
+        c[2] = (col & 0x1f) << 3;
+    } else {
+        uint32_t pair = addr + ((sx & ~1) << 1);
+
+        c[0] = svga->vram[(addr + (sx << 1)) & svga->vram_mask];
+        c[1] = svga->vram[(pair + 1) & svga->vram_mask];
+        c[2] = svga->vram[(pair + 3) & svga->vram_mask];
+    }
+}
+
+/*Fetch source pixel sx, blended with the next pixel by the 8-bit fraction fx when filtering.*/
+static __inline void
+tgui_overlay_fetch_h(const svga_t *svga, uint32_t addr, uint32_t sx, uint32_t sx_max, int fx, int rgb, int *c)
+{
+    int n[3];
+
+    tgui_overlay_fetch(svga, addr, sx, rgb, c);
+    if (fx && (sx < sx_max)) {
+        tgui_overlay_fetch(svga, addr, sx + 1, rgb, n);
+        for (uint8_t i = 0; i < 3; i++)
+            c[i] += ((n[i] - c[i]) * fx) >> 8;
+    }
+}
+
+/*CR8F filtering: bit 3 set = horizontal pixel replication, clear = horizontal interpolation;
+  bit 4 = vertical line replication, bit 5 = vertical interpolation (the 9680 driver only uses bit 4).
+  overlay_latch.xoff counts the source lines of the frame so filtering stops at the last one.*/
+static void
+tgui_overlay_draw(svga_t *svga, int displine)
+{
+    const tgui_t *tgui   = (tgui_t *) svga->priv;
+    uint32_t     *p      = &(buffer32->line[displine])[svga->x_add];
+    uint32_t      addr   = svga->overlay_latch.addr;
+    uint32_t      h_acc  = 0;
+    int           rgb    = svga->crtc[0x8f] & 0x01;
+    int           h_filt = !(svga->crtc[0x8f] & 0x08);
+    int           fy     = 0;
+    int           x_end  = svga->overlay_latch.x + svga->overlay_latch.cur_xsize;
+    uint32_t      sx_max = ((uint32_t) (tgui->ovl.w - 1) * tgui->ovl.hstep) >> 16;
+    int           sy_max = ((uint32_t) (tgui->ovl.h - 1) * tgui->ovl.vstep) >> 16;
+    int           c[3];
+    int           n[3];
+
+    if ((svga->crtc[0x8f] & 0x30) == 0x20 && (svga->overlay_latch.xoff < sy_max))
+        fy = (svga->overlay_latch.v_acc >> 8) & 0xff;
+
+    if (x_end > svga->hdisp)
+        x_end = svga->hdisp;
+
+    for (int x = svga->overlay_latch.x; x < x_end; x++, h_acc += tgui->ovl.hstep) {
+        uint32_t sx = h_acc >> 16;
+        int      fx = h_filt ? ((h_acc >> 8) & 0xff) : 0;
+
+        if ((x < 0) || !tgui_overlay_key(tgui, p[x]))
+            continue;
+
+        tgui_overlay_fetch_h(svga, addr, sx, sx_max, fx, rgb, c);
+        if (fy) {
+            tgui_overlay_fetch_h(svga, addr + svga->overlay_latch.pitch, sx, sx_max, fx, rgb, n);
+            for (uint8_t i = 0; i < 3; i++)
+                c[i] += ((n[i] - c[i]) * fy) >> 8;
+        }
+
+        if (rgb)
+            p[x] = (c[0] << 16) | (c[1] << 8) | c[2];
+        else {
+            int y = (c[0] - 16) * 298;
+            int u = c[1] - 128;
+            int v = c[2] - 128;
+            int r = (y + 409 * v + 128) >> 8;
+            int g = (y - 100 * u - 208 * v + 128) >> 8;
+            int b = (y + 516 * u + 128) >> 8;
+
+            p[x] = (CLAMP(r) << 16) | (CLAMP(g) << 8) | CLAMP(b);
+        }
+    }
+
+    svga->overlay_latch.v_acc += tgui->ovl.vstep;
+    while (svga->overlay_latch.v_acc >= 0x10000) {
+        svga->overlay_latch.v_acc -= 0x10000;
+        svga->overlay_latch.addr += svga->overlay_latch.pitch;
+        svga->overlay_latch.xoff++;
     }
 }
 
@@ -4077,7 +4322,7 @@ tgui_init(const device_t *info)
               tgui_recalctimings,
               tgui_in, tgui_out,
               tgui_hwcursor_draw,
-              NULL);
+              (tgui->type == TGUI_9680) ? tgui_overlay_draw : NULL);
 
     if (tgui->type == TGUI_9400CXI)
         svga->ramdac = device_add(&tkd8001_ramdac_device);

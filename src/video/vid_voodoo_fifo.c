@@ -642,7 +642,9 @@ voodoo_fifo_thread(void *param)
                     while (num_verticies--) {
                         voodoo->verts[3].sVx = cmdfifo_get_f(voodoo);
                         voodoo->verts[3].sVy = cmdfifo_get_f(voodoo);
-                        if (mask & CMDFIFO3_PC_MASK_RGB) {
+                        /* Packed alpha-only vertices still carry one ARGB word. */
+                        if ((mask & CMDFIFO3_PC_MASK_RGB) ||
+                            ((header & CMDFIFO3_PC) && (mask & CMDFIFO3_PC_MASK_ALPHA))) {
                             if (header & CMDFIFO3_PC) {
                                 uint32_t val            = cmdfifo_get(voodoo);
                                 voodoo->verts[3].sBlue  = (float) (val & 0xff);
@@ -779,7 +781,8 @@ voodoo_fifo_thread(void *param)
                     if (UNLIKELY(voodoo->type < VOODOO_BANSHEE)) {
                         fatal("CMDFIFO6: Not Banshee %08x %08x\n", header, voodoo->cmdfifo_rp);
                     } else {
-                        uint32_t val = cmdfifo_get(voodoo);
+                        /* The header holds size and space. Four payload words follow. */
+                        uint32_t val = header;
                         banshee_cmd_write(voodoo->priv, 0x00, val >> 5);            /* agpReqSize */
                         banshee_cmd_write(voodoo->priv, 0x04, cmdfifo_get(voodoo)); /* agpHostAddressLow */
                         banshee_cmd_write(voodoo->priv, 0x08, cmdfifo_get(voodoo)); /* agpHostAddressHigh */
@@ -933,7 +936,8 @@ voodoo_fifo_thread(void *param)
                     while (num_verticies--) {
                         voodoo->verts[3].sVx = cmdfifo_get_f_2(voodoo);
                         voodoo->verts[3].sVy = cmdfifo_get_f_2(voodoo);
-                        if (mask & CMDFIFO3_PC_MASK_RGB) {
+                        if ((mask & CMDFIFO3_PC_MASK_RGB) ||
+                            ((header & CMDFIFO3_PC) && (mask & CMDFIFO3_PC_MASK_ALPHA))) {
                             if (header & CMDFIFO3_PC) {
                                 uint32_t val            = cmdfifo_get_2(voodoo);
                                 voodoo->verts[3].sBlue  = (float) (val & 0xff);
@@ -1070,7 +1074,7 @@ voodoo_fifo_thread(void *param)
                     if (UNLIKELY(voodoo->type < VOODOO_BANSHEE)) {
                         fatal("CMDFIFO6: Not Banshee %08x %08x\n", header, voodoo->cmdfifo_rp);
                     } else {
-                        uint32_t val = cmdfifo_get_2(voodoo);
+                        uint32_t val = header;
                         banshee_cmd_write(voodoo->priv, 0x00, val >> 5);              /* agpReqSize */
                         banshee_cmd_write(voodoo->priv, 0x04, cmdfifo_get_2(voodoo)); /* agpHostAddressLow */
                         banshee_cmd_write(voodoo->priv, 0x08, cmdfifo_get_2(voodoo)); /* agpHostAddressHigh */

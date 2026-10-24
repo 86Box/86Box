@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-19 02:03+0000\n"
+"PO-Revision-Date: 2026-10-22 05:58+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -150,6 +150,12 @@ msgstr "整數比例(&I)"
 
 msgid "4:&3 Integer scale"
 msgstr "4:3 整數比例(&3)"
+
+msgid "&Center"
+msgstr "置中(&C)"
+
+msgid "4:3 Cen&ter"
+msgstr "4:3 置中(&T)"
 
 msgid "Inverted VGA monitor"
 msgstr "VGA 監視器反色顯示"
@@ -433,6 +439,9 @@ msgstr "動態重編譯時精確的浮點運算器模擬"
 msgid "Block linking on the dynamic recompiler"
 msgstr "動態重編譯時的區塊連結"
 
+msgid "Debug registers on 486 and later processors"
+msgstr "486 及之後處理器的除錯暫存器"
+
 msgid "CPU frame size"
 msgstr "CPU 執行期框架大小"
 
@@ -624,6 +633,12 @@ msgstr "控制器 4:"
 
 msgid "Cassette"
 msgstr "卡帶"
+
+msgid "Turbo IDE"
+msgstr "加速 IDE"
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr "移除 IDE 傳輸模式速度限制。硬碟及光碟機時序仍然套用。"
 
 msgid "Hard disks:"
 msgstr "硬碟:"
@@ -3128,6 +3143,9 @@ msgstr "輸入"
 
 msgid "Key bindings"
 msgstr "按鍵組合"
+
+msgid "VM Manager"
+msgstr ""
 
 msgid "Action"
 msgstr "動作"

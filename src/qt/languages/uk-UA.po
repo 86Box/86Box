@@ -152,6 +152,12 @@ msgstr "&Цілісночисленне масштабування"
 msgid "4:&3 Integer scale"
 msgstr "Цілісночисленне масштабування 4:&3"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Інвертувати кольори VGA"
 
@@ -434,6 +440,9 @@ msgstr "Точне середовище FPU у динамічному реком
 msgid "Block linking on the dynamic recompiler"
 msgstr "Зв'язування блоків у динамічному рекомпіляторі"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Розмір кадру ЦП"
 
@@ -625,6 +634,12 @@ msgstr "Контролер 4:"
 
 msgid "Cassette"
 msgstr "Касета"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Жорсткі диски:"
@@ -3114,6 +3129,9 @@ msgstr "Введення"
 
 msgid "Key bindings"
 msgstr "Прив'язки клавіш"
+
+msgid "VM Manager"
+msgstr ""
 
 msgid "Action"
 msgstr "Дія"

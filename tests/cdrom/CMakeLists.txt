@@ -1,4 +1,33 @@
 if(BUILD_TESTING)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(MCN_SNDFILE REQUIRED IMPORTED_TARGET sndfile)
+    find_package(ZLIB REQUIRED)
+    add_executable(cdrom_mcn_tests
+        cdrom_mcn_test.cpp
+        ../../src/cdrom/cdrom.c
+        ../../src/cdrom/cdrom_image.c
+        ../../src/utils/crc.c
+        ../../src/utils/crc32.c
+        ../../src/utils/ini.c
+        ../../src/utils/mdsx_dll.c
+    )
+    target_include_directories(cdrom_mcn_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include ${PROJECT_BINARY_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu)
+    target_compile_definitions(cdrom_mcn_tests PRIVATE
+        $<$<PLATFORM_ID:Linux>:_LARGEFILE64_SOURCE>)
+    target_compile_options(cdrom_mcn_tests PRIVATE
+        $<$<C_COMPILER_ID:MSVC>:/Gy;/Gw>
+        $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-ffunction-sections;-fdata-sections>)
+    target_link_options(cdrom_mcn_tests PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/OPT:REF>
+        $<$<PLATFORM_ID:Darwin>:-Wl,-dead_strip>
+        $<$<AND:$<NOT:$<PLATFORM_ID:Darwin>>,$<CXX_COMPILER_ID:GNU,Clang>>:-Wl,--gc-sections>)
+    target_link_libraries(cdrom_mcn_tests PRIVATE
+        GTest::gtest_main PkgConfig::MCN_SNDFILE ZLIB::ZLIB)
+    include(GoogleTest)
+    gtest_discover_tests(cdrom_mcn_tests)
+
     add_executable(sony_cdrom_tests cdrom_sony_test.cpp ../../src/cdrom/cdrom_sony.c)
     target_include_directories(sony_cdrom_tests PRIVATE ${PROJECT_SOURCE_DIR}/src/include ${PROJECT_BINARY_DIR}/src/include)
     target_link_libraries(sony_cdrom_tests PRIVATE GTest::gtest_main)

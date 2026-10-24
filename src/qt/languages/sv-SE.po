@@ -150,6 +150,12 @@ msgstr "&Skala till heltal"
 msgid "4:&3 Integer scale"
 msgstr "Skala till heltal i 4:&3"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Inverterad VGA-skärm"
 
@@ -432,6 +438,9 @@ msgstr "Exakt flyttalsprocessor-miljö på dynamisk omkompilator"
 msgid "Block linking on the dynamic recompiler"
 msgstr "Blocklänkning i dynamisk omkompilator"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Ramstorlek för processor"
 
@@ -623,6 +632,12 @@ msgstr "Styrenhet 4:"
 
 msgid "Cassette"
 msgstr "Kassettband"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Hårddiskar:"
@@ -3108,6 +3123,9 @@ msgstr "Inmatning"
 
 msgid "Key bindings"
 msgstr "Tangentbindningar"
+
+msgid "VM Manager"
+msgstr ""
 
 msgid "Action"
 msgstr "Handling"

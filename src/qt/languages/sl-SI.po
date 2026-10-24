@@ -152,6 +152,12 @@ msgstr "&Celoštevilsko raztezanje"
 msgid "4:&3 Integer scale"
 msgstr "Celoštevilsko raztezanje 4:&3"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Obrni barve zaslona VGA"
 
@@ -434,6 +440,9 @@ msgstr ""
 msgid "Block linking on the dynamic recompiler"
 msgstr "Povezovanje blokov v dinamičnem prevajalniku"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Velikost blokov procesorja"
 
@@ -625,6 +634,12 @@ msgstr "Krmilnik 4:"
 
 msgid "Cassette"
 msgstr "Kasetnik"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Trdi diski:"
@@ -3118,6 +3133,9 @@ msgstr "Vnos"
 
 msgid "Key bindings"
 msgstr "Kombinacije tipk"
+
+msgid "VM Manager"
+msgstr ""
 
 msgid "Action"
 msgstr "Dejanje"

@@ -151,6 +151,12 @@ msgstr "整数倍(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整数倍(&3)"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "色反転"
 
@@ -433,6 +439,9 @@ msgstr ""
 msgid "Block linking on the dynamic recompiler"
 msgstr "動的再コンパイルでのブロックリンク"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPUフレームサイズ"
 
@@ -624,6 +633,12 @@ msgstr "コントローラー4:"
 
 msgid "Cassette"
 msgstr "カセット"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "ハード ディスク:"
@@ -3103,6 +3118,9 @@ msgstr "入力"
 
 msgid "Key bindings"
 msgstr "キーバインド"
+
+msgid "VM Manager"
+msgstr ""
 
 msgid "Action"
 msgstr "アクション"

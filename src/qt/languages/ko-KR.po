@@ -150,6 +150,12 @@ msgstr "정수 배율(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 정수배 확대(&3)"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "색상 반전된 VGA 모니터"
 
@@ -432,6 +438,9 @@ msgstr "동적 리컴파일러에서 정확한 FPU 환경 사용"
 msgid "Block linking on the dynamic recompiler"
 msgstr "동적 리컴파일러에서 블록 링크 사용"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPU 프레임 크기"
 
@@ -623,6 +632,12 @@ msgstr "컨트롤러 4:"
 
 msgid "Cassette"
 msgstr "카세트 테이프"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "하드 디스크:"
@@ -3172,6 +3187,9 @@ msgstr "입력"
 
 msgid "Key bindings"
 msgstr "키 바인딩"
+
+msgid "VM Manager"
+msgstr ""
 
 msgid "Action"
 msgstr "동작"

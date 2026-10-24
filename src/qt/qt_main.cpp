@@ -86,6 +86,7 @@ extern "C" {
 #include "qt_unixmanagerfilter.hpp"
 #include "qt_util.hpp"
 #include "qt_vmmanager_clientsocket.hpp"
+#include "qt_vmmanager_config.hpp"
 #include "qt_vmmanager_mainwindow.hpp"
 
 #include "qt_osd.hpp"
@@ -100,6 +101,7 @@ extern "C" {
 #include <86box/keyboard.h>
 #include "cpu.h"
 #include <86box/timer.h>
+#include <86box/io.h>
 #include <86box/nvr.h>
 #include <86box/automation.h>
 extern int  qt_nvr_save(void);
@@ -466,6 +468,7 @@ main_thread_fn()
     // title_update = 1;
     qint64 old_ns = elapsed_timer.nsecsElapsed();
     qint64 debt_ns;
+    int    turbo_ok_passes   = 0;
     const qint64 quantum_ns  = force_10ms ? 10000000LL : 1000000LL;
     const qint64 max_debt_ns = 50000000LL;
     frames                   = 0;
@@ -518,6 +521,16 @@ main_thread_fn()
                 debt_ns -= quantum_ns;
             else
                 debt_ns = 0;
+
+            /* Drop the Turbo IDE string-I/O shortcut while the host is behind, and bring it
+               back only after it has kept up for a while, so it cannot flap every frame. */
+            if (debt_ns >= (max_debt_ns / 2)) {
+                io_turbo_throttle = 1;
+                turbo_ok_passes   = 0;
+            } else if (io_turbo_throttle && (debt_ns < quantum_ns)) {
+                if (++turbo_ok_passes >= 500)
+                    io_turbo_throttle = 0;
+            }
         } else {
             /* Just so we dont overload the host OS. */
 
@@ -694,6 +707,7 @@ main(int argc, char *argv[])
         // QApplication::setApplicationDisplayName("86Box VM Manager");
         // vmm.show();
         // vmm.exec();
+        VMManagerConfig::migratePreferences();
 #ifdef USE_QDARKSTYLE
         auto darkModeFilter = std::unique_ptr<WindowsDarkModeFilter>(new WindowsDarkModeFilter());
         if (darkModeFilter) {
@@ -902,6 +916,8 @@ main(int argc, char *argv[])
     VMManagerClientSocket manager_socket;
     if (qgetenv("VMM_86BOX_SOCKET").size()) {
         manager_socket.IPCConnect(qgetenv("VMM_86BOX_SOCKET"));
+        QObject::connect(&manager_socket, &VMManagerClientSocket::vmmSupervisedChanged, main_window, &MainWindow::setVmmSupervised);
+        QObject::connect(&manager_socket, &VMManagerClientSocket::globalConfigurationReloaded, main_window, &MainWindow::applyGlobalPreferences);
         QObject::connect(&manager_socket, &VMManagerClientSocket::pause, main_window, &MainWindow::togglePause);
         QObject::connect(&manager_socket, &VMManagerClientSocket::resetVM, main_window, &MainWindow::hardReset);
         QObject::connect(&manager_socket, &VMManagerClientSocket::showsettings, main_window, &MainWindow::showSettings);

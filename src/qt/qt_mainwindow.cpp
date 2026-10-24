@@ -767,6 +767,12 @@ MainWindow::MainWindow(QWidget *parent)
         case FULLSCR_SCALE_INT43:
             ui->actionFullScreen_int43->setChecked(true);
             break;
+        case FULLSCR_SCALE_CENTER:
+            ui->actionFullScreen_center->setChecked(true);
+            break;
+        case FULLSCR_SCALE_CENTER43:
+            ui->actionFullScreen_center43->setChecked(true);
+            break;
     }
 
     actGroup = new QActionGroup(this);
@@ -803,6 +809,8 @@ MainWindow::MainWindow(QWidget *parent)
     actGroup->addAction(ui->actionFullScreen_keepRatio);
     actGroup->addAction(ui->actionFullScreen_int);
     actGroup->addAction(ui->actionFullScreen_int43);
+    actGroup->addAction(ui->actionFullScreen_center);
+    actGroup->addAction(ui->actionFullScreen_center43);
     switch (video_gl_input_scale_mode) {
         default:
             break;
@@ -1007,6 +1015,8 @@ MainWindow::closeEvent(QCloseEvent *event)
             event->ignore();
             return;
         }
+        if (!confirm_exit)
+            config_save_global_setting("Emulator", "confirm_exit");
     }
     if (window_remember && !video_fullscreen) {
         window_w = ui->stackedWidget->width();
@@ -1197,6 +1207,8 @@ MainWindow::initRendererMonitorSlot(int monitor_index)
             this->renderers[monitor_index]->show();
         });
         secondaryRenderer->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
+        /* Without a maximize button, Windows maximizes the window over the taskbar. */
+        secondaryRenderer->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
         secondaryRenderer->setWindowTitle(QObject::tr("86Box Monitor #%1").arg(monitor_index + 1));
         secondaryRenderer->setContextMenuPolicy(Qt::PreventContextMenu);
 
@@ -1320,6 +1332,8 @@ MainWindow::on_actionHard_Reset_triggered()
             confirm_reset = true;
             return;
         }
+        if (!confirm_reset)
+            config_save_global_setting("Emulator", "confirm_reset");
     }
     config_changed = 2;
     pc_reset_hard();
@@ -1366,6 +1380,12 @@ void
 MainWindow::emitVmmSignal()
 {
     emit vmmConfigurationChanged();
+}
+
+void
+MainWindow::setVmmSupervised(bool supervised)
+{
+    vmm_supervised = supervised;
 }
 
 void
@@ -1834,15 +1854,7 @@ MainWindow::refreshMediaMenu()
     status->setDynarecMenu(dynarecMenu);
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
-    const bool has_power_button = device_has_power_button();
-    if (acpi_enabled || has_power_button) {
-        ui->actionACPI_Shutdown->setText(tr("Power &off (soft)"));
-        ui->actionACPI_Shutdown->setToolTip(tr("Power off (soft)"));
-    } else {
-        ui->actionACPI_Shutdown->setText((confirm_exit && confirm_exit_cmdl) ? tr("Power &off…") : tr("Power &off"));
-        ui->actionACPI_Shutdown->setToolTip(tr("Power off"));
-    }
-    ui->actionACPI_Shutdown->setEnabled(true);
+    updatePowerOffAction();
     ui_update_force_interpreter();
 
     num_label->setToolTip(QShortcut::tr("Num Lock"));
@@ -1866,6 +1878,21 @@ MainWindow::refreshMediaMenu()
 
     ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
     refreshDisplayRatioActions();
+}
+
+/* Labels the power off action, which only asks for confirmation without ACPI. */
+void
+MainWindow::updatePowerOffAction()
+{
+    const bool has_power_button = device_has_power_button();
+    if (acpi_enabled || has_power_button) {
+        ui->actionACPI_Shutdown->setText(tr("Power &off (soft)"));
+        ui->actionACPI_Shutdown->setToolTip(tr("Power off (soft)"));
+    } else {
+        ui->actionACPI_Shutdown->setText((confirm_exit && confirm_exit_cmdl) ? tr("Power &off…") : tr("Power &off"));
+        ui->actionACPI_Shutdown->setToolTip(tr("Power off"));
+    }
+    ui->actionACPI_Shutdown->setEnabled(true);
 }
 
 void
@@ -2178,6 +2205,8 @@ update_fullscreen_scale_checkboxes(Ui::MainWindow *ui, QAction *selected)
     ui->actionFullScreen_keepRatio->setChecked(selected == ui->actionFullScreen_keepRatio);
     ui->actionFullScreen_int->setChecked(selected == ui->actionFullScreen_int);
     ui->actionFullScreen_int43->setChecked(selected == ui->actionFullScreen_int43);
+    ui->actionFullScreen_center->setChecked(selected == ui->actionFullScreen_center);
+    ui->actionFullScreen_center43->setChecked(selected == ui->actionFullScreen_center43);
 
     {
         auto widget = ui->stackedWidget->currentWidget();
@@ -2227,6 +2256,20 @@ MainWindow::on_actionFullScreen_int43_triggered()
 {
     video_fullscreen_scale = FULLSCR_SCALE_INT43;
     update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_int43);
+}
+
+void
+MainWindow::on_actionFullScreen_center_triggered()
+{
+    video_fullscreen_scale = FULLSCR_SCALE_CENTER;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_center);
+}
+
+void
+MainWindow::on_actionFullScreen_center43_triggered()
+{
+    video_fullscreen_scale = FULLSCR_SCALE_CENTER43;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_center43);
 }
 
 void
@@ -2524,7 +2567,12 @@ MainWindow::updateStatusEmptyIcons()
 void
 MainWindow::on_actionPreferences_triggered()
 {
-    Preferences preferences(this);
+    /* Another instance may have changed the preferences since they were loaded. */
+    config_load_global();
+
+    /* The manager page is only shown under the built-in VM manager. This machine
+       is running, so the manager's system directory cannot be changed. */
+    Preferences preferences(vmm_supervised && !vmm_disabled, true, this);
     preferences.setModal(true);
     preferences.setWindowModality(Qt::WindowModal);
     preferences.setWindowFlag(Qt::CustomizeWindowHint, true);
@@ -2536,12 +2584,52 @@ MainWindow::on_actionPreferences_triggered()
         default:
             break;
         case QDialog::Accepted:
-            updateShortcuts();
+            applyGlobalPreferences();
             emit vmmGlobalConfigurationChanged();
             break;
         case QDialog::Rejected:
+            /* They were still reloaded. */
+            applyGlobalPreferences();
             break;
     }
+}
+
+/* Applies the global preferences once they were saved or reloaded. */
+void
+MainWindow::applyGlobalPreferences()
+{
+#ifdef Q_OS_WINDOWS
+    extern void selectDarkMode();
+    selectDarkMode();
+#endif
+
+    auto size = centralWidget()->size();
+
+    Preferences::loadTranslators(QCoreApplication::instance());
+    Preferences::reloadStrings();
+    ui->retranslateUi(this);
+    QString vmname(vm_name);
+    if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'')
+        vmname.truncate(vmname.size() - 1);
+    setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
+    QString msg = status->getMessage();
+    status.reset(new MachineStatus(this));
+    refreshMediaMenu();
+    status->message(msg);
+    connect(this, &MainWindow::updateStatusBarTip, status.get(), &MachineStatus::updateTip);
+    connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message, Qt::QueuedConnection);
+
+    /* Keep the size of the screen while the menus and the status bar change. */
+    QTimer::singleShot(200, this, [this, size] () {
+        centralWidget()->setFixedSize(size);
+        QApplication::processEvents();
+        if (vid_resize == 1) {
+            centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        }
+    });
+
+    updateShortcuts();
+    updateMouseStrings();
 }
 
 void
@@ -2582,6 +2670,13 @@ MainWindow::changeEvent(QEvent *event)
     if (isVisible()) {
         monitor_settings[0].mon_window_maximized = isMaximized();
         config_save();
+    }
+    /* The renderer can get its resize event before the window reports being
+       maximized, so redo the stretch mode once the state is known. */
+    if (event->type() == QEvent::WindowStateChange) {
+        const auto widget = ui->stackedWidget->currentWidget();
+        if (widget)
+            ui->stackedWidget->onResize(widget->width(), widget->height());
     }
 }
 
@@ -2743,7 +2838,7 @@ void
 MainWindow::on_actionACPI_Shutdown_triggered()
 {
     if (acpi_enabled) {
-        acpi_pwrbut_pressed = 1;
+        acpi_pwrbut_press();
         return;
     }
 

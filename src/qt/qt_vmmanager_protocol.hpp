@@ -41,6 +41,7 @@ public:
         RequestShutdown,
         ForceShutdown,
         GlobalConfigurationChanged,
+        ManagerIdentity,
         UnknownMessage,
     };
 
@@ -82,6 +83,10 @@ public:
     static QString managerMessageTypeToString(ManagerMessage message);
     static QString clientMessageTypeToString(ClientMessage message);
 
+    // Sent by the built-in 86Box VM manager when a client connects. A client
+    // is only supervised by the built-in manager if the name and version match
+    // its own; other managers speaking the protocol do not send it.
+    static QJsonObject    managerIdentity();
     static bool           hasRequiredFields(const QJsonObject &json_document);
     static QJsonObject    getParams(const QJsonObject &json_document);
     static QJsonObject    getStatus(const QJsonObject &json_document);

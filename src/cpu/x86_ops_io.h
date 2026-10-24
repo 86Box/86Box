@@ -1,3 +1,13 @@
+/* A port access may reset the CPU, itself or by running the timers (a PIT
+   read brings the TSC up to date): the instruction then ends the recompiled
+   block, and the reset is done (x86_reset_deferred). A trapped I/O cycle
+   asserts SMI# during the instruction, also taken at its boundary. */
+static __inline int
+io_op_end(void)
+{
+    return x86_was_reset || smi_line || (nmi && nmi_enable && nmi_mask);
+}
+
 static int
 opIN_AL_imm(uint32_t fetchdat)
 {
@@ -9,9 +19,9 @@ opIN_AL_imm(uint32_t fetchdat)
     /* A trapped I/O cycle asserts SMI# during the instruction: the SMI is
        taken at this instruction's boundary, so a recompiled block ends here
        (the return value) before the guest can use the result. */
-    if (smi_line || (nmi && nmi_enable && nmi_mask))
+    if (smi_line || NMI_TAKEABLE())
         return 1;
-    return 0;
+    return io_op_end();
 }
 static int
 opIN_AX_imm(uint32_t fetchdat)
@@ -21,9 +31,9 @@ opIN_AX_imm(uint32_t fetchdat)
     AX = inw(port);
     CLOCK_CYCLES(12 + io_waitstates);
     PREFETCH_RUN(12, 2, -1, 1, 0, 0, 0, 0);
-    if (smi_line || (nmi && nmi_enable && nmi_mask))
+    if (smi_line || NMI_TAKEABLE())
         return 1;
-    return 0;
+    return io_op_end();
 }
 static int
 opIN_EAX_imm(uint32_t fetchdat)
@@ -33,9 +43,9 @@ opIN_EAX_imm(uint32_t fetchdat)
     EAX = inl(port);
     CLOCK_CYCLES(12 + io_waitstates);
     PREFETCH_RUN(12, 2, -1, 0, 1, 0, 0, 0);
-    if (smi_line || (nmi && nmi_enable && nmi_mask))
+    if (smi_line || NMI_TAKEABLE())
         return 1;
-    return 0;
+    return io_op_end();
 }
 
 static int
@@ -48,9 +58,9 @@ opOUT_AL_imm(uint32_t fetchdat)
     PREFETCH_RUN(10, 2, -1, 0, 0, 1, 0, 0);
     if (port == 0x64)
         return x86_was_reset || smi_line;
-    if (smi_line || (nmi && nmi_enable && nmi_mask))
+    if (smi_line || NMI_TAKEABLE())
         return 1;
-    return 0;
+    return io_op_end();
 }
 static int
 opOUT_AX_imm(uint32_t fetchdat)
@@ -60,9 +70,9 @@ opOUT_AX_imm(uint32_t fetchdat)
     outw(port, AX);
     CLOCK_CYCLES(10 + io_waitstates);
     PREFETCH_RUN(10, 2, -1, 0, 0, 1, 0, 0);
-    if (smi_line || (nmi && nmi_enable && nmi_mask))
+    if (smi_line || NMI_TAKEABLE())
         return 1;
-    return 0;
+    return io_op_end();
 }
 static int
 opOUT_EAX_imm(uint32_t fetchdat)
@@ -72,9 +82,9 @@ opOUT_EAX_imm(uint32_t fetchdat)
     outl(port, EAX);
     CLOCK_CYCLES(10 + io_waitstates);
     PREFETCH_RUN(10, 2, -1, 0, 0, 0, 1, 0);
-    if (smi_line || (nmi && nmi_enable && nmi_mask))
+    if (smi_line || NMI_TAKEABLE())
         return 1;
-    return 0;
+    return io_op_end();
 }
 
 static int
@@ -84,9 +94,9 @@ opIN_AL_DX(UNUSED(uint32_t fetchdat))
     AL = inb(DX);
     CLOCK_CYCLES(12 + io_waitstates);
     PREFETCH_RUN(12, 1, -1, 1, 0, 0, 0, 0);
-    if (smi_line || (nmi && nmi_enable && nmi_mask))
+    if (smi_line || NMI_TAKEABLE())
         return 1;
-    return 0;
+    return io_op_end();
 }
 static int
 opIN_AX_DX(UNUSED(uint32_t fetchdat))
@@ -95,9 +105,9 @@ opIN_AX_DX(UNUSED(uint32_t fetchdat))
     AX = inw(DX);
     CLOCK_CYCLES(12 + io_waitstates);
     PREFETCH_RUN(12, 1, -1, 1, 0, 0, 0, 0);
-    if (smi_line || (nmi && nmi_enable && nmi_mask))
+    if (smi_line || NMI_TAKEABLE())
         return 1;
-    return 0;
+    return io_op_end();
 }
 static int
 opIN_EAX_DX(UNUSED(uint32_t fetchdat))
@@ -106,9 +116,9 @@ opIN_EAX_DX(UNUSED(uint32_t fetchdat))
     EAX = inl(DX);
     CLOCK_CYCLES(12 + io_waitstates);
     PREFETCH_RUN(12, 1, -1, 0, 1, 0, 0, 0);
-    if (smi_line || (nmi && nmi_enable && nmi_mask))
+    if (smi_line || NMI_TAKEABLE())
         return 1;
-    return 0;
+    return io_op_end();
 }
 
 static int
@@ -118,9 +128,9 @@ opOUT_AL_DX(UNUSED(uint32_t fetchdat))
     outb(DX, AL);
     CLOCK_CYCLES(11 + io_waitstates);
     PREFETCH_RUN(11, 1, -1, 0, 0, 1, 0, 0);
-    if (smi_line || (nmi && nmi_enable && nmi_mask))
+    if (smi_line || NMI_TAKEABLE())
         return 1;
-    return x86_was_reset;
+    return io_op_end();
 }
 static int
 opOUT_AX_DX(UNUSED(uint32_t fetchdat))
@@ -129,9 +139,9 @@ opOUT_AX_DX(UNUSED(uint32_t fetchdat))
     outw(DX, AX);
     CLOCK_CYCLES(11 + io_waitstates);
     PREFETCH_RUN(11, 1, -1, 0, 0, 1, 0, 0);
-    if (smi_line || (nmi && nmi_enable && nmi_mask))
+    if (smi_line || NMI_TAKEABLE())
         return 1;
-    return 0;
+    return io_op_end();
 }
 static int
 opOUT_EAX_DX(UNUSED(uint32_t fetchdat))
@@ -140,7 +150,7 @@ opOUT_EAX_DX(UNUSED(uint32_t fetchdat))
     outl(DX, EAX);
     CLOCK_CYCLES(11 + io_waitstates);
     PREFETCH_RUN(11, 1, -1, 0, 0, 0, 1, 0);
-    if (smi_line || (nmi && nmi_enable && nmi_mask))
+    if (smi_line || NMI_TAKEABLE())
         return 1;
-    return 0;
+    return io_op_end();
 }

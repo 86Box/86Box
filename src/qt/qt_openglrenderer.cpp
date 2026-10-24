@@ -1217,7 +1217,7 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 #ifdef Q_OS_MACOS
     glw.glViewport(
         destination.x(),
-        destination.y(),
+        destinationGLY(),
         destination.width(),
         destination.height());
 #endif
@@ -1273,7 +1273,7 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
 
     glw.glViewport(
         destination.x(),
-        destination.y(),
+        destinationGLY(),
         destination.width(),
         destination.height());
 
@@ -1471,6 +1471,13 @@ OpenGLRenderer::getOptions(QWidget *parent)
 
 extern void standalone_scale(QRect &destination, int width, int height, QRect source, int scalemode);
 
+/* The destination is measured from the top of the window, but GL measures viewports from the bottom. */
+int
+OpenGLRenderer::destinationGLY() const
+{
+    return output_size.height() - destination.y() - destination.height();
+}
+
 QRect
 OpenGLRenderer::sceneRenderRect() const
 {
@@ -1499,15 +1506,16 @@ OpenGLRenderer::render()
     if (!context->makeCurrent(this))
         return;
 
+    /* The image can extend past the window edges, so the offsets can be negative. */
     struct {
-        uint32_t x;
-        uint32_t y;
+        int32_t  x;
+        int32_t  y;
         uint32_t w;
         uint32_t h;
     } window_rect;
 
     window_rect.x = destination.x();
-    window_rect.y = destination.y();
+    window_rect.y = destinationGLY();
     window_rect.w = destination.width();
     window_rect.h = destination.height();
 
@@ -1783,8 +1791,11 @@ OpenGLRenderer::render()
         render_pass(&data);
     }
 
+    /* Screenshots only cover the part of the image that is inside the window. */
+    const QRect read_rect = QRect(window_rect.x, window_rect.y, window_rect.w, window_rect.h).intersected(QRect(QPoint(0, 0), output_size));
+
     if (monitors[r_monitor_index].mon_screenshots) {
-        int  width = destination.width(), height = destination.height();
+        int  width = read_rect.width(), height = read_rect.height();
         char path[1024];
         char fn[256];
 
@@ -1806,7 +1817,7 @@ OpenGLRenderer::render()
         unsigned char *rgb = (unsigned char *) calloc(1, (size_t) width * height * 4);
 
         glw.glFinish();
-        glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
+        glw.glReadPixels(read_rect.x(), read_rect.y(), width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
 
         int pitch_adj = (4 - ((width * 3) & 3)) & 3;
         QImage image((uchar*)rgb, width, height, (width * 3) + pitch_adj, QImage::Format_RGB888);
@@ -1815,12 +1826,12 @@ OpenGLRenderer::render()
         free(rgb);
     }
     if (monitors[r_monitor_index].mon_screenshots_clipboard) {
-        int  width = destination.width(), height = destination.height();
+        int  width = read_rect.width(), height = read_rect.height();
 
         unsigned char *rgb = (unsigned char *) calloc(1, (size_t) width * height * 4);
 
         glw.glFinish();
-        glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
+        glw.glReadPixels(read_rect.x(), read_rect.y(), width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
 
         int pitch_adj = (4 - ((width * 3) & 3)) & 3;
         QImage image((uchar*)rgb, width, height, (width * 3) + pitch_adj, QImage::Format_RGB888);

@@ -151,6 +151,12 @@ msgstr "&Целочисленное масштабирование"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 целочисленное масштабирование"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Инвертировать цвета VGA"
 
@@ -433,6 +439,9 @@ msgstr "Точное окружение FPU в динамическом реко
 msgid "Block linking on the dynamic recompiler"
 msgstr "Связывание блоков в динамическом рекомпиляторе"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Размер кадра ЦП"
 
@@ -624,6 +633,12 @@ msgstr "Контроллер 4:"
 
 msgid "Cassette"
 msgstr "Кассетный магнитофон"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Жёсткие диски:"
@@ -3119,6 +3134,9 @@ msgstr "Ввод"
 
 msgid "Key bindings"
 msgstr "Привязки клавиш"
+
+msgid "VM Manager"
+msgstr ""
 
 msgid "Action"
 msgstr "Действие"

@@ -35,6 +35,7 @@
         <file>qt/icons/isa_rom.ico</file>
         <file>qt/icons/key_bindings.ico</file>
         <file>qt/icons/emulator.ico</file>
+        <file>qt/icons/settings.ico</file>
         <file>qt/icons/machine.ico</file>
         <file>qt/icons/machine_tab.ico</file>
         <file>qt/icons/midi.ico</file>

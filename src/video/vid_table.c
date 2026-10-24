@@ -566,6 +566,10 @@ video_voodoo_init(void)
     /* Enable the Voodoo if configured. */
     if (voodoo_enabled)
         device_add(&voodoo_device);
+
+    /* Enable the PowerVR PCX1/PCX2 if configured. */
+    if (powervr_enabled)
+        device_add(&powervr_pcx_device);
 }
 
 int

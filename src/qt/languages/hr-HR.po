@@ -152,6 +152,12 @@ msgstr "&Cijelobrojno skaliranje"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Cijelobrojno skaliranje"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Obrni boje zaslona VGA"
 
@@ -434,6 +440,9 @@ msgstr "Precizno FPU okruženje za dinamički rekompilator"
 msgid "Block linking on the dynamic recompiler"
 msgstr "Povezivanje blokova u dinamičkom rekompilatoru"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Veličina blokova procesora"
 
@@ -625,6 +634,12 @@ msgstr "Kontroler 4:"
 
 msgid "Cassette"
 msgstr "Audio kaseta"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Tvrdi diskovi:"
@@ -3115,6 +3130,9 @@ msgstr "Upad"
 
 msgid "Key bindings"
 msgstr "Veze tipki"
+
+msgid "VM Manager"
+msgstr ""
 
 msgid "Action"
 msgstr "Akcija"

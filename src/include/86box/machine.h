@@ -185,6 +185,7 @@ enum {
     MACHINE_TYPE_NONE       = 0,
     MACHINE_TYPE_8088,
     MACHINE_TYPE_8086,
+    MACHINE_TYPE_186,
     MACHINE_TYPE_286,
     MACHINE_TYPE_386SX,
     MACHINE_TYPE_M6117,
@@ -1039,6 +1040,7 @@ extern int             machine_at_celebris5xx_init(const machine_t *);
 /* m_at_socket5.c */
 /* i430NX */
 extern int             machine_at_p54np4_init(const machine_t *);
+extern int             machine_at_p54np4d_init(const machine_t *);
 extern int             machine_at_586ip_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  plato_device;
@@ -1207,6 +1209,8 @@ extern int             machine_at_acerm3a_init(const machine_t *);
 extern int             machine_at_p55t2p4_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern void            machine_at_p65up5_common_init(const machine_t *, const device_t *northbridge);
+/* Validated helper keeps the caller-selected northbridge/CPU-card path. */
+extern void            machine_at_p65up5_validated_up_init(const machine_t *, const device_t *northbridge);
 #endif
 extern int             machine_at_p65up5_cp55t2d_init(const machine_t *);
 extern int             machine_at_rubyusb_init(const machine_t *);
@@ -1347,6 +1351,7 @@ extern const device_t  in530_device;
 #endif
 extern int             machine_at_in530_init(const machine_t *);
 extern int             machine_in530_boot_logo(void);
+extern int             machine_at_compaqms_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  ga5smm_device;
 #endif
@@ -1466,6 +1471,9 @@ extern int             machine_at_bf6_init(const machine_t *);
 extern const device_t  bx6_device;
 #endif
 extern int             machine_at_bx6_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  p2bls_device;
+#endif
 extern int             machine_at_p2bls_init(const machine_t *);
 extern int             machine_at_p3bf_init(const machine_t *);
 #ifdef EMU_DEVICE_H
@@ -1546,6 +1554,12 @@ extern int             machine_at_gt694va_init(const machine_t *);
 extern int             machine_at_p6f99_init(const machine_t *);
 extern int             machine_at_m747_init(const machine_t *);
 
+/* SiS 620 */
+#ifdef EMU_DEVICE_H
+extern const device_t  m748mr_device;
+#endif
+extern int             machine_at_m748mr_init(const machine_t *);
+
 /* m_at_slot1_2.c */
 /* i440GX */
 extern int             machine_at_fw6400gx_init(const machine_t *);
@@ -1616,10 +1630,14 @@ extern int             machine_at_p6bap_init(const machine_t *);
 extern int             machine_at_6via90ap_init(const machine_t *);
 extern int             machine_at_cuv4xls_init(const machine_t *);
 #ifdef EMU_DEVICE_H
+extern const device_t  cairo5_device;
+#endif
+extern int             machine_at_cairo5_init(const machine_t *);
+#ifdef EMU_DEVICE_H
 extern const device_t  ms6318_device;
 #endif
 extern int             machine_at_ms6318_init(const machine_t *);
-extern int             machine_at_cairo5_init(const machine_t *);
+extern int             machine_at_m790mr_init(const machine_t *);
 
 /* m_at_misc.c */
 extern int             machine_at_vpc2007_init(const machine_t *);
@@ -1829,9 +1847,11 @@ extern int             machine_xt_compaq_deskpro_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  ibm5550_device;
 extern const device_t  ibm5535_device;
+extern const device_t  ibm3477_device;
 #endif
 extern int             machine_xt_ibm5550_init(const machine_t *);
 extern int             machine_xt_ibm5535_init(const machine_t *);
+extern int             machine_xt_ibm3477_init(const machine_t *);
 
 /* m_xt_t1000.c */
 #ifdef EMU_DEVICE_H

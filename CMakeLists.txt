@@ -128,7 +128,6 @@ option(GDBSTUB      "Enable GDB stub server for debugging"                      
 option(AUTOMATION   "Enable the automation control socket"                       OFF)
 option(DEV_BRANCH   "Development branch"                                         OFF)
 option(DISCORD      "Discord Rich Presence support"                              ON)
-option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
 option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
 option(QT           "Use the Qt-based user interface"                            ON)
 option(SDL2         "Use SDL2 instead of SDL3"                                   OFF)
@@ -204,6 +203,7 @@ cmake_dependent_option(SOFTMODEM      "AC'97 Softmodem"                         
 
 # Defaults to DEV_BRANCH like the options above, but can also be enabled on its own
 option(RAGE128_MAXX "ATI Rage Fury MAXX" ${DEV_BRANCH})
+option(POWERVR_PCX_DEV "PowerVR PCX: developer/test settings in the device" ${DEV_BRANCH})
 
 # Ditto but for Qt
 if(QT)

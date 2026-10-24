@@ -73,6 +73,19 @@ extern dma_t   dma[8];
 extern uint8_t dma_e;
 extern uint8_t dma_m;
 
+typedef struct dma_ctrl_t {
+    int  (*channel_readable)(int channel, void *priv);
+    int  (*channel_writable)(int channel, void *priv);
+    int  (*channel_read_only)(int channel, void *priv);
+    int  (*channel_advance)(int channel, void *priv);
+    int  (*channel_read)(int channel, void *priv);
+    int  (*channel_write)(int channel, uint16_t val, void *priv);
+    void (*set_service_handler)(int channel, void (*handler)(void *), void *sh_priv, void *priv);
+    void (*set_drq)(int channel, int set, void *priv);
+    int  (*get_drq)(int channel, void *priv);
+    int  (*mode)(int channel, void *priv);
+} dma_ctrl_t;
+
 extern void dma_init(void);
 extern void dma_init_ibm5140(void);
 extern void dma16_init(void);
@@ -91,6 +104,8 @@ extern int  dma_get_drq(int channel);
 extern void dma_set_drq(int channel, int set);
 extern void dma_set_eop(int channel, int set);
 extern void dma_set_service_handler(int channel, void (*handler)(void *), void *priv);
+extern void dma_set_channel_controller(int channel, const dma_ctrl_t *ops, void *priv);
+extern void dma_set_controller(const dma_ctrl_t *ops, void *priv);
 
 extern int dma_channel_read_only(int channel);
 extern int dma_channel_advance(int channel);

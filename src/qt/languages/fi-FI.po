@@ -150,6 +150,12 @@ msgstr "&Kokonaislukuskaalaus"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Kokonaislukuskaalaus"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "VGA-näyttö käänteisillä väreillä"
 
@@ -432,6 +438,9 @@ msgstr ""
 msgid "Block linking on the dynamic recompiler"
 msgstr "Lohkojen linkitys dynaamisessa uudelleenkääntäjässä"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPU frame-koko"
 
@@ -623,6 +632,12 @@ msgstr "Ohjain 4:"
 
 msgid "Cassette"
 msgstr "Kasettiasema"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Kiintolevyt:"
@@ -3110,6 +3125,9 @@ msgstr "Syöte"
 
 msgid "Key bindings"
 msgstr "Pikanäppäimet"
+
+msgid "VM Manager"
+msgstr ""
 
 msgid "Action"
 msgstr "Toiminto"

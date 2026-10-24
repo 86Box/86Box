@@ -28,9 +28,11 @@
 #define CODEGEN_BACKEND_HAS_INT_UOPS
 
 /* Blocks jump straight to their successor when nothing between them needs
-   the C loop (codegen_link.h). The options below add work to every loop
-   iteration that the link routine does not repeat. */
-#if !defined(USE_GDBSTUB) && !defined(USE_DEBUG_REGS_486)
+   the C loop (codegen_link.h). The option below adds work to every loop
+   iteration that the link routine does not repeat; so do the debug registers
+   on 486 and later processors, which turn linking off at run time
+   (codegen_init(), codegen_reset()). */
+#if !defined(USE_GDBSTUB)
 #    define CODEGEN_BACKEND_HAS_BLOCK_LINK
 void codegen_link_exit(codeblock_t *block);
 /* 0: blocks end with the plain return and the loop never links them. */

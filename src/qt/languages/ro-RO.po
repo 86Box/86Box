@@ -152,6 +152,12 @@ msgstr "Scalare &întreagă"
 msgid "4:&3 Integer scale"
 msgstr "Scalare întreagă la &4:3"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Monitor VGA inversat"
 
@@ -434,6 +440,9 @@ msgstr "Mediu FPU precis pe recompilatorul dinamic"
 msgid "Block linking on the dynamic recompiler"
 msgstr "Legarea blocurilor pe recompilatorul dinamic"
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Dimensiunea cadre CPU"
 
@@ -625,6 +634,12 @@ msgstr "Controler 4:"
 
 msgid "Cassette"
 msgstr "Casetă"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Discuri dure:"
@@ -3217,6 +3232,9 @@ msgid "Input"
 msgstr ""
 
 msgid "Key bindings"
+msgstr ""
+
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

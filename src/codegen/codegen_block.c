@@ -925,7 +925,10 @@ codegen_block_start_recompile(codeblock_t *block)
     block->head_mem_block = codegen_allocator_allocate(NULL, block_current);
     block->data           = codeblock_allocator_get_ptr(block->head_mem_block);
 
-    block->status = cpu_cur_status;
+    /* The NOTFLAT bits stay as the block was marked: a visit with a segment
+       flat may compile a block marked with it not flat, and narrowing the
+       bits would leave every later non-flat visit a new block. */
+    block->status = (cpu_cur_status & ~CPU_STATUS_MASK) | (block->status & CPU_STATUS_MASK);
     block->used   = 1; /* new: not the next thing the eviction sweep takes */
 
     block->page_mask = block->page_mask2 = 0;
@@ -958,9 +961,9 @@ codegen_block_start_recompile(codeblock_t *block)
     block->TOP = cpu_state.TOP & 7;
     block->flags |= CODEBLOCK_WAS_RECOMPILED;
 
-    codegen_flat_ds = !(cpu_cur_status & CPU_STATUS_NOTFLATDS);
-    codegen_flat_ss = !(cpu_cur_status & CPU_STATUS_NOTFLATSS);
-    codegen_flat_es = !(cpu_cur_status & CPU_STATUS_NOTFLATES);
+    codegen_flat_ds = !(block->status & CPU_STATUS_NOTFLATDS);
+    codegen_flat_ss = !(block->status & CPU_STATUS_NOTFLATSS);
+    codegen_flat_es = !(block->status & CPU_STATUS_NOTFLATES);
 
     if (block->flags & CODEBLOCK_BYTE_MASK) {
         block->dirty_mask  = &page->byte_dirty_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK];

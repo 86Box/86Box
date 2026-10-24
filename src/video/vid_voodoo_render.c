@@ -782,6 +782,35 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
         state->tex_a[0] ^= 0xff;
 }
 
+/*Register state the recompilers bake into a block besides the mode registers, part of the block cache key.*/
+static inline uint32_t
+voodoo_codegen_detail_key(const voodoo_params_t *params, int tmu)
+{
+    return params->detail_max[tmu] | (params->detail_bias[tmu] << 8) | (params->detail_scale[tmu] << 14);
+}
+
+static inline int
+voodoo_codegen_tiled_key(const voodoo_params_t *params)
+{
+    return (params->col_tiled ? 1 : 0) | (params->aux_tiled ? 2 : 0);
+}
+
+/*Whether a block needs a_other, a_local and the combined alpha: for the alpha test, alpha blending,
+  the alpha mask, the colour combine, or the alpha planes.*/
+static inline int
+voodoo_codegen_alpha_used(const voodoo_params_t *params)
+{
+    if (params->alphaMode & ((1 << 0) | (1 << 4)))
+        return 1;
+    if (params->fbzMode & FBZ_ALPHA_MASK)
+        return 1;
+    if (!(cc_mselect == 0 && cc_reverse_blend == 0) && (cc_mselect == CC_MSELECT_AOTHER || cc_mselect == CC_MSELECT_ALOCAL))
+        return 1;
+    if (cc_add == CC_ADD_ALOCAL)
+        return 1;
+    return (params->fbzMode & (FBZ_DEPTH_WMASK | FBZ_ALPHA_ENABLE)) == (FBZ_DEPTH_WMASK | FBZ_ALPHA_ENABLE);
+}
+
 #if (defined __amd64__ || defined _M_X64)
 #    include <86box/vid_voodoo_codegen_x86-64.h>
 #elif (defined __aarch64__ || defined _M_ARM64)

@@ -144,6 +144,12 @@ msgstr ""
 msgid "4:&3 Integer scale"
 msgstr ""
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr ""
 
@@ -426,6 +432,9 @@ msgstr ""
 msgid "Block linking on the dynamic recompiler"
 msgstr ""
 
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr ""
 
@@ -616,6 +625,12 @@ msgid "Controller 4:"
 msgstr ""
 
 msgid "Cassette"
+msgstr ""
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
 msgstr ""
 
 msgid "Hard disks:"
@@ -3089,6 +3104,9 @@ msgid "Input"
 msgstr ""
 
 msgid "Key bindings"
+msgstr ""
+
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"

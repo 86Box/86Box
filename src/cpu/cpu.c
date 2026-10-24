@@ -40,6 +40,7 @@
 #include <86box/nmi.h>
 #include <86box/pic.h>
 #include <86box/pci.h>
+#include <86box/chipset.h>
 #include <86box/smram.h>
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
@@ -79,16 +80,23 @@ enum {
 #define CPUID_3DNOWE (1UL << 30UL) /* Extended 3DNow! instructions */
 #define CPUID_3DNOW  (1UL << 31UL) /* 3DNow! instructions */
 
-/* Remove the Debugging Extensions CPUID flag if not compiled
-   with debug register support for 486 and later CPUs. */
-#ifndef USE_DEBUG_REGS_486
-#    define CPUID_DE 0
-#endif
+/* APIC CPUID visibility is gated by both the CPU model and board policy. */
+static uint32_t
+cpu_cpuid_apic_probe_flags(uint32_t edx)
+{
+    if (cpu_apic_feature_enabled())
+        edx |= CPUID_APIC;
+
+    return edx;
+}
+
+/* Report the Debugging Extensions CPUID flag only with debug register
+   operation on 486 and later CPUs enabled. */
+#define CPUID_DE (cpu_debug_regs_486 ? (1 << 2) : 0)
 
 /* Make sure this is as low as possible. */
 cpu_state_t cpu_state;
 fpu_state_t fpu_state;
-
 
 /* Place this immediately after. */
 uint32_t abrt_error;
@@ -582,6 +590,10 @@ cpu_set(void)
         return;
 
     cpu_inited = 1;
+    cpu_lapic_reset_all();
+    /* Register callbacks after CPU-owned reset so LAPIC sees a coherent owner. */
+    lapic_set_index_source(cpu_lapic_index_source);
+
     cpu_effective = cpu;
     cpu_s         = (CPU *) &cpu_f->cpus[cpu_effective];
 
@@ -2008,6 +2020,9 @@ void
 cpu_close(void)
 {
     cpu_inited = 0;
+    cpu_lapic_reset_all();
+    /* Drop callbacks on teardown so LAPIC does not retain stale CPU hooks. */
+    lapic_set_index_source(NULL);
 }
 
 void
@@ -2268,6 +2283,8 @@ cpu_CPUID(void)
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
                 if (cpu_s->cpu_type != CPU_P24T)
                     EDX |= CPUID_MCE;
+                if (cpu_s->cpu_type == CPU_PENTIUM)
+                    EDX = cpu_cpuid_apic_probe_flags(EDX);
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -2557,6 +2574,7 @@ cpu_CPUID(void)
                 EAX = CPUID;
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX;
+                EDX       = cpu_cpuid_apic_probe_flags(EDX);
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -2626,8 +2644,10 @@ cpu_CPUID(void)
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
                 EAX = CPUID;
-                EBX = ECX = 0;
+                EBX = cpu_cpuid_apic_id_ebx();
+                ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
+                EDX       = cpu_cpuid_apic_probe_flags(EDX);
                 /*
                    Return anything non-zero in bits 32-63 of the BIOS signature MSR
                    to indicate there has been an update.
@@ -2654,8 +2674,10 @@ cpu_CPUID(void)
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
                 EAX = CPUID;
-                EBX = ECX = 0;
+                EBX = cpu_cpuid_apic_id_ebx();
+                ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
+                EDX       = cpu_cpuid_apic_probe_flags(EDX);
                 /*
                    Return anything non-zero in bits 32-63 of the BIOS signature MSR
                    to indicate there has been an update.
@@ -2682,8 +2704,10 @@ cpu_CPUID(void)
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
                 EAX = CPUID;
-                EBX = ECX = 0;
+                EBX = cpu_cpuid_apic_id_ebx();
+                ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV | CPUID_PAT | CPUID_PSE36;
+                EDX       = cpu_cpuid_apic_probe_flags(EDX);
                 /*
                    Return anything non-zero in bits 32-63 of the BIOS signature MSR
                    to indicate there has been an update.
@@ -2788,6 +2812,8 @@ void
 cpu_ven_reset(void)
 {
     memset(&msr, 0, sizeof(msr));
+    /* Vendor reset resyncs CPU-owned LAPIC mirrors before model-specific MSRs. */
+    cpu_lapic_ven_reset();
 
     switch (cpu_s->cpu_type) {
         case CPU_WINCHIP:
@@ -3433,8 +3459,16 @@ pentium_invalid_rdmsr:
                     break;
                 /* IA32_APIC_BASE - APIC Base Address */
                 case 0x1B:
-                    EAX = msr.apic_base & 0xffffffff;
-                    EDX = msr.apic_base >> 32;
+                    if (cpu_apic_feature_enabled()) {
+                        /* Active APIC model reads IA32_APIC_BASE from per-LAPIC CPU state. */
+                        uint64_t apic_base_msr = cpu_apic_base_msr_read_current();
+
+                        EAX = apic_base_msr & 0xffffffff;
+                        EDX = apic_base_msr >> 32;
+                    } else {
+                        EAX = msr.apic_base & 0xffffffff;
+                        EDX = msr.apic_base >> 32;
+                    }
                     cpu_log("APIC_BASE read : %08X%08X\n", EDX, EAX);
                     break;
                 /* Unknown (undocumented?) MSR used by the Hyper-V BIOS */
@@ -3927,6 +3961,7 @@ cpu_WRMSR(void)
                         msr.mtrr_physmask[(ECX - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
                     else
                         msr.mtrr_physbase[(ECX - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
+                    cpu_car_update();
                     break;
                 /* MTRRfix64K_00000 */
                 case 0x250:
@@ -3947,6 +3982,7 @@ cpu_WRMSR(void)
                 /* MTRRdefType */
                 case 0x2ff:
                     msr.mtrr_deftype = EAX | ((uint64_t) EDX << 32);
+                    cpu_car_update();
                     break;
             }
             break;
@@ -4287,8 +4323,12 @@ pentium_invalid_wrmsr:
                 /* IA32_APIC_BASE - APIC Base Address */
                 case 0x1b:
                     cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);
+                    /* Active APIC model writes IA32_APIC_BASE through the CPU mirror. */
+                    if (cpu_apic_feature_enabled())
+                        cpu_apic_base_msr_write_current(EAX | ((uint64_t) EDX << 32));
 #if 0
-                    msr.apic_base = EAX | ((uint64_t) EDX << 32);
+                    else
+                        msr.apic_base = EAX | ((uint64_t) EDX << 32);
 #endif
                     break;
                 /* Unknown (undocumented?) MSR used by the Hyper-V BIOS */
@@ -4429,6 +4469,7 @@ pentium_invalid_wrmsr:
                             goto i686_invalid_wrmsr;
                         msr.mtrr_physbase[(p6_msr - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
                     }
+                    cpu_car_update();
                     break;
                 /* MTRRfix64K_00000 */
                 case 0x250:
@@ -4470,6 +4511,7 @@ pentium_invalid_wrmsr:
                     if ((EAX & ~0x00000cff) || EDX || !mtrr_type_valid(EAX & 0xff))
                         goto i686_invalid_wrmsr;
                     msr.mtrr_deftype = EAX | ((uint64_t) EDX << 32);
+                    cpu_car_update();
                     break;
                 /* MC0_CTL - Machine Check 0 Control */
                 case 0x400:

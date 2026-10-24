@@ -60,7 +60,7 @@ private slots:
     void vmmStateChanged(const VMManagerSystem *sysconfig) const;
     void on_actionHide_tool_bar_triggered();
     void preferencesTriggered();
-#if EMU_BUILD_NUM != 0
+#ifdef UPDATE_CHECK
     void checkForUpdatesTriggered();
 #endif
 

@@ -505,7 +505,6 @@ sff_reset(void *priv)
     }
 
     sff_bus_master_set_irq(0x00, priv);
-    sff_bus_master_set_irq(0x01, priv);
 }
 
 void

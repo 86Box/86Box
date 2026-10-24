@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-19 01:57+0000\n"
+"PO-Revision-Date: 2026-10-22 13:10+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -149,6 +149,12 @@ msgstr "&Aκέραια κλίμακα"
 
 msgid "4:&3 Integer scale"
 msgstr "Aκέραια κλίμακα 4:&3"
+
+msgid "&Center"
+msgstr "&Κέντρο"
+
+msgid "4:3 Cen&ter"
+msgstr "4:3 Κέν&τρο"
 
 msgid "Inverted VGA monitor"
 msgstr "Αντεστραμμένο VGA monitor"
@@ -432,6 +438,9 @@ msgstr "Ακριβές περιβάλλον FPU σε δυναμικό αναμε
 msgid "Block linking on the dynamic recompiler"
 msgstr "Σύνδεση μπλοκ σε δυναμικό αναμεταγλωττιστή"
 
+msgid "Debug registers on 486 and later processors"
+msgstr "Εντοπισμός σφαλμάτων καταχωρίσεων σε επεξεργαστές 486 και νεότερους"
+
 msgid "CPU frame size"
 msgstr "Μέγεθος πλαισίου CPU"
 
@@ -623,6 +632,14 @@ msgstr "Ελεγκτής 4:"
 
 msgid "Cassette"
 msgstr "Κασέτα"
+
+msgid "Turbo IDE"
+msgstr "Turbo IDE"
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
+"Καταργεί το όριο ταχύτητας λειτουργίας μεταφοράς IDE. Οι χρονισμοί του "
+"σκληρού δίσκου και της μονάδας CD-ROM εξακολουθούν να ισχύουν."
 
 msgid "Hard disks:"
 msgstr "Σκληροί δίσκοι:"
@@ -3150,6 +3167,9 @@ msgstr "Είσοδος"
 
 msgid "Key bindings"
 msgstr "Αντιστοιχίσεις πλήκτρων"
+
+msgid "VM Manager"
+msgstr ""
 
 msgid "Action"
 msgstr "Ενέργεια"
