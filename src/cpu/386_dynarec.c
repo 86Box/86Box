@@ -604,6 +604,14 @@ exec386_dynarec_dyn(void)
         exec386_dynarec_int();
         return;
     }
+    /* This page keeps getting its freshly-compiled code rewritten before any
+       of it is ever reused (see invalidate_block()/page_t::smc_strikes):
+       compiling it again would just pay the same cost for nothing again, so
+       interpret it instead until the cooldown lapses. */
+    if (!cpu_state.abrt && (pages[phys_addr >> 12].smc_cooldown_until > tsc)) {
+        exec386_dynarec_int();
+        return;
+    }
     cpu_fetch_device = 0;
 
     /* Refresh before the lookup AND before a fresh compile: the old
@@ -729,7 +737,8 @@ exec386_dynarec_dyn(void)
         void (*code)(void) = (void *) &block->data[BLOCK_START];
 #    endif
 
-        block->used = 1; /* run: the eviction sweep passes it over once */
+        block->used   = 1; /* run: the eviction sweep passes it over once */
+        block->reused = 1; /* reached via block->data: compiling it paid off */
         inrecomp = 1;
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
         /* A block compiled without links returns nothing. */

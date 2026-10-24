@@ -542,9 +542,12 @@ fastreadl_fetch(uint32_t a)
 static __inline int
 ea_outside_limit(uint32_t n)
 {
-    const x86seg *s = cpu_state.ea_seg;
+    const x86seg  *s    = cpu_state.ea_seg;
+    /* 64-bit so that an operand ending at or past 0xffffffff is correctly
+       seen as out of range instead of silently wrapping to a low address. */
+    const uint64_t high = (uint64_t) cpu_state.eaaddr + n - 1;
 
-    if ((cpu_state.eaaddr >= s->limit_low) && ((cpu_state.eaaddr + n - 1) <= s->limit_high))
+    if ((cpu_state.eaaddr >= s->limit_low) && (high <= s->limit_high))
         return 0;
     SEG_LIMIT_FAULT(s);
     return 1;
