@@ -279,6 +279,16 @@ acpi_raise_smi(void *priv, int do_smi)
     }
 }
 
+void
+acpi_gp_timer_timeout(void *priv, int n)
+{
+    acpi_t *dev = (acpi_t *) priv;
+
+    dev->regs.glbsts |= (0x04 << n);          /* bit 2 = GP0, bit 3 = GP1 */
+    if (dev->regs.glben & (0x04 << n))
+        acpi_raise_smi(dev, 1);
+}
+
 static uint32_t
 acpi_reg_read_common_regs(UNUSED(int size), uint16_t addr, void *priv)
 {

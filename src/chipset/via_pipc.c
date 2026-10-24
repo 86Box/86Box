@@ -139,6 +139,8 @@ typedef struct _pipc_ {
     acpi_t        *acpi;
     pipc_io_trap_t io_traps[TRAP_MAX];
 
+    pc_timer_t     gp_timer[2];
+
     void    *gameport;
     void    *ac97;
     void    *sio;
@@ -1146,6 +1148,37 @@ pipc_ddma_update(pipc_t *dev, int addr)
 }
 
 static void
+pipc_gp_timer_start(pipc_t *dev, int n)
+{
+    static const double base_us[4] = { 0.0, 62500.0, 1000000.0, 60000000.0 };
+    uint32_t ctl = dev->power_regs[0x50] | (dev->power_regs[0x51] << 8) |
+                   (dev->power_regs[0x52] << 16) | ((uint32_t) dev->power_regs[0x53] << 24);
+    int      start = (ctl >> (n ? 7 : 3)) & 1;
+    int      base  = (ctl >> (n ? 4 : 0)) & 3;
+    int      count = (ctl >> (n ? 16 : 8)) & 0xff;
+
+    timer_stop(&dev->gp_timer[n]);
+    if (start && base && count)
+        timer_on_auto(&dev->gp_timer[n], base_us[base] * (double) count);
+}
+
+static void
+pipc_gp_timer_expire(pipc_t *dev, int n)
+{
+    uint32_t ctl = dev->power_regs[0x50] | (dev->power_regs[0x51] << 8) |
+                   (dev->power_regs[0x52] << 16) | ((uint32_t) dev->power_regs[0x53] << 24);
+
+    acpi_gp_timer_timeout(dev->acpi, n);
+
+    /* Auto-reload: GP0 = bit 2, GP1 = bit 6 */
+    if (ctl & (n ? 0x40 : 0x04))
+        pipc_gp_timer_start(dev, n);
+}
+
+static void pipc_gp0_expire(void *priv) { pipc_gp_timer_expire((pipc_t *) priv, 0); }
+static void pipc_gp1_expire(void *priv) { pipc_gp_timer_expire((pipc_t *) priv, 1); }
+
+static void
 pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     pipc_t *dev = (pipc_t *) priv;
@@ -1607,6 +1640,16 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 pipc_apic_irq_update(dev);
                 break;
 
+            case 0x50:
+            case 0x51:
+            case 0x52:
+            case 0x53:
+                dev->power_regs[addr] = val;
+                /* A dword write arrives byte by byte, so restart from the current value each time. */
+                pipc_gp_timer_start(dev, 0);
+                pipc_gp_timer_start(dev, 1);
+                break;
+
             case 0x54:
                 if (dev->local <= VIA_PIPC_596B)
                     dev->power_regs[addr] = val; /* write-only on 686A+ */
@@ -1815,6 +1858,9 @@ pipc_reset(void *priv)
     pipc_t *dev     = (pipc_t *) priv;
     uint8_t pm_func = dev->usb[1] ? 4 : 3;
 
+    timer_stop(&dev->gp_timer[0]);
+    timer_stop(&dev->gp_timer[1]);
+
     pipc_write(pm_func, 0x41, 1, 0x00, priv);
     pipc_write(pm_func, 0x48, 1, 0x01, priv);
     pipc_write(pm_func, 0x49, 1, 0x00, priv);
@@ -1874,6 +1920,9 @@ pipc_init(const device_t *info)
     pipc_t *dev = (pipc_t *) calloc(1, sizeof(pipc_t));
 
     pipc_log("PIPC: init()\n");
+
+    timer_add(&dev->gp_timer[0], pipc_gp0_expire, dev, 0);
+    timer_add(&dev->gp_timer[1], pipc_gp1_expire, dev, 0);
 
     dev->local = info->local;
     pci_add_card(PCI_ADD_SOUTHBRIDGE, pipc_read, pipc_write, dev, &dev->pci_slot);

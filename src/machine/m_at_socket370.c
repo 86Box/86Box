@@ -760,6 +760,127 @@ machine_at_cuv4xls_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t cairo5_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "ms6309",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.5",
+                .internal_name = "ms6309_15",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/cairo5/a6309vms.150", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.9",
+                .internal_name = "ms6309",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/cairo5/a6309vms.190", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision 08BV (Samsung)",
+                .internal_name = "cairo5",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/cairo5/08BV.BIN", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    {
+        .name           = "disable_apic",
+        .description    = "Disable APIC",
+        .type           = CONFIG_BINARY,
+        .default_int    = 0,
+        .default_string = NULL,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t cairo5_device = {
+    .name          = "MSI MS-6309",
+    .internal_name = "cairo5",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = cairo5_config
+};
+
+int
+machine_at_cairo5_init(const machine_t *model)
+{
+    /* The 686A's I/O APIC has the ISA IRQs on their own inputs and PIRQA-D#
+       on 16-19. */
+    static const ioapic_legacy_irq_routing_t cairo5_irq_routing = {
+        .irq_to_intin  = IOAPIC_LEGACY_IRQ_ROUTE_ISA,
+        .pirq_to_intin = IOAPIC_PIRQ_ROUTE_82093AA
+    };
+    int         ret = 0;
+    const char *fn;
+    void *pipc;
+    void *ioapic;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      1, 2, 3, 0);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 0, 1);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      3, 0, 1, 2);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      0, 1, 2, 3);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&via_apro133a_device);
+    pipc = device_add(&via_vt82c686a_device);
+    device_add(&winbond_flash_w29c020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
+
+    /* The 686A's internal I/O APIC. The board's BIOSes build no MP table
+       and turn the APIC off through Rx77[4] late in POST. */
+    ioapic = device_add_params(&ioapic_validated_up_device,
+                               (void *) (IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_VARIANT_VIA));
+    ioapic_set_legacy_irq_routing(ioapic, &cairo5_irq_routing);
+    via_pipc_set_ioapic(pipc, ioapic);
+
+    return ret;
+}
+
 static const device_config_t ms6318_config[] = {
     // clang-format off
     {
@@ -991,52 +1112,6 @@ machine_at_m790mr_init(const machine_t *model)
 
     if (sound_card_current[0] == SOUND_INTERNAL)
         device_add(machine_get_snd_device(machine));
-
-    return ret;
-}
-
-int
-machine_at_cairo5_init(const machine_t *model)
-{
-    /* The 686B's I/O APIC has the ISA IRQs on their own inputs and PIRQA-D#
-       on 16-19. */
-    static const ioapic_legacy_irq_routing_t cairo5_irq_routing = {
-        .irq_to_intin  = IOAPIC_LEGACY_IRQ_ROUTE_ISA,
-        .pirq_to_intin = IOAPIC_PIRQ_ROUTE_82093AA
-    };
-    void *pipc;
-    void *ioapic;
-    int   ret;
-
-    ret = bios_load_linear("roms/machines/cairo5/08BV.BIN",
-                           0x000c0000, 262144, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init(model);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL,      1, 2, 3, 0);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 0, 1);
-    pci_register_slot(0x10, PCI_CARD_NORMAL,      3, 0, 1, 2);
-    pci_register_slot(0x11, PCI_CARD_NORMAL,      0, 1, 2, 3);
-    pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
-
-    device_add(&via_apro133a_device);
-    pipc = device_add(&via_vt82c686b_device);
-    device_add(&winbond_flash_w29c020_device);
-    spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
-
-    /* The 686B's internal I/O APIC. The board's BIOSes build no MP table
-       and turn the APIC off through Rx77[4] late in POST. */
-    ioapic = device_add_params(&ioapic_validated_up_device,
-                               (void *) (IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_VARIANT_VIA));
-    ioapic_set_legacy_irq_routing(ioapic, &cairo5_irq_routing);
-    via_pipc_set_ioapic(pipc, ioapic);
 
     return ret;
 }

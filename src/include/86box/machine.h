@@ -1630,11 +1630,14 @@ extern int             machine_at_p6bap_init(const machine_t *);
 extern int             machine_at_6via90ap_init(const machine_t *);
 extern int             machine_at_cuv4xls_init(const machine_t *);
 #ifdef EMU_DEVICE_H
+extern const device_t  cairo5_device;
+#endif
+extern int             machine_at_cairo5_init(const machine_t *);
+#ifdef EMU_DEVICE_H
 extern const device_t  ms6318_device;
 #endif
 extern int             machine_at_ms6318_init(const machine_t *);
 extern int             machine_at_m790mr_init(const machine_t *);
-extern int             machine_at_cairo5_init(const machine_t *);
 
 /* m_at_misc.c */
 extern int             machine_at_vpc2007_init(const machine_t *);
