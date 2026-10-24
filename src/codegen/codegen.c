@@ -805,6 +805,7 @@ codegen_fpu_guard_cw_unmasks(ir_data_t *ir, uint32_t next_pc, int cw_reg)
     uop_LOAD_FUNC_ARG_REG(ir, 0, cw_reg);
     uop_CALL_FUNC(ir, codegen_fldcw_unmasks);
     uop_JMP(ir, codegen_exit_rout);
+    codegen_exit_stamp(ir, 1);
     uop_set_jump_dest(ir, jump_uop);
 }
 
