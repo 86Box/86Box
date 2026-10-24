@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-22 13:10+0000\n"
+"PO-Revision-Date: 2026-10-25 04:19+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -3169,7 +3169,7 @@ msgid "Key bindings"
 msgstr "Αντιστοιχίσεις πλήκτρων"
 
 msgid "VM Manager"
-msgstr ""
+msgstr "Διαχειριστής Εικονικών Μηχανών"
 
 msgid "Action"
 msgstr "Ενέργεια"
