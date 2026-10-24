@@ -6,6 +6,7 @@
 #include "cpu.h"
 #include <86box/mem.h>
 #include <86box/plat_unused.h>
+#include <86box/timer.h>
 
 #include "x86.h"
 #include "x86_flags.h"
@@ -660,10 +661,18 @@ remove_from_block_list(codeblock_t *block, UNUSED(uint32_t pc))
     }
 }
 
+/*Strike threshold, base cooldown length (in tsc counts), and cap on the
+  exponential backoff applied per consecutive strike, for the SMC-thrash
+  interpret fallback (see page_t).*/
+#define SMC_THRASH_STRIKE_THRESHOLD 3
+#define SMC_THRASH_BASE_COOLDOWN    4096
+#define SMC_THRASH_MAX_STRIKES      8
+
 static void
 invalidate_block(codeblock_t *block)
 {
     uint32_t old_pc = block->pc;
+    page_t  *page   = &pages[block->phys >> 12];
 
 #ifndef RELEASE_BUILD
     if (block->flags & CODEBLOCK_IN_DIRTY_LIST)
@@ -671,6 +680,17 @@ invalidate_block(codeblock_t *block)
     if (!block->valid)
         fatal("Invalidating deleted block\n");
 #endif
+    /* A block that compiled, then got rewritten before it was ever reused
+       from block->data, bought nothing for the cost of compiling it: count
+       it as a strike against this page. One that *was* reused at least once
+       paid for itself, so it clears the page's strikes instead. */
+    if ((block->flags & CODEBLOCK_WAS_RECOMPILED) && !block->reused) {
+        if (page->smc_strikes < SMC_THRASH_MAX_STRIKES)
+            page->smc_strikes++;
+        if (page->smc_strikes >= SMC_THRASH_STRIKE_THRESHOLD)
+            page->smc_cooldown_until = tsc + ((uint64_t) SMC_THRASH_BASE_COOLDOWN << (page->smc_strikes - SMC_THRASH_STRIKE_THRESHOLD));
+    } else
+        page->smc_strikes = 0;
     remove_from_block_list(block, old_pc);
     block_dirty_list_add(block);
     if (block->head_mem_block) {
@@ -930,6 +950,7 @@ codegen_block_start_recompile(codeblock_t *block)
        bits would leave every later non-flat visit a new block. */
     block->status = (cpu_cur_status & ~CPU_STATUS_MASK) | (block->status & CPU_STATUS_MASK);
     block->used   = 1; /* new: not the next thing the eviction sweep takes */
+    block->reused = 0; /* not yet run via the fast WAS_RECOMPILED path */
 
     block->page_mask = block->page_mask2 = 0;
     block->ins                           = 0;
@@ -1249,6 +1270,10 @@ codegen_block_restore_version(codeblock_t *block)
         block->dirty_mask     = &page->byte_dirty_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK];
         block->dirty_mask2    = NULL;
         block->flags          = (block->flags & ~(CODEBLOCK_HAS_FPU | CODEBLOCK_STATIC_TOP)) | v->flags | CODEBLOCK_WAS_RECOMPILED;
+        /* Restoring a kept version is cheap (a few memcmp calls), unlike a
+           real recompile: do not let it count as an SMC-thrash strike if
+           it gets invalidated again before being fast-path reused. */
+        block->reused         = 1;
         codegen_block_generate_end_mask_recompile();
         add_to_block_list(block);
         block_version_owner_sync(block_nr);

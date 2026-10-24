@@ -49,35 +49,58 @@
         }                                   \
     } while (0)
 
+/* The implicit SS reference of PUSH/POP must fault (#SS, precise - ESP/SP
+   and memory both left untouched) the same way an explicit stack-segment
+   access would when it falls outside the segment's limit (expand-down
+   segments included, via limit_low/limit_high already resolved at load
+   time). Code/data operands get this through CHECK_READ/CHECK_WRITE; push
+   and pop otherwise bypass it entirely, relying only on paging, which is
+   not architecturally correct. */
+#define SS_LIMIT_CHECK(low, n)                                                                           \
+    if (((low) < cpu_state.seg_ss.limit_low) || (((uint64_t) (low) + (n) -1) > cpu_state.seg_ss.limit_high)) { \
+        x86ss(NULL, 0);                                                                                 \
+        return;                                                                                         \
+    }
+
 static __inline void
 PUSH_W(uint16_t val)
 {
+    uint32_t new_sp;
     if (stack32) {
-        writememw(ss, ESP - 2, val);
+        new_sp = ESP - 2;
+        SS_LIMIT_CHECK(new_sp, 2);
+        writememw(ss, new_sp, val);
         if (cpu_state.abrt)
             return;
-        ESP -= 2;
+        ESP = new_sp;
     } else {
-        writememw(ss, (SP - 2) & 0xFFFF, val);
+        new_sp = (SP - 2) & 0xFFFF;
+        SS_LIMIT_CHECK(new_sp, 2);
+        writememw(ss, new_sp, val);
         if (cpu_state.abrt)
             return;
-        SP -= 2;
+        SP = new_sp;
     }
 }
 
 static __inline void
 PUSH_L(uint32_t val)
 {
+    uint32_t new_sp;
     if (stack32) {
-        writememl(ss, ESP - 4, val);
+        new_sp = ESP - 4;
+        SS_LIMIT_CHECK(new_sp, 4);
+        writememl(ss, new_sp, val);
         if (cpu_state.abrt)
             return;
-        ESP -= 4;
+        ESP = new_sp;
     } else {
-        writememl(ss, (SP - 4) & 0xFFFF, val);
+        new_sp = (SP - 4) & 0xFFFF;
+        SS_LIMIT_CHECK(new_sp, 4);
+        writememl(ss, new_sp, val);
         if (cpu_state.abrt)
             return;
-        SP -= 4;
+        SP = new_sp;
     }
 }
 
@@ -86,11 +109,19 @@ POP_W(void)
 {
     uint16_t ret;
     if (stack32) {
+        if ((ESP < cpu_state.seg_ss.limit_low) || (((uint64_t) ESP + 1) > cpu_state.seg_ss.limit_high)) {
+            x86ss(NULL, 0);
+            return 0;
+        }
         ret = readmemw(ss, ESP);
         if (cpu_state.abrt)
             return 0;
         ESP += 2;
     } else {
+        if ((SP < cpu_state.seg_ss.limit_low) || (((uint32_t) SP + 1) > cpu_state.seg_ss.limit_high)) {
+            x86ss(NULL, 0);
+            return 0;
+        }
         ret = readmemw(ss, SP);
         if (cpu_state.abrt)
             return 0;
@@ -104,11 +135,19 @@ POP_L(void)
 {
     uint32_t ret;
     if (stack32) {
+        if ((ESP < cpu_state.seg_ss.limit_low) || (((uint64_t) ESP + 3) > cpu_state.seg_ss.limit_high)) {
+            x86ss(NULL, 0);
+            return 0;
+        }
         ret = readmeml(ss, ESP);
         if (cpu_state.abrt)
             return 0;
         ESP += 4;
     } else {
+        if ((SP < cpu_state.seg_ss.limit_low) || (((uint32_t) SP + 3) > cpu_state.seg_ss.limit_high)) {
+            x86ss(NULL, 0);
+            return 0;
+        }
         ret = readmeml(ss, SP);
         if (cpu_state.abrt)
             return 0;
