@@ -444,28 +444,66 @@ codegen_generate_ea(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat, int op_
    own record out */
 static int codegen_fpu_pointers_recorded;
 
-/* The FPU's instruction and data pointers and opcode, for a compiled
-   instruction: not for a control instruction (FNSTSW AX here), which
-   leaves the last one's. The data pointer's segment is the operand's own,
-   which the block need not have set for a handler. A handler whose code can
-   leave the block before its end emits this ahead of that exit. */
-void
-codegen_fpu_record_pointers(ir_data_t *ir)
+/* An interpreted x87 instruction with a memory operand, whose pointers are
+   recorded before its op is called: an op that takes #NM at its FP_ENTER
+   does so before it forms its address, and the escape wrapper's record then
+   holds the eaaddr it found and the segment of the instruction's prefix
+   (the interpreter's form). Called before the block forms the address, with
+   that segment's number in codegen_fpu_segs. */
+static x86seg *const codegen_fpu_segs[6] = { &cpu_state.seg_es, &cpu_state.seg_cs, &cpu_state.seg_ss,
+                                             &cpu_state.seg_ds, &cpu_state.seg_fs, &cpu_state.seg_gs };
+
+static void
+codegen_fpu_record_entry(uint32_t seg_nr)
 {
-    codegen_fpu_pointers_recorded = 1;
+    if (cr0 & 0xc) {
+        cpu_state.fpu_DS = codegen_fpu_segs[seg_nr]->seg;
+        cpu_state.fpu_ds = codegen_fpu_segs[seg_nr]->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
+}
+
+/* fpu_postamble, unless the op will take #NM: codegen_fpu_record_entry
+   recorded its data pointer then */
+static void
+codegen_fpu_postamble_entry(void)
+{
+    if (!(cr0 & 0xc))
+        fpu_postamble();
+}
+
+/* The FPU's instruction and data pointers and opcode as the escape wrapper
+   records them: not in the fast environment, and not for a control
+   instruction (FNSTSW AX here), which leaves the last one's. For a memory
+   operand, IREG_ea_seg is set to seg first when seg is given (the answer
+   says so); entry: codegen_fpu_record_entry ran for this instruction */
+static int
+codegen_fpu_emit_record(ir_data_t *ir, x86seg *seg, int entry)
+{
     if (!cpu_dyn_accurate_fpu_env || x87_op_is_control(x87_op))
-        return;
+        return 0;
     uop_MOV_IMM(ir, IREG_fpu_op, x87_op);
     uop_MOV_IMM(ir, IREG_fpu_CS, cpu_state.temp_CS);
     uop_MOV_IMM(ir, IREG_fpu_cs, cpu_state.temp_cs);
     uop_MOV_IMM(ir, IREG_fpu_pc, cpu_state.temp_pc);
-    if ((x87_op & 0xff) < 0xc0) {
-        if (codegen_ea_target_seg != NULL) {
-            uop_MOV_PTR(ir, IREG_ea_seg, (void *) codegen_ea_target_seg);
-            last_op_ea_seg = codegen_ea_target_seg;
-        }
-        uop_CALL_FUNC(ir, fpu_postamble);
-    }
+    if ((x87_op & 0xff) >= 0xc0)
+        return 0;
+    if (seg != NULL)
+        uop_MOV_PTR(ir, IREG_ea_seg, (void *) seg);
+    uop_CALL_FUNC(ir, entry ? codegen_fpu_postamble_entry : fpu_postamble);
+    return seg != NULL;
+}
+
+/* The record for a compiled instruction. The data pointer's segment is the
+   operand's own, which the block need not have set for a handler. A handler
+   whose code can leave the block before its end emits this ahead of that
+   exit. */
+void
+codegen_fpu_record_pointers(ir_data_t *ir)
+{
+    codegen_fpu_pointers_recorded = 1;
+    if (codegen_fpu_emit_record(ir, codegen_ea_target_seg, 0))
+        last_op_ea_seg = codegen_ea_target_seg;
 }
 
 // clang-format off
@@ -588,17 +626,13 @@ codegen_fpu_handover(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t 
     uop_MOV_IMM(ir, IREG_op32, op_32);
     if (target_seg)
         uop_MOV_PTR(ir, IREG_ea_seg, (void *) target_seg);
-    uop_CALL_INSTRUCTION_FUNC(ir, codegen_fpu_handler, fetchdat);
     /* The handler is the interpreter's function, not its escape wrapper,
-       which records the instruction and data pointers after it. */
-    if (cpu_dyn_accurate_fpu_env && !x87_op_is_control(x87_op)) {
-        uop_MOV_IMM(ir, IREG_fpu_op, x87_op);
-        uop_MOV_IMM(ir, IREG_fpu_CS, cpu_state.temp_CS);
-        uop_MOV_IMM(ir, IREG_fpu_cs, cpu_state.temp_cs);
-        uop_MOV_IMM(ir, IREG_fpu_pc, cpu_state.temp_pc);
-        if ((x87_op & 0xff) < 0xc0)
-            uop_CALL_FUNC(ir, fpu_postamble);
-    }
+       which records the instruction and data pointers after it whatever it
+       answered: recorded before the call, which leaves the block on a fault.
+       The function changes none of them, nor eaaddr or ea_seg, and cannot
+       take #NM here (the handler's FP_ENTER came first). */
+    codegen_fpu_emit_record(ir, NULL, 0);
+    uop_CALL_INSTRUCTION_FUNC(ir, codegen_fpu_handler, fetchdat);
     uop_JMP(ir, codegen_exit_rout);
 }
 
@@ -894,6 +928,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     uint32_t     next_pc            = 0;
     uint16_t     op87               = 0x0000;
     int          held_cycles        = 0;
+    int          fpu_entry          = 0;
     uint32_t     fetchdat_pc;
     int          jump_cycles        = 0;
 #ifdef DEBUG_EXTRA
@@ -1286,8 +1321,8 @@ generate_call:
         if (jump_cycles && !unrolled && codegen_ir_unrolling())
             codegen_accumulate(ir, ACCREG_cycles, -jump_cycles);
         /* The FPU's pointers for a compiled instruction, unless its handler
-           recorded them; one the recompiler left alone has them done by its
-           handler call below, after it runs */
+           recorded them; one the recompiler left alone has them done ahead
+           of its handler call below */
         if (new_pc && is_fpu && !codegen_fpu_pointers_recorded)
             codegen_fpu_record_pointers(ir);
         if (new_pc) {
@@ -1333,6 +1368,18 @@ codegen_skip:
 
         uop_MOV_IMM(ir, IREG_rm_mod_reg, cpu_rm | (cpu_mod << 8) | (cpu_reg << 16));
 
+        /*The data pointer an x87 op that takes #NM records, before the
+          address below replaces eaaddr (codegen_fpu_record_entry)*/
+        if (is_fpu && !lock_illegal && (cpu_mod != 3) && cpu_dyn_accurate_fpu_env && !x87_op_is_control(x87_op)) {
+            int seg_nr = 0;
+
+            while ((seg_nr < 5) && (codegen_fpu_segs[seg_nr] != op_ea_seg))
+                seg_nr++;
+            uop_LOAD_FUNC_ARG_IMM(ir, 0, seg_nr);
+            uop_CALL_FUNC(ir, codegen_fpu_record_entry);
+            fpu_entry = 1;
+        }
+
         op_pc += pc_off;
         if (cpu_mod != 3 && !(op_32 & 0x200)) {
             op_ea_seg = codegen_generate_ea_16_long(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc);
@@ -1366,6 +1413,13 @@ codegen_skip:
         uop_MOV_PTR(ir, IREG_ea_seg, (void *) op_ea_seg);
     if (op_ssegs != last_op_ssegs)
         uop_MOV_IMM(ir, IREG_ssegs, op_ssegs);
+    /*The escape wrapper records an x87 instruction's pointers after its op
+      whatever the op answered: recorded before the call, which leaves the
+      block on a nonzero answer. The op changes none of them, nor eaaddr or
+      ea_seg, which hold its operand's address here. A LOCK prefix is #UD
+      before the wrapper.*/
+    if (is_fpu && !lock_illegal)
+        codegen_fpu_emit_record(ir, NULL, fpu_entry);
     uop_CALL_INSTRUCTION_FUNC(ir, op, fetchdat);
     if (held_cycles)
         codegen_accumulate(ir, ACCREG_cycles, held_cycles);
@@ -1385,16 +1439,9 @@ codegen_skip:
     /*No softfloat exception check after the instruction: a pending #MF is
       raised by the next waiting FPU instruction (or WAIT), as the book says,
       and the no-wait ones (FNSTSW, FNSTCW, FNCLEX...) don't raise it*/
-    if (cpu_dyn_accurate_fpu_env && is_fpu && !x87_op_is_control(x87_op)) {
-        uop_MOV_IMM(ir, IREG_fpu_op, x87_op);
-        uop_MOV_IMM(ir, IREG_fpu_CS, cpu_state.temp_CS);
-        uop_MOV_IMM(ir, IREG_fpu_cs, cpu_state.temp_cs);
-        uop_MOV_IMM(ir, IREG_fpu_pc, cpu_state.temp_pc);
-        if ((x87_op & 0xff) < 0xc0)
-            uop_CALL_FUNC(ir, fpu_postamble);
-    }
-    /*After the FPU environment update, so an SMI taken on an x87 store
-      leaves this instruction's pointers for FNSTENV or FSAVE*/
+    /*After the FPU environment update (recorded ahead of the call), so an
+      SMI taken on an x87 store leaves this instruction's pointers for
+      FNSTENV or FSAVE*/
     if (codegen_smi_exits())
         uop_SMI_EXIT(ir);
     codegen_flags_changed = 0;
