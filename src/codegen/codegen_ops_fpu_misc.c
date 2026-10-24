@@ -100,8 +100,8 @@ ropFLDCW(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 {
     x86seg *target_seg;
 
-#if !(defined __aarch64__ || defined _M_ARM64)
-    /*Only the arm64 backend implements UOP_FP_CONTROL_SET*/
+#if !(defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64)
+    /*Only the arm64 and x86-64 backends implement UOP_FP_CONTROL_SET*/
     return 0;
 #endif
     uop_FP_ENTER(ir);

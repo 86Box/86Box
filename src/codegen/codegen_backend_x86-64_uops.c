@@ -845,6 +845,30 @@ codegen_FCHS(codeblock_t *block, uop_t *uop)
     return 0;
 }
 static int
+codegen_FP_CONTROL_SET(codeblock_t *block, uop_t *uop)
+{
+    int src_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_W(src_size)) {
+        /*new_fp_control = the host MXCSR with the x87 RC in its RC field*/
+        host_x86_MOVZX_REG_32_16(block, REG_ECX, src_reg);
+        host_x86_AND32_REG_IMM(block, REG_ECX, 0x0c00);
+        host_x86_SHL32_IMM(block, REG_ECX, 3);
+        host_x86_MOV32_REG_ABS(block, REG_ESI, &cpu_state.old_fp_control);
+        host_x86_AND32_REG_IMM(block, REG_ESI, ~0x6000);
+        host_x86_OR32_REG_REG(block, REG_ECX, REG_ESI);
+        host_x86_MOV32_ABS_REG(block, &cpu_state.new_fp_control, REG_ECX);
+        host_x86_MOV32_ABS_IMM(block, &fpu_ferr, 0);
+        host_x86_MOV32_ABS_IMM(block, &fpu_ignne, 0);
+    }
+#    ifdef RECOMPILER_DEBUG
+    else
+        fatal("codegen_FP_CONTROL_SET %02x\n", uop->src_reg_a_real);
+#    endif
+    return 0;
+}
+static int
 codegen_FSQRT(codeblock_t *block, uop_t *uop)
 {
     int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
@@ -3827,6 +3851,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FP_ENTER_ORDERED &
         UOP_MASK]
     = codegen_FP_ENTER,
+    [UOP_FP_CONTROL_SET &
+        UOP_MASK]
+    = codegen_FP_CONTROL_SET,
     [UOP_MMX_ENTER &
         UOP_MASK]
     = codegen_MMX_ENTER,
