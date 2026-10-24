@@ -820,6 +820,32 @@ codegen_fetchl_lookahead(uint32_t addr)
     return val;
 }
 
+/* The instructions whose interpreter op can end the block on success, with
+   a nonzero answer that leaves the block right after its call: a taken Jcc,
+   LOOP or JCXZ, INT3, INT n, INTO and INT1, POP SS and MOV SS (they run the
+   next instruction too), SYSENTER, SYSEXIT, and SYSCALL and SYSRET (0F 05 and
+   0F 07 in the K6 table; 0F 07 is LOADALL386 in the 386 and 486 ones), and the
+   Cyrix SMINT (0F 7E on the Cyrix CPUs without MMX, 0F 3E on the 6x86MX). Ops
+   that answer nonzero only on a fault are not here (LSS is compiled; its
+   register form only raises #UD), nor are the ones that
+   can read the device time inside their call and then go on in the block (IN,
+   OUT, RDTSC and RDMSR, which leave only on an SMI, an NMI or a reset; POPF
+   and POPFD, which leave only with TF turned on and whose stack read can reach
+   a device): charging the held cycle ahead of their call would move the time
+   they read. */
+static int
+codegen_op_ends_block(const OpFn *op_table, uint8_t opcode, uint32_t fetchdat)
+{
+    if (op_table == x86_dynarec_opcodes)
+        return ((opcode & 0xf0) == 0x70) || ((opcode & 0xfc) == 0xe0) || ((opcode >= 0xcc) && (opcode <= 0xce)) || (opcode == 0xf1) ||
+               (opcode == 0x17) || ((opcode == 0x8e) && ((fetchdat & 0x38) == 0x10));
+    if (op_table == x86_dynarec_opcodes_0f)
+        return ((opcode & 0xf0) == 0x80) || (opcode == 0x34) || (opcode == 0x35) ||
+               (((opcode == 0x05) || (opcode == 0x07)) && is_k6) || (opcode == 0x3e) ||
+               ((opcode == 0x7e) && !cpu_has_feature(CPU_FEATURE_MMX));
+    return 0;
+}
+
 void
 codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_pc, uint32_t old_pc)
 {
@@ -840,6 +866,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     int          is_fpu             = 0;
     uint32_t     next_pc            = 0;
     uint16_t     op87               = 0x0000;
+    int          held_cycles        = 0;
     uint32_t     fetchdat_pc;
     int          jump_cycles        = 0;
 #ifdef DEBUG_EXTRA
@@ -1292,6 +1319,14 @@ codegen_skip:
 #ifdef DEBUG_EXTRA
     uop_LOG_INSTR(ir, opcode | (last_prefix << 8));
 #endif
+    /*An op that ends the block on success leaves it after the call, before
+      the block end would charge the cycles the timing model still holds:
+      charge them with the cycles so far, as the branches above do, and take
+      them back after the call for the instructions that follow*/
+    if (codegen_timing_jump_cycles && (op != dynarec_op_illegal) && codegen_op_ends_block(op_table, opcode, fetchdat))
+        held_cycles = codegen_timing_jump_cycles();
+    if (held_cycles)
+        codegen_accumulate(ir, ACCREG_cycles, -held_cycles);
     codegen_accumulate_flush(ir);
     if (op_table == x86_dynarec_opcodes_3DNOW)
         uop_MOV_IMM(ir, IREG_pc, next_pc);
@@ -1305,6 +1340,8 @@ codegen_skip:
     if (op_ssegs != last_op_ssegs)
         uop_MOV_IMM(ir, IREG_ssegs, op_ssegs);
     uop_CALL_INSTRUCTION_FUNC(ir, op, fetchdat);
+    if (held_cycles)
+        codegen_accumulate(ir, ACCREG_cycles, held_cycles);
     /*An interpreted x87 or 0F instruction can undo what the block took as
       done (FNINIT, FRSTOR, FXRSTOR and FEMMS empty the tags and leave MMX
       mode, CLTS changes CR0): the next compiled FPU or MMX instruction
