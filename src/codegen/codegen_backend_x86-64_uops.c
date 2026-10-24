@@ -1077,6 +1077,14 @@ codegen_MMX_ENTER(codeblock_t *block, uop_t *uop)
 }
 
 static int
+codegen_JMP_DEST(codeblock_t *block, uop_t *uop)
+{
+    uop->p = host_x86_JMP_long(block);
+
+    return 0;
+}
+
+static int
 codegen_JMP(codeblock_t *block, uop_t *uop)
 {
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
@@ -3536,6 +3544,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_JMP &
         UOP_MASK]
     = codegen_JMP,
+    [UOP_JMP_DEST &
+        UOP_MASK]
+    = codegen_JMP_DEST,
 
     [UOP_LOAD_SEG &
         UOP_MASK]
