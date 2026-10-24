@@ -825,6 +825,7 @@ ropCLI_STI(ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         uop_CALL_INSTRUCTION_FUNC(ir, x86_dynarec_opcodes[(opcode | op_32) & 0x3ff], fetchdat);
         uop_JMP(ir, codegen_exit_rout);
+        codegen_exit_stamp(ir, 1);
         uop_set_jump_dest(ir, jump_uop);
     }
 

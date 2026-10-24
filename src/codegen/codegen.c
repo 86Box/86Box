@@ -604,6 +604,29 @@ codegen_exit_on_one(ir_data_t *ir, int reg)
     uop_set_jump_dest(ir, jump_uop);
 }
 
+/* An exit before the block's end charges what the block's end would have
+   charged had the block ended there: the cycles accumulated so far, and the
+   cycle the P6, K5 and K6 timing models hold back while their decode buffer
+   has uops, which a block's end (and a branch, codegen_generate_call)
+   charges. Only on the exit path: the accumulator is left to the path that
+   goes on. The value is added to cycles, as the accumulator's count is. */
+int
+codegen_exit_cycles(int held)
+{
+    int add = codegen_accumulate_pending(ACCREG_cycles);
+
+    if (held && codegen_timing_jump_cycles)
+        add -= codegen_timing_jump_cycles();
+
+    return add;
+}
+
+void
+codegen_exit_stamp(ir_data_t *ir, int held)
+{
+    ir->uops[ir->wr_pos - 1].imm_data2 = codegen_exit_cycles(held);
+}
+
 /* The x87 instruction being compiled, as the interpreter runs it (set
    before its handler is called), for a case its compiled form hands over */
 OpFn codegen_fpu_handler;
@@ -634,6 +657,7 @@ codegen_fpu_handover(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t 
     codegen_fpu_emit_record(ir, NULL, 0);
     uop_CALL_INSTRUCTION_FUNC(ir, codegen_fpu_handler, fetchdat);
     uop_JMP(ir, codegen_exit_rout);
+    codegen_exit_stamp(ir, 1);
 }
 
 /* A store from ST(0) when it is empty, a stack underflow: the interpreter

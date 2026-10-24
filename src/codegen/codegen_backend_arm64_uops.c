@@ -206,6 +206,63 @@ codegen_ANDN(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*An exit that adds add to cycles first (uop->imm_data2), with no entry for it
+  (codegen_exit_dest): the add in its own arm, which the path that goes on
+  branches over. Every exit is an order barrier at least, so cycles is in
+  memory.*/
+#define EXIT_ARM_SIZE 48
+
+static void
+codegen_exit_add(codeblock_t *block, int add)
+{
+    const int offset = (uintptr_t) &cpu_state._cycles - (uintptr_t) &cpu_state;
+
+    host_arm64_LDR_IMM_W(block, REG_TEMP, REG_CPUSTATE, offset);
+    host_arm64_ADD_IMM(block, REG_TEMP, REG_TEMP, add);
+    host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, offset);
+}
+
+static void
+codegen_exit_arm(codeblock_t *block, int add, void *route)
+{
+    codegen_exit_add(block, add);
+    host_arm64_jump(block, (uintptr_t) route);
+}
+
+/*CBNZ reg to route, charging what uop->imm_data2 adds on the way*/
+static void
+codegen_exit_CBNZ(codeblock_t *block, uop_t *uop, int reg, void *route)
+{
+    void     *dest = codegen_exit_dest(route, uop->imm_data2);
+    uint32_t *skip;
+
+    if (dest) {
+        host_arm64_CBNZ(block, reg, (uintptr_t) dest);
+        return;
+    }
+    codegen_alloc(block, EXIT_ARM_SIZE);
+    skip = host_arm64_CBZ_SHORT_(block, reg);
+    codegen_exit_arm(block, uop->imm_data2, route);
+    host_arm64_short_branch_set_offset(skip, &block_write_data[block_pos]);
+}
+
+/*B.EQ to uop->p, the same way*/
+static void
+codegen_exit_BEQ(codeblock_t *block, uop_t *uop)
+{
+    void     *dest = codegen_exit_dest(uop->p, uop->imm_data2);
+    uint32_t *skip;
+
+    if (dest) {
+        host_arm64_BEQ(block, dest);
+        return;
+    }
+    codegen_alloc(block, EXIT_ARM_SIZE);
+    skip = host_arm64_BNE_SHORT_(block);
+    codegen_exit_arm(block, uop->imm_data2, uop->p);
+    host_arm64_short_branch_set_offset(skip, &block_write_data[block_pos]);
+}
+
 static int
 codegen_CALL_FUNC(codeblock_t *block, uop_t *uop)
 {
@@ -233,7 +290,7 @@ codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
 {
     host_arm64_mov_imm(block, REG_ARG0, uop->imm_data);
     host_arm64_call(block, uop->p);
-    host_arm64_CBNZ(block, REG_X0, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X0, codegen_exit_rout);
 
     return 0;
 }
@@ -244,6 +301,7 @@ codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
 static int
 codegen_SMI_EXIT_IMM(codeblock_t *block, uop_t *uop)
 {
+    void     *dest = codegen_exit_dest(codegen_exit_rout, uop->imm_data2);
     uint32_t *branch_ptr;
 
     host_arm64_LDRB_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state._smi_line - (uintptr_t) &cpu_state);
@@ -253,7 +311,11 @@ codegen_SMI_EXIT_IMM(codeblock_t *block, uop_t *uop)
         host_arm64_mov_imm(block, REG_TEMP, uop->imm_data);
         host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.pc - (uintptr_t) &cpu_state);
     }
-    host_arm64_B(block, codegen_exit_rout);
+    /*Charging what the block's end would (uop->imm_data2)*/
+    if (dest)
+        host_arm64_B(block, dest);
+    else
+        codegen_exit_arm(block, uop->imm_data2, codegen_exit_rout);
     host_arm64_branch_set_offset(branch_ptr, &block_write_data[block_pos]);
 
     return 0;
@@ -269,7 +331,7 @@ codegen_CMP_IMM_JZ(codeblock_t *block, uop_t *uop)
         host_arm64_CMP_IMM(block, src_reg, uop->imm_data);
     } else
         fatal("CMP_IMM_JZ %02x\n", uop->src_reg_a_real);
-    host_arm64_BEQ(block, uop->p);
+    codegen_exit_BEQ(block, uop);
 
     return 0;
 }
@@ -1107,16 +1169,25 @@ codegen_JMP_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_JMP(codeblock_t *block, uop_t *uop)
 {
+    void *dest;
+
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     /*An unconditional jump out of the block is an ordinary hand-off (UOP_JMP
       writes registers back), so it can link like the block's end. Fault
       paths reach codegen_exit_rout by conditional branches instead.*/
     if (codegen_block_link && (uop->p == codegen_exit_rout)) {
+        if (uop->imm_data2)
+            codegen_exit_add(block, uop->imm_data2);
         codegen_link_exit(block);
         return 0;
     }
 #    endif
-    host_arm64_jump(block, (uintptr_t) uop->p);
+    dest = codegen_exit_dest(uop->p, uop->imm_data2);
+    if (!dest) {
+        codegen_exit_add(block, uop->imm_data2);
+        dest = uop->p;
+    }
+    host_arm64_jump(block, (uintptr_t) dest);
 
     return 0;
 }

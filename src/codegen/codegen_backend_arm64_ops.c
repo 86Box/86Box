@@ -729,7 +729,6 @@ host_arm64_branch_set_offset(uint32_t *opcode, void *dest)
     (void) is_tbxz_template;
 }
 
-#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 /*Single-instruction forward branches, patched with
   host_arm64_short_branch_set_offset(). The target must be within the range
   of the branch's own immediate, so these are only for code that is known to
@@ -793,6 +792,7 @@ host_arm64_short_branch_set_offset(uint32_t *opcode, void *dest)
     }
 }
 
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 void
 host_arm64_LDR_LITERAL_X(codeblock_t *block, int dest_reg, int literal_offset)
 {

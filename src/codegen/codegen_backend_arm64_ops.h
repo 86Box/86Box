@@ -49,7 +49,6 @@ uint32_t *host_arm64_BVS_(codeblock_t *block);
 
 void host_arm64_branch_set_offset(uint32_t *opcode, void *dest);
 
-#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 uint32_t *host_arm64_BEQ_SHORT_(codeblock_t *block);
 uint32_t *host_arm64_BNE_SHORT_(codeblock_t *block);
 uint32_t *host_arm64_BLE_SHORT_(codeblock_t *block);
@@ -60,6 +59,7 @@ uint32_t *host_arm64_TBNZ_SHORT_(codeblock_t *block, int reg, int bit);
 
 void host_arm64_short_branch_set_offset(uint32_t *opcode, void *dest);
 
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 void host_arm64_TSTX_REG(codeblock_t *block, int src_n_reg, int src_m_reg);
 #endif
 

@@ -447,7 +447,8 @@ typedef struct uop_t {
 #else
     uint32_t      imm_data;
 #endif
-    /*UOP_FP_ENTER_ORDERED and UOP_MMX_ENTER: the cycles their exit charges*/
+    /*A uop that can leave the block: what its exit adds to cycles first
+      (codegen_exit_cycles)*/
     int           imm_data2;
     void         *p;
     ir_host_reg_t dest_reg_a_real;
@@ -478,6 +479,7 @@ uop_alloc(ir_data_t *ir, uint32_t uop_type)
     uop = &ir->uops[ir->wr_pos++];
 
     uop->is_a16     = 0;
+    uop->imm_data2  = 0;
 
     uop->dest_reg_a = invalid_ir_reg;
     uop->src_reg_a  = invalid_ir_reg;
@@ -831,6 +833,12 @@ extern void codegen_fp_pending_check(ir_data_t *ir);
 /* The exit a helper's answer of 1 in reg takes (a fault, or the FERR# wait),
    charging the cycles accumulated so far on that path only (codegen.c) */
 extern void codegen_exit_on_one(ir_data_t *ir, int reg);
+/* What an exit taken before the block's end adds to cycles: the cycles
+   accumulated so far, and with held what the timing model holds for the
+   block's end. codegen_exit_stamp gives it to the uop just generated, whose
+   exit path the backend charges (codegen.c) */
+extern int  codegen_exit_cycles(int held);
+extern void codegen_exit_stamp(ir_data_t *ir, int held);
 extern int  codegen_fpu_rc_nearest(ir_data_t *ir);
 extern int  codegen_fpu_class_dirty;
 /* A store from an empty ST(0): the interpreter's version, then the block
