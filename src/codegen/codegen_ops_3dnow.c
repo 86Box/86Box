@@ -478,14 +478,24 @@ ropPFRSQRT(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
 }
 
 uint32_t
-ropPFRSQIT1(codeblock_t *block, ir_data_t *ir, uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPFRSQIT1(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
-    /*A memory operand goes to the interpreter, which reads it (and faults)*/
-    if ((fetchdat & 0xc0) != 0xc0)
-        return 0;
-
     uop_MMX_ENTER(ir);
+    codegen_mark_code_present(block, cs + op_pc, 1);
+    /* PFRSQRT's result is exact, so the step changes nothing, but its
+       memory operand is read as the interpreter's opPFRSQIT1 reads it: the
+       checks and the load, whose faults are the instruction's. */
+    if ((fetchdat & 0xc0) != 0xc0) {
+        x86seg *target_seg;
 
-    codegen_mark_code_present(block, cs + op_pc, 2);
+        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+        target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, 1);
+        codegen_check_seg_read(block, ir, target_seg);
+        CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 7);
+        uop_MEM_LOAD_REG(ir, IREG_temp1_Q, ireg_seg_base(target_seg), IREG_eaaddr);
+    }
+
+    codegen_mark_code_present(block, cs + op_pc + 1, 1);
     return op_pc + 2;
 }
