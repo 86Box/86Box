@@ -78,20 +78,22 @@ typedef struct serial_s {
     uint8_t transmit_enabled;
     uint8_t fifo_enabled;
     uint8_t bits;
-
-    /* Divides the receive timer down for the modem status poll. */
-    uint8_t status_divider;
+    uint8_t half_stop;
     uint8_t data_bits;
     uint8_t baud_cycles;
     uint8_t txsr;
     uint8_t txsr_empty;
+    uint8_t txsr_sent;
     uint8_t msr_set;
     uint8_t irq_state;
+    uint8_t port_config_pending;
 
     uint16_t dlab;
     uint16_t base_address;
     uint16_t out_new;
     uint16_t thr_empty;
+
+    uint32_t pending_rx_error;
 
     uint8_t *reg_91;
 
@@ -101,6 +103,7 @@ typedef struct serial_s {
     pc_timer_t transmit_timer;
     pc_timer_t timeout_timer;
     pc_timer_t receive_timer;
+    pc_timer_t status_timer;
     double     clock_src;
     double     transmit_period;
 

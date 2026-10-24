@@ -152,10 +152,18 @@ char_attach(uint32_t flags,
     chardev->status        = status;
     chardev->control       = control;
     chardev->port_config   = port_config;
+    chardev->read_error    = NULL;
     chardev->priv          = priv;
     active_port->attached  = 1;
 
     return active_port;
+}
+
+void
+char_set_read_error(char_port_t *port, uint32_t (*read_error)(void *priv))
+{
+    if (port)
+        port->chardev.read_error = read_error;
 }
 
 void
