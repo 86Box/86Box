@@ -69,7 +69,6 @@ enum {
     ColumnCheck = 0,
     ColumnGroup,
     ColumnLocation,
-    ColumnID,
     ColumnName
 };
 
@@ -190,7 +189,7 @@ lspciNames()
 }
 
 static QModelIndex
-appendDevice(QStandardItemModel *model, int group, const QString &location, const QString &id, const QString &name)
+appendDevice(QStandardItemModel *model, int group, const QString &location, const QString &name)
 {
     auto *check = new QStandardItem;
     check->setCheckable(true);
@@ -202,7 +201,6 @@ appendDevice(QStandardItemModel *model, int group, const QString &location, cons
     QList<QStandardItem *> row = { check,
                                    new QStandardItem((group >= 0) ? QString::number(group) : QStringLiteral("??")),
                                    new QStandardItem(location),
-                                   new QStandardItem(QStringLiteral("[%1]").arg(id)),
                                    new QStandardItem(name) };
     for (auto *item : row)
         item->setEditable(false);
@@ -241,7 +239,7 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
 
 #ifdef USE_VFIO
     vfioModel = new VFIODeviceModel(this);
-    vfioModel->setHorizontalHeaderLabels({ QString(), tr("Group"), tr("Location"), tr("ID"), tr("Name") });
+    vfioModel->setHorizontalHeaderLabels({ QString(), tr("Group"), tr("Location"), tr("Name") });
     ui->treeViewVFIO->setModel(vfioModel);
 
     /* FileField fixes its own width; let this one stretch across the panel. */
@@ -778,10 +776,11 @@ SettingsOtherPeripherals::vfioEnumerate()
         return (a.group != b.group) ? (a.group < b.group) : (a.location < b.location);
     });
 
+    /* The IDs go after the name, as lspci -nn puts them, but without the class code. */
     const auto names = devices.isEmpty() ? QHash<QString, QString>() : lspciNames();
     for (const auto &device : devices)
-        appendDevice(vfioModel, device.group, device.location, device.id,
-                     names.value(device.location, tr("Unknown device")));
+        appendDevice(vfioModel, device.group, device.location,
+                     names.value(device.location, tr("Unknown device")) % QStringLiteral(" [") % device.id % ']');
 
     if (devices.isEmpty()) {
         const auto warning_icon = QIcon(":/misc/qt/icons/warning.ico");
@@ -802,7 +801,7 @@ SettingsOtherPeripherals::vfioRestore()
         if (vfioModel->rowCount() > 0)
             matches = vfioModel->match(vfioModel->index(0, ColumnLocation), Qt::DisplayRole, location, 1, Qt::MatchExactly);
         if (matches.isEmpty())
-            index = appendDevice(vfioModel, -1, location, QStringLiteral("????:????"), tr("Unknown device"));
+            index = appendDevice(vfioModel, -1, location, tr("Unknown device"));
         else
             index = matches.first().siblingAtColumn(ColumnCheck);
 
