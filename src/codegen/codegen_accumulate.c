@@ -21,6 +21,12 @@ codegen_accumulate(UNUSED(ir_data_t *ir), int acc_reg, int delta)
     acc_regs[acc_reg].count += delta;
 }
 
+int
+codegen_accumulate_pending(int acc_reg)
+{
+    return acc_regs[acc_reg].count;
+}
+
 void
 codegen_accumulate_flush(ir_data_t *ir)
 {

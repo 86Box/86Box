@@ -55,10 +55,11 @@ duplicate_uop(ir_data_t *ir, uop_t *uop, int offset)
     if (!ir_reg_is_invalid(uop->dest_reg_a))
         new_uop->dest_reg_a = codegen_reg_write(uop->dest_reg_a.reg, ir->wr_pos - 1);
 
-    new_uop->type     = uop->type;
-    new_uop->imm_data = uop->imm_data;
-    new_uop->p        = uop->p;
-    new_uop->pc       = uop->pc;
+    new_uop->type      = uop->type;
+    new_uop->imm_data  = uop->imm_data;
+    new_uop->imm_data2 = uop->imm_data2;
+    new_uop->p         = uop->p;
+    new_uop->pc        = uop->pc;
 #if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64 || defined __loongarch_lp64
     new_uop->is_a16   = uop->is_a16;
 #endif

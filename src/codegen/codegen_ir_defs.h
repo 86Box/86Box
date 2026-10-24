@@ -447,6 +447,8 @@ typedef struct uop_t {
 #else
     uint32_t      imm_data;
 #endif
+    /*UOP_FP_ENTER_ORDERED and UOP_MMX_ENTER: the cycles their exit charges*/
+    int           imm_data2;
     void         *p;
     ir_host_reg_t dest_reg_a_real;
     ir_host_reg_t src_reg_a_real, src_reg_b_real, src_reg_c_real;
@@ -743,6 +745,16 @@ uop_gen_imm(uint32_t uop_type, ir_data_t *ir, uint32_t imm)
 }
 
 static inline void
+uop_gen_imm2(uint32_t uop_type, ir_data_t *ir, uint32_t imm, int imm2)
+{
+    uop_t *uop = uop_alloc(ir, uop_type);
+
+    uop->type      = uop_type;
+    uop->imm_data  = imm;
+    uop->imm_data2 = imm2;
+}
+
+static inline void
 uop_gen_pointer(uint32_t uop_type, ir_data_t *ir, void *p)
 {
     uop_t *uop = uop_alloc(ir, uop_type);
@@ -816,6 +828,9 @@ extern int codegen_fp_pending(void);
    inline, the helper called only when it is set (codegen.c). A waiting x87
    instruction's is in codegen_generate_call. */
 extern void codegen_fp_pending_check(ir_data_t *ir);
+/* The exit a helper's answer of 1 in reg takes (a fault, or the FERR# wait),
+   charging the cycles accumulated so far on that path only (codegen.c) */
+extern void codegen_exit_on_one(ir_data_t *ir, int reg);
 extern int  codegen_fpu_rc_nearest(ir_data_t *ir);
 extern int  codegen_fpu_class_dirty;
 /* A store from an empty ST(0): the interpreter's version, then the block
@@ -921,12 +936,15 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 #define uop_FTST(ir, dst_reg, src_reg)                           uop_gen_reg_dst_src1(UOP_FTST, ir, dst_reg, src_reg)
 
 #if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64 || defined __loongarch_lp64
+/*Their exits (#NM, #UD, a pending x87 exception) charge the cycles accumulated
+  so far on the exit path only: imm_data2 of the uop, or codegen_exit_on_one
+  after a helper. The path that goes on leaves them to the next flush.*/
 #if defined __aarch64__ || defined _M_ARM64
 #define uop_FP_ENTER_NOWAIT(ir)                             \
     do {                                                    \
         if (!codegen_fpu_entered) {                         \
             uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);   \
-            uop_gen_imm(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc); \
+            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_accumulate_pending(ACCREG_cycles)); \
         }                                                   \
         codegen_mmx_entered = 0;                            \
     } while (0)
@@ -934,7 +952,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
     do {                                                    \
         if (!codegen_fpu_entered) {                         \
             uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);   \
-            uop_gen_imm(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc); \
+            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_accumulate_pending(ACCREG_cycles)); \
         }                                                   \
         codegen_fpu_entered = 1;                            \
         codegen_mmx_entered = 0;                            \
@@ -945,7 +963,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
         if (!codegen_fpu_entered) {                         \
             uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);           \
             uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_fp_enter); \
-            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout); \
+            codegen_exit_on_one(ir, IREG_temp0);                    \
         }                                                   \
         codegen_mmx_entered = 0;                            \
     } while (0)
@@ -954,7 +972,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
         if (!codegen_fpu_entered) {                         \
             uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);           \
             uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_fp_enter); \
-            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout); \
+            codegen_exit_on_one(ir, IREG_temp0);                    \
         }                                                   \
         codegen_fpu_entered = 1;                            \
         codegen_mmx_entered = 0;                            \
@@ -965,7 +983,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
         if (!codegen_mmx_entered) {                         \
             uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);            \
             uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_mmx_enter); \
-            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout); \
+            codegen_exit_on_one(ir, IREG_temp0);                     \
         }                                                   \
         codegen_mmx_entered = 1;                             \
         codegen_fpu_entered = 0;                             \
@@ -976,13 +994,13 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 #define uop_FP_ENTER_NOWAIT(ir)                             \
     do {                                                    \
         if (!codegen_fpu_entered)                           \
-            uop_gen_imm(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc); \
+            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_accumulate_pending(ACCREG_cycles)); \
         codegen_mmx_entered = 0;                            \
     } while (0)
 #define uop_FP_ENTER(ir)                                    \
     do {                                                    \
         if (!codegen_fpu_entered)                           \
-            uop_gen_imm(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc); \
+            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_accumulate_pending(ACCREG_cycles)); \
         codegen_fpu_entered = 1;                            \
         codegen_mmx_entered = 0;                            \
     } while (0)
@@ -992,10 +1010,10 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
             if (fpu_softfloat) {                                             \
                 uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                \
                 uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_mmx_fpu_pending); \
-                uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);        \
+                codegen_exit_on_one(ir, IREG_temp0);                         \
             } else                                                           \
                 codegen_fp_pending_check(ir);                                \
-            uop_gen_imm(UOP_MMX_ENTER, ir, cpu_state.oldpc);                 \
+            uop_gen_imm2(UOP_MMX_ENTER, ir, cpu_state.oldpc, codegen_accumulate_pending(ACCREG_cycles)); \
         }                                                                    \
         codegen_mmx_entered = 1;                                             \
         codegen_fpu_entered = 0;                                             \

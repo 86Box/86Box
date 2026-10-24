@@ -1032,6 +1032,13 @@ codegen_FP_ENTER(codeblock_t *block, uop_t *uop)
     host_x86_TEST32_REG_IMM(block, REG_ECX, 0xc);
     branch_offset = host_x86_JZ_long(block);
     host_x86_MOV32_ABS_IMM(block, &cpu_state.oldpc, uop->imm_data);
+    /*The cycles accumulated so far, charged on this exit only (the uop is an
+      order barrier, so cycles is in memory)*/
+    if (uop->imm_data2) {
+        host_x86_MOV32_REG_ABS(block, REG_ECX, &cpu_state._cycles);
+        host_x86_ADD32_REG_IMM(block, REG_ECX, uop->imm_data2);
+        host_x86_MOV32_ABS_REG(block, &cpu_state._cycles, REG_ECX);
+    }
 #    if _WIN64
     host_x86_MOV32_REG_IMM(block, REG_ECX, 7);
 #    else
@@ -1052,6 +1059,12 @@ codegen_MMX_ENTER(codeblock_t *block, uop_t *uop)
     host_x86_TEST32_REG_IMM(block, REG_ECX, 0xc);
     branch_offset = host_x86_JZ_long(block);
     host_x86_MOV32_ABS_IMM(block, &cpu_state.oldpc, uop->imm_data);
+    /*As codegen_FP_ENTER (the uop is a full barrier)*/
+    if (uop->imm_data2) {
+        host_x86_MOV32_REG_ABS(block, REG_ECX, &cpu_state._cycles);
+        host_x86_ADD32_REG_IMM(block, REG_ECX, uop->imm_data2);
+        host_x86_MOV32_ABS_REG(block, &cpu_state._cycles, REG_ECX);
+    }
     host_x86_CALL(block, codegen_mmx_unavailable);
     host_x86_JMP(block, codegen_exit_rout);
     *branch_offset = (uint32_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) branch_offset) - 4;

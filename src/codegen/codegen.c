@@ -535,7 +535,34 @@ codegen_fp_pending_check(ir_data_t *ir)
     jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp0, 0);
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_fp_pending);
-    uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);
+    codegen_exit_on_one(ir, IREG_temp0);
+    uop_set_jump_dest(ir, jump_uop);
+}
+
+/* The exit taken when the helper just called answered 1 in reg (a fault, or
+   the FERR# wait). It charges the cycles accumulated so far, the faulting
+   instruction's own included, as a call to the interpreter does, but on that
+   path only: the accumulator is left to the path that goes on, whose next
+   flush still owes them. The arm leaves by a conditional branch, always taken
+   there: a fault path goes back to the C loop unlinked. It tests a 1 of its
+   own, not the answer, which would then be kept past the test for it on the
+   path that goes on. It joins after the helper's call, a full barrier, so the
+   join reloads nothing the call had not already dropped. */
+void
+codegen_exit_on_one(ir_data_t *ir, int reg)
+{
+    int pending = codegen_accumulate_pending(ACCREG_cycles);
+    int jump_uop;
+
+    if (!pending) {
+        uop_CMP_IMM_JZ(ir, reg, 1, codegen_exit_rout);
+        return;
+    }
+    jump_uop = uop_CMP_IMM_JNZ_DEST(ir, reg, 1);
+    uop_ADD_IMM(ir, IREG_cycles, IREG_cycles, pending);
+    uop_MOV_IMM(ir, reg, 1);
+    uop_CMP_IMM_JZ(ir, reg, 1, codegen_exit_rout);
+    uop_NOP_BARRIER(ir);
     uop_set_jump_dest(ir, jump_uop);
 }
 
@@ -1238,7 +1265,7 @@ generate_call:
         jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp3, 0);
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         uop_CALL_FUNC_RESULT(ir, IREG_temp3, x87_legacy_pending_entry);
-        uop_CMP_IMM_JZ(ir, IREG_temp3, 1, codegen_exit_rout);
+        codegen_exit_on_one(ir, IREG_temp3);
         uop_set_jump_dest(ir, jump_uop);
     }
 

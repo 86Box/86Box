@@ -1048,6 +1048,13 @@ codegen_FP_ENTER(codeblock_t *block, uop_t *uop)
 
     host_arm64_mov_imm(block, REG_TEMP, uop->imm_data);
     host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.oldpc - (uintptr_t) &cpu_state);
+    /*The cycles accumulated so far, charged on this exit only (the uop is an
+      order barrier, so cycles is in memory)*/
+    if (uop->imm_data2) {
+        host_arm64_LDR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state._cycles - (uintptr_t) &cpu_state);
+        host_arm64_ADD_IMM(block, REG_TEMP, REG_TEMP, uop->imm_data2);
+        host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state._cycles - (uintptr_t) &cpu_state);
+    }
     host_arm64_mov_imm(block, REG_ARG0, 7);
     host_arm64_call(block, x86_int);
     host_arm64_B(block, codegen_exit_rout);
