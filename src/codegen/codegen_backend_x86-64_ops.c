@@ -121,6 +121,28 @@ fits_disp32(int64_t offset)
     return (offset >= -2147483648LL) && (offset <= 2147483647LL);
 }
 
+/*ADD r/m32, imm8 (83 /0 ib, sign-extended) where the immediate fits, else
+  ADD r/m32, imm32 (81 /0 id)*/
+void
+host_x86_ADD32_ABS_IMM(codeblock_t *block, void *p, uint32_t imm_data)
+{
+    int64_t offset  = rbp_offset(p);
+    int     imm_len = is_imm8(imm_data) ? 1 : 4;
+    uint8_t op      = (imm_len == 1) ? 0x83 : 0x81;
+
+    if (imm_len == 1)
+        imm_data &= 0xff;
+    if (offset >= -128 && offset <= 127)
+        emit_mem(block, 0, 0, 0, 1, op, 0, REG_RBP, NO_INDEX, 0, offset, DISP_8, imm_len, imm_data); /*ADD offset[RBP], imm_data*/
+    else if (fits_disp32(offset))
+        emit_mem(block, 0, 0, 0, 1, op, 0, REG_RBP, NO_INDEX, 0, offset, DISP_32, imm_len, imm_data); /*ADD offset[RBP], imm_data*/
+    else {
+        if ((uintptr_t) p >> 32)
+            fatal("host_x86_ADD32_ABS_IMM - out of range %p\n", p);
+        emit_abs32(block, 0, 0, 0, 1, op, 0, (uint32_t) (uintptr_t) p, imm_len, imm_data); /*ADD p, imm_data*/
+    }
+}
+
 void
 host_x86_ADD8_REG_IMM(codeblock_t *block, int dst_reg, uint8_t imm_data)
 {

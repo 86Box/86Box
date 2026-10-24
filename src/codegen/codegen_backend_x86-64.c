@@ -60,6 +60,18 @@ void *codegen_ss_rout;
 void *codegen_exit_rout;
 void *codegen_rep_rout[2][3][2];
 
+/*Entries to the exit routines that take 1..n cycles off cycles first, one
+  per routine and count, so an exit that charges them keeps its single
+  branch and changes only its target (codegen_exit_dest). Nearly every
+  exit's charge is the instruction's own cycles and those of the few before
+  it; a larger one gets an arm in the block.*/
+#    define EXIT_CHARGED_EXIT 128
+#    define EXIT_CHARGED_GPF  64
+#    define EXIT_CHARGED_SS   32
+static void *codegen_exit_charged[EXIT_CHARGED_EXIT];
+static void *codegen_gpf_charged[EXIT_CHARGED_GPF];
+static void *codegen_ss_charged[EXIT_CHARGED_SS];
+
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 codegen_link_slot_t codegen_link_slots[BLOCK_SIZE][CODEGEN_LINK_SLOTS];
 
@@ -1561,6 +1573,35 @@ build_link_routine(codeblock_t *block)
 }
 #    endif
 
+static void
+build_exit_charged(codeblock_t *block, void **entries, int nr, void *route)
+{
+    for (int c = 1; c <= nr; c++) {
+        codegen_alloc(block, 16);
+        entries[c - 1] = &block_write_data[block_pos];
+        host_x86_ADD32_ABS_IMM(block, &cpu_state._cycles, -c);
+        host_x86_JMP(block, route);
+    }
+}
+
+void *
+codegen_exit_dest(void *route, int add)
+{
+    const int charge = -add;
+
+    if (!add)
+        return route;
+    if (charge < 1)
+        return NULL;
+    if ((route == codegen_exit_rout) && (charge <= EXIT_CHARGED_EXIT))
+        return codegen_exit_charged[charge - 1];
+    if ((route == codegen_gpf_rout) && (charge <= EXIT_CHARGED_GPF))
+        return codegen_gpf_charged[charge - 1];
+    if ((route == codegen_ss_rout) && (charge <= EXIT_CHARGED_SS))
+        return codegen_ss_charged[charge - 1];
+    return NULL;
+}
+
 void
 codegen_backend_init(void)
 {
@@ -1634,6 +1675,10 @@ codegen_backend_init(void)
 #    endif
     host_x86_CALL(block, (void *) x86ss);
     host_x86_JMP(block, codegen_exit_rout);
+
+    build_exit_charged(block, codegen_exit_charged, EXIT_CHARGED_EXIT, codegen_exit_rout);
+    build_exit_charged(block, codegen_gpf_charged, EXIT_CHARGED_GPF, codegen_gpf_rout);
+    build_exit_charged(block, codegen_ss_charged, EXIT_CHARGED_SS, codegen_ss_rout);
 
     for (int is_stos = 0; is_stos < 2; is_stos++) {
         for (int shift = 0; shift < 3; shift++) {

@@ -235,6 +235,50 @@ codegen_ANDN(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*An exit that adds add to cycles first (uop->imm_data2), with no entry for it
+  (codegen_exit_dest): the add in its own arm, which the path that goes on
+  branches over. Every exit is an order barrier at least, so cycles is in
+  memory. EXIT_ARM_SIZE keeps the branch over the arm and the arm in one
+  code chunk: room for the branch, the longest add and the longest jump.*/
+#    define EXIT_ARM_SIZE 32
+
+static void
+codegen_exit_add(codeblock_t *block, int add)
+{
+    host_x86_ADD32_ABS_IMM(block, &cpu_state._cycles, add);
+}
+
+static void
+codegen_exit_arm(codeblock_t *block, int add, void *route)
+{
+    codegen_exit_add(block, add);
+    host_x86_JMP(block, route);
+}
+
+/*A conditional branch to route from branch (host_x86_JNZ_long and the like),
+  charging what uop->imm_data2 adds on the way. Without an entry the branch
+  with the opposite condition, inverse, jumps over the arm. Returns where the
+  exit starts, for another branch to the same exit.*/
+static void *
+codegen_exit_Jcc(codeblock_t *block, uop_t *uop, void *route, uint32_t *(*branch)(codeblock_t *block), uint32_t *(*inverse)(codeblock_t *block))
+{
+    void     *dest = codegen_exit_dest(route, uop->imm_data2);
+    uint32_t *jump_p;
+
+    if (dest) {
+        jump_p  = branch(block);
+        *jump_p = (uintptr_t) dest - ((uintptr_t) jump_p + 4);
+        return dest;
+    }
+    codegen_alloc(block, EXIT_ARM_SIZE);
+    jump_p = inverse(block);
+    dest   = &block_write_data[block_pos];
+    codegen_exit_arm(block, uop->imm_data2, route);
+    *jump_p = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) jump_p + 4);
+
+    return dest;
+}
+
 static int
 codegen_CALL_FUNC(codeblock_t *block, uop_t *uop)
 {
@@ -317,7 +361,7 @@ codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
 #    endif
     host_x86_CALL(block, uop->p);
     host_x86_TEST32_REG(block, REG_EAX, REG_EAX);
-    host_x86_JNZ(block, codegen_exit_rout);
+    codegen_exit_Jcc(block, uop, codegen_exit_rout, host_x86_JNZ_long, host_x86_JZ_long);
 
     return 0;
 }
@@ -355,6 +399,7 @@ codegen_CALL_REP_STRING(codeblock_t *block, uop_t *uop)
 static int
 codegen_SMI_EXIT_IMM(codeblock_t *block, uop_t *uop)
 {
+    void     *dest = codegen_exit_dest(codegen_exit_rout, uop->imm_data2);
     uint32_t *branch_offset;
 
     host_x86_MOVZX_REG_ABS_32_8(block, REG_ECX, &cpu_state._smi_line);
@@ -362,7 +407,11 @@ codegen_SMI_EXIT_IMM(codeblock_t *block, uop_t *uop)
     branch_offset = host_x86_JZ_long(block);
     if (uop->type & UOP_TYPE_PARAMS_IMM)
         host_x86_MOV32_ABS_IMM(block, &cpu_state.pc, uop->imm_data);
-    host_x86_JMP(block, codegen_exit_rout);
+    /*Charging what the block's end would (uop->imm_data2)*/
+    if (dest)
+        host_x86_JMP(block, dest);
+    else
+        codegen_exit_arm(block, uop->imm_data2, codegen_exit_rout);
     *branch_offset = (uint32_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) branch_offset) - 4;
 
     return 0;
@@ -381,7 +430,7 @@ codegen_CMP_IMM_JZ(codeblock_t *block, uop_t *uop)
     else
         fatal("CMP_IMM_JZ %02x\n", uop->src_reg_a_real);
 #    endif
-    host_x86_JZ(block, uop->p);
+    codegen_exit_Jcc(block, uop, uop->p, host_x86_JZ_long, host_x86_JNZ_long);
 
     return 0;
 }
@@ -1308,17 +1357,26 @@ codegen_JMP_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_JMP(codeblock_t *block, uop_t *uop)
 {
+    void *dest;
+
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     /*An unconditional jump out of the block is an ordinary hand-off (UOP_JMP
       writes registers back), so it can link like the block's end. Fault
       paths reach codegen_exit_rout by conditional branches or direct jumps
       instead.*/
     if (codegen_block_link && (uop->p == codegen_exit_rout)) {
+        if (uop->imm_data2)
+            codegen_exit_add(block, uop->imm_data2);
         codegen_link_exit(block);
         return 0;
     }
 #    endif
-    host_x86_JMP(block, uop->p);
+    dest = codegen_exit_dest(uop->p, uop->imm_data2);
+    if (!dest) {
+        codegen_exit_add(block, uop->imm_data2);
+        dest = uop->p;
+    }
+    host_x86_JMP(block, dest);
 
     return 0;
 }
