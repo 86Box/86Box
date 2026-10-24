@@ -999,7 +999,8 @@ codegen_MEM_LOAD_ABS(codeblock_t *block, uop_t *uop)
         host_arm64_BFI(block, dest_reg, REG_X0, 0, 16);
     } else if (REG_IS_L(dest_size)) {
         host_arm64_MOV_REG(block, dest_reg, REG_X0, 0);
-    }
+    } else
+        fatal("MEM_LOAD_ABS - %02x\n", uop->dest_reg_a_real);
 
     return 0;
 }
@@ -1062,7 +1063,8 @@ codegen_MEM_LOAD_REG(codeblock_t *block, uop_t *uop)
         host_arm64_MOV_REG(block, dest_reg, REG_X0, 0);
     } else if (REG_IS_Q(dest_size)) {
         host_arm64_FMOV_D_D(block, dest_reg, REG_V_TEMP);
-    }
+    } else
+        fatal("MEM_LOAD_REG - %02x\n", uop->dest_reg_a_real);
 
     return 0;
 }
