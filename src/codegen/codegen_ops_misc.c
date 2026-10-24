@@ -147,8 +147,8 @@ ropF6(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchd
                 uop_AND(ir, IREG_flags_res_B, reg, IREG_temp1_B);
             } else {
                 imm_data = fastreadb(cs + op_pc + 1);
-                uop_AND_IMM(ir, IREG_flags_res_B, reg, imm_data);
                 codegen_mark_code_present(block, cs + op_pc + 1, 1);
+                uop_AND_IMM(ir, IREG_flags_res_B, reg, imm_data);
             }
             uop_MOVZX(ir, IREG_flags_res, IREG_flags_res_B);
             uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN8);
@@ -231,8 +231,8 @@ ropF7_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
                 uop_AND(ir, IREG_flags_res_W, reg, IREG_temp1_W);
             } else {
                 imm_data = fastreadw(cs + op_pc + 1);
-                uop_AND_IMM(ir, IREG_flags_res_W, reg, imm_data);
                 codegen_mark_code_present(block, cs + op_pc + 1, 2);
+                uop_AND_IMM(ir, IREG_flags_res_W, reg, imm_data);
             }
             uop_MOVZX(ir, IREG_flags_res, IREG_flags_res_W);
             uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN16);
@@ -315,8 +315,8 @@ ropF7_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
                 uop_AND(ir, IREG_flags_res, reg, IREG_temp1);
             } else {
                 imm_data = fastreadl(cs + op_pc + 1);
-                uop_AND_IMM(ir, IREG_flags_res, reg, imm_data);
                 codegen_mark_code_present(block, cs + op_pc + 1, 4);
+                uop_AND_IMM(ir, IREG_flags_res, reg, imm_data);
             }
             uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN32);
 
@@ -991,10 +991,6 @@ bit_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32,
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
     }
-    if (imm_form) {
-        imm = fastreadb(cs + op_pc + 1) & mask;
-        codegen_mark_code_present(block, cs + op_pc + 1, 1);
-    }
 
     if (is_reg) {
         if (is32)
@@ -1026,6 +1022,11 @@ bit_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32,
             uop_MEM_LOAD_REG(ir, IREG_temp3_W, ireg_seg_base(target_seg), IREG_eaaddr);
             uop_MOVZX(ir, IREG_temp0, IREG_temp3_W);
         }
+    }
+    /*The interpreter fetches the bit offset after it reads the operand*/
+    if (imm_form) {
+        imm = fastreadb(cs + op_pc + 1) & mask;
+        codegen_mark_code_present(block, cs + op_pc + 1, 1);
     }
 
     /*CF = the bit*/

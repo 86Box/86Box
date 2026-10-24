@@ -64,14 +64,47 @@ fetch_ea_16_long(UNUSED(uint32_t rmdat))
     }
 }
 
-#define fetch_ea_16(rmdat) \
-    cpu_state.pc++;        \
-    if (cpu_mod != 3)      \
-        fetch_ea_16_long(rmdat);
-#define fetch_ea_32(rmdat) \
-    cpu_state.pc++;        \
-    if (cpu_mod != 3)      \
-        fetch_ea_32_long(rmdat);
+/*A hand-over's displacement walk, which codegen_skip leaves to the op: made
+  where the interpreter's fetch_ea reads the displacement, after the op's own
+  checks (MMX_ENTER, FP_ENTER, ILLEGAL_ON), which fault without it. The
+  compiled code stores the address before every hand-over with a memory
+  operand, so one left by an op that faulted first is never taken. Nonzero
+  with the #PF, which the op returns with as from the interpreter's
+  fetch_ea, whose eaaddr then lacks what the displacement's bytes from the
+  fault on add (16 bits with a16), and which an x87 op's escape wrapper
+  records as the data pointer (bit 1 of the stored word)*/
+static __inline int
+dynarec_handover_walk(int a16)
+{
+    uint32_t walk = cpu_state.handover_walk;
+
+    if (!walk)
+        return 0;
+    cpu_state.handover_walk = 0;
+    if (!dynarec_fetch_walk(walk & ~0xfff))
+        return 0;
+    cpu_state.eaaddr -= cpu_state.handover_walk_part;
+    if (a16)
+        cpu_state.eaaddr &= 0xffff;
+    if (walk & 2)
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    return 1;
+}
+
+#define fetch_ea_16(rmdat)            \
+    cpu_state.pc++;                   \
+    if (cpu_mod != 3) {               \
+        if (dynarec_handover_walk(1)) \
+            return 1;                 \
+        fetch_ea_16_long(rmdat);      \
+    }
+#define fetch_ea_32(rmdat)            \
+    cpu_state.pc++;                   \
+    if (cpu_mod != 3) {               \
+        if (dynarec_handover_walk(0)) \
+            return 1;                 \
+        fetch_ea_32_long(rmdat);      \
+    }
 
 #define PREFETCH_RUN(instr_cycles, bytes, modrm, reads, read_ls, writes, write_ls, ea32)
 #define PREFETCH_PREFIX()
@@ -123,6 +156,20 @@ dynarec_iret_cs(uint16_t seg)
     cycles -= timing_iret_rm;
     nmi_enable       = 1;
     rf_flag_no_clear = 1;
+}
+
+/*The walk of a compiled block's second page where the interpreter's code
+  fetch first reads from it (getpccache(): mmutranslate_read on every change
+  of fetch page): the Accessed bits, and the #PF a page that is no longer
+  present raises, from oldpc. Nonzero then, which leaves the block*/
+int
+dynarec_fetch_walk(uint32_t addr)
+{
+    if (!(cr0 >> 31))
+        return 0;
+    (void) mmutranslatereal(addr, 0);
+
+    return !!cpu_state.abrt;
 }
 
 /*The compiled SGDT, SIDT, LGDT and LIDT memory forms, the operand at

@@ -312,9 +312,42 @@ codeblock_tree_delete(codeblock_t *block)
 
 void codegen_mark_code_present_multibyte(codeblock_t *block, uint32_t start_pc, int len);
 
+/*The second 4 KB page's walk (dynarec_fetch_walk), emitted once per compile
+  where the interpreter's fetch first reads from that page: at the front of
+  the instruction whose own fetch reaches it, else where a handler takes a
+  byte from it (codegen_fetch_walk_mark). codegen_fetch_walk_off: the marks
+  of bytes that fetch covers, which do not walk. codegen_fetch_walk_defer:
+  the marks of an EA whose walk is made later, by a hand-over's op in its
+  fetch_ea or after a compiled x87 instruction's address is formed; the
+  address is kept in codegen_fetch_walk_deferred with bit 0 set, 0 for
+  none. Such a walk is past the instruction's front, where the bytes before
+  it are on the first page (a page-2 byte among those the front fetch reads
+  walks there), so its address is always a page's first byte, linear 0
+  included, and the low bits are free*/
+extern int      codegen_page2_walked;
+extern int      codegen_fetch_walk_off;
+extern int      codegen_fetch_walk_defer;
+extern uint32_t codegen_fetch_walk_deferred;
+extern void     codegen_fetch_walk(uint32_t addr);
+extern int      dynarec_fetch_walk(uint32_t addr);
+
+/*The walk for bytes a handler takes, where it is called. The interpreter's
+  op fetches an immediate after the EA and the segment's null and writable
+  test, before the operand (IMUL and TEST r/m,imm read the operand first),
+  so a handler that marks it after the access calls this there. In a block
+  that reads its immediates from RAM (CODEBLOCK_NO_IMMEDIATES) an immediate
+  not wholly on the first page is still marked (immediate_off_first_page)*/
+static inline void
+codegen_fetch_walk_mark(codeblock_t *block, uint32_t start_pc, int len)
+{
+    if (!codegen_page2_walked && !codegen_fetch_walk_off && (((start_pc + len - 1) ^ block->pc) & ~0xfff))
+        codegen_fetch_walk(((start_pc ^ block->pc) & ~0xfff) ? start_pc : ((start_pc + len - 1) & ~0xfff));
+}
+
 static inline void
 codegen_mark_code_present(codeblock_t *block, uint32_t start_pc, int len)
 {
+    codegen_fetch_walk_mark(block, start_pc, len);
     if (len == 1) {
         if (block->flags & CODEBLOCK_BYTE_MASK) {
             if (!((start_pc ^ block->pc) & ~0x3f)) /*Starts in second page*/

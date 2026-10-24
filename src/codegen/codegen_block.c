@@ -983,6 +983,9 @@ codegen_block_start_recompile(codeblock_t *block)
 
     block->TOP = cpu_state.TOP & 7;
     block->flags |= CODEBLOCK_WAS_RECOMPILED;
+    codegen_page2_walked     = 0;
+    codegen_fetch_walk_off   = 0;
+    codegen_fetch_walk_defer = 0;
 
     codegen_flat_ds = !(block->status & CPU_STATUS_NOTFLATDS);
     codegen_flat_ss = !(block->status & CPU_STATUS_NOTFLATSS);
@@ -1345,6 +1348,32 @@ codegen_flush(void)
       Accessed bits the fetch would. A real entry is page aligned, so this
       tag never hits, there or in the link routines' compare.*/
     get_phys_phys = 0xffffffff;
+}
+
+int      codegen_page2_walked;
+int      codegen_fetch_walk_off;
+int      codegen_fetch_walk_defer;
+uint32_t codegen_fetch_walk_deferred;
+
+/*Compiled code fetches nothing: the walk of the second page the
+  interpreter's fetch would make at this point, every time the block gets
+  here. A full barrier, so it is safe inside a handler (the temporaries are
+  written back), and its exit takes the #PF from this instruction's oldpc.
+  The cycles it may leave with are stamped on it (uop_alloc)*/
+void
+codegen_fetch_walk(uint32_t addr)
+{
+    ir_data_t *ir = codegen_get_ir_data();
+
+    codegen_page2_walked = 1;
+    /*A displacement whose walk is made later (codegen_skip, codegen.c's
+      codegen_generate_ea), linear 0 as any other address*/
+    if (codegen_fetch_walk_defer) {
+        codegen_fetch_walk_deferred = addr | 1;
+        return;
+    }
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    uop_CALL_INSTRUCTION_FUNC(ir, dynarec_fetch_walk, addr);
 }
 
 void

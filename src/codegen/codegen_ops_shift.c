@@ -591,6 +591,7 @@ ropC0(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchd
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         codegen_check_seg_write(block, ir, target_seg);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, 1);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 0);
         uop_MEM_LOAD_REG(ir, IREG_temp0_B, ireg_seg_base(target_seg), IREG_eaaddr);
     }
@@ -618,6 +619,7 @@ ropC1_w(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         codegen_check_seg_write(block, ir, target_seg);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, 1);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, ireg_seg_base(target_seg), IREG_eaaddr);
     }
@@ -645,6 +647,7 @@ ropC1_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         codegen_check_seg_write(block, ir, target_seg);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, 1);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 3);
         uop_MEM_LOAD_REG(ir, IREG_temp0, ireg_seg_base(target_seg), IREG_eaaddr);
     }
@@ -1126,6 +1129,7 @@ ropSHLD_16_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
         /*Checked and read whatever the count, as the interpreter does: a
           count of 0 still faults on the destination*/
         codegen_check_seg_write(block, ir, target_seg);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, 1);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
         uop_MEM_LOAD_REG(ir, IREG_temp2_W, ireg_seg_base(target_seg), IREG_eaaddr);
     }
@@ -1188,6 +1192,7 @@ ropSHLD_32_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
         /*Checked and read whatever the count, as the interpreter does: a
           count of 0 still faults on the destination*/
         codegen_check_seg_write(block, ir, target_seg);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, 1);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 3);
         uop_MEM_LOAD_REG(ir, IREG_temp2, ireg_seg_base(target_seg), IREG_eaaddr);
     }
@@ -1246,6 +1251,7 @@ ropSHRD_16_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
         /*Checked and read whatever the count, as the interpreter does: a
           count of 0 still faults on the destination*/
         codegen_check_seg_write(block, ir, target_seg);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, 1);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
         uop_MEM_LOAD_REG(ir, IREG_temp2_W, ireg_seg_base(target_seg), IREG_eaaddr);
     }
@@ -1308,6 +1314,7 @@ ropSHRD_32_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
         /*Checked and read whatever the count, as the interpreter does: a
           count of 0 still faults on the destination*/
         codegen_check_seg_write(block, ir, target_seg);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, 1);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 3);
         uop_MEM_LOAD_REG(ir, IREG_temp2, ireg_seg_base(target_seg), IREG_eaaddr);
     }
@@ -1465,6 +1472,7 @@ shxd_imm_ram(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_3
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         codegen_check_seg_write(block, ir, target_seg);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, 1);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, is32 ? 3 : 1);
         if (is32)
             uop_MEM_LOAD_REG(ir, IREG_temp0, ireg_seg_base(target_seg), IREG_eaaddr);

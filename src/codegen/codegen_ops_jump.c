@@ -61,13 +61,14 @@ ropJMP_far_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
     uint16_t new_pc = fastreadw(cs + op_pc);
     uint16_t new_cs = fastreadw(cs + op_pc + 2);
 
+    /*The interpreter fetches the pointer before it loads anything*/
+    codegen_mark_code_present(block, cs + op_pc, 4);
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     uop_MOV_IMM(ir, IREG_pc, new_pc);
     uop_LOAD_FUNC_ARG_IMM(ir, 0, new_cs);
     uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 4);
     uop_CALL_FUNC(ir, loadcsjmp);
 
-    codegen_mark_code_present(block, cs + op_pc, 4);
     return -1;
 }
 uint32_t
@@ -76,13 +77,13 @@ ropJMP_far_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
     uint32_t new_pc = fastreadl(cs + op_pc);
     uint16_t new_cs = fastreadw(cs + op_pc + 4);
 
+    codegen_mark_code_present(block, cs + op_pc, 6);
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     uop_MOV_IMM(ir, IREG_pc, new_pc);
     uop_LOAD_FUNC_ARG_IMM(ir, 0, new_cs);
     uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 6);
     uop_CALL_FUNC(ir, loadcsjmp);
 
-    codegen_mark_code_present(block, cs + op_pc, 6);
     return -1;
 }
 
@@ -96,6 +97,8 @@ ropCALL_far_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
     uint16_t new_pc = fastreadw(cs + op_pc);
     uint16_t new_cs = fastreadw(cs + op_pc + 2);
 
+    /*The interpreter fetches the pointer before it pushes or loads anything*/
+    codegen_mark_code_present(block, cs + op_pc, 4);
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     codegen_accumulate_flush(ir);
     uop_MOV_IMM(ir, IREG_pc, new_pc);
@@ -103,7 +106,6 @@ ropCALL_far_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
     uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 4);
     uop_CALL_FUNC(ir, dynarec_call_far_w);
 
-    codegen_mark_code_present(block, cs + op_pc, 4);
     return -1;
 }
 uint32_t
@@ -112,6 +114,7 @@ ropCALL_far_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
     uint32_t new_pc = fastreadl(cs + op_pc);
     uint16_t new_cs = fastreadw(cs + op_pc + 4);
 
+    codegen_mark_code_present(block, cs + op_pc, 6);
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     codegen_accumulate_flush(ir);
     uop_MOV_IMM(ir, IREG_pc, new_pc);
@@ -119,7 +122,6 @@ ropCALL_far_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
     uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 6);
     uop_CALL_FUNC(ir, dynarec_call_far_l);
 
-    codegen_mark_code_present(block, cs + op_pc, 6);
     return -1;
 }
 
@@ -150,13 +152,13 @@ ropCALL_r32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(ui
     uint32_t dest_addr = ret_addr + offset;
     int      sp_reg;
 
+    codegen_mark_code_present(block, cs + op_pc, 4);
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
     uop_MEM_STORE_IMM_32(ir, IREG_SS_base, sp_reg, ret_addr);
     SUB_SP(ir, 4);
     uop_MOV_IMM(ir, IREG_pc, dest_addr);
 
-    codegen_mark_code_present(block, cs + op_pc, 4);
     return -1;
 }
 

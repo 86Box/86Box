@@ -352,6 +352,12 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
           it under the new word unchecked*/
         if ((ir->uops[c].type & UOP_MASK) == (UOP_FP_CONTROL_SET & UOP_MASK))
             return 0;
+        /*Nor across the second page's fetch walk, made where the interpreter
+          first fetches from that page: its later passes stay on the page and
+          walk no more, which a copy would*/
+        if ((((ir->uops[c].type & UOP_MASK) == (UOP_CALL_INSTRUCTION_FUNC & UOP_MASK)) || ((ir->uops[c].type & UOP_MASK) == (UOP_CALL_FUNC_RESULT & UOP_MASK))) &&
+            (ir->uops[c].p == (void *) dynarec_fetch_walk))
+            return 0;
         if ((ir->uops[c].type & UOP_MASK) == (UOP_CALL_INSTRUCTION_FUNC & UOP_MASK)) {
             /*The x87 hand-over's pointer record, between its call and its
               exit, sets no compile-time state: stepped over*/

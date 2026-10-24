@@ -43,6 +43,9 @@ jcc_dynamic_start(codeblock_t *block, uint32_t op_pc, int size, uint32_t next_pc
     /* A displacement on another page than the block start is not covered by the
        physical page checks made when the block is looked up. */
     jcc_dynamic.active = (block->flags & CODEBLOCK_NO_IMMEDIATES) && !(((cs + op_pc + size - 1) ^ block->pc) & ~0xfff);
+    /* The interpreter's op reads the displacement before it branches, so its
+       walk goes ahead of the taken exit, not with the mark at the end. */
+    codegen_fetch_walk_mark(block, cs + op_pc, size);
 }
 
 static void

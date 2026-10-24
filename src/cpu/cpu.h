@@ -450,6 +450,15 @@ typedef struct {
        permanent register of the recompiler, for the division helper
        (x87_dyn_fdiv, 386_dynarec.c) */
     double x87_operand;
+
+    /* The second page's walk a hand-over's op makes where its fetch_ea
+       would read the displacement (386_dynarec_ops.c), 0 for none: stored
+       by the compiled code before the call, which reaches no global
+       outside cpu_state. The page's first byte, with bit 0 set and bit 1
+       for an x87 op whose data pointer was recorded (codegen_skip); the
+       part is what the displacement's bytes on that page add to eaaddr */
+    uint32_t handover_walk;
+    uint32_t handover_walk_part;
 #endif
 } cpu_state_t;
 

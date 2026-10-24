@@ -419,23 +419,103 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
     return op_ea_seg;
 }
 
+/* What the bytes of an EA's displacement on the block's second page add to
+   its address. When the interpreter's fetch_ea takes the #PF reading them
+   it goes on with 0 for those bytes (a split fastreadl or fastreadw reads
+   the page's first byte first, and answers 0 from the faulting read on) and
+   forms the rest, registers and segment included: its eaaddr is the
+   address less this, 16 bits for 16-bit addressing. modrm is the ModR/M
+   byte's address, fetchdat the bytes from there. A constant: a displacement
+   not wholly on the first page is compiled in, in every kind of block */
+static uint32_t
+codegen_ea_disp_part(const codeblock_t *block, uint32_t fetchdat, uint32_t modrm, int a32)
+{
+    const int mod  = (fetchdat >> 6) & 3;
+    const int rm   = fetchdat & 7;
+    uint32_t  disp = modrm + 1;
+    uint32_t  part = 0;
+    int       len  = 0;
+
+    if (a32) {
+        if (rm == 4) {
+            disp++;
+            if (mod == 1)
+                len = 1;
+            else if ((mod == 2) || (((fetchdat >> 8) & 7) == 5))
+                len = 4;
+        } else if (mod == 1)
+            len = 1;
+        else if ((mod == 2) || (rm == 5))
+            len = 4;
+    } else if (mod == 1)
+        len = 1;
+    else if ((mod == 2) || (rm == 6))
+        len = 2;
+
+    for (int c = 0; c < len; c++) {
+        if (((disp + c) ^ block->pc) & ~0xfff)
+            part |= (uint32_t) fastreadb(disp + c) << (c * 8);
+    }
+    if (len == 1)
+        part = (uint32_t) (int32_t) (int8_t) part;
+
+    return part;
+}
+
 /* The segment of the last memory operand codegen_generate_ea() formed, for
    the FPU's data pointer (fpu_postamble) after a compiled instruction. */
 static x86seg *codegen_ea_target_seg;
 
+/* Set while a compiled x87 instruction's handler is generated: the walk its
+   EA's marks would make is made once the address is formed, so that its #PF
+   leaves with the escape wrapper's record (codegen_generate_ea) */
+static int codegen_fetch_walk_fpu;
+
+static int codegen_fpu_emit_record(ir_data_t *ir, x86seg *seg, int entry);
+
 x86seg *
 codegen_generate_ea(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, uint32_t *op_pc, uint32_t op_32, int stack_offset)
 {
+    const uint32_t modrm = cs + *op_pc;
+
     cpu_mod = (fetchdat >> 6) & 3;
     cpu_reg = (fetchdat >> 3) & 7;
     cpu_rm  = fetchdat & 7;
 
     if ((fetchdat & 0xc0) == 0xc0)
         return NULL;
+    if (codegen_fetch_walk_fpu) {
+        codegen_fetch_walk_defer    = 1;
+        codegen_fetch_walk_deferred = 0;
+    }
     if (op_32 & 0x200)
         codegen_ea_target_seg = codegen_generate_ea_32_long(ir, op_ea_seg, fetchdat, op_ssegs, op_pc, stack_offset);
     else
         codegen_ea_target_seg = codegen_generate_ea_16_long(ir, op_ea_seg, fetchdat, op_ssegs, op_pc);
+    /* The escape wrapper records the pointers after an op that faulted in
+       its fetch_ea, the data pointer from the eaaddr and segment it left
+       (x86_ops_fpu.h, fpu_postamble): on the walk's #PF only, after which
+       the block is left, the path that goes on joining behind barriers */
+    if (codegen_fetch_walk_fpu) {
+        codegen_fetch_walk_defer = 0;
+        if (codegen_fetch_walk_deferred) {
+            const uint32_t part = codegen_ea_disp_part(ir->block, fetchdat, modrm, op_32 & 0x200);
+            int            jump_uop;
+
+            uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+            uop_LOAD_FUNC_ARG_IMM(ir, 0, codegen_fetch_walk_deferred & ~0xfff);
+            uop_CALL_FUNC_RESULT(ir, IREG_temp3, dynarec_fetch_walk);
+            jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp3, 0);
+            uop_SUB_IMM(ir, IREG_eaaddr, IREG_eaaddr, part);
+            if (!(op_32 & 0x200))
+                uop_AND_IMM(ir, IREG_eaaddr, IREG_eaaddr, 0xffff);
+            codegen_fpu_emit_record(ir, codegen_ea_target_seg, 0);
+            uop_MOV_IMM(ir, IREG_temp3, 1);
+            codegen_exit_on_one(ir, IREG_temp3);
+            uop_NOP_BARRIER(ir);
+            uop_set_jump_dest(ir, jump_uop);
+        }
+    }
 
     return codegen_ea_target_seg;
 }
@@ -657,6 +737,10 @@ codegen_fpu_handover(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t 
     uop_MOV_IMM(ir, IREG_op32, op_32);
     if (target_seg)
         uop_MOV_PTR(ir, IREG_ea_seg, (void *) target_seg);
+    /* The handler's EA made its displacement's walk: none for the
+       function's fetch_ea (codegen_skip's hand-overs store theirs) */
+    if (((fetchdat >> 6) & 3) != 3)
+        uop_STORE_PTR_IMM(ir, &cpu_state.handover_walk, 0);
     /* The handler is the interpreter's function, not its escape wrapper,
        which records the instruction and data pointers after it whatever it
        answered: recorded before the call, which leaves the block on a fault.
@@ -859,6 +943,27 @@ codegen_fpu_rc_nearest(ir_data_t *ir)
     return 1;
 }
 
+/* Whether the interpreter's fetch of len bytes at addr, an instruction's or
+   a prefix's first byte, reads from the block's second page, and where it
+   first does (*walk): addr, or the page's first byte, which a read split at
+   the page's end reaches first (fastreadl, fastreadw). fastreadl_fetch
+   reads four bytes, near the page's end only as many as opcode_length[]
+   gives; the refetch after a prefix is a plain fastreadl. The page after
+   0xfffff000 is linear 0 */
+static int
+codegen_fetch_reach(const codeblock_t *block, uint32_t addr, int len, uint32_t *walk)
+{
+    if ((addr ^ block->pc) & ~0xfff) {
+        *walk = addr;
+        return 1;
+    }
+    if (((addr & 0xfff) + len) > 0x1000) {
+        *walk = (addr & ~0xfff) + 0x1000;
+        return 1;
+    }
+    return 0;
+}
+
 /*The MediaGX raises an SMI on a trapped VGA memory write (cpu_gxm_smi_mem)
   and takes it after the instruction, as the interpreter does. Compiled code
   looks at smi_line only between blocks, so on the MediaGX an instruction
@@ -965,6 +1070,8 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     int          held_cycles        = 0;
     int          fpu_entry          = 0;
     uint32_t     fetchdat_pc;
+    uint32_t     fetch_walk         = 0;
+    int          fetch_walk_valid   = codegen_fetch_reach(block, cs + old_pc, (opcode_length[opcode] > 2) ? 4 : opcode_length[opcode], &fetch_walk);
     int          jump_cycles        = 0;
 #ifdef DEBUG_EXTRA
     uint8_t last_prefix = 0;
@@ -1173,6 +1280,11 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
         opcode = fetchdat & 0xff;
         if (!pc_off)
             fetchdat >>= 8;
+        /*After a prefix the interpreter fetches four bytes again here; not
+          after 0F or an escape, whose op takes the byte from the fetch
+          before*/
+        if (!over && !fetch_walk_valid)
+            fetch_walk_valid = codegen_fetch_reach(block, cs + op_pc, 4, &fetch_walk);
 
         op_pc++;
     }
@@ -1194,6 +1306,10 @@ generate_call:
     codegen_instructions[block->ins].op_32     = last_op_32;
     codegen_instructions[block->ins].TOP       = cpu_state.TOP;
     codegen_instructions[block->ins].first_uop = ir->wr_pos;
+    /*The interpreter reads from the second page before this instruction does
+      anything; what it reads later, the handlers' marks walk for*/
+    if (fetch_walk_valid && !codegen_page2_walked)
+        codegen_fetch_walk(fetch_walk);
     codegen_instructions[block->ins].fpu_entered  = codegen_fpu_entered;
     codegen_instructions[block->ins].fpu_es_check = codegen_fpu_es_check;
     codegen_instructions[block->ins].mmx_entered  = codegen_mmx_entered;
@@ -1260,7 +1376,13 @@ generate_call:
         }
 
         opcode_3dnow = fastreadb(cs + opcode_pc);
+        /*The interpreter fetches the suffix after MMX_ENTER and the EA
+          (op3DNOW_a32, which a hand-over to it runs): for a suffix taken
+          from the 3DNow! table the walk is made there, by its handler or by
+          the hand-over below*/
+        codegen_fetch_walk_off = 1;
         codegen_mark_code_present(block, cs + opcode_pc, 1);
+        codegen_fetch_walk_off = 0;
         if (!fpu_softfloat && recomp_opcodes_3DNOW[opcode_3dnow]) {
             next_pc = opcode_pc + 1;
 
@@ -1273,8 +1395,11 @@ generate_call:
     }
     /*The prefixes and the opcode; an x87 escape's ModR/M too, as op_pc is
       already past it (pc_off is -1 for those only while op_pc is moved back
-      to the ModR/M for the EA below)*/
+      to the ModR/M for the EA below). Bytes of the interpreter's own fetches,
+      whose walk is decided above*/
+    codegen_fetch_walk_off = 1;
     codegen_mark_code_present(block, cs + old_pc, op_pc - old_pc);
+    codegen_fetch_walk_off = 0;
     /* Every escape stores its opcode, D8 00 (FADD m32 by [BX+SI] or [EAX])
        included: the handlers and the FERR# checks read it */
     if (is_fpu) {
@@ -1347,10 +1472,12 @@ generate_call:
         codegen_ea_target_seg         = NULL;
         codegen_fpu_pointers_recorded = 0;
         codegen_instr_pc              = old_pc;
+        codegen_fetch_walk_fpu        = is_fpu;
         const int unrolled            = codegen_ir_unrolling();
         const int first_uop           = ir->wr_pos;
 
         new_pc = recomp_op_table[(opcode | op_32) & recomp_opcode_mask](block, ir, opcode, fetchdat, op_32, op_pc);
+        codegen_fetch_walk_fpu = 0;
         /*A loop this jump unrolled goes on through the taken path, so the
           refund for the jump not taken above does not apply*/
         if (jump_cycles && !unrolled && codegen_ir_unrolling())
@@ -1415,6 +1542,14 @@ codegen_skip:
             fpu_entry = 1;
         }
 
+        /*The op reads the displacement in its fetch_ea, after its own
+          checks (MMX_ENTER, FP_ENTER, ILLEGAL_ON; a LOCK it can't take is
+          #UD before it): the walk the EA's marks would make is left to that
+          fetch_ea, its address stored for it, 0 for none. An op from the
+          3DNow! table calls no fetch_ea, and its walk is made here*/
+        codegen_fetch_walk_defer    = lock_illegal || (op_table != x86_dynarec_opcodes_3DNOW);
+        codegen_fetch_walk_deferred = 0;
+        const uint32_t modrm_pc     = cs + op_pc + pc_off;
         op_pc += pc_off;
         if (cpu_mod != 3 && !(op_32 & 0x200)) {
             op_ea_seg = codegen_generate_ea_16_long(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc);
@@ -1423,7 +1558,21 @@ codegen_skip:
             op_ea_seg = codegen_generate_ea_32_long(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, stack_offset);
         }
         op_pc -= pc_off;
+        codegen_fetch_walk_defer = 0;
+        /*With the deferred address, bit 1 when the record above holds the
+          full address as the data pointer, which the walk's #PF replaces
+          with what the interpreter's fetch_ea left; and what that leaves out
+          of the address (dynarec_handover_walk)*/
+        if (codegen_fetch_walk_deferred) {
+            uop_STORE_PTR_IMM(ir, &cpu_state.handover_walk_part, codegen_ea_disp_part(block, fetchdat, modrm_pc, op_32 & 0x200));
+            uop_STORE_PTR_IMM(ir, &cpu_state.handover_walk, codegen_fetch_walk_deferred | (fpu_entry ? 2 : 0));
+        } else if (cpu_mod != 3)
+            uop_STORE_PTR_IMM(ir, &cpu_state.handover_walk, 0);
     }
+    /*An op from the 3DNow! table reads no code: the suffix op3DNOW_a32
+      fetches after the EA walks here*/
+    if ((op_table == x86_dynarec_opcodes_3DNOW) && !lock_illegal)
+        codegen_fetch_walk_mark(block, cs + next_pc - 1, 1);
 
 #ifdef DEBUG_EXTRA
     uop_LOG_INSTR(ir, opcode | (last_prefix << 8));
@@ -1493,7 +1642,11 @@ codegen_skip:
         if (!pc_off && ((op_table == x86_dynarec_opcodes) || (op_table == x86_dynarec_opcodes_REPE) || (op_table == x86_dynarec_opcodes_REPNE)) &&
             (opcode_length[opcode] < 3))
             fetch_len = opcode_length[opcode] - 1;
+        /* Those are the interpreter fetch's bytes, and the op fetches what
+           lies past them itself: neither walks here */
+        codegen_fetch_walk_off = 1;
         codegen_mark_code_present(block, cs + fetchdat_pc, fetch_len);
+        codegen_fetch_walk_off = 0;
     }
 
     last_op_32     = op_32;

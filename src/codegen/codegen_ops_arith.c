@@ -72,6 +72,8 @@ ropADC_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
 uint32_t
 ropADC_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
+    /*The interpreter fetches the immediate before it changes anything*/
+    codegen_fetch_walk_mark(block, cs + op_pc, 4);
     get_cf(ir, IREG_temp0);
     uop_MOV(ir, IREG_flags_op1, IREG_EAX);
     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
@@ -344,6 +346,8 @@ ropADD_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
 uint32_t
 ropADD_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
+    /*The interpreter fetches the immediate before it changes anything*/
+    codegen_fetch_walk_mark(block, cs + op_pc, 4);
     uop_MOV(ir, IREG_flags_op1, IREG_EAX);
 
     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
@@ -599,6 +603,8 @@ ropCMP_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
 uint32_t
 ropCMP_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
+    /*The interpreter fetches the immediate before it changes anything*/
+    codegen_fetch_walk_mark(block, cs + op_pc, 4);
     uop_MOV(ir, IREG_flags_op1, IREG_EAX);
     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
         LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + op_pc);
@@ -850,6 +856,8 @@ ropSBB_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
 uint32_t
 ropSBB_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
+    /*The interpreter fetches the immediate before it changes anything*/
+    codegen_fetch_walk_mark(block, cs + op_pc, 4);
     get_cf(ir, IREG_temp0);
     uop_MOV(ir, IREG_flags_op1, IREG_EAX);
     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
@@ -1124,6 +1132,8 @@ ropSUB_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
 uint32_t
 ropSUB_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
+    /*The interpreter fetches the immediate before it changes anything*/
+    codegen_fetch_walk_mark(block, cs + op_pc, 4);
     uop_MOV(ir, IREG_flags_op1, IREG_EAX);
 
     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
@@ -1462,6 +1472,7 @@ rop80(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchd
             codegen_check_seg_read(block, ir, target_seg);
         else
             codegen_check_seg_write(block, ir, target_seg);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, 1);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 0);
         imm = fastreadb(cs + op_pc + 1);
         uop_MEM_LOAD_REG(ir, IREG_temp0_B, ireg_seg_base(target_seg), IREG_eaaddr);
@@ -1733,6 +1744,7 @@ arith_imm_w(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32
             codegen_check_seg_read(block, ir, target_seg);
         else
             codegen_check_seg_write(block, ir, target_seg);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, imm8 ? 1 : 2);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
         imm = imm8 ? (uint16_t) (int16_t) (int8_t) fastreadb(cs + op_pc + 1) : fastreadw(cs + op_pc + 1);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, ireg_seg_base(target_seg), IREG_eaaddr);
@@ -1874,6 +1886,8 @@ arith_imm_l(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32
         int      dest_reg = fetchdat & 7;
         uint32_t imm      = imm8 ? (uint32_t) (int32_t) (int8_t) fastreadb(cs + op_pc + 1) : fastreadl(cs + op_pc + 1);
 
+        /*The interpreter fetches the immediate before it changes anything*/
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, imm8 ? 1 : 4);
         if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
             skip_immediate = 1;
             load_arith_imm(block, ir, IREG_temp0, IREG_temp0, IREG_temp0_B, cs + op_pc + 1, 1, imm8);
@@ -1988,6 +2002,7 @@ arith_imm_l(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32
             codegen_check_seg_read(block, ir, target_seg);
         else
             codegen_check_seg_write(block, ir, target_seg);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, imm8 ? 1 : 4);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 3);
         imm = imm8 ? (uint32_t) (int32_t) (int8_t) fastreadb(cs + op_pc + 1) : fastreadl(cs + op_pc + 1);
         uop_MEM_LOAD_REG(ir, IREG_temp0, ireg_seg_base(target_seg), IREG_eaaddr);
@@ -2310,6 +2325,8 @@ imul_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32
     }
 
     if (imm_len) {
+        /*Fetched after the operand, before the product is written*/
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, imm_len);
         if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
             skip_immediate = 1;
             if (imm_len == 1) {

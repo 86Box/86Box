@@ -47,8 +47,8 @@ ropMOV_rl_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchd
         LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_32(opcode & 7), cs + op_pc);
     } else {
         fetchdat = fastreadl(cs + op_pc);
-        uop_MOV_IMM(ir, IREG_32(opcode & 7), fetchdat);
         codegen_mark_code_present(block, cs + op_pc, 4);
+        uop_MOV_IMM(ir, IREG_32(opcode & 7), fetchdat);
     }
     return op_pc + 4;
 }
@@ -332,6 +332,7 @@ ropMOV_b_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         codegen_check_seg_write(block, ir, target_seg);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, 1);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 0);
         if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
             LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0, cs + op_pc + 1);
@@ -370,6 +371,7 @@ ropMOV_w_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         codegen_check_seg_write(block, ir, target_seg);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, 2);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
         if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
             LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp0, cs + op_pc + 1);
@@ -397,6 +399,8 @@ ropMOV_l_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
     if ((fetchdat & 0xc0) == 0xc0) {
         int dest_reg = fetchdat & 7;
 
+        /*The interpreter fetches the immediate before the register's write*/
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, 4);
         if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
             LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_32(dest_reg), cs + op_pc + 1);
         } else {
@@ -407,6 +411,7 @@ ropMOV_l_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         codegen_check_seg_write(block, ir, target_seg);
+        codegen_fetch_walk_mark(block, cs + op_pc + 1, 4);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 3);
         if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
             LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + op_pc + 1);

@@ -103,12 +103,12 @@ push_imm_common(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int size32, i
             imm = (uint32_t) (int32_t) (int8_t) fastreadb(cs + op_pc);
         else
             imm = size32 ? fastreadl(cs + op_pc) : fastreadw(cs + op_pc);
+        codegen_mark_code_present(block, cs + op_pc, len);
         sp_reg = LOAD_SP_WITH_OFFSET(ir, size32 ? -4 : -2);
         if (size32)
             uop_MEM_STORE_IMM_32(ir, IREG_SS_base, sp_reg, imm);
         else
             uop_MEM_STORE_IMM_16(ir, IREG_SS_base, sp_reg, imm & 0xffff);
-        codegen_mark_code_present(block, cs + op_pc, len);
     }
     SUB_SP(ir, size32 ? 4 : 2);
 
@@ -154,18 +154,31 @@ ropPOP_W(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             uop_MEM_LOAD_REG(ir, IREG_16(fetchdat & 7), IREG_SS_base, IREG_eaaddr);
         }
     } else {
-        x86seg *target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 2);
+        x86seg *target_seg;
+
+        /*The interpreter pops before it fetches the displacement, whose #PF
+          leaves SP moved on: the read first, then the walk the EA's marks
+          would make, made with SP moved on for its exit. The value is kept
+          in temp1, as the EA can take temp0*/
+        if (stack32)
+            uop_MEM_LOAD_REG(ir, IREG_temp1_W, IREG_SS_base, IREG_ESP);
+        else {
+            uop_MOVZX(ir, IREG_temp1, IREG_SP);
+            uop_MEM_LOAD_REG(ir, IREG_temp1_W, IREG_SS_base, IREG_temp1);
+        }
+        codegen_fetch_walk_defer    = 1;
+        codegen_fetch_walk_deferred = 0;
+        target_seg                  = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 2);
+        codegen_fetch_walk_defer    = 0;
+        if (codegen_fetch_walk_deferred) {
+            ADD_SP(ir, 2);
+            codegen_fetch_walk(codegen_fetch_walk_deferred & ~0xfff);
+            SUB_SP(ir, 2);
+        }
         codegen_check_seg_write(block, ir, target_seg);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
 
-        if (stack32)
-            uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);
-        else {
-            uop_MOVZX(ir, IREG_temp0, IREG_SP);
-            uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_temp0);
-        }
-
-        uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp0_W);
+        uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp1_W);
     }
 
     if ((fetchdat & 0xc7) != (0xc0 | REG_SP))
@@ -190,18 +203,28 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             uop_MEM_LOAD_REG(ir, IREG_32(fetchdat & 7), IREG_SS_base, IREG_eaaddr);
         }
     } else {
-        x86seg *target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 4);
+        x86seg *target_seg;
+
+        /*As in ropPOP_W*/
+        if (stack32)
+            uop_MEM_LOAD_REG(ir, IREG_temp1, IREG_SS_base, IREG_ESP);
+        else {
+            uop_MOVZX(ir, IREG_temp1, IREG_SP);
+            uop_MEM_LOAD_REG(ir, IREG_temp1, IREG_SS_base, IREG_temp1);
+        }
+        codegen_fetch_walk_defer    = 1;
+        codegen_fetch_walk_deferred = 0;
+        target_seg                  = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 4);
+        codegen_fetch_walk_defer    = 0;
+        if (codegen_fetch_walk_deferred) {
+            ADD_SP(ir, 4);
+            codegen_fetch_walk(codegen_fetch_walk_deferred & ~0xfff);
+            SUB_SP(ir, 4);
+        }
         codegen_check_seg_write(block, ir, target_seg);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 3);
 
-        if (stack32)
-            uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_ESP);
-        else {
-            uop_MOVZX(ir, IREG_temp0, IREG_SP);
-            uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_temp0);
-        }
-
-        uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp0);
+        uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp1);
     }
 
     if ((fetchdat & 0xc7) != (0xc0 | REG_ESP))
