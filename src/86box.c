@@ -206,6 +206,7 @@ int      fpu_type                               = 0;              /* (C) fpu typ
 int      fpu_softfloat                          = 0;              /* (C) fpu uses softfloat */
 int      time_sync                              = 0;              /* (C) enable time sync */
 int      time_offset_years                      = 0;              /* (C) year offset for time sync */
+int      time_fixed_year                        = 0;              /* (C) fixed year for time sync (0 = none) */
 int      confirm_reset                          = 1;              /* (G) enable reset confirmation */
 int      confirm_exit                           = 1;              /* (G) enable exit confirmation */
 int      confirm_save                           = 1;              /* (G) enable save confirmation */
