@@ -2803,7 +2803,7 @@ load_other_peripherals(void)
                 sizeof(vfio_device_conf[c].rom_fn) - 1);
 
         snprintf(temp, sizeof(temp), "%s_rom_enable", token);
-        vfio_device_conf[c].rom_enable = !!ini_section_get_int(vfio_cat, temp, 1);
+        vfio_device_conf[c].rom_enable = !!ini_section_get_int(vfio_cat, temp, !!vfio_device_conf[c].rom_fn[0]);
 
         c++;
     }
@@ -4360,17 +4360,7 @@ save_other_peripherals(void)
             strcat(devices, " ");
         strcat(devices, vfio_device_conf[c].location);
 
-        snprintf(temp, sizeof(temp), "%.255s_rom_fn", vfio_device_conf[c].location);
-        if (vfio_device_conf[c].rom_fn[0])
-            ini_section_set_string(vfio_cat, temp, vfio_device_conf[c].rom_fn);
-        else
-            ini_section_delete_var(vfio_cat, temp);
-
-        snprintf(temp, sizeof(temp), "%.255s_rom_enable", vfio_device_conf[c].location);
-        if (vfio_device_conf[c].rom_enable)
-            ini_section_delete_var(vfio_cat, temp);
-        else
-            ini_section_set_int(vfio_cat, temp, 0);
+        config_save_vfio_rom(vfio_device_conf[c].location, vfio_device_conf[c].rom_fn, vfio_device_conf[c].rom_enable);
     }
 
     if (devices[0])
@@ -5009,3 +4999,26 @@ config_get_ini(void)
 {
     return config;
 }
+
+#ifdef USE_VFIO
+/* Save the custom ROM of a VFIO device, passed through or not. It is
+   enabled by default if there is a file. */
+void
+config_save_vfio_rom(const char *location, const char *rom_fn, int rom_enable)
+{
+    ini_section_t cat = ini_find_or_create_section(config, "VFIO");
+    char          temp[512];
+
+    snprintf(temp, sizeof(temp), "%.255s_rom_fn", location);
+    if (rom_fn[0])
+        ini_section_set_string(cat, temp, rom_fn);
+    else
+        ini_section_delete_var(cat, temp);
+
+    snprintf(temp, sizeof(temp), "%.255s_rom_enable", location);
+    if (!!rom_enable == !!rom_fn[0])
+        ini_section_delete_var(cat, temp);
+    else
+        ini_section_set_int(cat, temp, !!rom_enable);
+}
+#endif
