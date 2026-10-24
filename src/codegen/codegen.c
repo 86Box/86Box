@@ -748,6 +748,8 @@ codegen_fpu_handover(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t 
        take #NM here (the handler's FP_ENTER came first). */
     codegen_fpu_emit_record(ir, NULL, 0);
     uop_CALL_INSTRUCTION_FUNC(ir, codegen_fpu_handler, fetchdat);
+    if (cpu_debug_regs_486)
+        uop_CALL_FUNC(ir, dynarec_rf_after_op);
     uop_JMP(ir, codegen_exit_rout);
     codegen_exit_stamp(ir, 1);
 }
@@ -1608,6 +1610,12 @@ codegen_skip:
     if (held_cycles)
         codegen_accumulate(ir, ACCREG_cycles, held_cycles);
     uop_CALL_INSTRUCTION_FUNC(ir, op, fetchdat);
+    /*The interpreted loop's RF handling after the op (RSM and LOADALL386
+      load RF, which it then clears). An op that ends the block with its
+      answer leaves before this, and the dispatch loop consumes what it
+      left (exec386_dynarec_dyn)*/
+    if (cpu_debug_regs_486)
+        uop_CALL_FUNC(ir, dynarec_rf_after_op);
     /*An interpreted x87 or 0F instruction can undo what the block took as
       done (FNINIT, FRSTOR, FXRSTOR and FEMMS empty the tags and leave MMX
       mode, CLTS changes CR0): the next compiled FPU or MMX instruction

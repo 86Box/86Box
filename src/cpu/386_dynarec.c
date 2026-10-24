@@ -585,13 +585,17 @@ exec386_dynarec_int(void)
         exec386_dynarec_int_common(0);
 }
 
+/* dbg is the dispatch loop's constant: with the option on, the mark and
+   compile passes clear RF before each instruction and after it unless the
+   op keeps it (rf_flag_no_clear), as the interpreted loop does; compiled
+   code clears it as the block starts (codegen_block_start_recompile()). */
 #if defined(__linux__) && !defined(__clang__)
 static inline void __attribute__((optimize("O2")))
 #else
 /* Inlined into the dispatch loop, which now comes in two copies. */
 __attribute__((always_inline)) static inline void
 #endif
-exec386_dynarec_dyn(void)
+exec386_dynarec_dyn(const int dbg)
 {
     uint32_t start_pc  = 0;
     uint32_t phys_addr = get_phys(cs + cpu_state.pc);
@@ -770,6 +774,12 @@ exec386_dynarec_dyn(void)
 #    endif
         inrecomp = 0;
         x86_reset_deferred();
+        /* An op that ends the block with its answer (INT n through a task
+           gate) leaves before its after-op RF handling (dynarec_rf_after_op),
+           with RF already as that leaves it: its rf_flag_no_clear is
+           consumed here. Every other exit follows that handling. */
+        if (dbg && !cpu_state.abrt)
+            rf_flag_no_clear = 0;
 
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
         if (x86_was_reset)
@@ -823,10 +833,18 @@ exec386_dynarec_dyn(void)
                 codegen_generate_call(opcode, x86_opcodes[(opcode | cpu_state.op32) & 0x3ff], fetchdat, cpu_state.pc, cpu_state.pc - 1);
                 codegen_block_version_check_ins(cs + cpu_state.oldpc);
 
+                if (dbg)
+                    cpu_state.eflags &= ~(RF_FLAG);
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
 
                 if (x86_was_reset)
                     break;
+            }
+
+            if (dbg && !cpu_state.abrt) {
+                if (!rf_flag_no_clear)
+                    cpu_state.eflags &= ~RF_FLAG;
+                rf_flag_no_clear = 0;
             }
 
                 /* Cap source code at 4000 bytes per block; this
@@ -946,10 +964,18 @@ exec386_dynarec_dyn(void)
 
                 cpu_state.pc++;
 
+                if (dbg)
+                    cpu_state.eflags &= ~(RF_FLAG);
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
 
                 if (x86_was_reset)
                     break;
+            }
+
+            if (dbg && !cpu_state.abrt) {
+                if (!rf_flag_no_clear)
+                    cpu_state.eflags &= ~RF_FLAG;
+                rf_flag_no_clear = 0;
             }
 
                 /* Cap source code at 4000 bytes per block; this
@@ -1057,7 +1083,7 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
 #    endif
                 exec386_dynarec_int();
             } else {
-                exec386_dynarec_dyn();
+                exec386_dynarec_dyn(dbg);
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
                 /* Linked blocks moved the loop-top state on; time is counted
                    from the last link. */

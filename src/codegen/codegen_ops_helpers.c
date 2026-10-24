@@ -360,10 +360,12 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
             return 0;
         if ((ir->uops[c].type & UOP_MASK) == (UOP_CALL_INSTRUCTION_FUNC & UOP_MASK)) {
             /*The x87 hand-over's pointer record, between its call and its
-              exit, sets no compile-time state: stepped over*/
+              exit, sets no compile-time state: stepped over, as is the RF
+              handling after the call (dynarec_rf_after_op)*/
             int next = c + 1;
 
-            while ((next < ir->wr_pos) && codegen_uop_is_fpu_record(&ir->uops[next]))
+            while ((next < ir->wr_pos) && (codegen_uop_is_fpu_record(&ir->uops[next]) ||
+                                           (((ir->uops[next].type & UOP_MASK) == (UOP_CALL_FUNC & UOP_MASK)) && (ir->uops[next].p == (void *) dynarec_rf_after_op))))
                 next++;
             if (!((next < ir->wr_pos) && ((ir->uops[next].type & UOP_MASK) == (UOP_JMP & UOP_MASK))))
                 return 0;

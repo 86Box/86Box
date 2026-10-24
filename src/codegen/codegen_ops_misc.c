@@ -501,6 +501,9 @@ ropFF_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
             uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
             uop_CALL_FUNC(ir, loadcsjmp);
+            /*A task switch can keep the RF it loads*/
+            if (cpu_debug_regs_486)
+                uop_CALL_FUNC(ir, dynarec_rf_after_op);
             return -1;
 
         case 0x30: /*PUSH*/
@@ -620,6 +623,8 @@ ropFF_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
             uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
             uop_CALL_FUNC(ir, loadcsjmp);
+            if (cpu_debug_regs_486)
+                uop_CALL_FUNC(ir, dynarec_rf_after_op);
             return -1;
 
         case 0x30: /*PUSH*/
@@ -824,6 +829,8 @@ ropCLI_STI(ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         uop_MOV_IMM(ir, IREG_pc, op_pc);
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         uop_CALL_INSTRUCTION_FUNC(ir, x86_dynarec_opcodes[(opcode | op_32) & 0x3ff], fetchdat);
+        if (cpu_debug_regs_486)
+            uop_CALL_FUNC(ir, dynarec_rf_after_op);
         uop_JMP(ir, codegen_exit_rout);
         codegen_exit_stamp(ir, 1);
         uop_set_jump_dest(ir, jump_uop);

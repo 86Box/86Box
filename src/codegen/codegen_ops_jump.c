@@ -68,6 +68,9 @@ ropJMP_far_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
     uop_LOAD_FUNC_ARG_IMM(ir, 0, new_cs);
     uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 4);
     uop_CALL_FUNC(ir, loadcsjmp);
+    /*A task switch can keep the RF it loads*/
+    if (cpu_debug_regs_486)
+        uop_CALL_FUNC(ir, dynarec_rf_after_op);
 
     return -1;
 }
@@ -83,6 +86,8 @@ ropJMP_far_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
     uop_LOAD_FUNC_ARG_IMM(ir, 0, new_cs);
     uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 6);
     uop_CALL_FUNC(ir, loadcsjmp);
+    if (cpu_debug_regs_486)
+        uop_CALL_FUNC(ir, dynarec_rf_after_op);
 
     return -1;
 }

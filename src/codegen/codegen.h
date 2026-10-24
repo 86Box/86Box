@@ -474,6 +474,10 @@ extern void dynarec_lmsw(uint16_t tempw);
 extern int  dynarec_call_far_w(uint16_t new_cs, uint32_t ret_pc);
 extern int  dynarec_call_far_l(uint16_t new_cs, uint32_t ret_pc);
 
+/*The interpreted loop's RF handling after an instruction, with the 486
+  debug registers option (386_dynarec_ops.c)*/
+extern void dynarec_rf_after_op(void);
+
 /*A compiled MOV SS and the instruction after it (codegen.c)*/
 extern int      codegen_mov_ss_pair_valid;
 extern uint32_t codegen_mov_ss_pair_pc;

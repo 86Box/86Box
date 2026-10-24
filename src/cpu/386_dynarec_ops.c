@@ -145,6 +145,8 @@ dynarec_iret_pm(int is32)
     flags_extract();
     nmi_enable       = 1;
     rf_flag_no_clear = 1;
+    if (cpu_debug_regs_486)
+        dynarec_rf_after_op();
 }
 
 /*The CS load and the tail of the compiled IRET's real-mode and CR4.VME
@@ -156,6 +158,23 @@ dynarec_iret_cs(uint16_t seg)
     cycles -= timing_iret_rm;
     nmi_enable       = 1;
     rf_flag_no_clear = 1;
+    if (cpu_debug_regs_486)
+        dynarec_rf_after_op();
+}
+
+/*What the interpreted loop does with RF after an instruction that did not
+  fault, with the 486 debug registers option on: RF cleared, unless the
+  instruction kept it (rf_flag_no_clear, consumed here). Called after a
+  hand-over's call and at the end of the compiled code's routines that can
+  set rf_flag_no_clear, a global outside cpu_state*/
+void
+dynarec_rf_after_op(void)
+{
+    if (cpu_state.abrt)
+        return;
+    if (!rf_flag_no_clear)
+        cpu_state.eflags &= ~RF_FLAG;
+    rf_flag_no_clear = 0;
 }
 
 /*The walk of a compiled block's second page where the interpreter's code
@@ -244,6 +263,9 @@ dynarec_call_far_w(uint16_t new_cs, uint32_t ret_pc)
 
     cpu_state.pc = ret_pc;
     CALL_FAR_w(new_cs, new_pc);
+    /*A task switch can keep the RF it loads*/
+    if (cpu_debug_regs_486)
+        dynarec_rf_after_op();
     return 0;
 }
 
@@ -259,6 +281,8 @@ dynarec_call_far_l(uint16_t new_cs, uint32_t ret_pc)
 
     cpu_state.pc = ret_pc;
     CALL_FAR_l(new_cs, new_pc);
+    if (cpu_debug_regs_486)
+        dynarec_rf_after_op();
     return 0;
 }
 
