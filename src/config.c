@@ -164,6 +164,8 @@ load_global_emulator(void)
     ini_section_t cat = ini_find_section(global, "Emulator");
     new_loaded |= (cat != NULL);
 
+    char         *p;
+
     open_dir_usr_path = ini_section_get_int(cat, "open_dir_usr_path", 0);
 
     do_auto_pause        = ini_section_get_int(cat, "do_auto_pause", 0);
@@ -173,7 +175,22 @@ load_global_emulator(void)
     confirm_exit  = ini_section_get_int(cat, "confirm_exit", 1);
     confirm_save  = ini_section_get_int(cat, "confirm_save", 1);
 
+    vmm_disabled = ini_section_get_int(cat, "vmm_disabled", 0);
+
     chd_precache_level = ini_section_get_int(cat, "chd_precache_level", 0);
+
+    p = ini_section_get_string(cat, "vmm_path", NULL);
+    if (p != NULL) {
+        /* Convert relative paths to absolute in portable mode */
+        if (portable_mode && !path_abs(p)) {
+            path_append_filename(vmm_path_cfg, exe_path, p);
+            path_normalize(vmm_path_cfg);
+        } else {
+            strncpy(vmm_path_cfg, p, sizeof(vmm_path_cfg) - 1);
+        }
+    } else {
+        plat_get_vmm_dir(vmm_path_cfg, sizeof(vmm_path_cfg));
+    }
 }
 
 static void
@@ -232,23 +249,6 @@ load_global_manager(void)
 {
     ini_section_t cat = ini_find_section(global, "Manager");
     new_loaded |= (cat != NULL);
-
-    char         *p;
-
-    vmm_disabled = ini_section_get_int(moved_setting_section(cat, "vmm_disabled"), "vmm_disabled", 0);
-
-    p = ini_section_get_string(moved_setting_section(cat, "vmm_path"), "vmm_path", NULL);
-    if (p != NULL) {
-        /* Convert relative paths to absolute in portable mode */
-        if (portable_mode && !path_abs(p)) {
-            path_append_filename(vmm_path_cfg, exe_path, p);
-            path_normalize(vmm_path_cfg);
-        } else {
-            strncpy(vmm_path_cfg, p, sizeof(vmm_path_cfg) - 1);
-        }
-    } else {
-        plat_get_vmm_dir(vmm_path_cfg, sizeof(vmm_path_cfg));
-    }
 
     vmm_discord_presence = ini_section_get_int(cat, "discord_presence", 0);
     if ((vmm_discord_presence < 0) || (vmm_discord_presence > 3))
@@ -3148,11 +3148,9 @@ save_global_emulator(void)
 {
     ini_section_t cat = ini_find_or_create_section(global, "Emulator");
 
-    /* These were moved to the "General" and "Manager" sections. */
+    /* These were moved to the "General" section. */
     ini_section_delete_var(cat, "language");
     ini_section_delete_var(cat, "color_scheme");
-    ini_section_delete_var(cat, "vmm_disabled");
-    ini_section_delete_var(cat, "vmm_path");
 
     if (open_dir_usr_path)
         ini_section_set_int(cat, "open_dir_usr_path", open_dir_usr_path);
@@ -3189,6 +3187,22 @@ save_global_emulator(void)
         ini_section_set_int(cat, "chd_precache_level", chd_precache_level);
     else
         ini_section_delete_var(cat, "chd_precache_level");
+
+    if (vmm_disabled != 0)
+        ini_section_set_int(cat, "vmm_disabled", vmm_disabled);
+    else
+        ini_section_delete_var(cat, "vmm_disabled");
+
+    if (vmm_path_cfg[0] != 0) {
+        /* Save path as relative to the EXE path in portable mode */
+        if (portable_mode && path_abs(vmm_path_cfg) && !strnicmp(vmm_path_cfg, exe_path, strlen(exe_path))) {
+            ini_section_set_string(cat, "vmm_path", &vmm_path_cfg[strlen(exe_path)]);
+        } else {
+            ini_section_set_string(cat, "vmm_path", vmm_path_cfg);
+        }
+    } else {
+        ini_section_delete_var(cat, "vmm_path");
+    }
 
     ini_delete_section_if_empty(global, cat);
 }
@@ -3235,22 +3249,6 @@ static void
 save_global_manager(void)
 {
     ini_section_t cat = ini_find_or_create_section(global, "Manager");
-
-    if (vmm_disabled != 0)
-        ini_section_set_int(cat, "vmm_disabled", vmm_disabled);
-    else
-        ini_section_delete_var(cat, "vmm_disabled");
-
-    if (vmm_path_cfg[0] != 0) {
-        /* Save path as relative to the EXE path in portable mode */
-        if (portable_mode && path_abs(vmm_path_cfg) && !strnicmp(vmm_path_cfg, exe_path, strlen(exe_path))) {
-            ini_section_set_string(cat, "vmm_path", &vmm_path_cfg[strlen(exe_path)]);
-        } else {
-            ini_section_set_string(cat, "vmm_path", vmm_path_cfg);
-        }
-    } else {
-        ini_section_delete_var(cat, "vmm_path");
-    }
 
     if (vmm_discord_presence)
         ini_section_set_int(cat, "discord_presence", vmm_discord_presence);
