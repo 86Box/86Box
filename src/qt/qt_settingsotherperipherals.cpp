@@ -42,6 +42,8 @@ extern "C" {
 #include <86box/softpower.h>
 #include <86box/novell_cardkey.h>
 #ifdef USE_VFIO
+#    include <86box/ini.h>
+#    include <86box/config.h>
 #    include <86box/vfio.h>
 #endif
 }
@@ -839,6 +841,16 @@ SettingsOtherPeripherals::vfioSetNames(const QHash<QString, QString> &names)
 void
 SettingsOtherPeripherals::vfioRestore()
 {
+    /* A device no longer passed through keeps its ROM file in the
+       configuration, for when it is again. */
+    for (int row = 0; row < vfioModel->rowCount(); row++) {
+        const QModelIndex index   = vfioModel->index(row, ColumnCheck);
+        const QByteArray  key     = (index.siblingAtColumn(ColumnLocation).data().toString() % QStringLiteral("_rom_fn")).toUtf8();
+        const QString     romFile = QString::fromUtf8(config_get_string("VFIO", key.constData(), (char *) ""));
+        vfioModel->setData(index, !romFile.isEmpty(), ROMEnabledRole);
+        vfioModel->setData(index, romFile, ROMFileRole);
+    }
+
     for (int i = 0; (i < VFIO_DEVICE_MAX) && vfio_device_conf[i].location[0]; i++) {
         const QString location = normalizedLocation(vfio_device_conf[i].location);
 

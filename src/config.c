@@ -4348,28 +4348,20 @@ save_other_peripherals(void)
 #ifdef USE_VFIO
     ini_section_t vfio_cat = ini_find_or_create_section(config, "VFIO");
     char          devices[VFIO_DEVICE_MAX * (sizeof(vfio_device_conf[0].location) + 1)];
-    char         *p;
-    char         *token;
-    char         *strtok_save;
 
-    /* Remove the ROM files of the previously saved devices. */
-    p = strdup(ini_section_get_string(vfio_cat, "devices", ""));
-    for (token = strtok_r(p, " ", &strtok_save); token; token = strtok_r(NULL, " ", &strtok_save)) {
-        snprintf(temp, sizeof(temp), "%s_rom_fn", token);
-        ini_section_delete_var(vfio_cat, temp);
-    }
-    free(p);
-
+    /* The ROM files of devices no longer passed through are kept, for
+       when they are again. */
     devices[0] = '\0';
     for (uint8_t c = 0; (c < VFIO_DEVICE_MAX) && vfio_device_conf[c].location[0]; c++) {
         if (devices[0])
             strcat(devices, " ");
         strcat(devices, vfio_device_conf[c].location);
 
-        if (vfio_device_conf[c].rom_fn[0]) {
-            snprintf(temp, sizeof(temp), "%.255s_rom_fn", vfio_device_conf[c].location);
+        snprintf(temp, sizeof(temp), "%.255s_rom_fn", vfio_device_conf[c].location);
+        if (vfio_device_conf[c].rom_fn[0])
             ini_section_set_string(vfio_cat, temp, vfio_device_conf[c].rom_fn);
-        }
+        else
+            ini_section_delete_var(vfio_cat, temp);
     }
 
     if (devices[0])
