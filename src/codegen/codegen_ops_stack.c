@@ -737,7 +737,6 @@ popf_common(ir_data_t *ir, uint32_t op_pc, int is32)
     uop_MOV_IMM(ir, IREG_pc, op_pc);
     uop_TEST_SET(ir, IREG_temp1, IREG_temp1, UOP_CC_NZ);
     uop_CMP_IMM_JZ(ir, IREG_temp1, 1, codegen_exit_rout);
-    codegen_exit_stamp(ir, 1);
 
     return op_pc;
 }

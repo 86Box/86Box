@@ -55,7 +55,6 @@ fdiv_call(ir_data_t *ir, uint32_t next_pc, uint32_t imm)
        end the block */
     codegen_fpu_record_pointers(ir);
     uop_CALL_INSTRUCTION_FUNC(ir, x87_dyn_fdiv, imm);
-    codegen_exit_stamp(ir, 1);
     /* ES may be set now with the block going on: the next waiting
        instruction checks for it before it runs */
     codegen_fpu_es_check = 1;

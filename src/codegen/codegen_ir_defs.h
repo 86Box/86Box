@@ -477,15 +477,21 @@ extern void codegen_exit_stamp(ir_data_t *ir, int held);
 
 /* Whether the exits taken on a fault, or to run an instruction again,
    charge the timing model's held cycle too */
-#define EXIT_FAULT_HELD 0
+#define EXIT_FAULT_HELD 1
 
-/* The uops whose access or check can fault, which leaves the block: each is
-   stamped as it is generated, so every handler's accesses charge what the
-   block's end would */
+/* The uops that can leave the block: an access or check that faults, a
+   call whose nonzero answer leaves (the interpreter's op, a REP string
+   routine), and the test for an SMI raised by the instruction before it.
+   Each is stamped as it is generated, so every handler's exits charge what
+   the block's end would */
 static inline int
 uop_type_can_fault(uint32_t uop_type)
 {
     switch (uop_type & UOP_MASK) {
+        case UOP_CALL_INSTRUCTION_FUNC & UOP_MASK:
+        case UOP_SMI_EXIT_IMM & UOP_MASK:
+        case UOP_SMI_EXIT & UOP_MASK:
+        case UOP_CALL_REP_STRING & UOP_MASK:
         case UOP_MEM_LOAD_ABS & UOP_MASK:
         case UOP_MEM_LOAD_REG & UOP_MASK:
         case UOP_MEM_LOAD_REG_EA & UOP_MASK:

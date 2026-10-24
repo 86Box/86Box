@@ -1311,6 +1311,7 @@ ropWAIT(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
     uop_LOAD_FUNC_ARG_IMM(ir, 0, 7);
     uop_CALL_FUNC(ir, x86_int);
     uop_JMP(ir, codegen_exit_rout);
+    codegen_exit_stamp(ir, EXIT_FAULT_HELD);
     uop_set_jump_dest(ir, jump_uop);
     /* WAIT is where a pending unmasked exception is reported, as the
        interpreter's WAIT does it: #MF, or FERR# and the wait for IRQ 13.

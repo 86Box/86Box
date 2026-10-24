@@ -845,11 +845,13 @@ codegen_fpu_rc_nearest(ir_data_t *ir)
         uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0xf00);
         jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp0, 0);
         uop_JMP(ir, codegen_exit_rout);
+        codegen_exit_stamp(ir, EXIT_FAULT_HELD);
         uop_set_jump_dest(ir, jump_uop);
     } else {
         uop_AND_IMM(ir, IREG_temp1, IREG_temp0, 0xc00);
         jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp1, 0);
         uop_JMP(ir, codegen_exit_rout);
+        codegen_exit_stamp(ir, EXIT_FAULT_HELD);
         uop_set_jump_dest(ir, jump_uop);
         uop_AND_IMM(ir, IREG_temp1, IREG_temp0, 0x300);
         uop_CMP_IMM_JZ(ir, IREG_temp1, 0, codegen_exit_rout);
@@ -1429,7 +1431,8 @@ codegen_skip:
     /*An op that ends the block on success leaves it after the call, before
       the block end would charge the cycles the timing model still holds:
       charge them with the cycles so far, as the branches above do, and take
-      them back after the call for the instructions that follow*/
+      them back for the instructions that follow ahead of the call, so its
+      exit (stamped as the call is generated) does not charge them again*/
     if (codegen_timing_jump_cycles && (op != dynarec_op_illegal) && codegen_op_ends_block(op_table, opcode, fetchdat))
         held_cycles = codegen_timing_jump_cycles();
     if (held_cycles)
@@ -1453,9 +1456,9 @@ codegen_skip:
       before the wrapper.*/
     if (is_fpu && !lock_illegal)
         codegen_fpu_emit_record(ir, NULL, fpu_entry);
-    uop_CALL_INSTRUCTION_FUNC(ir, op, fetchdat);
     if (held_cycles)
         codegen_accumulate(ir, ACCREG_cycles, held_cycles);
+    uop_CALL_INSTRUCTION_FUNC(ir, op, fetchdat);
     /*An interpreted x87 or 0F instruction can undo what the block took as
       done (FNINIT, FRSTOR, FXRSTOR and FEMMS empty the tags and leave MMX
       mode, CLTS changes CR0): the next compiled FPU or MMX instruction
