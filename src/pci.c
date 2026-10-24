@@ -704,16 +704,19 @@ pci_trc_reset(uint8_t val)
         mem_a20_recalc();
 
         flushmmucache();
-    }
 
 #ifdef USE_DYNAREC
-    if (cpu_use_dynarec)
-        cpu_init = 1;
-    else
-        resetx86();
+        if (cpu_use_dynarec)
+            cpu_init = 1;
+        else
+            resetx86();
 #else
-    resetx86();
+        resetx86();
 #endif
+    } else {
+        /* Soft reset: INIT# only. Chipset state and SMBASE are kept. */
+        softresetx86();
+    }
 }
 
 void
