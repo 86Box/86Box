@@ -264,6 +264,20 @@ codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
 #define UNROLL_MAX_REG_REFERENCES 200
 #define UNROLL_MAX_UOPS           1000
 #define UNROLL_MAX_COUNT          10
+
+/*A uop of the FPU pointer record that codegen_fpu_handover emits between its
+  call and its exit*/
+static int
+codegen_uop_is_fpu_record(const uop_t *uop)
+{
+    if ((uop->type & UOP_MASK) == (UOP_MOV_IMM & UOP_MASK)) {
+        int reg = IREG_GET_REG(uop->dest_reg_a.reg);
+
+        return (reg == IREG_fpu_op) || (reg == IREG_fpu_CS) || (reg == IREG_fpu_cs) || (reg == IREG_fpu_pc);
+    }
+    return ((uop->type & UOP_MASK) == (UOP_CALL_FUNC & UOP_MASK)) && (uop->p == (void *) fpu_postamble);
+}
+
 int
 codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_pc), uint32_t dest_addr)
 {
@@ -338,9 +352,16 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
           it under the new word unchecked*/
         if ((ir->uops[c].type & UOP_MASK) == (UOP_FP_CONTROL_SET & UOP_MASK))
             return 0;
-        if ((ir->uops[c].type & UOP_MASK) == (UOP_CALL_INSTRUCTION_FUNC & UOP_MASK) &&
-            !((c + 1 < ir->wr_pos) && ((ir->uops[c + 1].type & UOP_MASK) == (UOP_JMP & UOP_MASK))))
-            return 0;
+        if ((ir->uops[c].type & UOP_MASK) == (UOP_CALL_INSTRUCTION_FUNC & UOP_MASK)) {
+            /*The x87 hand-over's pointer record, between its call and its
+              exit, sets no compile-time state: stepped over*/
+            int next = c + 1;
+
+            while ((next < ir->wr_pos) && codegen_uop_is_fpu_record(&ir->uops[next]))
+                next++;
+            if (!((next < ir->wr_pos) && ((ir->uops[next].type & UOP_MASK) == (UOP_JMP & UOP_MASK))))
+                return 0;
+        }
     }
 
     max_unroll = UNROLL_MAX_UOPS / ((ir->wr_pos - start) + 6);
