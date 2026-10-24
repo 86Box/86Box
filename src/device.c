@@ -242,7 +242,7 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Cirrus Logic GD5428 (MCA) (IBM SVGA Adapter/A)", .new = "Cirrus Logic GD5428 (MCA) (US/EMEA)" },
         { .old = "Cirrus Logic GD5426 (MCA) (Reply Video Adapter)", .new = "Cirrus Logic GD5426 (MCA)" },
         { .old = "3dfx Voodoo3 2000 (On-Board 8MB SGRAM)", .new = "3dfx Voodoo3 2000 (On-Board)" },
-        { .old = "SiS 530/620 (6306) Onboard AGP", .new = "SiS 6306 (5598/530/620) On-Board AGP" },
+        { .old = "SiS 6306 (5598/530/620) On-Board AGP", .new = "SiS 6306 (530/620) On-Board AGP" },
         { .old = "Gravis/Synergy Vipermax", .new = "Synergy ViperMAX" },
         { .old = "Colorplus", .new = "Plantronics Colorplus" },
         { .old = "Creative Sound Blaster PCI 128 (ES1373)", .new = "Sound Blaster PCI 128 (ES1373)" },
