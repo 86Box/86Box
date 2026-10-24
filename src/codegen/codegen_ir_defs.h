@@ -468,6 +468,47 @@ typedef struct ir_data_t {
     struct codeblock_t *block;
 } ir_data_t;
 
+/* What an exit taken before the block's end adds to cycles: the cycles
+   accumulated so far, and with held what the timing model holds for the
+   block's end. codegen_exit_stamp gives it to the uop just generated, whose
+   exit path the backend charges (codegen.c) */
+extern int  codegen_exit_cycles(int held);
+extern void codegen_exit_stamp(ir_data_t *ir, int held);
+
+/* Whether the exits taken on a fault, or to run an instruction again,
+   charge the timing model's held cycle too */
+#define EXIT_FAULT_HELD 0
+
+/* The uops whose access or check can fault, which leaves the block: each is
+   stamped as it is generated, so every handler's accesses charge what the
+   block's end would */
+static inline int
+uop_type_can_fault(uint32_t uop_type)
+{
+    switch (uop_type & UOP_MASK) {
+        case UOP_MEM_LOAD_ABS & UOP_MASK:
+        case UOP_MEM_LOAD_REG & UOP_MASK:
+        case UOP_MEM_LOAD_REG_EA & UOP_MASK:
+        case UOP_MEM_LOAD_SINGLE & UOP_MASK:
+        case UOP_MEM_LOAD_DOUBLE & UOP_MASK:
+        case UOP_MEM_STORE_ABS & UOP_MASK:
+        case UOP_MEM_STORE_REG & UOP_MASK:
+        case UOP_MEM_STORE_IMM_8 & UOP_MASK:
+        case UOP_MEM_STORE_IMM_16 & UOP_MASK:
+        case UOP_MEM_STORE_IMM_32 & UOP_MASK:
+        case UOP_MEM_STORE_SINGLE & UOP_MASK:
+        case UOP_MEM_STORE_DOUBLE & UOP_MASK:
+        case UOP_LOAD_SEG & UOP_MASK:
+        case UOP_CMP_IMM_JZ & UOP_MASK:
+        case UOP_CMP_JB & UOP_MASK:
+        case UOP_CMP_JNBE & UOP_MASK:
+        case UOP_CMP_JNWITHIN & UOP_MASK:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 static inline uop_t *
 uop_alloc(ir_data_t *ir, uint32_t uop_type)
 {
@@ -479,7 +520,7 @@ uop_alloc(ir_data_t *ir, uint32_t uop_type)
     uop = &ir->uops[ir->wr_pos++];
 
     uop->is_a16     = 0;
-    uop->imm_data2  = 0;
+    uop->imm_data2  = uop_type_can_fault(uop_type) ? codegen_exit_cycles(EXIT_FAULT_HELD) : 0;
 
     uop->dest_reg_a = invalid_ir_reg;
     uop->src_reg_a  = invalid_ir_reg;
@@ -833,12 +874,6 @@ extern void codegen_fp_pending_check(ir_data_t *ir);
 /* The exit a helper's answer of 1 in reg takes (a fault, or the FERR# wait),
    charging the cycles accumulated so far on that path only (codegen.c) */
 extern void codegen_exit_on_one(ir_data_t *ir, int reg);
-/* What an exit taken before the block's end adds to cycles: the cycles
-   accumulated so far, and with held what the timing model holds for the
-   block's end. codegen_exit_stamp gives it to the uop just generated, whose
-   exit path the backend charges (codegen.c) */
-extern int  codegen_exit_cycles(int held);
-extern void codegen_exit_stamp(ir_data_t *ir, int held);
 extern int  codegen_fpu_rc_nearest(ir_data_t *ir);
 extern int  codegen_fpu_class_dirty;
 /* A store from an empty ST(0): the interpreter's version, then the block
@@ -944,15 +979,16 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 #define uop_FTST(ir, dst_reg, src_reg)                           uop_gen_reg_dst_src1(UOP_FTST, ir, dst_reg, src_reg)
 
 #if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64 || defined __loongarch_lp64
-/*Their exits (#NM, #UD, a pending x87 exception) charge the cycles accumulated
-  so far on the exit path only: imm_data2 of the uop, or codegen_exit_on_one
-  after a helper. The path that goes on leaves them to the next flush.*/
+/*Their exits (#NM, #UD, a pending x87 exception) charge what the block's end
+  would on the exit path only (codegen_exit_cycles): imm_data2 of the uop, or
+  codegen_exit_on_one after a helper. The path that goes on leaves the cycles
+  to the next flush.*/
 #if defined __aarch64__ || defined _M_ARM64
 #define uop_FP_ENTER_NOWAIT(ir)                             \
     do {                                                    \
         if (!codegen_fpu_entered) {                         \
             uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);   \
-            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_accumulate_pending(ACCREG_cycles)); \
+            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_exit_cycles(EXIT_FAULT_HELD)); \
         }                                                   \
         codegen_mmx_entered = 0;                            \
     } while (0)
@@ -960,7 +996,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
     do {                                                    \
         if (!codegen_fpu_entered) {                         \
             uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);   \
-            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_accumulate_pending(ACCREG_cycles)); \
+            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_exit_cycles(EXIT_FAULT_HELD)); \
         }                                                   \
         codegen_fpu_entered = 1;                            \
         codegen_mmx_entered = 0;                            \
@@ -1002,13 +1038,13 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 #define uop_FP_ENTER_NOWAIT(ir)                             \
     do {                                                    \
         if (!codegen_fpu_entered)                           \
-            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_accumulate_pending(ACCREG_cycles)); \
+            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_exit_cycles(EXIT_FAULT_HELD)); \
         codegen_mmx_entered = 0;                            \
     } while (0)
 #define uop_FP_ENTER(ir)                                    \
     do {                                                    \
         if (!codegen_fpu_entered)                           \
-            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_accumulate_pending(ACCREG_cycles)); \
+            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_exit_cycles(EXIT_FAULT_HELD)); \
         codegen_fpu_entered = 1;                            \
         codegen_mmx_entered = 0;                            \
     } while (0)
@@ -1021,7 +1057,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
                 codegen_exit_on_one(ir, IREG_temp0);                         \
             } else                                                           \
                 codegen_fp_pending_check(ir);                                \
-            uop_gen_imm2(UOP_MMX_ENTER, ir, cpu_state.oldpc, codegen_accumulate_pending(ACCREG_cycles)); \
+            uop_gen_imm2(UOP_MMX_ENTER, ir, cpu_state.oldpc, codegen_exit_cycles(EXIT_FAULT_HELD)); \
         }                                                                    \
         codegen_mmx_entered = 1;                                             \
         codegen_fpu_entered = 0;                                             \

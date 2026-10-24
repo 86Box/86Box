@@ -30,6 +30,11 @@
 /* FCOM_SIGNED_ZERO, the FCOMPP compare that tells -0 from +0. A backend
    without it leaves FCOMPP to the interpreter on a 287XL or later. */
 #define CODEGEN_BACKEND_HAS_FCOM_SIGNED_ZERO
+/* The exits of the uops that can leave the block charge what imm_data2 adds
+   to cycles on their exit path (codegen_exit_cycles). A backend without it
+   leaves those cycles uncharged there, but for codegen_exit_on_one's, which
+   it charges in the IR. */
+#define CODEGEN_BACKEND_HAS_EXIT_CYCLES
 
 /* Blocks jump straight to their successor when nothing between them needs
    the C loop (codegen_link.h). The option below adds work to every loop

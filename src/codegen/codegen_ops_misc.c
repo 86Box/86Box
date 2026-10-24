@@ -1375,6 +1375,7 @@ rop0F01_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op
           protected mode, read as the block runs*/
         if (cpu_state.eflags & VM_FLAG) {
             uop_JMP(ir, codegen_gpf_rout);
+            codegen_exit_stamp(ir, EXIT_FAULT_HELD);
             return -1;
         }
         if (cr0 & 1) {

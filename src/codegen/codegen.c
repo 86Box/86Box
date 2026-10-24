@@ -163,6 +163,7 @@ codegen_check_seg_writable(ir_data_t *ir, x86seg *seg)
     uop_AND_IMM(ir, IREG_temp3, IREG_temp3, 0x0a);
     jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp3, 0x02);
     uop_JMP(ir, codegen_gpf_rout);
+    codegen_exit_stamp(ir, EXIT_FAULT_HELD);
     uop_set_jump_dest(ir, jump_uop);
 }
 
@@ -581,27 +582,34 @@ codegen_fp_pending_check(ir_data_t *ir)
    the FERR# wait). It charges the cycles accumulated so far, the faulting
    instruction's own included, as a call to the interpreter does, but on that
    path only: the accumulator is left to the path that goes on, whose next
-   flush still owes them. The arm leaves by a conditional branch, always taken
-   there: a fault path goes back to the C loop unlinked. It tests a 1 of its
-   own, not the answer, which would then be kept past the test for it on the
-   path that goes on. It joins after the helper's call, a full barrier, so the
-   join reloads nothing the call had not already dropped. */
+   flush still owes them. A backend that charges an exit's imm_data2 does it
+   on the branch's exit path (the CMP_IMM_JZ is stamped as it is generated).
+   Otherwise the IR charges them in an arm that leaves by a conditional
+   branch, always taken there: a fault path goes back to the C loop unlinked.
+   It tests a 1 of its own, not the answer, which would then be kept past the
+   test for it on the path that goes on. It joins after the helper's call, a
+   full barrier, so the join reloads nothing the call had not already
+   dropped. */
 void
 codegen_exit_on_one(ir_data_t *ir, int reg)
 {
-    int pending = codegen_accumulate_pending(ACCREG_cycles);
+#ifdef CODEGEN_BACKEND_HAS_EXIT_CYCLES
+    uop_CMP_IMM_JZ(ir, reg, 1, codegen_exit_rout);
+#else
+    int add = codegen_exit_cycles(EXIT_FAULT_HELD);
     int jump_uop;
 
-    if (!pending) {
+    if (!add) {
         uop_CMP_IMM_JZ(ir, reg, 1, codegen_exit_rout);
         return;
     }
     jump_uop = uop_CMP_IMM_JNZ_DEST(ir, reg, 1);
-    uop_ADD_IMM(ir, IREG_cycles, IREG_cycles, pending);
+    uop_ADD_IMM(ir, IREG_cycles, IREG_cycles, add);
     uop_MOV_IMM(ir, reg, 1);
     uop_CMP_IMM_JZ(ir, reg, 1, codegen_exit_rout);
     uop_NOP_BARRIER(ir);
     uop_set_jump_dest(ir, jump_uop);
+#endif
 }
 
 /* An exit before the block's end charges what the block's end would have
