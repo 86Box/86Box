@@ -585,10 +585,15 @@ ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNU
     uop_OR_IMM(ir, IREG_flags, IREG_flags, 0x0002);
     if (cpu_CR4_mask & CR4_VME)
         uop_AND_IMM(ir, IREG_temp0_W, IREG_eflags, 0x3c);
-    else if (CPUID)
-        uop_AND_IMM(ir, IREG_temp0_W, IREG_eflags, 0x24);
-    else
-        uop_AND_IMM(ir, IREG_temp0_W, IREG_eflags, 4);
+    else {
+        /*ID when CPUID is on, which a Cyrix CCR4 or WinChip FCR write can
+          change under a compiled block, so it is read here*/
+        uop_MOV_REG_PTR(ir, IREG_temp2, &CPUID);
+        uop_TEST_SET(ir, IREG_temp2, IREG_temp2, UOP_CC_NZ);
+        uop_SHL_IMM(ir, IREG_temp2, IREG_temp2, 5);
+        uop_OR_IMM(ir, IREG_temp2, IREG_temp2, 4);
+        uop_AND(ir, IREG_temp0_W, IREG_eflags, IREG_temp2_W);
+    }
     sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
     uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_flags);
     uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 2, IREG_temp0_W);
