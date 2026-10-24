@@ -261,11 +261,12 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
         codegen_accumulate_flush(ir); /*the cycles so far, before a load can fault*/              \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                             \
                                                                                                   \
+        /*the dword the op reads, its low word the selector: a fault on the upper half is taken*/ \
         if (stack32)                                                                              \
-            uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);                           \
+            uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_ESP);                             \
         else {                                                                                    \
             uop_MOVZX(ir, IREG_eaaddr, IREG_SP);                                                  \
-            uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);                        \
+            uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_eaaddr);                          \
         }                                                                                         \
         uop_LOAD_SEG(ir, &rseg, IREG_temp0_W);                                                    \
         ADD_SP(ir, 4);                                                                            \
