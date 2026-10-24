@@ -257,6 +257,13 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
 
     connect(ui->treeViewVFIO->selectionModel(), &QItemSelectionModel::currentRowChanged, this,
             [this](const QModelIndex &, const QModelIndex &) { vfioUpdateControls(); });
+    /* Keep the current index on the checkbox, which is the only cell the
+       space key toggles; clicking a row makes the clicked cell current. */
+    connect(ui->treeViewVFIO->selectionModel(), &QItemSelectionModel::currentChanged, this,
+            [this](const QModelIndex &current, const QModelIndex &) {
+                if (current.isValid() && (current.column() != ColumnCheck))
+                    ui->treeViewVFIO->selectionModel()->setCurrentIndex(current.siblingAtColumn(ColumnCheck), QItemSelectionModel::NoUpdate);
+            });
     connect(vfioModel, &QAbstractItemModel::dataChanged, this,
             [this](const QModelIndex &, const QModelIndex &, const QVector<int> &roles) {
                 if (roles.isEmpty() || roles.contains(Qt::CheckStateRole))
