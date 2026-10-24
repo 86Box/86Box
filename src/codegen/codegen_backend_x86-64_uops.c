@@ -527,6 +527,202 @@ codegen_FCMP_JWITHIN_DEST(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*The exponent window of x87_divide_fast, 553 <= e <= 1493 for both operands,
+  a memory operand of the single kind held to the single's normal range
+  (e >= 897: a denormal single raises DE, which the software divide does);
+  a quotient with a zero fraction, a power of two, goes there as well*/
+static int
+codegen_FDIV_JSLOW_DEST(codeblock_t *block, uop_t *uop)
+{
+    int       num_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int       den_reg  = HOST_REG_GET(uop->src_reg_b_real);
+    int       q_reg    = HOST_REG_GET(uop->src_reg_c_real);
+    int       num_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int       den_size = IREG_GET_SIZE(uop->src_reg_b_real);
+    int       q_size   = IREG_GET_SIZE(uop->src_reg_c_real);
+    int       kind     = (uop->imm_data >> 11) & 3;
+    int       lo_num   = ((uop->imm_data & 0x200) && (kind == 1)) ? 897 : 553;
+    int       lo_den   = ((uop->imm_data & 0x400) && (kind == 1)) ? 897 : 553;
+    uint32_t *fail_num;
+    uint32_t *fail_den;
+    uint32_t *fail_q;
+    uint32_t *ok;
+
+    if (!(REG_IS_D(num_size) && REG_IS_D(den_size) && REG_IS_D(q_size)))
+        fatal("FDIV_JSLOW_DEST %02x %02x %02x\n", uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
+
+    host_x86_MOVQ_REG_XREG(block, REG_RCX, num_reg);
+    host_x86_SHR64_IMM(block, REG_RCX, 52);
+    host_x86_AND32_REG_IMM(block, REG_ECX, 0x7ff);
+    host_x86_SUB32_REG_IMM(block, REG_ECX, lo_num);
+    host_x86_CMP32_REG_IMM(block, REG_ECX, 1493 - lo_num);
+    fail_num = host_x86_JNBE_long(block);
+    host_x86_MOVQ_REG_XREG(block, REG_RCX, den_reg);
+    host_x86_SHR64_IMM(block, REG_RCX, 52);
+    host_x86_AND32_REG_IMM(block, REG_ECX, 0x7ff);
+    host_x86_SUB32_REG_IMM(block, REG_ECX, lo_den);
+    host_x86_CMP32_REG_IMM(block, REG_ECX, 1493 - lo_den);
+    fail_den = host_x86_JNBE_long(block);
+    host_x86_MOVQ_REG_XREG(block, REG_RCX, q_reg);
+    host_x86_MOV64_REG_IMM(block, REG_RSI, 0x000fffffffffffffull);
+    host_x86_TEST64_REG(block, REG_RSI, REG_RCX);
+    fail_q = host_x86_JZ_long(block);
+    ok     = host_x86_JMP_long(block);
+
+    *fail_num = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) fail_num + 4);
+    *fail_den = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) fail_den + 4);
+    *fail_q   = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) fail_q + 4);
+    uop->p    = host_x86_JMP_long(block);
+    *ok       = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) ok + 4);
+
+    return 0;
+}
+
+/*The status bits of a divide finished from the host quotient
+  (x87_divide_fast): r = num - q * den is exact inside the window, PE is
+  r != 0 and C1 a rounding up in magnitude, r and num of opposite signs. r is
+  Dekker's product, the operations of x87_divide_fast's path without FMA in
+  its order, worked in XMM_TEMP and four allocated XMM registers the uop does
+  not read: their low halves, all an allocated value occupies, wait in R8-R11
+  and are put back before the first branch. At 24 bits the quotient rounds
+  once more, to single: a single-precision midpoint with r != 0, or a single
+  that is not normal, is the software divide's; when the single differs from
+  the quotient the flags are that rounding's, C1 for the larger magnitude. PE
+  raised while unmasked is the software divide's too, which raises it as the
+  interpreter does.*/
+static int
+codegen_FDIV_FLAGS_JSLOW_DEST(codeblock_t *block, uop_t *uop)
+{
+    int       dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int       q_reg     = HOST_REG_GET(uop->src_reg_a_real);
+    int       num_reg   = HOST_REG_GET(uop->src_reg_b_real);
+    int       den_reg   = HOST_REG_GET(uop->src_reg_c_real);
+    int       dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int       q_size    = IREG_GET_SIZE(uop->src_reg_a_real);
+    int       num_size  = IREG_GET_SIZE(uop->src_reg_b_real);
+    int       den_size  = IREG_GET_SIZE(uop->src_reg_c_real);
+    int       pc24      = uop->imm_data & 0x2000;
+    int       w[5];
+    int       nr_w      = 1;
+    uint32_t *fail_mid  = NULL;
+    uint32_t *fail_sub  = NULL;
+    uint32_t *fail_pe;
+    uint32_t *same;
+    uint32_t *below;
+    uint32_t *ok;
+
+    if (!(REG_IS_L(dest_size) && REG_IS_D(q_size) && REG_IS_D(num_size) && REG_IS_D(den_size)))
+        fatal("FDIV_FLAGS_JSLOW_DEST %02x %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
+
+    w[0] = REG_XMM_TEMP;
+    for (int c = REG_XMM1; (c <= REG_XMM7) && (nr_w < 5); c++) {
+        if ((c != q_reg) && (c != num_reg) && (c != den_reg))
+            w[nr_w++] = c;
+    }
+    for (int c = 1; c < 5; c++)
+        host_x86_MOVQ_REG_XREG(block, REG_R8 + c - 1, w[c]);
+
+    /* split = 2^27 + 1 */
+    host_x86_MOV64_REG_IMM(block, REG_RCX, 0x41a0000002000000ull);
+    host_x86_MOVQ_XREG_REG(block, w[0], REG_RCX);
+    host_x86_MOVQ_XREG_XREG(block, w[1], q_reg);
+    host_x86_MULSD_XREG_XREG(block, w[1], w[0]);
+    host_x86_MOVQ_XREG_XREG(block, w[2], w[1]);
+    host_x86_SUBSD_XREG_XREG(block, w[2], q_reg);
+    host_x86_SUBSD_XREG_XREG(block, w[1], w[2]); /* qh */
+    host_x86_MOVQ_XREG_XREG(block, w[2], q_reg);
+    host_x86_SUBSD_XREG_XREG(block, w[2], w[1]); /* ql */
+    host_x86_MOVQ_XREG_XREG(block, w[3], den_reg);
+    host_x86_MULSD_XREG_XREG(block, w[3], w[0]);
+    host_x86_MOVQ_XREG_XREG(block, w[4], w[3]);
+    host_x86_SUBSD_XREG_XREG(block, w[4], den_reg);
+    host_x86_SUBSD_XREG_XREG(block, w[3], w[4]); /* bh */
+    host_x86_MOVQ_XREG_XREG(block, w[0], den_reg);
+    host_x86_SUBSD_XREG_XREG(block, w[0], w[3]); /* bl */
+    host_x86_MOVQ_XREG_XREG(block, w[4], q_reg);
+    host_x86_MULSD_XREG_XREG(block, w[4], den_reg); /* p */
+    host_x86_MOVQ_REG_XREG(block, REG_RSI, w[0]);
+    host_x86_MOVQ_XREG_XREG(block, w[0], w[1]);
+    host_x86_MULSD_XREG_XREG(block, w[0], w[3]);
+    host_x86_SUBSD_XREG_XREG(block, w[0], w[4]); /* qh * bh - p */
+    host_x86_MOVQ_REG_XREG(block, REG_RDI, w[4]);
+    host_x86_MOVQ_XREG_REG(block, w[4], REG_RSI);
+    host_x86_MULSD_XREG_XREG(block, w[1], w[4]);
+    host_x86_ADDSD_XREG_XREG(block, w[0], w[1]); /* + qh * bl */
+    host_x86_MULSD_XREG_XREG(block, w[3], w[2]);
+    host_x86_ADDSD_XREG_XREG(block, w[0], w[3]); /* + ql * bh */
+    host_x86_MULSD_XREG_XREG(block, w[2], w[4]);
+    host_x86_ADDSD_XREG_XREG(block, w[0], w[2]); /* + ql * bl = e */
+    host_x86_MOVQ_XREG_REG(block, w[3], REG_RDI);
+    host_x86_MOVQ_XREG_XREG(block, w[1], num_reg);
+    host_x86_SUBSD_XREG_XREG(block, w[1], w[3]);
+    host_x86_SUBSD_XREG_XREG(block, w[1], w[0]); /* r = (num - p) - e */
+    host_x86_MOVQ_REG_XREG(block, REG_RCX, w[1]);
+    for (int c = 1; c < 5; c++)
+        host_x86_MOVQ_XREG_REG(block, w[c], REG_R8 + c - 1);
+
+    host_x86_MOVQ_REG_XREG(block, REG_RSI, num_reg);
+    host_x86_SHR64_IMM(block, REG_RSI, 63);
+    host_x86_MOV64_REG_REG(block, REG_RDI, REG_RCX);
+    host_x86_SHR64_IMM(block, REG_RDI, 63);
+    host_x86_XOR32_REG_REG(block, REG_EDI, REG_ESI);
+    host_x86_SHL32_IMM(block, REG_EDI, 9);
+    host_x86_OR32_REG_IMM(block, REG_EDI, FPU_SW_Precision);
+    if (pc24) {
+        /* zero below the single's midpoint bit: fraction bits 28..0 = 1 0...0 */
+        host_x86_MOVD_REG_XREG(block, REG_R8, q_reg);
+        host_x86_AND32_REG_IMM(block, REG_R8, 0x1fffffff);
+        host_x86_XOR32_REG_IMM(block, REG_R8, 0x10000000);
+        host_x86_MOV32_REG_IMM(block, REG_R9, 1);
+    }
+    host_x86_MOV64_REG_IMM(block, REG_RSI, 0x7fffffffffffffffull);
+    host_x86_MOV32_REG_IMM(block, dest_reg, 0);
+    host_x86_TEST64_REG(block, REG_RSI, REG_RCX);
+    host_x86_CMOVNZ32_REG_REG(block, dest_reg, REG_EDI);
+    if (pc24) {
+        /* with r == 0 the midpoint is no concern: R9 stays 1 */
+        host_x86_CMOVNZ32_REG_REG(block, REG_R9, REG_R8);
+        host_x86_TEST32_REG(block, REG_R9, REG_R9);
+        fail_mid = host_x86_JZ_long(block);
+        host_x86_CVTSD2SS_XREG_XREG(block, REG_XMM_TEMP, q_reg);
+        host_x86_MOVD_REG_XREG(block, REG_ECX, REG_XMM_TEMP);
+        host_x86_SHR32_IMM(block, REG_ECX, 23);
+        host_x86_AND32_REG_IMM(block, REG_ECX, 0xff);
+        host_x86_SUB32_REG_IMM(block, REG_ECX, 1);
+        host_x86_CMP32_REG_IMM(block, REG_ECX, 253);
+        fail_sub = host_x86_JNBE_long(block);
+        host_x86_CVTSS2SD_XREG_XREG(block, REG_XMM_TEMP, REG_XMM_TEMP);
+        host_x86_MOVQ_REG_XREG(block, REG_RSI, q_reg);
+        host_x86_SHR64_IMM(block, REG_RSI, 63);
+        host_x86_COMISD_XREG_XREG(block, REG_XMM_TEMP, q_reg);
+        same = host_x86_JZ_long(block);
+        host_x86_MOV32_REG_IMM(block, dest_reg, FPU_SW_Precision);
+        below = host_x86_JB_long(block);
+        host_x86_XOR32_REG_IMM(block, REG_ESI, 1);
+        *below = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) below + 4);
+        /* C1: the single above a positive quotient or below a negative one */
+        host_x86_SHL32_IMM(block, REG_ESI, 9);
+        host_x86_OR32_REG_REG(block, dest_reg, REG_ESI);
+        *same = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) same + 4);
+    }
+    host_x86_MOVZX_REG_ABS_32_16(block, REG_ECX, &cpu_state.npxc);
+    host_x86_XOR32_REG_IMM(block, REG_ECX, FPU_SW_Precision);
+    host_x86_AND32_REG_REG(block, REG_ECX, dest_reg);
+    host_x86_AND32_REG_IMM(block, REG_ECX, FPU_SW_Precision);
+    fail_pe = host_x86_JNZ_long(block);
+    ok      = host_x86_JMP_long(block);
+
+    if (fail_mid)
+        *fail_mid = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) fail_mid + 4);
+    if (fail_sub)
+        *fail_sub = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) fail_sub + 4);
+    *fail_pe = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) fail_pe + 4);
+    uop->p   = host_x86_JMP_long(block);
+    *ok      = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) ok + 4);
+
+    return 0;
+}
+
 static int
 codegen_CMP_JNB_DEST(codeblock_t *block, uop_t *uop)
 {
@@ -3870,6 +4066,12 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FDIV &
         UOP_MASK]
     = codegen_FDIV,
+    [UOP_FDIV_JSLOW_DEST &
+        UOP_MASK]
+    = codegen_FDIV_JSLOW_DEST,
+    [UOP_FDIV_FLAGS_JSLOW_DEST &
+        UOP_MASK]
+    = codegen_FDIV_FLAGS_JSLOW_DEST,
     [UOP_FMUL &
         UOP_MASK]
     = codegen_FMUL,

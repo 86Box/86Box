@@ -60,7 +60,7 @@ fdiv_call(ir_data_t *ir, uint32_t next_pc, uint32_t imm)
     codegen_fpu_es_check = 1;
 }
 
-/* The divide itself. On arm64 the common case runs in the block, as
+/* The divide itself. On arm64 and x86-64 the common case runs in the block, as
    x87_divide_fast finishes it: both operands loaded, the precision 24 bits
    (the block's class) or 53 bits (checked here: 64 bits keeps the software
    divide's double rounding), the host quotient inside the window and not a
@@ -73,7 +73,7 @@ fdiv_call(ir_data_t *ir, uint32_t next_pc, uint32_t imm)
 static void
 fdiv_divide(ir_data_t *ir, uint32_t next_pc, uint32_t imm)
 {
-#if defined __aarch64__ || defined _M_ARM64
+#if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
     const int dest       = imm & 7;
     const int num        = (imm & FDIV_MEM_NUM) ? IREG_x87_operand : IREG_ST((imm >> 3) & 7);
     const int den        = (imm & FDIV_MEM_DEN) ? IREG_x87_operand : IREG_ST((imm >> 6) & 7);
