@@ -20,6 +20,7 @@
 typedef struct vfio_device_conf_t {
     char location[256]; /* dddd:bb:dd.f location or sysfs path, blank = end of list */
     char rom_fn[1024];  /* custom expansion ROM file, blank = the device's own */
+    int  rom_enable;    /* use the custom expansion ROM file */
 } vfio_device_conf_t;
 
 #    ifdef __cplusplus
