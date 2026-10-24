@@ -1340,7 +1340,11 @@ codegen_block_version_check_ins(uint32_t addr)
 void
 codegen_flush(void)
 {
-    return;
+    /*A TLB flush ends get_phys()'s cached translation, as it ends the fetch
+      cache: the next block lookup translates again, and its walk sets the
+      Accessed bits the fetch would. A real entry is page aligned, so this
+      tag never hits, there or in the link routines' compare.*/
+    get_phys_phys = 0xffffffff;
 }
 
 void

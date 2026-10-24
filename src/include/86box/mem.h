@@ -505,7 +505,8 @@ get_phys(uint32_t addr)
 {
     uint64_t pa64;
 
-    if (!((addr ^ get_phys_virt) & ~0xfff))
+    /*A page-unaligned get_phys_phys is codegen_flush()'s tag: no entry*/
+    if (!((addr ^ get_phys_virt) & ~0xfff) && !(get_phys_phys & 0xfff))
         return get_phys_phys | (addr & 0xfff);
 
     get_phys_virt = addr;
