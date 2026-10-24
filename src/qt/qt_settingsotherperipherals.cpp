@@ -27,6 +27,7 @@
 #    include <QProcess>
 #    include <QStandardItemModel>
 #    include <QStringBuilder>
+#    include <QTimer>
 #endif
 
 extern "C" {
@@ -76,7 +77,8 @@ enum {
 enum {
     GroupRole = Qt::UserRole, /* IOMMU group, -1 for a device that was not found */
     ROMEnabledRole,
-    ROMFileRole
+    ROMFileRole,
+    IDRole /* vendor:device from sysfs, shown after the name */
 };
 
 /* The IOMMU group decides what can be passed through: the host has to give
@@ -164,32 +166,9 @@ readSysfsId(const QString &path)
     return id.isEmpty() ? QStringLiteral("????") : id.rightJustified(4, '0');
 }
 
-/* Device names as lspci gives them, by dddd:bb:dd.f location. */
-static QHash<QString, QString>
-lspciNames()
-{
-    QHash<QString, QString> names;
-    QProcess                lspci;
-
-    lspci.start(QStringLiteral("lspci"), { QStringLiteral("-D") });
-    if (!lspci.waitForFinished(5000)) {
-        lspci.kill();
-        lspci.waitForFinished();
-        return names;
-    }
-
-    const auto lines = QString::fromLocal8Bit(lspci.readAllStandardOutput()).split('\n');
-    for (const auto &line : lines) {
-        const int space = line.indexOf(' ');
-        if (space > 0)
-            names.insert(line.left(space), line.mid(space + 1).trimmed());
-    }
-
-    return names;
-}
-
+/* A device that was found is named later, from lspci. */
 static QModelIndex
-appendDevice(QStandardItemModel *model, int group, const QString &location, const QString &name)
+appendDevice(QStandardItemModel *model, int group, const QString &location, const QString &id, const QString &name = QString())
 {
     auto *check = new QStandardItem;
     check->setCheckable(true);
@@ -197,6 +176,7 @@ appendDevice(QStandardItemModel *model, int group, const QString &location, cons
     check->setData(group, GroupRole);
     check->setData(false, ROMEnabledRole);
     check->setData(QString(), ROMFileRole);
+    check->setData(id, IDRole);
 
     QList<QStandardItem *> row = { check,
                                    new QStandardItem((group >= 0) ? QString::number(group) : QStringLiteral("??")),
@@ -290,6 +270,14 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
     if (vfioModel->rowCount() > 0)
         ui->treeViewVFIO->setCurrentIndex(vfioModel->index(0, 0));
     vfioUpdateControls();
+
+    /* Only run lspci if the tab is ever shown. */
+    connect(ui->tabWidgetSound, &QTabWidget::currentChanged, this, [this](int index) {
+        if (ui->tabWidgetSound->widget(index) == ui->tabVFIO)
+            vfioRequestNames();
+    });
+    if (ui->tabWidgetSound->currentWidget() == ui->tabVFIO)
+        vfioRequestNames();
 #else
     /* VFIO is only available on Linux, with the development branch. */
     ui->tabWidgetSound->removeTab(ui->tabWidgetSound->indexOf(ui->tabVFIO));
@@ -308,6 +296,14 @@ SettingsOtherPeripherals::~SettingsOtherPeripherals()
         delete scIsaRomCard[i];
 
     delete scRTC;
+
+#ifdef USE_VFIO
+    /* Killing lspci finishes it, which would name devices in a page being torn down. */
+    if (vfioLspci) {
+        vfioLspci->disconnect(this);
+        delete vfioLspci;
+    }
+#endif
 
     delete ui;
 }
@@ -776,17 +772,67 @@ SettingsOtherPeripherals::vfioEnumerate()
         return (a.group != b.group) ? (a.group < b.group) : (a.location < b.location);
     });
 
-    /* The IDs go after the name, as lspci -nn puts them, but without the class code. */
-    const auto names = devices.isEmpty() ? QHash<QString, QString>() : lspciNames();
     for (const auto &device : devices)
-        appendDevice(vfioModel, device.group, device.location,
-                     names.value(device.location, tr("Unknown device")) % QStringLiteral(" [") % device.id % ']');
+        appendDevice(vfioModel, device.group, device.location, device.id);
 
     if (devices.isEmpty()) {
         const auto warning_icon = QIcon(":/misc/qt/icons/warning.ico");
         ui->labelVFIONoGroupsIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
     }
     ui->vfioNoGroupsWarning->setVisible(devices.isEmpty());
+}
+
+/* Name the devices from one lspci call, in the background. */
+void
+SettingsOtherPeripherals::vfioRequestNames()
+{
+    if (vfioNamesRequested)
+        return;
+    vfioNamesRequested = true;
+
+    auto *lspci   = new QProcess(this);
+    auto *timeout = new QTimer(lspci);
+    vfioLspci     = lspci;
+    timeout->setSingleShot(true);
+    connect(timeout, &QTimer::timeout, lspci, &QProcess::kill);
+
+    /* A killed or failed lspci names the devices it got to, if any. */
+    auto done = [this, lspci] {
+        QHash<QString, QString> names;
+        const auto lines = QString::fromLocal8Bit(lspci->readAllStandardOutput()).split('\n');
+        for (const auto &line : lines) {
+            const int space = line.indexOf(' ');
+            if (space > 0)
+                names.insert(line.left(space), line.mid(space + 1).trimmed());
+        }
+        vfioSetNames(names);
+        vfioLspci = nullptr;
+        lspci->deleteLater();
+    };
+    connect(lspci, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this, done);
+    connect(lspci, &QProcess::errorOccurred, this, [done](QProcess::ProcessError error) {
+        if (error == QProcess::FailedToStart)
+            done();
+    });
+
+    lspci->start(QStringLiteral("lspci"), { QStringLiteral("-D") });
+    timeout->start(5000);
+}
+
+/* The IDs go after the name, as lspci -nn puts them, but without the class code. */
+void
+SettingsOtherPeripherals::vfioSetNames(const QHash<QString, QString> &names)
+{
+    for (int row = 0; row < vfioModel->rowCount(); row++) {
+        const QModelIndex index = vfioModel->index(row, ColumnCheck);
+        if (index.data(GroupRole).toInt() < 0)
+            continue;
+
+        const QString name = names.value(index.siblingAtColumn(ColumnLocation).data().toString(), tr("Unknown device"));
+        vfioModel->setData(index.siblingAtColumn(ColumnName), QString(name % QStringLiteral(" [") % index.data(IDRole).toString() % ']'));
+    }
+
+    ui->treeViewVFIO->resizeColumnToContents(ColumnName);
 }
 
 /* Check the configured devices, adding the ones not found at the end. */
@@ -801,7 +847,7 @@ SettingsOtherPeripherals::vfioRestore()
         if (vfioModel->rowCount() > 0)
             matches = vfioModel->match(vfioModel->index(0, ColumnLocation), Qt::DisplayRole, location, 1, Qt::MatchExactly);
         if (matches.isEmpty())
-            index = appendDevice(vfioModel, -1, location, tr("Unknown device"));
+            index = appendDevice(vfioModel, -1, location, QString(), tr("Unknown device"));
         else
             index = matches.first().siblingAtColumn(ColumnCheck);
 

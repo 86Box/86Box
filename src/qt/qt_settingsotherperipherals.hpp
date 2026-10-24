@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #ifdef USE_VFIO
+#    include <QHash>
 #    include <QList>
 #    include <QPair>
 #    include <QString>
@@ -13,6 +14,7 @@ class SettingsOtherPeripherals;
 }
 
 #ifdef USE_VFIO
+class QProcess;
 class VFIODeviceModel;
 #endif
 
@@ -85,13 +87,17 @@ private:
 
     void           vfioEnumerate();
     void           vfioRestore();
+    void           vfioRequestNames();
+    void           vfioSetNames(const QHash<QString, QString> &names);
     void           vfioUpdateControls();
     VFIODeviceList vfioSelectedDevices() const;
     int            vfioChanged() const;
     void           vfioSave();
 
     VFIODeviceModel              *vfioModel;
-    bool                          vfioUpdating = false;
+    QProcess                     *vfioLspci          = nullptr;
+    bool                          vfioUpdating       = false;
+    bool                          vfioNamesRequested = false;
 #endif
 };
 
