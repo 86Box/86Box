@@ -844,10 +844,11 @@ SettingsOtherPeripherals::vfioRestore()
     /* A device no longer passed through keeps its ROM file in the
        configuration, for when it is again. */
     for (int row = 0; row < vfioModel->rowCount(); row++) {
-        const QModelIndex index   = vfioModel->index(row, ColumnCheck);
-        const QByteArray  key     = (index.siblingAtColumn(ColumnLocation).data().toString() % QStringLiteral("_rom_fn")).toUtf8();
-        const QString     romFile = QString::fromUtf8(config_get_string("VFIO", key.constData(), (char *) ""));
-        vfioModel->setData(index, !romFile.isEmpty(), ROMEnabledRole);
+        const QModelIndex index    = vfioModel->index(row, ColumnCheck);
+        const QString     location = index.siblingAtColumn(ColumnLocation).data().toString();
+        const QString     romFile  = QString::fromUtf8(config_get_string("VFIO", (location % QStringLiteral("_rom_fn")).toUtf8().constData(), (char *) ""));
+        const int         enable   = config_get_int("VFIO", (location % QStringLiteral("_rom_enable")).toUtf8().constData(), 1);
+        vfioModel->setData(index, enable && !romFile.isEmpty(), ROMEnabledRole);
         vfioModel->setData(index, romFile, ROMFileRole);
     }
 
@@ -864,7 +865,7 @@ SettingsOtherPeripherals::vfioRestore()
             index = matches.first().siblingAtColumn(ColumnCheck);
 
         vfioModel->setData(index, static_cast<int>(Qt::Checked), Qt::CheckStateRole);
-        vfioModel->setData(index, vfio_device_conf[i].rom_fn[0] != '\0', ROMEnabledRole);
+        vfioModel->setData(index, vfio_device_conf[i].rom_enable && vfio_device_conf[i].rom_fn[0], ROMEnabledRole);
         vfioModel->setData(index, QString(vfio_device_conf[i].rom_fn), ROMFileRole);
     }
 }
@@ -879,8 +880,10 @@ SettingsOtherPeripherals::vfioSelectedDevices() const
         if (index.data(Qt::CheckStateRole).toInt() != Qt::Checked)
             continue;
 
-        const QString romFile = index.data(ROMEnabledRole).toBool() ? index.data(ROMFileRole).toString() : QString();
-        devices.append({ index.siblingAtColumn(ColumnLocation).data().toString(), romFile });
+        /* Without a file, the custom ROM stays enabled by default. */
+        const QString romFile = index.data(ROMFileRole).toString();
+        devices.append({ index.siblingAtColumn(ColumnLocation).data().toString(),
+                         romFile.isEmpty() || index.data(ROMEnabledRole).toBool(), romFile });
     }
 
     return devices;
@@ -891,7 +894,8 @@ SettingsOtherPeripherals::vfioChanged() const
 {
     VFIODeviceList current;
     for (int i = 0; (i < VFIO_DEVICE_MAX) && vfio_device_conf[i].location[0]; i++)
-        current.append({ normalizedLocation(vfio_device_conf[i].location), QString(vfio_device_conf[i].rom_fn) });
+        current.append({ normalizedLocation(vfio_device_conf[i].location),
+                         !vfio_device_conf[i].rom_fn[0] || vfio_device_conf[i].rom_enable, QString(vfio_device_conf[i].rom_fn) });
 
     /* The order the devices are listed in is not a change. */
     VFIODeviceList selected = vfioSelectedDevices();
@@ -907,11 +911,12 @@ SettingsOtherPeripherals::vfioSave()
     memset(vfio_device_conf, 0, sizeof(vfio_device_conf));
 
     int i = 0;
-    for (const auto &device : vfioSelectedDevices()) {
+    for (const auto &[location, romEnabled, romFile] : vfioSelectedDevices()) {
         if (i >= VFIO_DEVICE_MAX)
             break;
-        strncpy(vfio_device_conf[i].location, device.first.toUtf8().constData(), sizeof(vfio_device_conf[i].location) - 1);
-        strncpy(vfio_device_conf[i].rom_fn, device.second.toUtf8().constData(), sizeof(vfio_device_conf[i].rom_fn) - 1);
+        strncpy(vfio_device_conf[i].location, location.toUtf8().constData(), sizeof(vfio_device_conf[i].location) - 1);
+        strncpy(vfio_device_conf[i].rom_fn, romFile.toUtf8().constData(), sizeof(vfio_device_conf[i].rom_fn) - 1);
+        vfio_device_conf[i].rom_enable = romEnabled;
         i++;
     }
 }
