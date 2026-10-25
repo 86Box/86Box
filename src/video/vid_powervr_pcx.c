@@ -61,8 +61,6 @@
 #include "vid_powervr_pcx_tables.h"
 #include "vid_powervr_pcx_render.h"
 
-void pcx_lower_thread_priority(void); /* vid_powervr_pcx_prio.c */
-
 /* PCI identity. */
 #define PCX_VENDOR_NEC      0x1033
 #define PCX1_DEVICE_ID      0x002a
@@ -488,8 +486,6 @@ pcx_render_helper(void *priv)
     struct pcx_helper_t *h   = (struct pcx_helper_t *) priv;
     pcx_t               *pcx = h->pcx;
 
-    pcx_lower_thread_priority();
-
     for (;;) {
         thread_wait_event(h->go, -1);
         thread_reset_event(h->go);
@@ -597,11 +593,6 @@ static void
 pcx_render_thread(void *priv)
 {
     pcx_t *pcx = (pcx_t *) priv;
-
-    /* The emulation thread comes first when the host is busy: a late frame
-       only keeps the emulated card busy longer, while a late emulation
-       thread breaks up the sound. */
-    pcx_lower_thread_priority();
 
     for (;;) {
         thread_wait_event(pcx->render_go, -1);
