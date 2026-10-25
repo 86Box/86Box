@@ -1405,8 +1405,19 @@ acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x42:
             /* GPIO port Output Value */
             if (size == 1) {
-                dev->regs.gpio_val = val & 0x13;
+                int old = dev->regs.gpio_val;
+
+                dev->regs.gpio_val = val & 0x1f; /* GPIO0-4 on the 586B */
                 acpi_i2c_set(dev);
+
+                /* The TX100 BIOS resets the machine by driving GPIO3 low, then spins. */
+                if ((machines[machine].init == machine_at_tx100_init) &&
+                    (dev->regs.gpio_dir & 0x08) &&
+                    (old & 0x08) && !(val & 0x08)) {
+                    acpi_log("ACPI: GPIO3 driven low, resetting the machine\n");
+                    pci_write(0xcf9, 0x00, NULL);
+                    pci_write(0xcf9, 0x06, NULL);
+                }
             }
             break;
         case 0x46:

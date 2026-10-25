@@ -1369,6 +1369,12 @@ extern int             machine_at_ficva503a_init(const machine_t *);
 extern int             machine_at_5emapro_init(const machine_t *);
 extern int             machine_at_k6bv3p_a_init(const machine_t *);
 
+/* VIA VPX */
+#ifdef EMU_DEVICE_H
+extern const device_t  tx100_device;
+#endif
+extern int             machine_at_tx100_init(const machine_t *);
+
 /* SiS 5591 */
 extern int             machine_at_5sg100_init(const machine_t *);
 
