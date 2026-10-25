@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-09 04:11+0000\n"
+"PO-Revision-Date: 2026-10-25 04:19+0000\n"
 "Last-Translator: nguyen <barnacl437@disroot.org>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
@@ -152,10 +152,10 @@ msgid "4:&3 Integer scale"
 msgstr "Căn tỷ lệ 4:3 số nguyên"
 
 msgid "&Center"
-msgstr ""
+msgstr "Căn &giữa"
 
 msgid "4:3 Cen&ter"
-msgstr ""
+msgstr "Că&n giữa 4:3"
 
 msgid "Inverted VGA monitor"
 msgstr "Đảo màu VGA"
@@ -440,7 +440,7 @@ msgid "Block linking on the dynamic recompiler"
 msgstr "Liên kết khối trên bộ tái biên dịch động"
 
 msgid "Debug registers on 486 and later processors"
-msgstr ""
+msgstr "Gỡ lỗi thanh ghi trên 486 và các vi xử lý sau này"
 
 msgid "CPU frame size"
 msgstr "Cỡ khung CPU"
@@ -635,10 +635,12 @@ msgid "Cassette"
 msgstr "Cassette"
 
 msgid "Turbo IDE"
-msgstr ""
+msgstr "IDE siêu tốc"
 
 msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
 msgstr ""
+"Loại bỏ giới hạn tốc độ của chế độ truyền tải IDE. Định thời cho ổ cứng và "
+"CD-ROM vẫn được áp dụng."
 
 msgid "Hard disks:"
 msgstr "Đĩa cứng:"
@@ -1299,10 +1301,10 @@ msgid "Details shown:"
 msgstr ""
 
 msgid "Machine name and hardware"
-msgstr ""
+msgstr "Tên máy và phần cứng"
 
 msgid "Hardware only"
-msgstr ""
+msgstr "Chỉ phần cứng"
 
 msgid "No details"
 msgstr ""

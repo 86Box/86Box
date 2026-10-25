@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 18:36+0000\n"
-"Last-Translator: RichardG867 <richardg867@gmail.com>\n"
+"PO-Revision-Date: 2026-10-25 04:19+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Portuguese (Portugal) <https://weblate.86box.net/projects/"
 "86box/86box/pt_PT/>\n"
 "Language: pt-PT\n"
@@ -152,10 +152,10 @@ msgid "4:&3 Integer scale"
 msgstr "Escala inteira 4:&3"
 
 msgid "&Center"
-msgstr ""
+msgstr "&Centrado"
 
 msgid "4:3 Cen&ter"
-msgstr ""
+msgstr "4:3 Centra&do"
 
 msgid "Inverted VGA monitor"
 msgstr "Monitor VGA invertido"
@@ -434,13 +434,13 @@ msgid "Dynamic recompiler"
 msgstr "Recompilador dinâmico"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Ambiente FPU preciso no recompilador dinâmico"
 
 msgid "Block linking on the dynamic recompiler"
 msgstr "Ligação de blocos no recompilador dinâmico"
 
 msgid "Debug registers on 486 and later processors"
-msgstr ""
+msgstr "Registos de depuração nos processadores 486 e posteriores"
 
 msgid "CPU frame size"
 msgstr "Tamanho de blocos do CPU"
@@ -494,16 +494,16 @@ msgid "&Mouse"
 msgstr "&Rato"
 
 msgid "Tablet:"
-msgstr ""
+msgstr "Tablet:"
 
 msgid "Tablet"
-msgstr ""
+msgstr "Tablet"
 
 msgid "&Tablet"
-msgstr ""
+msgstr "&Tablet"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "Tablet (&Cruzeta)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -635,10 +635,12 @@ msgid "Cassette"
 msgstr "Cassete"
 
 msgid "Turbo IDE"
-msgstr ""
+msgstr "IDE turbo"
 
 msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
 msgstr ""
+"Elimina o limite de velocidade do modo de transferência IDE. Os tempos de "
+"resposta do disco rígido e da unidade de CD-ROM continuam a aplicar-se."
 
 msgid "Hard disks:"
 msgstr "Discos rígidos:"
@@ -872,7 +874,7 @@ msgid "Input devices"
 msgstr "Dispositivos de entrada"
 
 msgid "Input &device"
-msgstr ""
+msgstr "D&ispositivo de entrada"
 
 msgid "Sound"
 msgstr "Som"
@@ -884,7 +886,7 @@ msgid "Ports (COM & LPT)"
 msgstr "Portas (COM e LPT)"
 
 msgid "Port"
-msgstr ""
+msgstr "Porta"
 
 msgid "Ports"
 msgstr "Portas"
@@ -962,7 +964,7 @@ msgid "Press %1 or middle button to release mouse"
 msgstr "Pressione %1 ou tecla média para soltar o rato"
 
 msgid "Press %1 or side button to release mouse"
-msgstr ""
+msgstr "Prima %1 ou o botão lateral para soltar o rato"
 
 msgid "Bus"
 msgstr "Barramento"
@@ -1291,36 +1293,38 @@ msgid "Use regular expressions in search box"
 msgstr "Usa expressões regulares na caixa de procura"
 
 msgid "Delete virtual machines to Recycle Bin"
-msgstr ""
+msgstr "Eliminar máquinas virtuais para a Lixeira"
 
 msgid "Discord"
-msgstr ""
+msgstr "Discord"
 
 msgid "Show running machines in my Discord status"
-msgstr ""
+msgstr "Mostrar máquinas em funcionamento no meu estado do Discord"
 
 msgid "Details shown:"
-msgstr ""
+msgstr "Detalhes apresentados:"
 
 msgid "Machine name and hardware"
-msgstr ""
+msgstr "Nome do computador e hardware"
 
 msgid "Hardware only"
-msgstr ""
+msgstr "Apenas hardware"
 
 msgid "No details"
-msgstr ""
+msgstr "Sem detalhes"
 
 msgid "Using %1"
-msgstr ""
+msgstr "Utilizando %1"
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] ""
+msgstr[0] "%n máquina(s) activa(s)"
+msgstr[1] "%n máquinas activas"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
-msgstr[0] ""
+msgstr[0] " (mais +%n)"
+msgstr[1] " (mais +%n)"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -1541,16 +1545,18 @@ msgid "ACP&I shutdown"
 msgstr "Encerramento ACP&I"
 
 msgid "Power off"
-msgstr ""
+msgstr "Desligar"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "&Desligar…"
 
 msgid "Power &off"
-msgstr ""
+msgstr "&Desligar"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
+"Desligar a máquina emulada pode causar a perda de dados. Tem a certeza de "
+"que deseja continuar?"
 
 msgid "Hard disk (%1)"
 msgstr "Disco rígido (%1)"
@@ -1821,7 +1827,7 @@ msgid "Auto-pause on focus loss"
 msgstr "Pausa automática na perda de focagem"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "Pausa automática nas caixas de diálogo"
 
 msgid "WinBox is no longer supported"
 msgstr "O WinBox não é mais suportado"
@@ -2334,7 +2340,7 @@ msgid "Host ID"
 msgstr "ID do anfitrião"
 
 msgid "Host"
-msgstr ""
+msgstr "Anfitrião"
 
 msgid "FDC Address"
 msgstr "Endereço da FDC"
@@ -2418,7 +2424,7 @@ msgid "Control PC speaker"
 msgstr "Controlo do altifalante do PC"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "Controlar o volume MIDI"
 
 msgid "Memory size"
 msgstr "Tamanho da memória"
@@ -3039,7 +3045,7 @@ msgid "Ask for confirmation before quitting"
 msgstr "Pedir confirmação antes de sair"
 
 msgid "Precache CHD files into memory"
-msgstr ""
+msgstr "Armazenar antecipadamente os ficheiros CHD na memória"
 
 msgid "Options"
 msgstr "Opções"
@@ -3051,34 +3057,36 @@ msgid "Model:"
 msgstr "Modelo:"
 
 msgid "Brand:"
-msgstr ""
+msgstr "Marca:"
 
 msgid "Revision:"
-msgstr ""
+msgstr "Revisão:"
 
 msgid "[Generic HDD] Device Configuration"
-msgstr ""
+msgstr "[HDD genérico] Configuração do dispositivo"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Falha na inicialização do renderizador Vulkan."
 
 msgid "Failed to create Vulkan 1.3 instance."
-msgstr ""
+msgstr "Não foi possível criar uma instância do Vulkan 1.3."
 
 msgid "No usable Vulkan physical devices found."
-msgstr ""
+msgstr "Não foram encontrados dispositivos físicos Vulkan utilizáveis."
 
 msgid "No Vulkan-capable physical devices found."
-msgstr ""
+msgstr "Não foram encontrados dispositivos físicos compatíveis com o Vulkan."
 
 msgid "librashader not found. Shaders will not be available."
 msgstr ""
+"Não foi encontrada a biblioteca librashader. Os shaders não estarão "
+"disponíveis."
 
 msgid "Vulkan device lost."
-msgstr ""
+msgstr "Perda do dispositivo Vulkan."
 
 msgid "Vulkan surface lost."
-msgstr ""
+msgstr "Perda da superfície do Vulkan."
 
 msgid "GLSL Error"
 msgstr "Erro de GLSL"
@@ -3102,7 +3110,7 @@ msgid "Shader Configuration"
 msgstr "Configuração do shader"
 
 msgid "GPU:"
-msgstr ""
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "Adicionar"
@@ -3126,7 +3134,7 @@ msgid "Key bindings"
 msgstr "Teclas de atalho"
 
 msgid "VM Manager"
-msgstr ""
+msgstr "Gestor de MV"
 
 msgid "Action"
 msgstr "Ação"
@@ -3174,10 +3182,10 @@ msgid "Toggle mute"
 msgstr "Alternar o estado silenciado"
 
 msgid "Toggle on-screen display"
-msgstr ""
+msgstr "Ativar/desativar o OSD"
 
 msgid "Toggle &on-screen display"
-msgstr ""
+msgstr "Ativar/desativar o &OSD"
 
 msgid "Text files"
 msgstr "Ficheiros de texto"
@@ -3341,7 +3349,7 @@ msgid "Export EDID"
 msgstr "Exportar EDID"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr ""
+msgstr "O ficheiro EDID \"%s\" não é válido."
 
 msgid "EDID file \"%s\" is too large."
 msgstr "O ficheiro EDID \"%s\" é demasiado grande."
@@ -3380,10 +3388,10 @@ msgid "Fast forward"
 msgstr "Avançar rapidamente"
 
 msgid "&Non-maskable interrupt"
-msgstr ""
+msgstr "Interrupção &não mascarável"
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "Interrupção não mascarável"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "Para alterar o diretório do sistema, pare todas as máquinas em funcionamento."
@@ -3419,6 +3427,8 @@ msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
+"Não foi possível carregar a imagem \"%s\": falta o ficheiro %1, que é "
+"necessário para o suporte a imagens no formato Aaru."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
