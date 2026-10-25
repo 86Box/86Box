@@ -748,9 +748,11 @@ exec386_dynarec_dyn(const int dbg)
     {
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
         codegen_link_slot_t *(*code)(void) = (void *) &block->data[BLOCK_START];
+        /* Only codegen_init() and codegen_reset() change it. */
+        const int link = codegen_block_link;
 
         /* from may predate the reset that turned linking off. */
-        if ((from != NULL) && codegen_block_link)
+        if ((from != NULL) && link)
             codegen_link_patch(from, block, phys_addr);
 #    else
         void (*code)(void) = (void *) &block->data[BLOCK_START];
@@ -765,7 +767,7 @@ exec386_dynarec_dyn(const int dbg)
         inrecomp = 1;
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
         /* A block compiled without links returns nothing. */
-        if (codegen_block_link)
+        if (link)
             link_from = code();
         else
             code();
@@ -773,7 +775,10 @@ exec386_dynarec_dyn(const int dbg)
         code();
 #    endif
         inrecomp = 0;
-        x86_reset_deferred();
+        /* Only a reset raised inside the block defers, and it sets
+           x86_was_reset as it does (reset_common()). */
+        if (x86_was_reset)
+            x86_reset_deferred();
         /* An op that ends the block with its answer (INT n through a task
            gate) leaves before its after-op RF handling (dynarec_rf_after_op),
            with RF already as that leaves it: its rf_flag_no_clear is
