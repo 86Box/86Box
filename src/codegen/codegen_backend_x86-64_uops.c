@@ -1555,6 +1555,44 @@ codegen_FCOM_SIGNED_ZERO(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+static int
+codegen_FCOM_CHKCOP(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_W(dest_size) && REG_IS_D(src_size_a) && REG_IS_D(src_size_b)) {
+        uint32_t *not_image_a_p;
+        uint32_t *not_image_b_p;
+
+        if (uop->imm_data)
+            codegen_FCOM_SIGNED_ZERO(block, uop);
+        else
+            codegen_FCOM(block, uop);
+        /* C3 when a is the first image and b the first plus 2. */
+        host_x86_MOVQ_REG_XREG(block, REG_RSI, src_reg_a);
+        host_x86_MOV64_REG_IMM(block, REG_RDI, 0x3fec1a6ff866a936ULL);
+        host_x86_CMP64_REG_REG(block, REG_RSI, REG_RDI);
+        not_image_a_p = host_x86_JNZ_long(block);
+        host_x86_MOVQ_REG_XREG(block, REG_RSI, src_reg_b);
+        host_x86_ADD64_REG_IMM(block, REG_RDI, 2);
+        host_x86_CMP64_REG_REG(block, REG_RSI, REG_RDI);
+        not_image_b_p = host_x86_JNZ_long(block);
+        host_x86_MOV16_REG_IMM(block, dest_reg, FPU_SW_C3);
+        jump_here(not_image_a_p);
+        jump_here(not_image_b_p);
+    }
+#    ifdef RECOMPILER_DEBUG
+    else
+        fatal("codegen_FCOM_CHKCOP %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+#    endif
+    return 0;
+}
+
 static void
 codegen_mem_load(codeblock_t *block, uop_t *uop, int kind, int dest_reg, void *rout)
 {
@@ -4119,6 +4157,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FCOM_SIGNED_ZERO &
         UOP_MASK]
     = codegen_FCOM_SIGNED_ZERO,
+    [UOP_FCOM_CHKCOP &
+        UOP_MASK]
+    = codegen_FCOM_CHKCOP,
     [UOP_FDIV &
         UOP_MASK]
     = codegen_FDIV,
