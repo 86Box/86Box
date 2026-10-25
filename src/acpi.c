@@ -2539,8 +2539,10 @@ acpi_reset(void *priv)
     }
 
     if (acpi_power_on) {
-        /* Power on always generates a resume event. */
-        // dev->regs.pmsts |= 0x8100;
+        if (machines[machine].init != machine_at_sp97xv_init)
+            /* Power on always generates a resume event. */
+            dev->regs.pmsts |= 0x8100;
+        
         acpi_power_on = 0;
     }
 
