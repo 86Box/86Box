@@ -84,9 +84,12 @@ typedef struct tandy2k_t {
 
 static tandy2k_t tandy2k;
 
-/* The Tandy 2000 keyboard encodes its own scan codes; apart from the
-   cursor keys, the bottom row of the keypad and F11/F12 they are the
-   same as the IBM XT set. */
+/* The Tandy 2000 keyboard encodes its own scan codes. Most keys match the IBM
+   XT set, but 29h/2Bh/4Ah/4Eh are the arrow keys here, and the keypad digits
+   carry a second character (7 = backslash, 4 = bar, 8 = tilde, 2 = grave;
+   Shift plus a keypad key gives the digit). The alphanumeric block has no
+   backslash or grave key of its own, so those two host keys are pointed
+   at the keypad codes that carry the characters instead. */
 static const scancode scancode_tandy2k[512] = {
   // clang-format off
     { .mk = {            0 }, .brk = {                   0 } }, /* 000 */
@@ -130,9 +133,9 @@ static const scancode scancode_tandy2k[512] = {
     { .mk = {      0x26, 0 }, .brk = {             0xa6, 0 } }, /* 026 */
     { .mk = {      0x27, 0 }, .brk = {             0xa7, 0 } }, /* 027 */
     { .mk = {      0x28, 0 }, .brk = {             0xa8, 0 } }, /* 028 */
-    { .mk = {      0x29, 0 }, .brk = {             0xa9, 0 } }, /* 029 */
+    { .mk = {      0x50, 0 }, .brk = {             0xd0, 0 } }, /* 029 */
     { .mk = {      0x2a, 0 }, .brk = {             0xaa, 0 } }, /* 02a */
-    { .mk = {      0x2b, 0 }, .brk = {             0xab, 0 } }, /* 02b */
+    { .mk = {      0x47, 0 }, .brk = {             0xc7, 0 } }, /* 02b */
     { .mk = {      0x2c, 0 }, .brk = {             0xac, 0 } }, /* 02c */
     { .mk = {      0x2d, 0 }, .brk = {             0xad, 0 } }, /* 02d */
     { .mk = {      0x2e, 0 }, .brk = {             0xae, 0 } }, /* 02e */
@@ -427,7 +430,7 @@ static const scancode scancode_tandy2k[512] = {
     { .mk = {      0x4f, 0 }, .brk = {             0xcf, 0 } }, /* 14f */
     { .mk = {      0x4a, 0 }, .brk = {             0xca, 0 } }, /* 150 */
     { .mk = {      0x51, 0 }, .brk = {             0xd1, 0 } }, /* 151 */
-    { .mk = {      0x52, 0 }, .brk = {             0xd2, 0 } }, /* 152 */
+    { .mk = {      0x55, 0 }, .brk = {             0xd5, 0 } }, /* 152 */
     { .mk = {      0x53, 0 }, .brk = {             0xd3, 0 } }, /* 153 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 154 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 155 */
@@ -1136,10 +1139,10 @@ machine_tandy2000_init(const machine_t *model)
     io_sethandler(0x0050, 0x0008, ppi_read, NULL, NULL,
                   ppi_write, NULL, NULL, NULL);
 
-    /* The keyboard has its own 8048 whose ROM is undumped, so send it
-       the scan codes the encoder would have produced. */
     tandy2k.kbdin = 0x00;
     tandy2k.kbd_busy = 0;
+    /* The keyboard has its own 8048 whose ROM is undumped, so send it
+       the scan codes the encoder would have produced. */
     keyboard_set_table(scancode_tandy2k);
     keyboard_send = tandy2k_kbd_send;
 
