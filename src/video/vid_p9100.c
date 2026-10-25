@@ -2238,32 +2238,30 @@ p9100_native_writel(p9100_t *p9100, uint32_t addr, uint32_t val, uint32_t mask, 
     p9100_reg_write(p9100, addr, p9100_swap(val, h, b, bit), p9100_swap(mask, h, b, 0));
 }
 
-static uint8_t
-p9100_native_read(p9100_t *p9100, uint32_t addr, int indirect)
+/* The memory core hands accesses that are not aligned to their size to the
+   handlers as they are (24 bpp drawing is full of them), so they are split
+   at the doubleword boundary, each doubleword taking the bytes that fall in
+   it. */
+static uint32_t
+p9100_native_read_n(p9100_t *p9100, uint32_t addr, int bytes, int indirect)
 {
-    return p9100_native_readl(p9100, addr & ~3, indirect) >> ((addr & 3) << 3);
-}
+    int      shift = (addr & 3) << 3;
+    uint32_t ret   = p9100_native_readl(p9100, addr & ~3, indirect) >> shift;
 
-static uint16_t
-p9100_native_readw(p9100_t *p9100, uint32_t addr, int indirect)
-{
-    return p9100_native_readl(p9100, addr & ~3, indirect) >> ((addr & 2) << 3);
-}
-
-static void
-p9100_native_write(p9100_t *p9100, uint32_t addr, uint8_t val, int indirect)
-{
-    int shift = (addr & 3) << 3;
-
-    p9100_native_writel(p9100, addr & ~3, (uint32_t) val << shift, 0x000000ffU << shift, indirect);
+    if (((addr & 3) + bytes) > 4)
+        ret |= p9100_native_readl(p9100, (addr & ~3) + 4, indirect) << (32 - shift);
+    return ret;
 }
 
 static void
-p9100_native_writew(p9100_t *p9100, uint32_t addr, uint16_t val, int indirect)
+p9100_native_write_n(p9100_t *p9100, uint32_t addr, uint32_t val, int bytes, int indirect)
 {
-    int shift = (addr & 2) << 3;
+    int      shift = (addr & 3) << 3;
+    uint32_t mask  = 0xffffffffU >> (32 - (bytes << 3));
 
-    p9100_native_writel(p9100, addr & ~3, (uint32_t) val << shift, 0x0000ffffU << shift, indirect);
+    p9100_native_writel(p9100, addr & ~3, val << shift, mask << shift, indirect);
+    if (((addr & 3) + bytes) > 4)
+        p9100_native_writel(p9100, (addr & ~3) + 4, val >> (32 - shift), mask >> (32 - shift), indirect);
 }
 
 /* The PCI memory window: WBASE << 24, 16 MB. */
@@ -2272,7 +2270,7 @@ p9100_bar_read(uint32_t addr, void *priv)
 {
     p9100_t *p9100 = (p9100_t *) priv;
 
-    return p9100_native_read(p9100, addr & 0xffffff, 0);
+    return p9100_native_read_n(p9100, addr & 0xffffff, 1, 0);
 }
 
 static uint16_t
@@ -2280,7 +2278,7 @@ p9100_bar_readw(uint32_t addr, void *priv)
 {
     p9100_t *p9100 = (p9100_t *) priv;
 
-    return p9100_native_readw(p9100, addr & 0xffffff, 0);
+    return p9100_native_read_n(p9100, addr & 0xffffff, 2, 0);
 }
 
 static uint32_t
@@ -2288,7 +2286,7 @@ p9100_bar_readl(uint32_t addr, void *priv)
 {
     p9100_t *p9100 = (p9100_t *) priv;
 
-    return p9100_native_readl(p9100, addr & 0xfffffc, 0);
+    return p9100_native_read_n(p9100, addr & 0xffffff, 4, 0);
 }
 
 static void
@@ -2296,7 +2294,7 @@ p9100_bar_write(uint32_t addr, uint8_t val, void *priv)
 {
     p9100_t *p9100 = (p9100_t *) priv;
 
-    p9100_native_write(p9100, addr & 0xffffff, val, 0);
+    p9100_native_write_n(p9100, addr & 0xffffff, val, 1, 0);
 }
 
 static void
@@ -2304,7 +2302,7 @@ p9100_bar_writew(uint32_t addr, uint16_t val, void *priv)
 {
     p9100_t *p9100 = (p9100_t *) priv;
 
-    p9100_native_writew(p9100, addr & 0xffffff, val, 0);
+    p9100_native_write_n(p9100, addr & 0xffffff, val, 2, 0);
 }
 
 static void
@@ -2312,7 +2310,7 @@ p9100_bar_writel(uint32_t addr, uint32_t val, void *priv)
 {
     p9100_t *p9100 = (p9100_t *) priv;
 
-    p9100_native_writel(p9100, addr & 0xfffffc, val, 0xffffffff, 0);
+    p9100_native_write_n(p9100, addr & 0xffffff, val, 4, 0);
 }
 
 /* A0000-BFFFF: the SVGA unit in emulation mode, the indirect native window
@@ -2344,7 +2342,7 @@ p9100_vga_read(uint32_t addr, void *priv)
     int      dual;
 
     if (!(p9100->config65 & CFG65_MODESELECT))
-        return p9100_native_read(p9100, addr & 0xffff, 1);
+        return p9100_native_read_n(p9100, addr & 0xffff, 1, 1);
 
     dual = p9100_vga_dual_bank(p9100, addr);
     ret  = svga_read(addr, &p9100->svga);
@@ -2361,7 +2359,7 @@ p9100_vga_readw(uint32_t addr, void *priv)
     int      dual;
 
     if (!(p9100->config65 & CFG65_MODESELECT))
-        return p9100_native_readw(p9100, addr & 0xffff, 1);
+        return p9100_native_read_n(p9100, addr & 0xffff, 2, 1);
 
     dual = p9100_vga_dual_bank(p9100, addr);
     ret  = svga_readw(addr, &p9100->svga);
@@ -2378,7 +2376,7 @@ p9100_vga_readl(uint32_t addr, void *priv)
     int      dual;
 
     if (!(p9100->config65 & CFG65_MODESELECT))
-        return p9100_native_readl(p9100, addr & 0xfffc, 1);
+        return p9100_native_read_n(p9100, addr & 0xffff, 4, 1);
 
     dual = p9100_vga_dual_bank(p9100, addr);
     ret  = svga_readl(addr, &p9100->svga);
@@ -2394,7 +2392,7 @@ p9100_vga_write(uint32_t addr, uint8_t val, void *priv)
     int      dual;
 
     if (!(p9100->config65 & CFG65_MODESELECT)) {
-        p9100_native_write(p9100, addr & 0xffff, val, 1);
+        p9100_native_write_n(p9100, addr & 0xffff, val, 1, 1);
         return;
     }
 
@@ -2411,7 +2409,7 @@ p9100_vga_writew(uint32_t addr, uint16_t val, void *priv)
     int      dual;
 
     if (!(p9100->config65 & CFG65_MODESELECT)) {
-        p9100_native_writew(p9100, addr & 0xffff, val, 1);
+        p9100_native_write_n(p9100, addr & 0xffff, val, 2, 1);
         return;
     }
 
@@ -2428,7 +2426,7 @@ p9100_vga_writel(uint32_t addr, uint32_t val, void *priv)
     int      dual;
 
     if (!(p9100->config65 & CFG65_MODESELECT)) {
-        p9100_native_writel(p9100, addr & 0xfffc, val, 0xffffffff, 1);
+        p9100_native_write_n(p9100, addr & 0xffff, val, 4, 1);
         return;
     }
 
