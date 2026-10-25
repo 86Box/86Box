@@ -155,7 +155,12 @@ void codegen_set_rounding_mode(int mode);
 /* Control Word */
 /* ************ */
 
-#define FPU_CW_Reserved_Bits    (0xe0c0)  /* reserved bits */
+#ifdef FPU_8087
+/* The 80187 keeps the reserved bit mask used by later coprocessors. */
+#    define FPU_CW_Reserved_Bits ((fpu_type == FPU_80187) ? 0xe0c0 : 0xe040)
+#else
+#    define FPU_CW_Reserved_Bits (0xe0c0) /* reserved bits */
+#endif
 
 #define FPU_CW_Inf		(0x1000)  /* infinity control, legacy */
 
