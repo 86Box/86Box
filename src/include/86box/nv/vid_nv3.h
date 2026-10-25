@@ -1659,6 +1659,8 @@ void        nv3_d3d_vblank(uint32_t lo, uint32_t hi);
 /* only when the 3D work reaches VRAM bytes lo..hi, or a 2D draw's rows (nv3_render_d3d.c) */
 void        nv3_d3d_touch(uint32_t lo, uint32_t hi, int cause);
 void        nv3_d3d_touch_rect(nv3_grobj_t grobj, int32_t y0, int32_t y1, int32_t x1, int cause);
+/* a 2D fill queued with the 3D work when it can be; false: draw it now */
+bool        nv3_d3d_fill(int32_t x0, int32_t y0, int32_t x1, int32_t y1, nv3_color_expanded_t c, nv3_grobj_t grobj, bool own_clip);
 void        nv3_class_01c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 
 // Notification Engine

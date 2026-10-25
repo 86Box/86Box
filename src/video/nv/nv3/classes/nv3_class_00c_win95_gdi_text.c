@@ -197,10 +197,6 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
                     nv_log("Method Execution: Rect GDI-A%d Size=%d,%d\n", index, nv3->pgraph.win95_gdi_text.rect_a_size[index].x, 
                         nv3->pgraph.win95_gdi_text.rect_a_size[index].y);
 
-                    nv3_d3d_touch_rect(grobj, nv3->pgraph.win95_gdi_text.rect_a_position[index].y,
-                                       nv3->pgraph.win95_gdi_text.rect_a_position[index].y + nv3->pgraph.win95_gdi_text.rect_a_size[index].y - 1,
-                                       nv3->pgraph.win95_gdi_text.rect_a_position[index].x + nv3->pgraph.win95_gdi_text.rect_a_size[index].x,
-                                       NV3_SYNC_CLASS + nv3_pgraph_class0c_w95txt);
                     nv3_render_gdi_rect(nv3->pgraph.win95_gdi_text.rect_a_position[index], 
                         nv3->pgraph.win95_gdi_text.rect_a_size[index], nv3->pgraph.win95_gdi_text.color_a, grobj);
                 }
@@ -229,8 +225,6 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
                     nv_log("Method Execution: Rect GDI-B%d Right,Bottom=%d,%d\n", index, nv3->pgraph.win95_gdi_text.clipped_rect[index].right, 
                         nv3->pgraph.win95_gdi_text.clipped_rect[index].bottom);
 
-                    nv3_d3d_touch_rect(grobj, nv3->pgraph.win95_gdi_text.clipped_rect[index].top, nv3->pgraph.win95_gdi_text.clipped_rect[index].bottom,
-                                       nv3->pgraph.win95_gdi_text.clipped_rect[index].right + 1, NV3_SYNC_CLASS + nv3_pgraph_class0c_w95txt);
                     nv3_render_rect_clipped(nv3->pgraph.win95_gdi_text.clipped_rect[index], 
                         nv3->pgraph.win95_gdi_text.color_b, grobj);
                 }

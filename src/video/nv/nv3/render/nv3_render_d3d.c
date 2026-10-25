@@ -484,16 +484,45 @@ nv3_d3d_mark(const nv3_d3d_dstate_t *st, int32_t y, int32_t x0, int32_t x1)
 {
     uint32_t vm = nv3->nvbase.svga.vram_mask;
 
-    for (uint32_t j = 0; j < 3; j++) {
+    for (uint32_t j = 0; j < 4; j++) {
         if (!((st->buf_on >> j) & 1))
             continue;
         uint32_t row = st->boff[j] + (uint32_t) y * st->bpitch[j];
-        uint32_t a0  = row + (uint32_t) x0 * 2;
-        uint32_t a1  = row + (uint32_t) x1 * 2;
+        uint32_t a0  = row + (uint32_t) x0 * st->bpp;
+        uint32_t a1  = row + (uint32_t) x1 * st->bpp;
 
         for (uint32_t a = a0 & ~0xFFFu; a <= a1; a += 0x1000)
             nv3->nvbase.svga.changedvram[(a & vm) >> 12] = changeframecount;
     }
+}
+
+/* A 2D fill's span: its value stored in every surface it writes, as nv3_render_write_surface
+   does */
+static void
+nv3_d3d_fill_span(const nv3_d3d_dstate_t *st, const nv3_d3d_tri_t *t, const nv3_d3d_span_t *sp)
+{
+    uint8_t *vram = nv3->nvbase.svga.vram;
+    uint32_t vm   = nv3->nvbase.svga.vram_mask;
+    uint32_t v;
+
+    memcpy(&v, &t->c[0], 4);
+    for (uint32_t j = 0; j < 4; j++) {
+        if (!((st->buf_on >> j) & 1))
+            continue;
+        uint32_t row = st->boff[j] + (uint32_t) sp->y * st->bpitch[j];
+
+        for (int32_t x = sp->x0; x < sp->x1; x++) {
+            uint32_t addr = (row + (uint32_t) x * st->fill) & vm;
+
+            if (st->fill == 1)
+                vram[addr] = v;
+            else if (st->fill == 2)
+                *(uint16_t *) &vram[addr & ~1] = v;
+            else
+                *(uint32_t *) &vram[addr & ~3] = v;
+        }
+    }
+    nv3_d3d_mark(st, sp->y, sp->x0, sp->x1);
 }
 
 static void
@@ -502,6 +531,11 @@ nv3_d3d_span(const nv3_d3d_batch_t *b, const nv3_d3d_span_t *sp)
     const nv3_d3d_tri_t    *t        = &b->tris[sp->tri];
     const nv3_d3d_dstate_t *st       = &b->states[t->state];
     uint32_t                config   = st->config;
+
+    if (st->fill) {
+        nv3_d3d_fill_span(st, t, sp);
+        return;
+    }
     uint32_t                src_color = NV3_D3D_CONFIG_SRC_COLOR(config);
     bool                    argb     = NV3_D3D_CONFIG_ARGB(config);
     int                     max_log, min_log;
@@ -640,7 +674,7 @@ static void
 nv3_d3d_reach(const nv3_d3d_dstate_t *s, uint32_t base, uint32_t pitch, uint32_t *lo, uint32_t *hi)
 {
     uint32_t rows = (uint32_t) (s->cy1 - s->cy0) * pitch;
-    uint32_t w    = (uint32_t) s->cx1 * 2;
+    uint32_t w    = (uint32_t) s->cx1 * s->bpp;
 
     *lo = base + (uint32_t) s->cy0 * pitch;
     *hi = *lo + ((rows > w) ? rows : w) - 1;
@@ -692,17 +726,17 @@ nv3_d3d_region_take(nv3_d3d_batch_t *b, uint32_t base, uint32_t pitch, uint32_t 
     return r;
 }
 
-/* The surfaces a state draws into: the enabled colour buffers 0-2, then the zeta buffer (3) */
+/* The surfaces a state draws into: the enabled colour buffers 0-2, then the zeta buffer (3); a
+   fill's surfaces 0-3 */
 static int
 nv3_d3d_layouts(const nv3_d3d_dstate_t *s, int *idx)
 {
-    int n = 0;
+    uint32_t on = s->buf_on | (s->z_on ? 8 : 0);
+    int      n  = 0;
 
-    for (int j = 0; j < 3; j++)
-        if ((s->buf_on >> j) & 1)
+    for (int j = 0; j < 4; j++)
+        if ((on >> j) & 1)
             idx[n++] = j;
-    if (s->z_on)
-        idx[n++] = 3;
     return n;
 }
 
@@ -717,9 +751,8 @@ nv3_d3d_place_state(nv3_d3d_batch_t *b, nv3_d3d_dstate_t *s)
     uint32_t lo[4] = { 0 }, hi[4] = { 0 };
     uint32_t size  = nv3->nvbase.svga.vram_max;
 
-    for (int i = 0; i < 3; i++)
-        s->rc[i] = -1;
-    s->rz = -1;
+    for (int i = 0; i < 4; i++)
+        s->rg[i] = -1;
     if (b->parallel) {
         for (int i = 0; i < n; i++) {
             nv3_d3d_reach(s, s->boff[idx[i]], s->bpitch[idx[i]], &lo[i], &hi[i]);
@@ -739,15 +772,12 @@ nv3_d3d_place_state(nv3_d3d_batch_t *b, nv3_d3d_dstate_t *s)
 
             /* surfaces of this state meeting each other, rows that share bytes, or rows that
                wrap around the end of VRAM: one thread, in submission order */
-            if ((nv3_d3d_region_find(b, base, pitch, lo[i], hi[i]) == -2) || (pitch < (uint32_t) s->cx1 * 2) || (hi[i] >= size)) {
+            if ((nv3_d3d_region_find(b, base, pitch, lo[i], hi[i]) == -2) || (pitch < (uint32_t) s->cx1 * s->bpp) || (hi[i] >= size)) {
                 b->serial = 1;
                 continue;
             }
-            r = nv3_d3d_region_take(b, base, pitch, lo[i], hi[i]);
-            if (idx[i] == 3)
-                s->rz = r;
-            else
-                s->rc[idx[i]] = r;
+            r          = nv3_d3d_region_take(b, base, pitch, lo[i], hi[i]);
+            s->rg[idx[i]] = r;
         }
         nv3_d3d_tex_range(s, &b->tex_lo, &b->tex_hi);
     }
@@ -755,14 +785,15 @@ nv3_d3d_place_state(nv3_d3d_batch_t *b, nv3_d3d_dstate_t *s)
     return b->nstates++;
 }
 
-/* Record the rows a triangle may write (or, for zeta, read: the GPU lane uploads those too). */
+/* Record the rows y0..y1 (pixels below x1) a triangle or fill may write (or, for zeta, read: the
+   GPU lane uploads those too). */
 static void
-nv3_d3d_written(nv3_d3d_batch_t *b, const nv3_d3d_dstate_t *s, int32_t y0, int32_t y1)
+nv3_d3d_written(nv3_d3d_batch_t *b, const nv3_d3d_dstate_t *s, int32_t y0, int32_t y1, int32_t x1)
 {
-    uint32_t w = (uint32_t) s->cx1 * 2;
+    uint32_t w = (uint32_t) x1 * s->bpp;
 
     for (int j = 0; j < 4; j++) {
-        int r = (j < 3) ? s->rc[j] : s->rz;
+        int r = s->rg[j];
 
         if (r < 0)
             continue;
@@ -1030,6 +1061,7 @@ nv3_d3d_vblank(uint32_t lo, uint32_t hi)
 
     if (!b)
         return;
+    b->vblanks++;
     nv3_d3d_flush();
     if (b->gpu)
         nv3_d3d_gpu_wait(b, lo, hi, NV3_SYNC_VBLANK);
@@ -1057,17 +1089,47 @@ nv3_d3d_map_texture(void)
     }
 }
 
+/* The canvas (one nobody set up does not clip) and, unless the class clips with its own
+   rectangle, the user clip, as nv3_render_clip_pass has them: within 0..2048, maxima exclusive */
+static void
+nv3_d3d_clip_box(uint32_t ctx, bool own_clip, int32_t *box)
+{
+    int32_t cmin_x = nv3->pgraph.dst_canvas_min & 0x7FF;
+    int32_t cmin_y = (nv3->pgraph.dst_canvas_min >> 16) & 0x3FFF;
+    int32_t cmax_x = nv3->pgraph.dst_canvas_max & 0x7FF;
+    int32_t cmax_y = (nv3->pgraph.dst_canvas_max >> 16) & 0x3FFF;
+
+    box[0] = 0;
+    box[1] = 0;
+    box[2] = 2048;
+    box[3] = 2048;
+    if ((cmax_x > cmin_x) && (cmax_y > cmin_y)) {
+        box[0] = cmin_x;
+        box[1] = cmin_y;
+        box[2] = (cmax_x < box[2]) ? cmax_x : box[2];
+        box[3] = (cmax_y < box[3]) ? cmax_y : box[3];
+    }
+    if (!own_clip && ((ctx >> NV3_PGRAPH_CTX_SWITCH_USER_CLIP) & 1)) {
+        if (nv3->pgraph.uclip_min[0] > box[0])
+            box[0] = nv3->pgraph.uclip_min[0];
+        if (nv3->pgraph.uclip_min[1] > box[1])
+            box[1] = nv3->pgraph.uclip_min[1];
+        if (nv3->pgraph.uclip_max[0] < box[2])
+            box[2] = nv3->pgraph.uclip_max[0];
+        if (nv3->pgraph.uclip_max[1] < box[3])
+            box[3] = nv3->pgraph.uclip_max[1];
+    }
+}
+
 /* The draw state of what is drawn now, through the object grobj (its CTX_SWITCH) */
 static void
 nv3_d3d_make_state(nv3_d3d_dstate_t *s, nv3_grobj_t grobj, bool textures)
 {
     uint32_t ctx = grobj.grobj_0;
-    int32_t  cmin_x = nv3->pgraph.dst_canvas_min & 0x7FF;
-    int32_t  cmin_y = (nv3->pgraph.dst_canvas_min >> 16) & 0x3FFF;
-    int32_t  cmax_x = nv3->pgraph.dst_canvas_max & 0x7FF;
-    int32_t  cmax_y = (nv3->pgraph.dst_canvas_max >> 16) & 0x3FFF;
+    int32_t  box[4];
 
     memset(s, 0, sizeof(*s));
+    s->bpp       = 2;
     s->config    = nv3->pgraph.d3d_config;
     s->alpha_ctl = nv3->pgraph.d3d_alpha;
     for (int j = 0; j < 3; j++)
@@ -1078,28 +1140,11 @@ nv3_d3d_make_state(nv3_d3d_dstate_t *s, nv3_grobj_t grobj, bool textures)
         s->boff[j]   = nv3->pgraph.boffset[j];
         s->bpitch[j] = nv3->pgraph.bpitch[j];
     }
-
-    /* the canvas (one nobody set up does not clip) and the user clip, as nv3_render_clip_pass */
-    s->cx0 = 0;
-    s->cy0 = 0;
-    s->cx1 = 2048;
-    s->cy1 = 2048;
-    if ((cmax_x > cmin_x) && (cmax_y > cmin_y)) {
-        s->cx0 = cmin_x;
-        s->cy0 = cmin_y;
-        s->cx1 = (cmax_x < s->cx1) ? cmax_x : s->cx1;
-        s->cy1 = (cmax_y < s->cy1) ? cmax_y : s->cy1;
-    }
-    if ((ctx >> NV3_PGRAPH_CTX_SWITCH_USER_CLIP) & 1) {
-        if (nv3->pgraph.uclip_min[0] > s->cx0)
-            s->cx0 = nv3->pgraph.uclip_min[0];
-        if (nv3->pgraph.uclip_min[1] > s->cy0)
-            s->cy0 = nv3->pgraph.uclip_min[1];
-        if (nv3->pgraph.uclip_max[0] < s->cx1)
-            s->cx1 = nv3->pgraph.uclip_max[0];
-        if (nv3->pgraph.uclip_max[1] < s->cy1)
-            s->cy1 = nv3->pgraph.uclip_max[1];
-    }
+    nv3_d3d_clip_box(ctx, false, box);
+    s->cx0 = box[0];
+    s->cy0 = box[1];
+    s->cx1 = box[2];
+    s->cy1 = box[3];
     s->ncr = nv3->pgraph.cliprect_ctrl & 3;
     if (s->ncr == 3)
         s->ncr = 2;
@@ -1138,10 +1183,121 @@ nv3_d3d_state(nv3_d3d_batch_t *b, nv3_d3d_dstate_t *s)
     if (b->nstates) {
         const nv3_d3d_dstate_t *o = &b->states[b->nstates - 1];
 
-        if (!memcmp(s, o, offsetof(nv3_d3d_dstate_t, rc)))
+        if (!memcmp(s, o, offsetof(nv3_d3d_dstate_t, rg)))
             return b->nstates - 1;
     }
     return nv3_d3d_place_state(b, s);
+}
+
+/* ---- 2D fills joining the batch ---- */
+
+/* A 2D rectangle fill (rows y0..y1-1, pixels x0..x1-1, already clamped at 0) of colour c through
+   object grobj, queued with the 3D work instead of drawn now: when it stores one value in every
+   pixel (nv3_render_fill_value: the ROP takes only the source, the result is the same anywhere,
+   whatever the pixel held) and either draws into surfaces the batch already draws into (the HUD,
+   a clear between passes) or is large while 3D is being drawn (a frame's colour and zeta
+   clears). The clip rectangles keep it out (they cut rectangles into pieces). Returns false when
+   the caller must draw it. */
+bool
+nv3_d3d_fill(int32_t x0, int32_t y0, int32_t x1, int32_t y1, nv3_color_expanded_t c, nv3_grobj_t grobj, bool own_clip)
+{
+    nv3_d3d_batch_t *b   = nv3 ? nv3->batch3d : NULL;
+    uint32_t         ctx = grobj.grobj_0;
+    nv3_d3d_dstate_t st;
+    nv3_d3d_tri_t   *t;
+    int32_t          box[4];
+    int              idx[4], n, si = -1, joins, big;
+    uint32_t         val, cpp, lo, hi;
+
+    /* past 2048 the clip box below would cut what the 2D engine draws */
+    if (!b || (nv3->pgraph.cliprect_ctrl & 3) || (x1 > 2048) || (y1 > 2048))
+        return false;
+    nv3_d3d_clip_box(ctx, own_clip, box);
+    if (x0 < box[0])
+        x0 = box[0];
+    if (y0 < box[1])
+        y0 = box[1];
+    if (x1 > box[2])
+        x1 = box[2];
+    if (y1 > box[3])
+        y1 = box[3];
+    if ((x0 >= x1) || (y0 >= y1))
+        return true; /* nothing to draw */
+    if (!nv3_render_fill_value(c, grobj, &val))
+        return false;
+    cpp = nv3_render_cpp(nv3_render_surface_format(grobj));
+
+    memset(&st, 0, sizeof(st));
+    st.fill = cpp;
+    st.bpp  = cpp;
+    for (int j = 0; j < NV3_PGRAPH_MAX_BUFFERS; j++)
+        if ((ctx >> (NV3_PGRAPH_CTX_SWITCH_DST_BUFFER0_ENABLED + j)) & 1)
+            st.buf_on |= 1 << j;
+    if (!st.buf_on)
+        return true;
+    for (int j = 0; j < 4; j++) {
+        st.boff[j]   = nv3->pgraph.boffset[j];
+        st.bpitch[j] = nv3->pgraph.bpitch[j];
+    }
+    st.cx0 = x0;
+    st.cy0 = y0;
+    st.cx1 = x1;
+    st.cy1 = y1;
+    n      = nv3_d3d_layouts(&st, idx);
+
+    joins = b->nstates > 0;
+    for (int i = 0; joins && b->parallel && (i < n); i++) {
+        nv3_d3d_reach(&st, st.boff[idx[i]], st.bpitch[idx[i]], &lo, &hi);
+        joins = nv3_d3d_region_find(b, st.boff[idx[i]], st.bpitch[idx[i]], lo, hi) >= 0;
+    }
+    big = b->had3d && ((b->vblanks - b->last3d) <= 2) && ((int64_t) (x1 - x0) * (y1 - y0) >= 65536);
+    if (!joins && !big)
+        return false;
+    if ((b->ntris >= D3_TRIS) || (b->nspans + (y1 - y0) > D3_SPANS))
+        nv3_d3d_flush();
+
+    /* one state serves every fill into the same surfaces; its region grows with each */
+    for (int i = 0; i < b->nstates; i++) {
+        const nv3_d3d_dstate_t *o = &b->states[i];
+
+        if (o->fill && (o->fill == st.fill) && (o->buf_on == st.buf_on) && !memcmp(o->boff, st.boff, sizeof(st.boff))
+            && !memcmp(o->bpitch, st.bpitch, sizeof(st.bpitch))) {
+            si = i;
+            break;
+        }
+    }
+    if ((si >= 0) && b->parallel) {
+        const nv3_d3d_dstate_t *o = &b->states[si];
+
+        for (int i = 0; (si >= 0) && (i < n); i++) {
+            nv3_d3d_reach(&st, st.boff[idx[i]], st.bpitch[idx[i]], &lo, &hi);
+            /* it would grow into another layout, or that surface is shaded serially: a new state */
+            if ((o->rg[idx[i]] < 0) || (nv3_d3d_region_find(b, st.boff[idx[i]], st.bpitch[idx[i]], lo, hi) < 0))
+                si = -1;
+        }
+        for (int i = 0; (si >= 0) && (i < n); i++) {
+            nv3_d3d_reach(&st, st.boff[idx[i]], st.bpitch[idx[i]], &lo, &hi);
+            nv3_d3d_region_take(b, st.boff[idx[i]], st.bpitch[idx[i]], lo, hi);
+        }
+    }
+    if (si < 0)
+        si = nv3_d3d_place_state(b, &st);
+
+    t = &b->tris[b->ntris];
+    memset(t, 0, sizeof(*t));
+    t->state = si;
+    memcpy(&t->c[0], &val, 4);
+    for (int32_t y = y0; y < y1; y++) {
+        b->spans[b->nspans].y   = (int16_t) y;
+        b->spans[b->nspans].x0  = (int16_t) x0;
+        b->spans[b->nspans].x1  = (int16_t) x1;
+        b->spans[b->nspans].tri = (uint16_t) b->ntris;
+        b->nspans++;
+    }
+    if (b->parallel)
+        nv3_d3d_written(b, &b->states[si], y0, y1 - 1, x1);
+    b->ntris++;
+    return true;
 }
 
 /* ---- triangle setup ---- */
@@ -1369,8 +1525,10 @@ nv3_d3d_triangle(nv3_grobj_t grobj, const nv3_d3d_vertex_t *a_in, const nv3_d3d_
         ymax = y;
     }
     if (bt->parallel && (ymin <= ymax))
-        nv3_d3d_written(bt, s, ymin, ymax);
+        nv3_d3d_written(bt, s, ymin, ymax, s->cx1);
     bt->ntris++;
+    bt->had3d  = 1;
+    bt->last3d = bt->vblanks;
 
 }
 

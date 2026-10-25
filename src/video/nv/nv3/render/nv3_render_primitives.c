@@ -42,6 +42,14 @@ nv3_render_fill(int32_t x0, int32_t y0, int32_t x1, int32_t y1, nv3_color_expand
         x1 = 4096;
     if (y1 > 16384)
         y1 = 16384;
+    if ((x0 >= x1) || (y0 >= y1))
+        return;
+
+    /* a plain store can join the 3D batch; otherwise the batch is drawn first only if it reaches
+       these rows */
+    if (nv3_d3d_fill(x0, y0, x1, y1, c, grobj, own_clip))
+        return;
+    nv3_d3d_touch_rect(grobj, y0, y1 - 1, x1, NV3_SYNC_CLASS + ((nv3->pgraph.context_user >> NV3_PGRAPH_CONTEXT_USER_CLASS) & 0x1F));
 
     for (int32_t y = y0; y < y1; y++) {
         for (int32_t x = x0; x < x1; x++)

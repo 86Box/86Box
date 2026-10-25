@@ -578,6 +578,37 @@ nv3_render_rop_pixel(int32_t x, int32_t y, uint32_t pixel, nv3_color_expanded_t 
     }
 }
 
+/* Does a fill of source colour s through grobj store one value in every pixel, whatever the
+   pixel held? Then *val is that value (in the surface's format). The ROP must take only the
+   source (no pattern, no blend); dither repeats every 16 pixels both ways, so a 16 by 16 tile is
+   tried over two opposite destinations through the pixel pipeline itself -- the chroma key, a
+   zero alpha and the rest decide as they do when drawing. */
+bool
+nv3_render_fill_value(nv3_color_expanded_t s, nv3_grobj_t grobj, uint32_t *val)
+{
+    uint32_t ctx  = grobj.grobj_0;
+    uint32_t op   = (ctx >> NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG) & 0x1F;
+    uint32_t fmt  = nv3_render_surface_format(grobj);
+    uint32_t cpp  = nv3_render_cpp(fmt);
+    uint32_t mask = (cpp == 1) ? 0xFF : ((cpp == 2) ? 0xFFFF : 0xFFFFFFFF);
+    uint32_t first;
+
+    if (op > 0x17)
+        return false;
+    /* these leave a pixel alone where the pattern's alpha is 0, which repeats every 64 pixels */
+    if ((op >= 9) && (op < 0x16) && !(nv3->pgraph.pattern_mono_a[0] && nv3->pgraph.pattern_mono_a[1]))
+        return false;
+    if (nv3_render_translate_nvrop(grobj, nv3->pgraph.rop) != 0xCC)
+        return false;
+    first = nv3_render_rop_pixel(0, 0, 0, s, ctx, fmt);
+    for (int32_t y = 0; y < 16; y++)
+        for (int32_t x = 0; x < 16; x++)
+            if ((nv3_render_rop_pixel(x, y, 0, s, ctx, fmt) != first) || (nv3_render_rop_pixel(x, y, mask, s, ctx, fmt) != first))
+                return false;
+    *val = first;
+    return true;
+}
+
 /* Draw one pixel of source colour s at (x, y) on every destination surface
    the object writes. own_clip: the class clips with its own rectangle (GDI,
    SIFM, SIFC), so the user clip does not apply; the canvas still does. */

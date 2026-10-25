@@ -43,8 +43,12 @@ enum {
 /* A draw state: everything a pixel needs, taken from PGRAPH when a
    triangle is submitted; immutable once in the batch. */
 typedef struct {
+    /* 2D rectangle fills queued with the 3D work: the bytes a pixel (1, 2 or 4), 0 for a
+       triangle; each fill's triangle record carries its value in the bits of c[0] */
+    int      fill;
+    int      bpp; /* bytes a pixel: 2 for triangles */
     uint32_t config, alpha_ctl; /* CONTROL0, CONTROL1 */
-    uint32_t buf_on;            /* bit j: colour buffer j is written */
+    uint32_t buf_on;            /* bit j: colour buffer j is written (fills: surfaces 0-3) */
     int      z_on;              /* the zeta buffer (surface 3) is tested and written */
     uint32_t boff[4], bpitch[4];
     int32_t  cx0, cy0, cx1, cy1; /* the canvas and user clip, max exclusive */
@@ -59,7 +63,7 @@ typedef struct {
     int      tex_vram;
     uint32_t tex_l0, tex_size;
     uint32_t tex_pages[D3_TEX_PAGES];
-    int      rc[3], rz; /* their regions in the batch, -1: none */
+    int      rg[4]; /* each surface's region in the batch, -1: none */
 } nv3_d3d_dstate_t;
 
 typedef struct {
@@ -104,6 +108,11 @@ typedef struct nv3_d3d_batch_s {
     int              nregions;
     uint32_t         tex_lo, tex_hi; /* VRAM its textures read; lo > hi: none */
     int              serial;         /* rows alias: shade on one thread */
+
+    /* 3D seen lately (vertical blank count of the last triangle): large 2D fills then join the
+       batch instead of waiting for it */
+    int      had3d;
+    uint32_t vblanks, last3d;
 
     int              nthreads;
     int              run;

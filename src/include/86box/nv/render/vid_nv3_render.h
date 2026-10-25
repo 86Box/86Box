@@ -34,6 +34,7 @@ uint8_t  nv3_render_translate_nvrop(nv3_grobj_t grobj, uint32_t rop);
 void     nv3_render_pixel(int32_t x, int32_t y, nv3_color_expanded_t s, nv3_grobj_t grobj);
 void     nv3_render_pixel_ex(int32_t x, int32_t y, nv3_color_expanded_t s, nv3_grobj_t grobj, bool own_clip);
 void     nv3_render_write_pixel(nv3_coord_16_t position, uint32_t color, nv3_grobj_t grobj);
+bool     nv3_render_fill_value(nv3_color_expanded_t s, nv3_grobj_t grobj, uint32_t *val);      // One value for every pixel of a fill?
 
 /* Primitives */
 void nv3_render_fill(int32_t x0, int32_t y0, int32_t x1, int32_t y1, nv3_color_expanded_t c, nv3_grobj_t grobj, bool own_clip);

@@ -121,6 +121,7 @@ typedef struct {
     uint32_t tex_format;
     uint32_t tex_base; /* in the texture arena */
     uint32_t tex_size;
+    int32_t  fill; /* a 2D fill's bytes a pixel, its value in the triangle's c[0] */
 } nv3_gpu_state_t;
 
 typedef struct {
@@ -131,7 +132,7 @@ typedef struct {
     uint32_t first, count;
 } nv3_gpu_row_t;
 
-_Static_assert(sizeof(nv3_gpu_state_t) == 28 * 4, "nv3_gpu_state_t layout");
+_Static_assert(sizeof(nv3_gpu_state_t) == 29 * 4, "nv3_gpu_state_t layout");
 _Static_assert(sizeof(nv3_d3d_tri_t) == (3 + 3 * D3_AT_COUNT) * 4, "nv3_d3d_tri_t layout");
 _Static_assert(D3_AT_COUNT == 9, "the kernel interpolates 9 attributes");
 
@@ -810,6 +811,7 @@ gpu_pack_state(nv3_gpu_state_t *o, const nv3_d3d_dstate_t *s, uint32_t tex_base)
     o->tex_format = s->tex_format;
     o->tex_base   = tex_base;
     o->tex_size   = s->textured ? s->tex_size : 0;
+    o->fill       = s->fill;
 }
 
 static void

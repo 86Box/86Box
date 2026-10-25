@@ -50,6 +50,7 @@ struct state_t {
     int  textured;
     uint tex_format;
     uint tex_base, tex_size;
+    int  fill; /* a 2D fill's bytes a pixel, its value in the triangle's c[0] */
 };
 
 #define AT_Z   0
@@ -72,6 +73,8 @@ layout(std430, binding = 0) buffer Vram { uint vram[]; };
 layout(std430, binding = 1) readonly buffer Texm { uint texm[]; };
 layout(std430, binding = 2) readonly buffer States { state_t st[]; };
 layout(std430, binding = 3) readonly buffer Tris { tri_t tris[]; };
+/* the same records as words: a fill's value is read as bits, never as a float (it may be a NaN) */
+layout(std430, binding = 3) readonly buffer TrisW { uint trisw[]; };
 layout(std430, binding = 4) readonly buffer Spans { ivec4 spans[]; }; /* y, x0, x1, tri */
 layout(std430, binding = 5) readonly buffer Rows { uvec2 rows[]; };   /* first span, count */
 
@@ -395,6 +398,32 @@ byte_of(float c)
     return uint((i < 0) ? 0 : ((i > 255) ? 255 : i));
 }
 
+/* A 2D fill: its value in every surface it writes, as nv3_d3d_fill_span stores it. A word holds
+   one, two or four pixels, the others other invocations': only this pixel's bytes change. */
+void
+fill_pixel(int x, int y)
+{
+    uint v   = trisw[g_ti * 30u + 3u]; /* c[0]: after state, x0, y0 */
+    int  cpp = S.fill;
+
+    for (int j = 0; j < 4; j++) {
+        if (((S.buf_on >> j) & 1u) == 0u)
+            continue;
+        uint a = (S.boff[j] + uint(y) * S.bpitch[j] + uint(x) * uint(cpp)) & pc.vram_mask;
+
+        if (cpp == 4)
+            vram[a >> 2] = v;
+        else {
+            uint sh  = (cpp == 2) ? ((a & 2u) * 8u) : ((a & 3u) * 8u);
+            uint m   = (cpp == 2) ? 0xffffu : 0xffu;
+            uint old = (vram[a >> 2] >> sh) & m;
+
+            if (old != (v & m))
+                atomicXor(vram[a >> 2], (old ^ (v & m)) << sh);
+        }
+    }
+}
+
 void
 shade(int x, int y)
 {
@@ -482,6 +511,9 @@ main()
             continue;
         g_ti = uint(sp.w);
         g_si = uint(tris[g_ti].state);
-        shade(x, sp.x);
+        if (S.fill != 0)
+            fill_pixel(x, sp.x);
+        else
+            shade(x, sp.x);
     }
 }
