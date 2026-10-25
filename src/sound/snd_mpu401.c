@@ -1750,26 +1750,27 @@ mpu401_mca_write(uint16_t port, uint8_t val, void *priv)
         return;
 
     addr = (mpu->pos_regs[2] & 2) ? 0x0330 : 0x1330;
+    io_removehandler(addr, 2, mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
 
     port &= 7;
 
     mpu->pos_regs[port] = val;
 
     if (port == 2) {
-        io_removehandler(addr, 2,
-                         mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+        if (mpu->pos_regs[2] & 0x01) {
+            addr = (mpu->pos_regs[2] & 2) ? 0x1330 : 0x0330;
 
-        addr = (mpu->pos_regs[2] & 2) ? 0x1330 : 0x0330;
-
-        io_sethandler(addr, 2,
-                      mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+            io_sethandler(addr, 2,
+                          mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+        }
     }
 }
 
 static uint8_t
-mpu401_mca_feedb(UNUSED(void *priv))
+mpu401_mca_feedb(void *priv)
 {
-    return 1;
+    mpu_t   *mpu = (mpu_t *) priv;
+    return mpu->pos_regs[2] & 0x01;
 }
 
 void

@@ -1117,9 +1117,9 @@ static const device_config_t et4000_config[] = {
 };
 
 const device_t et4000_isa_device = {
-    .name          = "Tseng Labs ET4000AX (ISA)",
+    .name          = "Tseng Labs ET4000AX",
     .internal_name = "et4000ax",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA | DEVICE_ISA16,
     .local         = ET4000_TYPE_USE_CONFIG_BIOS,
     .init          = et4000_init,
     .close         = et4000_close,
@@ -1131,7 +1131,7 @@ const device_t et4000_isa_device = {
 };
 
 const device_t et4000_mca_device = {
-    .name          = "Tseng Labs ET4000AX (MCA)",
+    .name          = "Tseng Labs ET4000AX",
     .internal_name = "et4000mca",
     .flags         = DEVICE_MCA,
     .local         = ET4000_TYPE_MCA,

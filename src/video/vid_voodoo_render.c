@@ -782,6 +782,35 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
         state->tex_a[0] ^= 0xff;
 }
 
+/*Register state the recompilers bake into a block besides the mode registers, part of the block cache key.*/
+static inline uint32_t
+voodoo_codegen_detail_key(const voodoo_params_t *params, int tmu)
+{
+    return params->detail_max[tmu] | (params->detail_bias[tmu] << 8) | (params->detail_scale[tmu] << 14);
+}
+
+static inline int
+voodoo_codegen_tiled_key(const voodoo_params_t *params)
+{
+    return (params->col_tiled ? 1 : 0) | (params->aux_tiled ? 2 : 0);
+}
+
+/*Whether a block needs a_other, a_local and the combined alpha: for the alpha test, alpha blending,
+  the alpha mask, the colour combine, or the alpha planes.*/
+static inline int
+voodoo_codegen_alpha_used(const voodoo_params_t *params)
+{
+    if (params->alphaMode & ((1 << 0) | (1 << 4)))
+        return 1;
+    if (params->fbzMode & FBZ_ALPHA_MASK)
+        return 1;
+    if (!(cc_mselect == 0 && cc_reverse_blend == 0) && (cc_mselect == CC_MSELECT_AOTHER || cc_mselect == CC_MSELECT_ALOCAL))
+        return 1;
+    if (cc_add == CC_ADD_ALOCAL)
+        return 1;
+    return (params->fbzMode & (FBZ_DEPTH_WMASK | FBZ_ALPHA_ENABLE)) == (FBZ_DEPTH_WMASK | FBZ_ALPHA_ENABLE);
+}
+
 #if (defined __amd64__ || defined _M_X64)
 #    include <86box/vid_voodoo_codegen_x86-64.h>
 #elif (defined __aarch64__ || defined _M_ARM64)
@@ -1178,12 +1207,12 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                         new_depth = CLAMP16(new_depth + (int16_t) params->zaColor);
 
                     if (params->fbzMode & FBZ_DEPTH_ENABLE) {
-                        uint16_t old_depth = voodoo->params.aux_tiled ? aux_mem[x_tiled] : aux_mem[x];
+                        uint16_t old_depth = params->aux_tiled ? aux_mem[x_tiled] : aux_mem[x];
 
                         DEPTH_TEST((params->fbzMode & FBZ_DEPTH_SOURCE) ? (params->zaColor & 0xffff) : new_depth);
                     }
 
-                    dat    = voodoo->params.col_tiled ? fb_mem[x_tiled] : fb_mem[x];
+                    dat    = params->col_tiled ? fb_mem[x_tiled] : fb_mem[x];
                     dest_r = (dat >> 8) & 0xf8;
                     dest_g = (dat >> 3) & 0xfc;
                     dest_b = (dat << 3) & 0xf8;
@@ -1193,7 +1222,7 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                     dest_a = 0xff;
 
                     if (params->fbzMode & FBZ_ALPHA_ENABLE) {
-                        if (voodoo->params.aux_tiled)
+                        if (params->aux_tiled)
                             dest_a = aux_mem[x_tiled];
                         else
                             dest_a = aux_mem[x];
@@ -1492,19 +1521,19 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                         }
 
                         if (params->fbzMode & FBZ_RGB_WMASK) {
-                            if (voodoo->params.col_tiled)
+                            if (params->col_tiled)
                                 fb_mem[x_tiled] = src_b | (src_g << 5) | (src_r << 11);
                             else
                                 fb_mem[x] = src_b | (src_g << 5) | (src_r << 11);
                         }
                         if ((params->fbzMode & (FBZ_DEPTH_WMASK | FBZ_ALPHA_ENABLE)) == (FBZ_DEPTH_WMASK | FBZ_ALPHA_ENABLE)) {
-                            if (voodoo->params.aux_tiled)
+                            if (params->aux_tiled)
                                 aux_mem[x_tiled] = src_a;
                             else
                                 aux_mem[x] = src_a;
                         }
                         else if ((params->fbzMode & (FBZ_DEPTH_WMASK | FBZ_DEPTH_ENABLE)) == (FBZ_DEPTH_WMASK | FBZ_DEPTH_ENABLE)) {
-                            if (voodoo->params.aux_tiled)
+                            if (params->aux_tiled)
                                 aux_mem[x_tiled] = new_depth;
                             else
                                 aux_mem[x] = new_depth;

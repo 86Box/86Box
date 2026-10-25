@@ -35,6 +35,12 @@
    compiled out. The caller reports the hole rather than passing silently. */
 int harness_gpu_available(void);
 
+/* NULL when this host can start the GPU backend, else the reason it
+   cannot (no Vulkan library, no driver, no device that meets the
+   backend's requirements). A build without the Vulkan headers has
+   nothing to start and returns NULL. */
+const char *harness_gpu_runtime_missing(void);
+
 /* R128_GPU=verify: the backend's own verdict -- segments replayed through
    the interpreter and the count that mismatched. 0 = no verifying backend
    on this device. */
@@ -78,6 +84,10 @@ typedef struct harness_gpu_span_t {
     uint32_t drow, zrow;
     int64_t  e0, e1, e2;
     uint64_t zline;
+    uint32_t group; /* the workgroup group the flush puts it in */
+    uint32_t rank;  /* its position in that group's order */
+    uint32_t level; /* the leveler's pass for it: a span that shares a
+                       byte with an earlier one must get a later level */
 } harness_gpu_span_t;
 
 /* Result of capturing one triangle through rage128_gpu_capture_span. */
@@ -90,15 +100,31 @@ typedef struct harness_gpu_cap_t {
     uint32_t zlo, zhi;   /* ... and z                                      */
     uint64_t dzdx;       /* the tri record's per-pixel depth step (bits)   */
     int64_t  edx[3];     /* ... and its per-pixel edge steps               */
+    int      rowalias;   /* the run was flagged row-alias                  */
+    uint32_t ngroups;    /* groups the flush splits the run into           */
+    int      leveled;    /* the span levels were filled in                 */
+    uint32_t sctl, srm;  /* the first span's commutative-stencil class key
+                            (0 = not in the class) and its reference and
+                            masks                                         */
 } harness_gpu_cap_t;
 
 /* Run one triangle through the real capture path with a fabricated
    backend, and report the span records plus the two host-side bounds that
-   must cover them. Returns 0 if the probe is unavailable. */
+   must cover them, and how the flush's grouping (gpu_run_groups) splits
+   the spans into workgroups. Returns 0 if the probe is unavailable. */
 int harness_gpu_capture_tri(rage128_t *dev, const rage128_raster_state_t *rs,
                             const r3d_vtx_t *a, const r3d_vtx_t *b,
                             const r3d_vtx_t *c, harness_gpu_span_t *out,
                             uint32_t max, harness_gpu_cap_t *res);
+
+/* The same for ntri triangles of one state, v[3k..3k+2], captured in
+   order into one segment as consecutive submits are; the hazard bounds
+   are the union of the triangles' own, the depth and edge steps the
+   first triangle's. */
+int harness_gpu_capture_tris(rage128_t *dev, const rage128_raster_state_t *rs,
+                             const r3d_vtx_t *v, uint32_t ntri,
+                             harness_gpu_span_t *out, uint32_t max,
+                             harness_gpu_cap_t *res);
 
 /* Result of one draw through the production rage128_gpu_submit_tri --
    the full accept path: state gate, two-tier pricing (bbox bound, then

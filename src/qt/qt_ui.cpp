@@ -170,10 +170,23 @@ ui_msgbox_header(int flags, char *header, char *message)
     const auto msg = QString::fromUtf8(message);
 
     if (flags & MBX_QUESTION_YN) {
-        QMessageBox box((flags & MBX_WARNING) ? QMessageBox::Icon::Warning : QMessageBox::Icon::Question,
-                        hdr.isEmpty() ? QString(EMU_NAME) : hdr, msg, QMessageBox::Yes | QMessageBox::No, main_window);
-        box.setDefaultButton(QMessageBox::No);
-        return (box.exec() == QMessageBox::Yes) ? 1 : 0;
+        const auto ask = [flags, hdr, msg]() {
+            QMessageBox box((flags & MBX_WARNING) ? QMessageBox::Icon::Warning : QMessageBox::Icon::Question,
+                            hdr.isEmpty() ? QString(EMU_NAME) : hdr, msg, QMessageBox::Yes | QMessageBox::No, main_window);
+            box.setDefaultButton(QMessageBox::No);
+            return (box.exec() == QMessageBox::Yes) ? 1 : 0;
+        };
+
+        /* The box can only be shown from the GUI thread, so have it ask
+           when called from another one, such as on a hard reset. */
+        if (!main_window || (QThread::currentThread() == main_window->thread()))
+            return ask();
+
+        std::atomic_int ret { -1 };
+        QMetaObject::invokeMethod(main_window, [&ask, &ret]() { ret = ask(); }, Qt::QueuedConnection);
+        while (ret < 0)
+            QThread::msleep(1);
+        return ret;
     }
 
     // any error in early init

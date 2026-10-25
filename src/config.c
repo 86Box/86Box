@@ -91,6 +91,7 @@
 #include <86box/snd_opl.h>
 #include <86box/version.h>
 #include <86box/plat_floppy_ioctl.h>
+#include <86box/vfio.h>
 
 #ifndef USE_SDL_UI
 /* Deliberate to not make the 86box.h header kitchen-sink. */
@@ -128,7 +129,35 @@ config_log(const char *fmt, ...)
 int new_loaded = 0;
 int kb_loaded  = 0;
 
+/* Returns the section to load a setting moved out of the "Emulator" section
+   from: the old section is only used when the new one does not have it. */
+static ini_section_t
+moved_setting_section(ini_section_t cat, const char *name)
+{
+    if (ini_has_entry(cat, name))
+        return cat;
+
+    return ini_find_section(global, "Emulator");
+}
+
 /* Load global configuration */
+static void
+load_global_general(void)
+{
+    ini_section_t cat = ini_find_section(global, "General");
+    new_loaded |= (cat != NULL);
+
+    char         *p;
+
+    p = ini_section_get_string(moved_setting_section(cat, "language"), "language", NULL);
+    if (p != NULL)
+        lang_id = plat_language_code(p);
+    else
+        lang_id = plat_language_code(DEFAULT_LANGUAGE);
+
+    color_scheme = ini_section_get_int(moved_setting_section(cat, "color_scheme"), "color_scheme", 0);
+}
+
 static void
 load_global_emulator(void)
 {
@@ -136,12 +165,6 @@ load_global_emulator(void)
     new_loaded |= (cat != NULL);
 
     char         *p;
-
-    p = ini_section_get_string(cat, "language", NULL);
-    if (p != NULL)
-        lang_id = plat_language_code(p);
-    else
-        lang_id = plat_language_code(DEFAULT_LANGUAGE);
 
     open_dir_usr_path = ini_section_get_int(cat, "open_dir_usr_path", 0);
 
@@ -151,7 +174,6 @@ load_global_emulator(void)
     confirm_reset = ini_section_get_int(cat, "confirm_reset", 1);
     confirm_exit  = ini_section_get_int(cat, "confirm_exit", 1);
     confirm_save  = ini_section_get_int(cat, "confirm_save", 1);
-    color_scheme  = ini_section_get_int(cat, "color_scheme", 0);
 
     vmm_disabled = ini_section_get_int(cat, "vmm_disabled", 0);
 
@@ -202,8 +224,12 @@ load_global_keybinds(void)
         /* Check if the binding was marked as cleared */
         if (strcmp(p, "none") == 0)
             acc_keys[x].seq[0] = '\0';
-        /* If there's no binding in the file, leave it alone. */
-        else if (strcmp(p, "default") != 0) {
+        /* If there's no binding in the file, use the default one: the file may
+           be reloaded after another instance reset the binding. */
+        else if (strcmp(p, "default") == 0) {
+            strncpy(acc_keys[x].seq, def_acc_keys[x].seq, sizeof(acc_keys[x].seq) - 1);
+            acc_keys[x].seq[sizeof(acc_keys[x].seq) - 1] = '\0';
+        } else {
             /*
                It would be ideal to validate whether the user entered a
                valid combo at this point, but the Qt method for testing that is
@@ -212,9 +238,26 @@ load_global_keybinds(void)
                However, to improve the user experience, we should validate keys
                and erase any bad combos from config on mainwindow load.
              */
-            strcpy(acc_keys[x].seq, p);
+            strncpy(acc_keys[x].seq, p, sizeof(acc_keys[x].seq) - 1);
+            acc_keys[x].seq[sizeof(acc_keys[x].seq) - 1] = '\0';
         }
     }
+}
+
+static void
+load_global_manager(void)
+{
+    ini_section_t cat = ini_find_section(global, "Manager");
+    new_loaded |= (cat != NULL);
+
+    vmm_discord_presence = ini_section_get_int(cat, "discord_presence", 0);
+    if ((vmm_discord_presence < 0) || (vmm_discord_presence > 3))
+        vmm_discord_presence = 0;
+
+    vmm_update_check    = ini_section_get_int(cat, "update_check", 1);
+    vmm_regex_search    = ini_section_get_int(cat, "regex_search", 0);
+    vmm_window_remember = ini_section_get_int(cat, "window_remember", 0);
+    vmm_delete_to_trash = ini_section_get_int(cat, "delete_to_trash", 0);
 }
 
 static void
@@ -267,10 +310,13 @@ load_global(void)
     new_loaded = 0;
     kb_loaded  = 0;
 
+    load_global_general();
     load_global_emulator();
     load_global_input();
 
     load_global_keybinds();            /* Load shortcut keybinds */
+
+    load_global_manager();
 
     if (!new_loaded)
         load_global_legacy();
@@ -367,7 +413,8 @@ load_general(void)
     hide_tool_bar   = ini_section_get_int(cat, "hide_tool_bar", 0);
     sound_muted     = ini_section_get_int(cat, "sound_muted", 0);
 
-    enable_discord = !!ini_section_get_int(cat, "enable_discord", 0);
+    /* Discord integration has moved to the VM manager. */
+    ini_section_delete_var(cat, "enable_discord");
 
     video_vk_device = ini_section_get_int(cat, "video_vk_device", 0);
     video_framerate = ini_section_get_int(cat, "video_gl_framerate", -1);
@@ -577,6 +624,7 @@ load_machine(void)
 
     cpu_override             = ini_section_get_int(cat, "cpu_override", 0);
     cpu_override_interpreter = ini_section_get_int(cat, "cpu_override_interpreter", 0);
+    cpu_debug_regs_486       = !!ini_section_get_int(cat, "cpu_debug_regs_486", 0);
     cpu_f                    = NULL;
     p                        = ini_section_get_string(cat, "cpu_family", NULL);
     if (p) {
@@ -666,9 +714,17 @@ load_machine(void)
     } else
         time_sync = TIME_SYNC_ENABLED;
 
+    time_offset_years = ini_section_get_int(cat, "time_offset_years", 0);
+    time_fixed_year   = ini_section_get_int(cat, "time_fixed_year", 0);
+    /* Prefer fixed year if both are present. */
+    if (time_fixed_year != 0 && time_offset_years != 0)
+        time_offset_years = 0;
+    time_keep_date    = !!ini_section_get_int(cat, "time_keep_date", 0);
+
     pit_mode = ini_section_get_int(cat, "pit_mode", -1);
 
     cpu_dyn_accurate_fpu_env = ini_section_get_int(cat, "cpu_dyn_accurate_fpu_env", 0);
+    cpu_dyn_block_link = !!ini_section_get_int(cat, "cpu_dyn_block_link", 1);
 }
 
 /* Load "Video" section. */
@@ -766,6 +822,7 @@ load_video(void)
         ini_section_delete_var(cat, "da2");
 
     voodoo_enabled                   = !!ini_section_get_int(cat, "voodoo", 0);
+    powervr_enabled                  = !!ini_section_get_int(cat, "powervr", 0);
     ibm8514_standalone_enabled       = !!ini_section_get_int(cat, "8514a", 0);
     ibm8514_active                   = ibm8514_standalone_enabled;
     xga_standalone_enabled           = !!ini_section_get_int(cat, "xga", 0);
@@ -1552,6 +1609,8 @@ load_storage_controllers(void)
     p = ini_section_get_string(cat, "cdrom_interface", NULL);
     if (p != NULL)
         cdrom_interface_current = config_known(cdrom_interface_get_from_internal_name(p), STRING_UNSUPPORTED_CDROM_INTERFACE, p);
+
+    ide_turbo = !!ini_section_get_int(cat, "ide_turbo", 0);
 
     /* The floppy tape is configured from the Tape drives tab now; the old
        keys are stale and get cleaned up. */
@@ -2728,6 +2787,33 @@ load_other_peripherals(void)
 
     if (!strcmp(p, "none"))
         ini_section_delete_var(cat, temp);
+
+#ifdef USE_VFIO
+    /* VFIO passthrough devices: a space-separated device list, with
+       an optional custom ROM file for each device, which can be disabled. */
+    ini_section_t vfio_cat = ini_find_section(config, "VFIO");
+    char         *devices;
+    char         *token;
+    char         *strtok_save;
+    int           c = 0;
+
+    memset(vfio_device_conf, 0, sizeof(vfio_device_conf));
+    devices = strdup(ini_section_get_string(vfio_cat, "devices", ""));
+    for (token = strtok_r(devices, " ", &strtok_save); token && (c < VFIO_DEVICE_MAX);
+         token = strtok_r(NULL, " ", &strtok_save)) {
+        strncpy(vfio_device_conf[c].location, token, sizeof(vfio_device_conf[c].location) - 1);
+
+        snprintf(temp, sizeof(temp), "%s_rom_fn", token);
+        strncpy(vfio_device_conf[c].rom_fn, ini_section_get_string(vfio_cat, temp, ""),
+                sizeof(vfio_device_conf[c].rom_fn) - 1);
+
+        snprintf(temp, sizeof(temp), "%s_rom_enable", token);
+        vfio_device_conf[c].rom_enable = !!ini_section_get_int(vfio_cat, temp, !!vfio_device_conf[c].rom_fn[0]);
+
+        c++;
+    }
+    free(devices);
+#endif
 }
 
 #ifndef USE_SDL_UI
@@ -2842,7 +2928,8 @@ load_keybinds(void)
                 However, to improve the user experience, we should validate keys
                 and erase any bad combos from config on mainwindow load.
               */
-             strcpy(acc_keys[x].seq, p);
+             strncpy(acc_keys[x].seq, p, sizeof(acc_keys[x].seq) - 1);
+             acc_keys[x].seq[sizeof(acc_keys[x].seq) - 1] = '\0';
         }
 
         ini_section_delete_var(cat, acc_keys[x].name);
@@ -2856,6 +2943,8 @@ config_load_global(void)
 {
     config_log("Loading global config file '%s'...\n", global_cfg_path);
 
+    /* The file may be reloaded, as another instance may have changed it. */
+    ini_close(global);
     global = ini_read(global_cfg_path);
 
     if (global == NULL) {
@@ -2907,6 +2996,7 @@ config_load(void)
         force_constant_mouse = 0;
 
         cpu_override_interpreter = 0;
+        cpu_debug_regs_486       = 0;
 
         fpu_type               = fpu_get_type(cpu_f, cpu, "none");
         gfxcard[0]             = video_get_video_from_internal_name("cga");
@@ -2962,7 +3052,10 @@ config_load(void)
         cassette_pcm          = 0;
         cassette_ui_writeprot = 0;
 
+        ide_turbo = 0;
+
         cpu_dyn_accurate_fpu_env = 0;
+        cpu_dyn_block_link       = 1;
 
         gdbstub_port          = 12345;
 
@@ -3020,13 +3113,27 @@ config_load(void)
 
     video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
 
-    return config_ask_unsupported();
+    if (!config_ask_unsupported())
+        return 0;
+
+    /* Move the key bindings taken from this configuration to the global one,
+       one at a time, as another instance may have changed it since it was
+       loaded. Without bindings in the global configuration, all were at their
+       defaults, so the ones that are not came from here. */
+    if (!kb_loaded) {
+        for (int x = 0; x < NUM_ACCELS; x++) {
+            if (strcmp(acc_keys[x].seq, def_acc_keys[x].seq) != 0)
+                config_save_global_setting("Keybinds", acc_keys[x].name);
+        }
+    }
+
+    return 1;
 }
 
 static void
-save_global_emulator(void)
+save_global_general(void)
 {
-    ini_section_t cat = ini_find_or_create_section(global, "Emulator");
+    ini_section_t cat = ini_find_or_create_section(global, "General");
     char          buffer[512] = { 0 };
 
     if (lang_id == plat_language_code(DEFAULT_LANGUAGE))
@@ -3040,6 +3147,18 @@ save_global_emulator(void)
         ini_section_set_int(cat, "color_scheme", color_scheme);
     else
         ini_section_delete_var(cat, "color_scheme");
+
+    ini_delete_section_if_empty(global, cat);
+}
+
+static void
+save_global_emulator(void)
+{
+    ini_section_t cat = ini_find_or_create_section(global, "Emulator");
+
+    /* These were moved to the "General" section. */
+    ini_section_delete_var(cat, "language");
+    ini_section_delete_var(cat, "color_scheme");
 
     if (open_dir_usr_path)
         ini_section_set_int(cat, "open_dir_usr_path", open_dir_usr_path);
@@ -3134,14 +3253,50 @@ save_global_keybinds(void)
     ini_delete_section_if_empty(global, cat);
 }
 
+static void
+save_global_manager(void)
+{
+    ini_section_t cat = ini_find_or_create_section(global, "Manager");
+
+    if (vmm_discord_presence)
+        ini_section_set_int(cat, "discord_presence", vmm_discord_presence);
+    else
+        ini_section_delete_var(cat, "discord_presence");
+
+    if (vmm_update_check != 1)
+        ini_section_set_int(cat, "update_check", vmm_update_check);
+    else
+        ini_section_delete_var(cat, "update_check");
+
+    if (vmm_regex_search)
+        ini_section_set_int(cat, "regex_search", vmm_regex_search);
+    else
+        ini_section_delete_var(cat, "regex_search");
+
+    if (vmm_window_remember)
+        ini_section_set_int(cat, "window_remember", vmm_window_remember);
+    else
+        ini_section_delete_var(cat, "window_remember");
+
+    if (vmm_delete_to_trash)
+        ini_section_set_int(cat, "delete_to_trash", vmm_delete_to_trash);
+    else
+        ini_section_delete_var(cat, "delete_to_trash");
+
+    ini_delete_section_if_empty(global, cat);
+}
+
 /* Save global configuration */
 static void
 save_global(void)
 {
+    save_global_general();
     save_global_emulator();
     save_global_input();
 
     save_global_keybinds();
+
+    save_global_manager();
 }
 
 /* Save scan code mappings. */
@@ -3286,11 +3441,6 @@ save_general(void)
     else
         ini_section_delete_var(cat, "hide_tool_bar");
 
-    if (enable_discord)
-        ini_section_set_int(cat, "enable_discord", enable_discord);
-    else
-        ini_section_delete_var(cat, "enable_discord");
-
     if (video_vk_device != 0)
         ini_section_set_int(cat, "video_vk_device", video_vk_device);
     else
@@ -3336,15 +3486,7 @@ save_general(void)
     else
         ini_section_delete_var(cat, "emu_build_num");
 
-#ifdef USE_DYNAREC
-#   ifdef USE_NEW_DYNAREC
-    ini_section_set_string(cat, "emu_build_dynarec_type", "new");
-#   else
-    ini_section_set_string(cat, "emu_build_dynarec_type", "old");
-#   endif
-#else
     ini_section_delete_var(cat, "emu_build_dynarec_type");
-#endif
 
     if (strnlen(uuid, sizeof(uuid) - 1) > 0)
         ini_section_set_string(cat, "uuid", uuid);
@@ -3409,6 +3551,10 @@ save_machine(void)
         ini_section_set_int(cat, "cpu_override_interpreter", cpu_override_interpreter);
     else
         ini_section_delete_var(cat, "cpu_override_interpreter");
+    if (cpu_debug_regs_486)
+        ini_section_set_int(cat, "cpu_debug_regs_486", cpu_debug_regs_486);
+    else
+        ini_section_delete_var(cat, "cpu_debug_regs_486");
 
     /* Downgrade compatibility with the previous CPU model system. */
     ini_section_delete_var(cat, "cpu_manufacturer");
@@ -3443,6 +3589,23 @@ save_machine(void)
     else
         ini_section_set_string(cat, "time_sync", "disabled");
 
+    /* At most one of the two year settings is written. Fixed year wins. */
+    if (time_fixed_year != 0) {
+        ini_section_set_int(cat, "time_fixed_year", time_fixed_year);
+        ini_section_delete_var(cat, "time_offset_years");
+    } else if (time_offset_years != 0) {
+        ini_section_set_int(cat, "time_offset_years", time_offset_years);
+        ini_section_delete_var(cat, "time_fixed_year");
+    } else {
+        ini_section_delete_var(cat, "time_offset_years");
+        ini_section_delete_var(cat, "time_fixed_year");
+    }
+
+    if (time_keep_date)
+        ini_section_set_int(cat, "time_keep_date", 1);
+    else
+        ini_section_delete_var(cat, "time_keep_date");
+
     if (pit_mode == -1)
         ini_section_delete_var(cat, "pit_mode");
     else
@@ -3452,6 +3615,11 @@ save_machine(void)
         ini_section_delete_var(cat, "cpu_dyn_accurate_fpu_env");
     else
         ini_section_set_int(cat, "cpu_dyn_accurate_fpu_env", cpu_dyn_accurate_fpu_env);
+
+    if (cpu_dyn_block_link)
+        ini_section_delete_var(cat, "cpu_dyn_block_link");
+    else
+        ini_section_set_int(cat, "cpu_dyn_block_link", 0);
 
     ini_delete_section_if_empty(config, cat);
 }
@@ -3499,6 +3667,11 @@ save_video(void)
         ini_section_set_int(cat, "vid_cga_comp_saturation", vid_cga_comp_saturation);
     else
         ini_section_delete_var(cat, "vid_cga_comp_saturation");
+
+    if (powervr_enabled == 0)
+        ini_section_delete_var(cat, "powervr");
+    else
+        ini_section_set_int(cat, "powervr", powervr_enabled);
 
     if (voodoo_enabled == 0)
         ini_section_delete_var(cat, "voodoo");
@@ -4033,6 +4206,11 @@ save_storage_controllers(void)
         ini_section_set_string(cat, "cdrom_interface",
                                cdrom_interface_get_internal_name(cdrom_interface_current));
 
+    if (ide_turbo == 0)
+        ini_section_delete_var(cat, "ide_turbo");
+    else
+        ini_section_set_int(cat, "ide_turbo", ide_turbo);
+
     /* The floppy tape is configured from the Tape drives tab now. */
     ini_section_delete_var(cat, "floppy_tape_enabled");
     ini_section_delete_var(cat, "floppy_tape_unit");
@@ -4186,6 +4364,29 @@ save_other_peripherals(void)
                                isartc_get_internal_name(isartc_type));
 
     ini_delete_section_if_empty(config, cat);
+
+#ifdef USE_VFIO
+    ini_section_t vfio_cat = ini_find_or_create_section(config, "VFIO");
+    char          devices[VFIO_DEVICE_MAX * (sizeof(vfio_device_conf[0].location) + 1)];
+
+    /* The ROM files of devices no longer passed through are kept, for
+       when they are again. */
+    devices[0] = '\0';
+    for (uint8_t c = 0; (c < VFIO_DEVICE_MAX) && vfio_device_conf[c].location[0]; c++) {
+        if (devices[0])
+            strcat(devices, " ");
+        strcat(devices, vfio_device_conf[c].location);
+
+        config_save_vfio_rom(vfio_device_conf[c].location, vfio_device_conf[c].rom_fn, vfio_device_conf[c].rom_enable);
+    }
+
+    if (devices[0])
+        ini_section_set_string(vfio_cat, "devices", devices);
+    else
+        ini_section_delete_var(vfio_cat, "devices");
+
+    ini_delete_section_if_empty(config, vfio_cat);
+#endif
 }
 
 #ifndef USE_SDL_UI
@@ -4739,12 +4940,43 @@ save_other_removable_devices(void)
     ini_delete_section_if_empty(config, cat);
 }
 
+/*
+   Save the global configuration, for the preferences and when the file was
+   just loaded. Nothing else saves it as a whole, since another instance may
+   have changed it since this one read it: a setting changed outside the
+   preferences is saved on its own with config_save_global_setting().
+ */
 void
 config_save_global(void)
 {
     save_global();                  /* Global */
 
     ini_write(global, global_cfg_path);
+}
+
+/* Save one setting of the global configuration, keeping the rest of the
+   file as it is. */
+void
+config_save_global_setting(const char *head, const char *name)
+{
+    ini_t file = ini_read(global_cfg_path);
+    const char *p;
+
+    if (file == NULL)
+        file = ini_new();
+
+    save_global();
+
+    p = ini_get_string(global, head, name, NULL);
+    if (p != NULL)
+        ini_set_string(file, head, name, p);
+    else {
+        ini_delete_var(file, head, name);
+        ini_delete_section_if_empty(file, ini_find_section(file, head));
+    }
+
+    ini_write(file, global_cfg_path);
+    ini_close(file);
 }
 
 void
@@ -4775,8 +5007,6 @@ config_save(void)
 
     ini_write(config, cfg_path);
 
-    config_save_global();
-
     if (config_mutex)
         thread_release_mutex(config_mutex);
 }
@@ -4786,3 +5016,26 @@ config_get_ini(void)
 {
     return config;
 }
+
+#ifdef USE_VFIO
+/* Save the custom ROM of a VFIO device, passed through or not. It is
+   enabled by default if there is a file. */
+void
+config_save_vfio_rom(const char *location, const char *rom_fn, int rom_enable)
+{
+    ini_section_t cat = ini_find_or_create_section(config, "VFIO");
+    char          temp[512];
+
+    snprintf(temp, sizeof(temp), "%.255s_rom_fn", location);
+    if (rom_fn[0])
+        ini_section_set_string(cat, temp, rom_fn);
+    else
+        ini_section_delete_var(cat, temp);
+
+    snprintf(temp, sizeof(temp), "%.255s_rom_enable", location);
+    if (!!rom_enable == !!rom_fn[0])
+        ini_section_delete_var(cat, temp);
+    else
+        ini_section_set_int(cat, temp, !!rom_enable);
+}
+#endif

@@ -37,7 +37,6 @@
 #define WD90C31_ROM      "roms/video/wd90c31a/BIOS.BIN"
 #define WD90C20_FONT_ROM "roms/machines/ibmps55_m35s/64F9074.BIN"
 #define SPEEDSTAR24X_ROM "roms/video/wd90c31a/wd90c31alrdiamondspeedstar24x1.BIN"
-#define SPEEDSTAR24X     0x100
 
 #define VAR_BYTE_MODE      (0 << 0)
 #define VAR_WORD_MODE_MA13 (1 << 0)
@@ -854,8 +853,8 @@ paradise_readw(uint32_t addr, void *priv)
     return svga_readw_linear(addr, svga);
 }
 
-void *
-paradise_init(const device_t *info, uint32_t memory)
+static void *
+paradise_init_ex(const device_t *info, uint32_t memory, int speedstar24x)
 {
     paradise_t *paradise = calloc(1, sizeof(paradise_t));
     svga_t     *svga     = &paradise->svga;
@@ -868,7 +867,7 @@ paradise_init(const device_t *info, uint32_t memory)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_paradise_wd90c_isa);
 
     paradise->memory       = memory;
-    paradise->speedstar24x = !!(info->local & SPEEDSTAR24X);
+    paradise->speedstar24x = speedstar24x;
 
     switch (info->local & 0xff) {
         case PVGA1A:
@@ -962,6 +961,12 @@ paradise_init(const device_t *info, uint32_t memory)
     svga->hoverride = 1;
 
     return paradise;
+}
+
+void *
+paradise_init(const device_t *info, uint32_t memory)
+{
+    return paradise_init_ex(info, memory, 0);
 }
 
 static void *
@@ -1251,10 +1256,11 @@ paradise_wd90c30_standalone_available(void)
 static void *
 paradise_wd90c31_standalone_init(const device_t *info)
 {
-    int         speedstar = !!(info->local & SPEEDSTAR24X);
+    const char *bios      = device_get_config_bios("bios");
+    int         speedstar = !!device_get_bios_local(info, bios);
     uint32_t    memory    = speedstar ? 1024 : device_get_config_int("memory");
-    paradise_t *paradise  = paradise_init(info, memory);
-    const char *rom       = speedstar ? SPEEDSTAR24X_ROM : WD90C31_ROM;
+    paradise_t *paradise  = paradise_init_ex(info, memory, speedstar);
+    const char *rom       = device_get_bios_file(info, bios, 0);
 
     rom_init(&paradise->bios_rom, rom, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     return paradise;
@@ -1267,18 +1273,6 @@ paradise_wd90c31_onboard_init(const device_t *info)
     paradise_t *paradise  = paradise_init(info, memory);
 
     return paradise;
-}
-
-static int
-paradise_wd90c31_available(void)
-{
-    return rom_present(WD90C31_ROM);
-}
-
-static int
-speedstar24x_available(void)
-{
-    return rom_present(SPEEDSTAR24X_ROM);
 }
 
 void
@@ -1455,6 +1449,60 @@ static const device_config_t paradise_wd90c30_config[] = {
   // clang-format on
 };
 
+static const device_config_t paradise_wd90c31_config[] = {
+  // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "wd90c31",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Paradise",
+                .internal_name = "wd90c31",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { WD90C31_ROM, "" }
+            },
+            {
+                /* SS2410 RAMDAC and ICD2061 clock; always 1 MB (the default). */
+                .name          = "Diamond SpeedStar 24X",
+                .internal_name = "speedstar24x",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 1,
+                .size          = 32768,
+                .flags         = BIOS_FIXED_MEMORY,
+                .files         = { SPEEDSTAR24X_ROM, "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
 static const device_config_t paradise_wd90c31_onboard_config[] = {
   // clang-format off
     {
@@ -1498,10 +1546,10 @@ const device_t paradise_wd90c31_device = {
     .init          = paradise_wd90c31_standalone_init,
     .close         = paradise_close,
     .reset         = NULL,
-    .available     = paradise_wd90c31_available,
+    .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
-    .config        = paradise_wd90c30_config
+    .config        = paradise_wd90c31_config
 };
 
 const device_t paradise_wd90c31_onboard_device = {
@@ -1516,18 +1564,4 @@ const device_t paradise_wd90c31_onboard_device = {
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = paradise_wd90c31_onboard_config
-};
-
-const device_t paradise_speedstar24x_device = {
-    .name          = "Diamond SpeedStar 24X",
-    .internal_name = "speedstar24x",
-    .flags         = DEVICE_ISA16,
-    .local         = WD90C31 | SPEEDSTAR24X,
-    .init          = paradise_wd90c31_standalone_init,
-    .close         = paradise_close,
-    .reset         = NULL,
-    .available     = speedstar24x_available,
-    .speed_changed = paradise_speed_changed,
-    .force_redraw  = paradise_force_redraw,
-    .config        = NULL
 };

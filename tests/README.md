@@ -17,6 +17,35 @@ Try to match your code's filename and append the type of test it is.
 
 ## Summary of current tests
 
+# Network packet buffering
+
+Build `network_queue_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^network_queue$' --output-on-failure`.
+The tests exercise the shared queues, scheduler and SLiRP receive callbacks
+with timer, mutex and backend stubs. They cover bounded 255-frame capacity,
+wraparound, overflow counters, failed-swap ownership, burst retention,
+partial deferred merges, FIFO ordering, backend wakeups and unchanged
+16-frame batches and link pacing. They do not measure guest SMB throughput.
+
+# Realtek RTL8139C+ receive flow control
+
+Build `rtl8139_rx_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^rtl8139_rx$' --output-on-failure`.
+The test checks that, in C+ mode, a frame arriving with no guest-owned
+receive descriptor is refused for later retry instead of being counted as
+missed and discarded.
+
+# Realtek RTL8139C+ timer
+
+Build `rtl8139_timer_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^rtl8139_timer$' --output-on-failure`.
+The tests use the NIC's private timer implementation and the real timer engine,
+with PCI interrupt stubs. They cover counter polling without interrupts,
+match deadlines, wraparound, disabling/reprogramming interrupts, counter reset,
+clock halt/resume, guest TSC rewrites, speed changes, fractional PCI periods,
+late callbacks, and idle callback frequency. They are isolated regressions,
+not guest-driver integration tests or a host-performance benchmark.
+
 # TEAC CD-55A
 
 The `mke_cdrom_tests` target includes Panasonic regressions and TEAC protocol
@@ -64,7 +93,7 @@ Build `mach64_accel_tests` and `mach64_3d_tests` with `BUILD_TESTING=ON`, then r
 
 Build with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^Rage128\.'`. The tools live in `video/rage128/`, one directory each; each directory also builds on its own with its `build.sh`, and its README covers the options. The register and replay tools compile the device sources with host stubs; all of them need GCC or Clang. See [the Rage 128 hardware notes](../doc/hardware/ati-rage128.md) for the boards and their ROMs, what the device models, the render lanes and the environment switches.
 
-`Rage128.Registers.Stock`, `Rage128.Registers.JitVerify` and `Rage128.Registers.GpuVerify` run the register harness (`video/rage128/reg-harness`): the device instantiated on the host, driven through its register, PCI and command-processor handlers, with register readback, reset state and 2D and 3D output checked against the RAGE 128 documentation and the open-source drivers. JitVerify compares every span the JIT compiles with the interpreter; GpuVerify compares every GPU segment with it, and the queued 2D operations and composed overlay frames with the CPU path; it needs a Vulkan device, a backend that fails to start is a failure, and only a build without the Vulkan headers skips the GPU vectors. Some rows measure wall-clock timing, so the three run alone, and a heavily loaded host can still skip or fail them. The harness is a regression tool, not a hardware reference: a pass means the device still behaves as documented and as established before.
+`Rage128.Registers.Stock`, `Rage128.Registers.JitVerify` and `Rage128.Registers.GpuVerify` run the register harness (`video/rage128/reg-harness`): the device instantiated on the host, driven through its register, PCI and command-processor handlers, with register readback, reset state and 2D and 3D output checked against the RAGE 128 documentation and the open-source drivers. Fence-order vectors check scratch fences and read-pointer retirement behind deferred draws, including starvation and a resumed draw that keeps the released pointer position. JitVerify compares every span the JIT compiles with the interpreter; GpuVerify compares every GPU segment with it, and the queued 2D operations and composed overlay frames with the CPU path; it needs a Vulkan device: a failed backend start-up check exits 77, which CTest reports as skipped, and `R128_GPU_REQUIRE=1` makes that check a failed row instead. A backend that passes the check and then fails inside the device is a failure, and a build without the Vulkan headers skips the GPU vectors. Some rows measure wall-clock timing, so the three run alone, and a heavily loaded host can still skip or fail them. The harness is a regression tool, not a hardware reference: a pass means the device still behaves as documented and as established before.
 
 `Rage128.JitHost` runs the JIT host harness (`video/rage128/jit-harness`): the ARM64 span emitter, and on an x86-64 host the x86-64 one too, compile a fuzzed matrix of draw states, the blocks the host can execute run on synthetic buffers, and every pixel is compared with a C copy of the interpreter's pixel loop. The full run takes about 20 minutes on one core of an arm64 Mac and about 35 on an x86-64 workstation; `shard.sh` in that directory splits it across cores.
 
@@ -222,3 +251,16 @@ branch target, and rejection of unrecognized images.
 These do not prove that the Vectra boots. See the
 [experimental machine notes](../doc/hardware/hp-vectra-486n.md) for scope,
 performance limitations, and remaining hardware/firmware requirements.
+
+# INI configuration parser
+
+The `ini_tests` target exercises `src/utils/ini.c` on its own, with host stubs
+for file opening and UTF-16 conversion. It reads temporary files with section
+and entry names too long for their 128-byte fields. Build with
+`BUILD_TESTING=ON`, then run:
+
+```sh
+ctest --test-dir build --output-on-failure -R '^Ini'
+```
+
+Build with AddressSanitizer to check the long-name cases for memory errors.

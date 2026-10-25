@@ -150,6 +150,12 @@ msgstr "정수 배율(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 정수배 확대(&3)"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "색상 반전된 VGA 모니터"
 
@@ -233,9 +239,6 @@ msgstr "사운드(&O)"
 
 msgid "&Preferences…"
 msgstr "환경설정(&P)…"
-
-msgid "Enable &Discord integration"
-msgstr "Discord 연동 활성화(&D)"
 
 msgid "Sound &gain…"
 msgstr "음량 증폭(&G)…"
@@ -432,6 +435,12 @@ msgstr "동적 리컴파일러"
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "동적 리컴파일러에서 정확한 FPU 환경 사용"
 
+msgid "Block linking on the dynamic recompiler"
+msgstr "동적 리컴파일러에서 블록 링크 사용"
+
+msgid "Debug registers on 486 and later processors"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPU 프레임 크기"
 
@@ -623,6 +632,12 @@ msgstr "컨트롤러 4:"
 
 msgid "Cassette"
 msgstr "카세트 테이프"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "하드 디스크:"
@@ -1310,6 +1325,35 @@ msgstr "검색 상자에 정규 표현식 사용"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "가상 머신 삭제 시 휴지통으로 이동"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -3144,6 +3188,9 @@ msgstr "입력"
 msgid "Key bindings"
 msgstr "키 바인딩"
 
+msgid "VM Manager"
+msgstr ""
+
 msgid "Action"
 msgstr "동작"
 
@@ -3606,3 +3653,60 @@ msgstr "CGA 라이트펜"
 
 msgid "Luminance threshold (%)"
 msgstr "휘도 임계값 (%)"
+
+msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
+msgstr ""
+
+msgid "VFIO %s: Invalid device location."
+msgstr ""
+
+msgid "VFIO %s: Device not found."
+msgstr ""
+
+msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
+msgstr ""
+
+msgid "VFIO %s: Device is not bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO %s: Could not open IOMMU group %d: %s"
+msgstr ""
+
+msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
+msgstr ""
+
+msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
+msgstr ""
+
+msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
+msgstr ""
+
+msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
+msgstr ""
+
+msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
+msgstr ""
+
+msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
+msgstr ""
+
+msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
+msgstr ""
+
+msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
+msgstr ""
+
+msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
+msgstr ""
+
+msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
+msgstr ""
+
+msgid "Prepare PCI devices for VFIO passthrough"
+msgstr ""
+
+msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
+msgstr ""

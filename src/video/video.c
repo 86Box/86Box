@@ -46,6 +46,7 @@
 #include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
+#include <86box/automation.h>
 
 #include <minitrace/minitrace.h>
 
@@ -447,6 +448,8 @@ video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index)
         return;
 
     video_wait_for_blit_monitor(monitor_index);
+
+    automation_frame(x, y, w, h, monitor_index);
 
     monitors[monitor_index].mon_blit_data_ptr->busy          = 1;
     monitors[monitor_index].mon_blit_data_ptr->buffer_in_use = 1;
@@ -924,7 +927,7 @@ video_init(void)
 
     video_8togs = calloc(4, 256);
     for (uint16_t c = 0; c < 256; c++)
-        video_8togs[c] = c | (c << 16) | (c << 24);
+        video_8togs[c] = c | (c << 8) | (c << 16);
 
     video_8to32 = calloc(4, 256);
     for (uint16_t c = 0; c < 256; c++)

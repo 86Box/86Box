@@ -3,6 +3,8 @@
 #define X87_TAG_INVALID 2
 #define X87_TAG_EMPTY   3
 
+uint16_t x87_initial_control_word(void);
+
 extern uint32_t x87_pc_off;
 extern uint32_t x87_op_off;
 extern uint16_t x87_pc_seg;
@@ -18,9 +20,56 @@ x87_set_mmx(void)
     } else {
         cpu_state.TOP = 0;
         p             = (uint64_t *) cpu_state.tag;
-        *p            = 0x0101010101010101ULL;
+        /* Every tag valid: TAG_VALID, or the old recompiler's raw 00b */
+        *p = 0x0101010101010101ULL;
     }
     cpu_state.ismmx = 1;
+}
+
+/* Control instructions leave FIP/FCS/FOP/FDP/FDS as they were: FLDENV,
+   FLDCW, FNSTENV, FNSTCW, FRSTOR, FNSAVE, FNSTSW, FNCLEX, FNINIT and the
+   FENI/FDISI/FSETPM no-ops. op is (ESC & 7) << 8 | ModR/M. */
+static __inline int
+x87_op_is_control(uint16_t op)
+{
+    if ((op & 0xff) < 0xc0) {
+        switch (op & 0x738) {
+            case 0x120: /* D9 /4 FLDENV */
+            case 0x128: /* D9 /5 FLDCW */
+            case 0x130: /* D9 /6 FNSTENV */
+            case 0x138: /* D9 /7 FNSTCW */
+            case 0x520: /* DD /4 FRSTOR */
+            case 0x530: /* DD /6 FNSAVE */
+            case 0x538: /* DD /7 FNSTSW */
+                return 1;
+            default:
+                return 0;
+        }
+    }
+    switch (op & 0x7ff) {
+        case 0x3e0: /* FENI */
+        case 0x3e1: /* FDISI */
+        case 0x3e2: /* FNCLEX */
+        case 0x3e3: /* FNINIT */
+        case 0x3e4: /* FSETPM */
+        case 0x7e0: /* FNSTSW AX */
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+/* FNINIT and FNSAVE clear the pointers and the opcode */
+static __inline void
+x87_clear_pointers(void)
+{
+    cpu_state.fpu_op = 0;
+    cpu_state.fpu_CS = 0;
+    cpu_state.fpu_cs = 0;
+    cpu_state.fpu_pc = 0;
+    cpu_state.fpu_DS = 0;
+    cpu_state.fpu_ds = 0;
+    cpu_state.fpu_ea = 0;
 }
 
 static __inline void
@@ -29,10 +78,12 @@ x87_emms(void)
     uint64_t *p;
     if (fpu_softfloat) {
         fpu_state.tag = 0xffff;
-        fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
+        fpu_state.tos = 0;
     } else {
         p  = (uint64_t *) cpu_state.tag;
+        /* Every tag empty: TAG_EMPTY, or the old recompiler's raw 11b */
         *p = 0;
+        cpu_state.TOP = 0; /* as the softfloat path */
     }
     cpu_state.ismmx = 0;
 }
@@ -43,14 +94,15 @@ void     x87_settag(uint16_t new_tag);
 #define TAG_EMPTY 0
 #define TAG_VALID (1 << 0)
 /*Hack for FPU copy. If set then MM[].q contains the 64-bit integer loaded by FILD*/
-#ifdef USE_NEW_DYNAREC
-#    define TAG_UINT64 (1 << 7)
-#else
-#    define TAG_UINT64 (1 << 2)
-#endif
+#define TAG_UINT64 (1 << 7)
 
 /*Old dynarec stuff.*/
 #define TAG_NOT_UINT64       0xfb
+
+/* ST(i) empty: an empty register's tag is TAG_EMPTY, any other's has
+   TAG_VALID set (TAG_VALID, or TAG_VALID | TAG_UINT64), which the
+   recompiler's stack-fault check tests alone (codegen_fpu_guard_stack) */
+#define X87_ST_EMPTY(i) (cpu_state.tag[(cpu_state.TOP + (i)) & 7] == TAG_EMPTY)
 
 #define X87_ROUNDING_NEAREST 0
 #define X87_ROUNDING_DOWN    1
@@ -105,7 +157,12 @@ void codegen_set_rounding_mode(int mode);
 /* Control Word */
 /* ************ */
 
-#define FPU_CW_Reserved_Bits    (0xe0c0)  /* reserved bits */
+#ifdef FPU_8087
+/* The 80187 keeps the reserved bit mask used by later coprocessors. */
+#    define FPU_CW_Reserved_Bits ((fpu_type == FPU_80187) ? 0xe0c0 : 0xe040)
+#else
+#    define FPU_CW_Reserved_Bits (0xe0c0) /* reserved bits */
+#endif
 
 #define FPU_CW_Inf		(0x1000)  /* infinity control, legacy */
 
@@ -229,19 +286,62 @@ FPU_save_regi_tag(extFloat80_t reg, int tag, int stnr)
 #define FPU_check_pending_exceptions()        \
     do {                                      \
         if ((fpu_state.swd & FPU_SW_Summary) && !(fpu_state.cwd & FPU_SW_Summary)) { \
-            nmi = 1;                          \
+            fpu_int_set(1);                   \
             return 1;                         \
         }                                     \
     } while (0)
 #else
-#define FPU_check_pending_exceptions()        \
-    do {                                      \
-        if (fpu_state.swd & FPU_SW_Summary) { \
-            if (cr0 & 0x20)                   \
-                new_ne = 1;                   \
-            else                              \
-                picint(1 << 13);              \
-            return 1;                         \
-        }                                     \
+/* A waiting instruction with an exception pending: with CR0.NE, #MF
+   with the frame at the instruction. Without it, FERR# raises IRQ 13
+   and the instruction waits (is restarted) until the handler clears the
+   error or writes port F0h, which asserts IGNNE# until ES clears. */
+#define FPU_check_pending_exceptions()          \
+    do {                                        \
+        if (!(fpu_state.swd & FPU_SW_Summary))  \
+            fpu_ignne = 0;                      \
+        else if (cr0 & 0x20) {                  \
+            cpu_state.pc = cpu_state.oldpc;     \
+            new_ne       = 1;                   \
+            return 1;                           \
+        } else if (!fpu_ignne) {                \
+            cpu_state.pc = cpu_state.oldpc;     \
+            x87_ferr_assert();                  \
+            return 1;                           \
+        }                                       \
     } while (0)
 #endif
+
+/* A softfloat store's status once its write is done, and FERR# for an
+   exception it raised (FPU_exception); a faulting write keeps both as they
+   were */
+#define FPU_store_done(sw)            \
+    do {                              \
+        fpu_state.swd = (sw);         \
+        x87_ferr_store_done();        \
+    } while (0)
+/* Shared legacy division: classification precedes destination mutation. */
+int x87_legacy_divide(double *dest, double numerator, double denominator, int empty);
+
+int x87_legacy_pending(void);
+int x87_legacy_pending_entry(void);
+
+void x87_ferr_assert(void);
+void x87_ferr_raised(int was_es, uint16_t unmasked, uint16_t op);
+void x87_ferr_nowait(uint16_t op);
+void x87_ferr_clear(void);
+void x87_ferr_loaded(int was_es, int es_now);
+void x87_ferr_store_hold(int was_es, uint16_t unmasked);
+void x87_ferr_store_done(void);
+void x87_legacy_status_es(int was_es, uint16_t op);
+void x87_sf_status_es(int was_es, uint16_t op);
+
+/* The non-waiting forms may inspect or clear a pending exception. */
+static __inline int
+x87_op_is_nowait(uint16_t op)
+{
+    if ((op & 0xff) < 0xc0) {
+        unsigned group = op & 0x738;
+        return group == 0x130 || group == 0x138 || group == 0x530 || group == 0x538;
+    }
+    return (op >= 0x3e0 && op <= 0x3e4) || op == 0x7e0;
+}

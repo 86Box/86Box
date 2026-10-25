@@ -1097,9 +1097,13 @@ border:
        to opaque before filtering, the S3TC and YUV subroutine results
        included. The border substitution comes after it, so the border
        color keeps its own alpha (Registers for CCE 3D Packets,
-       SCALE_3D_CNTL). */
-    if (h->aone)
+       SCALE_3D_CNTL). The chroma keys compare the texel as stored, so its
+       value before the override goes to R128_X64_TS_TRAW for
+       r128_x64_emit_store_tnear, as in r3d_tex_level. */
+    if (h->aone) {
+        r128_x64_st(e, 0, X64_R11, X64_RSP, R128_X64_TS_TRAW);
         r128_x64_alu_r_imm(e, 1, 0, X64_R11, (int32_t) 0xff000000u);
+    }
     if (border_en) {
         /* If either coordinate is -1 the border color replaces the
            texel. The OR of the two has its sign bit set exactly then,
@@ -1109,9 +1113,9 @@ border:
         r128_x64_mov_r32_imm32(e, X64_RCX, h->border);
         r128_x64_alu_r_r(e, 0x85, 0, X64_RAX, X64_RAX);
         r128_x64_cmov(e, X64_CC_S, 0, X64_R11, X64_RCX);
-        if (h->dt == 1 || h->dt == 2) {
-            /* The CI chroma-key compare also sees the border color, as
-               it does in the interpreter. The load does not change the
+        if (h->dt == 1 || h->dt == 2 || h->aone) {
+            /* The chroma-key compare value is the border color too, as
+               it is in the interpreter. The load does not change the
                flags of the test above. */
             r128_x64_ld(e, 0, X64_RAX, X64_RSP, R128_X64_TS_TRAW);
             r128_x64_cmov(e, X64_CC_S, 0, X64_RAX, X64_RCX);
@@ -1171,14 +1175,15 @@ r128_x64_emit_lerp_pair(r128_x64_emit_t *e, int vx, int vy, int w_off)
 }
 
 /* Stores the chroma-key compare value of the texel just fetched in
-   R128_X64_TS_TNEAR. CI formats compare the palette index
-   (R128_X64_TS_TRAW, written by r128_x64_emit_texel), every other
-   format the converted texel in r11d, as in the interpreter. rax is
+   R128_X64_TS_TNEAR, as in the interpreter: from R128_X64_TS_TRAW,
+   written by r128_x64_emit_texel, the palette index for CI formats and
+   the texel before the TEX_MAP_AEN override for a stage with that
+   override; the converted texel in r11d for every other stage. rax is
    scratch. */
 static void
 r128_x64_emit_store_tnear(r128_x64_emit_t *e, const r3d_stage_hdr_t *h)
 {
-    if (h->dt == 1 || h->dt == 2) {
+    if (h->dt == 1 || h->dt == 2 || h->aone) {
         r128_x64_ld(e, 0, X64_RAX, X64_RSP, R128_X64_TS_TRAW);
         r128_x64_st(e, 0, X64_RAX, X64_RSP, R128_X64_TS_TNEAR);
     } else

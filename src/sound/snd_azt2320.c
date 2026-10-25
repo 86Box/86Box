@@ -523,6 +523,10 @@ azt2320_init(UNUSED(const device_t *info))
         azt2320_input_gain_vols_4bits[c] = (int) (attenuation);
     }
 
+    /* AZT2320 lacks a lowpass filter */
+    azt2320->sb->mixer_quirks = QUIRK_NOFILTER;
+    azt2320->sb->mixer_sbpro.output_filter = azt2320->sb->mixer_sbpro.input_filter = 0;
+
     return azt2320;
 }
 

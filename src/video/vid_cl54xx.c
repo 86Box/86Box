@@ -41,6 +41,7 @@
 #include <86box/vid_svga_render.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include <86box/bswap.h>
 
 #define BIOS_GD5401_PATH                "roms/video/cirruslogic/avga1.rom"
 #define BIOS_GD5401_ONBOARD_PATH        "roms/machines/drsm35286/qpaw01-6658237d5e3c2611427518.bin"
@@ -136,6 +137,7 @@
 #define CIRRUS_BLT_BUSY      0x01
 #define CIRRUS_BLT_START     0x02
 #define CIRRUS_BLT_RESET     0x04
+#define CIRRUS_BLT_PROGRESS  0x08
 #define CIRRUS_BLT_FIFOUSED  0x10
 #define CIRRUS_BLT_PAUSED    0x20
 #define CIRRUS_BLT_APERTURE2 0x40
@@ -2030,17 +2032,8 @@ gd54xx_recalctimings(svga_t *svga)
     if (svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) {
         if (linedbl)
             svga->render = svga_render_8bpp_lowres;
-        else {
+        else
             svga->render = svga_render_8bpp_highres;
-            if ((svga->dispend == 512) && !svga->interlace && gd54xx_is_5434(svga)) {
-                if (svga->crtc[0x27] != CIRRUS_ID_CLGD5480) {
-                    svga->hdisp <<= 1;
-                    svga->dots_per_clock <<= 1;
-                    svga->clock *= 2.0;
-                }
-            }
-            //pclog("GD5480 Clocking: %02x, interlace=%x, clocksel=%d, hdisp=%d.\n", svga->seqregs[0x07] & (gd54xx_is_5434(svga) ? 0xe : 6), svga->interlace, clocksel, svga->hdisp);
-        }
     } else if (svga->gdcreg[5] & 0x40)
         svga->render = svga_render_8bpp_lowres;
 
@@ -2220,11 +2213,17 @@ gd54xx_recalctimings(svga_t *svga)
                     }
                     break;
                 case 6:
-                    if (svga->crtc[0x27] == CIRRUS_ID_CLGD5480) {
-                        if (svga->bpp == 8) {
-                            svga->hdisp <<= 1;
-                            svga->dots_per_clock <<= 1;
-                        }
+                    /*
+                       Clock-doubled 8 bpp mode, used for pixel rates above ~85 MHz:
+                       the sequencer uses the 16-bit data path with the palette DAC in
+                       8 bpp mode, VCLK is programmed to half the pixel rate and the DAC
+                       unpacks two pixels per VCLK, so each character clock is 16 pixels
+                       wide and the CRTC horizontal timings are programmed halved.
+                     */
+                    if (gd54xx_is_5434(svga) && (svga->bpp == 8)) {
+                        svga->render = svga_render_8bpp_highres;
+                        svga->hdisp <<= 1;
+                        svga->dots_per_clock <<= 1;
                     }
                     break;
                 default:
@@ -2236,15 +2235,6 @@ gd54xx_recalctimings(svga_t *svga)
     if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) && (((svga->gdcreg[6] >> 2) & 0x03) != 0x01)) {
         svga->extra_banks[0] = 0;
         svga->extra_banks[1] = 0x8000;
-    }
-
-    if ((svga->crtc[0x27] == CIRRUS_ID_CLGD5446) && linedbl &&
-        !svga->vertical_linedbl && (svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) &&
-        (svga->render == svga_render_8bpp_lowres) && (svga->dispend == 768)) {
-        svga->render = svga_render_8bpp_highres;
-        svga->hdisp <<= 1;
-        svga->dots_per_clock <<= 1;
-        svga->clock *= 2.0;
     }
 }
 
@@ -2712,13 +2702,7 @@ gd54xx_readw_linear(uint32_t addr, void *priv)
             addr ^= 0x00000002;
             fallthrough;
         case 1:
-            temp = svga_readb_linear(addr + 1, svga);
-            temp |= (svga_readb_linear(addr, svga) << 8);
-
-            if (svga->fast)
-                cycles -= svga->monitor->mon_video_timing_read_w;
-
-            return temp;
+            return bswap16(svga_readw_linear(addr, svga));
         case 3:
             return 0xffff;
     }
@@ -2764,25 +2748,12 @@ gd54xx_readl_linear(uint32_t addr, void *priv)
         case 0:
             return svga_readl_linear(addr, svga);
         case 1:
-            temp = svga_readb_linear(addr + 1, svga);
-            temp |= (svga_readb_linear(addr, svga) << 8);
-            temp |= (svga_readb_linear(addr + 3, svga) << 16);
-            temp |= (svga_readb_linear(addr + 2, svga) << 24);
-
-            if (svga->fast)
-                cycles -= svga->monitor->mon_video_timing_read_l;
+            temp = bswap32(svga_readl_linear(addr, svga));
+            temp = ((temp & 0xFFFF0000) >> 16) | ((temp & 0xFFFF) << 16);
 
             return temp;
         case 2:
-            temp = svga_readb_linear(addr + 3, svga);
-            temp |= (svga_readb_linear(addr + 2, svga) << 8);
-            temp |= (svga_readb_linear(addr + 1, svga) << 16);
-            temp |= (svga_readb_linear(addr, svga) << 24);
-
-            if (svga->fast)
-                cycles -= svga->monitor->mon_video_timing_read_l;
-
-            return temp;
+            return bswap32(svga_readl_linear(addr, svga));
         case 3:
             return 0xffffffff;
     }
@@ -2967,21 +2938,19 @@ gd54xx_writew_linear(uint32_t addr, uint16_t val, void *priv)
             case 2:
                 addr ^= 0x00000002;
             case 1:
-                svga_writeb_linear(addr + 1, val & 0xff, svga);
-                svga_writeb_linear(addr, val >> 8, svga);
-
-                if (svga->fast)
-                    cycles -= svga->monitor->mon_video_timing_write_w;
+                svga_writew_linear(addr, bswap16(val), svga);
                 return;
             case 3:
                 return;
         }
     } else {
+        int cycles_lcl = cycles - svga->monitor->mon_video_timing_write_w;
         switch (ap) {
             default:
             case 0:
                 svga_write_linear(addr, val & 0xff, svga);
                 svga_write_linear(addr + 1, val >> 8, svga);
+                cycles = cycles_lcl;
                 return;
             case 2:
                 addr ^= 0x00000002;
@@ -2989,6 +2958,7 @@ gd54xx_writew_linear(uint32_t addr, uint16_t val, void *priv)
             case 1:
                 svga_write_linear(addr + 1, val & 0xff, svga);
                 svga_write_linear(addr, val >> 8, svga);
+                cycles = cycles_lcl;
                 return;
             case 3:
                 return;
@@ -3039,21 +3009,18 @@ gd54xx_writel_linear(uint32_t addr, uint32_t val, void *priv)
                 svga_writel_linear(addr, val, svga);
                 return;
             case 1:
-                svga_writeb_linear(addr + 1, val & 0xff, svga);
-                svga_writeb_linear(addr, val >> 8, svga);
-                svga_writeb_linear(addr + 3, val >> 16, svga);
-                svga_writeb_linear(addr + 2, val >> 24, svga);
+                val = bswap32(val);
+                val = ((val & 0xFFFF0000) >> 16) | ((val & 0xFFFF) << 16);
+                svga_writel_linear(addr, val, svga);
                 return;
             case 2:
-                svga_writeb_linear(addr + 3, val & 0xff, svga);
-                svga_writeb_linear(addr + 2, val >> 8, svga);
-                svga_writeb_linear(addr + 1, val >> 16, svga);
-                svga_writeb_linear(addr, val >> 24, svga);
+                svga_writel_linear(addr, bswap32(val), svga);
                 return;
             case 3:
                 return;
         }
     } else {
+        int cycles_lcl = cycles - svga->monitor->mon_video_timing_write_l;
         switch (ap) {
             default:
             case 0:
@@ -3061,18 +3028,21 @@ gd54xx_writel_linear(uint32_t addr, uint32_t val, void *priv)
                 svga_write_linear(addr + 1, val >> 8, svga);
                 svga_write_linear(addr + 2, val >> 16, svga);
                 svga_write_linear(addr + 3, val >> 24, svga);
+                cycles = cycles_lcl;
                 return;
             case 1:
                 svga_write_linear(addr + 1, val & 0xff, svga);
                 svga_write_linear(addr, val >> 8, svga);
                 svga_write_linear(addr + 3, val >> 16, svga);
                 svga_write_linear(addr + 2, val >> 24, svga);
+                cycles = cycles_lcl;
                 return;
             case 2:
                 svga_write_linear(addr + 3, val & 0xff, svga);
                 svga_write_linear(addr + 2, val >> 8, svga);
                 svga_write_linear(addr + 1, val >> 16, svga);
                 svga_write_linear(addr, val >> 24, svga);
+                cycles = cycles_lcl;
                 return;
             case 3:
                 return;
@@ -3505,7 +3475,8 @@ gd543x_mmio_write(uint32_t addr, uint8_t val, void *priv)
 
             case 0x40:
                 old                = gd54xx->blt.status;
-                gd54xx->blt.status = val;
+                /* The progress bit is read-only. */
+                gd54xx->blt.status = val & ~CIRRUS_BLT_PROGRESS;
                 gd543x_recalc_mapping(gd54xx);
                 if (!(old & CIRRUS_BLT_RESET) && (gd54xx->blt.status & CIRRUS_BLT_RESET))
                     gd54xx_reset_blit(gd54xx);
@@ -4689,6 +4660,10 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
             }
         }
     }
+
+    /* The address registers advance with the blit and end up past it. */
+    gd54xx->blt.dst_addr = dst_addr;
+    gd54xx->blt.src_addr = src_addr;
 
     /* Count exhausted, stuff still left to blit. */
     gd54xx_reset_blit(gd54xx);

@@ -17,20 +17,14 @@
 #include "qt_vmmanager_config.hpp"
 
 extern "C" {
+#include <86box/86box.h>
+#include <86box/config.h>
 #include <86box/plat.h>
 #include <86box/version.h>
 }
 
 QVariantHash VMManagerConfig::generalDefaults = {
-    { "hide_tool_bar",   0 },
-    { "regex_search",    0 },
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-    { "delete_to_trash", 0 },
-#endif
-#if EMU_BUILD_NUM != 0
-    { "update_check",    1 },
-#endif
-    { "window_remember", 0 }
+    { "hide_tool_bar",   0 }
 };
 
 VMManagerConfig::VMManagerConfig(const ConfigType type, const QString &section)
@@ -91,4 +85,44 @@ void
 VMManagerConfig::sync() const
 {
     settings->sync();
+}
+
+/* Moves the preferences kept here to the "Manager" section of the global
+   configuration. A preference set there is newer, so one is only taken from
+   here while it still has its default value there; either way, it is then
+   removed from here. */
+void
+VMManagerConfig::migratePreferences()
+{
+    const struct {
+        const char *key;
+        int        *value;
+        int         defaultValue;
+    } preferences[] = {
+        { "update_check",    &vmm_update_check,    1 },
+        { "regex_search",    &vmm_regex_search,    0 },
+        { "window_remember", &vmm_window_remember, 0 },
+        { "delete_to_trash", &vmm_delete_to_trash, 0 },
+    };
+
+    const VMManagerConfig config(ConfigType::General);
+    QStringList           migrated;
+
+    for (const auto &preference : preferences) {
+        if (!config.settings->contains(preference.key))
+            continue;
+
+        if (*preference.value == preference.defaultValue)
+            *preference.value = config.getStringValue(preference.key).toInt();
+        /* Only this preference is saved, keeping the rest of the file. */
+        config_save_global_setting("Manager", preference.key);
+        migrated.append(preference.key);
+    }
+
+    if (migrated.isEmpty())
+        return;
+
+    for (const auto &key : migrated)
+        config.remove(key);
+    config.sync();
 }

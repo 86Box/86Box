@@ -14,10 +14,9 @@
  */
 #include "qt_vmmanager_mainwindow.hpp"
 #include "qt_vmmanager_main.hpp"
-#include "qt_vmmanager_preferences.hpp"
 #include "qt_vmmanager_windarkmodefilter.hpp"
 #include "ui_qt_vmmanager_mainwindow.h"
-#if EMU_BUILD_NUM != 0
+#ifdef UPDATE_CHECK
 #    include "qt_updatecheckdialog.hpp"
 #endif
 #include "qt_about.hpp"
@@ -26,6 +25,7 @@
 
 #include <QCloseEvent>
 #include <QDesktopServices>
+#include <QStyleHints>
 
 extern "C" {
 extern void config_load_global();
@@ -33,7 +33,9 @@ extern void config_save_global();
 }
 
 VMManagerMainWindow          *vmm_main_window = nullptr;
+#ifdef USE_QDARKSTYLE
 extern WindowsDarkModeFilter *vmm_dark_mode_filter;
+#endif
 
 VMManagerMainWindow::
     VMManagerMainWindow(QWidget *parent)
@@ -64,8 +66,8 @@ VMManagerMainWindow::
     connect(ui->actionCtrl_Alt_Del, &QAction::triggered, vmm, &VMManagerMain::cadButtonPressed);
 
 // Set up menu actions
-// (Disable this if the EMU_BUILD_NUM == 0)
-#if EMU_BUILD_NUM == 0
+// (Disable this if updates are not checked for)
+#ifndef UPDATE_CHECK
     ui->actionCheck_for_updates->setVisible(false);
 #else
     connect(ui->actionCheck_for_updates, &QAction::triggered, this, &VMManagerMainWindow::checkForUpdatesTriggered);
@@ -84,10 +86,6 @@ VMManagerMainWindow::
     // Preferences
     connect(ui->actionPreferences, &QAction::triggered, this, &VMManagerMainWindow::preferencesTriggered);
 
-#ifdef Q_OS_WINDOWS
-    ui->toolBar->setBackgroundRole(QPalette::Light);
-#endif
-
     // Status bar widgets
     statusLeft->setAlignment(Qt::AlignLeft);
     statusRight->setAlignment(Qt::AlignRight);
@@ -101,7 +99,12 @@ VMManagerMainWindow::
     connect(this, &VMManagerMainWindow::languageUpdated, vmm, &VMManagerMain::onLanguageUpdated);
 #ifdef Q_OS_WINDOWS
     connect(this, &VMManagerMainWindow::darkModeUpdated, vmm, &VMManagerMain::onDarkModeUpdated);
+#    ifdef USE_QDARKSTYLE
     connect(this, &VMManagerMainWindow::preferencesUpdated, []() { vmm_dark_mode_filter->reselectDarkMode(); });
+#    else
+    connect(this, &VMManagerMainWindow::preferencesUpdated, []() { util::applyColorScheme(); });
+    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, &VMManagerMainWindow::updateDarkMode);
+#    endif
 #endif
 
     {
@@ -109,7 +112,7 @@ VMManagerMainWindow::
         ui->actionHide_tool_bar->setChecked(!!config->getStringValue("hide_tool_bar").toInt());
         if (ui->actionHide_tool_bar->isChecked())
             ui->toolBar->setVisible(false);
-        if (!!config->getStringValue("window_remember").toInt()) {
+        if (vmm_window_remember) {
             QString coords = config->getStringValue("window_coordinates");
             if (!coords.isEmpty()) {
                 QStringList list = coords.split(',');
@@ -203,12 +206,17 @@ void
 VMManagerMainWindow::preferencesTriggered()
 {
     bool machinesRunning = (vmm->getActiveMachineCount() > 0);
+    /* Another instance may have changed the preferences since they were loaded. */
+    config_load_global();
     auto old_vmm_path = QString(vmm_path_cfg);
-    const auto prefs = new VMManagerPreferences(this, machinesRunning);
-    if (prefs->exec() == QDialog::Accepted) {
-        emit preferencesUpdated();
-        updateLanguage();
+    Preferences prefs(true, machinesRunning, this);
+    const bool accepted = (prefs.exec() == QDialog::Accepted);
 
+    /* Applied even when cancelled, as they were still reloaded. */
+    emit preferencesUpdated();
+    updateLanguage();
+
+    if (accepted) {
         auto new_vmm_path = QString(vmm_path_cfg);
         if (!machinesRunning && (new_vmm_path != old_vmm_path)) {
             qDebug() << "Machine path changed: old path " << old_vmm_path << ", new path " << new_vmm_path;
@@ -233,7 +241,7 @@ VMManagerMainWindow::saveSettings() const
     const auto config           = new VMManagerConfig(VMManagerConfig::ConfigType::General);
     config->setStringValue("last_selection", currentSelection);
     config->setStringValue("hide_tool_bar", (ui->toolBar->isVisible() ? "0" : "1"));
-    if (!!config->getStringValue("window_remember").toInt()) {
+    if (vmm_window_remember) {
         config->setStringValue("window_coordinates", QString::asprintf("%i, %i, %i, %i", this->geometry().x(), this->geometry().y(), this->geometry().width(), this->geometry().height()));
         config->setStringValue("window_maximized", this->isMaximized() ? "1" : "");
         config->setStringValue("window_splitter", QString::asprintf("%i, %i", vmm->getPaneSizes()[0], vmm->getPaneSizes()[1]));
@@ -312,7 +320,7 @@ VMManagerMainWindow::on_actionHide_tool_bar_triggered()
     config->setStringValue("hide_tool_bar", (isHidden ? "0" : "1"));
 }
 
-#if EMU_BUILD_NUM != 0
+#ifdef UPDATE_CHECK
 void
 VMManagerMainWindow::checkForUpdatesTriggered()
 {

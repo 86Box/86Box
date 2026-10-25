@@ -109,7 +109,14 @@ device_get_config_int(const char *s)
         return harness_cfg_recompiler;
     if (!strcmp(s, "gpu_fold"))
         return 1; /* the device default: folded pipelines on */
-    return 0; /* realtime_pacing, gpu_raster, gpu_2d_verify */
+    return 0; /* gpu_raster, gpu_2d_verify */
+}
+
+void
+device_set_config_int(const char *s, int val)
+{
+    if (!strcmp(s, "render_threads"))
+        harness_cfg_render_threads = val;
 }
 
 int
@@ -233,10 +240,6 @@ int (*harness_bm_read_hook)(uint32_t addr, uint8_t *dst, uint32_t len);
    the absolute address and length, before the backing-store check. Never
    satisfies or blocks the write. null for the register harness. */
 void (*harness_bm_write_hook)(uint32_t addr, uint32_t len);
-
-/* Pacing vectors install a barrier around the activity sample to control
-   producer timing. null lets other harness runs sample without a barrier. */
-void (*harness_pace_sample_hook)(void *dev, int phase) = NULL;
 
 void
 harness_ram_alloc(void)
@@ -514,8 +517,8 @@ ui_sb_set_text(char *str)
     (void) str;
 }
 
-/* A controlled clock makes pacing windows independent of host timing.
-   Other vectors keep the monotonic host clock. */
+/* A controlled clock makes the emulation speed window independent of
+   host timing. Other vectors keep the monotonic host clock. */
 int      harness_ticks_override;
 uint32_t harness_ticks_ms;
 

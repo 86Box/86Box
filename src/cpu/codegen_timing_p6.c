@@ -1697,18 +1697,18 @@ decode_instruction(const macro_op_t *ins, uint64_t deps, uint32_t fetchdat, int 
     int           d              = 0; /*Complex decoder uOPs*/
     int           earliest_start = 0;
     decode_type_t decode_type    = ins->decode_type;
-    int           instr_length   = codegen_timing_instr_length(deps, fetchdat, op_32);
 
     /*Generate input register mask, and determine the earliest time this
       instruction can start. This is not accurate, as this is calculated per
       x86 instruction when it should be handled per uop*/
-    regmask_required = get_dstdep_mask(deps, fetchdat, bit8);
-    regmask_required |= get_addr_regmask(deps, fetchdat, op_32);
-    for (c = 0; c < 8; c++) {
-        if (regmask_required & (1 << c)) {
-            if (reg_available_timestamp[c] > decode_timestamp)
-                earliest_start = reg_available_timestamp[c];
-        }
+    regmask_modified = get_dstdep_mask(deps, fetchdat, bit8);
+    regmask_required = regmask_modified | get_addr_regmask(deps, fetchdat, op_32);
+    /*Bits 8 and up are flags, not registers. Visit registers in ascending
+      order, so the highest register with a pending result still wins*/
+    for (uint32_t mask = regmask_required & 0xff; mask; mask &= mask - 1) {
+        c = __builtin_ctz(mask);
+        if (reg_available_timestamp[c] > decode_timestamp)
+            earliest_start = reg_available_timestamp[c];
     }
     if ((deps & FPU_RW_ST0) && fpu_st_timestamp[0] > decode_timestamp)
         earliest_start = fpu_st_timestamp[0];
@@ -1722,7 +1722,7 @@ decode_instruction(const macro_op_t *ins, uint64_t deps, uint32_t fetchdat, int 
     }
 
     /*Simple decoders are limited to 7 bytes & 1 uOP*/
-    if ((decode_type == DECODE_SIMPLE && instr_length > 7) || (decode_type == DECODE_SIMPLE && ins->nr_uops > 1))
+    if (decode_type == DECODE_SIMPLE && (codegen_timing_instr_length(deps, fetchdat, op_32) > 7 || ins->nr_uops > 1))
         decode_type = DECODE_COMPLEX;
 
     switch (decode_type) {
@@ -1776,11 +1776,11 @@ decode_instruction(const macro_op_t *ins, uint64_t deps, uint32_t fetchdat, int 
     }
 
     /*Update write timestamps for any output registers*/
-    regmask_modified = get_dstdep_mask(deps, fetchdat, bit8);
-    for (c = 0; c < 8; c++) {
-        if (regmask_modified & (1 << c))
-            reg_available_timestamp[c] = last_complete_timestamp;
-    }
+    for (uint32_t mask = regmask_modified & 0xff; mask; mask &= mask - 1)
+        reg_available_timestamp[__builtin_ctz(mask)] = last_complete_timestamp;
+
+    if (!(deps & (FPU_POP | FPU_POP2 | FPU_PUSH | FPU_WRITE_ST0 | FPU_WRITE_ST1 | FPU_WRITE_STREG)))
+        return;
     if (deps & FPU_POP) {
         for (c = 0; c < 7; c++)
             fpu_st_timestamp[c] = fpu_st_timestamp[c + 1];
@@ -1970,7 +1970,12 @@ codegen_timing_p6_opcode(uint8_t opcode, UNUSED(uint32_t fetchdat), int op_32, U
             }
     }
 
-    if (ins_table[opcode])
+    /*The MMX rows (0F 60-7F, D0-FF) on a P6 without MMX, the Pentium Pro: the
+      instructions are #UD there, and its units have no MMX uop types to run
+      them on*/
+    if ((last_prefix == 0x0f) && !cpu_has_feature(CPU_FEATURE_MMX) && (((opcode & 0xe0) == 0x60) || (opcode >= 0xd0)))
+        decode_instruction(&complex_alu1_op, 0, fetchdat, op_32, bit8);
+    else if (ins_table[opcode])
         decode_instruction(ins_table[opcode], deps[opcode], fetchdat, op_32, bit8);
     else
         decode_instruction(&complex_alu1_op, 0, fetchdat, op_32, bit8);

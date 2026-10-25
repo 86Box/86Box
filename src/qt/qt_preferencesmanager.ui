@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>PreferencesManager</class>
+ <widget class="QWidget" name="PreferencesManager">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>387</width>
+    <height>332</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QLabel" name="labelSystemDir">
+     <property name="text">
+      <string>System Directory:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayoutSystemDir">
+     <item>
+      <widget class="QLineEdit" name="systemDirectory">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="dirSelectButton">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonDefaultSystemDir">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Default</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="rememberSizePositionCheckBox">
+     <property name="text">
+      <string>Remember size &amp;&amp; position</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="updateCheckBox">
+     <property name="text">
+      <string>Check for updates on startup</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="regexSearchCheckBox">
+     <property name="text">
+      <string>Use regular expressions in search box</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="deleteToTrashCheckBox">
+     <property name="text">
+      <string>Delete virtual machines to Recycle Bin</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBoxDiscord">
+     <property name="title">
+      <string>Discord</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayoutDiscord">
+      <item>
+       <widget class="QCheckBox" name="discordCheckBox">
+        <property name="text">
+         <string>Show running machines in my Discord status</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayoutDiscordPrivacy">
+        <item>
+         <widget class="QLabel" name="labelDiscordPrivacy">
+          <property name="text">
+           <string>Details shown:</string>
+          </property>
+          <property name="buddy">
+           <cstring>comboBoxDiscordPrivacy</cstring>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="comboBoxDiscordPrivacy">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <item>
+           <property name="text">
+            <string>Machine name and hardware</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Hardware only</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>No details</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <tabstops>
+  <tabstop>dirSelectButton</tabstop>
+  <tabstop>pushButtonDefaultSystemDir</tabstop>
+  <tabstop>rememberSizePositionCheckBox</tabstop>
+  <tabstop>updateCheckBox</tabstop>
+  <tabstop>regexSearchCheckBox</tabstop>
+  <tabstop>deleteToTrashCheckBox</tabstop>
+  <tabstop>discordCheckBox</tabstop>
+  <tabstop>comboBoxDiscordPrivacy</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

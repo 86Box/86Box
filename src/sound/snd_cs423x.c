@@ -404,23 +404,21 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 6: /* RAM Access End */
-            /* TriGem Delhi-III BIOS writes undocumented value 0x40 instead of 0x00. */
-            /* Intel Atlantis, Holly, Monaco, Morrison and Thor BIOSes use several undocumented values */
-            /* 0x25, 0x60, 0x69, 0x86, 0xE2, 0xFE and 0xFF were observed on these BIOSes */
-            /* CS4232 likely accepts any written value to end RAM writes */
-            if ((val == 0x00) || (val == 0x40) || (dev->type == CRYSTAL_CS4232)) {
-                cs423x_log("CS423x: RAM end\n");
-                dev->ram_dl = CRYSTAL_RAM_CMD;
-                /* CS4232 resource data at 0x2090/2091 is written backwards */
-                if (dev->type == CRYSTAL_CS4232) {
-                    dev->ram_data[0x2090] = 0x00;
-                    dev->ram_data[0x2091] = 0x48;
-                }
-
-                /* Update PnP state and resource data. */
-                dev->pnp_size = (dev->type >= CRYSTAL_CS4236) ? 384 : 256; /* we don't know the length */
-                cs423x_pnp_enable(dev, 1, 0);
+            /* Any value written ends RAM access. BIOSes write all sorts of values here:
+               TriGem Delhi-III writes 0x40; Intel Atlantis, Holly, Monaco, Morrison and
+               Thor write 0x25, 0x60, 0x69, 0x86, 0xE2, 0xFE and 0xFF; Dell OptiPlex GXa,
+               E1 and GX1 write the high byte of the burst's start address (0x41, 0x40). */
+            cs423x_log("CS423x: RAM end\n");
+            dev->ram_dl = CRYSTAL_RAM_CMD;
+            /* CS4232 resource data at 0x2090/2091 is written backwards */
+            if (dev->type == CRYSTAL_CS4232) {
+                dev->ram_data[0x2090] = 0x00;
+                dev->ram_data[0x2091] = 0x48;
             }
+
+            /* Update PnP state and resource data. */
+            dev->pnp_size = (dev->type >= CRYSTAL_CS4236) ? 384 : 256; /* we don't know the length */
+            cs423x_pnp_enable(dev, 1, 0);
             break;
 
         case 7: /* Global Status (CS4236+) */
@@ -1270,6 +1268,10 @@ cs423x_init(const device_t *info)
 
         cs423x_input_gain_vols_4bits[c] = (int) (attenuation);
     }
+
+    /* CS423x SBPro codec has a nondefeatable lowpass filter */
+    dev->sb->mixer_quirks = QUIRK_FILTERND;
+    dev->sb->mixer_sbpro.output_filter = dev->sb->mixer_sbpro.input_filter = 1;
 
     return dev;
 }

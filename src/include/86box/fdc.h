@@ -64,6 +64,7 @@
 #define FDC_FLAG_PCJX           0x800000 /* IBM PC JX no-DMA adapter */
 #define FDC_FLAG_IRQ_ON_NOOP_SEEK 0x1000000 /* Interrupt on zero-step SEEK completion */
 #define FDC_FLAG_IBM5140        0x2000000 /* Convertible motherboard adapter */
+#define FDC_FLAG_COMPAQ         0x4000000 /* Compaq 386, drive type sense at 3F1 */
 #define FDC_FLAG_PNP            0x80000000 /* FDC is PnP */
 
 typedef struct sector_id_fields_t {
@@ -115,6 +116,7 @@ typedef struct fdc_t {
     uint8_t step;
     uint8_t noprec;
     uint8_t data_ready;
+    uint16_t xfer_count;
 
     uint8_t paramstogo;
     uint8_t enh_mode;
@@ -296,6 +298,7 @@ extern const device_t fdc_at_sec_device;
 extern const device_t fdc_at_ter_device;
 extern const device_t fdc_at_qua_device;
 extern const device_t fdc_at_actlow_device;
+extern const device_t fdc_at_compaq_device;
 extern const device_t fdc_at_smc_661_device;
 extern const device_t fdc_at_smc_device;
 extern const device_t fdc_at_ali_device;

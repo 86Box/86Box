@@ -35,6 +35,8 @@ public:
 
     void sync() const;
 
+    static void migratePreferences();
+
     static QVariantHash generalDefaults;
 
     QSettings *settings;

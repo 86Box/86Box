@@ -33,10 +33,15 @@
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/device.h>
+#include <86box/chipset.h>
+#include <86box/i8018x.h>
 #include <86box/apm.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
 #include <86box/plat_unused.h>
+#ifdef USE_VFIO
+#    include <86box/vfio.h>
+#endif
 
 enum {
     STATE_NONE = 0,
@@ -47,12 +52,13 @@ enum {
 
 pic_t pic;
 pic_t pic2;
-
-static pc_timer_t pic_timer;
+int cascade = 0;
 
 static int shadow = 0;
-static int elcr_enabled = 0;
 static int tmr_inited = 0;
+static int elcr_enabled = 0;
+static pc_timer_t pic_timer;
+
 /* Persistent override for machines pairing a 286-or-higher accelerator CPU with a genuine
    single-PIC XT board (e.g. the Intel Inboard 386/PC on a stock 5150/5160), where is286-driven
    IMR-write timing would otherwise silently never schedule a pending-IRQ check at all. Set once
@@ -76,7 +82,45 @@ static int16_t  irq_vector_override[8] = {
     -1, -1, -1, -1, -1, -1, -1, -1
 };
 
+/* Lines a device has taken over for a controller of its own: the interrupt
+   controller must not deliver them, whatever the guest writes to its mask
+   register, so those bits are held set here. */
+static uint16_t pic_pinned_irqs = 0x0000;
+
 static void (*update_pending)(void);
+
+/* The level sources on each IRQ line as the I/O APIC's input sees it: a
+   PCI interrupt steered by the chipset's router reaches the 8259 alone
+   (picint_steered), so the line can be up for one and not the other. */
+static uint32_t pic_ioapic_lines[16];
+
+static uint8_t pic_i86_mode(pic_t *dev);
+static uint8_t pic_irq_ack_read(pic_t *dev, int phase);
+
+#ifdef USE_VFIO
+/* IRQs delivered since their level was last known to be current. VFIO cannot report
+   a passed-through device deasserting INTx, so such a level is resampled before use. */
+static uint16_t pic_acked      = 0x0000;
+static int      pic_resampling = 0;
+
+static uint8_t pic_level_triggered(pic_t *dev, int irq);
+
+/* Have a level resampled before it is delivered. */
+void
+pic_resample_mark(int irq)
+{
+    pic_acked |= 1 << irq;
+}
+
+static void
+pic_resample(int irq)
+{
+    /* Lines dropped by the resample must not re-enter the priority resolver. */
+    pic_resampling++;
+    vfio_irq_intx_resample(irq);
+    pic_resampling--;
+}
+#endif
 
 #ifdef ENABLE_PIC_LOG
 int pic_do_log = ENABLE_PIC_LOG;
@@ -95,6 +139,19 @@ pic_log(const char *fmt, ...)
 #else
 #    define pic_log(fmt, ...)
 #endif
+
+void
+pic_set_output_callback(pic_t *dev, void (*callback)(void *priv, int level), void *priv)
+{
+    if (dev == NULL)
+        return;
+
+    dev->out_cb   = callback;
+    dev->out_priv = priv;
+
+    if (callback != NULL)
+        callback(priv, dev->int_pending);
+}
 
 void
 pic_set_irq_callback(void (*callback)(uint16_t, int, void *), void *priv)
@@ -222,6 +279,16 @@ find_best_interrupt(pic_t *dev)
             !((dev->flags & PIC_IBM5140) && dev->special_mask_mode && (dev->imr & b)))
             break;
         else if ((dev->state == 0) && ((dev->irr & ~dev->imr) & b)) {
+#ifdef USE_VFIO
+            /* Resample a level that was already delivered before raising it again. */
+            const int irq = j + ((dev == &pic2) ? 8 : 0);
+            if ((pic_acked & (1 << irq)) && pic_level_triggered(dev, j)) {
+                pic_acked &= ~(1 << irq);
+                pic_resample(irq);
+                if (!((dev->irr & ~dev->imr) & b))
+                    continue;
+            }
+#endif
             ret = j;
             break;
         }
@@ -240,13 +307,30 @@ find_best_interrupt(pic_t *dev)
     return ret;
 }
 
+/* The master 8259's INTR output, as INTIN0 of an I/O APIC sees it. */
+static int pic_intr_reported;
+
+static __inline void
+pic_intr_report(void)
+{
+    if (pic.int_pending != pic_intr_reported) {
+        pic_intr_reported = pic.int_pending;
+        ioapic_pic_intr(pic_intr_reported);
+    }
+}
+
 static __inline void
 pic_update_pending_xt(void)
 {
+#ifdef USE_VFIO
+    if (pic_resampling)
+        return;
+#endif
     if (!(pic.interrupt & 0x20))
         pic.int_pending = (find_best_interrupt(&pic) != -1);
     if (pic.int_pending && (pic.flags & PIC_IBM5140) && ibm5140_wake)
         ibm5140_wake();
+    pic_intr_report();
 }
 
 /* Only check if PIC 1 frozen, because it should not happen
@@ -254,22 +338,70 @@ pic_update_pending_xt(void)
 static __inline void
 pic_update_pending_at(void)
 {
+#ifdef USE_VFIO
+    if (pic_resampling)
+        return;
+#endif
     if (!(pic.interrupt & 0x20)) {
         pic2.int_pending = (find_best_interrupt(&pic2) != -1);
- 
-        if (pic2.int_pending)
-            pic.irr |= (1 << pic2.icw3);
-        else
-            pic.irr &= ~(1 << pic2.icw3);
+
+        /* The slave's INT output is hard-wired to the master's IR2 (see
+           pic.slaves[2]), regardless of the cascade ID programmed into the
+           slave's ICW3 - firmware that never initializes the slave (eg. the
+           Tandy VIS) would otherwise have its IRQ 0 cleared here. */
+        if (machines[machine].init == machine_at_tandy_vis_init) {
+            if (pic2.int_pending)
+                pic.irr |= 0x04;
+            else
+                pic.irr &= ~0x04;
+        } else {
+            if (pic2.int_pending)
+                pic.irr |= (1 << pic2.icw3);
+            else
+                pic.irr &= ~(1 << pic2.icw3);
+        }
 
         pic.int_pending = (find_best_interrupt(&pic) != -1);
+        pic_intr_report();
     }
+}
+
+/* Two independent controllers: each computes its own pending state,
+   and neither feeds the other's IRR. */
+static void
+pic_update_pending_dual(void)
+{
+#ifdef USE_VFIO
+    if (pic_resampling)
+        return;
+#endif
+    if (!(pic.interrupt & 0x20))
+        pic.int_pending = (find_best_interrupt(&pic) != -1);
+    if (!(pic2.interrupt & 0x20))
+        pic2.int_pending = (find_best_interrupt(&pic2) != -1);
+
+    if (pic.out_cb != NULL)
+        pic.out_cb(pic.out_priv, pic.int_pending);
+    if (pic2.out_cb != NULL)
+        pic2.out_cb(pic2.out_priv, pic2.int_pending);
+}
+
+static __inline void
+pic_notify(void)
+{
+    if (update_pending == NULL)
+        return;
+
+    if (!cascade)
+        pic_update_pending_dual();
+    else
+        update_pending();
 }
 
 static void
 pic_callback(UNUSED(void *priv))
 {
-    update_pending();
+    pic_notify();
 }
 
 void
@@ -278,18 +410,39 @@ pic_reset(void)
     int is_at     = IS_AT(machine);
     int is_zenith = !!machine_has_flags_64(machine, MACHINE_ZENITH);
     is_at         = is_at || (machines[machine].init == machine_xt_xi8088_init);
-    const uint8_t board_flags = pic.flags & PIC_IBM5140;
+    const uint8_t board_flags    = pic.flags & PIC_IBM5140;
+    void (*out_cb)(void *, int)  = pic.out_cb;
+    void (*out_cb2)(void *, int) = pic2.out_cb;
+    void *out_priv               = pic.out_priv;
+    void *out_priv2              = pic2.out_priv;
 
     memset(&pic, 0, sizeof(pic_t));
+    memset(pic_ioapic_lines, 0, sizeof(pic_ioapic_lines));
+    pic_intr_reported = 0;
+    ioapic_pic_intr(0); /* INTR is inactive after reset, for INTIN0 too */
     memset(&pic2, 0, sizeof(pic_t));
     /* Controller reset preserves the integrated controller's hardware type. */
-    pic.flags = board_flags;
+    pic.flags     = board_flags;
+    pic.out_cb    = out_cb;
+    pic2.out_cb   = out_cb2;
+    pic.out_priv  = out_priv;
+    pic2.out_priv = out_priv2;
 
     pic.is_master = 1;
     pic.interrupt = pic2.interrupt = 0x17;
 
-    if (is_at)
-        pic.slaves[2] = &pic2;
+    if (!cascade) {
+        pic2.is_master = 1;
+        pic.at = pic2.at = 0;
+        update_pending = pic_update_pending_dual;
+    } else {
+        if (is_at)
+            pic.slaves[2] = &pic2;
+
+        update_pending = is_at ? pic_update_pending_at : pic_update_pending_xt;
+        pic.at = pic2.at = is_at;
+    }
+    pic.zenith = pic2.zenith = is_zenith;
 
     if (tmr_inited)
         timer_on_auto(&pic_timer, 0.0);
@@ -297,14 +450,18 @@ pic_reset(void)
     timer_add(&pic_timer, pic_callback, &pic, 0);
     tmr_inited = 1;
 
-    update_pending = is_at ? pic_update_pending_at : pic_update_pending_xt;
-    pic.at     = pic2.at     = is_at;
-    pic.zenith = pic2.zenith = is_zenith;
-
     smi_irq_mask = smi_irq_status = 0x0000;
 
     shadow  = 0;
     pic_pci = 0;
+
+#ifdef USE_VFIO
+    pic_acked = 0x0000;
+#endif
+
+    /* A line a device has taken over stays out of delivery across a reset. */
+    pic.imr  = (uint8_t) pic_pinned_irqs;
+    pic2.imr = (uint8_t) (pic_pinned_irqs >> 8);
 }
 
 void
@@ -338,6 +495,36 @@ pic_set_vector_override(uint8_t irq, int vector)
         irq_vector_override[irq] = (vector >= 0) ? (vector & 0xff) : -1;
 }
 
+/* Keep a line out of the controller's delivery for good, or hand it back when
+   the device that claimed it goes away. The line is still reported to whoever
+   watches the controller, it is only the delivery that is held off. */
+void
+pic_set_line_pinned(int irq, int pinned)
+{
+    uint16_t bit;
+    uint8_t  b;
+    pic_t   *dev;
+
+    if ((irq < 0) || (irq > 15))
+        return;
+
+    dev = (irq < 8) ? &pic : &pic2;
+    bit = (uint16_t) (1u << irq);
+    b   = (uint8_t) (1u << (irq & 7));
+
+    if (pinned)
+        pic_pinned_irqs |= bit;
+    else
+        pic_pinned_irqs &= (uint16_t) ~bit;
+
+    if (pic_pinned_irqs & bit)
+        dev->imr |= b;
+    else
+        dev->imr &= (uint8_t) ~b;
+
+    pic_notify();
+}
+
 static uint8_t
 pic_level_triggered(pic_t *dev, int irq)
 {
@@ -362,7 +549,32 @@ pic_acknowledge(pic_t *dev)
     dev->isr |= pic_int_num;
     if (!pic_level_triggered(dev, pic_int) || (dev->lines[pic_int] == 0))
         dev->irr &= ~pic_int_num;
+
+#ifdef USE_VFIO
+    pic_acked |= 1 << (pic_int + ((dev == &pic2) ? 8 : 0));
+#endif
 }
+
+#ifdef USE_VFIO
+/* Resample the delivered levels of one PIC before they become visible. */
+static void
+pic_resample_delivered(pic_t *dev)
+{
+    const int base      = (dev == &pic2) ? 8 : 0;
+    int       resampled = 0;
+
+    for (uint8_t i = 0; i < 8; i++) {
+        if ((pic_acked & (1 << (base + i))) && (dev->irr & (1 << i)) && pic_level_triggered(dev, i)) {
+            pic_acked &= ~(1 << (base + i));
+            pic_resample(base + i);
+            resampled = 1;
+        }
+    }
+
+    if (resampled)
+        pic_notify();
+}
+#endif
 
 /* Find IRQ for non-specific EOI (either by command or automatic) by finding the highest IRQ
    priority with ISR bit set, that is also not masked if the PIC is in special mask mode. */
@@ -393,12 +605,19 @@ pic_action(pic_t *dev, uint8_t irq, uint8_t eoi, uint8_t rotate)
     uint8_t b = (1 << irq);
 
     if (irq != 0xff) {
-        if (eoi)
+        if (eoi) {
             dev->isr &= ~b;
+#ifdef USE_VFIO
+            /* Nothing samples an edge-triggered input's level, so let VFIO
+               rearm a passed-through device once its interrupt was serviced. */
+            if (!pic_level_triggered(dev, irq))
+                pic_resample(irq + ((dev == &pic2) ? 8 : 0));
+#endif
+        }
         if (rotate && !(dev->flags & PIC_IBM5140))
             dev->priority = (irq + 1) & 7;
 
-        update_pending();
+        pic_notify();
     }
 }
 
@@ -524,7 +743,7 @@ pic_read(uint16_t addr, void *priv)
                 dev->data_bus = 0x80 | (dev->interrupt & 7);
                 pic_acknowledge(dev);
                 dev->int_pending = 0;
-                update_pending();
+                pic_notify();
             } else
                 dev->data_bus = (dev->flags & PIC_IBM5140) ? (dev->interrupt & 7) : 0x00;
             dev->ocw3 &= ~0x04;
@@ -533,10 +752,17 @@ pic_read(uint16_t addr, void *priv)
         else if (dev->ocw3 & 0x02) {
             if (dev->ocw3 & 0x01)
                 dev->data_bus = dev->isr;
-#ifdef UNDEFINED_READ
-            else
-                dev->data_bus = 0x00;
+            else {
+#ifdef USE_VFIO
+                /* The IRR shows level-triggered line levels, which must be current. */
+                pic_resample_delivered(dev);
 #endif
+#ifdef UNDEFINED_READ
+                dev->data_bus = 0x00;
+#else
+                dev->data_bus = dev->irr;
+#endif
+            }
         }
         /* If A0 = 0, VIA shadow is disabled, and poll mode is disabled,
            simply read whatever is currently on the data bus. */
@@ -547,7 +773,7 @@ pic_read(uint16_t addr, void *priv)
     return dev->data_bus;
 }
 
-static void
+void
 pic_write(uint16_t addr, uint8_t val, void *priv)
 {
     pic_t *dev = (pic_t *) priv;
@@ -575,12 +801,12 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
                 dev->icw4  = val;
                 dev->state = STATE_NONE;
                 if (dev->flags & PIC_IBM5140)
-                    update_pending();
+                    pic_notify();
                 break;
             case STATE_NONE:
-                dev->imr = val;
+                dev->imr = (uint8_t) (val | (uint8_t) ((dev == &pic2) ? (pic_pinned_irqs >> 8) : pic_pinned_irqs));
                 if ((dev->flags & PIC_IBM5140) || (is286 && !force_xt_imr_timing) || dev->zenith)
-                    update_pending();
+                    pic_notify();
                 else if (force_xt_imr_timing)
                     /* Deliberately small but non-zero, unlike the stock formula below (which
                        evaluates to exactly 0.0 and so hits timer_on_auto()'s "else timer_stop()"
@@ -615,12 +841,16 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
                     dev->irr              |= (1 << i);
             }
             dev->imr = dev->isr = 0x00;
+#ifdef USE_VFIO
+            /* The rebuilt IRR comes from line levels which may be stale. */
+            pic_acked |= 0xff << ((dev == &pic2) ? 8 : 0);
+#endif
             dev->ack_bytes = dev->priority = 0x00;
             dev->auto_eoi_rotate = dev->special_mask_mode = 0x00;
             dev->interrupt                                = 0x17;
             dev->int_pending                              = 0x00;
             dev->state                                    = STATE_ICW2;
-            update_pending();
+            pic_notify();
         } else if (val & 0x08) {
             /* RR is a command strobe: a poll or special-mask command must not
              * replace the integrated controller's current ISR/IRR selection. */
@@ -635,6 +865,20 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
             pic_command(dev);
         }
     }
+}
+
+/* The 8259s sit on the 16-bit bus, so their A0 comes from CPU A1: the
+   register pair shows up on even addresses within the chip-select block. */
+static uint8_t
+pic_read_even(uint16_t addr, void *priv)
+{
+    return pic_read((uint16_t) ((addr & 0x0002u) >> 1), priv);
+}
+
+static void
+pic_write_even(uint16_t addr, uint8_t val, void *priv)
+{
+    pic_write((uint16_t) ((addr & 0x0002u) >> 1), val, priv);
 }
 
 void
@@ -722,15 +966,34 @@ pic_toggle_latch(int is_ps2)
     }
 }
 
+/* Machine init must not inherit the previous board's PIC output hooks. */
+static void
+pic_clear_output_callback(void)
+{
+    pic.out_cb = pic2.out_cb = NULL;
+    pic.out_priv = pic2.out_priv = NULL;
+}
+
+uint8_t
+pic_any_pending(void)
+{
+    if (!cascade && i8018x_pcb_cascade)
+        return 0;
+
+    return pic.int_pending || (!cascade && pic2.int_pending);
+}
+
 void
 pic_init(void)
 {
     for (uint8_t irq = 0; irq < 8; irq++)
         irq_vector_override[irq] = -1;
 
-    pic_reset_hard();
+    pic_clear_output_callback();
 
     shadow = 0;
+    cascade = 1;
+    pic_reset_hard();
     io_sethandler(0x0020, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
 }
 
@@ -794,10 +1057,54 @@ pic_handler(int set, uint16_t base, int size)
 void
 pic_init_pcjr(void)
 {
-    pic_reset_hard();
+    pic_clear_output_callback();
 
     shadow = 0;
+    cascade = 1;
+    pic_reset_hard();
     pic_handler(1, 0x0020, 0x0008);
+}
+
+/* ACK one independent controller; both INTA phases happen here because the
+   80186 embeds the vectoring that the 286+ core performs for the pair. */
+uint8_t
+pic_irq_ack_instance(pic_t *dev)
+{
+    uint8_t ret = 0;
+    uint8_t phases;
+
+    if (dev == NULL)
+        return 0;
+
+    phases = pic_i86_mode(dev) ? 2 : 3;
+
+    for (uint8_t i = 0; i < phases; i++) {
+        ret = pic_irq_ack_read(dev, dev->ack_bytes);
+        dev->ack_bytes = (dev->ack_bytes + 1) % phases;
+    }
+
+    dev->interrupt = 0x17;
+    dev->int_pending = 0;
+    pic_notify();
+
+    return ret;
+}
+
+/* Tandy 2000 wires two 8259s to separate CPU inputs, so neither is the
+   other's slave and each keeps its own vector base. */
+void
+pic_init_tandy2k(void)
+{
+    for (uint8_t irq = 0; irq < 8; irq++)
+        irq_vector_override[irq] = -1;
+
+    pic_clear_output_callback();
+
+    shadow = 0;
+    cascade = 0;
+    pic_reset_hard();
+    io_sethandler(0x0060, 0x0010, pic_read_even, NULL, NULL, pic_write_even, NULL, NULL, &pic);
+    io_sethandler(0x0070, 0x0010, pic_read_even, NULL, NULL, pic_write_even, NULL, NULL, &pic2);
 }
 
 void
@@ -807,8 +1114,8 @@ pic2_init(void)
     pic.slaves[2] = &pic2;
 }
 
-void
-picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
+static void
+picint_lines(uint16_t num, int level, int set, uint8_t *irq_state, int to_ioapic)
 {
     int     raise;
     int     max = 16;
@@ -824,24 +1131,42 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
     if (update_pending == NULL)
         return;
 
-    /* Make sure to ignore all slave IRQ's, and in case of AT+,
-       translate IRQ 2 to IRQ 9. */
-    for (uint8_t i = 0; i < 8; i++) {
-        b     = (uint8_t) (1 << i);
-        raise = num & b;
+    /* In cascade mode, ignore all slave IRQ's and translate IRQ 2 to IRQ 9
+       on AT+. In dual mode 0-7 belong to the first controller and 8-15 to
+       the second. */
+    if (cascade) {
+        for (uint8_t i = 0; i < 8; i++) {
+            b     = (uint8_t) (1 << i);
+            raise = num & b;
 
-        if (pic.icw3 & b) {
-            slaves++;
+            if (pic.icw3 & b) {
+                slaves++;
 
-            if (raise) {
-                num &= ~b;
-                if (pic.at && (i == 2))
-                    num |= (1 << 9);
+                if (raise) {
+                    num &= ~b;
+                    if (pic.at && (i == 2))
+                        num |= (1 << 9);
+                }
             }
         }
+    } else {
+        slaves = 1;
+        max = 16;
     }
 
     uint16_t lines = level ? 0x0000 : num;
+    /* What the I/O APIC's inputs see: for a level source, the wired-OR of
+       every source on the line, so only its changes; an edge source's
+       every raise. */
+    uint16_t apic_lines = (level || !to_ioapic) ? 0x0000 : num;
+
+    /* The Tandy VIS firmware leaves the master's ICW3 at 0 and never
+       initializes the slave, but the slave is still wired to the master's
+       IR2 and its IRQ's still reach its IRR - Modular Windows probes IRQ 9
+       through the IRR's at startup, and the VIS reboots in a loop if the
+       probe fails. */
+    if (!slaves && (machines[machine].init == machine_at_tandy_vis_init))
+        slaves = 1;
 
     if (!slaves)
         max = 8;
@@ -862,9 +1187,18 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
             w = 1 << i;
 
             if (num & w) {
-                if ((!!*irq_state) != !!set)
+                if ((!!*irq_state) != !!set) {
                     set ? dev->lines[b]++ : dev->lines[b]--;
 
+                    if (to_ioapic) {
+                        if (set)
+                            pic_ioapic_lines[i]++;
+                        else if (pic_ioapic_lines[i])
+                            pic_ioapic_lines[i]--;
+                        if (pic_ioapic_lines[i] == (!!set))
+                            apic_lines |= w;
+                    }
+                }
                 if (!pic_level_triggered(dev, b) ||
                     (((!!*irq_state) != !!set) && (dev->lines[b] == (!!set))))
                     lines |= w;
@@ -879,6 +1213,8 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
 
    if (!slaves)
        num &= 0x00ff;
+   if (!slaves)
+       apic_lines &= 0x00ff;
 
    if (num & 0x0100)
        acpi_rtc_status = !!set;
@@ -928,8 +1264,30 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
             }
         }
 
-        update_pending();
+        pic_notify();
     }
+
+    /* APIC mirror runs after PIC state/latches settle for this request. */
+    if (apic_lines)
+        ioapic_legacy_irq(apic_lines, level, set);
+}
+
+void
+picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
+{
+    picint_lines(num, level, set, irq_state, 1);
+}
+
+/* A PCI interrupt the chipset's router steers onto an IRQ: it is routed
+   "to the IRQ inputs of the interrupt controller" inside the chipset,
+   which "masks the corresponding IRQ signal" (PIIX3 2.2.10), so it is
+   not on the IRQ line the I/O APIC's input is wired to. A board with an
+   I/O APIC wires the PCI interrupts to inputs of their own
+   (ioapic_pirq_intin). */
+void
+picint_steered(uint16_t num, int level, int set, uint8_t *irq_state)
+{
+    picint_lines(num, level, set, irq_state, 0);
 }
 
 static uint8_t
@@ -1008,7 +1366,7 @@ pic_irq_ack(void)
         if (pic.interrupt & 0x40)
             pic2.interrupt = 0x17;
         pic.interrupt = 0x17;
-        update_pending();
+        pic_notify();
     }
 
     return ret;
@@ -1056,7 +1414,11 @@ picinterrupt(void)
             if (pic.interrupt & 0x40)
                 pic2.interrupt = 0x17;
             pic.interrupt = 0x17;
-            update_pending();
+            /* INTR falls with the acknowledge; another request raises it
+               again, a new edge. */
+            pic.int_pending = 0;
+            pic_intr_report();
+            pic_notify();
         }
     }
 

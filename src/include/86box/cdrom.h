@@ -206,6 +206,7 @@ static const struct cdrom_drive_types_s {
     { "LITEON",  "CD-ROM LTN242",     "2048", "LTN242",    "liteon_242",     BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  3 } },
     { "LITEON",  "CD-ROM LTN242",     "HP12", "LTN242",    "liteon_ltn242",  BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  3 } },
     { "LITEON",  "CD-ROM LTN301",     "1027", "LTN301",    "liteon_301",     BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  4,  2,  2,  3 } },
+	{ "LITEON",  "CD-ROM LTN323",     "DQ15", "LTN323",    "liteon_323",     BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  4,  2,  2,  3 } },
     { "LITEON",  "CD-ROM LTN382",     "2019", "LTN382",    "liteon_382",     BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2,  3 } }, /* Early version of LTN-403L */
     { "LITEON",  "CD-ROM LTN403L",    "DQ19", "LTN403L",   "liteon_403",     BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2,  4 } },
     { "LITEON",  "CD-ROM LTR48125S",  "1S07", "LTR48125S", "liteon_48125s",  BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  4 } },
@@ -451,6 +452,8 @@ typedef struct cdrom_ops_t {
     int      (*is_empty)(const void *local);
     void     (*close)(void *local);
     void     (*load)(const void *local);
+    /* Return 13 ASCII MCN digits and nonzero if a catalog number is present. */
+    int      (*get_mcn)(const void *local, uint8_t *mcn);
 } cdrom_ops_t;
 
 typedef struct cdrom {
@@ -543,6 +546,8 @@ typedef struct cdrom {
 
     int               audio_read;
     int               formed_mode2;
+    /* The cached sector is a Mode 1 sector built by us, EDC/ECC not filled in yet. */
+    int               edc_missing;
 } cdrom_t;
 
 extern cdrom_t cdrom[CDROM_NUM];

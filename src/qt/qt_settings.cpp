@@ -21,7 +21,6 @@
 
 #include "qt_defs.hpp"
 #include "qt_settings.hpp"
-#include "ui_qt_settings.h"
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
 
@@ -46,6 +45,7 @@ extern "C" {
 #include <86box/midi.h>
 }
 
+#include <QStackedWidget>
 #include <QStandardItemModel>
 
 #include "qt_settings_completer.hpp"
@@ -81,85 +81,25 @@ extern "C" {
 
 extern MainWindow *main_window;
 
-class SettingsModel : public QAbstractListModel {
-public:
-    SettingsModel(QObject *parent)
-        : QAbstractListModel(parent)
-    {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        fontHeight = QFontMetrics(qApp->font()).height();
-#else
-        fontHeight = QApplication::fontMetrics().height();
-#endif
-    }
-
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    int      rowCount(const QModelIndex &parent = QModelIndex()) const override;
-
-private:
-    QStringList pages = {
-        "Machine",
-        "Display",
-        "Input devices",
-        "Sound",
-        "Network",
-        "Ports (COM & LPT)",
-        "Storage controllers",
-        "Hard disks",
-        "Floppy & CD-ROM drives",
-        "Other removable devices",
-        "Other peripherals",
-    };
-    QStringList page_icons = {
-        "machine",
-        "display",
-        "input_devices",
-        "sound",
-        "network",
-        "ports",
-        "storage_controllers",
-        "hard_disk",
-        "floppy_and_cdrom_drives",
-        "other_removable_devices",
-        "other_peripherals",
-    };
-    int fontHeight;
+static const QVector<PagedDialog::Page> settingsPages = {
+    { "Machine",                 "machine"                 },
+    { "Display",                 "display"                 },
+    { "Input devices",           "input_devices"           },
+    { "Sound",                   "sound"                   },
+    { "Network",                 "network"                 },
+    { "Ports (COM & LPT)",       "ports"                   },
+    { "Storage controllers",     "storage_controllers"     },
+    { "Hard disks",              "hard_disk"               },
+    { "Floppy & CD-ROM drives",  "floppy_and_cdrom_drives" },
+    { "Other removable devices", "other_removable_devices" },
+    { "Other peripherals",       "other_peripherals"       },
 };
 
-QVariant
-SettingsModel::data(const QModelIndex &index, int role) const
-{
-    Q_ASSERT(checkIndex(index, QAbstractItemModel::CheckIndexOption::IndexIsValid | QAbstractItemModel::CheckIndexOption::ParentIsInvalid));
-
-    switch (role) {
-        case Qt::DisplayRole:
-            return tr(pages.at(index.row()).toUtf8().data());
-        case Qt::DecorationRole:
-            return QIcon(QString(":/settings/qt/icons/%1.ico").arg(page_icons[index.row()]));
-        case Qt::SizeHintRole:
-            return QSize(-1, fontHeight * 2);
-        default:
-            return {};
-    }
-}
-
-int
-SettingsModel::rowCount(const QModelIndex &parent) const
-{
-    (void) parent;
-    return pages.size();
-}
-
 Settings *Settings::settings = nullptr;
-;
-Settings::Settings(QWidget *parent)
-    : QDialog(parent)
-    , ui(new Ui::Settings)
-{
-    ui->setupUi(this);
-    auto *model = new SettingsModel(this);
-    ui->listView->setModel(model);
 
+Settings::Settings(QWidget *parent)
+    : PagedDialog(tr("Settings"), QSize(720, 472), settingsPages, parent)
+{
     Settings::settings = this;
 
     Harddrives::busTrackClass = new SettingsBusTracking;
@@ -179,30 +119,29 @@ Settings::Settings(QWidget *parent)
     otherRemovable     = nullptr;
     otherPeripherals   = nullptr;
 
-    ui->stackedWidget->addWidget(machine);
+    pageStack()->addWidget(machine);
     for (int i = PAGE_DISPLAY; i < PAGE_COUNT; i++)
-        ui->stackedWidget->addWidget(new QWidget(this));
+        pageStack()->addWidget(new QWidget(this));
 
-    connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
-            [this](const QModelIndex &current, const QModelIndex &previous) {
-                ensurePage(current.row());
-                ui->stackedWidget->setCurrentIndex(current.row());
-                ui->headerIcon->setPixmap(qvariant_cast<QIcon>(ui->listView->model()->data(current, Qt::DecorationRole)).pixmap(QSize(16, 16)));
-                ui->headerLabel->setText(ui->listView->model()->data(current, Qt::DisplayRole).toString());
-            });
+    showFirstPage();
+}
 
-    ui->listView->setCurrentIndex(model->index(0, 0));
+void
+Settings::aboutToShowPage(int index)
+{
+    ensurePage(index);
 }
 
 /* A page takes the place of its placeholder in the stack. */
 void
 Settings::placePage(int index, QWidget *page)
 {
-    QWidget *placeholder = ui->stackedWidget->widget(index);
+    QWidget *placeholder = pageStack()->widget(index);
 
-    ui->stackedWidget->insertWidget(index, page);
-    ui->stackedWidget->removeWidget(placeholder);
+    pageStack()->insertWidget(index, page);
+    pageStack()->removeWidget(placeholder);
     delete placeholder;
+    growToFitPages();
 }
 
 /* Build the page at a list index if it is not built yet, with the pages it
@@ -365,7 +304,6 @@ Settings::ensureAllPages()
 
 Settings::~Settings()
 {
-    delete ui;
     /* The device lists are read again the next time: ROMs may come or go
        in between. */
     Models::ClearDevices();
@@ -470,6 +408,8 @@ Settings::accept()
             confirm_save = true;
             return;
         }
+        if (!confirm_save)
+            config_save_global_setting("Emulator", "confirm_save");
     } else if (changed && !(changed & SETTINGS_REQUIRE_HARD_RESET) && !settings_only) {
         save(1);
         config_changed = 2;

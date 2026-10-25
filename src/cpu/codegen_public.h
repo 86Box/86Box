@@ -35,19 +35,11 @@
 #ifndef _CODEGEN_PUBLIC_H_
 #define _CODEGEN_PUBLIC_H_
 
-#ifndef USE_NEW_DYNAREC
-#    define PAGE_MASK_INDEX_MASK  3
-#    define PAGE_MASK_INDEX_SHIFT 10
-#    define PAGE_MASK_SHIFT       4
-#else
-#    define PAGE_MASK_SHIFT 6
-#endif
+#define PAGE_MASK_SHIFT 6
 #define PAGE_MASK_MASK 63
 
-#ifdef USE_NEW_DYNAREC
-#    define BLOCK_PC_INVALID 0xffffffff
-#    define BLOCK_INVALID    0
-#endif
+#define BLOCK_PC_INVALID 0xffffffff
+#define BLOCK_INVALID    0
 
 extern void codegen_init(void);
 extern void codegen_flush(void);

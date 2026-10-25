@@ -34,7 +34,7 @@
 #endif
 #include "x86seg.h"
 #include "386_common.h"
-#ifdef USE_NEW_DYNAREC
+#ifdef USE_DYNAREC
 #    include "codegen.h"
 #endif
 
@@ -251,10 +251,6 @@ exec386_2386(int32_t cycs)
             cpu_state.oldpc = cpu_state.pc;
             cpu_state.op32  = use32;
 
-#ifndef USE_NEW_DYNAREC
-            x86_was_reset = 0;
-#endif
-
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
@@ -262,7 +258,7 @@ exec386_2386(int32_t cycs)
                 inboard_post_fixups();
 
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
-            ol = opcode_length[fetchdat & 0xff];
+            ol = opcode_min_length[fetchdat & 0xff];
             if ((ol == 3) && opcode_has_modrm[fetchdat & 0xff] && (((fetchdat >> 14) & 0x03) == 0x03))
                 ol = 2;
 
@@ -334,13 +330,11 @@ exec386_2386(int32_t cycs)
                 cpu_state.abrt = 0;
                 x86_doabrt_2386(tempi);
                 if (cpu_state.abrt) {
+                    int second_abrt = cpu_state.abrt & ABRT_MASK;
                     cpu_state.abrt = 0;
-#ifndef USE_NEW_DYNAREC
-                    CS = oldcs;
-#endif
                     cpu_state.pc = cpu_state.oldpc;
                     x386_log("Double fault\n");
-                    pmodeint_2386(8, 0);
+                    x86_fault_in_delivery_2386(tempi, second_abrt);
                     if (cpu_state.abrt) {
                         cpu_state.abrt = 0;
                         softresetx86();
@@ -385,17 +379,29 @@ exec386_2386(int32_t cycs)
 #else
                 nmi = 0;
 #endif
-            } else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins) {
-                vector = picinterrupt();
+            } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins) {
+                vector = x86_external_interrupt_vector();
                 if (vector != -1) {
                     flags_rebuild();
                     if (msw & 1)
                         pmodeint_2386(vector, 0);
-                    else {
-                        writememw(ss, (SP - 2) & 0xFFFF, cpu_state.flags);
-                        writememw(ss, (SP - 4) & 0xFFFF, CS);
-                        writememw(ss, (SP - 6) & 0xFFFF, cpu_state.pc);
-                        SP -= 6;
+                    else if ((vector << 2UL) + 3UL > idt.limit) {
+                        /* Beyond the IDT limit: double fault on the 386 to
+                           the P5, #GP on the P6 */
+                        cpu_state.oldpc = cpu_state.pc;
+                        x86_int(is_p6 ? 0x0d : 0x08);
+                    } else {
+                        if (stack32) {
+                            writememw(ss, ESP - 2, cpu_state.flags);
+                            writememw(ss, ESP - 4, CS);
+                            writememw(ss, ESP - 6, cpu_state.pc);
+                            ESP -= 6;
+                        } else {
+                            writememw(ss, (SP - 2) & 0xFFFF, cpu_state.flags);
+                            writememw(ss, (SP - 4) & 0xFFFF, CS);
+                            writememw(ss, (SP - 6) & 0xFFFF, cpu_state.pc);
+                            SP -= 6;
+                        }
                         addr = (vector << 2) + idt.base;
                         cpu_state.flags &= ~I_FLAG;
                         cpu_state.flags &= ~T_FLAG;

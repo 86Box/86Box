@@ -48,7 +48,9 @@ enum {
     FULLSCR_SCALE_43,
     FULLSCR_SCALE_KEEPRATIO,
     FULLSCR_SCALE_INT,
-    FULLSCR_SCALE_INT43
+    FULLSCR_SCALE_INT43,
+    FULLSCR_SCALE_CENTER,
+    FULLSCR_SCALE_CENTER43
 };
 
 enum {
@@ -413,6 +415,9 @@ extern const device_t bochs_svga_device;
 /* Chips & Technologies */
 extern const device_t chips_69000_device;
 extern const device_t chips_69000_onboard_device;
+extern const device_t chips_82c450_device;
+extern const device_t chips_82c451_device;
+extern const device_t chips_82c452_device;
 
 /* Cirrus Logic GD54xx */
 extern const device_t gd5401_isa_device;
@@ -555,7 +560,6 @@ extern void           paradise_wd90c20_vga_enable(void *priv, uint16_t port);
 extern const device_t paradise_wd90c30_device;
 extern const device_t paradise_wd90c31_device;
 extern const device_t paradise_wd90c31_onboard_device;
-extern const device_t paradise_speedstar24x_device;
 
 /* Quadram Quadcolor I / I + II */
 extern const device_t quadcolor_device;
@@ -611,6 +615,9 @@ extern const device_t s3_trio3d2x_agp_device;
 /* Sigma Color 400 */
 extern const device_t sigma_device;
 
+/* SiS */
+extern const device_t sis6306_onboard_device;
+
 /* Trident TGUI 94x0 */
 extern const device_t tgui9400cxi_device;
 extern const device_t tgui9440_vlb_device;
@@ -619,6 +626,11 @@ extern const device_t tgui9440_onboard_pci_device;
 extern const device_t tgui9660_pci_device;
 extern const device_t tgui9660_onboard_pci_device;
 extern const device_t tgui9680_pci_device;
+
+/* Weitek Power 9100 */
+extern const device_t p9100_viper_se_vlb_device; /* Not yet ready */
+extern const device_t p9100_viper_se_pci_device;
+extern const device_t p9100_papilio_pci_device;
 
 /* IBM PS/1 (S)VGA */
 extern const device_t ibm_ps1_2121_device;
@@ -635,6 +647,9 @@ extern const device_t ps1vga_mca_device;
 
 /* 3DFX Voodoo Graphics */
 extern const device_t voodoo_device;
+
+/* PowerVR PCX1/PCX2 */
+extern const device_t powervr_pcx_device;
 extern const device_t voodoo_banshee_pci_device;
 extern const device_t voodoo_banshee_agp_device;
 extern const device_t voodoo_3_1000_device;

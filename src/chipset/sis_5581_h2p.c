@@ -405,7 +405,11 @@ sis_5581_host_to_pci_write(int addr, uint8_t val, void *priv)
             break;
 
         case 0x9c ... 0x9d:
-            dev->pci_conf[addr] &= ~val;
+            /*
+               SMI request status: the handler clears it by writing 0
+               (both 5581 BIOSes write 00h at the end of the handler).
+             */
+            dev->pci_conf[addr] &= val;
             break;
 
         case 0xa3:

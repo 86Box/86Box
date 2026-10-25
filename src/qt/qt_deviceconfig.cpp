@@ -260,6 +260,10 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 selected = config_get_string(device_context->name, const_cast<char *>(config->name),
                                              const_cast<char *>(config->default_string));
                 break;
+            case CONFIG_TYPE_STRHEX:
+                selected = config_get_string(device_context->name, const_cast<char *>(config->name),
+                                             const_cast<char *>(config->default_string));
+                break;
         }
 
         switch (config->type) {
@@ -488,6 +492,18 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     cbox->setCurrentIndex(currentIndex);
                     break;
                 }
+            case CONFIG_STRHEX:
+                {
+                    const auto lineEdit = new QLineEdit;
+                    lineEdit->setObjectName(config->name);
+                    // The mask fixes both the character set and the width: four hex digits,
+                    // which is exactly the 16-bit range this type is meant to hold.
+                    lineEdit->setInputMask("HHHH;0");
+                    lineEdit->setText(selected.toUpper());
+                    lineEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), lineEdit);
+                    break;
+                }
             case CONFIG_MAC:
                 {
                     // QHBoxLayout for the line edit widget and the generate button
@@ -605,6 +621,10 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     selected = config_get_string(device_context.name, const_cast<char *>(config->name),
                                                  const_cast<char *>(config->default_string));
                     break;
+                case CONFIG_TYPE_STRHEX:
+                    selected = config_get_string(device_context.name, const_cast<char *>(config->name),
+                                                 const_cast<char *>(config->default_string));
+                    break;
             }
 
             switch (config->type) {
@@ -701,6 +721,22 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                         }
                         break;
                     }
+                case CONFIG_STRHEX:
+                    {
+                        const auto *lineEdit = dc.findChild<QLineEdit *>(config->name);
+                        // Store the hex value in uppercase; displayText() skips the mask's
+                        // unfilled placeholders, so a partly typed value is not padded out.
+                        auto hexText     = lineEdit->displayText().toUpper();
+                        int  hex_changed = 0;
+                        hex_changed |= strcasecmp(config_get_string(device_context.name, config->name,
+                                                                    const_cast<char *>(config->default_string)),
+                                                  hexText.toUtf8().constData());
+                        if (hex_changed) {
+                            config_set_string(device_context.name, config->name, hexText.toUtf8().constData());
+                            has_changed |= 1;
+                        }
+                        break;
+                    }
                 case CONFIG_MAC:
                     {
                         const auto *lineEdit = dc.findChild<QLineEdit *>(config->name);
@@ -779,6 +815,9 @@ DeviceConfig::on_comboIndexChanged(int index)
 
         if (bios_flags & BIOS_LIMIT_MAX_MEMORY)
             max_mem = ((bios_flags >> 8) & 0xff);
+
+        if (bios_flags & BIOS_FIXED_MEMORY)
+            min_mem = max_mem = cfg_memory->default_int;
 
         mem = MAX(mem, min_mem);    /* No less than minimum memory. */
         mem = MIN(mem, max_mem);    /* No more than maximum memory. */

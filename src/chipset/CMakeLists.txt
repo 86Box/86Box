@@ -30,6 +30,7 @@ add_library(chipset OBJECT
     ali1621.c
     ali6117.c
     ali1409.c
+	asus48625.c
     compaq.c
     compaq_386.c
     contaq_82c59x.c
@@ -38,6 +39,7 @@ add_library(chipset OBJECT
     gc100.c
     headland.c
     ims8848.c
+    intel_8018x.c
     intel_82335.c
     intel_420ex.c
     intel_4x0.c
@@ -46,6 +48,16 @@ add_library(chipset OBJECT
     intel_sio.c
     intel_piix.c
     isa486c.c
+    # Board/chipset targets reference APIC devices, but the source lives one level up.
+    ../apic_bus.c
+    ../apic_cpu_policy.c
+    ../apic_platform.c
+    ../lapic_policy.c
+    ../lapic.c
+    ../lapic_mmio.c
+    ../lapic_state.c
+    ../lapic_delivery.c
+    ../ioapic_82093aa.c
     ../ioapic.c
     laserxt.c
     neat.c
@@ -73,10 +85,12 @@ add_library(chipset OBJECT
     sis_5511.c
     sis_5571.c
     sis_530.c
-    sis_530_h2p.c
+    sis_620.c
     sis_5581.c
     sis_5591.c
     sis_5600.c
+    sis_530_h2p.c
+    sis_620_h2p.c
     sis_5511_h2p.c
     sis_5571_h2p.c
     sis_5581_h2p.c

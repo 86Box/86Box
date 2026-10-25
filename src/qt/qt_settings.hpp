@@ -1,11 +1,7 @@
 #ifndef QT_SETTINGS_HPP
 #define QT_SETTINGS_HPP
 
-#include <QDialog>
-
-namespace Ui {
-class Settings;
-}
+#include "qt_pageddialog.hpp"
 
 class SettingsMachine;
 class SettingsDisplay;
@@ -19,7 +15,7 @@ class SettingsFloppyCDROM;
 class SettingsOtherRemovable;
 class SettingsOtherPeripherals;
 
-class Settings : public QDialog {
+class Settings : public PagedDialog {
     Q_OBJECT
 
 public:
@@ -55,11 +51,11 @@ private:
         PAGE_COUNT
     };
 
+    void aboutToShowPage(int index) override;
     void placePage(int index, QWidget *page);
     void ensurePage(int index);
     void ensureAllPages();
 
-    Ui::Settings               *ui;
     SettingsMachine            *machine;
     SettingsDisplay            *display;
     SettingsInput              *input;
@@ -82,7 +78,7 @@ private:
     friend class SettingsHarddisks;
     friend class SettingsFloppyCDROM;
     friend class SettingsOtherRemovable;
-    friend class SettingsOtherPreipherals;
+    friend class SettingsOtherPeripherals;
     friend class DeviceConfig;
 };
 

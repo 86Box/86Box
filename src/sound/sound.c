@@ -36,6 +36,7 @@
 #include <86box/sound.h>
 #include <86box/fdd_audio.h>
 #include <86box/hdd_audio.h>
+#include <86box/automation.h>
 
 typedef struct {
     const device_t *device;
@@ -78,53 +79,53 @@ unsigned long long src_freqs[I_MAX] = {
 #define SNDIN_HEALTHY_TICKS 250
 #define SNDIN_MAX_WEDGE_ATTEMPTS 3
 
-static sound_handler_t sound_handlers[NUM_SOUND_HANDLERS];
-static sound_in_handler_t sound_in_handlers[NUM_SOUND_IN_HANDLERS];
-static sound_handler_t music_handlers[NUM_MUSIC_HANDLERS];
-static sound_handler_t ym2151_handlers[NUM_YM2151_HANDLERS];
-static sound_handler_t wavetable_handlers[NUM_WAVETABLE_HANDLERS];
+static sound_handler_t sound_handlers[NUM_SOUND_HANDLERS] = { 0 };
+static sound_in_handler_t sound_in_handlers[NUM_SOUND_IN_HANDLERS] = { 0 };
+static sound_handler_t music_handlers[NUM_MUSIC_HANDLERS] = { 0 };
+static sound_handler_t ym2151_handlers[NUM_YM2151_HANDLERS] = { 0 };
+static sound_handler_t wavetable_handlers[NUM_WAVETABLE_HANDLERS] = { 0 };
 
-static double     cd_audio_volume_lut[256];
+static double     cd_audio_volume_lut[256] = { 0.0 };
 
-static thread_t  *sound_cd_thread_h;
-static event_t   *sound_cd_event;
-static event_t   *sound_cd_start_event;
-static int32_t   *outbuffer;
-static float     *outbuffer_ex;
-static int16_t   *outbuffer_ex_int16;
-static int32_t   *outbuffer_m;
-static float     *outbuffer_m_ex;
-static int16_t   *outbuffer_m_ex_int16;
-static int32_t   *outbuffer_y;
-static float     *outbuffer_y_ex;
-static int16_t   *outbuffer_y_ex_int16;
-static int32_t   *outbuffer_w;
-static float     *outbuffer_w_ex;
-static int16_t   *outbuffer_w_ex_int16;
-static uint8_t    sound_handlers_num;
-static uint8_t    sound_in_handlers_num;
-static uint8_t    sound_in_started_input;
-static uint8_t    music_handlers_num;
-static uint8_t    ym2151_handlers_num;
-static uint8_t    wavetable_handlers_num;
-static pc_timer_t cd_poll_timer;
-static uint64_t   cd_poll_latch;
-static pc_timer_t midi_poll_timer;
-static uint64_t   midi_poll_latch;
-static pc_timer_t sound_poll_timer;
-static uint64_t   sound_poll_latch;
-static pc_timer_t music_poll_timer;
-static uint64_t   music_poll_latch;
-static pc_timer_t ym2151_poll_timer;
-static uint64_t   ym2151_poll_latch;
-static pc_timer_t wavetable_poll_timer;
-static uint64_t   wavetable_poll_latch;
+static thread_t  *sound_cd_thread_h = NULL;
+static event_t   *sound_cd_event = NULL;
+static event_t   *sound_cd_start_event = NULL;
+static int32_t   *outbuffer = NULL;
+static float     *outbuffer_ex = NULL;
+static int16_t   *outbuffer_ex_int16 = NULL;
+static int32_t   *outbuffer_m = NULL;
+static float     *outbuffer_m_ex = NULL;
+static int16_t   *outbuffer_m_ex_int16 = NULL;
+static int32_t   *outbuffer_y = NULL;
+static float     *outbuffer_y_ex = NULL;
+static int16_t   *outbuffer_y_ex_int16 = NULL;
+static int32_t   *outbuffer_w = NULL;
+static float     *outbuffer_w_ex = NULL;
+static int16_t   *outbuffer_w_ex_int16 = NULL;
+static uint8_t    sound_handlers_num = 0;
+static uint8_t    sound_in_handlers_num = 0;
+static uint8_t    sound_in_started_input = 0;
+static uint8_t    music_handlers_num = 0;
+static uint8_t    ym2151_handlers_num = 0;
+static uint8_t    wavetable_handlers_num = 0;
+static pc_timer_t cd_poll_timer = { 0 };
+static uint64_t   cd_poll_latch = 0ULL;
+static pc_timer_t midi_poll_timer = { 0 };
+static uint64_t   midi_poll_latch = 0ULL;
+static pc_timer_t sound_poll_timer = { 0 };
+static uint64_t   sound_poll_latch = 0ULL;
+static pc_timer_t music_poll_timer = { 0 };
+static uint64_t   music_poll_latch = 0ULL;
+static pc_timer_t ym2151_poll_timer = { 0 };
+static uint64_t   ym2151_poll_latch = 0ULL;
+static pc_timer_t wavetable_poll_timer = { 0 };
+static uint64_t   wavetable_poll_latch = 0ULL;
 
 static int16_t      cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
 static float        cd_out_buffer[CD_BUFLEN * 2];
 static int16_t      cd_out_buffer_int16[CD_BUFLEN * 2];
-static unsigned int cd_vol_l;
-static unsigned int cd_vol_r;
+static unsigned int cd_vol_l         = 0;
+static unsigned int cd_vol_r         = 0;
 static volatile int cdaudioon        = 0;
 static int          cd_thread_enable = 0;
 
@@ -136,15 +137,15 @@ static int sound_in_good_ticks = 0;
 static int sound_in_wedge_attempts = 0;
 static int16_t      sound_input_buffer[SOUNDBUFLEN * 2];
 
-static thread_t     *sound_fdd_thread_h;
-static event_t      *sound_fdd_event;
-static event_t      *sound_fdd_start_event;
+static thread_t     *sound_fdd_thread_h = NULL;
+static event_t      *sound_fdd_event = NULL;
+static event_t      *sound_fdd_start_event = NULL;
 static volatile int fddaudioon = 0;
 static int          fdd_thread_enable = 0;
 
-static thread_t     *sound_hdd_thread_h;
-static event_t      *sound_hdd_event;
-static event_t      *sound_hdd_start_event;
+static thread_t     *sound_hdd_thread_h = NULL;
+static event_t      *sound_hdd_event = NULL;
+static event_t      *sound_hdd_start_event = NULL;
 static volatile int hddaudioon = 0;
 static int          hdd_thread_enable = 0;
 
@@ -649,6 +650,48 @@ sound_init(void)
         cdaudioon = 0;
 
     cd_thread_enable = available_cdrom_drives ? 1 : 0;
+}
+
+void
+sound_give(const void *buf, const uint8_t src, const int size)
+{
+    automation_audio(src, buf, size, sound_is_float);
+    givealbuffer_common(buf, src, size);
+}
+
+/* Frames a stream has ticked since its last block: the start of its next
+   block that is already in the past. 0 for streams fed by their own threads. */
+int
+sound_pending_frames(const uint8_t src)
+{
+    switch (src) {
+        case I_NORMAL:
+            return sound_pos_global;
+        case I_MUSIC:
+            return music_pos_global;
+        case I_YM2151:
+            return ym2151_pos_global;
+        case I_WT:
+            return wavetable_pos_global;
+        default:
+            return 0;
+    }
+}
+
+/* The sample rate a stream is generated at. */
+int
+sound_stream_rate(const uint8_t src)
+{
+    switch (src) {
+        case I_NORMAL:
+        case I_FDD:
+        case I_HDD:
+            return sound_sample_rate;
+        case I_MIDI:
+            return src_freqs[I_MIDI] ? (int) src_freqs[I_MIDI] : midi_freq;
+        default:
+            return (int) src_freqs[src];
+    }
 }
 
 void
@@ -1172,6 +1215,9 @@ void
 sound_cd_thread_reset(void)
 {
     int available_cdrom_drives = 0;
+
+    if (cd_poll_timer.callback != NULL)
+        timer_stop(&cd_poll_timer);
 
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom_stop(&(cdrom[i]));
