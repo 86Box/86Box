@@ -227,6 +227,7 @@ extern int      fpu_softfloat;              /* (C) fpu uses softfloat */
 extern int      time_sync;                  /* (C) enable time sync */
 extern int      time_offset_years;          /* (C) year offset for time sync */
 extern int      time_fixed_year;            /* (C) fixed year for time sync (0 = none) */
+extern int      time_keep_date;             /* (C) time sync keeps the guest's own date */
 extern int      hdd_format_type;            /* (C) hard disk file format */
 extern int      confirm_reset;              /* (G) enable reset confirmation */
 extern int      confirm_exit;               /* (G) enable exit confirmation */

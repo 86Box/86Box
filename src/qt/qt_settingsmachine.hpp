@@ -41,7 +41,7 @@ private slots:
 
     void on_radioButtonLargerFrames_clicked();
 
-    void on_comboBoxTimeSync_currentIndexChanged(int index);
+    void on_groupBoxTimeSync_toggled(bool checked);
     void on_spinBoxYearsOffset_valueChanged(int value);
     void on_spinBoxFixedYear_valueChanged(int value);
     void on_radioButtonOffsetYears_toggled(bool checked);
@@ -50,6 +50,7 @@ private slots:
 private:
     void updateGuestYearLabel();
     void updateTimeControlsEnabled();
+    void timeSyncSettings(int &sync, int &offset_years, int &fixed_year, int &keep_date) const;
     Ui::SettingsMachine *ui;
 
     int                  machine_cfg_changed;

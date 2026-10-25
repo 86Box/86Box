@@ -719,6 +719,7 @@ load_machine(void)
     /* Prefer fixed year if both are present. */
     if (time_fixed_year != 0 && time_offset_years != 0)
         time_offset_years = 0;
+    time_keep_date    = !!ini_section_get_int(cat, "time_keep_date", 0);
 
     pit_mode = ini_section_get_int(cat, "pit_mode", -1);
 
@@ -3599,6 +3600,11 @@ save_machine(void)
         ini_section_delete_var(cat, "time_offset_years");
         ini_section_delete_var(cat, "time_fixed_year");
     }
+
+    if (time_keep_date)
+        ini_section_set_int(cat, "time_keep_date", 1);
+    else
+        ini_section_delete_var(cat, "time_keep_date");
 
     if (pit_mode == -1)
         ini_section_delete_var(cat, "pit_mode");
