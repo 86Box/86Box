@@ -626,6 +626,7 @@ extern const device_t tgui9680_pci_device;
 
 /* Weitek Power 9100 */
 extern const device_t p9100_viper_se_pci_device;
+extern const device_t p9100_papilio_pci_device;
 
 /* IBM PS/1 (S)VGA */
 extern const device_t ibm_ps1_2121_device;

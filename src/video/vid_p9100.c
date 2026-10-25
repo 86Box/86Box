@@ -89,8 +89,15 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/plat_unused.h>
+#include "cpu.h"
 
 #define BIOS_VIPER_SE_PCI_PATH "roms/video/weitek/viper_pci_1.05.bin"
+#define BIOS_PAPILIO_PCI_PATH  "roms/video/weitek/papilio_ultracad_pro_1.46.bin"
+
+enum {
+    P9100_VIPER_SE = 0,
+    P9100_PAPILIO
+};
 
 /* CONFIG[65] */
 #define CFG65_MODESELECT 0x02 /* 1 = VGA emulation mode, 0 = native mode */
@@ -129,8 +136,14 @@
 typedef struct p9100_t {
     svga_t svga;
 
+    int type;
+
     rom_t         bios_rom;
     mem_mapping_t native_mapping;
+
+    /* Papilio: ICS9161A on CKSEL[1:0], making the RGB525 reference clock. */
+    void   *clock_chip;
+    uint8_t cksel;
 
     uint8_t pci_regs[256];
     uint8_t pci_slot;
@@ -647,6 +660,33 @@ p9100_recalcbanking(p9100_t *p9100)
     }
 }
 
+/* The CKSEL[1:0] pins come from the miscellaneous output register in VGA
+   mode and from CONFIG[66] in native mode. On the Papilio they are the serial
+   clock (0) and data (1) of the ICS9161A, whose selected output is the RGB525
+   reference clock, and they also drive the RGB525 FS[1:0] inputs. */
+static void
+p9100_cksel_update(p9100_t *p9100)
+{
+    svga_t *svga = &p9100->svga;
+    uint8_t cksel;
+    float   ref;
+
+    if (p9100->config65 & CFG65_MODESELECT)
+        cksel = (svga->miscout >> 2) & 0x03;
+    else
+        cksel = (p9100->config66 >> 2) & 0x03;
+
+    if (!p9100->clock_chip || (cksel == p9100->cksel))
+        return;
+
+    p9100->cksel = cksel;
+    ics9161_write(p9100->clock_chip, cksel);
+
+    ref = ics9161_getclock(cksel, p9100->clock_chip);
+    if (ref >= 1000000.0f)
+        ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, ref);
+}
+
 static void
 p9100_out(uint16_t addr, uint8_t val, void *priv)
 {
@@ -724,6 +764,11 @@ p9100_out(uint16_t addr, uint8_t val, void *priv)
                     break;
             }
             break;
+
+        case 0x3c2:
+            svga_out(addr, val, svga);
+            p9100_cksel_update(p9100);
+            return;
 
         case 0x3c6:
         case 0x3c7:
@@ -947,12 +992,20 @@ p9100_native_timings(p9100_t *p9100)
         freq = svga->getclock(((p9100->config66 >> 2) & 0x03) | 0x04, svga->clock_gen);
     if (freq < 1000000.0)
         freq = 25175000.0;
-    /* A 64-bit word holds 8/3 pixels at 24 bpp. The drivers set the RGB525
-       B24P DDOT bit there, which puts SCLK (three clocks per eight pixels)
-       on DDOTCLK; the RAMDAC code does not model that and returns the
-       PLL output over DDOT DIV, which the drivers leave at /8. */
-    if (bpp == 3)
+    if (p9100->type == P9100_PAPILIO) {
+        /* The CRTC runs off the RGB525 SCLK, one clock per 64-bit word of
+           the pixel port, whatever DDOT DIV the driver leaves set. */
+        freq = ibm_rgb528_getclock_pll(((p9100->config66 >> 2) & 0x03) | 0x04, svga->clock_gen);
+        if (freq < 1000000.0)
+            freq = 25175000.0;
+        freq = (freq * bpp) / 8.0;
+    } else if (bpp == 3) {
+        /* A 64-bit word holds 8/3 pixels at 24 bpp. The drivers set the RGB525
+           B24P DDOT bit there, which puts SCLK (three clocks per eight pixels)
+           on DDOTCLK; the RAMDAC code does not model that and returns the
+           PLL output over DDOT DIV, which the drivers leave at /8. */
         freq *= 3.0;
+    }
 
     svga->hoverride      = 1;
     svga->clock          = (cpuclock * (double) (1ULL << 32)) / freq;
@@ -1019,6 +1072,10 @@ p9100_native_timings(p9100_t *p9100)
             svga->render = svga_render_32bpp_highres;
             break;
     }
+
+    /* The frame buffer feeds the RGB525 pixel port, so its own formats,
+       palette and gamma apply whenever they match the native pixel size. */
+    ibm_rgb528_ramdac_set_render(svga->ramdac, svga, bpp);
 }
 
 static void
@@ -1584,20 +1641,25 @@ p9100_cmd_pixel8(p9100_t *p9100, uint32_t val)
 }
 
 /* Pixel1 expands up to 32 bits, most significant first, into color[0] and
-   color[1]; unlike pixel8 it carries on to the next line with the rest. */
+   color[1]; unlike pixel8 it carries on to the next line with the rest.
+   Pixels are clipped against the byte window as well: the DSystems driver
+   clips text that way, starting the bitmap left of the clip edge. */
 static void
 p9100_cmd_pixel1(p9100_t *p9100, uint32_t val, int count)
 {
     p9100_draw_t d;
+    p9100_draw_t db;
 
     p9100_draw_setup(p9100, &d, 0);
+    p9100_draw_setup(p9100, &db, 1);
 
     for (int b = 0; b < count; b++) {
         int bit = (val >> (31 - b)) & 1;
         int x   = p9100->x[1];
         int y   = p9100->y[1];
 
-        if ((bit || !(p9100->raster & RASTER_PIX1_TRANSP)) && !p9100_clipped(&d, x, y))
+        if ((bit || !(p9100->raster & RASTER_PIX1_TRANSP)) && !p9100_clipped(&d, x, y) &&
+            !p9100_clipped(&db, x * d.bpp, y) && !p9100_clipped(&db, (x * d.bpp) + d.bpp - 1, y))
             p9100_pixel(p9100, &d, x, y, p9100->color[bit]);
 
         p9100->x[1]++;
@@ -1783,9 +1845,18 @@ p9100_video_read(p9100_t *p9100, int idx)
     svga_t *svga = &p9100->svga;
 
     switch (idx) {
-        case 0x01:
-            /* Horizontal counter, only coarsely: in or out of the display. */
-            return svga->hdisp_on ? (p9100->video_regs[0x04] & 0xfff) : (p9100->video_regs[0x05] & 0xfff);
+        case 0x01: {
+            /* Horizontal counter, free running in CRTC clocks and wrapping
+               at hrzt. The drivers wait on it before changing the horizontal
+               timing, even before hrzt has been set, so it has to move. */
+            uint32_t period = (p9100->video_regs[0x02] & 0xfff) + 1;
+
+            if (period < 2)
+                period = 0x1000;
+            if (svga->clock <= 0.0)
+                return 0;
+            return (uint32_t) fmod(((double) tsc * 4294967296.0) / svga->clock, (double) period);
+        }
         case 0x07:
             /* The svga line counter starts at the end of vertical blanking. */
             if (!(p9100->config65 & CFG65_MODESELECT) && p9100->video_regs[0x08])
@@ -2060,7 +2131,10 @@ p9100_fb_offset(const p9100_t *p9100, uint32_t addr)
             break;
     }
 
-    if (banks == fitted)
+    /* The host and the drawing engine share the decode, and the engine
+       works linearly here, so only a layout with banks that are not
+       fitted needs remapping. */
+    if (banks <= fitted)
         return addr & p9100->vram_mask;
 
     dword = addr >> 2;
@@ -2426,6 +2500,7 @@ p9100_config65_write(p9100_t *p9100, uint8_t val)
         p9100->interrupt_en   = 0;
         p9100->alt_read_bank  = 0;
         p9100->alt_write_bank = 0;
+        p9100_cksel_update(p9100);
         svga_recalctimings(svga);
     }
 
@@ -2557,6 +2632,7 @@ p9100_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *
         case 0x42:
             p9100->config66 = val & 0x1d;
             /* CKSEL picks the native pixel clock. */
+            p9100_cksel_update(p9100);
             svga_recalctimings(&p9100->svga);
             break;
 
@@ -2571,10 +2647,12 @@ p9100_init(const device_t *info)
     p9100_t *p9100 = calloc(1, sizeof(p9100_t));
     svga_t  *svga  = &p9100->svga;
 
+    p9100->type      = info->local;
     p9100->vram_size = device_get_config_int("memory") << 20;
     p9100->vram_mask = p9100->vram_size - 1;
 
-    rom_init(&p9100->bios_rom, BIOS_VIPER_SE_PCI_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    rom_init(&p9100->bios_rom, (p9100->type == P9100_PAPILIO) ? BIOS_PAPILIO_PCI_PATH : BIOS_VIPER_SE_PCI_PATH,
+             0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     mem_mapping_disable(&p9100->bios_rom.mapping);
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_p9100_pci);
@@ -2585,11 +2663,18 @@ p9100_init(const device_t *info)
               NULL,
               NULL);
 
-    svga->ramdac    = device_add(&ibm_rgb528_ramdac_device);
+    svga->ramdac    = device_add(&ibm_rgb525_ramdac_device);
     svga->clock_gen = svga->ramdac;
     svga->getclock  = ibm_rgb528_getclock;
-    /* The RGB525 PLL runs off the board's 50 MHz oscillator. */
+    /* The RGB525 PLL runs off a 50 MHz reference: an oscillator on the Viper,
+       the ICS9161A on the Papilio, which its BIOS sets to 50 MHz at POST. */
+    if (p9100->type == P9100_PAPILIO) {
+        p9100->clock_chip = device_add(&ics9161_device);
+        icd2061_set_clocks(p9100->clock_chip, 14318184.0f, 50000000.0f, 50000000.0f, 50000000.0f);
+    }
     ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 50000000.0f);
+    /* The W5286 only drives the VGA port, so PORT SEL decides on its own. */
+    ibm_rgb528_ramdac_set_port_sel_only(svga->ramdac, svga, 1);
     svga->dac_hwcursor_draw = ibm_rgb528_hwcursor_draw;
     svga->decode_mask       = p9100->vram_mask;
     svga->vblank_start      = p9100_vblank_start;
@@ -2637,6 +2722,12 @@ static int
 p9100_available(void)
 {
     return rom_present(BIOS_VIPER_SE_PCI_PATH);
+}
+
+static int
+p9100_papilio_available(void)
+{
+    return rom_present(BIOS_PAPILIO_PCI_PATH);
 }
 
 static void
@@ -2688,11 +2779,25 @@ const device_t p9100_viper_se_pci_device = {
     .name          = "Diamond Viper SE (Weitek Power 9100) (PCI)",
     .internal_name = "viper_se_pci",
     .flags         = DEVICE_PCI,
-    .local         = 0,
+    .local         = P9100_VIPER_SE,
     .init          = p9100_init,
     .close         = p9100_close,
     .reset         = NULL,
     .available     = p9100_available,
+    .speed_changed = p9100_speed_changed,
+    .force_redraw  = p9100_force_redraw,
+    .config        = p9100_config
+};
+
+const device_t p9100_papilio_pci_device = {
+    .name          = "DSystems Papilio UltraCAD Pro (Weitek Power 9100) (PCI)",
+    .internal_name = "papilio_pci",
+    .flags         = DEVICE_PCI,
+    .local         = P9100_PAPILIO,
+    .init          = p9100_init,
+    .close         = p9100_close,
+    .reset         = NULL,
+    .available     = p9100_papilio_available,
     .speed_changed = p9100_speed_changed,
     .force_redraw  = p9100_force_redraw,
     .config        = p9100_config
