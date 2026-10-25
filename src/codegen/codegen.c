@@ -1074,6 +1074,9 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     uint32_t     fetchdat_pc;
     uint32_t     fetch_walk         = 0;
     int          fetch_walk_valid   = codegen_fetch_reach(block, cs + old_pc, (opcode_length[opcode] > 2) ? 4 : opcode_length[opcode], &fetch_walk);
+    uint32_t     lock_pc            = 0;
+    uint32_t     lock_walk          = 0;
+    int          lock_walk_valid    = 0;
     int          jump_cycles        = 0;
 #ifdef DEBUG_EXTRA
     uint8_t last_prefix = 0;
@@ -1252,6 +1255,8 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 break;
 
             case 0xf0: /*LOCK*/
+                if (!in_lock)
+                    lock_pc = op_pc;
                 in_lock         = 1;
                 break;
 
@@ -1284,9 +1289,13 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
             fetchdat >>= 8;
         /*After a prefix the interpreter fetches four bytes again here; not
           after 0F or an escape, whose op takes the byte from the fetch
-          before*/
-        if (!over && !fetch_walk_valid)
-            fetch_walk_valid = codegen_fetch_reach(block, cs + op_pc, 4, &fetch_walk);
+          before. From a LOCK on, only if the LOCK is legal (below)*/
+        if (!over && !fetch_walk_valid) {
+            if (!in_lock)
+                fetch_walk_valid = codegen_fetch_reach(block, cs + op_pc, 4, &fetch_walk);
+            else if (!lock_walk_valid)
+                lock_walk_valid = codegen_fetch_reach(block, cs + op_pc, 4, &lock_walk);
+        }
 
         op_pc++;
     }
@@ -1301,6 +1310,16 @@ generate_call:
         recomp_op_table = recomp_opcodes;
     }
 
+    /*A LOCK the instruction can't take is #UD: leave it to the interpreter's*/
+    if (in_lock) {
+        if (op_table == x86_dynarec_opcodes_0f)
+            lock_illegal = !x86_lock_legal(1, opcode, fetchdat & 0xff);
+        else if ((op_table == x86_dynarec_opcodes) || (op_table == x86_dynarec_opcodes_REPE) || (op_table == x86_dynarec_opcodes_REPNE))
+            lock_illegal = !x86_lock_legal(0, opcode, fetchdat & 0xff);
+        else
+            lock_illegal = 1;
+    }
+
     fetchdat_pc = op_pc + pc_off;
     codegen_instructions[block->ins].pc        = cpu_state.oldpc;
     codegen_instructions[block->ins].op_ssegs  = last_op_ssegs;
@@ -1309,7 +1328,26 @@ generate_call:
     codegen_instructions[block->ins].TOP       = cpu_state.TOP;
     codegen_instructions[block->ins].first_uop = ir->wr_pos;
     /*The interpreter reads from the second page before this instruction does
-      anything; what it reads later, the handlers' marks walk for*/
+      anything; what it reads later, the handlers' marks walk for. A LOCK
+      reads on to the opcode it applies to (14 bytes past it at most), and
+      to the ModR/M of an opcode that can be locked, before its #UD (opLOCK);
+      the prefixes after it fetch again only when it is legal*/
+    if (in_lock && !fetch_walk_valid) {
+        const int      is_0f     = (op_table == x86_dynarec_opcodes_0f);
+        const uint32_t chain_end = over ? (op_pc - 2) : (op_pc - 1);
+        uint32_t       last      = lock_pc + 14;
+
+        if ((chain_end - lock_pc) <= 14) {
+            last = chain_end + is_0f;
+            if (!is_fpu && x86_lock_opcode(is_0f, opcode))
+                last++;
+        }
+        fetch_walk_valid = codegen_fetch_reach(block, cs + lock_pc, ((last - lock_pc) >= 4) ? (last - lock_pc + 1) : 4, &fetch_walk);
+        if (!fetch_walk_valid && !lock_illegal && lock_walk_valid) {
+            fetch_walk       = lock_walk;
+            fetch_walk_valid = 1;
+        }
+    }
     if (fetch_walk_valid && !codegen_page2_walked)
         codegen_fetch_walk(fetch_walk);
     codegen_instructions[block->ins].fpu_entered  = codegen_fpu_entered;
@@ -1413,15 +1451,6 @@ generate_call:
     if ((recomp_op_table == recomp_opcodes) && (opcode == 0x48))
         goto codegen_skip;
 #endif
-    /*A LOCK the instruction can't take is #UD: leave it to the interpreter's*/
-    if (in_lock) {
-        if (op_table == x86_dynarec_opcodes_0f)
-            lock_illegal = !x86_lock_legal(1, opcode, fetchdat & 0xff);
-        else if ((op_table == x86_dynarec_opcodes) || (op_table == x86_dynarec_opcodes_REPE) || (op_table == x86_dynarec_opcodes_REPNE))
-            lock_illegal = !x86_lock_legal(0, opcode, fetchdat & 0xff);
-        else
-            lock_illegal = 1;
-    }
     if (lock_illegal)
         goto codegen_skip;
 
