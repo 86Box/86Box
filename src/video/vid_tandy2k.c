@@ -67,9 +67,11 @@ typedef struct t2kvid_t {
     uint8_t       vpac[0x20];
     uint8_t       pal[8];
     uint8_t       vbase;
-    uint8_t       bank;  /* plane shown in the window */
-    uint8_t       hires; /* port 1A0h bits 4-5 */
-    uint8_t       board; /* board type */
+    uint8_t       bank;   /* plane shown in the window */
+    uint8_t       board;  /* graphics adapter type */
+    uint8_t       hires;  /* port 1A0h bits 4-5 */
+    uint8_t       vidout; /* port 101h bit 7 */
+
     uint64_t      frames;
     mem_mapping_t chram_map;
     mem_mapping_t vram_map;
@@ -179,8 +181,10 @@ vpac_write(uint16_t addr, uint8_t val, void *priv)
     t2kvid_t *vid = (t2kvid_t *) priv;
 
     if (addr == 0x0101) {
-        /* The controller fetches from main RAM at this base. */
-        vid->vbase = val;
+        /* The controller fetches from main RAM at this base, and bit 7 picks
+           which source drives the monochrome monitor. */
+        vid->vbase   = val;
+        vid->vidout = (val >> 7) & 0x01;
         return;
     }
 
@@ -195,12 +199,13 @@ attr_read(uint16_t addr, void *priv)
 {
     t2kvid_t *vid = (t2kvid_t *) priv;
 
-    /* 180h reports the graphics board: bit 0 marks the monochrome adapter,
-       bit 1 the three-plane colour option. */
+    /* 180h reads the graphics board status port, which shares the write-only
+       palette addresses. Bit 0 is 0 when a board is fitted, bit 1 is 0 for a
+       one-plane board and 1 for the three-plane colour option. */
     if (addr == 0x0180) {
         switch (vid->board) {
             case TANDY2K_BOARD_MONO:
-                return 0x01;
+                return 0x00;
             case TANDY2K_BOARD_COLO:
                 return 0x02;
             default:
@@ -238,9 +243,12 @@ hires_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
     t2kvid_t *vid  = (t2kvid_t *) priv;
     uint8_t   bits = val & 0x07;
 
-    /* Exactly one plane select picks a plane; anything else parks the
-       window outside the video RAM. */
-    if ((bits == 0x01) || (bits == 0x02) || (bits == 0x04))
+    /* Exactly one plane select picks a plane; anything else parks the window
+       outside the video RAM. The one-plane board has no plane decode at all,
+       so its writes always land in plane 0. */
+    if (vid->board == TANDY2K_BOARD_MONO)
+        vid->bank = 0;
+    else if ((bits == 0x01) || (bits == 0x02) || (bits == 0x04))
         vid->bank = (bits == 0x01) ? 0 : (bits == 0x02) ? 1 : 2;
     else
         vid->bank = TANDY2K_VRAM_PLANES;
@@ -316,7 +324,13 @@ vid_render_hires(t2kvid_t *vid)
 static void
 vid_render(t2kvid_t *vid)
 {
-    if ((vid->hires & 0x02) && (vid->board != TANDY2K_BOARD_NONE)) {
+    /* The three-plane board picks graphics with bit 5 of the plane select
+       register. The one-plane board has neither the bit nor a palette, so
+       the monitor follows VIDOUTSEL in port 101h instead: clear means the
+       board's plane 0 drives it, set means the 9007 character generator. */
+    int gfx = (vid->board == TANDY2K_BOARD_MONO) ? !vid->vidout : ((vid->hires & 0x02) != 0);
+
+    if (gfx && (vid->board != TANDY2K_BOARD_NONE)) {
         vid_render_hires(vid);
         return;
     }
