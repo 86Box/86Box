@@ -88,8 +88,9 @@ static tandy2k_t tandy2k;
    XT set, but 29h/2Bh/4Ah/4Eh are the arrow keys here, and the keypad digits
    carry a second character (7 = backslash, 4 = bar, 8 = tilde, 2 = grave;
    Shift plus a keypad key gives the digit). The alphanumeric block has no
-   backslash or grave key of its own, so those two host keys are pointed
-   at the keypad codes that carry the characters instead. */
+   backslash or grave key of its own. A PC keyboard cannot type that, so
+   the keypad keys are pointed at the alphanumeric digit keys and the
+   characters they carried move to the keys noted below. */
 static const scancode scancode_tandy2k[512] = {
   // clang-format off
     { .mk = {            0 }, .brk = {                   0 } }, /* 000 */
@@ -163,19 +164,19 @@ static const scancode scancode_tandy2k[512] = {
     { .mk = {      0x44, 0 }, .brk = {             0xc4, 0 } }, /* 044 */
     { .mk = {      0x45, 0 }, .brk = {             0xc5, 0 } }, /* 045 */
     { .mk = {      0x46, 0 }, .brk = {             0xc6, 0 } }, /* 046 */
-    { .mk = {      0x47, 0 }, .brk = {             0xc7, 0 } }, /* 047 */
-    { .mk = {      0x48, 0 }, .brk = {             0xc8, 0 } }, /* 048 */
-    { .mk = {      0x49, 0 }, .brk = {             0xc9, 0 } }, /* 049 */
-    { .mk = {      0x53, 0 }, .brk = {             0xd3, 0 } }, /* 04a */
-    { .mk = {      0x4b, 0 }, .brk = {             0xcb, 0 } }, /* 04b */
-    { .mk = {      0x4c, 0 }, .brk = {             0xcc, 0 } }, /* 04c */
-    { .mk = {      0x4d, 0 }, .brk = {             0xcd, 0 } }, /* 04d */
-    { .mk = {      0x55, 0 }, .brk = {             0xd5, 0 } }, /* 04e */
-    { .mk = {      0x4f, 0 }, .brk = {             0xcf, 0 } }, /* 04f */
-    { .mk = {      0x50, 0 }, .brk = {             0xd0, 0 } }, /* 050 */
-    { .mk = {      0x51, 0 }, .brk = {             0xd1, 0 } }, /* 051 */
-    { .mk = {      0x52, 0 }, .brk = {             0xd2, 0 } }, /* 052 */
-    { .mk = {      0x56, 0 }, .brk = {             0xd6, 0 } }, /* 053 */
+    { .mk = {      0x08, 0 }, .brk = {             0x88, 0 } }, /* 047 */
+    { .mk = {      0x09, 0 }, .brk = {             0x89, 0 } }, /* 048 */
+    { .mk = {      0x0a, 0 }, .brk = {             0x8a, 0 } }, /* 049 */
+    { .mk = {      0x48, 0 }, .brk = {             0xc8, 0 } }, /* 04a */
+    { .mk = {      0x05, 0 }, .brk = {             0x85, 0 } }, /* 04b */
+    { .mk = {      0x06, 0 }, .brk = {             0x86, 0 } }, /* 04c */
+    { .mk = {      0x07, 0 }, .brk = {             0x87, 0 } }, /* 04d */
+    { .mk = {      0x4b, 0 }, .brk = {             0xcb, 0 } }, /* 04e */
+    { .mk = {      0x02, 0 }, .brk = {             0x82, 0 } }, /* 04f */
+    { .mk = {      0x03, 0 }, .brk = {             0x83, 0 } }, /* 050 */
+    { .mk = {      0x04, 0 }, .brk = {             0x84, 0 } }, /* 051 */
+    { .mk = {      0x0b, 0 }, .brk = {             0x8b, 0 } }, /* 052 */
+    { .mk = {      0x34, 0 }, .brk = {             0xb4, 0 } }, /* 053 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 054 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 055 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 056 */
