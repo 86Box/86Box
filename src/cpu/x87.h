@@ -279,7 +279,7 @@ FPU_save_regi_tag(extFloat80_t reg, int tag, int stnr)
 #define FPU_check_pending_exceptions()        \
     do {                                      \
         if ((fpu_state.swd & FPU_SW_Summary) && !(fpu_state.cwd & FPU_SW_Summary)) { \
-            nmi = 1;                          \
+            fpu_int_set(1);                   \
             return 1;                         \
         }                                     \
     } while (0)

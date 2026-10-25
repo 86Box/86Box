@@ -68,6 +68,10 @@ opFCLEX(UNUSED(uint32_t fetchdat))
     cpu_state.pc++;
     cpu_state.npxs &= 0xff00;
     x87_ferr_clear();
+#ifdef FPU_8087
+    /* The 8087's error output drops with the exception it reported. */
+    fpu_int_set(0);
+#endif
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fnop) : (x87_timings.fnop * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fnop) : (x87_concurrency.fnop * cpu_multi));
     return 0;
@@ -99,7 +103,7 @@ opFINIT(UNUSED(uint32_t fetchdat))
     if (is286)
         picintc(1 << 13);
     else
-        nmi = 0;
+        fpu_int_set(0);
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.finit) : (x87_timings.finit * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.finit) : (x87_concurrency.finit * cpu_multi));
     CPU_BLOCK_END();

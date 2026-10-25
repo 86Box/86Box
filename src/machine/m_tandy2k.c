@@ -6,61 +6,93 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Emulation of Tandy models 1000, 1000HX and 1000SL2.
+ *          Tandy 2000 emulation ported from MAME.
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Curt Coder
+ *          WNT50
  *
- *          Copyright 2008-2019 Sarah Walker.
- *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2010-2026 Curt Coder.
+ *          Copyright 2026 WNT50.
  */
-#include <stdarg.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
-#include <wchar.h>
-#include <math.h>
+#include <stdarg.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
+#include "cpu.h"
 #include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/device.h>
+#include <86box/i8018x.h>
+#include <86box/machine.h>
+#include <86box/keyboard.h>
+#include <86box/mouse.h>
+#include <86box/fdc.h>
+#include <86box/fdd.h>
+#include <86box/hdc.h>
+#include <86box/rom.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
-#include <86box/nmi.h>
-#include <86box/mem.h>
-#include <86box/rom.h>
-#include <86box/device.h>
-#include <86box/nvr.h>
-#include <86box/fdd.h>
-#include <86box/fdc.h>
-#include <86box/fdc_ext.h>
-#include <86box/gameport.h>
-#include <86box/keyboard.h>
-#include <86box/sound.h>
-#include <86box/snd_sn76489.h>
-#include <86box/video.h>
-#include <86box/vid_cga_comp.h>
-#include <86box/machine.h>
-#include <86box/m_tandy.h>
+#include <86box/serial.h>
 #include <86box/plat_unused.h>
+#include <86box/tandy_clkmouse.h>
 
-enum {
-    TYPE_TANDY = 0,
-    TYPE_TANDY1000SX,
-    TYPE_TANDY1000HX,
-    TYPE_TANDY1000SL2
-};
+/* The keyboard hangs off the second 8259's IR0, the 8251A off the first
+   8259's IR2, the printer off the second 8259's IR3 and the coprocessor
+   off its IR4. */
+#define TANDY2K_KBD_IRQ  (1 << 8)
+#define TANDY2K_SER_IRQ  (1 << 2)
+#define TANDY2K_LPT_IRQ  (1 << 11)
+#define TANDY2K_FPU_IRQ  (1 << 14)
 
-enum {
-    EEPROM_IDLE = 0,
-    EEPROM_GET_OPERATION,
-    EEPROM_READ,
-    EEPROM_WRITE
-};
+/* 8255A-5 ports plus the Mode 1 handshake state of the printer port. */
+typedef struct ppi_t {
+    int     mode; /* group A mode from the last control word */
+    int     inte;
+    int     intr;
+    int     obf;
+    uint8_t pa;
+    uint8_t pc;
+    uint8_t ctrl;
+} ppi_t;
 
-static const scancode scancode_tandy[512] = {
-    // clang-format off
+/* Character RAM sits in the low byte lane of the upper memory
+   window, the BIOS writes it with one byte every two addresses. */
+typedef struct tandy2k_t {
+    mem_mapping_t ram_map;
+    fdc_t        *fdc;
+    uint8_t       fdc_strap; /* strapped FDC lines already applied */
+    uint8_t       port0;  /* speaker, clock gates, FDC reset */
+    uint8_t       dmamux; /* DMA request multiplexer */
+
+    uint8_t       kbdin;  /* last scan code taken from the keyboard */
+    uint8_t       kbd_busy;  /* scan code not read by the guest yet */
+
+    void         *uart;      /* 8251A */
+    int           uart_div;  /* 8253 channel 1 reload for the 2 MHz clock */
+    uint8_t       uart_gate;
+
+    ppi_t         ppi;
+    int           lpt_ack;
+    int           lpt_busy;
+    int           lpt_phase;
+    pc_timer_t    lpt_timer;
+} tandy2k_t;
+
+static tandy2k_t tandy2k;
+
+/* The Tandy 2000 keyboard encodes its own scan codes. Most keys match the IBM
+   XT set, but 29h/2Bh/4Ah/4Eh are the arrow keys here, and the keypad digits
+   carry a second character (7 = backslash, 4 = bar, 8 = tilde, 2 = grave;
+   Shift plus a keypad key gives the digit). The alphanumeric block has no
+   backslash or grave key of its own. A PC keyboard cannot type that, so
+   the keypad keys are pointed at the alphanumeric digit keys and the
+   characters they carried move to the keys noted below. */
+static const scancode scancode_tandy2k[512] = {
+  // clang-format off
     { .mk = {            0 }, .brk = {                   0 } }, /* 000 */
     { .mk = {      0x01, 0 }, .brk = {             0x81, 0 } }, /* 001 */
     { .mk = {      0x02, 0 }, .brk = {             0x82, 0 } }, /* 002 */
@@ -102,9 +134,9 @@ static const scancode scancode_tandy[512] = {
     { .mk = {      0x26, 0 }, .brk = {             0xa6, 0 } }, /* 026 */
     { .mk = {      0x27, 0 }, .brk = {             0xa7, 0 } }, /* 027 */
     { .mk = {      0x28, 0 }, .brk = {             0xa8, 0 } }, /* 028 */
-    { .mk = {      0x29, 0 }, .brk = {             0xa9, 0 } }, /* 029 */
+    { .mk = {      0x50, 0 }, .brk = {             0xd0, 0 } }, /* 029 */
     { .mk = {      0x2a, 0 }, .brk = {             0xaa, 0 } }, /* 02a */
-    { .mk = {      0x2b, 0 }, .brk = {             0xab, 0 } }, /* 02b */
+    { .mk = {      0x47, 0 }, .brk = {             0xc7, 0 } }, /* 02b */
     { .mk = {      0x2c, 0 }, .brk = {             0xac, 0 } }, /* 02c */
     { .mk = {      0x2d, 0 }, .brk = {             0xad, 0 } }, /* 02d */
     { .mk = {      0x2e, 0 }, .brk = {             0xae, 0 } }, /* 02e */
@@ -132,20 +164,20 @@ static const scancode scancode_tandy[512] = {
     { .mk = {      0x44, 0 }, .brk = {             0xc4, 0 } }, /* 044 */
     { .mk = {      0x45, 0 }, .brk = {             0xc5, 0 } }, /* 045 */
     { .mk = {      0x46, 0 }, .brk = {             0xc6, 0 } }, /* 046 */
-    { .mk = {      0x47, 0 }, .brk = {             0xc7, 0 } }, /* 047 */
-    { .mk = {      0x48, 0 }, .brk = {             0xc8, 0 } }, /* 048 */
-    { .mk = {      0x49, 0 }, .brk = {             0xc9, 0 } }, /* 049 */
-    { .mk = {      0x4a, 0 }, .brk = {             0xca, 0 } }, /* 04a */
-    { .mk = {      0x4b, 0 }, .brk = {             0xcb, 0 } }, /* 04b */
-    { .mk = {      0x4c, 0 }, .brk = {             0xcc, 0 } }, /* 04c */
-    { .mk = {      0x4d, 0 }, .brk = {             0xcd, 0 } }, /* 04d */
-    { .mk = {      0x4e, 0 }, .brk = {             0xce, 0 } }, /* 04e */
-    { .mk = {      0x4f, 0 }, .brk = {             0xcf, 0 } }, /* 04f */
-    { .mk = {      0x50, 0 }, .brk = {             0xd0, 0 } }, /* 050 */
-    { .mk = {      0x51, 0 }, .brk = {             0xd1, 0 } }, /* 051 */
-    { .mk = {      0x52, 0 }, .brk = {             0xd2, 0 } }, /* 052 */
-    { .mk = {      0x56, 0 }, .brk = {             0xd6, 0 } }, /* 053 */
-    { .mk = {      0x54, 0 }, .brk = {             0xd4, 0 } }, /* 054 */
+    { .mk = {      0x08, 0 }, .brk = {             0x88, 0 } }, /* 047 */
+    { .mk = {      0x09, 0 }, .brk = {             0x89, 0 } }, /* 048 */
+    { .mk = {      0x0a, 0 }, .brk = {             0x8a, 0 } }, /* 049 */
+    { .mk = {      0x48, 0 }, .brk = {             0xc8, 0 } }, /* 04a */
+    { .mk = {      0x05, 0 }, .brk = {             0x85, 0 } }, /* 04b */
+    { .mk = {      0x06, 0 }, .brk = {             0x86, 0 } }, /* 04c */
+    { .mk = {      0x07, 0 }, .brk = {             0x87, 0 } }, /* 04d */
+    { .mk = {      0x4b, 0 }, .brk = {             0xcb, 0 } }, /* 04e */
+    { .mk = {      0x02, 0 }, .brk = {             0x82, 0 } }, /* 04f */
+    { .mk = {      0x03, 0 }, .brk = {             0x83, 0 } }, /* 050 */
+    { .mk = {      0x04, 0 }, .brk = {             0x84, 0 } }, /* 051 */
+    { .mk = {      0x0b, 0 }, .brk = {             0x8b, 0 } }, /* 052 */
+    { .mk = {      0x34, 0 }, .brk = {             0xb4, 0 } }, /* 053 */
+    { .mk = {            0 }, .brk = {                   0 } }, /* 054 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 055 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 056 */
     { .mk = {      0x59, 0 }, .brk = {             0xd9, 0 } }, /* 057 */
@@ -346,7 +378,7 @@ static const scancode scancode_tandy[512] = {
     { .mk = {            0 }, .brk = {                   0 } }, /* 11a */
     { .mk = {            0 }, .brk = {                   0 } }, /* 11b */
     { .mk = {      0x57, 0 }, .brk = {             0xd7, 0 } }, /* 11c */
-    { .mk = {            0 }, .brk = {                   0 } }, /* 11d */
+    { .mk = {      0x1d, 0 }, .brk = {             0x9d, 0 } }, /* 11d */
     { .mk = {            0 }, .brk = {                   0 } }, /* 11e */
     { .mk = {            0 }, .brk = {                   0 } }, /* 11f */
     { .mk = {            0 }, .brk = {                   0 } }, /* 120 */
@@ -573,479 +605,560 @@ static const scancode scancode_tandy[512] = {
     { .mk = {            0 }, .brk = {                   0 } }, /* 1fd */
     { .mk = {            0 }, .brk = {                   0 } }, /* 1fe */
     { .mk = {            0 }, .brk = {                   0 } }  /* 1ff */
-    // clang-format on
+  // clang-format on
 };
 
-static int eep_data_out;
-
-#ifdef ENABLE_TANDY_LOG
-int tandy_do_log = ENABLE_TANDY_LOG;
+#ifdef ENABLE_TANDY2K_LOG
+int tandy2k_do_log = ENABLE_TANDY2K_LOG;
 
 static void
-tandy_log(const char *fmt, ...)
+tandy2k_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (tandy_do_log) {
+    if (tandy2k_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define tandy_log(fmt, ...)
+#    define tandy2k_log(fmt, ...)
 #endif
 
+/* A scan code from the encoder is held in the latch and raises the
+   keyboard interrupt until the BIOS reads it back through port B. */
 static void
-eep_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
+tandy2k_kbd_adddata(uint16_t val)
 {
-    t1keep_t *eep = (t1keep_t *) priv;
+    tandy2k.kbdin    = (uint8_t) (val & 0xff);
+    tandy2k.kbd_busy = 1;
+    picint(TANDY2K_KBD_IRQ);
+}
 
-    if ((val & 4) && !eep->clk)
-        switch (eep->state) {
-            case EEPROM_IDLE:
-                switch (eep->count) {
-                    case 0:
-                        if (!(val & 3))
-                            eep->count = 1;
-                        else
-                            eep->count = 0;
-                        break;
+static void
+tandy2k_kbd_send(uint16_t val)
+{
+    kbd_adddata_process(val, tandy2k_kbd_adddata);
+}
 
-                    case 1:
-                        if ((val & 3) == 2)
-                            eep->count = 2;
-                        else
-                            eep->count = 0;
-                        break;
+static void
+tandy2k_uart_clock(void)
+{
+    double hz = 0.0;
 
-                    case 2:
-                        if ((val & 3) == 3)
-                            eep->state = EEPROM_GET_OPERATION;
-                        eep->count = 0;
-                        break;
+    /* RFRQGATE gates the 2 MHz baud clock, EXTCLK switches to the J1 line. */
+    if (tandy2k.uart_gate && !(tandy2k.port0 & 0x02))
+        hz = 2000000.0 / (double) tandy2k.uart_div;
 
-                    default:
-                        break;
+    i8251_set_clock(tandy2k.uart, hz);
+}
+
+static void
+tandy2k_pit1_load(UNUSED(uint8_t mode), int count)
+{
+    tandy2k.uart_div = count;
+    tandy2k_uart_clock();
+}
+
+static void
+tandy2k_lpt_intr(int state)
+{
+    if (tandy2k.ppi.intr == state)
+        return;
+
+    tandy2k.ppi.intr = state;
+    if (state)
+        picint(TANDY2K_LPT_IRQ);
+    else
+        picintc(TANDY2K_LPT_IRQ);
+}
+
+/* No printer is attached to the port, so it is modelled as one that always
+   accepts the byte: BUSY for the transfer, then an ACK* pulse. */
+static void
+tandy2k_lpt_timer(void *priv)
+{
+    switch (tandy2k.lpt_phase) {
+        case 1:
+            tandy2k.lpt_ack   = 0;
+            tandy2k.lpt_phase = 2;
+            timer_set_delay_u64(&tandy2k.lpt_timer, 2 * TIMER_USEC);
+            break;
+        case 2:
+            tandy2k.lpt_ack   = 1;
+            tandy2k.lpt_busy  = 0;
+            tandy2k.lpt_phase = 0;
+            if (tandy2k.ppi.mode == 1) {
+                tandy2k.ppi.obf = 1;
+                if (tandy2k.ppi.inte)
+                    tandy2k_lpt_intr(1);
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+static uint8_t
+tandy2k_read(uint16_t addr, void *priv)
+{
+    switch (addr & 0x000f) {
+        case 0x00:
+            return tandy2k.port0;
+        case 0x02:
+            return tandy2k.dmamux;
+        case 0x04:
+            /* Reading the floppy terminal count acknowledges it. */
+            return 0x00;
+        default:
+            break;
+    }
+
+    return 0xff;
+}
+
+static void tandy2k_fdc_strap(void);
+
+static void
+tandy2k_write(uint16_t addr, uint8_t val, void *priv)
+{
+    switch (addr & 0x000f) {
+        case 0x00:
+            /* FDCRESET* is active low, so asserting it is the falling edge. */
+            if ((tandy2k.port0 & 0x20) && !(val & 0x20)) {
+                fdc_reset(tandy2k.fdc);
+                tandy2k_fdc_strap();
+            }
+            tandy2k.port0 = val;
+
+            /* RFRQGATE gates the refresh and baud clocks, EXTCLK switches the
+               baud clock source to the J1 line. */
+            tandy2k.uart_gate = (val >> 4) & 0x01;
+            pit_devs[0].set_gate(pit_devs[0].data, 1, tandy2k.uart_gate);
+            pit_devs[0].set_gate(pit_devs[0].data, 2, tandy2k.uart_gate);
+            tandy2k_uart_clock();
+            break;
+        case 0x02:
+            tandy2k.dmamux = val;
+            break;
+        default:
+            break;
+    }
+}
+
+static uint8_t
+ppi_pb_read(void)
+{
+    /* Port C bits 2-1 select what port B reads back. */
+    switch ((tandy2k.ppi.pc >> 1) & 0x03) {
+        case 0x01:
+            /* KBDINEN: reading port B acknowledges the keyboard interrupt. */
+            if (tandy2k.kbd_busy) {
+                tandy2k.kbd_busy = 0;
+                picintc(TANDY2K_KBD_IRQ);
+            }
+            return tandy2k.kbdin;
+        case 0x02:
+            /* PORTINEN: PCB revision. */
+            return 0x03;
+        default:
+            /* LPINEN: _LPRACK, _LPRFLT and _LPRSEL are low when asserted. */
+            return (tandy2k.lpt_ack ? 0x08 : 0x00) |
+                   0x10 | /* not faulted */
+                   0x20 | /* selected */
+                   (tandy2k.lpt_busy ? 0x80 : 0x00);
+    }
+}
+
+static uint8_t
+ppi_read(uint16_t addr, void *priv)
+{
+    uint8_t ret = 0xff;
+
+    switch (addr & 0x0006) {
+        case 0x00:
+            ret = (tandy2k.ppi.ctrl & 0x10) ? 0xff : tandy2k.ppi.pa;
+            break;
+        case 0x02:
+            ret = ppi_pb_read();
+            break;
+        case 0x04:
+            if ((tandy2k.ppi.mode == 1) && !(tandy2k.ppi.ctrl & 0x10))
+                ret = (tandy2k.ppi.pc & 0x37) |
+                      (tandy2k.ppi.intr ? 0x08 : 0x00) |
+                      (tandy2k.ppi.inte ? 0x40 : 0x00) |
+                      (tandy2k.ppi.obf ? 0x80 : 0x00);
+            else
+                ret = tandy2k.ppi.pc;
+            break;
+        case 0x06:
+            ret = tandy2k.ppi.ctrl;
+            break;
+        default:
+            break;
+    }
+
+    /* The printer interrupt is acknowledged by any read of the PPI. */
+    if (tandy2k.ppi.mode == 1)
+        tandy2k_lpt_intr(0);
+
+    return ret;
+}
+
+static void
+ppi_write(uint16_t addr, uint8_t val, void *priv)
+{
+    uint8_t bit;
+
+    switch (addr & 0x0006) {
+        case 0x00:
+            tandy2k.ppi.pa = val;
+            if ((tandy2k.ppi.mode == 1) && !(tandy2k.ppi.ctrl & 0x10)) {
+                /* OBF* falls, which pulses STROBE and clears INTR. */
+                tandy2k.ppi.obf   = 0;
+                tandy2k.lpt_busy  = 1;
+                tandy2k.lpt_phase = 1;
+                tandy2k_lpt_intr(0);
+                timer_set_delay_u64(&tandy2k.lpt_timer, 100 * TIMER_USEC);
+            }
+            break;
+        case 0x04:
+            if (tandy2k.ppi.mode == 1)
+                /* PC3, PC6 and PC7 are driven by the PPI in mode 1. */
+                tandy2k.ppi.pc = (tandy2k.ppi.pc & 0xf8) | (val & 0x07);
+            else
+                tandy2k.ppi.pc = val;
+            break;
+        case 0x06:
+            if (val & 0x80) {
+                tandy2k.ppi.ctrl = val;
+                tandy2k.ppi.mode = (val >> 5) & 0x03;
+                if ((tandy2k.ppi.mode == 1) && !(val & 0x10)) {
+                    tandy2k.ppi.obf  = 1;
+                    tandy2k.ppi.inte = 0;
+                    tandy2k_lpt_intr(0);
                 }
-                break;
-
-            case EEPROM_GET_OPERATION:
-                eep->data = (eep->data << 1) | (val & 1);
-                eep->count++;
-                if (eep->count == 8) {
-                    eep->count = 0;
-                    eep->addr  = eep->data & 0x3f;
-                    switch (eep->data & 0xc0) {
-                        case 0x40:
-                            eep->state = EEPROM_WRITE;
+            } else {
+                bit = (uint8_t) (1u << ((val >> 1) & 0x07));
+                if (tandy2k.ppi.mode == 1) {
+                    switch ((val >> 1) & 0x07) {
+                        case 3:
+                            tandy2k_lpt_intr(val & 0x01);
                             break;
-
-                        case 0x80:
-                            eep->state = EEPROM_READ;
-                            eep->data  = eep->store[eep->addr];
+                        case 6:
+                            tandy2k.ppi.inte = val & 0x01;
+                            if (tandy2k.ppi.inte && tandy2k.ppi.obf)
+                                tandy2k_lpt_intr(1);
                             break;
-
+                        case 7:
+                            /* OBF* is an output pin in mode 1. */
+                            break;
                         default:
-                            eep->state = EEPROM_IDLE;
+                            /* PC4 and PC5 are inputs in mode 1. */
+                            if (((val >> 1) & 0x07) <= 2) {
+                                if (val & 0x01)
+                                    tandy2k.ppi.pc |= bit;
+                                else
+                                    tandy2k.ppi.pc &= (uint8_t) ~bit;
+                            }
                             break;
                     }
-                }
-                break;
-
-            case EEPROM_READ:
-                eep_data_out = eep->data & 0x8000;
-                eep->data <<= 1;
-                eep->count++;
-                if (eep->count == 16) {
-                    eep->count = 0;
-                    eep->state = EEPROM_IDLE;
-                }
-                break;
-
-            case EEPROM_WRITE:
-                eep->data = (eep->data << 1) | (val & 1);
-                eep->count++;
-                if (eep->count == 16) {
-                    eep->count            = 0;
-                    eep->state            = EEPROM_IDLE;
-                    eep->store[eep->addr] = eep->data;
-                }
-                break;
-
-            default:
-                break;
-        }
-
-    eep->clk = val & 4;
-}
-
-static void *
-eep_init(const device_t *info)
-{
-    t1keep_t *eep;
-    FILE     *fp = NULL;
-
-    eep = (t1keep_t *) calloc(1, sizeof(t1keep_t));
-
-    switch (info->local) {
-        case TYPE_TANDY1000HX:
-            eep->path = "tandy1000hx.bin";
-            break;
-
-        case TYPE_TANDY1000SL2:
-            eep->path = "tandy1000sl2.bin";
-            break;
-
-        default:
-            break;
-    }
-
-    fp = nvr_fopen(eep->path, "rb");
-    if (fp != NULL) {
-        if (fread(eep->store, 1, 128, fp) != 128)
-            fatal("eep_init(): Error reading Tandy EEPROM\n");
-        (void) fclose(fp);
-    } else
-        memset(eep->store, 0x00, 128);
-
-    io_sethandler(0x037c, 1, NULL, NULL, NULL, eep_write, NULL, NULL, eep);
-
-    return eep;
-}
-
-static void
-eep_close(void *priv)
-{
-    t1keep_t *eep = (t1keep_t *) priv;
-    FILE     *fp  = NULL;
-
-    fp = nvr_fopen(eep->path, "wb");
-    if (fp != NULL) {
-        (void) fwrite(eep->store, 128, 1, fp);
-        (void) fclose(fp);
-    }
-
-    free(eep);
-}
-
-static const device_t eep_1000hx_device = {
-    .name          = "Tandy 1000HX EEPROM",
-    .internal_name = "eep_1000hx",
-    .flags         = 0,
-    .local         = TYPE_TANDY1000HX,
-    .init          = eep_init,
-    .close         = eep_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-static const device_t eep_1000sl2_device = {
-    .name          = "Tandy 1000SL2 EEPROM",
-    .internal_name = "eep_1000sl2",
-    .flags         = 0,
-    .local         = TYPE_TANDY1000SL2,
-    .init          = eep_init,
-    .close         = eep_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-static void
-tandy_write(uint16_t addr, uint8_t val, void *priv)
-{
-    tandy_t *dev = (tandy_t *) priv;
-
-    switch (addr) {
-        case 0x00a0:
-            if (dev->is_hx && (val & 0x10)) {
-                dev->base = (mem_size - 256) * 1024;
-                dev->mask = 0x3ffff;
-                mem_mapping_set_addr(&ram_low_mapping, 0, dev->base);
-                mem_mapping_set_addr(&dev->ram_mapping,
-                                     (((val >> 1) & 7) - 1) * 128 * 1024, 0x40000);
-            } else {
-                dev->base = (mem_size - 128) * 1024;
-                dev->mask = 0x1ffff;
-                mem_mapping_set_addr(&ram_low_mapping, 0, dev->base);
-                mem_mapping_set_addr(&dev->ram_mapping,
-                                     ((val >> 1) & 7) * 128 * 1024, 0x20000);
-            }
-            if (dev->is_hx) {
-                io_removehandler(0x03d0, 16,
-                                 tandy_vid_in, NULL, NULL, tandy_vid_out, NULL, NULL, dev);
-                if (val & 0x01)
-                    mem_mapping_disable(&dev->vid->mapping);
-                else {
-                    io_sethandler(0x03d0, 16,
-                                  tandy_vid_in, NULL, NULL, tandy_vid_out, NULL, NULL, dev);
-                    mem_mapping_set_addr(&dev->vid->mapping, 0xb8000, 0x8000);
-                }
-            } else {
-                if (val & 0x01)
-                    mem_mapping_set_addr(&dev->vid->mapping, 0xc0000, 0x10000);
+                } else if (val & 0x01)
+                    tandy2k.ppi.pc |= bit;
                 else
-                    mem_mapping_set_addr(&dev->vid->mapping, 0xb8000, 0x8000);
+                    tandy2k.ppi.pc &= (uint8_t) ~bit;
             }
-            dev->ram_bank = val;
             break;
-
-        case 0xffe8:
-            if ((val & 0xe) == 0xe)
-                mem_mapping_disable(&dev->ram_mapping);
-            else
-                mem_mapping_set_addr(&dev->ram_mapping,
-                                     ((val >> 1) & 7) * 128 * 1024,
-                                     0x20000);
-            tandy_recalc_address_sl(dev);
-            dev->ram_bank = val;
-            break;
-
-        case 0xffea:
-            dev->rom_bank   = val;
-            dev->rom_offset = ((val ^ 4) & 7) * 0x10000;
-            mem_mapping_set_exec(&dev->rom_mapping,
-                                 &dev->rom[dev->rom_offset]);
-            break;
-
         default:
             break;
     }
 }
 
-static uint8_t
-tandy_read(uint16_t addr, void *priv)
-{
-    const tandy_t *dev = (tandy_t *) priv;
-    uint8_t        ret = 0xff;
-
-    switch (addr) {
-        case 0x00a0:
-            ret = dev->ram_bank;
-            break;
-
-        case 0xffe8:
-            ret = dev->ram_bank;
-            break;
-
-        case 0xffea:
-            ret = (dev->rom_bank ^ 0x10);
-            break;
-
-        default:
-            break;
-    }
-
-    return ret;
-}
-
+/* The drive poll timers are rebuilt by fdd_reset(), which runs after this
+   machine's init, so the strapped lines cannot be applied there: arming
+   motors earlier leaves those timers linked twice. Apply them from the
+   controller reset the guest pulses instead, with the first FDC access
+   as a fallback for anything that does not reset the controller. */
 static void
-write_ram(uint32_t addr, uint8_t val, void *priv)
+tandy2k_fdc_strap(void)
 {
-    const tandy_t *dev = (tandy_t *) priv;
+    fdc_t *fdc = tandy2k.fdc;
 
-    ram[dev->base + (addr & dev->mask)] = val;
-}
-
-static uint8_t
-read_ram(uint32_t addr, void *priv)
-{
-    const tandy_t *dev = (tandy_t *) priv;
-
-    return (ram[dev->base + (addr & dev->mask)]);
-}
-
-static uint8_t
-read_rom(uint32_t addr, void *priv)
-{
-    const tandy_t *dev   = (tandy_t *) priv;
-    uint32_t       addr2 = (addr & 0xffff) + dev->rom_offset;
-
-    return (dev->rom[addr2]);
-}
-
-static uint16_t
-read_romw(uint32_t addr, void *priv)
-{
-    tandy_t *dev   = (tandy_t *) priv;
-    uint32_t addr2 = (addr & 0xffff) + dev->rom_offset;
-
-    return (*(uint16_t *) &dev->rom[addr2]);
-}
-
-static uint32_t
-read_roml(uint32_t addr, void *priv)
-{
-    tandy_t *dev = (tandy_t *) priv;
-
-    return (*(uint32_t *) &dev->rom[addr]);
-}
-
-static void
-init_rom(tandy_t *dev)
-{
-    dev->rom = (uint8_t *) calloc(1, 0x80000);
-
-#if 1
-    if (!rom_load_interleaved("roms/machines/tandy1000sl2/8079047.hu1",
-                              "roms/machines/tandy1000sl2/8079048.hu2",
-                              0x000000, 0x80000, 0, dev->rom)) {
-        tandy_log("TANDY: unable to load BIOS for 1000/SL2 !\n");
-        free(dev->rom);
-        dev->rom = NULL;
+    if (tandy2k.fdc_strap)
         return;
-    }
-#else
-    f  = rom_fopen("roms/machines/tandy1000sl2/8079047.hu1", "rb");
-    ff = rom_fopen("roms/machines/tandy1000sl2/8079048.hu2", "rb");
-    for (c = 0x0000; c < 0x80000; c += 2) {
-        dev->rom[c]     = getc(f);
-        dev->rom[c + 1] = getc(ff);
-    }
-    fclose(ff);
-    fclose(f);
-#endif
 
-    mem_mapping_add(&dev->rom_mapping, 0xe0000, 0x10000,
-                    read_rom, read_romw, read_roml, NULL, NULL, NULL,
-                    dev->rom, MEM_MAPPING_EXTERNAL, dev);
+    tandy2k.fdc_strap = 1;
+
+    for (int i = 0; i < 4; i++)
+        fdd_set_motor_enable(fdc->fdd[i], 0);
+
+    /* There is no DOR on this board: the IRQ/DMA enable and the motors are
+       strapped on, and releasing the emulated DOR reset instead would queue
+       four reset status entries. */
+    fdc_write(0x03f2, 0xf8, fdc);
+
+    /* That write clears the status register, which the host reads as busy;
+       with no DOR the controller is simply idle. */
+    fdc->stat = 0x80;
+}
+
+/* The 8272 has only two host registers and no DOR: the status sits on 30h and
+   the data/command register on 32h, while 80h is the same data register at
+   the DMA acknowledge address. */
+static uint8_t
+tandy2k_fdc_read(uint16_t addr, void *priv)
+{
+    tandy2k_fdc_strap();
+
+    return fdc_read((addr == 0x0030) ? 0x03f4 : 0x03f5, priv);
 }
 
 static void
-machine_tandy1k_init(const machine_t *model, int type)
+tandy2k_fdc_write(uint16_t addr, uint8_t val, void *priv)
 {
-    tandy_t *dev;
+    fdc_t *fdc = (fdc_t *) priv;
 
-    dev = calloc(1, sizeof(tandy_t));
+    tandy2k_fdc_strap();
 
-    machine_common_init(model);
+    /* With no DOR the command's unit field, always the first parameter, is
+       only drive select this board has. Mirror it into the DOR so the core
+       latches the right drive; RECALIBRATE runs inside this very write. */
+    if ((fdc->pnum == 0) && (fdc->ptot > 0))
+        fdc->dor = (fdc->dor & ~0x03) | (val & 0x03);
 
-    nmi_init();
+    /* Command and data share the 8272's second register. */
+    fdc_write(0x03f5, val, priv);
+}
 
-    /*
-     * Base 128K mapping is controlled via ports 0xA0 or
-     * 0xFFE8 (SL2), so we remove it from the main mapping.
-     */
-    dev->base = (mem_size - 128) * 1024;
-    dev->mask = 0x1ffff;
-    mem_mapping_add(&dev->ram_mapping, 0x60000, 0x20000,
-                    read_ram, NULL, NULL, write_ram, NULL, NULL, NULL,
-                    MEM_MAPPING_INTERNAL, dev);
-    mem_mapping_set_addr(&ram_low_mapping, 0, dev->base);
+static uint8_t
+tandy2k_fdc_data_read(uint16_t addr, void *priv)
+{
+    return fdc_read(0x03f5, priv);
+}
 
-    device_add(&kbc_tandy_device);
+static void
+tandy2k_fdc_data_write(uint16_t addr, uint8_t val, void *priv)
+{
+    fdc_write(0x03f5, val, priv);
+}
 
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_xt_tandy_device);
+/* The chip's cascade ack returns the vector the external 8259 puts on the bus. */
+static int
+tandy2k_8259(void *priv)
+{
+    return pic_irq_ack_instance((pic_t *) priv);
+}
 
-    video_reset(gfxcard[0]);
+/* The 8259 output callback carries only the level, so each line needs its own
+   adapter to name the 80186 interrupt input it drives. */
+static void
+tandy2k_icu_int0(void *priv, int level)
+{
+    i8018x_pcb_icu_int((struct i8018x_pcb_t *) priv, 0, level);
+}
 
-    switch (type) {
-        case TYPE_TANDY:
-        case TYPE_TANDY1000SX:
-            keyboard_set_table(scancode_tandy);
-            io_sethandler(0x00a0, 1,
-                          tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
-            device_context(&tandy_1000_video_device);
-            tandy_vid_init(dev);
-            device_context_restore();
-            device_add_ex(&tandy_1000_video_device, dev);
-            device_add((type == TYPE_TANDY1000SX) ? &ncr8496_device : &sn76489_device);
-            break;
+static void
+tandy2k_icu_int1(void *priv, int level)
+{
+    i8018x_pcb_icu_int((struct i8018x_pcb_t *) priv, 1, level);
+}
 
-        case TYPE_TANDY1000HX:
-            dev->is_hx = 1;
-            keyboard_set_table(scancode_tandy);
-            io_sethandler(0x00a0, 1,
-                          tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
-            device_context(&tandy_1000hx_video_device);
-            tandy_vid_init(dev);
-            device_context_restore();
-            device_add_ex(&tandy_1000hx_video_device, dev);
-            device_add(&ncr8496_device);
-            device_add(&eep_1000hx_device);
-            break;
+/* The coprocessor's error output reaches the board as MCPINT14 rather than
+   through the CPU's NMI input, so the x87 core reports it here. */
+static void
+tandy2k_fpu_int(int level)
+{
+    if (level)
+        picint(TANDY2K_FPU_IRQ);
+    else
+        picintc(TANDY2K_FPU_IRQ);
+}
 
-        case TYPE_TANDY1000SL2:
-            dev->is_sl2 = 1;
-            init_rom(dev);
-            io_sethandler(0xffe8, 8,
-                          tandy_read, NULL, NULL, tandy_write, NULL, NULL, dev);
-            device_context(&tandy_1000sl_video_device);
-            tandy_vid_init(dev);
-            device_context_restore();
-            device_add_ex(&tandy_1000sl_video_device, dev);
-            if (sound_card_current[0] == SOUND_INTERNAL)
-                machine_snd = device_add(machine_get_snd_device(machine));
-            device_add(&eep_1000sl2_device);
-            break;
+/* UCS covers F8000-FFFFF: the lower 16 KB is the character RAM that the
+   video device maps, and the boot ROM sits at FE000. */
+static const device_config_t tandy2000_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "tandy2000_020000",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "BOOT ROM version 01.00.00 (1983)",
+                .internal_name = "tandy2000_010000",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/tandy2000/rev1_fc000_fe000.img", "" }
+            },
+            {
+                .name          = "BOOT ROM version 02.00.00 (1984)",
+                .internal_name = "tandy2000_020000",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/tandy2000/rev2_fc000_fe000.img", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
 
-        default:
-            break;
+const device_t tandy_2000_device = {
+    .name          = "Tandy 2000",
+    .internal_name = "tandy2000",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = tandy2000_config
+};
+
+int
+machine_tandy2000_init(const machine_t *model)
+{
+    int         ret = 0;
+    fdc_t      *fdc;
+    const char *fn;
+
+    if (!device_available(model->device)) {
+        /* No ROMs available. */
+        return 0;
     }
 
-    standalone_gameport_type = &gameport_200_device;
-
-    eep_data_out = 0x0000;
-}
-
-int
-tandy1k_eeprom_read(void)
-{
-    return eep_data_out;
-}
-
-int
-machine_tandy1000sx_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linearr("roms/machines/tandy/tandy1t1.020",
-                            0x000f0000, 131072, 0);
+    device_context(model->device);
+    fn  = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000fe000, 8192, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
 
-    machine_tandy1k_init(model, TYPE_TANDY1000SX);
+    /* RAM is contiguous up to the top, unlike the PC layout that stops at
+       A0000h; without this the BIOS sizes anything above 640 KB as absent. */
+    if (mem_size > 640) {
+        mem_set_mem_state_both(0xa0000, (uint32_t) (mem_size - 640) << 10,
+                               MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+        mem_mapping_add(&tandy2k.ram_map, 0xa0000,
+                        (uint32_t) (mem_size - 640) << 10,
+                        mem_read_ram, mem_read_ramw, mem_read_raml,
+                        mem_write_ram, mem_write_ramw, mem_write_raml,
+                        NULL, MEM_MAPPING_INTERNAL, NULL);
+    }
 
-    return ret;
-}
+    pic_init_tandy2k();
 
-int
-machine_tandy1000hx_init(const machine_t *model)
-{
-    int ret;
+    fpu_int_line = tandy2k_fpu_int;
 
-    ret = bios_load_linear("roms/machines/tandy1000hx/v020000.u12",
-                           0x000e0000, 131072, 0);
+    /* There are no ISA slots, and a standalone COM2 would sit at 2F8h-2FFh,
+       on top of the option board's chip select. */
+    serial_set_next_inst(SERIAL_MAX - 1);
 
-    if (bios_only || !ret)
-        return ret;
+    /* The state block is static, so a hard reset has to put the registers the
+       guest can see back to their power-on values; a stale FDCRESET* level
+       would otherwise pulse the controller during POST. */
+    tandy2k.port0  = 0x00;
+    tandy2k.ppi.pa = 0x00;
+    tandy2k.ppi.pc = 0x00;
+    tandy2k.dmamux = 0x00;
 
-    machine_tandy1k_init(model, TYPE_TANDY1000HX);
+    tandy2k.uart_gate = 1;   /* the 8253 leaves reset with its gates high */
+    tandy2k.uart_div = 13;
 
-    return ret;
-}
+    tandy2k.ppi.ctrl = 0x9b; /* all ports input, mode 0 */
+    tandy2k.ppi.mode = 0;
+    tandy2k.ppi.inte = 0;
+    tandy2k.ppi.intr = 0;
+    tandy2k.ppi.obf  = 1;
+    tandy2k.lpt_ack  = 1;
+    tandy2k.lpt_busy = 0;
+    tandy2k.lpt_phase = 0;
+    picintc(TANDY2K_LPT_IRQ);
+    timer_add(&tandy2k.lpt_timer, tandy2k_lpt_timer, NULL, 0);
 
-int
-machine_tandy1000sl2_init(const machine_t *model)
-{
-    int ret;
+    /* The 8272 sits on the 16-bit bus, so its two registers appear on even
+       addresses. There is no DOR, so the drive and motor lines are wired for
+       drive 0 with its motor running; the BIOS moves sectors by PIO. */
+    fdc = device_add(&fdc_xt_device);
+    fdc_remove(fdc);
+    io_sethandler(0x0030, 0x0004, tandy2k_fdc_read, NULL, NULL,
+                  tandy2k_fdc_write, NULL, NULL, fdc);
+    io_sethandler(0x0080, 0x0001, tandy2k_fdc_data_read, NULL, NULL,
+                  tandy2k_fdc_data_write, NULL, NULL, fdc);
+    fdc_set_irq(fdc, 4);
+    fdc_set_dma_ch(fdc, 0);
+    fdc_reset(fdc);
+    tandy2k.fdc       = fdc;
+    tandy2k.fdc_strap = 0;
 
-    ret = bios_load_interleaved("roms/machines/tandy1000sl2/8079047.hu1",
-                                "roms/machines/tandy1000sl2/8079048.hu2",
-                                0x000f0000, 65536, 0x18000);
+    /* The turbo timing skips the seek and bit-cell paths this machine's BIOS
+       depends on, so the drives never take it. */
+    for (int i = 0; i < 4; i++)
+        fdd_set_turbo(fdc->fdd[i], 0);
 
-    if (bios_only || !ret)
-        return ret;
+    device_add(&tandy_2000_video_device);
 
-    machine_tandy1k_init(model, TYPE_TANDY1000SL2);
+    if (hdc_current[0] == HDC_INTERNAL)
+        device_add(&st506_tandy2k_wd1010_device);
+
+    /* The board is an option: no internal mouse means it is not installed,
+       and its clock goes with it. */
+    if (mouse_type == MOUSE_TYPE_INTERNAL)
+        device_add(&tandy_clkmouse_device);
+
+    /* The board clocks the 8253 at 2 MHz and decodes its registers on
+       even addresses, so replace the default 40h-43h mapping. */
+    pit_t *pit = pit_common_init(PIT_8253, NULL, NULL);
+    pit_set_clock(2000000);
+    pit_handler(0, 0x0040, 0x0004, pit);
+    io_sethandler(0x0040, 0x0008, pit_read_even, NULL, NULL,
+                  pit_write_even, NULL, NULL, pit);
+    pit_devs[0].set_load_func(pit_devs[0].data, 1, tandy2k_pit1_load);
+
+    /* The 8251A takes its TxC/RxC from the 8253 channel 1 output. Its
+       host backend is whatever character device is selected for COM1. */
+    tandy2k.uart = device_add(&i8251_device);
+    i8251_set_irq(tandy2k.uart, TANDY2K_SER_IRQ);
+    io_sethandler(0x0010, 0x0004, i8251_read, NULL, NULL,
+                  i8251_write, NULL, NULL, tandy2k.uart);
+    tandy2k_uart_clock();
+
+    io_sethandler(0x0050, 0x0008, ppi_read, NULL, NULL,
+                  ppi_write, NULL, NULL, NULL);
+
+    tandy2k.kbdin = 0x00;
+    tandy2k.kbd_busy = 0;
+    /* The keyboard has its own 8048 whose ROM is undumped, so send it
+       the scan codes the encoder would have produced. */
+    keyboard_set_table(scancode_tandy2k);
+    keyboard_send = tandy2k_kbd_send;
+
+    /* Both 8259As are slaves of the 80186's internal controller:
+       the first drives INT0 and the second INT1, and each puts
+       own vector on the bus during the acknowledge cycles. */
+    struct i8018x_pcb_t *pcb = device_add(&i8018x_pcb_device);
+    i8018x_pcb_set_dma_channels(pcb, 0, -1);
+    i8018x_pcb_set_ext_ack(pcb, 0, tandy2k_8259, &pic);
+    i8018x_pcb_set_ext_ack(pcb, 1, tandy2k_8259, &pic2);
+    pic_set_output_callback(&pic, tandy2k_icu_int0, pcb);
+    pic_set_output_callback(&pic2, tandy2k_icu_int1, pcb);
+
+    io_sethandler(0x0000, 0x0010, tandy2k_read, NULL, NULL,
+                  tandy2k_write, NULL, NULL, NULL);
 
     return ret;
 }

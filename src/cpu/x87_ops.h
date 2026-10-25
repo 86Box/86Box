@@ -108,7 +108,7 @@ typedef union {
                     fpu_log("FPU : divide by zero\n");  \
                     if (!(cpu_state.npxc & 0x80)) {     \
                         cpu_state.npxs |= 0x80;         \
-                        nmi = 1;                        \
+                        fpu_int_set(1);                 \
                     }                                   \
                     return 1;                           \
                 }                                       \
