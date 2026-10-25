@@ -142,6 +142,7 @@ add_library(vid OBJECT
     vid_ati_rage128_maxx.c
 
     # Chips & Technologies
+    vid_chips_45x.c
     vid_chips_69000.c
 
     # Cirrus Logic
