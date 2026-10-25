@@ -3,6 +3,8 @@
 #define X87_TAG_INVALID 2
 #define X87_TAG_EMPTY   3
 
+uint16_t x87_initial_control_word(void);
+
 extern uint32_t x87_pc_off;
 extern uint32_t x87_op_off;
 extern uint16_t x87_pc_seg;

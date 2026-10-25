@@ -334,9 +334,11 @@ sf_FI(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
-    fpu_state.cwd &= ~FPU_SW_Summary;
-    if (rmdat == 0xe1)
-        fpu_state.cwd |= FPU_SW_Summary;
+    if (fpu_type != FPU_80187) {
+        fpu_state.cwd &= ~FPU_SW_Summary;
+        if (rmdat == 0xe1)
+            fpu_state.cwd |= FPU_SW_Summary;
+    }
 #ifdef FPU_NEC
     do_cycles(3);
 #else
@@ -424,11 +426,10 @@ sf_FNSAVE_a16(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1; /* a faulting save leaves the FPU as it was */
 
+    fpu_state.cwd = x87_initial_control_word();
 #ifdef FPU_8087
-    fpu_state.cwd = 0x3FF;
     fpu_state.swd  &= 0x4700;
 #else
-    fpu_state.cwd = 0x37F;
     fpu_state.swd   = 0;
     x87_ferr_clear();
 #endif
@@ -466,11 +467,7 @@ sf_FNSAVE_a32(uint32_t fetchdat)
     if (cpu_state.abrt)
         return 1; /* a faulting save leaves the FPU as it was */
 
-#    ifdef FPU_8087
-    fpu_state.cwd = 0x3FF;
-#    else
-    fpu_state.cwd = 0x37F;
-#    endif
+    fpu_state.cwd = x87_initial_control_word();
     fpu_state.swd   = 0;
     x87_ferr_clear();
     fpu_state.tos   = 0;
@@ -505,11 +502,10 @@ sf_FNINIT(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
+    fpu_state.cwd = x87_initial_control_word();
 #ifdef FPU_8087
-    fpu_state.cwd = 0x3FF;
     fpu_state.swd  &= 0x4700;
 #else
-    fpu_state.cwd = 0x37F;
     fpu_state.swd   = 0;
     x87_ferr_clear();
 #endif
