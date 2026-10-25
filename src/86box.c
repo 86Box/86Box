@@ -94,6 +94,7 @@
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/sound.h>
+#include <86box/usb.h>
 #include <86box/midi.h>
 #include <86box/video.h>
 #include <86box/ui.h>
@@ -1965,6 +1966,11 @@ pc_reset_hard_init(void)
      * that will be a call to device_reset_all() later !
      */
 
+    /* The PCI USB card, then the USB hub, so that both exist before any
+       other USB device attaches. */
+    usb_card_reset();
+    usb_hub_reset();
+
     /* Reset and reconfigure the Sound Card layer. */
     sound_card_reset();
 
@@ -1989,6 +1995,11 @@ pc_reset_hard_init(void)
      */
     mouse_reset();
 
+    /* The USB keyboard goes on here, after the USB controller exists;
+       keyboard_add_device() skips it. */
+    if (keyboard_type == KEYBOARD_TYPE_USB)
+        device_add(&keyboard_usb_device);
+
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
 
@@ -2001,6 +2012,7 @@ pc_reset_hard_init(void)
 
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
+    usb_msd_hard_reset();
 
     scsi_disk_hard_reset();
 
