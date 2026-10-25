@@ -1074,9 +1074,12 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     uint32_t     fetchdat_pc;
     uint32_t     fetch_walk         = 0;
     int          fetch_walk_valid   = codegen_fetch_reach(block, cs + old_pc, (opcode_length[opcode] > 2) ? 4 : opcode_length[opcode], &fetch_walk);
+    int          walk_cycles        = 0;
     uint32_t     lock_pc            = 0;
+    int          lock_cycles        = 0;
     uint32_t     lock_walk          = 0;
     int          lock_walk_valid    = 0;
+    int          lock_walk_cycles   = 0;
     int          jump_cycles        = 0;
 #ifdef DEBUG_EXTRA
     uint8_t last_prefix = 0;
@@ -1255,8 +1258,10 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 break;
 
             case 0xf0: /*LOCK*/
-                if (!in_lock)
-                    lock_pc = op_pc;
+                if (!in_lock) {
+                    lock_pc     = op_pc;
+                    lock_cycles = codegen_block_cycles;
+                }
                 in_lock         = 1;
                 break;
 
@@ -1280,6 +1285,19 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
             default:
                 goto generate_call;
         }
+        /*After a prefix the interpreter fetches four bytes again here, with
+          the cycles of the prefixes before it charged and not its own; not
+          after 0F or an escape, whose op takes the byte from the fetch
+          before. From a LOCK on, only if the LOCK is legal (below)*/
+        if (!over && !fetch_walk_valid) {
+            if (!in_lock) {
+                fetch_walk_valid = codegen_fetch_reach(block, cs + op_pc, 4, &fetch_walk);
+                walk_cycles      = codegen_block_cycles;
+            } else if (!lock_walk_valid) {
+                lock_walk_valid  = codegen_fetch_reach(block, cs + op_pc, 4, &lock_walk);
+                lock_walk_cycles = codegen_block_cycles;
+            }
+        }
         fetchdat = codegen_fetchl_lookahead(cs + op_pc);
         codegen_timing_prefix(opcode, fetchdat);
         if (cpu_state.abrt)
@@ -1287,15 +1305,6 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
         opcode = fetchdat & 0xff;
         if (!pc_off)
             fetchdat >>= 8;
-        /*After a prefix the interpreter fetches four bytes again here; not
-          after 0F or an escape, whose op takes the byte from the fetch
-          before. From a LOCK on, only if the LOCK is legal (below)*/
-        if (!over && !fetch_walk_valid) {
-            if (!in_lock)
-                fetch_walk_valid = codegen_fetch_reach(block, cs + op_pc, 4, &fetch_walk);
-            else if (!lock_walk_valid)
-                lock_walk_valid = codegen_fetch_reach(block, cs + op_pc, 4, &lock_walk);
-        }
 
         op_pc++;
     }
@@ -1343,13 +1352,20 @@ generate_call:
                 last++;
         }
         fetch_walk_valid = codegen_fetch_reach(block, cs + lock_pc, ((last - lock_pc) >= 4) ? (last - lock_pc + 1) : 4, &fetch_walk);
+        walk_cycles      = lock_cycles;
         if (!fetch_walk_valid && !lock_illegal && lock_walk_valid) {
             fetch_walk       = lock_walk;
             fetch_walk_valid = 1;
+            walk_cycles      = lock_walk_cycles;
         }
     }
-    if (fetch_walk_valid && !codegen_page2_walked)
+    /*Its #PF leaves with the cycles of the prefixes the interpreter ran
+      before that fetch; the path that goes on charges them with the rest*/
+    if (fetch_walk_valid && !codegen_page2_walked) {
+        codegen_accumulate(ir, ACCREG_cycles, -walk_cycles);
         codegen_fetch_walk(fetch_walk);
+        codegen_accumulate(ir, ACCREG_cycles, walk_cycles);
+    }
     codegen_instructions[block->ins].fpu_entered  = codegen_fpu_entered;
     codegen_instructions[block->ins].fpu_es_check = codegen_fpu_es_check;
     codegen_instructions[block->ins].mmx_entered  = codegen_mmx_entered;
