@@ -990,14 +990,20 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
 
 /*The globals the link routine reads and writes, addressed from the PC when
   they are within ADRP's reach of the routine (every global in one page
-  window, decided once when the routine is built), else by a four-instruction
-  immediate. Either way no load is spent on the address.*/
+  window, decided once when the routine is built), else loaded from a pool
+  of addresses after the routine's code: one instruction each, whatever the
+  address, so the routine fits its allocator block either way.*/
 static const void *const link_globals[] = {
     &cpu_events, &nmi, &nmi_enable, &nmi_mask, &pic, &cpu_cur_status, &tsc, &tsc_old, &cycles_old,
     &timer_target, &get_phys_virt, &get_phys_phys, &oldcs, &oldcpl, &cpu_fetch_device, &rammask,
-    readlookup2, &ram
+    readlookup2, &ram, &ioapic_irq_path_active, &cpu_lapic_irr_live, cpu_lapic_extint_live
 };
 static int link_adrp;
+
+#        define LINK_MAX_POOL 32
+static uint32_t   *link_pool_ref[LINK_MAX_POOL];
+static const void *link_pool_ptr[LINK_MAX_POOL];
+static int         link_pool_nr;
 
 /*X<reg> = the page of ptr (ADRP) or ptr itself; returns the offset the load
   or store adds to it*/
@@ -1008,8 +1014,42 @@ link_addr(codeblock_t *block, int reg, const void *ptr)
         host_arm64_ADRP(block, reg, (uintptr_t) ptr);
         return (int) ((uintptr_t) ptr & 0xfff);
     }
-    host_arm64_MOVX_IMM(block, reg, (uintptr_t) ptr);
+    if (link_pool_nr >= LINK_MAX_POOL)
+        fatal("build_link_routine - too many pooled addresses\n");
+    host_arm64_LDR_LITERAL_X(block, reg, 0);
+    link_pool_ref[link_pool_nr] = (uint32_t *) &block_write_data[block_pos - 4];
+    link_pool_ptr[link_pool_nr++] = ptr;
     return 0;
+}
+
+/*The pool, after the routine's code and in its allocator block: one 8-byte
+  entry per address, and every load pointed at its entry*/
+static void
+link_pool_emit(void)
+{
+    uint8_t *entry[LINK_MAX_POOL];
+
+    block_pos = (block_pos + 7) & ~7;
+    for (int c = 0; c < link_pool_nr; c++) {
+        const uint64_t addr = (uintptr_t) link_pool_ptr[c];
+        int            d;
+
+        for (d = 0; d < c; d++) {
+            if (link_pool_ptr[d] == link_pool_ptr[c])
+                break;
+        }
+        if (d < c) {
+            entry[c] = entry[d];
+            continue;
+        }
+        if (block_pos + 8 > BLOCK_MAX)
+            fatal("build_link_routine - address pool does not fit in the allocator block\n");
+        entry[c] = &block_write_data[block_pos];
+        memcpy(entry[c], &addr, 8);
+        block_pos += 8;
+    }
+    for (int c = 0; c < link_pool_nr; c++)
+        host_arm64_short_branch_set_offset(link_pool_ref[c], entry[c]);
 }
 
 /*X<reg> = ptr itself*/
@@ -1080,6 +1120,7 @@ build_link_routine(codeblock_t *block)
     uint32_t *nmi_set;
     uint32_t *nmi_ok;
     uint32_t *irq_ok;
+    uint32_t *apic_set;
     uint32_t *es_flat;
     uint32_t *uncached;
     uint32_t *no_paging;
@@ -1089,6 +1130,7 @@ build_link_routine(codeblock_t *block)
     uint32_t *byte_mask;
     uint32_t *no_paging_2;
     uint8_t  *nmi_done;
+    uint8_t  *irq_done;
     uint8_t  *xlat_done;
     uint8_t  *two_page_done;
     uint8_t  *xlat_2_done;
@@ -1110,6 +1152,7 @@ build_link_routine(codeblock_t *block)
             || !host_arm64_ADRP_in_range((uintptr_t) link_globals[c] + 0x1000))
             link_adrp = 0;
     }
+    link_pool_nr = 0;
 
     codegen_link_rout = &block_write_data[block_pos];
 
@@ -1152,18 +1195,26 @@ build_link_routine(codeblock_t *block)
     host_arm64_ORRX_REG(block, REG_X3, REG_X3, REG_X5, 0);
     miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_X3);
 
-    /*nmi && nmi_enable && nmi_mask; the rest is out of line*/
+    /*NMI_TAKEABLE(): nmi here, the rest out of line*/
     nmi_set  = host_arm64_CBNZ_SHORT_(block, REG_W12);
     nmi_done = &block_write_data[block_pos];
 
-    /*Trap flag, and an interrupt the loop would take. X13 = CR0 | flags << 32*/
+    /*Trap flag, and an interrupt the loop would take. With the APIC path
+      off x86_external_interrupt_pending() is pic.int_pending; with it on
+      it is 0 while pic.int_pending, local APIC 0's ExtINT and its IRR bit
+      are all clear, and anything else is left to the loop (out of line).
+      X13 = CR0 | flags << 32*/
     host_arm64_LDR_IMM_X(block, REG_X13, REG_CPUSTATE, rep_state_offset(&cpu_state.CR0.l));
     miss[nr_miss++] = host_arm64_TBNZ_SHORT_(block, REG_X13, 32 + 8);
     irq_ok          = host_arm64_TBZ_SHORT_(block, REG_X13, 32 + 9);
     offset          = link_addr(block, REG_X3, &pic.int_pending);
     host_arm64_LDRB_IMM_W(block, REG_W5, REG_X3, offset);
     miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W5);
-    host_arm64_short_branch_set_offset(irq_ok, &block_write_data[block_pos]);
+    offset          = link_addr(block, REG_X3, &ioapic_irq_path_active);
+    host_arm64_LDRB_IMM_W(block, REG_W5, REG_X3, offset);
+    apic_set        = host_arm64_CBNZ_SHORT_(block, REG_W5);
+    irq_done        = &block_write_data[block_pos];
+    host_arm64_short_branch_set_offset(irq_ok, irq_done);
 
     /*Status and FPU rounding as when the slot was filled, compared as one
       word against W6. Only the C loop refreshes the PC24 and RC_NZ status
@@ -1297,16 +1348,29 @@ build_link_routine(codeblock_t *block)
     miss_dest = &block_write_data[block_pos];
     host_arm64_B(block, codegen_link_miss_rout);
 
-    /*nmi set: miss only if nmi_enable and nmi_mask are too*/
+    /*nmi set: miss if nmi_mask, or bit 1 (an NMI from the local APIC, not
+      gated by port 70h), and nmi_enable too. W12 = nmi*/
     host_arm64_short_branch_set_offset(nmi_set, &block_write_data[block_pos]);
-    offset = link_addr(block, REG_X3, &nmi_enable);
-    host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, offset);
+    host_arm64_AND_IMM(block, REG_W3, REG_W12, 2);
+    offset = link_addr(block, REG_X5, &nmi_mask);
+    host_arm64_LDR_IMM_W(block, REG_W5, REG_X5, offset);
+    host_arm64_ORR_REG(block, REG_W3, REG_W3, REG_W5, 0);
     nmi_ok = host_arm64_CBZ_SHORT_(block, REG_W3);
     host_arm64_short_branch_set_offset(nmi_ok, nmi_done);
-    offset = link_addr(block, REG_X3, &nmi_mask);
+    offset = link_addr(block, REG_X3, &nmi_enable);
     host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, offset);
     miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W3);
     host_arm64_B(block, nmi_done);
+
+    /*APIC path on: an ExtINT or an IRR vector at local APIC 0 is a miss*/
+    host_arm64_short_branch_set_offset(apic_set, &block_write_data[block_pos]);
+    offset = link_addr(block, REG_X3, cpu_lapic_extint_live);
+    host_arm64_LDRB_IMM_W(block, REG_W5, REG_X3, offset);
+    miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W5);
+    offset = link_addr(block, REG_X3, &cpu_lapic_irr_live);
+    host_arm64_LDR_IMM_W(block, REG_W5, REG_X3, offset);
+    miss[nr_miss++] = host_arm64_TBNZ_SHORT_(block, REG_W5, 0);
+    host_arm64_B(block, irq_done);
 
     /*get_phys() cache miss: it would store the full address in
       get_phys_virt, and translate through readlookup2[] with paging on or
@@ -1369,6 +1433,9 @@ build_link_routine(codeblock_t *block)
     host_arm64_LDR_IMM_W(block, REG_W16, REG_X16, offset);
     host_arm64_AND_REG(block, REG_W13, REG_W10, REG_W16, 0);
     host_arm64_B(block, xlat_2_done);
+
+    if (link_pool_nr)
+        link_pool_emit();
 
     if (nr_miss > LINK_MAX_MISS)
         fatal("build_link_routine - too many miss branches\n");

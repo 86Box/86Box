@@ -1261,7 +1261,7 @@ build_link_routine(codeblock_t *block)
     int32_t *nmi_set;
     int32_t *nmi_ok;
     int32_t *irq_ok;
-    int32_t *irq_ok_2;
+    int32_t *apic_set;
     int32_t *es_flat;
     int32_t *uncached;
     int32_t *no_paging;
@@ -1271,6 +1271,7 @@ build_link_routine(codeblock_t *block)
     int32_t *byte_mask;
     int32_t *no_paging_2;
     void    *nmi_done;
+    void    *irq_done;
     void    *xlat_done;
     void    *two_page_done;
     void    *xlat_2_done;
@@ -1319,14 +1320,16 @@ build_link_routine(codeblock_t *block)
     lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_dr_armed);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
 
-    /*NMI_TAKEABLE(): nmi && nmi_enable && (nmi_mask || (nmi & 2)); the
-      rest is out of line*/
+    /*NMI_TAKEABLE(): nmi here, the rest out of line*/
     lx_abs(block, 0, 0, 0x8b, REG_R9, &nmi);
     rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
     nmi_set  = rx_jcc(block, RX_CC_NZ);
     nmi_done = rx_here();
 
-    /*Trap flag, and an interrupt the loop would take*/
+    /*Trap flag, and an interrupt the loop would take. With the APIC path
+      off x86_external_interrupt_pending() is pic.int_pending; with it on
+      it is 0 while pic.int_pending, local APIC 0's ExtINT and its IRR bit
+      are all clear, and anything else is left to the loop (out of line)*/
     rx_rm(block, 0, 0, 0x0fb7, REG_R9, REG_RBP, rx_state(&cpu_state.flags));
     rx_test_ri(block, REG_R9, T_FLAG);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
@@ -1335,20 +1338,11 @@ build_link_routine(codeblock_t *block)
     lx_abs(block, 0, 0, 0x0fb6, REG_R9, &pic.int_pending);
     rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
-    /*With the IOAPIC routing interrupts, x86_external_interrupt_pending()
-      also looks at local APIC 0: an ExtINT or anything in its IRR is a
-      miss, and the C loop works out whether it is deliverable*/
     lx_abs(block, 0, 0, 0x0fb6, REG_R9, &ioapic_irq_path_active);
     rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
-    irq_ok_2 = rx_jcc(block, RX_CC_Z);
-    lx_abs(block, 0, 0, 0x0fb6, REG_R9, &cpu_lapic_extint_live[0]);
-    rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
-    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
-    lx_abs(block, 0, 0, 0x8b, REG_R9, &cpu_lapic_irr_live);
-    rx_test_ri(block, REG_R9, 1);
-    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
-    rx_patch(irq_ok, rx_here());
-    rx_patch(irq_ok_2, rx_here());
+    apic_set = rx_jcc(block, RX_CC_NZ);
+    irq_done = rx_here();
+    rx_patch(irq_ok, irq_done);
 
     /*Status and FPU rounding as when the slot was filled, compared as one
       word. Only the C loop refreshes the PC24 and RC_NZ status bits from
@@ -1478,20 +1472,27 @@ build_link_routine(codeblock_t *block)
     host_x86_POP(block, REG_RBX);
     host_x86_RET(block);
 
-    /*nmi set: miss only if nmi_enable is too, and nmi_mask or an NMI from
-      the local APIC (nmi bit 1, which port 70h does not gate)*/
+    /*nmi set: miss if nmi_mask, or bit 1 (an NMI from the local APIC, not
+      gated by port 70h), and nmi_enable too. R9 = nmi*/
     rx_patch(nmi_set, rx_here());
-    lx_abs(block, 0, 0, 0x8b, REG_R9, &nmi_enable);
-    rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
+    rx_alu_ri(block, 0, 4, REG_R9, 2);
+    lx_abs(block, 0, 0, 0x0b, REG_R9, &nmi_mask);
     nmi_ok = rx_jcc(block, RX_CC_Z);
     rx_patch(nmi_ok, nmi_done);
-    lx_abs(block, 0, 0, 0x8b, REG_R9, &nmi_mask);
+    lx_abs(block, 0, 0, 0x8b, REG_R9, &nmi_enable);
     rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
-    lx_abs(block, 0, 0, 0x8b, REG_R9, &nmi);
-    rx_test_ri(block, REG_R9, 2);
-    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
     rx_patch(rx_jmp(block), nmi_done);
+
+    /*APIC path on: an ExtINT or an IRR vector at local APIC 0 is a miss*/
+    rx_patch(apic_set, rx_here());
+    lx_abs(block, 0, 0, 0x0fb6, REG_R9, cpu_lapic_extint_live);
+    rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    lx_abs(block, 0, 0, 0x8b, REG_R9, &cpu_lapic_irr_live);
+    rx_test_ri(block, REG_R9, 1);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    rx_patch(rx_jmp(block), irq_done);
 
     /*get_phys() cache miss: it would store the full address in
       get_phys_virt, and translate through readlookup2[] with paging on or
