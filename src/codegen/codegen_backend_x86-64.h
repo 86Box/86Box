@@ -45,6 +45,9 @@
    (codegen_init(), codegen_reset()). */
 #if !defined(USE_GDBSTUB)
 #    define CODEGEN_BACKEND_HAS_BLOCK_LINK
+/* A slot whose target changes keeps the targets it held before in a set,
+   tried after a key mismatch (codegen_link.h). */
+#    define CODEGEN_BACKEND_HAS_LINK_SETS
 void codegen_link_exit(codeblock_t *block);
 /* 0: blocks end with the plain return and the loop never links them. */
 extern int codegen_block_link;

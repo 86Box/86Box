@@ -1236,6 +1236,14 @@ _Static_assert(offsetof(codegen_link_slot_t, npxc) == offsetof(codegen_link_slot
                "status and npxc are compared as one word");
 _Static_assert(offsetof(cpu_state_t, _smi_line) == offsetof(cpu_state_t, abrt) + 1,
                "abrt and smi_line are loaded as one word");
+_Static_assert(offsetof(codegen_link_slot_t, exit_pc) == 0 && offsetof(codegen_link_slot_t, exit_cs) == 4
+                   && sizeof(codegen_link_slot_t) == 104 && !(offsetof(codegen_link_slot_t, page_mask) & 7)
+                   && offsetof(codegen_link_set_t, e) == 8 && sizeof(codegen_link_set_t) == 320,
+               "the set lookup compares a key as one word, copies a slot as 13 words, and finds a set as 320 * its number");
+_Static_assert((uint32_t) (13u * 0xc4ec4ec5u) == 1 && (uint64_t) sizeof(codegen_link_slots) < 0x100000000ull,
+               "the set lookup finds a slot's site from its 32-bit offset with the inverse of 13");
+_Static_assert(CODEGEN_LINK_SET_ONE >= CODEGEN_LINK_SETS, "the set lookup takes CODEGEN_LINK_SET_ONE for no set");
+#        define LINK_SET_E(n) ((int32_t) offsetof(codegen_link_set_t, e[n]))
 
 /*op reg, [p] for a global p: RBP-relative when in reach, as globals in the
   image next to cpu_state are, otherwise through R11*/
@@ -1288,6 +1296,8 @@ build_link_routine(codeblock_t *block)
     void    *two_page_done;
     void    *xlat_2_done;
     void    *miss_dest;
+    int32_t *key_miss[2];
+    void    *key_done;
 
     /*Start in a fresh chunk, so the hit path has no chunk-linking jumps*/
     codegen_alloc(block, BLOCK_MAX - JMP_LEN_BYTES);
@@ -1302,9 +1312,10 @@ build_link_routine(codeblock_t *block)
     rx_rr(block, 0, 0, 0x01, REG_RDX, REG_RSI); /*ADD ESI, EDX*/
     rx_rr(block, 0, 1, 0x89, REG_RAX, REG_RBX); /*MOV RBX, RAX*/
     rx_rm(block, 0, 0, 0x3b, REG_RCX, REG_RBX, LINK_SLOT(exit_pc));
-    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    key_miss[0] = rx_jcc(block, RX_CC_NZ);
     rx_rm(block, 0, 0, 0x3b, REG_RDX, REG_RBX, LINK_SLOT(exit_cs));
-    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    key_miss[1] = rx_jcc(block, RX_CC_NZ);
+    key_done    = rx_here();
     rx_rm(block, 0, 1, 0x8b, REG_R15, REG_RBX, LINK_SLOT(entry));
     rx_rr(block, 0, 1, 0x85, REG_R15, REG_R15);
     miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
@@ -1565,6 +1576,81 @@ build_link_routine(codeblock_t *block)
     lx_abs(block, 0, 0, 0x8b, REG_RDX, &rammask);
     rx_rr(block, 0, 0, 0x21, REG_RCX, REG_RDX); /*AND EDX, ECX*/
     rx_patch(rx_jmp(block), xlat_2_done);
+
+    /*Key mismatch, with ECX = pc and EDX = the CS base: if an entry of the
+      slot's set holds the key, it becomes the set's most recently used, its
+      record and the slot's trade places, and the checks go on with the slot
+      as if its key had matched. Otherwise a miss, before any store.
+
+      The slot's site is its offset / 104, which is exact, so (offset / 4)
+      times the inverse of 13 is 2 * site. The records are copied as words at
+      multiples of 8, so each of the routine's later loads of the slot reads
+      from one store.*/
+    rx_patch(key_miss[0], rx_here());
+    rx_patch(key_miss[1], rx_here());
+    /*R8 = pc | cs << 32, as a record holds them*/
+    rx_rr(block, 0, 1, 0x89, REG_RDX, REG_R8); /*MOV R8, RDX*/
+    host_x86_SHL64_IMM(block, REG_R8, 32);
+    rx_rr(block, 0, 1, 0x09, REG_RCX, REG_R8); /*OR R8, RCX*/
+    /*R9D = the number of the slot's set, which is not a set number unless
+      it is 1 to CODEGEN_LINK_SETS - 1*/
+    rx_rr(block, 0, 0, 0x89, REG_RBX, REG_R9); /*MOV R9D, EBX*/
+    rx_alu_ri(block, 0, 5, REG_R9, (uint32_t) (uintptr_t) codegen_link_slots);
+    rx_shift_ri(block, 5, REG_R9, 2);
+    rx_mov_ri(block, REG_R10, 0xc4ec4ec5);
+    rx_rr(block, 0, 0, 0x0faf, REG_R9, REG_R10); /*IMUL R9D, R10D*/
+    rx_mov_ri64(block, REG_R11, (uint64_t) (uintptr_t) codegen_link_site_set);
+    host_x86_MOVZX_BASE_INDEX_32_16(block, REG_R9, REG_R11, REG_R9);
+    rx_rr(block, 0, 0, 0x89, REG_R9, REG_R10); /*MOV R10D, R9D*/
+    rx_alu_ri(block, 0, 5, REG_R10, 1);
+    rx_alu_ri(block, 0, 7, REG_R10, CODEGEN_LINK_SETS - 2);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_A);
+    /*RDI = the set*/
+    rx_mov_ri(block, REG_R10, sizeof(codegen_link_set_t));
+    rx_rr(block, 0, 0, 0x0faf, REG_R9, REG_R10); /*IMUL R9D, R10D*/
+    rx_mov_ri64(block, REG_RDI, (uint64_t) (uintptr_t) codegen_link_sets);
+    rx_rr(block, 0, 1, 0x01, REG_R9, REG_RDI); /*ADD RDI, R9*/
+    /*ECX = the entry with the key, 3 if none*/
+    rx_mov_ri(block, REG_RCX, 3);
+    rx_rr(block, 0, 0, 0x31, REG_R12, REG_R12); /*XOR R12D, R12D*/
+    rx_mov_ri(block, REG_R13, 1);
+    rx_mov_ri(block, REG_R14, 2);
+    rx_rm(block, 0, 1, 0x3b, REG_R8, REG_RDI, LINK_SET_E(0) + LINK_SLOT(exit_pc));
+    rx_rr(block, 0, 0, 0x0f44, REG_RCX, REG_R12); /*CMOVE ECX, R12D*/
+    rx_rm(block, 0, 1, 0x3b, REG_R8, REG_RDI, LINK_SET_E(1) + LINK_SLOT(exit_pc));
+    rx_rr(block, 0, 0, 0x0f44, REG_RCX, REG_R13); /*CMOVE ECX, R13D*/
+    rx_rm(block, 0, 1, 0x3b, REG_R8, REG_RDI, LINK_SET_E(2) + LINK_SLOT(exit_pc));
+    rx_rr(block, 0, 0, 0x0f44, REG_RCX, REG_R14); /*CMOVE ECX, R14D*/
+    rx_alu_ri(block, 0, 7, REG_RCX, 3);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
+    /*order = codegen_link_set_mtf[order][ECX]*/
+    rx_rm(block, 0, 0, 0x0fb6, REG_RDX, REG_RDI, offsetof(codegen_link_set_t, order));
+    rx_shift_ri(block, 4, REG_RDX, 2);
+    rx_rr(block, 0, 0, 0x01, REG_RCX, REG_RDX); /*ADD EDX, ECX*/
+    rx_mov_ri64(block, REG_R13, (uint64_t) (uintptr_t) codegen_link_set_mtf);
+    host_x86_MOVZX_BASE_INDEX_32_8(block, REG_RDX, REG_R13, REG_RDX);
+    rx_rm(block, 0, 0, 0x88, REG_RDX, REG_RDI, offsetof(codegen_link_set_t, order)); /*MOV order, DL*/
+    /*R12 = the entry's record less LINK_SET_E(0)*/
+    rx_mov_ri(block, REG_R12, sizeof(codegen_link_slot_t));
+    rx_rr(block, 0, 0, 0x0faf, REG_R12, REG_RCX); /*IMUL R12D, ECX*/
+    rx_rr(block, 0, 1, 0x01, REG_RDI, REG_R12);   /*ADD R12, RDI*/
+    /*The two records trade places, five words at a time*/
+    for (int k = 0; k < (int) sizeof(codegen_link_slot_t); k += 40) {
+        static const int slot_regs[5]  = { REG_RAX, REG_RCX, REG_RDX, REG_RDI, REG_R8 };
+        static const int entry_regs[5] = { REG_R9, REG_R10, REG_R11, REG_R13, REG_R14 };
+        const int        nr            = ((int) sizeof(codegen_link_slot_t) - k) < 40 ? ((int) sizeof(codegen_link_slot_t) - k) / 8 : 5;
+
+        for (int c = 0; c < nr; c++)
+            rx_rm(block, 0, 1, 0x8b, slot_regs[c], REG_RBX, k + c * 8);
+        for (int c = 0; c < nr; c++)
+            rx_rm(block, 0, 1, 0x8b, entry_regs[c], REG_R12, LINK_SET_E(0) + k + c * 8);
+        for (int c = 0; c < nr; c++)
+            rx_rm(block, 0, 1, 0x89, entry_regs[c], REG_RBX, k + c * 8);
+        for (int c = 0; c < nr; c++)
+            rx_rm(block, 0, 1, 0x89, slot_regs[c], REG_R12, LINK_SET_E(0) + k + c * 8);
+    }
+    rx_rr(block, 0, 1, 0x89, REG_RBX, REG_RAX); /*MOV RAX, RBX*/
+    rx_patch(rx_jmp(block), key_done);
 
     if (nr_miss > LINK_MAX_MISS)
         fatal("build_link_routine - too many miss branches\n");

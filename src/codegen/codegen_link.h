@@ -46,10 +46,12 @@ typedef struct codegen_link_slot_t {
     uint8_t      top_mask;    /*7 if the block has a static TOP, otherwise 0*/
     uint8_t      top;         /*block->TOP if top_mask is 7, otherwise 0*/
     uint8_t      two_page;    /*1 if block->page_mask2 is set*/
-#ifdef CODEGEN_BACKEND_HAS_LINK_SETS
+#if defined(CODEGEN_BACKEND_HAS_LINK_SETS) && (defined(__aarch64__) || defined(_M_ARM64))
     /*In the padding of the word block_nr starts, which the routine's hit
       path tests only below bit 33. Every slot record of a set holds the
-      set's number, so a record keeps it right wherever it is copied.*/
+      set's number, so a record keeps it right wherever it is copied. There
+      is no room for it on x86-64, whose routine reads
+      codegen_link_site_set.*/
     uint16_t     set;         /*the exit's set in codegen_link_sets, 0 = none*/
 #endif
     uint64_t     page_mask;   /*block->page_mask*/
@@ -84,6 +86,13 @@ typedef struct codegen_link_set_t {
 extern codegen_link_set_t codegen_link_sets[CODEGEN_LINK_SETS];
 /*[order][n]: order after e[n] was used*/
 extern const uint8_t codegen_link_set_mtf[6][4];
+
+/*Per slot, indexed as codegen_link_slots[0][]: 0 = its target has not
+  changed since it was emptied, CODEGEN_LINK_SET_ONE = once, otherwise the
+  number of its set. A target that changes once, and then stays, gets no
+  set.*/
+#    define CODEGEN_LINK_SET_ONE 0xffff
+extern uint16_t codegen_link_site_set[BLOCK_SIZE * CODEGEN_LINK_SLOTS];
 #endif
 
 /*Byte offset of the link entry from &block->data[BLOCK_START]: the first

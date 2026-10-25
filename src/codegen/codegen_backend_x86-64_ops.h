@@ -188,6 +188,7 @@ void host_x86_SHL64_CL(codeblock_t *block, int dst_reg);
 void host_x86_SHL8_IMM(codeblock_t *block, int dst_reg, int shift);
 void host_x86_SHL16_IMM(codeblock_t *block, int dst_reg, int shift);
 void host_x86_SHL32_IMM(codeblock_t *block, int dst_reg, int shift);
+void host_x86_SHL64_IMM(codeblock_t *block, int dst_reg, int shift);
 
 void host_x86_SHR8_CL(codeblock_t *block, int dst_reg);
 void host_x86_SHR16_CL(codeblock_t *block, int dst_reg);

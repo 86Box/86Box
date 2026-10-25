@@ -1179,6 +1179,11 @@ host_x86_SHL32_IMM(codeblock_t *block, int dst_reg, int shift)
 {
     emit_shift_imm(block, 32, RM_OP_SHL, dst_reg, shift); /*SHL dst_reg, shift*/
 }
+void
+host_x86_SHL64_IMM(codeblock_t *block, int dst_reg, int shift)
+{
+    emit_ext(block, 0, 1, 0, 1, 0xc1, RM_OP_SHL, dst_reg, 1, shift); /*SHL dst_reg, shift (64-bit)*/
+}
 
 void
 host_x86_SHR8_CL(codeblock_t *block, int dst_reg)

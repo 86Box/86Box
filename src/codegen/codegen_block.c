@@ -268,18 +268,14 @@ const uint8_t codegen_link_set_mtf[6][4] = {
 /*The least recently used entry of each order*/
 static const uint8_t link_set_lru[6] = { 2, 1, 2, 0, 1, 0 };
 
-/*Per slot: 0 = its target has not changed since it was emptied, LINK_SET_ONE
-  = once, otherwise the number of its set. A target that changes once, and
-  then stays, gets no set.*/
-#        define LINK_SET_ONE 0xffff
-static uint16_t link_site_set[BLOCK_SIZE * CODEGEN_LINK_SLOTS];
+uint16_t        codegen_link_site_set[BLOCK_SIZE * CODEGEN_LINK_SLOTS];
 static uint16_t link_set_free[CODEGEN_LINK_SETS];
 static int      link_set_free_nr;
 
 static void
 link_sets_reset(void)
 {
-    memset(link_site_set, 0, sizeof(link_site_set));
+    memset(codegen_link_site_set, 0, sizeof(codegen_link_site_set));
     link_set_free_nr = 0;
     for (int c = CODEGEN_LINK_SETS - 1; c > 0; c--)
         link_set_free[link_set_free_nr++] = c;
@@ -288,9 +284,9 @@ link_sets_reset(void)
 static void
 link_site_release(int site)
 {
-    if (link_site_set[site] && (link_site_set[site] != LINK_SET_ONE))
-        link_set_free[link_set_free_nr++] = link_site_set[site];
-    link_site_set[site] = 0;
+    if (codegen_link_site_set[site] && (codegen_link_site_set[site] != CODEGEN_LINK_SET_ONE))
+        link_set_free[link_set_free_nr++] = codegen_link_site_set[site];
+    codegen_link_site_set[site] = 0;
 }
 
 /*The slot is about to be filled for a target at another key: keep the record
@@ -304,21 +300,23 @@ link_set_keep(codegen_link_slot_t *slot)
     codegen_link_set_t *set;
     int                 n;
 
-    if (!link_site_set[site]) {
-        link_site_set[site] = LINK_SET_ONE;
+    if (!codegen_link_site_set[site]) {
+        codegen_link_site_set[site] = CODEGEN_LINK_SET_ONE;
         return;
     }
-    if (link_site_set[site] == LINK_SET_ONE) {
+    if (codegen_link_site_set[site] == CODEGEN_LINK_SET_ONE) {
         if (!link_set_free_nr)
             return;
-        link_site_set[site] = link_set_free[--link_set_free_nr];
-        set                 = &codegen_link_sets[link_site_set[site]];
+        codegen_link_site_set[site] = link_set_free[--link_set_free_nr];
+        set                         = &codegen_link_sets[codegen_link_site_set[site]];
         memset(set, 0, sizeof(codegen_link_set_t));
-        slot->set = set->e[1].set = set->e[2].set = link_site_set[site];
+#        if defined(__aarch64__) || defined(_M_ARM64)
+        slot->set = set->e[1].set = set->e[2].set = codegen_link_site_set[site];
+#        endif
         set->e[0] = *slot;
         return;
     }
-    set = &codegen_link_sets[link_site_set[site]];
+    set = &codegen_link_sets[codegen_link_site_set[site]];
     for (n = 0; n < 3; n++) {
         if ((set->e[n].exit_pc == cpu_state.pc) && (set->e[n].exit_cs == cs))
             break;
