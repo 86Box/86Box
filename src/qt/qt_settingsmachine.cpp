@@ -28,7 +28,6 @@
 #include <QSignalBlocker>
 #include <QTimer>
 #include <QDate>
-#include <QGroupBox>
 
 #include <algorithm>
 
@@ -122,36 +121,22 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     ui->comboBoxPitMode->setCurrentIndex(-1);
     ui->comboBoxPitMode->setCurrentIndex(pit_mode + 1);
 
-    ui->checkBoxTimeSync->setToolTip(tr("Enable time synchronization"));
-    ui->checkBoxTimeOffset->setToolTip(tr("Adjust the guest year"));
+    auto *timeSyncModel = ui->comboBoxTimeSync->model();
+    timeSyncModel->insertRows(0, 3);
+    idx = timeSyncModel->index(0, 0);
+    timeSyncModel->setData(idx, tr("Disabled"), Qt::DisplayRole);
+    timeSyncModel->setData(idx, TIME_SYNC_DISABLED, Qt::UserRole);
+    idx = timeSyncModel->index(1, 0);
+    timeSyncModel->setData(idx, tr("Local time"), Qt::DisplayRole);
+    timeSyncModel->setData(idx, TIME_SYNC_ENABLED, Qt::UserRole);
+    idx = timeSyncModel->index(2, 0);
+    timeSyncModel->setData(idx, tr("UTC"), Qt::DisplayRole);
+    timeSyncModel->setData(idx, TIME_SYNC_ENABLED | TIME_SYNC_UTC, Qt::UserRole);
 
-    /* Make the group titles act as labels for the external checkboxes:
-       clicking a title toggles its checkbox. The built-in indicator is
-       hidden so only the external checkbox is shown. */
-    const QString hideIndicator = QStringLiteral(
-        "QGroupBox::indicator { width: 0px; height: 0px; }");
-    for (auto *box : {ui->groupBoxTimeSync, ui->groupBoxTimeOffset}) {
-        box->setCheckable(true);
-        box->setStyleSheet(hideIndicator);
-    }
-    connect(ui->groupBoxTimeSync, &QGroupBox::toggled, this, [this](bool checked) {
-        const QSignalBlocker blocker(ui->checkBoxTimeSync);
-        ui->checkBoxTimeSync->setChecked(checked);
-        updateTimeControlsEnabled();
-    });
-    connect(ui->groupBoxTimeOffset, &QGroupBox::toggled, this, [this](bool checked) {
-        const QSignalBlocker blocker(ui->checkBoxTimeOffset);
-        ui->checkBoxTimeOffset->setChecked(checked);
-        updateTimeControlsEnabled();
-    });
-
-    const bool sync_enabled = (time_sync & TIME_SYNC_ENABLED) != 0;
-    ui->checkBoxTimeSync->setChecked(sync_enabled);
-    ui->groupBoxTimeSync->setChecked(sync_enabled);
-    if (time_sync & TIME_SYNC_UTC)
-        ui->radioButtonUTC->setChecked(true);
-    else
-        ui->radioButtonLocalTime->setChecked(true);
+    int time_sync_index = 0;
+    if (time_sync & TIME_SYNC_ENABLED)
+        time_sync_index = (time_sync & TIME_SYNC_UTC) ? 2 : 1;
+    ui->comboBoxTimeSync->setCurrentIndex(time_sync_index);
 
     /* Clamp so the resulting year stays in 1980..2099. Config may hold
        a wider range; the spinner shows the clamped value, but the
@@ -186,9 +171,6 @@ SettingsMachine::SettingsMachine(QWidget *parent)
         ui->spinBoxFixedYear->setValue(fixed_value);
     }
 
-    const bool adjust = (time_fixed_year != 0) || (time_offset_years != 0);
-    ui->checkBoxTimeOffset->setChecked(adjust);
-    ui->groupBoxTimeOffset->setChecked(adjust);
     if (time_fixed_year != 0)
         ui->radioButtonFixedYear->setChecked(true);
     else
@@ -267,27 +249,20 @@ SettingsMachine::changed()
 
     has_changed |= (pit_mode                   !=  ui->comboBoxPitMode->currentData().toInt());
 
-    temp = 0;
-    if (ui->checkBoxTimeSync->isChecked()) {
-        temp = TIME_SYNC_ENABLED;
-        if (ui->radioButtonUTC->isChecked())
-            temp |= TIME_SYNC_UTC;
-    }
+    temp = ui->comboBoxTimeSync->currentData().toInt();
     has_changed |= (time_sync != temp);
 
     int effective_offset = 0;
     int effective_fixed  = 0;
-    if (ui->checkBoxTimeOffset->isChecked()) {
-        if (ui->radioButtonFixedYear->isChecked())
-            effective_fixed = fixed_year_manipulated
-                                  ? ui->spinBoxFixedYear->value()
-                                  : (original_fixed_year != 0 ? original_fixed_year
-                                                             : ui->spinBoxFixedYear->value());
-        else
-            effective_offset = years_offset_manipulated
-                                   ? ui->spinBoxYearsOffset->value()
-                                   : original_years_offset;
-    }
+    if (ui->radioButtonFixedYear->isChecked())
+        effective_fixed = fixed_year_manipulated
+                              ? ui->spinBoxFixedYear->value()
+                              : (original_fixed_year != 0 ? original_fixed_year
+                                                         : ui->spinBoxFixedYear->value());
+    else if (ui->radioButtonOffsetYears->isChecked())
+        effective_offset = years_offset_manipulated
+                               ? ui->spinBoxYearsOffset->value()
+                               : original_years_offset;
     has_changed |= (time_offset_years != effective_offset);
     has_changed |= (time_fixed_year   != effective_fixed);
 
@@ -348,17 +323,10 @@ SettingsMachine::save(int soft)
 
     pit_mode = ui->comboBoxPitMode->currentData().toInt();
 
-    time_sync = 0;
-    if (ui->checkBoxTimeSync->isChecked()) {
-        time_sync = TIME_SYNC_ENABLED;
-        if (ui->radioButtonUTC->isChecked())
-            time_sync |= TIME_SYNC_UTC;
-    }
+    time_sync = ui->comboBoxTimeSync->currentData().toInt();
 
-    if (!ui->checkBoxTimeOffset->isChecked()) {
-        time_offset_years = 0;
-        time_fixed_year   = 0;
-    } else if (ui->radioButtonFixedYear->isChecked()) {
+
+    if (ui->radioButtonFixedYear->isChecked()) {
         time_fixed_year = fixed_year_manipulated
                               ? ui->spinBoxFixedYear->value()
                               : (original_fixed_year != 0 ? original_fixed_year
@@ -638,19 +606,11 @@ SettingsMachine::updateGuestYearLabel()
 void
 SettingsMachine::updateTimeControlsEnabled()
 {
-    /* Groups stay enabled so their titles remain clickable and can turn
-       the checkbox back on. A checkable group already disables its
-       children while unchecked. */
-    const bool sync = ui->checkBoxTimeSync->isChecked();
-    ui->groupBoxTimeSync->setEnabled(true);
-
-    const bool adjust = sync && ui->checkBoxTimeOffset->isChecked();
-    /* Inner group is only reachable when synchronization itself is on. */
+    const bool sync = ui->comboBoxTimeSync->currentData().toInt() != TIME_SYNC_DISABLED;
     ui->groupBoxTimeOffset->setEnabled(sync);
-    ui->checkBoxTimeOffset->setEnabled(sync);
 
-    const bool offset_mode = adjust && ui->radioButtonOffsetYears->isChecked();
-    const bool fixed_mode  = adjust && ui->radioButtonFixedYear->isChecked();
+    const bool offset_mode = sync && ui->radioButtonOffsetYears->isChecked();
+    const bool fixed_mode  = sync && ui->radioButtonFixedYear->isChecked();
     ui->spinBoxYearsOffset->setEnabled(offset_mode);
     ui->labelGuestYear->setEnabled(offset_mode);
     ui->spinBoxFixedYear->setEnabled(fixed_mode);
@@ -672,18 +632,9 @@ SettingsMachine::on_spinBoxFixedYear_valueChanged(int value)
 }
 
 void
-SettingsMachine::on_checkBoxTimeSync_toggled(bool checked)
+SettingsMachine::on_comboBoxTimeSync_currentIndexChanged(int index)
 {
-    const QSignalBlocker blocker(ui->groupBoxTimeSync);
-    ui->groupBoxTimeSync->setChecked(checked);
-    updateTimeControlsEnabled();
-}
-
-void
-SettingsMachine::on_checkBoxTimeOffset_toggled(bool checked)
-{
-    const QSignalBlocker blocker(ui->groupBoxTimeOffset);
-    ui->groupBoxTimeOffset->setChecked(checked);
+    Q_UNUSED(index);
     updateTimeControlsEnabled();
 }
 

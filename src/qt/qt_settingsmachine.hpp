@@ -41,10 +41,9 @@ private slots:
 
     void on_radioButtonLargerFrames_clicked();
 
+    void on_comboBoxTimeSync_currentIndexChanged(int index);
     void on_spinBoxYearsOffset_valueChanged(int value);
     void on_spinBoxFixedYear_valueChanged(int value);
-    void on_checkBoxTimeSync_toggled(bool checked);
-    void on_checkBoxTimeOffset_toggled(bool checked);
     void on_radioButtonOffsetYears_toggled(bool checked);
     void on_radioButtonFixedYear_toggled(bool checked);
 
