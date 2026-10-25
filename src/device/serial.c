@@ -452,7 +452,8 @@ serial_reset_fifo(serial_t *dev)
     fifo_reset_evt(dev->xmit_fifo);
     fifo_reset_evt(dev->rcvr_fifo);
 
-    serial_update_ints(dev);
+    /* Nothing left in the receiver FIFO to time out. */
+    serial_clear_timeout(dev);
 }
 
 void
@@ -629,6 +630,9 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                         fifo_reset_evt(dev->rcvr_fifo);
                     else
                         fifo_reset(dev->rcvr_fifo);
+                    /* The 16550 only signals a character timeout while
+                       the receiver FIFO holds data. */
+                    serial_clear_timeout(dev);
                 }
                 if (val & 0x04) {
                     if (dev->fifo_enabled)
