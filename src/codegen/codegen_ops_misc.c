@@ -1351,11 +1351,14 @@ ropWAIT(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
 static uint32_t
 rop0F01_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
-    const uint32_t reg = fetchdat & 0x38;
-    x86seg        *target_seg;
+    const uint32_t reg        = fetchdat & 0x38;
+    x86seg        *target_seg = NULL;
     int            seg_nr;
 
     codegen_mark_code_present(block, cs + op_pc, 1);
+    /*The op's fetch_ea comes first: its displacement's walk, then every test*/
+    if ((fetchdat & 0xc0) != 0xc0)
+        target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
     if ((reg == 0x28) || ((reg == 0x38) && !is486 && !isibm486) || (((fetchdat & 0xc0) == 0xc0) && (reg != 0x20) && (reg != 0x30)))
         return codegen_ud(ir);
 
@@ -1370,7 +1373,6 @@ rop0F01_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op
         if ((fetchdat & 0xc0) == 0xc0)
             uop_MOV(ir, IREG_16(fetchdat & 7), IREG_temp0_W);
         else {
-            target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
             codegen_check_seg_write(block, ir, target_seg);
             CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
             uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp0_W);
@@ -1399,7 +1401,6 @@ rop0F01_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op
         if ((fetchdat & 0xc0) == 0xc0)
             uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_16(fetchdat & 7));
         else {
-            target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
             if (target_seg != &cpu_state.seg_cs) /*the op tests for the null selector only: an execute-only CS is read*/
                 codegen_check_seg_read(block, ir, target_seg);
             CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
@@ -1414,7 +1415,6 @@ rop0F01_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op
         return op_pc + 1;
     }
 
-    target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
     if (reg == 0x38) {
         /*INVLPG: the address is not used, as in the op*/
         uop_CALL_FUNC(ir, flushmmucache_pc);
