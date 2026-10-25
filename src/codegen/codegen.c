@@ -28,6 +28,7 @@ static struct {
     x86seg  *op_ea_seg;
     uint32_t op_32;
     int      first_uop;
+    int      first_timing;
     int      TOP;
     int      fpu_entered;  /*codegen_fpu_entered as the instruction was compiled*/
     int      fpu_es_check; /*codegen_fpu_es_check as the instruction was compiled*/
@@ -81,6 +82,12 @@ codegen_set_loop_start(ir_data_t *ir, int first_instruction)
     uop_MOV_IMM(ir, IREG_ssegs, codegen_instructions[first_instruction].op_ssegs);
 }
 
+int
+codegen_get_loop_timing(int first_instruction)
+{
+    return codegen_instructions[first_instruction].first_timing;
+}
+
 int has_ea;
 extern uint32_t codegen_endpc;
 
@@ -93,6 +100,8 @@ void (*codegen_timing_opcode)(uint8_t opcode, uint32_t fetchdat, int op_32, uint
 void (*codegen_timing_block_start)(void);
 void (*codegen_timing_block_end)(void);
 int (*codegen_timing_jump_cycles)(void);
+void (*codegen_timing_save)(codegen_timing_state_t *state);
+void (*codegen_timing_load)(const codegen_timing_state_t *state);
 
 void
 codegen_timing_set(codegen_timing_t *timing)
@@ -103,6 +112,8 @@ codegen_timing_set(codegen_timing_t *timing)
     codegen_timing_block_start = timing->block_start;
     codegen_timing_block_end   = timing->block_end;
     codegen_timing_jump_cycles = timing->jump_cycles;
+    codegen_timing_save        = timing->save;
+    codegen_timing_load        = timing->load;
 }
 
 int codegen_in_recompile;
@@ -717,6 +728,20 @@ void
 codegen_exit_stamp(ir_data_t *ir, int held)
 {
     ir->uops[ir->wr_pos - 1].imm_data2 = codegen_exit_cycles(held);
+    codegen_record_exit(ir->wr_pos - 1, held);
+}
+
+void
+codegen_record_exit(int pos, int held)
+{
+    codegen_accumulate_record(ACC_EXIT, pos, held, 0, 0, 0);
+}
+
+void
+codegen_record_route(int pos, void *p)
+{
+    if ((p == codegen_exit_rout) || (p == codegen_gpf_rout) || (p == codegen_ss_rout))
+        codegen_accumulate_record(ACC_ROUTE, pos, 0, 0, 0, 0);
 }
 
 /* The x87 instruction being compiled, as the interpreter runs it (set
@@ -1095,6 +1120,8 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
 
     codegen_timing_start();
 
+    codegen_instructions[block->ins].first_timing = codegen_accumulate_record(ACC_START, 0, 0, 0, 0, 0);
+
     while (!over) {
         switch (opcode) {
             case 0x0f:
@@ -1305,6 +1332,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
         }
         fetchdat = codegen_fetchl_lookahead(cs + op_pc);
         codegen_timing_prefix(opcode, fetchdat);
+        codegen_accumulate_record(ACC_PREFIX, 0, opcode, fetchdat, 0, 0);
         if (cpu_state.abrt)
             return;
         opcode = fetchdat & 0xff;
@@ -1387,9 +1415,9 @@ generate_call:
     codegen_instructions[block->ins].mmx_entered  = codegen_mmx_entered;
 
     codegen_timing_opcode(opcode, fetchdat, op_32, op_pc);
+    codegen_accumulate_record(ACC_OPCODE, 0, opcode, fetchdat, op_32, op_pc);
 
-    codegen_accumulate(ir, ACCREG_cycles, -codegen_block_cycles);
-    codegen_block_cycles = 0;
+    codegen_accumulate_timing(ir);
 
     if ((op_table == x86_dynarec_opcodes && ((opcode & 0xf0) == 0x70 || (opcode & 0xfc) == 0xe0 || opcode == 0xc2 || (opcode & 0xfe) == 0xca || (opcode & 0xfc) == 0xcc || (opcode & 0xfc) == 0xe8 || (opcode == 0xff && ((fetchdat & 0x38) >= 0x10 && (fetchdat & 0x38) < 0x30)))) || (op_table == x86_dynarec_opcodes_0f && ((opcode & 0xf0) == 0x80))) {
         /*On some CPUs (eg K6), a jump/branch instruction may be able to pair with
@@ -1402,11 +1430,9 @@ generate_call:
         else if (((op_table == x86_dynarec_opcodes) && ((opcode & 0xf0) == 0x70)) || ((op_table == x86_dynarec_opcodes_0f) && ((opcode & 0xf0) == 0x80)))
             jump_cycles = timing_bt; /*A Jcc taken: timing_bt more than the timing_bnt charged, as the interpreter (opJ*)*/
 
-        if (jump_cycles)
-            codegen_accumulate(ir, ACCREG_cycles, -jump_cycles);
+        codegen_accumulate_jump(ir, -1, jump_cycles);
         codegen_accumulate_flush(ir);
-        if (jump_cycles)
-            codegen_accumulate(ir, ACCREG_cycles, jump_cycles);
+        codegen_accumulate_jump(ir, 1, jump_cycles);
     }
 
     /*Only on a processor with 3DNow!: on the others 0F 0F is ILLEGAL in its
@@ -1536,15 +1562,9 @@ generate_call:
         codegen_fpu_pointers_recorded = 0;
         codegen_instr_pc              = old_pc;
         codegen_fetch_walk_fpu        = is_fpu;
-        const int unrolled            = codegen_ir_unrolling();
         const int first_uop           = ir->wr_pos;
-
         new_pc = recomp_op_table[(opcode | op_32) & recomp_opcode_mask](block, ir, opcode, fetchdat, op_32, op_pc);
         codegen_fetch_walk_fpu = 0;
-        /*A loop this jump unrolled goes on through the taken path, so the
-          refund for the jump not taken above does not apply*/
-        if (jump_cycles && !unrolled && codegen_ir_unrolling())
-            codegen_accumulate(ir, ACCREG_cycles, -jump_cycles);
         /* The FPU's pointers for a compiled instruction, unless its handler
            recorded them; one the recompiler left alone has them done ahead
            of its handler call below */

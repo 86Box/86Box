@@ -8,6 +8,7 @@
 #include "codegen_allocator.h"
 #include "codegen_backend.h"
 #include "codegen_ir.h"
+#include "codegen_accumulate.h"
 #include "codegen_reg.h"
 
 extern int       has_ea;
@@ -16,6 +17,9 @@ static ir_data_t ir_block;
 static int codegen_unroll_start;
 static int codegen_unroll_count;
 static int codegen_unroll_first_instruction;
+static int codegen_unroll_branch;
+
+extern int codegen_get_loop_timing(int first_instruction);
 
 ir_data_t *
 codegen_ir_init(void)
@@ -23,6 +27,7 @@ codegen_ir_init(void)
     ir_block.wr_pos = 0;
 
     codegen_unroll_count = 0;
+    codegen_accumulate_begin();
 
     return &ir_block;
 }
@@ -39,6 +44,7 @@ codegen_ir_set_unroll(int count, int start, int first_instruction)
     codegen_unroll_count             = count;
     codegen_unroll_start             = start;
     codegen_unroll_first_instruction = first_instruction;
+    codegen_unroll_branch            = ir_block.wr_pos;
 }
 
 static void
@@ -77,9 +83,11 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
 
     if (codegen_unroll_count) {
         int unroll_end;
+        int taken_cycles;
 
         codegen_set_loop_start(ir, codegen_unroll_first_instruction);
         unroll_end = ir->wr_pos;
+        taken_cycles = codegen_accumulate_unroll(ir, codegen_get_loop_timing(codegen_unroll_first_instruction), codegen_unroll_start, codegen_unroll_branch);
 
         for (int unroll_count = 1; unroll_count < codegen_unroll_count; unroll_count++) {
             int offset = ir->wr_pos - codegen_unroll_start;
@@ -87,7 +95,10 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
             for (c = codegen_unroll_start; c < unroll_end; c++) {
                 //                                pclog(" Duplicate uop %i\n", c);
                 duplicate_uop(ir, &ir->uops[c], offset);
+                codegen_accumulate_copy(ir, c);
             }
+            if (taken_cycles)
+                uop_ADD_IMM(ir, IREG_cycles, IREG_cycles, taken_cycles);
         }
     }
 

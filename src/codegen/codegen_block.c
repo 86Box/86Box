@@ -1257,8 +1257,9 @@ codegen_block_end_recompile(codeblock_t *block)
 {
     uint64_t page_mask2_compiled = block->page_mask2;
 
+    codegen_accumulate_record(ACC_END, 0, 0, 0, 0, 0);
     codegen_timing_block_end();
-    codegen_accumulate(ir_data, ACCREG_cycles, -codegen_block_cycles);
+    codegen_accumulate_timing(ir_data);
 
     if (block->flags & CODEBLOCK_IN_DIRTY_LIST)
         block_dirty_list_remove(block);
@@ -1272,7 +1273,10 @@ codegen_block_end_recompile(codeblock_t *block)
     if (!(block->flags & CODEBLOCK_HAS_FPU))
         block->flags &= ~CODEBLOCK_STATIC_TOP;
 
-    codegen_accumulate_flush(ir_data);
+    /*The unrolled branch falls through when taken. Only its not-taken
+      exit owes the drain and the branch credit.*/
+    if (!codegen_ir_unrolling())
+        codegen_accumulate_flush(ir_data);
     codegen_ir_compile(ir_data, block);
 #ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     codegen_link_block_changed(block);

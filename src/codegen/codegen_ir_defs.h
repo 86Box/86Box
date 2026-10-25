@@ -480,6 +480,8 @@ typedef struct ir_data_t {
    exit path the backend charges (codegen.c) */
 extern int  codegen_exit_cycles(int held);
 extern void codegen_exit_stamp(ir_data_t *ir, int held);
+extern void codegen_record_exit(int pos, int held);
+extern void codegen_record_route(int pos, void *p);
 
 /* Whether the exits taken on a fault, or to run an instruction again,
    charge the timing model's held cycle too */
@@ -533,6 +535,8 @@ uop_alloc(ir_data_t *ir, uint32_t uop_type)
 
     uop->is_a16     = 0;
     uop->imm_data2  = uop_type_can_fault(uop_type) ? codegen_exit_cycles(EXIT_FAULT_HELD) : 0;
+    if (uop_type_can_fault(uop_type))
+        codegen_record_exit(ir->wr_pos - 1, EXIT_FAULT_HELD);
 
     uop->dest_reg_a = invalid_ir_reg;
     uop->src_reg_a  = invalid_ir_reg;
@@ -807,6 +811,7 @@ uop_gen_imm2(uint32_t uop_type, ir_data_t *ir, uint32_t imm, int imm2)
     uop->type      = uop_type;
     uop->imm_data  = imm;
     uop->imm_data2 = imm2;
+    codegen_record_exit(ir->wr_pos - 1, EXIT_FAULT_HELD);
 }
 
 static inline void
@@ -816,6 +821,8 @@ uop_gen_pointer(uint32_t uop_type, ir_data_t *ir, void *p)
 
     uop->type = uop_type;
     uop->p    = p;
+    if ((uop_type & UOP_MASK) == (UOP_JMP & UOP_MASK))
+        codegen_record_route(ir->wr_pos - 1, p);
 }
 
 static inline void

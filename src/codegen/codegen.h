@@ -405,6 +405,16 @@ extern void (*codegen_timing_block_start)(void);
 extern void (*codegen_timing_block_end)(void);
 extern int (*codegen_timing_jump_cycles)(void);
 
+/*What a model's block start keeps from the block before*/
+typedef struct codegen_timing_state_t {
+    uint32_t regmask_modified;
+    int      fpu_latency;
+    int      fpu_st_latency[8];
+} codegen_timing_state_t;
+
+extern void (*codegen_timing_save)(codegen_timing_state_t *state);
+extern void (*codegen_timing_load)(const codegen_timing_state_t *state);
+
 typedef struct codegen_timing_t {
     void (*start)(void);
     void (*prefix)(uint8_t prefix, uint32_t fetchdat);
@@ -412,6 +422,10 @@ typedef struct codegen_timing_t {
     void (*block_start)(void);
     void (*block_end)(void);
     int (*jump_cycles)(void);
+    /*save copies the kept state out, load sets it, or clears it when given
+      NULL. NULL where block start clears it all*/
+    void (*save)(codegen_timing_state_t *state);
+    void (*load)(const codegen_timing_state_t *state);
 } codegen_timing_t;
 
 extern codegen_timing_t codegen_timing_pentium;
