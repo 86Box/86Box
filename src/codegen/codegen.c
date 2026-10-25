@@ -345,11 +345,15 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                 break;
         }
         if (stack_offset && (sib & 7) == 4 && (cpu_mod || (sib & 7) != 5)) { /*ESP*/
-            uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, stack_offset);
-#if 0
-            addbyte(0x05);
-            addlong(stack_offset);
-#endif
+            if (cpu_cur_status & CPU_STATUS_STACK32)
+                uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, stack_offset);
+            else {
+                /*The pop wraps SP before the 32-bit EA adds its displacement*/
+                uop_MOV(ir, IREG_temp0, IREG_ESP);
+                uop_ADD_IMM(ir, IREG_temp0_W, IREG_temp0_W, stack_offset);
+                uop_SUB(ir, IREG_temp0, IREG_temp0, IREG_ESP);
+                uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
+            }
         }
         if (((sib & 7) == 4 || (cpu_mod && (sib & 7) == 5)) && !op_ssegs)
             op_ea_seg = &cpu_state.seg_ss;
