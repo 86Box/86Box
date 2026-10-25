@@ -927,7 +927,7 @@ video_init(void)
 
     video_8togs = calloc(4, 256);
     for (uint16_t c = 0; c < 256; c++)
-        video_8togs[c] = c | (c << 16) | (c << 24);
+        video_8togs[c] = c | (c << 8) | (c << 16);
 
     video_8to32 = calloc(4, 256);
     for (uint16_t c = 0; c < 256; c++)
