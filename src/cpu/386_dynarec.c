@@ -588,7 +588,7 @@ exec386_dynarec_int(void)
 /* dbg is the dispatch loop's constant: with the option on, the mark and
    compile passes clear RF before each instruction and after it unless the
    op keeps it (rf_flag_no_clear), as the interpreted loop does; compiled
-   code clears it as the block starts (codegen_block_start_recompile()). */
+   code clears it after the first opcode fetch (codegen_generate_call()). */
 #if defined(__linux__) && !defined(__clang__)
 static inline void __attribute__((optimize("O2")))
 #else

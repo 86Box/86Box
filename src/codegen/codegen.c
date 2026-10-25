@@ -1078,6 +1078,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     uint32_t     fetchdat_pc;
     uint32_t     fetch_walk         = 0;
     int          fetch_walk_valid   = codegen_fetch_reach(block, cs + old_pc, (opcode_length[opcode] > 2) ? 4 : opcode_length[opcode], &fetch_walk);
+    const int    first_fetch_walk   = fetch_walk_valid;
     int          walk_cycles        = 0;
     uint32_t     lock_pc            = 0;
     int          lock_cycles        = 0;
@@ -1362,6 +1363,17 @@ generate_call:
             fetch_walk_valid = 1;
             walk_cycles      = lock_walk_cycles;
         }
+    }
+    /*RF survives a fault in the first opcode fetch, but is cleared before
+      a prefix can fetch again. The option changes only through a hard reset*/
+    if (!block->ins && cpu_debug_regs_486) {
+        if (first_fetch_walk && !codegen_page2_walked)
+            codegen_fetch_walk(fetch_walk);
+        uop_AND_IMM(ir, IREG_eflags, IREG_eflags, ~RF_FLAG);
+        /*A loop at the block's head does not repeat the entry clear. A head
+          with a fetch walk cannot be unrolled (codegen_can_unroll_full)*/
+        if (!first_fetch_walk)
+            codegen_instructions[block->ins].first_uop = ir->wr_pos;
     }
     /*Its #PF leaves with the cycles of the prefixes the interpreter ran
       before that fetch; the path that goes on charges them with the rest*/

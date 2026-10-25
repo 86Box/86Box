@@ -1093,15 +1093,6 @@ codegen_block_start_recompile(codeblock_t *block)
     codegen_reg_reset();
     codegen_accumulate_reset();
     codegen_generate_reset();
-
-    /* With the 486 debug registers option the interpreted loop clears RF
-       before each instruction. The compiled instructions that can set it
-       (IRET, a task switch) end their block, so one clear ahead of the
-       first instruction covers the block's compiled code; a linked entry
-       runs it too. The option changes only through a hard reset, which
-       flushes every block. */
-    if (cpu_debug_regs_486)
-        uop_AND_IMM(ir_data, IREG_eflags, IREG_eflags, ~RF_FLAG);
 }
 
 void
