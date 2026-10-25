@@ -102,6 +102,7 @@ void host_arm64_CSEL_CC(codeblock_t *block, int dst_reg, int src_n_reg, int src_
 void host_arm64_CSEL_EQ(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_CSEL_GT(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_CSEL_LT(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_CSELX_EQ(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_CSEL_NE(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_CSEL_VS(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 
@@ -254,6 +255,7 @@ void host_arm64_SSHR_V2S(codeblock_t *block, int dst_reg, int src_reg, int shift
 void host_arm64_SSHR_V2D(codeblock_t *block, int dst_reg, int src_reg, int shift);
 void host_arm64_SRSHR_V4S(codeblock_t *block, int dst_reg, int src_reg, int shift);
 
+void host_arm64_STP_IMM_X(codeblock_t *block, int src_reg1, int src_reg2, int base_reg, int offset);
 void host_arm64_STP_PREIDX_X(codeblock_t *block, int src_reg1, int src_reg2, int base_reg, int offset);
 void host_arm64_STP_POSTIDX_X(codeblock_t *block, int src_reg1, int src_reg2, int base_reg, int offset);
 

@@ -46,6 +46,12 @@ typedef struct codegen_link_slot_t {
     uint8_t      top_mask;    /*7 if the block has a static TOP, otherwise 0*/
     uint8_t      top;         /*block->TOP if top_mask is 7, otherwise 0*/
     uint8_t      two_page;    /*1 if block->page_mask2 is set*/
+#ifdef CODEGEN_BACKEND_HAS_LINK_SETS
+    /*In the padding of the word block_nr starts, which the routine's hit
+      path tests only below bit 33. Every slot record of a set holds the
+      set's number, so a record keeps it right wherever it is copied.*/
+    uint16_t     set;         /*the exit's set in codegen_link_sets, 0 = none*/
+#endif
     uint64_t     page_mask;   /*block->page_mask*/
     uint64_t    *dirty_mask;  /*block->dirty_mask*/
 } codegen_link_slot_t;
@@ -56,6 +62,29 @@ extern uint64_t tsc_old;
 
 /*Indexed by the number of the block whose exit uses them.*/
 extern codegen_link_slot_t codegen_link_slots[BLOCK_SIZE][CODEGEN_LINK_SLOTS];
+
+#ifdef CODEGEN_BACKEND_HAS_LINK_SETS
+/*A slot whose target changed more than once gets a set holding the three
+  records it held most recently before its current one. After a key
+  mismatch the routine looks for the target there and, if it is found,
+  swaps that record with the slot's and goes on with the same checks; the
+  slot always holds the target its exit last went to, so a set changes
+  nothing for an exit that matches the slot. Records are only ever made by
+  codegen_link_patch() and copied whole, and none of their fields depends on
+  where they sit.*/
+#    define CODEGEN_LINK_SETS 16384
+
+typedef struct codegen_link_set_t {
+    uint8_t             order;   /*codegen_link_set_mtf state*/
+    uint8_t             pad[7];
+    codegen_link_slot_t e[3];
+} codegen_link_set_t;
+
+/*Number 0 is never used*/
+extern codegen_link_set_t codegen_link_sets[CODEGEN_LINK_SETS];
+/*[order][n]: order after e[n] was used*/
+extern const uint8_t codegen_link_set_mtf[6][4];
+#endif
 
 /*Byte offset of the link entry from &block->data[BLOCK_START]: the first
   instruction after the prologue's register saves.*/

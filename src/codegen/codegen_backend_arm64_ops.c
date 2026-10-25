@@ -83,6 +83,7 @@
 #    define OPCODE_LDP_IMM_X          (0x2a5 << 22)
 #    define OPCODE_LDP_POSTIDX_X      (0x2a3 << 22)
 #    define OPCODE_SBFX               (0x04c << 22)
+#    define OPCODE_STP_IMM_X          (0x2a4 << 22)
 #    define OPCODE_STP_PREIDX_X       (0x2a6 << 22)
 #    define OPCODE_STP_POSTIDX_X      (0x2a2 << 22)
 #    define OPCODE_STR_IMM_W          (0x2e4 << 22)
@@ -1058,6 +1059,11 @@ host_arm64_CSEL_EQ(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg
     codegen_addlong(block, OPCODE_CSEL | CSEL_COND(COND_EQ) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
 }
 void
+host_arm64_CSELX_EQ(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_CSEL | (1u << 31) | CSEL_COND(COND_EQ) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+void
 host_arm64_CSEL_NE(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_CSEL | CSEL_COND(COND_NE) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
@@ -1761,6 +1767,13 @@ host_arm64_SRSHR_V4S(codeblock_t *block, int dst_reg, int src_n_reg, int shift)
     codegen_addlong(block, OPCODE_SRSHR_VQ | Rd(dst_reg) | Rn(src_n_reg) | SHIFT_IMM_V2S(32 - shift));
 }
 
+void
+host_arm64_STP_IMM_X(codeblock_t *block, int src_reg1, int src_reg2, int base_reg, int offset)
+{
+    if (!in_range7_x(offset))
+        fatal("host_arm64_STP_IMM_X out of range7 %i\n", offset);
+    codegen_addlong(block, OPCODE_STP_IMM_X | IMM7_X(offset) | Rn(base_reg) | Rt(src_reg1) | Rt2(src_reg2));
+}
 void
 host_arm64_STP_PREIDX_X(codeblock_t *block, int src_reg1, int src_reg2, int base_reg, int offset)
 {

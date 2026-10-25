@@ -85,6 +85,9 @@ static void *codegen_link_rout;
 static void *codegen_link_miss_rout;
 /*Exits emitted so far for the block being compiled; each gets its own slot*/
 static int link_site;
+/*The routine's branch to the set lookup, and where that comes back to*/
+static uint32_t *link_set_branch;
+static uint8_t  *link_set_return;
 #    endif
 
 host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS] = {
@@ -1129,6 +1132,7 @@ build_link_routine(codeblock_t *block)
     uint8_t  *start_data;
     uint32_t *miss[LINK_MAX_MISS];
     int       nr_miss = 0;
+    uint32_t *key_miss;
     uint32_t *nmi_set;
     uint32_t *nmi_ok;
     uint32_t *irq_ok;
@@ -1178,7 +1182,8 @@ build_link_routine(codeblock_t *block)
     host_arm64_ADD_REG(block, REG_W2, REG_W2, REG_W3, 0);
     host_arm64_MOVX_REG(block, REG_X1, REG_X0, 0);
     host_arm64_CMPX_REG(block, REG_X5, REG_X4);
-    miss[nr_miss++] = host_arm64_BNE_SHORT_(block);
+    key_miss        = host_arm64_BNE_SHORT_(block);
+    link_set_return = &block_write_data[block_pos];
     miss[nr_miss++] = host_arm64_CBZ_SHORT_(block, REG_X15);
 
     /*Target not freed or changed since the slot was filled. W6 = the slot's
@@ -1360,6 +1365,11 @@ build_link_routine(codeblock_t *block)
     miss_dest = &block_write_data[block_pos];
     host_arm64_B(block, codegen_link_miss_rout);
 
+    /*Key mismatch: the slot's set (build_link_set_routine), in another
+      allocator block*/
+    host_arm64_short_branch_set_offset(key_miss, &block_write_data[block_pos]);
+    link_set_branch = host_arm64_B_(block);
+
     /*nmi set: miss if nmi_mask, or bit 1 (an NMI from the local APIC, not
       gated by port 70h), and nmi_enable too. W12 = nmi*/
     host_arm64_short_branch_set_offset(nmi_set, &block_write_data[block_pos]);
@@ -1455,6 +1465,124 @@ build_link_routine(codeblock_t *block)
         fatal("build_link_routine - routine does not fit in one allocator block\n");
     for (int c = 0; c < nr_miss; c++)
         host_arm64_short_branch_set_offset(miss[c], miss_dest);
+}
+
+_Static_assert(offsetof(codegen_link_slot_t, set) == 86 && offsetof(codegen_link_slot_t, page_mask) == 88
+                   && sizeof(codegen_link_slot_t) == 104 && sizeof(codegen_link_set_t) == 320,
+               "the set lookup copies a slot as the words below, and finds a set as 320 * its number");
+#        define LINK_SET_E(n) ((int) offsetof(codegen_link_set_t, e[n]))
+
+/*Entered from the link routine when the slot's key does not match, with X0 =
+  X1 = the slot, W2 = cs + pc and X4 = pc | cs << 32. If an entry of the
+  slot's set holds that key, it becomes the set's most recently used, its
+  record and the slot's trade places, and the routine goes on with its
+  checks on the slot as if the slot had matched. Otherwise, the block's own
+  epilogue, as for any miss.
+
+  The new slot record is stored in pairs where the routine loads pairs, so
+  each of the routine's loads reads from one store.*/
+static void
+build_link_set_routine(codeblock_t *block)
+{
+    static const void *const set_globals[] = { codegen_link_sets, codegen_link_set_mtf };
+    uint8_t                 *start_data;
+    uint32_t                *no_set;
+    uint32_t                *no_entry;
+    uint8_t                 *miss_dest;
+    uint8_t                 *rout;
+
+    codegen_alloc(block, BLOCK_MAX - 4);
+    start_data = block_write_data;
+
+    link_adrp = 1;
+    for (size_t c = 0; c < sizeof(set_globals) / sizeof(set_globals[0]); c++) {
+        if (!host_arm64_ADRP_in_range((uintptr_t) set_globals[c] - 0x1000)
+            || !host_arm64_ADRP_in_range((uintptr_t) set_globals[c] + 0x1000))
+            link_adrp = 0;
+    }
+    link_pool_nr = 0;
+
+    rout = &block_write_data[block_pos];
+
+    /*X5 = the set*/
+    host_arm64_LDRH_IMM(block, REG_W3, REG_X0, LINK_SLOT(set));
+    no_set = host_arm64_CBZ_SHORT_(block, REG_W3);
+    link_addr_exact(block, REG_X5, codegen_link_sets);
+    host_arm64_ADD_REG(block, REG_W3, REG_W3, REG_W3, 2);
+    host_arm64_MOV_REG(block, REG_W3, REG_W3, 6);
+    host_arm64_ADDX_REG_UXTW(block, REG_X5, REG_X5, REG_W3);
+
+    /*X10 = the entry with the key, or 0; W11 = its number*/
+    host_arm64_LDR_IMM_X(block, REG_X6, REG_X5, LINK_SET_E(0) + LINK_SLOT(exit_pc));
+    host_arm64_LDR_IMM_X(block, REG_X7, REG_X5, LINK_SET_E(1) + LINK_SLOT(exit_pc));
+    host_arm64_LDR_IMM_X(block, REG_X8, REG_X5, LINK_SET_E(2) + LINK_SLOT(exit_pc));
+    host_arm64_ADDX_IMM(block, REG_X12, REG_X5, LINK_SET_E(0));
+    host_arm64_ADDX_IMM(block, REG_X13, REG_X5, LINK_SET_E(1));
+    host_arm64_ADDX_IMM(block, REG_X14, REG_X5, LINK_SET_E(2));
+    host_arm64_MOVZ_IMM(block, REG_W16, 1);
+    host_arm64_MOVZ_IMM(block, REG_W17, 2);
+    host_arm64_CMPX_REG(block, REG_X6, REG_X4);
+    host_arm64_CSELX_EQ(block, REG_X10, REG_X12, REG_XZR);
+    host_arm64_CMPX_REG(block, REG_X7, REG_X4);
+    host_arm64_CSELX_EQ(block, REG_X10, REG_X13, REG_X10);
+    host_arm64_CSEL_EQ(block, REG_W11, REG_W16, REG_WZR);
+    host_arm64_CMPX_REG(block, REG_X8, REG_X4);
+    host_arm64_CSELX_EQ(block, REG_X10, REG_X14, REG_X10);
+    host_arm64_CSEL_EQ(block, REG_W11, REG_W17, REG_W11);
+    no_entry = host_arm64_CBZ_SHORT_(block, REG_X10);
+
+    /*order = codegen_link_set_mtf[order][W11]*/
+    host_arm64_LDRB_IMM_W(block, REG_W3, REG_X5, offsetof(codegen_link_set_t, order));
+    link_addr_exact(block, REG_X6, codegen_link_set_mtf);
+    host_arm64_ADD_REG(block, REG_W3, REG_W11, REG_W3, 2);
+    host_arm64_LDRB_REG(block, REG_W3, REG_X6, REG_X3);
+    host_arm64_STRB_IMM(block, REG_W3, REG_X5, offsetof(codegen_link_set_t, order));
+
+    /*The two records trade places, bytes 0-47 first. X15 = the slot's new
+      entry*/
+    host_arm64_LDP_IMM_X(block, REG_X3, REG_X5, REG_X10, 0);
+    host_arm64_LDP_IMM_X(block, REG_X6, REG_X7, REG_X10, 16);
+    host_arm64_LDP_IMM_X(block, REG_X8, REG_X9, REG_X10, 32);
+    host_arm64_LDP_IMM_X(block, REG_X11, REG_X12, REG_X0, 0);
+    host_arm64_LDP_IMM_X(block, REG_X13, REG_X14, REG_X0, 16);
+    host_arm64_LDP_IMM_X(block, REG_X16, REG_X17, REG_X0, 32);
+    host_arm64_STP_IMM_X(block, REG_X3, REG_X5, REG_X0, 0);
+    host_arm64_STP_IMM_X(block, REG_X6, REG_X7, REG_X0, 16);
+    host_arm64_STP_IMM_X(block, REG_X8, REG_X9, REG_X0, 32);
+    host_arm64_STP_IMM_X(block, REG_X11, REG_X12, REG_X10, 0);
+    host_arm64_STP_IMM_X(block, REG_X13, REG_X14, REG_X10, 16);
+    host_arm64_STP_IMM_X(block, REG_X16, REG_X17, REG_X10, 32);
+    host_arm64_MOVX_REG(block, REG_X15, REG_X5, 0);
+    host_arm64_LDP_IMM_X(block, REG_X3, REG_X5, REG_X10, 48);
+    host_arm64_LDP_IMM_X(block, REG_X6, REG_X7, REG_X10, 64);
+    host_arm64_LDR_IMM_X(block, REG_X8, REG_X10, 80);
+    host_arm64_LDP_IMM_X(block, REG_X9, REG_X11, REG_X10, 88);
+    host_arm64_LDP_IMM_X(block, REG_X12, REG_X13, REG_X0, 48);
+    host_arm64_LDP_IMM_X(block, REG_X14, REG_X16, REG_X0, 64);
+    host_arm64_LDR_IMM_X(block, REG_X17, REG_X0, 80);
+    host_arm64_LDP_IMM_X(block, REG_X1, REG_X4, REG_X0, 88);
+    host_arm64_STP_IMM_X(block, REG_X3, REG_X5, REG_X0, 48);
+    host_arm64_STP_IMM_X(block, REG_X6, REG_X7, REG_X0, 64);
+    host_arm64_STR_IMM_Q(block, REG_X8, REG_X0, 80);
+    host_arm64_STP_IMM_X(block, REG_X9, REG_X11, REG_X0, 88);
+    host_arm64_STP_IMM_X(block, REG_X12, REG_X13, REG_X10, 48);
+    host_arm64_STP_IMM_X(block, REG_X14, REG_X16, REG_X10, 64);
+    host_arm64_STR_IMM_Q(block, REG_X17, REG_X10, 80);
+    host_arm64_STP_IMM_X(block, REG_X1, REG_X4, REG_X10, 88);
+    host_arm64_MOVX_REG(block, REG_X1, REG_X0, 0);
+    host_arm64_B(block, link_set_return);
+
+    miss_dest = &block_write_data[block_pos];
+    host_arm64_B(block, codegen_link_miss_rout);
+
+    if (link_pool_nr)
+        link_pool_emit();
+
+    if (block_write_data != start_data)
+        fatal("build_link_set_routine - routine does not fit in one allocator block\n");
+    host_arm64_short_branch_set_offset(no_set, miss_dest);
+    host_arm64_short_branch_set_offset(no_entry, miss_dest);
+    host_arm64_branch_set_offset(link_set_branch, rout);
 }
 #    endif
 
@@ -1566,6 +1694,7 @@ codegen_backend_init(void)
 
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     build_link_routine(block);
+    build_link_set_routine(block);
 #    endif
 
     block_write_data = NULL;
