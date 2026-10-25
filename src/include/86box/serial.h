@@ -167,6 +167,12 @@ extern void      serial_set_ri(serial_t *dev, uint8_t enabled);
 extern int       serial_get_ri(serial_t *dev);
 extern uint8_t   serial_get_shadow(serial_t *dev);
 
+extern uint8_t   i8251_read(uint16_t addr, void *priv);
+extern void      i8251_write(uint16_t addr, uint8_t val, void *priv);
+extern void      i8251_set_irq(void *priv, int irq_mask);
+extern void      i8251_set_clock(void *priv, double hz);
+
+extern const device_t i8251_device;
 extern const device_t ns8250_device;
 extern const device_t ns8250_pcjr_3f8_device;
 extern const device_t ns8250_pcjr_2f8_device;
