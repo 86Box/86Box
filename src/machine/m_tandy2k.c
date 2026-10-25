@@ -971,17 +971,75 @@ tandy2k_fpu_int(int level)
         picintc(TANDY2K_FPU_IRQ);
 }
 
+/* UCS covers F8000-FFFFF: the lower 16 KB is the character RAM that the
+   video device maps, and the boot ROM sits at FE000. */
+static const device_config_t tandy2000_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "tandy2000_020000",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "BOOT ROM version 01.00.00 (1983)",
+                .internal_name = "tandy2000_010000",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/tandy2000/rev1_fc000_fe000.img", "" }
+            },
+            {
+                .name          = "BOOT ROM version 02.00.00 (1984)",
+                .internal_name = "tandy2000_020000",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/tandy2000/rev2_fc000_fe000.img", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t tandy_2000_device = {
+    .name          = "Tandy 2000",
+    .internal_name = "tandy2000",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = tandy2000_config
+};
+
 int
 machine_tandy2000_init(const machine_t *model)
 {
-    int    ret;
-    fdc_t *fdc;
+    int         ret = 0;
+    fdc_t      *fdc;
+    const char *fn;
 
-    /* UCS covers F8000-FFFFF and is split by A14: the lower 16 KB
-       is the character generator, the upper one is the boot ROM. */
-    ret = bios_load_interleaved("roms/machines/tandy2000/484a00.u48",
-                                "roms/machines/tandy2000/474600.u47",
-                                0x000fe000, 8192, 0);
+    if (!device_available(model->device)) {
+        /* No ROMs available. */
+        return 0;
+    }
+
+    device_context(model->device);
+    fn  = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000fe000, 8192, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
