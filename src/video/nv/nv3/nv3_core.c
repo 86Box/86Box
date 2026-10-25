@@ -492,12 +492,18 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, UNUSED(int32_t len), UNUSED(voi
 
 void nv3_agp_write(UNUSED(int32_t func), int32_t addr, uint8_t val)
 {
-    nv3->nvbase.pci_config.pci_regs[addr] = val;
-
+    // Only the command register is writable; the capability header and
+    // status are read-only. There is no SBA, so only AGP_EN sticks in byte 1.
     switch (addr)
     {
+        case NV3_AGP_COMMAND:
+            nv3->nvbase.pci_config.pci_regs[addr] = val & 0x03;
+            break;
         case NV3_AGP_COMMAND_BYTE1:
-            nv3->nvbase.agp_enabled = val;
+            nv3->nvbase.agp_enabled = val & 0x01;
+            break;
+        case NV3_AGP_COMMAND_REQUEST_DEPTH:
+            nv3->nvbase.pci_config.pci_regs[addr] = val;
             break;
         default:  
             break;
