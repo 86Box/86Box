@@ -14,8 +14,8 @@
 *          tests (hwtest/pgraph_class_d3d0.cc, nvhw/pgraph_d3d_nv3.c); the
 *          triangle setup and texturing are this file's own.
 *
-*          The work is split as the RIVA TNT's is (nv4_pgraph_3d.c), so the
-*          per-pixel part can run on worker threads or a GPU kernel:
+*          The work is split so that the per-pixel part can run on
+*          worker threads or a GPU kernel:
 *
 *            state    Before a triangle the PGRAPH state it is drawn with
 *                     (CONTROL0/1, surfaces, clip, texture and its pages)

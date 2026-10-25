@@ -311,6 +311,8 @@ if(R128_VULKAN_INCLUDE_DIR)
     target_compile_definitions(vid PRIVATE R128_GPU_HAVE_VULKAN)
     # the RIVA 128's GPU lane (nv3_render_d3d_gpu.c) loads Vulkan the same way
     target_compile_definitions(vid PRIVATE NV3_GPU_HAVE_VULKAN)
+    # with its Vulkan plumbing (nv_gpu_vk.c)
+    target_sources(vid PRIVATE nv/nv_gpu_vk.c)
     target_include_directories(vid PRIVATE ${R128_VULKAN_INCLUDE_DIR})
     message(STATUS "Rage 128 GPU raster backend: Vulkan headers found (${R128_VULKAN_INCLUDE_DIR}), enabled (runtime dlopen)")
 else()

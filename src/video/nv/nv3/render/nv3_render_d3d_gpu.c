@@ -9,9 +9,8 @@
  *          NV3 3D -- GPU lane for the Direct3D triangle.
  *
  *          Optional, off by default: the "Draw 3D on the host GPU"
- *          option, or NV3_GPU=1 in the environment. The RIVA TNT's lane
- *          (nv4_pgraph_3d_gpu.c) on the RIVA 128's records: a flushed
- *          batch (nv3_render_d3d.h) is shaded by a Vulkan compute kernel
+ *          option, or NV3_GPU=1 in the environment. A flushed batch
+ *          (nv3_render_d3d.h) is shaded by a Vulkan compute kernel
  *          (nv3_render_d3d_gpu.comp) instead of the CPU. Setup stays on
  *          the CPU; the kernel takes the same draw states, triangles and
  *          spans, one invocation per pixel walking its row's spans in
@@ -43,7 +42,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <86box/86box.h>
 #include <86box/plat_unused.h>
 #include <86box/device.h>
@@ -96,13 +94,7 @@ nv3_gpu_counts(UNUSED(struct nv3_gpu_s *g), uint64_t *batches, uint64_t *fallbac
 
 #else
 
-#    define VK_NO_PROTOTYPES
-#    include <vulkan/vulkan.h>
-#    ifdef _WIN32
-#        include <windows.h>
-#    else
-#        include <dlfcn.h>
-#    endif
+#    include <86box/nv/nv_gpu_vk.h>
 #    include <86box/nv/nv3_d3d_gpu_spv.h>
 
 #    define GPU_TEX_ARENA (32u << 20)
@@ -136,92 +128,15 @@ _Static_assert(sizeof(nv3_gpu_state_t) == 29 * 4, "nv3_gpu_state_t layout");
 _Static_assert(sizeof(nv3_d3d_tri_t) == (3 + 3 * D3_AT_COUNT) * 4, "nv3_d3d_tri_t layout");
 _Static_assert(D3_AT_COUNT == 9, "the kernel interpolates 9 attributes");
 
-#    define GPU_FNS(X)                              \
-        X(vkEnumeratePhysicalDevices)               \
-        X(vkGetPhysicalDeviceProperties)            \
-        X(vkGetPhysicalDeviceQueueFamilyProperties) \
-        X(vkGetPhysicalDeviceMemoryProperties)      \
-        X(vkCreateDevice)                           \
-        X(vkGetDeviceQueue)                         \
-        X(vkCreateBuffer)                           \
-        X(vkGetBufferMemoryRequirements)            \
-        X(vkAllocateMemory)                         \
-        X(vkBindBufferMemory)                       \
-        X(vkMapMemory)                              \
-        X(vkCreateDescriptorSetLayout)              \
-        X(vkCreatePipelineLayout)                   \
-        X(vkCreateShaderModule)                     \
-        X(vkCreateComputePipelines)                 \
-        X(vkDestroyShaderModule)                    \
-        X(vkCreateDescriptorPool)                   \
-        X(vkAllocateDescriptorSets)                 \
-        X(vkUpdateDescriptorSets)                   \
-        X(vkCreateCommandPool)                      \
-        X(vkAllocateCommandBuffers)                 \
-        X(vkCreateFence)                            \
-        X(vkBeginCommandBuffer)                     \
-        X(vkCmdBindPipeline)                        \
-        X(vkCmdBindDescriptorSets)                  \
-        X(vkCmdPushConstants)                       \
-        X(vkCmdDispatch)                            \
-        X(vkCmdPipelineBarrier)                     \
-        X(vkCmdCopyBuffer)                          \
-        X(vkEndCommandBuffer)                       \
-        X(vkQueueSubmit)                            \
-        X(vkWaitForFences)                          \
-        X(vkResetFences)                            \
-        X(vkResetCommandBuffer)                     \
-        X(vkDeviceWaitIdle)                         \
-        X(vkDestroyFence)                           \
-        X(vkDestroyCommandPool)                     \
-        X(vkDestroyDescriptorPool)                  \
-        X(vkDestroyPipeline)                        \
-        X(vkDestroyPipelineLayout)                  \
-        X(vkDestroyDescriptorSetLayout)             \
-        X(vkDestroyBuffer)                          \
-        X(vkFreeMemory)                             \
-        X(vkDestroyDevice)                          \
-        X(vkDestroyInstance)
-
+/* Two batches can be in flight (NV_GPU_SLOTS): each has its own records, command buffer and fence
+   (nv_gpu_vk.h). The rows a batch in flight owns are newer in the GPU's VRAM mirror than in VRAM,
+   so a later batch does not upload them; batches complete (rows copied back) oldest first. */
 typedef struct {
-    VkBuffer       buf;
-    VkDeviceMemory mem;
-    void          *map; /* host-visible ones */
-    VkDeviceSize   size;
-} gpu_buf_t;
-
-enum {
-    B_VRAM,   /* bindings 0-1, device-local: a mirror of VRAM */
-    B_TEX,    /* the texture arena */
-    B_VSTAGE, /* host-visible: VRAM rows in and out */
-    B_TSTAGE, /* textures in */
-    B_COUNT
-};
-
-/* A batch's records, bindings 2-5: states, triangles, spans, rows */
-enum {
-    R_STATES,
-    R_TRIS,
-    R_SPANS,
-    R_ROWS,
-    R_COUNT
-};
-
-/* Two batches can be in flight: each has its own records, command buffer and fence. The rows a
-   batch in flight owns are newer in the GPU's VRAM mirror than in VRAM, so a later batch does not
-   upload them; batches complete (rows copied back) oldest first. */
-#    define GPU_SLOTS 2
-
-typedef struct {
-    gpu_buf_t       rec[R_COUNT];  /* device-local */
-    gpu_buf_t       rech[R_COUNT]; /* host-visible staging */
-    VkDescriptorSet dset;
-    VkCommandBuffer cb;
-    VkFence         fence;
-    int             pending;
-    uint64_t        seq;
-    VkBufferCopy    pdown[D3_REGIONS]; /* its rows, to copy back */
-    int             pndown;
+    nv_gpu_vk_slot_t *vk;
+    int               pending;
+    uint64_t          seq;
+    VkBufferCopy      pdown[D3_REGIONS]; /* its rows, to copy back */
+    int               pndown;
 } gpu_slot_t;
 
 /* A texture in the arena: where its bytes came from, a hash of them, and where they are */
@@ -234,24 +149,8 @@ typedef struct {
 #    define GPU_TEX_CACHE 1024
 
 typedef struct nv3_gpu_s {
-    void                     *lib;
-    PFN_vkGetInstanceProcAddr gipa;
-#    define GPU_DECL(name) PFN_##name name;
-    GPU_FNS(GPU_DECL)
-#    undef GPU_DECL
-
-    VkInstance            inst;
-    VkPhysicalDevice      pd;
-    VkDevice              dev;
-    VkQueue               queue;
-    uint32_t              qfam;
-    VkDescriptorSetLayout dsl;
-    VkPipelineLayout      pl;
-    VkPipeline            pipe;
-    VkDescriptorPool      dpool;
-    VkCommandPool         cpool;
-    gpu_buf_t             b[B_COUNT];
-    gpu_slot_t            slot[GPU_SLOTS];
+    nv_gpu_vk_t           vk;
+    gpu_slot_t            slot[NV_GPU_SLOTS];
     int                   next; /* the slot the next batch takes */
     uint64_t              seq;
 
@@ -271,370 +170,29 @@ typedef struct nv3_gpu_s {
     uint64_t     us_gather, us_copy, us_wait, tex_bytes, hash_bytes, row_bytes; /* where the time goes */
 } nv3_gpu_t;
 
-static uint64_t
-gpu_now_us(void)
-{
-    struct timespec ts;
-
-    timespec_get(&ts, TIME_UTC);
-    return (uint64_t) ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
-}
-
-static void *
-gpu_dl_open(const char *name)
-{
-#    ifdef _WIN32
-    return (void *) LoadLibraryA(name);
-#    else
-    return dlopen(name, RTLD_NOW | RTLD_LOCAL);
-#    endif
-}
-
-static void *
-gpu_dl_sym(void *lib, const char *name)
-{
-#    ifdef _WIN32
-    return (void *) GetProcAddress((HMODULE) lib, name);
-#    else
-    return dlsym(lib, name);
-#    endif
-}
-
-static void
-gpu_dl_close(void *lib)
-{
-#    ifdef _WIN32
-    FreeLibrary((HMODULE) lib);
-#    else
-    dlclose(lib);
-#    endif
-}
-
-static int
-gpu_load(nv3_gpu_t *g)
-{
-    static const char *const cands[] = {
-#    if defined(_WIN32)
-        "vulkan-1.dll",
-#    elif defined(__APPLE__)
-        "libvulkan.1.dylib",
-        "/opt/homebrew/lib/libvulkan.1.dylib",
-        "/usr/local/lib/libvulkan.1.dylib",
-        "libMoltenVK.dylib",
-#    else
-        "libvulkan.so.1",
-        "libvulkan.so",
-#    endif
-    };
-
-    for (size_t i = 0; !g->lib && (i < sizeof(cands) / sizeof(cands[0])); i++)
-        g->lib = gpu_dl_open(cands[i]);
-    if (!g->lib)
-        return 0;
-    g->gipa = (PFN_vkGetInstanceProcAddr) gpu_dl_sym(g->lib, "vkGetInstanceProcAddr");
-    return g->gipa != NULL;
-}
-
-static uint32_t
-gpu_mem_type(nv3_gpu_t *g, uint32_t bits, VkMemoryPropertyFlags want)
-{
-    VkPhysicalDeviceMemoryProperties mp;
-
-    g->vkGetPhysicalDeviceMemoryProperties(g->pd, &mp);
-    for (uint32_t i = 0; i < mp.memoryTypeCount; i++)
-        if ((bits & (1u << i)) && ((mp.memoryTypes[i].propertyFlags & want) == want))
-            return i;
-    return UINT32_MAX;
-}
-
-static int
-gpu_buf(nv3_gpu_t *g, gpu_buf_t *b, VkDeviceSize size, int host)
-{
-    VkBufferCreateInfo   bi = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-    VkMemoryAllocateInfo ai = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-    VkMemoryRequirements mr;
-
-    bi.size        = size;
-    bi.usage       = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    if (g->vkCreateBuffer(g->dev, &bi, NULL, &b->buf) != VK_SUCCESS)
-        return 0;
-    g->vkGetBufferMemoryRequirements(g->dev, b->buf, &mr);
-    ai.allocationSize = mr.size;
-    if (host) {
-        /* cached when there is such a type: the CPU reads rows back */
-        ai.memoryTypeIndex = gpu_mem_type(g, mr.memoryTypeBits,
-                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-                                              | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
-        if (ai.memoryTypeIndex == UINT32_MAX)
-            ai.memoryTypeIndex = gpu_mem_type(g, mr.memoryTypeBits,
-                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    } else
-        ai.memoryTypeIndex = gpu_mem_type(g, mr.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    if (ai.memoryTypeIndex == UINT32_MAX)
-        return 0;
-    if (g->vkAllocateMemory(g->dev, &ai, NULL, &b->mem) != VK_SUCCESS)
-        return 0;
-    if (g->vkBindBufferMemory(g->dev, b->buf, b->mem, 0) != VK_SUCCESS)
-        return 0;
-    if (host && (g->vkMapMemory(g->dev, b->mem, 0, VK_WHOLE_SIZE, 0, &b->map) != VK_SUCCESS))
-        return 0;
-    b->size = size;
-    return 1;
-}
-
-static void gpu_destroy(nv3_gpu_t *g);
-
-static int
-gpu_create(nv3_gpu_t *g)
-{
-    PFN_vkCreateInstance       create_instance;
-    VkApplicationInfo          app  = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
-    VkInstanceCreateInfo       ici  = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
-    VkPhysicalDevice           pds[16];
-    uint32_t                   npd  = 16;
-    VkPhysicalDeviceProperties props;
-    float                      prio = 1.0f;
-    VkDeviceQueueCreateInfo    qci  = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
-    VkDeviceCreateInfo         dci  = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
-    VkQueueFamilyProperties    qf[16];
-    uint32_t                   nqf  = 16;
-    int                        best = -1;
-
-    create_instance = (PFN_vkCreateInstance) g->gipa(NULL, "vkCreateInstance");
-    if (!create_instance)
-        return 0;
-    app.pApplicationName = "86Box RIVA 128";
-    app.apiVersion       = VK_API_VERSION_1_1;
-    ici.pApplicationInfo = &app;
-    if (create_instance(&ici, NULL, &g->inst) != VK_SUCCESS) {
-        pclog("NV3 GPU: vkCreateInstance failed\n");
-        return 0;
-    }
-#    define GPU_LOAD(name)                              \
-        g->name = (PFN_##name) g->gipa(g->inst, #name); \
-        if (!g->name) {                                 \
-            pclog("NV3 GPU: no " #name "\n");           \
-            return 0;                                   \
-        }
-    GPU_FNS(GPU_LOAD)
-#    undef GPU_LOAD
-
-    if ((g->vkEnumeratePhysicalDevices(g->inst, &npd, pds) < 0) || !npd) {
-        pclog("NV3 GPU: no Vulkan device\n");
-        return 0;
-    }
-    /* a discrete GPU first, then an integrated one, then anything */
-    for (int pass = 0; (pass < 3) && (best < 0); pass++)
-        for (uint32_t i = 0; (i < npd) && (best < 0); i++) {
-            g->vkGetPhysicalDeviceProperties(pds[i], &props);
-            if ((pass == 0) && (props.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU))
-                continue;
-            if ((pass == 1) && (props.deviceType != VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU))
-                continue;
-            best = i;
-        }
-    g->pd = pds[best];
-    g->vkGetPhysicalDeviceProperties(g->pd, &props);
-    g->vkGetPhysicalDeviceQueueFamilyProperties(g->pd, &nqf, qf);
-    g->qfam = UINT32_MAX;
-    for (uint32_t i = 0; i < nqf; i++)
-        if (qf[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
-            g->qfam = i;
-            break;
-        }
-    if (g->qfam == UINT32_MAX)
-        return 0;
-    qci.queueFamilyIndex     = g->qfam;
-    qci.queueCount           = 1;
-    qci.pQueuePriorities     = &prio;
-    dci.queueCreateInfoCount = 1;
-    dci.pQueueCreateInfos    = &qci;
-    if (g->vkCreateDevice(g->pd, &dci, NULL, &g->dev) != VK_SUCCESS) {
-        pclog("NV3 GPU: vkCreateDevice failed\n");
-        return 0;
-    }
-    g->vkGetDeviceQueue(g->dev, g->qfam, 0, &g->queue);
-    pclog("NV3 GPU: using %s\n", props.deviceName);
-
-    if (!gpu_buf(g, &g->b[B_VRAM], g->vram_size, 0) || !gpu_buf(g, &g->b[B_TEX], GPU_TEX_ARENA, 0)
-        || !gpu_buf(g, &g->b[B_VSTAGE], g->vram_size, 1) || !gpu_buf(g, &g->b[B_TSTAGE], GPU_TEX_ARENA, 1)) {
-        pclog("NV3 GPU: buffer allocation failed\n");
-        return 0;
-    }
-    for (int i = 0; i < GPU_SLOTS; i++) {
-        static const VkDeviceSize rsize[R_COUNT] = {
-            sizeof(nv3_gpu_state_t) * D3_STATES, sizeof(nv3_d3d_tri_t) * D3_TRIS,
-            sizeof(nv3_gpu_span_t) * D3_SPANS, sizeof(nv3_gpu_row_t) * GPU_ROWS
-        };
-
-        for (int r = 0; r < R_COUNT; r++)
-            if (!gpu_buf(g, &g->slot[i].rec[r], rsize[r], 0) || !gpu_buf(g, &g->slot[i].rech[r], rsize[r], 1)) {
-                pclog("NV3 GPU: buffer allocation failed\n");
-                return 0;
-            }
-    }
-
-    /* pipeline */
-    {
-        VkDescriptorSetLayoutBinding    lb[6];
-        VkDescriptorSetLayoutCreateInfo lci = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-        VkPushConstantRange             pcr = { VK_SHADER_STAGE_COMPUTE_BIT, 0, 8 };
-        VkPipelineLayoutCreateInfo      pci = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-        VkShaderModuleCreateInfo        sci = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-        VkComputePipelineCreateInfo     cpi = { VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
-        VkShaderModule                  sm;
-        VkDescriptorPoolSize            ps  = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6 * GPU_SLOTS };
-        VkDescriptorPoolCreateInfo      dpi = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-        VkDescriptorSetAllocateInfo     dai = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-        VkDescriptorBufferInfo          dbi[6];
-        VkWriteDescriptorSet            wr[6];
-        VkResult                        res;
-
-        for (int i = 0; i < 6; i++) {
-            memset(&lb[i], 0, sizeof(lb[i]));
-            lb[i].binding         = i;
-            lb[i].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            lb[i].descriptorCount = 1;
-            lb[i].stageFlags      = VK_SHADER_STAGE_COMPUTE_BIT;
-        }
-        lci.bindingCount = 6;
-        lci.pBindings    = lb;
-        if (g->vkCreateDescriptorSetLayout(g->dev, &lci, NULL, &g->dsl) != VK_SUCCESS)
-            return 0;
-        pci.setLayoutCount         = 1;
-        pci.pSetLayouts            = &g->dsl;
-        pci.pushConstantRangeCount = 1;
-        pci.pPushConstantRanges    = &pcr;
-        if (g->vkCreatePipelineLayout(g->dev, &pci, NULL, &g->pl) != VK_SUCCESS)
-            return 0;
-        sci.codeSize = sizeof(nv3_gpu_spv);
-        sci.pCode    = (const uint32_t *) nv3_gpu_spv;
-        if (g->vkCreateShaderModule(g->dev, &sci, NULL, &sm) != VK_SUCCESS)
-            return 0;
-        cpi.stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        cpi.stage.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
-        cpi.stage.module = sm;
-        cpi.stage.pName  = "main";
-        cpi.layout       = g->pl;
-        res              = g->vkCreateComputePipelines(g->dev, VK_NULL_HANDLE, 1, &cpi, NULL, &g->pipe);
-        g->vkDestroyShaderModule(g->dev, sm, NULL);
-        if (res != VK_SUCCESS) {
-            pclog("NV3 GPU: pipeline creation failed (%d)\n", res);
-            return 0;
-        }
-        dpi.maxSets       = GPU_SLOTS;
-        dpi.poolSizeCount = 1;
-        dpi.pPoolSizes    = &ps;
-        if (g->vkCreateDescriptorPool(g->dev, &dpi, NULL, &g->dpool) != VK_SUCCESS)
-            return 0;
-        for (int sl = 0; sl < GPU_SLOTS; sl++) {
-            dai.descriptorPool     = g->dpool;
-            dai.descriptorSetCount = 1;
-            dai.pSetLayouts        = &g->dsl;
-            if (g->vkAllocateDescriptorSets(g->dev, &dai, &g->slot[sl].dset) != VK_SUCCESS)
-                return 0;
-            for (int i = 0; i < 6; i++) {
-                /* VRAM, the arena, then the slot's records */
-                dbi[i].buffer = (i < 2) ? g->b[i].buf : g->slot[sl].rec[i - 2].buf;
-                dbi[i].offset = 0;
-                dbi[i].range  = VK_WHOLE_SIZE;
-                memset(&wr[i], 0, sizeof(wr[i]));
-                wr[i].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                wr[i].dstSet          = g->slot[sl].dset;
-                wr[i].dstBinding      = i;
-                wr[i].descriptorCount = 1;
-                wr[i].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-                wr[i].pBufferInfo     = &dbi[i];
-            }
-            g->vkUpdateDescriptorSets(g->dev, 6, wr, 0, NULL);
-        }
-    }
-    {
-        VkCommandPoolCreateInfo     cpci = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-        VkCommandBufferAllocateInfo cbai = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-        VkFenceCreateInfo           fci  = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-
-        cpci.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        cpci.queueFamilyIndex = g->qfam;
-        if (g->vkCreateCommandPool(g->dev, &cpci, NULL, &g->cpool) != VK_SUCCESS)
-            return 0;
-        cbai.commandPool        = g->cpool;
-        cbai.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        cbai.commandBufferCount = 1;
-        for (int i = 0; i < GPU_SLOTS; i++) {
-            if (g->vkAllocateCommandBuffers(g->dev, &cbai, &g->slot[i].cb) != VK_SUCCESS)
-                return 0;
-            if (g->vkCreateFence(g->dev, &fci, NULL, &g->slot[i].fence) != VK_SUCCESS)
-                return 0;
-        }
-    }
-    return 1;
-}
-
 struct nv3_gpu_s *
 nv3_gpu_init(void)
 {
-    nv3_gpu_t *g = calloc(1, sizeof(nv3_gpu_t));
+    nv3_gpu_t             *g = calloc(1, sizeof(nv3_gpu_t));
+    const nv_gpu_vk_desc_t d = {
+        .tag       = "NV3 GPU",
+        .app_name  = "86Box RIVA 128",
+        .vram_size = nv3->nvbase.svga.vram_max,
+        .tex_arena = GPU_TEX_ARENA,
+        .rec_size  = { sizeof(nv3_gpu_state_t) * D3_STATES, sizeof(nv3_d3d_tri_t) * D3_TRIS,
+                       sizeof(nv3_gpu_span_t) * D3_SPANS, sizeof(nv3_gpu_row_t) * GPU_ROWS },
+        .spv       = (const uint32_t *) nv3_gpu_spv,
+        .spv_size  = sizeof(nv3_gpu_spv)
+    };
 
     g->vram_size = nv3->nvbase.svga.vram_max;
-    if (!gpu_load(g)) {
-        pclog("NV3 GPU: no Vulkan library, 3D stays on the CPU\n");
+    if (!nv_gpu_vk_open(&g->vk, &d)) {
         free(g);
         return NULL;
     }
-    if (!gpu_create(g)) {
-        pclog("NV3 GPU: Vulkan setup failed, 3D stays on the CPU\n");
-        gpu_destroy(g);
-        return NULL;
-    }
+    for (int i = 0; i < NV_GPU_SLOTS; i++)
+        g->slot[i].vk = &g->vk.slot[i];
     return g;
-}
-
-static void
-gpu_destroy(nv3_gpu_t *g)
-{
-    if (g->dev) {
-        g->vkDeviceWaitIdle(g->dev);
-        for (int i = 0; i < GPU_SLOTS; i++) {
-            gpu_slot_t *sl = &g->slot[i];
-
-            if (sl->fence)
-                g->vkDestroyFence(g->dev, sl->fence, NULL);
-            for (int r = 0; r < R_COUNT; r++) {
-                if (sl->rec[r].buf)
-                    g->vkDestroyBuffer(g->dev, sl->rec[r].buf, NULL);
-                if (sl->rec[r].mem)
-                    g->vkFreeMemory(g->dev, sl->rec[r].mem, NULL);
-                if (sl->rech[r].buf)
-                    g->vkDestroyBuffer(g->dev, sl->rech[r].buf, NULL);
-                if (sl->rech[r].mem)
-                    g->vkFreeMemory(g->dev, sl->rech[r].mem, NULL);
-            }
-        }
-        if (g->cpool)
-            g->vkDestroyCommandPool(g->dev, g->cpool, NULL);
-        if (g->dpool)
-            g->vkDestroyDescriptorPool(g->dev, g->dpool, NULL);
-        if (g->pipe)
-            g->vkDestroyPipeline(g->dev, g->pipe, NULL);
-        if (g->pl)
-            g->vkDestroyPipelineLayout(g->dev, g->pl, NULL);
-        if (g->dsl)
-            g->vkDestroyDescriptorSetLayout(g->dev, g->dsl, NULL);
-        for (int i = 0; i < B_COUNT; i++) {
-            if (g->b[i].buf)
-                g->vkDestroyBuffer(g->dev, g->b[i].buf, NULL);
-            if (g->b[i].mem)
-                g->vkFreeMemory(g->dev, g->b[i].mem, NULL);
-        }
-        g->vkDestroyDevice(g->dev, NULL);
-    }
-    if (g->inst && g->vkDestroyInstance)
-        g->vkDestroyInstance(g->inst, NULL);
-    if (g->lib)
-        gpu_dl_close(g->lib);
-    free(g);
 }
 
 void
@@ -653,12 +211,13 @@ nv3_gpu_close(struct nv3_gpu_s *g)
 {
     if (!g)
         return;
-    for (int i = 0; i < GPU_SLOTS; i++)
+    for (int i = 0; i < NV_GPU_SLOTS; i++)
         if (g->slot[i].pending)
-            g->vkWaitForFences(g->dev, 1, &g->slot[i].fence, VK_TRUE, UINT64_MAX);
+            g->vk.vkWaitForFences(g->vk.dev, 1, &g->vk.slot[i].fence, VK_TRUE, UINT64_MAX);
     pclog("NV3 GPU: %llu batches on the GPU, %llu left to the CPU\n", (unsigned long long) g->batches,
           (unsigned long long) g->fallbacks);
-    gpu_destroy(g);
+    nv_gpu_vk_close(&g->vk);
+    free(g);
 }
 
 static void gpu_complete_upto(nv3_gpu_t *g, uint64_t seq);
@@ -734,7 +293,7 @@ gpu_tex_pages(const nv3_d3d_dstate_t *s)
 static void
 gpu_tex_copy(nv3_gpu_t *g, const nv3_d3d_dstate_t *s, uint32_t base)
 {
-    uint8_t *dst = (uint8_t *) g->b[B_TSTAGE].map + base;
+    uint8_t *dst = (uint8_t *) g->vk.b[NV_GPU_B_TSTAGE].map + base;
 
     gpu_complete_upto(g, UINT64_MAX);
     GPU_TEX_PIECES(s, memcpy(dst + done, p, len));
@@ -814,27 +373,17 @@ gpu_pack_state(nv3_gpu_state_t *o, const nv3_d3d_dstate_t *s, uint32_t tex_base)
     o->fill       = s->fill;
 }
 
-static void
-gpu_barrier(nv3_gpu_t *g, VkCommandBuffer cb, VkPipelineStageFlags src, VkAccessFlags sa, VkPipelineStageFlags dst, VkAccessFlags da)
-{
-    VkMemoryBarrier mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-
-    mb.srcAccessMask = sa;
-    mb.dstAccessMask = da;
-    g->vkCmdPipelineBarrier(cb, src, dst, 0, 1, &mb, 0, NULL, 0, NULL);
-}
-
 /* Wait for one batch in flight and copy its rows back into VRAM. */
 static void
 gpu_complete(nv3_gpu_t *g, gpu_slot_t *sl)
 {
-    uint8_t *stage = (uint8_t *) g->b[B_VSTAGE].map;
+    uint8_t *stage = (uint8_t *) g->vk.b[NV_GPU_B_VSTAGE].map;
     uint8_t *vram  = nv3->nvbase.svga.vram;
     uint64_t t0, t1;
 
-    t0 = gpu_now_us();
-    g->vkWaitForFences(g->dev, 1, &sl->fence, VK_TRUE, UINT64_MAX);
-    t1 = gpu_now_us();
+    t0 = nv_gpu_now_us();
+    g->vk.vkWaitForFences(g->vk.dev, 1, &sl->vk->fence, VK_TRUE, UINT64_MAX);
+    t1 = nv_gpu_now_us();
     g->us_wait += t1 - t0;
     for (int i = 0; i < sl->pndown; i++) {
         memcpy(vram + sl->pdown[i].srcOffset, stage + sl->pdown[i].srcOffset, sl->pdown[i].size);
@@ -842,7 +391,7 @@ gpu_complete(nv3_gpu_t *g, gpu_slot_t *sl)
         for (uint32_t a = sl->pdown[i].srcOffset & ~0xFFFu; a < sl->pdown[i].srcOffset + sl->pdown[i].size; a += 0x1000)
             nv3->nvbase.svga.changedvram[a >> 12] = changeframecount;
     }
-    g->us_copy += gpu_now_us() - t1;
+    g->us_copy += nv_gpu_now_us() - t1;
     sl->pending = 0;
 }
 
@@ -854,7 +403,7 @@ gpu_complete_upto(nv3_gpu_t *g, uint64_t seq)
     for (;;) {
         gpu_slot_t *old = NULL;
 
-        for (int i = 0; i < GPU_SLOTS; i++)
+        for (int i = 0; i < NV_GPU_SLOTS; i++)
             if (g->slot[i].pending && (g->slot[i].seq <= seq) && (!old || (g->slot[i].seq < old->seq)))
                 old = &g->slot[i];
         if (!old)
@@ -872,7 +421,7 @@ nv3_gpu_wait(struct nv3_gpu_s *g)
 int
 nv3_gpu_pending_overlaps(struct nv3_gpu_s *g, uint32_t lo, uint32_t hi)
 {
-    for (int s = 0; s < GPU_SLOTS; s++) {
+    for (int s = 0; s < NV_GPU_SLOTS; s++) {
         const gpu_slot_t *sl = &g->slot[s];
 
         for (int i = 0; sl->pending && (i < sl->pndown); i++)
@@ -887,9 +436,9 @@ nv3_gpu_pending_overlaps(struct nv3_gpu_s *g, uint32_t lo, uint32_t hi)
 static void
 gpu_upload_range(nv3_gpu_t *g, uint32_t lo, uint32_t hi, VkBufferCopy *up, int *nup, int max)
 {
-    uint8_t *stage = (uint8_t *) g->b[B_VSTAGE].map;
+    uint8_t *stage = (uint8_t *) g->vk.b[NV_GPU_B_VSTAGE].map;
 
-    for (int s = 0; s < GPU_SLOTS; s++) {
+    for (int s = 0; s < NV_GPU_SLOTS; s++) {
         const gpu_slot_t *sl = &g->slot[s];
 
         for (int i = 0; sl->pending && (i < sl->pndown); i++) {
@@ -934,10 +483,10 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
     /* this slot's last batch (and any older one) first */
     if (sl->pending)
         gpu_complete_upto(g, sl->seq);
-    gs  = (nv3_gpu_state_t *) sl->rech[R_STATES].map;
-    gsp = (nv3_gpu_span_t *) sl->rech[R_SPANS].map;
-    gr  = (nv3_gpu_row_t *) sl->rech[R_ROWS].map;
-    cb  = sl->cb;
+    gs  = (nv3_gpu_state_t *) sl->vk->rech[NV_GPU_R_STATES].map;
+    gsp = (nv3_gpu_span_t *) sl->vk->rech[NV_GPU_R_SPANS].map;
+    gr  = (nv3_gpu_row_t *) sl->vk->rech[NV_GPU_R_ROWS].map;
+    cb  = sl->vk->cb;
     if (!b->nregions)
         goto fallback;
     for (int r = 0; r < b->nregions; r++)
@@ -950,7 +499,7 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
 
     /* draw states and their textures; a full arena is emptied once and the batch's textures
        gathered again */
-    t0 = gpu_now_us();
+    t0 = nv_gpu_now_us();
     for (int pass = 0;; pass++) {
         int full = 0;
 
@@ -971,9 +520,9 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
         if (pass)
             goto fallback;
     }
-    t1 = gpu_now_us();
+    t1 = nv_gpu_now_us();
     g->us_gather += t1 - t0;
-    memcpy(sl->rech[R_TRIS].map, b->tris, sizeof(nv3_d3d_tri_t) * b->ntris);
+    memcpy(sl->vk->rech[NV_GPU_R_TRIS].map, b->tris, sizeof(nv3_d3d_tri_t) * b->ntris);
 
     /* spans grouped by row, each row in submission order */
     memset(g->row_count, 0, sizeof(g->row_count));
@@ -1020,17 +569,17 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
     if (!ndown)
         goto fallback;
 
-    t2 = gpu_now_us();
+    t2 = nv_gpu_now_us();
     g->us_copy += t2 - t1;
     {
         VkCommandBufferBeginInfo bi = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
         VkSubmitInfo             si = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
 
         bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        g->vkResetCommandBuffer(cb, 0);
-        g->vkBeginCommandBuffer(cb, &bi);
+        g->vk.vkResetCommandBuffer(cb, 0);
+        g->vk.vkBeginCommandBuffer(cb, &bi);
         if (nup)
-            g->vkCmdCopyBuffer(cb, g->b[B_VSTAGE].buf, g->b[B_VRAM].buf, nup, up);
+            g->vk.vkCmdCopyBuffer(cb, g->vk.b[NV_GPU_B_VSTAGE].buf, g->vk.b[NV_GPU_B_VRAM].buf, nup, up);
         {
             /* the records, read many times per pixel, to device memory */
             VkBufferCopy rc[4] = {
@@ -1042,30 +591,30 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
 
             for (int i = 0; i < 4; i++)
                 if (rc[i].size)
-                    g->vkCmdCopyBuffer(cb, sl->rech[i].buf, sl->rec[i].buf, 1, &rc[i]);
+                    g->vk.vkCmdCopyBuffer(cb, sl->vk->rech[i].buf, sl->vk->rec[i].buf, 1, &rc[i]);
         }
         if (g->ntcopy)
-            g->vkCmdCopyBuffer(cb, g->b[B_TSTAGE].buf, g->b[B_TEX].buf, g->ntcopy, g->tcopy);
-        gpu_barrier(g, cb, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_HOST_BIT,
+            g->vk.vkCmdCopyBuffer(cb, g->vk.b[NV_GPU_B_TSTAGE].buf, g->vk.b[NV_GPU_B_TEX].buf, g->ntcopy, g->tcopy);
+        nv_gpu_vk_barrier(&g->vk, cb, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_HOST_BIT,
                     VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_HOST_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                     VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
-        g->vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, g->pipe);
-        g->vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, g->pl, 0, 1, &sl->dset, 0, NULL);
+        g->vk.vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, g->vk.pipe);
+        g->vk.vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, g->vk.pl, 0, 1, &sl->vk->dset, 0, NULL);
         pc[0] = nrows;
         pc[1] = nv3->nvbase.svga.vram_mask;
-        g->vkCmdPushConstants(cb, g->pl, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), pc);
+        g->vk.vkCmdPushConstants(cb, g->vk.pl, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), pc);
         /* a workgroup per row and 64 pixels */
-        g->vkCmdDispatch(cb, nrows, (xmax + 63) / 64, 1);
-        gpu_barrier(g, cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+        g->vk.vkCmdDispatch(cb, nrows, (xmax + 63) / 64, 1);
+        nv_gpu_vk_barrier(&g->vk, cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
                     VK_ACCESS_TRANSFER_READ_BIT);
-        g->vkCmdCopyBuffer(cb, g->b[B_VRAM].buf, g->b[B_VSTAGE].buf, ndown, down);
-        gpu_barrier(g, cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_HOST_BIT,
+        g->vk.vkCmdCopyBuffer(cb, g->vk.b[NV_GPU_B_VRAM].buf, g->vk.b[NV_GPU_B_VSTAGE].buf, ndown, down);
+        nv_gpu_vk_barrier(&g->vk, cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_HOST_BIT,
                     VK_ACCESS_HOST_READ_BIT);
-        g->vkEndCommandBuffer(cb);
+        g->vk.vkEndCommandBuffer(cb);
         si.commandBufferCount = 1;
         si.pCommandBuffers    = &cb;
-        g->vkResetFences(g->dev, 1, &sl->fence);
-        if (g->vkQueueSubmit(g->queue, 1, &si, sl->fence) != VK_SUCCESS)
+        g->vk.vkResetFences(g->vk.dev, 1, &sl->vk->fence);
+        if (g->vk.vkQueueSubmit(g->vk.queue, 1, &si, sl->vk->fence) != VK_SUCCESS)
             goto fallback;
     }
 
@@ -1075,7 +624,7 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
     sl->pndown  = ndown;
     for (int i = 0; i < ndown; i++)
         sl->pdown[i] = down[i];
-    g->next = (g->next + 1) % GPU_SLOTS;
+    g->next = (g->next + 1) % NV_GPU_SLOTS;
     g->batches++;
     return 1;
 
