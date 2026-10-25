@@ -17,18 +17,128 @@
  *
  *          Copyright 2026 Marcos Alves
  */
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <86box/86box.h>
+#include <86box/path.h>
+#include <86box/plat.h>
+#include <86box/version.h>
 #include <86box/nv/nv_gpu_vk.h>
 #ifdef _WIN32
 #    include <windows.h>
 #else
 #    include <dlfcn.h>
 #endif
+
+/* ---- telemetry ---- */
+#if defined(_WIN32)
+#    define GPU_TEL_OS "windows"
+#elif defined(__APPLE__)
+#    define GPU_TEL_OS "macos"
+#elif defined(__linux__)
+#    define GPU_TEL_OS "linux"
+#else
+#    define GPU_TEL_OS "other"
+#endif
+#if defined(__aarch64__) || defined(_M_ARM64)
+#    define GPU_TEL_ARCH "arm64"
+#elif defined(__x86_64__) || defined(_M_X64)
+#    define GPU_TEL_ARCH "x86_64"
+#else
+#    define GPU_TEL_ARCH "other"
+#endif
+
+static FILE *gpu_tel;
+
+void
+nv_gpu_log(const char *fmt, ...)
+{
+    char    buf[1024];
+    va_list ap;
+
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+    pclog("%s", buf);
+    if (gpu_tel) {
+        fputs(buf, gpu_tel);
+        fflush(gpu_tel);
+    }
+}
+
+/* NV_GPU_TELEMETRY: the file is made new by a launch's first lane and
+   added to by any later one (a hard reset makes the card again) */
+static void
+gpu_tel_open(const char *tag)
+{
+    static int  opened;
+    const char *te = getenv("NV_GPU_TELEMETRY");
+    char        path[1024 + 32];
+    char        stamp[32] = "unknown";
+    time_t      now = time(NULL);
+    struct tm   tm;
+
+    if (!te || !te[0] || !strcmp(te, "0") || gpu_tel)
+        return;
+    path_append_filename(path, usr_path, "nv-gpu-telemetry.log");
+    gpu_tel = plat_fopen(path, opened ? "a" : "w");
+    opened  = 1;
+    if (!gpu_tel) {
+        pclog("%s: telemetry: cannot open %s\n", tag, path);
+        return;
+    }
+#ifdef _WIN32
+    if (localtime_s(&tm, &now) == 0)
+#else
+    if (localtime_r(&now, &tm))
+#endif
+        strftime(stamp, sizeof(stamp), "%Y-%m-%d %H:%M:%S", &tm);
+    nv_gpu_log("%s: telemetry: %s %s, host %s/%s, %s\n", tag, EMU_NAME, EMU_VERSION_FULL, GPU_TEL_OS, GPU_TEL_ARCH,
+               stamp);
+}
+
+static void
+gpu_tel_close(void)
+{
+    if (gpu_tel) {
+        fclose(gpu_tel);
+        gpu_tel = NULL;
+    }
+}
+
+static const char *const gpu_fb_name[NV_GPU_FB_COUNT] = {
+    "no rows", "rows past VRAM", "arena full", "no spans", "submit failed", "odd texture address"
+};
+
+void
+nv_gpu_vk_fallback(nv_gpu_vk_t *vk, int why)
+{
+    vk->fb[why]++;
+    vk->fb_total[why]++;
+}
+
+void
+nv_gpu_vk_fallbacks(nv_gpu_vk_t *vk, int total)
+{
+    char  buf[768];
+    char *p = buf;
+
+    buf[0] = 0;
+    for (int i = 0; i < NV_GPU_FB_COUNT; i++) {
+        uint64_t n = total ? vk->fb_total[i] : vk->fb[i];
+
+        if (n && (p < buf + sizeof(buf) - 64))
+            p += snprintf(p, buf + sizeof(buf) - p, "%s%llu %s", (p == buf) ? "" : ", ", (unsigned long long) n, gpu_fb_name[i]);
+        if (!total)
+            vk->fb[i] = 0;
+    }
+    if (buf[0])
+        nv_gpu_log("%s: left to the CPU%s: %s\n", vk->tag, total ? " in all" : "", buf);
+}
 
 uint64_t
 nv_gpu_now_us(void)
@@ -277,21 +387,30 @@ gpu_create(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
     app.apiVersion       = VK_API_VERSION_1_1;
     ici.pApplicationInfo = &app;
     if (create_instance(&ici, NULL, &vk->inst) != VK_SUCCESS) {
-        pclog("%s: vkCreateInstance failed\n", vk->tag);
+        nv_gpu_log("%s: vkCreateInstance failed\n", vk->tag);
         return 0;
     }
 #define GPU_LOAD(name)                                     \
     vk->name = (PFN_##name) vk->gipa(vk->inst, #name);     \
     if (!vk->name) {                                       \
-        pclog("%s: no " #name "\n", vk->tag);              \
+        nv_gpu_log("%s: no " #name "\n", vk->tag);              \
         return 0;                                          \
     }
     NV_GPU_FNS(GPU_LOAD)
 #undef GPU_LOAD
 
     if ((vk->vkEnumeratePhysicalDevices(vk->inst, &npd, pds) < 0) || !npd) {
-        pclog("%s: no Vulkan device\n", vk->tag);
+        nv_gpu_log("%s: no Vulkan device\n", vk->tag);
         return 0;
+    }
+    for (uint32_t i = 0; i < npd; i++) {
+        static const char *const types[] = { "other", "integrated", "discrete", "virtual", "CPU" };
+
+        vk->vkGetPhysicalDeviceProperties(pds[i], &props);
+        nv_gpu_log("%s: device %u: %s (%s), vendor %04x device %04x, driver %08x, Vulkan %u.%u.%u\n", vk->tag, i,
+                   props.deviceName, (props.deviceType <= 4) ? types[props.deviceType] : "?", props.vendorID, props.deviceID,
+                   props.driverVersion, VK_VERSION_MAJOR(props.apiVersion), VK_VERSION_MINOR(props.apiVersion),
+                   VK_VERSION_PATCH(props.apiVersion));
     }
     /* a discrete GPU first, then an integrated one, then anything */
     for (int pass = 0; (pass < 3) && (best < 0); pass++)
@@ -339,7 +458,7 @@ gpu_create(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
     dci.queueCreateInfoCount = 1;
     dci.pQueueCreateInfos    = &qci;
     if (vk->vkCreateDevice(vk->pd, &dci, NULL, &vk->dev) != VK_SUCCESS) {
-        pclog("%s: vkCreateDevice failed\n", vk->tag);
+        nv_gpu_log("%s: vkCreateDevice failed\n", vk->tag);
         return 0;
     }
     vk->vkGetDeviceQueue(vk->dev, vk->qfam, 0, &vk->queue);
@@ -353,21 +472,23 @@ gpu_create(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
         if (vk->vkCreateQueryPool(vk->dev, &qpi, NULL, &vk->slot[i].qpool) != VK_SUCCESS)
             vk->slot[i].qpool = VK_NULL_HANDLE;
     }
-    if (have_host)
-        gpu_vram_import(vk, d, host_align);
-    pclog("%s: using %s, %d batches in flight, VRAM rows %s\n", vk->tag, props.deviceName, vk->nslots,
+    if (have_host && !gpu_vram_import(vk, d, host_align))
+        nv_gpu_log("%s: VRAM import failed (alignment %llu)\n", vk->tag, (unsigned long long) host_align);
+    else if (d->vram && !have_host)
+        nv_gpu_log("%s: no %s%s\n", vk->tag, host_ext, getenv("NV_GPU_NO_IMPORT") ? " (NV_GPU_NO_IMPORT)" : "");
+    nv_gpu_log("%s: using %s, %d batches in flight, VRAM rows %s\n", vk->tag, props.deviceName, vk->nslots,
           vk->vram_import ? "imported" : "staged");
 
     if (!gpu_buf(vk, &vk->b[NV_GPU_B_VRAM], d->vram_size, 0) || !gpu_buf(vk, &vk->b[NV_GPU_B_TEX], d->tex_arena, 0)
         || (!vk->vram_import && !gpu_buf(vk, &vk->b[NV_GPU_B_VSTAGE], d->vram_size, 1))
         || !gpu_buf(vk, &vk->b[NV_GPU_B_TSTAGE], d->tex_arena, 1)) {
-        pclog("%s: buffer allocation failed\n", vk->tag);
+        nv_gpu_log("%s: buffer allocation failed\n", vk->tag);
         return 0;
     }
     for (int i = 0; i < vk->nslots; i++)
         for (int r = 0; r < NV_GPU_R_COUNT; r++)
             if (!gpu_buf(vk, &vk->slot[i].rec[r], d->rec_size[r], 0) || !gpu_buf(vk, &vk->slot[i].rech[r], d->rec_size[r], 1)) {
-                pclog("%s: buffer allocation failed\n", vk->tag);
+                nv_gpu_log("%s: buffer allocation failed\n", vk->tag);
                 return 0;
             }
 
@@ -416,7 +537,7 @@ gpu_create(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
         res              = vk->vkCreateComputePipelines(vk->dev, VK_NULL_HANDLE, 1, &cpi, NULL, &vk->pipe);
         vk->vkDestroyShaderModule(vk->dev, sm, NULL);
         if (res != VK_SUCCESS) {
-            pclog("%s: pipeline creation failed (%d)\n", vk->tag, res);
+            nv_gpu_log("%s: pipeline creation failed (%d)\n", vk->tag, res);
             return 0;
         }
         dpi.maxSets       = NV_GPU_SLOTS;
@@ -475,18 +596,19 @@ nv_gpu_vk_open(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
 
     memset(vk, 0, sizeof(*vk));
     vk->tag    = d->tag;
+    gpu_tel_open(d->tag);
     vk->nslots = (env && *env) ? atoi(env) : (d->slots ? d->slots : NV_GPU_SLOTS_DEFAULT);
     if (vk->nslots < 1)
         vk->nslots = 1;
     if (vk->nslots > NV_GPU_SLOTS)
         vk->nslots = NV_GPU_SLOTS;
     if (!gpu_load(vk)) {
-        pclog("%s: no Vulkan library, 3D stays on the CPU\n", vk->tag);
+        nv_gpu_log("%s: no Vulkan library, 3D stays on the CPU\n", vk->tag);
         nv_gpu_vk_close(vk);
         return 0;
     }
     if (!gpu_create(vk, d)) {
-        pclog("%s: Vulkan setup failed, 3D stays on the CPU\n", vk->tag);
+        nv_gpu_log("%s: Vulkan setup failed, 3D stays on the CPU\n", vk->tag);
         nv_gpu_vk_close(vk);
         return 0;
     }
@@ -539,6 +661,7 @@ nv_gpu_vk_close(nv_gpu_vk_t *vk)
         gpu_aligned_free(vk->vram_block);
     }
     memset(vk, 0, sizeof(*vk));
+    gpu_tel_close();
 }
 
 void

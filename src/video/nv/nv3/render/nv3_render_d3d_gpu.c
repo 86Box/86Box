@@ -209,9 +209,10 @@ nv3_gpu_counts(struct nv3_gpu_s *g, uint64_t *batches, uint64_t *fallbacks)
 {
     *batches   = g->batches;
     *fallbacks = g->fallbacks;
-    pclog("nv3 3D: GPU textures %llu us (%llu KB hashed, %llu KB copied), row copies %llu us (%llu KB), waiting %llu us\n",
+    nv_gpu_log("nv3 3D: GPU textures %llu us (%llu KB hashed, %llu KB copied), row copies %llu us (%llu KB), waiting %llu us\n",
           (unsigned long long) g->us_gather, (unsigned long long) (g->hash_bytes >> 10), (unsigned long long) (g->tex_bytes >> 10),
           (unsigned long long) g->us_copy, (unsigned long long) (g->row_bytes >> 10), (unsigned long long) g->us_wait);
+    nv_gpu_vk_fallbacks(&g->vk, 0);
     g->us_gather = g->us_copy = g->us_wait = g->tex_bytes = g->row_bytes = g->hash_bytes = 0;
 }
 
@@ -223,8 +224,9 @@ nv3_gpu_close(struct nv3_gpu_s *g)
     for (int i = 0; i < g->vk.nslots; i++)
         if (g->slot[i].pending)
             g->vk.vkWaitForFences(g->vk.dev, 1, &g->vk.slot[i].fence, VK_TRUE, UINT64_MAX);
-    pclog("NV3 GPU: %llu batches on the GPU, %llu left to the CPU\n", (unsigned long long) g->batches,
-          (unsigned long long) g->fallbacks);
+    nv_gpu_log("NV3 GPU: %llu batches on the GPU, %llu left to the CPU\n", (unsigned long long) g->batches,
+               (unsigned long long) g->fallbacks);
+    nv_gpu_vk_fallbacks(&g->vk, 1);
     nv_gpu_vk_close(&g->vk);
     free(g);
 }
@@ -501,6 +503,7 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
     int              xmax  = 0;
     uint32_t         pc[2];
     uint64_t         t0, t1, t2;
+    int              why = NV_GPU_FB_NOREGION;
 
     /* this slot's last batch (and any older one) first */
     if (sl->pending)
@@ -511,10 +514,12 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
     cb  = sl->vk->cb;
     if (!b->nregions)
         goto fallback;
+    why = NV_GPU_FB_PASTVRAM;
     for (int r = 0; r < b->nregions; r++)
         if ((b->regions[r].wlo <= b->regions[r].whi) && (b->regions[r].whi >= g->vram_size))
             goto fallback;
     /* the kernel reads texels as whole words of the arena */
+    why = NV_GPU_FB_TEXODD;
     for (int i = 0; i < b->nstates; i++)
         if (b->states[i].textured && (b->states[i].tex_l0 & 1))
             goto fallback;
@@ -539,6 +544,7 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
             break;
         g->ncache   = 0;
         g->tex_used = 0;
+        why         = NV_GPU_FB_ARENA;
         if (pass)
             goto fallback;
     }
@@ -574,6 +580,7 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
         if (sp->x1 > xmax)
             xmax = sp->x1;
     }
+    why = NV_GPU_FB_NOROWS;
     if (!nrows)
         goto fallback;
 
@@ -588,6 +595,7 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
         down[ndown].size                              = rg->whi - rg->wlo + 1;
         ndown++;
     }
+    why = NV_GPU_FB_NOREGION;
     if (!ndown)
         goto fallback;
 
@@ -636,8 +644,10 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
         si.commandBufferCount = 1;
         si.pCommandBuffers    = &cb;
         g->vk.vkResetFences(g->vk.dev, 1, &sl->vk->fence);
-        if (g->vk.vkQueueSubmit(g->vk.queue, 1, &si, sl->vk->fence) != VK_SUCCESS)
+        if (g->vk.vkQueueSubmit(g->vk.queue, 1, &si, sl->vk->fence) != VK_SUCCESS) {
+            why = NV_GPU_FB_SUBMIT;
             goto fallback;
+        }
     }
 
     /* in flight: the rows come back when a later batch needs the slot or a sync point waits */
@@ -655,6 +665,7 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
 
 fallback:
     g->fallbacks++;
+    nv_gpu_vk_fallback(&g->vk, why);
     return 0;
 }
 
