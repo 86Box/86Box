@@ -23,6 +23,17 @@
 #include "softfloat3e/specialize.h"
 #include <86box/plat_unused.h>
 
+/* Bit 7 masks interrupts on the 8087 and is reserved on later coprocessors.
+   Intel 8087 Numerics Supplement, Fig. S-7; 80C187 datasheet, Fig. 5. */
+uint16_t
+x87_initial_control_word(void)
+{
+    if (fpu_type == FPU_8087)
+        return 0x03ff;
+
+    return 0x037f;
+}
+
 uint32_t x87_pc_off;
 uint32_t x87_op_off;
 uint16_t x87_pc_seg;
