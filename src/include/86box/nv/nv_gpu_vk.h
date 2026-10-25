@@ -14,11 +14,17 @@
  *          pipeline is made from a lane's SPIR-V: six storage buffers --
  *          a device-local mirror of VRAM, the texture arena, then a
  *          slot's four record buffers -- and an 8-byte push constant.
- *          Each of the NV_GPU_SLOTS slots (a batch in flight) has its
- *          records (device-local, with host-visible staging), its
- *          descriptor set, command buffer and fence, and a timestamp
- *          query pool when asked for. Only built with Vulkan headers
- *          (NV_GPU_HAVE_VULKAN).
+ *          Each slot (a batch in flight; nslots of them, NV_GPU_SLOTS at
+ *          most) has its records (device-local, with host-visible
+ *          staging), its descriptor set, command buffer and fence, and a
+ *          timestamp query pool when asked for.
+ *
+ *          VRAM rows go in and out through a host-visible buffer the size
+ *          of VRAM. With VK_EXT_external_memory_host that buffer is VRAM
+ *          itself: svga.vram moves to a block aligned for the import, so
+ *          the GPU copies rows straight from and into it (vram_import)
+ *          and the lanes copy nothing on the CPU. Only built with Vulkan
+ *          headers (NV_GPU_HAVE_VULKAN).
  *
  * Authors: Marcos Alves, <xeon4d@gmail.com>
  *
@@ -80,7 +86,7 @@
     X(vkDestroyQueryPool)                       \
     X(vkCmdResetQueryPool)                      \
     X(vkCmdWriteTimestamp)                      \
-    X(vkGetQueryPoolResults)
+    X(vkGetQueryPoolResults)                        X(vkEnumerateDeviceExtensionProperties)         X(vkGetPhysicalDeviceProperties2)               X(vkGetDeviceProcAddr)
 
 typedef struct {
     VkBuffer       buf;
@@ -92,7 +98,7 @@ typedef struct {
 enum {
     NV_GPU_B_VRAM,   /* bindings 0-1, device-local: a mirror of VRAM */
     NV_GPU_B_TEX,    /* the texture arena */
-    NV_GPU_B_VSTAGE, /* host-visible: VRAM rows in and out */
+    NV_GPU_B_VSTAGE, /* host-visible: VRAM rows in and out (VRAM itself with vram_import) */
     NV_GPU_B_TSTAGE, /* textures in */
     NV_GPU_B_COUNT
 };
@@ -106,8 +112,10 @@ enum {
     NV_GPU_R_COUNT
 };
 
-/* Two batches can be in flight */
-#define NV_GPU_SLOTS 2
+/* Batches in flight: at most NV_GPU_SLOTS, NV_GPU_SLOTS_DEFAULT unless
+   the lane or NV_GPU_SLOTS in the environment says otherwise */
+#define NV_GPU_SLOTS         8
+#define NV_GPU_SLOTS_DEFAULT 4
 
 typedef struct {
     nv_gpu_buf_t    rec[NV_GPU_R_COUNT];  /* device-local */
@@ -126,7 +134,10 @@ typedef struct {
     VkDeviceSize    rec_size[NV_GPU_R_COUNT];
     const uint32_t *spv;
     size_t          spv_size;
-    uint32_t        queries; /* timestamps per slot, 0 for none */
+    uint32_t        queries;    /* timestamps per slot, 0 for none */
+    int             slots;      /* batches in flight, 0 for the default */
+    uint8_t       **vram;       /* &svga.vram: moved and imported when it can be (NULL: never) */
+    size_t          vram_alloc; /* the bytes svga allocated there */
 } nv_gpu_vk_desc_t;
 
 typedef struct {
@@ -149,7 +160,12 @@ typedef struct {
     VkCommandPool         cpool;
     nv_gpu_buf_t          b[NV_GPU_B_COUNT];
     nv_gpu_vk_slot_t      slot[NV_GPU_SLOTS];
+    int                   nslots;
     float                 ts_period; /* ns per tick */
+    int                   vram_import; /* b[NV_GPU_B_VSTAGE] is svga.vram */
+    uint8_t             **vram_ref;    /* the moved svga.vram, given back at close */
+    uint8_t              *vram_block;
+    size_t                vram_alloc;
 } nv_gpu_vk_t;
 
 /* Open Vulkan and make everything <d> describes. 0 (logged, and <vk>

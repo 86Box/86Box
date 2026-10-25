@@ -17,15 +17,17 @@
  *          submission order, and writes the bytes the CPU span shader
  *          would.
  *
- *          A flush submits and returns (two batches can be in flight):
- *          the colour and zeta rows the batch touches are copied into a
- *          device-local mirror of VRAM (but not those a batch in flight
- *          owns: the mirror's are newer), the batch's textures are
- *          gathered through their pages (VRAM or system memory alike)
- *          into a texture arena that keeps them across batches, the
- *          records go to device memory, the kernel runs and the rows go
- *          back to a staging buffer. The rows reach VRAM when the next
- *          flush or a sync point (nv3_d3d_sync) waits for the batch. A
+ *          A flush submits and returns (nv_gpu_vk_t.nslots batches can
+ *          be in flight): the colour and zeta rows the batch touches are
+ *          copied into a device-local mirror of VRAM (but not those a
+ *          batch in flight owns: the mirror's are newer), the batch's
+ *          textures are gathered through their pages (VRAM or system
+ *          memory alike) into a texture arena that keeps them across
+ *          batches, the records go to device memory, the kernel runs and
+ *          the rows go back: with VRAM imported (nv_gpu_vk.h) the GPU
+ *          copies them straight from and into VRAM, else through a
+ *          staging buffer from which they reach VRAM when the next flush
+ *          or a sync point (nv3_d3d_sync) waits for the batch. A
  *          batch the lane cannot take (rows past the end of VRAM, a full
  *          arena) is left to the CPU.
  *
@@ -128,7 +130,7 @@ _Static_assert(sizeof(nv3_gpu_state_t) == 29 * 4, "nv3_gpu_state_t layout");
 _Static_assert(sizeof(nv3_d3d_tri_t) == (3 + 3 * D3_AT_COUNT) * 4, "nv3_d3d_tri_t layout");
 _Static_assert(D3_AT_COUNT == 9, "the kernel interpolates 9 attributes");
 
-/* Two batches can be in flight (NV_GPU_SLOTS): each has its own records, command buffer and fence
+/* Batches in flight (nv_gpu_vk_t.nslots): each has its own records, command buffer and fence
    (nv_gpu_vk.h). The rows a batch in flight owns are newer in the GPU's VRAM mirror than in VRAM,
    so a later batch does not upload them; batches complete (rows copied back) oldest first. */
 typedef struct {
@@ -137,6 +139,8 @@ typedef struct {
     uint64_t          seq;
     VkBufferCopy      pdown[D3_REGIONS]; /* its rows, to copy back */
     int               pndown;
+    VkBufferCopy      ptex[D3_STATES]; /* the texture staging it uploads from */
+    int               pntex;
 } gpu_slot_t;
 
 /* A texture in the arena: where its bytes came from, a hash of them, and where they are */
@@ -147,6 +151,9 @@ typedef struct {
 } gpu_texent_t;
 
 #    define GPU_TEX_CACHE 1024
+
+/* The pieces a batch's rows upload in: each region less the rows of every batch in flight */
+#    define GPU_UPLOADS (D3_REGIONS * (1 + NV_GPU_SLOTS * D3_REGIONS))
 
 typedef struct nv3_gpu_s {
     nv_gpu_vk_t           vk;
@@ -182,7 +189,9 @@ nv3_gpu_init(void)
         .rec_size  = { sizeof(nv3_gpu_state_t) * D3_STATES, sizeof(nv3_d3d_tri_t) * D3_TRIS,
                        sizeof(nv3_gpu_span_t) * D3_SPANS, sizeof(nv3_gpu_row_t) * GPU_ROWS },
         .spv       = (const uint32_t *) nv3_gpu_spv,
-        .spv_size  = sizeof(nv3_gpu_spv)
+        .spv_size   = sizeof(nv3_gpu_spv),
+        .vram       = &nv3->nvbase.svga.vram,
+        .vram_alloc = nv3->nvbase.svga.vram_max + 4096 /* svga_init's */
     };
 
     g->vram_size = nv3->nvbase.svga.vram_max;
@@ -190,7 +199,7 @@ nv3_gpu_init(void)
         free(g);
         return NULL;
     }
-    for (int i = 0; i < NV_GPU_SLOTS; i++)
+    for (int i = 0; i < g->vk.nslots; i++)
         g->slot[i].vk = &g->vk.slot[i];
     return g;
 }
@@ -211,7 +220,7 @@ nv3_gpu_close(struct nv3_gpu_s *g)
 {
     if (!g)
         return;
-    for (int i = 0; i < NV_GPU_SLOTS; i++)
+    for (int i = 0; i < g->vk.nslots; i++)
         if (g->slot[i].pending)
             g->vk.vkWaitForFences(g->vk.dev, 1, &g->vk.slot[i].fence, VK_TRUE, UINT64_MAX);
     pclog("NV3 GPU: %llu batches on the GPU, %llu left to the CPU\n", (unsigned long long) g->batches,
@@ -289,13 +298,25 @@ gpu_tex_pages(const nv3_d3d_dstate_t *s)
 }
 
 /* Copy a texture's bytes into the arena's staging at <base>, to upload. A batch in flight may
-   still read the arena and its staging: they finish first. */
+   still upload from those staging bytes: it (and any older one) finishes first. Its kernel may
+   still read the arena there, but the GPU orders that: every batch's kernel is followed by a
+   barrier before the next transfer. */
 static void
 gpu_tex_copy(nv3_gpu_t *g, const nv3_d3d_dstate_t *s, uint32_t base)
 {
-    uint8_t *dst = (uint8_t *) g->vk.b[NV_GPU_B_TSTAGE].map + base;
+    uint8_t *dst  = (uint8_t *) g->vk.b[NV_GPU_B_TSTAGE].map + base;
+    uint32_t size = (s->tex_size + 3) & ~3u;
+    uint64_t seq  = 0;
 
-    gpu_complete_upto(g, UINT64_MAX);
+    for (int n = 0; n < g->vk.nslots; n++) {
+        const gpu_slot_t *sl = &g->slot[n];
+
+        for (int i = 0; sl->pending && (i < sl->pntex); i++)
+            if ((sl->ptex[i].srcOffset < base + size) && (base < sl->ptex[i].srcOffset + sl->ptex[i].size) && (sl->seq > seq))
+                seq = sl->seq;
+    }
+    if (seq)
+        gpu_complete_upto(g, seq);
     GPU_TEX_PIECES(s, memcpy(dst + done, p, len));
     g->tcopy[g->ntcopy].srcOffset = base;
     g->tcopy[g->ntcopy].dstOffset = base;
@@ -386,7 +407,8 @@ gpu_complete(nv3_gpu_t *g, gpu_slot_t *sl)
     t1 = nv_gpu_now_us();
     g->us_wait += t1 - t0;
     for (int i = 0; i < sl->pndown; i++) {
-        memcpy(vram + sl->pdown[i].srcOffset, stage + sl->pdown[i].srcOffset, sl->pdown[i].size);
+        if (!g->vk.vram_import) /* else the GPU wrote VRAM itself */
+            memcpy(vram + sl->pdown[i].srcOffset, stage + sl->pdown[i].srcOffset, sl->pdown[i].size);
         g->row_bytes += sl->pdown[i].size;
         for (uint32_t a = sl->pdown[i].srcOffset & ~0xFFFu; a < sl->pdown[i].srcOffset + sl->pdown[i].size; a += 0x1000)
             nv3->nvbase.svga.changedvram[a >> 12] = changeframecount;
@@ -403,7 +425,7 @@ gpu_complete_upto(nv3_gpu_t *g, uint64_t seq)
     for (;;) {
         gpu_slot_t *old = NULL;
 
-        for (int i = 0; i < NV_GPU_SLOTS; i++)
+        for (int i = 0; i < g->vk.nslots; i++)
             if (g->slot[i].pending && (g->slot[i].seq <= seq) && (!old || (g->slot[i].seq < old->seq)))
                 old = &g->slot[i];
         if (!old)
@@ -421,7 +443,7 @@ nv3_gpu_wait(struct nv3_gpu_s *g)
 int
 nv3_gpu_pending_overlaps(struct nv3_gpu_s *g, uint32_t lo, uint32_t hi)
 {
-    for (int s = 0; s < NV_GPU_SLOTS; s++) {
+    for (int s = 0; s < g->vk.nslots; s++) {
         const gpu_slot_t *sl = &g->slot[s];
 
         for (int i = 0; sl->pending && (i < sl->pndown); i++)
@@ -438,7 +460,7 @@ gpu_upload_range(nv3_gpu_t *g, uint32_t lo, uint32_t hi, VkBufferCopy *up, int *
 {
     uint8_t *stage = (uint8_t *) g->vk.b[NV_GPU_B_VSTAGE].map;
 
-    for (int s = 0; s < NV_GPU_SLOTS; s++) {
+    for (int s = 0; s < g->vk.nslots; s++) {
         const gpu_slot_t *sl = &g->slot[s];
 
         for (int i = 0; sl->pending && (i < sl->pndown); i++) {
@@ -455,11 +477,11 @@ gpu_upload_range(nv3_gpu_t *g, uint32_t lo, uint32_t hi, VkBufferCopy *up, int *
             return;
         }
     }
-    /* at most 1 + 2 * 8 pieces per region (two batches in flight, eight regions each), so
-       <max> is never reached */
+    /* GPU_UPLOADS: <max> is never reached */
     if (*nup >= max)
         return;
-    memcpy(stage + lo, nv3->nvbase.svga.vram + lo, hi - lo + 1);
+    if (!g->vk.vram_import) /* else the GPU reads VRAM itself */
+        memcpy(stage + lo, nv3->nvbase.svga.vram + lo, hi - lo + 1);
     up[*nup].srcOffset = up[*nup].dstOffset = lo;
     up[*nup].size                           = hi - lo + 1;
     (*nup)++;
@@ -473,7 +495,7 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
     nv3_gpu_span_t  *gsp;
     nv3_gpu_row_t   *gr;
     VkCommandBuffer  cb;
-    VkBufferCopy     up[D3_REGIONS * 20], down[D3_REGIONS];
+    VkBufferCopy     up[GPU_UPLOADS], down[D3_REGIONS];
     int              nup = 0, ndown = 0;
     uint32_t         nrows = 0;
     int              xmax  = 0;
@@ -561,7 +583,7 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
 
         if (rg->wlo > rg->whi)
             continue;
-        gpu_upload_range(g, rg->wlo, rg->whi, up, &nup, D3_REGIONS * 20);
+        gpu_upload_range(g, rg->wlo, rg->whi, up, &nup, GPU_UPLOADS);
         down[ndown].srcOffset = down[ndown].dstOffset = rg->wlo;
         down[ndown].size                              = rg->whi - rg->wlo + 1;
         ndown++;
@@ -624,7 +646,10 @@ nv3_gpu_shade(struct nv3_gpu_s *g, const nv3_d3d_batch_t *b)
     sl->pndown  = ndown;
     for (int i = 0; i < ndown; i++)
         sl->pdown[i] = down[i];
-    g->next = (g->next + 1) % NV_GPU_SLOTS;
+    sl->pntex = g->ntcopy;
+    for (int i = 0; i < g->ntcopy; i++)
+        sl->ptex[i] = g->tcopy[i];
+    g->next = (g->next + 1) % g->vk.nslots;
     g->batches++;
     return 1;
 

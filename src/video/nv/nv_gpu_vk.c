@@ -8,9 +8,10 @@
  *
  *          NVIDIA GPU lanes -- the Vulkan plumbing of the RIVA 128's
  *          compute lane (nv_gpu_vk.h), kept apart from the lane itself
- *          so other NVIDIA cards can use it: run-time loading, instance and device (a discrete GPU first), buffers,
- *          the compute pipeline, the slots' descriptor sets, command
- *          buffers, fences and timestamp queries.
+ *          so other NVIDIA cards can use it: run-time loading, instance
+ *          and device (a discrete GPU first), buffers, VRAM imported as
+ *          host memory, the compute pipeline, the slots' descriptor
+ *          sets, command buffers, fences and timestamp queries.
  *
  * Authors: Marcos Alves, <xeon4d@gmail.com>
  *
@@ -65,6 +66,35 @@ gpu_dl_close(void *lib)
     FreeLibrary((HMODULE) lib);
 #else
     dlclose(lib);
+#endif
+}
+
+/* The block svga.vram moves to for the import: aligned to
+   GPU_VRAM_ALIGN, which covers the import alignments seen in practice
+   (4 KB to 64 KB). */
+#define GPU_VRAM_ALIGN 0x10000
+
+static void gpu_buf_free(nv_gpu_vk_t *vk, nv_gpu_buf_t *b);
+
+static void *
+gpu_aligned_alloc(size_t size)
+{
+#ifdef _WIN32
+    return _aligned_malloc(size, GPU_VRAM_ALIGN);
+#else
+    void *p = NULL;
+
+    return posix_memalign(&p, GPU_VRAM_ALIGN, size) ? NULL : p;
+#endif
+}
+
+static void
+gpu_aligned_free(void *p)
+{
+#ifdef _WIN32
+    _aligned_free(p);
+#else
+    free(p);
 #endif
 }
 
@@ -141,6 +171,75 @@ gpu_buf(nv_gpu_vk_t *vk, nv_gpu_buf_t *b, VkDeviceSize size, int host)
     return 1;
 }
 
+/* Move svga.vram (<d->vram>, d->vram_alloc bytes from svga_init's
+   calloc) into an aligned block and import the block as the VRAM
+   staging buffer, b[NV_GPU_B_VSTAGE]. svga_close frees svga.vram with
+   free(), which must not reach the aligned block: nv_gpu_vk_close gives
+   back a calloc'd copy. 0 when the import fails (the block, if made,
+   stays until close): the lane then gets a staging buffer of its own. */
+static int
+gpu_vram_import(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d, VkDeviceSize align)
+{
+    PFN_vkGetMemoryHostPointerPropertiesEXT get_props;
+    VkMemoryHostPointerPropertiesEXT        hpp   = { VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT };
+    VkExternalMemoryBufferCreateInfo        embci = { VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO };
+    VkBufferCreateInfo                      bi    = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+    VkImportMemoryHostPointerInfoEXT        imp   = { VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT };
+    VkMemoryAllocateInfo                    ai    = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+    VkPhysicalDeviceMemoryProperties        mp;
+    VkMemoryRequirements                    mr;
+    nv_gpu_buf_t                           *b    = &vk->b[NV_GPU_B_VSTAGE];
+    size_t                                  size = (d->vram_alloc + GPU_VRAM_ALIGN - 1) & ~(size_t) (GPU_VRAM_ALIGN - 1);
+    uint8_t                                *blk;
+
+    get_props = (PFN_vkGetMemoryHostPointerPropertiesEXT) vk->vkGetDeviceProcAddr(vk->dev, "vkGetMemoryHostPointerPropertiesEXT");
+    if (!get_props || !align || (align > GPU_VRAM_ALIGN) || !(blk = gpu_aligned_alloc(size)))
+        return 0;
+    memcpy(blk, *d->vram, d->vram_alloc);
+    memset(blk + d->vram_alloc, 0, size - d->vram_alloc);
+    free(*d->vram);
+    *d->vram       = blk;
+    vk->vram_ref   = d->vram;
+    vk->vram_block = blk;
+    vk->vram_alloc = d->vram_alloc;
+
+    if (get_props(vk->dev, VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT, blk, &hpp) != VK_SUCCESS)
+        return 0;
+    embci.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT;
+    bi.pNext          = &embci;
+    bi.size           = d->vram_size;
+    bi.usage          = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    bi.sharingMode    = VK_SHARING_MODE_EXCLUSIVE;
+    if (vk->vkCreateBuffer(vk->dev, &bi, NULL, &b->buf) != VK_SUCCESS)
+        return 0;
+    vk->vkGetBufferMemoryRequirements(vk->dev, b->buf, &mr);
+    vk->vkGetPhysicalDeviceMemoryProperties(vk->pd, &mp);
+    ai.memoryTypeIndex = UINT32_MAX;
+    for (uint32_t i = 0; i < mp.memoryTypeCount; i++) {
+        const VkMemoryPropertyFlags want = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+        if ((hpp.memoryTypeBits & mr.memoryTypeBits & (1u << i)) && ((mp.memoryTypes[i].propertyFlags & want) == want)) {
+            ai.memoryTypeIndex = i;
+            break;
+        }
+    }
+    imp.handleType    = VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT;
+    imp.pHostPointer  = blk;
+    ai.pNext          = &imp;
+    ai.allocationSize = (size / align) * align;
+    if ((ai.memoryTypeIndex == UINT32_MAX) || (ai.allocationSize < mr.size)
+        || (vk->vkAllocateMemory(vk->dev, &ai, NULL, &b->mem) != VK_SUCCESS)
+        || (vk->vkBindBufferMemory(vk->dev, b->buf, b->mem, 0) != VK_SUCCESS)) {
+        gpu_buf_free(vk, b);
+        memset(b, 0, sizeof(*b));
+        return 0;
+    }
+    b->map          = blk;
+    b->size         = d->vram_size;
+    vk->vram_import = 1;
+    return 1;
+}
+
 static void
 gpu_buf_free(nv_gpu_vk_t *vk, nv_gpu_buf_t *b)
 {
@@ -165,6 +264,11 @@ gpu_create(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
     VkQueueFamilyProperties    qf[16];
     uint32_t                   nqf  = 16;
     int                        best = -1;
+    VkExtensionProperties     *ext  = NULL;
+    uint32_t                   next = 0;
+    const char                *host_ext   = VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME;
+    int                        have_host  = 0;
+    VkDeviceSize               host_align = 0;
 
     create_instance = (PFN_vkCreateInstance) vk->gipa(NULL, "vkCreateInstance");
     if (!create_instance)
@@ -210,6 +314,25 @@ gpu_create(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
         }
     if (vk->qfam == UINT32_MAX)
         return 0;
+    /* host memory import, for VRAM rows without CPU copies */
+    if (d->vram && !getenv("NV_GPU_NO_IMPORT") && (vk->vkEnumerateDeviceExtensionProperties(vk->pd, NULL, &next, NULL) == VK_SUCCESS)
+        && next && (ext = calloc(next, sizeof(*ext)))) {
+        if (vk->vkEnumerateDeviceExtensionProperties(vk->pd, NULL, &next, ext) == VK_SUCCESS)
+            for (uint32_t i = 0; i < next; i++)
+                if (!strcmp(ext[i].extensionName, host_ext))
+                    have_host = 1;
+        free(ext);
+    }
+    if (have_host) {
+        VkPhysicalDeviceExternalMemoryHostPropertiesEXT hp = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT };
+        VkPhysicalDeviceProperties2                     p2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+
+        p2.pNext = &hp;
+        vk->vkGetPhysicalDeviceProperties2(vk->pd, &p2);
+        host_align                  = hp.minImportedHostPointerAlignment;
+        dci.enabledExtensionCount   = 1;
+        dci.ppEnabledExtensionNames = &host_ext;
+    }
     qci.queueFamilyIndex     = vk->qfam;
     qci.queueCount           = 1;
     qci.pQueuePriorities     = &prio;
@@ -222,7 +345,7 @@ gpu_create(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
     vk->vkGetDeviceQueue(vk->dev, vk->qfam, 0, &vk->queue);
     vk->ts_period = props.limits.timestampPeriod;
     /* timestamps, when this queue has them */
-    for (int i = 0; d->queries && qf[vk->qfam].timestampValidBits && (i < NV_GPU_SLOTS); i++) {
+    for (int i = 0; d->queries && qf[vk->qfam].timestampValidBits && (i < vk->nslots); i++) {
         VkQueryPoolCreateInfo qpi = { VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO };
 
         qpi.queryType  = VK_QUERY_TYPE_TIMESTAMP;
@@ -230,14 +353,18 @@ gpu_create(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
         if (vk->vkCreateQueryPool(vk->dev, &qpi, NULL, &vk->slot[i].qpool) != VK_SUCCESS)
             vk->slot[i].qpool = VK_NULL_HANDLE;
     }
-    pclog("%s: using %s\n", vk->tag, props.deviceName);
+    if (have_host)
+        gpu_vram_import(vk, d, host_align);
+    pclog("%s: using %s, %d batches in flight, VRAM rows %s\n", vk->tag, props.deviceName, vk->nslots,
+          vk->vram_import ? "imported" : "staged");
 
     if (!gpu_buf(vk, &vk->b[NV_GPU_B_VRAM], d->vram_size, 0) || !gpu_buf(vk, &vk->b[NV_GPU_B_TEX], d->tex_arena, 0)
-        || !gpu_buf(vk, &vk->b[NV_GPU_B_VSTAGE], d->vram_size, 1) || !gpu_buf(vk, &vk->b[NV_GPU_B_TSTAGE], d->tex_arena, 1)) {
+        || (!vk->vram_import && !gpu_buf(vk, &vk->b[NV_GPU_B_VSTAGE], d->vram_size, 1))
+        || !gpu_buf(vk, &vk->b[NV_GPU_B_TSTAGE], d->tex_arena, 1)) {
         pclog("%s: buffer allocation failed\n", vk->tag);
         return 0;
     }
-    for (int i = 0; i < NV_GPU_SLOTS; i++)
+    for (int i = 0; i < vk->nslots; i++)
         for (int r = 0; r < NV_GPU_R_COUNT; r++)
             if (!gpu_buf(vk, &vk->slot[i].rec[r], d->rec_size[r], 0) || !gpu_buf(vk, &vk->slot[i].rech[r], d->rec_size[r], 1)) {
                 pclog("%s: buffer allocation failed\n", vk->tag);
@@ -297,7 +424,7 @@ gpu_create(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
         dpi.pPoolSizes    = &ps;
         if (vk->vkCreateDescriptorPool(vk->dev, &dpi, NULL, &vk->dpool) != VK_SUCCESS)
             return 0;
-        for (int sl = 0; sl < NV_GPU_SLOTS; sl++) {
+        for (int sl = 0; sl < vk->nslots; sl++) {
             dai.descriptorPool     = vk->dpool;
             dai.descriptorSetCount = 1;
             dai.pSetLayouts        = &vk->dsl;
@@ -331,7 +458,7 @@ gpu_create(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
         cbai.commandPool        = vk->cpool;
         cbai.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cbai.commandBufferCount = 1;
-        for (int i = 0; i < NV_GPU_SLOTS; i++) {
+        for (int i = 0; i < vk->nslots; i++) {
             if (vk->vkAllocateCommandBuffers(vk->dev, &cbai, &vk->slot[i].cb) != VK_SUCCESS)
                 return 0;
             if (vk->vkCreateFence(vk->dev, &fci, NULL, &vk->slot[i].fence) != VK_SUCCESS)
@@ -344,8 +471,15 @@ gpu_create(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
 int
 nv_gpu_vk_open(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
 {
+    const char *env = getenv("NV_GPU_SLOTS");
+
     memset(vk, 0, sizeof(*vk));
-    vk->tag = d->tag;
+    vk->tag    = d->tag;
+    vk->nslots = (env && *env) ? atoi(env) : (d->slots ? d->slots : NV_GPU_SLOTS_DEFAULT);
+    if (vk->nslots < 1)
+        vk->nslots = 1;
+    if (vk->nslots > NV_GPU_SLOTS)
+        vk->nslots = NV_GPU_SLOTS;
     if (!gpu_load(vk)) {
         pclog("%s: no Vulkan library, 3D stays on the CPU\n", vk->tag);
         nv_gpu_vk_close(vk);
@@ -364,7 +498,7 @@ nv_gpu_vk_close(nv_gpu_vk_t *vk)
 {
     if (vk->dev) {
         vk->vkDeviceWaitIdle(vk->dev);
-        for (int i = 0; i < NV_GPU_SLOTS; i++) {
+        for (int i = 0; i < vk->nslots; i++) {
             nv_gpu_vk_slot_t *sl = &vk->slot[i];
 
             if (sl->fence)
@@ -394,6 +528,16 @@ nv_gpu_vk_close(nv_gpu_vk_t *vk)
         vk->vkDestroyInstance(vk->inst, NULL);
     if (vk->lib)
         gpu_dl_close(vk->lib);
+    /* svga.vram back in a block svga_close can free() */
+    if (vk->vram_block) {
+        uint8_t *v = calloc(vk->vram_alloc, 1);
+
+        if (!v)
+            fatal("%s: out of memory giving VRAM back\n", vk->tag);
+        memcpy(v, vk->vram_block, vk->vram_alloc);
+        *vk->vram_ref = v;
+        gpu_aligned_free(vk->vram_block);
+    }
     memset(vk, 0, sizeof(*vk));
 }
 
