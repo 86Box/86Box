@@ -132,46 +132,86 @@
          <item>
           <layout class="QVBoxLayout" name="verticalLayoutTimeSync">
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayoutTimeSync">
-             <item>
-              <widget class="QLabel" name="labelTimeSync">
-               <property name="text">
-                <string>Time synchronization:</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QComboBox" name="comboBoxTimeSync"/>
-             </item>
-             <item>
-              <spacer name="horizontalSpacerTimeSync">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>40</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-            </layout>
-           </item>
-           <item>
-            <widget class="QGroupBox" name="groupBoxTimeOffset">
+            <widget class="QGroupBox" name="groupBoxTimeSync">
              <property name="title">
-              <string>Year adjustment</string>
+              <string>Synchronize with host clock</string>
              </property>
-             <layout class="QGridLayout" name="gridLayoutTimeAdjustment">
+             <property name="checkable">
+              <bool>true</bool>
+             </property>
+             <layout class="QGridLayout" name="gridLayoutTimeSync">
               <item row="0" column="0">
-               <widget class="QRadioButton" name="radioButtonOffsetYears">
+               <widget class="QLabel" name="labelClock">
                 <property name="text">
-                 <string>Offset by:</string>
+                 <string>Time zone:</string>
                 </property>
                </widget>
               </item>
-              <item row="0" column="1">
+              <item row="0" column="1" colspan="3">
+               <layout class="QHBoxLayout" name="horizontalLayoutClock">
+                <item>
+                 <widget class="QRadioButton" name="radioButtonLocalTime">
+                  <property name="text">
+                   <string>Local</string>
+                  </property>
+                  <attribute name="buttonGroup">
+                   <string notr="true">buttonGroupClock</string>
+                  </attribute>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radioButtonUTC">
+                  <property name="text">
+                   <string>UTC</string>
+                  </property>
+                  <attribute name="buttonGroup">
+                   <string notr="true">buttonGroupClock</string>
+                  </attribute>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacerClock">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="labelDate">
+                <property name="text">
+                 <string>Date:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1" colspan="3">
+               <widget class="QRadioButton" name="radioButtonHostDate">
+                <property name="text">
+                 <string>Match the host</string>
+                </property>
+                <attribute name="buttonGroup">
+                 <string notr="true">buttonGroupDate</string>
+                </attribute>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QRadioButton" name="radioButtonOffsetYears">
+                <property name="text">
+                 <string>Offset the year by:</string>
+                </property>
+                <attribute name="buttonGroup">
+                 <string notr="true">buttonGroupDate</string>
+                </attribute>
+               </widget>
+              </item>
+              <item row="2" column="2">
                <widget class="QSpinBox" name="spinBoxYearsOffset">
                 <property name="minimum">
                  <number>-100</number>
@@ -187,34 +227,24 @@
                 </property>
                </widget>
               </item>
-              <item row="0" column="2">
+              <item row="2" column="3">
                <widget class="QLabel" name="labelGuestYear">
                 <property name="text">
-                 <string>years (guest: %1)</string>
+                 <string>(currently %1)</string>
                 </property>
                </widget>
               </item>
-              <item row="0" column="3">
-               <spacer name="horizontalSpacerYearsOffset">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>20</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="1" column="0">
+              <item row="3" column="1">
                <widget class="QRadioButton" name="radioButtonFixedYear">
                 <property name="text">
-                 <string>Fixed year:</string>
+                 <string>Always use the year:</string>
                 </property>
+                <attribute name="buttonGroup">
+                 <string notr="true">buttonGroupDate</string>
+                </attribute>
                </widget>
               </item>
-              <item row="1" column="1">
+              <item row="3" column="2">
                <widget class="QSpinBox" name="spinBoxFixedYear">
                 <property name="minimum">
                  <number>1980</number>
@@ -230,8 +260,18 @@
                 </property>
                </widget>
               </item>
-              <item row="1" column="3">
-               <spacer name="horizontalSpacerFixedYear">
+              <item row="4" column="1" colspan="3">
+               <widget class="QRadioButton" name="radioButtonKeepDate">
+                <property name="text">
+                 <string>Do not synchronize</string>
+                </property>
+                <attribute name="buttonGroup">
+                 <string notr="true">buttonGroupDate</string>
+                </attribute>
+               </widget>
+              </item>
+              <item row="0" column="4" rowspan="5">
+               <spacer name="horizontalSpacerTimeSync">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
                 </property>
@@ -754,4 +794,8 @@
        </tabstops>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="buttonGroupClock"/>
+  <buttongroup name="buttonGroupDate"/>
+ </buttongroups>
 </ui>

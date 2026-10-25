@@ -205,18 +205,26 @@ tandy_clkmouse_nvr_start(nvr_t *nvr)
     dev->clk_offset     = 0;
     dev->battery_failed = !valid;
 
+    /* The battery keeps the clock counting while the machine is off. */
+    const time_t battery = valid ? (time_t) (tandy_clkmouse_get_i64(&nvr->regs[4])
+                                             + (int64_t) (now - (time_t) tandy_clkmouse_get_i64(&nvr->regs[12])))
+                                 : 0;
+
     if (time_sync & TIME_SYNC_ENABLED) {
         /* intclk already carries the fixed year or year offset applied by
            the core, so seed from it instead of the raw host clock. */
         struct tm tm = { 0 };
 
+        if (time_keep_date && valid) {
+            /* Keep the board's own date. */
+            tandy_clkmouse_get_tm(&battery, &tm);
+            nvr_time_set_date(&tm);
+        }
         nvr_time_get(&tm);
         tm.tm_isdst   = -1;
         dev->clk_base = tandy_clkmouse_make_time(&tm);
     } else if (valid) {
-        /* The battery keeps the clock counting while the machine is off. */
-        dev->clk_base = (time_t) (tandy_clkmouse_get_i64(&nvr->regs[4])
-                                  + (int64_t) (now - (time_t) tandy_clkmouse_get_i64(&nvr->regs[12])));
+        dev->clk_base = battery;
     } else {
         struct tm tm = { 0 };
 

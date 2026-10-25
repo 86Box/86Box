@@ -1000,6 +1000,11 @@ nvr_start(nvr_t *nvr)
                                   || (time_offset_years != 0) || (time_fixed_year != 0); /* force century update */
         const uint8_t old_cent  = seed_cent ? 0x00 : nvr->regs[local->cent];
 
+        if (time_keep_date) {
+            /* Keep the chip's own date. */
+            time_get(nvr, &tm);
+            nvr_time_set_date(&tm);
+        }
         nvr_time_get(&tm);
         time_set(nvr, &tm);
         if (!seed_cent)
