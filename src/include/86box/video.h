@@ -628,6 +628,7 @@ extern const device_t tgui9660_onboard_pci_device;
 extern const device_t tgui9680_pci_device;
 
 /* Weitek Power 9100 */
+extern const device_t p9100_viper_se_vlb_device; /* Not yet ready */
 extern const device_t p9100_viper_se_pci_device;
 extern const device_t p9100_papilio_pci_device;
 

@@ -2774,7 +2774,7 @@ static const device_config_t p9100_config[] = {
 };
 
 const device_t p9100_viper_se_pci_device = {
-    .name          = "Diamond Viper SE (Weitek Power 9100) (PCI)",
+    .name          = "Weitek Power 9100 (Diamond Viper SE) (PCI)",
     .internal_name = "viper_se_pci",
     .flags         = DEVICE_PCI,
     .local         = P9100_VIPER_SE,
@@ -2788,7 +2788,7 @@ const device_t p9100_viper_se_pci_device = {
 };
 
 const device_t p9100_papilio_pci_device = {
-    .name          = "DSystems Papilio UltraCAD Pro (Weitek Power 9100) (PCI)",
+    .name          = "Weitek Power 9100 (DSystems Papilio UltraCAD Pro) (PCI)",
     .internal_name = "papilio_pci",
     .flags         = DEVICE_PCI,
     .local         = P9100_PAPILIO,
