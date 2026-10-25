@@ -957,11 +957,19 @@ nvr_reset(nvr_t *nvr)
     memset(nvr->regs, local->def, RTC_REGS);
 #endif
     memset(nvr->regs, local->def, nvr->size);
-    nvr->regs[RTC_DOM]   = 1;
-    nvr->regs[RTC_MONTH] = 1;
-    nvr->regs[RTC_YEAR]  = RTC_BCD(80);
+    nvr->regs[RTC_SECONDS] = 0;
+    nvr->regs[RTC_MINUTES] = 0;
+    nvr->regs[RTC_HOURS]   = 0;
+    nvr->regs[RTC_DOW]     = 3; /* Tuesday */
+    nvr->regs[RTC_DOM]     = 1;
+    nvr->regs[RTC_MONTH]   = 1;
+    nvr->regs[RTC_YEAR]    = RTC_BCD(80);
     if (local->cent != 0xFF)
         nvr->regs[local->cent] = RTC_BCD(19);
+    /* The time above is BCD, so say so: nvr_start() reads and writes the
+       time, century included, in the mode register B selects, and a fill of
+       FFh would select binary. */
+    nvr->regs[RTC_REGB] = REGB_2412;
 
     /* A power loss pulls the PS pin low, which clears VRT on real hardware; the first
        read of Register D latches it back to 1, so a machine with no saved NVR reports
