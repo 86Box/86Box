@@ -776,6 +776,13 @@ extern int  codegen_fpu_class_dirty;
 /* A store from an empty ST(0): the interpreter's version, then the block
    ends (codegen.c) */
 extern void codegen_fpu_guard_empty(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg);
+/* A stack fault, an empty register of regs or an occupied push
+   destination: the interpreter's version, then the block ends (codegen.c).
+   interp_pc: op_pc - 1 for a register form, op_pc once codegen_generate_ea
+   has run for a memory one. */
+#define FPU_GUARD_ST(i)  (1 << (i))
+#define FPU_GUARD_PUSH   0x100
+extern void codegen_fpu_guard_stack(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg, int regs);
 /* FIST/FISTP of a value that may not fit: the interpreter's version */
 extern void codegen_fpu_guard_int_range(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg, const double *bounds);
 extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg, int src_reg, uint32_t indefinite);

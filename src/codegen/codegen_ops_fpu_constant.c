@@ -19,9 +19,10 @@
 #include "codegen_ops_helpers.h"
 
 uint32_t
-ropFLD1(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
+ropFLD1(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     uop_FP_ENTER(ir);
+    codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc - 1, NULL, FPU_GUARD_PUSH);
     uop_MOV_IMM(ir, IREG_temp0, 1);
     uop_MOV_DOUBLE_INT(ir, IREG_ST(-1), IREG_temp0);
     uop_MOV_IMM(ir, IREG_tag(-1), TAG_VALID);
@@ -30,9 +31,10 @@ ropFLD1(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32
     return op_pc;
 }
 uint32_t
-ropFLDZ(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
+ropFLDZ(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     uop_FP_ENTER(ir);
+    codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc - 1, NULL, FPU_GUARD_PUSH);
     uop_MOV_IMM(ir, IREG_temp0, 0);
     uop_MOV_DOUBLE_INT(ir, IREG_ST(-1), IREG_temp0);
     uop_MOV_IMM(ir, IREG_tag(-1), TAG_VALID);
