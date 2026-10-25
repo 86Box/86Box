@@ -40,11 +40,13 @@
 #include <86box/plat_unused.h>
 #include <86box/tandy_clkmouse.h>
 
-/* The keyboard hangs off the second 8259's IR0, the 8251A off
-   the first 8259's IR2 and the printer off the second 8259's IR3. */
+/* The keyboard hangs off the second 8259's IR0, the 8251A off the first
+   8259's IR2, the printer off the second 8259's IR3 and the coprocessor
+   off its IR4. */
 #define TANDY2K_KBD_IRQ  (1 << 8)
 #define TANDY2K_SER_IRQ  (1 << 2)
 #define TANDY2K_LPT_IRQ  (1 << 11)
+#define TANDY2K_FPU_IRQ  (1 << 14)
 
 /* 8255A-5 ports plus the Mode 1 handshake state of the printer port. */
 typedef struct ppi_t {
@@ -958,6 +960,17 @@ tandy2k_icu_int1(void *priv, int level)
     i8018x_pcb_icu_int((struct i8018x_pcb_t *) priv, 1, level);
 }
 
+/* The coprocessor's error output reaches the board as MCPINT14 rather than
+   through the CPU's NMI input, so the x87 core reports it here. */
+static void
+tandy2k_fpu_int(int level)
+{
+    if (level)
+        picint(TANDY2K_FPU_IRQ);
+    else
+        picintc(TANDY2K_FPU_IRQ);
+}
+
 int
 machine_tandy2000_init(const machine_t *model)
 {
@@ -986,6 +999,8 @@ machine_tandy2000_init(const machine_t *model)
     }
 
     pic_init_tandy2k();
+
+    fpu_int_line = tandy2k_fpu_int;
 
     /* There are no ISA slots, and a standalone COM2 would sit at 2F8h-2FFh,
        on top of the option board's chip select. */
