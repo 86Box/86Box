@@ -101,6 +101,8 @@ typedef struct {
     uint8_t      data_tx;
     uint8_t      data_rx;
     unsigned int data_read : 1;
+    unsigned int brk : 1;
+    uint32_t     rx_error;
     uint32_t     control;
     uint32_t     status;
 } char_loopback_t;
@@ -141,6 +143,10 @@ char_loopback_write(uint8_t *buf, size_t len, void *priv)
 {
     char_loopback_t *dev = (char_loopback_t *) priv;
 
+    /* TX is held at space while breaking */
+    if (dev->brk)
+        return len;
+
     if (len > 0) {
         for (int i = 0; i < len; i++) {
             dev->data_tx = buf[i];
@@ -148,9 +154,21 @@ char_loopback_write(uint8_t *buf, size_t len, void *priv)
             char_loopback_log(dev->log, "write(%02X) = %02X %08X\n", buf[i], dev->data_rx, dev->status);
         }
         dev->data_read = 0;
+        dev->rx_error  = 0;
     }
 
     return len;
+}
+
+static uint32_t
+char_loopback_read_error(void *priv)
+{
+    char_loopback_t *dev = (char_loopback_t *) priv;
+    uint32_t         ret = dev->rx_error;
+
+    dev->rx_error = 0;
+
+    return ret;
 }
 
 static uint32_t
@@ -168,6 +186,17 @@ char_loopback_control(uint32_t flags, void *priv)
 
     dev->control = flags;
     char_loopback_update(dev);
+
+    /* loopback tx->rx: process a break as one 0x00 with BE */
+    if (dev->type == LOOPBACK_TYPE_SERIAL) {
+        if ((flags & CHAR_COM_BREAK) && !dev->brk) {
+            dev->data_rx   = 0x00;
+            dev->data_read = 0;
+            dev->rx_error  = CHAR_COM_ERR_BREAK;
+        }
+        dev->brk = !!(flags & CHAR_COM_BREAK);
+    }
+
     char_loopback_log(dev->log, "control(%08X) = %02X %08X\n", flags, dev->data_rx, dev->status);
 }
 
@@ -208,13 +237,14 @@ char_loopback_init(const device_t *info)
             have.status = 1;
     }
 
-    /* Attach character device. */
-    dev->port = char_attach(0,
+    dev->port = char_attach(CHAR_COM_SYNC_RX,
         have.data_rx ? char_loopback_read : NULL,
         have.data_tx ? char_loopback_write : NULL,
         have.status ? char_loopback_status : NULL,
         have.control ? char_loopback_control : NULL,
         NULL, dev);
+    if (dev->type == LOOPBACK_TYPE_SERIAL)
+        char_set_read_error(dev->port, char_loopback_read_error);
     dev->log  = char_log_open(dev->port, "Loopback");
     char_loopback_log(dev->log, "init()\n");
 

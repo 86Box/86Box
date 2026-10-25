@@ -59,6 +59,8 @@ extern uint8_t    fifo_read(void *priv);
 extern uint8_t    fifo_read_tagged(uint8_t *tag, void *priv);
 extern uint8_t    fifo_read_evt(void *priv);
 extern uint8_t    fifo_read_evt_tagged(uint8_t *tag, void *priv);
+extern uint8_t    fifo_peek_tag(void *priv);
+extern uint8_t    fifo_get_tags(void *priv);
 extern void       fifo_clear_overrun(void *priv);
 extern int        fifo_get_full(void *priv);
 extern int        fifo_get_d_full(void *priv);
