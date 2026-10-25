@@ -300,3 +300,144 @@ dynarec_lmsw(uint16_t tempw)
     else
         cpu_cur_status &= ~CPU_STATUS_PMODE;
 }
+
+/*The compiled MOV CR0,r32's write, opMOV_CRx_r's case 0 after the
+  privilege and cpu_cr0_invalid() tests, which the compiled code makes. rm
+  is the source register, read from cpu_state, where the call has written
+  the block's copy back (the compiled code passes only 16-bit registers).
+  1, with nothing changed, when setting PG with PAE on fails the PDPTE
+  load: the compiled code raises the #GP. The compiled block ends after
+  every MOV CR0, so the op's block end on a PG change is not repeated*/
+int
+dynarec_mov_cr0(uint32_t rm)
+{
+    const uint32_t val     = cpu_state.regs[rm].l;
+    uint32_t       old_cr0 = cr0;
+
+    if ((val & 0x80000000) && !(cr0 & 0x80000000) && (cr4 & CR4_PAE) && pae_check_load(cr3))
+        return 1;
+    if ((val ^ cr0) & 0x00000001)
+        flushmmucache();
+    else if ((val ^ cr0) & 0x80000000) {
+        if (is_p6)
+            flushmmucache();
+        else {
+            flushmmucache_nopc();
+            cpu_flush_pending = 1;
+        }
+    } else if ((val ^ cr0) & WP_FLAG)
+        flushmmucache_write();
+    if ((val & 0x01) && !(cr0 & 0x01))
+        cpu_state.seg_cs.access &= 0x9f;
+    cr0 = val;
+    if (cpu_16bitbus)
+        cr0 |= 0x10;
+    if (hascache && !(cr0 & (1 << 30)))
+        cpu_cache_int_enabled = 1;
+    else
+        cpu_cache_int_enabled = 0;
+    if (hascache && ((cr0 ^ old_cr0) & (1 << 30)))
+        cpu_update_waitstates();
+    if ((cr0 ^ old_cr0) & (1 << 30))
+        cpu_car_update();
+    if (cr0 & 1)
+        cpu_cur_status |= CPU_STATUS_PMODE;
+    else
+        cpu_cur_status &= ~CPU_STATUS_PMODE;
+
+    return 0;
+}
+
+/*The compiled MOV CR2,r32 (rm as for dynarec_mov_cr0): the IR has no store
+  to a global outside cpu_state*/
+void
+dynarec_mov_cr2(uint32_t rm)
+{
+    cr2 = cpu_state.regs[rm].l;
+}
+
+/*The compiled MOV CR3,r32, opMOV_CRx_r's case 3 (rm as for
+  dynarec_mov_cr0): 1, with nothing changed, when PAE paging's PDPTE load
+  fails*/
+int
+dynarec_mov_cr3(uint32_t rm)
+{
+    const uint32_t val = cpu_state.regs[rm].l;
+
+    if ((cr4 & CR4_PAE) && (cr0 & 0x80000000) && pae_check_load(val))
+        return 1;
+    cr3 = val;
+    flushmmucache();
+
+    return 0;
+}
+
+/*The compiled MOV CR4,r32 on a CPU with CR4, opMOV_CRx_r's case 4 after its
+  reserved-bit test, which the compiled code makes (rm as for
+  dynarec_mov_cr0): 1, with nothing changed, when setting PAE with paging on
+  fails the PDPTE load*/
+int
+dynarec_mov_cr4(uint32_t rm)
+{
+    const uint32_t val = cpu_state.regs[rm].l;
+
+    if ((val & CR4_PAE) && !(cr4 & CR4_PAE) && (cr0 & 0x80000000) && pae_check_load(cr3))
+        return 1;
+    if (((val ^ cr4) & cpu_CR4_mask) & (CR4_PSE | CR4_PAE | CR4_PGE))
+        flushmmucache();
+    cr4 = val & cpu_CR4_mask;
+
+    return 0;
+}
+
+/*The general detect test of the compiled MOV r32,DRx and MOV DRx,r32 with
+  the 486 debug registers option, after the privilege test and before the
+  EA, as in opMOV_r_DRx and opMOV_DRx_r: with DR7.GD set, #DB with DR6.BD,
+  delivered at once from oldpc, and 1*/
+int
+dynarec_mov_drx_gd(void)
+{
+    if (!(dr[7] & 0x2000))
+        return 0;
+    dr[6] |= 0x2000;
+    x86gen();
+    return 1;
+}
+
+/*The compiled MOV r32,DRx and MOV DRx,r32 after the privilege and general
+  detect tests, which the compiled code makes: op is the debug register, the
+  r/m register << 3, and 0x40 for a write. DR4 and DR5 with CR4.DE raise
+  #UD, delivered at once from oldpc: 1 then. Otherwise DR4 and DR5 are DR6
+  and DR7, and DR6 and DR7 are written through their masks, as in
+  opMOV_r_DRx and opMOV_DRx_r. The register is read and written in
+  cpu_state, the call having written the block's copy back*/
+int
+dynarec_mov_drx(uint32_t op)
+{
+    const int dr_nr = op & 7;
+    const int rm    = (op >> 3) & 7;
+
+    if (((dr_nr == 4) || (dr_nr == 5)) && (cr4 & 0x8)) {
+        x86illegal();
+        return 1;
+    }
+    if (op & 0x40) {
+        if (dr_nr < 4)
+            dr[dr_nr] = cpu_state.regs[rm].l;
+        else if ((dr_nr == 4) || (dr_nr == 6))
+            dr[6] = (dr[6] & 0xffff0ff0) | (cpu_state.regs[rm].l & (is586 ? 0x0000e00f : 0x0000f00f));
+        else {
+            dr[7] = (cpu_state.regs[rm].l | 0x00000400) & (is586 ? ~0x0000d800 : ~0);
+            cpu_dr7_update();
+        }
+    } else {
+        if (dr_nr < 4)
+            cpu_state.regs[rm].l = dr[dr_nr];
+        else if ((dr_nr == 4) || (dr_nr == 6))
+            cpu_state.regs[rm].l = dr[6];
+        else
+            cpu_state.regs[rm].l = dr[7];
+    }
+
+    return 0;
+}

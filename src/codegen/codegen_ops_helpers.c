@@ -346,6 +346,13 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
           loads are by their uop, so nothing has to mark it*/
         if (((ir->uops[c].type & UOP_MASK) == (UOP_CALL_FUNC & UOP_MASK)) && (ir->uops[c].p == (void *) dynarec_lmsw))
             return 0;
+        /*Nor across a compiled MOV CRx or MOV DRx, as across the hand-over
+          they replace: a CR3 or CR4 write can change the translation the
+          loop's code was read through, which a copy would not see*/
+        if ((((ir->uops[c].type & UOP_MASK) == (UOP_CALL_FUNC & UOP_MASK)) || ((ir->uops[c].type & UOP_MASK) == (UOP_CALL_FUNC_RESULT & UOP_MASK))) &&
+            ((ir->uops[c].p == (void *) dynarec_mov_cr0) || (ir->uops[c].p == (void *) dynarec_mov_cr2) || (ir->uops[c].p == (void *) dynarec_mov_cr3) ||
+             (ir->uops[c].p == (void *) dynarec_mov_cr4) || (ir->uops[c].p == (void *) dynarec_mov_drx)))
+            return 0;
         /*x87 arithmetic is built for the precision and rounding classes of the
           control word it was compiled under, checked only by the first such
           instruction after a change: a copy after a compiled FLDCW would run

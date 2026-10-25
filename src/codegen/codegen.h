@@ -492,6 +492,15 @@ extern int  dynarec_call_far_l(uint16_t new_cs, uint32_t ret_pc);
   debug registers option (386_dynarec_ops.c)*/
 extern void dynarec_rf_after_op(void);
 
+/*Compiled MOV CRx and MOV DRx: the control register writes with what they
+  flush, and the debug register accesses (386_dynarec_ops.c)*/
+extern int  dynarec_mov_cr0(uint32_t rm);
+extern void dynarec_mov_cr2(uint32_t rm);
+extern int  dynarec_mov_cr3(uint32_t rm);
+extern int  dynarec_mov_cr4(uint32_t rm);
+extern int  dynarec_mov_drx_gd(void);
+extern int  dynarec_mov_drx(uint32_t op);
+
 /*A compiled MOV SS and the instruction after it (codegen.c)*/
 extern int      codegen_mov_ss_pair_valid;
 extern uint32_t codegen_mov_ss_pair_pc;

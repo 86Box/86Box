@@ -1456,6 +1456,165 @@ rop0F01_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
     return rop0F01_common(block, ir, fetchdat, op_32, op_pc);
 }
 
+/*MOV r32,CRx, MOV CRx,r32, MOV r32,DRx and MOV DRx,r32 (0F 20-23), as the
+  interpreter's opMOV_r_CRx, opMOV_CRx_r, opMOV_r_DRx and opMOV_DRx_r, for
+  either operand size. The register is the r/m field whatever the mod; with
+  a mod other than 3 the ops' fetch_ea decodes a memory operand they never
+  use, which takes its bytes into the length. All four are #GP(0) in
+  protected mode outside CPL 0, read as the block runs, before anything
+  else, and the control register forms with VM set too. VM is read as the
+  block runs as well, not taken from the block's key: a real-mode IRETD
+  can set VM without the key's V86 status, which a MOV CR0 setting PE then
+  keeps, so a protected-mode block can run with VM set and CPL 0. In real
+  mode none is #GP, VM set or not. The debug register forms
+  (dr) then raise general detect's #DB with DR6.BD under the 486 debug
+  registers option, before the EA.*/
+static void
+rop0F20_23_head(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t *op_pc, int dr)
+{
+    codegen_mark_code_present(block, cs + *op_pc, 1);
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+
+    if (cr0 & 1) {
+        uop_MOVZX_REG_PTR_8(ir, IREG_temp0, &cpu_state.seg_cs.access);
+        uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0x60);
+        if (!dr) {
+            uop_MOVZX(ir, IREG_temp1, IREG_eflags);
+            uop_AND_IMM(ir, IREG_temp1, IREG_temp1, VM_FLAG);
+            uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+        }
+        uop_MOV_IMM(ir, IREG_temp1, 0);
+        uop_CMP_JNBE(ir, IREG_temp0, IREG_temp1, codegen_gpf_rout);
+    }
+    if (dr && cpu_debug_regs_486) {
+        uop_CALL_FUNC_RESULT(ir, IREG_temp0, dynarec_mov_drx_gd);
+        uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);
+    }
+    if ((fetchdat & 0xc0) != 0xc0)
+        codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, op_pc, op_32, 0);
+}
+
+/*CR0 with ET, and on the 386 the bits that read as set. Compiled code never
+  runs while a PG change is pending (cpu_flush_pending), whose PG the op's
+  read inverts. CR1, CR5-CR7, and CR4 on a CPU without it, are #UD.*/
+uint32_t
+rop0F20(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    const int dest_reg = IREG_32(fetchdat & 7);
+
+    rop0F20_23_head(block, ir, fetchdat, op_32, &op_pc, 0);
+
+    switch (fetchdat & 0x38) {
+        case 0x00:
+            uop_MOV_REG_PTR(ir, dest_reg, &cr0);
+            uop_OR_IMM(ir, dest_reg, dest_reg, (is486 || isibm486) ? 0x10 : (is386 ? 0x7fffffe0 : 0x7ffffff0));
+            break;
+        case 0x10:
+            uop_MOV_REG_PTR(ir, dest_reg, &cr2);
+            break;
+        case 0x18:
+            uop_MOV_REG_PTR(ir, dest_reg, &cr3);
+            break;
+        case 0x20:
+            if (!cpu_has_feature(CPU_FEATURE_CR4))
+                return codegen_ud(ir);
+            uop_MOV_REG_PTR(ir, dest_reg, &cr4);
+            break;
+        default:
+            return codegen_ud(ir);
+    }
+
+    return op_pc + 1;
+}
+
+/*The tests the op makes before a write in IR: cpu_cr0_invalid() (PG without
+  PE; NW without CD on the CPUs that function rejects it for, a fixed answer
+  per CPU) and the CR4 bits this CPU neither has nor ignores. The writes go
+  through the dynarec_mov_cr routines, which answer 1 for the #GP of a
+  failed PDPTE load. MOV CR0 can change PE, which the block is keyed on, the
+  paging, CD, which the loop tests before it runs a block, and MP, EM and
+  TS, which the compiled FPU entry assumes: the block ends after every one,
+  as after the hand-over.*/
+uint32_t
+rop0F22(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    const int src_reg = IREG_32(fetchdat & 7);
+
+    rop0F20_23_head(block, ir, fetchdat, op_32, &op_pc, 0);
+
+    switch (fetchdat & 0x38) {
+        case 0x00:
+            uop_AND_IMM(ir, IREG_temp0, src_reg, 0x80000001);
+            uop_CMP_IMM_JZ(ir, IREG_temp0, 0x80000000, codegen_gpf_rout);
+            if (cpu_cr0_invalid(0x20000000)) {
+                uop_AND_IMM(ir, IREG_temp0, src_reg, 0x60000000);
+                uop_CMP_IMM_JZ(ir, IREG_temp0, 0x20000000, codegen_gpf_rout);
+            }
+            uop_LOAD_FUNC_ARG_IMM(ir, 0, fetchdat & 7);
+            uop_CALL_FUNC_RESULT(ir, IREG_temp0, dynarec_mov_cr0);
+            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_gpf_rout);
+            codegen_fpu_entered = 0;
+            codegen_mmx_entered = 0;
+            CPU_BLOCK_END();
+            break;
+        case 0x10:
+            uop_LOAD_FUNC_ARG_IMM(ir, 0, fetchdat & 7);
+            uop_CALL_FUNC(ir, dynarec_mov_cr2);
+            break;
+        case 0x18:
+            uop_LOAD_FUNC_ARG_IMM(ir, 0, fetchdat & 7);
+            uop_CALL_FUNC_RESULT(ir, IREG_temp0, dynarec_mov_cr3);
+            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_gpf_rout);
+            break;
+        case 0x20:
+            if (!cpu_has_feature(CPU_FEATURE_CR4))
+                return codegen_ud(ir);
+            if ((uint32_t) ~(cpu_CR4_mask | cpu_CR4_ignore)) {
+                uop_AND_IMM(ir, IREG_temp0, src_reg, (uint32_t) ~(cpu_CR4_mask | cpu_CR4_ignore));
+                uop_MOV_IMM(ir, IREG_temp1, 0);
+                uop_CMP_JNBE(ir, IREG_temp0, IREG_temp1, codegen_gpf_rout);
+            }
+            uop_LOAD_FUNC_ARG_IMM(ir, 0, fetchdat & 7);
+            uop_CALL_FUNC_RESULT(ir, IREG_temp0, dynarec_mov_cr4);
+            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_gpf_rout);
+            break;
+        default:
+            return codegen_ud(ir);
+    }
+
+    return op_pc + 1;
+}
+
+/*The debug registers through dynarec_mov_drx, which raises the #UD of DR4
+  and DR5 with CR4.DE itself and answers 1: the block is left then, as after
+  general detect's #DB (the head's). With the 486 debug register option a
+  write can arm or disarm a breakpoint, which the loop checks before each
+  block: the block ends after it, as after the op.*/
+static uint32_t
+rop0F21_23(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, int write)
+{
+    rop0F20_23_head(block, ir, fetchdat, op_32, &op_pc, 1);
+
+    uop_LOAD_FUNC_ARG_IMM(ir, 0, ((fetchdat >> 3) & 7) | ((fetchdat & 7) << 3) | (write ? 0x40 : 0));
+    uop_CALL_FUNC_RESULT(ir, IREG_temp0, dynarec_mov_drx);
+    uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);
+    if (write && cpu_debug_regs_486)
+        CPU_BLOCK_END();
+
+    return op_pc + 1;
+}
+
+uint32_t
+rop0F21(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    return rop0F21_23(block, ir, fetchdat, op_32, op_pc, 0);
+}
+uint32_t
+rop0F23(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    return rop0F21_23(block, ir, fetchdat, op_32, op_pc, 1);
+}
+
 /*ARPL, as the interpreter's opARPL: #UD in real and V86 mode, before the
   operand is touched. In protected mode the flags are rebuilt; when the
   destination's RPL is below the source's it takes the source's RPL and ZF
