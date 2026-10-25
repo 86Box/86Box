@@ -45,6 +45,7 @@
 #include <string.h>
 #include <time.h>
 #include <wchar.h>
+#include <stdatomic.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -230,6 +231,8 @@ typedef struct pcx_t {
     pcxr_job_t    *rjob;
     volatile int   render_quit;
     int            render_pending;
+    atomic_int     render_ready;   /* set by the render thread when the frame is drawn */
+    double         render_late_us; /* emulated time the end of render was held back */
     int            render_discard;
     uint32_t      *isp_buf;
     uint32_t      *rgb;
@@ -254,7 +257,7 @@ typedef struct pcx_t {
     int      dump_object_kb;
 
     /* Statistics. */
-    double   stat_render_ms, stat_render_max_ms, stat_wait_ms;
+    double   stat_render_ms, stat_render_max_ms, stat_wait_ms, stat_late_ms;
     uint32_t stat_frames;
     uint32_t frames;
     uint32_t dumps;
@@ -498,6 +501,7 @@ pcx_render_thread(void *priv)
             }
         }
         pcx->job_ms = pcx_now_ms() - pcx->job_start_ms;
+        atomic_store(&pcx->render_ready, 1);
         thread_set_event(pcx->render_finished);
     }
 }
@@ -556,6 +560,8 @@ pcx_render_frame(pcx_t *pcx)
 
     pcx->render_pending = 1;
     pcx->render_discard = 0;
+    pcx->render_late_us = 0.0;
+    atomic_store(&pcx->render_ready, 0);
     thread_set_event(pcx->render_go);
 }
 
@@ -608,10 +614,26 @@ pcx_render_output(pcx_t *pcx)
     }
 }
 
+/* How often the end of render looks again for a frame the host has not
+   finished, in emulated microseconds. */
+#define PCX_RENDER_POLL_US 250.0
+
 static void
 pcx_render_done(void *priv)
 {
     pcx_t *pcx = (pcx_t *) priv;
+
+    /* If the host has not finished drawing the frame yet, the card is
+       simply still busy: hold the end of render back in emulated time
+       rather than stalling the emulated PC until the host catches up.
+       Stalling froze the guest's clocks, and the catch-up afterwards
+       could drop timer interrupts, so games that count them ran in slow
+       motion while reporting a normal frame rate. */
+    if (pcx->render_pending && !atomic_load(&pcx->render_ready)) {
+        pcx->render_late_us += PCX_RENDER_POLL_US;
+        timer_on_auto(&pcx->render_timer, PCX_RENDER_POLL_US);
+        return;
+    }
 
     if (pcx->render_pending) {
         double t0 = pcx_now_ms();
@@ -621,17 +643,20 @@ pcx_render_done(void *priv)
         /* Speed summary: how long the renderer took, and how long emulation
            stalled waiting for it (0 when the host keeps up). */
         pcx->stat_wait_ms += pcx_now_ms() - t0;
+        pcx->stat_late_ms += pcx->render_late_us / 1000.0;
         pcx->stat_render_ms += pcx->job_ms;
         if (pcx->job_ms > pcx->stat_render_max_ms)
             pcx->stat_render_max_ms = pcx->job_ms;
         if (++pcx->stat_frames == 100) {
             pcx_log(pcx, PCX_LOG_SUMMARY,
                     "PowerVR: frames %u-%u: render %.1f ms average (%.1f max) on %d thread(s), "
-                    "emulation waited %.1f ms per frame; emulated render time %.1f ms\n",
+                    "emulation waited %.1f ms per frame; emulated render time %.1f ms + %.1f ms "
+                    "held back for the host\n",
                     pcx->frames - 99, pcx->frames, pcx->stat_render_ms / 100.0, pcx->stat_render_max_ms,
-                    pcx->n_helpers + 1, pcx->stat_wait_ms / 100.0, pcx->render_delay_us / 1000.0);
+                    pcx->n_helpers + 1, pcx->stat_wait_ms / 100.0, pcx->render_delay_us / 1000.0,
+                    pcx->stat_late_ms / 100.0);
             pcx->stat_frames = 0;
-            pcx->stat_render_ms = pcx->stat_render_max_ms = pcx->stat_wait_ms = 0.0;
+            pcx->stat_render_ms = pcx->stat_render_max_ms = pcx->stat_wait_ms = pcx->stat_late_ms = 0.0;
         }
     }
     if (pcx->debug_tile && pcx_bus_master_enabled(pcx))
