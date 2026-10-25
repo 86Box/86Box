@@ -261,8 +261,9 @@ FPU_status_word_flags_fpu_compare(int float_relation)
 void
 FPU_write_eflags_fpu_compare(int float_relation)
 {
-    /* ZF, PF and CF are written, not ORed in */
-    cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
+    /* ZF, PF and CF are written, not ORed in, and OF, SF and AF cleared
+       (SDM vol. 2, FCOMI/FCOMIP/FUCOMI/FUCOMIP) */
+    cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG | V_FLAG | N_FLAG | A_FLAG);
     switch (float_relation) {
         case softfloat_relation_unordered:
             cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);

@@ -228,10 +228,12 @@ opFADDP(uint32_t fetchdat)
     return 0;
 }
 
-/* FCOMI/FUCOMI: ZF, PF and CF are C3, C2 and C0 of the compare */
+/* FCOMI/FUCOMI: ZF, PF and CF are C3, C2 and C0 of the compare (the caller
+   clears them), and OF, SF and AF are cleared (SDM vol. 2, FCOMI) */
 static inline void
 x87_eflags_from_compare(uint32_t c)
 {
+    cpu_state.flags &= ~(V_FLAG | N_FLAG | A_FLAG);
     if (c & FPU_SW_C3)
         cpu_state.flags |= Z_FLAG;
     if (c & FPU_SW_C2)
