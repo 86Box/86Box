@@ -2211,6 +2211,11 @@ pc_run(void)
         pc_reset_hard_init();
     }
 
+    /* USB devices the user plugged in or unplugged since the last block. It
+       runs here, between blocks and outside the blit lock, because a device
+       that finds no free port is named in a message box. */
+    usb_hotplug_process();
+
     /* Update the guest-CPU independent timer for devices with independent clock speed */
     rivatimer_update_all();
 

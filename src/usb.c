@@ -35,6 +35,7 @@
  */
 #include <math.h>
 #include <stdarg.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -1833,12 +1834,55 @@ static usb_t *usb_hcs[USB_MAX_HC];
 static void ohci_port_attach(ohci_port_t *p, usb_dev_t *udev);
 static void ohci_port_detach(ohci_port_t *p);
 
+static void
+uhci_port_attach(uhci_t *hc, int i, usb_dev_t *udev)
+{
+    hc->port[i].usb = udev;
+    udev->port      = &hc->port[i];
+    uhci_schedule_detect(hc);
+}
+
+/* The port the device was last on, if it is still free. A port on a hub
+   counts even while that hub is unplugged: the device goes back into the
+   hub, and is seen once the hub is plugged in. With that port taken, the
+   hub gives the device another of its ports. */
+static int
+usb_attach_home(usb_dev_t *udev)
+{
+    if (udev->home_parent != NULL)
+        return udev->home_parent->ops->attach(udev->home_parent, udev);
+
+    if (udev->home_port == NULL)
+        return 0;
+
+    for (int h = 0; h < USB_MAX_HC; h++) {
+        uhci_t *hc = (usb_hcs[h] != NULL) ? usb_hcs[h]->uhci : NULL;
+        ohci_t *oc = (usb_hcs[h] != NULL) ? usb_hcs[h]->ohci : NULL;
+
+        for (int i = 0; (hc != NULL) && (hc->set_irq != NULL) && (i < UHCI_PORTS); i++) {
+            if ((udev->home_port == &hc->port[i]) && (hc->port[i].usb == NULL)) {
+                uhci_port_attach(hc, i, udev);
+                return 1;
+            }
+        }
+
+        for (int i = 0; (oc != NULL) && (oc->set_irq != NULL) && (i < oc->ports); i++) {
+            if ((udev->home_port == &oc->port[i]) && (oc->port[i].usb == NULL)) {
+                ohci_port_attach(&oc->port[i], udev);
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
 /* Only a controller the chipset has wired up, that is one whose interrupt
    it routes, takes devices. A device goes to the first free root port, then
    to a hub on a root port, then to an OHCI connector past NDP. A device left
    out is named to the user with the reason. */
-int
-usb_attach(usb_dev_t *udev)
+static int
+usb_attach_search(usb_dev_t *udev)
 {
     char msg[512];
     int  wired = 0;
@@ -1851,9 +1895,7 @@ usb_attach(usb_dev_t *udev)
             wired = 1;
             for (int i = 0; i < UHCI_PORTS; i++) {
                 if (hc->port[i].usb == NULL) {
-                    hc->port[i].usb = udev;
-                    udev->port      = &hc->port[i];
-                    uhci_schedule_detect(hc);
+                    uhci_port_attach(hc, i, udev);
                     return 1;
                 }
             }
@@ -1914,6 +1956,17 @@ usb_attach(usb_dev_t *udev)
     return 0;
 }
 
+int
+usb_attach(usb_dev_t *udev)
+{
+    if (!usb_attach_home(udev) && !usb_attach_search(udev))
+        return 0;
+
+    udev->home_port   = udev->port;
+    udev->home_parent = udev->parent;
+    return 1;
+}
+
 /* A disconnect clears CCS and PE and sets CSC and PEDC for whichever of
    the two was set (UHCI 1.1 s2.1.7, p. 16-17 / PDF 22-23; Tables 5 and 6,
    p. 18 / PDF 24). */
@@ -1967,6 +2020,186 @@ usb_detach(usb_dev_t *udev)
     }
 
     udev->port = NULL;
+}
+
+/* Unplugging takes the device off its port and with it the bus power the
+   port gave it. A device that loses power drops back to the Powered state,
+   without address or configuration (USB 1.1 Figure 9-1, p. 176 / PDF 192),
+   and answers nothing until it sees a reset (s9.1.1.3, p. 178 / PDF 194):
+   usb_dev_bus_reset() clears the address, the configuration and the class
+   state, and clearing powered_reset makes the device ignore traffic until
+   its next port reset. A hub's reset hook turns off its ports, so the
+   devices plugged into an unplugged hub lose power too. */
+static void
+usb_unplug(usb_dev_t *udev)
+{
+    usb_detach(udev);
+    usb_dev_bus_reset(udev);
+    udev->powered_reset = 0;
+}
+
+typedef struct usb_slot_t {
+    usb_dev_t                *dev; /* emulation thread only */
+    _Atomic(const device_t *) info;
+    atomic_int                connected; /* on a port */
+    atomic_int                online;    /* on a port, and so is every hub above it */
+} usb_slot_t;
+
+static const char *const usb_slot_names[USB_SLOTS] = {
+    "usb_hub_4port", "usb_mouse", "usb_tablet", "usb_keyboard", "usb_speaker", "usb_msd"
+};
+
+static usb_slot_t usb_slots[USB_SLOTS];
+/* One bit per slot: the user unplugged that device. */
+static atomic_int usb_slot_unplugged;
+static atomic_int usb_hotplug_pending;
+
+const char *
+usb_slot_internal_name(int slot)
+{
+    return ((slot >= 0) && (slot < USB_SLOTS)) ? usb_slot_names[slot] : NULL;
+}
+
+const device_t *
+usb_slot_device(int slot)
+{
+    return ((slot >= 0) && (slot < USB_SLOTS)) ? atomic_load(&usb_slots[slot].info) : NULL;
+}
+
+int
+usb_slot_connected(int slot)
+{
+    return ((slot >= 0) && (slot < USB_SLOTS)) ? atomic_load(&usb_slots[slot].connected) : 0;
+}
+
+int
+usb_slot_online(int slot)
+{
+    return ((slot >= 0) && (slot < USB_SLOTS)) ? atomic_load(&usb_slots[slot].online) : 0;
+}
+
+/* A device reaches the host only if it and every hub above it are plugged
+   in. */
+static int
+usb_dev_on_bus(const usb_dev_t *dev)
+{
+    for (; dev != NULL; dev = dev->parent) {
+        if (dev->port == NULL)
+            return 0;
+    }
+    return 1;
+}
+
+/* Republishes every slot's state for the GUI: one plug or unplug can change
+   the devices on a hub too. */
+static void
+usb_slots_update(void)
+{
+    for (int i = 0; i < USB_SLOTS; i++) {
+        const usb_dev_t *dev = usb_slots[i].dev;
+
+        atomic_store(&usb_slots[i].connected, (dev != NULL) && (dev->port != NULL));
+        atomic_store(&usb_slots[i].online, (dev != NULL) && usb_dev_on_bus(dev));
+    }
+}
+
+int
+usb_slot_wanted(int slot)
+{
+    return ((slot >= 0) && (slot < USB_SLOTS)) ? !(atomic_load(&usb_slot_unplugged) & (1 << slot)) : 0;
+}
+
+void
+usb_slot_want(int slot, int connected)
+{
+    if ((slot < 0) || (slot >= USB_SLOTS))
+        return;
+
+    if (connected)
+        atomic_fetch_and(&usb_slot_unplugged, ~(1 << slot));
+    else
+        atomic_fetch_or(&usb_slot_unplugged, 1 << slot);
+    atomic_store(&usb_hotplug_pending, 1);
+}
+
+/* While a request waits for the emulation thread (or the machine is
+   paused), the request itself, so that a second click takes it back;
+   otherwise whether the device is attached, which shows a plug that found
+   no port as unplugged. */
+int
+usb_slot_requested(int slot)
+{
+    if (atomic_load(&usb_hotplug_pending))
+        return usb_slot_wanted(slot);
+    return usb_slot_connected(slot);
+}
+
+/* Each request is acted on once: a device that finds no port when plugged
+   in is named to the user once, and stays out until the user tries again. */
+void
+usb_hotplug_process(void)
+{
+    if (!atomic_exchange(&usb_hotplug_pending, 0))
+        return;
+
+    for (int i = 0; i < USB_SLOTS; i++) {
+        usb_dev_t *dev = usb_slots[i].dev;
+
+        if (dev == NULL)
+            continue;
+
+        if (usb_slot_wanted(i) && (dev->port == NULL)) {
+            usb_attach(dev);
+        } else if (!usb_slot_wanted(i) && (dev->port != NULL)) {
+            usb_unplug(dev);
+        }
+    }
+
+    usb_slots_update();
+}
+
+void
+usb_dev_add(usb_dev_t *dev, const device_t *info)
+{
+    int slot = -1;
+
+    for (int i = 0; i < USB_SLOTS; i++) {
+        if ((info != NULL) && (usb_slots[i].dev == NULL) && !strcmp(info->internal_name, usb_slot_names[i])) {
+            slot = i;
+            break;
+        }
+    }
+
+    if ((slot < 0) || usb_slot_wanted(slot))
+        usb_attach(dev);
+
+    if (slot >= 0) {
+        usb_slots[slot].dev = dev;
+        usb_slots_update();
+        atomic_store(&usb_slots[slot].info, info);
+    }
+}
+
+/* A hub that leaves the machine is no longer anyone's last port. */
+void
+usb_dev_remove(usb_dev_t *dev)
+{
+    if (dev->port != NULL)
+        usb_detach(dev);
+
+    for (int i = 0; i < USB_SLOTS; i++) {
+        usb_dev_t *other = usb_slots[i].dev;
+
+        if (other == dev) {
+            atomic_store(&usb_slots[i].info, NULL);
+            usb_slots[i].dev = NULL;
+        } else if ((other != NULL) && (other->home_parent == dev)) {
+            other->home_parent = NULL;
+            other->home_port   = NULL;
+        }
+    }
+
+    usb_slots_update();
 }
 
 /* The INT and SMI outputs: an enabled status bit with MasterInterruptEnable

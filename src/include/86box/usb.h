@@ -74,6 +74,29 @@ extern int             usb_card_get_from_internal_name(const char *s);
 extern int             usb_card_has_bus(int mch);
 extern void            usb_card_reset(void);
 
+/* Hot plug. Each USB device kind the machine can have (hub, mouse, tablet,
+   keyboard, speaker, mass storage) has one slot. The user plugs and
+   unplugs a device from the GUI thread with usb_slot_want(); the change is
+   made on the emulation thread by usb_hotplug_process(), which runs
+   between CPU slices, so no controller or device state is ever touched
+   from the GUI. What the user wants is kept in the config. */
+#define USB_SLOTS 6
+
+extern const char     *usb_slot_internal_name(int slot);
+/* The device that holds the slot, NULL when the machine has none. */
+extern const device_t *usb_slot_device(int slot);
+/* Whether the device is attached to a port right now. */
+extern int             usb_slot_connected(int slot);
+/* Whether it reaches the host: attached, and so is every hub above it. */
+extern int             usb_slot_online(int slot);
+/* 1 unless the user unplugged the slot's device; the config value. */
+extern int             usb_slot_wanted(int slot);
+extern void            usb_slot_want(int slot, int connected);
+/* What the Connected item shows: the request while it is pending, else
+   usb_slot_connected(). */
+extern int             usb_slot_requested(int slot);
+extern void            usb_hotplug_process(void);
+
 /* Functions. */
 extern void uhci_update_io_mapping(usb_t *dev, uint8_t base_l, uint8_t base_h, int enable);
 /* The chipset routes the UHCI interrupt; level is the controller's IRQ output. */

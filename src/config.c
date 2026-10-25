@@ -1372,6 +1372,11 @@ load_ports(void)
     p             = ini_section_get_string(cat, "usb_msd", "none");
     usb_msd_type  = usb_msd_get_from_internal_name(p);
 
+    for (int i = 0; i < USB_SLOTS; i++) {
+        sprintf(temp, "%s_connected", usb_slot_internal_name(i));
+        usb_slot_want(i, !!ini_section_get_int(cat, temp, 1));
+    }
+
 #if 0
 // TODO: Load
     for (c = 0; c < GAMEPORT_MAX; c++) {
@@ -4065,6 +4070,15 @@ save_ports(void)
         ini_section_delete_var(cat, "usb_msd");
     else
         ini_section_set_string(cat, "usb_msd", usb_msd_get_internal_name(usb_msd_type));
+
+    /* Written only for a device the user unplugged. */
+    for (int i = 0; i < USB_SLOTS; i++) {
+        sprintf(temp, "%s_connected", usb_slot_internal_name(i));
+        if (usb_slot_wanted(i))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, 0);
+    }
 
 #if 0
 // TODO: Save

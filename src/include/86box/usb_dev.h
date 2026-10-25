@@ -161,6 +161,12 @@ struct usb_dev_t {
        parent is that hub, NULL on a root hub port. */
     void                 *port;
     usb_dev_t            *parent;
+
+    /* The port the device was last attached to, and that port's hub (NULL
+       for a root hub port). Plugging the device back in tries this port
+       first. */
+    void                 *home_port;
+    usb_dev_t            *home_parent;
 };
 
 extern void usb_dev_init(usb_dev_t *dev);
@@ -175,10 +181,19 @@ extern int  usb_dev_in_peek(usb_dev_t *dev, int ep, const uint8_t **data, int *t
    resume signaling upstream. Returns 1 if it did. Emulation thread only. */
 extern int  usb_dev_remote_wakeup(usb_dev_t *dev);
 
-/* Attach to the first free root-hub port of any USB host controller, else
-   to the first free port of a hub on one. */
+/* Attach to the device's last port if it is free, else to the first free
+   root-hub port of any USB host controller, else to the first free port of
+   a hub on one. */
 extern int  usb_attach(usb_dev_t *dev);
 extern void usb_detach(usb_dev_t *dev);
+
+/* A device the machine has, called from its init and close. usb_dev_add
+   gives it the hot-plug slot named by info's internal name, if there is
+   one and no other device holds it, and attaches it unless it was left
+   unplugged. usb_dev_remove detaches it and frees the slot. */
+struct _device_;
+extern void usb_dev_add(usb_dev_t *dev, const struct _device_ *info);
+extern void usb_dev_remove(usb_dev_t *dev);
 /* Whether nothing reaches dev from upstream (idle bus), so that it is
    suspended. */
 extern int  usb_dev_suspended(const usb_dev_t *dev);

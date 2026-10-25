@@ -170,7 +170,6 @@ typedef struct hid_mouse_t {
     uint8_t    protocol; /* 0 boot, 1 report */
     hid_idle_t idle;
     uint8_t    buttons;  /* the buttons in the last report */
-    int        attached;
 } hid_mouse_t;
 
 static int
@@ -309,6 +308,11 @@ hid_mouse_reset(usb_dev_t *usb)
     dev->protocol     = 1;
     dev->idle.rate    = 0;
     dev->idle.pending = 0;
+
+    /* Host motion keeps adding up while nothing reads it, as when the
+       mouse is unplugged. A mouse that was not on the bus saw none of it,
+       so it is dropped rather than sent after the next enumeration. */
+    mouse_clear_coords();
 }
 
 static const usb_dev_ops_t hid_mouse_ops = {
@@ -320,7 +324,7 @@ static const usb_dev_ops_t hid_mouse_ops = {
 };
 
 static void *
-hid_mouse_init(UNUSED(const device_t *info))
+hid_mouse_init(const device_t *info)
 {
     hid_mouse_t *dev = (hid_mouse_t *) calloc(1, sizeof(hid_mouse_t));
 
@@ -340,7 +344,7 @@ hid_mouse_init(UNUSED(const device_t *info))
        4 or more are declared. */
     mouse_set_buttons(4);
 
-    dev->attached = usb_attach(&dev->usb);
+    usb_dev_add(&dev->usb, info);
 
     return dev;
 }
@@ -350,8 +354,7 @@ hid_mouse_close(void *priv)
 {
     hid_mouse_t *dev = (hid_mouse_t *) priv;
 
-    if (dev->attached)
-        usb_detach(&dev->usb);
+    usb_dev_remove(&dev->usb);
     free(dev);
 }
 
@@ -599,7 +602,6 @@ typedef struct hid_kbd_t {
     int        configured;
     uint8_t    down[0x200]; /* host keys down, so a host typematic repeat is no change */
     uint8_t    pause_tail;  /* the held 045h is the end of Pause, not Num Lock */
-    int        attached;
     /* Host keys arrive on the GUI thread, polls on the emulation thread. */
     mutex_t   *lock;
 } hid_kbd_t;
@@ -886,7 +888,7 @@ static const usb_dev_ops_t hid_kbd_ops = {
 };
 
 static void *
-hid_kbd_init(UNUSED(const device_t *info))
+hid_kbd_init(const device_t *info)
 {
     hid_kbd_t *dev = (hid_kbd_t *) calloc(1, sizeof(hid_kbd_t));
 
@@ -903,7 +905,7 @@ hid_kbd_init(UNUSED(const device_t *info))
     usb_dev_init(&dev->usb);
     hid_kbd_reset(&dev->usb);
 
-    dev->attached = usb_attach(&dev->usb);
+    usb_dev_add(&dev->usb, info);
 
     /* This is the machine's keyboard: every host key comes here and none
        goes to the 8042. key_process() drops all keys while keyboard_scan
@@ -920,8 +922,7 @@ hid_kbd_close(void *priv)
     hid_kbd_t *dev = (hid_kbd_t *) priv;
 
     keyboard_set_input_handler(NULL, NULL);
-    if (dev->attached)
-        usb_detach(&dev->usb);
+    usb_dev_remove(&dev->usb);
     thread_close_mutex(dev->lock);
     free(dev);
 }
@@ -1037,7 +1038,6 @@ typedef struct hid_tablet_t {
     uint8_t    cur[HID_TABLET_REPORT];  /* the latest state */
     uint8_t    sent[HID_TABLET_REPORT]; /* the last report on the interrupt pipe */
     int        sent_valid;              /* 0 = no report sent yet in this configuration */
-    int        attached;
 } hid_tablet_t;
 
 /* Converts a host position (0..1 across the guest screen) to a logical
@@ -1254,7 +1254,7 @@ static const usb_dev_ops_t hid_tablet_ops = {
 };
 
 static void *
-hid_tablet_init(UNUSED(const device_t *info))
+hid_tablet_init(const device_t *info)
 {
     hid_tablet_t *dev = (hid_tablet_t *) calloc(1, sizeof(hid_tablet_t));
 
@@ -1272,7 +1272,7 @@ hid_tablet_init(UNUSED(const device_t *info))
 
     mouse_set_buttons(3);
 
-    dev->attached = usb_attach(&dev->usb);
+    usb_dev_add(&dev->usb, info);
 
     return dev;
 }
@@ -1282,8 +1282,7 @@ hid_tablet_close(void *priv)
 {
     hid_tablet_t *dev = (hid_tablet_t *) priv;
 
-    if (dev->attached)
-        usb_detach(&dev->usb);
+    usb_dev_remove(&dev->usb);
     free(dev);
 }
 
