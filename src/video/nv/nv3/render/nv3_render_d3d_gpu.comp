@@ -1,0 +1,487 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          NV3 3D -- GPU lane span shader.
+ *
+ *          The kernel side of nv3_render_d3d_gpu.c: the CPU span shader
+ *          of nv3_render_d3d.c (nv3_d3d_span and its helpers), ported
+ *          operation for operation so the bytes it writes are the CPU's.
+ *          Floats are `precise` (no contraction, as the CPU file is built
+ *          with -ffp-contract=off), every divide is the correctly rounded
+ *          fdiv_cr, and float-to-int conversions go through f2i, which
+ *          both sides define the same way for values out of range.
+ *
+ *          A workgroup covers 64 pixels of one framebuffer row; each
+ *          invocation owns one pixel and walks the row's spans in
+ *          submission order, shading the ones that cover it, so
+ *          overlapping triangles land in draw order with no barriers.
+ *          Pixels are 16 bits and two share a word: they are merged in
+ *          with atomics.
+ *
+ *          Regenerate the SPIR-V header with
+ *          scripts/regen-nv3-gpu-spv.sh after changing this file.
+ *
+ * Authors: Marcos Alves, <xeon4d@gmail.com>
+ *
+ *          Copyright 2026 Marcos Alves
+ */
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 64) in;
+
+#include "../../../vid_ati_rage128_gpu_fdiv.glsl"
+
+/* Records: nv3_gpu_state_t and nv3_d3d_tri_t in nv3_render_d3d_gpu.c, every field 4 bytes, same
+   order. */
+struct state_t {
+    uint config, alpha_ctl, buf_on;
+    int  z_on;
+    uint boff[4], bpitch[4];
+    int  ncr, cr_inv;
+    int  cr_x0[2], cr_y0[2], cr_x1[2], cr_y1[2];
+    int  dither;
+    uint fog_rgb;
+    int  textured;
+    uint tex_format;
+    uint tex_base, tex_size;
+};
+
+#define AT_Z   0
+#define AT_Q   1
+#define AT_UQ  2
+#define AT_VQ  3
+#define AT_A   4
+#define AT_R   5
+#define AT_G   6
+#define AT_B   7
+#define AT_FOG 8
+
+struct tri_t {
+    int   state;
+    float x0, y0;
+    float c[9], dx[9], dy[9];
+};
+
+layout(std430, binding = 0) buffer Vram { uint vram[]; };
+layout(std430, binding = 1) readonly buffer Texm { uint texm[]; };
+layout(std430, binding = 2) readonly buffer States { state_t st[]; };
+layout(std430, binding = 3) readonly buffer Tris { tri_t tris[]; };
+layout(std430, binding = 4) readonly buffer Spans { ivec4 spans[]; }; /* y, x0, x1, tri */
+layout(std430, binding = 5) readonly buffer Rows { uvec2 rows[]; };   /* first span, count */
+
+layout(push_constant) uniform PC {
+    uint nrows;
+    uint vram_mask;
+} pc;
+
+uint g_si; /* state of the span being shaded */
+uint g_ti; /* its triangle */
+#define S st[g_si]
+#define T tris[g_ti]
+
+/* ---- helpers, as nv3_render_d3d.c's ---- */
+int
+f2i(float f)
+{
+    return ((f > -2147483648.0) && (f < 2147483648.0)) ? int(f) : int(0x80000000u);
+}
+
+bool
+finite_(float f)
+{
+    return (floatBitsToUint(f) & 0x7f800000u) != 0x7f800000u;
+}
+
+bool
+cmp(uint func, uint a, uint b)
+{
+    switch (func) {
+        case 1u:
+            return false;
+        case 2u:
+            return a < b;
+        case 3u:
+            return a == b;
+        case 0u:
+        case 4u:
+            return a <= b;
+        case 5u:
+            return a > b;
+        case 6u:
+            return a != b;
+        case 7u:
+            return a >= b;
+        default:
+            return true;
+    }
+}
+
+bool
+wren(uint func, bool zeta_test, bool alpha_test)
+{
+    switch (func) {
+        case 1u:
+            return alpha_test;
+        case 2u:
+            return alpha_test && zeta_test;
+        case 3u:
+            return zeta_test;
+        case 4u:
+            return true;
+        default:
+            return false;
+    }
+}
+
+uint
+zeta_of(float z)
+{
+    if (!(z > 0.0))
+        return 0u;
+    if (z >= 1.0)
+        return 0xffffu;
+    precise float v = z * 65535.0 + 0.5;
+    return uint(f2i(v));
+}
+
+/* ---- memory ---- */
+uint
+vread16(uint a)
+{
+    a &= pc.vram_mask & ~1u;
+    return (vram[a >> 2] >> ((a & 2u) * 8u)) & 0xffffu;
+}
+
+/* The other half of the word is another invocation's pixel: only this half changes, by XOR with
+   the difference (this invocation alone writes it). */
+void
+vwrite16(uint a, uint old, uint v)
+{
+    a &= pc.vram_mask & ~1u;
+    if (old != v)
+        atomicXor(vram[a >> 2], (old ^ v) << ((a & 2u) * 8u));
+}
+
+uint
+tex16(uint byte)
+{
+    byte &= ~1u;
+    if (byte >= S.tex_size)
+        return 0u;
+    uint a = S.tex_base + byte;
+    return (texm[a >> 2] >> ((a & 2u) * 8u)) & 0xffffu;
+}
+
+/* ---- textures ---- */
+uint
+swizzle(uint s, uint t)
+{
+    uint idx = 0u;
+
+    for (int i = 0; i < 11; i++)
+        idx |= (((s >> i) & 1u) << (2 * i)) | (((t >> i) & 1u) << (2 * i + 1));
+    return idx;
+}
+
+uint
+texel(uint level_offset, int s, int t)
+{
+    uint fmt = (S.tex_format >> 20) & 0xfu;
+    uint p   = tex16(level_offset + swizzle(uint(s), uint(t)) * 2u);
+    uint a, r, g, b;
+
+    if (fmt == 2u) { /* A4R4G4B4 */
+        a = ((p >> 12) & 0xfu) * 0x11u;
+        r = ((p >> 8) & 0xfu) * 0x11u;
+        g = ((p >> 4) & 0xfu) * 0x11u;
+        b = (p & 0xfu) * 0x11u;
+    } else if (fmt == 3u) { /* R5G6B5 */
+        a = 0xffu;
+        r = (p >> 11) & 0x1fu;
+        g = (p >> 5) & 0x3fu;
+        b = p & 0x1fu;
+        r = (r << 3) | (r >> 2);
+        g = (g << 2) | (g >> 4);
+        b = (b << 3) | (b >> 2);
+    } else { /* A1R5G5B5, X1R5G5B5 */
+        a = ((p & 0x8000u) != 0u) ? 0xffu : 0u;
+        r = (p >> 10) & 0x1fu;
+        g = (p >> 5) & 0x1fu;
+        b = p & 0x1fu;
+        r = (r << 3) | (r >> 2);
+        g = (g << 3) | (g >> 2);
+        b = (b << 3) | (b >> 2);
+        if (fmt == 1u)
+            a = 0xffu;
+    }
+    if ((((S.tex_format >> 16) & 0xfu) != 0u) && (p == (S.tex_format & 0xffffu)))
+        a = 0u;
+    return (a << 24) | (r << 16) | (g << 8) | b;
+}
+
+int
+wrap(int c, int size, uint mode)
+{
+    if (mode == 2u) { /* mirror: c modulo the period, without a negative operand to % */
+        int period = size * 2;
+        if (c >= 0)
+            c = int(uint(c) % uint(period));
+        else
+            c = period - 1 - int(uint(-(c + 1)) % uint(period));
+        return (c >= size) ? (period - 1 - c) : c;
+    }
+    if (mode == 3u)
+        return (c < 0) ? 0 : ((c >= size) ? size - 1 : c);
+    return c & (size - 1);
+}
+
+void
+tex_logs(out int max_log, out int min_log)
+{
+    max_log = int((S.tex_format >> 28) & 0xfu);
+    min_log = int((S.tex_format >> 24) & 0xfu);
+    if (max_log > 11)
+        max_log = 11;
+    if (min_log > max_log)
+        min_log = max_log;
+}
+
+uint
+tex_sample(float u, float v, int level)
+{
+    int  max_log, min_log;
+    uint offset = 0u;
+
+    tex_logs(max_log, min_log);
+    if (level > max_log - min_log)
+        level = max_log - min_log;
+    for (int l = 0; l < level; l++)
+        offset += (1u << (max_log - l)) * (1u << (max_log - l)) * 2u;
+
+    int           size   = 1 << (max_log - level);
+    uint          config = S.config;
+    uint          wu     = (config >> 4) & 3u;
+    uint          wv     = (config >> 6) & 3u;
+    precise float fu     = u * float(size);
+    precise float fv     = v * float(size);
+
+    if ((config & 3u) != 2u) {
+        if ((config & 3u) == 0u) {
+            fu = fu + 0.5;
+            fv = fv + 0.5;
+        }
+        int s = wrap(f2i(floor(fu)), size, wu);
+        int t = wrap(f2i(floor(fv)), size, wv);
+        return texel(offset, s, t);
+    }
+
+    int           s0 = f2i(floor(fu));
+    int           t0 = f2i(floor(fv));
+    precise float ex = (fu - float(s0)) * 256.0;
+    precise float ey = (fv - float(t0)) * 256.0;
+    uint          wx = uint(f2i(ex));
+    uint          wy = uint(f2i(ey));
+    uint          c0 = texel(offset, wrap(s0, size, wu), wrap(t0, size, wv));
+    uint          c1 = texel(offset, wrap(s0 + 1, size, wu), wrap(t0, size, wv));
+    uint          c2 = texel(offset, wrap(s0, size, wu), wrap(t0 + 1, size, wv));
+    uint          c3 = texel(offset, wrap(s0 + 1, size, wu), wrap(t0 + 1, size, wv));
+    uint          res = 0u;
+
+    for (int sh = 0; sh < 32; sh += 8) {
+        uint top = ((c0 >> sh) & 0xffu) * (256u - wx) + ((c1 >> sh) & 0xffu) * wx;
+        uint bot = ((c2 >> sh) & 0xffu) * (256u - wx) + ((c3 >> sh) & 0xffu) * wx;
+        res |= (((top * (256u - wy) + bot * wy) >> 16) & 0xffu) << sh;
+    }
+    return res;
+}
+
+/* ---- pixel output ---- */
+const uint bayer[16] = uint[16](0u, 8u, 2u, 10u, 12u, 4u, 14u, 6u, 3u, 11u, 1u, 9u, 15u, 7u, 13u, 5u);
+
+uint
+dither_8to5(uint v, int x, int y, bool dither)
+{
+    if (dither) {
+        v += bayer[(y & 3) * 4 + (x & 3)] >> 1;
+        if (v > 0xffu)
+            v = 0xffu;
+    }
+    return v >> 3;
+}
+
+uint
+blend(uint src, uint dst, int x, int y)
+{
+    uint config = S.config;
+    bool dither = S.dither != 0;
+    uint sa     = src >> 24;
+    uint o[3];
+
+    for (int i = 0; i < 3; i++) {
+        uint d5 = (dst >> (10 - i * 5)) & 0x1fu;
+        uint s  = (src >> (16 - i * 8)) & 0xffu;
+        uint d  = (d5 << 3) | (d5 >> 2);
+
+        if (((config >> 28) & 1u) == 0u) {
+            uint beta = (((config >> 29) & 1u) != 0u) ? d : sa;
+            uint sv   = (((config >> 31) & 1u) != 0u) ? 0u : s;
+            uint dv   = (((config >> 30) & 1u) != 0u) ? 0u : d;
+            o[i]      = (dv * (255u - beta) + sv * beta + 127u) / 255u;
+        } else {
+            o[i] = s + d;
+            if (o[i] > 0xffu)
+                o[i] = 0xffu;
+        }
+    }
+    return (dither_8to5(o[0], x, y, dither) << 10) | (dither_8to5(o[1], x, y, dither) << 5) | dither_8to5(o[2], x, y, dither);
+}
+
+void
+fragment(int x, int y, uint color, uint test_alpha, uint zeta)
+{
+    if (S.ncr != 0) {
+        bool covered = false;
+
+        for (int i = 0; i < S.ncr; i++)
+            if ((x >= S.cr_x0[i]) && (y >= S.cr_y0[i]) && (x < S.cr_x1[i]) && (y < S.cr_y1[i]))
+                covered = true;
+        if (covered == (S.cr_inv != 0))
+            return;
+    }
+
+    if (!cmp((S.alpha_ctl >> 8) & 0xfu, test_alpha, S.alpha_ctl & 0xffu))
+        return;
+
+    uint zaddr = S.boff[3] + uint(y) * S.bpitch[3] + uint(x) * 2u;
+    uint zcur  = (S.z_on != 0) ? vread16(zaddr) : 0u;
+    bool ztest = (S.z_on == 0) || cmp((S.config >> 16) & 0xfu, zeta, zcur);
+    bool anz   = (color >> 28) != 0u;
+
+    if (wren((S.config >> 24) & 7u, ztest, anz))
+        for (int j = 0; j < 3; j++) {
+            if (((S.buf_on >> j) & 1u) == 0u)
+                continue;
+            uint addr = S.boff[j] + uint(y) * S.bpitch[j] + uint(x) * 2u;
+            uint p    = vread16(addr);
+            vwrite16(addr, p, (p & 0x8000u) | blend(color, p, x, y));
+        }
+    if ((S.z_on != 0) && wren((S.config >> 20) & 7u, ztest, anz))
+        vwrite16(zaddr, zcur, zeta);
+}
+
+/* ---- shading ---- */
+uint
+mul(uint a, uint b)
+{
+    uint res = 0u;
+
+    for (int sh = 0; sh < 32; sh += 8)
+        res |= ((((a >> sh) & 0xffu) * ((b >> sh) & 0xffu) + 127u) / 255u) << sh;
+    return res;
+}
+
+uint
+byte_of(float c)
+{
+    precise float v = c + 0.5;
+    int           i = f2i(v);
+
+    return uint((i < 0) ? 0 : ((i > 255) ? 255 : i));
+}
+
+void
+shade(int x, int y)
+{
+    uint          config = S.config;
+    uint          src_color = (config >> 10) & 3u;
+    bool          argb   = ((config >> 8) & 1u) != 0u;
+    int           max_log, min_log;
+    precise float fy     = float(y) - T.y0;
+    precise float fx     = float(x) - T.x0;
+    precise float at[9];
+
+    tex_logs(max_log, min_log);
+    precise float tsize = float(1 << max_log);
+
+    for (int i = 0; i < 9; i++)
+        at[i] = (T.c[i] + T.dx[i] * fx) + T.dy[i] * fy;
+
+    uint          color = (byte_of(at[AT_A]) << 24) | (byte_of(at[AT_R]) << 16) | (byte_of(at[AT_G]) << 8) | byte_of(at[AT_B]);
+    precise float q     = at[AT_Q];
+
+    if (S.textured != 0) {
+        precise float uq    = at[AT_UQ];
+        precise float vq    = at[AT_VQ];
+        precise float u     = 0.0;
+        precise float tv    = 0.0;
+        int           level = 0;
+
+        if ((q != 0.0) && finite_(q)) {
+            u  = fdiv_cr(uq, q);
+            tv = fdiv_cr(vq, q);
+            precise float q2  = q * q;
+            precise float ux  = fdiv_cr(T.dx[AT_UQ] * q - uq * T.dx[AT_Q], q2);
+            precise float vx  = fdiv_cr(T.dx[AT_VQ] * q - vq * T.dx[AT_Q], q2);
+            precise float uy  = fdiv_cr(T.dy[AT_UQ] * q - uq * T.dy[AT_Q], q2);
+            precise float vy  = fdiv_cr(T.dy[AT_VQ] * q - vq * T.dy[AT_Q], q2);
+            precise float rx  = ux * ux + vx * vx;
+            precise float ry  = uy * uy + vy * vy;
+            precise float rho = ((rx > ry) ? rx : ry) * tsize * tsize;
+            if ((rho > 1.0) && finite_(rho))
+                level = (int(floatBitsToUint(rho) >> 23) - 127) >> 1;
+        }
+        uint texel_ = tex_sample(u, tv, level);
+        color = mul(texel_, argb ? color : (color | 0xff000000u));
+    } else if (!argb)
+        color |= 0xff000000u;
+
+    uint test_alpha = color >> 24;
+    if (src_color == 1u)
+        color = ~color;
+    else if (src_color == 2u)
+        color ^= 0xff000000u;
+    else if (src_color == 3u)
+        color |= 0xff000000u;
+
+    precise float fog = 1.0 - fdiv_cr(at[AT_FOG], 255.0);
+    if (fog < 1.0) {
+        uint res = color & 0xff000000u;
+        for (int sh = 0; sh < 24; sh += 8) {
+            precise float ch = float((color >> sh) & 0xffu) * fog + float((S.fog_rgb >> sh) & 0xffu) * (1.0 - fog);
+            precise float rv = ch + 0.5;
+            res |= (uint(f2i(rv)) & 0xffu) << sh;
+        }
+        color = res;
+    }
+
+    uint zeta;
+    if (((config >> 15) & 1u) != 0u)
+        zeta = (q > 0.0) ? zeta_of(fdiv_cr(1.0, q)) : 0xffffu;
+    else
+        zeta = zeta_of(at[AT_Z]);
+
+    fragment(x, y, color, test_alpha, zeta);
+}
+
+void
+main()
+{
+    uvec2 row = rows[gl_WorkGroupID.x];
+    int   x   = int(gl_WorkGroupID.y) * 64 + int(gl_LocalInvocationID.x);
+
+    for (uint k = 0u; k < row.y; k++) {
+        ivec4 sp = spans[row.x + k];
+
+        if ((x < sp.y) || (x >= sp.z))
+            continue;
+        g_ti = uint(sp.w);
+        g_si = uint(tris[g_ti].state);
+        shade(x, sp.x);
+    }
+}

@@ -509,6 +509,16 @@ void nv3_pgraph_interrupt_invalid(uint32_t num)
 // VBlank. Fired every single frame.
 void nv3_pgraph_vblank_start(svga_t* svga)
 {
+    /* what the 3D engine has queued is on screen by the next frame (waited for only when it
+       draws into the displayed bytes) */
+    {
+        uint32_t lo    = svga->memaddr_latch << 2;
+        uint32_t pitch = svga->rowoffset << 3;
+
+        if (!pitch)
+            pitch = (uint32_t) svga->hdisp * ((svga->bpp + 7) >> 3);
+        nv3_d3d_vblank(lo, lo + pitch * svga->dispend);
+    }
     nv3_pramdac_checksum_frame(svga);
     nv3_pgraph_interrupt_valid(NV3_PGRAPH_INTR_0_VBLANK);
     nv3_pvideo_vblank();
@@ -583,6 +593,16 @@ void nv3_pgraph_submit(uint32_t param, uint16_t method, uint8_t channel, uint8_t
 
     nv_log_verbose_only("**** About to execute method **** method=0x%04x param=0x%08x, channel=%d.%d, class=%s, grobj=0x%08x 0x%08x 0x%08x 0x%08x\n",
         method, param, channel, subchannel, nv3_class_names[class_id], grobj.grobj_0, grobj.grobj_1, grobj.grobj_2, grobj.grobj_3);
+
+    /* The 3D batch is drawn before another class draws or reads pixels; the classes that only
+       set state (beta, ROP, chroma, plane mask, clip, pattern) and the shared methods do not
+       need it, nor image in memory (0x1C: surface offset, pitch and format). The zeta point (0x18)
+       and the GDI class (0x0C: most of its methods only set state, and its rectangles wait only for
+       3D work on their rows) wait themselves. */
+    if ((method > NV3_SET_NOTIFY) && (class_id > nv3_pgraph_class06_pattern)
+        && (class_id != nv3_pgraph_class0c_w95txt) && (class_id != nv3_pgraph_class1c_image_in_memory)
+        && (class_id != nv3_pgraph_class17_d3d5tri_zeta_buffer) && (class_id != nv3_pgraph_class18_point_zeta_buffer))
+        nv3_d3d_sync(NV3_SYNC_CLASS + (class_id & 0x1F));
 
     /* Methods below 0x104 are shared across all classids, so call generic_method for that*/
     if (method <= NV3_SET_NOTIFY)

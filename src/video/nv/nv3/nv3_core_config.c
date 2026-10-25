@@ -100,6 +100,28 @@ const device_config_t nv3_config[] =
         }
 
     },
+    {
+        .name = "render_threads",
+        .description = "Render threads",
+        .type = CONFIG_SELECTION,
+        .default_int = 2,
+        .selection =
+        {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "3", .value = 3 },
+            { .description = "4", .value = 4 },
+            { .description = "6", .value = 6 },
+            { .description = "8", .value = 8 },
+            { .description = "" }
+        },
+    },
+    {
+        .name = "gpu_raster",
+        .description = "Draw 3D on the host GPU (Vulkan)",
+        .type = CONFIG_BINARY,
+        .default_int = 0,
+    },
 #ifndef RELEASE_BUILD
     {
         .name = "nv_debug_fulllog",
@@ -183,6 +205,28 @@ const device_config_t nv3t_config[] =
                 .files = { NV3T_VBIOS_REFERENCE_CEK_V172, "" },
            },
         }
+    },
+    {
+        .name = "render_threads",
+        .description = "Render threads",
+        .type = CONFIG_SELECTION,
+        .default_int = 2,
+        .selection =
+        {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "3", .value = 3 },
+            { .description = "4", .value = 4 },
+            { .description = "6", .value = 6 },
+            { .description = "8", .value = 8 },
+            { .description = "" }
+        },
+    },
+    {
+        .name = "gpu_raster",
+        .description = "Draw 3D on the host GPU (Vulkan)",
+        .type = CONFIG_BINARY,
+        .default_int = 0,
     },
 #ifndef RELEASE_BUILD
     {

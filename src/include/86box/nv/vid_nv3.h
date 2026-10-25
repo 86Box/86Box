@@ -1259,6 +1259,7 @@ typedef struct nv3_d3d_state_s {
     uint32_t tex_target;
     uint32_t tex_lin;
     uint32_t tex_pages[64];
+    uint32_t tex_rpages[64]; /* the same, system memory resolved through the AGP aperture */
 
     /* class 0x18 */
     int32_t  zpoint_x, zpoint_y;
@@ -1498,6 +1499,7 @@ typedef struct nv3_s
     nv3_pme_t pme;                  // Mediaport - external MPEG decoder and video interface
     pc_timer_t dma_pusher_timer;    // the DMA pusher fetches asynchronously, a moment after it is started
     nv3_prim_state_t prim_saved[NV3_PGRAPH_CHANNELS]; // the other channels' primitive state (see nv3_prim_state_t)
+    struct nv3_d3d_batch_s *batch3d; // the 3D work queued to draw (nv3_render_d3d.c)
     //more here
 
 } nv3_t;
@@ -1638,6 +1640,25 @@ void        nv3_class_014_method(uint32_t param, uint32_t method_id, nv3_ramin_c
 void        nv3_class_015_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 void        nv3_class_017_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 void        nv3_class_018_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+enum {
+    NV3_SYNC_LFB,
+    NV3_SYNC_VGA,
+    NV3_SYNC_VBLANK,
+    NV3_SYNC_OTHER,
+    NV3_SYNC_CLASS, /* + the class id: a method of another class */
+    NV3_SYNC_CAUSES = NV3_SYNC_CLASS + 32
+};
+/* The 3D batch (nv3_render_d3d.c): draw what is queued (with the GPU lane: submit it), and also
+   wait for the GPU's pixels, for anything that reads or writes VRAM itself; cause: NV3_SYNC_* */
+void        nv3_d3d_init(int threads, int gpu);
+void        nv3_d3d_close(void);
+void        nv3_d3d_reset(void);
+void        nv3_d3d_flush(void);
+void        nv3_d3d_sync(int cause);
+void        nv3_d3d_vblank(uint32_t lo, uint32_t hi);
+/* only when the 3D work reaches VRAM bytes lo..hi, or a 2D draw's rows (nv3_render_d3d.c) */
+void        nv3_d3d_touch(uint32_t lo, uint32_t hi, int cause);
+void        nv3_d3d_touch_rect(nv3_grobj_t grobj, int32_t y0, int32_t y1, int32_t x1, int cause);
 void        nv3_class_01c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 
 // Notification Engine

@@ -131,6 +131,7 @@ uint8_t nv3_pbus_rma_read(uint16_t addr)
             else 
             {
                 /* Do we need to read RAMIN here? */
+                nv3_d3d_sync(NV3_SYNC_OTHER);
                 ret = nv3->nvbase.svga.vram[(real_final_address - NV3_MMIO_SIZE) & nv3->nvbase.svga.vram_mask];
             }
 
@@ -208,6 +209,7 @@ void nv3_pbus_rma_write(uint16_t addr, uint8_t val)
                 else // failsafe code, i don't think you will ever write outside of VRAM?
                 {
                     uint32_t* vram_32 = (uint32_t*)nv3->nvbase.svga.vram;
+                    nv3_d3d_sync(NV3_SYNC_OTHER);
                     vram_32[((nv3->pbus.rma.addr - NV3_MMIO_SIZE) & nv3->nvbase.svga.vram_mask) >> 2] = nv3->pbus.rma.data;
                 }
                     
