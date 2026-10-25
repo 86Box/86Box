@@ -30,18 +30,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The default recompiler, as in upstream x64 builds; the new one
-        # (NDR) as a second download for comparison; developer settings.
+        # The new recompiler (NDR): the old one stops with "Over limit!" in
+        # Windows 98 on the machines tested. The old one, upstream's x64
+        # default, is a second download for comparison; then developer
+        # settings.
         dev:
           - slug: ''
             flag: 'OFF'
-            ndr: 'OFF'
-          - slug: '-NDR'
-            flag: 'OFF'
             ndr: 'ON'
+          - slug: '-OldDR'
+            flag: 'OFF'
+            ndr: 'OFF'
           - slug: '-devsettings'
             flag: 'ON'
-            ndr: 'OFF'
+            ndr: 'ON'
 
     steps:
       - name: Prepare MSYS2 environment
