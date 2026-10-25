@@ -354,6 +354,7 @@ extern uint64_t mmutranslatereal(uint32_t addr, int rw);
 extern uint32_t mmutranslatereal32(uint32_t addr, int rw);
 extern void     addreadlookup(uint32_t virt, uint32_t phys);
 extern void     addwritelookup(uint32_t virt, uint32_t phys);
+extern void     addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr);
 
 extern void mem_mapping_set(mem_mapping_t *,
                             uint32_t base,
