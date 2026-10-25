@@ -2736,6 +2736,8 @@ machine_at_m5ata_init(const machine_t *model)
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     1, 2, 3, 4);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE,     1, 2, 3, 4);
     pci_register_slot(0x0B, PCI_CARD_SOUTHBRIDGE_IDE, 1, 2, 3, 4);
+    pci_register_slot(0x0C, PCI_CARD_SOUTHBRIDGE_PMU, 1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
     pci_register_slot(0x03, PCI_CARD_NORMAL,          1, 2, 3, 4);
     pci_register_slot(0x04, PCI_CARD_NORMAL,          2, 3, 4, 1);
     pci_register_slot(0x05, PCI_CARD_NORMAL,          3, 4, 1, 2);
