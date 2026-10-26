@@ -657,14 +657,13 @@ exec386_dynarec_dyn(void)
            before it has run often enough to pay for compiling it (see
            invalidate_block()/codeblock_t::smc_strikes): compiling it again
            would just pay the same cost for nothing again, so interpret it
-           instead until the cooldown lapses, and only it - the interpreter
-           stops where the block does, rather than run on through the
-           compiled blocks after it. */
+           instead until the cooldown lapses. The usual interpreter stopping
+           conditions apply. Do not use cpu_end_block_after_ins as a length
+           limit: it also inhibits pending maskable IRQs. */
         if (valid_block && (block->smc_cooldown_until > tsc) &&
             (((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) != CODEBLOCK_WAS_RECOMPILED) ||
              (block->page_mask & *block->dirty_mask) ||
              (block->page_mask2 && (block->page_mask2 & *block->dirty_mask2)))) {
-            cpu_end_block_after_ins = block->ins ? block->ins : MAX_INSTRUCTION_COUNT;
             exec386_dynarec_int();
             return;
         }
