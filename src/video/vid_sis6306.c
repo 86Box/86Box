@@ -262,6 +262,12 @@ typedef struct sis6306_zwatch_t {
 
 typedef struct sis6306_t {
     svga_t svga;
+    uint8_t gamma_lut[256][3];
+    uint8_t gamma_pending[256][3];
+    uint16_t gamma_next_index;
+    uint8_t gamma_collecting;
+    uint8_t gamma_has_8bit_data;
+    uint8_t gamma_active;
     uint8_t pci_slot;
     uint8_t pci_command;
     uint8_t irq_line;
@@ -1191,11 +1197,48 @@ sis6306_packed_scanout_unsafe(svga_t *svga)
     return unsafe;
 }
 
+static uint32_t
+sis6306_gamma_rgb(const sis6306_t *dev, uint32_t rgb)
+{
+    const uint8_t (*lut)[3] = dev->gamma_lut;
+
+    return (rgb & 0xff000000U) |
+           ((uint32_t) lut[(rgb >> 16) & 0xff][0] << 16) |
+           ((uint32_t) lut[(rgb >> 8) & 0xff][1] << 8) |
+           ((uint32_t) lut[rgb & 0xff][2]);
+}
+
+static uint32_t
+sis6306_gamma_conv_16to32(svga_t *svga, uint16_t color, uint8_t bpp)
+{
+    sis6306_t *dev = (sis6306_t *) svga->priv;
+    const uint32_t rgb = (bpp == 15) ? video_15to32[color] : video_16to32[color];
+
+    return dev->gamma_active ? sis6306_gamma_rgb(dev, rgb) : rgb;
+}
+
+static int
+sis6306_gamma_scanline_dirty(svga_t *svga)
+{
+    const uint32_t addr = svga->force_old_addr ? svga->memaddr :
+                          svga->remap_func(svga, svga->memaddr);
+    const uint32_t page = addr >> 12;
+
+    return !!svga->fullchange || !!svga->changedvram[page] ||
+           !!svga->changedvram[page + 1] ||
+           (svga->force_old_addr && svga->bpp == 32 &&
+            !!svga->changedvram[page + 2]);
+}
+
 static void
 sis6306_render_packed_base(svga_t *svga)
 {
     if (sis6306_packed_scanout_unsafe(svga))
         return;
+
+    sis6306_t *dev = (sis6306_t *) svga->priv;
+    const int apply_gamma = dev->gamma_active && (svga->bpp >= 24) &&
+                            sis6306_gamma_scanline_dirty(svga);
 
     switch (svga->bpp) {
         case 32:
@@ -1213,6 +1256,14 @@ sis6306_render_packed_base(svga_t *svga)
         default:
             svga_render_8bpp_highres(svga);
             break;
+    }
+
+    if (apply_gamma) {
+        uint32_t *pixels = &svga->monitor->target_buffer->line[
+                            svga->displine + svga->y_add][svga->x_add];
+        const int count = svga->hdisp + svga->scrollcache + 1;
+        for (int x = 0; x < count; x++)
+            pixels[x] = sis6306_gamma_rgb(dev, pixels[x]);
     }
 }
 
@@ -1482,7 +1533,54 @@ sis6306_update_graphics_mode(sis6306_t *dev)
     if (packed && (dev->svga.bpp == 8) && (!old_packed || (old_bpp != 8)))
         dev->svga.dac_mask = 0xff;
 
+    if ((old_bpp >= 15) && (dev->svga.bpp < 15)) {
+        dev->gamma_active = 0;
+        dev->gamma_collecting = 0;
+    }
+
     sis6306_update_cursor(dev);
+}
+
+static void
+sis6306_gamma_dac_entry(sis6306_t *dev, unsigned index)
+{
+    const svga_t *svga = &dev->svga;
+
+    if ((svga->bpp < 15) || !(dev->ext_seq[0x07] & 0x04)) {
+        dev->gamma_collecting = 0;
+        return;
+    }
+
+    if (index == 0) {
+        dev->gamma_next_index = 0;
+        dev->gamma_collecting = 1;
+        dev->gamma_has_8bit_data = 0;
+    }
+
+    if (!dev->gamma_collecting || (index != dev->gamma_next_index)) {
+        dev->gamma_collecting = 0;
+        return;
+    }
+
+    const uint8_t r = svga->vgapal[index].r;
+    const uint8_t g = svga->vgapal[index].g;
+    const uint8_t b = svga->vgapal[index].b;
+
+    dev->gamma_pending[index][0] = r;
+    dev->gamma_pending[index][1] = g;
+    dev->gamma_pending[index][2] = b;
+
+    if ((r > 0x3f) || (g > 0x3f) || (b > 0x3f))
+        dev->gamma_has_8bit_data = 1;
+
+    if (++dev->gamma_next_index == 256) {
+        dev->gamma_collecting = 0;
+        if (dev->gamma_has_8bit_data) {
+            memcpy(dev->gamma_lut, dev->gamma_pending, sizeof(dev->gamma_lut));
+            dev->gamma_active = 1;
+            dev->svga.fullchange = dev->svga.monitor->mon_changeframecount;
+        }
+    }
 }
 
 static void
@@ -1504,6 +1602,19 @@ sis6306_out(uint16_t addr, uint8_t val, void *priv)
         sis6306_accel_sync(dev);
 
     switch (addr) {
+        case 0x03c8:
+            svga_out(addr, val, svga);
+            return;
+
+        case 0x03c9: {
+            const unsigned index = (unsigned) svga->dac_addr & 0xffU;
+            const int completed = (svga->dac_pos == 2);
+            svga_out(addr, val, svga);
+            if (completed)
+                sis6306_gamma_dac_entry(dev, index);
+            return;
+        }
+
         case 0x03c6:
             svga_out(addr, val, svga);
             return;
@@ -6000,6 +6111,7 @@ sis6306_init(const device_t *info)
               sis6306_in, sis6306_out,
               sis6306_hwcursor_draw, NULL);
 
+    dev->svga.conv_16to32 = sis6306_gamma_conv_16to32;
     dev->svga.line_compare = sis6306_line_compare;
 
     /*
