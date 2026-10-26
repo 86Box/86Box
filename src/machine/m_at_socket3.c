@@ -611,7 +611,11 @@ machine_at_tg486g_init(const machine_t *model)
 
     video_reset(gfxcard[0]);
 
-    if (gfxcard[0] != VID_INTERNAL) {
+    /* The first 32 KB of the BIOS image are the on-board WD90C33's video
+       BIOS; an add-on card's own BIOS replaces them. */
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+    else {
         for (uint16_t i = 0; i < 32768; i++)
             rom[i] = mem_readb_phys(0x000c0000 + i);
     }

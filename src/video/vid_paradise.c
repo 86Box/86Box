@@ -39,6 +39,7 @@
 #define WD90C20_FONT_ROM "roms/machines/ibmps55_m35s/64F9074.BIN"
 #define SPEEDSTAR24X_ROM "roms/video/wd90c31a/wd90c31alrdiamondspeedstar24x1.BIN"
 #define WD90C33_ROM      "roms/video/wd90c33/wd90c33.bin"
+#define TG486G_ROM       "roms/machines/tg486g/tg486g.bin"
 
 #define VAR_BYTE_MODE      (0 << 0)
 #define VAR_WORD_MODE_MA13 (1 << 0)
@@ -73,6 +74,7 @@ typedef struct paradise_t {
     wd90c31_t *accel;
     wd90c33_t *accel33;
     int        speedstar24x;
+    int        att_dac;
     uint8_t    dac_reads, dac_control;
 
     uint8_t    pos_regs[8];
@@ -207,6 +209,8 @@ paradise_in(uint16_t addr, void *priv)
         case 0x3c9:
             if (paradise->speedstar24x)
                 return speedstar24x_ramdac_in(addr, paradise);
+            if (paradise->att_dac)
+                return att49x_ramdac_in(addr, 0, svga->ramdac, svga);
             if (paradise->type == WD90C33)
                 return sc1502x_ramdac_in(addr, svga->ramdac, svga);
             if (paradise->type >= WD90C30)
@@ -283,6 +287,8 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3c9:
             if (paradise->speedstar24x)
                 speedstar24x_ramdac_out(addr, val, paradise);
+            else if (paradise->att_dac)
+                att49x_ramdac_out(addr, 0, val, svga->ramdac, svga);
             else if (paradise->type == WD90C33)
                 sc1502x_ramdac_out(addr, val, svga->ramdac, svga);
             else if (paradise->type >= WD90C30)
@@ -959,8 +965,13 @@ paradise_init_ex(const device_t *info, uint32_t memory, int speedstar24x)
             /* Reuse the WD90C30's SC11487-compatible DAC for the generic ROM.
                The WD90C30 board has a W82C487-80; Diamond uses an SS2410. */
             /* The WD90C33 BIOS's default DAC commands (80h, E0h and 60h for
-               15, 16 and 24 bpp) are those of a Sierra SC15025. */
-            if ((info->local & 0xff) == WD90C33)
+               15, 16 and 24 bpp) are those of a Sierra SC15025. The TriGem
+               486G's BIOS is set up for a DAC that takes 80h, C0h and E0h,
+               like the AT&T 20C491. */
+            paradise->att_dac = !!(info->local & 0x100);
+            if (paradise->att_dac)
+                svga->ramdac = device_add(&att491_ramdac_device);
+            else if ((info->local & 0xff) == WD90C33)
                 svga->ramdac = device_add(&sc1502x_ramdac_device);
             else
                 svga->ramdac = paradise->speedstar24x ? NULL : device_add(&sc11487_ramdac_device);
@@ -1347,6 +1358,17 @@ paradise_wd90c33_init(const device_t *info)
     return paradise;
 }
 
+/* The video BIOS is the first 32 KB of the machine's BIOS image. The chipset
+   decodes C0000h-C7FFFh to the bus, so it is mapped like a card's ROM. */
+static void *
+paradise_wd90c33_onboard_init(const device_t *info)
+{
+    paradise_t *paradise = paradise_init(info, device_get_config_int("memory"));
+
+    rom_init(&paradise->bios_rom, TG486G_ROM, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    return paradise;
+}
+
 static int
 paradise_wd90c33_available(void)
 {
@@ -1705,5 +1727,20 @@ const device_t paradise_wd90c33_vlb_device = {
     .available     = paradise_wd90c33_available,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
+    .config        = paradise_wd90c33_config
+};
+
+const device_t paradise_wd90c33_onboard_device = {
+    .name          = "Paradise WD90C33 On-Board (TriGem 486G)",
+    .internal_name = "wd90c33_onboard",
+    .flags         = DEVICE_VLB,
+    .local         = WD90C33 | 0x100,
+    .init          = paradise_wd90c33_onboard_init,
+    .close         = paradise_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = paradise_speed_changed,
+    .force_redraw  = paradise_force_redraw,
+    .machine       = "TriGem 486G",
     .config        = paradise_wd90c33_config
 };

@@ -12145,7 +12145,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_VLB,
-        .flags     = MACHINE_IDE, /* Machine has internal video: Western Digital WD90C33-ZZ (not yet implemented) */
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
         /* In theory, this machine should support up to 128 MB RAM. In practice, likely 
            due to a BIOS bug, it does not detect more than 64 MB at all. */
@@ -12168,7 +12168,7 @@ const machine_t machines[] = {
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &paradise_wd90c33_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "TriGem Olympia-K", "" }

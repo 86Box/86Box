@@ -562,6 +562,7 @@ extern const device_t paradise_wd90c31_device;
 extern const device_t paradise_wd90c31_onboard_device;
 extern const device_t paradise_wd90c33_device;
 extern const device_t paradise_wd90c33_vlb_device;
+extern const device_t paradise_wd90c33_onboard_device;
 
 /* Quadram Quadcolor I / I + II */
 extern const device_t quadcolor_device;
