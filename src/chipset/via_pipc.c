@@ -1537,7 +1537,10 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
 
             case 0x77:
-                if ((dev->local >= VIA_PIPC_686A) && (val & 0x10) && (dev->ioapic == NULL))
+                /* The Acorp 6VIA90AP's BIOS enables the I/O APIC but has neither
+                   an MP table nor an ACPI MADT, so no OS can ever use it. */
+                if ((dev->local >= VIA_PIPC_686A) && (val & 0x10) && (dev->ioapic == NULL) &&
+                    (machines[machine].init != machine_at_6via90ap_init))
                     warning("PIPC: Warning: Internal I/O APIC enabled.\n");
                 dev->pci_isa_regs[0x77] = val;
                 /* Internal APIC Enable: the I/O APIC's window decoded
