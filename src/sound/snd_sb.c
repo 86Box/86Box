@@ -5190,9 +5190,11 @@ es186x_pnp_write(uint16_t port, uint8_t val, void *priv)
                 case 1:
                     ess->es186x_confaddr = (val << 8) | ess->es186x_confaddr;
                     sb_log("ES186x PnP bypass, new control addr = %04X\n", ess->es186x_confaddr);
-                    ess->es186x_bypass_conf->activate = 1;
-                    ess->es186x_bypass_conf->io[0].base = ess->es186x_confaddr;
-                    ess_186x_pnp_config_changed(0, ess->es186x_bypass_conf, ess);
+                    /* The bypass key sets the configuration device's address register and
+                       activate bit, so later PnP accesses to logical device 0 see them. */
+                    isapnp_write_reg(ess->pnp_card, 0, 0x60, ess->es186x_confaddr >> 8);
+                    isapnp_write_reg(ess->pnp_card, 0, 0x61, ess->es186x_confaddr & 0xff);
+                    isapnp_write_reg(ess->pnp_card, 0, 0x30, 1);
                     ess->es186x_bypass_state = 0;
                     ess->es186x_bypass = 0;
                     break;
@@ -7030,7 +7032,6 @@ ess_186x_init(const device_t *info)
     ess->pnp_card = isapnp_add_card(pnp_rom, sizeof(ess->pnp_rom), ess_186x_pnp_config_changed,
                                     NULL, NULL, NULL, ess);
     io_sethandler(0x0279, 0x0001, NULL, NULL, NULL, es186x_pnp_write, NULL, NULL, ess);
-    ess->es186x_bypass_conf = (isapnp_device_config_t *) calloc(1, sizeof(isapnp_device_config_t));
 
     sb_dsp_setaddr(&ess->dsp, 0);
     sb_dsp_setirq(&ess->dsp, 0);
