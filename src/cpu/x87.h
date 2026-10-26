@@ -59,10 +59,19 @@ x87_op_is_control(uint16_t op)
     }
 }
 
-/* FNINIT and FNSAVE clear the pointers and the opcode */
+/* FPUs earlier than the 487 preserve exception pointers on initialization. */
 static __inline void
 x87_clear_pointers(void)
 {
+    if (fpu_type > FPU_NONE && fpu_type < FPU_487SX)
+        return;
+    if (fpu_softfloat) {
+        fpu_state.foo = 0;
+        fpu_state.fds = 0;
+        fpu_state.fdp = 0;
+        fpu_state.fcs = 0;
+        fpu_state.fip = 0;
+    }
     cpu_state.fpu_op = 0;
     cpu_state.fpu_CS = 0;
     cpu_state.fpu_cs = 0;
