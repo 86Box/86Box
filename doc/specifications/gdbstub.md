@@ -45,7 +45,10 @@ wins.
 
 Enabling the stub starts the guest paused, even before a debugger connects.
 The ordinary disabled state opens no debugger socket and does not wrap CPU
-execution. The GUI does not hot-toggle debugging while the guest is executing;
+execution. The Pentium-class interpreter selects its debugger-aware loop at
+each execution quantum, keeping remote-debugger polling out of its disabled
+instruction loop. Watchpoint checks favor the ordinary unwatched memory path.
+The GUI does not hot-toggle debugging while the guest is executing;
 settings changes use the hard-reset boundary described above.
 
 > [!CAUTION]
@@ -148,6 +151,8 @@ python tests/cpu/gdbstub_test.py --binary build/src/86Box \
 Use `--interpreter` to select interpreter execution. `--trace-translated`
 requires host GDB and asserts calls from generated code during both continue
 and single-step. `--guest-gdb` adds a real GDB compatibility check.
+`--guest-debug-regs off` exercises remote debugging without guest
+debug-register emulation; the guest TF check still runs.
 `--graceful` requires an AUTOMATION-enabled binary and checks shutdown through
 the automation socket.
 
