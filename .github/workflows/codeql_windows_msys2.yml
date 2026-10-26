@@ -29,6 +29,12 @@ on:
   schedule:
     - cron: '22 11 * * 0'
 
+# Cancel superseded runs for the same pull request. Other events get a
+# unique group so that they are never cancelled or held back.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
 
   analyze-windows:
