@@ -1105,10 +1105,10 @@ machine_tandy2000_init(const machine_t *model)
     tandy2k.fdc       = fdc;
     tandy2k.fdc_strap = 0;
 
-    /* The turbo timing skips the seek and bit-cell paths this machine's BIOS
-       depends on, so the drives never take it. */
-    for (int i = 0; i < 4; i++)
-        fdd_set_turbo(fdc->fdd[i], 0);
+    /* The drives keep whatever turbo setting the configuration gave them: it
+       only drops the seek and bit-cell timings, and the BIOS waits those out
+       through the controller's own status bits, so the default (off) is all a
+       stock configuration ever sees. */
 
     device_add(&tandy_2000_video_device);
 
