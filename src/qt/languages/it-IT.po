@@ -419,10 +419,16 @@ msgstr "Memoria:"
 msgid "Synchronize with host clock"
 msgstr ""
 
+msgid "Time zone:"
+msgstr ""
+
 msgid "Local"
 msgstr ""
 
 msgid "UTC"
+msgstr ""
+
+msgid "Date:"
 msgstr ""
 
 msgid "Match the host"
