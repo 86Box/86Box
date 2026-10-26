@@ -156,6 +156,9 @@ struct uhci_t {
     /* VIA USB function Rx40 bit 6 (Babble Option): when set, a port that
        babbles at EOF is not disabled (VT82C686B, p. 76 / PDF 82). */
     uint8_t     babble_keep_port;
+    /* The chipset has the whole function turned off (VIA function 0 Rx48
+       bit 2 / Rx85 bit 4): its root ports are off the bus. */
+    uint8_t     disabled;
     /* Completions in the frame in progress. They reach USBSTS only at the
        end of the frame (UHCI 1.1 s4, p. 35 / PDF 41). */
     uint8_t     eof_ioc;
@@ -1834,6 +1837,14 @@ static usb_t *usb_hcs[USB_MAX_HC];
 static void ohci_port_attach(ohci_port_t *p, usb_dev_t *udev);
 static void ohci_port_detach(ohci_port_t *p);
 
+/* Only a controller the chipset has wired up, that is one whose interrupt
+   it routes, and has not turned off, takes devices. */
+static int
+uhci_wired(const uhci_t *hc)
+{
+    return (hc != NULL) && (hc->set_irq != NULL) && !hc->disabled;
+}
+
 static void
 uhci_port_attach(uhci_t *hc, int i, usb_dev_t *udev)
 {
@@ -1859,7 +1870,7 @@ usb_attach_home(usb_dev_t *udev)
         uhci_t *hc = (usb_hcs[h] != NULL) ? usb_hcs[h]->uhci : NULL;
         ohci_t *oc = (usb_hcs[h] != NULL) ? usb_hcs[h]->ohci : NULL;
 
-        for (int i = 0; (hc != NULL) && (hc->set_irq != NULL) && (i < UHCI_PORTS); i++) {
+        for (int i = 0; uhci_wired(hc) && (i < UHCI_PORTS); i++) {
             if ((udev->home_port == &hc->port[i]) && (hc->port[i].usb == NULL)) {
                 uhci_port_attach(hc, i, udev);
                 return 1;
@@ -1877,12 +1888,11 @@ usb_attach_home(usb_dev_t *udev)
     return 0;
 }
 
-/* Only a controller the chipset has wired up, that is one whose interrupt
-   it routes, takes devices. A device goes to the first free root port, then
+/* A device goes to the first free root port of a wired controller, then
    to a hub on a root port, then to an OHCI connector past NDP. A device left
-   out is named to the user with the reason. */
+   out is named to the user with the reason, unless quiet. */
 static int
-usb_attach_search(usb_dev_t *udev)
+usb_attach_search(usb_dev_t *udev, int quiet)
 {
     char msg[512];
     int  wired = 0;
@@ -1891,7 +1901,7 @@ usb_attach_search(usb_dev_t *udev)
         uhci_t *hc = (usb_hcs[h] != NULL) ? usb_hcs[h]->uhci : NULL;
         ohci_t *oc = (usb_hcs[h] != NULL) ? usb_hcs[h]->ohci : NULL;
 
-        if ((hc != NULL) && (hc->set_irq != NULL)) {
+        if (uhci_wired(hc)) {
             wired = 1;
             for (int i = 0; i < UHCI_PORTS; i++) {
                 if (hc->port[i].usb == NULL) {
@@ -1917,7 +1927,7 @@ usb_attach_search(usb_dev_t *udev)
         uhci_t *hc = (usb_hcs[h] != NULL) ? usb_hcs[h]->uhci : NULL;
         ohci_t *oc = (usb_hcs[h] != NULL) ? usb_hcs[h]->ohci : NULL;
 
-        for (int i = 0; (hc != NULL) && (hc->set_irq != NULL) && (i < UHCI_PORTS); i++) {
+        for (int i = 0; uhci_wired(hc) && (i < UHCI_PORTS); i++) {
             usb_dev_t *hub = hc->port[i].usb;
 
             if ((hub != NULL) && (hub->ops->attach != NULL) && hub->ops->attach(hub, udev))
@@ -1949,6 +1959,9 @@ usb_attach_search(usb_dev_t *udev)
         }
     }
 
+    if (quiet)
+        return 0;
+
     snprintf(msg, sizeof(msg), plat_get_string(wired ? STRING_USB_NO_PORT : STRING_USB_NO_CONTROLLER), udev->name);
     pclog("USB: %s\n", msg);
     ui_msgbox_header(MBX_WARNING, NULL, msg);
@@ -1956,15 +1969,21 @@ usb_attach_search(usb_dev_t *udev)
     return 0;
 }
 
-int
-usb_attach(usb_dev_t *udev)
+static int
+usb_attach_ex(usb_dev_t *udev, int quiet)
 {
-    if (!usb_attach_home(udev) && !usb_attach_search(udev))
+    if (!usb_attach_home(udev) && !usb_attach_search(udev, quiet))
         return 0;
 
     udev->home_port   = udev->port;
     udev->home_parent = udev->parent;
     return 1;
+}
+
+int
+usb_attach(usb_dev_t *udev)
+{
+    return usb_attach_ex(udev, 0);
 }
 
 /* A disconnect clears CCS and PE and sets CSC and PEDC for whichever of
@@ -2101,6 +2120,38 @@ usb_slots_update(void)
         atomic_store(&usb_slots[i].connected, (dev != NULL) && (dev->port != NULL));
         atomic_store(&usb_slots[i].online, (dev != NULL) && usb_dev_on_bus(dev));
     }
+}
+
+/* Devices are plugged in at power-on, before the BIOS has decided which USB
+   functions to keep: a BIOS can turn one off for good (the MSI MS-6318's
+   hides "OnChip USB 2" and sets VIA Rx48 bit 2). The devices on the root
+   ports of a function turned off move to a wired port, as if the user had
+   plugged them in there; with none free they stay where they are, unseen.
+   Turning the function back on leaves them where they went. */
+void
+uhci_set_present(usb_t *dev, int present)
+{
+    uhci_t *hc = dev->uhci;
+
+    if (hc->disabled == !present)
+        return;
+
+    hc->disabled = !present;
+    if (present)
+        return;
+
+    for (int i = 0; i < UHCI_PORTS; i++) {
+        usb_dev_t *udev = hc->port[i].usb;
+
+        if (udev == NULL)
+            continue;
+
+        usb_unplug(udev);
+        if (!usb_attach_ex(udev, 1))
+            uhci_port_attach(hc, i, udev);
+    }
+
+    usb_slots_update();
 }
 
 int

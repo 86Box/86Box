@@ -1267,6 +1267,7 @@ usb_update_io_mapping(pipc_t *dev, int func)
 {
     int on = !pipc_usb_disabled(dev, func - 2);
 
+    uhci_set_present(dev->usb[func - 2], on);
     uhci_update_io_mapping(dev->usb[func - 2], dev->usb_regs[func - 2][0x20] & ~0x1f, dev->usb_regs[func - 2][0x21], on && (dev->usb_regs[func - 2][PCI_REG_COMMAND] & PCI_COMMAND_IO));
     uhci_set_bus_master(dev->usb[func - 2], on && (dev->usb_regs[func - 2][PCI_REG_COMMAND] & PCI_COMMAND_L_BM));
 }

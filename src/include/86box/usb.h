@@ -108,6 +108,9 @@ extern void uhci_set_bus_master(usb_t *dev, int enable);
    chipset keeps it enabled (VIA USB function Rx40 bit 6, Babble Option;
    VT82C686B datasheet, p. 76 / PDF 82). */
 extern void uhci_set_babble_keep_port(usb_t *dev, int keep);
+/* The chipset turns the whole UHCI function on or off; the devices on the
+   root ports of a function turned off move to another controller. */
+extern void uhci_set_present(usb_t *dev, int present);
 extern void ohci_update_mem_mapping(usb_t *dev, uint8_t base1, uint8_t base2, uint8_t base3, int enable);
 /* The chipset routes the OHCI interrupt; level is the controller's INT output. */
 extern void ohci_set_irq_handler(usb_t *dev, void (*set_irq)(void *priv, int level), void *priv);
