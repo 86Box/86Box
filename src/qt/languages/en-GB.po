@@ -22,8 +22,11 @@ msgstr "Generic RGBI colour monitor"
 msgid "Grayscale conversion type:"
 msgstr "Greyscale conversion type:"
 
-msgid "Time synchronization"
-msgstr "Time synchronisation"
+msgid "Synchronize with host clock"
+msgstr "Synchronise with host clock"
+
+msgid "Do not synchronize the date"
+msgstr "Do not synchronise the date"
 
 msgid "%n wait state(s)"
 msgid_plural "%n wait states"
