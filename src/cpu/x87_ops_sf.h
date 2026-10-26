@@ -436,11 +436,6 @@ sf_FNSAVE_a16(UNUSED(uint32_t fetchdat))
     fpu_state.tos   = 0;
     fpu_state.tag   = 0xffff;
     cpu_state.ismmx = 0;
-    fpu_state.foo   = 0;
-    fpu_state.fds   = 0;
-    fpu_state.fdp   = 0;
-    fpu_state.fcs   = 0;
-    fpu_state.fip   = 0;
     x87_clear_pointers();
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fsave) : (x87_timings.fsave * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fsave) : (x87_concurrency.fsave * cpu_multi));
@@ -473,11 +468,6 @@ sf_FNSAVE_a32(uint32_t fetchdat)
     fpu_state.tos   = 0;
     fpu_state.tag   = 0xffff;
     cpu_state.ismmx = 0;
-    fpu_state.foo   = 0;
-    fpu_state.fds   = 0;
-    fpu_state.fdp   = 0;
-    fpu_state.fcs   = 0;
-    fpu_state.fip   = 0;
     x87_clear_pointers();
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fsave) : (x87_timings.fsave * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fsave) : (x87_concurrency.fsave * cpu_multi));
@@ -511,11 +501,6 @@ sf_FNINIT(UNUSED(uint32_t fetchdat))
 #endif
     fpu_state.tos   = 0;
     fpu_state.tag   = 0xffff;
-    fpu_state.foo   = 0;
-    fpu_state.fds   = 0;
-    fpu_state.fdp   = 0;
-    fpu_state.fcs   = 0;
-    fpu_state.fip   = 0;
     x87_clear_pointers();
     cpu_state.ismmx = 0;
     new_ne          = 0;
