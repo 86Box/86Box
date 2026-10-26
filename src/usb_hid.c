@@ -650,10 +650,15 @@ hid_kbd_changed(hid_kbd_t *dev)
 static void
 hid_kbd_press(hid_kbd_t *dev, uint8_t usage, int down)
 {
+    /* Usages E0h-E7h are the modifiers, sent as bits in byte 0 of the boot
+       report; only the others go in the key array (HID 1.11 Appendix B.1,
+       p. 60 / PDF 70). */
+    const int in_array = usage < 0xe0;
+
     if (down) {
-        if ((dev->held[usage]++ == 0) && (usage < 0xe0))
+        if ((dev->held[usage]++ == 0) && in_array)
             dev->order[dev->n_order++] = usage;
-    } else if ((dev->held[usage] != 0) && (--dev->held[usage] == 0) && (usage < 0xe0)) {
+    } else if ((dev->held[usage] != 0) && (--dev->held[usage] == 0) && in_array) {
         for (int i = 0; i < dev->n_order; i++) {
             if (dev->order[i] == usage) {
                 memmove(&dev->order[i], &dev->order[i + 1], dev->n_order - i - 1);
