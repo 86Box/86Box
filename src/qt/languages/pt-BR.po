@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-25 04:19+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-10-26 16:07+0000\n"
+"Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
 "Language: pt-BR\n"
@@ -3147,7 +3147,7 @@ msgid "Key bindings"
 msgstr "Atalhos"
 
 msgid "VM Manager"
-msgstr "Gestor de MV"
+msgstr "Gerenciador de MV"
 
 msgid "Action"
 msgstr "Ação"
