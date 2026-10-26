@@ -1230,6 +1230,118 @@ sis6306_gamma_scanline_dirty(svga_t *svga)
             !!svga->changedvram[page + 2]);
 }
 
+static inline unsigned
+sis6306_overlay_clamp8(int value)
+{
+    return (unsigned) ((value < 0) ? 0 : ((value > 255) ? 255 : value));
+}
+
+static uint32_t
+sis6306_overlay_yuv_to_rgb(uint8_t y, uint8_t u, uint8_t v)
+{
+    /* CCIR-601 limited-range YUV, with rounding to nearest integer. */
+    const int luma = 298 * ((int) y - 16);
+    const int cb   = (int) u - 128;
+    const int cr   = (int) v - 128;
+    const unsigned r = sis6306_overlay_clamp8((luma + 409 * cr + 128) >> 8);
+    const unsigned g = sis6306_overlay_clamp8((luma - 100 * cb - 208 * cr + 128) >> 8);
+    const unsigned b = sis6306_overlay_clamp8((luma + 516 * cb + 128) >> 8);
+
+    return (r << 16) | (g << 8) | b;
+}
+
+static void
+sis6306_overlay_scanline(svga_t *svga)
+{
+    sis6306_t *dev = (sis6306_t *) svga->priv;
+    const uint8_t *cr = dev->ext_crtc;
+    bitmap_t *dst = svga->monitor->target_buffer;
+    const int y = svga->displine;
+    const int xstart = (int) cr[0x81] | ((int) (cr[0x83] & 7) << 8);
+    const int xend   = (int) cr[0x82] | ((int) ((cr[0x83] >> 4) & 7) << 8);
+    const int ystart = (int) cr[0x84] | ((int) (cr[0x86] & 7) << 8);
+    const int yend   = (int) cr[0x85] | ((int) ((cr[0x86] >> 4) & 7) << 8);
+    /* CR8C/CR8E specify scanline pitch in 32-bit doublewords. */
+    const uint32_t stride_dwords = (uint32_t) cr[0x8c] | ((uint32_t) (cr[0x8e] & 15) << 8);
+    const uint32_t stride = stride_dwords << 2;
+    /* CR89[7:3] contains address[20:16], not CR89[3:0]. */
+    const uint32_t fb_addr = ((((uint32_t) cr[0x89] >> 3) << 16) |
+                              ((uint32_t) cr[0x8b] << 8) | cr[0x8a]) << 2;
+    const int hfactor = ((int) (cr[0x94] & 15) << 6) | (cr[0x92] & 63);
+    const int vfactor = (cr[0x93] & 63) ? (cr[0x93] & 63) : 64;
+    const int format = (cr[0x93] >> 6) & 3;
+    int left, right;
+
+    if (!(cr[0x98] & 2) || ((cr[0xa9] & 15) != 15) || !dst || !dst->dat ||
+        !svga->vram || !stride || !hfactor || xend <= xstart ||
+        yend <= ystart || y < ystart || y >= yend ||
+        y + svga->y_add < 0 || y + svga->y_add >= dst->h)
+        return;
+
+    left  = (xstart > 0) ? xstart : 0;
+    right = (xend < svga->hdisp) ? xend : svga->hdisp;
+    if (left + svga->x_add < 0)
+        left = -svga->x_add;
+    if (right + svga->x_add > dst->w)
+        right = dst->w - svga->x_add;
+    if (left >= right)
+        return;
+
+    /* CR93[5:0] is a six-bit (1/64) vertical scale factor. Advance in
+     * whole source rows; fractional byte offsets skew packed YUV pairs. */
+    const uint32_t src_y = (uint32_t) (((uint64_t) (y - ystart) * vfactor) >> 6);
+    const uint64_t base = (uint64_t) fb_addr + (uint64_t) src_y * stride;
+    uint32_t *pixels = dst->line[y + svga->y_add];
+    if (!pixels)
+        return;
+
+    for (int x = left; x < right; x++) {
+        const uint32_t src_x = (uint32_t) (((uint64_t) (x - xstart) * hfactor) >> 6);
+        uint32_t rgb;
+
+        if (cr[0x98] & 0x40) {
+            /* Four consecutive bytes encode two packed YUV422 pixels. */
+            const uint32_t src_x_clamped = (stride > 3) ?
+                                           ((src_x < (stride >> 1)) ? src_x : ((stride >> 1) - 1)) : 0;
+            const uint64_t addr = base + ((uint64_t) (src_x_clamped >> 1) << 2);
+            if (addr + 3 >= svga->vram_max)
+                continue;
+            const uint8_t *sample = svga->vram + (size_t) addr;
+            uint8_t yy, uu, vv;
+            switch (format) {
+                case 0: /* UYVY */
+                    uu = sample[0]; vv = sample[2];
+                    yy = sample[(src_x_clamped & 1) ? 3 : 1];
+                    break;
+                case 1: /* VYUY */
+                    vv = sample[0]; uu = sample[2];
+                    yy = sample[(src_x_clamped & 1) ? 3 : 1];
+                    break;
+                case 2: /* YUYV -- observed during Win98 MPEG playback */
+                    yy = sample[(src_x_clamped & 1) ? 2 : 0];
+                    uu = sample[1]; vv = sample[3];
+                    break;
+                default: /* YVYU */
+                    yy = sample[(src_x_clamped & 1) ? 2 : 0];
+                    vv = sample[1]; uu = sample[3];
+                    break;
+            }
+            rgb = sis6306_overlay_yuv_to_rgb(yy, uu, vv);
+        } else {
+            /* RGB555/RGB565 overlay surfaces use two bytes per pixel. */
+            const uint32_t src_x_clamped = (stride > 1) ?
+                                           ((src_x < (stride >> 1)) ? src_x : ((stride >> 1) - 1)) : 0;
+            const uint64_t addr = base + (uint64_t) src_x_clamped * 2;
+            if (addr + 1 >= svga->vram_max)
+                continue;
+            const uint16_t colour = (uint16_t) (svga->vram[addr] |
+                                                 ((uint16_t) svga->vram[addr + 1] << 8));
+            rgb = (format & 1) ? video_16to32[colour] : video_15to32[colour & 0x7fff];
+        }
+        pixels[x + svga->x_add] = dev->gamma_active ? sis6306_gamma_rgb(dev, rgb) : rgb;
+    }
+}
+
 static void
 sis6306_render_packed_base(svga_t *svga)
 {
@@ -1237,6 +1349,8 @@ sis6306_render_packed_base(svga_t *svga)
         return;
 
     sis6306_t *dev = (sis6306_t *) svga->priv;
+    if (dev->ext_crtc[0x98] & 2)
+        svga->fullchange = svga->monitor->mon_changeframecount;
     const int apply_gamma = dev->gamma_active && (svga->bpp >= 24) &&
                             sis6306_gamma_scanline_dirty(svga);
 
@@ -1265,6 +1379,9 @@ sis6306_render_packed_base(svga_t *svga)
         for (int x = 0; x < count; x++)
             pixels[x] = sis6306_gamma_rgb(dev, pixels[x]);
     }
+
+    if (svga->bpp >= 15)
+        sis6306_overlay_scanline(svga);
 }
 
 static void
@@ -1661,7 +1778,11 @@ sis6306_out(uint16_t addr, uint8_t val, void *priv)
 
             if (dev->sis_crtc_index >= 0x20) {
                 if (dev->ext_crtc_unlocked) {
-                    dev->ext_crtc[dev->sis_crtc_index] = val;
+                    const uint8_t index = dev->sis_crtc_index;
+                    if (dev->ext_crtc[index] != val &&
+                        ((index >= 0x81 && index <= 0x98) || index == 0xa9))
+                        svga->fullchange = svga->monitor->mon_changeframecount;
+                    dev->ext_crtc[index] = val;
                 }
                 return;
             }
