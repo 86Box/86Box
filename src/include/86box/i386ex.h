@@ -15,11 +15,15 @@
 #ifndef EMU_I386EX_H
 #define EMU_I386EX_H
 
+#include <86box/i386ex_csu.h>
+
 /* Device parameters: which on-chip UARTs the board wires up. */
 #define I386EX_SIO0 0x01 /* COM1 */
 #define I386EX_SIO1 0x02 /* COM2 */
 
 typedef struct i386ex_t i386ex_t;
+
+extern i386ex_csu_t *i386ex_get_csu(i386ex_t *dev);
 
 /*
  * Sets the frequency the board drives the COMCLK pin at, which the UARTs can

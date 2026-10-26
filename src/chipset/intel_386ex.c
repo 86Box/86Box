@@ -18,8 +18,8 @@
  *
  *          The interrupt controllers, timer and DMA controller are the
  *          machine's usual AT ones, which the chip only maps. The DMA
- *          controller, Port 92 and the other on-chip units (chip-select,
- *          watchdog, refresh, SSIO, power management, parallel ports, pin
+ *          controller, Port 92 and the other on-chip units (watchdog,
+ *          refresh, SSIO, power management, parallel ports, pin
  *          configuration) do not appear in the expanded I/O space. Only
  *          A9:0 are decoded in the DOS I/O space, which is not emulated
  *          either: the peripherals only appear at their usual addresses.
@@ -126,7 +126,8 @@ struct i386ex_t {
     uint8_t  siocfg;
     double   comclk; /* What the board drives the COMCLK pin at, 0 if nothing. */
 
-    serial_t *uart[2];
+    i386ex_csu_t *csu;
+    serial_t     *uart[2];
 
     i386ex_handler_t handlers[EXPANDED_MAX];
     int              handlers_num;
@@ -291,6 +292,8 @@ i386ex_expanded(i386ex_t *dev, int set)
     io_handler(set, CLKPRS, 2, i386ex_config_read, NULL, NULL, i386ex_config_write, NULL, NULL, dev);
     io_handler(set, DMACFG, 8, i386ex_config_read, NULL, NULL, i386ex_config_write, NULL, NULL, dev);
 
+    i386ex_csu_handler(dev->csu, set);
+
     for (int i = 0; i < dev->handlers_num; i++) {
         const i386ex_handler_t *h = &dev->handlers[i];
 
@@ -437,6 +440,12 @@ i386ex_config_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
+i386ex_csu_t *
+i386ex_get_csu(i386ex_t *dev)
+{
+    return dev->csu;
+}
+
 void
 i386ex_expanded_handler(i386ex_t *dev, uint16_t base, int size,
                         uint8_t (*inb)(uint16_t addr, void *priv),
@@ -487,6 +496,8 @@ static void *
 i386ex_init(const device_t *info)
 {
     i386ex_t *dev = (i386ex_t *) calloc(1, sizeof(i386ex_t));
+
+    dev->csu = device_add(&i386ex_csu_device);
 
     /* The UARTs take the next free COM ports, which on a board are COM1 and COM2. */
     if (info->local & I386EX_SIO0)
