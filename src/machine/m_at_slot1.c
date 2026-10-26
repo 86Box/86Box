@@ -1873,6 +1873,8 @@ machine_at_p2bls_init(const machine_t *model)
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
+    if (machine_get_scsi_device(machine))
+        device_add(machine_get_scsi_device(machine));
 #if 0
     device_add(ics9xxx_get(ICS9150_08)); /* setting proper speeds requires some interaction with the AS97127F ASIC */
 #endif
