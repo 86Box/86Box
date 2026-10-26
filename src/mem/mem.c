@@ -1893,6 +1893,36 @@ mem_read_phys_block(void *dest, uint32_t addr, uint32_t len)
     return done;
 }
 
+static void mem_phys_written_range(uint32_t addr, uint32_t len);
+
+/* A write of 1 to 4 bytes inside one 64-byte chunk, the device writes that
+   come one at a time, marked without the loop: the same dirty bits and the
+   same evict list test as mem_phys_written_range(). */
+inline void
+mem_phys_written(uint32_t addr, uint32_t len)
+{
+    uint32_t lo = addr & PAGE_BYTE_MASK_MASK;
+
+    if ((len == 0) || (len > 4) || ((lo + len) > (PAGE_BYTE_MASK_MASK + 1))) {
+        mem_phys_written_range(addr, len);
+        return;
+    }
+    if ((addr >> 12) < pages_sz) {
+        page_t *page = &pages[addr >> 12];
+
+        if ((page->mem != NULL) && (page->mem != page_ff) && (page->byte_dirty_mask != NULL)) {
+            uint32_t c     = (addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
+            uint64_t mask  = (uint64_t) 1 << c;
+            uint64_t bytes = (((uint64_t) 1 << len) - 1) << lo;
+
+            page->dirty_mask |= mask;
+            page->byte_dirty_mask[c] |= bytes;
+            if (((page->code_present_mask & mask) || (page->byte_code_present_mask[c] & bytes)) && !page_in_evict_list(page))
+                page_add_to_evict_list(page);
+        }
+    }
+}
+
 void
 mem_writeb_phys(uint32_t addr, uint8_t val)
 {
@@ -2118,7 +2148,7 @@ mem_write_phys_block(const void *src, uint32_t addr, uint32_t len)
             break;
 
         memcpy(&(map->exec[off]), p + done, chunk);
-        mem_phys_written(addr, chunk);
+        mem_phys_written_range(addr, chunk);
         addr += chunk;
         done += chunk;
     }
@@ -2298,8 +2328,8 @@ mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page)
    to memory: mark them dirty as a processor write would, so that code
    compiled from them is not run again. A real processor snoops every write
    to memory, not only its own. */
-void
-mem_phys_written(uint32_t addr, uint32_t len)
+static void
+mem_phys_written_range(uint32_t addr, uint32_t len)
 {
     while (len) {
         uint32_t off = addr & 0xfff;
