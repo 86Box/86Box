@@ -118,6 +118,7 @@ const machine_filter_t machine_chipsets[] = {
     { "Intel 430VX",                MACHINE_CHIPSET_INTEL_430VX         },
     { "Intel 430TX",                MACHINE_CHIPSET_INTEL_430TX         },
     { "Intel 450KX",                MACHINE_CHIPSET_INTEL_450KX         },
+    { "Intel 450GX",                MACHINE_CHIPSET_INTEL_450GX         },
     { "Intel 440FX",                MACHINE_CHIPSET_INTEL_440FX         },
     { "Intel 440LX",                MACHINE_CHIPSET_INTEL_440LX         },
     { "Intel 440EX",                MACHINE_CHIPSET_INTEL_440EX         },
@@ -152,6 +153,8 @@ const machine_filter_t machine_chipsets[] = {
     { "SiS 5501",                   MACHINE_CHIPSET_SIS_5501            },
     { "SiS 5511",                   MACHINE_CHIPSET_SIS_5511            },
     { "SiS 5571",                   MACHINE_CHIPSET_SIS_5571            },
+    { "SiS 530",                    MACHINE_CHIPSET_SIS_530             },
+    { "SiS 620",                    MACHINE_CHIPSET_SIS_620             },
     { "SiS 5581",                   MACHINE_CHIPSET_SIS_5581            },
     { "SiS 5591",                   MACHINE_CHIPSET_SIS_5591            },
     { "SiS (5)600",                 MACHINE_CHIPSET_SIS_5600            },
@@ -165,6 +168,7 @@ const machine_filter_t machine_chipsets[] = {
     { "UMC UM82C491",               MACHINE_CHIPSET_UMC_UM82C491        },
     { "UMC UM8881",                 MACHINE_CHIPSET_UMC_UM8881          },
     { "UMC UM8890BF",               MACHINE_CHIPSET_UMC_UM8890BF        },
+    { "UTRON UT85C50X",             MACHINE_CHIPSET_UTRON_UT85C50X      },
     { "VIA VT82C495",               MACHINE_CHIPSET_VIA_VT82C495        },
     { "VIA VT82C496G",              MACHINE_CHIPSET_VIA_VT82C496G       },
     { "VIA Apollo VPX",             MACHINE_CHIPSET_VIA_APOLLO_VPX      },
@@ -179,7 +183,9 @@ const machine_filter_t machine_chipsets[] = {
     { "VLSI VL82C486",              MACHINE_CHIPSET_VLSI_VL82C486       },
     { "VLSI SuperCore",             MACHINE_CHIPSET_VLSI_SUPERCORE      },
     { "VLSI Wildcat",               MACHINE_CHIPSET_VLSI_WILDCAT        },
-    { "WD76C10",                    MACHINE_CHIPSET_WD76C10             }
+    { "WD76C10",                    MACHINE_CHIPSET_WD76C10             },
+    { "ZyMOS POACH",                MACHINE_CHIPSET_ZYMOS_POACH         },
+    { NULL,                         0                                   }
 };
 
 /*
@@ -15642,7 +15648,7 @@ const machine_t machines[] = {
             .max_multi   = 1.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_APM | MACHINE_APIC,
         .ram       = {
             .min  = 2048,
             .max  = 524288,
@@ -19138,7 +19144,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PCIE | MACHINE_BUS_PS2,
-        .flags     = MACHINE_SCSI | MACHINE_APM,
+        .flags     = MACHINE_SCSI | MACHINE_APM | MACHINE_APIC,
         .ram       = {
             .min  = 2048,
             .max  = 786432,
@@ -19235,7 +19241,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, /* Machine has AMB */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_APIC,
         .ram       = {
             .min  = 4096,
             .max  = 524288,
@@ -22990,7 +22996,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, /* Machine has AMB */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_APIC,
         .ram       = {
             .min  = 8192,
             .max  = 1048576,
@@ -23583,7 +23589,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_APIC,
         .ram       = {
             .min  = 8192,
             .max  = 1048576,
@@ -25110,7 +25116,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_APIC,
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -26116,7 +26122,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_APIC,
         .ram       = {
             .min  = 16384,
             .max  = 2097152,
@@ -26965,7 +26971,7 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_A97 | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_APIC,
         .ram       = {
             .min  = 16384,
             .max  = 3145728,
@@ -27014,7 +27020,7 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_A97 | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_AG | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_AG | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB | MACHINE_APIC,
         .ram       = {
             .min  = 16384,
             .max  = 2097152,
@@ -27063,7 +27069,7 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_NOI97 | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_AG | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_AG | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB | MACHINE_APIC,
         .ram       = {
             .min  = 16384,
             .max  = 1572864,

@@ -106,6 +106,7 @@
 /* Feature flags for advanced devices. */
 #define MACHINE_APM               0x0000000000080000ULL /* sys has APM */
 #define MACHINE_ACPI              0x0000000000100000ULL /* sys has ACPI */
+#define MACHINE_APIC              0x0000001000000000ULL /* sys has an emulated APIC */
 #define MACHINE_PCI_INTERNAL      0x0000000000200000ULL /* sys has only internal PCI */
 #define MACHINE_AGP_INTERNAL      0x0000000000400000ULL /* sys has only internal AGP */
 #define MACHINE_CARTRIDGE         0x0000000200000000ULL /* sys has cartridge bays */
