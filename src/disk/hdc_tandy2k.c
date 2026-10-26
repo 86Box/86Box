@@ -55,7 +55,7 @@
 #define CMD_RESTORE      0x10
 #define CMD_READ_SECTOR  0x20
 #define CMD_WRITE_SECTOR 0x30
-#define CMD_SCAN_ID      0x40
+#define CMD_SECT_SCAN_ID 0x40
 #define CMD_WRITE_FORMAT 0x50
 #define CMD_SEEK         0x70
 
@@ -67,10 +67,11 @@
 #define ACCESS_TIME      (20 * TIMER_USEC * 1000)
 #define FORMAT_SECTOR    (1000 * TIMER_USEC)
 
-#define STATE_IDLE       0
-#define STATE_READ_WAIT  1
-#define STATE_WRITE_WAIT 2
-#define STATE_FORMAT     3
+#define STATE_IDLE        0
+#define STATE_READ_WAIT   1
+#define STATE_WRITE_WAIT  2
+#define STATE_FORMAT_SEEK 3
+#define STATE_FORMAT_SEND 4
 
 #ifdef ENABLE_TANDY2K_HDC_LOG
 int tandy2k_hdc_do_log = ENABLE_TANDY2K_HDC_LOG;
@@ -92,15 +93,15 @@ tandy2k_hdc_log(const char *fmt, ...)
 
 typedef struct tandy2k_hdc_t {
     uint8_t  buf[SECTOR_SIZE];
-    uint16_t ptr;
+    uint16_t buf_ptr;
 
-    uint8_t  error;
-    uint8_t  count;
+    uint8_t  status;
+    uint8_t  errors;
     uint8_t  sector;
     uint8_t  cyl_lo;
     uint8_t  cyl_hi;
+    uint8_t  count;
     uint8_t  sdh;
-    uint8_t  status;
 
     uint8_t  head;
     uint8_t  unit;
@@ -111,6 +112,7 @@ typedef struct tandy2k_hdc_t {
     uint32_t spt[MFM_NUM];
     uint32_t hpc[MFM_NUM];
 
+    uint32_t   fmt_bytes;
     uint32_t   lba_prev;
     uint32_t   sectors;
     int        state;
@@ -136,18 +138,19 @@ tandy2k_hdc_reset_state(tandy2k_hdc_t *dev)
 {
     timer_disable(&dev->timer);
 
-    dev->ptr      = 0;
-    dev->error    = 0x00;
-    dev->count    = 0x00;
-    dev->sector   = 0x00;
-    dev->cyl_lo   = 0x00;
-    dev->cyl_hi   = 0x00;
-    dev->sdh      = 0x00;
-    dev->head     = 0x00;
-    dev->unit     = 0x00;
-    dev->lba_prev = 0;
-    dev->sectors  = 0;
-    dev->state    = STATE_IDLE;
+    dev->sector    = 0x00;
+    dev->errors    = 0x00;
+    dev->cyl_lo    = 0x00;
+    dev->cyl_hi    = 0x00;
+    dev->count     = 0x00;
+    dev->head      = 0x00;
+    dev->unit      = 0x00;
+    dev->sdh       = 0x00;
+    dev->buf_ptr   = 0;
+    dev->sectors   = 0;
+    dev->lba_prev  = 0;
+    dev->fmt_bytes = 0;
+    dev->state     = STATE_IDLE;
 
     dev->status = dev->present[0] ? (ST_RDY | ST_SC) : 0x00;
 }
@@ -183,9 +186,9 @@ tandy2k_hdc_command(tandy2k_hdc_t *dev, uint8_t command)
 {
     uint32_t lba;
 
-    dev->ptr    = 0;
-    dev->error  = 0x00;
-    dev->status = ST_RDY | ST_SC;
+    dev->buf_ptr = 0;
+    dev->errors  = 0x00;
+    dev->status  = ST_RDY | ST_SC;
 
     tandy2k_hdc_log("TANDY2K HDC: command %02X, unit %i, %i/%i/%i, count %i\n",
                     command, dev->unit, ((uint32_t) dev->cyl_hi << 8) | dev->cyl_lo,
@@ -194,7 +197,7 @@ tandy2k_hdc_command(tandy2k_hdc_t *dev, uint8_t command)
     if (!dev->present[dev->unit]) {
         /* Nothing on that unit: stay not ready so the host gives up instead of
            waiting for a transfer that will never happen. */
-        dev->error  = ERR_AC;
+        dev->errors = ERR_AC;
         dev->status = 0x00;
         return;
     }
@@ -212,8 +215,8 @@ tandy2k_hdc_command(tandy2k_hdc_t *dev, uint8_t command)
         case CMD_READ_SECTOR:
         case CMD_WRITE_SECTOR:
             if (!tandy2k_hdc_lba(dev, &lba)) {
-                dev->error   = ERR_ID;
                 dev->status |= ST_ERR;
+                dev->errors  = ERR_ID;
                 break;
             }
 
@@ -235,32 +238,55 @@ tandy2k_hdc_command(tandy2k_hdc_t *dev, uint8_t command)
             uint32_t sectors = dev->count ? dev->count : 256;
 
             if ((dev->head >= dev->hpc[dev->unit]) || (cyl >= dev->tracks[dev->unit])) {
-                dev->error   = ERR_ID;
                 dev->status |= ST_ERR;
+                dev->errors  = ERR_ID;
                 break;
             }
 
             if (sectors > dev->spt[dev->unit])
                 sectors = dev->spt[dev->unit];
 
-            dev->lba_prev = ((cyl * dev->hpc[dev->unit]) + dev->head) * dev->spt[dev->unit];
-            dev->sectors  = sectors;
-            dev->status  |= ST_BUSY;
-            dev->state    = STATE_FORMAT;
+            dev->lba_prev  = ((cyl * dev->hpc[dev->unit]) + dev->head) * dev->spt[dev->unit];
+            dev->fmt_bytes = 0;
+            dev->sectors   = sectors;
+            dev->status   |= ST_BUSY;
+            dev->state     = STATE_FORMAT_SEEK;
 
             tandy2k_hdc_led(dev, 1);
 
-            /* A seek plus one pass of the head over the track. */
-            timer_set_delay_u64(&dev->timer, ACCESS_TIME + (sectors * FORMAT_SECTOR));
+            /* A seek, and then the host supplies one four byte ID per sector
+               through the data register while DRQ is up. */
+            timer_set_delay_u64(&dev->timer, ACCESS_TIME);
             break;
         }
 
-        case CMD_SCAN_ID:
+        case CMD_SECT_SCAN_ID:
         default:
-            dev->error   = ERR_AC;
             dev->status |= ST_ERR;
+            dev->errors  = ERR_AC;
             break;
     }
+}
+
+/* Fills the track the format command selected with the E5 pattern the chip
+   writes into data fields it is not given contents for. */
+static void
+tandy2k_hdc_finish_format(tandy2k_hdc_t *dev)
+{
+    dev->fmt_bytes = 0;
+    dev->state    = STATE_IDLE;
+    dev->status  &= ~(ST_BUSY | ST_DRQ);
+
+    memset(dev->buf, 0xe5, SECTOR_SIZE);
+
+    for (uint32_t s = 0; s < dev->sectors; s++) {
+        if (hdd_image_write(dev->hdd_num[dev->unit], dev->lba_prev + s, 1, dev->buf) < 0) {
+            dev->status |= ST_ERR;
+            dev->errors  = ERR_BB;
+            break;
+        }
+    }
+    tandy2k_hdc_led_off();
 }
 
 /* Runs when the mechanism has finished moving the data; only then does the
@@ -276,8 +302,8 @@ tandy2k_hdc_callback(void *priv)
             dev->status &= ~ST_BUSY;
 
             if (hdd_image_read(dev->hdd_num[dev->unit], dev->lba_prev, 1, dev->buf) < 0) {
-                dev->error   = ERR_BB;
                 dev->status |= ST_ERR;
+                dev->errors  = ERR_BB;
                 tandy2k_hdc_led_off();
                 break;
             }
@@ -291,38 +317,38 @@ tandy2k_hdc_callback(void *priv)
             dev->status |= ST_DRQ;
             break;
 
-        case STATE_FORMAT:
-            dev->state   = STATE_IDLE;
-            dev->status &= ~ST_BUSY;
+        case STATE_FORMAT_SEEK:
+            /* The head is over the track: request the ID of the first sector
+               and let the host stream four bytes per sector through the data
+               register. The watchdog covers hosts that ignore DRQ. */
+            dev->fmt_bytes = 0;
+            dev->buf_ptr   = 0;
+            dev->status   |= ST_DRQ;
+            dev->state     = STATE_FORMAT_SEND;
 
-            memset(dev->buf, 0xe5, SECTOR_SIZE);
+            timer_set_delay_u64(&dev->timer, ACCESS_TIME + (dev->sectors * FORMAT_SECTOR));
+            break;
 
-            for (uint32_t s = 0; s < dev->sectors; s++) {
-                if (hdd_image_write(dev->hdd_num[dev->unit], dev->lba_prev + s, 1, dev->buf) < 0) {
-                    dev->error   = ERR_BB;
-                    dev->status |= ST_ERR;
-                    break;
-                }
-            }
-
-            tandy2k_hdc_led_off();
+        case STATE_FORMAT_SEND:
+            /* The host never supplied the IDs, so give it sequential ones. */
+            tandy2k_hdc_finish_format(dev);
             break;
 
         default:
             break;
     }
 
-    tandy2k_hdc_log("TANDY2K HDC: done, status %02X, error %02X\n", dev->status, dev->error);
+    tandy2k_hdc_log("TANDY2K HDC: done, status %02X, error %02X\n", dev->status, dev->errors);
 }
 
 static uint8_t
 tandy2k_hdc_read_data(tandy2k_hdc_t *dev)
 {
-    uint8_t ret = dev->buf[dev->ptr];
+    uint8_t ret = dev->buf[dev->buf_ptr];
 
-    dev->ptr++;
-    if (dev->ptr >= SECTOR_SIZE) {
-        dev->ptr = 0;
+    dev->buf_ptr++;
+    if (dev->buf_ptr >= SECTOR_SIZE) {
+        dev->buf_ptr = 0;
         dev->status &= ~ST_DRQ;
         tandy2k_hdc_led_off();
     }
@@ -333,20 +359,33 @@ tandy2k_hdc_read_data(tandy2k_hdc_t *dev)
 static void
 tandy2k_hdc_write_data(tandy2k_hdc_t *dev, uint8_t val)
 {
+    if (dev->state == STATE_FORMAT_SEND) {
+        /* Four ID bytes per sector arrive in one burst; the IDs themselves
+           do not matter here because the sector numbers follow the track. */
+        dev->fmt_bytes++;
+
+        if (dev->fmt_bytes >= (dev->sectors << 2)) {
+            timer_disable(&dev->timer);
+            tandy2k_hdc_finish_format(dev);
+        }
+
+        return;
+    }
+
     if (!(dev->status & ST_DRQ))
         return;
 
-    dev->buf[dev->ptr] = val;
+    dev->buf[dev->buf_ptr] = val;
 
-    dev->ptr++;
-    if (dev->ptr >= SECTOR_SIZE) {
-        dev->ptr = 0;
+    dev->buf_ptr++;
+    if (dev->buf_ptr >= SECTOR_SIZE) {
+        dev->buf_ptr = 0;
         dev->status &= ~ST_DRQ;
         tandy2k_hdc_led_off();
 
         if (hdd_image_write(dev->hdd_num[dev->unit], dev->lba_prev, 1, dev->buf) < 0) {
-            dev->error   = ERR_BB;
             dev->status |= ST_ERR;
+            dev->errors  = ERR_BB;
         }
     }
 }
@@ -359,20 +398,20 @@ tandy2k_hdc_read(UNUSED(uint16_t addr), void *priv)
     switch ((addr & 0x000f) >> 1) {
         case REG_DATA:
             return tandy2k_hdc_read_data(dev);
-        case REG_ERROR:
-            return dev->error;
-        case REG_COUNT:
-            return dev->count;
+        case REG_STATUS:
+            return dev->status;
         case REG_SECTOR:
             return dev->sector;
         case REG_CYL_LO:
             return dev->cyl_lo;
         case REG_CYL_HI:
             return dev->cyl_hi;
+        case REG_ERROR:
+            return dev->errors;
+        case REG_COUNT:
+            return dev->count;
         case REG_SDH:
             return dev->sdh;
-        case REG_STATUS:
-            return dev->status;
         default:
             break;
     }
