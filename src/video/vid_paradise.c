@@ -39,6 +39,7 @@
 #define WD90C20_FONT_ROM "roms/machines/ibmps55_m35s/64F9074.BIN"
 #define SPEEDSTAR24X_ROM "roms/video/wd90c31a/wd90c31alrdiamondspeedstar24x1.BIN"
 #define WD90C33_ROM      "roms/video/wd90c33/wd90c33.bin"
+#define WD90C33ZZ_ROM    "roms/video/wd90c33/wd90c33zz.bin"
 #define TG486G_ROM       "roms/machines/tg486g/tg486g.bin"
 
 #define VAR_BYTE_MODE      (0 << 0)
@@ -915,7 +916,7 @@ paradise_readw(uint32_t addr, void *priv)
 }
 
 static void *
-paradise_init_ex(const device_t *info, uint32_t memory, int speedstar24x)
+paradise_init_ex(const device_t *info, uint32_t memory, int speedstar24x, int att_dac)
 {
     paradise_t *paradise = calloc(1, sizeof(paradise_t));
     svga_t     *svga     = &paradise->svga;
@@ -965,10 +966,10 @@ paradise_init_ex(const device_t *info, uint32_t memory, int speedstar24x)
             /* Reuse the WD90C30's SC11487-compatible DAC for the generic ROM.
                The WD90C30 board has a W82C487-80; Diamond uses an SS2410. */
             /* The WD90C33 BIOS's default DAC commands (80h, E0h and 60h for
-               15, 16 and 24 bpp) are those of a Sierra SC15025. The TriGem
-               486G's BIOS is set up for a DAC that takes 80h, C0h and E0h,
-               like the AT&T 20C491. */
-            paradise->att_dac = !!(info->local & 0x100);
+               15, 16 and 24 bpp) are those of a Sierra SC15025. The
+               WD90C33-ZZ card's and the TriGem 486G's BIOSes are set up for a
+               DAC that takes 80h, C0h and E0h, like the AT&T 20C491. */
+            paradise->att_dac = att_dac;
             if (paradise->att_dac)
                 svga->ramdac = device_add(&att491_ramdac_device);
             else if ((info->local & 0xff) == WD90C33)
@@ -1049,7 +1050,7 @@ paradise_init_ex(const device_t *info, uint32_t memory, int speedstar24x)
 void *
 paradise_init(const device_t *info, uint32_t memory)
 {
-    return paradise_init_ex(info, memory, 0);
+    return paradise_init_ex(info, memory, 0, 0);
 }
 
 static void *
@@ -1342,7 +1343,7 @@ paradise_wd90c31_standalone_init(const device_t *info)
     const char *bios      = device_get_config_bios("bios");
     int         speedstar = !!device_get_bios_local(info, bios);
     uint32_t    memory    = speedstar ? 1024 : device_get_config_int("memory");
-    paradise_t *paradise  = paradise_init_ex(info, memory, speedstar);
+    paradise_t *paradise  = paradise_init_ex(info, memory, speedstar, 0);
     const char *rom       = device_get_bios_file(info, bios, 0);
 
     rom_init(&paradise->bios_rom, rom, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -1352,9 +1353,11 @@ paradise_wd90c31_standalone_init(const device_t *info)
 static void *
 paradise_wd90c33_init(const device_t *info)
 {
-    paradise_t *paradise = paradise_init(info, device_get_config_int("memory"));
+    const char *bios     = device_get_config_bios("bios");
+    paradise_t *paradise = paradise_init_ex(info, device_get_config_int("memory"), 0,
+                                            !!device_get_bios_local(info, bios));
 
-    rom_init(&paradise->bios_rom, WD90C33_ROM, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    rom_init(&paradise->bios_rom, device_get_bios_file(info, bios, 0), 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     return paradise;
 }
 
@@ -1363,16 +1366,10 @@ paradise_wd90c33_init(const device_t *info)
 static void *
 paradise_wd90c33_onboard_init(const device_t *info)
 {
-    paradise_t *paradise = paradise_init(info, device_get_config_int("memory"));
+    paradise_t *paradise = paradise_init_ex(info, device_get_config_int("memory"), 0, 1);
 
     rom_init(&paradise->bios_rom, TG486G_ROM, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     return paradise;
-}
-
-static int
-paradise_wd90c33_available(void)
-{
-    return rom_present(WD90C33_ROM);
 }
 
 static void *
@@ -1683,6 +1680,60 @@ const device_t paradise_wd90c31_onboard_device = {
 static const device_config_t paradise_wd90c33_config[] = {
   // clang-format off
     {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "wd90c33",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                /* Sierra SC15025 RAMDAC. */
+                .name          = "Western Digital (Sierra RAMDAC)",
+                .internal_name = "wd90c33",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { WD90C33_ROM, "" }
+            },
+            {
+                /* AT&T 20C491 RAMDAC. */
+                .name          = "Western Digital WD90C33-ZZ (AT&T RAMDAC)",
+                .internal_name = "wd90c33zz",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 1,
+                .size          = 65536,
+                .files         = { WD90C33ZZ_ROM, "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = "2 MB",   .value = 2048 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+static const device_config_t paradise_wd90c33_onboard_config[] = {
+  // clang-format off
+    {
         .name           = "memory",
         .description    = "Memory size",
         .type           = CONFIG_SELECTION,
@@ -1710,7 +1761,7 @@ const device_t paradise_wd90c33_device = {
     .init          = paradise_wd90c33_init,
     .close         = paradise_close,
     .reset         = NULL,
-    .available     = paradise_wd90c33_available,
+    .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = paradise_wd90c33_config
@@ -1724,7 +1775,7 @@ const device_t paradise_wd90c33_vlb_device = {
     .init          = paradise_wd90c33_init,
     .close         = paradise_close,
     .reset         = NULL,
-    .available     = paradise_wd90c33_available,
+    .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .config        = paradise_wd90c33_config
@@ -1734,7 +1785,7 @@ const device_t paradise_wd90c33_onboard_device = {
     .name          = "Paradise WD90C33 On-Board (TriGem 486G)",
     .internal_name = "wd90c33_onboard",
     .flags         = DEVICE_VLB,
-    .local         = WD90C33 | 0x100,
+    .local         = WD90C33,
     .init          = paradise_wd90c33_onboard_init,
     .close         = paradise_close,
     .reset         = NULL,
@@ -1742,5 +1793,5 @@ const device_t paradise_wd90c33_onboard_device = {
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
     .machine       = "TriGem 486G",
-    .config        = paradise_wd90c33_config
+    .config        = paradise_wd90c33_onboard_config
 };
