@@ -219,6 +219,9 @@ add_library(ui STATIC
     qt_settings_completer.cpp
     qt_settings_completer.hpp
 
+    qt_machinesearch.cpp
+    qt_machinesearch.hpp
+
     qt_deviceconfig.cpp
     qt_deviceconfig.hpp
     qt_deviceconfig.ui

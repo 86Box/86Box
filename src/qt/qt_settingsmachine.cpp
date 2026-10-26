@@ -22,6 +22,7 @@
 #include <QFrame>
 #include <QVBoxLayout>
 #include <QDialogButtonBox>
+#include <QProgressDialog>
 #include <QStandardItem>
 #include <QStandardItemModel>
 #include <QCompleter>
@@ -42,6 +43,7 @@ extern "C" {
 }
 
 #include "qt_deviceconfig.hpp"
+#include "qt_machinesearch.hpp"
 #include "qt_models_common.hpp"
 
 #include "qt_defs.hpp"
@@ -547,6 +549,41 @@ SettingsMachine::on_pushButtonConfigure_clicked()
     int         machineId = ui->comboBoxMachine->currentData().toInt();
     const auto *device    = machine_get_device(machineId);
     machine_cfg_changed |= DeviceConfig::ConfigureDevice(device);
+}
+
+void
+SettingsMachine::on_pushButtonAdvancedSearch_clicked()
+{
+    MachineSearchDialog dialog(this);
+
+    {
+        QProgressDialog progress(tr("Loading the machine list..."), tr("Cancel"), 0, 0, this);
+        progress.setWindowTitle(tr("Advanced Search"));
+        progress.setWindowModality(Qt::WindowModal);
+        progress.setMinimumDuration(0);
+        progress.setAutoClose(false);
+        progress.setAutoReset(false);
+        progress.show();
+
+        if (!dialog.load(&progress))
+            return;
+    }
+
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    const int machineId = dialog.selectedMachine();
+    if (machineId < 0)
+        return;
+
+    const int typeRow = ui->comboBoxMachineType->findData(machine_get_type(machineId));
+    if (typeRow < 0)
+        return;
+    ui->comboBoxMachineType->setCurrentIndex(typeRow);
+
+    const int machineRow = ui->comboBoxMachine->findData(machineId);
+    if (machineRow >= 0)
+        ui->comboBoxMachine->setCurrentIndex(machineRow);
 }
 
 void

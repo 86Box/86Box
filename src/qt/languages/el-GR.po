@@ -3743,3 +3743,153 @@ msgid "Authentication is required to prepare PCI devices for passthrough to 86Bo
 msgstr ""
 "Απαιτείται έλεγχος ταυτότητας για την προετοιμασία συσκευών PCI για διέλευση "
 "στο 86Box."
+
+msgid "Built-in"
+msgstr ""
+
+msgid "Advanced Search"
+msgstr ""
+
+msgid "Name or alias"
+msgstr ""
+
+msgid "Name:"
+msgstr ""
+
+msgid "Chipset:"
+msgstr ""
+
+msgid " MB"
+msgstr ""
+
+msgid "Any"
+msgstr ""
+
+msgid "Supports at least:"
+msgstr ""
+
+msgid "Checked: must have. Filled: must not have. Empty: either."
+msgstr ""
+
+msgid "ISA (8-bit)"
+msgstr ""
+
+msgid "ISA (16-bit)"
+msgstr ""
+
+msgid "MCA"
+msgstr ""
+
+msgid "EISA"
+msgstr ""
+
+msgid "VLB"
+msgstr ""
+
+msgid "PCI"
+msgstr ""
+
+msgid "AGP"
+msgstr ""
+
+msgid "AC'97 (AMR/CNR)"
+msgstr ""
+
+msgid "PCMCIA"
+msgstr ""
+
+msgid "CardBus"
+msgstr ""
+
+msgid "USB"
+msgstr ""
+
+msgid "PS/2 ports"
+msgstr ""
+
+msgid "C-BUS"
+msgstr ""
+
+msgid "PCjr sidecar"
+msgstr ""
+
+msgid "Mylex AT/32"
+msgstr ""
+
+msgid "OPTi local bus"
+msgstr ""
+
+msgid "HP HIL"
+msgstr ""
+
+msgid "On-board devices"
+msgstr ""
+
+msgid "Video"
+msgstr ""
+
+msgid "IDE"
+msgstr ""
+
+msgid "SCSI"
+msgstr ""
+
+msgid "MFM/RLL"
+msgstr ""
+
+msgid "ESDI"
+msgstr ""
+
+msgid "XTA"
+msgstr ""
+
+msgid "Power management and APIC"
+msgstr ""
+
+msgid "APM"
+msgstr ""
+
+msgid "ACPI"
+msgstr ""
+
+msgid "APIC"
+msgstr ""
+
+msgid "Internal devices"
+msgstr ""
+
+msgid "Sound:"
+msgstr ""
+
+msgid "Network:"
+msgstr ""
+
+msgid "Machine type"
+msgstr ""
+
+msgid "Chipset"
+msgstr ""
+
+msgid "On-board video"
+msgstr ""
+
+msgid "On-board sound"
+msgstr ""
+
+msgid "On-board network"
+msgstr ""
+
+msgid "On-board SCSI"
+msgstr ""
+
+msgid "Select"
+msgstr ""
+
+msgid "Machines found: %1"
+msgstr ""
+
+msgid "Loading the machine list..."
+msgstr ""
+
+msgid "Advanced Search..."
+msgstr ""
