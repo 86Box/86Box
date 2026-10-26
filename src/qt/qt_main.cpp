@@ -481,10 +481,8 @@ main_thread_fn()
         old_ns = new_ns;
         if (debt_ns > max_debt_ns)
             debt_ns = max_debt_ns;
-#ifdef USE_GDBSTUB
         if (gdbstub_next_asap && (debt_ns < quantum_ns))
             debt_ns = quantum_ns;
-#endif
         automation_poll();
         const int automation = automation_run_state();
         if (((debt_ns >= quantum_ns) || fast_forward || (automation == AUTOMATION_RUN)) && !dopause && (automation != AUTOMATION_HOLD)) {

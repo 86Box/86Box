@@ -4950,10 +4950,8 @@ execx86_new(int cycs)
             m808x_consume_host_nmi();
         m808x_86box_export_arch_state(&m808x_cpu);
 
-#ifdef USE_GDBSTUB
-        if (gdbstub_instruction())
+        if (gdbstub_active && gdbstub_instruction())
             break;
-#endif
     }
 
     m808x_86box_export_arch_state(&m808x_cpu);

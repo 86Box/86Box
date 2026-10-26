@@ -2001,12 +2001,12 @@ cpu_set(void)
     cpu_use_exec = 0;
 
     if (is386) {
-#if defined(USE_DYNAREC) && !defined(USE_GDBSTUB)
+#if defined(USE_DYNAREC)
         if (cpu_use_dynarec) {
             cpu_exec = exec386_dynarec;
             cpu_use_exec = 1;
         } else
-#endif /* defined(USE_DYNAREC) && !defined(USE_GDBSTUB) */
+#endif /* defined(USE_DYNAREC) */
             /* Use exec386 for CPU_IBM486SLC because it can reach 100 MHz. */
             if ((cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type == CPU_IBM486BL) ||
                 cpu_iscyrix || (cpu_s->cpu_type > CPU_486DLC) || cpu_override_interpreter) {

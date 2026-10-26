@@ -2,6 +2,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/gdbstub.h>
 #include <86box/pic.h>
 #include <86box/plat_unused.h>
 
@@ -681,6 +682,15 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
 #endif
     op_ea_seg = &cpu_state.seg_ds;
     op_ssegs  = 0;
+
+    if (gdbstub_debug) {
+        codegen_accumulate(ir, ACCREG_cycles, -codegen_block_cycles);
+        codegen_block_cycles = 0;
+        codegen_accumulate_flush(ir);
+        uop_MOV_IMM(ir, IREG_pc, old_pc);
+        uop_CALL_FUNC_RESULT(ir, IREG_temp0, gdbstub_instruction_start);
+        uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);
+    }
 
     codegen_timing_start();
 

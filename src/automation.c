@@ -84,9 +84,7 @@ typedef int sock_t;
 #include <86box/serial.h>
 #include <86box/automation.h>
 #include <zstd.h>
-#ifdef USE_GDBSTUB
-#    include <86box/gdbstub.h>
-#endif
+#include <86box/gdbstub.h>
 
 #define AUTOMATION_PROTOCOL 1
 #define REQ_MAX             4096
@@ -761,9 +759,9 @@ cmd_info(void)
         first = 0;
     }
     sb_printf(&resp, "]");
-#ifdef USE_GDBSTUB
-    sb_printf(&resp, ",\"gdbstub_port\":%d", gdbstub_port);
-#endif
+    sb_printf(&resp, ",\"gdbstub_active\":%s,\"gdbstub_port\":%d",
+              gdbstub_active ? "true" : "false",
+              gdbstub_cli_port ? gdbstub_cli_port : gdbstub_port);
     sb_printf(&resp, ",\"hard_resets\":%u,\"soft_resets\":%u,\"last_reset_ms\":%llu,\"speed_percent\":%d,"
                      "\"ms\":%llu,\"frames\":%llu,\"held\":%s,\"paused\":%s,\"w\":%d,\"h\":%d}",
               hard_resets, soft_resets, (unsigned long long) last_reset_ms, speed_percent,
@@ -2379,7 +2377,6 @@ automation_quantum(void)
     if (!enabled)
         return;
 
-#ifdef USE_GDBSTUB
     /* While the GDB stub has the CPU stopped, no emulated time passes. A timed
        command would never finish, so it ends here. */
     static uint64_t last_tsc;
@@ -2390,8 +2387,6 @@ automation_quantum(void)
         return;
     }
     last_tsc = tsc;
-#endif
-
     emu_ms += force_10ms ? 10 : 1;
 
     /* Speed while running, held steps included: emulated vs host time per

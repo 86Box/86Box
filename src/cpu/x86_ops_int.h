@@ -3,10 +3,8 @@ opINT3(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);
-#ifdef USE_GDBSTUB
     if (gdbstub_int3())
         return 1;
-#endif
     /* Not IOPL-sensitive in V86 mode: only INT n is (the gate's DPL still
        applies) */
     x86_int_sw_iopl_exempt = 1;

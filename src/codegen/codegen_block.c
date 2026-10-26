@@ -5,6 +5,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/gdbstub.h>
 #include <86box/plat_unused.h>
 #include <86box/timer.h>
 
@@ -504,7 +505,7 @@ codegen_init(void)
     codegen_check_regs();
     codegen_allocator_init();
 #ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
-    codegen_block_link = cpu_dyn_block_link;
+    codegen_block_link = cpu_dyn_block_link && !gdbstub_debug;
 #endif
 
     codegen_backend_init();
@@ -548,7 +549,7 @@ codegen_reset(void)
     }
 #ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     codegen_link_reset();
-    codegen_block_link = cpu_dyn_block_link;
+    codegen_block_link = cpu_dyn_block_link && !gdbstub_debug;
 #endif
 }
 

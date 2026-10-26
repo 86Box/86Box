@@ -10,7 +10,14 @@ extern "C" {
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/gdbstub.h>
 
+int      gdbstub_watching;
+uint64_t gdbstub_watch_pages[(((uint32_t) -1) >> (MEM_GRANULARITY_BITS + 6)) + 1];
+void
+gdbstub_mem_access(uint32_t *, int)
+{
+}
 int      in_lock;
 uint32_t cr2, cr3, cr4;
 uint32_t addr64;

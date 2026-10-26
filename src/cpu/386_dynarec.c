@@ -503,6 +503,9 @@ exec386_dynarec_int_common(const int dbg)
             x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
         }
 
+        if (gdbstub_active && gdbstub_instruction())
+            CPU_BLOCK_END();
+
         if (cpu_flush_pending == 1)
             cpu_flush_pending++;
         else if (cpu_flush_pending == 2) {
@@ -806,6 +809,9 @@ exec386_dynarec_dyn(void)
 
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
 
+                if (gdbstub_active && gdbstub_instruction())
+                    CPU_BLOCK_END();
+
                 if (x86_was_reset)
                     break;
             }
@@ -928,6 +934,9 @@ exec386_dynarec_dyn(void)
                 cpu_state.pc++;
 
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+
+                if (gdbstub_active && gdbstub_instruction())
+                    CPU_BLOCK_END();
 
                 if (x86_was_reset)
                     break;
@@ -1141,10 +1150,8 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                     timer_process();
             }
 
-#    ifdef USE_GDBSTUB
-            if (gdbstub_instruction())
+            if (gdbstub_active && gdbstub_instruction())
                 return;
-#    endif
         }
 
         cycles_main -= (cycles_start - cycles);
@@ -1580,10 +1587,8 @@ block_ended:
             if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint64_t) tsc))
                 timer_process();
 
-#ifdef USE_GDBSTUB
-            if (gdbstub_instruction())
+            if (gdbstub_active && gdbstub_instruction())
                 return;
-#endif
         }
     }
 }

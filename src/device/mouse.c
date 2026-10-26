@@ -462,14 +462,11 @@ mouse_timer_poll(UNUSED(void *priv))
     /* Poll at the specified sample rate. */
     timer_on_auto(&mouse_timer, 1000000.0 / sample_rate);
 
-#ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
+    /* Avoid a KBC FIFO overflow when CPU emulation is stalled. */
     if (gdbstub_step == GDBSTUB_EXEC) {
-#endif
         if (mouse_timed)
             mouse_process();
-#ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     }
-#endif
 }
 
 static void
@@ -478,13 +475,9 @@ tablet_timer_poll(UNUSED(void *priv))
     /* Poll at the specified sample rate. */
     timer_on_auto(&tablet_timer, 1000000.0 / sample_rate_tablet);
 
-#ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     if (gdbstub_step == GDBSTUB_EXEC) {
-#endif
         tablet_process();
-#ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     }
-#endif
 }
 
 #if !defined(__x86_64__) && !defined(_M_X64) && !defined(__i386__) && !defined(_M_IX86)
