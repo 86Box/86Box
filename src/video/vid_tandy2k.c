@@ -24,12 +24,13 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/mem.h>
+#include <86box/pic.h>
 #include <86box/video.h>
 #include <86box/device.h>
 #include <86box/plat_unused.h>
 
-/* The character RAM only uses the low byte lane, so the BIOS
-   stores the n-th glyph byte at address 2n. */
+/* The character RAM only uses the low byte lane, so
+   the BIOS stores the n-th glyph byte at address 2n. */
 #define TANDY2K_CHRAM_BASE  0xF8000
 #define TANDY2K_CHRAM_SIZE  0x04000
 
@@ -37,11 +38,22 @@
 #define TANDY2K_FB_WINDOW   0x08000
 #define TANDY2K_FB_TEXT     0x06C00  /* last 5 KB of the window */
 
-/* The graphics board carries its own video RAM, seen by the CPU as a 32 KB
-   window at E0000h; port 1A0h picks which plane is visible. */
+/* The graphics board carries its own video RAM, seen by the CPU as a
+   32 KB window at E0000h; port 1A0h picks which plane is visible. */
 #define TANDY2K_VRAM_BASE   0xE0000
 #define TANDY2K_VRAM_PLANE  0x08000
 #define TANDY2K_VRAM_PLANES 3
+
+/* The CRT 9007 drives the interrupt line Tandy 2000 wires to the
+   second 8259's IR1, next to the keyboard on its IR0. The frame time
+   and the vertical retrace raise it when their bits in the interrupt
+   enable register are set, and reading the status register releases this. */
+#define TANDY2K_STATUS_IPEND 0x80  /* interrupt pending, cleared by a read */
+#define TANDY2K_STATUS_ODD   0x04  /* odd field */
+#define TANDY2K_IE_FRAME     0x01
+#define TANDY2K_IE_VRETRACE  0x40
+#define TANDY2K_REG_STATUS   0x3a
+#define TANDY2K_VID_IRQ      (1 << 9)
 
 #define TANDY2K_BOARD_NONE  0
 #define TANDY2K_BOARD_MONO  1
@@ -64,7 +76,9 @@
 typedef struct t2kvid_t {
     uint8_t       chram[TANDY2K_CHRAM_SIZE];
     uint8_t       vram[TANDY2K_VRAM_PLANES][TANDY2K_VRAM_PLANE];
-    uint8_t       vpac[0x20];
+    uint8_t       vpac[0x40];
+    uint8_t       status;
+    uint8_t       odd;
     uint8_t       pal[8];
     uint8_t       vbase;
     uint8_t       bank;   /* plane shown in the window */
@@ -172,7 +186,22 @@ vpac_read(uint16_t addr, void *priv)
     if (addr & 0x0001)
         return 0xff;
 
-    return vid->vpac[(addr & 0x003f) >> 1];
+    const uint8_t reg = (uint8_t) ((addr & 0x007f) >> 1);
+
+    /* 174h is the status register. Reading it reports and acknowledges the
+       interrupt, which is what releases the line to the 8259. */
+    if (reg == TANDY2K_REG_STATUS) {
+        const uint8_t ret = vid->status;
+
+        if (vid->status & TANDY2K_STATUS_IPEND) {
+            vid->status &= (uint8_t) ~TANDY2K_STATUS_IPEND;
+            picintc(TANDY2K_VID_IRQ);
+        }
+
+        return ret;
+    }
+
+    return vid->vpac[reg];
 }
 
 static void
@@ -191,7 +220,7 @@ vpac_write(uint16_t addr, uint8_t val, void *priv)
     if (addr & 0x0001)
         return;
 
-    vid->vpac[(addr & 0x003f) >> 1] = val;
+    vid->vpac[(uint8_t) ((addr & 0x007f) >> 1)] = val;
 }
 
 static uint8_t
@@ -277,6 +306,34 @@ pen_color(uint8_t level)
     const uint8_t b = ((((level >> 0) & 0x01) << 1) | i) * 0x55;
 
     return ((uint32_t) r << 16) | ((uint32_t) g << 8) | (uint32_t) b;
+}
+
+/* Both events end in the same pending bit, and the line stays asserted until
+   the guest reads the status register. */
+static void
+vid_raise_int(t2kvid_t *vid, uint8_t enable)
+{
+    if (!(vid->vpac[0x1a] & enable) || (vid->status & TANDY2K_STATUS_IPEND))
+        return;
+
+    vid->status |= TANDY2K_STATUS_IPEND;
+    picint(TANDY2K_VID_IRQ);
+}
+
+/* The vertical retrace is the frame boundary: it drops the events the status
+   register reports, flips the field, and raises the interrupts the enable
+   register allows. */
+static void
+vid_vsync(t2kvid_t *vid)
+{
+    vid->status &= (uint8_t) (0x20 | TANDY2K_STATUS_IPEND);
+
+    vid->odd = !vid->odd;
+    if (vid->odd)
+        vid->status |= TANDY2K_STATUS_ODD;
+
+    vid_raise_int(vid, TANDY2K_IE_VRETRACE);
+    vid_raise_int(vid, TANDY2K_IE_FRAME);
 }
 
 /* Text fetch: with a graphics board fitted the video base points into the
@@ -411,6 +468,7 @@ vid_poll(void *priv)
 
     video_blit_memtoscreen(0, 0, xsize, ysize);
 
+    vid_vsync(vid);
     vid->frames++;
     frames++;
 
@@ -456,7 +514,7 @@ tandy2k_vid_init(UNUSED(const device_t *info))
                         vram_write, vram_writew, NULL,
                         NULL, MEM_MAPPING_EXTERNAL, vid);
 
-    io_sethandler(0x0100, 0x0040, vpac_read, NULL, NULL, vpac_write, NULL, NULL, vid);
+    io_sethandler(0x0100, 0x0080, vpac_read, NULL, NULL, vpac_write, NULL, NULL, vid);
     io_sethandler(0x0180, 0x0020, attr_read, NULL, NULL, attr_write, NULL, NULL, vid);
     io_sethandler(0x01a0, 0x0001, hires_read, NULL, NULL, hires_write, NULL, NULL, vid);
 
