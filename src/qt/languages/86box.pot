@@ -408,16 +408,28 @@ msgstr ""
 msgid "Memory:"
 msgstr ""
 
-msgid "Time synchronization"
+msgid "Synchronize with host clock"
 msgstr ""
 
-msgid "Disabled"
+msgid "Local"
 msgstr ""
 
-msgid "Enabled (local time)"
+msgid "UTC"
 msgstr ""
 
-msgid "Enabled (UTC)"
+msgid "Match the host"
+msgstr ""
+
+msgid "Offset the year by:"
+msgstr ""
+
+msgid "(currently %1)"
+msgstr ""
+
+msgid "Always use the year:"
+msgstr ""
+
+msgid "Do not synchronize the date"
 msgstr ""
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
