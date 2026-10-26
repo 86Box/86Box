@@ -15,6 +15,7 @@
 #ifndef EMU_GDBSTUB_H
 #define EMU_GDBSTUB_H
 #include <stdint.h>
+#include <86box/86box.h>
 #include <86box/mem.h>
 
 #define GDBSTUB_MEM_READ   0
@@ -57,7 +58,7 @@ extern uint64_t gdbstub_watch_pages[(((uint32_t) -1) >> (MEM_GRANULARITY_BITS + 
 /* Whether addr is in a granule with a watchpoint. Such granules must stay out of the
    CPU's memory lookup cache, or accesses through it would skip the watchpoint checks. */
 #define GDBSTUB_WATCHED(addr) \
-    (gdbstub_watching && (gdbstub_watch_pages[((uint32_t) (addr) >> MEM_GRANULARITY_BITS) >> 6] & (1ULL << (((uint32_t) (addr) >> MEM_GRANULARITY_BITS) & 63))))
+    UNLIKELY(gdbstub_watching && (gdbstub_watch_pages[((uint32_t) (addr) >> MEM_GRANULARITY_BITS) >> 6] & (1ULL << (((uint32_t) (addr) >> MEM_GRANULARITY_BITS) & 63))))
 
 extern void gdbstub_cpu_init(void);
 extern void gdbstub_poll(void);
