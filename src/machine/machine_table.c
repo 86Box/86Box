@@ -55,6 +55,7 @@ const machine_filter_t machine_types[] = {
     { "[1982] 80186",                     MACHINE_TYPE_186         },
     { "[1982] 80286",                     MACHINE_TYPE_286         },
     { "[1988] i386SX",                    MACHINE_TYPE_386SX       },
+    { "[1994] i386EX",                    MACHINE_TYPE_386EX       },
     { "[1997] ALi M6117",                 MACHINE_TYPE_M6117       },
     { "[1992] 486SLC",                    MACHINE_TYPE_486SLC      },
     { "[1985] i386DX",                    MACHINE_TYPE_386DX       },
