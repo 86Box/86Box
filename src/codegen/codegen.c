@@ -22,7 +22,6 @@
 #include "codegen_ops.h"
 #include "codegen_ops_helpers.h"
 
-#define MAX_INSTRUCTION_COUNT 50
 static struct {
     uint32_t pc;
     int      op_ssegs;

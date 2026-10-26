@@ -604,14 +604,6 @@ exec386_dynarec_dyn(void)
         exec386_dynarec_int();
         return;
     }
-    /* This page keeps getting its freshly-compiled code rewritten before any
-       of it is ever reused (see invalidate_block()/page_t::smc_strikes):
-       compiling it again would just pay the same cost for nothing again, so
-       interpret it instead until the cooldown lapses. */
-    if (!cpu_state.abrt && (pages[phys_addr >> 12].smc_cooldown_until > tsc)) {
-        exec386_dynarec_int();
-        return;
-    }
     cpu_fetch_device = 0;
 
     /* Refresh before the lookup AND before a fresh compile: the old
@@ -659,6 +651,22 @@ exec386_dynarec_dyn(void)
                     }
                 }
             }
+        }
+
+        /* This block keeps getting its freshly-compiled code rewritten
+           before it has run often enough to pay for compiling it (see
+           invalidate_block()/codeblock_t::smc_strikes): compiling it again
+           would just pay the same cost for nothing again, so interpret it
+           instead until the cooldown lapses, and only it - the interpreter
+           stops where the block does, rather than run on through the
+           compiled blocks after it. */
+        if (valid_block && (block->smc_cooldown_until > tsc) &&
+            (((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) != CODEBLOCK_WAS_RECOMPILED) ||
+             (block->page_mask & *block->dirty_mask) ||
+             (block->page_mask2 && (block->page_mask2 & *block->dirty_mask2)))) {
+            cpu_end_block_after_ins = block->ins ? block->ins : MAX_INSTRUCTION_COUNT;
+            exec386_dynarec_int();
+            return;
         }
 
         if (valid_block && (block->page_mask & *block->dirty_mask)) {
@@ -738,7 +746,8 @@ exec386_dynarec_dyn(void)
 #    endif
 
         block->used   = 1; /* run: the eviction sweep passes it over once */
-        block->reused = 1; /* reached via block->data: compiling it paid off */
+        if (block->runs_left) /* reached via block->data */
+            block->runs_left--;
         inrecomp = 1;
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
         /* A block compiled without links returns nothing. */

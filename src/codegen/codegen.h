@@ -68,14 +68,32 @@ typedef struct codeblock_t {
       once (codegen_delete_random_block).*/
     uint8_t used;
 
-    /*Set once this compile's code has been reached again and run from
-      block->data (the CODEBLOCK_WAS_RECOMPILED fast path), rather than just
-      the single execution the compile pass itself performs. Cleared at the
-      start of every (re)compile. Used to tell a block that paid for itself
-      apart from one that was rewritten before it could ever be reused - see
-      page_t's smc_strikes/smc_cooldown_until.*/
-    uint8_t reused;
+    /*Runs from block->data (the CODEBLOCK_WAS_RECOMPILED fast path) this
+      compile still needs before it has paid for itself, not counting the
+      execution the compile pass itself performs; set by every (re)compile.
+      Both dispatcher and linked entries count runs. Used to tell a block that
+      paid for itself apart from one that was rewritten too soon.*/
+    uint8_t runs_left;
+
+    /*Self-modifying-code thrash tracking: each time this block is compiled
+      and then rewritten before it paid for itself (runs_left still not 0),
+      smc_strikes goes up and, past a few, arms smc_cooldown_until (a tsc
+      deadline). Until then the dynarec does not compile the block again but
+      interprets it, since compiling code that is rewritten before it can be
+      reused enough just adds cost with no payback. A compile that *did* pay
+      for itself resets smc_strikes to 0. Kept per block, so code that is
+      rewritten often does not keep other code on its page from compiling.*/
+    uint8_t  smc_strikes;
+    uint64_t smc_cooldown_until;
 } codeblock_t;
+
+/*Keep the cutoff below the measured break-even point for fragmented SMC
+  workloads: a block that ran this often is cheaper to compile than to
+  repeatedly interpret, even if shorter blocks could benefit for longer.*/
+#define SMC_THRASH_MIN_RUNS 8
+
+/*Most guest instructions a block is compiled from.*/
+#define MAX_INSTRUCTION_COUNT 50
 
 extern codeblock_t *codeblock;
 
