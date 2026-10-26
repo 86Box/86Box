@@ -2824,6 +2824,9 @@ kbc_at_port_1_read(uint16_t port, void *priv)
 
     ret = dev->ob;
     dev->status &= ~STAT_OFULL;
+    /* A polled read can consume the byte before its delayed IRQ fires. */
+    dev->do_irq = 0;
+    timer_disable(&dev->kbc_irq_timer);
     /*
        TODO: IRQ is only tied to OBF on the AT KBC, on the PS/2 KBC, it is controlled by a P2 bit.
        This also means that in AT mode, the IRQ is level-triggered.
@@ -2857,6 +2860,8 @@ kbc_at_reset(void *priv)
 {
     atkbc_t *dev = (atkbc_t *) priv;
 
+    timer_disable(&dev->kbc_irq_timer);
+    dev->do_irq        = 0;
     dev->status        = STAT_UNLOCKED;
     dev->mem[0x20]     = 0x01;
     dev->mem[0x20]    |= CCB_TRANSLATE;
@@ -2927,6 +2932,7 @@ kbc_at_close(void *priv)
     /* Stop timers. */
     timer_disable(&dev->kbc_dev_poll_timer);
     timer_disable(&dev->kbc_poll_timer);
+    timer_disable(&dev->kbc_irq_timer);
 
     for (int i = 0; i < max_ports; i++) {
         if (kbc_at_ports[i] != NULL) {
