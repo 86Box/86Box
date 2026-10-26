@@ -624,6 +624,11 @@ paradise_recalctimings(svga_t *svga)
            In text mode the BIOS temporarily enables chain-4 to seed the
            BitBLT blank-row pattern; that write must use VGA addressing. */
         svga->packed_chain4 = !!(svga->crtc[0x14] & 0x40);
+        /* The WD90C33's memory organizations (tables 7-3 to 7-6) map byte
+           mode CPU addresses straight through as well, which its drivers'
+           256-colour modes use. */
+        if ((paradise->type == WD90C33) && (svga->crtc[0x17] & 0x40))
+            svga->packed_chain4 = 1;
         svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) &&
                      ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) &&
                      !(svga->adv_flags & FLAG_ADDR_BY8);

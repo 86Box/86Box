@@ -364,15 +364,15 @@ wd90c33_host_write(wd90c33_t *wd, unsigned lane, uint32_t value, int size)
         return;
 
     /* Expanded bits per write (Control Register 2 bits 2:0): 2, 4 or 8 from
-       the top of each byte, or 8/16 by write size with the first byte on the
-       left. */
+       the top of each byte, or 8/16 by write size. A 16-bit write has its
+       leftmost pixel in bit 15, as WD's drivers build glyph rows as words. */
     if (((wd->active[DE_CONTROL1] >> 3) & 3) == FORMAT_HOST_MONO) {
         static const int expand_bits[8] = { 8, 8, 2, 4, 8, 8, 8, 8 };
         unsigned         select         = wd->active[DE_CONTROL2] & 7;
 
         if ((select == 5) && (size >= 2)) {
             for (int part = 0; part < size; part += 2)
-                wd90c33_host_expand(wd, ((value >> (part * 8)) & 0xff) << 24 | ((value >> (part * 8 + 8)) & 0xff) << 16, 16);
+                wd90c33_host_expand(wd, ((value >> (part * 8)) & 0xffff) << 16, 16);
         } else {
             for (int part = 0; part < size; part++)
                 wd90c33_host_expand(wd, ((value >> (part * 8)) & 0xff) << 24, expand_bits[select]);
@@ -828,8 +828,10 @@ wd90c33_out(uint16_t port, uint8_t value, void *priv)
         wd90c33_outw(port & ~1, wd->write_latch[pair] | (value << 8), wd);
 }
 
-/* With Control Register 2 bit 3 set, display memory writes carry HBLT data;
-   the address only selects the read-back-latch bytes (section 12.14.1). */
+/* With Control Register 2 bit 3 set, display memory writes carry HBLT data
+   while a host transfer runs; the address only selects the read-back-latch
+   bytes (section 12.14.1). WD's drivers leave the bit set when they exit to
+   DOS, so writes reach memory again once the transfer is done. */
 int
 wd90c33_mem_write(wd90c33_t *wd, uint32_t addr, uint16_t value, int size)
 {
