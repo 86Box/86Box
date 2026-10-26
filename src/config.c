@@ -70,6 +70,8 @@
 #include <86box/keyboard.h>
 #include <86box/machine.h>
 #include <86box/mouse.h>
+#include <86box/mem.h>
+#include <86box/usb.h>
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/scsi.h>
@@ -1361,6 +1363,18 @@ load_ports(void)
             lpt_ports[c].device = config_known(char_get_from_internal_name(!strcmp(p, "lpt_loopback") ? "loopback" : p, DEVICE_LPT),
                                                STRING_UNSUPPORTED_PARALLEL, p);
         }
+    }
+
+    p             = ini_section_get_string(cat, "usb_card", "none");
+    usb_card_type = usb_card_get_from_internal_name(p);
+    p             = ini_section_get_string(cat, "usb_hub", "none");
+    usb_hub_type  = usb_hub_get_from_internal_name(p);
+    p             = ini_section_get_string(cat, "usb_msd", "none");
+    usb_msd_type  = usb_msd_get_from_internal_name(p);
+
+    for (int i = 0; i < USB_SLOTS; i++) {
+        sprintf(temp, "%s_connected", usb_slot_internal_name(i));
+        usb_slot_want(i, !!ini_section_get_int(cat, temp, 1));
     }
 
 #if 0
@@ -4040,6 +4054,30 @@ save_ports(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp, char_get_device(lpt_ports[c].device)->internal_name);
+    }
+
+    if (usb_card_type == 0)
+        ini_section_delete_var(cat, "usb_card");
+    else
+        ini_section_set_string(cat, "usb_card", usb_card_get_internal_name(usb_card_type));
+
+    if (usb_hub_type == 0)
+        ini_section_delete_var(cat, "usb_hub");
+    else
+        ini_section_set_string(cat, "usb_hub", usb_hub_get_internal_name(usb_hub_type));
+
+    if (usb_msd_type == 0)
+        ini_section_delete_var(cat, "usb_msd");
+    else
+        ini_section_set_string(cat, "usb_msd", usb_msd_get_internal_name(usb_msd_type));
+
+    /* Written only for a device the user unplugged. */
+    for (int i = 0; i < USB_SLOTS; i++) {
+        sprintf(temp, "%s_connected", usb_slot_internal_name(i));
+        if (usb_slot_wanted(i))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, 0);
     }
 
 #if 0

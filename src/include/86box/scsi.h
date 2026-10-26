@@ -36,9 +36,10 @@ extern int             scsi_card_available(int card);
 #ifdef EMU_DEVICE_H
 extern const device_t *scsi_card_getdevice(int card);
 
-/* The owner of each SCSI bus for a machine and its sound cards and SCSI
-   cards, handed out as they start; the return is the number of buses. */
-extern int  scsi_plan(bus_owner_t owners[SCSI_BUS_MAX], int mach, const int snd[], const int scsi[]);
+/* The owner of each SCSI bus for a machine and its sound cards, SCSI
+   cards and USB mass storage device (msd, the usb_msd_type to plan for),
+   handed out as they start; the return is the number of buses. */
+extern int  scsi_plan(bus_owner_t owners[SCSI_BUS_MAX], int mach, const int snd[], const int scsi[], int msd);
 #endif
 extern void scsi_plan_check(void);
 extern int             scsi_card_has_config(int card);

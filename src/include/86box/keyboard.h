@@ -57,7 +57,8 @@ enum {
     KEYBOARD_TYPE_AT,
     KEYBOARD_TYPE_AX,
     KEYBOARD_TYPE_PS2,
-    KEYBOARD_TYPE_PS55
+    KEYBOARD_TYPE_PS55,
+    KEYBOARD_TYPE_USB
 };
 
 /* Used by the AT / PS/2 keyboard controller, common device, keyboard, and mouse. */
@@ -215,6 +216,8 @@ extern const device_t keyboard_ax_device;
 extern const device_t keyboard_ps2_device;
 extern const device_t keyboard_ps55_device;
 extern const device_t keyboard_at_generic_device;
+
+extern const device_t keyboard_usb_device;
 #endif /*EMU_DEVICE_H*/
 
 extern void     keyboard_toggle_override(void);

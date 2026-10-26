@@ -203,12 +203,17 @@ acpi_update_irq(acpi_t *dev)
         case VEN_SMC:
             sci_level |= (dev->regs.pmsts & BM_STS);
             break;
+        case VEN_SIS_5582:
+            sci_level |= !!(dev->regs.reg_14 & dev->regs.reg_16 & 0x4000);
+            break;
         case VEN_SIS_5595_1997:
         case VEN_SIS_5595:
             if ((sis != NULL) && (sis->pmu_regs != NULL)) {
                 sci_level |= (sis->pmu_regs[0x80] | sis->pmu_regs[0x81] |
                               sis->pmu_regs[0x82] | sis->pmu_regs[0x83]);
             }
+            sci_level |= !!(dev->regs.gpe_sts & dev->regs.gpe_en &
+                            ((dev->vendor == VEN_SIS_5595_1997) ? 0x40000000 : 0x00000100));
             break;
     }
 
@@ -277,6 +282,16 @@ acpi_raise_smi(void *priv, int do_smi)
                 smi_raise();
         }
     }
+}
+
+/* The VIA blocks generate SMI# from the Global Status bits, not from the
+   events: SMI_EN set and a status bit set with its Global Enable bit
+   (VT82C586B p. 50-51 / PDF 56-57). A status left pending while SMI_EN or
+   its enable was clear raises SMI# as soon as both are set again. */
+static int
+acpi_via_smi_level(const acpi_t *dev)
+{
+    return (dev->regs.glbctl & 0x0001) && (dev->regs.glbsts & dev->regs.glben & 0xffff);
 }
 
 void
@@ -1160,9 +1175,9 @@ acpi_reg_write_ali(int size, uint16_t addr, uint8_t val, void *priv)
 static void
 acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
 {
-    acpi_t *dev = (acpi_t *) priv;
-    int     shift16;
-    int     shift32;
+    acpi_t  *dev = (acpi_t *) priv;
+    int      shift16;
+    int      shift32;
 
     addr &= 0x3f;
 #ifdef ENABLE_ACPI_LOG
@@ -1196,7 +1211,11 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x18:
         case 0x19:
             /* GLBSTS - Global Status Register (IO) */
-            dev->regs.glbsts &= ~((val << shift16) & 0x0d27);
+            /* On the PIIX4, LEGACY_USB_STS (bit 1) clears only through its
+               child status bits (PIIX4 7.2.10, p. 143 / PDF 143). On the
+               SLC90E66 the same bit, USB_STS, is write-1-to-clear (SMSC
+               SLC90E66 7.3.10, p. 143 / PDF 143). */
+            dev->regs.glbsts &= ~((val << shift16) & (dev->usb_sts_w1c ? 0x0d27 : 0x0d25));
             break;
         case 0x1c:
         case 0x1d:
@@ -1217,9 +1236,13 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
             /* GLBCTL - Global Control Register (IO) */
             dev->regs.glbctl = ((dev->regs.glbctl & ~(0xff << shift32)) | (val << shift32)) & 0x0701ff07;
             /* Check if there's anything still pending and re-assert SMI# if it is. */
+            /* A pending legacy USB status needs its GLBEN bit 0 only on the
+               SLC90E66; the PIIX4 model raises it without LEGACY_USB_EN, as
+               in intel_piix.c. */
             if (((dev->regs.glbctl & 0x00010001) == 0x00010001) &&
                 (((dev->regs.glbsts & 0x20) && dev->apm->do_smi) ||
-                 ((dev->regs.glbsts & 0x01) && (dev->regs.glben & 0x02))))
+                 ((dev->regs.glbsts & 0x01) && (dev->regs.glben & 0x02)) ||
+                 ((dev->regs.glbsts & 0x02) && (!dev->usb_sts_w1c || (dev->regs.glben & 0x01)))))
                 acpi_raise_smi(dev, 1);
             /* Setting BIOS_RLS also sets GBL_STS and generates SMI. */
             if (dev->regs.glbctl & 0x00000002) {
@@ -1268,6 +1291,7 @@ acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *priv)
     acpi_t *dev = (acpi_t *) priv;
     int     shift16;
     int     shift32;
+    int     level;
 
     addr &= 0xff;
     acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
@@ -1304,8 +1328,11 @@ acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *priv)
             break;
         case 0x2c:
             /* GLBCTL - Global Control Register (IO) */
+            level              = acpi_via_smi_level(dev);
             dev->regs.glbctl   = (dev->regs.glbctl & ~0xff) | (val & 0xff);
             dev->regs.smi_lock = !!(dev->regs.glbctl & 0x0010);
+            if (!level && acpi_via_smi_level(dev))
+                acpi_raise_smi(dev, 1);
             /* Setting BIOS_RLS also sets GBL_STS and generates SMI. */
             if (dev->regs.glbctl & 0x0002) {
                 dev->regs.pmsts |= 0x20;
@@ -1362,6 +1389,7 @@ acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *priv)
     acpi_t *dev = (acpi_t *) priv;
     int     shift16;
     int     shift32;
+    int     level;
 
     addr &= 0xff;
     acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
@@ -1377,7 +1405,10 @@ acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x2a:
         case 0x2b:
             /* GLBEN - Global Enable Register (IO) */
+            level           = acpi_via_smi_level(dev);
             dev->regs.glben = ((dev->regs.glben & ~(0xff << shift16)) | (val << shift16)) & 0x007f;
+            if (!level && acpi_via_smi_level(dev))
+                acpi_raise_smi(dev, 1);
             break;
         case 0x30:
         case 0x31:
@@ -1437,6 +1468,7 @@ acpi_reg_write_via_596b(int size, uint16_t addr, uint8_t val, void *priv)
     acpi_t *dev = (acpi_t *) priv;
     int     shift16;
     int     shift32;
+    int     level;
 
     addr &= 0x7f;
     acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
@@ -1452,7 +1484,10 @@ acpi_reg_write_via_596b(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x2a:
         case 0x2b:
             /* GLBEN - Global Enable Register (IO) */
+            level           = acpi_via_smi_level(dev);
             dev->regs.glben = ((dev->regs.glben & ~(0xff << shift16)) | (val << shift16)) & 0xfdff;
+            if (!level && acpi_via_smi_level(dev))
+                acpi_raise_smi(dev, 1);
             break;
         case 0x30:
         case 0x31:
@@ -1608,10 +1643,12 @@ acpi_reg_write_sis_5582(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x14:
         case 0x15:
             dev->regs.reg_14 &= ~((val << shift32) & 0xff9f);
+            acpi_update_irq(dev);
             break;
         case 0x16:
         case 0x17:
             dev->regs.reg_16 = ((dev->regs.reg_16 & ~(0xff << shift16)) | (val << shift16)) & 0xff1f;
+            acpi_update_irq(dev);
             break;
         case 0x18:
         case 0x19:
@@ -1697,6 +1734,86 @@ acpi_sis5595_pmu_event(void *priv)
     }
 }
 
+/* USB_STS and USB_EN: ACPI 14h and 16h bit 14 on the 5582 (SiS 5581/5582
+   p. 163 and 165 / PDF 163 and 165); GPE_STS and GPE_EN bit 30 in the
+   December 1997 5595 data sheet (p. 115 and 117 / PDF 115 and 117), bit 8 in
+   the November 1998 one (p. 141 and 143 / PDF 147 and 149). */
+static uint32_t
+acpi_sis_usb_pme_bit(const acpi_t *dev)
+{
+    switch (dev->vendor) {
+        case VEN_SIS_5582:
+            return 0x00004000;
+        case VEN_SIS_5595_1997:
+            return 0x40000000;
+        case VEN_SIS_5595:
+            return 0x00000100;
+        default:
+            return 0;
+    }
+}
+
+/* The USB power-management event: an interrupt or SMI output of the USB
+   function sets USB_STS, and with USB_EN set it raises SCI, or SMI# while
+   SCI_EN is clear (SiS 5581/5582 p. 47 and 54 / PDF 47 and 54; SiS 5595
+   November 1998, p. 26-27 / PDF 32-33). */
+void
+acpi_sis_usb_event(acpi_t *dev)
+{
+    uint32_t bit = acpi_sis_usb_pme_bit(dev);
+
+    if (bit == 0)
+        return;
+    if (dev->vendor == VEN_SIS_5582) {
+        dev->regs.reg_14 |= bit;
+        if (!(dev->regs.reg_16 & bit))
+            return;
+    } else {
+        dev->regs.gpe_sts |= bit;
+        if (!(dev->regs.gpe_en & bit))
+            return;
+    }
+
+    if (dev->regs.pmcntrl & 0x01)
+        acpi_update_irq(dev);
+    else if (dev->vendor == VEN_SIS_5582)
+        smi_raise();
+    else
+        acpi_sis5595_smi_raise(dev);
+}
+
+/* USB SMI#: with USBSMI_EN (LEG_EN bit 6) set, a rising edge of the OHCI's
+   SMI output sets USBSMI_STS (LEG_STS bit 6) and raises SMI#, subject to
+   SMI_EN (LEG_EN bit 5) (SiS 5595 November 1998, p. 150-151 /
+   PDF 156-157). */
+void
+acpi_sis5595_usb_smi(void *priv, int level)
+{
+    acpi_t *dev = (acpi_t *) priv;
+
+    if (level && !dev->usb_smi_level && (dev->regs.leg_en & 0x40)) {
+        dev->regs.leg_sts |= 0x40;
+        acpi_sis5595_smi_raise(dev);
+    }
+    dev->usb_smi_level = !!level;
+}
+
+/* The OHCI holds its SMI output while an enabled event is pending (OpenHCI
+   1.0a s6.5, p. 105 / PDF 119), and the handler clears USBSMI_STS before it
+   exits (SiS 5595 November 1998, p. 150 / PDF 156). Clearing USBSMI_STS, or
+   setting SMI_EN (LEG_EN bit 5), while the output is still high sets the
+   status again and raises SMI#. */
+static void
+acpi_sis5595_usb_smi_held(acpi_t *dev, uint8_t old_en)
+{
+    if (!dev->usb_smi_level || !(dev->regs.leg_en & 0x40))
+        return;
+    if (!(dev->regs.leg_sts & 0x40) || !(old_en & 0x20)) {
+        dev->regs.leg_sts |= 0x40;
+        acpi_sis5595_smi_raise(dev);
+    }
+}
+
 void
 acpi_sis5595_smbus_event(void *priv)
 {
@@ -1769,6 +1886,7 @@ acpi_reg_write_sis_5595(int size, uint16_t addr, uint8_t val, void *priv)
                 dev->regs.gpe_sts &= ~((val << shift32) & 0xff03ffbf);
             else
                 dev->regs.gpe_sts &= ~((val << shift32) & 0xff83ffff);
+            acpi_update_irq(dev);
             break;
         case 0x18:
         case 0x19:
@@ -1779,6 +1897,7 @@ acpi_reg_write_sis_5595(int size, uint16_t addr, uint8_t val, void *priv)
             else
                 dev->regs.gpe_en = ((dev->regs.gpe_en & ~(0xff << shift32)) |
                                    (val << shift32)) & 0xff83ffff;
+            acpi_update_irq(dev);
             break;
         case 0x1c:
             dev->regs.gpe_pin = ((dev->regs.gpe_pin & ~(0xff << shift32)) | ((val & 0xff) << shift32));
@@ -1842,10 +1961,12 @@ acpi_reg_write_sis_5595(int size, uint16_t addr, uint8_t val, void *priv)
             break;
         case 0x30:
             dev->regs.leg_sts &= ~val;
+            acpi_sis5595_usb_smi_held(dev, dev->regs.leg_en);
             break;
         case 0x31:
             old = dev->regs.leg_en;
             dev->regs.leg_en = val;
+            acpi_sis5595_usb_smi_held(dev, old);
             if (!(old & 0x04) && (val & 0x04))
                 timer_on_auto(&dev->per_timer, 16000000.0);
             else if ((old & 0x04) && !(val & 0x04))
@@ -2327,6 +2448,12 @@ acpi_set_mirq_is_level(acpi_t *dev, int mirq_is_level)
 }
 
 void
+acpi_set_usb_sts_w1c(acpi_t *dev, int w1c)
+{
+    dev->usb_sts_w1c = w1c;
+}
+
+void
 acpi_set_gpireg2_default(acpi_t *dev, uint8_t gpireg2_default)
 {
     dev->gpireg2_default = gpireg2_default;
@@ -2356,7 +2483,7 @@ acpi_set_sci_hook(acpi_t *dev, void (*hook)(void *priv, int set), void *priv)
 uint8_t
 acpi_ali_soft_smi_status_read(acpi_t *dev)
 {
-    return dev->regs.ali_soft_smi = 1;
+    return dev->regs.ali_soft_smi;
 }
 
 void
@@ -2539,10 +2666,13 @@ acpi_reset(void *priv)
     }
 
     if (acpi_power_on) {
-        if (machines[machine].init != machine_at_sp97xv_init)
-            /* Power on always generates a resume event. */
+        /* Power on always generates a resume event, except on the SiS 5582.
+           There only the RTC and the APC that powers the board up run from
+           RTCVDD; the ACPI registers are in the 3.3V OVDD well, which is off
+           until power-up, so they come up cleared (SiS 5581/5582 p. 39 and
+           41 / PDF 39 and 41). */
+        if (dev->vendor != VEN_SIS_5582)
             dev->regs.pmsts |= 0x8100;
-        
         acpi_power_on = 0;
     }
 
@@ -2690,6 +2820,9 @@ acpi_init(const device_t *info)
             dev->suspend_types[4] = SUS_SUSPEND;
             dev->suspend_types[5] = SUS_SUSPEND | SUS_RESET_CPU;
             dev->suspend_types[6] = SUS_SUSPEND | SUS_RESET_CPU | SUS_RESET_PCI;
+            /* SLP_TYP 111b is reserved (VT82C596B p. 71 / PDF 77), but the
+               ASUS P3V4X ACPI tables use it for S4 and S5. */
+            dev->suspend_types[7] = SUS_POWER_OFF;
             break;
 
         case VEN_INTEL:

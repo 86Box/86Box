@@ -156,6 +156,8 @@ typedef struct acpi_t {
     int         irq_pin;
     int         irq_line;
     int         mirq_is_level;
+    int         usb_sts_w1c; /* GLBSTS bit 1 as on the SLC90E66 */
+    int         usb_smi_level; /* SiS 5595: last level of the OHCI's SMI output */
     uint64_t    pmtmr_latch;
     pc_timer_t  timer;
     pc_timer_t  resume_timer;
@@ -208,6 +210,10 @@ extern void    acpi_set_irq_mode(acpi_t *dev, int irq_mode);
 extern void    acpi_set_irq_pin(acpi_t *dev, int irq_pin);
 extern void    acpi_set_irq_line(acpi_t *dev, int irq_line);
 extern void    acpi_set_mirq_is_level(acpi_t *dev, int mirq_is_level);
+/* Makes GLBSTS bit 1 behave as the SLC90E66's USB_STS: write-1-to-clear,
+   and an SMI# source only with GLBEN bit 0 set. Without it the bit is the
+   PIIX4's LEGACY_USB_STS. */
+extern void    acpi_set_usb_sts_w1c(acpi_t *dev, int w1c);
 extern void    acpi_set_gpireg2_default(acpi_t *dev, uint8_t gpireg2_default);
 extern void    acpi_set_nvr(acpi_t *dev, nvr_t *nvr);
 extern void    acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv);
@@ -219,6 +225,9 @@ extern void    acpi_sis5582_pmu_event(void *priv);
 extern void    acpi_sis5595_smi_raise(void *priv);
 extern void    acpi_sis5595_pmu_event(void *priv);
 extern void    acpi_sis5595_smbus_event(void *priv);
+/* The OHCI's SMI output as the 5595's USB SMI# source (LEG_STS bit 6). */
+extern void    acpi_sis5595_usb_smi(void *priv, int level);
+extern void    acpi_sis_usb_event(acpi_t *dev);
 extern void    acpi_sis5595_software_smi(void *priv);
 
 #ifdef __cplusplus

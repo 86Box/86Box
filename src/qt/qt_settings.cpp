@@ -43,6 +43,8 @@ extern "C" {
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/midi.h>
+#include <86box/mem.h>
+#include <86box/usb.h>
 }
 
 #include <QStackedWidget>
@@ -75,6 +77,7 @@ extern "C" {
 #include <QMessageBox>
 #include <QCheckBox>
 #include <QStyle>
+#include <QTabWidget>
 
 #include <dirent.h>
 #include <unistd.h>
@@ -201,6 +204,37 @@ Settings::ensurePage(int index)
                 placePage(PAGE_PORTS, ports);
                 connect(machine, &SettingsMachine::currentMachineChanged, ports,
                         &SettingsPorts::onCurrentMachineChanged);
+                /* A USB card gives the machine a USB bus, so a change of card
+                   refreshes the pages that list USB devices. */
+                connect(ports, &SettingsPorts::usbBusChanged, this, [this](int id) {
+                    if (input != nullptr)
+                        input->onCurrentMachineChanged(id);
+                    if (sound != nullptr)
+                        sound->onCurrentMachineChanged(id);
+                    if (storageControllers != nullptr)
+                        storageControllers->onCurrentMachineChanged(id);
+                });
+                connect(ports, &SettingsPorts::drivePageRequested, this, [this](SettingsPorts::DrivePage page) {
+                    switch (page) {
+                        case SettingsPorts::DrivePage::HardDisks:
+                            showPage(PAGE_HARDDISKS);
+                            break;
+                        case SettingsPorts::DrivePage::Cdrom:
+                            /* Showing the page builds it; then its CD-ROM
+                               tab, since floppy drives cannot be on USB. */
+                            showPage(PAGE_FLOPPYCDROM);
+                            if (floppyCdrom != nullptr) {
+                                auto *tabs = floppyCdrom->findChild<QTabWidget *>("tabWidgetFloppyCDROM");
+                                auto *tab  = floppyCdrom->findChild<QWidget *>("tabCDROM");
+                                if ((tabs != nullptr) && (tab != nullptr))
+                                    tabs->setCurrentWidget(tab);
+                            }
+                            break;
+                        case SettingsPorts::DrivePage::Removable:
+                            showPage(PAGE_REMOVABLE);
+                            break;
+                    }
+                });
                 if (machineId != ::machine)
                     ports->onCurrentMachineChanged(machineId);
             }
@@ -334,6 +368,12 @@ int
 Settings::currentScsiCard(int i) const
 {
     return (storageControllers != nullptr) ? storageControllers->scsiCard(i) : scsi_card_current[i];
+}
+
+int
+Settings::currentUsbMsd() const
+{
+    return (ports != nullptr) ? ports->usbMsd() : usb_msd_type;
 }
 
 void

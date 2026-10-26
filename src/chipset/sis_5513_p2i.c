@@ -230,6 +230,38 @@ sis_5595_ddma_recalc(sis_5513_pci_to_isa_t *dev)
     }
 }
 
+/* USBIRQ Remapping Control (5571 68h, 5582 and 5595 62h): bit 7 clear
+   routes the OHCI's USBIRQ to the IRQ in bits 3-0 (SiS 5571 p. 57 /
+   PDF 61; SiS 5582 p. 150 / PDF 150; SiS 5595 p. 99 / PDF 105). An active
+   USBIRQ is dropped from the old IRQ and raised again on the new one. */
+static void
+sis_5513_usbirq_remap(sis_5513_pci_to_isa_t *dev, uint8_t val)
+{
+    int held = dev->sis->usb_irq_level && dev->sis->usb_enabled;
+
+    if (held)
+        pci_clear_mirq(PCI_MIRQ3, 1, &dev->sis->usb_irq_state);
+    if (val & 0x80)
+        pci_set_mirq_routing(PCI_MIRQ3, PCI_IRQ_DISABLED);
+    else
+        pci_set_mirq_routing(PCI_MIRQ3, val & 0xf);
+    if (held)
+        pci_set_mirq(PCI_MIRQ3, 1, &dev->sis->usb_irq_state);
+}
+
+/* Bit 6 of the same register enables the integrated USB function (same
+   pages). */
+static void
+sis_5513_usb_enable(sis_5513_pci_to_isa_t *dev, int on)
+{
+    if (on == dev->sis->usb_enabled)
+        return;
+
+    dev->sis->usb_enabled = on;
+    if (dev->sis->usb_priv != NULL)
+        sis_5572_usb_apply_enable(dev->sis->usb_priv);
+}
+
 /* Bit 7 of register 64h makes GPIO0 an input (the default) or an output;
    report bit 0 = GPIO0 is being driven as an output, so boards that use the
    pin as a strap or a select line can follow it. */
@@ -338,10 +370,8 @@ sis_5513_01_pci_to_isa_write(int addr, uint8_t val, sis_5513_pci_to_isa_t *dev)
         case 0x68: /* USBIRQ Remapping Control Register */
             sis_5513_pci_to_isa_log("Set MIRQ routing: USBIRQ -> %02X\n", val);
             dev->pci_conf[addr] = val & 0xcf;
-            if (val & 0x80)
-                 pci_set_mirq_routing(PCI_MIRQ3, PCI_IRQ_DISABLED);
-            else
-                pci_set_mirq_routing(PCI_MIRQ3, val & 0xf);
+            sis_5513_usb_enable(dev, !!(val & 0x40));
+            sis_5513_usbirq_remap(dev, val);
             break;
 
         case 0x69:
@@ -420,11 +450,8 @@ sis_5513_11_pci_to_isa_write(int addr, uint8_t val, sis_5513_pci_to_isa_t *dev)
         case 0x62: /* USBIRQ Remapping Control Register */
             sis_5513_pci_to_isa_log("Set MIRQ routing: USBIRQ -> %02X\n", val);
             dev->pci_conf[addr] = val;
-            dev->sis->usb_enabled = !!(val & 0x40);
-            if (val & 0x80)
-                 pci_set_mirq_routing(PCI_MIRQ3, PCI_IRQ_DISABLED);
-            else
-                pci_set_mirq_routing(PCI_MIRQ3, val & 0xf);
+            sis_5513_usb_enable(dev, !!(val & 0x40));
+            sis_5513_usbirq_remap(dev, val);
             break;
 
         case 0x63: /* GPCS0 Control Register */
@@ -551,11 +578,8 @@ sis_5513_b0_pci_to_isa_write(int addr, uint8_t val, sis_5513_pci_to_isa_t *dev)
         case 0x62: /* USBIRQ Remapping Control Register */
             sis_5513_pci_to_isa_log("Set MIRQ routing: USBIRQ -> %02X\n", val);
             dev->pci_conf[addr] = val;
-            dev->sis->usb_enabled = !!(val & 0x40);
-            if (val & 0x80)
-                 pci_set_mirq_routing(PCI_MIRQ3, PCI_IRQ_DISABLED);
-            else
-                 pci_set_mirq_routing(PCI_MIRQ3, val & 0xf);
+            sis_5513_usb_enable(dev, !!(val & 0x40));
+            sis_5513_usbirq_remap(dev, val);
             break;
 
         case 0x63: /* PCI OutputBuffer Current Strength Register */ {
@@ -1035,6 +1059,10 @@ sis_5513_01_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
     dev->pci_conf[0x74] = dev->pci_conf[0x75] = 0x00;
     dev->pci_conf[0x76] = dev->pci_conf[0x77] = 0x00;
 
+    /* USB goes off before MIRQ3 loses its route, so an active USBIRQ is
+       cleared on the IRQ it was raised on. */
+    sis_5513_usb_enable(dev, 0);
+
     pci_set_mirq_routing(PCI_MIRQ1, PCI_IRQ_DISABLED);
     pci_set_mirq_routing(PCI_MIRQ3, PCI_IRQ_DISABLED);
 }
@@ -1065,6 +1093,10 @@ sis_5513_11_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
     dev->pci_conf[0x89] = dev->pci_conf[0x8a] = 0x00;
     dev->pci_conf[0x90] = dev->pci_conf[0x91] = 0x00;
 
+    /* USB goes off before MIRQ3 loses its route, so an active USBIRQ is
+       cleared on the IRQ it was raised on. */
+    sis_5513_usb_enable(dev, 0);
+
     pci_set_mirq_routing(PCI_MIRQ3, PCI_IRQ_DISABLED);
     pci_set_mirq_routing(PCI_MIRQ5, PCI_IRQ_DISABLED);
 
@@ -1074,7 +1106,6 @@ sis_5513_11_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
     sis_5595_acpi_recalc(dev);
 
     dev->sis->ide_bits_1_3_writable = 0;
-    dev->sis->usb_enabled = 0;
 
     sis_5513_apc_recalc(dev, 0);
 }
@@ -1107,6 +1138,10 @@ sis_5513_b0_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
     dev->pci_conf[0x8b] = dev->pci_conf[0x8c] = 0x00;
     dev->pci_conf[0x90] = dev->pci_conf[0x91] = 0x00;
 
+    /* USB goes off before MIRQ3 loses its route, so an active USBIRQ is
+       cleared on the IRQ it was raised on. */
+    sis_5513_usb_enable(dev, 0);
+
     pci_set_mirq_routing(PCI_MIRQ3, PCI_IRQ_DISABLED);
     pci_set_mirq_routing(PCI_MIRQ5, PCI_IRQ_DISABLED);
     pci_set_mirq_routing(PCI_MIRQ6, PCI_IRQ_DISABLED);
@@ -1126,8 +1161,6 @@ sis_5513_b0_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
     dev->dam_irq_enable = 0;
 
     cpu_cpurst_on_sr = 1;
-
-    dev->sis->usb_enabled = 0;
 
     sis_5513_apc_recalc(dev, 0);
 
@@ -1258,6 +1291,9 @@ sis_5513_pci_to_isa_init(UNUSED(const device_t *info))
         case 0x01:
             /* MIRQ */
             pci_enable_mirq(1);
+
+            /* USBIRQ, routed by 68h (SiS 5571 p. 57 / PDF 61) */
+            pci_enable_mirq(3);
             break;
         case 0x11:
         case 0x81:
@@ -1295,6 +1331,14 @@ sis_5513_pci_to_isa_init(UNUSED(const device_t *info))
             }
 
             dev->sis->acpi->priv = dev->sis;
+            /* The 5595 takes the OHCI's SMI output in its ACPI block, LEG_STS
+               and LEG_EN bit 6 (SiS 5595 p. 150-151 / PDF 156-157). The 5582
+               leaves it to 95h of the 5581 host bridge (SiS 5581/5582
+               p. 137 / PDF 137). */
+            if (dev->rev != 0x11) {
+                dev->sis->usb_smi      = acpi_sis5595_usb_smi;
+                dev->sis->usb_smi_priv = dev->sis->acpi;
+            }
             acpi_set_slot(dev->sis->acpi, dev->sis->sb_pci_slot);
             acpi_set_nvr(dev->sis->acpi, dev->nvr);
 

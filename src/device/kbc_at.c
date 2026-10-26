@@ -264,13 +264,13 @@ kbc_translate(atkbc_t *dev, uint8_t val)
         return ret;
     }
 
-    /* Skip break code if translated make code has bit 7 set. */
-    if (translate && (dev->sc_or == 0x80) && (nont_to_t[val] & 0x80)) {
-        kbc_at_log("ATkbc: translate is on, skipping scan code: %02X (original: F0 %02X)\n", nont_to_t[val], val);
-        dev->sc_or = 0;
-        return ret;
-    }
-
+    /* The byte after F0 is translated and gets bit 7 like any other, even
+       when it is not a key code. Response codes do not wait in the
+       keyboard's buffer, and a command such as ED is answered with ACK at
+       once (IBM PS/2 Hardware Interface Technical Reference, Keyboards
+       (101- and 102-Key), October 1990, p. 19 and 24 / PDF 23 and 28). So
+       an FA can follow the F0 of a break code, and the host is waiting for
+       that ACK. */
     kbc_at_log("ATkbc: translate is %s, ", translate ? "on" : "off");
 #ifdef ENABLE_KEYBOARD_AT_LOG
     kbc_at_log("scan code: ");

@@ -44,6 +44,8 @@
 #include <86box/scsi_pcscsi.h>
 #include <86box/scsi_qlogic.h>
 #include <86box/scsi_spock.h>
+#include <86box/mem.h>
+#include <86box/usb.h>
 
 int scsi_card_current[SCSI_CARD_MAX] = { 0, 0, 0, 0 };
 double scsi_bus_speed[SCSI_BUS_MAX] = { 0.0, 0.0, 0.0, 0.0 };
@@ -235,7 +237,7 @@ scsi_plan_take(bus_owner_t owners[SCSI_BUS_MAX], int *next, int buses, const dev
 }
 
 int
-scsi_plan(bus_owner_t owners[SCSI_BUS_MAX], int mach, const int snd[], const int scsi[])
+scsi_plan(bus_owner_t owners[SCSI_BUS_MAX], int mach, const int snd[], const int scsi[], int msd)
 {
     const machine_t *m    = &machines[mach];
     int              next = 0;
@@ -243,7 +245,8 @@ scsi_plan(bus_owner_t owners[SCSI_BUS_MAX], int mach, const int snd[], const int
     memset(owners, 0, SCSI_BUS_MAX * sizeof(bus_owner_t));
 
     /* In the order they start, each taking the next bus: the machine's own
-       SCSI, its sound, the sound cards, then the SCSI cards. */
+       SCSI, its sound, the sound cards, the SCSI cards, then the USB mass
+       storage device, which bridges one bus. */
     scsi_plan_take(owners, &next, scsi_plan_buses(m->scsi_device, 1, 1), m->scsi_device, 1, 1);
     if ((snd[0] == SOUND_INTERNAL) && (m->snd_device != NULL))
         scsi_plan_take(owners, &next, scsi_plan_buses(m->snd_device, 1, 0), m->snd_device, 1, 1);
@@ -261,6 +264,8 @@ scsi_plan(bus_owner_t owners[SCSI_BUS_MAX], int mach, const int snd[], const int
             scsi_plan_take(owners, &next, scsi_plan_buses(dev, i + 1, 1), dev, i + 1, 0);
         }
     }
+    if (msd > 0)
+        scsi_plan_take(owners, &next, 1, usb_msd_get_device(msd), 1, 0);
 
     return next;
 }
@@ -272,7 +277,7 @@ void
 scsi_plan_check(void)
 {
     bus_owner_t owners[SCSI_BUS_MAX];
-    const int   planned = scsi_plan(owners, machine, sound_card_current, scsi_card_current);
+    const int   planned = scsi_plan(owners, machine, sound_card_current, scsi_card_current, usb_msd_type);
 
     if (planned != next_scsi_bus)
         warning("SCSI: the machine has %i buses, but the settings show %i\n", next_scsi_bus, planned);
