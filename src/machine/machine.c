@@ -148,12 +148,9 @@ machine_init(void)
 
     /* Create the GDB Stub socket before gdbstub_cpu_init looks for it.
        This is done outside of machine_init_ex so we only occupy the socket
-       if we're actually starting a machine. */
-    static int gdbstub_started = 0;
-    if (!gdbstub_started) {
-        gdbstub_started = 1;
-        gdbstub_init();
-    }
+       if we're actually starting a machine. Reconcile settings on hard reset,
+       preserving the connection when the effective settings are unchanged. */
+    gdbstub_init();
 
     (void) machine_init_ex(machine);
 }

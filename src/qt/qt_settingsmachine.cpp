@@ -37,6 +37,7 @@ extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/device.h>
+#include <86box/gdbstub.h>
 #include <86box/machine.h>
 #include <86box/nvr.h>
 }
@@ -180,6 +181,11 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 
     ui->checkBoxOverrideInterpreter->setChecked(cpu_override_interpreter ? true : false);
     ui->checkBoxDebugRegs486->setChecked(cpu_debug_regs_486 ? true : false);
+    ui->checkBoxGdbstub->setChecked(gdbstub_enabled);
+    ui->spinBoxGdbstubPort->setValue(gdbstub_port);
+    ui->spinBoxGdbstubPort->setEnabled(ui->checkBoxGdbstub->isChecked());
+    connect(ui->checkBoxGdbstub, &QCheckBox::toggled, ui->spinBoxGdbstubPort, &QSpinBox::setEnabled);
+    ui->labelGdbstubOverride->setVisible(gdbstub_cli_enabled >= 0 || gdbstub_cli_port);
 
 #ifndef USE_DYNAREC
     ui->checkBoxDynamicRecompiler->setEnabled(false);
@@ -210,6 +216,8 @@ SettingsMachine::changed()
     has_changed |= (fpu_type                   != ui->comboBoxFPU->currentData().toInt());
     has_changed |= (cpu_override_interpreter   != (ui->checkBoxOverrideInterpreter->isChecked() ? 1 : 0));
     has_changed |= (cpu_debug_regs_486         != (ui->checkBoxDebugRegs486->isChecked() ? 1 : 0));
+    has_changed |= (gdbstub_enabled            != ui->checkBoxGdbstub->isChecked());
+    has_changed |= (gdbstub_port               != ui->spinBoxGdbstubPort->value());
 #ifdef USE_DYNAREC
     has_changed |= (cpu_use_dynarec            != (ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0));
     has_changed |= (cpu_dyn_accurate_fpu_env   != (ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0));
@@ -278,6 +286,8 @@ SettingsMachine::save(int soft)
     fpu_type                 = ui->comboBoxFPU->currentData().toInt();
     cpu_override_interpreter = ui->checkBoxOverrideInterpreter->isChecked() ? 1 : 0;
     cpu_debug_regs_486       = ui->checkBoxDebugRegs486->isChecked() ? 1 : 0;
+    gdbstub_enabled          = ui->checkBoxGdbstub->isChecked();
+    gdbstub_port             = ui->spinBoxGdbstubPort->value();
 #ifdef USE_DYNAREC
     cpu_use_dynarec          = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
     cpu_dyn_accurate_fpu_env = ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0;
