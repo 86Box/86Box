@@ -397,12 +397,24 @@ codegen_reg_read(int reg)
 int reg_is_native_size(ir_reg_t ir_reg);
 int ireg_is_byte_accessed(int ireg);
 
+/*The x87 tags the block's code so far has left valid and empty, one bit per
+  IREG_tag0 + n: what holds on every path through it that is still in the
+  block. Forgotten whenever the block may have entered the FPU again
+  (codegen_generate_call), and a tag's bits whenever any uop writes it.*/
+extern uint8_t codegen_fpu_tag_valid;
+extern uint8_t codegen_fpu_tag_empty;
+
 static inline ir_reg_t
 codegen_reg_write(int reg, int uop_nr)
 {
     ir_reg_t       ireg;
     int            last_version = reg_last_version[IREG_GET_REG(reg)];
     reg_version_t *version;
+
+    if ((unsigned) (IREG_GET_REG(reg) - IREG_tag0) < 8) {
+        codegen_fpu_tag_valid &= ~(1 << (IREG_GET_REG(reg) - IREG_tag0));
+        codegen_fpu_tag_empty &= ~(1 << (IREG_GET_REG(reg) - IREG_tag0));
+    }
 
     if (dirty_ir_regs[(IREG_GET_REG(reg) >> 6) & 3] & (1ull << ((uint64_t)IREG_GET_REG(reg) & 0x3full))) {
         dirty_ir_regs[(IREG_GET_REG(reg) >> 6) & 3] &= ~(1ull << ((uint64_t)IREG_GET_REG(reg) & 0x3full));

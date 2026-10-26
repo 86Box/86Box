@@ -33,6 +33,8 @@ static struct {
     int      fpu_entered;  /*codegen_fpu_entered as the instruction was compiled*/
     int      fpu_es_check; /*codegen_fpu_es_check as the instruction was compiled*/
     int      mmx_entered;  /*codegen_mmx_entered as the instruction was compiled*/
+    uint8_t  tag_valid;    /*codegen_fpu_tag_valid as the instruction was compiled*/
+    uint8_t  tag_empty;    /*codegen_fpu_tag_empty as the instruction was compiled*/
 } codegen_instructions[MAX_INSTRUCTION_COUNT];
 
 int
@@ -58,6 +60,15 @@ codegen_get_instruction_entered(int ins, int *fpu_entered, int *fpu_es_check, in
     *fpu_entered  = codegen_instructions[ins].fpu_entered;
     *fpu_es_check = codegen_instructions[ins].fpu_es_check;
     *mmx_entered  = codegen_instructions[ins].mmx_entered;
+}
+
+/*The x87 tags known valid and empty as instruction number ins of the block
+  was compiled*/
+void
+codegen_get_instruction_tags(int ins, uint8_t *tag_valid, uint8_t *tag_empty)
+{
+    *tag_valid = codegen_instructions[ins].tag_valid;
+    *tag_empty = codegen_instructions[ins].tag_empty;
 }
 
 /*Set with the address of a MOV SS whose handler compiled it as the first of
@@ -789,13 +800,21 @@ codegen_fpu_handover(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t 
 void
 codegen_fpu_guard_empty(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg)
 {
-    int jump_uop;
+    const int st0 = (cpu_state.TOP + 0) & 7;
+    int       jump_uop;
 
+    /*The cycles are added here whether or not ST(0) is tested: a device the
+      block reaches later (update_tsc) sees the same count either way*/
     codegen_accumulate_flush(ir);
+    if (codegen_fpu_tag_valid & (1 << st0))
+        return;
     uop_MOVZX(ir, IREG_temp0, IREG_tag_B(0));
     jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp0, TAG_EMPTY);
     codegen_fpu_handover(ir, fetchdat, op_32, interp_pc, target_seg);
     uop_set_jump_dest(ir, jump_uop);
+    /*The block goes on only with ST(0) valid*/
+    codegen_fpu_tag_valid |= 1 << st0;
+    codegen_fpu_tag_empty &= ~(1 << st0);
 }
 
 /* A stack fault (#IS): any of the registers in regs (FPU_GUARD_ST(i)) is
@@ -809,10 +828,27 @@ codegen_fpu_guard_empty(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32
 void
 codegen_fpu_guard_stack(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg, int regs)
 {
-    int have = 0;
-    int jump_uop;
+    const int push  = (cpu_state.TOP - 1) & 7;
+    uint8_t   valid = 0;
+    int       have  = 0;
+    int       jump_uop;
 
+    /*The cycles are added here whether or not anything is tested: a device
+      the block reaches later (update_tsc) sees the same count either way*/
     codegen_accumulate_flush(ir);
+    /*Only what the block's code so far has not proved*/
+    for (int i = 0; i < 8; i++) {
+        if (!(regs & FPU_GUARD_ST(i)))
+            continue;
+        valid |= 1 << ((cpu_state.TOP + i) & 7);
+        if (codegen_fpu_tag_valid & (1 << ((cpu_state.TOP + i) & 7)))
+            regs &= ~FPU_GUARD_ST(i);
+    }
+    if ((regs & FPU_GUARD_PUSH) && (codegen_fpu_tag_empty & (1 << push)))
+        regs &= ~FPU_GUARD_PUSH;
+    if (!regs)
+        return;
+
     for (int i = 0; i < 8; i++) {
         if (!(regs & FPU_GUARD_ST(i)))
             continue;
@@ -831,6 +867,13 @@ codegen_fpu_guard_stack(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32
     jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp0, 0);
     codegen_fpu_handover(ir, fetchdat, op_32, interp_pc, target_seg);
     uop_set_jump_dest(ir, jump_uop);
+    /*The block goes on only with them valid, and a push's ST(7) empty*/
+    codegen_fpu_tag_valid |= valid;
+    codegen_fpu_tag_empty &= ~valid;
+    if (regs & FPU_GUARD_PUSH) {
+        codegen_fpu_tag_empty |= 1 << push;
+        codegen_fpu_tag_valid &= ~(1 << push);
+    }
 }
 
 /* FIST and FISTP: compiled only for lo < ST(0) < hi, which rounds into the
@@ -1410,9 +1453,17 @@ generate_call:
         codegen_fetch_walk(fetch_walk);
         codegen_accumulate(ir, ACCREG_cycles, walk_cycles);
     }
+    /*Whatever cleared the entry (the block's start, an MMX instruction, an
+      interpreted one, LMSW) may have changed the tags behind the IR*/
+    if (!codegen_fpu_entered) {
+        codegen_fpu_tag_valid = 0;
+        codegen_fpu_tag_empty = 0;
+    }
     codegen_instructions[block->ins].fpu_entered  = codegen_fpu_entered;
     codegen_instructions[block->ins].fpu_es_check = codegen_fpu_es_check;
     codegen_instructions[block->ins].mmx_entered  = codegen_mmx_entered;
+    codegen_instructions[block->ins].tag_valid    = codegen_fpu_tag_valid;
+    codegen_instructions[block->ins].tag_empty    = codegen_fpu_tag_empty;
 
     codegen_timing_opcode(opcode, fetchdat, op_32, op_pc);
     codegen_accumulate_record(ACC_OPCODE, 0, opcode, fetchdat, op_32, op_pc);
@@ -1697,6 +1748,10 @@ codegen_skip:
       left (exec386_dynarec_dyn)*/
     if (cpu_debug_regs_486)
         uop_CALL_FUNC(ir, dynarec_rf_after_op);
+    /*Nor are the tags known after any interpreted instruction: an x87 one
+      can load them, and any can reach a reset through its I/O*/
+    codegen_fpu_tag_valid = 0;
+    codegen_fpu_tag_empty = 0;
     /*An interpreted x87 or 0F instruction can undo what the block took as
       done (FNINIT, FRSTOR, FXRSTOR and FEMMS empty the tags and leave MMX
       mode, CLTS changes CR0): the next compiled FPU or MMX instruction

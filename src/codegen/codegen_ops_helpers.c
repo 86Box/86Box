@@ -288,6 +288,8 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
     int head_fpu_entered;
     int head_fpu_es_check;
     int head_mmx_entered;
+    uint8_t head_tag_valid;
+    uint8_t head_tag_empty;
 
     /*Check that dest instruction was actually compiled into block*/
     start = codegen_get_instruction_uop(block, dest_addr, &first_instruction, &TOP);
@@ -320,6 +322,13 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
     if ((head_mmx_entered && !codegen_mmx_entered) || (head_fpu_entered && !codegen_fpu_entered))
         return 0;
     if (head_fpu_entered && !head_fpu_es_check && codegen_fpu_es_check)
+        return 0;
+
+    /*A stack check left out because a tag was known valid or empty when the
+      loop's first instruction was compiled is left out of the copies too:
+      what was known there must still be known at the branch*/
+    codegen_get_instruction_tags(first_instruction, &head_tag_valid, &head_tag_empty);
+    if ((head_tag_valid & ~codegen_fpu_tag_valid) || (head_tag_empty & ~codegen_fpu_tag_empty))
         return 0;
 
     /*Not across a flags rebuild or flag reader worked out from a flags op

@@ -67,6 +67,13 @@ fdiv_call(ir_data_t *ir, uint32_t next_pc, uint32_t imm)
     /* ES may be set now with the block going on: the next waiting
        instruction checks for it before it runs */
     codegen_fpu_es_check = 1;
+    /* The divide tags its destination valid with the run-time TOP, which a
+       block compiled on a visit that took a stack fault can disagree with:
+       the slot it writes may be any, so no tag is known empty after it, and
+       the destination's is not known valid, on either arm of the join (this
+       call comes after the fast arm's tag write) */
+    codegen_fpu_tag_valid &= ~(1 << ((cpu_state.TOP + (imm & 7)) & 7));
+    codegen_fpu_tag_empty = 0;
 }
 
 /* The divide itself. On arm64 and x86-64 the common case runs in the block, as

@@ -171,6 +171,9 @@ ropFXCH(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint3
     uop_MOV(ir, IREG_ST(dest_reg), IREG_temp0_D);
     uop_MOV(ir, IREG_ST_i64(dest_reg), IREG_temp1_Q);
     uop_MOV(ir, IREG_tag(dest_reg), IREG_temp2);
+    /*Both were valid past the guard, so both still are: the copy through
+      temp2 hides that from the tag tracking*/
+    codegen_fpu_tag_valid |= (1 << ((cpu_state.TOP + 0) & 7)) | (1 << ((cpu_state.TOP + dest_reg) & 7));
 
     return op_pc;
 }

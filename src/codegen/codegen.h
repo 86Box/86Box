@@ -473,6 +473,7 @@ void codegen_generate_reset(void);
 
 int  codegen_get_instruction_uop(codeblock_t *block, uint32_t pc, int *first_instruction, int *TOP);
 void codegen_get_instruction_entered(int ins, int *fpu_entered, int *fpu_es_check, int *mmx_entered);
+void codegen_get_instruction_tags(int ins, uint8_t *tag_valid, uint8_t *tag_empty);
 void codegen_set_loop_start(struct ir_data_t *ir, int first_instruction);
 
 #ifdef DEBUG_EXTRA

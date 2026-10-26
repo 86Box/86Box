@@ -37,6 +37,8 @@ int      codegen_flags_changed = 0;
 int      codegen_fpu_entered   = 0;
 int      codegen_fpu_es_check  = 0;
 int      codegen_mmx_entered   = 0;
+uint8_t  codegen_fpu_tag_valid = 0;
+uint8_t  codegen_fpu_tag_empty = 0;
 int      codegen_fpu_loaded_iq[8];
 x86seg  *op_ea_seg;
 int      op_ssegs;

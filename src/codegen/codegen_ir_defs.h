@@ -640,6 +640,14 @@ uop_gen_reg_dst_imm(uint32_t uop_type, ir_data_t *ir, int dest_reg, uint32_t imm
     uop->type       = uop_type;
     uop->dest_reg_a = codegen_reg_write(dest_reg, ir->wr_pos - 1);
     uop->imm_data   = imm;
+    /*A tag set to a constant: valid with TAG_VALID (bit 0) in it, empty as
+      TAG_EMPTY (0) (x87.h)*/
+    if (((uop_type & UOP_MASK) == (UOP_MOV_IMM & UOP_MASK)) && ((unsigned) (IREG_GET_REG(dest_reg) - IREG_tag0) < 8)) {
+        if (imm & 1)
+            codegen_fpu_tag_valid |= 1 << (IREG_GET_REG(dest_reg) - IREG_tag0);
+        else if (!imm)
+            codegen_fpu_tag_empty |= 1 << (IREG_GET_REG(dest_reg) - IREG_tag0);
+    }
 }
 
 static inline void
@@ -655,11 +663,25 @@ uop_gen_reg_dst_pointer(uint32_t uop_type, ir_data_t *ir, int dest_reg, void *p)
 static inline void
 uop_gen_reg_dst_src1(uint32_t uop_type, ir_data_t *ir, int dest_reg, int src_reg)
 {
-    uop_t *uop = uop_alloc(ir, uop_type);
+    uop_t    *uop      = uop_alloc(ir, uop_type);
+    const int src_tag  = IREG_GET_REG(src_reg) - IREG_tag0;
+    const int dest_tag = IREG_GET_REG(dest_reg) - IREG_tag0;
+    int       valid    = 0;
+    int       empty    = 0;
 
+    /*A tag copied from another keeps what is known of it, read before the
+      write forgets the destination's (the two can be one)*/
+    if (((uop_type & UOP_MASK) == (UOP_MOV & UOP_MASK)) && ((unsigned) src_tag < 8)) {
+        valid = (codegen_fpu_tag_valid >> src_tag) & 1;
+        empty = (codegen_fpu_tag_empty >> src_tag) & 1;
+    }
     uop->type       = uop_type;
     uop->src_reg_a  = codegen_reg_read(src_reg);
     uop->dest_reg_a = codegen_reg_write(dest_reg, ir->wr_pos - 1);
+    if ((unsigned) dest_tag < 8) {
+        codegen_fpu_tag_valid |= valid << dest_tag;
+        codegen_fpu_tag_empty |= empty << dest_tag;
+    }
 }
 
 static inline void
