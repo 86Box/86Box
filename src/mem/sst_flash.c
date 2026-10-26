@@ -172,6 +172,7 @@ typedef struct sst_bios_t {
 #define AMD29F020A    0xb000
 #define AMD29F002NBT  0xb000
 #define AMD29F040A    0xa400
+#define AMD29F080A    0xd500
 
 #define SIZE_512K   0x010000
 #define SIZE_1M     0x020000
@@ -614,7 +615,7 @@ sst_flash_create(const device_t *model, const sst_flash_cfg_t *cfg)
         dev->sectors = amd29f020a_sectors;
     else if ((dev->manufacturer == AMD) && ((model->local & 0xff00) == AMD29F010A))
         dev->sector_size = 0x4000;
-    else if ((dev->manufacturer == AMD) && ((model->local & 0xff00) == AMD29F040A))
+    else if ((dev->manufacturer == AMD) && (((model->local & 0xff00) == AMD29F040A) || ((model->local & 0xff00) == AMD29F080A)))
         dev->sector_size = 0x10000;
 
     dev->size = cfg->size ? cfg->size : (model->local & 0x7fff0000);
@@ -1341,6 +1342,20 @@ const device_t amd_flash_29f040a_device = {
     .internal_name = "amd_flash_29f040a",
     .flags         = 0,
     .local         = AMD | AMD29F040A | SIZE_4M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = sst_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t amd_flash_29f080a_device = {
+    .name          = "AMD 29F080a Flash BIOS",
+    .internal_name = "amd_flash_29f080a",
+    .flags         = 0,
+    .local         = AMD | AMD29F080A | SIZE_8M,
     .init          = sst_init,
     .close         = sst_close,
     .reset         = sst_reset,
