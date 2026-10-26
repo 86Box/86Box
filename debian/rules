@@ -6,18 +6,16 @@
 ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
 
 ifeq ($(ARCH), $(filter $(ARCH), amd64))
-	NDR=off		
-	TOOLCHAIN=cmake/flags-gcc-x86_64.cmake
+	NDR=off
 else
 	NDR=on
-	TOOLCHAIN=cmake/flags-gcc-aarch64.cmake
 endif
 
 %:
 	dh $@ --buildsystem cmake+ninja
 
 override_dh_auto_configure:
-	dh_auto_configure --buildsystem cmake+ninja -- --preset regular --toolchain $(TOOLCHAIN) -DNEW_DYNAREC=$(NDR) -B .
+	dh_auto_configure --buildsystem cmake+ninja -- --preset regular -DNEW_DYNAREC=$(NDR) -B .
 
 override_dh_auto_build:
 	dh_auto_build --buildsystem cmake+ninja
@@ -26,10 +24,6 @@ override_dh_auto_test:
 
 override_dh_auto_install:
 	dh_auto_install --buildsystem cmake+ninja
-	for i in 48x48 64x64 72x72 96x96 128x128 192x192 256x256 512x512 ; do \
-		install -Dm644 src/unix/assets/$$i/net.86box.86Box.png -t debian/86box/usr/share/icons/hicolor/$$i/apps ; \
-	done
-	mkdir debian/86box/usr/share/applications
 	sed 's/^Exec.*/Exec=86Box -P .local\/share\/86Box/' "src/unix/assets/net.86box.86Box.desktop" > "debian/86box/usr/share/applications/net.86box.86Box.desktop"
 
 override_dh_installdocs:

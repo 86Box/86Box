@@ -277,8 +277,9 @@ nmc93cxx_eeprom_init(const device_t *info)
 
         default:
             /* Invalid parameter passed to the device */
+            fatal("Invalid NMC 93cXX EEPROM type: %08X\n", params_details->type);
             assert(false);
-            break;
+            return NULL;
     }
 
     /* The "ORG" pin can select the x8 or x16 memory organization */

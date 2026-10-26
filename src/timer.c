@@ -147,19 +147,22 @@ void
 timer_close(void)
 {
     pc_timer_t *t = timer_head;
-    pc_timer_t *r;
 
     /* Set all timers' prev and next to NULL so it is assured that
        timers that are not in calloc'd structs don't keep pointing
        to timers that may be in calloc'd structs. */
     while (t != NULL) {
-        r       = t;
-        r->prev = r->next = NULL;
-        t                 = r->next;
+        pc_timer_t *next = t->next;
+
+        t->prev = t->next = NULL;
+        t->flags &= ~(TIMER_ENABLED | TIMER_SPLIT);
+        t->in_callback = 0;
+        t->period      = 0.0;
+        t              = next;
     }
 
-    timer_head = NULL;
-
+    timer_head   = NULL;
+    timer_target = 0;
     timer_inited = 0;
 }
 

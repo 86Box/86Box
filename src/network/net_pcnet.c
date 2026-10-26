@@ -1314,8 +1314,8 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                 while (p != &src[size])
                     CRC(fcs, *p++);
 
-                /* FCS at the end of the packet */
-                ((uint32_t *) &src[size])[0] = htonl(fcs);
+                /* FCS at the end of the packet, one's complement in little endian */
+                ((uint32_t *) &src[size])[0] = cpu_to_le32(~fcs);
                 size += 4;
             }
 
@@ -3293,6 +3293,20 @@ const device_t pcnet_am79c970a_device = {
     .internal_name = "pcnetpci",
     .flags         = DEVICE_PCI,
     .local         = DEV_AM79C970A,
+    .init          = pcnet_init,
+    .close         = pcnet_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pcnet_pci_config
+};
+
+const device_t pcnet_am79c970a_onboard_device = {
+    .name          = "AMD PCnet-PCI II (On-Board)",
+    .internal_name = "pcnetpci_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = DEV_AM79C970A | 0x0100,
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,

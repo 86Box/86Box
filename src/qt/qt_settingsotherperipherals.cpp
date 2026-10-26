@@ -16,16 +16,36 @@
  */
 #include <cstdint>
 #include <cstdio>
+#include <vector>
+#ifdef USE_VFIO
+#    include <algorithm>
+#    include <cstring>
+
+#    include <QDir>
+#    include <QFile>
+#    include <QHash>
+#    include <QProcess>
+#    include <QStandardItemModel>
+#    include <QStringBuilder>
+#    include <QTimer>
+#endif
 
 extern "C" {
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/machine.h>
+#include <86box/mcamem.h>
 #include <86box/isamem.h>
 #include <86box/isarom.h>
 #include <86box/isartc.h>
 #include <86box/unittester.h>
+#include <86box/softpower.h>
 #include <86box/novell_cardkey.h>
+#ifdef USE_VFIO
+#    include <86box/ini.h>
+#    include <86box/config.h>
+#    include <86box/vfio.h>
+#endif
 }
 
 #include "qt_settings_completer.hpp"
@@ -37,6 +57,140 @@ extern "C" {
 #include "qt_models_common.hpp"
 
 #include "qt_defs.hpp"
+#ifdef USE_VFIO
+#    include "qt_util.hpp"
+#endif
+
+static bool
+hasIsaOrSidecarBus(int machineId)
+{
+    return machine_has_bus(machineId, MACHINE_BUS_ISA | MACHINE_BUS_SIDECAR) > 0;
+}
+
+#ifdef USE_VFIO
+enum {
+    ColumnCheck = 0,
+    ColumnGroup,
+    ColumnLocation,
+    ColumnName
+};
+
+/* Kept on the checkbox column item. */
+enum {
+    GroupRole = Qt::UserRole, /* IOMMU group, -1 for a device that was not found */
+    ROMEnabledRole,
+    ROMFileRole,
+    IDRole /* vendor:device from sysfs, shown after the name */
+};
+
+/* The IOMMU group decides what can be passed through: the host has to give
+   up every device in a group to pass any of them through. Once a device in a
+   group is checked, the others in it show partially checked (claimed, but
+   not passed through), and cycle between that and checked until no device
+   in the group is checked any more. */
+class VFIODeviceModel : public QStandardItemModel {
+public:
+    using QStandardItemModel::QStandardItemModel;
+
+    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
+};
+
+bool
+VFIODeviceModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    if ((role != Qt::CheckStateRole) || (index.column() != ColumnCheck))
+        return QStandardItemModel::setData(index, value, role);
+
+    /* A view asks for checked from partially checked, and unchecked from checked. */
+    auto      state = static_cast<Qt::CheckState>(value.toInt());
+    const int group = index.data(GroupRole).toInt();
+
+    /* A device that was not found is in no group. */
+    if (group < 0)
+        return QStandardItemModel::setData(index, static_cast<int>((state == Qt::Unchecked) ? Qt::Unchecked : Qt::Checked), role);
+
+    QList<QModelIndex> siblings;
+    bool               otherChecked = false;
+    for (int row = 0; row < rowCount(); row++) {
+        const QModelIndex sibling = this->index(row, ColumnCheck);
+        if ((row == index.row()) || (sibling.data(GroupRole).toInt() != group))
+            continue;
+        siblings.append(sibling);
+        if (sibling.data(Qt::CheckStateRole).toInt() == Qt::Checked)
+            otherChecked = true;
+    }
+
+    if (otherChecked) {
+        if (state == Qt::Unchecked)
+            state = Qt::PartiallyChecked;
+    } else if (state == Qt::PartiallyChecked) {
+        state = Qt::Unchecked;
+    }
+
+    if (!QStandardItemModel::setData(index, static_cast<int>(state), role))
+        return false;
+
+    /* Claim the group on the first device checked, release it on the last unchecked. */
+    for (const auto &sibling : siblings) {
+        const int siblingState = sibling.data(Qt::CheckStateRole).toInt();
+        if ((state == Qt::Checked) && (siblingState == Qt::Unchecked))
+            QStandardItemModel::setData(sibling, static_cast<int>(Qt::PartiallyChecked), role);
+        else if ((state == Qt::Unchecked) && (siblingState == Qt::PartiallyChecked))
+            QStandardItemModel::setData(sibling, static_cast<int>(Qt::Unchecked), role);
+    }
+
+    return true;
+}
+
+static const QString iommuGroupsPath = QStringLiteral("/sys/kernel/iommu_groups");
+
+/* A configured location as dddd:bb:dd.f, or as written if it does not parse. */
+static QString
+normalizedLocation(const char *location)
+{
+    char buf[16];
+    if (vfio_parse_location(location, buf, sizeof(buf)))
+        return QString(buf);
+    return QString(location);
+}
+
+/* A vendor or device ID from sysfs ("0x8086") as 4 hex digits. */
+static QString
+readSysfsId(const QString &path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly))
+        return QStringLiteral("????");
+
+    QString id = QString::fromLatin1(file.readAll()).trimmed();
+    if (id.startsWith(QStringLiteral("0x")))
+        id = id.mid(2);
+    return id.isEmpty() ? QStringLiteral("????") : id.rightJustified(4, '0');
+}
+
+/* A device that was found is named later, from lspci. */
+static QModelIndex
+appendDevice(QStandardItemModel *model, int group, const QString &location, const QString &id, const QString &name = QString())
+{
+    auto *check = new QStandardItem;
+    check->setCheckable(true);
+    check->setEditable(false);
+    check->setData(group, GroupRole);
+    check->setData(false, ROMEnabledRole);
+    check->setData(QString(), ROMFileRole);
+    check->setData(id, IDRole);
+
+    QList<QStandardItem *> row = { check,
+                                   new QStandardItem((group >= 0) ? QString::number(group) : QStringLiteral("??")),
+                                   new QStandardItem(location),
+                                   new QStandardItem(name) };
+    for (auto *item : row)
+        item->setEditable(false);
+    model->appendRow(row);
+
+    return check->index();
+}
+#endif
 
 SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
     : QWidget(parent)
@@ -44,9 +198,12 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
 {
     ui->setupUi(this);
 
+    /* Memory expansion cards: one shared set of four slots, fed from the
+       ISA board list (isamem) on ISA machines and from the MCA board list
+       (mcamem) on MCA machines. */
     for (uint8_t i = 0; i < ISAMEM_MAX; ++i) {
-        scIsaMemCard[i] = new SettingsCompleter(findChild<QComboBox *>(QString("comboBoxIsaMemCard%1").arg(i + 1)), nullptr);
-        isamem_cfg_changed[i] = 0;
+        scMemExpCard[i] = new SettingsCompleter(findChild<QComboBox *>(QString("comboBoxMemExpCard%1").arg(i + 1)), nullptr);
+        memexp_cfg_changed[i] = 0;
     }
 
     for (uint8_t i = 0; i < ISAROM_MAX; ++i) {
@@ -58,7 +215,76 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
     isartc_cfg_changed         = 0;
 
     unittester_cfg_changed     = 0;
+    softpower_cfg_changed      = 0;
+    softpower_card_enabled     = softpower_enabled > 0;
     novell_keycard_cfg_changed = 0;
+
+#ifdef USE_VFIO
+    vfioModel = new VFIODeviceModel(this);
+    vfioModel->setHorizontalHeaderLabels({ QString(), tr("Group"), tr("Location"), tr("Name") });
+    ui->treeViewVFIO->setModel(vfioModel);
+
+    /* FileField fixes its own width; let this one stretch across the panel. */
+    ui->fileFieldVFIOROM->setMinimumWidth(0);
+    ui->fileFieldVFIOROM->setMaximumWidth(QWIDGETSIZE_MAX);
+    ui->fileFieldVFIOROM->setFilter(tr("ROM images") % util::DlgFilter({ "bin", "rom", "vbi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+
+    vfioEnumerate();
+    vfioRestore();
+
+    for (int i = 0; i < vfioModel->columnCount(); i++)
+        ui->treeViewVFIO->resizeColumnToContents(i);
+
+    connect(ui->treeViewVFIO->selectionModel(), &QItemSelectionModel::currentRowChanged, this,
+            [this](const QModelIndex &, const QModelIndex &) { vfioUpdateControls(); });
+    /* Keep the current index on the checkbox, which is the only cell the
+       space key toggles; clicking a row makes the clicked cell current. */
+    connect(ui->treeViewVFIO->selectionModel(), &QItemSelectionModel::currentChanged, this,
+            [this](const QModelIndex &current, const QModelIndex &) {
+                if (current.isValid() && (current.column() != ColumnCheck))
+                    ui->treeViewVFIO->selectionModel()->setCurrentIndex(current.siblingAtColumn(ColumnCheck), QItemSelectionModel::NoUpdate);
+            });
+    connect(vfioModel, &QAbstractItemModel::dataChanged, this,
+            [this](const QModelIndex &, const QModelIndex &, const QVector<int> &roles) {
+                if (roles.isEmpty() || roles.contains(Qt::CheckStateRole))
+                    vfioUpdateControls();
+            });
+
+    /* The custom ROM applies to the selected device. */
+    connect(ui->checkBoxVFIOCustomROM, &QCheckBox::toggled, this, [this](bool checked) {
+        if (vfioUpdating)
+            return;
+        const QModelIndex index = ui->treeViewVFIO->currentIndex().siblingAtColumn(ColumnCheck);
+        if (index.isValid())
+            vfioModel->setData(index, checked, ROMEnabledRole);
+        ui->fileFieldVFIOROM->setEnabled(checked && ui->checkBoxVFIOCustomROM->isEnabled());
+    });
+    auto romFileChanged = [this](const QString &fileName) {
+        if (vfioUpdating)
+            return;
+        const QModelIndex index = ui->treeViewVFIO->currentIndex().siblingAtColumn(ColumnCheck);
+        if (index.isValid())
+            vfioModel->setData(index, fileName, ROMFileRole);
+    };
+    connect(ui->fileFieldVFIOROM, &FileField::fileSelected, this, romFileChanged);
+    connect(ui->fileFieldVFIOROM, &FileField::fileTextEntered, this, romFileChanged);
+
+    if (vfioModel->rowCount() > 0)
+        ui->treeViewVFIO->setCurrentIndex(vfioModel->index(0, 0));
+    vfioUpdateControls();
+
+    /* Only run lspci if the tab is ever shown. */
+    connect(ui->tabWidgetSound, &QTabWidget::currentChanged, this, [this](int index) {
+        if (ui->tabWidgetSound->widget(index) == ui->tabVFIO)
+            vfioRequestNames();
+    });
+    if (ui->tabWidgetSound->currentWidget() == ui->tabVFIO)
+        vfioRequestNames();
+#else
+    /* VFIO is only available on Linux, with the development branch. */
+    ui->tabWidgetSound->removeTab(ui->tabWidgetSound->indexOf(ui->tabVFIO));
+    delete ui->tabVFIO;
+#endif
 
     onCurrentMachineChanged(machine);
 }
@@ -66,12 +292,20 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
 SettingsOtherPeripherals::~SettingsOtherPeripherals()
 {
     for (uint8_t i = 0; i < ISAMEM_MAX; ++i)
-        delete scIsaMemCard[i];
+        delete scMemExpCard[i];
 
     for (uint8_t i = 0; i < ISAROM_MAX; ++i)
         delete scIsaRomCard[i];
 
     delete scRTC;
+
+#ifdef USE_VFIO
+    /* Killing lspci finishes it, which would name devices in a page being torn down. */
+    if (vfioLspci) {
+        vfioLspci->disconnect(this);
+        delete vfioLspci;
+    }
+#endif
 
     delete ui;
 }
@@ -81,26 +315,32 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
 {
     this->machineId = machineId;
 
-    bool machineHasIsa = (machine_has_bus(machineId, MACHINE_BUS_ISA) > 0);
+    bool machineHasIsa          = (machine_has_bus(machineId, MACHINE_BUS_ISA) > 0);
+    bool machineHasIsaOrSidecar = hasIsaOrSidecarBus(machineId);
+    const bool nativeSoftPower = machines[machineId].init == machine_ibm5140_init;
 
-    ui->pushButtonConfigureRTC->setEnabled(machineHasIsa);
-    ui->comboBoxRTC->setEnabled(machineHasIsa);
+    ui->pushButtonConfigureRTC->setEnabled(machineHasIsaOrSidecar);
+    ui->comboBoxRTC->setEnabled(machineHasIsaOrSidecar);
     ui->checkBoxISABugger->setEnabled(machineHasIsa);
     ui->pushButtonConfigureUT->setEnabled(unittester_enabled > 0);
     ui->checkBoxKeyCard->setEnabled(machineHasIsa);
     ui->pushButtonConfigureKeyCard->setEnabled(novell_keycard_enabled > 0);
+    ui->checkBoxSoftPower->setEnabled(machineHasIsa && !nativeSoftPower);
+    ui->pushButtonConfigureSoftPower->setEnabled(machineHasIsa && !nativeSoftPower && softpower_card_enabled);
 
     ui->checkBoxISABugger->setChecked((machineHasIsa && (bugger_enabled > 0)) ? true : false);
     ui->checkBoxPOSTCard->setChecked(postcard_enabled > 0 ? true : false);
     ui->checkBoxUnitTester->setChecked(unittester_enabled > 0 ? true : false);
     ui->checkBoxKeyCard->setChecked((machineHasIsa && (novell_keycard_enabled > 0)) ? true : false);
+    /* Native power hardware must not overwrite the optional card preference. */
+    ui->checkBoxSoftPower->setChecked(nativeSoftPower || (machineHasIsa && softpower_card_enabled));
 
     scRTC->removeRows();
     ui->comboBoxRTC->clear();
 
     for (uint8_t i = 0; i < ISAMEM_MAX; ++i) {
-        scIsaMemCard[i]->removeRows();
-        if (auto *cb = findChild<QComboBox *>(QString("comboBoxIsaMemCard%1").arg(i + 1)))
+        scMemExpCard[i]->removeRows();
+        if (auto *cb = findChild<QComboBox *>(QString("comboBoxMemExpCard%1").arg(i + 1)))
             cb->clear();
     }
 
@@ -110,68 +350,72 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
             cb->clear();
     }
 
-    int c           = 0;
     int selectedRow = 0;
 
     // ISA RTC Cards
     auto *model = ui->comboBoxRTC->model();
-    while (true) {
-        const QString name = DeviceConfig::DeviceName(isartc_get_device(c), isartc_get_internal_name(c), 0);
-        if (name.isEmpty())
-            break;
+    Models::Batch rtcRows(model);
+    for (const auto &rtc : Models::Devices(isartc_get_device, isartc_get_internal_name, nullptr, 0)) {
+        if (!device_is_valid(rtc.dev, machineId))
+            continue;
 
-        if (!device_is_valid(isartc_get_device(c), machineId))
-            break;
-
-        int row = Models::AddEntry(model, name, c);
-        scRTC->addDevice(nullptr, name);
-        if (c == isartc_type)
+        int row = rtcRows.add(rtc.name, rtc.id);
+        scRTC->addDevice(rtc.dev, rtc.name);
+        if (rtc.id == isartc_type)
             selectedRow = row;
-
-        ++c;
     }
+    rtcRows.commit();
     ui->comboBoxRTC->setCurrentIndex(selectedRow);
-    ui->pushButtonConfigureRTC->setEnabled((isartc_type != 0) && isartc_has_config(isartc_type) && machineHasIsa);
+    ui->pushButtonConfigureRTC->setEnabled((isartc_type != 0) && isartc_has_config(isartc_type) && machineHasIsaOrSidecar);
 
-    // ISA Memory Expansion Cards
-    QComboBox          *isamem_cbox[ISAMEM_MAX]         = { 0 };
-    QAbstractItemModel *isamem_models[ISAMEM_MAX]       = { 0 };
-    int                 isamem_removeRows_[ISAMEM_MAX]  = { 0 };
-    int                 isamem_selectedRows[ISAMEM_MAX] = { 0 };
+    // Memory Expansion Cards (shared UI: ISA or MCA boards depending on
+    // the machine bus).  The isamem/mcamem databases and their config
+    // globals remain separate; only the four dropdown slots are shared.
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    const bool isa_bus = !mca_bus && hasIsaOrSidecarBus(machineId);
+
+    QComboBox          *mem_cbox[ISAMEM_MAX]         = { 0 };
+    QAbstractItemModel *mem_models[ISAMEM_MAX]       = { 0 };
+    int                 mem_removeRows_[ISAMEM_MAX]  = { 0 };
+    int                 mem_selectedRows[ISAMEM_MAX] = { 0 };
 
     for (uint8_t i = 0; i < ISAMEM_MAX; ++i) {
-        isamem_cbox[i]        = findChild<QComboBox *>(QString("comboBoxIsaMemCard%1").arg(i + 1));
-        isamem_models[i]      = isamem_cbox[i]->model();
-        isamem_removeRows_[i] = isamem_models[i]->rowCount();
+        mem_cbox[i]        = findChild<QComboBox *>(QString("comboBoxMemExpCard%1").arg(i + 1));
+        mem_models[i]      = mem_cbox[i]->model();
+        mem_removeRows_[i] = mem_models[i]->rowCount();
     }
 
-    c = 0;
-    while (true) {
-        const QString name = DeviceConfig::DeviceName(isamem_get_device(c),
-                                                      isamem_get_internal_name(c), 0);
+    static const QVector<Models::Device> none;
+    const auto &mem_cards = mca_bus ? Models::Devices(mcamem_get_device, mcamem_get_internal_name,
+                                                      [](int c) -> int { return device_available(mcamem_get_device(c)); }, 0)
+                          : isa_bus ? Models::Devices(isamem_get_device, isamem_get_internal_name,
+                                                      [](int c) -> int { return device_available(isamem_get_device(c)); }, 0)
+                                    : none;
 
-        if (name.isEmpty())
-            break;
-
-        if (device_is_valid(isamem_get_device(c), machineId)) {
+    std::vector<Models::Batch> mem_rows(mem_models, mem_models + ISAMEM_MAX);
+    for (const auto &card : mem_cards) {
+        if (card.available && device_is_valid(card.dev, machineId)) {
             for (uint8_t i = 0; i < ISAMEM_MAX; ++i) {
-                int row = Models::AddEntry(isamem_models[i], name, c);
-                scIsaMemCard[i]->addDevice(nullptr, name);
+                int cur = mca_bus ? mcamem_type[i] : isamem_type[i];
+                int row = mem_rows[i].add(card.name, card.id);
+                scMemExpCard[i]->addDevice(card.dev, card.name);
 
-                if (c == isamem_type[i])
-                    isamem_selectedRows[i] = row - isamem_removeRows_[i];
+                if (card.id == cur)
+                    mem_selectedRows[i] = row - mem_removeRows_[i];
             }
         }
-
-        c++;
     }
 
     for (uint8_t i = 0; i < ISAMEM_MAX; ++i) {
-        isamem_models[i]->removeRows(0, isamem_removeRows_[i]);
-        isamem_cbox[i]->setEnabled(isamem_models[i]->rowCount() > 1);
-        isamem_cbox[i]->setCurrentIndex(-1);
-        isamem_cbox[i]->setCurrentIndex(isamem_selectedRows[i]);
-        findChild<QPushButton *>(QString("pushButtonConfigureIsaMemCard%1").arg(i + 1))->setEnabled((isamem_type[i] != 0) && isamem_has_config(isamem_type[i]) && machineHasIsa);
+        mem_rows[i].commit();
+        const device_t *seldev = mca_bus ? mcamem_get_device(mcamem_type[i]) : isamem_get_device(isamem_type[i]);
+        bool            hascfg = mca_bus ? (mcamem_has_config(mcamem_type[i]) != 0) : (isamem_has_config(isamem_type[i]) != 0);
+
+        mem_models[i]->removeRows(0, mem_removeRows_[i]);
+        mem_cbox[i]->setEnabled(mem_models[i]->rowCount() > 1);
+        mem_cbox[i]->setCurrentIndex(-1);
+        mem_cbox[i]->setCurrentIndex(mem_selectedRows[i]);
+        findChild<QPushButton *>(QString("pushButtonConfigureMemExpCard%1").arg(i + 1))->setEnabled(device_is_valid(seldev, machineId) && hascfg);
     }
 
     // ISA ROM Expansion Cards
@@ -186,33 +430,26 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         isarom_removeRows_[i] = isarom_models[i]->rowCount();
     }
 
-    c = 0;
-    while (true) {
-        const QString name = DeviceConfig::DeviceName(isarom_get_device(c),
-                                                      isarom_get_internal_name(c), 0);
-
-        if (name.isEmpty())
-            break;
-
-        if (device_is_valid(isarom_get_device(c), machineId)) {
+    std::vector<Models::Batch> isarom_rows(isarom_models, isarom_models + ISAROM_MAX);
+    for (const auto &card : Models::Devices(isarom_get_device, isarom_get_internal_name, nullptr, 0)) {
+        if (device_is_valid(card.dev, machineId)) {
             for (uint8_t i = 0; i < ISAROM_MAX; ++i) {
-                int row = Models::AddEntry(isarom_models[i], name, c);
-                scIsaRomCard[i]->addDevice(nullptr, name);
+                int row = isarom_rows[i].add(card.name, card.id);
+                scIsaRomCard[i]->addDevice(card.dev, card.name);
 
-                if (c == isarom_type[i])
+                if (card.id == isarom_type[i])
                     isarom_selectedRows[i] = row - isarom_removeRows_[i];
             }
         }
-
-        c++;
     }
 
     for (uint8_t i = 0; i < ISAROM_MAX; ++i) {
+        isarom_rows[i].commit();
         isarom_models[i]->removeRows(0, isarom_removeRows_[i]);
         isarom_cbox[i]->setEnabled(isarom_models[i]->rowCount() > 1);
         isarom_cbox[i]->setCurrentIndex(-1);
         isarom_cbox[i]->setCurrentIndex(isarom_selectedRows[i]);
-        findChild<QPushButton *>(QString("pushButtonConfigureIsaRomCard%1").arg(i + 1))->setEnabled((isarom_type[i] != 0) && isarom_has_config(isarom_type[i]) && machineHasIsa);
+        findChild<QPushButton *>(QString("pushButtonConfigureIsaRomCard%1").arg(i + 1))->setEnabled((isarom_type[i] != 0) && isarom_has_config(isarom_type[i]) && machineHasIsaOrSidecar);
     }
 }
 
@@ -227,14 +464,23 @@ SettingsOtherPeripherals::changed()
     has_changed |= (postcard_enabled       != (ui->checkBoxPOSTCard->isChecked() ? 1 : 0));
     has_changed |= (unittester_enabled     != (ui->checkBoxUnitTester->isChecked() ? 1 : 0));
     has_changed |= unittester_cfg_changed;
+    has_changed |= (softpower_enabled      != (softpower_card_enabled ? 1 : 0));
+    has_changed |= softpower_cfg_changed;
     has_changed |= (novell_keycard_enabled != (ui->checkBoxKeyCard->isChecked() ? 1 : 0));
     has_changed |= novell_keycard_cfg_changed;
 
-    /* ISA memory boards. */
-    for (int i = 0; i < ISAMEM_MAX; i++) {
-        auto *cbox     = findChild<QComboBox *>(QString("comboBoxIsaMemCard%1").arg(i + 1));
-        has_changed |= (isamem_type[i]         != cbox->currentData().toInt());
-        has_changed |= isamem_cfg_changed[i];
+    /* Memory expansion boards (shared slots; active family by machine). */
+    {
+        const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+
+        if (mca_bus || hasIsaOrSidecarBus(machineId)) {
+            for (int i = 0; i < ISAMEM_MAX; i++) {
+                auto *cbox    = findChild<QComboBox *>(QString("comboBoxMemExpCard%1").arg(i + 1));
+                int   cur     = mca_bus ? mcamem_type[i] : isamem_type[i];
+                has_changed  |= (cur != cbox->currentData().toInt());
+                has_changed  |= memexp_cfg_changed[i];
+            }
+        }
     }
 
     /* ISA ROM boards. */
@@ -243,6 +489,10 @@ SettingsOtherPeripherals::changed()
         has_changed |= (isarom_type[i]         != cbox->currentData().toInt());
         has_changed |= isarom_cfg_changed[i];
     }
+
+#ifdef USE_VFIO
+    has_changed |= vfioChanged();
+#endif
 
     return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
 }
@@ -263,12 +513,26 @@ SettingsOtherPeripherals::save(int soft)
     bugger_enabled         = ui->checkBoxISABugger->isChecked() ? 1 : 0;
     postcard_enabled       = ui->checkBoxPOSTCard->isChecked() ? 1 : 0;
     unittester_enabled     = ui->checkBoxUnitTester->isChecked() ? 1 : 0;
+    softpower_enabled      = softpower_card_enabled ? 1 : 0;
     novell_keycard_enabled = ui->checkBoxKeyCard->isChecked() ? 1 : 0;
 
-    /* ISA memory boards. */
-    for (int i = 0; i < ISAMEM_MAX; i++) {
-        auto *cbox     = findChild<QComboBox *>(QString("comboBoxIsaMemCard%1").arg(i + 1));
-        isamem_type[i] = cbox->currentData().toInt();
+    /* Memory expansion boards (shared slots; write the active family and
+       clear the inactive one, matching the single-UI layout). */
+    {
+        const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+        const bool isa_bus = !mca_bus && hasIsaOrSidecarBus(machineId);
+
+        for (int i = 0; i < ISAMEM_MAX; i++) {
+            int val = (mca_bus || isa_bus) ? findChild<QComboBox *>(QString("comboBoxMemExpCard%1").arg(i + 1))->currentData().toInt() : 0;
+
+            if (mca_bus) {
+                mcamem_type[i] = val;
+                isamem_type[i] = 0;
+            } else {
+                isamem_type[i] = val;
+                mcamem_type[i] = 0;
+            }
+        }
     }
 
     /* ISA ROM boards. */
@@ -276,6 +540,10 @@ SettingsOtherPeripherals::save(int soft)
         auto *cbox     = findChild<QComboBox *>(QString("comboBoxIsaRomCard%1").arg(i + 1));
         isarom_type[i] = cbox->currentData().toInt();
     }
+
+#ifdef USE_VFIO
+    vfioSave();
+#endif
 }
 
 void
@@ -284,7 +552,7 @@ SettingsOtherPeripherals::on_comboBoxRTC_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureRTC->setEnabled((index != 0) && isartc_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureRTC->setEnabled((index != 0) && isartc_has_config(index) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -293,64 +561,86 @@ SettingsOtherPeripherals::on_pushButtonConfigureRTC_clicked()
     isartc_cfg_changed |= DeviceConfig::ConfigureDevice(isartc_get_device(ui->comboBoxRTC->currentData().toInt()));
 }
 
+/* Shared memory-expansion slot helpers: resolve the board device and its
+   config capability from the machine's active bus family (MCA or ISA). */
+static const device_t *
+memexp_slot_device(int idx, bool mca_bus)
+{
+    return mca_bus ? mcamem_get_device(idx) : isamem_get_device(idx);
+}
+
+static int
+memexp_slot_has_config(int idx, bool mca_bus)
+{
+    return mca_bus ? mcamem_has_config(idx) : isamem_has_config(idx);
+}
+
 void
-SettingsOtherPeripherals::on_comboBoxIsaMemCard1_currentIndexChanged(int index)
+SettingsOtherPeripherals::on_comboBoxMemExpCard1_currentIndexChanged(int index)
 {
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaMemCard1->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    ui->pushButtonConfigureMemExpCard1->setEnabled(device_is_valid(memexp_slot_device(index, mca_bus), machineId) && memexp_slot_has_config(index, mca_bus));
 }
 
 void
-SettingsOtherPeripherals::on_pushButtonConfigureIsaMemCard1_clicked()
+SettingsOtherPeripherals::on_pushButtonConfigureMemExpCard1_clicked()
 {
-    isamem_cfg_changed[0] |= DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard1->currentData().toInt()), 1);
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    memexp_cfg_changed[0] |= DeviceConfig::ConfigureDevice(memexp_slot_device(ui->comboBoxMemExpCard1->currentData().toInt(), mca_bus), 1);
 }
 
 void
-SettingsOtherPeripherals::on_comboBoxIsaMemCard2_currentIndexChanged(int index)
-{
-    if (index < 0)
-        return;
-
-    ui->pushButtonConfigureIsaMemCard2->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
-}
-
-void
-SettingsOtherPeripherals::on_pushButtonConfigureIsaMemCard2_clicked()
-{
-    isamem_cfg_changed[1] |= DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard2->currentData().toInt()), 2);
-}
-
-void
-SettingsOtherPeripherals::on_comboBoxIsaMemCard3_currentIndexChanged(int index)
+SettingsOtherPeripherals::on_comboBoxMemExpCard2_currentIndexChanged(int index)
 {
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaMemCard3->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    ui->pushButtonConfigureMemExpCard2->setEnabled(device_is_valid(memexp_slot_device(index, mca_bus), machineId) && memexp_slot_has_config(index, mca_bus));
 }
 
 void
-SettingsOtherPeripherals::on_pushButtonConfigureIsaMemCard3_clicked()
+SettingsOtherPeripherals::on_pushButtonConfigureMemExpCard2_clicked()
 {
-    isamem_cfg_changed[2] |= DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard3->currentData().toInt()), 3);
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    memexp_cfg_changed[1] |= DeviceConfig::ConfigureDevice(memexp_slot_device(ui->comboBoxMemExpCard2->currentData().toInt(), mca_bus), 2);
 }
 
 void
-SettingsOtherPeripherals::on_comboBoxIsaMemCard4_currentIndexChanged(int index)
+SettingsOtherPeripherals::on_comboBoxMemExpCard3_currentIndexChanged(int index)
 {
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaMemCard4->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    ui->pushButtonConfigureMemExpCard3->setEnabled(device_is_valid(memexp_slot_device(index, mca_bus), machineId) && memexp_slot_has_config(index, mca_bus));
 }
 
 void
-SettingsOtherPeripherals::on_pushButtonConfigureIsaMemCard4_clicked()
+SettingsOtherPeripherals::on_pushButtonConfigureMemExpCard3_clicked()
 {
-    isamem_cfg_changed[3] |= DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard4->currentData().toInt()), 4);
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    memexp_cfg_changed[2] |= DeviceConfig::ConfigureDevice(memexp_slot_device(ui->comboBoxMemExpCard3->currentData().toInt(), mca_bus), 3);
+}
+
+void
+SettingsOtherPeripherals::on_comboBoxMemExpCard4_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    ui->pushButtonConfigureMemExpCard4->setEnabled(device_is_valid(memexp_slot_device(index, mca_bus), machineId) && memexp_slot_has_config(index, mca_bus));
+}
+
+void
+SettingsOtherPeripherals::on_pushButtonConfigureMemExpCard4_clicked()
+{
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    memexp_cfg_changed[3] |= DeviceConfig::ConfigureDevice(memexp_slot_device(ui->comboBoxMemExpCard4->currentData().toInt(), mca_bus), 4);
 }
 
 void
@@ -359,7 +649,7 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard1_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaRomCard1->setEnabled((index != 0) && isarom_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureIsaRomCard1->setEnabled((index != 0) && isarom_has_config(index) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -374,7 +664,7 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard2_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaRomCard2->setEnabled((index != 0) && isarom_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureIsaRomCard2->setEnabled((index != 0) && isarom_has_config(index) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -389,7 +679,7 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard3_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaRomCard3->setEnabled((index != 0) && isarom_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureIsaRomCard3->setEnabled((index != 0) && isarom_has_config(index) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -404,7 +694,7 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard4_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaRomCard4->setEnabled((index != 0) && isarom_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureIsaRomCard4->setEnabled((index != 0) && isarom_has_config(index) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -426,6 +716,22 @@ SettingsOtherPeripherals::on_pushButtonConfigureUT_clicked()
 }
 
 void
+SettingsOtherPeripherals::on_checkBoxSoftPower_stateChanged(int arg1)
+{
+    const bool optionalCard = (machines[machineId].init != machine_ibm5140_init) &&
+                              (machine_has_bus(machineId, MACHINE_BUS_ISA) > 0);
+    if (optionalCard)
+        softpower_card_enabled = arg1 != 0;
+    ui->pushButtonConfigureSoftPower->setEnabled(optionalCard && (arg1 != 0));
+}
+
+void
+SettingsOtherPeripherals::on_pushButtonConfigureSoftPower_clicked()
+{
+    softpower_cfg_changed |= DeviceConfig::ConfigureDevice(&softpower_device);
+}
+
+void
 SettingsOtherPeripherals::on_checkBoxKeyCard_stateChanged(int arg1)
 {
     ui->pushButtonConfigureKeyCard->setEnabled(arg1 != 0);
@@ -436,3 +742,207 @@ SettingsOtherPeripherals::on_pushButtonConfigureKeyCard_clicked()
 {
     novell_keycard_cfg_changed |= DeviceConfig::ConfigureDevice(&novell_keycard_device);
 }
+
+#ifdef USE_VFIO
+/* List every device in an IOMMU group, by group. */
+void
+SettingsOtherPeripherals::vfioEnumerate()
+{
+    struct Device {
+        int     group;
+        QString location;
+        QString id;
+    };
+    QList<Device> devices;
+
+    const QDir groupsDir(iommuGroupsPath);
+    for (const auto &groupName : groupsDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        bool      ok;
+        const int group = groupName.toInt(&ok);
+        if (!ok)
+            continue;
+
+        const QDir devicesDir(groupsDir.filePath(groupName % QStringLiteral("/devices")));
+        for (const auto &location : devicesDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+            const QString path = devicesDir.filePath(location);
+            devices.append({ group, location,
+                             readSysfsId(path % QStringLiteral("/vendor")) % ':' % readSysfsId(path % QStringLiteral("/device")) });
+        }
+    }
+
+    std::sort(devices.begin(), devices.end(), [](const Device &a, const Device &b) {
+        return (a.group != b.group) ? (a.group < b.group) : (a.location < b.location);
+    });
+
+    for (const auto &device : devices)
+        appendDevice(vfioModel, device.group, device.location, device.id);
+
+    if (devices.isEmpty()) {
+        const auto warning_icon = QIcon(":/misc/qt/icons/warning.ico");
+        ui->labelVFIONoGroupsIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
+    }
+    ui->vfioNoGroupsWarning->setVisible(devices.isEmpty());
+}
+
+/* Name the devices from one lspci call, in the background. */
+void
+SettingsOtherPeripherals::vfioRequestNames()
+{
+    if (vfioNamesRequested)
+        return;
+    vfioNamesRequested = true;
+
+    auto *lspci   = new QProcess(this);
+    auto *timeout = new QTimer(lspci);
+    vfioLspci     = lspci;
+    timeout->setSingleShot(true);
+    connect(timeout, &QTimer::timeout, lspci, &QProcess::kill);
+
+    /* A killed or failed lspci names the devices it got to, if any. */
+    auto done = [this, lspci] {
+        QHash<QString, QString> names;
+        const auto lines = QString::fromLocal8Bit(lspci->readAllStandardOutput()).split('\n');
+        for (const auto &line : lines) {
+            const int space = line.indexOf(' ');
+            if (space > 0)
+                names.insert(line.left(space), line.mid(space + 1).trimmed());
+        }
+        vfioSetNames(names);
+        vfioLspci = nullptr;
+        lspci->deleteLater();
+    };
+    connect(lspci, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this, done);
+    connect(lspci, &QProcess::errorOccurred, this, [done](QProcess::ProcessError error) {
+        if (error == QProcess::FailedToStart)
+            done();
+    });
+
+    lspci->start(QStringLiteral("lspci"), { QStringLiteral("-D") });
+    timeout->start(5000);
+}
+
+/* The IDs go after the name, as lspci -nn puts them, but without the class code. */
+void
+SettingsOtherPeripherals::vfioSetNames(const QHash<QString, QString> &names)
+{
+    for (int row = 0; row < vfioModel->rowCount(); row++) {
+        const QModelIndex index = vfioModel->index(row, ColumnCheck);
+        if (index.data(GroupRole).toInt() < 0)
+            continue;
+
+        const QString name = names.value(index.siblingAtColumn(ColumnLocation).data().toString(), tr("Unknown device"));
+        vfioModel->setData(index.siblingAtColumn(ColumnName), QString(name % QStringLiteral(" [") % index.data(IDRole).toString() % ']'));
+    }
+
+    ui->treeViewVFIO->resizeColumnToContents(ColumnName);
+}
+
+/* Check the configured devices, adding the ones not found at the end. */
+void
+SettingsOtherPeripherals::vfioRestore()
+{
+    /* A device no longer passed through keeps its ROM file in the
+       configuration, for when it is again. */
+    for (int row = 0; row < vfioModel->rowCount(); row++) {
+        const QModelIndex index    = vfioModel->index(row, ColumnCheck);
+        const QString     location = index.siblingAtColumn(ColumnLocation).data().toString();
+        const QString     romFile  = QString::fromUtf8(config_get_string("VFIO", (location % QStringLiteral("_rom_fn")).toUtf8().constData(), (char *) ""));
+        const int         enable   = config_get_int("VFIO", (location % QStringLiteral("_rom_enable")).toUtf8().constData(), !romFile.isEmpty());
+        vfioModel->setData(index, enable != 0, ROMEnabledRole);
+        vfioModel->setData(index, romFile, ROMFileRole);
+    }
+
+    for (int i = 0; (i < VFIO_DEVICE_MAX) && vfio_device_conf[i].location[0]; i++) {
+        const QString location = normalizedLocation(vfio_device_conf[i].location);
+
+        QModelIndex     index;
+        QModelIndexList matches;
+        if (vfioModel->rowCount() > 0)
+            matches = vfioModel->match(vfioModel->index(0, ColumnLocation), Qt::DisplayRole, location, 1, Qt::MatchExactly);
+        if (matches.isEmpty())
+            index = appendDevice(vfioModel, -1, location, QString(), tr("Unknown device"));
+        else
+            index = matches.first().siblingAtColumn(ColumnCheck);
+
+        vfioModel->setData(index, static_cast<int>(Qt::Checked), Qt::CheckStateRole);
+        vfioModel->setData(index, vfio_device_conf[i].rom_enable != 0, ROMEnabledRole);
+        vfioModel->setData(index, QString(vfio_device_conf[i].rom_fn), ROMFileRole);
+    }
+}
+
+SettingsOtherPeripherals::VFIODeviceList
+SettingsOtherPeripherals::vfioSelectedDevices() const
+{
+    VFIODeviceList devices;
+
+    for (int row = 0; row < vfioModel->rowCount(); row++) {
+        const QModelIndex index = vfioModel->index(row, ColumnCheck);
+        if (index.data(Qt::CheckStateRole).toInt() != Qt::Checked)
+            continue;
+
+        devices.append({ index.siblingAtColumn(ColumnLocation).data().toString(),
+                         index.data(ROMEnabledRole).toBool(), index.data(ROMFileRole).toString() });
+    }
+
+    return devices;
+}
+
+int
+SettingsOtherPeripherals::vfioChanged() const
+{
+    VFIODeviceList current;
+    for (int i = 0; (i < VFIO_DEVICE_MAX) && vfio_device_conf[i].location[0]; i++)
+        current.append({ normalizedLocation(vfio_device_conf[i].location),
+                         vfio_device_conf[i].rom_enable != 0, QString(vfio_device_conf[i].rom_fn) });
+
+    /* The order the devices are listed in is not a change. */
+    VFIODeviceList selected = vfioSelectedDevices();
+    std::sort(current.begin(), current.end());
+    std::sort(selected.begin(), selected.end());
+
+    return (current != selected) ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
+}
+
+void
+SettingsOtherPeripherals::vfioSave()
+{
+    memset(vfio_device_conf, 0, sizeof(vfio_device_conf));
+
+    int i = 0;
+    for (const auto &[location, romEnabled, romFile] : vfioSelectedDevices()) {
+        if (i >= VFIO_DEVICE_MAX)
+            break;
+        strncpy(vfio_device_conf[i].location, location.toUtf8().constData(), sizeof(vfio_device_conf[i].location) - 1);
+        strncpy(vfio_device_conf[i].rom_fn, romFile.toUtf8().constData(), sizeof(vfio_device_conf[i].rom_fn) - 1);
+        vfio_device_conf[i].rom_enable = romEnabled;
+        i++;
+    }
+
+    /* config.c saves the custom ROM of the devices passed through, and
+       this one the others' for when they are again. */
+    for (int row = 0; row < vfioModel->rowCount(); row++) {
+        const QModelIndex index = vfioModel->index(row, ColumnCheck);
+        if (index.data(Qt::CheckStateRole).toInt() != Qt::Checked)
+            config_save_vfio_rom(index.siblingAtColumn(ColumnLocation).data().toString().toUtf8().constData(),
+                                 index.data(ROMFileRole).toString().toUtf8().constData(), index.data(ROMEnabledRole).toBool());
+    }
+}
+
+/* The custom ROM applies to the selected device, if it is passed through. */
+void
+SettingsOtherPeripherals::vfioUpdateControls()
+{
+    const QModelIndex index   = ui->treeViewVFIO->currentIndex().siblingAtColumn(ColumnCheck);
+    const bool        enabled = index.isValid() && (index.data(Qt::CheckStateRole).toInt() == Qt::Checked);
+
+    vfioUpdating = true;
+    ui->checkBoxVFIOCustomROM->setChecked(index.isValid() && index.data(ROMEnabledRole).toBool());
+    const QString romFile = index.isValid() ? index.data(ROMFileRole).toString() : QString();
+    if (ui->fileFieldVFIOROM->fileName() != romFile)
+        ui->fileFieldVFIOROM->setFileName(romFile);
+    vfioUpdating = false;
+
+    ui->checkBoxVFIOCustomROM->setEnabled(enabled);
+    ui->fileFieldVFIOROM->setEnabled(enabled && ui->checkBoxVFIOCustomROM->isChecked());
+}
+#endif

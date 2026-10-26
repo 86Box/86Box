@@ -51,19 +51,17 @@
 
 /* ISO 9660 defines "both endian" data formats, which
    are stored as little endian followed by big endian. */
-#define VISO_LBE_16(p, x)                       \
-    {                                           \
-        *((uint16_t *) (p)) = cpu_to_le16((x)); \
-        (p) += 2;                               \
-        *((uint16_t *) (p)) = cpu_to_be16((x)); \
-        (p) += 2;                               \
+#define VISO_LBE_16(p, x)                \
+    {                                    \
+        AS_U16(p[0]) = cpu_to_le16((x)); \
+        AS_U16(p[2]) = cpu_to_be16((x)); \
+        (p) += 4;                        \
     }
-#define VISO_LBE_32(p, x)                       \
-    {                                           \
-        *((uint32_t *) (p)) = cpu_to_le32((x)); \
-        (p) += 4;                               \
-        *((uint32_t *) (p)) = cpu_to_be32((x)); \
-        (p) += 4;                               \
+#define VISO_LBE_32(p, x)                \
+    {                                    \
+        AS_U32(p[0]) = cpu_to_le32((x)); \
+        AS_U32(p[4]) = cpu_to_be32((x)); \
+        (p) += 8;                        \
     }
 
 #define VISO_SECTOR_SIZE COOKED_SECTOR_SIZE
@@ -106,11 +104,11 @@ typedef struct _viso_entry_ {
         uint8_t is_dir : 1;
         uint32_t size;
 #ifdef PLAT_DIR_HAS_BIRTHTIME
-        time_t birthtime;
+        int64_t birthtime;
 #endif
-        time_t mtime;
-        time_t atime;
-        time_t ctime;
+        int64_t mtime;
+        int64_t atime;
+        int64_t ctime;
     } stats;
 
     struct _viso_entry_ *parent, *next, *next_dir, *first_child;
@@ -134,7 +132,8 @@ typedef struct {
 
 static const char rr_eid[]   = "RRIP_1991A"; /* identifiers used in ER field for Rock Ridge */
 static const char rr_edesc[] = "THE ROCK RIDGE INTERCHANGE PROTOCOL PROVIDES SUPPORT FOR POSIX FILE SYSTEM SEMANTICS.";
-static int8_t     tz_offset  = 0;
+static int        tz_offset_sec = 0;
+static int8_t     tz_offset_iso = 0;
 
 #ifdef IMAGE_VISO_LOG
 int image_viso_do_log = IMAGE_VISO_LOG;
@@ -319,26 +318,31 @@ VISO_WRITE_STR_FUNC(viso_write_wstring, uint16_t, uint16_t, cpu_to_be16)
 static int
 viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries)
 {
+    /* Trim leading dots. */
+    const char *basename = entry->basename;
+    while (basename[0] == '.')
+        basename++;
+
     /* Get name and extension length. */
-    const char *ext_pos = strrchr(entry->basename, '.');
-    int         name_len;
-    int         ext_len;
+    const char *ext_pos = strrchr(basename, '.');
+    size_t      name_len;
+    size_t      ext_len;
     if (ext_pos) {
-        name_len = ext_pos - entry->basename;
+        name_len = ext_pos - basename;
         ext_len  = strlen(ext_pos);
     } else {
-        name_len = strlen(entry->basename);
+        name_len = strlen(basename);
         ext_len  = 0;
     }
 
     /* Copy name. */
     int name_copy_len = MIN(8, name_len);
-    viso_write_string((uint8_t *) data, entry->basename, name_copy_len, VISO_CHARSET_D);
+    viso_write_string((uint8_t *) data, basename, name_copy_len, VISO_CHARSET_D);
     data[name_copy_len] = '\0';
 
     /* Copy extension to temporary buffer. */
     char ext[5]     = { 0 };
-    int  force_tail = (name_len > 8) || (ext_len == 1);
+    int  force_tail = (name_len > 8) || (ext_len == 1) || (basename != entry->basename);
     if (ext_len > 1) {
         ext[0] = '.';
         if (ext_len > 4) {
@@ -354,13 +358,13 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
         /* Add tail to the filename if this is not the first run. */
         int tail_len = -1;
         if (i) {
-            tail_len = sprintf(tail, "~%d", i);
-            strcpy(&data[MIN(name_copy_len, 8 - tail_len)], tail);
+            tail_len = snprintf(tail, sizeof(tail), "~%d", i);
+            memcpy(&data[MIN(name_copy_len, 8 - tail_len)], tail, (size_t) tail_len + 1);
         }
 
         /* Add extension to the filename if present. */
         if (ext[0])
-            strcat(data, ext);
+            memcpy(&data[strlen(data)], ext, strlen(ext) + 1);
 
         /* Go through files in this directory to make sure this filename is unique. */
         for (size_t j = 0; entries[j] != entry; j++) {
@@ -381,7 +385,7 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
 static size_t
 viso_fill_fn_rr(uint8_t *data, const viso_entry_t *entry, size_t max_len)
 {
-    /* Trim filename to max_len if needed. */
+    /* Trim filename to max_len if required. */
     size_t len = strlen(entry->basename);
     if (len > max_len) {
         viso_write_string(data, entry->basename, max_len, VISO_CHARSET_FN);
@@ -412,7 +416,7 @@ viso_fill_fn_joliet(uint16_t *data, const viso_entry_t *entry, size_t max_len) /
     uint16_t utf8dec[len + 1];
     len = viso_convert_utf8(utf8dec, entry->basename, len + 1);
 
-    /* Trim decoded filename to max_len if needed. */
+    /* Trim decoded filename to max_len if required. */
     max_len /= 2;
     if (len > max_len) {
         viso_write_wstring(data, utf8dec, max_len, VISO_CHARSET_FN);
@@ -442,66 +446,63 @@ viso_fill_fn_joliet(uint16_t *data, const viso_entry_t *entry, size_t max_len) /
 }
 
 static int
-viso_fill_time(uint8_t *data, time_t time, int format, int longform)
+viso_fill_time(uint8_t *data, int64_t time, int format, int longform)
 {
-    uint8_t   *p      = data;
-    struct tm time_s_buf;
-    struct tm *time_s = NULL;
-    time_t epoch      = 0;
+    /* Get time. */
+    time += tz_offset_sec;
+    int64_t secs = time % 86400;
+    int64_t days = time / 86400;
+    if (UNLIKELY(secs < 0)) {
+        secs += 86400;
+        days -= 1;
+    }
+    int hour = secs / 3600;
+    int min  = (secs % 3600) / 60;
+    int sec  = secs % 60;
+    int csec = 0;
 
-#ifdef _WIN32
-    if (localtime_s(&time_s_buf, &time) == 0)
-        time_s = &time_s_buf;
-#else
-    time_s = localtime_r(&time, &time_s_buf);
-#endif
+    /* Get date.
+       Based on: https://howardhinnant.github.io/date_algorithms.html#civil_from_days */
+    days += 719468;
+    int64_t era  = (LIKELY(days >= 0) ? days : (days - 146096)) / 146097;
+    int64_t doe  = days - (era * 146097);
+    int64_t yoe  = (doe - (doe / 1460) + (doe / 36524) - (doe / 146096)) / 365;
+    int64_t doy  = doe - ((365 * yoe) + (yoe / 4) - (yoe / 100));
+    int64_t mp   = ((5 * doy) + 2) / 153;
+    int     day  = doy - (((153 * mp) + 2) / 5) + 1;
+    int     mon  = mp + ((mp < 10) ? 3 : -9);
+    int     year = yoe + (era * 400) + (mon <= 2);
 
-    if (!time_s) {
-        /* localtime may return NULL if time is negative or out of range */
-#ifdef _WIN32
-        if (localtime_s(&time_s_buf, &epoch) == 0)
-            time_s = &time_s_buf;
-#else
-        time_s = localtime_r(&epoch, &time_s_buf);
-#endif
-        if (!time_s)
-            fatal("VISO: localtime fallback to epoch failed\n");
-
-        /* Force year clamping for out-of-range times */
-        if (time < (longform ? -62135596800LL : -2208988800LL)) /* 0001-01-01 00:00:00 : 1900-01-01 00:00:00 */
-            time_s->tm_year = -1901;
-        else if (time > (longform ? 253402300799LL : 5869583999LL)) /* 9999-12-31 23:59:59 : 2155-12-31 23:59:59 */
-            time_s->tm_year = 8100;
+    /* Clamp to supported ranges. */
+    if (UNLIKELY(year < (UNLIKELY(longform) ? 0 : 1900))) {
+        year = UNLIKELY(longform) ? 0 : 1900;
+        mon  = day = 1;
+        hour = min = sec = 0;
+    } else if (UNLIKELY(year > (UNLIKELY(longform) ? 9999 : 2155))) {
+        year = UNLIKELY(longform) ? 9999 : 2155;
+        mon  = 12;
+        day  = 31;
+        hour = 23;
+        min  = sec = 59;
+        csec = 99;
     }
 
-    /* Clamp year within supported ranges */
-    if (time_s->tm_year < (longform ? -1900 : 0)) {
-        time_s->tm_year = longform ? -1900 : 0;
-        time_s->tm_mon = time_s->tm_hour = time_s->tm_min = time_s->tm_sec = 0;
-        time_s->tm_mday                                                    = 1;
-    } else if (time_s->tm_year > (longform ? 8099 : 255)) {
-        time_s->tm_year = longform ? 8099 : 255;
-        time_s->tm_mon  = 11;
-        time_s->tm_mday = 31;
-        time_s->tm_hour = 23;
-        time_s->tm_min = time_s->tm_sec = 59;
-    }
-
-    /* Convert timestamp */
-    if (longform) {
-        p += sprintf((char *)p, "%04u%02u%02u%02u%02u%02u00",
-                     1900 + (unsigned)time_s->tm_year, 1 + time_s->tm_mon, time_s->tm_mday,
-                     time_s->tm_hour, time_s->tm_min, time_s->tm_sec);
+    /* Generate timestamp. */
+    uint8_t *p = data;
+    if (UNLIKELY(longform)) {
+        p += 16;
+        snprintf((char *) data, p - data + 1, "%04u%02u%02u%02u%02u%02u%02u",
+                 year, mon, day, hour, min, sec, csec);
     } else {
-        *p++ = (uint8_t)time_s->tm_year;    /* year since 1900 */
-        *p++ = (uint8_t)(1 + time_s->tm_mon); /* month */
-        *p++ = (uint8_t)time_s->tm_mday;    /* day */
-        *p++ = (uint8_t)time_s->tm_hour;    /* hour */
-        *p++ = (uint8_t)time_s->tm_min;     /* minute */
-        *p++ = (uint8_t)time_s->tm_sec;     /* second */
+        *p++ = (uint8_t) (year - 1900); /* year since 1900 */
+        *p++ = (uint8_t) mon;           /* month */
+        *p++ = (uint8_t) day;           /* day */
+        *p++ = (uint8_t) hour;          /* hour */
+        *p++ = (uint8_t) min;           /* minute */
+        *p++ = (uint8_t) sec;           /* second */
     }
-    if (format & VISO_FORMAT_ISO)
-        *p++ = tz_offset; /* timezone (ISO only) */
+    if (LIKELY(format & VISO_FORMAT_ISO))
+        *p++ = tz_offset_iso; /* timezone (ISO only) */
 
     return p - data;
 }
@@ -590,7 +591,7 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, viso_t *viso, int type)
                     *p++ = 2; /* length (added to later) */
                     *p++ = 1; /* version */
 
-                    *p++ = times; /* flags */
+                    *p++ = times; /* flags (implementation note: longform times are broken in Linux <6.16) */
 #ifdef PLAT_DIR_HAS_BIRTHTIME
                     if (times & (1 << 0))
                         p += viso_fill_time(p, entry->stats.birthtime, viso->format, 0); /* creation */
@@ -637,9 +638,13 @@ pad_susp:
     }
 
     if (UNLIKELY((p - data) > 255))
+#ifdef IMAGE_VISO_LOG
         fatal("VISO: Directory record overflow (%" PRIuPTR ") on entry %08" PRIXPTR "\n", (uintptr_t) (p - data), (uintptr_t) entry);
-
-    data[0] = p - data; /* length */
+#else
+        data[0] = 255;
+#endif
+    else
+        data[0] = p - data; /* length */
     return data[0];
 }
 
@@ -727,7 +732,7 @@ viso_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
                     return -1;
             }
 
-            /* Fill remainder with 00 bytes if needed. */
+            /* Fill remainder with 00 bytes if required. */
             if (read < sector_remain)
                 memset(buffer + read, 0x00, sector_remain - read);
         }
@@ -764,9 +769,10 @@ viso_close(void *priv)
     /* De-allocate everything. */
     if (tf->fp)
         fclose(tf->fp);
-#ifndef IMAGE_VISO_LOG
-    remove(nvr_path(viso->tf.fn));
+#ifdef IMAGE_VISO_LOG
+    if (stricmp(path_get_extension(viso->tf.fn), "iso"))
 #endif
+        remove(nvr_path(viso->tf.fn));
 
     viso_entry_t *entry = viso->root_dir;
     viso_entry_t *next_entry;
@@ -803,7 +809,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
 
     char n[1024]        = { 0 };
 
-    sprintf(n, "CD-ROM %i VISO ", id + 1);
+    snprintf(n, sizeof(n), "CD-ROM %i VISO ", id + 1);
     viso->tf.log        = log_open(n);
 
     image_viso_log(viso->tf.log, "init()\n");
@@ -819,10 +825,11 @@ viso_init(const uint8_t id, const char *dirname, int *error)
 
         /* Open temporary file. */
 #ifdef IMAGE_VISO_LOG
-    strcpy(viso->tf.fn, "viso-debug.iso");
-#else
-    plat_tempfile(viso->tf.fn, "viso", ".tmp");
+    if (image_viso_do_log)
+        memcpy(viso->tf.fn, "viso-debug.iso", sizeof("viso-debug.iso"));
+    else
 #endif
+        plat_tempfile(viso->tf.fn, "viso", ".tmp");
     viso->tf.fp = plat_fopen64(nvr_path(viso->tf.fn), "w+b");
     if (!viso->tf.fp)
         goto end;
@@ -837,43 +844,46 @@ viso_init(const uint8_t id, const char *dirname, int *error)
     const viso_entry_t  *eltorito_entry = NULL;
     int                  len;
     int                  eltorito_others_present = 0;
-    size_t               dir_path_len;
     uint64_t             eltorito_offset = 0;
     uint8_t              eltorito_type   = 0;
 
     /* Fill root directory entry. */
-    dir_path_len = strlen(dirname);
-    last_entry = dir = last_dir = viso->root_dir = (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + dir_path_len + 1);
+    size_t dir_path_buf_size = strlen(dirname) + 1;
+    last_entry = dir = last_dir = viso->root_dir = (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + dir_path_buf_size);
     if (!dir)
         goto end;
-    strcpy(dir->path, dirname);
+    memcpy(dir->path, dirname, dir_path_buf_size);
     dir->parent = dir; /* for the root's path table and .. entries */
     image_viso_log(viso->tf.log, "[%08X] %s => [root]\n", dir, dir->path);
 
     /* Traverse directories, starting with the root. */
-    plat_dir_t     context;
+    plat_dir_t     context         = PLAT_DIR_INIT;
     viso_entry_t **dir_entries     = NULL;
     size_t         dir_entries_len = 0;
-    while (LIKELY(dir != NULL)) {
+    while (LIKELY(dir)) {
         /* Open directory for listing. */
         int    have_dir       = plat_dir_open(&context, dir->path);
-        size_t children_count = 3; /* include terminator, . and .. */
+        size_t children_count = 2; /* include . and .. (terminator is the +1 when allocating) */
         if (UNLIKELY(dir == viso->root_dir)) {
             /* Handle root directory. */
-            if (have_dir && plat_dir_is_dir(&context))
+            if (have_dir && plat_dir_is_dir(&context)) {
                 viso_fill_stats(dir, &context, viso->format); /* populate stats */
-            else
+            } else {
+                plat_dir_close(&context);
                 goto end; /* not a directory */
+            }
         }
         if (LIKELY(have_dir)) {
             /* Determine the entry array size. */
             children_count += plat_dir_count_children(&context);
         }
 
-        /* Grow array if needed. */
+        /* Grow array if required. */
         if (children_count > dir_entries_len) {
-            viso_entry_t **new_dir_entries = (viso_entry_t **) realloc(dir_entries, children_count * sizeof(viso_entry_t *));
-            if (new_dir_entries) {
+            viso_entry_t **new_dir_entries = (viso_entry_t **) malloc((children_count + 1) * sizeof(viso_entry_t *));
+            if (LIKELY(new_dir_entries)) {
+                if (LIKELY(dir_entries))
+                    free(dir_entries);
                 dir_entries     = new_dir_entries;
                 dir_entries_len = children_count;
             } else {
@@ -890,27 +900,42 @@ viso_init(const uint8_t id, const char *dirname, int *error)
             if (!children_count)
                 dir->first_child = entry;
 
-            /* Copy stats the current directory or parent directory. */
+            /* Copy stats from the current directory or parent directory. */
             memcpy(&entry->stats, !children_count ? &dir->stats : &dir->parent->stats, sizeof(entry->stats));
 
             /* Set basename. */
-            strcpy(entry->name_short, !children_count ? "." : "..");
+            entry->name_short[0] = '.';
+            if (children_count)
+                entry->name_short[1] = '.';
 
             image_viso_log(viso->tf.log, "[%08X] %s => %s\n", entry,
                            dir->path, entry->name_short);
         }
 
         /* Iterate through this directory's children again, making the entries. */
-        if (have_dir) {
+        if (LIKELY(have_dir)) {
             while (plat_dir_read(&context)) {
+                /* Grow array if the original size is inaccurate. */
+                if (UNLIKELY(children_count >= dir_entries_len)) {
+                    size_t         new_entries_len = children_count + 1;
+                    viso_entry_t **new_dir_entries = (viso_entry_t **) realloc(dir_entries, (new_entries_len + 1) * sizeof(viso_entry_t *));
+                    if (LIKELY(new_dir_entries)) {
+                        dir_entries     = new_dir_entries;
+                        dir_entries_len = new_entries_len;
+                    } else {
+                        break;
+                    }
+                }
+
                 /* Add and fill entry. */
                 const char *path = plat_dir_get_path(&context);
-                entry = dir_entries[children_count++] =
-                    (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + strlen(path) + 1);
+                size_t path_buf_size = strlen(path) + 1;
+                entry = dir_entries[children_count] =
+                    (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + path_buf_size);
                 if (entry == NULL)
-                    break;
+                    continue;
                 entry->parent = dir;
-                strcpy(entry->path, path);
+                memcpy(entry->path, path, path_buf_size);
                 entry->basename = &entry->path[context.path_dir_len + 1];
 
                 /* Populate stats. */
@@ -964,10 +989,10 @@ have_eltorito_entry:
                 /* Set short filename and skip this file if it couldn't be disambiguated. */
                 if (viso_fill_fn_short(entry->name_short, entry, dir_entries)) {
                     free(entry);
-                    children_count--;
                     continue;
                 }
 
+                children_count++;
                 image_viso_log(viso->tf.log, "[%08X] %s => [%-12s] %s\n", entry,
                                dir->path, entry->name_short, entry->basename);
             }
@@ -995,10 +1020,9 @@ have_eltorito_entry:
 
 next_dir:
         /* Move on to the next directory. */
-        if (have_dir)
-            plat_dir_close(&context);
         dir = dir->next_dir;
     }
+    plat_dir_close(&context);
     if (dir_entries)
         free(dir_entries);
 
@@ -1013,16 +1037,23 @@ next_dir:
     struct tm now_tm;
     if (viso->format & VISO_FORMAT_ISO) { /* timezones are ISO only */
 #ifdef _WIN32
-        gmtime_s(&now_tm, &now);  // Windows: output first param, input second
+        gmtime_s(&now_tm, &now);  /* Windows: output first param, input second */
 #else
-        gmtime_r(&now, &now_tm);  // POSIX: input first param, output second
+        gmtime_r(&now, &now_tm);  /* POSIX: input first param, output second */
 #endif
-        tz_offset = (now - mktime(&now_tm)) / (3600 / 4);
+        tz_offset_sec = now - mktime(&now_tm);
+        tz_offset_iso = tz_offset_sec / 900; /* 15-minute interval */
     }
 
     /* Get root directory basename for the volume ID. */
-    const char *basename = path_get_filename(viso->root_dir->path);
-    if (!basename || (basename[0] == '\0'))
+    char  *volume_path    = viso->root_dir->path;
+    size_t path_len       = strlen(volume_path);
+    while ((path_len > 0) && ((volume_path[path_len - 1] == '/') || (volume_path[path_len - 1] == '\\')))
+        path_len--;
+    char saved_trailer    = volume_path[path_len];
+    volume_path[path_len] = '\0';
+    const char *basename  = path_get_filename(volume_path);
+    if (!basename || !basename[0])
         basename = EMU_NAME;
 
     /* Determine whether or not we're working with 2 volume descriptors
@@ -1084,7 +1115,7 @@ next_dir:
         int copyright_abstract_len = (viso->format & VISO_FORMAT_ISO) ? 37 : 32;
         if (i) {
             uint16_t wtemp[64];
-            wtemp[0] = 0;
+            wtemp[0] = '\0';
             viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_D); /* volume set ID */
             p += 128;
             viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_A); /* publisher ID */
@@ -1094,7 +1125,7 @@ next_dir:
             viso_convert_utf8(wtemp, EMU_NAME " " EMU_VERSION " VIRTUAL ISO", 64);
             viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_A); /* application ID */
             p += 128;
-            wtemp[0] = 0;
+            wtemp[0] = '\0';
             viso_write_wstring((uint16_t *) p, wtemp, copyright_abstract_len >> 1, VISO_CHARSET_D); /* copyright file ID */
             p += copyright_abstract_len;
             viso_write_wstring((uint16_t *) p, wtemp, copyright_abstract_len >> 1, VISO_CHARSET_D); /* abstract file ID */
@@ -1123,7 +1154,7 @@ next_dir:
         }
 
         len = viso_fill_time(p, now, viso->format, 1); /* volume created */
-        memcpy(p + len, p, len);                       /* volume modified */
+        memcpy(&p[len], p, len);                       /* volume modified */
         p += len * 2;
         VISO_SKIP(p, len * 2); /* volume expires/effective */
 
@@ -1167,6 +1198,7 @@ next_dir:
             fwrite(data, viso->sector_size, 1, viso->tf.fp);
         }
     }
+    volume_path[path_len] = saved_trailer;
 
     /* Fill terminator. */
     p = data;
@@ -1195,7 +1227,7 @@ next_dir:
     /* Handle El Torito boot catalog. */
     if (eltorito_entry) {
         /* Write a pointer to this boot catalog to the boot descriptor. */
-        *((uint32_t *) data) = cpu_to_le32(ftello64(viso->tf.fp) / viso->sector_size);
+        AS_U32(data[0]) = cpu_to_le32(ftello64(viso->tf.fp) / viso->sector_size);
         viso_pwrite(data, eltorito_offset, 4, 1, viso->tf.fp);
 
         /* Fill boot catalog validation entry. */
@@ -1204,9 +1236,9 @@ next_dir:
         *p++ = 0x00; /* platform */
         *p++ = 0x00; /* reserved */
         *p++ = 0x00;
-        VISO_SKIP(p, 24);
-        strncpy((char *) (p - 24), EMU_NAME, 24); /* ID string */
-        *p++ = 0x00;                              /* checksum */
+        viso_write_string(p, EMU_NAME, 24, VISO_CHARSET_ANY); /* ID string */
+        p += 24;
+        *p++ = 0x00; /* checksum */
         *p++ = 0x00;
         *p++ = 0x55; /* key bytes */
         *p++ = 0xaa;
@@ -1256,14 +1288,14 @@ next_dir:
         uint64_t pt_start = ftello64(viso->tf.fp);
 
         /* Write this table's sector offset to the corresponding volume descriptor. */
-        uint32_t pt_temp     = pt_start / viso->sector_size;
-        *((uint32_t *) data) = (i & 1) ? cpu_to_be32(pt_temp) : cpu_to_le32(pt_temp);
+        uint32_t pt_temp = pt_start / viso->sector_size;
+        AS_U32(data[0])  = (i & 1) ? cpu_to_be32(pt_temp) : cpu_to_le32(pt_temp);
         viso_pwrite(data, viso->pt_meta_offsets[i >> 1] + 8 + (8 * (i & 1)), 4, 1, viso->tf.fp);
 
         /* Go through directories. */
         dir             = viso->root_dir;
         uint16_t pt_idx = 1;
-        while (LIKELY(dir != NULL)) {
+        while (LIKELY(dir)) {
             /* Ignore . and .. pseudo-directories, and hide the El Torito
                boot code directory if no other files are present in it. */
             if ((dir->name_short[0] == '.' && (dir->name_short[1] == '\0' || (dir->name_short[1] == '.' && dir->name_short[2] == '\0'))) || (dir == eltorito_dir)) {
@@ -1282,7 +1314,7 @@ next_dir:
             /* Fill path table entry. */
             p = data;
             if (!(viso->format & VISO_FORMAT_ISO)) {
-                *((uint32_t *) p) = 0; /* extent location (filled in later) */
+                AS_U32(p[0]) = 0; /* extent location (filled in later) */
                 p += 4;
                 *p++ = 0; /* extended attribute length */
                 p++;      /* skip ID length for now */
@@ -1290,11 +1322,11 @@ next_dir:
                 p++;      /* skip ID length for now */
                 *p++ = 0; /* extended attribute length */
                 dir->pt_offsets[i] += p - data;
-                *((uint32_t *) p) = 0; /* extent location (filled in later) */
+                AS_U32(p[0]) = 0; /* extent location (filled in later) */
                 p += 4;
             }
 
-            *((uint16_t *) p) = (i & 1) ? cpu_to_be16(dir->parent->pt_idx) : cpu_to_le16(dir->parent->pt_idx); /* parent directory number */
+            AS_U16(p[0]) = (i & 1) ? cpu_to_be16(dir->parent->pt_idx) : cpu_to_le16(dir->parent->pt_idx); /* parent directory number */
             p += 2;
 
             pt_temp = 5 * !(viso->format & VISO_FORMAT_ISO); /* directory ID length at offset 0 for ISO, 5 for HSF */
@@ -1345,7 +1377,7 @@ next_dir:
 
         /* Go through directories. */
         dir = viso->root_dir;
-        while (LIKELY(dir != NULL)) {
+        while (LIKELY(dir)) {
             /* Hide the El Torito boot code directory if no other files are present in it. */
             if (UNLIKELY(dir == eltorito_dir)) {
                 dir = dir->next_dir;
@@ -1378,7 +1410,7 @@ next_dir:
 
             /* Go through entries in this directory. */
             entry = dir->first_child;
-            while (LIKELY(entry != NULL)) {
+            while (LIKELY(entry)) {
                 /* Skip the El Torito boot code entry if present, or hide the
                    boot code directory if no other files are present in it. */
                 if (UNLIKELY((entry == eltorito_entry) || (entry == eltorito_dir)))
@@ -1392,7 +1424,7 @@ next_dir:
                 /* Fill directory record. */
                 viso_fill_dir_record(data, entry, viso, dir_type);
 
-                /* Entries cannot cross sector boundaries, so pad to the next sector if needed. */
+                /* Entries cannot cross sector boundaries, so pad to the next sector if required. */
                 write = viso->sector_size - (ftello64(viso->tf.fp) % viso->sector_size);
                 if (write < data[0]) {
                     p = data + (viso->sector_size * 2) - write;
@@ -1474,7 +1506,7 @@ next_entry:
             size_t orig_entry_map_size = viso->entry_map_size;
             viso->entry_map_size       = 0;
             entry                      = viso->root_dir;
-            while (LIKELY(entry != NULL)) {
+            while (LIKELY(entry)) {
                 if (!entry->stats.is_dir) {
                     viso->entry_map_size += entry->stats.size / viso->sector_size;
                     if (entry->stats.size % viso->sector_size)
@@ -1501,7 +1533,7 @@ next_entry:
     viso_entry_t *prev_entry   = viso->root_dir;
     viso_entry_t **entry_map_p = viso->entry_map;
     entry                      = prev_entry->next;
-    while (LIKELY(entry != NULL)) {
+    while (LIKELY(entry)) {
         /* Skip this entry if it corresponds to a directory. */
         if (entry->stats.is_dir) {
             /* Deallocate directory entries to save some memory. */
@@ -1575,9 +1607,10 @@ next_entry:
     /* We no longer need the temporary file; close and delete it. */
     fclose(viso->tf.fp);
     viso->tf.fp = NULL;
-#ifndef IMAGE_VISO_LOG
-    remove(nvr_path(viso->tf.fn));
+#ifdef IMAGE_VISO_LOG
+    if (stricmp(path_get_extension(viso->tf.fn), "iso"))
 #endif
+        remove(nvr_path(viso->tf.fn));
 
     /* All good. */
     *error = 0;

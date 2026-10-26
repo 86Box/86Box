@@ -18,6 +18,7 @@
 #include "qt_mainwindow.hpp"
 
 #include <QDialog>
+#include <QStandardItemModel>
 #include <QTranslator>
 #include <QDebug>
 #include <QKeySequence>
@@ -41,8 +42,6 @@ extern "C" {
 
 extern MainWindow *main_window;
 
-accelKey org_acc_keys_t[NUM_ACCELS];
-
 // Temporary working copy of key list
 accelKey acc_keys_t[NUM_ACCELS];
 
@@ -52,36 +51,23 @@ PreferencesKeyBindings::PreferencesKeyBindings(QWidget *parent)
 {
     ui->setupUi(this);
 
-    QStringList horizontalHeader;
-    QStringList verticalHeader;
+    QAbstractItemModel *model = new QStandardItemModel(0, 2, this);
 
-    horizontalHeader.append(tr("Action"));
-    horizontalHeader.append(tr("Keybind"));
+    model->setHeaderData(0, Qt::Horizontal, tr("Action"));
+    model->setHeaderData(1, Qt::Horizontal, tr("Keybind"));
+    ui->treeViewKeys->setModel(model);
 
-    QTableWidget *keyTable = ui->tableKeys;
-    keyTable->setRowCount(NUM_ACCELS);
-    for (int i = 0; i < NUM_ACCELS; i++)
-        keyTable->setRowHeight(i, 25);
-    keyTable->setColumnCount(3);
-    keyTable->setColumnHidden(2, true);
-    keyTable->setColumnWidth(0, 200);
-    keyTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    QStringList headers;
-    // headers << "Action" << "Bound key";
-    keyTable->setHorizontalHeaderLabels(horizontalHeader);
-    keyTable->verticalHeader()->setVisible(false);
-    keyTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    keyTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    keyTable->setSelectionMode(QAbstractItemView::SingleSelection);
-    keyTable->setShowGrid(true);
+    model->insertRows(0, NUM_ACCELS);
+    ui->treeViewKeys->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+
+    connect(ui->treeViewKeys->selectionModel(), &QItemSelectionModel::currentRowChanged,
+            this, &PreferencesKeyBindings::onKeyBindingsRowChanged);
+    ui->treeViewKeys->setCurrentIndex(model->index(0, 0));
 
     // Make a working copy of acc_keys so we can check for dupes later without getting
     // confused
-    for (int x = 0; x < NUM_ACCELS; x++) {
-        strcpy(acc_keys_t[x].name, acc_keys[x].name);
-        strcpy(acc_keys_t[x].desc, acc_keys[x].desc);
+    for (int x = 0; x < NUM_ACCELS; x++)
         strcpy(acc_keys_t[x].seq, acc_keys[x].seq);
-    }
 
     refreshInputList();
 }
@@ -95,30 +81,29 @@ void
 PreferencesKeyBindings::save()
 {
     // Copy accelerators from working set to global set
-    for (int x = 0; x < NUM_ACCELS; x++) {
-        strcpy(acc_keys[x].name, acc_keys_t[x].name);
-        strcpy(acc_keys[x].desc, acc_keys_t[x].desc);
+    for (int x = 0; x < NUM_ACCELS; x++)
         strcpy(acc_keys[x].seq, acc_keys_t[x].seq);
-    }
     Preferences::reloadStrings();
 }
 
 void
 PreferencesKeyBindings::refreshInputList()
 {
+    auto *model = ui->treeViewKeys->model();
+
     for (int x = 0; x < NUM_ACCELS; x++) {
-        ui->tableKeys->setItem(x, 0, new QTableWidgetItem(tr(acc_keys_t[x].desc)));
-        ui->tableKeys->setItem(x, 1, new QTableWidgetItem(QKeySequence(acc_keys_t[x].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText)));
-        ui->tableKeys->setItem(x, 2, new QTableWidgetItem(acc_keys_t[x].name));
+        QModelIndex idx = model->index(x, 0);
+        model->setData(idx, tr(acc_keys[x].desc));
+        model->setData(idx, QString(acc_keys[x].name), Qt::UserRole);
+        model->setData(idx.siblingAtColumn(1), QKeySequence(acc_keys_t[x].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText));
     }
+    ui->treeViewKeys->resizeColumnToContents(0);
 }
 
 void
-PreferencesKeyBindings::on_tableKeys_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn)
+PreferencesKeyBindings::onKeyBindingsRowChanged(const QModelIndex &current)
 {
-    // Enable/disable bind/clear buttons if user clicked valid row
-    QTableWidgetItem *cell = ui->tableKeys->item(currentRow, 1);
-    if (!cell) {
+    if (!current.isValid()) {
         ui->pushButtonBind->setEnabled(false);
         ui->pushButtonClearBind->setEnabled(false);
     } else {
@@ -128,40 +113,42 @@ PreferencesKeyBindings::on_tableKeys_currentCellChanged(int currentRow, int curr
 }
 
 void
-PreferencesKeyBindings::on_tableKeys_cellDoubleClicked(int row, int col)
+PreferencesKeyBindings::on_treeViewKeys_doubleClicked(const QModelIndex &idx)
 {
     // Edit bind
-    QTableWidgetItem *cell = ui->tableKeys->item(row, 1);
-    if (!cell)
+    if (!idx.isValid())
         return;
 
-    QKeySequence keyseq = KeyBinder::BindKey(this, cell->text());
+    auto        *model      = ui->treeViewKeys->model();
+    QString      keyseqText = model->data(idx.siblingAtColumn(1)).toString();
+    QKeySequence keyseq     = KeyBinder::BindKey(this, keyseqText);
     if (keyseq != false) {
         // If no change was made, don't change anything.
-        if (keyseq.toString(QKeySequence::NativeText) == cell->text())
+        if (keyseq.toString(QKeySequence::NativeText) == keyseqText)
             return;
 
         // Otherwise, check for conflicts.
         // Check against the *working* copy - NOT the one in use by the app,
         // so we don't test against shortcuts the user already changed.
         for (int x = 0; x < NUM_ACCELS; x++) {
-            if (QString::fromStdString(acc_keys_t[x].seq) == keyseq.toString(QKeySequence::PortableText)) {
+            if (QString(acc_keys_t[x].seq) == keyseq.toString(QKeySequence::PortableText)) {
                 // That key is already in use
                 QMessageBox::warning(this, tr("Bind conflict"), tr("This key combo is already in use."), QMessageBox::StandardButton::Ok);
                 return;
             }
         }
+
         // If we made it here, there were no conflicts.
         // Go ahead and apply the bind.
 
         // Find the correct accelerator key entry
-        int accKeyID = FindAccelerator(ui->tableKeys->item(row, 2)->text().toUtf8().constData());
+        int accKeyID = FindAccelerator(model->data(idx.siblingAtColumn(0), Qt::UserRole).toString().toUtf8().constData());
         if (accKeyID < 0)
             return; // this should never happen
 
         // Make the change
-        cell->setText(keyseq.toString(QKeySequence::NativeText));
-        strcpy(acc_keys_t[accKeyID].seq, keyseq.toString(QKeySequence::PortableText).toUtf8().constData());
+        model->setData(idx.siblingAtColumn(1), keyseq.toString(QKeySequence::NativeText));
+        strncpy(acc_keys_t[accKeyID].seq, keyseq.toString(QKeySequence::PortableText).toUtf8().constData(), sizeof(acc_keys_t[accKeyID].seq) - 1);
 
         refreshInputList();
     }
@@ -171,28 +158,29 @@ void
 PreferencesKeyBindings::on_pushButtonBind_clicked()
 {
     // Edit bind
-    QTableWidgetItem *cell = ui->tableKeys->currentItem();
-    if (!cell)
+    auto idx = ui->treeViewKeys->selectionModel()->currentIndex();
+    if (!idx.isValid())
         return;
 
-    on_tableKeys_cellDoubleClicked(cell->row(), cell->column());
+    on_treeViewKeys_doubleClicked(idx);
 }
 
 void
 PreferencesKeyBindings::on_pushButtonClearBind_clicked()
 {
     // Wipe bind
-    QTableWidgetItem *cell = ui->tableKeys->item(ui->tableKeys->currentRow(), 1);
-    if (!cell)
+    auto idx = ui->treeViewKeys->selectionModel()->currentIndex();
+    if (!idx.isValid())
         return;
 
-    cell->setText("");
+    auto *model = ui->treeViewKeys->model();
+    model->setData(idx.siblingAtColumn(1), "");
+
     // Find the correct accelerator key entry
-    int accKeyID = FindAccelerator(ui->tableKeys->item(cell->row(), 2)->text().toUtf8().constData());
+    int accKeyID = FindAccelerator(model->data(idx.siblingAtColumn(0), Qt::UserRole).toString().toUtf8().constData());
     if (accKeyID < 0)
         return; // this should never happen
 
     // Make the change
-    cell->setText("");
     strcpy(acc_keys_t[accKeyID].seq, "");
 }

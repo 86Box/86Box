@@ -196,7 +196,7 @@ char_loopback_init(const device_t *info)
         dev->type = 0;
 
     /* Determine the required callbacks for this device type. */
-    char_loopback_bits_t have;
+    char_loopback_bits_t have = { 0 };
     for (int i = 0; char_loopback_types[dev->type].bits[i].data_tx || char_loopback_types[dev->type].bits[i].control; i++) {
         if (char_loopback_types[dev->type].bits[i].data_tx)
             have.data_tx = 1;
@@ -224,7 +224,7 @@ char_loopback_init(const device_t *info)
 const device_t char_loopback_com_device = {
     .name          = "Loopback Plug (COM)",
     .internal_name = "loopback",
-    .flags         = DEVICE_COM,
+    .flags         = DEVICE_COM | DEVICE_HOTPLUG,
     .local         = 0,
     .init          = char_loopback_init,
     .close         = char_loopback_close,
@@ -255,7 +255,7 @@ static const device_config_t char_loopback_lpt_config[] = {
 const device_t char_loopback_lpt_device = {
     .name          = "Loopback Plug (LPT)",
     .internal_name = "loopback",
-    .flags         = DEVICE_LPT,
+    .flags         = DEVICE_LPT | DEVICE_HOTPLUG,
     .local         = 0,
     .init          = char_loopback_init,
     .close         = char_loopback_close,

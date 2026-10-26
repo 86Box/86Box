@@ -37,7 +37,9 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/pci.h>
+#include <86box/sio.h>
 #include <86box/keyboard.h>
+#include "kbc_at_vectra.h"
 
 #define STAT_PARITY        0x80
 #define STAT_RTIMEOUT      0x40
@@ -64,6 +66,12 @@
 #define FLAG_CLOCK         0x01
 #define FLAG_CACHE         0x02
 #define FLAG_PS2           0x04
+
+/* Polls (100 us) before the first auxiliary byte can arrive after the interface
+   is enabled: the device must see its clock released and then clock 11 bits in
+   at 10-16.7 kHz, so a pending byte (e.g. its BAT) cannot land in the output
+   buffer before a command the host issues right after the enabling one. */
+#define AUX_ENABLE_DELAY   10
 
 enum {
     STATE_RESET = 0,       /* KBC reset state, only accepts command AA. */
@@ -104,6 +112,7 @@ typedef struct atkbc_t {
     uint8_t pending;
     uint8_t irq_state;
     uint8_t do_irq;
+    uint8_t aux_delay;
     uint8_t is_asic;
     uint8_t is_green;
     uint8_t kblock_switch;
@@ -132,6 +141,8 @@ typedef struct atkbc_t {
     pc_timer_t kbc_poll_timer;
     pc_timer_t kbc_dev_poll_timer;
 
+    pc_timer_t kbc_irq_timer;
+
     /* P2 pulse callback timer. */
     pc_timer_t pulse_cb;
 
@@ -145,6 +156,9 @@ typedef struct atkbc_t {
 
     uint8_t (*write_cmd_data_ven)(void *priv, uint8_t val);
     uint8_t (*write_cmd_ven)(void *priv, uint8_t val);
+
+    void (*p2_write_hook)(void *priv, uint8_t old_p2, uint8_t new_p2);
+    void *p2_priv;
 } atkbc_t;
 
 /* Keyboard controller ports. */
@@ -240,7 +254,8 @@ kbc_translate(atkbc_t *dev, uint8_t val)
 {
     int      xt_mode   = (dev->mem[0x20] & 0x20) && !(dev->misc_flags & FLAG_PS2);
     /* The IBM AT keyboard controller firmware does not apply translation in XT mode. */
-    int      translate = !xt_mode && ((dev->mem[0x20] & 0x40) || (dev->is_type2));
+    /* PS/2 (type 2) keyboard controllers never translate, the XLAT bit is ignored. */
+    int      translate = !xt_mode && !(dev->is_type2) && (dev->mem[0x20] & 0x40);
     uint8_t  kbc_ven   = dev->flags & KBC_VEN_MASK;
     int      ret       = - 1;
 
@@ -251,13 +266,13 @@ kbc_translate(atkbc_t *dev, uint8_t val)
         return ret;
     }
 
-    /* Skip break code if translated make code has bit 7 set. */
-    if (translate && (dev->sc_or == 0x80) && (nont_to_t[val] & 0x80)) {
-        kbc_at_log("ATkbc: translate is on, skipping scan code: %02X (original: F0 %02X)\n", nont_to_t[val], val);
-        dev->sc_or = 0;
-        return ret;
-    }
-
+    /* The byte after F0 is translated and gets bit 7 like any other, even
+       when it is not a key code. Response codes do not wait in the
+       keyboard's buffer, and a command such as ED is answered with ACK at
+       once (IBM PS/2 Hardware Interface Technical Reference, Keyboards
+       (101- and 102-Key), October 1990, p. 19 and 24 / PDF 23 and 28). So
+       an FA can follow the F0 of a break code, and the host is waiting for
+       that ACK. */
     kbc_at_log("ATkbc: translate is %s, ", translate ? "on" : "off");
 #ifdef ENABLE_KEYBOARD_AT_LOG
     kbc_at_log("scan code: ");
@@ -338,8 +353,10 @@ kbc_set_do_irq(atkbc_t *dev, uint8_t channel)
 }
 
 static void
-kbc_do_irq(atkbc_t *dev)
+kbc_at_irq(void *priv)
 {
+    atkbc_t *dev = (atkbc_t *) priv;
+
     if (dev->do_irq) {
         /* WARNING: On PS/2, all IRQ's are level-triggered, but the IBM PS/2 KBC firmware is explicitly
                     written to pulse its P2 IRQ bits, so they should be kept as as edge-triggered here. */
@@ -350,15 +367,28 @@ kbc_do_irq(atkbc_t *dev)
             picint_common(1 << dev->irq[1], 0, 0, NULL);
 
         if (dev->channel >= 2) {
-            if (dev->irq[1] != 0xffff)
+            if (dev->irq[1] != 0xffff) {
                 picint_common(1 << dev->irq[1], 0, 1, NULL);
+                fdc37mx0x_watchdog_reset_ext(2);
+            }
         } else {
-            if (dev->irq[0] != 0xffff)
+            if (dev->irq[0] != 0xffff) {
                 picint_common(1 << dev->irq[0], 0, 1, NULL);
+                fdc37mx0x_watchdog_reset_ext(1);
+            }
         }
 
         dev->do_irq = 0;
     }
+}
+
+static void
+kbc_do_irq(atkbc_t *dev)
+{
+    if (dev->is_asic)
+        kbc_at_irq(dev);
+    else
+        timer_set_delay_u64(&dev->kbc_irq_timer, 3ULL * TIMER_USEC);
 }
 
 static void
@@ -392,10 +422,13 @@ kbc_send_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
                 kbc_set_do_irq(dev, channel);
         } else if (dev->mem[0x20] & 0x01)
             kbc_set_do_irq(dev, channel);
-    } else if (dev->mem[0x20] & 0x01)
+    } else if (dev->mem[0x20] & 0x01) {
         /* AT KBC: IRQ 1 is level-triggered because it is tied to OBF. */
-        if (dev->irq[0] != 0xffff)
+        if (dev->irq[0] != 0xffff) {
             picintlevel(1 << dev->irq[0], &dev->irq_state);
+            fdc37mx0x_watchdog_reset_ext(1);
+        }
+    }
 
     kbc_do_irq(dev);
 
@@ -453,6 +486,17 @@ kbc_ibf_process(atkbc_t *dev)
         } else
             kbc_delay_to_ob(dev, 0xfe, 1, 0x40);
     }
+}
+
+static void
+kbc_param_take(atkbc_t *dev)
+{
+    /* Command written, abort current command. */
+    if (dev->status & STAT_CD)
+        dev->state = STATE_MAIN_IBF;
+
+    dev->status &= ~STAT_IFULL;
+    kbc_at_process_cmd(dev);
 }
 
 static void
@@ -552,14 +596,8 @@ at_main_ibf:
             break;
         case STATE_KBC_PARAM:
             /* Keyboard controller command wants data, wait for said data. */
-            if (dev->status & STAT_IFULL) {
-                /* Command written, abort current command. */
-                if (dev->status & STAT_CD)
-                    dev->state = STATE_MAIN_IBF;
-
-                dev->status &= ~STAT_IFULL;
-                kbc_at_process_cmd(dev);
-            }
+            if (dev->status & STAT_IFULL)
+                kbc_param_take(dev);
             break;
         case STATE_SEND_KBD:
             if (!dev->ports[0]->wantcmd)
@@ -597,6 +635,10 @@ kbc_scan_kbd_ps2(atkbc_t *dev)
 static int
 kbc_scan_aux_ps2(atkbc_t *dev)
 {
+    /* The device cannot have clocked a byte in yet if its interface was only just enabled. */
+    if (dev->aux_delay > 0)
+        return 0;
+
     if ((dev->ports[1] != NULL) && (dev->ports[1]->out_new != -1)) {
         kbc_at_log("ATkbc: %02X coming from channel 2\n", dev->ports[1]->out_new & 0xff);
         kbc_send_to_ob(dev, dev->ports[1]->out_new, 2, 0x00);
@@ -611,7 +653,12 @@ kbc_scan_aux_ps2(atkbc_t *dev)
 static void
 kbc_at_poll_ps2(atkbc_t *dev)
 {
-    kbc_do_irq(dev);
+    /* Keep the auxiliary transmit delay armed while the interface is disabled
+       (clock held low); count it down once the interface is enabled. */
+    if (dev->mem[0x20] & 0x20)
+        dev->aux_delay = AUX_ENABLE_DELAY;
+    else if (dev->aux_delay > 0)
+        dev->aux_delay--;
 
     switch (dev->state) {
         case STATE_RESET:
@@ -693,14 +740,8 @@ kbc_at_poll_ps2(atkbc_t *dev)
             break;
         case STATE_KBC_PARAM:
             /* Keyboard controller command wants data, wait for said data. */
-            if (dev->status & STAT_IFULL) {
-                /* Command written, abort current command. */
-                if (dev->status & STAT_CD)
-                    dev->state = STATE_MAIN_IBF;
-
-                dev->status &= ~STAT_IFULL;
-                kbc_at_process_cmd(dev);
-            }
+            if (dev->status & STAT_IFULL)
+                kbc_param_take(dev);
             break;
         case STATE_SEND_KBD:
             if (!dev->ports[0]->wantcmd)
@@ -788,6 +829,8 @@ write_p2(atkbc_t *dev, uint8_t val)
     }
 
     /* Do this here to avoid an infinite reset loop. */
+    if (dev->p2_write_hook != NULL)
+        dev->p2_write_hook(dev->p2_priv, dev->p2, val);
     dev->p2 = val;
 
     if (!fast_reset && cpu_cpurst_on_sr && ((old ^ val) & 0x01)) { /*Reset*/
@@ -846,6 +889,8 @@ write_p2_fast_a20(atkbc_t *dev, uint8_t val)
     }
 
     /* Do this here to avoid an infinite reset loop. */
+    if (dev->p2_write_hook != NULL)
+        dev->p2_write_hook(dev->p2_priv, dev->p2, val);
     dev->p2 = val;
 }
 
@@ -893,6 +938,41 @@ pulse_poll(void *priv)
 
     kbc_at_log("ATkbc: pulse_poll(): P2 now: %02X\n", dev->p2 | dev->old_p2);
     write_p2(dev, dev->p2 | dev->old_p2);
+}
+
+/* HP Vectra 486N firmware uses DE as an extended-command prefix.
+   These board/security commands must not be forwarded to the keyboard:
+   its FE response can be mistaken for the command byte by the BIOS.
+   T.04.02/T.04.05 send one argument after subcommand 94 and eight after 93.
+   Their board/security side effects are not yet modeled. */
+static uint8_t
+write_cmd_vectra(void *priv, uint8_t val)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+
+    if (val != 0xde)
+        return 1;
+
+    dev->command_phase = 1;
+    dev->wantdata      = 1;
+    dev->state         = STATE_KBC_PARAM;
+    return 0;
+}
+
+static uint8_t
+write_cmd_data_vectra(void *priv, uint8_t val)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+
+    if (dev->command != 0xde)
+        return 1;
+
+    dev->command_phase = kbc_vectra_next_phase(dev->command_phase, val);
+    if (dev->command_phase) {
+        dev->wantdata = 1;
+        dev->state    = STATE_KBC_PARAM;
+    }
+    return 0;
 }
 
 static uint8_t
@@ -2517,6 +2597,10 @@ kbc_at_process_cmd(void *priv)
 
             case 0xf0 ... 0xff: /* pulse P2 */
                 kbc_at_log("ATkbc: pulse %01X\n", dev->ib & 0x0f);
+                /* The 8042 sets the system flag when it receives the 0xFE command,
+                   which pulses the CPU reset line. */
+                if (dev->ib == 0xfe)
+                    dev->status |= STAT_SYSFLAG;
                 pulse_output(dev, dev->ib & 0x0f);
                 break;
         }
@@ -2607,9 +2691,6 @@ kbc_at_process_cmd(void *priv)
                 if (dev->ib == 0xbb)
                     break;
 
-                if (machines[machine].init == machine_at_pb410a_init)
-                    cpu_override_dynarec = 1;
-
                 if (dev->misc_flags & FLAG_PS2) {
                     set_enable_aux(dev, 1);
                     if ((dev->ports[1] != NULL) && (dev->ports[1]->priv != NULL)) {
@@ -2632,6 +2713,11 @@ kbc_at_port_1_write(uint16_t port, uint8_t val, void *priv)
     uint8_t fast_a20 = (kbc_ven != KBC_VEN_SIEMENS);
 
     kbc_at_log("ATkbc: [%04X:%08X] write(%04X) = %02X\n", CS, cpu_state.pc, port, val);
+
+    /* The host may write the next byte before the pending parameter was consumed; take it
+       first instead of silently overwriting it, fix BIOS not waiting for IBF to clear. */
+    if ((dev->status & STAT_IFULL) && dev->wantdata && (dev->state == STATE_KBC_PARAM))
+        kbc_param_take(dev);
 
     dev->status &= ~STAT_CD;
 
@@ -2664,6 +2750,11 @@ kbc_at_port_2_write(uint16_t port, uint8_t val, void *priv)
     uint8_t fast_a20 = (kbc_ven != KBC_VEN_SIEMENS);
 
     kbc_at_log("ATkbc: [%04X:%08X] write(%04X) = %02X\n", CS, cpu_state.pc, port, val);
+
+    /* The host may write the next byte before the pending parameter was consumed; take it
+       first instead of silently overwriting it, fix BIOS not waiting for IBF to clear. */
+    if ((dev->status & STAT_IFULL) && dev->wantdata && (dev->state == STATE_KBC_PARAM))
+        kbc_param_take(dev);
 
     dev->status |= STAT_CD;
 
@@ -2733,14 +2824,15 @@ kbc_at_port_1_read(uint16_t port, void *priv)
 
     ret = dev->ob;
     dev->status &= ~STAT_OFULL;
+    /* A polled read can consume the byte before its delayed IRQ fires. */
+    dev->do_irq = 0;
+    timer_disable(&dev->kbc_irq_timer);
     /*
        TODO: IRQ is only tied to OBF on the AT KBC, on the PS/2 KBC, it is controlled by a P2 bit.
        This also means that in AT mode, the IRQ is level-triggered.
      */
     if (!(dev->misc_flags & FLAG_PS2) && (dev->irq[0] != 0xffff))
         picintclevel(1 << dev->irq[0], &dev->irq_state);
-    if ((machines[machine].init == machine_at_pb410a_init) && (cpu_override_dynarec == 1))
-        cpu_override_dynarec = 0;
 
     kbc_at_log("ATkbc: [%04X:%08X] read (%04X) = %02X\n",  CS, cpu_state.pc, port, ret);
 
@@ -2768,6 +2860,8 @@ kbc_at_reset(void *priv)
 {
     atkbc_t *dev = (atkbc_t *) priv;
 
+    timer_disable(&dev->kbc_irq_timer);
+    dev->do_irq        = 0;
     dev->status        = STAT_UNLOCKED;
     dev->mem[0x20]     = 0x01;
     dev->mem[0x20]    |= CCB_TRANSLATE;
@@ -2780,8 +2874,18 @@ kbc_at_reset(void *priv)
     /* Disabled both the keyboard and auxiliary ports. */
     set_enable_kbd(dev, 0);
     set_enable_aux(dev, 0);
+    dev->aux_delay = AUX_ENABLE_DELAY;
 
     kbc_at_queue_reset(dev);
+
+    /* Discard whatever the attached devices had queued before the reset: those
+       keystrokes would otherwise be delivered to the guest afterwards. The devices
+       themselves are left alone, so that their scan enable state and self test are
+       not disturbed. */
+    for (uint8_t i = 0; i < 2; i++) {
+        if ((dev->ports[i] != NULL) && (dev->ports[i]->priv != NULL))
+            kbc_at_dev_discard((atkbc_dev_t *) dev->ports[i]->priv);
+    }
 
     dev->sc_or = 0;
 
@@ -2828,6 +2932,7 @@ kbc_at_close(void *priv)
     /* Stop timers. */
     timer_disable(&dev->kbc_dev_poll_timer);
     timer_disable(&dev->kbc_poll_timer);
+    timer_disable(&dev->kbc_irq_timer);
 
     for (int i = 0; i < max_ports; i++) {
         if (kbc_at_ports[i] != NULL) {
@@ -2880,6 +2985,18 @@ kbc_at_set_irq(int num, uint16_t irq, void *priv)
     dev->irq[num] = irq;
 }
 
+void
+kbc_at_set_p2_write_hook(void *priv,
+                         void (*p2_write_hook)(void *priv, uint8_t old_p2,
+                                               uint8_t new_p2),
+                         void *p2_priv)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+
+    dev->p2_write_hook = p2_write_hook;
+    dev->p2_priv       = p2_priv;
+}
+
 static void *
 kbc_at_init(const device_t *info)
 {
@@ -2909,6 +3026,8 @@ kbc_at_init(const device_t *info)
     timer_add(&dev->pulse_cb, pulse_poll, dev, 0);
 
     timer_add(&dev->kbc_dev_poll_timer, kbc_at_dev_poll, dev, 1);
+
+    timer_add(&dev->kbc_irq_timer, kbc_at_irq, dev, 0);
 
     dev->write_cmd_data_ven = NULL;
     dev->write_cmd_ven      = NULL;
@@ -3004,6 +3123,11 @@ kbc_at_init(const device_t *info)
             dev->write_cmd_ven = write_cmd_quadtel;
             break;
 
+        case KBC_VEN_HP_VECTRA:
+            dev->write_cmd_data_ven = write_cmd_data_vectra;
+            dev->write_cmd_ven = write_cmd_vectra;
+            break;
+
         case KBC_VEN_TOSHIBA:
             dev->write_cmd_data_ven = write_cmd_data_toshiba;
             dev->write_cmd_ven = write_cmd_toshiba;
@@ -3027,9 +3151,8 @@ kbc_at_init(const device_t *info)
 
     /* The actual keyboard. */
     if (keyboard_type == KEYBOARD_TYPE_INTERNAL) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
-            device_add(machine_has_flags_ex(MACHINE_PS2_KBC) ? &keyboard_ps55_device :
-                       &keyboard_ax_device);
+        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS) || machine_has_flags(machine, MACHINE_KEYBOARD_AX))
+            device_add(machine_has_flags_ex(MACHINE_PS2_KBC) ? &keyboard_ps55_device : &keyboard_ax_device);
         else
             device_add_params(&keyboard_at_generic_device, (void *) (uintptr_t)
                               (machine_has_flags_ex(MACHINE_PS2_KBC) ? FLAG_PS2_KBD : 0x00));
@@ -3048,6 +3171,20 @@ const device_t kbc_at_device = {
     .internal_name = "kbc_at",
     .flags         = DEVICE_KBC,
     .local         = KBC_VEN_GENERIC,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t kbc_at_vectra_device = {
+    .name          = "HP Vectra 486N Keyboard Controller",
+    .internal_name = "kbc_at_vectra",
+    .flags         = DEVICE_KBC,
+    .local         = KBC_VEN_HP_VECTRA,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,

@@ -1042,6 +1042,8 @@ xta_init_common(const device_t *info, int type)
             dev->irq      = device_get_config_int("irq");
             dev->rom_addr = device_get_config_hex20("bios_addr");
             dev->dma      = 3;
+            break;
+
         case 1: /* Amstrad PC3086 */
             dev->name     = "WDXT-150 PC3086";
             dev->rom_addr = 0xc8000;

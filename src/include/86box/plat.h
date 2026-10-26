@@ -28,30 +28,90 @@
 
 /* String ID numbers. */
 enum {
-    STRING_MOUSE_CAPTURE,             /* "Click to capture mouse" */
-    STRING_MOUSE_RELEASE,             /* "Press %1 to release mouse" */
-    STRING_MOUSE_RELEASE_MMB,         /* "Press %1 or middle button to release mouse" */
-    STRING_INVALID_CONFIG,            /* "Invalid configuration" */
-    STRING_NO_ST506_ESDI_CDROM,       /* "MFM/RLL or ESDI CD-ROM drives never existed" */
-    STRING_NET_ERROR,                 /* "Failed to initialize network driver" */
-    STRING_NET_ERROR_DESC,            /* "The network configuration will be switched..." */
-    STRING_PCAP_ERROR_NO_DEVICES,     /* "No PCap devices found" */
-    STRING_PCAP_ERROR_INVALID_DEVICE, /* "Invalid PCap device" */
-    STRING_PCAP_ERROR_DESC,           /* "Make sure libpcap is installed..." */
-    STRING_GHOSTSCRIPT_ERROR_TITLE,   /* "Unable to initialize Ghostscript" */
-    STRING_GHOSTSCRIPT_ERROR_DESC,    /* "gsdll32.dll/gsdll64.dll/libgs is required..." */
+    STRING_NET_ERROR,                 /* "Failed to initialize network driver..." */
+    STRING_PCAP_ERROR_NO_DEVICES,     /* "No PCap devices found..." */
+    STRING_PCAP_ERROR_INVALID_DEVICE, /* "Invalid PCap device..." */
+    STRING_GHOSTSCRIPT_ERROR,         /* "Unable to initialize Ghostscript..." */
     STRING_HW_NOT_AVAILABLE_TITLE,    /* "Hardware not available" */
-    STRING_HW_NOT_AVAILABLE_MACHINE,  /* "Machine \"%hs\" is not available..." */
-    STRING_HW_NOT_AVAILABLE_VIDEO,    /* "Video card \"%hs\" is not available..." */
-    STRING_HW_NOT_AVAILABLE_VIDEO2,   /* "Video card #2 \"%hs\" is not available..." */
-    STRING_HW_NOT_AVAILABLE_DEVICE,   /* "Device \"%hs\" is not available..." */
-    STRING_MONITOR_SLEEP,             /* "Monitor in sleep mode" */
-    STRING_GHOSTPCL_ERROR_TITLE,      /* "Unable to initialize GhostPCL" */
-    STRING_GHOSTPCL_ERROR_DESC,       /* "gpcl6dll32.dll/gpcl6dll64.dll/libgpcl6 is required..." */
-    STRING_ESCP_ERROR_TITLE,          /* "Unable to find Dot-Matrix fonts" */
-    STRING_ESCP_ERROR_DESC,           /* "TrueType fonts in the \"roms/printer/fonts\" directory..." */
-    STRING_EDID_TOO_LARGE,            /* "EDID file \"%ls\" is too large (%lld bytes)." */
+    STRING_HW_NOT_AVAILABLE_MACHINE,  /* "Machine \"%s\" is not available..." */
+    STRING_HW_NOT_AVAILABLE_VIDEO,    /* "Video card \"%s\" is not available..." */
+    STRING_HW_NOT_AVAILABLE_DEVICE,   /* "Device \"%s\" is not available..." */
+    STRING_GHOSTPCL_ERROR,            /* "Unable to initialize GhostPCL..." */
+    STRING_ESCP_ERROR,                /* "Unable to find Dot-Matrix fonts..." */
+    STRING_EDID_READ_ERROR,           /* "EDID file \"%s\" is invalid." */
+    STRING_EDID_TOO_LARGE,            /* "EDID file \"%s\" is too large." */
+    STRING_CDROM_OPEN_ISO_ERROR,      /* "Unable to open image or folder \"%s\"" */
+    STRING_CDROM_OPEN_CUE_ERROR,      /* "Unable to open Cue sheet \"%s\"" */
+    STRING_CDROM_OPEN_MDS_ERROR,      /* "Unable to open MDS file \"%s\"" */
+    STRING_CDROM_LOAD_IMAGE_ERROR,    /* "Unable to load CD-ROM image: %s" */
+    STRING_CDROM_LOAD_MDSX_ERROR,     /* "Unable to load image \"%s\": %1 is missing..." */
+    STRING_CDROM_LOAD_AARU_ERROR,     /* "Unable to load image \"%s\": %1 is missing..." */
+    STRING_CDROM_DVD_IN_CD_DRIVE,     /* "DVD image \"%s\" in a CD-only drive..." */
+    STRING_CHARDEV_CONNECT_ERROR,     /* "%s: Could not connect to %s: %s" */
+    STRING_CHARDEV_CREATE_ERROR,      /* "%s: Could not create %s: %s" */
+    STRING_CHARDEV_ATTACHED,          /* "%s: Attached to %s" */
+    STRING_CHARDEV_VCON_IN_USE,       /* "%s: Virtual console already in use by %s" */
+    STRING_CHARDEV_TERMINAL_ERROR,    /* "%s: Could not create terminal: %s" */
+#ifdef USE_VFIO
+    STRING_VFIO_NO_CONTAINER,         /* "VFIO: Could not open /dev/vfio/vfio: %s..." */
+    STRING_VFIO_INVALID_LOCATION,     /* "VFIO %s: Invalid device location." */
+    STRING_VFIO_DEVICE_NOT_FOUND,     /* "VFIO %s: Device not found." */
+    STRING_VFIO_NO_IOMMU_GROUP,       /* "VFIO %s: Device has no IOMMU group..." */
+    STRING_VFIO_NOT_BOUND,            /* "VFIO %s: Device is not bound to vfio-pci." */
+    STRING_VFIO_GROUP_OPEN_ERROR,     /* "VFIO %s: Could not open IOMMU group %d: %s" */
+    STRING_VFIO_GROUP_NOT_VIABLE,     /* "VFIO %s: IOMMU group %d is not viable..." */
+    STRING_VFIO_DMA_ERROR,            /* "VFIO: Could not map guest memory for DMA: %s..." */
+    STRING_VFIO_ROM_FILE_FALLBACK,    /* "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM." */
+    STRING_VFIO_ROM_FILE_DISABLED,    /* "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled." */
+    STRING_VFIO_ROM_INVALID,          /* "VFIO %s: The ROM looks invalid..." */
+    STRING_VFIO_SETUP_QUESTION,       /* "VFIO: These devices must be bound to vfio-pci..." */
+    STRING_VFIO_SETUP_ACCESS,         /* "VFIO: Administrator rights are required..." */
+    STRING_VFIO_SETUP_GROUP,          /* "These devices were not selected, but share an IOMMU group..." */
+    STRING_VFIO_SETUP_REFUSED,        /* "VFIO %s: IOMMU group %d also contains %s..." */
+    STRING_VFIO_SETUP_FAILED,         /* "VFIO: Could not prepare the devices for passthrough:\n%s" */
+    STRING_VFIO_SETUP_MANUAL,         /* "VFIO: Administrator rights could not be requested..." */
+#endif
+    /* A configuration naming hardware this build does not have. */
+    STRING_UNSUPPORTED_TITLE,
+    STRING_UNSUPPORTED_TEXT,
+    STRING_UNSUPPORTED_OTHERS,
+    STRING_UNSUPPORTED_REPLACE,
+    STRING_UNSUPPORTED_REMOVE,
+    STRING_UNSUPPORTED_REPLACE_REMOVE,
+    STRING_UNSUPPORTED_CONTINUE,
+    STRING_UNSUPPORTED_MACHINE,
+    STRING_UNSUPPORTED_VIDEO,
+    STRING_UNSUPPORTED_KEYBOARD,
+    STRING_UNSUPPORTED_MOUSE,
+    STRING_UNSUPPORTED_TABLET,
+    STRING_UNSUPPORTED_JOYSTICK,
+    STRING_UNSUPPORTED_SOUND,
+    STRING_UNSUPPORTED_MIDI_OUT,
+    STRING_UNSUPPORTED_MIDI_IN,
+    STRING_UNSUPPORTED_NETWORK,
+    STRING_UNSUPPORTED_SERIAL,
+    STRING_UNSUPPORTED_PARALLEL,
+    STRING_UNSUPPORTED_GAMEPORT,
+    STRING_UNSUPPORTED_SCSI,
+    STRING_UNSUPPORTED_FDC,
+    STRING_UNSUPPORTED_HDC,
+    STRING_UNSUPPORTED_CDROM_INTERFACE,
+    STRING_UNSUPPORTED_MEMORY,
+    STRING_UNSUPPORTED_ROM,
+    STRING_UNSUPPORTED_RTC,
+    /* A configured USB device that could not be attached at boot. */
+    STRING_USB_NO_PORT,
+    STRING_USB_NO_CONTROLLER,
 };
+
+struct plat_device_vol_locked_t
+{
+    uintptr_t handle_disk;
+    uintptr_t vol_nums;
+    uintptr_t handles_vols[1];
+};
+
+typedef struct plat_device_vol_locked_t plat_device_vol_locked_t;
 
 /* The Win32 API uses _wcsicmp. */
 #ifdef _WIN32
@@ -137,12 +197,14 @@ extern void     plat_init_asset_paths(void);
 extern int      plat_dir_check(char *path);
 extern int      plat_file_check(const char *path);
 extern int      plat_dir_create(char *path);
-extern void    *plat_mmap(size_t size, uint8_t executable);
+extern void    *plat_mmap(size_t size, uint8_t executable, uint8_t* large);
 extern void     plat_munmap(void *ptr, size_t size);
 extern uint64_t plat_timer_read(void);
 extern uint32_t plat_get_ticks(void);
 extern void     plat_delay_ms(uint32_t count);
 extern void     plat_pause(int p);
+/* Fast forward on or off from outside the UI (automation). */
+extern void     plat_fast_forward(int on);
 extern void     plat_mouse_capture(int on);
 extern int      plat_vidapi(const char *name);
 extern char    *plat_vidapi_name(int api);
@@ -156,11 +218,15 @@ extern void     plat_get_system_directory(char *outbuf);
 #endif
 extern void     plat_set_thread_name(void *thread, const char *name);
 extern void     plat_break(void);
-extern void     plat_send_to_clipboard(unsigned char *rgb, int width, int height);
 extern int      plat_run_command(const char *cmd, const char **env, const char *title);
+extern void     plat_clean_up(void);
+
+/* Windows-specific physical disk handling. */
+extern plat_device_vol_locked_t* plat_lock_volumes(FILE* file);
+extern void                      plat_unlock_volumes(plat_device_vol_locked_t* vol);
 
 /* Resource management. */
-extern wchar_t *plat_get_string(int id);
+extern char *plat_get_string(int id);
 
 /* Emulator start/stop support functions. */
 extern void do_start(void);

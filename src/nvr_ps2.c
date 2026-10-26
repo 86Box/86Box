@@ -46,9 +46,12 @@
 #include <86box/nvr.h>
 #include <86box/nvr_ps2.h>
 #include <86box/rom.h>
+#include "cpu.h"
 
 typedef struct ps2_nvr_t {
     int addr;
+    int loaded;
+    int can_save;
 
     uint8_t *ram;
     int      size;
@@ -72,7 +75,7 @@ ps2_nvr_read(uint16_t port, void *priv)
             break;
 
         case 0x76:
-            ret = nvr->ram[nvr->addr];
+            ret = nvr->ram[nvr->addr & (nvr->size - 1)];
             break;
 
         default:
@@ -97,7 +100,7 @@ ps2_nvr_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0x76:
-            nvr->ram[nvr->addr] = val;
+            nvr->ram[nvr->addr & (nvr->size - 1)] = val;
             break;
 
         default:
@@ -130,13 +133,38 @@ ps2_nvr_init(const device_t *info)
     fp = nvr_fopen(nvr->fn, "rb");
 
     nvr->ram = (uint8_t *) calloc(1, nvr->size);
+    memset(nvr->ram, 0xff, nvr->size);
+    nvr->can_save = 1;
     if (fp != NULL) {
-        if (fread(nvr->ram, 1, nvr->size, fp) != nvr->size)
-            fatal("ps2_nvr_init(): Error reading EEPROM data\n");
+        nvr->loaded = 1;
+        /* A file shorter than the device means the NVR used to be smaller;
+           keep the 0xFF-filled tail rather than refusing to start. */
+        if (cpu_s != NULL)
+            (void) fread(nvr->ram, 1, nvr->size, fp);
+        else
+            /* Nothing was loaded, so RAM does not describe this file's content. */
+            nvr->can_save = 0;
         fclose(fp);
     }
 
     return nvr;
+}
+
+int
+ps2_nvr_is_new(void *priv)
+{
+    const ps2_nvr_t *nvr = (const ps2_nvr_t *) priv;
+
+    return !nvr->loaded;
+}
+
+void
+ps2_nvr_set_byte(void *priv, uint16_t addr, uint8_t val)
+{
+    ps2_nvr_t *nvr = (ps2_nvr_t *) priv;
+
+    if (addr < nvr->size)
+        nvr->ram[addr] = val;
 }
 
 static void
@@ -145,11 +173,15 @@ ps2_nvr_close(void *priv)
     ps2_nvr_t *nvr = (ps2_nvr_t *) priv;
     FILE      *fp  = NULL;
 
-    fp = nvr_fopen(nvr->fn, "wb");
+    /* Never write back an image that was not loaded from this file. */
+    if (nvr->can_save) {
+        /* Truncating keeps the file's size equal to the device's. */
+        fp = nvr_fopen(nvr->fn, "wb");
 
-    if (fp != NULL) {
-        (void) fwrite(nvr->ram, nvr->size, 1, fp);
-        fclose(fp);
+        if (fp != NULL) {
+            (void) fwrite(nvr->ram, nvr->size, 1, fp);
+            fclose(fp);
+        }
     }
 
     if (nvr->ram != NULL)
@@ -158,11 +190,11 @@ ps2_nvr_close(void *priv)
     free(nvr);
 }
 
-const device_t ps2_nvr_device = {
-    .name          = "PS/2 Secondary NVRAM for PS/2 Models 70-80",
-    .internal_name = "ps2_nvr",
+const device_t ps2_nvr_2kb_device = {
+    .name          = "IBM PS/2 2KB Secondary NVRAM",
+    .internal_name = "ps2_nvr_2kb",
     .flags         = 0,
-    .local         = 0,
+    .local         = 1,
     .init          = ps2_nvr_init,
     .close         = ps2_nvr_close,
     .reset         = NULL,
@@ -172,11 +204,11 @@ const device_t ps2_nvr_device = {
     .config        = NULL
 };
 
-const device_t ps2_nvr_55ls_device = {
-    .name          = "PS/2 Secondary NVRAM for PS/2 Models 55LS-65SX",
-    .internal_name = "ps2_nvr_55ls",
+const device_t ps2_nvr_8kb_device = {
+    .name          = "IBM PS/2 8KB Secondary NVRAM",
+    .internal_name = "ps2_nvr_8kb",
     .flags         = 0,
-    .local         = 1,
+    .local         = 0,
     .init          = ps2_nvr_init,
     .close         = ps2_nvr_close,
     .reset         = NULL,

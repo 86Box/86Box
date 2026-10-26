@@ -14,6 +14,7 @@
  */
 #include <QDebug>
 #include <QFileDialog>
+#include <QMessageBox>
 #include <QStringBuilder>
 #include <QLineEdit>
 
@@ -39,6 +40,7 @@ extern "C" {
 #include "ui_qt_settingsdisplay.h"
 #include "qt_util.hpp"
 #include "qt_defs.hpp"
+#include "qt_settingsinput.hpp"
 
 SettingsDisplay::SettingsDisplay(QWidget *parent)
     : QWidget(parent)
@@ -52,6 +54,7 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
     for (uint8_t i = 0; i < GFXCARD_MAX; i++)
         gfxcard_cfg_changed[i]         = 0;
     voodoo_cfg_changed             = 0;
+    powervr_cfg_changed            = 0;
     ibm8514_cfg_changed            = 0;
     xga_cfg_changed                = 0;
     ps55da2_cfg_changed            = 0;
@@ -60,6 +63,15 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
         videoCard[i] = gfxcard[i];
 
     ui->lineEditCustomEDID->setFilter(tr("EDID") % util::DlgFilter({ "bin", "dat", "edid", "txt" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+    connect(ui->lineEditCustomEDID, &FileField::fileSelected, [this](const QString &fileName) {
+        uint8_t dummyBuffer[384] = { 0 };
+        size_t size = ddc_load_edid(fileName.toUtf8().data(), dummyBuffer, sizeof(dummyBuffer));
+        if ((size == 0) || (size > 256)) {
+            QMessageBox::critical(this, "EDID", tr((size == 0) ? "EDID file \"%s\" is invalid." : "EDID file \"%s\" is too large.").replace("%s", "%1").arg(fileName));
+            this->ui->lineEditCustomEDID->setFileName(this->previousEDIDPath);
+        } else
+            this->previousEDIDPath = fileName;
+    });
 
     ui->comboBoxScreenType->addItem(tr("RGB Color"), 0);
     ui->comboBoxScreenType->addItem(tr("RGB Grayscale"), 1);
@@ -100,12 +112,21 @@ SettingsDisplay::changed()
         has_changed  |= (gfxcard[1]                 != ui->comboBoxVideoSecondary->currentData().toInt());
 
     has_changed  |= (voodoo_enabled             != (ui->checkBoxVoodoo->isChecked() ? 1 : 0));
+    has_changed  |= (powervr_enabled            != (ui->checkBoxPowerVR->isChecked() ? 1 : 0));
     has_changed  |= (ibm8514_standalone_enabled != (ui->checkBox8514->isChecked() ? 1 : 0));
     has_changed  |= (xga_standalone_enabled     != (ui->checkBoxXga->isChecked() ? 1 : 0));
     has_changed  |= (da2_standalone_enabled     != (ui->checkBoxDa2->isChecked() ? 1 : 0));
     has_changed  |= (monitor_edid               != (ui->radioButtonCustom->isChecked() ? 1 : 0));
 
     has_changed  |= strcmp(monitor_edid_path, ui->lineEditCustomEDID->fileName().toUtf8().data());
+
+    for (uint8_t i = 0; i < GFXCARD_MAX; i++)
+        has_changed  |= gfxcard_cfg_changed[i];
+    has_changed  |= voodoo_cfg_changed;
+    has_changed  |= powervr_cfg_changed;
+    has_changed  |= ibm8514_cfg_changed;
+    has_changed  |= xga_cfg_changed;
+    has_changed  |= ps55da2_cfg_changed;
 
     soft_changed |= (video_grayscale                != ui->comboBoxScreenType->currentData().toInt());
     soft_changed |= (video_graytype                 != ui->comboBoxConversionType->currentData().toInt());
@@ -148,6 +169,7 @@ SettingsDisplay::save(int soft)
 #endif
 
     voodoo_enabled             = ui->checkBoxVoodoo->isChecked() ? 1 : 0;
+    powervr_enabled            = ui->checkBoxPowerVR->isChecked() ? 1 : 0;
     ibm8514_standalone_enabled = ui->checkBox8514->isChecked() ? 1 : 0;
     xga_standalone_enabled     = ui->checkBoxXga->isChecked() ? 1 : 0;
     da2_standalone_enabled     = ui->checkBoxDa2->isChecked() ? 1 : 0;
@@ -167,45 +189,47 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
     this->machineId   = machineId;
     auto curVideoCard = videoCard[0];
 
+    fillingVideo = true;
+
     sc->removeRows();
 
     auto *model      = ui->comboBoxVideo->model();
     auto  removeRows = model->rowCount();
 
-    int c           = 0;
-    int selectedRow = 0;
-    while (true) {
-        /* Skip "internal" if machine doesn't have it. */
-        if ((c == 1) && (machine_has_flags(machineId, MACHINE_VIDEO) == 0)) {
-            c++;
+    int           selectedRow = 0;
+    Models::Batch rows(model);
+    for (const auto &card : Models::Devices(video_card_getdevice, video_get_internal_name, video_card_available, 1)) {
+        const int c = card.id;
+
+        /* The external display entry belongs to the secondary list only. */
+        if (c == VID_EXTERNAL)
             continue;
-        }
 
-        const device_t *video_dev = video_card_getdevice(c);
-        QString         name      = DeviceConfig::DeviceName(video_dev, video_get_internal_name(c), 1);
-        if (name.isEmpty()) {
-            break;
-        }
+        /* Skip "internal" if machine doesn't have it. */
+        if ((c == 1) && (machine_has_flags(machineId, MACHINE_VIDEO) == 0))
+            continue;
 
-        if (video_card_available(c) && device_is_valid(video_dev, machineId)) {
-            if (c == 1 && machine_get_vid_device(machineId)) {
+        if (card.available && device_is_valid(card.dev, machineId)) {
+            QString name = card.name;
+            if (c == 1 && machine_get_vid_device(machineId) && device_available(machine_get_vid_device(machineId))) {
                 name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_vid_device(machineId), machine_get_vid_device(machineId)->internal_name, 0));
             }
-            int row = Models::AddEntry(model, name, c);
-            sc->addDevice(video_dev, name);
+            int row = rows.add(name, c);
+            sc->addDevice(card.dev, name);
             if (c == curVideoCard)
                 selectedRow = row - removeRows;
         }
-
-        c++;
     }
+    rows.commit();
     model->removeRows(0, removeRows);
 
     // TODO
     if (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0) {
+        const bool ext = machine_has_flags(machineId, MACHINE_VIDEO_EXT) > 0;
+
         ui->comboBoxVideo->setEnabled(false);
-        ui->comboBoxVideoSecondary->setEnabled(false);
-        ui->pushButtonConfigureVideoSecondary->setEnabled(false);
+        ui->comboBoxVideoSecondary->setEnabled(ext);
+        ui->pushButtonConfigureVideoSecondary->setEnabled(ext);
         selectedRow = 1;
     } else {
         ui->comboBoxVideo->setEnabled(true);
@@ -213,6 +237,8 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
         ui->pushButtonConfigureVideoSecondary->setEnabled(true);
     }
     ui->comboBoxVideo->setCurrentIndex(selectedRow);
+    fillingVideo = false;
+    on_comboBoxVideo_currentIndexChanged(ui->comboBoxVideo->currentIndex());
     // TODO
     for (uint8_t i = 1; i < GFXCARD_MAX; i++)
         if (gfxcard[i] == 0)
@@ -222,6 +248,7 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
     ui->radioButtonCustom->setChecked(monitor_edid == 1);
     ui->lineEditCustomEDID->setFileName(monitor_edid_path);
     ui->lineEditCustomEDID->setEnabled(monitor_edid == 1);
+    previousEDIDPath = ui->lineEditCustomEDID->fileName();
 }
 
 void
@@ -229,15 +256,29 @@ SettingsDisplay::on_pushButtonConfigureVideo_clicked()
 {
     int   videoCard = ui->comboBoxVideo->currentData().toInt();
     auto *device    = video_card_getdevice(videoCard);
-    if (videoCard == VID_INTERNAL)
+    if (videoCard == VID_INTERNAL) {
         device = machine_get_vid_device(machineId);
-    gfxcard_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device);
+        gfxcard_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device);
+    } else
+        gfxcard_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
 SettingsDisplay::on_pushButtonConfigureVoodoo_clicked()
 {
     voodoo_cfg_changed |= DeviceConfig::ConfigureDevice(&voodoo_device);
+}
+
+void
+SettingsDisplay::on_pushButtonConfigurePowerVR_clicked()
+{
+    powervr_cfg_changed |= DeviceConfig::ConfigureDevice(&powervr_pcx_device);
+}
+
+void
+SettingsDisplay::on_checkBoxPowerVR_stateChanged(int state)
+{
+    ui->pushButtonConfigurePowerVR->setEnabled(state == Qt::Checked);
 }
 
 void
@@ -266,28 +307,32 @@ SettingsDisplay::on_pushButtonConfigureDa2_clicked()
 void
 SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 {
-    if (index < 0)
+    if ((index < 0) || fillingVideo)
         return;
 
     static QRegularExpression voodooRegex("3dfx|voodoo|banshee|raven", QRegularExpression::CaseInsensitiveOption);
     auto                      curVideoCard_2 = videoCard[1];
     videoCard[0]                             = ui->comboBoxVideo->currentData().toInt();
     if (videoCard[0] == VID_INTERNAL)
-        ui->pushButtonConfigureVideo->setEnabled(machine_has_flags(machineId, MACHINE_VIDEO) && device_has_config(machine_get_vid_device(machineId)));
+        ui->pushButtonConfigureVideo->setEnabled(machine_has_flags(machineId, MACHINE_VIDEO) && device_has_config(machine_get_vid_device(machineId)) && device_available(machine_get_vid_device(machineId)));
     else
         ui->pushButtonConfigureVideo->setEnabled(video_card_has_config(videoCard[0]) > 0);
     bool machineHasPci = machine_has_bus(machineId, MACHINE_BUS_PCI) > 0;
     ui->pushButtonConfigureVoodoo->setEnabled(machineHasPci && ui->checkBoxVoodoo->isChecked());
+    ui->checkBoxPowerVR->setEnabled(machineHasPci);
+    ui->checkBoxPowerVR->setChecked(powervr_enabled && machineHasPci);
+    ui->pushButtonConfigurePowerVR->setEnabled(machineHasPci && ui->checkBoxPowerVR->isChecked());
 
     bool machineHasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA16) > 0;
     bool machineHasMca   = machine_has_bus(machineId, MACHINE_BUS_MCA) > 0;
 
-    bool videoCardHas8514 = ((videoCard[0] == VID_INTERNAL) ? machine_has_flags(machineId, MACHINE_VIDEO_8514A) : (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_8514));
-    bool videoCardHasXga  = ((videoCard[0] == VID_INTERNAL) ? 0 : (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_XGA));
+    bool videoCardHas8514 = (video_get_primary_flags(machineId, videoCard[0]) == VIDEO_FLAG_TYPE_8514);
+    bool videoCardHasXga  = (video_get_primary_flags(machineId, videoCard[0]) == VIDEO_FLAG_TYPE_XGA);
+    bool videoCardHasDa2  = (video_get_primary_flags(machineId, videoCard[0]) == VIDEO_FLAG_TYPE_DA2);
 
     bool machineSupports8514 = ((machineHasIsa16 || machineHasMca) && !videoCardHas8514);
     bool machineSupportsXga  = ((machineHasMca && device_available(&xga_device)) && !videoCardHasXga);
-    bool machineSupportsDa2  = machineHasMca && device_available(&ps55da2_device);
+    bool machineSupportsDa2  = (machineHasMca && device_available(&ps55da2_device) && !videoCardHasDa2);
 
     ui->checkBox8514->setEnabled(machineSupports8514);
     ui->checkBox8514->setChecked(ibm8514_standalone_enabled && machineSupports8514);
@@ -303,44 +348,59 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     ui->pushButtonConfigureXga->setEnabled(ui->checkBoxXga->isEnabled() && ui->checkBoxXga->isChecked());
     ui->pushButtonConfigureDa2->setEnabled(ui->checkBoxDa2->isEnabled() && ui->checkBoxDa2->isChecked());
 
-    int c = 2;
-
     scSecondary->removeRows();
 
     ui->comboBoxVideoSecondary->clear();
-    ui->comboBoxVideoSecondary->addItem(QObject::tr("None"), 0);
-    sc->addDevice(NULL, "None");
+    Models::Batch secondaryRows(ui->comboBoxVideoSecondary->model());
+    secondaryRows.add(QObject::tr("None"), 0);
+    scSecondary->addDevice(NULL, "None");
 
-    ui->comboBoxVideoSecondary->setCurrentIndex(0);
     // TODO: Implement support for selecting non-MDA secondary cards properly when MDA cards are the primary ones.
     if (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_MDA) {
+        secondaryRows.commit();
         ui->comboBoxVideoSecondary->setCurrentIndex(0);
         return;
     }
-    while (true) {
-        const device_t *video_dev = video_card_getdevice(c);
-        QString         name      = DeviceConfig::DeviceName(video_dev, video_get_internal_name(c), 1);
-        if (name.isEmpty()) {
-            break;
-        }
+    int selectedSecondaryRow = 0;
+    /* The machine's own external display is not a card, so it is not part of the loop below, and
+       it is only offered when the machine's fixed video can drive one. */
+    if (machine_has_flags(machineId, MACHINE_VIDEO_EXT) > 0) {
+        int row = secondaryRows.add(QObject::tr("External"), VID_EXTERNAL);
+        scSecondary->addDevice(&device_external, QObject::tr("External"));
+        if (curVideoCard_2 == VID_EXTERNAL)
+            selectedSecondaryRow = row;
+    }
+    for (const auto &card : Models::Devices(video_card_getdevice, video_get_internal_name, video_card_available, 1)) {
+        const int c = card.id;
 
-        int primaryFlags   = video_card_get_flags(videoCard[0]);
+        /* None, Internal and External are the list's own entries, not cards to drive a monitor. */
+        if ((c == VID_NONE) || (c == VID_INTERNAL) || (c == VID_EXTERNAL))
+            continue;
+
+        const device_t *video_dev = card.dev;
+        const QString  &name      = card.name;
+
         int secondaryFlags = video_card_get_flags(c);
-        if (video_card_available(c)
+
+        const device_t *primary_dev = video_card_getdevice(videoCard[0]);
+        const bool primary_is_agp   = primary_dev && (primary_dev->flags & DEVICE_AGP);
+        const bool secondary_is_agp = video_dev   && (video_dev->flags   & DEVICE_AGP);
+
+        if (card.available
             && device_is_valid(video_dev, machineId)
-            && !((secondaryFlags == primaryFlags) && (secondaryFlags != VIDEO_FLAG_TYPE_SECONDARY))
-            && !(((primaryFlags == VIDEO_FLAG_TYPE_8514) || (primaryFlags == VIDEO_FLAG_TYPE_XGA)) && (secondaryFlags != VIDEO_FLAG_TYPE_MDA) && (secondaryFlags != VIDEO_FLAG_TYPE_SECONDARY))
-            && !((primaryFlags != VIDEO_FLAG_TYPE_MDA) && (primaryFlags != VIDEO_FLAG_TYPE_SECONDARY) && ((secondaryFlags == VIDEO_FLAG_TYPE_8514) || (secondaryFlags == VIDEO_FLAG_TYPE_XGA)))) {
-            ui->comboBoxVideoSecondary->addItem(name, c);
+            && (secondaryFlags == VIDEO_FLAG_TYPE_SECONDARY)
+            && !(primary_is_agp && secondary_is_agp)) {
+            int row = secondaryRows.add(name, c);
             scSecondary->addDevice(video_dev, name);
             if (c == curVideoCard_2)
-                ui->comboBoxVideoSecondary->setCurrentIndex(ui->comboBoxVideoSecondary->count() - 1);
+                selectedSecondaryRow = row;
         }
-
-        c++;
     }
+    secondaryRows.commit();
+    ui->comboBoxVideoSecondary->setCurrentIndex(selectedSecondaryRow);
 
-    if ((videoCard[1] == 0) || (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0)) {
+    if ((videoCard[1] == 0) || ((machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0) &&
+                                !machine_has_flags(machineId, MACHINE_VIDEO_EXT))) {
         ui->comboBoxVideoSecondary->setCurrentIndex(0);
         ui->pushButtonConfigureVideoSecondary->setEnabled(false);
     }
@@ -366,6 +426,19 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
             ui->checkBoxVoodoo->setChecked(voodoo_enabled);
         }
     }
+
+    if (Settings::settings->input != nullptr)
+        Settings::settings->input->onCurrentMachineChanged(machineId);
+}
+
+bool
+SettingsDisplay::isLightPenUsable()
+{
+    if (ui->comboBoxVideo->currentIndex() < 0)
+        return false;
+
+    return !strcmp(video_get_internal_name(ui->comboBoxVideo->currentData().toInt()), "cga") || !strcmp(video_get_internal_name(ui->comboBoxVideoSecondary->currentData().toInt()), "cga")
+            || !strcmp(video_get_internal_name(ui->comboBoxVideo->currentData().toInt()), "plantronics") || !strcmp(video_get_internal_name(ui->comboBoxVideoSecondary->currentData().toInt()), "plantronics");
 }
 
 void
@@ -407,7 +480,7 @@ void
 SettingsDisplay::on_pushButtonConfigureVideoSecondary_clicked()
 {
     auto *device = video_card_getdevice(ui->comboBoxVideoSecondary->currentData().toInt());
-    gfxcard_cfg_changed[1] |= DeviceConfig::ConfigureDevice(device);
+    gfxcard_cfg_changed[1] |= DeviceConfig::ConfigureDevice(device, 2);
 }
 
 void

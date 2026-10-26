@@ -413,7 +413,9 @@ const device_t ide_w83769f_vlb_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "Winbond W83769F",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_w83769f_vlb_34_device = {
@@ -427,7 +429,9 @@ const device_t ide_w83769f_vlb_34_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "Winbond W83769F",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_w83769f_pci_device = {
@@ -441,7 +445,9 @@ const device_t ide_w83769f_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "Winbond W83769F",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_w83769f_pci_34_device = {
@@ -455,7 +461,9 @@ const device_t ide_w83769f_pci_34_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "Winbond W83769F",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_w83769f_pci_single_channel_device = {
@@ -469,5 +477,7 @@ const device_t ide_w83769f_pci_single_channel_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "Winbond W83769F",
+    .ide_boards    = ide_boards_pri_sec
 };

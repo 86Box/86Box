@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Emulation of the IBM 5550 machine.
+ *          Emulation of the IBM Multistation 5550, 5535-M and 3477-S.
  * 
  *          The IBM 5550 was launched with three models:
  *            5551-Axx: 12" monochrome CRT with 16x16 font
@@ -20,9 +20,11 @@
  * 
  *          Currently, this module supports model A and B configurations without hard disk.
  * 
- * Authors: Akamaki.
+ * Authors: Akamaki
+ *          WNT50
  *
  *          Copyright 2026 Akamaki.
+ *          Copyright 2026 WNT50.
  */
 
 #include <stdio.h>
@@ -30,11 +32,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include <stdarg.h>
 #include <wchar.h>
+#include <stdarg.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/device.h>
 #include "cpu.h"
+#include <86box/i8018x.h>
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/dma.h>
@@ -59,24 +63,59 @@
 #include <86box/pit.h>
 #include <86box/mouse.h>
 
-// #define EPOCH_FONTROM_SIZE         (1024 * 1024)
-// #define EPOCH_FONTROM_MASK         0xffff
-// #define EPOCH_FONTROM_BASESBCS     0x98000
 #define EPOCH_VRAM_SBCS        0x38000
 #define EPOCH_VRAM_SBEX        0x30000
 #define EPOCH_INVALIDACCESS8       0xffu
 #define EPOCH_INVALIDACCESS16      0xffffu
 #define EPOCH_INVALIDACCESS32      0xffffffffu
 #define EPOCH_SIZE_VRAM            (256 * 1024) /* 0x40000 */
-#define EPOCH_SIZE_CRAM            (4 * 1024)    /* 0x1000 */
-#define EPOCH_MASK_A000            0x1ffff       /* 0x1FFFF */
-#define EPOCH_MASK_CRAM            0xfff         /* 0xFFF */
-#define EPOCH_MASK_VRAM            0x3ffff       /* 0xFFFFF */
-// #define EPOCH_MASK_VRAMPLANE       0x1ffff       /* 0x1FFFF */
+#define EPOCH_SIZE_CRAM            (4 * 1024)   /* 0x1000 */
+#define EPOCH_MASK_A000            0x1ffff
+#define EPOCH_MASK_VRAM            0x3ffff
+#define EPOCH_MASK_CRAM            0xfff
+#define EPOCH_HIRAM_BASE           0xE1000
+#define EPOCH_HIRAM_SIZE           (60 * 1024)  /* 0xF000 */
+/* The 3477-S's character generator sits at E8000-EFFFFh as eight
+   32 KB banks; bits 7-5 of port 0x400 pick the one the CPU sees. */
+#define EPOCH_GEN_BASE             0xE8000
+#define EPOCH_GEN_SIZE             0x8000
+#define EPOCH_GEN_BANKS            8
 #define EPOCH_PIXELCLOCK24         40000000.0    /* 40 MHz interlaced */
 #define EPOCH_PIXELCLOCK16         20000000.0    /* 20 MHz interlaced (not confirmed) */
 #define EPOCH_CONFIG_MONO16 0 /* Model 5551-Axx (Font 16, monochrome) */
 #define EPOCH_CONFIG_MONO24 1 /* Model 5551-Bxx (Font 24, monochrome) */
+
+/* Optional kanji font card: a page ROM behind a 32KB or 48KB RAM window
+   at F0000h. Only installed when its ROM image is present, so a machine
+   without the card behaves exactly as before. */
+#define EPOCH_FONTCARD_WIN_ADDR 0xf0000
+#define EPOCH_FONTCARD_WIN_SIZE 0x8000
+#define EPOCH_FONTCARD_ROM_OLD  0 /* Old font card ROM revision (94X1372) */
+#define EPOCH_FONTCARD_ROM_NEW  1 /* New font card ROM revision (65X1460) */
+#define EPOCH_FONTCARD_ROM_SIZE (512 * 1024) /* Font card ROM size (512K) */
+#define EPOCH_FONTCARD_ROM_PATH_OLD "roms/machines/ibm5535/94X1372.BIN"
+#define EPOCH_FONTCARD_ROM_PATH_NEW "roms/machines/ibm5535/65X1460.BIN"
+#define EPOCH_FONTCARD_ROM_PATH_K16 "roms/machines/ibm5550/FONTK16.BIN"
+#define EPOCH_FONTCARD_ROM_PATH_K24 "roms/machines/ibm5550/FONTK24.BIN"
+#define EPOCH_FONTCARD_ROM_PATH_K52 "roms/machines/ibm5550/FONTK52.BIN"
+#define EPOCH_FONTCARD_ROM_PATH_P24 "roms/machines/ibm5550/FONTP24.BIN"
+
+/* Korean (Hangul) and Traditional Chinese version of Multistation DOS are not dumped yet,
+   so font image cannot be generated. They would have ID 4 and 8 for codepages 934 and 938. */
+#define EPOCH_FONTCARD_CHARSET_NONE 0 /* Software font only, no font card will be available */
+#define EPOCH_FONTCARD_CHARSET_KJ16 1 /* Code page 932 Japanese, Font 16 ($SYS1Z16.FNT) */
+#define EPOCH_FONTCARD_CHARSET_KJ24 2 /* Code page 932 Japanese, Font 24 ($SYS1Z24.FNT) */
+#define EPOCH_FONTCARD_CHARSET_KJ52 3 /* Code page 932 Japanese, 5250 Kanji emulation */
+#define EPOCH_FONTCARD_CHARSET_HANS 6 /* Code page 936 Simplified Chinese, Font 24 */
+
+/* IBM 3477-S font card: FNT1/FNT2 are the two 512 KB halves of the 1 MB
+   character-generator image (its first page carries the model letter the
+   ROS compares); AUX is an auxiliary dump of the display's 13x22 SBCS fonts
+   (which checksum should be 0), loaded into eight 32 KB generator banks. */
+#define EPOCH_FONTCARD_ROM_PATH_FNT1 "roms/machines/ibm3477/35F3537.BIN"
+#define EPOCH_FONTCARD_ROM_PATH_FNT2 "roms/machines/ibm3477/35F3538.BIN"
+#define EPOCH_FONTCARD_AUX_PATH_3477 "roms/machines/ibm3477/65X5821.BIN"
+#define EPOCH_FONTCARD_ROM_SIZE_3477 (2 * EPOCH_FONTCARD_ROM_SIZE)
 
 #define LC_INDEX                0x3D0
 #define LC_DATA                 0x3D1
@@ -139,6 +178,23 @@
 
 #define EPOCH_IRQ3_BIT (1 << 3) /* Keyboard */
 #define EPOCH_IRQ6_BIT (1 << 6) /* PIT */
+#define EPOCH_IRQ7_BIT (1 << 7) /* Software timer */
+
+/* The 5535-M's IPL restarts POST at a given stage by writing the stage number
+   into the IIP diagnostic register file (index 0x10 of 0x368/0x36A) and then
+   writing 0x4F to port 0xA1; the board pulses the processor's reset and the
+   reset entry reads the stage back. The pulse is delayed by this much so
+   the instructions the IPL puts between the two writes still run. */
+#define EPOCH_RESET_PULSE 25 /* microseconds */
+
+/* Software timer (port 0xA6) timings, in microseconds.
+   Writing 1 arms a free-running timer: first raises IRQ7 after a short delay
+   (long enough for the ROM to have written the IMR), then keeps raising IRQ7
+   periodically. Writing 0 from the IRQ handler acknowledges (keeps the timer
+   running); writing 0 from normal code (FE67:0191 DMA-test cleanup) disarms it.
+   The ROM BAT checks five IRQ7 interrupts arrive while its handler is running. */
+#define EPOCH_SWTIMER_FIRST  10    /* first IRQ7 delay after arming */
+#define EPOCH_SWTIMER_PERIOD 20000 /* 20 ms free-running period */
 
 enum epoch_nvr_ADDR {
     epoch_nvr_SECOND1,
@@ -198,7 +254,9 @@ epoch_log(const char *fmt, ...)
 typedef struct epoch_t {
     mem_mapping_t cmapping;
 
-    uint16_t crtc[32];
+    /* The IPLs' register walk covers the whole byte range (up to 0xE5 on the
+       3477-S's ROS), so every index has to have storage behind it. */
+    uint16_t crtc[256];
     // uint16_t crtc_vpreg[128];
     // uint8_t  crtc_vpsel;
     uint8_t  crtmode;
@@ -251,18 +309,34 @@ typedef struct epoch_t {
 
     /* Attribute Buffer E0000-E0FFFh (4 KB) */
     uint8_t *cram;
+    /* Auxiliary RAM E1000-EFFF Fh (60 KB) on the 3477-S */
+    uint8_t *hiram;
+    /* Character generator banks behind E8000-EFFFFh on the 3477-S. */
+    uint8_t *gen;
+    uint8_t  genbank;
+    uint8_t  dispctrl;
+    /* The IPL's 55-glyph generator, decoded into A0000; valid until the guest
+       selects a font-card page or switches mode. */
+    int      plane_font;
     /* SBCS Font Buffer D8000-DBFFFh (16 KB) */
     /* APA Buffer A0000-DFFFFh (256 KB) */
     uint8_t *vram;
-    mem_mapping_t cmap, vmap, paritymap;
-    /* Font ROM card option (?KB) */
-    // struct {
-    //     int           bank;
-    //     mem_mapping_t map;
-    //     uint8_t      *rom;
-    //     int           charset;
-    //     int           portdata;
-    // } fontcard;
+    mem_mapping_t cmap, vmap, paritymap, hiram_map;
+    /* Kanji font card (optional): the card's page ROM and the 32 or 48 KB
+       window RAM the guest sees at F0000h. */
+    uint8_t      *fontcard_rom;
+    uint8_t      *fontcard_win;
+    uint32_t      fontcard_page;
+    uint32_t      fontcard_pages;
+    uint32_t      fontcard_rom_size;
+    int           fontcard_isnew;
+    int           fontcard_enabled;
+    int           fontcard_charset; /* 5550 selection, EPOCH_FONTCARD_CHARSET */
+    /* Holds the last port written (0x160/0x168/0x16A), not a data byte: it must
+       be wide enough to keep the port number, otherwise the 0x168/0x16A cases
+       in epoch_fontcard_in() can never match. */
+    uint16_t      fontcard_data;
+    mem_mapping_t fontcard_map;
     // uint8_t *changedvram;
     uint32_t vram_display_mask;
 
@@ -280,12 +354,113 @@ typedef struct epoch_t {
     int nvrctrl;
     int nvrdata;
 
+    /* Software timer (IRQ7) control, port 0xA6 */
+    pc_timer_t swtimer_timer;
+    uint8_t swtimer;
+
     int testmode;
-    
+
+    /* 5535-M status/diagnostic register file: index port 0x368, data port
+       0x36A. It latches the POST error code (indices 0x10-0x14) and is read
+       back by the IPL to report the previous failure, so it is deliberately
+       left untouched by epoch_reset(). */
+    uint8_t diag_index;
+    uint8_t diag_reg[0x20];
+
+    /* Set once the IPL has asked for a POST restart, and cleared by a hard
+       reset: port 0xA0 reads it back on bit 3 and the IPL's reset entry uses
+       it to tell a restart request from a power-on. resetarmed holds the
+       stage request until the 0x4F restart command on port 0xA1. */
+    int warmstart;
+    int resetarmed;
+
+    /* One-shot pulse that restarts the processor. */
+    pc_timer_t pulse_timer;
+
+    /* 5535-M memory configuration block (ports 0x280-0x28A, 5535-M only -
+       5550's IPL never touches these). 0x284 reads a block-present bitmap
+       (bit set = block absent), 0x288 takes a 16-bit configuration value,
+       0x282/0x28A take block control bytes, and 0x286 reads back the high
+       half of that value plus a nibble mirroring the two control bits of
+       the last 0x282/0x28A write. A write to 0x280 clears the block back
+       to that power-on state (the IPL does it before its 0x286 checks). */
+    uint16_t mem_present;
+    uint16_t mem_cfg;
+    uint8_t mem_ctrl;
+
+    /* Parity state of RAM, one bit per byte (the planar stores a parity bit
+       with every byte). A set bit means the byte was last written while parity
+       update was disabled, so its parity is stale; reading it back with updating
+       enabled raises the error. Both IPLs use the "disable -> write -> enable ->
+       read" sequence on port 0xA0h, but they doit per address - the 5535-M's walk
+       at F87CA re-checks the latch against 0xA1 for every 64/128/256/512K boundary
+       it reads, and the 5550's walk (a routine copied to 0200:0 by FC5CC) writes
+       whole blocks and requires the latch to stay clear - so the stale state has
+       to be per byte and not a single flag. */
+    uint8_t *paritybad;
+    /* Port 0xA0 bit 3: parity error test mode. While set, every checked read
+       reports an error and every write leaves a stale parity bit; it is a level,
+       cleared only by the next write to port 0xA0 (the 5535-M's F87CA re-arms it
+       once and then reads each boundary in turn, and clears it with out A0h,40h
+       before the 0xCCCC write that must then fail the read). */
+    int parityforce;
+    /* 3477-S only: a write to A0h with bit 7 going 0->1 arms one forced parity
+       error, so its NMI test at F800:01F7 sees exactly one interrupt per loop. */
+    int parityarm;
+
 } epoch_t;
 
-static void     epoch_recalctimings(epoch_t *epoch);
+/* Set by machine_xt_ibm5535_init() before the system unit is added: the IBM
+   5535-M is the same platform with a 286 and a different IPL, and it moves
+   the software timer's arm/ack from port 0xA6 to bit 0 of port 0xA0. */
+static int epoch_is_5535 = 0;
+static int epoch_is_3477 = 0;
+
+/* ---- 3477-S system ROS paging ------------------------------------------
+   The 32 KB window at F8000-FFFFF is selected by port 0x390 bit 7. The two
+   32 KB chips interleave into a 64 KB image whose halves are self-contained
+   (each carries its own reset stub at page offset 0x7FF0), so the halves are
+   two pages: page 0 boots, page 1 is handed over to by the ROS. */
+static mem_mapping_t epoch_rom_map;
+static uint8_t      *epoch_rom_sel;
+static uint8_t      *epoch_rom_page[2];
+static int           epoch_rom_pages = 0;
+
+static uint8_t
+epoch_rom_readb(uint32_t addr, UNUSED(void *priv))
+{
+    return epoch_rom_sel ? epoch_rom_sel[addr & 0x7fff] : 0xff;
+}
+
+static uint16_t
+epoch_rom_readw(uint32_t addr, UNUSED(void *priv))
+{
+    if (epoch_rom_sel == NULL)
+        return 0xffff;
+    return *(uint16_t *) &epoch_rom_sel[addr & 0x7ffe];
+}
+
+static void
+epoch_rom_select(uint8_t val)
+{
+    int page;
+
+    if (epoch_rom_pages == 0)
+        return;
+    /* Bit 7 selects the page: the 0x00/0x02 writes seen around both halves
+       mean "page 0", and bit 1 is an unrelated control bit. */
+    page = (val & 0x80) ? 1 : 0;
+    if (page >= epoch_rom_pages)
+        page = 0;
+    epoch_rom_sel = epoch_rom_page[page];
+    /* Instruction fetches go through the mapping's exec pointer, so it has to
+       follow the page along with the read pointer. */
+    mem_mapping_set_exec(&epoch_rom_map, epoch_rom_sel);
+}
+
 static void     epoch_reset(void *priv);
+static void     epoch_recalctimings(epoch_t *epoch);
+static void     epoch_fontcard_set_page(epoch_t *epoch, uint32_t page);
 
 /*
 [IRQ]
@@ -300,7 +475,7 @@ The IBM 5550 has different IRQ assignments like the 6580 Displaywriter System.
 | 4   | Diskette   | Diskette interrupt                 | Async Comm (Pri) |
 | 5   | ?          | Not used                           | Fixed Disk       |
 | 6   | Timer      | Software timer                     | Diskette         |
-| 7   | ?          | Error on commo data link           | Printer          |
+| 7   | Soft Timer | Error on commo data link           | Printer          |
 
 [Memory map]
 | Start Address | Function                                              | 
@@ -312,33 +487,9 @@ The IBM 5550 has different IRQ assignments like the 6580 Displaywriter System.
 | A0000h        | Video RAM (Font 16: 144 KB, Font 24: 256 KB)          | 
 | E0000h        | 4 KB Code/Attribute Buffer                            | 
 | E8000h        | ? KB Hard Disk Control Local Memory (not implemented) | 
-| F0000h        | Kanji Font Card (not implemented)                     | 
+| F0000h        | Kanji Font Card                                       | 
 | FC000h        | ROM                                                   | 
 */
-
-#ifdef ENABLE_EPOCH_LOG
-// #include <ctype.h>
-// static int dumpno = 0x61;
-// static void
-// epoch_dumpvram(void *priv)
-// {
-//             FILE *fp;
-//     epoch_t *epoch = (epoch_t *) priv;
-//             char str1[64] = "epoch_vramvm_";
-//             char str2[3] = {0x30, 0x30, 0};
-//             if (!isalnum(dumpno))
-//                return;
-//             str2[0] = dumpno;
-//             dumpno++;
-//             str2[1] = (epoch->crtmode & 0xf) + 0x30;
-//             strcat(str1,str2);
-//             fp = fopen(str1, "wb");
-//             if (fp != NULL) {
-//                 fwrite(epoch->vram, EPOCH_SIZE_VRAM, 1, fp);
-//                 fclose(fp);
-//             }
-// }
-#endif
 
 static void
 epoch_out(uint16_t addr, uint16_t val, void *priv)
@@ -350,9 +501,10 @@ epoch_out(uint16_t addr, uint16_t val, void *priv)
             epoch->crtcaddr = val;
             break;
         case LC_DATA:
-            if (epoch->crtcaddr > 0x1f)
-                return;
             if (epoch->crtioenabled == 0)
+                return;
+            /* Only the 3477-S's register walk goes past the 0x1F file. */
+            if (!epoch_is_3477 && (epoch->crtcaddr > 0x1f))
                 return;
             if (!(epoch->crtcaddr == LC_CURSOR_LOC_HIGH || epoch->crtcaddr == LC_CURSOR_LOC_LOWJ))
                 epoch_iolog("%04X:%04X epoch Out addr %03X idx %02X val %02X (%d)\n", cs >> 4, cpu_state.pc, addr, epoch->crtcaddr, val, val);
@@ -393,21 +545,15 @@ epoch_out(uint16_t addr, uint16_t val, void *priv)
         case LS_ENABLE:
             // mem_mapping_disable(&epoch->paritymap);
             epoch->crtioenabled = 1;
-            mem_mapping_enable(&epoch->cmap);
-            mem_mapping_enable(&epoch->vmap);
             break;
         case LS_DISABLE:
             epoch->crtioenabled = 0;
-            mem_mapping_disable(&epoch->cmap);
-            mem_mapping_disable(&epoch->vmap);
             // mem_mapping_enable(&epoch->paritymap);
             break;
         case LS_MODE:
             /* Bit 3: Video output enable, Bit 1: Graphic mode (switch 16 / 9 bit word in Font 16 system) */
             epoch->crtmode = val;
-#ifdef ENABLE_EPOCH_LOG
-            // epoch_dumpvram(epoch);
-#endif
+            epoch->plane_font = 0;
             epoch_recalctimings(epoch);
             // epoch->attrff ^= 1;
             break;
@@ -489,9 +635,10 @@ epoch_in(uint16_t addr, void *priv)
             temp = epoch->crtcaddr;
             break;
         case LC_DATA:
-            if (epoch->crtcaddr > 0x1f)
-                return EPOCH_INVALIDACCESS16;
             if (epoch->crtioenabled == 0)
+                return EPOCH_INVALIDACCESS16;
+            /* Only the 3477-S's register walk goes past the 0x1F file. */
+            if (!epoch_is_3477 && (epoch->crtcaddr > 0x1f))
                 return EPOCH_INVALIDACCESS16;
             temp = epoch->crtc[epoch->crtcaddr];
             break;
@@ -522,10 +669,30 @@ epoch_in(uint16_t addr, void *priv)
         //     epoch->attrff = 0; /* reset flipflop (VGA does not reset flipflop) */
         //     break;
         case LS_MONSENSE:
+            /* 3DAh bit 7 reads clear only while the video output is enabled
+               (mode register bit 3 clear) and the display is in its active
+               period; bit 6 is the vertical blanking flag (clear while
+               blanking). The 5535-M's IPL relies on both: it polls bit 7
+               while the output is off, writes mode 0 (F8436), polls again
+               and requires it clear with AH non-zero, then runs two bit 6
+               handshakes (F8456/F8464). The 3477-S checks that the video
+               output toggles: with the mode register at 0x04 it requires
+               two consecutive reads to be complements in bits 4-6,
+               so those bits need to flip on every 3DAh read. */
+            if (epoch_is_3477 && (epoch->crtmode == 0x04)) {
+                epoch->cgastat ^= 0x30;
+                epoch->cgastat ^= 0x08;
+            }
             temp = 0xff;
-            if (!(epoch->crtmode & 0x08)) {/* The video out is active */
-                if(epoch->cgastat & 8)
-                    temp &= 0x7f;
+            if (!(epoch->crtmode & 0x08) && (epoch->cgastat & 8))
+                temp &= 0x7f;      /* display active */
+            if (!(epoch->cgastat & 8))
+                temp &= ~0x40;     /* vertical blanking */
+            if (epoch_is_3477) {
+                if (epoch->cgastat & 0x10)
+                    temp &= ~0x10;
+                if (epoch->cgastat & 0x20)
+                    temp &= ~0x20;
             }
             temp |= 0x01; /* monitor mono or !color */
             // temp &= 0xfe; /* color */
@@ -650,6 +817,35 @@ epoch_inw(uint16_t addr, void *priv)
     return temp;
 }
 
+/* The 3477-S decodes the CRTC block at 0x2D0 as well, and its ROS polls 0x2DA
+   there for an adapter-ready bit (bit 6 clear).  It must not be a plain alias
+   of 0x3DA, whose bits 4-6 flip once per read during the display test. */
+static uint8_t
+epoch_mirror_inb(uint16_t port, void *priv)
+{
+    if (port == 0x2DA)
+        return 0x3f;
+    return epoch_inb((uint16_t) (port + 0x100), priv);
+}
+
+static uint16_t
+epoch_mirror_inw(uint16_t port, void *priv)
+{
+    return epoch_inw((uint16_t) (port + 0x100), priv);
+}
+
+static void
+epoch_mirror_outb(uint16_t port, uint8_t val, void *priv)
+{
+    epoch_outb((uint16_t) (port + 0x100), val, priv);
+}
+
+static void
+epoch_mirror_outw(uint16_t port, uint16_t val, void *priv)
+{
+    epoch_outw((uint16_t) (port + 0x100), val, priv);
+}
+
 /* Return a memory address for 9-bit word access */
 static uint32_t
 getaddr_9bitword(int32_t addr)
@@ -663,48 +859,86 @@ getaddr_9bitword(int32_t addr)
             return bit9addr;
 }
 
-/* Get font pattern in a line from video memory */
+/* One scanline of a DBCS glyph out of video memory: two 9-dot halves, the 9th
+   dot of each taken from the plane at 0x20000.  This is the layout the kanji
+   card fills in (18 dots wide, the glyph itself sitting on columns 1-16). */
 static uint32_t
-getfont_ps55dbcs(int32_t code, int32_t line, void *priv)
+getfont_ps55dbcs_vram(epoch_t *epoch, int32_t code, int32_t line)
+{
+    uint32_t font = 0;
+
+    code *= 0x80;
+    code += line * 4;
+    if (epoch->font24) { /* Font 24 (2 x 13 x 29) */
+        font = epoch->vram[code];
+        font <<= 8;
+        code++;
+        font |= epoch->vram[code];
+        font <<= 8;
+        code++;
+        font |= epoch->vram[code];
+        font <<= 8;
+        code++;
+        font |= epoch->vram[code];
+    } else { /* Font 16 (2 x 9 x 21) */
+        int32_t bit9addr = getaddr_9bitword(code);
+        int bitnum = bit9addr & 7;
+        bit9addr >>= 3;
+        bit9addr += 0x20000; /* real: C0000h */
+        /* The card is filled through 9-bit word addressing, so the data bytes
+           must be translated the same way the guest's writes were. */
+        font = epoch->vram[getaddr_9bitword(code)];
+        font <<= 8;
+        font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80; /* get 9th bit */
+        font <<= 8;
+        code++;
+        font |= epoch->vram[getaddr_9bitword(code)];
+        font <<= 8;
+        bitnum = getaddr_9bitword(code) & 0x7;
+        font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80; /* get 9th bit */
+    }
+    return font;
+}
+
+/* Get font pattern in a line */
+static uint32_t
+getfont_ps55dbcs(int32_t code, int32_t line, int card, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    uint32_t font  = 0;
-    if (code < 1536) {
-        code *= 0x80;
-        code += line * 4;
-        if (epoch->font24) { /* Font 24 (2 x 13 x 29) */
-            font = epoch->vram[code];
-            font <<= 8;
-            code++;
-            font |= epoch->vram[code];
-            font <<= 8;
-            code++;
-            font |= epoch->vram[code];
-            font <<= 8;
-            code++;
-            font |= epoch->vram[code];
-        } else { /* Font 16 (2 x 9 x 21) */
-            int32_t bit9addr = getaddr_9bitword(code);
-            int bitnum = bit9addr & 7;
-            bit9addr >>= 3;
-            bit9addr += 0x20000; /* real: C0000h */
-            font = epoch->vram[code];
-            font <<= 8;
-            font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80; /* get 9th bit */
-            // font &= 0xff80;
-            // font |= epoch->vram[code + line * 4 + 1];
-            font <<= 8;
-            code++;
-            font |= epoch->vram[code];
-            font <<= 8;
-            bitnum = code & 0x7;
-            font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80; /* get 9th bit */
-            // font &= 0xff80ff80;
-            // font |= epoch->vram[code + line * 4 + 3];
+
+    if (epoch_is_3477 && epoch->font24) {
+        /* The 3477 puts a 14-bit glyph number in the cell; bit 14 asks for
+           right half of the 32-dot row. The high byte's bit 7 selected the
+           source: clear means the generator image in the A0000 plane (the
+           IPL's chart and AZVUFNT's canvas), set means the font card. */
+        int      right = (code & 0x4000) != 0;
+        uint32_t g     = (uint32_t) code & 0x3fff;
+        uint32_t o;
+
+        if (line >= 32)
+            return 0;
+        if (!card && epoch->plane_font && (g < 55)) {
+            uint16_t w;
+
+            o = (g * 0x80) + ((uint32_t) line * 4);
+            w = (uint16_t) epoch->vram[o + (right ? 2 : 0)]
+              | ((uint16_t) epoch->vram[o + (right ? 3 : 1)] << 8);
+            w = (uint16_t) (((w & 0x00ff) << 8) | ((w & 0xf800) >> 8));
+            return (uint32_t) w << 16;
         }
-    } else
-        font = EPOCH_INVALIDACCESS32;
-    return font;
+        if (epoch->fontcard_rom == NULL)
+            return 0;
+        o = (g * 0x80) + ((uint32_t) line * 4);
+        if (o + 4 > epoch->fontcard_rom_size)
+            return 0;
+        uint16_t w = (epoch->fontcard_rom[o + (right ? 2 : 0)] << 8)
+                   | epoch->fontcard_rom[o + (right ? 3 : 1)];
+        return (uint32_t) w << 16;
+    }
+
+    if (code < 1536)
+        return getfont_ps55dbcs_vram(epoch, code, line);
+    return EPOCH_INVALIDACCESS32;
 }
 
 /* Get the foreground color from the attribute byte */
@@ -713,7 +947,7 @@ getPS55ForeColor(uint8_t attr, epoch_t *epoch)
 {
     uint8_t foreground = ~attr & 0x08; /* 0000 1000 */
     foreground <<= 2;                  /* 0010 0000 */
-    foreground |= ~attr & 0xc0;        /*  1110 0000 */
+    foreground |= ~attr & 0xc0;        /* 1110 0000 */
     foreground >>= 4;                  /* 0000 1110 */
     // if (epoch->attrc[LV_PAS_STATUS_CNTRL] & 0x40)
     //     foreground |= 0x01; /* bright color palette */
@@ -738,6 +972,8 @@ epoch_render_blank(epoch_t *epoch)
 static void
 epoch_render_text(epoch_t *epoch)
 {
+    /* Refresh a "what is on screen right now" pair every few frames, so the
+       state behind a problem screen can be picked up at any time. */
     if (epoch->firstline_draw == 2000)
         epoch->firstline_draw = epoch->displine;
     epoch->lastline_draw = epoch->displine;
@@ -752,6 +988,7 @@ epoch_render_text(epoch_t *epoch)
         uint32_t  chr_dbcs;
         int       underscore_y = (epoch->font24) ? 28 : 20;
         int       chr_wide = 0;
+        int       chr_card = 0;
         // int       colormode = ((epoch->attrc[LV_PAS_STATUS_CNTRL] & 0x80) == 0x80);
         int       colormode = 0;
         // epoch_log("displ: %x, first: %x, epochma: %x, epochsc: %x\n", 
@@ -792,17 +1029,32 @@ epoch_render_text(epoch_t *epoch)
                 p[n] = epoch->pallook[epoch->egapal[bg]]; /* draw blank */
             /*  SBCS or DBCS left half */
             if (chr_wide == 0) {
-                if (attr & 0x01)
+                /* Bit 0 of a cell's own attribute marks a wide character; the
+                   right half is consumed by chr_wide, never re-detected.  The
+                   high byte of the glyph number carries the source: bit 7 set
+                   means the font card, clear means the generator image in the
+                   A0000 plane. */
+                if (attr & 0x01) {
                     chr_wide = 1;
+                    chr_card = (epoch->cram[(epoch->memaddr + 2) & EPOCH_MASK_CRAM] & 0x80) != 0;
+                }
                 // chr_wide = 0;
                 /* Stay drawing If the char code is DBCS and not at last column. */
                 if (chr_wide) {
-                    /* Get high DBCS code from the next video address */
-                    chr_dbcs = epoch->cram[(epoch->memaddr + 2) & EPOCH_MASK_CRAM];
-                    chr_dbcs <<= 8;
-                    chr_dbcs |= chr;
+                    if (epoch_is_3477 && epoch->font24) {
+                        /* The glyph number is split as [low at +0] and
+                           [high-0x80 at +2]; verified against the IME's
+                           "英数 半角" status line. */
+                        chr_dbcs = ((uint32_t) (epoch->cram[(epoch->memaddr + 2) & EPOCH_MASK_CRAM] & 0x7f) << 8)
+                                 | chr;
+                    } else {
+                        /* Get high DBCS code from the next video address */
+                        chr_dbcs = epoch->cram[(epoch->memaddr + 2) & EPOCH_MASK_CRAM];
+                        chr_dbcs <<= 8;
+                        chr_dbcs |= chr;
+                    }
                     /* Get the font pattern */
-                    uint32_t font = getfont_ps55dbcs(chr_dbcs, epoch->scanline, epoch);
+                    uint32_t font = getfont_ps55dbcs(chr_dbcs, epoch->scanline, chr_card, epoch);
                     /* Draw 13 dots */
                     for (uint32_t n = 0; n < epoch->char_width; n++) {
                         p[n] = epoch->pallook[epoch->egapal[(font & 0x80000000) ? fg : bg]];
@@ -812,15 +1064,67 @@ epoch_render_text(epoch_t *epoch)
                     /* the char code is SBCS (ANK) */
                     uint32_t fontbase;
                     uint16_t font;
-                    if (attr & 0x02) /* second map of SBCS font */
-                        fontbase = EPOCH_VRAM_SBEX;
-                    else
-                        fontbase = EPOCH_VRAM_SBCS;
-                    if (epoch->font24) {
+                    if (epoch_is_3477 && epoch->font24) {
+                        /* The IPL draws text from the auxiliary font in the
+                           generator banks: 64-byte cells (16 dots x 32 rows).
+                           A bank starts with a blank lead-in, then the glyph
+                           table begins at +0x48; the +0x4848 base below is
+                           where the ASCII digits and letters line up for
+                           the IPL's character codes. */
+                        font = 0;
+                        if ((attr & 0x02) && (chr >= 0xc0)
+                            && ((chr & 0x7f) >= 0x21) && ((chr & 0x7f) <= 0x7e)) {
+                            /* User font (the 0xEC box and DIAG's C4/C5 clock):
+                               codes 0xC0 and up come from the auxiliary
+                               generator's other table, 0x2000 below the
+                               ANK one; bit 7 is the map selector, not an
+                               index bit. Rows outside the 21-line cell stay
+                               blank instead of falling through to the card. */
+                            int grow = epoch->scanline - 5;
+
+                            if ((grow >= 0) && (grow < 32)) {
+                                uint32_t g = ((uint32_t) epoch->genbank << 15) + 0x2848
+                                           + ((uint32_t) ((chr & 0x7f) - 0x21) * 0x40)
+                                           + ((uint32_t) grow * 2);
+                                font = (uint16_t) ((epoch->gen[g] << 8) | epoch->gen[g + 1]);
+                            }
+                        } else if ((attr & 0x02) && (epoch->fontcard_rom != NULL)
+                            && (epoch->scanline < 32)) {
+                            /* 0x80-0xBF stay on the 24-dot card glyphs:
+                               the IPL banner and DIAG's solid box need
+                               the full-cell blocks there. */
+                            uint32_t f = (epoch->fontcard_page << 15)
+                                       + ((uint32_t) chr * 0x80)
+                                       + ((uint32_t) epoch->scanline * 4);
+                            if (f + 1 < epoch->fontcard_rom_size) {
+                                font = epoch->fontcard_rom[f];
+                                font <<= 8;
+                                font |= epoch->fontcard_rom[f + 1];
+                            }
+                        } else if ((chr >= 0x21) && (chr <= 0x7e)
+                                   && ((epoch->scanline - 5) >= 0)
+                                   && ((epoch->scanline - 5) < 32)) {
+                            /* Centre the 22-row auxiliary glyph in the 32-row
+                               cell instead of drawing it at the top. */
+                            uint32_t grow = (uint32_t) (epoch->scanline - 5);
+                            uint32_t g = ((uint32_t) epoch->genbank << 15) + 0x4848
+                                       + ((uint32_t) (chr - 0x21) * 0x40)
+                                       + (grow * 2);
+                            font = (uint16_t) ((epoch->gen[g] << 8) | epoch->gen[g + 1]);
+                        }
+                    } else if (epoch->font24) {
+                        if (attr & 0x02) /* second map of SBCS font */
+                            fontbase = EPOCH_VRAM_SBEX;
+                        else
+                            fontbase = EPOCH_VRAM_SBCS;
                         font = epoch->vram[fontbase + chr * 0x80 + epoch->scanline * 4 + 2]; /* w13xh29 font */
                         font <<= 8;
                         font |= epoch->vram[fontbase + chr * 0x80 + epoch->scanline * 4 + 3];
                     } else {
+                        if (attr & 0x02) /* second map of SBCS font */
+                            fontbase = EPOCH_VRAM_SBEX;
+                        else
+                            fontbase = EPOCH_VRAM_SBCS;
                         uint32_t bitnum, bit9addr;
                         fontbase += chr * 0x80 + epoch->scanline * 4;
                         bit9addr = getaddr_9bitword(fontbase);
@@ -844,13 +1148,16 @@ epoch_render_text(epoch_t *epoch)
             }
             /* right half of DBCS */
             else {
-                uint32_t font = getfont_ps55dbcs(chr_dbcs, epoch->scanline, epoch);
+                int is3477dbcs = (epoch_is_3477 && epoch->font24);
+                uint32_t font = getfont_ps55dbcs(is3477dbcs ? (chr_dbcs | 0x4000) : chr_dbcs,
+                                                 epoch->scanline, chr_card, epoch);
                 /* Draw 13 dots */
                 for (uint32_t n = 0; n < epoch->char_width; n++) {
-                    p[n] = epoch->pallook[epoch->egapal[(font & 0x8000) ? fg : bg]];
+                    p[n] = epoch->pallook[epoch->egapal[(font & (is3477dbcs ? 0x80000000u : 0x8000)) ? fg : bg]];
                     font <<= 1;
                 }
                 chr_wide = 0;
+                chr_card = 0;
             }
             /* Line 28 (Underscore) Note: Draw this first to display blink + vertical + underline correctly. */
             if (epoch->scanline == underscore_y && attr & 0x40 && !colormode) { /* Underscore only in monochrome mode */
@@ -1030,6 +1337,16 @@ epoch_recalctimings(epoch_t *epoch)
     if (epoch->vsyncstart < epoch->dispend)
         epoch->dispend = epoch->vsyncstart;
 
+    /* The 3477-S's 24-dot text mode programs one more row than the text plane
+       holds (25 rows of 80 cells), so the last row would alias row 0; the
+       monitor does not show that row. */
+    if (epoch_is_3477 && !(epoch->crtmode & 0x02) && epoch->font24) {
+        int rows = (EPOCH_SIZE_CRAM / 2) / 80;
+
+        if (epoch->dispend > (rows * (epoch->rowcount + 1)))
+            epoch->dispend = rows * (epoch->rowcount + 1);
+    }
+
     crtcconst = epoch->clock * epoch->char_width;
 
     disptime    = epoch->htotal;
@@ -1057,7 +1374,9 @@ epoch_recalctimings(epoch_t *epoch)
 static void
 epoch_doblit(int wx, int wy, epoch_t *epoch)
 {
-    if (wx != xsize || wy != ysize) {
+    /* The OSD can reset the screen size behind the driver's back; honour
+       its resize request even when the mode itself has not changed. */
+    if ((wx != xsize) || (wy != ysize) || video_force_resize_get()) {
         xsize = wx;
         ysize = wy;
         set_screen_size(xsize, ysize);
@@ -1102,10 +1421,14 @@ epoch_poll(void *priv)
 
         // epoch_log("%03i %06X %06X\n", epoch->displine, epoch->memaddr,epoch->vram_display_mask);
         epoch->displine++;
-        if ((epoch->cgastat & 8) && ((epoch->displine & 0xf) == (epoch->vblankstart & 0xf)) && epoch->vslines) {
-            // epoch_log("Vsync off at line %i\n",displine);
+        /* cgastat bit 3 backs 3DAh (bit 7 = display status, bit 6 = the vertical
+           blanking flag). The IPLs poll that port before the CRTC is programmed,
+           so the blanking is taken from the line counter rather than from the
+           (still invalid) CRTC geometry: half of each 512-line window. */
+        if (epoch->displine & 0x100)
             epoch->cgastat &= ~8;
-        }
+        else
+            epoch->cgastat |= 8;
         epoch->vslines++;
         if (epoch->displine > 2000)
             epoch->displine = 0;
@@ -1236,10 +1559,47 @@ epoch_vram_read(uint32_t addr, void *priv)
     return epoch->vram[addr];
 }
 
+/* The adapter's RAM has no parity bits, so a write into it with parity
+   updating enabled latches a parity error while the adapter's I/O is off.
+   The 5535-M's 0x47 test (F8246) depends on it: it walks 0xAC000-0xFB000 and
+   then requires port 0xA0 bit 0 to be set, to test the error latch and its
+   clear through port 0xA2. The 3477-S runs with that I/O open, so its
+   display stores must not re-latch the error after the handler
+   acknowledges it. */
+static void
+epoch_parity_device_write(epoch_t *epoch)
+{
+    if (epoch->parityenabled && !epoch->crtioenabled)
+        epoch->parityerror = 1;
+}
+
+/* The video RAM is only decoded for word accesses (the ROM's video code uses
+   word stores), but the parity latch still reacts to byte stores: the 5535-M's
+   0x47 test stores bytes across 0xAC000-0xFB000 (F8251/F8259) and then requires
+   port 0xA0 bit 0 to be set so it can test the latch and its clear. The 3477-S
+   is the exception: IBMBIO stores its ANK font with byte stores. */
+static void
+epoch_vram_writeb(uint32_t addr, uint8_t val, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+
+    epoch_parity_device_write(epoch);
+    if (epoch_is_3477) {
+        cycles -= video_timing_write_b;
+        /* The IPL copies the 55 glyph blocks in order; block 54 is the
+           last one, so a write into 0x1B00-0x1B7F completes the set. */
+        if (((addr - 0xA0000) >= 0x1B00) && ((addr - 0xA0000) < 0x1B80))
+            epoch->plane_font = 1;
+        epoch_vram_write(addr - 0xA0000, val, epoch);
+    }
+}
+
 static void
 epoch_vram_writew(uint32_t addr, uint16_t val, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
+
+    epoch_parity_device_write(epoch);
     // epoch_log("%04X:%04X epoch_vww: %x, val %x DS %x SI %x ES %x DI %x %x\n", cs >> 4, cpu_state.pc, addr, val,DS,SI,ES,DI, epoch->crtc[LC_INTERLACE_AND_SKEW]);
     // epoch_log("%04X:%04X epoch_vww: %x, val %x cm %x\n", cs >> 4, cpu_state.pc, addr, val, epoch->crtmode);
     cycles -= video_timing_write_w;
@@ -1265,6 +1625,8 @@ epoch_vram_writew(uint32_t addr, uint16_t val, void *priv)
         // epoch_log("%x %x\n", toaddr, val);
         // epoch_log("%x %x\n", addr, val);
     } else {/* is graphic mode */
+        if (epoch_is_3477 && (addr >= 0x1B00) && (addr < 0x1B80))
+            epoch->plane_font = 1;
         epoch_vram_write(addr, val & 0xff, epoch);
         epoch_vram_write(addr + 1, val >> 8, epoch);
     }
@@ -1327,6 +1689,45 @@ epoch_cram_writew(uint32_t addr, uint16_t val, void *priv)
 }
 
 static uint8_t
+epoch_hiram_readb(uint32_t addr, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+
+    if (epoch_is_3477 && (addr >= EPOCH_GEN_BASE))
+        return epoch->gen[((uint32_t) epoch->genbank * EPOCH_GEN_SIZE) +
+                          (addr - EPOCH_GEN_BASE)];
+
+    return epoch->hiram[(addr - EPOCH_HIRAM_BASE) % EPOCH_HIRAM_SIZE];
+}
+
+static uint16_t
+epoch_hiram_readw(uint32_t addr, void *priv)
+{
+    return epoch_hiram_readb(addr, priv) | (epoch_hiram_readb(addr + 1, priv) << 8);
+}
+
+static void
+epoch_hiram_writeb(uint32_t addr, uint8_t val, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+
+    if (epoch_is_3477 && (addr >= EPOCH_GEN_BASE)) {
+        /* The generator banks stay as the IPL left them: IBMBIO's clear pass
+           would otherwise wipe the only font on this panel. */
+        return;
+    }
+
+    epoch->hiram[(addr - EPOCH_HIRAM_BASE) % EPOCH_HIRAM_SIZE] = val;
+}
+
+static void
+epoch_hiram_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    epoch_hiram_writeb(addr, val & 0xff, priv);
+    epoch_hiram_writeb(addr + 1, val >> 8, priv);
+}
+
+static uint8_t
 epoch_cram_read(uint32_t addr, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
@@ -1349,15 +1750,58 @@ epoch_cram_readw(uint32_t addr, void *priv)
     return epoch_cram_read(addr, epoch) | (epoch_cram_read(addr + 1, epoch) << 8);
 }
 
+/* The board decodes 640 KB, but only the installed RAM is backed by the
+   memory buffer: a larger address is open bus, so it must neither reach
+   mem_read_ram()/mem_write_ram() nor be given a parity bit. */
+static int
+epoch_ram_present(uint32_t addr)
+{
+    return addr < (mem_size << 10);
+}
+
+/* Parity state of one byte; addresses outside RAM are not tracked. */
+static void
+epoch_parity_mark(epoch_t *epoch, uint32_t addr, int stale)
+{
+    if (epoch_ram_present(addr) && (addr < 0xA0000)) {
+        const uint8_t mask = (uint8_t) (1 << (addr & 7));
+        if (stale)
+            epoch->paritybad[addr >> 3] |= mask;
+        else
+            epoch->paritybad[addr >> 3] &= (uint8_t) ~mask;
+    }
+}
+
+static int
+epoch_parity_check(epoch_t *epoch, uint32_t addr)
+{
+    if (epoch_ram_present(addr) && (addr < 0xA0000))
+        return (epoch->paritybad[addr >> 3] >> (addr & 7)) & 1;
+    return 0;
+}
+
 static uint8_t
 epoch_parity_readb(uint32_t addr, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    if ((epoch->parityerror != 0) && (epoch->parityenabled != 0)) {
-        epoch->parityerroraddr = (addr >> 16) & 0xFF; /* X000:0 */
-        epoch_log("%04X:%04X perror at %0X\n", cs >> 4, cpu_state.pc, addr);
-        if (nmi_mask)
-            nmi_raise();
+    int      newerr = 0;
+
+    if (epoch->parityenabled != 0) {
+        if (epoch_parity_check(epoch, addr) || epoch->parityforce || epoch->parityarm) {
+            newerr = (epoch->parityerror == 0);
+            epoch->parityerror = 1;
+            /* The 3477-S's test arm is consumed by the very next read. */
+            if (epoch_is_3477) {
+                epoch->parityforce = 0;
+                epoch->parityarm   = 0;
+            }
+        }
+        if ((epoch->parityerror != 0) && (epoch->parityenabled != 0)) {
+            epoch->parityerroraddr = (addr >> 16) & 0xFF; /* X000:0 */
+            epoch_log("%04X:%04X perror at %0X\n", cs >> 4, cpu_state.pc, addr);
+            if (nmi_mask && (!epoch_is_3477 || newerr))
+                nmi_raise();
+        }
     }
     if (epoch->lowmemorydisabled) {
         if ((addr >= 0x40000) && (addr < 0xA0000)) {
@@ -1365,6 +1809,8 @@ epoch_parity_readb(uint32_t addr, void *priv)
             return EPOCH_INVALIDACCESS8;
         }
     }
+    if (!epoch_ram_present(addr))
+        return 0xff;
     return mem_read_ram(addr, priv);
 }
 
@@ -1372,11 +1818,23 @@ static uint16_t
 epoch_parity_readw(uint32_t addr, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    if ((epoch->parityerror != 0) && (epoch->parityenabled != 0)) {
-        epoch->parityerroraddr = (addr >> 16) & 0xFF;
-        epoch_log("%04X:%04X perror at %X\n", cs >> 4, cpu_state.pc, addr);
-        if (nmi_mask)
-            nmi_raise();
+    int      newerr = 0;
+
+    if (epoch->parityenabled != 0) {
+        if (epoch_parity_check(epoch, addr) || epoch_parity_check(epoch, addr + 1) || epoch->parityforce || epoch->parityarm) {
+            newerr = (epoch->parityerror == 0);
+            epoch->parityerror = 1;
+            if (epoch_is_3477) {
+                epoch->parityforce = 0;
+                epoch->parityarm   = 0;
+            }
+        }
+        if ((epoch->parityerror != 0) && (epoch->parityenabled != 0)) {
+            epoch->parityerroraddr = (addr >> 16) & 0xFF;
+            epoch_log("%04X:%04X perror at %X\n", cs >> 4, cpu_state.pc, addr);
+            if (nmi_mask && (!epoch_is_3477 || newerr))
+                nmi_raise();
+        }
     }
     if (epoch->lowmemorydisabled) {
         if ((addr >= 0x40000) && (addr < 0xA0000)) {
@@ -1384,7 +1842,19 @@ epoch_parity_readw(uint32_t addr, void *priv)
             return EPOCH_INVALIDACCESS16;
         }
     }
+    if (!epoch_ram_present(addr) || !epoch_ram_present(addr + 1))
+        return 0xffff;
     return mem_read_ramw(addr, priv);
+}
+
+/* A write stores a fresh parity bit unless parity updating is off or the
+   error test mode is set, in which case the byte keeps a stale one. The
+   3477-S's ROS tests exactly that at F8779: it writes with bit 3 of A0h
+   clear, sets it, and requires the read-back to report an error. */
+static int
+epoch_parity_stale(epoch_t *epoch)
+{
+    return (epoch->parityenabled == 0) || epoch->parityforce;
 }
 
 static void
@@ -1392,33 +1862,80 @@ epoch_parity_writeb(uint32_t addr, uint8_t val, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
     // epoch_log("%04X:%04X mw %0X\n", cs >> 4, cpu_state.pc, addr);
-    if (epoch->parityenabled == 0)
-        epoch->parityerror = 1;
+    epoch_parity_mark(epoch, addr, epoch_parity_stale(epoch));
     if (epoch->lowmemorydisabled) {
         if ((addr >= 0x40000) && (addr < 0xA0000)) {
             epoch_log("%04X:%04X mwerror at %X\n", cs >> 4, cpu_state.pc, addr);
-            if (epoch->parityenabled)
-                epoch->parityerror = 1;
             return;
         }
     }
+    if (!epoch_ram_present(addr))
+        return;
     mem_write_ram(addr, val, priv);
 }
 static void
 epoch_parity_writew(uint32_t addr, uint16_t val, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    if (epoch->parityenabled == 0)
-        epoch->parityerror = 1;
+    epoch_parity_mark(epoch, addr, epoch_parity_stale(epoch));
+    epoch_parity_mark(epoch, addr + 1, epoch_parity_stale(epoch));
     if (epoch->lowmemorydisabled) {
         if ((addr >= 0x40000) && (addr < 0xA0000)) {
             epoch_log("%04X:%04X mwerror at %X\n", cs >> 4, cpu_state.pc, addr);
-            if (epoch->parityenabled)
-                epoch->parityerror = 1;
             return;
         }
     }
+    if (!epoch_ram_present(addr) || !epoch_ram_present(addr + 1))
+        return;
     mem_write_ramw(addr, val, priv);
+}
+
+/* Software timer (IRQ7): a free-running timer controlled via port 0xA6.
+   Writing 1 arms it (first fire after EPOCH_SWTIMER_FIRST), writing 0 from
+   IRQ handler acknowledges. This callback raises IRQ7 and re-arms itself. */
+static void
+epoch_swtimer_callback(void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+
+    picint(EPOCH_IRQ7_BIT);
+    timer_advance_u64(&epoch->swtimer_timer, EPOCH_SWTIMER_PERIOD * TIMER_USEC);
+}
+
+/* POST stage restart: a soft reset, so RAM (and the stage register the IPL
+   left behind) survives while the processor comes out of protected mode. */
+static void
+epoch_pulse_timer(UNUSED(void *priv))
+{
+    softresetx86();
+}
+
+/* True while the CPU is inside the IRQ7 (software timer) handler, whose
+   acknowledge must not disarm the free-running timer; only a write that
+   clears the arm bit from normal code (e.g. the FE67:0191 DMA-test cleanup)
+   stops it. The 5550 acknowledges at FC00:0619; the 5535-M's handler counts
+   the interrupts at F800:0EDC and acknowledges at F800:0EF5. */
+static int
+epoch_in_swtimer_isr(void)
+{
+    if (epoch_is_5535)
+        return ((cs >> 4) == 0xf800) && (cpu_state.pc >= 0x0edc) && (cpu_state.pc <= 0x0efb);
+
+    return ((cs >> 4) == 0xfc00) && (cpu_state.pc >= 0x600) && (cpu_state.pc <= 0x61f);
+}
+
+/* val bit 0 set = arm, clear = acknowledge (from the IRQ7 handler) or disarm. */
+static void
+epoch_swtimer_write(epoch_t *epoch, uint8_t val)
+{
+    if (val & 1) {
+        epoch->swtimer = 1;
+        /* Armed: start the free-running timer with a short first delay. */
+        timer_set_delay_u64(&epoch->swtimer_timer, EPOCH_SWTIMER_FIRST * TIMER_USEC);
+    } else if (!epoch_in_swtimer_isr()) {
+        epoch->swtimer = 0;
+        timer_disable(&epoch->swtimer_timer);
+    }
 }
 
 static uint8_t
@@ -1428,6 +1945,12 @@ epoch_misc_in(uint16_t port, void *priv)
     uint8_t           ret = 0xff;
 
     switch (port) {
+        /* Character generator bank select (bits 7-5) plus the display-plane
+           control the ROS keeps in the low bits. */
+        case 0x400:
+            if (epoch_is_3477)
+                ret = (uint8_t) ((epoch->genbank << 5) | epoch->dispctrl);
+            break;
 /*
 I/O A0h R:
 xxxx xxx1: Memory or parity error?
@@ -1439,6 +1962,11 @@ x1xx xxxx: Sense DREQ? (only used in diag test)
             ret = 0;
             if (epoch->parityenabled)
                 ret |= epoch->parityerror & 1;
+            /* Bit 3: the IPL asked for a restart at a POST stage, so this
+               reset came from its own HLT (F812D tests it to reach the stage
+               dispatcher at F8003 instead of the power-on path). */
+            if (epoch_is_5535 && epoch->warmstart)
+                ret |= 0x08;
             if (fpu_type == FPU_NONE)
                 ret |= 0x80;
             for (int i = 0; i < 2; i++)
@@ -1446,6 +1974,16 @@ x1xx xxxx: Sense DREQ? (only used in diag test)
                     ret |= 0x40;
             if (epoch->testmode)
                 ret |= 0x02;
+            /* Bit 5 is an undocumented status that reads set. The 5535-M's
+               IPL requires it after the timer-2 test and retries that test
+               while it is set, so a clear bit turns the test into a hard
+               failure. */
+            if (epoch_is_5535)
+                ret |= 0x20;
+            /* The 3477-S's IPL walks memory and polls this bit; while it is
+               clear, the walk restarts the ROS through FFF3:000C every pass. */
+            if (epoch_is_3477)
+                ret |= 0x10;
             break;
         case 0xA1: /* High address where memory error occured */
             ret = epoch->parityerroraddr;
@@ -1460,7 +1998,11 @@ x1xx xxxx: No floppy drive
 1xxx xxxx: No (bootable?) hard drive
 */
         case 0xA2:
-            if (epoch->font24)
+            if (epoch_is_3477) {
+                /* (0xA2 & 0xA0) == 0x80 names the 24-dot panel, and IBMBIO picks
+                   the 3472/3477 banner with `test al,0x80`, so bit 7 stays set. */
+                ret = epoch->font24 ? 0x88 : 0x22;
+            } else if (epoch->font24)
                 ret = 0xA8; /* Mono 24 */
             else
                 ret = 0xA2; /* Mono 16 */
@@ -1489,16 +2031,32 @@ xxx1 xxxx: Serial port 2f8h
         case 0xA5:
             ret = 0x08; /* Bit 3: Keyboard connected? */
             break;
-        // case 0x164:
-        //     switch (epoch->fontcard.portdata) {
-        //         case 0x16A:
-        //             ret = 0xFD;
-        //             break;
-        //         case 0x168:
-        //             ret = 0xFE;
-        //             break;
-        //     }
-        //     break;
+        case 0xA6: /* Software timer status (bit 0 = armed) */
+            ret = epoch->swtimer;
+            break;
+        case 0xA7:
+            ret = 0;
+            break;
+        /* 5535-M memory configuration block. */
+        case 0x284: /* block-present bitmap, low half */
+        case 0x285: /* block-present bitmap, high half */
+            ret = (port & 1) ? (epoch->mem_present >> 8) : (epoch->mem_present & 0xff);
+            break;
+        case 0x286: /* status low: the two control bits mirrored into the nibble */
+            ret = (epoch->mem_ctrl & 0x80 ? 0x0a : 0x00) |
+                  (epoch->mem_ctrl & 0x40 ? 0x05 : 0x00);
+            break;
+        case 0x287: /* status high: the last 0x288 value's high half */
+            ret = (epoch->mem_cfg >> 8) & 0xff;
+            break;
+        /* 5535-M status/diagnostic register file. The data port returns
+           the selected register; the IPL only uses the low nibble. */
+        case 0x368: /* register index */
+            ret = epoch->diag_index;
+            break;
+        case 0x36A: /* register data */
+            ret = epoch->diag_reg[epoch->diag_index & 0x1f];
+            break;
         default:
             break;
     }
@@ -1515,7 +2073,7 @@ epoch_misc_out(uint16_t port, uint8_t val, void *priv)
     // dev->regs[port & 0x0007] = val;
     // epoch_log("%04X:%04X I/O Out %02X: %02X\n  AX=%04X BX=%04X CX=%04X DX=%04X ES=%04X DI=%04X DS=%04X SI=%04X\n",
     //      cs >> 4, cpu_state.pc, port, val, AX, BX, CX, DX, ES, DI, DS, SI);
-    if(port != 0x44)
+    if (port != 0x44)
         epoch_log("%04X:%04X I/O Out %02X: %02X\n", cs >> 4, cpu_state.pc, port, val);
 
     switch (port) {
@@ -1530,27 +2088,130 @@ x1xx xxxx: Enable parity update (Disable this -> Write data -> Enable this -> Re
 1xxx xxxx: Enable NMI check
 */
         case 0xA0:
+            if (epoch_is_3477) {
+                /* On this machine bit 3 is the parity enable: its tests store a
+                   byte with it clear (0x20) and read it back with it set
+                   (0x28), which is the write-off/read-on check.  Bit 7 arms one
+                   forced error on its 0->1 edge for the NMI test loop, while
+                   bit 0 in the hand-off value (0xA9) cancels that arm: those
+                   writes must not inject an error into the terminal UI. */
+                if (val & 0x01)
+                    epoch->parityarm = 0;
+                else if ((val & 0x80) && !nmi_mask)
+                    epoch->parityarm = 1;
+                epoch->parityenabled = val & 0x08;
+                epoch->parityforce   = 0;
+            } else {
+                epoch->parityenabled = val & 0x40; /* 1 = Enable read/write with parity */
+                /* Bit 3: parity error test mode (see epoch_t). */
+                epoch->parityforce = (val & 0x08) != 0;
+            }
+            /* A latched parity error that predates the NMI enable must reach
+               the handler once the ROS opens bit 7, or the error stays set
+               with nobody left to acknowledge it. */
+            if (epoch_is_3477 && !nmi_mask && (val & 0x80) && epoch->parityerror)
+                nmi_raise();
             nmi_mask = val & 0x80;
-            epoch->parityenabled = val & 0x40; /* 1 = Enable read/write with parity */
+            /* The 5535-M arms and acknowledges the software timer here
+               (out A0h, 41h / 40h) instead of on port 0xA6. */
+            if (epoch_is_5535)
+                epoch_swtimer_write(epoch, val);
             break;
         case 0xA1:
-            /* Diagnostics LED (used by debug card module) */
+            /* Diagnostics LED / POST checkpoint (used by debug card module).
+               Value 0x4F is also the POST restart command: it resets the
+               processor, but only after the IPL has named the stage it wants
+               to resume at (F9128/other checkpoints write other values). */
+            if (epoch_is_5535 && epoch->resetarmed && (val == 0x4f)) {
+                epoch->resetarmed = 0;
+                epoch->warmstart  = 1;
+                timer_set_delay_u64(&epoch->pulse_timer, EPOCH_RESET_PULSE * TIMER_USEC);
+            }
             break;
         case 0xA2:
-            /* Reset memory error bit */
+            /* Reset memory error bit. Only the reported error is cleared, not
+               the test mode, so an IPL can acknowledge and re-check. */
             epoch->parityerror = 0;
             break;
-        // case 0x160 ... 0x16A:
-        //     mem_mapping_enable(&epoch->fontcard.map);
-        //     epoch->fontcard.portdata = port;
-        //     break;
+        case 0xA6:
+            /* Software timer (IRQ7) arm/ack. Bit 0 set arms it; a write
+               with bit 0 clear and no other bit is either the IRQ handler's
+               acknowledge (which must keep the timer running so the ROM BAT
+               can count five IRQ7s) or a disarm from normal code. Only the
+               latter stops it. */
+            if (val & 1)
+                epoch_swtimer_write(epoch, 1);
+            else if ((val & 0xfe) == 0)
+                epoch_swtimer_write(epoch, 0);
+            break;
+        /* 5535-M memory configuration block. The IPL writes 0x288 with a word,
+           and 0x280/0x286 are write-only there. */
+        case 0x280:
+            /* Clearing the block back to its power-on state: the IPL writes
+               zero here before checking that 0x286 reads the default, so
+               the control bits a previous POST left in 0x282/0x28A must
+               not survive this write - the check halts the machine on a
+               warm start otherwise. */
+            epoch->mem_ctrl = 0xc0;
+            epoch->mem_cfg  = 0;
+            break;
+        case 0x282:
+        case 0x28A:
+            epoch->mem_ctrl = val;
+            break;
+        case 0x288:
+            epoch->mem_cfg = (epoch->mem_cfg & 0xff00) | val;
+            break;
+        case 0x289:
+            epoch->mem_cfg = (epoch->mem_cfg & 0x00ff) | (val << 8);
+            break;
+        /* Only the 5550's IPL drives this window; the 5535-M always has
+           0x40000-0x9FFFF and its memory-size walk requires that. */
         case 0x310 ... 0x312:
-            epoch->lowmemorydisabled = 0;
-            epoch_log("Low memory enabled\n");
+            if (!epoch_is_5535) {
+                epoch->lowmemorydisabled = 0;
+                epoch_log("Low memory enabled\n");
+            }
             break;
         case 0x314 ... 0x316:
-            epoch->lowmemorydisabled = 1;
-            epoch_log("Low memory disabled\n");
+            if (!epoch_is_5535) {
+                epoch->lowmemorydisabled = 1;
+                epoch_log("Low memory disabled\n");
+            }
+            break;
+        case 0x368: /* register index */
+            epoch->diag_index = val;
+            break;
+        case 0x36A: /* register data */
+            epoch->diag_reg[epoch->diag_index & 0x1f] = val & 0x0f;
+            /* Register 0x10 holds the POST stage to resume at. A non-zero
+               write arms the restart command (the IPL then writes 0x4F to
+               0xA1); the IPL's own register-file test ends by writing
+               zero here, so it leaves the command disarmed. */
+            if (epoch_is_5535 && (epoch->diag_index & 0x1f) == 0x10)
+                epoch->resetarmed = (val & 0x0f) != 0;
+            break;
+        /* 3477-S system ROS page select (write-only). */
+        case 0x390:
+            if (epoch_is_3477)
+                epoch_rom_select(val);
+            break;
+        /* 3477-S font card page latch (6 bits = 32 x 32 KB pages). */
+        case 0x3E3:
+            if (epoch_is_3477) {
+                /* The guest selecting a card page means the card is the font
+                   source again (IBMBIO's glyph fetch does exactly this). */
+                epoch->plane_font = 0;
+                epoch_fontcard_set_page(epoch, val & 0x3f);
+            }
+            break;
+        case 0x400:
+            if (epoch_is_3477) {
+                epoch->dispctrl = val & 0x1f;
+                epoch->genbank  = (val >> 5) & (EPOCH_GEN_BANKS - 1);
+            }
+            break;
+        default:
             break;
     }
 }
@@ -1700,6 +2361,17 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
         case 0x61: /* Keyboard Control Register (aka Port B) */
             kbd->pb = val;
 
+            if (val == 0x00) {
+                /* The IPL writes 0x00 to port B at the start of the keyboard
+                   test to disable the keyboard. Discard any leftover keydata
+                   (e.g. the tail of a Ctrl+Alt+Del scancode that the ROM did 
+                   not consume before reset) so the clock-poll that follows 
+                   sees an idle line. */
+                key_queue_start        = key_queue_end = 0;
+                kbd->kbd_readdata_step = 16;
+                kbd->want_irq          = 0;
+            }
+
             if ((val & 0x18) == 0x08) {
                 new_clock = !(val & 0x04);
                 /* Trigger kbd reset after the clk line is reset to a high level */
@@ -1718,6 +2390,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                     kbd_epoch_adddata(0xA5);
                     kbd_epoch_adddata(0x00);
                     kbd_epoch_adddata(0x10);
+                    keyboard_set_in_reset(1);
                 }
             } else if ((val & 0x18) == 0x18) {
                 new_clock = !(val & 0x04);
@@ -1770,6 +2443,8 @@ kbd_read(uint16_t port, void *priv)
     switch (port) {
         case 0x60: /* Keyboard Data Register  (aka Port A) */
             ret = kbd->pa;
+            if (keyboard_get_in_reset() && (ret == 0x10))
+                keyboard_set_in_reset(0);
             break;
 
         case 0x61: /* Keyboard Control Register (aka Port B) */
@@ -1997,6 +2672,11 @@ epoch_nvr_start(nvr_t *nvr)
     /* Initialize the internal and chip times. */
     if (time_sync & TIME_SYNC_ENABLED) {
         /* Use the internal clock's time. */
+        if (time_keep_date) {
+            /* Keep the chip's own date. */
+            epoch_nvr_time_get(nvr->regs, &tm);
+            nvr_time_set_date(&tm);
+        }
         nvr_time_get(&tm);
         epoch_nvr_time_set(nvr->regs, &tm);
     } else {
@@ -2077,9 +2757,19 @@ epoch_nvr_init(epoch_t *epoch)
                   epoch_nvr_read, NULL, NULL, epoch_nvr_write, NULL, NULL, epoch);
 }
 
+/* Attribute to DAC index for monochrome text: index 0 = background, 2 =
+   normal, 3 = highlighted.  The 5550's monochrome CRT draws light text (the
+   adapter's amber pair 6/62) on black; the 5535-M's LCD is the light one, so
+   its indices are the nearest DAC entries to a warm off-white background,
+   that colour inverted, and the mid-tone of those two. */
 static uint8_t ibm5550_attr_mono[16] = 
 {
 	0,6,6,62,0,0,0,0,0,0,0,0,0,0,0,0
+};
+
+static uint8_t ibm5535_attr_mono[16] = 
+{
+	55,8,8,7,0,0,0,0,0,0,0,0,0,0,0,0
 };
 
 // static uint8_t ps55_attr_color[16] = /* for video mode 0eh color character */
@@ -2115,16 +2805,48 @@ epoch_reset(void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
 
-    epoch->parityerror = 0;
+    epoch->parityarm     = 0;
+    epoch->parityerror   = 0;
+    epoch->parityforce   = 0;
     epoch->parityenabled = 1;
-    epoch->lowmemorydisabled = 1;
-    epoch->crtioenabled = 0;
-    mem_mapping_disable(&epoch->cmap);
-    mem_mapping_disable(&epoch->vmap);
+    memset(epoch->paritybad, 0, 0xA0000 >> 3);
+    /* A hard reset is a power-on: only the soft reset a POST restart command
+       issues (see epoch_misc_out's 0x36A/0xA1) leaves this set. */
+    epoch->warmstart  = 0;
+    epoch->resetarmed = 0;
+    timer_disable(&epoch->pulse_timer);
+    /* The 0x310-0x316 window un-hides the 0x40000-0x9FFFF range, and only
+       the 5550's IPL uses it. The 5535-M always has that memory, and its IPL
+       requires the first unbacked block to be at 0xA0000 (memory-size walk at
+       F871C, error 0x6111), so it must not be hidden there.  The 3477-S's ROS
+       walks the same range with a pattern test (F85FB), so it stays visible
+       there too. */
+    epoch->lowmemorydisabled = (epoch_is_5535 || epoch_is_3477) ? 0 : 1;
+    /* The 3477-S's IPL never opens the CRTC I/O through 3D2h, so force it on
+       there; the parity latch stays reachable through the epoch_is_3477 term
+       in epoch_parity_device_write(). */
+    epoch->crtioenabled = epoch_is_3477 ? 1 : 0;
+    /* The IPL reads 0x286 before programming the block and requires the two
+       control bits to read as set then (FCE5B), so those power up set. */
+    epoch->mem_ctrl = 0xc0;
+    epoch->mem_cfg  = 0;
+    epoch->genbank  = 0;
+    epoch->dispctrl = 0;
+    epoch->swtimer = 0;
+    timer_disable(&epoch->swtimer_timer);
+    /* The ROS page register is write-only and powers up on the boot page. */
+    if (epoch_is_3477)
+        epoch_rom_select(0);
+    /* The video and attribute RAMs stay mapped (only the video output is gated
+       by crtioenabled); unlike a disable, this also lets the parity latch see
+       accesses to the device area, which the 5535-M's IPL tests. */
+    // mem_mapping_disable(&epoch->cmap);
+    // mem_mapping_disable(&epoch->vmap);
     // epoch->attrc[LV_CURSOR_COLOR]    = 0x0f;                   /* cursor color */
     epoch->crtc[LC_HORIZONTAL_TOTAL] = 103;    /* Horizontal Total */
     epoch->crtc[LC_VERTICAL_TOTAL]  = 26;    /* Vertical Total (These two must be set before the timer starts.) */
     epoch->crtmode = 0;
+    epoch->plane_font = 0;
     epoch->vram_display_mask = EPOCH_MASK_CRAM;
     // epoch->plane_mask = 1;
     epoch->oddeven = 0;
@@ -2137,7 +2859,7 @@ epoch_reset(void *priv)
     
     /* Set internal color palette registers */
     for (uint16_t i = 0; i < 16; i++) {
-        epoch->egapal[i] = ibm5550_attr_mono[i];
+        epoch->egapal[i] = epoch_is_5535 ? ibm5535_attr_mono[i] : ibm5550_attr_mono[i];
     }
     /* Set color palette for video output */
     for (uint16_t i = 0; i < 64; i++) {
@@ -2147,114 +2869,351 @@ epoch_reset(void *priv)
         epoch->pallook[i]  = makecol32((epoch->vgapal[i].r & 0x3f) * 4, (epoch->vgapal[i].g & 0x3f) * 4, (epoch->vgapal[i].b & 0x3f) * 4);
     }
 
-    // mem_mapping_disable(&epoch->fontcard.map);
-
     epoch_log("epoch_reset done.\n");
 }
 
-/*
-//[Font ROM Map (DA1)]
-//Bank 0
-// 0000-581Fh Pointers (Low) for each character font?
-// 5820-7FFFh Pointers (High) for each character font?
-// 8000- *  h Font Data
-*/
-// static void
-// epoch_video_load_font(char *fname, epoch_t *epoch)
-// {
-//     uint8_t buf;
-//     uint64_t fsize;
-//     if (!fname)
-//         return;
-//     if (*fname == '\0')
-//         return;
-//     FILE *mfile = rom_fopen(fname, "rb");
-//     if (!mfile) {
-//         // da2_log("MSG: Can't open binary ROM font file: %s\n", fname);
-//         return;
-//     }
-//     fseek(mfile, 0, SEEK_END);
-//     fsize = ftell(mfile); /* get filesize */
-//     fseek(mfile, 0, SEEK_SET);
-//     if (fsize > EPOCH_FONTROM_SIZE) {
-//         fsize = EPOCH_FONTROM_SIZE; /* truncate read data */
-//         // da2_log("MSG: The binary ROM font is truncated: %s\n", fname);
-//         // fclose(mfile);
-//         // return 1;
-//     }
-//     uint32_t j = 0;
-//     while (ftell(mfile) < fsize) {
-//         (void) !fread(&buf, sizeof(uint8_t), 1, mfile);
-//         epoch->fontcard.rom[j] = buf;
-//         j++;
-//     }
-//     fclose(mfile);
-//     return;
-// }
-
-// static void
-// epoch_font_writeb(uint32_t addr, uint8_t val, void *priv)
-// {
-//     epoch_t *epoch = (epoch_t *) priv;
-//     epoch->fontcard.bank = val;
-//     // if ((addr & ~0xfff) != 0xE0000) return;
-//     epoch_log("cw %04X %02X %04X %04X %04X %04X\n", addr, val, DS, SI, ES, DI);
-// }
-// static uint8_t
-// epoch_font_readb(uint32_t addr, void *priv)
-// {
-//     epoch_t *epoch = (epoch_t *) priv;
-//     uint32_t readaddr = epoch->fontcard.bank;
-//     addr &= EPOCH_FONTROM_MASK;
-//     readaddr *= 0xc000;/* xxx x000 0000 0000 0000 (8000h) */
-//     readaddr += addr;
-//     if (readaddr >= EPOCH_FONTROM_SIZE)
-//         return EPOCH_INVALIDACCESS8;
-//     // epoch_log("cr %X %x %04X %04X %04X %04X\n", readaddr, epoch->fontcard.rom[readaddr], DS, SI, ES, DI);
-//     // if(epoch->vram[addr] == 0xcb)
-//     //         epoch_log("CB %04X:%04X %04X:%04X>%04X:%04X\n", cs >> 4, cpu_state.pc, DS, SI,ES,DI);
-//     return epoch->fontcard.rom[readaddr];
-// }
-static void *
-epoch_init(UNUSED(const device_t *info))
+/* ---- Optional kanji font card ------------------------------------------
+   The card holds a page ROM behind a 32 KB RAM window at F0000h; the guest
+   selects a page and reads glyphs from this window. Page 0 is the page the
+   IPL sums: after clearing F000:0000 it wants the 32 KB 16-bit word sum to
+   be 1. Note what is *not* done here: IBMBIO also compares F000:0000..000F
+   with a constant in its own segment (0540:8083), but a real card's page 0
+   holds the pointer table's entries for cells 0..7 there, so that compare
+   cannot pass on real 5535-M and is intended to protect glyphs[0..7]. */
+static void
+epoch_fontcard_fix_page(uint8_t *page, uint32_t index)
 {
-    epoch_t *epoch  = calloc(1, sizeof(epoch_t));
-    epoch->font24 = device_get_config_int("model");
-    epoch->testmode = device_get_config_int("testmode");
+    uint32_t i;
+    uint16_t sum;
+    uint8_t  first = page[0];
 
+    if (index != 0)
+        return;
+
+    page[0] = 0x00;
+    sum     = 0;
+    for (i = 0; i < EPOCH_FONTCARD_WIN_SIZE; i += 2)
+        sum += (uint16_t) (page[i] | (page[i + 1] << 8));
+    page[0] = first;
+    if (sum == 1)
+        return;
+
+    epoch_log("font card: page 0 sum %04X, repaired\n", sum);
+    page[0] = 0x00;
+    sum     = 0;
+    for (i = 0; i < EPOCH_FONTCARD_WIN_SIZE; i += 2)
+        sum += (uint16_t) (page[i] | (page[i + 1] << 8));
+    /* Replace the last word so the whole page sums to exactly 1. */
+    sum -= (uint16_t) (page[EPOCH_FONTCARD_WIN_SIZE - 2]
+                     | (page[EPOCH_FONTCARD_WIN_SIZE - 1] << 8));
+    sum  = (uint16_t) (1 - sum);
+    page[EPOCH_FONTCARD_WIN_SIZE - 2] = sum & 0xff;
+    page[EPOCH_FONTCARD_WIN_SIZE - 1] = sum >> 8;
+    page[0] = first;
+}
+
+static void
+epoch_fontcard_set_page(epoch_t *epoch, uint32_t page)
+{
+    uint32_t offset;
+
+    if ((epoch->fontcard_rom == NULL) || (epoch->fontcard_rom_size == 0))
+        return;
+    if (epoch->fontcard_pages != 0)
+        page %= epoch->fontcard_pages;
+    epoch->fontcard_page = page;
+    offset               = page * EPOCH_FONTCARD_WIN_SIZE;
+    if (offset + EPOCH_FONTCARD_WIN_SIZE <= epoch->fontcard_rom_size)
+        epoch->fontcard_win = &epoch->fontcard_rom[offset];
+    else
+        epoch->fontcard_win = &epoch->fontcard_rom[0];
+}
+
+static uint8_t
+epoch_fontcard_readb(uint32_t addr, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+
+    if (epoch->fontcard_win == NULL)
+        return 0xff;
+    addr &= EPOCH_FONTCARD_WIN_SIZE - 1;
+    return epoch->fontcard_win[addr];
+}
+
+static uint16_t
+epoch_fontcard_readw(uint32_t addr, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+    if (epoch->fontcard_win == NULL)
+        return 0xffff;
+    addr &= EPOCH_FONTCARD_WIN_SIZE - 1;
+    return (uint16_t) (epoch->fontcard_win[addr]
+        | (epoch->fontcard_win[(addr + 1) & (EPOCH_FONTCARD_WIN_SIZE - 1)] << 8));
+}
+
+static void
+epoch_fontcard_writeb(uint32_t addr, uint8_t val, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+
+    if (epoch->fontcard_win == NULL)
+        return;
+    addr &= EPOCH_FONTCARD_WIN_SIZE - 1;
+    if (epoch_is_3477) {
+        /* The 3477 boot clears F000h through the card window even though the
+           card is ROM here; the clearing must not destroy the font. A write
+           also means IBMBIO is switching the card in, so drop the IPL's
+           private generator. */
+        epoch->plane_font = 0;
+        return;
+    }
+    /* Writing 2 to the first byte is IBMBIO's "serve" command; re-serving
+       page 0 keeps the signature comparison it does right after reading a
+       stable place. */
+    if ((addr == 0) && (val == 0x02)) {
+        epoch_fontcard_set_page(epoch, 0);
+        return;
+    }
+    /* The low 16 bytes are the page latch: the guest selects a page by writing
+       the page number at the matching offset (seg0540:7F0D, "mov [bx],bl" with
+       bx == bl). Requiring val == addr keeps unrelated memory writes out (the
+       IPL's walk only touches F000:0000 and F000:7FFF). */
+    if ((addr <= 15) && (val == addr)) {
+        epoch_fontcard_set_page(epoch, val);
+        return;
+    }
+    epoch->fontcard_win[addr] = val;
+}
+
+static void
+epoch_fontcard_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+    if (epoch->fontcard_win == NULL)
+        return;
+    addr &= EPOCH_FONTCARD_WIN_SIZE - 1;
+    if (epoch_is_3477) {
+        epoch->plane_font = 0;
+        return;
+    }
+    epoch->fontcard_win[addr] = val & 0xff;
+    epoch->fontcard_win[(addr + 1) & (EPOCH_FONTCARD_WIN_SIZE - 1)] = val >> 8;
+}
+
+/* 0x164 reports whether the card accepted the last command, and which one:
+   the IPL reads it right after writing 0x160 and needs 0xFF, while IBMBIO
+   looks for 0xFD after a 0x16A write and 0xFE after a 0x168 write. */
+static uint8_t
+epoch_fontcard_in(uint16_t port, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+    uint8_t  ret   = 0xff;
+
+    if (port == 0x164) {
+        switch (epoch->fontcard_data) {
+            case 0x168:
+                ret = 0xfe;
+                break;
+            case 0x16a:
+                ret = 0xfd;
+                break;
+            default:
+                ret = 0xff;
+                break;
+        }
+    }
+
+    return ret;
+}
+
+static void
+epoch_fontcard_out(uint16_t port, uint8_t val, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+
+    /* The last port touched decides what a 0x164 read reports. */
+    epoch->fontcard_data = port;
+    switch (port) {
+        case 0x160:
+            /* Command/index; its bank semantics are still unknown,
+               so the current page simply stays served. */
+            break;
+        default:
+            break;
+    }
+}
+
+static void
+epoch_fontcard_init(epoch_t *epoch)
+{
+    FILE       *fp;
+    size_t      fsize;
+    const char *path;
+
+    if (epoch_is_3477) {
+        /* Page 0 of carries the model letter the ROS compares. */
+        path                     = EPOCH_FONTCARD_ROM_PATH_FNT1;
+        epoch->fontcard_rom_size = EPOCH_FONTCARD_ROM_SIZE_3477;
+        epoch->fontcard_rom      = calloc(1, epoch->fontcard_rom_size);
+        if (epoch->fontcard_rom == NULL)
+            return;
+        fsize = 0;
+        fp    = rom_fopen(EPOCH_FONTCARD_ROM_PATH_FNT1, "rb");
+        if (fp != NULL) {
+            fsize += fread(epoch->fontcard_rom, 1, EPOCH_FONTCARD_ROM_SIZE, fp);
+            fclose(fp);
+        }
+        fp = rom_fopen(EPOCH_FONTCARD_ROM_PATH_FNT2, "rb");
+        if (fp != NULL) {
+            fsize += fread(&epoch->fontcard_rom[EPOCH_FONTCARD_ROM_SIZE], 1,
+                           EPOCH_FONTCARD_ROM_SIZE, fp);
+            fclose(fp);
+        }
+    } else {
+        if (epoch_is_5535) {
+            path = epoch->fontcard_isnew ? EPOCH_FONTCARD_ROM_PATH_NEW
+                                         : EPOCH_FONTCARD_ROM_PATH_OLD;
+        } else {
+            switch (epoch->fontcard_charset) {
+                case EPOCH_FONTCARD_CHARSET_KJ16:
+                    path = EPOCH_FONTCARD_ROM_PATH_K16;
+                    break;
+                case EPOCH_FONTCARD_CHARSET_KJ24:
+                    path = EPOCH_FONTCARD_ROM_PATH_K24;
+                    break;
+                case EPOCH_FONTCARD_CHARSET_KJ52:
+                    path = EPOCH_FONTCARD_ROM_PATH_K52;
+                    break;
+                case EPOCH_FONTCARD_CHARSET_HANS:
+                    path = EPOCH_FONTCARD_ROM_PATH_P24;
+                    break;
+                default:  /* No font card installed. */
+                    return;
+            }
+        }
+
+        fp = rom_fopen(path, "rb");
+        if (fp == NULL)
+            return; /* No font card installed. */
+        epoch->fontcard_rom_size = EPOCH_FONTCARD_ROM_SIZE;
+        epoch->fontcard_rom      = calloc(1, epoch->fontcard_rom_size);
+        fsize = fread(epoch->fontcard_rom, 1, epoch->fontcard_rom_size, fp);
+        fclose(fp);
+    }
+
+    if (fsize < EPOCH_FONTCARD_WIN_SIZE) {
+        free(epoch->fontcard_rom);
+        epoch->fontcard_rom = NULL;
+        return;
+    }
+    epoch->fontcard_pages = (uint32_t) (fsize / EPOCH_FONTCARD_WIN_SIZE);
+    epoch_fontcard_fix_page(epoch->fontcard_rom, 0);
+
+    mem_mapping_add(&epoch->fontcard_map, EPOCH_FONTCARD_WIN_ADDR,
+                    EPOCH_FONTCARD_WIN_SIZE, epoch_fontcard_readb,
+                    epoch_fontcard_readw, NULL, epoch_fontcard_writeb,
+                    epoch_fontcard_writew, NULL, NULL, MEM_MAPPING_EXTERNAL,
+                    epoch);
+    io_sethandler(0x160, 0x000b, epoch_fontcard_in, NULL, NULL,
+                  epoch_fontcard_out, NULL, NULL, epoch);
+    epoch_fontcard_set_page(epoch, 0);
+    epoch_log("font card: %s, %u pages installed\n", path, epoch->fontcard_pages);
+}
+
+/* The video device is shared by the 5550, the 5535-M and the 3477-S; each
+   machine fills in its own panel/font setup and board windows first, then
+   the common initialisation runs. */
+static void
+epoch_ibm5550_init(epoch_t *epoch)
+{
+    /* The 5550's CRT is either 16- or 24-dot, and the kanji font card is a
+       switch option installed only when its ROM image is present. */
+    epoch->font24           = device_get_config_int("model");
+    epoch->fontcard_charset = device_get_config_int("font");
+    epoch->fontcard_enabled = (epoch->fontcard_charset != EPOCH_FONTCARD_CHARSET_NONE);
+    if (epoch->fontcard_enabled)
+        epoch_fontcard_init(epoch);
+}
+
+static void
+epoch_ibm5535_init(epoch_t *epoch)
+{
+    /* The 5535-M has only the 16-dot monochrome LCD model, so it has no font
+       selection, and it always carries the kanji font card. */
+    epoch->fontcard_isnew = device_get_config_int("font");
+    epoch_fontcard_init(epoch);
+
+    /* Only the 5535-M has the memory configuration block at 0x280-0x28A. */
+    io_sethandler(0x280, 0x000B,
+                  epoch_misc_in, NULL, NULL, epoch_misc_out, NULL, NULL, epoch);
+    /* One 128 KB block per bitmap bit; the IPL walks the bits that are
+       clear, so a present block is a zero bit. */
+    epoch->mem_present = (uint16_t) ~((1u << (mem_size >> 7)) - 1u);
+
+    /* Only the 5535-M's IPL uses the status register file at 0x368/0x36A. */
+    io_sethandler(0x368, 0x0003,
+                  epoch_misc_in, NULL, NULL, epoch_misc_out, NULL, NULL, epoch);
+}
+
+static void
+epoch_ibm3477_init(epoch_t *epoch)
+{
+    /* The 3477-S panel is a fixed 24-dot unit with the two-chip card. */
+    epoch->font24           = EPOCH_CONFIG_MONO24;
+    epoch->fontcard_enabled = 1;
+    epoch_fontcard_init(epoch);
+
+    /* The 3477-S's ROS round-trips a pattern through E1000-EFFFFh,
+       so that range is RAM there instead of open bus. */
+    epoch->hiram = calloc(1, EPOCH_HIRAM_SIZE);
+    epoch->gen   = calloc(1, EPOCH_GEN_BANKS * EPOCH_GEN_SIZE);
+    /* Optional dump of the display's auxiliary fonts. */
+    FILE *fp = fopen(EPOCH_FONTCARD_AUX_PATH_3477, "rb");
+    if (fp != NULL) {
+        fread(epoch->gen, 1, EPOCH_GEN_BANKS * EPOCH_GEN_SIZE, fp);
+        fclose(fp);
+    }
+    mem_mapping_add(&epoch->hiram_map, EPOCH_HIRAM_BASE, EPOCH_HIRAM_SIZE,
+        epoch_hiram_readb, epoch_hiram_readw, NULL,
+        epoch_hiram_writeb, epoch_hiram_writew, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
+
+    /* The 3477-S also answers the CRTC block at 0x2D0, selects the system ROS pages
+       at 0x390, and the character generator bank/display plane at 0x400. */
+    io_sethandler(0x02d0, 0x0020, epoch_mirror_inb, epoch_mirror_inw, NULL,
+                  epoch_mirror_outb, epoch_mirror_outw, NULL, epoch);
+    io_sethandler(0x0390, 0x0001, epoch_misc_in, NULL, NULL,
+                  epoch_misc_out, NULL, NULL, epoch);
+    io_sethandler(0x0400, 0x0001, epoch_misc_in, NULL, NULL,
+                  epoch_misc_out, NULL, NULL, epoch);
+}
+
+/* Display timing, memory and the ports every one of the three machines has. */
+static void
+epoch_common_init(epoch_t *epoch)
+{
     video_inform(VIDEO_FLAG_TYPE_NONE, &timing_epoch_vid);
     video_update_timing();
 
-    epoch->dispontime        = 1000ull << 32;
-    epoch->dispofftime       = 1000ull << 32;
-    // epoch->changedvram       = calloc(1,  (EPOCH_MASK_VRAMPLANE + 1) >> 9); /* XX000h */
+    epoch->dispontime  = 1000ull << 32;
+    epoch->dispofftime = 1000ull << 32;
 
     if (epoch->font24)
         epoch->pixelclock = EPOCH_PIXELCLOCK24;
     else
         epoch->pixelclock = EPOCH_PIXELCLOCK16;
 
-    epoch->vram              = calloc(1, 256* 1024);
-    // for(int i=0;i<256*1024;i++) /* for debug */
-    //     epoch->vram[i] = 0xff;
-    epoch->cram              = calloc(1, 4 * 1024);
-    // epoch->fontcard.rom      = calloc(1, EPOCH_FONTROM_SIZE);
-    // epoch_video_load_font("roms/machines/ibm5550/GEN1FONT.BIN", epoch);
+    epoch->vram      = calloc(1, 256 * 1024);
+    epoch->cram      = calloc(1, 4 * 1024);
+    epoch->paritybad = calloc(1, 0xA0000 >> 3);
 
     epoch->epochconst = (uint64_t) ((cpuclock / epoch->pixelclock) * (double) (1ull << 32));
 
-    mem_mapping_add(&epoch->cmap, 0xE0000, 0x1000, epoch_cram_readb, epoch_cram_readw, NULL,
-        epoch_cram_writeb, epoch_cram_writew, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
-    mem_mapping_add(&epoch->vmap, 0xA0000, 0x40000, NULL, epoch_vram_readw, NULL,
-        NULL, epoch_vram_writew, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
-    // mem_mapping_add(&epoch->fontcard.map, 0xF0000, 0xC000, epoch_font_readb, NULL, NULL,
-    //     epoch_font_writeb, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
-
-    // mem_mapping_disable(&epoch->fontcard.map);
     mem_mapping_add(&epoch->paritymap, 0, 0xA0000, epoch_parity_readb, epoch_parity_readw, NULL,
         epoch_parity_writeb, epoch_parity_writew, NULL, NULL, MEM_MAPPING_CACHE, epoch);
-
-    io_sethandler(0x03d0, 0x0020, epoch_inb, epoch_inw, NULL, epoch_outb, epoch_outw, NULL, epoch);
+    mem_mapping_add(&epoch->vmap, 0xA0000, 0x40000, NULL, epoch_vram_readw, NULL,
+        epoch_vram_writeb, epoch_vram_writew, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
+    mem_mapping_add(&epoch->cmap, 0xE0000, 0x1000, epoch_cram_readb, epoch_cram_readw, NULL,
+        epoch_cram_writeb, epoch_cram_writew, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
 
     io_sethandler(0x44, 0x0001,
                   epoch_misc_in, NULL, NULL, epoch_misc_out, NULL, NULL, epoch);
@@ -2262,14 +3221,32 @@ epoch_init(UNUSED(const device_t *info))
                   epoch_misc_in, NULL, NULL, epoch_misc_out, NULL, NULL, epoch);
     io_sethandler(0x310, 0x0008,
                   epoch_misc_in, NULL, NULL, epoch_misc_out, NULL, NULL, epoch);
-    // io_sethandler(0x160, 0x0010,
-    //               epoch_misc_in, NULL, NULL, epoch_misc_out, NULL, NULL, epoch);
+    io_sethandler(0x3d0, 0x0020,
+                  epoch_inb, epoch_inw, NULL, epoch_outb, epoch_outw, NULL, epoch);
 
     epoch_reset(epoch);
     
     timer_add(&epoch->timer, epoch_poll, epoch, 1);
+    timer_add(&epoch->pulse_timer, epoch_pulse_timer, epoch, 0);
+    timer_add(&epoch->swtimer_timer, epoch_swtimer_callback, epoch, 0);
 
     epoch_nvr_init(epoch);
+}
+
+static void *
+epoch_init(UNUSED(const device_t *info))
+{
+    epoch_t *epoch  = calloc(1, sizeof(epoch_t));
+    epoch->testmode = device_get_config_int("testmode");
+
+    if (epoch_is_3477)
+        epoch_ibm3477_init(epoch);
+    else if (epoch_is_5535)
+        epoch_ibm5535_init(epoch);
+    else
+        epoch_ibm5550_init(epoch);
+
+    epoch_common_init(epoch);
 
     return epoch;
 }
@@ -2326,9 +3303,12 @@ epoch_close(void *priv)
     epoch_log("PIC IRR=%02X ISR=%02X IMR=%02X ICW1=%02X ICW2=%02X ICW3=%02X ICW4=%02X OCW2=%02X OCW3=%02X\n",
           pic.irr, pic.isr, pic.imr, pic.icw1, pic.icw2, pic.icw3, pic.icw4, pic.ocw2, pic.ocw3);
 #endif
+    free(epoch->gen);
     free(epoch->cram);
     free(epoch->vram);
-    // free(epoch->fontcard.rom);
+    free(epoch->hiram);
+    free(epoch->paritybad);
+    free(epoch->fontcard_rom);
     // free(epoch->changedvram);
     free(epoch);
 }
@@ -2348,8 +3328,121 @@ epoch_force_redraw(void *priv)
     epoch->fullchange = changeframecount;
 }
 
-static const device_config_t epoch_config[] = {
+static void
+pit_irq6_timer(int new_out, int old_out, UNUSED(void *priv))
+{
+    // epoch_log("%04X:%04X IRQ6 Timer triggered.\n", cs >> 4, cpu_state.pc);
+    if (new_out && !old_out)
+        picint(EPOCH_IRQ6_BIT);
+
+    if (!new_out)
+        picintc(EPOCH_IRQ6_BIT);
+}
+
+/* Counter 0 output: keep the DRAM refresh on the rising edge, and cascade a clock
+   pulse to counter 1 on the falling edge (counter 0 -> counter 1 -> IRQ6). This
+   gives the 50 ms software timer from the 1 ms counter 0 rate. */
+static void
+pit_ibm5550_ctr0(int new_out, int old_out, void *priv)
+{
+    pit_refresh_timer_xt(new_out, old_out, priv);
+
+    if (!new_out && old_out)
+        ctr_clock(priv, TIMER_CTR_1);
+}
+
+static pit_t *
+pit_ibm5550_init(void)
+{
+    void *pit;
+
+    pit_intf_t *pit_intf = &pit_devs[0];
+
+    pit       = device_add(&i8253_device);
+    *pit_intf = pit_classic_intf;
+
+    pit_intf->data = pit;
+
+    for (uint8_t i = 0; i < 3; i++) {
+        pit_intf->set_gate(pit_intf->data, i, 1);
+        pit_intf->set_using_timer(pit_intf->data, i, 1);
+    }
+    /* Counter 1 is clocked by counter 0's output (cascade), not by
+       the PIT timer, so it must not use the internal timer clock. */
+    pit_intf->set_using_timer(pit_intf->data, TIMER_CTR_1, 0);
+
+    pit_intf->set_out_func(pit_intf->data, TIMER_CTR_1, pit_irq6_timer);
+    pit_intf->set_out_func(pit_intf->data, TIMER_CTR_0, pit_ibm5550_ctr0);
+    pit_intf->set_out_func(pit_intf->data, TIMER_CTR_2, pit_speaker_timer);
+    pit_intf->set_load_func(pit_intf->data, TIMER_CTR_2, speaker_set_count);
+
+    pit_intf->set_gate(pit_intf->data, TIMER_CTR_2, 0);
+
+    return pit;
+}
+
+/* The 3477-S needs a timer but must not have the 5550's software one: that is
+   counter 1's output driving the 8259's line 6, and the 3477-S uses that line
+   for the chip's own interrupt controller instead. Only the refresh counter
+   and the speaker are wired up here. */
+static pit_t *
+pit_ibm3477_init(void)
+{
+    void *pit;
+
+    pit_intf_t *pit_intf = &pit_devs[0];
+
+    pit       = device_add(&i8253_device);
+    *pit_intf = pit_classic_intf;
+
+    pit_intf->data = pit;
+
+    for (uint8_t i = 0; i < 3; i++) {
+        pit_intf->set_gate(pit_intf->data, i, 1);
+        pit_intf->set_using_timer(pit_intf->data, i, 1);
+    }
+    pit_intf->set_using_timer(pit_intf->data, TIMER_CTR_1, 0);
+
+    pit_intf->set_out_func(pit_intf->data, TIMER_CTR_0, pit_refresh_timer_xt);
+    pit_intf->set_out_func(pit_intf->data, TIMER_CTR_2, pit_speaker_timer);
+    pit_intf->set_load_func(pit_intf->data, TIMER_CTR_2, speaker_set_count);
+
+    pit_intf->set_gate(pit_intf->data, TIMER_CTR_2, 0);
+
+    return pit;
+}
+
+static const device_config_t epoch_5550_config[] = {
     // clang-format off
+    {
+        .name        = "font",
+        .description = "Font",
+        .type        = CONFIG_SELECTION,
+        .default_int = EPOCH_FONTCARD_CHARSET_NONE,
+        .selection   = {
+            {
+                .description = "None",
+                .value = EPOCH_FONTCARD_CHARSET_NONE
+            },
+            {
+                .description = "Japanese (Font 16)",
+                .value = EPOCH_FONTCARD_CHARSET_KJ16
+            },
+            {
+                .description = "Japanese (Font 24)",
+                .value = EPOCH_FONTCARD_CHARSET_KJ24
+            },
+            {
+                .description = "Japanese (5250 Emulation)",
+                .value = EPOCH_FONTCARD_CHARSET_KJ52
+            },
+            {
+                .description = "Simplified Chinese (Font 24)",
+                .value = EPOCH_FONTCARD_CHARSET_HANS
+            },
+            { .description = "" }
+        }
+    },
     {
         .name        = "model",
         .description = "Model",
@@ -2389,46 +3482,8 @@ const device_t ibm5550_device = {
     .available     = NULL,
     .speed_changed = epoch_speed_changed,
     .force_redraw  = epoch_force_redraw,
-    .config        = epoch_config
+    .config        = epoch_5550_config
 };
-
-static void
-pit_irq6_timer(int new_out, int old_out, UNUSED(void *priv))
-{
-    // epoch_log("%04X:%04X IRQ6 Timer triggered.\n", cs >> 4, cpu_state.pc);
-    if (new_out && !old_out)
-        picint(EPOCH_IRQ6_BIT);
-
-    if (!new_out)
-        picintc(EPOCH_IRQ6_BIT);
-}
-
-static pit_t *
-pit_ibm5550_init(void)
-{
-    void *pit;
-
-    pit_intf_t *pit_intf = &pit_devs[0];
-
-            pit       = device_add(&i8253_device);
-            *pit_intf = pit_classic_intf;
-
-    pit_intf->data = pit;
-
-    for (uint8_t i = 0; i < 3; i++) {
-        pit_intf->set_gate(pit_intf->data, i, 1);
-        pit_intf->set_using_timer(pit_intf->data, i, 1);
-    }
-
-    pit_intf->set_out_func(pit_intf->data, TIMER_CTR_1, pit_irq6_timer);
-    pit_intf->set_out_func(pit_intf->data, TIMER_CTR_0, pit_refresh_timer_xt);
-    pit_intf->set_out_func(pit_intf->data, TIMER_CTR_2, pit_speaker_timer);
-    pit_intf->set_load_func(pit_intf->data, TIMER_CTR_2, speaker_set_count);
-
-    pit_intf->set_gate(pit_intf->data, TIMER_CTR_2, 0);
-
-    return pit;
-}
 
 int
 machine_xt_ibm5550_init(const machine_t *model)
@@ -2441,20 +3496,23 @@ machine_xt_ibm5550_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
+    epoch_is_5535 = 0;
+    epoch_is_3477 = 0;
+
     device_add(&fdc_xt_5550_device);
 
     epochkbd_t *kbc = device_add(&kbc_epoch_device);
     
     pic_init();
     dma_init();
-    pit_ibm5550_init();
     nmi_mask = 0;
+    pit_ibm5550_init();
 
     device_add(&ibm5550_device);
 
     device_add(&lpt_port_device);
     serial_t *uart = device_add(&ns8250_device);
-    serial_setup(uart, 0x3f8, 1);/* Use IRQ 1 */
+    serial_setup(uart, 0x3f8, 1); /* Use IRQ 1 */
 
     if (mouse_type == MOUSE_TYPE_INTERNAL) {
         /* Tell mouse driver about our internal mouse. */
@@ -2465,6 +3523,209 @@ machine_xt_ibm5550_init(const machine_t *model)
         mouse_set_sample_rate(30.0);
         mouse_set_poll(epoch_mouse_poll, kbc);
     }
+
+    return ret;
+}
+
+static const device_config_t epoch_5535_config[] = {
+    // clang-format off
+    {
+        .name        = "font",
+        .description = "Font",
+        .type        = CONFIG_SELECTION,
+        .default_int = EPOCH_FONTCARD_ROM_NEW,
+        .selection   = {
+            {
+                .description = "Old",
+                .value = EPOCH_FONTCARD_ROM_OLD
+            },
+            {
+                .description = "New",
+                .value = EPOCH_FONTCARD_ROM_NEW
+            },
+            { .description = "" }
+        }
+    },
+    {
+        .name        = "testmode",
+        .description = "Test mode",
+        .type        = CONFIG_BINARY,
+        .default_int    = 0,
+        .selection      = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ibm5535_device = {
+    .name          = "IBM 5535 System Unit",
+    .internal_name = "ibm5535",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = epoch_init,
+    .close         = epoch_close,
+    .reset         = epoch_reset,
+    .available     = NULL,
+    .speed_changed = epoch_speed_changed,
+    .force_redraw  = epoch_force_redraw,
+    .config        = epoch_5535_config
+};
+
+/* IBM Multistation 5535-M: a 286 on the 5550 planar, with a 32 KB IPL at
+   F8000. Currently we reports no hard disk through port 0xA2 bit 7, which
+   makes it skip the 0xE800 hard disk controller probe and its RAM test. */
+int
+machine_xt_ibm5535_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ibm5535/94X1301.BIN",
+                                "roms/machines/ibm5535/94X1302.BIN",
+                                0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    epoch_is_5535 = 1;
+    epoch_is_3477 = 0;
+
+    device_add(&fdc_xt_5550_device);
+
+    epochkbd_t *kbc = device_add(&kbc_epoch_device);
+
+    pic_init();
+    dma_init();
+    nmi_mask = 0;
+    pit_ibm5550_init();
+
+    device_add(&ibm5535_device);
+
+    device_add(&lpt_port_device);
+    serial_t *uart = device_add(&ns8250_device);
+    serial_setup(uart, 0x3f8, 1); /* Use IRQ 1 */
+
+    if (mouse_type == MOUSE_TYPE_INTERNAL) {
+        /* Tell mouse driver about our internal mouse. */
+        mouse_reset();
+        mouse_set_buttons(2);
+        /* I don't know the actual polling speed, but
+           a higher value may cause a conflict with the mouse driver  */
+        mouse_set_sample_rate(30.0);
+        mouse_set_poll(epoch_mouse_poll, kbc);
+    }
+
+    return ret;
+}
+
+static const device_config_t epoch_3477_config[] = {
+    // clang-format off
+    {
+        .name        = "testmode",
+        .description = "Test mode",
+        .type        = CONFIG_BINARY,
+        .default_int    = 0,
+        .selection      = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ibm3477_device = {
+    .name          = "IBM 3477-S System Unit",
+    .internal_name = "ibm3477",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = epoch_init,
+    .close         = epoch_close,
+    .reset         = epoch_reset,
+    .available     = NULL,
+    .speed_changed = epoch_speed_changed,
+    .force_redraw  = epoch_force_redraw,
+    .config        = epoch_3477_config
+};
+
+/* 23F1930 (even bytes) and 23F1931 (odd bytes) interleave into a 64KB
+   image whose halves are the two self-contained ROS pages the 0x390
+   register selects between. */
+static int
+epoch_rom_pages_load(void)
+{
+    uint8_t *img;
+    int      ret;
+
+    if (bios_only)
+        return rom_present("roms/machines/ibm3477/23F1930.BIN")
+            && rom_present("roms/machines/ibm3477/23F1931.BIN");
+
+    if (epoch_rom_pages != 0)
+        return 1;
+
+    img = malloc(0x10000);
+    if (img == NULL)
+        return 0;
+
+    ret = rom_load_interleaved("roms/machines/ibm3477/23F1930.BIN",
+                               "roms/machines/ibm3477/23F1931.BIN",
+                               0, 0x10000, 0, img);
+    if (ret) {
+        epoch_rom_page[0] = malloc(0x8000);
+        epoch_rom_page[1] = malloc(0x8000);
+        if ((epoch_rom_page[0] != NULL) && (epoch_rom_page[1] != NULL)) {
+            memcpy(epoch_rom_page[0], img, 0x8000);
+            memcpy(epoch_rom_page[1], img + 0x8000, 0x8000);
+            epoch_rom_pages = 2;
+        } else {
+            ret = 0;
+        }
+    }
+    free(img);
+
+    return ret;
+}
+
+/* IBM 3477-S: a cut-down Multistation on an 80186-12, with the 5550's
+   display and keyboard but the chip's own timers, DMA and interrupt
+   controller. The system ROS lives in the F8000 window. */
+int
+machine_xt_ibm3477_init(const machine_t *model)
+{
+    int ret;
+
+    ret = epoch_rom_pages_load();
+
+    if (bios_only || !ret)
+        return ret;
+
+    mem_mapping_add(&epoch_rom_map, 0xf8000, 0x8000,
+                    epoch_rom_readb, epoch_rom_readw, NULL,
+                    NULL, NULL, NULL, NULL,
+                    MEM_MAPPING_EXTERNAL, NULL);
+    epoch_rom_select(0);
+
+    epoch_is_5535 = 0;
+    epoch_is_3477 = 1;
+
+    device_add(&fdc_xt_5550_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    pic_init();
+    dma_init();
+    nmi_mask = 0;
+    pit_ibm3477_init();
+
+    device_add(&ibm3477_device);
+
+    device_add(&lpt_port_device);
+
+    /* The floppy's completion reaches the CPU through the chip's controller:
+       the line it reports on is taken over as the controller's INT2 input.
+       Also 8018x board has no separate 8237: the chip's channel 0 carries
+       the floppy's transfers, and channel 1 is wired to nothing here. */
+    struct i8018x_pcb_t *pcb = device_add(&i8018x_pcb_device);
+    i8018x_pcb_set_dma_channels(pcb, FDC_PRIMARY_DMA, -1);
+    i8018x_pcb_set_irq_map(pcb, 1, 1); /* Keyboard */
+    i8018x_pcb_set_irq_map(pcb, 4, 2); /* Floppy */
 
     return ret;
 }

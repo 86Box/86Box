@@ -24,6 +24,7 @@
  *          -DANSI_CFG for use on these systems.
  */
 #include <inttypes.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -315,6 +316,32 @@ ini_close(ini_t ini)
     free(list);
 }
 
+/* Append the multibyte form of wc to dst at d, if it fits with room for the
+   terminator. Returns the new length. The first character that does not fit
+   ends the name: the rest of dst is cleared and size - 1 is returned, so no
+   later character fits either and the name stays a prefix of the original. */
+static int
+append_wchar(char *dst, int d, int size, wchar_t wc)
+{
+    char      mb[MB_LEN_MAX];
+    mbstate_t state;
+    size_t    n;
+
+    memset(&state, 0x00, sizeof(state));
+    n = wcrtomb(mb, wc, &state);
+
+    if (n == (size_t) -1)
+        return d;
+
+    if ((d + n) >= (size_t) size) {
+        memset(&dst[d], 0x00, size - d);
+        return size - 1;
+    }
+
+    memcpy(&dst[d], mb, n);
+    return d + (int) n;
+}
+
 int
 ini_detect_bom(const char *fn)
 {
@@ -438,7 +465,7 @@ ini_read_ex(const char *fn, int is_rom)
             c++;
             d = 0;
             while (buff[c] != L']' && buff[c])
-                (void) !wctomb(&(sname[d++]), buff[c++]);
+                d = append_wchar(sname, d, sizeof(sname), buff[c++]);
             sname[d] = L'\0';
 
             /* Is the section name properly terminated? */
@@ -459,7 +486,7 @@ ini_read_ex(const char *fn, int is_rom)
         /* Get the variable name. */
         d = 0;
         while ((buff[c] != L'=') && (buff[c] != L' ') && buff[c])
-            (void) !wctomb(&(ename[d++]), buff[c++]);
+            d = append_wchar(ename, d, sizeof(ename), buff[c++]);
         ename[d] = L'\0';
 
         /* Skip incomplete lines. */
@@ -755,7 +782,12 @@ ini_section_get_uint(ini_section_t self, const char *name, uint32_t def)
     if (entry == NULL)
         return def;
 
-    sscanf(entry->data, "%u", &value);
+    if (stricmp(entry->data, "true") == 0)
+        return 1;
+    if (stricmp(entry->data, "false") == 0)
+        return 0;
+
+    value = (uint32_t)strtoul(entry->data, NULL, 0);
 
     return value;
 }
@@ -1075,8 +1107,10 @@ ini_section_set_string(ini_section_t self, const char *name, const char *val)
 
     if ((strlen(val) + 1) <= sizeof(ent->data))
         memcpy(ent->data, val, strlen(val) + 1);
-    else
-        memcpy(ent->data, val, sizeof(ent->data));
+    else {
+        memcpy(ent->data, val, sizeof(ent->data) - 1);
+        ent->data[sizeof(ent->data) - 1] = '\0';
+    }
 #ifdef _WIN32 /* Make sure the string is converted from UTF-8 rather than a legacy codepage */
     mbstoc16s(ent->wdata, ent->data, sizeof_w(ent->wdata));
 #else
@@ -1097,7 +1131,8 @@ ini_section_set_wstring(ini_section_t self, const char *name, wchar_t *val)
     if (ent == NULL)
         ent = create_entry(section, name);
 
-    memcpy(ent->wdata, val, sizeof_w(ent->wdata));
+    wcsncpy(ent->wdata, val, sizeof_w(ent->wdata) - 1);
+    ent->wdata[sizeof_w(ent->wdata) - 1] = L'\0';
 #ifdef _WIN32 /* Make sure the string is converted to UTF-8 rather than a legacy codepage */
     c16stombs(ent->data, ent->wdata, sizeof(ent->data));
 #else

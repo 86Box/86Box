@@ -20,8 +20,8 @@
 #ifndef EMU_FLOPPY_FDI_H
 #define EMU_FLOPPY_FDI_H
 
-extern void fdi_seek(int drive, int track);
-extern void fdi_load(int drive, char *fn);
-extern void fdi_close(int drive);
+extern void fdi_seek(void *priv, int track);
+extern void fdi_load(void *priv, char *fn);
+extern void fdi_close(void *priv);
 
 #endif /*EMU_FLOPPY_FDI_H*/

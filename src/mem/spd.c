@@ -312,6 +312,13 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
                 sdram_data->ca_setup = sdram_data->data_setup = 0x15;
                 sdram_data->ca_hold = sdram_data->data_hold = 0x08;
 
+                if (machines[machine].init == machine_at_rc440bx_init) {
+                    /* The P08 (Gateway) BIOS only accepts modules whose highest
+                       CAS latency is 3, as on real PC100/PC133 modules. */
+                    sdram_data->cas   = 0x06; /* CAS 3/2 supported */
+                    sdram_data->tclk3 = sdram_data->tac3 = 0x00;
+                }
+
                 sdram_data->spd_rev = 0x12;
                 for (int i = spd_write_part_no(sdram_data->part_no, "SDR", rows[row]);
                      i < sizeof(sdram_data->part_no); i++)
@@ -398,8 +405,15 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
             regs[drb] = regs[drb | 0xf]; /* 5F comes before 56 */
         else
             regs[drb] = regs[drb - 1];
-        if (size)
-            regs[drb] += size / drb_unit; /* this will intentionally overflow on 440GX with 2 GB */
+        if (size) {
+            /* The Apollo Pro row ending registers only hold address bits 31-24. When the
+               rows add up to 4 GB, the BIOS writes FFh to the last one instead of letting
+               it wrap around to zero, so do the same. */
+            if (apollo && ((regs[drb] + (size / drb_unit)) > 0xff))
+                regs[drb] = 0xff;
+            else
+                regs[drb] += size / drb_unit; /* this will intentionally overflow on 440GX with 2 GB */
+        }
         spd_log("SPD: DRB[%d] = %d MB (%02Xh raw)\n", row, size, regs[drb]);
     }
 }
@@ -444,8 +458,6 @@ spd_write_drbs_with_ext(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t
         drb = reg_min + row;
 
         /* Write DRB register, adding the previous DRB's value. */
-        if (row == 0)
-            row_val = 0;
         if (size)
             row_val += size / drb_unit; /* this will intentionally overflow on 440GX with 2 GB */
         regs[drb] = row_val & 0xff;
@@ -464,7 +476,7 @@ spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint
     uint8_t  dimm;
     uint8_t  drb;
     uint16_t size;
-    uint16_t size_acc = 0;
+    uint16_t size_acc = (drb_unit == 1) ? -1 : 0; /* M1531/M1541 = boundary - 1 */
     uint16_t rows[SPD_MAX_SLOTS];
 
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
@@ -496,10 +508,7 @@ spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint
         drb = reg_min + row;
 
         /* Calculate previous and new size. */
-        if (row == 0)
-            size_acc = 0;
-        else
-            size_acc += (size / drb_unit);
+        size_acc += (size / drb_unit);
 
         /* Write DRB register, adding the previous DRB's value. */
         regs[drb]     = size_acc & 0xff;

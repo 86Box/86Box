@@ -67,6 +67,7 @@
 #include <86box/net_pcnet.h>
 #include <86box/net_wd8003.h>
 #include <86box/net_smc_epic100.h>
+#include <86box/net_dp83815.h>
 
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
@@ -90,6 +91,7 @@ static const NETWORK_CARD net_cards[] = {
     /* ISA */
     { &threec501_device           },
     { &threec503_device           },
+    { &threec509b_device          },
     { &ne1000_compat_device       },
     { &ne2000_compat_8bit_device  },
     { &ne1000_device              },
@@ -102,13 +104,22 @@ static const NETWORK_CARD net_cards[] = {
     { &modem_device               },
     /* LPT */
     { &plip_device                },
+    { &pe3_device                 },
     /* ISA16 */
     { &pcnet_am79c960_device      },
     { &pcnet_am79c961_device      },
     { &de220p_device              },
     { &ne2000_compat_device       },
     { &pcnet_am79c960_eb_device   },
+    /* EISA */
+    { &threec592_device           },
+    { &threec597_device           },
     /* MCA */
+    { &threec529_mc_device        },
+    { &threec529_tp_device        },
+    { &ibm_ethernet_efe5_device   },
+    { &ibm_ethernet_efd5_device   },
+    { &ibm_ethernet_efd4_device   },
     { &ethernext_mc_device        },
     { &wd8003ea_device            },
     { &wd8003eta_device           },
@@ -121,6 +132,10 @@ static const NETWORK_CARD net_cards[] = {
     { &dec_tulip_21040_device     },
     { &dec_tulip_21140_device     },
     { &dec_tulip_device           },
+    { &dp83815_device             },
+    { &i82557_device              },
+    { &i82558_device              },
+    { &nec_pk_ug_x006_device      },
     { &rtl8029as_device           },
     { &rtl8139c_plus_device       },
     { &smc_epic100_device         },
@@ -134,6 +149,14 @@ net_cards_migrate[] = {
     /* DECchip 21140 "Tulip FasterNet" */
     { .device = &dec_tulip_21140_device,                        .old_internal_name = "dec_21140_tulip"                },
     { .device = &dec_tulip_21140_device,                        .old_internal_name = "dec_21140_tulip_vpc"            },
+    /* Intel 8255x (PRO/100 family) */
+    { .device = &i82557_device,                                 .old_internal_name = "i82557b"                       },
+    { .device = &i82557_device,                                 .old_internal_name = "i82557c"                       },
+    { .device = &i82558_device,                                 .old_internal_name = "i82558b"                       },
+    { .device = &i82558_device,                                 .old_internal_name = "i82559a"                       },
+    { .device = &i82558_device,                                 .old_internal_name = "i82559b"                       },
+    { .device = &i82558_device,                                 .old_internal_name = "i82559c"                       },
+    { .device = &i82558_device,                                 .old_internal_name = "i82559er"                      },
     /* End of table */
     { .device = NULL,                                           .old_internal_name = ""                               }
   // clang-format on
@@ -255,6 +278,11 @@ network_init(void)
         network_devmap.has_vde = 1;
 #endif
 
+#ifdef HAS_TAP
+    if (!net_tap_prepare())
+        network_devmap.has_tap = 1;
+#endif
+
 #ifdef ENABLE_NETWORK_LOG
     /* Start packet dump. */
     network_dump = fopen("network.pcap", "wb");
@@ -293,7 +321,8 @@ void
 network_queue_init(netqueue_t *queue)
 {
     queue->head = queue->tail = 0;
-    for (int i = 0; i < NET_QUEUE_LEN; i++) {
+    queue->dropped_full       = 0;
+    for (int i = 0; i < NET_QUEUE_CAPACITY; i++) {
         queue->packets[i].data = calloc(1, NET_MAX_FRAME);
         queue->packets[i].len  = 0;
     }
@@ -302,7 +331,7 @@ network_queue_init(netqueue_t *queue)
 static bool
 network_queue_full(netqueue_t *queue)
 {
-    return ((queue->head + 1) & NET_QUEUE_LEN_MASK) == queue->tail;
+    return ((queue->head + 1) & NET_QUEUE_MASK) == queue->tail;
 }
 
 static bool
@@ -319,40 +348,50 @@ network_swap_packet(netpkt_t *pkt1, netpkt_t *pkt2)
     *pkt1        = tmp;
 }
 
+static void
+network_queue_overflow(netqueue_t *queue)
+{
+    queue->dropped_full++;
+    if (!(queue->dropped_full & (queue->dropped_full - 1)))
+        pclog("NETWORK: packet queue full, %llu packets dropped\n",
+              (unsigned long long) queue->dropped_full);
+}
+
 int
 network_queue_put(netqueue_t *queue, uint8_t *data, int len)
 {
-    if (len == 0 || len > NET_MAX_FRAME || network_queue_full(queue)) {
+    if (len <= 0 || len > NET_MAX_FRAME) {
+        network_log("Discarded invalid packet of len=%d.\n", len);
+        return 0;
+    }
+    if (network_queue_full(queue)) {
+        network_queue_overflow(queue);
         return 0;
     }
 
     netpkt_t *pkt = &queue->packets[queue->head];
     memcpy(pkt->data, data, len);
     pkt->len    = len;
-    queue->head = (queue->head + 1) & NET_QUEUE_LEN_MASK;
+    queue->head = (queue->head + 1) & NET_QUEUE_MASK;
     return 1;
 }
 
 int
 network_queue_put_swap(netqueue_t *queue, netpkt_t *src_pkt)
 {
-    if (src_pkt->len == 0 || src_pkt->len > NET_MAX_FRAME || network_queue_full(queue)) {
-#ifdef DEBUG
-        if (src_pkt->len == 0) {
-            network_log("Discarded zero length packet.\n");
-        } else if (src_pkt->len > NET_MAX_FRAME) {
-            network_log("Discarded oversized packet of len=%d.\n", src_pkt->len);
-        } else {
-            network_log("Discarded %d bytes packet because the queue is full.\n", src_pkt->len);
-        }
-#endif
+    if (src_pkt->len <= 0 || src_pkt->len > NET_MAX_FRAME) {
+        network_log("Discarded invalid packet of len=%d.\n", src_pkt->len);
+        return 0;
+    }
+    if (network_queue_full(queue)) {
+        network_queue_overflow(queue);
         return 0;
     }
 
     netpkt_t *dst_pkt = &queue->packets[queue->head];
     network_swap_packet(src_pkt, dst_pkt);
 
-    queue->head = (queue->head + 1) & NET_QUEUE_LEN_MASK;
+    queue->head = (queue->head + 1) & NET_QUEUE_MASK;
     return 1;
 }
 
@@ -364,7 +403,7 @@ network_queue_get_swap(netqueue_t *queue, netpkt_t *dst_pkt)
 
     netpkt_t *src_pkt = &queue->packets[queue->tail];
     network_swap_packet(src_pkt, dst_pkt);
-    queue->tail = (queue->tail + 1) & NET_QUEUE_LEN_MASK;
+    queue->tail = (queue->tail + 1) & NET_QUEUE_MASK;
     return 1;
 }
 
@@ -382,8 +421,8 @@ network_queue_move(netqueue_t *dst_q, netqueue_t *src_q)
     netpkt_t *dst_pkt = &dst_q->packets[dst_q->head];
 
     network_swap_packet(src_pkt, dst_pkt);
-    dst_q->head = (dst_q->head + 1) & NET_QUEUE_LEN_MASK;
-    src_q->tail = (src_q->tail + 1) & NET_QUEUE_LEN_MASK;
+    dst_q->head = (dst_q->head + 1) & NET_QUEUE_MASK;
+    src_q->tail = (src_q->tail + 1) & NET_QUEUE_MASK;
 
     return dst_pkt->len;
 }
@@ -391,7 +430,7 @@ network_queue_move(netqueue_t *dst_q, netqueue_t *src_q)
 void
 network_queue_clear(netqueue_t *queue)
 {
-    for (int i = 0; i < NET_QUEUE_LEN; i++) {
+    for (int i = 0; i < NET_QUEUE_CAPACITY; i++) {
         free(queue->packets[i].data);
         queue->packets[i].len = 0;
     }
@@ -411,10 +450,12 @@ network_rx_queue(void *priv)
     }
 
     uint32_t rx_bytes = 0;
+    bool     rx_pending = false;
     for (int i = 0; i < NET_QUEUE_LEN; i++) {
         if (card->queued_pkt.len == 0) {
             thread_wait_mutex(card->rx_mutex);
             int res = network_queue_get_swap(&card->queues[NET_QUEUE_RX], &card->queued_pkt);
+            rx_pending = card->rx_deferred_pending;
             thread_release_mutex(card->rx_mutex);
             if (!res)
                 break;
@@ -437,9 +478,10 @@ network_rx_queue(void *priv)
             break;
         tx_bytes += bytes;
     }
+    bool tx_pending = !network_queue_empty(&card->queues[NET_QUEUE_TX_HOST]);
     thread_release_mutex(card->tx_mutex);
-    if (tx_bytes) {
-        /* Notify host that a packet is available in the TX queue */
+    if (tx_pending || (rx_bytes && rx_pending)) {
+        /* Notify host of pending TX packets or freed RX space */
         card->host_drv.notify_in(card->host_drv.priv);
     }
 
@@ -482,7 +524,7 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
     card->byte_period     = NET_PERIOD_10M;
 
     char net_drv_error[NET_DRV_ERRBUF_SIZE];
-    wchar_t tempmsg[NET_DRV_ERRBUF_SIZE * 2];
+    char tempmsg[NET_DRV_ERRBUF_SIZE * 2];
 
     for (int i = 0; i < NET_QUEUE_COUNT; i++) {
         network_queue_init(&card->queues[i]);
@@ -533,7 +575,7 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
 
         if(net_cards_conf[net_card_current].net_type != NET_TYPE_NONE) {
             // We're here because of a failure
-            swprintf(tempmsg, sizeof_w(tempmsg), L"%ls:\n\n%s\n\n%ls", plat_get_string(STRING_NET_ERROR), net_drv_error, plat_get_string(STRING_NET_ERROR_DESC));
+            snprintf(tempmsg, sizeof(tempmsg), plat_get_string(STRING_NET_ERROR), net_drv_error);
             ui_msgbox(MBX_ERROR, tempmsg);
             net_cards_conf[net_card_current].net_type = NET_TYPE_NONE;
         }
@@ -675,6 +717,24 @@ network_rx_put(netcard_t *card, uint8_t *bufp, int len)
     thread_release_mutex(card->rx_mutex);
 
     return ret;
+}
+
+int
+network_rx_on_tx_flush(netcard_t *card)
+{
+    netqueue_t *src = &card->queues[NET_QUEUE_RX_ON_TX];
+    uint32_t    moved;
+    int         pending;
+
+    thread_wait_mutex(card->rx_mutex);
+    do {
+        moved = network_queue_move(&card->queues[NET_QUEUE_RX], src);
+    } while (moved);
+    pending                   = !network_queue_empty(src);
+    card->rx_deferred_pending = pending;
+    thread_release_mutex(card->rx_mutex);
+
+    return pending;
 }
 
 int

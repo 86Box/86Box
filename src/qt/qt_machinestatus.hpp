@@ -22,6 +22,15 @@ public:
     }
     ~ClickableLabel() {};
 
+    /* QLabel repaints on every setPixmap, even with the same pixmap. */
+    void setPixmapIfChanged(const QPixmap &pixmap)
+    {
+        if (pixmap.cacheKey() == pixmapKey)
+            return;
+        pixmapKey = pixmap.cacheKey();
+        setPixmap(pixmap);
+    }
+
 signals:
     void clicked(QPoint);
     void doubleClicked(QPoint);
@@ -58,6 +67,9 @@ protected:
         } else
             event->ignore();
     }
+
+private:
+    qint64 pixmapKey = 0;
 };
 
 class MachineStatus : public QObject {
@@ -80,6 +92,7 @@ public:
     QString getMessage();
     void    clearActivity();
     void    setSoundMenu(QMenu *menu);
+    void    setDynarecMenu(QMenu *menu);
 public slots:
     void refresh(QStatusBar *sbar);
     void message(const QString &msg);
@@ -93,6 +106,7 @@ private:
     std::unique_ptr<States> d;
     QTimer                 *refreshTimer;
     QMenu                  *soundMenu;
+    QMenu                  *dynarecMenu;
 };
 
 #endif // QT_MACHINESTATUS_HPP

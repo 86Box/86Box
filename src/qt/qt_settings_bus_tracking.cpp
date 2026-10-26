@@ -21,12 +21,18 @@
 
 extern "C" {
 #include "86box/86box.h"
+#include "86box/timer.h"
 #include "86box/hdd.h"
 #include "86box/scsi.h"
 #include "86box/cdrom.h"
+#include "86box/scsi_device.h"
+#include "86box/scsi_tape.h"
+#include "86box/device.h"
+#include "86box/hdc_ide.h"
 }
 
 #include "qt_settings_bus_tracking.hpp"
+#include "qt_harddrive_common.hpp"
 
 SettingsBusTracking::SettingsBusTracking()
 {
@@ -42,6 +48,24 @@ SettingsBusTracking::SettingsBusTracking()
 
     for (uint8_t i = 0; i < 32; i++)
         scsi_tracking[i] = 0x0000000000000000ULL;
+}
+
+uint8_t
+SettingsBusTracking::next_free_hitachi_channel()
+{
+    uint64_t mask;
+    uint8_t  ret = CHANNEL_NONE;
+
+    for (uint8_t i = 0; i < 4; i++) {
+        mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+
+        if (!(hitachi_tracking & mask)) {
+            ret = (uint8_t) i;
+            break;
+        }
+    }
+
+    return ret;
 }
 
 uint8_t
@@ -116,18 +140,59 @@ SettingsBusTracking::next_free_xta_channel()
     return ret;
 }
 
+/* The first free channel on a board with a controller, or failing that the
+   first free one listed. */
 uint8_t
 SettingsBusTracking::next_free_ide_channel()
 {
-    int      element;
+    bus_owner_t owners[IDE_BUS_MAX];
+    const int   channels = Harddrives::idePlan(owners) * 2;
+
+    for (int pass = 0; pass < 2; pass++) {
+        for (int i = 0; i < channels; i++) {
+            const int      element = ((i << 3) >> 6);
+            const uint64_t mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+            const bool     owned   = owners[i >> 1].onboard || (owners[i >> 1].device != nullptr);
+
+            if (((pass == 1) || owned) && !(ide_tracking[element] & mask))
+                return (uint8_t) i;
+        }
+    }
+
+    return CHANNEL_NONE;
+}
+
+/* The first free ID on a bus something has, or failing that the first
+   free one on the first bus. */
+uint8_t
+SettingsBusTracking::next_free_scsi_id()
+{
+    bus_owner_t owners[SCSI_BUS_MAX];
+    const int   buses = Harddrives::scsiPlan(owners);
+
+    for (int pass = 0; pass < 2; pass++) {
+        for (int i = 0; i < (((pass == 0) ? buses : 1) * SCSI_ID_MAX); i++) {
+            const int      element = ((i << 3) >> 6);
+            const uint64_t mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+
+            if (!(scsi_tracking[element] & mask))
+                return (uint8_t) i;
+        }
+    }
+
+    return CHANNEL_NONE;
+}
+
+uint8_t
+SettingsBusTracking::next_free_fdc_unit()
+{
     uint64_t mask;
     uint8_t  ret = CHANNEL_NONE;
 
-    for (uint8_t i = 0; i < 32; i++) {
-        element = ((i << 3) >> 6);
-        mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+    for (uint8_t i = 0; i < 4; i++) {
+        mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
-        if (!(ide_tracking[element] & mask)) {
+        if (!(fdc_tracking & mask)) {
             ret = (uint8_t) i;
             break;
         }
@@ -137,17 +202,15 @@ SettingsBusTracking::next_free_ide_channel()
 }
 
 uint8_t
-SettingsBusTracking::next_free_scsi_id()
+SettingsBusTracking::next_free_lpt_port()
 {
-    int      element;
     uint64_t mask;
     uint8_t  ret = CHANNEL_NONE;
 
-    for (uint8_t i = 0; i < (SCSI_BUS_MAX * SCSI_ID_MAX); i++) {
-        element = ((i << 3) >> 6);
-        mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+    for (uint8_t i = 0; i < 4; i++) {
+        mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
-        if (!(scsi_tracking[element] & mask)) {
+        if (!(lpt_tracking & mask)) {
             ret = (uint8_t) i;
             break;
         }
@@ -248,12 +311,31 @@ SettingsBusTracking::busChannelsInUse(const int bus)
     int        element;
     uint64_t   mask;
     switch (bus) {
+        case CDROM_BUS_HITACHI:
+            for (uint8_t i = 0; i < 4; i++) {
+                mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+                if (hitachi_tracking & mask)
+                    channelsInUse.append(i);
+            }
+            break;
         case CDROM_BUS_MKE:
             for (uint8_t i = 0; i < 4; i++) {
                 mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
                 if (mke_tracking & mask)
                     channelsInUse.append(i);
             }
+            break;
+        case CDROM_BUS_PHILIPS:
+            if (philips_tracking)
+                channelsInUse.append(0);
+            break;
+        case CDROM_BUS_SONY:
+            if (sony_tracking)
+                channelsInUse.append(0);
+            break;
+        case CDROM_BUS_CM100:
+            if (cm100_tracking)
+                channelsInUse.append(0);
             break;
         case CDROM_BUS_MITSUMI:
             if (mitsumi_tracking)
@@ -304,6 +386,20 @@ SettingsBusTracking::busChannelsInUse(const int bus)
                     channelsInUse.append(i);
             }
             break;
+        case TAPE_BUS_FDC:
+            for (uint8_t i = 0; i < 4; i++) {
+                mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+                if (fdc_tracking & mask)
+                    channelsInUse.append(i);
+            }
+            break;
+        case TAPE_BUS_LPT:
+            for (uint8_t i = 0; i < 4; i++) {
+                mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+                if (lpt_tracking & mask)
+                    channelsInUse.append(i);
+            }
+            break;
         default:
             break;
     }
@@ -318,6 +414,14 @@ SettingsBusTracking::device_track(int set, uint8_t dev_type, int bus, int channe
     uint64_t mask;
 
     switch (bus) {
+        case CDROM_BUS_HITACHI:
+            mask = ((uint64_t) dev_type) << ((uint64_t) ((channel << 3) & 0x3f));
+
+            if (set)
+                hitachi_tracking |= mask;
+            else
+                hitachi_tracking &= ~mask;
+            break;
         case CDROM_BUS_MKE:
             mask = ((uint64_t) dev_type) << ((uint64_t) ((channel << 3) & 0x3f));
 
@@ -325,6 +429,15 @@ SettingsBusTracking::device_track(int set, uint8_t dev_type, int bus, int channe
                 mke_tracking |= mask;
             else
                 mke_tracking &= ~mask;
+            break;
+        case CDROM_BUS_PHILIPS:
+            philips_tracking = set;
+            break;
+        case CDROM_BUS_SONY:
+            sony_tracking = set;
+            break;
+        case CDROM_BUS_CM100:
+            cm100_tracking = set;
             break;
         case CDROM_BUS_MITSUMI:
             mitsumi_tracking = set;
@@ -375,6 +488,23 @@ SettingsBusTracking::device_track(int set, uint8_t dev_type, int bus, int channe
                 scsi_tracking[element] |= mask;
             else
                 scsi_tracking[element] &= ~mask;
+            break;
+        case TAPE_BUS_FDC:
+            mask = ((uint64_t) dev_type) << ((uint64_t) ((channel << 3) & 0x3f));
+
+            if (set)
+                fdc_tracking |= mask;
+            else
+                fdc_tracking &= ~mask;
+            break;
+
+        case TAPE_BUS_LPT:
+            mask = ((uint64_t) dev_type) << ((uint64_t) ((channel << 3) & 0x3f));
+
+            if (set)
+                lpt_tracking |= mask;
+            else
+                lpt_tracking &= ~mask;
             break;
     }
 }

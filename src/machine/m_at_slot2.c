@@ -26,6 +26,7 @@
 #include <86box/pci.h>
 #include <86box/device.h>
 #include <86box/chipset.h>
+#include <86box/ioapic_routes.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/keyboard.h>
@@ -74,13 +75,81 @@ machine_at_6gxu_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t s2dge_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "s2dge_rev16",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (063100) - Revision 1.0",
+                .internal_name = "s2dge",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/s2dge/2gu7301.rom", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (063100) - Revision 1.6",
+                .internal_name = "s2dge_rev16",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/s2dge/2gu2241.rom", "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "disable_apic",
+        .description    = "Disable APIC",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t s2dge_device = {
+    .name          = "Supermicro S2DGE",
+    .internal_name = "s2dge",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = s2dge_config
+};
+
 int
 machine_at_s2dge_init(const machine_t *model)
 {
-    int ret;
+    int         ret;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/s2dge/2gu7301.rom",
-                           0x000c0000, 262144, 0);
+    if (!device_available(model->device))
+        return 0;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
@@ -103,6 +172,19 @@ machine_at_s2dge_init(const machine_t *model)
     device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 512);
+    {
+        /* Keep S2DGE APIC wiring local: install IOAPIC, then bind board IRQ map. */
+        static const ioapic_legacy_irq_routing_t s2dge_irq_routing = {
+            .irq_to_intin  = IOAPIC_LEGACY_IRQ_ROUTE_ISA,
+            .pirq_to_intin = IOAPIC_PIRQ_ROUTE_82093AA
+        };
+        /* An AMI BIOS: its last POST code before booting is 00h, and its
+           MP table is built by then (IOAPIC_POST_TRIGGER_AMI). */
+        void *ioapic = device_add_params(&ioapic_validated_up_device,
+                                         (void *) (IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_POST_TRIGGER_AMI));
+
+        ioapic_set_legacy_irq_routing(ioapic, &s2dge_irq_routing);
+    }
     device_add(&w83781d_device);    /* fans: CPU1, CPU2, Thermal Control; temperatures: unused, CPU1, CPU2? */
     hwm_values.fans[1]         = 0; /* no CPU2 fan */
     hwm_values.temperatures[0] = 0; /* unused */

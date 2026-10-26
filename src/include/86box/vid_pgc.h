@@ -73,18 +73,26 @@ typedef struct pgc {
     uint32_t maxh; /* maximum framebuffer size - Height */
     uint32_t visw; /* maximum screen size - Width */
     uint32_t vish; /* maximum screen size - Height */
+    int32_t  img_w; /* the image CLEARS covers, in card coordinates: the whole */
+    int32_t  img_h; /* screen on the PGC, the IMGSIZ image on the IM-1024 */
     uint32_t screenw;
     uint32_t screenh;
     int16_t  pan_x;
     int16_t  pan_y;
-    uint16_t win_x1;
-    uint16_t win_x2;
-    uint16_t win_y1;
-    uint16_t win_y2;
+    int32_t  scan_left; /* framebuffer column shown at the left edge of the screen */
+    int32_t  scan_top;  /* framebuffer row shown at the top edge of the screen */
+    int16_t  win_x1; /* window corners are signed coordinates: */
+    int16_t  win_x2; /* Windows 1.x puts its y range below zero */
+    int16_t  win_y1;
+    int16_t  win_y2;
     uint16_t vp_x1;
     uint16_t vp_x2;
     uint16_t vp_y1;
     uint16_t vp_y2;
+    double   win_sc_x; /* viewport extent / window extent, per axis: the */
+    double   win_sc_y; /* firmware keeps it as a 16.16 scale factor */
+    uint32_t win_fx_x; /* the same factors as the firmware's own divide */
+    uint32_t win_fx_y; /* leaves them, for TEXT's width table */
     int16_t  fill_pattern[16];
     int16_t  line_pattern;
     uint8_t  draw_mode;
@@ -102,10 +110,8 @@ typedef struct pgc {
     event_t   *pgc_wake_thread;
     pc_timer_t wake_timer;
 
-    int waiting_input_fifo;
-    int waiting_output_fifo;
-    int waiting_error_fifo;
     int ascii_mode;
+    int coord_words; /* hex coordinates are 16-bit integers, not 16.16 */
     int result_count;
 
     int      fontbase;
@@ -126,10 +132,12 @@ typedef struct pgc {
     uint64_t dispofftime;
     pc_timer_t timer;
     double     native_pixel_clock;
+    volatile uint32_t vsyncs; /* frames scanned out; WAIT counts these */
 
     int drawcursor;
 
     int (*inputbyte)(struct pgc *, uint8_t *result);
+    void (*on_reset)(struct pgc *); /* subclass hook, runs at the end of pgc_reset() */
 } pgc_t;
 
 /* I/O functions and worker thread handlers. */
@@ -140,6 +148,8 @@ extern uint8_t pgc_read(uint32_t addr, void *priv);
 extern void    pgc_recalctimings(pgc_t *);
 extern void    pgc_poll(void *priv);
 extern void    pgc_reset(pgc_t *);
+extern void    pgc_warm_reset(pgc_t *);
+extern void    pgc_reset_flags(pgc_t *);
 extern void    pgc_wake(pgc_t *);
 extern void    pgc_sleep(pgc_t *);
 extern void    pgc_setdisplay(pgc_t *, int cga);
@@ -151,6 +161,7 @@ extern void    pgc_init(pgc_t *,
                         int (*inpbyte)(pgc_t *, uint8_t *), double npc);
 
 /* Misc support functions. */
+extern void pgc_window_scale(pgc_t *);
 extern void pgc_sto_raster(pgc_t *, int16_t *x, int16_t *y);
 extern void pgc_ito_raster(pgc_t *, int32_t *x, int32_t *y);
 extern void pgc_dto_raster(pgc_t *, double *x, double *y);

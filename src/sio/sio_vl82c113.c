@@ -145,8 +145,9 @@ vl82c113_init(UNUSED(const device_t *info))
     dev->nvr_enabled = 1;
     dev->nvr_base    = 0x0070;
 
-    /* Commands are standard. */
-    dev->kbc         = device_add(&kbc_at_device);
+    /* Allow a board-specific controller command set. */
+    const device_t *kbc = machine_get_kbc_device(machine);
+    dev->kbc           = device_add(kbc ? kbc : &kbc_at_device);
 
     vl82c113_reset(dev);
 

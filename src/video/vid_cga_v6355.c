@@ -75,10 +75,9 @@
  * > MDA monitor support
  * > LCD panel support 
  * > Horizontal / vertical position adjustments
- * > 160x200x16 and 640x200x16 video modes. Documentation suggests that these 
- *   should be selected by setting bit 6 of the CGA control register, but 
- *   that doesn't work on my real hardware, so I can't test and therefore
- *   can't replicate
+ * > 640x200x16 video mode. Documentation suggests that this should be
+ *   selected by setting bit 6 of the CGA control register, but the original
+ *   author could not activate it on his hardware, so it remains untested.
  * > Palette support on composite output. Composite_Process() does not 
  *   appear to have any support for an arbitrary palette.
  */
@@ -273,7 +272,7 @@ v6355_recalctimings(v6355_t *v6355)
     double   disptime;
     double   _dispontime, _dispofftime;
 #ifndef USE_CGA_TIMINGS
-    double   crtcconst = (cpuclock / 21477270.0 * (double) (1ULL << 32)) * 8.0;
+    double   crtcconst = (cpuclock / 21477270.0 * (double) (1ULL << 32)) * 2.0;
 #endif
 
     uint32_t w = v6355_width(v6355);
@@ -323,7 +322,7 @@ v6355_pointer(v6355_t *v6355, uint8_t *pixel)
     y -= (pointer_y - 16);
 
     /* Get mouse AND and XOR masks */
-    mand = v6355->v6355data[0x68] & 0x0F;
+    mand = (v6355->v6355data[0x68] & 0x0F) | 0x10;
     mxor = (v6355->v6355data[0x68] >> 4) & 0x0F;
 
     /* Draw up to 16 double-width pixels */
@@ -362,14 +361,14 @@ v6355_map_attrs(v6355_t *v6355, uint8_t chr, uint8_t attr, uint8_t *cols)
     } else {
         /* CGA attributes (blinking enabled) */
         if (v6355->cgamode & 0x20) {
-            cols[1] = attr & 15;
-            cols[0] = (attr >> 4) & 7;
+            cols[1] = (attr & 15) + 16;
+            cols[0] = ((attr >> 4) & 7) + 16;
             if ((v6355->cgablink & 8) && (attr & 0x80) && !v6355->drawcursor)
                 cols[1] = cols[0];
         } else {
             /* CGA attributes (blinking disabled) */
-            cols[1] = attr & 15;
-            cols[0] = attr >> 4;
+            cols[1] = (attr & 15) + 16;
+            cols[0] = (attr >> 4) + 16;
         }
     }
 }
@@ -446,7 +445,7 @@ v6355_line_graphics320(v6355_t *v6355, uint8_t *pixel)
     uint16_t dat;
     uint32_t width = v6355_width(v6355) / 16;
 
-    cols[0] = v6355->cgacol & 15;
+    cols[0] = (v6355->cgacol & 15) | 16;
 
     intensity = (v6355->cgacol & 16) ? 8 : 0;
 
@@ -464,6 +463,9 @@ v6355_line_graphics320(v6355_t *v6355, uint8_t *pixel)
         cols[3] = intensity | 6;
     }
 
+    for (int i = 1; i < 4; i++)
+        cols[i] |= 16;
+
     for (x = 0; x < width; x++) {
         if (v6355->cgamode & 8)
             dat = (v6355->vram[((v6355->ma << 1) & 0x1fff) + ((v6355->sc & 1) * 0x2000)] << 8) | 
@@ -480,6 +482,35 @@ v6355_line_graphics320(v6355_t *v6355, uint8_t *pixel)
     }
 }
 
+/* Render packed 4-bit pixels from CGA-interlaced VRAM. Each of the 160
+ * logical pixels is expanded to four pixels in the 640-pixel output line. */
+static void
+v6355_line_graphics160(v6355_t *v6355, uint8_t *pixel)
+{
+    int32_t  x;
+    int32_t  c;
+    uint16_t dat;
+    uint8_t  col;
+    uint32_t width = v6355_width(v6355) / 16;
+
+    for (x = 0; x < width; x++) {
+        if (v6355->cgamode & 8)
+            dat = (v6355->vram[((v6355->ma << 1) & 0x1fff) + ((v6355->sc & 1) * 0x2000)] << 8) |
+                   v6355->vram[((v6355->ma << 1) & 0x1fff) + ((v6355->sc & 1) * 0x2000) + 1];
+        else
+            dat = 0;
+
+        v6355->ma++;
+
+        for (c = 0; c < 4; c++) {
+            col = (dat >> 12) | 16;
+            pixel[(x << 4) + (c << 2)] = pixel[(x << 4) + (c << 2) + 1] =
+                pixel[(x << 4) + (c << 2) + 2] = pixel[(x << 4) + (c << 2) + 3] = col;
+            dat <<= 4;
+        }
+    }
+}
+
 /* Render a line as 640 pixels in 640-pixel graphics mode */
 static void
 v6355_line_graphics640(v6355_t *v6355, uint8_t *pixel)
@@ -490,8 +521,8 @@ v6355_line_graphics640(v6355_t *v6355, uint8_t *pixel)
     uint16_t dat;
     uint32_t width = v6355_width(v6355) / 16;
 
-    cols[0] = 0;
-    cols[1] = v6355->cgacol & 15;
+    cols[0] = 16;
+    cols[1] = (v6355->cgacol & 15) | 16;
 
     for (x = 0; x < width; x++) {
         if (v6355->cgamode & 8) 
@@ -564,9 +595,11 @@ v6355_render(v6355_t *v6355, int line)
             v6355->ma++;
         }
     } else if (!(v6355->cgamode & 16)) {
-        /* Low-res graphics 
-         * XXX There should be a branch for 160x200x16 graphics somewhere around here */
-        v6355_line_graphics320(v6355, pixel);
+        /* Low-res graphics: bit 6 selects packed 160x200x16. */
+        if (v6355->cgamode & 0x40)
+            v6355_line_graphics160(v6355, pixel);
+        else
+            v6355_line_graphics320(v6355, pixel);
         v6355_pointer(v6355, pixel);
 
         for (x = 0; x < (width / 16); x++) {
@@ -719,6 +752,7 @@ v6355_poll(void *priv)
                 break;
         }
 
+        video_lightpen_check_trigger_strobe(8, v6355->displine * (v6355->double_type ? 2 : 1), 0, v6355->firstline, 21477270.0 / 2.0, 0);
         v6355->sc = oldsc;
 
         if (v6355->vc == crtc7 && !v6355->sc)
@@ -732,6 +766,7 @@ v6355_poll(void *priv)
         timer_advance_u64(&v6355->timer, v6355->dispontime);
 
         v6355->linepos = 0;
+        video_lightpen_hsync();
 
         if (v6355->vsynctime) {
             v6355->vsynctime--;
@@ -789,6 +824,7 @@ v6355_poll(void *priv)
                 v6355->cgadispon = 0;
                 v6355->displine = 0;
                 v6355->vsynctime = 16;
+                video_lightpen_vsync();
                 if (crtc7) {
                     x = width + 16;
                     v6355->lastline++;
@@ -829,8 +865,13 @@ v6355_poll(void *priv)
                         video_res_y /= crtc9 + 1;
                         video_bpp = 0;
                     } else if (!(v6355->cgamode & 16)) {
-                        video_res_x /= 2;
-                        video_bpp = 2;
+                        if (v6355->cgamode & 0x40) {
+                            video_res_x = width / 4;
+                            video_bpp = 4;
+                        } else {
+                            video_res_x /= 2;
+                            video_bpp = 2;
+                        }
                     } else
                         video_bpp = 1;
                 }
@@ -926,7 +967,8 @@ v6355_standalone_init(const device_t *info) {
                   v6355);
 
     v6355->rgb_type = device_get_config_int("rgb_type");
-    cga_palette     = (v6355->rgb_type << 1);
+    if (&(cga_palette) != NULL)
+        cga_palette     = (v6355->rgb_type << 1);
     cgapal_rebuild();
     update_cga16_color(v6355->cgamode, v6355->cgacol);
 
@@ -1065,5 +1107,6 @@ const device_t v6355d_device = {
     .available     = NULL,
     .speed_changed = v6355_speed_changed,
     .force_redraw  = NULL,
-    .config        = v6355_config
+    .config        = v6355_config,
+    .alias         = "Tulip DGA"
 };

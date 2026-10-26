@@ -10,18 +10,18 @@
  *
  * Authors: Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2025      Jasmine Iwanek.
+ *          Copyright 2025-2026 Jasmine Iwanek.
  */
 #ifndef EMU_JOYSTICK_H
 #define EMU_JOYSTICK_H
 
-void   *joystick_standard_init(void);
-void    joystick_standard_close(UNUSED(void *priv));
-uint8_t joystick_standard_read_2button(UNUSED(void *priv));
-uint8_t joystick_standard_read_4button(UNUSED(void *priv));
-void    joystick_standard_write(UNUSED(void *priv));
-int     joystick_standard_read_axis_3axis_throttle(UNUSED(void *priv), int axis);
-int     joystick_standard_read_axis_4axis(UNUSED(void *priv), int axis);
-void    joystick_standard_a0_over(UNUSED(void *priv));
+extern void   *joystick_standard_init(void);
+extern void    joystick_standard_close(void *priv);
+extern uint8_t joystick_standard_read_2button(void *priv);
+extern uint8_t joystick_standard_read_4button(void *priv);
+extern void    joystick_standard_write(void *priv);
+extern int     joystick_standard_read_axis_3axis_throttle(void *priv, int axis);
+extern int     joystick_standard_read_axis_4axis(void *priv, int axis);
+extern void    joystick_standard_a0_over(void *priv);
 
 #endif /*EMU_JOYSTICK_H*/

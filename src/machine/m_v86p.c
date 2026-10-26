@@ -101,7 +101,7 @@ static const device_config_t v86p_config[] = {
 
 const device_t v86p_device = {
     .name          = "Victor V86P",
-    .internal_name = "v86p_device",
+    .internal_name = "v86p",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

@@ -25,6 +25,7 @@
 #include <86box/snd_mpu401.h>
 #include <86box/snd_opl.h>
 #include <86box/snd_sb_dsp.h>
+#include <86box/isapnp.h>
 
 enum {
     SADLIB  = 1,     /* No DSP */
@@ -43,6 +44,11 @@ enum {
     SBAWE32_DSP_412, /* DSP v4.12 + OPL3 */
     SBAWE32_DSP_413, /* DSP v4.13 + OPL3 */
     SBAWE64_DSP_416  /* DSP v4.16 + OPL3 */
+};
+
+enum {
+    QUIRK_NOFILTER = 0x01, /* Clone lacks SBPro-compatible lowpass filter */
+    QUIRK_FILTERND = 0x02  /* Clone has non-defeatable lowpass filter */
 };
 
 /* SB 2.0 CD version */
@@ -156,9 +162,14 @@ typedef struct ess_mixer_t {
     #define INPUT_MIXER_L 128
     #define INPUT_MIXER_R 256
 
+    /* ESS ES188x+ DAC2 volume */
+    double dac2_l;
+    double dac2_r;
+
     int input_filter;
     int in_filter_freq;
     int output_filter;
+    int output_filter_dac2;
 
     int stereo;
     int stereo_isleft;
@@ -200,6 +211,53 @@ typedef struct sb_t {
     uint16_t midi_addr;
     uint16_t gameport_addr;
 
+    /* Output gain required for the Pro Sonic 16 so PCM sounds are volume adjusted
+	to similar levels produced by the external midi and PC speaker */
+    double mvd_1216_output_gain;
+
+    uint8_t  ess_scr_locked;
+    uint8_t  es1688_rsk_enable;
+    uint8_t  ess_readseq_state;
+    uint8_t  ess_readseq_mode;
+    uint16_t ess_dsp_addr;
+    uint16_t es186x_ctrl_addr;
+    uint8_t  es186x_id_state;
+    uint8_t  es186x_ctrl_regs[8];
+    uint8_t  es186x_ctrl_iregs[256];
+    void     *pnp_card;
+    uint8_t  es186x_key_pos : 5;
+    uint8_t  es186x_bypass;
+    uint8_t  es186x_bypass_state;
+    uint16_t es186x_confaddr;
+    uint16_t es186x_rom_pos;
+    isapnp_device_config_t *es186x_bypass_conf;
+
+    /* ESS ES188x secondary DAC */
+    int        ess_dac2_freq;
+    double     ess_dac2_latcho;
+    int        ess_dac2_timeo;
+    int        ess_dac2_autolen;
+    int        ess_dac2_counter;
+    uint8_t    ess_dac2_autoinit;
+    uint8_t    ess_dac2_stereo;
+    uint8_t    ess_dac2_signed;
+    uint8_t    ess_dac2_16bit;
+    uint8_t    ess_dac2_irq;
+    uint8_t    ess_dac2_dma;
+    pc_timer_t ess_dac2_timer;
+    uint16_t   ess_dac2_datl;
+    uint16_t   ess_dac2_datr;
+    int        ess_dac2_pos;
+    uint8_t    ess_dac2_enable;
+    uint8_t    ess_dac2_suspend;
+    int16_t    ess_dac2_buffer[SOUNDBUFLEN * 2];
+    int        ess_dac2_dmadat;
+    uint8_t    ess_dac2_dmaff;
+    uint8_t    ess_dac2_dmacount;
+
+    /* Clone mixer quirks */
+    uint8_t    mixer_quirks;
+
     void   *opl_mixer;
     void  (*opl_mix)(void*, double*, double*);
 } sb_t;
@@ -222,11 +280,37 @@ extern void    sb_ess_mixer_write(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t sb_ess_mixer_read(uint16_t addr, void *priv);
 extern void    sb_ess_mixer_reset(sb_t *sb);
 
-extern void sb_get_buffer_sbpro(int32_t *buffer, int len, void *priv);
-extern void sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv);
+extern void sb_get_buffer_sbpro(int32_t *buffer, uint16_t len, void *priv);
+extern void sb_put_buffer_sbpro(int16_t *buffer, int len, void *priv);
+extern void sb_get_music_buffer_sbpro(int32_t *buffer, uint16_t len, void *priv);
 extern void sbpro_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb16_awe32_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb_close(void *priv);
 extern void sb_speed_changed(void *priv);
+
+extern void ess_mixer_reset(sb_t *ess);
+extern void ess_rsk_reset(void *priv);
+extern void ess_mixer_write(uint16_t addr, uint8_t val, void *priv);
+
+extern void sb_get_buffer_ess(int32_t *buffer, uint16_t len, void *priv);
+extern void sb_get_music_buffer_ess(int32_t *buffer, uint16_t len, void *priv);
+extern void ess_filter_cd_audio(int channel, double *buffer, void *priv);
+extern void ess_filter_pc_speaker(int channel, double *buffer, void *priv);
+extern void ess_filter_midi(int channel, double *buffer, void *priv);
+extern void ess_put_buffer(int16_t *buffer, int len, void *priv);
+extern void ess_calc_input_gains(void);
+
+extern void   *ess_solo1_legacy_init(void);
+extern void    ess_solo1_legacy_mix_esfm(void *priv, int32_t *buffer, uint16_t len);
+extern void    ess_solo1_legacy_config(void *priv, uint16_t sb_addr, int sb_enable,
+                                       int fm_enable, int fm_legacy_alias,
+                                       uint16_t mpu_addr, int mpu_enable,
+                                       int sb_irq, int mpu_irq, int dma, uint16_t game_addr);
+extern uint8_t ess_solo1_legacy_fm_read(void *priv, uint16_t addr);
+extern void    ess_solo1_legacy_fm_write(void *priv, uint16_t addr, uint8_t val);
+extern void    ess_solo1_legacy_mixer_write(void *priv, uint8_t index, uint8_t val);
+extern uint8_t ess_solo1_legacy_mpu_read(void *priv, uint16_t addr);
+extern void    ess_solo1_legacy_mpu_write(void *priv, uint16_t addr, uint8_t val);
+extern void    ess_solo1_legacy_close(void *priv);
 
 #endif /*SOUND_SND_SB_H*/

@@ -132,7 +132,7 @@ port_62_read(UNUSED(uint16_t port), UNUSED(void *priv))
         /* Switches 4, 5 - floppy drives (number) */
         int fdd_count = 0;
         for (uint8_t i = 0; i < FDD_NUM; i++) {
-            if (fdd_get_flags(i))
+            if (fdd_get_flags(&drives[i]))
                 fdd_count++;
         }
         if (!fdd_count)

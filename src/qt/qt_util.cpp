@@ -18,6 +18,12 @@
 #include <QStringList>
 #include <QWidget>
 #include <QApplication>
+#include <QBuffer>
+#include <QClipboard>
+#include <QImage>
+#include <QImageWriter>
+#include <QMimeData>
+#include <QStyleHints>
 #if QT_VERSION <= QT_VERSION_CHECK(5, 14, 0)
 #    include <QDesktopWidget>
 #endif
@@ -65,6 +71,11 @@ screenOfWidget(QWidget *widget)
 bool
 isWindowsLightTheme(void)
 {
+#    ifndef USE_QDARKSTYLE
+    /* Go by the palette in use, as the windowsvista style stays light even in dark mode */
+    const QPalette palette = QApplication::palette();
+    return palette.window().color().value() > palette.windowText().color().value();
+#    else
     if (color_scheme != 0) {
         return (color_scheme == 1);
     }
@@ -91,7 +102,27 @@ isWindowsLightTheme(void)
     auto i = int(buffer[3] << 24 | buffer[2] << 16 | buffer[1] << 8 | buffer[0]);
 
     return i == 1;
+#    endif
 }
+
+#    ifndef USE_QDARKSTYLE
+void
+applyColorScheme(void)
+{
+    switch (color_scheme) {
+        case 1:
+            QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Light);
+            break;
+        case 2:
+            QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
+            break;
+        default:
+            /* Follow the system */
+            QGuiApplication::styleHints()->unsetColorScheme();
+            break;
+    }
+}
+#    endif
 
 void
 setWin11RoundedCorners(WId hwnd, bool enable)
@@ -100,28 +131,6 @@ setWin11RoundedCorners(WId hwnd, bool enable)
     DwmSetWindowAttribute((HWND) hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, (LPCVOID) &cornerPreference, sizeof(cornerPreference));
 }
 #endif
-
-QString
-DlgFilter(std::initializer_list<QString> extensions, bool last)
-{
-    QStringList temp;
-
-    for (auto ext : extensions) {
-#ifdef Q_OS_UNIX
-        if (ext == "*") {
-            temp.append("*");
-            continue;
-        }
-        temp.append("*." % ext.toUpper());
-#endif
-        temp.append("*." % ext);
-    }
-
-#ifdef Q_OS_UNIX
-    temp.removeDuplicates();
-#endif
-    return " (" % temp.join(' ') % ")" % (!last ? ";;" : "");
-}
 
 QString
 DlgFilter(QStringList extensions, bool last)
@@ -143,6 +152,14 @@ DlgFilter(QStringList extensions, bool last)
     temp.removeDuplicates();
 #endif
     return " (" % temp.join(' ') % ")" % (!last ? ";;" : "");
+}
+
+QString
+DlgFilter(std::initializer_list<QString> extensions, bool last)
+{
+    QStringList temp(extensions);
+
+    return DlgFilter(temp, last);
 }
 
 QString
@@ -211,6 +228,38 @@ hasConfiguredNICs()
         }
     }
     return false;
+}
+
+void
+copyImageToClipboard(const QImage &image)
+{
+    /* QImage does not take ownership of externally allocated pixels and the
+       clipboard only encodes the image once another application asks for it,
+       so hand over a copy the caller cannot invalidate. */
+    const QImage img = image.copy();
+
+    QByteArray png;
+    QBuffer    buf(&png);
+    buf.open(QIODevice::WriteOnly);
+    QImageWriter writer(&buf, "png");
+    writer.setCompression(100); /* Qt 6 maps 0-100 onto zlib levels 0-9 */
+    writer.setQuality(0);       /* Qt 5 uses quality as the compression lever */
+    writer.write(img);
+    buf.close();
+
+    /* Qt offers the clipboard image in every format the image plugins can
+       write, and encodes on demand. The first format offered is whichever
+       one was named first, and application/x-qt-image - which Qt's Wayland
+       backend serialises as an uncompressed BMP - otherwise leads the list.
+       Applications that take the first format on offer then receive a bitmap
+       several times the size of a PNG of the same screen. Naming image/png
+       before the image data puts it at the head of the list instead, while
+       still offering the image itself for the platforms and applications
+       that want it. */
+    auto *mime = new QMimeData;
+    mime->setData(QStringLiteral("image/png"), png);
+    mime->setImageData(img);
+    QApplication::clipboard()->setMimeData(mime, QClipboard::Clipboard);
 }
 
 }

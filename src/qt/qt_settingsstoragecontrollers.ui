@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>SettingsStorageControllers</class>
  <widget class="QWidget" name="SettingsStorageControllers">
@@ -231,6 +231,16 @@
             </property>
            </widget>
           </item>
+          <item row="4" column="0" colspan="4">
+           <widget class="QCheckBox" name="checkBoxIDETurbo">
+            <property name="toolTip">
+             <string>Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply.</string>
+            </property>
+            <property name="text">
+             <string>Turbo IDE</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>
@@ -241,7 +251,6 @@
          </property>
         </widget>
        </item>
-
        <item row="5" column="1">
         <spacer name="verticalSpacerGeneral">
          <property name="orientation">
@@ -401,6 +410,14 @@
   </layout>
  </widget>
 
+ <customwidgets>
+  <customwidget>
+   <class>FileField</class>
+   <extends>QWidget</extends>
+   <header>qt_filefield.hpp</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <tabstops>
   <tabstop>comboBoxFD</tabstop>
   <tabstop>pushButtonFD</tabstop>

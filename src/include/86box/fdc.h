@@ -60,6 +60,25 @@
 #define FDC_FLAG_QUA            0x80000  /* Is Quaternary */
 #define FDC_FLAG_SMC661         0x100000 /* SM(s)C FDC37C661 - different TDR enhanced mode */
 #define FDC_FLAG_5550           0x200000 /* IBM Multistation 5550 */
+#define FDC_FLAG_NO_TDR         0x400000 /* Has no tape drive register */
+#define FDC_FLAG_PCJX           0x800000 /* IBM PC JX no-DMA adapter */
+#define FDC_FLAG_IRQ_ON_NOOP_SEEK 0x1000000 /* Interrupt on zero-step SEEK completion */
+#define FDC_FLAG_IBM5140        0x2000000 /* Convertible motherboard adapter */
+#define FDC_FLAG_COMPAQ         0x4000000 /* Compaq 386, drive type sense at 3F1 */
+#define FDC_FLAG_PNP            0x80000000 /* FDC is PnP */
+
+typedef struct sector_id_fields_t {
+    uint8_t c;
+    uint8_t h;
+    uint8_t r;
+    uint8_t n;
+} sector_id_fields_t;
+
+typedef union sector_id_t {
+    uint32_t           dword;
+    uint8_t            byte_array[4];
+    sector_id_fields_t id;
+} sector_id_t;
 
 typedef struct fdc_t {
     uint8_t dor;
@@ -97,6 +116,7 @@ typedef struct fdc_t {
     uint8_t step;
     uint8_t noprec;
     uint8_t data_ready;
+    uint16_t xfer_count;
 
     uint8_t paramstogo;
     uint8_t enh_mode;
@@ -122,6 +142,7 @@ typedef struct fdc_t {
     uint8_t dsr;
 
     uint8_t media_id;
+    uint8_t bus;
 
     uint8_t params[15];
     uint8_t specify[2];
@@ -152,6 +173,7 @@ typedef struct fdc_t {
 
     void *fifo_p;
     int fifointest;
+    uint8_t drive_interface_gated;
 
     sector_id_t read_track_sector;
     sector_id_t format_sector_id;
@@ -160,6 +182,8 @@ typedef struct fdc_t {
 
     pc_timer_t timer;
     pc_timer_t watchdog_timer;
+
+    void *fdd[4];
 } fdc_t;
 
 extern void fdc_remove(fdc_t *fdc);
@@ -195,7 +219,6 @@ extern void fdc_badcylinder(fdc_t *fdc);
 extern void fdc_writeprotect(fdc_t *fdc);
 extern void fdc_datacrcerror(fdc_t *fdc);
 extern void fdc_headercrcerror(fdc_t *fdc);
-extern void fdc_nosector(fdc_t *fdc);
 
 extern int real_drive(fdc_t *fdc, int drive);
 
@@ -213,21 +236,22 @@ extern int         fdc_is_dma(fdc_t *fdc);
 extern double      fdc_get_hut(fdc_t *fdc);
 extern double      fdc_get_hlt(fdc_t *fdc);
 extern void        fdc_request_next_sector_id(fdc_t *fdc);
+extern int         fdc_data_available(const fdc_t *fdc);
 extern void        fdc_stop_id_request(fdc_t *fdc);
 extern int         fdc_get_gap(fdc_t *fdc);
 extern int         fdc_get_gap2(fdc_t *fdc, int drive);
 extern int         fdc_get_dtl(fdc_t *fdc);
 extern int         fdc_get_format_sectors(fdc_t *fdc);
 extern uint8_t     fdc_get_swwp(fdc_t *fdc);
-extern void        fdc_set_swwp(fdc_t *fdc, uint8_t swwp);
+extern void        fdc_set_swwp(fdc_t *fdc, uint8_t new_swwp);
 extern uint8_t     fdc_get_diswr(fdc_t *fdc);
 extern void        fdc_set_diswr(fdc_t *fdc, uint8_t diswr);
 extern uint8_t     fdc_get_swap(fdc_t *fdc);
 extern void        fdc_set_swap(fdc_t *fdc, uint8_t swap);
 extern void        fdc_set_flags(fdc_t *fdc, int flags);
 extern void        fdc_clear_flags(fdc_t *fdc, int flags);
-extern void        fdc_set_fdd_changed(int drive, int changed);
-extern uint8_t     fdc_get_fdd_changed(int drive);
+extern void        fdc_set_fdd_changed(fdc_t *fdc, int drive, int changed);
+extern uint8_t     fdc_get_fdd_changed(fdc_t *fdc, int drive);
 extern uint8_t     fdc_get_shadow(fdc_t *fdc);
 
 extern void fdc_finishcompare(fdc_t *fdc, int satisfying);
@@ -249,6 +273,7 @@ extern void fdc_sectorid(fdc_t *fdc, uint8_t track, uint8_t side,
                          uint8_t crc2);
 
 extern uint8_t fdc_read(uint16_t addr, void *priv);
+extern void fdc_write(uint16_t addr, uint8_t val, void *priv);
 extern void    fdc_reset(void *priv);
 
 extern uint8_t fdc_get_current_drive(void);
@@ -266,16 +291,20 @@ extern const device_t fdc_xt_amstrad_device;
 extern const device_t fdc_xt_umc_um8398_device;
 extern const device_t fdc_xt_5550_device;
 extern const device_t fdc_pcjr_device;
+extern const device_t fdc_pcjx_device;
+extern const device_t fdc_ibm5140_device;
 extern const device_t fdc_at_device;
 extern const device_t fdc_at_sec_device;
 extern const device_t fdc_at_ter_device;
 extern const device_t fdc_at_qua_device;
 extern const device_t fdc_at_actlow_device;
+extern const device_t fdc_at_compaq_device;
 extern const device_t fdc_at_smc_661_device;
 extern const device_t fdc_at_smc_device;
 extern const device_t fdc_at_ali_device;
 extern const device_t fdc_at_winbond_device;
 extern const device_t fdc_at_nsc_device;
+extern const device_t fdc_at_nsc_pc87310_device;
 extern const device_t fdc_at_nsc_dp8473_device;
 extern const device_t fdc_ps2_device;
 extern const device_t fdc_ps2_mca_device;

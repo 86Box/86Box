@@ -8,15 +8,15 @@ Build-Depends: cmake (>= 3.21),
                libfluidsynth-dev,
                libfreetype-dev,
                libopenal-dev,
-               libqt5opengl5-dev,
+               libqt6opengl6-dev,
                librtmidi-dev,
                libsdl2-dev,
                libslirp-dev,
                libxkbcommon-x11-dev,
                libsndfile-dev,
                ninja-build,
-               qttools5-dev,
-               qtbase5-private-dev,
+               qt6-tools-dev,
+               qt6-base-private-dev,
                libserialport-dev
 Standards-Version: 4.6.0
 Homepage: https://86box.net/

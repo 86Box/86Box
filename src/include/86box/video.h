@@ -39,7 +39,8 @@ extern "C" {
 
 enum {
     VID_NONE = 0,
-    VID_INTERNAL
+    VID_INTERNAL,
+    VID_EXTERNAL
 };
 
 enum {
@@ -47,7 +48,9 @@ enum {
     FULLSCR_SCALE_43,
     FULLSCR_SCALE_KEEPRATIO,
     FULLSCR_SCALE_INT,
-    FULLSCR_SCALE_INT43
+    FULLSCR_SCALE_INT43,
+    FULLSCR_SCALE_CENTER,
+    FULLSCR_SCALE_CENTER43
 };
 
 enum {
@@ -71,6 +74,7 @@ typedef enum video_font_format_e
     FONT_FORMAT_PC1512_T1000 = 8,
     FONT_FORMAT_IM1024 = 9,
     FONT_FORMAT_PRAVETZ = 10,
+    FONT_FORMAT_IM1024_8X12 = 11,
 } video_font_format;
 
 #define VIDEO_FLAG_TYPE_CGA     0
@@ -78,7 +82,8 @@ typedef enum video_font_format_e
 #define VIDEO_FLAG_TYPE_SPECIAL 2
 #define VIDEO_FLAG_TYPE_8514    3
 #define VIDEO_FLAG_TYPE_XGA     4
-#define VIDEO_FLAG_TYPE_NONE    5
+#define VIDEO_FLAG_TYPE_DA2     5
+#define VIDEO_FLAG_TYPE_NONE    6
 #define VIDEO_FLAG_TYPE_MASK    7
 
 #define VIDEO_FLAG_TYPE_SECONDARY VIDEO_FLAG_TYPE_SPECIAL
@@ -89,6 +94,12 @@ typedef enum video_font_format_e
 #define FONT_KAMCL16_PATH            "roms/video/mda/kamcl16.bin"
 #define FONT_TULIP_DGA_PATH          "roms/video/mda/tulip-dga-bios.bin"
 
+typedef unsigned (*video_wait_states_cb_t)(uint32_t address,
+                                           int write,
+                                           unsigned size,
+                                           uint64_t cpu_cycle,
+                                           void *priv);
+
 typedef struct video_timings_t {
     int type;
     int write_b;
@@ -97,8 +108,11 @@ typedef struct video_timings_t {
     int read_b;
     int read_w;
     int read_l;
+    video_wait_states_cb_t wait_states;
+    void                  *wait_states_priv;
 } video_timings_t;
 
+// All bitmaps (including buffer32 and target_buffer) follow the 0xXXRRGGBB format, DWORD-wise.
 typedef struct bitmap_t {
     int       w;
     int       h;
@@ -127,6 +141,8 @@ typedef struct monitor_t {
     int                      mon_efscrnsz_y;
     int                      mon_unscaled_size_x;
     int                      mon_unscaled_size_y;
+    int                      mon_device_aspect_x;
+    int                      mon_device_aspect_y;
     double                   mon_res_x;
     double                   mon_res_y;
     int                      mon_bpp;
@@ -156,6 +172,7 @@ typedef struct monitor_t {
     int                      mon_vid_type;
     atomic_bool              mon_interlace;
     atomic_bool              mon_composite;
+    atomic_bool              mon_dpms;
     struct blit_data_struct *mon_blit_data_ptr;
 } monitor_t;
 
@@ -222,7 +239,8 @@ extern uint8_t      fontdat[2048][8];      /* IBM CGA font */
 extern uint8_t      fontdatm[2048][16];    /* IBM MDA font */
 extern uint8_t      fontdatw[512][32];     /* Wyse700 font */
 extern uint8_t      fontdat8x12[256][16];  /* MDSI Genius font */
-extern uint8_t      fontdat12x18[256][36]; /* IM1024 font */
+extern uint8_t      fontdat12x18[256][36]; /* IM1024 12x18 font */
+extern uint8_t      fontdat8x12im1024[256][12]; /* IM1024 8x12 font */
 extern dbcs_font_t *fontdatksc5601;        /* Korean KSC-5601 font */
 extern dbcs_font_t *fontdatksc5601_user;   /* Korean KSC-5601 user defined font */
 extern uint32_t    *video_6to8;
@@ -232,6 +250,7 @@ extern uint32_t    *video_15to32;
 extern uint32_t    *video_16to32;
 extern int          enable_overscan;
 extern int          force_43;
+extern int          force_device_aspect;
 extern int          vid_resize;
 extern int          herc_blend;
 extern int          vid_cga_contrast;
@@ -269,9 +288,14 @@ extern int         video_get_video_from_internal_name(char *s);
 #ifdef EMU_DEVICE_H
 extern const device_t *video_get_video_from_old_internal_name(char *s);
 #endif
-extern int         video_card_get_flags(int card);
 extern int         video_is_mda(void);
 extern int         video_is_cga(void);
+extern int         video_card_get_flags(int card);
+extern int         video_get_primary_flags(int m, int card);
+/* Query the active video implementation before a memory transfer so
+ * pin-level CPU cores can model READY without hardcoding a card. */
+extern unsigned    video_get_wait_states(uint32_t address, int write,
+                                         unsigned size, uint64_t cpu_cycle);
 extern void        video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
 extern int         video_get_type_monitor(int monitor_index);
 
@@ -285,6 +309,8 @@ extern void video_blit_complete_monitor(int monitor_index);
 extern void video_wait_for_blit_monitor(int monitor_index);
 extern void video_wait_for_buffer_monitor(int monitor_index);
 
+extern int video_6845_get_hsync_delay(const uint8_t *crtc, int hsync_width);
+
 extern bitmap_t *create_bitmap(int w, int h);
 extern void      destroy_bitmap(bitmap_t *b);
 extern void      cgapal_rebuild_monitor(int monitor_index);
@@ -296,6 +322,10 @@ extern void    video_monitor_close(int);
 extern void    video_init(void);
 extern void    video_close(void);
 extern void    video_reset_close(void);
+extern void    video_lightpen_set_callbacks(void* priv, void (*lightpen_hsync)(void*), void (*lightpen_vsync)(void*), void (*lightpen_trigger_strobe)(void* priv, int x, int y, int x_offset_from_hsync, int firstline, double pix_clock, int monitor_used));
+extern void    video_lightpen_hsync(void);
+extern void    video_lightpen_vsync(void);
+extern void    video_lightpen_check_trigger_strobe(int x_offset, int y, int x_offset_from_hsync, int firstline, double pix_clock, int monitor_used);
 extern void    video_pre_reset(int card);
 extern void    video_reset(int card);
 extern void    video_post_reset(void);
@@ -307,6 +337,9 @@ extern void    video_update_timing(void);
 #define LOAD_FONT_NO_OFFSET       0
 extern void     video_load_font(char *fn, int format, int offset);
 extern uint32_t video_color_transform(uint32_t color);
+
+extern void     video_clamp_vram(uint64_t bios_flags, int *vram);
+extern void     video_clamp_vram_2(uint64_t bios_flags, int *vram);
 
 #define video_inform(type, video_timings_ptr) video_inform_monitor(type, video_timings_ptr, monitor_index_global)
 #define video_get_type()                      video_get_type_monitor(0)
@@ -325,10 +358,10 @@ extern uint32_t video_color_transform(uint32_t color);
 #endif
 
 #ifdef EMU_DEVICE_H
-/* IBM XGA */
+/* IBM XGA and XGA-2 */
 extern void xga_device_add(void);
 
-/* IBM 8514/A and clones*/
+/* IBM 8514/A and clones */
 extern void ibm8514_device_add(void);
 extern const device_t mach8_vga_isa_device;
 extern const device_t mach32_isa_device;
@@ -337,18 +370,29 @@ extern const device_t mach32_mca_device;
 extern const device_t mach32_pci_device;
 extern const device_t mach32_onboard_pci_device;
 
-/* IBM Display Adapter (PS/55) */
+/* IBM PS/55 Display Adapter */
 extern void da2_device_add(void);
+
+/* IBM PS/2 Plasma Display Adapter */
+extern const device_t ibm_plasma_vga_device;
 
 /* ATi Mach64 */
 extern const device_t mach64gx_isa_device;
 extern const device_t mach64gx_vlb_device;
+extern const device_t mach64gx_vlb_onboard_device;
+extern const device_t mach64gx_xpression_vlb_device;
 extern const device_t mach64gx_pci_device;
+extern const device_t mach64gx_pci_onboard_device;
 extern const device_t mach64ct_device;
-extern const device_t mach64ct_device_onboard;
+extern const device_t mach64ct_onboard_device;
 extern const device_t mach64vt_device;
 extern const device_t mach64vt2_device;
+extern const device_t mach64gtb_device;
+extern const device_t mach64gtb_onboard_device;
 extern const device_t mach64vt3_onboard_device;
+extern const device_t ati_rage128_pro_device;
+extern const device_t ati_xpert128_pci_device;
+extern const device_t ati_rage128_maxx_device;
 
 /* ATi 18800 */
 extern const device_t ati18800_wonder_device;
@@ -371,6 +415,9 @@ extern const device_t bochs_svga_device;
 /* Chips & Technologies */
 extern const device_t chips_69000_device;
 extern const device_t chips_69000_onboard_device;
+extern const device_t chips_82c450_device;
+extern const device_t chips_82c451_device;
+extern const device_t chips_82c452_device;
 
 /* Cirrus Logic GD54xx */
 extern const device_t gd5401_isa_device;
@@ -385,15 +432,16 @@ extern const device_t gd5424_vlb_device;
 extern const device_t gd5424_onboard_device;
 extern const device_t gd5426_isa_device;
 extern const device_t gd5426_vlb_device;
+extern const device_t gd5426_mca_device;
 extern const device_t gd5426_onboard_isa_device;
 extern const device_t gd5426_onboard_device;
 extern const device_t gd5428_isa_device;
+extern const device_t gd5428_vlb_device;
 extern const device_t gd5428_vlb_onboard_device;
 extern const device_t gd5428_vlb_onboard_pb450_device;
 extern const device_t gd5428_vlb_onboard_tandy_device;
-extern const device_t gd5428_vlb_device;
-extern const device_t gd5428_mca_device;
-extern const device_t gd5426_mca_device;
+extern const device_t gd5428_mca_jp_device;
+extern const device_t gd5428_mca_us_device;
 extern const device_t gd5428_onboard_device;
 extern const device_t gd5428_onboard_vlb_device;
 extern const device_t gd5429_isa_device;
@@ -416,6 +464,9 @@ extern const device_t gd5480_pci_device;
 
 /* IBM CGA */
 extern const device_t cga_device;
+
+/* IBM 3270 PC Display Adapter */
+extern const device_t ibm3270pc_vid_device;
 
 /* Pravetz CGA */
 extern const device_t cga_pravetz_device;
@@ -462,8 +513,9 @@ extern const device_t incolor_device;
 /* Headland GC-2xx/HT-2xx */
 extern const device_t g2_gc205_device;
 extern const device_t v7_vga_1024i_device;
-extern const device_t radius_svga_multiview_isa_device;
+extern const device_t v7_vram_2_ergo_device;
 extern const device_t radius_svga_multiview_mca_device;
+extern const device_t ht216_standalone_device;
 extern const device_t ht216_32_pb410a_device;
 extern const device_t ht216_32_standalone_device;
 
@@ -476,6 +528,7 @@ extern const device_t millennium_device;
 extern const device_t mystique_device;
 extern const device_t mystique_220_device;
 extern const device_t millennium_ii_device;
+extern const device_t millennium_ii_agp_device;
 #ifdef USE_G100
 extern const device_t productiva_g100_device;
 #endif /* USE_G100 */
@@ -490,17 +543,26 @@ extern const device_t oti067_device;
 extern const device_t oti067_acer386_device;
 extern const device_t oti067_ama932j_device;
 extern const device_t oti077_acer100t_device;
+extern const device_t oti077_pb400_device;
 extern const device_t oti077_pcs44c_device;
 extern const device_t oti077_device;
 
 /* Paradise/WD (S)VGA */
-extern const device_t paradise_pvga1a_ncr3302_device;
 extern const device_t paradise_pvga1a_pc2086_device;
 extern const device_t paradise_pvga1a_pc3086_device;
+extern const device_t paradise_pvga1a_ncr3302_device;
 extern const device_t paradise_pvga1a_device;
 extern const device_t paradise_wd90c11_megapc_device;
 extern const device_t paradise_wd90c11_device;
+extern const device_t paradise_wd90c20_5535s_device;
+extern void           paradise_wd90c20_vga_disable(void *priv, uint16_t port);
+extern void           paradise_wd90c20_vga_enable(void *priv, uint16_t port);
 extern const device_t paradise_wd90c30_device;
+extern const device_t paradise_wd90c31_device;
+extern const device_t paradise_wd90c31_onboard_device;
+extern const device_t paradise_wd90c33_device;
+extern const device_t paradise_wd90c33_vlb_device;
+extern const device_t paradise_wd90c33_onboard_device;
 
 /* Quadram Quadcolor I / I + II */
 extern const device_t quadcolor_device;
@@ -556,6 +618,9 @@ extern const device_t s3_trio3d2x_agp_device;
 /* Sigma Color 400 */
 extern const device_t sigma_device;
 
+/* SiS */
+extern const device_t sis6306_onboard_device;
+
 /* Trident TGUI 94x0 */
 extern const device_t tgui9400cxi_device;
 extern const device_t tgui9440_vlb_device;
@@ -564,6 +629,11 @@ extern const device_t tgui9440_onboard_pci_device;
 extern const device_t tgui9660_pci_device;
 extern const device_t tgui9660_onboard_pci_device;
 extern const device_t tgui9680_pci_device;
+
+/* Weitek Power 9100 */
+extern const device_t p9100_viper_se_vlb_device; /* Not yet ready */
+extern const device_t p9100_viper_se_pci_device;
+extern const device_t p9100_papilio_pci_device;
 
 /* IBM PS/1 (S)VGA */
 extern const device_t ibm_ps1_2121_device;
@@ -580,7 +650,11 @@ extern const device_t ps1vga_mca_device;
 
 /* 3DFX Voodoo Graphics */
 extern const device_t voodoo_device;
+
+/* PowerVR PCX1/PCX2 */
+extern const device_t powervr_pcx_device;
 extern const device_t voodoo_banshee_pci_device;
+extern const device_t voodoo_banshee_agp_device;
 extern const device_t voodoo_3_1000_device;
 extern const device_t voodoo_3_1000_agp_device;
 extern const device_t voodoo_3_2000_device;
@@ -602,6 +676,16 @@ extern const device_t v6355d_device;
 extern const device_t tandy_1000_video_device;
 extern const device_t tandy_1000hx_video_device;
 extern const device_t tandy_1000sl_video_device;
+
+/* Hitachi HD44780 character LCD */
+extern const device_t hd44780_device;
+extern const device_t hd44780_cobalt3k_device;
+enum {
+    HD44780_COLOR_GREEN = 0,
+    HD44780_COLOR_BLUE,
+    HD44780_COLOR_NONE,
+    HD44780_COLOR_MAX
+};
 
 #endif
 

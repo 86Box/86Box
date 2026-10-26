@@ -51,10 +51,11 @@
 #include <86box/sound.h>
 
 /* ISA */
+/* Bit 3 clear means a Weitek coprocessor is installed, which we do not emulate. */
 uint8_t
 machine_compaq_p1_handler(void)
 {
-    return machine_generic_p1_handler() | (hasfpu ? 0x00 : 0x04);
+    return machine_generic_p1_handler() | 0x08 | (hasfpu ? 0x00 : 0x04);
 }
 
 static const device_config_t deskpro386_config[] = {
@@ -70,7 +71,7 @@ static const device_config_t deskpro386_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "September 1986",
+                .name          = "Compaq BIOS - Revision 09/04/86",
                 .internal_name = "deskpro386_09_1986",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -79,7 +80,7 @@ static const device_config_t deskpro386_config[] = {
                 .files         = { "roms/machines/deskpro386/1986-09-04-HI.json.bin", "" }
             },
             {
-                .name          = "May 1988",
+                .name          = "Compaq BIOS - Revision 05/10/88",
                 .internal_name = "deskpro386",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -96,7 +97,7 @@ static const device_config_t deskpro386_config[] = {
 
 const device_t deskpro386_device = {
     .name          = "Compaq Deskpro 386",
-    .internal_name = "deskpro386_device",
+    .internal_name = "deskpro386",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -141,14 +142,15 @@ machine_at_portableiii386_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linearr("roms/machines/portableiii/P.2 Combined.bin",
-                            0x000f0000, 131072, 0);
+    ret = bios_load_interleavedr("roms/machines/portableiii/copq_porti_386_typ1_even_210mb_6abc.bin",
+                                 "roms/machines/portableiii/copq_porti_386_typ1_odd_210mb_aa94.bin",
+                                 0x000f0000, 131072, 0);
 
     if (bios_only || !ret)
         return ret;
 
     if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
+        device_add(&fdc_at_compaq_device);
 
     video_reset(gfxcard[0]);
 
@@ -371,7 +373,7 @@ static const device_config_t dataexpert386wb_config[] = {
 
 const device_t dataexpert386wb_device = {
     .name          = "DataExpert 386C",
-    .internal_name = "dataexpert386wb_device",
+    .internal_name = "dataexpert386wb",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -471,6 +473,29 @@ machine_at_asus386_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&rabbit_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_asus386siq_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/asus386siq/bios-657e297a703d5076313977.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&sis_85c460_device);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 

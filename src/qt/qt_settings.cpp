@@ -21,7 +21,6 @@
 
 #include "qt_defs.hpp"
 #include "qt_settings.hpp"
-#include "ui_qt_settings.h"
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
 
@@ -36,10 +35,19 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/hdd.h>
+#include <86box/hdc.h>
+#include <86box/sound.h>
+#include <86box/scsi.h>
+#include <86box/scsi_device.h>
+#include <86box/hdc_ide.h>
 #include <86box/lpt.h>
+#include <86box/serial.h>
 #include <86box/midi.h>
+#include <86box/mem.h>
+#include <86box/usb.h>
 }
 
+#include <QStackedWidget>
 #include <QStandardItemModel>
 
 #include "qt_settings_completer.hpp"
@@ -61,198 +69,318 @@ extern "C" {
 #include "qt_preferences.hpp"
 
 #include "qt_harddrive_common.hpp"
+#include "qt_models_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
 
 #include <QDebug>
+#include <QComboBox>
 #include <QMessageBox>
 #include <QCheckBox>
 #include <QStyle>
+#include <QTabWidget>
 
 #include <dirent.h>
 #include <unistd.h>
 
 extern MainWindow *main_window;
 
-class SettingsModel : public QAbstractListModel {
-public:
-    SettingsModel(QObject *parent)
-        : QAbstractListModel(parent)
-    {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        fontHeight = QFontMetrics(qApp->font()).height();
-#else
-        fontHeight = QApplication::fontMetrics().height();
-#endif
-    }
-
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    int      rowCount(const QModelIndex &parent = QModelIndex()) const override;
-
-private:
-    QStringList pages = {
-        "Machine",
-        "Display",
-        "Input devices",
-        "Sound",
-        "Network",
-        "Ports (COM & LPT)",
-        "Storage controllers",
-        "Hard disks",
-        "Floppy & CD-ROM drives",
-        "Other removable devices",
-        "Other peripherals",
-    };
-    QStringList page_icons = {
-        "machine",
-        "display",
-        "input_devices",
-        "sound",
-        "network",
-        "ports",
-        "storage_controllers",
-        "hard_disk",
-        "floppy_and_cdrom_drives",
-        "other_removable_devices",
-        "other_peripherals",
-    };
-    int fontHeight;
+static const QVector<PagedDialog::Page> settingsPages = {
+    { "Machine",                 "machine"                 },
+    { "Display",                 "display"                 },
+    { "Input devices",           "input_devices"           },
+    { "Sound",                   "sound"                   },
+    { "Network",                 "network"                 },
+    { "Ports (COM & LPT)",       "ports"                   },
+    { "Storage controllers",     "storage_controllers"     },
+    { "Hard disks",              "hard_disk"               },
+    { "Floppy & CD-ROM drives",  "floppy_and_cdrom_drives" },
+    { "Other removable devices", "other_removable_devices" },
+    { "Other peripherals",       "other_peripherals"       },
 };
 
-QVariant
-SettingsModel::data(const QModelIndex &index, int role) const
-{
-    Q_ASSERT(checkIndex(index, QAbstractItemModel::CheckIndexOption::IndexIsValid | QAbstractItemModel::CheckIndexOption::ParentIsInvalid));
+Settings *Settings::settings = nullptr;
 
-    switch (role) {
-        case Qt::DisplayRole:
-            return tr(pages.at(index.row()).toUtf8().data());
-        case Qt::DecorationRole:
-            return QIcon(QString(":/settings/qt/icons/%1.ico").arg(page_icons[index.row()]));
-        case Qt::SizeHintRole:
-            return QSize(-1, fontHeight * 2);
+Settings::Settings(QWidget *parent)
+    : PagedDialog(tr("Settings"), QSize(720, 472), settingsPages, parent)
+{
+    Settings::settings = this;
+
+    Harddrives::busTrackClass = new SettingsBusTracking;
+
+    /* Only the Machine page is built now. The others are built when first
+       shown, or all at once on OK, so opening the dialog does not build
+       every device list of every page. */
+    machine            = new SettingsMachine(this);
+    display            = nullptr;
+    input              = nullptr;
+    sound              = nullptr;
+    network            = nullptr;
+    ports              = nullptr;
+    storageControllers = nullptr;
+    harddisks          = nullptr;
+    floppyCdrom        = nullptr;
+    otherRemovable     = nullptr;
+    otherPeripherals   = nullptr;
+
+    pageStack()->addWidget(machine);
+    for (int i = PAGE_DISPLAY; i < PAGE_COUNT; i++)
+        pageStack()->addWidget(new QWidget(this));
+
+    showFirstPage();
+}
+
+void
+Settings::aboutToShowPage(int index)
+{
+    ensurePage(index);
+}
+
+/* A page takes the place of its placeholder in the stack. */
+void
+Settings::placePage(int index, QWidget *page)
+{
+    QWidget *placeholder = pageStack()->widget(index);
+
+    pageStack()->insertWidget(index, page);
+    pageStack()->removeWidget(placeholder);
+    delete placeholder;
+    growToFitPages();
+}
+
+/* Build the page at a list index if it is not built yet, with the pages it
+   depends on: Display before Input (Input asks it about the light pen), and
+   Ports before the three drive pages, which are built together: they share
+   the bus channel tracking, where Ports marks the parallel ports in use. A
+   page built after the machine was changed is brought up to that machine. */
+void
+Settings::ensurePage(int index)
+{
+    const int machineId = machine->currentMachineId();
+
+    switch (index) {
+        case PAGE_DISPLAY:
+        case PAGE_INPUT:
+            if (display == nullptr) {
+                display = new SettingsDisplay(this);
+                placePage(PAGE_DISPLAY, display);
+                connect(machine, &SettingsMachine::currentMachineChanged, display,
+                        &SettingsDisplay::onCurrentMachineChanged);
+            }
+            if (input == nullptr) {
+                input = new SettingsInput(this);
+                placePage(PAGE_INPUT, input);
+                connect(machine, &SettingsMachine::currentMachineChanged, input,
+                        &SettingsInput::onCurrentMachineChanged);
+                if (machineId != ::machine)
+                    display->onCurrentMachineChanged(machineId); /* and Input with it */
+            }
+            break;
+
+        case PAGE_SOUND:
+            if (sound == nullptr) {
+                sound = new SettingsSound(this);
+                placePage(PAGE_SOUND, sound);
+                connect(machine, &SettingsMachine::currentMachineChanged, sound,
+                        &SettingsSound::onCurrentMachineChanged);
+                if (machineId != ::machine)
+                    sound->onCurrentMachineChanged(machineId);
+            }
+            break;
+
+        case PAGE_NETWORK:
+            if (network == nullptr) {
+                network = new SettingsNetwork(this);
+                placePage(PAGE_NETWORK, network);
+                connect(machine, &SettingsMachine::currentMachineChanged, network,
+                        &SettingsNetwork::onCurrentMachineChanged);
+                if (machineId != ::machine)
+                    network->onCurrentMachineChanged(machineId);
+            }
+            break;
+
+        case PAGE_PORTS:
+            if (ports == nullptr) {
+                ports = new SettingsPorts(this);
+                placePage(PAGE_PORTS, ports);
+                connect(machine, &SettingsMachine::currentMachineChanged, ports,
+                        &SettingsPorts::onCurrentMachineChanged);
+                /* A USB card gives the machine a USB bus, so a change of card
+                   refreshes the pages that list USB devices. */
+                connect(ports, &SettingsPorts::usbBusChanged, this, [this](int id) {
+                    if (input != nullptr)
+                        input->onCurrentMachineChanged(id);
+                    if (sound != nullptr)
+                        sound->onCurrentMachineChanged(id);
+                    if (storageControllers != nullptr)
+                        storageControllers->onCurrentMachineChanged(id);
+                });
+                connect(ports, &SettingsPorts::drivePageRequested, this, [this](SettingsPorts::DrivePage page) {
+                    switch (page) {
+                        case SettingsPorts::DrivePage::HardDisks:
+                            showPage(PAGE_HARDDISKS);
+                            break;
+                        case SettingsPorts::DrivePage::Cdrom:
+                            /* Showing the page builds it; then its CD-ROM
+                               tab, since floppy drives cannot be on USB. */
+                            showPage(PAGE_FLOPPYCDROM);
+                            if (floppyCdrom != nullptr) {
+                                auto *tabs = floppyCdrom->findChild<QTabWidget *>("tabWidgetFloppyCDROM");
+                                auto *tab  = floppyCdrom->findChild<QWidget *>("tabCDROM");
+                                if ((tabs != nullptr) && (tab != nullptr))
+                                    tabs->setCurrentWidget(tab);
+                            }
+                            break;
+                        case SettingsPorts::DrivePage::Removable:
+                            showPage(PAGE_REMOVABLE);
+                            break;
+                    }
+                });
+                if (machineId != ::machine)
+                    ports->onCurrentMachineChanged(machineId);
+            }
+            break;
+
+        case PAGE_STORAGE:
+            if (storageControllers == nullptr) {
+                storageControllers = new SettingsStorageControllers(this);
+                placePage(PAGE_STORAGE, storageControllers);
+                connect(machine, &SettingsMachine::currentMachineChanged, storageControllers,
+                        &SettingsStorageControllers::onCurrentMachineChanged);
+                if (machineId != ::machine)
+                    storageControllers->onCurrentMachineChanged(machineId);
+            }
+            break;
+
+        case PAGE_HARDDISKS:
+        case PAGE_FLOPPYCDROM:
+        case PAGE_REMOVABLE:
+            ensurePage(PAGE_PORTS);
+            if (harddisks == nullptr) {
+                harddisks      = new SettingsHarddisks(this);
+                floppyCdrom    = new SettingsFloppyCDROM(this);
+                otherRemovable = new SettingsOtherRemovable(this);
+                placePage(PAGE_HARDDISKS, harddisks);
+                placePage(PAGE_FLOPPYCDROM, floppyCdrom);
+                placePage(PAGE_REMOVABLE, otherRemovable);
+
+                connect(machine, &SettingsMachine::currentMachineChanged, floppyCdrom,
+                        &SettingsFloppyCDROM::onCurrentMachineChanged);
+                connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, harddisks,
+                        &SettingsHarddisks::reloadBusChannels);
+                connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MO);
+                connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_RDisk);
+                connect(harddisks, &SettingsHarddisks::driveChannelChanged, floppyCdrom,
+                        &SettingsFloppyCDROM::reloadBusChannels);
+                connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MO);
+                connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_RDisk);
+                connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, harddisks,
+                        &SettingsHarddisks::reloadBusChannels);
+                connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, floppyCdrom,
+                        &SettingsFloppyCDROM::reloadBusChannels);
+                connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_RDisk);
+                connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, harddisks,
+                        &SettingsHarddisks::reloadBusChannels);
+                connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, floppyCdrom,
+                        &SettingsFloppyCDROM::reloadBusChannels);
+                connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MO);
+                connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_Tape);
+                connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, harddisks,
+                        &SettingsHarddisks::reloadBusChannels);
+                connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, floppyCdrom,
+                        &SettingsFloppyCDROM::reloadBusChannels);
+                connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MO);
+                connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_RDisk);
+                connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_Tape);
+                connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_Tape);
+
+                if (machineId != ::machine)
+                    floppyCdrom->onCurrentMachineChanged(machineId);
+            }
+            break;
+
+        case PAGE_OTHER:
+            if (otherPeripherals == nullptr) {
+                otherPeripherals = new SettingsOtherPeripherals(this);
+                placePage(PAGE_OTHER, otherPeripherals);
+                connect(machine, &SettingsMachine::currentMachineChanged, otherPeripherals,
+                        &SettingsOtherPeripherals::onCurrentMachineChanged);
+                if (machineId != ::machine)
+                    otherPeripherals->onCurrentMachineChanged(machineId);
+            }
+            break;
+
         default:
-            return {};
+            break;
     }
 }
 
-int
-SettingsModel::rowCount(const QModelIndex &parent) const
+/* OK builds every page not built yet before anything is checked or saved,
+   as when all were built on opening: each page sees the selected machine
+   and drops from its selection what that machine cannot take, and whatever
+   else it corrects in the saved configuration. */
+void
+Settings::ensureAllPages()
 {
-    (void) parent;
-    return pages.size();
-}
-
-Settings *Settings::settings = nullptr;
-;
-Settings::Settings(QWidget *parent)
-    : QDialog(parent)
-    , ui(new Ui::Settings)
-{
-    ui->setupUi(this);
-    auto *model = new SettingsModel(this);
-    ui->listView->setModel(model);
-
-    Harddrives::busTrackClass = new SettingsBusTracking;
-    machine                   = new SettingsMachine(this);
-    display                   = new SettingsDisplay(this);
-    input                     = new SettingsInput(this);
-    sound                     = new SettingsSound(this);
-    network                   = new SettingsNetwork(this);
-    ports                     = new SettingsPorts(this);
-    storageControllers        = new SettingsStorageControllers(this);
-    harddisks                 = new SettingsHarddisks(this);
-    floppyCdrom               = new SettingsFloppyCDROM(this);
-    otherRemovable            = new SettingsOtherRemovable(this);
-    otherPeripherals          = new SettingsOtherPeripherals(this);
-
-    ui->stackedWidget->addWidget(machine);
-    ui->stackedWidget->addWidget(display);
-    ui->stackedWidget->addWidget(input);
-    ui->stackedWidget->addWidget(sound);
-    ui->stackedWidget->addWidget(network);
-    ui->stackedWidget->addWidget(ports);
-    ui->stackedWidget->addWidget(storageControllers);
-    ui->stackedWidget->addWidget(harddisks);
-    ui->stackedWidget->addWidget(floppyCdrom);
-    ui->stackedWidget->addWidget(otherRemovable);
-    ui->stackedWidget->addWidget(otherPeripherals);
-
-    connect(machine, &SettingsMachine::currentMachineChanged, display,
-            &SettingsDisplay::onCurrentMachineChanged);
-    connect(machine, &SettingsMachine::currentMachineChanged, input,
-            &SettingsInput::onCurrentMachineChanged);
-    connect(machine, &SettingsMachine::currentMachineChanged, sound,
-            &SettingsSound::onCurrentMachineChanged);
-    connect(machine, &SettingsMachine::currentMachineChanged, network,
-            &SettingsNetwork::onCurrentMachineChanged);
-    connect(machine, &SettingsMachine::currentMachineChanged, ports,
-            &SettingsPorts::onCurrentMachineChanged);
-    connect(machine, &SettingsMachine::currentMachineChanged, storageControllers,
-            &SettingsStorageControllers::onCurrentMachineChanged);
-    connect(machine, &SettingsMachine::currentMachineChanged, otherPeripherals,
-            &SettingsOtherPeripherals::onCurrentMachineChanged);
-    connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, harddisks,
-            &SettingsHarddisks::reloadBusChannels);
-    connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, otherRemovable,
-            &SettingsOtherRemovable::reloadBusChannels_MO);
-    connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, otherRemovable,
-            &SettingsOtherRemovable::reloadBusChannels_RDisk);
-    connect(harddisks, &SettingsHarddisks::driveChannelChanged, floppyCdrom,
-            &SettingsFloppyCDROM::reloadBusChannels);
-    connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
-            &SettingsOtherRemovable::reloadBusChannels_MO);
-    connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
-            &SettingsOtherRemovable::reloadBusChannels_RDisk);
-    connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, harddisks,
-            &SettingsHarddisks::reloadBusChannels);
-    connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, floppyCdrom,
-            &SettingsFloppyCDROM::reloadBusChannels);
-    connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, otherRemovable,
-            &SettingsOtherRemovable::reloadBusChannels_RDisk);
-    connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, harddisks,
-            &SettingsHarddisks::reloadBusChannels);
-    connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, floppyCdrom,
-            &SettingsFloppyCDROM::reloadBusChannels);
-    connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, otherRemovable,
-            &SettingsOtherRemovable::reloadBusChannels_MO);
-    connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
-            &SettingsOtherRemovable::reloadBusChannels_Tape);
-    connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, harddisks,
-            &SettingsHarddisks::reloadBusChannels);
-    connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, floppyCdrom,
-            &SettingsFloppyCDROM::reloadBusChannels);
-    connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, otherRemovable,
-            &SettingsOtherRemovable::reloadBusChannels_MO);
-    connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, otherRemovable,
-            &SettingsOtherRemovable::reloadBusChannels_RDisk);
-    connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, otherRemovable,
-            &SettingsOtherRemovable::reloadBusChannels_Tape);
-    connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, otherRemovable,
-            &SettingsOtherRemovable::reloadBusChannels_Tape);
-
-    connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
-            [this](const QModelIndex &current, const QModelIndex &previous) {
-                ui->stackedWidget->setCurrentIndex(current.row());
-                ui->headerIcon->setPixmap(qvariant_cast<QIcon>(ui->listView->model()->data(current, Qt::DecorationRole)).pixmap(QSize(16, 16)));
-                ui->headerLabel->setText(ui->listView->model()->data(current, Qt::DisplayRole).toString());
-            });
-
-    ui->listView->setCurrentIndex(model->index(0, 0));
-
-    Settings::settings = this;
+    for (int i = PAGE_DISPLAY; i < PAGE_COUNT; i++)
+        ensurePage(i);
 }
 
 Settings::~Settings()
 {
-    delete ui;
+    /* The device lists are read again the next time: ROMs may come or go
+       in between. */
+    Models::ClearDevices();
     delete Harddrives::busTrackClass;
     Harddrives::busTrackClass = nullptr;
     Settings::settings        = nullptr;
 }
 
+int
+Settings::currentMachine() const
+{
+    return machine->findChild<QComboBox *>("comboBoxMachine")->currentData().toInt();
+}
+
+int
+Settings::currentHdc(int i) const
+{
+    return (storageControllers != nullptr) ? storageControllers->hdcCard(i) : hdc_current[i];
+}
+
+int
+Settings::currentSoundCard(int i) const
+{
+    return (sound != nullptr) ? sound->soundCard(i) : sound_card_current[i];
+}
+
+int
+Settings::currentScsiCard(int i) const
+{
+    return (storageControllers != nullptr) ? storageControllers->scsiCard(i) : scsi_card_current[i];
+}
+
+int
+Settings::currentUsbMsd() const
+{
+    return (ports != nullptr) ? ports->usbMsd() : usb_msd_type;
+}
+
 void
 Settings::save(int soft)
 {
+    ensureAllPages();
+
     machine->save(soft);
     display->save(soft);
     input->save(soft);
@@ -271,6 +399,29 @@ Settings::accept()
 {
     int changed = 0;
 
+    ensureAllPages();
+    /* A controller that cannot have the IDE channels it needs (two cards
+       that can only use the legacy ports, say) will not work: ask. */
+    ide_owner_t    owners[IDE_BUS_MAX];
+    ide_conflict_t conflicts[IDE_CONFLICTS_MAX];
+    int            conflictCount = 0;
+    const int      owned         = Harddrives::idePlan(owners, conflicts, &conflictCount);
+
+    if (conflictCount > 0) {
+        QStringList lines;
+        for (int i = 0; i < conflictCount; i++)
+            lines.append(Harddrives::conflictText(i, owners, owned, conflicts, conflictCount));
+
+        QMessageBox box(QMessageBox::Icon::Warning, tr("IDE Conflict"),
+                        tr("These IDE controllers need channels that another device already has, and will not work:") +
+                            QString("\n\n%1\n\n").arg(lines.join("\n")) +
+                            tr("Do you want to save the configuration anyway?"),
+                        QMessageBox::Yes | QMessageBox::No, this);
+        box.setDefaultButton(QMessageBox::No);
+        if (box.exec() != QMessageBox::Yes)
+            return;
+    }
+
     changed |= machine->changed();
     changed |= display->changed();
     changed |= input->changed();
@@ -285,10 +436,11 @@ Settings::accept()
 
     if ((changed & SETTINGS_REQUIRE_HARD_RESET) && confirm_save && !settings_only) {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box",
-                                QStringLiteral("%1\n\n%2").arg(tr("Do you want to save the settings?"), tr("This will hard reset the emulated machine.")),
+                                tr("Do you want to save the settings?"),
                                 QMessageBox::Save | QMessageBox::Cancel, this);
         QCheckBox  *chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
+        questionbox.setInformativeText(tr("This will hard reset the emulated machine."));
         chkbox->setChecked(!confirm_save);
         QObject::connect(chkbox, &QCheckBox::CHECK_STATE_CHANGED, [](int state) { confirm_save = (state == Qt::CheckState::Unchecked); });
         questionbox.exec();
@@ -296,11 +448,14 @@ Settings::accept()
             confirm_save = true;
             return;
         }
+        if (!confirm_save)
+            config_save_global_setting("Emulator", "confirm_save");
     } else if (changed && !(changed & SETTINGS_REQUIRE_HARD_RESET) && !settings_only) {
         save(1);
         config_changed = 2;
         main_window->emitVmmSignal();
         lpt_devices_reset();
+        serial_devices_reset();
         midi_config_changed();
 
         video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;

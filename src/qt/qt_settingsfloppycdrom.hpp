@@ -21,6 +21,12 @@ public:
     void restore();
     void save(int soft);
 
+public slots:
+    void onCurrentMachineChanged(int machineId);
+
+protected:
+    void showEvent(QShowEvent *event) override;
+
 signals:
     void cdromChannelChanged();
 

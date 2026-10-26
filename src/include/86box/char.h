@@ -18,11 +18,17 @@
 #define EMU_CHAR_H
 
 #ifdef _WIN32
-#    define CHAR_FD_VALID(fd) ((fd) && ((fd) != INVALID_HANDLE_VALUE))
+#    define CHAR_FD_VALID(fd) (((void *) (fd) != NULL) && ((void *) (fd) != (void *) INVALID_HANDLE_VALUE))
 #else
 #    define CHAR_FD_VALID(fd) ((fd) >= 0)
 #endif
 #define CHAR_RECONNECT_MS 500
+
+enum { /* port hotunpluggability tracking */
+       CHAR_PORT_DETACHED = 0,
+       CHAR_PORT_HOTUNPLUG,
+       CHAR_PORT_NOHOTUNPLUG
+};
 
 enum { /* device flags */
        CHAR_LPT_USESTROBE = 0x1, /* only issue SPP write when STROBE is asserted */
@@ -125,9 +131,7 @@ typedef struct {
             uint8_t  stop_bits;
         } com;
         struct {
-            uint32_t control;
-            uint8_t  data_write;
-            uint8_t  data_read;
+            uint8_t dummy;
         } lpt;
     };
 } char_port_t;
@@ -150,8 +154,13 @@ extern const device_t char_serial_passthrough_com_device;
 extern const device_t char_pipe_com_device;
 extern const device_t char_pipe_lpt_device;
 extern const device_t char_file_com_device;
+extern const device_t char_file_lpt_device;
 extern const device_t char_stdio_com_device;
 extern const device_t char_loopback_com_device;
 extern const device_t char_loopback_lpt_device;
+extern const device_t char_fujinet_com_device;
+#ifdef USE_AUTOMATION
+extern const device_t char_automation_com_device;
+#endif
 
 #endif /*EMU_CHAR_H*/

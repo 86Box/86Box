@@ -94,7 +94,7 @@ opSAHF(UNUSED(uint32_t fetchdat))
     CLOCK_CYCLES(3);
     PREFETCH_RUN(3, 1, -1, 0, 0, 0, 0, 0);
 
-#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
+#if (defined(USE_DYNAREC))
     codegen_flags_changed = 0;
 #endif
 
@@ -174,7 +174,7 @@ opPOPF_186(UNUSED(uint32_t fetchdat))
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 1, 0, 0, 0, 0);
 
-#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
+#if (defined(USE_DYNAREC))
     codegen_flags_changed = 0;
 #endif
 
@@ -194,6 +194,13 @@ opPOPF_286(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
 
+#if 0
+    if ((tempw & I_FLAG) && !(cpu_state.flags & I_FLAG))
+        /*First instruction after STI will always execute, regardless of whether
+          there is a pending interrupt*/
+        cpu_end_block_after_ins = 2;
+#endif
+
     if (!(msw & 1))
         cpu_state.flags = (cpu_state.flags & 0x7000) | (tempw & 0x0fd5) | 2;
     else if (!(CPL))
@@ -208,7 +215,7 @@ opPOPF_286(UNUSED(uint32_t fetchdat))
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 1, 0, 0, 0, 0);
 
-#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
+#if (defined(USE_DYNAREC))
     codegen_flags_changed = 0;
 #endif
 
@@ -262,7 +269,7 @@ opPOPF(UNUSED(uint32_t fetchdat))
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 1, 0, 0, 0, 0);
 
-#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
+#if (defined(USE_DYNAREC))
     codegen_flags_changed = 0;
 #endif
 
@@ -306,7 +313,7 @@ opPOPFD(UNUSED(uint32_t fetchdat))
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 0, 1, 0, 0, 0);
 
-#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
+#if (defined(USE_DYNAREC))
     codegen_flags_changed = 0;
 #endif
 

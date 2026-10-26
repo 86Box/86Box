@@ -36,7 +36,6 @@
 #include <stdexcept>
 
 #include <QApplication>
-#include <QClipboard>
 
 #include <QScreen>
 #include <QMessageBox>
@@ -126,7 +125,7 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
         frameRateTimer->setSingleShot(false);
         frameRateTimer->setInterval(1000);
         connect(frameRateTimer, &QTimer::timeout, [this] {
-            this->setWindowTitle(QObject::tr("86Box Monitor #%1").arg(m_monitor_index + 1) + QString(" - ") + tr("%1 Hz").arg(QString::number(monitors[m_monitor_index].mon_actualrenderedframes.load()) + (monitors[m_monitor_index].mon_interlace ? "i" : "")));
+            this->setWindowTitle(QObject::tr("86Box Monitor #%1").arg(m_monitor_index + 1) + QString(" - ") + (monitors[m_monitor_index].mon_dpms ? tr("Monitor in sleep mode") : tr("%1 Hz").arg(QString::number(monitors[m_monitor_index].mon_actualrenderedframes.load()) + (monitors[m_monitor_index].mon_interlace ? "i" : ""))));
         });
         frameRateTimer->start(1000);
     }
@@ -161,7 +160,16 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     if (!stricmp(mousedata.mouse_type, "xinput2")) {
         extern void xinput2_init();
         extern void xinput2_exit();
+        extern void xinput2_set_grab_widget(QWidget *widget);
+        extern void xinput2_mouse_capture(QWindow *window);
+        extern void xinput2_mouse_uncapture();
         xinput2_init();
+        if (monitor_index == 0) {
+            setAttribute(Qt::WA_NativeWindow, true);
+            xinput2_set_grab_widget(this);
+        }
+        this->mouse_capture_func = xinput2_mouse_capture;
+        this->mouse_uncapture_func = xinput2_mouse_uncapture;
         this->mouse_exit_func = xinput2_exit;
     }
 #endif
@@ -227,13 +235,29 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
         isMouseDown &= ~1;
         return;
     }
-    if (mouse_capture && (event->button() == Qt::MiddleButton) && (mouse_get_buttons() < 3)) {
+    if (mouse_capture && (event->button() & mouse_get_release_buttons())) {
+        /*
+           On Windows the raw input thread sets the button bit behind our back and
+           stops processing as soon as the capture drops, so clear it here to keep it
+           from staying stuck down. Elsewhere the press was already consumed above.
+         */
+        mouse_set_buttons_ex(mouse_get_buttons_ex() & ~event->button());
         plat_mouse_capture(0);
         this->unsetCursor();
         isMouseDown &= ~1;
         return;
     }
     if (mouse_capture || (mouse_input_mode >= 1)) {
+        Qt::MouseButton button = event->button();
+#ifdef __APPLE__
+        if ((button == Qt::LeftButton) && control_click_active) {
+            control_click_active = false;
+            button = right_button_active ? Qt::NoButton : Qt::RightButton;
+        } else if (button == Qt::RightButton) {
+            right_button_active = false;
+            button = control_click_active ? Qt::NoButton : Qt::RightButton;
+        }
+#endif
 #ifdef Q_OS_WINDOWS
         if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
 #else
@@ -243,7 +267,7 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
         if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || (m_monitor_index < 1))
 #    endif
 #endif
-            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~event->button());
+            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~button);
     }
     isMouseDown &= ~1;
 }
@@ -252,7 +276,21 @@ void
 RendererStack::mousePressEvent(QMouseEvent *event)
 {
     isMouseDown |= 1;
+    /* A button that releases the capture is consumed, not sent to the guest. */
+    if (mouse_capture && (event->button() & mouse_get_release_buttons())) {
+        event->accept();
+        return;
+    }
     if (mouse_capture || (mouse_input_mode >= 1)) {
+        Qt::MouseButton button = event->button();
+#ifdef __APPLE__
+        if ((button == Qt::LeftButton) && (event->modifiers() & Qt::ControlModifier)) {
+            control_click_active = true;
+            button = Qt::RightButton;
+        } else if (button == Qt::RightButton) {
+            right_button_active = true;
+        }
+#endif
 #ifdef Q_OS_WINDOWS
         if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
 #else
@@ -262,7 +300,7 @@ RendererStack::mousePressEvent(QMouseEvent *event)
         if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || (m_monitor_index < 1))
 #    endif
 #endif
-            mouse_set_buttons_ex(mouse_get_buttons_ex() | event->button());
+            mouse_set_buttons_ex(mouse_get_buttons_ex() | button);
     }
     event->accept();
 }
@@ -270,7 +308,7 @@ RendererStack::mousePressEvent(QMouseEvent *event)
 void
 RendererStack::wheelEvent(QWheelEvent *event)
 {
-    if (!mouse_capture) {
+    if (!mouse_capture && (mouse_input_mode < 1)) {
         event->ignore();
         return;
     }
@@ -282,6 +320,22 @@ RendererStack::wheelEvent(QWheelEvent *event)
     } else {
         mouse_set_z((short) event->angleDelta().y());
         mouse_set_w((short) event->angleDelta().x());
+    }
+#else
+    /* While the mouse is captured, the native input filters read the wheel.
+       A tablet is never captured, so its wheel comes from Qt's angleDelta,
+       120 units per notch. The core's WHEEL_DELTA is 120 on Windows and 1
+       on macOS, so macOS passes whole notches and keeps the remainder. */
+    if (!mouse_capture) {
+#    ifdef __APPLE__
+        static int wheel_rem = 0;
+
+        wheel_rem += event->angleDelta().y();
+        mouse_set_z(wheel_rem / 120);
+        wheel_rem %= 120;
+#    else
+        mouse_set_z(event->angleDelta().y());
+#    endif
     }
 #endif
     event->accept();
@@ -337,7 +391,7 @@ RendererStack::enterEvent(QEvent *event)
     mousedata.mouse_tablet_in_proximity = m_monitor_index + 1;
 
     if (mouse_input_mode == 1)
-        QApplication::setOverrideCursor(Qt::BlankCursor);
+        QApplication::setOverrideCursor((tablet_get_device(tablet_type) && !memcmp(tablet_get_device(tablet_type)->internal_name, "wacom", 5)) ? Qt::BlankCursor : Qt::ArrowCursor);
     else if (mouse_input_mode == 2)
         QApplication::setOverrideCursor(Qt::CrossCursor);
 }
@@ -424,7 +478,7 @@ RendererStack::createRenderer(Renderer renderer)
                 try {
                     hw = new VulkanWindowRenderer(this);
                 } catch (std::runtime_error &e) {
-                    auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", e.what() + tr("\nFalling back to software rendering."), QMessageBox::Ok);
+                    auto msgBox = new QMessageBox(QMessageBox::Critical, QString(), tr("Failed to initialize Vulkan renderer.") + QStringLiteral("\n") + e.what() + QStringLiteral("\n") + tr("Falling back to software rendering."), QMessageBox::Ok);
                     msgBox->setAttribute(Qt::WA_DeleteOnClose);
                     msgBox->show();
                     imagebufs = {};
@@ -439,12 +493,16 @@ RendererStack::createRenderer(Renderer renderer)
                     imagebufs        = rendererWindow->getBuffers();
                     switchInProgress = false;
                     emit rendererChanged();
+                    if (m_monitor_index != 0 && show_second_monitors)
+                        this->show();
+
+                    QTimer::singleShot(1000, [this] {
+                        if (m_monitor_index != 0 && show_second_monitors)
+                            this->show();
+                    });
                 });
                 connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
                     /* Renderer could not initialize, fallback to software. */
-                    auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", tr("Failed to initialize Vulkan renderer.") % tr("\nFalling back to software rendering."), QMessageBox::Ok);
-                    msgBox->setAttribute(Qt::WA_DeleteOnClose);
-                    msgBox->show();
                     imagebufs = {};
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                 });
@@ -464,6 +522,8 @@ RendererStack::createRenderer(Renderer renderer)
 
     this->setStyleSheet("background-color: black");
     boxLayout->addWidget(current.get());
+    if (m_monitor_index > 0)
+        current->show();
 
     rendererWindow->r_monitor_index = m_monitor_index;
 
@@ -497,8 +557,7 @@ take_screenshot_clipboard_monitor(int sx, int sy, int sw, int sh, int i)
     }
 
     QImage image(screenshot_rgb, sw, sh, sw * 3, QImage::Format_RGB888);
-    QClipboard *clipboard = QApplication::clipboard();
-    clipboard->setImage(image, QClipboard::Clipboard);
+    util::copyImageToClipboard(image);
     monitors[i].mon_screenshots_raw_clipboard--;
 }
 
@@ -515,9 +574,18 @@ RendererStack::blit(int x, int y, int w, int h)
     sw = this->w = w;
     sh = this->h       = h;
     uint8_t *imagebits = std::get<uint8_t *>(imagebufs[currentBuf]);
-    for (int y1 = y; y1 < (y + h); y1++) {
-        auto scanline = imagebits + (y1 * rendererWindow->getBytesPerRow()) + (x * 4);
-        video_copy(scanline, &(monitors[m_monitor_index].target_buffer->line[y1][x]), w * 4);
+    /* Copy one texel past each edge as well (Rage 128 edge-line fix):
+       the staging image is 2048x2048 and keeps whatever an earlier,
+       larger mode left there, and a linear-filtered scale samples those
+       neighbours. The Rage 128 paints its blanking into that ring of
+       the frame buffer; for other cards the ring is what they leave. */
+    int cx0 = (x > 0) ? (x - 1) : 0;
+    int cx1 = ((x + w) < 2048) ? (x + w + 1) : 2048;
+    int cy0 = (y > 0) ? (y - 1) : 0;
+    int cy1 = ((y + h) < 2048) ? (y + h + 1) : 2048;
+    for (int y1 = cy0; y1 < cy1; y1++) {
+        auto scanline = imagebits + (y1 * rendererWindow->getBytesPerRow()) + (cx0 * 4);
+        video_copy(scanline, &(monitors[m_monitor_index].target_buffer->line[y1][cx0]), (cx1 - cx0) * 4);
     }
 
     if (monitors[m_monitor_index].mon_screenshots_raw) {
@@ -548,6 +616,9 @@ RendererStack::changeEvent(QEvent *event)
         monitor_settings[m_monitor_index].mon_window_maximized = isMaximized();
         config_save();
     }
+    /* See MainWindow::changeEvent(). */
+    if (m_monitor_index != 0 && event->type() == QEvent::WindowStateChange)
+        onResize(width(), height());
 }
 
 bool
@@ -621,6 +692,10 @@ RendererStack::event(QEvent *event)
                 mouse_x_abs = 1;
             if (mouse_y_abs > 1)
                 mouse_y_abs = 1;
+
+            if (mouse_both_enabled())
+                mouse_tablet_in_proximity = 0;
+
             return QWidget::event(event);
         }
 #endif
@@ -653,6 +728,10 @@ RendererStack::event(QEvent *event)
 
             if (mouse_x_abs > 1) mouse_x_abs = 1;
             if (mouse_y_abs > 1) mouse_y_abs = 1;
+
+            if (mouse_both_enabled())
+                mouse_tablet_in_proximity = 0;
+
             return QWidget::event(event);
         }
 #endif

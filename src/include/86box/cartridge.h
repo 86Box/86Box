@@ -28,6 +28,8 @@ extern void cart_load(int drive, char *fn);
 extern void cart_close(int drive);
 
 extern void cart_reset(void);
+/* Return presence separately from the byte, including populated FF bytes. */
+extern int cart_read_resource(uint32_t address, uint8_t *value);
 
 #ifdef __cplusplus
 }

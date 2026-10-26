@@ -19,6 +19,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 
@@ -39,13 +40,14 @@
 #include <86box/gdbstub.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include "x86_interrupt.h"
 #include "vx0_biu.h"
 
-#define do_cycle()           wait_vx0(1)
+#define do_cycle()           wait_vx0(1, 0)
 #define do_cycle_no_modrm()  if (!nx)       \
                                  do_cycle()
 #define do_cycle_i()         do_cycle()
-#define do_cycles(c)         wait_vx0(c)
+#define do_cycles(c)         wait_vx0(c, 0)
 #define do_cycles_i(c)       do_cycles(c)
 #define do_cycle_nx()        nx = 1
 #define do_cycle_nx_i()      nx = 1
@@ -66,6 +68,9 @@
 #define SEG_CHECK_READ(seg)
 #define SEG_CHECK_WRITE(seg)
 #define CHECK_READ(a, b, c)
+#define CHECK_READ_EA(n)
+#define PROBE_READ_EA(n)
+#define CHECK_WRITE_EA(n)
 #define CHECK_WRITE(a, b, c)
 #define UN_USED(x) (void) (x)
 #define fetch_ea_16(val)
@@ -444,8 +449,8 @@ put_i8080_data(UNUSED(void* priv), uint16_t addr, uint8_t val)
     writememb(ds, addr, val);
 }
 
-static
-uint8_t i8080_port_in(UNUSED(void* priv), uint8_t port)
+static uint8_t
+i8080_port_in(UNUSED(void* priv), uint8_t port)
 {
     cpu_data = port;
     cpu_state.eaaddr = cpu_data;
@@ -453,8 +458,8 @@ uint8_t i8080_port_in(UNUSED(void* priv), uint8_t port)
     return AL;
 }
 
-static
-void i8080_port_out(UNUSED(void* priv), uint8_t port, uint8_t val)
+static void
+i8080_port_out(UNUSED(void* priv), uint8_t port, uint8_t val)
 {
     cpu_data = DX;
     AL = val;
@@ -468,6 +473,10 @@ void i8080_port_out(UNUSED(void* priv), uint8_t port, uint8_t val)
 void
 reset_vx0(int hard)
 {
+    i808x_hook_prefetch_queue(biu_pfq_set_pos, biu_pfq_set_ip, biu_pfq_set_prefetching,
+                              biu_pfq_get_pos, biu_pfq_get_ip, biu_pfq_get_prefetching,
+                              biu_pfq_get_size, wait_vx0);
+
     is_new_biu = 1;
     halted     = 0;
     in_hlt     = 0;
@@ -592,11 +601,11 @@ geteal(void)
     return ret;
 }
 
-/* Neede for 8087 - memory only. */
+/* Needed for 8087 - memory only. */
 static uint64_t
 geteaq(void)
 {
-    uint32_t ret;
+    uint64_t ret;
 
     if (cpu_mod == 3) {
         fatal("Vx0 register geteaq()\n");
@@ -694,6 +703,7 @@ seteaq(uint64_t val)
 #include "x87.h"
 #include "x87_ops.h"
 #undef tempc
+#undef FPU_NEC
 #undef FPU_8087
 
 static void
@@ -1419,7 +1429,7 @@ irq_pending(void)
     uint8_t temp;
 
     temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) ||
-           ((in_hlt || (cpu_state.flags & I_FLAG)) && pic.int_pending && !noint);
+           ((in_hlt || (cpu_state.flags & I_FLAG)) && x86_external_interrupt_pending() && !noint);
 
     return temp;
 }
@@ -1472,6 +1482,9 @@ check_interrupts(void)
         }
         if (nmi && nmi_enable && nmi_mask) {
             nmi_enable = 0;
+#ifndef OLD_NMI_BEHAVIOR
+            nmi = 0;
+#endif
             if (use_custom_nmi_vector) {
                 do_cycles(2);
                 custom_nmi();
@@ -1479,22 +1492,27 @@ check_interrupts(void)
                 int2();
             return;
         }
-        if ((in_hlt || (cpu_state.flags & I_FLAG)) && pic.int_pending && !noint) {
+        if ((in_hlt || (cpu_state.flags & I_FLAG)) && x86_external_interrupt_pending() && !noint) {
             repeating = 0;
             completed = 1;
-            ovr_seg   = NULL;
-            do_cycles(4);
-            /* ACK to PIC */
-            biu_begin_eu();
-            temp = bus_pic_ack();
-            do_cycle();
-            /* ACK to PIC */
-            temp = bus_pic_ack();
-            in_lock    = 0;
-            clear_lock = 0;
-            /* Here is where temp should be filled, but we cheat. */
-            opcode = 0x00;
-            hw_int(temp);
+            if (is_nec && in_hlt && !(cpu_state.flags & I_FLAG)) {
+                biu_queue_flush();
+                do_cycles_i(3);
+            } else {
+                ovr_seg   = NULL;
+                do_cycles(4);
+                /* ACK to PIC */
+                biu_begin_eu();
+                temp = bus_pic_ack();
+                do_cycle();
+                /* ACK to PIC */
+                temp = bus_pic_ack();
+                in_lock    = 0;
+                clear_lock = 0;
+                /* Here is where temp should be filled, but we cheat. */
+                opcode = 0x00;
+                hw_int(temp);
+            }
         }
     }
 }
@@ -1575,10 +1593,15 @@ rep_interrupt(void)
     do_cycles_i(4);
     biu_queue_flush();
 
-    if (is_nec && (ovr_seg != NULL))
-        set_ip((cpu_state.pc - 3) & 0xffff);
-    else
-        set_ip((cpu_state.pc - 2) & 0xffff);
+    int pc_sub = 2;
+    if (is_nec) {
+        if (ovr_seg != NULL)
+            pc_sub++;
+        if (in_lock)
+            pc_sub++;
+    }
+
+    set_ip((cpu_state.pc - pc_sub) & 0xffff);
 
     rep_end();
 }
@@ -1885,8 +1908,19 @@ decode(void)
 
     if (halted)
         opcode  = 0xf4;
-    else
+    else {
+        /* Temp variables for FPU exception reporting. */
+        cpu_state.temp_CS = CS;
+        cpu_state.temp_cs = cs;
+        cpu_state.temp_pc = cpu_state.pc;
+
         opcode  = biu_pfq_fetchb_common();
+    }
+
+    in_lock = 0;
+    in_rep  = 0;
+
+    ovr_seg = NULL;
 
     while (1) {
         prefix = 0;
@@ -1932,6 +1966,11 @@ decode(void)
             break;
 
         do_cycle();
+
+        /* Temp variables for FPU exception reporting. */
+        cpu_state.temp_CS = CS;
+        cpu_state.temp_cs = cs;
+        cpu_state.temp_pc = cpu_state.pc;
 
         opcode  = biu_pfq_fetchb_common();
     }
@@ -3084,8 +3123,7 @@ execute_instruction(void)
                     load_cs(tempw);
                 else
                     load_seg(tempw, _opseg[(rmdat & 0x18) >> 3]);
-                if (((rmdat & 0x18) >> 3) == 2)
-                    noint = 1;
+                noint = 1;
             }
             break;
 
@@ -3125,11 +3163,11 @@ execute_instruction(void)
             sign_extend_ax();
             break;
 
-       case 0x9a: /* CALLF */
+        case 0x9a: /* CALLF */
             /* read_operand_faraddr() */
             new_ip = biu_pfq_fetchw();
             new_cs = biu_pfq_fetchw();
- 
+
             farcall(new_cs, new_ip, 1);
 
             jump = 1;
@@ -3139,6 +3177,7 @@ execute_instruction(void)
             do_cycles(3);
             if (fpu_softfloat && (fpu_state.swd & FPU_SW_Summary) && !(fpu_state.cwd & FPU_SW_Summary))
                 nmi = 1;
+            check_interrupts();
             break;
 
         case 0x9c: /* PUSHF */
@@ -3151,15 +3190,22 @@ execute_instruction(void)
             push(&tempw);
             break;
 
-        case 0x9d: /* POPF */
+        case 0x9d: { /* POPF */
             /* pop_flags() */
+
+            int old_i = cpu_state.flags & I_FLAG;
+
             if (is_nec && cpu_md_write_disable)
                 cpu_state.flags = pop() | 0x8002;
             else
                 cpu_state.flags = pop() | 0x0002;
+
+            if (!old_i && (cpu_state.flags & I_FLAG))
+                noint = 1;
+
             sync_to_i8080();
             break;
-
+        }
         case 0x9e: /* SAHF */
             /* store_flags() */
             cpu_state.flags = (cpu_state.flags & 0xff02) | AH;
@@ -3261,8 +3307,7 @@ execute_instruction(void)
                     }
 
                     if (!end) {
-                        do_cycle_i();
-
+                       do_cycle_i();
                         if (irq_pending()) {
                             do_cycle_i();
                             rep_interrupt();
@@ -3799,76 +3844,80 @@ execute_instruction(void)
 
         case 0xd8 ... 0xdf: /* ESC - FPU instructions. */
             /* read_operand16() */
-            if (cpu_mod != 3)
-                do_cycles_i(2);    /* load_operand() */
+            do_cycles_i(2);
             tempw = cpu_state.pc;
-            geteaw();
+            x87_op = ((opcode & 0x07) << 8) | (rmdat & 0xff);
             /* fpu_op() */
-            if (hasfpu) {
-                if (fpu_softfloat) {
-                    switch (opcode) {
-                        case 0xd8:
-                            ops_sf_fpu_8087_d8[(rmdat >> 3) & 0x1f](rmdat);
-                            break;
-                        case 0xd9:
-                            ops_sf_fpu_8087_d9[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xda:
-                            ops_sf_fpu_8087_da[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xdb:
-                            ops_sf_fpu_8087_db[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xdc:
-                            ops_sf_fpu_8087_dc[(rmdat >> 3) & 0x1f](rmdat);
-                            break;
-                        case 0xdd:
-                            ops_sf_fpu_8087_dd[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xde:
-                            ops_sf_fpu_8087_de[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xdf:
-                            ops_sf_fpu_8087_df[rmdat & 0xff](rmdat);
-                            break;
+            if (!hasfpu)
+                geteaw();
+            else if (fpu_softfloat)  switch (opcode) {
+                case 0xd8:
+                    ops_sf_fpu_8087_d8[(rmdat >> 3) & 0x1f](rmdat);
+                    break;
+                case 0xd9:
+                    ops_sf_fpu_8087_d9[rmdat & 0xff](rmdat);
+                    break;
+                case 0xda:
+                    ops_sf_fpu_8087_da[rmdat & 0xff](rmdat);
+                    break;
+                case 0xdb:
+                    ops_sf_fpu_8087_db[rmdat & 0xff](rmdat);
+                    break;
+                case 0xdc:
+                    ops_sf_fpu_8087_dc[(rmdat >> 3) & 0x1f](rmdat);
+                    break;
+                case 0xdd:
+                    ops_sf_fpu_8087_dd[rmdat & 0xff](rmdat);
+                    break;
+                case 0xde:
+                    ops_sf_fpu_8087_de[rmdat & 0xff](rmdat);
+                    break;
+                case 0xdf:
+                    ops_sf_fpu_8087_df[rmdat & 0xff](rmdat);
+                    break;
 
-                        default:
-                             break;
-                    }
-                } else {
-                    switch (opcode) {
-                        case 0xd8:
-                            ops_fpu_8087_d8[(rmdat >> 3) & 0x1f](rmdat);
-                            break;
-                        case 0xd9:
-                            ops_fpu_8087_d9[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xdA:
-                            ops_fpu_8087_da[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xdb:
-                            ops_fpu_8087_db[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xdc:
-                            ops_fpu_8087_dc[(rmdat >> 3) & 0x1f](rmdat);
-                            break;
-                        case 0xdd:
-                            ops_fpu_8087_dd[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xde:
-                            ops_fpu_8087_de[rmdat & 0xff](rmdat);
-                            break;
-                        case 0xdf:
-                            ops_fpu_8087_df[rmdat & 0xff](rmdat);
-                            break;
+                default:
+                    break;
+            } else  switch (opcode) {
+                case 0xd8:
+                    ops_fpu_8087_d8[(rmdat >> 3) & 0x1f](rmdat);
+                    break;
+                case 0xd9:
+                    ops_fpu_8087_d9[rmdat & 0xff](rmdat);
+                    break;
+                case 0xda:
+                    ops_fpu_8087_da[rmdat & 0xff](rmdat);
+                    break;
+                case 0xdb:
+                    ops_fpu_8087_db[rmdat & 0xff](rmdat);
+                    break;
+                case 0xdc:
+                    ops_fpu_8087_dc[(rmdat >> 3) & 0x1f](rmdat);
+                    break;
+                case 0xdd:
+                    ops_fpu_8087_dd[rmdat & 0xff](rmdat);
+                    break;
+                case 0xde:
+                    ops_fpu_8087_de[rmdat & 0xff](rmdat);
+                    break;
+                case 0xdf:
+                    ops_fpu_8087_df[rmdat & 0xff](rmdat);
+                    break;
 
-                        default:
-                            break;
-                    }
-                }
+                default:
+                    break;
             }
+            cpu_state.fpu_op = x87_op;
+            cpu_state.fpu_CS = cpu_state.temp_CS;
+            cpu_state.fpu_cs = cpu_state.temp_cs;
+            cpu_state.fpu_pc = cpu_state.temp_pc;
+            cpu_state.fpu_DS = easeg >> 4;
+            cpu_state.fpu_ds = easeg;
+            cpu_state.fpu_ea = cpu_state.eaaddr;
             cpu_state.pc = tempw; /* Do this as the x87 code advances it, which is needed on
                                      the 286+ core, but not here. */
+            if (cpu_mod != 3)
+                do_cycles_i(2);    /* load_operand() */
             break;
 
         case 0xe0: /* LOOPNE & LOOPE */
@@ -4330,7 +4379,7 @@ execute_instruction(void)
 
                     tempws = (int) ((DX << 16) | AX);
                     if (cpu_data)
-                        tempws2 = tempws / (int) ((int16_t) cpu_data);
+                        tempws2 = (int) ((int64_t) tempws / (int16_t) cpu_data); /*64-bit: 80000000h / -1 must not trap the host*/
                     temps16 = tempws2 & 0xffff;
                     if ((cpu_data != 0) && ((int) temps16 == tempws2)) {
                         DX = tempws % (int) ((int16_t) cpu_data);
@@ -4425,6 +4474,9 @@ execute_instruction(void)
 
         case 0xfa: /* CLISTI */
         case 0xfb:
+            if ((opcode & 1) && !(cpu_state.flags & I_FLAG))
+                noint = 1;
+
             set_if(opcode & 1);
             break;
 

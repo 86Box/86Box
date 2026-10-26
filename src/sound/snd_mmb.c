@@ -63,13 +63,13 @@ mmb_update(mmb_t *mmb)
 }
 
 void
-mmb_get_buffer(int32_t *buffer, int len, void *priv)
+mmb_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     mmb_t *mmb = (mmb_t *) priv;
 
     mmb_update(mmb);
 
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += mmb->buffer[c];
 
     mmb->pos = 0;

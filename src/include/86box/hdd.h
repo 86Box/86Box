@@ -89,6 +89,7 @@ enum {
 typedef struct hdd_preset_t {
     const char *name;
     const char *internal_name;
+    const char *vendor;
     const char *model;
     const char *version;
     uint32_t    zones;
@@ -187,9 +188,15 @@ typedef struct hard_disk_t {
     uint8_t            max_multiple_block;
     uint8_t            pad1[3];
 
+    const char        *vendor;
+
     const char        *model;
 
     const char        *version;
+
+    char               custom_vendor[9];
+    char               custom_model[41];
+    char               custom_version[5];
 
     hdd_zone_t         zones[HDD_MAX_ZONES];
 
@@ -237,6 +244,7 @@ extern double      hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_
 int                hdd_preset_get_num(void);
 const char        *hdd_preset_getname(int preset);
 extern const char *hdd_preset_get_internal_name(int preset);
+extern int         hdd_preset_is_generic(int preset);
 extern uint32_t    hdd_preset_get_rpm(int preset);
 extern int         hdd_preset_get_from_internal_name(char *s);
 extern void        hdd_preset_apply(int hdd_id);

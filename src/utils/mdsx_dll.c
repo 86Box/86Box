@@ -82,7 +82,7 @@ mdsx_init(void)
     mdsx_handle = dynld_module(PATH_MDSX_DLL, mdsx_imports);
 
     if (mdsx_handle == NULL) {
-        warning("Unable to load %s\n", PATH_MDSX_DLL);
+//        warning("Unable to load %s\n", PATH_MDSX_DLL);
         return 0;
     }
 

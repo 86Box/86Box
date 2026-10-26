@@ -20,6 +20,7 @@
 #include <QDesktopServices>
 #include <QMenu>
 #include <QMessageBox>
+#include <QStringBuilder>
 #include <QStringListModel>
 #include <QTimer>
 #include <QProgressDialog>
@@ -92,6 +93,11 @@ VMManagerMain::VMManagerMain(QWidget *parent)
 
     // Connect the model signal
     connect(vm_model, &VMManagerModel::systemDataChanged, this, &VMManagerMain::modelDataChange);
+
+#ifdef DISCORD
+    discord = new VMManagerDiscord(this);
+    discord->setModel(vm_model);
+#endif
 
     // Set up the context menu for the list view
     ui->listView->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -437,10 +443,10 @@ illegal_chars:
         emit selectionOrStateChanged((this->proxy_model->rowCount(QModelIndex()) > 0) ? selected_sysconfig : nullptr);
     });
 
-#if EMU_BUILD_NUM != 0
+#ifdef UPDATE_CHECK
     // Start update check after a slight delay
     QTimer::singleShot(1000, this, [this] {
-        if (updateCheck)
+        if (vmm_update_check)
             backgroundUpdateCheckStart();
     });
 #endif
@@ -484,6 +490,9 @@ VMManagerMain::reload()
     connect(vm_model, &VMManagerModel::globalConfigurationChanged, this, []() {
         vmm_main_window->updateSettings();
     });
+#ifdef DISCORD
+    discord->setModel(vm_model);
+#endif
     const QItemSelectionModel *selection_model = ui->listView->selectionModel();
     connect(selection_model, &QItemSelectionModel::currentChanged, this, &VMManagerMain::currentSelectionChanged);
 
@@ -630,10 +639,7 @@ VMManagerMain::loadSettings()
 {
     const auto config        = new VMManagerConfig(VMManagerConfig::ConfigType::General);
     const auto lastSelection = config->getStringValue("last_selection");
-#if EMU_BUILD_NUM != 0
-    updateCheck = config->getStringValue("update_check").toInt();
-#endif
-    regexSearch = config->getStringValue("regex_search").toInt();
+    regexSearch = vmm_regex_search;
 
     const auto matches = ui->listView->model()->match(vm_model->index(0, 0), VMManagerModel::Roles::ConfigName, QVariant::fromValue(lastSelection));
     if (!matches.empty()) {
@@ -772,16 +778,35 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
 void
 VMManagerMain::deleteSystem(VMManagerSystem *sysconfig)
 {
-    QMessageBox msgbox(QMessageBox::Icon::Warning, tr("Warning"), tr("Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!").arg(sysconfig->displayName), QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, qobject_cast<QWidget *>(this->parent()));
+    const VMManagerConfig config(VMManagerConfig::ConfigType::General);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    int trash = vmm_delete_to_trash;
+#endif
+    QString msgboxText = tr("Do you really want to delete the virtual machine \"%1\" and all its files?").arg(sysconfig->displayName);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    if (!trash)
+#endif
+        msgboxText.append(QStringLiteral(" ") % tr("This action cannot be undone!"));
+    QMessageBox msgbox(QMessageBox::Icon::Warning, tr("Warning"), msgboxText, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, qobject_cast<QWidget *>(this->parent()));
     msgbox.exec();
     if (msgbox.result() == QMessageBox::Yes) {
-        auto qrmdir = new QDir(sysconfig->config_dir);
-        if (const bool rmdirResult = qrmdir->removeRecursively(); !rmdirResult) {
+        bool rmdirResult;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+        if (trash) {
+            auto qrmdir = new QFile(sysconfig->config_dir);
+            rmdirResult = qrmdir->moveToTrash();
+        } else
+#endif
+        {
+            auto qrmdir = new QDir(sysconfig->config_dir);
+            rmdirResult = qrmdir->removeRecursively();
+        }
+
+        if (!rmdirResult) {
             QMessageBox::critical(this, tr("Remove directory failed"), tr("Some files in the machine's directory were unable to be deleted. Please delete them manually."));
             return;
         }
-        auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
-        config->remove(sysconfig->uuid);
+        config.remove(sysconfig->uuid);
         vm_model->removeConfigFromModel(sysconfig);
         delete sysconfig;
 
@@ -877,11 +902,14 @@ void
 VMManagerMain::onPreferencesUpdated()
 {
     // Only reload values that we care about
-    const auto config         = new VMManagerConfig(VMManagerConfig::ConfigType::General);
     const auto oldRegexSearch = regexSearch;
-    regexSearch               = config->getStringValue("regex_search").toInt();
+    regexSearch               = vmm_regex_search;
     if (oldRegexSearch != regexSearch)
         ui->searchBar->clear();
+
+#ifdef DISCORD
+    discord->loadSettings();
+#endif
 
     if (vm_model)
         vm_model->sendGlobalConfigurationChanged();
@@ -892,6 +920,10 @@ VMManagerMain::onLanguageUpdated()
 {
     vm_model->refreshConfigs();
     modelDataChange();
+#ifdef DISCORD
+    // Retranslate the activity
+    discord->loadSettings();
+#endif
     ui->searchBar->setPlaceholderText(tr("Search"));
     /* Hack to work around details widgets not being re-translatable
        without going through layers of abstraction */
@@ -917,7 +949,7 @@ VMManagerMain::getActiveMachineCount()
     return vm_model->getActiveMachineCount();
 }
 
-#if EMU_BUILD_NUM != 0
+#ifdef UPDATE_CHECK
 void
 VMManagerMain::backgroundUpdateCheckStart() const
 {

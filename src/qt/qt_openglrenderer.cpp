@@ -20,13 +20,13 @@
  */
 #include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
+#include "qt_util.hpp"
 
 extern MainWindow *main_window;
 
 #include <QCoreApplication>
 #include <QMessageBox>
 #include <QWindow>
-#include <QClipboard>
 #include <QPainter>
 #include <QWidget>
 #include <QEvent>
@@ -48,6 +48,8 @@ extern MainWindow *main_window;
 
 #include "qt_openglrenderer.hpp"
 #include "qt_openglshadermanagerdialog.hpp"
+#include "qt_osd.hpp"
+#include "osd_core.hpp"
 
 #include "qt_defs.hpp"
 
@@ -59,7 +61,7 @@ extern "C" {
 #include <86box/path.h>
 #include <86box/ini.h>
 #include <86box/config.h>
-#include <86box/qt-glslp-parser.h>
+#include <86box/qt_glslp_parser.h>
 
 char        gl3_shader_file[MAX_USER_SHADERS][512];
 extern bool cpu_thread_running;
@@ -204,7 +206,7 @@ OpenGLRenderer::create_program(struct shader_program *program)
         glw.glGetProgramiv(program->id, GL_INFO_LOG_LENGTH, &maxLength);
         char *log = (char *) malloc(maxLength);
         glw.glGetProgramInfoLog(program->id, maxLength, &length, log);
-        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Program not linked:\n\n%1").arg(log), false);
+        main_window->showMessage(MBX_ERROR, tr("GLSL Error"), tr("Program not linked:\n\n%1").arg(log), false);
         // wx_simple_messagebox("GLSL Error", "Program not linked:\n%s", log);
         free(log);
         return 0;
@@ -258,7 +260,7 @@ OpenGLRenderer::compile_shader(GLenum shader_type, const char *prepend, const ch
         glw.glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
         char *log = (char *) malloc(length);
         glw.glGetShaderInfoLog(shader, length, &length, log);
-        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not compile shader:\n\n%1").arg(log), false);
+        main_window->showMessage(MBX_ERROR, tr("GLSL Error"), tr("Could not compile shader:\n\n%1").arg(log), false);
         // wx_simple_messagebox("GLSL Error", "Could not compile shader:\n%s", log);
 
         ogl3_log("Could not compile shader: %s\n", log);
@@ -658,7 +660,7 @@ OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
 
             if (!load_texture(file, &tex->texture)) {
                 // QMessageBox::critical(main_window, tr("GLSL Error"), tr("Could not load texture: %s").arg(file));
-                main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not load texture: %1").arg(file), false);
+                main_window->showMessage(MBX_ERROR, tr("GLSL Error"), tr("Could not load texture: %1").arg(file), false);
                 ogl3_log("Could not load texture %s!\n", file);
                 failed = 1;
                 break;
@@ -704,7 +706,7 @@ OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
                 ogl3_log("Creating pass %u (%s)\n", (i + 1), pass->alias);
                 ogl3_log("Loading shader %s...\n", shader->shader_fn);
                 if (!shader->shader_program) {
-                    main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not load shader: %1").arg(shader->shader_fn), false);
+                    main_window->showMessage(MBX_ERROR, tr("GLSL Error"), tr("Could not load shader: %1").arg(shader->shader_fn), false);
                     // wx_simple_messagebox("GLSL Error", "Could not load shader: %s", shader->shader_fn);
                     ogl3_log("Could not load shader %s\n", shader->shader_fn);
                     failed = 1;
@@ -821,8 +823,21 @@ OpenGLRenderer::read_shader_config()
 OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     : QWindow((QWindow*)nullptr)
     , renderTimer(new QTimer(this))
+    , osdRenderTimer(new QTimer(this))
 {
+    // Force a cleanup of ImGui OSD.
+    qt_osd_shutdown();
+
     connect(renderTimer, &QTimer::timeout, this, [this]() { this->render(); });
+    connect(osdRenderTimer, &QTimer::timeout, this, [this]() {
+        if (video_framerate == -1 && dopause && qt_osd_is_visible())
+            this->render();
+
+        if (video_framerate == -1 && !qt_osd_is_visible() && was_osd_visible)
+            this->render();
+
+        was_osd_visible = qt_osd_is_visible();
+    });
     imagebufs[0] = std::unique_ptr<uint8_t>(new uint8_t[2048 * 2048 * 4]);
     imagebufs[1] = std::unique_ptr<uint8_t>(new uint8_t[2048 * 2048 * 4]);
 
@@ -914,6 +929,8 @@ OpenGLRenderer::initialize()
         if (video_framerate != -1) {
             renderTimer->start(ceilf(1000.f / (float) video_framerate));
         }
+
+        osdRenderTimer->start(16);
 
         scene_texture.data            = NULL;
         scene_texture.width           = 2048;
@@ -1123,7 +1140,7 @@ OpenGLRenderer::initialize()
         for (auto &flag : buf_usage)
             flag.test_and_set();
 
-        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("Error initializing OpenGL"), e.what() + tr("\nFalling back to software rendering."), false);
+        main_window->showMessage(MBX_ERROR, QString(), tr("Error initializing OpenGL.") + QStringLiteral("\n") + e.what() + QStringLiteral("\n") + tr("Falling back to software rendering."), false);
 
         context->doneCurrent();
         isFinalized   = true;
@@ -1153,6 +1170,8 @@ OpenGLRenderer::finalize()
         free(active_shader);
     }
     active_shader = NULL;
+
+    qt_osd_shutdown();
 
     context->doneCurrent();
 
@@ -1198,7 +1217,7 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 #ifdef Q_OS_MACOS
     glw.glViewport(
         destination.x(),
-        destination.y(),
+        destinationGLY(),
         destination.width(),
         destination.height());
 #endif
@@ -1254,7 +1273,7 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
 
     glw.glViewport(
         destination.x(),
-        destination.y(),
+        destinationGLY(),
         destination.width(),
         destination.height());
 
@@ -1409,7 +1428,34 @@ OpenGLRenderer::render_pass(struct render_data *data)
 bool
 OpenGLRenderer::event(QEvent *event)
 {
-    Q_UNUSED(event);
+    if (qt_osd_is_visible()) {
+        switch (event->type()) {
+            case QEvent::MouseButtonPress:
+            case QEvent::MouseMove:
+            case QEvent::MouseButtonRelease: {
+                auto *me = static_cast<QMouseEvent *>(event);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                const QPointF pos = me->position();
+#else
+                const QPointF pos(me->x(), me->y());
+#endif
+                qt_osd_mouse_pos((float) pos.x(), (float) pos.y());
+                if (event->type() == QEvent::MouseButtonPress)
+                    qt_osd_mouse_button(me->button(), true);
+                else if (event->type() == QEvent::MouseButtonRelease)
+                    qt_osd_mouse_button(me->button(), false);
+                return true;
+            }
+            case QEvent::Wheel: {
+                auto *we = static_cast<QWheelEvent *>(event);
+                qt_osd_mouse_wheel((float) we->angleDelta().x() / 120.0f,
+                                   (float) we->angleDelta().y() / 120.0f);
+                return true;
+            }
+            default:
+                break;
+        }
+    }
 
     bool res = false;
     if (!eventDelegate(event, res))
@@ -1425,6 +1471,27 @@ OpenGLRenderer::getOptions(QWidget *parent)
 
 extern void standalone_scale(QRect &destination, int width, int height, QRect source, int scalemode);
 
+/* The destination is measured from the top of the window, but GL measures viewports from the bottom. */
+int
+OpenGLRenderer::destinationGLY() const
+{
+    return output_size.height() - destination.y() - destination.height();
+}
+
+QRect
+OpenGLRenderer::sceneRenderRect() const
+{
+    QRect rect;
+
+    rect.setX(0);
+    rect.setY(0);
+    rect.setWidth(source.width() * video_gl_input_scale);
+    rect.setHeight(source.height() * video_gl_input_scale);
+    standalone_scale(rect, source.width(), source.height(), rect, video_gl_input_scale_mode);
+
+    return rect;
+}
+
 void
 OpenGLRenderer::render()
 {
@@ -1434,15 +1501,21 @@ OpenGLRenderer::render()
     if (notReady())
         return;
 
+    /* The timer-driven callers reach here with no context current, and each monitor has its own
+       context, so the frame would otherwise be drawn into whichever window drew last. */
+    if (!context->makeCurrent(this))
+        return;
+
+    /* The image can extend past the window edges, so the offsets can be negative. */
     struct {
-        uint32_t x;
-        uint32_t y;
+        int32_t  x;
+        int32_t  y;
         uint32_t w;
         uint32_t h;
     } window_rect;
 
     window_rect.x = destination.x();
-    window_rect.y = destination.y();
+    window_rect.y = destinationGLY();
     window_rect.w = destination.width();
     window_rect.h = destination.height();
 
@@ -1466,14 +1539,7 @@ OpenGLRenderer::render()
     /* render scene to texture */
     {
         struct shader_pass *pass = &active_shader->scene;
-
-        QRect rect;
-        rect.setX(0);
-        rect.setY(0);
-        rect.setWidth(source.width() * video_gl_input_scale);
-        rect.setHeight(source.height() * video_gl_input_scale);
-
-        standalone_scale(rect, source.width(), source.height(), rect, video_gl_input_scale_mode);
+        QRect               rect = sceneRenderRect();
 
         pass->state.input_size[0] = pass->state.output_size[0] = rect.width();
         pass->state.input_size[1] = pass->state.output_size[1] = rect.height();
@@ -1725,8 +1791,11 @@ OpenGLRenderer::render()
         render_pass(&data);
     }
 
+    /* Screenshots only cover the part of the image that is inside the window. */
+    const QRect read_rect = QRect(window_rect.x, window_rect.y, window_rect.w, window_rect.h).intersected(QRect(QPoint(0, 0), output_size));
+
     if (monitors[r_monitor_index].mon_screenshots) {
-        int  width = destination.width(), height = destination.height();
+        int  width = read_rect.width(), height = read_rect.height();
         char path[1024];
         char fn[256];
 
@@ -1748,7 +1817,7 @@ OpenGLRenderer::render()
         unsigned char *rgb = (unsigned char *) calloc(1, (size_t) width * height * 4);
 
         glw.glFinish();
-        glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
+        glw.glReadPixels(read_rect.x(), read_rect.y(), width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
 
         int pitch_adj = (4 - ((width * 3) & 3)) & 3;
         QImage image((uchar*)rgb, width, height, (width * 3) + pitch_adj, QImage::Format_RGB888);
@@ -1757,22 +1826,30 @@ OpenGLRenderer::render()
         free(rgb);
     }
     if (monitors[r_monitor_index].mon_screenshots_clipboard) {
-        int  width = destination.width(), height = destination.height();
+        int  width = read_rect.width(), height = read_rect.height();
 
         unsigned char *rgb = (unsigned char *) calloc(1, (size_t) width * height * 4);
 
         glw.glFinish();
-        glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
+        glw.glReadPixels(read_rect.x(), read_rect.y(), width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
 
         int pitch_adj = (4 - ((width * 3) & 3)) & 3;
         QImage image((uchar*)rgb, width, height, (width * 3) + pitch_adj, QImage::Format_RGB888);
-        QClipboard *clipboard = QApplication::clipboard();
-        clipboard->setImage(image.IMG_FLIPPED, QClipboard::Clipboard);
+        util::copyImageToClipboard(image.IMG_FLIPPED);
         monitors[r_monitor_index].mon_screenshots_clipboard--;
         free(rgb);
     }
 
     glw.glDisable(GL_FRAMEBUFFER_SRGB);
+
+    /* Draw the OSD crisp on top of the shaded image, in the default
+       framebuffer at full window resolution. */
+    if (qt_osd_needs_render()) {
+        glw.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glw.glViewport(window_rect.x, window_rect.y, window_rect.w, window_rect.h);
+        qt_osd_set_layout_scale_hint(osdLayoutScaleHint());
+        qt_osd_render(width(), height(), devicePixelRatio());
+    }
 
     frameCounter++;
     context->swapBuffers(this);

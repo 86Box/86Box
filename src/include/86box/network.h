@@ -54,9 +54,11 @@
 #define NET_TYPE_NRSWITCH 6 /* use the remote switch provider */
 
 #define NET_MAX_FRAME  1518
-/* Queue size must be a power of 2 */
+/* Packets moved per transfer batch */
 #define NET_QUEUE_LEN      16
-#define NET_QUEUE_LEN_MASK (NET_QUEUE_LEN - 1)
+/* Queue size must be a power of 2 */
+#define NET_QUEUE_CAPACITY 256
+#define NET_QUEUE_MASK     (NET_QUEUE_CAPACITY - 1)
 #define NET_QUEUE_COUNT    4
 #define NET_CARD_MAX       4
 #define NET_HOST_INTF_MAX  64
@@ -114,9 +116,10 @@ typedef struct netpkt {
 } netpkt_t;
 
 typedef struct netqueue_t {
-    netpkt_t packets[NET_QUEUE_LEN];
+    netpkt_t packets[NET_QUEUE_CAPACITY];
     int      head;
     int      tail;
+    uint64_t dropped_full;
 } netqueue_t;
 
 typedef struct _netcard_t netcard_t;
@@ -145,6 +148,7 @@ struct _netcard_t {
     netpkt_t        queued_pkt;
     mutex_t        *tx_mutex;
     mutex_t        *rx_mutex;
+    int             rx_deferred_pending; /* protected by rx_mutex */
     pc_timer_t      timer;
     uint16_t        card_num;
     double          byte_period;
@@ -191,6 +195,7 @@ extern void       network_tx(netcard_t *card, uint8_t *, int);
 
 extern int net_pcap_prepare(netdev_t *);
 extern int net_vde_prepare(void);
+extern int net_tap_prepare(void);
 
 
 extern void            network_connect(int id, int connect);
@@ -211,6 +216,7 @@ extern int network_tx_pop(netcard_t *card, netpkt_t *out_pkt);
 extern int network_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size);
 extern int network_rx_put(netcard_t *card, uint8_t *bufp, int len);
 extern int network_rx_on_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size);
+extern int network_rx_on_tx_flush(netcard_t *card);
 extern int network_rx_on_tx_put(netcard_t *card, uint8_t *bufp, int len);
 extern int network_rx_put_pkt(netcard_t *card, netpkt_t *pkt);
 extern int network_rx_on_tx_put_pkt(netcard_t *card, netpkt_t *pkt);
@@ -219,6 +225,11 @@ extern int network_rx_on_tx_put_pkt(netcard_t *card, netpkt_t *pkt);
 /* 3Com Etherlink */
 extern const device_t threec501_device;
 extern const device_t threec503_device;
+extern const device_t threec509b_device;
+extern const device_t threec529_mc_device;
+extern const device_t threec529_tp_device;
+extern const device_t threec592_device;
+extern const device_t threec597_device;
 
 /* Novell NE2000 and compatibles */
 extern const device_t ne1000_device;
@@ -231,23 +242,34 @@ extern const device_t rtl8019as_pnp_device;
 extern const device_t de220p_device;
 extern const device_t rtl8029as_device;
 
-/* AMD PCnet*/
+/* AMD PCnet */
 extern const device_t pcnet_am79c960_device;
 extern const device_t pcnet_am79c960_eb_device;
 extern const device_t pcnet_am79c960_vlb_device;
 extern const device_t pcnet_am79c961_device;
 extern const device_t pcnet_am79c970a_device;
+extern const device_t pcnet_am79c970a_onboard_device;
 extern const device_t pcnet_am79c973_device;
 extern const device_t pcnet_am79c973_onboard_device;
 
 /* Modem */
 extern const device_t modem_device;
 
-/* PLIP */
+/* LPT */
+extern const device_t pe3_device;
 extern const device_t plip_device;
 
 /* Realtek RTL8139C+ */
 extern const device_t rtl8139c_plus_device;
+
+/* Intel 8255x */
+extern const device_t i82557_device;
+extern const device_t i82558_device;
+extern const device_t i82557b_onboard_device;
+extern const device_t i82558b_onboard_device;
+extern const device_t nec_pk_ug_x006_device;
+extern const device_t i82559c_onboard_device;
+extern const device_t i82559er_onboard_device;
 
 /* DEC Tulip */
 extern const device_t dec_tulip_device;
@@ -261,6 +283,14 @@ extern const device_t wd8013ebt_device;
 extern const device_t wd8003eta_device;
 extern const device_t wd8003ea_device;
 extern const device_t wd8013epa_device;
+extern const device_t ibm_ethernet_efd4_device;
+extern const device_t ibm_ethernet_efd5_device;
+extern const device_t ibm_ethernet_efe5_device;
+
+/* National Semiconductor */
+extern const device_t dp83815_device;
+extern const device_t dp83815_onboard_device;
+
 #endif
 
 #ifdef __cplusplus

@@ -18,6 +18,7 @@ public:
 
     void restore();
     void save(int soft);
+    int  soundCard(int i) const;
 
 public slots:
     void onCurrentMachineChanged(int machineId);
@@ -35,11 +36,20 @@ private slots:
     void on_comboBoxSoundCard4_currentIndexChanged(int index);
     void on_pushButtonConfigureSoundCard4_clicked();
 
+    void on_checkBoxSoundInput_stateChanged(int state);
+
+private:
+    void updateSoundInputEnabled();
+
+private slots:
+
     void on_comboBoxMidiOut_currentIndexChanged(int index);
     void on_pushButtonConfigureMidiOut_clicked();
 
     void on_comboBoxMidiIn_currentIndexChanged(int index);
     void on_pushButtonConfigureMidiIn_clicked();
+
+    void on_comboBoxAudioOutputDevice_currentIndexChanged(int index);
 
     void on_checkBoxMPU401_stateChanged(int arg1);
     void on_pushButtonConfigureMPU401_clicked();
@@ -57,6 +67,13 @@ private:
 
     SettingsCompleter   *scMidiOut;
     SettingsCompleter   *scMidiIn;
+
+    int soundCardCurrent[4];
+    int mpu401Enabled;
+    int midiOutCurrent;
+    int midiInCurrent;
+
+    bool inMachineChange;
 };
 
 #endif // QT_SETTINGSSOUND_HPP

@@ -7,6 +7,9 @@
 #include <QLayout>
 #include <QBoxLayout>
 #include <QWidget>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#    include <QWindow>
+#endif
 #include <QCursor>
 #include <QScreen>
 
@@ -106,6 +109,18 @@ public:
     void (*mouse_uncapture_func)()              = nullptr;
 
     void (*mouse_exit_func)() = nullptr;
+
+#ifdef __APPLE__
+    bool control_click_active = false;
+    bool right_button_active  = false;
+#endif
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    /* OpenGL/Vulkan renderers ARE QWindows; dynamic_cast returns the QWindow
+     * for pointer capture (Wayland, xinput2). Software renderer returns nullptr
+     * and the caller falls back to the main window. */
+    QWindow *captureWindow() const { return dynamic_cast<QWindow *>(rendererWindow); }
+#endif
 
 signals:
     void blitToRenderer(int buf_idx, int x, int y, int w, int h);

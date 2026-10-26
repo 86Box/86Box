@@ -20,9 +20,12 @@
 #define VIDEO_VGA_H
 
 typedef struct vga_t {
-    svga_t svga;
+    uint8_t  port_102;
+    uint16_t ctl;
 
-    rom_t  bios_rom;
+    svga_t   svga;
+
+    rom_t    bios_rom;
 } vga_t;
 
 extern void    vga_out(uint16_t addr, uint8_t val, void *priv);
@@ -30,8 +33,8 @@ extern uint8_t vga_in(uint16_t addr, void *priv);
 
 extern void    vga_init(const device_t *info, vga_t *vga, int enabled);
 
-extern void    vga_disable(void* p);
-extern void    vga_enable(void* p);
+extern void    vga_disable(void* p, uint16_t port);
+extern void    vga_enable(void* p, uint16_t port);
 
 extern int     vga_isenabled(void* p);
 

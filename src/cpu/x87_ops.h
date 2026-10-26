@@ -73,6 +73,30 @@ typedef union {
     };
 } double_decompose_t;
 
+/* Precision control: a host double already matches PC=53 (and is the
+   closest we can get to PC=64); PC=24 must round the result of
+   ADD/SUB/MUL/DIV/SQRT to single. Approximations: the float cast clamps
+   to the single exponent range (the chip keeps 15 exponent bits), rounds
+   in the host mode of the moment (nearest where the op already restored
+   it), and sets no PE/OE/UE flags. */
+#define FP_ROUND_PC(r)                        \
+    do {                                      \
+        if (!(cpu_state.npxc & 0x300))        \
+            (r) = (double) (float) (r);       \
+    } while (0)
+
+/* Dynarec blocks are keyed on PC=24 and RC!=nearest, but FLDCW/FLDENV/
+   FRSTOR/FSAVE/FINIT run as helper calls inside a block: a change to either
+   must end the block so the ops after it are compiled under the new value. */
+#define x87_set_control_word(w)                                                                                                 \
+    do {                                                                                                                        \
+        uint16_t old_npxc_ = cpu_state.npxc;                                                                                    \
+        cpu_state.npxc     = (w);                                                                                               \
+        codegen_set_rounding_mode((cpu_state.npxc >> 10) & 3);                                                                  \
+        if (((!(old_npxc_ & 0x300)) != (!(cpu_state.npxc & 0x300))) || ((!(old_npxc_ & 0xc00)) != (!(cpu_state.npxc & 0xc00)))) \
+            CPU_BLOCK_END();                                                                                                    \
+    } while (0)
+
 #ifdef FPU_8087
 #    define x87_div(dst, src1, src2)                    \
         do {                                            \
@@ -84,214 +108,35 @@ typedef union {
                     fpu_log("FPU : divide by zero\n");  \
                     if (!(cpu_state.npxc & 0x80)) {     \
                         cpu_state.npxs |= 0x80;         \
-                        nmi = 1;                        \
+                        fpu_int_set(1);                 \
                     }                                   \
                     return 1;                           \
                 }                                       \
             } else                                      \
                 dst = src1 / (double) src2;             \
         } while (0)
+#    define x87_div_memory(dst, src1, src2, mem) x87_div(dst, src1, src2)
 #else
-#    define x87_div(dst, src1, src2)                    \
-        do {                                            \
-            if (((double) src2) == 0.0) {               \
-                cpu_state.npxs |= FPU_SW_Zero_Div;      \
-                if (cpu_state.npxc & FPU_SW_Zero_Div)   \
-                    dst = src1 / (double) src2;         \
-                else {                                  \
-                    fpu_log("FPU : divide by zero\n");  \
-                    if (is486 && (cr0 & 0x20))          \
-                        new_ne = 1;                     \
-                    else                                \
-                        picint(1 << 13);                \
-                    return 1;                           \
-                }                                       \
-            } else                                      \
-                dst = src1 / (double) src2;             \
+#    define x87_div_memory(dst, src1, src2, mem)                            \
+        do {                                                               \
+            int denormal_ = (mem) != 0 && fabs((double)(mem)) <             \
+                            (sizeof(mem) == 4 ? 0x1p-126 : 0x1p-1022);    \
+            if (x87_legacy_divide(&(dst), (double) (src1), (double) (src2), \
+                                  X87_ST_EMPTY(0) | (denormal_ << 1))) \
+                return 0;                                                  \
         } while (0)
 #endif
-
-static __inline void
-x87_push(double i)
-{
-#ifdef USE_NEW_DYNAREC
-    cpu_state.TOP--;
-#else
-    cpu_state.TOP                    = (cpu_state.TOP - 1) & 7;
-#endif
-    cpu_state.ST[cpu_state.TOP & 7] = i;
-#ifdef USE_NEW_DYNAREC
-    cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID;
-#else
-    cpu_state.tag[cpu_state.TOP & 7] = (i == 0.0) ? TAG_VALID : 0;
-#endif
-}
-
-static __inline void
-x87_push_u64(uint64_t i)
-{
-    union {
-        double   d;
-        uint64_t ll;
-    } td;
-
-    td.ll = i;
-
-#ifdef USE_NEW_DYNAREC
-    cpu_state.TOP--;
-#else
-    cpu_state.TOP                    = (cpu_state.TOP - 1) & 7;
-#endif
-    cpu_state.ST[cpu_state.TOP & 7] = td.d;
-#ifdef USE_NEW_DYNAREC
-    cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID;
-#else
-    cpu_state.tag[cpu_state.TOP & 7] = (td.d == 0.0) ? TAG_VALID : 0;
-#endif
-}
 
 static __inline double
 x87_pop(void)
 {
     double t                         = cpu_state.ST[cpu_state.TOP & 7];
     cpu_state.tag[cpu_state.TOP & 7] = TAG_EMPTY;
-#ifdef USE_NEW_DYNAREC
     cpu_state.TOP++;
-#else
-    cpu_state.tag[cpu_state.TOP & 7] |= TAG_UINT64;
-    cpu_state.TOP = (cpu_state.TOP + 1) & 7;
-#endif
     return t;
 }
 
-static __inline int16_t
-x87_fround16(double b)
-{
-    double da;
-    double dc;
-    int16_t a;
-    int16_t c;
-
-    switch ((cpu_state.npxc >> 10) & 3) {
-        case 0: /*Nearest*/
-            da = floor(b);
-            dc = floor(b + 1.0);
-            a = (int16_t) da;
-            c = (int16_t) dc;
-            if ((b - a) < (c - b))
-                return a;
-            else if ((b - a) > (c - b))
-                return c;
-            else
-                return (a & 1) ? c : a;
-        case 1: /*Down*/
-            da = floor(b);
-            return (int16_t) da;
-        case 2: /*Up*/
-            da = ceil(b);
-            return (int16_t) da;
-        case 3: /*Chop*/
-            return (int16_t) b;
-    }
-
-    return 0;
-}
-
-static __inline int64_t
-x87_fround16_64(double b)
-{
-    return (int64_t) x87_fround16(b);
-}
-
-static __inline int32_t
-x87_fround32(double b)
-{
-    double da;
-    double dc;
-    int32_t a;
-    int32_t c;
-
-    switch ((cpu_state.npxc >> 10) & 3) {
-        case 0: /*Nearest*/
-            da = floor(b);
-            dc = floor(b + 1.0);
-            a = (int32_t) da;
-            c = (int32_t) dc;
-            if ((b - a) < (c - b))
-                return a;
-            else if ((b - a) > (c - b))
-                return c;
-            else
-                return (a & 1) ? c : a;
-        case 1: /*Down*/
-            da = floor(b);
-            return (int32_t) da;
-        case 2: /*Up*/
-            da = ceil(b);
-            return (int32_t) da;
-        case 3: /*Chop*/
-            return (int32_t) b;
-    }
-
-    return 0;
-}
-
-static __inline int64_t
-x87_fround32_64(double b)
-{
-    return (int64_t) x87_fround32(b);
-}
-
-static __inline int64_t
-x87_fround_nearest(double b)
-{
-    double da, dc;
-    int64_t a, c;
-    
-    da = floor(b);
-    dc = floor(b + 1.0);
-    a = (int64_t) da;
-    c = (int64_t) dc;
-    if ((b - a) < (c - b))
-        return a;
-    else if ((b - a) > (c - b))
-        return c;
-    else
-        return (a & 1) ? c : a;
-}
-
-static __inline int64_t
-x87_fround(double b)
-{
-    double da;
-    double dc;
-    int64_t a;
-    int64_t c;
-
-    switch ((cpu_state.npxc >> 10) & 3) {
-        case 0: /*Nearest*/
-            da = floor(b);
-            dc = floor(b + 1.0);
-            a = (int64_t) da;
-            c = (int64_t) dc;
-            if ((b - a) < (c - b))
-                return a;
-            else if ((b - a) > (c - b))
-                return c;
-            else
-                return (a & 1) ? c : a;
-        case 1: /*Down*/
-            da = floor(b);
-            return (int64_t) da;
-        case 2: /*Up*/
-            da = ceil(b);
-            return (int64_t) da;
-        case 3: /*Chop*/
-            return (int64_t) b;
-    }
-
-    return 0LL;
-}
+#include "x87_ops_fist.h"
 
 static __inline double
 x87_ld80(void)
@@ -334,20 +179,18 @@ x87_ld_frstor(int reg)
     cpu_state.MM[reg].q  = readmemq(easeg, cpu_state.eaaddr);
     cpu_state.MM_w4[reg] = readmemw(easeg, cpu_state.eaaddr + 8);
 
-#ifdef USE_NEW_DYNAREC
-    if ((cpu_state.MM_w4[reg] == 0x5555) && (cpu_state.tag[reg] & TAG_UINT64))
-#else
-    if ((cpu_state.MM_w4[reg] == 0x5555) && (cpu_state.tag[reg] == 2))
-#endif
-    {
-#ifndef USE_NEW_DYNAREC
-        cpu_state.tag[reg] = TAG_UINT64;
-#endif
+    /* The 0x5555 pseudo-exponent is written by x87_st_fsave ONLY for a
+       TAG_UINT64 (FILD'd int64) register, and no legitimate float or MMX save
+       produces it (x87_st80 caps finite doubles near 0x43FF, NaN/Inf use 0x7fff,
+       x87_stmmx writes 0xffff). So the sentinel alone is a reliable marker.
+       Gating on it directly makes FXRSTOR round-trip the exact integer the same
+       way FNSAVE/FRSTOR does; the previous `tag == 2` condition depended on a
+       correctly-reconstructed abridged tag, which FXRSTOR cannot guarantee. */
+    if (cpu_state.MM_w4[reg] == 0x5555) {
+        cpu_state.tag[reg] = TAG_VALID | TAG_UINT64;
         cpu_state.ST[reg] = (double) cpu_state.MM[reg].q;
     } else {
-#ifdef USE_NEW_DYNAREC
         cpu_state.tag[reg] &= ~TAG_UINT64;
-#endif
         cpu_state.ST[reg] = x87_ld80();
     }
 }
@@ -494,17 +337,216 @@ typedef union {
         } while (0)
 #endif
 
-#ifdef USE_NEW_DYNAREC
-#    define FP_TAG_VALID   cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID
-#    define FP_TAG_VALID_F cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID
-#    define FP_TAG_DEFAULT cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID | TAG_UINT64
-#    define FP_TAG_VALID_N cpu_state.tag[(cpu_state.TOP + 1) & 7] = TAG_VALID
+#define FP_TAG_VALID   cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID
+#define FP_TAG_VALID_F cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_VALID
+#define FP_TAG_DEFAULT cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID | TAG_UINT64
+#define FP_TAG_VALID_N cpu_state.tag[(cpu_state.TOP + 1) & 7] = TAG_VALID
+
+/* Stack faults (#IS): an operand register that is empty (underflow) or a
+   push whose destination ST(7) is not (overflow), "Invalid Arithmetic
+   Operand (#IA) ... stack overflow or underflow" (SDM 1999, vol. 1, 8.5.1.1).
+   Either sets IE and SF, with C1 telling them apart (1: overflow). Masked,
+   the instruction produces the real indefinite in place of its result;
+   unmasked, it leaves the stack, its tags, TOP and the other condition codes
+   alone and sets ES. This follows the softfloat core's FPU_stack_overflow()
+   and FPU_stack_underflow() (x87.c).
+
+   The default (double) core holds the indefinite as the double QNaN with
+   the same sign and top fraction bit as the extended one,
+   0xfff8000000000000. */
+#define X87_INDEFINITE UINT64_C(0xfff8000000000000)
+
+/* The 8087 build keeps the previous behaviour without them, as opFST
+   and x87_empty_store() do */
+#ifdef FPU_8087
+#    define X87_STACK_FAULTS 0
 #else
-#    define FP_TAG_VALID   cpu_state.tag[cpu_state.TOP] &= ~TAG_UINT64
-#    define FP_TAG_VALID_F cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= ~TAG_UINT64
-#    define FP_TAG_DEFAULT cpu_state.tag[cpu_state.TOP] |= TAG_UINT64;
-#    define FP_TAG_VALID_N cpu_state.tag[(cpu_state.TOP + 1) & 7] &= ~TAG_UINT64
+#    define X87_STACK_FAULTS 1
 #endif
+
+static __inline double
+x87_indefinite(void)
+{
+    x87_td t = { .i = X87_INDEFINITE };
+
+    return t.d;
+}
+
+static __inline void
+x87_set_indefinite(int stnr)
+{
+    cpu_state.ST[(cpu_state.TOP + stnr) & 7]  = x87_indefinite();
+    cpu_state.tag[(cpu_state.TOP + stnr) & 7] = TAG_VALID;
+}
+
+/* The status of a stack fault; answers whether #IA is masked, that is
+   whether the caller should go on to the masked response */
+static __inline int
+x87_stack_fault(int overflow)
+{
+    cpu_state.npxs = (cpu_state.npxs & ~FPU_SW_C1) | FPU_SW_Stack_Fault | FPU_SW_Invalid | (overflow ? FPU_SW_C1 : 0);
+    if (cpu_state.npxc & FPU_SW_Invalid)
+        return 1;
+    x87_raise_es(FPU_SW_Invalid);
+    return 0;
+}
+
+/* A push onto an occupied ST(7): masked, the indefinite is pushed in place
+   of the value */
+static __inline void
+x87_stack_overflow(void)
+{
+    if (x87_stack_fault(1)) {
+        cpu_state.TOP--;
+        x87_set_indefinite(0);
+    }
+}
+
+/* An empty source: masked, the indefinite goes to the destination ST(stnr)
+   and a popping instruction still pops */
+static __inline void
+x87_stack_underflow(int stnr, int pop)
+{
+    if (x87_stack_fault(0)) {
+        x87_set_indefinite(stnr);
+        if (pop)
+            x87_pop();
+    }
+}
+
+/* FCOM, FUCOM and FICOM: no destination register, so the masked response is
+   an unordered compare (C3, C2 and C0 set) and the instruction's pops (0, 1
+   or 2 for FCOMPP and FUCOMPP) */
+static __inline void
+x87_stack_underflow_compare(int pops)
+{
+    if (x87_stack_fault(0)) {
+        cpu_state.npxs |= FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3;
+        while (pops--)
+            x87_pop();
+    }
+}
+
+/* FPTAN, FSINCOS and FXTRACT replace ST(0) and push a second result, so
+   either fault is possible, underflow taking precedence. Masked, both
+   results are the indefinite. */
+static __inline void
+x87_stack_fault_push(void)
+{
+    if (x87_stack_fault(!X87_ST_EMPTY(0))) {
+        x87_set_indefinite(0);
+        cpu_state.TOP--;
+        x87_set_indefinite(0);
+    }
+}
+
+#define X87_ST_EMPTY2(a, b) (X87_ST_EMPTY(a) || X87_ST_EMPTY(b))
+
+/* The cycles of instruction timing t (x87_timings.t), as the handlers
+   charge them; a stack fault costs what the instruction does, as with the
+   softfloat core */
+#define X87_FAULT_CYCLES(t)                                                                               \
+    do {                                                                                                  \
+        CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.t) : (x87_timings.t * cpu_multi));        \
+        CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.t) : (x87_concurrency.t * cpu_multi)); \
+    } while (0)
+
+/* The stack-fault checks of the instruction handlers: the fault is taken
+   and the instruction ends there, charged the cycles of timing t. They come
+   after any memory operand is read, a #PF or #GP taking priority over the
+   stack fault. */
+#define X87_CHECK_UNDERFLOW(empty, stnr, pop, t) \
+    do {                                         \
+        if (X87_STACK_FAULTS && (empty)) {       \
+            x87_stack_underflow(stnr, pop);      \
+            X87_FAULT_CYCLES(t);                 \
+            return 0;                            \
+        }                                        \
+    } while (0)
+
+#define X87_CHECK_UNDERFLOW_COMPARE(empty, pops, t) \
+    do {                                            \
+        if (X87_STACK_FAULTS && (empty)) {          \
+            x87_stack_underflow_compare(pops);      \
+            X87_FAULT_CYCLES(t);                    \
+            return 0;                               \
+        }                                           \
+    } while (0)
+
+/* FCOMI and FUCOMI: the masked response is an unordered compare, written
+   to EFLAGS as the compare writes it (x87_eflags_from_compare(), in
+   x87_ops_arith.h where the macro is used); the caller has rebuilt the
+   flags */
+#define X87_CHECK_UNDERFLOW_COMI(empty, pop, t)                                 \
+    do {                                                                        \
+        if (X87_STACK_FAULTS && (empty)) {                                      \
+            if (x87_stack_fault(0)) {                                           \
+                cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);                 \
+                x87_eflags_from_compare(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);     \
+                if (pop)                                                        \
+                    x87_pop();                                                  \
+            }                                                                   \
+            X87_FAULT_CYCLES(t);                                                \
+            return 0;                                                           \
+        }                                                                       \
+    } while (0)
+
+/* ST(0) read, and a second result pushed */
+#define X87_CHECK_STACK_PUSH(t)                                           \
+    do {                                                                  \
+        if (X87_STACK_FAULTS && (X87_ST_EMPTY(0) || !X87_ST_EMPTY(-1))) { \
+            x87_stack_fault_push();                                       \
+            X87_FAULT_CYCLES(t);                                          \
+            return 0;                                                     \
+        }                                                                 \
+    } while (0)
+
+static __inline void
+x87_push(double i)
+{
+    if (X87_STACK_FAULTS && !X87_ST_EMPTY(-1)) {
+        x87_stack_overflow();
+        return;
+    }
+    cpu_state.TOP--;
+    cpu_state.ST[cpu_state.TOP & 7] = i;
+    cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID;
+}
+
+static __inline void
+x87_push_u64(uint64_t i)
+{
+    union {
+        double   d;
+        uint64_t ll;
+    } td;
+
+    if (X87_STACK_FAULTS && !X87_ST_EMPTY(-1)) {
+        x87_stack_overflow();
+        return;
+    }
+
+    td.ll = i;
+
+    cpu_state.TOP--;
+    cpu_state.ST[cpu_state.TOP & 7] = td.d;
+    cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID;
+}
+
+/* FILD m64 and FBLD: the integer is kept exact in the register's MMX view
+   (TAG_UINT64), which only a completed push may set */
+static __inline void
+x87_push_int64(int64_t i)
+{
+    if (X87_STACK_FAULTS && !X87_ST_EMPTY(-1)) {
+        x87_stack_overflow();
+        return;
+    }
+    cpu_state.TOP--;
+    cpu_state.ST[cpu_state.TOP & 7]   = (double) i;
+    cpu_state.MM[cpu_state.TOP & 7].q = i;
+    cpu_state.tag[cpu_state.TOP & 7]  = TAG_VALID | TAG_UINT64;
+}
 
 #include "softfloat3e/softfloat-specialize.h"
 #include "softfloat3e/fpu_trans.h"
@@ -562,7 +604,15 @@ FPU_ILLEGAL_a16(UNUSED(uint32_t fetchdat))
 static int
 FPU_ILLEGAL_a16(uint32_t fetchdat)
 {
+    /* An undefined ESC opcode takes #NM like a defined one, then #UD on
+       the 486 and later; no pending-exception check, no state change
+       (Pentium Vol. 3, 23.3.5) */
+    FP_ENTER();
     fetch_ea_16(fetchdat);
+    if (is486 || isibm486) {
+        x86illegal();
+        return 1;
+    }
     CLOCK_CYCLES(timing_rr);
     PREFETCH_RUN(timing_rr, 2, rmdat, 0, 0, 0, 0, 0);
     return 0;
@@ -571,7 +621,15 @@ FPU_ILLEGAL_a16(uint32_t fetchdat)
 static int
 FPU_ILLEGAL_a32(uint32_t fetchdat)
 {
+    /* An undefined ESC opcode takes #NM like a defined one, then #UD on
+       the 486 and later; no pending-exception check, no state change
+       (Pentium Vol. 3, 23.3.5) */
+    FP_ENTER();
     fetch_ea_32(fetchdat);
+    if (is486 || isibm486) {
+        x86illegal();
+        return 1;
+    }
     CLOCK_CYCLES(timing_rr);
     PREFETCH_RUN(timing_rr, 2, rmdat, 0, 0, 0, 0, 0);
     return 0;

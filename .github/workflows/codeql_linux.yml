@@ -29,13 +29,19 @@ on:
   schedule:
     - cron: '22 11 * * 0'
 
+# Cancel superseded runs for the same pull request. Other events get a
+# unique group so that they are never cancelled or held back.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
 
   analyze-linux:
 
-    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.arch }}"
+    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.environment.arch }}"
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
 
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
@@ -58,22 +64,17 @@ jobs:
 #          - name: Dev
 #            preset: development
 #            slug: -Dev
-        dynarec:
-          - name: ODR
-            new: off
-            slug: -ODR
-          - name: NDR
-            new: on
-            slug: -NDR
         ui:
           - name: SDL GUI
             qt: off
             qt6: off
+            sdl_shader: on
             slug: -SDL
             static: on
           - name: Qt 5 GUI
             qt: on
             qt6: off
+            sdl_shader: off
             slug: -Qt5
             packages: >-
               qtbase5-dev
@@ -84,18 +85,11 @@ jobs:
               libxkbcommon-x11-dev
         environment:
           - arch: x86_64
-            toolchain: ./cmake/flags-gcc-x86_64.cmake
             slug: "-x86_64"
             runner: ubuntu-22.04
 #          - arch: arm64
-#            toolchain: ./cmake/flags-gcc-aarch64.cmake
 #            slug: -arm64
 #            runner: ubuntu-22.04-arm
-#        exclude:
-#          - dynarec:
-#              new: off
-#            environment:
-#              arch: arm64
 
     steps:
       - name: Install dependencies
@@ -104,7 +98,8 @@ jobs:
           build-essential
           ninja-build
           libfreetype-dev
-          libsdl2-dev
+          libgles2-mesa-dev
+          libsdl3-dev
           libpng-dev
           libc6-dev
           librtmidi-dev
@@ -113,18 +108,19 @@ jobs:
           libfluidsynth-dev
           libvdeplug-dev
           libserialport-dev
+          libzstd-dev
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Install Build Wrapper
-        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v6
+        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@22918119ff8e1ca75a623e15c8296b6ea4fbe28f #v8.2.1
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38
         with:
           languages: ${{ matrix.language }}
           config-file: ./.github/codeql/codeql-config.yml
@@ -132,24 +128,23 @@ jobs:
       - name: Configure CMake
         run: >-
           cmake -S . -B build --preset ${{ matrix.build.preset }}
-          --toolchain ${{ matrix.environment.toolchain }}
-          -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D QT=${{ matrix.ui.qt }}
           -D USE_QT6=${{ matrix.ui.qt6 }}
+          -D USE_SDL_SHADER=${{ matrix.ui.sdl_shader }}
 
       - name: Build
         run: |
           build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 #v4.38
         with:
           category: "/language:${{matrix.language}}"
 
       - name: SonarQube Scan
-        if: matrix.build.preset == 'dev_debug' && matrix.dynarec.new == 'on' && matrix.ui.qt == 'on' && env.SONAR_TOKEN != ''
+        if: matrix.build.preset == 'dev_debug' && matrix.ui.qt == 'on' && env.SONAR_TOKEN != ''
 #        if: 0
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f #v8.2.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

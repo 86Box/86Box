@@ -37,13 +37,14 @@
 #ifndef _FILE_OFFSET_BITS
 # define _FILE_OFFSET_BITS 64
 #endif
-#include <assert.h>
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <86box/86box.h>
 #include "minivhd.h"
 #include "internal.h"
 #include "cwalk.h"
@@ -433,7 +434,8 @@ create_sparse_diff(const char* path, const char* par_path, uint64_t size_in_byte
         uint64_t curr_pos = (uint64_t)mvhd_ftello64(fp);
 
         /* Double check my sums... */
-        assert(curr_pos == par_loc_offset);
+        if (curr_pos != par_loc_offset)
+            fatal("curr_pos (%" PRIu64 ") != par_loc_offset (%" PRIu64 ")\n", curr_pos, par_loc_offset);
 
         /* Fill the space required for location data with zero */
         uint8_t empty_sect[MVHD_SECTOR_SIZE] = {0};

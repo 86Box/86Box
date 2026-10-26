@@ -102,6 +102,7 @@ extern "C"
 #include <86box/sound.h>
 #include <86box/thread.h>
 #include <86box/plat.h>
+#include <86box/midi.h>
 
 extern double cpuclock;
 }
@@ -113,9 +114,6 @@ extern double cpuclock;
 
 constexpr uint8_t AVAILABLE_MIDI_CHANNELS = 16;
 constexpr uint8_t AVAILABLE_INSTRUMENTS   = 8;
-
-constexpr uint8_t MinIrqAddress = 2;
-constexpr uint8_t MaxIrqAddress = 7;
 
 #if IMFC_VERBOSE_LOGGING
 mutex_t* m_loggerMutex = nullptr;
@@ -143,6 +141,12 @@ enum DataParty : uint8_t {
 static void Intel8253_TimerEvent(const uint32_t val);
 static void Intel8253_TimerEvent2(const uint32_t val);
 static void CallInterruptHandler();
+
+int midiin_r;
+int midiin_w;
+int midiin_used;
+int midiin_sysex;
+uint8_t midiin_queue[256];
 
 enum CARD_MODE : uint8_t {
 	MUSIC_MODE = 0,
@@ -247,7 +251,8 @@ enum MidiDataPacketState : uint8_t {
 };
 
 typedef struct AudioFrame {
-	float outl, outr;
+	float outl;
+	float outr;
 
 	constexpr float& operator[](const size_t i) noexcept {
 		assert(i < 2);
@@ -1557,11 +1562,6 @@ public:
 		polyMonoMode              = get_and_check_range(0, 1);
 		pmdController             = get_and_check_range(0, 4);
 		reserved1                 = get_and_check_range(0, UINT8_MAX);
-
-		// One off check for detune's signed range
-                // PLAYREC sends invalid detune values when opening some music files. Log this instead of asserting.
-                if ((detune < -64) || (detune >= 63))
-                    pclog("IMFC: Detune value out of range! val = %i\n", detune);
 
 		return data_ptr;
 	}
@@ -3042,6 +3042,8 @@ public:
 			               : 0x00);
 		}
 		// IMF_LOG("%s: readPortPIU2 -> value=0x%X", m_name.c_str(), val);
+		/* The VAPI driver included with MusicPrinterPlus relies on a reserved bit being set */
+		val |= 0x02;
 		return val;
 	}
 	void writePortPIU2(uint8_t val)
@@ -5417,8 +5419,15 @@ public:
 
 	static uint8_t readPort1()
 	{
-		// This doesn't do anything for now
-		return 0;
+		uint8_t ret;
+		ret = midiin_queue[midiin_r];
+		if (midiin_r != midiin_w) {
+			midiin_r++;
+			midiin_r &= 0xff;
+		    if (midiin_used > 0)
+		        midiin_used--;
+		}
+		return ret;
 	}
 
 	// MIDI_PORT_2 = 0x11
@@ -5479,7 +5488,10 @@ public:
 				bit7: ^DSR Input Pin State
 			*/
 			// clang-format on
-			return 1 /* TxRDY */;
+			if (midiin_r != midiin_w)
+				return 3; /* TxRDY + RxRDY */
+			else
+				return 1 /* TxRDY */;
 		}
 		return 0;
 	}
@@ -6030,7 +6042,7 @@ private:
 		while (keepRunning.load()) {
 			// log_debug("DEBUG: heartbeat in MUSIC_MODE_LOOP %i",
 			// debug_count++);
-			// MUSIC_MODE_LOOP_read_MidiIn_And_Dispatch(); //FIXME:
+			MUSIC_MODE_LOOP_read_MidiIn_And_Dispatch(); //FIXME:
 			// reenable
 			MUSIC_MODE_LOOP_read_System_And_Dispatch();
 			logSuccess();
@@ -7741,6 +7753,7 @@ private:
 				m_midiOut_CommandInProgress = 0;
 			}
 		}
+		midi_raw_out_byte(midiData);
 
 		/* FIXME: remove when midi out and timeouts are done
 
@@ -13141,10 +13154,8 @@ public:
 	                  nullptr /*callbackOnToHighToLow*/),
 	          m_irqTriggerImf(
 	                  "TriggerImfIrq",
-	                  [this]() {
-	                  } /*callbackOnLowToHigh*/,
-	                  [this]() {
-	                  } /*callbackOnToHighToLow*/),
+	                  nullptr /*callbackOnLowToHigh*/,
+	                  nullptr /*callbackOnToHighToLow*/),
 	          m_tsr("TSR"),
 	          // initialize all the internal structures
 	          m_bufferFromMidiInState("bufferFromMidiInState", 2048),
@@ -13620,170 +13631,76 @@ static void CallInterruptHandler()
 	imfc->interruptHandler();
 }
 
-#if 0
-static void IMFC_Mixer_Callback(const int requested_frames)
-{
-	imfc->mixerCallback(requested_frames);
-}
-#endif
-
 static void
-imfc_get_buffer(int32_t *buffer, int len, void *priv)
+imfc_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     MusicFeatureCard *imfc_card = (MusicFeatureCard *) priv;
 
     imfc_card->mixerCallback(len, buffer);;
 }
 
-#if 0
-void IMFC_Init()
-{
-	const auto section = get_section("imfc");
-	if (!section->GetBool("imfc")) {
-		return;
-	}
-
-	MIXER_LockMixerThread();
-
+//TODO
 #if IMFC_VERBOSE_LOGGING
 	m_loggerMutex = thread_create_mutex();
 #endif
 
-	// The emulation requires playback at 44.1 KHz to match the pitch of
-	// original hardware.
-	constexpr uint16_t imfc_sampling_rate_hz = 44100;
-
-	// Register the Audio channel
-	auto channel = MIXER_AddChannel(IMFC_Mixer_Callback,
-	                                imfc_sampling_rate_hz,
-	                                ChannelName::IbmMusicFeatureCard,
-	                                {ChannelFeature::Stereo,
-	                                 ChannelFeature::ReverbSend,
-	                                 ChannelFeature::ChorusSend,
-	                                 ChannelFeature::Synthesizer});
-
-	// Default volume scalar adjusted to match hardware line-out levels
-	// recorded by Pierre: Ref: https://www.youtube.com/watch?v=WHVWDi15AIw
-	constexpr auto volume_scalar = 2.1f;
-	channel->Set0dbScalar(volume_scalar);
-
-	// The filter parameters have been tweaked by analysing hardware
-	// line-out recordings by Pierre: Ref:
-	// https://www.youtube.com/watch?v=WHVWDi15AIw. The results are
-	// virtually indistinguishable from the real thing by ear and spectrum
-	// analysis.
-	//
-	auto enable_filter = [&]() {
-		constexpr auto Order        = 2;
-		constexpr auto CutoffFreqHz = 3500;
-
-		channel->ConfigureLowPassFilter(Order, CutoffFreqHz);
-		channel->SetLowPassFilter(FilterState::On);
-	};
-
-	const std::string filter_choice = section->GetString("imfc_filter");
-
-	if (const auto maybe_bool = parse_bool_setting(filter_choice)) {
-		if (*maybe_bool) {
-			enable_filter();
-		} else {
-			channel->SetLowPassFilter(FilterState::Off);
-		}
-	} else if (!channel->TryParseAndSetCustomFilter(filter_choice)) {
-		NOTIFY_DisplayWarning(Notification::Source::Console,
-		                      "IMFC",
-		                      "PROGRAM_CONFIG_INVALID_SETTING",
-		                      "imfc_filter",
-		                      filter_choice.c_str(),
-		                      "on");
-
-		set_section_property_value("imfc", "imfc_filter", "on");
-		enable_filter();
-	}
-
-	const auto port = static_cast<io_port_t>(section->GetHex("imfc_base"));
-
-	const auto irq = clamp(static_cast<uint8_t>(section->GetInt("imfc_irq")),
-	                       MinIrqAddress,
-	                       MaxIrqAddress);
-
-	imfc = std::make_unique<MusicFeatureCard>(std::move(channel), port, irq);
-
-	MIXER_UnlockMixerThread();
-}
-
-void IMFC_Destroy()
-{
-	if (!imfc) {
-		return;
-	}
-
-	MIXER_LockMixerThread();
-	imfc = {};
-
+//TODO
 #if IMFC_VERBOSE_LOGGING
 	assert(m_loggerMutex);
 	thread_close_mutex(m_loggerMutex);
 	m_loggerMutex = nullptr;
 #endif
-	MIXER_UnlockMixerThread();
-}
 
-static void notify_imfc_setting_updated([[maybe_unused]] SectionProp& section,
-                                        [[maybe_unused]] const std::string& prop_name)
+static void
+imfc_input_msg(void *priv, uint8_t *msg, uint32_t len)
 {
-	IMFC_Destroy();
-	IMFC_Init();
+    if (midiin_sysex)
+        return;
+    for (uint32_t i = 0; i < len; i++) {
+        midiin_queue[midiin_w++] = msg[i];
+        midiin_w &= 0xff;
+        midiin_used++;
+    }
 }
 
-static void init_imfc_config_settings(SectionProp& secprop)
+static int
+imfc_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
 {
-	constexpr auto when_idle = Property::Changeable::WhenIdle;
-
-	const auto bool_prop = secprop.AddBool("imfc", when_idle, false);
-	assert(bool_prop);
-	bool_prop->SetHelp("Enable the IBM Music Feature Card ('off' by default).");
-
-	const auto hex_prop = secprop.AddHex("imfc_base", when_idle, 0x2A20);
-	assert(hex_prop);
-	hex_prop->SetValues({"2A20", "2A30"});
-	hex_prop->SetHelp(
-	        "The IO base address of the IBM Music Feature Card ('2A20' by default).\n"
-	        "Possible values: 2A20, 2A30");
-
-	const auto int_prop = secprop.AddInt("imfc_irq", when_idle, 3);
-	assert(int_prop);
-	int_prop->SetValues({"2", "3", "4", "5", "6", "7"});
-	int_prop->SetHelp(
-	        "The IRQ number of the IBM Music Feature Card (3 by default).\n"
-	        "Possible values: 2, 3, 4, 5, 6, 7");
-
-	const auto str_prop = secprop.AddString("imfc_filter", when_idle, "on");
-	assert(str_prop);
-	str_prop->SetHelp(
-	        "Filter for the IBM Music Feature Card output ('on' by default). Possible values:\n"
-	        "\n"
-	        "  on:        Filter the output (default).\n"
-	        "  off:       Don't filter the output.\n"
-	        "  <custom>:  Custom filter definition; see 'sb_filter' for details.");
+    if (abort) {
+        midiin_sysex = 0;
+        return 0;
+    }
+    midiin_sysex = 1;
+    for (uint32_t i = 0; i < len; i++) {
+        if (midiin_r == midiin_w)
+            return (int) (len -i);
+        midiin_queue[midiin_w++] = buffer[i];
+        midiin_w &= 0xff;
+        midiin_used++;
+    }
+    midiin_sysex = 0;
+    return 0;
 }
 
-void IMFC_AddConfigSection(const ConfigPtr& conf)
+static int
+imfc_input_remain(void *priv)
 {
-	assert(conf);
-
-	auto section = conf->AddSection("imfc");
-	section->AddUpdateHandler(notify_imfc_setting_updated);
-
-	init_imfc_config_settings(*section);
+    return (256 - midiin_used);
 }
-#endif
 
 void*
 imfc_card_init(const device_t *info)
 {
     imfc = std::make_unique<MusicFeatureCard>(device_get_config_hex16("base"), device_get_config_int("irq"));
     wavetable_add_handler(imfc_get_buffer, imfc.get());
+    if (device_get_config_int("receive_input"))
+        midi_in_handler(1, imfc_input_msg, imfc_input_sysex, imfc_input_remain, imfc.get());
+
+    memset(midiin_queue, 0x00, sizeof(midiin_queue));
+    midiin_r = 0;
+    midiin_w = 0;
+    midiin_used = 0;
+
     return imfc.get();
 }
 
@@ -13827,6 +13744,17 @@ static const device_config_t imfc_config[] = {
             { .description = "IRQ 7", .value = 7 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
 	{ .name = "", .description = "", .type = CONFIG_END }

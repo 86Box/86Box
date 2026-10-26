@@ -49,6 +49,7 @@ typedef struct adgold_t {
     uint8_t midi_queue[16];
     int     midi_r;
     int     midi_w;
+    int     midi_used;
     int     uart_in;
     int     uart_out;
     int     sysex;
@@ -440,10 +441,11 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
 
                     if ((adgold->adgold_midi_ctrl & 0x0f) != 0x0f) {
                         if ((adgold->adgold_midi_ctrl & 0x0f) == 0x00) {
-                            adgold->uart_out = 0;
-                            adgold->uart_in  = 0;
-                            adgold->midi_w   = 0;
-                            adgold->midi_r   = 0;
+                            adgold->uart_out  = 0;
+                            adgold->uart_in   = 0;
+                            adgold->midi_w    = 0;
+                            adgold->midi_r    = 0;
+                            adgold->midi_used = 0;
                             adgold->adgold_mma_status &= ~0x8c;
                         } else {
                             if (adgold->adgold_midi_ctrl & 0x01)
@@ -451,9 +453,10 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
                             if (adgold->adgold_midi_ctrl & 0x04)
                                 adgold->uart_out = 1;
                             if (adgold->adgold_midi_ctrl & 0x02) {
-                                adgold->uart_in = 0;
-                                adgold->midi_w  = 0;
-                                adgold->midi_r  = 0;
+                                adgold->uart_in   = 0;
+                                adgold->midi_w    = 0;
+                                adgold->midi_r    = 0;
+                                adgold->midi_used = 0;
                             }
                             if (adgold->adgold_midi_ctrl & 0x08)
                                 adgold->uart_out = 0;
@@ -617,6 +620,8 @@ adgold_read(uint16_t addr, void *priv)
                         if (adgold->midi_r != adgold->midi_w) {
                             adgold->midi_r++;
                             adgold->midi_r &= 0x0f;
+                            if (adgold->midi_used > 0)
+                                adgold->midi_used--;
                         }
                         adgold->adgold_mma_status &= ~0x04;
                         adgold_update_irq_status(adgold);
@@ -774,19 +779,17 @@ adgold_timer_poll(void *priv)
 }
 
 static void
-adgold_get_buffer(int32_t *buffer, int len, void *priv)
+adgold_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     adgold_t *adgold        = (adgold_t *) priv;
     int16_t  *adgold_buffer = calloc(len * 2, sizeof(int16_t));
     if (adgold_buffer == NULL)
         fatal("adgold_buffer = NULL");
 
-    int c;
-
     int32_t *opl_buf = adgold->opl.update(adgold->opl.priv);
     adgold_update(adgold);
 
-    for (c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         adgold_buffer[c] = ((opl_buf[c] * adgold->fm_vol_l) >> 7) / 2;
         adgold_buffer[c] += ((adgold->mma_buffer[0][c >> 1] * adgold->samp_vol_l) >> 7) / 4;
         adgold_buffer[c + 1] = ((opl_buf[c + 1] * adgold->fm_vol_r) >> 7) / 2;
@@ -798,15 +801,15 @@ adgold_get_buffer(int32_t *buffer, int len, void *priv)
 
     switch (adgold->adgold_38x_regs[0x8] & 6) {
         case 0:
-            for (c = 0; c < len * 2; c++)
+            for (uint16_t c = 0; c < len * 2; c++)
                 adgold_buffer[c] = 0;
             break;
         case 2: /*Left channel only*/
-            for (c = 0; c < len * 2; c += 2)
+            for (uint16_t c = 0; c < len * 2; c += 2)
                 adgold_buffer[c + 1] = adgold_buffer[c];
             break;
         case 4: /*Right channel only*/
-            for (c = 0; c < len * 2; c += 2)
+            for (uint16_t c = 0; c < len * 2; c += 2)
                 adgold_buffer[c] = adgold_buffer[c + 1];
             break;
         case 6: /*Left and right channels*/
@@ -818,7 +821,7 @@ adgold_get_buffer(int32_t *buffer, int len, void *priv)
 
     switch (adgold->adgold_38x_regs[0x8] & 0x18) {
         case 0x00: /*Forced mono*/
-            for (c = 0; c < len * 2; c += 2)
+            for (uint16_t c = 0; c < len * 2; c += 2)
                 adgold_buffer[c] = adgold_buffer[c + 1] = ((int32_t) adgold_buffer[c] + (int32_t) adgold_buffer[c + 1]) / 2;
             break;
         case 0x08: /*Linear stereo*/
@@ -826,13 +829,13 @@ adgold_get_buffer(int32_t *buffer, int len, void *priv)
         case 0x10: /*Pseudo stereo*/
             /*Filter left channel, leave right channel unchanged*/
             /*Filter cutoff is largely a guess*/
-            for (c = 0; c < len * 2; c += 2)
+            for (uint16_t c = 0; c < len * 2; c += 2)
                 adgold_buffer[c] += adgold_pseudo_stereo_iir(adgold_buffer[c]);
             break;
         case 0x18: /*Spatial stereo*/
             /*Quite probably wrong, I only have the diagram in the TDA8425 datasheet
               and a very vague understanding of how op-amps work to go on*/
-            for (c = 0; c < len * 2; c += 2) {
+            for (uint16_t c = 0; c < len * 2; c += 2) {
                 int16_t l = adgold_buffer[c];
                 int16_t r = adgold_buffer[c + 1];
 
@@ -845,7 +848,7 @@ adgold_get_buffer(int32_t *buffer, int len, void *priv)
             break;
     }
 
-    for (c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         int32_t temp;
         int32_t lowpass;
         int32_t highpass;
@@ -918,6 +921,7 @@ adgold_input_msg(void *priv, uint8_t *msg, uint32_t len)
         for (uint32_t i = 0; i < len; i++) {
             adgold->midi_queue[adgold->midi_w++] = msg[i];
             adgold->midi_w &= 0x0f;
+            adgold->midi_used++;
         }
 
         adgold_update_irq_status(adgold);
@@ -939,9 +943,18 @@ adgold_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
             return (len - i);
         adgold->midi_queue[adgold->midi_w++] = buffer[i];
         adgold->midi_w &= 0x0f;
+        adgold->midi_used++;
     }
     adgold->sysex = 0;
     return 0;
+}
+
+static int
+adgold_input_remain(void *priv)
+{
+    adgold_t *adgold = (adgold_t *) priv;
+
+    return (16 - adgold->midi_used);
 }
 
 void *
@@ -957,7 +970,7 @@ adgold_init(UNUSED(const device_t *info))
     adgold->surround_enabled = device_get_config_int("surround");
     adgold->gameport_enabled = device_get_config_int("gameport");
 
-    fm_driver_get_ex(FM_YMF262, &adgold->opl, 1);
+    fm_driver_get_ex(FM_YMF262, &adgold->opl, 3);
     if (adgold->surround_enabled)
         ym7128_init(&adgold->ym7128);
 
@@ -1052,7 +1065,7 @@ adgold_init(UNUSED(const device_t *info))
     sound_set_cd_audio_filter(adgold_filter_cd_audio, adgold);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, adgold_input_msg, adgold_input_sysex, adgold);
+        midi_in_handler(1, adgold_input_msg, adgold_input_sysex, adgold_input_remain, adgold);
 
     return adgold;
 }

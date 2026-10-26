@@ -35,6 +35,7 @@
         <file>qt/icons/isa_rom.ico</file>
         <file>qt/icons/key_bindings.ico</file>
         <file>qt/icons/emulator.ico</file>
+        <file>qt/icons/settings.ico</file>
         <file>qt/icons/machine.ico</file>
         <file>qt/icons/machine_tab.ico</file>
         <file>qt/icons/midi.ico</file>
@@ -62,6 +63,12 @@
         <file>qt/icons/rewind.ico</file>
         <file>qt/icons/sound.ico</file>
         <file>qt/icons/storage_controllers.ico</file>
+        <file>qt/icons/usb_hub_4port.ico</file>
+        <file>qt/icons/usb_keyboard.ico</file>
+        <file>qt/icons/usb_mouse.ico</file>
+        <file>qt/icons/usb_msd.ico</file>
+        <file>qt/icons/usb_speaker.ico</file>
+        <file>qt/icons/usb_tablet.ico</file>
         <file>qt/icons/zip.ico</file>
         <file>qt/icons/zip_image.ico</file>
         <file>qt/icons/active.ico</file>
@@ -84,6 +91,10 @@
         <file>qt/icons/num_lock_on.ico</file>
         <file>qt/icons/scroll_lock_off.ico</file>
         <file>qt/icons/scroll_lock_on.ico</file>
+        <file>qt/icons/jaz.ico</file>
+        <file>qt/icons/jaz_image.ico</file>
+        <file>qt/icons/syquest.ico</file>
+        <file>qt/icons/syquest_image.ico</file>
     </qresource>
     <qresource prefix="/menuicons">
         <file>qt/icons/acpi_shutdown.ico</file>
@@ -194,6 +205,5 @@
         <file alias="toshiba_t1000.png">qt/assets/systemicons/toshiba_t1000.png</file>
         <file alias="toshiba_t1200.png">qt/assets/systemicons/toshiba_t1200.png</file>
         <file alias="toshiba_t1200_hdd.png">qt/assets/systemicons/toshiba_t1200_hdd.png</file>
-
     </qresource>
 </RCC>

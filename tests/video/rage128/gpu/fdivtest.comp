@@ -1,0 +1,57 @@
+#version 450
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          ATI Rage 128 Pro -- GPU backend test kernel for the correctly
+ *          rounded divide and the divide by 255.
+ *
+ *          The kernel includes the production divide source, so the test
+ *          checks the same arithmetic the span shading kernel runs. For
+ *          each operand pair the host supplies, it writes the correctly
+ *          rounded quotient a / b and the low byte of a divided by 255.
+ *          The one pipeline exercises the Vulkan driver's lowering of the
+ *          integer long division those routines use. fdivtest checks the
+ *          results on the host.
+ *
+ * Authors: skiretic.
+ *
+ *          Copyright 2026 skiretic.
+ */
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+
+#include "vid_ati_rage128_gpu_fdiv.glsl"
+
+layout(local_size_x = 64) in;
+
+layout(std430, binding = 0) readonly buffer In {
+    uint operands[]; /* raw float bits: a0, b0, a1, b1, ... */
+};
+layout(std430, binding = 1) buffer Out {
+    uint res[];      /* fdiv0, d255_0, fdiv1, d255_1, ... */
+};
+
+layout(push_constant) uniform PC {
+    uint n;
+} pc;
+
+void
+main()
+{
+    uint i = gl_GlobalInvocationID.x;
+
+    if (i >= pc.n)
+        return;
+
+    uint ua = operands[i * 2u];
+    uint ub = operands[i * 2u + 1u];
+
+    res[i * 2u]      = floatBitsToUint(fdiv_cr(uintBitsToFloat(ua),
+                                               uintBitsToFloat(ub)));
+    /* div255's contract is n in [0,255]; feed it the low byte */
+    res[i * 2u + 1u] = floatBitsToUint(div255(ua & 0xffu));
+}

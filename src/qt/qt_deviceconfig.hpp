@@ -25,13 +25,14 @@ public:
 
     static int     ConfigureDevice(const _device_ *device, int instance = 0,
                                    Settings *settings = qobject_cast<Settings *>(Settings::settings));
-    static QString DeviceName(const _device_ *device, const char *internalName, int bus);
+    static QString DeviceName(const _device_ *device, const char *internalName = nullptr, int bus = 0);
 
 private:
     Ui::DeviceConfig * ui;
     int                machine_cfg_changed;
 
     void               ProcessConfig(void *dc, const void *c, bool is_dep);
+    void               GreyOutTakenEisaSlots(class QComboBox *cbox, int instance);
 
 private slots:
     void on_comboIndexChanged(int index);

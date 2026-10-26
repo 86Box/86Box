@@ -19,11 +19,16 @@
 add_library(char OBJECT
     char.c
     char_file.c
+    char_fujinet.c
     char_loopback.c
     char_pipe.c
     char_serial.c
     char_stdio.c
 )
+
+if(AUTOMATION)
+    target_sources(char PRIVATE char_automation.c)
+endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     target_include_directories(char PRIVATE /usr/local/include)

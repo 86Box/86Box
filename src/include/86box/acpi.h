@@ -16,8 +16,6 @@
 #define ACPI_H
 
 #ifdef __cplusplus
-#include <atomic>
-using atomic_int = std::atomic_int;
 extern "C" {
 #else
 #include <stdatomic.h>
@@ -158,23 +156,35 @@ typedef struct acpi_t {
     int         irq_pin;
     int         irq_line;
     int         mirq_is_level;
+    int         usb_sts_w1c; /* GLBSTS bit 1 as on the SLC90E66 */
+    int         usb_smi_level; /* SiS 5595: last level of the OHCI's SMI output */
+    uint64_t    pmtmr_latch;
     pc_timer_t  timer;
     pc_timer_t  resume_timer;
     pc_timer_t  pwrbtn_timer;
     pc_timer_t  gp_timer;
     pc_timer_t  per_timer;
     nvr_t      *nvr;
+#ifdef APM_H
     apm_t      *apm;
+#else
+    void      *apm;
+#endif
     void       *i2c;
     void      (*trap_update)(void *priv);
     void       *trap_priv;
+    void      (*sci_hook)(void *priv, int set);
+    void       *sci_hook_priv;
     void       *smbus;
     void       *priv;
 } acpi_t;
 
 /* Global variables. */
 extern int        acpi_rtc_status;
+#ifndef __cplusplus
+/* std::atomic_int is a different type from C's atomic_int, so C++ uses acpi_pwrbut_press(). */
 extern atomic_int acpi_pwrbut_pressed;
+#endif
 extern int        acpi_enabled;
 
 extern const device_t acpi_ali_device;
@@ -187,8 +197,10 @@ extern const device_t acpi_sis_5595_1997_device;
 extern const device_t acpi_sis_5595_device;
 
 /* Functions */
+extern void    acpi_pwrbut_press(void);
 extern void    acpi_update_irq(acpi_t *dev);
 extern void    acpi_raise_smi(void *priv, int do_smi);
+extern void    acpi_gp_timer_timeout(void *priv, int n);
 extern void    acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
 extern void    acpi_update_aux_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
 extern void    acpi_init_gporeg(acpi_t *dev, uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3);
@@ -198,9 +210,14 @@ extern void    acpi_set_irq_mode(acpi_t *dev, int irq_mode);
 extern void    acpi_set_irq_pin(acpi_t *dev, int irq_pin);
 extern void    acpi_set_irq_line(acpi_t *dev, int irq_line);
 extern void    acpi_set_mirq_is_level(acpi_t *dev, int mirq_is_level);
+/* Makes GLBSTS bit 1 behave as the SLC90E66's USB_STS: write-1-to-clear,
+   and an SMI# source only with GLBEN bit 0 set. Without it the bit is the
+   PIIX4's LEGACY_USB_STS. */
+extern void    acpi_set_usb_sts_w1c(acpi_t *dev, int w1c);
 extern void    acpi_set_gpireg2_default(acpi_t *dev, uint8_t gpireg2_default);
 extern void    acpi_set_nvr(acpi_t *dev, nvr_t *nvr);
 extern void    acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv);
+extern void    acpi_set_sci_hook(acpi_t *dev, void (*hook)(void *priv, int set), void *priv);
 extern uint8_t acpi_ali_soft_smi_status_read(acpi_t *dev);
 extern void    acpi_ali_soft_smi_status_write(acpi_t *dev, uint8_t soft_smi);
 extern void *  acpi_get_smbus(void *priv);
@@ -208,6 +225,9 @@ extern void    acpi_sis5582_pmu_event(void *priv);
 extern void    acpi_sis5595_smi_raise(void *priv);
 extern void    acpi_sis5595_pmu_event(void *priv);
 extern void    acpi_sis5595_smbus_event(void *priv);
+/* The OHCI's SMI output as the 5595's USB SMI# source (LEG_STS bit 6). */
+extern void    acpi_sis5595_usb_smi(void *priv, int level);
+extern void    acpi_sis_usb_event(acpi_t *dev);
 extern void    acpi_sis5595_software_smi(void *priv);
 
 #ifdef __cplusplus

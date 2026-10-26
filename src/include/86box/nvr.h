@@ -168,6 +168,7 @@ extern int  nvr_get_days(int month, int year);
 extern void nvr_time_sync(void);
 extern void nvr_time_get(void *priv);
 extern void nvr_time_set(void *priv);
+extern void nvr_time_set_date(void *priv);
 
 extern void nvr_reg_write(uint16_t reg, uint8_t val, void *priv);
 extern void nvr_at_handler(int set, uint16_t base, nvr_t *nvr);

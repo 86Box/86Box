@@ -247,6 +247,11 @@ rtc_start(nvr_t *nvr)
     /* Initialize the internal and chip times. */
     if (time_sync & TIME_SYNC_ENABLED) {
         /* Use the internal clock's time. */
+        if (time_keep_date) {
+            /* Keep the chip's own date. */
+            rtc_time_get(nvr->regs, &tm);
+            nvr_time_set_date(&tm);
+        }
         nvr_time_get(&tm);
         rtc_time_set(nvr->regs, &tm);
     } else {
@@ -561,6 +566,18 @@ europc_boot(UNUSED(const device_t *info))
                (sys->nvr.regs[MRTC_CHECK_LO] != rtc_checksum(sys->nvr.regs)) ? "IN" : "");
 
     /*
+     * Allocate the system's I/O handlers.
+     *
+     * The first one is for the JIM. Note that although JIM usually
+     * resides at 0x0250, a special solder jumper on the mainboard
+     * (JS9) can be used to "move" it to 0x0350, to get it out of
+     * the way of other cards that need this range.
+     */
+    sys->jim = device_get_config_hex16("js9");
+    io_sethandler(sys->jim, 16,
+                  jim_read, NULL, NULL, jim_write, NULL, NULL, sys);
+
+    /*
      * Now that we have initialized the NVR (either from file,
      * or by setting it to defaults) we can start overriding it
      * with values set by the user.
@@ -635,18 +652,6 @@ europc_boot(UNUSED(const device_t *info))
     /* Validate the NVR checksum and save. */
     sys->nvr.regs[MRTC_CHECK_LO] = rtc_checksum(sys->nvr.regs);
     nvr_dosave++;
-
-    /*
-     * Allocate the system's I/O handlers.
-     *
-     * The first one is for the JIM. Note that although JIM usually
-     * resides at 0x0250, a special solder jumper on the mainboard
-     * (JS9) can be used to "move" it to 0x0350, to get it out of
-     * the way of other cards that need this range.
-     */
-    sys->jim = device_get_config_hex16("js9");
-    io_sethandler(sys->jim, 16,
-                  jim_read, NULL, NULL, jim_write, NULL, NULL, sys);
 
     /* Only after JIM has been initialized. */
     (void) device_add(&kbc_xt_device);

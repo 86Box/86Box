@@ -375,7 +375,6 @@ aha_cmds(void *priv)
                         mbi->Count,
                         ADDR_TO_U32(mbi->Address));
 
-                dev->Status &= ~STAT_INIT;
                 dev->DataReplyLeft = 0;
                 break;
 
@@ -686,7 +685,6 @@ aha_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
             break;
 
-#ifdef AHA1542CP_FDC
         case 1:
             if (dev->fdc_address) {
                 fdc_remove(dev->fdc);
@@ -698,15 +696,16 @@ aha_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
             if (config->activate) {
                 dev->fdc_address = config->io[0].base;
-                if (dev->fdc_address != ISAPNP_IO_DISABLED)
+                if (dev->fdc_address != ISAPNP_IO_DISABLED) {
                     fdc_set_base(dev->fdc, dev->fdc_address);
+                    pclog("FDC address: %04X\n", dev->fdc_address);
+                }
 
                 fdc_set_irq(dev->fdc, config->irq[0].irq);
                 fdc_set_dma_ch(dev->fdc, config->dma[0].dma);
             }
 
             break;
-#endif
         default:
             break;
     }
@@ -835,7 +834,7 @@ aha_setmcode(x54x_t *dev)
         return;
 
     /* Open the microcode image file and make sure it exists. */
-    aha_log("%s: loading microcode from '%ls'\n", dev->name, dev->bios_path);
+    aha_log("%s: loading microcode from '%s'\n", dev->name, dev->bios_path);
     if ((fp = rom_fopen(dev->mcode_path, "rb")) == NULL) {
         aha_log("%s: microcode ROM not found!\n", dev->name);
         return;
@@ -1070,8 +1069,10 @@ aha_init(const device_t *info)
             dev->ven_get_irq     = aha_get_irq;     /* function to return IRQ from EEPROM */
             dev->ven_get_dma     = aha_get_dma;     /* function to return DMA channel from EEPROM */
             dev->ha_bps          = 10000000.0;      /* fast SCSI */
-            if (dev->fdc_address > 0)
-                dev->fdc = device_add(&fdc_at_device);
+            if (dev->fdc_address > 0) {
+                dev->fdc = device_add_inst_params(&fdc_at_nsc_device, 1, (void *) (FDC_FLAG_SEC | FDC_FLAG_PNP));
+                fdc_set_base(dev->fdc, (int) dev->fdc_address);
+            }
             break;
 
         case AHA_154xCP:
@@ -1104,9 +1105,7 @@ aha_init(const device_t *info)
             aha_setmcode(dev);
             if (aha1542cp_pnp_rom)
                 isapnp_add_card(aha1542cp_pnp_rom, dev->pnp_len + 7, aha_pnp_config_changed, NULL, NULL, NULL, dev);
-#ifdef AHA1542CP_FDC
-            dev->fdc = device_add(&fdc_at_device);
-#endif
+            dev->fdc = device_add_inst_params(&fdc_at_nsc_device, 1, (void *) (FDC_FLAG_SEC | FDC_FLAG_PNP));
             break;
 
         case AHA_1640:
@@ -1684,7 +1683,8 @@ const device_t aha154xa_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha_154xa_config
+    .config        = aha_154xa_config,
+    .short_name    = "AHA-154xA"
 };
 
 const device_t aha154xb_device = {
@@ -1698,7 +1698,8 @@ const device_t aha154xb_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha_154xb_config
+    .config        = aha_154xb_config,
+    .short_name    = "AHA-154xB"
 };
 
 const device_t aha154xc_device = {
@@ -1712,7 +1713,8 @@ const device_t aha154xc_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha_154xc_config
+    .config        = aha_154xc_config,
+    .short_name    = "AHA-154xC"
 };
 
 const device_t aha154xcf_device = {
@@ -1726,7 +1728,8 @@ const device_t aha154xcf_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha_154xcf_config
+    .config        = aha_154xcf_config,
+    .short_name    = "AHA-154xCF"
 };
 
 const device_t aha154xcp_device = {
@@ -1740,7 +1743,8 @@ const device_t aha154xcp_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = aha_154xcp_config
+    .config        = aha_154xcp_config,
+    .short_name    = "AHA-154xCP"
 };
 
 const device_t aha1640_device = {
@@ -1754,5 +1758,6 @@ const device_t aha1640_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "AHA-1640"
 };

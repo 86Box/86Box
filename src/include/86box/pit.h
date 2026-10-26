@@ -16,6 +16,8 @@
 #ifndef EMU_PIT_H
 #define EMU_PIT_H
 
+#include <86box/pit_exact.h>
+
 #define NUM_COUNTERS 3
 
 typedef struct ctr_t {
@@ -58,6 +60,11 @@ typedef struct ctr_t {
     uint32_t lback;
     uint32_t lback2;
 
+    /* The counter's own clock is the timer's divided by this: the ESC's
+       fail-safe counter runs at OSC/48 beside counters at OSC/12. */
+    int clock_div;
+    int clock_phase;
+
     void (*load_func)(uint8_t new_m, int new_count);
     void (*out_func)(int new_out, int old_out, void *priv);
 } ctr_t;
@@ -66,6 +73,7 @@ typedef struct PIT {
     int        flags;
     int        clock;
     pc_timer_t callback_timer;
+    pitx_device_t exact; /* pin-clocked 8253/8254 state */
 
     ctr_t counters[NUM_COUNTERS];
 
@@ -102,6 +110,9 @@ typedef struct pit_intf_t {
     void (*set_load_func)(void *data, int counter_id, void (*func)(uint8_t new_m, int new_count));
     void (*ctr_clock)(void *data, int counter_id);
     void (*set_pit_const)(void *data, uint64_t pit_const);
+    /* Divides one counter's clock input by a whole number, for a timer
+       whose counters are not all clocked alike. */
+    void (*set_clock_div)(void *data, int counter_id, int div);
     void *data;
 } pit_intf_t;
 
@@ -145,6 +156,10 @@ extern void pit_ctr_set_using_timer(void *data, int counter_id, int using_timer)
 
 extern pit_t *pit_common_init(int type, void (*out0)(int new_out, int old_out, void *priv), void (*out1)(int new_out, int old_out, void *priv));
 extern pit_t *pit_ps2_init(int type);
+/* The PS/2's watchdog, when that is what the second timer is: acknowledging
+   IRQ 0 drops its gate. NULL on every other machine, where the second timer
+   is something else -- the EISA fail-safe timer, for one. */
+extern void  *pit_ps2_watchdog;
 extern void   pit_reset(pit_t *dev);
 
 extern void pit_irq0_timer_ps2(int new_out, int old_out, void *priv);
@@ -160,6 +175,8 @@ extern void pit_set_clock(uint32_t clock);
 extern void pit_handler(int set, uint16_t base, int size, void *priv);
 
 extern uint8_t pit_read_reg(void *priv, uint8_t reg);
+extern uint8_t pit_read_even(uint16_t addr, void *priv);
+extern void    pit_write_even(uint16_t addr, uint8_t val, void *priv);
 
 #ifdef EMU_DEVICE_H
 extern const device_t i8253_device;

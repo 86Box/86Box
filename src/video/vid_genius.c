@@ -684,6 +684,7 @@ genius_poll(void *priv)
                 genius_textline(genius, background, 1, 1);
 
             video_process_8(GENIUS_XSIZE, genius->displine);
+            video_lightpen_check_trigger_strobe(0, genius->displine, 0, 0, 53216000.0, monitor_index_global);
         }
         genius->displine++;
         /* Hardcode a fixed refresh rate and VSYNC timing */
@@ -704,9 +705,11 @@ genius_poll(void *priv)
             genius->mda_stat &= ~1;
         }
         timer_advance_u64(&genius->timer, genius->dispontime);
+        video_lightpen_hsync();
         genius->linepos = 0;
 
         if (genius->displine == 1008) {
+            video_lightpen_vsync();
             /* Hardcode GENIUS_XSIZE * GENIUS_YSIZE window size */
             if (GENIUS_XSIZE != xsize || GENIUS_YSIZE != ysize) {
                 xsize = GENIUS_XSIZE;

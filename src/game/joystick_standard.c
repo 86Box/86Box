@@ -231,7 +231,7 @@ joystick_standard_read_axis_2axis(UNUSED(void *priv), int axis)
         case 2:
         case 3:
         default:
-            return 0;
+            return AXIS_NOT_PRESENT;
     }
 }
 
@@ -251,7 +251,7 @@ joystick_standard_read_axis_2axis_t1t2wa(UNUSED(void *priv), int axis)
         case 1:
         case 3:
         default:
-            return 0;
+            return AXIS_NOT_PRESENT;
     }
 }
 

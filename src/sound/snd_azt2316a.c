@@ -195,13 +195,16 @@ aztech_log(void *priv, const char *fmt, ...)
 /*e80, 11, 1 - 530=22*/
 /*f40, 11, 1 - 530=22*/
 
-static int azt2316a_wss_dma[4] = { 0, 0, 1, 3 };
-static int azt2316a_wss_irq[8] = { 5, 7, 9, 10, 11, 12, 14, 15 }; /* W95 only uses 7-10, others may be wrong */
+static int azt2316a_wss_dma[4]  = { 0, 0, 1, 3 };
+static int azt2316a_wss_dma2[4] = { 1, 1, 0, 0 };
+static int azt2316a_wss_irq[8]  = { 5, 7, 9, 10, 11, 12, 14, 15 }; /* W95 only uses 7-10, others may be wrong */
 #if 0
 static uint16_t azt2316a_wss_addr[4] = {0x530, 0x604, 0xe80, 0xf40};
 #endif
 
 static double aztpr16_vols_5bits[32];
+
+static double azt2316a_input_gain_vols_4bits[16];
 
 typedef struct azt2316a_t {
     int type;
@@ -212,7 +215,8 @@ typedef struct azt2316a_t {
     uint16_t cur_wss_addr;
     uint16_t cur_mpu401_addr;
 
-    int cur_irq, cur_dma;
+    int cur_irq;
+    int cur_dma;
     int cur_wss_enabled;
     int cur_wss_irq;
     int cur_wss_dma;
@@ -299,7 +303,7 @@ azt2316a_wss_read(uint16_t addr, void *priv)
 }
 
 static void
-azt2316a_wss_write(uint16_t addr, uint8_t val, void *priv)
+azt2316a_wss_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     azt2316a_t *azt2316a  = (azt2316a_t *) priv;
     int         interrupt = 0;
@@ -317,6 +321,15 @@ azt2316a_wss_write(uint16_t addr, uint8_t val, void *priv)
     azt2316a->cur_wss_irq = azt2316a_wss_irq[(val >> 3) & 7];
     ad1848_setdma(&azt2316a->ad1848, azt2316a_wss_dma[val & 3]);
     ad1848_setirq(&azt2316a->ad1848, azt2316a_wss_irq[(val >> 3) & 7]);
+
+    /* AZT2316 supports full-duplex mode */
+    if (val & 0x04) {
+        aztech_log(azt2316a->log, "Aztech WSS: Full-duplex mode enabled\n");
+        ad1848_setdma2(&azt2316a->ad1848, azt2316a_wss_dma2[val & 3]);
+    } else {
+        aztech_log(azt2316a->log, "Aztech WSS: Full-duplex mode disabled\n");
+        ad1848_setdma2(&azt2316a->ad1848, 4);
+    }
 
     if (interrupt) {
         if (azt2316a->wss_config & 0x40) {
@@ -1423,17 +1436,196 @@ aztpr16_wss_mode(uint8_t mode, void *priv)
 
 }
 
+#define AZT2316A_RECORD_CLAMP(x) (((x) < -32768) ? -32768 : (((x) > 32767) ? 32767 : (x)))
+
+/* filter when freq < capture rate */
+#define AZT2316A_RECORD_ANTIALIAS 1
+
+/* nyquist anti alias */
+#define AZT2316A_RECORD_AA_NYQ 0.9
+
+/* audio filter called on filter rate change */
 static void
-azt2316a_get_buffer(int32_t *buffer, int len, void *priv)
+azt2316a_record_aa_design(ad1848_t *ad1848, int out_rate, int in_rate)
+{
+    const double fc    = (AZT2316A_RECORD_AA_NYQ * 0.5) * ((double) out_rate);
+    const double w0    = (2.0 * M_PI * fc) / ((double) in_rate);
+    const double cw    = cos(w0);
+    const double sw    = sin(w0);
+    const double alpha = sw / (2.0 * 0.70710678118654752);
+    const double a0    = 1.0 + alpha;
+
+    ad1848->record_aa_b0_mic = ((1.0 - cw) / 2.0) / a0;
+    ad1848->record_aa_b1_mic = (1.0 - cw) / a0;
+    ad1848->record_aa_b2_mic = ad1848->record_aa_b0_mic;
+    ad1848->record_aa_a1_mic = (-2.0 * cw) / a0;
+    ad1848->record_aa_a2_mic = (1.0 - alpha) / a0;
+}
+
+static double
+azt2316a_record_aa_step(ad1848_t *ad1848, int ch, double x)
+{
+    const double y = (ad1848->record_aa_b0_mic * x) + ad1848->record_aa_z1_mic[ch];
+
+    ad1848->record_aa_z1_mic[ch] = (ad1848->record_aa_b1_mic * x) - (ad1848->record_aa_a1_mic * y)
+                                + ad1848->record_aa_z2_mic[ch];
+    ad1848->record_aa_z2_mic[ch] = (ad1848->record_aa_b2_mic * x) - (ad1848->record_aa_a2_mic * y);
+
+    return y;
+}
+
+static void
+azt2316a_put_buffer(int16_t *buffer, int len, void *priv)
+{
+    azt2316a_t *azt2316a = (azt2316a_t *) priv;
+
+    /* divisor is rate capture device opened at*/
+    const int cap_rate = al_capture_get_rate();
+    const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+    int rate = 0;
+    if (azt2316a->ad1848.regs[9] & 0x02)
+        rate = azt2316a->ad1848.freq;
+    else
+        rate = azt2316a->sb->dsp.sb_freq;
+
+    int c;
+    int gain_l;
+    int gain_r;
+    int sel_l_mic, sel_l_linel;
+    int sel_r_mic, sel_r_liner;
+    int interp;
+    int filt;
+
+    /* freq is 0 until the guest programs a rate  */
+    if (rate <= 0)
+        return;
+
+    if ((denom != azt2316a->ad1848.record_denom_mic) || (rate != azt2316a->ad1848.record_rate_mic)) {
+        azt2316a->ad1848.record_denom_mic      = denom;
+        azt2316a->ad1848.record_rate_mic       = rate;
+        azt2316a->ad1848.record_phase_mic      = 0;
+        azt2316a->ad1848.record_prev_l_mic     = 0;
+        azt2316a->ad1848.record_prev_r_mic     = 0;
+        azt2316a->ad1848.record_prev_valid_mic = 0;
+
+        azt2316a->ad1848.record_aa_z1_mic[0] = 0.0;
+        azt2316a->ad1848.record_aa_z1_mic[1] = 0.0;
+        azt2316a->ad1848.record_aa_z2_mic[0] = 0.0;
+        azt2316a->ad1848.record_aa_z2_mic[1] = 0.0;
+        azt2316a->ad1848.record_aa_active_mic = 0;
+
+#if AZT2316A_RECORD_ANTIALIAS
+        /* only when decimating */
+        if (rate < denom) {
+            azt2316a_record_aa_design(&azt2316a->ad1848, rate, denom);
+            azt2316a->ad1848.record_aa_active_mic = 1;
+        }
+#endif
+    }
+
+    interp = (rate != denom);
+    filt   = azt2316a->ad1848.record_aa_active_mic;
+
+    if (azt2316a->sb->dsp.sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09) {
+        gain_l = 2;
+        gain_r = 2;
+
+        sel_l_mic   = ((azt2316a->sb->mixer_sbpro.regs[0xca] & 0x01) ? 1 : 0);
+        sel_l_linel = ((azt2316a->sb->mixer_sbpro.regs[0xca] & 0x10) ? 1 : 0);
+
+        sel_r_mic   = ((azt2316a->sb->mixer_sbpro.regs[0xca] & 0x01) ? 1 : 0);
+        sel_r_liner = ((azt2316a->sb->mixer_sbpro.regs[0xca] & 0x10) ? 1 : 0);
+    } else {
+        gain_l = azt2316a->ad1848.regs[0] & 0x0f;
+        gain_r = azt2316a->ad1848.regs[1] & 0x0f;
+
+        sel_l_mic   = (((azt2316a->ad1848.regs[0] & 0xc0) == 0x80) ? 1 : 0);
+        sel_l_linel = (((azt2316a->ad1848.regs[0] & 0xc0) == 0x40) ? 1 : 0);
+
+        sel_r_mic   = (((azt2316a->ad1848.regs[1] & 0xc0) == 0x80) ? 1 : 0);
+        sel_r_liner = (((azt2316a->ad1848.regs[1] & 0xc0) == 0x40) ? 1 : 0);
+    }
+
+    for (c = 0; c < len * 2; c += 2) {
+        const int32_t cap_l = (int32_t) buffer[c];
+        const int32_t cap_r = (int32_t) buffer[c + 1];
+
+        /* mic is the mono sum of line-in. truncating division for dc symmetry */
+        const int32_t mic = (cap_l + cap_r) / 2;
+
+        int32_t mix_l = (mic * sel_l_mic) + (cap_l * sel_l_linel);
+        int32_t mix_r = (mic * sel_r_mic) + (cap_r * sel_r_liner);
+        int32_t in_l;
+        int32_t in_r;
+
+        /* run on every input frame*/
+        if (filt) {
+            mix_l = (int32_t) lrint(azt2316a_record_aa_step(&azt2316a->ad1848, 0, (double) mix_l));
+            mix_r = (int32_t) lrint(azt2316a_record_aa_step(&azt2316a->ad1848, 1, (double) mix_r));
+        }
+
+        in_l = AZT2316A_RECORD_CLAMP(mix_l * azt2316a_input_gain_vols_4bits[gain_l]);
+        in_r = AZT2316A_RECORD_CLAMP(mix_r * azt2316a_input_gain_vols_4bits[gain_r]);
+
+        /* start new device change with first frame in interpolartor queue */
+        if (!azt2316a->ad1848.record_prev_valid_mic) {
+            azt2316a->ad1848.record_prev_l_mic     = in_l;
+            azt2316a->ad1848.record_prev_r_mic     = in_r;
+            azt2316a->ad1848.record_prev_valid_mic = 1;
+        }
+
+        /* phase ticks this forward, while-loop for new samples so they arent dropped */
+        azt2316a->ad1848.record_phase_mic += rate;
+        while (azt2316a->ad1848.record_phase_mic >= denom) {
+            int32_t out_l;
+            int32_t out_r;
+
+            azt2316a->ad1848.record_phase_mic -= denom; /* denom tracks input frame vs emitted frame , (rate - phase) / rate */
+
+            if (interp) {
+
+                const int32_t num = rate - azt2316a->ad1848.record_phase_mic;
+
+                out_l = azt2316a->ad1848.record_prev_l_mic
+                        + (int32_t) ((((int64_t) (in_l - azt2316a->ad1848.record_prev_l_mic)) * num) / rate);
+                out_r = azt2316a->ad1848.record_prev_r_mic
+                        + (int32_t) ((((int64_t) (in_r - azt2316a->ad1848.record_prev_r_mic)) * num) / rate);
+            } else {
+                out_l = in_l;
+                out_r = in_r;
+            }
+
+            azt2316a->ad1848.record_buffer[azt2316a->ad1848.record_pos_write_mic]                  = (int16_t) out_l;
+            azt2316a->ad1848.record_buffer[(azt2316a->ad1848.record_pos_write_mic + 1) & 0xffff]   = (int16_t) out_r;
+            azt2316a->sb->dsp.record_buffer[azt2316a->sb->dsp.record_pos_write_mic]                = (int16_t) out_l;
+            azt2316a->sb->dsp.record_buffer[(azt2316a->sb->dsp.record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
+
+            azt2316a->ad1848.record_pos_write_mic  = (azt2316a->ad1848.record_pos_write_mic + 2) & 0xffff;
+            azt2316a->sb->dsp.record_pos_write_mic = (azt2316a->sb->dsp.record_pos_write_mic +2) & 0xffff;
+        }
+
+        azt2316a->ad1848.record_prev_l_mic = in_l;
+        azt2316a->ad1848.record_prev_r_mic = in_r;
+    }
+}
+
+static void
+azt2316a_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     azt2316a_t *azt2316a = (azt2316a_t *) priv;
 
     /* wss part */
     ad1848_update(&azt2316a->ad1848);
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += (azt2316a->ad1848.buffer[c] / 2);
 
     azt2316a->ad1848.pos = 0;
+}
+
+static void
+azt2316a_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    azt2316a_t *azt2316a = (azt2316a_t *) priv;
 
     /* sbprov2 part */
     sb_get_buffer_sbpro(buffer, len, azt2316a->sb);
@@ -1632,8 +1824,8 @@ azt_init(const device_t *info)
             fatal("AZT2316A: invalid mpu401 irq in config word %08X\n", azt2316a->config_word);
 
         /* these are not present on the EEPROM */
-        azt2316a->cur_wss_irq = device_get_config_int("wss_irq");
-        azt2316a->cur_wss_dma = device_get_config_int("wss_dma");
+        azt2316a->cur_wss_irq = 10;
+        azt2316a->cur_wss_dma = 0;
         azt2316a->cur_mode    = 0;
     } else if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
         azt2316a->config_word = read_eeprom[12] + (read_eeprom[13] << 8) + (read_eeprom[14] << 16);
@@ -1709,9 +1901,9 @@ azt_init(const device_t *info)
             azt2316a->cur_wss_enabled = 0;
 
         // these are not present on the EEPROM
-        azt2316a->cur_dma     = device_get_config_int("sb_dma8");
-        azt2316a->cur_wss_irq = device_get_config_int("wss_irq");
-        azt2316a->cur_wss_dma = device_get_config_int("wss_dma");
+        azt2316a->cur_dma     = 1;
+        azt2316a->cur_wss_irq = 10;
+        azt2316a->cur_wss_dma = 0;
         azt2316a->cur_mode    = 0;
     } else if (azt2316a->type == SB_SUBTYPE_CLONE_AZTPR16_0X09) {
         azt2316a->config_word = read_eeprom[32] + (read_eeprom[33] << 8) + (read_eeprom[34] << 16) + (read_eeprom[35] << 24);
@@ -1861,7 +2053,7 @@ azt_init(const device_t *info)
         azt2316a->sb->dsp.azt_eeprom[i] = read_eeprom[i];
 
     if (azt2316a->sb->opl_enabled)
-        fm_driver_get(FM_YMF262, &azt2316a->sb->opl);
+        fm_driver_get_cs(FM_YMF262, &azt2316a->sb->opl);
 
     sb_dsp_set_real_opl(&azt2316a->sb->dsp, 1);
     sb_dsp_init(&azt2316a->sb->dsp, SBPRO_DSP_302, azt2316a->type, azt2316a);
@@ -1880,6 +2072,9 @@ azt_init(const device_t *info)
 
     azt2316a_create_config_word(azt2316a);
     sound_add_handler(azt2316a_get_buffer, azt2316a);
+    sound_add_handler(azt2316a_get_sbpro_buffer, azt2316a);
+    sound_in_add_handler(azt2316a_put_buffer, azt2316a);
+    sound_in_start_input();
 
     if ((azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) || (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316R_0X12)) {
         if (azt2316a->sb->opl_enabled)
@@ -1906,7 +2101,7 @@ azt_init(const device_t *info)
         azt2316a->mpu = NULL;
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &azt2316a->sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &azt2316a->sb->dsp);
 
     /* Restore SBPro mixer settings from EEPROM on AZT2316A cards */
     if ((azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) || (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316R_0X12)) {
@@ -1934,10 +2129,9 @@ azt_init(const device_t *info)
         azt2316a->ad1848.regs[26] = read_eeprom[10]; /* CS4231 Mic */
 
         /* Set up CD volume table */
-        uint8_t c;
         double  attenuation;
 
-        for (c = 0; c < 32; c++) {
+        for (uint8_t c = 0; c < 32; c++) {
             attenuation = 12.0;
             if (c & 0x01)
                 attenuation -= 1.5;
@@ -1995,10 +2189,9 @@ azt_init(const device_t *info)
         azt2316a->ad1848.regs[7]  = 0x08;  /* WSS DAC R */
 
         /* Set up CD volume table */
-        uint8_t c;
         double  attenuation;
 
-        for (c = 0; c < 32; c++) {
+        for (uint8_t c = 0; c < 32; c++) {
             attenuation = 12.0;
             if (c & 0x01)
                 attenuation -= 1.5;
@@ -2029,6 +2222,29 @@ azt_init(const device_t *info)
             azt2316a->ad1848.regs[12] |= 0x40;
         /* WDM drivers also expect reading port WSSBase+1 without writing an index value to return 0xFF */
         azt2316a->ad1848.regs[0] = 0xff;
+    }
+
+    double attenuation;
+    for (uint8_t c = 0; c < 16; c++) {
+        attenuation = 0.0;
+        if (c & 0x01)
+            attenuation += 1.5;
+        if (c & 0x02)
+            attenuation += 3.0;
+        if (c & 0x04)
+            attenuation += 6.0;
+        if (c & 0x08)
+            attenuation += 12.0;
+
+        attenuation = pow(10, attenuation / 10);
+
+        azt2316a_input_gain_vols_4bits[c] = (int) (attenuation);
+    }
+
+    /* AZT2316A/2316R lack a lowpass filter */
+    if ((azt2316a->type == SB_SUBTYPE_CLONE_AZT2316R_0X12) || (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11)) {
+        azt2316a->sb->mixer_quirks = QUIRK_NOFILTER;
+        azt2316a->sb->mixer_sbpro.output_filter = azt2316a->sb->mixer_sbpro.input_filter = 0;
     }
 
     return azt2316a;
@@ -2160,54 +2376,6 @@ static const device_config_t azt1605_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name           = "sb_dma8",
-        .description    = "SB low DMA",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 0", .value = 0 },
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
-            { .description = ""                  }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "wss_irq",
-        .description    = "WSS IRQ",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 10,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "IRQ 11", .value = 11 },
-            { .description = "IRQ 10", .value = 10 },
-            { .description = "IRQ 7",  .value =  7 },
-            { .description = ""                    }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "wss_dma",
-        .description    = "WSS DMA",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 0", .value = 0 },
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
-            { .description = ""                  }
-        },
-        .bios           = { { 0 } }
-    },
-    {
         .name           = "opl",
         .description    = "Enable OPL",
         .type           = CONFIG_BINARY,
@@ -2278,38 +2446,6 @@ static const device_config_t azt2316a_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name           = "wss_irq",
-        .description    = "WSS IRQ",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 10,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "IRQ 11", .value = 11 },
-            { .description = "IRQ 10", .value = 10 },
-            { .description = "IRQ 7",  .value =  7 },
-            { .description = ""                    }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "wss_dma",
-        .description    = "WSS DMA",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 0", .value = 0 },
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
-            { .description = ""                  }
-        },
-        .bios           = { { 0 } }
-    },
-    {
         .name           = "opl",
         .description    = "Enable OPL",
         .type           = CONFIG_BINARY,
@@ -2365,38 +2501,6 @@ static const device_config_t azt2316r_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name           = "wss_irq",
-        .description    = "WSS IRQ",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 10,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "IRQ 11", .value = 11 },
-            { .description = "IRQ 10", .value = 10 },
-            { .description = "IRQ 7",  .value =  7 },
-            { .description = ""                    }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "wss_dma",
-        .description    = "WSS DMA",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 0", .value = 0 },
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
-            { .description = ""                  }
-        },
-        .bios           = { { 0 } }
-    },
-    {
         .name           = "opl",
         .description    = "Enable OPL",
         .type           = CONFIG_BINARY,
@@ -2436,7 +2540,7 @@ static const device_config_t azt2316r_config[] = {
 const device_t azt2316r_device = {
     .name          = "Aztech Sound Galaxy Pro 16 II",
     .internal_name = "azt2316r",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = SB_SUBTYPE_CLONE_AZT2316R_0X12,
     .init          = azt_init,
     .close         = azt_close,
@@ -2451,7 +2555,7 @@ const device_t azt2316r_device = {
 const device_t azt2316a_device = {
     .name          = "Aztech Sound Galaxy Pro 16 AB",
     .internal_name = "azt2316a",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = SB_SUBTYPE_CLONE_AZT2316A_0X11,
     .init          = azt_init,
     .close         = azt_close,
@@ -2466,7 +2570,7 @@ const device_t azt2316a_device = {
 const device_t azt1605_device = {
     .name          = "Aztech Sound Galaxy Nova 16 Extra",
     .internal_name = "azt1605",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = SB_SUBTYPE_CLONE_AZT1605_0X0C,
     .init          = azt_init,
     .close         = azt_close,
@@ -2481,7 +2585,7 @@ const device_t azt1605_device = {
 const device_t aztpr16_device = {
     .name          = "Aztech Sound Galaxy Pro 16",
     .internal_name = "aztpr16",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = SB_SUBTYPE_CLONE_AZTPR16_0X09,
     .init          = azt_init,
     .close         = azt_close,

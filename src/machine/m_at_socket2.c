@@ -25,6 +25,7 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/chipset.h>
+#include <86box/eisa.h>
 #include <86box/keyboard.h>
 #include <86box/mem.h>
 #include <86box/nvr.h>
@@ -88,7 +89,7 @@ static const device_config_t pb410a_config[] = {
 };
 
 const device_t pb410a_device = {
-    .name          = "Packard Bell PB410/PB410A/PB420/PB420T",
+    .name          = "Packard Bell PB410A",
     .internal_name = "pb410a",
     .flags         = 0,
     .local         = 0,
@@ -186,7 +187,7 @@ machine_at_acera1g_init(const machine_t *model)
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add_params(&pc87310_device, (void *) (PC87310_ALI));
-    device_add(&ide_ali5213_device);
+    device_add(machine_get_ide_device(machine));
 
     return ret;
 }
@@ -236,7 +237,7 @@ machine_at_pci400ca_init(const machine_t *model)
     device_add(&intel_flash_bxt_ami_device);
 
     device_add(&i420tx_device);
-    device_add(&ncr53c810_onboard_pci_device);
+    device_add(machine_get_scsi_device(machine));
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -294,13 +295,88 @@ machine_at_cougar_init(const machine_t *model)
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
+    return ret;
+}
+
+/* SiS 411 */
+int
+machine_at_s1437_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/s1437/tyan_vl_eisa_v20.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    /* Eight slots. The board's own configuration file calls the last
+       two ISA, which is about bus mastering rather than the connector:
+       all eight are the long kind. */
+    eisa_init(8);
+
+    device_add(&sis_85c411_device);
+    /* "TYN0001", from the configuration file the board shipped with. */
+    sis_85c411_set_board_id("TYN", 0x0001, 0);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
 }
 
+/* SiS 460 */
+int
+machine_at_spc7500p_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/spc7500p/7500NOSC.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&sis_85c460_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    device_add(&ide_vlb_device);
+    device_add_params(&pc87310_device, (void *) PCX73XX_IDE);
+
+    return ret;
+}
+
 /* SiS 461 */
+int
+machine_at_auvacam_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/auvacam/CAM33-40-50-SG0.rom",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&sis_85c461_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
 int
 machine_at_decpclpv_init(const machine_t *model)
 {
@@ -383,9 +459,6 @@ machine_at_valuepoint433_init(const machine_t *model) // hangs without the PS/2 
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-
     video_reset(gfxcard[0]);
 
     if (gfxcard[0] != VID_INTERNAL) {
@@ -404,8 +477,8 @@ machine_at_monsoon_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/monsoon/1009AC0_.BIO",
-                                    "roms/machines/monsoon/1009AC0_.BI1", 0x1c000, 128);
+    ret = bios_load_intel("roms/machines/monsoon/1009AC0_.BIO", NULL,
+                          131072, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -418,7 +491,7 @@ machine_at_monsoon_init(const machine_t *model)
     device_add(&ide_vlb_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C651 | FDC37C6XX_IDE_PRI));
 
-    device_add(&intel_flash_bxt_device);
+    device_add(&intel_flash_bxt_ami_device);
     device_add(&phoenix_486_jumper_monsoon_device);
 
     if (gfxcard[0] == VID_INTERNAL)

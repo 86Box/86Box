@@ -488,7 +488,9 @@ compaq_recalc_base_ram(cpq_386_t *dev)
                     high_end   = 0xff;
                     break;
                 default:
-                    fatal("Compaq 386 - Invalid configuation: %02X %02X\n", base_mem, sys_ram);
+                    /* Do not fatal if we are executing machine diagnostics. */
+                    if (cpu_s != NULL)
+                        fatal("Compaq 386 - Invalid configuation: %02X %02X\n", base_mem, sys_ram);
                     return;
             }
             break;
@@ -507,7 +509,9 @@ compaq_recalc_base_ram(cpq_386_t *dev)
                     high_end   = 0xff;
                     break;
                 default:
-                    fatal("Compaq 386 - Invalid configuation: %02X %02X\n", base_mem, sys_ram);
+                    /* Do not fatal if we are executing machine diagnostics. */
+                    if (cpu_s != NULL)
+                        fatal("Compaq 386 - Invalid configuation: %02X %02X\n", base_mem, sys_ram);
                     return;
             }
             break;
@@ -526,12 +530,16 @@ compaq_recalc_base_ram(cpq_386_t *dev)
                     high_end   = 0xff;
                     break;
                 default:
-                    fatal("Compaq 386 - Invalid configuation: %02X %02X\n", base_mem, sys_ram);
+                    /* Do not fatal if we are executing machine diagnostics. */
+                    if (cpu_s != NULL)
+                        fatal("Compaq 386 - Invalid configuation: %02X %02X\n", base_mem, sys_ram);
                     return;
             }
             break;
         default:
-            fatal("Compaq 386 - Invalid configuation: %02X %02X\n", base_mem, sys_ram);
+            /* Do not fatal if we are executing machine diagnostics. */
+            if (cpu_s != NULL)
+                fatal("Compaq 386 - Invalid configuation: %02X %02X\n", base_mem, sys_ram);
             return;
     }
 
@@ -559,7 +567,9 @@ compaq_recalc_base_ram(cpq_386_t *dev)
                 dev->regs[0x00000002] = (mem_size >> 10);
             break;
         default:
-            fatal("Compaq 386 - Invalid configuation: %02X\n", sys_ram);
+            /* Do not fatal if we are executing machine diagnostics. */
+            if (cpu_s != NULL)
+                fatal("Compaq 386 - Invalid configuation: %02X\n", sys_ram);
             return;
     }
 

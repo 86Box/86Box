@@ -33,7 +33,9 @@
 
 #define FLAG_ENABLED 0x10  /* dev is enabled for use */
 #define FLAG_CTRLDAT 0x08  /* ctrl or data mode */
+#define FLAG_PRESERVE_SET 0x0100
 
+/* The ABNT2 keyboard ID's and scan codes have been confirmed by RichardG. */
 const uint8_t id_bytes[24][4] = { { 0x00, 0x00, 0x00, 0x00 },    /* XT 83-key */
                                   { 0x00, 0x00, 0x00, 0x00 },    /* AT 84-key */
                                   { 0xab, 0x83, 0x00, 0x00 },    /* XT/AT 101-key */
@@ -3308,7 +3310,7 @@ static const scancode scancode_set3[512] = {
     { .mk = {0x8c, 0x7b, 0 }, .brk = { 0xf0, 0x8c, 0x7b, 0 } }, /* 07b */
     { .mk = {      0x68, 0 }, .brk = {       0xf0, 0x68, 0 } }, /* 07c */
     { .mk = {0x8c, 0x7d, 0 }, .brk = { 0xf0, 0x8c, 0x7d, 0 } }, /* 07d */
-    { .mk = {            0 }, .brk = {                   0 } }, /* 07e */
+    { .mk = {0x8c, 0x7e, 0 }, .brk = { 0xf0, 0x8c, 0x7e, 0 } }, /* 07e */
     { .mk = {            0 }, .brk = {                   0 } }, /* 07f */
     { .mk = {      0x80, 0 }, .brk = {       0xf0, 0x80, 0 } }, /* 080 */
     { .mk = {      0x81, 0 }, .brk = {       0xf0, 0x81, 0 } }, /* 081 */
@@ -4299,7 +4301,7 @@ static const scancode scancode_set82[512] = {
     { .mk = {      0x4A, 0 }, .brk = {       0xF0, 0x4A, 0 } }, /* 035 */
     { .mk = {      0x59, 0 }, .brk = {       0xF0, 0x59, 0 } }, /* 036 */
     { .mk = {      0x7C, 0 }, .brk = {       0xF0, 0x7C, 0 } }, /* 037 */
-    { .mk = {      0x13, 0 }, .brk = {       0xF0, 0x13, 0 } }, /* 038 0x3A LALT = Kanji */
+    { .mk = {      0x13, 0 }, .brk = {       0xF0, 0x13, 0 } }, /* 038 L-Alt = 13h */
     { .mk = {      0x29, 0 }, .brk = {       0xF0, 0x29, 0 } }, /* 039 */
     { .mk = {      0x58, 0 }, .brk = {       0xF0, 0x58, 0 } }, /* 03a */
     { .mk = {      0x05, 0 }, .brk = {       0xF0, 0x05, 0 } }, /* 03b */
@@ -4368,7 +4370,7 @@ static const scancode scancode_set82[512] = {
     { .mk = {      0x65, 0 }, .brk = {       0xF0, 0x65, 0 } }, /* 07a */
     { .mk = {      0x67, 0 }, .brk = {       0xF0, 0x67, 0 } }, /* 07b 0x33 Muhenkan */
     { .mk = {      0x68, 0 }, .brk = {       0xF0, 0x68, 0 } }, /* 07c */
-    { .mk = {      0x5d, 0 }, .brk = {       0xf0, 0x5d, 0 } }, /* 07d 0x30 Yen, Vertical line */
+    { .mk = {      0x50, 0 }, .brk = {       0xf0, 0x50, 0 } }, /* 07d 0x30 Yen, Vertical line */
     { .mk = {      0x6D, 0 }, .brk = {       0xF0, 0x6D, 0 } }, /* 07e */
     { .mk = {      0x6E, 0 }, .brk = {       0xF0, 0x6E, 0 } }, /* 07f */
     { .mk = {      0x80, 0 }, .brk = {       0xf0, 0x80, 0 } }, /* 080 */
@@ -4555,7 +4557,7 @@ static const scancode scancode_set82[512] = {
     { .mk = {0xe0, 0x4A, 0 }, .brk = { 0xe0, 0xF0, 0x4A, 0 } }, /* 135 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 136 */
     { .mk = {0xe0, 0x7C, 0 }, .brk = { 0xe0, 0xF0, 0x7C, 0 } }, /* 137 */
-    { .mk = {0xe0, 0x11, 0 }, .brk = { 0xe0, 0xF0, 0x11, 0 } }, /* 138* 0x31 R-Alt */
+    { .mk = {      0x11, 0 }, .brk = {       0xF0, 0x11, 0 } }, /* 138 R-Alt = 11h */
     { .mk = {            0 }, .brk = {                   0 } }, /* 139 */
     { .mk = {0xe0, 0x58, 0 }, .brk = { 0xe0, 0xF0, 0x58, 0 } }, /* 13a */
     { .mk = {0xe0, 0x05, 0 }, .brk = { 0xe0, 0xF0, 0x05, 0 } }, /* 13b */
@@ -5433,8 +5435,11 @@ add_data_kbd(uint16_t val)
                     default:
                         val = 0x59;
                         break;
-                    case KBD_JIS: case KBD_ABNT2:
+                    case KBD_JIS:
                         val = 0x5c;
+                        break;
+                    case KBD_ABNT2:
+                        val = 0x51;
                         break;
                 }
                 break;
@@ -5465,6 +5470,16 @@ add_data_kbd(uint16_t val)
                         break;
                     case KBD_JIS:
                         val = 0x13;
+                        break;
+                }
+                break;
+            case 0x7e:
+                switch (keys) {
+                    default:
+                        val = 0x49;
+                        break;
+                    case KBD_ABNT2:
+                        val = 0x7b;
                         break;
                 }
                 break;
@@ -5652,6 +5667,18 @@ keyboard_at_clear_data(void *priv)
     dev->flags &= ~FLAG_CTRLDAT;
 }
 
+void
+keyboard_at_set_scancode_set_persistent(uint8_t persistent)
+{
+    if (SavedKbd == NULL)
+        return;
+
+    if (persistent)
+        SavedKbd->flags |= FLAG_PRESERVE_SET;
+    else
+        SavedKbd->flags &= ~FLAG_PRESERVE_SET;
+}
+
 static void
 keyboard_at_set_defaults(atkbc_dev_t *dev)
 {
@@ -5729,6 +5756,16 @@ keyboard_at_write(void *priv)
                     case 0x81:
                     case 0x82:
                     case 0x8a:
+                        /* Sets 81h/82h/8Ah only exist on the Japanese 5576
+                           keyboards; other keyboards answer resend and keep
+                           their current set (J-DOS then reports BIOS-102). */
+                        if ((val >= 0x81) && !dev->ps55) {
+                            kbc_at_dev_queue_add(dev, 0xfe, 0); /* Resend */
+                            keyboard_at_log("%s: Set scan code set [%02X] not supported - resend\n", dev->name, val);
+                            dev->flags |= FLAG_CTRLDAT;
+                            dev->state = DEV_STATE_MAIN_WANT_IN;
+                            break;
+                        }
                         kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK */
                         keyboard_mode = val;
                         is_special = 0;
@@ -5860,8 +5897,10 @@ keyboard_at_write(void *priv)
                 keyboard_set3_all_repeat = 0;
                 memset(keyboard_set3_flags, 0, 512);
 
-                keyboard_mode = 0x02;
-                keyboard_at_set_scancode_set(dev);
+                if (!(dev->flags & FLAG_PRESERVE_SET)) {
+                    keyboard_mode = 0x02;
+                    keyboard_at_set_scancode_set(dev);
+                }
                 break;
 
             case 0xf7: /* set all keys to repeat */
@@ -5993,7 +6032,8 @@ keyboard_at_init(const device_t *info)
        Key 63  = Japanese key between right Ctrl and right Alt, scan code: 86 (Henkan/Zenkouho 79);
        Key 65? = Japanese key between right Ctrl and right Alt, scan code: 87 (Hiragana/Katakana 70).
      */
-    dev->type = info->local | device_get_config_int("keys");
+    dev->type = (info->local & ~FLAG_PS55_KBD) | device_get_config_int("keys");
+    dev->ps55 = !!(info->local & FLAG_PS55_KBD);
 
     /*
         We assume that the IBM PS/55 machine uses the 5576-002 keyboard (JP/CN layout) here.
@@ -6277,7 +6317,7 @@ const device_t keyboard_ps55_device = {
     .name          = "PS/55 Keyboard",
     .internal_name = "keyboard_ps55",
     .flags         = DEVICE_AT_KBC | DEVICE_PS2_KBC,
-    .local         = FLAG_PS2_KBD | KBD_JIS,
+    .local         = FLAG_PS2_KBD | FLAG_PS55_KBD | KBD_JIS,
     .init          = keyboard_at_init,
     .close         = keyboard_at_close,
     .reset         = NULL,

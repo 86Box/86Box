@@ -61,6 +61,7 @@ static const struct {
     { &st506_xt_dtc5150x_device             },
     { &st506_xt_xebec_device                },
     { &xtide_device                         },
+    { &jride_device                         },
     { &st506_xt_st11_m_device               },
     { &st506_xt_st11_r_device               },
     { &xta_st50x_device                     },
@@ -86,7 +87,6 @@ static const struct {
     /* MCA */
     { &esdi_ps2_device                      },
     { &st506_ps2_device                     },  
-    { &esdi_integrated_device               },
     { &mcide_device                         },
     /* VLB */
 #if 0
@@ -96,6 +96,7 @@ static const struct {
     { &ide_vlb_device                       },
     { &ide_vlb_2ch_device                   },
     { &ide_opti611_vlb_device               },
+    { &ide_w83769f_vlb_device               }, /* TODO: to add implement W83759 IDE controller */
     /* PCI */
     { &ide_cmd640_pci_device                },
     { &ide_cmd646_ter_qua_device            },
@@ -103,6 +104,8 @@ static const struct {
     { &ide_cmd649_ter_qua_device            },
     { &ide_pci_device                       },
     { &ide_pci_2ch_device                   },
+    { &pdc20269_device                      },
+    { &ide_w83769f_pci_device               }, /* PCI variant? TODO: to add implement W83759 IDE controller */
     { NULL                                  }
     // clang-format on
 };

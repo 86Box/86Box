@@ -79,7 +79,7 @@ static const device_config_t v12p_config[] = {
 
 const device_t v12p_device = {
     .name          = "Acer V12P",
-    .internal_name = "v12p_device",
+    .internal_name = "v12p",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -149,7 +149,7 @@ machine_at_excaliburpci_init(const machine_t *model)
 
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-    device_add(&ide_cmd640_pci_legacy_only_device);
+    device_add(machine_get_ide_device(machine));
 
     device_add(&i430lx_device);
     device_add(&sio_zb_device);
@@ -171,7 +171,7 @@ static const device_config_t p5mp3_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.50 - Revision 0205",
+                .name          = "AwardBIOS v4.50 - Revision 0205",
                 .internal_name = "p5mp3",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -180,7 +180,7 @@ static const device_config_t p5mp3_config[] = {
                 .files         = { "roms/machines/p5mp3/0205.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51G - Revision 0402 (Beta)",
+                .name          = "AwardBIOS v4.51G - Revision 0402 (Beta)",
                 .internal_name = "p5mp3_0402",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -197,7 +197,7 @@ static const device_config_t p5mp3_config[] = {
 
 const device_t p5mp3_device = {
     .name          = "ASUS P/I-P5MP3",
-    .internal_name = "p5mp3_device",
+    .internal_name = "p5mp3",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -260,9 +260,8 @@ machine_at_opti560l_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_2);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x03, PCI_CARD_NORMAL,      4, 4, 3, 3);
-    pci_register_slot(0x07, PCI_CARD_NORMAL,      1, 4, 3, 2);
-    pci_register_slot(0x08, PCI_CARD_NORMAL,      2, 1, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_VIDEO, 3, 3, 3, 3);
+    pci_register_slot(0x07, PCI_CARD_NORMAL, 1, 4, 3, 2);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
 
     device_add(&i430lx_device);
@@ -270,6 +269,9 @@ machine_at_opti560l_init(const machine_t *model)
     device_add(&sio_zb_device);
     device_add_params(&i82091aa_device, (void *) I82091AA_022);
     device_add(&intel_flash_bxt_ami_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&gd5430_onboard_pci_device);
 
     return ret;
 }
@@ -319,9 +321,8 @@ machine_at_valuepointp60_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/valuepointp60/1006AV0M.BIO",
-                                    "roms/machines/valuepointp60/1006AV0M.BI1",
-                                    0x1d000, 128);
+    ret = bios_load_intel("roms/machines/valuepointp60/1006AV0M.BIO", NULL,
+                          131072, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -331,7 +332,6 @@ machine_at_valuepointp60_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_IDE,         0, 0, 0, 0);
     pci_register_slot(0x03, PCI_CARD_VIDEO,       3, 3, 3, 3);
     pci_register_slot(0x06, PCI_CARD_NORMAL,      3, 2, 1, 4);
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 1, 3, 4);
@@ -398,8 +398,8 @@ static const device_config_t batman_config[] = {
 };
 
 const device_t batman_device = {
-    .name          = "Intel Premiere/PCI (Batman)",
-    .internal_name = "batman_device",
+    .name          = "Intel Premiere/PCI",
+    .internal_name = "batman",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -416,7 +416,6 @@ machine_at_batman_init(const machine_t *model)
 {
     int         ret = 0;
     const char *fn;
-    const char *fn2;
 
     /* No ROMs available */
     if (!device_available(model->device))
@@ -427,10 +426,8 @@ machine_at_batman_init(const machine_t *model)
     fn          = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     if (is_dell)
         ret = bios_load_linear_inverted(fn, 0x000e0000, 131072, 0);
-    else {
-        fn2 = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 1);
-        ret = bios_load_linear_combined(fn, fn2, 0x1c000, 128);
-    }
+    else
+        ret = bios_load_intel(fn, NULL, 131072, 1);
     device_context_restore();
 
     machine_at_common_init(model);
@@ -439,7 +436,6 @@ machine_at_batman_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_2);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_IDE,         0, 0, 0, 0);
     if (is_dell) {
         pci_register_slot(0x04, PCI_CARD_NORMAL,  4, 4, 3, 3);
         pci_register_slot(0x05, PCI_CARD_NORMAL,  1, 4, 3, 2);
@@ -478,7 +474,7 @@ machine_at_premiere_common_init(const machine_t *model, int pci_switch)
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&sio_zb_device);
-    device_add(&ide_rz1000_pci_single_channel_device);
+    device_add(machine_get_ide_device(machine));
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     device_add(&intel_flash_bxt_ami_device);
 }
@@ -488,9 +484,8 @@ machine_at_revenge_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/revenge/1013af2_.bio",
-                                    "roms/machines/revenge/1013af2_.bi1",
-                                    0x1c000, 128);
+    ret = bios_load_intel("roms/machines/revenge/1013af2_.bio", NULL,
+                          131072, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -526,7 +521,7 @@ machine_at_m5pi_init(const machine_t *model)
     device_add(&i430lx_device);
     device_add(&sio_zb_device);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-    device_add(&ide_w83769f_pci_single_channel_device);
+    device_add(machine_get_ide_device(machine));
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     device_add(&intel_flash_bxt_ami_device);
 
@@ -538,9 +533,8 @@ machine_at_pb520r_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/pb520r/1009bc0r.bio",
-                                    "roms/machines/pb520r/1009bc0r.bi1",
-                                    0x1d000, 128);
+    ret = bios_load_intel("roms/machines/pb520r/1009bc0r.bio", NULL,
+                          131072, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -557,15 +551,102 @@ machine_at_pb520r_init(const machine_t *model)
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
 
     device_add(&i430lx_device);
-    device_add(&ide_cmd640_pci_single_channel_device);
+    device_add(machine_get_ide_device(machine));
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5434_onboard_pci_device);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&sio_zb_device);
-    device_add_params(&i82091aa_device, (void *) (I82091AA_022 | I82091AA_IDE_PRI));
+    device_add_params(&i82091aa_device, (void *) (I82091AA_022 | I82091AA_IDE_SEC));
     device_add(&intel_flash_bxt_ami_device);
+
+    return ret;
+}
+
+/* OPTi 571 */
+static const device_config_t pci58pl_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "pci58pl",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AwardBIOS v4.50G - Revision D1-ZZ",
+                .internal_name = "pci58pl_d1",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/pci58pl/586-014914716.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.50G - Revision D2-ZZ",
+                .internal_name = "pci58pl",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/pci58pl/PCI58PL-0.00_D2-ZZ.bin", "" }
+            },
+            { .files_no = 0 }            
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pci58pl_device = {
+    .name          = "TMC PCI58PL",
+    .internal_name = "pci58pl",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pci58pl_config
+};
+
+int
+machine_at_pci58pl_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0,  0,  0,  0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1,  2,  3,  4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      5,  6,  7,  8);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      9,  10, 11, 12);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      13, 14, 15, 16);
+
+    device_add(&opti5x7_pci_device);
+    device_add(&opti822_device);
+    device_add(&sst_flash_29ee010_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
 
     return ret;
 }
@@ -585,12 +666,35 @@ machine_at_excalibur_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&opti5x7_device);
-    device_add(&ide_opti611_vlb_device);
+    device_add(machine_get_ide_device(machine));
     device_add_params(&fdc37c6xx_device, (void *) FDC37C661);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
+
+int
+machine_at_pat58pv_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pat58pv/111192.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&opti5x7_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
 
 int
 machine_at_globalyst330_p5_init(const machine_t *model)
@@ -679,7 +783,7 @@ machine_at_excaliburpci2_init(const machine_t *model)
 
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-    device_add(&ide_cmd640_pci_legacy_only_device);
+    device_add(machine_get_ide_device(machine));
 
     device_add(&sis_85c50x_device);
     device_add(&intel_flash_bxt_ami_device);
@@ -705,7 +809,7 @@ machine_at_sp4_common_init(const machine_t *model)
     pci_register_slot(0x09, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&sis_85c50x_device);
-    device_add(&ide_cmd640_pci_device);
+    device_add(machine_get_ide_device(machine));
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&intel_flash_bxt_device);
@@ -750,7 +854,7 @@ machine_at_ecs50x_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&sis_85c50x_device);
-    device_add_params(&ide_cmd640_pci_device, (void *) 0x100000);
+    device_add_params(machine_get_ide_device(machine), (void *) 0x100000);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&intel_flash_bxt_device);

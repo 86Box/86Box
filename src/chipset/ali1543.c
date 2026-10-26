@@ -32,10 +32,12 @@
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/keyboard.h>
 #include <86box/mem.h>
+#include <86box/nmi.h>
 #include <86box/nvr.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
 #include <86box/plat_unused.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/port_92.h>
 #include <86box/sio.h>
 #include <86box/smbus.h>
@@ -44,6 +46,8 @@
 #include <86box/acpi.h>
 
 #include <86box/chipset.h>
+#include <86box/flash.h>
+#include <86box/machine.h>
 
 typedef struct ali1543_t {
     uint8_t mirq_states[8];
@@ -56,6 +60,8 @@ typedef struct ali1543_t {
     uint8_t usb_slot;
     uint8_t pmu_slot;
     uint8_t usb_dev_enable;
+    uint8_t usb_irq_level; /* the M5237's INT output */
+    uint8_t usb_smi_level; /* the M5237's SMI output */
     uint8_t ide_dev_enable;
     uint8_t pmu_dev_enable;
     uint8_t type;
@@ -70,17 +76,8 @@ typedef struct ali1543_t {
     smbus_ali7101_t *smbus;
     usb_t           *usb;
 
+    pc_timer_t wdt_timer;
 } ali1543_t;
-
-/*
-    Notes:
-    - Power Managment isn't functioning properly
-    - IDE isn't functioning properly
-    - 1543C differences have to be examined
-    - Some Chipset functionality might be missing
-    - Device numbers and types might be incorrect
-    - Code quality is abysmal and needs lot's of cleanup.
-*/
 
 int ali1533_irq_routing[16] = { PCI_IRQ_DISABLED, 9, 3, 10, 4, 5, 7, 6,
                                 1, 11, PCI_IRQ_DISABLED, 12, PCI_IRQ_DISABLED, 14, PCI_IRQ_DISABLED, 15 };
@@ -116,6 +113,70 @@ static void ali5229_write(int func, int addr, int len, uint8_t val, void *priv);
 
 static void    ali7101_write(int func, int addr, int len, uint8_t val, void *priv);
 static uint8_t ali7101_read(int func, int addr, int len, void *priv);
+
+/* The M5237's INTAJ reaches the 8259 through 74h: bits 3-0 pick the IRQ,
+   and bit 4 turns the level into an edge (M1543C 74h, p. 79 / PDF 80).
+   MIRQ4 carries it. */
+static void
+ali5237_drive_irq(ali1543_t *dev, int set)
+{
+    if (set)
+        pci_set_mirq(PCI_MIRQ4, pci_get_mirq_level(PCI_MIRQ4), &dev->mirq_states[4]);
+    else
+        pci_clear_mirq(PCI_MIRQ4, pci_get_mirq_level(PCI_MIRQ4), &dev->mirq_states[4]);
+}
+
+static void
+ali5237_irq(void *priv, int level)
+{
+    ali1543_t *dev = (ali1543_t *) priv;
+
+    dev->usb_irq_level = !!level;
+    if (dev->usb_dev_enable)
+        ali5237_drive_irq(dev, dev->usb_irq_level);
+}
+
+/* M7101 USB Bus SMI Status, 4Ah bit 5 (M1543C 4Ah-48h bit 21, p. 132 /
+   PDF 133), is set while the enabled M5237 requests SMI and clear while it
+   does not; writes and reads do not clear it. The BIOS SMI handler on the
+   PC Chips M560 reads the bit but never clears it. A rising request raises
+   SMI# when 77h bit 3, the global SMI enable, is set (77h, p. 143 /
+   PDF 144). */
+static void
+ali5237_smi(void *priv, int level)
+{
+    ali1543_t *dev = (ali1543_t *) priv;
+
+    dev->usb_smi_level = !!level;
+    level = dev->usb_smi_level && dev->usb_dev_enable;
+    if (level == !!(dev->pmu_conf[0x4a] & 0x20))
+        return;
+    dev->pmu_conf[0x4a] &= ~0x20;
+    if (level) {
+        dev->pmu_conf[0x4a] |= 0x20;
+        if (dev->pmu_conf[0x77] & 0x08)
+            smi_raise();
+    }
+}
+
+/*
+   53h bit 6 makes the M5237 invisible (ALi-C p64): no window, no bus
+   master, no interrupt. Its registers are kept for when it comes back.
+ */
+static void
+ali5237_set_enable(ali1543_t *dev, int enable)
+{
+    if (enable == dev->usb_dev_enable)
+        return;
+
+    dev->usb_dev_enable = enable;
+    ali5237_smi(dev, dev->usb_smi_level);
+    ohci_update_mem_mapping(dev->usb, dev->usb_conf[0x11], dev->usb_conf[0x12], dev->usb_conf[0x13],
+                            enable && (dev->usb_conf[0x04] & 2));
+    ohci_set_bus_master(dev->usb, enable && (dev->usb_conf[0x04] & 4));
+    if (dev->usb_irq_level)
+        ali5237_drive_irq(dev, enable);
+}
 
 static void
 ali1533_write(int func, int addr, int len, uint8_t val, void *priv)
@@ -263,7 +324,7 @@ ali1533_write(int func, int addr, int len, uint8_t val, void *priv)
             else
                 dev->pci_conf[addr] = val & 0xcf;
             /* This actually enables/disables the USB *device* rather than the interface itself. */
-            dev->usb_dev_enable = !(val & 0x40);
+            ali5237_set_enable(dev, !(val & 0x40));
             if (dev->type == 1) {
                 nvr_at_index_read_handler(0, 0x0070, dev->nvr);
                 nvr_at_index_read_handler(0, 0x0072, dev->nvr);
@@ -410,10 +471,15 @@ ali1533_write(int func, int addr, int len, uint8_t val, void *priv)
             break;
 
         case 0x74: /* USB IRQ Routing - we cheat and use MIRQ4 */
+            /* An active USB interrupt is dropped from the old IRQ and raised
+               again on the new one, in the new trigger mode. */
+            if (dev->usb_irq_level && dev->usb_dev_enable)
+                ali5237_drive_irq(dev, 0);
             dev->pci_conf[addr] = val & 0xdf;
-            /* TODO: MIRQ level/edge control - if bit 4 = 1, it's level */
             pci_set_mirq_level(PCI_MIRQ4, !(val & 0x10));
             pci_set_mirq_routing(PCI_MIRQ4, ali1533_irq_routing[val & 0x0f]);
+            if (dev->usb_irq_level && dev->usb_dev_enable)
+                ali5237_drive_irq(dev, 1);
             break;
 
         case 0x75: /* Set IRQ Line for Secondary IDE if it's on native mode */
@@ -572,10 +638,10 @@ ali5229_ide_handler(ali1543_t *dev)
 {
     uint32_t ch = 0;
 
-    uint16_t native_base_pri_addr = (dev->ide_conf[0x11] | dev->ide_conf[0x10] << 8) & 0xfffe;
-    uint16_t native_side_pri_addr = (dev->ide_conf[0x15] | dev->ide_conf[0x14] << 8) & 0xfffe;
-    uint16_t native_base_sec_addr = (dev->ide_conf[0x19] | dev->ide_conf[0x18] << 8) & 0xfffe;
-    uint16_t native_side_sec_addr = (dev->ide_conf[0x1c] | dev->ide_conf[0x1b] << 8) & 0xfffe;
+    uint16_t native_base_pri_addr = (dev->ide_conf[0x10] | dev->ide_conf[0x11] << 8) & 0xfffe;
+    uint16_t native_side_pri_addr = ((dev->ide_conf[0x14] | dev->ide_conf[0x15] << 8) & 0xfffe) | 0x0002;
+    uint16_t native_base_sec_addr = (dev->ide_conf[0x18] | dev->ide_conf[0x19] << 8) & 0xfffe;
+    uint16_t native_side_sec_addr = ((dev->ide_conf[0x1c] | dev->ide_conf[0x1d] << 8) & 0xfffe) | 0x0002;
 
     uint16_t comp_base_pri_addr = 0x01f0;
     uint16_t comp_side_pri_addr = 0x03f6;
@@ -781,7 +847,7 @@ ali5229_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         case 0x21:
             /* Datasheet erratum: the PCI BAR's actually have different sizes. */
             if (addr == 0x20)
-                dev->ide_conf[addr] = (val & 0xe0) | 0x01;
+                dev->ide_conf[addr] = (val & 0xf0) | 0x01;
             else if ((addr & 0x07) == 0x00)
                 dev->ide_conf[addr] = (val & 0xf8) | 0x01;
             else if ((addr & 0x07) == 0x04)
@@ -922,7 +988,9 @@ ali5237_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
     switch (addr) {
         case 0x04: /* USB Enable */
             dev->usb_conf[addr] = val & 0x5f;
-            ohci_update_mem_mapping(dev->usb, dev->usb_conf[0x11], dev->usb_conf[0x12], dev->usb_conf[0x13], dev->usb_conf[0x04] & 1);
+            /* Memory Space is bit 1, PCI Master bit 2 (ALi-C p117). */
+            ohci_update_mem_mapping(dev->usb, dev->usb_conf[0x11], dev->usb_conf[0x12], dev->usb_conf[0x13], dev->usb_conf[0x04] & 2);
+            ohci_set_bus_master(dev->usb, dev->usb_conf[0x04] & 4);
             break;
 
         case 0x05:
@@ -946,19 +1014,25 @@ ali5237_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             dev->usb_conf[addr] = val & 0x10;
             break;
         case 0x43:
-            if (dev->type == 1)
+            /* M1543C only: 40h bit 26 enables the third USB port, and
+               HcRhDescriptorA NumberDownstreamPorts then reads 3 instead of 2
+               (M1543C 43h-40h, p. 121 / PDF 122; HcRhDescriptorA, p. 184 /
+               PDF 185). */
+            if (dev->type == 1) {
                 dev->usb_conf[addr] = val & 0x04;
+                ohci_set_ndp(dev->usb, (val & 0x04) ? 3 : 2, 3);
+            }
             break;
 
         /* USB Base I/O */
         case 0x11:
             dev->usb_conf[addr] = val & 0xf0;
-            ohci_update_mem_mapping(dev->usb, dev->usb_conf[0x11], dev->usb_conf[0x12], dev->usb_conf[0x13], dev->usb_conf[0x04] & 1);
+            ohci_update_mem_mapping(dev->usb, dev->usb_conf[0x11], dev->usb_conf[0x12], dev->usb_conf[0x13], dev->usb_conf[0x04] & 2);
             break;
         case 0x12:
         case 0x13:
             dev->usb_conf[addr] = val;
-            ohci_update_mem_mapping(dev->usb, dev->usb_conf[0x11], dev->usb_conf[0x12], dev->usb_conf[0x13], dev->usb_conf[0x04] & 1);
+            ohci_update_mem_mapping(dev->usb, dev->usb_conf[0x11], dev->usb_conf[0x12], dev->usb_conf[0x13], dev->usb_conf[0x04] & 2);
             break;
 
         case 0x2c: /* Subsystem Vendor ID */
@@ -1100,7 +1174,7 @@ ali7101_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             dev->pmu_conf[addr] &= ~(val & 0x9f);
             break;
         case 0x4a:
-            dev->pmu_conf[addr] &= ~(val & 0x38);
+            dev->pmu_conf[addr] &= ~(val & 0x18);
             break;
 
         case 0x4c:
@@ -1209,13 +1283,21 @@ ali7101_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             dev->pmu_conf[addr] = val & 0x7f;
             break;
 
-        case 0x77:
+        case 0x77: {
+            uint8_t old = dev->pmu_conf[addr];
+
             /* TODO: If bit 1 is clear, then status bit is set even if SMI is disabled. */
             dev->pmu_conf[addr] = val;
             ali1543_log("PMU77: %02X\n", val);
             nvr_smi_enable((dev->pmu_conf[0x77] & 0x08) && (dev->pmu_conf[0x40] & 0x08), dev->nvr);
             apm_set_do_smi(dev->acpi->apm, (dev->pmu_conf[0x77] & 0x08) && (dev->pmu_conf[0x41] & 0x10));
+            /* The M7101 makes only level SMIs (77h, p. 143 / PDF 144), so
+               setting the global SMI enable while the USB request is still
+               high raises SMI#. */
+            if (!(old & 0x08) && (val & 0x08) && dev->usb_dev_enable && dev->usb_smi_level)
+                smi_raise();
             break;
+        }
 
         case 0x78:
             dev->pmu_conf[addr] = val;
@@ -1277,6 +1359,18 @@ ali7101_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 dev->pmu_conf[addr] = val & 0x02;
             break;
 
+        case 0x92:
+            if (dev->type == 1) {
+                if (val & 0x01) {
+                    if (!(dev->pmu_conf[addr] & 0x01))
+                        timer_set_delay_u64(&dev->wdt_timer, (uint64_t) (((val & 0x02) ? 1000000 : 1000) * TIMER_USEC));
+                } else if (dev->pmu_conf[addr] & 0x01) {
+                    timer_disable(&dev->wdt_timer);
+                }
+                dev->pmu_conf[addr] = val & 0x07;
+            }
+            break;
+
         case 0x94:
             dev->pmu_conf[addr] = val & 0xf0;
             break;
@@ -1313,6 +1407,10 @@ ali7101_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             break;
 
         case 0xb8:
+            if (dev->type == 1)
+                flash_e28f0xx_cobalt3k_update(val);
+            fallthrough;
+
         case 0xb9:
             if (dev->type == 1)
                 dev->pmu_conf[addr] = val;
@@ -1439,10 +1537,14 @@ ali7101_read(int func, int addr, UNUSED(int len), void *priv)
                     ret = acpi_ali_soft_smi_status_read(dev->acpi) ? 0x10 : 0x00;
                     break;
                 case 0x7f:
-                    ret = 0x80;
+                    if (machines[machine].init == machine_at_cobalt3k_init) /* TODO: proper machine table ACPI GPIO plumbing */
+                        ret = machine_get_gpio_acpi_default();
+                    else
+                        ret = 0x80;
                     break;
                 case 0xbc:
-                    ret = inb(0x70);
+                    /* SRIO70: shadow of the last write to port 70h, NMI disable bit included. */
+                    ret = (nvr_get_index(dev->nvr, 0) & 0x7f) | (nmi_mask ? 0x00 : 0x80);
                     break;
             }
 
@@ -1463,7 +1565,7 @@ ali7101_read(int func, int addr, UNUSED(int len), void *priv)
                         dev->pmu_conf[addr] &= 0x60;
                         break;
                     case 0x4a:
-                        dev->pmu_conf[addr] &= 0xc7;
+                        dev->pmu_conf[addr] &= 0xe7;
                         break;
 
                     case 0x4e:
@@ -1487,6 +1589,17 @@ ali7101_read(int func, int addr, UNUSED(int len), void *priv)
     ali1543_log("M7101: [R] dev->pmu_conf[%02x] = %02x\n", addr, ret);
 
     return ret;
+}
+
+static void
+ali7101_wdt_timer(void *priv)
+{
+    const ali1543_t *dev = (ali1543_t *) priv;
+
+    if (dev->pmu_conf[0x92] & 0x01) {
+        ali1543_log("M7101: watchdog expired, resetting\n");
+        pci_write(0xcf9, 0x06, NULL);
+    }
 }
 
 static void
@@ -1521,9 +1634,11 @@ ali1543_reset(void *priv)
     ali5237_write(0, 0x11, 1, 0x00, dev);
     ali5237_write(0, 0x12, 1, 0x00, dev);
     ali5237_write(0, 0x13, 1, 0x00, dev);
+    ali5237_write(0, 0x43, 1, 0x00, dev);
 
     /* M7101 */
     memset(dev->pmu_conf, 0x00, sizeof(dev->pmu_conf));
+    ali5237_smi(dev, dev->usb_smi_level);
     dev->pmu_conf[0x00] = 0xb9;
     dev->pmu_conf[0x01] = 0x10;
     dev->pmu_conf[0x02] = 0x01;
@@ -1615,6 +1730,7 @@ ali1543_init(const device_t *info)
     /* ACPI */
     dev->acpi = device_add(&acpi_ali_device);
     dev->nvr  = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_PIIX4);
+    timer_add(&dev->wdt_timer, ali7101_wdt_timer, dev, 0);
 
     /* DMA */
     dma_alias_set();
@@ -1639,6 +1755,8 @@ ali1543_init(const device_t *info)
 
     /* USB */
     dev->usb = device_add(&usb_device);
+    ohci_set_irq_handler(dev->usb, ali5237_irq, dev);
+    ohci_set_smi_handler(dev->usb, ali5237_smi, dev);
 
     dev->type   = info->local & 0xff;
     dev->offset = (info->local >> 8) & 0x7f;
@@ -1655,7 +1773,8 @@ ali1543_init(const device_t *info)
     pci_enable_mirq(6);
 
     /* Super I/O chip */
-    device_add(&ali5123_device);
+    device_add_params(&ali5123_device, (void *) (uintptr_t) (((info->local & ALI1543_SIO_370) ? ALI5123_370 : 0) |
+                                                              ((dev->type == 0) ? ALI5123_NO_UART3 : 0)));
 
     ali1543_reset(dev);
 

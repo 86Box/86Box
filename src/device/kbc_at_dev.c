@@ -181,6 +181,15 @@ kbc_at_dev_reset(atkbc_dev_t *dev, int do_fa)
         dev->state = DEV_STATE_EXECUTE_BAT;
 }
 
+void
+kbc_at_dev_discard(atkbc_dev_t *dev)
+{
+    dev->port->out_new = -1;
+    dev->port->wantcmd = 0;
+
+    kbc_at_dev_queue_reset(dev, 1);
+}
+
 atkbc_dev_t *
 kbc_at_dev_init(uint8_t inst)
 {

@@ -54,6 +54,7 @@ typedef struct hdd_image_t {
     uint8_t   type; /* HDD_IMAGE_RAW, HDD_IMAGE_HDI, HDD_IMAGE_HDX, or HDD_IMAGE_VHD */
     uint8_t   loaded;
     uint8_t   is_block_device; /* 1 if this is a raw block device (e.g., /dev/disk4s1) */
+    plat_device_vol_locked_t *locked_drives;
 } hdd_image_t;
 
 hdd_image_t hdd_images[HDD_NUM];
@@ -199,9 +200,8 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
         return 1;
     }
 
-    uint64_t target_size = (full_size + hdd_images[id].base) - ftello64(hdd_images[id].file);
-
 #ifndef __unix__
+    uint64_t target_size = (full_size + hdd_images[id].base) - ftello64(hdd_images[id].file);
     uint32_t size;
     uint32_t t;
 
@@ -237,7 +237,7 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
     free(empty_sector_1mb);
 #else
     pclog("Creating hard disk image: ");
-    int ret = ftruncate(fileno(hdd_images[id].file), (size_t) target_size);
+    int ret = ftruncate(fileno(hdd_images[id].file), (off_t) (full_size + hdd_images[id].base));
 
     if (ret) {
         pclog("failed\n");
@@ -276,6 +276,15 @@ hdd_image_load(int id)
     int      is_vhd[2] = { 0, 0 };
     int      vhd_error = 0;
 
+    if (id > 0) {
+        for (int i = 0; i < id; i++) {
+            if (strcmp(hdd[id].fn, hdd[i].fn) == 0) {
+                fatal("Image already loaded: %s\n", hdd[i].fn);
+                return 0;
+            }
+        }
+    }
+
     memset(empty_sector, 0, sizeof(empty_sector));
     if (fn) {
         path_normalize(fn);
@@ -309,6 +318,8 @@ hdd_image_load(int id)
             /* Don't clear hdd[id].fn - preserve config even if device is unavailable */
             goto fail_raw;
         }
+
+        hdd_images[id].locked_drives = plat_lock_volumes(hdd_images[id].file);
 
         hdd_images[id].is_block_device = 1;
         hdd_images[id].type = HDD_IMAGE_RAW;
@@ -765,6 +776,11 @@ hdd_image_close(uint8_t id)
 
     if (!hdd_images[id].loaded)
         return;
+
+    if (hdd_images[id].locked_drives) {
+        plat_unlock_volumes(hdd_images[id].locked_drives);
+        hdd_images[id].locked_drives = NULL;
+    }
 
     if (hdd_images[id].file != NULL) {
         fclose(hdd_images[id].file);

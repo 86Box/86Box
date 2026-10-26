@@ -14,7 +14,9 @@
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2017-2018 Fred N. van Kempen.
  */
+#ifndef UNICODE
 #define UNICODE
+#endif
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #include <windowsx.h>

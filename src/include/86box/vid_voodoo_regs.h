@@ -223,6 +223,7 @@ enum {
     SST_texBaseAddr2  = 0x314,
     SST_texBaseAddr38 = 0x318,
 
+    SST_trexInit0 = 0x31c,
     SST_trexInit1 = 0x320,
 
     SST_nccTable0_Y0 = 0x324,
@@ -351,6 +352,22 @@ enum {
 };
 
 enum {
+    LFB_RGBCHANNEL_ARGB = (0 << 9),
+    LFB_RGBCHANNEL_ABGR = (1 << 9),
+    LFB_RGBCHANNEL_RGBA = (2 << 9),
+    LFB_RGBCHANNEL_BGRA = (3 << 9),
+    LFB_RGBCHANNEL_MASK = (3 << 9)
+};
+
+/* lfbMode bits for reads: the Y origin (also for writes with the pixel
+   pipeline off), and the swaps applied to the 32 bits read. */
+enum {
+    LFB_Y_ORIGIN          = (1 << 13),
+    LFB_READ_WORD_SWAP    = (1 << 15),
+    LFB_READ_BYTE_SWIZZLE = (1 << 16)
+};
+
+enum {
     LFB_WRITE_COLOUR = 1,
     LFB_WRITE_DEPTH  = 2,
     LFB_WRITE_BOTH   = 4
@@ -402,6 +419,7 @@ enum {
 };
 
 enum {
+    TEXTUREMODE_TPERSP_ST = (1 << 0),
     TEXTUREMODE_NCC_SEL   = (1 << 5),
     TEXTUREMODE_TCLAMPS   = (1 << 6),
     TEXTUREMODE_TCLAMPT   = (1 << 7),
@@ -612,7 +630,7 @@ enum {
 #define TEXTUREMODE_LOCAL_MASK  0x00643000
 #define TEXTUREMODE_LOCAL       0x00241000
 
-#define SLI_ENABLED             (voodoo->fbiInit1 & FBIINIT1_SLI_ENABLE)
+#define SLI_ENABLED             (voodoo->set && voodoo->set->nr_cards > 1 && (voodoo->fbiInit1 & FBIINIT1_SLI_ENABLE))
 #define TRIPLE_BUFFER           ((voodoo->fbiInit2 & 0x10) || (voodoo->fbiInit5 & 0x600) == 0x400)
 
 #define _rgb_sel                (params->fbzColorPath & 3)

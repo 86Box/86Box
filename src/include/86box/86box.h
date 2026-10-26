@@ -20,6 +20,8 @@
 #ifndef EMU_86BOX_H
 #define EMU_86BOX_H
 
+#include <stdio.h>
+
 #if defined(__NetBSD__) || defined(__OpenBSD__)
 /* Doesn't compile on NetBSD/OpenBSD without this include */
 #include <stdarg.h>
@@ -91,8 +93,8 @@
 #define AS_DOUBLE(x) (*((double *) &(x)))
 
 #if defined(__GNUC__) || defined(__clang__)
-#    define UNLIKELY(x) __builtin_expect((x), 0)
-#    define LIKELY(x)   __builtin_expect((x), 1)
+#    define UNLIKELY(x) __builtin_expect(!!(x), 0)
+#    define LIKELY(x)   __builtin_expect(!!(x), 1)
 #else
 #    define UNLIKELY(x) (x)
 #    define LIKELY(x)   (x)
@@ -150,9 +152,6 @@ extern int start_in_fullscreen; /* (O) start in fullscreen */
 #ifdef _WIN32
 extern int force_debug; /* (O) force debug output */
 #endif
-#ifdef USE_WX
-extern int video_fps; /* (O) render speed in fps */
-#endif
 extern int settings_only;     /* (O) show only the settings dialog */
 extern int confirm_exit_cmdl; /* (O) do not ask for confirmation on quit if set to 0 */
 #ifdef _WIN32
@@ -191,9 +190,11 @@ extern int      video_fullscreen;           /* (C) video */
 extern int      video_fullscreen_scale;     /* (C) video */
 extern int      enable_overscan;            /* (C) video */
 extern int      force_43;                   /* (C) video */
+extern int      force_device_aspect;        /* (C) video */
 extern int      video_filter_method;        /* (C) video */
 extern int      video_vsync;                /* (C) video */
 extern int      video_framerate;            /* (C) video */
+extern int      video_vk_device;            /* (C) video */
 extern double   video_gl_input_scale;       /* (C) OpenGL 3.x input scale */
 extern int      video_gl_input_scale_mode;  /* (C) OpenGL 3.x input stretch mode */
 extern int      gfxcard[GFXCARD_MAX];       /* (C) graphics/video card */
@@ -201,12 +202,19 @@ extern int      bugger_enabled;             /* (C) enable ISAbugger */
 extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key card emulation. */
 extern int      postcard_enabled;           /* (C) enable POST card */
 extern int      unittester_enabled;         /* (C) enable unit tester device */
+extern int      softpower_enabled;            /* (C) enable PC Convertible-style soft power card */
 extern int      gameport_type[];            /* (C) enable gameports */
+extern int      mcamem_type[];              /* (C) enable MCA mem cards */
 extern int      isamem_type[];              /* (C) enable ISA mem cards */
 extern int      isarom_type[];              /* (C) enable ISA ROM cards */
 extern int      isartc_type;                /* (C) enable ISA RTC card */
 extern int      sound_is_float;             /* (C) sound uses FP values */
+extern char     sound_input_dev_name[512];  /* (C) name of sound input device */
+extern int      sound_input_enabled;        /* (C) enable sound input */
+extern int      sound_sample_rate;          /* (C) sound output sample rate */
+extern int      sb_input_rate;              /* (C) SB16/AWE32 hardware sample rate */
 extern int      voodoo_enabled;             /* (C) video option */
+extern int      powervr_enabled;            /* (C) video option */
 extern int      ibm8514_standalone_enabled; /* (C) video option */
 extern int      xga_standalone_enabled;     /* (C) video option */
 extern int      da2_standalone_enabled;     /* (C) video option */
@@ -217,22 +225,27 @@ extern int      cpu_use_dynarec;            /* (C) cpu uses/needs Dyna */
 extern int      fpu_type;                   /* (C) fpu type */
 extern int      fpu_softfloat;              /* (C) fpu uses softfloat */
 extern int      time_sync;                  /* (C) enable time sync */
+extern int      time_offset_years;          /* (C) year offset for time sync */
+extern int      time_fixed_year;            /* (C) fixed year for time sync (0 = none) */
+extern int      time_keep_date;             /* (C) time sync keeps the guest's own date */
 extern int      hdd_format_type;            /* (C) hard disk file format */
 extern int      confirm_reset;              /* (G) enable reset confirmation */
 extern int      confirm_exit;               /* (G) enable exit confirmation */
 extern int      confirm_save;               /* (G) enable save confirmation */
-extern int      enable_discord;             /* (C) enable Discord integration */
+extern int      chd_precache_level;         /* (G) CHD precache level */
 extern int      force_10ms;                 /* (C) force 10ms CPU frame interval */
 extern int      jumpered_internal_ecp_dma;  /* (C) Jumpered internal EPC DMA */
 extern int      other_ide_present;          /* IDE controllers from non-IDE cards are present */
 extern int      other_scsi_present;         /* SCSI controllers from non-SCSI cards are present */
 extern int      is_pcjr;                    /* The current machine is PCjr. */
 
+extern int    dump_missing;
 extern int    hard_reset_pending;
 extern int    fixed_size_x;
 extern int    fixed_size_y;
 extern int    sound_muted;                  /* (C) Is sound muted? */
-extern int    do_auto_pause;                /* (C) Auto-pause the emulator on focus loss */
+extern int    do_auto_pause;                /* (G) Auto-pause the emulator on focus loss */
+extern int    do_auto_dialog_pause;         /* (G) Auto-pause the emulator on dialog boxes */
 extern int    auto_paused;
 extern int    force_constant_mouse;         /* (C) Force constant updating of the mouse */
 extern double mouse_sensitivity;            /* (G) Mouse sensitivity scale */
@@ -245,6 +258,12 @@ extern int    fm_driver;                    /* (C) select FM sound driver */
 extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
 extern int    vmm_disabled;                 /* (G) disable built-in manager */
 extern char   vmm_path_cfg[1024];           /* (G) VMs path (unless -E is used) */
+extern int    vmm_discord_presence;         /* (G) Discord status: off, name and hardware, hardware only, no details */
+extern int    vmm_update_check;             /* (G) check for updates when the manager starts */
+extern int    vmm_regex_search;             /* (G) search the manager with regular expressions */
+extern int    vmm_window_remember;          /* (G) remember the manager's window size and position */
+extern int    vmm_delete_to_trash;          /* (G) delete machines to the trash */
+extern int    gdbstub_port;                 /* (C) The GDB stub port. */
 
 extern char exe_path[2048];        /* path (dir) of executable */
 extern char usr_path[1024];        /* path (dir) of user data */
@@ -264,9 +283,6 @@ extern char monitor_edid_path[1024];        /* (C) Path to custom EDID */
 extern int color_scheme;                    /* (C) Color scheme of UI (Windows-only) */
 extern int fdd_sounds_enabled;              /* (C) Enable floppy drive sounds */
 
-#ifndef USE_NEW_DYNAREC
-extern FILE *stdlog; /* file to log output to */
-#endif
 extern int config_changed; /* config has changed */
 
 extern __thread int is_cpu_thread; /* Is this the CPU thread? */
@@ -279,6 +295,8 @@ extern void warning_ex(const char *fmt, va_list ap);
 #endif
 extern void pclog_toggle_suppr(void);
 extern void pclog(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+/* Optional per-line log callback for UI consumers (e.g. OSD log viewer). */
+extern void (*pclog_hook)(const char *line);
 extern void always_log(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void fatal(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void warning(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
@@ -287,7 +305,6 @@ extern void set_screen_size_monitor(int x, int y, int monitor_index);
 extern void reset_screen_size(void);
 extern void reset_screen_size_monitor(int monitor_index);
 extern void set_screen_size_natural(void);
-extern void update_mouse_msg(void);
 extern int  pc_init_roms(void);
 extern int  pc_init_modules(void);
 extern int  pc_init(int argc, char *argv[]);
@@ -334,7 +351,7 @@ struct accelKey {
 	char desc[64];
 	char seq[64];
 };
-#define NUM_ACCELS 14
+#define NUM_ACCELS 17
 extern struct accelKey acc_keys[NUM_ACCELS];
 extern struct accelKey def_acc_keys[NUM_ACCELS];
 extern int FindAccelerator(const char *name);

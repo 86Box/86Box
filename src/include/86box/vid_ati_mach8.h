@@ -37,6 +37,10 @@ typedef struct mach_t {
     int pci_bus;
     int vlb_bus;
     int has_bios;
+    int bus_width_8bit;
+    uint8_t  byte_latch;
+    uint16_t byte_rd;
+    int      byte_rd_valid;
 
     uint8_t regs[256];
     uint8_t pci_regs[256];
@@ -78,23 +82,29 @@ typedef struct mach_t {
     uint8_t  bank_r;
     uint16_t shadow_set;
     uint16_t shadow_cntl;
+    uint8_t  crt_sets[3][9][2]; /* Graphics Ultra CRT sets: primary, 640, 1024; 02E8h-22E8h, low/high */
+    uint8_t  crt_valid[3][9];
+    uint8_t  crt_lock[3];       /* SHADOW_CTL as last written with SHADOW_SET pointing at each set */
+    int      crt_show1;         /* a SHADOW_SET write shows set 1 until the next ADVFUNC_CNTL write */
+    uint8_t  crt_disp_live;     /* DISP_CNTL bits no lock covers, as last written */
+    int      crt_replay;
     uint8_t overscan_col_8;
     uint8_t overscan_b_col_24;
     uint8_t overscan_g_col_24;
     uint8_t overscan_r_col_24;
     uint16_t fifo_test_data[16];
-    uint8_t old_on1;
-    uint8_t old_on2;
-    int     crt_resolution;
+    uint16_t fifo_test_port[16];
 
     struct {
         uint8_t  line_idx;
         int16_t  line_array[6];
         uint8_t  patt_idx;
         uint8_t  patt_len;
+        int      ssv_wait; /*Graphics Ultra: second short stroke waiting for host data*/
         uint8_t  pix_trans[2];
         uint8_t  alu_bg_fn;
         uint8_t  alu_fg_fn;
+        uint8_t  dp_compat;
         uint16_t eeprom_control;
         uint16_t clip_left;
         uint16_t clip_right;
@@ -115,7 +125,13 @@ typedef struct mach_t {
         uint16_t src_pitch;
         uint16_t dst_pitch;
         uint16_t dest_cmp_fn;
+        uint16_t src_cmp_fn;
+        uint16_t src_cmp_clr;
         uint16_t dp_config;
+        uint8_t  src_reload;
+        int      src_cur_x;
+        int      src_cur_y;
+        int      src_cur_sx;
         uint16_t ext_ge_config;
         uint16_t crt_offset_lo;
         uint16_t crt_offset_hi;
@@ -148,6 +164,7 @@ typedef struct mach_t {
         int16_t  dx_start;
         int16_t  dy_start;
         int16_t  cy;
+        int16_t  sx_first_row_start;
         int16_t  sx_start;
         int16_t  sx_end;
         int16_t  sx;
@@ -176,8 +193,16 @@ typedef struct mach_t {
         uint32_t crt_offset;
         uint32_t patt_len_reg;
         int      poly_fill;
+        int      scan_fill_flag;
         uint16_t dst_clr_cmp_mask;
         int      clip_overrun;
+        int16_t  clip_x;
+        int16_t  clip_y;
+        uint8_t  clip_flags;
+        uint8_t  clip_inside;
+        uint8_t  clip_points_out;
+        uint8_t  clip_exception;
+        uint8_t  compat_pitch;
         int      color_pattern_idx;
         int64_t  src_x_scan;
         int64_t  src_y_scan;
@@ -185,6 +210,8 @@ typedef struct mach_t {
 
     atomic_int force_busy;
     atomic_int fifo_test_idx;
+
+    uint16_t ctl;
 } mach_t;
 
 #endif /*VIDEO_ATI_MACH8_H*/

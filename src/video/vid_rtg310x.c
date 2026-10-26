@@ -315,7 +315,7 @@ rtg_init(const device_t *info)
             svga_init(info, &dev->svga, dev, dev->vram_size << 10,
                       rtg_recalctimings, rtg_in, rtg_out,
                       NULL, NULL);
-            io_sethandler(0x03c0, 32,
+            io_sethandler(0x03a0, 64,
                           rtg_in, NULL, NULL, rtg_out, NULL, NULL, dev);
             break;
         case 2: /* ISA RTG3106 */
@@ -325,7 +325,7 @@ rtg_init(const device_t *info)
             svga_init(info, &dev->svga, dev, dev->vram_size << 10,
                       rtg_recalctimings, rtg_in, rtg_out,
                       NULL, NULL);
-            io_sethandler(0x03c0, 32,
+            io_sethandler(0x03a0, 64,
                           rtg_in, NULL, NULL, rtg_out, NULL, NULL, dev);
             break;
 
@@ -334,7 +334,7 @@ rtg_init(const device_t *info)
     }
 
     dev->svga.bpp     = 8;
-    dev->svga.miscout = 1;
+    dev->svga.miscout = 0;
 
     dev->vram_mask = dev->vram_size - 1;
 

@@ -58,6 +58,8 @@ typedef struct i4x0_t {
     uint8_t    pci_slot;
     uint8_t    pad;
     uint8_t    pad0;
+    uint8_t    drb_row0_empty;
+    uint8_t    drb_written[8];
     uint8_t    regs[256];
     uint8_t    regs_locked[256];
     uint8_t    mem_state[256];
@@ -98,6 +100,8 @@ i4x0_map(i4x0_t *dev, uint32_t addr, uint32_t size, int state)
         mem_set_mem_state_both(addr, size, states[state]);
         dev->mem_state[base] = state;
         flushmmucache_nopc();
+        /* Also invalidate the range for this block, properly fixes P2B-LS soft reset. */
+        mem_invalidate_range(addr, addr + size - 1);
     }
 }
 
@@ -240,6 +244,61 @@ pm2_cntrl_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
     i4x0_t *dev = (i4x0_t *) priv;
 
     dev->pm2_cntrl = val & 0x01;
+}
+
+/* DRAMC bits 7-6, Hole Enable (82437FX/82439HX/82437VX/82439TX data sheets):
+   "CPU cycles matching an enabled hole are passed on to PCI", and from there
+   to ISA. 01 = 512-640 KiB, 10 = 15-16 MiB. The register was stored and the
+   hole never made, so an ISA adapter with its aperture at 15 MiB -- which is
+   what the hole is FOR -- saw nothing but the machine's own RAM. */
+static void
+i4x0_dram_hole(uint8_t old_val, uint8_t new_val)
+{
+    static const uint32_t hole_base[4] = { 0, 0x00080000, 0x00f00000, 0 };
+    static const uint32_t hole_size[4] = { 0, 0x00020000, 0x00100000, 0 };
+    uint8_t               old_hen      = (old_val >> 6) & 3;
+    uint8_t               new_hen      = (new_val >> 6) & 3;
+    uint64_t              ram_top      = ((uint64_t) mem_size) << 10; /* mem_size is in KiB */
+
+    if (old_hen == new_hen)
+        return;
+
+    if (hole_size[old_hen] && (ram_top > hole_base[old_hen]))
+        mem_set_mem_state_both(hole_base[old_hen], hole_size[old_hen], MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    if (hole_size[new_hen] && (ram_top > hole_base[new_hen]))
+        mem_set_mem_state_both(hole_base[new_hen], hole_size[new_hen], MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+}
+
+/* The DRBs always read back the installed memory layout (see spd_write_drbs())
+   and RAM stays decoded no matter what the BIOS writes to them. A BIOS that sizes
+   each row by decoding only that row at address 0 and testing it would then find
+   memory in every empty DIMM socket, which the Intel RC440BX BIOS reports as a
+   module with missing or inconclusive SPD data. Leave conventional memory
+   unmapped while the DRB values written by the guest decode an empty row at
+   address 0. */
+static void
+i4x0_drb_row0_update(i4x0_t *dev)
+{
+    uint8_t empty = 0;
+
+    if (spd_present) {
+        /* Address 0 belongs to the first row with a non-zero boundary. */
+        for (uint8_t row = 0; row <= dev->max_drb; row++) {
+            if (dev->drb_written[row]) {
+                empty = (dev->regs[0x60 + row] == (row ? dev->regs[0x5f + row] : 0x00));
+                break;
+            }
+        }
+    }
+
+    if (empty != dev->drb_row0_empty) {
+        i4x0_log("Intel 4x0: Empty DRAM row %sdecoded at address 0\n", empty ? "" : "no longer ");
+        dev->drb_row0_empty = empty;
+        if (empty)
+            mem_mapping_disable(&ram_low_mapping);
+        else
+            mem_mapping_enable(&ram_low_mapping);
+    }
 }
 
 static void
@@ -430,7 +489,9 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                         regs[0x50] = (val & 0xef);
                         break;
                     case INTEL_430HX:
-                        regs[0x50] = (val & 0xf7);
+                        /* PCON: bit 3 (peer concurrency) is read/write, and
+                           bit 1 is the reserved one. */
+                        regs[0x50] = (val & 0xfd);
                         break;
                     case INTEL_430VX:
                     case INTEL_430TX:
@@ -656,11 +717,19 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                     case INTEL_430FX:
                     case INTEL_430HX:
                     case INTEL_430VX:
-                        regs[0x57] = val & 0xcf;
-                        break;
+                        {
+                            uint8_t old_dramc = regs[0x57];
+                            regs[0x57]        = val & 0xcf;
+                            i4x0_dram_hole(old_dramc, regs[0x57]);
+                            break;
+                        }
                     case INTEL_430TX:
-                        regs[0x57] = val & 0xdf;
-                        break;
+                        {
+                            uint8_t old_dramc = regs[0x57];
+                            regs[0x57]        = val & 0xdf;
+                            i4x0_dram_hole(old_dramc, regs[0x57]);
+                            break;
+                        }
                     case INTEL_440FX:
                         regs[0x57] = val & 0x77;
                         break;
@@ -767,7 +836,11 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             case 0x63:
             case 0x64:
                 if ((addr & 0x7) <= dev->max_drb) {
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        i4x0_drb_row0_update(dev);
                     break;
                 }
                 switch (dev->type) {
@@ -796,7 +869,11 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0x65:
                 if ((addr & 0x7) <= dev->max_drb) {
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        i4x0_drb_row0_update(dev);
                     break;
                 }
                 switch (dev->type) {
@@ -825,7 +902,11 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0x66:
                 if ((addr & 0x7) <= dev->max_drb) {
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        i4x0_drb_row0_update(dev);
                     break;
                 }
                 switch (dev->type) {
@@ -845,7 +926,11 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0x67:
                 if ((addr & 0x7) <= dev->max_drb) {
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+                    if (machines[machine].init == machine_at_rc440bx_init)
+                        i4x0_drb_row0_update(dev);
                     break;
                 }
                 switch (dev->type) {
@@ -1570,8 +1655,14 @@ i4x0_reset(void *priv)
     for (uint8_t i = 0; i < 6; i++)
         i4x0_write(0, 0x5a + i, 1, 0x00, priv);
 
-    for (uint8_t i = 0; i <= dev->max_drb; i++)
-        dev->regs[0x60 + i] = dev->drb_default;
+    for (uint8_t i = 0; i <= dev->max_drb; i++) {
+        if (machines[machine].init == machine_at_rc440bx_init)
+            dev->regs[0x60 + i] = dev->drb_written[i] = dev->drb_default;
+        else
+            dev->regs[0x60 + i] = dev->drb_default;
+    }
+    if (machines[machine].init == machine_at_rc440bx_init)
+        i4x0_drb_row0_update(dev);
 
     if (dev->type >= INTEL_430NX) {
         for (uint8_t i = 0; i < 4; i++)
@@ -1931,6 +2022,9 @@ i4x0_init(const device_t *info)
         cpu_set_agp_speed(cpu_busspeed / 1.5);
     else if (dev->type >= INTEL_440LX)
         cpu_set_agp_speed(cpu_busspeed);
+
+    if (machines[machine].init == machine_at_rc440bx_init)
+        memcpy(dev->drb_written, &regs[0x60], sizeof(dev->drb_written));
 
     i4x0_write(regs[0x59], 0x59, 1, 0x00, dev);
     i4x0_write(regs[0x5a], 0x5a, 1, 0x00, dev);

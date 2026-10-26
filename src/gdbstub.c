@@ -37,7 +37,9 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
+#include "x86.h"
 #include "x86seg.h"
+#include "x86seg_common.h"
 #include "x87_sf.h"
 #include "x87.h"
 #include "x87_ops_conv.h"
@@ -126,6 +128,7 @@ typedef struct _gdbstub_client_ {
     uint8_t first_packet_received : 1;
     uint8_t ida_mode : 1;
     uint8_t waiting_stop : 1;
+    uint8_t in_packet : 1;
     int     packet_pos;
     int     response_pos;
 
@@ -747,8 +750,12 @@ gdbstub_client_packet(gdbstub_client_t *client)
     int     j = 0;
     int     k = 0;
     int     l;
+    int     packet_len;
     uint8_t buf[10] = { 0 };
     char   *p;
+
+    int     orig_cpu_abrt        = cpu_state.abrt;
+    int     orig_cpu_abrt_reason = abrt_error;
 
     /* Validate checksum. */
     client->packet_pos -= 2;
@@ -756,6 +763,7 @@ gdbstub_client_packet(gdbstub_client_t *client)
     gdbstub_client_read_hex(client, &rcv_checksum, 1);
 #endif
     AS_U16(client->packet[--client->packet_pos]) = 0;
+    packet_len = client->packet_pos; /* binary data may contain NUL, so don't rely on strlen */
 #ifdef GDBSTUB_CHECK_CHECKSUM
     for (i = 0; i < client->packet_pos; i++)
         checksum += client->packet[i];
@@ -882,23 +890,67 @@ e22:
             cpl_override = 1;
             if (is386) {
                 for (; i < (k & ~7); i += 8) {
+                    orig_cpu_abrt        = cpu_state.abrt;
+                    orig_cpu_abrt_reason = abrt_error;
                     *((uint64_t *) buf) = readmemql(j);
+                    if (cpu_state.abrt != orig_cpu_abrt) {
+                        if (cpu_state.abrt == ABRT_PF) {
+                            cpu_state.abrt = orig_cpu_abrt;
+                            abrt_error     = orig_cpu_abrt_reason;
+                            cpl_override   = 0;
+                            FAST_RESPONSE("E06");
+                            break;
+                        }
+                    }
                     j += 8;
                     gdbstub_client_respond_hex(client, buf, 8);
                 }
                 for (; i < (k & ~3); i += 4) {
+                    orig_cpu_abrt        = cpu_state.abrt;
+                    orig_cpu_abrt_reason = abrt_error;
                     *((uint32_t *) buf) = readmemll(j);
+                    if (cpu_state.abrt != orig_cpu_abrt) {
+                        if (cpu_state.abrt == ABRT_PF) {
+                            cpu_state.abrt = orig_cpu_abrt;
+                            abrt_error     = orig_cpu_abrt_reason;
+                            cpl_override   = 0;
+                            FAST_RESPONSE("E06");
+                            break;
+                        }
+                    }
                     j += 4;
                     gdbstub_client_respond_hex(client, buf, 4);
                 }
             }
             for (; i < (k & ~1); i += 2) {
+                orig_cpu_abrt        = cpu_state.abrt;
+                orig_cpu_abrt_reason = abrt_error;
                 *((uint16_t *) buf) = readmemwl(j);
+                if (cpu_state.abrt != orig_cpu_abrt) {
+                    if (cpu_state.abrt == ABRT_PF) {
+                        cpu_state.abrt = orig_cpu_abrt;
+                        abrt_error     = orig_cpu_abrt_reason;
+                        cpl_override   = 0;
+                        FAST_RESPONSE("E06");
+                        break;
+                    }
+                }
                 j += 2;
                 gdbstub_client_respond_hex(client, buf, 2);
             }
             for (; i < k; i++) {
+                orig_cpu_abrt        = cpu_state.abrt;
+                orig_cpu_abrt_reason = abrt_error;
                 buf[0] = readmembl(j++);
+                if (cpu_state.abrt != orig_cpu_abrt) {
+                    if (cpu_state.abrt == ABRT_PF) {
+                        cpu_state.abrt = orig_cpu_abrt;
+                        abrt_error     = orig_cpu_abrt_reason;
+                        cpl_override   = 0;
+                        FAST_RESPONSE("E06");
+                        break;
+                    }
+                }
                 gdbstub_client_respond_hex(client, buf, 1);
             }
             cpl_override = 0;
@@ -914,23 +966,24 @@ e22:
             if (!k)
                 goto e22;
 
-            /* Clamp length. */
-            if (k >= ((sizeof(client->response) >> 1) - client->packet_pos))
-                k = (sizeof(client->response) >> 1) - client->packet_pos - 1;
-
-            /* Decode the data. */
+            /* Decode the data, rejecting packets that hold less data than the requested length. */
             if (client->packet[0] == 'M') { /* hex encoded */
+                if (k > ((packet_len - client->packet_pos) >> 1))
+                    goto e22;
                 gdbstub_client_read_hex(client, (uint8_t *) client->packet, k);
             } else { /* binary encoded */
                 i = 0;
-                while (i < k) {
-                    if (client->packet[client->packet_pos] == '}') {
-                        client->packet_pos++;
+                while ((i < k) && (client->packet_pos < packet_len)) {
+                    if (client->packet[client->packet_pos] == '}') { /* escaped byte */
+                        if (++client->packet_pos >= packet_len)
+                            break;
                         client->packet[i++] = client->packet[client->packet_pos++] ^ 0x20;
                     } else {
                         client->packet[i++] = client->packet[client->packet_pos++];
                     }
                 }
+                if (i < k)
+                    goto e22;
             }
 
             /* Write by qwords, then by dwords, then by words, then by bytes. */
@@ -939,23 +992,67 @@ e22:
             cpl_override = 1;
             if (is386) {
                 for (; i < (k & ~7); i += 8) {
+                    orig_cpu_abrt        = cpu_state.abrt;
+                    orig_cpu_abrt_reason = abrt_error;
                     writememql(j, *((uint64_t *) p));
+                    if (cpu_state.abrt != orig_cpu_abrt) {
+                        if (cpu_state.abrt == ABRT_PF) {
+                            cpu_state.abrt = orig_cpu_abrt;
+                            abrt_error     = orig_cpu_abrt_reason;
+                            cpl_override   = 0;
+                            FAST_RESPONSE("E06");
+                            break;
+                        }
+                    }
                     j += 8;
                     p += 8;
                 }
                 for (; i < (k & ~3); i += 4) {
+                    orig_cpu_abrt        = cpu_state.abrt;
+                    orig_cpu_abrt_reason = abrt_error;
                     writememll(j, *((uint32_t *) p));
+                    if (cpu_state.abrt != orig_cpu_abrt) {
+                        if (cpu_state.abrt == ABRT_PF) {
+                            cpu_state.abrt = orig_cpu_abrt;
+                            abrt_error     = orig_cpu_abrt_reason;
+                            cpl_override   = 0;
+                            FAST_RESPONSE("E06");
+                            break;
+                        }
+                    }
                     j += 4;
                     p += 4;
                 }
             }
             for (; i < (k & ~1); i += 2) {
+                orig_cpu_abrt        = cpu_state.abrt;
+                orig_cpu_abrt_reason = abrt_error;
                 writememwl(j, *((uint16_t *) p));
+                if (cpu_state.abrt != orig_cpu_abrt) {
+                    if (cpu_state.abrt == ABRT_PF) {
+                        cpu_state.abrt = orig_cpu_abrt;
+                        abrt_error     = orig_cpu_abrt_reason;
+                        cpl_override   = 0;
+                        FAST_RESPONSE("E06");
+                        break;
+                    }
+                }
                 j += 2;
                 p += 2;
             }
             for (; i < k; i++) {
+                orig_cpu_abrt        = cpu_state.abrt;
+                orig_cpu_abrt_reason = abrt_error;
                 writemembl(j++, p[0]);
+                if (cpu_state.abrt != orig_cpu_abrt) {
+                    if (cpu_state.abrt == ABRT_PF) {
+                        cpu_state.abrt = orig_cpu_abrt;
+                        abrt_error     = orig_cpu_abrt_reason;
+                        cpl_override   = 0;
+                        FAST_RESPONSE("E06");
+                        break;
+                    }
+                }
                 p++;
             }
             cpl_override = 0;
@@ -1359,6 +1456,10 @@ unknown:
                         l++;
                     }
                 }
+
+                /* Drop cached lookups, so that accesses to the watched
+                   pages go through the checked paths. */
+                flushmmucache();
             }
 
             /* Respond positively. */
@@ -1367,6 +1468,62 @@ unknown:
 end:
     /* Send response. */
     gdbstub_client_respond(client);
+}
+
+/* Report a stop to clients waiting for one, if report_stop is set, and
+   process their packets. Runs on the emulation thread. */
+static void
+gdbstub_process_clients(int report_stop)
+{
+    thread_wait_mutex(client_list_mutex);
+    gdbstub_client_t *client = first_client;
+    while (client) {
+        /* Report stop reason if the client is waiting for one. */
+        if (report_stop && client->waiting_stop && stop_reason_len) {
+            client->waiting_stop = 0;
+
+            /* Wait for any pending responses to be acknowledged. */
+            if (!thread_wait_event(client->response_event, -1)) {
+                /* Block other responses from being written while this one isn't acknowledged. */
+                thread_reset_event(client->response_event);
+
+                /* Write stop reason response. */
+                strcpy(client->response, stop_reason);
+                client->response_pos = stop_reason_len;
+                gdbstub_client_respond(client);
+            } else {
+                gdbstub_log("GDB Stub: Timed out waiting for client %s:%d\n", inet_ntoa(client->addr.sin_addr), client->addr.sin_port);
+            }
+        }
+
+        if (client->has_packet) {
+            gdbstub_client_packet(client);
+            client->has_packet = client->packet_pos = 0;
+            thread_set_event(client->processed_event);
+        }
+
+#ifdef GDBSTUB_ALLOW_MULTI_CLIENTS
+        client = client->next;
+#else
+        break;
+#endif
+    }
+    thread_release_mutex(client_list_mutex);
+}
+
+/* Serve clients while the CPU isn't being run, such as while an automation
+   client holds the machine: they can read and write registers and memory
+   and set breakpoints. A continue or step takes effect when the CPU runs
+   again. */
+void
+gdbstub_poll(void)
+{
+    if (gdbstub_socket == -1)
+        return;
+
+    in_gdbstub = 1;
+    gdbstub_process_clients(0);
+    in_gdbstub = 0;
 }
 
 static void
@@ -1448,6 +1605,7 @@ gdbstub_cpu_exec(int32_t cycs)
             }
             stop_reason[stop_reason_len++] = ';';
         }
+        stop_reason[stop_reason_len] = '\0';
 
         /* Don't execute the CPU any further if single-stepping. */
         gdbstub_step = GDBSTUB_BREAK;
@@ -1456,41 +1614,7 @@ gdbstub_cpu_exec(int32_t cycs)
     /* Return the framerate to normal. */
     gdbstub_next_asap = 0;
 
-    /* Process client packets. */
-    thread_wait_mutex(client_list_mutex);
-    gdbstub_client_t *client = first_client;
-    while (client) {
-        /* Report stop reason if the client is waiting for one. */
-        if (client->waiting_stop && stop_reason_len) {
-            client->waiting_stop = 0;
-
-            /* Wait for any pending responses to be acknowledged. */
-            if (!thread_wait_event(client->response_event, -1)) {
-                /* Block other responses from being written while this one isn't acknowledged. */
-                thread_reset_event(client->response_event);
-
-                /* Write stop reason response. */
-                strcpy(client->response, stop_reason);
-                client->response_pos = stop_reason_len;
-                gdbstub_client_respond(client);
-            } else {
-                gdbstub_log("GDB Stub: Timed out waiting for client %s:%d\n", inet_ntoa(client->addr.sin_addr), client->addr.sin_port);
-            }
-        }
-
-        if (client->has_packet) {
-            gdbstub_client_packet(client);
-            client->has_packet = client->packet_pos = 0;
-            thread_set_event(client->processed_event);
-        }
-
-#ifdef GDBSTUB_ALLOW_MULTI_CLIENTS
-        client = client->next;
-#else
-        break;
-#endif
-    }
-    thread_release_mutex(client_list_mutex);
+    gdbstub_process_clients(1);
 
     /* Flag that we're now out of the debugger context. */
     in_gdbstub = 0;
@@ -1511,13 +1635,16 @@ gdbstub_client_thread(void *priv)
     /* Read data from client. */
     while ((bytes_read = recv(client->socket, (char *) buf, sizeof(buf), 0)) > 0) {
         for (ssize_t i = 0; i < bytes_read; i++) {
-            switch (buf[i]) {
+            /* Inside a packet, only '$' is special; binary data ('X' packets) may contain
+               raw '+', '-' and 0x03 bytes, such as the escaped form of '#' (0x7D 0x03). */
+            switch ((client->in_packet && (buf[i] != '$')) ? 0x100 : buf[i]) {
                 case '$': /* packet start */
                     /* Wait for any existing packets to be processed. */
                     thread_wait_event(client->processed_event, -1);
                     thread_set_event(client->processed_event);
 
                     client->packet_pos = 0;
+                    client->in_packet  = 1;
                     break;
 
                 case '-': /* negative acknowledgement */
@@ -1551,6 +1678,8 @@ gdbstub_client_thread(void *priv)
 
                         /* Check if we're at the end of a packet. */
                         if ((client->packet_pos >= 3) && (client->packet[client->packet_pos - 3] == '#')) { /* packet checksum start */
+                            client->in_packet = 0;
+
                             /* Small hack to speed up IDA instruction trace mode. */
                             if (*((uint32_t *) client->packet) == ('H' | ('c' << 8) | ('1' << 16) | ('#' << 24))) {
                                 /* Send pre-computed response. */
@@ -1812,7 +1941,7 @@ gdbstub_init(void)
 #endif
 
     /* Bind GDB server socket. */
-    int                port      = 12345;
+    int                port      = gdbstub_port;
     struct sockaddr_in bind_addr = {
         .sin_family = AF_INET,
         .sin_addr   = { .s_addr = INADDR_ANY },
@@ -1860,6 +1989,10 @@ gdbstub_close(void)
     int               socket;
     while (client) {
         socket         = client->socket;
+        if (client->waiting_stop) {
+            FAST_RESPONSE("W00");
+            gdbstub_client_respond(client);
+        }
         client->socket = -1;
         close(socket);
         client = client->next;

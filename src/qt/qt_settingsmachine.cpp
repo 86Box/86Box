@@ -25,7 +25,9 @@
 #include <QStandardItem>
 #include <QStandardItemModel>
 #include <QCompleter>
+#include <QSignalBlocker>
 #include <QTimer>
+#include <QDate>
 
 #include <algorithm>
 
@@ -60,12 +62,13 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     int         j                   = 0;
     int         cur_j               = 0;
     const void *miname;
+    Models::Batch machineTypeRows(machineTypesModel);
     do {
         miname = machine_get_internal_name_ex(j);
 
         if ((miname == nullptr) || (machine_get_type(j) != i)) {
             if ((i != -1) && (cur_j != 0)) {
-                int row = Models::AddEntry(machineTypesModel, tr(machine_types[i].name), machine_types[i].id);
+                int row = machineTypeRows.add(tr(machine_types[i].name), machine_types[i].id);
                 if (machine_types[i].id == machine_get_type(machine))
                     selectedMachineType = row;
             }
@@ -82,11 +85,15 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 
         j++;
     } while (miname != nullptr);
+    machineTypeRows.commit();
 
     auto warning_icon = QIcon(":/misc/qt/icons/warning.ico");
     ui->softFloatWarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
     ui->softFloatWarningIcon->setVisible(false);
     ui->softFloatWarningText->setVisible(false);
+    ui->debugRegs486WarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
+    ui->debugRegs486WarningIcon->setVisible(false);
+    ui->debugRegs486WarningText->setVisible(false);
 
     auto *waitStatesModel = ui->comboBoxWaitStates->model();
     waitStatesModel->insertRows(0, 9);
@@ -95,7 +102,7 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     waitStatesModel->setData(idx, 0, Qt::UserRole);
     for (int i = 0; i < 8; ++i) {
         idx = waitStatesModel->index(i + 1, 0);
-        waitStatesModel->setData(idx, tr("%1 Wait state(s)").arg(i), Qt::DisplayRole);
+        waitStatesModel->setData(idx, tr("%n wait state(s)", "", i), Qt::DisplayRole);
         waitStatesModel->setData(idx, i + 1, Qt::UserRole);
     }
 
@@ -114,18 +121,56 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     ui->comboBoxPitMode->setCurrentIndex(-1);
     ui->comboBoxPitMode->setCurrentIndex(pit_mode + 1);
 
-    switch (time_sync) {
-        case TIME_SYNC_ENABLED:
-            ui->radioButtonLocalTime->setChecked(true);
-            break;
-        case TIME_SYNC_ENABLED | TIME_SYNC_UTC:
-            ui->radioButtonUTC->setChecked(true);
-            break;
-        case TIME_SYNC_DISABLED:
-        default:
-            ui->radioButtonDisabled->setChecked(true);
-            break;
+    ui->groupBoxTimeSync->setChecked(time_sync & TIME_SYNC_ENABLED);
+    if (time_sync & TIME_SYNC_UTC)
+        ui->radioButtonUTC->setChecked(true);
+    else
+        ui->radioButtonLocalTime->setChecked(true);
+
+    /* Clamp so the resulting year stays in 1980..2099. Config may hold
+       a wider range; the spinner shows the clamped value, but the
+       original is preserved on save unless the user changes the control. */
+    original_years_offset = time_offset_years;
+    original_fixed_year   = time_fixed_year;
+    years_offset_manipulated = false;
+    fixed_year_manipulated   = false;
+
+    const int host_year  = QDate::currentDate().year();
+    ui->spinBoxYearsOffset->setMinimum(1980 - host_year);
+    ui->spinBoxYearsOffset->setMaximum(2099 - host_year);
+    ui->spinBoxFixedYear->setMinimum(1980);
+    ui->spinBoxFixedYear->setMaximum(2099);
+
+    /* Pre-fill both spinners so the inactive mode already matches the
+       guest year. Switching modes then needs no manual entry. */
+    int offset_value = time_offset_years;
+    int fixed_value  = (time_fixed_year != 0) ? time_fixed_year
+                                              : qBound(1980, host_year, 2099);
+    if (time_fixed_year != 0 && time_offset_years == 0) {
+        offset_value = time_fixed_year - host_year;
+        original_years_offset = offset_value;
+    } else if (time_offset_years != 0 && time_fixed_year == 0) {
+        fixed_value = host_year + time_offset_years;
+        original_fixed_year = fixed_value;
     }
+    {
+        const QSignalBlocker b1(ui->spinBoxYearsOffset);
+        const QSignalBlocker b2(ui->spinBoxFixedYear);
+        ui->spinBoxYearsOffset->setValue(offset_value);
+        ui->spinBoxFixedYear->setValue(fixed_value);
+    }
+
+    if (time_keep_date)
+        ui->radioButtonKeepDate->setChecked(true);
+    else if (time_fixed_year != 0)
+        ui->radioButtonFixedYear->setChecked(true);
+    else if (time_offset_years != 0)
+        ui->radioButtonOffsetYears->setChecked(true);
+    else
+        ui->radioButtonHostDate->setChecked(true);
+
+    updateTimeControlsEnabled();
+    updateGuestYearLabel();
 
     ui->comboBoxMachineType->setCurrentIndex(-1);
     ui->comboBoxMachineType->setCurrentIndex(selectedMachineType);
@@ -134,10 +179,14 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     ui->radioButtonSmallerFrames->setChecked(!force_10ms);
 
     ui->checkBoxOverrideInterpreter->setChecked(cpu_override_interpreter ? true : false);
+    ui->checkBoxDebugRegs486->setChecked(cpu_debug_regs_486 ? true : false);
 
 #ifndef USE_DYNAREC
     ui->checkBoxDynamicRecompiler->setEnabled(false);
     ui->checkBoxDynamicRecompiler->setVisible(false);
+    ui->checkBoxBlockLinking->setVisible(false);
+#else
+    ui->checkBoxBlockLinking->setVisible(codegen_has_block_link);
 #endif
 }
 
@@ -160,7 +209,12 @@ SettingsMachine::changed()
     has_changed |= (cpu                        != ui->comboBoxSpeed->currentData().toInt());
     has_changed |= (fpu_type                   != ui->comboBoxFPU->currentData().toInt());
     has_changed |= (cpu_override_interpreter   != (ui->checkBoxOverrideInterpreter->isChecked() ? 1 : 0));
+    has_changed |= (cpu_debug_regs_486         != (ui->checkBoxDebugRegs486->isChecked() ? 1 : 0));
+#ifdef USE_DYNAREC
     has_changed |= (cpu_use_dynarec            != (ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0));
+    has_changed |= (cpu_dyn_accurate_fpu_env   != (ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0));
+    has_changed |= (cpu_dyn_block_link         != (ui->checkBoxBlockLinking->isChecked() ? 1 : 0));
+#endif
     has_changed |= (fpu_softfloat              != (ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0));
     has_changed |= (force_10ms                 != (ui->radioButtonLargerFrames->isChecked() ? 1 : 0));
 
@@ -170,7 +224,10 @@ SettingsMachine::changed()
     else
         temp_mem_size = ui->spinBoxRAM->value() * 1024;
 
-    temp_mem_size &= ~(machine_get_ram_granularity(machine) - 1);
+    const int gran = machine_get_ram_granularity(machine);
+    const int min  = machine_get_min_ram(machine);
+    if (temp_mem_size > min)
+        temp_mem_size = min + ((temp_mem_size - min) / gran) * gran;
     if (temp_mem_size < machine_get_min_ram(machine))
         temp_mem_size = machine_get_min_ram(machine);
     else if (temp_mem_size > machine_get_max_ram(machine))
@@ -185,12 +242,15 @@ SettingsMachine::changed()
 
     has_changed |= (pit_mode                   !=  ui->comboBoxPitMode->currentData().toInt());
 
-    temp = 0;
-    if (ui->radioButtonLocalTime->isChecked())
-        temp = TIME_SYNC_ENABLED;
-    if (ui->radioButtonUTC->isChecked())
-        temp = TIME_SYNC_ENABLED | TIME_SYNC_UTC;
-    has_changed |= (time_sync                  != temp);
+    int sync;
+    int offset_years;
+    int fixed_year;
+    int keep_date;
+    timeSyncSettings(sync, offset_years, fixed_year, keep_date);
+    has_changed |= (time_sync         != sync);
+    has_changed |= (time_offset_years != offset_years);
+    has_changed |= (time_fixed_year   != fixed_year);
+    has_changed |= (time_keep_date    != keep_date);
 
     return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
 }
@@ -198,6 +258,12 @@ SettingsMachine::changed()
 void
 SettingsMachine::restore()
 {
+}
+
+int
+SettingsMachine::currentMachineId() const
+{
+    return ui->comboBoxMachine->currentData().toInt();
 }
 
 void
@@ -211,7 +277,12 @@ SettingsMachine::save(int soft)
     cpu                      = ui->comboBoxSpeed->currentData().toInt();
     fpu_type                 = ui->comboBoxFPU->currentData().toInt();
     cpu_override_interpreter = ui->checkBoxOverrideInterpreter->isChecked() ? 1 : 0;
+    cpu_debug_regs_486       = ui->checkBoxDebugRegs486->isChecked() ? 1 : 0;
+#ifdef USE_DYNAREC
     cpu_use_dynarec          = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
+    cpu_dyn_accurate_fpu_env = ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0;
+    cpu_dyn_block_link       = ui->checkBoxBlockLinking->isChecked() ? 1 : 0;
+#endif
     fpu_softfloat            = ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0;
     force_10ms               = ui->radioButtonLargerFrames->isChecked() ? 1 : 0;
 
@@ -221,7 +292,10 @@ SettingsMachine::save(int soft)
     else
         temp_mem_size = ui->spinBoxRAM->value() * 1024;
 
-    temp_mem_size &= ~(machine_get_ram_granularity(machine) - 1);
+    const int gran = machine_get_ram_granularity(machine);
+    const int min  = machine_get_min_ram(machine);
+    if (temp_mem_size > min)
+        temp_mem_size = min + ((temp_mem_size - min) / gran) * gran;
     if (temp_mem_size < machine_get_min_ram(machine))
         temp_mem_size = machine_get_min_ram(machine);
     else if (temp_mem_size > machine_get_max_ram(machine))
@@ -235,11 +309,30 @@ SettingsMachine::save(int soft)
 
     pit_mode = ui->comboBoxPitMode->currentData().toInt();
 
-    time_sync = 0;
-    if (ui->radioButtonLocalTime->isChecked())
-        time_sync = TIME_SYNC_ENABLED;
-    if (ui->radioButtonUTC->isChecked())
-        time_sync = TIME_SYNC_ENABLED | TIME_SYNC_UTC;
+    timeSyncSettings(time_sync, time_offset_years, time_fixed_year, time_keep_date);
+}
+
+/* The time sync settings the page currently describes. At most one date mode
+   applies; the others are cleared. */
+void
+SettingsMachine::timeSyncSettings(int &sync, int &offset_years, int &fixed_year, int &keep_date) const
+{
+    sync = TIME_SYNC_DISABLED;
+    if (ui->groupBoxTimeSync->isChecked())
+        sync = TIME_SYNC_ENABLED | (ui->radioButtonUTC->isChecked() ? TIME_SYNC_UTC : 0);
+
+    offset_years = 0;
+    fixed_year   = 0;
+    keep_date    = ui->radioButtonKeepDate->isChecked() ? 1 : 0;
+    if (ui->radioButtonFixedYear->isChecked())
+        fixed_year = fixed_year_manipulated
+                         ? ui->spinBoxFixedYear->value()
+                         : (original_fixed_year != 0 ? original_fixed_year
+                                                    : ui->spinBoxFixedYear->value());
+    else if (ui->radioButtonOffsetYears->isChecked())
+        offset_years = years_offset_manipulated
+                           ? ui->spinBoxYearsOffset->value()
+                           : original_years_offset;
 }
 
 void
@@ -250,16 +343,26 @@ SettingsMachine::on_comboBoxMachineType_currentIndexChanged(int index)
         int   removeRows = model->rowCount();
 
         int selectedMachineRow = 0;
-        for (int i = 0; i < machine_count(); ++i) {
-            if ((machine_get_type(i) == ui->comboBoxMachineType->currentData().toInt()) && machine_available(i)) {
-                int row = Models::AddEntry(model, machines[i].name, i);
-                if (i == machine)
-                    selectedMachineRow = row - removeRows;
-            }
-        }
-        model->removeRows(0, removeRows);
+        {
+            /* Swapping the list over moves the selection through machines
+               nobody chose; only the one it lands on is announced, so the
+               other pages are not rebuilt for the others, nor drop devices
+               those machines cannot take. */
+            const QSignalBlocker blocker(ui->comboBoxMachine);
 
-        ui->comboBoxMachine->setCurrentIndex(-1);
+            Models::Batch rows(model);
+            for (int i = 0; i < machine_count(); ++i) {
+                if ((machine_get_type(i) == ui->comboBoxMachineType->currentData().toInt()) && machine_available(i)) {
+                    int row = rows.add(machines[i].name, i);
+                    if (i == machine)
+                        selectedMachineRow = row - removeRows;
+                }
+            }
+            rows.commit();
+            model->removeRows(0, removeRows);
+
+            ui->comboBoxMachine->setCurrentIndex(-1);
+        }
         ui->comboBoxMachine->setCurrentIndex(selectedMachineRow);
     }
 }
@@ -279,15 +382,17 @@ SettingsMachine::on_comboBoxMachine_currentIndexChanged(int index)
         int i                    = 0;
         int eligibleRows         = 0;
         int selectedCpuFamilyRow = 0;
+        Models::Batch cpuRows(modelCpu);
         while (cpu_families[i].package != 0) {
             if (cpu_family_is_eligible(&cpu_families[i], machineId)) {
-                Models::AddEntry(modelCpu, QString("%1 %2").arg(cpu_families[i].manufacturer, cpu_families[i].name), i);
+                cpuRows.add(QString("%1 %2").arg(cpu_families[i].manufacturer, cpu_families[i].name), i);
                 if (&cpu_families[i] == cpu_f)
                     selectedCpuFamilyRow = eligibleRows;
                 ++eligibleRows;
             }
             ++i;
         }
+        cpuRows.commit();
         modelCpu->removeRows(0, removeRows);
         ui->comboBoxCPU->setEnabled(eligibleRows > 1);
         ui->comboBoxCPU->setCurrentIndex(-1);
@@ -326,15 +431,17 @@ SettingsMachine::on_comboBoxCPU_currentIndexChanged(int index)
         int i                = 0;
         int eligibleRows     = 0;
         int selectedSpeedRow = 0;
+        Models::Batch speedRows(modelSpeed);
         while (cpuFamily->cpus[i].cpu_type != 0) {
             if (cpu_is_eligible(cpuFamily, i, machineId)) {
-                Models::AddEntry(modelSpeed, QString("%1").arg(cpuFamily->cpus[i].name), i);
+                speedRows.add(QString("%1").arg(cpuFamily->cpus[i].name), i);
                 if (cpu == i)
                     selectedSpeedRow = eligibleRows;
                 ++eligibleRows;
             }
             ++i;
         }
+        speedRows.commit();
         modelSpeed->removeRows(0, removeRows);
         ui->comboBoxSpeed->setEnabled(eligibleRows > 1);
         ui->comboBoxSpeed->setCurrentIndex(-1);
@@ -351,8 +458,9 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
         const auto *cpuFamily   = &cpu_families[cpuFamilyId];
         int         cpuId       = ui->comboBoxSpeed->currentData().toInt();
         uint        cpuType     = cpuFamily->cpus[cpuId].cpu_type;
-
-        if ((cpuType >= CPU_286) && (cpuType < CPU_386DX)) {
+        int         machineId   = ui->comboBoxMachine->currentData().toInt();
+        /* The Tandy VIS has no wait states. */
+        if ((cpuType >= CPU_286) && (cpuType < CPU_386DX) && machines[machineId].init != machine_at_tandy_vis_init) {
             ui->comboBoxWaitStates->setEnabled(true);
             ui->comboBoxWaitStates->setCurrentIndex(cpu_waitstates);
         } else {
@@ -365,14 +473,23 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
         if (!(flags & CPU_SUPPORTS_DYNAREC)) {
             ui->checkBoxDynamicRecompiler->setChecked(false);
             ui->checkBoxDynamicRecompiler->setEnabled(false);
+            ui->checkBoxAccurateFPUEnvironment->setEnabled(false);
+            ui->checkBoxBlockLinking->setEnabled(false);
         } else if ((flags & CPU_REQUIRES_DYNAREC) && !cpu_override) {
             ui->checkBoxDynamicRecompiler->setChecked(true);
             ui->checkBoxDynamicRecompiler->setEnabled(false);
+            ui->checkBoxAccurateFPUEnvironment->setEnabled(true);
+            ui->checkBoxBlockLinking->setEnabled(true);
         } else {
             ui->checkBoxDynamicRecompiler->setChecked(cpu_use_dynarec);
             ui->checkBoxDynamicRecompiler->setEnabled(true);
+            ui->checkBoxAccurateFPUEnvironment->setEnabled(cpu_use_dynarec);
+            ui->checkBoxBlockLinking->setEnabled(cpu_use_dynarec);
         }
 #endif
+
+        ui->checkBoxAccurateFPUEnvironment->setChecked(cpu_dyn_accurate_fpu_env);
+        ui->checkBoxBlockLinking->setChecked(cpu_dyn_block_link);
 
         if ((cpuType < CPU_286) || (cpuType == CPU_IBM486SLC) || (cpuType == CPU_IBM486BL) ||
             !strcmp(cpuFamily->manufacturer, "Cyrix") || !strcmp(cpuFamily->manufacturer, "ST") ||
@@ -387,14 +504,16 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
 
         int i              = 0;
         int selectedFpuRow = 0;
+        Models::Batch fpuRows(modelFpu);
         for (const char *fpuName         = fpu_get_name_from_index(cpuFamily, cpuId, i);
              fpuName != nullptr; fpuName = fpu_get_name_from_index(cpuFamily, cpuId, ++i)) {
             auto fpuType = fpu_get_type_from_index(cpuFamily, cpuId, i);
-            Models::AddEntry(modelFpu, tr(QString("%1").arg(fpuName).toUtf8().data()), fpuType);
+            fpuRows.add(tr(fpuName), fpuType);
             if (fpu_type == fpuType)
                 selectedFpuRow = i;
         }
 
+        fpuRows.commit();
         modelFpu->removeRows(0, removeRows);
         ui->comboBoxFPU->setEnabled(modelFpu->rowCount() > 1);
         ui->comboBoxFPU->setCurrentIndex(-1);
@@ -443,6 +562,22 @@ SettingsMachine::on_checkBoxFPUSoftfloat_stateChanged(int state)
 }
 
 void
+SettingsMachine::on_checkBoxDebugRegs486_stateChanged(int state)
+{
+    ui->debugRegs486WarningIcon->setVisible(state == Qt::Checked);
+    ui->debugRegs486WarningText->setVisible(state == Qt::Checked);
+}
+
+void
+SettingsMachine::on_checkBoxDynamicRecompiler_stateChanged(int state)
+{
+#ifdef USE_DYNAREC
+    ui->checkBoxAccurateFPUEnvironment->setEnabled(state);
+    ui->checkBoxBlockLinking->setEnabled(state);
+#endif
+}
+
+void
 SettingsMachine::on_radioButtonSmallerFrames_clicked()
 {
     ui->radioButtonLargerFrames->setChecked(false);
@@ -452,4 +587,63 @@ void
 SettingsMachine::on_radioButtonLargerFrames_clicked()
 {
     ui->radioButtonSmallerFrames->setChecked(false);
+}
+
+void
+SettingsMachine::updateGuestYearLabel()
+{
+    const int host_year = QDate::currentDate().year();
+    const int guest_year = host_year + ui->spinBoxYearsOffset->value();
+    //: Same-line preview after the offset spinner. %1 is the guest year the offset gives this year.
+    ui->labelGuestYear->setText(tr("(currently %1)").arg(guest_year));
+}
+
+void
+SettingsMachine::updateTimeControlsEnabled()
+{
+    /* The group box enables and disables its children as it is checked;
+       this only narrows that down to the selected date mode. */
+    const bool sync = ui->groupBoxTimeSync->isChecked();
+
+    const bool offset_mode = sync && ui->radioButtonOffsetYears->isChecked();
+    const bool fixed_mode  = sync && ui->radioButtonFixedYear->isChecked();
+    ui->spinBoxYearsOffset->setEnabled(offset_mode);
+    ui->labelGuestYear->setEnabled(offset_mode);
+    ui->spinBoxFixedYear->setEnabled(fixed_mode);
+}
+
+void
+SettingsMachine::on_spinBoxYearsOffset_valueChanged(int value)
+{
+    Q_UNUSED(value);
+    years_offset_manipulated = true;
+    updateGuestYearLabel();
+}
+
+void
+SettingsMachine::on_spinBoxFixedYear_valueChanged(int value)
+{
+    Q_UNUSED(value);
+    fixed_year_manipulated = true;
+}
+
+void
+SettingsMachine::on_groupBoxTimeSync_toggled(bool checked)
+{
+    Q_UNUSED(checked);
+    updateTimeControlsEnabled();
+}
+
+void
+SettingsMachine::on_radioButtonOffsetYears_toggled(bool checked)
+{
+    Q_UNUSED(checked);
+    updateTimeControlsEnabled();
+}
+
+void
+SettingsMachine::on_radioButtonFixedYear_toggled(bool checked)
+{
+    Q_UNUSED(checked);
+    updateTimeControlsEnabled();
 }

@@ -62,6 +62,7 @@ log_set_dev_name(void *priv, char *dev_name)
         log->dev_name[0] = '\0';
 }
 
+#ifndef RELEASE_BUILD
 static inline void
 log_print(log_t *log, char *buf)
 {
@@ -71,8 +72,7 @@ log_print(log_t *log, char *buf)
         fputs(buf, stdlog);
 }
 
-#ifndef RELEASE_BUILD
-void 
+void
 log_ensure_stdlog_open(void)
 {
     if (stdlog == NULL) {

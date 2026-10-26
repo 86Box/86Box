@@ -29,11 +29,8 @@ extern "C" {
 
 #include "qt_settings_completer.hpp"
 #include "qt_preferences.hpp"
-#include "ui_qt_preferences.h"
-#include "qt_mainwindow.hpp"
-#include "ui_qt_mainwindow.h"
-#include "qt_machinestatus.hpp"
 
+#include <QStackedWidget>
 #include <QStandardItemModel>
 
 #include <QDialog>
@@ -41,9 +38,11 @@ extern "C" {
 
 #include <QPushButton>
 
+#include "qt_preferencesgeneral.hpp"
 #include "qt_preferencesemulator.hpp"
 #include "qt_preferencesinput.hpp"
 #include "qt_preferenceskeybindings.hpp"
+#include "qt_preferencesmanager.hpp"
 #include "qt_defs.hpp"
 
 #include <QDebug>
@@ -64,154 +63,109 @@ extern "C" {
 #    include <windows.h>
 #endif
 
-extern MainWindow *main_window;
-
-class PreferencesModel : public QAbstractListModel {
-public:
-    PreferencesModel(QObject *parent)
-        : QAbstractListModel(parent)
-    {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        fontHeight = QFontMetrics(qApp->font()).height();
-#else
-        fontHeight = QApplication::fontMetrics().height();
-#endif
-    }
-
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    int      rowCount(const QModelIndex &parent = QModelIndex()) const override;
-
-private:
-    QStringList pages = {
-        "Emulator",
-        "Input",
-        "Key bindings",
-    };
-    QStringList page_icons = {
-        "emulator",
-        "input_devices",
-        "key_bindings",
-    };
-    int fontHeight;
+static const QVector<PagedDialog::Page> preferencesPages = {
+    { "General",      "settings"      },
+    { "Emulator",     "emulator"      },
+    { "Input",        "input_devices" },
+    { "Key bindings", "key_bindings"  },
 };
 
-QVariant
-PreferencesModel::data(const QModelIndex &index, int role) const
-{
-    Q_ASSERT(checkIndex(index, QAbstractItemModel::CheckIndexOption::IndexIsValid | QAbstractItemModel::CheckIndexOption::ParentIsInvalid));
+static const PagedDialog::Page managerPage = { "VM Manager", "86Box-gray" };
 
-    switch (role) {
-        case Qt::DisplayRole:
-            return tr(pages.at(index.row()).toUtf8().data());
-        case Qt::DecorationRole:
-            return QIcon(QString(":/settings/qt/icons/%1.ico").arg(page_icons[index.row()]));
-        case Qt::SizeHintRole:
-            return QSize(-1, fontHeight * 2);
-        default:
-            return {};
-    }
-}
-
-int
-PreferencesModel::rowCount(const QModelIndex &parent) const
+static QVector<PagedDialog::Page>
+pageList(bool showManager)
 {
-    (void) parent;
-    return pages.size();
+    QVector<PagedDialog::Page> pages = preferencesPages;
+
+    if (showManager)
+        pages.append(managerPage);
+
+    return pages;
 }
 
 Preferences *Preferences::preferences = nullptr;
-;
+
 Preferences::CustomTranslator *Preferences::translator   = nullptr;
 QTranslator                   *Preferences::qtTranslator = nullptr;
 
+bool Preferences::translationsLoaded = false;
+
 QVector<QPair<QString, QString>> Preferences::languages = {
     { "system", "(System Default)"         },
-    { "ca-ES",  "Catalan (Spain)"          },
-    { "zh-CN",  "Chinese (Simplified)"     },
-    { "zh-TW",  "Chinese (Traditional)"    },
-    { "hr-HR",  "Croatian (Croatia)"       },
-    { "cs-CZ",  "Czech (Czech Republic)"   },
-    { "de-DE",  "German (Germany)"         },
-    { "el-GR",  "Greek (Greece)"           },
+    { "ca-ES",  "Català"                   },
+    { "cs-CZ",  "Čeština"                  },
+    { "de-DE",  "Deutsch"                  },
+    { "el-GR",  "Ελληνικά"                 },
     { "en-GB",  "English (United Kingdom)" },
     { "en-US",  "English (United States)"  },
-    { "fi-FI",  "Finnish (Finland)"        },
-    { "fr-FR",  "French (France)"          },
-    { "it-IT",  "Italian (Italy)"          },
-    { "ja-JP",  "Japanese (Japan)"         },
-    { "ko-KR",  "Korean (Korea)"           },
-    { "nl-NL",  "Dutch (Netherlands)"      },
-    { "nb-NO",  "Norwegian (Bokmål)"       },
-    { "pl-PL",  "Polish (Poland)"          },
-    { "pt-BR",  "Portuguese (Brazil)"      },
-    { "pt-PT",  "Portuguese (Portugal)"    },
-    { "ru-RU",  "Russian (Russia)"         },
-    { "sk-SK",  "Slovak (Slovakia)"        },
-    { "sl-SI",  "Slovenian (Slovenia)"     },
-    { "sv-SE",  "Swedish (Sweden)"         },
-    { "es-ES",  "Spanish (Spain)"          },
-    { "tr-TR",  "Turkish (Turkey)"         },
-    { "uk-UA",  "Ukrainian (Ukraine)"      },
-    { "vi-VN",  "Vietnamese (Vietnam)"     },
+    { "es-ES",  "Español (España)"         },
+    { "fi-FI",  "Suomi"                    },
+    { "fr-FR",  "Français"                 },
+    { "hr-HR",  "Hrvatski"                 },
+    { "it-IT",  "Italiano"                 },
+    { "ja-JP",  "日本語"                    },
+    { "ko-KR",  "한국어"                    },
+    { "nb-NO",  "Norsk (bokmål)"           },
+    { "nl-NL",  "Nederlands"               },
+    { "pl-PL",  "Polski"                   },
+    { "pt-BR",  "Português (Brasil)"       },
+    { "pt-PT",  "Português (Portugal)"     },
+    { "ru-RU",  "Русский"                  },
+    { "ro-RO",  "Română"                   },
+    { "sk-SK",  "Slovenčina"               },
+    { "sl-SI",  "Slovenščina"              },
+    { "sv-SE",  "Svenska"                  },
+    { "tr-TR",  "Türkçe"                   },
+    { "uk-UA",  "Українська"               },
+    { "vi-VN",  "Tiếng Việt"               },
+    { "zh-CN",  "简体中文"                  },
+    { "zh-TW",  "繁體中文"                  },
 };
 
-Preferences::Preferences(QWidget *parent)
-    : QDialog(parent)
-    , ui(new Ui::Preferences)
+Preferences::Preferences(bool showManager, bool machinesRunning, QWidget *parent)
+    : PagedDialog(tr("Preferences"), QSize(600, 0), pageList(showManager), parent)
 {
-    ui->setupUi(this);
-    auto *model = new PreferencesModel(this);
-    ui->listView->setModel(model);
-
+    general                   = new PreferencesGeneral(this);
     emulator                  = new PreferencesEmulator(this);
     input                     = new PreferencesInput(this);
     key_bindings              = new PreferencesKeyBindings(this);
 
-    ui->stackedWidget->addWidget(emulator);
-    ui->stackedWidget->addWidget(input);
-    ui->stackedWidget->addWidget(key_bindings);
+    pageStack()->addWidget(general);
+    pageStack()->addWidget(emulator);
+    pageStack()->addWidget(input);
+    pageStack()->addWidget(key_bindings);
 
-    connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
-            [this](const QModelIndex &current, const QModelIndex &previous) {
-                ui->stackedWidget->setCurrentIndex(current.row());
-                ui->headerIcon->setPixmap(qvariant_cast<QIcon>(ui->listView->model()->data(current, Qt::DecorationRole)).pixmap(QSize(16, 16)));
-                ui->headerLabel->setText(ui->listView->model()->data(current, Qt::DisplayRole).toString());
-            });
+    if (showManager) {
+        manager = new PreferencesManager(machinesRunning, this);
+        pageStack()->addWidget(manager);
+    }
 
-    ui->listView->setCurrentIndex(model->index(0, 0));
+    showFirstPage();
 
     Preferences::preferences = this;
 }
 
 Preferences::~Preferences()
 {
-    delete ui;
-
     Preferences::preferences = nullptr;
 }
 
 void
 Preferences::save()
 {
+    general->save();
     emulator->save();
     input->save();
     key_bindings->save();
+    if (manager)
+        manager->save();
 }
 
 void
 Preferences::accept()
 {
-    auto size               = main_window->centralWidget()->size();
-
     save();
     config_save_global();
-    QTimer::singleShot(200, [size] () {
-        main_window->centralWidget()->setFixedSize(size);
-        QApplication::processEvents();
-        if (vid_resize == 1) {
-            main_window->centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-        }
-    });
     QDialog::accept();
 }
 
@@ -375,6 +329,7 @@ Preferences::loadTranslators(QObject *parent)
         if (QCoreApplication::installTranslator(qtTranslator))
             qDebug() << "Qt translations loaded.";
     }
+    translationsLoaded = true;
 }
 
 bool

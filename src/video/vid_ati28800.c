@@ -34,11 +34,16 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-#define VGAWONDERXL               1
-#define VGAWONDERXLPLUS           2
+enum {
+    VGAWONDERXL = 1,
+    VGAWONDERXLPLUS
 #ifdef USE_XL24
-#    define VGAWONDERXL24         3
+    ,
+    VGAWONDERXL24
 #endif /* USE_XL24 */
+    ,
+    USE_CONFIG_BIOS
+};
 
 #define BIOS_ATIKOR_PATH         "roms/video/ati28800/atikorvga.bin"
 #define BIOS_ATIKOR_4620P_PATH_L "roms/machines/spc4620p/31005h.u8"
@@ -593,7 +598,7 @@ ati28800k_init(const device_t *info)
     ati28800->svga.getclock  = ics2494_getclock;
 
     io_sethandler(0x01ce, 0x0002, ati28800k_in, NULL, NULL, ati28800k_out, NULL, NULL, ati28800);
-    io_sethandler(0x03c0, 0x0020, ati28800k_in, NULL, NULL, ati28800k_out, NULL, NULL, ati28800);
+    io_sethandler(0x03a0, 0x0040, ati28800k_in, NULL, NULL, ati28800k_out, NULL, NULL, ati28800);
 
     ati28800->svga.miscout                   = 1;
     ati28800->svga.bpp                       = 8;
@@ -617,11 +622,19 @@ ati28800_init(const device_t *info)
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati28800);
 
-    ati28800->memory = device_get_config_int("memory");
+    ati28800->type      = (info->local == USE_CONFIG_BIOS) ?
+                          (int) device_get_bios_local(info, device_get_config_bios("bios")) :
+                          (int) info->local;
 
-    ati28800->type = info->local;
-    if (ati28800->type == 0)
-        ati28800->type = device_get_bios_local(info, device_get_config_bios("bios"));
+    const uint64_t bios_flags = (info->local == USE_CONFIG_BIOS) ?
+                                device_get_bios_flags(info, device_get_config_bios("bios")) :
+                                0x0000000000000000ULL;
+
+    int vram = device_get_config_int("memory");
+
+    video_clamp_vram(bios_flags, &vram);
+
+    ati28800->memory = vram;
 
     switch (ati28800->type) {
         case VGAWONDERXL:
@@ -674,7 +687,7 @@ ati28800_init(const device_t *info)
     io_sethandler(0x01ce, 2,
                   ati28800_in, NULL, NULL,
                   ati28800_out, NULL, NULL, ati28800);
-    io_sethandler(0x03c0, 32,
+    io_sethandler(0x03a0, 64,
                   ati28800_in, NULL, NULL,
                   ati28800_out, NULL, NULL, ati28800);
 
@@ -755,7 +768,7 @@ ati28800_force_redraw(void *priv)
 static const device_config_t ati28800_5_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "ati28800",
         .default_int    = 0,
@@ -851,7 +864,7 @@ const device_t ati28800_5_device = {
     .name          = "ATI 28800-5",
     .internal_name = "ati28800_5",
     .flags         = DEVICE_ISA,
-    .local         = 0,
+    .local         = USE_CONFIG_BIOS,
     .init          = ati28800_init,
     .close         = ati28800_close,
     .reset         = NULL,

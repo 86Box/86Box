@@ -385,6 +385,7 @@ ogc_poll(void *priv)
                 x = (ogc->cga.crtc[CGA_CRTC_HDISP] << 4) + 16;
 
             video_process_8(x, ogc->cga.displine);
+            video_lightpen_check_trigger_strobe(8, ogc->cga.displine * (ogc->cga.double_type ? 2 : 1), 0, ogc->cga.firstline + 8, 16. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), ogc->cga.monitor_used);
 
             ogc->cga.scanline = scanline_old;
             if (ogc->cga.vc == ogc->cga.crtc[CGA_CRTC_VSYNC] && !ogc->cga.scanline)
@@ -394,6 +395,7 @@ ogc_poll(void *priv)
                 ogc->cga.displine = 0;
         } else {
             timer_advance_u64(&ogc->cga.timer, ogc->cga.dispontime);
+            video_lightpen_hsync();
             if (ogc->cga.cgadispon)
                 ogc->cga.cgastat &= ~1;
             ogc->cga.linepos = 0;
@@ -455,6 +457,7 @@ ogc_poll(void *priv)
                     if (ogc->cga.vc == ogc->cga.crtc[CGA_CRTC_VSYNC]) {
                         ogc->cga.cgadispon = 0;
                         ogc->cga.displine  = 0;
+                        video_lightpen_vsync();
                         /* ogc specific */
                         ogc->cga.vsynctime = (ogc->cga.crtc[CGA_CRTC_HSYNC_WIDTH] >> 4) + 1;
                         if (ogc->cga.crtc[CGA_CRTC_VSYNC]) {

@@ -67,6 +67,7 @@ public:
     void moReload(int index, int slot);
     void moUpdateMenu(int i);
 
+    void tapeNewImage(int i);
     void tapeSelectImage(int i, bool wp);
     void tapeMount(int i, const QString &filename, bool wp);
     void tapeEject(int i);
@@ -77,6 +78,9 @@ public:
     void nicConnect(int i);
     void nicDisconnect(int i);
     void nicUpdateMenu(int i);
+
+    void usbToggle(int slot);
+    void usbUpdateMenu(int slot);
 
 public slots:
     void cdromUpdateUi(int i);
@@ -95,6 +99,7 @@ private:
     QMap<int, QMenu *> moMenus;
     QMap<int, QMenu *> tapeMenus;
     QMap<int, QMenu *> netMenus;
+    QMap<int, QMenu *> usbMenus;
 
     QString                 getMediaOpenDirectory();
     ui::MediaHistoryManager mhm;

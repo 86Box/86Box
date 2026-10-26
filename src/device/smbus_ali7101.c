@@ -97,12 +97,12 @@ smbus_ali7101_write(uint16_t addr, uint8_t val, void *priv)
     uint8_t          smbus_addr;
     uint8_t          cmd;
     uint8_t          read;
-    uint8_t          prev_stat;
+    uint8_t          busy;
     uint16_t         timer_bytes = 0;
 
     smbus_ali7101_log("SMBus ALI7101: write(%02X, %02X)\n", addr, val);
 
-    prev_stat      = dev->next_stat;
+    busy           = timer_is_enabled(&dev->response_timer);
     dev->next_stat = 0x04;
     switch (addr - dev->io_base) {
         case 0x00:
@@ -115,14 +115,14 @@ smbus_ali7101_write(uint16_t addr, uint8_t val, void *priv)
         case 0x01:
             dev->ctl = val & 0xfc;
             if (val & 0x04) {    /* cancel an in-progress command if KILL is set */
-                if (prev_stat) { /* cancel only if a command is in progress */
+                if (busy) { /* cancel only if a command is in progress */
                     timer_disable(&dev->response_timer);
-                    dev->stat = 0x80; /* raise FAILED */
+                    dev->stat = 0x84; /* raise FAILED */
                 }
             } else if (val & 0x08) { /* T_OUT_CMD */
-                if (prev_stat) {     /* cancel only if a command is in progress */
+                if (busy) {     /* cancel only if a command is in progress */
                     timer_disable(&dev->response_timer);
-                    dev->stat = 0x20; /* raise DEVICE_ERR */
+                    dev->stat = 0x24; /* raise DEVICE_ERR */
                 }
             }
 
@@ -245,7 +245,7 @@ smbus_ali7101_response(void *priv)
     smbus_ali7101_t *dev = (smbus_ali7101_t *) priv;
 
     /* Dispatch the status register update. */
-    dev->stat = dev->next_stat;
+    dev->stat = dev->next_stat | 0x04; /* IDLE set */
 }
 
 void

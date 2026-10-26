@@ -135,14 +135,24 @@ typedef struct _pipc_ {
     ddma_t        *ddma;
     smbus_piix4_t *smbus;
     usb_t         *usb[2];
+    uint8_t        usb_irq_level[2];
+    uint8_t        usb_irq_state[2];
+    uint8_t        usb_irq_line[2]; /* IRQ driven now, 0xff = none */
+    uint8_t        usb_smi_level[2]; /* legacy USB event sources last seen */
+    uint8_t        usb_a20[2];       /* LEGSUP A20GATE pass-through position */
 
     acpi_t        *acpi;
     pipc_io_trap_t io_traps[TRAP_MAX];
+
+    pc_timer_t     gp_timer[2];
 
     void    *gameport;
     void    *ac97;
     void    *sio;
     void    *hwm;
+    void    *ioapic; /* the 686A/B's internal I/O APIC, where the board uses it */
+    uint8_t  apic_irq_state; /* Rx58's sources asserted, in its bit order */
+    uint32_t apic_irq_pins;  /* the APIC[23:16] inputs they drive */
     sb_t    *sb;
     uint16_t midigame_base;
     uint16_t sb_base;
@@ -203,6 +213,284 @@ pipc_io_trap_glb(UNUSED(const uint16_t size), UNUSED(const uint16_t port), const
     }
 }
 
+/*
+   Function 0 Rx48 bit 2 disables USB function 2 and Rx85 bit 4 function 3;
+   a disabled function decodes no I/O, masters nothing and drives no IRQ.
+ */
+static int
+pipc_usb_disabled(const pipc_t *dev, int n)
+{
+    return n ? !!(dev->pci_isa_regs[0x85] & 0x10) : !!(dev->pci_isa_regs[0x48] & 0x04);
+}
+
+static void pipc_apic_irq_set(pipc_t *dev, int src, int set);
+
+/* The UHCI interrupt goes straight to the ISA IRQ named by bits 3-0 of its
+   own Interrupt Line (Rx3C), not through a PIRQ line. 0 is off and 2 is
+   reserved. Fh is IRQ15 on the 586B (VT82C586B p. 38 / PDF 44) and off on
+   the 596B and later (VT82C596B p. 55 / PDF 61; VT82C686A p. 76 / PDF 82);
+   the 586A data sheet does not describe the field. */
+static void
+pipc_usb_update_irq(pipc_t *dev, int n)
+{
+    uint8_t irq = dev->usb_regs[n][0x3c] & 0x0f;
+
+    /* With Function 0 Rx58 bit n set, the same interrupt also drives
+       APIC[16 + Rx3C bits 2-0] on the 686A/B's own I/O APIC (VT82C686A
+       p. 59 / PDF 65; see pipc_apic_irq_line). */
+    pipc_apic_irq_set(dev, n, dev->usb_irq_level[n] && !pipc_usb_disabled(dev, n));
+
+    if (!dev->usb_irq_level[n] || pipc_usb_disabled(dev, n) || (irq == 0x00) || (irq == 0x02) || ((irq == 0x0f) && (dev->local > VIA_PIPC_586B)))
+        irq = 0xff;
+
+    if (irq == dev->usb_irq_line[n])
+        return;
+    if (dev->usb_irq_line[n] != 0xff)
+        pci_clear_dirq(dev->usb_irq_line[n], &dev->usb_irq_state[n]);
+    if (irq != 0xff)
+        pci_set_dirq(irq, &dev->usb_irq_state[n]);
+    dev->usb_irq_line[n] = irq;
+}
+
+/* The VIA data sheets list Legacy Support C1-C0 only as "UHCI v1.1
+   Compliant", 2000h (VT82C586B p. 39 / PDF 45), so it is the UHCI 1.1
+   s5.2.1 register (p. 39-40 / PDF 45-46): USBIRQS (bit 12) shows the USB
+   interrupt. A new legacy USB event (the interrupt with USBSMIEN, an enabled
+   keyboard trap, or A20PTS with SMIEPTE) sets PM Global Status LEG_USB_STS
+   (bit 4) and asserts SMI# when Global Enable LEG_USB_EN (bit 4) is set
+   (VT82C586B p. 50 / PDF 56). No event is raised during an A20GATE
+   pass-through sequence. */
+static void
+pipc_usb_update_legacy(pipc_t *dev, int n)
+{
+    uint8_t sources = pipc_usb_disabled(dev, n) ? 0x00 : uhci_legsup_event(&dev->usb_regs[n][0xc0], dev->usb_irq_level[n]);
+    uint8_t event   = (sources & ~dev->usb_smi_level[n]) && !(dev->usb_regs[n][0xc0] & 0x40);
+
+    if (dev->usb_irq_level[n])
+        dev->usb_regs[n][0xc1] |= 0x10;
+    else
+        dev->usb_regs[n][0xc1] &= ~0x10;
+
+    if (event && (dev->acpi != NULL)) {
+        dev->acpi->regs.glbsts |= 0x0010;
+        if (dev->acpi->regs.glben & 0x0010)
+            acpi_raise_smi(dev->acpi, 1);
+    }
+    dev->usb_smi_level[n] = sources;
+}
+
+/* Rx41 bit 1 set keeps the A20GATE sequence's final 64h <- FFh write from
+   the 8042. Bit 2, "Trap Option", sets the 60h/64h trap statuses without
+   checking their enable bits when 0 on the 586A/B (VT82C586A p. 35 /
+   PDF 41; VT82C586B p. 39 / PDF 45) and when 1 on the 596B and later
+   (VT82C596B p. 56 / PDF 62; VT82C686A p. 77 / PDF 83). */
+static int
+pipc_usb_kbc_opts(const pipc_t *dev, int n)
+{
+    uint8_t rx41 = dev->usb_regs[n][0x41];
+    int     opts = (rx41 & 0x02) ? UHCI_LEGSUP_A20_FF_TRAPPED : 0;
+
+    if ((dev->local <= VIA_PIPC_586B) ? !(rx41 & 0x04) : !!(rx41 & 0x04))
+        opts |= UHCI_LEGSUP_STATUS_ALWAYS;
+
+    return opts;
+}
+
+/* LEGSUP keyboard controller traps: a cycle trapped by either UHCI never
+   reaches the 8042, and the SMI handler stands in for it (UHCI 1.1 s5.2.2,
+   p. 41 / PDF 47). */
+static int
+pipc_usb_kbc_claim(uint16_t port, uint8_t write, uint8_t val, void *priv)
+{
+    pipc_t *dev     = (pipc_t *) priv;
+    int     trapped = 0;
+
+    for (int n = 0; n < 2; n++) {
+        if ((dev->usb[n] == NULL) || pipc_usb_disabled(dev, n))
+            continue;
+        if (uhci_legsup_kbc_cycle(&dev->usb_regs[n][0xc0], &dev->usb_a20[n], port, write, val, pipc_usb_kbc_opts(dev, n))) {
+            trapped = 1;
+        }
+        pipc_usb_update_legacy(dev, n);
+    }
+
+    return trapped;
+}
+
+static void
+pipc_usb_update_kbc_claim(pipc_t *dev)
+{
+    int armed = 0;
+
+    for (int n = 0; n < 2; n++) {
+        if ((dev->usb[n] != NULL) && !pipc_usb_disabled(dev, n) &&
+            uhci_legsup_kbc_armed(&dev->usb_regs[n][0xc0], pipc_usb_kbc_opts(dev, n)))
+            armed = 1;
+    }
+
+    io_set_claim(0x60, armed ? pipc_usb_kbc_claim : NULL, dev);
+    io_set_claim(0x64, armed ? pipc_usb_kbc_claim : NULL, dev);
+}
+
+static void
+pipc_usb_irq(pipc_t *dev, int n, int level)
+{
+    dev->usb_irq_level[n] = !!level;
+    pipc_usb_update_irq(dev, n);
+    pipc_usb_update_legacy(dev, n);
+}
+
+static void
+pipc_usb0_irq(void *priv, int level)
+{
+    pipc_usb_irq((pipc_t *) priv, 0, level);
+}
+
+static void
+pipc_usb1_irq(void *priv, int level)
+{
+    pipc_usb_irq((pipc_t *) priv, 1, level);
+}
+
+/* The 686A (CG silicon) and the 686B have an I/O APIC of their own
+   (VT82C686A data sheet 1.82 and VT82C686B data sheet 1.8, p. 116). */
+static int
+pipc_has_ioapic(const pipc_t *dev)
+{
+    return (dev->local == VIA_PIPC_686A) || (dev->local == VIA_PIPC_686B);
+}
+
+/* Rx58, External APIC IRQ Output Control: each bit sends an on-chip
+   interrupt to APIC[23:16], the input picked by the low three bits of its
+   function's Interrupt Line, or for ACPI of F4 Rx42 (VT82C686A data sheet
+   1.82, p. 58; the 686B's is the same). Bit 0 is USB ports 0-1 (function
+   2), bit 1 USB ports 2-3 (function 3), bit 2 AC97, bit 3 MC97, bit 4
+   ACPI. The interrupt still goes where its function's own steering sends
+   it, too. */
+static uint8_t
+pipc_apic_irq_line(const pipc_t *dev, int src)
+{
+    switch (src) {
+        case 0:
+        case 1:
+            return dev->usb_regs[src][0x3c];
+        case 2:
+        case 3:
+            return dev->ac97_regs[src - 2][0x3c];
+        default:
+            return dev->power_regs[0x42];
+    }
+}
+
+static void
+pipc_apic_irq_update(pipc_t *dev)
+{
+    uint32_t pins = 0;
+    uint32_t changed;
+
+    if (!pipc_has_ioapic(dev) || (dev->ioapic == NULL))
+        return;
+
+    for (int src = 0; src < 5; src++) {
+        if ((dev->pci_isa_regs[0x58] & dev->apic_irq_state) & (1 << src))
+            pins |= 1u << (16 + (pipc_apic_irq_line(dev, src) & 0x07));
+    }
+
+    changed = pins ^ dev->apic_irq_pins;
+    dev->apic_irq_pins = pins;
+    for (uint8_t pin = 16; pin < 24; pin++) {
+        if (changed & (1u << pin))
+            ioapic_chip_irq(dev->ioapic, pin, !!(pins & (1u << pin)));
+    }
+}
+
+static void
+pipc_apic_irq_set(pipc_t *dev, int src, int set)
+{
+    if (set)
+        dev->apic_irq_state |= (1 << src);
+    else
+        dev->apic_irq_state &= ~(1 << src);
+    pipc_apic_irq_update(dev);
+}
+
+static void
+pipc_ac97_irq(void *priv, int modem, int set)
+{
+    pipc_apic_irq_set((pipc_t *) priv, 2 + !!modem, set);
+}
+
+static void
+pipc_acpi_sci(void *priv, int set)
+{
+    pipc_apic_irq_set((pipc_t *) priv, 4, set);
+}
+
+/*
+   One UHCI function's configuration space at its defaults, as at power-on
+   and on PCIRST#; LEGSUP back at 2000h disarms the keyboard traps.
+ */
+static void
+pipc_usb_reset_regs(pipc_t *dev, int i)
+{
+    memset(dev->usb_regs[i], 0, 256);
+
+    dev->usb_regs[i][0x00] = 0x06;
+    dev->usb_regs[i][0x01] = 0x11;
+    dev->usb_regs[i][0x02] = 0x38;
+    dev->usb_regs[i][0x03] = 0x30;
+    dev->usb_regs[i][0x04] = 0x00;
+    dev->usb_regs[i][0x05] = 0x00;
+    dev->usb_regs[i][0x06] = 0x00;
+    dev->usb_regs[i][0x07] = 0x02;
+    switch (dev->local) {
+        case VIA_PIPC_586A:
+        case VIA_PIPC_586B:
+        case VIA_PIPC_596A:
+            dev->usb_regs[i][0x08] = 0x02;
+            break;
+
+        case VIA_PIPC_596B:
+            dev->usb_regs[i][0x08] = 0x08;
+            break;
+
+        case VIA_PIPC_686A:
+            dev->usb_regs[i][0x08] = 0x06;
+            break;
+
+        case VIA_PIPC_686B:
+            dev->usb_regs[i][0x08] = 0x1a;
+            break;
+
+        case VIA_PIPC_8231:
+            dev->usb_regs[i][0x08] = 0x1e;
+            break;
+        default:
+            break;
+    }
+
+    dev->usb_regs[i][0x0a] = 0x03;
+    dev->usb_regs[i][0x0b] = 0x0c;
+    dev->usb_regs[i][0x0d] = 0x16;
+    dev->usb_regs[i][0x20] = 0x01;
+    dev->usb_regs[i][0x21] = 0x03;
+    if (dev->local == VIA_PIPC_686B)
+        dev->usb_regs[i][0x34] = 0x80;
+    dev->usb_regs[i][0x3d] = 0x04;
+
+    dev->usb_regs[i][0x60] = 0x10;
+    if (dev->local >= VIA_PIPC_686A) {
+        dev->usb_regs[i][0x80] = 0x01;
+        dev->usb_regs[i][0x82] = 0x02;
+    }
+    dev->usb_regs[i][0xc1] = 0x20;
+    dev->usb_smi_level[i]  = 0;
+    if (dev->usb[i] != NULL)
+        uhci_set_babble_keep_port(dev->usb[i], 0);
+    pipc_usb_update_irq(dev, i);
+    pipc_usb_update_legacy(dev, i);
+}
+
 static void
 pipc_reset_hard(void *priv)
 {
@@ -242,6 +530,13 @@ pipc_reset_hard(void *priv)
     dev->pci_isa_regs[0x59] = 0x04;
     if (dev->local >= VIA_PIPC_686A)
         dev->pci_isa_regs[0x5a] = dev->pci_isa_regs[0x5f] = 0x04;
+    /* "Offset 77 - GPIO Control 4 Control (10h)": the Internal APIC Enable
+       is set out of reset (VT82C686A data sheet 1.82 and VT82C686B data
+       sheet 1.8, p. 62). */
+    if (pipc_has_ioapic(dev)) {
+        dev->pci_isa_regs[0x77] = 0x10;
+        ioapic_set_window_enabled(dev->ioapic, 1);
+    }
 
     dma_e = 0x00;
     for (i = 0; i < 8; i++) {
@@ -314,56 +609,9 @@ pipc_reset_hard(void *priv)
     /* USB registers. */
     for (i = 0; i <= (dev->local >= VIA_PIPC_686A); i++) {
         dev->max_func++;
-        dev->usb_regs[i][0x00] = 0x06;
-        dev->usb_regs[i][0x01] = 0x11;
-        dev->usb_regs[i][0x02] = 0x38;
-        dev->usb_regs[i][0x03] = 0x30;
-        dev->usb_regs[i][0x04] = 0x00;
-        dev->usb_regs[i][0x05] = 0x00;
-        dev->usb_regs[i][0x06] = 0x00;
-        dev->usb_regs[i][0x07] = 0x02;
-        switch (dev->local) {
-            case VIA_PIPC_586A:
-            case VIA_PIPC_586B:
-            case VIA_PIPC_596A:
-                dev->usb_regs[i][0x08] = 0x02;
-                break;
-
-            case VIA_PIPC_596B:
-                dev->usb_regs[i][0x08] = 0x08;
-                break;
-
-            case VIA_PIPC_686A:
-                dev->usb_regs[i][0x08] = 0x06;
-                break;
-
-            case VIA_PIPC_686B:
-                dev->usb_regs[i][0x08] = 0x1a;
-                break;
-
-            case VIA_PIPC_8231:
-                dev->usb_regs[i][0x08] = 0x1e;
-                break;
-            default:
-                break;
-        }
-
-        dev->usb_regs[i][0x0a] = 0x03;
-        dev->usb_regs[i][0x0b] = 0x0c;
-        dev->usb_regs[i][0x0d] = 0x16;
-        dev->usb_regs[i][0x20] = 0x01;
-        dev->usb_regs[i][0x21] = 0x03;
-        if (dev->local == VIA_PIPC_686B)
-            dev->usb_regs[i][0x34] = 0x80;
-        dev->usb_regs[i][0x3d] = 0x04;
-
-        dev->usb_regs[i][0x60] = 0x10;
-        if (dev->local >= VIA_PIPC_686A) {
-            dev->usb_regs[i][0x80] = 0x01;
-            dev->usb_regs[i][0x82] = 0x02;
-        }
-        dev->usb_regs[i][0xc1] = 0x20;
+        pipc_usb_reset_regs(dev, i);
     }
+    pipc_usb_update_kbc_claim(dev);
 
     /* Power management registers. */
     if (dev->acpi) {
@@ -916,7 +1164,7 @@ pipc_sb_handlers(pipc_t *dev, uint8_t modem)
 }
 
 static void
-pipc_sb_get_buffer(int32_t *buffer, int len, void *priv)
+pipc_sb_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pipc_t *dev = (pipc_t *) priv;
 
@@ -937,6 +1185,10 @@ pipc_read(int func, int addr, UNUSED(int len), void *priv)
     int     c;
     uint8_t pm_func = dev->usb[1] ? 4 : 3;
 
+    /* A function disabled through function 0 Rx48 or Rx85 answers no
+       configuration cycle and reads FFh. Each branch tests its own function
+       number, so a disabled function does not fall into the next branch's
+       register bank. */
     if (func > dev->max_func)
         return ret;
     else if (func == 0) {                       /* PCI-ISA bridge */
@@ -969,12 +1221,12 @@ pipc_read(int func, int addr, UNUSED(int len), void *priv)
             else
                 ret &= ~0x20;
         }
-    } else if ((func < pm_func) && !((func == 2) ? (dev->pci_isa_regs[0x48] & 0x04) : (dev->pci_isa_regs[0x85] & 0x10))) /* USB */
+    } else if ((func >= 2) && (func < pm_func) && !((func == 2) ? (dev->pci_isa_regs[0x48] & 0x04) : (dev->pci_isa_regs[0x85] & 0x10))) /* USB */
         ret = dev->usb_regs[func - 2][addr];
     else if (func == pm_func) { /* Power */
         ret = dev->power_regs[addr];
         if (addr == 0x42) {
-            if (dev->nvr->regs[0x0d] & 0x80)
+            if (dev->nvr->regs[0x0d] & 0x40)
                 ret |= 0x10;
             else
                 ret &= ~0x10;
@@ -985,10 +1237,13 @@ pipc_read(int func, int addr, UNUSED(int len), void *priv)
             else
                 ret |= 0x10;
         }
-    } else if ((func <= (pm_func + 2)) && !(dev->pci_isa_regs[0x85] & ((func == (pm_func + 1)) ? 0x04 : 0x08))) { /* AC97 / MC97 */
-        if (addr == 0x40)
-            ret = ac97_via_read_status(dev->ac97);
-        else
+    } else if ((func > pm_func) && (func <= (pm_func + 2)) && !(dev->pci_isa_regs[0x85] & ((func == (pm_func + 1)) ? 0x04 : 0x08))) { /* AC97 / MC97 */
+        if (addr == 0x40) {
+            if (dev->local >= VIA_PIPC_686A)
+                ret = ac97_via_read_status(dev->ac97);
+            else
+                ret = 0x00;
+        } else
             ret = dev->ac97_regs[func - pm_func - 1][addr];
     }
 
@@ -1010,7 +1265,23 @@ nvr_update_io_mapping(pipc_t *dev)
 static void
 usb_update_io_mapping(pipc_t *dev, int func)
 {
-    uhci_update_io_mapping(dev->usb[func - 2], dev->usb_regs[func - 2][0x20] & ~0x1f, dev->usb_regs[func - 2][0x21], dev->usb_regs[func - 2][PCI_REG_COMMAND] & PCI_COMMAND_IO);
+    int on = !pipc_usb_disabled(dev, func - 2);
+
+    uhci_set_present(dev->usb[func - 2], on);
+    uhci_update_io_mapping(dev->usb[func - 2], dev->usb_regs[func - 2][0x20] & ~0x1f, dev->usb_regs[func - 2][0x21], on && (dev->usb_regs[func - 2][PCI_REG_COMMAND] & PCI_COMMAND_IO));
+    uhci_set_bus_master(dev->usb[func - 2], on && (dev->usb_regs[func - 2][PCI_REG_COMMAND] & PCI_COMMAND_L_BM));
+}
+
+/* A USB function disable bit changed in function 0. */
+static void
+pipc_usb_update_enable(pipc_t *dev, int n)
+{
+    if (dev->usb[n] == NULL)
+        return;
+    usb_update_io_mapping(dev, n + 2);
+    pipc_usb_update_irq(dev, n);
+    pipc_usb_update_legacy(dev, n);
+    pipc_usb_update_kbc_claim(dev);
 }
 
 static void
@@ -1024,6 +1295,37 @@ pipc_ddma_update(pipc_t *dev, int addr)
     base = (dev->pci_isa_regs[addr] & 0xf0) | (((uint32_t) dev->pci_isa_regs[addr | 0x01]) << 8);
     ddma_update_io_mapping(dev->ddma, (addr & 0x0e) >> 1, (dev->pci_isa_regs[addr] & 0xf0), dev->pci_isa_regs[addr | 0x01], (dev->pci_isa_regs[addr] & 0x08) && (base != 0x0000));
 }
+
+static void
+pipc_gp_timer_start(pipc_t *dev, int n)
+{
+    static const double base_us[4] = { 0.0, 62500.0, 1000000.0, 60000000.0 };
+    uint32_t ctl = dev->power_regs[0x50] | (dev->power_regs[0x51] << 8) |
+                   (dev->power_regs[0x52] << 16) | ((uint32_t) dev->power_regs[0x53] << 24);
+    int      start = (ctl >> (n ? 7 : 3)) & 1;
+    int      base  = (ctl >> (n ? 4 : 0)) & 3;
+    int      count = (ctl >> (n ? 16 : 8)) & 0xff;
+
+    timer_stop(&dev->gp_timer[n]);
+    if (start && base && count)
+        timer_on_auto(&dev->gp_timer[n], base_us[base] * (double) count);
+}
+
+static void
+pipc_gp_timer_expire(pipc_t *dev, int n)
+{
+    uint32_t ctl = dev->power_regs[0x50] | (dev->power_regs[0x51] << 8) |
+                   (dev->power_regs[0x52] << 16) | ((uint32_t) dev->power_regs[0x53] << 24);
+
+    acpi_gp_timer_timeout(dev->acpi, n);
+
+    /* Auto-reload: GP0 = bit 2, GP1 = bit 6 */
+    if (ctl & (n ? 0x40 : 0x04))
+        pipc_gp_timer_start(dev, n);
+}
+
+static void pipc_gp0_expire(void *priv) { pipc_gp_timer_expire((pipc_t *) priv, 0); }
+static void pipc_gp1_expire(void *priv) { pipc_gp_timer_expire((pipc_t *) priv, 1); }
 
 static void
 pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
@@ -1108,25 +1410,37 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
 
             case 0x47:
+                /* "Software PCI Reset ... write 1 to generate PCI reset"
+                   (VT82C686A data sheet 1.82, p. 57): PCIRST# resets every
+                   device, the keyboard controller with them, whichever of
+                   CPURST and INIT bit 7 picks for the processor. A CPU-only
+                   reset leaves the 8042's system flag set and the BIOS on
+                   its warm path with SMBASE back at 30000h. */
                 if (val & 0x01)
-                    pci_write(0x0cf9, (val & 0x80) ? 0x06 : 0x04, NULL);
+                    pci_write(0x0cf9, 0x06, NULL);
                 pic_set_shadow(!!(val & 0x10));
                 pic_elcr_io_handler(!!(val & 0x20));
                 dev->pci_isa_regs[0x47] = val & 0xfe;
                 break;
             case 0x48:
+                c                       = (dev->pci_isa_regs[0x48] ^ val) & 0x04;
                 dev->pci_isa_regs[0x48] = val;
                 nvr_update_io_mapping(dev);
+                if (c)
+                    pipc_usb_update_enable(dev, 0);
                 break;
 
             case 0x50:
             case 0x51:
             case 0x52:
             case 0x85:
+                c                       = (addr == 0x85) && ((dev->pci_isa_regs[0x85] ^ val) & 0x10);
                 dev->pci_isa_regs[addr] = val;
                 /* Forward Super I/O-related registers to sio_vt82c686.c */
                 if (dev->sio)
                     vt82c686_sio_write(addr, val, dev->sio);
+                if (c)
+                    pipc_usb_update_enable(dev, 1);
                 break;
 
             case 0x54:
@@ -1162,11 +1476,17 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 dev->pci_isa_regs[0x57] = val;
                 break;
             case 0x58:
+                /* On the 686A/B, External APIC IRQ Output Control: bits 7-5
+                   always read 0 (VT82C686A data sheet 1.82 and VT82C686B
+                   data sheet 1.8, p. 58). */
+                if (pipc_has_ioapic(dev))
+                    val &= 0x1f;
                 if (dev->local == VIA_PIPC_586B) {
                     pipc_log("PIPC: Steering MIRQ2 to IRQ %d\n", val & 0x0f);
                     pci_set_mirq_routing(PCI_MIRQ2, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
                 }
                 dev->pci_isa_regs[0x58] = val;
+                pipc_apic_irq_update(dev);
                 break;
             case 0x5b:
                 dev->pci_isa_regs[0x5b] = val;
@@ -1218,8 +1538,15 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
 
             case 0x77:
-                if ((dev->local >= VIA_PIPC_686A) && (val & 0x10))
+                /* The Acorp 6VIA90AP's BIOS enables the I/O APIC but has neither
+                   an MP table nor an ACPI MADT, so no OS can ever use it. */
+                if ((dev->local >= VIA_PIPC_686A) && (val & 0x10) && (dev->ioapic == NULL) &&
+                    (machines[machine].init != machine_at_6via90ap_init))
                     warning("PIPC: Warning: Internal I/O APIC enabled.\n");
+                dev->pci_isa_regs[0x77] = val;
+                /* Internal APIC Enable: the I/O APIC's window decoded
+                   (VT82C686B data sheet 1.8, p. 62). */
+                ioapic_set_window_enabled(dev->ioapic, !!(val & 0x10));
                 nvr_via_wp_set(!!(val & 0x04), 0x32, dev->nvr);
                 nvr_via_wp_set(!!(val & 0x02), 0x0d, dev->nvr);
                 break;
@@ -1416,6 +1743,36 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 usb_update_io_mapping(dev, func);
                 break;
 
+            case 0x3c:
+                dev->usb_regs[func - 2][0x3c] = val & 0x0f;
+                pipc_usb_update_irq(dev, func - 2);
+                pipc_apic_irq_update(dev);
+                break;
+
+            case 0x40:
+                /* Bit 6, Babble Option: when set, a port that babbles at EOF
+                   is not disabled (VT82C586B p. 39 / PDF 45). */
+                dev->usb_regs[func - 2][0x40] = val;
+                uhci_set_babble_keep_port(dev->usb[func - 2], val & 0x40);
+                break;
+            case 0x41:
+                dev->usb_regs[func - 2][0x41] = val;
+                pipc_usb_update_kbc_claim(dev);
+                break;
+
+            case 0xc0:
+                uhci_legsup_write_c0(&dev->usb_regs[func - 2][0xc0], val);
+                pipc_usb_update_kbc_claim(dev);
+                pipc_usb_update_legacy(dev, func - 2);
+                break;
+            case 0xc1:
+                /* LEGSUP bits 15 and 11-8 are write-1-to-clear, bit 13 is
+                   read/write, bit 12 read-only and bit 14 reserved (UHCI 1.1
+                   s5.2.1, p. 39 / PDF 45). */
+                dev->usb_regs[func - 2][0xc1] = (dev->usb_regs[func - 2][0xc1] & 0x9f & ~(val & 0x8f)) | (val & 0x20);
+                pipc_usb_update_legacy(dev, func - 2);
+                break;
+
             default:
                 dev->usb_regs[func - 2][addr] = val;
                 break;
@@ -1429,6 +1786,10 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             return;
 
         if ((dev->local <= VIA_PIPC_596B) && ((addr >= 0x64) && (addr < (dev->local == VIA_PIPC_596A ? 0x80 : 0x85))))
+            return;
+
+        /* 596A has the SMBus I/O base and host configuration at 80h-84h instead. */
+        if ((dev->local == VIA_PIPC_596A) && ((addr == 0x90) || (addr == 0x91) || (addr == 0xd2)))
             return;
 
         switch (addr) {
@@ -1446,9 +1807,6 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 c                     = (dev->power_regs[0x49] << 8);
                 if (dev->local >= VIA_PIPC_596A)
                     c |= (dev->power_regs[0x48] & 0x80);
-                /* Workaround for P3V133 BIOS in 596B mode mapping ACPI to E800 (same as SMBus) instead of E400. */
-                if ((dev->local == VIA_PIPC_596B) && (c == ((dev->power_regs[0x91] << 8) | (dev->power_regs[0x90] & 0xf0))) && (dev->power_regs[0xd2] & 0x01))
-                    c -= 0x400;
                 acpi_set_timer32(dev->acpi, dev->power_regs[0x41] & 0x08);
                 acpi_update_io_mapping(dev->acpi, c, dev->power_regs[0x41] & 0x80);
                 break;
@@ -1456,6 +1814,17 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             case 0x42:
                 dev->power_regs[addr] = (dev->power_regs[addr] & 0xf0) | (val & 0x0f);
                 acpi_set_irq_line(dev->acpi, dev->power_regs[addr] & 0x0f);
+                pipc_apic_irq_update(dev);
+                break;
+
+            case 0x50:
+            case 0x51:
+            case 0x52:
+            case 0x53:
+                dev->power_regs[addr] = val;
+                /* A dword write arrives byte by byte, so restart from the current value each time. */
+                pipc_gp_timer_start(dev, 0);
+                pipc_gp_timer_start(dev, 1);
                 break;
 
             case 0x54:
@@ -1483,6 +1852,8 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             case 0x80:
             case 0x81:
             case 0x84: /* 596A has the SMBus I/O base and enable bit here instead. */
+                if ((addr == 0x80) && (dev->local == VIA_PIPC_596A))
+                    val = (val & 0xf0) | 0x01;
                 dev->power_regs[addr] = val;
                 smbus_piix4_remap(dev->smbus, (dev->power_regs[0x81] << 8) | (dev->power_regs[0x80] & 0xf0), dev->power_regs[0x84] & 0x01);
                 break;
@@ -1494,6 +1865,8 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 
             case 0x90:
             case 0x91:
+                if (addr == 0x90)
+                    val = (val & 0xf0) | 0x01;
                 dev->power_regs[addr] = val;
                 smbus_piix4_remap(dev->smbus, (dev->power_regs[0x91] << 8) | (dev->power_regs[0x90] & 0xf0), dev->power_regs[0xd2] & 0x01);
                 break;
@@ -1579,6 +1952,7 @@ pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 
             case 0x3c:
                 dev->ac97_regs[func][addr] = val & 0x0f;
+                pipc_apic_irq_update(dev);
                 break;
 
             case 0x41:
@@ -1661,6 +2035,9 @@ pipc_reset(void *priv)
     pipc_t *dev     = (pipc_t *) priv;
     uint8_t pm_func = dev->usb[1] ? 4 : 3;
 
+    timer_stop(&dev->gp_timer[0]);
+    timer_stop(&dev->gp_timer[1]);
+
     pipc_write(pm_func, 0x41, 1, 0x00, priv);
     pipc_write(pm_func, 0x48, 1, 0x01, priv);
     pipc_write(pm_func, 0x49, 1, 0x00, priv);
@@ -1689,6 +2066,22 @@ pipc_reset(void *priv)
         pipc_write(0, 0x44, 1, 0x00, priv);
 
     pipc_write(0, 0x77, 1, 0x00, priv);
+    /* The 686A/B's Internal APIC Enable is set out of reset (VT82C686A data
+       sheet 1.82 and VT82C686B data sheet 1.8, p. 62). */
+    if (pipc_has_ioapic(dev)) {
+        dev->pci_isa_regs[0x77] = 0x10;
+        ioapic_set_window_enabled(dev->ioapic, 1);
+
+        /* Rx58 comes up 00h: no on-chip interrupt on APIC[23:16]. */
+        dev->apic_irq_state = 0;
+        pipc_write(0, 0x58, 1, 0x00, priv);
+    }
+
+    for (int i = 0; i <= (dev->local >= VIA_PIPC_686A); i++) {
+        pipc_usb_reset_regs(dev, i);
+        usb_update_io_mapping(dev, i + 2);
+    }
+    pipc_usb_update_kbc_claim(dev);
 
     sff_set_slot(dev->bm[0], dev->pci_slot);
     sff_set_slot(dev->bm[1], dev->pci_slot);
@@ -1705,6 +2098,9 @@ pipc_init(const device_t *info)
     pipc_t *dev = (pipc_t *) calloc(1, sizeof(pipc_t));
 
     pipc_log("PIPC: init()\n");
+
+    timer_add(&dev->gp_timer[0], pipc_gp0_expire, dev, 0);
+    timer_add(&dev->gp_timer[1], pipc_gp1_expire, dev, 0);
 
     dev->local = info->local;
     pci_add_card(PCI_ADD_SOUTHBRIDGE, pipc_read, pipc_write, dev, &dev->pci_slot);
@@ -1727,16 +2123,22 @@ pipc_init(const device_t *info)
     if (dev->local >= VIA_PIPC_596A) {
         dev->acpi = device_add(&acpi_via_596b_device);
         acpi_set_trap_update(dev->acpi, pipc_trap_update_596, dev);
+        if (pipc_has_ioapic(dev))
+            acpi_set_sci_hook(dev->acpi, pipc_acpi_sci, dev);
     } else if (dev->local >= VIA_PIPC_586B) {
         dev->acpi = device_add(&acpi_via_device);
         acpi_set_trap_update(dev->acpi, pipc_trap_update_586, dev);
     }
 
+    dev->usb_irq_line[0] = dev->usb_irq_line[1] = 0xff;
     dev->usb[0] = device_add_inst(&usb_device, 1);
+    uhci_set_irq_handler(dev->usb[0], pipc_usb0_irq, dev);
     if (dev->local >= VIA_PIPC_686A) {
         dev->usb[1] = device_add_inst(&usb_device, 2);
+        uhci_set_irq_handler(dev->usb[1], pipc_usb1_irq, dev);
 
         dev->ac97 = device_add(&ac97_via_device);
+        ac97_via_set_irq_hook(dev->ac97, pipc_ac97_irq, dev);
 
         dev->sb = device_add_inst(&sb_pro_compat_device, 2);
         sound_add_handler(pipc_sb_get_buffer, dev);
@@ -1800,9 +2202,9 @@ pipc_init(const device_t *info)
             break;
     }
 
-    kbc_params |= KBC_VEN_VIA;
+    kbc_params |= (KBC_VEN_VIA | KBC_FLAG_IS_ASIC);
 
-    if (machine_get_kbc_device(machine) == NULL)
+    if ((machine_get_kbc_device(machine) == NULL) && !(info->local & VIA_PIPC_NO_KBC))
         device_add_params(&kbc_at_device, (void *) (uintptr_t) kbc_params);
 
     return dev;
@@ -1817,6 +2219,9 @@ pipc_close(void *priv)
 
     for (uint8_t i = 0; i < TRAP_MAX; i++)
         io_trap_remove(dev->io_traps[i].trap);
+
+    io_set_claim(0x60, NULL, NULL);
+    io_set_claim(0x64, NULL, NULL);
 
     free(dev);
 }
@@ -1876,6 +2281,18 @@ const device_t via_vt82c686a_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+/* The board wires the 686A/B's internal I/O APIC (IOAPIC_VARIANT_VIA) and
+   hands it over here: Rx77[4] decodes its window from then on, and Rx58
+   sends the on-chip interrupts to its inputs 16-23. */
+void
+via_pipc_set_ioapic(void *priv, void *ioapic)
+{
+    pipc_t *dev = (pipc_t *) priv;
+
+    dev->ioapic = ioapic;
+    ioapic_set_window_enabled(ioapic, !!(dev->pci_isa_regs[0x77] & 0x10));
+}
 
 const device_t via_vt82c686b_device = {
     .name          = "VIA VT82C686B",

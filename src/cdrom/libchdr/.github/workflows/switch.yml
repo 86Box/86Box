@@ -1,0 +1,17 @@
+name: Nintendo Switch
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkita64:latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure CMake
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=${DEVKITPRO}/cmake/Switch.cmake
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config Release

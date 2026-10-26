@@ -241,29 +241,10 @@ xga_updatemapping(svga_t *svga)
                         mem_mapping_disable(&xga->linear_mapping);
 
                     xga->test_stage = 0;
-                    mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
-                    switch (svga->gdcreg[6] & 0xc) {
-                        case 0x0: /*128k at A0000*/
-                            mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
-                            svga->banked_mask = 0xffff;
-                            break;
-                        case 0x4: /*64k at A0000*/
-                            mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
-                            svga->banked_mask = 0xffff;
-                            break;
-                        case 0x8: /*32k at B0000*/
-                            mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
-                            svga->banked_mask = 0x7fff;
-                            break;
-                        case 0xC: /*32k at B8000*/
-                            mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
-                            svga->banked_mask = 0x7fff;
-                            break;
-
-                        default:
-                            break;
-                    }
-                    xga->mapping_base = svga->mapping.base;
+                    /* In extended graphics mode with no 64KB aperture, the
+                       VGA-compatible A0000/B0000 window is not exposed. */
+                    mem_mapping_disable(&svga->mapping);
+                    xga->mapping_base = 0;
                     break;
                 case 1:
                     mem_mapping_disable(&xga->linear_mapping);
@@ -295,7 +276,9 @@ xga_render_blank(svga_t *svga)
 {
     xga_t *xga = (xga_t *) svga->xga;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (xga->firstline_draw == 2000)
@@ -425,6 +408,9 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
     uint8_t index;
 
     switch (idx) {
+        case 0x00:
+            xga_updatemapping(svga);
+            break;
         case 0x10:
             xga->htotal = (xga->htotal & 0xff00) | val;
             break;
@@ -567,6 +553,7 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
             xga->disp_cntl_2 = val;
             xga->on          = ((val & 0x07) >= 0x02);
             svga_recalctimings(svga);
+            xga_updatemapping(svga);
             break;
 
         case 0x54:
@@ -687,6 +674,7 @@ xga_ext_outb(uint16_t addr, uint8_t val, void *priv)
         case 0:
             xga_log("[%04X:%08X]: EXT OUTB = %02x, val = %02x\n", CS, cpu_state.pc, addr, val);
             xga->op_mode = val;
+            xga_updatemapping(svga);
             break;
         case 1:
             xga_log("[%04X:%08X]: EXT OUTB = %02x, val = %02x\n", CS, cpu_state.pc, addr, val);
@@ -748,6 +736,30 @@ xga_ext_outb(uint16_t addr, uint8_t val, void *priv)
             xga_log("[%04X:%08X]: EXT OUTB = %02x, val = %02x\n", CS, cpu_state.pc, addr, val);
             break;
     }
+}
+
+static uint8_t
+xga_display_id_read(xga_t *xga, uint8_t sp)
+{
+    /* The SP field (Display Control 1 Register, Index 50, bits 7-6) selects which
+       bit of each display ID nibble the register returns; the four reads are then
+       assembled into the sixteen bit display ID, MID 3 being the most significant
+       nibble. The IBM adapter select bit 3 with '01', bit 2 with '10', bit 1 with
+       '00' and bit 0 with '11'; the INMOS adapter pairs '00' with bit 0 and '11'
+       with bit 1, '01' with bit 2 and '10' with bit 3 instead. */
+    static const uint8_t sp_bit_mca[4] = { 1, 3, 2, 0 };
+    static const uint8_t sp_bit_isa[4] = { 0, 2, 3, 1 };
+    const uint8_t bit = (xga->bus & DEVICE_MCA)?
+                          sp_bit_mca[sp & 0x03]: 
+                          sp_bit_isa[sp & 0x03];
+    
+    uint8_t ret = 0x00;
+    for (int i = 0; i < 4; i++) {
+        if (xga->display_id & (1 << ((i << 2) + bit)))
+            ret |= (1 << i);
+    }
+
+    return ret;
 }
 
 static uint8_t
@@ -898,7 +910,8 @@ xga_ext_inb(uint16_t addr, void *priv)
                     ret = xga->disp_cntl_2;
                     break;
                 case 0x52:
-                    ret = xga->type ? 0xfa : 0xea;
+                    ret = xga_display_id_read(xga, xga->disp_cntl_1 >> 6);
+                    ret |= (xga->type ? 0xf0 : 0xe0);
                     break;
                 case 0x53:
                     ret = xga->type ? 0x53 : 0x30;
@@ -2791,7 +2804,9 @@ xga_hwcursor_draw(svga_t *svga, int displine)
 static void
 xga_render_overscan_left(xga_t *xga, svga_t *svga)
 {
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (svga->scrblank || (xga->h_disp == 0))
@@ -2807,7 +2822,9 @@ xga_render_overscan_right(xga_t *xga, svga_t *svga)
 {
     int right;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (svga->scrblank || (xga->h_disp == 0))
@@ -2826,7 +2843,9 @@ xga_render_4bpp(svga_t *svga)
     uint32_t *p;
     uint32_t  dat;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {
@@ -2871,7 +2890,9 @@ xga_render_8bpp(svga_t *svga)
     uint32_t *p;
     uint32_t  dat;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {
@@ -2909,7 +2930,9 @@ xga_render_16bpp(svga_t *svga)
     uint32_t *p;
     uint32_t  dat;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {
@@ -3772,6 +3795,7 @@ xga_init(const device_t *info)
     svga->xga         = xga;
 
     xga->type         = device_get_config_int("type");
+    xga->display_id   = strtoul(device_get_config_string("montype"), NULL, 16) & 0xffff;
     xga->dma_channel  = device_get_config_int("dma");
     xga->bus          = info->flags;
 
@@ -3779,6 +3803,7 @@ xga_init(const device_t *info)
     xga->vram_mask             = xga->vram_size - 1;
     xga->vram                  = calloc(xga->vram_size, 1);
     xga->changedvram           = calloc((xga->vram_size >> 12) + 1, 1);
+    xga->op_mode               = 0x01; /* VGA mode enabled (bit 0) for instance scan */
     xga->on                    = 0;
     xga->hwcursor.cur_xsize    = 64;
     xga->hwcursor.cur_ysize    = 64;
@@ -3838,10 +3863,10 @@ svga_xga_init(const device_t *info)
               NULL,
               NULL);
 
-    io_sethandler(0x03c0, 0x0020, svga_xga_in, NULL, NULL, svga_xga_out, NULL, NULL, svga);
+    io_sethandler(0x03a0, 0x0040, svga_xga_in, NULL, NULL, svga_xga_out, NULL, NULL, svga);
 
     svga->bpp     = 8;
-    svga->miscout = 1;
+    svga->miscout = 0;
     xga_active    = 1;
 
     return xga_init(info);
@@ -3906,6 +3931,17 @@ static const device_config_t xga_mca_configuration[] = {
         },
         .bios           = { { 0 } }
     },
+    {
+        .name           = "montype",
+        .description    = "Monitor type",
+        .type           = CONFIG_STRHEX,
+        .default_string = "F0F0",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
@@ -3941,6 +3977,17 @@ static const device_config_t xga_inmos_isa_configuration[] = {
             { .description = "DMA 7",    .value = 7 },
             { .description = ""                     }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "montype",
+        .description    = "Monitor type",
+        .type           = CONFIG_STRHEX,
+        .default_string = "F0F0",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }

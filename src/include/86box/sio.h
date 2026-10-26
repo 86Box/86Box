@@ -19,6 +19,11 @@
 extern const device_t acc3221_device;
 
 /* Acer / ALi */
+extern const device_t ali5113_device;
+
+#define ALI5123_370      0x00100
+#define ALI5123_NO_UART3 0x00200 /* M1543 (non-C): logical device 5 is UART2, no UART3 */
+
 extern const device_t ali5123_device;
 
 /* Chips & Technologies */
@@ -59,6 +64,11 @@ extern const device_t fdc37c669_device;
 #define FDC37C93X_APM        0x00030
 #define FDC37C93X_CHIP_ID    0x000ff
 
+#define FDC37M60X            0x00047
+#define FDC37M70X            0x00042
+#define FDC37B80X            0x00042
+#define FDC37XXXX_CHIP_ID    0x000ff
+
 #define FDC37XXX1            0x00100    /* Compaq KBC firmware and configuration registers on GPIO ports. */
 #define FDC37XXX2            0x00200    /* AMI '5' Megakey KBC firmware. */
 #define FDC37XXX3            0x00300    /* IBM KBC firmware. */
@@ -71,7 +81,9 @@ extern const device_t fdc37c669_device;
 
 extern const device_t fdc37c93x_device;
 
-extern const device_t fdc37m60x_device;
+extern void    fdc37mx0x_watchdog_reset_ext(int origin);
+
+extern const device_t fdc37mx0x_device;
 
 extern const device_t fdc37c67x_device;
 
@@ -97,6 +109,7 @@ extern const device_t i82091aa_device;
 #define PCX73XX_IDE_SEC      0x00002
 
 #define PCX73XX_FDC_ON       0x10000
+#define PCX73XX_DENSEL_LOW   0x20000    /* IDENT strapped low: DENSEL active low at 500 kbps and 1 Mbps. */
 
 #define PC87310_ALI          0x00004
 #define PC87332              PC87310_ALI
@@ -194,6 +207,9 @@ extern const device_t w837x7_device;
 
 extern const device_t w83877_device;
 
+/* Reset the IN530's W83877TF through its board-level master reset path. */
+extern void w83877_in530_master_reset(void);
+
 #define W83977F             0x977100
 #define W83977TF            0x977300
 #define W83977EF            0x52f000
@@ -209,6 +225,9 @@ extern const device_t w83877_device;
 #define W83977_PHOENIX       0x00020    /* Unknown Phoenix Multikey KBC firmware. */
 
 #define W83977_KBC           0x000f0
+
+#define W83977_UART_FORCE_SEC 0x01000000
+#define W83977_LPT_FORCE_SEC  0x02000000
 
 extern const device_t w83977_device;
 

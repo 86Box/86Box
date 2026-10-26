@@ -73,6 +73,11 @@ typedef struct _ac97_via_ {
     uint8_t  irq_state;
     int      irq_pin;
 
+    /* The southbridge's view of the audio and modem interrupts, each on
+       its own (ac97_via_set_irq_hook). */
+    void   (*irq_hook)(void *priv, int modem, int set);
+    void    *irq_hook_priv;
+
     ac97_codec_t  *codec[2];
     ac97_codec_t  *audio_codec;
     ac97_codec_t  *modem_codec;
@@ -124,10 +129,12 @@ ac97_via_read_status(void *priv)
     const ac97_via_t *dev = (ac97_via_t *) priv;
     uint8_t           ret = 0x00;
 
-    /* Flag each codec as ready if present. */
-    for (uint8_t i = 0; i < (sizeof(dev->codec) / sizeof(dev->codec[0])); i++) {
-        if (dev->codec[i])
-            ret |= 0x01 << (i << 1);
+    if (dev != NULL) {
+        /* Flag each codec as ready if present. */
+        for (uint8_t i = 0; i < (sizeof(dev->codec) / sizeof(dev->codec[0])); i++) {
+            if (dev->codec[i])
+                ret |= 0x01 << (i << 1);
+        }
     }
 
     ac97_via_log("AC97 VIA: read_status() = %02X\n", ret);
@@ -170,20 +177,36 @@ ac97_via_write_control(void *priv, uint8_t val)
     ac97_via_update_codec(dev);
 }
 
+void
+ac97_via_set_irq_hook(void *priv, void (*hook)(void *priv, int modem, int set), void *hook_priv)
+{
+    ac97_via_t *dev = (ac97_via_t *) priv;
+
+    dev->irq_hook      = hook;
+    dev->irq_hook_priv = hook_priv;
+}
+
 static void
 ac97_via_update_irqs(ac97_via_t *dev)
 {
-    /* Check interrupt flags in all SGDs. */
+    uint8_t pending[2] = { 0, 0 };
+
+    /* Check interrupt flags in all SGDs: 0-3 are the audio function's,
+       4-5 (40h-5Fh) the modem function's. */
     for (uint8_t i = 0x00; i < ((sizeof(dev->sgd) / sizeof(dev->sgd[0])) << 4); i += 0x10) {
-        /* Stop immediately if any flag is set. Doing it this way optimizes
-           rising edges for the playback SGD (0 - first to be checked). */
-        if (dev->sgd_regs[i] & (dev->sgd_regs[i | 0x2] & 0x03)) {
-            pci_set_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
-            return;
-        }
+        if (dev->sgd_regs[i] & (dev->sgd_regs[i | 0x2] & 0x03))
+            pending[i >= 0x40] = 1;
     }
 
-    pci_clear_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
+    if (dev->irq_hook) {
+        dev->irq_hook(dev->irq_hook_priv, 0, pending[0]);
+        dev->irq_hook(dev->irq_hook_priv, 1, pending[1]);
+    }
+
+    if (pending[0] || pending[1])
+        pci_set_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
+    else
+        pci_clear_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
 }
 
 static void
@@ -308,7 +331,9 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 
     ac97_via_log("[%04X:%08X] [%i] AC97 VIA %d: sgd_write(%02X, %02X)\n", CS, cpu_state.pc, msw & 1, modem, addr, val);
 
-    // if ((CS == 0x10000) && (cpu_state.pc == 0x000073d1))
+#if 0
+    if ((CS == 0x10000) && (cpu_state.pc == 0x000073d1))
+#endif
 
     /* Check function-specific read only registers. */
     if ((addr >= (modem ? 0x00 : 0x40)) && (addr < (modem ? 0x40 : 0x60)))
@@ -854,7 +879,7 @@ ac97_via_poll_modem_capture(void *priv)
 }
 
 static void
-ac97_via_get_buffer(int32_t *buffer, int len, void *priv)
+ac97_via_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     ac97_via_t *dev = (ac97_via_t *) priv;
 
@@ -862,7 +887,7 @@ ac97_via_get_buffer(int32_t *buffer, int len, void *priv)
     ac97_via_update_stereo(dev, &dev->sgd[2]);
     ac97_via_update_stereo(dev, &dev->sgd[4]);
 
-    for (int c = 0; c < len * 2; c++) {
+    for (uint16_t c = 0; c < len * 2; c++) {
         buffer[c] += dev->sgd[0].buffer[c] / 2;
         buffer[c] += dev->sgd[2].buffer[c] / 2;
         buffer[c] += dev->sgd[4].buffer[c] / 2;

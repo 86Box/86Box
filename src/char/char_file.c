@@ -59,6 +59,7 @@ typedef struct {
     FILE        *file_in;
     FILE        *file_out;
     unsigned int loop_in : 1;
+    unsigned int flush   : 1;
 } char_file_t;
 
 static size_t
@@ -111,6 +112,8 @@ char_file_write(uint8_t *buf, size_t len, void *priv)
         buf += write_count;
         len -= write_count;
     }
+    if (dev->flush)
+        fflush(dev->file_out);
     return ret;
 }
 
@@ -119,7 +122,7 @@ char_file_status(void *priv)
 {
     char_file_t *dev = (char_file_t *) priv;
 
-    return (dev->file_in ? (CHAR_COM_DSR | CHAR_COM_DCD) : CHAR_RX_DISCONNECTED) | (dev->file_out ? CHAR_COM_CTS : CHAR_TX_DISCONNECTED);
+    return CHAR_LPT_ERROR | CHAR_LPT_SELECT | (dev->file_in ? (CHAR_COM_DSR | CHAR_COM_DCD) : CHAR_RX_DISCONNECTED) | (dev->file_out ? (CHAR_LPT_ACK | CHAR_COM_CTS) : (CHAR_LPT_PAPEROUT | CHAR_TX_DISCONNECTED));
 }
 
 static void
@@ -144,11 +147,12 @@ char_file_init(const device_t *info)
     char_file_t *dev = (char_file_t *) calloc(1, sizeof(char_file_t));
 
     /* Attach character device. */
-    dev->port        = char_attach(0, char_file_read, char_file_write, char_file_status, NULL, NULL, dev);
+    dev->port        = char_attach(device_get_config_int("strobe") ? CHAR_LPT_USESTROBE : 0, char_file_read, char_file_write, char_file_status, NULL, NULL, dev);
     dev->log         = char_log_open(dev->port, "File");
     const char *path = device_get_config_string("path");
     char_file_log(dev->log, "init(%s)\n", path);
     dev->loop_in = !!device_get_config_int("input_loop");
+    dev->flush   = !!device_get_config_int("flush");
 
     /* Open files. */
     char msg[2048];
@@ -165,14 +169,14 @@ char_file_init(const device_t *info)
 #endif
         char_file_log(dev->log, "%s output file [%s]\n", dev->file_out ? "Opened" : "Could not open", path);
         if (!dev->file_out) {
-            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, fmt);
-            ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+            snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_CONNECT_ERROR), dev->port->name, path, fmt);
+            ui_msgbox(MBX_ERROR, msg);
         }
     } else {
         char_file_log(dev->log, "No output file specified\n");
     }
     path = device_get_config_string("input_path");
-    if (path[0]) {
+    if (path && path[0]) {
         dev->file_in = plat_fopen(path, "rb");
 #ifdef _WIN32
         DWORD err = GetLastError();
@@ -185,8 +189,8 @@ char_file_init(const device_t *info)
 #endif
         char_file_log(dev->log, "%s input file [%s]\n", dev->file_in ? "Opened" : "Could not open", path);
         if (!dev->file_in) {
-            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, fmt);
-            ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+            snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_CONNECT_ERROR), dev->port->name, path, fmt);
+            ui_msgbox(MBX_ERROR, msg);
         }
     } else {
         char_file_log(dev->log, "No input file specified\n");
@@ -198,10 +202,10 @@ char_file_init(const device_t *info)
 
 // clang-format off
 #define TEXT_FILE_FILTER "Text files (*.txt *.log)|*.txt,*.log"
-static const device_config_t char_file_config[] = {
+static const device_config_t char_file_com_config[] = {
     {
         .name           = "path",
-        .description    = "Output file path",
+        .description    = "Output file",
         .type           = CONFIG_FNAME,
         .default_string = NULL,
         .default_int    = 1,
@@ -222,8 +226,19 @@ static const device_config_t char_file_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "flush",
+        .description    = "Write to the file immediately",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "input_path",
-        .description    = "Input file path",
+        .description    = "Input file",
         .type           = CONFIG_FNAME,
         .default_string = NULL,
         .default_int    = 0,
@@ -250,7 +265,7 @@ static const device_config_t char_file_config[] = {
 const device_t char_file_com_device = {
     .name          = "File (COM)",
     .internal_name = "file",
-    .flags         = DEVICE_COM,
+    .flags         = DEVICE_COM | DEVICE_HOTPLUG,
     .local         = 0,
     .init          = char_file_init,
     .close         = char_file_close,
@@ -258,5 +273,69 @@ const device_t char_file_com_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = char_file_config
+    .config        = char_file_com_config
+};
+
+// clang-format off
+static const device_config_t char_file_lpt_config[] = {
+    {
+        .name           = "strobe",
+        .description    = "Require STROBE signal",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "path",
+        .description    = "Output file",
+        .type           = CONFIG_FNAME,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = TEXT_FILE_FILTER,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "append",
+        .description    = "Append to file if it exists",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "flush",
+        .description    = "Write to the file immediately",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+// clang-format on
+
+const device_t char_file_lpt_device = {
+    .name          = "File (LPT)",
+    .internal_name = "file",
+    .flags         = DEVICE_LPT | DEVICE_HOTPLUG,
+    .local         = 0,
+    .init          = char_file_init,
+    .close         = char_file_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = char_file_lpt_config
 };

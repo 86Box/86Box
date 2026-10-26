@@ -21,25 +21,33 @@
 extern "C" {
 #endif
 
-#ifdef USE_WX
-#    define RENDER_FPS 30 /* default render speed */
-#endif
-
 /* Message Box functions. */
 #define MBX_INFO        1
 #define MBX_ERROR       2
 #define MBX_QUESTION    3
-#define MBX_QUESTION_YN 4
+#define MBX_QUESTION_YN 4 /* Yes and No: ui_msgbox*() returns 1 for Yes */
 #define MBX_QUESTION_OK 8
 #define MBX_QMARK       0x10
 #define MBX_WARNING     0x20
 #define MBX_FATAL       0x40
-#define MBX_ANSI        0x80
-#define MBX_LINKS       0x100
-#define MBX_DONTASK     0x200
 
-extern int ui_msgbox(int flags, void *message);
-extern int ui_msgbox_header(int flags, void *header, void *message);
+extern int ui_msgbox(int flags, char *message);
+extern int ui_msgbox_header(int flags, char *header, char *message);
+/* Configuration loading supplies names and categories; the UI owns all text. */
+typedef struct ui_unsupported_hardware_t {
+    int  kind;
+    char name[160];
+} ui_unsupported_hardware_t;
+extern int ui_confirm_unsupported_hardware(const ui_unsupported_hardware_t *items, int count, int machine_missing);
+
+/* Block until poll(arg) reaches total, keeping the UI responsive with a
+   progress display where the frontend has one. poll returns the
+   current count and must be callable from any thread. Intended for long
+   one-time device work (cold shader compile) that would otherwise
+   freeze the event loop; the display only appears if the wait is still
+   running after a short grace period. */
+extern void ui_progress_wait(const char *message, int total,
+                             int (*poll)(void *arg), void *arg);
 
 /* Status Bar functions. */
 #define SB_ICON_WIDTH 24
@@ -55,22 +63,21 @@ extern int ui_msgbox_header(int flags, void *header, void *message);
 #define SB_SOUND      0x90
 #define SB_TEXT       0xA0
 
-extern wchar_t *ui_window_title(wchar_t *s);
-extern void     ui_hard_reset_completed(void);
-extern void     ui_init_monitor(int monitor_index);
-extern void     ui_deinit_monitor(int monitor_index);
-extern void     ui_sb_set_ready(int ready);
-extern void     ui_sb_update_panes(void);
-extern void     ui_sb_update_text(void);
-extern void     ui_sb_update_tip(int meaning);
-extern void     ui_sb_update_icon(int tag, int active);
-extern void     ui_sb_update_icon_write(int tag, int write);
-extern void     ui_sb_update_icon_state(int tag, int state);
-extern void     ui_sb_update_icon_wp(int tag, int state);
-extern void     ui_sb_set_text_w(wchar_t *wstr);
-extern void     ui_sb_set_text(char *str);
-extern void     ui_sb_bugui(char *str);
-extern void     ui_sb_mt32lcd(char *str);
+extern void  ui_emu_status(int speed_percent);
+extern void  ui_hard_reset_completed(void);
+extern void  ui_init_monitor(int monitor_index);
+extern void  ui_deinit_monitor(int monitor_index);
+extern void  ui_sb_set_ready(int ready);
+extern void  ui_sb_update_panes(void);
+extern void  ui_sb_update_text(void);
+extern void  ui_sb_update_tip(int meaning);
+extern void  ui_sb_update_icon(int tag, int active);
+extern void  ui_sb_update_icon_write(int tag, int write);
+extern void  ui_sb_update_icon_state(int tag, int state);
+extern void  ui_sb_update_icon_wp(int tag, int state);
+extern void  ui_sb_set_text(char *str);
+extern void  ui_sb_bugui(char *str);
+extern void  ui_sb_mt32lcd(char *str);
 
 extern void     ui_update_force_interpreter(void);
 

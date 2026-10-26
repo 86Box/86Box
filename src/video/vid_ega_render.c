@@ -45,7 +45,9 @@ ega_display_line(ega_t *ega)
 void
 ega_render_blank(ega_t *ega)
 {
-    if ((ega->displine + ega->y_add) < 0)
+    if (((ega->displine + ega->y_add) < 0) ||
+        (buffer32 == NULL) ||
+        (buffer32->line[ega->displine + ega->y_add] == NULL))
         return;
 
     for (int x = 0; x < (ega->hdisp + ega->scrollcache); x++) {
@@ -76,7 +78,9 @@ ega_render_blank(ega_t *ega)
 void
 ega_render_overscan_left(ega_t *ega)
 {
-    if ((ega->displine + ega->y_add) < 0)
+    if (((ega->displine + ega->y_add) < 0) ||
+        (buffer32 == NULL) ||
+        (buffer32->line[ega->displine + ega->y_add] == NULL))
         return;
 
     if (ega->scrblank || (ega->hdisp == 0))
@@ -91,7 +95,9 @@ ega_render_overscan_right(ega_t *ega)
 {
     int right;
 
-    if ((ega->displine + ega->y_add) < 0)
+    if (((ega->displine + ega->y_add) < 0) ||
+        (buffer32 == NULL) ||
+        (buffer32->line[ega->displine + ega->y_add] == NULL))
         return;
 
     if (ega->scrblank || (ega->hdisp == 0))
@@ -110,7 +116,9 @@ ega_render_text(ega_t *ega)
         return;
     }
 
-    if ((ega->displine + ega->y_add) < 0)
+    if (((ega->displine + ega->y_add) < 0) ||
+        (buffer32 == NULL) ||
+        (buffer32->line[ega->displine + ega->y_add] == NULL))
         return;
 
     if (ega->firstline_draw == 2000)
@@ -160,14 +168,14 @@ ega_render_text(ega_t *ega)
             int fg;
             int bg;
             if (drawcursor) {
-                bg = ega->pallook[ega->egapal[attr & 0x0f]];
-                fg = ega->pallook[ega->egapal[attr >> 4]];
+                bg = ega->pallook[ega->egapal[(attr & 0x0f) & ega->plane_mask]];
+                fg = ega->pallook[ega->egapal[(attr >> 4) & ega->plane_mask]];
             } else {
-                fg = ega->pallook[ega->egapal[attr & 0x0f]];
-                bg = ega->pallook[ega->egapal[attr >> 4]];
+                fg = ega->pallook[ega->egapal[(attr & 0x0f) & ega->plane_mask]];
+                bg = ega->pallook[ega->egapal[(attr >> 4) & ega->plane_mask]];
 
                 if ((attr & 0x80) && attrblink) {
-                    bg = ega->pallook[ega->egapal[(attr >> 4) & 7]];
+                    bg = ega->pallook[ega->egapal[((attr >> 4) & 7) & ega->plane_mask]];
                     if (blinked)
                         fg = bg;
                 }
@@ -188,7 +196,7 @@ ega_render_text(ega_t *ega)
                         p[xx] = ega->mda_attr_to_color_table[attr][blink][bit];
                     if (drawcursor)
                         p[xx] ^= ega->mda_attr_to_color_table[attr][0][1];
-                    p[xx] = ega->pallook[ega->egapal[p[xx] & 0x0f]];
+                    p[xx] = ega->pallook[ega->egapal[(p[xx] & 0x0f) & ega->plane_mask]];
                 } else
                     p[xx] = (dat & (0x100 >> (xx >> dwshift))) ? fg : bg;
             }
@@ -203,7 +211,9 @@ ega_render_text(ega_t *ega)
 void
 ega_render_graphics(ega_t *ega)
 {
-    if ((ega->displine + ega->y_add) < 0)
+    if (((ega->displine + ega->y_add) < 0) ||
+        (buffer32 == NULL) ||
+        (buffer32->line[ega->displine + ega->y_add] == NULL))
         return;
 
     if (ega->firstline_draw == 2000)

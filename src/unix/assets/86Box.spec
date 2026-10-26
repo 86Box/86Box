@@ -12,10 +12,10 @@
 # After a successful build, you can install the RPMs as follows:
 #  sudo dnf install RPMS/$(uname -m)/86Box-3* RPMS/noarch/86Box-roms*
 
-%global romver 6.0
+%global romver 7.0
 
 Name:		86Box
-Version:	6.0
+Version:	7.0
 Release:	1%{?dist}
 Summary:	Classic PC emulator
 License:	GPLv2+
@@ -76,7 +76,7 @@ Collection of ROMs for use with 86Box.
   %cmake -DRELEASE=on
 %else
   %ifarch arm aarch64
-    %cmake -DRELEASE=on -DNEW_DYNAREC=on
+    %cmake -DRELEASE=on
   %else
     %cmake -DRELEASE=on -DDYNAREC=off
   %endif
@@ -86,20 +86,6 @@ Collection of ROMs for use with 86Box.
 %install
 # install base package
 %cmake_install
-
-# install icons
-for i in 16 20 24 32 40 48 64 72 128 256; do
-  mkdir -p $RPM_BUILD_ROOT%{_datadir}/icons/hicolor/${i}x${i}/apps
-  cp src/unix/assets/${i}x${i}/net.86box.86Box.png $RPM_BUILD_ROOT%{_datadir}/icons/hicolor/${i}x${i}/apps
-done
-
-# install desktop file
-desktop-file-install --dir=%{buildroot}%{_datadir}/applications src/unix/assets/net.86box.86Box.desktop
-
-# install metadata
-mkdir -p %{buildroot}%{_metainfodir}
-cp src/unix/assets/net.86box.86Box.metainfo.xml %{buildroot}%{_metainfodir}
-appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/net.86box.86Box.metainfo.xml
 
 # install roms
 pushd roms-%{romver}
@@ -121,5 +107,5 @@ popd
 %{_datadir}/%{name}/roms
 
 %changelog
-* Sat Aug 31 Jasmine Iwanek <jriwanek[AT]gmail.com> 6.0-1
+* Sat Aug 31 Jasmine Iwanek <jriwanek[AT]gmail.com> 7.0-1
 - Bump release

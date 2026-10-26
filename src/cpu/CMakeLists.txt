@@ -17,19 +17,24 @@
 
 add_library(cpu OBJECT
     cpu.c
+    cpu_lapic.c
     cpu_table.c
     fpu.c x86.c
     808x.c
+    808x_common.c
+    808x_marty_86box.c
     vx0.c
     vx0_biu.c
     386.c
     386_common.c
     386_dynarec.c
+    cache_as_ram.c
     x86_ops_mmx.c
     x86seg_common.c
     x86seg.c
     x86seg_2386.c
     x87.c
+    x87_ferr.c
     x87_timings.c
     i8080.c
 )

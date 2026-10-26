@@ -19,6 +19,9 @@
 #include "qt_vmmanager_model.hpp"
 #include "qt_vmmanager_details.hpp"
 #include "qt_vmmanager_listviewdelegate.hpp"
+#ifdef DISCORD
+#    include "qt_vmmanager_discord.hpp"
+#endif
 
 #include <QPushButton>
 
@@ -27,7 +30,7 @@ extern "C" {
 #include <86box/version.h>
 }
 
-#if EMU_BUILD_NUM != 0
+#ifdef UPDATE_CHECK
 #    include "qt_updatecheck.hpp"
 #endif
 
@@ -98,8 +101,8 @@ private:
     VMManagerSystem  *selected_sysconfig;
     // VMManagerConfig       *config;
     QSortFilterProxyModel *proxy_model;
-#if EMU_BUILD_NUM != 0
-    bool updateCheck = false;
+#ifdef DISCORD
+    VMManagerDiscord *discord;
 #endif
     bool regexSearch = false;
 
@@ -111,13 +114,13 @@ private:
     void                  loadSettings();
     [[nodiscard]] bool    currentSelectionIsValid() const;
     [[nodiscard]] QString machineCountString(QString states = "") const;
-#if EMU_BUILD_NUM != 0
+#ifdef UPDATE_CHECK
     void backgroundUpdateCheckStart() const;
 #endif
     void showTextFileContents(const QString &title, const QString &path);
 private slots:
     void vmStateChange();
-#if EMU_BUILD_NUM != 0
+#ifdef UPDATE_CHECK
     void backgroundUpdateCheckComplete(const UpdateCheck::UpdateResult &result);
     void backgroundUpdateCheckError(const QString &errorMsg);
 #endif

@@ -86,6 +86,8 @@ typedef struct ibm8514_t {
     uint32_t vram_mask;
     uint32_t pallook[512];
     uint32_t bios_addr;
+    uint8_t  rom_page;  /* ROM_PAGE_SEL (46E8h) bits 2:0 */
+    uint8_t *rom_image; /* the whole ROM file; bios_rom.rom is the window */
     uint32_t memaddr_latch;
 
     PALETTE   vgapal;
@@ -137,6 +139,7 @@ typedef struct ibm8514_t {
         uint16_t clip_right;
         uint16_t clip_bottom;
         int16_t  clip_left;
+        uint8_t  x_wrap; /*plot X modulo 1024 (ATI Graphics Ultra at the 8514/A-compatible pitch)*/
         int16_t  clip_top;
         uint8_t  pix_trans[2];
         int      poly_draw;
@@ -214,6 +217,8 @@ typedef struct ibm8514_t {
     int      split;
     int      h_disp;
     int      h_total;
+    int      h_total_back;
+    int      vga_htotal;
     int      h_sync_start;
     int      h_sync_width;
     int      h_disp_time;
@@ -254,12 +259,11 @@ typedef struct ibm8514_t {
     int     vsyncwidth;
     int     vtotal;
     int     v_disp;
-    int     v_disp2;
     int     vdisp;
     int     vdisp2;
     int     disp_cntl;
     int     disp_change;
-    int     ext_mode_inc;
+    int     extended_mode;
     int     interlace;
     int     disp_cntl_interlace;
     int     disp_cntl_double_scan;
@@ -282,11 +286,14 @@ typedef struct ibm8514_t {
     int      linear;
     uint32_t vram_amount;
     int      vram_512k_8514;
+    uint32_t vram_8514_addr_mask;
     int      vendor_mode;
+    int      monitorid;
     int      _8514on;
     int      _8514crt;
     PALETTE  _8514pal;
     uint8_t  ven_clock;
+    uint8_t  double_clock;
 
     latch8514_t latch;
 

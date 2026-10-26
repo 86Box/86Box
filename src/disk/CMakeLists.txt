@@ -20,6 +20,7 @@ add_library(hdd OBJECT
     hdd_image.c
     hdd_table.c
     hdc.c
+    hdc_tandy2k.c
     hdc_st506_xt.c
     hdc_st506_at.c
     hdc_st506_mca.c
@@ -33,6 +34,9 @@ add_library(hdd OBJECT
     hdc_ide_opti611.c
     hdc_ide_cmd640.c
     hdc_ide_cmd646.c
+    hdc_ide_pdc202xx.c
+    hdc_ide_hpt366.c
+    hdc_ide_pc87410.c
     hdc_ide_rz1000.c
     hdc_ide_sff8038i.c
     hdc_ide_um8673f.c

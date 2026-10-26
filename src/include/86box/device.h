@@ -45,9 +45,10 @@
 
 #define CONFIG_TYPE_INT     (0 << CONFIG_SHIFT)
 #define CONFIG_TYPE_STRING  (1 << CONFIG_SHIFT)
-#define CONFIG_TYPE_HEX16   (2 << CONFIG_SHIFT)
-#define CONFIG_TYPE_HEX20   (3 << CONFIG_SHIFT)
-#define CONFIG_TYPE_MAC     (4 << CONFIG_SHIFT)
+#define CONFIG_TYPE_STRHEX  (2 << CONFIG_SHIFT)
+#define CONFIG_TYPE_HEX16   (3 << CONFIG_SHIFT)
+#define CONFIG_TYPE_HEX20   (4 << CONFIG_SHIFT)
+#define CONFIG_TYPE_MAC     (5 << CONFIG_SHIFT)
 
 #define CONFIG_INT          (0 | CONFIG_TYPE_INT)      /* config_get_int() */
 #define CONFIG_BINARY       (1 | CONFIG_TYPE_INT)      /* config_get_int() */
@@ -62,6 +63,8 @@
 #define CONFIG_SERPORT      (2 | CONFIG_TYPE_STRING)     /* config_get_string() */
 #define CONFIG_BIOS         (3 | CONFIG_TYPE_STRING)     /* config_get_string() */
 #define CONFIG_VARIANT      CONFIG_BIOS
+
+#define CONFIG_STRHEX       (0 | CONFIG_TYPE_STRHEX)     /* config_get_string() */
 
 #define CONFIG_HEX16        (0 | CONFIG_TYPE_HEX16)      /* config_get_hex16() */
 
@@ -86,7 +89,7 @@ enum {
     DEVICE_ISA16      = 0x20,       /* requires an AT-compatible system */
     DEVICE_AT_KBC     = 0x40,       /* requires an AT-compatible keyboard controller */
     DEVICE_MCA        = 0x80,       /* requires the MCA bus */
-    DEVICE_MCA32      = 0x100,      /* requires the MCA bus */
+    DEVICE_MCA32      = 0x100,      /* requires the 32-bit MCA bus */
     DEVICE_PS2_KBC    = 0x200,      /* requires a PS/1 or PS/2 system */
     DEVICE_PCMCIA     = 0x400,      /* requires the PCMCIA bus */
     DEVICE_HIL        = 0x800,      /* requires the HP HIL bus */
@@ -106,9 +109,13 @@ enum {
 
     DEVICE_KBC        = 0x800000,   /* is a keyboard controller */
     DEVICE_SOFTRESET  = 0x1000000,  /* requires to be reset on soft reset */
+    DEVICE_HOTPLUG_IN = 0x2000000,  /* can be safely added without a hard reset */
+    DEVICE_HOTPLUG_OUT= 0x4000000,  /* can be safely closed without a hard reset */
+    DEVICE_HOTPLUG    = DEVICE_HOTPLUG_IN | DEVICE_HOTPLUG_OUT,
 
-    DEVICE_BIOS_ALIAS = 0x2000000,  /* use only BIOS names for aliases */
+    DEVICE_BIOS_ALIAS = 0x8000000,  /* use only BIOS names for aliases */
 
+    DEVICE_AUDIO_IN   = 0x10000000,
     DEVICE_ONBOARD    = 0x40000000, /* is on-board */
     DEVICE_PIT        = 0x80000000, /* device is a PIT */
 
@@ -126,6 +133,9 @@ enum {
 
 #define BIOS_LIMIT_MIN_MEMORY            0x0100000000000000
 #define BIOS_LIMIT_MAX_MEMORY            0x0200000000000000
+#define BIOS_LIMIT_MIN_MEMORY_2          0x0400000000000000
+#define BIOS_LIMIT_MAX_MEMORY_2          0x0800000000000000
+#define BIOS_FIXED_MEMORY                0x1000000000000000 /* Only the "memory" option's default. */
 
 typedef struct device_config_selection_t {
     const char *description;
@@ -168,10 +178,7 @@ typedef struct _device_ {
     uint32_t    flags; /* system flags */
     uintptr_t   local; /* flags local to device */
 
-    union {
-        void *(*init)(const struct _device_ *);
-        void *(*init_ext)(const struct _device_ *, void*);
-    };
+    void *(*init)(const struct _device_ *);
     void (*close)(void *priv);
     void (*reset)(void *priv);
     int  (*available)(void);
@@ -184,7 +191,23 @@ typedef struct _device_ {
 
     /* Optional debug snapshot callback (called when VM is paused). */
     void (*debug_snapshot)(void *w, void *priv);
+    void (*power_button)(void *priv); /* Optional emulated power-button press. */
+
+    const char *short_name;                           /* Short label, as on an IDE channel; name if NULL. */
+    uint32_t  (*ide_boards)(const struct _device_ *); /* The IDE boards the device claims, with its
+                                                         configuration as the current context. */
+    uint32_t  (*scsi_buses)(const struct _device_ *); /* How many SCSI buses it takes, the same way;
+                                                         one for a SCSI card without it. */
 } device_t;
+
+/* Who has a bus (an IDE board, a SCSI bus): the device and its instance,
+   and whether it is on the machine's board (with device NULL, the
+   chipset's own). */
+typedef struct bus_owner_t {
+    const device_t *device;
+    int             instance;
+    int             onboard;
+} bus_owner_t;
 
 typedef struct device_context_t {
     const device_t *dev;
@@ -212,6 +235,8 @@ extern void *device_add_inst_params(const device_t *dev, int inst, void *params)
 extern void  device_add_inst_ex(const device_t *dev, void *priv, int inst);
 extern void  device_add_inst_ex_params(const device_t *dev, void *priv, int inst, void *params);
 extern void *device_get_common_priv(void);
+extern void  device_close_inst_params(const device_t *device, int inst, void *params);
+extern void  device_close(const device_t *device);
 extern void  device_close_all(void);
 extern void  device_close_by_flags(uint32_t match_flags);
 extern void  device_reset_all(uint32_t match_flags);
@@ -220,6 +245,9 @@ extern void *device_get_priv(const device_t *dev);
 extern int   device_available(const device_t *dev);
 extern void  device_speed_changed(void);
 extern void  device_force_redraw(void);
+extern int   device_has_power_button(void);
+/* Call with the CPU paused before dispatching to device state. */
+extern void  device_power_button(void);
 extern const char *device_get_bus_name(const device_t *dev);
 extern void  device_get_name(const device_t *dev, int bus, char *name);
 extern int   device_has_config(const device_t *dev);
@@ -252,10 +280,11 @@ extern void        device_set_config_int(const char *str, int val);
 extern void        device_set_config_hex16(const char *str, int val);
 extern void        device_set_config_hex20(const char *str, int val);
 extern void        device_set_config_mac(const char *str, int val);
+extern const char *device_get_config_bios(const char *name);
+extern void        device_migrate_config_bios(const void *priv, const char *name);
 extern const char *device_get_config_string(const char *name);
 extern void        device_set_config_string(const char *str, const char *val);
 extern int         device_get_instance(void);
-#define device_get_config_bios device_get_config_string
 
 extern const char *device_get_internal_name(const device_t *dev);
 
@@ -269,6 +298,7 @@ extern int         machine_device_available(const device_t *dev);
 
 extern const device_t device_none;
 extern const device_t device_internal;
+extern const device_t device_external;
 
 #ifdef __cplusplus
 }

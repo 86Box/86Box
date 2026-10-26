@@ -63,6 +63,20 @@ pit_fast_log(const char *fmt, ...)
 #    define pit_fast_log(fmt, ...)
 #endif
 
+/* The recompiler only advances the TSC at the end of a block, so bring it
+   up to date with the cycles spent so far before the counters are looked at.
+   Otherwise a count latched right after being loaded reads back unchanged,
+   and code that waits for the counter to move in a single block (such as
+   the delay loop in Fire & Ice) never sees it do so. */
+static __inline void
+pitf_sync_tsc(void)
+{
+#ifdef USE_DYNAREC
+    if (cpu_use_dynarec)
+        update_tsc();
+#endif
+}
+
 static void
 pitf_ctr_set_out(ctrf_t *ctr, int out, void *priv)
 {
@@ -124,6 +138,8 @@ static int
 pitf_read_timer(ctrf_t *ctr)
 {
     if (ctr->using_timer && !(ctr->m == 3 && !ctr->gate) && timer_is_enabled(&ctr->timer)) {
+        if (ctr->pit_const == 0)
+            return 0x10000;
         int read = (int) ((timer_get_remaining_u64(&ctr->timer)) / ctr->pit_const);
         if (ctr->m == 2)
             read++;
@@ -421,6 +437,7 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
     pit_fast_log("[%04X:%08X] pit_write(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
 
     cycles -= ISA_CYCLES(8);
+    pitf_sync_tsc();
 
     switch (addr & 3) {
         case 3: /* control */
@@ -561,6 +578,7 @@ pitf_read(uint16_t addr, void *priv)
     ctrf_t *ctr;
 
     cycles -= ISA_CYCLES(8);
+    pitf_sync_tsc();
 
     switch (addr & 3) {
         case 3: /* Control. */
@@ -683,8 +701,22 @@ pitf_set_pit_const(void *data, uint64_t pit_const)
 
     for (uint8_t i = 0; i < NUM_COUNTERS; i++) {
         ctr = &pit->counters[i];
-        ctr->pit_const = pit_const;
+        ctr->pit_const = pit_const * (uint64_t) ((ctr->clock_div > 1) ? ctr->clock_div : 1);
     }
+}
+
+/* A counter clocked slower than its neighbours. The divider is kept apart
+   from the constant so that a speed change, which sets the constant again,
+   keeps it. */
+static void
+pitf_ctr_set_clock_div(void *data, int counter_id, int div)
+{
+    pitf_t *pit = (pitf_t *) data;
+    ctrf_t *ctr = &pit->counters[counter_id];
+    int     old = (ctr->clock_div > 1) ? ctr->clock_div : 1;
+
+    ctr->clock_div = (div > 1) ? div : 1;
+    ctr->pit_const = (ctr->pit_const / (uint64_t) old) * (uint64_t) ctr->clock_div;
 }
 
 static void
@@ -703,6 +735,8 @@ pitf_close(void *priv)
 
     if (dev == pit_devs[1].data)
         pit_devs[1].data = NULL;
+    if (dev == pit_ps2_watchdog)
+        pit_ps2_watchdog = NULL;
 
     if (dev != NULL)
         free(dev);
@@ -835,5 +869,6 @@ const pit_intf_t pit_fast_intf = {
     .set_load_func   = &pitf_ctr_set_load_func,
     .ctr_clock       = &pitf_ctr_clock,
     .set_pit_const   = &pitf_set_pit_const,
+    .set_clock_div   = &pitf_ctr_set_clock_div,
     .data            = NULL,
 };

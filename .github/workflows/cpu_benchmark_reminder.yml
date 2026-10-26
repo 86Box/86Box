@@ -1,0 +1,65 @@
+name: CPU benchmark reminder
+
+# Asks the author of a pull request touching the CPU or dynamic recompiler
+# code to benchmark their changes against the original code.
+#
+# pull_request_target is used so that the job has permission to comment on
+# pull requests from forks. The job never checks out or runs code from the
+# pull request.
+
+on:
+
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+    paths:
+      - src/cpu/**
+      - src/codegen/**
+
+permissions:
+  pull-requests: write
+
+jobs:
+
+  remind:
+
+    name: Post benchmark reminder
+
+    runs-on: ubuntu-latest
+
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Comment on pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          marker='<!-- cpu-benchmark-reminder -->'
+
+          # Only post the reminder once per pull request
+          if gh pr view "$PR_NUMBER" --json comments --jq '.comments[].body' | grep -qF -- "$marker"; then
+            echo "Reminder already posted, skipping."
+            exit 0
+          fi
+
+          cat > body.md <<EOF
+          $marker
+          Hi @$PR_AUTHOR, this pull request modifies the CPU emulation (\`src/cpu\`) and/or the dynamic recompiler (\`src/codegen\`), which are performance-critical parts of 86Box.
+
+          Please benchmark your changes against the original code and post the results here before this pull request is merged. When doing so:
+
+          * Compare a build of your branch against a build of the commit it is based on, using the same build type and compiler options.
+          * Test with both the dynamic recompiler enabled and disabled, where your changes are relevant to both.
+          * Use a CPU-heavy workload in a guest (for example a benchmark or a game timedemo) and note the emulated machine, CPU and speed used.
+          * Include your host CPU and operating system, and the results (e.g. emulation speed percentage or benchmark scores) for both builds.
+
+          Thank you!
+          EOF
+
+          gh pr comment "$PR_NUMBER" --body-file body.md

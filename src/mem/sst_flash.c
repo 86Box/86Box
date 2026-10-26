@@ -28,6 +28,7 @@
 #include <86box/nvr.h>
 #include <86box/plat.h>
 #include <86box/m_xt_xi8088.h>
+#include <86box/flash.h>
 
 typedef struct sst_t {
     uint8_t manufacturer;
@@ -42,12 +43,14 @@ typedef struct sst_t {
     int command_state;
     int id_mode;
     int dirty;
+    int force_128;
 
     uint32_t size;
     uint32_t mask;
     uint32_t page_mask;
     uint32_t page_base;
     uint32_t last_addr;
+    uint32_t xor;
 
     uint8_t  page_buffer[128];
     uint8_t  page_dirty[128];
@@ -55,6 +58,10 @@ typedef struct sst_t {
 
     mem_mapping_t mapping[8];
     mem_mapping_t mapping_h[8];
+    uint8_t      *exec[8];
+    uint8_t      *exec_h[8];
+    int           enabled[8];
+    int           enabled_h[8];
 
     pc_timer_t page_write_timer;
 } sst_t;
@@ -133,7 +140,8 @@ static char flash_path[1024];
 
 #define AMD         0x01 /* AMD Manufacturer's ID */
 #define AMD29F010A  0x2000
-#define AMD29F020A  0xb000
+#define AMD29F020A    0xb000
+#define AMD29F002NBT  0xb000
 
 #define SIZE_512K   0x010000
 #define SIZE_1M     0x020000
@@ -142,6 +150,8 @@ static char flash_path[1024];
 #define SIZE_4M     0x080000
 #define SIZE_8M     0x100000
 #define SIZE_16M    0x200000
+
+static sst_t *sst = NULL;
 
 static void
 sst_sector_erase(sst_t *dev, uint32_t addr)
@@ -354,6 +364,11 @@ sst_write(uint32_t addr, uint8_t val, void *priv)
     uint32_t addr0 = 0x5555;
     uint32_t addr1 = 0x2aaa;
 
+    if (!flash_bios_write_selected(addr))
+        return;
+
+    addr ^= dev->xor;
+
     if (dev->manufacturer == AMD) {
         mask >>= 4;
         addr0 >>= 4;
@@ -436,6 +451,11 @@ sst_read(uint32_t addr, void *priv)
     const sst_t  *dev = (sst_t *) priv;
     uint8_t       ret = 0xff;
 
+    if (!flash_bios_read_selected(addr))
+        return 0xff;
+
+    addr ^= dev->xor;
+
     addr &= 0x000fffff;
 
     if (dev->id_mode)
@@ -454,6 +474,11 @@ sst_readw(uint32_t addr, void *priv)
     sst_t   *dev = (sst_t *) priv;
     uint16_t ret = 0xffff;
 
+    if (!flash_bios_read_selected(addr))
+        return 0xffff;
+
+    addr ^= dev->xor;
+
     addr &= 0x000fffff;
 
     if (dev->id_mode)
@@ -471,6 +496,11 @@ sst_readl(uint32_t addr, void *priv)
 {
     sst_t   *dev = (sst_t *) priv;
     uint32_t ret = 0xffffffff;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xffffffff;
+
+    addr ^= dev->xor;
 
     addr &= 0x000fffff;
 
@@ -502,23 +532,82 @@ sst_add_mappings(sst_t *dev)
         memcpy(&dev->array[fbase], &rom[base & biosmask], 0x10000);
 
         if (base >= 0xe0000) {
+            dev->exec[i] = dev->array + fbase;
             mem_mapping_add(&(dev->mapping[i]), base, 0x10000,
                             sst_read, sst_readw, sst_readl,
                             sst_write, NULL, NULL,
                             dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+            dev->enabled[i] = 1;
         }
-        if (is6117) {
-            mem_mapping_add(&(dev->mapping_h[i]), (base | 0x3f00000), 0x10000,
-                            sst_read, sst_readw, sst_readl,
-                            sst_write, NULL, NULL,
-                            dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
-        } else {
-            mem_mapping_add(&(dev->mapping_h[i]), (base | (cpu_16bitbus ? 0xf00000 : 0xfff00000)), 0x10000,
-                            sst_read, sst_readw, sst_readl,
-                            sst_write, NULL, NULL,
-                            dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+        if ((base >= 0xe0000) || !(dev->force_128)) {
+            dev->exec_h[i] = dev->array + fbase;
+            if (is6117)
+                mem_mapping_add(&(dev->mapping_h[i]), (base | 0xf00000), 0x10000,
+                                sst_read, sst_readw, sst_readl,
+                                sst_write, NULL, NULL,
+                                dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+            else
+                mem_mapping_add(&(dev->mapping_h[i]), (base | (cpu_16bitbus ? 0xf00000 : 0xfff00000)), 0x10000,
+                                sst_read, sst_readw, sst_readl,
+                                sst_write, NULL, NULL,
+                                dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+            dev->enabled_h[i] = 1;
         }
     }
+}
+
+/* The chip select changed: keep an exec pointer only on a mapping the
+   chipset decodes whole (flash_bios_mapping_update). */
+static void
+sst_decode_hook(void *priv)
+{
+    sst_t *dev = (sst_t *) priv;
+
+    for (uint8_t i = 0; i < 8; i++) {
+        if (dev->mapping[i].size)
+            flash_bios_mapping_update(&dev->mapping[i], dev->exec[i]);
+        if (dev->mapping_h[i].size)
+            flash_bios_mapping_update(&dev->mapping_h[i], dev->exec_h[i]);
+    }
+}
+
+void
+sst_set_xor(int enable)
+{
+    if (sst != NULL) {
+        sst->xor = (!!enable) << 17;
+
+        uint32_t base;
+        uint32_t fbase;
+        uint32_t root_base;
+
+        root_base = 0x100000 - sst->size;
+
+        for (uint8_t i = 0; i < 8; i++) {
+            base  = root_base + (i << 16);
+            fbase = base & biosmask;
+
+            if (sst->enabled[i])
+                mem_mapping_set_exec(&(sst->mapping[i]), sst->array + (fbase ^ sst->xor));
+
+            if (sst->enabled_h[i])
+                mem_mapping_set_exec(&(sst->mapping_h[i]), sst->array + (fbase ^ sst->xor));
+        }
+
+        flushmmucache();
+    }
+}
+
+static void
+sst_reset(void *priv)
+{
+    sst_t *dev = (sst_t *) priv;
+
+    dev->command_state = 0;
+    dev->id_mode       = 0;
+
+    if (dev->force_128)
+        sst_set_xor(0);
 }
 
 static void *
@@ -526,6 +615,8 @@ sst_init(const device_t *info)
 {
     FILE  *fp;
     sst_t *dev = calloc(1, sizeof(sst_t));
+
+    dev->force_128 = !!(info->local & SST_FORCE_128);
 
     sprintf(flash_path, "%s.bin", machine_get_nvr_name_ex(machine));
 
@@ -542,7 +633,7 @@ sst_init(const device_t *info)
     if (dev->manufacturer == AMD)
         dev->is_39    = 1;
 
-    dev->size = info->local & 0xffff0000;
+    dev->size = info->local & 0x7fff0000;
     if ((dev->size == 0x20000) && ((machines[machine].init == machine_xt_xi8088_init) && !xi8088_bios_128kb()))
         dev->size = 0x10000;
 
@@ -553,16 +644,38 @@ sst_init(const device_t *info)
 
     sst_add_mappings(dev);
 
-    fp = nvr_fopen(flash_path, "rb");
-    if (fp) {
-        if (fread(&(dev->array[0x00000]), 1, dev->size, fp) != dev->size)
-            pclog("Less than %i bytes read from the SST Flash ROM file\n", dev->size);
-        fclose(fp);
+    if (strlen(flash_path) > 0) {
+        fp = nvr_fopen(flash_path, "rb");
+        if (fp != NULL) {
+            if (!dump_missing)
+                (void) !fread(&(dev->array[0x00000]), 1, dev->size, fp);
+        } else if (!dump_missing)
+            dev->dirty = 1;
     } else
-        dev->dirty = 1; /* It is by definition dirty on creation. */
+        fatal("Attempting to open the Flash file for reading with an empty invalid name\n");
+
+    /* Set the requested logo display */
+    if ((machines[machine].init == machine_at_in530_init) &&
+        (info->local == (AMD | AMD29F002NBT | SIZE_2M))) {
+        const uint8_t old = dev->array[0x3af70];
+
+        dev->array[0x3af70] &= 0xf0;
+        dev->array[0x3af70] |= machine_in530_boot_logo() & 0x0f;
+
+        if (dev->array[0x3af70] != old)
+            dev->dirty = 1;
+    }
 
     if (!dev->is_39)
         timer_add(&dev->page_write_timer, sst_page_write, dev, 0);
+
+    if (dev->force_128)
+        sst_set_xor(0);
+
+    flash_bios_set_decode_hook(sst_decode_hook, dev);
+    sst_decode_hook(dev);
+
+    sst = dev;
 
     return dev;
 }
@@ -570,21 +683,29 @@ sst_init(const device_t *info)
 static void
 sst_close(void *priv)
 {
-    FILE  *fp;
     sst_t *dev = (sst_t *) priv;
 
+    flash_bios_set_decode_hook(NULL, NULL);
+
     if (dev->dirty) {
-        fp = nvr_fopen(flash_path, "wb");
-        if (fp != NULL) {
-            fwrite(&(dev->array[0x00000]), dev->size, 1, fp);
-            fclose(fp);
-        }
+        if (strlen(flash_path) > 0) {
+            FILE *fp = nvr_fopen(flash_path, "wb");
+            if (fp != NULL) {
+                if (!dump_missing)
+                    fwrite(&(dev->array[0x00000]), dev->size, 1, fp);
+                fclose(fp);
+            } else if (!dump_missing)
+                warning("Unable to open %s for writing, please make sure your NVR folder is writable\n", flash_path);
+        } else
+            fatal("Attempting to open the Flash file for writing with an empty invalid name\n");
     }
 
     free(dev->array);
     dev->array = NULL;
 
     free(dev);
+
+    sst = NULL;
 }
 
 const device_t sst_flash_29ee010_device = {
@@ -594,7 +715,7 @@ const device_t sst_flash_29ee010_device = {
     .local         = SST | SST29EE010 | SIZE_1M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -608,7 +729,7 @@ const device_t sst_flash_29ee020_device = {
     .local         = SST | SST29EE020 | SIZE_2M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -622,7 +743,7 @@ const device_t winbond_flash_w29c512_device = {
     .local         = WINBOND | W29C010 | SIZE_512K,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -636,7 +757,7 @@ const device_t winbond_flash_w29c010_device = {
     .local         = WINBOND | W29C010 | SIZE_1M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -650,7 +771,7 @@ const device_t winbond_flash_w29c011a_device = {
     .local         = WINBOND | W29C011A | SIZE_1M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -664,7 +785,7 @@ const device_t winbond_flash_w29c020_device = {
     .local         = WINBOND | W29C020 | SIZE_2M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -678,7 +799,7 @@ const device_t winbond_flash_w29c040_device = {
     .local         = WINBOND | W29C040 | SIZE_4M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -692,7 +813,7 @@ const device_t sst_flash_39sf512_device = {
     .local         = SST | SST39SF512 | SIZE_512K,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -706,7 +827,7 @@ const device_t sst_flash_39sf010_device = {
     .local         = SST | SST39SF010 | SIZE_1M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -720,7 +841,7 @@ const device_t sst_flash_39sf020_device = {
     .local         = SST | SST39SF020 | SIZE_2M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -734,7 +855,7 @@ const device_t sst_flash_39sf040_device = {
     .local         = SST | SST39SF040 | SIZE_4M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -748,7 +869,7 @@ const device_t sst_flash_39lf512_device = {
     .local         = SST | SST39LF512 | SIZE_512K,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -762,7 +883,7 @@ const device_t sst_flash_39lf010_device = {
     .local         = SST | SST39LF010 | SIZE_1M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -776,7 +897,7 @@ const device_t sst_flash_39lf020_device = {
     .local         = SST | SST39LF020 | SIZE_2M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -790,7 +911,7 @@ const device_t sst_flash_39lf040_device = {
     .local         = SST | SST39LF040 | SIZE_4M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -804,7 +925,7 @@ const device_t sst_flash_39lf080_device = {
     .local         = SST | SST39LF080 | SIZE_8M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -818,7 +939,7 @@ const device_t sst_flash_39lf016_device = {
     .local         = SST | SST39LF016 | SIZE_16M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -840,7 +961,7 @@ const device_t sst_flash_49lf002_device = {
     .local         = SST | SST49LF002 | SIZE_2M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -854,7 +975,7 @@ const device_t sst_flash_49lf020_device = {
     .local         = SST | SST49LF020 | SIZE_2M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -868,7 +989,7 @@ const device_t sst_flash_49lf020a_device = {
     .local         = SST | SST49LF020A | SIZE_2M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -882,7 +1003,7 @@ const device_t sst_flash_49lf003_device = {
     .local         = SST | SST49LF003 | SIZE_3M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -896,7 +1017,7 @@ const device_t sst_flash_49lf030_device = {
     .local         = SST | SST49LF030 | SIZE_3M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -910,7 +1031,7 @@ const device_t sst_flash_49lf004_device = {
     .local         = SST | SST49LF004 | SIZE_4M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -924,7 +1045,7 @@ const device_t sst_flash_49lf004c_device = {
     .local         = SST | SST49LF004C | SIZE_4M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -938,7 +1059,7 @@ const device_t sst_flash_49lf040_device = {
     .local         = SST | SST49LF040 | SIZE_4M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -952,7 +1073,7 @@ const device_t sst_flash_49lf008_device = {
     .local         = SST | SST49LF008 | SIZE_8M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -966,7 +1087,7 @@ const device_t sst_flash_49lf008c_device = {
     .local         = SST | SST49LF008C | SIZE_8M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -980,7 +1101,7 @@ const device_t sst_flash_49lf080_device = {
     .local         = SST | SST49LF080 | SIZE_8M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -994,7 +1115,7 @@ const device_t sst_flash_49lf016_device = {
     .local         = SST | SST49LF016 | SIZE_16M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -1009,7 +1130,7 @@ const device_t sst_flash_49lf160_device = {
     .local         = SST | SST49LF160 | SIZE_16M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -1023,7 +1144,7 @@ const device_t amd_flash_29f010a_device = {
     .local         = AMD | AMD29F010A | SIZE_1M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -1037,7 +1158,20 @@ const device_t amd_flash_29f020a_device = {
     .local         = AMD | AMD29F020A | SIZE_2M,
     .init          = sst_init,
     .close         = sst_close,
-    .reset         = NULL,
+    .reset         = sst_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+const device_t amd_flash_29f002nbt_device = {
+    .name          = "AMD Am29F002NBT Flash BIOS",
+    .internal_name = "amd_flash_29f002nbt",
+    .flags         = 0,
+    .local         = AMD | AMD29F002NBT | SIZE_2M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = sst_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
