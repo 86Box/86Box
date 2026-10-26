@@ -18,6 +18,14 @@ if(BUILD_TESTING)
             COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/gdbstub_test.py
                 --binary ${GDBSTUB_TEST_BINARY} --rompath ${GDBSTUB_TEST_ROMPATH} --runtime)
         set_tests_properties(gdbstub_isolated_guest PROPERTIES RUN_SERIAL TRUE TIMEOUT 180)
+        foreach(debug_regs on off)
+            add_test(NAME gdbstub_isolated_interpreter_${debug_regs}
+                COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/gdbstub_test.py
+                    --binary ${GDBSTUB_TEST_BINARY} --rompath ${GDBSTUB_TEST_ROMPATH}
+                    --runtime --interpreter --guest-debug-regs ${debug_regs})
+            set_tests_properties(gdbstub_isolated_interpreter_${debug_regs}
+                PROPERTIES RUN_SERIAL TRUE TIMEOUT 180)
+        endforeach()
         if(AUTOMATION AND QT AND UNIX)
             add_test(NAME gdbstub_runtime
                 COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/gdbstub_runtime_test.py

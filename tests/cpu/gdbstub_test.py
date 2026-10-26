@@ -23,13 +23,13 @@ CPU_MODELS = {
 }
 
 
-def configuration(port, interpreter=False, cpu="pentium-mmx"):
+def configuration(port, interpreter=False, cpu="pentium-mmx", guest_debug_regs=True):
     machine, family, speed, multiplier, fpu, memory, video = CPU_MODELS[cpu]
     return (
         f"[Machine]\nmachine = {machine}\ncpu_family = {family}\n"
         f"cpu_speed = {speed}\ncpu_multi = {multiplier}\nfpu_type = {fpu}\n"
         f"cpu_use_dynarec = {int(not interpreter)}\nmem_size = {memory}\n"
-        "cpu_debug_regs_486 = 1\n"
+        f"cpu_debug_regs_486 = {int(guest_debug_regs)}\n"
         "time_sync = disabled\n[General]\nvid_renderer = qt_software\n"
         f"gdbstub_port = {port}\n[Video]\ngfxcard = {video}\n"
         "[Sound]\nsndcard = none\n[Input devices]\nmouse_type = none\n"
@@ -99,6 +99,7 @@ class Remote:
 
 class GuestTests(unittest.TestCase):
     native_flags = 2
+    guest_debug_regs = True
 
     @classmethod
     def setUpClass(cls):
@@ -280,6 +281,9 @@ class GuestTests(unittest.TestCase):
         self.assertEqual(r.read_reg(8), 0x7100)
         self.assertFalse(r.read_reg(9) & 0x100)
         r.write_reg(9, 2)
+        if not self.guest_debug_regs:
+            self.assertEqual(r.command("z1,7100,1"), "OK")
+            return
         # Set DR0=7000 and DR7=401, then jump to the guest breakpoint.
         r.write_mem(0x7200, bytes.fromhex(
             "66b8007000000f23c066b8010400000f23f8e9ebfd"))
@@ -403,6 +407,8 @@ if __name__ == "__main__":
     parser.add_argument("--rompath", type=Path)
     parser.add_argument("--runtime", action="store_true", help="Use the new --gdbstub CLI")
     parser.add_argument("--interpreter", action="store_true")
+    parser.add_argument("--guest-debug-regs", choices=("on", "off"), default="on",
+                        help="Exercise execution with guest debug-register emulation on or off")
     parser.add_argument("--cpu", choices=CPU_MODELS, default="pentium-mmx",
                         help="Older CPUs support only the real-mode instruction tests")
     parser.add_argument("--trace-translated", action="store_true",
@@ -413,12 +419,14 @@ if __name__ == "__main__":
     args, remaining = parser.parse_known_args()
     PORT = args.port
     GuestTests.native_flags = 0x8002 if args.cpu == "v20" else 2
+    GuestTests.guest_debug_regs = args.guest_debug_regs == "on"
     if args.binary:
         if not args.rompath:
             parser.error("--binary requires --rompath")
         with tempfile.TemporaryDirectory(prefix="86box-gdb-") as directory:
             root = Path(directory)
-            (root / "86box.cfg").write_text(configuration(PORT, args.interpreter, args.cpu))
+            (root / "86box.cfg").write_text(configuration(
+                PORT, args.interpreter, args.cpu, GuestTests.guest_debug_regs))
             command = [str(args.binary.resolve()), "--noconfirm",
                        "--rompath", str(args.rompath.resolve()), "--vmpath", str(root)]
             if args.runtime:
