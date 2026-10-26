@@ -414,17 +414,35 @@ msgstr "MB"
 msgid "Memory:"
 msgstr "메모리:"
 
-msgid "Time synchronization"
-msgstr "시간 동기화"
+msgid "Synchronize with host clock"
+msgstr ""
 
-msgid "Disabled"
-msgstr "사용하지 않음"
+msgid "Time zone:"
+msgstr ""
 
-msgid "Enabled (local time)"
-msgstr "사용 (현지 시간)"
+msgid "Local"
+msgstr ""
 
-msgid "Enabled (UTC)"
-msgstr "사용 (UTC)"
+msgid "UTC"
+msgstr ""
+
+msgid "Date:"
+msgstr ""
+
+msgid "Match the host"
+msgstr ""
+
+msgid "Offset the year by:"
+msgstr ""
+
+msgid "(currently %1)"
+msgstr ""
+
+msgid "Always use the year:"
+msgstr ""
+
+msgid "Do not synchronize the date"
+msgstr ""
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "286/386 프로세서에 486 인터프리터 사용"
