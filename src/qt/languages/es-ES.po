@@ -3666,7 +3666,7 @@ msgstr ""
 msgid "Supports at least:"
 msgstr ""
 
-msgid "Checked: must have. Filled: must not have. Empty: either."
+msgid "Checked: must have. Filled: may have. Empty: must not have."
 msgstr ""
 
 msgid "ISA (8-bit)"

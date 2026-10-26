@@ -87,7 +87,7 @@ MachineSearchDialog::MachineSearchDialog(QWidget *parent)
     form->addRow(tr("Supports at least:"), spinBoxRAM);
     filters->addLayout(form);
 
-    auto *legend = new QLabel(tr("Checked: must have. Filled: must not have. Empty: either."));
+    auto *legend = new QLabel(tr("Checked: must have. Filled: may have. Empty: must not have."));
     legend->setWordWrap(true);
     filters->addWidget(legend);
 
@@ -219,6 +219,7 @@ MachineSearchDialog::addFlagFilter(QGridLayout *grid, const QString &text, uintp
 {
     auto *checkBox = new QCheckBox(text);
     checkBox->setTristate(true);
+    checkBox->setCheckState(Qt::PartiallyChecked);
 
     const int n = grid->count();
     grid->addWidget(checkBox, n / 3, n % 3);
@@ -348,7 +349,7 @@ MachineSearchDialog::matches(int m) const
 
     for (const auto &f : flagFilters) {
         const Qt::CheckState state = f.checkBox->checkState();
-        if (state == Qt::Unchecked)
+        if (state == Qt::PartiallyChecked)
             continue;
 
         const bool has = f.bus ? (machine_has_bus(m, f.flags) != 0) : (machine_has_flags_64(m, f.flags) != 0);
@@ -421,7 +422,7 @@ MachineSearchDialog::reset()
         }
         for (const auto &f : flagFilters) {
             const QSignalBlocker b(f.checkBox);
-            f.checkBox->setCheckState(Qt::Unchecked);
+            f.checkBox->setCheckState(Qt::PartiallyChecked);
         }
     }
 
