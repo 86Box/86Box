@@ -772,6 +772,90 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="tabDebugging">
+      <attribute name="title">
+       <string>Debugging</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayoutDebugging">
+       <item>
+        <widget class="QCheckBox" name="checkBoxGdbstub">
+         <property name="text">
+          <string>Enable GDB remote debugger</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayoutGdbstub">
+         <item row="0" column="0">
+          <widget class="QLabel" name="labelGdbstubPort">
+           <property name="text">
+            <string>TCP port:</string>
+           </property>
+           <property name="buddy">
+            <cstring>spinBoxGdbstubPort</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QSpinBox" name="spinBoxGdbstubPort">
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>65535</number>
+           </property>
+           <property name="value">
+            <number>12345</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QLabel" name="labelGdbstubHelp">
+         <property name="text">
+          <string>Changes take effect when the settings hard reset the machine. Enabling the debugger starts the guest paused until GDB connects and continues execution. The dynamic recompiler can remain enabled.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="labelGdbstubWarning">
+         <property name="text">
+          <string>Warning: listens on all IPv4 interfaces without authentication or encryption. Anyone who can reach this port can control the guest. Use a firewall and never expose this port to the internet.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="labelGdbstubOverride">
+         <property name="text">
+          <string>Command-line GDB options override the corresponding settings for this launch. Saved settings apply when those overrides are removed.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacerDebugging">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
 
@@ -791,6 +875,8 @@
   <tabstop>checkBoxBlockLinking</tabstop>
   <tabstop>checkBoxDebugRegs486</tabstop>
   <tabstop>checkBoxFPUSoftfloat</tabstop>
+  <tabstop>checkBoxGdbstub</tabstop>
+  <tabstop>spinBoxGdbstubPort</tabstop>
        </tabstops>
  <resources/>
  <connections/>

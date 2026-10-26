@@ -445,6 +445,7 @@ load_general(void)
     else
         strncpy(uuid, "", sizeof(uuid) - 1);
 
+    gdbstub_enabled = !!ini_section_get_int(cat, "gdbstub_enabled", 0);
     gdbstub_port = ini_section_get_int(cat, "gdbstub_port", 12345);
 }
 
@@ -3180,6 +3181,7 @@ config_load(void)
         cpu_dyn_accurate_fpu_env = 0;
         cpu_dyn_block_link       = 1;
 
+        gdbstub_enabled       = 0;
         gdbstub_port          = 12345;
 
         config_log("VM config file not present or invalid!\n");
@@ -3616,6 +3618,11 @@ save_general(void)
         ini_section_set_string(cat, "uuid", uuid);
     else
         ini_section_delete_var(cat, "uuid");
+
+    if (gdbstub_enabled)
+        ini_section_set_int(cat, "gdbstub_enabled", 1);
+    else
+        ini_section_delete_var(cat, "gdbstub_enabled");
 
     if (gdbstub_port == 12345)
         ini_section_delete_var(cat, "gdbstub_port");
