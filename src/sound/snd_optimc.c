@@ -948,7 +948,7 @@ opti930_reg_read(uint16_t addr, void *priv)
         optimc_log(optimc->log, "OPTi930 Read above max reg!: idx = %02X\n", optimc->index);
         optimc_log(optimc->log, "OPTi930 disable reg access on data read\n");
         optimc->reg_enabled = 0;
-        return 0xFF;
+        return (idx == 0x12) ? 0x00 : 0xff;
     }
     if ((addr == optimc->cur_opti930_addr +1) && (optimc->reg_enabled || !optimc->passwd_enabled)) {
         switch (idx) {
