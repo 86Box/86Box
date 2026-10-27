@@ -397,6 +397,11 @@ mm67_start(nvr_t *nvr)
     /* Initialize the internal and chip times. */
     if (time_sync) {
         /* Use the internal clock's time. */
+        if (time_keep_date) {
+            /* Keep the chip's own date. */
+            mm67_time_get(nvr, &tm);
+            nvr_time_set_date(&tm);
+        }
         nvr_time_get(&tm);
         mm67_time_set(nvr, &tm);
     } else {
@@ -560,6 +565,11 @@ m30_start(nvr_t *nvr)
     struct tm tm;
 
     if (time_sync) {
+        if (time_keep_date) {
+            /* Keep the chip's own date. */
+            m30_time_get(nvr, &tm);
+            nvr_time_set_date(&tm);
+        }
         nvr_time_get(&tm);
         m30_time_set(nvr, &tm);
     } else {
@@ -1489,6 +1499,11 @@ rtc_start(nvr_t *nvr)
     /* Initialize the internal and chip times. */
     if (time_sync != TIME_SYNC_DISABLED) {
 	/* Use the internal clock's time. */
+        if (time_keep_date) {
+            /* Keep the chip's own date. */
+            rtc_time_get(nvr->regs, &clk);
+            nvr_time_set_date(&clk);
+        }
 	nvr_time_get(&clk);
 	rtc_time_set(nvr->regs, &clk);
     } else {

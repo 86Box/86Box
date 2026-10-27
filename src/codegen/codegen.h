@@ -67,6 +67,14 @@ typedef struct codeblock_t {
     /*Run since eviction's sweep last passed it: the sweep passes it over
       once (codegen_delete_random_block).*/
     uint8_t used;
+
+    /*Set once this compile's code has been reached again and run from
+      block->data (the CODEBLOCK_WAS_RECOMPILED fast path), rather than just
+      the single execution the compile pass itself performs. Cleared at the
+      start of every (re)compile. Used to tell a block that paid for itself
+      apart from one that was rewritten before it could ever be reused - see
+      page_t's smc_strikes/smc_cooldown_until.*/
+    uint8_t reused;
 } codeblock_t;
 
 extern codeblock_t *codeblock;

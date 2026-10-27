@@ -42,6 +42,7 @@ extern const device_t st506_at_wd1003_device;             /* st506_at_wd1003 */
 extern const device_t st506_xt_wd1004a_wx1_device;        /* st506_xt_wd1004a_wx1 */
 extern const device_t st506_xt_wd1004_27x_device;         /* st506_xt_wd1004_27x */
 extern const device_t st506_xt_wd1004a_27x_device;        /* st506_xt_wd1004a_27x */
+extern const device_t st506_tandy2k_wd1010_device;        /* st506_tandy2k_wd1010 */
 extern const device_t st506_xt_victor_v86p_device;        /* st506_xt_victor_v86p */
 extern const device_t st506_xt_toshiba_t1200_device;      /* st506_xt_toshiba_t1200 */
 extern const device_t st506_ps2_device;                   /* st506_mca */

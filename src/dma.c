@@ -2548,11 +2548,8 @@ _dma_write(uint32_t addr, uint8_t val, dma_t *dma_c)
 {
     if (dma_advanced) {
         dma_bm_write(addr, &val, 1, dma_transfer_size(dma_c));
-    } else {
+    } else
         mem_writeb_phys(addr, val);
-        if (dma_at)
-            mem_invalidate_range(addr, addr);
-    }
 }
 
 static void
@@ -3569,8 +3566,6 @@ dma_bm_read(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize, int Tra
 void
 dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize, int TransferSize)
 {
-    const uint32_t start = PhysAddress;
-    const uint32_t total = TotalSize;
     uint32_t       n;
     uint32_t       n2;
     uint8_t        bytes[4] = { 0, 0, 0, 0 };
@@ -3599,7 +3594,4 @@ dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize,
             mem_write_phys((void *) bytes, PhysAddress + n, TransferSize);
         }
     }
-
-    if (dma_at)
-        mem_invalidate_range(start, start + total - 1);
 }

@@ -334,9 +334,11 @@ sf_FI(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
-    fpu_state.cwd &= ~FPU_SW_Summary;
-    if (rmdat == 0xe1)
-        fpu_state.cwd |= FPU_SW_Summary;
+    if (fpu_type != FPU_80187) {
+        fpu_state.cwd &= ~FPU_SW_Summary;
+        if (rmdat == 0xe1)
+            fpu_state.cwd |= FPU_SW_Summary;
+    }
 #ifdef FPU_NEC
     do_cycles(3);
 #else
@@ -424,22 +426,16 @@ sf_FNSAVE_a16(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1; /* a faulting save leaves the FPU as it was */
 
+    fpu_state.cwd = x87_initial_control_word();
 #ifdef FPU_8087
-    fpu_state.cwd = 0x3FF;
     fpu_state.swd  &= 0x4700;
 #else
-    fpu_state.cwd = 0x37F;
     fpu_state.swd   = 0;
     x87_ferr_clear();
 #endif
     fpu_state.tos   = 0;
     fpu_state.tag   = 0xffff;
     cpu_state.ismmx = 0;
-    fpu_state.foo   = 0;
-    fpu_state.fds   = 0;
-    fpu_state.fdp   = 0;
-    fpu_state.fcs   = 0;
-    fpu_state.fip   = 0;
     x87_clear_pointers();
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fsave) : (x87_timings.fsave * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fsave) : (x87_concurrency.fsave * cpu_multi));
@@ -466,21 +462,12 @@ sf_FNSAVE_a32(uint32_t fetchdat)
     if (cpu_state.abrt)
         return 1; /* a faulting save leaves the FPU as it was */
 
-#    ifdef FPU_8087
-    fpu_state.cwd = 0x3FF;
-#    else
-    fpu_state.cwd = 0x37F;
-#    endif
+    fpu_state.cwd = x87_initial_control_word();
     fpu_state.swd   = 0;
     x87_ferr_clear();
     fpu_state.tos   = 0;
     fpu_state.tag   = 0xffff;
     cpu_state.ismmx = 0;
-    fpu_state.foo   = 0;
-    fpu_state.fds   = 0;
-    fpu_state.fdp   = 0;
-    fpu_state.fcs   = 0;
-    fpu_state.fip   = 0;
     x87_clear_pointers();
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fsave) : (x87_timings.fsave * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fsave) : (x87_concurrency.fsave * cpu_multi));
@@ -505,28 +492,22 @@ sf_FNINIT(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
+    fpu_state.cwd = x87_initial_control_word();
 #ifdef FPU_8087
-    fpu_state.cwd = 0x3FF;
     fpu_state.swd  &= 0x4700;
 #else
-    fpu_state.cwd = 0x37F;
     fpu_state.swd   = 0;
     x87_ferr_clear();
 #endif
     fpu_state.tos   = 0;
     fpu_state.tag   = 0xffff;
-    fpu_state.foo   = 0;
-    fpu_state.fds   = 0;
-    fpu_state.fdp   = 0;
-    fpu_state.fcs   = 0;
-    fpu_state.fip   = 0;
     x87_clear_pointers();
     cpu_state.ismmx = 0;
     new_ne          = 0;
     if (is286)
         picintc(1 << 13);
     else
-        nmi = 0;
+        fpu_int_set(0);
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.finit) : (x87_timings.finit * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.finit) : (x87_concurrency.finit * cpu_multi));
     CPU_BLOCK_END();

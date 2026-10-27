@@ -29,6 +29,8 @@ extern "C" {
 #include <86box/scsi_tape.h>
 #include <86box/serial.h>
 #include <86box/char.h>
+#include <86box/mem.h>
+#include <86box/usb.h>
 }
 
 #include "qt_deviceconfig.hpp"
@@ -43,6 +45,7 @@ extern "C" {
 #include "qt_settingsports.hpp"
 #include "ui_qt_settingsports.h"
 
+#include <QSignalBlocker>
 #include <QStandardItem>
 
 SettingsPorts::SettingsPorts(QWidget *parent)
@@ -71,6 +74,10 @@ SettingsPorts::~SettingsPorts()
     for (int i = 0; i < SERIAL_MAX_UI; i++)
         delete scCom[i];
 
+    /* The card picked in the dialog no longer applies once it closes; the
+       saved usb_card_type decides which machines have a USB bus again. */
+    usb_card_pending = -1;
+
     delete ui;
 }
 
@@ -95,6 +102,9 @@ SettingsPorts::changed()
     int soft_changed = 0;
 
     has_changed |= (jumpered_internal_ecp_dma != ui->comboBoxLptECPDMA->currentData().toInt());
+    has_changed |= (usb_card_type != ui->comboBoxUsbCard->currentData().toInt());
+    has_changed |= (usb_hub_type != ui->comboBoxUsbHub->currentData().toInt());
+    has_changed |= (usb_msd_type != ui->comboBoxUsbMsd->currentData().toInt());
 
     for (int i = 0; i < PARALLEL_MAX; i++) {
         auto *checkBox = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
@@ -168,6 +178,15 @@ SettingsPorts::save(int soft)
         return;
 
     jumpered_internal_ecp_dma = ui->comboBoxLptECPDMA->currentData().toInt();
+    usb_card_type             = ui->comboBoxUsbCard->currentData().toInt();
+    usb_hub_type              = ui->comboBoxUsbHub->currentData().toInt();
+    usb_msd_type              = ui->comboBoxUsbMsd->currentData().toInt();
+}
+
+int
+SettingsPorts::usbMsd() const
+{
+    return (ui->comboBoxUsbMsd->count() > 0) ? ui->comboBoxUsbMsd->currentData().toInt() : usb_msd_type;
 }
 
 /* The character devices, for the parallel and serial port lists alike. */
@@ -331,6 +350,136 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
             }
         }
     }
+
+    // USB card: a selection updates the hub list and the other pages, so the
+    // signals are blocked while the list is rebuilt, and only the final
+    // selection counts.
+    auto *usbCardModel   = ui->comboBoxUsbCard->model();
+    auto  removeRowsCard = usbCardModel->rowCount();
+    int   curCard        = (removeRowsCard > 0) ? ui->comboBoxUsbCard->currentData().toInt() : usb_card_type;
+
+    selectedRow = 0;
+    {
+        const QSignalBlocker blockCard(ui->comboBoxUsbCard);
+        Models::Batch        usbCardRows(usbCardModel);
+
+        for (int i = 0; i < usb_card_get_ndev(); ++i) {
+            const device_t *dev = usb_card_get_device(i);
+
+            if (device_is_valid(dev, machineId) == 0)
+                continue;
+
+            int row = usbCardRows.add(DeviceConfig::DeviceName(dev, usb_card_get_internal_name(i), 0), i);
+            if (i == curCard)
+                selectedRow = row - removeRowsCard;
+        }
+        usbCardRows.commit();
+        usbCardModel->removeRows(0, removeRowsCard);
+        ui->comboBoxUsbCard->setEnabled(usbCardModel->rowCount() > 1);
+        ui->comboBoxUsbCard->setCurrentIndex(-1);
+    }
+    ui->comboBoxUsbCard->setCurrentIndex(selectedRow);
+}
+
+/* The hub is a USB device: it is offered only while the machine, or the
+   USB card chosen, has a USB bus. */
+void
+SettingsPorts::updateUsbHubList()
+{
+    auto *usbHubModel   = ui->comboBoxUsbHub->model();
+    auto  removeRowsHub = usbHubModel->rowCount();
+    int   curHub        = (removeRowsHub > 0) ? ui->comboBoxUsbHub->currentData().toInt() : usb_hub_type;
+    int   selectedRow   = 0;
+
+    Models::Batch usbHubRows(usbHubModel);
+    for (int i = 0; i < usb_hub_get_ndev(); ++i) {
+        const device_t *dev = usb_hub_get_device(i);
+
+        if (device_is_valid(dev, machineId) == 0)
+            continue;
+
+        int row = usbHubRows.add(DeviceConfig::DeviceName(dev, usb_hub_get_internal_name(i), 0), i);
+        if (i == curHub)
+            selectedRow = row - removeRowsHub;
+    }
+    usbHubRows.commit();
+    usbHubModel->removeRows(0, removeRowsHub);
+    ui->comboBoxUsbHub->setEnabled(usbHubModel->rowCount() > 1);
+    ui->comboBoxUsbHub->setCurrentIndex(-1);
+    ui->comboBoxUsbHub->setCurrentIndex(selectedRow);
+}
+
+void
+SettingsPorts::on_comboBoxUsbCard_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    usb_card_pending = ui->comboBoxUsbCard->currentData().toInt();
+    updateUsbHubList();
+    updateUsbMsdList();
+    emit usbBusChanged(machineId);
+}
+
+/* USB mass storage is offered like the hub. It holds no drives of its own:
+   they sit on the SCSI bus it bridges, set up on the drive pages, which the
+   two buttons under it open. */
+void
+SettingsPorts::updateUsbMsdList()
+{
+    auto *usbMsdModel   = ui->comboBoxUsbMsd->model();
+    auto  removeRowsMsd = usbMsdModel->rowCount();
+    int   curMsd        = (removeRowsMsd > 0) ? ui->comboBoxUsbMsd->currentData().toInt() : usb_msd_type;
+    int   selectedRow   = 0;
+
+    Models::Batch usbMsdRows(usbMsdModel);
+    for (int i = 0; i < usb_msd_get_ndev(); ++i) {
+        const device_t *dev = usb_msd_get_device(i);
+
+        if (device_is_valid(dev, machineId) == 0)
+            continue;
+
+        int row = usbMsdRows.add(DeviceConfig::DeviceName(dev, usb_msd_get_internal_name(i), 0), i);
+        if (i == curMsd)
+            selectedRow = row - removeRowsMsd;
+    }
+    usbMsdRows.commit();
+    usbMsdModel->removeRows(0, removeRowsMsd);
+    ui->comboBoxUsbMsd->setEnabled(usbMsdModel->rowCount() > 1);
+    ui->comboBoxUsbMsd->setCurrentIndex(-1);
+    ui->comboBoxUsbMsd->setCurrentIndex(selectedRow);
+}
+
+void
+SettingsPorts::on_comboBoxUsbMsd_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    const bool on = (ui->comboBoxUsbMsd->currentData().toInt() > 0);
+
+    ui->labelUsbMsdDrives->setEnabled(on);
+    ui->pushButtonUsbMsdHardDisks->setEnabled(on);
+    ui->pushButtonUsbMsdCdrom->setEnabled(on);
+    ui->pushButtonUsbMsdRemovable->setEnabled(on);
+}
+
+void
+SettingsPorts::on_pushButtonUsbMsdHardDisks_clicked()
+{
+    emit drivePageRequested(DrivePage::HardDisks);
+}
+
+void
+SettingsPorts::on_pushButtonUsbMsdCdrom_clicked()
+{
+    emit drivePageRequested(DrivePage::Cdrom);
+}
+
+void
+SettingsPorts::on_pushButtonUsbMsdRemovable_clicked()
+{
+    emit drivePageRequested(DrivePage::Removable);
 }
 
 void

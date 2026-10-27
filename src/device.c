@@ -55,6 +55,7 @@
 #include <86box/rom.h>
 #include <86box/sound.h>
 #include <86box/ui.h>
+#include <86box/usb.h>
 
 #define DEVICE_MAX 512 /* max # of devices */
 
@@ -1253,6 +1254,10 @@ device_is_valid(const device_t *device, int mch)
             ret = 0;
         else
             ret = machine_has_bus(mch, device->flags & DEVICE_BUS);
+
+        /* A PCI USB card brings a USB bus to a board without one. */
+        if (!ret && (device->flags & DEVICE_USB))
+            ret = usb_card_has_bus(mch);
     }
 
     return ret;

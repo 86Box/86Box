@@ -141,6 +141,8 @@ typedef struct atkbc_t {
     pc_timer_t kbc_poll_timer;
     pc_timer_t kbc_dev_poll_timer;
 
+    pc_timer_t kbc_irq_timer;
+
     /* P2 pulse callback timer. */
     pc_timer_t pulse_cb;
 
@@ -264,13 +266,13 @@ kbc_translate(atkbc_t *dev, uint8_t val)
         return ret;
     }
 
-    /* Skip break code if translated make code has bit 7 set. */
-    if (translate && (dev->sc_or == 0x80) && (nont_to_t[val] & 0x80)) {
-        kbc_at_log("ATkbc: translate is on, skipping scan code: %02X (original: F0 %02X)\n", nont_to_t[val], val);
-        dev->sc_or = 0;
-        return ret;
-    }
-
+    /* The byte after F0 is translated and gets bit 7 like any other, even
+       when it is not a key code. Response codes do not wait in the
+       keyboard's buffer, and a command such as ED is answered with ACK at
+       once (IBM PS/2 Hardware Interface Technical Reference, Keyboards
+       (101- and 102-Key), October 1990, p. 19 and 24 / PDF 23 and 28). So
+       an FA can follow the F0 of a break code, and the host is waiting for
+       that ACK. */
     kbc_at_log("ATkbc: translate is %s, ", translate ? "on" : "off");
 #ifdef ENABLE_KEYBOARD_AT_LOG
     kbc_at_log("scan code: ");
@@ -351,8 +353,10 @@ kbc_set_do_irq(atkbc_t *dev, uint8_t channel)
 }
 
 static void
-kbc_do_irq(atkbc_t *dev)
+kbc_at_irq(void *priv)
 {
+    atkbc_t *dev = (atkbc_t *) priv;
+
     if (dev->do_irq) {
         /* WARNING: On PS/2, all IRQ's are level-triggered, but the IBM PS/2 KBC firmware is explicitly
                     written to pulse its P2 IRQ bits, so they should be kept as as edge-triggered here. */
@@ -376,6 +380,15 @@ kbc_do_irq(atkbc_t *dev)
 
         dev->do_irq = 0;
     }
+}
+
+static void
+kbc_do_irq(atkbc_t *dev)
+{
+    if (dev->is_asic)
+        kbc_at_irq(dev);
+    else
+        timer_set_delay_u64(&dev->kbc_irq_timer, 3ULL * TIMER_USEC);
 }
 
 static void
@@ -640,8 +653,6 @@ kbc_scan_aux_ps2(atkbc_t *dev)
 static void
 kbc_at_poll_ps2(atkbc_t *dev)
 {
-    kbc_do_irq(dev);
-
     /* Keep the auxiliary transmit delay armed while the interface is disabled
        (clock held low); count it down once the interface is enabled. */
     if (dev->mem[0x20] & 0x20)
@@ -2680,9 +2691,6 @@ kbc_at_process_cmd(void *priv)
                 if (dev->ib == 0xbb)
                     break;
 
-                if (machines[machine].init == machine_at_pb410a_init)
-                    cpu_override_dynarec = 1;
-
                 if (dev->misc_flags & FLAG_PS2) {
                     set_enable_aux(dev, 1);
                     if ((dev->ports[1] != NULL) && (dev->ports[1]->priv != NULL)) {
@@ -2816,14 +2824,15 @@ kbc_at_port_1_read(uint16_t port, void *priv)
 
     ret = dev->ob;
     dev->status &= ~STAT_OFULL;
+    /* A polled read can consume the byte before its delayed IRQ fires. */
+    dev->do_irq = 0;
+    timer_disable(&dev->kbc_irq_timer);
     /*
        TODO: IRQ is only tied to OBF on the AT KBC, on the PS/2 KBC, it is controlled by a P2 bit.
        This also means that in AT mode, the IRQ is level-triggered.
      */
     if (!(dev->misc_flags & FLAG_PS2) && (dev->irq[0] != 0xffff))
         picintclevel(1 << dev->irq[0], &dev->irq_state);
-    if ((machines[machine].init == machine_at_pb410a_init) && (cpu_override_dynarec == 1))
-        cpu_override_dynarec = 0;
 
     kbc_at_log("ATkbc: [%04X:%08X] read (%04X) = %02X\n",  CS, cpu_state.pc, port, ret);
 
@@ -2851,6 +2860,8 @@ kbc_at_reset(void *priv)
 {
     atkbc_t *dev = (atkbc_t *) priv;
 
+    timer_disable(&dev->kbc_irq_timer);
+    dev->do_irq        = 0;
     dev->status        = STAT_UNLOCKED;
     dev->mem[0x20]     = 0x01;
     dev->mem[0x20]    |= CCB_TRANSLATE;
@@ -2921,6 +2932,7 @@ kbc_at_close(void *priv)
     /* Stop timers. */
     timer_disable(&dev->kbc_dev_poll_timer);
     timer_disable(&dev->kbc_poll_timer);
+    timer_disable(&dev->kbc_irq_timer);
 
     for (int i = 0; i < max_ports; i++) {
         if (kbc_at_ports[i] != NULL) {
@@ -3014,6 +3026,8 @@ kbc_at_init(const device_t *info)
     timer_add(&dev->pulse_cb, pulse_poll, dev, 0);
 
     timer_add(&dev->kbc_dev_poll_timer, kbc_at_dev_poll, dev, 1);
+
+    timer_add(&dev->kbc_irq_timer, kbc_at_irq, dev, 0);
 
     dev->write_cmd_data_ven = NULL;
     dev->write_cmd_ven      = NULL;

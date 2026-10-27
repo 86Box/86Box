@@ -63,6 +63,20 @@ io_t   *io_last[NPORTS];
 uint8_t io_turbo_map[NPORTS >> 3];
 int io_turbo_throttle = 0;
 
+/* Chipset claims (io_set_claim). Only a few ports are ever claimed, so they
+   live in a small table, and a bitmap of claimed ports lets every other
+   port skip the table lookup. */
+#define IO_CLAIMS 8
+
+typedef struct io_claim_t {
+    uint16_t port;
+    int    (*func)(uint16_t port, uint8_t write, uint8_t val, void *priv);
+    void    *priv;
+} io_claim_t;
+
+static io_claim_t io_claims[IO_CLAIMS];
+static uint8_t    io_claimed[NPORTS / 8];
+
 #ifdef ENABLE_IO_LOG
 uint8_t io_do_log = ENABLE_IO_LOG;
 
@@ -111,6 +125,54 @@ io_init(void)
         /* io[c] should be NULL. */
         io[c] = io_last[c] = NULL;
     }
+
+    memset(io_claims, 0x00, sizeof(io_claims));
+    memset(io_claimed, 0x00, sizeof(io_claimed));
+}
+
+void
+io_set_claim(uint16_t port, int (*claim)(uint16_t port, uint8_t write, uint8_t val, void *priv), void *priv)
+{
+    int i;
+
+    for (i = 0; i < IO_CLAIMS; i++) {
+        if ((io_claims[i].func != NULL) && (io_claims[i].port == port))
+            break;
+    }
+    if (i == IO_CLAIMS) {
+        if (claim == NULL)
+            return;
+        for (i = 0; i < IO_CLAIMS; i++) {
+            if (io_claims[i].func == NULL)
+                break;
+        }
+        if (i == IO_CLAIMS)
+            fatal("io_set_claim(%04X): no free claim slot\n", port);
+    }
+
+    io_claims[i].port = port;
+    io_claims[i].func = claim;
+    io_claims[i].priv = priv;
+
+    if (claim != NULL)
+        io_claimed[port >> 3] |= (1 << (port & 7));
+    else
+        io_claimed[port >> 3] &= ~(1 << (port & 7));
+}
+
+/* Returns 1 when the chipset keeps this byte cycle from the port's handlers. */
+static int
+io_claim_byte(uint16_t port, uint8_t write, uint8_t val)
+{
+    if (!(io_claimed[port >> 3] & (1 << (port & 7))))
+        return 0;
+
+    for (int i = 0; i < IO_CLAIMS; i++) {
+        if ((io_claims[i].func != NULL) && (io_claims[i].port == port))
+            return io_claims[i].func(port, write, val, io_claims[i].priv);
+    }
+
+    return 0;
 }
 
 void
@@ -367,6 +429,8 @@ inb(uint16_t port)
 #ifdef ENABLE_IO_LOG
         qfound = 1;
 #endif
+    } else if (io_claim_byte(port, 0, 0)) {
+        found = 1;
     } else {
         p = io[port];
         while (p) {
@@ -436,6 +500,8 @@ outb(uint16_t port, uint8_t val)
 #ifdef ENABLE_IO_LOG
         qfound = 1;
 #endif
+    } else if (io_claim_byte(port, 1, val)) {
+        found = 1;
     } else {
         p = io[port];
         while (p) {
@@ -511,6 +577,10 @@ inw(uint16_t port)
         ret8[0] = ret & 0xff;
         ret8[1] = (ret >> 8) & 0xff;
         for (uint8_t i = 0; i < 2; i++) {
+            if (io_claim_byte(port + i, 0, 0)) {
+                found |= 1;
+                continue;
+            }
             p = io[(port + i) & 0xffff];
             while (p) {
                 q = p->next;
@@ -590,6 +660,10 @@ outw(uint16_t port, uint16_t val)
         }
 
         for (uint8_t i = 0; i < 2; i++) {
+            if (io_claim_byte(port + i, 1, val >> (i << 3))) {
+                found |= 1;
+                continue;
+            }
             p = io[(port + i) & 0xffff];
             while (p) {
                 q = p->next;
@@ -697,6 +771,10 @@ inl(uint16_t port)
         ret8[2] = (ret >> 16) & 0xff;
         ret8[3] = (ret >> 24) & 0xff;
         for (uint8_t i = 0; i < 4; i++) {
+            if (io_claim_byte(port + i, 0, 0)) {
+                found |= 1;
+                continue;
+            }
             p = io[(port + i) & 0xffff];
             while (p) {
                 q = p->next;
@@ -793,6 +871,10 @@ outl(uint16_t port, uint32_t val)
         }
 
         for (uint8_t i = 0; i < 4; i++) {
+            if (io_claim_byte(port + i, 1, val >> (i << 3))) {
+                found |= 1;
+                continue;
+            }
             p = io[(port + i) & 0xffff];
             while (p) {
                 q = p->next;

@@ -727,6 +727,11 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
             return;
         x86seg_log("%04X %04X %04X %04X\n", segdat[0], segdat[1], segdat[2], segdat[3]);
         if (segdat[2] & 0x1000) {
+            /* Reject data segments before loading CS. */
+            if (!(segdat[2] & 0x0800)) {
+                x86gpf("loadcsjmp(): Target is not executable", seg & 0xfffc);
+                return;
+            }
             /* Normal code segment */
             if (!(segdat[2] & 0x0400)) {
                 /* Not conforming */
@@ -1039,6 +1044,11 @@ loadcscall(uint16_t seg, uint32_t old_pc)
 
         x86seg_log("Code seg call - %04X - %04X %04X %04X\n", seg, segdat[0], segdat[1], segdat[2]);
         if (segdat[2] & 0x1000) {
+            /* Reject data segments before pushing the return address. */
+            if (!(segdat[2] & 0x0800)) {
+                x86gpf("loadcscall(): Target is not executable", seg & 0xfffc);
+                return;
+            }
             if (!(segdat[2] & 0x0400)) { /* Not conforming */
                 if ((seg & 0x0003) > CPL) {
                     x86gpf("loadcscall(): Non-conforming RPL > CPL", seg & 0xfffc);
@@ -1449,12 +1459,6 @@ pmoderetf(int is32, uint16_t off)
     if (CPL == (seg & 0x0003)) {
         x86seg_log("RETF CPL = RPL  %04X\n", segdat[2]);
         switch (segdat[2] & 0x1f00) {
-            case 0x1000:
-            case 0x1100:
-            case 0x1200:
-            case 0x1300:
-                 /* Data segment, apparently valid when CPL is the same, used by MS LINK for DOS. */
-                 fallthrough;
             case 0x1800:
             case 0x1900:
             case 0x1a00:
@@ -1504,12 +1508,6 @@ pmoderetf(int is32, uint16_t off)
         cycles -= timing_retf_pm;
     } else {
         switch (segdat[2] & 0x1f00) {
-            case 0x1000:
-            case 0x1100:
-            case 0x1200:
-            case 0x1300:
-                 /* Data segment, apparently valid when CPL is the same, used by MS LINK for DOS. */
-                 fallthrough;
             case 0x1800:
             case 0x1900:
             case 0x1a00:

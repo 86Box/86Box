@@ -26,7 +26,7 @@
 
 #define ZIP_250_SECTORS     (489532)
 
-#define ZIP_750_SECTORS     (1468596) /* Estimated */
+#define ZIP_750_SECTORS     (1470464) /* https://aaru.app/report/189 */
 
 #define JAZ_1GB_SECTORS     (2091050)
 
@@ -96,7 +96,7 @@ static const rdisk_drive_type_t rdisk_drive_types[KNOWN_RDISK_DRIVE_TYPES] = {
     { "IOMEGA",   "ZIP 100",                    "E.08", { 1, 0, 0, 0, 0, 0, 0, 0 }},
     { "IOMEGA",   "ZIP 250",                    "42.S", { 1, 1, 0, 0, 0, 0, 0, 0 }},
 #if 0
-    { "IOMEGA",   "ZIP 750",                    "42.S", { 1, 1, 1, 0, 0 }}, /* Guess */
+    { "IOMEGA",   "ZIP 750",                    "71.u", { 1, 1, 1, 0, 0, 0, 0, 0 }}, /* https://aaru.app/report/189 */
 #endif
     { "IOMEGA",   "JAZ 1GB",                    "H.72", { 0, 0, 1, 0, 0, 0, 0, 0 }},
     { "IOMEGA",   "JAZ 2GB",                    "E.17", { 0, 0, 1, 1, 0, 0, 0 ,0 }},

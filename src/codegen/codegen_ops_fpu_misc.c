@@ -30,11 +30,12 @@ ropFFREE(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint
 }
 
 uint32_t
-ropFLD(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropFLD(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int src_reg = fetchdat & 7;
 
     uop_FP_ENTER(ir);
+    codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc - 1, NULL, FPU_GUARD_ST(src_reg) | FPU_GUARD_PUSH);
     uop_MOV(ir, IREG_ST(-1), IREG_ST(src_reg));
     uop_MOV(ir, IREG_ST_i64(-1), IREG_ST_i64(src_reg));
     uop_MOV(ir, IREG_tag(-1), IREG_tag(src_reg));
@@ -125,11 +126,12 @@ ropFSTSW_AX(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), U
 }
 
 uint32_t
-ropFXCH(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropFXCH(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = fetchdat & 7;
 
     uop_FP_ENTER(ir);
+    codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc - 1, NULL, FPU_GUARD_ST(0) | FPU_GUARD_ST(dest_reg));
     uop_MOV(ir, IREG_temp0_D, IREG_ST(0));
     uop_MOV(ir, IREG_temp1_Q, IREG_ST_i64(0));
     uop_MOV(ir, IREG_temp2, IREG_tag(0));

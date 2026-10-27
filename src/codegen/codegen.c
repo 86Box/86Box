@@ -519,6 +519,41 @@ codegen_fpu_guard_empty(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32
     uop_set_jump_dest(ir, jump_uop);
 }
 
+/* A stack fault (#IS): any of the registers in regs (FPU_GUARD_ST(i)) is
+   empty, or with FPU_GUARD_PUSH, the push destination ST(7) is not. The
+   interpreter's version of the instruction takes it (x87_stack_underflow,
+   x87_stack_overflow and their callers in x87_ops.h), and the block ends
+   past it. One branch tests them all: a register is empty when its tag's
+   TAG_VALID bit is clear (x87.h). Taken after the operand's address is
+   generated and before it is read: the interpreter does the whole
+   instruction again, so a #GP or #PF on the operand still comes first. */
+void
+codegen_fpu_guard_stack(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg, int regs)
+{
+    int have = 0;
+    int jump_uop;
+
+    codegen_accumulate_flush(ir);
+    for (int i = 0; i < 8; i++) {
+        if (!(regs & FPU_GUARD_ST(i)))
+            continue;
+        uop_MOVZX(ir, have ? IREG_temp1 : IREG_temp0, IREG_tag_B(i));
+        if (have)
+            uop_AND(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+        have = 1;
+    }
+    if (regs & FPU_GUARD_PUSH) {
+        uop_MOVZX(ir, have ? IREG_temp1 : IREG_temp0, IREG_tag_B(-1));
+        uop_XOR_IMM(ir, have ? IREG_temp1 : IREG_temp0, have ? IREG_temp1 : IREG_temp0, TAG_VALID);
+        if (have)
+            uop_AND(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+    }
+    uop_AND_IMM(ir, IREG_temp0, IREG_temp0, TAG_VALID);
+    jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp0, 0);
+    codegen_fpu_handover(ir, fetchdat, op_32, interp_pc, target_seg);
+    uop_set_jump_dest(ir, jump_uop);
+}
+
 /* FIST and FISTP: compiled only for lo < ST(0) < hi, which rounds into the
    integer's range in any rounding mode; a NaN (unordered), or a value at
    or past a bound, goes to the interpreter, which raises the invalid

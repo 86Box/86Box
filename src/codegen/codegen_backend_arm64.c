@@ -28,6 +28,7 @@
 #        include <86box/nmi.h>
 #        include <86box/pic.h>
 #        include <86box/timer.h>
+#        include "x86_interrupt.h"
 #    endif
 
 #    if defined(__linux__) || defined(__APPLE__)
@@ -980,6 +981,9 @@ enum {
     LINK_LIT_READLOOKUP2,
     LINK_LIT_RAM,
     LINK_LIT_DR_ARMED,
+    LINK_LIT_IOAPIC_PATH,
+    LINK_LIT_LAPIC_EXTINT,
+    LINK_LIT_LAPIC_IRR,
 
     LINK_LIT_COUNT
 };
@@ -1040,6 +1044,7 @@ build_link_routine(codeblock_t *block)
     uint32_t *nmi_set;
     uint32_t *nmi_ok;
     uint32_t *irq_ok;
+    uint32_t *irq_ok_2;
     uint32_t *es_flat;
     uint32_t *uncached;
     uint32_t *no_paging;
@@ -1087,6 +1092,9 @@ build_link_routine(codeblock_t *block)
     lit[LINK_LIT_READLOOKUP2]       = (uint64_t) (uintptr_t) readlookup2;
     lit[LINK_LIT_RAM]               = (uint64_t) (uintptr_t) &ram;
     lit[LINK_LIT_DR_ARMED]          = (uint64_t) (uintptr_t) &cpu_dr_armed;
+    lit[LINK_LIT_IOAPIC_PATH]       = (uint64_t) (uintptr_t) &ioapic_irq_path_active;
+    lit[LINK_LIT_LAPIC_EXTINT]      = (uint64_t) (uintptr_t) &cpu_lapic_extint_live[0];
+    lit[LINK_LIT_LAPIC_IRR]         = (uint64_t) (uintptr_t) &cpu_lapic_irr_live;
 
     codegen_link_rout = &block_write_data[block_pos];
 
@@ -1140,7 +1148,8 @@ build_link_routine(codeblock_t *block)
     host_arm64_ORR_REG(block, REG_W3, REG_W3, REG_W7, 0);
     miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W3);
 
-    /*nmi && nmi_enable && nmi_mask; the rest is out of line*/
+    /*NMI_TAKEABLE(): nmi && nmi_enable && (nmi_mask || (nmi & 2)); the
+      rest is out of line, with W12 = nmi*/
     host_arm64_LDR_IMM_W(block, REG_W12, REG_X12, 0);
     nmi_set  = host_arm64_CBNZ_SHORT_(block, REG_W12);
     nmi_done = &block_write_data[block_pos];
@@ -1152,7 +1161,20 @@ build_link_routine(codeblock_t *block)
     irq_ok          = host_arm64_TBZ_SHORT_(block, REG_X13, 32 + 9);
     host_arm64_LDRB_IMM_W(block, REG_W5, REG_X3, offsetof(pic_t, int_pending));
     miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W5);
+    /*With the IOAPIC routing interrupts, x86_external_interrupt_pending()
+      also looks at local APIC 0: an ExtINT or anything in its IRR is a
+      miss, and the C loop works out whether it is deliverable*/
+    host_arm64_LDR_IMM_X(block, REG_X5, REG_X17, LINK_LIT(LINK_LIT_IOAPIC_PATH));
+    host_arm64_LDRB_IMM_W(block, REG_W5, REG_X5, 0);
+    irq_ok_2 = host_arm64_CBZ_SHORT_(block, REG_W5);
+    host_arm64_LDR_IMM_X(block, REG_X5, REG_X17, LINK_LIT(LINK_LIT_LAPIC_EXTINT));
+    host_arm64_LDRB_IMM_W(block, REG_W5, REG_X5, 0);
+    miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W5);
+    host_arm64_LDR_IMM_X(block, REG_X5, REG_X17, LINK_LIT(LINK_LIT_LAPIC_IRR));
+    host_arm64_LDR_IMM_W(block, REG_W5, REG_X5, 0);
+    miss[nr_miss++] = host_arm64_TBNZ_SHORT_(block, REG_W5, 0);
     host_arm64_short_branch_set_offset(irq_ok, &block_write_data[block_pos]);
+    host_arm64_short_branch_set_offset(irq_ok_2, &block_write_data[block_pos]);
 
     /*Status and FPU rounding as when the slot was filled, compared as one
       word against W6. Only the C loop refreshes the PC24 and RC_NZ status
@@ -1275,7 +1297,8 @@ build_link_routine(codeblock_t *block)
     miss_dest = &block_write_data[block_pos];
     host_arm64_B(block, codegen_link_miss_rout);
 
-    /*nmi set: miss only if nmi_enable and nmi_mask are too*/
+    /*nmi set: miss only if nmi_enable is too, and nmi_mask or an NMI from
+      the local APIC (nmi bit 1, which port 70h does not gate)*/
     host_arm64_short_branch_set_offset(nmi_set, &block_write_data[block_pos]);
     host_arm64_LDR_IMM_X(block, REG_X3, REG_X17, LINK_LIT(LINK_LIT_NMI_ENABLE));
     host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, 0);
@@ -1284,6 +1307,7 @@ build_link_routine(codeblock_t *block)
     host_arm64_LDR_IMM_X(block, REG_X3, REG_X17, LINK_LIT(LINK_LIT_NMI_MASK));
     host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, 0);
     miss[nr_miss++] = host_arm64_CBNZ_SHORT_(block, REG_W3);
+    miss[nr_miss++] = host_arm64_TBNZ_SHORT_(block, REG_W12, 1);
     host_arm64_B(block, nmi_done);
 
     /*get_phys() cache miss: it would store the full address in

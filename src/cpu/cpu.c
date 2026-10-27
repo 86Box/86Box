@@ -303,6 +303,8 @@ static uint32_t tr_cache_data[256][4][4];
 static uint32_t tr_cache_fill_buf[4];
 static uint32_t tr_cache_read_buf[4];
 
+/* An 8087's or 80187's error output, when the board routes it to a 8259 */
+void (*fpu_int_line)(int level) = NULL;
 
 uint64_t cpu_CR4_mask;
 /* CR4 bits a write may set without #GP, but which always read 0 */
@@ -313,6 +315,16 @@ int fpu_ignne;
 int fpu_ferr_timing;
 /* FERR# asserted for the error ES holds (x87_ferr_assert) */
 int fpu_ferr;
+
+void
+fpu_int_set(int level)
+{
+    if (fpu_int_line != NULL)
+        fpu_int_line(level);
+    else
+        nmi = level;
+}
+
 uint64_t tsc = 0;
 
 double cpu_dmulti;
@@ -570,10 +582,10 @@ void
 SF_FPU_reset(void)
 {
     if (fpu_type != FPU_NONE) {
+        fpu_state.tag = 0x5555;
         fpu_state.cwd = 0x0040;
         fpu_state.swd = 0;
         fpu_state.tos = 0;
-        fpu_state.tag = 0x5555;
         fpu_state.foo = 0;
         fpu_state.fip = 0;
         fpu_state.fcs = 0;
@@ -593,6 +605,9 @@ cpu_set(void)
     cpu_lapic_reset_all();
     /* Register callbacks after CPU-owned reset so LAPIC sees a coherent owner. */
     lapic_set_index_source(cpu_lapic_index_source);
+
+    /* A previous machine's routing must not outlive it. */
+    fpu_int_line = NULL;
 
     cpu_effective = cpu;
     cpu_s         = (CPU *) &cpu_f->cpus[cpu_effective];

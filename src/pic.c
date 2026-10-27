@@ -34,6 +34,7 @@
 #include <86box/pit.h>
 #include <86box/device.h>
 #include <86box/chipset.h>
+#include <86box/i8018x.h>
 #include <86box/apm.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
@@ -51,12 +52,13 @@ enum {
 
 pic_t pic;
 pic_t pic2;
-
-static pc_timer_t pic_timer;
+int cascade = 0;
 
 static int shadow = 0;
-static int elcr_enabled = 0;
 static int tmr_inited = 0;
+static int elcr_enabled = 0;
+static pc_timer_t pic_timer;
+
 /* Persistent override for machines pairing a 286-or-higher accelerator CPU with a genuine
    single-PIC XT board (e.g. the Intel Inboard 386/PC on a stock 5150/5160), where is286-driven
    IMR-write timing would otherwise silently never schedule a pending-IRQ check at all. Set once
@@ -91,6 +93,9 @@ static void (*update_pending)(void);
    PCI interrupt steered by the chipset's router reaches the 8259 alone
    (picint_steered), so the line can be up for one and not the other. */
 static uint32_t pic_ioapic_lines[16];
+
+static uint8_t pic_i86_mode(pic_t *dev);
+static uint8_t pic_irq_ack_read(pic_t *dev, int phase);
 
 #ifdef USE_VFIO
 /* IRQs delivered since their level was last known to be current. VFIO cannot report
@@ -134,6 +139,19 @@ pic_log(const char *fmt, ...)
 #else
 #    define pic_log(fmt, ...)
 #endif
+
+void
+pic_set_output_callback(pic_t *dev, void (*callback)(void *priv, int level), void *priv)
+{
+    if (dev == NULL)
+        return;
+
+    dev->out_cb   = callback;
+    dev->out_priv = priv;
+
+    if (callback != NULL)
+        callback(priv, dev->int_pending);
+}
 
 void
 pic_set_irq_callback(void (*callback)(uint16_t, int, void *), void *priv)
@@ -348,10 +366,42 @@ pic_update_pending_at(void)
     }
 }
 
+/* Two independent controllers: each computes its own pending state,
+   and neither feeds the other's IRR. */
+static void
+pic_update_pending_dual(void)
+{
+#ifdef USE_VFIO
+    if (pic_resampling)
+        return;
+#endif
+    if (!(pic.interrupt & 0x20))
+        pic.int_pending = (find_best_interrupt(&pic) != -1);
+    if (!(pic2.interrupt & 0x20))
+        pic2.int_pending = (find_best_interrupt(&pic2) != -1);
+
+    if (pic.out_cb != NULL)
+        pic.out_cb(pic.out_priv, pic.int_pending);
+    if (pic2.out_cb != NULL)
+        pic2.out_cb(pic2.out_priv, pic2.int_pending);
+}
+
+static __inline void
+pic_notify(void)
+{
+    if (update_pending == NULL)
+        return;
+
+    if (!cascade)
+        pic_update_pending_dual();
+    else
+        update_pending();
+}
+
 static void
 pic_callback(UNUSED(void *priv))
 {
-    update_pending();
+    pic_notify();
 }
 
 void
@@ -360,7 +410,11 @@ pic_reset(void)
     int is_at     = IS_AT(machine);
     int is_zenith = !!machine_has_flags_64(machine, MACHINE_ZENITH);
     is_at         = is_at || (machines[machine].init == machine_xt_xi8088_init);
-    const uint8_t board_flags = pic.flags & PIC_IBM5140;
+    const uint8_t board_flags    = pic.flags & PIC_IBM5140;
+    void (*out_cb)(void *, int)  = pic.out_cb;
+    void (*out_cb2)(void *, int) = pic2.out_cb;
+    void *out_priv               = pic.out_priv;
+    void *out_priv2              = pic2.out_priv;
 
     memset(&pic, 0, sizeof(pic_t));
     memset(pic_ioapic_lines, 0, sizeof(pic_ioapic_lines));
@@ -368,23 +422,33 @@ pic_reset(void)
     ioapic_pic_intr(0); /* INTR is inactive after reset, for INTIN0 too */
     memset(&pic2, 0, sizeof(pic_t));
     /* Controller reset preserves the integrated controller's hardware type. */
-    pic.flags = board_flags;
+    pic.flags     = board_flags;
+    pic.out_cb    = out_cb;
+    pic2.out_cb   = out_cb2;
+    pic.out_priv  = out_priv;
+    pic2.out_priv = out_priv2;
 
     pic.is_master = 1;
     pic.interrupt = pic2.interrupt = 0x17;
 
-    if (is_at)
-        pic.slaves[2] = &pic2;
+    if (!cascade) {
+        pic2.is_master = 1;
+        pic.at = pic2.at = 0;
+        update_pending = pic_update_pending_dual;
+    } else {
+        if (is_at)
+            pic.slaves[2] = &pic2;
+
+        update_pending = is_at ? pic_update_pending_at : pic_update_pending_xt;
+        pic.at = pic2.at = is_at;
+    }
+    pic.zenith = pic2.zenith = is_zenith;
 
     if (tmr_inited)
         timer_on_auto(&pic_timer, 0.0);
     memset(&pic_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&pic_timer, pic_callback, &pic, 0);
     tmr_inited = 1;
-
-    update_pending = is_at ? pic_update_pending_at : pic_update_pending_xt;
-    pic.at     = pic2.at     = is_at;
-    pic.zenith = pic2.zenith = is_zenith;
 
     smi_irq_mask = smi_irq_status = 0x0000;
 
@@ -458,8 +522,7 @@ pic_set_line_pinned(int irq, int pinned)
     else
         dev->imr &= (uint8_t) ~b;
 
-    if (update_pending != NULL)
-        update_pending();
+    pic_notify();
 }
 
 static uint8_t
@@ -509,7 +572,7 @@ pic_resample_delivered(pic_t *dev)
     }
 
     if (resampled)
-        update_pending();
+        pic_notify();
 }
 #endif
 
@@ -554,7 +617,7 @@ pic_action(pic_t *dev, uint8_t irq, uint8_t eoi, uint8_t rotate)
         if (rotate && !(dev->flags & PIC_IBM5140))
             dev->priority = (irq + 1) & 7;
 
-        update_pending();
+        pic_notify();
     }
 }
 
@@ -680,7 +743,7 @@ pic_read(uint16_t addr, void *priv)
                 dev->data_bus = 0x80 | (dev->interrupt & 7);
                 pic_acknowledge(dev);
                 dev->int_pending = 0;
-                update_pending();
+                pic_notify();
             } else
                 dev->data_bus = (dev->flags & PIC_IBM5140) ? (dev->interrupt & 7) : 0x00;
             dev->ocw3 &= ~0x04;
@@ -738,12 +801,12 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
                 dev->icw4  = val;
                 dev->state = STATE_NONE;
                 if (dev->flags & PIC_IBM5140)
-                    update_pending();
+                    pic_notify();
                 break;
             case STATE_NONE:
                 dev->imr = (uint8_t) (val | (uint8_t) ((dev == &pic2) ? (pic_pinned_irqs >> 8) : pic_pinned_irqs));
                 if ((dev->flags & PIC_IBM5140) || (is286 && !force_xt_imr_timing) || dev->zenith)
-                    update_pending();
+                    pic_notify();
                 else if (force_xt_imr_timing)
                     /* Deliberately small but non-zero, unlike the stock formula below (which
                        evaluates to exactly 0.0 and so hits timer_on_auto()'s "else timer_stop()"
@@ -787,7 +850,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
             dev->interrupt                                = 0x17;
             dev->int_pending                              = 0x00;
             dev->state                                    = STATE_ICW2;
-            update_pending();
+            pic_notify();
         } else if (val & 0x08) {
             /* RR is a command strobe: a poll or special-mask command must not
              * replace the integrated controller's current ISR/IRR selection. */
@@ -802,6 +865,20 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
             pic_command(dev);
         }
     }
+}
+
+/* The 8259s sit on the 16-bit bus, so their A0 comes from CPU A1: the
+   register pair shows up on even addresses within the chip-select block. */
+static uint8_t
+pic_read_even(uint16_t addr, void *priv)
+{
+    return pic_read((uint16_t) ((addr & 0x0002u) >> 1), priv);
+}
+
+static void
+pic_write_even(uint16_t addr, uint8_t val, void *priv)
+{
+    pic_write((uint16_t) ((addr & 0x0002u) >> 1), val, priv);
 }
 
 void
@@ -889,15 +966,34 @@ pic_toggle_latch(int is_ps2)
     }
 }
 
+/* Machine init must not inherit the previous board's PIC output hooks. */
+static void
+pic_clear_output_callback(void)
+{
+    pic.out_cb = pic2.out_cb = NULL;
+    pic.out_priv = pic2.out_priv = NULL;
+}
+
+uint8_t
+pic_any_pending(void)
+{
+    if (!cascade && i8018x_pcb_cascade)
+        return 0;
+
+    return pic.int_pending || (!cascade && pic2.int_pending);
+}
+
 void
 pic_init(void)
 {
     for (uint8_t irq = 0; irq < 8; irq++)
         irq_vector_override[irq] = -1;
 
-    pic_reset_hard();
+    pic_clear_output_callback();
 
     shadow = 0;
+    cascade = 1;
+    pic_reset_hard();
     io_sethandler(0x0020, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
 }
 
@@ -961,10 +1057,54 @@ pic_handler(int set, uint16_t base, int size)
 void
 pic_init_pcjr(void)
 {
-    pic_reset_hard();
+    pic_clear_output_callback();
 
     shadow = 0;
+    cascade = 1;
+    pic_reset_hard();
     pic_handler(1, 0x0020, 0x0008);
+}
+
+/* ACK one independent controller; both INTA phases happen here because the
+   80186 embeds the vectoring that the 286+ core performs for the pair. */
+uint8_t
+pic_irq_ack_instance(pic_t *dev)
+{
+    uint8_t ret = 0;
+    uint8_t phases;
+
+    if (dev == NULL)
+        return 0;
+
+    phases = pic_i86_mode(dev) ? 2 : 3;
+
+    for (uint8_t i = 0; i < phases; i++) {
+        ret = pic_irq_ack_read(dev, dev->ack_bytes);
+        dev->ack_bytes = (dev->ack_bytes + 1) % phases;
+    }
+
+    dev->interrupt = 0x17;
+    dev->int_pending = 0;
+    pic_notify();
+
+    return ret;
+}
+
+/* Tandy 2000 wires two 8259s to separate CPU inputs, so neither is the
+   other's slave and each keeps its own vector base. */
+void
+pic_init_tandy2k(void)
+{
+    for (uint8_t irq = 0; irq < 8; irq++)
+        irq_vector_override[irq] = -1;
+
+    pic_clear_output_callback();
+
+    shadow = 0;
+    cascade = 0;
+    pic_reset_hard();
+    io_sethandler(0x0060, 0x0010, pic_read_even, NULL, NULL, pic_write_even, NULL, NULL, &pic);
+    io_sethandler(0x0070, 0x0010, pic_read_even, NULL, NULL, pic_write_even, NULL, NULL, &pic2);
 }
 
 void
@@ -991,21 +1131,27 @@ picint_lines(uint16_t num, int level, int set, uint8_t *irq_state, int to_ioapic
     if (update_pending == NULL)
         return;
 
-    /* Make sure to ignore all slave IRQ's, and in case of AT+,
-       translate IRQ 2 to IRQ 9. */
-    for (uint8_t i = 0; i < 8; i++) {
-        b     = (uint8_t) (1 << i);
-        raise = num & b;
+    /* In cascade mode, ignore all slave IRQ's and translate IRQ 2 to IRQ 9
+       on AT+. In dual mode 0-7 belong to the first controller and 8-15 to
+       the second. */
+    if (cascade) {
+        for (uint8_t i = 0; i < 8; i++) {
+            b     = (uint8_t) (1 << i);
+            raise = num & b;
 
-        if (pic.icw3 & b) {
-            slaves++;
+            if (pic.icw3 & b) {
+                slaves++;
 
-            if (raise) {
-                num &= ~b;
-                if (pic.at && (i == 2))
-                    num |= (1 << 9);
+                if (raise) {
+                    num &= ~b;
+                    if (pic.at && (i == 2))
+                        num |= (1 << 9);
+                }
             }
         }
+    } else {
+        slaves = 1;
+        max = 16;
     }
 
     uint16_t lines = level ? 0x0000 : num;
@@ -1118,7 +1264,7 @@ picint_lines(uint16_t num, int level, int set, uint8_t *irq_state, int to_ioapic
             }
         }
 
-        update_pending();
+        pic_notify();
     }
 
     /* APIC mirror runs after PIC state/latches settle for this request. */
@@ -1220,7 +1366,7 @@ pic_irq_ack(void)
         if (pic.interrupt & 0x40)
             pic2.interrupt = 0x17;
         pic.interrupt = 0x17;
-        update_pending();
+        pic_notify();
     }
 
     return ret;
@@ -1272,7 +1418,7 @@ picinterrupt(void)
                again, a new edge. */
             pic.int_pending = 0;
             pic_intr_report();
-            update_pending();
+            pic_notify();
         }
     }
 

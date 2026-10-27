@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-22 13:10+0000\n"
-"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
+"PO-Revision-Date: 2026-10-25 07:11+0000\n"
+"Last-Translator: Canadew <chun-awa@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -415,17 +415,35 @@ msgstr "MB"
 msgid "Memory:"
 msgstr "内存:"
 
-msgid "Time synchronization"
-msgstr "时间同步"
+msgid "Synchronize with host clock"
+msgstr ""
 
-msgid "Disabled"
-msgstr "禁用"
+msgid "Time zone:"
+msgstr ""
 
-msgid "Enabled (local time)"
-msgstr "启用 (本地时区)"
+msgid "Local"
+msgstr ""
 
-msgid "Enabled (UTC)"
-msgstr "启用 (UTC)"
+msgid "UTC"
+msgstr ""
+
+msgid "Date:"
+msgstr ""
+
+msgid "Match the host"
+msgstr ""
+
+msgid "Offset the year by:"
+msgstr ""
+
+msgid "(currently %1)"
+msgstr ""
+
+msgid "Always use the year:"
+msgstr ""
+
+msgid "Do not synchronize the date"
+msgstr ""
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "为286及386处理器应用486解释器"
@@ -3123,7 +3141,7 @@ msgid "Key bindings"
 msgstr "按键绑定"
 
 msgid "VM Manager"
-msgstr ""
+msgstr "虚拟机管理器"
 
 msgid "Action"
 msgstr "动作"

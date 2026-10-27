@@ -1548,6 +1548,14 @@ automation_frame(int x, int y, int w, int h, int monitor_index)
     if (!target)
         return;
 
+    /* A half programmed CRTC can describe a frame that runs off the bitmap. */
+    if ((x < 0) || (y < 0) || (x >= target->w) || (y >= target->h))
+        return;
+    if ((x + w) > target->w)
+        w = target->w - x;
+    if ((y + h) > target->h)
+        h = target->h - y;
+
     thread_wait_mutex(frame_mutex);
     if ((w * h) > frame_alloc) {
         frame_alloc = w * h;

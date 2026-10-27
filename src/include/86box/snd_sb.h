@@ -230,7 +230,6 @@ typedef struct sb_t {
     uint8_t  es186x_bypass_state;
     uint16_t es186x_confaddr;
     uint16_t es186x_rom_pos;
-    isapnp_device_config_t *es186x_bypass_conf;
 
     /* ESS ES188x secondary DAC */
     int        ess_dac2_freq;
