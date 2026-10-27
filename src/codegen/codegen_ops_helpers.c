@@ -76,6 +76,36 @@ flags_known_record(ir_data_t *ir, int cf_kept)
     return 1;
 }
 
+/*The count of a shift that set the flags op to op: the immediate its
+  handler wrote to flags_op2 in the uop just before the one setting the flags
+  op, when nothing has written either since. 0 when it is not known*/
+static uint32_t
+flags_known_count(ir_data_t *ir, int op)
+{
+    const uop_t *op_uop;
+    const uop_t *count_uop;
+    int          producer;
+
+    for (producer = ir->wr_pos - 1; producer > 0; producer--) {
+        if (IREG_GET_REG(ir->uops[producer].dest_reg_a.reg) == IREG_GET_REG(IREG_flags_op))
+            break;
+        if (IREG_GET_REG(ir->uops[producer].dest_reg_a.reg) == IREG_GET_REG(IREG_flags_op2))
+            return 0;
+    }
+    if (producer <= 0)
+        return 0;
+    op_uop    = &ir->uops[producer];
+    count_uop = &ir->uops[producer - 1];
+    if ((IREG_GET_REG(op_uop->dest_reg_a.reg) != IREG_GET_REG(IREG_flags_op)) || ((op_uop->type & UOP_MASK) != (UOP_MOV_IMM & UOP_MASK)) ||
+        (op_uop->imm_data != (uint32_t) op))
+        return 0;
+    if ((IREG_GET_REG(count_uop->dest_reg_a.reg) != IREG_GET_REG(IREG_flags_op2)) || ((count_uop->type & UOP_MASK) != (UOP_MOV_IMM & UOP_MASK)))
+        return 0;
+    if ((count_uop->imm_data < 1) || (count_uop->imm_data > 31) || (count_uop->imm_data != cpu_state.flags_op2))
+        return 0;
+    return count_uop->imm_data;
+}
+
 /*A compile-time use of the known flags op other than an inline rebuild: a
   Jcc, SETcc or LOOPcc compiled for that op, a rebuild left out because the
   op needs none, or (cf_kept) an INC or DEC that keeps the flags register's
@@ -119,8 +149,9 @@ flags_op_set_from(ir_data_t *ir, int start, int incdec_too)
   op is known here and is one whose flags depend only on flags_res,
   flags_op1, flags_op2 and the carry; returns 0, emitting nothing, otherwise.
   Each flag is the expression CF_SET() .. VF_SET() in x86_flags.h use for
-  that op, on the same values, ORed into flags in place. Uses temp1 and
-  temp3 only: callers hold operands in temp0 and shift counts in temp2.*/
+  that op, on the same values, ORed into flags in place; a shift's count is
+  the constant its handler wrote to flags_op2. Uses temp1 and temp3 only:
+  callers hold operands in temp0 and shift counts in temp2.*/
 int
 codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
 {
@@ -129,6 +160,12 @@ codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
     int      is_add;
     int      is_sub;
     int      is_incdec;
+    int      is_shl;
+    int      is_shr;
+    int      is_sar;
+    int      width;
+    int      cf_bit = -1;
+    uint32_t count  = 0;
     uint32_t msb;
 
     switch (op) {
@@ -137,21 +174,33 @@ codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
         case FLAGS_SUB8:
         case FLAGS_INC8:
         case FLAGS_DEC8:
-            msb = 0x80;
+        case FLAGS_SHL8:
+        case FLAGS_SHR8:
+        case FLAGS_SAR8:
+            msb   = 0x80;
+            width = 8;
             break;
         case FLAGS_ZN16:
         case FLAGS_ADD16:
         case FLAGS_SUB16:
         case FLAGS_INC16:
         case FLAGS_DEC16:
-            msb = 0x8000;
+        case FLAGS_SHL16:
+        case FLAGS_SHR16:
+        case FLAGS_SAR16:
+            msb   = 0x8000;
+            width = 16;
             break;
         case FLAGS_ZN32:
         case FLAGS_ADD32:
         case FLAGS_SUB32:
         case FLAGS_INC32:
         case FLAGS_DEC32:
-            msb = 0x80000000;
+        case FLAGS_SHL32:
+        case FLAGS_SHR32:
+        case FLAGS_SAR32:
+            msb   = 0x80000000;
+            width = 32;
             break;
         default:
             return 0;
@@ -159,6 +208,9 @@ codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
     is_add    = (op == FLAGS_ADD8) || (op == FLAGS_ADD16) || (op == FLAGS_ADD32) || (op == FLAGS_INC8) || (op == FLAGS_INC16) || (op == FLAGS_INC32);
     is_sub    = (op == FLAGS_SUB8) || (op == FLAGS_SUB16) || (op == FLAGS_SUB32) || (op == FLAGS_DEC8) || (op == FLAGS_DEC16) || (op == FLAGS_DEC32);
     is_incdec = (op == FLAGS_INC8) || (op == FLAGS_INC16) || (op == FLAGS_INC32) || (op == FLAGS_DEC8) || (op == FLAGS_DEC16) || (op == FLAGS_DEC32);
+    is_shl    = (op == FLAGS_SHL8) || (op == FLAGS_SHL16) || (op == FLAGS_SHL32);
+    is_shr    = (op == FLAGS_SHR8) || (op == FLAGS_SHR16) || (op == FLAGS_SHR32);
+    is_sar    = (op == FLAGS_SAR8) || (op == FLAGS_SAR16) || (op == FLAGS_SAR32);
 
     /*flags_rebuild_c() leaves CF as it is after INC and DEC*/
     if (is_incdec && carry_only) {
@@ -173,6 +225,12 @@ codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
         (reg_last_version[IREG_GET_REG(IREG_flags)] + 8 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_flags_op)] + 1 > REG_VERSION_MAX))
         return 0;
 
+    if (is_shl || is_shr || is_sar) {
+        count = flags_known_count(ir, op);
+        if (!count)
+            return 0;
+    }
+
     /*With the uop that set the flags op, for codegen_can_unroll_full()*/
     if (!flags_known_record(ir, 0))
         return 0;
@@ -186,10 +244,26 @@ codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
         uop_CMP_SET(ir, IREG_temp1, IREG_flags_res, IREG_flags_op1, UOP_CC_B);
     else if (is_sub && !is_incdec)
         uop_CMP_SET(ir, IREG_temp1, IREG_flags_op1, IREG_flags_op2, UOP_CC_B);
+    else if (is_shl || is_shr || is_sar) {
+        /*The bit of op1 shifted out last. SHL: bit width-count of
+          op1 << (count - 1), none past the width. SAR: the sign
+          extension of op1 stands for every bit above width-1*/
+        if (is_shl)
+            cf_bit = (count <= (uint32_t) width) ? (width - (int) count) : -1;
+        else if (is_shr)
+            cf_bit = (int) count - 1;
+        else
+            cf_bit = ((int) count - 1 < width - 1) ? ((int) count - 1) : (width - 1);
+        if (cf_bit > 0) {
+            uop_SHR_IMM(ir, IREG_temp1, IREG_flags_op1, cf_bit);
+            uop_AND_IMM(ir, IREG_temp1, IREG_temp1, 1);
+        } else if (cf_bit == 0)
+            uop_AND_IMM(ir, IREG_temp1, IREG_flags_op1, 1);
+    }
 
     if (carry_only) {
         uop_AND_IMM(ir, IREG_flags, IREG_flags, (uint16_t) ~C_FLAG);
-        if (is_add || is_sub)
+        if (is_add || is_sub || (cf_bit >= 0))
             uop_OR(ir, IREG_flags, IREG_flags, IREG_temp1_W);
         return 1;
     }
@@ -198,8 +272,31 @@ codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
         uop_AND_IMM(ir, IREG_flags, IREG_flags, (uint16_t) ~(0x8d5 & ~C_FLAG));
     else {
         uop_AND_IMM(ir, IREG_flags, IREG_flags, (uint16_t) ~0x8d5);
-        if (is_add || is_sub)
+        if (is_add || is_sub || (cf_bit >= 0))
             uop_OR(ir, IREG_flags, IREG_flags, IREG_temp1_W);
+    }
+
+    /*VF of a shift, from msb to bit 11, before PF uses temp3. SHL:
+      ((op1 << count) ^ (op1 << (count - 1))) & msb, 0 past the width.
+      SHR: msb of op1 when count is 1. SAR: 0*/
+    if (is_shl && (count <= (uint32_t) width)) {
+        int src = IREG_flags_op1;
+
+        if (count > 1) {
+            uop_SHL_IMM(ir, IREG_temp3, IREG_flags_op1, count - 1);
+            src = IREG_temp3;
+        }
+        uop_SHL_IMM(ir, IREG_temp1, src, 1);
+        uop_XOR(ir, IREG_temp1, IREG_temp1, src);
+        uop_AND_IMM(ir, IREG_temp1, IREG_temp1, msb);
+    } else if (is_shr && (count == 1))
+        uop_AND_IMM(ir, IREG_temp1, IREG_flags_op1, msb);
+    if ((is_shl && (count <= (uint32_t) width)) || (is_shr && (count == 1))) {
+        if (msb == 0x80)
+            uop_SHL_IMM(ir, IREG_temp1, IREG_temp1, 4);
+        else
+            uop_SHR_IMM(ir, IREG_temp1, IREG_temp1, (msb == 0x8000) ? 4 : 20);
+        uop_OR(ir, IREG_flags, IREG_flags, IREG_temp1_W);
     }
 
     /*PF: even parity of the low byte of flags_res, as znptable8[]*/
