@@ -3266,9 +3266,10 @@ gpu_stage_why(const r128_gpu_t *g, const rage128_raster_state_t *rs, int st)
     const r3d_stage_hdr_t *h  = &rs->d.sh[st];
     const uint32_t        *so = st ? rs->sec_stage_off : rs->prim_stage_off;
 
-    /* every datatype the interpreter decodes. 10 (CI16) and 13 stay on
-       the CPU path, where the interpreter has no decoder for them either
-       and samples them as opaque white */
+    /* every datatype the interpreter decodes except 13 (alpha and
+       intensity 8:8), which the GPU kernels do not decode and which
+       stays on the CPU path. 10 (CI16) stays there too: the interpreter
+       has no decoder for it either and samples it as opaque white */
     if (!(h->dt == 4 || h->dt == 15 || h->dt == 6
           || h->dt == 1 || h->dt == 2 || h->dt == 3
           || h->dt == 5 || h->dt == 7 || h->dt == 8 || h->dt == 9
