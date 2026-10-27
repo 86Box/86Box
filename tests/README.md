@@ -35,6 +35,17 @@ number of right shifts, stays zero after payment, and preserves the restored
 and unrolled block thresholds. They do not execute generated code or measure
 host performance.
 
+# Dynarec register shifts by CL
+
+Build `codegen_shift_cl_tests` with `BUILD_TESTING=ON` and `DYNAREC=ON`, then run
+`ctest --test-dir build -R '^CodegenShiftCl\.' --output-on-failure`.
+The tests use the production translators for all register operands and
+supported shift/rotate encodings at 8, 16 and 32 bits. They check translation
+with zero and nonzero compile-time counts, including the first instruction
+in a block, and verify a local zero-count branch and conservative lazy-flag
+state at the join. Carry rotates retain their existing fallback.
+These are IR-generation checks, not generated-code execution tests.
+
 # Network packet buffering
 
 Build `network_queue_tests` with `BUILD_TESTING=ON`, then run
