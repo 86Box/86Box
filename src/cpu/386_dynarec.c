@@ -745,8 +745,7 @@ exec386_dynarec_dyn(void)
 #    endif
 
         block->used   = 1; /* run: the eviction sweep passes it over once */
-        if (block->runs_left) /* reached via block->data */
-            block->runs_left--;
+        block->runs_left >>= 1; /* reached via block->data */
         inrecomp = 1;
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
         /* A block compiled without links returns nothing. */

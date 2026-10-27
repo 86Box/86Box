@@ -1236,7 +1236,6 @@ build_link_routine(codeblock_t *block)
     int32_t *uncached;
     int32_t *no_paging;
     int32_t *cached;
-    int32_t *runs_paid;
     int32_t *two_page;
     int32_t *one_page;
     int32_t *byte_mask;
@@ -1426,12 +1425,7 @@ build_link_routine(codeblock_t *block)
     rx_rr(block, 0, 0, 0xff, 0, REG_RCX);                       /*INC ECX*/
     rx_rm(block, 0, 0, 0x88, REG_RCX, REG_RDI, LINK_BLOCK(used)); /*MOV block->used, CL*/
     /*Linked entries bypass the dispatcher's SMC reuse countdown.*/
-    rx_rm(block, 0, 0, 0x0fb6, REG_RCX, REG_RDI, LINK_BLOCK(runs_left));
-    rx_rr(block, 0, 0, 0x85, REG_RCX, REG_RCX);
-    runs_paid = rx_jcc(block, RX_CC_Z);
-    rx_rr(block, 0, 0, 0xff, 1, REG_RCX);
-    rx_rm(block, 0, 0, 0x88, REG_RCX, REG_RDI, LINK_BLOCK(runs_left));
-    rx_patch(runs_paid, rx_here());
+    rx_rm(block, 0, 0, 0xd0, 5, REG_RDI, LINK_BLOCK(runs_left)); /*SHR byte, 1*/
     rx_bytes(block, jmp_r15, 3);
 
     /*Miss: the block's own epilogue, RAX still the slots*/

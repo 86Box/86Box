@@ -955,7 +955,7 @@ codegen_block_start_recompile(codeblock_t *block)
        bits would leave every later non-flat visit a new block. */
     block->status = (cpu_cur_status & ~CPU_STATUS_MASK) | (block->status & CPU_STATUS_MASK);
     block->used   = 1; /* new: not the next thing the eviction sweep takes */
-    block->runs_left = SMC_THRASH_MIN_RUNS; /* not yet run from block->data */
+    block->runs_left = SMC_THRASH_RUN_MASK; /* not yet run from block->data */
 
     block->page_mask = block->page_mask2 = 0;
     block->ins                           = 0;

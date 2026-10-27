@@ -3,6 +3,11 @@ if(BUILD_TESTING)
         cpu_tr_test.cpp
         ../../src/cpu/cpu.c
     )
+    add_executable(cpu_interrupt_tests
+        x86_interrupt_test.cpp
+        ../../src/pic.c
+    )
+    add_executable(codegen_reuse_tests codegen_reuse_test.cpp)
     add_executable(cpu_cache_tests
         cpu_cache_test.cpp
         vl82c486_cache_test.c
@@ -11,7 +16,7 @@ if(BUILD_TESTING)
     )
     add_executable(x87_fistp_tests x87_fistp_test.cpp ../../src/cpu/x87_ferr.c)
     add_executable(x87_fistp_new_tags_tests x87_fistp_test.cpp ../../src/cpu/x87_ferr.c)
-    foreach(target cpu_tr_tests cpu_cache_tests x87_fistp_tests x87_fistp_new_tags_tests)
+    foreach(target cpu_tr_tests cpu_interrupt_tests codegen_reuse_tests cpu_cache_tests x87_fistp_tests x87_fistp_new_tags_tests)
         target_include_directories(${target} PRIVATE
             ${PROJECT_SOURCE_DIR}/src/include
             ${PROJECT_SOURCE_DIR}/src/cpu

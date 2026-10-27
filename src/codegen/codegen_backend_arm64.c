@@ -1049,7 +1049,6 @@ build_link_routine(codeblock_t *block)
     uint32_t *uncached;
     uint32_t *no_paging;
     uint32_t *cached;
-    uint32_t *runs_paid;
     uint32_t *two_page;
     uint32_t *one_page;
     uint32_t *byte_mask;
@@ -1289,10 +1288,8 @@ build_link_routine(codeblock_t *block)
     host_arm64_STRB_IMM(block, REG_W4, REG_X3, offsetof(codeblock_t, used));
     /*Linked entries bypass the dispatcher's SMC reuse countdown.*/
     host_arm64_LDRB_IMM_W(block, REG_W4, REG_X3, offsetof(codeblock_t, runs_left));
-    runs_paid = host_arm64_CBZ_SHORT_(block, REG_W4);
-    host_arm64_SUB_IMM(block, REG_W4, REG_W4, 1);
+    host_arm64_MOV_REG_LSR(block, REG_W4, REG_W4, 1);
     host_arm64_STRB_IMM(block, REG_W4, REG_X3, offsetof(codeblock_t, runs_left));
-    host_arm64_short_branch_set_offset(runs_paid, &block_write_data[block_pos]);
     host_arm64_BR(block, REG_X15);
 
     /*Miss: the block's own epilogue, X0 still the slots. codegen_exit_rout

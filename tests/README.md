@@ -17,6 +17,24 @@ Try to match your code's filename and append the type of test it is.
 
 ## Summary of current tests
 
+# CPU external interrupt polling
+
+Build `cpu_interrupt_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^CpuInterrupt\.' --output-on-failure`.
+The tests compare CPU-facing PIC polling with the real controller's pending
+predicate across cascaded, non-cascaded and 8018x configurations, and check
+APIC live-source and legacy-fallback arbitration with local APIC stubs.
+They do not emulate interrupt delivery or measure host performance.
+
+# Dynarec SMC reuse tracking
+
+Build `codegen_reuse_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^CodegenReuse\.' --output-on-failure`.
+The tests check that the byte-sized reuse mask requires exactly the configured
+number of right shifts, stays zero after payment, and preserves the restored
+and unrolled block thresholds. They do not execute generated code or measure
+host performance.
+
 # Network packet buffering
 
 Build `network_queue_tests` with `BUILD_TESTING=ON`, then run

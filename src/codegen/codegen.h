@@ -68,11 +68,9 @@ typedef struct codeblock_t {
       once (codegen_delete_random_block).*/
     uint8_t used;
 
-    /*Runs from block->data (the CODEBLOCK_WAS_RECOMPILED fast path) this
-      compile still needs before it has paid for itself, not counting the
-      execution the compile pass itself performs; set by every (re)compile.
-      Both dispatcher and linked entries count runs. Used to tell a block that
-      paid for itself apart from one that was rewritten too soon.*/
+    /*One bit per run from block->data still needed to pay for compiling.
+      Each dispatcher or linked entry shifts right, saturating at zero
+      without a branch. The compile pass itself does not count as a run.*/
     uint8_t runs_left;
 
     /*Self-modifying-code thrash tracking: each time this block is compiled
@@ -91,6 +89,11 @@ typedef struct codeblock_t {
   workloads: a block that ran this often is cheaper to compile than to
   repeatedly interpret, even if shorter blocks could benefit for longer.*/
 #define SMC_THRASH_MIN_RUNS 8
+#define SMC_THRASH_RUN_MASK ((1u << SMC_THRASH_MIN_RUNS) - 1)
+
+#if SMC_THRASH_MIN_RUNS < 1 || SMC_THRASH_MIN_RUNS > 8
+#    error SMC reuse tracking must fit in one byte
+#endif
 
 /*Most guest instructions a block is compiled from.*/
 #define MAX_INSTRUCTION_COUNT 50
