@@ -298,7 +298,7 @@ static const device_config_t vectra52_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "GU.07.02 (01/25/96)",
+                .name          = "PhoenixBIOS 4.05.K.00 - Revision GU.07.02 (01/25/96)",
                 .internal_name = "vectra52_0702",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -307,7 +307,7 @@ static const device_config_t vectra52_config[] = {
                 .files         = { "roms/machines/vectra52/d3653.bin", "" }
             },
             {
-                .name          = "GU.07.05 (08/06/96)",
+                .name          = "PhoenixBIOS 4.05.Z - Revision GU.07.05 (08/06/96)",
                 .internal_name = "vectra52_0705",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

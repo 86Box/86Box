@@ -2971,7 +2971,7 @@ static const device_config_t ps2_model_50_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "IBM PS/2 model 50",
+                .name          = "IBM PS/2 BIOS - Revision 0 (Model 50, 02/13/87)",
                 .internal_name = "ibmps2_m50",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 4,
@@ -2981,7 +2981,7 @@ static const device_config_t ps2_model_50_config[] = {
                                    "roms/machines/ibmps2_m50/90x7423.zm14", "roms/machines/ibmps2_m50/90x7426.zm16", "" }
             },
             {
-                .name          = "IBM PS/2 model 50Z",
+                .name          = "IBM PS/2 BIOS - Revision 3 (Model 50Z, 04/18/88)",
                 .internal_name = "ibmps2_m50z",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
