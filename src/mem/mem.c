@@ -38,6 +38,7 @@
 #include <86box/plat.h>
 #include <86box/rom.h>
 #include <86box/gdbstub.h>
+#include <86box/thread.h>
 #ifdef USE_DYNAREC
 #    include "codegen_public.h"
 #else
@@ -133,7 +134,12 @@ uint8_t              *_mem_exec[MEM_MAPPINGS_NO];
 
 /* Moves on whenever the map is rebuilt: a pointer mem_phys_ptr gave holds
    while it is unchanged. */
-uint32_t mem_mapping_gen;
+_Atomic uint32_t mem_mapping_gen;
+
+/* Device threads (a video card's FIFO or command processor) rebuild their
+   own mappings from their own threads, so two rebuilds can run at once.
+   Their slot walks must not interleave. */
+static mutex_t *mem_mapping_mutex;
 
 static mem_mapping_t *base_mapping;
 static mem_mapping_t *last_mapping;
@@ -2767,7 +2773,11 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
     if ((base + size + (base_ignore & mask)) > MEM_ADDR_SPACE_END)
         mem_mapping_past_4g(base, size, base_ignore & (uint32_t) mask);
 
-    mem_mapping_gen++;
+    /* Taken after the check above: that path ends in fatal(), whose shutdown
+       closes devices that disable their mappings and so come back here. */
+    thread_wait_mutex(mem_mapping_mutex);
+
+    atomic_fetch_add_explicit(&mem_mapping_gen, 1, memory_order_relaxed);
 
     map = base_mapping;
 
@@ -2955,6 +2965,21 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
     }
     pclog("\n");
 #endif
+
+    thread_release_mutex(mem_mapping_mutex);
+}
+
+/* For a reader that must see the map between rebuilds, not during one. */
+void
+mem_mapping_lock(void)
+{
+    thread_wait_mutex(mem_mapping_mutex);
+}
+
+void
+mem_mapping_unlock(void)
+{
+    thread_release_mutex(mem_mapping_mutex);
 }
 
 void
@@ -3512,6 +3537,9 @@ mem_init(void)
     /* Perform a one-time init. */
     ram = rom = NULL;
     pages     = NULL;
+
+    if (mem_mapping_mutex == NULL)
+        mem_mapping_mutex = thread_create_mutex();
 }
 
 static void

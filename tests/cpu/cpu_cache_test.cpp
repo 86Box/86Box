@@ -10,6 +10,7 @@ extern "C" {
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/thread.h>
 
 int      in_lock;
 uint32_t cr2, cr3, cr4;
@@ -30,6 +31,27 @@ fatal(const char *, ...)
 void
 pclog(const char *, ...)
 {
+}
+/* The test runs one thread: mem.c's mapping lock has nothing to exclude. */
+static int mutex_dummy;
+mutex_t *
+thread_create_mutex(void)
+{
+    return &mutex_dummy;
+}
+void
+thread_close_mutex(mutex_t *)
+{
+}
+int
+thread_wait_mutex(mutex_t *)
+{
+    return 1;
+}
+int
+thread_release_mutex(mutex_t *)
+{
+    return 1;
 }
 int test_vl82c486_cache_policy(uint32_t addr, const uint8_t *regs);
 }
