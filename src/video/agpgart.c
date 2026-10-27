@@ -44,6 +44,17 @@ agpgart_log(const char *fmt, ...)
 
 #define AGPGART_NOWHERE 0xffffffff
 
+/* The table's place or length changed; mapping it again waits for the
+   next access on the CPU thread. The pointer is cleared before the
+   generation is published, so a reader that sees the new generation sees
+   no pointer. */
+static void
+agpgart_gart_invalidate(agpgart_t *dev)
+{
+    atomic_store_explicit(&dev->gart_ptr, NULL, memory_order_relaxed);
+    atomic_store_explicit(&dev->gart_gen, mem_mapping_gen - 1, memory_order_release);
+}
+
 void
 agpgart_set_aperture(agpgart_t *dev, uint32_t base, uint32_t size, int enable)
 {
@@ -63,6 +74,8 @@ agpgart_set_aperture(agpgart_t *dev, uint32_t base, uint32_t size, int enable)
         mem_mapping_set_addr(&dev->aperture_mapping, dev->aperture_base, dev->aperture_size);
         mem_mapping_enable(&dev->aperture_mapping);
     }
+
+    agpgart_gart_invalidate(dev);
 }
 
 void
@@ -72,6 +85,60 @@ agpgart_set_gart(agpgart_t *dev, uint32_t base)
 
     /* Set GART base address. */
     dev->gart_base = base;
+
+    agpgart_gart_invalidate(dev);
+}
+
+/* Entries are re-read on every access, so a table the guest rewrites
+   needs no flush here; only the memory map can move it. The table is
+   taken only where every granule of it is the RAM array at that granule's
+   own address: those slots change on the CPU thread alone (SMRAM,
+   shadowing, remaps), while a device may rebuild its own mapping from its
+   own thread, and a device-owned ROM or RAM holding the table could move
+   under a pointer taken here. The walk holds the map lock, so no rebuild
+   from any thread is half done while it looks, and the generation it
+   records is the one the map had throughout. CPU thread only. */
+static __attribute__((noinline)) void
+agpgart_gart_recalc(agpgart_t *dev)
+{
+    uint32_t       len  = ((dev->aperture_mask >> 10) & 0xfffffffc) + 4;
+    const uint8_t *base = NULL;
+    const uint8_t *p;
+    uint32_t       done;
+    uint32_t       addr;
+    uint32_t       chunk;
+
+    mem_mapping_lock();
+
+    /* A reader that sees this generation sees the NULL stored before it,
+       then at most the pointer derived for it, never an older one. The
+       RAM array's end is the same under every generation, so a reader
+       may pair it with any pointer. */
+    atomic_store_explicit(&dev->gart_ptr, NULL, memory_order_relaxed);
+    atomic_store_explicit(&dev->gart_end, ram + mem_ram_size(), memory_order_relaxed);
+    atomic_store_explicit(&dev->gart_gen, mem_mapping_gen, memory_order_release);
+
+    /* A table running past 4 GB wraps on the bus. */
+    if (((uint64_t) dev->gart_base + len) <= 0x100000000ULL) {
+        for (done = 0; done < len; done += chunk) {
+            addr  = dev->gart_base + done;
+            chunk = MEM_GRANULARITY_SIZE - (addr & MEM_GRANULARITY_MASK);
+            if (chunk > (len - done))
+                chunk = len - done;
+            p = mem_phys_ptr(addr, chunk);
+            if ((p == NULL) || ((uintptr_t) p != ((uintptr_t) ram + addr))) {
+                base = NULL;
+                break;
+            }
+            if (done == 0)
+                base = p;
+        }
+
+        if (base != NULL)
+            atomic_store_explicit(&dev->gart_ptr, base, memory_order_relaxed);
+    }
+
+    mem_mapping_unlock();
 }
 
 /* The live GART instances, so agpgart_bus_ptr can tell an aperture
@@ -79,22 +146,56 @@ agpgart_set_gart(agpgart_t *dev, uint32_t base)
 #define AGPGART_MAX_INST 4
 static agpgart_t *agpgart_inst[AGPGART_MAX_INST];
 
-static uint32_t
-agpgart_translate(uint32_t addr, agpgart_t *dev)
+/* The bus address an aperture offset maps to through its GART entry. An
+   entry pointing back into the aperture would have us translate our own
+   accesses forever; such a page reads all ones and drops writes. */
+static inline uint32_t
+agpgart_remap(const agpgart_t *dev, uint32_t entry, uint32_t addr)
 {
-    /* Extract the bits we care about. */
-    addr &= dev->aperture_mask;
-
-    /* Get the GART pointer for this page. */
-    register uint32_t gart_ptr = mem_readl_phys(dev->gart_base + ((addr >> 10) & 0xfffffffc)) & 0xfffff000;
-
-    /* An entry pointing back into the aperture would have us translate
-       our own accesses forever; such a page reads all ones and drops writes. */
-    if (((gart_ptr - dev->aperture_base) & ~dev->aperture_mask) == 0)
+    entry &= 0xfffff000;
+    if (((entry - dev->aperture_base) & ~dev->aperture_mask) == 0)
         return AGPGART_NOWHERE;
 
     /* Return remapped address with the page offset. */
-    return gart_ptr | (addr & 0x00000fff);
+    return entry | (addr & 0x00000fff);
+}
+
+static uint32_t
+agpgart_translate(uint32_t addr, agpgart_t *dev)
+{
+    const uint8_t *p;
+    uint32_t       off;
+    uint32_t       entry;
+
+    /* Extract the bits we care about. */
+    addr &= dev->aperture_mask;
+    off = (addr >> 10) & 0xfffffffc;
+
+    /* Get the GART pointer for this page. Any thread may read through the
+       pointer while its generation is current; the bytes are the RAM
+       array's, the same the bus read returns while the map holds. Only the
+       CPU thread derives it again: a device thread that finds the
+       generation moved reads the entry through the bus. Around a rebuild a
+       device thread, which takes no lock on the map in either path, may
+       follow the old map for the accesses that overlap the rebuild's
+       stores, as its bus read could follow a slot not yet rewritten. */
+    if (atomic_load_explicit(&dev->gart_gen, memory_order_acquire) == mem_mapping_gen) {
+        p = atomic_load_explicit(&dev->gart_ptr, memory_order_relaxed);
+        if ((p != NULL) && (((uintptr_t) p + off + 4) <= (uintptr_t) atomic_load_explicit(&dev->gart_end, memory_order_relaxed))) {
+            entry = *(const uint32_t *) &(p[off]);
+            return agpgart_remap(dev, entry, addr);
+        }
+    } else if (is_cpu_thread) {
+        agpgart_gart_recalc(dev);
+        p = atomic_load_explicit(&dev->gart_ptr, memory_order_relaxed);
+        if ((p != NULL) && (((uintptr_t) p + off + 4) <= (uintptr_t) atomic_load_explicit(&dev->gart_end, memory_order_relaxed))) {
+            entry = *(const uint32_t *) &(p[off]);
+            return agpgart_remap(dev, entry, addr);
+        }
+    }
+
+    entry = mem_readl_phys(dev->gart_base + off);
+    return agpgart_remap(dev, entry, addr);
 }
 
 /* Host pointer for len bytes at bus address addr, all inside one 4 KB page,
@@ -219,6 +320,8 @@ agpgart_init(UNUSED(const device_t *info))
                     agpgart_aperture_readb, agpgart_aperture_readw, agpgart_aperture_readl,
                     agpgart_aperture_writeb, agpgart_aperture_writew, agpgart_aperture_writel,
                     NULL, MEM_MAPPING_EXTERNAL, dev);
+
+    agpgart_gart_invalidate(dev);
 
     for (int i = 0; i < AGPGART_MAX_INST; i++)
         if (agpgart_inst[i] == NULL) {
