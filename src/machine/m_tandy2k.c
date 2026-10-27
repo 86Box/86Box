@@ -64,7 +64,6 @@ typedef struct ppi_t {
 typedef struct tandy2k_t {
     mem_mapping_t ram_map;
     fdc_t        *fdc;
-    uint8_t       fdc_strap; /* strapped FDC lines already applied */
     uint8_t       port0;  /* speaker, clock gates, FDC reset */
     uint8_t       dmamux; /* DMA request multiplexer */
 
@@ -718,8 +717,6 @@ tandy2k_read(uint16_t addr, void *priv)
     return 0xff;
 }
 
-static void tandy2k_fdc_strap(void);
-
 static void
 tandy2k_write(uint16_t addr, uint8_t val, void *priv)
 {
@@ -728,7 +725,6 @@ tandy2k_write(uint16_t addr, uint8_t val, void *priv)
             /* FDCRESET* is active low, so asserting it is the falling edge. */
             if ((tandy2k.port0 & 0x20) && !(val & 0x20)) {
                 fdc_reset(tandy2k.fdc);
-                tandy2k_fdc_strap();
             }
             tandy2k.port0 = val;
 
@@ -873,74 +869,6 @@ ppi_write(uint16_t addr, uint8_t val, void *priv)
         default:
             break;
     }
-}
-
-/* The drive poll timers are rebuilt by fdd_reset(), which runs after this
-   machine's init, so the strapped lines cannot be applied there: arming
-   motors earlier leaves those timers linked twice. Apply them from the
-   controller reset the guest pulses instead, with the first FDC access
-   as a fallback for anything that does not reset the controller. */
-static void
-tandy2k_fdc_strap(void)
-{
-    fdc_t *fdc = tandy2k.fdc;
-
-    if (tandy2k.fdc_strap)
-        return;
-
-    tandy2k.fdc_strap = 1;
-
-    for (int i = 0; i < 4; i++)
-        fdd_set_motor_enable(fdc->fdd[i], 0);
-
-    /* There is no DOR on this board: the IRQ/DMA enable and the motors are
-       strapped on, and releasing the emulated DOR reset instead would queue
-       four reset status entries. */
-    fdc_write(0x03f2, 0xf8, fdc);
-
-    /* That write clears the status register, which the host reads as busy;
-       with no DOR the controller is simply idle. */
-    fdc->stat = 0x80;
-}
-
-/* The 8272 has only two host registers and no DOR: the status sits on 30h and
-   the data/command register on 32h, while 80h is the same data register at
-   the DMA acknowledge address. */
-static uint8_t
-tandy2k_fdc_read(uint16_t addr, void *priv)
-{
-    tandy2k_fdc_strap();
-
-    return fdc_read((addr == 0x0030) ? 0x03f4 : 0x03f5, priv);
-}
-
-static void
-tandy2k_fdc_write(uint16_t addr, uint8_t val, void *priv)
-{
-    fdc_t *fdc = (fdc_t *) priv;
-
-    tandy2k_fdc_strap();
-
-    /* With no DOR the command's unit field, always the first parameter, is
-       only drive select this board has. Mirror it into the DOR so the core
-       latches the right drive; RECALIBRATE runs inside this very write. */
-    if ((fdc->pnum == 0) && (fdc->ptot > 0))
-        fdc->dor = (fdc->dor & ~0x03) | (val & 0x03);
-
-    /* Command and data share the 8272's second register. */
-    fdc_write(0x03f5, val, priv);
-}
-
-static uint8_t
-tandy2k_fdc_data_read(uint16_t addr, void *priv)
-{
-    return fdc_read(0x03f5, priv);
-}
-
-static void
-tandy2k_fdc_data_write(uint16_t addr, uint8_t val, void *priv)
-{
-    fdc_write(0x03f5, val, priv);
 }
 
 /* The chip's cascade ack returns the vector the external 8259 puts on the bus. */
@@ -1091,24 +1019,11 @@ machine_tandy2000_init(const machine_t *model)
     timer_add(&tandy2k.lpt_timer, tandy2k_lpt_timer, NULL, 0);
 
     /* The 8272 sits on the 16-bit bus, so its two registers appear on even
-       addresses. There is no DOR, so the drive and motor lines are wired for
-       drive 0 with its motor running; the BIOS moves sectors by PIO. */
-    fdc = device_add(&fdc_xt_device);
-    fdc_remove(fdc);
-    io_sethandler(0x0030, 0x0004, tandy2k_fdc_read, NULL, NULL,
-                  tandy2k_fdc_write, NULL, NULL, fdc);
-    io_sethandler(0x0080, 0x0001, tandy2k_fdc_data_read, NULL, NULL,
-                  tandy2k_fdc_data_write, NULL, NULL, fdc);
-    fdc_set_irq(fdc, 4);
-    fdc_set_dma_ch(fdc, 0);
-    fdc_reset(fdc);
-    tandy2k.fdc       = fdc;
-    tandy2k.fdc_strap = 0;
-
-    /* The drives keep whatever turbo setting the configuration gave them: it
-       only drops the seek and bit-cell timings, and the BIOS waits those out
-       through the controller's own status bits, so the default (off) is all a
-       stock configuration ever sees. */
+       addresses. There is no DOR latch on this board, so the drive selects,
+       the interrupt enable and the motor lines are strapped; the BIOS moves
+       sectors by PIO. The controller owns its port decoding, IRQ and DMA. */
+    fdc = device_add(&fdc_tandy2k_device);
+    tandy2k.fdc = fdc;
 
     device_add(&tandy_2000_video_device);
 
@@ -1151,7 +1066,7 @@ machine_tandy2000_init(const machine_t *model)
        the first drives INT0 and the second INT1, and each puts
        own vector on the bus during the acknowledge cycles. */
     struct i8018x_pcb_t *pcb = device_add(&i8018x_pcb_device);
-    i8018x_pcb_set_dma_channels(pcb, 0, -1);
+    i8018x_pcb_set_dma_channels(pcb, FDC_PRIMARY_DMA, -1);
     i8018x_pcb_set_ext_ack(pcb, 0, tandy2k_8259, &pic);
     i8018x_pcb_set_ext_ack(pcb, 1, tandy2k_8259, &pic2);
     pic_set_output_callback(&pic, tandy2k_icu_int0, pcb);
