@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-27 02:09+0000\n"
+"PO-Revision-Date: 2026-10-27 06:02+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -440,10 +440,10 @@ msgid "(currently %1)"
 msgstr "(目前 %1)"
 
 msgid "Always use the year:"
-msgstr ""
+msgstr "固定使用年份:"
 
 msgid "Do not synchronize the date"
-msgstr ""
+msgstr "不同步日期"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "啟用 486 直譯器於 286 及 386 處理器"
@@ -3163,7 +3163,7 @@ msgid "Key bindings"
 msgstr "按鍵組合"
 
 msgid "VM Manager"
-msgstr ""
+msgstr "虛擬機器管理員"
 
 msgid "Action"
 msgstr "動作"
