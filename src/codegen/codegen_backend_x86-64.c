@@ -1657,6 +1657,17 @@ codegen_backend_prologue(codeblock_t *block)
     link_site = 0;
 #    endif
     host_x86_MOV64_REG_IMM(block, REG_RBP, ((uintptr_t) &cpu_state) + 128);
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    /*The slot of the block's end, which the link routine reads first when
+      the block is done: start loading each of its lines now, as the slots
+      are seldom in cache*/
+    if (codegen_block_link) {
+        uintptr_t slot = (uintptr_t) &codegen_link_slots[get_block_nr(block)][0];
+
+        for (uintptr_t line = slot & ~(uintptr_t) 63; line < slot + sizeof(codegen_link_slot_t); line += 64)
+            lx_abs(block, 0, 0, 0x0f18, 1, (void *) line); /*PREFETCHT0*/
+    }
+#    endif
     if (block->flags & CODEBLOCK_HAS_FPU) {
         host_x86_MOV32_REG_ABS(block, REG_EAX, &cpu_state.TOP);
         host_x86_SUB32_REG_IMM(block, REG_EAX, block->TOP);
