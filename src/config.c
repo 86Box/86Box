@@ -2286,6 +2286,7 @@ load_other_removable_devices(void)
         } else
             sscanf("0, none", "%01u, %s", &rdisk_drives[c].type, s);
         rdisk_drives[c].type++;
+        rdisk_drives[c].type = rdisk_type_from_config(rdisk_drives[c].type);
         rdisk_drives[c].bus_type = hdd_string_to_bus(s, 1);
 
         /* Default values, needed for proper operation of the Settings dialog. */
@@ -2391,6 +2392,7 @@ load_other_removable_devices(void)
             legacy_zip_drives++;
         } else
             sscanf("0, none", "%01u, %s", &rdisk_drives[c].type, s);
+        rdisk_drives[c].type = rdisk_type_from_config(rdisk_drives[c].type);
         rdisk_drives[c].bus_type = hdd_string_to_bus(s, 1);
 
         /* Default values, needed for proper operation of the Settings dialog. */
@@ -4846,7 +4848,7 @@ save_other_removable_devices(void)
         if (rdisk_drives[c].bus_type == 0) {
             ini_section_delete_var(cat, temp);
         } else {
-            sprintf(tmp2, "%u, %s", rdisk_drives[c].type,
+            sprintf(tmp2, "%u, %s", rdisk_type_to_config(rdisk_drives[c].type),
                     hdd_bus_to_string(rdisk_drives[c].bus_type, 1));
             ini_section_set_string(cat, temp, tmp2);
         }
