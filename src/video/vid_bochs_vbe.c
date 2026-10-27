@@ -10,11 +10,13 @@
  *
  *          Uses code from libxcvt to calculate CRTC timings.
  *
- * Authors: Cacodemon345
+ * Authors: Christopher Lentocha
+ *          Cacodemon345
  *          The Bochs Project
  *          Fabrice Bellard
  *          The libxcvt authors
  *
+ *          Copyright 2025-2026 Christopher Lentocha
  *          Copyright 2024 Cacodemon345
  *          Copyright 2003 Fabrice Bellard
  *          Copyright 2002-2024 The Bochs Project
@@ -64,6 +66,7 @@
 #define VBE_DISPI_INDEX_Y_OFFSET         0x9
 #define VBE_DISPI_INDEX_VIDEO_MEMORY_64K 0xa
 #define VBE_DISPI_INDEX_DDC              0xb
+#define VBE_DISPI_INDEX_CFG              0xc
 
 #define VBE_DISPI_ID0                    0xB0C0
 #define VBE_DISPI_ID1                    0xB0C1
@@ -71,6 +74,10 @@
 #define VBE_DISPI_ID3                    0xB0C3
 #define VBE_DISPI_ID4                    0xB0C4
 #define VBE_DISPI_ID5                    0xB0C5
+#define VBE_DISPI_ID_VBOX_VIDEO          0xBE00
+#define VBE_DISPI_ID_HGSMI               0xBE01
+#define VBE_DISPI_ID_ANYX                0xBE02
+#define VBE_DISPI_ID_CFG                 0xBE03
 
 #define VBE_DISPI_DISABLED               0x00
 #define VBE_DISPI_ENABLED                0x01
@@ -83,6 +90,12 @@
 #define VBE_DISPI_BANK_WR                0x4000
 #define VBE_DISPI_BANK_RD                0x8000
 #define VBE_DISPI_BANK_RW                0xc000
+
+#define VBE_DISPI_CFG_ID_VERSION         0x0000
+#define VBE_DISPI_CFG_ID_VRAM_SIZE       0x0001
+#define VBE_DISPI_CFG_ID_3D              0x0002
+#define VBE_DISPI_CFG_ID_VMSVGA          0x0003
+#define VBE_DISPI_CFG_ID_VMSVGA_DX       0x0004
 
 typedef struct vbe_mode_info_t {
     uint32_t hdisplay;
@@ -397,8 +410,8 @@ bochs_vbe_inw(const uint16_t addr, void *priv)
             case VBE_DISPI_INDEX_BPP:
                 ret = vbe_get_caps ? 32 : dev->vbe_regs[dev->vbe_index];
                 break;
-            case VBE_DISPI_INDEX_VIDEO_MEMORY_64K:
-                ret = dev->vram_size >> 16;
+            case VBE_DISPI_INDEX_VIDEO_MEMORY_64K:                                /* VBE_DISPI_INDEX_VBOX_VIDEO */
+                ret = (dev->id5_val == VBE_DISPI_ID5) ? dev->vram_size >> 16 : 1; /* Reading from the port means that the old additions are requesting the number of monitors. */
                 break;
             case VBE_DISPI_INDEX_BANK:
                 ret = vbe_get_caps ? (VBE_DISPI_BANK_GRANULARITY_32K << 8) : dev->vbe_regs[dev->vbe_index];
@@ -413,8 +426,30 @@ bochs_vbe_inw(const uint16_t addr, void *priv)
                 } else
                     ret = 0x000f;
                 break;
+            case VBE_DISPI_INDEX_CFG:
+                switch (dev->vbe_regs[dev->vbe_index] & 0x0fff) {
+                    case VBE_DISPI_CFG_ID_VERSION:
+                        ret = 1;
+                        break;
+                    case VBE_DISPI_CFG_ID_VRAM_SIZE:
+                        ret = dev->vram_size >> 16;
+                        break;
+                    case VBE_DISPI_CFG_ID_3D:
+                        ret = 1;
+                        break;
+                    case VBE_DISPI_CFG_ID_VMSVGA:
+                        ret = 0;
+                        break;
+                    case VBE_DISPI_CFG_ID_VMSVGA_DX:
+                        ret = 0;
+                        break;
+                    default:
+                        ret = 0;
+                        break;
+                }
+                break;
         }
-
+    printf("bochs_vbe_inw: vbe_index=0x%x, ret=0x%x\n", dev->vbe_index, ret);
     return ret;
 }
 
@@ -424,11 +459,14 @@ bochs_vbe_inl(const uint16_t addr, void *priv)
     const bochs_vbe_t *dev = (bochs_vbe_t *) priv;
     uint32_t           ret;
 
-    if (addr == 0x1ce)
+    printf("bochs_vbe_inl: addr == 0x%x\n", addr);
+    if (addr == 0x1ce) {
+        printf("bochs_vbe_inl: addr == 0x1ce\taddr == 0x%x\n", addr);
         ret = dev->vbe_index;
-    else
+    } else {
+        printf("bochs_vbe_inl: addr != 0x1ce\taddr == 0x%x\n", addr);
         ret = dev->vram_size;
-
+    }
     return ret;
 }
 
@@ -439,15 +477,15 @@ bochs_vbe_outw(const uint16_t addr, const uint16_t val, void *priv)
 
     if (addr == 0x1ce)
         dev->vbe_index = val;
-    else if ((addr == 0x1cf) || (addr == 0x1d0))
+    else if ((addr == 0x1cf) || (addr == 0x1d0)) {
+        printf("bochs_vbe_outw: vbe_index=0x%x, val=0x%x\n", dev->vbe_index, val);
         switch (dev->vbe_index) {
             default:
+                dev->vbe_regs[dev->vbe_index] = val;
                 break;
             case VBE_DISPI_INDEX_ID:
-                if ((val == VBE_DISPI_ID0) || (val == VBE_DISPI_ID1) || (val == VBE_DISPI_ID2) || (val == VBE_DISPI_ID3) || (val == VBE_DISPI_ID4))
+                if (val != VBE_DISPI_ID_HGSMI)
                     dev->vbe_regs[dev->vbe_index] = val;
-                else if (val == VBE_DISPI_ID5)
-                    dev->vbe_regs[dev->vbe_index] = dev->id5_val;
                 break;
             case VBE_DISPI_INDEX_XRES:
             case VBE_DISPI_INDEX_YRES:
@@ -519,6 +557,7 @@ bochs_vbe_outw(const uint16_t addr, const uint16_t val, void *priv)
                     dev->vbe_regs[dev->vbe_index] &= ~VBE_DISPI_NOCLEARMEM;
                 }
         }
+    }
 }
 
 void
@@ -933,8 +972,21 @@ static const device_config_t bochs_vbe_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
+            { .description =  "1 MB", .value =  1 },
+            { .description =  "2 MB", .value =  2 },
+            { .description =  "3 MB", .value =  3 },
             { .description =  "4 MB", .value =  4 },
+            { .description =  "5 MB", .value =  5 },
+            { .description =  "6 MB", .value =  6 },
+            { .description =  "7 MB", .value =  7 },
             { .description =  "8 MB", .value =  8 },
+            { .description =  "9 MB", .value =  9 },
+            { .description = "10 MB", .value = 10 },
+            { .description = "11 MB", .value = 11 },
+            { .description = "12 MB", .value = 12 },
+            { .description = "13 MB", .value = 13 },
+            { .description = "14 MB", .value = 14 },
+            { .description = "15 MB", .value = 15 },
             { .description = "16 MB", .value = 16 },
             { .description = ""                   }
         },
