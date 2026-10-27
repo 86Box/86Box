@@ -4145,7 +4145,7 @@ static const device_config_t mach64gtb_onboard_config[] = {
 // clang-format on
 
 const device_t mach64gx_isa_device = {
-    .name          = "ATI Mach64GX (Graphics Pro Turbo)",
+    .name          = "ATI Mach64GX (Graphics Pro Turbo) ISA",
     .internal_name = "mach64gx_isa",
     .flags         = DEVICE_ISA16,
     .local         = MACH64_GX,
@@ -4159,7 +4159,7 @@ const device_t mach64gx_isa_device = {
 };
 
 const device_t mach64gx_vlb_device = {
-    .name          = "ATI Mach64GX (Graphics Pro Turbo)",
+    .name          = "ATI Mach64GX (Graphics Pro Turbo) VLB",
     .internal_name = "mach64gx_vlb",
     .flags         = DEVICE_VLB,
     .local         = MACH64_GX,
@@ -4173,7 +4173,7 @@ const device_t mach64gx_vlb_device = {
 };
 
 const device_t mach64gx_vlb_onboard_device = {
-    .name          = "ATI Mach64GX VLB (On-Board)",
+    .name          = "ATI Mach64GX (On-Board) VLB",
     .internal_name = "mach64gx_vlb_onboard",
     .flags         = DEVICE_VLB,
     .local         = MACH64_GX | MACH64_FLAG_ONBOARD,
@@ -4187,7 +4187,7 @@ const device_t mach64gx_vlb_onboard_device = {
 };
 
 const device_t mach64gx_xpression_vlb_device = {
-    .name          = "ATI Graphics Xpression (Mach64GX) VLB",
+    .name          = "ATI Mach64GX (Graphics Xpression) VLB",
     .internal_name = "mach64gx_xpression_vlb",
     .flags         = DEVICE_VLB,
     .local         = MACH64_GX | MACH64_FLAG_DRAM,
@@ -4216,7 +4216,7 @@ const device_t mach64gx_pci_device = {
 };
 
 const device_t mach64gx_pci_onboard_device = {
-    .name          = "ATI Mach64GX PCI (On-Board)",
+    .name          = "ATI Mach64GX (On-Board) PCI",
     .internal_name = "mach64gx_pci_onboard",
     .flags         = DEVICE_PCI,
     .local         = MACH64_GX | MACH64_FLAG_DRAM | MACH64_FLAG_ONBOARD,

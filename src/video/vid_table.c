@@ -146,6 +146,7 @@ video_cards[] = {
     /* VLB */
     { .device = &mach32_vlb_device,                             .flags = VIDEO_FLAG_TYPE_8514      },
     { .device = &mach64gx_vlb_device,                           .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &mach64gx_xpression_vlb_device,                 .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &gd5424_vlb_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &gd5426_vlb_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &gd5428_vlb_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
