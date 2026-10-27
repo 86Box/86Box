@@ -1137,7 +1137,6 @@ build_link_routine(codeblock_t *block)
     uint32_t *nmi_ok;
     uint32_t *irq_ok;
     uint32_t *apic_set;
-    uint32_t *es_flat;
     uint32_t *uncached;
     uint32_t *no_paging;
     uint32_t *cached;
@@ -1238,20 +1237,13 @@ build_link_routine(codeblock_t *block)
       bits from npxc, so they can be stale after an FLDCW in a linked block;
       the npxc compare decides them instead. Everything else that reads
       those two bits runs after that refresh. The C loop also sets NOTFLATES
-      from ES before each lookup, and not every ES load keeps it current, so
-      it is worked out again here from ES itself: W8 = 0 if ES is flat.*/
+      from ES before each lookup; it is compared as stored, since every
+      write to the ES base or limits sets it from the same test before the
+      next lookup (do_seg_load(), the loadseg() tail, null_data_seg(),
+      task_load_seg(), smm_seg_load(), LOADALL, the Cyrix descriptor loads,
+      reset_common()).*/
     offset = link_addr(block, REG_X4, &cpu_cur_status);
     host_arm64_LDRH_IMM(block, REG_W4, REG_X4, offset);
-    host_arm64_AND_IMM(block, REG_W4, REG_W4, ~(uint32_t) CPU_STATUS_NOTFLATES);
-    host_arm64_LDR_IMM_W(block, REG_W8, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_es.base));
-    host_arm64_LDR_IMM_W(block, REG_W9, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_es.limit_low));
-    host_arm64_LDR_IMM_W(block, REG_W10, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_es.limit_high));
-    host_arm64_ADD_IMM(block, REG_W10, REG_W10, 1);
-    host_arm64_ORR_REG(block, REG_W8, REG_W8, REG_W9, 0);
-    host_arm64_ORR_REG(block, REG_W8, REG_W8, REG_W10, 0);
-    es_flat = host_arm64_CBZ_SHORT_(block, REG_W8);
-    host_arm64_ORR_IMM(block, REG_W4, REG_W4, CPU_STATUS_NOTFLATES);
-    host_arm64_short_branch_set_offset(es_flat, &block_write_data[block_pos]);
     host_arm64_LDRH_IMM(block, REG_W5, REG_CPUSTATE, rep_state_offset(&cpu_state.npxc));
     host_arm64_AND_IMM(block, REG_W5, REG_W5, 0x0f00);
     host_arm64_ORR_REG(block, REG_W4, REG_W4, REG_W5, 16);
