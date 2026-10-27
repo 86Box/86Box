@@ -231,7 +231,7 @@
             }                                                                                                     \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 3 : 4;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -277,7 +277,7 @@
             }                                                                                                     \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 3 : 4;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -323,7 +323,7 @@
             }                                                                                                     \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 3 : 4;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -353,7 +353,7 @@
                 DEST_REG++;                                                                                       \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 4 : 5;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -382,7 +382,7 @@
                 DEST_REG += 2;                                                                                    \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 4 : 5;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -411,7 +411,7 @@
                 DEST_REG += 4;                                                                                    \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 4 : 5;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -442,7 +442,7 @@
                 SRC_REG++;                                                                                        \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 4 : 5;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -472,7 +472,7 @@
                 SRC_REG += 2;                                                                                     \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 4 : 5;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -502,7 +502,7 @@
                 SRC_REG += 4;                                                                                     \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 4 : 5;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -680,7 +680,7 @@
                 DEST_REG++;                                                                                       \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 5 : 8;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if ((CNT_REG > 0) && (FV == tempz)) {                                                                     \
@@ -712,7 +712,7 @@
                 DEST_REG += 2;                                                                                    \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 5 : 8;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if ((CNT_REG > 0) && (FV == tempz)) {                                                                     \
@@ -744,7 +744,7 @@
                 DEST_REG += 4;                                                                                    \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 5 : 8;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if ((CNT_REG > 0) && (FV == tempz)) {                                                                     \

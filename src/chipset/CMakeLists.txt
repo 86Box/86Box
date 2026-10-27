@@ -21,6 +21,8 @@ add_library(chipset OBJECT
     acc2168.c
     cs8220.c
     cs8230.c
+    cs5530.c
+    cyrix_gxm.c
     ali1429.c
     ali1435.c
     ali1489.c

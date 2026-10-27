@@ -27,6 +27,7 @@
 #include <86box/device.h>
 #include <86box/mouse.h>
 #include <86box/chipset.h>
+#include <86box/cyrix_gxm.h>
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
@@ -106,6 +107,7 @@ const machine_filter_t machine_chipsets[] = {
     { "C&T CS4031",                 MACHINE_CHIPSET_CT_CS4031           },
     { "Contaq 82C596",              MACHINE_CHIPSET_CONTAQ_82C596       },
     { "Contaq 82C597",              MACHINE_CHIPSET_CONTAQ_82C597       },
+    { "Cyrix MediaGX MMX/Cx5530",   MACHINE_CHIPSET_CYRIX_CX5530        },
     { "IMS 8848",                   MACHINE_CHIPSET_IMS_8848            },
     { "Intel 82335",                MACHINE_CHIPSET_INTEL_82335         },
     { "Intel 420TX",                MACHINE_CHIPSET_INTEL_420TX         },
@@ -21191,6 +21193,55 @@ const machine_t machines[] = {
     },
 
     /* SiS 5571 */
+    /* The Cyrix MediaGX MMX with its integrated graphics, and the Cx5530, with
+       a National PC97317 Super I/O and its keyboard controller. */
+    {
+        .name              = "[Cyrix MediaGX MMX] ECS P5GX-M",
+        .internal_name     = "p5gxm",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_CYRIX_CX5530,
+        .init              = machine_at_p5gxm_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_GXM,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 30000000,
+            .max_bus     = 33333333,
+            .min_voltage = 2800,
+            .max_voltage = 3000,
+            .min_multi   = 5.0,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO,
+        .ram       = {
+            .min  = 8192,
+            .max  = 262144,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &cyrix_gxm_video_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
     /* Has the SiS 5571 chipset with on-chip KBC. */
     {
         .name              = "[SiS 5571] Daewoo CD520",

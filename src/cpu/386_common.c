@@ -117,6 +117,8 @@ uint8_t is_smint = 0;
 
 uint16_t io_port = 0x0000;
 uint32_t io_val  = 0x00000000;
+uint8_t  io_size  = 1;
+uint8_t  io_write = 0;
 
 int opcode_has_modrm[256] = {
     1, 1, 1, 1,  0, 0, 0, 0,  1, 1, 1, 1,  0, 0, 0, 0, /*00*/
@@ -1266,9 +1268,74 @@ smram_restore_state_amd_k(uint32_t *saved_state)
         smbase = saved_state[SMRAM_FIELD_AMD_K_SMBASE_OFFSET];
 }
 
+/* The header's flags dword, -24h (Cyrix SMM guide 94211, the MediaGX MMX
+   data book Table 3-35). */
+#define CYRIX_SMM_C 0x00000001 /* CS writable */
+#define CYRIX_SMM_I 0x00000002 /* the I/O cycle was a write */
+#define CYRIX_SMM_P 0x00000004 /* a REP INS or OUTS */
+#define CYRIX_SMM_S 0x00000008 /* SMINT */
+#define CYRIX_SMM_H 0x00000010 /* out of a HLT */
+#define CYRIX_SMM_M 0x00000020 /* MediaGX: a memory access, not an I/O one */
+#define CYRIX_SMM_X 0x00000040 /* MediaGX: SMI#, not an internal SMI */
+#define CYRIX_SMM_V 0x00000080 /* MediaGX: a VGA access */
+#define CYRIX_SMM_N 0x00000100 /* MediaGX: the Nested SMI Status before this one */
+
+/* The SMM header is 13 dwords on the MediaGX: the 6x86's 12 and the memory
+   address of the trapped write at -34h (the data book numbers its dwords
+   from -0h; VSA copies 34h bytes and moves SMHR by as much to nest). */
+#define CYRIX_SMM_HEADER_GXM 0x34
+
+/* The MediaGX's header keeps CS as the processor does, not as a descriptor:
+   the limit at -20h, the base at -1Ch, and the access rights above the
+   selector at -18h. VSA writes headers so, to RSM into its own code above
+   1 MB (base 40400000h, attributes 8093h). */
+static void
+gxm_smm_write_cs(uint32_t addr, const x86seg *seg)
+{
+    uint32_t limit_raw = seg->limit;
+
+    if (seg->ar_high & 0x80)
+        limit_raw >>= 12;
+
+    writememl(0, addr, limit_raw & 0x000fffff);
+    writememl(0, addr + 4, seg->base);
+}
+
+static void
+gxm_smm_load_cs(uint32_t addr, x86seg *seg)
+{
+    const uint32_t limit = readmeml(0, addr) & 0x000fffff;
+    const uint32_t base  = readmeml(0, addr + 4);
+    const uint32_t sel   = readmeml(0, addr + 8);
+    uint16_t       segdat[4];
+
+    if (cpu_state.abrt)
+        return;
+
+    segdat[0] = limit & 0xffff;
+    segdat[1] = base & 0xffff;
+    segdat[2] = ((base >> 16) & 0x00ff) | (sel >> 8 & 0xff00);
+    segdat[3] = ((limit >> 16) & 0x000f) | ((sel >> 24) & 0x00f0) | ((base >> 16) & 0xff00);
+
+    do_seg_load(seg, segdat);
+    seg->seg     = sel & 0xffff;
+    seg->checked = 0;
+
+    use32 = (segdat[3] & 0x40) ? 0x300 : 0;
+    if (use32)
+        cpu_cur_status |= CPU_STATUS_USE32;
+    else
+        cpu_cur_status &= ~CPU_STATUS_USE32;
+}
+
 static void
 smram_save_state_cyrix(uint32_t *saved_state, int in_hlt)
 {
+    /* The I/O instruction, prefixes stepped over: a REP INS or OUTS is the
+       one whose ESI or EDI the header carries. */
+    const uint8_t op  = ((opcode == 0xf2) || (opcode == 0xf3)) ? rep_op : opcode;
+    const int     rep = (op != opcode) && (op >= 0x6c) && (op <= 0x6f);
+
     saved_state[0] = dr[7];
     saved_state[1] = cpu_state.flags | (cpu_state.eflags << 16);
     saved_state[2] = cr0;
@@ -1277,33 +1344,52 @@ smram_save_state_cyrix(uint32_t *saved_state, int in_hlt)
     saved_state[3] = in_hlt ? cpu_state.pc : cpu_state.oldpc;
     saved_state[4] = cpu_state.pc;
     saved_state[5] = CS | (CPL << 21);
+    if (is_gxm)
+        saved_state[5] = CS | (cpu_state.seg_cs.access << 16) | ((cpu_state.seg_cs.ar_high & 0xf0) << 24);
     saved_state[6] = 0x00000000;
-    saved_state[7] = 0x00010000;
 
-    if (((opcode >= 0x6e) && (opcode <= 0x6f)) || ((opcode >= 0xe6) && (opcode <= 0xe7)) ||
-        ((opcode >= 0xee) && (opcode <= 0xef))) {
-        saved_state[6] |= 0x00000002;
-        saved_state[7] = (opcode & 0x01) ? (cpu_state.op32 ? 0x000f0000 : 0x00030000) : 0x00010000;
-    } else if (((opcode == 0xf2) || (opcode == 0xf3)) && (rep_op >= 0x6e) && (rep_op <= 0x6f)) {
-        saved_state[6] |= 0x00000006;
-        saved_state[7] = (rep_op & 0x01) ? (cpu_state.op32 ? 0x000f0000 : 0x00030000) : 0x00010000;
-    } else if (((opcode == 0xf2) || (opcode == 0xf3)) && (rep_op >= 0x6e) && (rep_op <= 0x6f)) {
-        saved_state[6] |= 0x00000004;
-        saved_state[7] = (rep_op & 0x01) ? (cpu_state.op32 ? 0x000f0000 : 0x00030000) : 0x00010000;
+    /* A writable CS: real mode's, or a data segment's. */
+    if (!(cpu_state.seg_cs.access & 0x10) || ((cpu_state.seg_cs.access & 0x0a) == 0x02) || !(msw & 1))
+        saved_state[6] |= CYRIX_SMM_C;
+
+    /* The I/O cycle the SMI came in, as the bus saw it: size codes 01h, 03h
+       and 0Fh, the data valid for a write alone. */
+    saved_state[7] = (((1 << io_size) - 1) << 16) | io_port;
+    saved_state[8] = io_val;
+    if (io_write)
+        saved_state[6] |= CYRIX_SMM_I;
+    if (rep)
+        saved_state[6] |= CYRIX_SMM_P;
+
+    if (is_gxm) {
+        if (gxm.nested)
+            saved_state[6] |= CYRIX_SMM_N;
+        if (gxm.smi_int != GXM_SMI_NONE) {
+            /* The trap's own cycle; a memory one has its data where the I/O
+               data goes, and its address at -34h. */
+            saved_state[6] = (saved_state[6] & ~CYRIX_SMM_I) | CYRIX_SMM_V;
+            if (gxm.smi_write)
+                saved_state[6] |= CYRIX_SMM_I;
+            saved_state[8] = gxm.smi_data;
+            if (gxm.smi_int == GXM_SMI_MEM) {
+                saved_state[6] |= CYRIX_SMM_M;
+                saved_state[10] = gxm.smi_addr;
+            } else
+                saved_state[7] = (((1 << gxm.smi_size) - 1) << 16) | gxm.smi_port;
+        } else if (!is_smint)
+            saved_state[6] |= CYRIX_SMM_X;
     }
 
     if (is_smint) {
-        saved_state[6] |= 0x00000008;
+        saved_state[6] |= CYRIX_SMM_S;
         is_smint = 0;
     }
 
     if (in_hlt)
-        saved_state[6] |= 0x00000010;
+        saved_state[6] |= CYRIX_SMM_H;
 
-    saved_state[7] |= io_port;
-    saved_state[8] = io_val;
-
-    if (saved_state[6] & 0x00000002)
+    /* OUTS reads at ESI, INS writes at EDI. */
+    if (rep && (op & 0x02))
         saved_state[9] = ESI;
     else
         saved_state[9] = EDI;
@@ -1318,13 +1404,31 @@ smram_restore_state_cyrix(uint32_t *saved_state)
     cpu_state.eflags = saved_state[1] >> 16;
     cr0              = saved_state[2];
     cpu_state.pc     = saved_state[4];
-    /* Restore CPL. */
-    cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x9f) | (((saved_state[5] >> 21) & 0x03) << 5);
+    /* Restore CPL: the DPL bits alone, the rest of the access rights are
+       the descriptor's (on the MediaGX, bits 21-22 are its DPL anyway). */
+    cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (((saved_state[5] >> 21) & 0x03) << 5);
 
-    if (saved_state[6] & 0x00000002)
-        ESI = saved_state[9];
-    else
-        EDI = saved_state[9];
+    /* The header's ESI or EDI, of a REP INS or OUTS that was trapped, is the
+       one RSM restores (the handler may have backed it up to restart). */
+    if (saved_state[6] & CYRIX_SMM_P) {
+        if (saved_state[6] & CYRIX_SMM_I)
+            ESI = saved_state[9];
+        else
+            EDI = saved_state[9];
+    }
+}
+
+/* SMI# and SMINT are taken while USE_SMI is set, SMAC clear (SMAC set
+   turns SMI# off on the Cyrix parts, Table 3-33) and an SMM region defined;
+   the 6x86 wants SM3 too. */
+int
+cyrix_smi_enabled(void)
+{
+    if (is_cx6x86)
+        return ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) == (CCR1_USE_SMI | CCR1_SM3)) &&
+               (cyrix.arr[3].size > 0);
+
+    return ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC)) == CCR1_USE_SMI) && (cyrix.arr[3].size > 0);
 }
 
 void
@@ -1332,6 +1436,9 @@ enter_smm(int in_hlt)
 {
     uint32_t saved_state[SMM_SAVE_STATE_MAP_SIZE];
     uint32_t smram_state = smbase + 0x10000;
+    /* A MediaGX SMI taken in SMM, with SMI_NEST set: the state of SMM stays,
+       only the header is new (3.11.9.1). */
+    const int nested = is_gxm && in_smm;
 
     /* If it's a CPU on which SMM is not supported, do nothing. */
     if (!is_am486 && !is_pentium && !is_k5 && !is_k6 && !is_p6 && !is_cxsmm)
@@ -1376,9 +1483,11 @@ enter_smm(int in_hlt)
                     EAX, EBX, ECX, EDX, ESI, EDI, ESP, EBP);
 
     flags_rebuild();
-    in_smm = 1;
-    smram_backup_all();
-    smram_recalc_all(0);
+    if (!nested) {
+        in_smm = 1;
+        smram_backup_all();
+        smram_recalc_all(0);
+    }
 
     if (is_cxsmm) {
         if (!(cyrix.smhr & SMHR_VALID))
@@ -1409,7 +1518,9 @@ enter_smm(int in_hlt)
     if (is_cxsmm) {
         cpu_state.pc = 0x0000;
         cpl_override = 1;
-        if (is486)
+        if (is_gxm)
+            gxm_smm_write_cs(smram_state - 0x20, &cpu_state.seg_cs);
+        else if (is486)
             cyrix_write_seg_descriptor(smram_state - 0x20, &cpu_state.seg_cs);
         else
             cyrix_write_seg_descriptor_2386(smram_state - 0x20, &cpu_state.seg_cs);
@@ -1469,6 +1580,9 @@ enter_smm(int in_hlt)
         writememl(0, smram_state - 0x28, saved_state[7]);
         writememl(0, smram_state - 0x2c, saved_state[8]);
         writememl(0, smram_state - 0x30, saved_state[9]);
+        if (is_gxm) {
+            writememl(0, smram_state - CYRIX_SMM_HEADER_GXM, saved_state[10]);
+        }
     } else {
         for (uint8_t n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
             smram_state -= 4;
@@ -1483,9 +1597,22 @@ enter_smm(int in_hlt)
        even when it was entered from the latch. */
     smi_latched = 0;
 
+    if (is_gxm) {
+        /* The microcode clears SMI_NEST and sets the Nested SMI Status, the
+           one before it in the header (3.11.9.1, B and D). An SMI# that came
+           with the internal SMI, which went first, is still to be taken. */
+        ccr4 &= ~CCR4_SMI_NEST;
+        gxm.nested = 1;
+        if (gxm.smi_int != GXM_SMI_NONE)
+            gxm.smi_int = GXM_SMI_NONE;
+        else
+            gxm.smi_ext = 0;
+        smi_latched = gxm.smi_ext;
+    }
+
     smm_in_hlt = in_hlt;
 
-    if (unmask_a20_in_smm) {
+    if (unmask_a20_in_smm && !nested) {
         old_rammask = rammask;
         rammask     = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
         if (is6117)
@@ -1503,17 +1630,8 @@ enter_smm(int in_hlt)
 void
 enter_smm_check(int in_hlt)
 {
-    uint8_t ccr1_check;
-
-    if (is_cx6x86)
-        ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) ==
-                      (CCR1_USE_SMI | CCR1_SM3)) && (cyrix.arr[3].size > 0);
-    else
-        ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC)) ==
-                      (CCR1_USE_SMI)) && (cyrix.arr[3].size > 0);
-
     if (smi_line) {
-        if (!is_cxsmm || ccr1_check)  switch (in_smm) {
+        if (!is_cxsmm || cyrix_smi_enabled())  switch (in_smm) {
             default:
 #ifdef ENABLE_386_COMMON_LOG
                 fatal("SMI while in_smm = %i\n", in_smm);
@@ -1526,6 +1644,18 @@ enter_smm_check(int in_hlt)
                 enter_smm(in_hlt);
                 break;
             case 1:
+                if (is_gxm) {
+                    /* With SMI_NEST set the SMI is taken, nested. Without, an
+                       SMI# waits for RSM, and an internal SMI, which the
+                       handler keeps from happening, is dropped (3.11.9.1). */
+                    if (ccr4 & CCR4_SMI_NEST) {
+                        enter_smm(in_hlt);
+                        break;
+                    }
+                    gxm.smi_int = GXM_SMI_NONE;
+                    if (!gxm.smi_ext)
+                        break;
+                }
                 /* Mark this so that we don't latch more than one SMI. */
 #ifdef ENABLE_386_COMMON_LOG
                 x386_common_log("SMI while in unlatched SMM\n");
@@ -1534,10 +1664,8 @@ enter_smm_check(int in_hlt)
                 break;
         }
 #ifdef ENABLE_386_COMMON_LOG
-        else {
+        else
             x386_common_log("SMI while in Cyrix disabled mode\n");
-            x386_common_log("lol\n");
-        }
 #endif
 
         smi_line = 0;
@@ -1550,6 +1678,7 @@ leave_smm(void)
     uint32_t saved_state[SMM_SAVE_STATE_MAP_SIZE];
     uint32_t smram_state = smbase + 0x10000;
     uint32_t restart     = 0;
+    int      nested      = 0;
 
     /* If it's a CPU on which SMM is not supported (or not implemented in 86Box), do nothing. */
     if (!is_am486 && !is_pentium && !is_k5 && !is_k6 && !is_p6 && !is_cxsmm)
@@ -1566,7 +1695,9 @@ leave_smm(void)
         saved_state[3] = readmeml(0, smram_state - 0x10);
         saved_state[4] = readmeml(0, smram_state - 0x14);
         saved_state[5] = readmeml(0, smram_state - 0x18);
-        if (is486)
+        if (is_gxm)
+            gxm_smm_load_cs(smram_state - 0x20, &cpu_state.seg_cs);
+        else if (is486)
             cyrix_load_seg_descriptor(smram_state - 0x20, &cpu_state.seg_cs);
         else
             cyrix_load_seg_descriptor_2386(smram_state - 0x20, &cpu_state.seg_cs);
@@ -1574,6 +1705,14 @@ leave_smm(void)
         saved_state[7] = readmeml(0, smram_state - 0x28);
         saved_state[8] = readmeml(0, smram_state - 0x2c);
         saved_state[9] = readmeml(0, smram_state - 0x30);
+        /* RSM sets SMI_NEST, and puts back the Nested SMI Status of the
+           header: out of a nested SMI, the processor stays in SMM
+           (3.11.9.1, G and I). */
+        if (is_gxm) {
+            nested     = !!(saved_state[6] & CYRIX_SMM_N);
+            gxm.nested = nested;
+            ccr4 |= CCR4_SMI_NEST;
+        }
     } else {
         for (uint8_t n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
             smram_state -= 4;
@@ -1583,7 +1722,7 @@ leave_smm(void)
     }
     cpl_override = 0;
 
-    if (unmask_a20_in_smm) {
+    if (unmask_a20_in_smm && !nested) {
         rammask = old_rammask;
 
         flushmmucache();
@@ -1612,8 +1751,24 @@ leave_smm(void)
     smm_in_hlt      = !!restart;
     smm_rsm_restart = restart && smi_latched;
 
-    in_smm = 0;
-    smram_recalc_all(1);
+    if (!nested) {
+        in_smm = 0;
+        smram_recalc_all(1);
+
+        /* SMI# never went high: the next SMI, as RSM finishes. */
+        if (is_gxm && gxm.smi_pin && gxm.smi_pin()) {
+            gxm.smi_ext = 1;
+            smi_latched = 1;
+        }
+    }
+
+    /* With SMIs off no SMI is taken as RSM finishes: VSA clears USE_SMI and
+       RSMs, nested, into the real mode calls it makes from SMM. SMI#, still
+       low, is taken once they are back on (cpu_gxm_smi_pin_check). */
+    if (is_gxm && !cyrix_smi_enabled()) {
+        smi_latched     = 0;
+        smm_rsm_restart = 0;
+    }
 
     cpu_386_flags_extract();
     cpu_cur_status &= ~(CPU_STATUS_PMODE | CPU_STATUS_V86);
@@ -2272,22 +2427,61 @@ cpu_fast_off_reset(void)
 void
 cpu_smi_raise_direct(void)
 {
-    uint8_t ccr1_check;
-
-    if (is_cx6x86)
-        ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) ==
-                      (CCR1_USE_SMI | CCR1_SM3)) && (cyrix.arr[3].size > 0);
-    else
-        ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC)) ==
-                      (CCR1_USE_SMI)) && (cyrix.arr[3].size > 0);
-
-    if (is_cxsmm && !ccr1_check)
+    if (is_cxsmm && !cyrix_smi_enabled())
         return;
 
     if (is486 && (cpu_fast_off_flags & 0x80000000))
         cpu_fast_off_advance();
 
+    if (is_gxm)
+        gxm.smi_ext = 1;
+
     smi_line = 1;
+}
+
+/* The MediaGX's internal SMIs, on a VGA I/O access the internal bus interface
+   unit traps (BC_XMAP_1) and a VGA memory write the instruction decode does
+   (VGACTL, VGAM). SMM keeps them from happening, and they are ignored there
+   (3.11.9.1). They go before an SMI# that comes with them. */
+void
+cpu_gxm_smi_io(uint16_t port, int size, int write, uint32_t val)
+{
+    if (in_smm || !cyrix_smi_enabled())
+        return;
+
+    gxm.smi_int   = GXM_SMI_IO;
+    gxm.smi_port  = port;
+    gxm.smi_size  = size;
+    gxm.smi_write = write;
+    gxm.smi_data  = val;
+    smi_line      = 1;
+}
+
+/* SMI# is a level (CS5530 data book, pin description): one asserted while
+   SMIs were off is taken once a configuration register write turns them
+   back on. VSA turns USE_SMI off around the real mode calls it makes from
+   SMM, and a timer can expire in between. */
+void
+cpu_gxm_smi_pin_check(int was_enabled)
+{
+    if (!was_enabled && gxm.smi_pin && gxm.smi_pin() && cyrix_smi_enabled()) {
+        gxm.smi_ext = 1;
+        smi_line    = 1;
+    }
+}
+
+void
+cpu_gxm_smi_mem(uint32_t addr, int size, uint32_t val)
+{
+    if (in_smm || !cyrix_smi_enabled())
+        return;
+
+    gxm.smi_int   = GXM_SMI_MEM;
+    gxm.smi_addr  = addr;
+    gxm.smi_size  = size;
+    gxm.smi_write = 1;
+    gxm.smi_data  = val;
+    smi_line      = 1;
 }
 
 void

@@ -260,6 +260,8 @@ int is_k6;
 int is_p6;
 int is_cxsmm;
 int is_cx6x86;
+int is_gxm;
+gxm_t gxm;
 int hasfpu;
 
 int timing_rr;
@@ -646,6 +648,7 @@ cpu_set(void)
     is_p6     = (cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "VIA");
     is_cxsmm  = (!strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST")) && (cpu_s->cpu_type >= CPU_Cx486S);
     is_cx6x86 = (cpu_s->cpu_type >= CPU_Cx6x86) && (cpu_s->cpu_type <= CPU_Cx6x86L);
+    is_gxm    = (cpu_s->cpu_type == CPU_CxGX1);
 
     /* When an unmasked x87 exception asserts FERR# with CR0.NE clear. A
        coprocessor's ERROR# and the P6 family's FERR#: at the end of the
@@ -1619,11 +1622,27 @@ cpu_set(void)
                     x86_opcodes_df_a16 = ops_fpu_cyrix_686_df_a16;
                     x86_opcodes_df_a32 = ops_fpu_cyrix_686_df_a32;
                 }
+            } else if (cpu_s->cpu_type == CPU_CxGX1) {
+                /* The MediaGX has the Cyrix FTSTP and FNSTSG forms, but no
+                   FCMOVcc or FCOMI (CPUID 8000_0001h, EDX[16] = 0). */
+                if (fpu_softfloat) {
+                    x86_opcodes_d9_a16 = ops_sf_fpu_cyrix_d9_a16;
+                    x86_opcodes_d9_a32 = ops_sf_fpu_cyrix_d9_a32;
+                    x86_opcodes_dd_a16 = ops_sf_fpu_cyrix_dd_a16;
+                    x86_opcodes_dd_a32 = ops_sf_fpu_cyrix_dd_a32;
+                } else {
+                    x86_opcodes_d9_a16 = ops_fpu_cyrix_d9_a16;
+                    x86_opcodes_d9_a32 = ops_fpu_cyrix_d9_a32;
+                    x86_opcodes_dd_a16 = ops_fpu_cyrix_dd_a16;
+                    x86_opcodes_dd_a32 = ops_fpu_cyrix_dd_a32;
+                }
             }
 
 #    ifdef USE_DYNAREC
             if (cpu_s->cpu_type == CPU_Cx6x86MX)
                 x86_setopcodes(ops_386, ops_c6x86mx_0f, dynarec_ops_386, dynarec_ops_c6x86mx_0f);
+            else if (cpu_s->cpu_type == CPU_CxGX1)
+                x86_setopcodes(ops_386, ops_gxm_0f, dynarec_ops_386, dynarec_ops_gxm_0f);
             else if (cpu_s->cpu_type == CPU_Cx6x86L)
                 x86_setopcodes(ops_386, ops_c6x86l_0f, dynarec_ops_386, dynarec_ops_c6x86l_0f);
             else
@@ -1631,6 +1650,8 @@ cpu_set(void)
 #    else
             if (cpu_s->cpu_type == CPU_Cx6x86MX)
                 x86_setopcodes(ops_386, ops_c6x86mx_0f);
+            else if (cpu_s->cpu_type == CPU_CxGX1)
+                x86_setopcodes(ops_386, ops_gxm_0f);
             else if (cpu_s->cpu_type == CPU_Cx6x86L)
                 x86_setopcodes(ops_386, ops_c6x86l_0f);
             else
@@ -1678,12 +1699,15 @@ cpu_set(void)
             cpu_cyrix_alignment = 1;
 
             cpu_features = CPU_FEATURE_RDTSC;
-            if (cpu_s->cpu_type >= CPU_CxGX1)
-                cpu_features |= CPU_FEATURE_MSR | CPU_FEATURE_CR4;
             if (cpu_s->cpu_type == CPU_Cx6x86MX)
-                cpu_features |= CPU_FEATURE_MMX | CPU_FEATURE_CR4;
-            if ((cpu_s->cpu_type >= CPU_CxGX1) || (cpu_s->cpu_type == CPU_Cx6x86MX))
+                cpu_features |= CPU_FEATURE_MSR | CPU_FEATURE_MMX | CPU_FEATURE_CR4;
+            if (cpu_s->cpu_type == CPU_Cx6x86MX)
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE | CR4_PGE;
+            /* The MediaGX MMX's CR4 has TSC (bit 2) alone (Table 3-7). */
+            if (cpu_s->cpu_type == CPU_CxGX1) {
+                cpu_features |= CPU_FEATURE_MSR | CPU_FEATURE_MMX | CPU_FEATURE_CR4;
+                cpu_CR4_mask = CR4_TSD;
+            }
             /* The 6x86L has MOV CR4, with DE its only bit (AN106) */
             if (cpu_s->cpu_type == CPU_Cx6x86L) {
                 cpu_features |= CPU_FEATURE_CR4;
@@ -2139,6 +2163,22 @@ cpu_current_pc(char *bufp)
     sprintf(bufp, "%04X:%04X", CS, cpu_state.pc);
 
     return bufp;
+}
+
+/* Part (0-2) of a 48-byte processor name string, NUL padded, as CPUID
+   8000_0002h-8000_0004h return it in EAX, EBX, ECX and EDX. */
+static void
+cpu_cpuid_name(const char *name, int part)
+{
+    char     str[48] = { 0 };
+    uint32_t regs[4];
+
+    strncpy(str, name, sizeof(str));
+    memcpy(regs, &str[part << 4], sizeof(regs));
+    EAX = regs[0];
+    EBX = regs[1];
+    ECX = regs[2];
+    EDX = regs[3];
 }
 
 void
@@ -2624,17 +2664,49 @@ cpu_CPUID(void)
             break;
 
         case CPU_CxGX1:
-            if (!EAX) {
-                EAX = 0x00000001;
-                EBX = 0x69727943; /* CyrixInstead */
-                EDX = 0x736e4978;
-                ECX = 0x64616574;
-            } else if (EAX == 1) {
-                EAX = CPUID;
-                EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_DE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_PGE;
-            } else
-                EAX = EBX = ECX = EDX = 0;
+            /* MediaGX MMX data book, 9.2: two standard levels and five
+               extended ones. */
+            switch (EAX) {
+                case 0x00000000:
+                    EAX = 0x00000002;
+                    EBX = 0x69727943; /* CyrixInstead */
+                    EDX = 0x736e4978;
+                    ECX = 0x64616574;
+                    break;
+                case 0x00000001:
+                    EAX = CPUID;
+                    EBX = ECX = 0;
+                    EDX       = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_CMOV | CPUID_MMX;
+                    break;
+                case 0x00000002:
+                    /* A 32-entry 4-way TLB of 4 KB pages, and a 16 KB 4-way
+                       L1 cache of 16-byte lines; one execution is enough. */
+                    EAX = 0x00007001;
+                    EBX = ECX = 0;
+                    EDX       = 0x00000080;
+                    break;
+                case 0x80000000:
+                    EAX = 0x80000005;
+                    EBX = ECX = EDX = 0;
+                    break;
+                case 0x80000001:
+                    EAX = CPUID;
+                    EBX = ECX = 0;
+                    /* Bit 24: the 6x86MX multimedia extensions. */
+                    EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_CMOV | CPUID_MMX | (1 << 24);
+                    break;
+                case 0x80000002 ... 0x80000004:
+                    cpu_cpuid_name("Cyrix MediaGXtm MMXtm Enhanced", EAX - 0x80000002);
+                    break;
+                case 0x80000005:
+                    EAX = EDX = 0;
+                    EBX       = 0x00007001;
+                    ECX       = 0x00000080;
+                    break;
+                default:
+                    EAX = EBX = ECX = EDX = 0;
+                    break;
+            }
             break;
 
         case CPU_Cx6x86MX:
@@ -3402,9 +3474,18 @@ pentium_invalid_rdmsr:
             cpu_log("RDMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
             break;
 
+        case CPU_CxGX1:
+            /* The MediaGX MMX has the Time Stamp Counter alone (3.3.3). */
+            if (ECX != 0x10) {
+                x86gpf(NULL, 0);
+                break;
+            }
+            EAX = tsc & 0xffffffff;
+            EDX = tsc >> 32;
+            break;
+
         case CPU_Cx6x86:
         case CPU_Cx6x86L:
-        case CPU_CxGX1:
         case CPU_Cx6x86MX:
             switch (ECX) {
                 /* Test Data */
@@ -4278,9 +4359,17 @@ pentium_invalid_wrmsr:
             }
             break;
 
+        case CPU_CxGX1:
+            cpu_log("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
+            if (ECX != 0x10) {
+                x86gpf(NULL, 0);
+                break;
+            }
+            timer_set_new_tsc(EAX | ((uint64_t) EDX << 32));
+            break;
+
         case CPU_Cx6x86:
         case CPU_Cx6x86L:
-        case CPU_CxGX1:
         case CPU_Cx6x86MX:
             cpu_log("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
             switch (ECX) {
@@ -4581,6 +4670,208 @@ i686_invalid_wrmsr:
     }
 }
 
+/* The MediaGX's configuration registers (MediaGX MMX data book, Table 3-9,
+   with the corrections of its addendum). With MAPEN clear only C1h-CFh, FEh
+   and FFh can be reached; the other indexes go off-chip and read as the bus
+   floats. */
+static void
+gxm_smar_update(void)
+{
+    uint8_t code = arr[0xcf - 0xc4] & 0x0f;
+
+    cyrix.arr[3].base = (arr[0xcd - 0xc4] << 24) | (arr[0xce - 0xc4] << 16) | ((arr[0xcf - 0xc4] & 0xf0) << 8);
+    /* 1111b is 4 KB, as 0001b is. */
+    if (code == 0x0f)
+        code = 0x01;
+    cyrix.arr[3].size = code ? (2048 << code) : 0;
+
+    /* A write to SMAR also sets the header address, at the top of the region
+       (3.11.4). */
+    cyrix.smhr = (uint32_t) (cyrix.arr[3].base + cyrix.arr[3].size) | SMHR_VALID;
+}
+
+/* SMAR, GCR and VGACTL are 00h out of RESET (Table 3-9): no SMM region, and
+   the integrated functions unmapped. The scratchpad and the BLT buffer
+   registers have no defined value. */
+void
+cpu_gxm_reset(void)
+{
+    arr[0xcd - 0xc4] = arr[0xce - 0xc4] = arr[0xcf - 0xc4] = 0x00;
+    cyrix.arr[3].base = 0x00000000;
+    cyrix.arr[3].size = 0;
+    cyrix.smhr        = 0x00000000;
+    gxm.gcr           = 0x00;
+    gxm.vgactl        = 0x00;
+    gxm.pcr           = 0x07;
+    gxm.nested        = 0;
+    gxm.smi_int       = GXM_SMI_NONE;
+    gxm.smi_ext       = 0;
+    if (gxm.gcr_write)
+        gxm.gcr_write(gxm.priv);
+}
+
+static void
+gxm_cfg_write(uint8_t index, uint8_t val)
+{
+    const int mapen   = !!(ccr3 & CCR3_MAPEN);
+    const int smi_ok  = !(ccr3 & CCR3_SMI_LOCK) || in_smm;
+    const int smi_was = cyrix_smi_enabled();
+    uint8_t   old;
+
+
+    switch (index) {
+        case 0x20: /* PCR */
+            if (mapen)
+                gxm.pcr = val & 0x80;
+            break;
+
+        case 0xb0 ... 0xb3: /* SMHR */
+            if (mapen) {
+                const int shift = (index - 0xb0) << 3;
+
+                cyrix.smhr = (cyrix.smhr & ~(0xff << shift)) | (val << shift);
+                cyrix.smhr |= SMHR_VALID;
+            }
+            break;
+
+        case 0xb8: /* GCR */
+            if (mapen) {
+                gxm.gcr = val & 0x0f;
+                if (gxm.gcr_write)
+                    gxm.gcr_write(gxm.priv);
+            }
+            break;
+        case 0xb9: /* VGACTL */
+            if (mapen)
+                gxm.vgactl = val & 0x07;
+            break;
+        case 0xba ... 0xbd: /* VGAM */
+            if (mapen) {
+                const int shift = (index - 0xba) << 3;
+
+                gxm.vgam = (gxm.vgam & ~(0xff << shift)) | (val << shift);
+            }
+            break;
+
+        case 0xc1: /* CCR1 */
+            old = ccr1;
+            if (!smi_ok)
+                val = (val & ~(CCR1_USE_SMI | CCR1_SMAC)) | (ccr1 & (CCR1_USE_SMI | CCR1_SMAC));
+            ccr1 = val & (CCR1_USE_SMI | CCR1_SMAC);
+            if ((old ^ ccr1) & CCR1_SMAC) {
+                if (ccr1 & CCR1_SMAC)
+                    smram_backup_all();
+                smram_recalc_all(!(ccr1 & CCR1_SMAC));
+            }
+            break;
+        case 0xc2: /* CCR2 */
+            ccr2 = val & 0xdc;
+            break;
+        case 0xc3: /* CCR3 */
+            /* SMI_LOCK, once set, is cleared by RESET alone. */
+            if (!smi_ok)
+                val = (val & ~CCR3_NMI_EN) | (ccr3 & CCR3_NMI_EN);
+            ccr3 = (val & 0xfb) | (ccr3 & CCR3_SMI_LOCK);
+            break;
+
+        case 0xcd ... 0xcf: /* SMAR */
+            if (smi_ok) {
+                arr[index - 0xc4] = val;
+                gxm_smar_update();
+            }
+            break;
+
+        case 0xe8: /* CCR4 */
+            if (mapen) {
+                ccr4 = val;
+                CPUID = (val & 0x80) ? cpu_s->cpuid_model : 0;
+                /* An SMI# held off in SMM is taken, nested, once the
+                   handler sets SMI_NEST. */
+                if (in_smm && (ccr4 & CCR4_SMI_NEST) && smi_latched)
+                    smi_line = 1;
+            }
+            break;
+        case 0xeb: /* CCR7 */
+            old  = ccr7;
+            ccr7 = val & 0x05;
+            /* NMI: an NMI on each 0 to 1 (addendum, item 11). */
+            if ((ccr7 & ~old) & 0x04)
+                nmi_raise();
+            break;
+
+        default:
+            break;
+    }
+
+    cpu_gxm_smi_pin_check(smi_was);
+}
+
+static uint8_t
+gxm_cfg_read(uint8_t index)
+{
+    const int mapen = !!(ccr3 & CCR3_MAPEN);
+    uint8_t   ret   = 0xff;
+
+    switch (index) {
+        case 0x20:
+            if (mapen)
+                ret = gxm.pcr;
+            break;
+
+        case 0xb0 ... 0xb3:
+            if (mapen)
+                ret = (cyrix.smhr & SMHR_ADDR_MASK) >> ((index - 0xb0) << 3);
+            break;
+
+        case 0xb8:
+            if (mapen)
+                ret = gxm.gcr;
+            break;
+        case 0xb9:
+            if (mapen)
+                ret = gxm.vgactl;
+            break;
+        case 0xba ... 0xbd:
+            if (mapen)
+                ret = gxm.vgam >> ((index - 0xba) << 3);
+            break;
+
+        case 0xc1:
+            ret = ccr1;
+            break;
+        case 0xc2:
+            ret = ccr2;
+            break;
+        case 0xc3:
+            ret = ccr3;
+            break;
+
+        case 0xcd ... 0xcf:
+            ret = arr[index - 0xc4];
+            break;
+
+        case 0xe8:
+            if (mapen)
+                ret = ccr4;
+            break;
+        case 0xeb:
+            ret = ccr7;
+            break;
+
+        case 0xfe:
+            ret = cpu_s->cyrix_id & 0xff;
+            break;
+        case 0xff:
+            ret = cpu_s->cyrix_id >> 8;
+            break;
+
+        default:
+            break;
+    }
+
+    return ret;
+}
+
 static void
 cpu_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
@@ -4596,6 +4887,8 @@ cpu_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
             nmi = 0;
     } else if ((addr < 0xf1) && !(addr & 1))
         cyrix_addr = val;
+    else if ((addr < 0xf1) && is_gxm)
+        gxm_cfg_write(cyrix_addr, val);
     else if (addr < 0xf1)  switch (cyrix_addr) {
         default:
             /* An index this model doesn't have: ignored, as below C0h (a guest
@@ -4708,6 +5001,8 @@ cpu_read(uint16_t addr, UNUSED(void *priv))
 
     if (addr == 0xf007)
         ret = 0x7f;
+    else if ((addr < 0xf0) && (addr & 1) && is_gxm)
+        ret = gxm_cfg_read(cyrix_addr);
     else if ((addr < 0xf0) && (addr & 1))  switch (cyrix_addr) {
         default:
             /* An index this model doesn't have: FFh, as below C0h (a guest can
@@ -4867,7 +5162,8 @@ cpu_tr_reset(void)
 static uint32_t
 cpu_tr_cache_set_mask(void)
 {
-    return strcmp(cpu_f->internal_name, "idx4") ? 0x7f0 : 0xff0;
+    /* 256 lines on the MediaGX (TR5[11:4], Table 3-16), as on the IDT's. */
+    return (is_gxm || !strcmp(cpu_f->internal_name, "idx4")) ? 0xff0 : 0x7f0;
 }
 
 uint32_t
@@ -4915,7 +5211,9 @@ cpu_tr_write(int reg, uint32_t val)
 
                 case 1:
                     /* Cache write: fill buffer and TR4 tag/valid into the entry. */
-                    tr_cache_tag[set][ent] = _tr[4] & 0xfffffc00;
+                    /* The MediaGX keeps the four dirty bits too (TR4[6:3]),
+                       written as they are given. */
+                    tr_cache_tag[set][ent] = _tr[4] & (is_gxm ? 0xfffff478 : 0xfffffc00);
                     memcpy(tr_cache_data[set][ent], tr_cache_fill_buf, sizeof(tr_cache_fill_buf));
 
                     /* A valid line is returned on reads of its address, which
@@ -4934,9 +5232,15 @@ cpu_tr_write(int reg, uint32_t val)
                      /* Cache read: the entry into the read buffer, and its tag, its0
                        valid bit, and the valid bits of the whole set into TR4.
                        The LRU bits (9-7) are not modelled and read as 0. */
-                    for (int i = 0; i < 4; i++)
-                        valid |= ((tr_cache_tag[set][i] >> 10) & 1) << i;
-                    _tr[4] = tr_cache_tag[set][ent] | (valid << 3);
+                    if (is_gxm)
+                        /* Tag, valid and dirty bits of the entry; the LRU
+                           bits (9-7) read as 0, as above. */
+                        _tr[4] = tr_cache_tag[set][ent];
+                    else {
+                        for (int i = 0; i < 4; i++)
+                            valid |= ((tr_cache_tag[set][i] >> 10) & 1) << i;
+                        _tr[4] = tr_cache_tag[set][ent] | (valid << 3);
+                    }
                     memcpy(tr_cache_read_buf, tr_cache_data[set][ent], sizeof(tr_cache_read_buf));
                     break;
 

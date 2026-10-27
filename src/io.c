@@ -63,10 +63,10 @@ io_t   *io_last[NPORTS];
 uint8_t io_turbo_map[NPORTS >> 3];
 int io_turbo_throttle = 0;
 
-/* Chipset claims (io_set_claim). Only a few ports are ever claimed, so they
-   live in a small table, and a bitmap of claimed ports lets every other
-   port skip the table lookup. */
-#define IO_CLAIMS 8
+/* Chipset claims (io_set_claim). Only a few ports are ever claimed (the
+   CS5530's DMA traps are the most, 48), so they live in a small table, and
+   a bitmap of claimed ports lets every other port skip the table lookup. */
+#define IO_CLAIMS 64
 
 typedef struct io_claim_t {
     uint16_t port;
@@ -413,6 +413,8 @@ inb(uint16_t port)
 #endif
 
     io_port = port;
+    io_size = 1;
+    io_write = 0;
 
     if (cpu_dr_armed)
         io_debug_check_addr(port);
@@ -483,6 +485,8 @@ outb(uint16_t port, uint8_t val)
 #endif
 
     io_port = port;
+    io_size = 1;
+    io_write = 1;
     io_val  = val;
 
     if (cpu_dr_armed)
@@ -544,6 +548,8 @@ inw(uint16_t port)
     uint8_t  ret8[2];
 
     io_port = port;
+    io_size = 2;
+    io_write = 0;
 
     if (cpu_dr_armed)
         io_debug_check_addr(port);
@@ -628,6 +634,8 @@ outw(uint16_t port, uint16_t val)
 #endif
 
     io_port = port;
+    io_size = 2;
+    io_write = 1;
     io_val  = val;
 
     if (cpu_dr_armed)
@@ -707,6 +715,8 @@ inl(uint16_t port)
 #endif
 
     io_port = port;
+    io_size = 4;
+    io_write = 0;
 
     if (cpu_dr_armed)
         io_debug_check_addr(port);
@@ -822,6 +832,8 @@ outl(uint16_t port, uint32_t val)
 #endif
 
     io_port = port;
+    io_size = 4;
+    io_write = 1;
     io_val  = val;
 
     if (cpu_dr_armed)

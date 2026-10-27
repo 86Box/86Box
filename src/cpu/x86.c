@@ -344,6 +344,8 @@ reset_common(int hard)
     ccr4 = 0x85;
     cyrix.arr[3].base = 0x30000;
     cyrix.arr[3].size = 65536;
+    if (is_gxm)
+        cpu_gxm_reset();
 
     if (reset_init)
         /* INIT leaves CD and NW, and sets ET (Pentium Vol. 3, Table 16-1,

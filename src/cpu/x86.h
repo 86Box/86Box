@@ -111,5 +111,9 @@ extern uint8_t is_smint;
 
 extern uint16_t io_port;
 extern uint32_t io_val;
+/* The size (1, 2 or 4) and direction of the last I/O cycle, for an SMM
+   header that reports it. */
+extern uint8_t  io_size;
+extern uint8_t  io_write;
 
 #endif /*EMU_X86_H*/
