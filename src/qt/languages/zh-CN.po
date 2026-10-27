@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-27 11:19+0000\n"
-"Last-Translator: Canadew <chun-awa@outlook.com>\n"
+"PO-Revision-Date: 2026-10-27 11:58+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -422,7 +422,7 @@ msgid "Time zone:"
 msgstr "时区："
 
 msgid "Local"
-msgstr "本地"
+msgstr "本地时区"
 
 msgid "UTC"
 msgstr "协调世界时（UTC）"
