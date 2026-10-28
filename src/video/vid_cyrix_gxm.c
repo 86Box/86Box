@@ -339,7 +339,7 @@ gxm_vga_address(gxm_video_t *dev, uint32_t off, int write, uint8_t *planes)
         /* The page bit is the VGA's (Miscellaneous Output bit 5): set, the
            low page. SoftVGA sets it in the text modes and draws the cells
            from the even dwords. */
-        addr    = (rd & VGAR_COE) ? ((off & ~1) | !(rd & VGAR_PB)) : off;
+        addr    = (rd & VGAR_COE) ? ((off & ~1) | ((rd & VGAR_PB) ? 0 : 1)) : off;
     } else {
         *planes = 0x0f;
         addr    = off;

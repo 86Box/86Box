@@ -722,7 +722,7 @@ cs5530_abm_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 
     cs5530_abm_update_buffer(dev);
 
-    for (uint16_t c = 0; c < len * 2; c++)
+    for (int c = 0; c < len * 2; c++)
         buffer[c] += dev->abm_buffer[c];
 
     dev->abm_pos = 0;
