@@ -1416,9 +1416,12 @@ rop0F01_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op
     }
 
     if (reg == 0x38) {
-        /*INVLPG: the address is not used, as in the op*/
+        /*INVLPG: the address is not used, as in the op. The flush can remap
+          the page the block runs from: the next block is looked up through
+          the tables*/
         uop_CALL_FUNC(ir, flushmmucache_pc);
         uop_CALL_FUNC(ir, flushmmucache_nopc);
+        CPU_BLOCK_END();
         return op_pc + 1;
     }
 
@@ -1534,7 +1537,10 @@ rop0F20(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
   failed PDPTE load. MOV CR0 can change PE, which the block is keyed on, the
   paging, CD, which the loop tests before it runs a block, and MP, EM and
   TS, which the compiled FPU entry assumes: the block ends after every one,
-  as after the hand-over.*/
+  as after the hand-over. MOV CR3, and MOV CR4 when it changes PSE, PAE or
+  PGE, flush the translations and can remap the page the block runs from,
+  which the lookup checks only at a block's start: the block ends after
+  them too, after every MOV CR4 since the write is not known here.*/
 uint32_t
 rop0F22(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
@@ -1565,6 +1571,7 @@ rop0F22(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
             uop_LOAD_FUNC_ARG_IMM(ir, 0, fetchdat & 7);
             uop_CALL_FUNC_RESULT(ir, IREG_temp0, dynarec_mov_cr3);
             uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_gpf_rout);
+            CPU_BLOCK_END();
             break;
         case 0x20:
             if (!cpu_has_feature(CPU_FEATURE_CR4))
@@ -1577,6 +1584,7 @@ rop0F22(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
             uop_LOAD_FUNC_ARG_IMM(ir, 0, fetchdat & 7);
             uop_CALL_FUNC_RESULT(ir, IREG_temp0, dynarec_mov_cr4);
             uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_gpf_rout);
+            CPU_BLOCK_END();
             break;
         default:
             return codegen_ud(ir);
