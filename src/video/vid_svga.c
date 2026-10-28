@@ -1010,13 +1010,6 @@ svga_recalctimings(svga_t *svga)
     if (svga->recalctimings_ex)
         svga->recalctimings_ex(svga);
 
-    /*
-       Have a maximum value y_add can take, fixes heap corruptions
-       during some video resizes.
-     */
-    if (svga->y_add > 240)
-        svga->y_add = 240;
-
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (IBM_8514A || ATI_8514A_ULTRA)
             ibm8514_recalctimings(svga);
@@ -1418,6 +1411,13 @@ svga_recalctimings(svga_t *svga)
                 break;
         }
     }
+
+    /*
+       Have a maximum value y_add can take, fixes heap corruptions
+       during some video resizes.
+     */
+    if (svga->y_add > 240)
+        svga->y_add = 240;
 }
 
 static void
