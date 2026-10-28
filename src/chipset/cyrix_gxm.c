@@ -176,24 +176,39 @@ gxm_dimm_geometry(gxm_dimm_t *d)
 }
 
 /* The DIMMs installed: the RAM as one DIMM of a power of two, and the rest
-   as a smaller one. Two alike DIMMs are never made, so the identity
-   translation is always HOI. */
+   as a smaller one, each made of the SDRAM chips of its time, with rows of
+   11 or 12 bits: the BIOS finds the rows by aliasing row bits 8 to 10, and
+   fewer rows read as a larger DIMM. A DIMM is at most 128 MB, two module
+   banks of 64 Mbit chips; a larger one would read as 128 MB. Two alike
+   DIMMs interleave (Auto LOI) once programmed; RAM is then mapped as usual
+   all the same, as nothing can tell the order the bytes are kept in. */
 static void
 gxm_dimms_init(cyrix_gxm_t *dev)
 {
+    /* By size from 4 MB: columns, component bank bits, module bank bits. */
+    static const int geom[6][3] = {
+        { 8, 1, 0 }, /*   4 MB: 16 Mbit x16, 10 rows */
+        { 8, 1, 0 }, /*   8 MB: 16 Mbit x16 */
+        { 9, 1, 0 }, /*  16 MB: 16 Mbit x8 */
+        { 8, 2, 0 }, /*  32 MB: 64 Mbit x16 */
+        { 9, 2, 0 }, /*  64 MB: 64 Mbit x8 */
+        { 9, 2, 1 }  /* 128 MB: 64 Mbit x8, two module banks */
+    };
     uint32_t left = mem_size << 10;
 
     memset(dev->dimm, 0x00, sizeof(dev->dimm));
     for (int i = 0; (i < 2) && (left >= 0x00400000); i++) {
         gxm_dimm_t *d = &dev->dimm[i];
+        const int  *g;
 
         d->size = 1 << gxm_log2(left);
-        if (d->size > 0x20000000)
-            d->size = 0x20000000;
+        if (d->size > 0x08000000)
+            d->size = 0x08000000;
+        g            = geom[gxm_log2(d->size >> 22)];
         d->installed = 1;
-        d->col_bits  = 9;
-        d->bank_bits = 2;
-        d->mb_bits   = (d->size > 0x08000000);
+        d->col_bits  = g[0];
+        d->bank_bits = g[1];
+        d->mb_bits   = g[2];
         gxm_dimm_geometry(d);
         left -= d->size;
     }
@@ -258,14 +273,19 @@ gxm_dram_translate(cyrix_gxm_t *dev, uint32_t addr)
         d    = (addr >> sh) & 1;
         row  = addr >> (sh + 1);
     } else {
-        const uint32_t base1 = dev->prog[0].installed ? dev->prog[0].size : 0;
+        /* The larger DIMM comes first: the BIOS sizes one DIMM with the
+           other set to 4 MB, and looks for the aliases at address 0. */
+        const int         first = dev->prog[1].installed &&
+                                  (!dev->prog[0].installed || (dev->prog[1].size > dev->prog[0].size));
+        const gxm_dimm_t *f     = &dev->prog[first];
+        const gxm_dimm_t *s     = &dev->prog[!first];
 
-        if (dev->prog[0].installed && (addr < dev->prog[0].size)) {
-            d     = 0;
+        if (f->installed && (addr < f->size)) {
+            d     = first;
             local = addr;
-        } else if (dev->prog[1].installed && (addr >= base1) && ((addr - base1) < dev->prog[1].size)) {
-            d     = 1;
-            local = addr - base1;
+        } else if (s->installed && f->installed && ((addr - f->size) < s->size)) {
+            d     = !first;
+            local = addr - f->size;
         } else
             return -1;
 
