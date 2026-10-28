@@ -210,13 +210,21 @@ pci_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                                definition of the bits is identical to the other vendors' AGP bridges. */
             break;
 
+        case 0x35:
+        case 0x36:
+        case 0x37:
+            /* Reserved and read 0 on the ALi M5243 (35-3Bh). */
+            if (dev->local == AGP_BRIDGE_ALI_M5243)
+                return;
+            break;
+
         case 0x38:
         case 0x39:
         case 0x3a:
         case 0x3b:
-            /* The Intel AGP bridges have no expansion ROM base address:
-               38-3Bh are reserved and read 0. */
-            if (AGP_BRIDGE_INTEL(dev->local))
+            /* The Intel AGP bridges and the ALi M5243 have no expansion ROM
+               base address: 38-3Bh are reserved and read 0. */
+            if (AGP_BRIDGE_INTEL(dev->local) || (dev->local == AGP_BRIDGE_ALI_M5243))
                 return;
             break;
 
