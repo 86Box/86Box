@@ -18,9 +18,11 @@
  *
  *          The interrupt controllers, timer and DMA controller are the
  *          machine's usual AT ones, which the chip only maps. The DMA
- *          controller, Port 92 and the other on-chip units (watchdog,
- *          refresh, SSIO, power management, parallel ports, pin
- *          configuration) do not appear in the expanded I/O space. Only
+ *          controller, Port 92 and the other on-chip units (refresh, SSIO,
+ *          power management, parallel ports, pin configuration) do not
+ *          appear in the expanded I/O space, except for PWRCON, which is
+ *          stored. The chip-select and watchdog timer units have their own
+ *          files. Only
  *          A9:0 are decoded in the DOS I/O space, which is not emulated
  *          either: the peripherals only appear at their usual addresses.
  *
@@ -78,6 +80,7 @@
 #define RBR1          0xf8f8
 #define MCR0          0xf4fc
 #define MCR1          0xf8fc
+#define PWRCON        0xf800
 #define CLKPRS        0xf804
 #define DMACFG        0xf830
 #define INTCFG        0xf832
@@ -126,7 +129,10 @@ struct i386ex_t {
     uint8_t  siocfg;
     double   comclk; /* What the board drives the COMCLK pin at, 0 if nothing. */
 
+    uint8_t pwrcon;
+
     i386ex_csu_t *csu;
+    i386ex_wdt_t *wdt;
     serial_t     *uart[2];
 
     i386ex_handler_t handlers[EXPANDED_MAX];
@@ -289,10 +295,12 @@ i386ex_expanded(i386ex_t *dev, int set)
 
     i386ex_map_peripherals(dev, set, 1, REMAP_IMR | REMAP_ISR | REMAP_TR | REMAP_S0R | REMAP_S1R);
 
+    io_handler(set, PWRCON, 1, i386ex_config_read, NULL, NULL, i386ex_config_write, NULL, NULL, dev);
     io_handler(set, CLKPRS, 2, i386ex_config_read, NULL, NULL, i386ex_config_write, NULL, NULL, dev);
     io_handler(set, DMACFG, 8, i386ex_config_read, NULL, NULL, i386ex_config_write, NULL, NULL, dev);
 
     i386ex_csu_handler(dev->csu, set);
+    i386ex_wdt_handler(dev->wdt, set);
 
     for (int i = 0; i < dev->handlers_num; i++) {
         const i386ex_handler_t *h = &dev->handlers[i];
@@ -387,6 +395,8 @@ i386ex_config_read(uint16_t port, void *priv)
     const i386ex_t *dev = (i386ex_t *) priv;
 
     switch (port) {
+        case PWRCON:
+            return dev->pwrcon;
         case CLKPRS:
             return dev->clkprs & 0xff;
         case CLKPRS + 1:
@@ -412,6 +422,9 @@ i386ex_config_write(uint16_t port, uint8_t val, void *priv)
     i386ex_log("386EX: [%04X] = %02X\n", port, val);
 
     switch (port) {
+        case PWRCON:
+            dev->pwrcon = val & 0x0f;
+            break;
         case CLKPRS:
             dev->clkprs = (dev->clkprs & 0xff00) | val;
             i386ex_timer_clock(dev);
@@ -444,6 +457,25 @@ i386ex_csu_t *
 i386ex_get_csu(i386ex_t *dev)
 {
     return dev->csu;
+}
+
+void
+i386ex_set_wdtout(i386ex_t *dev, void (*func)(void *priv), void *priv)
+{
+    i386ex_wdt_set_out(dev->wdt, func, priv);
+}
+
+/* WDTOUT on RESET resets the whole chip, which is as good as a hard reset. */
+void
+i386ex_wdtout_reset(UNUSED(void *priv))
+{
+    pc_reset_hard();
+}
+
+void
+i386ex_wdtout_nmi(UNUSED(void *priv))
+{
+    nmi_raise();
 }
 
 void
@@ -498,6 +530,7 @@ i386ex_init(const device_t *info)
     i386ex_t *dev = (i386ex_t *) calloc(1, sizeof(i386ex_t));
 
     dev->csu = device_add(&i386ex_csu_device);
+    dev->wdt = device_add(&i386ex_wdt_device);
 
     /* The UARTs take the next free COM ports, which on a board are COM1 and COM2. */
     if (info->local & I386EX_SIO0)

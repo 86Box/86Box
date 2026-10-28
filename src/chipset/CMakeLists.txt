@@ -45,6 +45,7 @@ add_library(chipset OBJECT
     intel_82335.c
     intel_386ex.c
     intel_386ex_csu.c
+    intel_386ex_wdt.c
     intel_420ex.c
     intel_4x0.c
     intel_i450kx.c
