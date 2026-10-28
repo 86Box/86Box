@@ -36,7 +36,10 @@
 #include <86box/rom.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
+#include <86box/video.h>
+#include <86box/sound.h>
 #include <86box/serial.h>
+#include <86box/snd_speaker.h>
 #include <86box/plat_unused.h>
 #include <86box/tandy_clkmouse.h>
 
@@ -660,6 +663,21 @@ tandy2k_pit1_load(UNUSED(uint8_t mode), int count)
     tandy2k_uart_clock();
 }
 
+/* The speaker hangs off counter 0, not counter 2 like on a PC: the board
+   inverts the counter output and ANDs it with SPKRDATA, so the tone only
+   reaches the speaker while that bit and the gate are both set. */
+static void
+tandy2k_spkr_out(int new_out, UNUSED(int old_out), UNUSED(void *priv))
+{
+    const uint16_t count = pit_devs[0].get_count(pit_devs[0].data, 0);
+
+    speaker_update();
+
+    /* Anything under 25 counts is shorter than one sample at 44 kHz and
+       would only alias, so the PC speaker model silences it. */
+    speakon = ((count ? count : 0x10000) < 25) ? 0 : new_out;
+}
+
 static void
 tandy2k_lpt_intr(int state)
 {
@@ -727,6 +745,16 @@ tandy2k_write(uint16_t addr, uint8_t val, void *priv)
                 fdc_reset(tandy2k.fdc);
             }
             tandy2k.port0 = val;
+
+            /* SPKRGATE enables counter 0 (the tone generator) and SPKRDATA
+               is the speaker data bit, which the board ANDs with the counter
+               output. RFRQGATE gates the refresh and baud rate counters. */
+            speaker_update();
+            speaker_gated  = (uint8_t) ((val >> 2) & 0x01);
+            speaker_enable = (uint8_t) ((val >> 3) & 0x01);
+            if (speaker_enable)
+                was_speaker_enable = 1;
+            pit_devs[0].set_gate(pit_devs[0].data, 0, speaker_gated);
 
             /* RFRQGATE gates the refresh and baud clocks, EXTCLK switches the
                baud clock source to the J1 line. */
@@ -1035,14 +1063,40 @@ machine_tandy2000_init(const machine_t *model)
     if (mouse_type == MOUSE_TYPE_INTERNAL)
         device_add(&tandy_clkmouse_device);
 
-    /* The board clocks the 8253 at 2 MHz and decodes its registers on
-       even addresses, so replace the default 40h-43h mapping. */
-    pit_t *pit = pit_common_init(PIT_8253, NULL, NULL);
-    pit_set_clock(2000000);
-    pit_handler(0, 0x0040, 0x0004, pit);
+    /* The board clocks the 8253 at 2 MHz and decodes its registers on even
+       addresses; the external-I/O variant leaves the port registration to us,
+       so the controller is not also answered at the PC's 40h-43h mapping. */
+    pit_t *pit = device_add(&i8253_ext_io_device);
+
+    pit_devs[0]      = pit_classic_intf;
+    pit_devs[0].data = pit;
+
+    for (uint8_t i = 0; i < 3; i++) {
+        pit_devs[0].set_gate(pit_devs[0].data, i, 1);
+        pit_devs[0].set_using_timer(pit_devs[0].data, i, 1);
+    }
+    pit_devs[0].set_gate(pit_devs[0].data, 2, 0);
+
     io_sethandler(0x0040, 0x0008, pit_read_even, NULL, NULL,
                   pit_write_even, NULL, NULL, pit);
     pit_devs[0].set_load_func(pit_devs[0].data, 1, tandy2k_pit1_load);
+
+    /* The generic PIT derives the PC's 1.193 MHz from the CPU speed, while
+       this board feeds the chip from the 16 MHz crystal over eight. */
+    pit_devs[0].set_pit_const(pit_devs[0].data,
+                              (uint64_t) ((cpuclock / 2000000.0) * (double) (1ULL << 32)));
+
+    /* Counter 0 generates the speaker tone and is clocked at half the board's
+       2 MHz (the 16 MHz crystal divided by 16); the speaker follows its output,
+       gated by port 00h bit 2 and enabled by bit 3. Counter 2 is the refresh
+       rate generator here, so it must not drive the speaker model (which is
+       what the PC wiring assumes). */
+    pit_devs[0].set_clock_div(pit_devs[0].data, 0, 2);
+    pit_devs[0].set_out_func(pit_devs[0].data, 0, tandy2k_spkr_out);
+    pit_devs[0].set_load_func(pit_devs[0].data, 0, speaker_set_count);
+    pit_devs[0].set_out_func(pit_devs[0].data, 2, NULL);
+    pit_devs[0].set_load_func(pit_devs[0].data, 2, NULL);
+    pit_devs[0].set_gate(pit_devs[0].data, 0, 0);
 
     /* The 8251A takes its TxC/RxC from the 8253 channel 1 output. Its
        host backend is whatever character device is selected for COM1. */
