@@ -218,6 +218,9 @@ codegen_check_seg_write(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg)
     seg->checked = 2;
 }
 
+/* fetchdat holds the ModR/M and the byte after it, and no more after a 0F
+   (the interpreter's fetch at the 0F ends there): the EA reads any later
+   byte of its displacement from the code itself, as its walk does */
 static x86seg *
 codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, uint32_t *op_pc)
 {
@@ -232,7 +235,7 @@ codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
         if (dyn)
             LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_eaaddr, cs + old_pc);
         else
-            uop_MOV_IMM(ir, IREG_eaaddr, (fetchdat >> 8) & 0xffff);
+            uop_MOV_IMM(ir, IREG_eaaddr, fastreadw(cs + old_pc));
         (*op_pc) += 2;
     } else {
         int base_reg;
@@ -286,7 +289,7 @@ codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                     LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp0, cs + old_pc);
                     uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
                 } else {
-                    offset = (fetchdat >> 8) & 0xffff;
+                    offset = fastreadw(cs + old_pc);
                     uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, offset);
                 }
                 (*op_pc) += 2;
@@ -343,7 +346,7 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                     uop_MOVSX(ir, IREG_eaaddr, IREG_temp0_B);
                     extra_bytes = 1;
                 } else {
-                    new_eaaddr = (uint32_t) (int8_t) ((fetchdat >> 16) & 0xff);
+                    new_eaaddr = (uint32_t) (int8_t) fastreadb(cs + (*op_pc) + 1);
                     uop_MOV_IMM(ir, IREG_eaaddr, new_eaaddr);
                     extra_bytes = 2;
                 }
@@ -1373,7 +1376,12 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 lock_walk_cycles = codegen_block_cycles;
             }
         }
-        fetchdat = codegen_fetchl_lookahead(cs + op_pc);
+        /*A 0F's op takes the bytes of the fetch that read the 0F, which ends
+          at the byte after the ModR/M: nothing past it is read here*/
+        if (opcode == 0x0f)
+            fetchdat = codegen_fetchl_lookahead(cs + op_pc - 1) >> 8;
+        else
+            fetchdat = codegen_fetchl_lookahead(cs + op_pc);
         codegen_timing_prefix(opcode, fetchdat);
         codegen_accumulate_record(ACC_PREFIX, 0, opcode, fetchdat, 0, 0);
         if (cpu_state.abrt)
@@ -1790,6 +1798,9 @@ codegen_skip:
         if (!pc_off && ((op_table == x86_dynarec_opcodes) || (op_table == x86_dynarec_opcodes_REPE) || (op_table == x86_dynarec_opcodes_REPNE)) &&
             (opcode_length[opcode] < 3))
             fetch_len = opcode_length[opcode] - 1;
+        /* After 0F the fetch that read it ends at the byte after the ModR/M. */
+        if ((op_table == x86_dynarec_opcodes_0f) || (op_table == x86_dynarec_opcodes_3DNOW))
+            fetch_len = 2;
         /* Those are the interpreter fetch's bytes, and the op fetches what
            lies past them itself: neither walks here */
         codegen_fetch_walk_off = 1;
