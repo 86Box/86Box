@@ -561,7 +561,7 @@ gxm_remap(cyrix_gxm_t *dev)
             mem_mapping_disable(&dev->scratch_mapping);
         mem_mapping_set_addr(&dev->reg_mapping, dev->gx_base + 0x8000, 0x1000);
         mem_mapping_set_addr(&dev->gmem_mapping, dev->gx_base + GMEM_SIZE, GMEM_SIZE);
-        if (1 || (dev->mc_mem_cntrl1 & MC_VGAWRP)) /* DBG */
+        if (dev->mc_mem_cntrl1 & MC_VGAWRP)
             mem_mapping_set_addr(&dev->smm_mapping, dev->gx_base + 0x400000, 0x20000);
         else
             mem_mapping_disable(&dev->smm_mapping);
@@ -1171,6 +1171,10 @@ cyrix_gxm_init(UNUSED(const device_t *info))
                     gxm_smm_read, gxm_smm_readw, gxm_smm_readl,
                     gxm_smm_write, gxm_smm_writew, gxm_smm_writel,
                     ram + 0xa0000, MEM_MAPPING_EXTERNAL, dev);
+    /* Added with no size, the mapping's mask is 0, and bus masters (which go
+       through exec[] with it) would all read the window's first dword. VSA
+       keeps the audio PRD tables in the window. */
+    mem_mapping_set_mask(&dev->smm_mapping, 0x1ffff);
     mem_mapping_disable(&dev->smm_mapping);
 
     gxm_dimms_init(dev);
