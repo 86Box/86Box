@@ -1266,7 +1266,11 @@ build_link_routine(codeblock_t *block)
     rx_rr(block, 0, 1, 0x85, REG_R15, REG_R15);
     miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
 
-    /*Target not freed or changed since the slot was filled. RDI = it*/
+    /*Target not freed or changed since the slot was filled. RDI = it.
+      Whether codeblock_hash[] still points to it is not checked: if not, the
+      C loop would take another block compiled for the same cs:pc and status,
+      or find this one in the tree, and either runs the same code. A flush
+      that would keep the loop from looking changes link_gen.*/
     rx_rm(block, 0, 1, 0x8b, REG_RDI, REG_RBX, LINK_SLOT(block));
     rx_rm(block, 0, 0, 0x8b, REG_R9, REG_RDI, LINK_BLOCK(link_gen));
     rx_rm(block, 0, 0, 0x3b, REG_R9, REG_RBX, LINK_SLOT(gen));
@@ -1383,12 +1387,7 @@ build_link_routine(codeblock_t *block)
     rx_rr(block, 0, 1, 0x85, REG_RDX, REG_RDX);
     miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
 
-    /*The block lookup and the checks made before running it*/
-    rx_rm(block, 0, 1, 0x8b, REG_RDX, REG_RBX, LINK_SLOT(hash));
-    rx_rm(block, 0, 0, 0x8b, REG_RDX, REG_RDX, 0);
-    rx_rm(block, 0, 0, 0x8b, REG_RCX, REG_RBX, LINK_SLOT(block_nr));
-    rx_rr(block, 0, 0, 0x39, REG_RCX, REG_RDX); /*CMP EDX, ECX*/
-    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    /*The checks made before running the block*/
     rx_rm(block, 0, 1, 0x8b, REG_RDX, REG_RBX, LINK_SLOT(dirty_mask));
     rx_rm(block, 0, 1, 0x8b, REG_RDX, REG_RDX, 0);
     rx_rm(block, 0, 1, 0x85, REG_RDX, REG_RBX, LINK_SLOT(page_mask));
