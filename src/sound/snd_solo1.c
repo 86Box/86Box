@@ -14,7 +14,6 @@
  */
 
 #include <stdint.h>
-#include <86box/machine.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -974,12 +973,7 @@ solo1_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             break;
 
         case 0x3c:
-            if (dev->onboard && !strcmp(machine_get_internal_name(), "5smm"))
-			    /* Correctly route the GA-5SMM to use independent PCI/SB IRQ. */
-                dev->pci_regs[addr] = pci_get_irq_line(dev->pci_slot, PCI_INTA);
-            else
-				/* Continue to force the rest to IRQ5 for now until fixed. */
-                dev->pci_regs[addr] = dev->onboard ? 0x05 : val;
+            dev->pci_regs[addr] = val;
             break;
 
         case 0x40:
