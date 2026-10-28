@@ -1371,8 +1371,10 @@ typedef struct r128_gpu_t {
     /* tris writing a staged (AGP) color / Z render target */
     uint64_t st_cov_cstg, st_cov_zstg;
     uint64_t st_cov_affine; /* textured tris with the persp divide off  */
-    /* line/point primitives routed through the tri decomposition; gpu =
-       both half-tris captured, cpu = at least one half fell back */
+    /* line and point submits by outcome, [1] on the GPU lane and [0] on
+       the CPU: a line is one draw record walked by the line rasterizer;
+       a point is the interpreter's two triangles, [1] when both were
+       captured and [0] when at least one fell back */
     uint64_t st_cov_line[2], st_cov_point[2];
     uint64_t st_cov_affine_lod; /* affine tris that also consume per-pixel
                                    LOD (raw screen-space gradients) */
@@ -1527,9 +1529,13 @@ typedef struct r128_gpu_t {
     /* runs flagged row-alias: a span reached past the surface pitch
        (capture_run_bounds) */
     uint64_t st_rowalias;
-    /* shape split of st_fallback: line/point submits have no GPU path
-       and always route through the guard; the tri-shaped remainder is
-       kern<0 + toobig + alias rejects */
+    /* shape split of st_fallback: lines the GPU lane refused (a line is
+       one draw record walked by the line rasterizer, and a refused one
+       is drawn by the CPU line walk) and points that reached the guard
+       as points, which none does: a point goes through the triangle
+       path as its two triangles (gpu_submit_prim_tris), so a refused
+       point counts as triangles and st_fb_point stays 0. The tri-shaped
+       remainder is kern<0 + toobig + alias rejects. */
     uint64_t st_fb_line, st_fb_point;
     /* row-span width shape: wide = parent rows wider than the 256px
        workgroup chunk, px = their pixel share of st_px_total */
@@ -3266,9 +3272,10 @@ gpu_stage_why(const r128_gpu_t *g, const rage128_raster_state_t *rs, int st)
     const r3d_stage_hdr_t *h  = &rs->d.sh[st];
     const uint32_t        *so = st ? rs->sec_stage_off : rs->prim_stage_off;
 
-    /* every datatype the interpreter decodes. 10 (CI16) and 13 stay on
-       the CPU path, where the interpreter has no decoder for them either
-       and samples them as opaque white */
+    /* every datatype the interpreter decodes except 13 (alpha and
+       intensity 8:8), which the GPU kernels do not decode and which
+       stays on the CPU path. 10 (CI16) stays there too: the interpreter
+       has no decoder for it either and samples it as opaque white */
     if (!(h->dt == 4 || h->dt == 15 || h->dt == 6
           || h->dt == 1 || h->dt == 2 || h->dt == 3
           || h->dt == 5 || h->dt == 7 || h->dt == 8 || h->dt == 9
