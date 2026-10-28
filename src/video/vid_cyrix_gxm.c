@@ -106,6 +106,7 @@ gxm_video_log(const char *fmt, ...)
 #define TC_VINT        (1 << 31)
 #define TC_VNA         (1 << 30)
 #define TC_DNA         (1 << 29)
+#define TC_BKRT        (1 << 16)
 #define TC_PXDB        (1 << 15)
 #define TC_PLNR        (1 << 13)
 #define TC_BLNK        (1 << 7)
@@ -978,6 +979,11 @@ gxm_render_cursor(gxm_video_t *dev, uint32_t *line, int y)
     if (!(dev->dc[DC_GENERAL_CFG] & GC_CURE))
         return;
 
+    /* SoftVGA sets BLNK in text modes for the VGA cursor blink: on for 8 of
+       every 16 frames, or 16 of 32 with BKRT. */
+    if ((dev->dc[DC_TIMING_CFG] & TC_BLNK) && (dev->blink & ((dev->dc[DC_TIMING_CFG] & TC_BKRT) ? 16 : 8)))
+        return;
+
     row = y - cy;
     if ((row < 0) || ((row + yo) >= 32))
         return;
@@ -1013,6 +1019,12 @@ gxm_render_line(gxm_video_t *dev, int y)
     const int bpp16  = !(dev->dc[DC_OUTPUT_CFG] & OC_8BPP);
     const int ch4s   = !!(dev->dc[DC_GENERAL_CFG] & GC_CH4S);
     const int planar = !!(dev->dc[DC_TIMING_CFG] & TC_PLNR);
+    /* Character blink: SoftVGA draws a blinking character's foreground as
+       80h | bg << 4 | fg, and loads the upper palette half with the
+       background colours. Bit 7 is ignored for 16 of every 32 frames (32 of
+       64 with BKRT). */
+    const int pmask  = ((dev->dc[DC_TIMING_CFG] & TC_BLNK) &&
+                        !(dev->blink & ((dev->dc[DC_TIMING_CFG] & TC_BKRT) ? 32 : 16))) ? 0x7f : 0xff;
     uint32_t  addr   = dev->ma;
     int       x      = 0;
 
@@ -1043,7 +1055,7 @@ gxm_render_line(gxm_video_t *dev, int y)
             n     = 1;
             addr += 2;
         } else {
-            px[0] = dev->pal_rgb[*gxm_gmem(dev, addr)];
+            px[0] = dev->pal_rgb[*gxm_gmem(dev, addr) & pmask];
             n     = 1;
             /* Chain 4: the pixels are in every fourth dword. */
             addr += (ch4s && ((addr & 3) == 3)) ? 13 : 1;
