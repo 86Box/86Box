@@ -1019,12 +1019,16 @@ gxm_render_line(gxm_video_t *dev, int y)
     const int bpp16  = !(dev->dc[DC_OUTPUT_CFG] & OC_8BPP);
     const int ch4s   = !!(dev->dc[DC_GENERAL_CFG] & GC_CH4S);
     const int planar = !!(dev->dc[DC_TIMING_CFG] & TC_PLNR);
-    /* Character blink: SoftVGA draws a blinking character's foreground as
-       80h | bg << 4 | fg, and loads the upper palette half with the
-       background colours. Bit 7 is ignored for 16 of every 32 frames (32 of
-       64 with BKRT). */
-    const int pmask  = ((dev->dc[DC_TIMING_CFG] & TC_BLNK) &&
-                        !(dev->blink & ((dev->dc[DC_TIMING_CFG] & TC_BKRT) ? 32 : 16))) ? 0x7f : 0xff;
+    /* Blink, 16 of every 32 frames shown (32 of 64 with BKRT). Text: SoftVGA
+       draws a blinking character's foreground as 80h | bg << 4 | fg and loads
+       the upper palette half with the background colours, so bit 7 is
+       ignored while shown. Planar: a pixel has no bit 7, so it is set while
+       hidden; SoftVGA's upper half then blinks the pixels with plane 2 set
+       and plane 0 clear to colour 0, as mode 0Fh does on a VGA. */
+    const int blnk   = !!(dev->dc[DC_TIMING_CFG] & TC_BLNK);
+    const int hidden = blnk && (dev->blink & ((dev->dc[DC_TIMING_CFG] & TC_BKRT) ? 32 : 16));
+    const int pmask  = (blnk && !hidden) ? 0x7f : 0xff;
+    const int pblink = hidden ? 0x80 : 0x00;
     uint32_t  addr   = dev->ma;
     int       x      = 0;
 
@@ -1045,7 +1049,7 @@ gxm_render_line(gxm_video_t *dev, int y)
             for (int i = 0; i < 8; i++) {
                 const int sh = 7 - i;
 
-                px[i] = dev->pal_rgb[((dw >> sh) & 1) | (((dw >> (8 + sh)) & 1) << 1) |
+                px[i] = dev->pal_rgb[pblink | ((dw >> sh) & 1) | (((dw >> (8 + sh)) & 1) << 1) |
                                      (((dw >> (16 + sh)) & 1) << 2) | (((dw >> (24 + sh)) & 1) << 3)];
             }
             n = 8;
