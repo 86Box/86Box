@@ -171,12 +171,23 @@ solo1_a2_transfer_reload_bytes(const solo1_t *dev)
     return n;
 }
 
+/* INTA carries every source the IRQ mask (IOBase+7) lets through: Audio 2,
+   and unless serial IRQ is on (LACR bit 14), Audio 1 and the MPU-401 too,
+   which otherwise go out on their own ISA IRQ's. Audio 1 is also let through
+   while legacy audio is decoded (LACR bit 15 clear). */
 static void
 solo1_update_irq(solo1_t *dev)
 {
-    const int a2_enabled = !!(dev->mixer_regs[0x7a] & 0x40);
-    const int io_enabled = !!(dev->io_regs[0x07] & 0x20);
-    const int active = dev->a2_irq_pending && a2_enabled && io_enabled;
+    const uint8_t imr    = dev->io_regs[0x07];
+    const uint8_t legacy = ess_solo1_legacy_irq_status(dev->legacy);
+    int           active = dev->a2_irq_pending && (dev->mixer_regs[0x7a] & 0x40) && (imr & 0x20);
+
+    if (!(dev->pci_regs[0x41] & 0x40)) {
+        if ((legacy & 0x10) && ((imr & 0x10) || !(dev->pci_regs[0x41] & 0x80)))
+            active = 1;
+        if ((legacy & 0x80) && (imr & 0x80))
+            active = 1;
+    }
 
     if (active)
         pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
@@ -185,6 +196,12 @@ solo1_update_irq(solo1_t *dev)
 }
 
 static void solo1_a2_cache_invalidate(solo1_t *dev);
+
+static void
+solo1_legacy_irq(void *priv, UNUSED(int set))
+{
+    solo1_update_irq((solo1_t *) priv);
+}
 
 static void
 solo1_a2_reload_dma(solo1_t *dev)
@@ -867,6 +884,11 @@ solo1_update_legacy(solo1_t *dev)
     const int      gp_enable = legacy_enable && (lacr_lo & 0x04);
     const int      mpu_enable = legacy_enable && (lacr_lo & 0x08);
     const int      mpu_irq_enable = legacy_enable && (lacr_lo & 0x10);
+    const int      serial_irq = !!(lacr_hi & 0x40);
+
+    /* Without serial IRQ, the legacy interrupts share the INTA pin; the IRQ's
+       in LACR only say which IRQ software is to expect them on. */
+    ess_solo1_legacy_irq_attach(dev->legacy, serial_irq ? NULL : solo1_legacy_irq, dev);
 
     /* Legacy resources */
     ess_solo1_legacy_config(dev->legacy,
@@ -877,10 +899,11 @@ solo1_update_legacy(solo1_t *dev)
                             mpu_base,
                             mpu_enable,
                             sb_irq,
-                            mpu_irq_enable ? mpu_irq : -1,
+                            (serial_irq && mpu_irq_enable) ? mpu_irq : -1,
                             dma,
                             gp_enable ? 0x0200 : 0);
 
+    solo1_update_irq(dev);
 }
 
 static void
