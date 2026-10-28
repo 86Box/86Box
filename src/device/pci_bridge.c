@@ -230,10 +230,8 @@ pci_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 val &= 0x0c;
             else if (AGP_BRIDGE_SIS(dev->local))
                 val &= 0x0e;
-            else if (dev->local == AGP_BRIDGE_ALI_M5247)
+            else if (AGP_BRIDGE_ALI(dev->local))
                 val &= 0x0f;
-            else if (dev->local == AGP_BRIDGE_ALI_M5243)
-                return;
             else if (AGP_BRIDGE(dev->local)) {
                 if ((dev->local == AGP_BRIDGE_INTEL_440BX) || (dev->local == AGP_BRIDGE_INTEL_440GX))
                     val &= 0xed;
