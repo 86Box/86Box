@@ -405,7 +405,12 @@ solo1_native_io_read(uint16_t addr, void *priv)
         case 0x05: ret = (uint8_t) (dev->a2_cur_count >> 8); break;
         case 0x06: ret = dev->io_regs[0x06]; break;
         case 0x07:
-            ret = dev->io_regs[0x07] & 0xf0;
+            /* Bits 7-4 written are the interrupt enables (MPU-401, hardware
+               volume, Audio 2, Audio 1); read, they are which of those are
+               requesting. Drivers write F0h, then claim an interrupt for every
+               bit they read back, so returning the enables made them claim
+               every interrupt on a shared line and starve the other devices. */
+            ret = ess_solo1_legacy_irq_status(dev->legacy);
             if (dev->a2_irq_pending)
                 ret |= 0x20;
             break;

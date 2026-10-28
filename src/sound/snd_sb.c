@@ -7442,6 +7442,27 @@ ess_solo1_legacy_audio2_gain(void *priv, int channel)
     return source * master;
 }
 
+/* The Audio 1 (SB) and MPU-401 halves of the Solo-1's IRQ status
+   (IOBase+7 bits 4 and 7): set while the source is requesting. The MPU-401
+   requests while it has data for the host, as MPU401_ReadRaiseIRQ() drives
+   its line; irq_pending is not cleared by reads in UART mode. */
+uint8_t
+ess_solo1_legacy_irq_status(void *priv)
+{
+    const sb_t *ess = (const sb_t *) priv;
+    uint8_t     ret = 0x00;
+
+    if (ess == NULL)
+        return ret;
+
+    if (ess->dsp.sb_irq8 || ess->dsp.sb_irq16)
+        ret |= 0x10;
+    if ((ess->mpu != NULL) && ess->mpu->queue_used)
+        ret |= 0x80;
+
+    return ret;
+}
+
 uint8_t
 ess_solo1_legacy_mpu_read(void *priv, uint16_t addr)
 {

@@ -308,6 +308,7 @@ extern void    ess_solo1_legacy_config(void *priv, uint16_t sb_addr, int sb_enab
 extern uint8_t ess_solo1_legacy_fm_read(void *priv, uint16_t addr);
 extern void    ess_solo1_legacy_fm_write(void *priv, uint16_t addr, uint8_t val);
 extern void    ess_solo1_legacy_mixer_write(void *priv, uint8_t index, uint8_t val);
+extern uint8_t ess_solo1_legacy_irq_status(void *priv);
 extern uint8_t ess_solo1_legacy_mpu_read(void *priv, uint16_t addr);
 extern void    ess_solo1_legacy_mpu_write(void *priv, uint16_t addr, uint8_t val);
 extern void    ess_solo1_legacy_close(void *priv);
