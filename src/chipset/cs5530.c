@@ -52,6 +52,7 @@
 #include <86box/port_92.h>
 #include <86box/usb.h>
 #include <86box/sound.h>
+#include <86box/midi.h>
 #include <86box/snd_ac97.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
@@ -185,6 +186,20 @@ typedef struct cs5530_t {
     int        abm_pos;
     mem_mapping_t f3_mapping;
     void    *audio_trap[AT_TRAPS];
+
+    /* The board's MIDI UART, at the Sound Blaster base (see
+       cs5530_midi_uart_read()). */
+    uint16_t midi_base;
+    uint8_t  midi_ier;
+    uint8_t  midi_lcr;
+    uint8_t  midi_mcr;
+    uint8_t  midi_scr;
+    uint16_t midi_dl;
+    uint8_t  midi_rx[256];
+    uint8_t  midi_rx_r;
+    uint8_t  midi_rx_w;
+    int      midi_rx_count;
+    int      midi_sysex;
 
     /* F4. */
     uint32_t f4_regs[11];
@@ -894,6 +909,10 @@ cs5530_audio_fast_read(uint16_t port, void *priv)
 {
     const cs5530_t *dev = (cs5530_t *) priv;
 
+    /* SMM's cycles are not trapped: in SMM 2x0h-2x3h is the MIDI UART. */
+    if (in_smm)
+        return 0xff;
+
     /* An ISA cycle, as the OPL's own status read: the drivers time VSA's
        emulated FM timers by polling it. */
     cycles -= ISA_CYCLES(8);
@@ -901,6 +920,148 @@ cs5530_audio_fast_read(uint16_t port, void *priv)
     /* F3BAR+18h[10:9] are the OPL's timer flags, T1 and T2 (VSA sets bit 10
        as timer 1 starts); the status has IRQ (bit 7) with either. */
     return ((dev->io_trap_enable & 0x0400) ? 0xc0 : 0x00) | ((dev->io_trap_enable & 0x0200) ? 0xa0 : 0x00);
+}
+
+/* VSA's MPU-401 UART mode talks to a 16550 at the Sound Blaster base
+   (GXM55303 VSA: the base comes from its Sound Blaster table at DS:2E0h,
+   status 331h from LSR bits 0 and 6, data through RBR/THR); the CS5530
+   has none, so the board has to (the P5GX-M's MIDI port works). Outside
+   SMM the CS5530 claims those trapped cycles, so only VSA reaches it.
+   Without it the bus floats, LSR reads FFh, and the MPU-401 always has
+   input: the NT 4.0 driver's ISR then only services the MPU. VSA programs
+   no baud rate, so only the data path, LSR and the scratch registers are
+   modelled. */
+static uint8_t
+cs5530_midi_uart_read(uint16_t port, void *priv)
+{
+    cs5530_t *dev = (cs5530_t *) priv;
+    uint8_t   ret = 0xff;
+
+    if (!in_smm)
+        return ret;
+
+    switch (port & 7) {
+        case 0:
+            if (dev->midi_lcr & 0x80)
+                ret = dev->midi_dl & 0xff;
+            else if (dev->midi_rx_count) {
+                ret = dev->midi_rx[dev->midi_rx_r++];
+                dev->midi_rx_count--;
+            } else
+                ret = 0x00;
+            break;
+        case 1:
+            ret = (dev->midi_lcr & 0x80) ? (dev->midi_dl >> 8) : dev->midi_ier;
+            break;
+        case 2:
+            ret = 0x01;
+            break;
+        case 3:
+            ret = dev->midi_lcr;
+            break;
+        case 4:
+            ret = dev->midi_mcr;
+            break;
+        case 5:
+            /* The transmitter is always empty: the byte goes out at once. */
+            ret = 0x60 | (dev->midi_rx_count ? 0x01 : 0x00);
+            break;
+        case 6:
+            ret = 0x00;
+            break;
+        case 7:
+            ret = dev->midi_scr;
+            break;
+
+        default:
+            break;
+    }
+
+    return ret;
+}
+
+static void
+cs5530_midi_uart_write(uint16_t port, uint8_t val, void *priv)
+{
+    cs5530_t *dev = (cs5530_t *) priv;
+
+    if (!in_smm)
+        return;
+
+    switch (port & 7) {
+        case 0:
+            if (dev->midi_lcr & 0x80)
+                dev->midi_dl = (dev->midi_dl & 0xff00) | val;
+            else
+                midi_raw_out_byte(val);
+            break;
+        case 1:
+            if (dev->midi_lcr & 0x80)
+                dev->midi_dl = (dev->midi_dl & 0x00ff) | (val << 8);
+            else
+                dev->midi_ier = val & 0x0f;
+            break;
+        case 3:
+            dev->midi_lcr = val;
+            break;
+        case 4:
+            dev->midi_mcr = val & 0x1f;
+            break;
+        case 7:
+            dev->midi_scr = val;
+            break;
+
+        default:
+            break;
+    }
+}
+
+static void
+cs5530_midi_uart_rx(cs5530_t *dev, uint8_t val)
+{
+    if (dev->midi_rx_count < 256) {
+        dev->midi_rx[dev->midi_rx_w++] = val;
+        dev->midi_rx_count++;
+    }
+}
+
+static void
+cs5530_midi_input_msg(void *priv, uint8_t *msg, uint32_t len)
+{
+    cs5530_t *dev = (cs5530_t *) priv;
+
+    if (dev->midi_sysex)
+        return;
+
+    for (uint32_t i = 0; i < len; i++)
+        cs5530_midi_uart_rx(dev, msg[i]);
+}
+
+static int
+cs5530_midi_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
+{
+    cs5530_t *dev = (cs5530_t *) priv;
+
+    if (abort) {
+        dev->midi_sysex = 0;
+        return 0;
+    }
+    dev->midi_sysex = 1;
+    for (uint32_t i = 0; i < len; i++) {
+        if (dev->midi_rx_count >= 256)
+            return (int) (len - i);
+        cs5530_midi_uart_rx(dev, buffer[i]);
+    }
+    dev->midi_sysex = 0;
+    return 0;
+}
+
+static int
+cs5530_midi_input_remain(void *priv)
+{
+    const cs5530_t *dev = (cs5530_t *) priv;
+
+    return 256 - dev->midi_rx_count;
 }
 
 static void
@@ -915,6 +1076,15 @@ cs5530_audio_traps_recalc(cs5530_t *dev)
     for (int i = 0; i < AT_TRAPS; i++) {
         if (dev->audio_trap[i] == NULL)
             dev->audio_trap[i] = io_trap_add(cs5530_audio_trap, (void *) (intptr_t) i);
+    }
+
+    if (dev->midi_base != sb) {
+        if (dev->midi_base)
+            io_removehandler(dev->midi_base, 8, cs5530_midi_uart_read, NULL, NULL,
+                             cs5530_midi_uart_write, NULL, NULL, dev);
+        dev->midi_base = sb;
+        io_sethandler(dev->midi_base, 8, cs5530_midi_uart_read, NULL, NULL,
+                      cs5530_midi_uart_write, NULL, NULL, dev);
     }
 
     io_trap_remap(dev->audio_trap[AT_SB], !!(en & 0x0004), sb, 0x10);
@@ -1944,6 +2114,9 @@ cs5530_close(void *priv)
     for (int i = 0; i < AT_TRAPS; i++)
         if (dev->audio_trap[i] != NULL)
             io_trap_remove(dev->audio_trap[i]);
+    if (dev->midi_base)
+        io_removehandler(dev->midi_base, 8, cs5530_midi_uart_read, NULL, NULL,
+                         cs5530_midi_uart_write, NULL, NULL, dev);
     for (uint16_t port = 0x000; port < 0x010; port++)
         io_set_claim(port, NULL, NULL);
     for (uint16_t port = 0x0c0; port < 0x0e0; port++)
@@ -2003,6 +2176,7 @@ cs5530_init(UNUSED(const device_t *info))
     timer_add(&dev->acpi_timer, cs5530_acpi_timer, dev, 0);
     timer_add(&dev->abm_timer, cs5530_abm_timer, dev, 0);
     sound_add_handler(cs5530_abm_get_buffer, dev);
+    midi_in_handler(1, cs5530_midi_input_msg, cs5530_midi_input_sysex, cs5530_midi_input_remain, dev);
     timer_set_delay_u64(&dev->acpi_timer, (uint64_t) ((double) TIMER_USEC * 8388608.0 * 1000000.0 / ACPI_TIMER_FREQ));
 
     /* ELCR, 4D0h-4D1h. */
