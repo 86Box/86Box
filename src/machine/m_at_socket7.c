@@ -2871,7 +2871,7 @@ machine_at_p5gxm_init(const machine_t *model)
     device_add(&cyrix_gxm_device);
     device_add(&cs5530_device);
     device_add_params(&pc87307_device, (void *) (PCX730X_15C | PCX730X_AMI | PCX7307_PC97317));
-    device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT_MB);
+    device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_PC873XX);
     device_add(&sst_flash_29ee020_device);
 
     return ret;
