@@ -469,7 +469,7 @@ opPMULHRW(UNUSED(uint32_t fetchdat))
         src.l[0] = readmeml(easeg, cpu_state.eaaddr);
         src.l[1] = readmeml(easeg, cpu_state.eaaddr + 4);
         if (cpu_state.abrt)
-            return 0;
+            return 1;
         dst->w[0] = ((int32_t) (dst->sw[0] * (int32_t) src.sw[0]) + 0x8000) >> 16;
         dst->w[1] = ((int32_t) (dst->sw[1] * (int32_t) src.sw[1]) + 0x8000) >> 16;
         dst->w[2] = ((int32_t) (dst->sw[2] * (int32_t) src.sw[2]) + 0x8000) >> 16;
