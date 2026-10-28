@@ -1279,7 +1279,7 @@ cs5530_f4_writel(uint32_t addr, uint32_t val, void *priv)
             gxm_video_set_display(gxm_video, dev->f4_regs[1], dev->gamma);
             break;
         case 0x24:
-            dev->f4_regs[0x24 >> 2] = val & 0xdffff707;
+            dev->f4_regs[0x24 >> 2] = val & 0xdfffff07;
             gxm_video_set_dotclock(gxm_video, cs5530_dotclock(dev));
             break;
         case 0x28:

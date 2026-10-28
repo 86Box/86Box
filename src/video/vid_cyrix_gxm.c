@@ -96,6 +96,7 @@ gxm_video_log(const char *fmt, ...)
 #define BS_16BPP       (1 << 8)
 
 /* DC_GENERAL_CFG (Table 4-31). */
+#define GC_DDCK        (1 << 31)
 #define GC_SSLC        (1 << 27)
 #define GC_CH4S        (1 << 26)
 #define GC_LDBL        (1 << 24)
@@ -1179,6 +1180,22 @@ gxm_recalctimings(gxm_video_t *dev)
         dev->vsyncend   = 492;
     }
 
+    /* DCLK_MUL divides the DCLK pin into the internal DOTCLK: 01 halves it,
+       10 and 11 pass it, 00 forces it low (the GX1 book; the GXm book's
+       1x/2x/4x is wrong, VSA programs twice the dot clock with 01). DDCK
+       halves it again. */
+    switch ((dev->dc[DC_GENERAL_CFG] >> 6) & 3) {
+        case 0:
+            clock = 0.0;
+            break;
+        case 1:
+            clock /= 2.0;
+            break;
+        default:
+            break;
+    }
+    if (dev->dc[DC_GENERAL_CFG] & GC_DDCK)
+        clock /= 2.0;
     if (clock < 1000000.0)
         clock = 25175000.0;
 
@@ -1260,6 +1277,11 @@ gxm_dc_write(uint32_t addr, uint32_t val, uint32_t mask, void *priv)
             /* A monitor is on the DACs: SENS high. */
             dev->dc[reg] |= (1 << 28);
             if ((old ^ val) & TC_TGEN)
+                gxm_recalctimings(dev);
+            break;
+        case DC_GENERAL_CFG:
+            dev->dc[reg] = val;
+            if ((old ^ val) & (GC_DDCK | (3 << 6)))
                 gxm_recalctimings(dev);
             break;
         case DC_V_LINE_CNT:
