@@ -913,6 +913,7 @@ static void
 s3_virge_recalctimings(svga_t *svga)
 {
     virge_t *virge = (virge_t *) svga->priv;
+    int   enhanced_8bpp_modes = 0;
 
     svga->hdisp = svga->hdisp_old;
 
@@ -1192,7 +1193,21 @@ s3_virge_recalctimings(svga_t *svga)
         svga->vram_display_mask = virge->vram_mask;
     }
 
-    svga->hoverride = 1;
+    enhanced_8bpp_modes = !!((svga->crtc[0x3a] & 0x10) && !svga->lowres);
+
+    const int is_vga_mode = ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) <= 0x20));
+    svga->hoverride = !is_vga_mode;
+
+    if (is_vga_mode) {
+        svga->hoverride = 0;
+        /* Preserve the first character when blanking ends at line rollover.
+           A zero end value can also match before rollover on longer lines. */
+        if (enhanced_8bpp_modes || ((svga->hblank_end_val == 0) &&
+                                   ((svga->hblankstart + 1) == svga->hdisp_time) &&
+                                   ((svga->hblankstart >> 6) == ((svga->htotal - 1) >> 6))))
+            svga->hoverride = 1;
+    } else
+        svga->hoverride = 1;
 
     if (svga->render == svga_render_2bpp_lowres)
         svga->render = svga_render_2bpp_s3_lowres;
