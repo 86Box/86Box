@@ -51,6 +51,7 @@
 #include <86box/pic.h>
 #include <86box/port_92.h>
 #include <86box/usb.h>
+#include <86box/sound.h>
 #include <86box/snd_ac97.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
@@ -93,8 +94,14 @@ cs5530_log(const char *fmt, ...)
 #define GEN_UDEF1       (1 << 2)
 #define GEN_PCI_TRAP    (1 << 5)
 
-/* Second level audio, F3BAR+10h/12h. */
+/* Second level audio, F3BAR+10h/12h; the bus masters' are 2-7. */
 #define AUD_IO_TRAP     (1 << 0)
+#define AUD_BM(n)       (4 << (n))
+
+/* The audio bus masters' PRD flags (Table 3-64). */
+#define PRD_EOT         (1U << 31)
+#define PRD_EOP         (1U << 30)
+#define PRD_JMP         (1U << 29)
 
 /* I/O trap status, F3BAR+14h. */
 #define IOT_WRITE       (1 << 14)
@@ -162,6 +169,20 @@ typedef struct cs5530_t {
     uint8_t  abm_smi[6];
     uint32_t abm_prd[6];
     ac97_codec_t *codec;
+
+    /* The audio bus masters' engines: the region of the PRD being moved, a
+       frame (32 bits on 0 and 1, 16 on the others) each codec sample. */
+    struct {
+        uint32_t addr;
+        uint32_t count;
+        uint32_t flags;
+        int      loaded;
+    } abm[6];
+    pc_timer_t abm_timer;
+    int32_t    abm_out_l;
+    int32_t    abm_out_r;
+    int32_t    abm_buffer[SOUNDBUFLEN * 2];
+    int        abm_pos;
     mem_mapping_t f3_mapping;
     void    *audio_trap[AT_TRAPS];
 
@@ -642,6 +663,159 @@ cs5530_internal_irq_update(cs5530_t *dev)
     dev->irq_level = level;
 }
 
+/* The audio bus masters (3.7.1.1-3.7.1.4). 0, 2 and 4 read memory to the
+   codec, 1, 3 and 5 write what it captures (silence here); 0 and 1 move a
+   32-bit frame, left and right, the others 16 bits. */
+static void
+cs5530_abm_update_buffer(cs5530_t *dev)
+{
+    int l;
+    int r;
+    int master_l;
+    int master_r;
+    int pcm_l;
+    int pcm_r;
+
+    ac97_codec_getattn(dev->codec, 0x02, &master_l, &master_r);
+    ac97_codec_getattn(dev->codec, 0x18, &pcm_l, &pcm_r);
+
+    l = (int) ((((((int64_t) dev->abm_out_l) * pcm_l) >> 15) * master_l) >> 15);
+    r = (int) ((((((int64_t) dev->abm_out_r) * pcm_r) >> 15) * master_r) >> 15);
+    if (l < -32768)
+        l = -32768;
+    else if (l > 32767)
+        l = 32767;
+    if (r < -32768)
+        r = -32768;
+    else if (r > 32767)
+        r = 32767;
+
+    for (; dev->abm_pos < sound_pos_global; dev->abm_pos++) {
+        dev->abm_buffer[dev->abm_pos * 2]     = l;
+        dev->abm_buffer[dev->abm_pos * 2 + 1] = r;
+    }
+}
+
+static void
+cs5530_abm_get_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    cs5530_t *dev = (cs5530_t *) priv;
+
+    cs5530_abm_update_buffer(dev);
+
+    for (uint16_t c = 0; c < len * 2; c++)
+        buffer[c] += dev->abm_buffer[c];
+
+    dev->abm_pos = 0;
+}
+
+/* The next PRD, through its table address, which then points past it. A JMP
+   moves no data: the table goes on at its base address. */
+static void
+cs5530_abm_load(cs5530_t *dev, int bm)
+{
+    uint32_t prd[2];
+
+    dev->abm[bm].loaded = 0;
+    for (int jumps = 0; jumps < 16; jumps++) {
+        dma_bm_read(dev->abm_prd[bm], (uint8_t *) prd, 8, 4);
+        if (prd[1] & PRD_JMP) {
+            dev->abm_prd[bm] = prd[0] & 0xfffffffc;
+            continue;
+        }
+
+        dev->abm_prd[bm] += 8;
+        dev->abm[bm].addr   = prd[0] & 0xfffffffe;
+        dev->abm[bm].count  = (prd[1] & 0xfffe) ? (prd[1] & 0xfffe) : 0x10000;
+        dev->abm[bm].flags  = prd[1];
+        dev->abm[bm].loaded = 1;
+        return;
+    }
+}
+
+static void
+cs5530_abm_frame(cs5530_t *dev, int bm)
+{
+    const uint32_t size = (bm < 2) ? 4 : 2;
+    uint32_t       frame = 0;
+
+    /* Off, out of PRDs, or paused on a second EOP until 21h is read. */
+    if (!(dev->abm_cmd[bm] & 0x01) || !dev->abm[bm].loaded || (dev->abm_smi[bm] & 0x02))
+        return;
+
+    if (dev->abm_cmd[bm] & 0x08)
+        dma_bm_write(dev->abm[bm].addr, (uint8_t *) &frame, size, size);
+    else {
+        dma_bm_read(dev->abm[bm].addr, (uint8_t *) &frame, size, size);
+        if (bm == 0) {
+            /* Slot 3, left, is the high word: the frame goes out on the
+               AC-link MSB first (VSA puts an SB16's left sample there). */
+            dev->abm_out_l = (int16_t) (frame >> 16);
+            dev->abm_out_r = (int16_t) (frame & 0xffff);
+        }
+    }
+
+    dev->abm[bm].addr += size;
+    dev->abm[bm].count = (dev->abm[bm].count > size) ? (dev->abm[bm].count - size) : 0;
+    if (dev->abm[bm].count)
+        return;
+
+    if (dev->abm[bm].flags & PRD_EOP) {
+        if (dev->abm_smi[bm] & 0x01)
+            dev->abm_smi[bm] |= 0x02;
+        else {
+            dev->abm_smi[bm] |= 0x01;
+            cs5530_smi(dev, TOP_AUDIO);
+        }
+    }
+
+    if (dev->abm[bm].flags & PRD_EOT)
+        dev->abm[bm].loaded = 0;
+    else
+        cs5530_abm_load(dev, bm);
+}
+
+static void
+cs5530_abm_timer(void *priv)
+{
+    cs5530_t *dev = (cs5530_t *) priv;
+    double    freq;
+    int       on = 0;
+
+    cs5530_abm_update_buffer(dev);
+
+    for (int bm = 0; bm < 6; bm++) {
+        cs5530_abm_frame(dev, bm);
+        on |= dev->abm_cmd[bm] & 0x01;
+    }
+
+    if (!(dev->abm_cmd[0] & 0x01) || !dev->abm[0].loaded)
+        dev->abm_out_l = dev->abm_out_r = 0;
+
+    if (on) {
+        freq = (double) ac97_codec_getrate(dev->codec, 0x2c);
+        if (freq < 1.0)
+            freq = (double) SOUND_FREQ;
+        timer_advance_u64(&dev->abm_timer, (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq)));
+    }
+}
+
+/* A command register write: enabling loads the first PRD. */
+static void
+cs5530_abm_command(cs5530_t *dev, int bm, uint8_t val)
+{
+    const uint8_t old = dev->abm_cmd[bm];
+
+    dev->abm_cmd[bm] = val & 0x09;
+
+    if ((val & 0x01) && !(old & 0x01)) {
+        cs5530_abm_load(dev, bm);
+        if (!timer_is_on(&dev->abm_timer))
+            timer_set_delay_u64(&dev->abm_timer, TIMER_USEC);
+    } else if (!(val & 0x01))
+        dev->abm[bm].loaded = 0;
+}
+
 /* The audio I/O traps: an SMI, the cycle's address and direction in
    F3BAR+14h. With fast path write, a write to the even ports of the Sound
    Blaster and the FM chip is latched without an SMI, and the odd one takes
@@ -662,16 +836,27 @@ cs5530_audio_trap(uint16_t size, uint16_t port, uint8_t write, uint8_t val, void
     if ((trap == AT_SB) || (trap == AT_FM)) {
         const uint16_t reg = (trap == AT_FM) ? (port & 3) : (port & 0x0f);
 
+        /* Fast path read: 388h-38Bh, 2x0h-2x3h, 2x8h and 2x9h are answered
+           by cs5530_audio_fast_read(), with no SMI. */
+        if (!write && (cs5530->io_trap_enable & 0x0010) && ((trap == AT_FM) || (reg <= 3) || (reg == 8) || (reg == 9)))
+            return;
+
+        /* Fast path write: the FM pairs 388h/389h and 38Ah/38Bh and the
+           Sound Blaster's 2x0h-2x3h and 2x8h/2x9h. The data book lists 388h,
+           38Ah and 38Bh alone, but 389h is the data port of 388h's index:
+           VSA takes the OPL register from the even write's latch (31:24).
+           Bit 15 is A1 of the last fast path write. */
+        status |= cs5530->io_trap_status & 0x8000;
         if (write && (cs5530->io_trap_enable & 0x0800) &&
-            (((trap == AT_FM) && (reg != 1)) || ((trap == AT_SB) && ((reg == 0) || (reg == 2) || (reg == 8) || (reg == 1) || (reg == 3) || (reg == 9))))) {
+            ((trap == AT_FM) || (reg <= 3) || (reg == 8) || (reg == 9))) {
+            status = (status & ~0x8000) | ((port & 2) ? 0x8000 : 0);
             if (!(port & 1)) {
-                status = (status & 0x00ffffff) | ((uint32_t) val << 24);
-                cs5530->io_trap_status = status | (cs5530->io_trap_status & 0x8000) | ((port & 2) ? 0x8000 : 0);
+                cs5530->io_trap_status = (status & 0x00ffffff) | ((uint32_t) val << 24) | (cs5530->io_trap_status & 0x7fff);
                 return;
             }
-            status = (status & 0xff00ffff) | ((uint32_t) val << 16);
-            fast   = 1;
-        } else if (write)
+            fast = 1;
+        }
+        if (write)
             status = (status & 0xff00ffff) | ((uint32_t) val << 16);
 
         status |= fast ? IOT_SB_FAST : IOT_SB;
@@ -705,11 +890,17 @@ cs5530_dma_claim(uint16_t port, uint8_t write, uint8_t val, void *priv)
 
 /* Fast path read: the FM status, and the Sound Blaster's FM mirrors. */
 static uint8_t
-cs5530_audio_fast_read(UNUSED(uint16_t port), void *priv)
+cs5530_audio_fast_read(uint16_t port, void *priv)
 {
     const cs5530_t *dev = (cs5530_t *) priv;
 
-    return ((dev->io_trap_enable >> 9) & 3) << 6;
+    /* An ISA cycle, as the OPL's own status read: the drivers time VSA's
+       emulated FM timers by polling it. */
+    cycles -= ISA_CYCLES(8);
+
+    /* F3BAR+18h[10:9] are the OPL's timer flags, T1 and T2 (VSA sets bit 10
+       as timer 1 starts); the status has IRQ (bit 7) with either. */
+    return ((dev->io_trap_enable & 0x0400) ? 0xc0 : 0x00) | ((dev->io_trap_enable & 0x0200) ? 0xa0 : 0x00);
 }
 
 static void
@@ -752,6 +943,8 @@ cs5530_audio_traps_recalc(cs5530_t *dev)
     }
 }
 
+/* clear: the bytes of the dword the read covers, for the registers a read
+   clears (0 for a write's read-modify). */
 static uint32_t
 cs5530_f3_readl_internal(cs5530_t *dev, uint32_t addr, int clear)
 {
@@ -775,11 +968,22 @@ cs5530_f3_readl_internal(cs5530_t *dev, uint32_t addr, int clear)
         case 0x0c:
             ret = dev->codec_command;
             break;
-        case 0x10:
-            ret = dev->audio_smi | (dev->audio_smi << 16);
-            if (clear && !(addr & 2))
+        case 0x10: {
+            /* The bus master bits are their SMI Status registers' (21h, 29h...),
+               until those are read: VSA reads 21h before it clears this one
+               and checks the mirror after, so an EOP in between must still
+               show. The I/O trap and codec bits are latched here. */
+            uint16_t smi = dev->audio_smi;
+
+            for (int bm = 0; bm < 6; bm++) {
+                if (dev->abm_smi[bm])
+                    smi |= AUD_BM(bm);
+            }
+            ret = smi | ((uint32_t) smi << 16);
+            if (clear & 0x3)
                 dev->audio_smi = 0;
             break;
+        }
         case 0x14:
             ret = dev->io_trap_status;
             if (clear)
@@ -798,7 +1002,8 @@ cs5530_f3_readl_internal(cs5530_t *dev, uint32_t addr, int clear)
                 ret = dev->abm_prd[bm];
             else {
                 ret = dev->abm_cmd[bm] | (dev->abm_smi[bm] << 8);
-                if (clear && ((addr & 3) == 1))
+                /* The SMI status is byte 21h (+8 per master). */
+                if (clear & 0x2)
                     dev->abm_smi[bm] = 0;
             }
             break;
@@ -814,19 +1019,19 @@ cs5530_f3_readl_internal(cs5530_t *dev, uint32_t addr, int clear)
 static uint8_t
 cs5530_f3_read(uint32_t addr, void *priv)
 {
-    return cs5530_f3_readl_internal((cs5530_t *) priv, addr, 1) >> ((addr & 3) << 3);
+    return cs5530_f3_readl_internal((cs5530_t *) priv, addr, 1 << (addr & 3)) >> ((addr & 3) << 3);
 }
 
 static uint16_t
 cs5530_f3_readw(uint32_t addr, void *priv)
 {
-    return cs5530_f3_readl_internal((cs5530_t *) priv, addr, 1) >> ((addr & 2) << 3);
+    return cs5530_f3_readl_internal((cs5530_t *) priv, addr, 3 << (addr & 2)) >> ((addr & 2) << 3);
 }
 
 static uint32_t
 cs5530_f3_readl(uint32_t addr, void *priv)
 {
-    return cs5530_f3_readl_internal((cs5530_t *) priv, addr, 1);
+    return cs5530_f3_readl_internal((cs5530_t *) priv, addr, 0xf);
 }
 
 static void
@@ -887,7 +1092,7 @@ cs5530_f3_write_internal(cs5530_t *dev, uint32_t addr, uint32_t val, uint32_t ma
             if (addr & 4)
                 dev->abm_prd[bm] = val & 0xfffffffc;
             else
-                dev->abm_cmd[bm] = val & 0x09;
+                cs5530_abm_command(dev, bm, val & 0xff);
             break;
         }
 
@@ -1210,7 +1415,11 @@ cs5530_bar_remap(cs5530_t *dev, int func)
 
     switch (func) {
         case 1:
-            if (on)
+            /* F1BAR decodes with the command register's memory space bit
+               clear too ("always memory mapped", Table 4-15): when Windows
+               stops the device (command and BARs zeroed), VSA puts back F1BAR
+               alone (VSA 0000:0325h) and then polls the SMI status there. */
+            if (bar)
                 mem_mapping_set_addr(&dev->f1_mapping, bar & 0xffffff00, 0x100);
             else
                 mem_mapping_disable(&dev->f1_mapping);
@@ -1650,6 +1859,9 @@ cs5530_reset(void *priv)
     memset(dev->abm_cmd, 0x00, sizeof(dev->abm_cmd));
     memset(dev->abm_smi, 0x00, sizeof(dev->abm_smi));
     memset(dev->abm_prd, 0x00, sizeof(dev->abm_prd));
+    memset(dev->abm, 0x00, sizeof(dev->abm));
+    dev->abm_out_l = dev->abm_out_r = 0;
+    timer_disable(&dev->abm_timer);
     cs5530_audio_traps_recalc(dev);
 
     memset(dev->f4_regs, 0x00, sizeof(dev->f4_regs));
@@ -1765,6 +1977,8 @@ cs5530_init(UNUSED(const device_t *info))
     timer_add(&dev->ms_timer, cs5530_ms_timer, dev, 0);
     timer_add(&dev->vga_timer, cs5530_vga_timer, dev, 0);
     timer_add(&dev->acpi_timer, cs5530_acpi_timer, dev, 0);
+    timer_add(&dev->abm_timer, cs5530_abm_timer, dev, 0);
+    sound_add_handler(cs5530_abm_get_buffer, dev);
     timer_set_delay_u64(&dev->acpi_timer, (uint64_t) ((double) TIMER_USEC * 8388608.0 * 1000000.0 / ACPI_TIMER_FREQ));
 
     /* ELCR, 4D0h-4D1h. */
