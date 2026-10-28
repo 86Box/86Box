@@ -1263,9 +1263,15 @@ cs5530_f4_writel(uint32_t addr, uint32_t val, void *priv)
 
     switch (addr) {
         case 0x00:
-        case 0x08 ... 0x18:
-            dev->f4_regs[addr >> 2] = val;
+        case 0x08 ... 0x18: {
+            /* The video overlay: configuration, X and Y window, scale, color
+               key and mask (Tables 3-71 to 3-74). */
+            static const uint32_t vid_mask[7] = { 0x7bffffff, 0, 0x07ff07ff, 0x07ff07ff, 0x3fff3fff, 0x00ffffff, 0x00ffffff };
+
+            dev->f4_regs[addr >> 2] = val & vid_mask[addr >> 2];
+            gxm_video_set_overlay(gxm_video, addr >> 2, dev->f4_regs[addr >> 2]);
             break;
+        }
         case 0x04:
             dev->f4_regs[1] = val & 0x07ffffef;
             gxm_video_set_display(gxm_video, dev->f4_regs[1], NULL);
@@ -1884,6 +1890,8 @@ cs5530_reset(void *priv)
     dev->f4_regs[0x28 >> 2] = 0x00000100;
     gxm_video_set_display(gxm_video, 0, NULL);
     gxm_video_set_dotclock(gxm_video, 0.0);
+    for (int i = 0; i < 7; i++)
+        gxm_video_set_overlay(gxm_video, i, 0);
 
     for (int i = 0; i < 8; i++)
         dev->ide_timing[i] = (i & 1) ? 0x00017771 : 0x0000e132;

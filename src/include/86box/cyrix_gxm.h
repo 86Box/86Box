@@ -46,9 +46,11 @@ extern void     gxm_video_set_gmem(void *priv, uint32_t base, uint32_t size);
 extern void     gxm_video_gmem_written(void *priv, uint32_t addr, int size);
 
 /* The CS5530's display interface (src/chipset/cs5530.c) gives the
-   display controller its dot clock, its DACs and its gamma RAM. */
+   display controller its dot clock, its DACs, its gamma RAM and its video
+   overlay registers (F4BAR+00h-18h as dword indexes). */
 extern void     gxm_video_set_dotclock(void *priv, double clock);
 extern void     gxm_video_set_display(void *priv, uint32_t display_cfg, const uint32_t *gamma);
+extern void     gxm_video_set_overlay(void *priv, int reg, uint32_t val);
 
 extern const device_t cyrix_gxm_device;
 extern const device_t cyrix_gxm_video_device;

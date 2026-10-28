@@ -97,6 +97,7 @@ gxm_video_log(const char *fmt, ...)
 
 /* DC_GENERAL_CFG (Table 4-31). */
 #define GC_DDCK        (1 << 31)
+#define GC_VIDE        (1 << 28)
 #define GC_SSLC        (1 << 27)
 #define GC_CH4S        (1 << 26)
 #define GC_LDBL        (1 << 24)
@@ -118,6 +119,29 @@ gxm_video_log(const char *fmt, ...)
 /* DC_OUTPUT_CFG. */
 #define OC_16FMT       (1 << 1)
 #define OC_8BPP        (1 << 0)
+
+/* The CS5530's video overlay registers, as dword indexes from F4BAR. */
+enum {
+    VID_CONFIG = 0,
+    VID_X      = 2,
+    VID_Y,
+    VID_SCALE,
+    VID_KEY,
+    VID_MASK,
+    VID_REGS
+};
+
+/* Video Configuration (CS5530 Table 3-71). */
+#define VC_16BIT       (1 << 29)
+#define VC_XFILT       (1 << 7)
+#define VC_YFILT       (1 << 6)
+#define VC_CSC_BYPASS  (1 << 5)
+#define VC_UPDATE      (1 << 1)
+#define VC_ENABLE      (1 << 0)
+
+/* Display Configuration (CS5530 Table 3-75). */
+#define DCFG_GFX_BYPASS (1 << 21)
+#define DCFG_VID_KEY    (1 << 20)
 
 #define DC_UNLOCK_CODE 0x4758
 
@@ -193,6 +217,8 @@ typedef struct gxm_video_t {
     double   dotclock;
     uint32_t display_cfg;
     uint32_t gamma[256];
+    uint32_t vid[VID_REGS];     /* As written */
+    uint32_t vid_win[VID_REGS]; /* The window and scale in use */
 
     /* Display timing. */
     pc_timer_t timer;
@@ -930,13 +956,19 @@ gxm_pal_to_rgb(uint32_t entry)
 /* The CS5530's gamma RAM, for graphics unless it is bypassed (display
    configuration bit 21). */
 static inline uint32_t
-gxm_gamma(gxm_video_t *dev, uint32_t rgb)
+gxm_gamma_ram(gxm_video_t *dev, uint32_t rgb)
 {
-    if (dev->display_cfg & (1 << 21))
-        return rgb;
-
     return (dev->gamma[(rgb >> 16) & 0xff] & 0xff0000) | (dev->gamma[(rgb >> 8) & 0xff] & 0x00ff00) |
            (dev->gamma[rgb & 0xff] & 0x0000ff);
+}
+
+static inline uint32_t
+gxm_gamma(gxm_video_t *dev, uint32_t rgb)
+{
+    if (dev->display_cfg & DCFG_GFX_BYPASS)
+        return rgb;
+
+    return gxm_gamma_ram(dev, rgb);
 }
 
 static inline uint32_t
@@ -1012,6 +1044,171 @@ gxm_render_cursor(gxm_video_t *dev, uint32_t *line, int y)
     }
 }
 
+/* ----------------------------------------------------------------------
+   The CS5530's video overlay (CS5530 3.8.2, 3.8.3). With VIDE set, the
+   display controller streams the video buffer (DC_VID_ST_OFFSET, its
+   VID_BUF_SIZE) to the CS5530, which cuts it into source lines of the Video
+   Line Size, scales them with its X and Y DDAs, filters them, converts YUV
+   4:2:2 to RGB, and shows them in its window where the color key lets them
+   through.
+   ---------------------------------------------------------------------- */
+/* The bytes of Y0, Y1, U and V in a dword, for each Video Input Format. */
+static const uint8_t gxm_yuv_order[4][4] = {
+    { 1, 3, 0, 2 }, /* U Y0 V Y1 */
+    { 2, 0, 3, 1 }, /* Y1 V Y0 U */
+    { 0, 2, 1, 3 }, /* Y0 U Y1 V */
+    { 0, 2, 3, 1 }, /* Y0 V Y1 U */
+};
+
+/* A source pixel's Y, U and V, or with the color space converter bypassed
+   its R, G and B (RGB 5:6:5, two pixels a dword like Y0 and Y1). */
+static void
+gxm_overlay_pixel(gxm_video_t *dev, uint32_t line, int sx, int *c)
+{
+    const uint32_t cfg = dev->vid[VID_CONFIG];
+    const uint32_t dw  = *(uint32_t *) gxm_gmem(dev, line + ((sx >> 1) << 2));
+
+    if (cfg & VC_CSC_BYPASS) {
+        const uint16_t p = (sx & 1) ? (dw >> 16) : (dw & 0xffff);
+
+        c[0] = ((p >> 8) & 0xf8) | (p >> 13);
+        c[1] = ((p >> 3) & 0xfc) | ((p >> 9) & 0x03);
+        c[2] = ((p << 3) & 0xf8) | ((p >> 2) & 0x07);
+    } else {
+        int fmt = (cfg >> 2) & 3;
+
+        /* The 16-bit interface swaps formats 01 and 10. */
+        if ((cfg & VC_16BIT) && ((fmt == 1) || (fmt == 2)))
+            fmt ^= 3;
+
+        c[0] = (dw >> (gxm_yuv_order[fmt][sx & 1] << 3)) & 0xff;
+        c[1] = (dw >> (gxm_yuv_order[fmt][2] << 3)) & 0xff;
+        c[2] = (dw >> (gxm_yuv_order[fmt][3] << 3)) & 0xff;
+    }
+}
+
+/* Window column dx of a source line: the X DDA from the Initial Buffer Read
+   Address, and the 2-tap, 8-phase X filter. */
+static void
+gxm_overlay_sample(gxm_video_t *dev, uint32_t line, int width, int dx, int *c)
+{
+    const uint32_t cfg  = dev->vid[VID_CONFIG];
+    const uint32_t pos  = (uint32_t) dx * (dev->vid_win[VID_SCALE] & 0x3fff);
+    const int      init = (((cfg >> 16) & 0xff) | (((cfg >> 24) & 1) << 8)) << 1;
+    const int      ph   = (pos >> 10) & 7;
+    int            sx   = init + (int) (pos >> 13);
+    int            n[3];
+
+    if (sx >= width)
+        sx = width - 1;
+    gxm_overlay_pixel(dev, line, sx, c);
+
+    if ((cfg & VC_XFILT) && ph && ((sx + 1) < width)) {
+        gxm_overlay_pixel(dev, line, sx + 1, n);
+        for (int i = 0; i < 3; i++)
+            c[i] = ((c[i] * (8 - ph)) + (n[i] * ph)) >> 3;
+    }
+}
+
+/* CCIR 601-1, clamped. */
+static uint32_t
+gxm_csc(int y, int u, int v)
+{
+    const int yy = 1192 * (y - 16);
+    int       r  = (yy + (1634 * (v - 128))) >> 10;
+    int       g  = (yy - (833 * (v - 128)) - (400 * (u - 128))) >> 10;
+    int       b  = (yy + (2066 * (u - 128))) >> 10;
+
+    r = (r < 0) ? 0 : ((r > 255) ? 255 : r);
+    g = (g < 0) ? 0 : ((g > 255) ? 255 : g);
+    b = (b < 0) ? 0 : ((b > 255) ? 255 : b);
+
+    return (r << 16) | (g << 8) | b;
+}
+
+/* The CS5530's mix of a line: the video window over the graphics, then the
+   gamma RAM for whichever stream does not bypass it. */
+static void
+gxm_output_line(gxm_video_t *dev, uint32_t *line, int y)
+{
+    const uint32_t cfg   = dev->vid[VID_CONFIG];
+    const uint32_t key   = dev->vid[VID_KEY];
+    const uint32_t kmask = dev->vid[VID_MASK];
+    /* The bits the display controller sends of a graphics pixel, for the key
+       compare: 6 a color from the palette, 5 or 6 in 16 BPP. */
+    const int      bpp16 = !(dev->dc[DC_OUTPUT_CFG] & OC_8BPP) && !(dev->dc[DC_TIMING_CFG] & TC_PLNR);
+    const uint32_t sig   = bpp16 ? ((dev->dc[DC_OUTPUT_CFG] & OC_16FMT) ? 0xf8f8f8 : 0xf8fcf8) : 0xfcfcfc;
+    uint32_t       src[2];
+    int            width = 0;
+    int            yph   = 0;
+    int            x0    = 0;
+    int            x1    = 0;
+
+    if ((cfg & VC_ENABLE) && (dev->dc[DC_GENERAL_CFG] & GC_VIDE)) {
+        /* The window is in sync-relative positions (Table 3-73). */
+        const int      hsyncend = (((dev->dc[DC_H_TIMING_3] >> 19) & 0xff) + 1) << 3;
+        const int      hadj     = dev->htotal - hsyncend - 13;
+        const int      vadj     = dev->vtotal - dev->vsyncend + 1;
+        const int      y0       = (int) (dev->vid_win[VID_Y] & 0x7ff) - vadj;
+        const int      y1       = (int) ((dev->vid_win[VID_Y] >> 16) & 0x7ff) - vadj;
+        const uint32_t dwords   = ((cfg >> 8) & 0xff) | (((cfg >> 27) & 1) << 8);
+        const uint32_t buf      = ((dev->dc[DC_BUF_SIZE] >> 16) & 0x3fff) << 6;
+        const uint32_t lines    = dwords ? (buf / (dwords << 2)) : 0;
+
+        if ((y >= y0) && (y < y1) && lines) {
+            const uint32_t pos  = (uint32_t) (y - y0) * ((dev->vid_win[VID_SCALE] >> 16) & 0x3fff);
+            const uint32_t base = dev->dc[DC_VID_ST_OFFSET] & 0x1ffff0;
+            uint32_t       sy   = pos >> 13;
+
+            if (sy >= lines)
+                sy = lines - 1;
+            src[0] = base + (sy * (dwords << 2));
+            src[1] = src[0];
+            yph    = (pos >> 10) & 7;
+            if ((cfg & VC_YFILT) && yph && ((sy + 1) < lines))
+                src[1] += dwords << 2;
+            else
+                yph = 0;
+
+            width = dwords << 1;
+            x0    = (int) (dev->vid_win[VID_X] & 0x7ff) - hadj;
+            x1    = (int) ((dev->vid_win[VID_X] >> 16) & 0x7ff) - hadj;
+        }
+    }
+
+    for (int x = 0; x < dev->hdisp; x++) {
+        int      c[3];
+        int      n[3];
+        uint32_t vid;
+        int      show;
+
+        if ((x < x0) || (x >= x1)) {
+            line[x] = gxm_gamma(dev, line[x]);
+            continue;
+        }
+
+        gxm_overlay_sample(dev, src[0], width, x - x0, c);
+        if (yph) {
+            gxm_overlay_sample(dev, src[1], width, x - x0, n);
+            for (int i = 0; i < 3; i++)
+                c[i] = ((c[i] * (8 - yph)) + (n[i] * yph)) >> 3;
+        }
+        vid = (cfg & VC_CSC_BYPASS) ? ((c[0] << 16) | (c[1] << 8) | c[2]) : gxm_csc(c[0], c[1], c[2]);
+
+        /* Graphics matching the key let the video through; video matching it
+           lets the graphics through. */
+        if (dev->display_cfg & DCFG_VID_KEY)
+            show = ((vid ^ key) & kmask) != 0;
+        else
+            show = (((line[x] & sig) ^ key) & kmask) == 0;
+
+        if (show)
+            line[x] = (dev->display_cfg & DCFG_GFX_BYPASS) ? gxm_gamma_ram(dev, vid) : vid;
+        else
+            line[x] = gxm_gamma(dev, line[x]);
+    }
+}
+
 static void
 gxm_render_line(gxm_video_t *dev, int y)
 {
@@ -1067,15 +1264,14 @@ gxm_render_line(gxm_video_t *dev, int y)
         }
 
         for (int i = 0; (i < n) && (x < dev->hdisp); i++) {
-            const uint32_t c = gxm_gamma(dev, px[i]);
-
-            line[x++] = c;
+            line[x++] = px[i];
             if (pxdb && (x < dev->hdisp))
-                line[x++] = c;
+                line[x++] = px[i];
         }
     }
 
     gxm_render_cursor(dev, line, y);
+    gxm_output_line(dev, line, y);
 }
 
 static void
@@ -1147,6 +1343,10 @@ gxm_poll(void *priv)
             dev->displine = 0;
             dev->ma       = dev->dc[DC_FB_ST_OFFSET] & 0x3ffff0;
             dev->dc[DC_TIMING_CFG] &= ~TC_VNA;
+            /* Video Register Update: the window and scale take effect
+               together, at the frame's start. */
+            if (dev->vid[VID_CONFIG] & VC_UPDATE)
+                memcpy(&dev->vid_win[VID_X], &dev->vid[VID_X], 3 * sizeof(uint32_t));
             gxm_recalctimings(dev);
         }
 
@@ -1335,6 +1535,21 @@ gxm_video_set_display(void *priv, uint32_t display_cfg, const uint32_t *gamma)
     dev->display_cfg = display_cfg;
     if (gamma != NULL)
         memcpy(dev->gamma, gamma, sizeof(dev->gamma));
+}
+
+void
+gxm_video_set_overlay(void *priv, int reg, uint32_t val)
+{
+    gxm_video_t *dev = (gxm_video_t *) priv;
+
+    if ((dev == NULL) || (reg < 0) || (reg >= VID_REGS))
+        return;
+
+    dev->vid[reg] = val;
+    /* The window and scale wait for the next frame with Video Register
+       Update. */
+    if ((reg >= VID_X) && (reg <= VID_SCALE) && !(dev->vid[VID_CONFIG] & VC_UPDATE))
+        dev->vid_win[reg] = val;
 }
 
 static void
