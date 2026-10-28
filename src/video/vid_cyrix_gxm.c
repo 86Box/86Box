@@ -508,6 +508,9 @@ gxm_video_set_vga(void *priv, uint8_t enables)
    line delta is 1024 or 2048 bytes (GP_BLT_STATUS). The BLT buffers are in
    the scratchpad, at L1_BBx_BASE.
    ---------------------------------------------------------------------- */
+/* The widest line: 2048 pixels at 8 bpp with the 2048 byte line delta. */
+#define GXM_BLT_LINE_MAX 2048
+
 static inline int
 gxm_gp_bpp(gxm_video_t *dev)
 {
@@ -625,6 +628,7 @@ gxm_gp_blt(gxm_video_t *dev)
     const uint16_t sc1      = dev->src_color >> 16;
     uint32_t       key      = 0;
     uint32_t       bb_off;
+    static uint32_t src_line[GXM_BLT_LINE_MAX];
 
     gxm_video_log("GP: BLT %08X ROP %02X raster %08X, (%i, %i) <- (%i, %i), %ix%i\n",
                   dev->blt_mode, rop, dev->raster_mode, dst_x, dst_y, src_x, src_y, width, height);
@@ -644,6 +648,21 @@ gxm_gp_blt(gxm_video_t *dev)
         const int sy = yrev ? (src_y - line) : (src_y + line);
         uint32_t  line_bytes;
 
+        /* A frame buffer source line is read whole, through the BLT buffers,
+           before it is written: a copy that overlaps on the same line (the
+           tray clock moved right as the tray grows) must not read pixels it
+           has already written. */
+        if (rs == 1) {
+            for (int i = 0; (i < width) && (i < GXM_BLT_LINE_MAX); i++) {
+                if (mono) {
+                    const int b = src_x + i;
+
+                    src_line[i] = (gxm_gp_fb_read(dev, b >> 3, sy) >> (7 - (b & 7))) & 1;
+                } else
+                    src_line[i] = gxm_gp_fb_read(dev, src_x + i, sy);
+            }
+        }
+
         for (int i = 0; i < width; i++) {
             const int dx = dst_x + i;
             uint32_t  s  = ones;
@@ -656,12 +675,12 @@ gxm_gp_blt(gxm_video_t *dev)
 
             switch (rs) {
                 case 1: /* Frame buffer */
-                    if (mono) {
-                        const int b = src_x + i;
-
-                        bit = (gxm_gp_fb_read(dev, b >> 3, sy) >> (7 - (b & 7))) & 1;
-                    } else
-                        s = gxm_gp_fb_read(dev, src_x + i, sy);
+                    if (i >= GXM_BLT_LINE_MAX)
+                        break;
+                    if (mono)
+                        bit = src_line[i];
+                    else
+                        s = src_line[i];
                     break;
                 case 2: /* BLT buffer 0 */
                 case 3: /* BLT buffer 1 */
