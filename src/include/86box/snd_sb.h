@@ -259,6 +259,11 @@ typedef struct sb_t {
 
     void   *opl_mixer;
     void  (*opl_mix)(void*, double*, double*);
+
+    /* ESS Solo-1: where the Audio 1 and MPU-401 interrupts go when they are
+       not on ISA IRQ's (ess_solo1_legacy_irq_attach). */
+    void  (*solo1_irq_update)(void *priv, int set);
+    void   *solo1_irq_priv;
 } sb_t;
 
 typedef struct goldfinch_t {
@@ -308,6 +313,8 @@ extern void    ess_solo1_legacy_config(void *priv, uint16_t sb_addr, int sb_enab
 extern uint8_t ess_solo1_legacy_fm_read(void *priv, uint16_t addr);
 extern void    ess_solo1_legacy_fm_write(void *priv, uint16_t addr, uint8_t val);
 extern void    ess_solo1_legacy_mixer_write(void *priv, uint8_t index, uint8_t val);
+extern uint8_t ess_solo1_legacy_irq_status(void *priv);
+extern void    ess_solo1_legacy_irq_attach(void *priv, void (*irq_update)(void *priv, int set), void *irq_priv);
 extern uint8_t ess_solo1_legacy_mpu_read(void *priv, uint16_t addr);
 extern void    ess_solo1_legacy_mpu_write(void *priv, uint16_t addr, uint8_t val);
 extern void    ess_solo1_legacy_close(void *priv);
