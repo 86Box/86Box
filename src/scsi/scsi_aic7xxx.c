@@ -517,6 +517,9 @@ typedef struct aic_chip_t {
                                    the two quadword pointers */
     uint8_t selid_writable;     /* SELID is read only on the older part */
     uint8_t twin_capable;       /* a second SCSI channel to strap */
+    uint8_t extarb_grant;       /* EXTARBACK# strapped asserted: the board
+                                   has no external memory arbiter, so the
+                                   FLEXPort grant is always there */
     uint8_t seqctl_reset;       /* what SEQCTL comes up holding */
     uint8_t sblkctl_reset;      /* and SBLKCTL, before the board's straps */
     uint8_t own_reset_seen;     /* the part reports the bus reset it drives */
@@ -705,6 +708,7 @@ static const aic_chip_t aic_chip_7890 = {
     .fifo_word      = 8,
     .selid_writable = 1,
     .twin_capable   = 0,
+    .extarb_grant   = 1,
     .seq_insns      = SEQ_INSNS_MAX,
     .fifo_size      = FIFO_SIZE_MAX,
     .seqctl_reset   = PERRORDIS | FASTMODE,
@@ -3182,11 +3186,20 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
             if (!dev->chip->aux_regs)
                 return 0x00;
             ret = dev->seectl & ~(SEEDI | SEERDY | EXTARBACK);
-            /* Access is granted as soon as it is asked for, and the
-               800ns strobe the driver times with SEERDY is instant. */
-            if (dev->seectl & SEEMS)
-                ret |= SEERDY;
-            if (dev->seectl & EXTARBREQ)
+            /* SEERDY is the part's own strobe, not a gate on SEEMS: a
+               write to this register makes it inactive and it returns by
+               itself 800 ns later. No strobe is timed here, so it reads
+               active as soon as it is asked.
+
+               EXTARBACK is the FLEXPort grant, an input from the board:
+               EXTARB# selects an external arbiter, which only exists
+               when two channels share external SRAM. Boards without one
+               strap EXTARBACK# asserted, and no arbiter is modelled for
+               the single-channel parts, so the grant follows that strap.
+               Parts that leave the bit to the request line reproduce the
+               opposite level their own drivers wait for. */
+            ret |= SEERDY;
+            if (dev->chip->extarb_grant || (dev->seectl & EXTARBREQ))
                 ret |= EXTARBACK;
             if (nmc93cxx_eeprom_read(dev->eeprom))
                 ret |= SEEDI;
@@ -4192,7 +4205,6 @@ command_channel:
             break;
         case DFCNTRL:
             was = dev->dfcntrl;
-            if (seq && ((val & PRELOADEN) || ((was & HDMAEN) && !(val & HDMAEN))))
             /* DIRECTIONACK cannot change while a transfer stays enabled
                (DFCNTRL, both data books). A direction may be selected
                when starting from idle or when clearing all enables. */
@@ -5113,12 +5125,22 @@ aic_seq_step(aic7xxx_t *dev)
                    kind of exception on the other side: "bmov DFDAT,
                    SCB_CDB_STORE, 12" feeds one CDB through one register,
                    and walking the destination put byte one in SCBCNT and
-                   the rest in the SCB window. */
+                   the rest in the SCB window. The two indirect ports are
+                   the same again, and the ones that matter most: their
+                   address comes from SINDEX and DINDEX, which each access
+                   advances, so "bmov CCHADDR, SINDIR, 4" is four reads of
+                   one port and not a walk from SINDIR into DINDIR,
+                   FUNCTION1 and STACK. Walked, that loaded 54010000h out
+                   of the function table and the call stack, the command
+                   channel then read nothing at 54010000h, and the Ultra2
+                   firmware selected the target in SCB byte FF. */
                 uint8_t n = imm ? imm : 1;
                 int     s_fixed = (src == ALLZEROS) || (src == DFDAT)
-                              || (src == CCSGRAM) || (src == CCSCBRAM);
+                              || (src == CCSGRAM) || (src == CCSCBRAM)
+                              || (src == SINDIR) || (src == DINDIR);
                 int     d_fixed = (dest == ALLZEROS) || (dest == DFDAT)
-                               || (dest == CCSGRAM) || (dest == CCSCBRAM);
+                               || (dest == CCSGRAM) || (dest == CCSCBRAM)
+                               || (dest == SINDIR) || (dest == DINDIR);
                 for (uint8_t i = 0; i < n; i++) {
                     if (src == ALLZEROS)
                         res = 0x00;
