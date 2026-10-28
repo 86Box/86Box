@@ -238,7 +238,7 @@ msgid "S&ound"
 msgstr "&Ton"
 
 msgid "&Preferences…"
-msgstr "&Preferenzen…"
+msgstr "&Einstellungen…"
 
 msgid "Sound &gain…"
 msgstr "&Klangverstärkung…"
@@ -415,34 +415,34 @@ msgid "Memory:"
 msgstr "Hauptspeicher:"
 
 msgid "Synchronize with host clock"
-msgstr ""
+msgstr "Uhrzeit mit Host synchronisieren"
 
 msgid "Time zone:"
-msgstr ""
+msgstr "Zeitzone"
 
 msgid "Local"
-msgstr ""
+msgstr "Lokal"
 
 msgid "UTC"
 msgstr ""
 
 msgid "Date:"
-msgstr ""
+msgstr "Datum:"
 
 msgid "Match the host"
-msgstr ""
+msgstr "Identisch mit Host"
 
 msgid "Offset the year by:"
-msgstr ""
+msgstr "Versatz des Jahres um:"
 
 msgid "(currently %1)"
-msgstr ""
+msgstr "(aktuell %1)"
 
 msgid "Always use the year:"
-msgstr ""
+msgstr "Nutze immer folgendes Jahr:"
 
 msgid "Do not synchronize the date"
-msgstr ""
+msgstr "Datum nicht synchronisieren"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Verwende den 486-Interpreter für 286- und 386-Prozessoren"
@@ -457,7 +457,7 @@ msgid "Block linking on the dynamic recompiler"
 msgstr "Block-Verkettung im dynamischen Recompiler"
 
 msgid "Debug registers on 486 and later processors"
-msgstr ""
+msgstr "Debug-Register bei 486-Prozessoren und neueren Prozessoren"
 
 msgid "CPU frame size"
 msgstr "CPU-Framegröße"
@@ -488,6 +488,9 @@ msgstr "XGA-Grafik"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Grafik-Adapter"
+
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr "PowerVR PCX1/PCX2 Grafik"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -655,7 +658,7 @@ msgid "Turbo IDE"
 msgstr ""
 
 msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
-msgstr ""
+msgstr "Hebt die Geschwindigkeitsbegrenzung des IDE-Übertragungsmodus auf. Die Timings für Festplatte und CD-ROM-Laufwerk gelten weiterhin."
 
 msgid "Hard disks:"
 msgstr "Festplatten:"
@@ -1837,10 +1840,10 @@ msgid "Fast"
 msgstr "Schnell"
 
 msgid "Auto-pause on focus loss"
-msgstr "Auto-Pause bei Fokusverlust"
+msgstr "Automatisch pausieren bei Fokusverlust"
 
 msgid "Auto-pause on dialog boxes"
-msgstr "Auto-Pause bei Dialogboxen"
+msgstr "Automatisch pausieren bei Dialogboxen"
 
 msgid "WinBox is no longer supported"
 msgstr "Der WinBox Manager wird nicht mehr unterstützt"
@@ -2323,7 +2326,7 @@ msgid "MAC Address OUI"
 msgstr "OUI der MAC-Adresse"
 
 msgid "Enable BIOS"
-msgstr "BIOS einschalten"
+msgstr "BIOS aktivieren"
 
 msgid "Baud Rate"
 msgstr "Baudrate"
@@ -3181,7 +3184,7 @@ msgid "Toggle fullscreen"
 msgstr "Vollbild umschalten"
 
 msgid "Toggle UI in fullscreen"
-msgstr "UI im Vollbildmodus umschalten"
+msgstr "Benutzeroberfläche im Vollbildmodus umschalten"
 
 msgid "Release mouse pointer"
 msgstr "Mauszeiger freigeben"
@@ -3208,7 +3211,7 @@ msgid "SoundFont files"
 msgstr "SoundFont-Dateien"
 
 msgid "Local Switch"
-msgstr "Lokaler Schalter"
+msgstr "Lokaler Switch"
 
 msgid "Remote Switch"
 msgstr "Entfernter Schalter"
