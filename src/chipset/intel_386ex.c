@@ -19,10 +19,19 @@
  *          The interrupt controllers, timer and DMA controller are the
  *          machine's usual AT ones, which the chip only maps. The DMA
  *          controller, Port 92 and the other on-chip units (refresh, SSIO,
- *          power management, parallel ports, pin configuration) do not
- *          appear in the expanded I/O space, except for PWRCON, which is
- *          stored. The chip-select and watchdog timer units have their own
- *          files. Only
+ *          power management, pin configuration) do not appear in the
+ *          expanded I/O space, except for PWRCON, which is stored. The
+ *          chip-select and watchdog timer units have their own files.
+ *
+ *          The three I/O ports are the machine's GPIO pins, P1 in bits
+ *          7:0, P2 in bits 15:8 and P3 in bits 23:16: the chip hands what
+ *          it does to the pins to machine_handle_gpio() on every change,
+ *          and reads them back from it. A pin the chip does not drive is
+ *          handed over at the level of its weak pull-up or pull-down, which
+ *          holds it from reset until its port's PnCFG is first written,
+ *          or high once they are off, for the board to pull it either way.
+ *          Pins in peripheral mode are left undriven, as the peripherals
+ *          do not drive them here. Only
  *          A9:0 are decoded in the DOS I/O space, which is not emulated
  *          either: the peripherals only appear at their usual addresses.
  *
@@ -60,6 +69,7 @@
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/serial.h>
+#include <86box/machine.h>
 #include <86box/i386ex.h>
 #include <86box/plat_unused.h>
 
@@ -82,10 +92,12 @@
 #define MCR1          0xf8fc
 #define PWRCON        0xf800
 #define CLKPRS        0xf804
+#define P1CFG         0xf820
 #define DMACFG        0xf830
 #define INTCFG        0xf832
 #define TMRCFG        0xf834
 #define SIOCFG        0xf836
+#define P1PIN         0xf860
 
 #define REMAP_ESE     0x8000
 #define REMAP_S1R     0x0040
@@ -103,6 +115,8 @@
 #define SIOCFG_S0BSRC 0x01
 
 #define MCR_OUT2      0x08
+
+#define PORTS         3
 
 #define EXPANDED_MAX  16
 
@@ -130,6 +144,11 @@ struct i386ex_t {
     double   comclk; /* What the board drives the COMCLK pin at, 0 if nothing. */
 
     uint8_t pwrcon;
+
+    uint8_t pcfg[PORTS];
+    uint8_t pdir[PORTS];
+    uint8_t pltc[PORTS];
+    uint8_t weak; /* Ports whose weak resistors are still on, by bit. */
 
     i386ex_csu_t *csu;
     i386ex_wdt_t *wdt;
@@ -164,6 +183,106 @@ static const uint16_t uart_mcr[2]    = { MCR0_PC, MCR1_PC };
 static const uint16_t uart_mcr_ex[2] = { MCR0, MCR1 };
 static const uint8_t  uart_irq[2]    = { 4, 3 };
 static const uint8_t  uart_intcfg[2] = { INTCFG_IR4, INTCFG_IR3 };
+
+/* The weak pull-ups (1) and pull-downs (0) that hold the port pins from reset (Table 16-1). */
+static const uint8_t port_weak[PORTS] = { 0x3f, 0x9f, 0x00 };
+
+/* The pins of a port the chip drives, and to what. */
+static uint8_t
+i386ex_port_driven(const i386ex_t *dev, int n, uint8_t *val)
+{
+    /* In I/O mode, a complementary output drives its latch and an open-drain one only a 0. */
+    uint8_t io     = ~dev->pcfg[n];
+    uint8_t driven = io & (~dev->pdir[n] | ~dev->pltc[n]);
+
+    *val = dev->pltc[n] & driven;
+
+    return driven;
+}
+
+/* What the chip does to all the pins, as the machine's GPIO pins see it. */
+static uint32_t
+i386ex_port_pins(const i386ex_t *dev)
+{
+    uint32_t pins = 0xff000000;
+
+    for (int n = 0; n < PORTS; n++) {
+        uint8_t val;
+        uint8_t driven   = i386ex_port_driven(dev, n, &val);
+        uint8_t undriven = (dev->weak & (1 << n)) ? port_weak[n] : 0xff;
+
+        pins |= (uint32_t) (val | (undriven & ~driven)) << (n << 3);
+    }
+
+    return pins;
+}
+
+static void
+i386ex_port_update(const i386ex_t *dev)
+{
+    (void) machine_handle_gpio(1, i386ex_port_pins(dev));
+}
+
+static uint8_t
+i386ex_port_read(uint16_t port, void *priv)
+{
+    const i386ex_t *dev = (i386ex_t *) priv;
+    int             n;
+    uint8_t         val;
+    uint8_t         driven;
+
+    if (port < P1PIN) {
+        /* PnCFG at F820h, F822h and F824h. */
+        n = (port - P1CFG) >> 1;
+        return ((port & 1) || (n >= PORTS)) ? 0xff : dev->pcfg[n];
+    }
+
+    n = (port - P1PIN) >> 3;
+    switch (port & 7) {
+        case 0: /* PnPIN: the pins the chip drives, and the board's levels on the rest. */
+            driven = i386ex_port_driven(dev, n, &val);
+            return val | ((machine_handle_gpio(0, 0xffffffff) >> (n << 3)) & ~driven);
+        case 2:
+            return dev->pltc[n];
+        case 4:
+            return dev->pdir[n];
+        default:
+            return 0xff;
+    }
+}
+
+static void
+i386ex_port_write(uint16_t port, uint8_t val, void *priv)
+{
+    i386ex_t *dev = (i386ex_t *) priv;
+    int       n;
+
+    i386ex_log("386EX: [%04X] = %02X\n", port, val);
+
+    if (port < P1PIN) {
+        n = (port - P1CFG) >> 1;
+        if ((port & 1) || (n >= PORTS))
+            return;
+
+        /* Any write turns the port's weak resistors off until the next reset. */
+        dev->pcfg[n] = val;
+        dev->weak &= ~(1 << n);
+    } else {
+        n = (port - P1PIN) >> 3;
+        switch (port & 7) {
+            case 2:
+                dev->pltc[n] = val;
+                break;
+            case 4:
+                dev->pdir[n] = val;
+                break;
+            default:
+                return;
+        }
+    }
+
+    i386ex_port_update(dev);
+}
 
 static int
 i386ex_uart_present(const i386ex_t *dev, int n)
@@ -298,6 +417,8 @@ i386ex_expanded(i386ex_t *dev, int set)
     io_handler(set, PWRCON, 1, i386ex_config_read, NULL, NULL, i386ex_config_write, NULL, NULL, dev);
     io_handler(set, CLKPRS, 2, i386ex_config_read, NULL, NULL, i386ex_config_write, NULL, NULL, dev);
     io_handler(set, DMACFG, 8, i386ex_config_read, NULL, NULL, i386ex_config_write, NULL, NULL, dev);
+    io_handler(set, P1CFG, 6, i386ex_port_read, NULL, NULL, i386ex_port_write, NULL, NULL, dev);
+    io_handler(set, P1PIN, 24, i386ex_port_read, NULL, NULL, i386ex_port_write, NULL, NULL, dev);
 
     i386ex_csu_handler(dev->csu, set);
     i386ex_wdt_handler(dev->wdt, set);
@@ -547,6 +668,12 @@ i386ex_init(const device_t *info)
         pit_devs[0].set_out_func(pit_devs[0].data, 1, i386ex_tmrout1);
         pit_devs[0].set_out_func(pit_devs[0].data, 2, i386ex_tmrout2);
     }
+
+    /* The port pins come out of reset as inputs, held by their weak resistors. */
+    for (int n = 0; n < PORTS; n++)
+        dev->pdir[n] = dev->pltc[n] = 0xff;
+    dev->weak = (1 << PORTS) - 1;
+    i386ex_port_update(dev);
 
     io_sethandler(REMAPCFG, 2,
                   i386ex_remapcfg_read, i386ex_remapcfg_readw, NULL,
