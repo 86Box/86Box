@@ -49,7 +49,7 @@ typedef struct pic {
     uint8_t     has_slaves;
     uint8_t     flags;
     uint8_t     edge_lines;
-    uint8_t     pad;
+    uint8_t     master_irq;
     uint32_t    lines[8];
     uint32_t    at;
     uint32_t    zenith;

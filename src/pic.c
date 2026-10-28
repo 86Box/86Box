@@ -333,6 +333,16 @@ pic_update_pending_xt(void)
     pic_intr_report();
 }
 
+/* Cascade a slave PIC to the master's input irq. The slave keeps that as
+   its master_irq: it's the board's wiring, and doesn't depend on either
+   PIC's ICW3. */
+static void
+pic_attach_slave(pic_t *slave, uint8_t irq)
+{
+    pic.slaves[irq]   = slave;
+    slave->master_irq = irq;
+}
+
 /* Only check if PIC 1 frozen, because it should not happen
    that one is frozen but the other is not. */
 static __inline void
@@ -343,22 +353,23 @@ pic_update_pending_at(void)
         return;
 #endif
     if (!(pic.interrupt & 0x20)) {
-        pic2.int_pending = (find_best_interrupt(&pic2) != -1);
+        /* Feed each slave's output into the master input it is wired to,
+           its master_irq. A slave's ICW3 selects its cascade identity for
+           INTA, not the wired input: before the slave is initialized its
+           ICW3 is 0, and going by it would clear the master's IRQ 0
+           instead. */
+        for (uint8_t i = 0; i < 8; i++) {
+            pic_t *slave = pic.slaves[i];
 
-        /* The slave's INT output is hard-wired to the master's IR2 (see
-           pic.slaves[2]), regardless of the cascade ID programmed into the
-           slave's ICW3 - firmware that never initializes the slave (eg. the
-           Tandy VIS) would otherwise have its IRQ 0 cleared here. */
-        if (machines[machine].init == machine_at_tandy_vis_init) {
-            if (pic2.int_pending)
-                pic.irr |= 0x04;
+            if (slave == NULL)
+                continue;
+
+            slave->int_pending = (find_best_interrupt(slave) != -1);
+
+            if (slave->int_pending)
+                pic.irr |= (1 << slave->master_irq);
             else
-                pic.irr &= ~0x04;
-        } else {
-            if (pic2.int_pending)
-                pic.irr |= (1 << pic2.icw3);
-            else
-                pic.irr &= ~(1 << pic2.icw3);
+                pic.irr &= ~(1 << slave->master_irq);
         }
 
         pic.int_pending = (find_best_interrupt(&pic) != -1);
@@ -439,7 +450,7 @@ pic_reset(void)
         update_pending = pic_update_pending_dual;
     } else {
         if (is_dual)
-            pic.slaves[is_pc98 ? 7 : 2] = &pic2;
+            pic_attach_slave(&pic2, is_pc98 ? 7 : 2);
 
         update_pending = is_dual ? pic_update_pending_at : pic_update_pending_xt;
         pic.at = pic2.at = is_at;
@@ -1113,7 +1124,7 @@ void
 pic2_init(void)
 {
     io_sethandler(0x00a0, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
-    pic.slaves[2] = &pic2;
+    pic_attach_slave(&pic2, 2);
 }
 
 static void
@@ -1162,12 +1173,12 @@ picint_lines(uint16_t num, int level, int set, uint8_t *irq_state, int to_ioapic
        every raise. */
     uint16_t apic_lines = (level || !to_ioapic) ? 0x0000 : num;
 
-    /* The Tandy VIS firmware leaves the master's ICW3 at 0 and never
-       initializes the slave, but the slave is still wired to the master's
-       IR2 and its IRQ's still reach its IRR - Modular Windows probes IRQ 9
-       through the IRR's at startup, and the VIS reboots in a loop if the
-       probe fails. */
-    if (!slaves && (machines[machine].init == machine_at_tandy_vis_init))
+    /* IRQ 8-15 are wired to the slave's inputs whatever the master's ICW3
+       says - that only tells the master which inputs have a slave at INTA
+       time. Firmware that leaves the master's ICW3 at 0 still sees those
+       IRQ's in the slave's IRR: the Tandy VIS never sets it, and Modular
+       Windows probes IRQ 9 through the IRR's at startup. */
+    if (!slaves && (pic.slaves[pic2.master_irq] == &pic2))
         slaves = 1;
 
     if (!slaves)
