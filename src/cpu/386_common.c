@@ -119,6 +119,8 @@ uint16_t io_port = 0x0000;
 uint32_t io_val  = 0x00000000;
 uint8_t  io_size  = 1;
 uint8_t  io_write = 0;
+uint8_t  io_cycle     = 0;
+uint8_t  io_cycle_smi = 0;
 
 int opcode_has_modrm[256] = {
     1, 1, 1, 1,  0, 0, 0, 0,  1, 1, 1, 1,  0, 0, 0, 0, /*00*/
@@ -1331,9 +1333,12 @@ static void
 smram_save_state_cyrix(uint32_t *saved_state, int in_hlt)
 {
     /* The I/O instruction, prefixes stepped over: a REP INS or OUTS is the
-       one whose ESI or EDI the header carries. */
+       one whose ESI or EDI the header carries. P is for an SMI one of its
+       I/O cycles asserted (3.11.5): an SMI# that comes in on its own, a
+       timer's, is taken between its iterations as well, and a handler
+       told P would take it for a trapped cycle to repeat. */
     const uint8_t op  = ((opcode == 0xf2) || (opcode == 0xf3)) ? rep_op : opcode;
-    const int     rep = (op != opcode) && (op >= 0x6c) && (op <= 0x6f);
+    const int     rep = io_cycle_smi && (op != opcode) && (op >= 0x6c) && (op <= 0x6f);
 
     saved_state[0] = dr[7];
     saved_state[1] = cpu_state.flags | (cpu_state.eflags << 16);
@@ -1392,6 +1397,8 @@ smram_save_state_cyrix(uint32_t *saved_state, int in_hlt)
         saved_state[9] = ESI;
     else
         saved_state[9] = EDI;
+
+    io_cycle_smi = 0;
 }
 
 static void
@@ -2447,6 +2454,9 @@ cpu_smi_raise_direct(void)
     if (is_gxm)
         gxm.smi_ext = 1;
 
+    if (io_cycle)
+        io_cycle_smi = 1;
+
     smi_line = 1;
 }
 
@@ -2465,6 +2475,7 @@ cpu_gxm_smi_io(uint16_t port, int size, int write, uint32_t val)
     gxm.smi_size  = size;
     gxm.smi_write = write;
     gxm.smi_data  = val;
+    io_cycle_smi  = 1;
     smi_line      = 1;
 }
 
