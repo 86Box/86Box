@@ -1302,6 +1302,7 @@ extern int             machine_at_cb52xsi_init(const machine_t *);
 
 /* Cyrix MediaGX MMX + Cx5530 */
 extern int             machine_at_p5gxm_init(const machine_t *);
+extern uint32_t        machine_at_p5gxm_gpio_handler(uint8_t write, uint32_t val);
 #ifdef EMU_DEVICE_H
 extern const device_t  ms5146_device;
 #endif

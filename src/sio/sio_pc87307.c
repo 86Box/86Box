@@ -115,6 +115,21 @@ pc87307_gpio_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
+/* The level on the pins of GPIO port 1 or 2: the data latch where the
+   direction is output, the board's level (the pull-ups unless something
+   drives them) where it is input (PC87317VUL datasheet, 9.2.2 and Table
+   9-2). */
+uint8_t
+pc87307_gpio_pins(void *priv, int port)
+{
+    const pc87307_t *dev  = (pc87307_t *) priv;
+    const int        reg  = (port == 2) ? 4 : 0;
+    const uint8_t    dir  = dev->gpio[0][reg + 1];
+    const uint8_t    pins = (machine_handle_gpio(0, 0xFFFF) >> ((port == 2) ? 8 : 0)) & 0xFF;
+
+    return (dev->gpio[0][reg] & dir) | (pins & ~dir);
+}
+
 uint8_t
 pc87307_gpio_read(uint16_t port, void *priv)
 {

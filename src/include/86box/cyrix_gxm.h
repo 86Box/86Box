@@ -56,4 +56,8 @@ extern const device_t cyrix_gxm_device;
 extern const device_t cyrix_gxm_video_device;
 extern const device_t cs5530_device;
 
+/* The board's MIDI UART at the Sound Blaster base (see cs5530.c): the
+   board says whether it is enabled, by default it is. */
+extern void cs5530_set_midi_uart_enabled(int (*enabled)(void));
+
 #endif /*EMU_CYRIX_GXM_H*/

@@ -223,6 +223,7 @@ typedef struct cs5530_t {
     usb_t     *usb;
     port_92_t *port_92;
     uint8_t    usb_irq_state;
+    uint8_t    usb_smi_level;
     uint8_t    a20m;
 } cs5530_t;
 
@@ -233,13 +234,16 @@ extern double cpuclock;
 static void cs5530_pm_traps_recalc(cs5530_t *dev);
 
 /* ----------------------------------------------------------------------
-   SMI#. It is low while the top level status has a bit set; an RSM with it
-   still low is the next SMI (MediaGX data book, 3.11.3).
+   SMI#. It is low while the top level status has a bit set, or while the
+   USB controller's SMI is asserted with 42h[7] routing it to the pin (Table
+   4-2, F0 Index 42h); an RSM with it still low is the next SMI (MediaGX
+   data book, 3.11.3).
    ---------------------------------------------------------------------- */
 static void
 cs5530_smi_update(cs5530_t *dev)
 {
-    const int level = !!(dev->top_smi & ~TOP_SUSP_MOD);
+    const int level = !!(dev->top_smi & ~TOP_SUSP_MOD) ||
+                      (dev->usb_smi_level && (dev->pci_conf[0][0x42] & 0x80));
 
     if (level && !dev->smi_level)
         cyrix_gxm_smi_pin();
@@ -930,14 +934,28 @@ cs5530_audio_fast_read(uint16_t port, void *priv)
    Without it the bus floats, LSR reads FFh, and the MPU-401 always has
    input: the NT 4.0 driver's ISR then only services the MPU. VSA programs
    no baud rate, so only the data path, LSR and the scratch registers are
-   modelled. */
+   modelled. The board can turn it off (cs5530_set_midi_uart_enabled()). */
+static int (*cs5530_midi_uart_enabled)(void) = NULL;
+
+void
+cs5530_set_midi_uart_enabled(int (*enabled)(void))
+{
+    cs5530_midi_uart_enabled = enabled;
+}
+
+static int
+cs5530_midi_uart_on(void)
+{
+    return in_smm && ((cs5530_midi_uart_enabled == NULL) || cs5530_midi_uart_enabled());
+}
+
 static uint8_t
 cs5530_midi_uart_read(uint16_t port, void *priv)
 {
     cs5530_t *dev = (cs5530_t *) priv;
     uint8_t   ret = 0xff;
 
-    if (!in_smm)
+    if (!cs5530_midi_uart_on())
         return ret;
 
     switch (port & 7) {
@@ -985,7 +1003,7 @@ cs5530_midi_uart_write(uint16_t port, uint8_t val, void *priv)
 {
     cs5530_t *dev = (cs5530_t *) priv;
 
-    if (!in_smm)
+    if (!cs5530_midi_uart_on())
         return;
 
     switch (port & 7) {
@@ -1645,6 +1663,7 @@ cs5530_f0_write(cs5530_t *dev, int addr, uint8_t val)
         case 0x41:
         case 0x42:
             conf[addr] = val;
+            cs5530_smi_update(dev);
             break;
         case 0x43:
             conf[addr] = val & 0x7f;
@@ -1926,14 +1945,18 @@ cs5530_usb_irq(void *priv, int level)
         pci_clear_irq(dev->usb_slot, PCI_INTA, &dev->usb_irq_state);
 }
 
-/* Its SMI: to SMI# (42h[7]) or the top level status (42h[6]). */
+/* Its SMI, a level: it holds SMI# low with 42h[7], so an RSM before the
+   handler clears the condition is the next SMI. The top level status (which
+   VSA dispatches on) latches it as it asserts, with either bit. */
 static void
 cs5530_usb_smi(void *priv, int level)
 {
     cs5530_t *dev = (cs5530_t *) priv;
 
+    dev->usb_smi_level = level;
     if (level && (dev->pci_conf[0][0x42] & 0xc0))
-        cs5530_smi(dev, TOP_USB);
+        dev->top_smi |= TOP_USB;
+    cs5530_smi_update(dev);
 }
 
 static void
@@ -2105,6 +2128,7 @@ cs5530_close(void *priv)
     mem_a20_trap_priv = NULL;
     gxm.smi_pin       = NULL;
     gxm.serial_packet = NULL;
+    cs5530_midi_uart_enabled = NULL;
     cs5530            = NULL;
 
     for (int i = 0; i < PM_DEVICES; i++)
