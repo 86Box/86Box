@@ -774,6 +774,8 @@ fdd_get_densel(void *priv)
     return drv->densel;
 }
 
+static __inline uint64_t fdd_byteperiod(void *priv);
+
 void
 fdd_load(void *priv, char *fn)
 {
@@ -846,6 +848,14 @@ fdd_load(void *priv, char *fn)
                 drv->empty = 0;
                 fdd_forced_seek(drv, 0);
                 drv->changed = 1;
+                /* The flux engine is driven by the drive poll timer, which the motor enable
+                   only starts on a 0 -> 1 transition. On boards without a DOR (the Tandy 2000
+                   keeps the motor on all the time) the motor is already spinning when the disk
+                   is inserted, so that transition never happens again and the drive would stay
+                   unpolled, leaving READ ID and every other command unanswered. Kick the timer
+                   here as well. */
+                if (drv->motoron)
+                    timer_set_delay_u64(&drv->poll_time, fdd_byteperiod(drv));
                 ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->read_only);
                 return;
             }
