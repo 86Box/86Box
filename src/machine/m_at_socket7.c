@@ -39,6 +39,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/nvr.h>
+#include <86box/scsi.h>
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/thread.h>
 #include <86box/network.h>
@@ -727,7 +728,8 @@ machine_at_ap5vm_init(const machine_t *model)
     device_add(&piix3_device);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add(machine_get_scsi_device(machine));
+    if ((scsi_card_current[0] == SCSI_CARD_INTERNAL) && machine_get_scsi_device(machine))
+        device_add(machine_get_scsi_device(machine));
     device_add(&intel_flash_bxt_device);
 
     return ret;

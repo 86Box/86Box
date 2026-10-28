@@ -16,9 +16,18 @@
  *          couple of counts, and that is the table of aic_chip_t below
  *          rather than a thread of conditionals through the whole file.
  *
+ *          The AIC-7890 is that design with the command channel and the
+ *          scatter/gather shadow layer added: 64-byte SCBs out of external
+ *          SRAM, the queues kept in host memory and passed through queue
+ *          offset registers, and a sequencer whose instruction words are
+ *          not compressed. It keeps the same SCB and command semantics, so
+ *          it is the same table with more entries, not a second driver.
+ *
  *          The boards: the AIC-7770 on the EISA AHA-2740, the AIC-7870 on
- *          the AHA-2940 and 2940W, and the AIC-7880 as the chip on a
- *          motherboard and as the AHA-2940 Ultra and Ultra Wide cards.
+ *          the AHA-2940 and 2940W, the AIC-7880 as the chip on a
+ *          motherboard and as the AHA-2940 Ultra and Ultra Wide cards, and
+ *          the AIC-7890 as the AHA-2940U2W and as the chip on a
+ *          motherboard.
  *
  *          HOW THIS PART IS MODELLED.
  *
@@ -39,21 +48,23 @@
  *          through the phases and raise REQ.
  *
  *          The instruction set is the one the aic7xxx assembler emits
- *          (aicasm_insformat.h) in the packed form pre-Ultra2 parts take:
+ *          (aicasm_insformat.h). Pre-Ultra2 parts take it compressed:
  *          immediate, source and destination a byte each, a return bit,
- *          and a four-bit opcode. Register names and bits follow
- *          aic7xxx.reg, which cites the AIC-7770 and AIC-7870 data books.
+ *          and a four-bit opcode. The AIC-7890 takes it whole: nine-bit
+ *          source and destination fields, a ten-bit jump address, and the
+ *          odd parity bit. Register names and bits follow aic7xxx.reg,
+ *          which cites the AIC-7770, AIC-7870 and AIC-7890 data books.
  *
  *          Not modelled: target mode (the chip answering selection as a
- *          target), SCAM, parity errors on either bus, external SCB SRAM,
- *          and the pace of the SCSI bus itself. The sequencer runs at the
- *          clock rate the chip would have, and targets give up the bus
- *          while they work and come back by reselection, as real ones do.
- *          Selection is timed only nominally: what the firmware cares
- *          about is that a target that is there is quick and one that is
- *          not is not. How long the device takes over a command is an
- *          option, off unless asked for, because the seek is modelled and
- *          the transfer is not. The data itself crosses the bus at once.
+ *          target), SCAM, parity errors on either bus, and the pace of
+ *          the SCSI bus itself. The sequencer runs at the clock rate the
+ *          chip would have, and targets give up the bus while they work
+ *          and come back by reselection, as real ones do. Selection is
+ *          timed only nominally: what the firmware cares about is that a
+ *          target that is there is quick and one that is not is not. How
+ *          long the device takes over a command is an option, off unless
+ *          asked for, because the seek is modelled and the transfer is
+ *          not. The data itself crosses the bus at once.
  *
  * Authors: Michael Pratte, <mpratte@makefox.group>
  *
@@ -223,8 +234,58 @@ aic_log(const char *tag, const char *fmt, ...)
 #define DIAGLEDEN    0x80
 #define DIAGLEDON    0x40
 #define AUTOFLUSHDIS 0x20
+#define ENAB40       0x08 /* AIC-7890: LVD transceivers settled, read only */
+#define ENAB20       0x04 /* AIC-7890: single-ended/HVD, read only */
 #define SELBUSB      0x08
 #define SELWIDE      0x02
+#define XCVR         0x01 /* AIC-7890: differential transceiver, read only */
+
+/* The AIC-7890's register file past 0xdf.  The part has no Queue In or
+   Queue Out FIFO registers: the host queues SCBs in its own memory and
+   the two sides pass indexes through HNSCB_QOFF and SNSCB_QOFF, with the
+   command channel moving the SCB itself and its scatter/gather list. */
+#define SCSIID_ULTRA2 0x0f /* the target and our own ID on the 7890 */
+#define CCHADDR      0xe0  /* eight bytes: command channel host address */
+#define CCHCNT       0xe8
+#define CCSGRAM      0xe9
+#define CCSGADDR     0xea
+#define CCSGCTL      0xeb
+#define CCSCBRAM     0xec
+#define CCSCBADDR    0xed
+#define CCSCBCTL     0xee
+#define CCSCBCNT     0xef
+#define SCBBADDR     0xf0
+#define CCSCBPTR     0xf1
+#define HNSCB_QOFF   0xf4
+#define SNSCB_QOFF   0xf6
+#define SDSCB_QOFF   0xf8
+#define QOFF_CTLSTA  0xfa
+#define DFF_THRSH    0xfb
+#define SG_CACHE     0xfc /* SG_CACHE_PRE on write, SHADOW on read */
+#define CSDATL       0xfe
+#define CSDATH       0xff
+#define CCSGDONE     0x80
+#define CCSGEN       0x08
+#define CCSGFLAG     0x02
+#define CCSGRESET    0x01
+#define CCSCBDONE    0x80
+#define ARRDONE      0x40
+#define CCARREN      0x10
+#define CCSCBEN      0x08
+#define CCSCBDIR     0x04
+#define CCSCBRESET   0x01
+#define SCB_AVAIL    0x40
+#define SNSCB_ROLLOVER 0x20
+#define SDSCB_ROLLOVER 0x10
+#define SCB_QSIZE    0x07
+#define SCB_QSIZE_256 0x06
+#define SG_LAST_SEG  0x02
+#define SG_LAST_DONE 0x01
+#define SG_ADDR_MASK 0xf8
+#define PRELOADEN    0x80 /* DFCNTRL on the AIC-7890 */
+#define PRELOAD_AVAIL 0x80 /* DFSTATUS on the AIC-7890 */
+#define SHVALID      0x40 /* SSTAT2 on the AIC-7890 */
+#define USCBSIZE32   0x02 /* DSCOMMAND0: 32-byte SCB pages, for probing */
 
 #define BOARD_7880   0 /* the chip on a motherboard */
 #define BOARD_2940U  1 /* AHA-2940 Ultra, narrow */
@@ -244,7 +305,12 @@ aic_log(const char *tag, const char *fmt, ...)
 #define BOARD_2740W       10 /* one wide channel */
 #define BOARD_2742W       11 /* one wide channel, floppy controller */
 #define BOARD_2744W       12 /* one wide differential channel */
-#define AIC_BOARD_EISA(b) ((b) >= BOARD_2740)
+/* The AIC-7890 cards: the AHA-2940U2W and the same chip on a
+   motherboard. Both are wide, and the only difference between them is
+   what the board straps and which PCI IDs it answers with. */
+#define BOARD_2940U2W     13
+#define BOARD_7890        14
+#define AIC_BOARD_EISA(b) (((b) >= BOARD_2740) && ((b) <= BOARD_2744W))
 /* A card entry that covers several models takes the board from its Model
    option (and, for the 274x, its floppy jumper) instead of from .local. */
 #define BOARD_FROM_CONFIG 0xff
@@ -388,15 +454,27 @@ aic_log(const char *tag, const char *fmt, ...)
 #define QOUTFIFO     0x9d
 #define QOUTCNT      0x9e
 #define SFUNCT       0x9f
-#define SCB_BASE     0xa0 /* the SCB selected by SCBPTR, to 0xbf */
+#define SCB_BASE     0xa0 /* the SCB selected by SCBPTR, to 0xbf or 0xdf */
 
+/* The AIC-7890 is the same design with more of everything: 64-byte SCBs
+   (large SCBs) out of sixteen kilobytes of external SRAM, a 512-byte data
+   FIFO, a 3 KB sequencer RAM and the command channel that moves SCBs and
+   scatter/gather elements between that SRAM and host memory.  The sizes
+   live in aic_chip_t; these are the maxima, used for the storage each
+   instance carries whatever part it is. */
 #define SCB_COUNT    16
 #define SCB_SIZE     32
+#define SCB_PAGES_MAX 256
+#define SCB_SIZE_MAX  64
 #define SEQ_INSNS    512
+#define SEQ_INSNS_MAX 768
 #define FIFO_SIZE    256
+#define FIFO_SIZE_MAX 512
 /* Sixteen entries of four bits each: the queues live in what is left of
    the internal SCB RAM, and only a board with external SCB RAM (RAMPSM),
-   which none of these has, gets 255 of eight. */
+   which none of these has, gets 255 of eight.  The AIC-7890 has no queue
+   FIFO registers at all; it keeps the queues in host memory and passes
+   their positions through the queue offset registers. */
 #define QUEUE_SIZE 16
 
 /* A polling loop's pass (aic_loop_edge): the most distinct places it may
@@ -420,8 +498,9 @@ aic_log(const char *tag, const char *fmt, ...)
    plugs into is the board's business too. */
 typedef struct aic_chip_t {
     const char *name;
-    uint8_t     scb_pages;    /* how many pages SCBPTR can select */
-    uint8_t     q_depth;      /* how deep QINFIFO and QOUTFIFO are */
+    uint16_t    scb_pages;    /* how many pages SCBPTR can select */
+    uint8_t     scb_window;   /* bytes the file maps at A0h: 32 or 64 */
+    uint16_t    q_depth;      /* how deep QINFIFO and QOUTFIFO are */
     uint8_t     scbptr_mask;  /* and what SCBPTR reads back */
     uint8_t     sblkctl_mask; /* the bits of these that are not always 0 */
     uint8_t     sxfrctl0_mask;
@@ -438,6 +517,9 @@ typedef struct aic_chip_t {
                                    the two quadword pointers */
     uint8_t selid_writable;     /* SELID is read only on the older part */
     uint8_t twin_capable;       /* a second SCSI channel to strap */
+    uint8_t extarb_grant;       /* EXTARBACK# strapped asserted: the board
+                                   has no external memory arbiter, so the
+                                   FLEXPort grant is always there */
     uint8_t seqctl_reset;       /* what SEQCTL comes up holding */
     uint8_t sblkctl_reset;      /* and SBLKCTL, before the board's straps */
     uint8_t own_reset_seen;     /* the part reports the bus reset it drives */
@@ -446,6 +528,16 @@ typedef struct aic_chip_t {
     uint8_t host_pause_checked; /* the host reaching a register that
                                    wants the sequencer stopped is
                                    ILLHADDR */
+    /* The AIC-7890 and its kin: the part is the family's design with the
+       command channel and the shadow layer added, not a different one. */
+    uint8_t  more_sram;   /* scratch RAM carries on to 7Fh */
+    uint8_t  cmd_chan;    /* CCHADDR to QOFF_CTLSTA at E0h-FFh */
+    uint8_t  queue_regs;  /* queue positions in registers, not FIFOs */
+    uint8_t  sg_preload;  /* three-deep scatter/gather shadow layer */
+    uint8_t  ultra2;      /* 64-byte SCBs, 40 MHz, SCSIID_ULTRA2 at 0Fh */
+    uint8_t  scbcnt_mask; /* SCBCNT counts bytes within a page */
+    uint16_t seq_insns;   /* four-byte instructions in the sequencer RAM */
+    uint16_t fifo_size;   /* bytes in the data FIFO */
 } aic_chip_t;
 
 /* The AIC-7770. Four SCB pages and two four deep queues; SCBPTR keeps
@@ -457,6 +549,7 @@ typedef struct aic_chip_t {
 static const aic_chip_t aic_chip_7770 = {
     .name           = "AIC-7770",
     .scb_pages      = 4,
+    .scb_window     = SCB_SIZE,
     .q_depth        = 4,
     .scbptr_mask    = 0x07,
     .sblkctl_mask   = SELBUSB | SELWIDE,
@@ -470,6 +563,8 @@ static const aic_chip_t aic_chip_7770 = {
     .fifo_word      = 4,
     .selid_writable = 0,
     .twin_capable   = 1,
+    .seq_insns      = SEQ_INSNS,
+    .fifo_size      = FIFO_SIZE,
     /* PERRORDIS is the one bit here whose reset value the data book gives
        as a one; FASTMODE is not, so the sequencer starts on the slower of
        its two clocks until the firmware asks for the other. */
@@ -495,6 +590,7 @@ static const aic_chip_t aic_chip_7770 = {
 static const aic_chip_t aic_chip_788x = {
     .name           = "AIC-7880",
     .scb_pages      = SCB_COUNT,
+    .scb_window     = SCB_SIZE,
     .q_depth        = QUEUE_SIZE,
     .scbptr_mask    = 0xff,
     .sblkctl_mask   = DIAGLEDEN | DIAGLEDON | AUTOFLUSHDIS | SELWIDE,
@@ -508,6 +604,8 @@ static const aic_chip_t aic_chip_788x = {
     .fifo_word      = 8,
     .selid_writable = 1,
     .twin_capable   = 0,
+    .seq_insns      = SEQ_INSNS,
+    .fifo_size      = FIFO_SIZE,
     .seqctl_reset   = PERRORDIS | FASTMODE,
     /* The diagnostic LED bits come up set. AUTOFLUSHDIS does not, and
        must not: with it set the part does not flush its data FIFO by
@@ -527,6 +625,7 @@ static const aic_chip_t aic_chip_788x = {
    Linux's feature table makes the AIC-7880 the AIC-7870 plus AHC_ULTRA
    and nothing else. */
 static const aic_chip_t aic_chip_7870;
+static const aic_chip_t aic_chip_7890;
 
 /* The part a board is built on. */
 static const aic_chip_t *
@@ -536,6 +635,8 @@ aic_board_chip(int board)
         return &aic_chip_7770;
     else if ((board == BOARD_2940) || (board == BOARD_2940W))
         return &aic_chip_7870;
+    else if ((board == BOARD_2940U2W) || (board == BOARD_7890))
+        return &aic_chip_7890;
 
     return &aic_chip_788x;
 }
@@ -558,6 +659,7 @@ aic_scsi_buses(const device_t *dev)
 static const aic_chip_t aic_chip_7870 = {
     .name          = "AIC-7870",
     .scb_pages     = SCB_COUNT,
+    .scb_window    = SCB_SIZE,
     .q_depth       = QUEUE_SIZE,
     .scbptr_mask   = 0xff,
     .sblkctl_mask  = DIAGLEDEN | DIAGLEDON | AUTOFLUSHDIS | SELWIDE,
@@ -571,11 +673,57 @@ static const aic_chip_t aic_chip_7870 = {
     .fifo_word     = 8,
     .selid_writable = 1,
     .twin_capable  = 0,
+    .seq_insns     = SEQ_INSNS,
+    .fifo_size     = FIFO_SIZE,
     .seqctl_reset  = PERRORDIS | FASTMODE,
     .sblkctl_reset = DIAGLEDEN | DIAGLEDON,
     .own_reset_seen = 1,
     .bad_addr_err  = ILLOPCODE,
     .host_pause_checked = 0,
+};
+
+/* The AIC-7890, the Ultra2 member.  Its register file is the 7880's with
+   SCSIOFFSET moved into SCSIID and the target ID and our own into a new
+   register at 0Fh, the SCB page widened to 64 bytes, and the space from
+   E0h to FFh filled in with the command channel and the queue offset
+   registers.  The sequencer instruction set is the same one; what is new
+   is that a SCB is no longer DMAed through the data FIFO by the
+   sequencer but by the command channel, and that the data channel has a
+   three-deep scatter/gather shadow layer the sequencer feeds and reads
+   back.  Both are modelled below. */
+static const aic_chip_t aic_chip_7890 = {
+    .name           = "AIC-7890",
+    .scb_pages      = SCB_PAGES_MAX,
+    .scb_window     = SCB_SIZE_MAX,
+    .q_depth        = 256,
+    .scbptr_mask    = 0xff,
+    .sblkctl_mask   = DIAGLEDEN | DIAGLEDON | AUTOFLUSHDIS | SELWIDE,
+    .sxfrctl0_mask  = DFON | DFPEXP | CLRSTCNT | SPIOEN | SCAMEN | CLRCHN,
+    .sxfrctl1_mask  = BITBUCKET | ENSPCHK | STIMESEL | ENSTIMER | ACTNEGEN | STPWEN,
+    .simode0_mask   = 0xff,
+    .scsitest_mask  = 0,
+    .clrint_mask    = CLRPARERR | CLRBRKADRINT | CLRSCSIINT | CLRCMDINT | CLRSEQINT,
+    .aux_regs       = 1,
+    .fifo_addr_hi   = 1,
+    .fifo_word      = 8,
+    .selid_writable = 1,
+    .twin_capable   = 0,
+    .extarb_grant   = 1,
+    .seq_insns      = SEQ_INSNS_MAX,
+    .fifo_size      = FIFO_SIZE_MAX,
+    .seqctl_reset   = PERRORDIS | FASTMODE,
+    .sblkctl_reset  = DIAGLEDEN | DIAGLEDON,
+    /* The book is explicit for this part: SCSIRSTI is set "only when the
+       reset originates from the SCSI bus". */
+    .own_reset_seen = 0,
+    .bad_addr_err   = ILLOPCODE,
+    .host_pause_checked = 0,
+    .more_sram      = 1,
+    .cmd_chan       = 1,
+    .queue_regs     = 1,
+    .sg_preload     = 1,
+    .ultra2         = 1,
+    .scbcnt_mask    = 0x3f,
 };
 
 /* PCI configuration, device specific. */
@@ -743,7 +891,64 @@ typedef struct aic7xxx_t {
     uint16_t stack[4];
     uint8_t  sp;
     uint8_t  stack_rd;
-    uint8_t  seqram[SEQ_INSNS * 4];
+    uint8_t  seqram[SEQ_INSNS_MAX * 4];
+    uint8_t  fifo[FIFO_SIZE_MAX];
+    uint16_t fifo_rd;
+    uint16_t fifo_cnt;
+    uint8_t  fifo_flush; /* a flush, asked for or automatic, has not finished */
+    uint8_t  host_wait;  /* sequencer instructions until the host side may move */
+
+    uint8_t  qin[QUEUE_SIZE];
+    uint8_t  qin_rd;
+    uint16_t qin_cnt;
+    uint8_t  qin_last; /* what QINFIFO last gave: an empty read gives it again */
+    uint8_t  qout[QUEUE_SIZE];
+    uint8_t  qout_rd;
+    uint16_t qout_cnt;
+    uint8_t  qout_last; /* what QOUTFIFO last gave, likewise */
+
+    uint8_t sram[0x40];
+    uint8_t sram_hi[0x10]; /* 70h to 7Fh on the AIC-7890 */
+    uint8_t scb[SCB_PAGES_MAX][SCB_SIZE_MAX];
+    uint8_t misc[0x40]; /* 0xc0 to 0xff: nothing on this part, but it holds what it is told */
+
+    /* The AIC-7890's command channel.  The two SRAM blocks take bytes from
+       host memory at CCHADDR, a SCB at a time or a scatter/gather list
+       element at a time, and the SCB block also moves a whole page to and
+       from the SCB array at CCSCBPTR. */
+    uint8_t  cchaddr[8];
+    uint8_t  cchcnt;
+    uint8_t  ccscbram[128];
+    uint8_t  ccscbaddr;
+    uint8_t  ccscbctl;
+    uint8_t  ccscbcnt;
+    uint8_t  ccscbptr;
+    uint8_t  ccsgram[256];
+    uint8_t  ccsgaddr;
+    uint8_t  ccsgctl;
+    uint8_t  scbbaddr;
+    uint8_t  hnscb_qoff;
+    uint8_t  snscb_qoff;
+    uint8_t  sdscb_qoff;
+    uint8_t  qoff_ctlsta;
+    uint8_t  dff_thrsh;
+    uint8_t  scsiid_ultra2; /* target and our own ID, at 0Fh on the 7890 */
+
+    /* The data channel's scatter/gather shadow layer.  The sequencer
+       writes HADDR, HCNT and SG_CACHE_PRE and sets PRELOADEN; what it
+       wrote drops to the active level when the previous segment is done,
+       and SG_CACHE_SHADOW reads back the segment that is running. */
+    uint8_t  sg_cache_pre;
+    uint8_t  sg_cache_shadow;
+    uint8_t  sg_active_last; /* the running segment is the list's last */
+    uint8_t  sg_last_done;   /* its transfer has finished */
+    uint8_t  sg_pre_n;       /* preloaded segments waiting */
+    struct {
+        uint32_t haddr;
+        uint32_t hcnt;
+        uint8_t  ptr;
+    } sg_pre[2];
+    uint8_t haddr_hi[4]; /* the other half of the 64-bit address, HADDLDSEL */
 #ifdef ENABLE_AIC7XXX_LOG
     /* The last instructions executed, for saying how the sequencer came to
        raise an interrupt without logging every instruction it ever runs. */
@@ -806,28 +1011,9 @@ typedef struct aic7xxx_t {
     uint8_t bios_ctl_set;                   /* HA_274_BIOSCTRL has been written */
     uint8_t bios_ram[AIC_BIOS_RAMSIZE];     /* the overlay */
     uint8_t bios_rom_top[AIC_BIOS_RAMSIZE]; /* what it covers */
-    uint8_t bctl;
-    uint8_t bustime;
-    uint8_t busspd;
-
-    uint8_t  fifo[FIFO_SIZE];
-    uint16_t fifo_rd;
-    uint16_t fifo_cnt;
-    uint8_t  fifo_flush; /* a flush, asked for or automatic, has not finished */
-    uint8_t  host_wait;  /* sequencer instructions until the host side may move */
-
-    uint8_t  qin[QUEUE_SIZE];
-    uint8_t  qin_rd;
-    uint16_t qin_cnt;
-    uint8_t  qin_last; /* what QINFIFO last gave: an empty read gives it again */
-    uint8_t  qout[QUEUE_SIZE];
-    uint8_t  qout_rd;
-    uint16_t qout_cnt;
-    uint8_t  qout_last; /* what QOUTFIFO last gave, likewise */
-
-    uint8_t sram[0x40];
-    uint8_t scb[SCB_COUNT][SCB_SIZE];
-    uint8_t misc[0x40]; /* 0xc0 to 0xff: nothing on this part, but it holds what it is told */
+    uint8_t  bctl;
+    uint8_t  bustime;
+    uint8_t  busspd;
 
     /* the bus and what is on it */
     uint8_t    bus_state;
@@ -891,6 +1077,7 @@ static void    aic_chip_reset(aic7xxx_t *dev);
 static void    aic_eisa_bios_remap(aic7xxx_t *dev);
 static void    aic_eisa_bios_overlay(aic7xxx_t *dev);
 static void    aic_pio_out(aic7xxx_t *dev);
+static void    aic_fifo_reset(aic7xxx_t *dev);
 #ifdef ENABLE_AIC7XXX_LOG
 static const char *aic_phase_name(uint8_t phase);
 #endif
@@ -1347,6 +1534,8 @@ aic_ch_sxfrctl1(const aic7xxx_t *dev, uint8_t ch)
 static uint8_t
 aic_ch_scsiid(const aic7xxx_t *dev, uint8_t ch)
 {
+    if (dev->chip->ultra2)
+        return dev->scsiid_ultra2;
     return (ch == dev->cell_live) ? dev->scsiid : dev->cell_save[ch].scsiid;
 }
 
@@ -1387,6 +1576,7 @@ aic_bus_changed(aic7xxx_t *dev)
        its own phase, and while the file is switched away from this
        connection none of it is readable. */
     uint8_t req = (dev->bus_state == BUS_BUSY) && dev->tgt_req && (dev->cur_ch == dev->cell_live);
+
 
     /* REQINIT goes up on the leading edge of REQ and comes down with the
        ACK that answers it, or when CLRREQINIT says so: cleared by hand it
@@ -1714,6 +1904,15 @@ aic_tgt_next(aic7xxx_t *dev)
 {
     aic_cmd_t *c = dev->cur;
     uint8_t    msg;
+
+    /* The command phase is over. Its CDB may have been fed from the
+       twelve byte SCB store, of which only SCB_CDB_LEN bytes are command:
+       the rest are still in the FIFO when the target moves on. They are
+       not data and must not head the data phase, where they shifted the
+       first transfer by six bytes and left the tail behind a host count
+       that had already run out. */
+    if (dev->tgt_phase == P_COMMAND)
+        aic_fifo_reset(dev);
 
     if (c == NULL) {
         aic_bus_free(dev);
@@ -2285,9 +2484,9 @@ aic_fifo_reset(aic7xxx_t *dev)
 static void
 aic_fifo_push(aic7xxx_t *dev, uint8_t val)
 {
-    if (dev->fifo_cnt >= FIFO_SIZE)
+    if (dev->fifo_cnt >= dev->chip->fifo_size)
         return;
-    dev->fifo[(dev->fifo_rd + dev->fifo_cnt) % FIFO_SIZE] = val;
+    dev->fifo[(dev->fifo_rd + dev->fifo_cnt) % dev->chip->fifo_size] = val;
     dev->fifo_cnt++;
 }
 
@@ -2299,19 +2498,30 @@ aic_fifo_pop(aic7xxx_t *dev)
     if (dev->fifo_cnt == 0)
         return 0;
     val          = dev->fifo[dev->fifo_rd];
-    dev->fifo_rd = (dev->fifo_rd + 1) % FIFO_SIZE;
+    dev->fifo_rd = (dev->fifo_rd + 1) % dev->chip->fifo_size;
     dev->fifo_cnt--;
     return val;
 }
 
-/* How many stored bytes start a burst from the FIFO to memory: DFTHRSH
-   selects three quadwords, half, three quarters or all of it. */
+/* How many bytes start a burst: the earlier parts take a two bit
+   threshold out of BUSSPD/DSPCISTATUS, and the 7890 has a byte of its
+   own, DFF_THRSH, with an eight-entry table whose highest entry leaves
+   thirty-two bytes rather than stopping at the brim.  The threshold is
+   read in the direction the transfer is going: bit 6-4 is the one for
+   moving data to memory and bits 2-0 for filling the FIFO from it. */
 static uint32_t
-aic_fifo_threshold(const aic7xxx_t *dev)
+aic_fifo_threshold(const aic7xxx_t *dev, int dir)
 {
     /* Sixteen bytes at the lowest setting: "4 double words" in the
        AIC-7770 book, "16 Bytes" in the AIC-7870's table. */
     static const uint16_t level[4] = { 16, FIFO_SIZE / 2, (FIFO_SIZE * 3) / 4, FIFO_SIZE };
+    static const uint16_t u2_level[8] = { 32, 128, 256, 320, 384, 432, 464, 480 };
+    uint8_t               sel;
+
+    if (dev->chip->ultra2) {
+        sel = dir ? (dev->dff_thrsh & 0x07) : ((dev->dff_thrsh >> 4) & 0x07);
+        return u2_level[sel];
+    }
 
     /* Register 86h, whichever part this is. On the AIC-7770 it is BUSSPD,
        and the data book is explicit that "in EISA mode, STBON(3:0) and
@@ -2342,8 +2552,74 @@ aic_dma_host_wants(const aic7xxx_t *dev)
     if (!(dev->dfcntrl & HDMAEN) || (dev->hcnt == 0))
         return 0;
     if (dev->dfcntrl & DIRECTION)
-        return dev->fifo_cnt < FIFO_SIZE;
-    return dev->fifo_flush || (dev->fifo_cnt >= aic_fifo_threshold(dev));
+        return dev->fifo_cnt < dev->chip->fifo_size;
+    return dev->fifo_flush || (dev->fifo_cnt >= aic_fifo_threshold(dev, 0));
+}
+
+/* ---- the AIC-7890's scatter/gather shadow layer ------------------------ */
+
+/* A segment becomes active: the host and SCSI counters both take its
+   length, SHADDR its address, and SG_CACHE_SHADOW the pointer the
+   sequencer passed with it (bit 1 says it is the list's last). */
+static void
+aic_sg_load(aic7xxx_t *dev, uint32_t haddr, uint32_t hcnt, uint8_t ptr)
+{
+    dev->haddr           = haddr;
+    dev->hcnt            = hcnt;
+    dev->stcnt           = hcnt;
+    dev->shaddr          = haddr;
+    dev->sg_cache_shadow = ptr & (SG_ADDR_MASK | SG_LAST_SEG);
+    dev->sg_active_last  = ptr & SG_LAST_SEG;
+    dev->sg_last_done    = 0;
+}
+
+/* The running segment has left both counters at zero.  Start the next
+   preloaded one, or, on the list's last, say so: LAST_SEG_DONE is set
+   once both the host and the SCSI side have reached the end, which is
+   what the firmware waits for before it leaves the data phase. */
+static void
+aic_sg_next(aic7xxx_t *dev)
+{
+    if (!dev->chip->sg_preload)
+        return;
+
+    /* Nothing may still be queued for the address of the segment that is
+       ending: the FIFO's bytes belong to it, not to the one behind it. */
+    if (dev->fifo_cnt)
+        return;
+
+    if (dev->dfcntrl & DIRECTION) {
+        /* Host to SCSI: the host fills the FIFO and the target empties it.
+           The segment is over when neither side has a byte left. */
+        if (dev->hcnt || dev->stcnt)
+            return;
+    } else {
+        /* SCSI to host: the target produces, so its count reaching zero
+           means the whole segment has been delivered.  The host may still
+           have a residual from a phase change, and the firmware has
+           already been told to save it; the shadow layer moves on so that
+           SG_CACHE_SHADOW names the segment the residual belongs to. */
+        if (dev->stcnt)
+            return;
+    }
+
+    if (dev->sg_pre_n) {
+        dev->sg_pre_n--;
+        aic_sg_load(dev, dev->sg_pre[0].haddr, dev->sg_pre[0].hcnt, dev->sg_pre[0].ptr);
+        dev->sg_pre[0] = dev->sg_pre[1];
+        return;
+    }
+    if (dev->sg_active_last && (dev->hcnt == 0) && (dev->stcnt == 0))
+        dev->sg_last_done = 1;
+}
+
+/* Whether there is room to validate another HADDR/HCNT pair into the
+   shadow layer.  The engine holds three segments at a time, the active
+   one and two behind it. */
+static int
+aic_sg_preload_avail(const aic7xxx_t *dev)
+{
+    return dev->chip->sg_preload && (dev->sg_pre_n < 2);
 }
 
 /* The host side of the FIFO. HDMAEN with DIRECTION set fills it from
@@ -2378,8 +2654,8 @@ aic_dma_host(aic7xxx_t *dev)
         return;
 
     if (dev->dfcntrl & DIRECTION) {
-        while (dev->hcnt && (dev->fifo_cnt < FIFO_SIZE)) {
-            n = FIFO_SIZE - dev->fifo_cnt;
+        while (dev->hcnt && (dev->fifo_cnt < dev->chip->fifo_size)) {
+            n = dev->chip->fifo_size - dev->fifo_cnt;
             if (n > sizeof(buf))
                 n = sizeof(buf);
             if (n > dev->hcnt)
@@ -2420,6 +2696,8 @@ aic_dma_host(aic7xxx_t *dev)
             dev->hcnt -= n;
         }
     }
+
+    aic_sg_next(dev);
 
     if (dev->fifo_cnt == 0)
         dev->fifo_flush = 0;
@@ -2465,9 +2743,9 @@ aic_dma_scsi(aic7xxx_t *dev)
         } else {
             if (dev->tgt_phase != (dev->scsisigo & PHASE_MASK))
                 break;
-            if (dev->fifo_cnt >= FIFO_SIZE) {
+            if (dev->fifo_cnt >= dev->chip->fifo_size) {
                 aic_dma_host(dev);
-                if (dev->fifo_cnt >= FIFO_SIZE)
+                if (dev->fifo_cnt >= dev->chip->fifo_size)
                     break;
             }
             aic_fifo_push(dev, aic_tgt_byte(dev));
@@ -2477,6 +2755,11 @@ aic_dma_scsi(aic7xxx_t *dev)
             aic_set_sstat0(dev, SWRAP);
         dev->stcnt = (dev->stcnt - 1) & 0xffffff;
         dev->shaddr++;
+        /* The shadow layer starts the next preloaded segment as soon as
+           this one is done on both sides, which keeps the same data phase
+           going without the firmware having to come back to it. */
+        if (dev->stcnt == 0)
+            aic_sg_next(dev);
     }
     dev->in_dma = 0;
 
@@ -2567,6 +2850,19 @@ aic_pio_out(aic7xxx_t *dev)
     aic_tgt_take(dev, dev->scsidatl);
 }
 
+/* The SCB window is 32 bytes on the pre-Ultra2 parts and 64 on the 7890,
+   where DSCOMMAND0 can put it back to 32 for a probe.  The storage keeps
+   one 64-byte slot per page either way; what changes is how much of it
+   the file exposes, and what a command-channel transfer moves. */
+static uint32_t
+aic_scb_window(const aic7xxx_t *dev)
+{
+    if (dev->chip->ultra2 && (dev->dscommand0 & USCBSIZE32))
+        return 32;
+
+    return dev->chip->scb_window;
+}
+
 static uint8_t
 aic_scb_offset(aic7xxx_t *dev, uint8_t addr, int seq)
 {
@@ -2585,8 +2881,8 @@ aic_scb_offset(aic7xxx_t *dev, uint8_t addr, int seq)
     if (seq || !(dev->scbcnt & SCBAUTO))
         return (uint8_t) (addr - SCB_BASE);
 
-    off         = dev->scbcnt & 0x1f;
-    dev->scbcnt = (uint8_t) ((dev->scbcnt & 0xe0) | ((off + 1) & 0x1f));
+    off         = dev->scbcnt & dev->chip->scbcnt_mask;
+    dev->scbcnt = (uint8_t) ((dev->scbcnt & ~dev->chip->scbcnt_mask) | ((off + 1) & dev->chip->scbcnt_mask));
     return off;
 }
 
@@ -2601,6 +2897,9 @@ aic_host_catch_up(aic7xxx_t *dev)
         aic_pump(dev);
     }
 }
+
+static uint32_t
+aic_qmask(const aic7xxx_t *dev);
 
 static uint8_t
 aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
@@ -2635,10 +2934,15 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
 
     if ((addr >= SRAM_BASE) && (addr < 0x60))
         return dev->sram[addr - SRAM_BASE];
+    if (dev->chip->more_sram && (addr >= 0x70) && (addr < 0x80))
+        return dev->sram_hi[addr - 0x70];
     if (addr >= SCB_BASE) {
-        if (addr < (SCB_BASE + SCB_SIZE))
+        if (addr < (SCB_BASE + aic_scb_window(dev)))
             return dev->scb[dev->scbptr & (dev->chip->scb_pages - 1)][aic_scb_offset(dev, addr, seq)];
-        return dev->misc[addr - 0xc0];
+        if (!dev->chip->cmd_chan)
+            return dev->misc[addr - 0xc0];
+        if (addr < 0xe0)
+            return 0x00;
     }
 
     switch (addr) {
@@ -2773,7 +3077,12 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
                names above SFCNT -- SHVALID, EXP_ACTIVE, the CRC errors --
                are Ultra2 and Ultra3 additions laid over the 7770's field,
                and the one place the sequencer tests SSTAT2 is inside its
-               u2_ data phase, which this chip never reaches. */
+               u2_ data phase, which this chip never reaches. The 7890
+               does reach it, and there SHVALID says the shadow layer is
+               worth saving: "1 when the SCSI DMA transfer count
+               (STCOUNT) is non-zero". */
+            if (dev->chip->ultra2 && dev->stcnt)
+                return SHVALID;
             return 0;
         case SSTAT3:
             /* The synchronous offset counters, and the book says when
@@ -2877,25 +3186,42 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
             if (!dev->chip->aux_regs)
                 return 0x00;
             ret = dev->seectl & ~(SEEDI | SEERDY | EXTARBACK);
-            /* Access is granted as soon as it is asked for, and the
-               800ns strobe the driver times with SEERDY is instant. */
-            if (dev->seectl & SEEMS)
-                ret |= SEERDY;
-            if (dev->seectl & EXTARBREQ)
+            /* SEERDY is the part's own strobe, not a gate on SEEMS: a
+               write to this register makes it inactive and it returns by
+               itself 800 ns later. No strobe is timed here, so it reads
+               active as soon as it is asked.
+
+               EXTARBACK is the FLEXPort grant, an input from the board:
+               EXTARB# selects an external arbiter, which only exists
+               when two channels share external SRAM. Boards without one
+               strap EXTARBACK# asserted, and no arbiter is modelled for
+               the single-channel parts, so the grant follows that strap.
+               Parts that leave the bit to the request line reproduce the
+               opposite level their own drivers wait for. */
+            ret |= SEERDY;
+            if (dev->chip->extarb_grant || (dev->seectl & EXTARBREQ))
                 ret |= EXTARBACK;
             if (nmc93cxx_eeprom_read(dev->eeprom))
                 ret |= SEEDI;
             return ret;
         case SBLKCTL:
+            /* On the 7890, bits 3 and 2 are not writable: they say what
+               the LVD transceivers have settled on.  ENAB40 in particular
+               gates both the driver's 500 ms settle wait and its decision
+               to allow 40 MHz transfers. */
+            if (dev->chip->ultra2)
+                return dev->sblkctl | ENAB40;
             return dev->sblkctl;
         case SCSITEST:
+            if (dev->chip->ultra2)
+                return dev->scsiid_ultra2; /* SCSIID at 0Fh */
             return dev->scsitest;
 
         case SEQCTL:
             return dev->seqctl;
         case SEQRAM:
             /* Readback for a driver verifying its download. */
-            if (dev->pc < SEQ_INSNS) {
+            if (dev->pc < dev->chip->seq_insns) {
                 ret = dev->seqram[dev->pc * 4 + dev->ram_byte];
                 if (++dev->ram_byte == 4) {
                     dev->ram_byte = 0;
@@ -2906,7 +3232,7 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
         case SEQADDR0:
             return dev->pc & 0xff;
         case SEQADDR1:
-            return (dev->pc >> 8) & 0x01;
+            return (dev->pc >> 8) & 0x03;
         case ACCUM:
             return dev->accum;
         case SINDEX:
@@ -2966,6 +3292,12 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
         case DSCOMMAND0: /* BCTL on the EISA part */
             if (dev->eisa)
                 return dev->bctl;
+            if (dev->chip->ultra2)
+                /* SCBSIZE32, RAMPSM, INTSCBRAMSEL and CIOBUS parity are
+                   part registers here, not the PCI command status the
+                   earlier parts mirror.  RAMPSM follows the RAMPS# pin:
+                   this board has external SCB SRAM. */
+                return dev->dscommand0 | 0x04;
             /* The low four bits are SERRESPEN, PERRESPEN, MWRICEN and
                MASTEREN out of the PCI command register. */
             ret = dev->dscommand0 & 0xf0;
@@ -2981,7 +3313,10 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
         case DSCOMMAND1: /* BUSTIME on the EISA part */
             if (dev->eisa)
                 return dev->bustime;
-            /* The latency timer, over HADDLDSEL. */
+            /* The earlier parts put the PCI latency timer over the two
+               HADDLDSEL bits; the 7890 has the rest reserved. */
+            if (dev->chip->ultra2)
+                return dev->dscommand1 & 0x03;
             return (dev->pci_regs[0x0d] & 0xfc) | (dev->dscommand1 & 0x03);
         case DSPCISTATUS: /* BUSSPD on the EISA part */
             if (dev->eisa)
@@ -3013,22 +3348,27 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
         case ERROR:
             return dev->error;
         case DFCNTRL:
-            /* FIFOFLUSH reads as one for as long as a flush is pending. */
+            /* FIFOFLUSH reads as one for as long as a flush is pending,
+               and PRELOADEN, which is a strobe, always reads zero. */
             return (dev->dfcntrl & 0x7f) | (dev->fifo_flush ? FIFOFLUSH : 0);
         case DFSTATUS:
             ret = 0;
+            /* "Preload HADDR and HCNT Available", active high even out of
+               reset: the shadow layer has room for another segment. */
+            if (aic_sg_preload_avail(dev))
+                ret |= PRELOAD_AVAIL;
             if (dev->fifo_cnt == 0)
                 ret |= FIFOEMP;
             /* Not one whole word: the read and write pointers are on
                the same location, whatever bytes are in it. */
             if (dev->fifo_cnt < dev->chip->fifo_word)
                 ret |= FIFOQWDEMP;
-            if (dev->fifo_cnt >= FIFO_SIZE)
+            if (dev->fifo_cnt >= dev->chip->fifo_size)
                 ret |= FIFOFULL;
             if (dev->dfcntrl & DIRECTION) {
-                if ((uint32_t) (FIFO_SIZE - dev->fifo_cnt) >= aic_fifo_threshold(dev))
+                if ((uint32_t) (dev->chip->fifo_size - dev->fifo_cnt) >= aic_fifo_threshold(dev, 1))
                     ret |= DFTHRESH;
-            } else if (dev->fifo_cnt >= aic_fifo_threshold(dev))
+            } else if (dev->fifo_cnt >= aic_fifo_threshold(dev, 0))
                 ret |= DFTHRESH;
             if (dev->host_wait && aic_dma_host_wants(dev))
                 ret |= MREQPEND;
@@ -3058,7 +3398,10 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
                QINCNT=0 are ignored": an ignored read does not shift the
                queue, and what it shows is what its output already holds --
                the SCB it gave last, or 00h, the reset value, before it has
-               given any. */
+               given any.  The AIC-7890 has no such register: its queue
+               lives in host memory and the offsets below say where. */
+            if (dev->chip->queue_regs)
+                return 0x00;
             if (dev->qin_cnt == 0)
                 return dev->qin_last;
             ret           = dev->qin[dev->qin_rd];
@@ -3067,6 +3410,8 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
             dev->qin_last = ret;
             return ret;
         case QINCNT:
+            if (dev->chip->queue_regs)
+                return 0x00;
             return (uint8_t) dev->qin_cnt;
         case QOUTFIFO:
             /* The host takes the next completion. "Reads when QOUTCNT=0
@@ -3082,6 +3427,8 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
                its owner and leaves the command pending. Every INT 13h to
                the disk sat out the BIOS's fifteen second timeout and
                failed, and Windows 98 Setup found no hard disk. */
+            if (dev->chip->queue_regs)
+                return 0x00;
             if (dev->qout_cnt == 0)
                 return dev->qout_last;
             ret            = dev->qout[dev->qout_rd];
@@ -3090,7 +3437,80 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
             dev->qout_last = ret;
             return ret;
         case QOUTCNT:
+            if (dev->chip->queue_regs)
+                return 0x00;
             return (uint8_t) dev->qout_cnt;
+        case CCHADDR:
+        case CCHADDR + 1:
+        case CCHADDR + 2:
+        case CCHADDR + 3:
+        case CCHADDR + 4:
+        case CCHADDR + 5:
+        case CCHADDR + 6:
+        case CCHADDR + 7:
+            return dev->cchaddr[addr - CCHADDR];
+        case CCHCNT:
+            return dev->cchcnt;
+        case CCSGRAM:
+            ret = dev->ccsgram[dev->ccsgaddr];
+            dev->ccsgaddr++;
+            return ret;
+        case CCSGADDR:
+            return dev->ccsgaddr;
+        case CCSGCTL:
+            return dev->ccsgctl;
+        case CCSCBRAM:
+            ret = dev->ccscbram[dev->ccscbaddr & 0x7f];
+            dev->ccscbaddr = (dev->ccscbaddr + 1) & 0x7f;
+            return ret;
+        case CCSCBADDR:
+            return dev->ccscbaddr;
+        case CCSCBCTL:
+            return dev->ccscbctl;
+        case CCSCBCNT:
+            return dev->ccscbcnt;
+        case SCBBADDR:
+            return dev->scbbaddr;
+        case CCSCBPTR:
+            return dev->ccscbptr;
+        case HNSCB_QOFF:
+            /* Only the host may read this one; the sequencer is not
+               supposed to, and a write there would be meaningless. */
+            return seq ? 0x00 : dev->hnscb_qoff;
+        case SNSCB_QOFF:
+            /* Reading advances the card's queue position by one, wrapping
+               at the queue size, which is how the sequencer consumes an
+               entry.  The host reads it to count the queue and writes the
+               value straight back. */
+            ret = dev->snscb_qoff;
+            dev->snscb_qoff = (dev->snscb_qoff + 1) & aic_qmask(dev);
+            return ret;
+        case SDSCB_QOFF:
+            ret = dev->sdscb_qoff;
+            dev->sdscb_qoff = (dev->sdscb_qoff + 1) & aic_qmask(dev);
+            return ret;
+        case QOFF_CTLSTA:
+            ret = dev->qoff_ctlsta & SCB_QSIZE;
+            if (dev->hnscb_qoff != dev->snscb_qoff)
+                ret |= SCB_AVAIL;
+            if (dev->snscb_qoff == 0)
+                ret |= SNSCB_ROLLOVER;
+            if (dev->sdscb_qoff == 0)
+                ret |= SDSCB_ROLLOVER;
+            return ret;
+        case DFF_THRSH:
+            return dev->dff_thrsh;
+        case SG_CACHE:
+            /* What the sequencer reads is the shadow, not what it wrote:
+               the pointer of the segment the engine is running, with
+               LAST_SEG_DONE set once both sides have reached the end. */
+            ret = dev->sg_cache_shadow;
+            if (dev->sg_last_done && (dev->stcnt == 0) && (dev->hcnt == 0))
+                ret |= SG_LAST_DONE;
+            return ret;
+        case CSDATL:
+        case CSDATH:
+            return 0x00;
         case SFUNCT:
             return dev->sfunct;
 
@@ -3100,7 +3520,78 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
     return 0;
 }
 
-/* What a write to SBLKCTL leaves there: the part's bits, and SELBUSB
+/* ---- the command channel ------------------------------------------------ */
+
+/* The queue size QOFF_CTLSTA selects.  Four entries at zero, doubling to
+   256; the reserved encoding 111 maps to 256 as well. */
+static uint32_t
+aic_qsize(const aic7xxx_t *dev)
+{
+    uint8_t sel = dev->qoff_ctlsta & SCB_QSIZE;
+
+    return (sel >= SCB_QSIZE_256) ? 256 : (4U << sel);
+}
+
+static uint32_t
+aic_qmask(const aic7xxx_t *dev)
+{
+    return aic_qsize(dev) - 1;
+}
+
+static uint32_t
+aic_cchaddr(const aic7xxx_t *dev)
+{
+    /* The emulated PCI bus is 32 bits; the upper half can only appear
+       when DACEN and a driver that maps memory there ask for it. */
+    return (uint32_t) dev->cchaddr[0] | ((uint32_t) dev->cchaddr[1] << 8) |
+           ((uint32_t) dev->cchaddr[2] << 16) | ((uint32_t) dev->cchaddr[3] << 24);
+}
+
+/* Move CCHCNT bytes between host memory at CCHADDR and one of the two
+   command channel SRAM blocks.  The real channel takes a little time; the
+   firmware polls a done bit, so doing it here and setting that bit is
+   enough, and is what the rest of this model does with host DMA. */
+static void
+aic_cc_dma(aic7xxx_t *dev, uint8_t *sram, uint32_t size, int to_host)
+{
+    uint32_t n = dev->cchcnt ? dev->cchcnt : 0;
+
+    if (n > size)
+        n = size;
+    if (n == 0)
+        return;
+    if (dev->eisa ? !(dev->bctl & 0x01) : !(dev->pci_regs[0x04] & 0x04))
+        return;
+    if (to_host)
+        dma_bm_write(aic_cchaddr(dev), sram, n, 4);
+    else
+        dma_bm_read(aic_cchaddr(dev), sram, n, 4);
+    dev->cchcnt = 0;
+}
+
+/* The SCB block's other end: the selected SCB array page. */
+static void
+aic_cc_scb_array(aic7xxx_t *dev)
+{
+    uint8_t *page = dev->scb[dev->ccscbptr];
+    uint32_t n    = dev->ccscbcnt;
+    uint32_t max  = aic_scb_window(dev);
+
+    if (n > sizeof(dev->ccscbram))
+        n = sizeof(dev->ccscbram);
+    if (n > max)
+        n = max;
+    if (n == 0)
+        return;
+
+    if (dev->ccscbctl & CCSCBDIR)
+        memcpy(page, dev->ccscbram, n);
+    else
+        memcpy(dev->ccscbram, page, n);
+    dev->ccscbcnt = 0;
+}
+
+/* A write to SBLKCTL leaves there: the part's bits, and SELBUSB
    cleared whenever SELWIDE is set (see aic_write). */
 static uint8_t
 aic_sblkctl_value(const aic7xxx_t *dev, uint8_t val)
@@ -3167,14 +3658,23 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
         }
         return;
     }
+    if (dev->chip->more_sram && (addr >= 0x70) && (addr < 0x80)) {
+        dev->sram_hi[addr - 0x70] = val;
+        return;
+    }
     if (addr >= SCB_BASE) {
-        if (addr < (SCB_BASE + SCB_SIZE))
+        if (addr < (SCB_BASE + aic_scb_window(dev)))
             dev->scb[dev->scbptr & (dev->chip->scb_pages - 1)][aic_scb_offset(dev, addr, seq)] = val;
-        else
+        else if (!dev->chip->cmd_chan)
             dev->misc[addr - 0xc0] = val;
+        else if (addr < 0xe0)
+            ; /* the upper half of a 32-byte page, not a register */
+        else
+            goto command_channel;
         return;
     }
 
+command_channel:
     switch (addr) {
         case SCSISEQ:
             was          = dev->scsiseq;
@@ -3407,8 +3907,14 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
             }
             break;
         case SCSITEST:
-            /* RQAKCNT, CNTRTEST and CTSTMODE, and nothing above them. */
-            dev->scsitest = val & dev->chip->scsitest_mask;
+            /* On the AIC-7890 address 0Fh is not SCSITEST: it is the
+               target ID and our own, which the sequencer writes from
+               SCB_SCSIID for every selection. SCSITEST itself is only
+               reachable in ALT_MODE, which this part does not use. */
+            if (dev->chip->ultra2)
+                dev->scsiid_ultra2 = val;
+            else
+                dev->scsitest = val & dev->chip->scsitest_mask;
             break;
 
         case SEQCTL:
@@ -3441,7 +3947,7 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
             break;
         case SEQRAM:
             if (dev->seqctl & LOADRAM) {
-                if (dev->pc < SEQ_INSNS)
+                if (dev->pc < dev->chip->seq_insns)
                     dev->seqram[dev->pc * 4 + dev->ram_byte] = val;
                 if (++dev->ram_byte == 4) {
                     dev->ram_byte = 0;
@@ -3453,11 +3959,11 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
             if (!seq) {
                 aic_log(dev->tag, "host: SEQADDR0 %02x at pc %03x\n", val, dev->pc);
             }
-            dev->pc       = (dev->pc & 0x100) | val;
+            dev->pc       = (dev->pc & 0x300) | val;
             dev->ram_byte = 0;
             break;
         case SEQADDR1:
-            dev->pc       = (dev->pc & 0xff) | ((val & 0x01) << 8);
+            dev->pc       = (dev->pc & 0xff) | ((val & 0x03) << 8);
             dev->ram_byte = 0;
             break;
         case ACCUM:
@@ -3495,6 +4001,12 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
             if (dev->eisa) {
                 dev->bctl = val & 0x09;
                 aic_update_irq(dev); /* ENABLE also gates the EISA IRQ output. */
+                break;
+            }
+            if (dev->chip->ultra2) {
+                /* CACHETHEN, DPARCKEN, MPARCKEN, EXTREQLCK, INTSCBRAMSEL,
+                   SCBSIZE32 and CIOPARCKEN.  RAMPSM is the RAMPS# pin. */
+                dev->dscommand0 = (val & 0xfd) | 0x04;
                 break;
             }
             dev->dscommand0 = val & 0xf0;
@@ -3568,10 +4080,12 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
             /* Every HCNTRL write wakes the sequencer, including a write
                that keeps it paused (AIC-7870 HCNTRL description). */
             dev->sleepctl &= ~(SLP1 | SLP0);
-            if (!(val & PAUSE) && (was & PAUSE)) {
+            if (!(val & PAUSE) && ((was & PAUSE) || (dev->seqctl & STEP))) {
                 /* Releasing PAUSE always gets one instruction executed,
                    whatever else wants the sequencer stopped. Single step
-                   and resuming from a breakpoint both rest on that. */
+                   and resuming from a breakpoint both rest on that.  STEP
+                   arms the same path even if the pause it is walking out
+                   of was not recorded in HCNTRL. */
                 dev->must_step = 1;
                 aic_seq_kick(dev);
                 /* Run it here and now: a host that re-pauses a microsecond
@@ -3588,16 +4102,13 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
         case HADDR + 1:
         case HADDR + 2:
         case HADDR + 3:
-            /* "An attempt to write these registers with HDMAEN (bit 3,
-               DFCNTRL) set will cause ILLSADDR (bit 1, ERROR) to be set."
-               Firmware that works on the real part cannot be doing this,
-               because the silicon stops it there too -- so this firing is
-               a sign the model is holding HDMAEN up where the chip would
-               not. */
-            if (dev->dfcntrl & HDMAEN)
+            /* The AIC-7890 is the exception the sentence leaves room for:
+               there HADDR and HCNT are exactly where the sequencer puts a
+               segment for the shadow layer while the engine runs. */
+            if ((dev->dfcntrl & HDMAEN) && !dev->chip->sg_preload)
                 aic_hard_error(dev, ILLSADDR, addr, 1);
             if (dev->dscommand1 & 0x03) {
-                dev->misc[addr - HADDR] = val;
+                dev->haddr_hi[addr - HADDR] = val;
                 break;
             }
             dev->haddr  = (dev->haddr & ~(0xffU << ((addr - HADDR) * 8))) | ((uint32_t) val << ((addr - HADDR) * 8));
@@ -3607,7 +4118,7 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
         case HCNT + 1:
         case HCNT + 2:
             /* The count carries the same sentence as the address. */
-            if (dev->dfcntrl & HDMAEN)
+            if ((dev->dfcntrl & HDMAEN) && !dev->chip->sg_preload)
                 aic_hard_error(dev, ILLSADDR, addr, 1);
             dev->hcnt = (dev->hcnt & ~(0xffU << ((addr - HCNT) * 8))) | ((uint32_t) val << ((addr - HCNT) * 8));
             break;
@@ -3717,6 +4228,35 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                 dev->fifo_flush = 1;
             if ((val & HDMAEN) && !(was & HDMAEN))
                 dev->host_wait = AIC_HOST_INSNS;
+            /* The AIC-7890's shadow layer. PRELOADEN validates the HADDR,
+               HCNT and SG_CACHE_PRE just written. If the engine was idle
+               they become the running segment; if it was already running
+               they wait behind it, and the sequencer will not hand over
+               another until DFSTATUS says there is room. Without HDMAEN
+               there is no host side to the transfer -- the embedded CDB
+               path feeds the FIFO from the SCB store and only needs the
+               SCSI count -- but the shadow layer still loads STCNT from
+               HCNT, which is what tells the SCSI engine how many bytes
+               the command has. */
+            if (dev->chip->sg_preload) {
+                if (val & PRELOADEN) {
+                    if (!(val & HDMAEN)) {
+                        dev->sg_pre_n = 0;
+                        aic_sg_load(dev, dev->haddr, dev->hcnt, dev->sg_cache_pre);
+                    } else if (!(was & HDMAEN)) {
+                        dev->sg_pre_n = 0;
+                        aic_sg_load(dev, dev->haddr, dev->hcnt, dev->sg_cache_pre);
+                        aic_sg_next(dev);
+                    } else if (aic_sg_preload_avail(dev)) {
+                        dev->sg_pre[dev->sg_pre_n].haddr = dev->haddr;
+                        dev->sg_pre[dev->sg_pre_n].hcnt  = dev->hcnt;
+                        dev->sg_pre[dev->sg_pre_n].ptr   = dev->sg_cache_pre;
+                        dev->sg_pre_n++;
+                    }
+                }
+                val &= ~PRELOADEN; /* it is a strobe, and reads back clear */
+                dev->dfcntrl &= ~PRELOADEN;
+            }
             aic_pump(dev);
             if ((was & (SCSIEN | HDMAEN)) && !(val & (SCSIEN | HDMAEN)))
                 aic_seq_kick(dev);
@@ -3753,9 +4293,12 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                 aic_pump(dev);
             break;
         case SCBCNT:
-            dev->scbcnt = val & (SCBAUTO | 0x1f);
+            dev->scbcnt = val & (SCBAUTO | dev->chip->scbcnt_mask);
             break;
         case QINFIFO:
+            /* The AIC-7890 has no inbound queue register. */
+            if (dev->chip->queue_regs)
+                break;
             /* The host queues an SCB for the sequencer. Which SCB, and
                what is in the two bytes the firmware dispatches on --
                SCB_CONTROL, and SCB_TCL with the channel in bit 3 -- is
@@ -3795,11 +4338,136 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
             aic_seq_kick(dev);
             break;
         case QOUTFIFO:
-            /* The sequencer posts a completion. */
+            /* The sequencer posts a completion.  On the 7890 the
+               completion goes to the host's queue through the command
+               channel, so this register does not exist. */
+            if (dev->chip->queue_regs)
+                break;
             if (dev->qout_cnt < dev->chip->q_depth) {
                 dev->qout[(dev->qout_rd + dev->qout_cnt) % dev->chip->q_depth] = val & (dev->chip->scb_pages - 1);
                 dev->qout_cnt++;
             }
+            break;
+        case CCHADDR:
+        case CCHADDR + 1:
+        case CCHADDR + 2:
+        case CCHADDR + 3:
+        case CCHADDR + 4:
+        case CCHADDR + 5:
+        case CCHADDR + 6:
+        case CCHADDR + 7:
+            dev->cchaddr[addr - CCHADDR] = val;
+            break;
+        case CCHCNT:
+            dev->cchcnt = val;
+            /* "Any value written to CCHCNT is also written to CCSCBCNT
+               if CCARREN is inactive."  That is how one write can start
+               a host transfer and the array transfer that follows it. */
+            if (!(dev->ccscbctl & CCARREN))
+                dev->ccscbcnt = val;
+            break;
+        case CCSGRAM:
+            dev->ccsgram[dev->ccsgaddr] = val;
+            dev->ccsgaddr++;
+            break;
+        case CCSGADDR:
+            dev->ccsgaddr = val;
+            break;
+        case CCSGCTL:
+            if (val & CCSGRESET)
+                dev->ccsgaddr = 0;
+            if (val & CCSGEN) {
+                if (!(dev->ccsgctl & CCSGEN)) {
+                    dev->ccsgctl |= CCSGEN;
+                    aic_cc_dma(dev, dev->ccsgram, sizeof(dev->ccsgram), 0);
+                    dev->ccsgctl |= CCSGDONE;
+                }
+            } else
+                dev->ccsgctl &= ~(CCSGEN | CCSGDONE);
+            dev->ccsgctl = (dev->ccsgctl & ~CCSGFLAG) | (val & CCSGFLAG);
+            break;
+        case CCSCBRAM:
+            dev->ccscbram[dev->ccscbaddr & 0x7f] = val;
+            dev->ccscbaddr = (dev->ccscbaddr + 1) & 0x7f;
+            break;
+        case CCSCBADDR:
+            dev->ccscbaddr = val & 0x7f;
+            break;
+        case CCSCBCTL:
+        {
+            uint8_t old = dev->ccscbctl;
+            uint8_t dir;
+            int     new_arren, new_scben;
+
+            if (val & CCSCBRESET)
+                dev->ccscbaddr = 0;
+            /* Direction may only change when both enables have been
+               cleared, as with the data channel's DIRECTIONACK. */
+            dir = (old & (CCARREN | CCSCBEN)) ? (old & CCSCBDIR) : (val & CCSCBDIR);
+            new_arren = (val & CCARREN) && !(old & CCARREN);
+            new_scben = (val & CCSCBEN) && !(old & CCSCBEN);
+
+            dev->ccscbctl = (old & (CCSCBDONE | ARRDONE)) | dir;
+            if (val & CCARREN)
+                dev->ccscbctl |= CCARREN;
+            else
+                dev->ccscbctl &= ~(CCARREN | ARRDONE);
+            if (val & CCSCBEN)
+                dev->ccscbctl |= CCSCBEN;
+            else
+                dev->ccscbctl &= ~(CCSCBEN | CCSCBDONE);
+
+            /* Download fills the SRAM from the host and then the page
+               from the SRAM; upload does the page first.  Both enables
+               can appear in one write on the download path. */
+            if (new_scben && dir) {
+                aic_cc_dma(dev, dev->ccscbram, sizeof(dev->ccscbram), 0);
+                dev->ccscbctl |= CCSCBDONE;
+            }
+            if (new_arren) {
+                aic_cc_scb_array(dev);
+                dev->ccscbctl |= ARRDONE;
+            }
+            if (new_scben && !dir) {
+                aic_cc_dma(dev, dev->ccscbram, sizeof(dev->ccscbram), 1);
+                dev->ccscbctl |= CCSCBDONE;
+            }
+            break;
+        }
+        case CCSCBCNT:
+            dev->ccscbcnt = val;
+            break;
+        case SCBBADDR:
+            dev->scbbaddr = val & 0x01;
+            break;
+        case CCSCBPTR:
+            dev->ccscbptr = val;
+            break;
+        case HNSCB_QOFF:
+            /* Only the host writes the head of the queue; a write from
+               the sequencer is not a thing the part does. */
+            if (!seq) {
+                dev->hnscb_qoff = val;
+                aic_seq_kick(dev);
+            }
+            break;
+        case SNSCB_QOFF:
+            dev->snscb_qoff = val;
+            break;
+        case SDSCB_QOFF:
+            dev->sdscb_qoff = val;
+            break;
+        case QOFF_CTLSTA:
+            dev->qoff_ctlsta = val & SCB_QSIZE;
+            break;
+        case DFF_THRSH:
+            dev->dff_thrsh = val;
+            break;
+        case SG_CACHE:
+            dev->sg_cache_pre = val & (SG_ADDR_MASK | SG_LAST_SEG);
+            break;
+        case CSDATL:
+        case CSDATH:
             break;
         case SFUNCT:
             dev->sfunct = val;
@@ -3968,7 +4636,9 @@ aic_loop_plain_read(uint8_t addr)
 {
     if ((addr >= SRAM_BASE) && (addr < 0x60))
         return 1;
-    if ((addr >= SCB_BASE) && (addr < (SCB_BASE + SCB_SIZE)))
+    if ((addr >= 0x70) && (addr < 0x80))
+        return 1;
+    if ((addr >= SCB_BASE) && (addr < (SCB_BASE + SCB_SIZE_MAX)))
         return 1;
     switch (addr) {
         case SCSISEQ:
@@ -3998,6 +4668,7 @@ aic_loop_plain_read(uint8_t addr)
         case DFSTATUS:
         case QINCNT:
         case QOUTCNT:
+        case QOFF_CTLSTA:
             return 1;
         default:
             return 0;
@@ -4010,7 +4681,9 @@ aic_loop_plain_write(uint8_t addr)
 {
     if ((addr >= SRAM_BASE) && (addr < 0x60))
         return 1;
-    if ((addr >= SCB_BASE) && (addr < (SCB_BASE + SCB_SIZE)))
+    if ((addr >= 0x70) && (addr < 0x80))
+        return 1;
+    if ((addr >= SCB_BASE) && (addr < (SCB_BASE + SCB_SIZE_MAX)))
         return 1;
     switch (addr) {
         case ACCUM:
@@ -4050,7 +4723,7 @@ aic_loop_same_place(uint8_t addr, uint8_t scbptr, uint8_t e_addr, uint8_t e_scbp
 {
     if (addr != e_addr)
         return 0;
-    return (addr < SCB_BASE) || (addr >= (SCB_BASE + SCB_SIZE)) || (scbptr == e_scbptr);
+    return (addr < SCB_BASE) || (addr >= (SCB_BASE + SCB_SIZE_MAX)) || (scbptr == e_scbptr);
 }
 
 static uint8_t
@@ -4272,17 +4945,18 @@ aic_seq_step(aic7xxx_t *dev)
     uint32_t insn;
     uint8_t  opcode;
     uint8_t  imm;
-    uint8_t  src;
-    uint8_t  dest;
+    uint16_t src;
+    uint16_t dest;
     uint8_t  ret_bit;
     uint16_t addr;
+    uint16_t insn_pc;
     uint8_t  a;
     uint8_t  b;
     uint8_t  res;
     int      carry = 0;
     int      taken;
 
-    if (dev->pc >= SEQ_INSNS) {
+    if (dev->pc >= dev->chip->seq_insns) {
         /* An address that decodes to nothing. What the part records for
            it is the descriptor's; the rest is every part's. */
         aic_fail(dev, dev->chip->bad_addr_err);
@@ -4291,19 +4965,36 @@ aic_seq_step(aic7xxx_t *dev)
 
     insn = (uint32_t) dev->seqram[dev->pc * 4] | ((uint32_t) dev->seqram[dev->pc * 4 + 1] << 8) | ((uint32_t) dev->seqram[dev->pc * 4 + 2] << 16) | ((uint32_t) dev->seqram[dev->pc * 4 + 3] << 24);
 
-    opcode  = (insn >> 25) & 0x0f;
-    imm     = insn & 0xff;
-    src     = (insn >> 8) & 0xff;
-    dest    = (insn >> 16) & 0xff;
-    ret_bit = (insn >> 24) & 0x01;
-    addr    = (insn >> 16) & 0x1ff;
+    /* The address of the instruction being executed, before the fetch
+       moves on.  Single stepping uses it below. */
+    insn_pc = dev->pc;
 
-    /* An instruction's worth of time has gone by on the bus and in the
-       host block. */
-    if (dev->req_wait && (--dev->req_wait == 0)) {
-        dev->req_wait = 1;
-        aic_tgt_req_due(dev);
+    if (dev->chip->ultra2) {
+        /* The 7890 and later do not compress the instruction.  aicasm
+           emits nine-bit source and destination fields, a ten-bit jump
+           address (which shares the destination field with the return
+           bit, hence the two cases), and an odd parity bit in bit 31. */
+        opcode = (insn >> 27) & 0x0f;
+        imm    = insn & 0xff;
+        src    = (insn >> 8) & 0x1ff;
+        if ((opcode >= OP_JMP) && (opcode <= OP_JZ)) {
+            addr    = (insn >> 17) & 0x3ff;
+            dest    = addr;
+            ret_bit = 0;
+        } else {
+            dest    = (insn >> 17) & 0x1ff;
+            ret_bit = (insn >> 26) & 0x01;
+            addr    = dest;
+        }
+    } else {
+        opcode  = (insn >> 25) & 0x0f;
+        imm     = insn & 0xff;
+        src     = (insn >> 8) & 0xff;
+        dest    = (insn >> 16) & 0xff;
+        ret_bit = (insn >> 24) & 0x01;
+        addr    = (insn >> 16) & 0x1ff;
     }
+
     if (dev->host_wait && (--dev->host_wait == 0))
         aic_pump(dev);
 
@@ -4425,11 +5116,38 @@ aic_seq_step(aic7xxx_t *dev)
             {
                 /* The immediate is a byte count; source and destination both
                    walk forward. A count of one is what the assembler emits
-                   for a plain mov. */
+                   for a plain mov. ALLZEROS is one register, not the first
+                   byte of the scratch file: a multi-byte block move from it
+                   must read zero for every byte. Walking past it landed in
+                   scratch RAM, so "bmov HCNT[1], ALLZEROS, 2" put the byte
+                   at 6Bh into HCNT[2] and made a six byte CDB count into
+                   020006h. The FIFO and command channel ports are the same
+                   kind of exception on the other side: "bmov DFDAT,
+                   SCB_CDB_STORE, 12" feeds one CDB through one register,
+                   and walking the destination put byte one in SCBCNT and
+                   the rest in the SCB window. The two indirect ports are
+                   the same again, and the ones that matter most: their
+                   address comes from SINDEX and DINDEX, which each access
+                   advances, so "bmov CCHADDR, SINDIR, 4" is four reads of
+                   one port and not a walk from SINDIR into DINDIR,
+                   FUNCTION1 and STACK. Walked, that loaded 54010000h out
+                   of the function table and the call stack, the command
+                   channel then read nothing at 54010000h, and the Ultra2
+                   firmware selected the target in SCB byte FF. */
                 uint8_t n = imm ? imm : 1;
+                int     s_fixed = (src == ALLZEROS) || (src == DFDAT)
+                              || (src == CCSGRAM) || (src == CCSCBRAM)
+                              || (src == SINDIR) || (src == DINDIR);
+                int     d_fixed = (dest == ALLZEROS) || (dest == DFDAT)
+                               || (dest == CCSGRAM) || (dest == CCSCBRAM)
+                               || (dest == SINDIR) || (dest == DINDIR);
                 for (uint8_t i = 0; i < n; i++) {
-                    res = aic_seq_rd(dev, (uint8_t) (src + i));
-                    aic_seq_wr(dev, (uint8_t) (dest + i), res);
+                    if (src == ALLZEROS)
+                        res = 0x00;
+                    else
+                        res = aic_seq_rd(dev, (uint8_t) (s_fixed ? src : src + i));
+                    if (dest != ALLZEROS)
+                        aic_seq_wr(dev, (uint8_t) (d_fixed ? dest : dest + i), res);
                 }
                 break;
             }
@@ -4475,10 +5193,22 @@ aic_seq_step(aic7xxx_t *dev)
             else if (opcode == OP_JNC)
                 taken = !(dev->flags & CARRY);
             if (taken) {
-                if (opcode == OP_CALL)
-                    aic_seq_push(dev, dev->pc);
-                dev->pc = addr;
-                return; /* a taken branch cannot also return */
+                /* A single step exists so the host can walk the sequencer
+                   out of a critical section.  A branch to the instruction
+                   just executed would make that impossible, and that is
+                   exactly the selection poll loop ("test SSTAT0,
+                   SELDO|SELDI jz .") which sits on the boundary of the
+                   queue critical section.  A host that arrives there on a
+                   selection timeout has no way out if the step re-takes
+                   the branch, and every AIC-7xxx driver's recovery loop
+                   would spin until it panics.  The part makes the step
+                   move on instead. */
+                if (!((dev->seqctl & STEP) && (addr == insn_pc))) {
+                    if (opcode == OP_CALL)
+                        aic_seq_push(dev, dev->pc);
+                    dev->pc = addr;
+                    return; /* a taken branch cannot also return */
+                }
             }
             break;
 
@@ -4490,7 +5220,8 @@ aic_seq_step(aic7xxx_t *dev)
             aic_seq_flags_logic(dev, res);
             taken = (opcode == OP_JE) ? (res == 0) : (res != 0);
             if (taken) {
-                dev->pc = addr;
+                if (!((dev->seqctl & STEP) && (addr == insn_pc)))
+                    dev->pc = addr;
                 return;
             }
             break;
@@ -4503,7 +5234,8 @@ aic_seq_step(aic7xxx_t *dev)
             aic_seq_flags_logic(dev, res);
             taken = (opcode == OP_JZ) ? (res == 0) : (res != 0);
             if (taken) {
-                dev->pc = addr;
+                if (!((dev->seqctl & STEP) && (addr == insn_pc)))
+                    dev->pc = addr;
                 return;
             }
             break;
@@ -4590,7 +5322,7 @@ aic_seq_run(aic7xxx_t *dev)
         if (dev->seq_credit > SEQ_CREDIT_MAX)
             dev->seq_credit = SEQ_CREDIT_MAX;
         limit = (int) dev->seq_credit;
-        if ((limit < 1) && dev->must_step)
+        if ((limit < 1) && (dev->must_step || ((dev->seqctl & STEP) && !aic_paused(dev))))
             limit = 1;
     }
 
@@ -4641,6 +5373,17 @@ aic_seq_run(aic7xxx_t *dev)
 
         aic_seq_step(dev);
 
+        /* Single step: one instruction, and PAUSE sets itself again.
+           This comes before the loop bookkeeping: a step that happens to
+           branch backwards is still a step, and the host is waiting for
+           the pause, not for the loop detector. */
+        if (dev->seqctl & STEP) {
+            dev->hcntrl |= PAUSE;
+            stopped = 1;
+            n++;
+            break;
+        }
+
         /* A pass being watched ends at a pause, an interrupt, or at its
            length; a backward branch may end it, or start one. */
         if (dev->loop_head != AIC_LOOP_NONE) {
@@ -4648,18 +5391,10 @@ aic_seq_run(aic7xxx_t *dev)
                PAUSEDIS, it changes nothing a pass could see, but a parked
                loop would never reach it. */
             if ((++dev->loop_insns > AIC_LOOP_INSNS) || aic_paused(dev) || (dev->intstat != dev->loop_intstat) ||
-                (!(dev->brkaddr & 0x8000) && (dev->pc == (dev->brkaddr & 0x1ff))))
+                (!(dev->brkaddr & 0x8000) && (dev->pc == (dev->brkaddr & (dev->chip->seq_insns - 1)))))
                 aic_loop_forget(dev);
         }
         if ((dev->pc <= last_pc) && aic_loop_edge(dev)) {
-            stopped = 1;
-            n++;
-            break;
-        }
-
-        if (dev->seqctl & STEP) {
-            /* Single step: one instruction, and PAUSE sets itself again. */
-            dev->hcntrl |= PAUSE;
             stopped = 1;
             n++;
             break;
@@ -4742,8 +5477,12 @@ static void
 aic_ram_clear(aic7xxx_t *dev)
 {
     memset(dev->sram, 0, sizeof(dev->sram));
+    memset(dev->sram_hi, 0, sizeof(dev->sram_hi));
     memset(dev->scb, 0, sizeof(dev->scb));
     memset(dev->misc, 0, sizeof(dev->misc));
+    memset(dev->ccscbram, 0, sizeof(dev->ccscbram));
+    memset(dev->ccsgram, 0, sizeof(dev->ccsgram));
+    memset(dev->seqram, 0, sizeof(dev->seqram));
 }
 
 static void
@@ -4765,7 +5504,13 @@ aic_chip_reset(aic7xxx_t *dev)
 
     dev->scsiseq = dev->sxfrctl0 = dev->sxfrctl1 = 0;
     dev->scsisigo = dev->scsirate = 0;
-    dev->scsiid                   = 0x07; /* our ID until the driver says otherwise */
+    if (dev->chip->ultra2) {
+        /* SCSIID at 05h is the sync offset here, and the target ID and
+           our own moved to 0Fh. */
+        dev->scsiid        = 0x00;
+        dev->scsiid_ultra2 = 0x07;
+    } else
+        dev->scsiid = 0x07; /* our ID until the driver says otherwise */
     dev->scsidatl = dev->scsidath = 0;
     dev->stcnt                    = 0;
     dev->sstat0 = dev->sstat1 = 0;
@@ -4815,6 +5560,11 @@ aic_chip_reset(aic7xxx_t *dev)
     dev->dscommand0  = 0;
     dev->dscommand1  = 0;
     dev->dspcistatus = 0;
+    if (dev->chip->ultra2) {
+        /* External SCB SRAM answers RAMPSM; CHIPRST points SCBPTR at the
+           internal array until the driver has probed both. */
+        dev->dscommand0 = 0x08 | 0x04;
+    }
     /* "This signal is cleared by RESDRV or CHIPRESET": the board comes
        out of a chip reset disabled, and the driver enables it again. */
     dev->bctl        = 0;
@@ -4826,6 +5576,25 @@ aic_chip_reset(aic7xxx_t *dev)
     dev->hcntrl  = PAUSE | CHIPRST;
     dev->haddr   = 0;
     dev->hcnt    = 0;
+    memset(dev->haddr_hi, 0, sizeof(dev->haddr_hi));
+    /* The command channel comes up idle, both SRAM pointers at zero and
+       the queue positions equal, which is what makes SCB_AVAIL read
+       clear until the host writes a head. */
+    dev->cchcnt     = 0;
+    dev->ccsgaddr   = 0;
+    dev->ccsgctl    = 0;
+    dev->ccscbaddr  = 0;
+    dev->ccscbctl   = 0;
+    dev->ccscbcnt   = 0;
+    dev->ccscbptr   = 0;
+    dev->scbbaddr   = 0;
+    dev->hnscb_qoff = dev->snscb_qoff = dev->sdscb_qoff = 0;
+    dev->qoff_ctlsta = 0;
+    dev->dff_thrsh   = 0;
+    dev->sg_cache_pre = dev->sg_cache_shadow = 0;
+    dev->sg_active_last = dev->sg_last_done = dev->sg_pre_n = 0;
+    memset(dev->sg_pre, 0, sizeof(dev->sg_pre));
+    memset(dev->cchaddr, 0, sizeof(dev->cchaddr));
     dev->scbptr  = 0;
     dev->intstat = 0;
     dev->error   = 0;
@@ -4977,8 +5746,11 @@ aic_seeprom_build(const aic7xxx_t *dev, uint16_t *nvr)
            translation, bootable CD-ROM. */
         w[16] = 0x1000 | 0x0800 | 0x0080 | 0x0020 | 0x0004 | 0x0002;
         /* adapter_control: auto termination, Ultra, both halves
-           terminated, parity, reset the bus at start. */
+           terminated, parity, reset the bus at start.  The 7890 adds
+           LVD's second set of terminators. */
         w[17] = 0x0001 | 0x0002 | 0x0004 | 0x0008 | 0x0010 | 0x0040;
+        if (dev->chip->ultra2)
+            w[17] |= 0x0400 | 0x0800 | 0x1000;
         /* bus release time 0x28, and our SCSI ID is seven. */
         w[18] = 0x2807;
         w[19] = dev->wide ? 0x0010 : 0x0008;
@@ -5479,6 +6251,7 @@ aic_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 #define AHA2940_V116_ROM   "roms/scsi/adaptec/aha2940_v116.bin"
 #define AHA2940_V123_ROM   "roms/scsi/adaptec/aha2940_v123.bin"
 #define AHA2944UW_V220_ROM "roms/scsi/adaptec/aha2944uw_v220.bin"
+#define AHA2940U2W_V2572_ROM "roms/scsi/adaptec/4U2W2572.ROM"
 #define AHA2740_V210_ROM   "roms/scsi/adaptec/aha2740_v210.bin"
 #define AHA2740W_V211_ROM  "roms/scsi/adaptec/aha2740w.bin"
 #define AHA2742A_V211_ROM  "roms/scsi/adaptec/aha2742a.bin"
@@ -5502,6 +6275,8 @@ aic_reset(void *priv)
         memset(&dev->pci_regs[0x30], 0, 4);
         dev->pci_regs[0x3c] = 0;
         memset(&dev->pci_regs[DEVCONFIG], 0, 4);
+        if (dev->chip->ultra2)
+            dev->pci_regs[DEVCONFIG] = 0x40; /* MRDCEN */
         aic_io_update(dev);
         aic_mem_update(dev);
         aic_bios_update(dev);
@@ -5543,7 +6318,7 @@ aic_init(const device_t *info)
             }
         }
     }
-    dev->wide  = (dev->board == BOARD_2940UW) || (dev->board == BOARD_2944UW) || (dev->board == BOARD_7880) || (dev->board == BOARD_2940W) || AIC_BOARD_WIDE(dev->board);
+    dev->wide  = (dev->board == BOARD_2940UW) || (dev->board == BOARD_2944UW) || (dev->board == BOARD_7880) || (dev->board == BOARD_2940W) || (dev->board == BOARD_2940U2W) || (dev->board == BOARD_7890) || AIC_BOARD_WIDE(dev->board);
     /* An AHA-2740 is one narrow bus. Other members of the family strap the
        same chip for two buses or for one wide one, and on the AIC-7770
        those are exclusive: the wide connection takes channel B's data
@@ -5597,9 +6372,9 @@ aic_init(const device_t *info)
        is simply one with nothing on it, where a selection times out. */
     dev->bus_b = (dev->chip->sblkctl_mask & SELBUSB) ? scsi_get_bus() : dev->bus;
 
-    scsi_bus_set_speed(dev->bus, 20000000.0);
+    scsi_bus_set_speed(dev->bus, dev->chip->ultra2 ? 40000000.0 : 20000000.0);
     if (dev->bus_b != dev->bus)
-        scsi_bus_set_speed(dev->bus_b, 20000000.0);
+        scsi_bus_set_speed(dev->bus_b, dev->chip->ultra2 ? 40000000.0 : 20000000.0);
 
     /* The on-board part answers as the bare chip; the cards carry the
        adapter's own ID, which is how a driver tells them apart and how
@@ -5610,16 +6385,20 @@ aic_init(const device_t *info)
         devid = 0x7178;
     else if (dev->board == BOARD_2944UW)
         devid = 0x8478;
-   else
+    else if (dev->board == BOARD_2940U2W)
+        devid = 0x0010;
+    else if (dev->board == BOARD_7890)
+        devid = 0x001f;
+    else
         devid = 0x8178;
 
-    dev->pci_regs[0x00] = 0x04;
-    dev->pci_regs[0x01] = 0x90; /* Adaptec, 0x9004 */
+    dev->pci_regs[0x00] = dev->chip->ultra2 ? 0x05 : 0x04; /* Adaptec, 0x9004 or 0x9005 */
+    dev->pci_regs[0x01] = 0x90;
     dev->pci_regs[0x02] = devid & 0xff;
     dev->pci_regs[0x03] = (devid >> 8) & 0xff;
     dev->pci_regs[0x06] = 0x80; /* capabilities: none, but fast back-to-back */
     dev->pci_regs[0x07] = 0x02; /* medium DEVSEL */
-    dev->pci_regs[0x08] = 0x03; /* revision: an aic7880 Rev B */
+    dev->pci_regs[0x08] = dev->chip->ultra2 ? 0x00 : 0x03; /* revision */
     dev->pci_regs[0x09] = 0x00;
     dev->pci_regs[0x0a] = 0x00; /* SCSI controller */
     dev->pci_regs[0x0b] = 0x01; /* mass storage */
@@ -5635,7 +6414,14 @@ aic_init(const device_t *info)
        takes as "go by the device ID". So does the older AHA-2940:
        read off a real one, 2Ch to 2Fh are all zero; the 2940W is the same
        card strapped wide. */
-    if ((dev->board != BOARD_7880) && (dev->board != BOARD_2940) && (dev->board != BOARD_2940W)) {
+    if (dev->board == BOARD_2940U2W) {
+        /* 9005:A180, the AHA-2940U2W's own subsystem ID. */
+        dev->pci_regs[0x2c] = 0x05;
+        dev->pci_regs[0x2d] = 0x90;
+        dev->pci_regs[0x2e] = 0x80;
+        dev->pci_regs[0x2f] = 0xa1;
+    } else if ((dev->board != BOARD_7880) && (dev->board != BOARD_7890) &&
+               (dev->board != BOARD_2940) && (dev->board != BOARD_2940W)) {
         dev->pci_regs[0x2c] = 0x04;
         dev->pci_regs[0x2d] = 0x90;
         dev->pci_regs[0x2e] = (devid >> 8) & 0xff;
@@ -5645,8 +6431,9 @@ aic_init(const device_t *info)
     dev->pci_regs[0x3e] = 0x08; /* min grant */
     dev->pci_regs[0x3f] = 0x08; /* max latency */
 
-    /* DEVCONFIG: 64-bit disabled, the PCI error bits clear. */
-    dev->pci_regs[DEVCONFIG]     = 0x00;
+    /* DEVCONFIG: 64-bit disabled, the PCI error bits clear.  On the
+       7890A bit 6, MRDCEN, comes up set. */
+    dev->pci_regs[DEVCONFIG]     = dev->chip->ultra2 ? 0x40 : 0x00;
     dev->pci_regs[DEVCONFIG + 1] = 0x00;
     dev->pci_regs[DEVCONFIG + 2] = 0x00;
     dev->pci_regs[DEVCONFIG + 3] = 0x00;
@@ -5737,7 +6524,7 @@ aic_init(const device_t *info)
        refuses to run one whose ID does not match.
        The images are shorter than the 64 KiB window the BAR asks for, and
        what is not covered by the file reads back as 0xff. */
-    if ((dev->board != BOARD_7880) && !dev->eisa && device_get_config_int("bios")) {
+    if ((dev->board != BOARD_7880) && (dev->board != BOARD_7890) && !dev->eisa && device_get_config_int("bios")) {
         const char *bios_rev  = device_get_config_bios("bios_rev");
         const char *bios_path = device_get_bios_file(info, bios_rev, 0);
         int         ok;
@@ -6134,6 +6921,56 @@ static const device_config_t aha2944uw_config[] = {
     // clang-format on
 };
 
+static const device_config_t aha2940u2w_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "Enable BIOS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bios_rev",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "v2_57_2",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Version 2.57.2",
+                .internal_name = "v2_57_2",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { AHA2940U2W_V2572_ROM, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "dev_timing",
+        .description    = "Device timing",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
 /* The bare chip, as found on a motherboard. It is not in the card list:
    a machine that has one adds it itself. */
 const device_t aic7880_pci_device = {
@@ -6149,6 +6986,25 @@ const device_t aic7880_pci_device = {
     .force_redraw  = NULL,
     .config        = NULL,
     .short_name    = "AIC-7880",
+    .scsi_buses    = aic_scsi_buses
+};
+
+/* The AIC-7890 on a motherboard. It answers as 9005:001F with no
+   subsystem ID, and the board's own firmware is where its BIOS lives, so
+   it brings no option ROM of its own. */
+const device_t aic7890_pci_device = {
+    .name          = "Adaptec AIC-7890 (on-board)",
+    .internal_name = "aic7890_onboard",
+    .flags         = DEVICE_PCI | DEVICE_ONBOARD,
+    .local         = BOARD_7890,
+    .init          = aic_init,
+    .close         = aic_close,
+    .reset         = aic_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL,
+    .short_name    = "AIC-7890",
     .scsi_buses    = aic_scsi_buses
 };
 
@@ -6283,5 +7139,23 @@ const device_t aha2944uw_pci_device = {
     .force_redraw  = NULL,
     .config        = aha2944uw_config,
     .short_name    = "AHA-2944UW",
+    .scsi_buses    = aic_scsi_buses
+};
+
+/* The AIC-7890A card: Ultra2 Wide, the first of the family with the
+   command channel and the scatter/gather shadow layer. */
+const device_t aha2940u2w_pci_device = {
+    .name          = "Adaptec AHA-2940U2W (AIC-7890)",
+    .internal_name = "aha2940u2",
+    .flags         = DEVICE_PCI,
+    .local         = BOARD_2940U2W,
+    .init          = aic_init,
+    .close         = aic_close,
+    .reset         = aic_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = aha2940u2w_config,
+    .short_name    = "AHA-2940U2W",
     .scsi_buses    = aic_scsi_buses
 };
