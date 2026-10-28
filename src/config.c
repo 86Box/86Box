@@ -70,6 +70,8 @@
 #include <86box/keyboard.h>
 #include <86box/machine.h>
 #include <86box/mouse.h>
+#include <86box/mem.h>
+#include <86box/usb.h>
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/scsi.h>
@@ -715,6 +717,11 @@ load_machine(void)
         time_sync = TIME_SYNC_ENABLED;
 
     time_offset_years = ini_section_get_int(cat, "time_offset_years", 0);
+    time_fixed_year   = ini_section_get_int(cat, "time_fixed_year", 0);
+    /* Prefer fixed year if both are present. */
+    if (time_fixed_year != 0 && time_offset_years != 0)
+        time_offset_years = 0;
+    time_keep_date    = !!ini_section_get_int(cat, "time_keep_date", 0);
 
     pit_mode = ini_section_get_int(cat, "pit_mode", -1);
 
@@ -1356,6 +1363,18 @@ load_ports(void)
             lpt_ports[c].device = config_known(char_get_from_internal_name(!strcmp(p, "lpt_loopback") ? "loopback" : p, DEVICE_LPT),
                                                STRING_UNSUPPORTED_PARALLEL, p);
         }
+    }
+
+    p             = ini_section_get_string(cat, "usb_card", "none");
+    usb_card_type = usb_card_get_from_internal_name(p);
+    p             = ini_section_get_string(cat, "usb_hub", "none");
+    usb_hub_type  = usb_hub_get_from_internal_name(p);
+    p             = ini_section_get_string(cat, "usb_msd", "none");
+    usb_msd_type  = usb_msd_get_from_internal_name(p);
+
+    for (int i = 0; i < USB_SLOTS; i++) {
+        sprintf(temp, "%s_connected", usb_slot_internal_name(i));
+        usb_slot_want(i, !!ini_section_get_int(cat, temp, 1));
     }
 
 #if 0
@@ -2785,7 +2804,7 @@ load_other_peripherals(void)
 
 #ifdef USE_VFIO
     /* VFIO passthrough devices: a space-separated device list, with
-       an optional custom ROM file for each device. */
+       an optional custom ROM file for each device, which can be disabled. */
     ini_section_t vfio_cat = ini_find_section(config, "VFIO");
     char         *devices;
     char         *token;
@@ -2801,6 +2820,9 @@ load_other_peripherals(void)
         snprintf(temp, sizeof(temp), "%s_rom_fn", token);
         strncpy(vfio_device_conf[c].rom_fn, ini_section_get_string(vfio_cat, temp, ""),
                 sizeof(vfio_device_conf[c].rom_fn) - 1);
+
+        snprintf(temp, sizeof(temp), "%s_rom_enable", token);
+        vfio_device_conf[c].rom_enable = !!ini_section_get_int(vfio_cat, temp, !!vfio_device_conf[c].rom_fn[0]);
 
         c++;
     }
@@ -3581,10 +3603,22 @@ save_machine(void)
     else
         ini_section_set_string(cat, "time_sync", "disabled");
 
-    if (time_offset_years != 0)
-        ini_section_set_int(cat, "time_offset_years", time_offset_years);
-    else
+    /* At most one of the two year settings is written. Fixed year wins. */
+    if (time_fixed_year != 0) {
+        ini_section_set_int(cat, "time_fixed_year", time_fixed_year);
         ini_section_delete_var(cat, "time_offset_years");
+    } else if (time_offset_years != 0) {
+        ini_section_set_int(cat, "time_offset_years", time_offset_years);
+        ini_section_delete_var(cat, "time_fixed_year");
+    } else {
+        ini_section_delete_var(cat, "time_offset_years");
+        ini_section_delete_var(cat, "time_fixed_year");
+    }
+
+    if (time_keep_date)
+        ini_section_set_int(cat, "time_keep_date", 1);
+    else
+        ini_section_delete_var(cat, "time_keep_date");
 
     if (pit_mode == -1)
         ini_section_delete_var(cat, "pit_mode");
@@ -4022,6 +4056,30 @@ save_ports(void)
             ini_section_set_string(cat, temp, char_get_device(lpt_ports[c].device)->internal_name);
     }
 
+    if (usb_card_type == 0)
+        ini_section_delete_var(cat, "usb_card");
+    else
+        ini_section_set_string(cat, "usb_card", usb_card_get_internal_name(usb_card_type));
+
+    if (usb_hub_type == 0)
+        ini_section_delete_var(cat, "usb_hub");
+    else
+        ini_section_set_string(cat, "usb_hub", usb_hub_get_internal_name(usb_hub_type));
+
+    if (usb_msd_type == 0)
+        ini_section_delete_var(cat, "usb_msd");
+    else
+        ini_section_set_string(cat, "usb_msd", usb_msd_get_internal_name(usb_msd_type));
+
+    /* Written only for a device the user unplugged. */
+    for (int i = 0; i < USB_SLOTS; i++) {
+        sprintf(temp, "%s_connected", usb_slot_internal_name(i));
+        if (usb_slot_wanted(i))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, 0);
+    }
+
 #if 0
 // TODO: Save
     for (c = 0; c < GAMEPORT_MAX; c++) {
@@ -4348,28 +4406,16 @@ save_other_peripherals(void)
 #ifdef USE_VFIO
     ini_section_t vfio_cat = ini_find_or_create_section(config, "VFIO");
     char          devices[VFIO_DEVICE_MAX * (sizeof(vfio_device_conf[0].location) + 1)];
-    char         *p;
-    char         *token;
-    char         *strtok_save;
 
-    /* Remove the ROM files of the previously saved devices. */
-    p = strdup(ini_section_get_string(vfio_cat, "devices", ""));
-    for (token = strtok_r(p, " ", &strtok_save); token; token = strtok_r(NULL, " ", &strtok_save)) {
-        snprintf(temp, sizeof(temp), "%s_rom_fn", token);
-        ini_section_delete_var(vfio_cat, temp);
-    }
-    free(p);
-
+    /* The ROM files of devices no longer passed through are kept, for
+       when they are again. */
     devices[0] = '\0';
     for (uint8_t c = 0; (c < VFIO_DEVICE_MAX) && vfio_device_conf[c].location[0]; c++) {
         if (devices[0])
             strcat(devices, " ");
         strcat(devices, vfio_device_conf[c].location);
 
-        if (vfio_device_conf[c].rom_fn[0]) {
-            snprintf(temp, sizeof(temp), "%.255s_rom_fn", vfio_device_conf[c].location);
-            ini_section_set_string(vfio_cat, temp, vfio_device_conf[c].rom_fn);
-        }
+        config_save_vfio_rom(vfio_device_conf[c].location, vfio_device_conf[c].rom_fn, vfio_device_conf[c].rom_enable);
     }
 
     if (devices[0])
@@ -5008,3 +5054,26 @@ config_get_ini(void)
 {
     return config;
 }
+
+#ifdef USE_VFIO
+/* Save the custom ROM of a VFIO device, passed through or not. It is
+   enabled by default if there is a file. */
+void
+config_save_vfio_rom(const char *location, const char *rom_fn, int rom_enable)
+{
+    ini_section_t cat = ini_find_or_create_section(config, "VFIO");
+    char          temp[512];
+
+    snprintf(temp, sizeof(temp), "%.255s_rom_fn", location);
+    if (rom_fn[0])
+        ini_section_set_string(cat, temp, rom_fn);
+    else
+        ini_section_delete_var(cat, temp);
+
+    snprintf(temp, sizeof(temp), "%.255s_rom_enable", location);
+    if (!!rom_enable == !!rom_fn[0])
+        ini_section_delete_var(cat, temp);
+    else
+        ini_section_set_int(cat, temp, !!rom_enable);
+}
+#endif

@@ -98,4 +98,4 @@ uint8_t tandy_vid_in(uint16_t addr, void* priv);
 void tandy_vid_out(uint16_t addr, uint8_t val, void *priv);
 
 void tandy_vid_close(void* priv);
-void tandy_recalc_address_sl(tandy_t* dev); //this function is needed by both m_ and vid_tandy.c
+void tandy_recalc_address_sl(tandy_t* dev); //this function is needed by both m_ and vid_tandy1k.c

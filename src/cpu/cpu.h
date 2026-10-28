@@ -1101,6 +1101,11 @@ extern int fpu_ferr_timing;
 /* FERR#, up from an unmasked exception until a new one begins (x87.c) */
 extern int fpu_ferr;
 
+/* Where an 8087's or 80187's error output goes: a machine whose board wires
+   it to a 8259 installs this, and NULL leaves it on the CPU's NMI input. */
+extern void (*fpu_int_line)(int level);
+extern void fpu_int_set(int level);
+
 extern int in_lock;
 extern int cpu_override_interpreter;
 

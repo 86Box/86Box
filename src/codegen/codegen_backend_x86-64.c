@@ -26,6 +26,7 @@
 #        include <86box/nmi.h>
 #        include <86box/pic.h>
 #        include <86box/timer.h>
+#        include "x86_interrupt.h"
 #    endif
 
 #    if defined(__linux__) || defined(__APPLE__)
@@ -1230,6 +1231,7 @@ build_link_routine(codeblock_t *block)
     int32_t *nmi_set;
     int32_t *nmi_ok;
     int32_t *irq_ok;
+    int32_t *irq_ok_2;
     int32_t *es_flat;
     int32_t *uncached;
     int32_t *no_paging;
@@ -1283,7 +1285,8 @@ build_link_routine(codeblock_t *block)
     lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_dr_armed);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
 
-    /*nmi && nmi_enable && nmi_mask; the rest is out of line*/
+    /*NMI_TAKEABLE(): nmi && nmi_enable && (nmi_mask || (nmi & 2)); the
+      rest is out of line*/
     lx_abs(block, 0, 0, 0x8b, REG_R9, &nmi);
     rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
     nmi_set  = rx_jcc(block, RX_CC_NZ);
@@ -1298,7 +1301,20 @@ build_link_routine(codeblock_t *block)
     lx_abs(block, 0, 0, 0x0fb6, REG_R9, &pic.int_pending);
     rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    /*With the IOAPIC routing interrupts, x86_external_interrupt_pending()
+      also looks at local APIC 0: an ExtINT or anything in its IRR is a
+      miss, and the C loop works out whether it is deliverable*/
+    lx_abs(block, 0, 0, 0x0fb6, REG_R9, &ioapic_irq_path_active);
+    rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
+    irq_ok_2 = rx_jcc(block, RX_CC_Z);
+    lx_abs(block, 0, 0, 0x0fb6, REG_R9, &cpu_lapic_extint_live[0]);
+    rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    lx_abs(block, 0, 0, 0x8b, REG_R9, &cpu_lapic_irr_live);
+    rx_test_ri(block, REG_R9, 1);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
     rx_patch(irq_ok, rx_here());
+    rx_patch(irq_ok_2, rx_here());
 
     /*Status and FPU rounding as when the slot was filled, compared as one
       word. Only the C loop refreshes the PC24 and RC_NZ status bits from
@@ -1431,7 +1447,8 @@ build_link_routine(codeblock_t *block)
     host_x86_POP(block, REG_RBX);
     host_x86_RET(block);
 
-    /*nmi set: miss only if nmi_enable and nmi_mask are too*/
+    /*nmi set: miss only if nmi_enable is too, and nmi_mask or an NMI from
+      the local APIC (nmi bit 1, which port 70h does not gate)*/
     rx_patch(nmi_set, rx_here());
     lx_abs(block, 0, 0, 0x8b, REG_R9, &nmi_enable);
     rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
@@ -1439,6 +1456,9 @@ build_link_routine(codeblock_t *block)
     rx_patch(nmi_ok, nmi_done);
     lx_abs(block, 0, 0, 0x8b, REG_R9, &nmi_mask);
     rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    lx_abs(block, 0, 0, 0x8b, REG_R9, &nmi);
+    rx_test_ri(block, REG_R9, 2);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
     rx_patch(rx_jmp(block), nmi_done);
 

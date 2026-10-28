@@ -3968,19 +3968,20 @@ s3_recalctimings(svga_t *svga)
         /* Also make sure vertical blanking starts on display end. */
         svga->vblankstart = svga->dispend;
 
-        if (s3->chip >= S3_VISION964)
-            svga->hblank_end_mask  = 0x7f;
+        svga->hblank_ext     = (svga->crtc[0x5d] & 0x08) ? 64 : 0;
+        svga->hsync_ext      = (svga->crtc[0x5d] & 0x20) ? 32 : 0;
     } else if (s3->chip >= S3_86C801) {
         svga->hblankstart    = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2];
 
         if (s3->chip >= S3_VISION964) {
-            /* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
-                     The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
-                     and, contrary to VGADOC, it also exists on Trio32, Trio64, Vision868,
-                     and Vision968. */
-            svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
-                                    (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
-            svga->hblank_end_mask  = 0x7f;
+            /*
+               What does does, is simple: extend by 64 or 32 cycles, but the comparison
+               is not affected.
+             */
+            svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5);
+
+            svga->hblank_ext     = (svga->crtc[0x5d] & 0x08) ? 64 : 0;
+            svga->hsync_ext      = (svga->crtc[0x5d] & 0x20) ? 32 : 0;
         }
     }
 
@@ -4819,7 +4820,7 @@ s3_recalctimings(svga_t *svga)
     }
 
     const int is_vga_mode = ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) <= 0x20));
-    if (!is_vga_mode || ((s3->elsa_eeprom && (svga->bpp == 32)) ||
+    if (!is_vga_mode && ((s3->elsa_eeprom && (svga->bpp == 32)) ||
         (s3->chip == S3_TRIO32) || (s3->chip == S3_TRIO64) ||
         (s3->chip == S3_VISION864) || (s3->chip == S3_VISION868) ||
         (s3->chip == S3_VISION968)))
@@ -4921,16 +4922,20 @@ s3_trio64v_recalctimings(svga_t *svga)
 
         /* Also make sure vertical blanking starts on display end. */
         svga->vblankstart = svga->dispend;
+
+        svga->hblank_ext     = (svga->crtc[0x5d] & 0x08) ? 64 : 0;
+        svga->hsync_ext      = (svga->crtc[0x5d] & 0x20) ? 32 : 0;
     } else {
         svga->hblankstart    = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2];
 
-        /* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
-                 The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
-                 and, contrary to VGADOC, it also exists on Trio32, Trio64, Vision868,
-                 and Vision968. */
-        svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
-                               (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
-        svga->hblank_end_mask = 0x7f;
+        /*
+           What does does, is simple: extend by 64 or 32 cycles, but the comparison
+           is not affected.
+         */
+        svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5);
+
+        svga->hblank_ext     = (svga->crtc[0x5d] & 0x08) ? 64 : 0;
+        svga->hsync_ext      = (svga->crtc[0x5d] & 0x20) ? 32 : 0;
     }
 
     if ((svga->crtc[0x67] & 0xc) != 0xc) /*VGA mode*/

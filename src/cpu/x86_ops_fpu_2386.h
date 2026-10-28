@@ -4,7 +4,7 @@
 static int
 opESCAPE_d8_a16(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x000 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -23,7 +23,7 @@ opESCAPE_d8_a16(uint32_t fetchdat)
 static int
 opESCAPE_d8_a32(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x000 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -43,7 +43,7 @@ opESCAPE_d8_a32(uint32_t fetchdat)
 static int
 opESCAPE_d9_a16(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x100 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -62,7 +62,7 @@ opESCAPE_d9_a16(uint32_t fetchdat)
 static int
 opESCAPE_d9_a32(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x100 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -82,7 +82,7 @@ opESCAPE_d9_a32(uint32_t fetchdat)
 static int
 opESCAPE_da_a16(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x200 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -101,7 +101,7 @@ opESCAPE_da_a16(uint32_t fetchdat)
 static int
 opESCAPE_da_a32(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x200 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -121,7 +121,7 @@ opESCAPE_da_a32(uint32_t fetchdat)
 static int
 opESCAPE_db_a16(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x300 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -140,7 +140,7 @@ opESCAPE_db_a16(uint32_t fetchdat)
 static int
 opESCAPE_db_a32(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x300 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -160,7 +160,7 @@ opESCAPE_db_a32(uint32_t fetchdat)
 static int
 opESCAPE_dc_a16(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x400 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -179,7 +179,7 @@ opESCAPE_dc_a16(uint32_t fetchdat)
 static int
 opESCAPE_dc_a32(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x400 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -199,7 +199,7 @@ opESCAPE_dc_a32(uint32_t fetchdat)
 static int
 opESCAPE_dd_a16(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x500 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -218,7 +218,7 @@ opESCAPE_dd_a16(uint32_t fetchdat)
 static int
 opESCAPE_dd_a32(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x500 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -238,7 +238,7 @@ opESCAPE_dd_a32(uint32_t fetchdat)
 static int
 opESCAPE_de_a16(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x600 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -257,7 +257,7 @@ opESCAPE_de_a16(uint32_t fetchdat)
 static int
 opESCAPE_de_a32(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x600 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -277,7 +277,7 @@ opESCAPE_de_a32(uint32_t fetchdat)
 static int
 opESCAPE_df_a16(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x700 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())
@@ -296,7 +296,7 @@ opESCAPE_df_a16(uint32_t fetchdat)
 static int
 opESCAPE_df_a32(uint32_t fetchdat)
 {
-    x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
+    x87_op = 0x700 | (fetchdat & 0xff);
     if (x87_op_is_nowait(x87_op))
         x87_ferr_nowait(x87_op);
     else if (!fpu_softfloat && x87_legacy_pending_entry())

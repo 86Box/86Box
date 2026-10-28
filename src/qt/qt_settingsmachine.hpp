@@ -41,19 +41,23 @@ private slots:
 
     void on_radioButtonLargerFrames_clicked();
 
+    void on_groupBoxTimeSync_toggled(bool checked);
     void on_spinBoxYearsOffset_valueChanged(int value);
-    void on_radioButtonDisabled_toggled(bool checked);
-    void on_radioButtonLocalTime_toggled(bool checked);
-    void on_radioButtonUTC_toggled(bool checked);
+    void on_spinBoxFixedYear_valueChanged(int value);
+    void on_radioButtonOffsetYears_toggled(bool checked);
+    void on_radioButtonFixedYear_toggled(bool checked);
 
 private:
     void updateGuestYearLabel();
-    void updateYearsOffsetEnabled();
+    void updateTimeControlsEnabled();
+    void timeSyncSettings(int &sync, int &offset_years, int &fixed_year, int &keep_date) const;
     Ui::SettingsMachine *ui;
 
     int                  machine_cfg_changed;
     int                  original_years_offset = 0;
+    int                  original_fixed_year = 0;
     bool                 years_offset_manipulated = false;
+    bool                 fixed_year_manipulated = false;
 
     SettingsCompleter *  sc;
 };

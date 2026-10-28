@@ -336,6 +336,8 @@ typedef struct svga_t {
     int border_override;
     int border_left;
     int border_top;
+    int hsync_ext;
+    int hblank_ext;
 
     /* Return a 32 bpp color from a 15/16 bpp color. */
     uint32_t (*conv_16to32)(struct svga_t *svga, uint16_t color, uint8_t bpp);
@@ -475,7 +477,10 @@ extern uint8_t ibm_rgb528_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *
 extern void    ibm_rgb528_recalctimings(void *priv, svga_t *svga);
 extern void    ibm_rgb528_hwcursor_draw(svga_t *svga, int displine);
 extern float   ibm_rgb528_getclock(int clock, void *priv);
+extern float   ibm_rgb528_getclock_pll(int clock, void *priv);
 extern void    ibm_rgb528_ramdac_set_ref_clock(void *priv, svga_t *svga, float ref_clock);
+extern void    ibm_rgb528_ramdac_set_port_sel_only(void *priv, svga_t *svga, int port_sel_only);
+extern int     ibm_rgb528_ramdac_set_render(void *priv, svga_t *svga, int bytes_pp);
 
 extern float icd2047_getclock(int clock, void *priv);
 
@@ -547,6 +552,7 @@ extern const device_t bt485_ramdac_device;
 extern const device_t att20c505_ramdac_device;
 extern const device_t bt485a_ramdac_device;
 extern const device_t gendac_ramdac_device;
+extern const device_t ibm_rgb525_ramdac_device;
 extern const device_t ibm_rgb528_ramdac_device;
 extern const device_t ch9201_device;
 extern const device_t ch9204_device;

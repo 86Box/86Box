@@ -124,4 +124,10 @@ extern void *io_trap_add(void (*func)(uint16_t size, uint16_t port, uint8_t writ
 extern void  io_trap_remap(void *handle, uint8_t enable, uint16_t port, uint16_t size);
 extern void  io_trap_remove(void *handle);
 
+/* Lets a chipset see each byte cycle at the port before the devices there.
+   When the claim function returns 1, the devices never see the cycle, and
+   a claimed read returns FFh. A NULL claim removes the port's claim. */
+extern void  io_set_claim(uint16_t port, int (*claim)(uint16_t port, uint8_t write, uint8_t val, void *priv),
+                          void *priv);
+
 #endif /*EMU_IO_H*/

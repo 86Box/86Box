@@ -14,6 +14,7 @@
  */
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <wchar.h>
@@ -94,6 +95,13 @@ static uint8_t     pci_irq_route_log_seen[256][PCI_CARDS_NUM][PCI_INT_PINS_NUM];
 static uint16_t    pci_apic_intin_level_count[PCI_APIC_INTIN_NUM];
 static uint8_t     pci_apic_intin_level_asserted[PCI_APIC_INTIN_NUM];
 static uint64_t    pci_irq_hold[PCI_IRQS_NUM];
+/* The level sources currently asserted through each PIRQ, so that a routing
+   change can move them to the new IRQ the way the router's steering does.
+   Any number of devices can share one PIRQ, so each list grows in steps of
+   PCI_PIRQ_SRCS. */
+#define PCI_PIRQ_SRCS 16
+static uint8_t   **pci_pirq_src[PCI_IRQS_NUM];
+static int         pci_pirq_srcs[PCI_IRQS_NUM];
 static pci_mirq_t  pci_mirqs[PCI_MIRQS_NUM];
 static int         pci_index;
 static int         pci_func;
@@ -143,12 +151,70 @@ pci_log(const char *fmt, ...)
 #    define pci_log(fmt, ...)
 #endif
 
+static void
+pci_pirq_track(int pirq, uint8_t *irq_state, int set)
+{
+    uint8_t **src = pci_pirq_src[pirq];
+    int       num = pci_pirq_srcs[pirq];
+    int       i;
+
+    for (i = 0; (i < num) && (src[i] != irq_state); i++)
+        ;
+    if (!set) {
+        if (i < num)
+            src[i] = NULL;
+    } else if (i == num) {
+        for (i = 0; (i < num) && (src[i] != NULL); i++)
+            ;
+        if (i == num) {
+            src = (uint8_t **) realloc(src, (num + PCI_PIRQ_SRCS) * sizeof(uint8_t *));
+            if (src == NULL) {
+                fatal("PCI: Out of memory tracking the sources of PIRQ %i\n", pirq);
+                return;
+            }
+            memset(&src[num], 0x00, PCI_PIRQ_SRCS * sizeof(uint8_t *));
+            pci_pirq_src[pirq]  = src;
+            pci_pirq_srcs[pirq] = num + PCI_PIRQ_SRCS;
+        }
+        src[i] = irq_state;
+    }
+}
+
 void
 pci_set_irq_routing(int pci_int, int irq)
 {
-    uint8_t pci_irq = pci_int - 1;
+    uint8_t old = pci_irqs[pci_int - 1];
+    uint8_t new;
 
-    pci_irqs[pci_irq] = irq;
+    pci_irqs[pci_int - 1] = irq;
+    new                   = pci_irqs[pci_int - 1];
+    if (new == old)
+        return;
+
+    /* Every source asserted through the PIRQ moves from the old IRQ input to
+       the new one, on the same side pci_irq() drove it: where the board
+       wires the PIRQ to an I/O APIC input of its own, only the 8259 side
+       follows the steering, and the PIRQ's own input stays as it is. */
+    int wired = ioapic_pirq_intin(pci_int - 1) != PCI_APIC_INTIN_INVALID;
+
+    for (int i = 0; i < pci_pirq_srcs[pci_int - 1]; i++) {
+        uint8_t *irq_state = pci_pirq_src[pci_int - 1][i];
+
+        if (irq_state == NULL)
+            continue;
+        if (old <= PCI_IRQ_MAX) {
+            if (wired)
+                picint_steered(1 << old, PIC_IRQ_LEVEL, 0, irq_state);
+            else
+                picintclevel(1 << old, irq_state);
+        }
+        if (new <= PCI_IRQ_MAX) {
+            if (wired)
+                picint_steered(1 << new, PIC_IRQ_LEVEL, 1, irq_state);
+            else
+                picintlevel(1 << new, irq_state);
+        }
+    }
 }
 
 void
@@ -410,6 +476,8 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
                         level    = !!pci_irq_level[irq_routing];
                         if (level && is_vfio)
                             level--;
+                        if (irq_state != NULL)
+                            pci_pirq_track(irq_routing, irq_state, set && level);
                         break;
 
                     /* Sometimes, PCI devices are mapped to direct IRQ's. */
@@ -436,11 +504,23 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
             if (slot > 0x00) {
                 slot = (slot - 1) & PCI_INT_PINS_MAX;
 
+                /* A function inside the south bridge on one of its own
+                   PIRQs (the PIIX's UHCI on PIRQD) is on that PIRQ's wire,
+                   so it reaches the PIRQ's own I/O APIC input the same way
+                   a card on it does. */
+                if (ioapic_pirq_intin(slot) != PCI_APIC_INTIN_INVALID) {
+                    intin              = ioapic_pirq_intin(slot);
+                    direct_intin_route = 1;
+                    pirq_wired         = 1;
+                }
+
                 irq_line    = pci_irqs[slot];
 
                 /* Ignore what was provided to us as a parameter and override it with whatever
                    the chipset is set to. */
                 level       = !!pci_irq_level[slot];
+                if (irq_state != NULL)
+                    pci_pirq_track(slot, irq_state, set && level);
             } else {
                 irq_line    = 0xff;
                 level       = 0;
@@ -665,6 +745,13 @@ pci_reset_hard(void)
 
             picintc(1 << i);
         }
+    }
+
+    /* The PIC drops its sources on reset, so the PIRQ source lists are
+       emptied too. */
+    for (uint8_t i = 0; i < PCI_IRQS_NUM; i++) {
+        if (pci_pirq_src[i] != NULL)
+            memset(pci_pirq_src[i], 0x00, pci_pirq_srcs[i] * sizeof(uint8_t *));
     }
 
     memset(pci_apic_intin_level_count, 0, sizeof(pci_apic_intin_level_count));

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-22 05:58+0000\n"
+"PO-Revision-Date: 2026-10-27 06:02+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -415,17 +415,35 @@ msgstr "MB"
 msgid "Memory:"
 msgstr "記憶體:"
 
-msgid "Time synchronization"
-msgstr "時間同步"
+msgid "Synchronize with host clock"
+msgstr "與主機時間同步"
 
-msgid "Disabled"
-msgstr "停用"
+msgid "Time zone:"
+msgstr "時區:"
 
-msgid "Enabled (local time)"
-msgstr "啟用 (本地時間)"
+msgid "Local"
+msgstr "本地"
 
-msgid "Enabled (UTC)"
-msgstr "啟用 (UTC)"
+msgid "UTC"
+msgstr "世界協調時間"
+
+msgid "Date:"
+msgstr "日期:"
+
+msgid "Match the host"
+msgstr "與主機一致"
+
+msgid "Offset the year by:"
+msgstr "年份偏移量:"
+
+msgid "(currently %1)"
+msgstr "(目前 %1)"
+
+msgid "Always use the year:"
+msgstr "固定使用年份:"
+
+msgid "Do not synchronize the date"
+msgstr "不同步日期"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "啟用 486 直譯器於 286 及 386 處理器"
@@ -3145,7 +3163,7 @@ msgid "Key bindings"
 msgstr "按鍵組合"
 
 msgid "VM Manager"
-msgstr ""
+msgstr "虛擬機器管理員"
 
 msgid "Action"
 msgstr "動作"

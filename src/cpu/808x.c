@@ -1282,12 +1282,14 @@ check_interrupts(int nec_hlt)
                type itself and the 8259 runs no acknowledge cycle for it. */
             if (icu)
                 temp = i8018x_pcb_icu_int_type();
+            else if (!cascade)
+                temp = pic_irq_ack_instance(pic.int_pending ? &pic : &pic2);
             else /* ACK to PIC */
                 temp = pic_irq_ack();
             wait_cycs(4, 1);
             wait_cycs(1, 0);
             /* ACK to PIC */
-            if (!icu)
+            if (!icu && cascade)
                 temp = pic_irq_ack();
             wait_cycs(4, 1);
             wait_cycs(1, 0);
@@ -2641,7 +2643,7 @@ execx86_instruction(void)
 #else
                 wait_cycs(7, 0);
                 if (fpu_softfloat && (fpu_state.swd & FPU_SW_Summary) && !(fpu_state.cwd & FPU_SW_Summary))
-                    nmi = 1;
+                    fpu_int_set(1);
                 check_interrupts(0);
 #endif
                 break;

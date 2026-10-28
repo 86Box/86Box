@@ -39,6 +39,7 @@ ropFLDs(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     op_pc--;
     target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+    codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc, target_seg, FPU_GUARD_PUSH);
     codegen_check_seg_read(block, ir, target_seg);
     CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 3);
     uop_MEM_LOAD_SINGLE(ir, IREG_ST(-1), ireg_seg_base(target_seg), IREG_eaaddr);
@@ -56,6 +57,7 @@ ropFLDd(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     op_pc--;
     target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+    codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc, target_seg, FPU_GUARD_PUSH);
     codegen_check_seg_read(block, ir, target_seg);
     CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 7);
     uop_MEM_LOAD_DOUBLE(ir, IREG_ST(-1), ireg_seg_base(target_seg), IREG_eaaddr);
@@ -157,6 +159,7 @@ ropFILDw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     op_pc--;
     target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+    codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc, target_seg, FPU_GUARD_PUSH);
     codegen_check_seg_read(block, ir, target_seg);
     CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
     uop_MEM_LOAD_REG(ir, IREG_temp0_W, ireg_seg_base(target_seg), IREG_eaaddr);
@@ -175,6 +178,7 @@ ropFILDl(codeblock_t *block, ir_data_t *ir, uint8_t UNUSED(opcode), uint32_t fet
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     op_pc--;
     target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+    codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc, target_seg, FPU_GUARD_PUSH);
     codegen_check_seg_read(block, ir, target_seg);
     CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 3);
     uop_MEM_LOAD_REG(ir, IREG_temp0, ireg_seg_base(target_seg), IREG_eaaddr);
@@ -193,6 +197,7 @@ ropFILDq(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     op_pc--;
     target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+    codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc, target_seg, FPU_GUARD_PUSH);
     codegen_check_seg_read(block, ir, target_seg);
     CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 7);
     uop_MEM_LOAD_REG(ir, IREG_ST_i64(-1), ireg_seg_base(target_seg), IREG_eaaddr);

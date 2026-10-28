@@ -3319,12 +3319,37 @@ rtl8139_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void
     }
 }
 
+/*
+ * PCI RST#: return the configuration space to the datasheet's power-on values
+ * (decoding off, BARs and the other writable registers cleared), release the
+ * EEPROM and autoload IDR0-5 from it, then do the chip reset.  Without this
+ * the BARs stay live across a reboot and can shadow the BIOS.
+ */
+static void
+rtl8139_pci_reset(void *priv)
+{
+    RTL8139State *s = (RTL8139State *) priv;
+
+    rtl8139_pci_write(0, 0x04, 1, 0x00, priv);
+    rtl8139_pci_write(0, 0x05, 1, 0x00, priv);
+    rtl8139_pci_write(0, 0x0c, 1, 0x00, priv);
+    rtl8139_pci_write(0, 0x0d, 1, 0x00, priv);
+    for (int i = 0x10; i <= 0x17; i++)
+        rtl8139_pci_write(0, i, 1, 0x00, priv);
+    rtl8139_pci_write(0, 0x3c, 1, 0x00, priv);
+
+    nmc93cxx_eeprom_write(s->eeprom, 0, 0, 0);
+    s->Cfg9346 = 0x00;
+    memcpy(&s->phys[MAC0], &nmc93cxx_eeprom_data(s->eeprom)[7], 6);
+
+    rtl8139_reset(priv);
+}
+
 static void *
 nic_init(const device_t *info)
 {
     RTL8139State *s                     = calloc(1, sizeof(RTL8139State));
     nmc93cxx_eeprom_params_t params;
-    char          eeprom_filename[1024] = { 0 };
     char          filename[1024] = { 0 };
     uint8_t      *mac_bytes;
     uint16_t     *eep_data;
@@ -3336,8 +3361,6 @@ nic_init(const device_t *info)
                     NULL, MEM_MAPPING_EXTERNAL, s);
     pci_add_card(PCI_ADD_NORMAL, rtl8139_pci_read, rtl8139_pci_write, s, &s->pci_slot);
     s->inst = device_get_instance();
-
-    snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_rtl8139c_plus_%d.nvr", s->inst);
 
     eep_data = (uint16_t *) s->eeprom_data;
 
@@ -3431,7 +3454,7 @@ const device_t rtl8139c_plus_device = {
     .local         = 0,
     .init          = nic_init,
     .close         = nic_close,
-    .reset         = rtl8139_reset,
+    .reset         = rtl8139_pci_reset,
     .available     = NULL,
     .speed_changed = rtl8139_speed_changed,
     .force_redraw  = NULL,

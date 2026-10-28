@@ -903,6 +903,18 @@ r3d_texel(const uint8_t *texbase, uint32_t base, uint32_t mask, uint32_t lw, uin
             p     = &texbase[(base + R3D_TOFF((uint32_t) u, lw)) & mask];
             texel = *p;
             return (texel << 24) | (texel << 16) | (texel << 8) | texel | amask;
+        case 13: /* Not documented: none of the guides lists datatype 13.
+                    Modeled as 16 bpp alpha and intensity (8:8), alpha in
+                    the high byte and the intensity in the low byte,
+                    copied to R, G and B. That layout is what captured
+                    Windows 98 OpenGL traffic shows: 2 bytes per texel by
+                    the mip level offsets, and in a font texture the low
+                    byte holds the white glyphs while the high byte holds
+                    the glyphs plus their shadow outline, the coverage the
+                    blend needs. */
+            p     = &texbase[(base + R3D_TOFF((uint32_t) u * 2u, lw * 2u)) & mask];
+            texel = *(const uint16_t *) p;
+            return ((texel & 0xff00u) << 16) | ((texel & 0xffu) * 0x010101u) | amask;
         case 11: /* YUV 422 packed (VYUY): bytes Y0 U Y1 V, two texels */
         case 12:
             { /* YUV 422 packed (YVYU): bytes U Y0 V Y1. The guides
@@ -998,6 +1010,8 @@ r3d_ck_to_argb(uint32_t dt, uint32_t v)
             return 0xff000000 | ((v & 0xff) * 0x00010101u);
         case 9: /* RGB8 */
             return (v & 0xff) * 0x01010101u;
+        case 13: /* alpha and intensity 8:8, the texel fetch's mapping */
+            return ((v & 0xff00u) << 16) | ((v & 0xffu) * 0x010101u);
         case 11: /* YUV texels compare after conversion to RGB. The matrix
                     clamps, so two YUV keys can map to the same RGB
                     value. The key holds one texel: Y, U, (unused), V
@@ -4003,7 +4017,7 @@ r3d_stage_hdr_init(const rage128_raster_state_t *rs, int st, r3d_stage_hdr_t *h)
        (R128_TEX_MAP_ALPHA_IN_TEXTURE in r128DDInitState) and keeps
        texel alpha out of the combine for GL_RGB textures. */
     h->aone = (h->dt == 0 || h->dt == 3 || h->dt == 6 || h->dt == 9
-               || h->dt == 14 || h->dt == 15)
+               || h->dt == 13 || h->dt == 14 || h->dt == 15)
         && !(rs->t3d.scale_3d_cntl & (1u << 30));
     h->border = st ? rs->t3d.sec_tex_border_color
                    : rs->t3d.prim_tex_border_color;

@@ -1004,8 +1004,18 @@ svga_recalctimings(svga_t *svga)
 
     svga->multiplier = 1.0;
 
+    svga->hsync_ext  = 0;
+    svga->hblank_ext = 0;
+
     if (svga->recalctimings_ex)
         svga->recalctimings_ex(svga);
+
+    /*
+       Have a maximum value y_add can take, fixes heap corruptions
+       during some video resizes.
+     */
+    if (svga->y_add > 240)
+        svga->y_add = 240;
 
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (IBM_8514A || ATI_8514A_ULTRA)
@@ -1238,7 +1248,8 @@ svga_recalctimings(svga_t *svga)
         }
     }
 
-    _dispofftime = disptime - _dispontime;
+    _dispofftime = disptime - _dispontime +
+                   (double) svga->hblank_ext + (double) svga->hsync_ext;
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
 

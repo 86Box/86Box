@@ -28,6 +28,7 @@ public:
     int currentHdc(int i) const;
     int currentSoundCard(int i) const;
     int currentScsiCard(int i) const;
+    int currentUsbMsd() const;
 
     static Settings *settings;
 protected slots:

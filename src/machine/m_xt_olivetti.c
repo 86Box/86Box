@@ -244,6 +244,11 @@ mm58174_start(nvr_t *nvr)
     /* Initialize the internal and chip times. */
     if (time_sync & TIME_SYNC_ENABLED) {
         /* Use the internal clock's time. */
+        if (time_keep_date) {
+            /* Keep the chip's own date. */
+            mm58174_time_get(nvr->regs, &tm);
+            nvr_time_set_date(&tm);
+        }
         nvr_time_get(&tm);
         mm58174_time_set(nvr->regs, &tm);
     } else {
@@ -403,6 +408,11 @@ mm58274_start(nvr_t *nvr)
     /* Initialize the internal and chip times. */
     if (time_sync & TIME_SYNC_ENABLED) {
         /* Use the internal clock's time. */
+        if (time_keep_date) {
+            /* Keep the chip's own date. */
+            mm58274_time_get(nvr->regs, &tm);
+            nvr_time_set_date(&tm);
+        }
         nvr_time_get(&tm);
         mm58274_time_set(nvr->regs, &tm);
     } else {

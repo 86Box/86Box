@@ -70,6 +70,14 @@ clz32(uint32_t v) /* v != 0 */
 #endif
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#    define PCXR_INLINE static inline __attribute__((always_inline))
+#elif defined(_MSC_VER)
+#    define PCXR_INLINE static __forceinline
+#else
+#    define PCXR_INLINE static inline
+#endif
+
 #define NUM_CELLS 32
 
 /* Tile list words. */
@@ -159,6 +167,15 @@ typedef struct {
     int                 prev_intern_out;
     uint8_t             fog_r, fog_g, fog_b;
     int                 fog_on;
+    uint32_t            tex_mask; /* tex_words - 1 when a power of two, else 0 */
+    /* TSP words of the surface last shaded: neighbouring pixels are
+       usually the same surface. */
+    uint32_t            tsp_addr;
+    uint32_t            tsp[13];
+    /* Its texture parameters, decoded (when it is textured). */
+    int                 ta, tb, tc, td, te, tf, tp, tq, tr, texp, tmap_size, tcdepth, tmip, t4444, tgtrans, tflip;
+    uint32_t            taddr;
+    pfloat              tpmip;
 } ctx_t;
 
 /* ---- ISP (SABRE) ------------------------------------------------------ */
@@ -307,7 +324,15 @@ expand_instruction(ctx_t *c, int instr, int do_nop, int sec_object, int do_flush
     return w;
 }
 
-static int
+/* The decoder state carried from span to span: 3 bits of previous
+   instruction, then the second-object and first-object flags. */
+static inline int
+pcxr_state(int prev_intern_out, int sec_obj, int first_obj)
+{
+    return (prev_intern_out << 2) | (sec_obj << 1) | first_obj;
+}
+
+PCXR_INLINE int
 fog_factor(const ctx_t *c, int32_t depth)
 {
     int32_t idx = depth >> (c->f->fog_shift & 0x1f);
@@ -326,7 +351,7 @@ fog_factor(const ctx_t *c, int32_t depth)
 static inline uint32_t
 tsp_word(const ctx_t *c, uint32_t a)
 {
-    return c->f->tex[a % c->f->tex_words];
+    return c->tex_mask ? c->f->tex[a & c->tex_mask] : c->f->tex[a % c->f->tex_words];
 }
 
 static int
@@ -343,7 +368,7 @@ from555(uint16_t p, uint8_t *r, uint8_t *g, uint8_t *b)
     *b = (uint8_t) (((p & 0x1f) << 3) + 4);
 }
 
-static pfloat
+PCXR_INLINE pfloat
 to_pfloat(int32_t x)
 {
     pfloat   t;
@@ -358,7 +383,7 @@ to_pfloat(int32_t x)
     return t;
 }
 
-static int32_t
+PCXR_INLINE int32_t
 ashift(int32_t x, int shift)
 {
     if (shift < 0) {
@@ -376,9 +401,14 @@ ashift(int32_t x, int shift)
    pcxr_prepare() before any rendering. */
 static uint16_t spread8[256];
 
+/* 0x8000000 / m for the normalised 1/w mantissas, 0x2000..0x3fff. */
+static uint16_t recip_tab[0x2000];
+
 static void
 init_spread8(void)
 {
+    for (uint32_t m = 0; m < 0x2000; m++)
+        recip_tab[m] = (uint16_t) (0x8000000u / (m + 0x2000));
     for (uint32_t v = 0; v < 256; v++) {
         uint32_t r = 0;
         for (int i = 0; i < 8; i++)
@@ -393,7 +423,7 @@ twid(uint32_t x, uint32_t y)
     return ((uint32_t) spread8[x & 0xff] << 1) | spread8[y & 0xff];
 }
 
-static uint32_t
+PCXR_INLINE uint32_t
 address_calc(int32_t u, int32_t v, uint32_t address, int map_size, int which_map, int colour_depth,
              int mip_mapped, int flip_uv)
 {
@@ -427,14 +457,66 @@ address_calc(int32_t u, int32_t v, uint32_t address, int map_size, int which_map
     return address + 1 + mmc[map_size + which_map] + twid(u >> which_map, v >> which_map);
 }
 
-static uint16_t
+/* address_calc() split in two: what is the same for every sample of one
+   mip level of one pixel, worked out once, and the per-sample part. */
+typedef struct {
+    uint32_t base;
+    int32_t  mask, fbit;
+    int      flip_u, flip_v, mip, cdepth, which, last;
+} level_t;
+
+PCXR_INLINE void
+level_init(level_t *l, uint32_t address, int map_size, int which_map, int colour_depth, int mip_mapped, int flip_uv)
+{
+    static const uint32_t mmc[]      = { 0x5555, 0x1555, 0x0555, 0x0155, 0x0055, 0x0015, 0x0005, 0x0001, 0x0000 };
+    static const int32_t  map_mask[] = { 0xff, 0x7f, 0x3f, 0x1f };
+
+    l->mask   = map_mask[map_size];
+    l->fbit   = map_size ? map_mask[map_size] + 1 : 128;
+    l->flip_u = flip_uv & 2;
+    l->flip_v = flip_uv & 1;
+    l->mip    = mip_mapped;
+    l->cdepth = colour_depth;
+    l->which  = which_map;
+    l->last   = 0;
+    if (!mip_mapped) {
+        l->base = address;
+        return;
+    }
+    if ((map_size + which_map) & 1)
+        address ^= BIG_BANK;
+    if (map_size + which_map > 8) {
+        l->last = 1;
+        l->base = address;
+        return;
+    }
+    l->base = address + 1 + mmc[map_size + which_map];
+}
+
+PCXR_INLINE uint32_t
+level_addr(const level_t *l, int32_t u, int32_t v)
+{
+    if (l->flip_u && (u & l->fbit))
+        u = ~u;
+    if (l->flip_v && (v & l->fbit))
+        v = ~v;
+    u &= l->mask;
+    v &= l->mask;
+    if (!l->mip)
+        return l->base + (l->cdepth ? twid(u, v) : twid(u >> 1, v));
+    if (l->last)
+        return l->base;
+    return l->base + twid(u >> l->which, v >> l->which);
+}
+
+PCXR_INLINE uint16_t
 fetch_pixel(const ctx_t *c, uint32_t address)
 {
-    uint32_t w = c->f->tex[(address >> 1) % c->f->tex_words];
+    uint32_t w = tsp_word(c, address >> 1);
     return (address & 1) ? (uint16_t) (w & 0xffff) : (uint16_t) (w >> 16);
 }
 
-static rgba_t
+PCXR_INLINE rgba_t
 colour_convert(uint16_t raw, int colour_depth, int which_pixel, int translucent)
 {
     rgba_t p;
@@ -475,7 +557,7 @@ colour_convert(uint16_t raw, int colour_depth, int which_pixel, int translucent)
     return p;
 }
 
-static rgba_t
+PCXR_INLINE rgba_t
 bilerp(rgba_t t, rgba_t u1, rgba_t v1, rgba_t u1v1, int32_t uf, int32_t vf)
 {
     rgba_t ab, cd, o;
@@ -500,7 +582,7 @@ bilerp(rgba_t t, rgba_t u1, rgba_t v1, rgba_t u1v1, int32_t uf, int32_t vf)
     return o;
 }
 
-static rgba_t
+PCXR_INLINE rgba_t
 texture_pixel(const ctx_t *c, int x, int y, int a, int b, int cc, int d, int e, int f, int p, int q, int r,
               int exp, uint32_t address, int map_size, pfloat pmip, int colour_depth, int mip_mapped,
               int col4444, int global_trans, int flip_uv)
@@ -520,7 +602,9 @@ texture_pixel(const ctx_t *c, int x, int y, int a, int b, int cc, int d, int e, 
 
     bot = to_pfloat(pqr);
     bot.m >>= 1;
-    if (bot.m > 0)
+    if (bot.m >= 0x2000)
+        bot.m = recip_tab[bot.m - 0x2000];
+    else if (bot.m > 0)
         bot.m = 0x8000000 / bot.m;
     else
         bot.m = 0x4000;
@@ -588,7 +672,9 @@ texture_pixel(const ctx_t *c, int x, int y, int a, int b, int cc, int d, int e, 
         bilin = 0;
 
     if (bot.e < 1 || !mip_mapped || colour_depth == 0) {
-        tcol = colour_convert(fetch_pixel(c, address_calc(u, v, address, map_size, 0, colour_depth, mip_mapped, flip_uv)),
+        level_t lv0;
+        level_init(&lv0, address, map_size, 0, colour_depth, mip_mapped, flip_uv);
+        tcol = colour_convert(fetch_pixel(c, level_addr(&lv0, u, v)),
                               colour_depth, u & 1, col4444);
         if (!bilin) {
             tcol.r = (uint8_t) ((tcol.r << 3) + 4);
@@ -597,11 +683,11 @@ texture_pixel(const ctx_t *c, int x, int y, int a, int b, int cc, int d, int e, 
         } else {
             uf &= 31;
             vf &= 31;
-            u1   = colour_convert(fetch_pixel(c, address_calc((u + 1) & 255, v, address, map_size, 0, colour_depth, mip_mapped, flip_uv)),
+            u1   = colour_convert(fetch_pixel(c, level_addr(&lv0, (u + 1) & 255, v)),
                                   colour_depth, (u + 1) & 1, col4444);
-            v1   = colour_convert(fetch_pixel(c, address_calc(u, (v + 1) & 255, address, map_size, 0, colour_depth, mip_mapped, flip_uv)),
+            v1   = colour_convert(fetch_pixel(c, level_addr(&lv0, u, (v + 1) & 255)),
                                   colour_depth, u & 1, col4444);
-            u1v1 = colour_convert(fetch_pixel(c, address_calc((u + 1) & 255, (v + 1) & 255, address, map_size, 0, colour_depth, mip_mapped, flip_uv)),
+            u1v1 = colour_convert(fetch_pixel(c, level_addr(&lv0, (u + 1) & 255, (v + 1) & 255)),
                                   colour_depth, (u + 1) & 1, col4444);
             tcol = bilerp(tcol, u1, v1, u1v1, uf, vf);
         }
@@ -612,32 +698,38 @@ texture_pixel(const ctx_t *c, int x, int y, int a, int b, int cc, int d, int e, 
         tcol.g = (uint8_t) ((tcol.g << 3) + 4);
         tcol.b = (uint8_t) ((tcol.b << 3) + 4);
     } else {
-        int compress = bot.e - 1;
-        int binc     = 1 << compress;
+        int     compress = bot.e - 1;
+        int     binc     = 1 << compress;
+        level_t lvc;
+        level_init(&lvc, address, map_size, compress, colour_depth, mip_mapped, flip_uv);
 
         if (!bilin) {
             /* Linear mip-mapping: blend this level with the next smaller. */
-            rgba_t hi = colour_convert(fetch_pixel(c, address_calc(u, v, address, map_size, compress, colour_depth, mip_mapped, flip_uv)),
+            level_t lve;
+            rgba_t  hi, lo;
+            int     t;
+            level_init(&lve, address, map_size, bot.e, colour_depth, mip_mapped, flip_uv);
+            hi = colour_convert(fetch_pixel(c, level_addr(&lvc, u, v)),
                                        colour_depth, 0, col4444);
-            rgba_t lo = colour_convert(fetch_pixel(c, address_calc(u, v, address, map_size, bot.e, colour_depth, mip_mapped, flip_uv)),
-                                       colour_depth, 0, col4444);
-            int    t  = (bot.m & 0x7f) >> 2;
+            lo = colour_convert(fetch_pixel(c, level_addr(&lve, u, v)),
+                                colour_depth, 0, col4444);
+            t  = (bot.m & 0x7f) >> 2;
             tcol.r    = (uint8_t) ((hi.r << 3) + ((t * ((int) lo.r - hi.r)) >> 2) + 4);
             tcol.g    = (uint8_t) ((hi.g << 3) + ((t * ((int) lo.g - hi.g)) >> 2) + 4);
             tcol.b    = (uint8_t) ((hi.b << 3) + ((t * ((int) lo.b - hi.b)) >> 2) + 4);
             tcol.a    = lo.a;
             goto done;
         }
-        tcol = colour_convert(fetch_pixel(c, address_calc(u, v, address, map_size, compress, colour_depth, mip_mapped, flip_uv)),
+        tcol = colour_convert(fetch_pixel(c, level_addr(&lvc, u, v)),
                               colour_depth, u & 1, col4444);
         {
             uf = (uf >> compress) & 31;
             vf = (vf >> compress) & 31;
-            u1   = colour_convert(fetch_pixel(c, address_calc((u + binc) & 255, v, address, map_size, compress, colour_depth, mip_mapped, flip_uv)),
+            u1   = colour_convert(fetch_pixel(c, level_addr(&lvc, (u + binc) & 255, v)),
                                   colour_depth, u & 1, col4444);
-            v1   = colour_convert(fetch_pixel(c, address_calc(u, (v + binc) & 255, address, map_size, compress, colour_depth, mip_mapped, flip_uv)),
+            v1   = colour_convert(fetch_pixel(c, level_addr(&lvc, u, (v + binc) & 255)),
                                   colour_depth, u & 1, col4444);
-            u1v1 = colour_convert(fetch_pixel(c, address_calc((u + binc) & 255, (v + binc) & 255, address, map_size, compress, colour_depth, mip_mapped, flip_uv)),
+            u1v1 = colour_convert(fetch_pixel(c, level_addr(&lvc, (u + binc) & 255, (v + binc) & 255)),
                                   colour_depth, u & 1, col4444);
             tcol = bilerp(tcol, u1, v1, u1v1, uf, vf);
         }
@@ -657,11 +749,13 @@ clip255(int v)
     return (v > 255) ? 255 : v;
 }
 
-static void
+/* TSP word i of the surface at address (i < 13), from the cache. */
+#define TSPW(i) (c->tsp[(i)])
+
+PCXR_INLINE void
 texas(ctx_t *c, int x, int y, uint32_t address, int shadow, int fog)
 {
-    uint32_t w0 = tsp_word(c, address);
-    uint32_t w1 = tsp_word(c, address + 1);
+    uint32_t w0, w1;
     uint32_t inc = address;
     int      red, green, blue;
     int      x_off = 0, y_off = 0;
@@ -678,6 +772,35 @@ texas(ctx_t *c, int x, int y, uint32_t address, int shadow, int fog)
     if (address == MASKING_PLANE_ADDR)
         return;
     dst = &c->rgb[y * PCXR_MAX_W + x];
+    if (address != c->tsp_addr) {
+        for (int i = 0; i < 13; i++)
+            c->tsp[i] = tsp_word(c, address + i);
+        c->tsp_addr = address;
+        if (c->tsp[0] & MASK_TEXTURE) {
+            uint32_t w2 = TSPW(2), w3 = TSPW(3), w4 = TSPW(4), w5 = TSPW(5), w6 = TSPW(6), w7 = TSPW(7);
+            c->tpmip.m   = (int32_t) ((w2 & MASK_PMIP_M) >> SHIFT_PMIP_M);
+            c->tpmip.e   = (int) ((w2 & MASK_PMIP_E) >> SHIFT_PMIP_E);
+            c->ta        = to_int16(w5);
+            c->tb        = to_int16(w5 >> 16);
+            c->tc        = to_int16(w4);
+            c->td        = to_int16(w7);
+            c->te        = to_int16(w7 >> 16);
+            c->tf        = to_int16(w6);
+            c->tp        = to_int16(w3);
+            c->tq        = to_int16(w3 >> 16);
+            c->tr        = to_int16(w2);
+            c->texp      = (int) ((c->tsp[0] & MASK_EXPONENT) >> SHIFT_EXPONENT);
+            c->taddr     = (w4 >> 16) | (w6 & 0x00ff0000);
+            c->tmap_size = (int) ((w6 & MASK_MAP_SIZE) >> SHIFT_MAP_SIZE);
+            c->tcdepth   = (w6 & MASK_8_16_MAPS) != 0;
+            c->tmip      = (w6 & MASK_MIP_MAPPED) != 0;
+            c->t4444     = (w6 & MASK_4444_555) != 0;
+            c->tgtrans   = (int) ((c->tsp[0] & MASK_GLOBAL_TRANS) >> SHIFT_GLOBAL_TRANS);
+            c->tflip     = (int) ((c->tsp[0] & MASK_FLIP_UV) >> SHIFT_FLIP_UV);
+        }
+    }
+    w0 = TSPW(0);
+    w1 = TSPW(1);
 
     if (w0 & MASK_SMOOTH_SHADE) {
         x_off = to_int16(w1 >> 16);
@@ -696,20 +819,8 @@ texas(ctx_t *c, int x, int y, uint32_t address, int shadow, int fog)
     }
 
     if (w0 & MASK_TEXTURE) {
-        uint32_t w2 = tsp_word(c, address + 2), w3 = tsp_word(c, address + 3);
-        uint32_t w4 = tsp_word(c, address + 4), w5 = tsp_word(c, address + 5);
-        uint32_t w6 = tsp_word(c, address + 6), w7 = tsp_word(c, address + 7);
-        pfloat   pmip;
-
-        pmip.m = (int32_t) ((w2 & MASK_PMIP_M) >> SHIFT_PMIP_M);
-        pmip.e = (int) ((w2 & MASK_PMIP_E) >> SHIFT_PMIP_E);
-        col    = texture_pixel(c, x, y, to_int16(w5), to_int16(w5 >> 16), to_int16(w4), to_int16(w7),
-                               to_int16(w7 >> 16), to_int16(w6), to_int16(w3), to_int16(w3 >> 16), to_int16(w2),
-                               (int) ((w0 & MASK_EXPONENT) >> SHIFT_EXPONENT), (w4 >> 16) | (w6 & 0x00ff0000),
-                               (int) ((w6 & MASK_MAP_SIZE) >> SHIFT_MAP_SIZE), pmip, (w6 & MASK_8_16_MAPS) != 0,
-                               (w6 & MASK_MIP_MAPPED) != 0, (w6 & MASK_4444_555) != 0,
-                               (int) ((w0 & MASK_GLOBAL_TRANS) >> SHIFT_GLOBAL_TRANS),
-                               (int) ((w0 & MASK_FLIP_UV) >> SHIFT_FLIP_UV));
+        col = texture_pixel(c, x, y, c->ta, c->tb, c->tc, c->td, c->te, c->tf, c->tp, c->tq, c->tr, c->texp, c->taddr,
+                            c->tmap_size, c->tpmip, c->tcdepth, c->tmip, c->t4444, c->tgtrans, c->tflip);
         if (!(w0 & MASK_SMOOTH_SHADE)) {
             col.r = (uint8_t) ((col.r * br) >> 8);
             col.g = (uint8_t) ((col.g * bg) >> 8);
@@ -727,7 +838,7 @@ texas(ctx_t *c, int x, int y, uint32_t address, int shadow, int fog)
     if (w0 & MASK_SMOOTH_SHADE) {
         int32_t  frac;
         uint8_t  hr, hg, hb;
-        uint32_t s0 = tsp_word(c, inc), s1 = tsp_word(c, inc + 1);
+        uint32_t s0 = TSPW(inc - address), s1 = TSPW(inc - address + 1);
 
         frac = (to_int16(s0) << 2) + to_int16(s1 >> 16) * (y - y_off) + to_int16(s1) * (x - x_off);
         from555(s0 >> 16, &hr, &hg, &hb);
@@ -748,8 +859,8 @@ texas(ctx_t *c, int x, int y, uint32_t address, int shadow, int fog)
 
         if ((w0 & MASK_SHADOW_FLAG) && !shadow) {
             uint8_t sr, sg, sb;
-            s0   = tsp_word(c, inc);
-            s1   = tsp_word(c, inc + 1);
+            s0   = TSPW(inc - address);
+            s1   = TSPW(inc - address + 1);
             frac = (to_int16(s0) << 2) + to_int16(s1 >> 16) * (y - y_off) + to_int16(s1) * (x - x_off);
             from555(s0 >> 16, &sr, &sg, &sb);
             sr >>= 3;
@@ -784,7 +895,7 @@ texas(ctx_t *c, int x, int y, uint32_t address, int shadow, int fog)
     }
 
     if (w0 & MASK_FLAT_HIGHLIGHT) {
-        uint32_t hw = tsp_word(c, inc);
+        uint32_t hw = TSPW(inc - address);
         uint8_t  hr, hg, hb, sr, sg, sb;
         from555(hw >> 16, &hr, &hg, &hb);
         from555(hw & 0xffff, &sr, &sg, &sb);
@@ -827,7 +938,7 @@ texas(ctx_t *c, int x, int y, uint32_t address, int shadow, int fog)
 
 /* ---- frame ------------------------------------------------------------ */
 
-static int
+PCXR_INLINE int
 x_visible(const ctx_t *c, int x)
 {
     uint32_t xc = c->f->xclip;
@@ -888,12 +999,15 @@ typedef struct {
     int32_t  c;
     uint32_t index;
     int      instr;
+    /* For a forw_visib_fp plane: the number of forw_perp edges (with
+       index 0) after it that close one convex polygon, ending at the end
+       of the object or at the next forw_visib_fp. 0 otherwise. */
+    uint32_t n_edges;
 } plane_t;
 
 typedef struct {
     uint32_t first, count;
     int      very_last, last_in_region;
-    int      simple; /* one forw_visib_fp plane followed only by forw_perp edges */
 } object_t;
 
 /* One tile: its place, its objects, and the instruction-decoder state it
@@ -903,7 +1017,10 @@ typedef struct {
     int      xpos, ypos, xsize, ysize;
     uint32_t first_object, n_objects;
     int      prev_intern_out, sec_obj, first_obj;
-    int      plain; /* only forw_visib_fp, forw_perp and begin_trans planes */
+    /* Every plane that is run (those after a begin_trans in an object are
+       not) is forw_visib_fp, begin_trans, or a forw_perp edge with index
+       0, and the tile starts with no instruction pending. */
+    int      plain;
 } tile_t;
 
 struct pcxr_job {
@@ -933,6 +1050,29 @@ cells_process(cells_t *restrict s, const cell_control *in, const int32_t *restri
 
     if (in->delayed_clear_u_id)
         memset(s->U_id, 0, sizeof(s->U_id));
+
+    /* A depth plane that starts an object: commit the object in I to U
+       (where it is closer, or everywhere for the second object of the
+       span), then load the plane into every cell of I. */
+    if (in->i_load == load_i && in->mux_sel && in->test_shad == test_shad_nop && !in->delayed_clear_u_id
+        && (in->u_load == load_u || in->u_load == load_u_closer)) {
+        const int32_t pv  = in->plane_visib;
+        const int32_t all = -(int32_t) (in->u_load == load_u);
+        for (i = 0; i < NUM_CELLS; i++) {
+            const int32_t g = -(int32_t) (s->I_depth[i] >= s->U_depth[i]);
+            const int32_t m = all | (g & -s->I_visib[i]) | (s->U_visib[i] - 1);
+            s->U_visib[i]   = (s->I_visib[i] & m) | (s->U_visib[i] & ~m);
+            s->U_shadow[i] &= ~m;
+            s->shad_temp[i] &= ~m;
+            s->U_depth[i] = (s->I_depth[i] & m) | (s->U_depth[i] & ~m);
+            s->U_id[i]    = (s->I_id[i] & (uint32_t) m) | (s->U_id[i] & ~(uint32_t) m);
+            s->I_visib[i]   = pv;
+            s->I_forward[i] = 1;
+            s->I_depth[i]   = C[i];
+            s->I_id[i]      = index;
+        }
+        return;
+    }
 
     /* The common case, an edge plane: cells outside it (C < 0) are emptied. */
     if (in->i_load == load_i_further && in->plane_perp && in->u_load == load_u_nop && in->test_shad == test_shad_nop) {
@@ -1214,9 +1354,17 @@ pcxr_prepare(pcxr_job_t *job, const pcxr_frame_t *f, pcxr_result_t *res)
             for (uint32_t pl = 0; pl < ob->count; pl++)
                 decode_plane(&c, plane_off + pl * WORDS_PER_PLANE, &job->planes[job->n_planes++]);
 
-            ob->simple = ob->count > 1 && job->planes[ob->first].instr == forw_visib_fp;
-            for (uint32_t pl = 1; pl < ob->count && ob->simple; pl++)
-                ob->simple = job->planes[ob->first + pl].instr == forw_perp && job->planes[ob->first + pl].index == 0;
+            for (uint32_t k = 0; k < ob->count; k++) {
+                plane_t *pk = &job->planes[ob->first + k];
+                uint32_t n  = 0;
+                pk->n_edges = 0;
+                if (pk->instr != forw_visib_fp)
+                    continue;
+                while (k + 1 + n < ob->count && pk[1 + n].instr == forw_perp && pk[1 + n].index == 0)
+                    n++;
+                if (n && (k + 1 + n == ob->count || pk[1 + n].instr == forw_visib_fp))
+                    pk->n_edges = n;
+            }
 
             ob->very_last = (obj_data & OBJ_VERY_LAST_PTR) != 0;
             if (ob->very_last)
@@ -1247,140 +1395,49 @@ pcxr_prepare(pcxr_job_t *job, const pcxr_frame_t *f, pcxr_result_t *res)
         }
         t->n_objects = job->n_objects - t->first_object;
         t->plain     = (t->prev_intern_out == prev_none);
-        for (uint32_t p = job->objects[t->first_object].first; p < job->n_planes && t->plain; p++)
-            t->plain = job->planes[p].instr == forw_visib_fp || job->planes[p].instr == forw_perp
-                       || job->planes[p].instr == begin_trans;
-
-        /* Run the instruction decoder over every span of the tile, without
-           pixels, to know the state the next tile starts with. */
-        for (int span = 0; span < t->ysize * (t->xsize / NUM_CELLS); span++) {
-            int no_object_yet = 1, instr = 0;
-            for (uint32_t o = t->first_object; o < job->n_objects; o++) {
-                const object_t *ob          = &job->objects[o];
-                int             translucent = 0;
-                for (uint32_t k = 0; k < ob->count; k++) {
-                    instr = job->planes[ob->first + k].instr;
-                    if (instr == forw_visib_fp || instr == forw_invis_fp || instr == test_shad_forw_fp) {
-                        if (no_object_yet) {
-                            sec_obj       = 0;
-                            first_obj     = 1;
-                            no_object_yet = 0;
-                        } else if (first_obj && !sec_obj) {
-                            first_obj = 0;
-                            sec_obj   = 1;
-                        } else
-                            sec_obj = 0;
-                    }
-                    if (!translucent)
-                        (void) expand_instruction(&c, instr, 0, sec_obj, 0);
-                    if (instr == begin_trans)
-                        translucent = 1;
+        for (uint32_t o = t->first_object; o < job->n_objects && t->plain; o++) {
+            const object_t *ob = &job->objects[o];
+            for (uint32_t k = 0; k < ob->count; k++) {
+                const plane_t *pk = &job->planes[ob->first + k];
+                if (pk->instr == begin_trans)
+                    break; /* the rest of the object is not run */
+                if (pk->instr != forw_visib_fp && !(pk->instr == forw_perp && pk->index == 0)) {
+                    t->plain = 0;
+                    break;
                 }
             }
         }
 
-        cur_word = local_word + obj_off;
-        start    = local_start;
-    }
-    return (int) job->n_tiles;
-}
+        /* Run the instruction decoder over the tile's spans, without
+           pixels, to know the state the next tile starts with. Every span
+           runs the same instructions, so the state after a span depends
+           only on the state before it: once a state repeats, the rest
+           follows without running them (there are only 32 states). */
+        {
+            int      n_spans = t->ysize * (t->xsize / NUM_CELLS);
+            int8_t   seen[32];
+            uint8_t  hist[33];
+            int      span;
 
-/* Draw tiles first, first + step, first + 2 * step, ... Tiles cover
-   separate pixels, so several threads can do this at once. */
-uint32_t
-pcxr_render_tiles(pcxr_job_t *job, uint32_t *rgb, uint32_t first, uint32_t step)
-{
-    ctx_t         c;
-    cells_t       cells;
-    int32_t       depth[NUM_CELLS];
-    pcxr_result_t res;
-    const pcxr_frame_t *f = job->f;
-
-    memset(&c, 0, sizeof(c));
-    memset(&res, 0, sizeof(res));
-    c.f     = f;
-    c.rgb   = rgb;
-    c.res   = &res;
-    c.fog_r = (f->fog_colour >> 16) & 0xff;
-    c.fog_g = (f->fog_colour >> 8) & 0xff;
-    c.fog_b = f->fog_colour & 0xff;
-    c.fog_on = (f->fog_colour >> 24) & 1; /* FOGCOL bit 24 enables fog (measured) */
-
-    for (uint32_t ti = first; ti < job->n_tiles; ti += step) {
-        const tile_t *t        = &job->tiles[ti];
-        int           sec_obj   = t->sec_obj;
-        int           first_obj = t->first_obj;
-
-        c.prev_intern_out = t->prev_intern_out;
-
-        for (int yline = t->ypos; yline < t->ypos + t->ysize; yline++) {
-            for (int xspan = t->xpos; xspan < t->xpos + t->xsize; xspan += NUM_CELLS) {
-                int no_object_yet = 1;
-                int instr         = 0;
-
-                memset(&cells, 0, sizeof(cells));
-
-                for (uint32_t o = t->first_object; o < t->first_object + t->n_objects; o++) {
+            memset(seen, -1, sizeof(seen));
+            for (span = 0; span < n_spans; span++) {
+                int st = pcxr_state(c.prev_intern_out, sec_obj, first_obj);
+                int no_object_yet = 1, instr = 0;
+                if (seen[st] >= 0) {
+                    int first = seen[st], len = span - first;
+                    st              = hist[first + (n_spans - first) % len];
+                    c.prev_intern_out = st >> 2;
+                    sec_obj         = (st >> 1) & 1;
+                    first_obj       = st & 1;
+                    break;
+                }
+                seen[st]   = (int8_t) span;
+                hist[span] = (uint8_t) st;
+                for (uint32_t o = t->first_object; o < job->n_objects; o++) {
                     const object_t *ob          = &job->objects[o];
                     int             translucent = 0;
-
-                    /* A plain convex object with an edge that is outside on
-                       every cell of the span adds nothing: its depth plane
-                       still runs (it commits the previous object), then the
-                       cells are marked empty as the edges would leave them.
-                       In a tile of only these instructions nothing reads the
-                       depth of an empty cell, so the result is the same. */
-                    if (t->plain && ob->simple) {
-                        const plane_t *dead = NULL;
-                        for (uint32_t k = 1; k < ob->count; k++) {
-                            const plane_t *pl  = &job->planes[ob->first + k];
-                            int64_t        v0  = pl->a * xspan + pl->b * yline + (int64_t) pl->c * 256;
-                            int64_t        v1  = v0 + (NUM_CELLS - 1) * pl->a;
-                            const int64_t  lim = -((int64_t) 1 << 39);
-                            if (v0 <= -256 && v1 <= -256 && v0 > lim && v1 > lim) {
-                                dead = pl;
-                                break;
-                            }
-                        }
-                        if (dead) {
-                            const plane_t *pl = &job->planes[ob->first];
-                            cell_control   wi;
-                            int64_t        creg;
-
-                            instr = forw_visib_fp;
-                            if (no_object_yet) {
-                                sec_obj       = 0;
-                                first_obj     = 1;
-                                no_object_yet = 0;
-                            } else if (first_obj && !sec_obj) {
-                                first_obj = 0;
-                                sec_obj   = 1;
-                            } else
-                                sec_obj = 0;
-                            wi   = expand_instruction(&c, instr, 0, sec_obj, 0);
-                            creg = pl->a * xspan + pl->b * yline + (int64_t) pl->c * 256;
-                            for (int cl = 0; cl < NUM_CELLS; cl++) {
-                                int64_t v = creg + (int64_t) cl * pl->a;
-                                depth[cl] = (int32_t) (uint32_t) ((v + ((v >> 63) & 255)) >> 8);
-                            }
-                            cells_process(&cells, &wi, depth, pl->index);
-                            creg = dead->a * xspan + dead->b * yline + (int64_t) dead->c * 256;
-                            for (int cl = 0; cl < NUM_CELLS; cl++) {
-                                int64_t v = creg + (int64_t) cl * dead->a;
-                                cells.I_depth[cl] = (int32_t) (uint32_t) ((v + ((v >> 63) & 255)) >> 8);
-                                cells.I_visib[cl] = 0;
-                                cells.I_id[cl]    = 0;
-                            }
-                            (void) expand_instruction(&c, forw_perp, 0, sec_obj, 0);
-                            instr = forw_perp;
-                            goto object_done;
-                        }
-                    }
-
                     for (uint32_t k = 0; k < ob->count; k++) {
-                        const plane_t *pl = &job->planes[ob->first + k];
-
-                        instr = pl->instr;
+                        instr = job->planes[ob->first + k].instr;
                         if (instr == forw_visib_fp || instr == forw_invis_fp || instr == test_shad_forw_fp) {
                             if (no_object_yet) {
                                 sec_obj       = 0;
@@ -1392,58 +1449,256 @@ pcxr_render_tiles(pcxr_job_t *job, uint32_t *rgb, uint32_t first, uint32_t step)
                             } else
                                 sec_obj = 0;
                         }
+                        if (!translucent)
+                            (void) expand_instruction(&c, instr, 0, sec_obj, 0);
+                        if (instr == begin_trans)
+                            translucent = 1;
+                    }
+                }
+            }
+        }
 
-                        if (!translucent) {
-                            cell_control wi = expand_instruction(&c, instr, 0, sec_obj, 0);
+        cur_word = local_word + obj_off;
+        start    = local_start;
+    }
+    return (int) job->n_tiles;
+}
+
+/* What one plane does in a span, worked out once per tile and decoder
+   state: the expanded cell controls, or nothing for a plane after
+   begin_trans (those are not run through the cells). */
+typedef struct {
+    cell_control wi;
+    uint8_t      run;  /* 0: not run (translucent) */
+    uint8_t      edge;   /* a plain edge plane: only empties the cells outside it */
+    uint8_t      commit; /* a plain depth plane: commits I to U (closer or all), loads I */
+} sched_t;
+
+/* Per-thread scratch for the schedules of the tile being drawn. */
+typedef struct {
+    sched_t *buf;
+    uint32_t cap;
+    int16_t  slot[32]; /* schedule index for each decoder state, -1 none yet */
+    uint8_t  next[32]; /* the state the span after it starts with */
+    int      used;
+} sched_cache_t;
+
+/* Expand every plane of a tile for a span starting in decoder state st,
+   exactly as the span loop would, and note the state it ends in. */
+static int
+build_schedule(ctx_t *c, const pcxr_job_t *job, const tile_t *t, uint32_t p0, uint32_t np, sched_cache_t *sc, int st)
+{
+    int      sec_obj = (st >> 1) & 1, first_obj = st & 1, no_object_yet = 1;
+    sched_t *out;
+
+    if ((uint32_t) (sc->used + 1) * np > sc->cap) {
+        uint32_t n = sc->cap ? sc->cap : 1024;
+        void    *q;
+        while (n < (uint32_t) (sc->used + 1) * np)
+            n *= 2;
+        q = realloc(sc->buf, n * sizeof(sched_t));
+        if (!q)
+            return -1;
+        sc->buf = q;
+        sc->cap = n;
+    }
+    out               = &sc->buf[sc->used * np];
+    c->prev_intern_out = st >> 2;
+    for (uint32_t o = t->first_object; o < t->first_object + t->n_objects; o++) {
+        const object_t *ob          = &job->objects[o];
+        int             translucent = 0;
+        for (uint32_t k = 0; k < ob->count; k++) {
+            int      instr = job->planes[ob->first + k].instr;
+            sched_t *e     = &out[ob->first + k - p0];
+            if (instr == forw_visib_fp || instr == forw_invis_fp || instr == test_shad_forw_fp) {
+                if (no_object_yet) {
+                    sec_obj       = 0;
+                    first_obj     = 1;
+                    no_object_yet = 0;
+                } else if (first_obj && !sec_obj) {
+                    first_obj = 0;
+                    sec_obj   = 1;
+                } else
+                    sec_obj = 0;
+            }
+            e->run    = !translucent;
+            e->edge   = 0;
+            e->commit = 0;
+            if (!translucent) {
+                e->wi   = expand_instruction(c, instr, 0, sec_obj, 0);
+                e->edge = e->wi.i_load == load_i_further && e->wi.plane_perp && e->wi.u_load == load_u_nop
+                          && e->wi.test_shad == test_shad_nop && !e->wi.delayed_clear_u_id;
+                e->commit = e->wi.i_load == load_i && (e->wi.u_load == load_u || e->wi.u_load == load_u_closer)
+                            && e->wi.test_shad == test_shad_nop && !e->wi.delayed_clear_u_id;
+            }
+            if (instr == begin_trans)
+                translucent = 1;
+        }
+    }
+    sc->slot[st] = (int16_t) sc->used++;
+    sc->next[st] = (uint8_t) pcxr_state(c->prev_intern_out, sec_obj, first_obj);
+    return sc->slot[st];
+}
+
+/* Draw tiles first, first + step, first + 2 * step, ... Tiles cover
+   separate pixels, so several threads can do this at once. */
+uint32_t
+pcxr_render_tiles(pcxr_job_t *job, uint32_t *rgb, uint32_t first, uint32_t step)
+{
+    ctx_t         c;
+    cells_t       cells;
+    int32_t       depth[NUM_CELLS];
+    pcxr_result_t res;
+    sched_cache_t sc;
+    int           i_empty; /* every cell's I is empty: not visible, id 0 */
+    const pcxr_frame_t *f = job->f;
+    cell_control        flush;
+
+    memset(&c, 0, sizeof(c));
+    memset(&res, 0, sizeof(res));
+    memset(&sc, 0, sizeof(sc));
+    flush   = expand_instruction(&c, 0, 0, 0, 1); /* the flush leaves the decoder state alone */
+    c.f     = f;
+    c.rgb   = rgb;
+    c.res   = &res;
+    c.fog_r = (f->fog_colour >> 16) & 0xff;
+    c.fog_g = (f->fog_colour >> 8) & 0xff;
+    c.fog_b = f->fog_colour & 0xff;
+    c.fog_on = (f->fog_colour >> 24) & 1; /* FOGCOL bit 24 enables fog (measured) */
+    c.tex_mask = (f->tex_words && !(f->tex_words & (f->tex_words - 1))) ? f->tex_words - 1 : 0;
+    c.tsp_addr = 0xffffffffu;
+
+    for (uint32_t ti = first; ti < job->n_tiles; ti += step) {
+        const tile_t *t  = &job->tiles[ti];
+        uint32_t      p0 = t->n_objects ? job->objects[t->first_object].first : 0;
+        uint32_t      np = t->n_objects ? job->objects[t->first_object + t->n_objects - 1].first
+                                         + job->objects[t->first_object + t->n_objects - 1].count - p0
+                                       : 0;
+        int           st = pcxr_state(t->prev_intern_out, t->sec_obj, t->first_obj);
+
+        memset(sc.slot, -1, sizeof(sc.slot));
+        sc.used = 0;
+
+        for (int yline = t->ypos; yline < t->ypos + t->ysize; yline++) {
+            for (int xspan = t->xpos; xspan < t->xpos + t->xsize; xspan += NUM_CELLS) {
+                const sched_t *sp;
+                int            slot = sc.slot[st];
+
+                if (slot < 0 && (slot = build_schedule(&c, job, t, p0, np, &sc, st)) < 0) {
+                    free(sc.buf);
+                    return res.pixels_shaded;
+                }
+                sp = &sc.buf[(uint32_t) slot * np] - p0;
+                st = sc.next[st];
+
+                memset(&cells, 0, sizeof(cells));
+                i_empty = 1;
+
+                for (uint32_t o = t->first_object; o < t->first_object + t->n_objects; o++) {
+                    const object_t *ob          = &job->objects[o];
+                    int             translucent = 0;
+
+                    for (uint32_t k = 0; k < ob->count; k++) {
+                        const plane_t *pl = &job->planes[ob->first + k];
+                        const sched_t *e  = &sp[ob->first + k];
+
+                        /* In a plain tile, a convex polygon with an edge that
+                           is outside on every cell of the span adds nothing:
+                           its depth plane still runs (it commits the
+                           previous polygon), then the cells are marked empty
+                           as the edges would leave them. Nothing in such a
+                           tile reads the depth of an empty cell, so the
+                           result is the same. If the cells are empty already
+                           (I holds no polygon), the commit only copies empty
+                           cells over empty cells, and the polygon can be
+                           skipped altogether. */
+                        if (t->plain && pl->n_edges && e->run) {
+                            const plane_t *dead = NULL;
+                            for (uint32_t j = 1; j <= pl->n_edges; j++) {
+                                const plane_t *ed  = pl + j;
+                                int64_t        v0  = ed->a * xspan + ed->b * yline + (int64_t) ed->c * 256;
+                                int64_t        v1  = v0 + (NUM_CELLS - 1) * ed->a;
+                                const int64_t  lim = -((int64_t) 1 << 39);
+                                if (v0 <= -256 && v1 <= -256 && v0 > lim && v1 > lim) {
+                                    dead = ed;
+                                    break;
+                                }
+                            }
+                            if (dead) {
+                                if (!(i_empty && e->commit)) {
+                                    int64_t v = pl->a * xspan + pl->b * yline + (int64_t) pl->c * 256;
+                                    for (int cl = 0; cl < NUM_CELLS; cl++, v += pl->a)
+                                        depth[cl] = (int32_t) (uint32_t) ((v + ((v >> 63) & 255)) >> 8);
+                                    cells_process(&cells, &e->wi, depth, pl->index);
+                                    v = dead->a * xspan + dead->b * yline + (int64_t) dead->c * 256;
+                                    for (int cl = 0; cl < NUM_CELLS; cl++, v += dead->a) {
+                                        cells.I_depth[cl] = (int32_t) (uint32_t) ((v + ((v >> 63) & 255)) >> 8);
+                                        cells.I_visib[cl] = 0;
+                                        cells.I_id[cl]    = 0;
+                                    }
+                                    i_empty = 1;
+                                }
+                                k += pl->n_edges;
+                                continue;
+                            }
+                        }
+
+                        if (e->run) {
                             /* 40-bit adder: the comparator sees the top 32 bits. */
                             int64_t creg = pl->a * xspan + pl->b * yline + (int64_t) pl->c * 256;
-                            /* An edge plane that is inside (>= 0) on all 32
-                               cells changes nothing; the values are linear in
-                               the cell, so the two ends decide (and must not
-                               wrap past 32 bits). */
-                            if (wi.i_load == load_i_further && wi.plane_perp && wi.u_load == load_u_nop
-                                && wi.test_shad == test_shad_nop && !wi.delayed_clear_u_id) {
-                                int64_t end = creg + (NUM_CELLS - 1) * pl->a;
+                            int64_t v    = creg;
+                            if (e->edge) {
+                                /* An edge plane that is inside (>= 0) on all
+                                   32 cells changes nothing; the values are
+                                   linear in the cell, so the two ends decide
+                                   (and must not wrap past 32 bits). Outside
+                                   cells are emptied; the inside test sees
+                                   the sign of the full 40-bit sum, so a value
+                                   just below zero is outside (measured on
+                                   the m3D). */
+                                int64_t       end = creg + (NUM_CELLS - 1) * pl->a;
+                                const int32_t pv  = e->wi.plane_visib;
                                 if (creg >= 0 && end >= 0 && creg < ((int64_t) 1 << 39) && end < ((int64_t) 1 << 39))
                                     goto next_plane;
+                                for (int cl = 0; cl < NUM_CELLS; cl++, v += pl->a) {
+                                    const int32_t d = (int32_t) (uint32_t) (v >> 8);
+                                    const int32_t m = d >> 31;
+                                    cells.I_visib[cl]   = (pv & m) | (cells.I_visib[cl] & ~m);
+                                    cells.I_forward[cl] = (1 & m) | (cells.I_forward[cl] & ~m);
+                                    cells.I_depth[cl]   = (d & m) | (cells.I_depth[cl] & ~m);
+                                    cells.I_id[cl]      = (pl->index & (uint32_t) m) | (cells.I_id[cl] & ~(uint32_t) m);
+                                }
+                                goto next_plane;
                             }
-                            if (wi.plane_perp) {
-                                /* Edge planes: the inside test sees the sign of
-                                   the full 40-bit sum, so a value just below
-                                   zero is outside (rounding toward zero would
-                                   make it 0, inside). Measured on the m3D. */
-                                for (int cl = 0; cl < NUM_CELLS; cl++) {
-                                    int64_t v = creg + (int64_t) cl * pl->a;
+                            if (e->wi.plane_perp) {
+                                for (int cl = 0; cl < NUM_CELLS; cl++, v += pl->a)
                                     depth[cl] = (int32_t) (uint32_t) (v >> 8);
-                                }
                             } else {
-                                for (int cl = 0; cl < NUM_CELLS; cl++) {
-                                    int64_t v = creg + (int64_t) cl * pl->a;
-                                    /* v / 256, rounding toward zero like the simulator */
+                                /* v / 256, rounding toward zero like the simulator */
+                                for (int cl = 0; cl < NUM_CELLS; cl++, v += pl->a)
                                     depth[cl] = (int32_t) (uint32_t) ((v + ((v >> 63) & 255)) >> 8);
-                                }
                             }
-                            cells_process(&cells, &wi, depth, pl->index);
+                            cells_process(&cells, &e->wi, depth, pl->index);
+                            i_empty = 0;
                         }
 next_plane:
-                        if (instr == begin_trans)
+                        if (pl->instr == begin_trans)
                             translucent = 1;
                     }
 
                     if (translucent)
                         shade_span(&c, xspan, yline, &cells);
-object_done:
 
                     if (ob->last_in_region) {
-                        cell_control wi = expand_instruction(&c, instr, 0, 0, 1);
                         memset(depth, 0, sizeof(depth));
-                        cells_process(&cells, &wi, depth, 0);
+                        cells_process(&cells, &flush, depth, 0);
                         shade_span(&c, xspan, yline, &cells);
                     }
                 }
             }
         }
     }
+    free(sc.buf);
     return res.pixels_shaded;
 }
 
@@ -1496,4 +1751,54 @@ pcxr_pack(uint32_t packmode, uint32_t rgb, int x, int y, uint32_t *out)
             *out = (cut(r, d, 3, 31) << 10) | (cut(g, d, 3, 31) << 5) | cut(b, d, 3, 31);
             return 2;
     }
+}
+
+/* pcxr_pack() for a run of n pixels of row y starting at column x, into
+   out; returns the number of bytes written. */
+uint32_t
+pcxr_pack_run(uint32_t packmode, const uint32_t *src, int x, int n, int y, uint8_t *out)
+{
+    const uint8_t *drow = dither4x4[y & 3];
+    uint8_t       *o    = out;
+
+    switch (packmode & 3) {
+        case 0: /* 32 bpp */
+            for (int i = 0; i < n; i++, o += 4) {
+                uint32_t v = src[x + i] & 0xffffff;
+                o[0] = (uint8_t) v;
+                o[1] = (uint8_t) (v >> 8);
+                o[2] = (uint8_t) (v >> 16);
+                o[3] = 0;
+            }
+            break;
+        case 1: /* 24 bpp */
+            for (int i = 0; i < n; i++, o += 3) {
+                uint32_t v = src[x + i];
+                o[0] = (uint8_t) v;
+                o[1] = (uint8_t) (v >> 8);
+                o[2] = (uint8_t) (v >> 16);
+            }
+            break;
+        case 2: /* 16 bpp 565 */
+            for (int i = 0; i < n; i++, o += 2) {
+                uint32_t c = src[x + i];
+                uint32_t d = (packmode & 0x10) ? drow[(x + i) & 3] : 0;
+                uint32_t v = (cut((c >> 16) & 0xff, d, 3, 31) << 11) | (cut((c >> 8) & 0xff, d >> 1, 2, 63) << 5)
+                             | cut(c & 0xff, d, 3, 31);
+                o[0] = (uint8_t) v;
+                o[1] = (uint8_t) (v >> 8);
+            }
+            break;
+        default: /* 15 bpp 555 */
+            for (int i = 0; i < n; i++, o += 2) {
+                uint32_t c = src[x + i];
+                uint32_t d = (packmode & 0x10) ? drow[(x + i) & 3] : 0;
+                uint32_t v = (cut((c >> 16) & 0xff, d, 3, 31) << 10) | (cut((c >> 8) & 0xff, d, 3, 31) << 5)
+                             | cut(c & 0xff, d, 3, 31);
+                o[0] = (uint8_t) v;
+                o[1] = (uint8_t) (v >> 8);
+            }
+            break;
+    }
+    return (uint32_t) (o - out);
 }

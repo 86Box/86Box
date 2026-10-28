@@ -66,11 +66,13 @@ add_library(dev OBJECT
     phoenix_486_jumper.c
     postcard.c
     radisys_config.c
+    serial_8251.c
     serial.c
     softpower.c
     smbus_ali7101.c
     smbus_piix4.c
     smbus_sis5595.c
+    tandy_clkmouse.c
     tulip_jumper.c
     unittester.c
     zenith_scratchpad.c

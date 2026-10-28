@@ -77,7 +77,8 @@ add_library(vid OBJECT
     # PCjr/PC JX/Tandy
     vid_pcjr.c
     vid_pcjx.c
-    vid_tandy.c
+    vid_tandy1k.c
+    vid_tandy2k.c
 
     # Hercules
     vid_mda.c
@@ -141,6 +142,7 @@ add_library(vid OBJECT
     vid_ati_rage128_maxx.c
 
     # Chips & Technologies
+    vid_chips_45x.c
     vid_chips_69000.c
 
     # Cirrus Logic
@@ -158,6 +160,7 @@ add_library(vid OBJECT
     # Paradise
     vid_paradise.c
     vid_wd90c31.c
+    vid_wd90c33.c
     vid_rtg310x.c
     vid_f82c425.c
     vid_ti_cf62011.c
@@ -169,6 +172,9 @@ add_library(vid OBJECT
     # S3 Graphics
     vid_s3.c 
     vid_s3_virge.c
+
+    # Weitek
+    vid_p9100.c
 
     # SiS
     vid_sis6306.c

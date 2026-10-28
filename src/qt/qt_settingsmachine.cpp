@@ -121,36 +121,55 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     ui->comboBoxPitMode->setCurrentIndex(-1);
     ui->comboBoxPitMode->setCurrentIndex(pit_mode + 1);
 
-    switch (time_sync) {
-        case TIME_SYNC_ENABLED:
-            ui->radioButtonLocalTime->setChecked(true);
-            break;
-        case TIME_SYNC_ENABLED | TIME_SYNC_UTC:
-            ui->radioButtonUTC->setChecked(true);
-            break;
-        case TIME_SYNC_DISABLED:
-        default:
-            ui->radioButtonDisabled->setChecked(true);
-            break;
+    ui->groupBoxTimeSync->setChecked(time_sync & TIME_SYNC_ENABLED);
+    if (time_sync & TIME_SYNC_UTC)
+        ui->radioButtonUTC->setChecked(true);
+    else
+        ui->radioButtonLocalTime->setChecked(true);
+
+    /* Clamp so the resulting year stays in 1980..2099. Config may hold
+       a wider range; the spinner shows the clamped value, but the
+       original is preserved on save unless the user changes the control. */
+    original_years_offset = time_offset_years;
+    original_fixed_year   = time_fixed_year;
+    years_offset_manipulated = false;
+    fixed_year_manipulated   = false;
+
+    const int host_year  = QDate::currentDate().year();
+    ui->spinBoxYearsOffset->setMinimum(1980 - host_year);
+    ui->spinBoxYearsOffset->setMaximum(2099 - host_year);
+    ui->spinBoxFixedYear->setMinimum(1980);
+    ui->spinBoxFixedYear->setMaximum(2099);
+
+    /* Pre-fill both spinners so the inactive mode already matches the
+       guest year. Switching modes then needs no manual entry. */
+    int offset_value = time_offset_years;
+    int fixed_value  = (time_fixed_year != 0) ? time_fixed_year
+                                              : qBound(1980, host_year, 2099);
+    if (time_fixed_year != 0 && time_offset_years == 0) {
+        offset_value = time_fixed_year - host_year;
+        original_years_offset = offset_value;
+    } else if (time_offset_years != 0 && time_fixed_year == 0) {
+        fixed_value = host_year + time_offset_years;
+        original_fixed_year = fixed_value;
+    }
+    {
+        const QSignalBlocker b1(ui->spinBoxYearsOffset);
+        const QSignalBlocker b2(ui->spinBoxFixedYear);
+        ui->spinBoxYearsOffset->setValue(offset_value);
+        ui->spinBoxFixedYear->setValue(fixed_value);
     }
 
-    /* Clamp spinner so the resulting year must be between 1980 and
-     * 2099 inclusive.  The configuration file may still contain a
-     * wider range; the spinner displays the clamped value, but the
-     * original is preserved on save unless the user actually changes
-     * the spinner. */
-    original_years_offset = time_offset_years;
-    years_offset_manipulated = false;
-    const int host_year = QDate::currentDate().year();
-    const int min_offset = 1980 - host_year;
-    const int max_offset = 2099 - host_year;
-    ui->spinBoxYearsOffset->setMinimum(min_offset);
-    ui->spinBoxYearsOffset->setMaximum(max_offset);
-    {
-        const QSignalBlocker blocker(ui->spinBoxYearsOffset);
-        ui->spinBoxYearsOffset->setValue(time_offset_years);
-    }
-    updateYearsOffsetEnabled();
+    if (time_keep_date)
+        ui->radioButtonKeepDate->setChecked(true);
+    else if (time_fixed_year != 0)
+        ui->radioButtonFixedYear->setChecked(true);
+    else if (time_offset_years != 0)
+        ui->radioButtonOffsetYears->setChecked(true);
+    else
+        ui->radioButtonHostDate->setChecked(true);
+
+    updateTimeControlsEnabled();
     updateGuestYearLabel();
 
     ui->comboBoxMachineType->setCurrentIndex(-1);
@@ -223,18 +242,15 @@ SettingsMachine::changed()
 
     has_changed |= (pit_mode                   !=  ui->comboBoxPitMode->currentData().toInt());
 
-    temp = 0;
-    if (ui->radioButtonLocalTime->isChecked())
-        temp = TIME_SYNC_ENABLED;
-    if (ui->radioButtonUTC->isChecked())
-        temp = TIME_SYNC_ENABLED | TIME_SYNC_UTC;
-    has_changed |= (time_sync                  != temp);
-    {
-        const int effective = years_offset_manipulated
-                                  ? ui->spinBoxYearsOffset->value()
-                                  : original_years_offset;
-        has_changed |= (time_offset_years != effective);
-    }
+    int sync;
+    int offset_years;
+    int fixed_year;
+    int keep_date;
+    timeSyncSettings(sync, offset_years, fixed_year, keep_date);
+    has_changed |= (time_sync         != sync);
+    has_changed |= (time_offset_years != offset_years);
+    has_changed |= (time_fixed_year   != fixed_year);
+    has_changed |= (time_keep_date    != keep_date);
 
     return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
 }
@@ -293,14 +309,30 @@ SettingsMachine::save(int soft)
 
     pit_mode = ui->comboBoxPitMode->currentData().toInt();
 
-    time_sync = 0;
-    if (ui->radioButtonLocalTime->isChecked())
-        time_sync = TIME_SYNC_ENABLED;
-    if (ui->radioButtonUTC->isChecked())
-        time_sync = TIME_SYNC_ENABLED | TIME_SYNC_UTC;
+    timeSyncSettings(time_sync, time_offset_years, time_fixed_year, time_keep_date);
+}
 
-    if (years_offset_manipulated)
-        time_offset_years = ui->spinBoxYearsOffset->value();
+/* The time sync settings the page currently describes. At most one date mode
+   applies; the others are cleared. */
+void
+SettingsMachine::timeSyncSettings(int &sync, int &offset_years, int &fixed_year, int &keep_date) const
+{
+    sync = TIME_SYNC_DISABLED;
+    if (ui->groupBoxTimeSync->isChecked())
+        sync = TIME_SYNC_ENABLED | (ui->radioButtonUTC->isChecked() ? TIME_SYNC_UTC : 0);
+
+    offset_years = 0;
+    fixed_year   = 0;
+    keep_date    = ui->radioButtonKeepDate->isChecked() ? 1 : 0;
+    if (ui->radioButtonFixedYear->isChecked())
+        fixed_year = fixed_year_manipulated
+                         ? ui->spinBoxFixedYear->value()
+                         : (original_fixed_year != 0 ? original_fixed_year
+                                                    : ui->spinBoxFixedYear->value());
+    else if (ui->radioButtonOffsetYears->isChecked())
+        offset_years = years_offset_manipulated
+                           ? ui->spinBoxYearsOffset->value()
+                           : original_years_offset;
 }
 
 void
@@ -562,16 +594,22 @@ SettingsMachine::updateGuestYearLabel()
 {
     const int host_year = QDate::currentDate().year();
     const int guest_year = host_year + ui->spinBoxYearsOffset->value();
-    ui->labelGuestYear->setText(tr("(guest: %1)").arg(guest_year));
+    //: Same-line preview after the offset spinner. %1 is the guest year the offset gives this year.
+    ui->labelGuestYear->setText(tr("(currently %1)").arg(guest_year));
 }
 
 void
-SettingsMachine::updateYearsOffsetEnabled()
+SettingsMachine::updateTimeControlsEnabled()
 {
-    const bool enabled = !ui->radioButtonDisabled->isChecked();
-    ui->spinBoxYearsOffset->setEnabled(enabled);
-    ui->labelYearsOffset->setEnabled(enabled);
-    ui->labelGuestYear->setEnabled(enabled);
+    /* The group box enables and disables its children as it is checked;
+       this only narrows that down to the selected date mode. */
+    const bool sync = ui->groupBoxTimeSync->isChecked();
+
+    const bool offset_mode = sync && ui->radioButtonOffsetYears->isChecked();
+    const bool fixed_mode  = sync && ui->radioButtonFixedYear->isChecked();
+    ui->spinBoxYearsOffset->setEnabled(offset_mode);
+    ui->labelGuestYear->setEnabled(offset_mode);
+    ui->spinBoxFixedYear->setEnabled(fixed_mode);
 }
 
 void
@@ -583,22 +621,29 @@ SettingsMachine::on_spinBoxYearsOffset_valueChanged(int value)
 }
 
 void
-SettingsMachine::on_radioButtonDisabled_toggled(bool checked)
+SettingsMachine::on_spinBoxFixedYear_valueChanged(int value)
 {
-    Q_UNUSED(checked);
-    updateYearsOffsetEnabled();
+    Q_UNUSED(value);
+    fixed_year_manipulated = true;
 }
 
 void
-SettingsMachine::on_radioButtonLocalTime_toggled(bool checked)
+SettingsMachine::on_groupBoxTimeSync_toggled(bool checked)
 {
     Q_UNUSED(checked);
-    updateYearsOffsetEnabled();
+    updateTimeControlsEnabled();
 }
 
 void
-SettingsMachine::on_radioButtonUTC_toggled(bool checked)
+SettingsMachine::on_radioButtonOffsetYears_toggled(bool checked)
 {
     Q_UNUSED(checked);
-    updateYearsOffsetEnabled();
+    updateTimeControlsEnabled();
+}
+
+void
+SettingsMachine::on_radioButtonFixedYear_toggled(bool checked)
+{
+    Q_UNUSED(checked);
+    updateTimeControlsEnabled();
 }
