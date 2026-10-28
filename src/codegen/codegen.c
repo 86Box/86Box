@@ -1395,9 +1395,13 @@ generate_call:
         recomp_op_table = recomp_opcodes;
     }
 
-    /*A LOCK the instruction can't take is #UD: leave it to the interpreter's*/
+    /*A LOCK the instruction can't take is #UD: leave it to the interpreter's.
+      Its op looks for the opcode 14 bytes past the LOCK at most, and with
+      more prefixes than that stops on one, which no LOCK applies to*/
     if (in_lock) {
-        if (op_table == x86_dynarec_opcodes_0f)
+        if (((over ? (op_pc - 2) : (op_pc - 1)) - lock_pc) > 14)
+            lock_illegal = 1;
+        else if (op_table == x86_dynarec_opcodes_0f)
             lock_illegal = !x86_lock_legal(1, opcode, fetchdat & 0xff);
         else if ((op_table == x86_dynarec_opcodes) || (op_table == x86_dynarec_opcodes_REPE) || (op_table == x86_dynarec_opcodes_REPNE))
             lock_illegal = !x86_lock_legal(0, opcode, fetchdat & 0xff);
