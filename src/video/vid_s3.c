@@ -3967,9 +3967,6 @@ s3_recalctimings(svga_t *svga)
 
         /* Also make sure vertical blanking starts on display end. */
         svga->vblankstart = svga->dispend;
-
-        if (s3->chip >= S3_VISION964)
-            svga->hblank_end_mask  = 0x7f;
     } else if (s3->chip >= S3_86C801) {
         svga->hblankstart    = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2];
 
@@ -3978,9 +3975,9 @@ s3_recalctimings(svga_t *svga)
                      The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
                      and, contrary to VGADOC, it also exists on Trio32, Trio64, Vision868,
                      and Vision968. */
-            svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
-                                    (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
-            svga->hblank_end_mask  = 0x7f;
+            svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5);
+            svga->hblank_ext      = (svga->crtc[0x5d] & 0x08) ? 64 : 0;
+            svga->hsync_ext       = (svga->crtc[0x5d] & 0x20) ? 32 : 0;
         }
     }
 
@@ -4819,7 +4816,7 @@ s3_recalctimings(svga_t *svga)
     }
 
     const int is_vga_mode = ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) <= 0x20));
-    if (!is_vga_mode || ((s3->elsa_eeprom && (svga->bpp == 32)) ||
+    if (!is_vga_mode && ((s3->elsa_eeprom && (svga->bpp == 32)) ||
         (s3->chip == S3_TRIO32) || (s3->chip == S3_TRIO64) ||
         (s3->chip == S3_VISION864) || (s3->chip == S3_VISION868) ||
         (s3->chip == S3_VISION968)))

@@ -336,6 +336,8 @@ typedef struct svga_t {
     int border_override;
     int border_left;
     int border_top;
+    int hsync_ext;
+    int hblank_ext;
 
     /* Return a 32 bpp color from a 15/16 bpp color. */
     uint32_t (*conv_16to32)(struct svga_t *svga, uint16_t color, uint8_t bpp);
