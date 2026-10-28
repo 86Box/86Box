@@ -358,21 +358,37 @@ vid_cell_ptr(t2kvid_t *vid, uint32_t addr)
 static void
 vid_render_hires(t2kvid_t *vid)
 {
+    const int color_board = (vid->board == TANDY2K_BOARD_COLO);
+    /* Expand the eight pens once per frame instead of per pixel: the palette
+       only changes when the guest writes 180h-19Fh, and the per-pixel
+       expansion was the whole cost of this loop. */
+    uint32_t pal32[8];
+
+    for (int i = 0; i < 8; i++)
+        pal32[i] = pen_color(vid->pal[i]);
+
     for (int y = 0; y < 400; y++) {
         uint32_t *p = buffer32->line[y];
 
         for (int sx = 0; sx < TANDY2K_COLS; sx++) {
-            uint32_t off = (uint32_t) ((y * TANDY2K_COLS) + sx);
-            uint8_t  a   = vid->vram[0][off];
-            uint8_t  b   = (vid->board == TANDY2K_BOARD_COLO) ? vid->vram[1][off] : 0x00;
-            uint8_t  c   = (vid->board == TANDY2K_BOARD_COLO) ? vid->vram[2][off] : 0x00;
+            const uint32_t off = (uint32_t) ((y * TANDY2K_COLS) + sx);
+
+            /* Fold the three planes into one word: bit n of the low byte is
+               plane 0, of the middle byte plane 1 and of the top byte plane 2,
+               so one shift per plane per dot picks the pen number. The one-plane
+               board has no palette decoder, so it only ever sees plane 0. */
+            uint32_t bits = (uint32_t) vid->vram[0][off];
+
+            if (color_board)
+                bits |= ((uint32_t) vid->vram[1][off] << 8) | ((uint32_t) vid->vram[2][off] << 16);
+            uint32_t *dot = &p[sx * 8];
 
             for (int bit = 0; bit < 8; bit++) {
-                const uint8_t color = (uint8_t) (((a >> (7 - bit)) & 1) |
-                                                 (((b >> (7 - bit)) & 1) << 1) |
-                                                 (((c >> (7 - bit)) & 1) << 2));
+                const uint32_t color = ((bits >> (7 - bit)) & 1) |
+                                       (((bits >> (15 - bit)) & 1) << 1) |
+                                       (((bits >> (23 - bit)) & 1) << 2);
 
-                p[(sx * 8) + bit] = pen_color(vid->pal[color]);
+                dot[bit] = pal32[color & 0x07];
             }
         }
     }
@@ -393,9 +409,15 @@ vid_render(t2kvid_t *vid)
     }
 
     /* Port 101h holds A19-A15 of the 32 KB window; the text buffer is its last 5 KB. */
-    uint32_t fb    = ((uint32_t) (vid->vbase & 0x1f) << 15) + TANDY2K_FB_TEXT;
     int      blink_off = (int) ((vid->frames % TANDY2K_BLINK_FRAMES) < (TANDY2K_BLINK_FRAMES / 4));
     int      cursor_on = (int) ((vid->frames % TANDY2K_CURSOR_FRAMES) < (TANDY2K_CURSOR_FRAMES / 2));
+    uint32_t fb    = ((uint32_t) (vid->vbase & 0x1f) << 15) + TANDY2K_FB_TEXT;
+    uint32_t green[16];
+
+    /* The character generator only has two pens, so expanding the sixteen
+       palette entries once per frame is all the colour work text mode needs. */
+    for (int i = 0; i < 16; i++)
+        green[i] = pen_green((uint8_t) i);
 
     for (int row = 0; row < TANDY2K_ROWS; row++) {
         for (int line = 0; line < 16; line++) {
@@ -408,8 +430,8 @@ vid_render(t2kvid_t *vid)
                 uint8_t  attr = 0x00;
                 uint8_t  bits = 0x00;
                 uint8_t  pen  = 4;
-                uint32_t fg   = pen_green(0x0f);
-                uint32_t bg   = pen_green(0x00);
+                uint32_t fg   = green[0x0f];
+                uint32_t bg   = green[0x00];
 
                 if (cellp != NULL) {
                     code = cellp[0];
@@ -420,8 +442,8 @@ vid_render(t2kvid_t *vid)
                        6 = INT, 5 = BLINK, 2 = CHABL. INT set means full
                        intensity, so it picks the high pens 4/5. */
                     pen = (uint8_t) (4 | ((attr & 0x40) ? 0 : 2));
-                    fg  = pen_green(vid->pal[pen | 1]);
-                    bg  = pen_green(vid->pal[pen]);
+                    fg  = green[vid->pal[pen | 1]];
+                    bg  = green[vid->pal[pen]];
 
                     if (attr & 0x04)
                         bits = 0x00;
