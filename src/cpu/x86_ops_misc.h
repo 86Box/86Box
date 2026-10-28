@@ -1095,6 +1095,10 @@ opLOADALL386(UNUSED(uint32_t fetchdat))
     uint32_t la_addr = es + EDI;
 
     cr0              = readmeml(0, la_addr);
+    if (cr0 & 1)
+        cpu_cur_status |= CPU_STATUS_PMODE;
+    else
+        cpu_cur_status &= ~CPU_STATUS_PMODE;
     cpu_state.flags  = readmemw(0, la_addr + 4);
     cpu_state.eflags = readmemw(0, la_addr + 6);
     flags_extract();
