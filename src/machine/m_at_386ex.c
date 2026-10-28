@@ -396,6 +396,105 @@ const device_t ts3x00_device = {
 };
 
 /*
+ * TS-9500 expansion board: a PS/2 keyboard and mouse controller, VGA, a
+ * Compact Flash socket and a flash chip on the PC/104 bus, with registers
+ * in I/O 0x198-0x19F. The boards have no keyboard controller of their own,
+ * so one is always fitted, with only its keyboard controller and registers
+ * emulated:
+ *
+ *   0x19A  Bit 0 LED (1 = on), bit 1 KB IRQ, bit 2 mouse IRQ, bit 6 JP1
+ *          (write enable for the top 512k of the flash), bit 7 JP2 (user),
+ *          jumpers reading 1 when installed
+ *   0x19B  DIP switches 1-8, 1 = on
+ *   0x19D  Board ID, 0x5F
+ *
+ * What the IRQ bits report is not documented, so they read 0. With the
+ * rest of the board not emulated, it is set up with as little enabled as
+ * will do: neither jumper installed, and of the DIP switches only 8 (VGA
+ * BIOS and keyboard controller) on. The rest of the block is not
+ * documented and reads 0xFF.
+ *
+ * The BIOS only uses the board ID: when 0x19D reads 0x5F, it connects the
+ * 386EX's INT0 pin, which carries the keyboard's IRQ1, to the master's IR1
+ * (P3CFG bit 2), and writes 0x74 to 0x199. Besides that, it drives the
+ * LED with the board's own, and never reads the IRQ bits or DIP switches.
+ */
+#define TS9500_REG_BASE    0x0198
+#define TS9500_REG_SIZE    8
+#define TS9500_REG_CTRL    0x019a
+#define TS9500_REG_DIP     0x019b
+#define TS9500_REG_ID      0x019d
+
+#define TS9500_CTRL_LED    0x01
+
+#define TS9500_DIP_VGA_KBC 0x80 /* DIP 8. */
+
+#define TS9500_ID          0x5f
+
+typedef struct ts9500_t {
+    uint8_t ctrl;
+} ts9500_t;
+
+static uint8_t
+ts9500_read(uint16_t port, void *priv)
+{
+    const ts9500_t *dev = (ts9500_t *) priv;
+
+    switch (port) {
+        case TS9500_REG_CTRL:
+            return dev->ctrl;
+        case TS9500_REG_DIP:
+            return TS9500_DIP_VGA_KBC;
+        case TS9500_REG_ID:
+            return TS9500_ID;
+        default:
+            return 0xff;
+    }
+}
+
+static void
+ts9500_write(uint16_t port, uint8_t val, void *priv)
+{
+    ts9500_t *dev = (ts9500_t *) priv;
+
+    if (port == TS9500_REG_CTRL)
+        dev->ctrl = val & TS9500_CTRL_LED;
+}
+
+static void *
+ts9500_init(UNUSED(const device_t *info))
+{
+    ts9500_t *dev = (ts9500_t *) calloc(1, sizeof(ts9500_t));
+
+    io_sethandler(TS9500_REG_BASE, TS9500_REG_SIZE, ts9500_read, NULL, NULL, ts9500_write, NULL, NULL, dev);
+
+    /* The keyboard controller is the one the machine table names. */
+    device_add_params(machine_get_kbc_device(machine), (void *) machines[machine].kbc_params);
+
+    return dev;
+}
+
+static void
+ts9500_close(void *priv)
+{
+    free(priv);
+}
+
+static const device_t ts9500_device = {
+    .name          = "TS-9500 Keyboard/Mouse Expansion Board",
+    .internal_name = "ts9500",
+    .flags         = 0,
+    .local         = 0,
+    .init          = ts9500_init,
+    .close         = ts9500_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+/*
  * TS-3x00 memory map. The DRAM sits at the bottom of memory (448k on the
  * TS-3100, 640k on the TS-3200), in a shadow area at the top of the first
  * megabyte (0xF0000-0xFFFFF on the TS-3100, 0xE0000-0xFFFFF on the
@@ -816,6 +915,7 @@ ts3x00_board_init(ts3x00_t *j, const ts3x00_model_t *ts, i386ex_t *ex)
 static int
 ts3x00_init(const machine_t *model, const ts3x00_model_t *ts)
 {
+    ts3x00_t *j;
     i386ex_t *ex;
     int       ret;
 
@@ -839,9 +939,11 @@ ts3x00_init(const machine_t *model, const ts3x00_model_t *ts)
     /* The 386EX's UARTs are the only serial ports on the board. */
     serial_set_next_inst(SERIAL_MAX - 1);
 
-    ts3x00_board_init(device_add(&ts3x00_device), ts, ex);
+    j = device_add(&ts3x00_device);
+    ts3x00_board_init(j, ts, ex);
 
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    /* The keyboard controller is on a TS-9500, which the BIOS has to find to connect IRQ1. */
+    device_add(&ts9500_device);
 
     return ret;
 }
