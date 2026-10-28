@@ -496,12 +496,22 @@ ali1533_write(int func, int addr, int len, uint8_t val, void *priv)
                 dev->pci_conf[addr] = val & 0x9f;
             else
                 dev->pci_conf[addr] = val & 0x1f;
-            acpi_set_mirq_is_level(dev->acpi, !!(val & 0x10));
-            if ((dev->type == 1) && (val & 0x80))
+            /* An active SCI is dropped from the old IRQ and raised again on
+               the new one, in the new trigger mode. */
+            if (dev->acpi->irq_state)
+                pci_clear_mirq(PCI_MIRQ5, dev->acpi->mirq_is_level, &dev->acpi->irq_state);
+            /* Bit 4 set turns the SCI from level into edge (M1543 76h, p. 53;
+               M1543C 76h, p. 81). */
+            acpi_set_mirq_is_level(dev->acpi, !(val & 0x10));
+            /* 0000b is IRQ 13, not off; the M1543C turns the SCI off with bit 7
+               set and 0000b, and routes it by bits 3-0 otherwise. */
+            if (val & 0x0f)
+                pci_set_mirq_routing(PCI_MIRQ5, ali1533_irq_routing[val & 0x0f]);
+            else if ((dev->type == 1) && (val & 0x80))
                 pci_set_mirq_routing(PCI_MIRQ5, PCI_IRQ_DISABLED);
             else
-                pci_set_mirq_routing(PCI_MIRQ5, ali1533_irq_routing[val & 0x0f]);
-            /* TODO: Tell ACPI to use MIRQ5 */
+                pci_set_mirq_routing(PCI_MIRQ5, 13);
+            acpi_update_irq(dev->acpi);
             break;
 
         case 0x77: /* SMBus IRQ Routing - we cheat and use MIRQ6 */
