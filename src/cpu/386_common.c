@@ -1288,16 +1288,15 @@ smram_restore_state_amd_k(uint32_t *saved_state)
 /* The MediaGX's header keeps CS as the processor does, not as a descriptor:
    the limit at -20h, the base at -1Ch, and the access rights above the
    selector at -18h. VSA writes headers so, to RSM into its own code above
-   1 MB (base 40400000h, attributes 8093h). */
+   1 MB (base 40400000h, attributes 8093h). The limit is saved in bytes, as
+   the segment has it; RSM takes the descriptor's 20 bits, in the units G
+   gives them: VSA shifts a page granular limit right by 12 on its way out
+   (VSA 0000:013Dh), and a raw limit shifted so leaves a 4 GB flat CS of
+   1 MB. */
 static void
 gxm_smm_write_cs(uint32_t addr, const x86seg *seg)
 {
-    uint32_t limit_raw = seg->limit;
-
-    if (seg->ar_high & 0x80)
-        limit_raw >>= 12;
-
-    writememl(0, addr, limit_raw & 0x000fffff);
+    writememl(0, addr, seg->limit);
     writememl(0, addr + 4, seg->base);
 }
 
@@ -1506,7 +1505,15 @@ enter_smm(int in_hlt)
     else if (is_p6) /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
         smram_save_state_p6(saved_state, in_hlt);
 
-    cr0 &= ~0x8000000d;
+    /* SMM runs unpaged: the linear lookups paging filled are stale now, and
+       the header writes below go through them. smram_recalc_all() flushes
+       them only on a chipset with SMRAM of its own to remap (the MediaGX's
+       is the processor's). */
+    if (cr0 & 0x80000000) {
+        cr0 &= ~0x8000000d;
+        flushmmucache();
+    } else
+        cr0 &= ~0x8000000d;
     cpu_state.flags  = 2;
     cpu_state.eflags = 0;
 
@@ -1743,6 +1750,10 @@ leave_smm(void)
     }
     /* RSM reloads CR0, CD with it. */
     cpu_car_update();
+
+    /* Back to paging: SMM's lookups were of linear = physical. */
+    if (cr0 & 0x80000000)
+        flushmmucache();
 
     /* An auto HALT restart re-enters the HALT state, EIP past the HLT again
        (Intel SDM vol. 3, 34.10). A latched SMI is taken there, at once, so
