@@ -1633,13 +1633,19 @@ cs5530_f0_read(cs5530_t *dev, int addr)
 
 /* The configuration traps of the functions: an SMI after the access, so
    VSA can make up the value of a read (F0 41h-42h, F1BAR+04h[5]). */
-static void
-cs5530_cfg_trap(cs5530_t *dev, int func)
+static int
+cs5530_cfg_trapped(cs5530_t *dev, int func)
 {
     static const uint8_t reg[5] = { 0, 0x41, 0x41, 0x42, 0x42 };
     static const uint8_t bit[5] = { 0, 0x08, 0x40, 0x01, 0x02 };
 
-    if (func && (func <= 4) && (dev->pci_conf[0][reg[func]] & bit[func]))
+    return func && (func <= 4) && (dev->pci_conf[0][reg[func]] & bit[func]);
+}
+
+static void
+cs5530_cfg_trap(cs5530_t *dev, int func)
+{
+    if (cs5530_cfg_trapped(dev, func))
         cs5530_gen_smi(dev, GEN_PCI_TRAP);
 }
 
@@ -1653,6 +1659,16 @@ cs5530_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         return;
 
     cs5530_log("CS5530: [W] F%i %02X = %02X\n", func, addr, val);
+
+    /* A trapped header is VSA's: it keeps its own, and the registers stay as
+       it set them. Windows sizes the XpressGRAPHICS BAR VSA makes up as the
+       8 MB of graphics memory and moves it there; moved, F4BAR would take
+       the frame buffer's writes, and VSA would lose the registers it keeps
+       using at the old address. */
+    if (!in_smm && cs5530_cfg_trapped(dev, func)) {
+        cs5530_gen_smi(dev, GEN_PCI_TRAP);
+        return;
+    }
 
     conf = dev->pci_conf[func];
 
