@@ -121,6 +121,10 @@
 #define TS3X00_SEL_SHIFT     MEM_GRANULARITY_BITS
 #define TS3X00_SEL_MASK      MEM_GRANULARITY_MASK
 #define TS3X00_SEL_UCS       0x01
+#define TS3X00_SEL_CS4       0x02
+
+#define TS3100_WRAP          0x00200000 /* The TS-3100 decodes A20:0, so its memory repeats every 2 MB. */
+#define TS3100_RAM_MASK      0x0007ffff /* Where in its 512k of DRAM the TS-3100 keeps a 1 MB address. */
 
 typedef struct ts3x00_t {
     uint8_t jp1;
@@ -145,6 +149,11 @@ typedef struct ts3x00_t {
     mem_mapping_t shadow_mapping;
     uint32_t      low_top;  /* End of the DRAM at 0. */
     uint32_t      high_top; /* End of the DRAM above 1 MB. */
+
+    uint32_t      wrap;    /* How often the board's own memory repeats, 0 if it does not. */
+    uint8_t       dos_rom; /* Reads at 0xE0000-0xEFFFF of every megabyte select the flash. */
+    mem_mapping_t ram_mapping;
+    mem_mapping_t dos_rom_mapping;
 
     uint8_t sel[TS3X00_ADDR_SPACE >> TS3X00_SEL_SHIFT]; /* The chip selects claiming each granule. */
 } ts3x00_t;
@@ -387,14 +396,23 @@ const device_t ts3x00_device = {
 };
 
 /*
- * TS-3x00 memory map. The DRAM sits at the bottom of memory (640k on the
- * TS-3200), in a shadow area at the top of the first megabyte
- * (0xE0000-0xFFFFF on the TS-3200) and above 1 MB. The BIOS
+ * TS-3x00 memory map. The DRAM sits at the bottom of memory (448k on the
+ * TS-3100, 640k on the TS-3200), in a shadow area at the top of the first
+ * megabyte (0xF0000-0xFFFFF on the TS-3100, 0xE0000-0xFFFFF on the
+ * TS-3200) and, on the TS-3200, above 1 MB. The BIOS
  * flash is on UCS#, which selects all of memory after reset, and wins over
  * whatever else is at an address while UCS# selects it. The shadow DRAM
  * only takes writes while UCS# is active, so the BIOS shadows itself by
  * copying the flash onto itself before moving UCS# away; otherwise the
  * shadow area is read-only.
+ *
+ * The TS-3100's board logic only decodes A20:0, so its DRAM and shadow
+ * area repeat every 2 MB. Its DOS-ROM is not shadowed: a read at
+ * 0xE0000-0xEFFFF of any megabyte asserts the flash's chip select, as UCS#
+ * does, and the flash only decodes its own address lines, A18:0 on the
+ * 512k part, so it returns what it has at 0x60000-0x6FFFF, where the
+ * DOS-ROM is. Anything on UCS# or CS4# wins over all of this, and as
+ * nothing is emulated on CS4#, what it selects is the external bus.
  *
  * Which of these an address is, and so its memory state, is worked out for
  * each 4k granule from what the board decodes there and which chip selects
@@ -403,12 +421,18 @@ const device_t ts3x00_device = {
 enum {
     TS3X00_REGION_NONE = 0,
     TS3X00_REGION_DRAM,
-    TS3X00_REGION_SHADOW
+    TS3X00_REGION_SHADOW,
+    TS3X00_REGION_DOS_ROM
 };
 
 static int
 ts3x00_region(const ts3x00_t *j, uint32_t addr)
 {
+    if (j->dos_rom && ((addr & 0x000f0000) == 0x000e0000))
+        return TS3X00_REGION_DOS_ROM;
+    if (j->wrap)
+        addr &= j->wrap - 1;
+
     if (addr < j->low_top)
         return TS3X00_REGION_DRAM;
     if ((addr >= j->shadow_base) && (addr < (j->shadow_base + j->shadow_size)))
@@ -426,12 +450,16 @@ ts3x00_mem_state(const ts3x00_t *j, uint32_t addr)
 
     if (j->sel[addr >> TS3X00_SEL_SHIFT] & TS3X00_SEL_UCS)
         return (region == TS3X00_REGION_SHADOW) ? (MEM_READ_ROMCS | MEM_WRITE_INTERNAL) : (MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+    if (j->sel[addr >> TS3X00_SEL_SHIFT] & TS3X00_SEL_CS4)
+        return MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL;
 
     switch (region) {
         case TS3X00_REGION_DRAM:
             return MEM_READ_INTERNAL | MEM_WRITE_INTERNAL;
         case TS3X00_REGION_SHADOW:
             return MEM_READ_INTERNAL | MEM_WRITE_DISABLED;
+        case TS3X00_REGION_DOS_ROM:
+            return MEM_READ_ROMCS | MEM_WRITE_EXTERNAL;
         default:
             return MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL;
     }
@@ -481,6 +509,16 @@ ts3x00_ucs(void *priv, int set, int is_mem, uint32_t base, uint32_t size)
 
     if (is_mem)
         ts3x00_select(j, TS3X00_SEL_UCS, set, base, size);
+}
+
+/* CS4#: nothing is emulated on it, but it takes what it selects away from the TS-3100's board logic. */
+static void
+ts3x00_cs4(void *priv, int set, int is_mem, uint32_t base, uint32_t size)
+{
+    ts3x00_t *j = (ts3x00_t *) priv;
+
+    if (is_mem)
+        ts3x00_select(j, TS3X00_SEL_CS4, set, base, size);
 }
 
 static void
@@ -539,6 +577,110 @@ ts3x00_shadow_writel(uint32_t addr, uint32_t val, void *priv)
     ts3x00_shadow_writew(addr + 2, val >> 16, priv);
 }
 
+/*
+   The TS-3100's DRAM and shadow area at every 2 MB. Both are in its 512k of
+   DRAM at the same offsets as in the first megabyte, after taking A19 away:
+   the shadow area at 0xF0000-0xFFFFF is the DRAM after the low 448k. The
+   memory states only let the mapping through where one of them is.
+ */
+static uint8_t
+ts3x00_wrap_read(uint32_t addr, UNUSED(void *priv))
+{
+    uint32_t offset = addr & TS3100_RAM_MASK;
+
+    addreadlookup(mem_logical_addr, offset);
+
+    return ram[offset];
+}
+
+static uint16_t
+ts3x00_wrap_readw(uint32_t addr, UNUSED(void *priv))
+{
+    uint32_t offset = addr & TS3100_RAM_MASK;
+
+    addreadlookup(mem_logical_addr, offset);
+
+    return *(uint16_t *) &ram[offset];
+}
+
+static uint32_t
+ts3x00_wrap_readl(uint32_t addr, UNUSED(void *priv))
+{
+    uint32_t offset = addr & TS3100_RAM_MASK;
+
+    addreadlookup(mem_logical_addr, offset);
+
+    return *(uint32_t *) &ram[offset];
+}
+
+/* Writes to the shadow area only get here while UCS# selects it, and go to the flash too. */
+static void
+ts3x00_wrap_write(uint32_t addr, uint8_t val, void *priv)
+{
+    const ts3x00_t *j      = (ts3x00_t *) priv;
+    uint32_t        offset = addr & TS3100_RAM_MASK;
+
+    if (offset >= j->low_top) {
+        ram[offset] = val;
+        sst_flash_write(j->flash, addr, val);
+        return;
+    }
+
+    addwritelookup_remapped(mem_logical_addr, addr, offset);
+    mem_write_ramb_page(offset, val, &pages[addr >> 12]);
+}
+
+static void
+ts3x00_wrap_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    const ts3x00_t *j      = (ts3x00_t *) priv;
+    uint32_t        offset = addr & TS3100_RAM_MASK;
+
+    if (offset >= j->low_top) {
+        ts3x00_wrap_write(addr, val & 0xff, priv);
+        ts3x00_wrap_write(addr + 1, val >> 8, priv);
+        return;
+    }
+
+    addwritelookup_remapped(mem_logical_addr, addr, offset);
+    mem_write_ramw_page(offset, val, &pages[addr >> 12]);
+}
+
+static void
+ts3x00_wrap_writel(uint32_t addr, uint32_t val, void *priv)
+{
+    const ts3x00_t *j      = (ts3x00_t *) priv;
+    uint32_t        offset = addr & TS3100_RAM_MASK;
+
+    if (offset >= j->low_top) {
+        ts3x00_wrap_writew(addr, val & 0xffff, priv);
+        ts3x00_wrap_writew(addr + 2, val >> 16, priv);
+        return;
+    }
+
+    addwritelookup_remapped(mem_logical_addr, addr, offset);
+    mem_write_raml_page(offset, val, &pages[addr >> 12]);
+}
+
+/* Point the page table at the DRAM wherever it repeats, as the RAM write paths need. */
+static void
+ts3x00_wrap_pages(const ts3x00_t *j)
+{
+    for (uint32_t base = j->wrap; base < TS3X00_ADDR_SPACE; base += j->wrap) {
+        for (uint32_t c = base >> 12; c < ((base + j->low_top) >> 12); c++) {
+            uint32_t offset = (c << 12) & TS3100_RAM_MASK;
+
+            pages[c].mem                    = &ram[offset];
+            pages[c].write_b                = mem_write_ramb_page;
+            pages[c].write_w                = mem_write_ramw_page;
+            pages[c].write_l                = mem_write_raml_page;
+            pages[c].evict_prev             = EVICT_NOT_IN_LIST;
+            pages[c].byte_dirty_mask        = &byte_dirty_mask[(offset >> 12) * 64];
+            pages[c].byte_code_present_mask = &byte_code_present_mask[(offset >> 12) * 64];
+        }
+    }
+}
+
 typedef struct ts3x00_model_t {
     const char     *rom;
     const char     *nvr; /* The CMOS as the board ships, with the flash disk set up. */
@@ -548,7 +690,22 @@ typedef struct ts3x00_model_t {
     const device_t *flash;
     uint32_t        low_ram_top;
     uint32_t        shadow_base;
+    uint32_t        wrap;
+    uint8_t         dos_rom;
 } ts3x00_model_t;
+
+static const ts3x00_model_t ts3100_model = {
+    .rom         = "roms/machines/ts3100/ts3100.bin",
+    .nvr         = "roms/machines/ts3100/ts3100.nvr",
+    .rom_addr    = 0x00080000,
+    .rom_size    = 524288,
+    .product     = TS3100_PRODUCT,
+    .flash       = &amd_flash_29f040a_device,
+    .low_ram_top = 0x00070000,
+    .shadow_base = 0x000f0000,
+    .wrap        = TS3100_WRAP,
+    .dos_rom     = 1
+};
 
 static const ts3x00_model_t ts3200_model = {
     .rom         = "roms/machines/ts3200/ts3200.bin",
@@ -595,10 +752,10 @@ ts3x00_board_init(ts3x00_t *j, const ts3x00_model_t *ts, i386ex_t *ex)
 
     /*
        Lay the DRAM out as on the board. The shadow area uses the RAM left
-       over below 1 MB: the RAM at the shadow area's own address, or with
-       less than 1 MB the RAM after the low DRAM. With less RAM than the
-       board has, the layout is cut short and, if there is no RAM left for
-       it, there is no shadow area.
+       over below 1 MB: on the TS-3100 that is the top 64k of its 512k, on
+       the TS-3200 the RAM at the shadow area's own address. With less RAM
+       than the board has, the layout is cut short and, if there is no RAM
+       left for it, there is no shadow area.
      */
     j->low_top     = MIN(ts->low_ram_top, mem_size * 1024);
     j->high_top    = (mem_size > 1024) ? (mem_size * 1024) : 0x00100000;
@@ -611,14 +768,32 @@ ts3x00_board_init(ts3x00_t *j, const ts3x00_model_t *ts, i386ex_t *ex)
     else
         j->shadow_size = 0;
 
-    mem_mapping_set_addr(&ram_low_mapping, 0x00000000, j->low_top);
-    if (mem_size > 768)
-        mem_mapping_disable(&ram_mid_mapping);
-    if (j->shadow_size != 0)
-        mem_mapping_add(&j->shadow_mapping, j->shadow_base, j->shadow_size,
-                        ts3x00_shadow_read, ts3x00_shadow_readw, ts3x00_shadow_readl,
-                        ts3x00_shadow_write, ts3x00_shadow_writew, ts3x00_shadow_writel,
-                        j->shadow, MEM_MAPPING_INTERNAL, j);
+    j->wrap    = ts->wrap;
+    j->dos_rom = ts->dos_rom;
+
+    if (j->wrap) {
+        /* One mapping for the DRAM and shadow area at every 2 MB; the memory states pick them out. */
+        mem_mapping_disable(&ram_low_mapping);
+        mem_mapping_add(&j->ram_mapping, 0x00000000, TS3X00_ADDR_SPACE,
+                        ts3x00_wrap_read, ts3x00_wrap_readw, ts3x00_wrap_readl,
+                        ts3x00_wrap_write, ts3x00_wrap_writew, ts3x00_wrap_writel,
+                        ram, MEM_MAPPING_INTERNAL, j);
+        mem_mapping_set_mask(&j->ram_mapping, TS3100_RAM_MASK);
+        ts3x00_wrap_pages(j);
+    } else {
+        mem_mapping_set_addr(&ram_low_mapping, 0x00000000, j->low_top);
+        if (mem_size > 768)
+            mem_mapping_disable(&ram_mid_mapping);
+        if (j->shadow_size != 0)
+            mem_mapping_add(&j->shadow_mapping, j->shadow_base, j->shadow_size,
+                            ts3x00_shadow_read, ts3x00_shadow_readw, ts3x00_shadow_readl,
+                            ts3x00_shadow_write, ts3x00_shadow_writew, ts3x00_shadow_writel,
+                            j->shadow, MEM_MAPPING_INTERNAL, j);
+    }
+
+    /* The board asserts the flash's chip select there itself; the flash decodes its own address lines. */
+    if (j->dos_rom)
+        sst_flash_map(j->flash, &j->dos_rom_mapping, 0x00000000, TS3X00_ADDR_SPACE);
 
     ts3x00_update_mem(j, 0x00000000, TS3X00_ADDR_SPACE);
 
@@ -631,6 +806,8 @@ ts3x00_board_init(ts3x00_t *j, const ts3x00_model_t *ts, i386ex_t *ex)
     flash_target.priv = j->flash;
     i386ex_csu_attach_mem(i386ex_get_csu(ex), I386EX_CSU_UCS, &flash_target);
     i386ex_csu_attach(i386ex_get_csu(ex), I386EX_CSU_UCS, ts3x00_ucs, j);
+    if (j->wrap)
+        i386ex_csu_attach(i386ex_get_csu(ex), 4, ts3x00_cs4, j);
     i386ex_csu_attach(i386ex_get_csu(ex), 5, ts3x00_cs5, j);
 
     ts3x00_board = j;
@@ -667,6 +844,12 @@ ts3x00_init(const machine_t *model, const ts3x00_model_t *ts)
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
+}
+
+int
+machine_at_ts3100_init(const machine_t *model)
+{
+    return ts3x00_init(model, &ts3100_model);
 }
 
 int
