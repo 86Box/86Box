@@ -292,6 +292,7 @@ extern int         video_is_mda(void);
 extern int         video_is_cga(void);
 extern int         video_card_get_flags(int card);
 extern int         video_get_primary_flags(int m, int card);
+extern int         video_card_is_secondary(int m, int primary_card, int secondary_card);
 /* Query the active video implementation before a memory transfer so
  * pin-level CPU cores can model READY without hardcoding a card. */
 extern unsigned    video_get_wait_states(uint32_t address, int write,

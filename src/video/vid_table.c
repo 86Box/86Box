@@ -627,6 +627,22 @@ video_get_primary_flags(int m, int card)
     return VIDEO_FLAG_TYPE_NONE;
 }
 
+/* Whether secondary_card may drive the second monitor while primary_card is in the first
+   slot. Cards that have not been taught to render through their own monitor index keep
+   the VIDEO_FLAG_TYPE_NONE flag, so they never qualify here. */
+int
+video_card_is_secondary(int m, int primary_card, int secondary_card)
+{
+    int primary_flags   = video_get_primary_flags(m, primary_card);
+    int secondary_flags = video_card_get_flags(secondary_card);
+
+    if (primary_flags == VIDEO_FLAG_TYPE_MDA)
+        return (secondary_flags == VIDEO_FLAG_TYPE_CGA);
+
+    return (secondary_flags == VIDEO_FLAG_TYPE_SECONDARY) ||
+           ((secondary_flags == VIDEO_FLAG_TYPE_MDA) && (primary_flags != secondary_flags));
+}
+
 const char *
 video_get_internal_name(int card)
 {
