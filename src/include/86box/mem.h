@@ -426,6 +426,15 @@ extern void     mem_writeb_phys(uint32_t addr, uint8_t val);
 extern void     mem_writew_phys(uint32_t addr, uint16_t val);
 extern void     mem_writel_phys(uint32_t addr, uint32_t val);
 extern void     mem_write_phys(void *src, uint32_t addr, int tranfer_size);
+
+/* Views of memory for mem_view_read() and mem_view_write(). */
+#define MEM_VIEW_BUS        0 /* DMA and bus masters, as mem_readb_phys() */
+#define MEM_VIEW_CPU        1 /* the processor, in or out of SMM as it is now */
+#define MEM_VIEW_CPU_NORMAL 2 /* the processor outside SMM */
+#define MEM_VIEW_CPU_SMM    3 /* the processor in SMM */
+
+extern uint32_t mem_view_read(int view, uint32_t addr, int width);
+extern void     mem_view_write(int view, uint32_t addr, uint32_t val, int width);
 extern uint32_t mem_write_phys_block(const void *src, uint32_t addr, uint32_t len);
 
 extern uint8_t  mem_read_ram(uint32_t addr, void *priv);

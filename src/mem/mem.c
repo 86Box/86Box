@@ -1924,6 +1924,127 @@ mem_writel_phys(uint32_t addr, uint32_t val)
     }
 }
 
+static __inline int mem_mapping_access_allowed(uint32_t flags, uint16_t access);
+
+/* The mapping the processor reaches at addr with SMM on or off, worked out
+   from the mapping list as mem_mapping_recalc() would, for the state the
+   tables are not in now. */
+static mem_mapping_t *
+mem_mapping_find_cpu(uint32_t addr, int smm, int write)
+{
+    uint32_t       mask  = cpu_16bitbus ? (is6117 ? 0x03ffffff : 0x00ffffff) : 0xffffffff;
+    uint32_t       g     = addr >> MEM_GRANULARITY_BITS;
+    uint16_t       access;
+    mem_mapping_t *found = NULL;
+
+    if (write && _mem_wp[g])
+        return NULL;
+    access = write ? _mem_state[g].states[smm].w : _mem_state[g].states[smm].r;
+
+    for (mem_mapping_t *map = base_mapping; map != NULL; map = map->next) {
+        uint64_t a  = (uint64_t) ((addr & ~(map->base_ignore & mask)) & ~MEM_GRANULARITY_MASK);
+        uint64_t lo = (uint64_t) map->base & ~MEM_GRANULARITY_MASK;
+        int      has;
+
+        if (!map->enable || (a < lo) || (a >= ((uint64_t) map->base + map->size)))
+            continue;
+        has = write ? (map->write_b || map->write_w || map->write_l) : (map->read_b || map->read_w || map->read_l);
+        if (has && mem_mapping_access_allowed(map->flags, access))
+            found = map;
+    }
+
+    return found;
+}
+
+static mem_mapping_t *
+mem_view_mapping(int view, uint32_t addr, int write)
+{
+    uint32_t g = addr >> MEM_GRANULARITY_BITS;
+    int      smm_now = !!in_smm;
+
+    switch (view) {
+        case MEM_VIEW_BUS:
+            return write ? write_mapping_bus[g] : read_mapping_bus[g];
+        case MEM_VIEW_CPU_NORMAL:
+        case MEM_VIEW_CPU_SMM:
+            if ((view == MEM_VIEW_CPU_SMM) != smm_now)
+                return mem_mapping_find_cpu(addr, view == MEM_VIEW_CPU_SMM, write);
+            fallthrough;
+        default:
+            return write ? write_mapping[g] : read_mapping[g];
+    }
+}
+
+/* An access of 1, 2 or 4 bytes as one side of the machine sees memory: the
+   bus (DMA and bus masters, what mem_readb_phys() reads), or the processor,
+   as it is now or with SMM on or off. It goes through the mapping's
+   handlers, as the processor's own accesses do: a mapping's exec pointer
+   with its mask is not right for every address in it (SMRAM's mask is 0,
+   say). A wider access the mapping cannot take whole, or one that crosses a
+   granule, is split as the CPU would split it. For debuggers and the
+   automation socket. */
+uint32_t
+mem_view_read(int view, uint32_t addr, int width)
+{
+    const mem_mapping_t *map = mem_view_mapping(view, addr, 0);
+    uint32_t             off = addr & MEM_GRANULARITY_MASK;
+
+    mem_logical_addr = 0xffffffff;
+
+    if (width > 1) {
+        int whole = (width == 4) ? (off <= MEM_GRANULARITY_QBOUND) : (off <= MEM_GRANULARITY_HBOUND);
+
+        if (whole && map && (width == 4) && map->read_l)
+            return map->read_l(addr, map->priv);
+        if (whole && map && (width == 2) && map->read_w)
+            return map->read_w(addr, map->priv);
+
+        width >>= 1;
+        return mem_view_read(view, addr, width) | (mem_view_read(view, addr + width, width) << (width << 3));
+    }
+
+    if (!map)
+        return 0xff;
+    if (map->read_b)
+        return map->read_b(addr, map->priv);
+    if (map->exec)
+        return map->exec[(addr - map->base) & map->mask];
+    return 0xff;
+}
+
+void
+mem_view_write(int view, uint32_t addr, uint32_t val, int width)
+{
+    const mem_mapping_t *map = mem_view_mapping(view, addr, 1);
+    uint32_t             off = addr & MEM_GRANULARITY_MASK;
+
+    mem_logical_addr = 0xffffffff;
+
+    if (width > 1) {
+        int whole = (width == 4) ? (off <= MEM_GRANULARITY_QBOUND) : (off <= MEM_GRANULARITY_HBOUND);
+
+        if (whole && map && (width == 4) && map->write_l) {
+            map->write_l(addr, val, map->priv);
+            mem_phys_written(addr, 4);
+        } else if (whole && map && (width == 2) && map->write_w) {
+            map->write_w(addr, val, map->priv);
+            mem_phys_written(addr, 2);
+        } else {
+            width >>= 1;
+            mem_view_write(view, addr, val & ((1u << (width << 3)) - 1), width);
+            mem_view_write(view, addr + width, val >> (width << 3), width);
+        }
+        return;
+    }
+
+    /* A mapping with no byte handler (ROM) ignores the write, as it does
+       the processor's. */
+    if (map && map->write_b) {
+        map->write_b(addr, val, map->priv);
+        mem_phys_written(addr, 1);
+    }
+}
+
 void
 mem_write_phys(void *src, uint32_t addr, int transfer_size)
 {
