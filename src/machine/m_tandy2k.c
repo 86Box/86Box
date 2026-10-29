@@ -946,7 +946,7 @@ static const device_config_t tandy2000_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "BOOT ROM version 01.00.00 (1983)",
+                .name          = "Tandy 2000 BIOS - Revision 01.00.00 (1983)",
                 .internal_name = "tandy2000_010000",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -955,7 +955,7 @@ static const device_config_t tandy2000_config[] = {
                 .files         = { "roms/machines/tandy2000/rev1_fc000_fe000.img", "" }
             },
             {
-                .name          = "BOOT ROM version 02.00.00 (1984)",
+                .name          = "Tandy 2000 BIOS - Revision 02.00.00 (1984)",
                 .internal_name = "tandy2000_020000",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
