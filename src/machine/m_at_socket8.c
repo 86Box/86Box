@@ -488,7 +488,7 @@ machine_at_ap440fx_init(const machine_t *model)
 
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC87307));
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC87307 | PCX7307_RTC));
     device_add(&intel_flash_bxt_ami_device);
 
     if (sound_card_current[0] == SOUND_INTERNAL)
@@ -638,7 +638,7 @@ machine_at_vs440fx_init(const machine_t *model)
 
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC87307));
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC87307 | PCX7307_RTC));
 
     device_add(&intel_flash_bxt_ami_device);
 
