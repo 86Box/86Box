@@ -659,7 +659,9 @@ codegen_fpu_rc_nearest(ir_data_t *ir)
   looks at smi_line only between blocks, so on the MediaGX an instruction
   that stores, or that runs through its interpreter handler, leaves the block
   for a pending SMI before a later write can overwrite the trap's record.
-  Other CPUs raise SMIs on I/O, which the I/O handlers return for.*/
+  Other SMIs come from I/O, which the I/O handlers return for, or from
+  memory-mapped stores (IOAPIC, LAPIC, OHCI on some chipsets), which
+  compiled code takes at the block end, as before.*/
 #if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
 #    define codegen_smi_exits() is_gxm
 #else
@@ -1114,8 +1116,13 @@ generate_call:
         if (new_pc) {
             /*An instruction that sets pc itself (-1) is a jump or call,
               whose only store is to the stack, which nothing traps*/
-            if ((new_pc != -1) && codegen_smi_exits() && codegen_ir_stores(ir, first_uop))
+            if ((new_pc != -1) && codegen_smi_exits() && codegen_ir_stores(ir, first_uop)) {
+                /*The exit leaves the block here: charge the cycles of the
+                  instructions so far, this one included, as the interpreter
+                  does before it takes the SMI*/
+                codegen_accumulate_flush(ir);
                 uop_SMI_EXIT_IMM(ir, new_pc);
+            }
             if (new_pc != -1)
                 uop_MOV_IMM(ir, IREG_pc, new_pc);
 
@@ -1175,8 +1182,6 @@ codegen_skip:
     if (op_ssegs != last_op_ssegs)
         uop_MOV_IMM(ir, IREG_ssegs, op_ssegs);
     uop_CALL_INSTRUCTION_FUNC(ir, op, fetchdat);
-    if (codegen_smi_exits())
-        uop_SMI_EXIT(ir);
     /*An interpreted x87 or 0F instruction can undo what the block took as
       done (FNINIT, FRSTOR, FXRSTOR and FEMMS empty the tags and leave MMX
       mode, CLTS changes CR0): the next compiled FPU or MMX instruction
@@ -1201,6 +1206,10 @@ codegen_skip:
         if ((x87_op & 0xff) < 0xc0)
             uop_CALL_FUNC(ir, fpu_postamble);
     }
+    /*After the FPU environment update, so an SMI taken on an x87 store
+      leaves this instruction's pointers for FNSTENV or FSAVE*/
+    if (codegen_smi_exits())
+        uop_SMI_EXIT(ir);
     codegen_flags_changed = 0;
     /* The handler gets the bytes after the opcode through fetchdat, and reads
        anything further from memory as it runs. Marking more than fetchdat
