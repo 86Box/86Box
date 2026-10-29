@@ -267,6 +267,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
             setCDROMSpeed(model, idx.siblingAtColumn(1), speed);
         model->setData(idx.siblingAtColumn(1), cdrom[i].dvd_speed, Qt::UserRole + 2);
         model->setData(idx.siblingAtColumn(1), cdrom[i].hd_speed, Qt::UserRole + 3);
+        model->setData(idx.siblingAtColumn(1), cdrom[i].restricted_capacity, Qt::UserRole + 4);
         if (cdrom[i].bus_type == CDROM_BUS_HITACHI)
             Harddrives::busTrackClass->device_track(1, DEV_CDROM, cdrom[i].bus_type, cdrom[i].hitachi_channel);
         else if (cdrom[i].bus_type == CDROM_BUS_MKE)
@@ -286,6 +287,8 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 
     connect(ui->treeViewCDROM->selectionModel(), &QItemSelectionModel::currentRowChanged,
             this, &SettingsFloppyCDROM::onCDROMRowChanged);
+    connect(ui->checkBoxUnlimitedCapacity, &QCheckBox::checkStateChanged,
+            this, &SettingsFloppyCDROM::onUnlimitedCapacityChanged);
     ui->treeViewCDROM->setCurrentIndex(model->index(0, 0));
 
     uint8_t bus_type = ui->comboBoxBus->currentData().toUInt();
@@ -373,6 +376,7 @@ SettingsFloppyCDROM::changed()
         has_changed  |= (cdrom[i].res             != model->index(i, 0).data(Qt::UserRole + 1).toUInt());
         has_changed  |= cdrom[i].speed && (cdrom[i].speed != model->index(i, 1).data(Qt::UserRole).toUInt());
         has_changed  |= (cdrom_get_type(i)        != model->index(i, 2).data(Qt::UserRole).toInt());
+        has_changed  |= (cdrom[i].restricted_capacity != model->index(i, 1).data(Qt::UserRole + 4).toUInt());
         soft_changed |= (cdrom[i].no_check        != inc[i]);
     }
 
@@ -420,7 +424,7 @@ SettingsFloppyCDROM::save(int soft)
         cdrom[i].dvd_speed   = model->index(i, 1).data(Qt::UserRole + 2).toUInt();
         cdrom[i].hd_speed    = model->index(i, 1).data(Qt::UserRole + 3).toUInt();
         cdrom[i].no_check    = inc[i];
-        cdrom[i].restricted_capacity = !ui->checkBoxUnlimitedCapacity->isChecked();
+        cdrom[i].restricted_capacity = model->index(i, 1).data(Qt::UserRole + 4).toUInt();
         cdrom_set_type(i, model->index(i, 2).data(Qt::UserRole).toInt());
     }
 
@@ -518,7 +522,7 @@ SettingsFloppyCDROM::onCDROMRowChanged(const QModelIndex &current)
         ui->comboBoxChannel->setCurrentIndex(match.first().row());
 
     /* Unlimited capacity */
-    ui->checkBoxUnlimitedCapacity->setChecked(!cdrom[current.row()].restricted_capacity);
+    ui->checkBoxUnlimitedCapacity->setChecked(!current.siblingAtColumn(1).data(Qt::UserRole + 4).toUInt());
 
     /* CD / DVD / HD speeds */
     auto setSpeed = [](QComboBox *box, int fixed, int userVal, int turboThreshold) {
@@ -721,7 +725,7 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
             speed = 2;
     }
     /* Unlimited capacity */
-    ui->checkBoxUnlimitedCapacity->setChecked(!cdrom[current.row()].restricted_capacity);
+    ui->checkBoxUnlimitedCapacity->setChecked(!current.siblingAtColumn(1).data(Qt::UserRole + 4).toUInt());
 
     /* CD / DVD / HD speeds */
     auto setSpeed = [](QComboBox *box, int fixed, int userVal, int turboThreshold) {
@@ -793,7 +797,7 @@ SettingsFloppyCDROM::on_comboBoxCDROMType_activated(int)
         speed = cdrom[current.row()].speed;
     }
     /* Unlimited capacity */
-    ui->checkBoxUnlimitedCapacity->setChecked(!cdrom[current.row()].restricted_capacity);
+    ui->checkBoxUnlimitedCapacity->setChecked(!current.siblingAtColumn(1).data(Qt::UserRole + 4).toUInt());
 
     /* CD / DVD / HD speeds */
     auto setSpeed = [](QComboBox *box, int fixed, int userVal, int turboThreshold) {
@@ -846,4 +850,15 @@ SettingsFloppyCDROM::on_comboBoxHDBDSpeed_activated(int)
     auto idx = ui->treeViewCDROM->selectionModel()->currentIndex();
     int speed = ui->comboBoxHDBDSpeed->currentData().toUInt();
     ui->treeViewCDROM->model()->setData(idx.siblingAtColumn(1), speed, Qt::UserRole + 3);
+}
+
+void
+SettingsFloppyCDROM::onUnlimitedCapacityChanged(Qt::CheckState state)
+{
+    const QModelIndex current = ui->treeViewCDROM->selectionModel()->currentIndex();
+    if (!current.isValid())
+        return;
+
+    /* Store the inverse of the checkbox (1 = restricted, 0 = unlimited). */
+    ui->treeViewCDROM->model()->setData(current.siblingAtColumn(1), (state == Qt::Unchecked) ? 1 : 0, Qt::UserRole + 4);
 }
