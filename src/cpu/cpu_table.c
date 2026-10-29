@@ -1789,6 +1789,49 @@ const cpu_family_t cpu_families[] = {
         }
     },
     {
+        .package       = CPU_PKG_386EX,
+        .manufacturer  = "Intel",
+        .name          = "386EX",
+        .internal_name = "i386ex",
+        .cpus          = (const CPU[]) { /* 386EX uses the 386SX core; SMM and integrated peripherals not yet emulated. */
+            {
+                .name               = "25",
+                .cpu_type           = CPU_386SX,
+                .fpus               = fpus_80386,
+                .rspeed             = 25000000,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0x2308,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 6,
+                .mem_write_cycles   = 6,
+                .cache_read_cycles  = 3,
+                .cache_write_cycles = 3,
+                .atclk_div          = 3
+            },
+            {
+                .name               = "33",
+                .cpu_type           = CPU_386SX,
+                .fpus               = fpus_80386,
+                .rspeed             = 33333333,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0x2308,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 6,
+                .mem_write_cycles   = 6,
+                .cache_read_cycles  = 3,
+                .cache_write_cycles = 3,
+                .atclk_div          = 4
+            },
+            { .name = "", 0 }
+        }
+    },
+    {
         .package       = CPU_PKG_386SLC_IBM,
         .manufacturer  = "IBM",
         .name          = "386SLC",

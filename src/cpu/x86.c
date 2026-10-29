@@ -393,7 +393,7 @@ reset_common(int hard)
         cpu_state.pc = 0xFFF0;
         if (hard) {
             rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
-            if (is6117)
+            if (is6117 || is386ex)
                 rammask |= 0x3000000;
             mem_a20_key = mem_a20_alt = mem_a20_state = 0;
         }

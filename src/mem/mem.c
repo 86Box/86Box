@@ -2615,7 +2615,7 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
     uint64_t       c;
     uint8_t        wp;
     uint64_t       mask = (cpu_16bitbus ?
-                           (is6117 ? 0x03ffffffULL : 0x00ffffffULL) :
+                           ((is6117 || is386ex) ? 0x03ffffffULL : 0x00ffffffULL) :
                            0xffffffffULL);
 
     if (!size || (base_mapping == NULL))
@@ -3122,7 +3122,7 @@ mem_a20_init(void)
     if (is286) {
         mem_a20_key = mem_a20_alt = mem_a20_state = 0;
         rammask = cpu_16bitbus ? 0xffffff : 0xffffffff;
-        if (is6117)
+        if (is6117 || is386ex)
             rammask |= 0x3000000;
         flushmmucache();
 #if 0
@@ -3226,8 +3226,8 @@ mem_reset(void)
         if (cpu_16bitbus) {
             /* 80286/386SX; maximum address space is 16MB + 16 MB for EMS. */
             m = 8192;
-            /* ALi M6117; maximum address space is 4GB. */
-            if (is6117)
+            /* ALi M6117 / Intel 386EX; maximum address space is 64MB. */
+            if (is6117 || is386ex)
                 m <<= 2;
         } else {
             /* 80386DX+; maximum address space is 4GB. */
@@ -3288,9 +3288,9 @@ mem_reset(void)
     mem_init_ram_mapping(&ram_low_mapping, 0x000000, (mem_size > 640) ? 0xa0000 : mem_size * 1024);
 
     if (mem_size > 1024) {
-        if (cpu_16bitbus && !is6117 && (mem_size > 16256))
+        if (cpu_16bitbus && !(is6117 || is386ex) && (mem_size > 16256))
             mem_init_ram_mapping(&ram_high_mapping, 0x100000, (16256 - 1024) * 1024);
-        else if (cpu_16bitbus && is6117 && (mem_size > 65408))
+        else if (cpu_16bitbus && (is6117 || is386ex) && (mem_size > 65408))
             mem_init_ram_mapping(&ram_high_mapping, 0x100000, (65408 - 1024) * 1024);
         else
            mem_init_ram_mapping(&ram_high_mapping, 0x100000, (mem_size - 1024) * 1024);
@@ -3527,12 +3527,12 @@ mem_a20_recalc(void)
     mask = (in_smm && unmask_a20_in_smm) ? &old_rammask : &rammask;
     if (state && !mem_a20_state) {
         *mask = cpu_16bitbus ? 0xffffff : 0xffffffff;
-        if (is6117)
+        if (is6117 || is386ex)
             *mask |= 0x3000000;
         flushmmucache();
     } else if (!state && mem_a20_state) {
         *mask = cpu_16bitbus ? 0xefffff : 0xffefffff;
-        if (is6117)
+        if (is6117 || is386ex)
             *mask |= 0x3000000;
         flushmmucache();
     }

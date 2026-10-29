@@ -115,7 +115,8 @@ enum {
     CPU_PKG_SLOT1            = (1 << 25),
     CPU_PKG_SLOT2            = (1 << 26),
     CPU_PKG_SOCKET370        = (1 << 27),
-    CPU_PKG_GXM              = (1 << 29)
+    CPU_PKG_GXM              = (1 << 29),
+    CPU_PKG_386EX            = (1 << 30)
 };
 
 #define CPU_SUPPORTS_DYNAREC 1
@@ -558,6 +559,7 @@ extern int is186;
 extern int is286;
 extern int is386;
 extern int is6117;
+extern int is386ex;
 extern int is486;
 extern int is586;
 extern int is_am486;

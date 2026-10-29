@@ -244,6 +244,7 @@ int is_nec;
 int is286;
 int is386;
 int is6117;
+int is386ex;
 int is486 = 1;
 int is586 = 0;
 int cpu_isintel;
@@ -634,7 +635,8 @@ cpu_set(void)
     is_am486    = (cpu_s->cpu_type == CPU_ENH_Am486DX);
     is_am486dxl = (cpu_s->cpu_type == CPU_Am486DXL);
 
-    is6117 = !strcmp(cpu_f->manufacturer, "ALi");
+    is6117  = !strcmp(cpu_f->manufacturer, "ALi");
+    is386ex = (cpu_f->package == CPU_PKG_386EX);
 
     cpu_isintel = !strcmp(cpu_f->manufacturer, "Intel");
     cpu_iscyrix = !strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST");

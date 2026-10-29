@@ -1072,7 +1072,7 @@ smram_restore_state_p6(uint32_t *saved_state)
     smm_seg_load(&cpu_state.seg_gs);
 
     rammask     = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
-    if (is6117)
+    if (is6117 || is386ex)
         rammask |= 0x3000000;
 
     if (saved_state[SMRAM_FIELD_P6_A20M] & 0x01)
@@ -1629,7 +1629,7 @@ enter_smm(int in_hlt)
     if (unmask_a20_in_smm && !nested) {
         old_rammask = rammask;
         rammask     = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
-        if (is6117)
+        if (is6117 || is386ex)
             rammask |= 0x3000000;
 
         flushmmucache();
