@@ -2202,7 +2202,7 @@ static const device_config_t ht216_32_standalone_config[] = {
 // clang-format on
 
 const device_t g2_gc205_device = {
-    .name          = "G2 GC205",
+    .name          = "G-2 GC205",
     .internal_name = "g2_gc205",
     .flags         = DEVICE_ISA,
     .local         = 0x7070,
@@ -2212,6 +2212,7 @@ const device_t g2_gc205_device = {
     .available     = g2_gc205_available,
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
+    .alias         = "Headland HT205",
     .config        = NULL
 };
 
