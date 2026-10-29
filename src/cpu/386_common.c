@@ -1329,6 +1329,32 @@ gxm_smm_load_cs(uint32_t addr, x86seg *seg)
         cpu_cur_status &= ~CPU_STATUS_USE32;
 }
 
+/* The opcode of the instruction at CS:oldpc past its prefixes, and whether
+   one of them was REP. Read from memory: opcode and rep_op are only what the
+   interpreter last decoded, which compiled code does not update, and rep_op
+   is the byte after F3h, an operand size prefix in F3 66 6F. */
+static uint8_t
+cyrix_smm_decode_op(int *is_rep)
+{
+    const uint8_t old_abrt = cpu_state.abrt;
+    uint8_t       op       = 0x00;
+
+    *is_rep = 0;
+    for (int c = 0; c < 15; c++) {
+        op = readmembl(cs + ((cpu_state.oldpc + c) & (use32 ? 0xffffffff : 0xffff)));
+        if (cpu_state.abrt)
+            break;
+        if ((op == 0xf2) || (op == 0xf3))
+            *is_rep = 1;
+        else if ((op != 0x26) && (op != 0x2e) && (op != 0x36) && (op != 0x3e) && (op != 0x64) &&
+                 (op != 0x65) && (op != 0x66) && (op != 0x67) && (op != 0xf0))
+            break;
+    }
+    cpu_state.abrt = old_abrt;
+
+    return op;
+}
+
 static void
 smram_save_state_cyrix(uint32_t *saved_state, int in_hlt)
 {
@@ -1337,8 +1363,9 @@ smram_save_state_cyrix(uint32_t *saved_state, int in_hlt)
        I/O cycles asserted (3.11.5): an SMI# that comes in on its own, a
        timer's, is taken between its iterations as well, and a handler
        told P would take it for a trapped cycle to repeat. */
-    const uint8_t op  = ((opcode == 0xf2) || (opcode == 0xf3)) ? rep_op : opcode;
-    const int     rep = io_cycle_smi && (op != opcode) && (op >= 0x6c) && (op <= 0x6f);
+    int           is_rep = 0;
+    const uint8_t op     = io_cycle_smi ? cyrix_smm_decode_op(&is_rep) : 0x00;
+    const int     rep    = io_cycle_smi && is_rep && (op >= 0x6c) && (op <= 0x6f);
 
     saved_state[0] = dr[7];
     saved_state[1] = cpu_state.flags | (cpu_state.eflags << 16);
