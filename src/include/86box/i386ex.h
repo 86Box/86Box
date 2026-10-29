@@ -22,6 +22,7 @@
 #define I386EX_SIO1 0x02 /* COM2 */
 
 typedef struct i386ex_t     i386ex_t;
+typedef struct i386ex_rcu_t i386ex_rcu_t;
 typedef struct i386ex_wdt_t i386ex_wdt_t;
 
 extern i386ex_csu_t *i386ex_get_csu(i386ex_t *dev);
@@ -34,6 +35,9 @@ extern i386ex_csu_t *i386ex_get_csu(i386ex_t *dev);
 extern void i386ex_set_wdtout(i386ex_t *dev, void (*func)(void *priv), void *priv);
 extern void i386ex_wdtout_reset(void *priv);
 extern void i386ex_wdtout_nmi(void *priv);
+
+/* The refresh control unit, which i386ex_device adds and maps. */
+extern void i386ex_rcu_handler(i386ex_rcu_t *rcu, int set);
 
 /* The watchdog timer unit, which i386ex_device adds and maps. */
 extern void i386ex_wdt_handler(i386ex_wdt_t *wdt, int set);
@@ -62,6 +66,7 @@ extern void i386ex_expanded_handler(i386ex_t *dev, uint16_t base, int size,
 
 #ifdef EMU_DEVICE_H
 extern const device_t i386ex_device;
+extern const device_t i386ex_rcu_device;
 extern const device_t i386ex_wdt_device;
 #endif
 

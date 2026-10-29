@@ -18,10 +18,10 @@
  *
  *          The interrupt controllers, timer and DMA controller are the
  *          machine's usual AT ones, which the chip only maps. The DMA
- *          controller, Port 92 and the other on-chip units (refresh, SSIO,
- *          power management, pin configuration) do not appear in the
- *          expanded I/O space, except for PWRCON, which is stored. The
- *          chip-select and watchdog timer units have their own files.
+ *          controller, Port 92 and the other on-chip units (SSIO, power
+ *          management, pin configuration) do not appear in the expanded
+ *          I/O space, except for PWRCON, which is stored. The chip-select,
+ *          refresh control and watchdog timer units have their own files.
  *
  *          The three I/O ports are the machine's GPIO pins, P1 in bits
  *          7:0, P2 in bits 15:8 and P3 in bits 23:16: the chip hands what
@@ -151,6 +151,7 @@ struct i386ex_t {
     uint8_t weak; /* Ports whose weak resistors are still on, by bit. */
 
     i386ex_csu_t *csu;
+    i386ex_rcu_t *rcu;
     i386ex_wdt_t *wdt;
     serial_t     *uart[2];
 
@@ -421,6 +422,7 @@ i386ex_expanded(i386ex_t *dev, int set)
     io_handler(set, P1PIN, 24, i386ex_port_read, NULL, NULL, i386ex_port_write, NULL, NULL, dev);
 
     i386ex_csu_handler(dev->csu, set);
+    i386ex_rcu_handler(dev->rcu, set);
     i386ex_wdt_handler(dev->wdt, set);
 
     for (int i = 0; i < dev->handlers_num; i++) {
@@ -651,6 +653,7 @@ i386ex_init(const device_t *info)
     i386ex_t *dev = (i386ex_t *) calloc(1, sizeof(i386ex_t));
 
     dev->csu = device_add(&i386ex_csu_device);
+    dev->rcu = device_add(&i386ex_rcu_device);
     dev->wdt = device_add(&i386ex_wdt_device);
 
     /* The UARTs take the next free COM ports, which on a board are COM1 and COM2. */
