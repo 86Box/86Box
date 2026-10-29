@@ -313,7 +313,7 @@ ps2_m25_kbc_init(UNUSED(const device_t *info))
     }
 
     if (keyboard_type == KEYBOARD_TYPE_INTERNAL) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
+        if (machine_has_flags_64(machine, MACHINE_KEYBOARD_JIS))
             device_add(&keyboard_ps55_device);
         else
             device_add_params(&keyboard_at_generic_device,

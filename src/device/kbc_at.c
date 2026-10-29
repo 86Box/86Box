@@ -3151,7 +3151,7 @@ kbc_at_init(const device_t *info)
 
     /* The actual keyboard. */
     if (keyboard_type == KEYBOARD_TYPE_INTERNAL) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS) || machine_has_flags(machine, MACHINE_KEYBOARD_AX))
+        if (machine_has_flags_64(machine, MACHINE_KEYBOARD_JIS) || machine_has_flags_64(machine, MACHINE_KEYBOARD_AX))
             device_add(machine_has_flags_ex(MACHINE_PS2_KBC) ? &keyboard_ps55_device : &keyboard_ax_device);
         else
             device_add_params(&keyboard_at_generic_device, (void *) (uintptr_t)

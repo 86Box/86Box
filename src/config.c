@@ -874,13 +874,13 @@ load_input_devices(void)
     else if (machines[machine].init == machine_xt_pc5086_init)
         keyboard_type = KEYBOARD_TYPE_PC_XT;
     else if (machine_has_bus(machine, MACHINE_BUS_PS2_PORTS)) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
+        if (machine_has_flags_64(machine, MACHINE_KEYBOARD_JIS))
             keyboard_type = KEYBOARD_TYPE_PS55;
         else
             keyboard_type = KEYBOARD_TYPE_PS2;
     } else if (machine_has_bus(machine, MACHINE_BUS_ISA16) ||
                machine_has_bus(machine, MACHINE_BUS_PCI)) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_AX))
+        if (machine_has_flags_64(machine, MACHINE_KEYBOARD_AX))
             keyboard_type = KEYBOARD_TYPE_AX;
         else
             keyboard_type = KEYBOARD_TYPE_AT;
