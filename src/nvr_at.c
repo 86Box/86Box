@@ -609,6 +609,15 @@ timer_tick(nvr_t *nvr)
     }
 }
 
+/* The RAM Lock of 38h-3Fh in the lower (wp[0]) or upper (wp[1]) 128 bytes:
+   writes are ignored and reads return FFh. */
+static int
+nvr_wp_locked(const local_t *local, uint16_t reg)
+{
+    return ((reg >= 0x38) && (reg <= 0x3f) && local->wp[0]) ||
+           ((reg >= 0xb8) && (reg <= 0xbf) && local->wp[1]);
+}
+
 static void
 nvr_reg_common_write(uint16_t reg, uint8_t val, nvr_t *nvr, local_t *local)
 {
@@ -624,9 +633,7 @@ nvr_reg_common_write(uint16_t reg, uint8_t val, nvr_t *nvr, local_t *local)
         nvr->is_new = 0;
     if ((reg == 0x55) && (local->flags & FLAG_AMI_1999J_HACK))
         nvr->is_new = 0;
-    if ((reg >= 0x38) && (reg <= 0x3f) && local->wp[0])
-        return;
-    if ((reg >= 0xb8) && (reg <= 0xbf) && local->wp[1])
+    if (nvr_wp_locked(local, reg))
         return;
     if (nvr->regs[reg] != val) {
         nvr->regs[reg] = val;
@@ -799,6 +806,8 @@ nvr_read(uint16_t addr, void *priv)
         else
             ret = *nvr_rtc_bank_reg(nvr, (local_t *) local, local->addr[addr_id]);
     }
+    else if ((addr & 1) && nvr_wp_locked(local, local->addr[addr_id]))
+        ret = 0xff;
     else if (addr & 1)
         switch (local->addr[addr_id]) {
             case RTC_REGA:

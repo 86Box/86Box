@@ -51,6 +51,13 @@ typedef struct pc87306_t {
     nvr_t    *nvr;
 } pc87306_t;
 
+/* The bits the Selective Lock (PMC bit 5) covers: FER bit 4, FAR, PTR bits
+   2-3, FCR bit 1, KRR bit 5 (RAMSEL) and PMC bit 5 itself. */
+static const uint8_t pc87306_sel_lock[29] = {
+    [0x00] = 0x10, [0x01] = 0xff, [0x02] = 0x0c,
+    [0x03] = 0x02, [0x05] = 0x20, [0x06] = 0x20
+};
+
 static void
 pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -282,11 +289,16 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
             if (dev->cfg_lock)
                 return;
 
-            valxor     = val ^ dev->regs[dev->cur_reg];
             dev->tries = 0;
-            if ((dev->cur_reg <= 0x1c) && (dev->cur_reg != 0x08))
+            if ((dev->cur_reg <= 0x1c) && (dev->cur_reg != 0x08)) {
+                /* The Selective Lock (PMC bit 5) freezes these bits until a
+                   hardware reset. */
+                if (dev->regs[0x06] & 0x20)
+                    val = (val & ~pc87306_sel_lock[dev->cur_reg]) |
+                          (dev->regs[dev->cur_reg] & pc87306_sel_lock[dev->cur_reg]);
+                valxor = val ^ dev->regs[dev->cur_reg];
                 dev->regs[dev->cur_reg] = val;
-            else
+            } else
                 return;
         } else {
             dev->tries++;
@@ -327,14 +339,17 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
         case 0x04:
             if (valxor & (0x05))
                 lpt_handler(dev);
+            /* RTC RAM write mask: the RAM of both banks, not the time and
+               control registers. */
             if (valxor & 0x80)
-                nvr_lock_set(0x00, 256, !!(val & 0x80), dev->nvr);
+                nvr_lock_set(0x0e, 256 - 0x0e, !!(val & 0x80), dev->nvr);
             break;
         case 0x05:
             if (valxor & 0x01)
                 kbc_handler(dev);
             if (valxor & 0x08)
                 nvr_at_handler(!!(val & 0x08), 0x0070, dev->nvr);
+            /* RAMSEL: 70h/71h access the upper 128 bytes (Table 10-2). */
             if (valxor & 0x20)
                 nvr_bank_set(0, !!(val & 0x20), dev->nvr);
             break;
@@ -406,7 +421,7 @@ pc87306_read(uint16_t port, void *priv)
     } else {
         if (dev->cur_reg == 0x08)
             ret = 0x71;
-        else if (dev->cur_reg < 28)
+        else if (dev->cur_reg <= 0x1c)
             ret = dev->regs[dev->cur_reg];
         dev->tries = 0;
     }
