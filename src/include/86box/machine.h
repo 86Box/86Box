@@ -87,8 +87,6 @@
 #define MACHINE_VIDEO_EXT         0x0000000000000008ULL /* sys has ext display */
 #define MACHINE_VIDEO_ONLY        0x0000000000000010ULL /* sys has fixed video */
 #define MACHINE_KEYBOARD          0x0000000000000020ULL /* sys has int keyboard */
-#define MACHINE_KEYBOARD_AX       0x0000001000000000ULL /* sys has Japanese AX keyboard */
-#define MACHINE_KEYBOARD_JIS      0x0000002000000000ULL /* sys has Japanese PS/55 keyboard */
 #define MACHINE_MOUSE             0x0000000000000040ULL /* sys has int mouse */
 #define MACHINE_FDC               0x0000000000000080ULL /* sys has int FDC */
 #define MACHINE_LPT_PRI           0x0000000000000100ULL /* sys has int pri LPT */
@@ -435,6 +433,7 @@ extern int             machine_get_machine_from_internal_name(const char *s);
 extern void            machine_init(void);
 #ifdef EMU_DEVICE_H
 extern const device_t *machine_get_kbc_device(int m);
+extern const device_t *machine_get_kbd_device(int m);
 extern const device_t *machine_get_nvr_device(int m);
 extern const device_t *machine_get_sio_device(int m);
 extern const device_t *machine_get_device(int m);

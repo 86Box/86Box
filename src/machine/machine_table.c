@@ -2848,7 +2848,7 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &f82c710_pc5086_device,
-        .kbd_device               = NULL,
+        .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
@@ -3636,7 +3636,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC | MACHINE_BUS_PS2_PORTS,
-        .flags     = MACHINE_NO_FPU_SOCKET | MACHINE_VIDEO_FIXED | MACHINE_FDC | MACHINE_PS2_KBC | MACHINE_KEYBOARD | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_NO_FPU_SOCKET | MACHINE_VIDEO_FIXED | MACHINE_FDC | MACHINE_PS2_KBC | MACHINE_KEYBOARD,
         .ram       = {
             .min  = 640,
             .max  = 640,
@@ -3655,7 +3655,7 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ibm3477_device,
-        .kbd_device               = NULL,
+        .kbd_device               = &keyboard_ps55_device,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
@@ -6974,7 +6974,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_KEYBOARD_AX,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD,
         .ram       = {
             .min  = 1024,
             .max  = 4096,
@@ -6994,7 +6994,7 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
-        .kbd_device               = NULL,
+        .kbd_device               = &keyboard_ax_device,
         .fdc_device               = NULL,
         .vid_device               = &if386jega_device,
         .snd_device               = NULL,
@@ -7559,7 +7559,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
         .ram       = {
             /* 1MB is not enough for the reference disk */
             .min  = 2048,
@@ -7579,7 +7579,7 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
-        .kbd_device               = NULL,
+        .kbd_device               = &keyboard_ps55_device,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
@@ -8887,7 +8887,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -8906,7 +8906,7 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
-        .kbd_device               = NULL,
+        .kbd_device               = &keyboard_ps55_device,
         .fdc_device               = NULL,
         .vid_device               = &ps55db2_device,
         .snd_device               = NULL,
@@ -8935,7 +8935,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -8954,7 +8954,7 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
-        .kbd_device               = NULL,
+        .kbd_device               = &keyboard_ps55_device,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
@@ -9322,7 +9322,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
         .ram       = {
             .min  = 4096,
             .max  = 65536,
@@ -9341,7 +9341,7 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
-        .kbd_device               = NULL,
+        .kbd_device               = &keyboard_ps55_device,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
@@ -27443,6 +27443,15 @@ machine_get_kbc_device(int m)
 {
     if (machines[m].kbc_device)
         return (machines[m].kbc_device);
+
+    return (NULL);
+}
+
+const device_t *
+machine_get_kbd_device(int m)
+{
+    if (machines[m].kbd_device)
+        return (machines[m].kbd_device);
 
     return (NULL);
 }
