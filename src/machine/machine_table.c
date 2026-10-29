@@ -19078,7 +19078,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO | MACHINE_NIC,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_NIC,
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -19100,7 +19100,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &cyrix_gxm_video_device,
-        .snd_device               = NULL,
+        .snd_device               = &cs5530_xpressaudio_device,
         .net_device               = &rtl8139c_plus_onboard_device,
         .aliases                  = { "" }
     },
@@ -19127,7 +19127,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO | MACHINE_SOUND,
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -19149,7 +19149,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &cyrix_gxm_video_device,
-        .snd_device               = NULL,
+        .snd_device               = &cs5530_xpressaudio_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -19176,7 +19176,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_VIDEO,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_VIDEO | MACHINE_SOUND,
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -19198,7 +19198,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &cyrix_gxm_video_device,
-        .snd_device               = NULL,
+        .snd_device               = &cs5530_xpressaudio_device,
         .net_device               = NULL,
         .aliases                  = { "Cyrix Unicorn", "" }
     },
@@ -23299,9 +23299,9 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
-        /* TODO: Implement the PC87307 NVR. */
-        .nvr_device               = &nvr_at_device,
-        .nvr_params               = NVR_AT,
+        /* The PC87307 brings its own RTC/NVR. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
         .sio_device               = NULL,
         .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
@@ -23350,9 +23350,9 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
-        /* TODO: Implement the PC87307 NVR. */
-        .nvr_device               = &nvr_at_device,
-        .nvr_params               = NVR_AT,
+        /* The PC87307 brings its own RTC/NVR. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
         .sio_device               = NULL,
         .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
