@@ -58,7 +58,6 @@
 #define BIOS_VLB_ROM_PATH             "roms/video/mach64/mach64_vlb_vram.bin"
 #define BIOS_XPRESSION_VLB_27802_PATH "roms/video/mach64/xpression_vlb_113-27802-101.bin"
 #define BIOS_XPRESSION_VLB_27804_PATH "roms/video/mach64/xpression_vlb_113-27804-101.bin"
-#define BIOS_XPRESSION_VLB_27803_PATH "roms/video/mach64/xpression_vlb_113-27803-102.bin"
 #define BIOS_ROMCT_PATH               "roms/video/mach64/mach64-68b110b8cddfd546595673.bin"
 #define BIOS_ROMVT_PATH               "roms/video/mach64/mach64vt-660c60c135839345779942.bin"
 #define BIOS_ROMVT2_PATH              "roms/video/mach64/atimach64vt2pci.bin"
