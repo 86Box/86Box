@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-21 08:46+0000\n"
+"PO-Revision-Date: 2026-10-27 19:03+0000\n"
 "Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
@@ -151,10 +151,10 @@ msgid "4:&3 Integer scale"
 msgstr "Celočíselné škálování 4:&3"
 
 msgid "&Center"
-msgstr ""
+msgstr "&Na střed"
 
 msgid "4:3 Cen&ter"
-msgstr ""
+msgstr "Na s&třed 4:3"
 
 msgid "Inverted VGA monitor"
 msgstr "Monitor VGA s převrácenými barvami"
@@ -415,34 +415,34 @@ msgid "Memory:"
 msgstr "Paměť:"
 
 msgid "Synchronize with host clock"
-msgstr ""
+msgstr "Synchronizovat s hodinami hostitele"
 
 msgid "Time zone:"
-msgstr ""
+msgstr "Čas. pásmo:"
 
 msgid "Local"
-msgstr ""
+msgstr "Místní"
 
 msgid "UTC"
-msgstr ""
+msgstr "UTC"
 
 msgid "Date:"
-msgstr ""
+msgstr "Datum:"
 
 msgid "Match the host"
-msgstr ""
+msgstr "Podle hostitele"
 
 msgid "Offset the year by:"
-msgstr ""
+msgstr "Posunout rok o:"
 
 msgid "(currently %1)"
-msgstr ""
+msgstr "(aktuálně %1)"
 
 msgid "Always use the year:"
-msgstr ""
+msgstr "Vždy použít rok:"
 
 msgid "Do not synchronize the date"
-msgstr ""
+msgstr "Nesynchronizovat datum"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Použít interpreter 486 pro procesory 286 a 386"
@@ -457,7 +457,7 @@ msgid "Block linking on the dynamic recompiler"
 msgstr "Propojování bloků při dynamickém překladu"
 
 msgid "Debug registers on 486 and later processors"
-msgstr ""
+msgstr "Debugovací registry u procesorů 486 a novějších"
 
 msgid "CPU frame size"
 msgstr "Velikost rámců procesoru"
@@ -652,10 +652,12 @@ msgid "Cassette"
 msgstr "Kazeta"
 
 msgid "Turbo IDE"
-msgstr ""
+msgstr "Turbo IDE"
 
 msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
 msgstr ""
+"Odstraní omezení rychlosti přenosových režimů IDE. Časování pevných disků a "
+"jednotek CD-ROM se však nadále uplatňuje."
 
 msgid "Hard disks:"
 msgstr "Pevné disky:"
@@ -3255,7 +3257,7 @@ msgid "Key bindings"
 msgstr "Klávesové zkratky"
 
 msgid "VM Manager"
-msgstr ""
+msgstr "Správce počítačů"
 
 msgid "Action"
 msgstr "Akce"

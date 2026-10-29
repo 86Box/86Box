@@ -1004,6 +1004,9 @@ svga_recalctimings(svga_t *svga)
 
     svga->multiplier = 1.0;
 
+    svga->hsync_ext  = 0;
+    svga->hblank_ext = 0;
+
     if (svga->recalctimings_ex)
         svga->recalctimings_ex(svga);
 
@@ -1238,7 +1241,8 @@ svga_recalctimings(svga_t *svga)
         }
     }
 
-    _dispofftime = disptime - _dispontime;
+    _dispofftime = disptime - _dispontime +
+                   (double) svga->hblank_ext + (double) svga->hsync_ext;
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
 
@@ -1407,6 +1411,13 @@ svga_recalctimings(svga_t *svga)
                 break;
         }
     }
+
+    /*
+       Have a maximum value y_add can take, fixes heap corruptions
+       during some video resizes.
+     */
+    if (svga->y_add > 240)
+        svga->y_add = 240;
 }
 
 static void

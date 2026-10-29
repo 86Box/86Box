@@ -10,14 +10,42 @@
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *          Nathan Lewis, <git@nrlewis.dev>
  *
  *          Copyright 2020      Miran Grca.
  *          Copyright 2022-2023 Jasmine Iwanek.
+ *          Copyright 2026      Nathan Lewis.
  */
 #ifndef EMU_FLASH_H
 #define EMU_FLASH_H
 
 #define AMD_FLAG_LEGACY           0x01
+
+struct _mem_mapping_;
+
+/*
+ * A JEDEC flash chip (SST, Winbond, AMD) that is not tied to the boot BIOS,
+ * for machines that map their own chips. The model is one of the
+ * sst_flash_*, winbond_flash_* or amd_flash_* descriptors below, which is
+ * only used to describe the chip and is not added as a device.
+ */
+typedef struct sst_t sst_t;
+
+typedef struct sst_flash_cfg_t {
+    const char    *nvr_name; /* Backing file name without ".bin", NULL for none. */
+    const uint8_t *image;    /* Initial contents, overridden by the backing file. */
+    uint32_t       image_len;
+    uint32_t       size; /* Decoded size if smaller than the chip, 0 for all of it. */
+} sst_flash_cfg_t;
+
+extern sst_t   *sst_flash_create(const device_t *model, const sst_flash_cfg_t *cfg);
+extern void     sst_flash_destroy(sst_t *dev);
+extern void     sst_flash_reset(sst_t *dev);
+extern void     sst_flash_map(sst_t *dev, struct _mem_mapping_ *mapping, uint32_t base, uint32_t size);
+extern void     sst_flash_remap(sst_t *dev, struct _mem_mapping_ *mapping, uint32_t base, uint32_t size);
+extern void     sst_flash_write(sst_t *dev, uint32_t addr, uint8_t val);
+extern void     sst_flash_set_write_protect(sst_t *dev, int protect);
+extern uint32_t sst_flash_get_size(const sst_t *dev);
 
 /* The BIOS chip select. A chipset that decodes the flash's chip select can
    refuse to assert it for writes -- the ESC's BIOSCSB bit 3, BIOS Write

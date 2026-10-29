@@ -410,6 +410,8 @@ pic_reset(void)
     int is_at     = IS_AT(machine);
     int is_zenith = !!machine_has_flags_64(machine, MACHINE_ZENITH);
     is_at         = is_at || (machines[machine].init == machine_xt_xi8088_init);
+    const int     is_pc98     = machine_has_bus(machine, MACHINE_BUS_CBUS);
+    const int     is_dual     = is_at || is_pc98;
     const uint8_t board_flags    = pic.flags & PIC_IBM5140;
     void (*out_cb)(void *, int)  = pic.out_cb;
     void (*out_cb2)(void *, int) = pic2.out_cb;
@@ -436,10 +438,10 @@ pic_reset(void)
         pic.at = pic2.at = 0;
         update_pending = pic_update_pending_dual;
     } else {
-        if (is_at)
-            pic.slaves[2] = &pic2;
+        if (is_dual)
+            pic.slaves[is_pc98 ? 7 : 2] = &pic2;
 
-        update_pending = is_at ? pic_update_pending_at : pic_update_pending_xt;
+        update_pending = is_dual ? pic_update_pending_at : pic_update_pending_xt;
         pic.at = pic2.at = is_at;
     }
     pic.zenith = pic2.zenith = is_zenith;
