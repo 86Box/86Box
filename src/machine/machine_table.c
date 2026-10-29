@@ -14405,7 +14405,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas (not yet implemented) and NIC: Realtek RTL8139C+ (onboard variant not yet emulated) */
+        .flags     = MACHINE_IDE | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas (not yet implemented) and NIC: Realtek RTL8139C+ */
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -19053,7 +19053,155 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    
+    /* Cyrix MediaGX MMX */
+    /* The Cyrix MediaGX MMX and the Cx5530A on a single-board computer, with
+       Winbond W83977F (and its keyboard controller and RTC) and W83977EF
+       Super I/Os, and one DIMM socket. */
+    {
+        .name              = "[Cyrix MediaGX MMX] AEWIN AW-H602",
+        .internal_name     = "awp601",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_CYRIX_CX5530,
+        .init              = machine_at_awp601_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_GXM,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 30000000,
+            .max_bus     = 33333333,
+            .min_voltage = 2800,
+            .max_voltage = 3000,
+            .min_multi   = 5.0,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO | MACHINE_NIC,
+        .ram       = {
+            .min  = 8192,
+            .max  = 131072,
+            .step = 8192
+        },
+        .nvrmask                  = 511,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &cyrix_gxm_video_device,
+        .snd_device               = NULL,
+        .net_device               = &rtl8139c_plus_onboard_device,
+        .aliases                  = { "" }
+    },
+    /* The Cyrix MediaGX MMX with its integrated graphics, and the Cx5530, with
+       a National PC97317 Super I/O and its keyboard controller. */
+    {
+        .name              = "[Cyrix MediaGX MMX] ECS P5GX-M",
+        .internal_name     = "p5gxm",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_CYRIX_CX5530,
+        .init              = machine_at_p5gxm_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = machine_at_p5gxm_gpio_handler,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_GXM,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 30000000,
+            .max_bus     = 33333333,
+            .min_voltage = 2800,
+            .max_voltage = 3000,
+            .min_multi   = 5.0,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO,
+        .ram       = {
+            .min  = 8192,
+            .max  = 262144,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &cyrix_gxm_video_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* The Cyrix MediaGX MMX and the Cx5530 on Cyrix's MXi ("Unicorn")
+       reference design, with a National PC97317 Super I/O at 2Eh. */
+    {
+        .name              = "[Cyrix MediaGX MMX] Tatung T3032",
+        .internal_name     = "t3032",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_CYRIX_CX5530,
+        .init              = machine_at_t3032_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = machine_at_p5gxm_gpio_handler,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_GXM,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 30000000,
+            .max_bus     = 33333333,
+            .min_voltage = 2800,
+            .max_voltage = 3000,
+            .min_multi   = 5.0,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_VIDEO,
+        .ram       = {
+            .min  = 8192,
+            .max  = 262144,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &cyrix_gxm_video_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Cyrix Unicorn", "" }
+    },
     /* 430HX */
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
@@ -21194,154 +21342,6 @@ const machine_t machines[] = {
     },
 
     /* SiS 5571 */
-    /* The Cyrix MediaGX MMX with its integrated graphics, and the Cx5530, with
-       a National PC97317 Super I/O and its keyboard controller. */
-    {
-        .name              = "[Cyrix MediaGX MMX] ECS P5GX-M",
-        .internal_name     = "p5gxm",
-        .type              = MACHINE_TYPE_SOCKET7,
-        .chipset           = MACHINE_CHIPSET_CYRIX_CX5530,
-        .init              = machine_at_p5gxm_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = machine_at_p5gxm_gpio_handler,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_GXM,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 30000000,
-            .max_bus     = 33333333,
-            .min_voltage = 2800,
-            .max_voltage = 3000,
-            .min_multi   = 5.0,
-            .max_multi   = 8.0
-        },
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO,
-        .ram       = {
-            .min  = 8192,
-            .max  = 262144,
-            .step = 8192
-        },
-        .nvrmask                  = 255,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = NULL,
-        .kbc_params               = 0x00000000,
-        .nvr_device               = NULL,
-        .nvr_params               = 0x00000000,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x00000cf0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = &cyrix_gxm_video_device,
-        .snd_device               = NULL,
-        .net_device               = NULL,
-        .aliases                  = { "" }
-    },
-    /* The Cyrix MediaGX MMX and the Cx5530 on Cyrix's MXi ("Unicorn")
-       reference design, with a National PC97317 Super I/O at 2Eh. */
-    {
-        .name              = "[Cyrix MediaGX MMX] Tatung T3032",
-        .internal_name     = "t3032",
-        .type              = MACHINE_TYPE_SOCKET7,
-        .chipset           = MACHINE_CHIPSET_CYRIX_CX5530,
-        .init              = machine_at_t3032_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = machine_at_p5gxm_gpio_handler,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_GXM,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 30000000,
-            .max_bus     = 33333333,
-            .min_voltage = 2800,
-            .max_voltage = 3000,
-            .min_multi   = 5.0,
-            .max_multi   = 8.0
-        },
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_VIDEO,
-        .ram       = {
-            .min  = 8192,
-            .max  = 262144,
-            .step = 8192
-        },
-        .nvrmask                  = 255,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = NULL,
-        .kbc_params               = 0x00000000,
-        .nvr_device               = NULL,
-        .nvr_params               = 0x00000000,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x00000cf0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = &cyrix_gxm_video_device,
-        .snd_device               = NULL,
-        .net_device               = NULL,
-        .aliases                  = { "Cyrix Unicorn", "" }
-    },
-    /* The Cyrix MediaGX MMX and the Cx5530A on a single-board computer, with
-       Winbond W83977F (and its keyboard controller and RTC) and W83977EF
-       Super I/Os, and one DIMM socket. */
-    {
-        .name              = "[Cyrix MediaGX MMX] AEWIN AW-H602",
-        .internal_name     = "awp601",
-        .type              = MACHINE_TYPE_SOCKET7,
-        .chipset           = MACHINE_CHIPSET_CYRIX_CX5530,
-        .init              = machine_at_awp601_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_GXM,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 30000000,
-            .max_bus     = 33333333,
-            .min_voltage = 2800,
-            .max_voltage = 3000,
-            .min_multi   = 5.0,
-            .max_multi   = 8.0
-        },
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO | MACHINE_NIC,
-        .ram       = {
-            .min  = 8192,
-            .max  = 131072,
-            .step = 8192
-        },
-        .nvrmask                  = 511,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = NULL,
-        .kbc_params               = 0x00000000,
-        .nvr_device               = NULL,
-        .nvr_params               = 0x00000000,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x00000cf0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = &cyrix_gxm_video_device,
-        .snd_device               = NULL,
-        .net_device               = &rtl8139c_plus_onboard_device,
-        .aliases                  = { "" }
-    },
     /* Has the SiS 5571 chipset with on-chip KBC. */
     {
         .name              = "[SiS 5571] Daewoo CD520",
@@ -26371,7 +26371,7 @@ const machine_t machines[] = {
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, /* Machine has EISA, possibly for a riser? */
                                                         /* Yes, that's a riser slot, not EISA. */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_AGP_INTERNAL | MACHINE_VIDEO | MACHINE_SOUND, /* Machine has internal NIC: either Intel 82559ER or Realtek RTL8139C+ (the latter's onboard variant not yet emulated) */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_AGP_INTERNAL | MACHINE_VIDEO | MACHINE_SOUND, /* Machine has internal NIC: either Intel 82559ER or Realtek RTL8139C+ */
         .ram       = {
             .min  = 8192,
             .max  = 524288,

@@ -3462,7 +3462,7 @@ const device_t rtl8139c_plus_device = {
 };
 
 const device_t rtl8139c_plus_onboard_device = {
-    .name          = "Realtek RTL8139C+ (Onboard)",
+    .name          = "Realtek RTL8139C+ (On-Board)",
     .internal_name = "rtl8139c+_onboard",
     .flags         = DEVICE_PCI,
     .local         = 1,
