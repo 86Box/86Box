@@ -1027,7 +1027,19 @@ fdd_reset(void)
         fdd_drive_t *drv = &drives[i];
 
         drives[i].id = i;
+        /* timer_add() only clears the struct, so re-adding a timer that is still
+           armed leaves the timer list pointing at a node whose links have just
+           been zeroed; the list is then truncated when that node is popped
+           and every other timer stops. Take the timer out first. */
+        timer_disable(&drv->poll_time);
         timer_add(&drv->poll_time, fdd_poll, &drives[i], 0);
+        /* The poll timer is the flux engine's clock: without it the drive never
+           advances and every command stalls. A system reset does not stop a spinning
+           motor - boards like the Tandy 2000 strap the motor lines on and have no DOR
+           to clear - so the 0 -> 1 edge never comes again in fdd_set_motor_enable().
+           Restart the engine for a drive that is still turning. */
+        if (drv->motoron)
+            timer_set_delay_u64(&drv->poll_time, fdd_byteperiod(drv));
 
         /* Clear any pending seek state */
         drv->seek_in_progress = 0;
