@@ -2621,6 +2621,13 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
     if (!size || (base_mapping == NULL))
         return;
 
+    /* The tables are per granule: a range is recalculated in whole granules,
+       or the walk below starts a granule at an unaligned address and points
+       its exec entry that far into the mapping's memory. */
+    size += base & MEM_GRANULARITY_MASK;
+    base &= ~((uint64_t) MEM_GRANULARITY_MASK);
+    size  = (size + MEM_GRANULARITY_MASK) & ~((uint64_t) MEM_GRANULARITY_MASK);
+
     /* No address lines reach past 4 GB, and the tables end there: a mapping
        that runs past it, or an alias of one, is a device model's bug. It is
        stopped here, before the walk below indexes off the end of the tables
