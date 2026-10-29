@@ -380,6 +380,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         const device_t *video_dev = card.dev;
         const QString  &name      = card.name;
 
+        int primaryFlags   = video_card_get_flags(videoCard[0]);
         int secondaryFlags = video_card_get_flags(c);
 
         const device_t *primary_dev = video_card_getdevice(videoCard[0]);
@@ -388,7 +389,9 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 
         if (card.available
             && device_is_valid(video_dev, machineId)
-            && (secondaryFlags == VIDEO_FLAG_TYPE_SECONDARY)
+            && ((secondaryFlags == VIDEO_FLAG_TYPE_SECONDARY)
+            || ((primaryFlags != secondaryFlags)
+            && ((primaryFlags == VIDEO_FLAG_TYPE_MDA) || (secondaryFlags == VIDEO_FLAG_TYPE_MDA))))
             && !(primary_is_agp && secondary_is_agp)) {
             int row = secondaryRows.add(name, c);
             scSecondary->addDevice(video_dev, name);
