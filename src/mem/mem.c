@@ -423,7 +423,8 @@ mmutranslatereal_normal(uint32_t addr, int rw)
     return (uint64_t) ((temp & ~0xfff) + (addr & 0xfff));
 }
 
-static __inline uint64_t
+/* Keep the PAE walk out of the common non-PAE translation hot path. */
+static __attribute__((noinline)) uint64_t
 mmutranslatereal_pae(uint32_t addr, int rw)
 {
     uint64_t temp;

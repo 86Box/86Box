@@ -46,6 +46,15 @@ in a block, and verify a local zero-count branch and conservative lazy-flag
 state at the join. Carry rotates retain their existing fallback.
 These are IR-generation checks, not generated-code execution tests.
 
+# MMU page translation
+
+Build `mmu_translation_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^PagingModes/MmuTranslationTest\.' --output-on-failure`.
+The tests link the production memory implementation and exercise ordinary and
+PAE page walks, accessed/dirty updates, missing entries, supervisor write
+protection, user permissions, large pages and preservation of prior aborts.
+These are translation/state checks, not host-performance measurements.
+
 # Network packet buffering
 
 Build `network_queue_tests` with `BUILD_TESTING=ON`, then run
