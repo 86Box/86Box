@@ -191,6 +191,8 @@ plat_get_string(int i)
             return "Unable to load image \"%s\": libaaruformat.so is missing, which is required for Aaru format image support.";
         case STRING_CDROM_DVD_IN_CD_DRIVE:
             return "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored.";
+        case STRING_CDROM_IMAGE_TOO_LARGE:
+            return "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored.";
         case STRING_CHARDEV_CONNECT_ERROR:
             return "%s: Could not connect to %s: %s";
         case STRING_CHARDEV_CREATE_ERROR:

@@ -3380,19 +3380,55 @@ cdrom_set_empty(cdrom_t *dev)
 }
 
 
+/* Maximum sector count this drive type may accept when capacity is restricted. */
+static uint32_t
+cdrom_drive_max_sectors(const cdrom_t *dev)
+{
+    const struct cdrom_drive_types_s *dt = &cdrom_drive_types[dev->type];
+    if (dt->hd_speed != 0) {
+        /* HD-capable: limit by preferred high-def format. */
+        if (dt->hd_type == 1)
+            return HDDVD_MAX_SECTORS;
+        return BD_MAX_SECTORS;
+    }
+    if (dt->is_dvd)
+        return DVD_MAX_SECTORS;
+    return CD_MAX_SECTORS;
+}
+
 static uint32_t
 cdrom_clamp_capacity(cdrom_t *dev, int media)
 {
     if (!dev->restricted_capacity)
         return dev->cdrom_capacity;
-    uint32_t max = CD_MAX_SECTORS;
-    if (media == 1) max = DVD_MAX_SECTORS;
-    else if (media == 2) max = HDDVD_MAX_SECTORS;
-    else if (media == 3) max = BD_MAX_SECTORS; /* dual-layer limit */
+    uint32_t max = cdrom_drive_max_sectors(dev);
+    /* Also never report more than the media type itself allows. */
+    if (media == 0 && max > CD_MAX_SECTORS) max = CD_MAX_SECTORS;
+    else if (media == 1 && max > DVD_MAX_SECTORS) max = DVD_MAX_SECTORS;
+    else if (media == 2 && max > HDDVD_MAX_SECTORS) max = HDDVD_MAX_SECTORS;
+    else if (media == 3 && max > BD_MAX_SECTORS) max = BD_MAX_SECTORS;
     if (dev->cdrom_capacity > max)
         dev->cdrom_capacity = max;
     return dev->cdrom_capacity;
 }
+
+/* Returns 1 if the media should be rejected under the current restriction policy. */
+static int
+cdrom_media_rejected(const cdrom_t *dev, int media, uint32_t capacity)
+{
+    if (!dev->restricted_capacity)
+        return 0;
+    /* Type incompatibility is always rejected. */
+    if (media == 1 && !cdrom_is_dvd(dev->type))
+        return 1;
+    if ((media == 2 || media == 3) && cdrom_drive_types[dev->type].hd_speed == 0)
+        return 1;
+    /* Size exceeds what this drive type is allowed to accept. */
+    if (capacity > cdrom_drive_max_sectors(dev))
+        return 1;
+    return 0;
+}
+
 void
 cdrom_update_status(cdrom_t *dev)
 {
@@ -3406,32 +3442,36 @@ cdrom_update_status(cdrom_t *dev)
     dev->cd_buflen      = 0;
 
     int media = dev->ops->is_dvd(dev->local);
+    uint32_t capacity = dev->ops->get_last_block(dev->local);
+    dev->cdrom_capacity = capacity;
+
+    int rejected = cdrom_media_rejected(dev, media, capacity);
+
     if (media == 1) { /* DVD */
-        if (cdrom_is_dvd(dev->type))
-            dev->cd_status = CD_STATUS_DVD;
-        else
-            dev->cd_status = CD_STATUS_DVD_REJECTED;
+        dev->cd_status = rejected ? CD_STATUS_DVD_REJECTED : CD_STATUS_DVD;
     } else if (media == 2) { /* HD DVD */
-        if (cdrom_drive_types[dev->type].hd_speed != 0)
-            dev->cd_status = CD_STATUS_HDDVD;
-        else
-            dev->cd_status = CD_STATUS_HDDVD_REJECTED;
+        dev->cd_status = rejected ? CD_STATUS_HDDVD_REJECTED : CD_STATUS_HDDVD;
     } else if (media == 3) { /* Blu-ray */
-        if (cdrom_drive_types[dev->type].hd_speed != 0)
-            dev->cd_status = CD_STATUS_BLURAY;
+        dev->cd_status = rejected ? CD_STATUS_BLURAY_REJECTED : CD_STATUS_BLURAY;
+    } else {
+        /* CD or unknown. Still reject if it somehow exceeds the drive max. */
+        if (rejected)
+            dev->cd_status = CD_STATUS_DVD_REJECTED; /* reuse closest rejection */
         else
-            dev->cd_status = CD_STATUS_BLURAY_REJECTED;
-    } else
-        dev->cd_status = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
-                                                           CD_STATUS_DATA_ONLY;
-    cdrom_clamp_capacity(dev, media);
+            dev->cd_status = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
+                                                               CD_STATUS_DATA_ONLY;
+    }
+
+    if (!rejected)
+        cdrom_clamp_capacity(dev, media);
 
     dev->cached_sector  = -1;
     dev->subc_sector    = -1;
 
-    dev->cdrom_capacity = dev->ops->get_last_block(dev->local);
-
-    if ((dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED)) {
+    if ((dev->cd_status != CD_STATUS_EMPTY) &&
+        (dev->cd_status != CD_STATUS_DVD_REJECTED) &&
+        (dev->cd_status != CD_STATUS_HDDVD_REJECTED) &&
+        (dev->cd_status != CD_STATUS_BLURAY_REJECTED)) {
         /* Signal media change to the emulated machine. */
         cdrom_insert(dev->id);
 
@@ -3487,30 +3527,31 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
             dev->cd_status = CD_STATUS_EMPTY;
         else {
             int media = dev->ops->is_dvd(dev->local);
-            if (media == 1) { /* DVD */
-                if (cdrom_is_dvd(dev->type))
-                    dev->cd_status = CD_STATUS_DVD;
-                else {
-                    warning(plat_get_string(STRING_CDROM_DVD_IN_CD_DRIVE), fn);
-                    dev->cd_status = CD_STATUS_DVD_REJECTED;
-                }
-            } else if (media == 2) { /* HD DVD */
-                if (cdrom_drive_types[dev->type].hd_speed != 0)
-                    dev->cd_status = CD_STATUS_HDDVD;
-                else
-                    dev->cd_status = CD_STATUS_HDDVD_REJECTED;
-            } else if (media == 3) { /* Blu-ray */
-                if (cdrom_drive_types[dev->type].hd_speed != 0)
-                    dev->cd_status = CD_STATUS_BLURAY;
-                else
-                    dev->cd_status = CD_STATUS_BLURAY_REJECTED;
-            } else
-                dev->cd_status = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
-                                                                   CD_STATUS_DATA_ONLY;
-        }
+            uint32_t capacity = dev->ops->get_last_block(dev->local);
+            dev->cdrom_capacity = capacity;
 
-        dev->cdrom_capacity = dev->ops->get_last_block(dev->local);
-        cdrom_clamp_capacity(dev, dev->ops->is_dvd(dev->local));
+            int rejected = cdrom_media_rejected(dev, media, capacity);
+
+            if (rejected)
+                warning(plat_get_string(STRING_CDROM_IMAGE_TOO_LARGE), fn);
+
+            if (media == 1) { /* DVD */
+                dev->cd_status = rejected ? CD_STATUS_DVD_REJECTED : CD_STATUS_DVD;
+            } else if (media == 2) { /* HD DVD */
+                dev->cd_status = rejected ? CD_STATUS_HDDVD_REJECTED : CD_STATUS_HDDVD;
+            } else if (media == 3) { /* Blu-ray */
+                dev->cd_status = rejected ? CD_STATUS_BLURAY_REJECTED : CD_STATUS_BLURAY;
+            } else {
+                if (rejected)
+                    dev->cd_status = CD_STATUS_DVD_REJECTED;
+                else
+                    dev->cd_status = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
+                                                                       CD_STATUS_DATA_ONLY;
+            }
+
+            if (!rejected)
+                cdrom_clamp_capacity(dev, media);
+        }
 
         cdrom_log(dev->log, "CD-ROM capacity: %i sectors (%" PRIi64 " bytes)\n",
                   dev->cdrom_capacity, ((uint64_t) dev->cdrom_capacity) << 11ULL);
