@@ -586,8 +586,9 @@ static int
 aaru_image_is_dvd(UNUSED(const void *local))
 {
     aaru_image_t *img = (aaru_image_t *) local;
-    return (img->img_info.MediaType >= DVDROM) &&
-           (img->img_info.MediaType <= DVDDownload);
+    if (img->img_info.MediaType >= 51 && img->img_info.MediaType <= 56) return 2; /* HD DVD */
+    if (img->img_info.MediaType >= 60 && img->img_info.MediaType <= 64) return 3; /* Blu-ray */
+    return (img->img_info.MediaType >= DVDROM && img->img_info.MediaType <= DVDDownload) ? 1 : 0;
 }
 
 static int

@@ -47,6 +47,7 @@ enum {
     STRING_CDROM_LOAD_MDSX_ERROR,     /* "Unable to load image \"%s\": %1 is missing..." */
     STRING_CDROM_LOAD_AARU_ERROR,     /* "Unable to load image \"%s\": %1 is missing..." */
     STRING_CDROM_DVD_IN_CD_DRIVE,     /* "DVD image \"%s\" in a CD-only drive..." */
+    STRING_CDROM_IMAGE_TOO_LARGE,     /* "Image \"%s\" exceeds drive capacity and will be ignored." */
     STRING_CHARDEV_CONNECT_ERROR,     /* "%s: Could not connect to %s: %s" */
     STRING_CHARDEV_CREATE_ERROR,      /* "%s: Could not create %s: %s" */
     STRING_CHARDEV_ATTACHED,          /* "%s: Attached to %s" */
