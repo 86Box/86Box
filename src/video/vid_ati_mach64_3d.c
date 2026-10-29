@@ -133,6 +133,12 @@
 #define CI4_RGB_LOW_NIBBLE  (1u << 26)
 #define CI4_RGB_HIGH_NIBBLE (1u << 27)
 
+/* 86Box-Next: the GT-B's horizontal scissors are 14 bits, as the 2D engine
+   has them (vid_ati_mach64_accel.c): SC_RIGHT 1FFFh opens the scissor, where
+   13 bits would make it -1 and clip every scaled or 3D pixel (Midway
+   TouchMaster II's display server sets SC_LEFT_RIGHT to 1FFF3FFFh). */
+#define SC_X_BITS 14
+
 /* The GT-B's command FIFO has 48 entries. */
 #define GT_FIFO_DEPTH 48
 
@@ -1842,8 +1848,8 @@ mach64_3d_dst_init(mach64_t *mach64, mach64_3d_dst_t *dst)
     dst->bpp    = mach64_3d_bytes_per_pixel(dst->format);
     dst->base   = (mach64->dst_off_pitch & 0xfffff) << 3;
     dst->pitch  = ((mach64->dst_off_pitch >> 22) & 0x3ff) << 3;
-    dst->left   = mach64_3d_sign_extend(mach64->sc_left_right, 13);
-    dst->right  = mach64_3d_sign_extend(mach64->sc_left_right >> 16, 13);
+    dst->left   = mach64_3d_sign_extend(mach64->sc_left_right, SC_X_BITS);
+    dst->right  = mach64_3d_sign_extend(mach64->sc_left_right >> 16, SC_X_BITS);
     dst->top    = mach64_3d_sign_extend(mach64->sc_top_bottom, 15);
     dst->bottom = mach64_3d_sign_extend(mach64->sc_top_bottom >> 16, 15);
     if (!dst->pitch)
@@ -2917,8 +2923,8 @@ mach64_scaler_draw(mach64_3d_t *ctx)
     int             dst_height = mach64->dst_height_width & 0x1fff;
     int             x_dir      = (mach64->dst_cntl & DST_X_DIR) ? 1 : -1;
     int             y_dir      = (mach64->dst_cntl & DST_Y_DIR) ? 1 : -1;
-    int             sc_left    = mach64_3d_sign_extend(mach64->sc_left_right, 13);
-    int             sc_right   = mach64_3d_sign_extend(mach64->sc_left_right >> 16, 13);
+    int             sc_left    = mach64_3d_sign_extend(mach64->sc_left_right, SC_X_BITS);
+    int             sc_right   = mach64_3d_sign_extend(mach64->sc_left_right >> 16, SC_X_BITS);
     int             sc_top     = mach64_3d_sign_extend(mach64->sc_top_bottom, 15);
     int             sc_bottom  = mach64_3d_sign_extend(mach64->sc_top_bottom >> 16, 15);
     uint64_t        vram_size  = (uint64_t) mach64->vram_mask + 1;
@@ -3139,9 +3145,9 @@ mach64_3d_gui_stat(mach64_t *mach64)
 
     dst_x = mach64_3d_sign_extend(mach64->dst_y_x >> 16, 13);
     dst_y = mach64_3d_sign_extend(mach64->dst_y_x, 15);
-    if (dst_x < mach64_3d_sign_extend(mach64->sc_left_right, 13))
+    if (dst_x < mach64_3d_sign_extend(mach64->sc_left_right, SC_X_BITS))
         ret |= 0x10; /* DSTX_LT_SCISSOR_LEFT */
-    if (dst_x > mach64_3d_sign_extend(mach64->sc_left_right >> 16, 13))
+    if (dst_x > mach64_3d_sign_extend(mach64->sc_left_right >> 16, SC_X_BITS))
         ret |= 0x20; /* DSTX_GT_SCISSOR_RIGHT */
     if (dst_y < mach64_3d_sign_extend(mach64->sc_top_bottom, 15))
         ret |= 0x40; /* DSTY_LT_SCISSOR_TOP */
