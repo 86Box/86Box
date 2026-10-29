@@ -1085,6 +1085,44 @@ pci_readl(uint16_t port, UNUSED(void *priv))
     return ret;
 }
 
+static uint8_t
+pci_direct_slot(uint8_t bus, uint8_t dev)
+{
+    if (dev >= PCI_CARDS_NUM)
+        return PCI_CARD_INVALID;
+    return pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[bus]][dev];
+}
+
+/* Configuration space reads and writes straight to a function, as a
+   configuration cycle of len bytes (1, 2 or 4) would reach it, without the
+   configuration mechanism and so without disturbing the guest's 0CF8. For
+   debuggers and the automation socket. pci_config_read() returns 0 when no
+   card sits at bus:dev, leaving vals at FF. */
+int
+pci_config_read(uint8_t bus, uint8_t dev, uint8_t func, uint8_t reg, int len, uint8_t *vals)
+{
+    uint8_t slot = pci_direct_slot(bus, dev);
+
+    memset(vals, 0xff, len);
+    if ((slot == PCI_CARD_INVALID) || !pci_cards[slot].read)
+        return 0;
+    for (int i = 0; i < len; i++)
+        vals[i] = pci_cards[slot].read(func, (reg + i) & 0xff, len, pci_cards[slot].priv);
+    return 1;
+}
+
+int
+pci_config_write(uint8_t bus, uint8_t dev, uint8_t func, uint8_t reg, int len, const uint8_t *vals)
+{
+    uint8_t slot = pci_direct_slot(bus, dev);
+
+    if ((slot == PCI_CARD_INVALID) || !pci_cards[slot].write)
+        return 0;
+    for (int i = 0; i < len; i++)
+        pci_cards[slot].write(func, (reg + i) & 0xff, len, vals[i], pci_cards[slot].priv);
+    return 1;
+}
+
 uint8_t
 pci_register_bus(void)
 {
