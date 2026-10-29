@@ -647,8 +647,10 @@ gxm_gp_blt(gxm_video_t *dev)
     const int      yrev     = !!(dev->blt_mode & BM_YREV);
     const int      dst_x    = (int16_t) (dev->dst_xy & 0xffff);
     const int      dst_y    = (int16_t) (dev->dst_xy >> 16);
-    const int      width    = dev->wh & 0xffff;
-    const int      height   = dev->wh >> 16;
+    /* Bounded to what the frame buffer holds (a 2048-byte pitch at most),
+       so one BLT_MODE write cannot run 65535 x 65535 pixels */
+    const int      width    = MIN(dev->wh & 0xffff, GXM_BLT_LINE_MAX);
+    const int      height   = MIN(dev->wh >> 16, GXM_BLT_LINE_MAX);
     const int      src_x    = (int16_t) (dev->src_xy & 0xffff);
     const int      src_y    = (int16_t) (dev->src_xy >> 16);
     const int      mono     = (sm == 1) || (sm == 3);
@@ -1423,7 +1425,9 @@ gxm_dc_read(uint32_t addr, void *priv)
             ret = dev->displine & 0x7ff;
             break;
         case DC_PAL_DATA:
-            ret = dev->palette[dev->dc[DC_PAL_ADDRESS] & 0x1ff];
+            /* PAL_ADDRESS takes up to 1FFh; past the 105h entries there is
+               nothing to read */
+            ret = ((dev->dc[DC_PAL_ADDRESS] & 0x1ff) < 0x105) ? dev->palette[dev->dc[DC_PAL_ADDRESS] & 0x1ff] : 0x00000000;
             if ((dev->dc[DC_PAL_ADDRESS] & 0x1ff) < 0x104)
                 dev->dc[DC_PAL_ADDRESS]++;
             break;
