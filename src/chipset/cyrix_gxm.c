@@ -450,14 +450,14 @@ gxm_gmem_readl(uint32_t addr, void *priv)
     return *(uint32_t *) &ram[dev->gmem_base + addr];
 }
 
-/* Graphics memory is RAM. A write through the aperture to a page holding
-   compiled code (graphics memory placed where the OS keeps code) goes
-   through the RAM write path, which invalidates it; frame buffer writes
-   otherwise stay direct. */
+/* Graphics memory is RAM. A write through the aperture to bytes that
+   compiled code was built from (graphics memory placed where the OS keeps
+   code), in blocks tracked by word or by byte, goes through the RAM write
+   path, which invalidates it; frame buffer writes otherwise stay direct. */
 static inline int
 gxm_gmem_has_code(uint32_t a, int len)
 {
-    return cpu_use_exec && (pages[a >> 12].code_present_mask || pages[(a + len - 1) >> 12].code_present_mask);
+    return cpu_use_exec && mem_phys_has_code(a, len);
 }
 
 static void

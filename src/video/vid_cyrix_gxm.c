@@ -267,6 +267,17 @@ gxm_gmem(gxm_video_t *dev, uint32_t offset)
     return &ram[dev->gmem_base + offset];
 }
 
+/* The graphics pipeline and the VGA path wrote len bytes of graphics memory
+   straight to RAM: invalidate any code compiled from them, as the aperture
+   writes do (gxm_gmem_has_code). */
+static inline void
+gxm_gmem_written(gxm_video_t *dev, uint32_t offset, uint32_t len)
+{
+    offset &= 0x003fffff;
+    if (cpu_use_exec && ((offset + 4) <= dev->gmem_size) && mem_phys_has_code(dev->gmem_base + offset, len))
+        mem_phys_written(dev->gmem_base + offset, len);
+}
+
 void
 gxm_video_set_gmem(void *priv, uint32_t base, uint32_t size)
 {
@@ -428,11 +439,13 @@ gxm_vga_writeb_internal(gxm_video_t *dev, uint32_t off, uint8_t val)
     out   = gxm_rop(dev->raster_mode & 0xff, pmask, data, dev->vga_latch);
 
     planes &= (wr >> 24) & 0x0f;
-    p = gxm_gmem(dev, gxm_vga_mem_offset(dev, addr));
+    addr = gxm_vga_mem_offset(dev, addr);
+    p    = gxm_gmem(dev, addr);
     for (int i = 0; i < 4; i++) {
         if (planes & (1 << i))
             p[i] = out >> (i << 3);
     }
+    gxm_gmem_written(dev, addr, 4);
 }
 
 /* The SMI on a write to displayed VGA memory: in the decode stage, for the
@@ -564,12 +577,14 @@ gxm_gp_fb_read(gxm_video_t *dev, int x, int y)
 static void
 gxm_gp_fb_write(gxm_video_t *dev, int x, int y, uint32_t val)
 {
-    uint8_t *p = gxm_gmem(dev, gxm_gp_fb_offset(dev, x, y));
+    const uint32_t offset = gxm_gp_fb_offset(dev, x, y);
+    uint8_t       *p      = gxm_gmem(dev, offset);
 
     if (gxm_gp_bpp(dev) == 2)
         *(uint16_t *) p = val;
     else
         *p = val;
+    gxm_gmem_written(dev, offset, gxm_gp_bpp(dev));
 }
 
 static inline uint8_t
@@ -647,10 +662,12 @@ gxm_gp_blt(gxm_video_t *dev)
     const int      yrev     = !!(dev->blt_mode & BM_YREV);
     const int      dst_x    = (int16_t) (dev->dst_xy & 0xffff);
     const int      dst_y    = (int16_t) (dev->dst_xy >> 16);
-    /* Bounded to what the frame buffer holds (a 2048-byte pitch at most),
-       so one BLT_MODE write cannot run 65535 x 65535 pixels */
+    /* Bounded to what the frame buffer holds: a line of GXM_BLT_LINE_MAX
+       pixels, and as many lines as the 22-bit graphics memory offset
+       (gxm_gmem) reaches at the pitch, so one BLT_MODE write cannot run
+       65535 x 65535 pixels */
     const int      width    = MIN(dev->wh & 0xffff, GXM_BLT_LINE_MAX);
-    const int      height   = MIN(dev->wh >> 16, GXM_BLT_LINE_MAX);
+    const int      height   = MIN(dev->wh >> 16, 0x00400000 / ((dev->blt_status & BS_W2048) ? 2048 : 1024));
     const int      src_x    = (int16_t) (dev->src_xy & 0xffff);
     const int      src_y    = (int16_t) (dev->src_xy >> 16);
     const int      mono     = (sm == 1) || (sm == 3);
