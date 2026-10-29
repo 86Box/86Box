@@ -2043,8 +2043,10 @@ pmodeiret(int is32)
 
     if (cpu_state.flags & NT_FLAG) {
         /* The back link must name a global, busy, present TSS: #TS(back
-           link) on the 80286, 386, Intel486 and Pentium books, #GP on the
-           P6 book; #NP(back link) when not present */
+           link), or #NP(back link) when not present. The P6-era manual's
+           #GP here is a documentation error, corrected to #TS by the IA-32
+           SDM Documentation Changes (252046-001, item 3); Win4Lin's monitor
+           runs the Windows VMM with NT set and relies on that #TS. */
         cpl_override = 1;
         seg  = readmemw(tr.base, 0);
         cpl_override = 0;
@@ -2052,20 +2054,14 @@ pmodeiret(int is32)
             return;
         addr = seg & 0xfff8;
         if ((seg & 0x0004) || ((addr + 7) > gdt.limit)) {
-            if (is_p6)
-                x86gpf("pmodeiret(): back link local or past the GDT limit", seg & 0xfffc);
-            else
-                x86ts("pmodeiret(): back link local or past the GDT limit", seg & 0xfffc);
+            x86ts("pmodeiret(): back link local or past the GDT limit", seg & 0xfffc);
             return;
         }
         read_descriptor(gdt.base + addr, segdat, segdat32, 1);
         if (cpu_state.abrt)
             return;
         if (((segdat[2] & 0x1f00) != 0x0300) && (!is386 || ((segdat[2] & 0x1f00) != 0x0b00))) {
-            if (is_p6)
-                x86gpf("pmodeiret(): back link not a busy TSS", seg & 0xfffc);
-            else
-                x86ts("pmodeiret(): back link not a busy TSS", seg & 0xfffc);
+            x86ts("pmodeiret(): back link not a busy TSS", seg & 0xfffc);
             return;
         }
         if (!(segdat[2] & 0x8000)) {
