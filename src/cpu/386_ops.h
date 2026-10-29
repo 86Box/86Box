@@ -45,7 +45,7 @@
         if ((cond)) {                       \
             cpu_state.pc = cpu_state.oldpc; \
             x86illegal();                   \
-            return 0;                       \
+            return 1;                       \
         }                                   \
     } while (0)
 
@@ -201,7 +201,7 @@ ILLEGAL(uint32_t fetchdat)
     cpu_state.pc = cpu_state.oldpc;
 
     x86illegal();
-    return 0;
+    return 1;
 }
 
 #ifdef ENABLE_386_DYNAREC_LOG
@@ -463,7 +463,7 @@ opVPCEXT(uint32_t fetchdat)
 
         pclog("Illegal VPCEXT %08X (%02X %02X)\n", fetchdat, b1, b2);
         x86illegal();
-        return 0;
+        return 1;
     }
 
     return 1;
