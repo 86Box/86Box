@@ -10,11 +10,11 @@
  *
  *          All of the on-chip peripheral registers are in the expanded
  *          I/O space (0xF000-0xFFFF), which is hidden after reset. The
- *          PC/AT-compatible ones (the interrupt controllers and the timer)
- *          also appear at their usual addresses in the DOS I/O space unless
- *          REMAPCFG maps them out of it. The expanded I/O space is enabled
- *          by a write sequence to ports 22h and 23h, which sets REMAPCFG's
- *          ESE bit.
+ *          PC/AT-compatible ones (the interrupt controllers, the timer and
+ *          the two UARTs) also appear at their usual addresses in the DOS
+ *          I/O space unless REMAPCFG maps them out of it. The expanded I/O
+ *          space is enabled by a write sequence to ports 22h and 23h,
+ *          which sets REMAPCFG's ESE bit.
  *
  *          The interrupt controllers, timer and DMA controller are the
  *          machine's usual AT ones, which the chip only maps. The DMA
@@ -27,7 +27,17 @@
  *          CLKPRS clocks the timer, whose OUT1 and OUT2 are hardwired to
  *          the slave's IR2 and IR3 and still drive the refresh request bit
  *          and the speaker as on an AT. The other configuration registers
- *          are stored but have no effect.
+ *          are stored but have no effect, but for INTCFG's IR3 and IR4 bits
+ *          and SIOCFG, which are the serial ports'.
+ *
+ *          SIOCFG picks the UART baud-rate clocks, from SERCLK or the COMCLK
+ *          pin, which the board drives. SIO0 interrupts on the master's IR4
+ *          and SIO1 on its IR3 while INTCFG's IR4 or IR3 bit is clear. While
+ *          the bit is set, the UART's MCR OUT2 bit picks between it and the
+ *          INT9 or INT8 pin (Tables 5-1 and 5-2), which are not emulated, so
+ *          the UART is only connected while OUT2 is set. The UARTs gate their
+ *          interrupts with OUT2 as on a PC, which the real chip does not do
+ *          while the INTCFG bit is clear.
  *
  * Authors: Nathan Lewis, <git@nrlewis.dev>
  *
@@ -47,34 +57,51 @@
 #include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
+#include <86box/serial.h>
 #include <86box/i386ex.h>
 #include <86box/plat_unused.h>
 
 /* Register addresses. */
-#define REMAPCFG     0x0022
-#define REMAPCFGH    0x0023
-#define ICW1M_PC     0x0020
-#define ICW1S_PC     0x00a0
-#define TMR0_PC      0x0040
-#define ICW1M        0xf020
-#define ICW1S        0xf0a0
-#define TMR0         0xf040
-#define CLKPRS       0xf804
-#define DMACFG       0xf830
-#define INTCFG       0xf832
-#define TMRCFG       0xf834
-#define SIOCFG       0xf836
+#define REMAPCFG      0x0022
+#define REMAPCFGH     0x0023
+#define ICW1M_PC      0x0020
+#define ICW1S_PC      0x00a0
+#define TMR0_PC       0x0040
+#define RBR0_PC       0x03f8
+#define RBR1_PC       0x02f8
+#define MCR0_PC       0x03fc
+#define MCR1_PC       0x02fc
+#define ICW1M         0xf020
+#define ICW1S         0xf0a0
+#define TMR0          0xf040
+#define RBR0          0xf4f8
+#define RBR1          0xf8f8
+#define MCR0          0xf4fc
+#define MCR1          0xf8fc
+#define CLKPRS        0xf804
+#define DMACFG        0xf830
+#define INTCFG        0xf832
+#define TMRCFG        0xf834
+#define SIOCFG        0xf836
 
-#define REMAP_ESE    0x8000
-#define REMAP_S1R    0x0040
-#define REMAP_S0R    0x0020
-#define REMAP_ISR    0x0010
-#define REMAP_IMR    0x0008
-#define REMAP_DR     0x0004
-#define REMAP_TR     0x0001
-#define REMAP_MASK   0x007d
+#define REMAP_ESE     0x8000
+#define REMAP_S1R     0x0040
+#define REMAP_S0R     0x0020
+#define REMAP_ISR     0x0010
+#define REMAP_IMR     0x0008
+#define REMAP_DR      0x0004
+#define REMAP_TR      0x0001
+#define REMAP_MASK    0x007d
 
-#define EXPANDED_MAX 16
+#define INTCFG_IR3    0x40
+#define INTCFG_IR4    0x20
+
+#define SIOCFG_S1BSRC 0x02
+#define SIOCFG_S0BSRC 0x01
+
+#define MCR_OUT2      0x08
+
+#define EXPANDED_MAX  16
 
 typedef struct i386ex_handler_t {
     uint16_t base;
@@ -97,6 +124,9 @@ struct i386ex_t {
     uint8_t  intcfg;
     uint8_t  tmrcfg;
     uint8_t  siocfg;
+    double   comclk; /* What the board drives the COMCLK pin at, 0 if nothing. */
+
+    serial_t *uart[2];
 
     i386ex_handler_t handlers[EXPANDED_MAX];
     int              handlers_num;
@@ -119,6 +149,73 @@ i386ex_log(const char *fmt, ...)
 #else
 #    define i386ex_log(fmt, ...)
 #endif
+
+static const uint16_t uart_base[2]   = { RBR0_PC, RBR1_PC };
+static const uint16_t uart_ex[2]     = { RBR0, RBR1 };
+static const uint16_t uart_remap[2]  = { REMAP_S0R, REMAP_S1R };
+static const uint16_t uart_mcr[2]    = { MCR0_PC, MCR1_PC };
+static const uint16_t uart_mcr_ex[2] = { MCR0, MCR1 };
+static const uint8_t  uart_irq[2]    = { 4, 3 };
+static const uint8_t  uart_intcfg[2] = { INTCFG_IR4, INTCFG_IR3 };
+
+static int
+i386ex_uart_present(const i386ex_t *dev, int n)
+{
+    return (dev->uart[n] != NULL) && com_ports[dev->uart[n]->inst].enabled;
+}
+
+/*
+   The baud-rate generators run off the COMCLK pin or SERCLK, which is CLK2 / 4.
+   A UART cannot be stopped, so one on a COMCLK the board does not drive keeps
+   its clock.
+ */
+static void
+i386ex_uart_clock(i386ex_t *dev)
+{
+    static const uint8_t bsrc[2] = { SIOCFG_S0BSRC, SIOCFG_S1BSRC };
+    double               clock;
+
+    for (int n = 0; n < 2; n++) {
+        if (dev->uart[n] == NULL)
+            continue;
+
+        clock = (dev->siocfg & bsrc[n]) ? ((double) cpu_s->rspeed / 2.0) : dev->comclk;
+        if (clock > 0.0)
+            serial_set_clock_src(dev->uart[n], clock);
+    }
+}
+
+/*
+   A UART's IRQ: its IR while INTCFG's bit for the IR is clear or the UART's
+   OUT2 is set, and none otherwise (Tables 5-1 and 5-2).
+ */
+static uint8_t
+i386ex_uart_irq(const i386ex_t *dev, int n)
+{
+    if (!(dev->intcfg & uart_intcfg[n]) || (dev->uart[n]->mctrl & MCR_OUT2))
+        return uart_irq[n];
+
+    return 0xff;
+}
+
+static void
+i386ex_uart_connect(const i386ex_t *dev)
+{
+    for (int n = 0; n < 2; n++) {
+        if (i386ex_uart_present(dev, n))
+            serial_irq(dev->uart[n], i386ex_uart_irq(dev, n));
+    }
+}
+
+/*
+   Follows the MCR writes, which the UART takes itself, for OUT2. This handler
+   is added after the UART's, so it runs after the UART has stored the value.
+ */
+static void
+i386ex_uart_mcr_write(UNUSED(uint16_t port), UNUSED(uint8_t val), void *priv)
+{
+    i386ex_uart_connect((i386ex_t *) priv);
+}
 
 /* PSCLK, which clocks the timer, is the internal clock divided by CLKPRS + 2. */
 static void
@@ -162,6 +259,23 @@ i386ex_map_peripherals(i386ex_t *dev, int set, int expanded, uint16_t mask)
     if ((mask & REMAP_TR) && (pit_devs[0].data != NULL))
         io_handler(set, expanded ? TMR0 : TMR0_PC, 4,
                    pit_devs[0].read, NULL, NULL, pit_devs[0].write, NULL, NULL, pit_devs[0].data);
+
+    for (int n = 0; n < 2; n++) {
+        if (!(mask & uart_remap[n]) || !i386ex_uart_present(dev, n))
+            continue;
+
+        if (!expanded) {
+            /* Through serial_setup(), so that the UART knows its own address. */
+            if (set)
+                serial_setup(dev->uart[n], uart_base[n], i386ex_uart_irq(dev, n));
+            else
+                serial_remove(dev->uart[n]);
+        } else
+            io_handler(set, uart_ex[n], 8, serial_read, NULL, NULL, serial_write, NULL, NULL, dev->uart[n]);
+
+        io_handler(set, expanded ? uart_mcr_ex[n] : uart_mcr[n], 1,
+                   NULL, NULL, NULL, i386ex_uart_mcr_write, NULL, NULL, dev);
+    }
 }
 
 static uint8_t i386ex_config_read(uint16_t port, void *priv);
@@ -308,12 +422,14 @@ i386ex_config_write(uint16_t port, uint8_t val, void *priv)
             break;
         case INTCFG:
             dev->intcfg = val;
+            i386ex_uart_connect(dev);
             break;
         case TMRCFG:
             dev->tmrcfg = val;
             break;
         case SIOCFG:
             dev->siocfg = val;
+            i386ex_uart_clock(dev);
             break;
 
         default:
@@ -351,19 +467,35 @@ i386ex_expanded_handler(i386ex_t *dev, uint16_t base, int size,
         io_sethandler(base, size, inb, inw, inl, outb, outw, outl, priv);
 }
 
+void
+i386ex_set_comclk(i386ex_t *dev, double hz)
+{
+    dev->comclk = hz;
+    i386ex_uart_clock(dev);
+}
+
 static void
 i386ex_speed_changed(void *priv)
 {
     i386ex_t *dev = (i386ex_t *) priv;
 
     i386ex_timer_clock(dev);
+    i386ex_uart_clock(dev);
 }
 
 static void *
-i386ex_init(UNUSED(const device_t *info))
+i386ex_init(const device_t *info)
 {
     i386ex_t *dev = (i386ex_t *) calloc(1, sizeof(i386ex_t));
 
+    /* The UARTs take the next free COM ports, which on a board are COM1 and COM2. */
+    if (info->local & I386EX_SIO0)
+        dev->uart[0] = device_add_inst(&ns16450_device, 1);
+    if (info->local & I386EX_SIO1)
+        dev->uart[1] = device_add_inst(&ns16450_device, 2);
+
+    i386ex_map_peripherals(dev, 1, 0, REMAP_S0R | REMAP_S1R);
+    i386ex_uart_clock(dev);
     i386ex_timer_clock(dev);
 
     /* OUT1 and OUT2 still request refresh and drive the speaker, as on an AT. */
