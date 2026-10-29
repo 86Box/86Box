@@ -520,24 +520,32 @@ cs5530_ms_timer_recalc(cs5530_t *dev)
         timer_disable(&dev->ms_timer);
 }
 
-/* The VGA Timer (8Eh), 1 ms or 32 us a count (8Bh[6]). */
+/* The VGA Timer (8Eh), 1 ms or 32 us a count (8Bh[6]). The count goes down
+   with each clock of the timebase, which loading the count does not restart:
+   VSA turns the timer off and on in its SMIs, and SoftVGA's chunked text
+   redraw, which goes on from this SMI, starved while the guest polled a
+   trapped VGA port. */
 static void
 cs5530_vga_timer(void *priv)
 {
     cs5530_t *dev = (cs5530_t *) priv;
 
+    /* The clock stops at its first tick with the timer off, so an off and
+       on in one SMI leaves it in step. */
+    if (!(dev->pci_conf[0][0x83] & 0x08))
+        return;
+
     if (dev->vga_count && !--dev->vga_count)
         cs5530_smi(dev, TOP_VGA_TIMER);
-    else if (dev->vga_count)
-        timer_advance_u64(&dev->vga_timer, (dev->pci_conf[0][0x8b] & 0x40) ? (TIMER_USEC * 32) : (TIMER_USEC * 1000));
+
+    timer_advance_u64(&dev->vga_timer, (dev->pci_conf[0][0x8b] & 0x40) ? (TIMER_USEC * 32) : (TIMER_USEC * 1000));
 }
 
 static void
 cs5530_vga_timer_load(cs5530_t *dev)
 {
-    timer_disable(&dev->vga_timer);
     dev->vga_count = dev->pci_conf[0][0x8e];
-    if ((dev->pci_conf[0][0x83] & 0x08) && dev->vga_count)
+    if ((dev->pci_conf[0][0x83] & 0x08) && !timer_is_enabled(&dev->vga_timer))
         timer_set_delay_u64(&dev->vga_timer, (dev->pci_conf[0][0x8b] & 0x40) ? (TIMER_USEC * 32) : (TIMER_USEC * 1000));
 }
 
