@@ -19153,6 +19153,57 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    /* The Geode GX1 and the CS5530A on an ECX single-board computer, with a
+       National PC97317 Super I/O (and its keyboard controller and RTC) at
+       2Eh, a Winbond W83977EF at 370h for COM3/COM4, an on-board Realtek
+       RTL8139C and one DIMM socket. */
+    {
+        .name              = "[Cyrix MediaGX MMX] Maxan Systems MSC-655B",
+        .internal_name     = "msc655b",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_CYRIX_CX5530,
+        .init              = machine_at_msc655b_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = machine_at_p5gxm_gpio_handler,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_GXM,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 30000000,
+            .max_bus     = 33333333,
+            .min_voltage = 2800,
+            .max_voltage = 3000,
+            .min_multi   = 5.0,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_NIC,
+        .ram       = {
+            .min  = 8192,
+            .max  = 262144,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &cyrix_gxm_video_device,
+        .snd_device               = &cs5530_xpressaudio_device,
+        .net_device               = &rtl8139c_plus_onboard_device,
+        .aliases                  = { "" }
+    },
     /* The Cyrix MediaGX MMX and the Cx5530 on Cyrix's MXi ("Unicorn")
        reference design, with a National PC97317 Super I/O at 2Eh. */
     {

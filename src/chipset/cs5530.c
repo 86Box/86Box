@@ -1677,9 +1677,14 @@ cs5530_f0_write(cs5530_t *dev, int addr, uint8_t val)
             conf[addr] = val & 0x7f;
             break;
         case 0x44:
-            /* The straps read back; the resets are levels. */
-            if ((val & 0x01) && !(conf[addr] & 0x01))
-                resetx86();
+            /* The straps read back; the resets are levels. Bit 0 is the
+               system-wide reset: the chipset comes back at its defaults too,
+               which a BIOS checks for (40h = 89h) before going on with POST,
+               resetting again until it sees them. */
+            if (val & 0x01) {
+                pci_system_reset();
+                return;
+            }
             conf[addr] = (conf[addr] & 0xc0) | (val & 0x3e);
             if (val & 0x08) {
                 sff_bus_master_reset(dev->bm[0]);

@@ -806,6 +806,13 @@ pci_trc_reset(uint8_t val)
     }
 }
 
+/* A chipset's own system-wide reset: what a hard reset through CF9h does. */
+void
+pci_system_reset(void)
+{
+    pci_trc_reset(0x02);
+}
+
 void
 pci_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 {
