@@ -3979,17 +3979,6 @@ static const device_config_t mach64gx_xpression_config[] = {
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = {
-#ifdef ROM_MISSING
-            {
-                .name          = "113-27803-102 (03/16/1995)",
-                .internal_name = "113_27803_102",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 32768,
-                .files         = { BIOS_XPRESSION_VLB_27803_PATH, "" }
-            },
-#endif
             {
                 .name          = "113-27804-101 (01/20/1995)",
                 .internal_name = "113_27804_101",
