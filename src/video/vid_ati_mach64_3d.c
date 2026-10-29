@@ -2928,6 +2928,10 @@ mach64_scaler_draw(mach64_3d_t *ctx)
     int             sc_top     = mach64_3d_sign_extend(mach64->sc_top_bottom, 15);
     int             sc_bottom  = mach64_3d_sign_extend(mach64->sc_top_bottom >> 16, 15);
     uint64_t        vram_size  = (uint64_t) mach64->vram_mask + 1;
+    uint32_t        cntl       = regs[SCALE_3D_CNTL >> 2];
+    int32_t         a_start    = mach64_3d_s8_12_decode(regs[ALPHA_START >> 2]);
+    int32_t         a_x_inc    = mach64_3d_s8_12_decode(regs[ALPHA_X_INC >> 2]);
+    int32_t         a_y_inc    = mach64_3d_s8_12_decode(regs[ALPHA_Y_INC >> 2]);
     uint32_t        vacc_advanced;
 
     if (src_width && src_height && src_pitch && dst_width && dst_height && mach64_scaler_source_bpp(src_format) && dst_bpp &&
@@ -2983,7 +2987,10 @@ mach64_scaler_draw(mach64_3d_t *ctx)
                     src = mach64_scaler_sample_yuyv(ctx, src_base, src_pitch, src_x, src_x_next, uv_x, uv_x_next, src_y,
                                                     src_y_next, h_fraction, uv_fraction, v_fraction, replicate);
                 } else {
-                    src = mach64_scaler_read_source(ctx, src_format, src_base, src_pitch, src_x, src_y);
+                    rgba_t nearest;
+
+                    src     = mach64_scaler_read_source(ctx, src_format, src_base, src_pitch, src_x, src_y);
+                    nearest = src;
                     if (!replicate) {
                         rgba_t below       = mach64_scaler_read_source(ctx, src_format, src_base, src_pitch, src_x, src_y_next);
                         rgba_t right       = mach64_scaler_read_source(ctx, src_format, src_base, src_pitch, src_x_next, src_y);
@@ -2993,6 +3000,19 @@ mach64_scaler_draw(mach64_3d_t *ctx)
                         src = mach64_scaler_lerp_rgba(mach64_scaler_lerp_rgba(src, below, v_fraction),
                                                       mach64_scaler_lerp_rgba(right, below_right, v_fraction), h_fraction);
                     }
+
+                    /* 86Box-Next: the scaled pixel's alpha follows the texel
+                       rules: without TEX_MAP_AEN it is the interpolated alpha
+                       (ALPHA_START and its increments), and TEX_AMASK_AEN
+                       makes the source's alpha bit a mask, taken from the
+                       nearest source pixel. Midway TouchMaster II fades 1555
+                       images through ALPHA_START with the mask on, and masks
+                       its 1555 glyphs. */
+                    if (cntl & TEX_AMASK_AEN)
+                        src.a = nearest.a;
+                    if (!mach64_3d_texture_alpha(cntl, &src, mach64_3d_s8_12_color((int64_t) a_start + (int64_t) dx * a_x_inc +
+                                                                                       (int64_t) dy * a_y_inc)))
+                        continue;
                 }
 
                 addr = (int64_t) dst_base + ((int64_t) y * dst_pitch + x) * dst_bpp;

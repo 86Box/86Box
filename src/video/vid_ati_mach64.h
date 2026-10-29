@@ -62,6 +62,9 @@
 #define BIOS_ROMVT_PATH               "roms/video/mach64/mach64vt-660c60c135839345779942.bin"
 #define BIOS_ROMVT2_PATH              "roms/video/mach64/atimach64vt2pci.bin"
 #define BIOS_ROMGTB_PATH              "roms/video/mach64/ARS2D.bin"
+/* 86Box-Next: 3D Rage IIC PCI BIOSes (PCI ID 4756h), dumped from 27C512 EPROMs. */
+#define BIOS_RAGE2C_61801_PATH        "roms/video/mach64/rage2c_pci_113-61801-101.bin"
+#define BIOS_RAGE2C_38816_PATH        "roms/video/mach64/rage2c_pci_113-38816-100.bin"
 
 #define FIFO_SIZE         65536
 #define FIFO_MASK         (FIFO_SIZE - 1)

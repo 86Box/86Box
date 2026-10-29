@@ -3748,24 +3748,15 @@ mach64gtb_init(const device_t *info)
     if (info->local & MACH64_FLAG_ONBOARD)
         /* On-board: the video BIOS is part of the system BIOS. */
         ati_eeprom_load(&mach64->eeprom, "mach64rage2p_onboard.nvr", 1);
-    else {
+    else if (info->local & MACH64_FLAG_RAGE2C) {
+        /* 86Box-Next: the Rage IIC's own BIOS, 32K at the bottom of a 27C512. */
+        ati_eeprom_load(&mach64->eeprom, "mach64rage2c.nvr", 1);
+        rom_init(&mach64->bios_rom, (char *) device_get_bios_file(info, device_get_config_bios("bios_ver"), 0),
+                 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    } else {
         ati_eeprom_load(&mach64->eeprom, "mach64rage2p_ars2d.nvr", 1);
         /* ARS2D is 36K, 48h blocks of 512 bytes by its PCI data structure. */
         rom_init(&mach64->bios_rom, BIOS_ROMGTB_PATH, 0xc0000, 0x9000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-        if ((info->local & MACH64_FLAG_RAGE2C) && mach64->bios_rom.rom) {
-            /* 86Box-Next: no Rage IIC dump; give ARS2D's PCI data structure the
-               IIC's device ID, as on the real card, and keep the image summing to 0. */
-            uint8_t *rom  = mach64->bios_rom.rom;
-            uint16_t pcir = rom[0x18] | (rom[0x19] << 8);
-
-            if ((pcir < 0x8ff8) && !memcmp(&rom[pcir], "PCIR", 4)) {
-                uint8_t old = rom[pcir + 6];
-
-                rom[pcir + 6] = 0x56;
-                rom[pcir + 7] = 0x47;
-                rom[0x8fff] -= (uint8_t) (rom[pcir + 6] - old);
-            }
-        }
     }
     mem_mapping_disable(&mach64->bios_rom.mapping);
 
@@ -4141,8 +4132,39 @@ static const device_config_t mach64gtb_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-/* 86Box-Next: the Rage IIC's, the GT-B's plus a fixed block I/O base. */
+/* 86Box-Next: the Rage IIC's, the GT-B's plus its BIOS and a fixed block I/O base. */
 static const device_config_t mach64gtc_config[] = {
+    {
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "113_61801_101",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "113-61801-101 (2000/01/12, BK3.11a)",
+                .internal_name = "113_61801_101",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { BIOS_RAGE2C_61801_PATH, "" }
+            },
+            {
+                .name          = "113-38816-100 (1998/08/21, BK3.10.1)",
+                .internal_name = "113_38816_100",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { BIOS_RAGE2C_38816_PATH, "" }
+            },
+            { .files_no = 0 }
+        }
+    },
     {
         .name           = "memory",
         .description    = "Memory size",
@@ -4395,7 +4417,7 @@ const device_t mach64gtc_device = {
     .init          = mach64gtb_init,
     .close         = mach64_close,
     .reset         = mach64_reset,
-    .available     = mach64gtb_available,
+    .available     = NULL,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gtc_config
