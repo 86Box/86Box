@@ -104,6 +104,39 @@ CHECK_SEG_LIMITS(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg, int add
 #endif
 }
 
+/*The SS limit test of a push or pop of n bytes at addr_reg, as the
+  interpreter's PUSH_W/PUSH_L/POP_W/POP_L make it, in any mode: #SS(0)
+  before the access and before SP moves. Their end is summed in 64 bits, so
+  on a 32-bit stack n bytes that run past 4 GB fault as well, which the
+  limits of a flat or wide SS and a 32-bit sum both miss: the carry out of
+  addr_reg + n - 1 is that case. A backend without the carry uops tests it
+  with temp_reg, which must be free here. A 16-bit stack's end can't pass
+  0x10002.*/
+static inline void
+CHECK_STACK_LIMITS(codeblock_t *block, ir_data_t *ir, int addr_reg, int n, int temp_reg)
+{
+    if (!stack32) {
+        CHECK_SEG_LIMITS(block, ir, &cpu_state.seg_ss, addr_reg, n - 1);
+        return;
+    }
+#ifdef CODEGEN_BACKEND_HAS_STACK_LIMIT_UOPS
+    (void) temp_reg;
+    if (codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))
+        uop_CMN_IMM_JC(ir, addr_reg, n - 1, codegen_ss_rout);
+    else if (codegen_wide_ss && !(cpu_cur_status & CPU_STATUS_NOTWIDESS))
+        uop_CMP_JNWITHIN_TOP(ir, addr_reg, ireg_seg_limit_low(&cpu_state.seg_ss), n - 1, codegen_ss_rout);
+    else {
+        /*A 32-bit end that wrapped passes the high limit test*/
+        CHECK_SEG_LIMITS(block, ir, &cpu_state.seg_ss, addr_reg, n - 1);
+        uop_CMN_IMM_JC(ir, addr_reg, n - 1, codegen_ss_rout);
+    }
+#else
+    CHECK_SEG_LIMITS(block, ir, &cpu_state.seg_ss, addr_reg, n - 1);
+    uop_ADD_IMM(ir, temp_reg, addr_reg, n - 1);
+    uop_CMP_JB(ir, temp_reg, addr_reg, codegen_ss_rout);
+#endif
+}
+
 /*An operand read from RAM at run time (CODEBLOCK_NO_IMMEDIATES) goes
   through a host pointer bound when the block is compiled, and only the
   block's first page has its mapping checked when the block is looked up.

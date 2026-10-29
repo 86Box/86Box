@@ -31,6 +31,7 @@ void host_arm64_BFI(codeblock_t *block, int dst_reg, int src_reg, int lsb, int w
 void host_arm64_BLR(codeblock_t *block, int addr_reg);
 
 void host_arm64_BEQ(codeblock_t *block, void *dest);
+int  host_arm64_BCS_near(codeblock_t *block, void *dest);
 
 uint32_t *host_arm64_BCC_(codeblock_t *block);
 uint32_t *host_arm64_BCS_(codeblock_t *block);
@@ -94,6 +95,7 @@ void host_arm64_CMPX_IMM(codeblock_t *block, int src_n_reg, uint64_t imm_data);
 void host_arm64_CMPX_REG(codeblock_t *block, int src_n_reg, int src_m_reg);
 
 void host_arm64_CCMP_REG_CS(codeblock_t *block, int src_n_reg, int src_m_reg, int nzcv);
+void host_arm64_CCMN_IMM_CS(codeblock_t *block, int src_n_reg, uint32_t imm_data, int nzcv);
 void host_arm64_CCMPX_REG_EQ(codeblock_t *block, int src_n_reg, int src_m_reg, int nzcv);
 #define host_arm64_CMP_REG(block, src_n_reg, src_m_reg) host_arm64_CMP_REG_LSL(block, src_n_reg, src_m_reg, 0)
 void host_arm64_CMP_REG_LSL(codeblock_t *block, int src_n_reg, int src_m_reg, int shift);

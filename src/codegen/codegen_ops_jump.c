@@ -142,6 +142,7 @@ ropCALL_r16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(ui
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
+    CHECK_STACK_LIMITS(block, ir, sp_reg, 2, IREG_temp3);
     uop_MEM_STORE_IMM_16(ir, IREG_SS_base, sp_reg, ret_addr);
     SUB_SP(ir, 2);
     uop_MOV_IMM(ir, IREG_pc, dest_addr);
@@ -160,6 +161,7 @@ ropCALL_r32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(ui
     codegen_mark_code_present(block, cs + op_pc, 4);
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
+    CHECK_STACK_LIMITS(block, ir, sp_reg, 4, IREG_temp3);
     uop_MEM_STORE_IMM_32(ir, IREG_SS_base, sp_reg, ret_addr);
     SUB_SP(ir, 4);
     uop_MOV_IMM(ir, IREG_pc, dest_addr);
@@ -172,10 +174,12 @@ ropRET_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNU
 {
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
-    if (stack32)
+    if (stack32) {
+        CHECK_STACK_LIMITS(block, ir, IREG_ESP, 2, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);
-    else {
+    } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
+        CHECK_STACK_LIMITS(block, ir, IREG_eaaddr, 2, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);
     }
     ADD_SP(ir, 2);
@@ -188,10 +192,12 @@ ropRET_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNU
 {
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
-    if (stack32)
+    if (stack32) {
+        CHECK_STACK_LIMITS(block, ir, IREG_ESP, 4, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_pc, IREG_SS_base, IREG_ESP);
-    else {
+    } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
+        CHECK_STACK_LIMITS(block, ir, IREG_eaaddr, 4, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_pc, IREG_SS_base, IREG_eaaddr);
     }
     ADD_SP(ir, 4);
@@ -206,10 +212,12 @@ ropRET_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
-    if (stack32)
+    if (stack32) {
+        CHECK_STACK_LIMITS(block, ir, IREG_ESP, 2, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);
-    else {
+    } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
+        CHECK_STACK_LIMITS(block, ir, IREG_eaaddr, 2, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);
     }
     ADD_SP(ir, 2 + offset);
@@ -225,10 +233,12 @@ ropRET_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
-    if (stack32)
+    if (stack32) {
+        CHECK_STACK_LIMITS(block, ir, IREG_ESP, 4, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_pc, IREG_SS_base, IREG_ESP);
-    else {
+    } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
+        CHECK_STACK_LIMITS(block, ir, IREG_eaaddr, 4, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_pc, IREG_SS_base, IREG_eaaddr);
     }
     ADD_SP(ir, 4 + offset);

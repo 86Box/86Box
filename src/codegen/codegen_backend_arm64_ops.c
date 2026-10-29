@@ -56,6 +56,7 @@
 #    define OPCODE_CMN_IMM            (0x31 << OPCODE_SHIFT)
 #    define OPCODE_CMNX_IMM           (0xb1 << OPCODE_SHIFT)
 #    define OPCODE_CCMP_REG           (0x7a400000)
+#    define OPCODE_CCMN_IMM           (0x3a400800)
 #    define OPCODE_CMP_IMM            (0x71 << OPCODE_SHIFT)
 #    define OPCODE_CMPX_IMM           (0xf1 << OPCODE_SHIFT)
 #    define OPCODE_SUB_IMM            (0x51 << OPCODE_SHIFT)
@@ -848,6 +849,26 @@ host_arm64_BEQ(codeblock_t *block, void *dest)
     (void) is_local;
 }
 
+/*One B.CS to dest, or to the veneer of its region (codegen_allocator_veneer),
+  when either is in imm19 range. Returns 0, with nothing emitted, when
+  neither is.*/
+int
+host_arm64_BCS_near(codeblock_t *block, void *dest)
+{
+    uint8_t *branch_src;
+    void    *target = dest;
+
+    codegen_alloc(block, 4);
+    branch_src = &block_write_data[block_pos];
+    if (!codegen_allocator_can_branch_imm19(branch_src, target)) {
+        target = codegen_allocator_veneer(branch_src, dest);
+        if (!target || !codegen_allocator_can_branch_imm19(branch_src, target))
+            return 0;
+    }
+    codegen_addlong(block, OPCODE_BCOND | COND_CS | OFFSET19((intptr_t) ((uint8_t *) target - branch_src)));
+    return 1;
+}
+
 void
 host_arm64_BIC_REG_V(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {
@@ -987,6 +1008,14 @@ void
 host_arm64_CCMP_REG_CS(codeblock_t *block, int src_n_reg, int src_m_reg, int nzcv)
 {
     codegen_addlong(block, OPCODE_CCMP_REG | CSEL_COND(COND_CS) | Rn(src_n_reg) | Rm(src_m_reg) | nzcv);
+}
+/*CCMN: the flags of src_n_reg + imm_data when CS holds, else nzcv*/
+void
+host_arm64_CCMN_IMM_CS(codeblock_t *block, int src_n_reg, uint32_t imm_data, int nzcv)
+{
+    if (imm_data > 0x1f)
+        fatal("CCMN_IMM_CS %08x\n", imm_data);
+    codegen_addlong(block, OPCODE_CCMN_IMM | (imm_data << 16) | CSEL_COND(COND_CS) | Rn(src_n_reg) | nzcv);
 }
 /*64-bit CCMP: the flags of src_n_reg compared with src_m_reg when EQ holds, else nzcv*/
 void

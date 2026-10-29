@@ -462,6 +462,56 @@ codegen_CMP_JNWITHIN(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*B.CS to uop->p as codegen_exit_Bcond, but as the one B.CS alone when its
+  target or the target's veneer is in range*/
+static void
+codegen_exit_BCS(codeblock_t *block, uop_t *uop)
+{
+    void *dest = codegen_exit_dest(uop->p, uop->imm_data2);
+
+    if (dest && host_arm64_BCS_near(block, dest))
+        return;
+    codegen_exit_Bcond(block, uop, host_arm64_BCS_);
+}
+
+static int
+codegen_CMN_IMM_JC(codeblock_t *block, uop_t *uop)
+{
+    int src_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_L(src_size))
+        host_arm64_CMN_IMM(block, src_reg, uop->imm_data);
+    else
+        fatal("CMN_IMM_JC %02x\n", uop->src_reg_a_real);
+
+    codegen_exit_BCS(block, uop);
+
+    return 0;
+}
+
+/*The compare with the low limit sets C when that passed; the conditional
+  compare-negative then sets C as the add of imm carries, and otherwise sets
+  C alone, which fails as the carry does*/
+static int
+codegen_CMP_JNWITHIN_TOP(codeblock_t *block, uop_t *uop)
+{
+    int src_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int lo_reg   = HOST_REG_GET(uop->src_reg_b_real);
+    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int lo_size  = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_L(src_size) && REG_IS_L(lo_size)) {
+        host_arm64_CMP_REG(block, src_reg, lo_reg);
+        host_arm64_CCMN_IMM_CS(block, src_reg, uop->imm_data, 2);
+    } else
+        fatal("CMP_JNWITHIN_TOP %02x %02x\n", uop->src_reg_a_real, uop->src_reg_b_real);
+
+    codegen_exit_BCS(block, uop);
+
+    return 0;
+}
+
 /*The compare with the low bound sets the flags; the conditional compare
   with the high bound runs only when the value is above it (GT, which a NaN
   fails), and otherwise sets V alone, which fails GT as well*/
@@ -3985,6 +4035,12 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CMP_JNWITHIN &
         UOP_MASK]
     = codegen_CMP_JNWITHIN,
+    [UOP_CMN_IMM_JC &
+        UOP_MASK]
+    = codegen_CMN_IMM_JC,
+    [UOP_CMP_JNWITHIN_TOP &
+        UOP_MASK]
+    = codegen_CMP_JNWITHIN_TOP,
 
     [UOP_CMP_JNB_DEST &
         UOP_MASK]

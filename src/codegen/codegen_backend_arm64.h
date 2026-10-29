@@ -39,6 +39,10 @@
    leaves those cycles uncharged there, but for codegen_exit_on_one's, which
    it charges in the IR. */
 #define CODEGEN_BACKEND_HAS_EXIT_CYCLES
+/* CMN_IMM_JC and CMP_JNWITHIN_TOP, the SS limit tests of a push or pop on a
+   flat or wide 32-bit stack with the carry of its end. A backend without
+   them makes those tests with an add and a compare (CHECK_STACK_LIMITS). */
+#define CODEGEN_BACKEND_HAS_STACK_LIMIT_UOPS
 
 /* Blocks jump straight to their successor when nothing between them needs
    the C loop (codegen_link.h). The option below adds work to every loop

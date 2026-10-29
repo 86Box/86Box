@@ -26,6 +26,7 @@ ropPUSH_r16(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, UNUSED(ui
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
+    CHECK_STACK_LIMITS(block, ir, sp_reg, 2, IREG_temp3);
     uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_16(opcode & 7));
     SUB_SP(ir, 2);
 
@@ -38,6 +39,7 @@ ropPUSH_r32(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, UNUSED(ui
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
+    CHECK_STACK_LIMITS(block, ir, sp_reg, 4, IREG_temp3);
     uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_32(opcode & 7));
     SUB_SP(ir, 4);
 
@@ -49,10 +51,12 @@ ropPOP_r16(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, UNUSED(uin
 {
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
-    if (stack32)
+    if (stack32) {
+        CHECK_STACK_LIMITS(block, ir, IREG_ESP, 2, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_16(opcode & 7), IREG_SS_base, IREG_ESP);
-    else {
+    } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
+        CHECK_STACK_LIMITS(block, ir, IREG_eaaddr, 2, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_16(opcode & 7), IREG_SS_base, IREG_eaaddr);
     }
     if ((opcode & 7) != REG_SP)
@@ -65,10 +69,12 @@ ropPOP_r32(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, UNUSED(uin
 {
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
-    if (stack32)
+    if (stack32) {
+        CHECK_STACK_LIMITS(block, ir, IREG_ESP, 4, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_32(opcode & 7), IREG_SS_base, IREG_ESP);
-    else {
+    } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
+        CHECK_STACK_LIMITS(block, ir, IREG_eaaddr, 4, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_32(opcode & 7), IREG_SS_base, IREG_eaaddr);
     }
     if ((opcode & 7) != REG_ESP)
@@ -95,6 +101,7 @@ push_imm_common(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int size32, i
         else
             LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp0, cs + op_pc);
         sp_reg = LOAD_SP_WITH_OFFSET(ir, size32 ? -4 : -2);
+        CHECK_STACK_LIMITS(block, ir, sp_reg, size32 ? 4 : 2, IREG_temp3);
         uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, size32 ? IREG_temp0 : IREG_temp0_W);
     } else {
         uint32_t imm;
@@ -105,6 +112,7 @@ push_imm_common(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int size32, i
             imm = size32 ? fastreadl(cs + op_pc) : fastreadw(cs + op_pc);
         codegen_mark_code_present(block, cs + op_pc, len);
         sp_reg = LOAD_SP_WITH_OFFSET(ir, size32 ? -4 : -2);
+        CHECK_STACK_LIMITS(block, ir, sp_reg, size32 ? 4 : 2, IREG_temp3);
         if (size32)
             uop_MEM_STORE_IMM_32(ir, IREG_SS_base, sp_reg, imm);
         else
@@ -147,10 +155,12 @@ ropPOP_W(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
-        if (stack32)
+        if (stack32) {
+            CHECK_STACK_LIMITS(block, ir, IREG_ESP, 2, IREG_temp3);
             uop_MEM_LOAD_REG(ir, IREG_16(fetchdat & 7), IREG_SS_base, IREG_ESP);
-        else {
+        } else {
             uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
+            CHECK_STACK_LIMITS(block, ir, IREG_eaaddr, 2, IREG_temp3);
             uop_MEM_LOAD_REG(ir, IREG_16(fetchdat & 7), IREG_SS_base, IREG_eaaddr);
         }
     } else {
@@ -160,10 +170,12 @@ ropPOP_W(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
           leaves SP moved on: the read first, then the walk the EA's marks
           would make, made with SP moved on for its exit. The value is kept
           in temp1, as the EA can take temp0*/
-        if (stack32)
+        if (stack32) {
+            CHECK_STACK_LIMITS(block, ir, IREG_ESP, 2, IREG_temp3);
             uop_MEM_LOAD_REG(ir, IREG_temp1_W, IREG_SS_base, IREG_ESP);
-        else {
+        } else {
             uop_MOVZX(ir, IREG_temp1, IREG_SP);
+            CHECK_STACK_LIMITS(block, ir, IREG_temp1, 2, IREG_temp3);
             uop_MEM_LOAD_REG(ir, IREG_temp1_W, IREG_SS_base, IREG_temp1);
         }
         codegen_fetch_walk_defer    = 1;
@@ -196,20 +208,24 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
-        if (stack32)
+        if (stack32) {
+            CHECK_STACK_LIMITS(block, ir, IREG_ESP, 4, IREG_temp3);
             uop_MEM_LOAD_REG(ir, IREG_32(fetchdat & 7), IREG_SS_base, IREG_ESP);
-        else {
+        } else {
             uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
+            CHECK_STACK_LIMITS(block, ir, IREG_eaaddr, 4, IREG_temp3);
             uop_MEM_LOAD_REG(ir, IREG_32(fetchdat & 7), IREG_SS_base, IREG_eaaddr);
         }
     } else {
         x86seg *target_seg;
 
         /*As in ropPOP_W*/
-        if (stack32)
+        if (stack32) {
+            CHECK_STACK_LIMITS(block, ir, IREG_ESP, 4, IREG_temp3);
             uop_MEM_LOAD_REG(ir, IREG_temp1, IREG_SS_base, IREG_ESP);
-        else {
+        } else {
             uop_MOVZX(ir, IREG_temp1, IREG_SP);
+            CHECK_STACK_LIMITS(block, ir, IREG_temp1, 4, IREG_temp3);
             uop_MEM_LOAD_REG(ir, IREG_temp1, IREG_SS_base, IREG_temp1);
         }
         codegen_fetch_walk_defer    = 1;
@@ -241,6 +257,7 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
                                                                                                    \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                              \
         sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);                                                      \
+        CHECK_STACK_LIMITS(block, ir, sp_reg, 2, IREG_temp3);                                      \
         uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_##seg##_seg_W);                           \
         SUB_SP(ir, 2);                                                                             \
                                                                                                    \
@@ -253,6 +270,7 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
                                                                                                    \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                              \
         sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);                                                      \
+        CHECK_STACK_LIMITS(block, ir, sp_reg, 4, IREG_temp3);                                      \
         uop_MOVZX(ir, IREG_temp0, IREG_##seg##_seg_W);                                             \
         uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_temp0);                                   \
         SUB_SP(ir, 4);                                                                             \
@@ -267,10 +285,12 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
         codegen_accumulate_flush(ir); /*the cycles so far, before a load can fault*/              \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                             \
                                                                                                   \
-        if (stack32)                                                                              \
+        if (stack32) {                                                                            \
+            CHECK_STACK_LIMITS(block, ir, IREG_ESP, 2, IREG_temp3);                               \
             uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);                           \
-        else {                                                                                    \
+        } else {                                                                                  \
             uop_MOVZX(ir, IREG_eaaddr, IREG_SP);                                                  \
+            CHECK_STACK_LIMITS(block, ir, IREG_eaaddr, 2, IREG_temp3);                            \
             uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);                        \
         }                                                                                         \
         uop_LOAD_SEG(ir, &rseg, IREG_temp0_W);                                                    \
@@ -285,10 +305,12 @@ ropPOP_L(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                             \
                                                                                                   \
         /*the dword the op reads, its low word the selector: a fault on the upper half is taken*/ \
-        if (stack32)                                                                              \
+        if (stack32) {                                                                            \
+            CHECK_STACK_LIMITS(block, ir, IREG_ESP, 4, IREG_temp3);                               \
             uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_ESP);                             \
-        else {                                                                                    \
+        } else {                                                                                  \
             uop_MOVZX(ir, IREG_eaaddr, IREG_SP);                                                  \
+            CHECK_STACK_LIMITS(block, ir, IREG_eaaddr, 4, IREG_temp3);                            \
             uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_eaaddr);                          \
         }                                                                                         \
         uop_LOAD_SEG(ir, &rseg, IREG_temp0_W);                                                    \
@@ -315,10 +337,12 @@ ropLEAVE_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), U
 {
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
-    if (stack32)
+    if (stack32) {
+        CHECK_STACK_LIMITS(block, ir, IREG_EBP, 2, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_EBP);
-    else {
+    } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_BP);
+        CHECK_STACK_LIMITS(block, ir, IREG_eaaddr, 2, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);
     }
     /*The stack size picks SP or ESP, the operand size the pop*/
@@ -335,10 +359,12 @@ ropLEAVE_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), U
 {
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
-    if (stack32)
+    if (stack32) {
+        CHECK_STACK_LIMITS(block, ir, IREG_EBP, 4, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_EBP);
-    else {
+    } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_BP);
+        CHECK_STACK_LIMITS(block, ir, IREG_eaaddr, 4, IREG_temp3);
         uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_eaaddr);
     }
     /*The stack size picks SP or ESP, the operand size the pop*/
@@ -560,6 +586,7 @@ pushf_v86(ir_data_t *ir, uint32_t op_pc)
     uop_AND(ir, IREG_temp1, IREG_temp1, IREG_temp3);
     uop_XOR(ir, IREG_temp1, IREG_temp1, IREG_temp0);
     sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
+    CHECK_STACK_LIMITS(NULL, ir, sp_reg, 2, IREG_temp3);
     uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_temp1_W);
     SUB_SP(ir, 2);
 
@@ -579,6 +606,7 @@ ropPUSHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUS
     sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
     uop_AND_IMM(ir, IREG_flags, IREG_flags, 0x7fd5);
     uop_OR_IMM(ir, IREG_flags, IREG_flags, 0x0002);
+    CHECK_STACK_LIMITS(block, ir, sp_reg, 2, IREG_temp3);
     uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_flags);
     SUB_SP(ir, 2);
 
@@ -618,6 +646,7 @@ ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNU
         uop_AND(ir, IREG_temp0_W, IREG_eflags, IREG_temp2_W);
     }
     sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
+    CHECK_STACK_LIMITS(block, ir, sp_reg, 4, IREG_temp3);
     uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_flags);
     uop_MEM_STORE_REG_OFFSET(ir, IREG_SS_base, sp_reg, 2, IREG_temp0_W);
     SUB_SP(ir, 4);
@@ -648,7 +677,7 @@ popf_common(ir_data_t *ir, uint32_t op_pc, int is32)
 #ifndef CODEGEN_BACKEND_HAS_INT_UOPS
     return 0;
 #endif
-    /*Room for the register versions below (at most 9 of temp0, 15 of temp1,
+    /*Room for the register versions below (at most 9 of temp0, 16 of temp1,
       16 of temp2, 11 of temp3, 2 of the flags registers) without passing
       REG_VERSION_MAX, which only ends the block after the current
       instruction*/
@@ -682,6 +711,8 @@ popf_common(ir_data_t *ir, uint32_t op_pc, int is32)
         }
     }
     sp_reg = LOAD_SP(ir);
+    /*temp3 may hold the VME mask here*/
+    CHECK_STACK_LIMITS(NULL, ir, sp_reg, is32 ? 4 : 2, IREG_temp1);
     if (is32) {
         uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, sp_reg);
         ADD_SP(ir, 4);
@@ -796,6 +827,7 @@ enter_common(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int is32)
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     sp_reg = LOAD_SP_WITH_OFFSET(ir, is32 ? -4 : -2);
+    CHECK_STACK_LIMITS(block, ir, sp_reg, is32 ? 4 : 2, IREG_temp3);
     uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, is32 ? IREG_EBP : IREG_BP);
     SUB_SP(ir, is32 ? 4 : 2);
     if (!is32)

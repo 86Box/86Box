@@ -478,6 +478,7 @@ ropFF_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
                 src_reg = IREG_temp2_W;
             }
             sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
+            CHECK_STACK_LIMITS(block, ir, sp_reg, 2, IREG_temp3);
             uop_MEM_STORE_IMM_16(ir, IREG_SS_base, sp_reg, op_pc + 1);
             SUB_SP(ir, 2);
             uop_MOVZX(ir, IREG_pc, src_reg);
@@ -510,6 +511,7 @@ ropFF_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             if ((fetchdat & 0xc0) == 0xc0)
                 uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
             sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
+            CHECK_STACK_LIMITS(block, ir, sp_reg, 2, IREG_temp3);
             uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, src_reg);
             SUB_SP(ir, 2);
             return op_pc + 1;
@@ -600,6 +602,7 @@ ropFF_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
                 src_reg = IREG_temp2;
             }
             sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
+            CHECK_STACK_LIMITS(block, ir, sp_reg, 4, IREG_temp3);
             uop_MEM_STORE_IMM_32(ir, IREG_SS_base, sp_reg, op_pc + 1);
             SUB_SP(ir, 4);
             uop_MOV(ir, IREG_pc, src_reg);
@@ -631,6 +634,7 @@ ropFF_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             if ((fetchdat & 0xc0) == 0xc0)
                 uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
             sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
+            CHECK_STACK_LIMITS(block, ir, sp_reg, 4, IREG_temp3);
             uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, src_reg);
             SUB_SP(ir, 4);
             return op_pc + 1;
