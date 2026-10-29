@@ -426,7 +426,7 @@ static const device_config_t ps2_m25_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "IBM PS/2 BIOS - Revision 06/26/87 (Planar Type 1, 00F2092/00F2093)",
+                .name          = "IBM PS/2 BIOS - Revision 06/26/87 (Planar Type 1)",
                 .internal_name = "ibmps2_m25_type1",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -436,7 +436,7 @@ static const device_config_t ps2_m25_config[] = {
                                    "roms/machines/ibmps2_m25/00F2093.BIN", "" }
             },
             {
-                .name          = "IBM PS/2 BIOS - Revision 06/26/87 (Planar Type 2, 00F2122/00F2123)",
+                .name          = "IBM PS/2 BIOS - Revision 06/26/87 (Planar Type 2)",
                 .internal_name = "ibmps2_m25_type2",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -479,7 +479,7 @@ static const device_config_t ps2_m30_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "IBM PS/2 BIOS - Revision 0 (68X1687/68X1627, 09/02/86; slashed 0 font)",
+                .name          = "IBM PS/2 BIOS - Revision 0 (09/02/86, slashed 0 font)",
                 .internal_name = "ibmps2_m30_rev0",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -489,7 +489,7 @@ static const device_config_t ps2_m30_config[] = {
                                    "roms/machines/ibmps2_m30/68X1627.BIN", "" }
             },
             {
-                .name          = "IBM PS/2 BIOS - Revision 1 (61X8938/61X8937, 12/12/86)",
+                .name          = "IBM PS/2 BIOS - Revision 1 (12/12/86)",
                 .internal_name = "ibmps2_m30_rev1",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -499,7 +499,7 @@ static const device_config_t ps2_m30_config[] = {
                                    "roms/machines/ibmps2_m30/61X8937.BIN", "" }
             },
             {
-                .name          = "IBM PS/2 BIOS - Revision 2 (61X8940/61X8939, 02/05/87)",
+                .name          = "IBM PS/2 BIOS - Revision 2 (02/05/87)",
                 .internal_name = "ibmps2_m30_rev2",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -509,7 +509,7 @@ static const device_config_t ps2_m30_config[] = {
                                    "roms/machines/ibmps2_m30/61X8939.BIN", "" }
             },
             {
-                .name          = "IBM PS/2 BIOS - Revision 4 (33F4498/33F4499, 01/31/89)",
+                .name          = "IBM PS/2 BIOS - Revision 4 (01/31/89)",
                 .internal_name = "ibmps2_m30_rev4",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -552,7 +552,7 @@ static const device_config_t ibm7690_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "IBM PS/2 BIOS - Revision 4 (33F4498/33F4499, 01/31/89)",
+                .name          = "IBM PS/2 BIOS - Revision 4 (01/31/89)",
                 .internal_name = "ibmps2_m30_rev4",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
