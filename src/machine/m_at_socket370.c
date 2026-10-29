@@ -351,6 +351,11 @@ machine_at_bl440zx_init(const machine_t *model)
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
+    /* The on-board ATI Rage Pro Turbo AGP, bus 1 behind the
+       82443ZX's AGP bridge (TPS Table 30); its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
+
     if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
         device_add(machine_get_net_device(machine));
 
