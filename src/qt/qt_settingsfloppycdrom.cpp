@@ -287,8 +287,13 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 
     connect(ui->treeViewCDROM->selectionModel(), &QItemSelectionModel::currentRowChanged,
             this, &SettingsFloppyCDROM::onCDROMRowChanged);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     connect(ui->checkBoxUnlimitedCapacity, &QCheckBox::checkStateChanged,
             this, &SettingsFloppyCDROM::onUnlimitedCapacityChanged);
+#else
+    connect(ui->checkBoxUnlimitedCapacity, &QCheckBox::stateChanged,
+            this, &SettingsFloppyCDROM::onUnlimitedCapacityChanged);
+#endif
     ui->treeViewCDROM->setCurrentIndex(model->index(0, 0));
 
     uint8_t bus_type = ui->comboBoxBus->currentData().toUInt();
@@ -853,12 +858,19 @@ SettingsFloppyCDROM::on_comboBoxHDBDSpeed_activated(int)
 }
 
 void
-SettingsFloppyCDROM::onUnlimitedCapacityChanged(Qt::CheckState state)
+SettingsFloppyCDROM::onUnlimitedCapacityChanged(
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    Qt::CheckState state
+#else
+    int state
+#endif
+)
 {
     const QModelIndex current = ui->treeViewCDROM->selectionModel()->currentIndex();
     if (!current.isValid())
         return;
 
     /* Store the inverse of the checkbox (1 = restricted, 0 = unlimited). */
-    ui->treeViewCDROM->model()->setData(current.siblingAtColumn(1), (state == Qt::Unchecked) ? 1 : 0, Qt::UserRole + 4);
+    ui->treeViewCDROM->model()->setData(current.siblingAtColumn(1),
+        (state == Qt::Unchecked) ? 1 : 0, Qt::UserRole + 4);
 }

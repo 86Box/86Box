@@ -38,7 +38,11 @@ private slots:
     void on_comboBoxFloppyAudio_activated(int index);
 
     void onCDROMRowChanged(const QModelIndex &current);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     void onUnlimitedCapacityChanged(Qt::CheckState state);
+#else
+    void onUnlimitedCapacityChanged(int state);
+#endif
     void on_comboBoxBus_activated(int index);
     void on_comboBoxBus_currentIndexChanged(int index);
     void on_comboBoxChannel_activated(int index);
