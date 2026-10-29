@@ -1000,6 +1000,11 @@ io_trap_remap(void *handle, uint8_t enable, uint16_t port, uint16_t size)
     if (!trap)
         return;
 
+    /* Nothing to do if the mapping is unchanged; chipsets recalculate their
+       traps on every power management register write. */
+    if ((trap->enable == !!enable) && (!enable || ((trap->base == port) && (trap->size == size))))
+        return;
+
     io_log("I/O: Remapping trap from %04X-%04X (enable %d) to %04X-%04X (enable %d)\n",
            trap->base, trap->base + trap->size - 1, trap->enable, port, port + size - 1, enable);
 
