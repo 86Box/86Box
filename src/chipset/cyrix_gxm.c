@@ -1139,12 +1139,24 @@ cyrix_gxm_reset(void *priv)
     gxm_remap(dev);
 }
 
+/* A CPU-only reset (the keyboard controller's, or Setup's exit) resets the
+   integrated functions with the core, the display controller included. */
+static void
+gxm_cpu_reset(void *priv)
+{
+    cyrix_gxm_reset(priv);
+
+    if (gxm_video != NULL)
+        cyrix_gxm_video_device.reset(gxm_video);
+}
+
 static void
 cyrix_gxm_close(void *priv)
 {
     cyrix_gxm_t *dev = (cyrix_gxm_t *) priv;
 
     gxm.gcr_write = NULL;
+    gxm.reset     = NULL;
     gxm.priv      = NULL;
     gxm_dev       = NULL;
 
@@ -1200,6 +1212,7 @@ cyrix_gxm_init(UNUSED(const device_t *info))
     device_add(&cyrix_gxm_video_device);
 
     gxm.gcr_write = gxm_gcr_write;
+    gxm.reset     = gxm_cpu_reset;
     gxm.priv      = dev;
 
     /* Address bit 20 is unmasked for SMI accesses (BC_XMAP_1[21]). */

@@ -4714,6 +4714,8 @@ cpu_gxm_reset(void)
     gxm.vendor_msr[0] = 0x69727943; /* "Cyri" */
     gxm.vendor_msr[1] = 0x736e4978; /* "xIns" */
     gxm.vendor_msr[2] = 0x64616574; /* "tead" */
+    if (gxm.reset)
+        gxm.reset(gxm.priv);
     if (gxm.gcr_write)
         gxm.gcr_write(gxm.priv);
 }
