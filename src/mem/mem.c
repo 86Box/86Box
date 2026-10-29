@@ -2479,6 +2479,38 @@ mem_write_remappedl2(uint32_t addr, uint32_t val, UNUSED(void *priv))
         *(uint32_t *) &ram[addr] = val;
 }
 
+/* Point the page entries of base..base+size-1 at RAM from ram_addr (set), or
+   back at their own physical addresses: code a chipset runs from RAM at a
+   second address is then tracked for self-modification through that page, as
+   long as the mapping's writes go through mem_write_ram*_page(). */
+void
+mem_set_ram_alias(uint32_t base, uint32_t ram_addr, uint32_t size, int set)
+{
+    if (!set)
+        mem_invalidate_range(base, base + size - 1);
+
+    for (uint32_t c = base >> 12; c < ((base + size) >> 12); c++) {
+        uint32_t addr = set ? (ram_addr + ((c << 12) - base)) : (c << 12);
+
+        if (c >= pages_sz)
+            break;
+
+        if (((uint64_t) addr + 0x1000) > ((uint64_t) mem_size << 10)) {
+            pages[c].mem = page_ff;
+            addr         = c << 12;
+        } else
+            pages[c].mem = &ram[addr];
+        pages[c].write_b                = mem_write_ramb_page;
+        pages[c].write_w                = mem_write_ramw_page;
+        pages[c].write_l                = mem_write_raml_page;
+        pages[c].byte_dirty_mask        = &byte_dirty_mask[(addr >> 12) * 64];
+        pages[c].byte_code_present_mask = &byte_code_present_mask[(addr >> 12) * 64];
+    }
+
+    if (set)
+        mem_invalidate_range(base, base + size - 1);
+}
+
 void
 mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 {
