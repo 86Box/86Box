@@ -89,6 +89,7 @@ add_library(vid OBJECT
     # Other early CGA-era cards
     vid_3270pc.c
     vid_genius.c
+    vid_cyrix_gxm.c
     vid_sigma.c
 
     # PGC / IM1024 / WY700 high-resolution

@@ -307,6 +307,9 @@ typedef struct local_t {
     uint8_t  bank[8];
     uint8_t *lock;
 
+    /* National PC873xx RTC: registers 40h-7Fh of banks 1 and 2. */
+    uint8_t  rtc_bank_regs[2][64];
+
     int16_t count;
     int16_t state;
 
@@ -509,6 +512,33 @@ timer_update(void *priv)
     }
 }
 
+/* The National PC873xx RTC (PC87307, PC97317) also selects its register
+   bank with DV2-DV0: DV0 selects bank 1, and DV2:DV1 = 10 bank 2 (the APC
+   registers); the oscillator runs in all of them. */
+static int
+nvr_rtc_bank(const nvr_t *nvr, const local_t *local)
+{
+    if (!(local->flags & FLAG_PC873XX_BANKS))
+        return 0;
+
+    if ((nvr->regs[RTC_REGA] & (REGA_DV2 | REGA_DV1)) == REGA_DV2)
+        return 2;
+
+    return !!(nvr->regs[RTC_REGA] & REGA_DV0);
+}
+
+static int
+nvr_osc_running(const nvr_t *nvr)
+{
+    const local_t *local = (local_t *) nvr->data;
+    uint8_t        dv    = nvr->regs[RTC_REGA] & REGA_DV;
+
+    if (local->flags & FLAG_PC873XX_BANKS)
+        return ((dv & (REGA_DV2 | REGA_DV1)) == REGA_DV1) || ((dv & (REGA_DV2 | REGA_DV1)) == REGA_DV2);
+
+    return dv == 0x20;
+}
+
 static void
 timer_load_count(nvr_t *nvr)
 {
@@ -517,7 +547,7 @@ timer_load_count(nvr_t *nvr)
 
     timer_disable(&local->rtc_timer);
 
-    if ((nvr->regs[RTC_REGA] & 0x70) != 0x20) {
+    if (!nvr_osc_running(nvr)) {
         local->state = 0;
         return;
     }
@@ -562,7 +592,7 @@ timer_tick(nvr_t *nvr)
 
     /* Only update it there is no SET in progress.
        Also avoid updating it is DV2-DV0 are not set to 0, 1, 0. */
-    if (((nvr->regs[RTC_REGA] & 0x70) == 0x20) && !(nvr->regs[RTC_REGB] & REGB_SET)) {
+    if (nvr_osc_running(nvr) && !(nvr->regs[RTC_REGB] & REGB_SET)) {
         /* Set the UIP bit, announcing the update. */
         local->stat = REGA_UIP;
 
@@ -596,6 +626,20 @@ nvr_reg_common_write(uint16_t reg, uint8_t val, nvr_t *nvr, local_t *local)
         if ((reg >= 0x0d) && ((local->cent == 0xff) || (reg != local->cent)))
             nvr_dosave     = 1;
     }
+}
+
+/* Banks 1 and 2 of the PC873xx RTC share 00h-3Fh with bank 0; 40h-7Fh are
+   the bank's own registers (the alarm/century registers in bank 1, the APC
+   in bank 2), not bank 0's RAM. */
+static uint8_t *
+nvr_rtc_bank_reg(nvr_t *nvr, local_t *local, uint16_t reg)
+{
+    int bank = nvr_rtc_bank(nvr, local);
+
+    if (!bank || (reg < 0x40) || (reg > 0x7f))
+        return NULL;
+
+    return &local->rtc_bank_regs[bank - 1][reg & 0x3f];
 }
 
 /* This must be exposed because ACPI uses it. */
@@ -689,7 +733,12 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
         if (local->bank[addr_id] == 0xff)
             return;
 #endif
-        nvr_reg_write(local->addr[addr_id], val, priv);
+        uint8_t *bank_reg = nvr_rtc_bank_reg(nvr, local, local->addr[addr_id]);
+
+        if (bank_reg != NULL)
+            *bank_reg = val;
+        else
+            nvr_reg_write(local->addr[addr_id], val, priv);
     } else {
         local->addr[addr_id] = (val & (nvr->size - 1));
         /* Some chipsets use a 256 byte NVRAM but ports 70h and 71h always access only 128 bytes. */
@@ -735,6 +784,8 @@ nvr_read(uint16_t addr, void *priv)
 
     if (local->bank[addr_id] == 0xff)
         ret = 0xff;
+    else if ((addr & 1) && (nvr_rtc_bank_reg(nvr, (local_t *) local, local->addr[addr_id]) != NULL))
+        ret = *nvr_rtc_bank_reg(nvr, (local_t *) local, local->addr[addr_id]);
     else if (addr & 1)
         switch (local->addr[addr_id]) {
             case RTC_REGA:

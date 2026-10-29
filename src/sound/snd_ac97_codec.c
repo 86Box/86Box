@@ -47,11 +47,11 @@ static const struct {
         .device      = &ad1881_device,
         .min_rate    = 7000,
         .max_rate    = 48000,
-        .misc_flags  = AC97_AUDIO | AC97_MASTER_6B | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK,
+        .misc_flags  = AC97_AUDIO | AC97_MASTER_6B | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK | AC97_AD_SRG,
         .reset_flags = (1 << AC97_3D_SHIFT), /* datasheet contradicts itself on AC97_HPOUT */
         .extid_flags = AC97_VRA,
         .pcsr_mask   = 0xbf,
-        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x74, 0x0000, 0xff07}, {0, 0x76, 0x0404, 0xdde5}, {0, 0x78, 48000, 0x0000}, {0, 0x7a, 48000, 0x0000}, {0}}
+        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x74, 0x0000, 0xff07}, {0, 0x76, 0x0404, 0xdde5}, {0, 0x78, 48000, 0xffff}, {0, 0x7a, 48000, 0xffff}, {0}}
     },
     {
         .device      = &ak4540_device,
@@ -558,6 +558,11 @@ modem_gain:
                 dev->vendor_reg_pages[(i << 3) | ((reg & 0x0e) >> 1)] = val;
                 return;
             }
+
+            /* Analog Devices sample rate generators, written with or without VRA
+               (the AD1819 has none, and its drivers use these). */
+            if ((ac97_codecs[dev->model].misc_flags & AC97_AD_SRG) && ((reg == 0x78) || (reg == 0x7a)))
+                goto rate;
             break;
 
         case 0x7c: /* Vendor ID1 */
@@ -569,6 +574,18 @@ modem_gain:
     }
 
     dev->regs[reg >> 1] = val;
+
+    /* Analog Devices: generator 1 (7A) is the DAC rate at 2C, generator 0 (78)
+       the ADC rate at 32; 76 says which one each converter runs from. */
+    if (ac97_codecs[dev->model].misc_flags & AC97_AD_SRG) {
+        if ((reg == 0x2a) || (reg == 0x2c) || (reg == 0x32)) {
+            dev->regs[0x7a >> 1] = dev->regs[0x2c >> 1];
+            dev->regs[0x78 >> 1] = dev->regs[0x32 >> 1];
+        } else if ((reg == 0x78) || (reg == 0x7a)) {
+            dev->regs[0x2c >> 1] = dev->regs[0x7a >> 1];
+            dev->regs[0x32 >> 1] = dev->regs[0x78 >> 1];
+        }
+    }
 }
 
 void
@@ -717,6 +734,10 @@ ac97_codec_getrate(void *priv, uint8_t reg)
 
     /* Get configured sample rate, which is always 48000 if VRA/VRM is not set. */
     uint32_t ret = dev->regs[reg >> 1];
+
+    /* Analog Devices: the DAC runs from generator 1 with DLSR (76 bit 10) set, else 0. */
+    if ((reg == 0x2c) && (ac97_codecs[dev->model].misc_flags & AC97_AD_SRG))
+        ret = dev->regs[((dev->regs[0x76 >> 1] & 0x0400) ? 0x7a : 0x78) >> 1];
 
     /* If this is the PCM DAC, double sample rate if DRA is set. */
     if ((reg == 0x2c) && (dev->regs[0x2a >> 1] & AC97_DRA))

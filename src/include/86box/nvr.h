@@ -83,6 +83,7 @@
 #define FLAG_AMI_1999J_HACK     0x1000
 #define FLAG_SPITFIRE_HACK      0x2000
 #define FLAG_BX6_HACK           0x4000
+#define FLAG_PC873XX_BANKS      0x8000
 
 #define NVR_CENTURY_AT          (RTC_CENTURY_AT << 16)
 #define NVR_CENTURY_PS          (RTC_CENTURY_PS << 16)
@@ -123,6 +124,7 @@
 #define NVR_PIIX4_AMI_1995J     (NVR_PIIX4 | FLAG_AMI_1999J_HACK)
 #define NVR_VIA                 (NVR_AT_STANDARD_MA | NVR_CENTURY_VIA)
 #define NVR_MARTIN              (NVR_AT_MB | FLAG_MARTIN_HACK)
+#define NVR_PC873XX             (NVR_AT_MB | FLAG_PC873XX_BANKS)
 #define NVR_ELT                 (NVR_IRQ_NONE | NVR_ADDR_ELT | NVR_CENTURY_ELT)
 #define NVR_RTC8088             (NVR_IRQ_CONFIG | NVR_ADDR_CONFIG | \
                                  NVR_CENTURY_ALT | FLAG_NO_NMI | FLAG_FIXED_SIZE)

@@ -3365,10 +3365,20 @@ mem_reset_page_blocks(void)
     }
 }
 
+/* A chipset that makes the A20 gate itself: it is told of the requests (the
+   keyboard controller's output, port 92h's, its own) as they change, and A20
+   follows mem_a20_gate alone. The CS5530 traps the change into an SMI, and
+   the handler sets the MediaGX's A20M bit, which sets the gate. */
+void  (*mem_a20_trap)(int state, void *priv) = NULL;
+void   *mem_a20_trap_priv                    = NULL;
+int     mem_a20_gate                         = 1;
+static int mem_a20_request                   = -1;
+
 void
 mem_a20_recalc(void)
 {
-    int state;
+    int       state;
+    uint32_t *mask;
 
     if (!is286) {
         rammask = 0xfffff;
@@ -3379,15 +3389,25 @@ mem_a20_recalc(void)
     }
 
     state = mem_a20_key | mem_a20_alt | mem_a20_chipset;
+    if (mem_a20_trap != NULL) {
+        if (state != mem_a20_request) {
+            mem_a20_request = state;
+            mem_a20_trap(state, mem_a20_trap_priv);
+        }
+        state = mem_a20_gate;
+    }
+
+    /* In SMM with A20 unmasked there, the mask is the one RSM puts back. */
+    mask = (in_smm && unmask_a20_in_smm) ? &old_rammask : &rammask;
     if (state && !mem_a20_state) {
-        rammask = cpu_16bitbus ? 0xffffff : 0xffffffff;
+        *mask = cpu_16bitbus ? 0xffffff : 0xffffffff;
         if (is6117)
-            rammask |= 0x3000000;
+            *mask |= 0x3000000;
         flushmmucache();
     } else if (!state && mem_a20_state) {
-        rammask = cpu_16bitbus ? 0xefffff : 0xffefffff;
+        *mask = cpu_16bitbus ? 0xefffff : 0xffefffff;
         if (is6117)
-            rammask |= 0x3000000;
+            *mask |= 0x3000000;
         flushmmucache();
     }
 

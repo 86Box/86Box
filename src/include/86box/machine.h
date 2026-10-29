@@ -241,6 +241,7 @@ enum {
     MACHINE_CHIPSET_CT_CS4031,
     MACHINE_CHIPSET_CONTAQ_82C596,
     MACHINE_CHIPSET_CONTAQ_82C597,
+    MACHINE_CHIPSET_CYRIX_CX5530,
     MACHINE_CHIPSET_IMS_8848,
     MACHINE_CHIPSET_INTEL_82335,
     MACHINE_CHIPSET_INTEL_420TX,
@@ -1298,6 +1299,10 @@ extern int             machine_at_via809ds_init(const machine_t *);
 
 /* SiS 5571 */
 extern int             machine_at_cb52xsi_init(const machine_t *);
+
+/* Cyrix MediaGX MMX + Cx5530 */
+extern int             machine_at_p5gxm_init(const machine_t *);
+extern uint32_t        machine_at_p5gxm_gpio_handler(uint8_t write, uint32_t val);
 #ifdef EMU_DEVICE_H
 extern const device_t  ms5146_device;
 #endif

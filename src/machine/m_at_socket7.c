@@ -23,6 +23,7 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/chipset.h>
+#include <86box/cyrix_gxm.h>
 #include <86box/ioapic_routes.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -2840,6 +2841,61 @@ machine_at_m558_init(const machine_t *model)
     device_add_params(&um866x_device, (void *) UM8663BF); //Actual super I/O is UM8670F
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    return ret;
+}
+
+/* Cyrix MediaGX MMX + Cx5530 */
+/* Nothing drives the PC97317's GPIO pins from outside: an input reads the
+   pin, high through the internal pull-up (PC87317VUL datasheet, 9.2.2 and
+   Table 9-2). */
+uint32_t
+machine_at_p5gxm_gpio_handler(uint8_t write, uint32_t val)
+{
+    (void) write;
+    (void) val;
+
+    return 0xffffffff;
+}
+
+/* GPIO12 enables the MIDI UART VSA's MPU-401 talks to: the BIOS drives it
+   low unless Setup's Onboard MIDI Port is enabled (Serial Port 2 off). */
+static int
+machine_at_p5gxm_midi_uart_enabled(void)
+{
+    void *sio = device_get_priv(&pc87307_device);
+
+    return (sio == NULL) || (pc87307_gpio_pins(sio, 1) & 0x04);
+}
+
+int
+machine_at_p5gxm_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/p5gxm/p5gx-m.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    /* The MediaGX is device 0; the Cx5530 is strapped to AD28 and its USB
+       to AD29; the slots as the BIOS's $PIR has them. */
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x13, PCI_CARD_SOUTHBRIDGE_USB, 1, 0, 0, 0);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,          3, 4, 1, 2);
+
+    device_add(&cyrix_gxm_device);
+    device_add(&cs5530_device);
+    device_add_params(&pc87307_device, (void *) (PCX730X_15C | PCX730X_AMI | PCX7307_PC97317));
+    device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_PC873XX);
+    device_add(&sst_flash_29ee020_device);
+    cs5530_set_midi_uart_enabled(machine_at_p5gxm_midi_uart_enabled);
 
     return ret;
 }

@@ -119,6 +119,7 @@ extern const device_t pc87310_device;
 /* National Semiconductors */
 #define PCX7307_PC87307      0x000c0
 #define PCX7307_PC97307      0x000cf
+#define PCX7307_PC97317      0x000df    /* SID DFh, PC87317/PC97317 data sheet 2.4.2 */
 
 #define PC87309_PC87309      0x000e0
 
@@ -142,6 +143,7 @@ extern const device_t pc873xx_device;
 
 /* National Semiconductors PC87307 / PC87309 */
 extern const device_t pc87307_device;
+extern uint8_t        pc87307_gpio_pins(void *priv, int port);
 
 extern const device_t pc87309_device;
 

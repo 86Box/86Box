@@ -304,6 +304,9 @@ extern int mem_a20_state;
 extern int mem_a20_alt;
 extern int mem_a20_chipset;
 extern int mem_a20_key;
+extern void (*mem_a20_trap)(int state, void *priv);
+extern void  *mem_a20_trap_priv;
+extern int    mem_a20_gate;
 
 extern int is_compare;
 
