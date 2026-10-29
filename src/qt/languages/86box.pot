@@ -1564,6 +1564,12 @@ msgstr ""
 msgid "Hard disk (%1)"
 msgstr ""
 
+msgid "Board LED"
+msgstr ""
+
+msgid "Board LED %1"
+msgstr ""
+
 msgid "Custom…"
 msgstr ""
 

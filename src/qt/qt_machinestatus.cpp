@@ -42,6 +42,7 @@ extern "C" {
 #include <86box/ui.h>
 #include <86box/machine_status.h>
 #include <86box/config.h>
+#include <86box/board_led.h>
 
 extern volatile int fdcinited;
 extern bool         fast_forward;
@@ -54,6 +55,7 @@ extern int          is_dynarec_active(void);
 #include <QTimer>
 #include <QStatusBar>
 #include <QMenu>
+#include <QPainter>
 #include <QScreen>
 
 #include "qt_mediamenu.hpp"
@@ -324,11 +326,34 @@ PixmapSetEmptyActive::load(const QIcon &icon)
 }
 }
 
+/* A board LED: a lit or dark green lamp. */
+static QPixmap
+boardLedPixmap(bool on)
+{
+    QPixmap  pixmap(pixmap_size);
+    QPainter painter;
+
+    pixmap.fill(Qt::transparent);
+    painter.begin(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(QPen(QColor(0x20, 0x20, 0x20), 1));
+    painter.setBrush(on ? QColor(0x40, 0xe0, 0x40) : QColor(0x20, 0x48, 0x20));
+    painter.drawEllipse(QRectF(3.5, 3.5, pixmap_size.width() - 7, pixmap_size.height() - 7));
+    painter.end();
+
+    return pixmap;
+}
+
 struct MachineStatus::States {
     Pixmaps pixmaps;
+    QPixmap board_led_on;
+    QPixmap board_led_off;
 
     States(QObject *parent)
     {
+        board_led_on  = boardLedPixmap(true);
+        board_led_off = boardLedPixmap(false);
+
         pixmaps.cartridge.load(QIcon(":/settings/qt/icons/cartridge.ico"));
         pixmaps.cassette.load(QIcon(":/settings/qt/icons/cassette.ico"));
         pixmaps.floppy_disabled.normal                  = QIcon(":/settings/qt/icons/floppy_disabled.ico").pixmap(pixmap_size);
@@ -405,6 +430,9 @@ struct MachineStatus::States {
     std::unique_ptr<ClickableLabel>            sound;
     std::unique_ptr<ClickableLabel>            dynarec;
     std::unique_ptr<QLabel>                    text;
+
+    std::array<std::unique_ptr<QLabel>, BOARD_LED_MAX> board_leds;
+    std::array<int, BOARD_LED_MAX>                     board_led_shown;
 };
 
 MachineStatus::MachineStatus(QObject *parent)
@@ -638,6 +666,14 @@ MachineStatus::refreshIcons()
     for (int i = 0; i < USB_SLOTS; i++)
         d->usb[i].setEmpty(!usb_slot_online(i));
 
+    /* Board LEDs are part of the machine, so they always show its state. */
+    for (size_t i = 0; i < BOARD_LED_MAX; i++) {
+        if (d->board_leds[i] && (d->board_led_shown[i] != board_led_get(i))) {
+            d->board_led_shown[i] = board_led_get(i);
+            d->board_leds[i]->setPixmap(d->board_led_shown[i] ? d->board_led_on : d->board_led_off);
+        }
+    }
+
     if (d->dynarec) {
         d->dynarec->setVisible(cpu_use_dynarec);
         d->dynarec->setPixmapIfChanged(!is_dynarec_active() ? d->pixmaps.dynarec.disabled : d->pixmaps.dynarec.normal);
@@ -788,6 +824,10 @@ MachineStatus::refresh(QStatusBar *sbar)
     }
     sbar->removeWidget(d->dynarec.get());
     sbar->removeWidget(d->sound.get());
+    for (size_t i = 0; i < BOARD_LED_MAX; i++) {
+        sbar->removeWidget(d->board_leds[i].get());
+        d->board_leds[i].reset();
+    }
 
     if (cassette_enable) {
         d->cassette.label = std::make_unique<ClickableLabel>();
@@ -1091,6 +1131,14 @@ MachineStatus::refresh(QStatusBar *sbar)
         }
         d->hdds[HDD_BUS_SCSI].label->setToolTip(tooltip);
         sbar->addWidget(d->hdds[HDD_BUS_SCSI].label.get());
+    }
+
+    for (int i = 0; i < board_led_count(); i++) {
+        d->board_leds[i]      = std::make_unique<QLabel>();
+        d->board_led_shown[i] = board_led_get(i);
+        d->board_leds[i]->setPixmap(d->board_led_shown[i] ? d->board_led_on : d->board_led_off);
+        d->board_leds[i]->setToolTip((board_led_count() > 1) ? tr("Board LED %1").arg(i + 1) : tr("Board LED"));
+        sbar->addWidget(d->board_leds[i].get());
     }
 
     d->sound = std::make_unique<ClickableLabel>();
