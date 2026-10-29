@@ -1266,7 +1266,11 @@ build_link_routine(codeblock_t *block)
     rx_rr(block, 0, 1, 0x85, REG_R15, REG_R15);
     miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
 
-    /*Target not freed or changed since the slot was filled. RDI = it*/
+    /*Target not freed or changed since the slot was filled. RDI = it.
+      Whether codeblock_hash[] still points to it is not checked: if not, the
+      C loop would take another block compiled for the same cs:pc and status,
+      or find this one in the tree, and either runs the same code. A flush
+      that would keep the loop from looking changes link_gen.*/
     rx_rm(block, 0, 1, 0x8b, REG_RDI, REG_RBX, LINK_SLOT(block));
     rx_rm(block, 0, 0, 0x8b, REG_R9, REG_RDI, LINK_BLOCK(link_gen));
     rx_rm(block, 0, 0, 0x3b, REG_R9, REG_RBX, LINK_SLOT(gen));
@@ -1383,12 +1387,7 @@ build_link_routine(codeblock_t *block)
     rx_rr(block, 0, 1, 0x85, REG_RDX, REG_RDX);
     miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
 
-    /*The block lookup and the checks made before running it*/
-    rx_rm(block, 0, 1, 0x8b, REG_RDX, REG_RBX, LINK_SLOT(hash));
-    rx_rm(block, 0, 0, 0x8b, REG_RDX, REG_RDX, 0);
-    rx_rm(block, 0, 0, 0x8b, REG_RCX, REG_RBX, LINK_SLOT(block_nr));
-    rx_rr(block, 0, 0, 0x39, REG_RCX, REG_RDX); /*CMP EDX, ECX*/
-    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    /*The checks made before running the block*/
     rx_rm(block, 0, 1, 0x8b, REG_RDX, REG_RBX, LINK_SLOT(dirty_mask));
     rx_rm(block, 0, 1, 0x8b, REG_RDX, REG_RDX, 0);
     rx_rm(block, 0, 1, 0x85, REG_RDX, REG_RBX, LINK_SLOT(page_mask));
@@ -1657,6 +1656,17 @@ codegen_backend_prologue(codeblock_t *block)
     link_site = 0;
 #    endif
     host_x86_MOV64_REG_IMM(block, REG_RBP, ((uintptr_t) &cpu_state) + 128);
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    /*The slot of the block's end, which the link routine reads first when
+      the block is done: start loading each of its lines now, as the slots
+      are seldom in cache*/
+    if (codegen_block_link) {
+        uintptr_t slot = (uintptr_t) &codegen_link_slots[get_block_nr(block)][0];
+
+        for (uintptr_t line = slot & ~(uintptr_t) 63; line < slot + sizeof(codegen_link_slot_t); line += 64)
+            lx_abs(block, 0, 0, 0x0f18, 1, (void *) line); /*PREFETCHT0*/
+    }
+#    endif
     if (block->flags & CODEBLOCK_HAS_FPU) {
         host_x86_MOV32_REG_ABS(block, REG_EAX, &cpu_state.TOP);
         host_x86_SUB32_REG_IMM(block, REG_EAX, block->TOP);
