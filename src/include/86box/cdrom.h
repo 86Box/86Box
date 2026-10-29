@@ -229,6 +229,7 @@ static const struct cdrom_drive_types_s {
     { "LG",       "CD-ROM CRN-8245B", "1.30", "",          "lg_8245b",       BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2, -1 } }, /* Notebook version of CRD-8240B */
     { "LG",       "DVDROM DRD-8160B", "1.01", "",          "lg_d8160b",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD / 48x CD */
     { "LG",       "DVDROM DRD-820B",  "1.04", "",          "lg_d820b",       BUS_TYPE_IDE,  0, 24, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 2 }, /* verified: 2x DVD / 24x CD */
+    { "LITE-ON",  "LTR-52246S",       "6S0A", "",          "liteon_52246s",  BUS_TYPE_IDE,  0, 56, 36, 0, 0, {  4,  2,  2,  4 } , 0 , 0 },
     { "LITE-ON", " DVD SOHD-167T",    "9S13", "",          "liteon_167t",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* heuristic: 16x DVD */
     { "LITE-ON", " DVD+RW LDW-401S",  "ES0G", "",          "liteon_401s",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 4 }, /* heuristic: 4x DVD (early DVD+RW; model 401) */
     { "LITE-ON", " DVDRW SOHW-1633S", "BS0G", "",          "liteon_812s",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* heuristic: 16x DVD (model 1633 suggests 16x-class) */
