@@ -4830,9 +4830,7 @@ check_completed:
                 noint = 0;
         }
 
-#ifdef USE_GDBSTUB
-        if (gdbstub_instruction())
+        if (gdbstub_active && gdbstub_instruction())
             return;
-#endif
     }
 }

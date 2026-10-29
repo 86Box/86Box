@@ -425,10 +425,8 @@ exec386_2386(int32_t cycs)
             if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint64_t) tsc))
                 timer_process();
 
-#ifdef USE_GDBSTUB
-            if (gdbstub_instruction())
+            if (gdbstub_active && gdbstub_instruction())
                 return;
-#endif
         }
     }
 }

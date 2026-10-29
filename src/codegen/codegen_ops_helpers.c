@@ -2,6 +2,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/gdbstub.h>
 #include <86box/plat_unused.h>
 
 #include "x86.h"
@@ -211,6 +212,9 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
     int max_unroll;
     int first_instruction;
     int TOP = -1;
+
+    if (gdbstub_debug)
+        return 0;
 
     /*Check that dest instruction was actually compiled into block*/
     start = codegen_get_instruction_uop(block, dest_addr, &first_instruction, &TOP);

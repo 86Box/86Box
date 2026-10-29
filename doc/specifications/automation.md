@@ -98,7 +98,7 @@ startup), `frames` (frames rendered) and `held`.
 | `serial read <port> [<from> [<max>]]` | What the guest has sent on COM`<port>` from position `from` (default 0) on, at most `max` bytes (default and limit 65536), as hex `data`. With `from` and `next` (the `from` for the next read), `pos` (bytes sent so far), `lost` (bytes asked for that were no longer kept), `last_ms` (emulated time of the last byte), `pending` (bytes queued for the guest that it hasn't taken), `taken` (bytes it has taken), `attached`, and the lines: `dtr`, `rts`, `break` (set by the guest), `cts`, `dsr`, `dcd`, `ri` (seen by it). Fails if the port doesn't have the `automation` backend. |
 | `serial write <port> <hex>` | Queue bytes for the guest to receive on COM`<port>` (up to 65536 waiting). Reply has `queued` and `pending`; fails with `input queue full`, queueing nothing, if they don't fit. |
 | `serial lines <port> <cts> <dsr> <dcd> <ri>` | Set the modem status lines the guest sees, each 0 or 1 (CTS, DSR and DCD start on). Reply has the lines, as for `serial read`. |
-| `info` | Version, machine, CPU and clock, RAM, video and sound cards, mounted hard disk/floppy/CD images, `hard_resets`/`soft_resets` (every CPU reset, including a guest triple fault) and `last_reset_ms`, `speed_percent` (100 = real time), and `serial`: each enabled COM port's `port` and `device` (the backend's internal name, or `none`), the line settings the guest has programmed when a backend is attached (`baud`, `data_bits`, `parity`, `stop_bits`), and for an `automation` port `pos`, `oldest` (the first position still kept), `last_ms`, `pending` and the lines. In a build with the GDB stub, `gdbstub_port`. |
+| `info` | Version, machine, CPU and clock, RAM, video and sound cards, mounted hard disk/floppy/CD images, `hard_resets`/`soft_resets` (every CPU reset, including a guest triple fault) and `last_reset_ms`, `speed_percent` (100 = real time), and `serial`: each enabled COM port's `port` and `device` (the backend's internal name, or `none`), the line settings the guest has programmed when a backend is attached (`baud`, `data_bits`, `parity`, `stop_bits`), and for an `automation` port `pos`, `oldest` (the first position still kept), `last_ms`, `pending` and the lines. Also reports `gdbstub_active` and the effective `gdbstub_port`; see [Guest GDB debugging](gdbstub.md). |
 | `text` | Text-mode screen via the BIOS data area: `mode`, `cols`, `rows`, `cursor` [row, col], and `chars`/`attrs` as one hex string per row (CP437). Fails in graphics modes. |
 | `memr <addr> <len>` | Read up to 65536 bytes of physical memory; `data` is hex. |
 | `memw <addr> <hex>` | Write bytes to physical memory. |
@@ -209,8 +209,8 @@ reply to its request, if one was waiting, or a line of its own.
 
 ## With the GDB stub
 
-In a build with both `-D AUTOMATION=ON` and `-D GDBSTUB=ON`, a GDB client
-and an automation client can share a machine:
+In a build with `-D AUTOMATION=ON`, enable the runtime [GDB stub](gdbstub.md)
+with `--gdbstub`. A GDB client and an automation client can share a machine:
 
 - While the GDB stub has the CPU stopped (the stub starts it stopped, and a
   breakpoint, a watchpoint or a GDB interrupt stops it), no emulated time

@@ -77,7 +77,7 @@ x386_dynarec_log(const char *fmt, ...)
 #    define x386_dynarec_log(fmt, ...)
 #endif
 
-static __inline void
+static __attribute__((noinline, hot)) void
 fetch_ea_32_long(uint32_t rmdat)
 {
     eal_r = eal_w = NULL;
@@ -503,6 +503,9 @@ exec386_dynarec_int_common(const int dbg)
             x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
         }
 
+        if (gdbstub_active && gdbstub_instruction())
+            CPU_BLOCK_END();
+
         if (cpu_flush_pending == 1)
             cpu_flush_pending++;
         else if (cpu_flush_pending == 2) {
@@ -806,6 +809,9 @@ exec386_dynarec_dyn(void)
 
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
 
+                if (gdbstub_active && gdbstub_instruction())
+                    CPU_BLOCK_END();
+
                 if (x86_was_reset)
                     break;
             }
@@ -928,6 +934,9 @@ exec386_dynarec_dyn(void)
                 cpu_state.pc++;
 
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+
+                if (gdbstub_active && gdbstub_instruction())
+                    CPU_BLOCK_END();
 
                 if (x86_was_reset)
                     break;
@@ -1141,10 +1150,8 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                     timer_process();
             }
 
-#    ifdef USE_GDBSTUB
-            if (gdbstub_instruction())
+            if (gdbstub_active && gdbstub_instruction())
                 return;
-#    endif
         }
 
         cycles_main -= (cycles_start - cycles);
@@ -1379,9 +1386,9 @@ inboard_post_fixups(void)
 
 }
 
-/* As exec386_dynarec_int_common(): dbg is cpu_debug_regs_486, a constant. */
+/* Constant options keep debugger checks out of the ordinary instruction loop. */
 __attribute__((always_inline)) static inline void
-exec386_common(int32_t cycs, const int dbg)
+exec386_common(int32_t cycs, const int dbg, const int gdb)
 {
     int      vector;
     int      tempi;
@@ -1580,19 +1587,29 @@ block_ended:
             if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint64_t) tsc))
                 timer_process();
 
-#ifdef USE_GDBSTUB
-            if (gdbstub_instruction())
+            if (gdb && gdbstub_instruction())
                 return;
-#endif
         }
     }
+}
+
+/* Avoid perturbing the ordinary loop's hot-code layout with its debugger copy. */
+static __attribute__((noinline, cold)) void
+exec386_gdb(int32_t cycs)
+{
+    if (cpu_debug_regs_486)
+        exec386_common(cycs, 1, 1);
+    else
+        exec386_common(cycs, 0, 1);
 }
 
 void
 exec386(int32_t cycs)
 {
-    if (cpu_debug_regs_486)
-        exec386_common(cycs, 1);
+    if (UNLIKELY(gdbstub_active))
+        exec386_gdb(cycs);
+    else if (cpu_debug_regs_486)
+        exec386_common(cycs, 1, 0);
     else
-        exec386_common(cycs, 0);
+        exec386_common(cycs, 0, 0);
 }

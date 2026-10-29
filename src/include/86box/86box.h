@@ -264,6 +264,7 @@ extern int    vmm_regex_search;             /* (G) search the manager with regul
 extern int    vmm_window_remember;          /* (G) remember the manager's window size and position */
 extern int    vmm_delete_to_trash;          /* (G) delete machines to the trash */
 extern int    gdbstub_port;                 /* (C) The GDB stub port. */
+extern int    gdbstub_enabled;              /* (C) Enable the GDB stub at startup. */
 
 extern char exe_path[2048];        /* path (dir) of executable */
 extern char usr_path[1024];        /* path (dir) of user data */
