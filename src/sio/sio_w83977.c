@@ -1284,9 +1284,9 @@ w83977_init(const device_t *info)
 
     dev->hefras    = info->local & W83977_370;
 
-    dev->id = next_id;
+    dev->id = (info->local & W83977_SECONDARY) ? 1 : next_id;
 
-    if (next_id == 1)
+    if (dev->id == 1)
         dev->hefras   ^= W83977_370;
     else
         dev->fdc       = device_add_params(&fdc_at_smc_device, (void *) FDC_FLAG_PNP);
@@ -1295,14 +1295,14 @@ w83977_init(const device_t *info)
         dev->uart[0]   = device_add_inst(&ns16550_device, 3);
         dev->uart[1]   = device_add_inst(&ns16550_device, 4);
     } else {
-        dev->uart[0]   = device_add_inst(&ns16550_device, (next_id << 1) + 1);
-        dev->uart[1]   = device_add_inst(&ns16550_device, (next_id << 1) + 2);
+        dev->uart[0]   = device_add_inst(&ns16550_device, (dev->id << 1) + 1);
+        dev->uart[1]   = device_add_inst(&ns16550_device, (dev->id << 1) + 2);
     }
 
     if (info->local & W83977_LPT_FORCE_SEC)
         dev->lpt       = device_add_inst(&lpt_port_device, 2);
     else
-        dev->lpt       = device_add_inst(&lpt_port_device, next_id + 1);
+        dev->lpt       = device_add_inst(&lpt_port_device, dev->id + 1);
 
     dev->type      = info->local & W83977_TYPE;
 

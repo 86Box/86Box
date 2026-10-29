@@ -2977,3 +2977,38 @@ machine_at_awp601_init(const machine_t *model)
 
     return ret;
 }
+
+/* Geode GX1 + CS5530A ECX single-board computer, General Software Embedded
+   BIOS: a National PC97317 at 2Eh (with its keyboard controller and RTC)
+   and a Winbond W83977EF at 370h for COM3/COM4. The on-board Realtek
+   RTL8139C is modelled by the 8139C+. */
+int
+machine_at_msc655b_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/msc655b/msc-655b.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x13, PCI_CARD_SOUTHBRIDGE_USB, 1, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_NETWORK,         1, 2, 3, 4);
+
+    device_add(&cyrix_gxm_device);
+    device_add(&cs5530_device);
+    device_add_params(&pc97317_device, (void *) (PCX730X_02E | PCX730X_AMI | PCX7307_PC97317));
+    device_add_params(&w83977_device, (void *) (W83977EF | W83977_NO_NVR | W83977_SECONDARY));
+    device_add(&sst_flash_29ee020_device);
+
+    if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
+        device_add(machine_get_net_device(machine));
+
+    return ret;
+}
