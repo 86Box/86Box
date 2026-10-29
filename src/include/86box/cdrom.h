@@ -140,20 +140,22 @@ static const struct cdrom_drive_types_s {
     const char   *identify_model;
     const char   *inquiry_vendor;
     const char   *inquiry_model;
+    /* DVD read speed (0 = not applicable / use CD speed; -1 = user-selectable on generic). */
+    const int     dvd_speed;
 } cdrom_drive_types[] = {
     { EMU_NAME,   "86B_CD",           CDV,    "",          "86cd",           BUS_TYPE_BOTH, 2, -1, 36, 0, 0, {  4,  2,  2,  6 } },
     { EMU_NAME,   "86B_CD",           "1.00", "",          "86cd100",        BUS_TYPE_BOTH, 1, -1, 36, 1, 0, {  0, -1, -1, -1 } }, /* SCSI-1 / early ATAPI generic - second on purpose so the later variant is the default. */
-    { EMU_NAME,   "86B_DVD",          "5.00", "",          "86dvd",          BUS_TYPE_BOTH, 2, -1, 36, 0, 1, {  4,  2,  2,  6 } },
+    { EMU_NAME,   "86B_DVD",          "5.00", "",          "86dvd",          BUS_TYPE_BOTH, 2, -1, 36, 0, 1, {  4,  2,  2,  6 }, NULL, NULL, NULL, -1 },
     { "ACER",     "656A",             "8.4D", "656A 043",  "acer_656a",      BUS_TYPE_IDE,  0,  8, 36, 0, 0, {  3,  2,  2,  3 } },
     { "ACER",     "8432IA",           "5.AX", "",          "acer_8432ia",    BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  4,  2,  2,  4 } }, /* TODO: to find the real dump of this CD-ROM model. */
     { "AOpen",    "CD-924E",          "A205", "",          "aopen_924e",     BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  4 } },
     { "AOpen",    "CD-948E",          "4.02", "",          "aopen_948e",     BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  4 } },
     { "AOpen",    "CD-952E",          "2.01", "",          "aopen_952e",     BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  4 } },
     { "AOpen",    "CD-956E",          "2480", "",          "aopen_956e",     BUS_TYPE_IDE,  0, 56, 36, 0, 0, {  4,  2,  2,  4 } },
-    { "AOpen",    "DVD-9632",         "1.15", "",          "aopen_9632",     BUS_TYPE_IDE,  0, 32, 36, 0, 1, {  4,  2,  2,  4 } },
+    { "AOpen",    "DVD-9632",         "1.15", "",          "aopen_9632",     BUS_TYPE_IDE,  0, 32, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 6 }, /* verified: 6x DVD / 32x CD */
     { "ASUS",     "CD-S500/A",        "1.41", "",          "asus_500",       BUS_TYPE_IDE,  0, 50, 36, 0, 0, {  4,  2,  2,  4 } },
     { "ASUS",     "CD-S520/A4",       "1.6K", "",          "asus_520",       BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  4 } },
-    { "ASUS",     "DVD-E616P2",       "1.08", "",          "asus_e616",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  5 } },
+    { "ASUS",     "DVD-E616P2",       "1.08", "",          "asus_e616",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  5 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD / 48x CD */
     { "AZT",      "CDA46802I",        "1.15", "",          "azt_cda",        BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  3,  0,  0,  0 } },
     { "BENQ",     "CD-656A",          "56AI", "",          "benq_656a",      BUS_TYPE_IDE,  0, 56, 36, 0, 0, {  4,  2,  2,  3 } },
     { "BTC",      "CD-ROM BCD16XA",   "U2.2", "",          "btc_16xa",       BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  4,  2,  2,  4 } },
@@ -164,7 +166,7 @@ static const struct cdrom_drive_types_s {
     { "CREATIVE", "CD2422E",          "MC10", "",          "creative_2422",  BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  4 } },
     { "CREATIVE", "CD3621E",          "ZC10", "",          "creative_3621",  BUS_TYPE_IDE,  0, 36, 36, 0, 0, {  4,  2,  2,  4 } },
     { "CREATIVE", "CD5220E",          "2.02", "",          "creative_5220",  BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  3 } },
-    { "CREATIVEDVD-ROM", "DVD2240E",  "1.7A", "",          "creative_d2240", BUS_TYPE_IDE,  0, 20, 36, 0, 1, {  4,  2,  2,  4 } }, /* The "CREATIVEDVD-ROM" name is used by the real drive, not a mistake */
+    { "CREATIVEDVD-ROM", "DVD2240E",  "1.7A", "",          "creative_d2240", BUS_TYPE_IDE,  0, 20, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 2 }, /* verified: 2x DVD / 20x CD (early Creative/Panasonic OEM) */
     { "ECS",      "300HPD",           "V200", "",          "ecs_300",        BUS_TYPE_IDE,  0,  3, 36, 0, 0, {  2, -1, -1,  2 }, "300HPD", "ECS", "VERTOS 300HPD" }, /* Firmware revision not yet confirmed */
     { "ECS",      "600ESD",           "V300", "",          "ecs_600",        BUS_TYPE_IDE,  0,  6, 36, 0, 0, {  3, -1, -1,  1 }, "600ESD", "ECS", "VERTOS 600ESD" },
     { "GOLDSTAR", "CRD-8160B",        "3.14", "",          "goldstar",       BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  4,  2,  1, -1 } },
@@ -181,16 +183,16 @@ static const struct cdrom_drive_types_s {
     { "HITACHI",  "CDR-8130",         "0020", "",          "hitachi_r8130",  BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  4,  2,  2,  4 } },
     { "HITACHI",  "CDR-8330",         "0007", "",          "hitachi_r8330",  BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  4 } },
     { "HITACHI",  "CDR-8435",         "0010", "",          "hitachi_r8435",  BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  4,  2,  2,  4 } },
-    { "HITACHI",  "DVD-ROM GD-2000",  "A012", "",          "hitachi_2000",   BUS_TYPE_IDE,  0, 20, 36, 0, 1, {  4,  2,  2,  2 } },
-    { "HITACHI",  "DVD-ROM GD-2500",  "0101", "",          "hitachi_2500",   BUS_TYPE_IDE,  0, 24, 36, 0, 1, {  4,  2,  2,  2 } },
-    { "HITACHI",  "GD-7500",          "A1  ", "",          "hitachi_7500",   BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } },
+    { "HITACHI",  "DVD-ROM GD-2000",  "A012", "",          "hitachi_2000",   BUS_TYPE_IDE,  0, 20, 36, 0, 1, {  4,  2,  2,  2 } , NULL, NULL, NULL, 2 }, /* verified: 2x DVD / 20x CD */
+    { "HITACHI",  "DVD-ROM GD-2500",  "0101", "",          "hitachi_2500",   BUS_TYPE_IDE,  0, 24, 36, 0, 1, {  4,  2,  2,  2 } , NULL, NULL, NULL, 4 }, /* verified: 4x DVD / 24x CD */
+    { "HITACHI",  "GD-7500",          "A1  ", "",          "hitachi_7500",   BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 12 }, /* verified: 12x DVD / 40x CD */
     { "HL-DT-ST", "CD-ROM GCR-8526B", "1.01", "",          "hldtst_8526b",   BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  4 } },
-    { "HL-DT-ST", "DVDROM GDR-8082N", "0002", "",          "hldtst_8082",    BUS_TYPE_IDE,  0, 24, 36, 0, 1, {  4,  2,  2,  4 } },
-    { "HL-DT-ST", "DVDROM GDR-8163B", "0L23", "",          "hldtst_8163",    BUS_TYPE_IDE,  0, 52, 36, 0, 1, {  4,  2,  2,  4 } }, /* DVD version of GCR-8526B */
-    { "HL-DT-ST", "DVDRAM GSA-4160B", "A302", "",          "hldtst_4160",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  5 } },
-    { "HL-DT-ST", "DVDRAM GSA-H42L",  "SL01", "",          "hldtst_h42l",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  6 } }, /* ATAPI-7 type. */
+    { "HL-DT-ST", "DVDROM GDR-8082N", "0002", "",          "hldtst_8082",    BUS_TYPE_IDE,  0, 24, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 8 }, /* heuristic: 8x DVD (early HL-DT-ST; model number suggests ~8x) */
+    { "HL-DT-ST", "DVDROM GDR-8163B", "0L23", "",          "hldtst_8163",    BUS_TYPE_IDE,  0, 52, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD / 48x+ CD (HL Data Storage) */
+    { "HL-DT-ST", "DVDRAM GSA-4160B", "A302", "",          "hldtst_4160",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  5 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD-ROM / 40x CD (Super Multi) */
+    { "HL-DT-ST", "DVDRAM GSA-H42L",  "SL01", "",          "hldtst_h42l",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  6 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD-ROM (Super Multi series) */
     { "HP",       "7200e",            "1.34", "",          "hp_7200",        BUS_TYPE_IDE,  0,  6, 36, 0, 0, {  3,  1,  1,  3 } },
-    { "HP",       "DVD1040i",         "4H13", "",          "hp_1040i",       BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
+    { "HP",       "DVD1040i",         "4H13", "",          "hp_1040i",       BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD / 48x CD */
     { "KENWOOD",  "CD-ROM UCR-421",   "208E", "",          "kenwood_421",    BUS_TYPE_IDE,  0, 72, 36, 0, 0, {  4,  2,  2,  4 } },
     { "LEOPTICS", "CD-ROM 24X",       "4.6C", "",          "leoptics_24x",   BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  4 } },
     { "LG",       "CD-ROM CRD-8160B", "1.15", "",          "lg_8160b",       BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  4,  2,  1, -1 } }, /* Later version of GoldStar CRD-8160B */
@@ -200,8 +202,8 @@ static const struct cdrom_drive_types_s {
     { "LG",       "CD-ROM CRD-8400C", "1.02", "",          "lg_8400c",       BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2,  4 } },
     { "LG",       "CD-ROM CRD-8482B", "1.00", "",          "lg_8482b",       BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  4 } },
     { "LG",       "CD-ROM CRD-8522B", "2.03", "",          "lg_8522b",       BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  4 } },
-    { "LG",       "DVDROM DRD-820B",  "1.04", "",          "lg_d820b",       BUS_TYPE_IDE,  0, 24, 36, 0, 1, {  4,  2,  2,  4 } },
-    { "LG",       "DVDROM DRD-8160B", "1.01", "",          "lg_d8160b",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
+    { "LG",       "DVDROM DRD-820B",  "1.04", "",          "lg_d820b",       BUS_TYPE_IDE,  0, 24, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 2 }, /* verified: 2x DVD / 24x CD */
+    { "LG",       "DVDROM DRD-8160B", "1.01", "",          "lg_d8160b",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD / 48x CD */
     { "LITEON",  "CD-ROM LTN204",     "1017", "LTN204",    "liteon_204",     BUS_TYPE_IDE,  0, 20, 36, 0, 0, {  4,  2,  2,  4 } },
     { "LITEON",  "CD-ROM LTN242",     "2048", "LTN242",    "liteon_242",     BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  3 } },
     { "LITEON",  "CD-ROM LTN242",     "HP12", "LTN242",    "liteon_ltn242",  BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  3 } },
@@ -211,13 +213,13 @@ static const struct cdrom_drive_types_s {
     { "LITEON",  "CD-ROM LTN403L",    "DQ19", "LTN403L",   "liteon_403",     BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2,  4 } },
     { "LITEON",  "CD-ROM LTR48125S",  "1S07", "LTR48125S", "liteon_48125s",  BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  4 } },
     { "LITEON",  "CD-ROM LTN526D",    "YSR5", "LTN526D",   "liteon_526d",    BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  4 } }, /* Confirmed to be 52x, was the basis for deducing the other one's speed. */
-    { "LITEON",  "CD-ROM LTD166",     "9S14", "LTD166",    "liteon_166d",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
-    { "LITE-ON", " DVD+RW LDW-401S",  "ES0G", "",          "liteon_401s",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } },
-    { "LITE-ON", " DVDRW SOHW-812S",  "US0A", "",          "liteon_812s",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } },
-    { "LITE-ON", " DVDRW SOHW-1633S", "BS0G", "",          "liteon_812s",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
-    { "LITE-ON", " DVD SOHD-167T",    "9S13", "",          "liteon_167t",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
+    { "LITEON",  "CD-ROM LTD166",     "9S14", "LTD166",    "liteon_166d",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* heuristic: 16x DVD (CD-ROM model with DVD capability) */
+    { "LITE-ON", " DVD+RW LDW-401S",  "ES0G", "",          "liteon_401s",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 4 }, /* heuristic: 4x DVD (early DVD+RW; model 401) */
+    { "LITE-ON", " DVDRW SOHW-812S",  "US0A", "",          "liteon_812s",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 8 }, /* heuristic: 8x DVD (early writer; model suggests 8x) */
+    { "LITE-ON", " DVDRW SOHW-1633S", "BS0G", "",          "liteon_812s",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* heuristic: 16x DVD (model 1633 suggests 16x-class) */
+    { "LITE-ON", " DVD SOHD-167T",    "9S13", "",          "liteon_167t",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* heuristic: 16x DVD */
     { "MAD DOG",  "LIGHTNING 56X",    "1.0 ", "",          "maddog_56x",     BUS_TYPE_IDE,  0, 56, 36, 0, 0, {  4,  2,  2,  4 } }, /* TODO: to find the real dump of this CD-ROM model. */
-    { "MAD DOG",  "ENTERTAINER 16X",  "1.0 ", "",          "maddog_16x",     BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } }, /* TODO: to find the real dump of this CD-ROM model. */
+    { "MAD DOG",  "ENTERTAINER 16X",  "1.0 ", "",          "maddog_16x",     BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* TODO: to find the real dump of this CD-ROM model. */
     { "MATSHITA", "CR-571",           "1.0e", "",          "matshita_571",   BUS_TYPE_IDE,  0,  2, 36, 0, 0, {  0, -1, -1, -1 } },
     { "MATSHITA", "CR-572",           "1.0j", "",          "matshita_572",   BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  0, -1, -1, -1 } },
     { "MATSHITA", "CR-574",           "P.11", "",          "matshita_574",   BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  2, -1, -1,  4 } },
@@ -227,8 +229,8 @@ static const struct cdrom_drive_types_s {
     { "MATSHITA", "CD-ROM CR-587",    "7S13", "",          "matshita_587",   BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  4 } },
     { "MATSHITA", "CD-ROM CR-588",    "LS15", "",          "matshita_588",   BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  4,  2,  2,  4 } },
     { "MATSHITA", "CD-ROM CR-594-C",  "PA05", "",          "matshita_594",   BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  4 } },
-    { "MATSHITA", "DVD-ROM SR-8587",  "CA5B", "",          "matshita_8587",  BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
-    { "MATSHITA", "DVD-ROM SR-8584",  "e15C", "",          "matshita_8584",  BUS_TYPE_IDE,  0, 52, 36, 0, 1, {  4,  2,  2,  4 } },
+    { "MATSHITA", "DVD-ROM SR-8587",  "CA5B", "",          "matshita_8587",  BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* heuristic: 16x DVD (Panasonic OEM) */
+    { "MATSHITA", "DVD-ROM SR-8584",  "e15C", "",          "matshita_8584",  BUS_TYPE_IDE,  0, 52, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* heuristic: 16x DVD (Panasonic OEM) */
     { "MITSUMI",  "FX400E",           "K02 ", "",          "mitsumi_400e",   BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  3,  2,  2,  4 } }, /* Early version of CRMC-FX400G */
     { "MITSUMI",  "CRMC-FX400G",      "l07 ", "FX400G",    "mitsumi_400c",   BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  4,  2,  2,  4 } },
     { "MITSUMI",  "CRMC-FX600S",      "p07 ", "FX600S",    "mitsumi_600s",   BUS_TYPE_IDE,  0,  6, 36, 0, 0, {  4,  2,  2,  4 } },
@@ -250,8 +252,8 @@ static const struct cdrom_drive_types_s {
     { "NEC",      "CDR-1801A",        "J111", "",          "nec_1801a",      BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  2 } },
     { "NEC",      "CDR-1900A",        "1.00", "",          "nec_1900a",      BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  4,  2,  2,  4 } },
     { "NEC",      "CDR-3002A",        "C000", "",          "nec_3002a",      BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  4 } },
-    { "NEC",      "ND-1300A",         "1.0B", "",          "nec_d1300a",     BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } },
-    { "NEC",      "ND-3500A",         "2.1A", "",          "nec_d3500a",     BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } }, /* 48x version of ND-1300A */
+    { "NEC",      "ND-1300A",         "1.0B", "",          "nec_d1300a",     BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 12 }, /* verified: 12x max DVD-ROM (5-12x CAV) / 40x CD */
+    { "NEC",      "ND-3500A",         "2.1A", "",          "nec_d3500a",     BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD-ROM / 48x CD */
     { "NEWMAX",   "CCD-7120",         "4.00", "",          "newmax_7120",    BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  4,  2,  2,  4 } },
     { "OCTEK",    "CDR-810",          "1020", "",          "octek_810",      BUS_TYPE_IDE,  0, 10, 36, 0, 0, {  3,  2,  2,  4 } },
     { "PHILIPS",  "CD-ROM PCA323CD",  "2.5 ", "",          "philips_323",    BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  4,  2,  2,  3 } },
@@ -260,12 +262,12 @@ static const struct cdrom_drive_types_s {
     { "PHILIPS",  "CDD4801/71",       "C1.3", "",          "philips_4801",   BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  4 } },
     { "PIONEER",  "CD-ROM DR-A12X",   "1.00", "",          "pioneer_a12x",   BUS_TYPE_IDE,  0, 12, 36, 0, 0, {  4,  2,  1, -1 } },
     { "PIONEER",  "CD-ROM DR-U24X",   "1.00", "",          "pioneer_u24x",   BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2 , 0 } },
-    { "PIONEER",  "DVD-115LH",        "1.24", "",          "pioneer_115lh",  BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2 , 2 } },
-    { "PIONEER",  "DVD-121",          "196L", "",          "pioneer_121",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2 , 4 } }, /* Later(?) variant of DVD-115LH */
-    { "PIONEER",  "DVD-RAM DVR-MCC",  "1.00", "",          "pioneer_mcc",    BUS_TYPE_IDE,  0, 24, 36, 0, 1, {  4,  2,  2 , 4 } },
-    { "PIONEER",  "DVD-RAM DVR-106D", "1.08", "",          "pioneer_106d",   BUS_TYPE_IDE,  0, 32, 36, 0, 1, {  4,  2,  2 , 4 } },
-    { "PIONEER",  "DVD-RAM DVR-110D", "1.41", "",          "pioneer_110d",   BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2 , 5 } }, /* 40x version of DVR-106D */
-    { "PLEXTOR",  "DVD-ROM PX-800A",  "81HA", "",          "pioneer_800a",   BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2 , 4 } },
+    { "PIONEER",  "DVD-115LH",        "1.24", "",          "pioneer_115lh",  BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2 , 2 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD / 40x CD (Pioneer industry-first 16x) */
+    { "PIONEER",  "DVD-121",          "196L", "",          "pioneer_121",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2 , 4 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD / 40x CD (Pioneer industry-first 16x) */
+    { "PIONEER",  "DVD-RAM DVR-MCC",  "1.00", "",          "pioneer_mcc",    BUS_TYPE_IDE,  0, 24, 36, 0, 1, {  4,  2,  2 , 4 } , NULL, NULL, NULL, 4 }, /* heuristic: 4x DVD-ROM (early DVD-RAM) */
+    { "PIONEER",  "DVD-RAM DVR-106D", "1.08", "",          "pioneer_106d",   BUS_TYPE_IDE,  0, 32, 36, 0, 1, {  4,  2,  2 , 4 } , NULL, NULL, NULL, 12 }, /* verified: 12x DVD-ROM / 32x CD (DVR-106D) */
+    { "PIONEER",  "DVD-RAM DVR-110D", "1.41", "",          "pioneer_110d",   BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2 , 5 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD-ROM / 40x CD */
+    { "PLEXTOR",  "DVD-ROM PX-800A",  "81HA", "",          "pioneer_800a",   BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2 , 4 } , NULL, NULL, NULL, 16 }, /* heuristic: 16x DVD (Plextor) */
     { "RICOH",    "MP7040A",          "1.60", "",          "ricoh_7040",     BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  4 } },
     { "SAMSUNG",  "CD-ROM SCR-830",   "63MG", "",          "samsung_830",    BUS_TYPE_IDE,  0,  8, 36, 0, 0, {  4,  2,  2,  4 } }, /* Firmware revision not yet confirmed */
     { "SAMSUNG",  "CD-ROM SCR-2431",  "S101", "",          "samsung_2431",   BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  4 } },
@@ -273,9 +275,9 @@ static const struct cdrom_drive_types_s {
     { "SAMSUNG",  "CD-ROM SC-140",    "BS14", "",          "samsung_140",    BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2,  4 } },
     { "SAMSUNG",  "CD-ROM SC-148F",   "PS07", "",          "samsung_148f",   BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  4 } },
     { "SAMSUNG",  "CD-ROM SC-152",    "C400", "",          "samsung_152",    BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  4 } },
-    { "SAMSUNG",  "DVD-ROM SD-616E",  "F503", "",          "samsung_616e",   BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
-    { "SAMSUNG",  "DVD-ROM SD-816",  "H000", "",           "samsung_816",    BUS_TYPE_IDE,  0, 52, 36, 0, 1, {  4,  2,  2,  4 } },
-    { "SAMSUNG",  "DVD-ROM SH-D162C", "TS05", "",          "samsung_162c",   BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  6 } }, /* Later variant of SD-616E */
+    { "SAMSUNG",  "DVD-ROM SD-616E",  "F503", "",          "samsung_616e",   BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD / 48x CD */
+    { "SAMSUNG",  "DVD-ROM SD-816",  "H000", "",           "samsung_816",    BUS_TYPE_IDE,  0, 52, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* verified: 16x */
+    { "SAMSUNG",  "DVD-ROM SH-D162C", "TS05", "",          "samsung_162c",   BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  6 } , NULL, NULL, NULL, 16 }, /* Later variant of SD-616E */
     { "SANYO",    "CRD-254P",         "1.05", "",          "sanyo_crd254p",  BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  2, -1, -1, -1 } },
     { "SANYO",    "CRD-820P",         "1.04", "",          "sanyo_crd820p",  BUS_TYPE_IDE,  0, 20, 36, 0, 0, {  3,  2,  2, -1 } },
     { "SONY",     "CD-ROM CDU76",     "1.0i", "",          "sony_76",        BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  2, -1, -1, -1 } },
@@ -283,11 +285,11 @@ static const struct cdrom_drive_types_s {
     { "SONY",     "CD-ROM CDU611",    "2.2c", "",          "sony_611",       BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  3,  2,  2,  4 } },
     { "SONY",     "CD-ROM CDU4011",   "B2BA", "",          "sony_4011",      BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2,  4 } },
     { "SONY",     "CD-ROM CDU5225",   "NYS4", "",          "sony_5225",      BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  4 } },
-    { "SONY",     "DVD-ROM DRU-530A", "U305", "",          "sony_530a",      BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } },
-    { "SONY",     "DVD-ROM DRU-710A", "11BA", "",          "sony_710a",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  3 } },
-    { "SONY",     "DVD-ROM DRU-810A", "71BD", "",          "sony_810a",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  3 } }, /* Updated version of DRU-710A */
-    { "SONY",     "DVD-ROM DDU1612",  "BA01", "",          "sony_1612",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
-    { "SONY",     "DVD-ROM DDU1615",  "B2EE", "",          "sony_1615",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } }, /* Updated version of DDU1612 */
+    { "SONY",     "DVD-ROM DRU-530A", "U305", "",          "sony_530a",      BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 12 }, /* verified: 12x DVD-ROM / 40x CD */
+    { "SONY",     "DVD-ROM DRU-710A", "11BA", "",          "sony_710a",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  3 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD-ROM / 48x CD */
+    { "SONY",     "DVD-ROM DRU-810A", "71BD", "",          "sony_810a",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  3 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD-ROM / 48x CD (updated DRU-710A) */
+    { "SONY",     "DVD-ROM DDU1612",  "BA01", "",          "sony_1612",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD / ~40-48x CD */
+    { "SONY",     "DVD-ROM DDU1615",  "B2EE", "",          "sony_1615",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD (updated DDU1612) */
     { "TEAC",     "CD-SN250",         "N.0A", "",          "teac_520",       BUS_TYPE_IDE,  0, 10, 36, 0, 0, {  3,  2,  1,  0 } },
     { "TEAC",     "CD-516E",          "1.0G", "",          "teac_516e",      BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  3,  2,  2,  1 } },
     { "TEAC",     "CD-224E",          "4.0D", "",          "teac_224e",      BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  1 } }, /* Slimline CD-ROM drive */
@@ -296,7 +298,7 @@ static const struct cdrom_drive_types_s {
     { "TEAC",     "CD-532EA",         "3.0A", "",          "teac_532ea",     BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  4,  2,  2,  4 } },
     { "TEAC",     "CD-540E",          "2.0U", "",          "teac_540e",      BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2,  4 } },
     { "TEAC",     "CD-P520E",         "2.0R", "",          "teac_520e",      BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  4 } },
-    { "TEAC",     "DV-516D",          "1.0A", "",          "teac_516d",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } }, /* Firmware revision not yet confirmed */
+    { "TEAC",     "DV-516D",          "1.0A", "",          "teac_516d",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* heuristic: 16x DVD (TEAC) */
     { "TOSHIBA",  "CD-ROM XM-5302B",  "KD50", "",          "toshiba_5302b" , BUS_TYPE_IDE,  0,  4, 96, 0, 0, {  0, -1, -1,  1 } }, /* Early version of XM-5302B(?) */
     { "TOSHIBA",  "CD-ROM XM-5302TA", "0305", "",          "toshiba_5302ta", BUS_TYPE_IDE,  0,  4, 96, 0, 0, {  0, -1, -1, -1 } },
     { "TOSHIBA",  "CD-ROM XM-1502B",  "RA70", "",          "toshiba_1502b",  BUS_TYPE_IDE,  0, 10, 96, 0, 0, {  3,  2,  1,  4 } }, /* Slimline CD-ROM drive */
@@ -308,11 +310,11 @@ static const struct cdrom_drive_types_s {
     { "TOSHIBA",  "CD-ROM XM-6402B",  "1008", "",          "toshiba_6402b",  BUS_TYPE_IDE,  0, 32, 96, 0, 0, {  4,  2,  2,  4 } }, /* Updated version of XM-6202B */
     { "TOSHIBA",  "CD-ROM XM-6502B",  "1013", "",          "toshiba_6502b",  BUS_TYPE_IDE,  0, 40, 96, 0, 0, {  4,  2,  2,  4 } },
     { "TOSHIBA",  "CD-ROM XM-6702B",  "1007", "",          "toshiba_6702b",  BUS_TYPE_IDE,  0, 48, 96, 0, 0, {  4,  2,  2,  4 } },
-    { "TOSHIBA",  "DVD-ROM SD-M1202", "1020", "",          "toshiba_m1202",  BUS_TYPE_IDE,  0, 32, 96, 0, 1, {  4,  2,  2,  4 } },
-    { "TOSHIBA",  "DVD-ROM SD-M1402", "1010", "",          "toshiba_m1402",  BUS_TYPE_IDE,  0, 40, 96, 0, 1, {  4,  2,  2,  4 } },
-    { "TOSHIBA",  "DVD-ROM SD-M1802", "1B08", "",          "toshiba_m1802",  BUS_TYPE_IDE,  0, 48, 96, 0, 1, {  4,  2,  2,  4 } },
-    { "TOSHIBA",  "DVD-ROM SD-M1912", "TM01", "",          "toshiba_m1912",  BUS_TYPE_IDE,  0, 48, 96, 0, 1, {  4,  2,  2,  4 } }, /* DVD-ROM model produced under their TSST brand */
-    { "TOSHIBA",  "DVD-ROM SD-M2012", "TU01", "",          "toshiba_m2012",  BUS_TYPE_IDE,  0, 48, 96, 0, 1, {  4,  2,  2,  4 } }, /* DVD-ROM model produced under their TSST brand; updated version of SD-M1912 */
+    { "TOSHIBA",  "DVD-ROM SD-M1202", "1020", "",          "toshiba_m1202",  BUS_TYPE_IDE,  0, 32, 96, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 5 }, /* verified: 4.8x DVD / 32x CD */
+    { "TOSHIBA",  "DVD-ROM SD-M1402", "1010", "",          "toshiba_m1402",  BUS_TYPE_IDE,  0, 40, 96, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 10 }, /* verified: 10x max DVD (4.1-10x) / 40x CD (SCSI) */
+    { "TOSHIBA",  "DVD-ROM SD-M1802", "1B08", "",          "toshiba_m1802",  BUS_TYPE_IDE,  0, 48, 96, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD / 48x CD */
+    { "TOSHIBA",  "DVD-ROM SD-M1912", "TM01", "",          "toshiba_m1912",  BUS_TYPE_IDE,  0, 48, 96, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* DVD-ROM model produced under their TSST brand */
+    { "TOSHIBA",  "DVD-ROM SD-M2012", "TU01", "",          "toshiba_m2012",  BUS_TYPE_IDE,  0, 48, 96, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* DVD-ROM model produced under their TSST brand; updated version of SD-M1912 */
     { "WEARNES",  "CDD-120A",         "1.02", "",          "wearnes_120",    BUS_TYPE_IDE,  0,  2, 36, 0, 0, {  0, -1, -1,  4 } },
     { "CHINON",   "CD-ROM CDS-431",   "H42 ", "",          "chinon_431",     BUS_TYPE_SCSI, 1,  1, 36, 1, 0, { -1, -1, -1, -1 } },
     { "CHINON",   "CD-ROM CDX-435",   "M62 ", "",          "chinon_435",     BUS_TYPE_SCSI, 1,  2, 36, 1, 0, { -1, -1, -1, -1 } },
@@ -335,7 +337,7 @@ static const struct cdrom_drive_types_s {
     { "PIONEER",  "CD-ROM DRM-604X",  "2403", "",          "pioneer_604x",   BUS_TYPE_SCSI, 2,  4, 47, 0, 0, { -1, -1, -1, -1 } }, /* NOTE: The real thing is a CD changer drive! */
     { "PIONEER",  "CD-ROM DR-U124X",  "4021", "",          "pioneer_u124x",  BUS_TYPE_SCSI, 2,  4, 47, 0, 0, { -1, -1, -1, -1 } }, /* Another (updated?) variant of DRM-604X */
     { "PIONEER",  "CD-ROM DR-U16S",   "0066", "",          "pioneer_u16s",   BUS_TYPE_SCSI, 2, 36, 47, 0, 0, { -1, -1, -1, -1 } },
-    { "PIONEER",  "DVD-ROM DVD-305S", "1.00", "",          "pioneer_305s",   BUS_TYPE_SCSI, 2, 40, 47, 0, 1, { -1, -1, -1, -1 } },
+    { "PIONEER",  "DVD-ROM DVD-305S", "1.00", "",          "pioneer_305s",   BUS_TYPE_SCSI, 2, 40, 47, 0, 1, { -1, -1, -1, -1 } , NULL, NULL, NULL, 8 }, /* heuristic: 8x DVD (early SCSI Pioneer) */
     { "PLEXTOR",  "CD-ROM PX-43CH",   "0204", "",          "plextor_43ch",   BUS_TYPE_SCSI, 2,  4, 36, 1, 0, { -1, -1, -1, -1 } }, /* Caddy. */
     { "PLEXTOR",  "CD-ROM PX-83CS",   "1.01", "",          "plextor_83cs",   BUS_TYPE_SCSI, 2,  8, 36, 1, 0, { -1, -1, -1, -1 } }, /* Caddy. */
     { "PLEXTOR",  "CD-ROM PX-12CS",   "1.04", "",          "plextor_12cs",   BUS_TYPE_SCSI, 2, 12, 36, 1, 0, { -1, -1, -1, -1 } }, /* Caddy. */
@@ -373,7 +375,7 @@ static const struct cdrom_drive_types_s {
     { "TOSHIBA",  "CD-ROM XM-5401B",  "1036", "",          "toshiba_5401b",   BUS_TYPE_SCSI,     2,  4, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray. */
     { "TOSHIBA",  "CD-ROM XM-5701TA", "3136", "",          "toshiba_5701a",   BUS_TYPE_SCSI,     2, 12, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray; SCSI version of XM-5702B. */
     { "TOSHIBA",  "CD-ROM XM-6401TA", "1404", "",          "toshiba_6401a",   BUS_TYPE_SCSI,     2, 32, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray; SCSI version of XM-6402B. */
-    { "TOSHIBA",  "DVD-ROM SD-M1401", "1008", "",          "toshiba_m1401",   BUS_TYPE_SCSI,     2, 40, 96, 0, 1, { -1, -1, -1, -1 } }, /* Tray. */
+    { "TOSHIBA",  "DVD-ROM SD-M1401", "1008", "",          "toshiba_m1401",   BUS_TYPE_SCSI,     2, 40, 96, 0, 1, { -1, -1, -1, -1 } , NULL, NULL, NULL, 10 }, /* verified: 10x max DVD (4.1-10x) / 40x CD (SCSI) */
     { "HITACHI",  "CDR-1503S",        "",     "",          "hitachi_1503s",   BUS_TYPE_HITACHI,  0,  1,  0, 0, 0, { -1, -1, -1, -1 } },
     { "CREATIVE", "CD-200",           "1.01", "",          "creative_cd200",  BUS_TYPE_MKE,      0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
     { "FUNAI",    "CD200F",           "2.10", "",          "funai_cd200f",    BUS_TYPE_MKE,      0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
@@ -474,6 +476,7 @@ typedef struct cdrom {
     uint8_t            cd_status;    /* Struct variable reserved for
                                         media status. */
     uint8_t            speed;
+    uint8_t            dvd_speed;   /* user-selected DVD speed for generic 86B_DVD */
     uint8_t            cur_speed;
 
     void              *priv;
@@ -577,6 +580,8 @@ extern int             cdrom_is_dvd(const int type);
 extern int             cdrom_is_generic(const int type);
 extern int             cdrom_is_caddy(const int type);
 extern int             cdrom_get_speed(const int type);
+extern int             cdrom_get_dvd_speed(const int type);
+extern int             cdrom_get_active_speed(const cdrom_t *dev);
 extern int             cdrom_get_inquiry_len(const int type);
 extern int             cdrom_has_dma(const int type);
 extern int             cdrom_get_transfer_max(const int type, const int mode);

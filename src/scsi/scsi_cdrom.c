@@ -531,10 +531,11 @@ scsi_cdrom_mode_sense(const scsi_cdrom_t *dev, uint8_t *buf, uint32_t pos,
                             buf[pos++] |= (cdrom_is_caddy(dev->drv->type) ? 0x00 : 0x20);
                         } else if ((i == GPMODE_CAPABILITIES_PAGE) && (j >= 6) &&
                                    (j <= 7)) {
+                            int max_sp = cdrom_get_active_speed(dev->drv);
                             if (j & 1)
-                                buf[pos++] = ((dev->drv->real_speed * 176) & 0xff);
+                                buf[pos++] = ((max_sp * 176) & 0xff);
                             else
-                                buf[pos++] = ((dev->drv->real_speed * 176) >> 8);
+                                buf[pos++] = ((max_sp * 176) >> 8);
                         } else if ((i == GPMODE_CAPABILITIES_PAGE) && (j >= 12) &&
                                    (j <= 13)) {
                             if (j & 1)
@@ -703,9 +704,12 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
             scsi_cdrom_log(dev->log, "Seek period: %lf us\n", period);
             dev->callback += period;
 
-            /* 44100 * 16 bits * 2 channels = 176400 bytes per second */
-            bytes_per_second = 176400.0;
-            bytes_per_second *= (double) dev->drv->cur_speed;
+            /* Media-aware 1x rate:
+               CD: 176400 bytes/s (44.1 kHz * 16-bit * 2 ch raw)
+               DVD: 1385000 bytes/s (standard DVD 1x) */
+            double base_rate = (dev->drv->cd_status == CD_STATUS_DVD) ? 1385000.0 : 176400.0;
+            int active = cdrom_get_active_speed(dev->drv);
+            bytes_per_second = base_rate * (double) active;
 
             period = 1000000.0 / bytes_per_second;
             scsi_cdrom_log(dev->log, "Byte transfer period: %lf us\n", period);

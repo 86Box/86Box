@@ -1363,6 +1363,29 @@ cdrom_get_speed(const int type)
 }
 
 int
+cdrom_get_dvd_speed(const int type)
+{
+    return cdrom_drive_types[type].dvd_speed;
+}
+
+/* Returns the speed that should be used for transfer-rate calculations
+   given the currently inserted media. */
+int
+cdrom_get_active_speed(const cdrom_t *dev)
+{
+    if ((dev->cd_status == CD_STATUS_DVD) &&
+        (cdrom_drive_types[dev->type].dvd_speed != 0)) {
+        if (cdrom_drive_types[dev->type].dvd_speed == -1)
+            return (dev->dvd_speed > 0) ? dev->dvd_speed : dev->speed;
+        return cdrom_drive_types[dev->type].dvd_speed;
+    }
+    if (cdrom_drive_types[dev->type].speed == -1)
+        return dev->speed;
+    return cdrom_drive_types[dev->type].speed;
+}
+
+
+int
 cdrom_get_inquiry_len(const int type)
 {
     return cdrom_drive_types[type].inquiry_len;

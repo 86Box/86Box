@@ -2075,6 +2075,9 @@ load_floppy_and_cdrom_drives(void)
         sprintf(temp, "cdrom_%02i_speed", c + 1);
         cdrom[c].speed = ini_section_get_int(cat, temp, 8);
 
+        sprintf(temp, "cdrom_%02i_dvd_speed", c + 1);
+        cdrom[c].dvd_speed = ini_section_get_int(cat, temp, 2);
+
         sprintf(temp, "cdrom_%02i_no_check", c + 1);
         cdrom[c].no_check = ini_section_get_int(cat, temp, 0);
 
@@ -4714,6 +4717,13 @@ save_floppy_and_cdrom_drives(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_int(cat, temp, cdrom[c].speed);
+
+        sprintf(temp, "cdrom_%02i_dvd_speed", c + 1);
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].dvd_speed == 2) ||
+            (cdrom_get_dvd_speed(cdrom_get_type(c)) != -1))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, cdrom[c].dvd_speed);
 
         sprintf(temp, "cdrom_%02i_type", c + 1);
         char *tn = cdrom_get_internal_name(cdrom_get_type(c));
