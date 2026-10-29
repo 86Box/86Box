@@ -707,7 +707,13 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
             /* Media-aware 1x rate:
                CD: 176400 bytes/s (44.1 kHz * 16-bit * 2 ch raw)
                DVD: 1385000 bytes/s (standard DVD 1x) */
-            double base_rate = (dev->drv->cd_status == CD_STATUS_DVD) ? 1385000.0 : 176400.0;
+            double base_rate;
+            if ((dev->drv->cd_status == CD_STATUS_HDDVD) || (dev->drv->cd_status == CD_STATUS_BLURAY))
+                base_rate = 4500000.0; /* HD DVD / Blu-ray 1x */
+            else if (dev->drv->cd_status == CD_STATUS_DVD)
+                base_rate = 1385000.0;
+            else
+                base_rate = 176400.0;
             int active = cdrom_get_active_speed(dev->drv);
             bytes_per_second = base_rate * (double) active;
 

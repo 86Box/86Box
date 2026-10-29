@@ -2078,6 +2078,12 @@ load_floppy_and_cdrom_drives(void)
         sprintf(temp, "cdrom_%02i_dvd_speed", c + 1);
         cdrom[c].dvd_speed = ini_section_get_int(cat, temp, 2);
 
+        sprintf(temp, "cdrom_%02i_hd_speed", c + 1);
+        cdrom[c].hd_speed = ini_section_get_int(cat, temp, 1);
+
+        sprintf(temp, "cdrom_%02i_restricted_capacity", c + 1);
+        cdrom[c].restricted_capacity = ini_section_get_int(cat, temp, 1);
+
         sprintf(temp, "cdrom_%02i_no_check", c + 1);
         cdrom[c].no_check = ini_section_get_int(cat, temp, 0);
 
@@ -4724,6 +4730,19 @@ save_floppy_and_cdrom_drives(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_int(cat, temp, cdrom[c].dvd_speed);
+
+        sprintf(temp, "cdrom_%02i_hd_speed", c + 1);
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].hd_speed == 1) ||
+            (cdrom_get_hd_speed(cdrom_get_type(c)) != -1))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, cdrom[c].hd_speed);
+
+        sprintf(temp, "cdrom_%02i_restricted_capacity", c + 1);
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].restricted_capacity == 1))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, cdrom[c].restricted_capacity);
 
         sprintf(temp, "cdrom_%02i_type", c + 1);
         char *tn = cdrom_get_internal_name(cdrom_get_type(c));

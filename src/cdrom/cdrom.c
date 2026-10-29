@@ -1368,6 +1368,11 @@ cdrom_get_dvd_speed(const int type)
     return cdrom_drive_types[type].dvd_speed;
 }
 
+int
+cdrom_get_hd_speed(const int type)
+{
+    return cdrom_drive_types[type].hd_speed;
+}
 /* Returns the speed that should be used for transfer-rate calculations
    given the currently inserted media. */
 int
@@ -1378,6 +1383,12 @@ cdrom_get_active_speed(const cdrom_t *dev)
         if (cdrom_drive_types[dev->type].dvd_speed == -1)
             return (dev->dvd_speed > 0) ? dev->dvd_speed : dev->speed;
         return cdrom_drive_types[dev->type].dvd_speed;
+    }
+    if (((dev->cd_status == CD_STATUS_HDDVD) || (dev->cd_status == CD_STATUS_BLURAY)) &&
+        (cdrom_drive_types[dev->type].hd_speed != 0)) {
+        if (cdrom_drive_types[dev->type].hd_speed == -1)
+            return (dev->hd_speed > 0) ? dev->hd_speed : 1;
+        return cdrom_drive_types[dev->type].hd_speed;
     }
     if (cdrom_drive_types[dev->type].speed == -1)
         return dev->speed;
@@ -3371,6 +3382,20 @@ cdrom_set_empty(cdrom_t *dev)
     dev->subc_sector    = -1;
 }
 
+
+static uint32_t
+cdrom_clamp_capacity(cdrom_t *dev, int media)
+{
+    if (!dev->restricted_capacity)
+        return dev->cdrom_capacity;
+    uint32_t max = CD_MAX_SECTORS;
+    if (media == 1) max = DVD_MAX_SECTORS;
+    else if (media == 2) max = HDDVD_MAX_SECTORS;
+    else if (media == 3) max = BD_MAX_SECTORS; /* dual-layer limit */
+    if (dev->cdrom_capacity > max)
+        dev->cdrom_capacity = max;
+    return dev->cdrom_capacity;
+}
 void
 cdrom_update_status(cdrom_t *dev)
 {
@@ -3383,14 +3408,26 @@ cdrom_update_status(cdrom_t *dev)
     dev->seek_pos       = 0;
     dev->cd_buflen      = 0;
 
-    if (dev->ops->is_dvd(dev->local)) {
+    int media = dev->ops->is_dvd(dev->local);
+    if (media == 1) { /* DVD */
         if (cdrom_is_dvd(dev->type))
-            dev->cd_status      = CD_STATUS_DVD;
+            dev->cd_status = CD_STATUS_DVD;
         else
-            dev->cd_status      = CD_STATUS_DVD_REJECTED;
+            dev->cd_status = CD_STATUS_DVD_REJECTED;
+    } else if (media == 2) { /* HD DVD */
+        if (cdrom_drive_types[dev->type].hd_speed != 0)
+            dev->cd_status = CD_STATUS_HDDVD;
+        else
+            dev->cd_status = CD_STATUS_HDDVD_REJECTED;
+    } else if (media == 3) { /* Blu-ray */
+        if (cdrom_drive_types[dev->type].hd_speed != 0)
+            dev->cd_status = CD_STATUS_BLURAY;
+        else
+            dev->cd_status = CD_STATUS_BLURAY_REJECTED;
     } else
-        dev->cd_status      = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
-                                                                CD_STATUS_DATA_ONLY;
+        dev->cd_status = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
+                                                           CD_STATUS_DATA_ONLY;
+    cdrom_clamp_capacity(dev, media);
 
     dev->cached_sector  = -1;
     dev->subc_sector    = -1;
@@ -3450,19 +3487,33 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
         dev->cd_buflen      = 0;
 
         if ((dev->ops->is_empty != NULL) && dev->ops->is_empty(dev->local))
-            dev->cd_status      = CD_STATUS_EMPTY;
-        else if (dev->ops->is_dvd(dev->local)) {
-            if (cdrom_is_dvd(dev->type))
-                dev->cd_status      = CD_STATUS_DVD;
-            else {
-                warning(plat_get_string(STRING_CDROM_DVD_IN_CD_DRIVE), fn);
-                dev->cd_status      = CD_STATUS_DVD_REJECTED;
-            }
-        } else
-            dev->cd_status      = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
-                                                                    CD_STATUS_DATA_ONLY;
+            dev->cd_status = CD_STATUS_EMPTY;
+        else {
+            int media = dev->ops->is_dvd(dev->local);
+            if (media == 1) { /* DVD */
+                if (cdrom_is_dvd(dev->type))
+                    dev->cd_status = CD_STATUS_DVD;
+                else {
+                    warning(plat_get_string(STRING_CDROM_DVD_IN_CD_DRIVE), fn);
+                    dev->cd_status = CD_STATUS_DVD_REJECTED;
+                }
+            } else if (media == 2) { /* HD DVD */
+                if (cdrom_drive_types[dev->type].hd_speed != 0)
+                    dev->cd_status = CD_STATUS_HDDVD;
+                else
+                    dev->cd_status = CD_STATUS_HDDVD_REJECTED;
+            } else if (media == 3) { /* Blu-ray */
+                if (cdrom_drive_types[dev->type].hd_speed != 0)
+                    dev->cd_status = CD_STATUS_BLURAY;
+                else
+                    dev->cd_status = CD_STATUS_BLURAY_REJECTED;
+            } else
+                dev->cd_status = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
+                                                                   CD_STATUS_DATA_ONLY;
+        }
 
         dev->cdrom_capacity = dev->ops->get_last_block(dev->local);
+        cdrom_clamp_capacity(dev, dev->ops->is_dvd(dev->local));
 
         cdrom_log(dev->log, "CD-ROM capacity: %i sectors (%" PRIi64 " bytes)\n",
                   dev->cdrom_capacity, ((uint64_t) dev->cdrom_capacity) << 11ULL);
@@ -3472,7 +3523,7 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
     cdrom_toc_dump(dev);
 #endif
 
-    if (!skip_insert && (dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED)) {
+    if (!skip_insert && (dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED) && (dev->cd_status != CD_STATUS_HDDVD_REJECTED) && (dev->cd_status != CD_STATUS_BLURAY_REJECTED)) {
         /* Signal media change to the emulated machine. */
         cdrom_insert(dev->id);
 
