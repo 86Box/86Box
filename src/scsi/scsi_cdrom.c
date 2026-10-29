@@ -680,7 +680,12 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
         double  bytes_per_second;
         double  period;
 
-        if ((dev->drv->speed > 72) || (dev->was_cached == -1)) {
+        int active = cdrom_get_active_speed(dev->drv);
+            int turbo = 0;
+            if (dev->drv->cd_status == CD_STATUS_DVD) turbo = (active >= 17);
+            else if ((dev->drv->cd_status == CD_STATUS_HDDVD) || (dev->drv->cd_status == CD_STATUS_BLURAY)) turbo = (active >= 3);
+            else turbo = (active > 72);
+            if (turbo || (dev->was_cached == -1)) {
             if (dev->drv->bus_type == CDROM_BUS_SCSI)
                 dev->callback = -1.0; /* Speed depends on SCSI controller */
             else if (dev->was_cached == -1)

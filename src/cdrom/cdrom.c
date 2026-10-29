@@ -186,11 +186,8 @@ cdrom_generate_name(const int type, char *name, const int internal)
 
     if (internal)
         sprintf(name, "%s_%s_%s", elements[0], elements[1], elements[2]);
-    else if (cdrom_drive_types[type].speed == -1)
-        sprintf(name, "%s %s %s", elements[0], elements[1], elements[2]);
     else
-        sprintf(name, "%s %s %s (%ix)", elements[0], elements[1],
-                elements[2], cdrom_drive_types[type].speed);
+        sprintf(name, "%s %s %s", elements[0], elements[1], elements[2]);
 }
 
 static double
