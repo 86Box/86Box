@@ -3776,11 +3776,6 @@ mach64gx_isa_available(void)
 {
     return rom_present(BIOS_ISA_ROM_PATH);
 }
-int
-mach64gx_xpression_vlb_available(void)
-{
-    return rom_present(BIOS_XPRESSION_VLB_27803_PATH);
-}
 
 int
 mach64gx_vlb_available(void)
@@ -4183,7 +4178,7 @@ const device_t mach64gx_xpression_vlb_device = {
     .init          = mach64gx_init,
     .close         = mach64_close,
     .reset         = mach64_reset,
-    .available     = mach64gx_xpression_vlb_available,
+    .available     = NULL,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gx_xpression_config
