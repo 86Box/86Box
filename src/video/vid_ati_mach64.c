@@ -29,6 +29,8 @@ video_timings_t timing_mach64_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w 
 video_timings_t timing_mach64_isa8 = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 video_timings_t timing_mach64_vlb = { .type = VIDEO_BUS, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 video_timings_t timing_mach64_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
+/* 86Box-Next: the Rage Pro, the same counts at the AGP's clock. */
+static video_timings_t timing_mach64_agp = { .type = VIDEO_AGP, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 
 mach64_t *reset_state[2] = { NULL, NULL };
 
@@ -3203,6 +3205,39 @@ mach64_writel_be(uint32_t addr, uint32_t val, void *priv)
 }
 
 // PCI config space I/O read function
+/* 86Box-Next: the Rage Pro's AGP capability, the only entry of its list:
+   ID 02h, AGP revision 1.0, then the status register (what the chip can do)
+   and the command register (what the chipset's setup enables). Status
+   gives the 1x and 2x rates and sideband addressing, the "2X (133 MHz)
+   fully pipelined operation and sideband support" of the BL440ZX TPS 1.7;
+   the request queue depth (31:24, here 8) is not in our documents. The
+   command register keeps the rate (2:0), AGP_ENABLE (8), SBA_ENABLE (9)
+   and the request depth (31:24) it is given (AGP Interface Specification
+   1.0, 6.1.4-6.1.5). */
+#define RAGEPRO_AGP_CAP    0x50
+#define RAGEPRO_AGP_STATUS 0x07000203
+
+static const uint8_t ragepro_agp_cmd_mask[4] = { 0x07, 0x03, 0x00, 0xff };
+
+static uint8_t
+mach64_ragepro_agp_read(const mach64_t *mach64, int off)
+{
+    switch (off) {
+        case 0:
+            return 0x02; /* CAP_ID: AGP */
+        case 1:
+            return 0x00; /* NEXT_PTR: end of the list */
+        case 2:
+            return 0x10; /* AGP revision 1.0 */
+        case 4 ... 7:
+            return (RAGEPRO_AGP_STATUS >> ((off - 4) * 8)) & 0xff;
+        case 8 ... 11:
+            return mach64->pci_regs[RAGEPRO_AGP_CAP + off];
+        default:
+            return 0x00;
+    }
+}
+
 uint8_t
 mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
@@ -3219,6 +3254,10 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             return mach64->pci_id >> 8;
         case PCI_REG_COMMAND:
             return mach64->pci_regs[PCI_REG_COMMAND]; /*Respond to IO and memory accesses*/
+        case PCI_REG_STATUS_L:
+            /* 86Box-Next: the Rage Pro has a capability list (the AGP one)
+               and, an AGP device, is 66 MHz capable. */
+            return mach64->ragepro ? 0x30 : 0x00;
         case PCI_REG_STATUS_H:
             return 1 << 1; /*Medium DEVSEL timing*/
         case PCI_REG_REVISION:
@@ -3282,6 +3321,12 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             if (mach64->type >= MACH64_GTB)
                 return mach64->pci_regs[MACH64_PCI_IOCONFIG];
             return mach64->use_block_decoded_io | mach64->io_base;
+        case PCI_REG_CAPS_PTR:
+            return mach64->ragepro ? RAGEPRO_AGP_CAP : 0x00;
+        case RAGEPRO_AGP_CAP ... (RAGEPRO_AGP_CAP + 0x0b):
+            if (mach64->ragepro)
+                return mach64_ragepro_agp_read(mach64, addr - RAGEPRO_AGP_CAP);
+            return 0x00;
         default:
             break;
     }
@@ -3358,6 +3403,11 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
             return;
         case PCI_REG_INT_LINE:
             mach64->int_line = val;
+            break;
+        case (RAGEPRO_AGP_CAP + 8) ... (RAGEPRO_AGP_CAP + 0x0b):
+            /* 86Box-Next: the Rage Pro's AGP command register. */
+            if (mach64->ragepro)
+                mach64->pci_regs[addr] = val & ragepro_agp_cmd_mask[addr - RAGEPRO_AGP_CAP - 8];
             break;
         case MACH64_PCI_IOCONFIG:
             /* The GT-B has bit 3 too, the lock of GENENA. */
@@ -3497,7 +3547,11 @@ mach64_common_init(const device_t *info)
        core's defaults until the BIOS first touches GDC 6. */
     mach64_updatemapping(mach64);
 
-    if (info->flags & DEVICE_PCI)
+    /* 86Box-Next: the Rage Pro sits on the AGP, on-board too (BL440ZX:
+       bus 1, behind the 82443ZX's AGP bridge). */
+    if (info->flags & DEVICE_AGP)
+        pci_add_card(PCI_ADD_AGP, mach64_pci_read, mach64_pci_write, mach64, &mach64->pci_slot);
+    else if (info->flags & DEVICE_PCI)
         pci_add_card((info->local & MACH64_FLAG_ONBOARD) ? PCI_ADD_VIDEO : PCI_ADD_NORMAL, mach64_pci_read, mach64_pci_write, mach64, &mach64->pci_slot);
 
     mach64->pci_regs[PCI_REG_COMMAND]       = 3;
@@ -3719,7 +3773,7 @@ mach64gtb_init(const device_t *info)
     svga->hwcursor.cur_ysize = 64;
     svga->hwcursor.cur_xsize = 64;
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, (info->flags & DEVICE_AGP) ? &timing_mach64_agp : &timing_mach64_pci);
 
     mach64->pci                           = 1;
     mach64->vlb                           = 0;
@@ -3735,6 +3789,25 @@ mach64gtb_init(const device_t *info)
     mach64->dac_cntl                      = 1 << 16;      /*Internal 24-bit DAC*/
     mach64->config_stat0                  = 5 | (1 << 4); /* CFG_MEM_TYPE 5, SGRAM on the GT-B, and the CFG_VGA_EN strap */
     mach64->mem_cntl                      = 7;            /* MEM_SIZE, 4 bits from the VT-B on: 4 MB */
+    if (info->local & MACH64_FLAG_RAGEPRO) {
+        /* 86Box-Next: the 3D Rage Pro (AGP), "GB": the GT-B's 2D and 3D
+           engines and front-end scaler under its own identity. Revision 5Ch
+           is what field reports of 4742h boards give; nothing we have checks
+           it (diag compares CONFIG_CHIP_ID 15:0, the BIOSes the type only).
+           The memory is SDRAM, CFG_MEM_TYPE 4, as on the Intel BL440ZX
+           (TPS 1.7, "8 MB SDRAM") and the "MACH64GB...SDU" BIOSes, or
+           SGRAM, 5, for the "SGU" one (113-40212-103). Midway's TouchMaster
+           II used this chip: diag passes only 4742h and its dl.r2c is built
+           -DRAGEPROAGP. */
+        mach64->ragepro        = 1;
+        mach64->pci_id         = 0x4742;
+        mach64->config_chip_id = 0x5c004742;
+        mach64->fixed_io       = device_get_config_hex16("fixed_io") & 0xff00;
+        if (!(info->local & MACH64_FLAG_ONBOARD) && !strcmp(device_get_config_bios("bios_ver"), "113_40212_103"))
+            mach64->config_stat0 = 5 | (1 << 4);
+        else
+            mach64->config_stat0 = 4 | (1 << 4);
+    }
     mach64->use_block_decoded_io          = 4;
     mach64->pci_regs[MACH64_PCI_IOCONFIG] = 4;
     mach64->genena                        = 0x08;
@@ -3747,8 +3820,13 @@ mach64gtb_init(const device_t *info)
 
     if (info->local & MACH64_FLAG_ONBOARD)
         /* On-board: the video BIOS is part of the system BIOS. */
-        ati_eeprom_load(&mach64->eeprom, "mach64rage2p_onboard.nvr", 1);
-    else if (info->local & MACH64_FLAG_RAGE2C) {
+        ati_eeprom_load(&mach64->eeprom, (info->local & MACH64_FLAG_RAGEPRO) ? "mach64ragepro_onboard.nvr" : "mach64rage2p_onboard.nvr", 1);
+    else if (info->local & MACH64_FLAG_RAGEPRO) {
+        /* 86Box-Next: the Rage Pro card's own BIOS, 32K. */
+        ati_eeprom_load(&mach64->eeprom, "mach64ragepro.nvr", 1);
+        rom_init(&mach64->bios_rom, (char *) device_get_bios_file(info, device_get_config_bios("bios_ver"), 0),
+                 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    } else if (info->local & MACH64_FLAG_RAGE2C) {
         /* 86Box-Next: the Rage IIC's own BIOS, 32K at the bottom of a 27C512. */
         ati_eeprom_load(&mach64->eeprom, "mach64rage2c.nvr", 1);
         rom_init(&mach64->bios_rom, (char *) device_get_bios_file(info, device_get_config_bios("bios_ver"), 0),
@@ -4215,6 +4293,158 @@ static const device_config_t mach64gtc_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+/* 86Box-Next: the 3D Rage Pro AGP card. */
+static const device_config_t mach64ragepro_config[] = {
+    {
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "turbo_3_091",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Rage Pro Turbo, SDRAM (2000/08/14, BK3.9.4/3.091)",
+                .internal_name = "turbo_3_091",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { BIOS_RAGEPRO_TURBO_PATH, "" }
+            },
+            {
+                .name          = "113-49801-101, SDRAM (2000/05/04, BK3.9.2/3.086)",
+                .internal_name = "113_49801_101_2000",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { BIOS_RAGEPRO_49801_2000_PATH, "" }
+            },
+            {
+                .name          = "113-49801-101, SDRAM (1998/05/25, BK3.9.2/3.086)",
+                .internal_name = "113_49801_101_1998",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { BIOS_RAGEPRO_49801_1998_PATH, "" }
+            },
+            {
+                .name          = "113-40212-103, SGRAM (1998/09/29, BK3.9.2/3.088)",
+                .internal_name = "113_40212_103",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { BIOS_RAGEPRO_40212_PATH, "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "fixed_io",
+        .description    = "I/O base",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Assigned by the BIOS",          .value = 0x0000 },
+            { .description = "D800h (Midway TouchMaster II)", .value = 0xd800 },
+            { .description = ""                                               }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+/* 86Box-Next: the on-board 3D Rage Pro Turbo of the Intel BL440ZX, 8 MB of
+   SDRAM (TPS 1.7); its BIOS is in the system BIOS. */
+static const device_config_t mach64ragepro_onboard_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "fixed_io",
+        .description    = "I/O base",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Assigned by the BIOS",          .value = 0x0000 },
+            { .description = "D800h (Midway TouchMaster II)", .value = 0xd800 },
+            { .description = ""                                               }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t mach64gtb_onboard_config[] = {
     {
         .name           = "memory",
@@ -4421,6 +4651,36 @@ const device_t mach64gtc_device = {
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gtc_config
+};
+
+/* 86Box-Next: the 3D Rage Pro (AGP). */
+const device_t mach64ragepro_device = {
+    .name          = "ATI 3D Rage Pro AGP",
+    .internal_name = "mach64_ragepro",
+    .flags         = DEVICE_AGP,
+    .local         = MACH64_GTB | MACH64_FLAG_RAGEPRO,
+    .init          = mach64gtb_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
+    .available     = NULL,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64ragepro_config,
+    .alias         = "ATI 3D Rage Pro Turbo AGP"
+};
+
+const device_t mach64ragepro_onboard_device = {
+    .name          = "ATI 3D Rage Pro Turbo AGP (On-Board)",
+    .internal_name = "mach64_ragepro_onboard",
+    .flags         = DEVICE_AGP,
+    .local         = MACH64_GTB | MACH64_FLAG_RAGEPRO | MACH64_FLAG_ONBOARD,
+    .init          = mach64gtb_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
+    .available     = NULL,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64ragepro_onboard_config
 };
 
 const device_t mach64gtb_onboard_device = {

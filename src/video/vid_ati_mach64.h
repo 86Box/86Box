@@ -65,6 +65,12 @@
 /* 86Box-Next: 3D Rage IIC PCI BIOSes (PCI ID 4756h), dumped from 27C512 EPROMs. */
 #define BIOS_RAGE2C_61801_PATH        "roms/video/mach64/rage2c_pci_113-61801-101.bin"
 #define BIOS_RAGE2C_38816_PATH        "roms/video/mach64/rage2c_pci_113-38816-100.bin"
+/* 86Box-Next: 3D Rage Pro (AGP, PCI ID GB, 4742h) BIOSes: 32K images, two from
+   27C512 EPROMs (lower half), two read out as 32K. */
+#define BIOS_RAGEPRO_TURBO_PATH       "roms/video/mach64/ragepro_agp_turbo_3.091.bin"
+#define BIOS_RAGEPRO_49801_2000_PATH  "roms/video/mach64/ragepro_agp_113-49801-101_2000.bin"
+#define BIOS_RAGEPRO_49801_1998_PATH  "roms/video/mach64/ragepro_agp_113-49801-101_1998.bin"
+#define BIOS_RAGEPRO_40212_PATH       "roms/video/mach64/ragepro_agp_113-40212-103.bin"
 
 #define FIFO_SIZE         65536
 #define FIFO_MASK         (FIFO_SIZE - 1)
@@ -109,6 +115,7 @@ enum {
 #define MACH64_FLAG_ONBOARD (1 << 19)
 #define MACH64_FLAG_DRAM    (1 << 17) /* the board's memory is DRAM (256Kx16), not VRAM */
 #define MACH64_FLAG_RAGE2C  (1 << 20) /* 86Box-Next: 3D Rage IIC, the GT-B under PCI ID GV (4756h) */
+#define MACH64_FLAG_RAGEPRO (1 << 21) /* 86Box-Next: 3D Rage Pro (AGP), the GT-B core under PCI ID GB (4742h) */
 #define MACH64_PCI_IOCONFIG 0x40        // "User Defined Configuration"
 
 typedef struct mach64_3d_t     mach64_3d_t;
@@ -140,6 +147,7 @@ typedef struct mach64_t {
     int     isa_irq_raised;
 
     uint8_t on_board;
+    uint8_t ragepro; /* 86Box-Next: 3D Rage Pro identity and AGP interface */
 
     uint8_t pci_regs[256];
     uint8_t int_line;
