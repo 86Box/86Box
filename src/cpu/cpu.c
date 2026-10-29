@@ -3475,13 +3475,19 @@ pentium_invalid_rdmsr:
             break;
 
         case CPU_CxGX1:
-            /* The MediaGX MMX has the Time Stamp Counter alone (3.3.3). */
-            if (ECX != 0x10) {
-                x86gpf(NULL, 0);
-                break;
-            }
-            EAX = tsc & 0xffffffff;
-            EDX = tsc >> 32;
+            /* The MediaGX MMX has the Time Stamp Counter (3.3.3). The AEWIN
+               AW-H602's Award BIOS reads 70000001h at POST with no #GP
+               handler, looking for "Geod": National's GX1 keeps its CPUID
+               vendor string in 70000001h-70000003h, and the BIOS then writes
+               "CyrixInstead" there. Other MSRs do not fault. */
+            if (ECX == 0x10) {
+                EAX = tsc & 0xffffffff;
+                EDX = tsc >> 32;
+            } else if ((ECX >= 0x70000001) && (ECX <= 0x70000003)) {
+                EAX = gxm.vendor_msr[ECX - 0x70000001];
+                EDX = 0x00000000;
+            } else
+                EAX = EDX = 0x00000000;
             break;
 
         case CPU_Cx6x86:
@@ -4361,11 +4367,10 @@ pentium_invalid_wrmsr:
 
         case CPU_CxGX1:
             cpu_log("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
-            if (ECX != 0x10) {
-                x86gpf(NULL, 0);
-                break;
-            }
-            timer_set_new_tsc(EAX | ((uint64_t) EDX << 32));
+            if (ECX == 0x10)
+                timer_set_new_tsc(EAX | ((uint64_t) EDX << 32));
+            else if ((ECX >= 0x70000001) && (ECX <= 0x70000003))
+                gxm.vendor_msr[ECX - 0x70000001] = EAX;
             break;
 
         case CPU_Cx6x86:
@@ -4706,6 +4711,9 @@ cpu_gxm_reset(void)
     gxm.nested        = 0;
     gxm.smi_int       = GXM_SMI_NONE;
     gxm.smi_ext       = 0;
+    gxm.vendor_msr[0] = 0x69727943; /* "Cyri" */
+    gxm.vendor_msr[1] = 0x736e4978; /* "xIns" */
+    gxm.vendor_msr[2] = 0x64616574; /* "tead" */
     if (gxm.gcr_write)
         gxm.gcr_write(gxm.priv);
 }

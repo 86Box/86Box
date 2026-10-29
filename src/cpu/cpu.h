@@ -909,6 +909,9 @@ typedef struct gxm_t {
 
     uint8_t  scratchpad[4096];
 
+    /* MSRs 70000001h-70000003h: the CPUID vendor string, four bytes each. */
+    uint32_t vendor_msr[3];
+
     /* The integrated functions: the GCR moves them, CPU_READ/CPU_WRITE
        reach the power management address decode. */
     void   (*gcr_write)(void *priv);
