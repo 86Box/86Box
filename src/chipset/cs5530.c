@@ -2237,3 +2237,19 @@ const device_t cs5530_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+/* XpressAUDIO is the Cx5530's audio, driven by VSA in SMM: the Cx5530 device
+   models it in full, so this only names it as the machine's sound device. */
+const device_t cs5530_xpressaudio_device = {
+    .name          = "Cyrix XpressAUDIO",
+    .internal_name = "xpressaudio",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
