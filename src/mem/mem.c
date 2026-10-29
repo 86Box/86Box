@@ -2426,6 +2426,22 @@ mem_mapping_bus_access_allowed(uint32_t flags, uint16_t access)
     return !(flags & MEM_MAPPING_CPU_ONLY) && mem_mapping_access_allowed(flags, access);
 }
 
+/*
+   Where a granule of a mapping starts in its exec memory. A mapping with a
+   mask mirrors its memory, which a granule's pointer can only follow if the
+   mask leaves every offset within a granule alone; a mask that changes them
+   is left to the mapping's handlers.
+ */
+static __inline uint8_t *
+mem_mapping_exec_granule(const mem_mapping_t *map, uint64_t c)
+{
+    if (map->mask == 0xffffffff)
+        return map->exec + (c - map->base);
+    if ((map->mask & MEM_GRANULARITY_MASK) != MEM_GRANULARITY_MASK)
+        return NULL;
+    return map->exec + ((uint32_t) (c - map->base) & map->mask);
+}
+
 /* One granule of one mapping, put where an access of each kind will find it. */
 static void
 mem_mapping_apply_granule(mem_mapping_t *map, uint64_t c, int n)
@@ -2433,7 +2449,7 @@ mem_mapping_apply_granule(mem_mapping_t *map, uint64_t c, int n)
     uint8_t wp = _mem_wp[c >> MEM_GRANULARITY_BITS];
 
     if (map->exec && mem_mapping_access_allowed(map->flags, _mem_state[c >> MEM_GRANULARITY_BITS].states[n].x))
-        _mem_exec[c >> MEM_GRANULARITY_BITS] = map->exec + (c - map->base);
+        _mem_exec[c >> MEM_GRANULARITY_BITS] = mem_mapping_exec_granule(map, c);
     if (!wp && (map->write_b || map->write_w || map->write_l) && mem_mapping_access_allowed(map->flags, _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
         write_mapping[c >> MEM_GRANULARITY_BITS] = map;
     if ((map->read_b || map->read_w || map->read_l) && mem_mapping_access_allowed(map->flags, _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
@@ -2529,7 +2545,7 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
             uint64_t i_s   = 0x00000000ULL;
             uint64_t i_e   = b_i & mask;
             uint64_t i_c   = 0x00000000ULL;
-            uint64_t start = (map->base < base) ? map->base : base;
+            uint64_t start = (map->base > base) ? map->base : base;
             uint64_t end   = (((uint64_t) map->base + (uint64_t) map->size) < (base + size)) ?
                              ((uint64_t) map->base + (uint64_t) map->size) : (base + size);
             if (start < map->base)
@@ -2543,7 +2559,7 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
 
                     if (map->exec && mem_mapping_access_allowed(map->flags,
                                      _mem_state[c >> MEM_GRANULARITY_BITS].states[n].x))
-                        _mem_exec[c >> MEM_GRANULARITY_BITS] = map->exec + (c - map->base);
+                        _mem_exec[c >> MEM_GRANULARITY_BITS] = mem_mapping_exec_granule(map, c);
                     if (!wp && (map->write_b || map->write_w || map->write_l) &&
                         mem_mapping_access_allowed(map->flags,
                                                    _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
@@ -2574,7 +2590,7 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
 
                     if (map->exec && mem_mapping_access_allowed(map->flags,
                                                                 _mem_state[c >> MEM_GRANULARITY_BITS].states[n].x))
-                        _mem_exec[c >> MEM_GRANULARITY_BITS] = map->exec + (c - map->base);
+                        _mem_exec[c >> MEM_GRANULARITY_BITS] = mem_mapping_exec_granule(map, c);
                     if (!wp && (map->write_b || map->write_w || map->write_l) &&
                         mem_mapping_access_allowed(map->flags,
                                                    _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
