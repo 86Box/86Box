@@ -441,7 +441,7 @@ pic_reset(void)
         if (is_dual)
             pic.slaves[is_pc98 ? 7 : 2] = &pic2;
 
-        update_pending = is_at ? pic_update_pending_at : pic_update_pending_xt;
+        update_pending = is_dual ? pic_update_pending_at : pic_update_pending_xt;
         pic.at = pic2.at = is_at;
     }
     pic.zenith = pic2.zenith = is_zenith;
