@@ -79,14 +79,12 @@ typedef enum video_font_format_e
 
 #define VIDEO_FLAG_TYPE_CGA     0
 #define VIDEO_FLAG_TYPE_MDA     1
-#define VIDEO_FLAG_TYPE_SPECIAL 2
-#define VIDEO_FLAG_TYPE_8514    3
+#define VIDEO_FLAG_TYPE_SEC     2
+#define VIDEO_FLAG_TYPE_DA2     3
 #define VIDEO_FLAG_TYPE_XGA     4
-#define VIDEO_FLAG_TYPE_DA2     5
+#define VIDEO_FLAG_TYPE_8514    5
 #define VIDEO_FLAG_TYPE_NONE    6
-#define VIDEO_FLAG_TYPE_MASK    7
-
-#define VIDEO_FLAG_TYPE_SECONDARY VIDEO_FLAG_TYPE_SPECIAL
+#define VIDEO_FLAG_TYPE_SPECIAL 7
 
 #define FONT_IBM_MDA_437_PATH        "roms/video/mda/mda.rom"
 #define FONT_IBM_MDA_437_NORDIC_PATH "roms/video/mda/4733197.bin"
@@ -292,6 +290,7 @@ extern int         video_is_mda(void);
 extern int         video_is_cga(void);
 extern int         video_card_get_flags(int card);
 extern int         video_get_primary_flags(int m, int card);
+extern int         video_card_is_secondary(int m, int primary_card, int secondary_card);
 /* Query the active video implementation before a memory transfer so
  * pin-level CPU cores can model READY without hardcoding a card. */
 extern unsigned    video_get_wait_states(uint32_t address, int write,

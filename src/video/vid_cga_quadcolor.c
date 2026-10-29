@@ -110,7 +110,7 @@ quadcolor_out(uint16_t addr, uint8_t val, void *priv)
                 // Recalc the timings if we are writing any invalid CRTC register or a valid CRTC register
                 // except the CURSOR and LIGHT PEN registers
                 if ((quadcolor->crtcreg < 0xe) || (quadcolor->crtcreg > 0x11)) {
-                    quadcolor->fullchange = changeframecount;
+                    quadcolor->fullchange = monitors[quadcolor->monitor_index].mon_changeframecount;
                     quadcolor_recalctimings(quadcolor);
 
                     if (quadcolor->crtcreg == 3)
@@ -575,6 +575,11 @@ quadcolor_poll(void *priv)
     int      ys_temp;
     int      old_ma;
 
+    /* Bind the monitor macros to this card's own display. */
+    const int prev_monitor_index = monitor_index_global;
+
+    monitor_index_global = quadcolor->monitor_index;
+
     if (!quadcolor->linepos) {
         timer_advance_u64(&quadcolor->timer, quadcolor->dispofftime);
         quadcolor->cgastat |= 1;
@@ -786,6 +791,8 @@ quadcolor_poll(void *priv)
                 quadcolor->charbuffer[x] = quadcolor->vram[(quadcolor->page_offset ^ ((quadcolor->memaddr << 1) + x)) & DEVICE_VRAM_MASK];
         }
     }
+
+    monitor_index_global = prev_monitor_index;
 }
 
 void
@@ -851,6 +858,7 @@ quadcolor_standalone_init(UNUSED(const device_t *info))
     }
 
     monitors[monitor_index_global].mon_composite = !!quadcolor->composite;
+    quadcolor->monitor_index                     = monitor_index_global;
 
     return quadcolor;
 }
