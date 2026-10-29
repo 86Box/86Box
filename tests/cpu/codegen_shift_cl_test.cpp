@@ -36,6 +36,7 @@ int max_version_refcount;
 void fatal(const char *, ...) { std::abort(); }
 int reg_is_native_size(ir_reg_t reg) { return IREG_GET_SIZE(reg.reg) == IREG_SIZE_L; }
 int codegen_flags_rebuild_known(ir_data_t *, int) { return 0; }
+void codegen_mark_code_present_multibyte(codeblock_t *, uint32_t, int) { }
 x86seg *codegen_generate_ea(ir_data_t *, x86seg *, uint32_t, int, uint32_t *, uint32_t, int)
 {
     std::abort();
