@@ -131,6 +131,7 @@ extern const device_t      lpt_opl3_device;
 extern const device_t      lpt_cms_device;
 extern const device_t      lpt_tnd_device;
 extern const device_t      lpt_epat_device;
+extern const device_t      lpt_zip_device;
 
 extern const device_t      lpt_hasp_savquest_device;
 
