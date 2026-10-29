@@ -1138,7 +1138,7 @@ gxm_output_line(gxm_video_t *dev, uint32_t *line, int y)
        compare: 6 a color from the palette, 5 or 6 in 16 BPP. */
     const int      bpp16 = !(dev->dc[DC_OUTPUT_CFG] & OC_8BPP) && !(dev->dc[DC_TIMING_CFG] & TC_PLNR);
     const uint32_t sig   = bpp16 ? ((dev->dc[DC_OUTPUT_CFG] & OC_16FMT) ? 0xf8f8f8 : 0xf8fcf8) : 0xfcfcfc;
-    uint32_t       src[2];
+    uint32_t       src[2] = { 0, 0 };
     int            width = 0;
     int            yph   = 0;
     int            x0    = 0;
