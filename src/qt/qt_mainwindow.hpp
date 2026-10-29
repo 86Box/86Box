@@ -185,6 +185,7 @@ private:
     std::shared_ptr<MediaMenu>     mm;
     QMenu                         *dynarecMenu = nullptr;
 
+    bool hasKanaLock();
     void updateShortcuts();
     void updatePowerOffAction();
     void refreshDisplayRatioActions();

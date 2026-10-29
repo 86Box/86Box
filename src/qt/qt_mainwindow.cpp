@@ -38,10 +38,10 @@
 extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
+#include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
-#include <86box/device.h>
 #include <86box/video.h>
 #include <86box/mouse.h>
 #include <86box/machine.h>
@@ -347,9 +347,7 @@ MainWindow::MainWindow(QWidget *parent)
         num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
-        int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
-        int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_AX) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
-        kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
+        kana_label->setVisible(hasKanaLock());
 
         ui->actionMouse->setEnabled(true);
         ui->actionTablet->setEnabled(true);
@@ -1864,9 +1862,7 @@ MainWindow::refreshMediaMenu()
     caps_label->setToolTip(QShortcut::tr("Caps Lock"));
     caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
     kana_label->setToolTip(QShortcut::tr("Kana Lock"));
-    int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
-    int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_AX) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
-    kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
+    kana_label->setVisible(hasKanaLock());
 
     bool enable_comp_option = false;
     for (int i = 0; i < MONITORS_NUM; i++) {
@@ -1878,6 +1874,18 @@ MainWindow::refreshMediaMenu()
 
     ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
     refreshDisplayRatioActions();
+}
+
+/* Only the AX keyboard has a Kana Lock key. A machine that ships one has the
+   indicator whatever the bus, any other machine has it while an AX keyboard
+   is selected on a keyboard port. */
+bool
+MainWindow::hasKanaLock()
+{
+    if (machine_get_kbd_device(machine) == &keyboard_ax_device)
+        return true;
+
+    return machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
 }
 
 /* Labels the power off action, which only asks for confirmation without ACPI. */

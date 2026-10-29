@@ -702,6 +702,10 @@ load_machine(void)
     fpu_softfloat = !!ini_section_get_int(cat, "fpu_softfloat", 0);
     if ((fpu_type != FPU_NONE) && machine_has_flags(machine, MACHINE_SOFTFLOAT_ONLY))
         fpu_softfloat = 1;
+    /* A board with no coprocessor socket cannot take an external FPU. */
+    if ((fpu_type != FPU_NONE) && (fpu_type != FPU_INTERNAL) &&
+        machine_has_flags(machine, MACHINE_NO_FPU_SOCKET))
+        fpu_type = FPU_NONE;
 
     p = ini_section_get_string(cat, "time_sync", NULL);
     if (p != NULL) {
@@ -871,21 +875,25 @@ load_input_devices(void)
     p = ini_section_get_string(cat, "keyboard_type", NULL);
     if (p != NULL)
         keyboard_type = config_known(keyboard_get_from_internal_name(p), STRING_UNSUPPORTED_KEYBOARD, p);
-    else if (machines[machine].init == machine_xt_pc5086_init)
-        keyboard_type = KEYBOARD_TYPE_PC_XT;
-    else if (machine_has_bus(machine, MACHINE_BUS_PS2_PORTS)) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
+    else {
+        /* A machine that comes with a keyboard of its own offers that one by
+           default, whatever its bus might have suggested otherwise. */
+        const device_t *kbd = machine_get_kbd_device(machine);
+
+        if (kbd == &keyboard_pc_xt_device)
+            keyboard_type = KEYBOARD_TYPE_PC_XT;
+        else if (kbd == &keyboard_ps55_device)
             keyboard_type = KEYBOARD_TYPE_PS55;
-        else
-            keyboard_type = KEYBOARD_TYPE_PS2;
-    } else if (machine_has_bus(machine, MACHINE_BUS_ISA16) ||
-               machine_has_bus(machine, MACHINE_BUS_PCI)) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_AX))
+        else if (kbd == &keyboard_ax_device)
             keyboard_type = KEYBOARD_TYPE_AX;
-        else
+        else if (machine_has_bus(machine, MACHINE_BUS_PS2_PORTS))
+            keyboard_type = KEYBOARD_TYPE_PS2;
+        else if (machine_has_bus(machine, MACHINE_BUS_ISA16) ||
+                 machine_has_bus(machine, MACHINE_BUS_PCI))
             keyboard_type = KEYBOARD_TYPE_AT;
-    } else
-        keyboard_type = KEYBOARD_TYPE_PC_XT;
+        else
+            keyboard_type = KEYBOARD_TYPE_PC_XT;
+    }
 
     p = ini_section_get_string(cat, "mouse_type", NULL);
     if (p != NULL) {
