@@ -42,8 +42,10 @@
 #include <86box/plat_unused.h>
 #include "cpu.h"
 
-/* PC97317 RTC bank 2, the APC (PC87317VUL/PC97317VUL data sheet, 4.5 and
-   Table 4-22); indices into apc[], register - 40h. */
+/* RTC bank 2, the APC; indices into apc[], register - 40h. The PC87307/
+   PC97307 have 40h-48h (PC87307/PC97307 data sheet, 4.5 and Table 4-9),
+   the PC97317 all of them (PC87317VUL/PC97317VUL data sheet, 4.5 and
+   Table 4-22). */
 #define APC_APCR1      0x00
 #define APC_APCR2      0x01
 #define APC_APSR       0x02
@@ -63,7 +65,7 @@
 #define APC_MADDR      0x10
 #define APC_CADDR      0x11
 
-#define APCR1_FS_TRIG  0x01 /* Fail-safe Timer Trigger Command */
+#define APCR1_FS_TRIG  0x01 /* Fail-safe Timer Trigger Command (PC97317) */
 #define APCR1_FS_21S   0x02 /* Switch Off Delay Option: 21 s, else 5 s */
 #define APCR1_SOC      0x20 /* Software Off Command */
 #define APCR1_FS_RESET 0x40 /* Fail-safe Timer Reset Command */
@@ -80,7 +82,9 @@
 #define RLR_MASK_WRITE 0x40 /* RAM Mask Write, bank 0 and upper RAM */
 #define RLR_LOCK       0x80 /* RAM Lock, 38h-3Fh */
 
-/* RTC bank 1 (Table 4-21); indices into rtc_bank1[], register - 40h. */
+/* RTC bank 1 (PC87307 Table 4-8, PC97317 Table 4-21); indices into
+   rtc_bank1[], register - 40h. The date and month alarms are the
+   PC97317's. */
 #define RTC1_CENTURY   0x08
 #define RTC1_DOM_ALARM 0x09
 #define RTC1_MON_ALARM 0x0a
@@ -120,8 +124,8 @@
 #define ACPI_SUP_BGRLS 0x10 /* BIOS Global Lock Release */
 #define ACPI_SUP_MASK  0x80 /* Mask PM1 Event Register Bits */
 
-/* The battery-backed PC97317 state in <machine>_apc.nvr. */
-#define PC97317_NVR_SIZE (64 + 64 + 128 + 16)
+/* The battery-backed RTC bank, APC and ACPI state in <machine>_apc.nvr. */
+#define APC_NVR_SIZE (64 + 64 + 128 + 16)
 
 /* The PM timer runs at 3.579545 MHz (4.4, "Power Management Timer"). */
 #define PM_TMR_FREQ    3579545
@@ -145,8 +149,9 @@ typedef struct pc87307_t {
     serial_t *uart[2];
     lpt_t    *lpt;
 
-    /* PC97317: the RTC, with its banks 1 and 2 and the APC, and the ACPI
-       fixed registers. */
+    /* The RTC, with its banks 1 and 2 and the APC, when the chip owns the
+       board's NVR (always on the PC97317), and the PC97317's ACPI fixed
+       registers. */
     int        is_97317;
     nvr_t     *nvr;
     uint16_t   rtc_base;
@@ -392,27 +397,27 @@ pc97317_pm_tmr_carry(void *priv)
 }
 
 static void
-pc97317_power_off(UNUSED(pc87307_t *dev))
+pc87307_power_off(UNUSED(pc87307_t *dev))
 {
-    pc87307_log("PC97317: ONCTL deasserted, powering off\n");
+    pc87307_log("APC: ONCTL deasserted, powering off\n");
     plat_power_off();
 }
 
 /* The Fail-safe Timer reaching terminal count turns the power off when the
    Switch Off delay is on and the events go to POR (4.4, ONCTL). */
 static void
-pc97317_failsafe_expire(void *priv)
+pc87307_failsafe_expire(void *priv)
 {
     pc87307_t *dev = (pc87307_t *) priv;
 
     dev->apc[APC_APSR] |= APSR_FTD;
 
     if ((dev->apc[APC_APCR2] & APCR2_SODE) && !(dev->acpi[ACPI_CNT_LO] & SCI_EN))
-        pc97317_power_off(dev);
+        pc87307_power_off(dev);
 }
 
 static void
-pc97317_failsafe_start(pc87307_t *dev)
+pc87307_failsafe_start(pc87307_t *dev)
 {
     timer_on_auto(&dev->failsafe_timer, (dev->apc[APC_APCR1] & APCR1_FS_21S) ? 21000000.0 : 5000000.0);
 }
@@ -429,9 +434,9 @@ pc97317_switch_off_event(pc87307_t *dev)
     if (!(dev->acpi[ACPI_CNT_LO] & SCI_EN)) {
         if (dev->apc[APC_APCR2] & APCR2_SODE) {
             if (!timer_is_on(&dev->failsafe_timer))
-                pc97317_failsafe_start(dev);
+                pc87307_failsafe_start(dev);
         } else {
-            pc97317_power_off(dev);
+            pc87307_power_off(dev);
             return;
         }
     }
@@ -723,6 +728,7 @@ pc87307_pm_write(uint16_t port, uint8_t val, void *priv)
 
         /* FER1 - Function Enable Register 1. */
         if (dev->pm_idx == 0x00) {
+            rtc_handler(dev);
             fdc_handler(dev);
             lpt_handler(dev);
             serial_handler(dev, 1);
@@ -989,8 +995,9 @@ gpio_handler(pc87307_t *dev)
     }
 }
 
-/* The PC97317's RTC (logical device 2): base address, IRQ, and Activate
-   gated by FER1 bit 2. The APC keeps running either way. */
+/* The RTC (logical device 2), when the chip owns the NVR: base address,
+   IRQ, and Activate gated by FER1 bit 2. The APC keeps running either
+   way. */
 static void
 rtc_handler(pc87307_t *dev)
 {
@@ -1017,9 +1024,10 @@ rtc_handler(pc87307_t *dev)
 }
 
 /* RAM Lock: 38h-3Fh read and write blocked, and RAM Mask Write blocks the
-   writes to bank 0's RAM (0Eh-7Fh); only a reset clears them (4.5.8). */
+   writes to bank 0's RAM (0Eh-7Fh); only a reset clears them (PC87307
+   4.5.4, PC97317 4.5.8). */
 static void
-pc97317_rlr_apply(pc87307_t *dev)
+pc87307_rlr_apply(pc87307_t *dev)
 {
     const uint8_t rlr = dev->apc[APC_RLR];
 
@@ -1036,10 +1044,11 @@ pc97317_rlr_apply(pc87307_t *dev)
     }
 }
 
-/* Registers 40h-7Fh of RTC bank 1 (the century, the date and month alarms,
-   the upper RAM ports) and bank 2 (the APC, Table 4-22). */
+/* Registers 40h-7Fh of RTC bank 1 (the century, the upper RAM ports, and
+   the PC97317's date and month alarms) and bank 2 (the APC). The reserved
+   ones read 00h and ignore writes. */
 static uint8_t
-pc97317_rtc_bank_read(int bank, uint8_t reg, void *priv)
+pc87307_rtc_bank_read(int bank, uint8_t reg, void *priv)
 {
     pc87307_t *dev  = (pc87307_t *) priv;
     uint8_t    idx  = (reg & 0x7f) - 0x40;
@@ -1048,9 +1057,12 @@ pc97317_rtc_bank_read(int bank, uint8_t reg, void *priv)
 
     if (bank == 1) {
         switch (idx) {
-            case RTC1_CENTURY:
             case RTC1_DOM_ALARM:
             case RTC1_MON_ALARM:
+                if (dev->is_97317)
+                    ret = dev->rtc_bank1[idx];
+                break;
+            case RTC1_CENTURY:
             case RTC1_URAM_ADDR:
                 ret = dev->rtc_bank1[idx];
                 break;
@@ -1064,6 +1076,9 @@ pc97317_rtc_bank_read(int bank, uint8_t reg, void *priv)
             default:
                 break;
         }
+    } else if (!dev->is_97317 && (idx > APC_WC)) {
+        /* The PC87307's bank 2 ends at the Wake Up Century (Table 4-9). */
+        ret = 0x00;
     } else switch (idx) {
         /* The command bits read back 0. */
         case APC_APCR1:
@@ -1091,25 +1106,28 @@ pc97317_rtc_bank_read(int bank, uint8_t reg, void *priv)
             break;
     }
 
-    pc87307_log("PC97317: RTC bank %i, %02X read  = %02X\n", bank, reg, ret);
+    pc87307_log("RTC bank %i, %02X read  = %02X\n", bank, reg, ret);
 
     return ret;
 }
 
 static void
-pc97317_rtc_bank_write(int bank, uint8_t reg, uint8_t val, void *priv)
+pc87307_rtc_bank_write(int bank, uint8_t reg, uint8_t val, void *priv)
 {
     pc87307_t *dev  = (pc87307_t *) priv;
     uint8_t    idx  = (reg & 0x7f) - 0x40;
     uint8_t    addr = dev->rtc_bank1[RTC1_URAM_ADDR] & 0x7f;
 
-    pc87307_log("PC97317: RTC bank %i, %02X write = %02X\n", bank, reg, val);
+    pc87307_log("RTC bank %i, %02X write = %02X\n", bank, reg, val);
 
     if (bank == 1) {
         switch (idx) {
-            case RTC1_CENTURY:
             case RTC1_DOM_ALARM:
             case RTC1_MON_ALARM:
+                if (dev->is_97317)
+                    dev->rtc_bank1[idx] = val;
+                break;
+            case RTC1_CENTURY:
                 dev->rtc_bank1[idx] = val;
                 break;
             case RTC1_URAM_ADDR:
@@ -1128,15 +1146,20 @@ pc97317_rtc_bank_write(int bank, uint8_t reg, uint8_t val, void *priv)
         return;
     }
 
+    /* The PC87307's bank 2 ends at the Wake Up Century (Table 4-9). */
+    if (!dev->is_97317 && (idx > APC_WC))
+        return;
+
     switch (idx) {
+        /* Bit 0 is reserved on the PC87307. */
         case APC_APCR1:
             dev->apc[idx] = ((dev->apc[idx] & ~val) & APCR1_PF) | (val & 0x16);
             if (val & APCR1_FS_RESET)
                 timer_stop(&dev->failsafe_timer);
-            else if (val & APCR1_FS_TRIG)
-                pc97317_failsafe_start(dev);
+            else if ((val & APCR1_FS_TRIG) && dev->is_97317)
+                pc87307_failsafe_start(dev);
             if (val & APCR1_SOC)
-                pc97317_power_off(dev);
+                pc87307_power_off(dev);
             break;
         /* Software On Command: ONCTL is already active. */
         case APC_APCR2:
@@ -1144,7 +1167,7 @@ pc97317_rtc_bank_write(int bank, uint8_t reg, uint8_t val, void *priv)
             break;
         case APC_RLR:
             dev->apc[idx] |= val & 0xf8;
-            pc97317_rlr_apply(dev);
+            pc87307_rlr_apply(dev);
             break;
         case APC_WDW ... APC_WY:
         case APC_WC ... APC_APCR7:
@@ -1160,7 +1183,7 @@ pc97317_rtc_bank_write(int bank, uint8_t reg, uint8_t val, void *priv)
 
 /* A relocatable RTC register (DADDR/MADDR/CADDR): bit 7 picks bank 1. */
 static uint8_t
-pc97317_rtc_reloc(const pc87307_t *dev, uint8_t addr)
+pc87307_rtc_reloc(const pc87307_t *dev, uint8_t addr)
 {
     uint8_t reg = addr & 0x7f;
 
@@ -1171,32 +1194,38 @@ pc97317_rtc_reloc(const pc87307_t *dev, uint8_t addr)
 }
 
 static int
-pc97317_rtc_match(uint8_t alarm, uint8_t cur)
+pc87307_rtc_match(uint8_t alarm, uint8_t cur)
 {
     return ((alarm & 0xc0) == 0xc0) || (alarm == cur);
 }
 
-/* The time alarm matched: the date of month and month alarms decide the
-   alarm (RTC_STS, as well as AF); the wake-up date sets Timer Match
-   Detect (4.4, "Predetermined Wake-Up"). */
+/* The time alarm matched: on the PC97317 the date of month and month
+   alarms decide the alarm (RTC_STS, as well as AF), while the PC87307 has
+   only the time alarm; the wake-up date sets Timer Match Detect (4.4,
+   "Predetermined Wake-Up"), against the century in bank 1, which the
+   PC97317 can relocate. */
 static int
-pc97317_rtc_alarm(void *priv)
+pc87307_rtc_alarm(void *priv)
 {
     pc87307_t     *dev  = (pc87307_t *) priv;
     const uint8_t *regs = dev->nvr->regs;
-    int            ret;
+    uint8_t        cent = dev->rtc_bank1[RTC1_CENTURY];
+    int            ret  = 1;
 
-    ret = pc97317_rtc_match(pc97317_rtc_reloc(dev, dev->apc[APC_DADDR]), regs[0x07]) &&
-          pc97317_rtc_match(pc97317_rtc_reloc(dev, dev->apc[APC_MADDR]), regs[0x08]);
+    if (dev->is_97317) {
+        ret  = pc87307_rtc_match(pc87307_rtc_reloc(dev, dev->apc[APC_DADDR]), regs[0x07]) &&
+               pc87307_rtc_match(pc87307_rtc_reloc(dev, dev->apc[APC_MADDR]), regs[0x08]);
+        cent = pc87307_rtc_reloc(dev, dev->apc[APC_CADDR]);
+    }
 
-    if (pc97317_rtc_match(dev->apc[APC_WDW], regs[0x06]) &&
-        pc97317_rtc_match(dev->apc[APC_WDM], regs[0x07]) &&
-        pc97317_rtc_match(dev->apc[APC_WM], regs[0x08]) &&
-        pc97317_rtc_match(dev->apc[APC_WY], regs[0x09]) &&
-        pc97317_rtc_match(dev->apc[APC_WC], pc97317_rtc_reloc(dev, dev->apc[APC_CADDR])))
+    if (pc87307_rtc_match(dev->apc[APC_WDW], regs[0x06]) &&
+        pc87307_rtc_match(dev->apc[APC_WDM], regs[0x07]) &&
+        pc87307_rtc_match(dev->apc[APC_WM], regs[0x08]) &&
+        pc87307_rtc_match(dev->apc[APC_WY], regs[0x09]) &&
+        pc87307_rtc_match(dev->apc[APC_WC], cent))
         dev->apc[APC_APSR] |= APSR_TMD;
 
-    if (ret) {
+    if (ret && dev->is_97317) {
         dev->acpi[ACPI_STS_HI] |= RTC_STS;
         pc97317_pm_event(dev);
     }
@@ -1204,19 +1233,25 @@ pc97317_rtc_alarm(void *priv)
     return ret;
 }
 
-/* The values on the first power-up (Tables 4-21 and 4-22, 4.6, 4.7). */
+/* The values on the first power-up (PC87307 Tables 4-8 and 4-9; PC97317
+   Tables 4-21 and 4-22, 4.6, 4.7). The PC87307's APC registers start at
+   0, but for the status. */
 static void
-pc97317_nvr_defaults(pc87307_t *dev)
+pc87307_nvr_defaults(pc87307_t *dev)
 {
     memset(dev->rtc_bank1, 0x00, sizeof(dev->rtc_bank1));
     memset(dev->apc, 0x00, sizeof(dev->apc));
     memset(dev->upper_ram, 0x00, sizeof(dev->upper_ram));
     memset(dev->acpi, 0x00, sizeof(dev->acpi));
 
+    dev->apc[APC_APSR] = 0x41;
+
+    if (!dev->is_97317)
+        return;
+
     dev->rtc_bank1[RTC1_DOM_ALARM] = 0xc0;
     dev->rtc_bank1[RTC1_MON_ALARM] = 0xc0;
 
-    dev->apc[APC_APSR]  = 0x41;
     dev->apc[APC_WDW]   = 0xc0;
     dev->apc[APC_WDM]   = 0xc0;
     dev->apc[APC_WM]    = 0xc0;
@@ -1234,12 +1269,12 @@ pc97317_nvr_defaults(pc87307_t *dev)
 
 /* The banks, the APC and the ACPI fixed registers share the CMOS battery:
    they are kept in <machine>_apc.nvr and start over with the CMOS. */
-static pc87307_t *pc97317_nvr_dev = NULL;
+static pc87307_t *pc87307_nvr_dev = NULL;
 
 static void
-pc97317_nvr_save(void)
+pc87307_nvr_save(void)
 {
-    pc87307_t *dev = pc97317_nvr_dev;
+    pc87307_t *dev = pc87307_nvr_dev;
     FILE      *fp;
 
     if ((dev == NULL) || (dev->apc_fn == NULL))
@@ -1256,15 +1291,15 @@ pc97317_nvr_save(void)
 }
 
 static void
-pc97317_nvr_load(pc87307_t *dev)
+pc87307_nvr_load(pc87307_t *dev)
 {
-    uint8_t buf[PC97317_NVR_SIZE];
+    uint8_t buf[APC_NVR_SIZE];
     FILE   *fp = NULL;
 
     dev->apc_fn = (char *) calloc(1, strlen(machine_get_nvr_name()) + 9 + 1);
     sprintf(dev->apc_fn, "%s_apc.nvr", machine_get_nvr_name());
 
-    pc97317_nvr_defaults(dev);
+    pc87307_nvr_defaults(dev);
 
     if (!dev->nvr->is_new)
         fp = nvr_fopen(dev->apc_fn, "rb");
@@ -1279,8 +1314,8 @@ pc97317_nvr_load(pc87307_t *dev)
         fclose(fp);
     }
 
-    pc97317_nvr_dev = dev;
-    nvr_set_ven_save(pc97317_nvr_save);
+    pc87307_nvr_dev = dev;
+    nvr_set_ven_save(pc87307_nvr_save);
 }
 
 static void
@@ -1783,14 +1818,17 @@ pc87307_reset(void *priv)
 
     dev->gpio_base = dev->pm_base = 0xffff;
 
-    if (dev->is_97317) {
-        /* Master Reset: the APC and most of the ACPI fixed registers keep
-           their values; the RAM Lock and the enables listed in 4.6/4.7 do
-           not. */
+    /* Master Reset: the APC keeps its values, but for the RAM Lock. */
+    if (dev->nvr != NULL) {
         dev->apc[APC_RLR] = 0x00;
-        pc97317_rlr_apply(dev);
+        pc87307_rlr_apply(dev);
         timer_stop(&dev->failsafe_timer);
+        rtc_handler(dev);
+    }
 
+    if (dev->is_97317) {
+        /* Most of the ACPI fixed registers keep their values; the enables
+           listed in 4.6/4.7 do not. */
         dev->acpi[ACPI_EN_LO]   = 0x00;
         dev->acpi[ACPI_EN_HI]  &= ~PWRBTN_STS;
         dev->acpi[ACPI_CNT_LO]  = 0x00;
@@ -1806,7 +1844,6 @@ pc87307_reset(void *priv)
             picintclevel(1 << dev->sci_irq, &dev->sci_state);
         dev->sci_irq = -1;
 
-        rtc_handler(dev);
         pc97317_acpi_handler(dev);
     }
 
@@ -1832,12 +1869,14 @@ pc87307_close(void *priv)
 {
     pc87307_t *dev = (pc87307_t *) priv;
 
-    if (dev->is_97317) {
+    if (dev->is_97317)
         timer_disable(&dev->pm_tmr_timer);
+
+    if (dev->nvr != NULL) {
         timer_disable(&dev->failsafe_timer);
 
-        pc97317_nvr_save();
-        pc97317_nvr_dev = NULL;
+        pc87307_nvr_save();
+        pc87307_nvr_dev = NULL;
 
         free(dev->apc_fn);
     }
@@ -1881,20 +1920,23 @@ pc87307_init(const device_t *info)
     else
         dev->baddr = 0x03;
 
-    /* The PC97317's RTC is the NVR; its banks 1 and 2, the APC and the ACPI
-       fixed registers live here. */
+    /* The RTC is the board's NVR on the PC97317, and on PC87307/PC97307
+       boards whose chipset has none (PCX7307_RTC): its banks 1 and 2 and
+       the APC live here, as do the PC97317's ACPI fixed registers. */
     dev->is_97317 = (dev->id == (PCX7307_PC97317 & PCX730X_CHIP_ID));
     dev->sci_irq  = -1;
-    if (dev->is_97317) {
-        dev->nvr      = device_add_params(&nvr_at_device, (void *) NVR_PC873XX);
+    if (dev->is_97317 || (info->local & PCX7307_RTC)) {
+        dev->nvr      = device_add_params(&nvr_at_device,
+                                          (void *) (uintptr_t) (dev->is_97317 ? NVR_PC873XX : NVR_PC87307));
         dev->rtc_base = 0x0070;
-        nvr_at_set_pc873xx_banks(dev->nvr, pc97317_rtc_bank_read, pc97317_rtc_bank_write,
-                                 pc97317_rtc_alarm, dev);
-        pc97317_nvr_load(dev);
+        nvr_at_set_pc873xx_banks(dev->nvr, pc87307_rtc_bank_read, pc87307_rtc_bank_write,
+                                 pc87307_rtc_alarm, dev);
+        pc87307_nvr_load(dev);
 
-        timer_add(&dev->pm_tmr_timer, pc97317_pm_tmr_carry, dev, 0);
-        timer_add(&dev->failsafe_timer, pc97317_failsafe_expire, dev, 0);
+        timer_add(&dev->failsafe_timer, pc87307_failsafe_expire, dev, 0);
     }
+    if (dev->is_97317)
+        timer_add(&dev->pm_tmr_timer, pc97317_pm_tmr_carry, dev, 0);
 
     pc87307_reset(dev);
 

@@ -137,6 +137,8 @@ extern const device_t pc87310_device;
 #define PCX730X_BADDR        0x03000
 #define PCX730X_BADDR_SHIFT       12
 
+#define PCX7307_RTC          0x04000    /* The chip's RTC is the board's NVR (the PC97317's always is). */
+
 extern const device_t pc87306_device;
 
 extern const device_t pc873xx_device;

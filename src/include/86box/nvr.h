@@ -125,6 +125,7 @@
 #define NVR_VIA                 (NVR_AT_STANDARD_MA | NVR_CENTURY_VIA)
 #define NVR_MARTIN              (NVR_AT_MB | FLAG_MARTIN_HACK)
 #define NVR_PC873XX             (NVR_AT_MB | FLAG_PC873XX_BANKS)
+#define NVR_PC87307             (NVR_AT | FLAG_PC873XX_BANKS)
 #define NVR_ELT                 (NVR_IRQ_NONE | NVR_ADDR_ELT | NVR_CENTURY_ELT)
 #define NVR_RTC8088             (NVR_IRQ_CONFIG | NVR_ADDR_CONFIG | \
                                  NVR_CENTURY_ALT | FLAG_NO_NMI | FLAG_FIXED_SIZE)
