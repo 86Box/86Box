@@ -702,6 +702,10 @@ load_machine(void)
     fpu_softfloat = !!ini_section_get_int(cat, "fpu_softfloat", 0);
     if ((fpu_type != FPU_NONE) && machine_has_flags(machine, MACHINE_SOFTFLOAT_ONLY))
         fpu_softfloat = 1;
+    /* A board with no coprocessor socket cannot take an external FPU. */
+    if ((fpu_type != FPU_NONE) && (fpu_type != FPU_INTERNAL) &&
+        machine_has_flags(machine, MACHINE_NO_FPU_SOCKET))
+        fpu_type = FPU_NONE;
 
     p = ini_section_get_string(cat, "time_sync", NULL);
     if (p != NULL) {

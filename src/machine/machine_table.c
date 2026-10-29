@@ -3636,7 +3636,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC | MACHINE_BUS_PS2_PORTS,
-        .flags     = MACHINE_VIDEO_FIXED | MACHINE_FDC | MACHINE_PS2_KBC | MACHINE_KEYBOARD | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_NO_FPU_SOCKET | MACHINE_VIDEO_FIXED | MACHINE_FDC | MACHINE_PS2_KBC | MACHINE_KEYBOARD | MACHINE_KEYBOARD_JIS,
         .ram       = {
             .min  = 640,
             .max  = 640,
