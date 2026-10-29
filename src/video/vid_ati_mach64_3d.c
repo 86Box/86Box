@@ -2906,9 +2906,12 @@ mach64_scaler_draw(mach64_3d_t *ctx)
     int             src_width  = regs[SCALE_WIDTH >> 2] & 0x1fff;
     int             src_height = regs[SCALE_HEIGHT >> 2] & 0x1fff;
     uint32_t        src_pitch  = regs[SCALE_Y_PITCH >> 2] & 0x1fff;
-    uint32_t        x_inc      = regs[SCALE_X_INC >> 2] & 0x001ffff0;
-    uint32_t        xuv_inc    = regs[SCALE_XUV_INC >> 2] & 0x001ffff0;
-    uint32_t        y_inc      = regs[SCALE_Y_INC >> 2] & 0x001ffff0;
+    /* 86Box-Next: the increments are unsigned, 12 fraction bits and 8
+       integer ones (RAGE PRO and Derivatives Programmer's Guide 8-14, for
+       the RAGE II/II+/IIC; RED_X_INC's S.8.12, RRG-G02700 6-12). */
+    uint32_t        x_inc      = regs[SCALE_X_INC >> 2] & 0x00fffff0;
+    uint32_t        xuv_inc    = regs[SCALE_XUV_INC >> 2] & 0x00fffff0;
+    uint32_t        y_inc      = regs[SCALE_Y_INC >> 2] & 0x00fffff0;
     int32_t         h_start    = mach64_3d_sign_extend(regs[SCALE_HACC >> 2], 21);
     int32_t         uv_start   = mach64_3d_sign_extend(regs[SCALE_UV_HACC >> 2], 21);
     int32_t         v_start    = mach64_3d_sign_extend(regs[SCALE_VACC >> 2], 21);
@@ -3193,10 +3196,14 @@ mach64_3d_read(mach64_t *mach64, uint32_t addr, uint32_t *val)
             *val = mach64_3d_gui_stat(mach64);
             return 1;
         case FIFO_STAT:
-            /* A bit for each of the 16 entries shown in use: of the timed
-               FIFO, as the 2D one empties at once. */
+            /* 86Box-Next: on the 3D RAGE FIFO_STAT has a bit for each full
+               entry past the first 16, "if there are 23 full entries, then
+               bits 6:0 will be set" (RRG-G02700 4-101); the free entries are
+               GUI_STAT's FIFO_CNT. Of the timed FIFO, as the 2D one empties
+               at once. */
             if (!mach64_timing_status(mach64, &used, &busy))
                 return 0;
+            used = (used > 16) ? (used - 16) : 0;
             *val = (used >= 16) ? 0xffff : ((1u << used) - 1);
             return 1;
         case DST_BRES_LNTH:
