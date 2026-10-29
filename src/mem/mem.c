@@ -2975,6 +2975,11 @@ mem_mapping_set_addr(mem_mapping_t *map, uint32_t base, uint32_t size)
     map->enable = 1;
     map->base   = base;
     map->size   = size;
+    /* A mapping added with no size got a mask of 0, which would fold every
+       address onto the first byte of its exec memory; one set explicitly
+       with mem_mapping_set_mask() is kept. */
+    if (map->mask == 0x00000000)
+        map->mask = 0xffffffff;
 
     mem_mapping_recalc(map->base, map->size, map->base_ignore);
 }

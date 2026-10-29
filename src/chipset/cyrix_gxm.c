@@ -1139,12 +1139,24 @@ cyrix_gxm_reset(void *priv)
     gxm_remap(dev);
 }
 
+/* A CPU-only reset (the keyboard controller's, or Setup's exit) resets the
+   integrated functions with the core, the display controller included. */
+static void
+gxm_cpu_reset(void *priv)
+{
+    cyrix_gxm_reset(priv);
+
+    if (gxm_video != NULL)
+        cyrix_gxm_video_device.reset(gxm_video);
+}
+
 static void
 cyrix_gxm_close(void *priv)
 {
     cyrix_gxm_t *dev = (cyrix_gxm_t *) priv;
 
     gxm.gcr_write = NULL;
+    gxm.reset     = NULL;
     gxm.priv      = NULL;
     gxm_dev       = NULL;
 
@@ -1191,10 +1203,6 @@ cyrix_gxm_init(UNUSED(const device_t *info))
                     gxm_smm_read, gxm_smm_readw, gxm_smm_readl,
                     gxm_smm_write, gxm_smm_writew, gxm_smm_writel,
                     ram + 0xa0000, MEM_MAPPING_EXTERNAL, dev);
-    /* Added with no size, the mapping's mask is 0, and bus masters (which go
-       through exec[] with it) would all read the window's first dword. VSA
-       keeps the audio PRD tables in the window. */
-    mem_mapping_set_mask(&dev->smm_mapping, 0x1ffff);
     mem_mapping_disable(&dev->smm_mapping);
 
     gxm_dimms_init(dev);
@@ -1204,6 +1212,7 @@ cyrix_gxm_init(UNUSED(const device_t *info))
     device_add(&cyrix_gxm_video_device);
 
     gxm.gcr_write = gxm_gcr_write;
+    gxm.reset     = gxm_cpu_reset;
     gxm.priv      = dev;
 
     /* Address bit 20 is unmasked for SMI accesses (BC_XMAP_1[21]). */

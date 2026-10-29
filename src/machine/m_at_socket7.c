@@ -1803,7 +1803,8 @@ machine_at_tx97xv_init(const machine_t *model)
 
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC87307 | PCX730X_02E));
+    /* Strapped to 15Ch, where its BIOS looks for the chip. */
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC87307 | PCX730X_15C));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 
@@ -2863,7 +2864,7 @@ machine_at_p5gxm_gpio_handler(uint8_t write, uint32_t val)
 static int
 machine_at_p5gxm_midi_uart_enabled(void)
 {
-    void *sio = device_get_priv(&pc87307_device);
+    void *sio = device_get_priv(&pc97317_device);
 
     return (sio == NULL) || (pc87307_gpio_pins(sio, 1) & 0x04);
 }
@@ -2892,10 +2893,87 @@ machine_at_p5gxm_init(const machine_t *model)
 
     device_add(&cyrix_gxm_device);
     device_add(&cs5530_device);
-    device_add_params(&pc87307_device, (void *) (PCX730X_15C | PCX730X_AMI | PCX7307_PC97317));
-    device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_PC873XX);
+    /* The PC97317 brings its own RTC/NVR. */
+    device_add_params(&pc97317_device, (void *) (PCX730X_15C | PCX730X_AMI | PCX7307_PC97317));
     device_add(&sst_flash_29ee020_device);
     cs5530_set_midi_uart_enabled(machine_at_p5gxm_midi_uart_enabled);
+
+    return ret;
+}
+
+/* Cyrix MediaGX MMX + Cx5530, Phoenix BIOS AU00 (Cyrix's "Unicorn"/MXi
+   reference design): the PC97317 is strapped to 2Eh and the ACPI tables
+   route four PCI slots, 0Eh-11h. */
+int
+machine_at_t3032_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/t3032/au000.rom",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x13, PCI_CARD_SOUTHBRIDGE_USB, 1, 0, 0, 0);
+    /* Slot routing follows the BIOS $PIR table, which POST and Win9x use;
+       the DSDT _PRT disagrees (it has slot 0Eh INTA on LNKA). */
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,          4, 1, 2, 3);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,          1, 2, 3, 4);
+
+    device_add(&cyrix_gxm_device);
+    device_add(&cs5530_device);
+    device_add_params(&pc97317_device, (void *) (PCX730X_02E | PCX730X_PHOENIX_42I | PCX7307_PC97317));
+    device_add(&sst_flash_29ee020_device);
+
+    return ret;
+}
+
+/* Cyrix MediaGX MMX + Cx5530A single-board computer, Award BIOS: a Winbond
+   W83977F Super I/O at 3F0h and a W83977EF at 370h for COM3/COM4. The
+   on-board Realtek RTL8139C is modelled by the 8139C+. */
+int
+machine_at_awp601_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/awp601/P601-A1.BIN",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x13, PCI_CARD_SOUTHBRIDGE_USB, 1, 0, 0, 0);
+    /* The BIOS's routing table at F000:0000 lists the USB, then 0Dh, then
+       09h-0Bh with the slots' rotating INTA-INTD: 0Dh is the on-board
+       RTL8139C. */
+    pci_register_slot(0x0D, PCI_CARD_NETWORK,         1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,          3, 4, 1, 2);
+
+    device_add(&cyrix_gxm_device);
+    device_add(&cs5530_device);
+    /* The Cx5530A has no RTC of its own: the BIOS uses the W83977F's, with
+       bank 2 (the "On-Now" registers) in the NVR's 100h-17Fh. */
+    device_add_params(&w83977_device, (void *) (W83977F | W83977_AMI));
+    device_add_params(&w83977_device, (void *) (W83977EF | W83977_NO_NVR));
+    device_add(&sst_flash_29ee020_device);
+
+    if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
+        device_add(machine_get_net_device(machine));
 
     return ret;
 }

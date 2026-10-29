@@ -143,6 +143,7 @@ extern const device_t pc873xx_device;
 
 /* National Semiconductors PC87307 / PC87309 */
 extern const device_t pc87307_device;
+extern const device_t pc97317_device;
 extern uint8_t        pc87307_gpio_pins(void *priv, int port);
 
 extern const device_t pc87309_device;

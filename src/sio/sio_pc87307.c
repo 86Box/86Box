@@ -35,8 +35,96 @@
 #include <86box/keyboard.h>
 #include <86box/sio.h>
 #include <86box/random.h>
+#include <86box/pic.h>
+#include <86box/plat.h>
+#include <86box/video.h>
 #include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 #include "cpu.h"
+
+/* PC97317 RTC bank 2, the APC (PC87317VUL/PC97317VUL data sheet, 4.5 and
+   Table 4-22); indices into apc[], register - 40h. */
+#define APC_APCR1      0x00
+#define APC_APCR2      0x01
+#define APC_APSR       0x02
+#define APC_WDW        0x03
+#define APC_WDM        0x04
+#define APC_WM         0x05
+#define APC_WY         0x06
+#define APC_RLR        0x07
+#define APC_WC         0x08
+#define APC_APCR3      0x09
+#define APC_APCR4      0x0a
+#define APC_APCR5      0x0b
+#define APC_APCR6      0x0c
+#define APC_APCR7      0x0d
+#define APC_APSR1      0x0e
+#define APC_DADDR      0x0f
+#define APC_MADDR      0x10
+#define APC_CADDR      0x11
+
+#define APCR1_FS_TRIG  0x01 /* Fail-safe Timer Trigger Command */
+#define APCR1_FS_21S   0x02 /* Switch Off Delay Option: 21 s, else 5 s */
+#define APCR1_SOC      0x20 /* Software Off Command */
+#define APCR1_FS_RESET 0x40 /* Fail-safe Timer Reset Command */
+#define APCR1_PF       0x80 /* Power Failure */
+#define APCR2_SODE     0x40 /* Switch Off Delay Enable */
+
+#define APSR_TMD       0x01 /* Timer Match Detect */
+#define APSR_FTD       0x10 /* Fail-Safe Timer Detect */
+#define APSR_SOED      0x20 /* Switch Off Event Detect */
+
+#define RLR_UPPER      0x08 /* Upper RAM Block */
+#define RLR_READ_LOW   0x10 /* RAM Block Read, upper RAM 00h-1Fh */
+#define RLR_WRITE_LOW  0x20 /* RAM Block Write, upper RAM 00h-1Fh */
+#define RLR_MASK_WRITE 0x40 /* RAM Mask Write, bank 0 and upper RAM */
+#define RLR_LOCK       0x80 /* RAM Lock, 38h-3Fh */
+
+/* RTC bank 1 (Table 4-21); indices into rtc_bank1[], register - 40h. */
+#define RTC1_CENTURY   0x08
+#define RTC1_DOM_ALARM 0x09
+#define RTC1_MON_ALARM 0x0a
+#define RTC1_URAM_ADDR 0x10
+#define RTC1_URAM_DATA 0x13
+
+/* The ACPI fixed registers (4.6, 4.7), all battery-backed: acpi[]. */
+#define ACPI_STS_LO    0x00
+#define ACPI_STS_HI    0x01
+#define ACPI_EN_LO     0x02
+#define ACPI_EN_HI     0x03
+#define ACPI_CNT_LO    0x04
+#define ACPI_CNT_HI    0x05
+#define ACPI_GP1_STS0  0x06
+#define ACPI_GP1_EN0   0x07
+#define ACPI_GP2_EN0   0x08
+#define ACPI_SMI_CMD   0x09
+
+#define TMR_STS        0x01 /* PM1_STS_LOW */
+#define GBL_STS        0x20
+#define PWRBTN_STS     0x01 /* PM1_STS_HIGH */
+#define RTC_STS        0x04
+#define WAK_STS        0x80
+#define SCI_EN         0x01 /* PM1_CNT_LOW */
+#define GBL_RLS        0x04
+#define SLP_EN         0x20 /* PM1_CNT_HIGH */
+
+/* Power management registers 01h (FER2), 04h (PMC3) and 10h (ACPI Support,
+   10.2). */
+#define FER2_PM1_EVT   0x08
+#define FER2_PM1_CNT   0x10
+#define FER2_GPE       0x20
+#define FER2_SMI_CMD   0x40
+#define FER2_GPIO      0x80
+#define PMC3_TMR_CLK   0x01
+#define ACPI_SUP_STICKY 0x25 /* Sleep Enable, ACPI Global Lock, SMI Command Status */
+#define ACPI_SUP_BGRLS 0x10 /* BIOS Global Lock Release */
+#define ACPI_SUP_MASK  0x80 /* Mask PM1 Event Register Bits */
+
+/* The battery-backed PC97317 state in <machine>_apc.nvr. */
+#define PC97317_NVR_SIZE (64 + 64 + 128 + 16)
+
+/* The PM timer runs at 3.579545 MHz (4.4, "Power Management Timer"). */
+#define PM_TMR_FREQ    3579545
 
 typedef struct pc87307_t {
     uint8_t   id;
@@ -46,7 +134,7 @@ typedef struct pc87307_t {
     uint8_t   ld_regs[256][256];
     uint8_t   pcregs[16];
     uint8_t   gpio[2][8];
-    uint8_t   pm[8];
+    uint8_t   pm[0x20];
     uint16_t  superio_base;
     uint16_t  gpio_base;
     uint16_t  gpio_base2;
@@ -56,7 +144,33 @@ typedef struct pc87307_t {
     fdc_t    *fdc;
     serial_t *uart[2];
     lpt_t    *lpt;
+
+    /* PC97317: the RTC, with its banks 1 and 2 and the APC, and the ACPI
+       fixed registers. */
+    int        is_97317;
+    nvr_t     *nvr;
+    uint16_t   rtc_base;
+    uint8_t    rtc_bank1[64];
+    uint8_t    apc[64];
+    uint8_t    upper_ram[128];
+    uint8_t    acpi[16];
+    uint8_t    sleeping;
+    uint8_t    switch_off;
+    uint8_t    sci_state;
+    int8_t     sci_irq;
+    uint16_t   acpi_base[4];
+    uint32_t   pm_tmr_latch;
+    char      *apc_fn;
+    pc_timer_t pm_tmr_timer;
+    pc_timer_t failsafe_timer;
 } pc87307_t;
+
+enum {
+    ACPI_BLK_EVT = 0,
+    ACPI_BLK_CNT,
+    ACPI_BLK_TMR,
+    ACPI_BLK_GPE
+};
 
 enum {
     LD_KBD   = 0,
@@ -77,6 +191,8 @@ static void    fdc_handler(pc87307_t *dev);
 static void    lpt_handler(pc87307_t *dev);
 static void    serial_handler(pc87307_t *dev, int uart);
 static void    kbc_handler(pc87307_t *dev);
+static void    rtc_handler(pc87307_t *dev);
+static void    gpio_handler(pc87307_t *dev);
 static void    pc87307_write(uint16_t port, uint8_t val, void *priv);
 static uint8_t pc87307_read(uint16_t port, void *priv);
 
@@ -195,28 +311,488 @@ pc87307_gpio_init(pc87307_t *dev, int bank, uint16_t addr)
                   pc87307_gpio_read, NULL, NULL, pc87307_gpio_write, NULL, NULL, dev);
 }
 
+/* The PC97317's SCI (4.4, "The SCI Signal"): a level interrupt on the IRQ
+   picked by SIOC3[7:4] (Table 2-23). The RTC alarm, the PM timer carry and
+   the BIOS Global Lock release always reach it; the power button and the
+   general purpose events only with SCI_EN, POR otherwise. */
+static void
+pc97317_sci_update(pc87307_t *dev)
+{
+    static const int8_t sci_irqs[16] = { -1, 1, -1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, -1, 14, 15 };
+    const uint8_t      *acpi         = dev->acpi;
+    int8_t              irq          = sci_irqs[dev->regs[0x25] >> 4];
+    int                 level;
+
+    level = !!(acpi[ACPI_STS_HI] & acpi[ACPI_EN_HI] & RTC_STS) ||
+            !!(acpi[ACPI_STS_LO] & acpi[ACPI_EN_LO] & GBL_STS);
+    if (dev->pm[0x04] & PMC3_TMR_CLK)
+        level |= !!(acpi[ACPI_STS_LO] & acpi[ACPI_EN_LO] & TMR_STS);
+    if (acpi[ACPI_CNT_LO] & SCI_EN)
+        level |= !!(acpi[ACPI_STS_HI] & acpi[ACPI_EN_HI] & PWRBTN_STS) ||
+                 !!(acpi[ACPI_GP1_STS0] & acpi[ACPI_GP1_EN0]);
+
+    if ((irq != dev->sci_irq) && (dev->sci_irq >= 0))
+        picintclevel(1 << dev->sci_irq, &dev->sci_state);
+    dev->sci_irq = irq;
+
+    if (irq < 0)
+        return;
+
+    if (level)
+        picintlevel(1 << irq, &dev->sci_state);
+    else
+        picintclevel(1 << irq, &dev->sci_state);
+}
+
+/* A power management event while the system sleeps (SLP_EN) sets WAK_STS. */
+static void
+pc97317_pm_event(pc87307_t *dev)
+{
+    if (dev->sleeping)
+        dev->acpi[ACPI_STS_HI] |= WAK_STS;
+
+    pc97317_sci_update(dev);
+}
+
+/* An access to an ACPI fixed register while WAK_STS is set ends the
+   suspended state (4.6.2). */
+static void
+pc97317_acpi_access(pc87307_t *dev)
+{
+    if (dev->acpi[ACPI_STS_HI] & WAK_STS)
+        dev->sleeping = 0;
+}
+
+/* The PM timer: 24 bits at 3.579545 MHz; TMR_STS when bit 23 toggles. */
+static uint32_t
+pc97317_pm_tmr_count(void)
+{
+    return (uint32_t) ((((double) tsc) * ((double) PM_TMR_FREQ)) / ((double) cpuclock)) & 0x00ffffff;
+}
+
+static void
+pc97317_pm_tmr_schedule(pc87307_t *dev)
+{
+    uint32_t left = 0x00800000 - (pc97317_pm_tmr_count() & 0x007fffff);
+
+    if (dev->pm[0x04] & PMC3_TMR_CLK)
+        timer_on_auto(&dev->pm_tmr_timer, ((double) left * 1000000.0) / (double) PM_TMR_FREQ);
+    else
+        timer_stop(&dev->pm_tmr_timer);
+}
+
+static void
+pc97317_pm_tmr_carry(void *priv)
+{
+    pc87307_t *dev = (pc87307_t *) priv;
+
+    dev->acpi[ACPI_STS_LO] |= TMR_STS;
+    pc97317_sci_update(dev);
+    pc97317_pm_tmr_schedule(dev);
+}
+
+static void
+pc97317_power_off(UNUSED(pc87307_t *dev))
+{
+    pc87307_log("PC97317: ONCTL deasserted, powering off\n");
+    plat_power_off();
+}
+
+/* The Fail-safe Timer reaching terminal count turns the power off when the
+   Switch Off delay is on and the events go to POR (4.4, ONCTL). */
+static void
+pc97317_failsafe_expire(void *priv)
+{
+    pc87307_t *dev = (pc87307_t *) priv;
+
+    dev->apc[APC_APSR] |= APSR_FTD;
+
+    if ((dev->apc[APC_APCR2] & APCR2_SODE) && !(dev->acpi[ACPI_CNT_LO] & SCI_EN))
+        pc97317_power_off(dev);
+}
+
+static void
+pc97317_failsafe_start(pc87307_t *dev)
+{
+    timer_on_auto(&dev->failsafe_timer, (dev->apc[APC_APCR1] & APCR1_FS_21S) ? 21000000.0 : 5000000.0);
+}
+
+/* The SWITCH input (the power button): a press while the system is on is a
+   Switch Off event. With SCI_EN clear it turns ONCTL off, at once or after
+   the Switch Off delay; with SCI_EN set it is left to the OS (PWRBTN_STS). */
+static void
+pc97317_switch_off_event(pc87307_t *dev)
+{
+    dev->acpi[ACPI_STS_HI] |= PWRBTN_STS;
+    dev->apc[APC_APSR] |= APSR_SOED;
+
+    if (!(dev->acpi[ACPI_CNT_LO] & SCI_EN)) {
+        if (dev->apc[APC_APCR2] & APCR2_SODE) {
+            if (!timer_is_on(&dev->failsafe_timer))
+                pc97317_failsafe_start(dev);
+        } else {
+            pc97317_power_off(dev);
+            return;
+        }
+    }
+
+    pc97317_pm_event(dev);
+}
+
+static void
+pc97317_power_button(void *priv)
+{
+    pc97317_switch_off_event((pc87307_t *) priv);
+}
+
+static uint8_t
+pc97317_evt_read(uint16_t port, void *priv)
+{
+    pc87307_t *dev  = (pc87307_t *) priv;
+    uint8_t    mask = 0xff;
+    uint8_t    ret;
+
+    pc97317_acpi_access(dev);
+
+    /* Mask PM1 Event Register Bits: only RTC_STS, RTC_EN and WAK_STS are
+       left; TMR_STS/TMR_EN follow PMC3 bit 0 alone. */
+    switch (port & 0x03) {
+        default:
+        case 0x00:
+            ret = dev->acpi[ACPI_STS_LO] & (TMR_STS | GBL_STS);
+            break;
+        case 0x01:
+            ret = dev->acpi[ACPI_STS_HI] & 0x8d;
+            mask = (dev->pm[0x10] & ACPI_SUP_MASK) ? (RTC_STS | WAK_STS) : 0xff;
+            break;
+        case 0x02:
+            ret = dev->acpi[ACPI_EN_LO] & (TMR_STS | GBL_STS);
+            break;
+        case 0x03:
+            ret = dev->acpi[ACPI_EN_HI] & (PWRBTN_STS | RTC_STS);
+            mask = (dev->pm[0x10] & ACPI_SUP_MASK) ? RTC_STS : 0xff;
+            break;
+    }
+
+    if (!(port & 0x01)) {
+        if (dev->pm[0x10] & ACPI_SUP_MASK)
+            mask = TMR_STS;
+        if (!(dev->pm[0x04] & PMC3_TMR_CLK))
+            mask &= ~TMR_STS;
+    }
+
+    return ret & mask;
+}
+
+static void
+pc97317_evt_write(uint16_t port, uint8_t val, void *priv)
+{
+    pc87307_t *dev = (pc87307_t *) priv;
+
+    pc97317_acpi_access(dev);
+
+    switch (port & 0x03) {
+        default:
+        case 0x00:
+            dev->acpi[ACPI_STS_LO] &= ~(val & (TMR_STS | GBL_STS));
+            break;
+        case 0x01:
+            dev->acpi[ACPI_STS_HI] &= ~(val & 0x8d);
+            break;
+        case 0x02:
+            dev->acpi[ACPI_EN_LO] = val & (TMR_STS | GBL_STS);
+            break;
+        case 0x03:
+            dev->acpi[ACPI_EN_HI] = val & (PWRBTN_STS | RTC_STS);
+            break;
+    }
+
+    pc97317_sci_update(dev);
+}
+
+static uint8_t
+pc97317_cnt_read(uint16_t port, void *priv)
+{
+    pc87307_t *dev = (pc87307_t *) priv;
+
+    pc97317_acpi_access(dev);
+
+    return (port & 0x01) ? (dev->acpi[ACPI_CNT_HI] & 0x1c) : (dev->acpi[ACPI_CNT_LO] & SCI_EN);
+}
+
+static void
+pc97317_cnt_write(uint16_t port, uint8_t val, void *priv)
+{
+    pc87307_t *dev = (pc87307_t *) priv;
+
+    pc97317_acpi_access(dev);
+
+    if (port & 0x01) {
+        /* SLP_TYP is only stored; SLP_EN sets the ACPI Support register's
+           Sleep Enable Status (and POR, which is not modelled). */
+        dev->acpi[ACPI_CNT_HI] = val & 0x1c;
+        if (val & SLP_EN) {
+            dev->pm[0x10] |= 0x01;
+            dev->sleeping = 1;
+        }
+    } else {
+        dev->acpi[ACPI_CNT_LO] = val & SCI_EN;
+        if (val & GBL_RLS)
+            dev->pm[0x10] |= 0x04;
+    }
+
+    pc97317_sci_update(dev);
+}
+
+/* PM1_TMR_LOW latches the count for the other bytes; PM1_TMR_EXT reads 0. */
+static uint8_t
+pc97317_tmr_read(uint16_t port, void *priv)
+{
+    pc87307_t *dev = (pc87307_t *) priv;
+
+    pc97317_acpi_access(dev);
+
+    if (!(port & 0x03))
+        dev->pm_tmr_latch = pc97317_pm_tmr_count();
+
+    return (dev->pm_tmr_latch >> ((port & 0x03) << 3)) & 0xff;
+}
+
+static uint32_t
+pc97317_tmr_readl(UNUSED(uint16_t port), void *priv)
+{
+    pc87307_t *dev = (pc87307_t *) priv;
+
+    pc97317_acpi_access(dev);
+
+    dev->pm_tmr_latch = pc97317_pm_tmr_count();
+
+    return dev->pm_tmr_latch;
+}
+
+/* The general purpose event block: GP1_STS0 at 00h, GP1_EN0 at 04h,
+   GP2_EN0 at 08h and SMI_CMD at 0Ch; FER2 enables SMI_CMD apart. */
+static uint8_t
+pc97317_gpe_read(uint16_t port, void *priv)
+{
+    pc87307_t *dev = (pc87307_t *) priv;
+    uint8_t    ret = 0x00;
+
+    if ((port & 0x0f) == 0x0c)
+        return (dev->pm[0x01] & FER2_SMI_CMD) ? dev->acpi[ACPI_SMI_CMD] : 0xff;
+
+    if (!(dev->pm[0x01] & FER2_GPE))
+        return 0xff;
+
+    pc97317_acpi_access(dev);
+
+    switch (port & 0x0f) {
+        case 0x00:
+            ret = dev->acpi[ACPI_GP1_STS0];
+            break;
+        case 0x04:
+            ret = dev->acpi[ACPI_GP1_EN0];
+            break;
+        case 0x08:
+            ret = dev->acpi[ACPI_GP2_EN0];
+            break;
+        default:
+            break;
+    }
+
+    return ret;
+}
+
+static void
+pc97317_gpe_write(uint16_t port, uint8_t val, void *priv)
+{
+    pc87307_t *dev = (pc87307_t *) priv;
+
+    if ((port & 0x0f) == 0x0c) {
+        /* Any write sets SMI Command Status (and POR, not modelled). */
+        if (dev->pm[0x01] & FER2_SMI_CMD) {
+            dev->acpi[ACPI_SMI_CMD] = val;
+            dev->pm[0x10] |= 0x20;
+        }
+        return;
+    }
+
+    if (!(dev->pm[0x01] & FER2_GPE))
+        return;
+
+    pc97317_acpi_access(dev);
+
+    switch (port & 0x0f) {
+        case 0x00:
+            dev->acpi[ACPI_GP1_STS0] &= ~val;
+            break;
+        case 0x04:
+            dev->acpi[ACPI_GP1_EN0] = val;
+            break;
+        case 0x08:
+            dev->acpi[ACPI_GP2_EN0] = val;
+            break;
+        default:
+            break;
+    }
+
+    pc97317_sci_update(dev);
+}
+
+static void
+pc97317_acpi_set_block(pc87307_t *dev, int blk, uint16_t base, int on)
+{
+    static const uint16_t sizes[4] = { 4, 2, 4, 16 };
+
+    if (dev->acpi_base[blk] != 0x0000) {
+        switch (blk) {
+            case ACPI_BLK_EVT:
+                io_removehandler(dev->acpi_base[blk], sizes[blk],
+                                 pc97317_evt_read, NULL, NULL, pc97317_evt_write, NULL, NULL, dev);
+                break;
+            case ACPI_BLK_CNT:
+                io_removehandler(dev->acpi_base[blk], sizes[blk],
+                                 pc97317_cnt_read, NULL, NULL, pc97317_cnt_write, NULL, NULL, dev);
+                break;
+            case ACPI_BLK_TMR:
+                io_removehandler(dev->acpi_base[blk], sizes[blk],
+                                 pc97317_tmr_read, NULL, pc97317_tmr_readl, NULL, NULL, NULL, dev);
+                break;
+            case ACPI_BLK_GPE:
+                io_removehandler(dev->acpi_base[blk], sizes[blk],
+                                 pc97317_gpe_read, NULL, NULL, pc97317_gpe_write, NULL, NULL, dev);
+                break;
+        }
+        dev->acpi_base[blk] = 0x0000;
+    }
+
+    if (!on || (base == 0x0000))
+        return;
+
+    dev->acpi_base[blk] = base;
+    switch (blk) {
+        case ACPI_BLK_EVT:
+            io_sethandler(base, sizes[blk],
+                          pc97317_evt_read, NULL, NULL, pc97317_evt_write, NULL, NULL, dev);
+            break;
+        case ACPI_BLK_CNT:
+            io_sethandler(base, sizes[blk],
+                          pc97317_cnt_read, NULL, NULL, pc97317_cnt_write, NULL, NULL, dev);
+            break;
+        case ACPI_BLK_TMR:
+            io_sethandler(base, sizes[blk],
+                          pc97317_tmr_read, NULL, pc97317_tmr_readl, NULL, NULL, NULL, dev);
+            break;
+        case ACPI_BLK_GPE:
+            io_sethandler(base, sizes[blk],
+                          pc97317_gpe_read, NULL, NULL, pc97317_gpe_write, NULL, NULL, dev);
+            break;
+    }
+}
+
+/* The ACPI fixed register blocks sit at the bases in power management
+   registers 08h-0Fh, enabled by FER2 (the timer by PMC3 bit 0), whatever
+   logical devices 2 and 8 are doing (4.6). */
+static void
+pc97317_acpi_handler(pc87307_t *dev)
+{
+    const uint8_t *pm = dev->pm;
+
+    pc97317_acpi_set_block(dev, ACPI_BLK_EVT, (pm[0x09] << 8) | pm[0x08], pm[0x01] & FER2_PM1_EVT);
+    pc97317_acpi_set_block(dev, ACPI_BLK_TMR, (pm[0x0b] << 8) | pm[0x0a], pm[0x04] & PMC3_TMR_CLK);
+    pc97317_acpi_set_block(dev, ACPI_BLK_CNT, (pm[0x0d] << 8) | pm[0x0c], pm[0x01] & FER2_PM1_CNT);
+    pc97317_acpi_set_block(dev, ACPI_BLK_GPE, (pm[0x0f] << 8) | pm[0x0e], pm[0x01] & (FER2_GPE | FER2_SMI_CMD));
+
+    pc97317_pm_tmr_schedule(dev);
+    pc97317_sci_update(dev);
+}
+
 static void
 pc87307_pm_write(uint16_t port, uint8_t val, void *priv)
 {
     pc87307_t *dev = (pc87307_t *) priv;
 
-    if (port & 1) {
+    if (!(port & 1)) {
+        /* The PC97317 has 17 power management registers (Table 10-1). */
+        dev->pm_idx = val & (dev->is_97317 ? 0x1f : 0x07);
+        return;
+    }
+
+    if (!dev->is_97317) {
         dev->pm[dev->pm_idx] = val;
 
-        switch (dev->pm_idx) {
-            /* FER1 - Function Enable Register 1. */
-            case 0x00:
-                fdc_handler(dev);
-                lpt_handler(dev);
-                serial_handler(dev, 1);
-                serial_handler(dev, 0);
-                break;
-
-            default:
-                break;
+        /* FER1 - Function Enable Register 1. */
+        if (dev->pm_idx == 0x00) {
+            fdc_handler(dev);
+            lpt_handler(dev);
+            serial_handler(dev, 1);
+            serial_handler(dev, 0);
         }
-    } else
-        dev->pm_idx = val & 0x07;
+        return;
+    }
+
+    switch (dev->pm_idx) {
+        /* FER1 - Function Enable Register 1: KBC, RTC, FDC, LPT, UARTs. */
+        case 0x00:
+            dev->pm[0x00] = val;
+            kbc_handler(dev);
+            rtc_handler(dev);
+            fdc_handler(dev);
+            lpt_handler(dev);
+            serial_handler(dev, 1);
+            serial_handler(dev, 0);
+            break;
+        /* FER2 - Function Enable Register 2: the ACPI blocks and GPIO. */
+        case 0x01:
+            dev->pm[0x01] = val;
+            pc97317_acpi_handler(dev);
+            gpio_handler(dev);
+            break;
+        /* PMC2 - bit 7, the multiplier clock status, is read-only. */
+        case 0x03:
+            dev->pm[0x03] = val & 0x07;
+            break;
+        /* PMC3 - bits 7 and 6, the UART busy indicators, are read-only. */
+        case 0x04:
+            dev->pm[0x04] = val & 0x0f;
+            pc97317_acpi_handler(dev);
+            break;
+        /* WDST is read-only. */
+        case 0x07:
+            break;
+        /* The ACPI fixed register base addresses; the timer and event
+           blocks are dword aligned, control word, GPE 16 bytes. */
+        case 0x08: case 0x0a:
+            dev->pm[dev->pm_idx] = val & 0xfc;
+            pc97317_acpi_handler(dev);
+            break;
+        case 0x0c:
+            dev->pm[dev->pm_idx] = val & 0xfe;
+            pc97317_acpi_handler(dev);
+            break;
+        case 0x0e:
+            dev->pm[dev->pm_idx] = val & 0xf0;
+            pc97317_acpi_handler(dev);
+            break;
+        case 0x09: case 0x0b: case 0x0d: case 0x0f:
+            dev->pm[dev->pm_idx] = val;
+            pc97317_acpi_handler(dev);
+            break;
+        /* ACPI Support: Sleep Enable, ACPI Global Lock and SMI Command
+           Status are write 1 to clear; BIOS Global Lock Release sets
+           GBL_STS. */
+        case 0x10:
+            dev->pm[0x10] = ((dev->pm[0x10] & ~val) & ACPI_SUP_STICKY) | (val & ~(ACPI_SUP_STICKY | ACPI_SUP_BGRLS));
+            if (val & ACPI_SUP_BGRLS)
+                dev->acpi[ACPI_STS_LO] |= GBL_STS;
+            pc97317_sci_update(dev);
+            break;
+        case 0x02: case 0x05: case 0x06:
+            dev->pm[dev->pm_idx] = val;
+            break;
+        default:
+            break;
+    }
 }
 
 uint8_t
@@ -224,10 +800,22 @@ pc87307_pm_read(uint16_t port, void *priv)
 {
     const pc87307_t *dev = (pc87307_t *) priv;
 
-    if (port & 1)
-        return dev->pm[dev->pm_idx];
-    else
+    if (!(port & 1))
         return dev->pm_idx;
+
+    if (!dev->is_97317)
+        return dev->pm[dev->pm_idx];
+
+    switch (dev->pm_idx) {
+        /* The multiplier clock is stable as soon as it is enabled. */
+        case 0x03:
+            return dev->pm[0x03] | ((dev->pm[0x03] & 0x04) ? 0x80 : 0x00);
+        case 0x00 ... 0x02:
+        case 0x04 ... 0x10:
+            return dev->pm[dev->pm_idx];
+        default:
+            return 0x00;
+    }
 }
 
 static void
@@ -385,7 +973,9 @@ gpio_handler(pc87307_t *dev)
 {
     pc87307_gpio_remove(dev);
 
-    uint8_t  active = (dev->ld_regs[LD_GPIO][0x00] & 0x01);
+    /* The PC97317's FER2 bit 7 gates the GPIO ports (10.2.4). */
+    uint8_t  active = (dev->ld_regs[LD_GPIO][0x00] & 0x01) &&
+                      (!dev->is_97317 || (dev->pm[0x01] & FER2_GPIO));
     uint16_t addr   = (dev->ld_regs[LD_GPIO][0x30] << 8) |
                       dev->ld_regs[LD_GPIO][0x31];
     uint16_t addr_2 = (dev->ld_regs[LD_GPIO][0x32] << 8) |
@@ -397,6 +987,300 @@ gpio_handler(pc87307_t *dev)
         pc87307_log("Enabling GPIO #2 on %04X...\n", addr_2);
         pc87307_gpio_init(dev, 1, addr_2);
     }
+}
+
+/* The PC97317's RTC (logical device 2): base address, IRQ, and Activate
+   gated by FER1 bit 2. The APC keeps running either way. */
+static void
+rtc_handler(pc87307_t *dev)
+{
+    uint8_t  active;
+    uint16_t addr;
+
+    if (dev->nvr == NULL)
+        return;
+
+    active = (dev->ld_regs[LD_RTC][0x00] & 0x01) && (dev->pm[0x00] & 0x04);
+    addr   = ((dev->ld_regs[LD_RTC][0x30] << 8) | dev->ld_regs[LD_RTC][0x31]) & 0xfffe;
+
+    if (dev->rtc_base != 0x0000)
+        nvr_at_handler(0, dev->rtc_base, dev->nvr);
+    dev->rtc_base = 0x0000;
+
+    nvr_irq_set(dev->ld_regs[LD_RTC][0x40] & 0x0f, dev->nvr);
+
+    if (active && (addr != 0x0000)) {
+        pc87307_log("Enabling RTC on %04X...\n", addr);
+        dev->rtc_base = addr;
+        nvr_at_handler(1, dev->rtc_base, dev->nvr);
+    }
+}
+
+/* RAM Lock: 38h-3Fh read and write blocked, and RAM Mask Write blocks the
+   writes to bank 0's RAM (0Eh-7Fh); only a reset clears them (4.5.8). */
+static void
+pc97317_rlr_apply(pc87307_t *dev)
+{
+    const uint8_t rlr = dev->apc[APC_RLR];
+
+    if (dev->nvr == NULL)
+        return;
+
+    for (int i = 0x0e; i < 0x80; i++) {
+        int lock = (rlr & RLR_MASK_WRITE) ? 0x01 : 0x00;
+
+        if ((rlr & RLR_LOCK) && (i >= 0x38) && (i <= 0x3f))
+            lock = 0x03;
+
+        nvr_lock_set(i, 1, lock, dev->nvr);
+    }
+}
+
+/* Registers 40h-7Fh of RTC bank 1 (the century, the date and month alarms,
+   the upper RAM ports) and bank 2 (the APC, Table 4-22). */
+static uint8_t
+pc97317_rtc_bank_read(int bank, uint8_t reg, void *priv)
+{
+    pc87307_t *dev  = (pc87307_t *) priv;
+    uint8_t    idx  = (reg & 0x7f) - 0x40;
+    uint8_t    addr = dev->rtc_bank1[RTC1_URAM_ADDR] & 0x7f;
+    uint8_t    ret  = 0x00;
+
+    if (bank == 1) {
+        switch (idx) {
+            case RTC1_CENTURY:
+            case RTC1_DOM_ALARM:
+            case RTC1_MON_ALARM:
+            case RTC1_URAM_ADDR:
+                ret = dev->rtc_bank1[idx];
+                break;
+            case RTC1_URAM_DATA:
+                if ((dev->apc[APC_RLR] & RLR_UPPER) ||
+                    ((dev->apc[APC_RLR] & RLR_READ_LOW) && (addr < 0x20)))
+                    ret = 0xff;
+                else
+                    ret = dev->upper_ram[addr];
+                break;
+            default:
+                break;
+        }
+    } else switch (idx) {
+        /* The command bits read back 0. */
+        case APC_APCR1:
+            ret = dev->apc[idx] & 0x96;
+            break;
+        case APC_APCR2:
+            ret = dev->apc[idx] & 0x7f;
+            break;
+        /* Bits 5-0 clear on read. */
+        case APC_APSR:
+            ret = dev->apc[idx];
+            dev->apc[idx] &= 0xc0;
+            break;
+        /* SWITCH is high (not pressed); the Switch On detect clears on read. */
+        case APC_APSR1:
+            ret = 0x01 | (dev->apc[idx] & 0x02);
+            dev->apc[idx] &= ~0x02;
+            break;
+        case APC_WDW ... APC_RLR:
+        case APC_WC ... APC_APCR7:
+        case APC_DADDR ... APC_CADDR:
+            ret = dev->apc[idx];
+            break;
+        default:
+            break;
+    }
+
+    pc87307_log("PC97317: RTC bank %i, %02X read  = %02X\n", bank, reg, ret);
+
+    return ret;
+}
+
+static void
+pc97317_rtc_bank_write(int bank, uint8_t reg, uint8_t val, void *priv)
+{
+    pc87307_t *dev  = (pc87307_t *) priv;
+    uint8_t    idx  = (reg & 0x7f) - 0x40;
+    uint8_t    addr = dev->rtc_bank1[RTC1_URAM_ADDR] & 0x7f;
+
+    pc87307_log("PC97317: RTC bank %i, %02X write = %02X\n", bank, reg, val);
+
+    if (bank == 1) {
+        switch (idx) {
+            case RTC1_CENTURY:
+            case RTC1_DOM_ALARM:
+            case RTC1_MON_ALARM:
+                dev->rtc_bank1[idx] = val;
+                break;
+            case RTC1_URAM_ADDR:
+                dev->rtc_bank1[idx] = val & 0x7f;
+                break;
+            case RTC1_URAM_DATA:
+                if (!(dev->apc[APC_RLR] & (RLR_UPPER | RLR_MASK_WRITE)) &&
+                    !((dev->apc[APC_RLR] & RLR_WRITE_LOW) && (addr < 0x20)))
+                    dev->upper_ram[addr] = val;
+                break;
+            default:
+                break;
+        }
+
+        nvr_dosave = 1;
+        return;
+    }
+
+    switch (idx) {
+        case APC_APCR1:
+            dev->apc[idx] = ((dev->apc[idx] & ~val) & APCR1_PF) | (val & 0x16);
+            if (val & APCR1_FS_RESET)
+                timer_stop(&dev->failsafe_timer);
+            else if (val & APCR1_FS_TRIG)
+                pc97317_failsafe_start(dev);
+            if (val & APCR1_SOC)
+                pc97317_power_off(dev);
+            break;
+        /* Software On Command: ONCTL is already active. */
+        case APC_APCR2:
+            dev->apc[idx] = val & 0x7f;
+            break;
+        case APC_RLR:
+            dev->apc[idx] |= val & 0xf8;
+            pc97317_rlr_apply(dev);
+            break;
+        case APC_WDW ... APC_WY:
+        case APC_WC ... APC_APCR7:
+        case APC_DADDR ... APC_CADDR:
+            dev->apc[idx] = val;
+            break;
+        default:
+            break;
+    }
+
+    nvr_dosave = 1;
+}
+
+/* A relocatable RTC register (DADDR/MADDR/CADDR): bit 7 picks bank 1. */
+static uint8_t
+pc97317_rtc_reloc(const pc87307_t *dev, uint8_t addr)
+{
+    uint8_t reg = addr & 0x7f;
+
+    if ((addr & 0x80) && (reg >= 0x40))
+        return dev->rtc_bank1[reg - 0x40];
+
+    return dev->nvr->regs[reg];
+}
+
+static int
+pc97317_rtc_match(uint8_t alarm, uint8_t cur)
+{
+    return ((alarm & 0xc0) == 0xc0) || (alarm == cur);
+}
+
+/* The time alarm matched: the date of month and month alarms decide the
+   alarm (RTC_STS, as well as AF); the wake-up date sets Timer Match
+   Detect (4.4, "Predetermined Wake-Up"). */
+static int
+pc97317_rtc_alarm(void *priv)
+{
+    pc87307_t     *dev  = (pc87307_t *) priv;
+    const uint8_t *regs = dev->nvr->regs;
+    int            ret;
+
+    ret = pc97317_rtc_match(pc97317_rtc_reloc(dev, dev->apc[APC_DADDR]), regs[0x07]) &&
+          pc97317_rtc_match(pc97317_rtc_reloc(dev, dev->apc[APC_MADDR]), regs[0x08]);
+
+    if (pc97317_rtc_match(dev->apc[APC_WDW], regs[0x06]) &&
+        pc97317_rtc_match(dev->apc[APC_WDM], regs[0x07]) &&
+        pc97317_rtc_match(dev->apc[APC_WM], regs[0x08]) &&
+        pc97317_rtc_match(dev->apc[APC_WY], regs[0x09]) &&
+        pc97317_rtc_match(dev->apc[APC_WC], pc97317_rtc_reloc(dev, dev->apc[APC_CADDR])))
+        dev->apc[APC_APSR] |= APSR_TMD;
+
+    if (ret) {
+        dev->acpi[ACPI_STS_HI] |= RTC_STS;
+        pc97317_pm_event(dev);
+    }
+
+    return ret;
+}
+
+/* The values on the first power-up (Tables 4-21 and 4-22, 4.6, 4.7). */
+static void
+pc97317_nvr_defaults(pc87307_t *dev)
+{
+    memset(dev->rtc_bank1, 0x00, sizeof(dev->rtc_bank1));
+    memset(dev->apc, 0x00, sizeof(dev->apc));
+    memset(dev->upper_ram, 0x00, sizeof(dev->upper_ram));
+    memset(dev->acpi, 0x00, sizeof(dev->acpi));
+
+    dev->rtc_bank1[RTC1_DOM_ALARM] = 0xc0;
+    dev->rtc_bank1[RTC1_MON_ALARM] = 0xc0;
+
+    dev->apc[APC_APSR]  = 0x41;
+    dev->apc[APC_WDW]   = 0xc0;
+    dev->apc[APC_WDM]   = 0xc0;
+    dev->apc[APC_WM]    = 0xc0;
+    dev->apc[APC_WY]    = 0xc0;
+    dev->apc[APC_WC]    = 0xc0;
+    dev->apc[APC_APCR3] = 0xa0;
+    dev->apc[APC_APCR4] = 0x2d;
+    dev->apc[APC_APCR5] = 0x2d;
+    dev->apc[APC_APCR6] = 0x2d;
+    dev->apc[APC_APCR7] = 0x05;
+    dev->apc[APC_DADDR] = 0xc9;
+    dev->apc[APC_MADDR] = 0xca;
+    dev->apc[APC_CADDR] = 0xc8;
+}
+
+/* The banks, the APC and the ACPI fixed registers share the CMOS battery:
+   they are kept in <machine>_apc.nvr and start over with the CMOS. */
+static pc87307_t *pc97317_nvr_dev = NULL;
+
+static void
+pc97317_nvr_save(void)
+{
+    pc87307_t *dev = pc97317_nvr_dev;
+    FILE      *fp;
+
+    if ((dev == NULL) || (dev->apc_fn == NULL))
+        return;
+
+    fp = nvr_fopen(dev->apc_fn, "wb");
+    if (fp != NULL) {
+        (void) fwrite(dev->rtc_bank1, 1, sizeof(dev->rtc_bank1), fp);
+        (void) fwrite(dev->apc, 1, sizeof(dev->apc), fp);
+        (void) fwrite(dev->upper_ram, 1, sizeof(dev->upper_ram), fp);
+        (void) fwrite(dev->acpi, 1, sizeof(dev->acpi), fp);
+        fclose(fp);
+    }
+}
+
+static void
+pc97317_nvr_load(pc87307_t *dev)
+{
+    uint8_t buf[PC97317_NVR_SIZE];
+    FILE   *fp = NULL;
+
+    dev->apc_fn = (char *) calloc(1, strlen(machine_get_nvr_name()) + 9 + 1);
+    sprintf(dev->apc_fn, "%s_apc.nvr", machine_get_nvr_name());
+
+    pc97317_nvr_defaults(dev);
+
+    if (!dev->nvr->is_new)
+        fp = nvr_fopen(dev->apc_fn, "rb");
+
+    if (fp != NULL) {
+        if (fread(buf, 1, sizeof(buf), fp) == sizeof(buf)) {
+            memcpy(dev->rtc_bank1, buf, 64);
+            memcpy(dev->apc, buf + 64, 64);
+            memcpy(dev->upper_ram, buf + 128, 128);
+            memcpy(dev->acpi, buf + 256, 16);
+        }
+        fclose(fp);
+    }
+
+    pc97317_nvr_dev = dev;
+    nvr_set_ven_save(pc97317_nvr_save);
 }
 
 static void
@@ -469,6 +1353,13 @@ pc87307_write(uint16_t port, uint8_t val, void *priv)
                 dev->regs[dev->cur_reg] = val;
                 break;
             case 0x21:
+                /* PC97317 SIOC1: bit 4 is the XDB strap; Lock Scratch Bit
+                   (5) sticks and makes scratch bits 7-6 read-only. */
+                if (dev->is_97317) {
+                    val = (val & 0xef) | (old & 0x30);
+                    if (old & 0x20)
+                        val = (val & 0x3f) | (old & 0xc0);
+                }
                 dev->regs[dev->cur_reg] = val;
                 fdc_toggle_flag(dev->fdc, FDC_FLAG_PS2_MCA, !(val & 0x04));
                 break;
@@ -481,6 +1372,13 @@ pc87307_write(uint16_t port, uint8_t val, void *priv)
                 break;
             case 0x24:
                 dev->pcregs[dev->regs[0x23]] = val;
+                break;
+            /* PC97317 SIOC3: P16/GPIO25, P12/CS0, the SCI polarity and IRQ. */
+            case 0x25:
+                if (dev->is_97317) {
+                    dev->regs[dev->cur_reg] = val & 0xfb;
+                    pc97317_sci_update(dev);
+                }
                 break;
             default:
                 if (dev->cur_reg >= 0x30)
@@ -500,6 +1398,7 @@ pc87307_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case LD_RTC:
                     dev->ld_regs[ld][reg] = val;
+                    rtc_handler(dev);
                     break;
                 case LD_FDC:
                     dev->ld_regs[ld][reg] = val;
@@ -549,6 +1448,7 @@ pc87307_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case LD_RTC:
                     dev->ld_regs[ld][reg] = val;
+                    rtc_handler(dev);
                     break;
                 case LD_FDC:
                     dev->ld_regs[ld][reg] = val;
@@ -587,6 +1487,7 @@ pc87307_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case LD_RTC:
                     dev->ld_regs[ld][reg] = (old & 0x01) | (val & 0xfe);
+                    rtc_handler(dev);
                     break;
                 case LD_FDC:
                     dev->ld_regs[ld][reg] = (old & 0x07) | (val & 0xf8);
@@ -655,6 +1556,7 @@ pc87307_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case LD_RTC:
                     dev->ld_regs[ld][reg] = val;
+                    rtc_handler(dev);
                     break;
                 case LD_FDC:
                     dev->ld_regs[ld][reg] = val;
@@ -798,7 +1700,7 @@ pc87307_reset(void *priv)
         memset(dev->ld_regs[i], 0x00, 0xd0);
     memset(dev->pcregs, 0x00, 0x10);
     memset(dev->gpio, 0xff, 0x08);
-    memset(dev->pm, 0x00, 0x08);
+    memset(dev->pm, 0x00, sizeof(dev->pm));
 
     dev->regs[0x20] = dev->id;
     dev->regs[0x21] = 0x04;
@@ -875,11 +1777,38 @@ pc87307_reset(void *priv)
     dev->gpio[1][1] = 0x00;
 
     dev->pm[0] = 0xff;
-    dev->pm[1] = 0xff;
+    dev->pm[1] = dev->is_97317 ? 0x87 : 0xff;
     dev->pm[4] = 0x0e;
     dev->pm[7] = 0x01;
 
     dev->gpio_base = dev->pm_base = 0xffff;
+
+    if (dev->is_97317) {
+        /* Master Reset: the APC and most of the ACPI fixed registers keep
+           their values; the RAM Lock and the enables listed in 4.6/4.7 do
+           not. */
+        dev->apc[APC_RLR] = 0x00;
+        pc97317_rlr_apply(dev);
+        timer_stop(&dev->failsafe_timer);
+
+        dev->acpi[ACPI_EN_LO]   = 0x00;
+        dev->acpi[ACPI_EN_HI]  &= ~PWRBTN_STS;
+        dev->acpi[ACPI_CNT_LO]  = 0x00;
+        dev->acpi[ACPI_GP1_STS0] &= 0x0f;
+        dev->acpi[ACPI_GP1_EN0]  &= 0x0f;
+        dev->acpi[ACPI_GP2_EN0]   = 0x00;
+        dev->sleeping = 0;
+
+        for (int i = 0; i < 4; i++)
+            pc97317_acpi_set_block(dev, i, 0x0000, 0);
+
+        if (dev->sci_irq >= 0)
+            picintclevel(1 << dev->sci_irq, &dev->sci_state);
+        dev->sci_irq = -1;
+
+        rtc_handler(dev);
+        pc97317_acpi_handler(dev);
+    }
 
     /*
         0 = 360 rpm @ 500 kbps for 3.5"
@@ -902,6 +1831,16 @@ static void
 pc87307_close(void *priv)
 {
     pc87307_t *dev = (pc87307_t *) priv;
+
+    if (dev->is_97317) {
+        timer_disable(&dev->pm_tmr_timer);
+        timer_disable(&dev->failsafe_timer);
+
+        pc97317_nvr_save();
+        pc97317_nvr_dev = NULL;
+
+        free(dev->apc_fn);
+    }
 
     free(dev);
 }
@@ -935,10 +1874,27 @@ pc87307_init(const device_t *info)
             break;
     }
 
-    if (info->local & PCX730X_15C)
+    /* SIOC2 BADDR1-0: 10b is 15Ch, 11b (and the unsupported 398h/26Eh
+       straps) 2Eh. */
+    if (((info->local & PCX730X_BADDR) >> PCX730X_BADDR_SHIFT) == 0x02)
         dev->baddr = 0x02;
     else
         dev->baddr = 0x03;
+
+    /* The PC97317's RTC is the NVR; its banks 1 and 2, the APC and the ACPI
+       fixed registers live here. */
+    dev->is_97317 = (dev->id == (PCX7307_PC97317 & PCX730X_CHIP_ID));
+    dev->sci_irq  = -1;
+    if (dev->is_97317) {
+        dev->nvr      = device_add_params(&nvr_at_device, (void *) NVR_PC873XX);
+        dev->rtc_base = 0x0070;
+        nvr_at_set_pc873xx_banks(dev->nvr, pc97317_rtc_bank_read, pc97317_rtc_bank_write,
+                                 pc97317_rtc_alarm, dev);
+        pc97317_nvr_load(dev);
+
+        timer_add(&dev->pm_tmr_timer, pc97317_pm_tmr_carry, dev, 0);
+        timer_add(&dev->failsafe_timer, pc97317_failsafe_expire, dev, 0);
+    }
 
     pc87307_reset(dev);
 
@@ -985,6 +1941,22 @@ const device_t pc87307_both_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
+};
+
+/* The PC97317 drives the board's power (APC): it has the power button. */
+const device_t pc97317_device = {
+    .name          = "National Semiconductor PC97317 Super I/O",
+    .internal_name = "pc97317",
+    .flags         = 0,
+    .local         = 0x1df,
+    .init          = pc87307_init,
+    .close         = pc87307_close,
+    .reset         = pc87307_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL,
+    .power_button  = pc97317_power_button
 };
 
 const device_t pc97307_device = {
