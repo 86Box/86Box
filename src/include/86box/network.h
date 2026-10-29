@@ -261,6 +261,7 @@ extern const device_t plip_device;
 
 /* Realtek RTL8139C+ */
 extern const device_t rtl8139c_plus_device;
+extern const device_t rtl8139c_plus_onboard_device;
 
 /* Intel 8255x */
 extern const device_t i82557_device;
