@@ -1731,6 +1731,25 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
     }
 }
 
+/* The len bytes at addr in a mapping's exec memory, for the physical
+   paths, or NULL where they would fall past the RAM allocated: a mapping
+   added with no size has a full mask, and one in RAM can describe more of
+   it than is installed (SCAMP's for a RAMMAP larger than the RAM). The
+   mapping's handlers, which check, are used then. */
+static __inline uint8_t *
+mem_phys_exec(const mem_mapping_t *map, uint32_t addr, uint32_t len)
+{
+    uint8_t *p;
+
+    if (!cpu_use_exec || (map == NULL) || (map->exec == NULL))
+        return NULL;
+    p = &map->exec[(addr - map->base) & map->mask];
+    if (((uintptr_t) map->exec >= (uintptr_t) ram) && ((uintptr_t) map->exec < ((uintptr_t) ram + ram_size)) &&
+        (((uintptr_t) p + len) > ((uintptr_t) ram + ram_size)))
+        return NULL;
+    return p;
+}
+
 /* Where the len bytes at addr are, as the processor would read them, when
    they lie in one granule of plain memory (RAM or ROM behind no handler);
    NULL otherwise, for the caller to read them one at a time. */
@@ -1746,7 +1765,7 @@ mem_phys_ptr(uint32_t addr, uint32_t len)
     off = (addr - map->base) & map->mask;
     if ((((addr + len - 1) - map->base) & map->mask) != (off + len - 1))
         return NULL; /* a small mirrored mapping wraps inside the granule */
-    return &map->exec[off];
+    return mem_phys_exec(map, addr, len);
 }
 
 uint8_t
@@ -1758,8 +1777,10 @@ mem_readb_phys(uint32_t addr)
     mem_logical_addr = 0xffffffff;
 
     if (map) {
-        if (cpu_use_exec && map->exec)
-            ret = map->exec[(addr - map->base) & map->mask];
+        const uint8_t *p = mem_phys_exec(map, addr, 1);
+
+        if (p)
+            ret = *p;
         else if (map->read_b)
             ret = map->read_b(addr, map->priv);
     }
@@ -1776,8 +1797,7 @@ mem_readw_phys(uint32_t addr)
 
     mem_logical_addr = 0xffffffff;
 
-    if (cpu_use_exec && ((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->exec)) {
-        p   = (uint16_t *) &(map->exec[(addr - map->base) & map->mask]);
+    if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (p = (uint16_t *) mem_phys_exec(map, addr, 2))) {
         ret = *p;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->read_w))
         ret = map->read_w(addr, map->priv);
@@ -1798,8 +1818,7 @@ mem_readl_phys(uint32_t addr)
 
     mem_logical_addr = 0xffffffff;
 
-    if (cpu_use_exec && ((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->exec)) {
-        p   = (uint32_t *) &(map->exec[(addr - map->base) & map->mask]);
+    if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (p = (uint32_t *) mem_phys_exec(map, addr, 4))) {
         ret = *p;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->read_l))
         ret = map->read_l(addr, map->priv);
@@ -1853,7 +1872,7 @@ mem_read_phys_block(void *dest, uint32_t addr, uint32_t len)
         if (!map || !map->exec)
             break;
         off = (addr - map->base) & map->mask;
-        if ((map->mask - off) < (chunk - 1))
+        if (((map->mask - off) < (chunk - 1)) || !mem_phys_exec(map, addr, chunk))
             break;
 
         memcpy(p + done, &(map->exec[off]), chunk);
@@ -1874,8 +1893,10 @@ mem_writeb_phys(uint32_t addr, uint8_t val)
     mem_logical_addr = 0xffffffff;
 
     if (map) {
-        if (cpu_use_exec && map->exec)
-            map->exec[(addr - map->base) & map->mask] = val;
+        uint8_t *p = mem_phys_exec(map, addr, 1);
+
+        if (p)
+            *p = val;
         else if (map->write_b)
             map->write_b(addr, val, map->priv);
         mem_phys_written(addr, 1);
@@ -1890,8 +1911,7 @@ mem_writew_phys(uint32_t addr, uint16_t val)
 
     mem_logical_addr = 0xffffffff;
 
-    if (cpu_use_exec && ((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->exec)) {
-        p  = (uint16_t *) &(map->exec[(addr - map->base) & map->mask]);
+    if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (p = (uint16_t *) mem_phys_exec(map, addr, 2))) {
         *p = val;
         mem_phys_written(addr, 2);
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->write_w)) {
@@ -1911,8 +1931,7 @@ mem_writel_phys(uint32_t addr, uint32_t val)
 
     mem_logical_addr = 0xffffffff;
 
-    if (cpu_use_exec && ((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->exec)) {
-        p  = (uint32_t *) &(map->exec[(addr - map->base) & map->mask]);
+    if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (p = (uint32_t *) mem_phys_exec(map, addr, 4))) {
         *p = val;
         mem_phys_written(addr, 4);
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->write_l)) {
@@ -2087,7 +2106,7 @@ mem_write_phys_block(const void *src, uint32_t addr, uint32_t len)
         if (!map || !map->exec)
             break;
         off = (addr - map->base) & map->mask;
-        if ((map->mask - off) < (chunk - 1))
+        if (((map->mask - off) < (chunk - 1)) || !mem_phys_exec(map, addr, chunk))
             break;
 
         memcpy(&(map->exec[off]), p + done, chunk);
@@ -2490,14 +2509,19 @@ mem_set_ram_alias(uint32_t base, uint32_t ram_addr, uint32_t size, int set)
         mem_invalidate_range(base, base + size - 1);
 
     for (uint32_t c = base >> 12; c < ((base + size) >> 12); c++) {
-        uint32_t addr = set ? (ram_addr + ((c << 12) - base)) : (c << 12);
+        const uint32_t alias = ram_addr + ((c << 12) - base);
+        uint32_t       addr  = set ? alias : (c << 12);
 
         if (c >= pages_sz)
             break;
 
+        /* A page left with no RAM keeps the byte masks of the RAM it was an
+           alias of, as mem_remap_top() does: its own index is past the end
+           of the arrays, and code compiled through the alias can still be
+           flushed from it. */
         if (((uint64_t) addr + 0x1000) > ((uint64_t) mem_size << 10)) {
             pages[c].mem = page_ff;
-            addr         = c << 12;
+            addr         = (((uint64_t) alias + 0x1000) <= ((uint64_t) mem_size << 10)) ? alias : 0;
         } else
             pages[c].mem = &ram[addr];
         pages[c].write_b                = mem_write_ramb_page;
@@ -2588,6 +2612,8 @@ mem_mapping_bus_access_allowed(uint32_t flags, uint16_t access)
 static __inline uint8_t *
 mem_mapping_exec_granule(const mem_mapping_t *map, uint64_t c)
 {
+    if (map->flags & MEM_MAPPING_NO_CODEGEN)
+        return NULL;
     if (map->mask == 0xffffffff)
         return map->exec + (c - map->base);
     if ((map->mask & MEM_GRANULARITY_MASK) != MEM_GRANULARITY_MASK)

@@ -123,6 +123,8 @@
                                      by the bus (mem_set_cache_access). */
 #define MEM_MAPPING_CPU_ONLY  256 /* The processor's own: seen by its accesses and never
                                      by a bus master's (mem_*_phys). */
+#define MEM_MAPPING_NO_CODEGEN 512 /* Code in it is interpreted: writes to its memory are
+                                      not tracked at its own address. */
 
 /* #define's for memory granularity, currently 4k, less does
    not work because of internal 4k pages. */
