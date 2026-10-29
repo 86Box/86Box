@@ -1355,17 +1355,17 @@ cyrix_smm_decode_op(int *is_rep)
     return op;
 }
 
+/* op and is_rep: the I/O instruction, prefixes stepped over, as
+   cyrix_smm_decode_op() read it before SMRAM was mapped in. */
 static void
-smram_save_state_cyrix(uint32_t *saved_state, int in_hlt)
+smram_save_state_cyrix(uint32_t *saved_state, int in_hlt, uint8_t op, int is_rep)
 {
-    /* The I/O instruction, prefixes stepped over: a REP INS or OUTS is the
-       one whose ESI or EDI the header carries. P is for an SMI one of its
-       I/O cycles asserted (3.11.5): an SMI# that comes in on its own, a
-       timer's, is taken between its iterations as well, and a handler
-       told P would take it for a trapped cycle to repeat. */
-    int           is_rep = 0;
-    const uint8_t op     = io_cycle_smi ? cyrix_smm_decode_op(&is_rep) : 0x00;
-    const int     rep    = io_cycle_smi && is_rep && (op >= 0x6c) && (op <= 0x6f);
+    /* A REP INS or OUTS is the one whose ESI or EDI the header carries.
+       P is for an SMI one of its I/O cycles asserted (3.11.5): an SMI# that
+       comes in on its own, a timer's, is taken between its iterations as
+       well, and a handler told P would take it for a trapped cycle to
+       repeat. */
+    const int rep = io_cycle_smi && is_rep && (op >= 0x6c) && (op <= 0x6f);
 
     saved_state[0] = dr[7];
     saved_state[1] = cpu_state.flags | (cpu_state.eflags << 16);
@@ -1515,6 +1515,14 @@ enter_smm(int in_hlt)
     x386_common_log("EAX = %08X, EBX = %08X, ECX = %08X, EDX = %08X, ESI = %08X, EDI = %08X, ESP = %08X, EBP = %08X\n",
                     EAX, EBX, ECX, EDX, ESI, EDI, ESP, EBP);
 
+    /* The Cyrix header's I/O instruction is read at CS:oldpc as the code
+       that ran saw it, before SMRAM is mapped in over it (in SMM already,
+       for a nested SMI, the map does not change). */
+    int     cyrix_rep = 0;
+    uint8_t cyrix_op  = 0x00;
+    if (is_cxsmm && io_cycle_smi)
+        cyrix_op = cyrix_smm_decode_op(&cyrix_rep);
+
     flags_rebuild();
     if (!nested) {
         in_smm = 1;
@@ -1531,7 +1539,7 @@ enter_smm(int in_hlt)
     memset(saved_state, 0x00, SMM_SAVE_STATE_MAP_SIZE * sizeof(uint32_t));
 
     if (is_cxsmm) /* Cx6x86 */
-        smram_save_state_cyrix(saved_state, in_hlt);
+        smram_save_state_cyrix(saved_state, in_hlt, cyrix_op, cyrix_rep);
     else if (is_pentium || is_am486) /* Am486 / 5x86 / Intel P5 (Pentium) */
         smram_save_state_p5(saved_state, in_hlt);
     else if (is_k5 || is_k6) /* AMD K5 and K6 */
